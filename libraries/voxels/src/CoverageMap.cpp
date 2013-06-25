@@ -235,6 +235,7 @@ void CoverageRegion::init() {
     _polygonArraySize = 0;
     _polygons = NULL;
     _polygonDistances = NULL;
+    _polygonSizes = NULL;
 }
 
 
@@ -270,11 +271,16 @@ void CoverageRegion::erase() {
         delete[] _polygonDistances;
         _polygonDistances = NULL;
     }
+    if (_polygonSizes) {
+        delete[] _polygonSizes;
+        _polygonSizes = NULL;
+    }
 }
 
 void CoverageRegion::growPolygonArray() {
     VoxelProjectedPolygon** newPolygons  = new VoxelProjectedPolygon*[_polygonArraySize + DEFAULT_GROW_SIZE];
-    float*                 newDistances = new float[_polygonArraySize + DEFAULT_GROW_SIZE];
+    float*                  newDistances = new float[_polygonArraySize + DEFAULT_GROW_SIZE];
+    float*                  newSizes     = new float[_polygonArraySize + DEFAULT_GROW_SIZE];
 
 
     if (_polygons) {
@@ -282,9 +288,12 @@ void CoverageRegion::growPolygonArray() {
         delete[] _polygons;
         memcpy(newDistances, _polygonDistances, sizeof(float) * _polygonCount);
         delete[] _polygonDistances;
+        memcpy(newSizes, _polygonSizes, sizeof(float) * _polygonCount);
+        delete[] _polygonSizes;
     }
-    _polygons = newPolygons;
+    _polygons         = newPolygons;
     _polygonDistances = newDistances;
+    _polygonSizes     = newSizes;
     _polygonArraySize = _polygonArraySize + DEFAULT_GROW_SIZE;
     //printLog("CoverageMap::growPolygonArray() _polygonArraySize=%d...\n",_polygonArraySize);
 }
@@ -326,13 +335,28 @@ void CoverageRegion::storeInArray(VoxelProjectedPolygon* polygon) {
         growPolygonArray();
     }
 
-    // This old code assumes that polygons will always be added in z-buffer order, but that doesn't seem to
-    // be a good assumption. So instead, we will need to sort this by distance. Use a binary search to find the
-    // insertion point in this array, and shift the array accordingly
-    const int IGNORED = NULL;
-    _polygonCount = insertIntoSortedArrays((void*)polygon, polygon->getDistance(), IGNORED,
-                                           (void**)_polygons, _polygonDistances, IGNORED,
-                                           _polygonCount, _polygonArraySize);
+    // As an experiment we're going to see if we get an improvement by storing the polygons in coverage area sorted order
+    // this means the bigger polygons are earlier in the array. We should have a higher probability of being occluded earlier
+    // in the list. We still check to see if the polygon is "in front" of the target polygon before we test occlusion. Since
+    // sometimes things come out of order.
+    const bool SORT_BY_SIZE = false;
+    if (SORT_BY_SIZE) {
+        // This old code assumes that polygons will always be added in z-buffer order, but that doesn't seem to
+        // be a good assumption. So instead, we will need to sort this by distance. Use a binary search to find the
+        // insertion point in this array, and shift the array accordingly
+        const int IGNORED = NULL;
+        float area = polygon->getBoundingBox().area();
+        float reverseArea = 4.0f - area;
+printLog("store by size area=%f reverse area=%f\n", area, reverseArea);
+        _polygonCount = insertIntoSortedArrays((void*)polygon, reverseArea, IGNORED,
+                                               (void**)_polygons, _polygonSizes, IGNORED,
+                                               _polygonCount, _polygonArraySize);
+    } else {
+        const int IGNORED = NULL;
+        _polygonCount = insertIntoSortedArrays((void*)polygon, polygon->getDistance(), IGNORED,
+                                               (void**)_polygons, _polygonDistances, IGNORED,
+                                               _polygonCount, _polygonArraySize);
+    }
                                            
     // Debugging and Optimization Tuning code.
     if (_polygonCount > _maxPolygonsUsed) {
@@ -394,3 +418,24 @@ CoverageMapStorageResult CoverageRegion::checkRegion(VoxelProjectedPolygon* poly
     }
     return result;
 }
+
+
+
+
+/////////////////////////////////////////////////////////////////
+// Notes on improvements.
+//
+// Let's say that we are going to combine polygon projects together if they intersect. How would we do that?
+//
+// On "check/insert"...
+//   We start at top of QuadTree, and we check to see if the checkpolygon's bounding box overlaps with any bounding boxes of
+//   polygons in the current quad level.
+//   If it overlaps, we check to see if the "in map" polygon occludes the checkPolygon.
+//     This operation could create side data that tells us:
+//          1) checkPolygon is COMPLETELY outside of levelPolygon << If so, no occlusion, and can't be combined
+//          2) checkPolygon is COMPLETELY INSIDE of levelPolygon << If so, it is occluded and does not need to be combined
+//          3) checkPolygon has some points INSIDE some OUTSIDE
+//              3a) which vertices are "inside" 
+//              3b) which vertices are "outside"
+//              3c) for all pairs of vertices for which one is "inside" and the other "outside" we can determine an 
+//                  intersection point. This point will be used in our "union"

@@ -50,7 +50,10 @@ private:
     int                     _polygonCount; // how many polygons at this level
     int                     _polygonArraySize; // how much room is there to store polygons at this level
     VoxelProjectedPolygon**  _polygons;
+    
+    // we will use one or the other of these depending on settings in the code.
     float*                  _polygonDistances;
+    float*                  _polygonSizes;
     void growPolygonArray();
     static const int DEFAULT_GROW_SIZE = 100;
 };
