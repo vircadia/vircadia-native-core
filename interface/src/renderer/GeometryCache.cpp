@@ -25,18 +25,14 @@ void GeometryCache::renderHemisphere(int slices, int stacks) {
         GLfloat* vertexData = new GLfloat[vertices * 3];
         GLfloat* vertex = vertexData;
         for (int i = 0; i < stacks - 1; i++) {
-            float phi = PIf * 0.5f * i / (stacks - 1), z, radius;
-            sincosf(phi, &z, &radius);
+            float phi = PIf * 0.5f * i / (stacks - 1);
+            float z = sinf(phi), radius = cosf(phi);
             
             for (int j = 0; j < slices; j++) {
                 float theta = PIf * 2.0f * j / slices;
-                float x, y;
-                sincosf(theta, &x, &y);
-                x *= radius;
-                y *= radius;
-                
-                *(vertex++) = x;
-                *(vertex++) = y;
+
+                *(vertex++) = sinf(theta) * radius;
+                *(vertex++) = cosf(theta) * radius;
                 *(vertex++) = z;
             }
         }
