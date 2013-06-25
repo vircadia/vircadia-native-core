@@ -181,6 +181,8 @@ FrameGrabber::FrameGrabber() : _capture(0), _searchWindow(0, 0, 0, 0), _freenect
 
 FrameGrabber::~FrameGrabber() {
     if (_freenectContext != 0) {
+        freenect_stop_depth(_freenectDevice);
+        freenect_stop_video(_freenectDevice);
         freenect_close_device(_freenectDevice);
         freenect_shutdown(_freenectContext);
         
@@ -198,7 +200,7 @@ void FrameGrabber::grabFrame() {
         return;
     }
     if (_freenectContext != 0) {
-        
+        freenect_process_events(_freenectContext);
         return;
     }
     
@@ -250,11 +252,21 @@ void FrameGrabber::grabFrame() {
         Q_ARG(cv::Mat, frame), Q_ARG(cv::RotatedRect, faceRect));
 }
 
+static void depthCallback(freenect_device* freenectDevice, void* depth, uint32_t timestamp) {
+}
+
+static void videoCallback(freenect_device* freenectDevice, void* video, uint32_t timestamp) {
+}
+
 bool FrameGrabber::init() {
     // first try for a Kinect
     if (freenect_init(&_freenectContext, 0) >= 0) {
         if (freenect_num_devices(_freenectContext) > 0) {
             if (freenect_open_device(_freenectContext, &_freenectDevice, 0) >= 0) {
+                freenect_set_depth_callback(_freenectDevice, depthCallback);
+	            freenect_set_video_callback(_freenectDevice, videoCallback);
+                freenect_start_depth(_freenectDevice);
+	            freenect_start_video(_freenectDevice);
                 return true;
             }
         }
