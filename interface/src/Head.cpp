@@ -76,7 +76,8 @@ Head::Head(Avatar* owningAvatar) :
     _leftEyeBlink(0.0f),
     _rightEyeBlink(0.0f),
     _leftEyeBlinkVelocity(0.0f),
-    _rightEyeBlinkVelocity(0.0f)
+    _rightEyeBlinkVelocity(0.0f),
+    _timeWithoutTalking(0.0f)
 {
     if (USING_PHYSICAL_MOHAWK) {
         resetHairPhysics();
@@ -147,12 +148,22 @@ void Head::simulate(float deltaTime, bool isMine) {
         _saccadeTarget = SACCADE_MAGNITUDE * randVector();
     }
     _saccade += (_saccadeTarget - _saccade) * 0.50f;
-                
+    
     //  Update audio trailing average for rendering facial animations
     const float AUDIO_AVERAGING_SECS = 0.05;
     _averageLoudness = (1.f - deltaTime / AUDIO_AVERAGING_SECS) * _averageLoudness +
                              (deltaTime / AUDIO_AVERAGING_SECS) * _audioLoudness;
-                             
+    
+    //  Detect transition from talking to not; force blink after that and a delay
+    bool forceBlink = false;
+    const float TALKING_LOUDNESS = 100.0f;
+    const float BLINK_AFTER_TALKING = 0.25f;
+    if (_averageLoudness > TALKING_LOUDNESS) {
+        _timeWithoutTalking = 0.0f;
+    
+    } else if (_timeWithoutTalking < BLINK_AFTER_TALKING && (_timeWithoutTalking += deltaTime) >= BLINK_AFTER_TALKING) {
+        forceBlink = true;
+    }
                              
     //  Update audio attack data for facial animation (eyebrows and mouth)
     _audioAttack = 0.9 * _audioAttack + 0.1 * fabs(_audioLoudness - _lastLoudness);
@@ -172,8 +183,10 @@ void Head::simulate(float deltaTime, bool isMine) {
     const float FULLY_OPEN = 0.0f;
     const float FULLY_CLOSED = 1.0f;
     if (_leftEyeBlinkVelocity == 0.0f && _rightEyeBlinkVelocity == 0.0f) {
-        const float BLINK_INTERVAL = 4.0f;
-        if (shouldDo(BLINK_INTERVAL, deltaTime)) {
+        // no blinking when brows are raised; blink less with increasing loudness
+        const float ROOT_LOUDNESS_TO_BLINK_INTERVAL = 0.75f;
+        if (forceBlink || _browAudioLift < EPSILON && shouldDo(
+                sqrtf(_averageLoudness) * ROOT_LOUDNESS_TO_BLINK_INTERVAL, deltaTime)) {
             _leftEyeBlinkVelocity = BLINK_SPEED;
             _rightEyeBlinkVelocity = BLINK_SPEED;
         }    
