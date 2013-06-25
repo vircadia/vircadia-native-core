@@ -72,9 +72,9 @@ void GeometryCache::renderHemisphere(int slices, int stacks) {
         }
         
         glGenBuffers(1, &vbo.second);
-        glBindBuffer(GL_ARRAY_BUFFER, vbo.second);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo.second);
         const int BYTES_PER_INDEX = sizeof(GLushort);
-        glBufferData(GL_ARRAY_BUFFER, indices * BYTES_PER_INDEX, indexData, GL_STATIC_DRAW);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices * BYTES_PER_INDEX, indexData, GL_STATIC_DRAW);
         delete[] indexData;
     
     } else {
