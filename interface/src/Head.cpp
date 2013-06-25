@@ -185,8 +185,8 @@ void Head::simulate(float deltaTime, bool isMine) {
     if (_leftEyeBlinkVelocity == 0.0f && _rightEyeBlinkVelocity == 0.0f) {
         // no blinking when brows are raised; blink less with increasing loudness
         const float ROOT_LOUDNESS_TO_BLINK_INTERVAL = 0.75f;
-        if (forceBlink || _browAudioLift < EPSILON && shouldDo(
-                sqrtf(_averageLoudness) * ROOT_LOUDNESS_TO_BLINK_INTERVAL, deltaTime)) {
+        if (forceBlink || (_browAudioLift < EPSILON && shouldDo(
+                sqrtf(_averageLoudness) * ROOT_LOUDNESS_TO_BLINK_INTERVAL, deltaTime))) {
             _leftEyeBlinkVelocity = BLINK_SPEED;
             _rightEyeBlinkVelocity = BLINK_SPEED;
         }    
