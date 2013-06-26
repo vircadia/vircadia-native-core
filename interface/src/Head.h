@@ -110,6 +110,7 @@ private:
     float       _rightEyeBlink;
     float       _leftEyeBlinkVelocity;
     float       _rightEyeBlinkVelocity;
+    float       _timeWithoutTalking;
     
     static ProgramObject* _irisProgram;
     static GLuint _irisTextureID;
