@@ -9,9 +9,9 @@
 #ifndef __interface__Application__
 #define __interface__Application__
 
+#include <map>
 #include <pthread.h> 
 #include <time.h>
-#include <map>
 
 #include <QApplication>
 #include <QAction>
