@@ -959,10 +959,6 @@ void Application::editPreferences() {
     headCameraPitchYawScale->setValue(_headCameraPitchYawScale);
     form->addRow("Head Camera Pitch/Yaw Scale:", headCameraPitchYawScale);
 
-    QCheckBox* audioEchoCancellation = new QCheckBox();
-    audioEchoCancellation->setChecked(_audio.isCancellingEcho());
-    form->addRow("Audio Echo Cancellation", audioEchoCancellation);
-    
     QDoubleSpinBox* leanScale = new QDoubleSpinBox();
     leanScale->setValue(_myAvatar.getLeanScale());
     form->addRow("Lean Scale:", leanScale);
@@ -984,7 +980,6 @@ void Application::editPreferences() {
     QUrl url(avatarURL->text());
     _myAvatar.getVoxels()->setVoxelURL(url);
     sendAvatarVoxelURLMessage(url);
-    _audio.setIsCancellingEcho( audioEchoCancellation->isChecked() );
     _headCameraPitchYawScale = headCameraPitchYawScale->value();
     _myAvatar.setLeanScale(leanScale->value());
     _audioJitterBufferSamples = audioJitterBufferSamples->value();
@@ -2794,9 +2789,6 @@ void Application::loadSettings(QSettings* settings) {
     _viewFrustumOffsetDistance = loadSetting(settings, "viewFrustumOffsetDistance", 0.0f);
     _viewFrustumOffsetUp       = loadSetting(settings, "viewFrustumOffsetUp"      , 0.0f);
     settings->endGroup();
-    settings->beginGroup("Audio Echo Cancellation");
-    _audio.setIsCancellingEcho(settings->value("enabled", false).toBool());
-    settings->endGroup();
 
     scanMenuBar(&Application::loadAction, settings);
     getAvatar()->loadData(settings);    
@@ -2816,9 +2808,6 @@ void Application::saveSettings(QSettings* settings) {
     settings->setValue("viewFrustumOffsetRoll",     _viewFrustumOffsetRoll);
     settings->setValue("viewFrustumOffsetDistance", _viewFrustumOffsetDistance);
     settings->setValue("viewFrustumOffsetUp",       _viewFrustumOffsetUp);
-    settings->endGroup();
-    settings->beginGroup("Audio");
-    settings->setValue("echoCancellation", _audio.isCancellingEcho());
     settings->endGroup();
     
     scanMenuBar(&Application::saveAction, settings);

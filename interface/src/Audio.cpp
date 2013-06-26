@@ -56,18 +56,7 @@ static const int   AEC_BUFFERED_FRAMES = 6;                                     
 static const int   AEC_BUFFERED_SAMPLES_PER_CHANNEL = BUFFER_LENGTH_SAMPLES_PER_CHANNEL * AEC_BUFFERED_FRAMES;
 static const int   AEC_BUFFERED_SAMPLES = AEC_BUFFERED_SAMPLES_PER_CHANNEL * AEC_N_CHANNELS_PLAY;
 static const int   AEC_TMP_BUFFER_SIZE = (AEC_N_CHANNELS_MIC +                  // Temporary space for processing a
-        AEC_N_CHANNELS_PLAY) * BUFFER_LENGTH_SAMPLES_PER_CHANNEL;               //  single frame
-
-// Speex preprocessor and echo canceller configuration
-static const int   AEC_NOISE_REDUCTION = -80;                                   // Noise reduction (important)
-static const int   AEC_RESIDUAL_ECHO_REDUCTION = -60;                           // Residual echo reduction
-static const int   AEC_RESIDUAL_ECHO_REDUCTION_ACTIVE = -45;                    //  ~on active side
-static const bool  AEC_USE_AGC = true;                                          // Automatic gain control
-static const int   AEC_AGC_MAX_GAIN = -30;                                      // Gain in db
-static const int   AEC_AGC_TARGET_LEVEL = 9000;                                 // Target reference level
-static const int   AEC_AGC_MAX_INC = 6;                                         // Max increase in db/s
-static const int   AEC_AGC_MAX_DEC = 200;                                       // Max decrease in db/s
-static const bool  AEC_USE_VAD = false;                                         // Voice activity determination
+                                          AEC_N_CHANNELS_PLAY) * BUFFER_LENGTH_SAMPLES_PER_CHANNEL;               //  single frame
 
 // Ping test configuration 
 static const float PING_PITCH = 16.f;                                           // Ping wavelength, # samples / radian
@@ -86,8 +75,6 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
     AgentList* agentList = AgentList::getInstance();
     Application* interface = Application::getInstance();
     Avatar* interfaceAvatar = interface->getAvatar();
-
-    eventuallyCancelEcho(inputLeft);
  
     // Add Procedural effects to input samples
     addProceduralSounds(inputLeft, BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
@@ -104,13 +91,7 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
         _lastInputLoudness = loudness;
         
         // add input (@microphone) data to the scope
-#ifdef VISUALIZE_ECHO_CANCELLATION
-            if (! isCancellingEcho()) {
-#endif
         _scope->addSamples(0, inputLeft, BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
-#ifdef VISUALIZE_ECHO_CANCELLATION
-            }
-#endif
 
         Agent* audioMixer = agentList->soloAgentOfType(AGENT_TYPE_AUDIO_MIXER);
         
@@ -276,19 +257,11 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
     }
 
     eventuallySendRecvPing(inputLeft, outputLeft, outputRight);
-    eventuallyRecordEcho(outputLeft, outputRight);
 
 
     // add output (@speakers) data just written to the scope
-#ifdef VISUALIZE_ECHO_CANCELLATION
-        if (! isCancellingEcho()) {
-    _scope->setColor(2, 0x00ffff);
-#endif
     _scope->addSamples(1, outputLeft, BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
     _scope->addSamples(2, outputRight, BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
-#ifdef VISUALIZE_ECHO_CANCELLATION
-        }
-#endif
 
     gettimeofday(&_lastCallbackTime, NULL);
 }
@@ -342,11 +315,6 @@ Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples) :
     _totalPacketsReceived(0),
     _firstPacketReceivedTime(),
     _packetsReceivedThisPlayback(0),
-    _isCancellingEcho(false),
-    _echoDelay(0),
-    _echoSamplesLeft(0l),
-    _speexEchoState(NULL),
-    _speexPreprocessState(NULL),
     _isSendingEchoPing(false),
     _pingAnalysisPending(false),
     _pingFramesToRecord(0),
@@ -393,39 +361,8 @@ Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples) :
     }
  
     _echoSamplesLeft = new int16_t[AEC_BUFFERED_SAMPLES + AEC_TMP_BUFFER_SIZE];
-    if (! _echoSamplesLeft) {
-        return;
-    }
     memset(_echoSamplesLeft, 0, AEC_BUFFERED_SAMPLES * sizeof(int16_t));
-    _echoSamplesRight = _echoSamplesLeft + AEC_BUFFERED_SAMPLES_PER_CHANNEL;
-    _speexTmpBuf = _echoSamplesRight + AEC_BUFFERED_SAMPLES_PER_CHANNEL;
-
-    _speexPreprocessState = speex_preprocess_state_init(BUFFER_LENGTH_SAMPLES_PER_CHANNEL, SAMPLE_RATE);
-    if (_speexPreprocessState) {
-        _speexEchoState = speex_echo_state_init_mc(BUFFER_LENGTH_SAMPLES_PER_CHANNEL, 
-                                                   AEC_FILTER_LENGTH, AEC_N_CHANNELS_MIC, AEC_N_CHANNELS_PLAY);
-        if (_speexEchoState) {
-            speex_preprocess_ctl(_speexPreprocessState, SPEEX_PREPROCESS_SET_ECHO_STATE, _speexEchoState);
-            int tmp;
-            speex_echo_ctl(_speexEchoState, SPEEX_ECHO_SET_SAMPLING_RATE, &(tmp = SAMPLE_RATE));
-            tmp = AEC_NOISE_REDUCTION;
-            speex_preprocess_ctl(_speexPreprocessState, SPEEX_PREPROCESS_SET_NOISE_SUPPRESS, &tmp);
-            tmp = AEC_RESIDUAL_ECHO_REDUCTION;
-            speex_preprocess_ctl(_speexPreprocessState, SPEEX_PREPROCESS_SET_ECHO_SUPPRESS, &tmp);
-            tmp = AEC_RESIDUAL_ECHO_REDUCTION_ACTIVE;
-            speex_preprocess_ctl(_speexPreprocessState, SPEEX_PREPROCESS_SET_ECHO_SUPPRESS_ACTIVE, &tmp);
-            speex_preprocess_ctl(_speexPreprocessState, SPEEX_PREPROCESS_SET_AGC, &(tmp = int(AEC_USE_AGC)));
-            speex_preprocess_ctl(_speexPreprocessState, SPEEX_PREPROCESS_SET_AGC_MAX_GAIN, &(tmp = AEC_AGC_MAX_GAIN));
-            speex_preprocess_ctl(_speexPreprocessState, SPEEX_PREPROCESS_SET_AGC_TARGET, &(tmp = AEC_AGC_TARGET_LEVEL));
-            speex_preprocess_ctl(_speexPreprocessState, SPEEX_PREPROCESS_SET_AGC_INCREMENT, &(tmp = AEC_AGC_MAX_INC));
-            speex_preprocess_ctl(_speexPreprocessState, SPEEX_PREPROCESS_SET_AGC_DECREMENT, &(tmp = AEC_AGC_MAX_DEC));
-            speex_preprocess_ctl(_speexPreprocessState, SPEEX_PREPROCESS_SET_VAD, &(tmp = int(AEC_USE_VAD)));
-        } else {
-            speex_preprocess_state_destroy(_speexPreprocessState);
-            _speexPreprocessState = NULL;
-        }
-    }
-
+    
     // start the stream now that sources are good to go
     outputPortAudioError(Pa_StartStream(_stream));
     
@@ -445,10 +382,6 @@ Audio::~Audio() {
     if (_stream) {
         outputPortAudioError(Pa_CloseStream(_stream));
         outputPortAudioError(Pa_Terminate());
-    }
-    if (_speexEchoState) {
-        speex_preprocess_state_destroy(_speexPreprocessState);
-        speex_echo_state_destroy(_speexEchoState);
     }
     delete[] _echoSamplesLeft;
 }
@@ -639,83 +572,6 @@ void Audio::addProceduralSounds(int16_t* inputBuffer, int numSamples) {
     }
 }
 
-// -----------------------------
-// Speex-based echo cancellation
-// -----------------------------
-
-bool Audio::isCancellingEcho() const {
-    return _isCancellingEcho && ! (_pingFramesToRecord != 0 || _pingAnalysisPending || ! _speexPreprocessState);
-}
-
-void Audio::setIsCancellingEcho(bool enable) {
-    if (enable && _speexPreprocessState) {
-        speex_echo_state_reset(_speexEchoState);
-        _echoWritePos = 0;
-        memset(_echoSamplesLeft, 0, AEC_BUFFERED_SAMPLES * sizeof(int16_t));
-    }
-    _isCancellingEcho = enable;
-}
-
-inline void Audio::eventuallyCancelEcho(int16_t* inputLeft) {
-    if (! isCancellingEcho()) {
-        return;
-    }
-
-    // Construct an artificial frame from the captured playback
-    // that contains the appropriately delayed output to cancel
-    unsigned n = BUFFER_LENGTH_SAMPLES_PER_CHANNEL, n2 = 0;
-    unsigned readPos = (_echoWritePos + AEC_BUFFERED_SAMPLES_PER_CHANNEL - _echoDelay) % AEC_BUFFERED_SAMPLES_PER_CHANNEL;
-    unsigned readEnd = readPos + n;
-    if (readEnd >= AEC_BUFFERED_SAMPLES_PER_CHANNEL) {
-        n2 = (readEnd -= AEC_BUFFERED_SAMPLES_PER_CHANNEL);
-        n -= n2;
-    }
-    // Use two subsequent buffers for the two stereo channels
-    int16_t* playBufferLeft = _speexTmpBuf + BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
-    memcpy(playBufferLeft, _echoSamplesLeft + readPos, n * sizeof(int16_t));
-    memcpy(playBufferLeft + n, _echoSamplesLeft, n2 * sizeof(int16_t));
-    int16_t* playBufferRight = playBufferLeft + BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
-    memcpy(playBufferRight, _echoSamplesRight + readPos, n * sizeof(int16_t));
-    memcpy(playBufferRight + n, _echoSamplesLeft, n2 * sizeof(int16_t));
-
-#ifdef VISUALIZE_ECHO_CANCELLATION
-    // Visualize the input
-    _scope->addSamples(0, inputLeft, BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
-    _scope->addSamples(1, playBufferLeft, BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
-#endif
-
-    // Have Speex perform echo cancellation
-    speex_echo_cancellation(_speexEchoState, inputLeft, playBufferLeft, _speexTmpBuf);
-    memcpy(inputLeft, _speexTmpBuf, BUFFER_LENGTH_BYTES_PER_CHANNEL);
-    speex_preprocess_run(_speexPreprocessState, inputLeft); 
-
-#ifdef VISUALIZE_ECHO_CANCELLATION
-    // Visualize the result
-    _scope->setColor(2, 0x00ff00);
-    _scope->addSamples(2, inputLeft, BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
-#endif
-}
-
-inline void Audio::eventuallyRecordEcho(int16_t* outputLeft, int16_t* outputRight) {
-    if (! isCancellingEcho()) {
-        return;
-    }
-
-    // Copy playback data to circular buffers
-    unsigned n = BUFFER_LENGTH_SAMPLES_PER_CHANNEL, n2 = 0;
-    unsigned writeEnd = _echoWritePos + n;
-    if (writeEnd >= AEC_BUFFERED_SAMPLES_PER_CHANNEL) {
-        n2 = (writeEnd -= AEC_BUFFERED_SAMPLES_PER_CHANNEL);
-        n -= n2;
-    }
-    memcpy(_echoSamplesLeft + _echoWritePos, outputLeft, n * sizeof(int16_t));
-    memcpy(_echoSamplesLeft, outputLeft + n, n2 * sizeof(int16_t));
-    memcpy(_echoSamplesRight + _echoWritePos, outputRight, n * sizeof(int16_t));
-    memcpy(_echoSamplesRight, outputRight + n, n2 * sizeof(int16_t));
-
-    _echoWritePos = writeEnd;
-}
-
 // -----------------------------------------------------------
 // Accoustic ping (audio system round trip time determination)
 // -----------------------------------------------------------
@@ -870,7 +726,6 @@ bool Audio::eventuallyAnalyzePing() {
     }
     _scope->inputPaused = true;
     analyzePing();
-    setIsCancellingEcho(_isCancellingEcho);
     _pingAnalysisPending = false;
     return true;
 }
