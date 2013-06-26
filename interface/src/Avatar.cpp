@@ -460,7 +460,7 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     }
     
     //figure out if the mouse cursor is over any body spheres...
-    if (isMyAvatar) {
+    if (isMyAvatar()) {
         checkForMouseRayTouching();
     }
 
