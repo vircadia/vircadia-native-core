@@ -24,7 +24,8 @@
  * either License.
  */
 
-#pragma once
+#ifndef LIBFREENECT_AUDIO_H
+#define LIBFREENECT_AUDIO_H
 
 #include <libfreenect.h>
 #include <stdint.h>
@@ -113,3 +114,7 @@ FREENECTAPI int freenect_stop_audio(freenect_device* dev);
 #ifdef __cplusplus
 }
 #endif
+
+#endif //
+
+
