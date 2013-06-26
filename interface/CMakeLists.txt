@@ -65,9 +65,13 @@ if (APPLE)
   
 endif (APPLE)
 
-find_package(Qt4 REQUIRED QtCore QtGui QtNetwork QtOpenGL)
+find_package(Qt4 REQUIRED QtCore QtGui QtNetwork QtOpenGL QtWebKit)
 include(${QT_USE_FILE})
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${QT_QTGUI_INCLUDE_DIR}")
+
+set(QUAZIP_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/quazip)
+add_subdirectory(external/fervor/)
+include_directories(external/fervor/)
 
 # run qt moc on qt-enabled headers
 qt4_wrap_cpp(INTERFACE_SRCS src/Application.h src/AvatarVoxelSystem.h src/Webcam.h)
@@ -108,7 +112,14 @@ include_directories(
   ${SPEEXDSP_INCLUDE_DIRS}
 )
 
-target_link_libraries(${TARGET_NAME} ${QT_LIBRARIES} ${OPENCV_LIBRARIES} ${ZLIB_LIBRARIES} ${SPEEXDSP_LIBRARIES})
+target_link_libraries(
+  ${TARGET_NAME} 
+  ${QT_LIBRARIES}
+  ${OPENCV_LIBRARIES} 
+  ${ZLIB_LIBRARIES} 
+  ${SPEEXDSP_LIBRARIES}
+  fervor
+)
 
 if (APPLE)
     # link in required OS X frameworks and include the right GL headers
