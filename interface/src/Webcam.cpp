@@ -25,7 +25,7 @@ using namespace std;
 int matMetaType = qRegisterMetaType<Mat>("cv::Mat");
 int rotatedRectMetaType = qRegisterMetaType<RotatedRect>("cv::RotatedRect");
 
-Webcam::Webcam() : _enabled(false), _active(false), _frameTextureID(0) {
+Webcam::Webcam() : _enabled(false), _active(false), _frameTextureID(0), _depthTextureID(0) {
     // the grabber simply runs as fast as possible
     _grabber = new FrameGrabber();
     _grabber->moveToThread(&_grabberThread);
@@ -79,6 +79,22 @@ void Webcam::renderPreview(int screenWidth, int screenHeight) {
             glTexCoord2f(0, 1);
             glVertex2f(left, top + PREVIEW_HEIGHT);
         glEnd();
+        
+        if (_depthTextureID != 0) {
+            glBindTexture(GL_TEXTURE_2D, _depthTextureID);
+            glBegin(GL_QUADS);
+                int depthPreviewWidth = _depthWidth * PREVIEW_HEIGHT / _depthHeight;
+                int depthLeft = screenWidth - depthPreviewWidth - 10;
+                glTexCoord2f(0, 0);
+                glVertex2f(depthLeft, top - PREVIEW_HEIGHT);
+                glTexCoord2f(1, 0);
+                glVertex2f(depthLeft + depthPreviewWidth, top - PREVIEW_HEIGHT);
+                glTexCoord2f(1, 1);
+                glVertex2f(depthLeft + depthPreviewWidth, top);
+                glTexCoord2f(0, 1);
+                glVertex2f(depthLeft, top);
+            glEnd();
+        }
         glBindTexture(GL_TEXTURE_2D, 0);
         glDisable(GL_TEXTURE_2D);
         
@@ -107,20 +123,38 @@ Webcam::~Webcam() {
     delete _grabber;
 }
 
-void Webcam::setFrame(const Mat& frame, const RotatedRect& faceRect) {
+void Webcam::setFrame(const Mat& frame, int format, const Mat& depth, const RotatedRect& faceRect) {
     IplImage image = frame;
     glPixelStorei(GL_UNPACK_ROW_LENGTH, image.widthStep / 3);
     if (_frameTextureID == 0) {
         glGenTextures(1, &_frameTextureID);
         glBindTexture(GL_TEXTURE_2D, _frameTextureID);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, _frameWidth = image.width, _frameHeight = image.height, 0, GL_BGR,
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, _frameWidth = image.width, _frameHeight = image.height, 0, format,
             GL_UNSIGNED_BYTE, image.imageData);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        printLog("Capturing webcam at %dx%d.\n", _frameWidth, _frameHeight);
+        printLog("Capturing video at %dx%d.\n", _frameWidth, _frameHeight);
     
     } else {
         glBindTexture(GL_TEXTURE_2D, _frameTextureID);
-        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, _frameWidth, _frameHeight, GL_BGR, GL_UNSIGNED_BYTE, image.imageData);    
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, _frameWidth, _frameHeight, format, GL_UNSIGNED_BYTE, image.imageData);
+    }
+    
+    if (!depth.empty()) {
+        IplImage depthImage = depth;
+        glPixelStorei(GL_UNPACK_ROW_LENGTH, depthImage.widthStep);
+        if (_depthTextureID == 0) {
+            glGenTextures(1, &_depthTextureID);
+            glBindTexture(GL_TEXTURE_2D, _depthTextureID);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, _depthWidth = depthImage.width, _depthHeight = depthImage.height, 0,
+                GL_LUMINANCE, GL_UNSIGNED_BYTE, depthImage.imageData);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            printLog("Capturing depth at %dx%d.\n", _depthWidth, _depthHeight);
+            
+        } else {
+            glBindTexture(GL_TEXTURE_2D, _depthTextureID);
+            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, _depthWidth, _depthHeight, GL_LUMINANCE,
+                GL_UNSIGNED_BYTE, depthImage.imageData);        
+        }
     }
     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
     glBindTexture(GL_TEXTURE_2D, 0);
@@ -195,39 +229,51 @@ void FrameGrabber::reset() {
     _searchWindow = Rect(0, 0, 0, 0);
 }
 
+static Mat videoFrame, depthFrame;
+static bool gotVideoFrame, gotDepthFrame;
+
 void FrameGrabber::grabFrame() {
     if (_capture == 0 && _freenectContext == 0 && !init()) {
         return;
     }
+    int format = GL_BGR;
+    ::gotVideoFrame = ::gotDepthFrame = false;
     if (_freenectContext != 0) {
         freenect_process_events(_freenectContext);
-        return;
+        if (::gotDepthFrame) {
+            ::depthFrame.convertTo(_grayDepth, CV_8UC1, 255.0 / 2047.0);
+        }
+        format = GL_RGB;
+        
+    } else {
+        IplImage* image = cvQueryFrame(_capture);
+        if (image != 0) {
+            // make sure it's in the format we expect
+            if (image->nChannels != 3 || image->depth != IPL_DEPTH_8U || image->dataOrder != IPL_DATA_ORDER_PIXEL ||
+                    image->origin != 0) {
+                printLog("Invalid webcam image format.\n");
+                return;
+            }
+            ::videoFrame = image;
+            ::gotVideoFrame = true;
+        }
     }
-    
-    IplImage* image = cvQueryFrame(_capture);
-    if (image == 0) {
+    if (!::gotVideoFrame) {
         // try again later
         QMetaObject::invokeMethod(this, "grabFrame", Qt::QueuedConnection);
-        return;
-    }   
-    // make sure it's in the format we expect
-    if (image->nChannels != 3 || image->depth != IPL_DEPTH_8U || image->dataOrder != IPL_DATA_ORDER_PIXEL ||
-            image->origin != 0) {
-        printLog("Invalid webcam image format.\n");
         return;
     }
     
     // if we don't have a search window (yet), try using the face cascade
-    Mat frame = image;
     int channels = 0;
     float ranges[] = { 0, 180 };
     const float* range = ranges;
     if (_searchWindow.area() == 0) {
         vector<Rect> faces;
-        _faceCascade.detectMultiScale(frame, faces, 1.1, 6);
+        _faceCascade.detectMultiScale(::videoFrame, faces, 1.1, 6);
         if (!faces.empty()) {
             _searchWindow = faces.front();
-            updateHSVFrame(frame);
+            updateHSVFrame(::videoFrame, format);
         
             Mat faceHsv(_hsvFrame, _searchWindow);
             Mat faceMask(_mask, _searchWindow);
@@ -240,7 +286,7 @@ void FrameGrabber::grabFrame() {
     }
     RotatedRect faceRect;
     if (_searchWindow.area() > 0) {
-        updateHSVFrame(frame);
+        updateHSVFrame(::videoFrame, format);
         
         calcBackProject(&_hsvFrame, 1, &channels, _histogram, _backProject, &range);
         bitwise_and(_backProject, _mask, _backProject);
@@ -249,7 +295,7 @@ void FrameGrabber::grabFrame() {
         _searchWindow = faceRect.boundingRect();
     }   
     QMetaObject::invokeMethod(Application::getInstance()->getWebcam(), "setFrame",
-        Q_ARG(cv::Mat, frame), Q_ARG(cv::RotatedRect, faceRect));
+        Q_ARG(cv::Mat, ::videoFrame), Q_ARG(int, format), Q_ARG(cv::Mat, _grayDepth), Q_ARG(cv::RotatedRect, faceRect));
 }
 
 const char* FREENECT_LOG_LEVEL_NAMES[] = { "fatal", "error", "warning", "notice", "info", "debug", "spew", "flood" };
@@ -258,18 +304,29 @@ static void logCallback(freenect_context* freenectDevice, freenect_loglevel leve
     printLog("Freenect %s: %s\n", FREENECT_LOG_LEVEL_NAMES[level], msg);
 }
 
+static freenect_frame_mode freenectVideoMode, freenectDepthMode;
+
 static void depthCallback(freenect_device* freenectDevice, void* depth, uint32_t timestamp) {
-    qDebug() << "Got depth " << depth << timestamp; 
+    ::depthFrame = Mat(::freenectDepthMode.height, ::freenectDepthMode.width, CV_16UC1, depth);
+    ::gotDepthFrame = true;
 }
 
 static void videoCallback(freenect_device* freenectDevice, void* video, uint32_t timestamp) {
-    qDebug() << "Got video " << video << timestamp;
+    ::videoFrame = Mat(::freenectVideoMode.height, ::freenectVideoMode.width, CV_8UC3, video);
+    ::gotVideoFrame = true;
 }
 
 bool FrameGrabber::init() {
+    // load our face cascade
+    switchToResourcesParentIfRequired();
+    if (!_faceCascade.load("resources/haarcascades/haarcascade_frontalface_alt.xml")) {
+        printLog("Failed to load Haar cascade for face tracking.\n");
+        return false;
+    }
+
     // first try for a Kinect
     if (freenect_init(&_freenectContext, 0) >= 0) {
-        freenect_set_log_level(_freenectContext, FREENECT_LOG_DEBUG);
+        freenect_set_log_level(_freenectContext, FREENECT_LOG_WARNING);
         freenect_set_log_callback(_freenectContext, logCallback);
         freenect_select_subdevices(_freenectContext, FREENECT_DEVICE_CAMERA);
         
@@ -277,10 +334,10 @@ bool FrameGrabber::init() {
             if (freenect_open_device(_freenectContext, &_freenectDevice, 0) >= 0) {
                 freenect_set_depth_callback(_freenectDevice, depthCallback);
                 freenect_set_video_callback(_freenectDevice, videoCallback);
-                _freenectVideoMode = freenect_find_video_mode(FREENECT_RESOLUTION_MEDIUM, FREENECT_VIDEO_RGB);
-                freenect_set_video_mode(_freenectDevice, _freenectVideoMode);
-                _freenectDepthMode = freenect_find_depth_mode(FREENECT_RESOLUTION_MEDIUM, FREENECT_DEPTH_11BIT);
-                freenect_set_depth_mode(_freenectDevice, _freenectDepthMode);
+                ::freenectVideoMode = freenect_find_video_mode(FREENECT_RESOLUTION_MEDIUM, FREENECT_VIDEO_RGB);
+                freenect_set_video_mode(_freenectDevice, ::freenectVideoMode);
+                ::freenectDepthMode = freenect_find_depth_mode(FREENECT_RESOLUTION_MEDIUM, FREENECT_DEPTH_11BIT);
+                freenect_set_depth_mode(_freenectDevice, ::freenectDepthMode);
                 
                 freenect_start_depth(_freenectDevice);
                 freenect_start_video(_freenectDevice);
@@ -312,15 +369,10 @@ bool FrameGrabber::init() {
     cvSetCaptureProperty(_capture, CV_CAP_PROP_GAIN, 0.5);
 #endif
 
-    switchToResourcesParentIfRequired();
-    if (!_faceCascade.load("resources/haarcascades/haarcascade_frontalface_alt.xml")) {
-        printLog("Failed to load Haar cascade for face tracking.\n");
-        return false;
-    }
     return true;
 }
 
-void FrameGrabber::updateHSVFrame(const Mat& frame) {
-    cvtColor(frame, _hsvFrame, CV_BGR2HSV);
+void FrameGrabber::updateHSVFrame(const Mat& frame, int format) {
+    cvtColor(frame, _hsvFrame, format == GL_RGB ? CV_RGB2HSV : CV_BGR2HSV);
     inRange(_hsvFrame, Scalar(0, 55, 65), Scalar(180, 256, 256), _mask);
 }

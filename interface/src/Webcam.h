@@ -45,7 +45,7 @@ public:
 public slots:
     
     void setEnabled(bool enabled);
-    void setFrame(const cv::Mat& image, const cv::RotatedRect& faceRect);
+    void setFrame(const cv::Mat& video, int format, const cv::Mat& depth, const cv::RotatedRect& faceRect);
     
 private:
     
@@ -56,7 +56,10 @@ private:
     bool _active;
     int _frameWidth;
     int _frameHeight;
+    int _depthWidth;
+    int _depthHeight;
     GLuint _frameTextureID;
+    GLuint _depthTextureID;
     cv::RotatedRect _faceRect;
     cv::RotatedRect _initialFaceRect;
     
@@ -85,7 +88,7 @@ public slots:
 private:
     
     bool init();
-    void updateHSVFrame(const cv::Mat& frame);
+    void updateHSVFrame(const cv::Mat& frame, int format);
     
     CvCapture* _capture;
     cv::CascadeClassifier _faceCascade;
@@ -94,11 +97,10 @@ private:
     cv::SparseMat _histogram;
     cv::Mat _backProject;
     cv::Rect _searchWindow;
+    cv::Mat _grayDepth;
     
     freenect_context* _freenectContext;
     freenect_device* _freenectDevice;
-    freenect_frame_mode _freenectVideoMode;
-    freenect_frame_mode _freenectDepthMode;
 };
 
 Q_DECLARE_METATYPE(cv::Mat)
