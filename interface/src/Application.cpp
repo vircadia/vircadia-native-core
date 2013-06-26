@@ -267,7 +267,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
 #if defined(Q_WS_MAC) && defined(QT_NO_DEBUG)
     // if this is a release OS X build use fervor to check for an update    
     FvUpdater::sharedUpdater()->SetFeedURL("file:///Users/birarda/Desktop/Appcast.xml");
-    FvUpdater::sharedUpdater()->CheckForUpdatesNotSilent();
+    FvUpdater::sharedUpdater()->CheckForUpdatesSilent();
 #endif
     
     initMenu();
