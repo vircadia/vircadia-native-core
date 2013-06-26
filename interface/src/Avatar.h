@@ -158,7 +158,7 @@ private:
     Avatar(const Avatar&);
     Avatar& operator= (const Avatar&);
     
-    bool isMyAvatar() const { return _owningAgent == NULL }
+    bool isMyAvatar() const { return _owningAgent == NULL; }
 
     struct AvatarBall
     {
