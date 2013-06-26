@@ -62,7 +62,7 @@ def hifiJob(String targetName, Boolean deploy) {
                                 }
                                 EscalateStatus true
                                 RunIfJobSuccessful true
-                                script "curl -d action=deploy-dev -d role=highfidelity_dev-grid -d \"revision=${targetName}\" https://${ARTIFACT_DESTINATION}"
+                                script "curl -d 'action=deploy&role=highfidelity-live&revision=${targetName}' https://${ARTIFACT_DESTINATION}"
                             }
                         }
                     }
@@ -130,4 +130,11 @@ parameterizedJob.with {
             node / 'wipeOutWorkspace' << true
         }
     } 
+    configure { project ->
+        project / 'publishers' / 'hudson.plugins.postbuildtask.PostbuildTask' / 'tasks' / 'hudson.plugins.postbuildtask.TaskProperties' {
+            script 'curl -d action=hifidevgrid -d "hostname=$HOSTNAME" ' +
+                '-d "github_user=$GITHUB_USER" -d "build_branch=$GIT_BRANCH" ' +
+                "-d \"revision=\$TARGET\" https://${ARTIFACT_DESTINATION}"
+        }
+    }
 }
