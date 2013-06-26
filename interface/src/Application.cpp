@@ -30,6 +30,7 @@
 #include <QCheckBox>
 #include <QFormLayout>
 #include <QGLWidget>
+#include <QImage>
 #include <QKeyEvent>
 #include <QLineEdit>
 #include <QMainWindow>
@@ -1252,14 +1253,30 @@ void Application::exportVoxels() {
 void Application::importVoxels() {
     QString desktopLocation = QDesktopServices::storageLocation(QDesktopServices::DesktopLocation);
     QString fileNameString = QFileDialog::getOpenFileName(_glWidget, tr("Import Voxels"), desktopLocation, 
-                                                          tr("Sparse Voxel Octree Files (*.svo)"));
+                                                          tr("Sparse Voxel Octree Files, Square PNG (*.svo *.png)"));
     QByteArray fileNameAscii = fileNameString.toAscii();
     const char* fileName = fileNameAscii.data();
-
-    // Read the file into a tree
+    
     VoxelTree importVoxels;
-    importVoxels.readFromSVOFile(fileName);
-
+    if (fileNameString.endsWith(".png", Qt::CaseInsensitive)) {
+        QImage pngImage = QImage(fileName);
+        if (pngImage.height() != pngImage.width()) {
+            return;
+        }
+        
+        const uint32_t* pixels;
+        if (pngImage.format() == QImage::Format_ARGB32) {
+            pixels = reinterpret_cast<const uint32_t*>(pngImage.constBits());
+        } else {
+            QImage tmp = pngImage.convertToFormat(QImage::Format_ARGB32);
+            pixels = reinterpret_cast<const uint32_t*>(tmp.constBits());
+        }
+        
+        importVoxels.readFromSquareARGB32Pixels(pixels, pngImage.height());        
+    } else {
+        importVoxels.readFromSVOFile(fileName);
+    }
+    
     VoxelNode* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
     
     // Recurse the Import Voxels tree, where everything is root relative, and send all the colored voxels to 
