@@ -157,6 +157,8 @@ private:
     // privatize copy constructor and assignment operator to avoid copying
     Avatar(const Avatar&);
     Avatar& operator= (const Avatar&);
+    
+    bool isMyAvatar() const { return _owningAgent == NULL }
 
     struct AvatarBall
     {
