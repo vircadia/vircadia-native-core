@@ -10,11 +10,13 @@
 //
 
 #include <glm/glm.hpp>
-#include "Util.h"
-#include "sharedUtil.h"
-#include "world.h"
-#include "InterfaceConfig.h"
+
+#include <SharedUtil.h>
+
 #include "Balls.h"
+#include "InterfaceConfig.h"
+#include "Util.h"
+#include "world.h"
 
 const float INITIAL_AREA = 0.2f;
 const float BALL_RADIUS = 0.025f;
@@ -29,7 +31,7 @@ Balls::Balls(int numberOfBalls) {
         _balls[i].velocity = glm::vec3(0, 0, 0);
         _balls[i].radius = BALL_RADIUS;
         for (unsigned int j = 0; j < NUMBER_SPRINGS; ++j) {
-            _balls[i].links[j] = NULL;
+            _balls[i].links[j] = 0;
           }
     }
     _color = INITIAL_COLOR;
