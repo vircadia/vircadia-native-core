@@ -62,7 +62,7 @@ def hifiJob(String targetName, Boolean deploy) {
                                 }
                                 EscalateStatus true
                                 RunIfJobSuccessful true
-                                script "curl -d action=deploy-dev -d role=highfidelity-live -d revision=${targetName} https://${ARTIFACT_DESTINATION}"
+                                script 'curl -d action=deploy-dev -d role=highfidelity_dev-grid -d "revision=${targetName}" https://${ARTIFACT_DESTINATION}'
                             }
                         }
                     }
