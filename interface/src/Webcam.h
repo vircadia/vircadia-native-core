@@ -97,6 +97,8 @@ private:
     
     freenect_context* _freenectContext;
     freenect_device* _freenectDevice;
+    freenect_frame_mode _freenectVideoMode;
+    freenect_frame_mode _freenectDepthMode;
 };
 
 Q_DECLARE_METATYPE(cv::Mat)
