@@ -7,36 +7,57 @@
 //  A cloud of spring-mass spheres to simulate the avatar body/skin.  Each ball
 //  connects to as many as 4 neighbors, and executes motion according to a damped
 //  spring, while responding physically to other avatars.   
-//  
+//
+
+#include <glm/glm.hpp>
+
+#include <SharedUtil.h>
 
 #include "Balls.h"
+#include "InterfaceConfig.h"
+#include "Util.h"
+#include "world.h"
+
+const float INITIAL_AREA = 0.2f;
+const float BALL_RADIUS = 0.025f;
+const glm::vec3 INITIAL_COLOR(0.62f, 0.74f, 0.91f);
 
 Balls::Balls(int numberOfBalls) {
     _numberOfBalls = numberOfBalls;
     _balls = new Ball[_numberOfBalls];
     for (unsigned int i = 0; i < _numberOfBalls; ++i) {
-        _balls[i].position = glm::vec3(1.0 + randFloat() * 0.5,
-                                       0.5 + randFloat() * 0.5,
-                                       1.0 + randFloat() * 0.5);
-        _balls[i].radius = 0.02 + randFloat() * 0.06;
+        _balls[i].position = randVector() * INITIAL_AREA;
+        _balls[i].targetPosition = _balls[i].position;
+        _balls[i].velocity = glm::vec3(0, 0, 0);
+        _balls[i].radius = BALL_RADIUS;
         for (unsigned int j = 0; j < NUMBER_SPRINGS; ++j) {
-            _balls[i].links[j] = rand() % (numberOfBalls + 1);
-            if (_balls[i].links[j]-1 == i) { _balls[i].links[j] = 0; }
-            _balls[i].springLength[j] = 0.5;
-         }
+            _balls[i].links[j] = 0;
+          }
+    }
+    _color = INITIAL_COLOR;
+    _origin = glm::vec3(0, 0, 0);
+}
+
+void Balls::moveOrigin(const glm::vec3& newOrigin) {
+    glm::vec3 delta = newOrigin - _origin;
+    if (glm::length(delta) > EPSILON) {
+        _origin = newOrigin;
+        for (unsigned int i = 0; i < _numberOfBalls; ++i) {
+            _balls[i].targetPosition += delta;
+        }
     }
 }
 
-const bool RENDER_SPRINGS = true;
+const bool RENDER_SPRINGS = false;
 
 void Balls::render() {
     
     //  Render Balls    NOTE:  This needs to become something other that GlutSpheres!
-    glColor3f(0.62,0.74,0.91);
+    glColor3fv(&_color.x);
     for (unsigned int i = 0; i < _numberOfBalls; ++i) {
         glPushMatrix();
         glTranslatef(_balls[i].position.x, _balls[i].position.y, _balls[i].position.z);
-        glutSolidSphere(_balls[i].radius, 15, 15);
+        glutSolidSphere(_balls[i].radius, 8, 8);
         glPopMatrix();
     }
     
@@ -71,18 +92,22 @@ void Balls::simulate(float deltaTime) {
         
         // Move particles
         _balls[i].position += _balls[i].velocity * deltaTime;
+        _balls[i].targetPosition += _balls[i].velocity * deltaTime;
         
         // Drag: decay velocity
         _balls[i].velocity *= (1.f - CONSTANT_VELOCITY_DAMPING * deltaTime);
         
         // Add noise
-        _balls[i].velocity += glm::vec3((randFloat() - 0.5) * NOISE_SCALE,
-                                        (randFloat() - 0.5) * NOISE_SCALE,
-                                        (randFloat() - 0.5) * NOISE_SCALE);
+        _balls[i].velocity += randVector() * NOISE_SCALE;
         
+        // Approach target position
+        for (unsigned int i = 0; i < _numberOfBalls; ++i) {
+            _balls[i].position += randFloat() * deltaTime * (_balls[i].targetPosition - _balls[i].position);
+        }
+
         // Spring Force
         
-        
+        /*
         for (unsigned int j = 0; j < NUMBER_SPRINGS; ++j) {
             if(_balls[i].links[j] > 0) {
                 float separation = glm::distance(_balls[i].position,
@@ -96,7 +121,7 @@ void Balls::simulate(float deltaTime) {
                 //_balls[i].velocity *= (1.f - SPRING_DAMPING*deltaTime);
 
             }
-        }
+        } */
          
          
         

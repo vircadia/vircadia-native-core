@@ -27,6 +27,12 @@ AudioRingBuffer::~AudioRingBuffer() {
     delete[] _buffer;
 }
 
+void AudioRingBuffer::reset() {
+    _endOfLastWrite = _buffer;
+    _nextOutput = _buffer;
+    _isStarted = false;
+}
+
 int AudioRingBuffer::parseData(unsigned char* sourceBuffer, int numBytes) {
     return parseAudioSamples(sourceBuffer + sizeof(PACKET_HEADER_MIXED_AUDIO), numBytes - sizeof(PACKET_HEADER_MIXED_AUDIO));
 }

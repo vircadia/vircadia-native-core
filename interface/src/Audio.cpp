@@ -26,18 +26,14 @@
 #include "Util.h"
 #include "Log.h"
 
+//  Uncomment the following definition to test audio device latency by copying output to input
+//#define TEST_AUDIO_LOOPBACK
+//#define SHOW_AUDIO_DEBUG
+
 #define VISUALIZE_ECHO_CANCELLATION
-
-static const int NUM_AUDIO_CHANNELS = 2;
-
-static const int PACKET_LENGTH_BYTES = 1024;
-static const int PACKET_LENGTH_BYTES_PER_CHANNEL = PACKET_LENGTH_BYTES / 2;
-static const int PACKET_LENGTH_SAMPLES = PACKET_LENGTH_BYTES / sizeof(int16_t);
-static const int PACKET_LENGTH_SAMPLES_PER_CHANNEL = PACKET_LENGTH_SAMPLES / 2;
 
 static const int PHASE_DELAY_AT_90 = 20;
 static const float AMPLITUDE_RATIO_AT_90 = 0.5;
-
 static const int MIN_FLANGE_EFFECT_THRESHOLD = 600;
 static const int MAX_FLANGE_EFFECT_THRESHOLD = 1500;
 static const float FLANGE_BASE_RATE = 4;
@@ -60,18 +56,7 @@ static const int   AEC_BUFFERED_FRAMES = 6;                                     
 static const int   AEC_BUFFERED_SAMPLES_PER_CHANNEL = BUFFER_LENGTH_SAMPLES_PER_CHANNEL * AEC_BUFFERED_FRAMES;
 static const int   AEC_BUFFERED_SAMPLES = AEC_BUFFERED_SAMPLES_PER_CHANNEL * AEC_N_CHANNELS_PLAY;
 static const int   AEC_TMP_BUFFER_SIZE = (AEC_N_CHANNELS_MIC +                  // Temporary space for processing a
-        AEC_N_CHANNELS_PLAY) * BUFFER_LENGTH_SAMPLES_PER_CHANNEL;               //  single frame
-
-// Speex preprocessor and echo canceller configuration
-static const int   AEC_NOISE_REDUCTION = -80;                                   // Noise reduction (important)
-static const int   AEC_RESIDUAL_ECHO_REDUCTION = -60;                           // Residual echo reduction
-static const int   AEC_RESIDUAL_ECHO_REDUCTION_ACTIVE = -45;                    //  ~on active side
-static const bool  AEC_USE_AGC = true;                                          // Automatic gain control
-static const int   AEC_AGC_MAX_GAIN = -30;                                      // Gain in db
-static const int   AEC_AGC_TARGET_LEVEL = 9000;                                 // Target reference level
-static const int   AEC_AGC_MAX_INC = 6;                                         // Max increase in db/s
-static const int   AEC_AGC_MAX_DEC = 200;                                       // Max decrease in db/s
-static const bool  AEC_USE_VAD = false;                                         // Voice activity determination
+                                          AEC_N_CHANNELS_PLAY) * BUFFER_LENGTH_SAMPLES_PER_CHANNEL;               //  single frame
 
 // Ping test configuration 
 static const float PING_PITCH = 16.f;                                           // Ping wavelength, # samples / radian
@@ -90,8 +75,6 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
     AgentList* agentList = AgentList::getInstance();
     Application* interface = Application::getInstance();
     Avatar* interfaceAvatar = interface->getAvatar();
-
-    eventuallyCancelEcho(inputLeft);
  
     // Add Procedural effects to input samples
     addProceduralSounds(inputLeft, BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
@@ -108,13 +91,7 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
         _lastInputLoudness = loudness;
         
         // add input (@microphone) data to the scope
-#ifdef VISUALIZE_ECHO_CANCELLATION
-            if (! isCancellingEcho()) {
-#endif
         _scope->addSamples(0, inputLeft, BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
-#ifdef VISUALIZE_ECHO_CANCELLATION
-            }
-#endif
 
         Agent* audioMixer = agentList->soloAgentOfType(AGENT_TYPE_AUDIO_MIXER);
         
@@ -156,31 +133,53 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
     
     AudioRingBuffer* ringBuffer = &_ringBuffer;
     
-    // if we've been reset, and there isn't any new packets yet
-    // just play some silence
+    // if there is anything in the ring buffer, decide what to do:
     
     if (ringBuffer->getEndOfLastWrite()) {
-        
-        if (!ringBuffer->isStarted() && ringBuffer->diffLastWriteNextOutput() < PACKET_LENGTH_SAMPLES + JITTER_BUFFER_SAMPLES) {
-//            printLog("Held back, buffer has %d of %d samples required.\n",
-//                     ringBuffer->diffLastWriteNextOutput(), PACKET_LENGTH_SAMPLES + JITTER_BUFFER_SAMPLES);
-        } else if (ringBuffer->diffLastWriteNextOutput() < PACKET_LENGTH_SAMPLES) {
+        if (!ringBuffer->isStarted() && ringBuffer->diffLastWriteNextOutput() <
+            (PACKET_LENGTH_SAMPLES + _jitterBufferSamples * (ringBuffer->isStereo() ? 2 : 1))) {
+            //
+            //  If not enough audio has arrived to start playback, keep waiting
+            //
+#ifdef SHOW_AUDIO_DEBUG
+            printLog("%i,%i,%i,%i\n",
+                     _packetsReceivedThisPlayback,
+                     ringBuffer->diffLastWriteNextOutput(),
+                     PACKET_LENGTH_SAMPLES,
+                     _jitterBufferSamples);
+#endif
+        } else if (ringBuffer->isStarted() && ringBuffer->diffLastWriteNextOutput() == 0) {
+            //
+            //  If we have started and now have run out of audio to send to the audio device, 
+            //  this means we've starved and should restart.  
+            //  
             ringBuffer->setStarted(false);
             
             _numStarves++;
             _packetsReceivedThisPlayback = 0;
-            
-            // printLog("Starved #%d\n", starve_counter);
-            _wasStarved = 10;      //   Frames to render the indication that the system was starved.
+            _wasStarved = 10;          //   Frames for which to render the indication that the system was starved.
+#ifdef SHOW_AUDIO_DEBUG
+            printLog("Starved, remaining samples = %d\n",
+                     ringBuffer->diffLastWriteNextOutput());
+#endif
+
         } else {
+            //
+            //  We are either already playing back, or we have enough audio to start playing back.
+            // 
             if (!ringBuffer->isStarted()) {
                 ringBuffer->setStarted(true);
-                // printLog("starting playback %3.1f msecs delayed \n", (usecTimestampNow() - usecTimestamp(&firstPlaybackTimer))/1000.0);
-            } else {
-                // printLog("pushing buffer\n");
+#ifdef SHOW_AUDIO_DEBUG
+                printLog("starting playback %0.1f msecs delayed, jitter = %d, pkts recvd: %d \n",
+                         (usecTimestampNow() - usecTimestamp(&_firstPacketReceivedTime))/1000.0,
+                         _jitterBufferSamples,
+                         _packetsReceivedThisPlayback);
+#endif
             }
+
+            //
             // play whatever we have in the audio buffer
-            
+            //
             // if we haven't fired off the flange effect, check if we should
             // TODO: lastMeasuredHeadYaw is now relative to body - check if this still works.
             
@@ -241,9 +240,13 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
                         }
                     }
                 }
-                
+#ifndef TEST_AUDIO_LOOPBACK
                 outputLeft[s] = leftSample;
                 outputRight[s] = rightSample;
+#else 
+                outputLeft[s] = inputLeft[s];
+                outputRight[s] = inputLeft[s];                    
+#endif
             }
             ringBuffer->setNextOutput(ringBuffer->getNextOutput() + PACKET_LENGTH_SAMPLES);
             
@@ -254,19 +257,11 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
     }
 
     eventuallySendRecvPing(inputLeft, outputLeft, outputRight);
-    eventuallyRecordEcho(outputLeft, outputRight);
 
 
     // add output (@speakers) data just written to the scope
-#ifdef VISUALIZE_ECHO_CANCELLATION
-        if (! isCancellingEcho()) {
-    _scope->setColor(2, 0x00ffff);
-#endif
     _scope->addSamples(1, outputLeft, BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
     _scope->addSamples(2, outputRight, BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
-#ifdef VISUALIZE_ECHO_CANCELLATION
-        }
-#endif
 
     gettimeofday(&_lastCallbackTime, NULL);
 }
@@ -300,28 +295,26 @@ static void outputPortAudioError(PaError error) {
     }
 }
 
-Audio::Audio(Oscilloscope* scope) :
+void Audio::reset() {
+    _packetsReceivedThisPlayback = 0;
+    _ringBuffer.reset();
+}
+
+Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples) :
     _stream(NULL),
     _ringBuffer(true),
     _scope(scope),
     _averagedLatency(0.0),
     _measuredJitter(0),
-//    _jitterBufferLengthMsecs(12.0),
-//    _jitterBufferSamples(_jitterBufferLengthMsecs *
-//                     NUM_AUDIO_CHANNELS * (SAMPLE_RATE / 1000.0)),
+    _jitterBufferSamples(initialJitterBufferSamples),
     _wasStarved(0),
     _numStarves(0),
     _lastInputLoudness(0),
     _lastVelocity(0),
     _lastAcceleration(0),
     _totalPacketsReceived(0),
-    _firstPlaybackTime(),
+    _firstPacketReceivedTime(),
     _packetsReceivedThisPlayback(0),
-    _isCancellingEcho(false),
-    _echoDelay(0),
-    _echoSamplesLeft(0l),
-    _speexEchoState(NULL),
-    _speexPreprocessState(NULL),
     _isSendingEchoPing(false),
     _pingAnalysisPending(false),
     _pingFramesToRecord(0),
@@ -332,55 +325,55 @@ Audio::Audio(Oscilloscope* scope) :
     _flangeWeight(0.0f)
 {
     outputPortAudioError(Pa_Initialize());
-    outputPortAudioError(Pa_OpenDefaultStream(&_stream,
-                                              2,
-                                              2,
-                                              (paInt16 | paNonInterleaved),
-                                              SAMPLE_RATE,
-                                              BUFFER_LENGTH_SAMPLES_PER_CHANNEL,
-                                              audioCallback,
-                                              (void*) this));
+    
+    //  NOTE:  Portaudio documentation is unclear as to whether it is safe to specify the
+    //         number of frames per buffer explicitly versus setting this value to zero.
+    //         Possible source of latency that we need to investigate further.
+    // 
+    unsigned long FRAMES_PER_BUFFER = BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
+    
+    //  Manually initialize the portaudio stream to ask for minimum latency
+    PaStreamParameters inputParameters, outputParameters;
+    
+    inputParameters.device = Pa_GetDefaultInputDevice(); 
+    inputParameters.channelCount = 2;                    //  Stereo input
+    inputParameters.sampleFormat = (paInt16 | paNonInterleaved);
+    inputParameters.suggestedLatency = Pa_GetDeviceInfo( inputParameters.device )->defaultLowInputLatency;
+    inputParameters.hostApiSpecificStreamInfo = NULL;
 
+    outputParameters.device = Pa_GetDefaultOutputDevice();
+    outputParameters.channelCount = 2;                    //  Stereo output
+    outputParameters.sampleFormat = (paInt16 | paNonInterleaved);
+    outputParameters.suggestedLatency = Pa_GetDeviceInfo( outputParameters.device )->defaultLowOutputLatency;
+    outputParameters.hostApiSpecificStreamInfo = NULL;
+    
+    outputPortAudioError(Pa_OpenStream(&_stream, 
+                                       &inputParameters,
+                                       &outputParameters,
+                                       SAMPLE_RATE,
+                                       FRAMES_PER_BUFFER,
+                                       paNoFlag,
+                                       audioCallback,
+                                       (void*) this));
+        
     if (! _stream) {
         return;
     }
  
     _echoSamplesLeft = new int16_t[AEC_BUFFERED_SAMPLES + AEC_TMP_BUFFER_SIZE];
-    if (! _echoSamplesLeft) {
-        return;
-    }
     memset(_echoSamplesLeft, 0, AEC_BUFFERED_SAMPLES * sizeof(int16_t));
-    _echoSamplesRight = _echoSamplesLeft + AEC_BUFFERED_SAMPLES_PER_CHANNEL;
-    _speexTmpBuf = _echoSamplesRight + AEC_BUFFERED_SAMPLES_PER_CHANNEL;
-
-    _speexPreprocessState = speex_preprocess_state_init(BUFFER_LENGTH_SAMPLES_PER_CHANNEL, SAMPLE_RATE);
-    if (_speexPreprocessState) {
-        _speexEchoState = speex_echo_state_init_mc(BUFFER_LENGTH_SAMPLES_PER_CHANNEL, 
-                                                   AEC_FILTER_LENGTH, AEC_N_CHANNELS_MIC, AEC_N_CHANNELS_PLAY);
-        if (_speexEchoState) {
-            speex_preprocess_ctl(_speexPreprocessState, SPEEX_PREPROCESS_SET_ECHO_STATE, _speexEchoState);
-            int tmp;
-            speex_echo_ctl(_speexEchoState, SPEEX_ECHO_SET_SAMPLING_RATE, &(tmp = SAMPLE_RATE));
-            tmp = AEC_NOISE_REDUCTION;
-            speex_preprocess_ctl(_speexPreprocessState, SPEEX_PREPROCESS_SET_NOISE_SUPPRESS, &tmp);
-            tmp = AEC_RESIDUAL_ECHO_REDUCTION;
-            speex_preprocess_ctl(_speexPreprocessState, SPEEX_PREPROCESS_SET_ECHO_SUPPRESS, &tmp);
-            tmp = AEC_RESIDUAL_ECHO_REDUCTION_ACTIVE;
-            speex_preprocess_ctl(_speexPreprocessState, SPEEX_PREPROCESS_SET_ECHO_SUPPRESS_ACTIVE, &tmp);
-            speex_preprocess_ctl(_speexPreprocessState, SPEEX_PREPROCESS_SET_AGC, &(tmp = int(AEC_USE_AGC)));
-            speex_preprocess_ctl(_speexPreprocessState, SPEEX_PREPROCESS_SET_AGC_MAX_GAIN, &(tmp = AEC_AGC_MAX_GAIN));
-            speex_preprocess_ctl(_speexPreprocessState, SPEEX_PREPROCESS_SET_AGC_TARGET, &(tmp = AEC_AGC_TARGET_LEVEL));
-            speex_preprocess_ctl(_speexPreprocessState, SPEEX_PREPROCESS_SET_AGC_INCREMENT, &(tmp = AEC_AGC_MAX_INC));
-            speex_preprocess_ctl(_speexPreprocessState, SPEEX_PREPROCESS_SET_AGC_DECREMENT, &(tmp = AEC_AGC_MAX_DEC));
-            speex_preprocess_ctl(_speexPreprocessState, SPEEX_PREPROCESS_SET_VAD, &(tmp = int(AEC_USE_VAD)));
-        } else {
-            speex_preprocess_state_destroy(_speexPreprocessState);
-            _speexPreprocessState = NULL;
-        }
-    }
-
+    
     // start the stream now that sources are good to go
     outputPortAudioError(Pa_StartStream(_stream));
+    
+    // Uncomment these lines to see the system-reported latency
+    //printLog("Default low input, output latency (secs): %0.4f, %0.4f\n",
+    //         Pa_GetDeviceInfo(Pa_GetDefaultInputDevice())->defaultLowInputLatency,
+    //         Pa_GetDeviceInfo(Pa_GetDefaultOutputDevice())->defaultLowOutputLatency);
+    
+    const PaStreamInfo* streamInfo = Pa_GetStreamInfo(_stream);
+    printLog("Started audio with reported latency msecs In/Out: %.0f, %.0f\n", streamInfo->inputLatency * 1000.f,
+             streamInfo->outputLatency * 1000.f);
 
     gettimeofday(&_lastReceiveTime, NULL);
 }
@@ -390,15 +383,12 @@ Audio::~Audio() {
         outputPortAudioError(Pa_CloseStream(_stream));
         outputPortAudioError(Pa_Terminate());
     }
-    if (_speexEchoState) {
-        speex_preprocess_state_destroy(_speexPreprocessState);
-        speex_echo_state_destroy(_speexEchoState);
-    }
     delete[] _echoSamplesLeft;
 }
 
 void Audio::addReceivedAudioToBuffer(unsigned char* receivedData, int receivedBytes) {
     const int NUM_INITIAL_PACKETS_DISCARD = 3;
+    const int STANDARD_DEVIATION_SAMPLE_COUNT = 500;
     
     timeval currentReceiveTime;
     gettimeofday(&currentReceiveTime, NULL);
@@ -411,9 +401,18 @@ void Audio::addReceivedAudioToBuffer(unsigned char* receivedData, int receivedBy
         _stdev.addValue(timeDiff);
     }
     
-    if (_stdev.getSamples() > 500) {
+    if (_stdev.getSamples() > STANDARD_DEVIATION_SAMPLE_COUNT) {
         _measuredJitter = _stdev.getStDev();
         _stdev.reset();
+        //  Set jitter buffer to be a multiple of the measured standard deviation
+        const int MAX_JITTER_BUFFER_SAMPLES = RING_BUFFER_LENGTH_SAMPLES / 2;
+        const float NUM_STANDARD_DEVIATIONS = 3.f;
+        if (Application::getInstance()->shouldDynamicallySetJitterBuffer()) {
+            float newJitterBufferSamples = (NUM_STANDARD_DEVIATIONS * _measuredJitter)
+                                            / 1000.f
+                                            * SAMPLE_RATE;
+            setJitterBufferSamples(glm::clamp((int)newJitterBufferSamples, 0, MAX_JITTER_BUFFER_SAMPLES));
+        }
     }
     
     if (!_ringBuffer.isStarted()) {
@@ -421,8 +420,22 @@ void Audio::addReceivedAudioToBuffer(unsigned char* receivedData, int receivedBy
     }
     
     if (_packetsReceivedThisPlayback == 1) {
-        gettimeofday(&_firstPlaybackTime, NULL);
+        gettimeofday(&_firstPacketReceivedTime, NULL);
     }
+    
+    if (_ringBuffer.diffLastWriteNextOutput() + PACKET_LENGTH_SAMPLES >
+        PACKET_LENGTH_SAMPLES + (ceilf((float) (_jitterBufferSamples * 2) / PACKET_LENGTH_SAMPLES) * PACKET_LENGTH_SAMPLES)) {
+        // this packet would give us more than the required amount for play out
+        // discard the first packet in the buffer
+        
+        _ringBuffer.setNextOutput(_ringBuffer.getNextOutput() + PACKET_LENGTH_SAMPLES);
+        
+        if (_ringBuffer.getNextOutput() == _ringBuffer.getBuffer() + RING_BUFFER_LENGTH_SAMPLES) {
+            _ringBuffer.setNextOutput(_ringBuffer.getBuffer());
+        }
+    }
+    
+    //printf("Got audio packet %d\n", _packetsReceivedThisPlayback);
     
     _ringBuffer.parseData((unsigned char*) receivedData, PACKET_LENGTH_BYTES + sizeof(PACKET_HEADER));
     
@@ -447,7 +460,7 @@ void Audio::render(int screenWidth, int screenHeight) {
         glVertex2f(currentX, topY);
         glVertex2f(currentX, bottomY);
         
-        for (int i = 0; i < RING_BUFFER_LENGTH_FRAMES; i++) {
+        for (int i = 0; i < RING_BUFFER_LENGTH_FRAMES / 2; i++) {
             glVertex2f(currentX, halfY);
             glVertex2f(currentX + frameWidth, halfY);
             currentX += frameWidth;
@@ -500,27 +513,58 @@ void Audio::render(int screenWidth, int screenHeight) {
         
         char out[40];
         sprintf(out, "%3.0f\n", _averagedLatency);
-        drawtext(startX + _averagedLatency / AUDIO_CALLBACK_MSECS * frameWidth - 10, topY - 10, 0.10, 0, 1, 0, out, 1,1,0);
-        //drawtext(startX + 0, topY-10, 0.08, 0, 1, 0, out, 1,1,0);
+        drawtext(startX + _averagedLatency / AUDIO_CALLBACK_MSECS * frameWidth - 10, topY - 9, 0.10, 0, 1, 0, out, 1,1,0);
         
-        //  Show a Cyan bar with the most recently measured jitter stdev
+        //  Show a red bar with the 'start' point of one frame plus the jitter buffer
         
-        int jitterPels = _measuredJitter / ((1000.0f * PACKET_LENGTH_SAMPLES / SAMPLE_RATE)) * frameWidth;
-        
-        glColor3f(0,1,1);
+        glColor3f(1, 0, 0);
+        int jitterBufferPels = (1.f + (float)getJitterBufferSamples() / (float)PACKET_LENGTH_SAMPLES_PER_CHANNEL) * frameWidth;
+        sprintf(out, "%.0f\n", getJitterBufferSamples() / SAMPLE_RATE * 1000.f);
+        drawtext(startX + jitterBufferPels - 5, topY - 9, 0.10, 0, 1, 0, out, 1, 0, 0);
+        sprintf(out, "j %.1f\n", _measuredJitter);
+        if (Application::getInstance()->shouldDynamicallySetJitterBuffer()) {
+            drawtext(startX + jitterBufferPels - 5, bottomY + 12, 0.10, 0, 1, 0, out, 1, 0, 0);
+        } else {
+            drawtext(startX, bottomY + 12, 0.10, 0, 1, 0, out, 1, 0, 0);
+        }
+    
         glBegin(GL_QUADS);
-        glVertex2f(startX + jitterPels - 2, topY - 2);
-        glVertex2f(startX + jitterPels + 2, topY - 2);
-        glVertex2f(startX + jitterPels + 2, bottomY + 2);
-        glVertex2f(startX + jitterPels - 2, bottomY + 2);
+        glVertex2f(startX + jitterBufferPels - 2, topY - 2);
+        glVertex2f(startX + jitterBufferPels + 2, topY - 2);
+        glVertex2f(startX + jitterBufferPels + 2, bottomY + 2);
+        glVertex2f(startX + jitterBufferPels - 2, bottomY + 2);
         glEnd();
-        
-        sprintf(out,"%3.1f\n", _measuredJitter);
-        drawtext(startX + jitterPels - 5, topY-10, 0.10, 0, 1, 0, out, 0,1,1);
-        
-        sprintf(out, "%3.1fms\n", JITTER_BUFFER_LENGTH_MSECS);
-        drawtext(startX - 10, bottomY + 15, 0.1, 0, 1, 0, out, 1, 0, 0);
+
     }
+}
+
+//
+//  Very Simple LowPass filter which works by averaging a bunch of samples with a moving window
+//
+//#define lowpass 1
+void Audio::lowPassFilter(int16_t* inputBuffer) {
+    static int16_t outputBuffer[BUFFER_LENGTH_SAMPLES_PER_CHANNEL];
+    for (int i = 2; i < BUFFER_LENGTH_SAMPLES_PER_CHANNEL - 2; i++) {
+#ifdef lowpass
+        outputBuffer[i] = (int16_t)(0.125f * (float)inputBuffer[i - 2] +
+                            0.25f * (float)inputBuffer[i - 1] +
+                            0.25f * (float)inputBuffer[i] +
+                            0.25f * (float)inputBuffer[i + 1] +
+                            0.125f * (float)inputBuffer[i + 2] );
+#else
+        outputBuffer[i] = (int16_t)(0.125f * -(float)inputBuffer[i - 2] +
+                                    0.25f * -(float)inputBuffer[i - 1] +
+                                    1.75f * (float)inputBuffer[i] +
+                                    0.25f * -(float)inputBuffer[i + 1] +
+                                    0.125f * -(float)inputBuffer[i + 2] );
+
+#endif
+    }
+    outputBuffer[0] = inputBuffer[0];
+    outputBuffer[1] = inputBuffer[1];
+    outputBuffer[BUFFER_LENGTH_SAMPLES_PER_CHANNEL - 2] = inputBuffer[BUFFER_LENGTH_SAMPLES_PER_CHANNEL - 2];
+    outputBuffer[BUFFER_LENGTH_SAMPLES_PER_CHANNEL - 1] = inputBuffer[BUFFER_LENGTH_SAMPLES_PER_CHANNEL - 1];
+    memcpy(inputBuffer, outputBuffer, BUFFER_LENGTH_SAMPLES_PER_CHANNEL * sizeof(int16_t));
 }
 
 //  Take a pointer to the acquired microphone input samples and add procedural sounds
@@ -539,83 +583,6 @@ void Audio::addProceduralSounds(int16_t* inputBuffer, int numSamples) {
             inputBuffer[i] += (int16_t)((sinf((float) i / SOUND_PITCH * speed) * randFloat()) * volume * speed);
         }
     }
-}
-
-// -----------------------------
-// Speex-based echo cancellation
-// -----------------------------
-
-bool Audio::isCancellingEcho() const {
-    return _isCancellingEcho && ! (_pingFramesToRecord != 0 || _pingAnalysisPending || ! _speexPreprocessState);
-}
-
-void Audio::setIsCancellingEcho(bool enable) {
-    if (enable && _speexPreprocessState) {
-        speex_echo_state_reset(_speexEchoState);
-        _echoWritePos = 0;
-        memset(_echoSamplesLeft, 0, AEC_BUFFERED_SAMPLES * sizeof(int16_t));
-    }
-    _isCancellingEcho = enable;
-}
-
-inline void Audio::eventuallyCancelEcho(int16_t* inputLeft) {
-    if (! isCancellingEcho()) {
-        return;
-    }
-
-    // Construct an artificial frame from the captured playback
-    // that contains the appropriately delayed output to cancel
-    unsigned n = BUFFER_LENGTH_SAMPLES_PER_CHANNEL, n2 = 0;
-    unsigned readPos = (_echoWritePos + AEC_BUFFERED_SAMPLES_PER_CHANNEL - _echoDelay) % AEC_BUFFERED_SAMPLES_PER_CHANNEL;
-    unsigned readEnd = readPos + n;
-    if (readEnd >= AEC_BUFFERED_SAMPLES_PER_CHANNEL) {
-        n2 = (readEnd -= AEC_BUFFERED_SAMPLES_PER_CHANNEL);
-        n -= n2;
-    }
-    // Use two subsequent buffers for the two stereo channels
-    int16_t* playBufferLeft = _speexTmpBuf + BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
-    memcpy(playBufferLeft, _echoSamplesLeft + readPos, n * sizeof(int16_t));
-    memcpy(playBufferLeft + n, _echoSamplesLeft, n2 * sizeof(int16_t));
-    int16_t* playBufferRight = playBufferLeft + BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
-    memcpy(playBufferRight, _echoSamplesRight + readPos, n * sizeof(int16_t));
-    memcpy(playBufferRight + n, _echoSamplesLeft, n2 * sizeof(int16_t));
-
-#ifdef VISUALIZE_ECHO_CANCELLATION
-    // Visualize the input
-    _scope->addSamples(0, inputLeft, BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
-    _scope->addSamples(1, playBufferLeft, BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
-#endif
-
-    // Have Speex perform echo cancellation
-    speex_echo_cancellation(_speexEchoState, inputLeft, playBufferLeft, _speexTmpBuf);
-    memcpy(inputLeft, _speexTmpBuf, BUFFER_LENGTH_BYTES_PER_CHANNEL);
-    speex_preprocess_run(_speexPreprocessState, inputLeft); 
-
-#ifdef VISUALIZE_ECHO_CANCELLATION
-    // Visualize the result
-    _scope->setColor(2, 0x00ff00);
-    _scope->addSamples(2, inputLeft, BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
-#endif
-}
-
-inline void Audio::eventuallyRecordEcho(int16_t* outputLeft, int16_t* outputRight) {
-    if (! isCancellingEcho()) {
-        return;
-    }
-
-    // Copy playback data to circular buffers
-    unsigned n = BUFFER_LENGTH_SAMPLES_PER_CHANNEL, n2 = 0;
-    unsigned writeEnd = _echoWritePos + n;
-    if (writeEnd >= AEC_BUFFERED_SAMPLES_PER_CHANNEL) {
-        n2 = (writeEnd -= AEC_BUFFERED_SAMPLES_PER_CHANNEL);
-        n -= n2;
-    }
-    memcpy(_echoSamplesLeft + _echoWritePos, outputLeft, n * sizeof(int16_t));
-    memcpy(_echoSamplesLeft, outputLeft + n, n2 * sizeof(int16_t));
-    memcpy(_echoSamplesRight + _echoWritePos, outputRight, n * sizeof(int16_t));
-    memcpy(_echoSamplesRight, outputRight + n, n2 * sizeof(int16_t));
-
-    _echoWritePos = writeEnd;
 }
 
 // -----------------------------------------------------------
@@ -772,7 +739,6 @@ bool Audio::eventuallyAnalyzePing() {
     }
     _scope->inputPaused = true;
     analyzePing();
-    setIsCancellingEcho(_isCancellingEcho);
     _pingAnalysisPending = false;
     return true;
 }

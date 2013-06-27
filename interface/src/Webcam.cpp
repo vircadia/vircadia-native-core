@@ -8,8 +8,6 @@
 #include <QTimer>
 #include <QtDebug>
 
-#include <opencv2/opencv.hpp>
-
 #include <Log.h>
 #include <SharedUtil.h>
 
@@ -20,7 +18,14 @@
 #include "Application.h"
 #include "Webcam.h"
 
-Webcam::Webcam() : _enabled(false), _frameTextureID(0)  {
+using namespace cv;
+using namespace std;
+
+// register OpenCV matrix type with Qt metatype system
+int matMetaType = qRegisterMetaType<Mat>("cv::Mat");
+int rotatedRectMetaType = qRegisterMetaType<RotatedRect>("cv::RotatedRect");
+
+Webcam::Webcam() : _enabled(false), _active(false), _frameTextureID(0) {
     // the grabber simply runs as fast as possible
     _grabber = new FrameGrabber();
     _grabber->moveToThread(&_grabberThread);
@@ -36,10 +41,21 @@ void Webcam::setEnabled(bool enabled) {
         _frameCount = 0;
         
         // let the grabber know we're ready for the first frame
+        QMetaObject::invokeMethod(_grabber, "reset");
         QMetaObject::invokeMethod(_grabber, "grabFrame");
     
     } else {
         _grabberThread.quit();
+        _active = false;
+    }
+}
+
+void Webcam::reset() {
+    _initialFaceRect = RotatedRect();
+    
+    if (_enabled) {
+        // send a message to the grabber
+        QMetaObject::invokeMethod(_grabber, "reset");
     }
 }
 
@@ -66,6 +82,17 @@ void Webcam::renderPreview(int screenWidth, int screenHeight) {
         glBindTexture(GL_TEXTURE_2D, 0);
         glDisable(GL_TEXTURE_2D);
         
+        glBegin(GL_LINE_LOOP);
+            Point2f facePoints[4];
+            _faceRect.points(facePoints);
+            float xScale = previewWidth / (float)_frameWidth;
+            float yScale = PREVIEW_HEIGHT / (float)_frameHeight;
+            glVertex2f(left + facePoints[0].x * xScale, top + facePoints[0].y * yScale);
+            glVertex2f(left + facePoints[1].x * xScale, top + facePoints[1].y * yScale);
+            glVertex2f(left + facePoints[2].x * xScale, top + facePoints[2].y * yScale);
+            glVertex2f(left + facePoints[3].x * xScale, top + facePoints[3].y * yScale);
+        glEnd();
+        
         char fps[20];
         sprintf(fps, "FPS: %d", (int)(roundf(_frameCount * 1000000.0f / (usecTimestampNow() - _startTimestamp))));
         drawtext(left, top + PREVIEW_HEIGHT + 20, 0.10, 0, 1, 0, fps);
@@ -80,25 +107,26 @@ Webcam::~Webcam() {
     delete _grabber;
 }
 
-void Webcam::setFrame(void* image) {
-    IplImage* img = static_cast<IplImage*>(image);
-    glPixelStorei(GL_UNPACK_ROW_LENGTH, img->widthStep / 3);
+void Webcam::setFrame(const Mat& frame, const RotatedRect& faceRect) {
+    IplImage image = frame;
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, image.widthStep / 3);
     if (_frameTextureID == 0) {
         glGenTextures(1, &_frameTextureID);
         glBindTexture(GL_TEXTURE_2D, _frameTextureID);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, _frameWidth = img->width, _frameHeight = img->height, 0, GL_BGR,
-            GL_UNSIGNED_BYTE, img->imageData);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, _frameWidth = image.width, _frameHeight = image.height, 0, GL_BGR,
+            GL_UNSIGNED_BYTE, image.imageData);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         printLog("Capturing webcam at %dx%d.\n", _frameWidth, _frameHeight);
     
     } else {
         glBindTexture(GL_TEXTURE_2D, _frameTextureID);
-        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, _frameWidth, _frameHeight, GL_BGR, GL_UNSIGNED_BYTE, img->imageData);    
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, _frameWidth, _frameHeight, GL_BGR, GL_UNSIGNED_BYTE, image.imageData);    
     }
     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
     glBindTexture(GL_TEXTURE_2D, 0);
     
-    // update our frame count for fps computation
+    // store our face rect, update our frame count for fps computation
+    _faceRect = faceRect;
     _frameCount++;
     
     const int MAX_FPS = 60;
@@ -112,14 +140,53 @@ void Webcam::setFrame(void* image) {
     }
     _lastFrameTimestamp = now;
     
+    // roll is just the angle of the face rect (correcting for 180 degree rotations)
+    float roll = faceRect.angle;
+    if (roll < -90.0f) {
+        roll += 180.0f;
+        
+    } else if (roll > 90.0f) {
+        roll -= 180.0f;
+    }
+    const float ROTATION_SMOOTHING = 0.95f;
+    _estimatedRotation.z = glm::mix(roll, _estimatedRotation.z, ROTATION_SMOOTHING);
+    
+    // determine position based on translation and scaling of the face rect
+    if (_initialFaceRect.size.area() == 0) {
+        _initialFaceRect = faceRect;
+        _estimatedPosition = glm::vec3();
+    
+    } else {
+        float proportion = sqrtf(_initialFaceRect.size.area() / (float)faceRect.size.area());
+        const float DISTANCE_TO_CAMERA = 0.333f;
+        const float POSITION_SCALE = 0.5f;
+        float z = DISTANCE_TO_CAMERA * proportion - DISTANCE_TO_CAMERA;
+        glm::vec3 position = glm::vec3(
+            (faceRect.center.x - _initialFaceRect.center.x) * proportion * POSITION_SCALE / _frameWidth,
+            (faceRect.center.y - _initialFaceRect.center.y) * proportion * POSITION_SCALE / _frameWidth,
+            z);
+        const float POSITION_SMOOTHING = 0.95f;
+        _estimatedPosition = glm::mix(position, _estimatedPosition, POSITION_SMOOTHING);
+    }
+    
+    // note that we have data
+    _active = true;
+    
     // let the grabber know we're ready for the next frame
     QTimer::singleShot(qMax((int)remaining / 1000, 0), _grabber, SLOT(grabFrame()));
+}
+
+FrameGrabber::FrameGrabber() : _capture(0), _searchWindow(0, 0, 0, 0) {
 }
 
 FrameGrabber::~FrameGrabber() {
     if (_capture != 0) {
         cvReleaseCapture(&_capture);
     }
+}
+
+void FrameGrabber::reset() {
+    _searchWindow = Rect(0, 0, 0, 0);
 }
 
 void FrameGrabber::grabFrame() {
@@ -134,20 +201,70 @@ void FrameGrabber::grabFrame() {
         cvSetCaptureProperty(_capture, CV_CAP_PROP_FRAME_HEIGHT, IDEAL_FRAME_HEIGHT);
         
 #ifdef __APPLE__
-        configureCamera(0x5ac, 0x8510, false, 0.99, 0.5, 0.5, 0.5, true, 0.5);
+        configureCamera(0x5ac, 0x8510, false, 0.975, 0.5, 1.0, 0.5, true, 0.5);
+#else
+        cvSetCaptureProperty(_capture, CV_CAP_PROP_EXPOSURE, 0.5);
+        cvSetCaptureProperty(_capture, CV_CAP_PROP_CONTRAST, 0.5);
+        cvSetCaptureProperty(_capture, CV_CAP_PROP_SATURATION, 0.5);
+        cvSetCaptureProperty(_capture, CV_CAP_PROP_BRIGHTNESS, 0.5);
+        cvSetCaptureProperty(_capture, CV_CAP_PROP_HUE, 0.5);
+        cvSetCaptureProperty(_capture, CV_CAP_PROP_GAIN, 0.5);
 #endif
+
+        switchToResourcesParentIfRequired();
+        if (!_faceCascade.load("resources/haarcascades/haarcascade_frontalface_alt.xml")) {
+            printLog("Failed to load Haar cascade for face tracking.\n");
+        }
     }
     IplImage* image = cvQueryFrame(_capture);
     if (image == 0) {
         // try again later
         QMetaObject::invokeMethod(this, "grabFrame", Qt::QueuedConnection);
         return;
-    }
+    }   
     // make sure it's in the format we expect
     if (image->nChannels != 3 || image->depth != IPL_DEPTH_8U || image->dataOrder != IPL_DATA_ORDER_PIXEL ||
             image->origin != 0) {
         printLog("Invalid webcam image format.\n");
         return;
     }
-    QMetaObject::invokeMethod(Application::getInstance()->getWebcam(), "setFrame", Q_ARG(void*, image));
+    
+    // if we don't have a search window (yet), try using the face cascade
+    Mat frame = image;
+    int channels = 0;
+    float ranges[] = { 0, 180 };
+    const float* range = ranges;
+    if (_searchWindow.area() == 0) {
+        vector<Rect> faces;
+        _faceCascade.detectMultiScale(frame, faces, 1.1, 6);
+        if (!faces.empty()) {
+            _searchWindow = faces.front();
+            updateHSVFrame(frame);
+        
+            Mat faceHsv(_hsvFrame, _searchWindow);
+            Mat faceMask(_mask, _searchWindow);
+            int sizes = 30;
+            calcHist(&faceHsv, 1, &channels, faceMask, _histogram, 1, &sizes, &range);
+            double min, max;
+            minMaxLoc(_histogram, &min, &max);
+            _histogram.convertTo(_histogram, -1, (max == 0.0) ? 0.0 : 255.0 / max);
+        }
+    }
+    RotatedRect faceRect;
+    if (_searchWindow.area() > 0) {
+        updateHSVFrame(frame);
+        
+        calcBackProject(&_hsvFrame, 1, &channels, _histogram, _backProject, &range);
+        bitwise_and(_backProject, _mask, _backProject);
+        
+        faceRect = CamShift(_backProject, _searchWindow, TermCriteria(CV_TERMCRIT_EPS | CV_TERMCRIT_ITER, 10, 1));
+        _searchWindow = faceRect.boundingRect();
+    }   
+    QMetaObject::invokeMethod(Application::getInstance()->getWebcam(), "setFrame",
+        Q_ARG(cv::Mat, frame), Q_ARG(cv::RotatedRect, faceRect));
+}
+
+void FrameGrabber::updateHSVFrame(const Mat& frame) {
+    cvtColor(frame, _hsvFrame, CV_BGR2HSV);
+    inRange(_hsvFrame, Scalar(0, 55, 65), Scalar(180, 256, 256), _mask);
 }

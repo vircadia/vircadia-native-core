@@ -44,14 +44,15 @@
 #include <QtDebug>
 #include <QFileDialog>
 #include <QDesktopServices>
-#include <PairingHandler.h>
 
 #include <AgentTypes.h>
-#include <PacketHeaders.h>
-#include <PerfStat.h>
 #include <AudioInjectionManager.h>
 #include <AudioInjector.h>
+#include <Logstash.h>
 #include <OctalCode.h>
+#include <PacketHeaders.h>
+#include <PairingHandler.h>
+#include <PerfStat.h>
 
 #include "Application.h"
 #include "InterfaceConfig.h"
@@ -73,6 +74,10 @@ const glm::vec3 START_LOCATION(4.f, 0.f, 5.f);   //  Where one's own agent begin
 const int IDLE_SIMULATE_MSECS = 16;              //  How often should call simulate and other stuff
                                                  //  in the idle loop?  (60 FPS is default)
 
+const int STARTUP_JITTER_SAMPLES = PACKET_LENGTH_SAMPLES_PER_CHANNEL / 2;
+                                                 //  Startup optimistically with small jitter buffer that 
+                                                 //  will start playback on the second received audio packet.
+
 // customized canvas that simply forwards requests/events to the singleton application
 class GLCanvas : public QGLWidget {
 protected:
@@ -88,11 +93,14 @@ protected:
     virtual void mousePressEvent(QMouseEvent* event);
     virtual void mouseReleaseEvent(QMouseEvent* event);
     
+    virtual bool event(QEvent* event);
+    
     virtual void wheelEvent(QWheelEvent* event);
 };
 
 void GLCanvas::initializeGL() {
     Application::getInstance()->initializeGL();
+    setAttribute(Qt::WA_AcceptTouchEvents);
 }
 
 void GLCanvas::paintGL() {
@@ -123,6 +131,25 @@ void GLCanvas::mouseReleaseEvent(QMouseEvent* event) {
     Application::getInstance()->mouseReleaseEvent(event);
 }
 
+int updateTime = 0;
+bool GLCanvas::event(QEvent* event) {
+    switch (event->type()) {
+        case QEvent::TouchBegin:
+            Application::getInstance()->touchBeginEvent(static_cast<QTouchEvent*>(event));
+            event->accept();
+            return true;
+        case QEvent::TouchEnd:
+            Application::getInstance()->touchEndEvent(static_cast<QTouchEvent*>(event));
+            return true;
+        case QEvent::TouchUpdate:
+            Application::getInstance()->touchUpdateEvent(static_cast<QTouchEvent*>(event));
+            return true;
+        default:
+            break;
+    }
+    return QGLWidget::event(event);
+}
+
 void GLCanvas::wheelEvent(QWheelEvent* event) {
     Application::getInstance()->wheelEvent(event);
 }
@@ -145,6 +172,9 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _audioScope(256, 200, true),
         _mouseX(0),
         _mouseY(0),
+        _touchAvgX(0.0f),
+        _touchAvgY(0.0f),
+        _isTouchPressed(false),
         _mousePressed(false),
         _mouseVoxelScale(1.0f / 1024.0f),
         _justEditedVoxel(false),
@@ -156,7 +186,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _oculusProgram(0),
         _oculusDistortionScale(1.25),
 #ifndef _WIN32
-        _audio(&_audioScope),
+        _audio(&_audioScope, STARTUP_JITTER_SAMPLES),
 #endif
         _stopNetworkReceiveThread(false),  
         _packetCount(0),
@@ -286,12 +316,17 @@ void Application::initializeGL() {
     idleTimer->start(0);
     
     if (_justStarted) {
-        float startupTime = (usecTimestampNow() - usecTimestamp(&_applicationStartupTime))/1000000.0;
+        float startupTime = (usecTimestampNow() - usecTimestamp(&_applicationStartupTime)) / 1000000.0;
         _justStarted = false;
         char title[50];
         sprintf(title, "Interface: %4.2f seconds\n", startupTime);
         printLog("%s", title);
         _window->setWindowTitle(title);
+        
+        const char LOGSTASH_INTERFACE_START_TIME_KEY[] = "interface-start-time";
+        
+        // ask the Logstash class to record the startup time
+        Logstash::stashValue(LOGSTASH_INTERFACE_START_TIME_KEY, startupTime);
     }
     
     // update before the first render
@@ -304,7 +339,7 @@ void Application::paintGL() {
     glEnable(GL_LINE_SMOOTH);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
-    float headCameraScale = _serialHeadSensor.active ? _headCameraPitchYawScale : 1.0f;
+    float headCameraScale = _serialHeadSensor.isActive() ? _headCameraPitchYawScale : 1.0f;
     
     if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         _myCamera.setTightness     (100.0f); 
@@ -533,6 +568,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 
             case Qt::Key_Space:
                 resetSensors();
+                _audio.reset();
                 break;
                 
             case Qt::Key_G:
@@ -748,6 +784,40 @@ void Application::mouseReleaseEvent(QMouseEvent* event) {
     }
 }
 
+void Application::touchUpdateEvent(QTouchEvent* event) {
+    bool validTouch = false;
+    if (activeWindow() == _window) {
+        const QList<QTouchEvent::TouchPoint>& tPoints = event->touchPoints();
+        _touchAvgX = 0.0f;
+        _touchAvgY = 0.0f;
+        int numTouches = tPoints.count();
+        if (numTouches > 1) {
+            for (int i = 0; i < numTouches; ++i) {
+                _touchAvgX += tPoints[i].pos().x();
+                _touchAvgY += tPoints[i].pos().y();
+            }
+            _touchAvgX /= (float)(numTouches);
+            _touchAvgY /= (float)(numTouches);
+            validTouch = true;
+        }
+    }
+    if (!_isTouchPressed) {
+        _touchDragStartedAvgX = _touchAvgX;
+        _touchDragStartedAvgY = _touchAvgY;
+    }
+    _isTouchPressed = validTouch;
+}
+
+void Application::touchBeginEvent(QTouchEvent* event) {
+    touchUpdateEvent(event);
+}
+
+void Application::touchEndEvent(QTouchEvent* event) {
+    _touchDragStartedAvgX = _touchAvgX;
+    _touchDragStartedAvgY = _touchAvgY;
+    _isTouchPressed = false;
+}
+
 void Application::wheelEvent(QWheelEvent* event) {
     if (activeWindow() == _window) {
         if (checkedVoxelModeAction() == 0) {
@@ -775,7 +845,7 @@ void Application::timer() {
     gettimeofday(&_timerStart, NULL);
     
     // if we haven't detected gyros, check for them now
-    if (!_serialHeadSensor.active) {
+    if (!_serialHeadSensor.isActive()) {
         _serialHeadSensor.pair();
     }
     
@@ -889,14 +959,16 @@ void Application::editPreferences() {
     headCameraPitchYawScale->setValue(_headCameraPitchYawScale);
     form->addRow("Head Camera Pitch/Yaw Scale:", headCameraPitchYawScale);
 
-    QCheckBox* audioEchoCancellation = new QCheckBox();
-    audioEchoCancellation->setChecked(_audio.isCancellingEcho());
-    form->addRow("Audio Echo Cancellation", audioEchoCancellation);
-    
     QDoubleSpinBox* leanScale = new QDoubleSpinBox();
     leanScale->setValue(_myAvatar.getLeanScale());
     form->addRow("Lean Scale:", leanScale);
-    
+
+    QSpinBox* audioJitterBufferSamples = new QSpinBox();
+    audioJitterBufferSamples->setMaximum(10000);
+    audioJitterBufferSamples->setMinimum(-10000);
+    audioJitterBufferSamples->setValue(_audioJitterBufferSamples);
+    form->addRow("Audio Jitter Buffer Samples (0 for automatic):", audioJitterBufferSamples);
+
     QDialogButtonBox* buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
     dialog.connect(buttons, SIGNAL(accepted()), SLOT(accept()));
     dialog.connect(buttons, SIGNAL(rejected()), SLOT(reject()));
@@ -908,24 +980,22 @@ void Application::editPreferences() {
     QUrl url(avatarURL->text());
     _myAvatar.getVoxels()->setVoxelURL(url);
     sendAvatarVoxelURLMessage(url);
-    _audio.setIsCancellingEcho( audioEchoCancellation->isChecked() );
     _headCameraPitchYawScale = headCameraPitchYawScale->value();
     _myAvatar.setLeanScale(leanScale->value());
+    _audioJitterBufferSamples = audioJitterBufferSamples->value();
+    if (!shouldDynamicallySetJitterBuffer()) {
+        _audio.setJitterBufferSamples(_audioJitterBufferSamples);
+    }
 }
 
 void Application::pair() {
     PairingHandler::sendPairRequest();
 }
 
-void Application::setHead(bool head) {    
-    if (head) {
-        _myCamera.setMode(CAMERA_MODE_MIRROR);
-        _myCamera.setModeShiftRate(100.0f);
+void Application::setRenderMirrored(bool mirrored) {
+    if (mirrored) {
         _manualFirstPerson->setChecked(false);
-        
-    } else {
-        _myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
-        _myCamera.setModeShiftRate(1.0f);
+        _manualThirdPerson->setChecked(false);
     }
 }
 
@@ -940,8 +1010,16 @@ void Application::setFullscreen(bool fullscreen) {
 }
 
 void Application::setRenderFirstPerson(bool firstPerson) {
-    if (firstPerson && _lookingInMirror->isChecked()) {
-        _lookingInMirror->trigger();
+    if (firstPerson) {
+        _lookingInMirror->setChecked(false);
+        _manualThirdPerson->setChecked(false);
+    }
+}
+
+void Application::setRenderThirdPerson(bool thirdPerson) {
+    if (thirdPerson) {
+        _lookingInMirror->setChecked(false);
+        _manualFirstPerson->setChecked(false);
     }
 }
 
@@ -1242,7 +1320,7 @@ void Application::initMenu() {
     pairMenu->addAction("Pair", this, SLOT(pair()));
     
     QMenu* optionsMenu = menuBar->addMenu("Options");
-    (_lookingInMirror = optionsMenu->addAction("Mirror", this, SLOT(setHead(bool)), Qt::Key_H))->setCheckable(true);
+    (_lookingInMirror = optionsMenu->addAction("Mirror", this, SLOT(setRenderMirrored(bool)), Qt::Key_H))->setCheckable(true);
     (_echoAudioMode = optionsMenu->addAction("Echo Audio"))->setCheckable(true);
     
     optionsMenu->addAction("Noise", this, SLOT(setNoise(bool)), Qt::Key_N)->setCheckable(true);
@@ -1250,6 +1328,8 @@ void Application::initMenu() {
     _gyroLook->setChecked(false);
     (_mouseLook = optionsMenu->addAction("Mouse Look"))->setCheckable(true);
     _mouseLook->setChecked(true);
+    (_touchLook = optionsMenu->addAction("Touch Look"))->setCheckable(true);
+    _touchLook->setChecked(false);
     (_showHeadMouse = optionsMenu->addAction("Head Mouse"))->setCheckable(true);
     _showHeadMouse->setChecked(false);
     (_transmitterDrives = optionsMenu->addAction("Transmitter Drive"))->setCheckable(true);
@@ -1277,12 +1357,15 @@ void Application::initMenu() {
     _renderAvatarsOn->setChecked(true);
     (_renderAvatarBalls = renderMenu->addAction("Avatar as Balls"))->setCheckable(true);
     _renderAvatarBalls->setChecked(false);
+    renderMenu->addAction("Cycle Voxeltar Mode", _myAvatar.getVoxels(), SLOT(cycleMode()));
     (_renderFrameTimerOn = renderMenu->addAction("Show Timer"))->setCheckable(true);
     _renderFrameTimerOn->setChecked(false);
     (_renderLookatOn = renderMenu->addAction("Lookat Vectors"))->setCheckable(true);
     _renderLookatOn->setChecked(false);
     (_manualFirstPerson = renderMenu->addAction(
         "First Person", this, SLOT(setRenderFirstPerson(bool)), Qt::Key_P))->setCheckable(true);
+    (_manualThirdPerson = renderMenu->addAction(
+        "Third Person", this, SLOT(setRenderThirdPerson(bool))))->setCheckable(true);
     
     QMenu* toolsMenu = menuBar->addMenu("Tools");
     (_renderStatsOn = toolsMenu->addAction("Stats"))->setCheckable(true);
@@ -1355,6 +1438,7 @@ void Application::initMenu() {
     debugMenu->addAction("Wants Res-In", this, SLOT(setWantsResIn(bool)))->setCheckable(true);
     debugMenu->addAction("Wants Monochrome", this, SLOT(setWantsMonochrome(bool)))->setCheckable(true);
     debugMenu->addAction("Wants View Delta Sending", this, SLOT(setWantsDelta(bool)))->setCheckable(true);
+    (_shouldLowPassFilter = debugMenu->addAction("Test: LowPass filter"))->setCheckable(true);
     debugMenu->addAction("Wants Occlusion Culling", this, SLOT(setWantsOcclusionCulling(bool)))->setCheckable(true);
 
     QMenu* settingsMenu = menuBar->addMenu("Settings");
@@ -1420,7 +1504,7 @@ void Application::init() {
   
     _myAvatar.init();
     _myAvatar.setPosition(START_LOCATION);
-    _myCamera.setMode(CAMERA_MODE_THIRD_PERSON );
+    _myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
     _myCamera.setModeShiftRate(1.0f);
     _myAvatar.setDisplayingLookatVectors(false);  
     
@@ -1435,6 +1519,12 @@ void Application::init() {
     gettimeofday(&_lastTimeIdle, NULL);
 
     loadSettings();
+    if (!shouldDynamicallySetJitterBuffer()) {
+        _audio.setJitterBufferSamples(_audioJitterBufferSamples);
+    }
+    
+    printLog("Loaded settings.\n");
+
     
     sendAvatarVoxelURLMessage(_myAvatar.getVoxels()->getVoxelURL());
 }
@@ -1575,8 +1665,14 @@ void Application::update(float deltaTime) {
                                   _glWidget->height());
     }
    
+    //  Update from Touch
+    if (_isTouchPressed && _touchLook->isChecked()) {
+        _myAvatar.updateFromTouch(_touchAvgX - _touchDragStartedAvgX,
+                                  _touchAvgY - _touchDragStartedAvgY);
+    }
+    
     //  Read serial port interface devices
-    if (_serialHeadSensor.active) {
+    if (_serialHeadSensor.isActive()) {
         _serialHeadSensor.readData(deltaTime);
     }
     
@@ -1619,25 +1715,35 @@ void Application::update(float deltaTime) {
         _myAvatar.simulate(deltaTime, NULL);
     }
     
-        if (_myCamera.getMode() != CAMERA_MODE_MIRROR && !OculusManager::isConnected()) {        
-            if (_manualFirstPerson->isChecked()) {
-                if (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON ) {
-                    _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
-                    _myCamera.setModeShiftRate(1.0f);
-                }
+    if (!OculusManager::isConnected()) {        
+        if (_lookingInMirror->isChecked()) {
+            if (_myCamera.getMode() != CAMERA_MODE_MIRROR) {
+                _myCamera.setMode(CAMERA_MODE_MIRROR);
+                _myCamera.setModeShiftRate(100.0f);
+            }
+        } else if (_manualFirstPerson->isChecked()) {
+            if (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON) {
+                _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
+                _myCamera.setModeShiftRate(1.0f);
+            }
+        } else if (_manualThirdPerson->isChecked()) {
+            if (_myCamera.getMode() != CAMERA_MODE_THIRD_PERSON) {
+                _myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
+                _myCamera.setModeShiftRate(1.0f);
+            }
         } else {
             const float THIRD_PERSON_SHIFT_VELOCITY = 2.0f;
             const float TIME_BEFORE_SHIFT_INTO_FIRST_PERSON = 0.75f;
             const float TIME_BEFORE_SHIFT_INTO_THIRD_PERSON = 0.1f;
             
             if ((_myAvatar.getElapsedTimeStopped() > TIME_BEFORE_SHIFT_INTO_FIRST_PERSON)
-                && (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON)) {
-                    _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
-                    _myCamera.setModeShiftRate(1.0f);
-                }
+                    && (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON)) {
+                _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
+                _myCamera.setModeShiftRate(1.0f);
+            }
             if ((_myAvatar.getSpeed() > THIRD_PERSON_SHIFT_VELOCITY)
-                && (_myAvatar.getElapsedTimeMoving() > TIME_BEFORE_SHIFT_INTO_THIRD_PERSON)
-                && (_myCamera.getMode() != CAMERA_MODE_THIRD_PERSON)) {
+                    && (_myAvatar.getElapsedTimeMoving() > TIME_BEFORE_SHIFT_INTO_THIRD_PERSON)
+                    && (_myCamera.getMode() != CAMERA_MODE_THIRD_PERSON)) {
                 _myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
                 _myCamera.setModeShiftRate(1000.0f);
             }
@@ -1654,8 +1760,10 @@ void Application::update(float deltaTime) {
 
 void Application::updateAvatar(float deltaTime) {
 
-    
-    if (_serialHeadSensor.active) {
+    // Update my avatar's head position from gyros and/or webcam
+    _myAvatar.updateHeadFromGyrosAndOrWebcam();
+        
+    if (_serialHeadSensor.isActive()) {
       
         // Update avatar head translation
         if (_gyroLook->isChecked()) {
@@ -1664,10 +1772,7 @@ void Application::updateAvatar(float deltaTime) {
             headPosition *= HEAD_OFFSET_SCALING;
             _myCamera.setEyeOffsetPosition(headPosition);
         }
-        
-        // Update my avatar's head position from gyros
-        _myAvatar.updateHeadFromGyros(deltaTime, &_serialHeadSensor);
-        
+
         //  Grab latest readings from the gyros
         float measuredPitchRate = _serialHeadSensor.getLastPitchRate();
         float measuredYawRate = _serialHeadSensor.getLastYawRate();
@@ -2522,9 +2627,10 @@ void Application::resetSensors() {
     _headMouseX = _mouseX = _glWidget->width() / 2;
     _headMouseY = _mouseY = _glWidget->height() / 2;
     
-    if (_serialHeadSensor.active) {
+    if (_serialHeadSensor.isActive()) {
         _serialHeadSensor.resetAverages();
     }
+    _webcam.reset();
     QCursor::setPos(_headMouseX, _headMouseY);
     _myAvatar.reset();
     _myTransmitter.resetLevels();
@@ -2674,7 +2780,7 @@ void Application::loadSettings(QSettings* settings) {
     }
 
     _headCameraPitchYawScale = loadSetting(settings, "headCameraPitchYawScale", 0.0f);
-
+    _audioJitterBufferSamples = loadSetting(settings, "audioJitterBufferSamples", 0);
     settings->beginGroup("View Frustum Offset Camera");
     // in case settings is corrupt or missing loadSetting() will check for NaN
     _viewFrustumOffsetYaw      = loadSetting(settings, "viewFrustumOffsetYaw"     , 0.0f);
@@ -2682,9 +2788,6 @@ void Application::loadSettings(QSettings* settings) {
     _viewFrustumOffsetRoll     = loadSetting(settings, "viewFrustumOffsetRoll"    , 0.0f);
     _viewFrustumOffsetDistance = loadSetting(settings, "viewFrustumOffsetDistance", 0.0f);
     _viewFrustumOffsetUp       = loadSetting(settings, "viewFrustumOffsetUp"      , 0.0f);
-    settings->endGroup();
-    settings->beginGroup("Audio Echo Cancellation");
-    _audio.setIsCancellingEcho(settings->value("enabled", false).toBool());
     settings->endGroup();
 
     scanMenuBar(&Application::loadAction, settings);
@@ -2698,15 +2801,13 @@ void Application::saveSettings(QSettings* settings) {
     }
 
     settings->setValue("headCameraPitchYawScale", _headCameraPitchYawScale);
+    settings->setValue("audioJitterBufferSamples", _audioJitterBufferSamples);
     settings->beginGroup("View Frustum Offset Camera");
     settings->setValue("viewFrustumOffsetYaw",      _viewFrustumOffsetYaw);
     settings->setValue("viewFrustumOffsetPitch",    _viewFrustumOffsetPitch);
     settings->setValue("viewFrustumOffsetRoll",     _viewFrustumOffsetRoll);
     settings->setValue("viewFrustumOffsetDistance", _viewFrustumOffsetDistance);
     settings->setValue("viewFrustumOffsetUp",       _viewFrustumOffsetUp);
-    settings->endGroup();
-    settings->beginGroup("Audio");
-    settings->setValue("echoCancellation", _audio.isCancellingEcho());
     settings->endGroup();
     
     scanMenuBar(&Application::saveAction, settings);

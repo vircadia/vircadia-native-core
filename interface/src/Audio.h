@@ -11,21 +11,26 @@
 
 #include <portaudio.h>
 
-#include <speex/speex_echo.h>
-#include <speex/speex_preprocess.h>
-
 #include <AudioRingBuffer.h>
 #include <StdDev.h>
 
 #include "Oscilloscope.h"
 #include "Avatar.h"
 
+static const int NUM_AUDIO_CHANNELS = 2;
+
+static const int PACKET_LENGTH_BYTES = 1024;
+static const int PACKET_LENGTH_BYTES_PER_CHANNEL = PACKET_LENGTH_BYTES / 2;
+static const int PACKET_LENGTH_SAMPLES = PACKET_LENGTH_BYTES / sizeof(int16_t);
+static const int PACKET_LENGTH_SAMPLES_PER_CHANNEL = PACKET_LENGTH_SAMPLES / 2;
+
 class Audio {
 public:
     // initializes audio I/O
-    Audio(Oscilloscope* scope);
+    Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples);
     ~Audio();
 
+    void reset(); 
     void render(int screenWidth, int screenHeight);
     
     void addReceivedAudioToBuffer(unsigned char* receivedData, int receivedBytes);
@@ -34,9 +39,11 @@ public:
     
     void setLastAcceleration(glm::vec3 lastAcceleration) { _lastAcceleration = lastAcceleration; };
     void setLastVelocity(glm::vec3 lastVelocity) { _lastVelocity = lastVelocity; };
-
-    void setIsCancellingEcho(bool enabled);
-    bool isCancellingEcho() const;
+    
+    void setJitterBufferSamples(int samples) { _jitterBufferSamples = samples; };
+    int getJitterBufferSamples() { return _jitterBufferSamples; };
+    
+    void lowPassFilter(int16_t* inputBuffer);
 
     void ping();
 
@@ -44,6 +51,7 @@ public:
     // in which case 'true' is returned - otherwise the return value is 'false'.
     // The results of the analysis are written to the log.
     bool eventuallyAnalyzePing();
+
 
 private:    
     PaStream* _stream;
@@ -54,26 +62,17 @@ private:
     timeval _lastReceiveTime;
     float _averagedLatency;
     float _measuredJitter;
-//    float _jitterBufferLengthMsecs; // currently unused
-//    short _jitterBufferSamples; // currently unsused
+    int16_t _jitterBufferSamples;
     int _wasStarved;
     int _numStarves;
     float _lastInputLoudness;
     glm::vec3 _lastVelocity;
     glm::vec3 _lastAcceleration;
     int _totalPacketsReceived;
-    timeval _firstPlaybackTime;
+    timeval _firstPacketReceivedTime;
     int _packetsReceivedThisPlayback;
-    // Echo cancellation
-    volatile bool _isCancellingEcho;
-    unsigned _echoWritePos;
-    unsigned _echoDelay;
-    int16_t* _echoSamplesLeft;
-    int16_t* _echoSamplesRight;
-    int16_t* _speexTmpBuf;
-    SpeexEchoState* _speexEchoState;
-    SpeexPreprocessState* _speexPreprocessState;
     // Ping analysis
+    int16_t* _echoSamplesLeft;
     volatile bool _isSendingEchoPing;
     volatile bool _pingAnalysisPending;
     int _pingFramesToRecord;
@@ -87,13 +86,6 @@ private:
     // Audio callback in class context.
     inline void performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* outputRight);
 
-    // When echo cancellation is enabled, subtract recorded echo from the input.
-    // Called from 'performIO' before the input has been processed.
-    inline void eventuallyCancelEcho(int16_t* inputLeft);
-    // When EC is enabled, record output samples.
-    // Called from 'performIO' after the output has been generated.
-    inline void eventuallyRecordEcho(int16_t* outputLeft, int16_t* outputRight);
-
     // When requested, sends/receives a signal for round trip time determination.
     // Called from 'performIO'.
     inline void eventuallySendRecvPing(int16_t* inputLeft, int16_t* outputLeft, int16_t* outputRight);
@@ -101,6 +93,7 @@ private:
     // Determines round trip time of the audio system. Called from 'eventuallyAnalyzePing'.
     inline void analyzePing();
 
+    // Add sounds that we want the user to not hear themselves, by adding on top of mic input signal
     void addProceduralSounds(int16_t* inputBuffer, int numSamples);
 
 
