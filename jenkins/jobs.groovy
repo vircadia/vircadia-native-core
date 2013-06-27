@@ -130,4 +130,12 @@ parameterizedJob.with {
             node / 'wipeOutWorkspace' << true
         }
     } 
+    configure { project ->
+        def curlCommand = 'curl -d action=hifidevgrid -d "hostname=$HOSTNAME" ' +
+                          '-d "github_user=$GITHUB_USER" -d "build_branch=$GIT_BRANCH" ' +
+                          "-d \"revision=\$TARGET\" https://${ARTIFACT_DESTINATION}"
+        
+        (project / publishers / 'hudson.plugins.postbuildtask.PostbuildTask' / 
+            tasks / 'hudson.plugins.postbuildtask.TaskProperties' / script).setValue(curlCommand)
+    }
 }

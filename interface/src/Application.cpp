@@ -57,6 +57,7 @@
 #include "Application.h"
 #include "InterfaceConfig.h"
 #include "LogDisplay.h"
+#include "LeapManager.h"
 #include "OculusManager.h"
 #include "Util.h"
 #include "renderer/ProgramObject.h"
@@ -978,10 +979,6 @@ void Application::editPreferences() {
     headCameraPitchYawScale->setValue(_headCameraPitchYawScale);
     form->addRow("Head Camera Pitch/Yaw Scale:", headCameraPitchYawScale);
 
-    QCheckBox* audioEchoCancellation = new QCheckBox();
-    audioEchoCancellation->setChecked(_audio.isCancellingEcho());
-    form->addRow("Audio Echo Cancellation", audioEchoCancellation);
-    
     QDoubleSpinBox* leanScale = new QDoubleSpinBox();
     leanScale->setValue(_myAvatar.getLeanScale());
     form->addRow("Lean Scale:", leanScale);
@@ -1003,7 +1000,6 @@ void Application::editPreferences() {
     QUrl url(avatarURL->text());
     _myAvatar.getVoxels()->setVoxelURL(url);
     sendAvatarVoxelURLMessage(url);
-    _audio.setIsCancellingEcho( audioEchoCancellation->isChecked() );
     _headCameraPitchYawScale = headCameraPitchYawScale->value();
     _myAvatar.setLeanScale(leanScale->value());
     _audioJitterBufferSamples = audioJitterBufferSamples->value();
@@ -1695,7 +1691,11 @@ void Application::update(float deltaTime) {
                                   _touchAvgY - _touchDragStartedAvgY);
     }
     
-    //  Read serial port interface devices
+    // Leap finger-sensing device
+    LeapManager::nextFrame();
+    _myAvatar.setLeapFingers(LeapManager::getFingerPositions());
+    
+     //  Read serial port interface devices
     if (_serialHeadSensor.isActive()) {
         _serialHeadSensor.readData(deltaTime);
     }
@@ -2339,6 +2339,7 @@ void Application::displayStats() {
     }
     
     drawtext(10, statsVerticalOffset + 330, 0.10f, 0, 1.0, 0, avatarMixerStats);
+    drawtext(10, statsVerticalOffset + 450, 0.10f, 0, 1.0, 0, (char *)LeapManager::statusString().c_str());
     
     if (_perfStatsOn) {
         // Get the PerfStats group details. We need to allocate and array of char* long enough to hold 1+groups
@@ -2813,9 +2814,6 @@ void Application::loadSettings(QSettings* settings) {
     _viewFrustumOffsetDistance = loadSetting(settings, "viewFrustumOffsetDistance", 0.0f);
     _viewFrustumOffsetUp       = loadSetting(settings, "viewFrustumOffsetUp"      , 0.0f);
     settings->endGroup();
-    settings->beginGroup("Audio Echo Cancellation");
-    _audio.setIsCancellingEcho(settings->value("enabled", false).toBool());
-    settings->endGroup();
 
     scanMenuBar(&Application::loadAction, settings);
     getAvatar()->loadData(settings);    
@@ -2835,9 +2833,6 @@ void Application::saveSettings(QSettings* settings) {
     settings->setValue("viewFrustumOffsetRoll",     _viewFrustumOffsetRoll);
     settings->setValue("viewFrustumOffsetDistance", _viewFrustumOffsetDistance);
     settings->setValue("viewFrustumOffsetUp",       _viewFrustumOffsetUp);
-    settings->endGroup();
-    settings->beginGroup("Audio");
-    settings->setValue("echoCancellation", _audio.isCancellingEcho());
     settings->endGroup();
     
     scanMenuBar(&Application::saveAction, settings);
