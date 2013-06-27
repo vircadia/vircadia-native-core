@@ -57,6 +57,7 @@
 #include "Application.h"
 #include "InterfaceConfig.h"
 #include "LogDisplay.h"
+#include "LeapManager.h"
 #include "OculusManager.h"
 #include "Util.h"
 #include "renderer/ProgramObject.h"
@@ -1671,7 +1672,11 @@ void Application::update(float deltaTime) {
                                   _touchAvgY - _touchDragStartedAvgY);
     }
     
-    //  Read serial port interface devices
+    // Leap finger-sensing device
+    LeapManager::nextFrame();
+    _myAvatar.setLeapFingers(LeapManager::getFingerPositions());
+    
+     //  Read serial port interface devices
     if (_serialHeadSensor.isActive()) {
         _serialHeadSensor.readData(deltaTime);
     }
@@ -2315,6 +2320,7 @@ void Application::displayStats() {
     }
     
     drawtext(10, statsVerticalOffset + 330, 0.10f, 0, 1.0, 0, avatarMixerStats);
+    drawtext(10, statsVerticalOffset + 450, 0.10f, 0, 1.0, 0, (char *)LeapManager::statusString().c_str());
     
     if (_perfStatsOn) {
         // Get the PerfStats group details. We need to allocate and array of char* long enough to hold 1+groups

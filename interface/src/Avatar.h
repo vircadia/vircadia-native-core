@@ -56,6 +56,8 @@ enum AvatarBodyBallID
 	NUM_AVATAR_BODY_BALLS
 };
 
+#define MAX_AVATAR_LEAP_BALLS 10
+
 enum DriveKeys
 {
     FWD = 0,
@@ -103,6 +105,7 @@ public:
     void setGravity                (glm::vec3 gravity);
     void setMouseRay               (const glm::vec3 &origin, const glm::vec3 &direction);
     void setOrientation            (const glm::quat& orientation);
+    void setLeapFingers            (const std::vector<glm::vec3>& fingerPositions);
 
     //getters
     bool             isInitialized             ()                const { return _initialized;}
@@ -111,7 +114,9 @@ public:
     float            getBodyYaw                ()                const { return _bodyYaw;}    
     bool             getIsNearInteractingOther ()                const { return _avatarTouch.getAbleToReachOtherAvatar();}
     const glm::vec3& getHeadJointPosition      ()                const { return _skeleton.joint[ AVATAR_JOINT_HEAD_BASE ].position;}
-    const glm::vec3& getBallPosition           (AvatarJointID j) const { return _bodyBall[j].position;} 
+    const glm::vec3& getBallPosition           (AvatarJointID j) const { return _bodyBall[j].position;}
+    int              getNumLeapBalls           ()                const { return _numLeapBalls;}
+    const glm::vec3& getLeapBallPosition       (int which)       const { return _leapBall[which].position;}
     glm::vec3        getBodyRightDirection     ()                const { return getOrientation() * IDENTITY_RIGHT; }
     glm::vec3        getBodyUpDirection        ()                const { return getOrientation() * IDENTITY_UP; }
     glm::vec3        getBodyFrontDirection     ()                const { return getOrientation() * IDENTITY_FRONT; }
@@ -185,6 +190,8 @@ private:
     float       _bodyRollDelta;
     glm::vec3   _movedHandOffset;
     AvatarBall	_bodyBall[ NUM_AVATAR_BODY_BALLS ];
+    AvatarBall	_leapBall[ MAX_AVATAR_LEAP_BALLS ];
+    int         _numLeapBalls;
     AvatarMode  _mode;
     glm::vec3   _handHoldingPosition;
     glm::vec3   _velocity;
@@ -219,8 +226,10 @@ private:
     float getBallRenderAlpha(int ball, bool lookingInMirror) const;
     void renderBody(bool lookingInMirror, bool renderAvatarBalls);
     void initializeBodyBalls();
+    void initializeLeapBalls();
     void resetBodyBalls();
     void updateBodyBalls( float deltaTime );
+    void updateLeapBalls( float deltaTime );
     void calculateBoneLengths();
     void readSensors();
     void updateHandMovementAndTouching(float deltaTime);
