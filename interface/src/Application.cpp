@@ -1567,7 +1567,7 @@ void Application::update(float deltaTime) {
     _myAvatar.getHead().setLookAtPosition(myLookAtFromMouse);
 
     //  If we are dragging on a voxel, add thrust according to the amount the mouse is dragging
-    const float VOXEL_GRAB_THRUST = 5.0f;
+    const float VOXEL_GRAB_THRUST = 0.0f;
     if (_mousePressed && (_mouseVoxel.s != 0)) {
         glm::vec2 mouseDrag(_mouseX - _mouseDragStartedX, _mouseY - _mouseDragStartedY);
         glm::quat orientation = _myAvatar.getOrientation();
