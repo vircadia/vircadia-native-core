@@ -136,7 +136,8 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
     // if there is anything in the ring buffer, decide what to do:
     
     if (ringBuffer->getEndOfLastWrite()) {
-        if (!ringBuffer->isStarted() && ringBuffer->diffLastWriteNextOutput() < (PACKET_LENGTH_SAMPLES + _jitterBufferSamples * (ringBuffer->isStereo() ? 2 : 1))) {
+        if (!ringBuffer->isStarted() && ringBuffer->diffLastWriteNextOutput() <
+            (PACKET_LENGTH_SAMPLES + _jitterBufferSamples * (ringBuffer->isStereo() ? 2 : 1))) {
             //
             //  If not enough audio has arrived to start playback, keep waiting
             //
@@ -147,8 +148,7 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
                      PACKET_LENGTH_SAMPLES,
                      _jitterBufferSamples);
 #endif
-        } else if (ringBuffer->isStarted() && (ringBuffer->diffLastWriteNextOutput()
-                                               < PACKET_LENGTH_SAMPLES * (ringBuffer->isStereo() ? 2 : 1))) {
+        } else if (ringBuffer->isStarted() && ringBuffer->diffLastWriteNextOutput() == 0) {
             //
             //  If we have started and now have run out of audio to send to the audio device, 
             //  this means we've starved and should restart.  
@@ -159,7 +159,7 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
             _packetsReceivedThisPlayback = 0;
             _wasStarved = 10;          //   Frames for which to render the indication that the system was starved.
 #ifdef SHOW_AUDIO_DEBUG
-            printLog("Starved, remaining samples = %.0f\n",
+            printLog("Starved, remaining samples = %d\n",
                      ringBuffer->diffLastWriteNextOutput());
 #endif
 
@@ -423,7 +423,20 @@ void Audio::addReceivedAudioToBuffer(unsigned char* receivedData, int receivedBy
         gettimeofday(&_firstPacketReceivedTime, NULL);
     }
     
+    if (_ringBuffer.diffLastWriteNextOutput() + PACKET_LENGTH_SAMPLES >
+        PACKET_LENGTH_SAMPLES + (ceilf((float) (_jitterBufferSamples * 2) / PACKET_LENGTH_SAMPLES) * PACKET_LENGTH_SAMPLES)) {
+        // this packet would give us more than the required amount for play out
+        // discard the first packet in the buffer
+        
+        _ringBuffer.setNextOutput(_ringBuffer.getNextOutput() + PACKET_LENGTH_SAMPLES);
+        
+        if (_ringBuffer.getNextOutput() == _ringBuffer.getBuffer() + RING_BUFFER_LENGTH_SAMPLES) {
+            _ringBuffer.setNextOutput(_ringBuffer.getBuffer());
+        }
+    }
+    
     //printf("Got audio packet %d\n", _packetsReceivedThisPlayback);
+    
     _ringBuffer.parseData((unsigned char*) receivedData, PACKET_LENGTH_BYTES + sizeof(PACKET_HEADER));
     
     _lastReceiveTime = currentReceiveTime;
