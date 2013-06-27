@@ -11,9 +11,6 @@
 
 #include <portaudio.h>
 
-#include <speex/speex_echo.h>
-#include <speex/speex_preprocess.h>
-
 #include <AudioRingBuffer.h>
 #include <StdDev.h>
 
