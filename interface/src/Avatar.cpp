@@ -13,6 +13,7 @@
 #include "world.h"
 #include "Application.h"
 #include "Avatar.h"
+#include "Hand.h"
 #include "Head.h"
 #include "Log.h"
 #include "ui/TextRenderer.h"
@@ -64,6 +65,7 @@ Avatar::Avatar(Agent* owningAgent) :
     AvatarData(owningAgent),
     _initialized(false),
     _head(this),
+    _hand(this),
     _ballSpringsInitialized(false),
     _TEST_bigSphereRadius(0.5f),
     _TEST_bigSpherePosition(5.0f, _TEST_bigSphereRadius, 5.0f),
@@ -96,6 +98,7 @@ Avatar::Avatar(Agent* owningAgent) :
 {
     // give the pointer to our head to inherited _headData variable from AvatarData
     _headData = &_head;
+    _handData = &_hand;
     
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
         _driveKeys[i] = false;
@@ -104,7 +107,6 @@ Avatar::Avatar(Agent* owningAgent) :
     _skeleton.initialize();
     
     initializeBodyBalls();
-    initializeLeapBalls();
     
     _height               = _skeleton.getHeight() + _bodyBall[ BODY_BALL_LEFT_HEEL ].radius + _bodyBall[ BODY_BALL_HEAD_BASE ].radius;
     
@@ -264,35 +266,22 @@ void Avatar::initializeBodyBalls() {
      */
 }
 
-void Avatar::initializeLeapBalls() {
-    
-    _numLeapBalls = 0;
-
-    for (int b = 0; b < MAX_AVATAR_LEAP_BALLS; b++) {
-        _leapBall[b].parentJoint    = AVATAR_JOINT_NULL;
-        _leapBall[b].parentOffset   = glm::vec3(0.0, 0.0, 0.0);
-        _leapBall[b].position       = glm::vec3(0.0, 0.0, 0.0);
-        _leapBall[b].velocity       = glm::vec3(0.0, 0.0, 0.0);
-        _leapBall[b].radius         = 0.01;
-        _leapBall[b].touchForce     = 0.0;
-        _leapBall[b].isCollidable   = true;
-        _leapBall[b].jointTightness = BODY_SPRING_DEFAULT_TIGHTNESS;
-    }
-}
-
 Avatar::~Avatar() {
     _headData = NULL;
+    _handData = NULL;
     delete _balls;
 }
 
 void Avatar::init() {
     _head.init();
+    _hand.init();
     _voxels.init();
     _initialized = true;
 }
 
 void Avatar::reset() {
     _head.reset();
+    _hand.reset();
 }
 
 //  Update avatar head rotation with sensor data
@@ -542,9 +531,6 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     
     // update body balls
     updateBodyBalls(deltaTime);
-    
-    // update leap balls
-    updateLeapBalls(deltaTime);
     
     // test for avatar collision response with the big sphere
     if (usingBigSphereCollisionTest) {
@@ -1167,23 +1153,6 @@ void Avatar::updateBodyBalls(float deltaTime) {
         _bodyBall[BODY_BALL_HEAD_TOP].rotation * _skeleton.joint[BODY_BALL_HEAD_TOP].bindPosePosition;
 }
 
-void Avatar::setLeapFingers(const std::vector<glm::vec3>& fingerPositions) {
-    _numLeapBalls = fingerPositions.size(); // just to test
-    
-    float unitScale = 0.001; // convert mm to meters
-    glm::vec3 offset(0.2, -0.2, -0.3);  // place the hand in front of the face where we can see it
-
-    for (int b = 0; b < _numLeapBalls; b++) {
-        glm::vec3 pos = unitScale * fingerPositions[b] + offset;
-        _leapBall[b].rotation = _head.getOrientation();
-        _leapBall[b].position = _bodyBall[BODY_BALL_HEAD_BASE].position +
-        _head.getOrientation() * pos;
-    }
-}
-
-void Avatar::updateLeapBalls(float deltaTime) {
-}
-
 void Avatar::updateArmIKAndConstraints(float deltaTime) {
     
     // determine the arm vector
@@ -1306,30 +1275,7 @@ void Avatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
                 }
             }
         }
-        // Draw the leap balls
-        for (int b = 0; b < _numLeapBalls; b++) {
-            float alpha = 1.0f;
-            
-            if (alpha > 0.0f) {
-                //  Render the body ball sphere
-                if (_owningAgent || true) {
-                    glColor3f(SKIN_COLOR[0] + _leapBall[b].touchForce * 0.3f,
-                              SKIN_COLOR[1] - _leapBall[b].touchForce * 0.2f,
-                              SKIN_COLOR[2] - _leapBall[b].touchForce * 0.1f);
-                } else {
-                    glColor4f(SKIN_COLOR[0] + _leapBall[b].touchForce * 0.3f,
-                              SKIN_COLOR[1] - _leapBall[b].touchForce * 0.2f,
-                              SKIN_COLOR[2] - _leapBall[b].touchForce * 0.1f,
-                              alpha);
-                }
-                glColor4f(0.0, 0.4, 0.0, 1.0); // Just to test
-                
-                glPushMatrix();
-                glTranslatef(_leapBall[b].position.x, _leapBall[b].position.y, _leapBall[b].position.z);
-                glutSolidSphere(_leapBall[b].radius, 20.0f, 20.0f);
-                glPopMatrix();
-            }
-        }
+        _hand.render(lookingInMirror);
     } else {
         //  Render the body's voxels
         float alpha = getBallRenderAlpha(BODY_BALL_HEAD_BASE, lookingInMirror);

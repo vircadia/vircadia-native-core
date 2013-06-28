@@ -36,13 +36,15 @@ AvatarData::AvatarData(Agent* owningAgent) :
     _wantColor(true),
     _wantDelta(false),
     _wantOcclusionCulling(false),
-    _headData(NULL)
+    _headData(NULL),
+    _handData(NULL)
 {
     
 }
 
 AvatarData::~AvatarData() {
     delete _headData;
+    delete _handData;
 }
 
 int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
@@ -55,6 +57,10 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     // lazily allocate memory for HeadData in case we're not an Avatar instance
     if (!_headData) {
         _headData = new HeadData(this);
+    }
+    // lazily allocate memory for HeadData in case we're not an Avatar instance
+    if (!_handData) {
+        _handData = new HandData(this);
     }
     
     // Body world position
@@ -128,7 +134,12 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     if (!_headData) {
         _headData = new HeadData(this);
     }
-
+    
+    // lazily allocate memory for HandData in case we're not an Avatar instance
+    if (!_handData) {
+        _handData = new HandData(this);
+    }
+    
     // increment to push past the packet header
     sourceBuffer += sizeof(PACKET_HEADER_HEAD_DATA);
     
@@ -213,6 +224,18 @@ glm::vec3 AvatarData::calculateCameraDirection() const {
     return direction;
 }
 
+
+// Allows sending of fixed-point numbers: radix 1 makes 15.1 number, radix 8 makes 8.8 number, etc
+int packFloatScalarToSignedTwoByteFixed(unsigned char* buffer, float scalar, int radix) {
+    int16_t outVal = (int16_t)(scalar * (float)(1 << radix));
+    memcpy(buffer, &outVal, sizeof(uint16_t));
+    return sizeof(uint16_t);
+}
+
+int unpackFloatScalarFromSignedTwoByteFixed(uint16_t* byteFixedPointer, float* destinationPointer, int radix) {
+    *destinationPointer = *byteFixedPointer / (float)(1 << radix);
+    return sizeof(uint16_t);
+}
 
 int packFloatAngleToTwoByte(unsigned char* buffer, float angle) {
     const float ANGLE_CONVERSION_RATIO = (std::numeric_limits<uint16_t>::max() / 360.0);
