@@ -1275,7 +1275,6 @@ void Avatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
                 }
             }
         }
-        _hand.render(lookingInMirror);
     } else {
         //  Render the body's voxels
         float alpha = getBallRenderAlpha(BODY_BALL_HEAD_BASE, lookingInMirror);
@@ -1283,6 +1282,7 @@ void Avatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
             _voxels.render(false);
         }
     }
+    _hand.render(lookingInMirror);
 }
 
 
