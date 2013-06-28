@@ -169,6 +169,6 @@ int unpackFloatFromByte(unsigned char* buffer, float& value, float scaleBy);
 
 // Allows sending of fixed-point numbers: radix 1 makes 15.1 number, radix 8 makes 8.8 number, etc
 int packFloatScalarToSignedTwoByteFixed(unsigned char* buffer, float scalar, int radix);
-int unpackFloatScalarFromSignedTwoByteFixed(uint16_t* byteFixedPointer, float* destinationPointer, int radix);
+int unpackFloatScalarFromSignedTwoByteFixed(int16_t* byteFixedPointer, float* destinationPointer, int radix);
 
 #endif /* defined(__hifi__AvatarData__) */
