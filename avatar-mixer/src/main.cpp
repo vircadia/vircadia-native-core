@@ -93,7 +93,6 @@ int main(int argc, const char* argv[]) {
         }
         
         if (agentList->getAgentSocket()->receive(agentAddress, packetData, &receivedBytes)) {
-
             switch (packetData[0]) {
                 case PACKET_HEADER_HEAD_DATA:
                     // grab the agent ID from the packet

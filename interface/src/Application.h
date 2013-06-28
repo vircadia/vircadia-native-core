@@ -222,7 +222,6 @@ private:
     timeval _applicationStartupTime;
     timeval _timerStart, _timerEnd;
     timeval _lastTimeIdle;
-    long long _pingSentTime;
     bool _justStarted;
     
     Stars _stars;

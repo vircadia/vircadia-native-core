@@ -98,6 +98,7 @@ void AgentList::processAgentData(sockaddr *senderAddress, unsigned char *packetD
             break;
         }
         case PACKET_HEADER_PING: {
+            // _agentSocket.send(senderAddress, &PACKET_HEADER_PING_REPLY, 1); 
             char pingPacket[1 + sizeof(long long)];
             memcpy(pingPacket, packetData, 1 + sizeof(long long));
             pingPacket[0] = PACKET_HEADER_PING_REPLY;

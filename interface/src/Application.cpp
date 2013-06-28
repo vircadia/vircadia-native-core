@@ -161,8 +161,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _packetCount(0),
         _packetsPerSecond(0),
         _bytesPerSecond(0),
-        _bytesCount(0),
-        _pingSentTime(0)
+        _bytesCount(0)
 {
     _applicationStartupTime = startup_time;
     _window->setWindowTitle("Interface");
@@ -774,7 +773,6 @@ void sendPingPacket() {
 //  Every second, check the frame rates and other stuff
 void Application::timer() {
     gettimeofday(&_timerEnd, NULL);
-    _pingSentTime = usecTimestampNow();
     sendPingPacket();
 
     _fps = (float)_frameCount / ((float)diffclock(&_timerStart, &_timerEnd) / 1000.f);
