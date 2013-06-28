@@ -63,6 +63,7 @@ public:
     glm::vec3 getVertex(BoxVertex vertex) const;
 
     bool contains(const glm::vec3& point) const;
+    bool contains(const AABox& otherBox) const;
     bool expandedContains(const glm::vec3& point, float expansion) const;
     bool expandedIntersectsSegment(const glm::vec3& start, const glm::vec3& end, float expansion) const;
     bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, BoxFace& face) const;

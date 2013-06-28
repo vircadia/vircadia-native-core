@@ -28,6 +28,9 @@ public:
     static unsigned const MAX_CHANNELS = 3;
     static unsigned const MAX_SAMPLES_PER_CHANNEL = 4096; 
 
+    // Sets the color for a specific channel.
+    void setColor(unsigned ch, unsigned rgb) { assert(ch < MAX_CHANNELS); if (! inputPaused) { _colors[ch] = rgb; } }
+
     // Controls a simple one pole IIR low pass filter that is provided to
     // reduce high frequencies aliasing (to lower ones) when downsampling.
     //
@@ -54,7 +57,7 @@ public:
     // Sets the number of input samples per output sample. Without filtering
     // just uses every nTh sample.
     void setDownsampleRatio(unsigned n) { assert(n > 0); _downsampleRatio = n; }
-    
+
 private:
     // don't copy/assign
     Oscilloscope(Oscilloscope const&); // = delete;
@@ -70,6 +73,7 @@ private:
 
     float           _lowPassCoeff;
     unsigned        _downsampleRatio;
+    unsigned        _colors[MAX_CHANNELS];
 };
 
 #endif /* defined(__interface__oscilloscope__) */
