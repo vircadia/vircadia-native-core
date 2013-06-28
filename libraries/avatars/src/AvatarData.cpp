@@ -236,9 +236,9 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
         fingerPositions.resize(numFingers);
         for (size_t i = 0; i < numFingers; ++i)
         {
-            sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((uint16_t*) sourceBuffer, &(fingerPositions[i].x), 4);
-            sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((uint16_t*) sourceBuffer, &(fingerPositions[i].y), 4);
-            sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((uint16_t*) sourceBuffer, &(fingerPositions[i].z), 4);
+            sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(fingerPositions[i].x), 4);
+            sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(fingerPositions[i].y), 4);
+            sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(fingerPositions[i].z), 4);
         }
         _handData->setFingerPositions(fingerPositions);
     }
@@ -259,9 +259,9 @@ int packFloatScalarToSignedTwoByteFixed(unsigned char* buffer, float scalar, int
     return sizeof(uint16_t);
 }
 
-int unpackFloatScalarFromSignedTwoByteFixed(uint16_t* byteFixedPointer, float* destinationPointer, int radix) {
+int unpackFloatScalarFromSignedTwoByteFixed(int16_t* byteFixedPointer, float* destinationPointer, int radix) {
     *destinationPointer = *byteFixedPointer / (float)(1 << radix);
-    return sizeof(uint16_t);
+    return sizeof(int16_t);
 }
 
 int packFloatAngleToTwoByte(unsigned char* buffer, float angle) {

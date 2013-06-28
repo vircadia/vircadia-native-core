@@ -335,6 +335,7 @@ private:
     int _packetsPerSecond;
     int _bytesPerSecond;
     int _bytesCount;
+
 };
 
 #endif /* defined(__interface__Application__) */
