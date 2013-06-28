@@ -849,9 +849,10 @@ void sendPingPackets() {
 void Application::timer() {
     gettimeofday(&_timerEnd, NULL);
 
-    if (_testPing->isChecked())
+    if (_testPing->isChecked()) {
         sendPingPackets();
-
+    }
+        
     _fps = (float)_frameCount / ((float)diffclock(&_timerStart, &_timerEnd) / 1000.f);
     _packetsPerSecond = (float)_packetCount / ((float)diffclock(&_timerStart, &_timerEnd) / 1000.f);
     _bytesPerSecond = (float)_bytesCount / ((float)diffclock(&_timerStart, &_timerEnd) / 1000.f);
@@ -2306,12 +2307,9 @@ void Application::displayStats() {
         Agent *avatarMixerAgent = agentList->soloAgentOfType(AGENT_TYPE_AVATAR_MIXER);
         Agent *voxelServerAgent = agentList->soloAgentOfType(AGENT_TYPE_VOXEL_SERVER);
 
-        if (audioMixerAgent != NULL)
-            pingAudio = audioMixerAgent->getPingMs();
-        if (avatarMixerAgent != NULL)
-            pingAvatar = avatarMixerAgent->getPingMs();
-        if (voxelServerAgent != NULL)
-            pingVoxel = voxelServerAgent->getPingMs();
+        pingAudio = audioMixerAgent ? audioMixerAgent->getPingMs() : 0;
+        pingAvatar = avatarMixerAgent ? avatarMixerAgent->getPingMs() : 0;
+        pingVoxel = voxelServerAgent ? voxelServerAgent->getPingMs() : 0;
 
         char pingStats[200];
         sprintf(pingStats, "Ping audio/avatar/voxel: %d / %d / %d ", pingAudio, pingAvatar, pingVoxel);
