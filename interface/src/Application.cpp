@@ -848,7 +848,9 @@ void sendPingPackets() {
 //  Every second, check the frame rates and other stuff
 void Application::timer() {
     gettimeofday(&_timerEnd, NULL);
-    sendPingPackets();
+
+    if (_testPing->isChecked())
+        sendPingPackets();
 
     _fps = (float)_frameCount / ((float)diffclock(&_timerStart, &_timerEnd) / 1000.f);
     _packetsPerSecond = (float)_packetCount / ((float)diffclock(&_timerStart, &_timerEnd) / 1000.f);
@@ -1352,6 +1354,8 @@ void Application::initMenu() {
     (_gravityUse = optionsMenu->addAction("Use Gravity"))->setCheckable(true);
     _gravityUse->setChecked(true);
     _gravityUse->setShortcut(Qt::SHIFT | Qt::Key_G);
+    (_testPing = optionsMenu->addAction("Test Ping"))->setCheckable(true);
+    _testPing->setChecked(true);
     (_fullScreenMode = optionsMenu->addAction("Fullscreen", this, SLOT(setFullscreen(bool)), Qt::Key_F))->setCheckable(true);
     optionsMenu->addAction("Webcam", &_webcam, SLOT(setEnabled(bool)))->setCheckable(true);    
     
@@ -2294,24 +2298,26 @@ void Application::displayStats() {
             _fps, _packetsPerSecond,  (float)_bytesPerSecond * 8.f / 1000000.f);
     drawtext(10, statsVerticalOffset + 15, 0.10f, 0, 1.0, 0, stats);
 
-    int pingAudio = 0, pingAvatar = 0, pingVoxel = 0;
+    if (_testPing->isChecked()) {
+        int pingAudio = 0, pingAvatar = 0, pingVoxel = 0;
 
-    AgentList *agentList = AgentList::getInstance();
-    Agent *audioMixerAgent = agentList->soloAgentOfType(AGENT_TYPE_AUDIO_MIXER);
-    Agent *avatarMixerAgent = agentList->soloAgentOfType(AGENT_TYPE_AVATAR_MIXER);
-    Agent *voxelServerAgent = agentList->soloAgentOfType(AGENT_TYPE_VOXEL_SERVER);
+        AgentList *agentList = AgentList::getInstance();
+        Agent *audioMixerAgent = agentList->soloAgentOfType(AGENT_TYPE_AUDIO_MIXER);
+        Agent *avatarMixerAgent = agentList->soloAgentOfType(AGENT_TYPE_AVATAR_MIXER);
+        Agent *voxelServerAgent = agentList->soloAgentOfType(AGENT_TYPE_VOXEL_SERVER);
 
-    if (audioMixerAgent != NULL)
-        pingAudio = audioMixerAgent->getPingMs();
-    if (avatarMixerAgent != NULL)
-        pingAvatar = avatarMixerAgent->getPingMs();
-    if (voxelServerAgent != NULL)
-        pingVoxel = voxelServerAgent->getPingMs();
+        if (audioMixerAgent != NULL)
+            pingAudio = audioMixerAgent->getPingMs();
+        if (avatarMixerAgent != NULL)
+            pingAvatar = avatarMixerAgent->getPingMs();
+        if (voxelServerAgent != NULL)
+            pingVoxel = voxelServerAgent->getPingMs();
 
-    char pingStats[200];
-    sprintf(pingStats, "Ping audio/avatar/voxel: %d / %d / %d ", pingAudio, pingAvatar, pingVoxel);
-    drawtext(10, statsVerticalOffset + 35, 0.10f, 0, 1.0, 0, pingStats);
-    
+        char pingStats[200];
+        sprintf(pingStats, "Ping audio/avatar/voxel: %d / %d / %d ", pingAudio, pingAvatar, pingVoxel);
+        drawtext(10, statsVerticalOffset + 35, 0.10f, 0, 1.0, 0, pingStats);
+    }
+ 
     std::stringstream voxelStats;
     voxelStats.precision(4);
     voxelStats << "Voxels Rendered: " << _voxels.getVoxelsRendered() / 1000.f << "K Updated: " << _voxels.getVoxelsUpdated()/1000.f << "K";
