@@ -124,6 +124,16 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     setSemiNibbleAt(bitItems,HAND_STATE_START_BIT,_handState);
     *destinationBuffer++ = bitItems;
     
+    // leap hand data
+    const std::vector<glm::vec3>& fingerPositions = _handData->getFingerPositions();
+    *destinationBuffer++ = (unsigned char)fingerPositions.size();
+    for (size_t i = 0; i < fingerPositions.size(); ++i)
+    {
+        destinationBuffer += packFloatScalarToSignedTwoByteFixed(destinationBuffer, fingerPositions[i].x, 4);
+        destinationBuffer += packFloatScalarToSignedTwoByteFixed(destinationBuffer, fingerPositions[i].y, 4);
+        destinationBuffer += packFloatScalarToSignedTwoByteFixed(destinationBuffer, fingerPositions[i].z, 4);
+    }
+    
     return destinationBuffer - bufferStart;
 }
 
@@ -216,6 +226,23 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     // hand state, stored as a semi-nibble in the bitItems
     _handState = getSemiNibbleAt(bitItems,HAND_STATE_START_BIT);
 
+    // leap hand data
+    if (sourceBuffer - startPosition < numBytes)    // safety check
+    {
+        std::vector<glm::vec3> fingerPositions = _handData->getFingerPositions();
+        unsigned int numFingers = *sourceBuffer++;
+        if (numFingers > MAX_AVATAR_LEAP_BALLS)    // safety check
+            numFingers = 0;
+        fingerPositions.resize(numFingers);
+        for (size_t i = 0; i < numFingers; ++i)
+        {
+            sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((uint16_t*) sourceBuffer, &(fingerPositions[i].x), 4);
+            sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((uint16_t*) sourceBuffer, &(fingerPositions[i].y), 4);
+            sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((uint16_t*) sourceBuffer, &(fingerPositions[i].z), 4);
+        }
+        _handData->setFingerPositions(fingerPositions);
+    }
+    
     return sourceBuffer - startPosition;
 }
 

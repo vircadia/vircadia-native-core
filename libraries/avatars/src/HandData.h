@@ -14,6 +14,8 @@
 
 #include <glm/glm.hpp>
 
+#define MAX_AVATAR_LEAP_BALLS 10
+
 class AvatarData;
 
 class HandData {

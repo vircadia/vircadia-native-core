@@ -21,7 +21,9 @@ Hand::Hand(Avatar* owningAvatar) :
     _owningAvatar(owningAvatar),
     _renderAlpha(1.0),
     _lookingInMirror(false),
-    _ballColor(0.0f, 0.4f, 0.0f)
+    _ballColor(0.0, 0.4, 0.0),
+    _position(0.0, 0.4, 0.0),
+    _orientation(0.0, 0.0, 0.0, 1.0)
 {
 }
 
@@ -43,6 +45,20 @@ void Hand::simulate(float deltaTime, bool isMine) {
 }
 
 void Hand::calculateGeometry() {
+    glm::vec3 offset(0.1, -0.1, -0.15);  // place the hand in front of the face where we can see it
+    
+    Head& head = _owningAvatar->getHead();
+    _position = head.getPosition() + head.getOrientation() * offset;
+    _orientation = head.getOrientation();
+
+    _numLeapBalls = _fingerPositions.size();
+    
+    float unitScale = 0.001; // convert mm to meters
+    for (int b = 0; b < _numLeapBalls; b++) {
+        glm::vec3 pos = unitScale * _fingerPositions[b] + offset;
+        _leapBall[b].rotation = _orientation;
+        _leapBall[b].position = _position + _orientation * pos;
+    }
 }
 
 
@@ -78,17 +94,7 @@ void Hand::renderHandSpheres() {
 }
 
 void Hand::setLeapFingers(const std::vector<glm::vec3>& fingerPositions) {
-    _numLeapBalls = fingerPositions.size(); // just to test
-    
-    float unitScale = 0.001; // convert mm to meters
-    glm::vec3 offset(0.2, -0.2, -0.3);  // place the hand in front of the face where we can see it
-    
-    Head& head = _owningAvatar->getHead();
-    for (int b = 0; b < _numLeapBalls; b++) {
-        glm::vec3 pos = unitScale * fingerPositions[b] + offset;
-        _leapBall[b].rotation = head.getOrientation();
-        _leapBall[b].position = head.getPosition() + head.getOrientation() * pos;
-    }
+    _fingerPositions = fingerPositions;
 }
 
 

@@ -10,13 +10,13 @@
 
 #include <glm/glm.hpp>
 #include <AvatarData.h>
+#include <HandData.h>
 #include "Balls.h"
 #include "world.h"
 #include "InterfaceConfig.h"
 #include "SerialInterface.h"
 #include <SharedUtil.h>
 
-#define MAX_AVATAR_LEAP_BALLS 10
 
 class Avatar;
 class ProgramObject;
@@ -40,7 +40,6 @@ public:
     void simulate(float deltaTime, bool isMine);
     void render(bool lookingInMirror);
 
-    void setFingerPositions(std::vector<glm::vec3> fingerPositions) { _fingerPositions = fingerPositions; }
     void setBallColor      (glm::vec3 ballColor         ) { _ballColor          = ballColor;          }
     void setLeapFingers    (const std::vector<glm::vec3>& fingerPositions);
 
@@ -56,8 +55,9 @@ private:
     Avatar*     _owningAvatar;
     float       _renderAlpha;
     bool        _lookingInMirror;
-    std::vector<glm::vec3> _fingerPositions;
     glm::vec3   _ballColor;
+    glm::vec3   _position;
+    glm::quat   _orientation;
     int         _numLeapBalls;
     HandBall	_leapBall[ MAX_AVATAR_LEAP_BALLS ];
     
