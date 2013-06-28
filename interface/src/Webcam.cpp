@@ -210,17 +210,11 @@ void Webcam::setFrame(const Mat& frame, int format, const Mat& depth, const Rota
     QTimer::singleShot(qMax((int)remaining / 1000, 0), _grabber, SLOT(grabFrame()));
 }
 
-FrameGrabber::FrameGrabber() : _capture(0), _searchWindow(0, 0, 0, 0), _freenectContext(0) {
+FrameGrabber::FrameGrabber() : _capture(0), _searchWindow(0, 0, 0, 0) {
 }
 
 FrameGrabber::~FrameGrabber() {
-    if (_freenectContext != 0) {
-        freenect_stop_depth(_freenectDevice);
-        freenect_stop_video(_freenectDevice);
-        freenect_close_device(_freenectDevice);
-        freenect_shutdown(_freenectContext);
-        
-    } else if (_capture != 0) {
+    if (_capture != 0) {
         cvReleaseCapture(&_capture);
     }
 }
@@ -229,40 +223,25 @@ void FrameGrabber::reset() {
     _searchWindow = Rect(0, 0, 0, 0);
 }
 
-static Mat videoFrame, depthFrame;
-static bool gotVideoFrame, gotDepthFrame;
-
 void FrameGrabber::grabFrame() {
-    if (_capture == 0 && _freenectContext == 0 && !init()) {
+    if (_capture == 0 && !init()) {
         return;
     }
     int format = GL_BGR;
-    ::gotVideoFrame = ::gotDepthFrame = false;
-    if (_freenectContext != 0) {
-        freenect_process_events(_freenectContext);
-        if (::gotDepthFrame) {
-            ::depthFrame.convertTo(_grayDepth, CV_8UC1, 255.0 / 2047.0);
-        }
-        format = GL_RGB;
-        
-    } else {
-        IplImage* image = cvQueryFrame(_capture);
-        if (image != 0) {
-            // make sure it's in the format we expect
-            if (image->nChannels != 3 || image->depth != IPL_DEPTH_8U || image->dataOrder != IPL_DATA_ORDER_PIXEL ||
-                    image->origin != 0) {
-                printLog("Invalid webcam image format.\n");
-                return;
-            }
-            ::videoFrame = image;
-            ::gotVideoFrame = true;
-        }
-    }
-    if (!::gotVideoFrame) {
+    IplImage* image = cvQueryFrame(_capture);
+    if (image == 0) {
         // try again later
         QMetaObject::invokeMethod(this, "grabFrame", Qt::QueuedConnection);
         return;
     }
+    
+    // make sure it's in the format we expect
+    if (image->nChannels != 3 || image->depth != IPL_DEPTH_8U || image->dataOrder != IPL_DATA_ORDER_PIXEL ||
+            image->origin != 0) {
+        printLog("Invalid webcam image format.\n");
+        return;
+    }
+    Mat frame = image;
     
     // if we don't have a search window (yet), try using the face cascade
     int channels = 0;
@@ -270,10 +249,10 @@ void FrameGrabber::grabFrame() {
     const float* range = ranges;
     if (_searchWindow.area() == 0) {
         vector<Rect> faces;
-        _faceCascade.detectMultiScale(::videoFrame, faces, 1.1, 6);
+        _faceCascade.detectMultiScale(frame, faces, 1.1, 6);
         if (!faces.empty()) {
             _searchWindow = faces.front();
-            updateHSVFrame(::videoFrame, format);
+            updateHSVFrame(frame, format);
         
             Mat faceHsv(_hsvFrame, _searchWindow);
             Mat faceMask(_mask, _searchWindow);
@@ -286,7 +265,7 @@ void FrameGrabber::grabFrame() {
     }
     RotatedRect faceRect;
     if (_searchWindow.area() > 0) {
-        updateHSVFrame(::videoFrame, format);
+        updateHSVFrame(frame, format);
         
         calcBackProject(&_hsvFrame, 1, &channels, _histogram, _backProject, &range);
         bitwise_and(_backProject, _mask, _backProject);
@@ -295,25 +274,7 @@ void FrameGrabber::grabFrame() {
         _searchWindow = faceRect.boundingRect();
     }   
     QMetaObject::invokeMethod(Application::getInstance()->getWebcam(), "setFrame",
-        Q_ARG(cv::Mat, ::videoFrame), Q_ARG(int, format), Q_ARG(cv::Mat, _grayDepth), Q_ARG(cv::RotatedRect, faceRect));
-}
-
-const char* FREENECT_LOG_LEVEL_NAMES[] = { "fatal", "error", "warning", "notice", "info", "debug", "spew", "flood" };
-
-static void logCallback(freenect_context* freenectDevice, freenect_loglevel level, const char *msg) {
-    printLog("Freenect %s: %s\n", FREENECT_LOG_LEVEL_NAMES[level], msg);
-}
-
-static freenect_frame_mode freenectVideoMode, freenectDepthMode;
-
-static void depthCallback(freenect_device* freenectDevice, void* depth, uint32_t timestamp) {
-    ::depthFrame = Mat(::freenectDepthMode.height, ::freenectDepthMode.width, CV_16UC1, depth);
-    ::gotDepthFrame = true;
-}
-
-static void videoCallback(freenect_device* freenectDevice, void* video, uint32_t timestamp) {
-    ::videoFrame = Mat(::freenectVideoMode.height, ::freenectVideoMode.width, CV_8UC3, video);
-    ::gotVideoFrame = true;
+        Q_ARG(cv::Mat, frame), Q_ARG(int, format), Q_ARG(cv::Mat, Mat()), Q_ARG(cv::RotatedRect, faceRect));
 }
 
 bool FrameGrabber::init() {
@@ -325,28 +286,10 @@ bool FrameGrabber::init() {
     }
 
     // first try for a Kinect
-    if (freenect_init(&_freenectContext, 0) >= 0) {
-        freenect_set_log_level(_freenectContext, FREENECT_LOG_WARNING);
-        freenect_set_log_callback(_freenectContext, logCallback);
-        freenect_select_subdevices(_freenectContext, FREENECT_DEVICE_CAMERA);
-        
-        if (freenect_num_devices(_freenectContext) > 0) {
-            if (freenect_open_device(_freenectContext, &_freenectDevice, 0) >= 0) {
-                freenect_set_depth_callback(_freenectDevice, depthCallback);
-                freenect_set_video_callback(_freenectDevice, videoCallback);
-                ::freenectVideoMode = freenect_find_video_mode(FREENECT_RESOLUTION_MEDIUM, FREENECT_VIDEO_RGB);
-                freenect_set_video_mode(_freenectDevice, ::freenectVideoMode);
-                ::freenectDepthMode = freenect_find_depth_mode(FREENECT_RESOLUTION_MEDIUM, FREENECT_DEPTH_11BIT);
-                freenect_set_depth_mode(_freenectDevice, ::freenectDepthMode);
-                
-                freenect_start_depth(_freenectDevice);
-                freenect_start_video(_freenectDevice);
-                return true;
-            }
-        }
-        freenect_shutdown(_freenectContext);
-        _freenectContext = 0;
-    }
+#ifdef HAVE_NITE
+    _xnContext.Init();
+    
+#endif
 
     // next, an ordinary webcam
     if ((_capture = cvCaptureFromCAM(-1)) == 0) {

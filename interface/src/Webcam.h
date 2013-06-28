@@ -15,9 +15,11 @@
 
 #include <glm/glm.hpp>
 
-#include <libfreenect.h>
-
 #include <opencv2/opencv.hpp>
+
+#ifdef HAVE_NITE
+    #include <XnCppWrapper.h>
+#endif
 
 #include "InterfaceConfig.h"
 
@@ -97,10 +99,10 @@ private:
     cv::SparseMat _histogram;
     cv::Mat _backProject;
     cv::Rect _searchWindow;
-    cv::Mat _grayDepth;
-    
-    freenect_context* _freenectContext;
-    freenect_device* _freenectDevice;
+
+#ifdef HAVE_NITE
+    xn::Context _xnContext;
+#endif
 };
 
 Q_DECLARE_METATYPE(cv::Mat)

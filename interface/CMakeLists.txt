@@ -91,6 +91,15 @@ find_package(Leap)
 find_package(OpenCV)
 find_package(ZLIB)
 find_package(UVCCameraControl)
+find_package(OpenNI)
+find_package(NITE)
+
+# let the source know that we have OpenNI/NITE for Kinect
+if (OPENNI_FOUND AND NITE_FOUND)
+    add_definitions(-DHAVE_NITE)
+    include_directories(SYSTEM ${OPENNI_INCLUDE_DIRS} ${NITE_INCLUDE_DIRS})
+    target_link_libraries(${TARGET_NAME} ${OPENNI_LIBRARIES} ${NITE_LIBRARIES})
+endif (OPENNI_FOUND AND NITE_FOUND)
 
 # include headers for interface and InterfaceConfig.
 include_directories(
