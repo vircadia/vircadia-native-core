@@ -759,21 +759,22 @@ void Application::wheelEvent(QWheelEvent* event) {
     }
 }
 
-void sendPingPacket() {
+void sendPingPackets() {
 
-    char agentTypesOfInterest[] = {'V', 'M', 'W'};
-    char pingPacket[1 + sizeof(long long)];
+    char agentTypesOfInterest[] = {AGENT_TYPE_VOXEL_SERVER, AGENT_TYPE_AUDIO_MIXER, AGENT_TYPE_AVATAR_MIXER};
+    long long currentTime = usecTimestampNow();
+    char pingPacket[1 + sizeof(currentTime)];
     pingPacket[0] = PACKET_HEADER_PING;
-    long long currTime = usecTimestampNow();
-    memcpy(&pingPacket[1], &currTime, sizeof(long long));
-    AgentList::getInstance()->broadcastToAgents((unsigned char*)&pingPacket, 1 + sizeof(long long), agentTypesOfInterest, 3);
+    
+    memcpy(&pingPacket[1], &currentTime, sizeof(currentTime));
+    AgentList::getInstance()->broadcastToAgents((unsigned char*)pingPacket, 1 + sizeof(currentTime), agentTypesOfInterest, 3);
 
 }
 
 //  Every second, check the frame rates and other stuff
 void Application::timer() {
     gettimeofday(&_timerEnd, NULL);
-    sendPingPacket();
+    sendPingPackets();
 
     _fps = (float)_frameCount / ((float)diffclock(&_timerStart, &_timerEnd) / 1000.f);
     _packetsPerSecond = (float)_packetCount / ((float)diffclock(&_timerStart, &_timerEnd) / 1000.f);
@@ -2163,23 +2164,6 @@ void Application::displayOverlay() {
     glPopMatrix();
 }
 
-void Application::getPing(long long &pingAudio, long long &pingAvatar, long long &pingVoxel) {
-    AgentList *agentList = AgentList::getInstance();
-    for(AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
-        const char *agentType = agent->getTypeName();
-        long long pingTime = agent->getPingTime();
-        if (strcmp(agentType, "Audio Mixer") == 0) {
-            pingAudio = pingTime / 1000;
-        }
-        if (strcmp(agentType, "Avatar Mixer") == 0) {
-            pingAvatar = pingTime / 1000;
-        }
-        if (strcmp(agentType, "Voxel Server") == 0) {
-            pingVoxel = pingTime / 1000;
-        }
-    }
-}
-
 void Application::displayStats() {
     int statsVerticalOffset = 8;
 
@@ -2188,11 +2172,22 @@ void Application::displayStats() {
             _fps, _packetsPerSecond,  (float)_bytesPerSecond * 8.f / 1000000.f);
     drawtext(10, statsVerticalOffset + 15, 0.10f, 0, 1.0, 0, stats);
 
-    long long pingAudio = 0, pingAvatar = 0, pingVoxel = 0;
-    getPing(pingAudio, pingAvatar, pingVoxel);
+    int pingAudio = 0, pingAvatar = 0, pingVoxel = 0;
+
+    AgentList *agentList = AgentList::getInstance();
+    Agent *audioMixerAgent = agentList->soloAgentOfType(AGENT_TYPE_AUDIO_MIXER);
+    Agent *avatarMixerAgent = agentList->soloAgentOfType(AGENT_TYPE_AVATAR);
+    Agent *voxelServerAgent = agentList->soloAgentOfType(AGENT_TYPE_VOXEL_SERVER);
+
+    if (audioMixerAgent != NULL)
+        pingAudio = audioMixerAgent->getPingTime();
+    if (avatarMixerAgent != NULL)
+        pingAvatar = avatarMixerAgent->getPingTime();
+    if (voxelServerAgent != NULL)
+        pingVoxel = voxelServerAgent->getPingTime();
 
     char pingStats[200];
-    sprintf(pingStats, "Ping audio/avatar/voxel: %lld / %lld / %lld ", pingAudio, pingAvatar, pingVoxel);
+    sprintf(pingStats, "Ping audio/avatar/voxel: %d / %d / %d ", pingAudio, pingAvatar, pingVoxel);
     drawtext(10, statsVerticalOffset + 35, 0.10f, 0, 1.0, 0, pingStats);
     
     std::stringstream voxelStats;

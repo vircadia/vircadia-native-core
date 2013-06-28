@@ -81,7 +81,6 @@ public:
     
 private slots:
     
-    void getPing(long long &pingAudio, long long &pingAvatar, long long &pingVoxel);
     void timer();
     void idle();
     void terminate();
