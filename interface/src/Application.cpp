@@ -2702,36 +2702,40 @@ void* Application::networkReceive(void* args) {
             app->_packetCount++;
             app->_bytesCount += bytesReceived;
             
-            switch (app->_incomingPacket[0]) {
-                case PACKET_HEADER_TRANSMITTER_DATA_V2:
-                    //  V2 = IOS transmitter app 
-                    app->_myTransmitter.processIncomingData(app->_incomingPacket, bytesReceived);
-                    
-                    break;
-                case PACKET_HEADER_MIXED_AUDIO:
-                    app->_audio.addReceivedAudioToBuffer(app->_incomingPacket, bytesReceived);
-                    break;
-                case PACKET_HEADER_VOXEL_DATA:
-                case PACKET_HEADER_VOXEL_DATA_MONOCHROME:
-                case PACKET_HEADER_Z_COMMAND:
-                case PACKET_HEADER_ERASE_VOXEL:
-                    app->_voxels.parseData(app->_incomingPacket, bytesReceived);
-                    break;
-                case PACKET_HEADER_ENVIRONMENT_DATA:
-                    app->_environment.parseData(&senderAddress, app->_incomingPacket, bytesReceived);
-                    break;
-                case PACKET_HEADER_BULK_AVATAR_DATA:
-                    AgentList::getInstance()->processBulkAgentData(&senderAddress,
-                                                                   app->_incomingPacket,
-                                                                   bytesReceived);
-                    break;
-                case PACKET_HEADER_AVATAR_VOXEL_URL:
-                    processAvatarVoxelURLMessage(app->_incomingPacket, bytesReceived);
-                    break;
-                default:
-                    AgentList::getInstance()->processAgentData(&senderAddress, app->_incomingPacket, bytesReceived);
-                    break;
-            }
+            if (app->_incomingPacket[1] == packetVersion(app->_incomingPacket[0])) {
+                // only process this packet if we have a match on the packet version
+                
+                switch (app->_incomingPacket[0]) {
+                    case PACKET_HEADER_TRANSMITTER_DATA_V2:
+                        //  V2 = IOS transmitter app
+                        app->_myTransmitter.processIncomingData(app->_incomingPacket, bytesReceived);
+                        
+                        break;
+                    case PACKET_HEADER_MIXED_AUDIO:
+                        app->_audio.addReceivedAudioToBuffer(app->_incomingPacket, bytesReceived);
+                        break;
+                    case PACKET_HEADER_VOXEL_DATA:
+                    case PACKET_HEADER_VOXEL_DATA_MONOCHROME:
+                    case PACKET_HEADER_Z_COMMAND:
+                    case PACKET_HEADER_ERASE_VOXEL:
+                        app->_voxels.parseData(app->_incomingPacket, bytesReceived);
+                        break;
+                    case PACKET_HEADER_ENVIRONMENT_DATA:
+                        app->_environment.parseData(&senderAddress, app->_incomingPacket, bytesReceived);
+                        break;
+                    case PACKET_HEADER_BULK_AVATAR_DATA:
+                        AgentList::getInstance()->processBulkAgentData(&senderAddress,
+                                                                       app->_incomingPacket,
+                                                                       bytesReceived);
+                        break;
+                    case PACKET_HEADER_AVATAR_VOXEL_URL:
+                        processAvatarVoxelURLMessage(app->_incomingPacket, bytesReceived);
+                        break;
+                    default:
+                        AgentList::getInstance()->processAgentData(&senderAddress, app->_incomingPacket, bytesReceived);
+                        break;
+                }
+            }            
         } else if (!app->_enableNetworkThread) {
             break;
         }

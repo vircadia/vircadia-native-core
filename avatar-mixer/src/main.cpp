@@ -74,6 +74,7 @@ int main(int argc, const char* argv[]) {
     
     unsigned char *broadcastPacket = new unsigned char[MAX_PACKET_SIZE];
     *broadcastPacket = PACKET_HEADER_BULK_AVATAR_DATA;
+    *(broadcastPacket + 1) = version(*broadcastPacket);
     
     unsigned char* currentBufferPosition = NULL;
     
@@ -104,7 +105,7 @@ int main(int argc, const char* argv[]) {
                     // parse positional data from an agent
                     agentList->updateAgentWithData(avatarAgent, packetData, receivedBytes);
                 case PACKET_HEADER_INJECT_AUDIO:
-                    currentBufferPosition = broadcastPacket + 1;
+                    currentBufferPosition = broadcastPacket + sizeof(PACKET_HEADER) + sizeof(PACKET_VERSION);
                     
                     // send back a packet with other active agent data to this agent
                     for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
