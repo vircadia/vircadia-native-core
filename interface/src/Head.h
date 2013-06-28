@@ -51,6 +51,7 @@ public:
     glm::quat getOrientation() const;
     glm::quat getCameraOrientation (float pitchYawScale) const;
     
+    glm::vec3 getPosition()       const { return _position; }
     glm::vec3 getRightDirection() const { return getOrientation() * IDENTITY_RIGHT; }
     glm::vec3 getUpDirection   () const { return getOrientation() * IDENTITY_UP;    }
     glm::vec3 getFrontDirection() const { return getOrientation() * IDENTITY_FRONT; }

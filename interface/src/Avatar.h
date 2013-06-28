@@ -18,6 +18,7 @@
 #include "InterfaceConfig.h"
 #include "SerialInterface.h"
 #include "Balls.h"
+#include "Hand.h"
 #include "Head.h"
 #include "Skeleton.h"
 #include "Transmitter.h"
@@ -111,7 +112,7 @@ public:
     float            getBodyYaw                ()                const { return _bodyYaw;}    
     bool             getIsNearInteractingOther ()                const { return _avatarTouch.getAbleToReachOtherAvatar();}
     const glm::vec3& getHeadJointPosition      ()                const { return _skeleton.joint[ AVATAR_JOINT_HEAD_BASE ].position;}
-    const glm::vec3& getBallPosition           (AvatarJointID j) const { return _bodyBall[j].position;} 
+    const glm::vec3& getBallPosition           (AvatarJointID j) const { return _bodyBall[j].position;}
     glm::vec3        getBodyRightDirection     ()                const { return getOrientation() * IDENTITY_RIGHT; }
     glm::vec3        getBodyUpDirection        ()                const { return getOrientation() * IDENTITY_UP; }
     glm::vec3        getBodyFrontDirection     ()                const { return getOrientation() * IDENTITY_FRONT; }
@@ -126,6 +127,7 @@ public:
     float            getAbsoluteHeadYaw        () const;
     float            getAbsoluteHeadPitch      () const;
     Head&            getHead                   () {return _head; }
+    Hand&            getHand                   () {return _hand; }
     glm::quat        getOrientation            () const;
     glm::quat        getWorldAlignedOrientation() const;
     
@@ -175,6 +177,7 @@ private:
 
     bool        _initialized;
     Head        _head;
+    Hand        _hand;
     Skeleton    _skeleton;
     bool        _ballSpringsInitialized;
     float       _TEST_bigSphereRadius;
