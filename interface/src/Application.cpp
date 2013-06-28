@@ -428,7 +428,7 @@ void Application::resizeGL(int width, int height) {
         }
     } else {
         camera.setAspectRatio(aspectRatio);
-        camera.setFieldOfView(fov = 60);
+        camera.setFieldOfView(fov = HORIZONTAL_FIELD_OF_VIEW_DEGREES);
     }
 
     // Tell our viewFrustum about this change
