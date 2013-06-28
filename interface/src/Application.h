@@ -81,6 +81,7 @@ public:
     
 private slots:
     
+    void getPing(long long &pingAudio, long long &pingAvatar, long long &pingVoxel);
     void timer();
     void idle();
     void terminate();
@@ -221,6 +222,7 @@ private:
     timeval _applicationStartupTime;
     timeval _timerStart, _timerEnd;
     timeval _lastTimeIdle;
+    long long _pingSentTime;
     bool _justStarted;
     
     Stars _stars;
@@ -305,6 +307,7 @@ private:
     int _packetsPerSecond;
     int _bytesPerSecond;
     int _bytesCount;
+
 };
 
 #endif /* defined(__interface__Application__) */

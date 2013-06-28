@@ -49,6 +49,7 @@ public:
     AgentListIterator end() const;
     
     char getOwnerType() const { return _ownerType; }
+    char *getAgentTypesOfInterest() const { return _agentTypesOfInterest; }
     
     uint16_t getLastAgentID() const { return _lastAgentID; }
     void increaseAgentID() { ++_lastAgentID; }
@@ -116,6 +117,7 @@ private:
     pthread_mutex_t mutex;
     
     void handlePingReply(sockaddr *agentAddress);
+    void timePingReply(sockaddr *agentAddress, unsigned char *packetData);
 };
 
 class AgentListIterator : public std::iterator<std::input_iterator_tag, Agent> {

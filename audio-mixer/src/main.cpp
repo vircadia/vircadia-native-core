@@ -398,6 +398,10 @@ int main(int argc, const char* argv[]) {
                 
                 // give the new audio data to the matching injector agent
                 agentList->updateAgentWithData(matchingInjector, packetData, receivedBytes);
+            } else if (packetData[0] == PACKET_HEADER_PING) {
+
+                // If the packet is a ping, let processAgentData handle it.
+                agentList->processAgentData(agentAddress, packetData, receivedBytes);
             }
         }
         

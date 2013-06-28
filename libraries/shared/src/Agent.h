@@ -63,6 +63,9 @@ public:
     float getAverageKilobitsPerSecond();
     float getAveragePacketsPerSecond();
 
+    long long getPingTime() { return _pingTime; };
+    void setPingTime(long long pingTime) { _pingTime = pingTime; };
+
     static void printLog(Agent const&);
 private:
     // privatize copy and assignment operator to disallow Agent copying
@@ -79,6 +82,7 @@ private:
     SimpleMovingAverage* _bytesReceivedMovingAverage;
     AgentData* _linkedData;
     bool _isAlive;
+    long long _pingTime;
 };
 
 

@@ -2172,12 +2172,15 @@ void Application::getPing(long long &pingAudio, long long &pingAvatar, long long
         long long pingTime = agent->getPingTime();
         if (strcmp(agentType, "Audio Mixer") == 0) {
             pingAudio = pingTime / 1000;
+            // pingAudio = diffclock(&_pingSentTime, &pingReceiptTime);
         }
         if (strcmp(agentType, "Avatar Mixer") == 0) {
             pingAvatar = pingTime / 1000;
+            // pingAvatar = diffclock(&_pingSentTime, &pingReceiptTime);
         }
         if (strcmp(agentType, "Voxel Server") == 0) {
             pingVoxel = pingTime / 1000;
+            // pingVoxel = diffclock(&_pingSentTime, &pingReceiptTime);
         }
     }
 }
@@ -2437,7 +2440,8 @@ void Application::maybeEditVoxelUnderCursor() {
         if (_mouseVoxel.s != 0) {
             PACKET_HEADER message = (_destructiveAddVoxel->isChecked() ?
                 PACKET_HEADER_SET_VOXEL_DESTRUCTIVE : PACKET_HEADER_SET_VOXEL);
-            sendVoxelEditMessage(message, _mouseVoxel);
+            send
+VoxelEditMessage(message, _mouseVoxel);
             
             // create the voxel locally so it appears immediately
             _voxels.createVoxel(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s,
