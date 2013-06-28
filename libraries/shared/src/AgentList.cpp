@@ -78,13 +78,10 @@ AgentList::~AgentList() {
 }
 
 void AgentList::timePingReply(sockaddr *agentAddress, unsigned char *packetData) {
-
-    char pingPacket[1 + sizeof(long long)];
-    memcpy(pingPacket, packetData, 1 + sizeof(long long));
     for(AgentList::iterator agent = begin(); agent != end(); agent++) {
         if (socketMatch(agent->getPublicSocket(), agentAddress) || 
                 socketMatch(agent->getLocalSocket(), agentAddress)) {     
-            int pingTime = usecTimestampNow() - *(long long *)(pingPacket+1);
+            int pingTime = usecTimestampNow() - *(long long *)(packetData + 1);
             agent->setPingTime(pingTime / 1000);
             break;
         }
