@@ -1674,7 +1674,7 @@ void Application::update(float deltaTime) {
     
     // Leap finger-sensing device
     LeapManager::nextFrame();
-    _myAvatar.setLeapFingers(LeapManager::getFingerPositions());
+    _myAvatar.getHand().setLeapFingers(LeapManager::getFingerPositions());
     
      //  Read serial port interface devices
     if (_serialHeadSensor.isActive()) {
