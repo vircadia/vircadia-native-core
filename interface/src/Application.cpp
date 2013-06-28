@@ -833,9 +833,23 @@ void Application::wheelEvent(QWheelEvent* event) {
     }
 }
 
+void sendPingPackets() {
+
+    char agentTypesOfInterest[] = {AGENT_TYPE_VOXEL_SERVER, AGENT_TYPE_AUDIO_MIXER, AGENT_TYPE_AVATAR_MIXER};
+    long long currentTime = usecTimestampNow();
+    char pingPacket[1 + sizeof(currentTime)];
+    pingPacket[0] = PACKET_HEADER_PING;
+    
+    memcpy(&pingPacket[1], &currentTime, sizeof(currentTime));
+    AgentList::getInstance()->broadcastToAgents((unsigned char*)pingPacket, 1 + sizeof(currentTime), agentTypesOfInterest, 3);
+
+}
+
 //  Every second, check the frame rates and other stuff
 void Application::timer() {
     gettimeofday(&_timerEnd, NULL);
+    sendPingPackets();
+
     _fps = (float)_frameCount / ((float)diffclock(&_timerStart, &_timerEnd) / 1000.f);
     _packetsPerSecond = (float)_packetCount / ((float)diffclock(&_timerStart, &_timerEnd) / 1000.f);
     _bytesPerSecond = (float)_bytesCount / ((float)diffclock(&_timerStart, &_timerEnd) / 1000.f);
@@ -2279,6 +2293,24 @@ void Application::displayStats() {
     sprintf(stats, "%3.0f FPS, %d Pkts/sec, %3.2f Mbps", 
             _fps, _packetsPerSecond,  (float)_bytesPerSecond * 8.f / 1000000.f);
     drawtext(10, statsVerticalOffset + 15, 0.10f, 0, 1.0, 0, stats);
+
+    int pingAudio = 0, pingAvatar = 0, pingVoxel = 0;
+
+    AgentList *agentList = AgentList::getInstance();
+    Agent *audioMixerAgent = agentList->soloAgentOfType(AGENT_TYPE_AUDIO_MIXER);
+    Agent *avatarMixerAgent = agentList->soloAgentOfType(AGENT_TYPE_AVATAR);
+    Agent *voxelServerAgent = agentList->soloAgentOfType(AGENT_TYPE_VOXEL_SERVER);
+
+    if (audioMixerAgent != NULL)
+        pingAudio = audioMixerAgent->getPingMs();
+    if (avatarMixerAgent != NULL)
+        pingAvatar = avatarMixerAgent->getPingMs();
+    if (voxelServerAgent != NULL)
+        pingVoxel = voxelServerAgent->getPingMs();
+
+    char pingStats[200];
+    sprintf(pingStats, "Ping audio/avatar/voxel: %d / %d / %d ", pingAudio, pingAvatar, pingVoxel);
+    drawtext(10, statsVerticalOffset + 35, 0.10f, 0, 1.0, 0, pingStats);
     
     std::stringstream voxelStats;
     voxelStats.precision(4);
