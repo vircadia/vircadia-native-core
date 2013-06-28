@@ -84,8 +84,8 @@ void AgentList::timePingReply(sockaddr *agentAddress, unsigned char *packetData)
     for(AgentList::iterator agent = begin(); agent != end(); agent++) {
         if (socketMatch(agent->getPublicSocket(), agentAddress) || 
                 socketMatch(agent->getLocalSocket(), agentAddress)) {     
-            long long pingTime = usecTimestampNow() - *(long long *)(pingPacket+1);
-            agent->setPingTime(pingTime);
+            int pingTime = usecTimestampNow() - *(long long *)(pingPacket+1);
+            agent->setPingTime(pingTime / 1000);
             break;
         }
     }
@@ -98,15 +98,13 @@ void AgentList::processAgentData(sockaddr *senderAddress, unsigned char *packetD
             break;
         }
         case PACKET_HEADER_PING: {
-            // _agentSocket.send(senderAddress, &PACKET_HEADER_PING_REPLY, 1); 
-            char pingPacket[1 + sizeof(long long)];
-            memcpy(pingPacket, packetData, 1 + sizeof(long long));
+            char pingPacket[dataBytes];
+            memcpy(pingPacket, packetData, dataBytes);
             pingPacket[0] = PACKET_HEADER_PING_REPLY;
-            _agentSocket.send(senderAddress, pingPacket, 1 + sizeof(long long));
+            _agentSocket.send(senderAddress, pingPacket, dataBytes);
             break;
         }
         case PACKET_HEADER_PING_REPLY: {
-            // handlePingReply(senderAddress);
             timePingReply(senderAddress, packetData);
             break;
         }

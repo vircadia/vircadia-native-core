@@ -49,7 +49,6 @@ public:
     AgentListIterator end() const;
     
     char getOwnerType() const { return _ownerType; }
-    char *getAgentTypesOfInterest() const { return _agentTypesOfInterest; }
     
     uint16_t getLastAgentID() const { return _lastAgentID; }
     void increaseAgentID() { ++_lastAgentID; }
