@@ -80,9 +80,9 @@ AgentList::~AgentList() {
 void AgentList::timePingReply(sockaddr *agentAddress, unsigned char *packetData) {
     for(AgentList::iterator agent = begin(); agent != end(); agent++) {
         if (socketMatch(agent->getPublicSocket(), agentAddress) || 
-                socketMatch(agent->getLocalSocket(), agentAddress)) {     
+            socketMatch(agent->getLocalSocket(), agentAddress)) {     
             int pingTime = usecTimestampNow() - *(long long *)(packetData + 1);
-            agent->setPingTime(pingTime / 1000);
+            agent->setPingMs(pingTime / 1000);
             break;
         }
     }

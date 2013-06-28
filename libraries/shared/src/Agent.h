@@ -63,8 +63,8 @@ public:
     float getAverageKilobitsPerSecond();
     float getAveragePacketsPerSecond();
 
-    int getPingTime() { return _pingMs; };
-    void setPingTime(int pingMs) { _pingMs = pingMs; };
+    int getPingMs() const { return _pingMs; };
+    void setPingMs(int pingMs) { _pingMs = pingMs; };
 
     static void printLog(Agent const&);
 private:

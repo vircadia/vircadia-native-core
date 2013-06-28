@@ -2302,11 +2302,11 @@ void Application::displayStats() {
     Agent *voxelServerAgent = agentList->soloAgentOfType(AGENT_TYPE_VOXEL_SERVER);
 
     if (audioMixerAgent != NULL)
-        pingAudio = audioMixerAgent->getPingTime();
+        pingAudio = audioMixerAgent->getPingMs();
     if (avatarMixerAgent != NULL)
-        pingAvatar = avatarMixerAgent->getPingTime();
+        pingAvatar = avatarMixerAgent->getPingMs();
     if (voxelServerAgent != NULL)
-        pingVoxel = voxelServerAgent->getPingTime();
+        pingVoxel = voxelServerAgent->getPingMs();
 
     char pingStats[200];
     sprintf(pingStats, "Ping audio/avatar/voxel: %d / %d / %d ", pingAudio, pingAvatar, pingVoxel);
