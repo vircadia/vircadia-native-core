@@ -15,7 +15,6 @@ set(OPENCV_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/OpenCV)
 set(UVCCAMERACONTROL_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/UVCCameraControl)
 set(LIBUSB_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/LibUSB)
 set(FREENECT_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/freenect)
-set(SKELTRACK_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/skeltrack)
 
 if (APPLE)
   set(GL_HEADERS "#include <GLUT/glut.h>\n#include <OpenGL/glext.h>")
@@ -96,7 +95,6 @@ find_package(ZLIB)
 find_package(UVCCameraControl)
 find_package(LibUSB)
 find_package(Freenect)
-find_package(Skeltrack)
 
 # include headers for interface and InterfaceConfig.
 include_directories(
@@ -113,11 +111,10 @@ include_directories(
   ${OPENCV_INCLUDE_DIRS}
   ${SPEEXDSP_INCLUDE_DIRS}
   ${FREENECT_INCLUDE_DIRS}
-  ${SKELTRACK_INCLUDE_DIRS}
 )
 
 target_link_libraries(${TARGET_NAME} ${QT_LIBRARIES} ${OPENCV_LIBRARIES} ${ZLIB_LIBRARIES} ${SPEEXDSP_LIBRARIES}
-    ${FREENECT_LIBRARIES} ${SKELTRACK_LIBRARIES} ${LIBUSB_LIBRARIES})
+    ${FREENECT_LIBRARIES} ${LIBUSB_LIBRARIES})
 
 if (APPLE)
     # link in required OS X frameworks and include the right GL headers
