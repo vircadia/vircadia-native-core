@@ -2298,7 +2298,7 @@ void Application::displayStats() {
 
     AgentList *agentList = AgentList::getInstance();
     Agent *audioMixerAgent = agentList->soloAgentOfType(AGENT_TYPE_AUDIO_MIXER);
-    Agent *avatarMixerAgent = agentList->soloAgentOfType(AGENT_TYPE_AVATAR);
+    Agent *avatarMixerAgent = agentList->soloAgentOfType(AGENT_TYPE_AVATAR_MIXER);
     Agent *voxelServerAgent = agentList->soloAgentOfType(AGENT_TYPE_VOXEL_SERVER);
 
     if (audioMixerAgent != NULL)
