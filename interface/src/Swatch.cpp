@@ -18,45 +18,102 @@ Swatch::Swatch(QAction* action) : Tool(action, 0, -1, -1),
     _colors[7].setRgb(0, 0, 0);
 
     QPixmap map(16, 16);
-    map.fill(_colors[0]);
+    map.fill(_colors[_selected - 1]);
     _action->setData(_colors[_selected - 1]) ;
     _action->setIcon(map);
 }
 
+QColor Swatch::getColor() {
+    return _colors[_selected - 1];
+}
+
+void Swatch::saveData(QSettings* settings) {
+    settings->beginGroup("Swatch");
+    
+    for (int i(0); i < SWATCH_SIZE; ++i) {
+        QString name("R0");
+        name[1] = '1' + i;
+        settings->setValue(name, _colors[i].red());
+        name[0] = 'G';
+        settings->setValue(name, _colors[i].green());
+        name[0] = 'B';
+        settings->setValue(name, _colors[i].blue());
+    }
+    
+    settings->endGroup();
+}
+
+void Swatch::loadData(QSettings* settings) {
+    settings->beginGroup("Swatch");
+    
+    _colors[0].setRgb(settings->value("R1", 128).toInt(),
+                      settings->value("G1", 128).toInt(),
+                      settings->value("B1", 128).toInt());
+    _colors[1].setRgb(settings->value("R2", 128).toInt(),
+                      settings->value("G2", 128).toInt(),
+                      settings->value("B2", 128).toInt());
+    _colors[2].setRgb(settings->value("R3", 128).toInt(),
+                      settings->value("G3", 128).toInt(),
+                      settings->value("B3", 128).toInt());
+    _colors[3].setRgb(settings->value("R4", 128).toInt(),
+                      settings->value("G4", 128).toInt(),
+                      settings->value("B4", 128).toInt());
+    _colors[4].setRgb(settings->value("R5", 128).toInt(),
+                      settings->value("G5", 128).toInt(),
+                      settings->value("B5", 128).toInt());
+    _colors[5].setRgb(settings->value("R6", 128).toInt(),
+                      settings->value("G6", 128).toInt(),
+                      settings->value("B6", 128).toInt());
+    _colors[6].setRgb(settings->value("R7", 128).toInt(),
+                      settings->value("G7", 128).toInt(),
+                      settings->value("B7", 128).toInt());
+    _colors[7].setRgb(settings->value("R8", 128).toInt(),
+                      settings->value("G8", 128).toInt(),
+                      settings->value("B8", 128).toInt());
+    
+    settings->endGroup();
+}
+
 void Swatch::handleEvent(int key, bool getColor) {
+    int next(0);
+    
     switch (key) {
         case Qt::Key_1:
-            _selected = 1;
+            next = 1;
             break;
         case Qt::Key_2:
-            _selected = 2;
+            next = 2;
             break;
         case Qt::Key_3:
-            _selected = 3;
+            next = 3;
             break;
         case Qt::Key_4:
-            _selected = 4;
+            next = 4;
             break;
         case Qt::Key_5:
-            _selected = 5;
+            next = 5;
             break;
         case Qt::Key_6:
-            _selected = 6;
+            next = 6;
             break;
         case Qt::Key_7:
-            _selected = 7;
+            next = 7;
             break;
         case Qt::Key_8:
-            _selected = 8;
+            next = 8;
             break;
         default:
             break;
     }
 
     if (getColor) {
-        _colors[_selected - 1] = _action->data().value<QColor>();
+        if (_action->data().value<QColor>() != _colors[_selected - 1]) {
+            _selected = next;
+            _colors[_selected - 1] = _action->data().value<QColor>();
+        }
     }
     else {
+        _selected = next;
         QPixmap map(16, 16);
         map.fill(_colors[_selected - 1]);
         _action->setData(_colors[_selected - 1]) ;
@@ -121,5 +178,4 @@ void Swatch::render(int screenWidth, int screenHeight) {
     }
 
     glTranslated(0, 8*(_height - _margin) + _margin + 5, 0);
-
 }

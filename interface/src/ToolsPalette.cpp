@@ -6,7 +6,7 @@
 
 ToolsPalette::ToolsPalette() {
     // Load SVG
-    QSvgRenderer renderer(QString("./resources/images/hifi-interface-tools.svg"));
+    QSvgRenderer renderer(QString("/Users/graysonstebbins/Documents/hifi/interface/resources/images/hifi-interface-tools.svg"));
 
     // Prepare a QImage with desired characteritisc
     QImage image(124, 400, QImage::Format_ARGB32);

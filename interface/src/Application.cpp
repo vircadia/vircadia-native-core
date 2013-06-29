@@ -255,6 +255,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     
     initMenu();
     
+    _swatch = new Swatch(_voxelPaintColor);
+    
     QRect available = desktop()->availableGeometry();
     _window->resize(available.size());
     _window->setVisible(true);
@@ -1544,8 +1546,6 @@ void Application::init() {
     
     sendAvatarVoxelURLMessage(_myAvatar.getVoxels()->getVoxelURL());
 
-
-    _swatch = new Swatch(_voxelPaintColor);
     _palette.init();
     _palette.addAction(_addVoxelMode, 0, 0);
     _palette.addAction(_deleteVoxelMode, 0, 1);
@@ -2292,7 +2292,7 @@ void Application::displayOverlay() {
 
     _palette.render(_glWidget->width(), _glWidget->height());
 
-    if (_eyedropperMode->isChecked()) {
+    if (_eyedropperMode->isChecked() && _voxelPaintColor->data().value<QColor>() != _swatch->getColor()) {
         QColor color(_voxelPaintColor->data().value<QColor>());
         TextRenderer textRenderer(SANS_FONT_FAMILY, -1, 100);
         const char* line1("Assign this color to a swatch");
@@ -2329,8 +2329,8 @@ void Application::displayOverlay() {
         glEnd();
 
         glColor3f(1.0f, 1.0f, 1.0f);
-        textRenderer.draw(left + 74, top + 10, line1);
-        textRenderer.draw(left + 74, top + 30, line2);
+        textRenderer.draw(left + 74, top + 12, line1);
+        textRenderer.draw(left + 74, top + 27, line2);
     }
 
     glPopMatrix();
@@ -2863,7 +2863,8 @@ void Application::loadSettings(QSettings* settings) {
     settings->endGroup();
 
     scanMenuBar(&Application::loadAction, settings);
-    getAvatar()->loadData(settings);    
+    getAvatar()->loadData(settings);
+    _swatch->loadData(settings);
 }
 
 
@@ -2885,8 +2886,11 @@ void Application::saveSettings(QSettings* settings) {
     settings->setValue("echoCancellation", _audio.isCancellingEcho());
     settings->endGroup();
     
+    
+    
     scanMenuBar(&Application::saveAction, settings);
     getAvatar()->saveData(settings);
+    _swatch->saveData(settings);
 }
 
 void Application::importSettings() {
