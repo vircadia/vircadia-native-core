@@ -210,7 +210,7 @@ void Webcam::setFrame(const Mat& frame, int format, const Mat& depth, const Rota
     QTimer::singleShot(qMax((int)remaining / 1000, 0), _grabber, SLOT(grabFrame()));
 }
 
-FrameGrabber::FrameGrabber() : _capture(0), _searchWindow(0, 0, 0, 0) {
+FrameGrabber::FrameGrabber() : _initialized(false), _capture(0), _searchWindow(0, 0, 0, 0) {
 }
 
 FrameGrabber::~FrameGrabber() {
@@ -224,24 +224,38 @@ void FrameGrabber::reset() {
 }
 
 void FrameGrabber::grabFrame() {
-    if (_capture == 0 && !init()) {
+    if (!(_initialized || init())) {
         return;
     }
     int format = GL_BGR;
-    IplImage* image = cvQueryFrame(_capture);
-    if (image == 0) {
-        // try again later
-        QMetaObject::invokeMethod(this, "grabFrame", Qt::QueuedConnection);
-        return;
-    }
+    Mat frame;
     
-    // make sure it's in the format we expect
-    if (image->nChannels != 3 || image->depth != IPL_DEPTH_8U || image->dataOrder != IPL_DATA_ORDER_PIXEL ||
-            image->origin != 0) {
-        printLog("Invalid webcam image format.\n");
-        return;
+#ifdef HAVE_OPENNI
+    if (_depthGenerator.IsValid()) {
+        _xnContext.WaitAnyUpdateAll();
+        frame = Mat(_imageMetaData.YRes(), _imageMetaData.XRes(), CV_8UC3, (void*)_imageGenerator.GetImageMap());
+        format = GL_RGB;
+        
+        Mat depth = Mat(_depthMetaData.YRes(), _depthMetaData.XRes(), CV_16UC1, (void*)_depthGenerator.GetDepthMap());
+        depth.convertTo(_grayDepthFrame, CV_8UC1, 256.0 / 2048.0);
     }
-    Mat frame = image;
+#endif
+
+    if (frame.empty()) {
+        IplImage* image = cvQueryFrame(_capture);
+        if (image == 0) {
+            // try again later
+            QMetaObject::invokeMethod(this, "grabFrame", Qt::QueuedConnection);
+            return;
+        }
+        // make sure it's in the format we expect
+        if (image->nChannels != 3 || image->depth != IPL_DEPTH_8U || image->dataOrder != IPL_DATA_ORDER_PIXEL ||
+                image->origin != 0) {
+            printLog("Invalid webcam image format.\n");
+            return;
+        }
+        frame = image;
+    }
     
     // if we don't have a search window (yet), try using the face cascade
     int channels = 0;
@@ -274,10 +288,12 @@ void FrameGrabber::grabFrame() {
         _searchWindow = faceRect.boundingRect();
     }   
     QMetaObject::invokeMethod(Application::getInstance()->getWebcam(), "setFrame",
-        Q_ARG(cv::Mat, frame), Q_ARG(int, format), Q_ARG(cv::Mat, Mat()), Q_ARG(cv::RotatedRect, faceRect));
+        Q_ARG(cv::Mat, frame), Q_ARG(int, format), Q_ARG(cv::Mat, _grayDepthFrame), Q_ARG(cv::RotatedRect, faceRect));
 }
 
 bool FrameGrabber::init() {
+    _initialized = true;
+
     // load our face cascade
     switchToResourcesParentIfRequired();
     if (!_faceCascade.load("resources/haarcascades/haarcascade_frontalface_alt.xml")) {
@@ -286,9 +302,15 @@ bool FrameGrabber::init() {
     }
 
     // first try for a Kinect
-#ifdef HAVE_NITE
+#ifdef HAVE_OPENNI
     _xnContext.Init();
-    
+    if (_depthGenerator.Create(_xnContext) == XN_STATUS_OK && _imageGenerator.Create(_xnContext) == XN_STATUS_OK) {
+        _depthGenerator.GetMetaData(_depthMetaData);
+        _imageGenerator.SetPixelFormat(XN_PIXEL_FORMAT_RGB24);
+        _imageGenerator.GetMetaData(_imageMetaData);
+        _xnContext.StartGeneratingAll();
+        return true;
+    }
 #endif
 
     // next, an ordinary webcam

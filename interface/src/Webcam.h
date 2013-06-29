@@ -17,7 +17,7 @@
 
 #include <opencv2/opencv.hpp>
 
-#ifdef HAVE_NITE
+#ifdef HAVE_OPENNI
     #include <XnCppWrapper.h>
 #endif
 
@@ -92,6 +92,7 @@ private:
     bool init();
     void updateHSVFrame(const cv::Mat& frame, int format);
     
+    bool _initialized;
     CvCapture* _capture;
     cv::CascadeClassifier _faceCascade;
     cv::Mat _hsvFrame;
@@ -99,9 +100,14 @@ private:
     cv::SparseMat _histogram;
     cv::Mat _backProject;
     cv::Rect _searchWindow;
+    cv::Mat _grayDepthFrame;
 
-#ifdef HAVE_NITE
+#ifdef HAVE_OPENNI
     xn::Context _xnContext;
+    xn::DepthGenerator _depthGenerator;
+    xn::ImageGenerator _imageGenerator;
+    xn::DepthMetaData _depthMetaData;
+    xn::ImageMetaData _imageMetaData;
 #endif
 };
 
