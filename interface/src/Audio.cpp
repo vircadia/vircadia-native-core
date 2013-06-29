@@ -338,12 +338,19 @@ Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples) :
     PaStreamParameters inputParameters, outputParameters;
     
     inputParameters.device = Pa_GetDefaultInputDevice();
+    outputParameters.device = Pa_GetDefaultOutputDevice();
+
+    if (inputParameters.device == -1 || outputParameters.device == -1) {
+        printLog("Audio: Missing device.\n");
+        outputPortAudioError(Pa_Terminate());
+        return;
+    }
+
     inputParameters.channelCount = 2;                    //  Stereo input
     inputParameters.sampleFormat = (paInt16 | paNonInterleaved);
     inputParameters.suggestedLatency = Pa_GetDeviceInfo( inputParameters.device )->defaultLowInputLatency;
     inputParameters.hostApiSpecificStreamInfo = NULL;
 
-    outputParameters.device = Pa_GetDefaultOutputDevice();
     outputParameters.channelCount = 2;                    //  Stereo output
     outputParameters.sampleFormat = (paInt16 | paNonInterleaved);
     outputParameters.suggestedLatency = Pa_GetDeviceInfo( outputParameters.device )->defaultLowOutputLatency;
