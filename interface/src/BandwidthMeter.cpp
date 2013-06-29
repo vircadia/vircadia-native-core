@@ -18,18 +18,18 @@ namespace { // .cpp-local
     char const* CAPTION_OUT = "OUT";
     char const* CAPTION_UNIT = "Mbps";
 
+    double const UNIT_SCALE = 1000.0 / (1024.0 * 1024.0);  // Bytes/ms -> Mbps
+    int const INITIAL_SCALE_MAXIMUM_INDEX = 250; // / 9: exponent, % 9: mantissa - 2, 0 o--o 2 * 10^-10
+
     int SPACING_RIGHT_CAPTION_IN_OUT = 4;
     int SPACING_LEFT_CAPTION_UNIT = 6;
 
     int SPACING_VERT_BARS = 2;
 
-
     unsigned const COLOR_CAPTIONS = 0xa0a0a0e0;
     unsigned const COLOR_FRAME = 0xe0e0e0b0;
     unsigned const COLOR_INDICATOR = 0xc0c0c0b0;
 
-    double const UNIT_SCALE = 1000.0 / (1024.0 * 1024.0);  // bytes/ms -> Mbps
-    int const FRAMES_SHRINK = 20;
 }
 
 BandwidthMeter::ChannelInfo BandwidthMeter::_DEFAULT_CHANNELS[] = {
@@ -38,11 +38,9 @@ BandwidthMeter::ChannelInfo BandwidthMeter::_DEFAULT_CHANNELS[] = {
     { "Voxels"  , "Kbps", 1000.0 / 1024.0, 0xd0d0d0a0 }
 };
 
-// ---
-
 BandwidthMeter::BandwidthMeter() :
     _textRenderer(SANS_FONT_FAMILY, -1, -1, false, TextRenderer::SHADOW_EFFECT),
-    _scaleMax(50), _framesTillShrink(0) {
+    _scaleMaxIndex(INITIAL_SCALE_MAXIMUM_INDEX) {
 
     memcpy(_channels, _DEFAULT_CHANNELS, sizeof(_DEFAULT_CHANNELS));
 }
@@ -109,7 +107,6 @@ void BandwidthMeter::render(int x, int y, unsigned w, unsigned h) {
     totalIn *= UNIT_SCALE;
     totalOut *= UNIT_SCALE;
     float totalMax = glm::max(totalIn, totalOut);
-    //printLog("totalMax = %f\n", totalMax);
 
     // Get font / caption metrics
     QFontMetrics const& fontMetrics = _textRenderer.metrics();
@@ -149,25 +146,19 @@ void BandwidthMeter::render(int x, int y, unsigned w, unsigned h) {
     double step, scaleMax;
     bool commit = false;
     do {
-        steps = (_scaleMax % 9) + 2;
-        step = pow(10.0, (_scaleMax / 9) - 10);
+        steps = (_scaleMaxIndex % 9) + 2;
+        step = pow(10.0, (_scaleMaxIndex / 9) - 10);
         scaleMax = step * steps;
         if (commit) {
-            printLog("Bandwidth meter scale: %d\n", _scaleMax);
+//            printLog("Bandwidth meter scale: %d\n", _scaleMaxIndex);
             break;
         }
         if (totalMax < scaleMax * 0.5) {
-            if (--_framesTillShrink < 0) {
-                _scaleMax = glm::max(0, _scaleMax-1);
-                commit = true;
-            } 
-        } else {
-            _framesTillShrink = FRAMES_SHRINK;
-
-            if (totalMax > scaleMax) {
-                _scaleMax += 1;
-                commit = true;
-            }
+            _scaleMaxIndex = glm::max(0, _scaleMaxIndex-1);
+            commit = true;
+        } else if (totalMax > scaleMax) {
+            _scaleMaxIndex += 1;
+            commit = true;
         }
     } while (commit);
 

@@ -65,14 +65,13 @@ private:
 
     static inline int centered(int subject, int object);
 
+
+    static ChannelInfo _DEFAULT_CHANNELS[];
+
     TextRenderer _textRenderer;
     ChannelInfo _channels[N_CHANNELS];
     Stream _streams[N_STREAMS];
-
-    int _scaleMax;
-    int _framesTillShrink;
-
-    static ChannelInfo _DEFAULT_CHANNELS[];
+    int _scaleMaxIndex;
 };
 
 #endif /* defined(__interface__BandwidthMeter__) */
