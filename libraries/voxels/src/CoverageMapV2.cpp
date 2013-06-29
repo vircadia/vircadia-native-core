@@ -111,217 +111,136 @@ BoundingBox CoverageMapV2::getChildBoundingBox(int childIndex) {
     return result;
 }
 
-// possible results: 
-//     OCCLUDED - node is occluded by the polygon
-//     INTERSECT - node and polygon intersect (note: polygon may be occluded by node)
-//     NO_INTERSECT - node and polygon intersect
-CoverageMapV2StorageResult CoverageMapV2::checkNode(const VoxelProjectedPolygon* polygon) {
-
-    float x1 = _myBoundingBox.corner.x;
-    float y1 = _myBoundingBox.corner.y;
-    float sx = _myBoundingBox.size.x;
-    float sy = _myBoundingBox.size.y;
-    //assert(_myBoundingBox.area() >= MINIMUM_OCCLUSION_CHECK_AREA/10.0f);
-
-    // if we are really small, then we report that we don't intersect, this allows us to stop
-    // recusing as we get to the smalles edge of the polygon
-    if (_myBoundingBox.area() < MINIMUM_OCCLUSION_CHECK_AREA) {
-        //printLog("CoverageMapV2::checkNode() -- (_myBoundingBox.area() < MINIMUM_OCCLUSION_CHECK_AREA) -- returning V2_NO_INTERSECT\n");
-        return V2_NO_INTERSECT;
-    }
-
-    if (polygon->occludes(_myBoundingBox)) {
-        //printLog("CoverageMapV2::checkNode() returning OCCLUDED\n");
-        //polygon->printDebugDetails();
-        //_myBoundingBox.printDebugDetails();
-        return V2_OCCLUDED;
-    } else if (polygon->intersects(_myBoundingBox)) {
-        //printLog("CoverageMapV2::checkNode() -- polygon->intersects(_myBoundingBox) -- returning V2_INTERSECT\n");
-        return V2_INTERSECT;
-    }
-    
-    // if we got here and we're the root, then we know we interesect
-    if (_isRoot) {
-        //printLog("CoverageMapV2::checkNode() -- _isRoot -- returning V2_INTERSECT\n");
-        return V2_INTERSECT;
-    }
-
-    //printLog("CoverageMapV2::checkNode() -- bottom -- returning V2_NO_INTERSECT\n");
-    return V2_NO_INTERSECT;
-}
-
 // possible results = STORED/NOT_STORED, OCCLUDED, DOESNT_FIT
 CoverageMapV2StorageResult CoverageMapV2::checkMap(const VoxelProjectedPolygon* polygon, bool storeIt) {
-    if (_isRoot) {
-        _checkMapRootCalls++;
-        
-        //printLog("CoverageMap2::checkMap()... storeIt=%s\n", debug::valueOf(storeIt));
-        //polygon->printDebugDetails();
-    } else {
-        assert(false); // we should only call checkMap() on the root map
-    }
-    
+    assert(_isRoot); // you can only call this on the root map!!!
+    _checkMapRootCalls++;
+
     // short circuit: if we're the root node (only case we're here), and we're covered, and this polygon is deeper than our 
     // covered depth, then this polygon is occluded!
     if (_isCovered && _coveredDistance < polygon->getDistance()) {
-        if (!storeIt) {
-            printLog("CoverageMap2::checkMap()... V2_OCCLUDED  storeIt=FALSE ------- (_isCovered && _coveredDistance < polygon->getDistance())\n");
-        }
         return V2_OCCLUDED;
     }
-
+    
     // short circuit: we don't handle polygons that aren't all in view, so, if the polygon in question is
     // not in view, then we just discard it with a DOESNT_FIT, this saves us time checking values later.
     if (!polygon->getAllInView()) {
         _notAllInView++;
-        //printLog("CoverageMap2::checkMap()... V2_DOESNT_FIT\n");
         return V2_DOESNT_FIT;
     }
-    
-    bool polygonIsCompletelyCovered = true; // assume the best.
-    
-    // this will recursively set the quad tree map as covered at a certain depth. It will also determine if the polygon
-    // is occluded by existing coverage set in the map
-    CoverageMapV2StorageResult result = coverNode(polygon, polygonIsCompletelyCovered, storeIt);
+ 
+    // Here's where we recursively check the polygon against the coverage map. We need to maintain two pieces of state.
+    // The first state is: have we seen at least one "fully occluded" map items. If we haven't then we don't track the covered
+    // state of the polygon. 
+    // The second piece of state is: Are all of our "fully occluded" map items "covered". If even one of these occluded map 
+    // items is not covered, then our polygon is not covered.
+    bool seenOccludedMapNodes = false;
+    bool allOccludedMapNodesCovered = false;
 
-    // If we determined that the polygon was indeed covered already, then report back
-    if (polygonIsCompletelyCovered) {
-        //printLog("CoverageMap2::checkMap()... V2_OCCLUDED ------- (polygonIsCompletelyCovered)\n");
-        if (!storeIt) {
-            printLog("CoverageMap2::checkMap()... V2_OCCLUDED  storeIt=FALSE ------- (polygonIsCompletelyCovered)\n");
-        }
+    recurseMap(polygon, storeIt, seenOccludedMapNodes, allOccludedMapNodesCovered);
+    
+    // Ok, no matter how we were called, if all our occluded map nodes are covered, then we know this polygon
+    // is occluded, otherwise, we will report back to the caller about whether or not we stored the polygon
+    if (allOccludedMapNodesCovered) {
         return V2_OCCLUDED;
-    }
+    } 
     if (storeIt) {
-        //printLog("CoverageMap2::checkMap()... V2_STORED\n");
         return V2_STORED; // otherwise report that we STORED it
     }
-    //printLog("CoverageMap2::checkMap()... V2_NOT_STORED\n");
     return V2_NOT_STORED; // unless we weren't asked to store it, then we didn't
 }
 
-// recurse down the quad tree, marking nodes that are fully covered by the polygon, that would give us essentially
-// a bitmap of the polygon, these nodes are by definition covered for the next polygon we check.
-// as we went down this tree, the nodes are either already marked as covered, or not, if any of them were not already marked 
-// as covered then the polygon isn't occluded. We use the polygonIsCompletelyCovered reference, which is assumed to be
-// optimistically set to true by the highest caller. We will logically AND this with all of the "isCovered" states for all 
-// the nodes that are covered by the polygon. Then end result will tell us if the polygon was occluded
-CoverageMapV2StorageResult CoverageMapV2::coverNode(const VoxelProjectedPolygon* polygon, 
-                              bool& polygonIsCompletelyCovered, bool storeIt) {
-    //printLog("CoverageMapV2::coverNode()... BEFORE checkNode() \n");
-    //_myBoundingBox.printDebugDetails("coverNode()");
+void CoverageMapV2::recurseMap(const VoxelProjectedPolygon* polygon, bool storeIt, 
+                bool& seenOccludedMapNodes, bool& allOccludedMapNodesCovered) {
 
-    CoverageMapV2StorageResult coverageState = checkNode(polygon);
-
-    //printLog("CoverageMapV2::coverNode()... AFTER checkNode() \n");
-
-    //
-    //   if node is super small, then we need to stop recursion, we probably should do this by saying
-    //      at a certain small size of node, an intersect is as good as an occlude. this is handled by checkNode()
-    //
-    if (coverageState == V2_NO_INTERSECT) {
-        //printLog("CoverageMapV2::coverNode()... V2_NO_INTERSECT returning false \n");
-        if (!storeIt) {
-            //printLog("CoverageMap2::checkMap()... coverageState == V2_NO_INTERSECT  storeIt=FALSE polygonIsCompletelyCovered=%s\n",debug::valueOf(polygonIsCompletelyCovered));
-        }
-        return V2_NO_INTERSECT; // don't recurse further, this node isn't covered
-    }
-    if (coverageState == V2_OCCLUDED) { // this node's rect is completely covered by the polygon
-        // if this node is already covered, and it's coverage depth is in front of our polygon depth
-        // then we logically AND true into the completelyCovered state, if this node is not covered, or it's
-        // depth is greater than the polygon, then this polygon is not covered at this part of it
-        // and we should set the isCompletelyCovered to false, which this accomplishes
-        polygonIsCompletelyCovered = polygonIsCompletelyCovered && (_isCovered && _coveredDistance < polygon->getDistance());
-        if (!storeIt && !_isCovered) {
-            printLog("CoverageMap2::checkMap()... coverageState == V2_OCCLUDED  storeIt=FALSE _isCovered=FALSE polygonIsCompletelyCovered=%s\n",debug::valueOf(polygonIsCompletelyCovered));
-        }
-        
-        if (storeIt) {
-            _coveredDistance = _isCovered ? std::min(_coveredDistance, polygon->getDistance()) : polygon->getDistance(); 
-            _isCovered = true; // we are definitely covered
-        }
-        //printLog("CoverageMapV2::coverNode()... V2_OCCLUDED returning _isCovered=%s \n", debug::valueOf(_isCovered));
-
-        if (!storeIt) {
-            printLog("CoverageMap2::checkMap()... coverageState == V2_OCCLUDED  storeIt=FALSE polygonIsCompletelyCovered=%s _isCovered=%s _coveredDistance=%f  polygon->getDistance()=%f\n",debug::valueOf(polygonIsCompletelyCovered), debug::valueOf(_isCovered),_coveredDistance,polygon->getDistance());
-        }
-
-        // If this node is covered by the polygon, then we want to report either OCCLUDED or NOT_OCCLUDED
-        return ((_isCovered && _coveredDistance < polygon->getDistance()) ? V2_OCCLUDED : V2_NOT_OCCLUDED); // don't recurse further
-    }
-    if (coverageState == V2_INTERSECT) {
-        //printLog("CoverageMapV2::coverNode()... V2_INTERSECT case... check children \n");
-        
-        // NOTE: if we're covered, then we don't really need to recurse any further down!
-        if (_isCovered && _coveredDistance < polygon->getDistance()) {
-            //printLog("CoverageMapV2::coverNode()... V2_INTERSECT AND _isCovered... can we pop here??? \n");
-            polygonIsCompletelyCovered = polygonIsCompletelyCovered && (_isCovered && _coveredDistance < polygon->getDistance());
-
-            if (!storeIt) {
-                printLog("CoverageMap2::checkMap()... coverageState == V2_INTERSECT  storeIt=FALSE polygonIsCompletelyCovered=%s\n",debug::valueOf(polygonIsCompletelyCovered));
-            }
-
-            // If this node intersects the polygon, then we want to report either OCCLUDED or V2_INTERSECT
-            return ((_isCovered && _coveredDistance < polygon->getDistance()) ? V2_OCCLUDED : V2_INTERSECT); // don't recurse further
-        }
-        
-        //recurse deeper, and perform same operation on child quads nodes
-        bool allChildrenOccluded = true; // assume the best
-        float maxChildCoveredDepth = NOT_COVERED;
-        for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
-            BoundingBox childMapBoundingBox = getChildBoundingBox(i);
-            // if no child map exists yet, then create it
-            if (!_childMaps[i]) {
-                // children get created with the coverage state of their parent.
-                _childMaps[i] = new CoverageMapV2(childMapBoundingBox, NOT_ROOT, _isCovered, _coveredDistance);
-            }
-
-            //printLog("CoverageMapV2::coverNode()... calling coverNode() for child[%d] \n", i);
-            CoverageMapV2StorageResult childResult = _childMaps[i]->coverNode(polygon, polygonIsCompletelyCovered, storeIt);
-            //printLog("CoverageMapV2::coverNode()... DONE calling coverNode() for child[%d] childCovered=%s, _childMaps[i]->_isCovered=%s \n", i,
-            //                debug::valueOf(childCovered), debug::valueOf(_childMaps[i]->_isCovered));
-            
-            
-            if (allChildrenOccluded && _childMaps[i]->_isCovered) {
-                maxChildCoveredDepth = std::max(maxChildCoveredDepth, _childMaps[i]->_coveredDistance);
-            } else {
-                allChildrenOccluded = false;
-            }
-        }
-        // if all the children are covered, this makes our quad tree "shallower" because it records that
-        // entire quad is covered, it uses the "furthest" z-order so that if a shalower polygon comes through
-        // we won't assume its occluded
-        if (allChildrenOccluded && storeIt) {
-            _isCovered = true;
-            _coveredDistance = maxChildCoveredDepth;
-            //printLog("CoverageMapV2::coverNode()... V2_INTERSECT (allChildrenCovered && storeIt) returning _isCovered=%s \n", debug::valueOf(_isCovered));
-
-            // If this node intersects the polygon, then we want to report either OCCLUDED or V2_INTERSECT
-            return ((_isCovered && _coveredDistance < polygon->getDistance()) ? V2_OCCLUDED : V2_INTERSECT); // don't recurse further
-        }
-        //printLog("CoverageMapV2::coverNode()... V2_INTERSECT returning false \n");
-
-        if (!storeIt) {
-            printLog("CoverageMap2::checkMap()... coverageState == V2_INTERSECT  LINE 296 storeIt=FALSE polygonIsCompletelyCovered=%s allChildrenOccluded=%s _isCovered=%s\n",
-                    debug::valueOf(polygonIsCompletelyCovered),
-                    debug::valueOf(allChildrenOccluded),
-                    debug::valueOf(_isCovered));
-            _myBoundingBox.printDebugDetails();
-        }
-
-        // If we got here, we intersect, but we don't occlude
-        return V2_INTERSECT; 
+    // if we are really small, then we act like we don't intersect, this allows us to stop
+    // recusing as we get to the smalles edge of the polygon
+    if (_myBoundingBox.area() < MINIMUM_OCCLUSION_CHECK_AREA) {
+        return; // stop recursion, we're done!
     }
 
-    if (!storeIt) {
-        printLog("CoverageMap2::checkMap()... coverageState == V2_INTERSECT  LINE 304 storeIt=FALSE polygonIsCompletelyCovered=%s\n",debug::valueOf(polygonIsCompletelyCovered));
+    // Determine if this map node intersects the polygon and/or is fully covered by the polygon
+    // There are a couple special cases: If we're the root, we are assumed to intersect with all
+    // polygons. Also, any map node that is fully occluded also intersects.
+    bool nodeIsCoveredByPolygon = polygon->occludes(_myBoundingBox);
+    bool nodeIsIntersectedByPolygon = nodeIsCoveredByPolygon || _isRoot || polygon->intersects(_myBoundingBox);
+
+    // If we don't intersect, then we can just return, we're done recursing
+    if (!nodeIsIntersectedByPolygon) {
+        return; // stop recursion, we're done!
     }
 
-
-    //printLog("CoverageMapV2::coverNode()... bottom of function   returning false \n");
+    // At this point, we know our node intersects with the polygon. If this node is covered, then we want to treat it
+    // as if the node was fully covered, because this allows us to short circuit further recursion...
+    if (_isCovered && _coveredDistance < polygon->getDistance()) {
+        nodeIsCoveredByPolygon = true; // fake it till you make it
+    }
     
-    // not sure we should get here! maybe assert!
-    assert(false);
-    return coverageState;
-}
+    // If this node in the map is fully covered by our polygon, then we don't need to recurse any further, but
+    // we do need to do some bookkeeping.
+    if (nodeIsCoveredByPolygon) {
+        // If this is the very first fully covered node we've seen, then we're initialize our allOccludedMapNodesCovered
+        // to be our current covered state. This has the following effect: if this node isn't already covered, then by
+        // definition, we know that at least one node for this polygon isn't covered, and therefore we aren't fully covered.
+        if (!seenOccludedMapNodes) {
+            allOccludedMapNodesCovered = (_isCovered && _coveredDistance < polygon->getDistance());
+            // We need to mark that we've seen at least one node of our polygon! ;)
+            seenOccludedMapNodes = true;
+        } else {
+            // If this is our second or later node of our polygon, then we need to track our allOccludedMapNodesCovered state
+            allOccludedMapNodesCovered = allOccludedMapNodesCovered && 
+                                        (_isCovered && _coveredDistance < polygon->getDistance());
+        }
+        
+        // if we're in store mode then we want to record that this node is covered. 
+        if (storeIt) {
+            _isCovered = true;
+            // store the minimum distance of our previous known distance, or our current polygon's distance. This is because
+            // we know that we're at least covered at this distance, but if we had previously identified that we're covered
+            // at a shallower distance, then we want to maintain that distance
+            _coveredDistance = std::min(polygon->getDistance(), _coveredDistance);
+            
+            // Note: this might be a good chance to delete child maps, but we're not going to do that at this point because
+            // we're trying to maintain the known distances in the lower portion of the tree.
+        }
+        
+        // and since this node of the quad map is covered, we can safely stop recursion. because we know all smaller map
+        // nodes will also be covered.
+        return;
+    }
+    
+    // If we got here, then it means we know that this node is not fully covered by the polygon, but it does intersect 
+    // with the polygon.
+    
+    // Another case is that we aren't yet marked as covered, and so we should recurse and process smaller quad tree nodes.
+    // Note: we use this to determine if we can collapse the child quad trees and mark this node as covered
+    bool allChildrenOccluded = true; 
+    float maxChildCoveredDepth = NOT_COVERED;
+    for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
+        BoundingBox childMapBoundingBox = getChildBoundingBox(i);
+        // if no child map exists yet, then create it
+        if (!_childMaps[i]) {
+            // children get created with the coverage state of their parent.
+            _childMaps[i] = new CoverageMapV2(childMapBoundingBox, NOT_ROOT, _isCovered, _coveredDistance);
+        }
 
+        _childMaps[i]->recurseMap(polygon, storeIt, seenOccludedMapNodes, allOccludedMapNodesCovered);
+        
+        // if so far, all of our children are covered, then record our furthest coverage distance
+        if (allChildrenOccluded && _childMaps[i]->_isCovered) {
+            maxChildCoveredDepth = std::max(maxChildCoveredDepth, _childMaps[i]->_coveredDistance);
+        } else {
+            // otherwise, at least one of our children is not covered, so not all are covered
+            allChildrenOccluded = false;
+        }
+    }
+    // if all the children are covered, this makes our quad tree "shallower" because it records that
+    // entire quad is covered, it uses the "furthest" z-order so that if a shalower polygon comes through
+    // we won't assume its occluded
+    if (allChildrenOccluded && storeIt) {
+        _isCovered = true;
+        _coveredDistance = maxChildCoveredDepth;
+    }
+
+    // normal exit case... return...
+}

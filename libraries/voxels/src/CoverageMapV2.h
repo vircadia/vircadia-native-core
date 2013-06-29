@@ -48,8 +48,8 @@ public:
     
 
 private:
-    CoverageMapV2StorageResult checkNode(const VoxelProjectedPolygon* polygon);
-    CoverageMapV2StorageResult coverNode(const VoxelProjectedPolygon* polygon, bool& polygonIsCompletelyCovered, bool storeIt);
+    void recurseMap(const VoxelProjectedPolygon* polygon, bool storeIt, 
+                    bool& seenOccludedMapNodes, bool& allOccludedMapNodesCovered);
 
     void init();
 

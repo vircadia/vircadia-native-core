@@ -1303,7 +1303,7 @@ void VoxelSystem::falseColorizeOccluded() {
     );
 
 
-    myCoverageMap.erase();
+    //myCoverageMap.erase();
 
     setupNewVoxelsForDrawing();
 }
@@ -1425,7 +1425,7 @@ void VoxelSystem::falseColorizeOccludedV2() {
         VoxelProjectedPolygon::pointInside_calls,
         VoxelProjectedPolygon::occludes_calls
     );
-    myCoverageMapV2.erase();
+    //myCoverageMapV2.erase();
 
 
     setupNewVoxelsForDrawing();
