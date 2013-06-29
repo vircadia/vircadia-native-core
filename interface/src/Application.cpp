@@ -1261,6 +1261,7 @@ void Application::importVoxels() {
     if (fileNameString.endsWith(".png", Qt::CaseInsensitive)) {
         QImage pngImage = QImage(fileName);
         if (pngImage.height() != pngImage.width()) {
+            printLog("ERROR: Bad PNG size: height != width.\n");
             return;
         }
         

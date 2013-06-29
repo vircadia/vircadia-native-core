@@ -31,6 +31,7 @@ public:
     
     int dimension();
     uint32_t getPixelAt(unsigned int x, unsigned int y);
+    uint8_t getAlphaAt(int x, int y);
 private:
     SquarePixelMapData *_data;
     PixelQuadTreeNode *_rootPixelQuadTreeNode;

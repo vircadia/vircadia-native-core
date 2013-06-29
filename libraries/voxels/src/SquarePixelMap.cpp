@@ -36,6 +36,7 @@ public:
     PixelQuadTreeCoordinates _coord;
     uint32_t _color; // undefined value for _allChildrenHasSameColor = false
     bool _allChildrenHasSameColor;
+    uint8_t _minimumNeighbourhoodAplha;
     
     // 0    x ->  1
     //   +---+---+
@@ -67,6 +68,8 @@ private:
     }
     
     bool hasAllChildrenSameColor() {
+        return false; //turn off import voxel grouping
+        
         for (int i = 1; i < 4; i++) {
             if (!_children[i]->_allChildrenHasSameColor) {
                 return false;
@@ -84,13 +87,19 @@ private:
     }
 };
 
-PixelQuadTreeNode::PixelQuadTreeNode(PixelQuadTreeCoordinates coord, SquarePixelMap *pixelMap) : _coord(coord) {
+PixelQuadTreeNode::PixelQuadTreeNode(PixelQuadTreeCoordinates coord, SquarePixelMap *pixelMap) : _coord(coord), _minimumNeighbourhoodAplha(-1) {
     for (int i = 0; i < 4; i++) {
         _children[i] = NULL;
     }
     
     if (_coord.size == 1) {
         _color = pixelMap->getPixelAt(_coord.x, _coord.y);
+        
+        _minimumNeighbourhoodAplha = std::min<uint8_t>(pixelMap->getAlphaAt(_coord.x - 1, _coord.y - 1), _minimumNeighbourhoodAplha);
+        _minimumNeighbourhoodAplha = std::min<uint8_t>(pixelMap->getAlphaAt(_coord.x - 1, _coord.y + 1), _minimumNeighbourhoodAplha);
+        _minimumNeighbourhoodAplha = std::min<uint8_t>(pixelMap->getAlphaAt(_coord.x + 1, _coord.y - 1), _minimumNeighbourhoodAplha);
+        _minimumNeighbourhoodAplha = std::min<uint8_t>(pixelMap->getAlphaAt(_coord.x + 1, _coord.y + 1), _minimumNeighbourhoodAplha);
+        
         _allChildrenHasSameColor = true;
     } else {
         PixelQuadTreeCoordinates childCoord = PixelQuadTreeCoordinates();
@@ -111,7 +120,10 @@ PixelQuadTreeNode::PixelQuadTreeNode(PixelQuadTreeCoordinates coord, SquarePixel
             _allChildrenHasSameColor = true;
             _color = _children[0]->_color;
             
+            _minimumNeighbourhoodAplha = _children[0]->_minimumNeighbourhoodAplha;
+            
             for (int i = 0; i < 4; i++) {
+                _minimumNeighbourhoodAplha = std::min<uint8_t>(_children[i]->_minimumNeighbourhoodAplha, _minimumNeighbourhoodAplha);
                 delete _children[i];
                 _children[i] = NULL;
             }
@@ -158,6 +170,16 @@ uint32_t SquarePixelMap::getPixelAt(unsigned int x, unsigned int y) {
     return _data->pixels[x + y * _data->dimension];
 }
 
+uint8_t SquarePixelMap::getAlphaAt(int x, int y) {
+    int max_coord = this->dimension() - 1;
+    
+    if (x < 0 || y < 0 || x > max_coord || y > max_coord) {
+        return -1;
+    }
+    
+    return this->getPixelAt(x, y) >> 24;
+}
+
 void SquarePixelMap::generateRootPixelQuadTreeNode() {
     delete _rootPixelQuadTreeNode;
 
@@ -172,7 +194,13 @@ void SquarePixelMap::createVoxelsFromPixelQuadTreeToVoxelTree(PixelQuadTreeNode 
     if (pixelQuadTreeNode->_allChildrenHasSameColor) {
         VoxelDetail voxel = this->getVoxelDetail(pixelQuadTreeNode);
         
-        voxelTree->createVoxel(voxel.x, voxel.y, voxel.z, voxel.s, voxel.red, voxel.green, voxel.blue, true);
+        unsigned char minimumNeighbourhoodAplha = std::max<int>(0, pixelQuadTreeNode->_minimumNeighbourhoodAplha - 1);
+        
+        float minimumNeighbourhoodY = voxel.s * (floor(minimumNeighbourhoodAplha / (256.f * voxel.s)) + 0.5);
+        
+        do {
+            voxelTree->createVoxel(voxel.x, voxel.y, voxel.z, voxel.s, voxel.red, voxel.green, voxel.blue, false);
+        } while ((voxel.y -= voxel.s) > minimumNeighbourhoodY);
     } else {
         for (int i = 0; i < 4; i++) {
             PixelQuadTreeNode *child = pixelQuadTreeNode->_children[i];
@@ -187,7 +215,7 @@ VoxelDetail SquarePixelMap::getVoxelDetail(PixelQuadTreeNode *pixelQuadTreeNode)
     VoxelDetail voxel = VoxelDetail();
     
     uint32_t color = pixelQuadTreeNode->_color;
-    unsigned char alpha = color >> 24;
+    unsigned char alpha = std::max<int>(0, (color >> 24) - 1);
     
     voxel.red = color >> 16;
     voxel.green = color >> 8;
