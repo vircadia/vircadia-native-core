@@ -13,6 +13,7 @@
 #include "world.h"
 #include "Application.h"
 #include "Avatar.h"
+#include "Hand.h"
 #include "Head.h"
 #include "Log.h"
 #include "ui/TextRenderer.h"
@@ -64,6 +65,7 @@ Avatar::Avatar(Agent* owningAgent) :
     AvatarData(owningAgent),
     _initialized(false),
     _head(this),
+    _hand(this),
     _ballSpringsInitialized(false),
     _TEST_bigSphereRadius(0.5f),
     _TEST_bigSpherePosition(5.0f, _TEST_bigSphereRadius, 5.0f),
@@ -96,6 +98,7 @@ Avatar::Avatar(Agent* owningAgent) :
 {
     // give the pointer to our head to inherited _headData variable from AvatarData
     _headData = &_head;
+    _handData = &_hand;
     
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
         _driveKeys[i] = false;
@@ -263,20 +266,22 @@ void Avatar::initializeBodyBalls() {
      */
 }
 
-
 Avatar::~Avatar() {
     _headData = NULL;
+    _handData = NULL;
     delete _balls;
 }
 
 void Avatar::init() {
     _head.init();
+    _hand.init();
     _voxels.init();
     _initialized = true;
 }
 
 void Avatar::reset() {
     _head.reset();
+    _hand.reset();
 }
 
 //  Update avatar head rotation with sensor data
@@ -1277,6 +1282,7 @@ void Avatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
             _voxels.render(false);
         }
     }
+    _hand.render(lookingInMirror);
 }
 
 

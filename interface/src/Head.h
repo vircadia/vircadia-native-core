@@ -51,6 +51,7 @@ public:
     glm::quat getOrientation() const;
     glm::quat getCameraOrientation (float pitchYawScale) const;
     
+    glm::vec3 getPosition()       const { return _position; }
     glm::vec3 getRightDirection() const { return getOrientation() * IDENTITY_RIGHT; }
     glm::vec3 getUpDirection   () const { return getOrientation() * IDENTITY_UP;    }
     glm::vec3 getFrontDirection() const { return getOrientation() * IDENTITY_FRONT; }
@@ -106,6 +107,11 @@ private:
     glm::vec3*  _mohawkColors;
     glm::vec3   _saccade;
     glm::vec3   _saccadeTarget;
+    float       _leftEyeBlink;
+    float       _rightEyeBlink;
+    float       _leftEyeBlinkVelocity;
+    float       _rightEyeBlinkVelocity;
+    float       _timeWithoutTalking;
     
     static ProgramObject* _irisProgram;
     static GLuint _irisTextureID;

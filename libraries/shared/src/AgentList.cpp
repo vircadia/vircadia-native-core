@@ -77,6 +77,17 @@ AgentList::~AgentList() {
     pthread_mutex_destroy(&mutex);
 }
 
+void AgentList::timePingReply(sockaddr *agentAddress, unsigned char *packetData) {
+    for(AgentList::iterator agent = begin(); agent != end(); agent++) {
+        if (socketMatch(agent->getPublicSocket(), agentAddress) || 
+            socketMatch(agent->getLocalSocket(), agentAddress)) {     
+            int pingTime = usecTimestampNow() - *(long long *)(packetData + 1);
+            agent->setPingMs(pingTime / 1000);
+            break;
+        }
+    }
+}
+
 void AgentList::processAgentData(sockaddr *senderAddress, unsigned char *packetData, size_t dataBytes) {
     switch (((char *)packetData)[0]) {
         case PACKET_HEADER_DOMAIN: {
@@ -84,11 +95,14 @@ void AgentList::processAgentData(sockaddr *senderAddress, unsigned char *packetD
             break;
         }
         case PACKET_HEADER_PING: {
-            _agentSocket.send(senderAddress, &PACKET_HEADER_PING_REPLY, 1);
+            char pingPacket[dataBytes];
+            memcpy(pingPacket, packetData, dataBytes);
+            pingPacket[0] = PACKET_HEADER_PING_REPLY;
+            _agentSocket.send(senderAddress, pingPacket, dataBytes);
             break;
         }
         case PACKET_HEADER_PING_REPLY: {
-            handlePingReply(senderAddress);
+            timePingReply(senderAddress, packetData);
             break;
         }
     }

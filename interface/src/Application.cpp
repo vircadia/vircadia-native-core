@@ -57,6 +57,7 @@
 #include "Application.h"
 #include "InterfaceConfig.h"
 #include "LogDisplay.h"
+#include "LeapManager.h"
 #include "OculusManager.h"
 #include "Util.h"
 #include "renderer/ProgramObject.h"
@@ -852,9 +853,26 @@ void Application::wheelEvent(QWheelEvent* event) {
     }
 }
 
+void sendPingPackets() {
+
+    char agentTypesOfInterest[] = {AGENT_TYPE_VOXEL_SERVER, AGENT_TYPE_AUDIO_MIXER, AGENT_TYPE_AVATAR_MIXER};
+    long long currentTime = usecTimestampNow();
+    char pingPacket[1 + sizeof(currentTime)];
+    pingPacket[0] = PACKET_HEADER_PING;
+    
+    memcpy(&pingPacket[1], &currentTime, sizeof(currentTime));
+    AgentList::getInstance()->broadcastToAgents((unsigned char*)pingPacket, 1 + sizeof(currentTime), agentTypesOfInterest, 3);
+
+}
+
 //  Every second, check the frame rates and other stuff
 void Application::timer() {
     gettimeofday(&_timerEnd, NULL);
+
+    if (_testPing->isChecked()) {
+        sendPingPackets();
+    }
+        
     _fps = (float)_frameCount / ((float)diffclock(&_timerStart, &_timerEnd) / 1000.f);
     _packetsPerSecond = (float)_packetCount / ((float)diffclock(&_timerStart, &_timerEnd) / 1000.f);
     _bytesPerSecond = (float)_bytesCount / ((float)diffclock(&_timerStart, &_timerEnd) / 1000.f);
@@ -997,10 +1015,6 @@ void Application::editPreferences() {
     headCameraPitchYawScale->setValue(_headCameraPitchYawScale);
     form->addRow("Head Camera Pitch/Yaw Scale:", headCameraPitchYawScale);
 
-    QCheckBox* audioEchoCancellation = new QCheckBox();
-    audioEchoCancellation->setChecked(_audio.isCancellingEcho());
-    form->addRow("Audio Echo Cancellation", audioEchoCancellation);
-    
     QDoubleSpinBox* leanScale = new QDoubleSpinBox();
     leanScale->setValue(_myAvatar.getLeanScale());
     form->addRow("Lean Scale:", leanScale);
@@ -1022,7 +1036,6 @@ void Application::editPreferences() {
     QUrl url(avatarURL->text());
     _myAvatar.getVoxels()->setVoxelURL(url);
     sendAvatarVoxelURLMessage(url);
-    _audio.setIsCancellingEcho( audioEchoCancellation->isChecked() );
     _headCameraPitchYawScale = headCameraPitchYawScale->value();
     _myAvatar.setLeanScale(leanScale->value());
     _audioJitterBufferSamples = audioJitterBufferSamples->value();
@@ -1380,6 +1393,8 @@ void Application::initMenu() {
     (_gravityUse = optionsMenu->addAction("Use Gravity"))->setCheckable(true);
     _gravityUse->setChecked(true);
     _gravityUse->setShortcut(Qt::SHIFT | Qt::Key_G);
+    (_testPing = optionsMenu->addAction("Test Ping"))->setCheckable(true);
+    _testPing->setChecked(true);
     (_fullScreenMode = optionsMenu->addAction("Fullscreen", this, SLOT(setFullscreen(bool)), Qt::Key_F))->setCheckable(true);
     optionsMenu->addAction("Webcam", &_webcam, SLOT(setEnabled(bool)))->setCheckable(true);    
     
@@ -1716,7 +1731,11 @@ void Application::update(float deltaTime) {
                                   _touchAvgY - _touchDragStartedAvgY);
     }
     
-    //  Read serial port interface devices
+    // Leap finger-sensing device
+    LeapManager::nextFrame();
+    _myAvatar.getHand().setLeapFingers(LeapManager::getFingerPositions());
+    
+     //  Read serial port interface devices
     if (_serialHeadSensor.isActive()) {
         _serialHeadSensor.readData(deltaTime);
     }
@@ -2326,7 +2345,24 @@ void Application::displayStats() {
     sprintf(stats, "%3.0f FPS, %d Pkts/sec, %3.2f Mbps", 
             _fps, _packetsPerSecond,  (float)_bytesPerSecond * 8.f / 1000000.f);
     drawtext(10, statsVerticalOffset + 15, 0.10f, 0, 1.0, 0, stats);
-    
+
+    if (_testPing->isChecked()) {
+        int pingAudio = 0, pingAvatar = 0, pingVoxel = 0;
+
+        AgentList *agentList = AgentList::getInstance();
+        Agent *audioMixerAgent = agentList->soloAgentOfType(AGENT_TYPE_AUDIO_MIXER);
+        Agent *avatarMixerAgent = agentList->soloAgentOfType(AGENT_TYPE_AVATAR_MIXER);
+        Agent *voxelServerAgent = agentList->soloAgentOfType(AGENT_TYPE_VOXEL_SERVER);
+
+        pingAudio = audioMixerAgent ? audioMixerAgent->getPingMs() : 0;
+        pingAvatar = avatarMixerAgent ? avatarMixerAgent->getPingMs() : 0;
+        pingVoxel = voxelServerAgent ? voxelServerAgent->getPingMs() : 0;
+
+        char pingStats[200];
+        sprintf(pingStats, "Ping audio/avatar/voxel: %d / %d / %d ", pingAudio, pingAvatar, pingVoxel);
+        drawtext(10, statsVerticalOffset + 35, 0.10f, 0, 1.0, 0, pingStats);
+    }
+ 
     std::stringstream voxelStats;
     voxelStats.precision(4);
     voxelStats << "Voxels Rendered: " << _voxels.getVoxelsRendered() / 1000.f << "K Updated: " << _voxels.getVoxelsUpdated()/1000.f << "K";
@@ -2367,6 +2403,7 @@ void Application::displayStats() {
     }
     
     drawtext(10, statsVerticalOffset + 330, 0.10f, 0, 1.0, 0, avatarMixerStats);
+    drawtext(10, statsVerticalOffset + 450, 0.10f, 0, 1.0, 0, (char *)LeapManager::statusString().c_str());
     
     if (_perfStatsOn) {
         // Get the PerfStats group details. We need to allocate and array of char* long enough to hold 1+groups
@@ -2842,9 +2879,6 @@ void Application::loadSettings(QSettings* settings) {
     _viewFrustumOffsetDistance = loadSetting(settings, "viewFrustumOffsetDistance", 0.0f);
     _viewFrustumOffsetUp       = loadSetting(settings, "viewFrustumOffsetUp"      , 0.0f);
     settings->endGroup();
-    settings->beginGroup("Audio Echo Cancellation");
-    _audio.setIsCancellingEcho(settings->value("enabled", false).toBool());
-    settings->endGroup();
 
     scanMenuBar(&Application::loadAction, settings);
     getAvatar()->loadData(settings);    
@@ -2864,9 +2898,6 @@ void Application::saveSettings(QSettings* settings) {
     settings->setValue("viewFrustumOffsetRoll",     _viewFrustumOffsetRoll);
     settings->setValue("viewFrustumOffsetDistance", _viewFrustumOffsetDistance);
     settings->setValue("viewFrustumOffsetUp",       _viewFrustumOffsetUp);
-    settings->endGroup();
-    settings->beginGroup("Audio");
-    settings->setValue("echoCancellation", _audio.isCancellingEcho());
     settings->endGroup();
     
     scanMenuBar(&Application::saveAction, settings);

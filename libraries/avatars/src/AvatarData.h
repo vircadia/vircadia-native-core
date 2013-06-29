@@ -17,6 +17,7 @@
 
 #include <AgentData.h>
 #include "HeadData.h"
+#include "HandData.h"
 
 const int WANT_RESIN_AT_BIT = 0;
 const int WANT_COLOR_AT_BIT = 1;
@@ -97,6 +98,7 @@ public:
     void setWantOcclusionCulling(bool wantOcclusionCulling) { _wantOcclusionCulling = wantOcclusionCulling; }
     
     void setHeadData(HeadData* headData) { _headData = headData; }
+    void setHandData(HandData* handData) { _handData = handData; }
     
 protected:
     glm::vec3 _position;
@@ -131,6 +133,7 @@ protected:
     bool _wantOcclusionCulling;
     
     HeadData* _headData;
+    HandData* _handData;
 private:
     // privatize the copy constructor and assignment operator so they cannot be called
     AvatarData(const AvatarData&);
@@ -163,5 +166,9 @@ int unpackClipValueFromTwoByte(unsigned char* buffer, float& clipValue);
 // Positive floats that don't need to be very precise
 int packFloatToByte(unsigned char* buffer, float value, float scaleBy);
 int unpackFloatFromByte(unsigned char* buffer, float& value, float scaleBy);
+
+// Allows sending of fixed-point numbers: radix 1 makes 15.1 number, radix 8 makes 8.8 number, etc
+int packFloatScalarToSignedTwoByteFixed(unsigned char* buffer, float scalar, int radix);
+int unpackFloatScalarFromSignedTwoByteFixed(int16_t* byteFixedPointer, float* destinationPointer, int radix);
 
 #endif /* defined(__hifi__AvatarData__) */
