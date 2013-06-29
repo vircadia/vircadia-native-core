@@ -17,19 +17,32 @@ typedef glm::vec2 ProjectedVertices[MAX_CLIPPED_PROJECTED_POLYGON_VERTEX_COUNT];
 
 class BoundingBox {
 public:
+    enum { BOTTOM_LEFT, BOTTOM_RIGHT, TOP_RIGHT, TOP_LEFT, VERTEX_COUNT };
+
     BoundingBox(glm::vec2 corner, glm::vec2 size) : corner(corner), size(size), _set(true) {};
     BoundingBox() : _set(false) {};
     glm::vec2 corner;
     glm::vec2 size;
     bool contains(const BoundingBox& box) const;
+    bool contains(const glm::vec2& point) const;
+    bool pointInside(const glm::vec2& point) const { return contains(point); };
+    
     void explandToInclude(const BoundingBox& box);
 
     float area() const { return size.x * size.y; };
+
+    int getVertexCount() const { return VERTEX_COUNT; };
+    glm::vec2 getVertex(int vertexNumber) const;
 
     BoundingBox topHalf() const;
     BoundingBox bottomHalf() const;
     BoundingBox leftHalf() const;
     BoundingBox rightHalf() const;
+
+    float getMaxX() const { return corner.x + size.x; }
+    float getMaxY() const { return corner.y + size.y; }
+    float getMinX() const { return corner.x; }
+    float getMinY() const { return corner.y; }
     
     void printDebugDetails(const char* label=NULL) const;
 private:
@@ -39,6 +52,8 @@ private:
 class VoxelProjectedPolygon {
 
 public:
+    VoxelProjectedPolygon(const BoundingBox& box);
+
     VoxelProjectedPolygon(int vertexCount = 0) : 
         _vertexCount(vertexCount), 
         _maxX(-FLT_MAX), _maxY(-FLT_MAX), _minX(FLT_MAX), _minY(FLT_MAX),
@@ -60,8 +75,15 @@ public:
     bool getAllInView() const { return _allInView; };
     void setAllInView(bool allInView) { _allInView = allInView; };
 
+    bool pointInside(const glm::vec2& point, bool* matchesVertex = NULL) const;
     bool occludes(const VoxelProjectedPolygon& occludee, bool checkAllInView = false) const;
-    bool pointInside(const glm::vec2& point) const;
+    bool occludes(const BoundingBox& occludee) const;
+    bool intersects(const VoxelProjectedPolygon& testee) const;
+    bool intersects(const BoundingBox& box) const;
+    bool matches(const VoxelProjectedPolygon& testee) const;
+    bool matches(const BoundingBox& testee) const;
+
+    bool intersectsOnAxes(const VoxelProjectedPolygon& testee) const;
     
     float getMaxX() const { return _maxX; }
     float getMaxY() const { return _maxY; }
@@ -73,6 +95,9 @@ public:
     };
 
     void printDebugDetails() const;
+    
+    static long pointInside_calls;
+    static long occludes_calls;
 
 private:
     int _vertexCount;

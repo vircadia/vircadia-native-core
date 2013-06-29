@@ -38,6 +38,9 @@ public:
 
 
     const char* getRegionName() const;
+    
+    int getPolygonCount() const { return _polygonCount; };
+    VoxelProjectedPolygon* getPolygon(int index) const { return _polygons[index]; };
 
 private:
     void init();
@@ -78,6 +81,10 @@ public:
 
     static bool wantDebugging;
 
+    int getPolygonCount() const;
+    VoxelProjectedPolygon* getPolygon(int index) const;
+    CoverageMap* getChild(int childIndex) const { return _childMaps[childIndex]; };
+    
 private:
     void init();
 

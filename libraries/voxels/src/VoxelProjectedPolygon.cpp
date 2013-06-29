@@ -11,6 +11,20 @@
 #include "Log.h"
 #include "SharedUtil.h"
 
+glm::vec2 BoundingBox::getVertex(int vertexNumber) const {
+    switch (vertexNumber) {
+        case BoundingBox::BOTTOM_LEFT:
+            return corner;
+        case BoundingBox::TOP_LEFT:
+            return glm::vec2(corner.x, corner.y + size.y);
+        case BoundingBox::BOTTOM_RIGHT:
+            return glm::vec2(corner.x + size.x, corner.y);
+        case BoundingBox::TOP_RIGHT:
+            return corner + size;
+    }
+    assert(false); // not allowed
+    return glm::vec2(0,0);
+}
 
 BoundingBox BoundingBox::topHalf() const {
     float halfY = size.y/2.0f;
@@ -45,6 +59,15 @@ bool BoundingBox::contains(const BoundingBox& box) const {
             );
 };
 
+bool BoundingBox::contains(const glm::vec2& point) const {
+    return ( _set &&
+                (point.x > corner.x) &&
+                (point.y > corner.y) &&
+                (point.x < corner.x + size.x) &&
+                (point.y < corner.y + size.y)
+            );
+};
+
 void BoundingBox::explandToInclude(const BoundingBox& box) {
     if (!_set) {
         corner = box.corner;
@@ -74,6 +97,21 @@ void BoundingBox::printDebugDetails(const char* label) const {
 }
 
 
+long VoxelProjectedPolygon::pointInside_calls = 0;
+long VoxelProjectedPolygon::occludes_calls = 0;
+
+
+VoxelProjectedPolygon::VoxelProjectedPolygon(const BoundingBox& box) :
+    _vertexCount(4), 
+    _maxX(-FLT_MAX), _maxY(-FLT_MAX), _minX(FLT_MAX), _minY(FLT_MAX),
+    _distance(0)
+{
+    for (int i = 0; i < _vertexCount; i++) {
+        setVertex(i, box.getVertex(i));
+    }
+}
+
+
 void VoxelProjectedPolygon::setVertex(int vertex, const glm::vec2& point) { 
     _vertices[vertex] = point;
     
@@ -93,7 +131,10 @@ void VoxelProjectedPolygon::setVertex(int vertex, const glm::vec2& point) {
     
 };
 
+// can be optimized with new pointInside()
 bool VoxelProjectedPolygon::occludes(const VoxelProjectedPolygon& occludee, bool checkAllInView) const {
+
+    VoxelProjectedPolygon::occludes_calls++;
     
     // if we are completely out of view, then we definitely don't occlude!
     // if the occludee is completely out of view, then we also don't occlude it
@@ -113,23 +154,156 @@ bool VoxelProjectedPolygon::occludes(const VoxelProjectedPolygon& occludee, bool
         return false;
     }
     
+    // we need to test for identity as well, because in the case of identity, none of the points
+    // will be "inside" but we don't want to bail early on the first non-inside point
+    bool potentialIdenity = false;
+    if ((occludee.getVertexCount() == getVertexCount()) && (getBoundingBox().contains(occludee.getBoundingBox())) ) {
+        potentialIdenity = true;
+    }
     // if we got this far, then check each vertex of the occludee, if all those points
     // are inside our polygon, then the tested occludee is fully occluded
+    int pointsInside = 0;
     for(int i = 0; i < occludee.getVertexCount(); i++) {
-        if (!pointInside(occludee.getVertex(i))) {
-            return false;
+        bool vertexMatched = false;
+        if (!pointInside(occludee.getVertex(i), &vertexMatched)) {
+        
+            // so the point we just tested isn't inside, but it might have matched a vertex
+            // if it didn't match a vertext, then we bail because we can't be an identity
+            // or if we're not expecting identity, then we also bail early, no matter what
+            if (!potentialIdenity || !vertexMatched) {
+                return false;
+            }
+        } else {
+            pointsInside++;
         }
     }
     
-    // If we are a concave polygon, then it's not good enough to know that all of the occludee's points are
-    // inside us, we also need to make sure than none of the occludee's edges intersect any of our edges.
+    // we're only here if all points are inside matched and/or we had a potentialIdentity we need to check
+    if (pointsInside == occludee.getVertexCount()) {
+        return true;
+    }
+
+    // If we have the potential for identity, then test to see if we match, if we match, we occlude
+    if (potentialIdenity) {
+        return matches(occludee);
+    }
     
-    // if we got this far, then indeed the occludee is fully occluded by us
-    return true;
+    return false; // if we got this far, then we're not occluded
 }
 
-bool VoxelProjectedPolygon::pointInside(const glm::vec2& point) const {
-    // first check the bounding boxes, the point must be fully within the boounding box of this shadow
+bool VoxelProjectedPolygon::occludes(const BoundingBox& occludee) const {
+
+    VoxelProjectedPolygon::occludes_calls++;
+    
+    // first check the bounding boxes, the occludee must be fully within the boounding box of this shadow
+    if ((occludee.getMaxX() > getMaxX()) ||
+        (occludee.getMaxY() > getMaxY()) ||
+        (occludee.getMinX() < getMinX()) ||
+        (occludee.getMinY() < getMinY())) {
+        return false;
+    }
+    
+    // we need to test for identity as well, because in the case of identity, none of the points
+    // will be "inside" but we don't want to bail early on the first non-inside point
+    bool potentialIdenity = false;
+
+    if ((occludee.getVertexCount() == getVertexCount()) && (getBoundingBox().contains(occludee)) ) {
+        potentialIdenity = true;
+    }
+    // if we got this far, then check each vertex of the occludee, if all those points
+    // are inside our polygon, then the tested occludee is fully occluded
+    int pointsInside = 0;
+    for(int i = 0; i < occludee.getVertexCount(); i++) {
+        bool vertexMatched = false;
+        if (!pointInside(occludee.getVertex(i), &vertexMatched)) {
+        
+            // so the point we just tested isn't inside, but it might have matched a vertex
+            // if it didn't match a vertext, then we bail because we can't be an identity
+            // or if we're not expecting identity, then we also bail early, no matter what
+            if (!potentialIdenity || !vertexMatched) {
+                return false;
+            }
+        } else {
+            pointsInside++;
+        }
+    }
+    
+    // we're only here if all points are inside matched and/or we had a potentialIdentity we need to check
+    if (pointsInside == occludee.getVertexCount()) {
+        return true;
+    }
+
+    // If we have the potential for identity, then test to see if we match, if we match, we occlude
+    if (potentialIdenity) {
+        return matches(occludee);
+    }
+    
+    return false; // if we got this far, then we're not occluded
+}
+
+bool VoxelProjectedPolygon::matches(const VoxelProjectedPolygon& testee) const {
+    if (testee.getVertexCount() != getVertexCount()) {
+        return false;
+    }
+    int vertextCount = getVertexCount();
+    // find which testee vertex matches our first polygon vertex.
+    glm::vec2 polygonVertex = getVertex(0);
+    int originIndex = 0;
+    for(int i = 0; i < vertextCount; i++) {
+        glm::vec2 testeeVertex = testee.getVertex(i);
+        
+        // if they match, we found our origin.
+        if (testeeVertex == polygonVertex) {
+            originIndex = i;
+            break;
+        }
+    }
+    // Now, starting at the originIndex, walk the vertices of both the testee and ourselves
+
+    for(int i = 0; i < vertextCount; i++) {
+        glm::vec2 testeeVertex  = testee.getVertex((i + originIndex) % vertextCount);
+        glm::vec2 polygonVertex = getVertex(i);
+        if (testeeVertex != polygonVertex) {
+            return false; // we don't match, therefore we're not the same 
+        }            
+    }        
+    return true; // all of our vertices match, therefore we're the same 
+}
+
+bool VoxelProjectedPolygon::matches(const BoundingBox& testee) const {
+    if (testee.getVertexCount() != getVertexCount()) {
+        return false;
+    }
+    int vertextCount = getVertexCount();
+    // find which testee vertex matches our first polygon vertex.
+    glm::vec2 polygonVertex = getVertex(0);
+    int originIndex = 0;
+    for(int i = 0; i < vertextCount; i++) {
+        glm::vec2 testeeVertex = testee.getVertex(i);
+        
+        // if they match, we found our origin.
+        if (testeeVertex == polygonVertex) {
+            originIndex = i;
+            break;
+        }
+    }
+    // Now, starting at the originIndex, walk the vertices of both the testee and ourselves
+
+    for(int i = 0; i < vertextCount; i++) {
+        glm::vec2 testeeVertex  = testee.getVertex((i + originIndex) % vertextCount);
+        glm::vec2 polygonVertex = getVertex(i);
+        if (testeeVertex != polygonVertex) {
+            return false; // we don't match, therefore we're not the same 
+        }            
+    }        
+    return true; // all of our vertices match, therefore we're the same 
+}
+
+bool VoxelProjectedPolygon::pointInside(const glm::vec2& point, bool* matchesVertex) const {
+
+    VoxelProjectedPolygon::pointInside_calls++;
+
+    // first check the bounding boxes, the point must be fully within the boounding box of this polygon
     if ((point.x > getMaxX()) ||
         (point.y > getMaxY()) ||
         (point.x < getMinX()) ||
@@ -137,10 +311,37 @@ bool VoxelProjectedPolygon::pointInside(const glm::vec2& point) const {
         return false;
     }
 
-    float e = (getMaxX() - getMinX()) / 100.0f; // some epsilon
+    // consider each edge of this polygon as a potential separating axis
+    // check the point against each edge
+    for (int i = 0; i < getVertexCount(); i++) {
+        glm::vec2 start = getVertex(i);
+        glm::vec2 end   = getVertex((i + 1) % getVertexCount());
+        float a = start.y - end.y;
+        float b = end.x - start.x;
+        float c = a * start.x + b * start.y;
+        if (a * point.x + b * point.y < c) {
+            return false;
+        }
+    }
+    
+    return true;
+}
+ 
+/*   
+bool VoxelProjectedPolygon::pointInside(const glm::vec2& point, bool* matchesVertex) const {
+    // first check the bounding boxes, the point must be fully within the boounding box of this shadow
+    if ((point.x > getMaxX()) ||
+        (point.y > getMaxY()) ||
+        (point.x < getMinX()) ||
+        (point.y < getMinY())) {
+        return false;
+    }
+    
+    //float e = (getMaxX() - getMinX()) / 100.0f; // some epsilon
+    float e = 1.0f; // some epsilon
     
     // We need to have one ray that goes from a known outside position to the point in question. We'll pick a
-    // start point just outside of our min X
+    // start point outside of our min X, min Y
     glm::vec2 r1p1(getMinX() - e, point.y);
     glm::vec2 r1p2(point);
 
@@ -149,17 +350,30 @@ bool VoxelProjectedPolygon::pointInside(const glm::vec2& point) const {
     
     // Test the ray against all sides
     int intersections = 0;
+    bool someVertexMatches = false;
     for (int i = 0; i < getVertexCount(); i++) {
         r2p2 = getVertex(i);
+
+        // if the point in question matches one of our vetices, then we consider it to NOT be inside.        
+        if (point.x == r2p2.x && point.y == r2p2.y) {
+            // caller wants to know if we match any of the vertices
+            if (matchesVertex) {
+                *matchesVertex = true;
+            }
+            return false;
+        }
+
+        // if we're still processing, then check for intersections        
         if (doLineSegmentsIntersect(r1p1, r1p2, r2p1, r2p2)) {
             intersections++;
         }
         r2p1 = r2p2; // set up for next side
     }
 
-    // If odd number of intersections, we're inside    
+    // If odd number of intersections and we got here, we're inside
     return ((intersections & 1) == 1);
 }
+*/
 
 void VoxelProjectedPolygon::printDebugDetails() const {
     printf("VoxelProjectedPolygon...");
@@ -169,6 +383,56 @@ void VoxelProjectedPolygon::printDebugDetails() const {
         glm::vec2 point = getVertex(i);
         printf("    vertex[%d] = %f, %f \n", i, point.x, point.y);
     }
+}
+
+bool VoxelProjectedPolygon::intersects(const BoundingBox& box) const {
+    VoxelProjectedPolygon testee(box);
+    return intersectsOnAxes(testee) && testee.intersectsOnAxes(*this);
+}
+
+
+bool VoxelProjectedPolygon::intersects(const VoxelProjectedPolygon& testee) const {
+    return intersectsOnAxes(testee) && testee.intersectsOnAxes(*this);
+}
+
+//
+// Tests the edges of this polygon as potential separating axes for this polygon and the
+// specified other.
+//
+// @return false if the polygons are disjoint on any of this polygon's axes, true if they
+// intersect on all axes.
+//
+// Note: this only works on 
+// 
+//
+bool VoxelProjectedPolygon::intersectsOnAxes(const VoxelProjectedPolygon& testee) const {
+
+    // consider each edge of this polygon as a potential separating axis
+    for (int i = 0; i < getVertexCount(); i++) {
+        glm::vec2 start = getVertex(i);
+        glm::vec2 end   = getVertex((i + 1) % getVertexCount());
+        float a = start.y - end.y;
+        float b = end.x - start.x;
+        float c = a * start.x + b * start.y;
+
+        // if all vertices fall outside the edge, the polygons are disjoint
+        // points that are ON the edge, are considered to be "outside"
+        for (int j = 0; j < testee.getVertexCount(); j++) {
+            glm::vec2 testeeVertex = testee.getVertex(j);
+            
+            // in comparison below:
+            //      >= will cause points on edge to be considered inside
+            //      >  will cause points on edge to be considered outside
+            
+            float c2 = a * testeeVertex.x + b * testeeVertex.y;
+            if (c2 >= c) {
+                goto CONTINUE_OUTER;
+            }
+        }
+        return false;
+        CONTINUE_OUTER: ;
+    }
+    return true;
 }
 
 

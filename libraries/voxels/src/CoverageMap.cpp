@@ -131,17 +131,60 @@ BoundingBox CoverageMap::getChildBoundingBox(int childIndex) {
     return result;
 }
 
+int CoverageMap::getPolygonCount() const {
+    return (_topHalf.getPolygonCount() +
+        _bottomHalf.getPolygonCount() +
+        _leftHalf.getPolygonCount() +
+        _rightHalf.getPolygonCount() +
+        _remainder.getPolygonCount());
+}
+
+VoxelProjectedPolygon* CoverageMap::getPolygon(int index) const {
+    int base = 0;
+    if ((index - base) < _topHalf.getPolygonCount()) {
+        return _topHalf.getPolygon((index - base));
+    }
+    base += _topHalf.getPolygonCount();
+
+    if ((index - base) < _bottomHalf.getPolygonCount()) {
+        return _bottomHalf.getPolygon((index - base));
+    }
+    base += _bottomHalf.getPolygonCount();
+
+    if ((index - base) < _leftHalf.getPolygonCount()) {
+        return _leftHalf.getPolygon((index - base));
+    }
+    base += _leftHalf.getPolygonCount();
+
+    if ((index - base) < _rightHalf.getPolygonCount()) {
+        return _rightHalf.getPolygon((index - base));
+    }
+    base += _rightHalf.getPolygonCount();
+
+    if ((index - base) < _remainder.getPolygonCount()) {
+        return _remainder.getPolygon((index - base));
+    }
+    return NULL;
+}
+
+
+
 // possible results = STORED/NOT_STORED, OCCLUDED, DOESNT_FIT
 CoverageMapStorageResult CoverageMap::checkMap(VoxelProjectedPolygon* polygon, bool storeIt) {
 
     if (_isRoot) {
         _checkMapRootCalls++;
+
+        //printLog("CoverageMap::checkMap()... storeIt=%s\n", debug::valueOf(storeIt));
+        //polygon->printDebugDetails();
+
     }
 
     // short circuit: we don't handle polygons that aren't all in view, so, if the polygon in question is
     // not in view, then we just discard it with a DOESNT_FIT, this saves us time checking values later.
     if (!polygon->getAllInView()) {
         _notAllInView++;
+        //printLog("CoverageMap2::checkMap()... V2_OCCLUDED\n");
         return DOESNT_FIT;
     }
 
@@ -182,6 +225,14 @@ CoverageMapStorageResult CoverageMap::checkMap(VoxelProjectedPolygon* polygon, b
         // It's possible that this first set of checks might have resulted in an out of order polygon
         // in which case we just return..
         if (result == STORED || result == OCCLUDED) {
+        
+            /*
+            if (result == STORED)
+                printLog("CoverageMap2::checkMap()... STORED\n");
+            else
+                printLog("CoverageMap2::checkMap()... OCCLUDED\n");
+            */
+            
             return result;
         }
         
@@ -195,7 +246,26 @@ CoverageMapStorageResult CoverageMap::checkMap(VoxelProjectedPolygon* polygon, b
                 if (!_childMaps[i]) {
                     _childMaps[i] = new CoverageMap(childMapBoundingBox, NOT_ROOT, _managePolygons);
                 }
-                return _childMaps[i]->checkMap(polygon, storeIt);
+                result = _childMaps[i]->checkMap(polygon, storeIt);
+
+                /*
+                switch (result) {
+                    case STORED:
+                        printLog("checkMap() = STORED\n");
+                        break;
+                    case NOT_STORED:
+                        printLog("checkMap() = NOT_STORED\n");
+                        break;
+                    case OCCLUDED:
+                        printLog("checkMap() = OCCLUDED\n");
+                        break;
+                    default:
+                        printLog("checkMap() = ????? \n");
+                        break;
+                }
+                */
+                
+                return result;
             }
         }
         // if we got this far, then the polygon is in our bounding box, but doesn't fit in
@@ -204,15 +274,19 @@ CoverageMapStorageResult CoverageMap::checkMap(VoxelProjectedPolygon* polygon, b
             if (polygon->getBoundingBox().area() > CoverageMap::MINIMUM_POLYGON_AREA_TO_STORE) {
                 //printLog("storing polygon of area: %f\n",polygon->getBoundingBox().area());                    
                 storeIn->storeInArray(polygon);
+                //printLog("CoverageMap2::checkMap()... STORED\n");
                 return STORED;
             } else {
                 CoverageRegion::_tooSmallSkips++;
+                //printLog("CoverageMap2::checkMap()... NOT_STORED\n");
                 return NOT_STORED;
             }
         } else {
+            //printLog("CoverageMap2::checkMap()... NOT_STORED\n");
             return NOT_STORED;
         }
     }
+    //printLog("CoverageMap2::checkMap()... DOESNT_FIT\n");
     return DOESNT_FIT;
 }
 
@@ -241,7 +315,7 @@ void CoverageRegion::init() {
 
 void CoverageRegion::erase() {
 
-/**/
+/**
     if (_polygonCount) {
         printLog("CoverageRegion::erase()...\n");
         printLog("_polygonCount=%d\n",_polygonCount);
@@ -347,7 +421,7 @@ void CoverageRegion::storeInArray(VoxelProjectedPolygon* polygon) {
         const int IGNORED = NULL;
         float area = polygon->getBoundingBox().area();
         float reverseArea = 4.0f - area;
-printLog("store by size area=%f reverse area=%f\n", area, reverseArea);
+        //printLog("store by size area=%f reverse area=%f\n", area, reverseArea);
         _polygonCount = insertIntoSortedArrays((void*)polygon, reverseArea, IGNORED,
                                                (void**)_polygons, _polygonSizes, IGNORED,
                                                _polygonCount, _polygonArraySize);
