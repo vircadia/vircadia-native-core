@@ -10,9 +10,7 @@
 #define __hifi__BandwidthDialog__
 
 #include <QDialog>
-
 #include <QLabel>
-#include <QDoubleSpinBox>
 
 #include "BandwidthMeter.h"
 
@@ -36,15 +34,9 @@ protected:
     // Emits a 'closed' signal when this dialog is closed.
     void closeEvent(QCloseEvent*);
 
-private slots:
-
-    // State -> data model held by BandwidthMeter
-    void applySettings(double);
-
 private:
     BandwidthMeter* _model;
     QLabel*         _labels[BandwidthMeter::N_STREAMS];
-    QDoubleSpinBox* _spinners[BandwidthMeter::N_CHANNELS];
 };
 
 #endif /* defined(__interface__BandwidthDialog__) */

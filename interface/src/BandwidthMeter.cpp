@@ -12,54 +12,44 @@
 #include "Log.h"
 #include "Util.h"
 
-// --- Configuration
-
-// Layout:
-//
-//  +--- unit label width (e)
-//  |  +-- unit label horiz. spacing (f)
-//  V  V
-// |  | |
-//      +--------+  \                               \  Channel
-// Unit +-------+    | Total channel height (a)     /   height (d)
-//      |           /        ] Channel spacing (b)
-//      +----+
-// Unit +------+
-//      |
-//     ...  
-//
-
 namespace { // .cpp-local
 
-    float const CHANNEL_SPACING = 0.125f;            // (b) fractional in respect to total channel height
-    float const STREAM_SPACING = 0.0625f;            // (c) fractional in respect to total channel height
-    float const LABEL_CHAR_WIDTH = 0.28f;            // (e) fractional in respect to total channel height
-    float const LABEL_HORIZ_SPACING = 0.25f;         // (f) fractional in respect to total channel height
+    char const* CAPTION_IN = "IN";
+    char const* CAPTION_OUT = "OUT";
+    char const* CAPTION_UNIT = "Mbps";
 
-    unsigned const FRAME_COLOR = 0xe0e0e0b0;
-    unsigned const INDICATOR_COLOR = 0xc0c0c0b0;
-    unsigned const VALUE_COLOR = 0xa0a0a0e0;
-    float const INDICATOR_BASE = 10.0f;
-    float const INDICATOR_LOG_BASE = log(INDICATOR_BASE);
+    int SPACING_RIGHT_CAPTION_IN_OUT = 4;
+    int SPACING_LEFT_CAPTION_UNIT = 6;
+
+    int SPACING_VERT_BARS = 2;
+
+
+    unsigned const COLOR_CAPTIONS = 0xa0a0a0e0;
+    unsigned const COLOR_FRAME = 0xe0e0e0b0;
+    unsigned const COLOR_INDICATOR = 0xc0c0c0b0;
+
+    double const UNIT_SCALE = 1000.0 / (1024.0 * 1024.0);  // bytes/ms -> Mbps
+    int const FRAMES_SHRINK = 20;
 }
 
 BandwidthMeter::ChannelInfo BandwidthMeter::_DEFAULT_CHANNELS[] = {
-    { "Audio"   , "Kbps",    1.0 * 1024.0,  85.0, 0x40ff40d0 },
-    { "Avatars" , "KBps",    1.0 * 1024.0,  20.0, 0xffef40c0 },
-    { "Voxels"  , "Mbps", 1024.0 * 1024.0,   0.5, 0xd0d0d0a0 }
+    { "Audio"   , "Kbps", 1000.0 / 1024.0, 0x40ff40d0 },
+    { "Avatars" , "Kbps", 1000.0 / 1024.0, 0xffef40c0 },
+    { "Voxels"  , "Kbps", 1000.0 / 1024.0, 0xd0d0d0a0 }
 };
 
 // ---
 
 BandwidthMeter::BandwidthMeter() :
-    _textRenderer(SANS_FONT_FAMILY, -1, -1, false, TextRenderer::SHADOW_EFFECT) {
+    _textRenderer(SANS_FONT_FAMILY, -1, -1, false, TextRenderer::SHADOW_EFFECT),
+    _scaleMax(50), _framesTillShrink(0) {
 
     memcpy(_channels, _DEFAULT_CHANNELS, sizeof(_DEFAULT_CHANNELS));
 }
 
-BandwidthMeter::Stream::Stream(float secondsToAverage) :
+BandwidthMeter::Stream::Stream(float msToAverage) :
     _value(0.0f),
-    _secsToAverage(secondsToAverage) {
+    _msToAverage(msToAverage) {
 
     gettimeofday(& _prevTime, NULL);
 }
@@ -69,15 +59,15 @@ void BandwidthMeter::Stream::updateValue(double amount) {
     // Determine elapsed time
     timeval now;
     gettimeofday(& now, NULL);
-    double dt = diffclock(& _prevTime, & now) / 1000.0;
+    double dt = diffclock(& _prevTime, & now);
     memcpy(& _prevTime, & now, sizeof(timeval));
 
     // Compute approximate average
     _value = glm::mix(_value, amount / dt,
-                      glm::clamp(dt / _secsToAverage, 0.0, 1.0));
+                      glm::clamp(dt / _msToAverage, 0.0, 1.0));
 }
 
-static void setColorRGBA(unsigned c) {
+void BandwidthMeter::setColorRGBA(unsigned c) {
 
     glColor4ub(GLubyte( c >> 24), 
                GLubyte((c >> 16) & 0xff),
@@ -85,130 +75,135 @@ static void setColorRGBA(unsigned c) {
                GLubyte( c        & 0xff));
 }
 
-static void renderBox(float w, float h) {
+void BandwidthMeter::renderBox(int x, int y, int w, int h) {
+
     glBegin(GL_QUADS);
-    glVertex2f(0.0f, 0.0f);
-    glVertex2f(w, 0.0f);
-    glVertex2f(w, h);
-    glVertex2f(0.0f, h);
+    glVertex2i(x, y);
+    glVertex2i(x + w, y);
+    glVertex2i(x + w, y + h);
+    glVertex2i(x, y + h);
     glEnd();
+}
+
+void BandwidthMeter::renderVerticalLine(int x, int y, int h) {
+
+    glBegin(GL_LINES);
+    glVertex2i(x, y);
+    glVertex2i(x, y + h);
+    glEnd();
+}
+
+inline int BandwidthMeter::centered(int subject, int object) {
+    return (object - subject) / 2;
 }
 
 void BandwidthMeter::render(int x, int y, unsigned w, unsigned h) {
 
-    float channelTotalHeight = float(h) / N_CHANNELS;
-    float channelSpacing = CHANNEL_SPACING * channelTotalHeight;
-    float channelHeight = channelTotalHeight - channelSpacing;
-    float streamSpacing = STREAM_SPACING * channelTotalHeight;
-    float streamHeight = (channelHeight - streamSpacing) * 0.5;
-
-    QFontMetrics const& fontMetrics = _textRenderer.metrics();
-    int fontDescent = fontMetrics.descent();
-    int labelRenderWidthCaption = 0;
-    int labelRenderWidthUnit = 0;
+    // Determine total
+    float totalIn = 0.0f, totalOut = 0.0f;
     for (int i = 0; i < N_CHANNELS; ++i) {
-        labelRenderWidthCaption = glm::max(labelRenderWidthCaption, fontMetrics.width(_channels[i].caption));
-        labelRenderWidthUnit = glm::max(labelRenderWidthUnit, fontMetrics.width(_channels[i].unitCaption));
+
+        totalIn += inputStream(i).getValue();
+        totalOut += outputStream(i).getValue();
     }
-    int labelRenderWidth = glm::max(labelRenderWidthCaption, labelRenderWidthUnit);
-    int labelRenderHeight = fontMetrics.lineSpacing();
-    float labelCharWSpaces = float(labelRenderWidth) / float(fontMetrics.width("M"));
-    float labelWidth = channelTotalHeight * LABEL_CHAR_WIDTH * labelCharWSpaces;
-    float labelHeight = (channelHeight - streamSpacing) * 0.5f;
+    totalIn *= UNIT_SCALE;
+    totalOut *= UNIT_SCALE;
+    float totalMax = glm::max(totalIn, totalOut);
+    //printLog("totalMax = %f\n", totalMax);
 
-    float labelScaleX = labelWidth / float(labelRenderWidth);
-    float labelScaleY = labelHeight / float(labelRenderHeight);
-    float labelHorizSpacing = channelTotalHeight * LABEL_HORIZ_SPACING;
+    // Get font / caption metrics
+    QFontMetrics const& fontMetrics = _textRenderer.metrics();
+    int fontDescent = fontMetrics.descent(); 
+    int labelWidthIn = fontMetrics.width(CAPTION_IN);
+    int labelWidthOut = fontMetrics.width(CAPTION_OUT);
+    int labelWidthInOut = glm::max(labelWidthIn, labelWidthOut);
+    int labelHeight = fontMetrics.ascent() + fontDescent;
+    int labelWidthUnit = fontMetrics.width(CAPTION_UNIT);
+    int labelsWidth = labelWidthInOut + SPACING_RIGHT_CAPTION_IN_OUT + SPACING_LEFT_CAPTION_UNIT + labelWidthUnit;
 
+    // Calculate coordinates and dimensions
+    int barX = x + labelWidthInOut + SPACING_RIGHT_CAPTION_IN_OUT;
+    int barWidth = w - labelsWidth;
+    int barHeight = (h - SPACING_VERT_BARS) / 2;
+    int textYcenteredLine = h - centered(labelHeight, h) - fontDescent;
+    int textYupperLine = barHeight - centered(labelHeight, barHeight) - fontDescent;
+    int textYlowerLine = h - centered(labelHeight, barHeight) - fontDescent;
 
+    // Center of coordinate system -> upper left of bar
     glPushMatrix();
+    glTranslatef(float(barX), float(y), 0.0f);
 
-    int xMin = x + int(labelWidth + labelHorizSpacing);
+    // Render captions
+    setColorRGBA(COLOR_CAPTIONS);
+    _textRenderer.draw(barWidth + SPACING_LEFT_CAPTION_UNIT, textYcenteredLine, CAPTION_UNIT);
+    _textRenderer.draw(-labelWidthIn - SPACING_RIGHT_CAPTION_IN_OUT, textYupperLine, CAPTION_IN);
+    _textRenderer.draw(-labelWidthOut - SPACING_RIGHT_CAPTION_IN_OUT, textYlowerLine, CAPTION_OUT);
 
     // Render vertical lines for the frame
-    setColorRGBA(FRAME_COLOR);
-    glBegin(GL_LINES);
-    glVertex2i(xMin - 1, y);
-    glVertex2i(xMin - 1, y + h);
-    glVertex2i(x + w - 1, y);
-    glVertex2i(x + w - 1, y + h);
-    glEnd();
+    setColorRGBA(COLOR_FRAME);
+    renderVerticalLine(0, 0, h);
+    renderVerticalLine(barWidth, 0, h);
 
-    // Set coordinate center to right edge of bars / top
-    glTranslatef(float(xMin), float(y) + channelSpacing * 0.5f, 0.0f);
-
-    // Determine maximum horizontal length for bars
-    float xMax = float(w) - labelWidth - labelHorizSpacing;
-
-    char fmtBuf[64];
-
-    for (int i = 0; i < N_CHANNELS; ++i) {
-        // ...each channel
-
-        ChannelInfo& c = channelInfo(i);
-        float scaleStep = powf(INDICATOR_BASE, ceil(logf(c.unitsMax) / INDICATOR_LOG_BASE) - 1.0f);
-
-        float unitsIn = inputStream(i).getValue() / c.unitScale;
-        if (unitsIn > c.unitsMax) {
-            c.unitsMax += scaleStep;
+    // Adjust scale
+    int steps;
+    double step, scaleMax;
+    bool commit = false;
+    do {
+        steps = (_scaleMax % 9) + 2;
+        step = pow(10.0, (_scaleMax / 9) - 10);
+        scaleMax = step * steps;
+        if (commit) {
+            printLog("Bandwidth meter scale: %d\n", _scaleMax);
+            break;
         }
-        float barPosIn = xMax * fmin(unitsIn / c.unitsMax, 1.0f);
-        float unitsOut = outputStream(i).getValue() / c.unitScale;
-        float barPosOut = xMax * fmin(unitsOut / c.unitsMax, 1.0f);
+        if (totalMax < scaleMax * 0.5) {
+            if (--_framesTillShrink < 0) {
+                _scaleMax = glm::max(0, _scaleMax-1);
+                commit = true;
+            } 
+        } else {
+            _framesTillShrink = FRAMES_SHRINK;
 
-        // Render scale indicators
-        setColorRGBA(INDICATOR_COLOR);
-        for (int j = int((c.unitsMax + scaleStep - 1) / scaleStep); --j > 0;) {
-            float xPix = xMax * float(j) * scaleStep / c.unitsMax;
-
-            glBegin(GL_LINES);
-            glVertex2f(xPix, 0);
-            glVertex2f(xPix, channelHeight);
-            glEnd();
+            if (totalMax > scaleMax) {
+                _scaleMax += 1;
+                commit = true;
+            }
         }
+    } while (commit);
 
-        // Render captions
-        setColorRGBA(c.colorRGBA);
-        glPushMatrix();
-            glTranslatef(-labelHorizSpacing, channelHeight * 0.5f, 0.0f);
-            glScalef(labelScaleX, labelScaleY, 1.0f);
-            _textRenderer.draw(-labelRenderWidth, -fontDescent, c.caption);
-            _textRenderer.draw(-fontMetrics.width(c.unitCaption), labelRenderHeight - fontDescent, c.unitCaption);
-        glPopMatrix();
-
-        // Render input bar
-        renderBox(barPosIn, streamHeight);
-
-        // Render output value
-        glPushMatrix();
-            setColorRGBA(VALUE_COLOR);
-            glTranslatef(0.0f, streamHeight, 0.0f);
-            glScalef(labelScaleX, labelScaleY, 1.0f);
-
-            sprintf(fmtBuf, "%0.2f in", unitsIn);
-            _textRenderer.draw(glm::max(int(barPosIn / labelScaleX) - fontMetrics.width(fmtBuf), 0), -fontDescent, fmtBuf);
-        glPopMatrix();
-
-        // Advance to next stream
-        glTranslatef(0.0f, streamHeight + streamSpacing, 0.0f);
-
-        // Render output bar
-        setColorRGBA(c.colorRGBA);
-        renderBox(barPosOut, streamHeight);
-
-        // Render output value
-        glPushMatrix();
-            setColorRGBA(VALUE_COLOR);
-            glTranslatef(0.0f, streamHeight, 0.0f);
-            glScalef(labelScaleX, labelScaleY, 1.0f);
-
-            sprintf(fmtBuf, "%0.2f out", unitsOut);
-            _textRenderer.draw(glm::max(int(barPosOut / labelScaleX) - fontMetrics.width(fmtBuf), 0), -fontDescent, fmtBuf);
-        glPopMatrix();
-
-        // Advance to next channel
-        glTranslatef(0.0f, streamHeight + channelSpacing, 0.0f);
+    // Render scale indicators
+    setColorRGBA(COLOR_INDICATOR);
+    for (int j = int((scaleMax + step - 0.000001) / step); --j > 0;) {
+        renderVerticalLine(int(barWidth * j * step / scaleMax), 0, h);
     }
+
+    // Render bars
+    int xIn = 0, xOut = 0;
+    for (int i = 0; i < N_CHANNELS; ++i) {
+
+        int wIn = int(barWidth * inputStream(i).getValue() * UNIT_SCALE / scaleMax);
+        int wOut = int(barWidth * outputStream(i).getValue() * UNIT_SCALE / scaleMax);
+
+        setColorRGBA(channelInfo(i).colorRGBA);
+
+        if (wIn > 0) {
+            renderBox(xIn, 0, wIn, barHeight);
+        }
+        xIn += wIn;
+
+        if (wOut > 0) {
+            renderBox(xOut, h - barHeight, wOut, barHeight);
+        }
+        xOut += wOut;
+    }
+
+    // Render numbers
+    char fmtBuf[8];
+    setColorRGBA(COLOR_CAPTIONS);
+    sprintf(fmtBuf, "%0.2f", totalIn);
+    _textRenderer.draw(glm::max(xIn - fontMetrics.width(fmtBuf), 0), textYupperLine, fmtBuf);
+    sprintf(fmtBuf, "%0.2f", totalOut);
+    _textRenderer.draw(glm::max(xOut - fontMetrics.width(fmtBuf), 0), textYlowerLine, fmtBuf);
 
     glPopMatrix();
 }

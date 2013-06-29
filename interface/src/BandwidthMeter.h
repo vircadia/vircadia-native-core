@@ -32,7 +32,6 @@ public:
         char const* caption;
         char const* unitCaption;
         double      unitScale;
-        double      unitsMax;
         unsigned    colorRGBA;
     };
 
@@ -41,14 +40,14 @@ public:
 
     public:
 
-        Stream(float secondsToAverage = 3.0f);
+        Stream(float msToAverage = 3000.0f);
         void updateValue(double amount);
         double getValue()                               const   { return _value; }
 
     private:
         double  _value;                 // Current value.
+        double  _msToAverage;           // Milliseconds to average.
         timeval _prevTime;              // Time of last feed.
-        float   _secsToAverage;         // Seconds to average.
     };
 
     // Data model accessors
@@ -60,12 +59,20 @@ public:
     ChannelInfo const& channelInfo(unsigned index)      const   { return _channels[index]; }
 
 private:
+    static void setColorRGBA(unsigned c);
+    static void renderBox(int x, int y, int w, int h);
+    static void renderVerticalLine(int x, int y, int h);
+
+    static inline int centered(int subject, int object);
+
     TextRenderer _textRenderer;
     ChannelInfo _channels[N_CHANNELS];
     Stream _streams[N_STREAMS];
 
+    int _scaleMax;
+    int _framesTillShrink;
+
     static ChannelInfo _DEFAULT_CHANNELS[];
-    static Stream _DEFAULT_STREAMS[];
 };
 
 #endif /* defined(__interface__BandwidthMeter__) */

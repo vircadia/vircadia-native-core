@@ -2291,7 +2291,7 @@ void Application::displayOverlay() {
     
     if (_renderStatsOn->isChecked()) { displayStats(); }
 
-    _bandwidthMeter.render(_glWidget->width() - 400, 40, 380, 32 * BandwidthMeter::N_CHANNELS);
+    _bandwidthMeter.render(_glWidget->width() - 400, 40, 380, 32);
     if (_logOn->isChecked()) { LogDisplay::instance.render(_glWidget->width(), _glWidget->height()); }
 
     //  Show chat entry field
