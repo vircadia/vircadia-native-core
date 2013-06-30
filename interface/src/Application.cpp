@@ -801,6 +801,7 @@ void Application::mouseReleaseEvent(QMouseEvent* event) {
             _mouseX = event->x();
             _mouseY = event->y();
             _mousePressed = false;
+            checkBandwidthMeterClick();
         }
     }
 }
@@ -980,15 +981,28 @@ void Application::processAvatarVoxelURLMessage(unsigned char *packetData, size_t
     QMetaObject::invokeMethod(avatar->getVoxels(), "setVoxelURL", Q_ARG(QUrl, url));
 }
 
+void Application::checkBandwidthMeterClick() {
+    // ... to be called upon button release
+
+    if (_bandwidthDisplayOn->isChecked() &&
+        glm::compMax(glm::abs(glm::ivec2(_mouseX - _mouseDragStartedX, _mouseY - _mouseDragStartedY))) <= 6 &&
+        _bandwidthMeter.isWithinArea(_mouseX, _mouseY, _glWidget->width(), _glWidget->height())) {
+
+        // The bandwidth meter is visible, the click didn't get dragged too far and
+        // we actually hit the bandwidth meter
+        bandwidthDetails();
+    }
+}
+
 void Application::bandwidthDetails() {
 
     if (! _bandwidthDialog) {
         _bandwidthDialog = new BandwidthDialog(_glWidget, getBandwidthMeter());
+        connect(_bandwidthDialog, SIGNAL(closed()), SLOT(bandwidthDetailsClosed()));
+
         _bandwidthDialog->show();
     } 
     _bandwidthDialog->raise();
-
-    connect(_bandwidthDialog, SIGNAL(closed()), SLOT(bandwidthDetailsClosed()));
 }
 
 void Application::bandwidthDetailsClosed() {
@@ -1431,6 +1445,8 @@ void Application::initMenu() {
     (_logOn = toolsMenu->addAction("Log"))->setCheckable(true);
     _logOn->setChecked(false);
     _logOn->setShortcut(Qt::CTRL | Qt::Key_L);
+    (_bandwidthDisplayOn = toolsMenu->addAction("Bandwidth Display"))->setCheckable(true);
+    _bandwidthDisplayOn->setChecked(true);
     toolsMenu->addAction("Bandwidth Details", this, SLOT(bandwidthDetails()));
 
  
@@ -2291,7 +2307,8 @@ void Application::displayOverlay() {
     
     if (_renderStatsOn->isChecked()) { displayStats(); }
 
-    _bandwidthMeter.render(_glWidget->width() - 400, 40, 380, 32);
+    if (_bandwidthDisplayOn->isChecked()) { _bandwidthMeter.render(_glWidget->width(), _glWidget->height()); }
+
     if (_logOn->isChecked()) { LogDisplay::instance.render(_glWidget->width(), _glWidget->height()); }
 
     //  Show chat entry field

@@ -20,7 +20,8 @@ public:
 
     BandwidthMeter();
 
-    void render(int x, int y, unsigned w, unsigned h);
+    void render(int screenWidth, int screenHeight);
+    bool isWithinArea(int x, int y, int screenWidth, int screenHeight);
 
     // Number of channels / streams.
     static size_t const N_CHANNELS = 3;

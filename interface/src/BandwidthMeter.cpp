@@ -14,6 +14,11 @@
 
 namespace { // .cpp-local
 
+    int const AREA_WIDTH = -400;            // Width of the area used. Aligned to the right when negative.
+    int const AREA_HEIGHT =  32;            // Height of the area used. Aligned to the bottom when negative.
+    int const BORDER_DISTANCE_HORIZ = -20;  // Distance to edge of screen (use negative value when width is negative).
+    int const BORDER_DISTANCE_VERT = 20;    // Distance to edge of screen (use negative value when height is negative).
+
     char const* CAPTION_IN = "IN";
     char const* CAPTION_OUT = "OUT";
     char const* CAPTION_UNIT = "Mbps";
@@ -95,7 +100,20 @@ inline int BandwidthMeter::centered(int subject, int object) {
     return (object - subject) / 2;
 }
 
-void BandwidthMeter::render(int x, int y, unsigned w, unsigned h) {
+bool BandwidthMeter::isWithinArea(int x, int y, int screenWidth, int screenHeight) {
+
+    int minX = BORDER_DISTANCE_HORIZ + (AREA_WIDTH >= 0 ? 0 : screenWidth + AREA_WIDTH);
+    int minY = BORDER_DISTANCE_VERT + (AREA_HEIGHT >= 0 ? 0 : screenHeight + AREA_HEIGHT);
+
+    return x >= minX && x < minX + glm::abs(AREA_WIDTH) && 
+           y >= minY && y < minY + glm::abs(AREA_HEIGHT);
+}
+
+void BandwidthMeter::render(int screenWidth, int screenHeight) {
+
+    int x = BORDER_DISTANCE_HORIZ + (AREA_WIDTH >= 0 ? 0 : screenWidth + AREA_WIDTH);
+    int y = BORDER_DISTANCE_VERT + (AREA_HEIGHT >= 0 ? 0 : screenHeight + AREA_HEIGHT);
+    int w = glm::abs(AREA_WIDTH), h = glm::abs(AREA_HEIGHT);
 
     // Determine total
     float totalIn = 0.0f, totalOut = 0.0f;

@@ -173,7 +173,9 @@ private:
     void displayOverlay();
     void displayStats();
     void renderViewFrustum(ViewFrustum& viewFrustum);
-        
+   
+    void checkBandwidthMeterClick();
+     
     void setupPaintingVoxel();
     void shiftPaintingColor();
     void maybeEditVoxelUnderCursor();
@@ -224,6 +226,7 @@ private:
     QAction* _manualFirstPerson;     // Whether to force first-person mode
     QAction* _manualThirdPerson;     // Whether to force third-person mode
     QAction* _logOn;                 // Whether to show on-screen log
+    QAction* _bandwidthDisplayOn;    // Whether to show on-screen bandwidth bars
     QActionGroup* _voxelModeActions; // The group of voxel edit mode actions
     QAction* _addVoxelMode;          // Whether add voxel mode is enabled
     QAction* _deleteVoxelMode;       // Whether delete voxel mode is enabled
