@@ -15,7 +15,7 @@
 namespace { // .cpp-local
 
     int const AREA_WIDTH = -400;            // Width of the area used. Aligned to the right when negative.
-    int const AREA_HEIGHT =  32;            // Height of the area used. Aligned to the bottom when negative.
+    int const AREA_HEIGHT =  40;            // Height of the area used. Aligned to the bottom when negative.
     int const BORDER_DISTANCE_HORIZ = -20;  // Distance to edge of screen (use negative value when width is negative).
     int const BORDER_DISTANCE_VERT = 20;    // Distance to edge of screen (use negative value when height is negative).
 
