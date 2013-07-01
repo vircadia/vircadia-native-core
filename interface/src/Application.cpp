@@ -57,10 +57,12 @@
 #include "Application.h"
 #include "InterfaceConfig.h"
 #include "LogDisplay.h"
+#include "LeapManager.h"
 #include "OculusManager.h"
 #include "Util.h"
 #include "renderer/ProgramObject.h"
 #include "ui/TextRenderer.h"
+#include "fvupdater.h"
 
 using namespace std;
 
@@ -246,10 +248,28 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     
     _window->setCentralWidget(_glWidget);
     
-    // these are used, for example, to identify the application settings
-    setApplicationName("Interface");
-    setOrganizationDomain("highfidelity.io");
-    setOrganizationName("High Fidelity");
+#ifdef Q_WS_MAC
+    QString resourcesPath = QCoreApplication::applicationDirPath() + "/../Resources";
+#else
+    QString resourcesPath = QCoreApplication::applicationDirPath() + "/resources";
+#endif
+    
+    // read the ApplicationInfo.ini file for Name/Version/Domain information
+    QSettings applicationInfo(resourcesPath + "/info/ApplicationInfo.ini", QSettings::IniFormat);
+    
+    // set the associated application properties
+    applicationInfo.beginGroup("INFO");
+    
+    setApplicationName(applicationInfo.value("name").toString());
+    setApplicationVersion(applicationInfo.value("version").toString());
+    setOrganizationName(applicationInfo.value("organizationName").toString());
+    setOrganizationDomain(applicationInfo.value("organizationDomain").toString());
+    
+#if defined(Q_WS_MAC) && defined(QT_NO_DEBUG)
+    // if this is a release OS X build use fervor to check for an update    
+    FvUpdater::sharedUpdater()->SetFeedURL("https://s3-us-west-1.amazonaws.com/highfidelity/appcast.xml");
+    FvUpdater::sharedUpdater()->CheckForUpdatesSilent();
+#endif
     
     initMenu();
     
@@ -832,9 +852,26 @@ void Application::wheelEvent(QWheelEvent* event) {
     }
 }
 
+void sendPingPackets() {
+
+    char agentTypesOfInterest[] = {AGENT_TYPE_VOXEL_SERVER, AGENT_TYPE_AUDIO_MIXER, AGENT_TYPE_AVATAR_MIXER};
+    long long currentTime = usecTimestampNow();
+    char pingPacket[1 + sizeof(currentTime)];
+    pingPacket[0] = PACKET_HEADER_PING;
+    
+    memcpy(&pingPacket[1], &currentTime, sizeof(currentTime));
+    AgentList::getInstance()->broadcastToAgents((unsigned char*)pingPacket, 1 + sizeof(currentTime), agentTypesOfInterest, 3);
+
+}
+
 //  Every second, check the frame rates and other stuff
 void Application::timer() {
     gettimeofday(&_timerEnd, NULL);
+
+    if (_testPing->isChecked()) {
+        sendPingPackets();
+    }
+        
     _fps = (float)_frameCount / ((float)diffclock(&_timerStart, &_timerEnd) / 1000.f);
     _packetsPerSecond = (float)_packetCount / ((float)diffclock(&_timerStart, &_timerEnd) / 1000.f);
     _bytesPerSecond = (float)_bytesCount / ((float)diffclock(&_timerStart, &_timerEnd) / 1000.f);
@@ -1337,6 +1374,8 @@ void Application::initMenu() {
     (_gravityUse = optionsMenu->addAction("Use Gravity"))->setCheckable(true);
     _gravityUse->setChecked(true);
     _gravityUse->setShortcut(Qt::SHIFT | Qt::Key_G);
+    (_testPing = optionsMenu->addAction("Test Ping"))->setCheckable(true);
+    _testPing->setChecked(true);
     (_fullScreenMode = optionsMenu->addAction("Fullscreen", this, SLOT(setFullscreen(bool)), Qt::Key_F))->setCheckable(true);
     optionsMenu->addAction("Webcam", &_webcam, SLOT(setEnabled(bool)))->setCheckable(true);    
     
@@ -1671,7 +1710,11 @@ void Application::update(float deltaTime) {
                                   _touchAvgY - _touchDragStartedAvgY);
     }
     
-    //  Read serial port interface devices
+    // Leap finger-sensing device
+    LeapManager::nextFrame();
+    _myAvatar.getHand().setLeapFingers(LeapManager::getFingerPositions());
+    
+     //  Read serial port interface devices
     if (_serialHeadSensor.isActive()) {
         _serialHeadSensor.readData(deltaTime);
     }
@@ -2274,7 +2317,24 @@ void Application::displayStats() {
     sprintf(stats, "%3.0f FPS, %d Pkts/sec, %3.2f Mbps", 
             _fps, _packetsPerSecond,  (float)_bytesPerSecond * 8.f / 1000000.f);
     drawtext(10, statsVerticalOffset + 15, 0.10f, 0, 1.0, 0, stats);
-    
+
+    if (_testPing->isChecked()) {
+        int pingAudio = 0, pingAvatar = 0, pingVoxel = 0;
+
+        AgentList *agentList = AgentList::getInstance();
+        Agent *audioMixerAgent = agentList->soloAgentOfType(AGENT_TYPE_AUDIO_MIXER);
+        Agent *avatarMixerAgent = agentList->soloAgentOfType(AGENT_TYPE_AVATAR_MIXER);
+        Agent *voxelServerAgent = agentList->soloAgentOfType(AGENT_TYPE_VOXEL_SERVER);
+
+        pingAudio = audioMixerAgent ? audioMixerAgent->getPingMs() : 0;
+        pingAvatar = avatarMixerAgent ? avatarMixerAgent->getPingMs() : 0;
+        pingVoxel = voxelServerAgent ? voxelServerAgent->getPingMs() : 0;
+
+        char pingStats[200];
+        sprintf(pingStats, "Ping audio/avatar/voxel: %d / %d / %d ", pingAudio, pingAvatar, pingVoxel);
+        drawtext(10, statsVerticalOffset + 35, 0.10f, 0, 1.0, 0, pingStats);
+    }
+ 
     std::stringstream voxelStats;
     voxelStats.precision(4);
     voxelStats << "Voxels Rendered: " << _voxels.getVoxelsRendered() / 1000.f << "K Updated: " << _voxels.getVoxelsUpdated()/1000.f << "K";
@@ -2315,6 +2375,7 @@ void Application::displayStats() {
     }
     
     drawtext(10, statsVerticalOffset + 330, 0.10f, 0, 1.0, 0, avatarMixerStats);
+    drawtext(10, statsVerticalOffset + 450, 0.10f, 0, 1.0, 0, (char *)LeapManager::statusString().c_str());
     
     if (_perfStatsOn) {
         // Get the PerfStats group details. We need to allocate and array of char* long enough to hold 1+groups

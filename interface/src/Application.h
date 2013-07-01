@@ -9,9 +9,9 @@
 #ifndef __interface__Application__
 #define __interface__Application__
 
+#include <map>
 #include <pthread.h> 
 #include <time.h>
-#include <map>
 
 #include <QApplication>
 #include <QAction>
@@ -199,6 +199,7 @@ private:
     QAction* _showHeadMouse;         // Whether the have the mouse near edge of screen move your view
     QAction* _transmitterDrives;     // Whether to have Transmitter data move/steer the Avatar
     QAction* _gravityUse;            // Whether gravity is on or not
+    QAction* _testPing;              // Whether to display ping or not
     QAction* _renderVoxels;          // Whether to render voxels
     QAction* _renderVoxelTextures;   // Whether to render noise textures on voxels
     QAction* _renderStarsOn;         // Whether to display the stars 
@@ -335,6 +336,7 @@ private:
     int _packetsPerSecond;
     int _bytesPerSecond;
     int _bytesCount;
+
 };
 
 #endif /* defined(__interface__Application__) */

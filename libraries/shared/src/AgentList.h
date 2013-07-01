@@ -116,6 +116,7 @@ private:
     pthread_mutex_t mutex;
     
     void handlePingReply(sockaddr *agentAddress);
+    void timePingReply(sockaddr *agentAddress, unsigned char *packetData);
 };
 
 class AgentListIterator : public std::iterator<std::input_iterator_tag, Agent> {

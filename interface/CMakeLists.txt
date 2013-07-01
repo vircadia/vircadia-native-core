@@ -9,6 +9,7 @@ project(${TARGET_NAME})
 # setup for find modules
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../cmake/modules/")
 set(LIBOVR_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/LibOVR)
+set(LEAP_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/Leap)
 set(PORTAUDIO_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/PortAudio)
 set(OPENCV_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/OpenCV)
 set(UVCCAMERACONTROL_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/UVCCameraControl)
@@ -64,9 +65,13 @@ if (APPLE)
   
 endif (APPLE)
 
-find_package(Qt4 REQUIRED QtCore QtGui QtNetwork QtOpenGL)
+find_package(Qt4 REQUIRED QtCore QtGui QtNetwork QtOpenGL QtWebKit)
 include(${QT_USE_FILE})
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${QT_QTGUI_INCLUDE_DIR}")
+
+set(QUAZIP_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/quazip)
+add_subdirectory(external/fervor/)
+include_directories(external/fervor/)
 
 # run qt moc on qt-enabled headers
 qt4_wrap_cpp(INTERFACE_SRCS src/Application.h src/AvatarVoxelSystem.h src/Webcam.h)
@@ -86,6 +91,7 @@ link_hifi_library(audio ${TARGET_NAME} ${ROOT_DIR})
 # find required libraries
 find_package(GLM REQUIRED)
 find_package(LibOVR)
+find_package(Leap)
 find_package(OpenCV)
 find_package(ZLIB)
 find_package(UVCCameraControl)
@@ -102,10 +108,17 @@ include_directories(
   SYSTEM
   ${GLM_INCLUDE_DIRS} 
   ${LIBOVR_INCLUDE_DIRS}
+  ${LEAP_INCLUDE_DIRS}
   ${OPENCV_INCLUDE_DIRS}
 )
 
-target_link_libraries(${TARGET_NAME} ${QT_LIBRARIES} ${OPENCV_LIBRARIES} ${ZLIB_LIBRARIES})
+target_link_libraries(
+  ${TARGET_NAME} 
+  ${QT_LIBRARIES}
+  ${OPENCV_LIBRARIES} 
+  ${ZLIB_LIBRARIES}
+  fervor
+)
 
 if (APPLE)
     # link in required OS X frameworks and include the right GL headers
@@ -140,6 +153,7 @@ if (APPLE)
         ${QuartzCore}
         ${UVCCAMERACONTROL_LIBRARIES}
         ${LIBOVR_LIBRARIES}
+        ${LEAP_LIBRARIES}
     )
 else (APPLE)
     find_package(OpenGL REQUIRED)
