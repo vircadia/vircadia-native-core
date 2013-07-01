@@ -26,6 +26,10 @@ signals:
 
     void closed();
 
+public slots:
+
+    void reject();
+
 protected:
 
     // State <- data model held by BandwidthMeter

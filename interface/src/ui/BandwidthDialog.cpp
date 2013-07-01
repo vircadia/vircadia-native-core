@@ -59,6 +59,12 @@ void BandwidthDialog::paintEvent(QPaintEvent* event) {
     this->setFixedSize(this->width(), this->height());
 }
 
+void BandwidthDialog::reject() {
+
+    // Just regularly close upon ESC
+    this->QDialog::close();
+}
+
 void BandwidthDialog::closeEvent(QCloseEvent* event) {
 
     this->QDialog::closeEvent(event);
