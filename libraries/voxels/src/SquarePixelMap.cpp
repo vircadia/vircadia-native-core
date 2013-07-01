@@ -95,10 +95,10 @@ PixelQuadTreeNode::PixelQuadTreeNode(PixelQuadTreeCoordinates coord, SquarePixel
     if (_coord.size == 1) {
         _color = pixelMap->getPixelAt(_coord.x, _coord.y);
         
-        _minimumNeighbourhoodAplha = std::min<uint8_t>(pixelMap->getAlphaAt(_coord.x - 1, _coord.y - 1), _minimumNeighbourhoodAplha);
-        _minimumNeighbourhoodAplha = std::min<uint8_t>(pixelMap->getAlphaAt(_coord.x - 1, _coord.y + 1), _minimumNeighbourhoodAplha);
-        _minimumNeighbourhoodAplha = std::min<uint8_t>(pixelMap->getAlphaAt(_coord.x + 1, _coord.y - 1), _minimumNeighbourhoodAplha);
-        _minimumNeighbourhoodAplha = std::min<uint8_t>(pixelMap->getAlphaAt(_coord.x + 1, _coord.y + 1), _minimumNeighbourhoodAplha);
+        _minimumNeighbourhoodAplha = std::min<uint8_t>(pixelMap->getAlphaAt(_coord.x + 1, _coord.y), _minimumNeighbourhoodAplha);
+        _minimumNeighbourhoodAplha = std::min<uint8_t>(pixelMap->getAlphaAt(_coord.x - 1, _coord.y), _minimumNeighbourhoodAplha);
+        _minimumNeighbourhoodAplha = std::min<uint8_t>(pixelMap->getAlphaAt(_coord.x, _coord.y + 1), _minimumNeighbourhoodAplha);
+        _minimumNeighbourhoodAplha = std::min<uint8_t>(pixelMap->getAlphaAt(_coord.x, _coord.y - 1), _minimumNeighbourhoodAplha);
         
         _allChildrenHasSameColor = true;
     } else {
