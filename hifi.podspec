@@ -22,7 +22,7 @@ Pod::Spec.new do |s|
 
   # Specify the location from where the source should be retrieved.
   #
-  s.source       = { :git => "https://github.com/worklist/hifi.git", :commit => "ddc85272b939922c32e6a80f763e6de3cb00ab1a" }
+  s.source       = { :git => "https://github.com/worklist/hifi.git" }
   
   s.platform = :ios
   s.ios.deployment_target = "6.0"
@@ -44,7 +44,7 @@ Pod::Spec.new do |s|
     sp.source_files = "libraries/audio/src"
     sp.public_header_files = "libraries/audio/src"
     sp.xcconfig = { 'CLANG_CXX_LIBRARY' => "libc++" }
-    sp.dependency 'glm', '>= 0.9.4.3'
+    sp.dependency 'glm'
   end
 
   # A list of file patterns which select the header files that should be
