@@ -221,7 +221,7 @@ FrameGrabber::~FrameGrabber() {
 }
 
 void FrameGrabber::reset() {
-    _searchWindow = Rect(0, 0, 0, 0);
+    _searchWindow = cv::Rect(0, 0, 0, 0);
 }
 
 void FrameGrabber::grabFrame() {
@@ -263,7 +263,7 @@ void FrameGrabber::grabFrame() {
     float ranges[] = { 0, 180 };
     const float* range = ranges;
     if (_searchWindow.area() == 0) {
-        vector<Rect> faces;
+        vector<cv::Rect> faces;
         _faceCascade.detectMultiScale(frame, faces, 1.1, 6);
         if (!faces.empty()) {
             _searchWindow = faces.front();
