@@ -17,24 +17,23 @@ namespace { // .cpp-local
     int const AREA_WIDTH = -400;            // Width of the area used. Aligned to the right when negative.
     int const AREA_HEIGHT =  40;            // Height of the area used. Aligned to the bottom when negative.
     int const BORDER_DISTANCE_HORIZ = -20;  // Distance to edge of screen (use negative value when width is negative).
-    int const BORDER_DISTANCE_VERT = 20;    // Distance to edge of screen (use negative value when height is negative).
+    int const BORDER_DISTANCE_VERT = 40;    // Distance to edge of screen (use negative value when height is negative).
 
+    int SPACING_VERT_BARS = 2;              // Vertical distance between input and output bar
+    int SPACING_RIGHT_CAPTION_IN_OUT = 4;   // IN/OUT <--> |######## :         |
+    int SPACING_LEFT_CAPTION_UNIT = 4;      //             |######## :         | <--> UNIT
+    int PADDING_HORIZ_VALUE = 2;            //             |<-->X.XX<:->#      |
+    
+    unsigned const COLOR_TEXT      = 0xe0e0e0e0; // ^      ^     ^   ^         ^       ^
+    unsigned const COLOR_FRAME     = 0xe0e0e0b0; //        |         |         |
+    unsigned const COLOR_INDICATOR = 0xc0c0c0b0; //                  |
+    
     char const* CAPTION_IN = "IN";
     char const* CAPTION_OUT = "OUT";
     char const* CAPTION_UNIT = "Mbps";
 
     double const UNIT_SCALE = 8000.0 / (1024.0 * 1024.0);  // Bytes/ms -> Mbps
     int const INITIAL_SCALE_MAXIMUM_INDEX = 250; // / 9: exponent, % 9: mantissa - 2, 0 o--o 2 * 10^-10
-
-    int SPACING_RIGHT_CAPTION_IN_OUT = 4;
-    int SPACING_LEFT_CAPTION_UNIT = 6;
-
-    int SPACING_VERT_BARS = 2;
-
-    unsigned const COLOR_CAPTIONS = 0xa0a0a0e0;
-    unsigned const COLOR_FRAME = 0xe0e0e0b0;
-    unsigned const COLOR_INDICATOR = 0xc0c0c0b0;
-
 }
 
 BandwidthMeter::ChannelInfo BandwidthMeter::_DEFAULT_CHANNELS[] = {
@@ -149,7 +148,7 @@ void BandwidthMeter::render(int screenWidth, int screenHeight) {
     glTranslatef(float(barX), float(y), 0.0f);
 
     // Render captions
-    setColorRGBA(COLOR_CAPTIONS);
+    setColorRGBA(COLOR_TEXT);
     _textRenderer.draw(barWidth + SPACING_LEFT_CAPTION_UNIT, textYcenteredLine, CAPTION_UNIT);
     _textRenderer.draw(-labelWidthIn - SPACING_RIGHT_CAPTION_IN_OUT, textYupperLine, CAPTION_IN);
     _textRenderer.draw(-labelWidthOut - SPACING_RIGHT_CAPTION_IN_OUT, textYlowerLine, CAPTION_OUT);
@@ -208,11 +207,15 @@ void BandwidthMeter::render(int screenWidth, int screenHeight) {
 
     // Render numbers
     char fmtBuf[8];
-    setColorRGBA(COLOR_CAPTIONS);
+    setColorRGBA(COLOR_TEXT);
     sprintf(fmtBuf, "%0.2f", totalIn);
-    _textRenderer.draw(glm::max(xIn - fontMetrics.width(fmtBuf), 0), textYupperLine, fmtBuf);
+    _textRenderer.draw(glm::max(xIn - fontMetrics.width(fmtBuf) - PADDING_HORIZ_VALUE,
+                                PADDING_HORIZ_VALUE),
+                       textYupperLine, fmtBuf);
     sprintf(fmtBuf, "%0.2f", totalOut);
-    _textRenderer.draw(glm::max(xOut - fontMetrics.width(fmtBuf), 0), textYlowerLine, fmtBuf);
+    _textRenderer.draw(glm::max(xOut - fontMetrics.width(fmtBuf) - PADDING_HORIZ_VALUE,
+                                PADDING_HORIZ_VALUE),
+                       textYlowerLine, fmtBuf);
 
     glPopMatrix();
 }
