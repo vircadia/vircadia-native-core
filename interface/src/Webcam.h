@@ -106,6 +106,7 @@ private:
     xn::Context _xnContext;
     xn::DepthGenerator _depthGenerator;
     xn::ImageGenerator _imageGenerator;
+    xn::UserGenerator _userGenerator;
     xn::DepthMetaData _depthMetaData;
     xn::ImageMetaData _imageMetaData;
 #endif

@@ -20,6 +20,7 @@
 
 using namespace cv;
 using namespace std;
+using namespace xn;
 
 // register OpenCV matrix type with Qt metatype system
 int matMetaType = qRegisterMetaType<Mat>("cv::Mat");
@@ -291,6 +292,15 @@ void FrameGrabber::grabFrame() {
         Q_ARG(cv::Mat, frame), Q_ARG(int, format), Q_ARG(cv::Mat, _grayDepthFrame), Q_ARG(cv::RotatedRect, faceRect));
 }
 
+#ifdef HAVE_OPENNI
+static void XN_CALLBACK_TYPE newUser(UserGenerator& generator, XnUserID id, void* cookie) {
+    printLog("Found user %d.\n", id);
+}
+static void XN_CALLBACK_TYPE lostUser(UserGenerator& generator, XnUserID id, void* cookie) {
+    printLog("Lost user %d.\n", id);
+}
+#endif
+
 bool FrameGrabber::init() {
     _initialized = true;
 
@@ -304,10 +314,16 @@ bool FrameGrabber::init() {
     // first try for a Kinect
 #ifdef HAVE_OPENNI
     _xnContext.Init();
-    if (_depthGenerator.Create(_xnContext) == XN_STATUS_OK && _imageGenerator.Create(_xnContext) == XN_STATUS_OK) {
+    if (_depthGenerator.Create(_xnContext) == XN_STATUS_OK && _imageGenerator.Create(_xnContext) == XN_STATUS_OK &&
+            _userGenerator.Create(_xnContext) == XN_STATUS_OK &&
+                _userGenerator.IsCapabilitySupported(XN_CAPABILITY_SKELETON)) {
         _depthGenerator.GetMetaData(_depthMetaData);
         _imageGenerator.SetPixelFormat(XN_PIXEL_FORMAT_RGB24);
         _imageGenerator.GetMetaData(_imageMetaData);
+        
+        XnCallbackHandle userCallbacks;
+        _userGenerator.RegisterUserCallbacks(newUser, lostUser, 0, userCallbacks);
+        
         _xnContext.StartGeneratingAll();
         return true;
     }
