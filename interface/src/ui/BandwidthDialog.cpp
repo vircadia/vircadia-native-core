@@ -4,6 +4,9 @@
 #include <QFormLayout>
 #include <QDialogButtonBox>
 
+#include <QPalette>
+#include <QColor>
+
 #include "Log.h"
 
 BandwidthDialog::BandwidthDialog(QWidget* parent, BandwidthMeter* model) :
@@ -23,8 +26,17 @@ BandwidthDialog::BandwidthDialog(QWidget* parent, BandwidthMeter* model) :
         int chIdx = i / 2;
         bool input = i % 2 == 0;
         BandwidthMeter::ChannelInfo& ch = _model->channelInfo(chIdx);
-        QLabel* label = _labels[i] = new QLabel();
-        snprintf(strBuf, sizeof(strBuf), "%s %s Bandwidth:", input ? "Input" : "Output", ch.caption);
+        QLabel* label = _labels[i] = new QLabel();  
+        label->setAlignment(Qt::AlignRight);
+
+        // Set foreground color to 62.5% brightness of the meter (otherwise will be hard to read on the bright background)
+        QPalette palette = label->palette();
+        unsigned rgb = ch.colorRGBA >> 8;
+        rgb = ((rgb & 0xfefefeu) >> 1) + ((rgb & 0xf8f8f8) >> 3);
+        palette.setColor(QPalette::WindowText, QColor::fromRgb(rgb));
+        label->setPalette(palette);
+
+        snprintf(strBuf, sizeof(strBuf), " %s %s Bandwidth:", input ? "Input" : "Output", ch.caption);
         form->addRow(strBuf, label);
     }
 }
@@ -39,7 +51,7 @@ void BandwidthDialog::paintEvent(QPaintEvent* event) {
         BandwidthMeter::ChannelInfo& ch = _model->channelInfo(chIdx);
         BandwidthMeter::Stream& s = input ? _model->inputStream(chIdx) : _model->outputStream(chIdx);
         QLabel* label = _labels[i];
-        snprintf(strBuf, sizeof(strBuf), "%010.5f%s", s.getValue() * ch.unitScale, ch.unitCaption);
+        snprintf(strBuf, sizeof(strBuf), "%0.2f %s", s.getValue() * ch.unitScale, ch.unitCaption);
         label->setText(strBuf);
     }
 

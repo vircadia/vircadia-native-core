@@ -23,7 +23,7 @@ namespace { // .cpp-local
     char const* CAPTION_OUT = "OUT";
     char const* CAPTION_UNIT = "Mbps";
 
-    double const UNIT_SCALE = 1000.0 / (1024.0 * 1024.0);  // Bytes/ms -> Mbps
+    double const UNIT_SCALE = 8000.0 / (1024.0 * 1024.0);  // Bytes/ms -> Mbps
     int const INITIAL_SCALE_MAXIMUM_INDEX = 250; // / 9: exponent, % 9: mantissa - 2, 0 o--o 2 * 10^-10
 
     int SPACING_RIGHT_CAPTION_IN_OUT = 4;
@@ -38,9 +38,9 @@ namespace { // .cpp-local
 }
 
 BandwidthMeter::ChannelInfo BandwidthMeter::_DEFAULT_CHANNELS[] = {
-    { "Audio"   , "Kbps", 1000.0 / 1024.0, 0x40ff40d0 },
-    { "Avatars" , "Kbps", 1000.0 / 1024.0, 0xffef40c0 },
-    { "Voxels"  , "Kbps", 1000.0 / 1024.0, 0xd0d0d0a0 }
+    { "Audio"   , "Kbps", 8000.0 / 1024.0, 0x40ff40d0 },
+    { "Avatars" , "Kbps", 8000.0 / 1024.0, 0xffef40c0 },
+    { "Voxels"  , "Kbps", 8000.0 / 1024.0, 0xd0d0d0a0 }
 };
 
 BandwidthMeter::BandwidthMeter() :
