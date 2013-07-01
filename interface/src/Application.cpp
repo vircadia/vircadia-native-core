@@ -62,6 +62,7 @@
 #include "Util.h"
 #include "renderer/ProgramObject.h"
 #include "ui/TextRenderer.h"
+#include "fvupdater.h"
 
 using namespace std;
 
@@ -247,10 +248,28 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     
     _window->setCentralWidget(_glWidget);
     
-    // these are used, for example, to identify the application settings
-    setApplicationName("Interface");
-    setOrganizationDomain("highfidelity.io");
-    setOrganizationName("High Fidelity");
+#ifdef Q_WS_MAC
+    QString resourcesPath = QCoreApplication::applicationDirPath() + "/../Resources";
+#else
+    QString resourcesPath = QCoreApplication::applicationDirPath() + "/resources";
+#endif
+    
+    // read the ApplicationInfo.ini file for Name/Version/Domain information
+    QSettings applicationInfo(resourcesPath + "/info/ApplicationInfo.ini", QSettings::IniFormat);
+    
+    // set the associated application properties
+    applicationInfo.beginGroup("INFO");
+    
+    setApplicationName(applicationInfo.value("name").toString());
+    setApplicationVersion(applicationInfo.value("version").toString());
+    setOrganizationName(applicationInfo.value("organizationName").toString());
+    setOrganizationDomain(applicationInfo.value("organizationDomain").toString());
+    
+#if defined(Q_WS_MAC) && defined(QT_NO_DEBUG)
+    // if this is a release OS X build use fervor to check for an update    
+    FvUpdater::sharedUpdater()->SetFeedURL("https://s3-us-west-1.amazonaws.com/highfidelity/appcast.xml");
+    FvUpdater::sharedUpdater()->CheckForUpdatesSilent();
+#endif
     
     initMenu();
     
