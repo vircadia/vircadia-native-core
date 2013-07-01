@@ -117,6 +117,17 @@ unsigned short loadBufferWithSocketInfo(char* addressBuffer, sockaddr* socket) {
     }
 }
 
+sockaddr_in socketForHostname(const char* hostname) {
+    struct hostent* pHostInfo;
+    sockaddr_in newSocket;
+
+    if ((pHostInfo = gethostbyname(hostname))) {
+        memcpy(&newSocket.sin_addr, pHostInfo->h_addr_list[0], pHostInfo->h_length);
+    }
+    
+    return newSocket;
+}
+
 UDPSocket::UDPSocket(int listeningPort) : listeningPort(listeningPort), blocking(true) {
     init();
     // create the socket

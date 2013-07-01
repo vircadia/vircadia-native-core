@@ -257,6 +257,16 @@ void AgentList::sendDomainServerCheckIn() {
     _agentSocket.send(DOMAIN_IP, DOMAINSERVER_PORT, checkInPacket, checkInPacketSize);
 }
 
+void AgentList::sendAssignmentRequest() {
+    const char ASSIGNMENT_SERVER_HOSTNAME[] = "assignment.highfidelity.io";
+    const unsigned short ASSIGNMENT_SERVER_PORT = 7007;
+    
+    static sockaddr_in assignmentServerSocket = socketForHostname(ASSIGNMENT_SERVER_HOSTNAME);
+    assignmentServerSocket.sin_port = htons(ASSIGNMENT_SERVER_PORT);
+    
+    _agentSocket.send((sockaddr *) &assignmentServerSocket, &PACKET_HEADER_REQUEST_ASSIGNMENT, 1);
+}
+
 int AgentList::processDomainServerList(unsigned char *packetData, size_t dataBytes) {
     int readAgents = 0;
 

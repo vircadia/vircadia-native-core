@@ -70,6 +70,7 @@ public:
     
     void setAgentTypesOfInterest(const char* agentTypesOfInterest, int numAgentTypesOfInterest);
     void sendDomainServerCheckIn();
+    void sendAssignmentRequest();
     int processDomainServerList(unsigned char *packetData, size_t dataBytes);
     
     Agent* agentWithAddress(sockaddr *senderAddress);
