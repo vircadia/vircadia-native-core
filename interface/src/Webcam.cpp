@@ -20,7 +20,10 @@
 
 using namespace cv;
 using namespace std;
+
+#ifdef HAVE_OPENNI
 using namespace xn;
+#endif
 
 // register types with Qt metatype system
 int jointVectorMetaType = qRegisterMetaType<JointVector>("JointVector"); 
