@@ -199,7 +199,7 @@ void SquarePixelMap::createVoxelsFromPixelQuadTreeToVoxelTree(PixelQuadTreeNode 
         float minimumNeighbourhoodY = voxel.s * (floor(minimumNeighbourhoodAplha / (256.f * voxel.s)) + 0.5);
         
         do {
-            voxelTree->createVoxel(voxel.x, voxel.y, voxel.z, voxel.s, voxel.red, voxel.green, voxel.blue, false);
+            voxelTree->createVoxel(voxel.x, voxel.y, voxel.z, voxel.s, voxel.red, voxel.green, voxel.blue, true);
         } while ((voxel.y -= voxel.s) > minimumNeighbourhoodY);
     } else {
         for (int i = 0; i < 4; i++) {
