@@ -12,8 +12,10 @@
 #include <QMetaType>
 #include <QObject>
 #include <QThread>
+#include <QVector>
 
 #include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
 
 #include <opencv2/opencv.hpp>
 
@@ -28,6 +30,9 @@ class QImage;
 struct CvCapture;
 
 class FrameGrabber;
+class Joint;
+
+typedef QVector<Joint> JointVector;
 
 class Webcam : public QObject {
     Q_OBJECT
@@ -47,7 +52,8 @@ public:
 public slots:
     
     void setEnabled(bool enabled);
-    void setFrame(const cv::Mat& video, int format, const cv::Mat& depth, const cv::RotatedRect& faceRect);
+    void setFrame(const cv::Mat& video, int format, const cv::Mat& depth,
+        const cv::RotatedRect& faceRect, const JointVector& joints);
     
 private:
     
@@ -64,6 +70,7 @@ private:
     GLuint _depthTextureID;
     cv::RotatedRect _faceRect;
     cv::RotatedRect _initialFaceRect;
+    JointVector _joints;
     
     long long _startTimestamp;
     int _frameCount;
@@ -112,6 +119,16 @@ private:
 #endif
 };
 
+class Joint {
+public:
+    
+    bool isValid;
+    glm::vec3 position;
+    glm::quat orientation;
+    glm::vec3 projected;
+};
+
+Q_DECLARE_METATYPE(JointVector)
 Q_DECLARE_METATYPE(cv::Mat)
 Q_DECLARE_METATYPE(cv::RotatedRect)
 

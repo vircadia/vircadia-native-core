@@ -22,7 +22,8 @@ using namespace cv;
 using namespace std;
 using namespace xn;
 
-// register OpenCV matrix type with Qt metatype system
+// register types with Qt metatype system
+int jointVectorMetaType = qRegisterMetaType<JointVector>("JointVector"); 
 int matMetaType = qRegisterMetaType<Mat>("cv::Mat");
 int rotatedRectMetaType = qRegisterMetaType<RotatedRect>("cv::RotatedRect");
 
@@ -95,9 +96,28 @@ void Webcam::renderPreview(int screenWidth, int screenHeight) {
                 glTexCoord2f(0, 1);
                 glVertex2f(depthLeft, top);
             glEnd();
+            
+            glBindTexture(GL_TEXTURE_2D, 0);
+            glDisable(GL_TEXTURE_2D);
+            
+            if (!_joints.isEmpty()) {
+                glColor3f(1.0f, 0.0f, 0.0f);
+                glPointSize(4.0f);
+                glBegin(GL_POINTS);
+                    float projectedScale = PREVIEW_HEIGHT / (float)_depthHeight;
+                    foreach (const Joint& joint, _joints) {
+                        if (joint.isValid) {
+                            glVertex2f(depthLeft + joint.projected.x * projectedScale,
+                                top - PREVIEW_HEIGHT + joint.projected.y * projectedScale);
+                        }
+                    }
+                glEnd();
+                glPointSize(1.0f);
+            }
+        } else {
+            glBindTexture(GL_TEXTURE_2D, 0);
+            glDisable(GL_TEXTURE_2D);
         }
-        glBindTexture(GL_TEXTURE_2D, 0);
-        glDisable(GL_TEXTURE_2D);
         
         glBegin(GL_LINE_LOOP);
             Point2f facePoints[4];
@@ -124,7 +144,7 @@ Webcam::~Webcam() {
     delete _grabber;
 }
 
-void Webcam::setFrame(const Mat& frame, int format, const Mat& depth, const RotatedRect& faceRect) {
+void Webcam::setFrame(const Mat& frame, int format, const Mat& depth, const RotatedRect& faceRect, const JointVector& joints) {
     IplImage image = frame;
     glPixelStorei(GL_UNPACK_ROW_LENGTH, image.widthStep / 3);
     if (_frameTextureID == 0) {
@@ -160,8 +180,9 @@ void Webcam::setFrame(const Mat& frame, int format, const Mat& depth, const Rota
     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
     glBindTexture(GL_TEXTURE_2D, 0);
     
-    // store our face rect, update our frame count for fps computation
+    // store our face rect and joints, update our frame count for fps computation
     _faceRect = faceRect;
+    _joints = joints;
     _frameCount++;
     
     const int MAX_FPS = 60;
@@ -224,12 +245,80 @@ void FrameGrabber::reset() {
     _searchWindow = cv::Rect(0, 0, 0, 0);
 }
 
+#ifdef HAVE_OPENNI
+static AvatarJointID xnToAvatarJoint(XnSkeletonJoint joint) {
+    switch (joint) {
+        case XN_SKEL_HEAD: return AVATAR_JOINT_HEAD_BASE;
+        case XN_SKEL_NECK: return AVATAR_JOINT_NECK_BASE;
+        case XN_SKEL_TORSO: return AVATAR_JOINT_TORSO;
+        case XN_SKEL_WAIST: return AVATAR_JOINT_PELVIS;
+        case XN_SKEL_LEFT_COLLAR: return AVATAR_JOINT_LEFT_COLLAR;
+        case XN_SKEL_LEFT_SHOULDER: return AVATAR_JOINT_LEFT_SHOULDER;
+        case XN_SKEL_LEFT_ELBOW: return AVATAR_JOINT_LEFT_ELBOW;
+        case XN_SKEL_LEFT_WRIST: return AVATAR_JOINT_LEFT_WRIST;
+        case XN_SKEL_LEFT_HAND: return AVATAR_JOINT_NULL;
+        case XN_SKEL_LEFT_FINGERTIP: return AVATAR_JOINT_LEFT_FINGERTIPS;     
+        case XN_SKEL_RIGHT_COLLAR: return AVATAR_JOINT_RIGHT_COLLAR;
+        case XN_SKEL_RIGHT_SHOULDER: return AVATAR_JOINT_RIGHT_SHOULDER;
+        case XN_SKEL_RIGHT_ELBOW: return AVATAR_JOINT_RIGHT_ELBOW;
+        case XN_SKEL_RIGHT_WRIST: return AVATAR_JOINT_RIGHT_WRIST;
+        case XN_SKEL_RIGHT_HAND: return AVATAR_JOINT_NULL;
+        case XN_SKEL_RIGHT_FINGERTIP: return AVATAR_JOINT_RIGHT_FINGERTIPS; 
+        case XN_SKEL_LEFT_HIP: return AVATAR_JOINT_LEFT_HIP;
+        case XN_SKEL_LEFT_KNEE: return AVATAR_JOINT_LEFT_KNEE;
+        case XN_SKEL_LEFT_ANKLE: return AVATAR_JOINT_LEFT_HEEL;
+        case XN_SKEL_LEFT_FOOT: return AVATAR_JOINT_LEFT_TOES;
+        case XN_SKEL_RIGHT_HIP: return AVATAR_JOINT_RIGHT_HIP;
+        case XN_SKEL_RIGHT_KNEE: return AVATAR_JOINT_RIGHT_KNEE;
+        case XN_SKEL_RIGHT_ANKLE: return AVATAR_JOINT_RIGHT_HEEL;
+        case XN_SKEL_RIGHT_FOOT: return AVATAR_JOINT_RIGHT_TOES;
+    }
+}
+
+static glm::vec3 xnToGLM(const XnVector3D& vector) {
+    return glm::vec3(vector.X, vector.Y, vector.Z);
+}
+
+static glm::mat3 xnToGLM(const XnMatrix3X3& matrix) {
+    return glm::mat3(
+        matrix.elements[0], matrix.elements[1], matrix.elements[2],
+        matrix.elements[3], matrix.elements[4], matrix.elements[5],
+        matrix.elements[6], matrix.elements[7], matrix.elements[8]);
+}
+
+static void XN_CALLBACK_TYPE newUser(UserGenerator& generator, XnUserID id, void* cookie) {
+    printLog("Found user %d.\n", id);
+    generator.GetSkeletonCap().RequestCalibration(id, true);
+}
+
+static void XN_CALLBACK_TYPE lostUser(UserGenerator& generator, XnUserID id, void* cookie) {
+    printLog("Lost user %d.\n", id);
+}
+
+static void XN_CALLBACK_TYPE calibrationStarted(SkeletonCapability& capability, XnUserID id, void* cookie) {
+    printLog("Calibration started for user %d.\n", id);
+}
+
+static void XN_CALLBACK_TYPE calibrationCompleted(SkeletonCapability& capability,
+        XnUserID id, XnCalibrationStatus status, void* cookie) {
+    if (status == XN_CALIBRATION_STATUS_OK) {
+        printLog("Calibration completed for user %d.\n", id);
+        capability.StartTracking(id);
+    
+    } else {
+        printLog("Calibration failed to user %d.\n", id);
+        capability.RequestCalibration(id, true);
+    }
+}
+#endif
+
 void FrameGrabber::grabFrame() {
     if (!(_initialized || init())) {
         return;
     }
     int format = GL_BGR;
     Mat frame;
+    JointVector joints;
     
 #ifdef HAVE_OPENNI
     if (_depthGenerator.IsValid()) {
@@ -239,6 +328,31 @@ void FrameGrabber::grabFrame() {
         
         Mat depth = Mat(_depthMetaData.YRes(), _depthMetaData.XRes(), CV_16UC1, (void*)_depthGenerator.GetDepthMap());
         depth.convertTo(_grayDepthFrame, CV_8UC1, 256.0 / 2048.0);
+        
+        XnUserID userID;
+        XnUInt16 userCount = 1; 
+        _userGenerator.GetUsers(&userID, userCount);
+        if (userCount > 0 && _userGenerator.GetSkeletonCap().IsTracking(userID)) {
+            joints.resize(NUM_AVATAR_JOINTS);
+            const int MAX_ACTIVE_JOINTS = 16;
+            XnSkeletonJoint activeJoints[MAX_ACTIVE_JOINTS];
+            XnUInt16 activeJointCount = MAX_ACTIVE_JOINTS;
+            _userGenerator.GetSkeletonCap().EnumerateActiveJoints(activeJoints, activeJointCount);
+            XnSkeletonJointTransformation transform;
+            for (int i = 0; i < activeJointCount; i++) {
+                AvatarJointID avatarJoint = xnToAvatarJoint(activeJoints[i]);
+                if (avatarJoint == AVATAR_JOINT_NULL) {
+                    continue;
+                }
+                _userGenerator.GetSkeletonCap().GetSkeletonJoint(userID, activeJoints[i], transform);
+                XnVector3D projected;
+                _depthGenerator.ConvertRealWorldToProjective(1, &transform.position.position, &projected);
+                Joint joint = { true, xnToGLM(transform.position.position),
+                                glm::quat_cast(xnToGLM(transform.orientation.orientation)),
+                                xnToGLM(projected) };
+                joints[avatarJoint] = joint;
+            }
+        }
     }
 #endif
 
@@ -289,17 +403,9 @@ void FrameGrabber::grabFrame() {
         _searchWindow = faceRect.boundingRect();
     }   
     QMetaObject::invokeMethod(Application::getInstance()->getWebcam(), "setFrame",
-        Q_ARG(cv::Mat, frame), Q_ARG(int, format), Q_ARG(cv::Mat, _grayDepthFrame), Q_ARG(cv::RotatedRect, faceRect));
+        Q_ARG(cv::Mat, frame), Q_ARG(int, format), Q_ARG(cv::Mat, _grayDepthFrame),
+        Q_ARG(cv::RotatedRect, faceRect), Q_ARG(JointVector, joints));
 }
-
-#ifdef HAVE_OPENNI
-static void XN_CALLBACK_TYPE newUser(UserGenerator& generator, XnUserID id, void* cookie) {
-    printLog("Found user %d.\n", id);
-}
-static void XN_CALLBACK_TYPE lostUser(UserGenerator& generator, XnUserID id, void* cookie) {
-    printLog("Lost user %d.\n", id);
-}
-#endif
 
 bool FrameGrabber::init() {
     _initialized = true;
@@ -321,8 +427,12 @@ bool FrameGrabber::init() {
         _imageGenerator.SetPixelFormat(XN_PIXEL_FORMAT_RGB24);
         _imageGenerator.GetMetaData(_imageMetaData);
         
-        XnCallbackHandle userCallbacks;
+        XnCallbackHandle userCallbacks, calibrationStartCallback, calibrationCompleteCallback;
         _userGenerator.RegisterUserCallbacks(newUser, lostUser, 0, userCallbacks);
+        _userGenerator.GetSkeletonCap().RegisterToCalibrationStart(calibrationStarted, 0, calibrationStartCallback);
+        _userGenerator.GetSkeletonCap().RegisterToCalibrationComplete(calibrationCompleted, 0, calibrationCompleteCallback);
+        
+        _userGenerator.GetSkeletonCap().SetSkeletonProfile(XN_SKEL_PROFILE_UPPER);
         
         _xnContext.StartGeneratingAll();
         return true;
