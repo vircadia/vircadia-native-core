@@ -22,7 +22,7 @@ Pod::Spec.new do |s|
 
   # Specify the location from where the source should be retrieved.
   #
-  s.source       = { :git => "https://github.com/worklist/hifi.git", :commit => "ddc85272b939922c32e6a80f763e6de3cb00ab1a" }
+  s.source       = { :git => "https://github.com/worklist/hifi.git" }
   
   s.platform = :ios
   s.ios.deployment_target = "6.0"
