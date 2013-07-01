@@ -47,7 +47,7 @@ AudioInjector::AudioInjector(const char* filename) :
 AudioInjector::AudioInjector(int maxNumSamples) :
     _numTotalSamples(maxNumSamples),
     _position(0.0f, 0.0f, 0.0f),
-    _orientation(0.0f, 0.0f, 0.0f, 0.0f),
+    _orientation(),
     _radius(0.0f),
     _volume(MAX_INJECTOR_VOLUME),
     _indexOfNextSlot(0),

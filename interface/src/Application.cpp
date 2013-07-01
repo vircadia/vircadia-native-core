@@ -2944,8 +2944,6 @@ void Application::saveSettings(QSettings* settings) {
     settings->setValue("viewFrustumOffsetUp",       _viewFrustumOffsetUp);
     settings->endGroup();
     
-    
-    
     scanMenuBar(&Application::saveAction, settings);
     getAvatar()->saveData(settings);
     _swatch->saveData(settings);
