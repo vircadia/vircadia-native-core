@@ -49,6 +49,7 @@ public:
     AgentListIterator end() const;
     
     char getOwnerType() const { return _ownerType; }
+    void setOwnerType(char ownerType) { _ownerType = ownerType; }
     
     uint16_t getLastAgentID() const { return _lastAgentID; }
     void increaseAgentID() { ++_lastAgentID; }
