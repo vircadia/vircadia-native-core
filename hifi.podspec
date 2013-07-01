@@ -44,7 +44,7 @@ Pod::Spec.new do |s|
     sp.source_files = "libraries/audio/src"
     sp.public_header_files = "libraries/audio/src"
     sp.xcconfig = { 'CLANG_CXX_LIBRARY' => "libc++" }
-    sp.dependency 'glm'
+    sp.dependency 'glm', '>= 0.9.4.3'
   end
 
   # A list of file patterns which select the header files that should be
