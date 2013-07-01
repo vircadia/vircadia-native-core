@@ -70,6 +70,7 @@ const char* AGENT_TYPE_NAME_AUDIO_MIXER = "Audio Mixer";
 const char* AGENT_TYPE_NAME_AVATAR_MIXER = "Avatar Mixer";
 const char* AGENT_TYPE_NAME_AUDIO_INJECTOR = "Audio Injector";
 const char* AGENT_TYPE_NAME_ANIMATION_SERVER = "Animation Server";
+const char* AGENT_TYPE_NAME_ASSIGNEE = "Assignee";
 const char* AGENT_TYPE_NAME_UNKNOWN = "Unknown";
 
 const char* Agent::getTypeName() const {
@@ -88,6 +89,8 @@ const char* Agent::getTypeName() const {
             return AGENT_TYPE_NAME_AUDIO_INJECTOR;
         case AGENT_TYPE_ANIMATION_SERVER:
             return AGENT_TYPE_NAME_ANIMATION_SERVER;
+        case AGENT_TYPE_ASSIGNEE:
+            return AGENT_TYPE_NAME_ASSIGNEE;
         default:
             return AGENT_TYPE_NAME_UNKNOWN;
 	}
