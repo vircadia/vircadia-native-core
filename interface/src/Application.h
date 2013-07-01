@@ -9,9 +9,9 @@
 #ifndef __interface__Application__
 #define __interface__Application__
 
+#include <map>
 #include <pthread.h> 
 #include <time.h>
-#include <map>
 
 #include <QApplication>
 #include <QAction>
@@ -33,6 +33,7 @@
 #include "ViewFrustum.h"
 #include "VoxelSystem.h"
 #include "Webcam.h"
+#include "renderer/GeometryCache.h"
 #include "ui/ChatEntry.h"
 #include "ToolsPalette.h"
 #include "Swatch.h"
@@ -91,6 +92,7 @@ public:
     bool shouldDynamicallySetJitterBuffer() { return _audioJitterBufferSamples == 0; }
     
     QNetworkAccessManager* getNetworkAccessManager() { return _networkAccessManager; }
+    GeometryCache* getGeometryCache() { return &_geometryCache; }
     
 private slots:
     
@@ -132,6 +134,7 @@ private slots:
     void updateVoxelModeActions();
     void decreaseVoxelSize();
     void increaseVoxelSize();
+    void resetSwatchColors();
     void chooseVoxelPaintColor();
     void loadSettings(QSettings* set = NULL);
     void saveSettings(QSettings* set = NULL);
@@ -199,6 +202,7 @@ private:
     QAction* _showHeadMouse;         // Whether the have the mouse near edge of screen move your view
     QAction* _transmitterDrives;     // Whether to have Transmitter data move/steer the Avatar
     QAction* _gravityUse;            // Whether gravity is on or not
+    QAction* _testPing;              // Whether to display ping or not
     QAction* _renderVoxels;          // Whether to render voxels
     QAction* _renderVoxelTextures;   // Whether to render noise textures on voxels
     QAction* _renderStarsOn;         // Whether to display the stars 
@@ -319,6 +323,8 @@ private:
     int _scaleLocation;
     int _scaleInLocation;
     int _hmdWarpParamLocation;
+    
+    GeometryCache _geometryCache;
     
     #ifndef _WIN32
     Audio _audio;

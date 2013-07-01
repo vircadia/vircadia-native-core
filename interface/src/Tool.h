@@ -23,6 +23,7 @@ class Tool {
 public:
     Tool(QAction *action, GLuint texture, int x, int y);
 
+    bool isActive();
     virtual void render(int screenWidth, int screenHeight);
 
 protected:

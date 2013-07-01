@@ -16,10 +16,14 @@
 class Swatch : public Tool {
 public:
     Swatch(QAction* action);
+
+
     QColor getColor();
+    void checkColor();
     void saveData(QSettings* settings);
     void loadData(QSettings* settings);
-    
+    void reset();
+
     void render(int screenWidth, int screenHeight);
     void handleEvent(int key, bool getColor);
 

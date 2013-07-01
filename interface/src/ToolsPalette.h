@@ -8,7 +8,8 @@
 #ifndef __interface__ToolsPalette__
 #define __interface__ToolsPalette__
 
-#include <Tool.h>
+#include "Tool.h"
+#include "Swatch.h"
 
 #include <vector>
 

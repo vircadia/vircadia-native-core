@@ -4,18 +4,30 @@
 Swatch::Swatch(QAction* action) : Tool(action, 0, -1, -1),
                                   _selected(1),
                                   _margin(4),
-                                  _textRenderer(SANS_FONT_FAMILY, -1, 100) {
+                                  _textRenderer(MONO_FONT_FAMILY, 10, 100) {
     _width = 62;
     _height = 30;
+}
 
-    _colors[0].setRgb(128, 128, 128);
-    _colors[1].setRgb(255, 0, 0);
-    _colors[2].setRgb(0, 255, 0);
-    _colors[3].setRgb(0, 0, 255);
-    _colors[4].setRgb(255, 0, 255);
-    _colors[5].setRgb(255, 255, 0);
-    _colors[6].setRgb(0, 255, 255);
-    _colors[7].setRgb(0, 0, 0);
+void Swatch::reset() {
+    _colors[0].setRgb(237, 175, 0);
+    _colors[1].setRgb(161, 211, 72);
+    _colors[2].setRgb(51, 204, 204);
+    _colors[3].setRgb(63, 169, 245);
+    _colors[4].setRgb(193, 99, 122);
+    _colors[5].setRgb(255, 54, 69);
+    _colors[6].setRgb(124, 36, 36);
+    _colors[7].setRgb(63, 35, 19);
+}
+
+QColor Swatch::getColor() {
+    return _colors[_selected - 1];
+}
+
+void Swatch::checkColor() {
+    if (_action->data().value<QColor>() == _colors[_selected - 1]) {
+        return;
+    }
 
     QPixmap map(16, 16);
     map.fill(_colors[_selected - 1]);
@@ -23,15 +35,11 @@ Swatch::Swatch(QAction* action) : Tool(action, 0, -1, -1),
     _action->setIcon(map);
 }
 
-QColor Swatch::getColor() {
-    return _colors[_selected - 1];
-}
-
 void Swatch::saveData(QSettings* settings) {
     settings->beginGroup("Swatch");
     
     for (int i(0); i < SWATCH_SIZE; ++i) {
-        QString name("R0");
+        QString name("R1");
         name[1] = '1' + i;
         settings->setValue(name, _colors[i].red());
         name[0] = 'G';
@@ -45,33 +53,35 @@ void Swatch::saveData(QSettings* settings) {
 
 void Swatch::loadData(QSettings* settings) {
     settings->beginGroup("Swatch");
-    
-    _colors[0].setRgb(settings->value("R1", 128).toInt(),
-                      settings->value("G1", 128).toInt(),
-                      settings->value("B1", 128).toInt());
-    _colors[1].setRgb(settings->value("R2", 128).toInt(),
-                      settings->value("G2", 128).toInt(),
-                      settings->value("B2", 128).toInt());
-    _colors[2].setRgb(settings->value("R3", 128).toInt(),
-                      settings->value("G3", 128).toInt(),
-                      settings->value("B3", 128).toInt());
-    _colors[3].setRgb(settings->value("R4", 128).toInt(),
-                      settings->value("G4", 128).toInt(),
-                      settings->value("B4", 128).toInt());
-    _colors[4].setRgb(settings->value("R5", 128).toInt(),
-                      settings->value("G5", 128).toInt(),
-                      settings->value("B5", 128).toInt());
-    _colors[5].setRgb(settings->value("R6", 128).toInt(),
-                      settings->value("G6", 128).toInt(),
-                      settings->value("B6", 128).toInt());
-    _colors[6].setRgb(settings->value("R7", 128).toInt(),
-                      settings->value("G7", 128).toInt(),
-                      settings->value("B7", 128).toInt());
-    _colors[7].setRgb(settings->value("R8", 128).toInt(),
-                      settings->value("G8", 128).toInt(),
-                      settings->value("B8", 128).toInt());
-    
+
+    _colors[0].setRgb(settings->value("R1", 237).toInt(),
+                      settings->value("G1", 175).toInt(),
+                      settings->value("B1",   0).toInt());
+    _colors[1].setRgb(settings->value("R2", 161).toInt(),
+                      settings->value("G2", 211).toInt(),
+                      settings->value("B2",  72).toInt());
+    _colors[2].setRgb(settings->value("R3",  51).toInt(),
+                      settings->value("G3", 204).toInt(),
+                      settings->value("B3", 204).toInt());
+    _colors[3].setRgb(settings->value("R4",  63).toInt(),
+                      settings->value("G4", 169).toInt(),
+                      settings->value("B4", 245).toInt());
+    _colors[4].setRgb(settings->value("R5", 193).toInt(),
+                      settings->value("G5",  99).toInt(),
+                      settings->value("B5", 122).toInt());
+    _colors[5].setRgb(settings->value("R6", 255).toInt(),
+                      settings->value("G6",  54).toInt(),
+                      settings->value("B6",  69).toInt());
+    _colors[6].setRgb(settings->value("R7", 124).toInt(),
+                      settings->value("G7",  36).toInt(),
+                      settings->value("B7",  36).toInt());
+    _colors[7].setRgb(settings->value("R8",  63).toInt(),
+                      settings->value("G8",  35).toInt(),
+                      settings->value("B8",  19).toInt());
+
     settings->endGroup();
+
+    checkColor();
 }
 
 void Swatch::handleEvent(int key, bool getColor) {

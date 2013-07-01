@@ -12,6 +12,10 @@ Tool::Tool(QAction *action, GLuint texture, int x, int y) : _texture(texture),
                                                             _height(40) {
 }
 
+bool Tool::isActive() {
+    return _action->isChecked();
+}
+
 void Tool::render(int screenWidth, int screenHeight) {
     glEnable(GL_TEXTURE_2D);
 

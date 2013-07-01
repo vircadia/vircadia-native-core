@@ -3,10 +3,12 @@
 #include <QSvgRenderer>
 #include <QPainter>
 #include <QGLWidget>
+#include <SharedUtil.h>
 
 ToolsPalette::ToolsPalette() {
     // Load SVG
-    QSvgRenderer renderer(QString("/Users/graysonstebbins/Documents/hifi/interface/resources/images/hifi-interface-tools.svg"));
+    switchToResourcesParentIfRequired();
+    QSvgRenderer renderer(QString("./resources/images/hifi-interface-tools.svg"));
 
     // Prepare a QImage with desired characteritisc
     QImage image(124, 400, QImage::Format_ARGB32);
@@ -52,8 +54,18 @@ void ToolsPalette::render(int screenWidth, int screenHeight) {
     glPushMatrix();
     glTranslated(_left, _top, 0);
 
+    bool show(false);
     for (unsigned int i(0); i < _tools.size(); ++i) {
-        _tools[i]->render(screenWidth, screenHeight);
+        if (_tools[i]->isActive()) {
+            show = true;
+            break;
+        }
+    }
+
+    if (show) {
+        for (unsigned int i(0); i < _tools.size(); ++i) {
+            _tools[i]->render(screenWidth, screenHeight);
+        }
     }
 
     glPopMatrix();
