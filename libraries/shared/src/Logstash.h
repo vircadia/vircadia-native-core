@@ -14,11 +14,15 @@
 const int LOGSTASH_UDP_PORT = 9500;
 const char LOGSTASH_HOSTNAME[] = "graphite.highfidelity.io";
 
+const char STAT_TYPE_TIMER = 't';
+const char STAT_TYPE_COUNTER = 'c';
+const char STAT_TYPE_GAUGE = 'g';
+
 class Logstash {
 public:
     static sockaddr* socket();
     static bool shouldSendStats();
-    static void stashValue(const char* key, float value);
+    static void stashValue(char statType, const char* key, float value);
 private:
     static sockaddr_in logstashSocket;
 };

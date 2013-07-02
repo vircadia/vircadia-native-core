@@ -45,12 +45,12 @@ bool Logstash::shouldSendStats() {
     return shouldSendStats;
 }
 
-void Logstash::stashValue(const char* key, float value) {
+void Logstash::stashValue(char valueType, const char* key, float value) {
     static char logstashPacket[MAX_PACKET_SIZE];
     
     // load up the logstash packet with the key and the passed float value
     // send it to 4 decimal places
-    int numPacketBytes = sprintf(logstashPacket, "%s %.4f", key, value);
+    int numPacketBytes = sprintf(logstashPacket, "%c %s %.4f", valueType, key, value);
     
     AgentList *agentList = AgentList::getInstance();
     
