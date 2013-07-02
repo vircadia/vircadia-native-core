@@ -133,7 +133,7 @@ public:
     // these will read/write files that match the wireformat, excluding the 'V' leading
     void writeToSVOFile(const char* filename, VoxelNode* node = NULL) const;
     bool readFromSVOFile(const char* filename);
-    // reads voxels from square image with alpha as a Z axis
+    // reads voxels from square image with alpha as a Y-axis
     bool readFromSquareARGB32Pixels(const uint32_t *pixels, int dimension);
 
     unsigned long getVoxelCount();
