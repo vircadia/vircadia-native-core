@@ -370,6 +370,9 @@ bool VoxelProjectedPolygon::intersectsOnAxes(const VoxelProjectedPolygon& testee
 }
 
 bool VoxelProjectedPolygon::canMerge(const VoxelProjectedPolygon& that) const {
+
+//return false;
+
     // RIGHT/NEAR
     // LEFT/NEAR
     if (
@@ -582,12 +585,33 @@ bool VoxelProjectedPolygon::canMerge(const VoxelProjectedPolygon& that) const {
             return true;
         }
     }
+
+    // NEAR/RIGHT/TOP & NEAR/TOP
+    if (
+            ((getProjectionType()     == (PROJECTION_TOP | PROJECTION_NEAR                     )) &&
+            (that.getProjectionType() == (PROJECTION_TOP | PROJECTION_NEAR  | PROJECTION_RIGHT )))
+        )
+    {
+        if (getVertex(0) == that.getVertex(1) && getVertex(4) == that.getVertex(3)) {
+            return true;
+        }
+    }
+
+    // NEAR/RIGHT/TOP & NEAR/TOP
+    if (
+            ((that.getProjectionType() == (PROJECTION_TOP | PROJECTION_NEAR                     )) &&
+            (getProjectionType()      == (PROJECTION_TOP | PROJECTION_NEAR  | PROJECTION_RIGHT )))
+        )
+    {
+        if (getVertex(1) == that.getVertex(0) && getVertex(3) == that.getVertex(4)) {
+            return true;
+        }
+    }
     
 
     // NEAR/RIGHT/BOTTOM & NEAR/BOTTOM
-    // NEAR/LEFT/BOTTOM & NEAR/BOTTOM
     if (
-            ((getProjectionType()      == (PROJECTION_BOTTOM | PROJECTION_NEAR                     )) &&
+            ((getProjectionType()     == (PROJECTION_BOTTOM | PROJECTION_NEAR                     )) &&
             (that.getProjectionType() == (PROJECTION_BOTTOM | PROJECTION_NEAR  | PROJECTION_RIGHT )))
         )
     {
@@ -597,7 +621,6 @@ bool VoxelProjectedPolygon::canMerge(const VoxelProjectedPolygon& that) const {
     }
 
     // NEAR/RIGHT/BOTTOM & NEAR/BOTTOM
-    // NEAR/LEFT/BOTTOM & NEAR/BOTTOM
     if (
             ((that.getProjectionType() == (PROJECTION_BOTTOM | PROJECTION_NEAR                     )) &&
             (getProjectionType()      == (PROJECTION_BOTTOM | PROJECTION_NEAR  | PROJECTION_RIGHT )))
@@ -1030,10 +1053,45 @@ void VoxelProjectedPolygon::merge(const VoxelProjectedPolygon& that) {
         }
     }
 
+    // NEAR/RIGHT/TOP & NEAR/TOP
+    if (
+            ((getProjectionType()     == (PROJECTION_TOP | PROJECTION_NEAR                     )) &&
+            (that.getProjectionType() == (PROJECTION_TOP | PROJECTION_NEAR  | PROJECTION_RIGHT )))
+        )
+    {
+        if (getVertex(0) == that.getVertex(1) && getVertex(4) == that.getVertex(3)) {
+            setVertex(0, that.getVertex(0));
+            //setVertex(1, this.getVertex(1)); // no change
+            //setVertex(2, this.getVertex(2)); // no change
+            //setVertex(3, this.getVertex(3)); // no change
+            setVertex(4, that.getVertex(4));
+            setVertex(5, that.getVertex(5));
+            return; // done
+        }
+    }
+
+    // NEAR/RIGHT/TOP & NEAR/TOP
+    if (
+            ((that.getProjectionType() == (PROJECTION_TOP | PROJECTION_NEAR                     )) &&
+            (getProjectionType()      == (PROJECTION_TOP | PROJECTION_NEAR  | PROJECTION_RIGHT )))
+        )
+    {
+        if (getVertex(1) == that.getVertex(0) && getVertex(3) == that.getVertex(4)) {
+            //setVertex(0, this.getVertex(0)); // no change
+            setVertex(1, that.getVertex(1));
+            setVertex(2, that.getVertex(2));
+            setVertex(3, that.getVertex(3));
+            //setVertex(4, this.getVertex(4)); // no change
+            //setVertex(5, this.getVertex(5)); // no change
+            setProjectionType((PROJECTION_TOP | PROJECTION_NEAR));
+            return; // done
+        }
+    }
+
 
     // NEAR/RIGHT/BOTTOM & NEAR/BOTTOM
     if (
-            ((getProjectionType()      == (PROJECTION_BOTTOM | PROJECTION_NEAR                     )) &&
+            ((getProjectionType()     == (PROJECTION_BOTTOM | PROJECTION_NEAR                     )) &&
             (that.getProjectionType() == (PROJECTION_BOTTOM | PROJECTION_NEAR  | PROJECTION_RIGHT )))
         )
     {
@@ -1051,7 +1109,7 @@ void VoxelProjectedPolygon::merge(const VoxelProjectedPolygon& that) {
     // NEAR/RIGHT/BOTTOM & NEAR/BOTTOM
     if (
             ((that.getProjectionType() == (PROJECTION_BOTTOM | PROJECTION_NEAR                     )) &&
-            (getProjectionType()      == (PROJECTION_BOTTOM | PROJECTION_NEAR  | PROJECTION_RIGHT )))
+            (getProjectionType()       == (PROJECTION_BOTTOM | PROJECTION_NEAR  | PROJECTION_RIGHT )))
         )
     {
         if (getVertex(2) == that.getVertex(1) && getVertex(4) == that.getVertex(5)) {

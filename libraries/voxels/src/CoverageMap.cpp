@@ -516,7 +516,7 @@ CoverageMapStorageResult CoverageRegion::checkRegion(VoxelProjectedPolygon* poly
                     if (polygonAtThisLevel->getDistance() >= polygon->getDistance()) {
                         _outOfOrderPolygon++;
                         if (storeIt) {
-                            if (polygon->getBoundingBox().area() > CoverageMap::MINIMUM_POLYGON_AREA_TO_STORE) {
+                            if (true || polygon->getBoundingBox().area() > CoverageMap::MINIMUM_POLYGON_AREA_TO_STORE) {
                                 //printLog("storing polygon of area: %f\n",polygon->getBoundingBox().area());                    
                                 storeInArray(polygon);
                                 return STORED;

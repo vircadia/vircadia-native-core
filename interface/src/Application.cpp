@@ -2478,26 +2478,26 @@ void Application::renderCoverageMapsRecursively(CoverageMap* map) {
         
         if (polygon->getProjectionType()        == (PROJECTION_RIGHT | PROJECTION_NEAR | PROJECTION_BOTTOM)) {
             glColor3f(.5,0,0); // dark red
-        } else if (polygon->getProjectionType() == (PROJECTION_NEAR | PROJECTION_RIGHT | PROJECTION_TOP)) {
-            glColor3f(0,.5,0); // dark green
         } else if (polygon->getProjectionType() == (PROJECTION_NEAR | PROJECTION_RIGHT)) {
             glColor3f(.5,.5,0); // dark yellow
         } else if (polygon->getProjectionType() == (PROJECTION_NEAR | PROJECTION_LEFT)) {
             glColor3f(.5,.5,.5); // gray
-        } else if (polygon->getProjectionType() == (PROJECTION_NEAR | PROJECTION_LEFT | PROJECTION_TOP)) {
-            glColor3f(0,0,1); // Blue
         } else if (polygon->getProjectionType() == (PROJECTION_NEAR | PROJECTION_LEFT | PROJECTION_BOTTOM)) {
             glColor3f(.5,0,.5); // dark magenta
         } else if (polygon->getProjectionType() == (PROJECTION_NEAR | PROJECTION_BOTTOM)) {
-            glColor3f(1,0,0); // red
+            glColor3f(.75,0,0); // red
         } else if (polygon->getProjectionType() == (PROJECTION_NEAR | PROJECTION_TOP)) {
             glColor3f(1,0,1); // magenta
+        } else if (polygon->getProjectionType() == (PROJECTION_NEAR | PROJECTION_LEFT | PROJECTION_TOP)) {
+            glColor3f(0,0,1); // Blue
+        } else if (polygon->getProjectionType() == (PROJECTION_NEAR | PROJECTION_RIGHT | PROJECTION_TOP)) {
+            glColor3f(0,1,0); // green
         } else if (polygon->getProjectionType() == (PROJECTION_NEAR)) {
             glColor3f(1,1,0); // yellow
         } else if (polygon->getProjectionType() == (PROJECTION_FAR | PROJECTION_RIGHT | PROJECTION_BOTTOM)) {
             glColor3f(0,.5,.5); // dark cyan
         } else {
-            glColor3f(0,0,1);
+            glColor3f(1,0,0);
         }
 
         glm::vec2 firstPoint = getScaledScreenPoint(polygon->getVertex(0));
