@@ -201,6 +201,7 @@ void Webcam::setFrame(const Mat& frame, int format, const Mat& depth, const Rota
     
     // see if we have joint data
     if (!_joints.isEmpty()) {
+        _estimatedJoints.resize(NUM_AVATAR_JOINTS);
         for (int i = 0; i < NUM_AVATAR_JOINTS; i++) {
             const float JOINT_SMOOTHING = 0.95f;
             _estimatedJoints[i].position = glm::mix(_joints[i].position - _joints[AVATAR_JOINT_TORSO].position,
