@@ -17,35 +17,21 @@
 //  M - Audio Mixer
 //
 
-#include <iostream>
+#include <fcntl.h>
+#include <map>
 #include <math.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <fcntl.h>
-#include <map>
+
 #include "AgentList.h"
 #include "AgentTypes.h"
-#include <PacketHeaders.h>
+#include "Logstash.h"
+#include "PacketHeaders.h"
 #include "SharedUtil.h"
-
-#ifdef _WIN32
-#include "Syssocket.h"
-#include "Systime.h"
-#else
-#include <sys/time.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#endif
-
 
 const int DOMAIN_LISTEN_PORT = 40102;
 unsigned char packetData[MAX_PACKET_SIZE];
-
-const int LOGOFF_CHECK_INTERVAL = 5000;
-
-int lastActiveCount = 0;
 
 unsigned char* addAgentToBroadcastPacket(unsigned char* currentPosition, Agent* agentToAdd) {
     *currentPosition++ = agentToAdd->getType();
