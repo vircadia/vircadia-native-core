@@ -585,9 +585,10 @@ bool VoxelProjectedPolygon::canMerge(const VoxelProjectedPolygon& that) const {
     
 
     // NEAR/RIGHT/BOTTOM & NEAR/BOTTOM
+    // NEAR/LEFT/BOTTOM & NEAR/BOTTOM
     if (
-            (getProjectionType()      == (PROJECTION_BOTTOM | PROJECTION_NEAR                     )) &&
-            (that.getProjectionType() == (PROJECTION_BOTTOM | PROJECTION_NEAR  | PROJECTION_RIGHT ))  
+            ((getProjectionType()      == (PROJECTION_BOTTOM | PROJECTION_NEAR                     )) &&
+            (that.getProjectionType() == (PROJECTION_BOTTOM | PROJECTION_NEAR  | PROJECTION_RIGHT )))
         )
     {
         if (getVertex(1) == that.getVertex(2) && getVertex(5) == that.getVertex(4)) {
@@ -596,17 +597,38 @@ bool VoxelProjectedPolygon::canMerge(const VoxelProjectedPolygon& that) const {
     }
 
     // NEAR/RIGHT/BOTTOM & NEAR/BOTTOM
+    // NEAR/LEFT/BOTTOM & NEAR/BOTTOM
     if (
-            (that.getProjectionType() == (PROJECTION_BOTTOM | PROJECTION_NEAR                     )) &&
-            (getProjectionType()      == (PROJECTION_BOTTOM | PROJECTION_NEAR  | PROJECTION_RIGHT ))  
+            ((that.getProjectionType() == (PROJECTION_BOTTOM | PROJECTION_NEAR                     )) &&
+            (getProjectionType()      == (PROJECTION_BOTTOM | PROJECTION_NEAR  | PROJECTION_RIGHT )))
         )
     {
         if (getVertex(2) == that.getVertex(1) && getVertex(4) == that.getVertex(5)) {
             return true;
         }
     }
+    
+    // NEAR/LEFT/BOTTOM & NEAR/BOTTOM
+    if (
+            ((getProjectionType()     == (PROJECTION_BOTTOM | PROJECTION_NEAR                     )) &&
+            (that.getProjectionType() == (PROJECTION_BOTTOM | PROJECTION_NEAR  | PROJECTION_LEFT )))
+        )
+    {
+        if (getVertex(2) == that.getVertex(0) && getVertex(4) == that.getVertex(4)) {
+            return true;
+        }
+    }        
 
-
+    // NEAR/LEFT/BOTTOM & NEAR/BOTTOM
+    if (
+            ((that.getProjectionType() == (PROJECTION_BOTTOM | PROJECTION_NEAR                     )) &&
+            (getProjectionType()       == (PROJECTION_BOTTOM | PROJECTION_NEAR  | PROJECTION_LEFT )))  
+        )
+    {
+        if (getVertex(0) == that.getVertex(2) && getVertex(4) == that.getVertex(4)) {
+            return true;
+        }
+    }
     // RIGHT/NEAR/BOTTOM
     // RIGHT/NEAR/TOP
     // LEFT/NEAR/BOTTOM
@@ -1011,8 +1033,8 @@ void VoxelProjectedPolygon::merge(const VoxelProjectedPolygon& that) {
 
     // NEAR/RIGHT/BOTTOM & NEAR/BOTTOM
     if (
-            (getProjectionType()      == (PROJECTION_BOTTOM | PROJECTION_NEAR                     )) &&
-            (that.getProjectionType() == (PROJECTION_BOTTOM | PROJECTION_NEAR  | PROJECTION_RIGHT ))  
+            ((getProjectionType()      == (PROJECTION_BOTTOM | PROJECTION_NEAR                     )) &&
+            (that.getProjectionType() == (PROJECTION_BOTTOM | PROJECTION_NEAR  | PROJECTION_RIGHT )))
         )
     {
         if (getVertex(1) == that.getVertex(2) && getVertex(5) == that.getVertex(4)) {
@@ -1028,8 +1050,8 @@ void VoxelProjectedPolygon::merge(const VoxelProjectedPolygon& that) {
 
     // NEAR/RIGHT/BOTTOM & NEAR/BOTTOM
     if (
-            (that.getProjectionType() == (PROJECTION_BOTTOM | PROJECTION_NEAR                     )) &&
-            (getProjectionType()      == (PROJECTION_BOTTOM | PROJECTION_NEAR  | PROJECTION_RIGHT ))  
+            ((that.getProjectionType() == (PROJECTION_BOTTOM | PROJECTION_NEAR                     )) &&
+            (getProjectionType()      == (PROJECTION_BOTTOM | PROJECTION_NEAR  | PROJECTION_RIGHT )))
         )
     {
         if (getVertex(2) == that.getVertex(1) && getVertex(4) == that.getVertex(5)) {
@@ -1039,6 +1061,42 @@ void VoxelProjectedPolygon::merge(const VoxelProjectedPolygon& that) {
             setVertex(3, that.getVertex(3));
             setVertex(4, that.getVertex(4));
             //setVertex(5, this.getVertex(5)); // no change
+            setProjectionType((PROJECTION_BOTTOM | PROJECTION_NEAR));
+            return; // done
+        }
+    }
+
+    // NEAR/LEFT/BOTTOM & NEAR/BOTTOM
+    if (
+            ((getProjectionType()     == (PROJECTION_BOTTOM | PROJECTION_NEAR                     )) &&
+            (that.getProjectionType() == (PROJECTION_BOTTOM | PROJECTION_NEAR  | PROJECTION_LEFT )))
+        )
+    {
+        if (getVertex(2) == that.getVertex(0) && getVertex(4) == that.getVertex(4)) {
+            //setVertex(0, this.getVertex(0)); // no change
+            //setVertex(1, this.getVertex(1)); // no change
+            setVertex(2, that.getVertex(1));
+            setVertex(3, that.getVertex(2));
+            setVertex(4, that.getVertex(3));
+            //setVertex(5, this.getVertex(5)); // no change
+            return; // done
+        }
+    }
+
+    // NEAR/LEFT/BOTTOM & NEAR/BOTTOM
+    if (
+            ((that.getProjectionType() == (PROJECTION_BOTTOM | PROJECTION_NEAR                     )) &&
+            (getProjectionType()       == (PROJECTION_BOTTOM | PROJECTION_NEAR  | PROJECTION_LEFT )))  
+        )
+    {
+        if (getVertex(0) == that.getVertex(2) && getVertex(4) == that.getVertex(4)) {
+            // we need to do this in an unusual order, because otherwise we'd overwrite our own values
+            setVertex(4, getVertex(3));
+            setVertex(3, getVertex(2));
+            setVertex(2, getVertex(1));
+            setVertex(0, that.getVertex(0));
+            setVertex(1, that.getVertex(1));
+            setVertex(5, that.getVertex(5));
             setProjectionType((PROJECTION_BOTTOM | PROJECTION_NEAR));
             return; // done
         }
