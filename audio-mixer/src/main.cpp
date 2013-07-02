@@ -138,7 +138,7 @@ int main(int argc, const char* argv[]) {
                 const char MIXER_LOGSTASH_METRIC_NAME[] = "audio-mixer-frame-time-usage";
                 
                 float averageFrameTimePercentage = sumFrameTimePercentages / numStatCollections;
-                Logstash::stashValue(MIXER_LOGSTASH_METRIC_NAME, averageFrameTimePercentage);
+                Logstash::stashValue(STAT_TYPE_GAUGE, MIXER_LOGSTASH_METRIC_NAME, averageFrameTimePercentage);
                 
                 sumFrameTimePercentages = 0.0f;
                 numStatCollections = 0;
@@ -391,6 +391,10 @@ int main(int argc, const char* argv[]) {
                 
                 // give the new audio data to the matching injector agent
                 agentList->updateAgentWithData(matchingInjector, packetData, receivedBytes);
+            } else if (packetData[0] == PACKET_HEADER_PING) {
+
+                // If the packet is a ping, let processAgentData handle it.
+                agentList->processAgentData(agentAddress, packetData, receivedBytes);
             }
         }
         

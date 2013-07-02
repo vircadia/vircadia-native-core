@@ -10,10 +10,6 @@
 #define __interface__Audio__
 
 #include <portaudio.h>
-
-#include <speex/speex_echo.h>
-#include <speex/speex_preprocess.h>
-
 #include <AudioRingBuffer.h>
 #include <StdDev.h>
 
@@ -47,11 +43,6 @@ public:
     int getJitterBufferSamples() { return _jitterBufferSamples; };
     
     void lowPassFilter(int16_t* inputBuffer);
-    
-    void startEchoTest();
-    void renderEchoCompare();
-    void setIsCancellingEcho(bool enabled);
-    bool isCancellingEcho() const;
 
     void ping();
 
@@ -79,16 +70,8 @@ private:
     int _totalPacketsReceived;
     timeval _firstPacketReceivedTime;
     int _packetsReceivedThisPlayback;
-    // Echo cancellation
-    volatile bool _isCancellingEcho;
-    unsigned _echoWritePos;
-    unsigned _echoDelay;
-    int16_t* _echoSamplesLeft;
-    int16_t* _echoSamplesRight;
-    int16_t* _speexTmpBuf;
-    SpeexEchoState* _speexEchoState;
-    SpeexPreprocessState* _speexPreprocessState;
     // Ping analysis
+    int16_t* _echoSamplesLeft;
     volatile bool _isSendingEchoPing;
     volatile bool _pingAnalysisPending;
     int _pingFramesToRecord;
@@ -101,13 +84,6 @@ private:
 
     // Audio callback in class context.
     inline void performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* outputRight);
-
-    // When echo cancellation is enabled, subtract recorded echo from the input.
-    // Called from 'performIO' before the input has been processed.
-    inline void eventuallyCancelEcho(int16_t* inputLeft);
-    // When EC is enabled, record output samples.
-    // Called from 'performIO' after the output has been generated.
-    inline void eventuallyRecordEcho(int16_t* outputLeft, int16_t* outputRight);
 
     // When requested, sends/receives a signal for round trip time determination.
     // Called from 'performIO'.

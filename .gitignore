@@ -23,4 +23,15 @@ profile
 *.moved-aside
 DerivedData
 .idea/
+
 *.hmap
+
+#Ignore Leap, but not the stubs
+interface/external/Leap/docs/
+interface/external/Leap/include/
+interface/external/Leap/lib/
+interface/external/Leap/samples/
+interface/external/Leap/util/
+
+
+

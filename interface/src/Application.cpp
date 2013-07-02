@@ -30,6 +30,7 @@
 #include <QCheckBox>
 #include <QFormLayout>
 #include <QGLWidget>
+#include <QImage>
 #include <QKeyEvent>
 #include <QLineEdit>
 #include <QMainWindow>
@@ -57,16 +58,20 @@
 #include "Application.h"
 #include "InterfaceConfig.h"
 #include "LogDisplay.h"
+#include "LeapManager.h"
 #include "OculusManager.h"
 #include "Util.h"
 #include "renderer/ProgramObject.h"
 #include "ui/TextRenderer.h"
+#include "fvupdater.h"
 
 using namespace std;
 
 //  Starfield information
 static char STAR_FILE[] = "https://s3-us-west-1.amazonaws.com/highfidelity/stars.txt";
 static char STAR_CACHE_FILE[] = "cachedStars.txt";
+
+static const int BANDWIDTH_METER_CLICK_MAX_DRAG_LENGTH = 6; // farther dragged clicks are ignored 
 
 const glm::vec3 START_LOCATION(4.f, 0.f, 5.f);   //  Where one's own agent begins in the world
                                                  // (will be overwritten if avatar data file is found)
@@ -158,6 +163,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         QApplication(argc, argv),
         _window(new QMainWindow(desktop())),
         _glWidget(new GLCanvas()),
+        _bandwidthDialog(NULL),
         _displayLevels(false),
         _frameCount(0),
         _fps(120.0f),
@@ -246,10 +252,28 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     
     _window->setCentralWidget(_glWidget);
     
-    // these are used, for example, to identify the application settings
-    setApplicationName("Interface");
-    setOrganizationDomain("highfidelity.io");
-    setOrganizationName("High Fidelity");
+#ifdef Q_WS_MAC
+    QString resourcesPath = QCoreApplication::applicationDirPath() + "/../Resources";
+#else
+    QString resourcesPath = QCoreApplication::applicationDirPath() + "/resources";
+#endif
+    
+    // read the ApplicationInfo.ini file for Name/Version/Domain information
+    QSettings applicationInfo(resourcesPath + "/info/ApplicationInfo.ini", QSettings::IniFormat);
+    
+    // set the associated application properties
+    applicationInfo.beginGroup("INFO");
+    
+    setApplicationName(applicationInfo.value("name").toString());
+    setApplicationVersion(applicationInfo.value("version").toString());
+    setOrganizationName(applicationInfo.value("organizationName").toString());
+    setOrganizationDomain(applicationInfo.value("organizationDomain").toString());
+    
+#if defined(Q_WS_MAC) && defined(QT_NO_DEBUG)
+    // if this is a release OS X build use fervor to check for an update    
+    FvUpdater::sharedUpdater()->SetFeedURL("https://s3-us-west-1.amazonaws.com/highfidelity/appcast.xml");
+    FvUpdater::sharedUpdater()->CheckForUpdatesSilent();
+#endif
     
     initMenu();
     
@@ -326,7 +350,7 @@ void Application::initializeGL() {
         const char LOGSTASH_INTERFACE_START_TIME_KEY[] = "interface-start-time";
         
         // ask the Logstash class to record the startup time
-        Logstash::stashValue(LOGSTASH_INTERFACE_START_TIME_KEY, startupTime);
+        Logstash::stashValue(STAT_TYPE_TIMER, LOGSTASH_INTERFACE_START_TIME_KEY, startupTime);
     }
     
     // update before the first render
@@ -427,7 +451,7 @@ void Application::resizeGL(int width, int height) {
         }
     } else {
         camera.setAspectRatio(aspectRatio);
-        camera.setFieldOfView(fov = 60);
+        camera.setFieldOfView(fov = _horizontalFieldOfView);
     }
 
     // Tell our viewFrustum about this change
@@ -458,11 +482,30 @@ void Application::resizeGL(int width, int height) {
     glLoadIdentity();
 }
 
-static void sendVoxelServerAddScene() {
+void Application::broadcastToAgents(unsigned char* data, size_t bytes, const char type) {
+
+    int n = AgentList::getInstance()->broadcastToAgents(data, bytes, &type, 1);
+
+    BandwidthMeter::ChannelIndex channel;
+    switch (type) {
+    case AGENT_TYPE_AVATAR:
+    case AGENT_TYPE_AVATAR_MIXER:
+        channel = BandwidthMeter::AVATARS;
+        break;
+    case AGENT_TYPE_VOXEL_SERVER:
+        channel = BandwidthMeter::VOXELS;
+        break;
+    default:
+        return;
+    }
+    getInstance()->_bandwidthMeter.outputStream(channel).updateValue(n * bytes); 
+}
+
+void Application::sendVoxelServerAddScene() {
     char message[100];
     sprintf(message,"%c%s",'Z',"add scene");
     int messageSize = strlen(message) + 1;
-    AgentList::getInstance()->broadcastToAgents((unsigned char*)message, messageSize, &AGENT_TYPE_VOXEL_SERVER, 1);
+    broadcastToAgents((unsigned char*)message, messageSize, AGENT_TYPE_VOXEL_SERVER);
 }
 
 void Application::keyPressEvent(QKeyEvent* event) {
@@ -780,6 +823,7 @@ void Application::mouseReleaseEvent(QMouseEvent* event) {
             _mouseX = event->x();
             _mouseY = event->y();
             _mousePressed = false;
+            checkBandwidthMeterClick();
         }
     }
 }
@@ -832,9 +876,26 @@ void Application::wheelEvent(QWheelEvent* event) {
     }
 }
 
+void sendPingPackets() {
+
+    char agentTypesOfInterest[] = {AGENT_TYPE_VOXEL_SERVER, AGENT_TYPE_AUDIO_MIXER, AGENT_TYPE_AVATAR_MIXER};
+    long long currentTime = usecTimestampNow();
+    char pingPacket[1 + sizeof(currentTime)];
+    pingPacket[0] = PACKET_HEADER_PING;
+    
+    memcpy(&pingPacket[1], &currentTime, sizeof(currentTime));
+    AgentList::getInstance()->broadcastToAgents((unsigned char*)pingPacket, 1 + sizeof(currentTime), agentTypesOfInterest, 3);
+
+}
+
 //  Every second, check the frame rates and other stuff
 void Application::timer() {
     gettimeofday(&_timerEnd, NULL);
+
+    if (_testPing->isChecked()) {
+        sendPingPackets();
+    }
+        
     _fps = (float)_frameCount / ((float)diffclock(&_timerStart, &_timerEnd) / 1000.f);
     _packetsPerSecond = (float)_packetCount / ((float)diffclock(&_timerStart, &_timerEnd) / 1000.f);
     _bytesPerSecond = (float)_bytesCount / ((float)diffclock(&_timerStart, &_timerEnd) / 1000.f);
@@ -903,7 +964,7 @@ void Application::terminate() {
     }
 }
 
-static void sendAvatarVoxelURLMessage(const QUrl& url) {
+void Application::sendAvatarVoxelURLMessage(const QUrl& url) {
     uint16_t ownerID = AgentList::getInstance()->getOwnerID();
     
     if (ownerID == UNKNOWN_AGENT_ID) {
@@ -914,10 +975,10 @@ static void sendAvatarVoxelURLMessage(const QUrl& url) {
     message.append((const char*)&ownerID, sizeof(ownerID));
     message.append(url.toEncoded());
 
-    AgentList::getInstance()->broadcastToAgents((unsigned char*)message.data(), message.size(), &AGENT_TYPE_AVATAR_MIXER, 1);
+    broadcastToAgents((unsigned char*)message.data(), message.size(), AGENT_TYPE_AVATAR_MIXER);
 }
 
-static void processAvatarVoxelURLMessage(unsigned char *packetData, size_t dataBytes) {
+void Application::processAvatarVoxelURLMessage(unsigned char *packetData, size_t dataBytes) {
     // skip the header
     packetData++;
     dataBytes--;
@@ -942,6 +1003,37 @@ static void processAvatarVoxelURLMessage(unsigned char *packetData, size_t dataB
     QMetaObject::invokeMethod(avatar->getVoxels(), "setVoxelURL", Q_ARG(QUrl, url));
 }
 
+void Application::checkBandwidthMeterClick() {
+    // ... to be called upon button release
+
+    if (_bandwidthDisplayOn->isChecked() &&
+        glm::compMax(glm::abs(glm::ivec2(_mouseX - _mouseDragStartedX, _mouseY - _mouseDragStartedY))) <= BANDWIDTH_METER_CLICK_MAX_DRAG_LENGTH &&
+        _bandwidthMeter.isWithinArea(_mouseX, _mouseY, _glWidget->width(), _glWidget->height())) {
+
+        // The bandwidth meter is visible, the click didn't get dragged too far and
+        // we actually hit the bandwidth meter
+        bandwidthDetails();
+    }
+}
+
+void Application::bandwidthDetails() {
+
+    if (! _bandwidthDialog) {
+        _bandwidthDialog = new BandwidthDialog(_glWidget, getBandwidthMeter());
+        connect(_bandwidthDialog, SIGNAL(closed()), SLOT(bandwidthDetailsClosed()));
+
+        _bandwidthDialog->show();
+    } 
+    _bandwidthDialog->raise();
+}
+
+void Application::bandwidthDetailsClosed() {
+
+    QDialog* dlg = _bandwidthDialog;
+    _bandwidthDialog = NULL;
+    delete dlg;
+}
+
 void Application::editPreferences() {
     QDialog dialog(_glWidget);
     dialog.setWindowTitle("Interface Preferences");
@@ -955,14 +1047,16 @@ void Application::editPreferences() {
     avatarURL->setMinimumWidth(400);
     form->addRow("Avatar URL:", avatarURL);
     
+    QSpinBox* horizontalFieldOfView = new QSpinBox();
+    horizontalFieldOfView->setMaximum(180);
+    horizontalFieldOfView->setMinimum(1);
+    horizontalFieldOfView->setValue(_horizontalFieldOfView);
+    form->addRow("Horizontal field of view (degrees):", horizontalFieldOfView);
+    
     QDoubleSpinBox* headCameraPitchYawScale = new QDoubleSpinBox();
     headCameraPitchYawScale->setValue(_headCameraPitchYawScale);
     form->addRow("Head Camera Pitch/Yaw Scale:", headCameraPitchYawScale);
 
-    QCheckBox* audioEchoCancellation = new QCheckBox();
-    audioEchoCancellation->setChecked(_audio.isCancellingEcho());
-    form->addRow("Audio Echo Cancellation", audioEchoCancellation);
-    
     QDoubleSpinBox* leanScale = new QDoubleSpinBox();
     leanScale->setValue(_myAvatar.getLeanScale());
     form->addRow("Lean Scale:", leanScale);
@@ -984,13 +1078,15 @@ void Application::editPreferences() {
     QUrl url(avatarURL->text());
     _myAvatar.getVoxels()->setVoxelURL(url);
     sendAvatarVoxelURLMessage(url);
-    _audio.setIsCancellingEcho( audioEchoCancellation->isChecked() );
     _headCameraPitchYawScale = headCameraPitchYawScale->value();
     _myAvatar.setLeanScale(leanScale->value());
     _audioJitterBufferSamples = audioJitterBufferSamples->value();
     if (!shouldDynamicallySetJitterBuffer()) {
         _audio.setJitterBufferSamples(_audioJitterBufferSamples);
     }
+    _horizontalFieldOfView = horizontalFieldOfView->value();
+    resizeGL(_glWidget->width(), _glWidget->height());
+    
 }
 
 void Application::pair() {
@@ -1111,12 +1207,12 @@ void Application::updateVoxelModeActions() {
     } 
 }
 
-static void sendVoxelEditMessage(PACKET_HEADER header, VoxelDetail& detail) {
+void Application::sendVoxelEditMessage(PACKET_HEADER header, VoxelDetail& detail) {
     unsigned char* bufferOut;
     int sizeOut;
 
     if (createVoxelEditMessage(header, 0, 1, &detail, bufferOut, sizeOut)){
-        AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL_SERVER, 1);
+        Application::broadcastToAgents(bufferOut, sizeOut, AGENT_TYPE_VOXEL_SERVER);
         delete[] bufferOut;
     }
 }
@@ -1188,10 +1284,16 @@ bool Application::sendVoxelsOperation(VoxelNode* node, void* extraData) {
         codeColorBuffer[bytesInCode + RED_INDEX  ] = node->getColor()[RED_INDEX  ];
         codeColorBuffer[bytesInCode + GREEN_INDEX] = node->getColor()[GREEN_INDEX];
         codeColorBuffer[bytesInCode + BLUE_INDEX ] = node->getColor()[BLUE_INDEX ];
+        
+        // TODO: sendVoxelsOperation() is sending voxels too fast.
+        //       This printf function accidently slowed down sending
+        //       and hot-fixed the bug when importing
+        //       large PNG models (256x256 px and more)
+        static unsigned int sendVoxelsOperationCalled = 0; printf("sending voxel #%u\n", ++sendVoxelsOperationCalled);
 
         // if we have room don't have room in the buffer, then send the previously generated message first
         if (args->bufferInUse + codeAndColorLength > MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE) {
-            AgentList::getInstance()->broadcastToAgents(args->messageBuffer, args->bufferInUse, &AGENT_TYPE_VOXEL_SERVER, 1);
+            broadcastToAgents(args->messageBuffer, args->bufferInUse, AGENT_TYPE_VOXEL_SERVER);
             args->bufferInUse = sizeof(PACKET_HEADER_SET_VOXEL_DESTRUCTIVE) + sizeof(unsigned short int); // reset
         }
         
@@ -1224,14 +1326,31 @@ void Application::exportVoxels() {
 void Application::importVoxels() {
     QString desktopLocation = QDesktopServices::storageLocation(QDesktopServices::DesktopLocation);
     QString fileNameString = QFileDialog::getOpenFileName(_glWidget, tr("Import Voxels"), desktopLocation, 
-                                                          tr("Sparse Voxel Octree Files (*.svo)"));
+                                                          tr("Sparse Voxel Octree Files, Square PNG (*.svo *.png)"));
     QByteArray fileNameAscii = fileNameString.toAscii();
     const char* fileName = fileNameAscii.data();
-
-    // Read the file into a tree
+    
     VoxelTree importVoxels;
-    importVoxels.readFromSVOFile(fileName);
-
+    if (fileNameString.endsWith(".png", Qt::CaseInsensitive)) {
+        QImage pngImage = QImage(fileName);
+        if (pngImage.height() != pngImage.width()) {
+            printLog("ERROR: Bad PNG size: height != width.\n");
+            return;
+        }
+        
+        const uint32_t* pixels;
+        if (pngImage.format() == QImage::Format_ARGB32) {
+            pixels = reinterpret_cast<const uint32_t*>(pngImage.constBits());
+        } else {
+            QImage tmp = pngImage.convertToFormat(QImage::Format_ARGB32);
+            pixels = reinterpret_cast<const uint32_t*>(tmp.constBits());
+        }
+        
+        importVoxels.readFromSquareARGB32Pixels(pixels, pngImage.height());        
+    } else {
+        importVoxels.readFromSVOFile(fileName);
+    }
+    
     VoxelNode* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
     
     // Recurse the Import Voxels tree, where everything is root relative, and send all the colored voxels to 
@@ -1255,7 +1374,7 @@ void Application::importVoxels() {
 
     // If we have voxels left in the packet, then send the packet
     if (args.bufferInUse > (sizeof(PACKET_HEADER_SET_VOXEL_DESTRUCTIVE) + sizeof(unsigned short int))) {
-        AgentList::getInstance()->broadcastToAgents(args.messageBuffer, args.bufferInUse, &AGENT_TYPE_VOXEL_SERVER, 1);
+        broadcastToAgents(args.messageBuffer, args.bufferInUse, AGENT_TYPE_VOXEL_SERVER);
     }
     
     if (calculatedOctCode) {
@@ -1307,7 +1426,7 @@ void Application::pasteVoxels() {
     
     // If we have voxels left in the packet, then send the packet
     if (args.bufferInUse > (sizeof(PACKET_HEADER_SET_VOXEL_DESTRUCTIVE) + sizeof(unsigned short int))) {
-        AgentList::getInstance()->broadcastToAgents(args.messageBuffer, args.bufferInUse, &AGENT_TYPE_VOXEL_SERVER, 1);
+        broadcastToAgents(args.messageBuffer, args.bufferInUse, AGENT_TYPE_VOXEL_SERVER);
     }
     
     if (calculatedOctCode) {
@@ -1346,6 +1465,8 @@ void Application::initMenu() {
     (_gravityUse = optionsMenu->addAction("Use Gravity"))->setCheckable(true);
     _gravityUse->setChecked(true);
     _gravityUse->setShortcut(Qt::SHIFT | Qt::Key_G);
+    (_testPing = optionsMenu->addAction("Test Ping"))->setCheckable(true);
+    _testPing->setChecked(true);
     (_fullScreenMode = optionsMenu->addAction("Fullscreen", this, SLOT(setFullscreen(bool)), Qt::Key_F))->setCheckable(true);
     optionsMenu->addAction("Webcam", &_webcam, SLOT(setEnabled(bool)))->setCheckable(true);    
     
@@ -1382,7 +1503,11 @@ void Application::initMenu() {
     (_logOn = toolsMenu->addAction("Log"))->setCheckable(true);
     _logOn->setChecked(false);
     _logOn->setShortcut(Qt::CTRL | Qt::Key_L);
-    
+    (_bandwidthDisplayOn = toolsMenu->addAction("Bandwidth Display"))->setCheckable(true);
+    _bandwidthDisplayOn->setChecked(true);
+    toolsMenu->addAction("Bandwidth Details", this, SLOT(bandwidthDetails()));
+
+ 
     QMenu* voxelMenu = menuBar->addMenu("Voxels");
     _voxelModeActions = new QActionGroup(this);
     _voxelModeActions->setExclusive(false); // exclusivity implies one is always checked
@@ -1520,7 +1645,7 @@ void Application::init() {
   
     _myAvatar.init();
     _myAvatar.setPosition(START_LOCATION);
-    _myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
+    _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
     _myCamera.setModeShiftRate(1.0f);
     _myAvatar.setDisplayingLookatVectors(false);  
     
@@ -1578,7 +1703,7 @@ void Application::update(float deltaTime) {
     _myAvatar.getHead().setLookAtPosition(myLookAtFromMouse);
 
     //  If we are dragging on a voxel, add thrust according to the amount the mouse is dragging
-    const float VOXEL_GRAB_THRUST = 5.0f;
+    const float VOXEL_GRAB_THRUST = 0.0f;
     if (_mousePressed && (_mouseVoxel.s != 0)) {
         glm::vec2 mouseDrag(_mouseX - _mouseDragStartedX, _mouseY - _mouseDragStartedY);
         glm::quat orientation = _myAvatar.getOrientation();
@@ -1687,7 +1812,11 @@ void Application::update(float deltaTime) {
                                   _touchAvgY - _touchDragStartedAvgY);
     }
     
-    //  Read serial port interface devices
+    // Leap finger-sensing device
+    LeapManager::nextFrame();
+    _myAvatar.getHand().setLeapFingers(LeapManager::getFingerPositions());
+    
+     //  Read serial port interface devices
     if (_serialHeadSensor.isActive()) {
         _serialHeadSensor.readData(deltaTime);
     }
@@ -1748,7 +1877,7 @@ void Application::update(float deltaTime) {
                 _myCamera.setModeShiftRate(1.0f);
             }
         } else {
-            const float THIRD_PERSON_SHIFT_VELOCITY = 2.0f;
+            const float THIRD_PERSON_SHIFT_VELOCITY = 1000.0f;
             const float TIME_BEFORE_SHIFT_INTO_FIRST_PERSON = 0.75f;
             const float TIME_BEFORE_SHIFT_INTO_THIRD_PERSON = 0.1f;
             
@@ -1765,7 +1894,12 @@ void Application::update(float deltaTime) {
             }
         }
     }
-    
+   
+    // Update bandwidth dialog, if any
+    if (_bandwidthDialog) {
+        _bandwidthDialog->update();
+    }
+ 
     //  Update audio stats for procedural sounds
     #ifndef _WIN32
     _audio.setLastAcceleration(_myAvatar.getThrust());
@@ -1848,8 +1982,8 @@ void Application::updateAvatar(float deltaTime) {
         
         endOfBroadcastStringWrite += _myAvatar.getBroadcastData(endOfBroadcastStringWrite);
         
-        const char broadcastReceivers[2] = {AGENT_TYPE_VOXEL_SERVER, AGENT_TYPE_AVATAR_MIXER};
-        AgentList::getInstance()->broadcastToAgents(broadcastString, endOfBroadcastStringWrite - broadcastString, broadcastReceivers, sizeof(broadcastReceivers));
+        broadcastToAgents(broadcastString, endOfBroadcastStringWrite - broadcastString, AGENT_TYPE_VOXEL_SERVER);
+        broadcastToAgents(broadcastString, endOfBroadcastStringWrite - broadcastString, AGENT_TYPE_AVATAR_MIXER);
         
         // once in a while, send my voxel url
         const float AVATAR_VOXEL_URL_SEND_INTERVAL = 1.0f; // seconds
@@ -2242,6 +2376,7 @@ void Application::displayOverlay() {
     // testing rendering coverage map
     if (_renderCoverageMapV2->isChecked()) { renderCoverageMapV2(); }
     if (_renderCoverageMap->isChecked())   { renderCoverageMap(); }
+    if (_bandwidthDisplayOn->isChecked()) { _bandwidthMeter.render(_glWidget->width(), _glWidget->height()); }
 
     if (_logOn->isChecked()) { LogDisplay::instance.render(_glWidget->width(), _glWidget->height()); }
 
@@ -2296,7 +2431,24 @@ void Application::displayStats() {
     sprintf(stats, "%3.0f FPS, %d Pkts/sec, %3.2f Mbps", 
             _fps, _packetsPerSecond,  (float)_bytesPerSecond * 8.f / 1000000.f);
     drawtext(10, statsVerticalOffset + 15, 0.10f, 0, 1.0, 0, stats);
-    
+
+    if (_testPing->isChecked()) {
+        int pingAudio = 0, pingAvatar = 0, pingVoxel = 0;
+
+        AgentList *agentList = AgentList::getInstance();
+        Agent *audioMixerAgent = agentList->soloAgentOfType(AGENT_TYPE_AUDIO_MIXER);
+        Agent *avatarMixerAgent = agentList->soloAgentOfType(AGENT_TYPE_AVATAR_MIXER);
+        Agent *voxelServerAgent = agentList->soloAgentOfType(AGENT_TYPE_VOXEL_SERVER);
+
+        pingAudio = audioMixerAgent ? audioMixerAgent->getPingMs() : 0;
+        pingAvatar = avatarMixerAgent ? avatarMixerAgent->getPingMs() : 0;
+        pingVoxel = voxelServerAgent ? voxelServerAgent->getPingMs() : 0;
+
+        char pingStats[200];
+        sprintf(pingStats, "Ping audio/avatar/voxel: %d / %d / %d ", pingAudio, pingAvatar, pingVoxel);
+        drawtext(10, statsVerticalOffset + 35, 0.10f, 0, 1.0, 0, pingStats);
+    }
+ 
     std::stringstream voxelStats;
     voxelStats.precision(4);
     voxelStats << "Voxels Rendered: " << _voxels.getVoxelsRendered() / 1000.f << "K Updated: " << _voxels.getVoxelsUpdated()/1000.f << "K";
@@ -2337,6 +2489,7 @@ void Application::displayStats() {
     }
     
     drawtext(10, statsVerticalOffset + 330, 0.10f, 0, 1.0, 0, avatarMixerStats);
+    drawtext(10, statsVerticalOffset + 450, 0.10f, 0, 1.0, 0, (char *)LeapManager::statusString().c_str());
     
     if (_perfStatsOn) {
         // Get the PerfStats group details. We need to allocate and array of char* long enough to hold 1+groups
@@ -2887,6 +3040,7 @@ void* Application::networkReceive(void* args) {
                     AgentList::getInstance()->processBulkAgentData(&senderAddress,
                                                                    app->_incomingPacket,
                                                                    bytesReceived);
+                    getInstance()->_bandwidthMeter.inputStream(BandwidthMeter::AVATARS).updateValue(bytesReceived);
                     break;
                 case PACKET_HEADER_AVATAR_VOXEL_URL:
                     processAvatarVoxelURLMessage(app->_incomingPacket, bytesReceived);
@@ -2950,6 +3104,8 @@ void Application::loadSettings(QSettings* settings) {
 
     _headCameraPitchYawScale = loadSetting(settings, "headCameraPitchYawScale", 0.0f);
     _audioJitterBufferSamples = loadSetting(settings, "audioJitterBufferSamples", 0);
+    _horizontalFieldOfView = loadSetting(settings, "horizontalFieldOfView", HORIZONTAL_FIELD_OF_VIEW_DEGREES);
+
     settings->beginGroup("View Frustum Offset Camera");
     // in case settings is corrupt or missing loadSetting() will check for NaN
     _viewFrustumOffsetYaw      = loadSetting(settings, "viewFrustumOffsetYaw"     , 0.0f);
@@ -2957,9 +3113,6 @@ void Application::loadSettings(QSettings* settings) {
     _viewFrustumOffsetRoll     = loadSetting(settings, "viewFrustumOffsetRoll"    , 0.0f);
     _viewFrustumOffsetDistance = loadSetting(settings, "viewFrustumOffsetDistance", 0.0f);
     _viewFrustumOffsetUp       = loadSetting(settings, "viewFrustumOffsetUp"      , 0.0f);
-    settings->endGroup();
-    settings->beginGroup("Audio Echo Cancellation");
-    _audio.setIsCancellingEcho(settings->value("enabled", false).toBool());
     settings->endGroup();
 
     scanMenuBar(&Application::loadAction, settings);
@@ -2974,15 +3127,13 @@ void Application::saveSettings(QSettings* settings) {
 
     settings->setValue("headCameraPitchYawScale", _headCameraPitchYawScale);
     settings->setValue("audioJitterBufferSamples", _audioJitterBufferSamples);
+    settings->setValue("horizontalFieldOfView", _horizontalFieldOfView);
     settings->beginGroup("View Frustum Offset Camera");
     settings->setValue("viewFrustumOffsetYaw",      _viewFrustumOffsetYaw);
     settings->setValue("viewFrustumOffsetPitch",    _viewFrustumOffsetPitch);
     settings->setValue("viewFrustumOffsetRoll",     _viewFrustumOffsetRoll);
     settings->setValue("viewFrustumOffsetDistance", _viewFrustumOffsetDistance);
     settings->setValue("viewFrustumOffsetUp",       _viewFrustumOffsetUp);
-    settings->endGroup();
-    settings->beginGroup("Audio");
-    settings->setValue("echoCancellation", _audio.isCancellingEcho());
     settings->endGroup();
     
     scanMenuBar(&Application::saveAction, settings);

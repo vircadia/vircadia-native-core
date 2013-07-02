@@ -63,6 +63,7 @@ public:
     void(*linkedDataCreateCallback)(Agent *);
     
     int size() { return _numAgents; }
+    int getNumAliveAgents() const;
     
     void lock() { pthread_mutex_lock(&mutex); }
     void unlock() { pthread_mutex_unlock(&mutex); }
@@ -82,7 +83,7 @@ public:
     int updateAgentWithData(sockaddr *senderAddress, unsigned char *packetData, size_t dataBytes);
     int updateAgentWithData(Agent *agent, unsigned char *packetData, int dataBytes);
     
-    void broadcastToAgents(unsigned char *broadcastData, size_t dataBytes, const char* agentTypes, int numAgentTypes);
+    unsigned broadcastToAgents(unsigned char *broadcastData, size_t dataBytes, const char* agentTypes, int numAgentTypes);
     
     Agent* soloAgentOfType(char agentType);
     
@@ -116,6 +117,7 @@ private:
     pthread_mutex_t mutex;
     
     void handlePingReply(sockaddr *agentAddress);
+    void timePingReply(sockaddr *agentAddress, unsigned char *packetData);
 };
 
 class AgentListIterator : public std::iterator<std::input_iterator_tag, Agent> {
