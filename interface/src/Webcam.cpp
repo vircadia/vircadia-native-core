@@ -108,11 +108,16 @@ void Webcam::renderPreview(int screenWidth, int screenHeight) {
                 glPointSize(4.0f);
                 glBegin(GL_POINTS);
                     float projectedScale = PREVIEW_HEIGHT / (float)_depthHeight;
+                    int idx = 0;
                     foreach (const Joint& joint, _joints) {
                         if (joint.isValid) {
+                            if (joint.projected.x == 0.0f && joint.projected.y == 0.0f) {
+                                printLog("%d\n", idx);
+                            }
                             glVertex2f(depthLeft + joint.projected.x * projectedScale,
                                 top - PREVIEW_HEIGHT + joint.projected.y * projectedScale);
                         }
+                        idx++;
                     }
                 glEnd();
                 glPointSize(1.0f);
@@ -210,7 +215,8 @@ void Webcam::setFrame(const Mat& frame, int format, const Mat& depth, const Rota
             const float JOINT_SMOOTHING = 0.95f;
             _estimatedJoints[i].isValid = true;
             _estimatedJoints[i].position = glm::mix(_joints[i].position, _estimatedJoints[i].position, JOINT_SMOOTHING);
-            _estimatedJoints[i].orientation = safeMix(_joints[i].orientation, _estimatedJoints[i].orientation, JOINT_SMOOTHING);
+            _estimatedJoints[i].orientation = safeMix(_joints[i].orientation,
+                _estimatedJoints[i].orientation, JOINT_SMOOTHING);
         }
         _estimatedRotation = safeEulerAngles(_estimatedJoints[AVATAR_JOINT_HEAD_BASE].orientation);
         _estimatedPosition = _estimatedJoints[AVATAR_JOINT_HEAD_BASE].position;
@@ -359,6 +365,9 @@ void FrameGrabber::grabFrame() {
         _userGenerator.GetUsers(&_userID, userCount);
         if (userCount > 0 && _userGenerator.GetSkeletonCap().IsTracking(_userID)) {
             joints.resize(NUM_AVATAR_JOINTS);
+            for (int i = 0; i < NUM_AVATAR_JOINTS; i++) {
+                joints[i].isValid = false;
+            }
             const int MAX_ACTIVE_JOINTS = 16;
             XnSkeletonJoint activeJoints[MAX_ACTIVE_JOINTS];
             XnUInt16 activeJointCount = MAX_ACTIVE_JOINTS;

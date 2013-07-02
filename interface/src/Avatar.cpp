@@ -305,7 +305,7 @@ void Avatar::updateFromGyrosAndOrWebcam() {
         const JointVector& joints = webcam->getEstimatedJoints();
         _joints.clear();
         for (int i = 0; i < NUM_AVATAR_JOINTS; i++) {
-            if (joints[i].isValid) {
+            if (joints.size() > i && joints[i].isValid) {
                 JointData data = { i, joints[i].position, joints[i].orientation };
                 _joints.push_back(data);
             }
@@ -503,7 +503,7 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
         _skeleton.joint[it->jointID].position = _position + orientation * it->position;
         
         AvatarJointID derivedJointID = AVATAR_JOINT_NULL;
-        AvatarJointID secondJointID = (AvatarJointID)it->jointID;
+        AvatarJointID secondJointID = AVATAR_JOINT_NULL;
         float proportion = 0.5f;
         switch (it->jointID) {
             case AVATAR_JOINT_NECK_BASE:
@@ -547,10 +547,17 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
                 break;
         }
         if (derivedJointID != AVATAR_JOINT_NULL) {
-            _skeleton.joint[derivedJointID].position = glm::mix(_skeleton.joint[it->jointID].position,
-                _skeleton.joint[secondJointID].position, proportion);
-            _skeleton.joint[derivedJointID].absoluteRotation = safeMix(_skeleton.joint[it->jointID].absoluteRotation,
-                _skeleton.joint[secondJointID].absoluteRotation, proportion);
+            if (secondJointID == AVATAR_JOINT_NULL) {
+                _skeleton.joint[derivedJointID].position = _skeleton.joint[it->jointID].position +
+                    _skeleton.joint[it->jointID].absoluteRotation * JOINT_DIRECTION * _skeleton.joint[derivedJointID].length;
+                _skeleton.joint[derivedJointID].absoluteRotation = _skeleton.joint[it->jointID].absoluteRotation;
+                
+            } else {
+                _skeleton.joint[derivedJointID].position = glm::mix(_skeleton.joint[it->jointID].position,
+                   _skeleton.joint[secondJointID].position, proportion);
+                _skeleton.joint[derivedJointID].absoluteRotation = safeMix(_skeleton.joint[it->jointID].absoluteRotation,
+                    _skeleton.joint[secondJointID].absoluteRotation, proportion);
+            }
         }
     }
     
