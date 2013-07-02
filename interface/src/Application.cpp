@@ -1803,8 +1803,8 @@ void Application::update(float deltaTime) {
 
 void Application::updateAvatar(float deltaTime) {
 
-    // Update my avatar's head position from gyros and/or webcam
-    _myAvatar.updateHeadFromGyrosAndOrWebcam();
+    // Update my avatar's state position from gyros and/or webcam
+    _myAvatar.updateFromGyrosAndOrWebcam();
         
     if (_serialHeadSensor.isActive()) {
       

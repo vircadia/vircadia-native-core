@@ -79,6 +79,7 @@ private:
     
     glm::vec3 _estimatedPosition;
     glm::vec3 _estimatedRotation;
+    JointVector _estimatedJoints;
 };
 
 class FrameGrabber : public QObject {

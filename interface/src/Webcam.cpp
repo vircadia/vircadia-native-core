@@ -199,33 +199,46 @@ void Webcam::setFrame(const Mat& frame, int format, const Mat& depth, const Rota
     }
     _lastFrameTimestamp = now;
     
-    // roll is just the angle of the face rect (correcting for 180 degree rotations)
-    float roll = faceRect.angle;
-    if (roll < -90.0f) {
-        roll += 180.0f;
+    // see if we have joint data
+    if (!_joints.isEmpty()) {
+        for (int i = 0; i < NUM_AVATAR_JOINTS; i++) {
+            const float JOINT_SMOOTHING = 0.95f;
+            _estimatedJoints[i].position = glm::mix(_joints[i].position - _joints[AVATAR_JOINT_TORSO].position,
+                _estimatedJoints[i].position, JOINT_SMOOTHING);
+            _estimatedJoints[i].orientation = safeMix(_joints[i].orientation, _estimatedJoints[i].orientation, JOINT_SMOOTHING);
+        }
+        _estimatedRotation = safeEulerAngles(_estimatedJoints[AVATAR_JOINT_HEAD_BASE].orientation);
+        _estimatedPosition = _estimatedJoints[AVATAR_JOINT_HEAD_BASE].position;
         
-    } else if (roll > 90.0f) {
-        roll -= 180.0f;
-    }
-    const float ROTATION_SMOOTHING = 0.95f;
-    _estimatedRotation.z = glm::mix(roll, _estimatedRotation.z, ROTATION_SMOOTHING);
-    
-    // determine position based on translation and scaling of the face rect
-    if (_initialFaceRect.size.area() == 0) {
-        _initialFaceRect = faceRect;
-        _estimatedPosition = glm::vec3();
-    
     } else {
-        float proportion = sqrtf(_initialFaceRect.size.area() / (float)faceRect.size.area());
-        const float DISTANCE_TO_CAMERA = 0.333f;
-        const float POSITION_SCALE = 0.5f;
-        float z = DISTANCE_TO_CAMERA * proportion - DISTANCE_TO_CAMERA;
-        glm::vec3 position = glm::vec3(
-            (faceRect.center.x - _initialFaceRect.center.x) * proportion * POSITION_SCALE / _frameWidth,
-            (faceRect.center.y - _initialFaceRect.center.y) * proportion * POSITION_SCALE / _frameWidth,
-            z);
-        const float POSITION_SMOOTHING = 0.95f;
-        _estimatedPosition = glm::mix(position, _estimatedPosition, POSITION_SMOOTHING);
+        // roll is just the angle of the face rect (correcting for 180 degree rotations)
+        float roll = faceRect.angle;
+        if (roll < -90.0f) {
+            roll += 180.0f;
+            
+        } else if (roll > 90.0f) {
+            roll -= 180.0f;
+        }
+        const float ROTATION_SMOOTHING = 0.95f;
+        _estimatedRotation.z = glm::mix(roll, _estimatedRotation.z, ROTATION_SMOOTHING);
+        
+        // determine position based on translation and scaling of the face rect
+        if (_initialFaceRect.size.area() == 0) {
+            _initialFaceRect = faceRect;
+            _estimatedPosition = glm::vec3();
+        
+        } else {
+            float proportion = sqrtf(_initialFaceRect.size.area() / (float)faceRect.size.area());
+            const float DISTANCE_TO_CAMERA = 0.333f;
+            const float POSITION_SCALE = 0.5f;
+            float z = DISTANCE_TO_CAMERA * proportion - DISTANCE_TO_CAMERA;
+            glm::vec3 position = glm::vec3(
+                (faceRect.center.x - _initialFaceRect.center.x) * proportion * POSITION_SCALE / _frameWidth,
+                (faceRect.center.y - _initialFaceRect.center.y) * proportion * POSITION_SCALE / _frameWidth,
+                z);
+            const float POSITION_SMOOTHING = 0.95f;
+            _estimatedPosition = glm::mix(position, _estimatedPosition, POSITION_SMOOTHING);
+        }
     }
     
     // note that we have data
@@ -279,14 +292,16 @@ static AvatarJointID xnToAvatarJoint(XnSkeletonJoint joint) {
 }
 
 static glm::vec3 xnToGLM(const XnVector3D& vector) {
-    return glm::vec3(vector.X, vector.Y, vector.Z);
+    const float METERS_PER_MM = 1.0f / 1000.0f;
+    return glm::vec3(vector.X, vector.Y, -vector.Z) * METERS_PER_MM;
 }
 
-static glm::mat3 xnToGLM(const XnMatrix3X3& matrix) {
-    return glm::mat3(
-        matrix.elements[0], matrix.elements[1], matrix.elements[2],
-        matrix.elements[3], matrix.elements[4], matrix.elements[5],
-        matrix.elements[6], matrix.elements[7], matrix.elements[8]);
+static glm::quat xnToGLM(const XnMatrix3X3& matrix) {
+    glm::quat rotation = glm::quat_cast(glm::mat3(
+        matrix.elements[0], matrix.elements[3], matrix.elements[6],
+        matrix.elements[1], matrix.elements[4], matrix.elements[7],
+        matrix.elements[2], matrix.elements[5], matrix.elements[8]));
+    return glm::quat(rotation.w, rotation.x, rotation.y, -rotation.z);
 }
 
 static void XN_CALLBACK_TYPE newUser(UserGenerator& generator, XnUserID id, void* cookie) {
@@ -351,7 +366,7 @@ void FrameGrabber::grabFrame() {
                 XnVector3D projected;
                 _depthGenerator.ConvertRealWorldToProjective(1, &transform.position.position, &projected);
                 Joint joint = { true, xnToGLM(transform.position.position),
-                                glm::quat_cast(xnToGLM(transform.orientation.orientation)),
+                                xnToGLM(transform.orientation.orientation),
                                 xnToGLM(projected) };
                 joints[avatarJoint] = joint;
             }
