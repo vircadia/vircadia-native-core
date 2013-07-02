@@ -450,7 +450,7 @@ void Application::resizeGL(int width, int height) {
         }
     } else {
         camera.setAspectRatio(aspectRatio);
-        camera.setFieldOfView(fov = HORIZONTAL_FIELD_OF_VIEW_DEGREES);
+        camera.setFieldOfView(fov = _horizontalFieldOfView);
     }
 
     // Tell our viewFrustum about this change
@@ -1046,6 +1046,12 @@ void Application::editPreferences() {
     avatarURL->setMinimumWidth(400);
     form->addRow("Avatar URL:", avatarURL);
     
+    QSpinBox* horizontalFieldOfView = new QSpinBox();
+    horizontalFieldOfView->setMaximum(180);
+    horizontalFieldOfView->setMinimum(1);
+    horizontalFieldOfView->setValue(_horizontalFieldOfView);
+    form->addRow("Horizontal field of view (degrees):", horizontalFieldOfView);
+    
     QDoubleSpinBox* headCameraPitchYawScale = new QDoubleSpinBox();
     headCameraPitchYawScale->setValue(_headCameraPitchYawScale);
     form->addRow("Head Camera Pitch/Yaw Scale:", headCameraPitchYawScale);
@@ -1077,6 +1083,9 @@ void Application::editPreferences() {
     if (!shouldDynamicallySetJitterBuffer()) {
         _audio.setJitterBufferSamples(_audioJitterBufferSamples);
     }
+    _horizontalFieldOfView = horizontalFieldOfView->value();
+    resizeGL(_glWidget->width(), _glWidget->height());
+    
 }
 
 void Application::pair() {
@@ -2909,6 +2918,8 @@ void Application::loadSettings(QSettings* settings) {
 
     _headCameraPitchYawScale = loadSetting(settings, "headCameraPitchYawScale", 0.0f);
     _audioJitterBufferSamples = loadSetting(settings, "audioJitterBufferSamples", 0);
+    _horizontalFieldOfView = loadSetting(settings, "horizontalFieldOfView", HORIZONTAL_FIELD_OF_VIEW_DEGREES);
+
     settings->beginGroup("View Frustum Offset Camera");
     // in case settings is corrupt or missing loadSetting() will check for NaN
     _viewFrustumOffsetYaw      = loadSetting(settings, "viewFrustumOffsetYaw"     , 0.0f);
@@ -2930,6 +2941,7 @@ void Application::saveSettings(QSettings* settings) {
 
     settings->setValue("headCameraPitchYawScale", _headCameraPitchYawScale);
     settings->setValue("audioJitterBufferSamples", _audioJitterBufferSamples);
+    settings->setValue("horizontalFieldOfView", _horizontalFieldOfView);
     settings->beginGroup("View Frustum Offset Camera");
     settings->setValue("viewFrustumOffsetYaw",      _viewFrustumOffsetYaw);
     settings->setValue("viewFrustumOffsetPitch",    _viewFrustumOffsetPitch);
