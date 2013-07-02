@@ -124,7 +124,7 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
                                               dataPacket,
                                               BUFFER_LENGTH_BYTES_PER_CHANNEL + leadingBytes);
 
-            interface->getBandwidthMeter()->outputStream(0)
+            interface->getBandwidthMeter()->outputStream(BandwidthMeter::AUDIO)
                     .updateValue(BUFFER_LENGTH_BYTES_PER_CHANNEL + leadingBytes);
         }
         
@@ -448,7 +448,7 @@ void Audio::addReceivedAudioToBuffer(unsigned char* receivedData, int receivedBy
     
     _ringBuffer.parseData((unsigned char*) receivedData, PACKET_LENGTH_BYTES + sizeof(PACKET_HEADER));
    
-    Application::getInstance()->getBandwidthMeter()->inputStream(0)
+    Application::getInstance()->getBandwidthMeter()->inputStream(BandwidthMeter::AUDIO)
             .updateValue(PACKET_LENGTH_BYTES + sizeof(PACKET_HEADER));
  
     _lastReceiveTime = currentReceiveTime;

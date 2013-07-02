@@ -23,9 +23,8 @@ BandwidthDialog::BandwidthDialog(QWidget* parent, BandwidthMeter* model) :
 
     // Setup labels
     for (int i = 0; i < BandwidthMeter::N_STREAMS; ++i) {
-        int chIdx = i / 2;
         bool input = i % 2 == 0;
-        BandwidthMeter::ChannelInfo& ch = _model->channelInfo(chIdx);
+        BandwidthMeter::ChannelInfo& ch = _model->channelInfo(BandwidthMeter::ChannelIndex(i / 2));
         QLabel* label = _labels[i] = new QLabel();  
         label->setAlignment(Qt::AlignRight);
 
@@ -46,7 +45,7 @@ void BandwidthDialog::paintEvent(QPaintEvent* event) {
     // Update labels
     char strBuf[64];
     for (int i = 0; i < BandwidthMeter::N_STREAMS; ++i) {
-        int chIdx = i / 2;
+        BandwidthMeter::ChannelIndex chIdx = BandwidthMeter::ChannelIndex(i / 2);
         bool input = i % 2 == 0;
         BandwidthMeter::ChannelInfo& ch = _model->channelInfo(chIdx);
         BandwidthMeter::Stream& s = input ? _model->inputStream(chIdx) : _model->outputStream(chIdx);

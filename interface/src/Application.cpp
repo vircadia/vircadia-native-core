@@ -70,6 +70,8 @@ using namespace std;
 static char STAR_FILE[] = "https://s3-us-west-1.amazonaws.com/highfidelity/stars.txt";
 static char STAR_CACHE_FILE[] = "cachedStars.txt";
 
+static const int BANDWIDTH_METER_CLICK_MAX_DRAG_LENGTH = 6; // farther dragged clicks are ignored 
+
 const glm::vec3 START_LOCATION(4.f, 0.f, 5.f);   //  Where one's own agent begins in the world
                                                  // (will be overwritten if avatar data file is found)
 
@@ -483,14 +485,14 @@ void Application::broadcastToAgents(unsigned char* data, size_t bytes, const cha
 
     int n = AgentList::getInstance()->broadcastToAgents(data, bytes, &type, 1);
 
-    unsigned channel;
+    BandwidthMeter::ChannelIndex channel;
     switch (type) {
     case AGENT_TYPE_AVATAR:
     case AGENT_TYPE_AVATAR_MIXER:
-        channel = 1;
+        channel = BandwidthMeter::AVATARS;
         break;
     case AGENT_TYPE_VOXEL_SERVER:
-        channel = 2;
+        channel = BandwidthMeter::VOXELS;
         break;
     default:
         return;
@@ -1004,7 +1006,7 @@ void Application::checkBandwidthMeterClick() {
     // ... to be called upon button release
 
     if (_bandwidthDisplayOn->isChecked() &&
-        glm::compMax(glm::abs(glm::ivec2(_mouseX - _mouseDragStartedX, _mouseY - _mouseDragStartedY))) <= 6 &&
+        glm::compMax(glm::abs(glm::ivec2(_mouseX - _mouseDragStartedX, _mouseY - _mouseDragStartedY))) <= BANDWIDTH_METER_CLICK_MAX_DRAG_LENGTH &&
         _bandwidthMeter.isWithinArea(_mouseX, _mouseY, _glWidget->width(), _glWidget->height())) {
 
         // The bandwidth meter is visible, the click didn't get dragged too far and
@@ -2843,7 +2845,7 @@ void* Application::networkReceive(void* args) {
                     AgentList::getInstance()->processBulkAgentData(&senderAddress,
                                                                    app->_incomingPacket,
                                                                    bytesReceived);
-                    getInstance()->_bandwidthMeter.inputStream(1).updateValue(bytesReceived);
+                    getInstance()->_bandwidthMeter.inputStream(BandwidthMeter::AVATARS).updateValue(bytesReceived);
                     break;
                 case PACKET_HEADER_AVATAR_VOXEL_URL:
                     processAvatarVoxelURLMessage(app->_incomingPacket, bytesReceived);

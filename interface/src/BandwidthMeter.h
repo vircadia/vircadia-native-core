@@ -19,6 +19,7 @@ class BandwidthMeter {
 public:
 
     BandwidthMeter();
+    ~BandwidthMeter();
 
     void render(int screenWidth, int screenHeight);
     bool isWithinArea(int x, int y, int screenWidth, int screenHeight);
@@ -27,13 +28,16 @@ public:
     static size_t const N_CHANNELS = 3;
     static size_t const N_STREAMS = N_CHANNELS * 2;
 
+    // Channel usage.
+    enum ChannelIndex { AUDIO, AVATARS, VOXELS };
+
     // Meta information held for a communication channel (bidirectional).
     struct ChannelInfo {
 
-        char const* caption;
-        char const* unitCaption;
-        double      unitScale;
-        unsigned    colorRGBA;
+        char const* const   caption;
+        char const*         unitCaption;
+        double              unitScale;
+        unsigned            colorRGBA;
     };
 
     // Representation of a data stream (unidirectional; input or output).
@@ -52,12 +56,12 @@ public:
     };
 
     // Data model accessors
-    Stream& inputStream(unsigned channelIndex)                  { return _streams[channelIndex * 2]; }
-    Stream const& inputStream(unsigned channelIndex)    const   { return _streams[channelIndex * 2]; }
-    Stream& outputStream(unsigned channelIndex)                 { return _streams[channelIndex * 2 + 1]; }
-    Stream const& outputStream(unsigned channelIndex)   const   { return _streams[channelIndex * 2 + 1]; }
-    ChannelInfo& channelInfo(unsigned index)                    { return _channels[index]; }
-    ChannelInfo const& channelInfo(unsigned index)      const   { return _channels[index]; }
+    Stream& inputStream(ChannelIndex i)                         { return _streams[i * 2]; }
+    Stream const& inputStream(ChannelIndex i)           const   { return _streams[i * 2]; }
+    Stream& outputStream(ChannelIndex i)                        { return _streams[i * 2 + 1]; }
+    Stream const& outputStream(ChannelIndex i)          const   { return _streams[i * 2 + 1]; }
+    ChannelInfo& channelInfo(ChannelIndex i)                    { return _channels[i]; }
+    ChannelInfo const& channelInfo(ChannelIndex i)      const   { return _channels[i]; }
 
 private:
     static void setColorRGBA(unsigned c);
@@ -67,10 +71,10 @@ private:
     static inline int centered(int subject, int object);
 
 
-    static ChannelInfo _DEFAULT_CHANNELS[];
+    static ChannelInfo _CHANNELS[];
 
     TextRenderer _textRenderer;
-    ChannelInfo _channels[N_CHANNELS];
+    ChannelInfo* _channels;
     Stream _streams[N_STREAMS];
     int _scaleMaxIndex;
 };

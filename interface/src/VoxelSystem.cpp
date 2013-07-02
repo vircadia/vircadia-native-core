@@ -161,7 +161,7 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
     
     pthread_mutex_unlock(&_treeLock);
 
-    Application::getInstance()->getBandwidthMeter()->inputStream(2).updateValue(numBytes);
+    Application::getInstance()->getBandwidthMeter()->inputStream(BandwidthMeter::VOXELS).updateValue(numBytes);
  
     return numBytes;
 }

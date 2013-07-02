@@ -36,7 +36,7 @@ namespace { // .cpp-local
     int const INITIAL_SCALE_MAXIMUM_INDEX = 250; // / 9: exponent, % 9: mantissa - 2, 0 o--o 2 * 10^-10
 }
 
-BandwidthMeter::ChannelInfo BandwidthMeter::_DEFAULT_CHANNELS[] = {
+BandwidthMeter::ChannelInfo BandwidthMeter::_CHANNELS[] = {
     { "Audio"   , "Kbps", 8000.0 / 1024.0, 0x40ff40d0 },
     { "Avatars" , "Kbps", 8000.0 / 1024.0, 0xffef40c0 },
     { "Voxels"  , "Kbps", 8000.0 / 1024.0, 0xd0d0d0a0 }
@@ -46,7 +46,13 @@ BandwidthMeter::BandwidthMeter() :
     _textRenderer(SANS_FONT_FAMILY, -1, -1, false, TextRenderer::SHADOW_EFFECT),
     _scaleMaxIndex(INITIAL_SCALE_MAXIMUM_INDEX) {
 
-    memcpy(_channels, _DEFAULT_CHANNELS, sizeof(_DEFAULT_CHANNELS));
+    _channels = static_cast<ChannelInfo*>( malloc(sizeof(_CHANNELS)) );
+    memcpy(_channels, _CHANNELS, sizeof(_CHANNELS));
+}
+
+BandwidthMeter::~BandwidthMeter() {
+
+    free(_channels);
 }
 
 BandwidthMeter::Stream::Stream(float msToAverage) :
@@ -118,8 +124,8 @@ void BandwidthMeter::render(int screenWidth, int screenHeight) {
     float totalIn = 0.0f, totalOut = 0.0f;
     for (int i = 0; i < N_CHANNELS; ++i) {
 
-        totalIn += inputStream(i).getValue();
-        totalOut += outputStream(i).getValue();
+        totalIn += inputStream(ChannelIndex(i)).getValue();
+        totalOut += outputStream(ChannelIndex(i)).getValue();
     }
     totalIn *= UNIT_SCALE;
     totalOut *= UNIT_SCALE;
@@ -189,10 +195,11 @@ void BandwidthMeter::render(int screenWidth, int screenHeight) {
     int xIn = 0, xOut = 0;
     for (int i = 0; i < N_CHANNELS; ++i) {
 
-        int wIn = int(barWidth * inputStream(i).getValue() * UNIT_SCALE / scaleMax);
-        int wOut = int(barWidth * outputStream(i).getValue() * UNIT_SCALE / scaleMax);
+        ChannelIndex chIdx = ChannelIndex(i);
+        int wIn = int(barWidth * inputStream(chIdx).getValue() * UNIT_SCALE / scaleMax);
+        int wOut = int(barWidth * outputStream(chIdx).getValue() * UNIT_SCALE / scaleMax);
 
-        setColorRGBA(channelInfo(i).colorRGBA);
+        setColorRGBA(channelInfo(chIdx).colorRGBA);
 
         if (wIn > 0) {
             renderBox(xIn, 0, wIn, barHeight);
