@@ -120,10 +120,12 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
             
             // copy the audio data to the last BUFFER_LENGTH_BYTES bytes of the data packet
             memcpy(currentPacketPtr, inputLeft, BUFFER_LENGTH_BYTES_PER_CHANNEL);
-            
             agentList->getAgentSocket()->send(audioMixer->getActiveSocket(),
                                               dataPacket,
                                               BUFFER_LENGTH_BYTES_PER_CHANNEL + leadingBytes);
+
+            interface->getBandwidthMeter()->outputStream(BandwidthMeter::AUDIO)
+                    .updateValue(BUFFER_LENGTH_BYTES_PER_CHANNEL + leadingBytes);
         }
         
     }
@@ -335,13 +337,20 @@ Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples) :
     //  Manually initialize the portaudio stream to ask for minimum latency
     PaStreamParameters inputParameters, outputParameters;
     
-    inputParameters.device = Pa_GetDefaultInputDevice(); 
+    inputParameters.device = Pa_GetDefaultInputDevice();
+    outputParameters.device = Pa_GetDefaultOutputDevice();
+
+    if (inputParameters.device == -1 || outputParameters.device == -1) {
+        printLog("Audio: Missing device.\n");
+        outputPortAudioError(Pa_Terminate());
+        return;
+    }
+
     inputParameters.channelCount = 2;                    //  Stereo input
     inputParameters.sampleFormat = (paInt16 | paNonInterleaved);
     inputParameters.suggestedLatency = Pa_GetDeviceInfo(inputParameters.device)->defaultLowInputLatency;
     inputParameters.hostApiSpecificStreamInfo = NULL;
 
-    outputParameters.device = Pa_GetDefaultOutputDevice();
     outputParameters.channelCount = 2;                    //  Stereo output
     outputParameters.sampleFormat = (paInt16 | paNonInterleaved);
     outputParameters.suggestedLatency = Pa_GetDeviceInfo(outputParameters.device)->defaultLowOutputLatency;
@@ -438,7 +447,10 @@ void Audio::addReceivedAudioToBuffer(unsigned char* receivedData, int receivedBy
     //printf("Got audio packet %d\n", _packetsReceivedThisPlayback);
     
     _ringBuffer.parseData((unsigned char*) receivedData, PACKET_LENGTH_BYTES + sizeof(PACKET_HEADER));
-    
+   
+    Application::getInstance()->getBandwidthMeter()->inputStream(BandwidthMeter::AUDIO)
+            .updateValue(PACKET_LENGTH_BYTES + sizeof(PACKET_HEADER));
+ 
     _lastReceiveTime = currentReceiveTime;
 }
 

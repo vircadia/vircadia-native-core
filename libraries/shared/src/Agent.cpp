@@ -105,7 +105,7 @@ bool Agent::operator==(const Agent& otherAgent) {
     return matches(otherAgent._publicSocket, otherAgent._localSocket, otherAgent._type);
 }
 
-bool Agent::matches(sockaddr *otherPublicSocket, sockaddr *otherLocalSocket, char otherAgentType) {
+bool Agent::matches(sockaddr* otherPublicSocket, sockaddr* otherLocalSocket, char otherAgentType) {
     // checks if two agent objects are the same agent (same type + local + public address)
     return _type == otherAgentType
         && socketMatch(_publicSocket, otherPublicSocket)
