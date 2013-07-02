@@ -58,19 +58,3 @@ void Logstash::stashValue(char valueType, const char* key, float value) {
         agentList->getAgentSocket()->send(socket(), logstashPacket, numPacketBytes);
     }
 }
-
-void Logstash::stashTimerValue(const char* key, float value) {
-    const char STAT_TYPE_TIMER = 't';
-    stashValue(STAT_TYPE_TIMER, key, value);
-}
-
-void Logstash::stashCounterValue(const char* key, float value) {
-    const char STAT_TYPE_COUNTER = 'c';
-    stashValue(STAT_TYPE_COUNTER, key, value);
-}
-
-void Logstash::stashGaugeValue(const char* key, float value) {
-    const char STAT_TYPE_GAUGE = 'g';
-    stashValue(STAT_TYPE_GAUGE, key, value);
-}
-

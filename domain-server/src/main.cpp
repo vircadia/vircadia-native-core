@@ -181,7 +181,7 @@ int main(int argc, const char * argv[])
                 // time to send our count of agents and servers to logstash
                 const char NODE_COUNT_LOGSTASH_KEY[] = "ds-node-count";
                 
-                Logstash::stashGaugeValue(NODE_COUNT_LOGSTASH_KEY, agentList->getNumAliveAgents());
+                Logstash::stashValue(STAT_TYPE_GAUGE, NODE_COUNT_LOGSTASH_KEY, agentList->getNumAliveAgents());
                 
                 gettimeofday(&lastStatSendTime, NULL);
             }
