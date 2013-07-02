@@ -1449,7 +1449,7 @@ bool VoxelTree::readFromSVOFile(const char* fileName) {
     return false;
 }
 
-bool VoxelTree::readFromSquareARGB32Pixels(const uint32_t *pixels, int dimension) {
+bool VoxelTree::readFromSquareARGB32Pixels(const uint32_t* pixels, int dimension) {
     SquarePixelMap pixelMap = SquarePixelMap(pixels, dimension);
     pixelMap.addVoxelsToVoxelTree(this);
     return true;

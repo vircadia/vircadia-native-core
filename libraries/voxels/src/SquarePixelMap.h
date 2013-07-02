@@ -23,22 +23,22 @@ struct SquarePixelMapData {
 
 class SquarePixelMap {
 public:
-    SquarePixelMap(const uint32_t *pixels, int dimension);
+    SquarePixelMap(const uint32_t* pixels, int dimension);
     SquarePixelMap(const SquarePixelMap& other);
     ~SquarePixelMap();
     
-    void addVoxelsToVoxelTree(VoxelTree *voxelTree);
+    void addVoxelsToVoxelTree(VoxelTree* voxelTree);
     
     int dimension();
     uint32_t getPixelAt(unsigned int x, unsigned int y);
     uint8_t getAlphaAt(int x, int y);
 private:
-    SquarePixelMapData *_data;
-    PixelQuadTreeNode *_rootPixelQuadTreeNode;
+    SquarePixelMapData* _data;
+    PixelQuadTreeNode* _rootPixelQuadTreeNode;
     
     void generateRootPixelQuadTreeNode();
-    void createVoxelsFromPixelQuadTreeToVoxelTree(PixelQuadTreeNode *pixelQuadTreeNode, VoxelTree *voxelTree);
-    VoxelDetail getVoxelDetail(PixelQuadTreeNode *pixelQuadTreeNode);
+    void createVoxelsFromPixelQuadTreeToVoxelTree(PixelQuadTreeNode* pixelQuadTreeNode, VoxelTree* voxelTree);
+    VoxelDetail getVoxelDetail(PixelQuadTreeNode* pixelQuadTreeNode);
 };
 
 #endif /* defined(__hifi__SquarePixelMap__) */

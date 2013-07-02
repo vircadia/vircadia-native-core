@@ -10,6 +10,12 @@
 #include <string.h>
 #include <stdlib.h>
 
+#define CHILD_COORD_X_IS_1 0x1
+#define CHILD_COORD_Y_IS_1 0x2
+#define ALPHA_CHANNEL_RANGE_FLOAT 256.f
+#define ALPHA_CHANNEL_BIT_OFFSET 24
+#define RED_CHANNEL_BIT_OFFSET 16
+#define GREEN_CHANNEL_BIT_OFFSET 8
 
 unsigned int numberOfBitsForSize(unsigned int size) {
     if (size == 0) {
@@ -45,9 +51,9 @@ public:
     // v | 2 | 3 |
     //   +---+---+
     // 1
-    PixelQuadTreeNode *_children[4];
+    PixelQuadTreeNode* _children[4];
     
-    PixelQuadTreeNode(PixelQuadTreeCoordinates coord, SquarePixelMap *pixelMap);
+    PixelQuadTreeNode(PixelQuadTreeCoordinates coord, SquarePixelMap* pixelMap);
     ~PixelQuadTreeNode() {
         for (int i = 0; i < 4; i++) {
             delete _children[i];
@@ -55,14 +61,14 @@ public:
     }
 
 private:
-    void updateChildCoordinates(int i, PixelQuadTreeCoordinates &childCoord) {
+    void updateChildCoordinates(int i, PixelQuadTreeCoordinates& childCoord) {
         childCoord.x = _coord.x;
         childCoord.y = _coord.y;
         
-        if (i & 0x1) {
+        if (i & CHILD_COORD_X_IS_1) {
             childCoord.x += childCoord.size;
         }
-        if (i & 0x2) {
+        if (i & CHILD_COORD_Y_IS_1) {
             childCoord.y += childCoord.size;
         }
     }
@@ -87,7 +93,7 @@ private:
     }
 };
 
-PixelQuadTreeNode::PixelQuadTreeNode(PixelQuadTreeCoordinates coord, SquarePixelMap *pixelMap) : _coord(coord), _minimumNeighbourhoodAplha(-1) {
+PixelQuadTreeNode::PixelQuadTreeNode(PixelQuadTreeCoordinates coord, SquarePixelMap* pixelMap) : _coord(coord), _minimumNeighbourhoodAplha(-1) {
     for (int i = 0; i < 4; i++) {
         _children[i] = NULL;
     }
@@ -133,14 +139,14 @@ PixelQuadTreeNode::PixelQuadTreeNode(PixelQuadTreeCoordinates coord, SquarePixel
     }
 }
 
-SquarePixelMap::SquarePixelMap(const uint32_t *pixels, int dimension) : _rootPixelQuadTreeNode(NULL) {
+SquarePixelMap::SquarePixelMap(const uint32_t* pixels, int dimension) : _rootPixelQuadTreeNode(NULL) {
     _data = new SquarePixelMapData();
     _data->dimension = dimension;
     _data->reference_counter = 1;
     
     size_t pixels_size = dimension * dimension;
     _data->pixels = new uint32_t[pixels_size];
-    memcpy((void *)_data->pixels, (void *)pixels, sizeof(uint32_t) * pixels_size);
+    memcpy((void*)_data->pixels, (void*)pixels, sizeof(uint32_t) * pixels_size);
 }
 
 SquarePixelMap::SquarePixelMap(const SquarePixelMap& other) {
@@ -157,7 +163,7 @@ SquarePixelMap::~SquarePixelMap() {
     }
 }
 
-void SquarePixelMap::addVoxelsToVoxelTree(VoxelTree *voxelTree) {
+void SquarePixelMap::addVoxelsToVoxelTree(VoxelTree* voxelTree) {
     this->generateRootPixelQuadTreeNode();
     this->createVoxelsFromPixelQuadTreeToVoxelTree(_rootPixelQuadTreeNode, voxelTree);
 }
@@ -177,7 +183,7 @@ uint8_t SquarePixelMap::getAlphaAt(int x, int y) {
         return -1;
     }
     
-    return this->getPixelAt(x, y) >> 24;
+    return this->getPixelAt(x, y) >> ALPHA_CHANNEL_BIT_OFFSET;
 }
 
 void SquarePixelMap::generateRootPixelQuadTreeNode() {
@@ -190,20 +196,20 @@ void SquarePixelMap::generateRootPixelQuadTreeNode() {
     _rootPixelQuadTreeNode = new PixelQuadTreeNode(rootNodeCoord, this);
 }
 
-void SquarePixelMap::createVoxelsFromPixelQuadTreeToVoxelTree(PixelQuadTreeNode *pixelQuadTreeNode, VoxelTree *voxelTree) {
+void SquarePixelMap::createVoxelsFromPixelQuadTreeToVoxelTree(PixelQuadTreeNode* pixelQuadTreeNode, VoxelTree* voxelTree) {
     if (pixelQuadTreeNode->_allChildrenHasSameColor) {
         VoxelDetail voxel = this->getVoxelDetail(pixelQuadTreeNode);
         
         unsigned char minimumNeighbourhoodAplha = std::max<int>(0, pixelQuadTreeNode->_minimumNeighbourhoodAplha - 1);
         
-        float minimumNeighbourhoodY = voxel.s * (floor(minimumNeighbourhoodAplha / (256.f * voxel.s)) + 0.5);
+        float minimumNeighbourhoodY = voxel.s * (floor(minimumNeighbourhoodAplha / (ALPHA_CHANNEL_RANGE_FLOAT * voxel.s)) + 0.5);
         
         do {
             voxelTree->createVoxel(voxel.x, voxel.y, voxel.z, voxel.s, voxel.red, voxel.green, voxel.blue, true);
         } while ((voxel.y -= voxel.s) > minimumNeighbourhoodY);
     } else {
         for (int i = 0; i < 4; i++) {
-            PixelQuadTreeNode *child = pixelQuadTreeNode->_children[i];
+            PixelQuadTreeNode* child = pixelQuadTreeNode->_children[i];
             if (child) {
                 this->createVoxelsFromPixelQuadTreeToVoxelTree(child, voxelTree);
             }
@@ -211,21 +217,21 @@ void SquarePixelMap::createVoxelsFromPixelQuadTreeToVoxelTree(PixelQuadTreeNode 
     }
 }
 
-VoxelDetail SquarePixelMap::getVoxelDetail(PixelQuadTreeNode *pixelQuadTreeNode) {
+VoxelDetail SquarePixelMap::getVoxelDetail(PixelQuadTreeNode* pixelQuadTreeNode) {
     VoxelDetail voxel = VoxelDetail();
     
     uint32_t color = pixelQuadTreeNode->_color;
-    unsigned char alpha = std::max<int>(0, (color >> 24) - 1);
+    unsigned char alpha = std::max<int>(0, (color >> ALPHA_CHANNEL_BIT_OFFSET) - 1);
     
-    voxel.red = color >> 16;
-    voxel.green = color >> 8;
+    voxel.red = color >> RED_CHANNEL_BIT_OFFSET;
+    voxel.green = color >> GREEN_CHANNEL_BIT_OFFSET;
     voxel.blue = color;
     
     
     float rootSize = _rootPixelQuadTreeNode->_coord.size;
     
     voxel.s = pixelQuadTreeNode->_coord.size / rootSize;
-    voxel.y = voxel.s * (floor(alpha / (256.f * voxel.s)) + 0.5);
+    voxel.y = voxel.s * (floor(alpha / (ALPHA_CHANNEL_RANGE_FLOAT * voxel.s)) + 0.5);
     voxel.x = pixelQuadTreeNode->_coord.x / rootSize + voxel.s / 2;
     voxel.z = pixelQuadTreeNode->_coord.y / rootSize + voxel.s / 2;
     
