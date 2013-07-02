@@ -362,7 +362,7 @@ void Application::paintGL() {
     glEnable(GL_LINE_SMOOTH);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
-    float headCameraScale = _serialHeadSensor.isActive() ? _headCameraPitchYawScale : 1.0f;
+    float headCameraScale = (_serialHeadSensor.isActive() || _webcam.isActive()) ? _headCameraPitchYawScale : 1.0f;
     
     if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         _myCamera.setTightness     (100.0f); 

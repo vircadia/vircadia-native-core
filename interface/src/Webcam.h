@@ -45,6 +45,7 @@ public:
     const bool isActive() const { return _active; }
     const glm::vec3& getEstimatedPosition() const { return _estimatedPosition; }
     const glm::vec3& getEstimatedRotation() const { return _estimatedRotation; }
+    const JointVector& getEstimatedJoints() const { return _estimatedJoints; }
 
     void reset();
     void renderPreview(int screenWidth, int screenHeight);
@@ -117,6 +118,7 @@ private:
     xn::UserGenerator _userGenerator;
     xn::DepthMetaData _depthMetaData;
     xn::ImageMetaData _imageMetaData;
+    XnUserID _userID;
 #endif
 };
 

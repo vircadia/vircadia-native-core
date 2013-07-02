@@ -284,11 +284,11 @@ void Avatar::reset() {
     _hand.reset();
 }
 
-//  Update avatar head rotation with sensor data
+//  Update avatar state with sensor data
 void Avatar::updateFromGyrosAndOrWebcam() {
-    const float AMPLIFY_PITCH = 2.f;
-    const float AMPLIFY_YAW = 2.f;
-    const float AMPLIFY_ROLL = 2.f;
+    const float AMPLIFY_PITCH = 1.f;
+    const float AMPLIFY_YAW = 1.f;
+    const float AMPLIFY_ROLL = 1.f;
 
     SerialInterface* gyros = Application::getInstance()->getSerialHeadSensor();
     Webcam* webcam = Application::getInstance()->getWebcam();
@@ -301,6 +301,15 @@ void Avatar::updateFromGyrosAndOrWebcam() {
         estimatedPosition = webcam->getEstimatedPosition();
         estimatedRotation = webcam->getEstimatedRotation();
     
+        // compute and store the joint rotations
+        const JointVector& joints = webcam->getEstimatedJoints();
+        _joints.clear();
+        for (int i = 0; i < NUM_AVATAR_JOINTS; i++) {
+            if (joints[i].isValid) {
+                JointData data = { i, joints[i].position, joints[i].orientation };
+                _joints.push_back(data);
+            }
+        }
     } else {
         return;
     }
@@ -487,6 +496,63 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     
 	// update avatar skeleton
     _skeleton.update(deltaTime, getOrientation(), _position);
+            
+    // apply joint data (if any) to skeleton
+    for (vector<JointData>::iterator it = _joints.begin(); it != _joints.end(); it++) {
+        _skeleton.joint[it->jointID].absoluteRotation = orientation * it->rotation;
+        _skeleton.joint[it->jointID].position = _position + orientation * it->position;
+        
+        AvatarJointID derivedJointID = AVATAR_JOINT_NULL;
+        AvatarJointID secondJointID = (AvatarJointID)it->jointID;
+        float proportion = 0.5f;
+        switch (it->jointID) {
+            case AVATAR_JOINT_NECK_BASE:
+                secondJointID = AVATAR_JOINT_TORSO;
+                derivedJointID = AVATAR_JOINT_CHEST;
+                break;
+                
+            case AVATAR_JOINT_HEAD_BASE:
+                derivedJointID = AVATAR_JOINT_HEAD_TOP;
+                break;
+                
+            case AVATAR_JOINT_LEFT_SHOULDER:
+                secondJointID = AVATAR_JOINT_CHEST;
+                derivedJointID = AVATAR_JOINT_LEFT_COLLAR;
+                break;
+                
+            case AVATAR_JOINT_LEFT_WRIST:
+                derivedJointID = AVATAR_JOINT_LEFT_FINGERTIPS;
+                break;
+                
+            case AVATAR_JOINT_RIGHT_SHOULDER:
+                secondJointID = AVATAR_JOINT_CHEST;
+                derivedJointID = AVATAR_JOINT_RIGHT_COLLAR;
+                break;
+                
+            case AVATAR_JOINT_RIGHT_WRIST:
+                derivedJointID = AVATAR_JOINT_RIGHT_FINGERTIPS;
+                break;
+                
+            case AVATAR_JOINT_LEFT_HEEL:
+                derivedJointID = AVATAR_JOINT_LEFT_TOES;
+                break;
+                
+            case AVATAR_JOINT_RIGHT_HIP:
+                secondJointID = AVATAR_JOINT_LEFT_HIP;
+                derivedJointID = AVATAR_JOINT_PELVIS;
+                break;
+                
+            case AVATAR_JOINT_RIGHT_HEEL:
+                derivedJointID = AVATAR_JOINT_RIGHT_TOES;
+                break;
+        }
+        if (derivedJointID != AVATAR_JOINT_NULL) {
+            _skeleton.joint[derivedJointID].position = glm::mix(_skeleton.joint[it->jointID].position,
+                _skeleton.joint[secondJointID].position, proportion);
+            _skeleton.joint[derivedJointID].absoluteRotation = safeMix(_skeleton.joint[it->jointID].absoluteRotation,
+                _skeleton.joint[secondJointID].absoluteRotation, proportion);
+        }
+    }
     
     //determine the lengths of the body springs now that we have updated the skeleton at least once
     if (!_ballSpringsInitialized) {
