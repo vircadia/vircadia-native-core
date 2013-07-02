@@ -13,6 +13,7 @@
 #include "world.h"
 #include "Application.h"
 #include "Avatar.h"
+#include "Hand.h"
 #include "Head.h"
 #include "Log.h"
 #include "ui/TextRenderer.h"
@@ -64,6 +65,7 @@ Avatar::Avatar(Agent* owningAgent) :
     AvatarData(owningAgent),
     _initialized(false),
     _head(this),
+    _hand(this),
     _ballSpringsInitialized(false),
     _TEST_bigSphereRadius(0.5f),
     _TEST_bigSpherePosition(5.0f, _TEST_bigSphereRadius, 5.0f),
@@ -96,6 +98,7 @@ Avatar::Avatar(Agent* owningAgent) :
 {
     // give the pointer to our head to inherited _headData variable from AvatarData
     _headData = &_head;
+    _handData = &_hand;
     
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
         _driveKeys[i] = false;
@@ -104,7 +107,6 @@ Avatar::Avatar(Agent* owningAgent) :
     _skeleton.initialize();
     
     initializeBodyBalls();
-    initializeLeapBalls();
     
     _height               = _skeleton.getHeight() + _bodyBall[ BODY_BALL_LEFT_HEEL ].radius + _bodyBall[ BODY_BALL_HEAD_BASE ].radius;
     
@@ -264,35 +266,22 @@ void Avatar::initializeBodyBalls() {
      */
 }
 
-void Avatar::initializeLeapBalls() {
-    
-    _numLeapBalls = 0;
-
-    for (int b = 0; b < MAX_AVATAR_LEAP_BALLS; b++) {
-        _leapBall[b].parentJoint    = AVATAR_JOINT_NULL;
-        _leapBall[b].parentOffset   = glm::vec3(0.0, 0.0, 0.0);
-        _leapBall[b].position       = glm::vec3(0.0, 0.0, 0.0);
-        _leapBall[b].velocity       = glm::vec3(0.0, 0.0, 0.0);
-        _leapBall[b].radius         = 0.01;
-        _leapBall[b].touchForce     = 0.0;
-        _leapBall[b].isCollidable   = true;
-        _leapBall[b].jointTightness = BODY_SPRING_DEFAULT_TIGHTNESS;
-    }
-}
-
 Avatar::~Avatar() {
     _headData = NULL;
+    _handData = NULL;
     delete _balls;
 }
 
 void Avatar::init() {
     _head.init();
+    _hand.init();
     _voxels.init();
     _initialized = true;
 }
 
 void Avatar::reset() {
     _head.reset();
+    _hand.reset();
 }
 
 //  Update avatar head rotation with sensor data
@@ -447,7 +436,7 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     glm::vec3 right = orientation * IDENTITY_RIGHT;
 
     // Update movement timers
-    if (!_owningAgent) {
+    if (isMyAvatar()) {
         _elapsedTimeSinceCollision += deltaTime;
         const float VELOCITY_MOVEMENT_TIMER_THRESHOLD = 0.2f;
         if (glm::length(_velocity) < VELOCITY_MOVEMENT_TIMER_THRESHOLD) {
@@ -460,14 +449,14 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     }
     
     //  Collect thrust forces from keyboard and devices 
-    if (!_owningAgent) {
+    if (isMyAvatar()) {
         updateThrust(deltaTime, transmitter);
     }
     
     // copy velocity so we can use it later for acceleration
     glm::vec3 oldVelocity = getVelocity();
     
-    if (!_owningAgent) {
+    if (isMyAvatar()) {
         // update position by velocity
         _position += _velocity * deltaTime;
         
@@ -476,7 +465,7 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     }
     
     //figure out if the mouse cursor is over any body spheres...
-    if (!_owningAgent) {
+    if (isMyAvatar()) {
         checkForMouseRayTouching();
     }
 
@@ -519,12 +508,12 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     
     
     // if this is not my avatar, then hand position comes from transmitted data
-    if (_owningAgent) {
+    if (!isMyAvatar()) {
         _skeleton.joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position = _handPosition;
     }
     
     //detect and respond to collisions with other avatars...
-    if (!_owningAgent) {
+    if (isMyAvatar()) {
         updateAvatarCollisions(deltaTime);
     }
     
@@ -533,18 +522,15 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     _avatarTouch.simulate(deltaTime);
     
     // apply gravity and collision with the ground/floor
-    if (!_owningAgent && USING_AVATAR_GRAVITY) {
+    if (isMyAvatar() && USING_AVATAR_GRAVITY) {
         _velocity += _gravity * (GRAVITY_EARTH * deltaTime);
     }
-    if (!_owningAgent) {
+    if (isMyAvatar()) {
         updateCollisionWithEnvironment();
     }
     
     // update body balls
     updateBodyBalls(deltaTime);
-    
-    // update leap balls
-    updateLeapBalls(deltaTime);
     
     // test for avatar collision response with the big sphere
     if (usingBigSphereCollisionTest) {
@@ -552,11 +538,11 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     }
     
     // collision response with voxels
-    if (!_owningAgent) {
+    if (isMyAvatar()) {
         updateCollisionWithVoxels();
     }
     
-    if (!_owningAgent) {
+    if (isMyAvatar()) {
     
         // add thrust to velocity
         _velocity += _thrust * deltaTime;
@@ -669,7 +655,7 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     _head.setPosition(_bodyBall[ BODY_BALL_HEAD_BASE ].position);
     _head.setScale   (_bodyBall[ BODY_BALL_HEAD_BASE ].radius);
     _head.setSkinColor(glm::vec3(SKIN_COLOR[0], SKIN_COLOR[1], SKIN_COLOR[2]));
-    _head.simulate(deltaTime, !_owningAgent);
+    _head.simulate(deltaTime, isMyAvatar());
     
     // use speed and angular velocity to determine walking vs. standing
     if (_speed + fabs(_bodyYawDelta) > 0.2) {
@@ -728,7 +714,7 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
     
     _skeleton.joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position += transformedHandMovement;
     
-    if (!_owningAgent) {
+    if (isMyAvatar()) {
         _avatarTouch.setMyBodyPosition(_position);
         _avatarTouch.setMyOrientation(orientation);
         
@@ -820,7 +806,7 @@ void Avatar::updateHandMovementAndTouching(float deltaTime) {
     updateArmIKAndConstraints(deltaTime);
     
     //Set right hand position and state to be transmitted, and also tell AvatarTouch about it
-    if (!_owningAgent) {
+    if (isMyAvatar()) {
         setHandPosition(_skeleton.joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position);
         
         if (_mousePressed) {
@@ -1004,7 +990,7 @@ void Avatar::setGravity(glm::vec3 gravity) {
 
 void Avatar::render(bool lookingInMirror, bool renderAvatarBalls) {
 
-    if (!_owningAgent && usingBigSphereCollisionTest) {
+    if (isMyAvatar() && usingBigSphereCollisionTest) {
         // show TEST big sphere
         glColor4f(0.5f, 0.6f, 0.8f, 0.7);
         glPushMatrix();
@@ -1021,7 +1007,7 @@ void Avatar::render(bool lookingInMirror, bool renderAvatarBalls) {
     renderBody(lookingInMirror, renderAvatarBalls);
     
     // if this is my avatar, then render my interactions with the other avatar
-    if (!_owningAgent) {
+    if (isMyAvatar()) {
         _avatarTouch.render(Application::getInstance()->getCamera()->getPosition());
     }
     
@@ -1167,23 +1153,6 @@ void Avatar::updateBodyBalls(float deltaTime) {
         _bodyBall[BODY_BALL_HEAD_TOP].rotation * _skeleton.joint[BODY_BALL_HEAD_TOP].bindPosePosition;
 }
 
-void Avatar::setLeapFingers(const std::vector<glm::vec3>& fingerPositions) {
-    _numLeapBalls = fingerPositions.size(); // just to test
-    
-    float unitScale = 0.001; // convert mm to meters
-    glm::vec3 offset(0.2, -0.2, -0.3);  // place the hand in front of the face where we can see it
-
-    for (int b = 0; b < _numLeapBalls; b++) {
-        glm::vec3 pos = unitScale * fingerPositions[b] + offset;
-        _leapBall[b].rotation = _head.getOrientation();
-        _leapBall[b].position = _bodyBall[BODY_BALL_HEAD_BASE].position +
-        _head.getOrientation() * pos;
-    }
-}
-
-void Avatar::updateLeapBalls(float deltaTime) {
-}
-
 void Avatar::updateArmIKAndConstraints(float deltaTime) {
     
     // determine the arm vector
@@ -1240,7 +1209,7 @@ float Avatar::getBallRenderAlpha(int ball, bool lookingInMirror) const {
     const float RENDER_OPAQUE_OUTSIDE = 1.25f; // render opaque if greater than this distance
     const float DO_NOT_RENDER_INSIDE = 0.75f; // do not render if less than this distance
     float distanceToCamera = glm::length(Application::getInstance()->getCamera()->getPosition() - _bodyBall[ball].position);
-    return (lookingInMirror || _owningAgent) ? 1.0f : glm::clamp(
+    return (lookingInMirror || !isMyAvatar()) ? 1.0f : glm::clamp(
         (distanceToCamera - DO_NOT_RENDER_INSIDE) / (RENDER_OPAQUE_OUTSIDE - DO_NOT_RENDER_INSIDE), 0.f, 1.f);
 }
 
@@ -1258,7 +1227,7 @@ void Avatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
                 }
             } else if (alpha > 0.0f) {
                 //  Render the body ball sphere
-                if (_owningAgent || b == BODY_BALL_RIGHT_ELBOW
+                if (!isMyAvatar() || b == BODY_BALL_RIGHT_ELBOW
                     || b == BODY_BALL_RIGHT_WRIST
                     || b == BODY_BALL_RIGHT_FINGERTIPS ) {
                     glColor3f(SKIN_COLOR[0] + _bodyBall[b].touchForce * 0.3f,
@@ -1306,30 +1275,6 @@ void Avatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
                 }
             }
         }
-        // Draw the leap balls
-        for (int b = 0; b < _numLeapBalls; b++) {
-            float alpha = 1.0f;
-            
-            if (alpha > 0.0f) {
-                //  Render the body ball sphere
-                if (_owningAgent || true) {
-                    glColor3f(SKIN_COLOR[0] + _leapBall[b].touchForce * 0.3f,
-                              SKIN_COLOR[1] - _leapBall[b].touchForce * 0.2f,
-                              SKIN_COLOR[2] - _leapBall[b].touchForce * 0.1f);
-                } else {
-                    glColor4f(SKIN_COLOR[0] + _leapBall[b].touchForce * 0.3f,
-                              SKIN_COLOR[1] - _leapBall[b].touchForce * 0.2f,
-                              SKIN_COLOR[2] - _leapBall[b].touchForce * 0.1f,
-                              alpha);
-                }
-                glColor4f(0.0, 0.4, 0.0, 1.0); // Just to test
-                
-                glPushMatrix();
-                glTranslatef(_leapBall[b].position.x, _leapBall[b].position.y, _leapBall[b].position.z);
-                glutSolidSphere(_leapBall[b].radius, 20.0f, 20.0f);
-                glPopMatrix();
-            }
-        }
     } else {
         //  Render the body's voxels
         float alpha = getBallRenderAlpha(BODY_BALL_HEAD_BASE, lookingInMirror);
@@ -1337,6 +1282,7 @@ void Avatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
             _voxels.render(false);
         }
     }
+    _hand.render(lookingInMirror);
 }
 
 

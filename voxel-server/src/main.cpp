@@ -706,6 +706,10 @@ int main(int argc, const char * argv[]) {
                 
                 agentList->updateAgentWithData(agent, packetData, receivedBytes);
             }
+            // If the packet is a ping, let processAgentData handle it.
+            if (packetData[0] == PACKET_HEADER_PING) {
+                agentList->processAgentData(&agentPublicAddress, packetData, receivedBytes);
+            }
         }
     }
     

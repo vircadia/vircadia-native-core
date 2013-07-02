@@ -23,6 +23,8 @@
 #include <fstream> // to load voxels from file
 #include "VoxelConstants.h"
 #include "CoverageMap.h"
+#include "SquarePixelMap.h"
+
 
 #include <glm/gtc/noise.hpp>
 
@@ -1445,6 +1447,12 @@ bool VoxelTree::readFromSVOFile(const char* fileName) {
         return true;
     }
     return false;
+}
+
+bool VoxelTree::readFromSquareARGB32Pixels(const uint32_t* pixels, int dimension) {
+    SquarePixelMap pixelMap = SquarePixelMap(pixels, dimension);
+    pixelMap.addVoxelsToVoxelTree(this);
+    return true;
 }
 
 void VoxelTree::writeToSVOFile(const char* fileName, VoxelNode* node) const {

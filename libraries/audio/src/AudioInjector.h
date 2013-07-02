@@ -11,6 +11,7 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
+#include <glm/gtx/component_wise.hpp>
 
 #include <UDPSocket.h>
 
