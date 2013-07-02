@@ -191,6 +191,18 @@ Agent* AgentList::agentWithID(uint16_t agentID) {
     return NULL;
 }
 
+int AgentList::numAliveAgents() const {
+    int numAliveAgents = 0;
+    
+    for (AgentList::iterator agent = begin(); agent != end(); agent++) {
+        if (agent->isAlive()) {
+            ++numAliveAgents;
+        }
+    }
+    
+    return numAliveAgents;
+}
+
 void AgentList::setAgentTypesOfInterest(const char* agentTypesOfInterest, int numAgentTypesOfInterest) {
     delete _agentTypesOfInterest;
     

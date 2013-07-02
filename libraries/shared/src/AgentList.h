@@ -63,6 +63,7 @@ public:
     void(*linkedDataCreateCallback)(Agent *);
     
     int size() { return _numAgents; }
+    int numAliveAgents() const;
     
     void lock() { pthread_mutex_lock(&mutex); }
     void unlock() { pthread_mutex_unlock(&mutex); }
