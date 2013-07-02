@@ -196,6 +196,7 @@ CoverageMapStorageResult CoverageMap::checkMap(VoxelProjectedPolygon* polygon, b
         bool fitsInAHalf = false;
         
         // Check each half of the box independently
+/**        
         if (_topHalf.contains(polygonBox)) {
             result = _topHalf.checkRegion(polygon, polygonBox, storeIt);
             storeIn = &_topHalf;
@@ -213,6 +214,7 @@ CoverageMapStorageResult CoverageMap::checkMap(VoxelProjectedPolygon* polygon, b
             storeIn = &_rightHalf;
             fitsInAHalf = true;
         }
+**/
         
         // if we got this far, there are one of two possibilities, either a polygon doesn't fit
         // in one of the halves, or it did fit, but it wasn't occluded by anything only in that
@@ -239,6 +241,7 @@ CoverageMapStorageResult CoverageMap::checkMap(VoxelProjectedPolygon* polygon, b
         // if we made it here, then it means the polygon being stored is not occluded
         // at this level of the quad tree, so we can continue to insert it into the map. 
         // First we check to see if it fits in any of our sub maps
+if (false) {        
         for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
             BoundingBox childMapBoundingBox = getChildBoundingBox(i);
             if (childMapBoundingBox.contains(polygon->getBoundingBox())) {
@@ -268,6 +271,7 @@ CoverageMapStorageResult CoverageMap::checkMap(VoxelProjectedPolygon* polygon, b
                 return result;
             }
         }
+}
         // if we got this far, then the polygon is in our bounding box, but doesn't fit in
         // any of our child bounding boxes, so we should add it here.
         if (storeIt) {
@@ -397,13 +401,53 @@ int CoverageRegion::_tooSmallSkips = 0;
 int CoverageRegion::_outOfOrderPolygon = 0;
 int CoverageRegion::_clippedPolygons = 0;
 
+
+bool CoverageRegion::mergeItemsInArray(VoxelProjectedPolygon* seed, bool seedInArray) {
+    for (int i = 0; i < _polygonCount; i++) {
+        VoxelProjectedPolygon* otherPolygon = _polygons[i];
+        if (otherPolygon->canMerge(*seed)) {
+            otherPolygon->merge(*seed);
+
+            if (seedInArray) {
+                const int IGNORED = NULL;
+                // remove this otherOtherPolygon for our polygon array
+                _polygonCount = removeFromSortedArrays((void*)seed,
+                                                       (void**)_polygons, _polygonDistances, IGNORED,
+                                                       _polygonCount, _polygonArraySize);
+                _totalPolygons--;
+            }
+        
+            //printLog("_polygonCount=%d\n",_polygonCount);
+        
+            // clean up
+            if (_managePolygons) {
+                delete seed;
+            }
+            
+            // Now run again using our newly merged polygon as the seed
+            mergeItemsInArray(otherPolygon, true);
+            
+            return true;
+        }
+    }
+    return false;
+}
+
 // just handles storage in the array, doesn't test for occlusion or
 // determining if this is the correct map to store in!
 void CoverageRegion::storeInArray(VoxelProjectedPolygon* polygon) {
 
-    _totalPolygons++;
-
     _currentCoveredBounds.explandToInclude(polygon->getBoundingBox());
+    
+    
+    // Before we actually store this polygon in the array, check to see if this polygon can be merged to any of the existing
+    // polygons already in our array.
+    if (mergeItemsInArray(polygon, false)) {
+        return; // exit early
+    }
+    
+    // only after we attempt to merge!
+    _totalPolygons++;
 
     if (_polygonArraySize < _polygonCount + 1) {
         growPolygonArray();
@@ -414,11 +458,11 @@ void CoverageRegion::storeInArray(VoxelProjectedPolygon* polygon) {
     // in the list. We still check to see if the polygon is "in front" of the target polygon before we test occlusion. Since
     // sometimes things come out of order.
     const bool SORT_BY_SIZE = false;
+    const int IGNORED = NULL;
     if (SORT_BY_SIZE) {
         // This old code assumes that polygons will always be added in z-buffer order, but that doesn't seem to
         // be a good assumption. So instead, we will need to sort this by distance. Use a binary search to find the
         // insertion point in this array, and shift the array accordingly
-        const int IGNORED = NULL;
         float area = polygon->getBoundingBox().area();
         float reverseArea = 4.0f - area;
         //printLog("store by size area=%f reverse area=%f\n", area, reverseArea);
@@ -458,13 +502,13 @@ CoverageMapStorageResult CoverageRegion::checkRegion(VoxelProjectedPolygon* poly
             // check to make sure this polygon isn't occluded by something at this level
             for (int i = 0; i < _polygonCount; i++) {
                 VoxelProjectedPolygon* polygonAtThisLevel = _polygons[i];
+
                 // Check to make sure that the polygon in question is "behind" the polygon in the list
                 // otherwise, we don't need to test it's occlusion (although, it means we've potentially
                 // added an item previously that may be occluded??? Is that possible? Maybe not, because two
                 // voxels can't have the exact same outline. So one occludes the other, they can't both occlude
                 // each other.
-        
-        
+                
                 _occlusionTests++;
                 if (polygonAtThisLevel->occludes(*polygon)) {
                     // if the polygonAtThisLevel is actually behind the one we're inserting, then we don't

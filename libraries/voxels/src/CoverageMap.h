@@ -59,6 +59,9 @@ private:
     float*                  _polygonSizes;
     void growPolygonArray();
     static const int DEFAULT_GROW_SIZE = 100;
+    
+    bool mergeItemsInArray(VoxelProjectedPolygon* seed, bool seedInArray);
+    
 };
 
 class CoverageMap {

@@ -369,4 +369,751 @@ bool VoxelProjectedPolygon::intersectsOnAxes(const VoxelProjectedPolygon& testee
     return true;
 }
 
+bool VoxelProjectedPolygon::canMerge(const VoxelProjectedPolygon& that) const {
+    // RIGHT/NEAR
+    // LEFT/NEAR
+    if (
+        (getProjectionType() == that.getProjectionType()) && 
+        (
+             getProjectionType() == (PROJECTION_RIGHT | PROJECTION_NEAR) ||
+             getProjectionType() == (PROJECTION_LEFT | PROJECTION_NEAR)
+        ) 
+       ) {
+        if (getVertex(1) == that.getVertex(0) && getVertex(4) == that.getVertex(5)) {
+            return true;
+        }
+        if (getVertex(0) == that.getVertex(1) && getVertex(5) == that.getVertex(4)) {
+            return true;
+        }
+        if (getVertex(2) == that.getVertex(1) && getVertex(3) == that.getVertex(4)) {
+            return true;
+        }
+        if (getVertex(1) == that.getVertex(2) && getVertex(4) == that.getVertex(3)) {
+            return true;
+        }
+    }
 
+    // NEAR/BOTTOM
+    if (
+        (getProjectionType() == that.getProjectionType()) && 
+        (
+             getProjectionType() == (PROJECTION_NEAR | PROJECTION_BOTTOM)
+        ) 
+       ) {
+        if (getVertex(0) == that.getVertex(5) && getVertex(3) == that.getVertex(4)) {
+            return true;
+        }
+        if (getVertex(5) == that.getVertex(0) && getVertex(4) == that.getVertex(3)) {
+            return true;
+        }
+        if (getVertex(1) == that.getVertex(0) && getVertex(2) == that.getVertex(3)) {
+            return true;
+        }
+        if (getVertex(0) == that.getVertex(1) && getVertex(3) == that.getVertex(2)) {
+            return true;
+        }
+    }
+
+    // NEAR/TOP
+    if (
+        (getProjectionType() == that.getProjectionType()) && 
+        (
+             getProjectionType() == (PROJECTION_NEAR | PROJECTION_TOP)
+        ) 
+       ) {
+        if (getVertex(0) == that.getVertex(5) && getVertex(1) == that.getVertex(2)) {
+            return true;
+        }
+        if (getVertex(5) == that.getVertex(0) && getVertex(2) == that.getVertex(1)) {
+            return true;
+        }
+        if (getVertex(4) == that.getVertex(5) && getVertex(3) == that.getVertex(2)) {
+            return true;
+        }
+        if (getVertex(5) == that.getVertex(4) && getVertex(2) == that.getVertex(3)) {
+            return true;
+        }
+    }
+
+    // RIGHT/NEAR & NEAR/RIGHT/TOP
+    // LEFT/NEAR  & NEAR/LEFT/TOP
+    if (
+            ((getProjectionType()     == (PROJECTION_RIGHT | PROJECTION_NEAR | PROJECTION_TOP)) && 
+            (that.getProjectionType() == (PROJECTION_RIGHT | PROJECTION_NEAR))) 
+            ||
+            ((getProjectionType()     == (PROJECTION_LEFT  | PROJECTION_NEAR | PROJECTION_TOP)) && 
+            (that.getProjectionType() == (PROJECTION_LEFT  | PROJECTION_NEAR))) 
+        )
+    {
+        if (getVertex(5) == that.getVertex(0) && getVertex(3) == that.getVertex(2)) {
+            return true;
+        }
+    }
+    // RIGHT/NEAR & NEAR/RIGHT/TOP
+    // LEFT/NEAR  & NEAR/LEFT/TOP
+    if (
+            ((that.getProjectionType() == (PROJECTION_RIGHT | PROJECTION_NEAR | PROJECTION_TOP)) && 
+            (getProjectionType()       == (PROJECTION_RIGHT | PROJECTION_NEAR))) 
+            ||
+            ((that.getProjectionType() == (PROJECTION_LEFT  | PROJECTION_NEAR | PROJECTION_TOP)) && 
+            (getProjectionType()       == (PROJECTION_LEFT  | PROJECTION_NEAR))) 
+            
+        )
+    {
+        if (getVertex(0) == that.getVertex(5) && getVertex(2) == that.getVertex(3)) {
+            return true;
+        }
+    }
+
+    // RIGHT/NEAR & NEAR/RIGHT/BOTTOM
+    // NEAR/LEFT & NEAR/LEFT/BOTTOM
+    if (
+            ((that.getProjectionType() == (PROJECTION_RIGHT | PROJECTION_NEAR | PROJECTION_BOTTOM)) && 
+            (getProjectionType()       == (PROJECTION_RIGHT | PROJECTION_NEAR))) 
+            ||
+            ((that.getProjectionType() == (PROJECTION_LEFT | PROJECTION_NEAR | PROJECTION_BOTTOM)) && 
+            (getProjectionType()       == (PROJECTION_LEFT | PROJECTION_NEAR))) 
+            
+        )
+    {
+        if (getVertex(5) == that.getVertex(0) && getVertex(3) == that.getVertex(2)) {
+            return true;
+        }
+    }
+    // RIGHT/NEAR & NEAR/RIGHT/BOTTOM
+    // NEAR/LEFT & NEAR/LEFT/BOTTOM
+    if (
+            ((getProjectionType()     == (PROJECTION_RIGHT | PROJECTION_NEAR | PROJECTION_BOTTOM)) && 
+            (that.getProjectionType() == (PROJECTION_RIGHT | PROJECTION_NEAR))) 
+            ||
+            ((getProjectionType()     == (PROJECTION_LEFT | PROJECTION_NEAR | PROJECTION_BOTTOM)) && 
+            (that.getProjectionType() == (PROJECTION_LEFT | PROJECTION_NEAR))) 
+        )
+    {
+        if (getVertex(0) == that.getVertex(5) && getVertex(2) == that.getVertex(3)) {
+            return true;
+        }
+    }
+
+    // NEAR/TOP & NEAR
+    if (
+            (getProjectionType()      == (PROJECTION_NEAR                   )) &&
+            (that.getProjectionType() == (PROJECTION_NEAR  | PROJECTION_TOP ))  
+        )
+    {
+        if (getVertex(0) == that.getVertex(5) && getVertex(1) == that.getVertex(2)) {
+            return true;
+        }
+    }
+
+    // NEAR/TOP & NEAR
+    if (
+            (that.getProjectionType() == (PROJECTION_NEAR                   )) &&
+            (getProjectionType()      == (PROJECTION_NEAR  | PROJECTION_TOP ))  
+        )
+    {
+        if (getVertex(5) == that.getVertex(0) && getVertex(2) == that.getVertex(1)) {
+            return true;
+        }
+    }
+
+    // NEAR/BOTTOM & NEAR
+    if (
+            (getProjectionType()      == (PROJECTION_NEAR                      )) &&
+            (that.getProjectionType() == (PROJECTION_NEAR  | PROJECTION_BOTTOM ))  
+        )
+    {
+        if (getVertex(2) == that.getVertex(3) && getVertex(3) == that.getVertex(0)) {
+            return true;
+        }
+    }
+
+    // NEAR/BOTTOM & NEAR
+    if (
+            (that.getProjectionType() == (PROJECTION_NEAR                      )) &&
+            (getProjectionType()      == (PROJECTION_NEAR  | PROJECTION_BOTTOM ))  
+        )
+    {
+        if (getVertex(3) == that.getVertex(2) && getVertex(0) == that.getVertex(3)) {
+            return true;
+        }
+    }
+
+    // NEAR/RIGHT & NEAR
+    if (
+            (getProjectionType()      == (PROJECTION_NEAR                      )) &&
+            (that.getProjectionType() == (PROJECTION_NEAR  | PROJECTION_RIGHT ))  
+        )
+    {
+        if (getVertex(0) == that.getVertex(1) && getVertex(3) == that.getVertex(4)) {
+            return true;
+        }
+    }
+
+    // NEAR/RIGHT & NEAR
+    if (
+            (that.getProjectionType() == (PROJECTION_NEAR                      )) &&
+            (getProjectionType()      == (PROJECTION_NEAR  | PROJECTION_RIGHT ))  
+        )
+    {
+        if (getVertex(1) == that.getVertex(0) && getVertex(4) == that.getVertex(3)) {
+            return true;
+        }
+    }
+    
+    // NEAR/LEFT & NEAR
+    if (
+            (getProjectionType()      == (PROJECTION_NEAR                    )) &&
+            (that.getProjectionType() == (PROJECTION_NEAR  | PROJECTION_LEFT ))  
+        )
+    {
+        if (getVertex(1) == that.getVertex(1) && getVertex(2) == that.getVertex(4)) {
+            return true;
+        }
+    }
+
+    // NEAR/LEFT & NEAR
+    if (
+            (that.getProjectionType() == (PROJECTION_NEAR                    )) &&
+            (getProjectionType()      == (PROJECTION_NEAR  | PROJECTION_LEFT ))  
+        )
+    {
+        if (getVertex(1) == that.getVertex(0) && getVertex(4) == that.getVertex(3)) {
+            return true;
+        }
+    }
+    
+
+    // NEAR/RIGHT/BOTTOM & NEAR/BOTTOM
+    if (
+            (getProjectionType()      == (PROJECTION_BOTTOM | PROJECTION_NEAR                     )) &&
+            (that.getProjectionType() == (PROJECTION_BOTTOM | PROJECTION_NEAR  | PROJECTION_RIGHT ))  
+        )
+    {
+        if (getVertex(1) == that.getVertex(2) && getVertex(5) == that.getVertex(4)) {
+            return true;
+        }
+    }
+
+    // NEAR/RIGHT/BOTTOM & NEAR/BOTTOM
+    if (
+            (that.getProjectionType() == (PROJECTION_BOTTOM | PROJECTION_NEAR                     )) &&
+            (getProjectionType()      == (PROJECTION_BOTTOM | PROJECTION_NEAR  | PROJECTION_RIGHT ))  
+        )
+    {
+        if (getVertex(2) == that.getVertex(1) && getVertex(4) == that.getVertex(5)) {
+            return true;
+        }
+    }
+
+
+    // RIGHT/NEAR/BOTTOM
+    // RIGHT/NEAR/TOP
+    // LEFT/NEAR/BOTTOM
+    // LEFT/NEAR/TOP
+    if (
+            (getProjectionType() == that.getProjectionType()) && 
+            (
+                getProjectionType() == (PROJECTION_RIGHT | PROJECTION_NEAR | PROJECTION_BOTTOM ) ||
+                getProjectionType() == (PROJECTION_RIGHT | PROJECTION_NEAR | PROJECTION_TOP    ) ||
+                getProjectionType() == (PROJECTION_LEFT  | PROJECTION_NEAR | PROJECTION_BOTTOM ) ||
+                getProjectionType() == (PROJECTION_LEFT  | PROJECTION_NEAR | PROJECTION_TOP    )
+            )
+       ) {
+        if (getVertex(0) == that.getVertex(5) && getVertex(2) == that.getVertex(3)) {
+            return true;
+        }
+        if (getVertex(5) == that.getVertex(0) && getVertex(3) == that.getVertex(2)) {
+            return true;
+        }
+        if (getVertex(2) == that.getVertex(1) && getVertex(4) == that.getVertex(5)) {
+            return true;
+        }
+        if (getVertex(1) == that.getVertex(2) && getVertex(5) == that.getVertex(4)) {
+            return true;
+        }
+        if (getVertex(1) == that.getVertex(0) && getVertex(3) == that.getVertex(4)) {
+            return true;
+        }
+        if (getVertex(0) == that.getVertex(1) && getVertex(4) == that.getVertex(3)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+
+void VoxelProjectedPolygon::merge(const VoxelProjectedPolygon& that) {
+
+    // RIGHT/NEAR
+    // LEFT/NEAR
+    if (
+        (getProjectionType() == that.getProjectionType()) && 
+        (
+             getProjectionType() == (PROJECTION_RIGHT | PROJECTION_NEAR) || 
+             getProjectionType() == (PROJECTION_LEFT  | PROJECTION_NEAR)
+        ) 
+       ) {
+        if (getVertex(1) == that.getVertex(0) && getVertex(4) == that.getVertex(5)) {
+            //setVertex(0, this.getVertex(0)); // no change
+            setVertex(1, that.getVertex(1));
+            setVertex(2, that.getVertex(2));
+            setVertex(3, that.getVertex(3));
+            setVertex(4, that.getVertex(4));
+            //setVertex(5, this.getVertex(5)); // no change
+            return; // done
+        }
+        if (getVertex(0) == that.getVertex(1) && getVertex(5) == that.getVertex(4)) {
+            setVertex(0, that.getVertex(0));
+            //setVertex(1, this.getVertex(1)); // no change
+            //setVertex(2, this.getVertex(2)); // no change
+            //setVertex(3, this.getVertex(3)); // no change
+            //setVertex(4, that.getVertex(4)); // no change
+            setVertex(5, that.getVertex(5));
+            return; // done
+        }
+        if (getVertex(2) == that.getVertex(1) && getVertex(3) == that.getVertex(4)) {
+            //setVertex(0, this.getVertex(0)); // no change
+            //setVertex(1, this.getVertex(1)); // no change
+            setVertex(2, that.getVertex(2));
+            setVertex(3, that.getVertex(3));
+            //setVertex(4, this.getVertex(4)); // no change
+            //setVertex(5, that.getVertex(5)); // no change
+            return; // done
+        }
+        if (getVertex(1) == that.getVertex(2) && getVertex(4) == that.getVertex(3)) {
+            setVertex(0, that.getVertex(0));
+            setVertex(1, that.getVertex(1));
+            //setVertex(2, this.getVertex(2)); // no change
+            //setVertex(3, that.getVertex(3)); // no change
+            setVertex(4, that.getVertex(4));
+            setVertex(5, that.getVertex(5));
+            return; // done
+        }
+    }
+    
+    // NEAR/BOTTOM
+    if (
+        (getProjectionType() == that.getProjectionType()) && 
+        (
+             getProjectionType() == (PROJECTION_NEAR | PROJECTION_BOTTOM)
+        ) 
+       ) {
+        if (getVertex(0) == that.getVertex(5) && getVertex(3) == that.getVertex(4)) {
+            setVertex(0, that.getVertex(0));
+            setVertex(1, that.getVertex(1));
+            setVertex(2, that.getVertex(2));
+            setVertex(3, that.getVertex(3));
+            //setVertex(4, this.getVertex(4)); // no change
+            //setVertex(5, that.getVertex(5)); // no change
+            return; // done
+        }
+        if (getVertex(5) == that.getVertex(0) && getVertex(4) == that.getVertex(3)) {
+            //setVertex(0, this.getVertex(0)); // no change
+            //setVertex(1, that.getVertex(1)); // no change
+            //setVertex(2, this.getVertex(2)); // no change
+            //setVertex(3, that.getVertex(3)); // no change
+            setVertex(4, that.getVertex(4));
+            setVertex(5, that.getVertex(5));
+            return; // done
+        }
+        if (getVertex(1) == that.getVertex(0) && getVertex(2) == that.getVertex(3)) {
+            //setVertex(0, this.getVertex(0)); // no change
+            setVertex(1, that.getVertex(1));
+            setVertex(2, that.getVertex(2));
+            //setVertex(3, that.getVertex(3)); // no change
+            //setVertex(4, this.getVertex(4)); // no change
+            //setVertex(5, that.getVertex(5)); // no change
+            return; // done
+        }
+        if (getVertex(0) == that.getVertex(1) && getVertex(3) == that.getVertex(2)) {
+            setVertex(0, that.getVertex(0));
+            //setVertex(1, this.getVertex(1)); // no change
+            //setVertex(2, that.getVertex(2)); // no change
+            setVertex(3, that.getVertex(3));
+            setVertex(4, that.getVertex(4));
+            setVertex(5, that.getVertex(5));
+            return; // done
+        }
+    }
+
+    // NEAR/TOP
+    if (
+        (getProjectionType() == that.getProjectionType()) && 
+        (
+             getProjectionType() == (PROJECTION_NEAR | PROJECTION_TOP)
+        ) 
+       ) {
+        if (getVertex(0) == that.getVertex(5) && getVertex(1) == that.getVertex(2)) {
+            setVertex(0, that.getVertex(0));
+            setVertex(1, that.getVertex(1));
+            //setVertex(2, this.getVertex(2)); // no change
+            //setVertex(3, that.getVertex(3)); // no change
+            //setVertex(4, this.getVertex(4)); // no change
+            //setVertex(5, that.getVertex(5)); // no change
+            return; // done
+        }
+        if (getVertex(5) == that.getVertex(0) && getVertex(2) == that.getVertex(1)) {
+            //setVertex(0, this.getVertex(0)); // no change
+            //setVertex(1, that.getVertex(1)); // no change
+            setVertex(2, that.getVertex(2));
+            setVertex(3, that.getVertex(3));
+            setVertex(4, that.getVertex(4));
+            setVertex(5, that.getVertex(5));
+            return; // done
+        }
+        if (getVertex(4) == that.getVertex(5) && getVertex(3) == that.getVertex(2)) {
+            //setVertex(0, this.getVertex(0)); // no change
+            //setVertex(1, that.getVertex(1)); // no change
+            //setVertex(2, that.getVertex(2)); // no change
+            setVertex(3, that.getVertex(3));
+            setVertex(4, that.getVertex(4));
+            //setVertex(5, that.getVertex(5)); // no change
+            return; // done
+        }
+        if (getVertex(5) == that.getVertex(4) && getVertex(2) == that.getVertex(3)) {
+            setVertex(0, that.getVertex(0));
+            setVertex(1, that.getVertex(1));
+            setVertex(2, that.getVertex(2));
+            //setVertex(3, this.getVertex(3)); // no change
+            //setVertex(4, that.getVertex(3)); // no change
+            setVertex(5, that.getVertex(5));
+            return; // done
+        }
+    }
+    
+
+    // RIGHT/NEAR & NEAR/RIGHT/TOP
+    // LEFT/NEAR  & NEAR/LEFT/TOP
+    if (
+            ((getProjectionType()     == (PROJECTION_RIGHT | PROJECTION_NEAR | PROJECTION_TOP)) && 
+            (that.getProjectionType() == (PROJECTION_RIGHT | PROJECTION_NEAR))) 
+            ||
+            ((getProjectionType()     == (PROJECTION_LEFT  | PROJECTION_NEAR | PROJECTION_TOP)) && 
+            (that.getProjectionType() == (PROJECTION_LEFT  | PROJECTION_NEAR))) 
+        )
+    {
+        if (getVertex(5) == that.getVertex(0) && getVertex(3) == that.getVertex(2)) {
+            //setVertex(0, this.getVertex(0)); // no change
+            //setVertex(1, this.getVertex(1)); // no change
+            //setVertex(2, this.getVertex(2)); // no change
+            setVertex(3, that.getVertex(3));
+            setVertex(4, that.getVertex(4));
+            setVertex(5, that.getVertex(5));
+            setProjectionType((PROJECTION_RIGHT | PROJECTION_NEAR));
+            return; // done
+        }
+    }
+
+    // RIGHT/NEAR & NEAR/RIGHT/TOP
+    // LEFT/NEAR  & NEAR/LEFT/TOP
+    if (
+            ((that.getProjectionType() == (PROJECTION_RIGHT | PROJECTION_NEAR | PROJECTION_TOP)) && 
+            (getProjectionType()       == (PROJECTION_RIGHT | PROJECTION_NEAR))) 
+            ||
+            ((that.getProjectionType() == (PROJECTION_LEFT  | PROJECTION_NEAR | PROJECTION_TOP)) && 
+            (getProjectionType()       == (PROJECTION_LEFT  | PROJECTION_NEAR))) 
+            
+        )
+    {
+        if (getVertex(0) == that.getVertex(5) && getVertex(2) == that.getVertex(3)) {
+            setVertex(0, that.getVertex(0));
+            setVertex(1, that.getVertex(1));
+            setVertex(2, that.getVertex(2));
+            //setVertex(3, this.getVertex(3)); // no change
+            //setVertex(4, this.getVertex(4)); // no change
+            //setVertex(5, this.getVertex(5)); // no change
+            //setProjectionType((PROJECTION_RIGHT | PROJECTION_NEAR)); // no change
+            return; // done
+        }
+    }
+
+    // RIGHT/NEAR & NEAR/RIGHT/BOTTOM
+    // NEAR/LEFT & NEAR/LEFT/BOTTOM
+    if (
+            ((that.getProjectionType() == (PROJECTION_RIGHT | PROJECTION_NEAR | PROJECTION_BOTTOM)) && 
+            (getProjectionType()       == (PROJECTION_RIGHT | PROJECTION_NEAR))) 
+            ||
+            ((that.getProjectionType() == (PROJECTION_LEFT | PROJECTION_NEAR | PROJECTION_BOTTOM)) && 
+            (getProjectionType()       == (PROJECTION_LEFT | PROJECTION_NEAR))) 
+            
+        )
+    {
+        if (getVertex(5) == that.getVertex(0) && getVertex(3) == that.getVertex(2)) {
+            //setVertex(0, this.getVertex(0)); // no change
+            //setVertex(1, this.getVertex(1)); // no change
+            //setVertex(2, this.getVertex(2)); // no change
+            setVertex(3, that.getVertex(3));
+            setVertex(4, that.getVertex(4));
+            setVertex(5, that.getVertex(5));
+            //setProjectionType((PROJECTION_RIGHT | PROJECTION_NEAR)); // no change
+            return; // done
+        }
+    }
+    // RIGHT/NEAR & NEAR/RIGHT/BOTTOM
+    // NEAR/LEFT & NEAR/LEFT/BOTTOM
+    if (
+            ((getProjectionType()     == (PROJECTION_RIGHT | PROJECTION_NEAR | PROJECTION_BOTTOM)) && 
+            (that.getProjectionType() == (PROJECTION_RIGHT | PROJECTION_NEAR))) 
+            ||
+            ((getProjectionType()     == (PROJECTION_LEFT | PROJECTION_NEAR | PROJECTION_BOTTOM)) && 
+            (that.getProjectionType() == (PROJECTION_LEFT | PROJECTION_NEAR))) 
+        )
+    {
+        if (getVertex(0) == that.getVertex(5) && getVertex(2) == that.getVertex(3)) {
+            setVertex(0, that.getVertex(0));
+            setVertex(1, that.getVertex(1));
+            setVertex(2, that.getVertex(2));
+            //setVertex(3, this.getVertex(3)); // no change
+            //setVertex(4, this.getVertex(4)); // no change
+            //setVertex(5, this.getVertex(5)); // no change
+            setProjectionType((PROJECTION_RIGHT | PROJECTION_NEAR)); 
+            return; // done
+        }
+    }
+    
+    
+    // NEAR/TOP & NEAR
+    if (
+            (getProjectionType()      == (PROJECTION_NEAR                   )) &&
+            (that.getProjectionType() == (PROJECTION_NEAR  | PROJECTION_TOP ))  
+        )
+    {
+        if (getVertex(0) == that.getVertex(5) && getVertex(1) == that.getVertex(2)) {
+            setVertex(0, that.getVertex(0));
+            setVertex(1, that.getVertex(1));
+            //setVertex(2, this.getVertex(2)); // no change
+            //setVertex(3, this.getVertex(3)); // no change
+            //setVertexCount(4); // no change
+            //setProjectionType((PROJECTION_NEAR));  // no change
+            return; // done
+        }
+    }
+
+    // NEAR/TOP & NEAR
+    if (
+            (that.getProjectionType() == (PROJECTION_NEAR                   )) &&
+            (getProjectionType()      == (PROJECTION_NEAR  | PROJECTION_TOP ))  
+        )
+    {
+        if (getVertex(5) == that.getVertex(0) && getVertex(2) == that.getVertex(1)) {
+            //setVertex(0, this.getVertex(0)); // no change
+            //setVertex(1, this.getVertex(1)); // no change
+            setVertex(2, that.getVertex(2));
+            setVertex(3, that.getVertex(3));
+            setVertexCount(4);
+            setProjectionType((PROJECTION_NEAR));
+            return; // done
+        }
+    }
+    
+    // NEAR/BOTTOM & NEAR
+    if (
+            (getProjectionType()      == (PROJECTION_NEAR                      )) &&
+            (that.getProjectionType() == (PROJECTION_NEAR  | PROJECTION_BOTTOM ))  
+        )
+    {
+        if (getVertex(2) == that.getVertex(3) && getVertex(3) == that.getVertex(0)) {
+            //setVertex(0, this.getVertex(0)); // no change
+            //setVertex(1, this.getVertex(1)); // no change
+            setVertex(2, that.getVertex(4));
+            setVertex(3, that.getVertex(5));
+            //setVertexCount(4); // no change
+            //setProjectionType((PROJECTION_NEAR));  // no change
+        }
+    }
+
+    // NEAR/BOTTOM & NEAR
+    if (
+            (that.getProjectionType() == (PROJECTION_NEAR                      )) &&
+            (getProjectionType()      == (PROJECTION_NEAR  | PROJECTION_BOTTOM ))  
+        )
+    {
+        if (getVertex(3) == that.getVertex(2) && getVertex(0) == that.getVertex(3)) {
+            setVertex(0, that.getVertex(0));
+            setVertex(1, that.getVertex(1));
+            setVertex(2, getVertex(4));
+            setVertex(3, getVertex(5));
+            setVertexCount(4);
+            setProjectionType((PROJECTION_NEAR));
+            return; // done
+        }
+    }
+
+    // NEAR/RIGHT & NEAR
+    if (
+            (getProjectionType()      == (PROJECTION_NEAR                      )) &&
+            (that.getProjectionType() == (PROJECTION_NEAR  | PROJECTION_RIGHT ))  
+        )
+    {
+        if (getVertex(0) == that.getVertex(1) && getVertex(3) == that.getVertex(4)) {
+            setVertex(0, that.getVertex(0));
+            //setVertex(1, this.getVertex(1)); // no change
+            //setVertex(2, this.getVertex(2)); // no change
+            setVertex(3, that.getVertex(5));
+            //setVertexCount(4); // no change
+            //setProjectionType((PROJECTION_NEAR));  // no change
+        }
+    }
+
+    // NEAR/RIGHT & NEAR
+    if (
+            (that.getProjectionType() == (PROJECTION_NEAR                      )) &&
+            (getProjectionType()      == (PROJECTION_NEAR  | PROJECTION_RIGHT ))  
+        )
+    {
+        if (getVertex(1) == that.getVertex(0) && getVertex(4) == that.getVertex(3)) {
+            //setVertex(0, this.getVertex(0)); // no change
+            setVertex(1, that.getVertex(1));
+            setVertex(2, that.getVertex(2));
+            setVertex(3, getVertex(5));
+            setVertexCount(4);
+            setProjectionType((PROJECTION_NEAR));
+            return; // done
+        }
+    }
+
+    // NEAR/LEFT & NEAR
+    if (
+            (getProjectionType()      == (PROJECTION_NEAR                    )) &&
+            (that.getProjectionType() == (PROJECTION_NEAR  | PROJECTION_LEFT ))  
+        )
+    {
+        if (getVertex(1) == that.getVertex(1) && getVertex(2) == that.getVertex(4)) {
+            //setVertex(0, this.getVertex()); // no change
+            setVertex(1, that.getVertex(2));
+            setVertex(2, that.getVertex(3));
+            //setVertex(3, this.getVertex(3)); // no change
+            //setVertexCount(4); // no change
+            //setProjectionType((PROJECTION_NEAR));  // no change
+            return; // done
+        }
+    }
+
+    // NEAR/LEFT & NEAR
+    if (
+            (that.getProjectionType() == (PROJECTION_NEAR                    )) &&
+            (getProjectionType()      == (PROJECTION_NEAR  | PROJECTION_LEFT ))  
+        )
+    {
+        if (getVertex(1) == that.getVertex(0) && getVertex(4) == that.getVertex(3)) {
+            setVertex(0, that.getVertex(0));
+            setVertex(1, getVertex(2));
+            setVertex(2, getVertex(3));
+            setVertex(3, that.getVertex(3));
+            setVertexCount(4);
+            setProjectionType((PROJECTION_NEAR));
+            return; // done
+        }
+    }
+
+
+    // NEAR/RIGHT/BOTTOM & NEAR/BOTTOM
+    if (
+            (getProjectionType()      == (PROJECTION_BOTTOM | PROJECTION_NEAR                     )) &&
+            (that.getProjectionType() == (PROJECTION_BOTTOM | PROJECTION_NEAR  | PROJECTION_RIGHT ))  
+        )
+    {
+        if (getVertex(1) == that.getVertex(2) && getVertex(5) == that.getVertex(4)) {
+            setVertex(0, that.getVertex(0));
+            setVertex(1, that.getVertex(1));
+            //setVertex(2, this.getVertex(2)); // no change
+            //setVertex(3, this.getVertex(3)); // no change
+            //setVertex(4, this.getVertex(4)); // no change
+            setVertex(5, that.getVertex(5));
+            return; // done
+        }
+    }
+
+    // NEAR/RIGHT/BOTTOM & NEAR/BOTTOM
+    if (
+            (that.getProjectionType() == (PROJECTION_BOTTOM | PROJECTION_NEAR                     )) &&
+            (getProjectionType()      == (PROJECTION_BOTTOM | PROJECTION_NEAR  | PROJECTION_RIGHT ))  
+        )
+    {
+        if (getVertex(2) == that.getVertex(1) && getVertex(4) == that.getVertex(5)) {
+            //setVertex(0, this.getVertex(0)); // no change
+            //setVertex(1, this.getVertex(1)); // no change
+            setVertex(2, that.getVertex(2));
+            setVertex(3, that.getVertex(3));
+            setVertex(4, that.getVertex(4));
+            //setVertex(5, this.getVertex(5)); // no change
+            setProjectionType((PROJECTION_BOTTOM | PROJECTION_NEAR));
+            return; // done
+        }
+    }
+
+
+    // RIGHT/NEAR/BOTTOM
+    // RIGHT/NEAR/TOP
+    // LEFT/NEAR/BOTTOM
+    // LEFT/NEAR/TOP
+    if (
+            (getProjectionType() == that.getProjectionType()) && 
+            (
+                getProjectionType() == (PROJECTION_RIGHT | PROJECTION_NEAR | PROJECTION_BOTTOM ) ||
+                getProjectionType() == (PROJECTION_RIGHT | PROJECTION_NEAR | PROJECTION_TOP    ) ||
+                getProjectionType() == (PROJECTION_LEFT  | PROJECTION_NEAR | PROJECTION_BOTTOM ) ||
+                getProjectionType() == (PROJECTION_LEFT  | PROJECTION_NEAR | PROJECTION_TOP    )
+            )
+       ) {
+        if (getVertex(0) == that.getVertex(5) && getVertex(2) == that.getVertex(3)) {
+            setVertex(0, that.getVertex(0));
+            setVertex(1, that.getVertex(1));
+            setVertex(2, that.getVertex(2));
+            //setVertex(3, this.getVertex(3)); // no change
+            //setVertex(4, this.getVertex(4)); // no change
+            //setVertex(5, this.getVertex(5)); // no change
+            return; // done
+        }
+        if (getVertex(5) == that.getVertex(0) && getVertex(3) == that.getVertex(2)) {
+            //setVertex(0, this.getVertex(0)); // no change
+            //setVertex(1, this.getVertex(1)); // no change
+            //setVertex(2, this.getVertex(2)); // no change
+            setVertex(3, that.getVertex(3));
+            setVertex(4, that.getVertex(4));
+            setVertex(5, that.getVertex(5));
+            return; // done
+        }
+        if (getVertex(2) == that.getVertex(1) && getVertex(4) == that.getVertex(5)) {
+            //setVertex(0, this.getVertex(0)); // no change
+            //setVertex(1, this.getVertex(1)); // no change
+            setVertex(2, that.getVertex(2));
+            setVertex(3, that.getVertex(3));
+            setVertex(4, that.getVertex(4));
+            //setVertex(5, this.getVertex(5)); // no change
+            return; // done
+        }
+        if (getVertex(1) == that.getVertex(2) && getVertex(5) == that.getVertex(4)) {
+            setVertex(0, that.getVertex(0));
+            setVertex(1, that.getVertex(1));
+            //setVertex(2, this.getVertex(2)); // no change
+            //setVertex(3, this.getVertex(3)); // no change
+            //setVertex(4, this.getVertex(4)); // no change
+            setVertex(5, that.getVertex(5));
+            return; // done
+        }
+    //   if this.([1],[3]) == that.([0],[4]) then create polygon: this.[0], that.[1], that.[2], that.[3], this.[4], this.[5]
+        if (getVertex(1) == that.getVertex(0) && getVertex(3) == that.getVertex(4)) {
+            //setVertex(0, this.getVertex(0)); // no change
+            setVertex(1, that.getVertex(1));
+            setVertex(2, that.getVertex(2));
+            setVertex(3, that.getVertex(3));
+            //setVertex(4, this.getVertex(4)); // no change
+            //setVertex(5, this.getVertex(5)); // no change
+            return; // done
+        }
+    //   if this.([0],[4]) == that.([1],[3]) then create polygon: that.[0], this.[1], this.[2], this.[3], that.[4], that.[5]
+        if (getVertex(0) == that.getVertex(1) && getVertex(4) == that.getVertex(3)) {
+            setVertex(0, that.getVertex(0));
+            //setVertex(1, this.getVertex(1)); // no change
+            //setVertex(2, this.getVertex(2)); // no change
+            //setVertex(3, this.getVertex(3)); // no change
+            setVertex(4, that.getVertex(4));
+            setVertex(5, that.getVertex(5));
+            return; // done
+        }
+    }
+
+}

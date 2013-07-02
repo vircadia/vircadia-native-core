@@ -49,6 +49,14 @@ private:
     bool _set;
 };
 
+const int PROJECTION_RIGHT   = 1;
+const int PROJECTION_LEFT    = 2;
+const int PROJECTION_BOTTOM  = 4;
+const int PROJECTION_TOP     = 8;
+const int PROJECTION_NEAR    = 16;
+const int PROJECTION_FAR     = 32;
+const int PROJECTION_CLIPPED = 64;
+
 class VoxelProjectedPolygon {
 
 public:
@@ -64,16 +72,18 @@ public:
     const ProjectedVertices& getVertices() const { return _vertices; };
     const glm::vec2& getVertex(int i) const { return _vertices[i]; };
     void setVertex(int vertex, const glm::vec2& point);
-    int getVertexCount() const { return _vertexCount; };
-    void setVertexCount(int vertexCount) { _vertexCount = vertexCount; };
 
-    float getDistance() const { return _distance; }
-    void  setDistance(float distance) { _distance = distance; }
+    int getVertexCount() const                 { return _vertexCount; };
+    void setVertexCount(int vertexCount)       { _vertexCount = vertexCount; };
+    float getDistance() const                  { return _distance; }
+    void  setDistance(float distance)          { _distance = distance; }
+    bool getAnyInView() const                  { return _anyInView; };
+    void setAnyInView(bool anyInView)          { _anyInView = anyInView; };
+    bool getAllInView() const                  { return _allInView; };
+    void setAllInView(bool allInView)          { _allInView = allInView; };
+    void setProjectionType(unsigned char type) { _projectionType = type; };
+    unsigned char getProjectionType() const    { return _projectionType; };
 
-    bool getAnyInView() const { return _anyInView; };
-    void setAnyInView(bool anyInView) { _anyInView = anyInView; };
-    bool getAllInView() const { return _allInView; };
-    void setAllInView(bool allInView) { _allInView = allInView; };
 
     bool pointInside(const glm::vec2& point, bool* matchesVertex = NULL) const;
     bool occludes(const VoxelProjectedPolygon& occludee, bool checkAllInView = false) const;
@@ -82,8 +92,10 @@ public:
     bool intersects(const BoundingBox& box) const;
     bool matches(const VoxelProjectedPolygon& testee) const;
     bool matches(const BoundingBox& testee) const;
-
     bool intersectsOnAxes(const VoxelProjectedPolygon& testee) const;
+
+    bool canMerge(const VoxelProjectedPolygon& that) const;
+    void merge(const VoxelProjectedPolygon& that); // replaces vertices of this with new merged version
     
     float getMaxX() const { return _maxX; }
     float getMaxY() const { return _maxY; }
@@ -109,6 +121,7 @@ private:
     float _distance;
     bool _anyInView; // if any points are in view
     bool _allInView; // if all points are in view
+    unsigned char _projectionType;
 };
 
 
