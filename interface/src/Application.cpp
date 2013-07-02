@@ -483,8 +483,7 @@ void Application::resizeGL(int width, int height) {
 
 void Application::broadcastToAgents(unsigned char* data, size_t bytes, const char type) {
 
-    int n = AgentList::getInstance()->broadcastToAgents(data, bytes, &type, 1);
-
+    Application* self = getInstance();
     BandwidthMeter::ChannelIndex channel;
     switch (type) {
     case AGENT_TYPE_AVATAR:
@@ -493,11 +492,15 @@ void Application::broadcastToAgents(unsigned char* data, size_t bytes, const cha
         break;
     case AGENT_TYPE_VOXEL_SERVER:
         channel = BandwidthMeter::VOXELS;
-        break;
+        if (self->_renderVoxels->isChecked()) {
+            break;
+        }
     default:
         return;
     }
-    getInstance()->_bandwidthMeter.outputStream(channel).updateValue(n * bytes); 
+    int n = AgentList::getInstance()->broadcastToAgents(data, bytes, & type, 1);
+broadcastDone:
+    self->_bandwidthMeter.outputStream(channel).updateValue(n * bytes); 
 }
 
 void Application::sendVoxelServerAddScene() {
@@ -875,15 +878,17 @@ void Application::wheelEvent(QWheelEvent* event) {
     }
 }
 
-void sendPingPackets() {
+void Application::sendPingPackets() {
 
     char agentTypesOfInterest[] = {AGENT_TYPE_VOXEL_SERVER, AGENT_TYPE_AUDIO_MIXER, AGENT_TYPE_AVATAR_MIXER};
     long long currentTime = usecTimestampNow();
-    char pingPacket[1 + sizeof(currentTime)];
+    unsigned char pingPacket[1 + sizeof(currentTime)];
     pingPacket[0] = PACKET_HEADER_PING;
     
     memcpy(&pingPacket[1], &currentTime, sizeof(currentTime));
-    AgentList::getInstance()->broadcastToAgents((unsigned char*)pingPacket, 1 + sizeof(currentTime), agentTypesOfInterest, 3);
+    for (int i = 0; i < sizeof(agentTypesOfInterest) / sizeof(char); ++i) {
+        getInstance()->broadcastToAgents(pingPacket, 1 + sizeof(currentTime), agentTypesOfInterest[i]);
+    }
 
 }
 
@@ -1466,6 +1471,8 @@ void Application::initMenu() {
     (_logOn = toolsMenu->addAction("Log"))->setCheckable(true);
     _logOn->setChecked(false);
     _logOn->setShortcut(Qt::CTRL | Qt::Key_L);
+    (_oscilloscopeOn = toolsMenu->addAction("Audio Oscilloscope"))->setCheckable(true);
+    _oscilloscopeOn->setChecked(true);
     (_bandwidthDisplayOn = toolsMenu->addAction("Bandwidth Display"))->setCheckable(true);
     _bandwidthDisplayOn->setChecked(true);
     toolsMenu->addAction("Bandwidth Details", this, SLOT(bandwidthDetails()));
@@ -2294,8 +2301,9 @@ void Application::displayOverlay() {
     
         #ifndef _WIN32
         _audio.render(_glWidget->width(), _glWidget->height());
-        _audioScope.render(20, _glWidget->height() - 200);
-        //_audio.renderEchoCompare();     //  PER:  Will turn back on to further test echo
+        if (_oscilloscopeOn->isChecked()) {
+            _audioScope.render(20, _glWidget->height() - 200);
+        }
         #endif
 
        //noiseTest(_glWidget->width(), _glWidget->height());
