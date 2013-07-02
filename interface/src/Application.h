@@ -21,6 +21,9 @@
 
 #include <AgentList.h>
 
+#include "BandwidthMeter.h"
+#include "ui/BandwidthDialog.h"
+
 #ifndef _WIN32
 #include "Audio.h"
 #endif
@@ -32,6 +35,7 @@
 #include "Stars.h"
 #include "ViewFrustum.h"
 #include "VoxelSystem.h"
+#include "PacketHeaders.h"
 #include "Webcam.h"
 #include "renderer/GeometryCache.h"
 #include "ui/ChatEntry.h"
@@ -84,6 +88,7 @@ public:
     Environment* getEnvironment() { return &_environment; }
     SerialInterface* getSerialHeadSensor() { return &_serialHeadSensor; }
     Webcam* getWebcam() { return &_webcam; }
+    BandwidthMeter* getBandwidthMeter() { return &_bandwidthMeter; }
     bool shouldEchoAudio() { return _echoAudioMode->isChecked(); }
     bool shouldLowPassFilter() { return _shouldLowPassFilter->isChecked(); }
     
@@ -97,8 +102,10 @@ private slots:
     void timer();
     void idle();
     void terminate();
-    
+
+    void bandwidthDetails();
     void editPreferences();
+    void bandwidthDetailsClosed();
     
     void pair();
     
@@ -145,7 +152,12 @@ private slots:
     void runTests();
 private:
 
+    static void broadcastToAgents(unsigned char* data, size_t bytes, const char type);
+    static void sendVoxelServerAddScene();
     static bool sendVoxelsOperation(VoxelNode* node, void* extraData);
+    static void sendAvatarVoxelURLMessage(const QUrl& url);
+    static void processAvatarVoxelURLMessage(unsigned char *packetData, size_t dataBytes);
+    static void sendVoxelEditMessage(PACKET_HEADER header, VoxelDetail& detail);
     
     void initMenu();
     void updateFrustumRenderModeAction();
@@ -161,7 +173,9 @@ private:
     void displayOverlay();
     void displayStats();
     void renderViewFrustum(ViewFrustum& viewFrustum);
-        
+   
+    void checkBandwidthMeterClick();
+     
     void setupPaintingVoxel();
     void shiftPaintingColor();
     void maybeEditVoxelUnderCursor();
@@ -212,6 +226,7 @@ private:
     QAction* _manualFirstPerson;     // Whether to force first-person mode
     QAction* _manualThirdPerson;     // Whether to force third-person mode
     QAction* _logOn;                 // Whether to show on-screen log
+    QAction* _bandwidthDisplayOn;    // Whether to show on-screen bandwidth bars
     QActionGroup* _voxelModeActions; // The group of voxel edit mode actions
     QAction* _addVoxelMode;          // Whether add voxel mode is enabled
     QAction* _deleteVoxelMode;       // Whether delete voxel mode is enabled
@@ -226,6 +241,9 @@ private:
     QAction* _frustumRenderModeAction;
     QAction* _settingsAutosave;      // Whether settings are saved automatically
     
+    BandwidthMeter _bandwidthMeter;
+    BandwidthDialog* _bandwidthDialog;
+
     SerialInterface _serialHeadSensor;
     QNetworkAccessManager* _networkAccessManager;
     QSettings* _settings;
@@ -240,7 +258,7 @@ private:
     timeval _timerStart, _timerEnd;
     timeval _lastTimeIdle;
     bool _justStarted;
-    
+
     Stars _stars;
     
     VoxelSystem _voxels;
