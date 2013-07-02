@@ -24,15 +24,13 @@ public:
     void loadData(QSettings* settings);
     void reset();
 
-    void render(int screenWidth, int screenHeight);
+    void render(int width, int height);
     void handleEvent(int key, bool getColor);
 
 private:
     TextRenderer _textRenderer;
     QColor _colors[SWATCH_SIZE];
     int _selected;
-
-    int _margin;
 };
 
 #endif /* defined(__interface__Swatch__) */

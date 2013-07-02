@@ -17,7 +17,7 @@ class ToolsPalette {
 public:
     ToolsPalette();
 
-    void init(int top = 200, int left = 10);
+    void init(int screenWidth, int screenHeight);
     void addAction(QAction* action, int x, int y);
     void addTool(Tool *tool);
     void render(int screenWidth, int screenHeight);
@@ -30,6 +30,9 @@ private:
 
     int _top;
     int _left;
+
+    int _width;
+    int _height;
 };
 
 #endif /* defined(__interface__ToolsPalette__) */

@@ -7,16 +7,14 @@
 Tool::Tool(QAction *action, GLuint texture, int x, int y) : _texture(texture),
                                                             _action(action),
                                                             _x(x),
-                                                            _y(y),
-                                                            _width(62),
-                                                            _height(40) {
+                                                            _y(y) {
 }
 
 bool Tool::isActive() {
     return _action->isChecked();
 }
 
-void Tool::render(int screenWidth, int screenHeight) {
+void Tool::render(int width, int height) {
     glEnable(GL_TEXTURE_2D);
 
     glBindTexture(GL_TEXTURE_2D, _texture);
@@ -31,13 +29,13 @@ void Tool::render(int screenWidth, int screenHeight) {
 
     glBegin(GL_QUADS);
     glTexCoord2f(_x/TOOLS_COLS, 1.0f - (_y + 1)/TOOLS_ROWS);
-    glVertex2f(0, _height);
+    glVertex2f(0, height);
 
     glTexCoord2f((_x + 1)/TOOLS_COLS, 1.0f - (_y + 1)/TOOLS_ROWS);
-    glVertex2f(_width, _height);
+    glVertex2f(width, height);
 
     glTexCoord2f((_x + 1)/TOOLS_COLS, 1.0f - _y/TOOLS_ROWS);
-    glVertex2f(_width, 0);
+    glVertex2f(width, 0);
 
     glTexCoord2f(_x/TOOLS_COLS, 1.0f - _y/TOOLS_ROWS);
     glVertex2f(0, 0);
@@ -45,5 +43,5 @@ void Tool::render(int screenWidth, int screenHeight) {
 
     glDisable(GL_TEXTURE_2D);
 
-    glTranslated(0, _height + 5, 0);
+    glTranslated(0, 1.10f*height, 0);
 }

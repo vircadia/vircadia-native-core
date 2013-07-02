@@ -3,10 +3,7 @@
 
 Swatch::Swatch(QAction* action) : Tool(action, 0, -1, -1),
                                   _selected(1),
-                                  _margin(4),
                                   _textRenderer(MONO_FONT_FAMILY, 10, 100) {
-    _width = 62;
-    _height = 30;
 }
 
 void Swatch::reset() {
@@ -131,14 +128,16 @@ void Swatch::handleEvent(int key, bool getColor) {
     }
 }
 
-void Swatch::render(int screenWidth, int screenHeight) {
+void Swatch::render(int width, int height) {
     char str[2];
+    int margin = 0.10f*height;
+    height = 0.75f*height;
 
     glBegin(GL_QUADS);
     glColor3f(0.0f, 0.0f, 0.0f);
-    glVertex2f(0, 8*(_height - _margin) + _margin);
-    glVertex2f(_width, 8*(_height - _margin) + _margin);
-    glVertex2f(_width, 0);
+    glVertex2f(0, 8*(height - margin) + margin);
+    glVertex2f(width, 8*(height - margin) + margin);
+    glVertex2f(width, 0);
     glVertex2f(0, 0);
     glEnd();
 
@@ -147,26 +146,26 @@ void Swatch::render(int screenWidth, int screenHeight) {
         glColor3f(_colors[i].redF(),
                   _colors[i].greenF(),
                   _colors[i].blueF());
-        glVertex2f(_margin, (i + 1)*(_height - _margin));
-        glVertex2f(_width - _margin, (i + 1)*(_height - _margin));
-        glVertex2f(_width - _margin, i*(_height - _margin) + _margin);
-        glVertex2f(_margin, i*(_height - _margin) + _margin);
+        glVertex2f(margin, (i + 1)*(height - margin));
+        glVertex2f(width - margin, (i + 1)*(height - margin));
+        glVertex2f(width - margin, i*(height - margin) + margin);
+        glVertex2f(margin, i*(height - margin) + margin);
         glEnd();
 
         if (_colors[i].lightness() < 50) {
             glBegin(GL_LINES);
             glColor3f(1.0f, 1.0f, 1.0f);
-            glVertex2f(_margin, (i + 1)*(_height - _margin));
-            glVertex2f(_width - _margin, (i + 1)*(_height - _margin));
+            glVertex2f(margin, (i + 1)*(height - margin));
+            glVertex2f(width - margin, (i + 1)*(height - margin));
 
-            glVertex2f(_width - _margin, (i + 1)*(_height - _margin));
-            glVertex2f(_width - _margin, i*(_height - _margin) + _margin);
+            glVertex2f(width - margin, (i + 1)*(height - margin));
+            glVertex2f(width - margin, i*(height - margin) + margin);
 
-            glVertex2f(_width - _margin, i*(_height - _margin) + _margin);
-            glVertex2f(_margin, i*(_height - _margin) + _margin);
+            glVertex2f(width - margin, i*(height - margin) + margin);
+            glVertex2f(margin, i*(height - margin) + margin);
 
-            glVertex2f(_margin, i*(_height - _margin) + _margin);
-            glVertex2f(_margin, (i + 1)*(_height - _margin));
+            glVertex2f(margin, i*(height - margin) + margin);
+            glVertex2f(margin, (i + 1)*(height - margin));
             glEnd();
 
 
@@ -177,15 +176,15 @@ void Swatch::render(int screenWidth, int screenHeight) {
 
         if (_selected == i + 1) {
             glBegin(GL_TRIANGLES);
-            glVertex2f(_margin, (i + 1)*(_height - _margin) - _margin);
-            glVertex2f(_width/4 - _margin, i*(_height - _margin) + _height/2.0f);
-            glVertex2f(_margin, i*(_height - _margin) + _margin + _margin);
+            glVertex2f(margin, (i + 1)*(height - margin) - margin);
+            glVertex2f(width/4 - margin, i*(height - margin) + height/2.0f);
+            glVertex2f(margin, i*(height - margin) + margin + margin);
             glEnd();
         }
 
         sprintf(str, "%d", i + 1);
-        _textRenderer.draw(3*_width/4, (i + 1)*(_height - _margin) - 6, str);
+        _textRenderer.draw(3*width/4, (i + 1)*(height - margin) - 0.2f*height, str);
     }
 
-    glTranslated(0, 8*(_height - _margin) + _margin + 5, 0);
+    glTranslated(0, 8*(height - margin) + margin + 0.075f*height, 0);
 }

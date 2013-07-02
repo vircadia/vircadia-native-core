@@ -6,12 +6,24 @@
 #include <SharedUtil.h>
 
 ToolsPalette::ToolsPalette() {
+}
+
+void ToolsPalette::init(int screenWidth, int screenHeight) {
+    _width = 3*screenWidth/100;
+    if (_width < 47) {
+        _width = 47;
+    }
+    _height = 40*_width/62;
+
+    _left = screenWidth/100;
+    _top = (screenHeight - 12*_height)/2;
+
     // Load SVG
     switchToResourcesParentIfRequired();
     QSvgRenderer renderer(QString("./resources/images/hifi-interface-tools.svg"));
 
     // Prepare a QImage with desired characteritisc
-    QImage image(124, 400, QImage::Format_ARGB32);
+    QImage image(TOOLS_COLS*_width, TOOLS_ROWS*_height, QImage::Format_ARGB32);
 
     // Get QPainter that paints to the image
     QPainter painter(&image);
@@ -19,11 +31,6 @@ ToolsPalette::ToolsPalette() {
 
     //get the OpenGL-friendly image
     _textureImage = QGLWidget::convertToGLFormat(image);
-}
-
-void ToolsPalette::init(int top, int left) {
-    _top = top;
-    _left = left;
 
     glGenTextures(1, &_textureID);
     glBindTexture(GL_TEXTURE_2D, _textureID);
@@ -51,6 +58,15 @@ void ToolsPalette::addTool(Tool *tool) {
 }
 
 void ToolsPalette::render(int screenWidth, int screenHeight) {
+    _width = 3*screenWidth/100;
+    if (_width < 47) {
+        _width = 47;
+    }
+    _height = 40*_width/62;
+
+    _left = screenWidth/150;
+    _top = (screenHeight - 13*_height)/2;
+
     glPushMatrix();
     glTranslated(_left, _top, 0);
 
@@ -64,7 +80,7 @@ void ToolsPalette::render(int screenWidth, int screenHeight) {
 
     if (show) {
         for (unsigned int i(0); i < _tools.size(); ++i) {
-            _tools[i]->render(screenWidth, screenHeight);
+            _tools[i]->render(_width, _height);
         }
     }
 

@@ -1585,7 +1585,7 @@ void Application::init() {
     
     sendAvatarVoxelURLMessage(_myAvatar.getVoxels()->getVoxelURL());
 
-    _palette.init();
+    _palette.init(_glWidget->width(), _glWidget->height());
     _palette.addAction(_addVoxelMode, 0, 0);
     _palette.addAction(_deleteVoxelMode, 0, 1);
     _palette.addTool(_swatch);
