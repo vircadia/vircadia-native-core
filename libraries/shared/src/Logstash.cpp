@@ -45,12 +45,12 @@ bool Logstash::shouldSendStats() {
     return shouldSendStats;
 }
 
-void Logstash::stashValue(const char* key, float value) {
+void Logstash::stashValue(char valueType, const char* key, float value) {
     static char logstashPacket[MAX_PACKET_SIZE];
     
     // load up the logstash packet with the key and the passed float value
     // send it to 4 decimal places
-    int numPacketBytes = sprintf(logstashPacket, "%s %.4f", key, value);
+    int numPacketBytes = sprintf(logstashPacket, "%c %s %.4f", valueType, key, value);
     
     AgentList *agentList = AgentList::getInstance();
     
@@ -58,3 +58,19 @@ void Logstash::stashValue(const char* key, float value) {
         agentList->getAgentSocket()->send(socket(), logstashPacket, numPacketBytes);
     }
 }
+
+void Logstash::stashTimerValue(const char* key, float value) {
+    const char STAT_TYPE_TIMER = 't';
+    stashValue(STAT_TYPE_TIMER, key, value);
+}
+
+void Logstash::stashCounterValue(const char* key, float value) {
+    const char STAT_TYPE_COUNTER = 'c';
+    stashValue(STAT_TYPE_COUNTER, key, value);
+}
+
+void Logstash::stashGaugeValue(const char* key, float value) {
+    const char STAT_TYPE_GAUGE = 'g';
+    stashValue(STAT_TYPE_GAUGE, key, value);
+}
+

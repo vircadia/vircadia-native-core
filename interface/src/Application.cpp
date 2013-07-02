@@ -349,7 +349,7 @@ void Application::initializeGL() {
         const char LOGSTASH_INTERFACE_START_TIME_KEY[] = "interface-start-time";
         
         // ask the Logstash class to record the startup time
-        Logstash::stashValue(LOGSTASH_INTERFACE_START_TIME_KEY, startupTime);
+        Logstash::stashTimerValue(LOGSTASH_INTERFACE_START_TIME_KEY, startupTime);
     }
     
     // update before the first render
