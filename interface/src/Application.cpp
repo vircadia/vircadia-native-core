@@ -451,7 +451,7 @@ void Application::resizeGL(int width, int height) {
         }
     } else {
         camera.setAspectRatio(aspectRatio);
-        camera.setFieldOfView(fov = 60);
+        camera.setFieldOfView(fov = _horizontalFieldOfView);
     }
 
     // Tell our viewFrustum about this change
@@ -1047,6 +1047,12 @@ void Application::editPreferences() {
     avatarURL->setMinimumWidth(400);
     form->addRow("Avatar URL:", avatarURL);
     
+    QSpinBox* horizontalFieldOfView = new QSpinBox();
+    horizontalFieldOfView->setMaximum(180);
+    horizontalFieldOfView->setMinimum(1);
+    horizontalFieldOfView->setValue(_horizontalFieldOfView);
+    form->addRow("Horizontal field of view (degrees):", horizontalFieldOfView);
+    
     QDoubleSpinBox* headCameraPitchYawScale = new QDoubleSpinBox();
     headCameraPitchYawScale->setValue(_headCameraPitchYawScale);
     form->addRow("Head Camera Pitch/Yaw Scale:", headCameraPitchYawScale);
@@ -1078,6 +1084,9 @@ void Application::editPreferences() {
     if (!shouldDynamicallySetJitterBuffer()) {
         _audio.setJitterBufferSamples(_audioJitterBufferSamples);
     }
+    _horizontalFieldOfView = horizontalFieldOfView->value();
+    resizeGL(_glWidget->width(), _glWidget->height());
+    
 }
 
 void Application::pair() {
@@ -1625,7 +1634,7 @@ void Application::init() {
   
     _myAvatar.init();
     _myAvatar.setPosition(START_LOCATION);
-    _myCamera.setMode(CAMERA_MODE_THIRD_PERSON);
+    _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
     _myCamera.setModeShiftRate(1.0f);
     _myAvatar.setDisplayingLookatVectors(false);  
     
@@ -1683,7 +1692,7 @@ void Application::update(float deltaTime) {
     _myAvatar.getHead().setLookAtPosition(myLookAtFromMouse);
 
     //  If we are dragging on a voxel, add thrust according to the amount the mouse is dragging
-    const float VOXEL_GRAB_THRUST = 5.0f;
+    const float VOXEL_GRAB_THRUST = 0.0f;
     if (_mousePressed && (_mouseVoxel.s != 0)) {
         glm::vec2 mouseDrag(_mouseX - _mouseDragStartedX, _mouseY - _mouseDragStartedY);
         glm::quat orientation = _myAvatar.getOrientation();
@@ -1857,7 +1866,7 @@ void Application::update(float deltaTime) {
                 _myCamera.setModeShiftRate(1.0f);
             }
         } else {
-            const float THIRD_PERSON_SHIFT_VELOCITY = 2.0f;
+            const float THIRD_PERSON_SHIFT_VELOCITY = 1000.0f;
             const float TIME_BEFORE_SHIFT_INTO_FIRST_PERSON = 0.75f;
             const float TIME_BEFORE_SHIFT_INTO_THIRD_PERSON = 0.1f;
             
@@ -2933,6 +2942,8 @@ void Application::loadSettings(QSettings* settings) {
 
     _headCameraPitchYawScale = loadSetting(settings, "headCameraPitchYawScale", 0.0f);
     _audioJitterBufferSamples = loadSetting(settings, "audioJitterBufferSamples", 0);
+    _horizontalFieldOfView = loadSetting(settings, "horizontalFieldOfView", HORIZONTAL_FIELD_OF_VIEW_DEGREES);
+
     settings->beginGroup("View Frustum Offset Camera");
     // in case settings is corrupt or missing loadSetting() will check for NaN
     _viewFrustumOffsetYaw      = loadSetting(settings, "viewFrustumOffsetYaw"     , 0.0f);
@@ -2954,6 +2965,7 @@ void Application::saveSettings(QSettings* settings) {
 
     settings->setValue("headCameraPitchYawScale", _headCameraPitchYawScale);
     settings->setValue("audioJitterBufferSamples", _audioJitterBufferSamples);
+    settings->setValue("horizontalFieldOfView", _horizontalFieldOfView);
     settings->beginGroup("View Frustum Offset Camera");
     settings->setValue("viewFrustumOffsetYaw",      _viewFrustumOffsetYaw);
     settings->setValue("viewFrustumOffsetPitch",    _viewFrustumOffsetPitch);
