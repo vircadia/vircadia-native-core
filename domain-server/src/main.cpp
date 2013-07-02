@@ -33,6 +33,8 @@
 const int DOMAIN_LISTEN_PORT = 40102;
 unsigned char packetData[MAX_PACKET_SIZE];
 
+const int NODE_COUNT_STAT_INTERVAL_MSECS = 5000;
+
 unsigned char* addAgentToBroadcastPacket(unsigned char* currentPosition, Agent* agentToAdd) {
     *currentPosition++ = agentToAdd->getType();
     
@@ -79,6 +81,8 @@ int main(int argc, const char * argv[])
     in_addr_t serverLocalAddress = getLocalAddress();
     
     agentList->startSilentAgentRemovalThread();
+    
+    timeval lastStatSendTime = {};
     
     while (true) {
         if (agentList->getAgentSocket()->receive((sockaddr *)&agentPublicAddress, packetData, &receivedBytes) &&
@@ -170,6 +174,17 @@ int main(int argc, const char * argv[])
             agentList->getAgentSocket()->send(destinationSocket,
                                               broadcastPacket,
                                               (currentBufferPos - startPointer) + 1);
+        }
+        
+        if (Logstash::shouldSendStats()) {
+            if (usecTimestampNow() - usecTimestamp(&lastStatSendTime) >= (NODE_COUNT_STAT_INTERVAL_MSECS * 1000)) {
+                // time to send our count of agents and servers to logstash
+                const char NODE_COUNT_LOGSTASH_KEY[] = "ds-node-count";
+                
+                Logstash::stashGaugeValue(NODE_COUNT_LOGSTASH_KEY, agentList->getNumAliveAgents());
+                
+                gettimeofday(&lastStatSendTime, NULL);
+            }
         }
     }
 
