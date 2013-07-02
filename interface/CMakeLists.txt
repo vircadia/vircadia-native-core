@@ -112,6 +112,7 @@ include_directories(
   ${OPENCV_INCLUDE_DIRS}
 )
 
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${OPENCV_INCLUDE_DIRS}")
 target_link_libraries(
   ${TARGET_NAME} 
   ${QT_LIBRARIES}
