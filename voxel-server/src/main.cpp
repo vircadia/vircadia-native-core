@@ -270,7 +270,13 @@ void deepestLevelVoxelDistributor(AgentList* agentList,
             long long now = usecTimestampNow();
             if (agentData->getLastTimeBagEmpty() > 0) {
                 float elapsedSceneSend = (now - agentData->getLastTimeBagEmpty()) / 1000000.0f;
-                printf(" elapsed time to send scene = %f seconds\n", elapsedSceneSend);
+                
+                if (viewFrustumChanged) {
+                    printf("viewFrustumChanged resetting after elapsed time to send scene = %f seconds", elapsedSceneSend);
+                } else {
+                    printf("elapsed time to send scene = %f seconds", elapsedSceneSend);
+                }
+                printf(" [occlusionCulling: %s]\n", debug::valueOf(agentData->getWantOcclusionCulling()));
             }
             agentData->setLastTimeBagEmpty(now);
         }
