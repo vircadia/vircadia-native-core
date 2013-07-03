@@ -50,8 +50,8 @@ public:
     bool getViewSent() const        { return _viewSent; };
     void setViewSent(bool viewSent) { _viewSent = viewSent; }
 
-    long long getLastTimeBagEmpty() const { return _lastTimeBagEmpty; };
-    void      setLastTimeBagEmpty(long long now)  { _lastTimeBagEmpty = now; };
+    long long getLastTimeBagEmpty() const                      { return _lastTimeBagEmpty; };
+    void      setLastTimeBagEmpty(long long lastTimeBagEmpty)  { _lastTimeBagEmpty = lastTimeBagEmpty; };
 
 
 private:

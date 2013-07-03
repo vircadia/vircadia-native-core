@@ -266,7 +266,7 @@ void deepestLevelVoxelDistributor(AgentList* agentList,
     if (viewFrustumChanged || agentData->nodeBag.isEmpty()) {
         if (::debugVoxelSending) {
             printf("(viewFrustumChanged=%s || agentData->nodeBag.isEmpty() =%s)...\n",
-                debug::valueOf(viewFrustumChanged),debug::valueOf(agentData->nodeBag.isEmpty()));
+                   debug::valueOf(viewFrustumChanged), debug::valueOf(agentData->nodeBag.isEmpty()));
             long long now = usecTimestampNow();
             if (agentData->getLastTimeBagEmpty() > 0) {
                 float elapsedSceneSend = (now - agentData->getLastTimeBagEmpty()) / 1000000.0f;
