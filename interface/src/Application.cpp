@@ -947,7 +947,11 @@ void Application::idle() {
         // We call processEvents() here because the idle timer takes priority over
         // event handling in Qt, so when the framerate gets low events will pile up
         // unless we handle them here.
-        processEvents();
+        
+        // NOTE - this is commented out for now - causing event processing issues reported by Philip and Ryan
+        // birarda - July 3rdg
+        
+        // processEvents();
         
         update(1.0f / _fps);
         
