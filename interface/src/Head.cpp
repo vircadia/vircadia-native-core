@@ -179,7 +179,7 @@ void Head::simulate(float deltaTime, bool isMine) {
     _browAudioLift *= 0.7f;      
 
     // update eyelid blinking
-    const float BLINK_SPEED = 5.0f;
+    const float BLINK_SPEED = 10.0f;
     const float FULLY_OPEN = 0.0f;
     const float FULLY_CLOSED = 1.0f;
     if (_leftEyeBlinkVelocity == 0.0f && _rightEyeBlinkVelocity == 0.0f) {
