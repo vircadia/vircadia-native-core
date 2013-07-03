@@ -80,7 +80,7 @@ enum AvatarMode
 
 class Avatar : public AvatarData {
 public:
-    Avatar(Agent* owningAgent = NULL);
+    Avatar(Node* owningNode = NULL);
     ~Avatar();
     
     void init();
@@ -107,7 +107,7 @@ public:
 
     //getters
     bool             isInitialized             ()                const { return _initialized;}
-    bool             isMyAvatar                ()                const { return _owningAgent == NULL; }
+    bool             isMyAvatar                ()                const { return _owningNode == NULL; }
     const Skeleton&  getSkeleton               ()                const { return _skeleton;}
     float            getHeadYawRate            ()                const { return _head.yawRate;}
     float            getBodyYaw                ()                const { return _bodyYaw;}    

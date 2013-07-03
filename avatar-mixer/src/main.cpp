@@ -6,7 +6,7 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved
 //
 //  The avatar mixer receives head, hand and positional data from all connected
-//  agents, and broadcasts that data back to them, every BROADCAST_INTERVAL ms.
+//  nodes, and broadcasts that data back to them, every BROADCAST_INTERVAL ms.
 //
 //
 
@@ -25,10 +25,10 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#include <AgentList.h>
+#include <NodeList.h>
 #include <SharedUtil.h>
 #include <PacketHeaders.h>
-#include <AgentTypes.h>
+#include <NodeTypes.h>
 #include <StdDev.h>
 #include <UDPSocket.h>
 
@@ -36,24 +36,24 @@
 
 const int AVATAR_LISTEN_PORT = 55444;
 
-unsigned char *addAgentToBroadcastPacket(unsigned char *currentPosition, Agent *agentToAdd) {
-    currentPosition += packAgentId(currentPosition, agentToAdd->getAgentID());
+unsigned char *addNodeToBroadcastPacket(unsigned char *currentPosition, Node *nodeToAdd) {
+    currentPosition += packNodeId(currentPosition, nodeToAdd->getNodeID());
 
-    AvatarData *agentData = (AvatarData *)agentToAdd->getLinkedData();
-    currentPosition += agentData->getBroadcastData(currentPosition);
+    AvatarData *nodeData = (AvatarData *)nodeToAdd->getLinkedData();
+    currentPosition += nodeData->getBroadcastData(currentPosition);
     
     return currentPosition;
 }
 
-void attachAvatarDataToAgent(Agent* newAgent) {
-    if (newAgent->getLinkedData() == NULL) {
-        newAgent->setLinkedData(new AvatarData(newAgent));
+void attachAvatarDataToNode(Node* newNode) {
+    if (newNode->getLinkedData() == NULL) {
+        newNode->setLinkedData(new AvatarData(newNode));
     }
 }
 
 int main(int argc, const char* argv[]) {
 
-    AgentList* agentList = AgentList::createInstance(AGENT_TYPE_AVATAR_MIXER, AVATAR_LISTEN_PORT);
+    NodeList* nodeList = NodeList::createInstance(NODE_TYPE_AVATAR_MIXER, AVATAR_LISTEN_PORT);
     setvbuf(stdout, NULL, _IOLBF, 0);
     
     // Handle Local Domain testing with the --local command line
@@ -64,11 +64,11 @@ int main(int argc, const char* argv[]) {
         sprintf(DOMAIN_IP,"%d.%d.%d.%d", (ip & 0xFF), ((ip >> 8) & 0xFF),((ip >> 16) & 0xFF), ((ip >> 24) & 0xFF));
     }
     
-    agentList->linkedDataCreateCallback = attachAvatarDataToAgent;
+    nodeList->linkedDataCreateCallback = attachAvatarDataToNode;
     
-    agentList->startSilentAgentRemovalThread();
+    nodeList->startSilentNodeRemovalThread();
     
-    sockaddr *agentAddress = new sockaddr;
+    sockaddr *nodeAddress = new sockaddr;
     unsigned char *packetData = new unsigned char[MAX_PACKET_SIZE];
     ssize_t receivedBytes = 0;
     
@@ -77,68 +77,68 @@ int main(int argc, const char* argv[]) {
     
     unsigned char* currentBufferPosition = NULL;
     
-    uint16_t agentID = 0;
-    Agent* avatarAgent = NULL;
+    uint16_t nodeID = 0;
+    Node* avatarNode = NULL;
     
     timeval lastDomainServerCheckIn = {};
-    // we only need to hear back about avatar agents from the DS
-    AgentList::getInstance()->setAgentTypesOfInterest(&AGENT_TYPE_AVATAR, 1);
+    // we only need to hear back about avatar nodes from the DS
+    NodeList::getInstance()->setNodeTypesOfInterest(&NODE_TYPE_AGENT, 1);
     
     while (true) {
         
         // send a check in packet to the domain server if DOMAIN_SERVER_CHECK_IN_USECS has elapsed
         if (usecTimestampNow() - usecTimestamp(&lastDomainServerCheckIn) >= DOMAIN_SERVER_CHECK_IN_USECS) {
             gettimeofday(&lastDomainServerCheckIn, NULL);
-            AgentList::getInstance()->sendDomainServerCheckIn();
+            NodeList::getInstance()->sendDomainServerCheckIn();
         }
         
-        if (agentList->getAgentSocket()->receive(agentAddress, packetData, &receivedBytes)) {
+        if (nodeList->getNodeSocket()->receive(nodeAddress, packetData, &receivedBytes)) {
             switch (packetData[0]) {
                 case PACKET_HEADER_HEAD_DATA:
-                    // grab the agent ID from the packet
-                    unpackAgentId(packetData + 1, &agentID);
+                    // grab the node ID from the packet
+                    unpackNodeId(packetData + 1, &nodeID);
                     
-                    // add or update the agent in our list
-                    avatarAgent = agentList->addOrUpdateAgent(agentAddress, agentAddress, AGENT_TYPE_AVATAR, agentID);
+                    // add or update the node in our list
+                    avatarNode = nodeList->addOrUpdateNode(nodeAddress, nodeAddress, NODE_TYPE_AGENT, nodeID);
                     
-                    // parse positional data from an agent
-                    agentList->updateAgentWithData(avatarAgent, packetData, receivedBytes);
+                    // parse positional data from an node
+                    nodeList->updateNodeWithData(avatarNode, packetData, receivedBytes);
                 case PACKET_HEADER_INJECT_AUDIO:
                     currentBufferPosition = broadcastPacket + 1;
                     
-                    // send back a packet with other active agent data to this agent
-                    for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
-                        if (agent->getLinkedData() && !socketMatch(agentAddress, agent->getActiveSocket())) {
-                            currentBufferPosition = addAgentToBroadcastPacket(currentBufferPosition, &*agent);
+                    // send back a packet with other active node data to this node
+                    for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+                        if (node->getLinkedData() && !socketMatch(nodeAddress, node->getActiveSocket())) {
+                            currentBufferPosition = addNodeToBroadcastPacket(currentBufferPosition, &*node);
                         }
                     }
                     
-                    agentList->getAgentSocket()->send(agentAddress, broadcastPacket, currentBufferPosition - broadcastPacket);
+                    nodeList->getNodeSocket()->send(nodeAddress, broadcastPacket, currentBufferPosition - broadcastPacket);
                     
                     break;
                 case PACKET_HEADER_AVATAR_VOXEL_URL:
-                    // grab the agent ID from the packet
-                    unpackAgentId(packetData + 1, &agentID);
+                    // grab the node ID from the packet
+                    unpackNodeId(packetData + 1, &nodeID);
                     
                     // let everyone else know about the update
-                    for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
-                        if (agent->getActiveSocket() && agent->getAgentID() != agentID) {
-                            agentList->getAgentSocket()->send(agent->getActiveSocket(), packetData, receivedBytes);
+                    for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+                        if (node->getActiveSocket() && node->getNodeID() != nodeID) {
+                            nodeList->getNodeSocket()->send(node->getActiveSocket(), packetData, receivedBytes);
                         }
                     }
                     break;
                 case PACKET_HEADER_DOMAIN:
-                    // ignore the DS packet, for now agents are added only when they communicate directly with us
+                    // ignore the DS packet, for now nodes are added only when they communicate directly with us
                     break;
                 default:
-                    // hand this off to the AgentList
-                    agentList->processAgentData(agentAddress, packetData, receivedBytes);
+                    // hand this off to the NodeList
+                    nodeList->processNodeData(nodeAddress, packetData, receivedBytes);
                     break;
             }
         }
     }
     
-    agentList->stopSilentAgentRemovalThread();
+    nodeList->stopSilentNodeRemovalThread();
     
     return 0;
 }

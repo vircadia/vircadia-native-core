@@ -8,7 +8,7 @@
 
 #include <QImage>
 
-#include <AgentList.h>
+#include <NodeList.h>
 
 #include "Application.h"
 #include "Avatar.h"
@@ -270,16 +270,16 @@ void Head::render(bool lookingInMirror, float alpha) {
 
 
 void Head::createMohawk() {
-    uint16_t agentId = 0;
-    if (_owningAvatar->getOwningAgent()) {
-        agentId = _owningAvatar->getOwningAgent()->getAgentID();
+    uint16_t nodeId = 0;
+    if (_owningAvatar->getOwningNode()) {
+        nodeId = _owningAvatar->getOwningNode()->getNodeID();
     } else {
-        agentId = AgentList::getInstance()->getOwnerID();
-        if (agentId == UNKNOWN_AGENT_ID) {
+        nodeId = NodeList::getInstance()->getOwnerID();
+        if (nodeId == UNKNOWN_NODE_ID) {
             return;
         }
     }
-    srand(agentId);
+    srand(nodeId);
     float height = 0.08f + randFloat() * 0.05f;
     float variance = 0.03 + randFloat() * 0.03f;
     const float RAD_PER_TRIANGLE = (2.3f + randFloat() * 0.2f) / (float)MOHAWK_TRIANGLES;
