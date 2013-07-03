@@ -432,6 +432,9 @@ void Application::paintGL() {
 void Application::resizeGL(int width, int height) {
     float aspectRatio = ((float)width/(float)height); // based on screen resize
 
+    // reset the camera FOV to our preference...
+    _myCamera.setFieldOfView(_horizontalFieldOfView);
+
     // get the lens details from the current camera
     Camera& camera = _viewFrustumFromOffset->isChecked() ? _viewFrustumOffsetCamera : _myCamera;
     float nearClip = camera.getNearClip();
@@ -952,6 +955,8 @@ void Application::idle() {
 void Application::terminate() {
     // Close serial port
     // close(serial_fd);
+    
+    LeapManager::terminate();
     
     if (_settingsAutosave->isChecked()) {
         saveSettings();
@@ -1645,6 +1650,8 @@ void Application::init() {
         QMetaObject::invokeMethod(_fullScreenMode, "trigger", Qt::QueuedConnection);
     }
     
+    LeapManager::initialize();
+    
     gettimeofday(&_timerStart, NULL);
     gettimeofday(&_lastTimeIdle, NULL);
 
@@ -1803,7 +1810,8 @@ void Application::update(float deltaTime) {
     
     // Leap finger-sensing device
     LeapManager::nextFrame();
-    _myAvatar.getHand().setLeapFingers(LeapManager::getFingerPositions());
+    _myAvatar.getHand().setLeapFingers(LeapManager::getFingerTips(), LeapManager::getFingerRoots());
+    _myAvatar.getHand().setLeapHands(LeapManager::getHandPositions(), LeapManager::getHandNormals());
     
      //  Read serial port interface devices
     if (_serialHeadSensor.isActive()) {

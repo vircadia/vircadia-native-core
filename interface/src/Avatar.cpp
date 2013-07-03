@@ -286,15 +286,17 @@ void Avatar::reset() {
 
 //  Update avatar state with sensor data
 void Avatar::updateFromGyrosAndOrWebcam() {
-    const float AMPLIFY_PITCH = 1.f;
-    const float AMPLIFY_YAW = 1.f;
-    const float AMPLIFY_ROLL = 1.f;
+    const float AMPLIFY_PITCH = 2.f;
+    const float AMPLIFY_YAW = 2.f;
+    const float AMPLIFY_ROLL = 2.f;
 
     SerialInterface* gyros = Application::getInstance()->getSerialHeadSensor();
     Webcam* webcam = Application::getInstance()->getWebcam();
     glm::vec3 estimatedPosition, estimatedRotation;
     if (gyros->isActive()) {
-        estimatedPosition = gyros->getEstimatedPosition();
+        if (webcam->isActive()) {
+            estimatedPosition = webcam->getEstimatedPosition();
+        }
         estimatedRotation = gyros->getEstimatedRotation();
         
     } else if (webcam->isActive()) {
