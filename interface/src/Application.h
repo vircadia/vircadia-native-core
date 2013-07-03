@@ -19,7 +19,7 @@
 #include <QTouchEvent>
 #include <QList>
 
-#include <AgentList.h>
+#include <NodeList.h>
 
 #include "BandwidthMeter.h"
 #include "ui/BandwidthDialog.h"
@@ -50,7 +50,7 @@ class QNetworkAccessManager;
 class QSettings;
 class QWheelEvent;
 
-class Agent;
+class Node;
 class ProgramObject;
 
 class Application : public QApplication {
@@ -152,7 +152,7 @@ private slots:
     void runTests();
 private:
 
-    static void broadcastToAgents(unsigned char* data, size_t bytes, const char type);
+    static void broadcastToNodes(unsigned char* data, size_t bytes, const char type);
     static void sendVoxelServerAddScene();
     static bool sendVoxelsOperation(VoxelNode* node, void* extraData);
     static void sendAvatarVoxelURLMessage(const QUrl& url);
@@ -190,7 +190,7 @@ private:
     
     QAction* checkedVoxelModeAction() const;
     
-    static void attachNewHeadToAgent(Agent *newAgent);
+    static void attachNewHeadToNode(Node *newNode);
     static void* networkReceive(void* args);
     
     // methodes handling menu settings

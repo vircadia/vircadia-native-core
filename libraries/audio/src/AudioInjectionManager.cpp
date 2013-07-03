@@ -9,9 +9,9 @@
 #include <sys/time.h>
 
 #include "SharedUtil.h"
-#include "AgentList.h"
-#include "AgentTypes.h"
-#include "Agent.h"
+#include "NodeList.h"
+#include "NodeTypes.h"
+#include "Node.h"
 #include "PacketHeaders.h"
 
 #include "AudioInjectionManager.h"
@@ -51,14 +51,14 @@ void AudioInjectionManager::setDestinationSocket(sockaddr& destinationSocket) {
 void* AudioInjectionManager::injectAudioViaThread(void* args) {
     AudioInjector* injector = (AudioInjector*) args;
     
-    // if we don't have an injectorSocket then grab the one from the agent list
+    // if we don't have an injectorSocket then grab the one from the node list
     if (!_injectorSocket) {
-        _injectorSocket = AgentList::getInstance()->getAgentSocket();
+        _injectorSocket = NodeList::getInstance()->getNodeSocket();
     }
     
-    // if we don't have an explicit destination socket then pull active socket for current audio mixer from agent list
+    // if we don't have an explicit destination socket then pull active socket for current audio mixer from node list
     if (!_isDestinationSocketExplicit) {
-        Agent* audioMixer = AgentList::getInstance()->soloAgentOfType(AGENT_TYPE_AUDIO_MIXER);
+        Node* audioMixer = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_AUDIO_MIXER);
         if (audioMixer) {
             _destinationSocket = *audioMixer->getActiveSocket();
         }

@@ -1,5 +1,5 @@
 //
-//  VoxelAgentData.cpp
+//  VoxelNodeData.cpp
 //  hifi
 //
 //  Created by Stephen Birarda on 3/21/13.
@@ -7,12 +7,12 @@
 //
 
 #include "PacketHeaders.h"
-#include "VoxelAgentData.h"
+#include "VoxelNodeData.h"
 #include <cstring>
 #include <cstdio>
 
-VoxelAgentData::VoxelAgentData(Agent* owningAgent) :
-    AvatarData(owningAgent),
+VoxelNodeData::VoxelNodeData(Node* owningNode) :
+    AvatarData(owningNode),
     _viewSent(false),
     _voxelPacketAvailableBytes(MAX_VOXEL_PACKET_SIZE),
     _maxSearchLevel(1),
@@ -26,25 +26,25 @@ VoxelAgentData::VoxelAgentData(Agent* owningAgent) :
 }
 
 
-void VoxelAgentData::resetVoxelPacket() {
+void VoxelNodeData::resetVoxelPacket() {
     _voxelPacket[0] = getWantColor() ? PACKET_HEADER_VOXEL_DATA : PACKET_HEADER_VOXEL_DATA_MONOCHROME;
     _voxelPacketAt = &_voxelPacket[1];
     _voxelPacketAvailableBytes = MAX_VOXEL_PACKET_SIZE - 1;
     _voxelPacketWaiting = false;
 }
 
-void VoxelAgentData::writeToPacket(unsigned char* buffer, int bytes) {
+void VoxelNodeData::writeToPacket(unsigned char* buffer, int bytes) {
     memcpy(_voxelPacketAt, buffer, bytes);
     _voxelPacketAvailableBytes -= bytes;
     _voxelPacketAt += bytes;
     _voxelPacketWaiting = true;
 }
 
-VoxelAgentData::~VoxelAgentData() {
+VoxelNodeData::~VoxelNodeData() {
     delete[] _voxelPacket;
 }
 
-bool VoxelAgentData::updateCurrentViewFrustum() {
+bool VoxelNodeData::updateCurrentViewFrustum() {
     bool currentViewFrustumChanged = false;
     ViewFrustum newestViewFrustum;
     // get position and orientation details from the camera
@@ -66,7 +66,7 @@ bool VoxelAgentData::updateCurrentViewFrustum() {
     return currentViewFrustumChanged;
 }
 
-void VoxelAgentData::updateLastKnownViewFrustum() {
+void VoxelNodeData::updateLastKnownViewFrustum() {
     bool frustumChanges = !_lastKnownViewFrustum.matches(_currentViewFrustum);
     
     if (frustumChanges) {

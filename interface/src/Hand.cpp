@@ -6,7 +6,7 @@
 
 #include <QImage>
 
-#include <AgentList.h>
+#include <NodeList.h>
 
 #include "Application.h"
 #include "Avatar.h"
