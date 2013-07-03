@@ -1452,7 +1452,7 @@ void Application::initMenu() {
     
     optionsMenu->addAction("Noise", this, SLOT(setNoise(bool)), Qt::Key_N)->setCheckable(true);
     (_gyroLook = optionsMenu->addAction("Smooth Gyro Look"))->setCheckable(true);
-    _gyroLook->setChecked(false);
+    _gyroLook->setChecked(true);
     (_mouseLook = optionsMenu->addAction("Mouse Look"))->setCheckable(true);
     _mouseLook->setChecked(true);
     (_touchLook = optionsMenu->addAction("Touch Look"))->setCheckable(true);
