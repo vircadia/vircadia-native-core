@@ -363,7 +363,7 @@ void Application::paintGL() {
     glEnable(GL_LINE_SMOOTH);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
-    float headCameraScale = _serialHeadSensor.isActive() ? _headCameraPitchYawScale : 1.0f;
+    float headCameraScale = (_serialHeadSensor.isActive() || _webcam.isActive()) ? _headCameraPitchYawScale : 1.0f;
     
     if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         _myCamera.setTightness     (100.0f); 
@@ -431,6 +431,9 @@ void Application::paintGL() {
 
 void Application::resizeGL(int width, int height) {
     float aspectRatio = ((float)width/(float)height); // based on screen resize
+
+    // reset the camera FOV to our preference...
+    _myCamera.setFieldOfView(_horizontalFieldOfView);
 
     // get the lens details from the current camera
     Camera& camera = _viewFrustumFromOffset->isChecked() ? _viewFrustumOffsetCamera : _myCamera;
