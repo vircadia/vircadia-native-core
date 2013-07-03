@@ -46,6 +46,7 @@ const float MAX_CUBE = 0.05f;
 
 const int VOXEL_SEND_INTERVAL_USECS = 100 * 1000;
 int PACKETS_PER_CLIENT_PER_INTERVAL = 30;
+const int SENDING_TIME_TO_SPARE = 20 * 1000; // usec of sending interval to spare for calculating voxels
 
 const int MAX_VOXEL_TREE_DEPTH_LEVELS = 4;
 
@@ -263,6 +264,23 @@ void deepestLevelVoxelDistributor(AgentList* agentList,
     // If the current view frustum has changed OR we have nothing to send, then search against 
     // the current view frustum for things to send.
     if (viewFrustumChanged || agentData->nodeBag.isEmpty()) {
+        if (::debugVoxelSending) {
+            printf("(viewFrustumChanged=%s || agentData->nodeBag.isEmpty() =%s)...\n",
+                debug::valueOf(viewFrustumChanged),debug::valueOf(agentData->nodeBag.isEmpty()));
+            long long now = usecTimestampNow();
+            if (agentData->getLastTimeBagEmpty() > 0) {
+                float elapsedSceneSend = (now - agentData->getLastTimeBagEmpty()) / 1000000.0f;
+                printf(" elapsed time to send scene = %f seconds\n", elapsedSceneSend);
+            }
+            agentData->setLastTimeBagEmpty(now);
+        }
+                
+        // if our view has changed, we need to reset these things...
+        if (viewFrustumChanged) {
+            agentData->nodeBag.deleteAll();
+            agentData->map.erase();
+        }
+
 
         // For now, we're going to disable the "search for colored nodes" because that strategy doesn't work when we support
         // deletion of nodes. Instead if we just start at the root we get the correct behavior we want. We are keeping this
@@ -310,6 +328,22 @@ void deepestLevelVoxelDistributor(AgentList* agentList,
 
         bool shouldSendEnvironments = shouldDo(ENVIRONMENT_SEND_INTERVAL_USECS, VOXEL_SEND_INTERVAL_USECS);
         while (packetsSentThisInterval < PACKETS_PER_CLIENT_PER_INTERVAL - (shouldSendEnvironments ? 1 : 0)) {
+        
+            // Check to see if we're taking too long, and if so bail early...
+            long long now = usecTimestampNow();
+            long elapsedUsec = (now - start);
+            long elapsedUsecPerPacket = (truePacketsSent == 0) ? 0 : (elapsedUsec / truePacketsSent);
+            long usecRemaining = (VOXEL_SEND_INTERVAL_USECS - elapsedUsec);
+            
+            if (elapsedUsecPerPacket + SENDING_TIME_TO_SPARE > usecRemaining) {
+                if (::debugVoxelSending) {
+                    printf("packetLoop() usecRemaining=%ld bailing early took %ld usecs to generate %d bytes in %d packets (%ld usec avg), %d nodes still to send\n",
+                            usecRemaining, elapsedUsec, trueBytesSent, truePacketsSent, elapsedUsecPerPacket,
+                            agentData->nodeBag.count());
+                }
+                break;
+            }            
+            
             if (!agentData->nodeBag.isEmpty()) {
                 VoxelNode* subTree = agentData->nodeBag.extract();
 
@@ -322,7 +356,7 @@ void deepestLevelVoxelDistributor(AgentList* agentList,
 
                 bytesWritten = serverTree.encodeTreeBitstream(subTree, &tempOutputBuffer[0], MAX_VOXEL_PACKET_SIZE - 1,
                                                               agentData->nodeBag, params);
-                
+
                 if (agentData->getAvailable() >= bytesWritten) {
                     agentData->writeToPacket(&tempOutputBuffer[0], bytesWritten);
                 } else {
@@ -379,7 +413,7 @@ void deepestLevelVoxelDistributor(AgentList* agentList,
         if (agentData->nodeBag.isEmpty()) {
             agentData->updateLastKnownViewFrustum();
             agentData->setViewSent(true);
-            agentData->map.erase();
+            agentData->map.erase(); // It would be nice if we could save this, and only reset it when the view frustum changes
         }
         
         

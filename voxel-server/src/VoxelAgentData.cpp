@@ -16,7 +16,8 @@ VoxelAgentData::VoxelAgentData(Agent* owningAgent) :
     _viewSent(false),
     _voxelPacketAvailableBytes(MAX_VOXEL_PACKET_SIZE),
     _maxSearchLevel(1),
-    _maxLevelReachedInLastSearch(1)
+    _maxLevelReachedInLastSearch(1),
+    _lastTimeBagEmpty(0)
 {
     _voxelPacket = new unsigned char[MAX_VOXEL_PACKET_SIZE];
     _voxelPacketAt = _voxelPacket;
