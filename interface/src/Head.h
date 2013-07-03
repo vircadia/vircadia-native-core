@@ -48,8 +48,10 @@ public:
     void setReturnToCenter (bool      returnHeadToCenter) { _returnHeadToCenter = returnHeadToCenter; }
     void setRenderLookatVectors(bool onOff ) { _renderLookatVectors = onOff; }
     
+    void setCameraFollowsHead(bool b) { _cameraFollowsHead = b; }
+    
     glm::quat getOrientation() const;
-    glm::quat getCameraOrientation (float pitchYawScale) const;
+    glm::quat getCameraOrientation () const;
     
     glm::vec3 getPosition()       const { return _position; }
     glm::vec3 getRightDirection() const { return getOrientation() * IDENTITY_RIGHT; }
@@ -112,6 +114,11 @@ private:
     float       _leftEyeBlinkVelocity;
     float       _rightEyeBlinkVelocity;
     float       _timeWithoutTalking;
+    float       _cameraPitch;                   //  Used to position the camera differently from the head
+    float       _cameraYaw;
+    bool        _isCameraMoving;
+    bool        _cameraFollowsHead;
+    float       _cameraFollowHeadRate;
     
     static ProgramObject* _irisProgram;
     static GLuint _irisTextureID;

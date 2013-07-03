@@ -362,9 +362,7 @@ void Application::paintGL() {
 
     glEnable(GL_LINE_SMOOTH);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-    
-    float headCameraScale = (_serialHeadSensor.isActive() || _webcam.isActive()) ? _headCameraPitchYawScale : 1.0f;
-    
+        
     if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         _myCamera.setTightness     (100.0f); 
         _myCamera.setTargetPosition(_myAvatar.getUprightHeadPosition());
@@ -380,11 +378,11 @@ void Application::paintGL() {
     } else if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
         _myCamera.setTightness(0.0f);  //  In first person, camera follows head exactly without delay
         _myCamera.setTargetPosition(_myAvatar.getUprightHeadPosition());
-        _myCamera.setTargetRotation(_myAvatar.getHead().getCameraOrientation(headCameraScale));
+        _myCamera.setTargetRotation(_myAvatar.getHead().getCameraOrientation());
         
     } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
         _myCamera.setTargetPosition(_myAvatar.getUprightHeadPosition());
-        _myCamera.setTargetRotation(_myAvatar.getHead().getCameraOrientation(headCameraScale));
+        _myCamera.setTargetRotation(_myAvatar.getHead().getCameraOrientation());
     }
     
     // Update camera position
@@ -1451,7 +1449,7 @@ void Application::initMenu() {
     (_echoAudioMode = optionsMenu->addAction("Echo Audio"))->setCheckable(true);
     
     optionsMenu->addAction("Noise", this, SLOT(setNoise(bool)), Qt::Key_N)->setCheckable(true);
-    (_gyroLook = optionsMenu->addAction("Gyro Look"))->setCheckable(true);
+    (_gyroLook = optionsMenu->addAction("Smooth Gyro Look"))->setCheckable(true);
     _gyroLook->setChecked(false);
     (_mouseLook = optionsMenu->addAction("Mouse Look"))->setCheckable(true);
     _mouseLook->setChecked(true);
@@ -1903,18 +1901,13 @@ void Application::update(float deltaTime) {
 void Application::updateAvatar(float deltaTime) {
 
     // Update my avatar's head position from gyros and/or webcam
-    _myAvatar.updateHeadFromGyrosAndOrWebcam();
+    _myAvatar.updateHeadFromGyrosAndOrWebcam(_gyroLook->isChecked(),
+                                             glm::vec3(_headCameraPitchYawScale,
+                                                       _headCameraPitchYawScale,
+                                                       _headCameraPitchYawScale) );
         
     if (_serialHeadSensor.isActive()) {
       
-        // Update avatar head translation
-        if (_gyroLook->isChecked()) {
-            glm::vec3 headPosition = _serialHeadSensor.getEstimatedPosition();
-            const float HEAD_OFFSET_SCALING = 3.f;
-            headPosition *= HEAD_OFFSET_SCALING;
-            _myCamera.setEyeOffsetPosition(headPosition);
-        }
-
         //  Grab latest readings from the gyros
         float measuredPitchRate = _serialHeadSensor.getLastPitchRate();
         float measuredYawRate = _serialHeadSensor.getLastYawRate();
