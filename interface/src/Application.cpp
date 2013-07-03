@@ -956,6 +956,8 @@ void Application::terminate() {
     // Close serial port
     // close(serial_fd);
     
+    LeapManager::terminate();
+    
     if (_settingsAutosave->isChecked()) {
         saveSettings();
         _settings->sync();
@@ -1648,6 +1650,8 @@ void Application::init() {
         QMetaObject::invokeMethod(_fullScreenMode, "trigger", Qt::QueuedConnection);
     }
     
+    LeapManager::initialize();
+    
     gettimeofday(&_timerStart, NULL);
     gettimeofday(&_lastTimeIdle, NULL);
 
@@ -1806,7 +1810,8 @@ void Application::update(float deltaTime) {
     
     // Leap finger-sensing device
     LeapManager::nextFrame();
-    _myAvatar.getHand().setLeapFingers(LeapManager::getFingerPositions());
+    _myAvatar.getHand().setLeapFingers(LeapManager::getFingerTips(), LeapManager::getFingerRoots());
+    _myAvatar.getHand().setLeapHands(LeapManager::getHandPositions(), LeapManager::getHandNormals());
     
      //  Read serial port interface devices
     if (_serialHeadSensor.isActive()) {
