@@ -286,9 +286,9 @@ void Avatar::reset() {
 
 //  Update avatar head rotation with sensor data
 void Avatar::updateHeadFromGyrosAndOrWebcam() {
-    const float AMPLIFY_PITCH = 2.f;
-    const float AMPLIFY_YAW = 2.f;
-    const float AMPLIFY_ROLL = 2.f;
+    const float AMPLIFY_PITCH = 1.f;
+    const float AMPLIFY_YAW = 1.f;
+    const float AMPLIFY_ROLL = 1.f;
 
     SerialInterface* gyros = Application::getInstance()->getSerialHeadSensor();
     Webcam* webcam = Application::getInstance()->getWebcam();
