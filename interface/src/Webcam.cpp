@@ -214,7 +214,8 @@ void Webcam::setFrame(const Mat& frame, int format, const Mat& depth, const Rota
             }
             const float JOINT_SMOOTHING = 0.95f;
             _estimatedJoints[i].isValid = true;
-            _estimatedJoints[i].position = glm::mix(_joints[i].position, _estimatedJoints[i].position, JOINT_SMOOTHING);
+            _estimatedJoints[i].position = glm::mix(_joints[i].position - joints[AVATAR_JOINT_TORSO].position,
+                _estimatedJoints[i].position, JOINT_SMOOTHING);
             _estimatedJoints[i].orientation = safeMix(_joints[i].orientation,
                 _estimatedJoints[i].orientation, JOINT_SMOOTHING);
         }
@@ -275,28 +276,28 @@ static AvatarJointID xnToAvatarJoint(XnSkeletonJoint joint) {
         case XN_SKEL_NECK: return AVATAR_JOINT_NECK_BASE;
         case XN_SKEL_TORSO: return AVATAR_JOINT_TORSO;
         
-        case XN_SKEL_LEFT_SHOULDER: return AVATAR_JOINT_LEFT_SHOULDER;
-        case XN_SKEL_LEFT_ELBOW: return AVATAR_JOINT_LEFT_ELBOW;
-        case XN_SKEL_LEFT_HAND: return AVATAR_JOINT_LEFT_WRIST;
+        case XN_SKEL_LEFT_SHOULDER: return AVATAR_JOINT_RIGHT_SHOULDER;
+        case XN_SKEL_LEFT_ELBOW: return AVATAR_JOINT_RIGHT_ELBOW;
+        case XN_SKEL_LEFT_HAND: return AVATAR_JOINT_RIGHT_WRIST;
         
-        case XN_SKEL_RIGHT_SHOULDER: return AVATAR_JOINT_RIGHT_SHOULDER;
-        case XN_SKEL_RIGHT_ELBOW: return AVATAR_JOINT_RIGHT_ELBOW;
-        case XN_SKEL_RIGHT_HAND: return AVATAR_JOINT_RIGHT_WRIST;
+        case XN_SKEL_RIGHT_SHOULDER: return AVATAR_JOINT_LEFT_SHOULDER;
+        case XN_SKEL_RIGHT_ELBOW: return AVATAR_JOINT_LEFT_ELBOW;
+        case XN_SKEL_RIGHT_HAND: return AVATAR_JOINT_LEFT_WRIST;
         
-        case XN_SKEL_LEFT_HIP: return AVATAR_JOINT_LEFT_HIP;
-        case XN_SKEL_LEFT_KNEE: return AVATAR_JOINT_LEFT_KNEE;
-        case XN_SKEL_LEFT_FOOT: return AVATAR_JOINT_LEFT_HEEL;
+        case XN_SKEL_LEFT_HIP: return AVATAR_JOINT_RIGHT_HIP;
+        case XN_SKEL_LEFT_KNEE: return AVATAR_JOINT_RIGHT_KNEE;
+        case XN_SKEL_LEFT_FOOT: return AVATAR_JOINT_RIGHT_HEEL;
         
-        case XN_SKEL_RIGHT_HIP: return AVATAR_JOINT_RIGHT_HIP;
-        case XN_SKEL_RIGHT_KNEE: return AVATAR_JOINT_RIGHT_KNEE;
-        case XN_SKEL_RIGHT_FOOT: return AVATAR_JOINT_RIGHT_HEEL;
+        case XN_SKEL_RIGHT_HIP: return AVATAR_JOINT_LEFT_HIP;
+        case XN_SKEL_RIGHT_KNEE: return AVATAR_JOINT_LEFT_KNEE;
+        case XN_SKEL_RIGHT_FOOT: return AVATAR_JOINT_LEFT_HEEL;
         
         default: return AVATAR_JOINT_NULL;
     }
 }
 
-static glm::vec3 xnToGLM(const XnVector3D& vector) {
-    return glm::vec3(vector.X, vector.Y, vector.Z);
+static glm::vec3 xnToGLM(const XnVector3D& vector, bool flip = false) {
+    return glm::vec3(vector.X * (flip ? -1 : 1), vector.Y, vector.Z);
 }
 
 static glm::quat xnToGLM(const XnMatrix3X3& matrix) {
@@ -365,9 +366,6 @@ void FrameGrabber::grabFrame() {
         _userGenerator.GetUsers(&_userID, userCount);
         if (userCount > 0 && _userGenerator.GetSkeletonCap().IsTracking(_userID)) {
             joints.resize(NUM_AVATAR_JOINTS);
-            for (int i = 0; i < NUM_AVATAR_JOINTS; i++) {
-                joints[i].isValid = false;
-            }
             const int MAX_ACTIVE_JOINTS = 16;
             XnSkeletonJoint activeJoints[MAX_ACTIVE_JOINTS];
             XnUInt16 activeJointCount = MAX_ACTIVE_JOINTS;
@@ -382,10 +380,8 @@ void FrameGrabber::grabFrame() {
                 XnVector3D projected;
                 _depthGenerator.ConvertRealWorldToProjective(1, &transform.position.position, &projected);
                 const float METERS_PER_MM = 1.0f / 1000.0f;
-                Joint joint = { true, xnToGLM(transform.position.position) * METERS_PER_MM,
-                                xnToGLM(transform.orientation.orientation),
-                                xnToGLM(projected) };
-                joints[avatarJoint] = joint;
+                joints[avatarJoint] = Joint(xnToGLM(transform.position.position, true) * METERS_PER_MM,
+                    xnToGLM(transform.orientation.orientation), xnToGLM(projected));
             }
         }
     }
@@ -501,4 +497,11 @@ bool FrameGrabber::init() {
 void FrameGrabber::updateHSVFrame(const Mat& frame, int format) {
     cvtColor(frame, _hsvFrame, format == GL_RGB ? CV_RGB2HSV : CV_BGR2HSV);
     inRange(_hsvFrame, Scalar(0, 55, 65), Scalar(180, 256, 256), _mask);
+}
+
+Joint::Joint(const glm::vec3& position, const glm::quat& orientation, const glm::vec3& projected) :
+    isValid(true), position(position), orientation(orientation), projected(projected) {
+}
+
+Joint::Joint() : isValid(false) {
 }

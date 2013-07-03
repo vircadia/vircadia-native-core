@@ -548,8 +548,7 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
         }
         if (derivedJointID != AVATAR_JOINT_NULL) {
             if (secondJointID == AVATAR_JOINT_NULL) {
-                _skeleton.joint[derivedJointID].position = _skeleton.joint[it->jointID].position +
-                    _skeleton.joint[it->jointID].absoluteRotation * JOINT_DIRECTION * _skeleton.joint[derivedJointID].length;
+                _skeleton.joint[derivedJointID].position = _skeleton.joint[it->jointID].position;
                 _skeleton.joint[derivedJointID].absoluteRotation = _skeleton.joint[it->jointID].absoluteRotation;
                 
             } else {
