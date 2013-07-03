@@ -950,8 +950,12 @@ void Application::idle() {
         
         // NOTE - this is commented out for now - causing event processing issues reported by Philip and Ryan
         // birarda - July 3rd
-        
-        // processEvents();
+        // Added some safety catches which will enable us to test this.
+        // ej - July 3rd
+        if (_touchLook->isChecked()) {
+            int maxTimeMS = 1;
+            processEvents(QEventLoop::ExcludeSocketNotifiers, maxTimeMS);
+        }
         
         update(1.0f / _fps);
         
