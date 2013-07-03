@@ -285,10 +285,7 @@ void Avatar::reset() {
 }
 
 //  Update avatar head rotation with sensor data
-void Avatar::updateHeadFromGyrosAndOrWebcam() {
-    const float AMPLIFY_PITCH = 2.f;
-    const float AMPLIFY_YAW = 2.f;
-    const float AMPLIFY_ROLL = 2.f;
+void Avatar::updateHeadFromGyrosAndOrWebcam(bool gyroLook, const glm::vec3& amplifyAngle) {
 
     SerialInterface* gyros = Application::getInstance()->getSerialHeadSensor();
     Webcam* webcam = Application::getInstance()->getWebcam();
@@ -306,9 +303,10 @@ void Avatar::updateHeadFromGyrosAndOrWebcam() {
     } else {
         return;
     }
-    _head.setPitch(estimatedRotation.x * AMPLIFY_PITCH);
-    _head.setYaw(estimatedRotation.y * AMPLIFY_YAW);
-    _head.setRoll(estimatedRotation.z * AMPLIFY_ROLL);
+    _head.setPitch(estimatedRotation.x * amplifyAngle.x);
+    _head.setYaw(estimatedRotation.y * amplifyAngle.y);
+    _head.setRoll(estimatedRotation.z * amplifyAngle.z);
+    _head.setCameraFollowsHead(gyroLook);
         
     //  Update torso lean distance based on accelerometer data
     const float TORSO_LENGTH = 0.5f;
