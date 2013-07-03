@@ -944,6 +944,11 @@ void Application::idle() {
     //  Only run simulation code if more than IDLE_SIMULATE_MSECS have passed since last time we ran
     
     if (diffclock(&_lastTimeIdle, &check) > IDLE_SIMULATE_MSECS) {
+        // We call processEvents() here because the idle timer takes priority over
+        // event handling in Qt, so when the framerate gets low events will pile up
+        // unless we handle them here.
+        processEvents();
+        
         update(1.0f / _fps);
         
         _glWidget->updateGL();
