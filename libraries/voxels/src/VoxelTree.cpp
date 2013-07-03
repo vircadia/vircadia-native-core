@@ -1097,6 +1097,8 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
 
     // Keep track of how deep we've encoded.
     currentEncodeLevel++;
+    
+    params.maxLevelReached = std::max(currentEncodeLevel,params.maxLevelReached);
 
     // If we've reached our max Search Level, then stop searching.
     if (currentEncodeLevel >= params.maxEncodeLevel) {
@@ -1358,7 +1360,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
                 
                 int childTreeBytesOut = encodeTreeBitstreamRecursion(childNode, outputBuffer, availableBytes, bag, 
                                                                      params, thisLevel);
-                                                           
+
                 // remember this for reshuffling          
                 recursiveSliceSizes[originalIndex] = childTreeBytesOut;
                 allSlicesSize += childTreeBytesOut;

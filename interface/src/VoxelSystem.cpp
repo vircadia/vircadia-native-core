@@ -1090,13 +1090,13 @@ void VoxelSystem::collectStatsForTreesAndVBOs() {
     args.expectedMax = _voxelsInWriteArrays;
     _tree->recurseTreeWithOperation(collectStatsForTreesAndVBOsOperation,&args);
 
-    printLog("_voxelsDirty=%s _voxelsInWriteArrays=%ld minDirty=%ld maxDirty=%ld \n", debug::valueOf(_voxelsDirty),
-        _voxelsInWriteArrays, minDirty, maxDirty);
-
-    printLog("stats: total %ld, leaves %ld, dirty %ld, colored %ld, shouldRender %ld, inVBO %ld\n",
+    printLog("Local Voxel Tree Statistics:\n total nodes %ld \n leaves %ld \n dirty %ld \n colored %ld \n shouldRender %ld \n",
         args.totalNodes, args.leafNodes, args.dirtyNodes, args.coloredNodes, args.shouldRenderNodes);
 
-    printLog("inVBO %ld, nodesInVBOOverExpectedMax %ld, duplicateVBOIndex %ld, nodesInVBONotShouldRender %ld\n", 
+    printLog(" _voxelsDirty=%s \n _voxelsInWriteArrays=%ld \n minDirty=%ld \n maxDirty=%ld \n", debug::valueOf(_voxelsDirty),
+        _voxelsInWriteArrays, minDirty, maxDirty);
+
+    printLog(" inVBO %ld \n nodesInVBOOverExpectedMax %ld \n duplicateVBOIndex %ld \n nodesInVBONotShouldRender %ld \n", 
         args.nodesInVBO, args.nodesInVBOOverExpectedMax, args.duplicateVBOIndex, args.nodesInVBONotShouldRender);
 
     glBufferIndex minInVBO = GLBUFFER_INDEX_UNKNOWN;
@@ -1109,7 +1109,7 @@ void VoxelSystem::collectStatsForTreesAndVBOs() {
         }
     }
 
-    printLog("minInVBO=%ld maxInVBO=%ld _voxelsInWriteArrays=%ld _voxelsInReadArrays=%ld\n", 
+    printLog(" minInVBO=%ld \n maxInVBO=%ld \n _voxelsInWriteArrays=%ld \n _voxelsInReadArrays=%ld \n", 
             minInVBO, maxInVBO, _voxelsInWriteArrays, _voxelsInReadArrays);
 
 }
@@ -1289,19 +1289,21 @@ void VoxelSystem::falseColorizeOccluded() {
 
     VoxelProjectedPolygon::pointInside_calls = 0;
     VoxelProjectedPolygon::occludes_calls = 0;
+    VoxelProjectedPolygon::intersects_calls = 0;
     
     glm::vec3 position = args.viewFrustum->getPosition() * (1.0f/TREE_SCALE);
 
     _tree->recurseTreeWithOperationDistanceSorted(falseColorizeOccludedOperation, position, (void*)&args);
 
-    printLog("falseColorizeOccluded()\n    position=(%f,%f)\n    total=%ld\n    colored=%ld\n    occluded=%ld\n    notOccluded=%ld\n    outOfView=%ld\n    subtreeVoxelsSkipped=%ld\n    stagedForDeletion=%ld\n    nonLeaves=%ld\n    nonLeavesOutOfView=%ld\n    nonLeavesOccluded=%ld\n    pointInside_calls=%ld\n    occludes_calls=%ld\n", 
+    printLog("falseColorizeOccluded()\n    position=(%f,%f)\n    total=%ld\n    colored=%ld\n    occluded=%ld\n    notOccluded=%ld\n    outOfView=%ld\n    subtreeVoxelsSkipped=%ld\n    stagedForDeletion=%ld\n    nonLeaves=%ld\n    nonLeavesOutOfView=%ld\n    nonLeavesOccluded=%ld\n    pointInside_calls=%ld\n    occludes_calls=%ld\n intersects_calls=%ld\n", 
         position.x, position.y,
         args.totalVoxels, args.coloredVoxels, args.occludedVoxels, 
         args.notOccludedVoxels, args.outOfView, args.subtreeVoxelsSkipped, 
         args.stagedForDeletion, 
         args.nonLeaves, args.nonLeavesOutOfView, args.nonLeavesOccluded,
         VoxelProjectedPolygon::pointInside_calls,
-        VoxelProjectedPolygon::occludes_calls
+        VoxelProjectedPolygon::occludes_calls,
+        VoxelProjectedPolygon::intersects_calls
     );
 
 
@@ -1397,7 +1399,7 @@ void VoxelSystem::falseColorizeOccludedV2() {
 
     VoxelProjectedPolygon::pointInside_calls = 0;
     VoxelProjectedPolygon::occludes_calls = 0;
-    
+    VoxelProjectedPolygon::intersects_calls = 0;
     
     FalseColorizeOccludedArgs args;
     args.viewFrustum = Application::getInstance()->getViewFrustum();
@@ -1418,14 +1420,15 @@ void VoxelSystem::falseColorizeOccludedV2() {
 
     _tree->recurseTreeWithOperationDistanceSorted(falseColorizeOccludedV2Operation, position, (void*)&args);
 
-    printLog("falseColorizeOccludedV2()\n    position=(%f,%f)\n    total=%ld\n    colored=%ld\n    occluded=%ld\n    notOccluded=%ld\n    outOfView=%ld\n    subtreeVoxelsSkipped=%ld\n    stagedForDeletion=%ld\n    nonLeaves=%ld\n    nonLeavesOutOfView=%ld\n    nonLeavesOccluded=%ld\n    pointInside_calls=%ld\n    occludes_calls=%ld\n", 
+    printLog("falseColorizeOccludedV2()\n    position=(%f,%f)\n    total=%ld\n    colored=%ld\n    occluded=%ld\n    notOccluded=%ld\n    outOfView=%ld\n    subtreeVoxelsSkipped=%ld\n    stagedForDeletion=%ld\n    nonLeaves=%ld\n    nonLeavesOutOfView=%ld\n    nonLeavesOccluded=%ld\n    pointInside_calls=%ld\n    occludes_calls=%ld\n    intersects_calls=%ld\n", 
         position.x, position.y,
         args.totalVoxels, args.coloredVoxels, args.occludedVoxels, 
         args.notOccludedVoxels, args.outOfView, args.subtreeVoxelsSkipped, 
         args.stagedForDeletion, 
         args.nonLeaves, args.nonLeavesOutOfView, args.nonLeavesOccluded,
         VoxelProjectedPolygon::pointInside_calls,
-        VoxelProjectedPolygon::occludes_calls
+        VoxelProjectedPolygon::occludes_calls,
+        VoxelProjectedPolygon::intersects_calls
     );
     //myCoverageMapV2.erase();
 

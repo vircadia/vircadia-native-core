@@ -36,6 +36,7 @@ typedef enum {GRADIENT, RANDOM, NATURAL} creationMode;
 class EncodeBitstreamParams {
 public:
     int                 maxEncodeLevel;
+    int                 maxLevelReached;
     const ViewFrustum*  viewFrustum;
     bool                includeColor;
     bool                includeExistsBits;
@@ -47,7 +48,7 @@ public:
     
     EncodeBitstreamParams(
         int                 maxEncodeLevel      = INT_MAX, 
-        const ViewFrustum*  viewFrustum         = IGNORE_VIEW_FRUSTUM, 
+        const ViewFrustum*  viewFrustum         = IGNORE_VIEW_FRUSTUM,
         bool                includeColor        = WANT_COLOR, 
         bool                includeExistsBits   = WANT_EXISTS_BITS,
         int                 chopLevels          = 0, 
@@ -55,8 +56,8 @@ public:
         const ViewFrustum*  lastViewFrustum     = IGNORE_VIEW_FRUSTUM,
         bool                wantOcclusionCulling= NO_OCCLUSION_CULLING,
         CoverageMap*        map                 = IGNORE_COVERAGE_MAP) :
-        
             maxEncodeLevel      (maxEncodeLevel),
+            maxLevelReached     (0),
             viewFrustum         (viewFrustum),
             includeColor        (includeColor),
             includeExistsBits   (includeExistsBits),
