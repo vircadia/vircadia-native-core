@@ -542,10 +542,6 @@ VoxelProjectedPolygon ViewFrustum::getProjectedPolygon(const AABox& box) const {
 
     int vertexCount = hullVertexLookup[lookUp][0];  //look up number of vertices
     
-    if (vertexCount == 0) {
-        printLog(">>>>>>>>> ViewFrustum::getProjectedPolygon() lookup=%d vertexCount=%d\n", lookUp, vertexCount);
-    }
-
     VoxelProjectedPolygon projectedPolygon(vertexCount);
     
     bool pointInView = true;
