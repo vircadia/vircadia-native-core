@@ -432,6 +432,9 @@ void Application::paintGL() {
 void Application::resizeGL(int width, int height) {
     float aspectRatio = ((float)width/(float)height); // based on screen resize
 
+    // reset the camera FOV to our preference...
+    _myCamera.setFieldOfView(_horizontalFieldOfView);
+
     // get the lens details from the current camera
     Camera& camera = _viewFrustumFromOffset->isChecked() ? _viewFrustumOffsetCamera : _myCamera;
     float nearClip = camera.getNearClip();
