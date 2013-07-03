@@ -77,7 +77,12 @@ Head::Head(Avatar* owningAvatar) :
     _rightEyeBlink(0.0f),
     _leftEyeBlinkVelocity(0.0f),
     _rightEyeBlinkVelocity(0.0f),
-    _timeWithoutTalking(0.0f)
+    _timeWithoutTalking(0.0f),
+    _cameraPitch(_pitch),
+    _cameraYaw(_yaw),
+    _isCameraMoving(false),
+    _cameraFollowsHead(false),
+    _cameraFollowHeadRate(0.0f)
 {
     if (USING_PHYSICAL_MOHAWK) {
         resetHairPhysics();
@@ -213,6 +218,37 @@ void Head::simulate(float deltaTime, bool isMine) {
         updateHairPhysics(deltaTime);
     }
     
+    // Update camera pitch and yaw independently from motion of head (for gyro-based interface)
+    if (isMine && _cameraFollowsHead) {
+        //  If we are using gyros and using gyroLook, have the camera follow head but with a null region
+        //  to create stable rendering view with small head movements.
+        const float CAMERA_FOLLOW_HEAD_RATE_START = 0.05f;
+        const float CAMERA_FOLLOW_HEAD_RATE_MAX = 0.25f;
+        const float CAMERA_FOLLOW_HEAD_RATE_RAMP_RATE = 1.5f;
+        const float CAMERA_STOP_TOLERANCE_DEGREES = 0.25f;
+        const float CAMERA_START_TOLERANCE_DEGREES = 15.0f;
+        float cameraHeadAngleDifference = glm::length(glm::vec2(_pitch - _cameraPitch, _yaw - _cameraYaw));
+        if (_isCameraMoving) {
+            _cameraFollowHeadRate = glm::clamp(_cameraFollowHeadRate * CAMERA_FOLLOW_HEAD_RATE_RAMP_RATE,
+                                               0.f,
+                                               CAMERA_FOLLOW_HEAD_RATE_MAX);
+                                               
+            _cameraPitch += (_pitch - _cameraPitch) * _cameraFollowHeadRate;
+            _cameraYaw += (_yaw - _cameraYaw) * _cameraFollowHeadRate;
+            if (cameraHeadAngleDifference < CAMERA_STOP_TOLERANCE_DEGREES) {
+                _isCameraMoving = false;
+            }
+        } else {
+            if (cameraHeadAngleDifference > CAMERA_START_TOLERANCE_DEGREES) {
+                _isCameraMoving = true;
+                _cameraFollowHeadRate = CAMERA_FOLLOW_HEAD_RATE_START;
+            }
+        }
+    } else {
+        //  Camera always locked to head 
+        _cameraPitch = _pitch;
+        _cameraYaw = _yaw;
+    }
 }
 
 void Head::calculateGeometry() {
@@ -358,10 +394,10 @@ glm::quat Head::getOrientation() const {
         glm::vec3(_pitch, -_yaw, -_roll) : glm::vec3(_pitch, _yaw, _roll)));
 }
 
-glm::quat Head::getCameraOrientation (float pitchYawScale) const {
+glm::quat Head::getCameraOrientation () const {
     Avatar* owningAvatar = static_cast<Avatar*>(_owningAvatar);
-    return owningAvatar->getWorldAlignedOrientation() * glm::quat(glm::radians(glm::vec3(
-        _pitch * pitchYawScale, _yaw * pitchYawScale, 0.0f)));
+    return owningAvatar->getWorldAlignedOrientation()
+            * glm::quat(glm::radians(glm::vec3(_cameraPitch, _cameraYaw, 0.0f)));
 }
 
 void Head::renderHeadSphere() {
