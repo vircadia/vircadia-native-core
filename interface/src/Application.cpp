@@ -1914,7 +1914,7 @@ void Application::updateAvatar(float deltaTime) {
     _myAvatar.updateHeadFromGyrosAndOrWebcam(_gyroLook->isChecked(),
                                              glm::vec3(_headCameraPitchYawScale,
                                                        _headCameraPitchYawScale,
-                                                       _headCameraPitchYawScale) );
+                                                       _headCameraPitchYawScale));
         
     if (_serialHeadSensor.isActive()) {
       

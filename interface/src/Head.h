@@ -48,7 +48,7 @@ public:
     void setReturnToCenter (bool      returnHeadToCenter) { _returnHeadToCenter = returnHeadToCenter; }
     void setRenderLookatVectors(bool onOff ) { _renderLookatVectors = onOff; }
     
-    void setCameraFollowsHead(bool b) { _cameraFollowsHead = b; }
+    void setCameraFollowsHead(bool cameraFollowsHead) { _cameraFollowsHead = cameraFollowsHead; }
     
     glm::quat getOrientation() const;
     glm::quat getCameraOrientation () const;
