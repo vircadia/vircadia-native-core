@@ -265,26 +265,26 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
     // the current view frustum for things to send.
     if (viewFrustumChanged || nodeData->nodeBag.isEmpty()) {
         if (::debugVoxelSending) {
-            printf("(viewFrustumChanged=%s || agentData->nodeBag.isEmpty() =%s)...\n",
-                   debug::valueOf(viewFrustumChanged), debug::valueOf(agentData->nodeBag.isEmpty()));
+            printf("(viewFrustumChanged=%s || nodeData->nodeBag.isEmpty() =%s)...\n",
+                   debug::valueOf(viewFrustumChanged), debug::valueOf(nodeData->nodeBag.isEmpty()));
             long long now = usecTimestampNow();
-            if (agentData->getLastTimeBagEmpty() > 0) {
-                float elapsedSceneSend = (now - agentData->getLastTimeBagEmpty()) / 1000000.0f;
+            if (nodeData->getLastTimeBagEmpty() > 0) {
+                float elapsedSceneSend = (now - nodeData->getLastTimeBagEmpty()) / 1000000.0f;
                 
                 if (viewFrustumChanged) {
                     printf("viewFrustumChanged resetting after elapsed time to send scene = %f seconds", elapsedSceneSend);
                 } else {
                     printf("elapsed time to send scene = %f seconds", elapsedSceneSend);
                 }
-                printf(" [occlusionCulling: %s]\n", debug::valueOf(agentData->getWantOcclusionCulling()));
+                printf(" [occlusionCulling: %s]\n", debug::valueOf(nodeData->getWantOcclusionCulling()));
             }
-            agentData->setLastTimeBagEmpty(now);
+            nodeData->setLastTimeBagEmpty(now);
         }
                 
         // if our view has changed, we need to reset these things...
         if (viewFrustumChanged) {
-            agentData->nodeBag.deleteAll();
-            agentData->map.erase();
+            nodeData->nodeBag.deleteAll();
+            nodeData->map.erase();
         }
 
         // For now, we're going to disable the "search for colored nodes" because that strategy doesn't work when we support
@@ -343,7 +343,7 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
                 if (::debugVoxelSending) {
                     printf("packetLoop() usecRemaining=%ld bailing early took %ld usecs to generate %d bytes in %d packets (%ld usec avg), %d nodes still to send\n",
                             usecRemaining, elapsedUsec, trueBytesSent, truePacketsSent, elapsedUsecPerPacket,
-                            agentData->nodeBag.count());
+                            nodeData->nodeBag.count());
                 }
                 break;
             }            
@@ -361,8 +361,8 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
                 bytesWritten = serverTree.encodeTreeBitstream(subTree, &tempOutputBuffer[0], MAX_VOXEL_PACKET_SIZE - 1,
                                                               nodeData->nodeBag, params);
                 
-                if (agentData->getAvailable() >= bytesWritten) {
-                    agentData->writeToPacket(&tempOutputBuffer[0], bytesWritten);
+                if (nodeData->getAvailable() >= bytesWritten) {
+                    nodeData->writeToPacket(&tempOutputBuffer[0], bytesWritten);
                 } else {
                     nodeList->getNodeSocket()->send(node->getActiveSocket(),
                                                      nodeData->getPacket(), nodeData->getPacketLength());
