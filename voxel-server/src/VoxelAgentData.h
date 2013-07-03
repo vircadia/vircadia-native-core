@@ -50,6 +50,10 @@ public:
     bool getViewSent() const        { return _viewSent; };
     void setViewSent(bool viewSent) { _viewSent = viewSent; }
 
+    long long getLastTimeBagEmpty() const                      { return _lastTimeBagEmpty; };
+    void      setLastTimeBagEmpty(long long lastTimeBagEmpty)  { _lastTimeBagEmpty = lastTimeBagEmpty; };
+
+
 private:
     VoxelAgentData(const VoxelAgentData &);
     VoxelAgentData& operator= (const VoxelAgentData&);
@@ -63,6 +67,7 @@ private:
     int _maxLevelReachedInLastSearch;
     ViewFrustum _currentViewFrustum;
     ViewFrustum _lastKnownViewFrustum;
+    long long _lastTimeBagEmpty;
 
 };
 
