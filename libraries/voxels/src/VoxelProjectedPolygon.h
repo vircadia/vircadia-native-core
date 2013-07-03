@@ -110,6 +110,7 @@ public:
     
     static long pointInside_calls;
     static long occludes_calls;
+    static long intersects_calls;
 
 private:
     int _vertexCount;

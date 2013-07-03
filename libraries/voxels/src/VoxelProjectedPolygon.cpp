@@ -99,6 +99,7 @@ void BoundingBox::printDebugDetails(const char* label) const {
 
 long VoxelProjectedPolygon::pointInside_calls = 0;
 long VoxelProjectedPolygon::occludes_calls = 0;
+long VoxelProjectedPolygon::intersects_calls = 0;
 
 
 VoxelProjectedPolygon::VoxelProjectedPolygon(const BoundingBox& box) :
@@ -321,11 +322,12 @@ void VoxelProjectedPolygon::printDebugDetails() const {
 
 bool VoxelProjectedPolygon::intersects(const BoundingBox& box) const {
     VoxelProjectedPolygon testee(box);
-    return intersectsOnAxes(testee) && testee.intersectsOnAxes(*this);
+    return intersects(testee);
 }
 
 
 bool VoxelProjectedPolygon::intersects(const VoxelProjectedPolygon& testee) const {
+    VoxelProjectedPolygon::intersects_calls++;
     return intersectsOnAxes(testee) && testee.intersectsOnAxes(*this);
 }
 
@@ -370,8 +372,6 @@ bool VoxelProjectedPolygon::intersectsOnAxes(const VoxelProjectedPolygon& testee
 }
 
 bool VoxelProjectedPolygon::canMerge(const VoxelProjectedPolygon& that) const {
-
-//return false;
 
     // RIGHT/NEAR
     // LEFT/NEAR
