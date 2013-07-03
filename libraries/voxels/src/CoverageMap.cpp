@@ -196,25 +196,26 @@ CoverageMapStorageResult CoverageMap::checkMap(VoxelProjectedPolygon* polygon, b
         bool fitsInAHalf = false;
         
         // Check each half of the box independently
-/**        
-        if (_topHalf.contains(polygonBox)) {
-            result = _topHalf.checkRegion(polygon, polygonBox, storeIt);
-            storeIn = &_topHalf;
-            fitsInAHalf = true;
-        } else if (_bottomHalf.contains(polygonBox)) {
-            result  = _bottomHalf.checkRegion(polygon, polygonBox, storeIt);
-            storeIn = &_bottomHalf;
-            fitsInAHalf = true;
-        } else if (_leftHalf.contains(polygonBox)) {
-            result  = _leftHalf.checkRegion(polygon, polygonBox, storeIt);
-            storeIn = &_leftHalf;
-            fitsInAHalf = true;
-        } else if (_rightHalf.contains(polygonBox)) {
-            result  = _rightHalf.checkRegion(polygon, polygonBox, storeIt);
-            storeIn = &_rightHalf;
-            fitsInAHalf = true;
+        const bool useRegions = true; // for now we will continue to use regions
+        if (useRegions) {
+            if (_topHalf.contains(polygonBox)) {
+                result = _topHalf.checkRegion(polygon, polygonBox, storeIt);
+                storeIn = &_topHalf;
+                fitsInAHalf = true;
+            } else if (_bottomHalf.contains(polygonBox)) {
+                result  = _bottomHalf.checkRegion(polygon, polygonBox, storeIt);
+                storeIn = &_bottomHalf;
+                fitsInAHalf = true;
+            } else if (_leftHalf.contains(polygonBox)) {
+                result  = _leftHalf.checkRegion(polygon, polygonBox, storeIt);
+                storeIn = &_leftHalf;
+                fitsInAHalf = true;
+            } else if (_rightHalf.contains(polygonBox)) {
+                result  = _rightHalf.checkRegion(polygon, polygonBox, storeIt);
+                storeIn = &_rightHalf;
+                fitsInAHalf = true;
+            }
         }
-**/
         
         // if we got this far, there are one of two possibilities, either a polygon doesn't fit
         // in one of the halves, or it did fit, but it wasn't occluded by anything only in that
@@ -241,37 +242,38 @@ CoverageMapStorageResult CoverageMap::checkMap(VoxelProjectedPolygon* polygon, b
         // if we made it here, then it means the polygon being stored is not occluded
         // at this level of the quad tree, so we can continue to insert it into the map. 
         // First we check to see if it fits in any of our sub maps
-if (false) {        
-        for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
-            BoundingBox childMapBoundingBox = getChildBoundingBox(i);
-            if (childMapBoundingBox.contains(polygon->getBoundingBox())) {
-                // if no child map exists yet, then create it
-                if (!_childMaps[i]) {
-                    _childMaps[i] = new CoverageMap(childMapBoundingBox, NOT_ROOT, _managePolygons);
-                }
-                result = _childMaps[i]->checkMap(polygon, storeIt);
+        const bool useChildMaps = true; // for now we will continue to use child maps
+        if (useChildMaps) {        
+            for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
+                BoundingBox childMapBoundingBox = getChildBoundingBox(i);
+                if (childMapBoundingBox.contains(polygon->getBoundingBox())) {
+                    // if no child map exists yet, then create it
+                    if (!_childMaps[i]) {
+                        _childMaps[i] = new CoverageMap(childMapBoundingBox, NOT_ROOT, _managePolygons);
+                    }
+                    result = _childMaps[i]->checkMap(polygon, storeIt);
 
-                /*
-                switch (result) {
-                    case STORED:
-                        printLog("checkMap() = STORED\n");
-                        break;
-                    case NOT_STORED:
-                        printLog("checkMap() = NOT_STORED\n");
-                        break;
-                    case OCCLUDED:
-                        printLog("checkMap() = OCCLUDED\n");
-                        break;
-                    default:
-                        printLog("checkMap() = ????? \n");
-                        break;
-                }
-                */
+                    /*
+                    switch (result) {
+                        case STORED:
+                            printLog("checkMap() = STORED\n");
+                            break;
+                        case NOT_STORED:
+                            printLog("checkMap() = NOT_STORED\n");
+                            break;
+                        case OCCLUDED:
+                            printLog("checkMap() = OCCLUDED\n");
+                            break;
+                        default:
+                            printLog("checkMap() = ????? \n");
+                            break;
+                    }
+                    */
                 
-                return result;
+                    return result;
+                }
             }
         }
-}
         // if we got this far, then the polygon is in our bounding box, but doesn't fit in
         // any of our child bounding boxes, so we should add it here.
         if (storeIt) {
