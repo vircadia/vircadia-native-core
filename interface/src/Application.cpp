@@ -949,7 +949,7 @@ void Application::idle() {
         // unless we handle them here.
         
         // NOTE - this is commented out for now - causing event processing issues reported by Philip and Ryan
-        // birarda - July 3rdg
+        // birarda - July 3rd
         
         // processEvents();
         
