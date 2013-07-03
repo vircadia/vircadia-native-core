@@ -18,8 +18,8 @@
 
 using namespace std;
 
-AvatarData::AvatarData(Agent* owningAgent) :
-    AgentData(owningAgent),
+AvatarData::AvatarData(Node* owningNode) :
+    NodeData(owningNode),
     _handPosition(0,0,0),
     _bodyYaw(-90.0),
     _bodyPitch(0.0),
@@ -125,19 +125,37 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     *destinationBuffer++ = bitItems;
     
     // leap hand data
-    const std::vector<glm::vec3>& fingerPositions = _handData->getFingerPositions();
-    *destinationBuffer++ = (unsigned char)fingerPositions.size();
-    for (size_t i = 0; i < fingerPositions.size(); ++i)
-    {
-        destinationBuffer += packFloatScalarToSignedTwoByteFixed(destinationBuffer, fingerPositions[i].x, 4);
-        destinationBuffer += packFloatScalarToSignedTwoByteFixed(destinationBuffer, fingerPositions[i].y, 4);
-        destinationBuffer += packFloatScalarToSignedTwoByteFixed(destinationBuffer, fingerPositions[i].z, 4);
+    // In order to make the hand data version-robust, hand data packing is just a series of vec3's,
+    // with conventions. If a client doesn't know the conventions, they can just get the vec3's
+    // and render them as balls, or ignore them, without crashing or disrupting anyone.
+    // Current convention:
+    //    Zero or more fingetTip positions, followed by the same number of fingerRoot positions
+    
+    const std::vector<glm::vec3>& fingerTips = _handData->getFingerTips();
+    const std::vector<glm::vec3>& fingerRoots = _handData->getFingerRoots();
+    size_t numFingerVectors = fingerTips.size() + fingerRoots.size();
+    if (numFingerVectors > 255)
+        numFingerVectors = 0; // safety. We shouldn't ever get over 255, so consider that invalid.
+
+    *destinationBuffer++ = (unsigned char)numFingerVectors;
+    
+    if (numFingerVectors > 0) {
+        for (size_t i = 0; i < fingerTips.size(); ++i) {
+            destinationBuffer += packFloatScalarToSignedTwoByteFixed(destinationBuffer, fingerTips[i].x, 4);
+            destinationBuffer += packFloatScalarToSignedTwoByteFixed(destinationBuffer, fingerTips[i].y, 4);
+            destinationBuffer += packFloatScalarToSignedTwoByteFixed(destinationBuffer, fingerTips[i].z, 4);
+        }
+        for (size_t i = 0; i < fingerRoots.size(); ++i) {
+            destinationBuffer += packFloatScalarToSignedTwoByteFixed(destinationBuffer, fingerRoots[i].x, 4);
+            destinationBuffer += packFloatScalarToSignedTwoByteFixed(destinationBuffer, fingerRoots[i].y, 4);
+            destinationBuffer += packFloatScalarToSignedTwoByteFixed(destinationBuffer, fingerRoots[i].z, 4);
+        }
     }
     
     return destinationBuffer - bufferStart;
 }
 
-// called on the other agents - assigns it to my views of the others
+// called on the other nodes - assigns it to my views of the others
 int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
 
     // lazily allocate memory for HeadData in case we're not an Avatar instance
@@ -155,7 +173,7 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     
     unsigned char* startPosition = sourceBuffer;
     
-    // push past the agent ID
+    // push past the node ID
     sourceBuffer += + sizeof(uint16_t);
     
     // Body world position
@@ -229,18 +247,20 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     // leap hand data
     if (sourceBuffer - startPosition < numBytes)    // safety check
     {
-        std::vector<glm::vec3> fingerPositions = _handData->getFingerPositions();
-        unsigned int numFingers = *sourceBuffer++;
-        if (numFingers > MAX_AVATAR_LEAP_BALLS)    // safety check
-            numFingers = 0;
-        fingerPositions.resize(numFingers);
-        for (size_t i = 0; i < numFingers; ++i)
-        {
-            sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(fingerPositions[i].x), 4);
-            sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(fingerPositions[i].y), 4);
-            sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(fingerPositions[i].z), 4);
+        std::vector<glm::vec3> fingerTips = _handData->getFingerTips();
+        std::vector<glm::vec3> fingerRoots = _handData->getFingerRoots();
+        unsigned int numFingerVectors = *sourceBuffer++;
+        unsigned int numFingerTips = numFingerVectors / 2;
+        unsigned int numFingerRoots = numFingerVectors - numFingerTips;
+        fingerTips.resize(numFingerTips);
+        fingerRoots.resize(numFingerRoots);
+        for (size_t i = 0; i < numFingerTips; ++i) {
+            sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(fingerTips[i].x), 4);
+            sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(fingerTips[i].y), 4);
+            sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(fingerTips[i].z), 4);
         }
-        _handData->setFingerPositions(fingerPositions);
+        _handData->setFingerTips(fingerTips);
+        _handData->setFingerRoots(fingerRoots);
     }
     
     return sourceBuffer - startPosition;

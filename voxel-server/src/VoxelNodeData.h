@@ -1,25 +1,25 @@
 //
-//  VoxelAgentData.h
+//  VoxelNodeData.h
 //  hifi
 //
 //  Created by Stephen Birarda on 3/21/13.
 //
 //
 
-#ifndef __hifi__VoxelAgentData__
-#define __hifi__VoxelAgentData__
+#ifndef __hifi__VoxelNodeData__
+#define __hifi__VoxelNodeData__
 
 #include <iostream>
-#include <AgentData.h>
+#include <NodeData.h>
 #include <AvatarData.h>
 #include "VoxelNodeBag.h"
 #include "VoxelConstants.h"
 #include "CoverageMap.h"
 
-class VoxelAgentData : public AvatarData {
+class VoxelNodeData : public AvatarData {
 public:
-    VoxelAgentData(Agent* owningAgent);
-    ~VoxelAgentData();
+    VoxelNodeData(Node* owningNode);
+    ~VoxelNodeData();
 
     void resetVoxelPacket();  // resets voxel packet to after "V" header
 
@@ -50,13 +50,12 @@ public:
     bool getViewSent() const        { return _viewSent; };
     void setViewSent(bool viewSent) { _viewSent = viewSent; }
 
-    long long getLastTimeBagEmpty() const { return _lastTimeBagEmpty; };
-    void      setLastTimeBagEmpty(long long now)  { _lastTimeBagEmpty = now; };
-
+    long long getLastTimeBagEmpty() const                      { return _lastTimeBagEmpty; };
+    void      setLastTimeBagEmpty(long long lastTimeBagEmpty)  { _lastTimeBagEmpty = lastTimeBagEmpty; };
 
 private:
-    VoxelAgentData(const VoxelAgentData &);
-    VoxelAgentData& operator= (const VoxelAgentData&);
+    VoxelNodeData(const VoxelNodeData &);
+    VoxelNodeData& operator= (const VoxelNodeData&);
     
     bool _viewSent;
     unsigned char* _voxelPacket;
@@ -71,4 +70,4 @@ private:
 
 };
 
-#endif /* defined(__hifi__VoxelAgentData__) */
+#endif /* defined(__hifi__VoxelNodeData__) */

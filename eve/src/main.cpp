@@ -11,14 +11,14 @@
 #include <cstring>
 
 #include <SharedUtil.h>
-#include <AgentTypes.h>
+#include <NodeTypes.h>
 #include <PacketHeaders.h>
-#include <AgentList.h>
+#include <NodeList.h>
 #include <AvatarData.h>
 #include <AudioInjectionManager.h>
 #include <AudioInjector.h>
 
-const int EVE_AGENT_LISTEN_PORT = 55441;
+const int EVE_NODE_LISTEN_PORT = 55441;
 
 const float RANDOM_POSITION_MAX_DIMENSION = 10.0f;
 
@@ -39,27 +39,27 @@ const int EVE_VOLUME_BYTE = 190;
 
 const char EVE_AUDIO_FILENAME[] = "/etc/highfidelity/eve/resources/eve.raw";
 
-bool stopReceiveAgentDataThread;
+bool stopReceiveNodeDataThread;
 
-void *receiveAgentData(void *args) {
+void *receiveNodeData(void *args) {
     sockaddr senderAddress;
     ssize_t bytesReceived;
     unsigned char incomingPacket[MAX_PACKET_SIZE];
     
-    AgentList* agentList = AgentList::getInstance();
+    NodeList* nodeList = NodeList::getInstance();
     
-    while (!::stopReceiveAgentDataThread) {
-        if (agentList->getAgentSocket()->receive(&senderAddress, incomingPacket, &bytesReceived)) { 
+    while (!::stopReceiveNodeDataThread) {
+        if (nodeList->getNodeSocket()->receive(&senderAddress, incomingPacket, &bytesReceived)) { 
             switch (incomingPacket[0]) {
                 case PACKET_HEADER_BULK_AVATAR_DATA:
-                    // this is the positional data for other agents
-                    // pass that off to the agentList processBulkAgentData method
-                    agentList->processBulkAgentData(&senderAddress, incomingPacket, bytesReceived);
+                    // this is the positional data for other nodes
+                    // pass that off to the nodeList processBulkNodeData method
+                    nodeList->processBulkNodeData(&senderAddress, incomingPacket, bytesReceived);
                     
                     break;
                 default:
-                    // have the agentList handle list of agents from DS, replies from other agents, etc.
-                    agentList->processAgentData(&senderAddress, incomingPacket, bytesReceived);
+                    // have the nodeList handle list of nodes from DS, replies from other nodes, etc.
+                    nodeList->processNodeData(&senderAddress, incomingPacket, bytesReceived);
                     break;
             }
         }
@@ -69,9 +69,9 @@ void *receiveAgentData(void *args) {
     return NULL;
 }
 
-void createAvatarDataForAgent(Agent* agent) {
-    if (!agent->getLinkedData()) {
-        agent->setLinkedData(new AvatarData(agent));
+void createAvatarDataForNode(Node* node) {
+    if (!node->getLinkedData()) {
+        node->setLinkedData(new AvatarData(node));
     }
 }
 
@@ -79,17 +79,17 @@ int main(int argc, const char* argv[]) {
     // new seed for random audio sleep times
     srand(time(0));
     
-    // create an AgentList instance to handle communication with other agents
-    AgentList* agentList = AgentList::createInstance(AGENT_TYPE_AVATAR, EVE_AGENT_LISTEN_PORT);
+    // create an NodeList instance to handle communication with other nodes
+    NodeList* nodeList = NodeList::createInstance(NODE_TYPE_AGENT, EVE_NODE_LISTEN_PORT);
     
-    // start the agent list thread that will kill off agents when they stop talking
-    agentList->startSilentAgentRemovalThread();
+    // start the node list thread that will kill off nodes when they stop talking
+    nodeList->startSilentNodeRemovalThread();
     
-    // start the ping thread that hole punches to create an active connection to other agents
-    agentList->startPingUnknownAgentsThread();
+    // start the ping thread that hole punches to create an active connection to other nodes
+    nodeList->startPingUnknownNodesThread();
     
-    pthread_t receiveAgentDataThread;
-    pthread_create(&receiveAgentDataThread, NULL, receiveAgentData, NULL);
+    pthread_t receiveNodeDataThread;
+    pthread_create(&receiveNodeDataThread, NULL, receiveNodeData, NULL);
     
     // create an AvatarData object, "eve"
     AvatarData eve;
@@ -109,8 +109,8 @@ int main(int argc, const char* argv[]) {
                                   0.5,
                                   eve.getPosition()[2] + 0.1));
     
-    // prepare the audio injection manager by giving it a handle to our agent socket
-    AudioInjectionManager::setInjectorSocket(agentList->getAgentSocket());
+    // prepare the audio injection manager by giving it a handle to our node socket
+    AudioInjectionManager::setInjectorSocket(nodeList->getNodeSocket());
     
     // read eve's audio data
     AudioInjector eveAudioInjector(EVE_AUDIO_FILENAME);
@@ -121,8 +121,8 @@ int main(int argc, const char* argv[]) {
     // set the position of the audio injector
     eveAudioInjector.setPosition(eve.getPosition());
     
-    // register the callback for agent data creation
-    agentList->linkedDataCreateCallback = createAvatarDataForAgent;
+    // register the callback for node data creation
+    nodeList->linkedDataCreateCallback = createAvatarDataForNode;
     
     unsigned char broadcastPacket[MAX_PACKET_SIZE];
     broadcastPacket[0] = PACKET_HEADER_HEAD_DATA;
@@ -135,46 +135,46 @@ int main(int argc, const char* argv[]) {
     timeval lastDomainServerCheckIn = {};
     
     // eve wants to hear about an avatar mixer and an audio mixer from the domain server
-    const char EVE_AGENT_TYPES_OF_INTEREST[] = {AGENT_TYPE_AVATAR_MIXER, AGENT_TYPE_AUDIO_MIXER};
-    AgentList::getInstance()->setAgentTypesOfInterest(EVE_AGENT_TYPES_OF_INTEREST, sizeof(EVE_AGENT_TYPES_OF_INTEREST));
+    const char EVE_NODE_TYPES_OF_INTEREST[] = {NODE_TYPE_AVATAR_MIXER, NODE_TYPE_AUDIO_MIXER};
+    NodeList::getInstance()->setNodeTypesOfInterest(EVE_NODE_TYPES_OF_INTEREST, sizeof(EVE_NODE_TYPES_OF_INTEREST));
 
     while (true) {
         // send a check in packet to the domain server if DOMAIN_SERVER_CHECK_IN_USECS has elapsed
         if (usecTimestampNow() - usecTimestamp(&lastDomainServerCheckIn) >= DOMAIN_SERVER_CHECK_IN_USECS) {
             gettimeofday(&lastDomainServerCheckIn, NULL);
-            AgentList::getInstance()->sendDomainServerCheckIn();
+            NodeList::getInstance()->sendDomainServerCheckIn();
         }
         
         // update the thisSend timeval to the current time
         gettimeofday(&thisSend, NULL);
         
         // find the current avatar mixer
-        Agent* avatarMixer = agentList->soloAgentOfType(AGENT_TYPE_AVATAR_MIXER);
+        Node* avatarMixer = nodeList->soloNodeOfType(NODE_TYPE_AVATAR_MIXER);
         
         // make sure we actually have an avatar mixer with an active socket
-        if (agentList->getOwnerID() != UNKNOWN_AGENT_ID && avatarMixer && avatarMixer->getActiveSocket() != NULL) {
+        if (nodeList->getOwnerID() != UNKNOWN_NODE_ID && avatarMixer && avatarMixer->getActiveSocket() != NULL) {
             unsigned char* packetPosition = broadcastPacket + sizeof(PACKET_HEADER);
-            packetPosition += packAgentId(packetPosition, agentList->getOwnerID());
+            packetPosition += packNodeId(packetPosition, nodeList->getOwnerID());
             
             // use the getBroadcastData method in the AvatarData class to populate the broadcastPacket buffer
             packetPosition += eve.getBroadcastData(packetPosition);
             
-            // use the UDPSocket instance attached to our agent list to send avatar data to mixer
-            agentList->getAgentSocket()->send(avatarMixer->getActiveSocket(), broadcastPacket, packetPosition - broadcastPacket);
+            // use the UDPSocket instance attached to our node list to send avatar data to mixer
+            nodeList->getNodeSocket()->send(avatarMixer->getActiveSocket(), broadcastPacket, packetPosition - broadcastPacket);
         }
         
         if (!eveAudioInjector.isInjectingAudio()) {
-            // enumerate the other agents to decide if one is close enough that eve should talk
-            for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
-                AvatarData* avatarData = (AvatarData*) agent->getLinkedData();
+            // enumerate the other nodes to decide if one is close enough that eve should talk
+            for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+                AvatarData* avatarData = (AvatarData*) node->getLinkedData();
                 
                 if (avatarData) {
                     glm::vec3 tempVector = eve.getPosition() - avatarData->getPosition();
                     float squareDistance = glm::dot(tempVector, tempVector);
                     
                     if (squareDistance <= AUDIO_INJECT_PROXIMITY) {
-                        // look for an audio mixer in our agent list
-                        Agent* audioMixer = AgentList::getInstance()->soloAgentOfType(AGENT_TYPE_AUDIO_MIXER);
+                        // look for an audio mixer in our node list
+                        Node* audioMixer = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_AUDIO_MIXER);
                         
                         if (audioMixer) {
                             // update the destination socket for the AIM, in case the mixer has changed
@@ -205,11 +205,11 @@ int main(int argc, const char* argv[]) {
         }   
     }
     
-    // stop the receive agent data thread
-    stopReceiveAgentDataThread = true;
-    pthread_join(receiveAgentDataThread, NULL);
+    // stop the receive node data thread
+    stopReceiveNodeDataThread = true;
+    pthread_join(receiveNodeDataThread, NULL);
     
-    // stop the agent list's threads
-    agentList->stopPingUnknownAgentsThread();
-    agentList->stopSilentAgentRemovalThread();
+    // stop the node list's threads
+    nodeList->stopPingUnknownNodesThread();
+    nodeList->stopSilentNodeRemovalThread();
 }
