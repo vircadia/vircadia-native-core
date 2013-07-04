@@ -2791,6 +2791,7 @@ void Application::eyedropperVoxelUnderCursor() {
 }
 
 void Application::goHome() {
+    printLog("Going Home!\n");
     _myAvatar.setPosition(START_LOCATION);
 }
 
