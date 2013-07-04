@@ -13,7 +13,7 @@
 #include <glm/glm.hpp>
 #include <SharedUtil.h>
 #include <UDPSocket.h>
-#include <AgentData.h>
+#include <NodeData.h>
 #include <VoxelTree.h>
 #include <ViewFrustum.h>
 #include "Camera.h"
@@ -24,7 +24,7 @@ class ProgramObject;
 
 const int NUM_CHILDREN = 8;
 
-class VoxelSystem : public AgentData {
+class VoxelSystem : public NodeData {
 public:
     VoxelSystem(float treeScale = TREE_SCALE, int maxVoxels = MAX_VOXELS_PER_SYSTEM);
     ~VoxelSystem();

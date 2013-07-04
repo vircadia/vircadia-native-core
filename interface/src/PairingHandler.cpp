@@ -10,7 +10,7 @@
 #include <string.h>
 #include <stdio.h>
 
-#include <AgentList.h>
+#include <NodeList.h>
 
 #include "PairingHandler.h"
 
@@ -18,8 +18,8 @@ const char PAIRING_SERVER_HOSTNAME[] = "pairing.highfidelity.io";
 const int PAIRING_SERVER_PORT = 7247;
 
 void PairingHandler::sendPairRequest() {    
-    // grab the agent socket from the AgentList singleton
-    UDPSocket *agentSocket = AgentList::getInstance()->getAgentSocket();
+    // grab the node socket from the NodeList singleton
+    UDPSocket *nodeSocket = NodeList::getInstance()->getNodeSocket();
     
     // prepare the pairing request packet
     
@@ -32,7 +32,7 @@ void PairingHandler::sendPairRequest() {
             (localAddress >> 8) & 0xFF,
             (localAddress >> 16) & 0xFF,
             (localAddress >> 24) & 0xFF,
-            AGENT_SOCKET_LISTEN_PORT);
+            NODE_SOCKET_LISTEN_PORT);
     
     sockaddr_in pairingServerSocket;
     
@@ -44,5 +44,5 @@ void PairingHandler::sendPairRequest() {
     pairingServerSocket.sin_port = htons(PAIRING_SERVER_PORT);
     
     // send the pair request to the pairing server
-    agentSocket->send((sockaddr*) &pairingServerSocket, pairPacket, strlen(pairPacket));
+    nodeSocket->send((sockaddr*) &pairingServerSocket, pairPacket, strlen(pairPacket));
 }

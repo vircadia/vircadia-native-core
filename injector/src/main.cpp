@@ -14,8 +14,8 @@
 #include <string.h>
 #include <sstream>
 
-#include <AgentList.h>
-#include <AgentTypes.h>
+#include <NodeList.h>
+#include <NodeTypes.h>
 #include <AvatarData.h>
 #include <SharedUtil.h>
 #include <PacketHeaders.h>
@@ -104,9 +104,9 @@ bool processParameters(int parameterCount, char* parameterData[]) {
     return true;
 };
 
-void createAvatarDataForAgent(Agent* agent) {
-    if (!agent->getLinkedData()) {
-        agent->setLinkedData(new AvatarData(agent));
+void createAvatarDataForNode(Node* node) {
+    if (!node->getLinkedData()) {
+        node->setLinkedData(new AvatarData(node));
     }
 }
 
@@ -123,11 +123,11 @@ int main(int argc, char* argv[]) {
         } else {
             AudioInjector injector(sourceAudioFile);
             
-            // create an AgentList instance to handle communication with other agents
-            AgentList* agentList = AgentList::createInstance(AGENT_TYPE_AUDIO_INJECTOR, AUDIO_UDP_SEND_PORT);
+            // create an NodeList instance to handle communication with other nodes
+            NodeList* nodeList = NodeList::createInstance(NODE_TYPE_AUDIO_INJECTOR, AUDIO_UDP_SEND_PORT);
             
-            // start the agent list thread that will kill off agents when they stop talking
-            agentList->startSilentAgentRemovalThread();
+            // start the node list thread that will kill off nodes when they stop talking
+            nodeList->startSilentNodeRemovalThread();
             
             injector.setPosition(glm::vec3(::floatArguments[INJECTOR_POSITION_X],
                                            ::floatArguments[INJECTOR_POSITION_Y],
@@ -140,8 +140,8 @@ int main(int argc, char* argv[]) {
                 injector.setRadius(::radius);
             }
 
-            // register the callback for agent data creation
-            agentList->linkedDataCreateCallback = createAvatarDataForAgent;
+            // register the callback for node data creation
+            nodeList->linkedDataCreateCallback = createAvatarDataForNode;
     
             timeval lastSend = {};
             unsigned char broadcastPacket = PACKET_HEADER_INJECT_AUDIO;            
@@ -153,40 +153,40 @@ int main(int argc, char* argv[]) {
             unsigned char incomingPacket[MAX_PACKET_SIZE];
             
             // the audio injector needs to know about the avatar mixer and the audio mixer
-            const char INJECTOR_AGENTS_OF_INTEREST[] = {AGENT_TYPE_AUDIO_MIXER, AGENT_TYPE_AVATAR_MIXER};
+            const char INJECTOR_NODES_OF_INTEREST[] = {NODE_TYPE_AUDIO_MIXER, NODE_TYPE_AVATAR_MIXER};
            
-            int bytesAgentsOfInterest = (::triggerDistance > 0)
-                ? sizeof(INJECTOR_AGENTS_OF_INTEREST)
-                : sizeof(INJECTOR_AGENTS_OF_INTEREST) - 1;
+            int bytesNodesOfInterest = (::triggerDistance > 0)
+                ? sizeof(INJECTOR_NODES_OF_INTEREST)
+                : sizeof(INJECTOR_NODES_OF_INTEREST) - 1;
             
-            AgentList::getInstance()->setAgentTypesOfInterest(INJECTOR_AGENTS_OF_INTEREST, bytesAgentsOfInterest);
+            NodeList::getInstance()->setNodeTypesOfInterest(INJECTOR_NODES_OF_INTEREST, bytesNodesOfInterest);
             
             while (true) {                
                 // send a check in packet to the domain server if DOMAIN_SERVER_CHECK_IN_USECS has elapsed
                 if (usecTimestampNow() - usecTimestamp(&lastDomainServerCheckIn) >= DOMAIN_SERVER_CHECK_IN_USECS) {
                     gettimeofday(&lastDomainServerCheckIn, NULL);
-                    AgentList::getInstance()->sendDomainServerCheckIn();
+                    NodeList::getInstance()->sendDomainServerCheckIn();
                 }
                 
-                while (agentList->getAgentSocket()->receive(&senderAddress, incomingPacket, &bytesReceived)) {
+                while (nodeList->getNodeSocket()->receive(&senderAddress, incomingPacket, &bytesReceived)) {
                     switch (incomingPacket[0]) {
                         case PACKET_HEADER_BULK_AVATAR_DATA:
-                            // this is the positional data for other agents
-                            // pass that off to the agentList processBulkAgentData method
-                            agentList->processBulkAgentData(&senderAddress, incomingPacket, bytesReceived);
+                            // this is the positional data for other nodes
+                            // pass that off to the nodeList processBulkNodeData method
+                            nodeList->processBulkNodeData(&senderAddress, incomingPacket, bytesReceived);
                             break;
                         default:
-                            // have the agentList handle list of agents from DS, replies from other agents, etc.
-                            agentList->processAgentData(&senderAddress, incomingPacket, bytesReceived);
+                            // have the nodeList handle list of nodes from DS, replies from other nodes, etc.
+                            nodeList->processNodeData(&senderAddress, incomingPacket, bytesReceived);
                             break;
                     }
                 }
                 
                 if (::triggerDistance) {
                     if (!injector.isInjectingAudio()) {
-                        // enumerate the other agents to decide if one is close enough that we should inject
-                        for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
-                            AvatarData* avatarData = (AvatarData*) agent->getLinkedData();
+                        // enumerate the other nodes to decide if one is close enough that we should inject
+                        for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+                            AvatarData* avatarData = (AvatarData*) node->getLinkedData();
                             
                             if (avatarData) {
                                 glm::vec3 tempVector = injector.getPosition() - avatarData->getPosition();
@@ -200,7 +200,7 @@ int main(int argc, char* argv[]) {
                     }
                     
                     // find the current avatar mixer
-                    Agent* avatarMixer = agentList->soloAgentOfType(AGENT_TYPE_AVATAR_MIXER);
+                    Node* avatarMixer = nodeList->soloNodeOfType(NODE_TYPE_AVATAR_MIXER);
                     
                     // make sure we actually have an avatar mixer with an active socket
                     if (avatarMixer && avatarMixer->getActiveSocket() != NULL
@@ -209,8 +209,8 @@ int main(int argc, char* argv[]) {
                         // update the lastSend timeval to the current time
                         gettimeofday(&lastSend, NULL);
                         
-                        // use the UDPSocket instance attached to our agent list to ask avatar mixer for a list of avatars
-                        agentList->getAgentSocket()->send(avatarMixer->getActiveSocket(),
+                        // use the UDPSocket instance attached to our node list to ask avatar mixer for a list of avatars
+                        nodeList->getNodeSocket()->send(avatarMixer->getActiveSocket(),
                                                           &broadcastPacket,
                                                           sizeof(broadcastPacket));
                     }
@@ -223,8 +223,8 @@ int main(int argc, char* argv[]) {
                 }
             }
             
-            // stop the agent list's threads
-            agentList->stopSilentAgentRemovalThread();
+            // stop the node list's threads
+            nodeList->stopSilentNodeRemovalThread();
         }
     }
 }
