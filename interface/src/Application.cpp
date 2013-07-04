@@ -500,7 +500,7 @@ void Application::broadcastToNodes(unsigned char* data, size_t bytes, const char
     default:
         return;
     }
-    int n = AgentList::getInstance()->broadcastToAgents(data, bytes, & type, 1);
+    int n = NodeList::getInstance()->broadcastToNodes(data, bytes, & type, 1);
     self->_bandwidthMeter.outputStream(channel).updateValue(n * bytes); 
 }
 
@@ -887,8 +887,8 @@ void Application::sendPingPackets() {
     pingPacket[0] = PACKET_HEADER_PING;
     
     memcpy(&pingPacket[1], &currentTime, sizeof(currentTime));
-    for (int i = 0; i < sizeof(agentTypesOfInterest) / sizeof(char); ++i) {
-        getInstance()->broadcastToAgents(pingPacket, 1 + sizeof(currentTime), agentTypesOfInterest[i]);
+    for (int i = 0; i < sizeof(nodeTypesOfInterest) / sizeof(char); ++i) {
+        getInstance()->broadcastToNodes(pingPacket, 1 + sizeof(currentTime), nodeTypesOfInterest[i]);
     }
 
 }
