@@ -8,7 +8,7 @@
 
 #include <QImage>
 
-#include <AgentList.h>
+#include <NodeList.h>
 
 #include "Application.h"
 #include "Avatar.h"
@@ -189,12 +189,13 @@ void Head::simulate(float deltaTime, bool isMine) {
     const float FULLY_CLOSED = 1.0f;
     if (_leftEyeBlinkVelocity == 0.0f && _rightEyeBlinkVelocity == 0.0f) {
         // no blinking when brows are raised; blink less with increasing loudness
-        const float ROOT_LOUDNESS_TO_BLINK_INTERVAL = 0.75f;
-        if (forceBlink || (_browAudioLift < EPSILON && shouldDo(
-                sqrtf(_averageLoudness) * ROOT_LOUDNESS_TO_BLINK_INTERVAL, deltaTime))) {
+        const float BASE_BLINK_RATE = 15.0f / 60.0f;
+        const float ROOT_LOUDNESS_TO_BLINK_INTERVAL = 0.25f;
+        if (forceBlink || (_browAudioLift < EPSILON && shouldDo(glm::max(1.0f, sqrt(_averageLoudness) *
+                ROOT_LOUDNESS_TO_BLINK_INTERVAL) / BASE_BLINK_RATE, deltaTime))) {
             _leftEyeBlinkVelocity = BLINK_SPEED;
             _rightEyeBlinkVelocity = BLINK_SPEED;
-        }    
+        }
     } else {
         _leftEyeBlink = glm::clamp(_leftEyeBlink + _leftEyeBlinkVelocity * deltaTime, FULLY_OPEN, FULLY_CLOSED);
         _rightEyeBlink = glm::clamp(_rightEyeBlink + _rightEyeBlinkVelocity * deltaTime, FULLY_OPEN, FULLY_CLOSED);
@@ -309,16 +310,16 @@ void Head::render(bool lookingInMirror, float alpha) {
 
 
 void Head::createMohawk() {
-    uint16_t agentId = 0;
-    if (_owningAvatar->getOwningAgent()) {
-        agentId = _owningAvatar->getOwningAgent()->getAgentID();
+    uint16_t nodeId = 0;
+    if (_owningAvatar->getOwningNode()) {
+        nodeId = _owningAvatar->getOwningNode()->getNodeID();
     } else {
-        agentId = AgentList::getInstance()->getOwnerID();
-        if (agentId == UNKNOWN_AGENT_ID) {
+        nodeId = NodeList::getInstance()->getOwnerID();
+        if (nodeId == UNKNOWN_NODE_ID) {
             return;
         }
     }
-    srand(agentId);
+    srand(nodeId);
     float height = 0.08f + randFloat() * 0.05f;
     float variance = 0.03 + randFloat() * 0.03f;
     const float RAD_PER_TRIANGLE = (2.3f + randFloat() * 0.2f) / (float)MOHAWK_TRIANGLES;

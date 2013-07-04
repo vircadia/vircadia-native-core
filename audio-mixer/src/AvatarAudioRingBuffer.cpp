@@ -12,18 +12,18 @@
 
 AvatarAudioRingBuffer::AvatarAudioRingBuffer() :
     _twoPoles(),
-    _shouldLoopbackForAgent(false) {
+    _shouldLoopbackForNode(false) {
     
 }
 
 AvatarAudioRingBuffer::~AvatarAudioRingBuffer() {
     // enumerate the freeVerbs map and delete the FreeVerb objects
-    for (TwoPoleAgentMap::iterator poleIterator = _twoPoles.begin(); poleIterator != _twoPoles.end(); poleIterator++) {
+    for (TwoPoleNodeMap::iterator poleIterator = _twoPoles.begin(); poleIterator != _twoPoles.end(); poleIterator++) {
         delete poleIterator->second;
     }
 }
 
 int AvatarAudioRingBuffer::parseData(unsigned char* sourceBuffer, int numBytes) {
-    _shouldLoopbackForAgent = (sourceBuffer[0] == PACKET_HEADER_MICROPHONE_AUDIO_WITH_ECHO);
+    _shouldLoopbackForNode = (sourceBuffer[0] == PACKET_HEADER_MICROPHONE_AUDIO_WITH_ECHO);
     return PositionalAudioRingBuffer::parseData(sourceBuffer, numBytes);
 }

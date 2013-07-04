@@ -1,26 +1,26 @@
 //
-//  AgentData.h
+//  NodeData.h
 //  hifi
 //
 //  Created by Stephen Birarda on 2/19/13.
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
-#ifndef hifi_AgentData_h
-#define hifi_AgentData_h
+#ifndef hifi_NodeData_h
+#define hifi_NodeData_h
 
-class Agent;
+class Node;
 
-class AgentData {
+class NodeData {
 public:
-    AgentData(Agent* owningAgent);
+    NodeData(Node* owningNode);
     
-    virtual ~AgentData() = 0;
+    virtual ~NodeData() = 0;
     virtual int parseData(unsigned char* sourceBuffer, int numBytes) = 0;
     
-    Agent* getOwningAgent() { return _owningAgent; }
+    Node* getOwningNode() { return _owningNode; }
 protected:
-    Agent* _owningAgent;
+    Node* _owningNode;
 };
 
 #endif

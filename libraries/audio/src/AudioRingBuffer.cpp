@@ -14,7 +14,7 @@
 #include "AudioRingBuffer.h"
 
 AudioRingBuffer::AudioRingBuffer(bool isStereo) :
-    AgentData(NULL),
+    NodeData(NULL),
     _endOfLastWrite(NULL),
     _isStarted(false),
     _isStereo(isStereo)
