@@ -229,7 +229,7 @@ private:
     void updateBodyBalls( float deltaTime );
     void calculateBoneLengths();
     void readSensors();
-    void updateHandMovementAndTouching(float deltaTime);
+    void updateHandMovementAndTouching(float deltaTime, bool enableHandMovement);
     void updateAvatarCollisions(float deltaTime);
     void updateArmIKAndConstraints( float deltaTime );
     void updateCollisionWithSphere( glm::vec3 position, float radius, float deltaTime );

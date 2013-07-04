@@ -150,7 +150,6 @@ class JointData {
 public:
     
     int jointID;
-    glm::vec3 position;
     glm::quat rotation;
 };
 
