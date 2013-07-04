@@ -17,8 +17,8 @@
 #include <UDPSocket.h>
 #include <SharedUtil.h>
 #include <PacketHeaders.h>
-#include <AgentList.h>
-#include <AgentTypes.h>
+#include <NodeList.h>
+#include <NodeTypes.h>
 #include <AngleUtil.h>
 
 #include "Application.h"
@@ -46,7 +46,7 @@ static const short JITTER_BUFFER_SAMPLES = JITTER_BUFFER_LENGTH_MSECS *
 
 static const float AUDIO_CALLBACK_MSECS = (float)BUFFER_LENGTH_SAMPLES_PER_CHANNEL / (float)SAMPLE_RATE * 1000.0;
 
-static const int AGENT_LOOPBACK_MODIFIER = 307;
+static const int NODE_LOOPBACK_MODIFIER = 307;
 
 // Speex preprocessor and echo canceller adaption
 static const int   AEC_N_CHANNELS_MIC = 1;                                      // Number of microphone channels
@@ -72,14 +72,14 @@ static const int   PING_BUFFER_OFFSET = BUFFER_LENGTH_SAMPLES_PER_CHANNEL - PING
 
 inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* outputRight) {
 
-    AgentList* agentList = AgentList::getInstance();
+    NodeList* nodeList = NodeList::getInstance();
     Application* interface = Application::getInstance();
     Avatar* interfaceAvatar = interface->getAvatar();
  
     // Add Procedural effects to input samples
     addProceduralSounds(inputLeft, BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
     
-    if (agentList && inputLeft) {
+    if (nodeList && inputLeft) {
         
         //  Measure the loudness of the signal from the microphone and store in audio object
         float loudness = 0;
@@ -93,7 +93,7 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
         // add input (@microphone) data to the scope
         _scope->addSamples(0, inputLeft, BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
 
-        Agent* audioMixer = agentList->soloAgentOfType(AGENT_TYPE_AUDIO_MIXER);
+        Node* audioMixer = nodeList->soloNodeOfType(NODE_TYPE_AUDIO_MIXER);
         
         if (audioMixer) {
             glm::vec3 headPosition = interfaceAvatar->getHeadJointPosition();
@@ -120,7 +120,7 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
             
             // copy the audio data to the last BUFFER_LENGTH_BYTES bytes of the data packet
             memcpy(currentPacketPtr, inputLeft, BUFFER_LENGTH_BYTES_PER_CHANNEL);
-            agentList->getAgentSocket()->send(audioMixer->getActiveSocket(),
+            nodeList->getNodeSocket()->send(audioMixer->getActiveSocket(),
                                               dataPacket,
                                               BUFFER_LENGTH_BYTES_PER_CHANNEL + leadingBytes);
 
@@ -348,12 +348,12 @@ Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples) :
 
     inputParameters.channelCount = 2;                    //  Stereo input
     inputParameters.sampleFormat = (paInt16 | paNonInterleaved);
-    inputParameters.suggestedLatency = Pa_GetDeviceInfo( inputParameters.device )->defaultLowInputLatency;
+    inputParameters.suggestedLatency = Pa_GetDeviceInfo(inputParameters.device)->defaultLowInputLatency;
     inputParameters.hostApiSpecificStreamInfo = NULL;
 
     outputParameters.channelCount = 2;                    //  Stereo output
     outputParameters.sampleFormat = (paInt16 | paNonInterleaved);
-    outputParameters.suggestedLatency = Pa_GetDeviceInfo( outputParameters.device )->defaultLowOutputLatency;
+    outputParameters.suggestedLatency = Pa_GetDeviceInfo(outputParameters.device)->defaultLowOutputLatency;
     outputParameters.hostApiSpecificStreamInfo = NULL;
     
     outputPortAudioError(Pa_OpenStream(&_stream, 

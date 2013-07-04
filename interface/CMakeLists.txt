@@ -112,6 +112,7 @@ include_directories(
   ${OPENCV_INCLUDE_DIRS}
 )
 
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${OPENCV_INCLUDE_DIRS}")
 target_link_libraries(
   ${TARGET_NAME} 
   ${QT_LIBRARIES}
@@ -153,8 +154,12 @@ if (APPLE)
         ${QuartzCore}
         ${UVCCAMERACONTROL_LIBRARIES}
         ${LIBOVR_LIBRARIES}
-        ${LEAP_LIBRARIES}
     )
+    
+    if (LEAP_FOUND)
+      target_link_libraries(${TARGET_NAME} ${LEAP_LIBRARIES})
+    endif(LEAP_FOUND)
+    
 else (APPLE)
     find_package(OpenGL REQUIRED)
     find_package(GLUT REQUIRED)

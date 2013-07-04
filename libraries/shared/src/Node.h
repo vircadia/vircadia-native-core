@@ -1,13 +1,13 @@
 //
-//  Agent.h
+//  Node.h
 //  hifi
 //
 //  Created by Stephen Birarda on 2/15/13.
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
-#ifndef __hifi__Agent__
-#define __hifi__Agent__
+#ifndef __hifi__Node__
+#define __hifi__Node__
 
 #include <stdint.h>
 #include <ostream>
@@ -19,23 +19,23 @@
 #endif
 
 #include "SimpleMovingAverage.h"
-#include "AgentData.h"
+#include "NodeData.h"
 
-class Agent {    
+class Node {
 public:
-    Agent(sockaddr* publicSocket, sockaddr* localSocket, char type, uint16_t agentID);
-    ~Agent();
+    Node(sockaddr* publicSocket, sockaddr* localSocket, char type, uint16_t nodeID);
+    ~Node();
     
-    bool operator==(const Agent& otherAgent);
+    bool operator==(const Node& otherNode);
     
-    bool matches(sockaddr* otherPublicSocket, sockaddr* otherLocalSocket, char otherAgentType);
+    bool matches(sockaddr* otherPublicSocket, sockaddr* otherLocalSocket, char otherNodeType);
     
     char getType() const { return _type; }
     void setType(char type) { _type = type; }
     const char* getTypeName() const;
     
-    uint16_t getAgentID() const { return _agentID; }
-    void setAgentID(uint16_t agentID) { _agentID = agentID;}
+    uint16_t getNodeID() const { return _nodeID; }
+    void setNodeID(uint16_t nodeID) { _nodeID = nodeID;}
     
     long long getWakeMicrostamp() const { return _wakeMicrostamp; }
     void setWakeMicrostamp(long long wakeMicrostamp) { _wakeMicrostamp = wakeMicrostamp; }
@@ -53,8 +53,8 @@ public:
     void activatePublicSocket();
     void activateLocalSocket();
     
-    AgentData* getLinkedData() const { return _linkedData; }
-    void setLinkedData(AgentData* linkedData) { _linkedData = linkedData; }
+    NodeData* getLinkedData() const { return _linkedData; }
+    void setLinkedData(NodeData* linkedData) { _linkedData = linkedData; }
     
     bool isAlive() const { return _isAlive; };
     void setAlive(bool isAlive) { _isAlive = isAlive; };
@@ -66,27 +66,27 @@ public:
     int getPingMs() const { return _pingMs; };
     void setPingMs(int pingMs) { _pingMs = pingMs; };
 
-    static void printLog(Agent const&);
+    static void printLog(Node const&);
 private:
-    // privatize copy and assignment operator to disallow Agent copying
-    Agent(const Agent &otherAgent);
-    Agent& operator=(Agent otherAgent);
+    // privatize copy and assignment operator to disallow Node copying
+    Node(const Node &otherNode);
+    Node& operator=(Node otherNode);
     
     char _type;
-    uint16_t _agentID;
+    uint16_t _nodeID;
     long long _wakeMicrostamp;
     long long _lastHeardMicrostamp;
     sockaddr* _publicSocket;
     sockaddr* _localSocket;
     sockaddr* _activeSocket;
     SimpleMovingAverage* _bytesReceivedMovingAverage;
-    AgentData* _linkedData;
+    NodeData* _linkedData;
     bool _isAlive;
     int _pingMs;
 };
 
 
-int unpackAgentId(unsigned char *packedData, uint16_t *agentId);
-int packAgentId(unsigned char *packStore, uint16_t agentId);
+int unpackNodeId(unsigned char *packedData, uint16_t *nodeId);
+int packNodeId(unsigned char *packStore, uint16_t nodeId);
 
-#endif /* defined(__hifi__Agent__) */
+#endif /* defined(__hifi__Node__) */

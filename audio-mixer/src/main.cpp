@@ -19,9 +19,9 @@
 
 #include <glm/gtx/norm.hpp>
 #include <glm/gtx/vector_angle.hpp>
-#include <AgentList.h>
-#include <Agent.h>
-#include <AgentTypes.h>
+#include <NodeList.h>
+#include <Node.h>
+#include <NodeTypes.h>
 #include <SharedUtil.h>
 #include <StdDev.h>
 #include <Logstash.h>
@@ -61,12 +61,12 @@ void plateauAdditionOfSamples(int16_t &mixSample, int16_t sampleToAdd) {
     mixSample = normalizedSample;
 }
 
-void attachNewBufferToAgent(Agent *newAgent) {
-    if (!newAgent->getLinkedData()) {
-        if (newAgent->getType() == AGENT_TYPE_AVATAR) {
-            newAgent->setLinkedData(new AvatarAudioRingBuffer());
+void attachNewBufferToNode(Node *newNode) {
+    if (!newNode->getLinkedData()) {
+        if (newNode->getType() == NODE_TYPE_AGENT) {
+            newNode->setLinkedData(new AvatarAudioRingBuffer());
         } else {
-            newAgent->setLinkedData(new InjectedAudioRingBuffer());
+            newNode->setLinkedData(new InjectedAudioRingBuffer());
         }
     }
 }
@@ -85,20 +85,20 @@ int main(int argc, const char* argv[]) {
         sprintf(DOMAIN_IP,"%d.%d.%d.%d", (ip & 0xFF), ((ip >> 8) & 0xFF),((ip >> 16) & 0xFF), ((ip >> 24) & 0xFF));
     }
     
-    AgentList* agentList = AgentList::createInstance(AGENT_TYPE_AUDIO_MIXER, MIXER_LISTEN_PORT);
+    NodeList* nodeList = NodeList::createInstance(NODE_TYPE_AUDIO_MIXER, MIXER_LISTEN_PORT);
     
     ssize_t receivedBytes = 0;
     
-    agentList->linkedDataCreateCallback = attachNewBufferToAgent;
+    nodeList->linkedDataCreateCallback = attachNewBufferToNode;
     
-    agentList->startSilentAgentRemovalThread();
+    nodeList->startSilentNodeRemovalThread();
 
     unsigned char* packetData = new unsigned char[MAX_PACKET_SIZE];
 
-    sockaddr* agentAddress = new sockaddr;
+    sockaddr* nodeAddress = new sockaddr;
 
-    // make sure our agent socket is non-blocking
-    agentList->getAgentSocket()->setBlocking(false);
+    // make sure our node socket is non-blocking
+    nodeList->getNodeSocket()->setBlocking(false);
     
     int nextFrame = 0;
     timeval startTime;
@@ -131,22 +131,22 @@ int main(int argc, const char* argv[]) {
         // send a check in packet to the domain server if DOMAIN_SERVER_CHECK_IN_USECS has elapsed
         if (usecTimestampNow() - usecTimestamp(&lastDomainServerCheckIn) >= DOMAIN_SERVER_CHECK_IN_USECS) {
             gettimeofday(&lastDomainServerCheckIn, NULL);
-            AgentList::getInstance()->sendDomainServerCheckIn();
+            NodeList::getInstance()->sendDomainServerCheckIn();
             
             if (Logstash::shouldSendStats() && numStatCollections > 0) {
                 // if we should be sending stats to Logstash send the appropriate average now
                 const char MIXER_LOGSTASH_METRIC_NAME[] = "audio-mixer-frame-time-usage";
                 
                 float averageFrameTimePercentage = sumFrameTimePercentages / numStatCollections;
-                Logstash::stashValue(MIXER_LOGSTASH_METRIC_NAME, averageFrameTimePercentage);
+                Logstash::stashValue(STAT_TYPE_TIMER, MIXER_LOGSTASH_METRIC_NAME, averageFrameTimePercentage);
                 
                 sumFrameTimePercentages = 0.0f;
                 numStatCollections = 0;
             }
         }
         
-        for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
-            PositionalAudioRingBuffer* positionalRingBuffer = (PositionalAudioRingBuffer*) agent->getLinkedData();
+        for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+            PositionalAudioRingBuffer* positionalRingBuffer = (PositionalAudioRingBuffer*) node->getLinkedData();
             
             if (positionalRingBuffer && positionalRingBuffer->shouldBeAddedToMix(JITTER_BUFFER_SAMPLES)) {
                 // this is a ring buffer that is ready to go
@@ -155,40 +155,40 @@ int main(int argc, const char* argv[]) {
             }
         }
         
-        for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
+        for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
             
             const int PHASE_DELAY_AT_90 = 20;
             
-            if (agent->getType() == AGENT_TYPE_AVATAR) {
-                AvatarAudioRingBuffer* agentRingBuffer = (AvatarAudioRingBuffer*) agent->getLinkedData();
+            if (node->getType() == NODE_TYPE_AGENT) {
+                AvatarAudioRingBuffer* nodeRingBuffer = (AvatarAudioRingBuffer*) node->getLinkedData();
                 
-                // zero out the client mix for this agent
+                // zero out the client mix for this node
                 memset(clientSamples, 0, sizeof(clientSamples));
                 
-                for (AgentList::iterator otherAgent = agentList->begin(); otherAgent != agentList->end(); otherAgent++) {
-                    if (((PositionalAudioRingBuffer*) otherAgent->getLinkedData())->willBeAddedToMix()
-                        && (otherAgent != agent || (otherAgent == agent && agentRingBuffer->shouldLoopbackForAgent()))) {
+                for (NodeList::iterator otherNode = nodeList->begin(); otherNode != nodeList->end(); otherNode++) {
+                    if (((PositionalAudioRingBuffer*) otherNode->getLinkedData())->willBeAddedToMix()
+                        && (otherNode != node || (otherNode == node && nodeRingBuffer->shouldLoopbackForNode()))) {
                         
-                        PositionalAudioRingBuffer* otherAgentBuffer = (PositionalAudioRingBuffer*) otherAgent->getLinkedData();
+                        PositionalAudioRingBuffer* otherNodeBuffer = (PositionalAudioRingBuffer*) otherNode->getLinkedData();
                         
                         float bearingRelativeAngleToSource = 0.0f;
                         float attenuationCoefficient = 1.0f;
                         int numSamplesDelay = 0;
                         float weakChannelAmplitudeRatio = 1.0f;
                         
-                        stk::TwoPole* otherAgentTwoPole = NULL;
+                        stk::TwoPole* otherNodeTwoPole = NULL;
                         
-                        if (otherAgent != agent) {
+                        if (otherNode != node) {
                             
-                            glm::vec3 listenerPosition = agentRingBuffer->getPosition();
-                            glm::vec3 relativePosition = otherAgentBuffer->getPosition() - agentRingBuffer->getPosition();
-                            glm::quat inverseOrientation = glm::inverse(agentRingBuffer->getOrientation());
+                            glm::vec3 listenerPosition = nodeRingBuffer->getPosition();
+                            glm::vec3 relativePosition = otherNodeBuffer->getPosition() - nodeRingBuffer->getPosition();
+                            glm::quat inverseOrientation = glm::inverse(nodeRingBuffer->getOrientation());
                             
                             float distanceSquareToSource = glm::dot(relativePosition, relativePosition);
                             float radius = 0.0f;
                             
-                            if (otherAgent->getType() == AGENT_TYPE_AUDIO_INJECTOR) {
-                                InjectedAudioRingBuffer* injectedBuffer = (InjectedAudioRingBuffer*) otherAgentBuffer;
+                            if (otherNode->getType() == NODE_TYPE_AUDIO_INJECTOR) {
+                                InjectedAudioRingBuffer* injectedBuffer = (InjectedAudioRingBuffer*) otherNodeBuffer;
                                 radius = injectedBuffer->getRadius();
                                 attenuationCoefficient *= injectedBuffer->getAttenuationRatio();
                             }
@@ -200,13 +200,13 @@ int main(int argc, const char* argv[]) {
                                     // this is a spherical source - the distance used for the coefficient
                                     // needs to be the closest point on the boundary to the source
                                                              
-                                    // ovveride the distance to the agent with the distance to the point on the
+                                    // ovveride the distance to the node with the distance to the point on the
                                     // boundary of the sphere
                                     distanceSquareToSource -= (radius * radius);
                                     
                                 } else {
                                     // calculate the angle delivery for off-axis attenuation
-                                    glm::vec3 rotatedListenerPosition = glm::inverse(otherAgentBuffer->getOrientation())
+                                    glm::vec3 rotatedListenerPosition = glm::inverse(otherNodeBuffer->getOrientation())
                                         * relativePosition;
                                     
                                     float angleOfDelivery = glm::angle(glm::vec3(0.0f, 0.0f, -1.0f),
@@ -229,7 +229,7 @@ int main(int argc, const char* argv[]) {
                                 const float DISTANCE_LOG_BASE = 2.5f;
                                 const float DISTANCE_SCALE_LOG = logf(DISTANCE_SCALE) / logf(DISTANCE_LOG_BASE);
                                 
-                                // calculate the distance coefficient using the distance to this agent
+                                // calculate the distance coefficient using the distance to this node
                                 float distanceCoefficient = powf(GEOMETRIC_AMPLITUDE_SCALAR,
                                                            DISTANCE_SCALE_LOG +
                                                            (0.5f * logf(distanceSquareToSource) / logf(DISTANCE_LOG_BASE)) - 1);
@@ -255,28 +255,28 @@ int main(int argc, const char* argv[]) {
                                 weakChannelAmplitudeRatio = 1 - (PHASE_AMPLITUDE_RATIO_AT_90 * sinRatio);
                                 
                                 // grab the TwoPole object for this source, add it if it doesn't exist
-                                TwoPoleAgentMap& agentTwoPoles = agentRingBuffer->getTwoPoles();
-                                TwoPoleAgentMap::iterator twoPoleIterator = agentTwoPoles.find(otherAgent->getAgentID());
+                                TwoPoleNodeMap& nodeTwoPoles = nodeRingBuffer->getTwoPoles();
+                                TwoPoleNodeMap::iterator twoPoleIterator = nodeTwoPoles.find(otherNode->getNodeID());
                                 
-                                if (twoPoleIterator == agentTwoPoles.end()) {
+                                if (twoPoleIterator == nodeTwoPoles.end()) {
                                     // setup the freeVerb effect for this source for this client
-                                    otherAgentTwoPole = agentTwoPoles[otherAgent->getAgentID()] = new stk::TwoPole;
+                                    otherNodeTwoPole = nodeTwoPoles[otherNode->getNodeID()] = new stk::TwoPole;
                                 } else {
-                                    otherAgentTwoPole = twoPoleIterator->second;
+                                    otherNodeTwoPole = twoPoleIterator->second;
                                 }
                                 
                                 // calculate the reasonance for this TwoPole based on angle to source
                                 float TWO_POLE_CUT_OFF_FREQUENCY = 800.0f;
                                 float TWO_POLE_MAX_FILTER_STRENGTH = 0.4f;
                                 
-                                otherAgentTwoPole->setResonance(TWO_POLE_CUT_OFF_FREQUENCY,
+                                otherNodeTwoPole->setResonance(TWO_POLE_CUT_OFF_FREQUENCY,
                                                                 TWO_POLE_MAX_FILTER_STRENGTH
                                                                 * fabsf(bearingRelativeAngleToSource) / 180.0f,
                                                                 true);
                             }
                         }
                         
-                        int16_t* sourceBuffer = otherAgentBuffer->getNextOutput();
+                        int16_t* sourceBuffer = otherNodeBuffer->getNextOutput();
                         
                         int16_t* goodChannel = (bearingRelativeAngleToSource > 0.0f)
                             ? clientSamples
@@ -285,9 +285,9 @@ int main(int argc, const char* argv[]) {
                             ? clientSamples + BUFFER_LENGTH_SAMPLES_PER_CHANNEL
                             : clientSamples;
                         
-                        int16_t* delaySamplePointer = otherAgentBuffer->getNextOutput() == otherAgentBuffer->getBuffer()
-                            ? otherAgentBuffer->getBuffer() + RING_BUFFER_LENGTH_SAMPLES - numSamplesDelay
-                            : otherAgentBuffer->getNextOutput() - numSamplesDelay;
+                        int16_t* delaySamplePointer = otherNodeBuffer->getNextOutput() == otherNodeBuffer->getBuffer()
+                            ? otherNodeBuffer->getBuffer() + RING_BUFFER_LENGTH_SAMPLES - numSamplesDelay
+                            : otherNodeBuffer->getNextOutput() - numSamplesDelay;
                         
                         for (int s = 0; s < BUFFER_LENGTH_SAMPLES_PER_CHANNEL; s++) {
                             // load up the stkFrameBuffer with this source's samples
@@ -295,8 +295,8 @@ int main(int argc, const char* argv[]) {
                         }
                         
                         // perform the TwoPole effect on the stkFrameBuffer
-                        if (otherAgentTwoPole) {
-                            otherAgentTwoPole->tick(stkFrameBuffer);
+                        if (otherNodeTwoPole) {
+                            otherNodeTwoPole->tick(stkFrameBuffer);
                         }
                         
                         for (int s = 0; s < BUFFER_LENGTH_SAMPLES_PER_CHANNEL; s++) {
@@ -319,82 +319,82 @@ int main(int argc, const char* argv[]) {
                             if (s >= BUFFER_LENGTH_SAMPLES_PER_CHANNEL - PHASE_DELAY_AT_90) {
                                 // this could be a delayed sample on the next pass
                                 // so store the affected back in the ARB
-                                otherAgentBuffer->getNextOutput()[s] = (int16_t) stkFrameBuffer[s];
+                                otherNodeBuffer->getNextOutput()[s] = (int16_t) stkFrameBuffer[s];
                             }
                         }
                     }
                 }
                 
                 memcpy(clientPacket + sizeof(PACKET_HEADER_MIXED_AUDIO), clientSamples, sizeof(clientSamples));
-                agentList->getAgentSocket()->send(agent->getPublicSocket(), clientPacket, sizeof(clientPacket));
+                nodeList->getNodeSocket()->send(node->getPublicSocket(), clientPacket, sizeof(clientPacket));
             }
         }
         
         // push forward the next output pointers for any audio buffers we used
-        for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
-            PositionalAudioRingBuffer* agentBuffer = (PositionalAudioRingBuffer*) agent->getLinkedData();
-            if (agentBuffer && agentBuffer->willBeAddedToMix()) {
-                agentBuffer->setNextOutput(agentBuffer->getNextOutput() + BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
+        for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+            PositionalAudioRingBuffer* nodeBuffer = (PositionalAudioRingBuffer*) node->getLinkedData();
+            if (nodeBuffer && nodeBuffer->willBeAddedToMix()) {
+                nodeBuffer->setNextOutput(nodeBuffer->getNextOutput() + BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
                 
-                if (agentBuffer->getNextOutput() >= agentBuffer->getBuffer() + RING_BUFFER_LENGTH_SAMPLES) {
-                    agentBuffer->setNextOutput(agentBuffer->getBuffer());
+                if (nodeBuffer->getNextOutput() >= nodeBuffer->getBuffer() + RING_BUFFER_LENGTH_SAMPLES) {
+                    nodeBuffer->setNextOutput(nodeBuffer->getBuffer());
                 }
                 
-                agentBuffer->setWillBeAddedToMix(false);
+                nodeBuffer->setWillBeAddedToMix(false);
             }
         }
         
-        // pull any new audio data from agents off of the network stack
-        while (agentList->getAgentSocket()->receive(agentAddress, packetData, &receivedBytes)) {
+        // pull any new audio data from nodes off of the network stack
+        while (nodeList->getNodeSocket()->receive(nodeAddress, packetData, &receivedBytes)) {
             if (packetData[0] == PACKET_HEADER_MICROPHONE_AUDIO_NO_ECHO ||
                 packetData[0] == PACKET_HEADER_MICROPHONE_AUDIO_WITH_ECHO) {
-                Agent* avatarAgent = agentList->addOrUpdateAgent(agentAddress,
-                                                                 agentAddress,
-                                                                 AGENT_TYPE_AVATAR,
-                                                                 agentList->getLastAgentID());
+                Node* avatarNode = nodeList->addOrUpdateNode(nodeAddress,
+                                                                 nodeAddress,
+                                                                 NODE_TYPE_AGENT,
+                                                                 nodeList->getLastNodeID());
                 
-                if (avatarAgent->getAgentID() == agentList->getLastAgentID()) {
-                    agentList->increaseAgentID();
+                if (avatarNode->getNodeID() == nodeList->getLastNodeID()) {
+                    nodeList->increaseNodeID();
                 }
                 
-                agentList->updateAgentWithData(agentAddress, packetData, receivedBytes);
+                nodeList->updateNodeWithData(nodeAddress, packetData, receivedBytes);
                 
-                if (std::isnan(((PositionalAudioRingBuffer *)avatarAgent->getLinkedData())->getOrientation().x)) {
-                    // kill off this agent - temporary solution to mixer crash on mac sleep
-                    avatarAgent->setAlive(false);
+                if (std::isnan(((PositionalAudioRingBuffer *)avatarNode->getLinkedData())->getOrientation().x)) {
+                    // kill off this node - temporary solution to mixer crash on mac sleep
+                    avatarNode->setAlive(false);
                 }
             } else if (packetData[0] == PACKET_HEADER_INJECT_AUDIO) {
-                Agent* matchingInjector = NULL;
+                Node* matchingInjector = NULL;
                 
-                for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
-                    if (agent->getLinkedData()) {
+                for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+                    if (node->getLinkedData()) {
                        
-                        InjectedAudioRingBuffer* ringBuffer = (InjectedAudioRingBuffer*) agent->getLinkedData();
+                        InjectedAudioRingBuffer* ringBuffer = (InjectedAudioRingBuffer*) node->getLinkedData();
                         if (memcmp(ringBuffer->getStreamIdentifier(),
                                    packetData + 1,
                                    STREAM_IDENTIFIER_NUM_BYTES) == 0) {
                             // this is the matching stream, assign to matchingInjector and stop looking
-                            matchingInjector = &*agent;
+                            matchingInjector = &*node;
                             break;
                         }
                     }
                 }
                 
                 if (!matchingInjector) {
-                    matchingInjector = agentList->addOrUpdateAgent(NULL,
+                    matchingInjector = nodeList->addOrUpdateNode(NULL,
                                                                    NULL,
-                                                                   AGENT_TYPE_AUDIO_INJECTOR,
-                                                                   agentList->getLastAgentID());
-                    agentList->increaseAgentID();
+                                                                   NODE_TYPE_AUDIO_INJECTOR,
+                                                                   nodeList->getLastNodeID());
+                    nodeList->increaseNodeID();
                     
                 }
                 
-                // give the new audio data to the matching injector agent
-                agentList->updateAgentWithData(matchingInjector, packetData, receivedBytes);
+                // give the new audio data to the matching injector node
+                nodeList->updateNodeWithData(matchingInjector, packetData, receivedBytes);
             } else if (packetData[0] == PACKET_HEADER_PING) {
 
-                // If the packet is a ping, let processAgentData handle it.
-                agentList->processAgentData(agentAddress, packetData, receivedBytes);
+                // If the packet is a ping, let processNodeData handle it.
+                nodeList->processNodeData(nodeAddress, packetData, receivedBytes);
             }
         }
         
