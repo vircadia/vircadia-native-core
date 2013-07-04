@@ -229,9 +229,6 @@ void Head::simulate(float deltaTime, bool isMine) {
         const float CAMERA_STOP_TOLERANCE_DEGREES = 0.1f;
         const float CAMERA_START_TOLERANCE_DEGREES = 2.0f;
         float cameraHeadAngleDifference = glm::length(glm::vec2(_pitch - _cameraPitch, _yaw - _cameraYaw));
-        //if (cameraHeadAngleDifference > 0.1f) {
-        //    printLog("angleDiff = %0.2f\n", cameraHeadAngleDifference);
-        //}
         if (_isCameraMoving) {
             _cameraFollowHeadRate = glm::clamp(_cameraFollowHeadRate * CAMERA_FOLLOW_HEAD_RATE_RAMP_RATE,
                                                0.f,
