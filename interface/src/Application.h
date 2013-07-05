@@ -152,7 +152,9 @@ private slots:
     void runTests();
 private:
 
-    static void broadcastToNodes(unsigned char* data, size_t bytes, const char type);
+    static void controlledBroadcastToNodes(unsigned char* broadcastData, size_t dataBytes, 
+                                           const char* nodeTypes, int numNodeTypes);
+
     static void sendVoxelServerAddScene();
     static bool sendVoxelsOperation(VoxelNode* node, void* extraData);
     static void sendVoxelEditMessage(PACKET_HEADER header, VoxelDetail& detail);
