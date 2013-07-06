@@ -121,8 +121,7 @@ void Skeleton::initialize() {
             joint[b].absoluteBindPosePosition = joint[ joint[b].parent ].absoluteBindPosePosition +
                 joint[b].bindPosePosition;
             glm::vec3 parentDirection = joint[ joint[b].parent ].absoluteBindPoseRotation * JOINT_DIRECTION;
-            joint[b].absoluteBindPoseRotation = rotationBetween(parentDirection, joint[b].bindPosePosition) *
-                joint[ joint[b].parent ].absoluteBindPoseRotation;
+            joint[b].absoluteBindPoseRotation = joint[ joint[b].parent ].absoluteBindPoseRotation;
         }
     }
 }

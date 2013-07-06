@@ -283,13 +283,13 @@ static AvatarJointID xnToAvatarJoint(XnSkeletonJoint joint) {
         case XN_SKEL_NECK: return AVATAR_JOINT_NECK_BASE;
         case XN_SKEL_TORSO: return AVATAR_JOINT_TORSO;
         
-        case XN_SKEL_LEFT_SHOULDER: return AVATAR_JOINT_RIGHT_SHOULDER;
-        case XN_SKEL_LEFT_ELBOW: return AVATAR_JOINT_RIGHT_ELBOW;
-        case XN_SKEL_LEFT_HAND: return AVATAR_JOINT_RIGHT_WRIST;
+        case XN_SKEL_LEFT_SHOULDER: return AVATAR_JOINT_RIGHT_COLLAR;
+        case XN_SKEL_LEFT_ELBOW: return AVATAR_JOINT_RIGHT_SHOULDER;
+        case XN_SKEL_LEFT_HAND: return AVATAR_JOINT_RIGHT_ELBOW;
         
-        case XN_SKEL_RIGHT_SHOULDER: return AVATAR_JOINT_LEFT_SHOULDER;
-        case XN_SKEL_RIGHT_ELBOW: return AVATAR_JOINT_LEFT_ELBOW;
-        case XN_SKEL_RIGHT_HAND: return AVATAR_JOINT_LEFT_WRIST;
+        case XN_SKEL_RIGHT_SHOULDER: return AVATAR_JOINT_LEFT_COLLAR;
+        case XN_SKEL_RIGHT_ELBOW: return AVATAR_JOINT_LEFT_SHOULDER;
+        case XN_SKEL_RIGHT_HAND: return AVATAR_JOINT_LEFT_ELBOW;
         
         case XN_SKEL_LEFT_HIP: return AVATAR_JOINT_RIGHT_HIP;
         case XN_SKEL_LEFT_KNEE: return AVATAR_JOINT_RIGHT_KNEE;
@@ -303,37 +303,16 @@ static AvatarJointID xnToAvatarJoint(XnSkeletonJoint joint) {
     }
 }
 
-static int getParentJoint(XnSkeletonJoint joint) {
-    switch (joint) {
-        case XN_SKEL_HEAD: return XN_SKEL_NECK;
-        case XN_SKEL_TORSO: return -1;
-        
-        case XN_SKEL_LEFT_ELBOW: return XN_SKEL_LEFT_SHOULDER;
-        case XN_SKEL_LEFT_HAND: return XN_SKEL_LEFT_ELBOW;
-        
-        case XN_SKEL_RIGHT_ELBOW: return XN_SKEL_RIGHT_SHOULDER;
-        case XN_SKEL_RIGHT_HAND: return XN_SKEL_RIGHT_ELBOW;
-        
-        case XN_SKEL_LEFT_KNEE: return XN_SKEL_LEFT_HIP;
-        case XN_SKEL_LEFT_FOOT: return XN_SKEL_LEFT_KNEE;
-        
-        case XN_SKEL_RIGHT_KNEE: return XN_SKEL_RIGHT_HIP;
-        case XN_SKEL_RIGHT_FOOT: return XN_SKEL_RIGHT_KNEE;
-        
-        default: return XN_SKEL_TORSO;
-    }
-}
-
 static glm::vec3 xnToGLM(const XnVector3D& vector, bool flip = false) {
     return glm::vec3(vector.X * (flip ? -1 : 1), vector.Y, vector.Z);
 }
 
 static glm::quat xnToGLM(const XnMatrix3X3& matrix) {
     glm::quat rotation = glm::quat_cast(glm::mat3(
-        matrix.elements[0], matrix.elements[3], matrix.elements[6],
-        matrix.elements[1], matrix.elements[4], matrix.elements[7],
-        matrix.elements[2], matrix.elements[5], matrix.elements[8]));
-    return glm::quat(rotation.w, rotation.x, rotation.y, -rotation.z);
+        matrix.elements[0], matrix.elements[1], matrix.elements[2],
+        matrix.elements[3], matrix.elements[4], matrix.elements[5],
+        matrix.elements[6], matrix.elements[7], matrix.elements[8]));
+    return glm::quat(rotation.w, -rotation.x, rotation.y, rotation.z);
 }
 
 static void XN_CALLBACK_TYPE newUser(UserGenerator& generator, XnUserID id, void* cookie) {
@@ -372,8 +351,6 @@ void FrameGrabber::reset() {
 #endif
 }
 
-
-
 void FrameGrabber::grabFrame() {
     if (!(_initialized || init())) {
         return;
@@ -407,27 +384,11 @@ void FrameGrabber::grabFrame() {
                     continue;
                 }
                 _userGenerator.GetSkeletonCap().GetSkeletonJoint(_userID, activeJoints[i], transform);
-                glm::quat rotation = xnToGLM(transform.orientation.orientation);
-                int parent = getParentJoint(activeJoints[i]);
-                if (parent != -1) {
-                    XnSkeletonJointOrientation parentOrientation;
-                    _userGenerator.GetSkeletonCap().GetSkeletonJointOrientation(
-                        _userID, (XnSkeletonJoint)parent, parentOrientation);
-                    if (i == XN_SKEL_TORSO) {
-                        glm::vec3 eulers = safeEulerAngles(rotation);
-                        printLog("a: %g %g %g\n", eulers.x, eulers.y, eulers.z);
-                    }
-                    rotation = glm::inverse(xnToGLM(parentOrientation.orientation)) * rotation;
-                    if (i == XN_SKEL_TORSO) {
-                        glm::vec3 eulers = safeEulerAngles(rotation);
-                        printLog("r: %g %g %g\n", eulers.x, eulers.y, eulers.z);   
-                    }
-                }
                 XnVector3D projected;
                 _depthGenerator.ConvertRealWorldToProjective(1, &transform.position.position, &projected);
                 const float METERS_PER_MM = 1.0f / 1000.0f;
                 joints[avatarJoint] = Joint(xnToGLM(transform.position.position, true) * METERS_PER_MM,
-                    rotation, xnToGLM(projected));
+                    xnToGLM(transform.orientation.orientation), xnToGLM(projected));
             }
         }
     }

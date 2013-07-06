@@ -499,7 +499,12 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     // apply joint data (if any) to skeleton
     bool enableHandMovement = true;
     for (vector<JointData>::iterator it = _joints.begin(); it != _joints.end(); it++) {
-        _skeleton.joint[it->jointID].rotation = it->rotation;
+        _skeleton.joint[it->jointID].absoluteRotation = orientation * it->rotation;
+        
+        AvatarJointID parent = _skeleton.joint[it->jointID].parent;
+        const glm::quat& parentRotation = (parent == AVATAR_JOINT_NULL) ?
+            orientation : _skeleton.joint[parent].absoluteRotation;
+        _skeleton.joint[it->jointID].rotation = glm::inverse(parentRotation) * _skeleton.joint[it->jointID].absoluteRotation;
         
         // disable hand movement if we have joint info for the right wrist
         enableHandMovement &= (it->jointID != AVATAR_JOINT_RIGHT_WRIST);
