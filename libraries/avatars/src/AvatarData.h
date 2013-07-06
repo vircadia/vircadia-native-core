@@ -16,7 +16,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-#include <AgentData.h>
+#include <NodeData.h>
 #include "HeadData.h"
 #include "HandData.h"
 
@@ -39,9 +39,9 @@ enum KeyState
 
 class JointData;
 
-class AvatarData : public AgentData {
+class AvatarData : public NodeData {
 public:
-    AvatarData(Agent* owningAgent = NULL);
+    AvatarData(Node* owningNode = NULL);
     ~AvatarData();
     
     const glm::vec3& getPosition() const { return _position; }

@@ -17,6 +17,9 @@ HifiLeapListener* LeapManager::_listener = NULL;
 
 class HifiLeapListener  : public Leap::Listener {
 public:
+    HifiLeapListener() {}
+    virtual ~HifiLeapListener() {}
+    
     Leap::Frame lastFrame;
     std::vector<glm::vec3> fingerTips;
     std::vector<glm::vec3> fingerRoots;

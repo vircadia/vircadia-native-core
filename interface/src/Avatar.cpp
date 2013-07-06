@@ -17,8 +17,8 @@
 #include "Head.h"
 #include "Log.h"
 #include "ui/TextRenderer.h"
-#include <AgentList.h>
-#include <AgentTypes.h>
+#include <NodeList.h>
+#include <NodeTypes.h>
 #include <PacketHeaders.h>
 #include <OculusManager.h>
 
@@ -61,8 +61,8 @@ bool usingBigSphereCollisionTest = true;
 float chatMessageScale = 0.0015;
 float chatMessageHeight = 0.20;
 
-Avatar::Avatar(Agent* owningAgent) :
-    AvatarData(owningAgent),
+Avatar::Avatar(Node* owningNode) :
+    AvatarData(owningNode),
     _initialized(false),
     _head(this),
     _hand(this),
@@ -284,12 +284,8 @@ void Avatar::reset() {
     _hand.reset();
 }
 
-//  Update avatar state with sensor data
-void Avatar::updateFromGyrosAndOrWebcam() {
-    const float AMPLIFY_PITCH = 2.f;
-    const float AMPLIFY_YAW = 2.f;
-    const float AMPLIFY_ROLL = 2.f;
-
+//  Update avatar head rotation with sensor data
+void Avatar::updateFromGyrosAndOrWebcam(bool gyroLook, const glm::vec3& amplifyAngle) {
     SerialInterface* gyros = Application::getInstance()->getSerialHeadSensor();
     Webcam* webcam = Application::getInstance()->getWebcam();
     glm::vec3 estimatedPosition, estimatedRotation;
@@ -315,9 +311,10 @@ void Avatar::updateFromGyrosAndOrWebcam() {
     } else {
         return;
     }
-    _head.setPitch(estimatedRotation.x * AMPLIFY_PITCH);
-    _head.setYaw(estimatedRotation.y * AMPLIFY_YAW);
-    _head.setRoll(estimatedRotation.z * AMPLIFY_ROLL);
+    _head.setPitch(estimatedRotation.x * amplifyAngle.x);
+    _head.setYaw(estimatedRotation.y * amplifyAngle.y);
+    _head.setRoll(estimatedRotation.z * amplifyAngle.z);
+    _head.setCameraFollowsHead(gyroLook);
         
     //  Update torso lean distance based on accelerometer data
     const float TORSO_LENGTH = 0.5f;
@@ -745,10 +742,10 @@ void Avatar::updateHandMovementAndTouching(float deltaTime, bool enableHandMovem
         _interactingOther = NULL;
         
         //loop through all the other avatars for potential interactions...
-        AgentList* agentList = AgentList::getInstance();
-        for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
-            if (agent->getLinkedData() && agent->getType() == AGENT_TYPE_AVATAR) {
-                Avatar *otherAvatar = (Avatar *)agent->getLinkedData();
+        NodeList* nodeList = NodeList::getInstance();
+        for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+            if (node->getLinkedData() && node->getType() == NODE_TYPE_AGENT) {
+                Avatar *otherAvatar = (Avatar *)node->getLinkedData();
                 
                 // test whether shoulders are close enough to allow for reaching to touch hands
                 glm::vec3 v(_position - otherAvatar->_position);
@@ -927,10 +924,10 @@ void Avatar::updateAvatarCollisions(float deltaTime) {
     _distanceToNearestAvatar = std::numeric_limits<float>::max();
     
     // loop through all the other avatars for potential interactions...
-    AgentList* agentList = AgentList::getInstance();
-    for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
-        if (agent->getLinkedData() && agent->getType() == AGENT_TYPE_AVATAR) {
-            Avatar *otherAvatar = (Avatar *)agent->getLinkedData();
+    NodeList* nodeList = NodeList::getInstance();
+    for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+        if (node->getLinkedData() && node->getType() == NODE_TYPE_AGENT) {
+            Avatar *otherAvatar = (Avatar *)node->getLinkedData();
             
             // check if the bounding spheres of the two avatars are colliding
             glm::vec3 vectorBetweenBoundingSpheres(_position - otherAvatar->_position);

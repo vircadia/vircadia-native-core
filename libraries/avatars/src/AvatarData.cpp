@@ -18,8 +18,8 @@
 
 using namespace std;
 
-AvatarData::AvatarData(Agent* owningAgent) :
-    AgentData(owningAgent),
+AvatarData::AvatarData(Node* owningNode) :
+    NodeData(owningNode),
     _handPosition(0,0,0),
     _bodyYaw(-90.0),
     _bodyPitch(0.0),
@@ -162,7 +162,7 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     return destinationBuffer - bufferStart;
 }
 
-// called on the other agents - assigns it to my views of the others
+// called on the other nodes - assigns it to my views of the others
 int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
 
     // lazily allocate memory for HeadData in case we're not an Avatar instance
@@ -180,7 +180,7 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     
     unsigned char* startPosition = sourceBuffer;
     
-    // push past the agent ID
+    // push past the node ID
     sourceBuffer += + sizeof(uint16_t);
     
     // Body world position

@@ -80,14 +80,14 @@ enum AvatarMode
 
 class Avatar : public AvatarData {
 public:
-    Avatar(Agent* owningAgent = NULL);
+    Avatar(Node* owningNode = NULL);
     ~Avatar();
     
     void init();
     void reset();
     void simulate(float deltaTime, Transmitter* transmitter);
     void updateThrust(float deltaTime, Transmitter * transmitter);
-    void updateFromGyrosAndOrWebcam();
+    void updateFromGyrosAndOrWebcam(bool gyroLook, const glm::vec3& amplifyAngles);
     void updateFromMouse(int mouseX, int mouseY, int screenWidth, int screenHeight);
     void updateFromTouch(float touchAvgDistX, float touchAvgDistY);
     void addBodyYaw(float y) {_bodyYaw += y;};
@@ -107,7 +107,7 @@ public:
 
     //getters
     bool             isInitialized             ()                const { return _initialized;}
-    bool             isMyAvatar                ()                const { return _owningAgent == NULL; }
+    bool             isMyAvatar                ()                const { return _owningNode == NULL; }
     const Skeleton&  getSkeleton               ()                const { return _skeleton;}
     float            getHeadYawRate            ()                const { return _head.yawRate;}
     float            getBodyYaw                ()                const { return _bodyYaw;}    
