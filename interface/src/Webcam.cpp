@@ -108,16 +108,11 @@ void Webcam::renderPreview(int screenWidth, int screenHeight) {
                 glPointSize(4.0f);
                 glBegin(GL_POINTS);
                     float projectedScale = PREVIEW_HEIGHT / (float)_depthHeight;
-                    int idx = 0;
                     foreach (const Joint& joint, _joints) {
                         if (joint.isValid) {
-                            if (joint.projected.x == 0.0f && joint.projected.y == 0.0f) {
-                                printLog("%d\n", idx);
-                            }
                             glVertex2f(depthLeft + joint.projected.x * projectedScale,
                                 top - PREVIEW_HEIGHT + joint.projected.y * projectedScale);
                         }
-                        idx++;
                     }
                 glEnd();
                 glPointSize(1.0f);
