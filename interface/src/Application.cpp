@@ -1928,11 +1928,11 @@ void Application::update(float deltaTime) {
 
 void Application::updateAvatar(float deltaTime) {
 
-    // Update my avatar's head position from gyros and/or webcam
-    _myAvatar.updateHeadFromGyrosAndOrWebcam(_gyroLook->isChecked(),
-                                             glm::vec3(_headCameraPitchYawScale,
-                                                       _headCameraPitchYawScale,
-                                                       _headCameraPitchYawScale));
+    // Update my avatar's state from gyros and/or webcam
+    _myAvatar.updateFromGyrosAndOrWebcam(_gyroLook->isChecked(),
+                                         glm::vec3(_headCameraPitchYawScale,
+                                                   _headCameraPitchYawScale,
+                                                   _headCameraPitchYawScale));
         
     if (_serialHeadSensor.isActive()) {
       

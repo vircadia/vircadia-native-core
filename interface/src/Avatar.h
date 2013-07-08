@@ -87,7 +87,7 @@ public:
     void reset();
     void simulate(float deltaTime, Transmitter* transmitter);
     void updateThrust(float deltaTime, Transmitter * transmitter);
-    void updateHeadFromGyrosAndOrWebcam(bool gyroLook, const glm::vec3& amplifyAngles);
+    void updateFromGyrosAndOrWebcam(bool gyroLook, const glm::vec3& amplifyAngles);
     void updateFromMouse(int mouseX, int mouseY, int screenWidth, int screenHeight);
     void updateFromTouch(float touchAvgDistX, float touchAvgDistY);
     void addBodyYaw(float y) {_bodyYaw += y;};
@@ -229,7 +229,7 @@ private:
     void updateBodyBalls( float deltaTime );
     void calculateBoneLengths();
     void readSensors();
-    void updateHandMovementAndTouching(float deltaTime);
+    void updateHandMovementAndTouching(float deltaTime, bool enableHandMovement);
     void updateAvatarCollisions(float deltaTime);
     void updateArmIKAndConstraints( float deltaTime );
     void updateCollisionWithSphere( glm::vec3 position, float radius, float deltaTime );
