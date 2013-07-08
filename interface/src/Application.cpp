@@ -993,7 +993,11 @@ void Application::sendAvatarVoxelURLMessage(const QUrl& url) {
         return; // we don't yet know who we are
     }
     QByteArray message;
-    message.append(PACKET_TYPE_AVATAR_VOXEL_URL);
+    
+    char packetHeader[MAX_PACKET_HEADER_BYTES];
+    int numBytesPacketHeader = populateTypeAndVersion((unsigned char*) packetHeader, PACKET_TYPE_AVATAR_VOXEL_URL);
+
+    message.append(packetHeader, numBytesPacketHeader);
     message.append((const char*)&ownerID, sizeof(ownerID));
     message.append(url.toEncoded());
 
@@ -1002,8 +1006,9 @@ void Application::sendAvatarVoxelURLMessage(const QUrl& url) {
 
 void Application::processAvatarVoxelURLMessage(unsigned char *packetData, size_t dataBytes) {
     // skip the header
-    packetData++;
-    dataBytes--;
+    int numBytesPacketHeader = numBytesForPacketHeader(packetData);
+    packetData += numBytesPacketHeader;
+    dataBytes -= numBytesPacketHeader;
     
     // read the node id
     uint16_t nodeID = *(uint16_t*)packetData;
