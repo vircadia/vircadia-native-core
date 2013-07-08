@@ -214,7 +214,7 @@ void Webcam::setFrame(const Mat& frame, int format, const Mat& depth, const Rota
             if (!_joints[i].isValid) {
                 continue;
             }
-            const float JOINT_SMOOTHING = 0.5f;
+            const float JOINT_SMOOTHING = 0.95f;
             _estimatedJoints[i].isValid = true;
             _estimatedJoints[i].position = glm::mix(_joints[i].position - origin,
                 _estimatedJoints[i].position, JOINT_SMOOTHING);
@@ -380,7 +380,9 @@ void FrameGrabber::grabFrame() {
         format = GL_RGB;
         
         Mat depth = Mat(_depthMetaData.YRes(), _depthMetaData.XRes(), CV_16UC1, (void*)_depthGenerator.GetDepthMap());
-        depth.convertTo(_grayDepthFrame, CV_8UC1, 256.0 / 2048.0);
+        const double EIGHT_BIT_MAX = 255;
+        const double ELEVEN_BIT_MAX = 2047;
+        depth.convertTo(_grayDepthFrame, CV_8UC1, EIGHT_BIT_MAX / ELEVEN_BIT_MAX);
         
         _userID = 0;
         XnUInt16 userCount = 1; 
@@ -493,6 +495,7 @@ bool FrameGrabber::init() {
         _userGenerator.GetSkeletonCap().RegisterToCalibrationComplete(calibrationCompleted, 0, calibrationCompleteCallback);
         
         _userGenerator.GetSkeletonCap().SetSkeletonProfile(XN_SKEL_PROFILE_UPPER);
+        //_userGenerator.GetSkeletonCap().SetSmoothing(0.9f);
         
         _xnContext.StartGeneratingAll();
         return true;

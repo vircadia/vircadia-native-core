@@ -306,6 +306,11 @@ void Avatar::updateFromGyrosAndOrWebcam(bool gyroLook, const glm::vec3& amplifyA
             if (joints.size() > i && joints[i].isValid) {
                 JointData data = { i, joints[i].orientation };
                 _joints.push_back(data);
+                
+                if (i == AVATAR_JOINT_CHEST) {
+                    // if we have a chest rotation, don't apply lean based on head
+                    estimatedPosition = glm::vec3();
+                }
             }
         }
     } else {
