@@ -10,7 +10,6 @@
 #define __interface__Audio__
 
 #include <portaudio.h>
-
 #include <AudioRingBuffer.h>
 #include <StdDev.h>
 

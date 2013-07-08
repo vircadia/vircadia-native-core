@@ -11,7 +11,7 @@
 #include <netdb.h>
 
 #include "SharedUtil.h"
-#include "AgentList.h"
+#include "NodeList.h"
 
 #include "Logstash.h"
 
@@ -45,16 +45,16 @@ bool Logstash::shouldSendStats() {
     return shouldSendStats;
 }
 
-void Logstash::stashValue(const char* key, float value) {
+void Logstash::stashValue(char statType, const char* key, float value) {
     static char logstashPacket[MAX_PACKET_SIZE];
     
     // load up the logstash packet with the key and the passed float value
     // send it to 4 decimal places
-    int numPacketBytes = sprintf(logstashPacket, "%s %.4f", key, value);
+    int numPacketBytes = sprintf(logstashPacket, "%c %s %.4f", statType, key, value);
     
-    AgentList *agentList = AgentList::getInstance();
+    NodeList *nodeList = NodeList::getInstance();
     
-    if (agentList) {
-        agentList->getAgentSocket()->send(socket(), logstashPacket, numPacketBytes);
+    if (nodeList) {
+        nodeList->getNodeSocket()->send(socket(), logstashPacket, numPacketBytes);
     }
 }

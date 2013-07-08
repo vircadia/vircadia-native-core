@@ -80,14 +80,14 @@ enum AvatarMode
 
 class Avatar : public AvatarData {
 public:
-    Avatar(Agent* owningAgent = NULL);
+    Avatar(Node* owningNode = NULL);
     ~Avatar();
     
     void init();
     void reset();
     void simulate(float deltaTime, Transmitter* transmitter);
     void updateThrust(float deltaTime, Transmitter * transmitter);
-    void updateHeadFromGyrosAndOrWebcam();
+    void updateHeadFromGyrosAndOrWebcam(bool gyroLook, const glm::vec3& amplifyAngles);
     void updateFromMouse(int mouseX, int mouseY, int screenWidth, int screenHeight);
     void updateFromTouch(float touchAvgDistX, float touchAvgDistY);
     void addBodyYaw(float y) {_bodyYaw += y;};
@@ -107,6 +107,7 @@ public:
 
     //getters
     bool             isInitialized             ()                const { return _initialized;}
+    bool             isMyAvatar                ()                const { return _owningNode == NULL; }
     const Skeleton&  getSkeleton               ()                const { return _skeleton;}
     float            getHeadYawRate            ()                const { return _head.yawRate;}
     float            getBodyYaw                ()                const { return _bodyYaw;}    
@@ -155,11 +156,13 @@ public:
     void writeAvatarDataToFile();
     void readAvatarDataFromFile();
 
+    static void renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2, float radius1, float radius2);
+
 private:
     // privatize copy constructor and assignment operator to avoid copying
     Avatar(const Avatar&);
     Avatar& operator= (const Avatar&);
-
+    
     struct AvatarBall
     {
         AvatarJointID    parentJoint;    // the skeletal joint that serves as a reference for determining the position
@@ -235,7 +238,6 @@ private:
     void applyHardCollision(const glm::vec3& penetration, float elasticity, float damping);
     void applyCollisionWithOtherAvatar( Avatar * other, float deltaTime );
     void checkForMouseRayTouching();
-    void renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2, float radius1, float radius2);
 };
 
 #endif

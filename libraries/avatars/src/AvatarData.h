@@ -15,7 +15,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-#include <AgentData.h>
+#include <NodeData.h>
 #include "HeadData.h"
 #include "HandData.h"
 
@@ -36,9 +36,9 @@ enum KeyState
     DELETE_KEY_DOWN
 };
 
-class AvatarData : public AgentData {
+class AvatarData : public NodeData {
 public:
-    AvatarData(Agent* owningAgent = NULL);
+    AvatarData(Node* owningNode = NULL);
     ~AvatarData();
     
     const glm::vec3& getPosition() const { return _position; }
@@ -169,6 +169,6 @@ int unpackFloatFromByte(unsigned char* buffer, float& value, float scaleBy);
 
 // Allows sending of fixed-point numbers: radix 1 makes 15.1 number, radix 8 makes 8.8 number, etc
 int packFloatScalarToSignedTwoByteFixed(unsigned char* buffer, float scalar, int radix);
-int unpackFloatScalarFromSignedTwoByteFixed(uint16_t* byteFixedPointer, float* destinationPointer, int radix);
+int unpackFloatScalarFromSignedTwoByteFixed(int16_t* byteFixedPointer, float* destinationPointer, int radix);
 
 #endif /* defined(__hifi__AvatarData__) */
