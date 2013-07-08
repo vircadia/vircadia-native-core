@@ -112,32 +112,31 @@ float VoxelSystem::getVoxelsBytesReadPerSecondAverage() {
 int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
 
     unsigned char command = *sourceBuffer;
-    unsigned char *voxelData = sourceBuffer + 1;
+    int numBytesPacketHeader = numBytesForPacketHeader(sourceBuffer);
+    unsigned char *voxelData = sourceBuffer + numBytesPacketHeader;
 
     pthread_mutex_lock(&_treeLock);
 
     switch(command) {
-        case PACKET_TYPE_VOXEL_DATA:
-        {
+        case PACKET_TYPE_VOXEL_DATA: {
             PerformanceWarning warn(_renderWarningsOn, "readBitstreamToTree()");
             // ask the VoxelTree to read the bitstream into the tree
-            _tree->readBitstreamToTree(voxelData, numBytes - 1, WANT_COLOR, WANT_EXISTS_BITS);
+            _tree->readBitstreamToTree(voxelData, numBytes - numBytesPacketHeader, WANT_COLOR, WANT_EXISTS_BITS);
         }
-        break;
-        case PACKET_TYPE_VOXEL_DATA_MONOCHROME:
-        {
+            break;
+        case PACKET_TYPE_VOXEL_DATA_MONOCHROME: {
             PerformanceWarning warn(_renderWarningsOn, "readBitstreamToTree()");
             // ask the VoxelTree to read the MONOCHROME bitstream into the tree
-            _tree->readBitstreamToTree(voxelData, numBytes - 1, NO_COLOR, WANT_EXISTS_BITS);
+            _tree->readBitstreamToTree(voxelData, numBytes - numBytesPacketHeader, NO_COLOR, WANT_EXISTS_BITS);
         }
-        break;
+            break;
         case PACKET_TYPE_Z_COMMAND:
 
             // the Z command is a special command that allows the sender to send high level semantic
             // requests, like erase all, or add sphere scene, different receivers may handle these
             // messages differently
             char* packetData = (char *)sourceBuffer;
-            char* command = &packetData[1]; // start of the command
+            char* command = &packetData[numBytesPacketHeader]; // start of the command
             int commandLength = strlen(command); // commands are null terminated strings
             int totalLength = 1+commandLength+1;
 
