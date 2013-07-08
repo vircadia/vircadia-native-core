@@ -290,15 +290,17 @@ void Avatar::updateFromGyrosAndOrWebcam(bool gyroLook, const glm::vec3& amplifyA
     Webcam* webcam = Application::getInstance()->getWebcam();
     glm::vec3 estimatedPosition, estimatedRotation;
     if (gyros->isActive()) {
-        if (webcam->isActive()) {
-            estimatedPosition = webcam->getEstimatedPosition();
-        }
         estimatedRotation = gyros->getEstimatedRotation();
-        
+    
     } else if (webcam->isActive()) {
-        estimatedPosition = webcam->getEstimatedPosition();
         estimatedRotation = webcam->getEstimatedRotation();
     
+    } else {
+        return;
+    }
+    if (webcam->isActive()) {
+        estimatedPosition = webcam->getEstimatedPosition();
+        
         // compute and store the joint rotations
         const JointVector& joints = webcam->getEstimatedJoints();
         _joints.clear();
@@ -313,8 +315,6 @@ void Avatar::updateFromGyrosAndOrWebcam(bool gyroLook, const glm::vec3& amplifyA
                 }
             }
         }
-    } else {
-        return;
     }
     _head.setPitch(estimatedRotation.x * amplifyAngle.x);
     _head.setYaw(estimatedRotation.y * amplifyAngle.y);
