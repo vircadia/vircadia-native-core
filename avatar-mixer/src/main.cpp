@@ -93,7 +93,7 @@ int main(int argc, const char* argv[]) {
         }
         
         if (nodeList->getNodeSocket()->receive(nodeAddress, packetData, &receivedBytes) &&
-            versionForPacketType(packetData[0]) == packetData[1]) {
+            packetVersionMatch(packetData)) {
             switch (packetData[0]) {
                 case PACKET_TYPE_HEAD_DATA:
                     // grab the node ID from the packet
@@ -119,7 +119,7 @@ int main(int argc, const char* argv[]) {
                     break;
                 case PACKET_TYPE_AVATAR_VOXEL_URL:
                     // grab the node ID from the packet
-                    unpackNodeId(packetData + sizeof(PACKET_TYPE) + sizeof(PACKET_VERSION), &nodeID);
+                    unpackNodeId(packetData + numBytesForPacketHeader(packetData), &nodeID);
                     
                     // let everyone else know about the update
                     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {

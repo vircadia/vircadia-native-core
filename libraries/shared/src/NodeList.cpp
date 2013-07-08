@@ -287,7 +287,7 @@ int NodeList::processDomainServerList(unsigned char* packetData, size_t dataByte
     sockaddr_in nodeLocalSocket;
     nodeLocalSocket.sin_family = AF_INET;
     
-    unsigned char* readPtr = packetData + sizeof(PACKET_TYPE) + sizeof(PACKET_VERSION);
+    unsigned char* readPtr = packetData + numBytesForPacketHeader(packetData);
     unsigned char* startPtr = packetData;
     
     while((readPtr - startPtr) < dataBytes - sizeof(uint16_t)) {

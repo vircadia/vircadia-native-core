@@ -38,7 +38,10 @@ typedef char PACKET_VERSION;
 
 PACKET_VERSION versionForPacketType(PACKET_TYPE type);
 
-int populateTypeAndVersion(unsigned char* destination, PACKET_TYPE type);
+bool packetVersionMatch(unsigned char* packetHeader);
+
+int populateTypeAndVersion(unsigned char* destinationHeader, PACKET_TYPE type);
+int numBytesForPacketHeader(unsigned char* packetHeader);
 
 const int MAX_PACKET_HEADER_BYTES = sizeof(PACKET_TYPE) + sizeof(PACKET_VERSION);
 

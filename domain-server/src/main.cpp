@@ -87,12 +87,14 @@ int main(int argc, const char * argv[])
     while (true) {
         if (nodeList->getNodeSocket()->receive((sockaddr *)&nodePublicAddress, packetData, &receivedBytes) &&
             (packetData[0] == PACKET_TYPE_DOMAIN_REPORT_FOR_DUTY || packetData[0] == PACKET_TYPE_DOMAIN_LIST_REQUEST) &&
-            versionForPacketType(packetData[0]) == packetData[1]) {
+            packetVersionMatch(packetData)) {
             // this is an RFD or domain list request packet, and there is a version match
             std::map<char, Node *> newestSoloNodes;
             
+            int numBytesSenderHeader = numBytesForPacketHeader(packetData);
+            
             nodeType = packetData[1];
-            int numBytesSocket = unpackSocket(packetData + numHeaderBytes + sizeof(NODE_TYPE),
+            int numBytesSocket = unpackSocket(packetData + numBytesSenderHeader + sizeof(NODE_TYPE),
                                               (sockaddr*) &nodeLocalAddress);
             
             sockaddr* destinationSocket = (sockaddr*) &nodePublicAddress;
@@ -110,18 +112,18 @@ int main(int argc, const char * argv[])
             }
             
             Node* newNode = nodeList->addOrUpdateNode((sockaddr*) &nodePublicAddress,
-                                                          (sockaddr*) &nodeLocalAddress,
-                                                          nodeType,
-                                                          nodeList->getLastNodeID());
+                                                      (sockaddr*) &nodeLocalAddress,
+                                                      nodeType,
+                                                      nodeList->getLastNodeID());
             
             if (newNode->getNodeID() == nodeList->getLastNodeID()) {
                 nodeList->increaseNodeID();
             }
             
-            currentBufferPos = broadcastPacket + sizeof(PACKET_TYPE) + sizeof(PACKET_VERSION);
+            currentBufferPos = broadcastPacket + numHeaderBytes;
             startPointer = currentBufferPos;
             
-            unsigned char* nodeTypesOfInterest = packetData + sizeof(PACKET_TYPE) + sizeof(PACKET_VERSION) + sizeof(NODE_TYPE)
+            unsigned char* nodeTypesOfInterest = packetData + numBytesSenderHeader + sizeof(NODE_TYPE)
                 + numBytesSocket + sizeof(unsigned char);
             int numInterestTypes = *(nodeTypesOfInterest - 1);
             
@@ -174,8 +176,8 @@ int main(int argc, const char * argv[])
             
             // send the constructed list back to this node
             nodeList->getNodeSocket()->send(destinationSocket,
-                                              broadcastPacket,
-                                              (currentBufferPos - startPointer) + 1);
+                                            broadcastPacket,
+                                            (currentBufferPos - startPointer) + 1);
         }
         
         if (Logstash::shouldSendStats()) {
