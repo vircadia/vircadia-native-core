@@ -304,7 +304,7 @@ void Avatar::updateFromGyrosAndOrWebcam(bool gyroLook, const glm::vec3& amplifyA
         _joints.clear();
         for (int i = 0; i < NUM_AVATAR_JOINTS; i++) {
             if (joints.size() > i && joints[i].isValid) {
-                JointData data = { i, joints[i].orientation };
+                JointData data = { i, joints[i].rotation };
                 _joints.push_back(data);
                 
                 if (i == AVATAR_JOINT_CHEST) {

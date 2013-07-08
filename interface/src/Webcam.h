@@ -125,12 +125,12 @@ private:
 class Joint {
 public:
     
-    Joint(const glm::vec3& position, const glm::quat& orientation, const glm::vec3& projected);
+    Joint(const glm::vec3& position, const glm::quat& rotation, const glm::vec3& projected);
     Joint();
     
     bool isValid;
     glm::vec3 position;
-    glm::quat orientation;
+    glm::quat rotation;
     glm::vec3 projected;
 };
 

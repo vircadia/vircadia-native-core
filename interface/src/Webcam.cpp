@@ -208,20 +208,21 @@ void Webcam::setFrame(const Mat& frame, int format, const Mat& depth, const Rota
             origin = glm::mix(_joints[AVATAR_JOINT_LEFT_HIP].position, _joints[AVATAR_JOINT_RIGHT_HIP].position, 0.5f);
         
         } else if (_joints[AVATAR_JOINT_TORSO].isValid) {
-            origin = _joints[AVATAR_JOINT_TORSO].position + glm::vec3(0.0f, -0.09f, -0.01f);
+            const glm::vec3 TORSO_TO_PELVIS = glm::vec3(0.0f, -0.09f, -0.01f);
+            origin = _joints[AVATAR_JOINT_TORSO].position + TORSO_TO_PELVIS;
         }
         for (int i = 0; i < NUM_AVATAR_JOINTS; i++) {
             if (!_joints[i].isValid) {
                 continue;
             }
-            const float JOINT_SMOOTHING = 0.95f;
+            const float JOINT_SMOOTHING = 0.9f;
             _estimatedJoints[i].isValid = true;
             _estimatedJoints[i].position = glm::mix(_joints[i].position - origin,
                 _estimatedJoints[i].position, JOINT_SMOOTHING);
-            _estimatedJoints[i].orientation = safeMix(_joints[i].orientation,
-                _estimatedJoints[i].orientation, JOINT_SMOOTHING);
+            _estimatedJoints[i].rotation = safeMix(_joints[i].rotation,
+                _estimatedJoints[i].rotation, JOINT_SMOOTHING);
         }
-        _estimatedRotation = safeEulerAngles(_estimatedJoints[AVATAR_JOINT_HEAD_BASE].orientation);
+        _estimatedRotation = safeEulerAngles(_estimatedJoints[AVATAR_JOINT_HEAD_BASE].rotation);
         _estimatedPosition = _estimatedJoints[AVATAR_JOINT_HEAD_BASE].position;
         
     } else {
@@ -495,7 +496,6 @@ bool FrameGrabber::init() {
         _userGenerator.GetSkeletonCap().RegisterToCalibrationComplete(calibrationCompleted, 0, calibrationCompleteCallback);
         
         _userGenerator.GetSkeletonCap().SetSkeletonProfile(XN_SKEL_PROFILE_UPPER);
-        //_userGenerator.GetSkeletonCap().SetSmoothing(0.9f);
         
         _xnContext.StartGeneratingAll();
         return true;
@@ -531,8 +531,8 @@ void FrameGrabber::updateHSVFrame(const Mat& frame, int format) {
     inRange(_hsvFrame, Scalar(0, 55, 65), Scalar(180, 256, 256), _mask);
 }
 
-Joint::Joint(const glm::vec3& position, const glm::quat& orientation, const glm::vec3& projected) :
-    isValid(true), position(position), orientation(orientation), projected(projected) {
+Joint::Joint(const glm::vec3& position, const glm::quat& rotation, const glm::vec3& projected) :
+    isValid(true), position(position), rotation(rotation), projected(projected) {
 }
 
 Joint::Joint() : isValid(false) {
