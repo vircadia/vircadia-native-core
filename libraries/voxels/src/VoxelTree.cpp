@@ -1461,14 +1461,14 @@ bool VoxelTree::readFromSchematicsFile(const char *fileName) {
     std::stringstream ss;
     int err = retrieveData(fileName, ss);
     if (err && TAG_Compound != ss.get()) {
-        printLog("ERROR: Invalid schematics file.\n");
+        printLog("ERROR: Invalid schematic file.\n");
         return false;
     }
 
     ss.get();
     TagCompound schematics(ss);
-    if (!schematics.blockId() || !schematics.blocksData()) {
-        printLog("ERROR: Invalid schematics file.\n");
+    if (!schematics.blockId()) {
+        printLog("ERROR: Can't read schematic data.\n");
         return false;
     }
 
@@ -1478,8 +1478,10 @@ bool VoxelTree::readFromSchematicsFile(const char *fileName) {
     int scale = 1;
     while (max > scale) scale *= 2;
     float size = 1.0f / scale;
+
     bool create = false;
     int red = 128, green = 128, blue = 128;
+    int count = 0;
 
     for (int y = 0; y < schematics.height(); ++y) {
         for (int z = 0; z < schematics.length(); ++z) {
@@ -1528,18 +1530,55 @@ bool VoxelTree::readFromSchematicsFile(const char *fileName) {
                 case  84:
                 case 137: red =  57; green =  38; blue =  25; break;
                 case  35:
-                    red = 255;
-                    green = 255;
-                    blue = 255;
+                    switch (schematics.blocksData()[pos]) {
+                    case  0: red = 234; green = 234; blue = 234; break;
+                    case  1: red = 224; green = 140; blue =  84; break;
+                    case  2: red = 185; green =  90; blue = 194; break;
+                    case  3: red = 124; green = 152; blue = 208; break;
+                    case  4: red = 165; green = 154; blue =  35; break;
+                    case  5: red =  70; green = 187; blue =  61; break;
+                    case  6: red = 206; green = 124; blue = 145; break;
+                    case  7: red =  66; green =  66; blue =  66; break;
+                    case  8: red = 170; green = 176; blue = 176; break;
+                    case  9: red =  45; green = 108; blue =  35; break;
+                    case 10: red = 130; green =  62; blue =   8; break;
+                    case 11: red =  43; green =  51; blue =  29; break;
+                    case 12: red =  73; green =  47; blue =  29; break;
+                    case 13: red =  57; green =  76; blue =  36; break;
+                    case 14: red = 165; green =  58; blue =  53; break;
+                    case 15: red =  24; green =  24; blue =  24; break;
+                    default:
+                        create = false;
+                        break;
+                    }
                     break;
                 case  41: red = 239; green = 238; blue = 105; break;
                 case  42: red = 146; green = 146; blue = 146; break;
                 case  43:
                 case  98: red = 161; green = 161; blue = 161; break;
                 case  44:
-                    red = 161;
-                    green = 161;
-                    blue = 161;
+                    switch (schematics.blocksData()[pos]) {
+                    case 0: red = 161; green = 161; blue = 161; break;
+                    case 1: red = 209; green = 202; blue = 156; break;
+                    case 2: red = 133; green =  94; blue =  62; break;
+                    case 3: red =  71; green =  71; blue =  71; break;
+                    case 4: red = 121; green =  67; blue =  53; break;
+                    case 5: red = 161; green = 161; blue = 161; break;
+                    case 6: red =  45; green =  22; blue =  26; break;
+                    case 7: red = 195; green = 192; blue = 185; break;
+                    default:
+                        create = false;
+                        break;
+                    }
+
+                    if (create) {
+                        createVoxel(size * x           , size * y, size * z           , size / 2, red, green, blue, true);
+                        createVoxel(size * x + size / 2, size * y, size * z           , size / 2, red, green, blue, true);
+                        createVoxel(size * x           , size * y, size * z + size / 2, size / 2, red, green, blue, true);
+                        createVoxel(size * x + size / 2, size * y, size * z + size / 2, size / 2, red, green, blue, true);
+                        count += 4;
+                        create = false;
+                    }
                     break;
                 case  45: red = 121; green =  67; blue =  53; break;
                 case  46: red = 118; green =  36; blue =  13; break;
@@ -1557,9 +1596,50 @@ bool VoxelTree::readFromSchematicsFile(const char *fileName) {
                 case 135:
                 case 136:
                 case 156:
-                    red = 150;
-                    green = 121;
-                    blue =  74;
+                    switch (id) {
+                    case  53:
+                    case 134:
+                    case 135:
+                    case 136: red = 133; green =  94; blue =  62; break;
+                    case  67: red =  71; green =  71; blue =  71; break;
+                    case 108: red = 121; green =  67; blue =  53; break;
+                    case 109: red = 161; green = 161; blue = 161; break;
+                    case 114: red =  45; green =  22; blue =  26; break;
+                    case 128: red = 209; green = 202; blue = 156; break;
+                    case 156: red = 195; green = 192; blue = 185; break;
+                    default:
+                        create = false;
+                        break;
+                    }
+
+                    if (create) {
+                        createVoxel(size * x           , size * y, size * z           , size / 2, red, green, blue, true);
+                        createVoxel(size * x + size / 2, size * y, size * z           , size / 2, red, green, blue, true);
+                        createVoxel(size * x           , size * y, size * z + size / 2, size / 2, red, green, blue, true);
+                        createVoxel(size * x + size / 2, size * y, size * z + size / 2, size / 2, red, green, blue, true);
+
+                        switch (schematics.blocksData()[pos]) {
+                        case 0:
+                            createVoxel(size * x + size / 2, size * y + size / 2, size * z           , size / 2, red, green, blue, true);
+                            createVoxel(size * x + size / 2, size * y + size / 2, size * z + size / 2, size / 2, red, green, blue, true);
+                            break;
+                        case 1:
+                            createVoxel(size * x           , size * y + size / 2, size * z           , size / 2, red, green, blue, true);
+                            createVoxel(size * x           , size * y + size / 2, size * z + size / 2, size / 2, red, green, blue, true);
+                            break;
+                        case 2:
+                            createVoxel(size * x           , size * y + size / 2, size * z + size / 2, size / 2, red, green, blue, true);
+                            createVoxel(size * x + size / 2, size * y + size / 2, size * z + size / 2, size / 2, red, green, blue, true);
+                            break;
+                        case 3:
+                            createVoxel(size * x           , size * y + size / 2, size * z           , size / 2, red, green, blue, true);
+                            createVoxel(size * x + size / 2, size * y + size / 2, size * z           , size / 2, red, green, blue, true);
+                            break;
+                        }
+
+                        count += 6;
+                        create = false;
+                    }
                     break;
                 case  54:
                 case  95:
@@ -1589,22 +1669,20 @@ bool VoxelTree::readFromSchematicsFile(const char *fileName) {
                 case 170: red = 168; green = 139; blue =  15; break;
                 case 172: red = 140; green =  86; blue =  61; break;
                 case 173: red =   9; green =   9; blue =   9; break;
-
                 default:
-                    if (0 < id && id < 160 && false) {
-                        red = 128; blue = 128; green = 128;
-                    } else {
-                        create = false;
-                    }
+                    create = false;
                     break;
                 }
 
                 if (create) {
                     createVoxel(size * x, size * y, size * z, size, red, green, blue, true);
+                    ++count;
                 }
             }
         }
     }
+
+    printLog("Created %d voxels frome minecraft import.\n", count);
 
     return true;
 }
