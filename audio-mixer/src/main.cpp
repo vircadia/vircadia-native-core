@@ -345,13 +345,14 @@ int main(int argc, const char* argv[]) {
         }
         
         // pull any new audio data from nodes off of the network stack
-        while (nodeList->getNodeSocket()->receive(nodeAddress, packetData, &receivedBytes)) {
+        while (nodeList->getNodeSocket()->receive(nodeAddress, packetData, &receivedBytes) &&
+               versionForPacketType(packetData[0]) == packetData[1]) {
             if (packetData[0] == PACKET_TYPE_MICROPHONE_AUDIO_NO_ECHO ||
                 packetData[0] == PACKET_TYPE_MICROPHONE_AUDIO_WITH_ECHO) {
                 Node* avatarNode = nodeList->addOrUpdateNode(nodeAddress,
-                                                                 nodeAddress,
-                                                                 NODE_TYPE_AGENT,
-                                                                 nodeList->getLastNodeID());
+                                                             nodeAddress,
+                                                             NODE_TYPE_AGENT,
+                                                             nodeList->getLastNodeID());
                 
                 if (avatarNode->getNodeID() == nodeList->getLastNodeID()) {
                     nodeList->increaseNodeID();
@@ -382,9 +383,9 @@ int main(int argc, const char* argv[]) {
                 
                 if (!matchingInjector) {
                     matchingInjector = nodeList->addOrUpdateNode(NULL,
-                                                                   NULL,
-                                                                   NODE_TYPE_AUDIO_INJECTOR,
-                                                                   nodeList->getLastNodeID());
+                                                                 NULL,
+                                                                 NODE_TYPE_AUDIO_INJECTOR,
+                                                                 nodeList->getLastNodeID());
                     nodeList->increaseNodeID();
                     
                 }
