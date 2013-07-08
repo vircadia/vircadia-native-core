@@ -27,9 +27,10 @@ VoxelNodeData::VoxelNodeData(Node* owningNode) :
 
 
 void VoxelNodeData::resetVoxelPacket() {
-    _voxelPacket[0] = getWantColor() ? PACKET_TYPE_VOXEL_DATA : PACKET_TYPE_VOXEL_DATA_MONOCHROME;
-    _voxelPacketAt = &_voxelPacket[1];
-    _voxelPacketAvailableBytes = MAX_VOXEL_PACKET_SIZE - 1;
+    PACKET_TYPE voxelPacketType = getWantColor() ? PACKET_TYPE_VOXEL_DATA : PACKET_TYPE_VOXEL_DATA_MONOCHROME;
+    int numBytesPacketHeader = populateTypeAndVersion(_voxelPacket, voxelPacketType);
+    _voxelPacketAt = _voxelPacket + numBytesPacketHeader;
+    _voxelPacketAvailableBytes = MAX_VOXEL_PACKET_SIZE - numBytesPacketHeader;
     _voxelPacketWaiting = false;
 }
 
