@@ -135,6 +135,7 @@ public:
     bool readFromSVOFile(const char* filename);
     // reads voxels from square image with alpha as a Y-axis
     bool readFromSquareARGB32Pixels(const uint32_t* pixels, int dimension);
+    bool readFromSchematicsFile(const char* filename);
 
     unsigned long getVoxelCount();
 
