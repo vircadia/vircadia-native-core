@@ -724,7 +724,8 @@ int main(int argc, const char * argv[])
         }
         
         // Nodes sending messages to us...
-        if (nodeList->getNodeSocket()->receive(&nodePublicAddress, packetData, &receivedBytes)) {
+        if (nodeList->getNodeSocket()->receive(&nodePublicAddress, packetData, &receivedBytes) &&
+            packetVersionMatch(packetData)) {
             NodeList::getInstance()->processNodeData(&nodePublicAddress, packetData, receivedBytes);
         }
     }

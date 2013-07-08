@@ -49,7 +49,8 @@ void *receiveNodeData(void *args) {
     NodeList* nodeList = NodeList::getInstance();
     
     while (!::stopReceiveNodeDataThread) {
-        if (nodeList->getNodeSocket()->receive(&senderAddress, incomingPacket, &bytesReceived)) { 
+        if (nodeList->getNodeSocket()->receive(&senderAddress, incomingPacket, &bytesReceived) &&
+            packetVersionMatch(incomingPacket)) {
             switch (incomingPacket[0]) {
                 case PACKET_TYPE_BULK_AVATAR_DATA:
                     // this is the positional data for other nodes

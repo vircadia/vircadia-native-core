@@ -169,7 +169,8 @@ int main(int argc, char* argv[]) {
                     NodeList::getInstance()->sendDomainServerCheckIn();
                 }
                 
-                while (nodeList->getNodeSocket()->receive(&senderAddress, incomingPacket, &bytesReceived)) {
+                while (nodeList->getNodeSocket()->receive(&senderAddress, incomingPacket, &bytesReceived) &&
+                       packetVersionMatch(incomingPacket)) {
                     switch (incomingPacket[0]) {
                         case PACKET_TYPE_BULK_AVATAR_DATA:                  // this is the positional data for other nodes
                             // pass that off to the nodeList processBulkNodeData method
