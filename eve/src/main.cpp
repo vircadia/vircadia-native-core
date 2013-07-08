@@ -122,7 +122,7 @@ int main(int argc, const char* argv[]) {
     nodeList->linkedDataCreateCallback = createAvatarDataForNode;
     
     unsigned char broadcastPacket[MAX_PACKET_SIZE];
-    broadcastPacket[0] = PACKET_TYPE_HEAD_DATA;
+    int numHeaderBytes = populateTypeAndVersion(broadcastPacket, PACKET_TYPE_HEAD_DATA);
     
     timeval thisSend;
     long long numMicrosecondsSleep = 0;
@@ -150,7 +150,7 @@ int main(int argc, const char* argv[]) {
         
         // make sure we actually have an avatar mixer with an active socket
         if (nodeList->getOwnerID() != UNKNOWN_NODE_ID && avatarMixer && avatarMixer->getActiveSocket() != NULL) {
-            unsigned char* packetPosition = broadcastPacket + sizeof(PACKET_TYPE);
+            unsigned char* packetPosition = broadcastPacket + numHeaderBytes;
             packetPosition += packNodeId(packetPosition, nodeList->getOwnerID());
             
             // use the getBroadcastData method in the AvatarData class to populate the broadcastPacket buffer

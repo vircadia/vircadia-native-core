@@ -119,16 +119,19 @@ void NodeList::processBulkNodeData(sockaddr *senderAddress, unsigned char *packe
     }
 
     unsigned char *startPosition = packetData;
-    unsigned char *currentPosition = startPosition + 1;
+    unsigned char *currentPosition = startPosition + sizeof(PACKET_TYPE) + sizeof(PACKET_VERSION);
     unsigned char packetHolder[numTotalBytes];
     
-    packetHolder[0] = PACKET_TYPE_HEAD_DATA;
+    // we've already verified packet version for the bulk packet, so all head data in the packet is also up to date
+    populateTypeAndVersion(packetHolder, PACKET_TYPE_HEAD_DATA);
     
     uint16_t nodeID = -1;
     
     while ((currentPosition - startPosition) < numTotalBytes) {
         unpackNodeId(currentPosition, &nodeID);
-        memcpy(packetHolder + 1, currentPosition, numTotalBytes - (currentPosition - startPosition));
+        memcpy(packetHolder + sizeof(PACKET_TYPE) + sizeof(PACKET_VERSION),
+               currentPosition,
+               numTotalBytes - (currentPosition - startPosition));
         
         Node* matchingNode = nodeWithID(nodeID);
         
@@ -138,8 +141,8 @@ void NodeList::processBulkNodeData(sockaddr *senderAddress, unsigned char *packe
         }
         
         currentPosition += updateNodeWithData(matchingNode,
-                                               packetHolder,
-                                               numTotalBytes - (currentPosition - startPosition));
+                                              packetHolder,
+                                              numTotalBytes - (currentPosition - startPosition));
     }
     
     unlock();
@@ -272,7 +275,7 @@ void NodeList::sendDomainServerCheckIn() {
     _nodeSocket.send(DOMAIN_IP, DOMAINSERVER_PORT, checkInPacket, checkInPacketSize);
 }
 
-int NodeList::processDomainServerList(unsigned char *packetData, size_t dataBytes) {
+int NodeList::processDomainServerList(unsigned char* packetData, size_t dataBytes) {
     int readNodes = 0;
 
     char nodeType;
@@ -284,16 +287,16 @@ int NodeList::processDomainServerList(unsigned char *packetData, size_t dataByte
     sockaddr_in nodeLocalSocket;
     nodeLocalSocket.sin_family = AF_INET;
     
-    unsigned char *readPtr = packetData + 1;
-    unsigned char *startPtr = packetData;
+    unsigned char* readPtr = packetData + sizeof(PACKET_TYPE) + sizeof(PACKET_VERSION);
+    unsigned char* startPtr = packetData;
     
     while((readPtr - startPtr) < dataBytes - sizeof(uint16_t)) {
         nodeType = *readPtr++;
-        readPtr += unpackNodeId(readPtr, (uint16_t *)&nodeId);
-        readPtr += unpackSocket(readPtr, (sockaddr *)&nodePublicSocket);
-        readPtr += unpackSocket(readPtr, (sockaddr *)&nodeLocalSocket);
+        readPtr += unpackNodeId(readPtr, (uint16_t*) &nodeId);
+        readPtr += unpackSocket(readPtr, (sockaddr*) &nodePublicSocket);
+        readPtr += unpackSocket(readPtr, (sockaddr*) &nodeLocalSocket);
         
-        addOrUpdateNode((sockaddr *)&nodePublicSocket, (sockaddr *)&nodeLocalSocket, nodeType, nodeId);
+        addOrUpdateNode((sockaddr*) &nodePublicSocket, (sockaddr*) &nodeLocalSocket, nodeType, nodeId);
     }
     
     // read out our ID from the packet
