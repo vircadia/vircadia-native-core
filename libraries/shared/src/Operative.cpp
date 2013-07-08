@@ -200,12 +200,35 @@ const double OUR_FPS_IN_MILLISECONDS = 1000.0/ACTUAL_FPS; // determines FPS from
 const int ANIMATE_VOXELS_INTERVAL_USECS = OUR_FPS_IN_MILLISECONDS * 1000.0; // converts from milliseconds to usecs
 
 void Operative::run() {
-    timeval lastSendTime;
+    timeval lastSendTime = {};
+    timeval lastDomainServerCheckIn = {};
+    
+    NodeList* nodeList = NodeList::getInstance();
+    
+    sockaddr nodePublicAddress;
+    
+    unsigned char* packetData = new unsigned char[MAX_PACKET_SIZE];
+    ssize_t receivedBytes;
+    
+    // change the owner type on our NodeList
+    NodeList::getInstance()->setOwnerType(NODE_TYPE_AGENT);
+    NodeList::getInstance()->setNodeTypesOfInterest(&NODE_TYPE_VOXEL_SERVER, 1);
     
     while (true) {
         gettimeofday(&lastSendTime, NULL);
         
         renderMovingBug();
+        
+        // send a check in packet to the domain server if DOMAIN_SERVER_CHECK_IN_USECS has elapsed
+        if (usecTimestampNow() - usecTimestamp(&lastDomainServerCheckIn) >= DOMAIN_SERVER_CHECK_IN_USECS) {
+            gettimeofday(&lastDomainServerCheckIn, NULL);
+            NodeList::getInstance()->sendDomainServerCheckIn();
+        }
+        
+        // Nodes sending messages to us...
+        if (nodeList->getNodeSocket()->receive(&nodePublicAddress, packetData, &receivedBytes)) {
+            NodeList::getInstance()->processNodeData(&nodePublicAddress, packetData, receivedBytes);
+        }
         
         // dynamically sleep until we need to fire off the next set of voxels
         long long usecToSleep =  ANIMATE_VOXELS_INTERVAL_USECS - (usecTimestampNow() - usecTimestamp(&lastSendTime));

@@ -13,6 +13,7 @@
 #include <iterator>
 
 #include "Node.h"
+#include "NodeTypes.h"
 #include "UDPSocket.h"
 
 #ifdef _WIN32
@@ -48,7 +49,8 @@ public:
     NodeListIterator begin() const;
     NodeListIterator end() const;
     
-    char getOwnerType() const { return _ownerType; }
+    NODE_TYPE getOwnerType() const { return _ownerType; }
+    void setOwnerType(NODE_TYPE ownerType) { _ownerType = ownerType; }
     
     uint16_t getLastNodeID() const { return _lastNodeID; }
     void increaseNodeID() { ++_lastNodeID; }
