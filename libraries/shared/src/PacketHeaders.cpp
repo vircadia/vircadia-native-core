@@ -6,6 +6,8 @@
 //  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
 
+#include <stdio.h>
+
 #include "PacketHeaders.h"
 
 PACKET_VERSION versionForPacketType(PACKET_TYPE type) {
@@ -19,7 +21,12 @@ PACKET_VERSION versionForPacketType(PACKET_TYPE type) {
 bool packetVersionMatch(unsigned char* packetHeader) {
     // currently this just checks if the version in the packet matches our return from versionForPacketType
     // may need to be expanded in the future for types and versions that take > than 1 byte
-    return packetHeader[1] == versionForPacketType(packetHeader[0]);
+    if (packetHeader[1] == versionForPacketType(packetHeader[0])) {
+        return true;
+    } else {
+        printf("There is a packet version mismatch for packet with header %c\n", packetHeader[0]);
+        return false;
+    }
 }
 
 int populateTypeAndVersion(unsigned char* destinationHeader, PACKET_TYPE type) {

@@ -2891,7 +2891,7 @@ void* Application::networkReceive(void* args) {
             app->_packetCount++;
             app->_bytesCount += bytesReceived;
             
-            if (app->_incomingPacket[1] == versionForPacketType(app->_incomingPacket[0])) {
+            if (packetVersionMatch(app->_incomingPacket)) {
                 // only process this packet if we have a match on the packet version
                 switch (app->_incomingPacket[0]) {
                     case PACKET_TYPE_TRANSMITTER_DATA_V2:
