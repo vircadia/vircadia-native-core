@@ -14,7 +14,7 @@
 
 #include <glm/glm.hpp>
 
-#include "AgentData.h"
+#include "NodeData.h"
 
 const float SAMPLE_RATE = 22050.0;
 
@@ -25,7 +25,7 @@ const int BUFFER_LENGTH_SAMPLES_PER_CHANNEL = BUFFER_LENGTH_BYTES_PER_CHANNEL / 
 const short RING_BUFFER_LENGTH_FRAMES = 20;
 const short RING_BUFFER_LENGTH_SAMPLES = RING_BUFFER_LENGTH_FRAMES * BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
 
-class AudioRingBuffer : public AgentData {
+class AudioRingBuffer : public NodeData {
 public:
     AudioRingBuffer(bool isStereo);
     ~AudioRingBuffer();

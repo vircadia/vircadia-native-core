@@ -46,7 +46,7 @@
 #include <QFileDialog>
 #include <QDesktopServices>
 
-#include <AgentTypes.h>
+#include <NodeTypes.h>
 #include <AudioInjectionManager.h>
 #include <AudioInjector.h>
 #include <Logstash.h>
@@ -73,7 +73,7 @@ static char STAR_CACHE_FILE[] = "cachedStars.txt";
 
 static const int BANDWIDTH_METER_CLICK_MAX_DRAG_LENGTH = 6; // farther dragged clicks are ignored 
 
-const glm::vec3 START_LOCATION(4.f, 0.f, 5.f);   //  Where one's own agent begins in the world
+const glm::vec3 START_LOCATION(4.f, 0.f, 5.f);   //  Where one's own node begins in the world
                                                  // (will be overwritten if avatar data file is found)
 
 const int IDLE_SIMULATE_MSECS = 16;              //  How often should call simulate and other stuff
@@ -211,11 +211,11 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         listenPort = atoi(portStr);
     }
     
-    AgentList::createInstance(AGENT_TYPE_AVATAR, listenPort);
+    NodeList::createInstance(NODE_TYPE_AGENT, listenPort);
     
     _enableNetworkThread = !cmdOptionExists(argc, constArgv, "--nonblocking");
     if (!_enableNetworkThread) {
-        AgentList::getInstance()->getAgentSocket()->setBlocking(false);
+        NodeList::getInstance()->getNodeSocket()->setBlocking(false);
     }
     
     const char* domainIP = getCmdOption(argc, constArgv, "--domain");
@@ -234,21 +234,21 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     // Voxel File.
     _voxelsFilename = getCmdOption(argc, constArgv, "-i");
     
-    // the callback for our instance of AgentList is attachNewHeadToAgent
-    AgentList::getInstance()->linkedDataCreateCallback = &attachNewHeadToAgent;
+    // the callback for our instance of NodeList is attachNewHeadToNode
+    NodeList::getInstance()->linkedDataCreateCallback = &attachNewHeadToNode;
     
     #ifdef _WIN32
     WSADATA WsaData;
     int wsaresult = WSAStartup(MAKEWORD(2,2), &WsaData);
     #endif
     
-    // tell the AgentList instance who to tell the domain server we care about
-    const char agentTypesOfInterest[] = {AGENT_TYPE_AUDIO_MIXER, AGENT_TYPE_AVATAR_MIXER, AGENT_TYPE_VOXEL_SERVER};
-    AgentList::getInstance()->setAgentTypesOfInterest(agentTypesOfInterest, sizeof(agentTypesOfInterest));
+    // tell the NodeList instance who to tell the domain server we care about
+    const char nodeTypesOfInterest[] = {NODE_TYPE_AUDIO_MIXER, NODE_TYPE_AVATAR_MIXER, NODE_TYPE_VOXEL_SERVER};
+    NodeList::getInstance()->setNodeTypesOfInterest(nodeTypesOfInterest, sizeof(nodeTypesOfInterest));
 
-    // start the agentList threads
-    AgentList::getInstance()->startSilentAgentRemovalThread();
-    AgentList::getInstance()->startPingUnknownAgentsThread();
+    // start the nodeList threads
+    NodeList::getInstance()->startSilentNodeRemovalThread();
+    NodeList::getInstance()->startPingUnknownNodesThread();
     
     _window->setCentralWidget(_glWidget);
     
@@ -483,17 +483,17 @@ void Application::resizeGL(int width, int height) {
     glLoadIdentity();
 }
 
-void Application::broadcastToAgents(unsigned char* data, size_t bytes, const char type) {
+void Application::broadcastToNodes(unsigned char* data, size_t bytes, const char type) {
 
-    int n = AgentList::getInstance()->broadcastToAgents(data, bytes, &type, 1);
+    int n = NodeList::getInstance()->broadcastToNodes(data, bytes, &type, 1);
 
     BandwidthMeter::ChannelIndex channel;
     switch (type) {
-    case AGENT_TYPE_AVATAR:
-    case AGENT_TYPE_AVATAR_MIXER:
+    case NODE_TYPE_AGENT:
+    case NODE_TYPE_AVATAR_MIXER:
         channel = BandwidthMeter::AVATARS;
         break;
-    case AGENT_TYPE_VOXEL_SERVER:
+    case NODE_TYPE_VOXEL_SERVER:
         channel = BandwidthMeter::VOXELS;
         break;
     default:
@@ -506,7 +506,7 @@ void Application::sendVoxelServerAddScene() {
     char message[100];
     sprintf(message,"%c%s",'Z',"add scene");
     int messageSize = strlen(message) + 1;
-    broadcastToAgents((unsigned char*)message, messageSize, AGENT_TYPE_VOXEL_SERVER);
+    broadcastToNodes((unsigned char*)message, messageSize, NODE_TYPE_VOXEL_SERVER);
 }
 
 void Application::keyPressEvent(QKeyEvent* event) {
@@ -879,13 +879,13 @@ void Application::wheelEvent(QWheelEvent* event) {
 
 void sendPingPackets() {
 
-    char agentTypesOfInterest[] = {AGENT_TYPE_VOXEL_SERVER, AGENT_TYPE_AUDIO_MIXER, AGENT_TYPE_AVATAR_MIXER};
+    char nodeTypesOfInterest[] = {NODE_TYPE_VOXEL_SERVER, NODE_TYPE_AUDIO_MIXER, NODE_TYPE_AVATAR_MIXER};
     long long currentTime = usecTimestampNow();
     char pingPacket[1 + sizeof(currentTime)];
     pingPacket[0] = PACKET_HEADER_PING;
     
     memcpy(&pingPacket[1], &currentTime, sizeof(currentTime));
-    AgentList::getInstance()->broadcastToAgents((unsigned char*)pingPacket, 1 + sizeof(currentTime), agentTypesOfInterest, 3);
+    NodeList::getInstance()->broadcastToNodes((unsigned char*)pingPacket, 1 + sizeof(currentTime), nodeTypesOfInterest, 3);
 
 }
 
@@ -911,8 +911,8 @@ void Application::timer() {
         _serialHeadSensor.pair();
     }
     
-    // ask the agent list to check in with the domain server
-    AgentList::getInstance()->sendDomainServerCheckIn();
+    // ask the node list to check in with the domain server
+    NodeList::getInstance()->sendDomainServerCheckIn();
 }
 
 static glm::vec3 getFaceVector(BoxFace face) {
@@ -981,9 +981,9 @@ void Application::terminate() {
 }
 
 void Application::sendAvatarVoxelURLMessage(const QUrl& url) {
-    uint16_t ownerID = AgentList::getInstance()->getOwnerID();
+    uint16_t ownerID = NodeList::getInstance()->getOwnerID();
     
-    if (ownerID == UNKNOWN_AGENT_ID) {
+    if (ownerID == UNKNOWN_NODE_ID) {
         return; // we don't yet know who we are
     }
     QByteArray message;
@@ -991,7 +991,7 @@ void Application::sendAvatarVoxelURLMessage(const QUrl& url) {
     message.append((const char*)&ownerID, sizeof(ownerID));
     message.append(url.toEncoded());
 
-    broadcastToAgents((unsigned char*)message.data(), message.size(), AGENT_TYPE_AVATAR_MIXER);
+    broadcastToNodes((unsigned char*)message.data(), message.size(), NODE_TYPE_AVATAR_MIXER);
 }
 
 void Application::processAvatarVoxelURLMessage(unsigned char *packetData, size_t dataBytes) {
@@ -999,17 +999,17 @@ void Application::processAvatarVoxelURLMessage(unsigned char *packetData, size_t
     packetData++;
     dataBytes--;
     
-    // read the agent id
-    uint16_t agentID = *(uint16_t*)packetData;
-    packetData += sizeof(agentID);
-    dataBytes -= sizeof(agentID);
+    // read the node id
+    uint16_t nodeID = *(uint16_t*)packetData;
+    packetData += sizeof(nodeID);
+    dataBytes -= sizeof(nodeID);
     
-    // make sure the agent exists
-    Agent* agent = AgentList::getInstance()->agentWithID(agentID);
-    if (!agent || !agent->getLinkedData()) {
+    // make sure the node exists
+    Node* node = NodeList::getInstance()->nodeWithID(nodeID);
+    if (!node || !node->getLinkedData()) {
         return;
     }
-    Avatar* avatar = static_cast<Avatar*>(agent->getLinkedData());
+    Avatar* avatar = static_cast<Avatar*>(node->getLinkedData());
     if (!avatar->isInitialized()) {
         return; // wait until initialized
     }
@@ -1224,7 +1224,7 @@ void Application::sendVoxelEditMessage(PACKET_HEADER header, VoxelDetail& detail
     int sizeOut;
 
     if (createVoxelEditMessage(header, 0, 1, &detail, bufferOut, sizeOut)){
-        Application::broadcastToAgents(bufferOut, sizeOut, AGENT_TYPE_VOXEL_SERVER);
+        Application::broadcastToNodes(bufferOut, sizeOut, NODE_TYPE_VOXEL_SERVER);
         delete[] bufferOut;
     }
 }
@@ -1305,7 +1305,7 @@ bool Application::sendVoxelsOperation(VoxelNode* node, void* extraData) {
 
         // if we have room don't have room in the buffer, then send the previously generated message first
         if (args->bufferInUse + codeAndColorLength > MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE) {
-            broadcastToAgents(args->messageBuffer, args->bufferInUse, AGENT_TYPE_VOXEL_SERVER);
+            broadcastToNodes(args->messageBuffer, args->bufferInUse, NODE_TYPE_VOXEL_SERVER);
             args->bufferInUse = sizeof(PACKET_HEADER_SET_VOXEL_DESTRUCTIVE) + sizeof(unsigned short int); // reset
         }
         
@@ -1386,7 +1386,7 @@ void Application::importVoxels() {
 
     // If we have voxels left in the packet, then send the packet
     if (args.bufferInUse > (sizeof(PACKET_HEADER_SET_VOXEL_DESTRUCTIVE) + sizeof(unsigned short int))) {
-        broadcastToAgents(args.messageBuffer, args.bufferInUse, AGENT_TYPE_VOXEL_SERVER);
+        broadcastToNodes(args.messageBuffer, args.bufferInUse, NODE_TYPE_VOXEL_SERVER);
     }
     
     if (calculatedOctCode) {
@@ -1438,7 +1438,7 @@ void Application::pasteVoxels() {
     
     // If we have voxels left in the packet, then send the packet
     if (args.bufferInUse > (sizeof(PACKET_HEADER_SET_VOXEL_DESTRUCTIVE) + sizeof(unsigned short int))) {
-        broadcastToAgents(args.messageBuffer, args.bufferInUse, AGENT_TYPE_VOXEL_SERVER);
+        broadcastToNodes(args.messageBuffer, args.bufferInUse, NODE_TYPE_VOXEL_SERVER);
     }
     
     if (calculatedOctCode) {
@@ -1831,7 +1831,7 @@ void Application::update(float deltaTime) {
     
     //  Update transmitter
     
-    //  Sample hardware, update view frustum if needed, and send avatar data to mixer/agents
+    //  Sample hardware, update view frustum if needed, and send avatar data to mixer/nodes
     updateAvatar(deltaTime);
 
     // read incoming packets from network
@@ -1840,11 +1840,11 @@ void Application::update(float deltaTime) {
     }
     
     //loop through all the other avatars and simulate them...
-    AgentList* agentList = AgentList::getInstance();
-    agentList->lock();
-    for(AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
-        if (agent->getLinkedData() != NULL) {
-            Avatar *avatar = (Avatar *)agent->getLinkedData();
+    NodeList* nodeList = NodeList::getInstance();
+    nodeList->lock();
+    for(NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+        if (node->getLinkedData() != NULL) {
+            Avatar *avatar = (Avatar *)node->getLinkedData();
             if (!avatar->isInitialized()) {
                 avatar->init();
             }
@@ -1852,7 +1852,7 @@ void Application::update(float deltaTime) {
             avatar->setMouseRay(mouseRayOrigin, mouseRayDirection);
         }
     }
-    agentList->unlock();
+    nodeList->unlock();
 
     //  Simulate myself
     if (_gravityUse->isChecked()) {
@@ -1974,19 +1974,19 @@ void Application::updateAvatar(float deltaTime) {
     _myAvatar.setCameraNearClip(_viewFrustum.getNearClip());
     _myAvatar.setCameraFarClip(_viewFrustum.getFarClip());
     
-    AgentList* agentList = AgentList::getInstance();
-    if (agentList->getOwnerID() != UNKNOWN_AGENT_ID) {
+    NodeList* nodeList = NodeList::getInstance();
+    if (nodeList->getOwnerID() != UNKNOWN_NODE_ID) {
         // if I know my ID, send head/hand data to the avatar mixer and voxel server
         unsigned char broadcastString[200];
         unsigned char* endOfBroadcastStringWrite = broadcastString;
         
         *(endOfBroadcastStringWrite++) = PACKET_HEADER_HEAD_DATA;
-        endOfBroadcastStringWrite += packAgentId(endOfBroadcastStringWrite, agentList->getOwnerID());
+        endOfBroadcastStringWrite += packNodeId(endOfBroadcastStringWrite, nodeList->getOwnerID());
         
         endOfBroadcastStringWrite += _myAvatar.getBroadcastData(endOfBroadcastStringWrite);
         
-        broadcastToAgents(broadcastString, endOfBroadcastStringWrite - broadcastString, AGENT_TYPE_VOXEL_SERVER);
-        broadcastToAgents(broadcastString, endOfBroadcastStringWrite - broadcastString, AGENT_TYPE_AVATAR_MIXER);
+        broadcastToNodes(broadcastString, endOfBroadcastStringWrite - broadcastString, NODE_TYPE_VOXEL_SERVER);
+        broadcastToNodes(broadcastString, endOfBroadcastStringWrite - broadcastString, NODE_TYPE_AVATAR_MIXER);
         
         // once in a while, send my voxel url
         const float AVATAR_VOXEL_URL_SEND_INTERVAL = 1.0f; // seconds
@@ -1995,7 +1995,7 @@ void Application::updateAvatar(float deltaTime) {
         }
     }
 
-    // If I'm in paint mode, send a voxel out to VOXEL server agents.
+    // If I'm in paint mode, send a voxel out to VOXEL server nodes.
     if (_paintOn) {
     
         glm::vec3 avatarPos = _myAvatar.getPosition();
@@ -2300,12 +2300,12 @@ void Application::displaySide(Camera& whichCamera) {
     }
     
     if (_renderAvatarsOn->isChecked()) {
-        //  Render avatars of other agents
-        AgentList* agentList = AgentList::getInstance();
-        agentList->lock();
-        for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
-            if (agent->getLinkedData() != NULL && agent->getType() == AGENT_TYPE_AVATAR) {
-                Avatar *avatar = (Avatar *)agent->getLinkedData();
+        //  Render avatars of other nodes
+        NodeList* nodeList = NodeList::getInstance();
+        nodeList->lock();
+        for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+            if (node->getLinkedData() != NULL && node->getType() == NODE_TYPE_AGENT) {
+                Avatar *avatar = (Avatar *)node->getLinkedData();
                 if (!avatar->isInitialized()) {
                     avatar->init();
                 }
@@ -2313,7 +2313,7 @@ void Application::displaySide(Camera& whichCamera) {
                 avatar->setDisplayingLookatVectors(_renderLookatOn->isChecked());
             }
         }
-        agentList->unlock();
+        nodeList->unlock();
         
         // Render my own Avatar
         if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
@@ -2396,17 +2396,17 @@ void Application::displayOverlay() {
 
     //  Stats at upper right of screen about who domain server is telling us about
     glPointSize(1.0f);
-    char agents[100];
+    char nodes[100];
     
-    AgentList* agentList = AgentList::getInstance();
+    NodeList* nodeList = NodeList::getInstance();
     int totalAvatars = 0, totalServers = 0;
     
-    for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
-        agent->getType() == AGENT_TYPE_AVATAR ? totalAvatars++ : totalServers++;
+    for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+        node->getType() == NODE_TYPE_AGENT ? totalAvatars++ : totalServers++;
     }
     
-    sprintf(agents, "Servers: %d, Avatars: %d\n", totalServers, totalAvatars);
-    drawtext(_glWidget->width() - 150, 20, 0.10, 0, 1.0, 0, agents, 1, 0, 0);
+    sprintf(nodes, "Servers: %d, Avatars: %d\n", totalServers, totalAvatars);
+    drawtext(_glWidget->width() - 150, 20, 0.10, 0, 1.0, 0, nodes, 1, 0, 0);
     
     if (_paintOn) {
     
@@ -2434,14 +2434,14 @@ void Application::displayStats() {
     if (_testPing->isChecked()) {
         int pingAudio = 0, pingAvatar = 0, pingVoxel = 0;
 
-        AgentList *agentList = AgentList::getInstance();
-        Agent *audioMixerAgent = agentList->soloAgentOfType(AGENT_TYPE_AUDIO_MIXER);
-        Agent *avatarMixerAgent = agentList->soloAgentOfType(AGENT_TYPE_AVATAR_MIXER);
-        Agent *voxelServerAgent = agentList->soloAgentOfType(AGENT_TYPE_VOXEL_SERVER);
+        NodeList *nodeList = NodeList::getInstance();
+        Node *audioMixerNode = nodeList->soloNodeOfType(NODE_TYPE_AUDIO_MIXER);
+        Node *avatarMixerNode = nodeList->soloNodeOfType(NODE_TYPE_AVATAR_MIXER);
+        Node *voxelServerNode = nodeList->soloNodeOfType(NODE_TYPE_VOXEL_SERVER);
 
-        pingAudio = audioMixerAgent ? audioMixerAgent->getPingMs() : 0;
-        pingAvatar = avatarMixerAgent ? avatarMixerAgent->getPingMs() : 0;
-        pingVoxel = voxelServerAgent ? voxelServerAgent->getPingMs() : 0;
+        pingAudio = audioMixerNode ? audioMixerNode->getPingMs() : 0;
+        pingAvatar = avatarMixerNode ? avatarMixerNode->getPingMs() : 0;
+        pingVoxel = voxelServerNode ? voxelServerNode->getPingMs() : 0;
 
         char pingStats[200];
         sprintf(pingStats, "Ping audio/avatar/voxel: %d / %d / %d ", pingAudio, pingAvatar, pingVoxel);
@@ -2476,7 +2476,7 @@ void Application::displayStats() {
     voxelStats << "Voxels Bits per Colored: " << voxelsBytesPerColored * 8;
     drawtext(10, statsVerticalOffset + 310, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
     
-    Agent *avatarMixer = AgentList::getInstance()->soloAgentOfType(AGENT_TYPE_AVATAR_MIXER);
+    Node *avatarMixer = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_AVATAR_MIXER);
     char avatarMixerStats[200];
     
     if (avatarMixer) {
@@ -2847,13 +2847,13 @@ QAction* Application::checkedVoxelModeAction() const {
     return 0;
 }
 
-void Application::attachNewHeadToAgent(Agent* newAgent) {
-    if (newAgent->getLinkedData() == NULL) {
-        newAgent->setLinkedData(new Avatar(newAgent));
+void Application::attachNewHeadToNode(Node* newNode) {
+    if (newNode->getLinkedData() == NULL) {
+        newNode->setLinkedData(new Avatar(newNode));
     }
 }
 
-//  Receive packets from other agents/servers and decide what to do with them!
+//  Receive packets from other nodes/servers and decide what to do with them!
 void* Application::networkReceive(void* args) {
     sockaddr senderAddress;
     ssize_t bytesReceived;
@@ -2866,7 +2866,7 @@ void* Application::networkReceive(void* args) {
             app->_wantToKillLocalVoxels = false;
         }
     
-        if (AgentList::getInstance()->getAgentSocket()->receive(&senderAddress, app->_incomingPacket, &bytesReceived)) {
+        if (NodeList::getInstance()->getNodeSocket()->receive(&senderAddress, app->_incomingPacket, &bytesReceived)) {
             app->_packetCount++;
             app->_bytesCount += bytesReceived;
             
@@ -2889,7 +2889,7 @@ void* Application::networkReceive(void* args) {
                     app->_environment.parseData(&senderAddress, app->_incomingPacket, bytesReceived);
                     break;
                 case PACKET_HEADER_BULK_AVATAR_DATA:
-                    AgentList::getInstance()->processBulkAgentData(&senderAddress,
+                    NodeList::getInstance()->processBulkNodeData(&senderAddress,
                                                                    app->_incomingPacket,
                                                                    bytesReceived);
                     getInstance()->_bandwidthMeter.inputStream(BandwidthMeter::AVATARS).updateValue(bytesReceived);
@@ -2898,7 +2898,7 @@ void* Application::networkReceive(void* args) {
                     processAvatarVoxelURLMessage(app->_incomingPacket, bytesReceived);
                     break;
                 default:
-                    AgentList::getInstance()->processAgentData(&senderAddress, app->_incomingPacket, bytesReceived);
+                    NodeList::getInstance()->processNodeData(&senderAddress, app->_incomingPacket, bytesReceived);
                     break;
             }
         } else if (!app->_enableNetworkThread) {
