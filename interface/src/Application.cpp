@@ -248,7 +248,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
 
     // start the nodeList threads
     NodeList::getInstance()->startSilentNodeRemovalThread();
-    NodeList::getInstance()->startPingUnknownNodesThread();
     
     _window->setCentralWidget(_glWidget);
     

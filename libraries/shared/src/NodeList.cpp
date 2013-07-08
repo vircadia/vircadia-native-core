@@ -72,7 +72,6 @@ NodeList::~NodeList() {
     
     // stop the spawned threads, if they were started
     stopSilentNodeRemovalThread();
-    stopPingUnknownNodesThread();
     
     pthread_mutex_destroy(&mutex);
 }
@@ -81,7 +80,7 @@ void NodeList::timePingReply(sockaddr *nodeAddress, unsigned char *packetData) {
     for(NodeList::iterator node = begin(); node != end(); node++) {
         if (socketMatch(node->getPublicSocket(), nodeAddress) || 
             socketMatch(node->getLocalSocket(), nodeAddress)) {     
-            int pingTime = usecTimestampNow() - *(long long *)(packetData + 1);
+            int pingTime = usecTimestampNow() - *(long long *)(packetData + sizeof(PACKET_TYPE) + sizeof(PACKET_VERSION));
             node->setPingMs(pingTime / 1000);
             break;
         }
@@ -403,46 +402,6 @@ Node* NodeList::soloNodeOfType(char nodeType) {
     }
     
     return NULL;
-}
-
-void *pingUnknownNodes(void *args) {
-    
-    NodeList* nodeList = (NodeList*) args;
-    const int PING_INTERVAL_USECS = 1 * 1000000;
-    
-    timeval lastSend;
-    
-    while (!pingUnknownNodeThreadStopFlag) {
-        gettimeofday(&lastSend, NULL);
-        
-        for(NodeList::iterator node = nodeList->begin();
-            node != nodeList->end();
-            node++) {
-            if (!node->getActiveSocket() && node->getPublicSocket() && node->getLocalSocket()) {
-                // ping both of the sockets for the node so we can figure out
-                // which socket we can use
-                nodeList->getNodeSocket()->send(node->getPublicSocket(), &PACKET_TYPE_PING, 1);
-                nodeList->getNodeSocket()->send(node->getLocalSocket(), &PACKET_TYPE_PING, 1);
-            }
-        }
-        
-        long long usecToSleep = PING_INTERVAL_USECS - (usecTimestampNow() - usecTimestamp(&lastSend));
-        
-        if (usecToSleep > 0) {
-            usleep(usecToSleep);
-        }
-    }
-    
-    return NULL;
-}
-
-void NodeList::startPingUnknownNodesThread() {
-    pthread_create(&pingUnknownNodesThread, NULL, pingUnknownNodes, (void *)this);
-}
-
-void NodeList::stopPingUnknownNodesThread() {
-    pingUnknownNodeThreadStopFlag = true;
-    pthread_join(pingUnknownNodesThread, NULL);
 }
 
 void *removeSilentNodes(void *args) {

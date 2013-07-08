@@ -85,9 +85,6 @@ int main(int argc, const char* argv[]) {
     // start the node list thread that will kill off nodes when they stop talking
     nodeList->startSilentNodeRemovalThread();
     
-    // start the ping thread that hole punches to create an active connection to other nodes
-    nodeList->startPingUnknownNodesThread();
-    
     pthread_t receiveNodeDataThread;
     pthread_create(&receiveNodeDataThread, NULL, receiveNodeData, NULL);
     
@@ -210,6 +207,5 @@ int main(int argc, const char* argv[]) {
     pthread_join(receiveNodeDataThread, NULL);
     
     // stop the node list's threads
-    nodeList->stopPingUnknownNodesThread();
     nodeList->stopSilentNodeRemovalThread();
 }
