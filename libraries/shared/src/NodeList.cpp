@@ -117,9 +117,11 @@ void NodeList::processBulkNodeData(sockaddr *senderAddress, unsigned char *packe
         bulkSendNode->setLastHeardMicrostamp(usecTimestampNow());
         bulkSendNode->recordBytesReceived(numTotalBytes);
     }
-
+    
+    int numBytesPacketHeader = numBytesForPacketHeader(packetData);
+    
     unsigned char *startPosition = packetData;
-    unsigned char *currentPosition = startPosition + sizeof(PACKET_TYPE) + sizeof(PACKET_VERSION);
+    unsigned char *currentPosition = startPosition + numBytesPacketHeader;
     unsigned char packetHolder[numTotalBytes];
     
     // we've already verified packet version for the bulk packet, so all head data in the packet is also up to date
@@ -129,7 +131,7 @@ void NodeList::processBulkNodeData(sockaddr *senderAddress, unsigned char *packe
     
     while ((currentPosition - startPosition) < numTotalBytes) {
         unpackNodeId(currentPosition, &nodeID);
-        memcpy(packetHolder + sizeof(PACKET_TYPE) + sizeof(PACKET_VERSION),
+        memcpy(packetHolder + numBytesPacketHeader,
                currentPosition,
                numTotalBytes - (currentPosition - startPosition));
         
