@@ -150,6 +150,8 @@ private slots:
     void copyVoxels();
     void pasteVoxels();
     void runTests();
+    void goHome();
+
 private:
 
     static void controlledBroadcastToNodes(unsigned char* broadcastData, size_t dataBytes, 
@@ -184,7 +186,6 @@ private:
     void maybeEditVoxelUnderCursor();
     void deleteVoxelUnderCursor();
     void eyedropperVoxelUnderCursor();
-    void goHome();
     void resetSensors();
     
     void setMenuShortcutsEnabled(bool enabled);
