@@ -152,12 +152,15 @@ private slots:
     void runTests();
 private:
 
-    static void broadcastToNodes(unsigned char* data, size_t bytes, const char type);
+    static void controlledBroadcastToNodes(unsigned char* broadcastData, size_t dataBytes, 
+                                           const char* nodeTypes, int numNodeTypes);
+
     static void sendVoxelServerAddScene();
     static bool sendVoxelsOperation(VoxelNode* node, void* extraData);
+    static void sendVoxelEditMessage(PACKET_HEADER header, VoxelDetail& detail);
     static void sendAvatarVoxelURLMessage(const QUrl& url);
     static void processAvatarVoxelURLMessage(unsigned char *packetData, size_t dataBytes);
-    static void sendVoxelEditMessage(PACKET_HEADER header, VoxelDetail& detail);
+    static void sendPingPackets();
     
     void initMenu();
     void updateFrustumRenderModeAction();
@@ -226,6 +229,7 @@ private:
     QAction* _manualFirstPerson;     // Whether to force first-person mode
     QAction* _manualThirdPerson;     // Whether to force third-person mode
     QAction* _logOn;                 // Whether to show on-screen log
+    QAction* _oscilloscopeOn;        // Whether to show the oscilloscope
     QAction* _bandwidthDisplayOn;    // Whether to show on-screen bandwidth bars
     QActionGroup* _voxelModeActions; // The group of voxel edit mode actions
     QAction* _addVoxelMode;          // Whether add voxel mode is enabled
