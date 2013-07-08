@@ -71,6 +71,7 @@ int main(int argc, const char * argv[])
     
     unsigned char broadcastPacket[MAX_PACKET_SIZE];
     broadcastPacket[0] = PACKET_HEADER_DOMAIN;
+    broadcastPacket[1] = packetVersion(broadcastPacket[0]);
     
     unsigned char* currentBufferPos;
     unsigned char* startPointer;
@@ -86,11 +87,13 @@ int main(int argc, const char * argv[])
     
     while (true) {
         if (nodeList->getNodeSocket()->receive((sockaddr *)&nodePublicAddress, packetData, &receivedBytes) &&
-            (packetData[0] == PACKET_HEADER_DOMAIN_REPORT_FOR_DUTY || packetData[0] == PACKET_HEADER_DOMAIN_LIST_REQUEST)) {
+            (packetData[0] == PACKET_HEADER_DOMAIN_REPORT_FOR_DUTY || packetData[0] == PACKET_HEADER_DOMAIN_LIST_REQUEST) &&
+            packetVersion(packetData[0]) == packetData[1]) {
+            // this is an RFD or domain list request packet, and there is a version match
             std::map<char, Node *> newestSoloNodes;
             
             nodeType = packetData[1];
-            int numBytesSocket = unpackSocket(packetData + sizeof(PACKET_HEADER) + sizeof(NODE_TYPE),
+            int numBytesSocket = unpackSocket(packetData + sizeof(PACKET_HEADER) + sizeof(PACKET_VERSION) + sizeof(NODE_TYPE),
                                               (sockaddr*) &nodeLocalAddress);
             
             sockaddr* destinationSocket = (sockaddr*) &nodePublicAddress;
@@ -116,10 +119,10 @@ int main(int argc, const char * argv[])
                 nodeList->increaseNodeID();
             }
             
-            currentBufferPos = broadcastPacket + sizeof(PACKET_HEADER);
+            currentBufferPos = broadcastPacket + sizeof(PACKET_HEADER) + sizeof(PACKET_VERSION);
             startPointer = currentBufferPos;
             
-            unsigned char* nodeTypesOfInterest = packetData + sizeof(PACKET_HEADER) + sizeof(NODE_TYPE)
+            unsigned char* nodeTypesOfInterest = packetData + sizeof(PACKET_HEADER) + sizeof(PACKET_VERSION) + sizeof(NODE_TYPE)
                 + numBytesSocket + sizeof(unsigned char);
             int numInterestTypes = *(nodeTypesOfInterest - 1);
             

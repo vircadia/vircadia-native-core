@@ -2914,7 +2914,7 @@ void* Application::networkReceive(void* args) {
                         NodeList::getInstance()->processNodeData(&senderAddress, app->_incomingPacket, bytesReceived);
                         break;
                 }
-            }            
+            }
         } else if (!app->_enableNetworkThread) {
             break;
         }

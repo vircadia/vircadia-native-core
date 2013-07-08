@@ -237,8 +237,8 @@ void NodeList::sendDomainServerCheckIn() {
         int numBytesNodesOfInterest = _nodeTypesOfInterest ? strlen((char*) _nodeTypesOfInterest) : 0;
         
         // check in packet has header, node type, port, IP, node types of interest, null termination
-        int numPacketBytes = sizeof(PACKET_HEADER) + sizeof(NODE_TYPE) + sizeof(uint16_t) + (sizeof(char) * 4) +
-            numBytesNodesOfInterest + sizeof(unsigned char);
+        int numPacketBytes = sizeof(PACKET_HEADER) + sizeof(PACKET_VERSION) + sizeof(NODE_TYPE) + sizeof(uint16_t) +
+            (sizeof(char) * 4) + numBytesNodesOfInterest + sizeof(unsigned char);
         
         checkInPacket = new unsigned char[numPacketBytes];
         unsigned char* packetPosition = checkInPacket;
@@ -246,9 +246,10 @@ void NodeList::sendDomainServerCheckIn() {
         *(packetPosition++) = (memchr(SOLO_NODE_TYPES, _ownerType, sizeof(SOLO_NODE_TYPES)))
                 ? PACKET_HEADER_DOMAIN_REPORT_FOR_DUTY
                 : PACKET_HEADER_DOMAIN_LIST_REQUEST;
+        *(packetPosition++) = packetVersion(*(packetPosition - 1));
         *(packetPosition++) = _ownerType;
         
-        packetPosition += packSocket(checkInPacket + sizeof(PACKET_HEADER) + sizeof(NODE_TYPE),
+        packetPosition += packSocket(checkInPacket + sizeof(PACKET_HEADER) + sizeof(PACKET_VERSION) + sizeof(NODE_TYPE),
                                      getLocalAddress(),
                                      htons(_nodeSocket.getListeningPort()));
         
