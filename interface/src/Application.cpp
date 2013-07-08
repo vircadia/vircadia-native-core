@@ -1491,7 +1491,8 @@ void Application::initMenu() {
     (_testPing = optionsMenu->addAction("Test Ping"))->setCheckable(true);
     _testPing->setChecked(true);
     (_fullScreenMode = optionsMenu->addAction("Fullscreen", this, SLOT(setFullscreen(bool)), Qt::Key_F))->setCheckable(true);
-    optionsMenu->addAction("Webcam", &_webcam, SLOT(setEnabled(bool)))->setCheckable(true);    
+    optionsMenu->addAction("Webcam", &_webcam, SLOT(setEnabled(bool)))->setCheckable(true);
+    optionsMenu->addAction("Go Home", this, SLOT(goHome()));
     
     QMenu* renderMenu = menuBar->addMenu("Render");
     (_renderVoxels = renderMenu->addAction("Voxels"))->setCheckable(true);
@@ -2809,6 +2810,7 @@ void Application::eyedropperVoxelUnderCursor() {
 }
 
 void Application::goHome() {
+    printLog("Going Home!\n");
     _myAvatar.setPosition(START_LOCATION);
 }
 
