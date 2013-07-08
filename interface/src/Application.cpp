@@ -483,30 +483,41 @@ void Application::resizeGL(int width, int height) {
     glLoadIdentity();
 }
 
-void Application::broadcastToNodes(unsigned char* data, size_t bytes, const char type) {
+void Application::controlledBroadcastToNodes(unsigned char* broadcastData, size_t dataBytes, 
+                                             const char* nodeTypes, int numNodeTypes) {
+    Application* self = getInstance();
+    for (int i = 0; i < numNodeTypes; ++i) {
 
-    int n = NodeList::getInstance()->broadcastToNodes(data, bytes, &type, 1);
+        // Intercept data to voxel server when voxels are disabled
+        if (nodeTypes[i] == NODE_TYPE_VOXEL_SERVER && ! self->_renderVoxels->isChecked()) {
+            continue;
+        }
 
-    BandwidthMeter::ChannelIndex channel;
-    switch (type) {
-    case NODE_TYPE_AGENT:
-    case NODE_TYPE_AVATAR_MIXER:
-        channel = BandwidthMeter::AVATARS;
-        break;
-    case NODE_TYPE_VOXEL_SERVER:
-        channel = BandwidthMeter::VOXELS;
-        break;
-    default:
-        return;
+        // Perform the broadcast for one type
+        int nReceivingNodes = NodeList::getInstance()->broadcastToNodes(broadcastData, dataBytes, & nodeTypes[i], 1);
+
+        // Feed number of bytes to corresponding channel of the bandwidth meter, if any (done otherwise)
+        BandwidthMeter::ChannelIndex channel;
+        switch (nodeTypes[i]) {
+        case NODE_TYPE_AGENT:
+        case NODE_TYPE_AVATAR_MIXER:
+            channel = BandwidthMeter::AVATARS;
+            break;
+        case NODE_TYPE_VOXEL_SERVER:
+            channel = BandwidthMeter::VOXELS;
+            break;
+        default:
+            continue;
+        }
+        self->_bandwidthMeter.outputStream(channel).updateValue(nReceivingNodes * dataBytes); 
     }
-    getInstance()->_bandwidthMeter.outputStream(channel).updateValue(n * bytes); 
 }
 
 void Application::sendVoxelServerAddScene() {
     char message[100];
     sprintf(message,"%c%s",'Z',"add scene");
     int messageSize = strlen(message) + 1;
-    broadcastToNodes((unsigned char*)message, messageSize, NODE_TYPE_VOXEL_SERVER);
+    controlledBroadcastToNodes((unsigned char*)message, messageSize, & NODE_TYPE_VOXEL_SERVER, 1);
 }
 
 void Application::keyPressEvent(QKeyEvent* event) {
@@ -877,16 +888,16 @@ void Application::wheelEvent(QWheelEvent* event) {
     }
 }
 
-void sendPingPackets() {
+void Application::sendPingPackets() {
 
     char nodeTypesOfInterest[] = {NODE_TYPE_VOXEL_SERVER, NODE_TYPE_AUDIO_MIXER, NODE_TYPE_AVATAR_MIXER};
     long long currentTime = usecTimestampNow();
-    char pingPacket[1 + sizeof(currentTime)];
+    unsigned char pingPacket[1 + sizeof(currentTime)];
     pingPacket[0] = PACKET_HEADER_PING;
     
     memcpy(&pingPacket[1], &currentTime, sizeof(currentTime));
-    NodeList::getInstance()->broadcastToNodes((unsigned char*)pingPacket, 1 + sizeof(currentTime), nodeTypesOfInterest, 3);
-
+    getInstance()->controlledBroadcastToNodes(pingPacket, 1 + sizeof(currentTime), 
+                                              nodeTypesOfInterest, sizeof(nodeTypesOfInterest));
 }
 
 //  Every second, check the frame rates and other stuff
@@ -987,7 +998,7 @@ void Application::sendAvatarVoxelURLMessage(const QUrl& url) {
     message.append((const char*)&ownerID, sizeof(ownerID));
     message.append(url.toEncoded());
 
-    broadcastToNodes((unsigned char*)message.data(), message.size(), NODE_TYPE_AVATAR_MIXER);
+    controlledBroadcastToNodes((unsigned char*)message.data(), message.size(), & NODE_TYPE_AVATAR_MIXER, 1);
 }
 
 void Application::processAvatarVoxelURLMessage(unsigned char *packetData, size_t dataBytes) {
@@ -1220,7 +1231,7 @@ void Application::sendVoxelEditMessage(PACKET_HEADER header, VoxelDetail& detail
     int sizeOut;
 
     if (createVoxelEditMessage(header, 0, 1, &detail, bufferOut, sizeOut)){
-        Application::broadcastToNodes(bufferOut, sizeOut, NODE_TYPE_VOXEL_SERVER);
+        Application::controlledBroadcastToNodes(bufferOut, sizeOut, & NODE_TYPE_VOXEL_SERVER, 1);
         delete[] bufferOut;
     }
 }
@@ -1301,7 +1312,7 @@ bool Application::sendVoxelsOperation(VoxelNode* node, void* extraData) {
 
         // if we have room don't have room in the buffer, then send the previously generated message first
         if (args->bufferInUse + codeAndColorLength > MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE) {
-            broadcastToNodes(args->messageBuffer, args->bufferInUse, NODE_TYPE_VOXEL_SERVER);
+            controlledBroadcastToNodes(args->messageBuffer, args->bufferInUse, & NODE_TYPE_VOXEL_SERVER, 1);
             args->bufferInUse = sizeof(PACKET_HEADER_SET_VOXEL_DESTRUCTIVE) + sizeof(unsigned short int); // reset
         }
         
@@ -1382,7 +1393,7 @@ void Application::importVoxels() {
 
     // If we have voxels left in the packet, then send the packet
     if (args.bufferInUse > (sizeof(PACKET_HEADER_SET_VOXEL_DESTRUCTIVE) + sizeof(unsigned short int))) {
-        broadcastToNodes(args.messageBuffer, args.bufferInUse, NODE_TYPE_VOXEL_SERVER);
+        controlledBroadcastToNodes(args.messageBuffer, args.bufferInUse, & NODE_TYPE_VOXEL_SERVER, 1);
     }
     
     if (calculatedOctCode) {
@@ -1434,7 +1445,7 @@ void Application::pasteVoxels() {
     
     // If we have voxels left in the packet, then send the packet
     if (args.bufferInUse > (sizeof(PACKET_HEADER_SET_VOXEL_DESTRUCTIVE) + sizeof(unsigned short int))) {
-        broadcastToNodes(args.messageBuffer, args.bufferInUse, NODE_TYPE_VOXEL_SERVER);
+        controlledBroadcastToNodes(args.messageBuffer, args.bufferInUse, & NODE_TYPE_VOXEL_SERVER, 1);
     }
     
     if (calculatedOctCode) {
@@ -1512,6 +1523,8 @@ void Application::initMenu() {
     (_logOn = toolsMenu->addAction("Log"))->setCheckable(true);
     _logOn->setChecked(false);
     _logOn->setShortcut(Qt::CTRL | Qt::Key_L);
+    (_oscilloscopeOn = toolsMenu->addAction("Audio Oscilloscope"))->setCheckable(true);
+    _oscilloscopeOn->setChecked(true);
     (_bandwidthDisplayOn = toolsMenu->addAction("Bandwidth Display"))->setCheckable(true);
     _bandwidthDisplayOn->setChecked(true);
     toolsMenu->addAction("Bandwidth Details", this, SLOT(bandwidthDetails()));
@@ -1981,9 +1994,10 @@ void Application::updateAvatar(float deltaTime) {
         endOfBroadcastStringWrite += packNodeId(endOfBroadcastStringWrite, nodeList->getOwnerID());
         
         endOfBroadcastStringWrite += _myAvatar.getBroadcastData(endOfBroadcastStringWrite);
-        
-        broadcastToNodes(broadcastString, endOfBroadcastStringWrite - broadcastString, NODE_TYPE_VOXEL_SERVER);
-        broadcastToNodes(broadcastString, endOfBroadcastStringWrite - broadcastString, NODE_TYPE_AVATAR_MIXER);
+
+        const char nodeTypesOfInterest[] = { NODE_TYPE_VOXEL_SERVER, NODE_TYPE_AVATAR_MIXER }; 
+        controlledBroadcastToNodes(broadcastString, endOfBroadcastStringWrite - broadcastString,
+                                   nodeTypesOfInterest, sizeof(nodeTypesOfInterest));
         
         // once in a while, send my voxel url
         const float AVATAR_VOXEL_URL_SEND_INTERVAL = 1.0f; // seconds
@@ -2338,8 +2352,9 @@ void Application::displayOverlay() {
     
         #ifndef _WIN32
         _audio.render(_glWidget->width(), _glWidget->height());
-        _audioScope.render(20, _glWidget->height() - 200);
-        //_audio.renderEchoCompare();     //  PER:  Will turn back on to further test echo
+        if (_oscilloscopeOn->isChecked()) {
+            _audioScope.render(20, _glWidget->height() - 200);
+        }
         #endif
 
        //noiseTest(_glWidget->width(), _glWidget->height());
