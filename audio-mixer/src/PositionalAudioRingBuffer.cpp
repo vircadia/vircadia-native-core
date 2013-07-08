@@ -22,7 +22,7 @@ PositionalAudioRingBuffer::PositionalAudioRingBuffer() :
 }
 
 int PositionalAudioRingBuffer::parseData(unsigned char* sourceBuffer, int numBytes) {
-    unsigned char* currentBuffer = sourceBuffer + sizeof(PACKET_TYPE);
+    unsigned char* currentBuffer = sourceBuffer + numBytesForPacketHeader(sourceBuffer);
     currentBuffer += parsePositionalData(currentBuffer, numBytes - (currentBuffer - sourceBuffer));
     currentBuffer += parseAudioSamples(currentBuffer, numBytes - (currentBuffer - sourceBuffer));
     
