@@ -637,19 +637,23 @@ int main(int argc, const char * argv[]) {
         persistVoxelsWhenDirty();
     
         if (nodeList->getNodeSocket()->receive(&nodePublicAddress, packetData, &receivedBytes) &&
-            versionForPacketType(packetData[0]) == packetData[1]) {
+            packetVersionMatch(packetData)) {
+            
+            int numBytesPacketHeader = numBytesForPacketHeader(packetData);
+            
             if (packetData[0] == PACKET_TYPE_SET_VOXEL || packetData[0] == PACKET_TYPE_SET_VOXEL_DESTRUCTIVE) {
                 bool destructive = (packetData[0] == PACKET_TYPE_SET_VOXEL_DESTRUCTIVE);
                 PerformanceWarning warn(::shouldShowAnimationDebug,
                                         destructive ? "PACKET_TYPE_SET_VOXEL_DESTRUCTIVE" : "PACKET_TYPE_SET_VOXEL",
                                         ::shouldShowAnimationDebug);
-                unsigned short int itemNumber = (*((unsigned short int*)&packetData[2]));
+                
+                unsigned short int itemNumber = (*((unsigned short int*)(packetData + numBytesPacketHeader)));
                 if (::shouldShowAnimationDebug) {
                     printf("got %s - command from client receivedBytes=%ld itemNumber=%d\n",
                         destructive ? "PACKET_TYPE_SET_VOXEL_DESTRUCTIVE" : "PACKET_TYPE_SET_VOXEL",
                         receivedBytes,itemNumber);
                 }
-                int atByte = sizeof(PACKET_TYPE) + sizeof(PACKET_VERSION) + sizeof(itemNumber);
+                int atByte = numBytesPacketHeader + sizeof(itemNumber);
                 unsigned char* voxelData = (unsigned char*)&packetData[atByte];
                 while (atByte < receivedBytes) {
                     unsigned char octets = (unsigned char)*voxelData;
@@ -703,9 +707,10 @@ int main(int argc, const char * argv[]) {
 
                 // the Z command is a special command that allows the sender to send the voxel server high level semantic
                 // requests, like erase all, or add sphere scene
-                char* command = (char*) &packetData[2]; // start of the command
+                
+                char* command = (char*) &packetData[numBytesPacketHeader]; // start of the command
                 int commandLength = strlen(command); // commands are null terminated strings
-                int totalLength = sizeof(PACKET_TYPE_Z_COMMAND) + commandLength + 1; // 1 for null termination
+                int totalLength = numBytesPacketHeader + commandLength + 1; // 1 for null termination
                 printf("got Z message len(%ld)= %s\n", receivedBytes, command);
                 bool rebroadcast = true; // by default rebroadcast
 
@@ -736,7 +741,7 @@ int main(int argc, const char * argv[]) {
             // need to make sure we have it in our nodeList.
             if (packetData[0] == PACKET_TYPE_HEAD_DATA) {
                 uint16_t nodeID = 0;
-                unpackNodeId(packetData + sizeof(PACKET_TYPE) + sizeof(PACKET_VERSION), &nodeID);
+                unpackNodeId(packetData + numBytesPacketHeader, &nodeID);
                 Node* node = nodeList->addOrUpdateNode(&nodePublicAddress,
                                                        &nodePublicAddress,
                                                        NODE_TYPE_AGENT,

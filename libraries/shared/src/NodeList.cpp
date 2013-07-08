@@ -80,7 +80,7 @@ void NodeList::timePingReply(sockaddr *nodeAddress, unsigned char *packetData) {
     for(NodeList::iterator node = begin(); node != end(); node++) {
         if (socketMatch(node->getPublicSocket(), nodeAddress) || 
             socketMatch(node->getLocalSocket(), nodeAddress)) {     
-            int pingTime = usecTimestampNow() - *(long long *)(packetData + sizeof(PACKET_TYPE) + sizeof(PACKET_VERSION));
+            int pingTime = usecTimestampNow() - *(long long *)(packetData + numBytesForPacketHeader(packetData));
             node->setPingMs(pingTime / 1000);
             break;
         }
