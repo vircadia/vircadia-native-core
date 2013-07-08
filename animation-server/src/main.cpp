@@ -11,8 +11,8 @@
 #include <cstring>
 #include <cstdio>
 #include <OctalCode.h>
-#include <AgentList.h>
-#include <AgentTypes.h>
+#include <NodeList.h>
+#include <NodeTypes.h>
 #include <EnvironmentData.h>
 #include <VoxelTree.h>
 #include <SharedUtil.h>
@@ -59,7 +59,7 @@ static void sendVoxelEditMessage(PACKET_HEADER header, VoxelDetail& detail) {
             printf("sending packet of size=%d\n",sizeOut);
         }
 
-        AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL_SERVER, 1);
+        NodeList::getInstance()->broadcastToNodes(bufferOut, sizeOut, &NODE_TYPE_VOXEL_SERVER, 1);
         delete[] bufferOut;
     }
 }
@@ -168,7 +168,7 @@ static void renderMovingBug() {
         if (::shouldShowPacketsPerSecond) {
             printf("sending packet of size=%d\n", sizeOut);
         }
-        AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL_SERVER, 1);
+        NodeList::getInstance()->broadcastToNodes(bufferOut, sizeOut, &NODE_TYPE_VOXEL_SERVER, 1);
         delete[] bufferOut;
     }
 
@@ -238,7 +238,7 @@ static void renderMovingBug() {
         if (::shouldShowPacketsPerSecond) {
             printf("sending packet of size=%d\n", sizeOut);
         }
-        AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL_SERVER, 1);
+        NodeList::getInstance()->broadcastToNodes(bufferOut, sizeOut, &NODE_TYPE_VOXEL_SERVER, 1);
         delete[] bufferOut;
     }
 }
@@ -344,7 +344,7 @@ static void sendBlinkingStringOfLights() {
                 if (::shouldShowPacketsPerSecond) {
                     printf("sending packet of size=%d\n",sizeOut);
                 }
-                AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL_SERVER, 1);
+                NodeList::getInstance()->broadcastToNodes(bufferOut, sizeOut, &NODE_TYPE_VOXEL_SERVER, 1);
                 delete[] bufferOut;
             }
 
@@ -386,7 +386,7 @@ static void sendBlinkingStringOfLights() {
             if (::shouldShowPacketsPerSecond) {
                 printf("sending packet of size=%d\n",sizeOut);
             }
-            AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL_SERVER, 1);
+            NodeList::getInstance()->broadcastToNodes(bufferOut, sizeOut, &NODE_TYPE_VOXEL_SERVER, 1);
             delete[] bufferOut;
         }
     }
@@ -509,7 +509,7 @@ void sendDanceFloor() {
                     if (::shouldShowPacketsPerSecond) {
                         printf("sending packet of size=%d\n", sizeOut);
                     }
-                    AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL_SERVER, 1);
+                    NodeList::getInstance()->broadcastToNodes(bufferOut, sizeOut, &NODE_TYPE_VOXEL_SERVER, 1);
                     delete[] bufferOut;
                 }
             }
@@ -606,7 +606,7 @@ static void sendBillboard() {
                     if (::shouldShowPacketsPerSecond) {
                         printf("sending packet of size=%d\n", sizeOut);
                     }
-                    AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL_SERVER, 1);
+                    NodeList::getInstance()->broadcastToNodes(bufferOut, sizeOut, &NODE_TYPE_VOXEL_SERVER, 1);
                     delete[] bufferOut;
                 }
             }
@@ -667,7 +667,7 @@ int main(int argc, const char * argv[])
 {
     ::start = usecTimestampNow();
 
-    AgentList* agentList = AgentList::createInstance(AGENT_TYPE_ANIMATION_SERVER, ANIMATION_LISTEN_PORT);
+    NodeList* nodeList = NodeList::createInstance(NODE_TYPE_ANIMATION_SERVER, ANIMATION_LISTEN_PORT);
     setvbuf(stdout, NULL, _IOLBF, 0);
 
     // Handle Local Domain testing with the --local command line
@@ -699,33 +699,33 @@ int main(int argc, const char * argv[])
         sprintf(DOMAIN_IP,"%d.%d.%d.%d", (ip & 0xFF), ((ip >> 8) & 0xFF),((ip >> 16) & 0xFF), ((ip >> 24) & 0xFF));
     }
 
-    agentList->linkedDataCreateCallback = NULL; // do we need a callback?
-    agentList->startSilentAgentRemovalThread();
+    nodeList->linkedDataCreateCallback = NULL; // do we need a callback?
+    nodeList->startSilentNodeRemovalThread();
     
     srand((unsigned)time(0));
 
     pthread_t animateVoxelThread;
     pthread_create(&animateVoxelThread, NULL, animateVoxels, NULL);
 
-    sockaddr agentPublicAddress;
+    sockaddr nodePublicAddress;
     
     unsigned char* packetData = new unsigned char[MAX_PACKET_SIZE];
     ssize_t receivedBytes;
     
     timeval lastDomainServerCheckIn = {};
-    AgentList::getInstance()->setAgentTypesOfInterest(&AGENT_TYPE_VOXEL_SERVER, 1);
+    NodeList::getInstance()->setNodeTypesOfInterest(&NODE_TYPE_VOXEL_SERVER, 1);
 
-    // loop to send to agents requesting data
+    // loop to send to nodes requesting data
     while (true) {
         // send a check in packet to the domain server if DOMAIN_SERVER_CHECK_IN_USECS has elapsed
         if (usecTimestampNow() - usecTimestamp(&lastDomainServerCheckIn) >= DOMAIN_SERVER_CHECK_IN_USECS) {
             gettimeofday(&lastDomainServerCheckIn, NULL);
-            AgentList::getInstance()->sendDomainServerCheckIn();
+            NodeList::getInstance()->sendDomainServerCheckIn();
         }
         
-        // Agents sending messages to us...
-        if (agentList->getAgentSocket()->receive(&agentPublicAddress, packetData, &receivedBytes)) {
-            AgentList::getInstance()->processAgentData(&agentPublicAddress, packetData, receivedBytes);
+        // Nodes sending messages to us...
+        if (nodeList->getNodeSocket()->receive(&nodePublicAddress, packetData, &receivedBytes)) {
+            NodeList::getInstance()->processNodeData(&nodePublicAddress, packetData, receivedBytes);
         }
     }
     

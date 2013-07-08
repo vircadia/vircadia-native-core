@@ -21,19 +21,18 @@ namespace Leap {
 class LeapManager {
 public:
     static void nextFrame();  // called once per frame to get new Leap data
-    static const std::vector<glm::vec3>& getFingerPositions();
+    static const std::vector<glm::vec3>& getFingerTips();
+    static const std::vector<glm::vec3>& getFingerRoots();
+    static const std::vector<glm::vec3>& getHandPositions();
+    static const std::vector<glm::vec3>& getHandNormals();
     static std::string statusString();
+    static void initialize();
+    static void terminate();
     
 private:
-    static void initialize();
-    static bool _isInitialized;            // We've looked for the library and hooked it up if it's there.
     static bool _libraryExists;            // The library is present, so we won't crash if we call it.
     static Leap::Controller* _controller;
     static HifiLeapListener* _listener;
-    
-
-
-
 };
 
 #endif /* defined(__hifi__LeapManager__) */
