@@ -1312,7 +1312,8 @@ bool Application::sendVoxelsOperation(VoxelNode* node, void* extraData) {
         // if we have room don't have room in the buffer, then send the previously generated message first
         if (args->bufferInUse + codeAndColorLength > MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE) {
             controlledBroadcastToNodes(args->messageBuffer, args->bufferInUse, & NODE_TYPE_VOXEL_SERVER, 1);
-            args->bufferInUse = sizeof(PACKET_TYPE_SET_VOXEL_DESTRUCTIVE) + sizeof(unsigned short int); // reset
+            args->bufferInUse = numBytesForPacketHeader((unsigned char*) &PACKET_TYPE_SET_VOXEL_DESTRUCTIVE)
+                + sizeof(unsigned short int); // reset
         }
         
         // copy this node's code color details into our buffer.
@@ -1375,10 +1376,12 @@ void Application::importVoxels() {
     // the server as an set voxel message, this will also rebase the voxels to the new location
     unsigned char* calculatedOctCode = NULL;
     SendVoxelsOperationArgs args;
-    args.messageBuffer[0] = PACKET_TYPE_SET_VOXEL_DESTRUCTIVE;
-    unsigned short int* sequenceAt = (unsigned short int*)&args.messageBuffer[sizeof(PACKET_TYPE_SET_VOXEL_DESTRUCTIVE)];
+    
+    int numBytesPacketHeader = populateTypeAndVersion(args.messageBuffer, PACKET_TYPE_SET_VOXEL_DESTRUCTIVE);
+    
+    unsigned short int* sequenceAt = (unsigned short int*)&args.messageBuffer[numBytesPacketHeader];
     *sequenceAt = 0;
-    args.bufferInUse = sizeof(PACKET_TYPE_SET_VOXEL_DESTRUCTIVE) + sizeof(unsigned short int); // set to command + sequence
+    args.bufferInUse = numBytesPacketHeader + sizeof(unsigned short int); // set to command + sequence
 
     // we only need the selected voxel to get the newBaseOctCode, which we can actually calculate from the
     // voxel size/position details.
@@ -1391,7 +1394,7 @@ void Application::importVoxels() {
     importVoxels.recurseTreeWithOperation(sendVoxelsOperation, &args);
 
     // If we have voxels left in the packet, then send the packet
-    if (args.bufferInUse > (sizeof(PACKET_TYPE_SET_VOXEL_DESTRUCTIVE) + sizeof(unsigned short int))) {
+    if (args.bufferInUse > (numBytesPacketHeader + sizeof(unsigned short int))) {
         controlledBroadcastToNodes(args.messageBuffer, args.bufferInUse, & NODE_TYPE_VOXEL_SERVER, 1);
     }
     
@@ -1426,10 +1429,12 @@ void Application::pasteVoxels() {
     // Recurse the clipboard tree, where everything is root relative, and send all the colored voxels to 
     // the server as an set voxel message, this will also rebase the voxels to the new location
     SendVoxelsOperationArgs args;
-    args.messageBuffer[0] = PACKET_TYPE_SET_VOXEL_DESTRUCTIVE;
-    unsigned short int* sequenceAt = (unsigned short int*)&args.messageBuffer[sizeof(PACKET_TYPE_SET_VOXEL_DESTRUCTIVE)];
+    
+    int numBytesPacketHeader = populateTypeAndVersion(args.messageBuffer, PACKET_TYPE_SET_VOXEL_DESTRUCTIVE);
+    
+    unsigned short int* sequenceAt = (unsigned short int*)&args.messageBuffer[numBytesPacketHeader];
     *sequenceAt = 0;
-    args.bufferInUse = sizeof(PACKET_TYPE_SET_VOXEL_DESTRUCTIVE) + sizeof(unsigned short int); // set to command + sequence
+    args.bufferInUse = numBytesPacketHeader + sizeof(unsigned short int); // set to command + sequence
 
     // we only need the selected voxel to get the newBaseOctCode, which we can actually calculate from the
     // voxel size/position details. If we don't have an actual selectedNode then use the mouseVoxel to create a 
@@ -1443,7 +1448,7 @@ void Application::pasteVoxels() {
     _clipboardTree.recurseTreeWithOperation(sendVoxelsOperation, &args);
     
     // If we have voxels left in the packet, then send the packet
-    if (args.bufferInUse > (sizeof(PACKET_TYPE_SET_VOXEL_DESTRUCTIVE) + sizeof(unsigned short int))) {
+    if (args.bufferInUse > (numBytesPacketHeader + sizeof(unsigned short int))) {
         controlledBroadcastToNodes(args.messageBuffer, args.bufferInUse, & NODE_TYPE_VOXEL_SERVER, 1);
     }
     
