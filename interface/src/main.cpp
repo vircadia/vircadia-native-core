@@ -9,7 +9,7 @@
 //          discover the appropriate audio, voxel, and avatar servers to contact.
 //          Right now, the default domain server is "highfidelity.below92.com"
 //          You can change the domain server to use your own by editing the
-//          DOMAIN_HOSTNAME or DOMAIN_IP strings in the file AgentList.cpp
+//          DOMAIN_HOSTNAME or DOMAIN_IP strings in the file NodeList.cpp
 //
 //
 //  Welcome Aboard!

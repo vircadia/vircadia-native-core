@@ -32,9 +32,9 @@ else (LEAP_LIBRARIES AND LEAP_INCLUDE_DIRS)
   endif ()
 
 # If we're using the Leap stubs, there's only a header, no lib.
-  if (LEAP_INCLUDE_DIRS)
+  if (LEAP_LIBRARIES AND LEAP_INCLUDE_DIRS)
      set(LEAP_FOUND TRUE)
-  endif (LEAP_INCLUDE_DIRS)
+  endif (LEAP_LIBRARIES AND LEAP_INCLUDE_DIRS)
 
   if (LEAP_FOUND)
     if (NOT Leap_FIND_QUIETLY)

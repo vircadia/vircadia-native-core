@@ -73,7 +73,7 @@ int unpackSocket(unsigned char* packedData, sockaddr* unpackDestSocket) {
 }
 
 int getLocalAddress() {
-    // get this agent's local address so we can pass that to DS
+    // get this node's local address so we can pass that to DS
     struct ifaddrs* ifAddrStruct = NULL;
     struct ifaddrs* ifa = NULL;
     

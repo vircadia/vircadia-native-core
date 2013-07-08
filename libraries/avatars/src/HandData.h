@@ -14,20 +14,27 @@
 
 #include <glm/glm.hpp>
 
-#define MAX_AVATAR_LEAP_BALLS 10
-
 class AvatarData;
 
 class HandData {
 public:
     HandData(AvatarData* owningAvatar);
     
-    const std::vector<glm::vec3>& getFingerPositions() const { return _fingerPositions; }
-    void setFingerPositions(const std::vector<glm::vec3>& fingerPositions) { _fingerPositions = fingerPositions; }
+    const std::vector<glm::vec3>& getFingerTips() const { return _fingerTips; }
+    const std::vector<glm::vec3>& getFingerRoots() const { return _fingerRoots; }
+    const std::vector<glm::vec3>& getHandPositions() const { return _handPositions; }
+    const std::vector<glm::vec3>& getHandNormals() const { return _handNormals; }
+    void setFingerTips(const std::vector<glm::vec3>& fingerTips) { _fingerTips = fingerTips; }
+    void setFingerRoots(const std::vector<glm::vec3>& fingerRoots) { _fingerRoots = fingerRoots; }
+    void setHandPositions(const std::vector<glm::vec3>& handPositons) { _handPositions = handPositons; }
+    void setHandNormals(const std::vector<glm::vec3>& handNormals) { _handNormals = handNormals; }
     
     friend class AvatarData;
 protected:
-    std::vector<glm::vec3> _fingerPositions;
+    std::vector<glm::vec3> _fingerTips;
+    std::vector<glm::vec3> _fingerRoots;
+    std::vector<glm::vec3> _handPositions;
+    std::vector<glm::vec3> _handNormals;
     AvatarData* _owningAvatarData;
 private:
     // privatize copy ctor and assignment operator so copies of this object cannot be made

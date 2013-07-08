@@ -47,7 +47,7 @@ GLubyte identityIndices[] = { 0,2,1,    0,3,2,    // Z-
                               4,5,6,    4,6,7 };  // Z+
 
 VoxelSystem::VoxelSystem(float treeScale, int maxVoxels) :
-        AgentData(NULL), _treeScale(treeScale), _maxVoxels(maxVoxels) {
+        NodeData(NULL), _treeScale(treeScale), _maxVoxels(maxVoxels) {
     _voxelsInReadArrays = _voxelsInWriteArrays = _voxelsUpdated = 0;
     _writeRenderFullVBO = true;
     _readRenderFullVBO = true;
@@ -160,7 +160,9 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
     setupNewVoxelsForDrawing();
     
     pthread_mutex_unlock(&_treeLock);
-    
+
+    Application::getInstance()->getBandwidthMeter()->inputStream(BandwidthMeter::VOXELS).updateValue(numBytes);
+ 
     return numBytes;
 }
 
