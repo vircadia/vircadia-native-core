@@ -201,10 +201,12 @@ void resInVoxelDistributor(NodeList* nodeList,
         // send the environment packets
         if (shouldSendEnvironments) {
             int envPacketLength = 1;
-            *tempOutputBuffer = PACKET_TYPE_ENVIRONMENT_DATA;
-            for (int i = 0; i < sizeof(environmentData) / sizeof(environmentData[0]); i++) {
+            int numBytesPacketHeader = populateTypeAndVersion(tempOutputBuffer, PACKET_TYPE_ENVIRONMENT_DATA);
+            
+            for (int i = 0; i < sizeof(environmentData) / numBytesPacketHeader; i++) {
                 envPacketLength += environmentData[i].getBroadcastData(tempOutputBuffer + envPacketLength);
             }
+            
             nodeList->getNodeSocket()->send(node->getActiveSocket(), tempOutputBuffer, envPacketLength);
             trueBytesSent += envPacketLength;
             truePacketsSent++;
@@ -387,10 +389,13 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
         // send the environment packet
         if (shouldSendEnvironments) {
             int envPacketLength = 1;
-            *tempOutputBuffer = PACKET_TYPE_ENVIRONMENT_DATA;
-            for (int i = 0; i < sizeof(environmentData) / sizeof(environmentData[0]); i++) {
+            
+            int numBytesPacketHeader = populateTypeAndVersion(tempOutputBuffer, PACKET_TYPE_ENVIRONMENT_DATA);
+            
+            for (int i = 0; i < sizeof(environmentData) / numBytesPacketHeader; i++) {
                 envPacketLength += environmentData[i].getBroadcastData(tempOutputBuffer + envPacketLength);
             }
+            
             nodeList->getNodeSocket()->send(node->getActiveSocket(), tempOutputBuffer, envPacketLength);
             trueBytesSent += envPacketLength;
             truePacketsSent++;
