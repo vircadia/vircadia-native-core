@@ -99,15 +99,15 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
             glm::vec3 headPosition = interfaceAvatar->getHeadJointPosition();
             glm::quat headOrientation = interfaceAvatar->getHead().getOrientation();
             
-            int leadingBytes = sizeof(PACKET_HEADER_MICROPHONE_AUDIO_NO_ECHO) + sizeof(headPosition) + sizeof(headOrientation);
+            int leadingBytes = sizeof(PACKET_TYPE_MICROPHONE_AUDIO_NO_ECHO) + sizeof(headPosition) + sizeof(headOrientation);
             
             // we need the amount of bytes in the buffer + 1 for type
             // + 12 for 3 floats for position + float for bearing + 1 attenuation byte
             unsigned char dataPacket[BUFFER_LENGTH_BYTES_PER_CHANNEL + leadingBytes];
             
             dataPacket[0] = (Application::getInstance()->shouldEchoAudio())
-                ? PACKET_HEADER_MICROPHONE_AUDIO_WITH_ECHO
-                : PACKET_HEADER_MICROPHONE_AUDIO_NO_ECHO;
+                ? PACKET_TYPE_MICROPHONE_AUDIO_WITH_ECHO
+                : PACKET_TYPE_MICROPHONE_AUDIO_NO_ECHO;
             unsigned char *currentPacketPtr = dataPacket + 1;
             
             // memcpy the three float positions
@@ -446,10 +446,10 @@ void Audio::addReceivedAudioToBuffer(unsigned char* receivedData, int receivedBy
     
     //printf("Got audio packet %d\n", _packetsReceivedThisPlayback);
     
-    _ringBuffer.parseData((unsigned char*) receivedData, PACKET_LENGTH_BYTES + sizeof(PACKET_HEADER));
+    _ringBuffer.parseData((unsigned char*) receivedData, PACKET_LENGTH_BYTES + sizeof(PACKET_TYPE));
    
     Application::getInstance()->getBandwidthMeter()->inputStream(BandwidthMeter::AUDIO)
-            .updateValue(PACKET_LENGTH_BYTES + sizeof(PACKET_HEADER));
+            .updateValue(PACKET_LENGTH_BYTES + sizeof(PACKET_TYPE));
  
     _lastReceiveTime = currentReceiveTime;
 }

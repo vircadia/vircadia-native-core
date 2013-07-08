@@ -70,8 +70,7 @@ int main(int argc, const char * argv[])
     char nodeType = '\0';
     
     unsigned char broadcastPacket[MAX_PACKET_SIZE];
-    broadcastPacket[0] = PACKET_HEADER_DOMAIN;
-    broadcastPacket[1] = packetVersion(broadcastPacket[0]);
+    int numHeaderBytes = populateTypeAndVersion(broadcastPacket, PACKET_TYPE_DOMAIN);
     
     unsigned char* currentBufferPos;
     unsigned char* startPointer;
@@ -87,13 +86,13 @@ int main(int argc, const char * argv[])
     
     while (true) {
         if (nodeList->getNodeSocket()->receive((sockaddr *)&nodePublicAddress, packetData, &receivedBytes) &&
-            (packetData[0] == PACKET_HEADER_DOMAIN_REPORT_FOR_DUTY || packetData[0] == PACKET_HEADER_DOMAIN_LIST_REQUEST) &&
-            packetVersion(packetData[0]) == packetData[1]) {
+            (packetData[0] == PACKET_TYPE_DOMAIN_REPORT_FOR_DUTY || packetData[0] == PACKET_TYPE_DOMAIN_LIST_REQUEST) &&
+            versionForPacketType(packetData[0]) == packetData[1]) {
             // this is an RFD or domain list request packet, and there is a version match
             std::map<char, Node *> newestSoloNodes;
             
             nodeType = packetData[1];
-            int numBytesSocket = unpackSocket(packetData + sizeof(PACKET_HEADER) + sizeof(PACKET_VERSION) + sizeof(NODE_TYPE),
+            int numBytesSocket = unpackSocket(packetData + numHeaderBytes + sizeof(NODE_TYPE),
                                               (sockaddr*) &nodeLocalAddress);
             
             sockaddr* destinationSocket = (sockaddr*) &nodePublicAddress;
@@ -119,10 +118,10 @@ int main(int argc, const char * argv[])
                 nodeList->increaseNodeID();
             }
             
-            currentBufferPos = broadcastPacket + sizeof(PACKET_HEADER) + sizeof(PACKET_VERSION);
+            currentBufferPos = broadcastPacket + sizeof(PACKET_TYPE) + sizeof(PACKET_VERSION);
             startPointer = currentBufferPos;
             
-            unsigned char* nodeTypesOfInterest = packetData + sizeof(PACKET_HEADER) + sizeof(PACKET_VERSION) + sizeof(NODE_TYPE)
+            unsigned char* nodeTypesOfInterest = packetData + sizeof(PACKET_TYPE) + sizeof(PACKET_VERSION) + sizeof(NODE_TYPE)
                 + numBytesSocket + sizeof(unsigned char);
             int numInterestTypes = *(nodeTypesOfInterest - 1);
             
@@ -165,7 +164,7 @@ int main(int argc, const char * argv[])
             long long timeNow = usecTimestampNow();
             newNode->setLastHeardMicrostamp(timeNow);
             
-            if (packetData[0] == PACKET_HEADER_DOMAIN_REPORT_FOR_DUTY
+            if (packetData[0] == PACKET_TYPE_DOMAIN_REPORT_FOR_DUTY
                 && memchr(SOLO_NODE_TYPES, nodeType, sizeof(SOLO_NODE_TYPES))) {
                 newNode->setWakeMicrostamp(timeNow);
             }

@@ -144,7 +144,7 @@ int main(int argc, char* argv[]) {
             nodeList->linkedDataCreateCallback = createAvatarDataForNode;
     
             timeval lastSend = {};
-            unsigned char broadcastPacket = PACKET_HEADER_INJECT_AUDIO;            
+            unsigned char broadcastPacket = PACKET_TYPE_INJECT_AUDIO;
             
             timeval lastDomainServerCheckIn = {};
             
@@ -170,8 +170,7 @@ int main(int argc, char* argv[]) {
                 
                 while (nodeList->getNodeSocket()->receive(&senderAddress, incomingPacket, &bytesReceived)) {
                     switch (incomingPacket[0]) {
-                        case PACKET_HEADER_BULK_AVATAR_DATA:
-                            // this is the positional data for other nodes
+                        case PACKET_TYPE_BULK_AVATAR_DATA:                  // this is the positional data for other nodes
                             // pass that off to the nodeList processBulkNodeData method
                             nodeList->processBulkNodeData(&senderAddress, incomingPacket, bytesReceived);
                             break;

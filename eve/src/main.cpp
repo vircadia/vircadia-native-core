@@ -51,7 +51,7 @@ void *receiveNodeData(void *args) {
     while (!::stopReceiveNodeDataThread) {
         if (nodeList->getNodeSocket()->receive(&senderAddress, incomingPacket, &bytesReceived)) { 
             switch (incomingPacket[0]) {
-                case PACKET_HEADER_BULK_AVATAR_DATA:
+                case PACKET_TYPE_BULK_AVATAR_DATA:
                     // this is the positional data for other nodes
                     // pass that off to the nodeList processBulkNodeData method
                     nodeList->processBulkNodeData(&senderAddress, incomingPacket, bytesReceived);
@@ -125,7 +125,7 @@ int main(int argc, const char* argv[]) {
     nodeList->linkedDataCreateCallback = createAvatarDataForNode;
     
     unsigned char broadcastPacket[MAX_PACKET_SIZE];
-    broadcastPacket[0] = PACKET_HEADER_HEAD_DATA;
+    broadcastPacket[0] = PACKET_TYPE_HEAD_DATA;
     
     timeval thisSend;
     long long numMicrosecondsSleep = 0;
@@ -153,7 +153,7 @@ int main(int argc, const char* argv[]) {
         
         // make sure we actually have an avatar mixer with an active socket
         if (nodeList->getOwnerID() != UNKNOWN_NODE_ID && avatarMixer && avatarMixer->getActiveSocket() != NULL) {
-            unsigned char* packetPosition = broadcastPacket + sizeof(PACKET_HEADER);
+            unsigned char* packetPosition = broadcastPacket + sizeof(PACKET_TYPE);
             packetPosition += packNodeId(packetPosition, nodeList->getOwnerID());
             
             // use the getBroadcastData method in the AvatarData class to populate the broadcastPacket buffer

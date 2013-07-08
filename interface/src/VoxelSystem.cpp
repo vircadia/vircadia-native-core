@@ -117,21 +117,21 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
     pthread_mutex_lock(&_treeLock);
 
     switch(command) {
-        case PACKET_HEADER_VOXEL_DATA:
+        case PACKET_TYPE_VOXEL_DATA:
         {
             PerformanceWarning warn(_renderWarningsOn, "readBitstreamToTree()");
             // ask the VoxelTree to read the bitstream into the tree
             _tree->readBitstreamToTree(voxelData, numBytes - 1, WANT_COLOR, WANT_EXISTS_BITS);
         }
         break;
-        case PACKET_HEADER_VOXEL_DATA_MONOCHROME:
+        case PACKET_TYPE_VOXEL_DATA_MONOCHROME:
         {
             PerformanceWarning warn(_renderWarningsOn, "readBitstreamToTree()");
             // ask the VoxelTree to read the MONOCHROME bitstream into the tree
             _tree->readBitstreamToTree(voxelData, numBytes - 1, NO_COLOR, WANT_EXISTS_BITS);
         }
         break;
-        case PACKET_HEADER_Z_COMMAND:
+        case PACKET_TYPE_Z_COMMAND:
 
             // the Z command is a special command that allows the sender to send high level semantic
             // requests, like erase all, or add sphere scene, different receivers may handle these

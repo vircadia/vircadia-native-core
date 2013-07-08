@@ -90,18 +90,18 @@ void NodeList::timePingReply(sockaddr *nodeAddress, unsigned char *packetData) {
 
 void NodeList::processNodeData(sockaddr *senderAddress, unsigned char *packetData, size_t dataBytes) {
     switch (((char *)packetData)[0]) {
-        case PACKET_HEADER_DOMAIN: {
+        case PACKET_TYPE_DOMAIN: {
             processDomainServerList(packetData, dataBytes);
             break;
         }
-        case PACKET_HEADER_PING: {
+        case PACKET_TYPE_PING: {
             char pingPacket[dataBytes];
             memcpy(pingPacket, packetData, dataBytes);
-            pingPacket[0] = PACKET_HEADER_PING_REPLY;
+            pingPacket[0] = PACKET_TYPE_PING_REPLY;
             _nodeSocket.send(senderAddress, pingPacket, dataBytes);
             break;
         }
-        case PACKET_HEADER_PING_REPLY: {
+        case PACKET_TYPE_PING_REPLY: {
             timePingReply(senderAddress, packetData);
             break;
         }
@@ -123,7 +123,7 @@ void NodeList::processBulkNodeData(sockaddr *senderAddress, unsigned char *packe
     unsigned char *currentPosition = startPosition + 1;
     unsigned char packetHolder[numTotalBytes];
     
-    packetHolder[0] = PACKET_HEADER_HEAD_DATA;
+    packetHolder[0] = PACKET_TYPE_HEAD_DATA;
     
     uint16_t nodeID = -1;
     
@@ -237,19 +237,22 @@ void NodeList::sendDomainServerCheckIn() {
         int numBytesNodesOfInterest = _nodeTypesOfInterest ? strlen((char*) _nodeTypesOfInterest) : 0;
         
         // check in packet has header, node type, port, IP, node types of interest, null termination
-        int numPacketBytes = sizeof(PACKET_HEADER) + sizeof(PACKET_VERSION) + sizeof(NODE_TYPE) + sizeof(uint16_t) +
+        int numPacketBytes = sizeof(PACKET_TYPE) + sizeof(PACKET_VERSION) + sizeof(NODE_TYPE) + sizeof(uint16_t) +
             (sizeof(char) * 4) + numBytesNodesOfInterest + sizeof(unsigned char);
         
         checkInPacket = new unsigned char[numPacketBytes];
         unsigned char* packetPosition = checkInPacket;
         
-        *(packetPosition++) = (memchr(SOLO_NODE_TYPES, _ownerType, sizeof(SOLO_NODE_TYPES)))
-                ? PACKET_HEADER_DOMAIN_REPORT_FOR_DUTY
-                : PACKET_HEADER_DOMAIN_LIST_REQUEST;
-        *(packetPosition++) = packetVersion(*(packetPosition - 1));
+        PACKET_TYPE nodePacketType = (memchr(SOLO_NODE_TYPES, _ownerType, sizeof(SOLO_NODE_TYPES)))
+            ? PACKET_TYPE_DOMAIN_REPORT_FOR_DUTY
+            : PACKET_TYPE_DOMAIN_LIST_REQUEST;
+        
+        int numHeaderBytes = populateTypeAndVersion(packetPosition, nodePacketType);
+        packetPosition += numHeaderBytes;
+        
         *(packetPosition++) = _ownerType;
         
-        packetPosition += packSocket(checkInPacket + sizeof(PACKET_HEADER) + sizeof(PACKET_VERSION) + sizeof(NODE_TYPE),
+        packetPosition += packSocket(checkInPacket + numHeaderBytes + sizeof(NODE_TYPE),
                                      getLocalAddress(),
                                      htons(_nodeSocket.getListeningPort()));
         
@@ -418,8 +421,8 @@ void *pingUnknownNodes(void *args) {
             if (!node->getActiveSocket() && node->getPublicSocket() && node->getLocalSocket()) {
                 // ping both of the sockets for the node so we can figure out
                 // which socket we can use
-                nodeList->getNodeSocket()->send(node->getPublicSocket(), &PACKET_HEADER_PING, 1);
-                nodeList->getNodeSocket()->send(node->getLocalSocket(), &PACKET_HEADER_PING, 1);
+                nodeList->getNodeSocket()->send(node->getPublicSocket(), &PACKET_TYPE_PING, 1);
+                nodeList->getNodeSocket()->send(node->getLocalSocket(), &PACKET_TYPE_PING, 1);
             }
         }
         

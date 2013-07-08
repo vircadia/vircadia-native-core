@@ -169,7 +169,7 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     }
     
     // increment to push past the packet header
-    sourceBuffer += sizeof(PACKET_HEADER_HEAD_DATA);
+    sourceBuffer += sizeof(PACKET_TYPE_HEAD_DATA);
     
     unsigned char* startPosition = sourceBuffer;
     

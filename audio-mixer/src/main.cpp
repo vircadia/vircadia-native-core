@@ -103,8 +103,8 @@ int main(int argc, const char* argv[]) {
     int nextFrame = 0;
     timeval startTime;
     
-    unsigned char clientPacket[BUFFER_LENGTH_BYTES_STEREO + sizeof(PACKET_HEADER_MIXED_AUDIO)];
-    clientPacket[0] = PACKET_HEADER_MIXED_AUDIO;
+    unsigned char clientPacket[BUFFER_LENGTH_BYTES_STEREO + sizeof(PACKET_TYPE_MIXED_AUDIO)];
+    clientPacket[0] = PACKET_TYPE_MIXED_AUDIO;
     
     int16_t clientSamples[BUFFER_LENGTH_SAMPLES_PER_CHANNEL * 2] = {};
     
@@ -325,7 +325,7 @@ int main(int argc, const char* argv[]) {
                     }
                 }
                 
-                memcpy(clientPacket + sizeof(PACKET_HEADER_MIXED_AUDIO), clientSamples, sizeof(clientSamples));
+                memcpy(clientPacket + sizeof(PACKET_TYPE_MIXED_AUDIO), clientSamples, sizeof(clientSamples));
                 nodeList->getNodeSocket()->send(node->getPublicSocket(), clientPacket, sizeof(clientPacket));
             }
         }
@@ -346,8 +346,8 @@ int main(int argc, const char* argv[]) {
         
         // pull any new audio data from nodes off of the network stack
         while (nodeList->getNodeSocket()->receive(nodeAddress, packetData, &receivedBytes)) {
-            if (packetData[0] == PACKET_HEADER_MICROPHONE_AUDIO_NO_ECHO ||
-                packetData[0] == PACKET_HEADER_MICROPHONE_AUDIO_WITH_ECHO) {
+            if (packetData[0] == PACKET_TYPE_MICROPHONE_AUDIO_NO_ECHO ||
+                packetData[0] == PACKET_TYPE_MICROPHONE_AUDIO_WITH_ECHO) {
                 Node* avatarNode = nodeList->addOrUpdateNode(nodeAddress,
                                                                  nodeAddress,
                                                                  NODE_TYPE_AGENT,
@@ -363,7 +363,7 @@ int main(int argc, const char* argv[]) {
                     // kill off this node - temporary solution to mixer crash on mac sleep
                     avatarNode->setAlive(false);
                 }
-            } else if (packetData[0] == PACKET_HEADER_INJECT_AUDIO) {
+            } else if (packetData[0] == PACKET_TYPE_INJECT_AUDIO) {
                 Node* matchingInjector = NULL;
                 
                 for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
@@ -391,7 +391,7 @@ int main(int argc, const char* argv[]) {
                 
                 // give the new audio data to the matching injector node
                 nodeList->updateNodeWithData(matchingInjector, packetData, receivedBytes);
-            } else if (packetData[0] == PACKET_HEADER_PING) {
+            } else if (packetData[0] == PACKET_TYPE_PING) {
 
                 // If the packet is a ping, let processNodeData handle it.
                 nodeList->processNodeData(nodeAddress, packetData, receivedBytes);

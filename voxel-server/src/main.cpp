@@ -201,7 +201,7 @@ void resInVoxelDistributor(NodeList* nodeList,
         // send the environment packets
         if (shouldSendEnvironments) {
             int envPacketLength = 1;
-            *tempOutputBuffer = PACKET_HEADER_ENVIRONMENT_DATA;
+            *tempOutputBuffer = PACKET_TYPE_ENVIRONMENT_DATA;
             for (int i = 0; i < sizeof(environmentData) / sizeof(environmentData[0]); i++) {
                 envPacketLength += environmentData[i].getBroadcastData(tempOutputBuffer + envPacketLength);
             }
@@ -387,7 +387,7 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
         // send the environment packet
         if (shouldSendEnvironments) {
             int envPacketLength = 1;
-            *tempOutputBuffer = PACKET_HEADER_ENVIRONMENT_DATA;
+            *tempOutputBuffer = PACKET_TYPE_ENVIRONMENT_DATA;
             for (int i = 0; i < sizeof(environmentData) / sizeof(environmentData[0]); i++) {
                 envPacketLength += environmentData[i].getBroadcastData(tempOutputBuffer + envPacketLength);
             }
@@ -637,18 +637,18 @@ int main(int argc, const char * argv[]) {
         persistVoxelsWhenDirty();
     
         if (nodeList->getNodeSocket()->receive(&nodePublicAddress, packetData, &receivedBytes)) {
-            if (packetData[0] == PACKET_HEADER_SET_VOXEL || packetData[0] == PACKET_HEADER_SET_VOXEL_DESTRUCTIVE) {
-                bool destructive = (packetData[0] == PACKET_HEADER_SET_VOXEL_DESTRUCTIVE);
+            if (packetData[0] == PACKET_TYPE_SET_VOXEL || packetData[0] == PACKET_TYPE_SET_VOXEL_DESTRUCTIVE) {
+                bool destructive = (packetData[0] == PACKET_TYPE_SET_VOXEL_DESTRUCTIVE);
                 PerformanceWarning warn(::shouldShowAnimationDebug,
-                                        destructive ? "PACKET_HEADER_SET_VOXEL_DESTRUCTIVE" : "PACKET_HEADER_SET_VOXEL",
+                                        destructive ? "PACKET_TYPE_SET_VOXEL_DESTRUCTIVE" : "PACKET_TYPE_SET_VOXEL",
                                         ::shouldShowAnimationDebug);
                 unsigned short int itemNumber = (*((unsigned short int*)&packetData[1]));
                 if (::shouldShowAnimationDebug) {
                     printf("got %s - command from client receivedBytes=%ld itemNumber=%d\n",
-                        destructive ? "PACKET_HEADER_SET_VOXEL_DESTRUCTIVE" : "PACKET_HEADER_SET_VOXEL",
+                        destructive ? "PACKET_TYPE_SET_VOXEL_DESTRUCTIVE" : "PACKET_TYPE_SET_VOXEL",
                         receivedBytes,itemNumber);
                 }
-                int atByte = sizeof(PACKET_HEADER) + sizeof(itemNumber);
+                int atByte = sizeof(PACKET_TYPE) + sizeof(itemNumber);
                 unsigned char* voxelData = (unsigned char*)&packetData[atByte];
                 while (atByte < receivedBytes) {
                     unsigned char octets = (unsigned char)*voxelData;
@@ -691,20 +691,20 @@ int main(int argc, const char * argv[]) {
                     atByte += voxelDataSize;
                 }
             }
-            if (packetData[0] == PACKET_HEADER_ERASE_VOXEL) {
+            if (packetData[0] == PACKET_TYPE_ERASE_VOXEL) {
 
                 // Send these bits off to the VoxelTree class to process them
                 pthread_mutex_lock(&::treeLock);
                 serverTree.processRemoveVoxelBitstream((unsigned char*)packetData, receivedBytes);
                 pthread_mutex_unlock(&::treeLock);
             }
-            if (packetData[0] == PACKET_HEADER_Z_COMMAND) {
+            if (packetData[0] == PACKET_TYPE_Z_COMMAND) {
 
                 // the Z command is a special command that allows the sender to send the voxel server high level semantic
                 // requests, like erase all, or add sphere scene
                 char* command = (char*) &packetData[1]; // start of the command
                 int commandLength = strlen(command); // commands are null terminated strings
-                int totalLength = sizeof(PACKET_HEADER_Z_COMMAND) + commandLength + 1; // 1 for null termination
+                int totalLength = sizeof(PACKET_TYPE_Z_COMMAND) + commandLength + 1; // 1 for null termination
                 printf("got Z message len(%ld)= %s\n", receivedBytes, command);
                 bool rebroadcast = true; // by default rebroadcast
 
@@ -731,11 +731,11 @@ int main(int argc, const char * argv[]) {
                     nodeList->broadcastToNodes(packetData, receivedBytes, &NODE_TYPE_AGENT, 1);
                 }
             }
-            // If we got a PACKET_HEADER_HEAD_DATA, then we're talking to an NODE_TYPE_AVATAR, and we
+            // If we got a PACKET_TYPE_HEAD_DATA, then we're talking to an NODE_TYPE_AVATAR, and we
             // need to make sure we have it in our nodeList.
-            if (packetData[0] == PACKET_HEADER_HEAD_DATA) {
+            if (packetData[0] == PACKET_TYPE_HEAD_DATA) {
                 uint16_t nodeID = 0;
-                unpackNodeId(packetData + sizeof(PACKET_HEADER_HEAD_DATA), &nodeID);
+                unpackNodeId(packetData + sizeof(PACKET_TYPE_HEAD_DATA), &nodeID);
                 Node* node = nodeList->addOrUpdateNode(&nodePublicAddress,
                                                            &nodePublicAddress,
                                                            NODE_TYPE_AGENT,
@@ -744,7 +744,7 @@ int main(int argc, const char * argv[]) {
                 nodeList->updateNodeWithData(node, packetData, receivedBytes);
             }
             // If the packet is a ping, let processNodeData handle it.
-            if (packetData[0] == PACKET_HEADER_PING) {
+            if (packetData[0] == PACKET_TYPE_PING) {
                 nodeList->processNodeData(&nodePublicAddress, packetData, receivedBytes);
             }
         }
