@@ -144,7 +144,8 @@ int main(int argc, char* argv[]) {
             nodeList->linkedDataCreateCallback = createAvatarDataForNode;
     
             timeval lastSend = {};
-            unsigned char broadcastPacket = PACKET_TYPE_INJECT_AUDIO;
+            int numBytesPacketHeader = numBytesForPacketHeader((unsigned char*) &PACKET_TYPE_INJECT_AUDIO);
+            unsigned char* broadcastPacket = new unsigned char[numBytesPacketHeader];
             
             timeval lastDomainServerCheckIn = {};
             
@@ -210,8 +211,8 @@ int main(int argc, char* argv[]) {
                         
                         // use the UDPSocket instance attached to our node list to ask avatar mixer for a list of avatars
                         nodeList->getNodeSocket()->send(avatarMixer->getActiveSocket(),
-                                                          &broadcastPacket,
-                                                          sizeof(broadcastPacket));
+                                                        &broadcastPacket,
+                                                        numBytesPacketHeader);
                     }
                 } else {
                     if (!injector.isInjectingAudio() && (::shouldLoopAudio || !::hasInjectedAudioOnce)) {

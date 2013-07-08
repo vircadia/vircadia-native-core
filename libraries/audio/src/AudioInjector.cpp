@@ -70,7 +70,7 @@ void AudioInjector::injectAudio(UDPSocket* injectorSocket, sockaddr* destination
         timeval startTime;
         
         // calculate the number of bytes required for additional data
-        int leadingBytes = sizeof(PACKET_TYPE)
+        int leadingBytes = numBytesForPacketHeader((unsigned char*) &PACKET_TYPE_INJECT_AUDIO)
             + sizeof(_streamIdentifier)
             + sizeof(_position)
             + sizeof(_orientation)
@@ -79,8 +79,7 @@ void AudioInjector::injectAudio(UDPSocket* injectorSocket, sockaddr* destination
         
         unsigned char dataPacket[(BUFFER_LENGTH_SAMPLES_PER_CHANNEL * sizeof(int16_t)) + leadingBytes];
         
-        dataPacket[0] = PACKET_TYPE_INJECT_AUDIO;
-        unsigned char *currentPacketPtr = dataPacket + sizeof(PACKET_TYPE_INJECT_AUDIO);
+        unsigned char *currentPacketPtr = dataPacket + populateTypeAndVersion(dataPacket, PACKET_TYPE_INJECT_AUDIO);
         
         // copy the identifier for this injector
         memcpy(currentPacketPtr, &_streamIdentifier, sizeof(_streamIdentifier));
