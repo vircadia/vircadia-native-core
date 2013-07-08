@@ -35,8 +35,10 @@ const PACKET_TYPE PACKET_TYPE_DOMAIN_LIST_REQUEST = 'L';
 const PACKET_TYPE PACKET_TYPE_DOMAIN_REPORT_FOR_DUTY = 'C';
 
 typedef char PACKET_VERSION;
-PACKET_VERSION versionForPacketType(PACKET_TYPE header);
-int populateTypeAndVersion(unsigned char* destination, PACKET_TYPE header);
+
+PACKET_VERSION versionForPacketType(PACKET_TYPE type);
+
+int populateTypeAndVersion(unsigned char* destination, PACKET_TYPE type);
 
 const int MAX_PACKET_HEADER_BYTES = sizeof(PACKET_TYPE) + sizeof(PACKET_VERSION);
 

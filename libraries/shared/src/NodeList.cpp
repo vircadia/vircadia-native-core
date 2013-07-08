@@ -97,7 +97,7 @@ void NodeList::processNodeData(sockaddr *senderAddress, unsigned char *packetDat
         case PACKET_TYPE_PING: {
             char pingPacket[dataBytes];
             memcpy(pingPacket, packetData, dataBytes);
-            pingPacket[0] = PACKET_TYPE_PING_REPLY;
+            populateTypeAndVersion((unsigned char*) pingPacket, PACKET_TYPE_PING_REPLY);
             _nodeSocket.send(senderAddress, pingPacket, dataBytes);
             break;
         }
