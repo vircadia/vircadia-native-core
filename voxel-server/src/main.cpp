@@ -65,6 +65,9 @@ bool wantSearchForColoredNodes = false;
 EnvironmentData environmentData[3];
 
 
+void scanTreeWithOcclusion(VoxelTree* tree, ViewFrustum* viewFrustum, CoverageMap* coverageMap);
+
+
 void randomlyFillVoxelTree(int levelsToGo, VoxelNode *currentRootNode) {
     // randomly generate children for this node
     // the first level of the tree (where levelsToGo = MAX_VOXEL_TREE_DEPTH_LEVELS) has all 8
@@ -303,6 +306,10 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
         } else {
             nodeData->nodeBag.insert(serverTree.rootNode);
         }
+        
+        
+        // hack, just test scanning the tree here!
+        //scanTreeWithOcclusion(&serverTree, &nodeData->getCurrentViewFrustum(), &nodeData->map);
 
     }
     long long end = usecTimestampNow();
@@ -752,4 +759,214 @@ int main(int argc, const char * argv[]) {
     pthread_mutex_destroy(&::treeLock);
 
     return 0;
+}
+
+
+
+struct ScanTreeArgs {
+    ViewFrustum* viewFrustum;
+    CoverageMap* map;
+//    CoverageMapV2* mapV2;
+    VoxelTree* tree;
+    long totalVoxels;
+    long coloredVoxels;
+    long occludedVoxels;
+    long notOccludedVoxels;
+
+    long outOfView; // not in the view frustum
+    long leavesOutOfView; // not in the view frustum
+    
+    long tooFar;  // out of LOD
+    long leavesTooFar;  // out of LOD
+
+    long notAllInView; // in the view frustum, but the projection can't be calculated, assume it needs to be sent
+    long subtreeVoxelsSkipped;
+
+    long nonLeaves;
+    long nonLeavesNotAllInView;
+    long nonLeavesOutOfView; // not in the view frustum
+    long nonLeavesOccluded;
+    long nonLeavesTooFar;
+
+    long stagedForDeletion;
+    long doesntFit;
+};
+
+struct CountSubTreeOperationArgs {
+    long voxelsTouched;
+};
+
+
+bool scanTreeWithOcclusionOperation(VoxelNode* node, void* extraData) {
+
+    ScanTreeArgs* args = (ScanTreeArgs*) extraData;
+    args->totalVoxels++;
+
+    // if this node is not in the view frustum, then just return, since we know none of it's children will be 
+    // in the view.
+    if (!node->isInView(*args->viewFrustum)) {
+        args->outOfView++;
+        if (node->isLeaf()) {
+            args->leavesOutOfView++;
+        } else {
+            args->nonLeavesOutOfView++;
+        }
+        return false;
+    }
+
+/*    
+    // If this node is too far for LOD...
+    float distance = node->distanceToCamera(*args->viewFrustum);
+    float boundaryDistance = boundaryDistanceForRenderLevel(numberOfThreeBitSectionsInCode(node->getOctalCode())+1);
+
+    if (distance >= boundaryDistance) {
+        args->tooFar++;
+        if (node->isLeaf()) {
+            args->leavesTooFar++;
+        } else {
+            args->nonLeavesTooFar++;
+        }
+        return false;
+    }
+*/
+    
+    
+    //return true; // just check inview or not
+    
+    // If we are a parent, let's see if we're completely occluded.
+    if (!node->isLeaf()) {
+        args->nonLeaves++;
+
+        AABox voxelBox = node->getAABox();
+        voxelBox.scale(TREE_SCALE);
+        VoxelProjectedPolygon* voxelPolygon = new VoxelProjectedPolygon(args->viewFrustum->getProjectedPolygon(voxelBox));
+
+        // If we're not all in view, then ignore it, and just return. But keep searching...
+        if (!voxelPolygon->getAllInView()) {
+            args->nonLeavesNotAllInView++;
+            delete voxelPolygon;
+            
+            // we can't determine occlusion, so assume it's not
+            return true;
+        }
+
+        CoverageMapStorageResult result = args->map->checkMap(voxelPolygon, false);
+        if (result == OCCLUDED) {
+            args->nonLeavesOccluded++;
+            delete voxelPolygon;
+
+            /** Maybe we want to do this? But it's really only for debug accounting ******            
+            CountSubTreeOperationArgs subArgs;
+            subArgs.voxelsTouched = 0;
+            
+            args->tree->recurseNodeWithOperation(node, countSubTreeOperation, &subArgs );
+            args->subtreeVoxelsSkipped += (subArgs.voxelsTouched - 1);
+            args->totalVoxels += (subArgs.voxelsTouched - 1);
+            *****/
+            
+            return false;
+        }
+
+        delete voxelPolygon;
+        return true; // keep looking...
+    }
+
+    // we don't want to check shouldRender in the server... that's not used
+    if (node->isLeaf() && node->isColored() /*&& node->getShouldRender()*/) {
+        args->coloredVoxels++;
+
+        AABox voxelBox = node->getAABox();
+        voxelBox.scale(TREE_SCALE);
+        VoxelProjectedPolygon* voxelPolygon = new VoxelProjectedPolygon(args->viewFrustum->getProjectedPolygon(voxelBox));
+
+        // If we're not all in view, then ignore it, and just return. But keep searching...
+        if (!voxelPolygon->getAllInView()) {
+            args->notAllInView++;
+            delete voxelPolygon;
+
+            // But, this is one we do want to send...
+
+            return true;
+        }
+
+        CoverageMapStorageResult result = args->map->checkMap(voxelPolygon, true);
+        if (result == OCCLUDED) {
+            args->occludedVoxels++;
+            // This is one we don't want to send...
+            
+        } else if (result == STORED) {
+            args->notOccludedVoxels++;
+            // This is one we do want to send...
+        } else if (result == DOESNT_FIT) {
+            args->doesntFit++;
+            // Not sure what to do with this one... probably send it?
+        }
+    }
+    return true; // keep going!
+}
+
+void scanTreeWithOcclusion(VoxelTree* tree, ViewFrustum* viewFrustum, CoverageMap* coverageMap) {
+    PerformanceWarning warn(true, "scanTreeWithOcclusion()",true);
+    //CoverageMap::wantDebugging = false;
+    //coverageMap->erase();
+    
+    ScanTreeArgs args;
+    args.viewFrustum = viewFrustum;
+    args.map = coverageMap; 
+    args.totalVoxels = 0;
+    args.coloredVoxels = 0;
+    args.occludedVoxels = 0;
+    args.notOccludedVoxels = 0;
+    args.notAllInView = 0;
+    args.outOfView = 0;
+    args.leavesOutOfView = 0;
+    args.nonLeavesOutOfView = 0;
+    args.subtreeVoxelsSkipped = 0;
+    args.nonLeaves = 0;
+    args.stagedForDeletion = 0;
+    args.nonLeavesNotAllInView = 0;
+    args.nonLeavesOccluded = 0;
+    args.doesntFit = 0;
+    args.tooFar = 0;
+    args.leavesTooFar = 0;
+    args.nonLeavesTooFar = 0;
+    args.tree = tree;
+
+    VoxelProjectedPolygon::pointInside_calls = 0;
+    VoxelProjectedPolygon::occludes_calls = 0;
+    VoxelProjectedPolygon::intersects_calls = 0;
+    
+    glm::vec3 position = args.viewFrustum->getPosition() * (1.0f/TREE_SCALE);
+
+    tree->recurseTreeWithOperationDistanceSorted(scanTreeWithOcclusionOperation, position, (void*)&args);
+
+    printf("scanTreeWithOcclusion()\n");
+    printf("    position=(%f,%f)\n", position.x, position.y);
+    printf("    total=%ld\n", args.totalVoxels);
+    printf("    colored=%ld\n", args.coloredVoxels);
+    printf("\n");
+    printf("    occluded=%ld\n", args.occludedVoxels);
+    printf("    notOccluded=%ld\n", args.notOccludedVoxels);
+    printf("    nonLeavesOccluded=%ld\n", args.nonLeavesOccluded);
+    printf("\n");
+    printf("    outOfView=%ld\n", args.outOfView);
+    printf("    leavesOutOfView=%ld\n", args.leavesOutOfView);
+    printf("    nonLeavesOutOfView=%ld\n", args.nonLeavesOutOfView);
+    printf("\n");
+    printf("    tooFar=%ld\n", args.tooFar);
+    printf("    leavesTooFar=%ld\n", args.leavesTooFar);
+    printf("    nonLeavesTooFar=%ld\n", args.nonLeavesTooFar);
+    printf("\n");
+    printf("    nonLeaves=%ld\n", args.nonLeaves);
+    printf("    notAllInView=%ld\n", args.notAllInView);
+    printf("    nonLeavesNotAllInView=%ld\n", args.nonLeavesNotAllInView);
+    printf("    subtreeVoxelsSkipped=%ld\n", args.subtreeVoxelsSkipped);
+    printf("    stagedForDeletion=%ld\n", args.stagedForDeletion);
+    printf("    pointInside_calls=%ld\n", VoxelProjectedPolygon::pointInside_calls);
+    printf("    occludes_calls=%ld\n", VoxelProjectedPolygon::occludes_calls);
+    printf("    intersects_calls=%ld\n", VoxelProjectedPolygon::intersects_calls);
+    
+    CoverageMap::wantDebugging = true;
+    coverageMap->erase();// print debug results...
+    
 }
