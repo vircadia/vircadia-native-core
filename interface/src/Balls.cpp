@@ -19,7 +19,7 @@
 #include "world.h"
 
 const float INITIAL_AREA = 0.2f;
-const float BALL_RADIUS = 0.025f;
+const float BALL_RADIUS = 0.016f;
 const glm::vec3 INITIAL_COLOR(0.62f, 0.74f, 0.91f);
 
 Balls::Balls(int numberOfBalls) {
@@ -83,8 +83,9 @@ void Balls::render() {
 }
 
 const float CONSTANT_VELOCITY_DAMPING = 1.0f;
-const float NOISE_SCALE = 0.00;
-const float SPRING_FORCE = 1.0;
+const float NOISE_SCALE = 0.06;
+const float SPRING_FORCE = 30.0;
+const float ORIGIN_DISTANCE = 0.1;
 const float SPRING_DAMPING = 1.0;
 
 void Balls::simulate(float deltaTime) {
@@ -100,10 +101,21 @@ void Balls::simulate(float deltaTime) {
         // Add noise
         _balls[i].velocity += randVector() * NOISE_SCALE;
         
+        //  spring force to origin
+        float separation = glm::distance(_balls[i].position,
+                                         _origin);
+
+        _balls[i].velocity +=
+            glm::normalize(_balls[i].position - _origin)
+            * deltaTime
+            *
+        SPRING_FORCE *
+        (ORIGIN_DISTANCE - separation);
+        
         // Approach target position
-        for (unsigned int i = 0; i < _numberOfBalls; ++i) {
-            _balls[i].position += randFloat() * deltaTime * (_balls[i].targetPosition - _balls[i].position);
-        }
+//        for (unsigned int i = 0; i < _numberOfBalls; ++i) {
+//            _balls[i].position += randFloat() * deltaTime * (_balls[i].targetPosition - _balls[i].position);
+//        }
 
         // Spring Force
         

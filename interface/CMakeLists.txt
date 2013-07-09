@@ -74,7 +74,7 @@ add_subdirectory(external/fervor/)
 include_directories(external/fervor/)
 
 # run qt moc on qt-enabled headers
-qt4_wrap_cpp(INTERFACE_SRCS src/Application.h src/AvatarVoxelSystem.h src/Webcam.h)
+qt4_wrap_cpp(INTERFACE_SRCS src/Application.h src/AvatarVoxelSystem.h src/Webcam.h src/ui/BandwidthDialog.h)
 
 # create the executable, make it a bundle on OS X
 add_executable(${TARGET_NAME} MACOSX_BUNDLE ${INTERFACE_SRCS})
@@ -95,6 +95,15 @@ find_package(Leap)
 find_package(OpenCV)
 find_package(ZLIB)
 find_package(UVCCameraControl)
+find_package(OpenNI)
+
+# let the source know that we have OpenNI/NITE for Kinect
+if (OPENNI_FOUND)
+    add_definitions(-DHAVE_OPENNI)
+    include_directories(SYSTEM ${OPENNI_INCLUDE_DIRS})
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${OPENNI_INCLUDE_DIRS}")
+    target_link_libraries(${TARGET_NAME} ${OPENNI_LIBRARIES})
+endif (OPENNI_FOUND)
 
 # include headers for interface and InterfaceConfig.
 include_directories(
@@ -112,6 +121,7 @@ include_directories(
   ${OPENCV_INCLUDE_DIRS}
 )
 
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${OPENCV_INCLUDE_DIRS}")
 target_link_libraries(
   ${TARGET_NAME} 
   ${QT_LIBRARIES}
@@ -153,8 +163,12 @@ if (APPLE)
         ${QuartzCore}
         ${UVCCAMERACONTROL_LIBRARIES}
         ${LIBOVR_LIBRARIES}
-        ${LEAP_LIBRARIES}
     )
+    
+    if (LEAP_FOUND)
+      target_link_libraries(${TARGET_NAME} ${LEAP_LIBRARIES})
+    endif(LEAP_FOUND)
+    
 else (APPLE)
     find_package(OpenGL REQUIRED)
     find_package(GLUT REQUIRED)

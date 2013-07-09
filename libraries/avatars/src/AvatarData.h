@@ -11,11 +11,12 @@
 
 #include <string>
 #include <inttypes.h>
+#include <vector>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-#include <AgentData.h>
+#include <NodeData.h>
 #include "HeadData.h"
 #include "HandData.h"
 
@@ -36,9 +37,11 @@ enum KeyState
     DELETE_KEY_DOWN
 };
 
-class AvatarData : public AgentData {
+class JointData;
+
+class AvatarData : public NodeData {
 public:
-    AvatarData(Agent* owningAgent = NULL);
+    AvatarData(Node* owningNode = NULL);
     ~AvatarData();
     
     const glm::vec3& getPosition() const { return _position; }
@@ -132,14 +135,23 @@ protected:
     bool _wantDelta;
     bool _wantOcclusionCulling;
     
+    std::vector<JointData> _joints;
+    
     HeadData* _headData;
     HandData* _handData;
+    
 private:
     // privatize the copy constructor and assignment operator so they cannot be called
     AvatarData(const AvatarData&);
     AvatarData& operator= (const AvatarData&);
 };
 
+class JointData {
+public:
+    
+    int jointID;
+    glm::quat rotation;
+};
 
 // These pack/unpack functions are designed to start specific known types in as efficient a manner
 // as possible. Taking advantage of the known characteristics of the semantic types.

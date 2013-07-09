@@ -14,7 +14,7 @@
 
 #include "PositionalAudioRingBuffer.h"
 
-typedef std::map<uint16_t, stk::TwoPole*> TwoPoleAgentMap;
+typedef std::map<uint16_t, stk::TwoPole*> TwoPoleNodeMap;
 
 class AvatarAudioRingBuffer : public PositionalAudioRingBuffer {
 public:
@@ -23,16 +23,16 @@ public:
     
     int parseData(unsigned char* sourceBuffer, int numBytes);
     
-    TwoPoleAgentMap& getTwoPoles() { return _twoPoles; }
+    TwoPoleNodeMap& getTwoPoles() { return _twoPoles; }
     
-    bool shouldLoopbackForAgent() const { return _shouldLoopbackForAgent; }
+    bool shouldLoopbackForNode() const { return _shouldLoopbackForNode; }
 private:
     // disallow copying of AvatarAudioRingBuffer objects
     AvatarAudioRingBuffer(const AvatarAudioRingBuffer&);
     AvatarAudioRingBuffer& operator= (const AvatarAudioRingBuffer&);
     
-    TwoPoleAgentMap _twoPoles;
-    bool _shouldLoopbackForAgent;
+    TwoPoleNodeMap _twoPoles;
+    bool _shouldLoopbackForNode;
 };
 
 #endif /* defined(__hifi__AvatarAudioRingBuffer__) */
