@@ -16,7 +16,7 @@
 #include "CoverageMap.h"
 
 // Callback function, for recuseTreeWithOperation
-typedef bool (*RecurseVoxelTreeOperation)(VoxelNode* node, void* extraData);
+typedef bool (*RecurseVoxelTreeOperation)(VoxelNode* node, int level, void* extraData);
 typedef enum {GRADIENT, RANDOM, NATURAL} creationMode;
 
 #define NO_EXISTS_BITS         false
@@ -144,8 +144,8 @@ public:
     
     bool getShouldReaverage() const { return _shouldReaverage; }
 
-    void recurseNodeWithOperation(VoxelNode* node, RecurseVoxelTreeOperation operation, void* extraData);
-    void recurseNodeWithOperationDistanceSorted(VoxelNode* node, RecurseVoxelTreeOperation operation, 
+    void recurseNodeWithOperation(VoxelNode* node, int& level, RecurseVoxelTreeOperation operation, void* extraData);
+    void recurseNodeWithOperationDistanceSorted(VoxelNode* node, int& level, RecurseVoxelTreeOperation operation, 
                 const glm::vec3& point, void* extraData);
     
 private:
@@ -159,7 +159,7 @@ private:
                                        VoxelNode* node, const ViewFrustum& viewFrustum, VoxelNodeBag& bag,
                                        bool deltaViewFrustum, const ViewFrustum* lastViewFrustum);
 
-    static bool countVoxelsOperation(VoxelNode* node, void* extraData);
+    static bool countVoxelsOperation(VoxelNode* node, int level, void* extraData);
 
     VoxelNode* nodeForOctalCode(VoxelNode* ancestorNode, unsigned char* needleCode, VoxelNode** parentOfFoundNode) const;
     VoxelNode* createMissingNode(VoxelNode* lastParentNode, unsigned char* deepestCodeToCreate);
@@ -171,6 +171,7 @@ private:
     bool _shouldReaverage;
 };
 
-int boundaryDistanceForRenderLevel(unsigned int renderLevel);
+float boundaryDistanceForRenderLevel(unsigned int renderLevel);
+float boundaryDistanceSquaredForRenderLevel(unsigned int renderLevel);
 
 #endif /* defined(__hifi__VoxelTree__) */

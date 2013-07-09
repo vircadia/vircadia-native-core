@@ -120,18 +120,18 @@ private:
     bool _renderWarningsOn;
     // Operation functions for tree recursion methods
     static int _nodeCount;
-    static bool randomColorOperation(VoxelNode* node, void* extraData);
-    static bool falseColorizeRandomOperation(VoxelNode* node, void* extraData);
-    static bool trueColorizeOperation(VoxelNode* node, void* extraData);
-    static bool falseColorizeInViewOperation(VoxelNode* node, void* extraData);
-    static bool falseColorizeDistanceFromViewOperation(VoxelNode* node, void* extraData);
-    static bool getDistanceFromViewRangeOperation(VoxelNode* node, void* extraData);
-    static bool removeOutOfViewOperation(VoxelNode* node, void* extraData);
-    static bool falseColorizeRandomEveryOtherOperation(VoxelNode* node, void* extraData);
-    static bool collectStatsForTreesAndVBOsOperation(VoxelNode* node, void* extraData);
-    static bool falseColorizeOccludedOperation(VoxelNode* node, void* extraData);
-    static bool falseColorizeSubTreeOperation(VoxelNode* node, void* extraData);
-    static bool falseColorizeOccludedV2Operation(VoxelNode* node, void* extraData);
+    static bool randomColorOperation(VoxelNode* node, int level, void* extraData);
+    static bool falseColorizeRandomOperation(VoxelNode* node, int level, void* extraData);
+    static bool trueColorizeOperation(VoxelNode* node, int level, void* extraData);
+    static bool falseColorizeInViewOperation(VoxelNode* node, int level, void* extraData);
+    static bool falseColorizeDistanceFromViewOperation(VoxelNode* node, int level, void* extraData);
+    static bool getDistanceFromViewRangeOperation(VoxelNode* node, int level, void* extraData);
+    static bool removeOutOfViewOperation(VoxelNode* node, int level, void* extraData);
+    static bool falseColorizeRandomEveryOtherOperation(VoxelNode* node, int level, void* extraData);
+    static bool collectStatsForTreesAndVBOsOperation(VoxelNode* node, int level, void* extraData);
+    static bool falseColorizeOccludedOperation(VoxelNode* node, int level, void* extraData);
+    static bool falseColorizeSubTreeOperation(VoxelNode* node, int level, void* extraData);
+    static bool falseColorizeOccludedV2Operation(VoxelNode* node, int level, void* extraData);
 
 
     int updateNodeInArraysAsFullVBO(VoxelNode* node);

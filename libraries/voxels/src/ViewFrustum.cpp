@@ -266,6 +266,7 @@ ViewFrustum::location ViewFrustum::sphereInFrustum(const glm::vec3& center, floa
 
 
 ViewFrustum::location ViewFrustum::boxInFrustum(const AABox& box) const {
+
     ViewFrustum::location regularResult = INSIDE;
     ViewFrustum::location keyholeResult = OUTSIDE;
 
@@ -274,15 +275,16 @@ ViewFrustum::location ViewFrustum::boxInFrustum(const AABox& box) const {
         keyholeResult = boxInKeyhole(box);
     }
     if (keyholeResult == INSIDE) {
+//printLog("ViewFrustum::boxInFrustum() keyholeResult == INSIDE _keyholeRadius=%f\n",_keyholeRadius);
         return keyholeResult;
     }
 
     for(int i=0; i < 6; i++) {
-        glm::vec3 normal = _planes[i].getNormal();
-        glm::vec3 boxVertexP = box.getVertexP(normal);
+        const glm::vec3& normal = _planes[i].getNormal();
+        const glm::vec3& boxVertexP = box.getVertexP(normal);
         float planeToBoxVertexPDistance = _planes[i].distance(boxVertexP);
 
-        glm::vec3 boxVertexN = box.getVertexN(normal);
+        const glm::vec3& boxVertexN = box.getVertexN(normal);
         float planeToBoxVertexNDistance = _planes[i].distance(boxVertexN);
         
         if (planeToBoxVertexPDistance < 0) {
