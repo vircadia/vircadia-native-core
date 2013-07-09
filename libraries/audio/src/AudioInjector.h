@@ -9,7 +9,7 @@
 #ifndef __hifi__AudioInjector__
 #define __hifi__AudioInjector__
 
-#include <glm/gtx/quaternion.hpp>
+#include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/component_wise.hpp>
 
 #include <UDPSocket.h>
