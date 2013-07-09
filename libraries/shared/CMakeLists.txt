@@ -3,6 +3,9 @@ cmake_minimum_required(VERSION 2.8)
 set(TARGET_NAME shared)
 project(${TARGET_NAME})
 
+# setup for find modules
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake/modules/")
+
 # grab the implemenation and header files
 file(GLOB HIFI_SHARED_SRCS src/*.h src/*.cpp)
 
@@ -27,3 +30,6 @@ if (UNIX AND NOT APPLE)
     target_link_libraries(${TARGET_NAME} ${CMAKE_THREAD_LIBS_INIT})
 endif (UNIX AND NOT APPLE)
 
+# include GLM
+include(${MACRO_DIR}/IncludeGLM.cmake)
+include_glm(${TARGET_NAME} ${ROOT_DIR})
