@@ -22,11 +22,11 @@
 #include <CoreFoundation/CoreFoundation.h>
 #endif
 
-long long usecTimestamp(timeval *time) {
+unsigned long long usecTimestamp(timeval *time) {
     return (time->tv_sec * 1000000 + time->tv_usec);
 }
 
-long long usecTimestampNow() {
+unsigned long long usecTimestampNow() {
     timeval now;
     gettimeofday(&now, NULL);
     return (now.tv_sec * 1000000 + now.tv_usec);

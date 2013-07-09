@@ -36,8 +36,8 @@ static const float DECIMETER        = 0.1f;
 static const float CENTIMETER       = 0.01f;
 static const float MILLIIMETER      = 0.001f;
 
-long long usecTimestamp(timeval *time);
-long long usecTimestampNow();
+unsigned long long usecTimestamp(timeval *time);
+unsigned long long usecTimestampNow();
 
 float randFloat();
 int randIntInRange (int min, int max);
