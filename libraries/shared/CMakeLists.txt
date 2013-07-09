@@ -1,10 +1,13 @@
 cmake_minimum_required(VERSION 2.8)
 
-set(TARGET_NAME shared)
-project(${TARGET_NAME})
+set(ROOT_DIR ../..)
+set(MACRO_DIR ${ROOT_DIR}/cmake/macros)
 
 # setup for find modules
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../../cmake/modules/")
+
+set(TARGET_NAME shared)
+project(${TARGET_NAME})
 
 # grab the implemenation and header files
 file(GLOB HIFI_SHARED_SRCS src/*.h src/*.cpp)
