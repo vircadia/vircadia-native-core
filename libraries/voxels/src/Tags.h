@@ -29,8 +29,8 @@ class Tag {
  public:
   Tag(int tagId, std::stringstream &ss);
   
-  int         tagId() const {return _tagId;}
-  std::string name () const {return _name; }
+  int         getTagId() const {return _tagId;}
+  std::string getName () const {return _name; }
   
   static Tag* readTag(int tagId, std::stringstream &ss);
 };
@@ -42,7 +42,7 @@ class TagByte : public Tag  {
  public:
   TagByte(std::stringstream &ss);
   
-  int8_t data() const {return _data;}
+  int8_t getData() const {return _data;}
 };
 
 class TagShort : public Tag  {
@@ -52,7 +52,7 @@ class TagShort : public Tag  {
  public:
   TagShort(std::stringstream &ss);
   
-  int16_t data() const {return _data;}
+  int16_t getData() const {return _data;}
 };
 
 class TagInt : public Tag  {
@@ -62,7 +62,7 @@ class TagInt : public Tag  {
  public:
   TagInt(std::stringstream &ss);
   
-  int32_t data() const {return _data;}
+  int32_t getData() const {return _data;}
 };
 
 class TagLong : public Tag  {
@@ -72,7 +72,17 @@ class TagLong : public Tag  {
  public:
   TagLong(std::stringstream &ss);
   
-  int64_t data() const {return _data;}
+  int64_t getData() const {return _data;}
+};
+
+class TagFloat : public Tag  {
+ public:
+  TagFloat(std::stringstream &ss);
+};
+
+class TagDouble : public Tag  {
+ public:
+  TagDouble(std::stringstream &ss);
 };
 
 class TagByteArray : public Tag {
@@ -83,8 +93,8 @@ class TagByteArray : public Tag {
  public:
   TagByteArray(std::stringstream &ss);
   
-  int   size() const {return _size;}
-  char* data() const {return _data;}
+  int   getSize() const {return _size;}
+  char* getData() const {return _data;}
 };
 
 class TagString : public Tag {
@@ -95,27 +105,27 @@ class TagString : public Tag {
  public:
   TagString(std::stringstream &ss);
   
-  int         size() const {return _size;}
-  std::string data() const {return _data;}
+  int         getSize() const {return _size;}
+  std::string getData() const {return _data;}
 };
 
 class TagList : public Tag {
  private:
-  int            _tagId;
-  int            _size;
+  int             _tagId;
+  int             _size;
   std::list<Tag*> _data;
   
  public:
   TagList(std::stringstream &ss);
   
-  int             tagId() const {return _tagId;}
-  int             size () const {return _size; }
-  std::list<Tag*> data () const {return _data; }
+  int             getTagId() const {return _tagId;}
+  int             getSize () const {return _size; }
+  std::list<Tag*> getData () const {return _data; }
 };
 
 class TagCompound : public Tag {
  private:
-  int            _size;
+  int             _size;
   std::list<Tag*> _data;
   
   // Specific to schematics file
@@ -128,14 +138,14 @@ class TagCompound : public Tag {
  public:
   TagCompound(std::stringstream &ss);
   
-  int             size      () const {return _size;      }
-  std::list<Tag*> data      () const {return _data;      }
+  int             getSize      () const {return _size;      }
+  std::list<Tag*> getData      () const {return _data;      }
 
-  int             width     () const {return _width;     }
-  int             length    () const {return _length;    }
-  int             height    () const {return _height;    }
-  char*           blockId   () const {return _blocksId;  }
-  char*           blocksData() const {return _blocksData;}
+  int             getWidth     () const {return _width;     }
+  int             getLength    () const {return _length;    }
+  int             getHeight    () const {return _height;    }
+  char*           getBlocksId  () const {return _blocksId;  }
+  char*           getBlocksData() const {return _blocksData;}
 };
 
 class TagIntArray : public Tag {
@@ -147,6 +157,6 @@ class TagIntArray : public Tag {
   TagIntArray(std::stringstream &ss);
   ~TagIntArray() {delete _data;}
   
-  int  size() const {return _size;}
-  int* data() const {return _data;}
+  int  getSize() const {return _size;}
+  int* getData() const {return _data;}
 };
