@@ -65,7 +65,8 @@ bool wantSearchForColoredNodes = false;
 EnvironmentData environmentData[3];
 
 
-void scanTreeWithOcclusion(VoxelTree* tree, ViewFrustum* viewFrustum, CoverageMap* coverageMap);
+VoxelNode* leftOffAt = NULL;
+void scanTreeWithOcclusion(VoxelTree* tree, ViewFrustum* viewFrustum, CoverageMap* coverageMap, VoxelNode*& leftOffAt);
 
 
 void randomlyFillVoxelTree(int levelsToGo, VoxelNode *currentRootNode) {
@@ -306,11 +307,6 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
         } else {
             nodeData->nodeBag.insert(serverTree.rootNode);
         }
-        
-        
-        // hack, just test scanning the tree here!
-        //scanTreeWithOcclusion(&serverTree, &nodeData->getCurrentViewFrustum(), &nodeData->map);
-
     }
     long long end = usecTimestampNow();
     int elapsedmsec = (end - start)/1000;
@@ -470,7 +466,11 @@ void *distributeVoxelsToListeners(void *args) {
                 }
 
                 if (nodeData->getWantResIn()) { 
-                    resInVoxelDistributor(nodeList, node, nodeData);
+                    //resInVoxelDistributor(nodeList, node, nodeData);
+
+                    // hack, just test scanning the tree here!
+                    scanTreeWithOcclusion(&serverTree, &nodeData->getCurrentViewFrustum(), &nodeData->map, ::leftOffAt);
+
                 } else {
                     deepestLevelVoxelDistributor(nodeList, node, nodeData, viewFrustumChanged);
                 }
@@ -762,9 +762,11 @@ int main(int argc, const char * argv[]) {
 }
 
 
+const long MAX_SCAN = 100 * 1000;
 
 struct ScanTreeArgs {
     ViewFrustum* viewFrustum;
+    glm::vec3 cameraPosition;
     CoverageMap* map;
 //    CoverageMapV2* mapV2;
     VoxelTree* tree;
@@ -790,6 +792,16 @@ struct ScanTreeArgs {
 
     long stagedForDeletion;
     long doesntFit;
+    
+    long long startSearch;
+    long long startScan;
+    long long stopScan;
+    VoxelNode* leftOffAt;
+    
+    ViewFrustum::location subTreeLocation;
+    long subTreeInside;
+
+    int level;
 };
 
 struct CountSubTreeOperationArgs {
@@ -797,29 +809,113 @@ struct CountSubTreeOperationArgs {
 };
 
 
-bool scanTreeWithOcclusionOperation(VoxelNode* node, void* extraData) {
-
+bool scanTreeWithOcclusionOperation(VoxelNode* node, int level, void* extraData) {
+    
     ScanTreeArgs* args = (ScanTreeArgs*) extraData;
-    args->totalVoxels++;
+    
+    // fastest, scan entire tree...
+    //args->totalVoxels++;
+    //return true;
 
-    // if this node is not in the view frustum, then just return, since we know none of it's children will be 
-    // in the view.
-    if (!node->isInView(*args->viewFrustum)) {
-        args->outOfView++;
-        if (node->isLeaf()) {
-            args->leavesOutOfView++;
-        } else {
-            args->nonLeavesOutOfView++;
+
+/***
+    
+    // If we had a previous leftOffAt, then keep going until we get find it
+    if (args->leftOffAt) {
+        // if this isn't our node, the just keep searching
+        if (node != args->leftOffAt) {
+            return true;
         }
-        return false;
+        // otherwise, stop searching and start processing
+        args->leftOffAt = NULL;
+        args->startScan = usecTimestampNow();
+    } else {
+        // bail if we've taken too long
+        long long now = usecTimestampNow();
+        if (now - args->startScan > MAX_SCAN) {
+            // if we just stopped, then record this stop time
+            if (args->stopScan == 0) {
+                args->stopScan = now;
+                args->leftOffAt = node;
+            }
+            return false;
+        }
+    }
+**/
+    
+    args->totalVoxels++;
+    
+    // SOME FACTS WE KNOW...
+    // If a node is INSIDE the view frustum, then ALL it's child nodes are also INSIDE, and so we
+    // shouldn't have to check that any more... use InFrustum() and store something in args to know
+    // that that part of the stack is in frustum. (do we also need to store a pointer to the parent node
+    // that is INSIDE so that when we unwind back to that point we start checking again?... probably)
+    //
+    // consider switching to stack data structure so we can break recursion on time slices..
+    //  /***
+    //  PointerStack stackOfNodes;
+    //
+    //  // start case, stack empty, so start with root...
+    //  if (stackOfNodes.empty()) {
+    //      if (operation(rootNode, extraData)) {
+    //          stackOfNodes.push(rootNode);
+    //      }
+    //  }
+    //  while (!stackOfNodes.empty()) {
+    //      VoxelNode* node = stackOfNodes.top();
+    //      stackOfNodes.pop();
+    //      sortChildren...
+    //      for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
+    //          VoxelNode* child = getSortedChild[i]...
+    //          if (child && operation(child, extraData)) {
+    //              stackOfNodes.push(child);
+    //          }
+    //      }
+    //      // at this point, we can check to see if we should bail for timing reasons
+    //      // because if we bail at this point, then reenter the while, we will basically
+    //      // be back to processing the stack from same place we left off, and all can proceed normally
+    //      if (elapsedTime > ALLOWED_TIME) {
+    //          return; ...
+    //      }
+    //  }
+    //  ***/
+    
+    
+    if (args->subTreeLocation == ViewFrustum::INSIDE) {
+        args->subTreeInside++;
+        // continue without checking further
+    } else {
+        // if this node is not in the view frustum, then just return, since we know none of it's children will be 
+        // in the view.
+        ViewFrustum::location location = node->inFrustum(*args->viewFrustum);
+        if (location == ViewFrustum::OUTSIDE) {
+            args->outOfView++;
+            if (node->isLeaf()) {
+                args->leavesOutOfView++;
+            } else {
+                args->nonLeavesOutOfView++;
+            }
+            return false;
+        }
+        // remember this for next recursion pass
+        args->subTreeLocation = location;
     }
 
-/*    
     // If this node is too far for LOD...
-    float distance = node->distanceToCamera(*args->viewFrustum);
-    float boundaryDistance = boundaryDistanceForRenderLevel(numberOfThreeBitSectionsInCode(node->getOctalCode())+1);
+    //float distance = node->distanceToCamera(*args->viewFrustum);
+    //float boundaryDistance = boundaryDistanceForRenderLevel(numberOfThreeBitSectionsInCode(node->getOctalCode())+1);
 
-    if (distance >= boundaryDistance) {
+    //int calcLevel = numberOfThreeBitSectionsInCode(node->getOctalCode())+1;
+    //printf("level=%d --- calcLevel=%d\n", level, calcLevel);
+
+    float distanceSquared = node->distanceSquareToPoint(args->cameraPosition);
+    float boundaryDistanceSquared = boundaryDistanceSquaredForRenderLevel(level+1);
+    //float boundaryDistanceSquared = boundaryDistanceSquaredForRenderLevel(calcLevel);
+
+
+    //printf("distance=%f, boundaryDistance=%f ---- distanceSquared=%f, boundaryDistanceSquared=%f \n", distance, boundaryDistance, distanceSquared, boundaryDistanceSquared);
+    
+    if (distanceSquared >= boundaryDistanceSquared) {
         args->tooFar++;
         if (node->isLeaf()) {
             args->leavesTooFar++;
@@ -828,8 +924,8 @@ bool scanTreeWithOcclusionOperation(VoxelNode* node, void* extraData) {
         }
         return false;
     }
-*/
-    
+
+return true; // so only counting in view...
     
     //return true; // just check inview or not
     
@@ -905,13 +1001,14 @@ bool scanTreeWithOcclusionOperation(VoxelNode* node, void* extraData) {
     return true; // keep going!
 }
 
-void scanTreeWithOcclusion(VoxelTree* tree, ViewFrustum* viewFrustum, CoverageMap* coverageMap) {
+void scanTreeWithOcclusion(VoxelTree* tree, ViewFrustum* viewFrustum, CoverageMap* coverageMap, VoxelNode*& leftOffAt) {
     PerformanceWarning warn(true, "scanTreeWithOcclusion()",true);
     //CoverageMap::wantDebugging = false;
     //coverageMap->erase();
     
     ScanTreeArgs args;
     args.viewFrustum = viewFrustum;
+    args.cameraPosition = viewFrustum->getPosition()/(float)TREE_SCALE;
     args.map = coverageMap; 
     args.totalVoxels = 0;
     args.coloredVoxels = 0;
@@ -931,6 +1028,20 @@ void scanTreeWithOcclusion(VoxelTree* tree, ViewFrustum* viewFrustum, CoverageMa
     args.leavesTooFar = 0;
     args.nonLeavesTooFar = 0;
     args.tree = tree;
+    args.subTreeLocation = ViewFrustum::OUTSIDE; // assume the worst
+    args.subTreeInside = 0;
+    args.level = 0;
+
+    args.leftOffAt = leftOffAt;
+    if (leftOffAt) {
+        args.startSearch = usecTimestampNow();
+        args.startScan = 0;
+        args.stopScan = 0;
+    } else {
+        args.startSearch = usecTimestampNow();
+        args.startScan = args.startSearch;
+        args.stopScan = 0;
+    }
 
     VoxelProjectedPolygon::pointInside_calls = 0;
     VoxelProjectedPolygon::occludes_calls = 0;
@@ -939,6 +1050,9 @@ void scanTreeWithOcclusion(VoxelTree* tree, ViewFrustum* viewFrustum, CoverageMa
     glm::vec3 position = args.viewFrustum->getPosition() * (1.0f/TREE_SCALE);
 
     tree->recurseTreeWithOperationDistanceSorted(scanTreeWithOcclusionOperation, position, (void*)&args);
+    long long now = usecTimestampNow();
+    leftOffAt = args.leftOffAt;
+
 
     printf("scanTreeWithOcclusion()\n");
     printf("    position=(%f,%f)\n", position.x, position.y);
@@ -965,6 +1079,20 @@ void scanTreeWithOcclusion(VoxelTree* tree, ViewFrustum* viewFrustum, CoverageMa
     printf("    pointInside_calls=%ld\n", VoxelProjectedPolygon::pointInside_calls);
     printf("    occludes_calls=%ld\n", VoxelProjectedPolygon::occludes_calls);
     printf("    intersects_calls=%ld\n", VoxelProjectedPolygon::intersects_calls);
+
+    printf("\n");
+    printf("    subTreeInside=%ld\n", args.subTreeInside);
+
+    int searchmsec  = (args.startScan - args.startSearch)/1000;
+    int elapsedmsec = (args.stopScan - args.startScan)/1000;
+    int unwindmsec  = (now - args.stopScan)/1000;
+
+    printf("\n");
+    printf("    searchmsec=%d\n", searchmsec);
+    printf("    elapsedmsec=%d\n", elapsedmsec);
+    printf("    unwindmsec=%d\n", unwindmsec);
+    printf("    leftOffAt=%p\n", leftOffAt);
+    
     
     CoverageMap::wantDebugging = true;
     coverageMap->erase();// print debug results...
