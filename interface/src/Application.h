@@ -361,7 +361,7 @@ private:
     int _bytesCount;
 
     ToolsPalette _palette;
-    Swatch* _swatch;
+    Swatch _swatch;
 };
 
 #endif /* defined(__interface__Application__) */

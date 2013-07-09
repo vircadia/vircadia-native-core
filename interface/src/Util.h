@@ -25,10 +25,6 @@
 // the standard mono font family
 #define MONO_FONT_FAMILY "Courier"
 
-// Number of rows and columns in the SVG file for the tool palette
-#define TOOLS_ROWS 10
-#define TOOLS_COLS 2
-
 void eulerToOrthonormals(glm::vec3 * angles, glm::vec3 * fwd, glm::vec3 * left, glm::vec3 * up);
 
 float azimuth_to(glm::vec3 head_pos, glm::vec3 source_pos);

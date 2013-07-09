@@ -15,13 +15,10 @@
 
 class ToolsPalette {
 public:
-    ToolsPalette();
-
     void init(int screenWidth, int screenHeight);
     void addAction(QAction* action, int x, int y);
-    void addTool(Tool *tool);
+    void addTool(Tool* tool);
     void render(int screenWidth, int screenHeight);
-
 
 private:
     QImage _textureImage;

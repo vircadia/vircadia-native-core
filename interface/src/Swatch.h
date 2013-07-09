@@ -8,15 +8,22 @@
 #ifndef __interface__Swatch__
 #define __interface__Swatch__
 
-#define SWATCH_SIZE 8
-
 #include "Tool.h"
 #include "ui/TextRenderer.h"
+
+static const int SWATCH_SIZE = 8;
+static const int colorBase[8][3] = {{237, 175, 0},
+                                    {61, 211, 72},
+                                    {51, 204, 204},
+                                    {63, 169, 245},
+                                    {193, 99, 122},
+                                    {255, 54, 69},
+                                    {124, 36, 36},
+                                    {63, 35, 19}};
 
 class Swatch : public Tool {
 public:
     Swatch(QAction* action);
-
 
     QColor getColor();
     void checkColor();
