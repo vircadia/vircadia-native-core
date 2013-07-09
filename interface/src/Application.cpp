@@ -1363,8 +1363,10 @@ void Application::exportVoxels() {
 
 void Application::importVoxels() {
     QString desktopLocation = QDesktopServices::storageLocation(QDesktopServices::DesktopLocation);
-    QString fileNameString = QFileDialog::getOpenFileName(_glWidget, tr("Import Voxels"), desktopLocation, 
-                                                          tr("Sparse Voxel Octree Files, Square PNG, Schematic Files (*.svo *.png *.schematic)"));
+    QString fileNameString = QFileDialog::getOpenFileName(
+                _glWidget, tr("Import Voxels"), desktopLocation,
+                tr("Sparse Voxel Octree Files, Square PNG, Schematic Files (*.svo *.png *.schematic)"));
+
     QByteArray fileNameAscii = fileNameString.toAscii();
     const char* fileName = fileNameAscii.data();
     

@@ -1,3 +1,11 @@
+//
+//  Tags.h
+//  hifi
+//
+//  Created by Clement Brisset on 7/3/13.
+//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//
+
 #include "Tags.h"
 #include <Log.h>
 
@@ -8,10 +16,9 @@
 
 Tag::Tag(int tagId, std::stringstream &ss) : _tagId(tagId) {
     int size = ss.get() << 8 | ss.get();
-  
+
     _name.clear();
-    for (int i = 0; i < size; ++i) {
-        _name += ss.get();
+    for (int i = 0; i < size; ++i) {        _name += ss.get();
     }
 }
 
@@ -46,22 +53,22 @@ Tag* Tag::readTag(int tagId, std::stringstream &ss) {
 }
 
 TagByte::TagByte(std::stringstream &ss) : Tag(TAG_Byte, ss) {
-  _data = ss.get();
+    _data = ss.get();
 }
 
 TagShort::TagShort(std::stringstream &ss) : Tag(TAG_Short, ss) {
-  _data = ss.get() << 8 | ss.get();
+    _data = ss.get() << 8 | ss.get();
 }
 
 TagInt::TagInt(std::stringstream &ss) : Tag(TAG_Int, ss) {
-  _data = ss.get() << 24 | ss.get() << 16 | ss.get() << 8 | ss.get();
+    _data = ss.get() << 24 | ss.get() << 16 | ss.get() << 8 | ss.get();
 }
 
 TagLong::TagLong(std::stringstream &ss) : Tag(TAG_Long, ss) {
-  _data = (((int64_t) ss.get()) << 56 | ((int64_t) ss.get()) << 48
-          |((int64_t) ss.get()) << 40 | ((int64_t) ss.get()) << 32
-          |           ss.get()  << 24 |            ss.get()  << 16
-          |           ss.get()  << 8  |            ss.get());
+    _data = (((int64_t) ss.get()) << 56 | ((int64_t) ss.get()) << 48
+             |((int64_t) ss.get()) << 40 | ((int64_t) ss.get()) << 32
+             |           ss.get()  << 24 |            ss.get()  << 16
+             |           ss.get()  << 8  |            ss.get());
 }
 
 // We don't need Float and double, so we just ignore the bytes
@@ -74,31 +81,32 @@ TagDouble::TagDouble(std::stringstream &ss) : Tag(TAG_Double, ss) {
 }
 
 TagByteArray::TagByteArray(std::stringstream &ss) : Tag(TAG_Byte_Array, ss) {
-  _size = ss.get() << 24 | ss.get() << 16 | ss.get() << 8 | ss.get();
-  
-  _data = new char[_size];
-  for (int i = 0; i < _size; ++i) {
-    _data[i] = ss.get();
-  }
+    _size = ss.get() << 24 | ss.get() << 16 | ss.get() << 8 | ss.get();
+
+    _data = new char[_size];
+    for (int i = 0; i < _size; ++i) {
+        _data[i] = ss.get();
+    }
 }
 
 TagString::TagString(std::stringstream &ss) : Tag(TAG_String, ss) {
-  _size = ss.get() << 8 | ss.get();
-  
-  for (int i = 0; i < _size; ++i) {
-    _data += ss.get();
-  }
+    _size = ss.get() << 8 | ss.get();
+
+    for (int i = 0; i < _size; ++i) {
+        _data += ss.get();
+    }
 }
 
 TagList::TagList(std::stringstream &ss) :
     Tag(TAG_List, ss) {
-  _tagId = ss.get();
-  _size  = ss.get() << 24 | ss.get() << 16 | ss.get() << 8 | ss.get();
+    _tagId = ss.get();
+    _size  = ss.get() << 24 | ss.get() << 16 | ss.get() << 8 | ss.get();
 
-  for (int i = 0; i < _size; ++i) {
-    ss.putback(0); ss.putback(0);
-    _data.push_back(readTag(_tagId, ss));
-  }
+    for (int i = 0; i < _size; ++i) {
+        ss.putback(0);
+        ss.putback(0);
+        _data.push_back(readTag(_tagId, ss));
+    }
 }
 
 TagCompound::TagCompound(std::stringstream &ss) :
@@ -139,96 +147,99 @@ TagCompound::TagCompound(std::stringstream &ss) :
 }
 
 TagIntArray::TagIntArray(std::stringstream &ss) : Tag(TAG_Int_Array, ss) {
-  _size = ss.get() << 24 | ss.get() << 16 | ss.get() << 8 | ss.get();
-  
-  _data = new int[_size];
-  for (int i = 0; i < _size; ++i) {
-    _data[i] = ss.get();
-  }
+    _size = ss.get() << 24 | ss.get() << 16 | ss.get() << 8 | ss.get();
+
+    _data = new int[_size];
+    for (int i = 0; i < _size; ++i) {
+        _data[i] = ss.get();
+    }
 }
 
 int retrieveData(std::string filename, std::stringstream &ss) {
     std::ifstream file(filename.c_str(), std::ios::binary);
 
-  int type = file.peek();
-  if (0x0A == type) {
-    ss.flush();
-    ss << file;
-    return 0;
-  }
-  if (0x1F == type) {
-    return ungzip(file, ss);
-  }
+    int type = file.peek();
+    if (type == 0x0A) {
+        ss.flush();
+        ss << file;
+        return 0;
+    }
+    if (type == 0x1F) {
+        return ungzip(file, ss);
+    }
 
-  return 1;
+    return 1;
 }
 
 int ungzip(std::ifstream &file, std::stringstream &ss) {
-  std::string gzipedBytes;
-  gzipedBytes.clear();
-  ss.flush();
+    std::string gzipedBytes;
+    gzipedBytes.clear();
+    ss.flush();
 
-  while (!file.eof()) {
-    gzipedBytes += (char) file.get();
-  }
-  file.close();
+    while (!file.eof()) {
+        gzipedBytes += (char) file.get();
+    }
+    file.close();
 
-  if ( gzipedBytes.size() == 0 ) {
-    ss << gzipedBytes;
-    return 0;
-  }
-
-  unsigned int full_length  = gzipedBytes.size();
-  unsigned int half_length  = gzipedBytes.size()/2;
-  unsigned int uncompLength = full_length;
-
-  char* uncomp = (char*) calloc(sizeof(char), uncompLength);
-
-  z_stream strm;
-  strm.next_in   = (Bytef *) gzipedBytes.c_str();
-  strm.avail_in  = full_length;
-  strm.total_out = 0;
-  strm.zalloc    = Z_NULL;
-  strm.zfree     = Z_NULL;
-
-  bool done = false;
-
-  if (inflateInit2(&strm, (16 + MAX_WBITS)) != Z_OK) {
-    free(uncomp);
-    return 1;
-  }
-
-  while (!done) {
-    // If our output buffer is too small
-    if (strm.total_out >= uncompLength) {
-      // Increase size of output buffer
-      char* uncomp2 = (char*) calloc(sizeof(char), uncompLength + half_length);
-      memcpy(uncomp2, uncomp, uncompLength);
-      uncompLength += half_length;
-      free(uncomp);
-      uncomp = uncomp2;
+    if (gzipedBytes.size() == 0) {
+        ss << gzipedBytes;
+        return 0;
     }
 
-    strm.next_out  = (Bytef *) (uncomp + strm.total_out);
-    strm.avail_out = uncompLength - strm.total_out;
+    unsigned int full_length  = gzipedBytes.size();
+    unsigned int half_length  = gzipedBytes.size()/2;
+    unsigned int uncompLength = full_length;
 
-    // Inflate another chunk.
-    int err = inflate (&strm, Z_SYNC_FLUSH);
-    if (err == Z_STREAM_END) done = true;
-    else if (err != Z_OK)    break;
-  }
+    char* uncomp = (char*) calloc(sizeof(char), uncompLength);
 
-  if (inflateEnd (&strm) != Z_OK) {
+    z_stream strm;
+    strm.next_in   = (Bytef *) gzipedBytes.c_str();
+    strm.avail_in  = full_length;
+    strm.total_out = 0;
+    strm.zalloc    = Z_NULL;
+    strm.zfree     = Z_NULL;
+
+    bool done = false;
+
+    if (inflateInit2(&strm, (16 + MAX_WBITS)) != Z_OK) {
+        free(uncomp);
+        return 1;
+    }
+
+    while (!done) {
+        // If our output buffer is too small
+        if (strm.total_out >= uncompLength) {
+            // Increase size of output buffer
+            char* uncomp2 = (char*) calloc(sizeof(char), uncompLength + half_length);
+            memcpy(uncomp2, uncomp, uncompLength);
+            uncompLength += half_length;
+            free(uncomp);
+            uncomp = uncomp2;
+        }
+
+        strm.next_out  = (Bytef *) (uncomp + strm.total_out);
+        strm.avail_out = uncompLength - strm.total_out;
+
+        // Inflate another chunk.
+        int err = inflate (&strm, Z_SYNC_FLUSH);
+        if (err == Z_STREAM_END) {
+            done = true;
+        } else if (err != Z_OK) {
+            break;
+        }
+    }
+
+    if (inflateEnd (&strm) != Z_OK) {
+        free(uncomp);
+        return 1;
+    }
+
+    for (size_t i = 0; i < strm.total_out; ++i) {
+        ss << uncomp[i];
+    }
     free(uncomp);
-    return 1;
-  }
 
-  for (size_t i = 0; i < strm.total_out; ++i) {
-    ss << uncomp[i];
-  }
-  free(uncomp);
-
-  return 0;
+    return 0;
 }
 
 
