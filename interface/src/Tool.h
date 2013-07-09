@@ -26,10 +26,10 @@ static const float TOOLS_RATIO = 40.0f / 60.0f; // ratio height/width of tools i
 static const float PAL_SCREEN_RATIO = 3.0f / 100.0f; // Percentage of the screeen width the palette is going to occupy
 
 // Swatch popup consts
-static const float STEP               = 0.05f;
-static const float MARGIN             = 10.0f;
-static const int   WIDTH              = 280;
-static const int   HEIGHT             = 30;
+static const float POPUP_STEP         = 0.05f;
+static const float POPUP_MARGIN       = 10.0f;
+static const int   POPUP_WIDTH        = 280;
+static const int   POPUP_HEIGHT       = 30;
 static const int   SWATCH_WIDTH       = 64;
 static const int   SWATCH_HEIGHT      = 30;
 static const int   FIRST_LINE_OFFSET  = 12;
