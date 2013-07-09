@@ -6,15 +6,14 @@
 //  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
 
-#include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
 
 #include "NodeList.h"
-
 #include "NodeTypes.h"
-#include "Operative.h"
 #include "PacketHeaders.h"
 #include "SharedUtil.h"
+
+#include "Operative.h"
 
 const float BUG_VOXEL_SIZE = 0.0625f / 128;
 glm::vec3 bugPosition  = glm::vec3(BUG_VOXEL_SIZE * 20.0, BUG_VOXEL_SIZE * 30.0, BUG_VOXEL_SIZE * 20.0);

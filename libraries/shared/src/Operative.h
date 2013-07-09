@@ -9,8 +9,6 @@
 #ifndef __hifi__Operative__
 #define __hifi__Operative__
 
-#include <iostream>
-
 class Operative {
 public:
     void run();
