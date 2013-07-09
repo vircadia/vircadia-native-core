@@ -8,6 +8,7 @@
 #include <sstream>
 
 #include <stdlib.h>
+#include <cmath>
 
 #ifdef _WIN32
 #include "Syssocket.h"
@@ -63,6 +64,7 @@
 #include "Util.h"
 #include "renderer/ProgramObject.h"
 #include "ui/TextRenderer.h"
+#include "Swatch.h"
 #include "fvupdater.h"
 
 using namespace std;
@@ -198,7 +200,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _packetCount(0),
         _packetsPerSecond(0),
         _bytesPerSecond(0),
-        _bytesCount(0)
+        _bytesCount(0),
+        _swatch(NULL)
 {
     _applicationStartupTime = startup_time;
     _window->setWindowTitle("Interface");
@@ -274,7 +277,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     FvUpdater::sharedUpdater()->SetFeedURL("https://s3-us-west-1.amazonaws.com/highfidelity/appcast.xml");
     FvUpdater::sharedUpdater()->CheckForUpdatesSilent();
 #endif
-    
+
     initMenu();
     
     QRect available = desktop()->availableGeometry();
@@ -727,7 +730,16 @@ void Application::keyPressEvent(QKeyEvent* event) {
                     deleteVoxelUnderCursor();
                 }
                 break;
-                
+            case Qt::Key_1:
+            case Qt::Key_2:
+            case Qt::Key_3:
+            case Qt::Key_4:
+            case Qt::Key_5:
+            case Qt::Key_6:
+            case Qt::Key_7:
+            case Qt::Key_8:
+                _swatch.handleEvent(event->key(), _eyedropperMode->isChecked());
+                break;
             default:
                 event->ignore();
                 break;
@@ -1252,7 +1264,11 @@ void Application::decreaseVoxelSize() {
 void Application::increaseVoxelSize() {
     _mouseVoxelScale *= 2;
 }
-    
+
+void Application::resetSwatchColors() {
+    _swatch.reset();
+}
+
 static QIcon createSwatchIcon(const QColor& color) {
     QPixmap map(16, 16);
     map.fill(color);
@@ -1496,7 +1512,7 @@ void Application::initMenu() {
     QMenu* renderMenu = menuBar->addMenu("Render");
     (_renderVoxels = renderMenu->addAction("Voxels"))->setCheckable(true);
     _renderVoxels->setChecked(true);
-    _renderVoxels->setShortcut(Qt::Key_V);
+    _renderVoxels->setShortcut(Qt::CTRL | Qt::Key_V);
     (_renderVoxelTextures = renderMenu->addAction("Voxel Textures"))->setCheckable(true);
     (_renderStarsOn = renderMenu->addAction("Stars"))->setCheckable(true);
     _renderStarsOn->setChecked(true);
@@ -1538,26 +1554,29 @@ void Application::initMenu() {
     _voxelModeActions->setExclusive(false); // exclusivity implies one is always checked
 
     (_addVoxelMode = voxelMenu->addAction(
-        "Add Voxel Mode", this, SLOT(updateVoxelModeActions()),    Qt::CTRL | Qt::Key_A))->setCheckable(true);
+        "Add Voxel Mode", this, SLOT(updateVoxelModeActions()),    Qt::Key_V))->setCheckable(true);
     _voxelModeActions->addAction(_addVoxelMode);
     (_deleteVoxelMode = voxelMenu->addAction(
-        "Delete Voxel Mode", this, SLOT(updateVoxelModeActions()), Qt::CTRL | Qt::Key_D))->setCheckable(true);
+        "Delete Voxel Mode", this, SLOT(updateVoxelModeActions()), Qt::Key_R))->setCheckable(true);
     _voxelModeActions->addAction(_deleteVoxelMode);
     (_colorVoxelMode = voxelMenu->addAction(
-        "Color Voxel Mode", this, SLOT(updateVoxelModeActions()),  Qt::CTRL | Qt::Key_B))->setCheckable(true);
+        "Color Voxel Mode", this, SLOT(updateVoxelModeActions()),  Qt::Key_B))->setCheckable(true);
     _voxelModeActions->addAction(_colorVoxelMode);
     (_selectVoxelMode = voxelMenu->addAction(
-        "Select Voxel Mode", this, SLOT(updateVoxelModeActions()), Qt::CTRL | Qt::Key_S))->setCheckable(true);
+        "Select Voxel Mode", this, SLOT(updateVoxelModeActions()), Qt::Key_O))->setCheckable(true);
     _voxelModeActions->addAction(_selectVoxelMode);
     (_eyedropperMode = voxelMenu->addAction(
-        "Get Color Mode", this, SLOT(updateVoxelModeActions()),   Qt::CTRL | Qt::Key_G))->setCheckable(true);
+        "Get Color Mode", this, SLOT(updateVoxelModeActions()),   Qt::Key_G))->setCheckable(true);
     _voxelModeActions->addAction(_eyedropperMode);
-    
+
     voxelMenu->addAction("Decrease Voxel Size", this, SLOT(decreaseVoxelSize()),       QKeySequence::ZoomOut);
     voxelMenu->addAction("Increase Voxel Size", this, SLOT(increaseVoxelSize()),       QKeySequence::ZoomIn);
-    
+    voxelMenu->addAction("Reset Swatch Colors", this, SLOT(resetSwatchColors()));
+
     _voxelPaintColor = voxelMenu->addAction("Voxel Paint Color", this, 
                                                       SLOT(chooseVoxelPaintColor()),   Qt::META | Qt::Key_C);
+    _swatch.setAction(_voxelPaintColor);
+
     QColor paintColor(128, 128, 128);
     _voxelPaintColor->setData(paintColor);
     _voxelPaintColor->setIcon(createSwatchIcon(paintColor));
@@ -1688,6 +1707,14 @@ void Application::init() {
 
     
     sendAvatarVoxelURLMessage(_myAvatar.getVoxels()->getVoxelURL());
+
+    _palette.init(_glWidget->width(), _glWidget->height());
+    _palette.addAction(_addVoxelMode, 0, 0);
+    _palette.addAction(_deleteVoxelMode, 0, 1);
+    _palette.addTool(&_swatch);
+    _palette.addAction(_colorVoxelMode, 0, 2);
+    _palette.addAction(_eyedropperMode, 0, 3);
+    _palette.addAction(_selectVoxelMode, 0, 4);
 }
 
 const float MAX_AVATAR_EDIT_VELOCITY = 1.0f;
@@ -1920,7 +1947,7 @@ void Application::update(float deltaTime) {
     if (_bandwidthDialog) {
         _bandwidthDialog->update();
     }
- 
+
     //  Update audio stats for procedural sounds
     #ifndef _WIN32
     _audio.setLastAcceleration(_myAvatar.getThrust());
@@ -2434,7 +2461,52 @@ void Application::displayOverlay() {
     
     // render the webcam input frame
     _webcam.renderPreview(_glWidget->width(), _glWidget->height());
-    
+
+    _palette.render(_glWidget->width(), _glWidget->height());
+
+    if (_eyedropperMode->isChecked() && _voxelPaintColor->data().value<QColor>() != _swatch.getColor()) {
+        QColor color = _voxelPaintColor->data().value<QColor>();
+        TextRenderer textRenderer(SANS_FONT_FAMILY, 11, 50);
+        const char line1[] = "Assign this color to a swatch";
+        const char line2[] = "by choosing a key from 1 to 8.";
+
+        int left = (_glWidget->width() - POPUP_WIDTH - 2 * POPUP_MARGIN) / 2;
+        int top = _glWidget->height() / 40;
+
+        glBegin(GL_POLYGON);
+        glColor3f(0.0f, 0.0f, 0.0f);
+        for (double a = M_PI; a < 1.5f * M_PI; a += POPUP_STEP) {
+            glVertex2f(left + POPUP_MARGIN * cos(a)              , top + POPUP_MARGIN * sin(a));
+        }
+        for (double a = 1.5f * M_PI; a < 2.0f * M_PI; a += POPUP_STEP) {
+            glVertex2f(left + POPUP_WIDTH + POPUP_MARGIN * cos(a), top + POPUP_MARGIN * sin(a));
+        }
+        for (double a = 0.0f; a < 0.5f * M_PI; a += POPUP_STEP) {
+            glVertex2f(left + POPUP_WIDTH + POPUP_MARGIN * cos(a), top + POPUP_HEIGHT + POPUP_MARGIN * sin(a));
+        }
+        for (double a = 0.5f * M_PI; a < 1.0f * M_PI; a += POPUP_STEP) {
+            glVertex2f(left + POPUP_MARGIN * cos(a)              , top + POPUP_HEIGHT + POPUP_MARGIN * sin(a));
+        }
+        glEnd();
+
+        glBegin(GL_QUADS);
+        glColor3f(color.redF(),
+                  color.greenF(),
+                  color.blueF());
+        glVertex2f(left               , top);
+        glVertex2f(left + SWATCH_WIDTH, top);
+        glVertex2f(left + SWATCH_WIDTH, top + SWATCH_HEIGHT);
+        glVertex2f(left               , top + SWATCH_HEIGHT);
+        glEnd();
+
+        glColor3f(1.0f, 1.0f, 1.0f);
+        textRenderer.draw(left + SWATCH_WIDTH + POPUP_MARGIN, top + FIRST_LINE_OFFSET , line1);
+        textRenderer.draw(left + SWATCH_WIDTH + POPUP_MARGIN, top + SECOND_LINE_OFFSET, line2);
+    }
+    else {
+        _swatch.checkColor();
+    }
+
     glPopMatrix();
 }
 
@@ -2984,7 +3056,8 @@ void Application::loadSettings(QSettings* settings) {
     settings->endGroup();
 
     scanMenuBar(&Application::loadAction, settings);
-    getAvatar()->loadData(settings);    
+    getAvatar()->loadData(settings);
+    _swatch.loadData(settings);
 }
 
 
@@ -3006,6 +3079,7 @@ void Application::saveSettings(QSettings* settings) {
     
     scanMenuBar(&Application::saveAction, settings);
     getAvatar()->saveData(settings);
+    _swatch.saveData(settings);
 }
 
 void Application::importSettings() {
