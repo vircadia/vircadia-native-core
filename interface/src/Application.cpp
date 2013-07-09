@@ -54,6 +54,7 @@
 #include <PacketHeaders.h>
 #include <PairingHandler.h>
 #include <PerfStat.h>
+#include <glm/gtx/intersect.hpp>
 
 #include "Application.h"
 #include "InterfaceConfig.h"
@@ -1689,6 +1690,22 @@ void Application::init() {
 const float MAX_AVATAR_EDIT_VELOCITY = 1.0f;
 const float MAX_VOXEL_EDIT_DISTANCE = 20.0f;
 
+bool Application::isLookingAtOtherAvatar(glm::vec3 mouseRayOrigin, glm::vec3 mouseRayDirection, glm::vec3 &eyePosition) {
+    NodeList* nodeList = NodeList::getInstance();
+    for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+        if (node->getLinkedData() != NULL && node->getType() == NODE_TYPE_AGENT) {
+            Avatar *avatar = (Avatar *)node->getLinkedData();
+            glm::vec3 headPosition = avatar->getHead().getPosition();
+            glm::vec3 intersectionPosition, intersectionNormal;
+            if (glm::intersectRaySphere(mouseRayOrigin, mouseRayDirection, headPosition, 1, intersectionPosition, intersectionNormal)) {
+                eyePosition = avatar->getHead().getEyeLevelPosition();
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 void Application::update(float deltaTime) {
     //  Use Transmitter Hand to move hand if connected, else use mouse
     if (_myTransmitter.isConnected()) {
@@ -1715,8 +1732,15 @@ void Application::update(float deltaTime) {
     _myAvatar.setMouseRay(mouseRayOrigin, mouseRayDirection);
     
     // Set where I am looking based on my mouse ray (so that other people can see)
-    glm::vec3 myLookAtFromMouse(mouseRayOrigin + mouseRayDirection);
-    _myAvatar.getHead().setLookAtPosition(myLookAtFromMouse);
+    glm::vec3 eyePosition;
+    if (isLookingAtOtherAvatar(mouseRayOrigin, mouseRayDirection, eyePosition)) {
+        // If the mouse is over another avatar's head...
+        glm::vec3 myLookAtFromMouse(eyePosition);
+         _myAvatar.getHead().setLookAtPosition(myLookAtFromMouse);
+    } else {
+        glm::vec3 myLookAtFromMouse(mouseRayOrigin + mouseRayDirection);
+        _myAvatar.getHead().setLookAtPosition(myLookAtFromMouse);
+    }
 
     //  If we are dragging on a voxel, add thrust according to the amount the mouse is dragging
     const float VOXEL_GRAB_THRUST = 0.0f;
