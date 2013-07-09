@@ -39,6 +39,8 @@
 #include "Webcam.h"
 #include "renderer/GeometryCache.h"
 #include "ui/ChatEntry.h"
+#include "ToolsPalette.h"
+#include "Swatch.h"
 
 class QAction;
 class QActionGroup;
@@ -139,6 +141,7 @@ private slots:
     void updateVoxelModeActions();
     void decreaseVoxelSize();
     void increaseVoxelSize();
+    void resetSwatchColors();
     void chooseVoxelPaintColor();
     void loadSettings(QSettings* set = NULL);
     void saveSettings(QSettings* set = NULL);
@@ -150,6 +153,8 @@ private slots:
     void copyVoxels();
     void pasteVoxels();
     void runTests();
+    void goHome();
+
 private:
 
     static void controlledBroadcastToNodes(unsigned char* broadcastData, size_t dataBytes, 
@@ -185,7 +190,6 @@ private:
     void maybeEditVoxelUnderCursor();
     void deleteVoxelUnderCursor();
     void eyedropperVoxelUnderCursor();
-    void goHome();
     void resetSensors();
     
     void setMenuShortcutsEnabled(bool enabled);
@@ -362,6 +366,8 @@ private:
     int _bytesPerSecond;
     int _bytesCount;
 
+    ToolsPalette _palette;
+    Swatch _swatch;
 };
 
 #endif /* defined(__interface__Application__) */

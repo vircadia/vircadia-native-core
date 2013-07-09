@@ -17,7 +17,7 @@
 #include "AABox.h"
 #include "VoxelProjectedPolygon.h"
 
-const float DEFAULT_KEYHOLE_RADIUS = 2.0f;
+const float DEFAULT_KEYHOLE_RADIUS = 3.0f;
 
 class ViewFrustum {
 public:
