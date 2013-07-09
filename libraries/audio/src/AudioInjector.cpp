@@ -9,9 +9,8 @@
 #include <fstream>
 #include <cstring>
 
-#include <SharedUtil.h>
 #include <PacketHeaders.h>
-#include <UDPSocket.h>
+#include <SharedUtil.h>
 
 #include "AudioInjector.h"
 
