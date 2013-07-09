@@ -955,14 +955,17 @@ void Application::idle() {
     //  Only run simulation code if more than IDLE_SIMULATE_MSECS have passed since last time we ran
     
     if (diffclock(&_lastTimeIdle, &check) > IDLE_SIMULATE_MSECS) {
-        // We call processEvents() here because the idle timer takes priority over
-        // event handling in Qt, so when the framerate gets low events will pile up
-        // unless we handle them here.
         
-        // NOTE - this is commented out for now - causing event processing issues reported by Philip and Ryan
-        // birarda - July 3rd
-        
-        // processEvents();
+        // If we're using multi-touch look, immediately process any
+        // touch events, and no other events.
+        // This is necessary because id the idle() call takes longer than the
+        // interval between idle() calls, the event loop never gets to run,
+        // and touch events get delayed.
+        if (_touchLook->isChecked()) {
+            sendPostedEvents(NULL, QEvent::TouchBegin);
+            sendPostedEvents(NULL, QEvent::TouchUpdate);
+            sendPostedEvents(NULL, QEvent::TouchEnd);
+        }
         
         update(1.0f / _fps);
         
@@ -1930,11 +1933,11 @@ void Application::update(float deltaTime) {
 
 void Application::updateAvatar(float deltaTime) {
 
-    // Update my avatar's head position from gyros and/or webcam
-    _myAvatar.updateHeadFromGyrosAndOrWebcam(_gyroLook->isChecked(),
-                                             glm::vec3(_headCameraPitchYawScale,
-                                                       _headCameraPitchYawScale,
-                                                       _headCameraPitchYawScale));
+    // Update my avatar's state from gyros and/or webcam
+    _myAvatar.updateFromGyrosAndOrWebcam(_gyroLook->isChecked(),
+                                         glm::vec3(_headCameraPitchYawScale,
+                                                   _headCameraPitchYawScale,
+                                                   _headCameraPitchYawScale));
         
     if (_serialHeadSensor.isActive()) {
       

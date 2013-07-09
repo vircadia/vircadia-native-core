@@ -152,6 +152,13 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
         }
     }
     
+    // skeleton joints
+    *destinationBuffer++ = (unsigned char)_joints.size();
+    for (vector<JointData>::iterator it = _joints.begin(); it != _joints.end(); it++) {
+        *destinationBuffer++ = (unsigned char)it->jointID;
+        destinationBuffer += packOrientationQuatToBytes(destinationBuffer, it->rotation);
+    }
+    
     return destinationBuffer - bufferStart;
 }
 
@@ -261,6 +268,16 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
         }
         _handData->setFingerTips(fingerTips);
         _handData->setFingerRoots(fingerRoots);
+    }
+    
+    // skeleton joints
+    if (sourceBuffer - startPosition < numBytes) // safety check
+    {
+        _joints.resize(*sourceBuffer++);
+        for (vector<JointData>::iterator it = _joints.begin(); it != _joints.end(); it++) {
+            it->jointID = *sourceBuffer++;
+            sourceBuffer += unpackOrientationQuatFromBytes(sourceBuffer, it->rotation); 
+        }
     }
     
     return sourceBuffer - startPosition;
