@@ -19,7 +19,7 @@
 #include <QTouchEvent>
 #include <QList>
 
-#include <AgentList.h>
+#include <NodeList.h>
 
 #include "BandwidthMeter.h"
 #include "ui/BandwidthDialog.h"
@@ -52,7 +52,7 @@ class QNetworkAccessManager;
 class QSettings;
 class QWheelEvent;
 
-class Agent;
+class Node;
 class ProgramObject;
 
 class Application : public QApplication {
@@ -153,14 +153,19 @@ private slots:
     void copyVoxels();
     void pasteVoxels();
     void runTests();
+    void goHome();
+
 private:
 
-    static void broadcastToAgents(unsigned char* data, size_t bytes, const char type);
+    static void controlledBroadcastToNodes(unsigned char* broadcastData, size_t dataBytes, 
+                                           const char* nodeTypes, int numNodeTypes);
+
     static void sendVoxelServerAddScene();
     static bool sendVoxelsOperation(VoxelNode* node, void* extraData);
+    static void sendVoxelEditMessage(PACKET_HEADER header, VoxelDetail& detail);
     static void sendAvatarVoxelURLMessage(const QUrl& url);
     static void processAvatarVoxelURLMessage(unsigned char *packetData, size_t dataBytes);
-    static void sendVoxelEditMessage(PACKET_HEADER header, VoxelDetail& detail);
+    static void sendPingPackets();
     
     void initMenu();
     void updateFrustumRenderModeAction();
@@ -184,7 +189,6 @@ private:
     void maybeEditVoxelUnderCursor();
     void deleteVoxelUnderCursor();
     void eyedropperVoxelUnderCursor();
-    void goHome();
     void resetSensors();
     
     void setMenuShortcutsEnabled(bool enabled);
@@ -193,7 +197,7 @@ private:
     
     QAction* checkedVoxelModeAction() const;
     
-    static void attachNewHeadToAgent(Agent *newAgent);
+    static void attachNewHeadToNode(Node *newNode);
     static void* networkReceive(void* args);
     
     // methodes handling menu settings
@@ -229,6 +233,7 @@ private:
     QAction* _manualFirstPerson;     // Whether to force first-person mode
     QAction* _manualThirdPerson;     // Whether to force third-person mode
     QAction* _logOn;                 // Whether to show on-screen log
+    QAction* _oscilloscopeOn;        // Whether to show the oscilloscope
     QAction* _bandwidthDisplayOn;    // Whether to show on-screen bandwidth bars
     QActionGroup* _voxelModeActions; // The group of voxel edit mode actions
     QAction* _addVoxelMode;          // Whether add voxel mode is enabled

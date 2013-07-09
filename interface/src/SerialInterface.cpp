@@ -341,12 +341,6 @@ void SerialInterface::readData(float deltaTime) {
         
         _estimatedRotation = safeEulerAngles(estimatedRotation); 
         
-        //  Fuse gyro roll with webcam roll
-        if (webcam->isActive()) {
-            _estimatedRotation.z = glm::mix(_estimatedRotation.z, webcam->getEstimatedRotation().z,
-                1.0f / SENSOR_FUSION_SAMPLES);
-        }
-        
         totalSamples++;
     } 
     

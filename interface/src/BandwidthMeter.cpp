@@ -68,6 +68,12 @@ void BandwidthMeter::Stream::updateValue(double amount) {
     timeval now;
     gettimeofday(& now, NULL);
     double dt = diffclock(& _prevTime, & now);
+
+    // Ignore this value when timer imprecision yields dt = 0
+    if (dt == 0.0) {
+        return;
+    }
+
     memcpy(& _prevTime, & now, sizeof(timeval));
 
     // Compute approximate average
@@ -225,6 +231,13 @@ void BandwidthMeter::render(int screenWidth, int screenHeight) {
                        textYlowerLine, fmtBuf);
 
     glPopMatrix();
+
+    // After rendering, indicate that no data has been sent/received since the last feed.
+    // This way, the meters fall when not continuously fed.
+    for (int i = 0; i < N_CHANNELS; ++i) {
+        inputStream(ChannelIndex(i)).updateValue(0);
+        outputStream(ChannelIndex(i)).updateValue(0);
+    }
 }
 
 

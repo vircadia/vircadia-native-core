@@ -95,6 +95,15 @@ find_package(Leap)
 find_package(OpenCV)
 find_package(ZLIB)
 find_package(UVCCameraControl)
+find_package(OpenNI)
+
+# let the source know that we have OpenNI/NITE for Kinect
+if (OPENNI_FOUND)
+    add_definitions(-DHAVE_OPENNI)
+    include_directories(SYSTEM ${OPENNI_INCLUDE_DIRS})
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${OPENNI_INCLUDE_DIRS}")
+    target_link_libraries(${TARGET_NAME} ${OPENNI_LIBRARIES})
+endif (OPENNI_FOUND)
 
 # include headers for interface and InterfaceConfig.
 include_directories(
