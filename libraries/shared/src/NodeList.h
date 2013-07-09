@@ -71,8 +71,11 @@ public:
     void unlock() { pthread_mutex_unlock(&mutex); }
     
     void setNodeTypesOfInterest(const char* nodeTypesOfInterest, int numNodeTypesOfInterest);
+    
     void sendDomainServerCheckIn();
     int processDomainServerList(unsigned char *packetData, size_t dataBytes);
+    
+    void sendAssignmentRequest();
     
     Node* nodeWithAddress(sockaddr *senderAddress);
     Node* nodeWithID(uint16_t nodeID);
