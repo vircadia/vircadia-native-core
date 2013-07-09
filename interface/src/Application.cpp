@@ -2470,23 +2470,28 @@ void Application::displayOverlay() {
         const char line1[] = "Assign this color to a swatch";
         const char line2[] = "by choosing a key from 1 to 8.";
         double step = 0.05f;
-        int left = (_glWidget->width() - 300) / 2;
-        int top = _glWidget->height() / 40.0f;
+
+        int width = 280, height = 30;
         double margin = 10.0f;
+        int left = (_glWidget->width() - width - 2 * margin) / 2;
+        int top = _glWidget->height() / 40;
+
+        int swatchWidth = 64, swatchHeight = 30;
+        int firstLineOffset = 12, secondLineOffset = 28;
 
         glBegin(GL_POLYGON);
         glColor3f(0.0f, 0.0f, 0.0f);
         for (double a = M_PI; a < 1.5f * M_PI; a += step) {
-            glVertex2f(left + margin * cos(a), top + margin * sin(a));
+            glVertex2f(left + margin * cos(a)        , top + margin * sin(a));
         }
         for (double a = 1.5f * M_PI; a < 2.0f*M_PI; a += step) {
-            glVertex2f(left + 280 + margin * cos(a), top + margin * sin(a));
+            glVertex2f(left + width + margin * cos(a), top + margin * sin(a));
         }
         for (double a = 0.0f; a < 0.5f * M_PI; a += step) {
-            glVertex2f(left + 280 + margin * cos(a), top + 30 + margin * sin(a));
+            glVertex2f(left + width + margin * cos(a), top + height + margin * sin(a));
         }
         for (double a = 0.5f*M_PI; a < 1.0f*M_PI; a += step) {
-            glVertex2f(left + margin*cos(a), top + 30 + margin*sin(a));
+            glVertex2f(left + margin*cos(a)          , top + height + margin*sin(a));
         }
         glEnd();
 
@@ -2494,15 +2499,15 @@ void Application::displayOverlay() {
         glColor3f(color.redF(),
                   color.greenF(),
                   color.blueF());
-        glVertex2f(left, top);
-        glVertex2f(left + 64, top);
-        glVertex2f(left + 64, top + 30);
-        glVertex2f(left, top + 30);
+        glVertex2f(left              , top);
+        glVertex2f(left + swatchWidth, top);
+        glVertex2f(left + swatchWidth, top + swatchHeight);
+        glVertex2f(left              , top + swatchHeight);
         glEnd();
 
         glColor3f(1.0f, 1.0f, 1.0f);
-        textRenderer.draw(left + 74, top + 12, line1);
-        textRenderer.draw(left + 74, top + 28, line2);
+        textRenderer.draw(left + swatchWidth + margin, top + firstLineOffset , line1);
+        textRenderer.draw(left + swatchWidth + margin, top + secondLineOffset, line2);
     }
     else {
         _swatch.checkColor();
