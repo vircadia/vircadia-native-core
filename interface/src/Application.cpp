@@ -1654,8 +1654,6 @@ void Application::init() {
     _headMouseX = _mouseX = _glWidget->width() / 2;
     _headMouseY = _mouseY = _glWidget->height() / 2;
 
-    _stars.readInput(STAR_FILE, STAR_CACHE_FILE, 0);
-  
     _myAvatar.init();
     _myAvatar.setPosition(START_LOCATION);
     _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
@@ -1681,7 +1679,6 @@ void Application::init() {
     
     printLog("Loaded settings.\n");
 
-    
     sendAvatarVoxelURLMessage(_myAvatar.getVoxels()->getVoxelURL());
 }
 
@@ -2238,6 +2235,9 @@ void Application::displaySide(Camera& whichCamera) {
     glMateriali(GL_FRONT, GL_SHININESS, 96);
     
     if (_renderStarsOn->isChecked()) {
+        if (!_stars.getFileLoaded()) {
+            _stars.readInput(STAR_FILE, STAR_CACHE_FILE, 0);
+        }
         // should be the first rendering pass - w/o depth buffer / lighting
 
         // compute starfield alpha based on distance from atmosphere
