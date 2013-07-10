@@ -5,8 +5,8 @@
 #include <QGLWidget>
 
 Tool::Tool(QAction *action, GLuint texture, int x, int y) :
-    _texture(texture),
     _action(action),
+    _texture(texture),
     _x(x),
     _y(y) {
 }
