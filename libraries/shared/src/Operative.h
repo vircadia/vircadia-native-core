@@ -11,6 +11,7 @@
 
 class Operative {
 public:
+    bool volatile shouldStop;
     void run();
 };
 

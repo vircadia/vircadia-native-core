@@ -89,7 +89,7 @@ const BugPart bugParts[VOXELS_PER_BUG] = {
     BugPart(glm::vec3(-2, -1,  0), 153, 200, 0) ,
 };
 
-static void renderMovingBug() {
+void removeOldBug() {
     VoxelDetail details[VOXELS_PER_BUG];
     unsigned char* bufferOut;
     int sizeOut;
@@ -118,11 +118,17 @@ static void renderMovingBug() {
         ::packetsSent++;
         ::bytesSent += sizeOut;
         
-        printf("sending packet of size=%d\n", sizeOut);
-        
         NodeList::getInstance()->broadcastToNodes(bufferOut, sizeOut, &NODE_TYPE_VOXEL_SERVER, 1);
         delete[] bufferOut;
     }
+}
+
+static void renderMovingBug() {
+    VoxelDetail details[VOXELS_PER_BUG];
+    unsigned char* bufferOut;
+    int sizeOut;
+    
+    removeOldBug();
     
     // Move the bug...
     if (moveBugInLine) {
@@ -181,13 +187,11 @@ static void renderMovingBug() {
     }
     
     // send the "create message" ...
-    message = PACKET_HEADER_SET_VOXEL_DESTRUCTIVE;
+    PACKET_HEADER message = PACKET_HEADER_SET_VOXEL_DESTRUCTIVE;
     if (createVoxelEditMessage(message, 0, VOXELS_PER_BUG, (VoxelDetail*)&details, bufferOut, sizeOut)){
         
         ::packetsSent++;
         ::bytesSent += sizeOut;
-        
-        printf("sending packet of size=%d\n", sizeOut);
         
         NodeList::getInstance()->broadcastToNodes(bufferOut, sizeOut, &NODE_TYPE_VOXEL_SERVER, 1);
         delete[] bufferOut;
@@ -212,8 +216,9 @@ void Operative::run() {
     // change the owner type on our NodeList
     NodeList::getInstance()->setOwnerType(NODE_TYPE_AGENT);
     NodeList::getInstance()->setNodeTypesOfInterest(&NODE_TYPE_VOXEL_SERVER, 1);
+    NodeList::getInstance()->getNodeSocket()->setBlocking(false);
     
-    while (true) {
+    while (!shouldStop) {
         gettimeofday(&lastSendTime, NULL);
         
         renderMovingBug();
@@ -238,4 +243,9 @@ void Operative::run() {
             std::cout << "Last send took too much time, not sleeping!\n";
         }
     }
+    
+    printf("Removing the old bird and dying.\n");
+    
+    // we've been told to stop, remove the last bug
+    removeOldBug();
 }
