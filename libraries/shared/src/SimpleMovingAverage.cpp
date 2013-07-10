@@ -22,7 +22,7 @@ int SimpleMovingAverage::updateAverage(float sample) {
     if (_numSamples > 0) {
         _average = (ONE_MINUS_WEIGHTING * _average) + (WEIGHTING * sample);
         
-        float eventDelta = (usecTimestampNow() - _lastEventTimestamp) / 1000000;
+        float eventDelta = (usecTimestampNow() - _lastEventTimestamp) / 1000000.0f;
         
         if (_numSamples > 1) {
             _eventDeltaAverage = (ONE_MINUS_WEIGHTING * _eventDeltaAverage) +
@@ -46,7 +46,7 @@ void SimpleMovingAverage::reset() {
 
 float SimpleMovingAverage::getEventDeltaAverage() {
     return (ONE_MINUS_WEIGHTING * _eventDeltaAverage) +
-        (WEIGHTING * ((usecTimestampNow() - _lastEventTimestamp) / 1000000));
+        (WEIGHTING * ((usecTimestampNow() - _lastEventTimestamp) / 1000000.0f));
 }
 
 float SimpleMovingAverage::getAverageSampleValuePerSecond() {
