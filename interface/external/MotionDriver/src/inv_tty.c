@@ -7,6 +7,7 @@
 
 #include <time.h>
 #include <unistd.h>
+#include <sys/time.h>
 
 #include "inv_tty.h"
 
@@ -81,8 +82,9 @@ void tty_delay_ms(unsigned long num_ms) {
 }
 
 void tty_get_ms(unsigned long *count) {
-    struct timespec time;
-    clock_gettime(CLOCK_REALTIME, &time);
-    const long NANOSECONDS_PER_SECOND = 1000000000;
-    *count = time.tv_sec * NANOSECONDS_PER_SECOND + time.tv_nsec;
+    struct timeval time;
+    gettimeofday(&time, 0);
+    const long MILLISECONDS_PER_SECOND = 1000;
+    const long MICROSECONDS_PER_MILLISECOND = 1000;
+    *count = time.tv_sec * MILLISECONDS_PER_SECOND + time.tv_usec / MICROSECONDS_PER_MILLISECOND; 
 }
