@@ -50,8 +50,8 @@ public:
     bool getViewSent() const        { return _viewSent; };
     void setViewSent(bool viewSent) { _viewSent = viewSent; }
 
-    long long getLastTimeBagEmpty() const                      { return _lastTimeBagEmpty; };
-    void      setLastTimeBagEmpty(long long lastTimeBagEmpty)  { _lastTimeBagEmpty = lastTimeBagEmpty; };
+    uint64_t  getLastTimeBagEmpty() const                      { return _lastTimeBagEmpty; };
+    void      setLastTimeBagEmpty(uint64_t lastTimeBagEmpty)  { _lastTimeBagEmpty = lastTimeBagEmpty; };
 
 
 private:
@@ -67,7 +67,7 @@ private:
     int _maxLevelReachedInLastSearch;
     ViewFrustum _currentViewFrustum;
     ViewFrustum _lastKnownViewFrustum;
-    long long _lastTimeBagEmpty;
+    uint64_t _lastTimeBagEmpty;
 
 };
 

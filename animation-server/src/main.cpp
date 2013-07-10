@@ -643,14 +643,14 @@ void* animateVoxels(void* args) {
             sendDanceFloor();
         }
         
-        long long end = usecTimestampNow();
-        long long elapsedSeconds = (end - ::start) / 1000000;
+        uint64_t end = usecTimestampNow();
+        int elapsedSeconds = (end - ::start) / 1000000;
         if (::shouldShowPacketsPerSecond) {
             printf("packetsSent=%ld, bytesSent=%ld pps=%f bps=%f\n",packetsSent,bytesSent,
                 (float)(packetsSent/elapsedSeconds),(float)(bytesSent/elapsedSeconds));
         }
         // dynamically sleep until we need to fire off the next set of voxels
-        long long usecToSleep =  ANIMATE_VOXELS_INTERVAL_USECS - (usecTimestampNow() - usecTimestamp(&lastSendTime));
+        uint64_t usecToSleep =  ANIMATE_VOXELS_INTERVAL_USECS - (usecTimestampNow() - usecTimestamp(&lastSendTime));
         
         if (usecToSleep > 0) {
             usleep(usecToSleep);

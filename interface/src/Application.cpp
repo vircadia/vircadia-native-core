@@ -903,7 +903,7 @@ void Application::wheelEvent(QWheelEvent* event) {
 void Application::sendPingPackets() {
 
     char nodeTypesOfInterest[] = {NODE_TYPE_VOXEL_SERVER, NODE_TYPE_AUDIO_MIXER, NODE_TYPE_AVATAR_MIXER};
-    long long currentTime = usecTimestampNow();
+    uint64_t currentTime = usecTimestampNow();
     unsigned char pingPacket[1 + sizeof(currentTime)];
     pingPacket[0] = PACKET_HEADER_PING;
     
@@ -2429,7 +2429,7 @@ void Application::displayOverlay() {
     //  Show on-screen msec timer
     if (_renderFrameTimerOn->isChecked()) {
         char frameTimer[10];
-        long long mSecsNow = floor(usecTimestampNow() / 1000.0 + 0.5);
+        uint64_t mSecsNow = floor(usecTimestampNow() / 1000.0 + 0.5);
         sprintf(frameTimer, "%d\n", (int)(mSecsNow % 1000));
         drawtext(_glWidget->width() - 100, _glWidget->height() - 20, 0.30, 0, 1.0, 0, frameTimer, 0, 0, 0);
         drawtext(_glWidget->width() - 102, _glWidget->height() - 22, 0.30, 0, 1.0, 0, frameTimer, 1, 1, 1);

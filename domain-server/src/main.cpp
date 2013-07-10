@@ -159,7 +159,7 @@ int main(int argc, const char * argv[])
             }
                         
             // update last receive to now
-            long long timeNow = usecTimestampNow();
+            uint64_t timeNow = usecTimestampNow();
             newNode->setLastHeardMicrostamp(timeNow);
             
             if (packetData[0] == PACKET_HEADER_DOMAIN_REPORT_FOR_DUTY
