@@ -88,8 +88,6 @@ public:
     void simulate(float deltaTime, Transmitter* transmitter);
     void updateThrust(float deltaTime, Transmitter * transmitter);
     void updateFromGyrosAndOrWebcam(bool gyroLook, const glm::vec3& amplifyAngles);
-    void updateFromMouse(int mouseX, int mouseY, int screenWidth, int screenHeight);
-    void updateFromTouch(float touchAvgDistX, float touchAvgDistY);
     void addBodyYaw(float y) {_bodyYaw += y;};
     void render(bool lookingInMirror, bool renderAvatarBalls);
 
