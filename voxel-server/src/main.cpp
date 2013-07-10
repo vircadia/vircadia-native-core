@@ -995,8 +995,6 @@ void scanTreeWithOcclusion(VoxelTree* tree, ViewFrustum* viewFrustum, CoverageMa
     }
 
     //tree->recurseTreeWithOperationDistanceSorted(scanTreeWithOcclusionOperation, position, (void*)&args);
-    long long now = usecTimestampNow();
-
 
     printf("scanTreeWithOcclusion()\n");
     printf("    position=(%f,%f)\n", position.x, position.y);

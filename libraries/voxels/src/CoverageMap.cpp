@@ -336,7 +336,7 @@ void CoverageRegion::erase() {
         //    _polygons[i]->getBoundingBox().printDebugDetails();
         //}
     }
-/**/
+**/
     // If we're in charge of managing the polygons, then clean them up first
     if (_managePolygons) {
         for (int i = 0; i < _polygonCount; i++) {

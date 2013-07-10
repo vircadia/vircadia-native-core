@@ -583,7 +583,7 @@ VoxelProjectedPolygon ViewFrustum::getProjectedPolygon(const AABox& box) const {
             
             lookUp += PROJECTION_CLIPPED;
         }
-        /***/
+        ***/
     }
     // set the distance from our camera position, to the closest vertex
     float distance = glm::distance(getPosition(), box.getCenter());
