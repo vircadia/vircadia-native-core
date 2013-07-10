@@ -338,6 +338,7 @@ void Application::initializeGL() {
     QTimer* idleTimer = new QTimer(this);
     connect(idleTimer, SIGNAL(timeout()), SLOT(idle()));
     idleTimer->start(0);
+    _idleLoopStdev.reset();
     
     if (_justStarted) {
         float startupTime = (usecTimestampNow() - usecTimestamp(&_applicationStartupTime)) / 1000000.0;
@@ -866,6 +867,8 @@ void Application::touchUpdateEvent(QTouchEvent* event) {
 
 void Application::touchBeginEvent(QTouchEvent* event) {
     touchUpdateEvent(event);
+    _lastTouchAvgX = _touchAvgX;
+    _lastTouchAvgY = _touchAvgY;
 }
 
 void Application::touchEndEvent(QTouchEvent* event) {
@@ -949,28 +952,36 @@ static glm::vec3 getFaceVector(BoxFace face) {
 }
 
 void Application::idle() {
+    
     timeval check;
     gettimeofday(&check, NULL);
     
     //  Only run simulation code if more than IDLE_SIMULATE_MSECS have passed since last time we ran
-    
-    if (diffclock(&_lastTimeIdle, &check) > IDLE_SIMULATE_MSECS) {
+
+    double timeSinceLastUpdate = diffclock(&_lastTimeUpdated, &check);
+    if (timeSinceLastUpdate > IDLE_SIMULATE_MSECS) {
         
         // If we're using multi-touch look, immediately process any
         // touch events, and no other events.
         // This is necessary because id the idle() call takes longer than the
         // interval between idle() calls, the event loop never gets to run,
         // and touch events get delayed.
-        if (_touchLook->isChecked()) {
-            sendPostedEvents(NULL, QEvent::TouchBegin);
-            sendPostedEvents(NULL, QEvent::TouchUpdate);
-            sendPostedEvents(NULL, QEvent::TouchEnd);
-        }
-        
-        update(1.0f / _fps);
-        
+        sendPostedEvents(NULL, QEvent::TouchBegin);
+        sendPostedEvents(NULL, QEvent::TouchUpdate);
+        sendPostedEvents(NULL, QEvent::TouchEnd);
+
+        const float BIGGEST_DELTA_TIME_SECS = 0.25f;
+        update(glm::clamp((float)timeSinceLastUpdate / 1000.f, 0.f, BIGGEST_DELTA_TIME_SECS));
         _glWidget->updateGL();
-        _lastTimeIdle = check;
+        _lastTimeUpdated = check;
+        _idleLoopStdev.addValue(timeSinceLastUpdate);
+        
+        //  Record standard deviation and reset counter if needed
+        const int STDEV_SAMPLES = 500;
+        if (_idleLoopStdev.getSamples() > STDEV_SAMPLES) {
+            _idleLoopMeasuredJitter = _idleLoopStdev.getStDev();
+            _idleLoopStdev.reset();
+        }
     }
 }
 void Application::terminate() {
@@ -1476,10 +1487,6 @@ void Application::initMenu() {
     optionsMenu->addAction("Noise", this, SLOT(setNoise(bool)), Qt::Key_N)->setCheckable(true);
     (_gyroLook = optionsMenu->addAction("Smooth Gyro Look"))->setCheckable(true);
     _gyroLook->setChecked(true);
-    (_mouseLook = optionsMenu->addAction("Mouse Look"))->setCheckable(true);
-    _mouseLook->setChecked(true);
-    (_touchLook = optionsMenu->addAction("Touch Look"))->setCheckable(true);
-    _touchLook->setChecked(false);
     (_showHeadMouse = optionsMenu->addAction("Head Mouse"))->setCheckable(true);
     _showHeadMouse->setChecked(false);
     (_transmitterDrives = optionsMenu->addAction("Transmitter Drive"))->setCheckable(true);
@@ -1677,7 +1684,7 @@ void Application::init() {
     LeapManager::initialize();
     
     gettimeofday(&_timerStart, NULL);
-    gettimeofday(&_lastTimeIdle, NULL);
+    gettimeofday(&_lastTimeUpdated, NULL);
 
     loadSettings();
     if (!shouldDynamicallySetJitterBuffer()) {
@@ -1816,20 +1823,19 @@ void Application::update(float deltaTime) {
     if (_myAvatar.getMode() == AVATAR_MODE_WALKING) {
         _handControl.stop();
     }
-    
-    //  Update from Mouse
-    if (_mouseLook->isChecked()) {
-        QPoint mouse = QCursor::pos();
-        _myAvatar.updateFromMouse(_glWidget->mapFromGlobal(mouse).x(),
-                                  _glWidget->mapFromGlobal(mouse).y(),
-                                  _glWidget->width(),
-                                  _glWidget->height());
-    }
-   
+       
     //  Update from Touch
-    if (_isTouchPressed && _touchLook->isChecked()) {
-        _myAvatar.updateFromTouch(_touchAvgX - _touchDragStartedAvgX,
-                                  _touchAvgY - _touchDragStartedAvgY);
+    if (_isTouchPressed) {
+        float TOUCH_YAW_SCALE = -50.0f;
+        float TOUCH_PITCH_SCALE = -50.0f;
+        _myAvatar.getHead().addYaw((_touchAvgX - _lastTouchAvgX)
+                                   * TOUCH_YAW_SCALE
+                                   * deltaTime);
+        _myAvatar.getHead().addPitch((_touchAvgY - _lastTouchAvgY)
+                                     * TOUCH_PITCH_SCALE
+                                     * deltaTime);
+        _lastTouchAvgX = _touchAvgX;
+        _lastTouchAvgY = _touchAvgY;
     }
     
     // Leap finger-sensing device
