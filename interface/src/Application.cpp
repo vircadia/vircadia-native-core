@@ -1653,7 +1653,7 @@ void Application::init() {
     _headMouseX = _mouseX = _glWidget->width() / 2;
     _headMouseY = _mouseY = _glWidget->height() / 2;
 
-    //_stars.readInput(STAR_FILE, STAR_CACHE_FILE, 0);
+    _stars.readInput(STAR_FILE, STAR_CACHE_FILE, 0);
   
     _myAvatar.init();
     _myAvatar.setPosition(START_LOCATION);
