@@ -1390,7 +1390,7 @@ void Application::importVoxels() {
     } else if (fileNameString.endsWith(".svo", Qt::CaseInsensitive)) {
         importVoxels.readFromSVOFile(fileName);
     } else {
-        importVoxels.readFromSchematicsFile(fileName);
+        importVoxels.readFromSchematicFile(fileName);
     }
     
     VoxelNode* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);

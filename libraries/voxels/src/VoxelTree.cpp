@@ -1457,7 +1457,7 @@ bool VoxelTree::readFromSquareARGB32Pixels(const uint32_t* pixels, int dimension
     return true;
 }
 
-bool VoxelTree::readFromSchematicsFile(const char *fileName) {
+bool VoxelTree::readFromSchematicFile(const char *fileName) {
     std::stringstream ss;
     int err = retrieveData(fileName, ss);
     if (err && ss.get() != TAG_Compound) {
