@@ -70,6 +70,9 @@ NodeList::NodeList(char newOwnerType, unsigned int newSocketListenPort) :
 NodeList::~NodeList() {
     delete _nodeTypesOfInterest;
     
+    // delete the nodes in our list
+    clear();
+    
     // stop the spawned threads, if they were started
     stopSilentNodeRemovalThread();
     stopPingUnknownNodesThread();
@@ -201,6 +204,19 @@ int NodeList::getNumAliveNodes() const {
     }
     
     return numAliveNodes;
+}
+
+void NodeList::clear() {
+    // delete all of the nodes in the list, set the pointers back to NULL and the number of nodes to 0
+    for (int i = 0; i < _numNodes; i++) {
+        Node** nodeBucket = _nodeBuckets[i / NODES_PER_BUCKET];
+        Node* node = nodeBucket[i % NODES_PER_BUCKET];
+        
+        delete node;
+        node = NULL;
+    }
+    
+    _numNodes = 0;
 }
 
 void NodeList::setNodeTypesOfInterest(const char* nodeTypesOfInterest, int numNodeTypesOfInterest) {
