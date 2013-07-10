@@ -65,6 +65,21 @@ CoverageMap::~CoverageMap() {
     erase();
 };
 
+void CoverageMap::printStats() {
+    printLog("CoverageMap::printStats()...\n");
+    printLog("MINIMUM_POLYGON_AREA_TO_STORE=%f\n",MINIMUM_POLYGON_AREA_TO_STORE);
+    printLog("_mapCount=%d\n",_mapCount);
+    printLog("_checkMapRootCalls=%d\n",_checkMapRootCalls);
+    printLog("_notAllInView=%d\n",_notAllInView);
+    printLog("_maxPolygonsUsed=%d\n",CoverageRegion::_maxPolygonsUsed);
+    printLog("_totalPolygons=%d\n",CoverageRegion::_totalPolygons);
+    printLog("_occlusionTests=%d\n",CoverageRegion::_occlusionTests);
+    printLog("_regionSkips=%d\n",CoverageRegion::_regionSkips);
+    printLog("_tooSmallSkips=%d\n",CoverageRegion::_tooSmallSkips);
+    printLog("_outOfOrderPolygon=%d\n",CoverageRegion::_outOfOrderPolygon);
+    printLog("_clippedPolygons=%d\n",CoverageRegion::_clippedPolygons);
+}
+
 void CoverageMap::erase() {
     // tell our regions to erase()
     _topHalf.erase();
@@ -82,17 +97,7 @@ void CoverageMap::erase() {
 
     if (_isRoot && wantDebugging) {
         printLog("CoverageMap last to be deleted...\n");
-        printLog("MINIMUM_POLYGON_AREA_TO_STORE=%f\n",MINIMUM_POLYGON_AREA_TO_STORE);
-        printLog("_mapCount=%d\n",_mapCount);
-        printLog("_checkMapRootCalls=%d\n",_checkMapRootCalls);
-        printLog("_notAllInView=%d\n",_notAllInView);
-        printLog("_maxPolygonsUsed=%d\n",CoverageRegion::_maxPolygonsUsed);
-        printLog("_totalPolygons=%d\n",CoverageRegion::_totalPolygons);
-        printLog("_occlusionTests=%d\n",CoverageRegion::_occlusionTests);
-        printLog("_regionSkips=%d\n",CoverageRegion::_regionSkips);
-        printLog("_tooSmallSkips=%d\n",CoverageRegion::_tooSmallSkips);
-        printLog("_outOfOrderPolygon=%d\n",CoverageRegion::_outOfOrderPolygon);
-        printLog("_clippedPolygons=%d\n",CoverageRegion::_clippedPolygons);
+        printStats();
         
         CoverageRegion::_maxPolygonsUsed = 0;
         CoverageRegion::_totalPolygons = 0;

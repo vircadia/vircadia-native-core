@@ -81,6 +81,7 @@ public:
     BoundingBox getChildBoundingBox(int childIndex);
     
     void erase(); // erase the coverage map
+    void printStats();
 
     static bool wantDebugging;
 

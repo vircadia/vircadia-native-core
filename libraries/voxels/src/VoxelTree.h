@@ -14,6 +14,7 @@
 #include "VoxelNode.h"
 #include "VoxelNodeBag.h"
 #include "CoverageMap.h"
+#include "PointerStack.h"
 
 // Callback function, for recuseTreeWithOperation
 typedef bool (*RecurseVoxelTreeOperation)(VoxelNode* node, int level, void* extraData);
@@ -147,6 +148,11 @@ public:
     void recurseNodeWithOperation(VoxelNode* node, int& level, RecurseVoxelTreeOperation operation, void* extraData);
     void recurseNodeWithOperationDistanceSorted(VoxelNode* node, int& level, RecurseVoxelTreeOperation operation, 
                 const glm::vec3& point, void* extraData);
+
+
+    void recurseTreeWithOperationDistanceSortedTimed(PointerStack* stackOfNodes, long allowedTime,
+                                                            RecurseVoxelTreeOperation operation, 
+                                                            const glm::vec3& point, void* extraData);
     
 private:
     void deleteVoxelCodeFromTreeRecursion(VoxelNode* node, void* extraData);

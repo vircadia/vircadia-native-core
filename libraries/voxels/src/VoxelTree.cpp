@@ -58,6 +58,63 @@ VoxelTree::~VoxelTree() {
     }
 }
 
+
+void VoxelTree::recurseTreeWithOperationDistanceSortedTimed(PointerStack* stackOfNodes, long allowedTime,
+                                                            RecurseVoxelTreeOperation operation, 
+                                                            const glm::vec3& point, void* extraData) {
+
+    int ignored = 0;
+    long long start = usecTimestampNow();
+    
+    // start case, stack empty, so start with root...
+    if (stackOfNodes->empty()) {
+        stackOfNodes->push(rootNode);
+    }
+    while (!stackOfNodes->empty()) {
+        VoxelNode* node = (VoxelNode*)stackOfNodes->top();
+        stackOfNodes->pop();
+    
+        if (operation(node, ignored, extraData)) {
+
+            //sortChildren... CLOSEST to FURTHEST
+            // determine the distance sorted order of our children
+            VoxelNode*  sortedChildren[NUMBER_OF_CHILDREN];
+            float       distancesToChildren[NUMBER_OF_CHILDREN];
+            int         indexOfChildren[NUMBER_OF_CHILDREN]; // not really needed
+            int         currentCount = 0;
+
+            for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
+                VoxelNode* childNode = node->getChildAtIndex(i);
+                if (childNode) {
+                    // chance to optimize, doesn't need to be actual distance!! Could be distance squared
+                    float distanceSquared = childNode->distanceSquareToPoint(point); 
+                    currentCount = insertIntoSortedArrays((void*)childNode, distanceSquared, i,
+                                                          (void**)&sortedChildren, (float*)&distancesToChildren, 
+                                                          (int*)&indexOfChildren, currentCount, NUMBER_OF_CHILDREN);
+                }
+            }
+
+            //iterate sorted children FURTHEST to CLOSEST
+            for (int i = currentCount-1; i >= 0; i--) {
+                VoxelNode* child = sortedChildren[i];
+                stackOfNodes->push(child);
+//printLog("stackOfNodes->size()=%d child->getLevel()=%d\n",stackOfNodes->size(), child->getLevel());
+            }
+        }
+
+        // at this point, we can check to see if we should bail for timing reasons
+        // because if we bail at this point, then reenter the while, we will basically
+        // be back to processing the stack from same place we left off, and all can proceed normally
+        long long now = usecTimestampNow();
+        long elapsedTime = now - start;
+
+        if (elapsedTime > allowedTime) {
+            return; // caller responsible for calling us again to finish the job!
+        }
+    }
+}
+
+
 // Recurses voxel tree calling the RecurseVoxelTreeOperation function for each node.
 // stops recursion if operation function returns false.
 void VoxelTree::recurseTreeWithOperation(RecurseVoxelTreeOperation operation, void* extraData) {
@@ -93,7 +150,6 @@ void VoxelTree::recurseNodeWithOperationDistanceSorted(VoxelNode* node, int& lev
                                                        const glm::vec3& point, void* extraData) {
     if (operation(node, level, extraData)) {
         // determine the distance sorted order of our children
-        
         VoxelNode*  sortedChildren[NUMBER_OF_CHILDREN];
         float       distancesToChildren[NUMBER_OF_CHILDREN];
         int         indexOfChildren[NUMBER_OF_CHILDREN]; // not really needed
