@@ -1586,7 +1586,8 @@ void Application::initMenu() {
     debugMenu->addAction("Wants Monochrome", this, SLOT(setWantsMonochrome(bool)))->setCheckable(true);
     debugMenu->addAction("Wants View Delta Sending", this, SLOT(setWantsDelta(bool)))->setCheckable(true);
     (_shouldLowPassFilter = debugMenu->addAction("Test: LowPass filter"))->setCheckable(true);
-    debugMenu->addAction("Wants Occlusion Culling", this, SLOT(setWantsOcclusionCulling(bool)))->setCheckable(true);
+    debugMenu->addAction("Wants Occlusion Culling", this, SLOT(setWantsOcclusionCulling(bool)), 
+                         Qt::SHIFT | Qt::Key_C)->setCheckable(true);
 
     (_renderCoverageMap = debugMenu->addAction("Render Coverage Map"))->setCheckable(true);
     _renderCoverageMap->setShortcut(Qt::SHIFT | Qt::CTRL | Qt::Key_O);
