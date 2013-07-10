@@ -13,7 +13,7 @@
 #include "Log.h"
 
 // These includes are for serial port reading/writing
-#ifdef __APPLE__
+#ifndef _WIN32
 #include <unistd.h>
 #include <fcntl.h>
 #include <termios.h>
@@ -69,6 +69,7 @@ private:
     int totalSamples;
     timeval lastGoodRead;
     glm::vec3 _gravity;
+    glm::vec3 _north;
     glm::vec3 _averageRotationRates;
     glm::vec3 _averageAcceleration;
     glm::vec3 _estimatedRotation;
@@ -77,6 +78,7 @@ private:
     glm::vec3 _estimatedAcceleration;
     glm::vec3 _lastAcceleration;
     glm::vec3 _lastRotationRates;
+    glm::vec3 _lastCompassHeading;
     
     glm::mat3 _angularVelocityToLinearAccel;
     glm::mat3 _angularAccelToLinearAccel;
