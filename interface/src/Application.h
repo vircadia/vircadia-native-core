@@ -39,6 +39,8 @@
 #include "Webcam.h"
 #include "renderer/GeometryCache.h"
 #include "ui/ChatEntry.h"
+#include "ToolsPalette.h"
+#include "Swatch.h"
 
 class QAction;
 class QActionGroup;
@@ -139,6 +141,7 @@ private slots:
     void updateVoxelModeActions();
     void decreaseVoxelSize();
     void increaseVoxelSize();
+    void resetSwatchColors();
     void chooseVoxelPaintColor();
     void loadSettings(QSettings* set = NULL);
     void saveSettings(QSettings* set = NULL);
@@ -365,6 +368,8 @@ private:
     StDev _idleLoopStdev;
     float _idleLoopMeasuredJitter;
 
+    ToolsPalette _palette;
+    Swatch _swatch;
 };
 
 #endif /* defined(__interface__Application__) */
