@@ -627,7 +627,7 @@ void Head::renderEyeBalls() {
         glm::vec3 rotationAxis = glm::axis(orientation);
         glRotatef(glm::angle(orientation), rotationAxis.x, rotationAxis.y, rotationAxis.z);
         glScalef(EYELID_RADIUS, EYELID_RADIUS, EYELID_RADIUS);
-        glRotatef(-90 * _leftEyeBlink, 1, 0, 0);
+        glRotatef(-40 - 50 * _leftEyeBlink, 1, 0, 0);
         Application::getInstance()->getGeometryCache()->renderHemisphere(15, 10);
         glRotatef(180 * _leftEyeBlink, 1, 0, 0);
         Application::getInstance()->getGeometryCache()->renderHemisphere(15, 10);
@@ -640,7 +640,7 @@ void Head::renderEyeBalls() {
         glm::vec3 rotationAxis = glm::axis(orientation);
         glRotatef(glm::angle(orientation), rotationAxis.x, rotationAxis.y, rotationAxis.z);
         glScalef(EYELID_RADIUS, EYELID_RADIUS, EYELID_RADIUS);
-        glRotatef(-90 * _rightEyeBlink, 1, 0, 0);
+        glRotatef(-40 - 50 * _rightEyeBlink, 1, 0, 0);
         Application::getInstance()->getGeometryCache()->renderHemisphere(15, 10);
         glRotatef(180 * _rightEyeBlink, 1, 0, 0);
         Application::getInstance()->getGeometryCache()->renderHemisphere(15, 10);
