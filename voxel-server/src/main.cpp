@@ -65,7 +65,6 @@ bool wantSearchForColoredNodes = false;
 EnvironmentData environmentData[3];
 
 
-VoxelNode* leftOffAt = NULL;
 void scanTreeWithOcclusion(VoxelTree* tree, ViewFrustum* viewFrustum, CoverageMap* coverageMap, bool wantsOcclusionCulling);
 
 
@@ -818,31 +817,6 @@ bool scanTreeWithOcclusionOperation(VoxelNode* node, int level, void* extraData)
     //return true;
 
 
-/***
-    
-    // If we had a previous leftOffAt, then keep going until we get find it
-    if (args->leftOffAt) {
-        // if this isn't our node, the just keep searching
-        if (node != args->leftOffAt) {
-            return true;
-        }
-        // otherwise, stop searching and start processing
-        args->leftOffAt = NULL;
-        args->startScan = usecTimestampNow();
-    } else {
-        // bail if we've taken too long
-        long long now = usecTimestampNow();
-        if (now - args->startScan > MAX_SCAN) {
-            // if we just stopped, then record this stop time
-            if (args->stopScan == 0) {
-                args->stopScan = now;
-                args->leftOffAt = node;
-            }
-            return false;
-        }
-    }
-**/
-    
     args->totalVoxels++;
     
     // SOME FACTS WE KNOW...
@@ -850,7 +824,6 @@ bool scanTreeWithOcclusionOperation(VoxelNode* node, int level, void* extraData)
     // shouldn't have to check that any more... use InFrustum() and store something in args to know
     // that that part of the stack is in frustum. (do we also need to store a pointer to the parent node
     // that is INSIDE so that when we unwind back to that point we start checking again?... probably)
-/**/
     if (args->subTreeLocation == ViewFrustum::INSIDE) {
         args->subTreeInside++;
         // continue without checking further
@@ -869,10 +842,11 @@ bool scanTreeWithOcclusionOperation(VoxelNode* node, int level, void* extraData)
         }
         // remember this for next recursion pass
         // NOTE: This doesn't actually work because we need a stack of these, and our code doesn't execute
-        // to pop the stack. Similar problem with level.
+        // to pop the stack. Similar problem with level. So we need a solution to allow operation functions to
+        // store information on a stack.
         //args->subTreeLocation = location;
     }
-/**/
+
     // If this node is too far for LOD...
     float distanceSquared = node->distanceSquareToPoint(args->cameraPosition);
     float boundaryDistanceSquared = boundaryDistanceSquaredForRenderLevel(node->getLevel()); //level+1);
@@ -886,10 +860,7 @@ bool scanTreeWithOcclusionOperation(VoxelNode* node, int level, void* extraData)
         return false;
     }
 
-//return true; // so only counting in view/LOD
-    
-    // If we are a parent, let's see if we're completely occluded.
-
+    // Handle occlusion culling tests.
     if (args->wantsOcclusionCulling) {
         if (!node->isLeaf()) {
             args->nonLeaves++;
@@ -911,16 +882,6 @@ bool scanTreeWithOcclusionOperation(VoxelNode* node, int level, void* extraData)
             if (result == OCCLUDED) {
                 args->nonLeavesOccluded++;
                 delete voxelPolygon;
-
-                /** Maybe we want to do this? But it's really only for debug accounting ******            
-                CountSubTreeOperationArgs subArgs;
-                subArgs.voxelsTouched = 0;
-                
-                args->tree->recurseNodeWithOperation(node, countSubTreeOperation, &subArgs );
-                args->subtreeVoxelsSkipped += (subArgs.voxelsTouched - 1);
-                args->totalVoxels += (subArgs.voxelsTouched - 1);
-                *****/
-                
                 return false;
             }
 
