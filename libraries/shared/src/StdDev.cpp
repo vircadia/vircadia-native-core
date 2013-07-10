@@ -6,8 +6,9 @@
 //  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
 
-#include "StdDev.h"
+#include <limits>   
 #include <cmath>
+#include "StdDev.h"
 
 const int MAX_STDEV_SAMPLES = 1000;
 
@@ -34,6 +35,16 @@ float StDev::getAverage() {
         return average/(float)sampleCount;
     else return 0;
 }
+/*
+float StDev::getMax() { 
+    float average = -FLT_MAX;
+    for (int i = 0; i < sampleCount; i++) {
+        average += data[i];
+    }
+    if (sampleCount > 0)
+        return average/(float)sampleCount;
+    else return 0;
+}*/
 
 float StDev::getStDev() {
     float average = getAverage();
