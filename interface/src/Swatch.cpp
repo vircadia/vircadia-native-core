@@ -3,8 +3,8 @@
 
 Swatch::Swatch(QAction* action) :
     Tool(action, 0, -1, -1),
-    _selected(1),
-    _textRenderer(MONO_FONT_FAMILY, 10, 100) {
+    _textRenderer(MONO_FONT_FAMILY, 10, 100),
+    _selected(1) {
 }
 
 void Swatch::reset() {
