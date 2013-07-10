@@ -33,6 +33,7 @@ public:
     static int _occlusionTests;
     static int _regionSkips;
     static int _tooSmallSkips;
+    static int _regionFullSkips;
     static int _outOfOrderPolygon;
     static int _clippedPolygons;
 

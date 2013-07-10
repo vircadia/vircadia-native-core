@@ -16,6 +16,8 @@ int CoverageMap::_checkMapRootCalls = 0;
 int CoverageMap::_notAllInView = 0;
 bool CoverageMap::wantDebugging = false;
 
+const int MAX_POLYGONS_PER_REGION = 50;
+
 const BoundingBox CoverageMap::ROOT_BOUNDING_BOX = BoundingBox(glm::vec2(-1.f,-1.f), glm::vec2(2.f,2.f));
 
 // Coverage Map's polygon coordinates are from -1 to 1 in the following mapping to screen space.
@@ -76,6 +78,7 @@ void CoverageMap::printStats() {
     printLog("_occlusionTests=%d\n",CoverageRegion::_occlusionTests);
     printLog("_regionSkips=%d\n",CoverageRegion::_regionSkips);
     printLog("_tooSmallSkips=%d\n",CoverageRegion::_tooSmallSkips);
+    printLog("_regionFullSkips=%d\n",CoverageRegion::_regionFullSkips);
     printLog("_outOfOrderPolygon=%d\n",CoverageRegion::_outOfOrderPolygon);
     printLog("_clippedPolygons=%d\n",CoverageRegion::_clippedPolygons);
 }
@@ -104,6 +107,7 @@ void CoverageMap::erase() {
         CoverageRegion::_occlusionTests = 0;
         CoverageRegion::_regionSkips = 0;
         CoverageRegion::_tooSmallSkips = 0;
+        CoverageRegion::_regionFullSkips = 0;
         CoverageRegion::_outOfOrderPolygon = 0;
         CoverageRegion::_clippedPolygons = 0;
         _mapCount = 0;
@@ -283,10 +287,16 @@ CoverageMapStorageResult CoverageMap::checkMap(VoxelProjectedPolygon* polygon, b
         // any of our child bounding boxes, so we should add it here.
         if (storeIt) {
             if (polygon->getBoundingBox().area() > CoverageMap::MINIMUM_POLYGON_AREA_TO_STORE) {
-                //printLog("storing polygon of area: %f\n",polygon->getBoundingBox().area());                    
-                storeIn->storeInArray(polygon);
-                //printLog("CoverageMap2::checkMap()... STORED\n");
-                return STORED;
+                //printLog("storing polygon of area: %f\n",polygon->getBoundingBox().area());
+                if (storeIn->getPolygonCount() < MAX_POLYGONS_PER_REGION) {
+                    storeIn->storeInArray(polygon);
+                    //printLog("CoverageMap2::checkMap()... STORED\n");
+                    return STORED;
+                } else {
+                    CoverageRegion::_regionFullSkips++;
+                    //printLog("CoverageMap2::checkMap()... NOT_STORED\n");
+                    return NOT_STORED;
+                }
             } else {
                 CoverageRegion::_tooSmallSkips++;
                 //printLog("CoverageMap2::checkMap()... NOT_STORED\n");
@@ -405,6 +415,7 @@ int CoverageRegion::_totalPolygons = 0;
 int CoverageRegion::_occlusionTests = 0;
 int CoverageRegion::_regionSkips = 0;
 int CoverageRegion::_tooSmallSkips = 0;
+int CoverageRegion::_regionFullSkips = 0;
 int CoverageRegion::_outOfOrderPolygon = 0;
 int CoverageRegion::_clippedPolygons = 0;
 
@@ -523,10 +534,14 @@ CoverageMapStorageResult CoverageRegion::checkRegion(VoxelProjectedPolygon* poly
                     if (polygonAtThisLevel->getDistance() >= polygon->getDistance()) {
                         _outOfOrderPolygon++;
                         if (storeIt) {
-                            if (true || polygon->getBoundingBox().area() > CoverageMap::MINIMUM_POLYGON_AREA_TO_STORE) {
-                                //printLog("storing polygon of area: %f\n",polygon->getBoundingBox().area());                    
-                                storeInArray(polygon);
-                                return STORED;
+                            if (polygon->getBoundingBox().area() > CoverageMap::MINIMUM_POLYGON_AREA_TO_STORE) {
+                                if (getPolygonCount() < MAX_POLYGONS_PER_REGION) {
+                                    storeInArray(polygon);
+                                    return STORED;
+                                } else {
+                                    CoverageRegion::_regionFullSkips++;
+                                    return NOT_STORED;
+                                }
                             } else {
                                 _tooSmallSkips++;
                                 return NOT_STORED;
