@@ -275,7 +275,6 @@ ViewFrustum::location ViewFrustum::boxInFrustum(const AABox& box) const {
         keyholeResult = boxInKeyhole(box);
     }
     if (keyholeResult == INSIDE) {
-//printLog("ViewFrustum::boxInFrustum() keyholeResult == INSIDE _keyholeRadius=%f\n",_keyholeRadius);
         return keyholeResult;
     }
 
