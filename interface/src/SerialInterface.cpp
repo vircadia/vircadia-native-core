@@ -200,7 +200,7 @@ void SerialInterface::readData(float deltaTime) {
 
         // ask the invensense for raw gyro data
         short accelData[3];
-        int r1 = mpu_get_accel_reg(accelData, 0);
+        mpu_get_accel_reg(accelData, 0);
         
         const float LSB_TO_METERS_PER_SECOND2 = 1.f / 16384.f * GRAVITY_EARTH;
                                                                 //  From MPU-9150 register map, with setting on
@@ -208,10 +208,8 @@ void SerialInterface::readData(float deltaTime) {
         
         _lastAcceleration = glm::vec3(-accelData[2], -accelData[1], -accelData[0]) * LSB_TO_METERS_PER_SECOND2;
           
-        int rollRate, yawRate, pitchRate;
-        
         short gyroData[3];
-        int r2 = mpu_get_gyro_reg(gyroData, 0);
+        mpu_get_gyro_reg(gyroData, 0);
         
         //  Convert the integer rates to floats
         const float LSB_TO_DEGREES_PER_SECOND = 1.f / 16.4f;     //  From MPU-9150 register map, 2000 deg/sec.
