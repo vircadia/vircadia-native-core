@@ -1721,14 +1721,16 @@ void Application::init() {
 const float MAX_AVATAR_EDIT_VELOCITY = 1.0f;
 const float MAX_VOXEL_EDIT_DISTANCE = 20.0f;
 
-bool Application::isLookingAtOtherAvatar(glm::vec3 mouseRayOrigin, glm::vec3 mouseRayDirection, glm::vec3 &eyePosition) {
+bool Application::isLookingAtOtherAvatar(glm::vec3 &mouseRayOrigin, glm::vec3 &mouseRayDirection, glm::vec3 &eyePosition) {
     NodeList* nodeList = NodeList::getInstance();
     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
         if (node->getLinkedData() != NULL && node->getType() == NODE_TYPE_AGENT) {
             Avatar *avatar = (Avatar *)node->getLinkedData();
             glm::vec3 headPosition = avatar->getHead().getPosition();
             glm::vec3 intersectionPosition, intersectionNormal;
-            if (glm::intersectRaySphere(mouseRayOrigin, mouseRayDirection, headPosition, 1, intersectionPosition, intersectionNormal)) {
+            printf("x: %f   y: %f   z: %f \n", mouseRayOrigin.x, mouseRayOrigin.y, mouseRayOrigin.z);
+            if (glm::intersectRaySphere(mouseRayOrigin, mouseRayDirection, headPosition, 10, intersectionPosition, intersectionNormal)) {
+                printf("lalala\n");
                 eyePosition = avatar->getHead().getEyeLevelPosition();
                 return true;
             }
@@ -1758,6 +1760,8 @@ void Application::update(float deltaTime) {
     glm::vec3 mouseRayOrigin, mouseRayDirection;
     _viewFrustum.computePickRay(_mouseX / (float)_glWidget->width(),
         _mouseY / (float)_glWidget->height(), mouseRayOrigin, mouseRayDirection);
+    // printf("x: %d   y: %d \n", _mouseX, _mouseY);
+    // printf("x: %f   y: %f   z: %f \n", mouseRayOrigin.x, mouseRayOrigin.y, mouseRayOrigin.z);
 
     // tell my avatar the posiion and direction of the ray projected ino the world based on the mouse position        
     _myAvatar.setMouseRay(mouseRayOrigin, mouseRayDirection);
