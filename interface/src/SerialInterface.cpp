@@ -99,6 +99,9 @@ void SerialInterface::initializePort(char* portname) {
         int currentFlags = fcntl(_serialDescriptor, F_GETFL);
         fcntl(_serialDescriptor, F_SETFL, currentFlags & ~O_NONBLOCK);
         
+        // make sure there's nothing queued up to be read
+        tcflush(_serialDescriptor, TCIOFLUSH);
+        
         // this disables streaming so there's no garbage data on reads
         write(_serialDescriptor, "SD\n", 3);
         char result[4];
