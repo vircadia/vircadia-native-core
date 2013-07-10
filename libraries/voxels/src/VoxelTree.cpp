@@ -1271,10 +1271,41 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
 
 
                 bool childWasInView = (childNode && params.deltaViewFrustum &&
-                                       (params.lastViewFrustum && ViewFrustum::INSIDE == childNode->inFrustum(*params.lastViewFrustum)));
 
+                                      (params.lastViewFrustum && ViewFrustum::INSIDE == childNode->inFrustum(*params.lastViewFrustum)));
+
+                // There are two types of nodes for which we want to send colors:
+                // 1) Leaves - obviously
+                // 2) Non-leaves who's children would be visible and beyond our LOD.
+                // NOTE: This code works, but it's pretty expensive, because we're calculating distances for all the grand
+                // children, which we'll end up doing again later in the next level of recursion. We need to optimize this
+                // in the future.
+                bool isLeafOrLOD = childNode->isLeaf();
+                if (params.viewFrustum && childNode->isColored() && !childNode->isLeaf()) {
+                    int grandChildrenInView = 0;
+                    int grandChildrenInLOD = 0;
+                    for (int grandChildIndex = 0; grandChildIndex < NUMBER_OF_CHILDREN; grandChildIndex++) {
+                        VoxelNode* grandChild = childNode->getChildAtIndex(grandChildIndex);
+                        
+                        if (grandChild && grandChild->isColored() && grandChild->isInView(*params.viewFrustum)) {
+                            grandChildrenInView++;
+                        
+                            float grandChildDistance = grandChild->distanceToCamera(*params.viewFrustum);
+                            float grandChildBoundaryDistance = boundaryDistanceForRenderLevel(grandChild->getLevel() + 1);
+                            if (grandChildDistance < grandChildBoundaryDistance) {
+                                grandChildrenInLOD++;
+                            }
+                        }
+                    }
+                    // if any of our grandchildren ARE in view, then we don't want to include our color. If none are, then
+                    // we do want to include our color
+                    if (grandChildrenInView > 0 && grandChildrenInLOD==0) {
+                        isLeafOrLOD = true;
+                    }
+                }
+                
                 // track children with actual color, only if the child wasn't previously in view!
-                if (childNode && childNode->isColored() && !childWasInView && !childIsOccluded) {
+                if (childNode && isLeafOrLOD && childNode->isColored() && !childWasInView && !childIsOccluded) {
                     childrenColoredBits += (1 << (7 - originalIndex));
                     inViewWithColorCount++;
                 }
