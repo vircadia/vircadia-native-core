@@ -28,7 +28,8 @@ extern "C" {
 #include "Webcam.h"
 
 const short NO_READ_MAXIMUM_MSECS = 3000;
-const int GRAVITY_NORTH_SAMPLES = 60;                     //  Use the first few samples to baseline values
+const int GRAVITY_SAMPLES = 60;                     //  Use the first few samples to baseline values
+const int NORTH_SAMPLES = 30;
 const int ACCELERATION_SENSOR_FUSION_SAMPLES = 20;
 const int COMPASS_SENSOR_FUSION_SAMPLES = 200;
 const int LONG_TERM_RATE_SAMPLES = 1000;            
@@ -98,14 +99,14 @@ void SerialInterface::initializePort(char* portname) {
         int currentFlags = fcntl(_serialDescriptor, F_GETFL);
         fcntl(_serialDescriptor, F_SETFL, currentFlags & ~O_NONBLOCK);
         
-        tty_set_file_descriptor(_serialDescriptor);
-        mpu_init(0);
-        mpu_set_sensors(INV_XYZ_GYRO | INV_XYZ_ACCEL | INV_XYZ_COMPASS);
-        
         // this disables streaming so there's no garbage data on reads
         write(_serialDescriptor, "SD\n", 3);
         char result[4];
         read(_serialDescriptor, result, 4);
+        
+        tty_set_file_descriptor(_serialDescriptor);
+        mpu_init(0);
+        mpu_set_sensors(INV_XYZ_GYRO | INV_XYZ_ACCEL | INV_XYZ_COMPASS);
     }
     
     printLog("Connected.\n");
@@ -220,12 +221,10 @@ void SerialInterface::readData(float deltaTime) {
         rotationRates[2] = ((float) -gyroData[0]) * LSB_TO_DEGREES_PER_SECOND;
       
         short compassData[3];
-        int r3 = mpu_get_compass_reg(compassData, 0);
+        mpu_get_compass_reg(compassData, 0);
       
-        // Convert integer values to floats
-        _lastCompassHeading = glm::normalize(glm::vec3(compassData[2], compassData[1], compassData[0]));
-        
-        printLog("%d %d %d %d %d %d\n", compassData[2], compassData[1], compassData[0], r1, r2, r3);
+        // Convert integer values to floats, update extents
+        _lastCompass = glm::vec3(compassData[2], -compassData[0], -compassData[1]);
         
         // update and subtract the long term average
         _averageRotationRates = (1.f - 1.f/(float)LONG_TERM_RATE_SAMPLES) * _averageRotationRates +
@@ -241,7 +240,7 @@ void SerialInterface::readData(float deltaTime) {
             glm::quat(glm::radians(deltaTime * _lastRotationRates));
         
         //  Update acceleration estimate: first, subtract gravity as rotated into current frame
-        _estimatedAcceleration = (totalSamples < GRAVITY_NORTH_SAMPLES) ? glm::vec3() :
+        _estimatedAcceleration = (totalSamples < GRAVITY_SAMPLES) ? glm::vec3() :
             _lastAcceleration - glm::inverse(estimatedRotation) * _gravity;
         
         // update and subtract the long term average
@@ -310,23 +309,33 @@ void SerialInterface::readData(float deltaTime) {
         //  Accumulate a set of initial baseline readings for setting gravity
         if (totalSamples == 0) {
             _gravity = _lastAcceleration;
-            _north = _lastCompassHeading;
         } 
         else {
-            if (totalSamples < GRAVITY_NORTH_SAMPLES) {
-                float smoothing = 1.0f / GRAVITY_NORTH_SAMPLES;
-                _gravity = glm::mix(_gravity, _lastAcceleration, smoothing);
-                _north = glm::mix(_north, _lastCompassHeading, smoothing);
+            if (totalSamples < GRAVITY_SAMPLES) {
+                _gravity = glm::mix(_gravity, _lastAcceleration, 1.0f / GRAVITY_SAMPLES);
                 
+                //  North samples start later, because the initial compass readings are screwy
+                int northSample = totalSamples - (GRAVITY_SAMPLES - NORTH_SAMPLES);
+                if (northSample == 0) {
+                    _north = _lastCompass;
+                    
+                } else if (northSample > 0) {
+                    _north = glm::mix(_north, _lastCompass, 1.0f / NORTH_SAMPLES);
+                }
             } else {
                 //  Use gravity reading to do sensor fusion on the pitch and roll estimation
                 estimatedRotation = safeMix(estimatedRotation,
                     rotationBetween(estimatedRotation * _lastAcceleration, _gravity) * estimatedRotation,
                     1.0f / ACCELERATION_SENSOR_FUSION_SAMPLES);
                 
+                //  Update the compass extents
+                _compassMinima = glm::min(_compassMinima, _lastCompass);
+                _compassMaxima = glm::max(_compassMaxima, _lastCompass);
+        
                 //  Same deal with the compass heading
                 estimatedRotation = safeMix(estimatedRotation,
-                    rotationBetween(estimatedRotation * _lastCompassHeading, _north) * estimatedRotation,
+                    rotationBetween(estimatedRotation * recenterCompass(_lastCompass),
+                        recenterCompass(_north)) * estimatedRotation,
                     1.0f / COMPASS_SENSOR_FUSION_SAMPLES);
             }
         }
@@ -370,6 +379,10 @@ void SerialInterface::resetSerial() {
 #endif
 }
 
-
+glm::vec3 SerialInterface::recenterCompass(const glm::vec3& compass) {
+    // compensate for "hard iron" distortion by subtracting the midpoint on each axis; see
+    // http://www.sensorsmag.com/sensors/motion-velocity-displacement/compensating-tilt-hard-iron-and-soft-iron-effects-6475
+    return compass - (_compassMinima + _compassMaxima) * 0.5f;
+}
 
 
