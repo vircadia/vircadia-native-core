@@ -1513,7 +1513,7 @@ void Application::initMenu() {
     QMenu* renderMenu = menuBar->addMenu("Render");
     (_renderVoxels = renderMenu->addAction("Voxels"))->setCheckable(true);
     _renderVoxels->setChecked(true);
-    _renderVoxels->setShortcut(Qt::CTRL | Qt::Key_V);
+    _renderVoxels->setShortcut(Qt::SHIFT | Qt::Key_V);
     (_renderVoxelTextures = renderMenu->addAction("Voxel Textures"))->setCheckable(true);
     (_renderStarsOn = renderMenu->addAction("Stars"))->setCheckable(true);
     _renderStarsOn->setChecked(true);
