@@ -14,7 +14,7 @@
 #undef __interface__Starfield_impl__
 
 Stars::Stars() : 
-    _controller(0l) { 
+    _controller(0l), _fileLoaded(false) { 
     _controller = new starfield::Controller; 
 }
 
@@ -23,7 +23,8 @@ Stars::~Stars() {
 }
 
 bool Stars::readInput(const char* url, const char* cacheFile, unsigned limit) {
-    return _controller->readInput(url, cacheFile, limit); 
+    _fileLoaded = _controller->readInput(url, cacheFile, limit); 
+    return _fileLoaded;
 }
 
 bool Stars::setResolution(unsigned k) { 
