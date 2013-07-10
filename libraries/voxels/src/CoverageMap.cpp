@@ -543,24 +543,3 @@ CoverageMapStorageResult CoverageRegion::checkRegion(VoxelProjectedPolygon* poly
     }
     return result;
 }
-
-
-
-
-/////////////////////////////////////////////////////////////////
-// Notes on improvements.
-//
-// Let's say that we are going to combine polygon projects together if they intersect. How would we do that?
-//
-// On "check/insert"...
-//   We start at top of QuadTree, and we check to see if the checkpolygon's bounding box overlaps with any bounding boxes of
-//   polygons in the current quad level.
-//   If it overlaps, we check to see if the "in map" polygon occludes the checkPolygon.
-//     This operation could create side data that tells us:
-//          1) checkPolygon is COMPLETELY outside of levelPolygon << If so, no occlusion, and can't be combined
-//          2) checkPolygon is COMPLETELY INSIDE of levelPolygon << If so, it is occluded and does not need to be combined
-//          3) checkPolygon has some points INSIDE some OUTSIDE
-//              3a) which vertices are "inside" 
-//              3b) which vertices are "outside"
-//              3c) for all pairs of vertices for which one is "inside" and the other "outside" we can determine an 
-//                  intersection point. This point will be used in our "union"
