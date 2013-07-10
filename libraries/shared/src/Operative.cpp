@@ -6,8 +6,6 @@
 //  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
 
-#include <glm/gtc/quaternion.hpp>
-
 #include "NodeList.h"
 #include "NodeTypes.h"
 #include "PacketHeaders.h"
@@ -16,18 +14,7 @@
 #include "Operative.h"
 
 const float BUG_VOXEL_SIZE = 0.0625f / 128;
-glm::vec3 bugPosition  = glm::vec3(BUG_VOXEL_SIZE * 20.0, BUG_VOXEL_SIZE * 30.0, BUG_VOXEL_SIZE * 20.0);
-glm::vec3 bugDirection = glm::vec3(0, 0, 1);
 const int VOXELS_PER_BUG = 18;
-glm::vec3 bugPathCenter = glm::vec3(BUG_VOXEL_SIZE * 150.0, BUG_VOXEL_SIZE * 30.0, BUG_VOXEL_SIZE * 150.0);
-float bugPathRadius = BUG_VOXEL_SIZE * 140.0;
-float bugPathTheta = 0.0;
-float bugRotation = 0.0;
-float bugAngleDelta = 0.2 * (M_PI / 180.0f);
-bool moveBugInLine = false;
-
-unsigned long packetsSent = 0;
-unsigned long bytesSent = 0;
 
 glm::vec3 rotatePoint(glm::vec3 point, float angle) {
     //  First, create the quaternion based on this angle of rotation
@@ -43,6 +30,20 @@ glm::vec3 rotatePoint(glm::vec3 point, float angle) {
     return glm::vec3(newPoint.x, newPoint.y, newPoint.z);
 }
 
+Operative::Operative() :
+    _bugPosition(BUG_VOXEL_SIZE * 20.0, BUG_VOXEL_SIZE * 30.0, BUG_VOXEL_SIZE * 20.0),
+    _bugDirection(0, 0, 1),
+    _bugPathCenter(BUG_VOXEL_SIZE * 150.0, BUG_VOXEL_SIZE * 30.0, BUG_VOXEL_SIZE * 150.0),
+    _bugPathRadius(BUG_VOXEL_SIZE * 140.0),
+    _bugPathTheta(0.0f),
+    _bugRotation(0.0f),
+    _bugAngleDelta(0.2 * (M_PI / 180.0f)),
+    _moveBugInLine(false),
+    _packetsSent(0),
+    _bytesSent(0)
+{
+}
+
 class BugPart {
 public:
     glm::vec3       partLocation;
@@ -56,7 +57,7 @@ public:
     }
 };
 
-const BugPart bugParts[VOXELS_PER_BUG] = {
+const BugPart BUG_PARTS[VOXELS_PER_BUG] = {
     
     // tail
     BugPart(glm::vec3( 0, 0, -3), 51, 51, 153) ,
@@ -89,7 +90,7 @@ const BugPart bugParts[VOXELS_PER_BUG] = {
     BugPart(glm::vec3(-2, -1,  0), 153, 200, 0) ,
 };
 
-void removeOldBug() {
+void Operative::removeOldBug() {
     VoxelDetail details[VOXELS_PER_BUG];
     unsigned char* bufferOut;
     int sizeOut;
@@ -98,32 +99,32 @@ void removeOldBug() {
     for (int i = 0; i < VOXELS_PER_BUG; i++) {
         details[i].s = BUG_VOXEL_SIZE;
         
-        glm::vec3 partAt = bugParts[i].partLocation * BUG_VOXEL_SIZE * (bugDirection.x < 0 ? -1.0f : 1.0f);
-        glm::vec3 rotatedPartAt = rotatePoint(partAt, bugRotation);
-        glm::vec3 offsetPartAt = rotatedPartAt + bugPosition;
+        glm::vec3 partAt = BUG_PARTS[i].partLocation * BUG_VOXEL_SIZE * (_bugDirection.x < 0 ? -1.0f : 1.0f);
+        glm::vec3 rotatedPartAt = rotatePoint(partAt, _bugRotation);
+        glm::vec3 offsetPartAt = rotatedPartAt + _bugPosition;
         
         details[i].x = offsetPartAt.x;
         details[i].y = offsetPartAt.y;
         details[i].z = offsetPartAt.z;
         
-        details[i].red   = bugParts[i].partColor[0];
-        details[i].green = bugParts[i].partColor[1];
-        details[i].blue  = bugParts[i].partColor[2];
+        details[i].red   = BUG_PARTS[i].partColor[0];
+        details[i].green = BUG_PARTS[i].partColor[1];
+        details[i].blue  = BUG_PARTS[i].partColor[2];
     }
     
     // send the "erase message" first...
     PACKET_HEADER message = PACKET_HEADER_ERASE_VOXEL;
     if (createVoxelEditMessage(message, 0, VOXELS_PER_BUG, (VoxelDetail*)&details, bufferOut, sizeOut)){
         
-        ::packetsSent++;
-        ::bytesSent += sizeOut;
+        _packetsSent++;
+        _bytesSent += sizeOut;
         
         NodeList::getInstance()->broadcastToNodes(bufferOut, sizeOut, &NODE_TYPE_VOXEL_SERVER, 1);
         delete[] bufferOut;
     }
 }
 
-static void renderMovingBug() {
+void Operative::renderMovingBug() {
     VoxelDetail details[VOXELS_PER_BUG];
     unsigned char* bufferOut;
     int sizeOut;
@@ -131,67 +132,61 @@ static void renderMovingBug() {
     removeOldBug();
     
     // Move the bug...
-    if (moveBugInLine) {
-        bugPosition.x += (bugDirection.x * BUG_VOXEL_SIZE);
-        bugPosition.y += (bugDirection.y * BUG_VOXEL_SIZE);
-        bugPosition.z += (bugDirection.z * BUG_VOXEL_SIZE);
+    if (_moveBugInLine) {
+        _bugPosition.x += (_bugDirection.x * BUG_VOXEL_SIZE);
+        _bugPosition.y += (_bugDirection.y * BUG_VOXEL_SIZE);
+        _bugPosition.z += (_bugDirection.z * BUG_VOXEL_SIZE);
         
         // Check boundaries
-        if (bugPosition.z > 1.0) {
-            bugDirection.z = -1;
+        if (_bugPosition.z > 1.0) {
+            _bugDirection.z = -1;
         }
-        if (bugPosition.z < BUG_VOXEL_SIZE) {
-            bugDirection.z = 1;
+        if (_bugPosition.z < BUG_VOXEL_SIZE) {
+            _bugDirection.z = 1;
         }
     } else {
         
-        //printf("bugPathCenter=(%f,%f,%f)\n", bugPathCenter.x, bugPathCenter.y, bugPathCenter.z);
-        
-        bugPathTheta += bugAngleDelta; // move slightly
-        bugRotation  -= bugAngleDelta; // rotate slightly
+        _bugPathTheta += _bugAngleDelta; // move slightly
+        _bugRotation  -= _bugAngleDelta; // rotate slightly
         
         // If we loop past end of circle, just reset back into normal range
-        if (bugPathTheta > (360.0f * PI_OVER_180)) {
-            bugPathTheta = 0;
-            bugRotation  = 0;
+        if (_bugPathTheta > (360.0f * PI_OVER_180)) {
+            _bugPathTheta = 0;
+            _bugRotation  = 0;
         }
         
-        float x = bugPathCenter.x + bugPathRadius * cos(bugPathTheta);
-        float z = bugPathCenter.z + bugPathRadius * sin(bugPathTheta);
-        float y = bugPathCenter.y;
+        float x = _bugPathCenter.x + _bugPathRadius * cos(_bugPathTheta);
+        float z = _bugPathCenter.z + _bugPathRadius * sin(_bugPathTheta);
+        float y = _bugPathCenter.y;
         
-        bugPosition = glm::vec3(x, y, z);
-        //printf("bugPathTheta=%f\n", bugPathTheta);
-        //printf("bugRotation=%f\n", bugRotation);
+        _bugPosition = glm::vec3(x, y, z);
     }
     
-    //printf("bugPosition=(%f,%f,%f)\n", bugPosition.x, bugPosition.y, bugPosition.z);
-    //printf("bugDirection=(%f,%f,%f)\n", bugDirection.x, bugDirection.y, bugDirection.z);
     // would be nice to add some randomness here...
     
     // Generate voxels for where bug is going to
     for (int i = 0; i < VOXELS_PER_BUG; i++) {
         details[i].s = BUG_VOXEL_SIZE;
         
-        glm::vec3 partAt = bugParts[i].partLocation * BUG_VOXEL_SIZE * (bugDirection.x < 0 ? -1.0f : 1.0f);
-        glm::vec3 rotatedPartAt = rotatePoint(partAt, bugRotation);
-        glm::vec3 offsetPartAt = rotatedPartAt + bugPosition;
+        glm::vec3 partAt = BUG_PARTS[i].partLocation * BUG_VOXEL_SIZE * (_bugDirection.x < 0 ? -1.0f : 1.0f);
+        glm::vec3 rotatedPartAt = rotatePoint(partAt, _bugRotation);
+        glm::vec3 offsetPartAt = rotatedPartAt + _bugPosition;
         
         details[i].x = offsetPartAt.x;
         details[i].y = offsetPartAt.y;
         details[i].z = offsetPartAt.z;
         
-        details[i].red   = bugParts[i].partColor[0];
-        details[i].green = bugParts[i].partColor[1];
-        details[i].blue  = bugParts[i].partColor[2];
+        details[i].red   = BUG_PARTS[i].partColor[0];
+        details[i].green = BUG_PARTS[i].partColor[1];
+        details[i].blue  = BUG_PARTS[i].partColor[2];
     }
     
     // send the "create message" ...
     PACKET_HEADER message = PACKET_HEADER_SET_VOXEL_DESTRUCTIVE;
     if (createVoxelEditMessage(message, 0, VOXELS_PER_BUG, (VoxelDetail*)&details, bufferOut, sizeOut)){
         
-        ::packetsSent++;
-        ::bytesSent += sizeOut;
+        _packetsSent++;
+        _bytesSent += sizeOut;
         
         NodeList::getInstance()->broadcastToNodes(bufferOut, sizeOut, &NODE_TYPE_VOXEL_SERVER, 1);
         delete[] bufferOut;
