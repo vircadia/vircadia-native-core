@@ -189,12 +189,13 @@ void Head::simulate(float deltaTime, bool isMine) {
     const float FULLY_CLOSED = 1.0f;
     if (_leftEyeBlinkVelocity == 0.0f && _rightEyeBlinkVelocity == 0.0f) {
         // no blinking when brows are raised; blink less with increasing loudness
-        const float ROOT_LOUDNESS_TO_BLINK_INTERVAL = 0.75f;
-        if (forceBlink || (_browAudioLift < EPSILON && shouldDo(
-                sqrtf(_averageLoudness) * ROOT_LOUDNESS_TO_BLINK_INTERVAL, deltaTime))) {
+        const float BASE_BLINK_RATE = 15.0f / 60.0f;
+        const float ROOT_LOUDNESS_TO_BLINK_INTERVAL = 0.25f;
+        if (forceBlink || (_browAudioLift < EPSILON && shouldDo(glm::max(1.0f, sqrt(_averageLoudness) *
+                ROOT_LOUDNESS_TO_BLINK_INTERVAL) / BASE_BLINK_RATE, deltaTime))) {
             _leftEyeBlinkVelocity = BLINK_SPEED;
             _rightEyeBlinkVelocity = BLINK_SPEED;
-        }    
+        }
     } else {
         _leftEyeBlink = glm::clamp(_leftEyeBlink + _leftEyeBlinkVelocity * deltaTime, FULLY_OPEN, FULLY_CLOSED);
         _rightEyeBlink = glm::clamp(_rightEyeBlink + _rightEyeBlinkVelocity * deltaTime, FULLY_OPEN, FULLY_CLOSED);
@@ -222,11 +223,11 @@ void Head::simulate(float deltaTime, bool isMine) {
     if (isMine && _cameraFollowsHead) {
         //  If we are using gyros and using gyroLook, have the camera follow head but with a null region
         //  to create stable rendering view with small head movements.
-        const float CAMERA_FOLLOW_HEAD_RATE_START = 0.05f;
-        const float CAMERA_FOLLOW_HEAD_RATE_MAX = 0.25f;
-        const float CAMERA_FOLLOW_HEAD_RATE_RAMP_RATE = 1.5f;
-        const float CAMERA_STOP_TOLERANCE_DEGREES = 0.25f;
-        const float CAMERA_START_TOLERANCE_DEGREES = 15.0f;
+        const float CAMERA_FOLLOW_HEAD_RATE_START = 0.01f;
+        const float CAMERA_FOLLOW_HEAD_RATE_MAX = 0.5f;
+        const float CAMERA_FOLLOW_HEAD_RATE_RAMP_RATE = 1.05f;
+        const float CAMERA_STOP_TOLERANCE_DEGREES = 0.1f;
+        const float CAMERA_START_TOLERANCE_DEGREES = 2.0f;
         float cameraHeadAngleDifference = glm::length(glm::vec2(_pitch - _cameraPitch, _yaw - _cameraYaw));
         if (_isCameraMoving) {
             _cameraFollowHeadRate = glm::clamp(_cameraFollowHeadRate * CAMERA_FOLLOW_HEAD_RATE_RAMP_RATE,

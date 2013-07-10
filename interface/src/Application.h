@@ -39,6 +39,8 @@
 #include "Webcam.h"
 #include "renderer/GeometryCache.h"
 #include "ui/ChatEntry.h"
+#include "ToolsPalette.h"
+#include "Swatch.h"
 
 class QAction;
 class QActionGroup;
@@ -140,6 +142,7 @@ private slots:
     void updateVoxelModeActions();
     void decreaseVoxelSize();
     void increaseVoxelSize();
+    void resetSwatchColors();
     void chooseVoxelPaintColor();
     void loadSettings(QSettings* set = NULL);
     void saveSettings(QSettings* set = NULL);
@@ -159,15 +162,19 @@ private slots:
     void renderCoverageMapsV2Recursively(CoverageMapV2* map);
 
     glm::vec2 getScaledScreenPoint(glm::vec2 projectedPoint);
+    void goHome();
 
 private:
 
-    static void broadcastToNodes(unsigned char* data, size_t bytes, const char type);
+    static void controlledBroadcastToNodes(unsigned char* broadcastData, size_t dataBytes, 
+                                           const char* nodeTypes, int numNodeTypes);
+
     static void sendVoxelServerAddScene();
     static bool sendVoxelsOperation(VoxelNode* node, int level, void* extraData);
+    static void sendVoxelEditMessage(PACKET_HEADER header, VoxelDetail& detail);
     static void sendAvatarVoxelURLMessage(const QUrl& url);
     static void processAvatarVoxelURLMessage(unsigned char *packetData, size_t dataBytes);
-    static void sendVoxelEditMessage(PACKET_HEADER header, VoxelDetail& detail);
+    static void sendPingPackets();
     
     void initMenu();
     void updateFrustumRenderModeAction();
@@ -191,7 +198,6 @@ private:
     void maybeEditVoxelUnderCursor();
     void deleteVoxelUnderCursor();
     void eyedropperVoxelUnderCursor();
-    void goHome();
     void resetSensors();
     
     void setMenuShortcutsEnabled(bool enabled);
@@ -236,6 +242,7 @@ private:
     QAction* _manualFirstPerson;     // Whether to force first-person mode
     QAction* _manualThirdPerson;     // Whether to force third-person mode
     QAction* _logOn;                 // Whether to show on-screen log
+    QAction* _oscilloscopeOn;        // Whether to show the oscilloscope
     QAction* _bandwidthDisplayOn;    // Whether to show on-screen bandwidth bars
     QActionGroup* _voxelModeActions; // The group of voxel edit mode actions
     QAction* _addVoxelMode;          // Whether add voxel mode is enabled
@@ -370,6 +377,8 @@ private:
     int _bytesPerSecond;
     int _bytesCount;
 
+    ToolsPalette _palette;
+    Swatch _swatch;
 };
 
 #endif /* defined(__interface__Application__) */

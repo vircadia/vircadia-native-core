@@ -8,6 +8,7 @@
 #include <sstream>
 
 #include <stdlib.h>
+#include <cmath>
 
 #ifdef _WIN32
 #include "Syssocket.h"
@@ -63,6 +64,7 @@
 #include "Util.h"
 #include "renderer/ProgramObject.h"
 #include "ui/TextRenderer.h"
+#include "Swatch.h"
 #include "fvupdater.h"
 
 using namespace std;
@@ -198,7 +200,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _packetCount(0),
         _packetsPerSecond(0),
         _bytesPerSecond(0),
-        _bytesCount(0)
+        _bytesCount(0),
+        _swatch(NULL)
 {
     _applicationStartupTime = startup_time;
     _window->setWindowTitle("Interface");
@@ -274,7 +277,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     FvUpdater::sharedUpdater()->SetFeedURL("https://s3-us-west-1.amazonaws.com/highfidelity/appcast.xml");
     FvUpdater::sharedUpdater()->CheckForUpdatesSilent();
 #endif
-    
+
     initMenu();
     
     QRect available = desktop()->availableGeometry();
@@ -483,30 +486,41 @@ void Application::resizeGL(int width, int height) {
     glLoadIdentity();
 }
 
-void Application::broadcastToNodes(unsigned char* data, size_t bytes, const char type) {
+void Application::controlledBroadcastToNodes(unsigned char* broadcastData, size_t dataBytes, 
+                                             const char* nodeTypes, int numNodeTypes) {
+    Application* self = getInstance();
+    for (int i = 0; i < numNodeTypes; ++i) {
 
-    int n = NodeList::getInstance()->broadcastToNodes(data, bytes, &type, 1);
+        // Intercept data to voxel server when voxels are disabled
+        if (nodeTypes[i] == NODE_TYPE_VOXEL_SERVER && ! self->_renderVoxels->isChecked()) {
+            continue;
+        }
 
-    BandwidthMeter::ChannelIndex channel;
-    switch (type) {
-    case NODE_TYPE_AGENT:
-    case NODE_TYPE_AVATAR_MIXER:
-        channel = BandwidthMeter::AVATARS;
-        break;
-    case NODE_TYPE_VOXEL_SERVER:
-        channel = BandwidthMeter::VOXELS;
-        break;
-    default:
-        return;
+        // Perform the broadcast for one type
+        int nReceivingNodes = NodeList::getInstance()->broadcastToNodes(broadcastData, dataBytes, & nodeTypes[i], 1);
+
+        // Feed number of bytes to corresponding channel of the bandwidth meter, if any (done otherwise)
+        BandwidthMeter::ChannelIndex channel;
+        switch (nodeTypes[i]) {
+        case NODE_TYPE_AGENT:
+        case NODE_TYPE_AVATAR_MIXER:
+            channel = BandwidthMeter::AVATARS;
+            break;
+        case NODE_TYPE_VOXEL_SERVER:
+            channel = BandwidthMeter::VOXELS;
+            break;
+        default:
+            continue;
+        }
+        self->_bandwidthMeter.outputStream(channel).updateValue(nReceivingNodes * dataBytes); 
     }
-    getInstance()->_bandwidthMeter.outputStream(channel).updateValue(n * bytes); 
 }
 
 void Application::sendVoxelServerAddScene() {
     char message[100];
     sprintf(message,"%c%s",'Z',"add scene");
     int messageSize = strlen(message) + 1;
-    broadcastToNodes((unsigned char*)message, messageSize, NODE_TYPE_VOXEL_SERVER);
+    controlledBroadcastToNodes((unsigned char*)message, messageSize, & NODE_TYPE_VOXEL_SERVER, 1);
 }
 
 void Application::keyPressEvent(QKeyEvent* event) {
@@ -716,7 +730,16 @@ void Application::keyPressEvent(QKeyEvent* event) {
                     deleteVoxelUnderCursor();
                 }
                 break;
-                
+            case Qt::Key_1:
+            case Qt::Key_2:
+            case Qt::Key_3:
+            case Qt::Key_4:
+            case Qt::Key_5:
+            case Qt::Key_6:
+            case Qt::Key_7:
+            case Qt::Key_8:
+                _swatch.handleEvent(event->key(), _eyedropperMode->isChecked());
+                break;
             default:
                 event->ignore();
                 break;
@@ -877,16 +900,16 @@ void Application::wheelEvent(QWheelEvent* event) {
     }
 }
 
-void sendPingPackets() {
+void Application::sendPingPackets() {
 
     char nodeTypesOfInterest[] = {NODE_TYPE_VOXEL_SERVER, NODE_TYPE_AUDIO_MIXER, NODE_TYPE_AVATAR_MIXER};
     long long currentTime = usecTimestampNow();
-    char pingPacket[1 + sizeof(currentTime)];
+    unsigned char pingPacket[1 + sizeof(currentTime)];
     pingPacket[0] = PACKET_HEADER_PING;
     
     memcpy(&pingPacket[1], &currentTime, sizeof(currentTime));
-    NodeList::getInstance()->broadcastToNodes((unsigned char*)pingPacket, 1 + sizeof(currentTime), nodeTypesOfInterest, 3);
-
+    getInstance()->controlledBroadcastToNodes(pingPacket, 1 + sizeof(currentTime), 
+                                              nodeTypesOfInterest, sizeof(nodeTypesOfInterest));
 }
 
 //  Every second, check the frame rates and other stuff
@@ -944,14 +967,17 @@ void Application::idle() {
     //  Only run simulation code if more than IDLE_SIMULATE_MSECS have passed since last time we ran
     
     if (diffclock(&_lastTimeIdle, &check) > IDLE_SIMULATE_MSECS) {
-        // We call processEvents() here because the idle timer takes priority over
-        // event handling in Qt, so when the framerate gets low events will pile up
-        // unless we handle them here.
         
-        // NOTE - this is commented out for now - causing event processing issues reported by Philip and Ryan
-        // birarda - July 3rd
-        
-        // processEvents();
+        // If we're using multi-touch look, immediately process any
+        // touch events, and no other events.
+        // This is necessary because id the idle() call takes longer than the
+        // interval between idle() calls, the event loop never gets to run,
+        // and touch events get delayed.
+        if (_touchLook->isChecked()) {
+            sendPostedEvents(NULL, QEvent::TouchBegin);
+            sendPostedEvents(NULL, QEvent::TouchUpdate);
+            sendPostedEvents(NULL, QEvent::TouchEnd);
+        }
         
         update(1.0f / _fps);
         
@@ -987,7 +1013,7 @@ void Application::sendAvatarVoxelURLMessage(const QUrl& url) {
     message.append((const char*)&ownerID, sizeof(ownerID));
     message.append(url.toEncoded());
 
-    broadcastToNodes((unsigned char*)message.data(), message.size(), NODE_TYPE_AVATAR_MIXER);
+    controlledBroadcastToNodes((unsigned char*)message.data(), message.size(), & NODE_TYPE_AVATAR_MIXER, 1);
 }
 
 void Application::processAvatarVoxelURLMessage(unsigned char *packetData, size_t dataBytes) {
@@ -1224,7 +1250,7 @@ void Application::sendVoxelEditMessage(PACKET_HEADER header, VoxelDetail& detail
     int sizeOut;
 
     if (createVoxelEditMessage(header, 0, 1, &detail, bufferOut, sizeOut)){
-        Application::broadcastToNodes(bufferOut, sizeOut, NODE_TYPE_VOXEL_SERVER);
+        Application::controlledBroadcastToNodes(bufferOut, sizeOut, & NODE_TYPE_VOXEL_SERVER, 1);
         delete[] bufferOut;
     }
 }
@@ -1242,7 +1268,11 @@ void Application::decreaseVoxelSize() {
 void Application::increaseVoxelSize() {
     _mouseVoxelScale *= 2;
 }
-    
+
+void Application::resetSwatchColors() {
+    _swatch.reset();
+}
+
 static QIcon createSwatchIcon(const QColor& color) {
     QPixmap map(16, 16);
     map.fill(color);
@@ -1305,7 +1335,7 @@ bool Application::sendVoxelsOperation(VoxelNode* node, int level, void* extraDat
 
         // if we have room don't have room in the buffer, then send the previously generated message first
         if (args->bufferInUse + codeAndColorLength > MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE) {
-            broadcastToNodes(args->messageBuffer, args->bufferInUse, NODE_TYPE_VOXEL_SERVER);
+            controlledBroadcastToNodes(args->messageBuffer, args->bufferInUse, & NODE_TYPE_VOXEL_SERVER, 1);
             args->bufferInUse = sizeof(PACKET_HEADER_SET_VOXEL_DESTRUCTIVE) + sizeof(unsigned short int); // reset
         }
         
@@ -1337,8 +1367,10 @@ void Application::exportVoxels() {
 
 void Application::importVoxels() {
     QString desktopLocation = QDesktopServices::storageLocation(QDesktopServices::DesktopLocation);
-    QString fileNameString = QFileDialog::getOpenFileName(_glWidget, tr("Import Voxels"), desktopLocation, 
-                                                          tr("Sparse Voxel Octree Files, Square PNG (*.svo *.png)"));
+    QString fileNameString = QFileDialog::getOpenFileName(
+                _glWidget, tr("Import Voxels"), desktopLocation,
+                tr("Sparse Voxel Octree Files, Square PNG, Schematic Files (*.svo *.png *.schematic)"));
+
     QByteArray fileNameAscii = fileNameString.toAscii();
     const char* fileName = fileNameAscii.data();
     
@@ -1359,8 +1391,10 @@ void Application::importVoxels() {
         }
         
         importVoxels.readFromSquareARGB32Pixels(pixels, pngImage.height());        
-    } else {
+    } else if (fileNameString.endsWith(".svo", Qt::CaseInsensitive)) {
         importVoxels.readFromSVOFile(fileName);
+    } else {
+        importVoxels.readFromSchematicFile(fileName);
     }
     
     VoxelNode* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
@@ -1386,7 +1420,7 @@ void Application::importVoxels() {
 
     // If we have voxels left in the packet, then send the packet
     if (args.bufferInUse > (sizeof(PACKET_HEADER_SET_VOXEL_DESTRUCTIVE) + sizeof(unsigned short int))) {
-        broadcastToNodes(args.messageBuffer, args.bufferInUse, NODE_TYPE_VOXEL_SERVER);
+        controlledBroadcastToNodes(args.messageBuffer, args.bufferInUse, & NODE_TYPE_VOXEL_SERVER, 1);
     }
     
     if (calculatedOctCode) {
@@ -1438,7 +1472,7 @@ void Application::pasteVoxels() {
     
     // If we have voxels left in the packet, then send the packet
     if (args.bufferInUse > (sizeof(PACKET_HEADER_SET_VOXEL_DESTRUCTIVE) + sizeof(unsigned short int))) {
-        broadcastToNodes(args.messageBuffer, args.bufferInUse, NODE_TYPE_VOXEL_SERVER);
+        controlledBroadcastToNodes(args.messageBuffer, args.bufferInUse, & NODE_TYPE_VOXEL_SERVER, 1);
     }
     
     if (calculatedOctCode) {
@@ -1480,12 +1514,13 @@ void Application::initMenu() {
     (_testPing = optionsMenu->addAction("Test Ping"))->setCheckable(true);
     _testPing->setChecked(true);
     (_fullScreenMode = optionsMenu->addAction("Fullscreen", this, SLOT(setFullscreen(bool)), Qt::Key_F))->setCheckable(true);
-    optionsMenu->addAction("Webcam", &_webcam, SLOT(setEnabled(bool)))->setCheckable(true);    
+    optionsMenu->addAction("Webcam", &_webcam, SLOT(setEnabled(bool)))->setCheckable(true);
+    optionsMenu->addAction("Go Home", this, SLOT(goHome()));
     
     QMenu* renderMenu = menuBar->addMenu("Render");
     (_renderVoxels = renderMenu->addAction("Voxels"))->setCheckable(true);
     _renderVoxels->setChecked(true);
-    _renderVoxels->setShortcut(Qt::Key_V);
+    _renderVoxels->setShortcut(Qt::SHIFT | Qt::Key_V);
     (_renderVoxelTextures = renderMenu->addAction("Voxel Textures"))->setCheckable(true);
     (_renderStarsOn = renderMenu->addAction("Stars"))->setCheckable(true);
     _renderStarsOn->setChecked(true);
@@ -1515,6 +1550,8 @@ void Application::initMenu() {
     (_logOn = toolsMenu->addAction("Log"))->setCheckable(true);
     _logOn->setChecked(false);
     _logOn->setShortcut(Qt::CTRL | Qt::Key_L);
+    (_oscilloscopeOn = toolsMenu->addAction("Audio Oscilloscope"))->setCheckable(true);
+    _oscilloscopeOn->setChecked(true);
     (_bandwidthDisplayOn = toolsMenu->addAction("Bandwidth Display"))->setCheckable(true);
     _bandwidthDisplayOn->setChecked(true);
     toolsMenu->addAction("Bandwidth Details", this, SLOT(bandwidthDetails()));
@@ -1525,36 +1562,39 @@ void Application::initMenu() {
     _voxelModeActions->setExclusive(false); // exclusivity implies one is always checked
 
     (_addVoxelMode = voxelMenu->addAction(
-        "Add Voxel Mode", this, SLOT(updateVoxelModeActions()),    Qt::CTRL | Qt::Key_A))->setCheckable(true);
+        "Add Voxel Mode", this, SLOT(updateVoxelModeActions()),    Qt::Key_V))->setCheckable(true);
     _voxelModeActions->addAction(_addVoxelMode);
     (_deleteVoxelMode = voxelMenu->addAction(
-        "Delete Voxel Mode", this, SLOT(updateVoxelModeActions()), Qt::CTRL | Qt::Key_D))->setCheckable(true);
+        "Delete Voxel Mode", this, SLOT(updateVoxelModeActions()), Qt::Key_R))->setCheckable(true);
     _voxelModeActions->addAction(_deleteVoxelMode);
     (_colorVoxelMode = voxelMenu->addAction(
-        "Color Voxel Mode", this, SLOT(updateVoxelModeActions()),  Qt::CTRL | Qt::Key_B))->setCheckable(true);
+        "Color Voxel Mode", this, SLOT(updateVoxelModeActions()),  Qt::Key_B))->setCheckable(true);
     _voxelModeActions->addAction(_colorVoxelMode);
     (_selectVoxelMode = voxelMenu->addAction(
-        "Select Voxel Mode", this, SLOT(updateVoxelModeActions()), Qt::CTRL | Qt::Key_S))->setCheckable(true);
+        "Select Voxel Mode", this, SLOT(updateVoxelModeActions()), Qt::Key_O))->setCheckable(true);
     _voxelModeActions->addAction(_selectVoxelMode);
     (_eyedropperMode = voxelMenu->addAction(
-        "Get Color Mode", this, SLOT(updateVoxelModeActions()),   Qt::CTRL | Qt::Key_G))->setCheckable(true);
+        "Get Color Mode", this, SLOT(updateVoxelModeActions()),   Qt::Key_G))->setCheckable(true);
     _voxelModeActions->addAction(_eyedropperMode);
-    
+
     voxelMenu->addAction("Decrease Voxel Size", this, SLOT(decreaseVoxelSize()),       QKeySequence::ZoomOut);
     voxelMenu->addAction("Increase Voxel Size", this, SLOT(increaseVoxelSize()),       QKeySequence::ZoomIn);
-    
+    voxelMenu->addAction("Reset Swatch Colors", this, SLOT(resetSwatchColors()));
+
     _voxelPaintColor = voxelMenu->addAction("Voxel Paint Color", this, 
                                                       SLOT(chooseVoxelPaintColor()),   Qt::META | Qt::Key_C);
+    _swatch.setAction(_voxelPaintColor);
+
     QColor paintColor(128, 128, 128);
     _voxelPaintColor->setData(paintColor);
     _voxelPaintColor->setIcon(createSwatchIcon(paintColor));
     (_destructiveAddVoxel = voxelMenu->addAction("Create Voxel is Destructive"))->setCheckable(true);
     
-    voxelMenu->addAction("Export Voxels",  this, SLOT(exportVoxels()), Qt::CTRL | Qt::Key_E);
-    voxelMenu->addAction("Import Voxels",  this, SLOT(importVoxels()), Qt::CTRL | Qt::Key_I);
-    voxelMenu->addAction("Cut Voxels",     this, SLOT(cutVoxels()),    Qt::CTRL | Qt::Key_X);
-    voxelMenu->addAction("Copy Voxels",    this, SLOT(copyVoxels()),   Qt::CTRL | Qt::Key_C);
-    voxelMenu->addAction("Paste Voxels",   this, SLOT(pasteVoxels()),  Qt::CTRL | Qt::Key_V);
+    voxelMenu->addAction("Export Voxels", this, SLOT(exportVoxels()), Qt::CTRL | Qt::Key_E);
+    voxelMenu->addAction("Import Voxels", this, SLOT(importVoxels()), Qt::CTRL | Qt::Key_I);
+    voxelMenu->addAction("Cut Voxels",    this, SLOT(cutVoxels()),    Qt::CTRL | Qt::Key_X);
+    voxelMenu->addAction("Copy Voxels",   this, SLOT(copyVoxels()),   Qt::CTRL | Qt::Key_C);
+    voxelMenu->addAction("Paste Voxels",  this, SLOT(pasteVoxels()),  Qt::CTRL | Qt::Key_V);
     
     QMenu* debugMenu = menuBar->addMenu("Debug");
 
@@ -1680,6 +1720,14 @@ void Application::init() {
     printLog("Loaded settings.\n");
 
     sendAvatarVoxelURLMessage(_myAvatar.getVoxels()->getVoxelURL());
+
+    _palette.init(_glWidget->width(), _glWidget->height());
+    _palette.addAction(_addVoxelMode, 0, 0);
+    _palette.addAction(_deleteVoxelMode, 0, 1);
+    _palette.addTool(&_swatch);
+    _palette.addAction(_colorVoxelMode, 0, 2);
+    _palette.addAction(_eyedropperMode, 0, 3);
+    _palette.addAction(_selectVoxelMode, 0, 4);
 }
 
 const float MAX_AVATAR_EDIT_VELOCITY = 1.0f;
@@ -1912,7 +1960,7 @@ void Application::update(float deltaTime) {
     if (_bandwidthDialog) {
         _bandwidthDialog->update();
     }
- 
+
     //  Update audio stats for procedural sounds
     #ifndef _WIN32
     _audio.setLastAcceleration(_myAvatar.getThrust());
@@ -1923,11 +1971,11 @@ void Application::update(float deltaTime) {
 
 void Application::updateAvatar(float deltaTime) {
 
-    // Update my avatar's head position from gyros and/or webcam
-    _myAvatar.updateHeadFromGyrosAndOrWebcam(_gyroLook->isChecked(),
-                                             glm::vec3(_headCameraPitchYawScale,
-                                                       _headCameraPitchYawScale,
-                                                       _headCameraPitchYawScale));
+    // Update my avatar's state from gyros and/or webcam
+    _myAvatar.updateFromGyrosAndOrWebcam(_gyroLook->isChecked(),
+                                         glm::vec3(_headCameraPitchYawScale,
+                                                   _headCameraPitchYawScale,
+                                                   _headCameraPitchYawScale));
         
     if (_serialHeadSensor.isActive()) {
       
@@ -1989,9 +2037,10 @@ void Application::updateAvatar(float deltaTime) {
         endOfBroadcastStringWrite += packNodeId(endOfBroadcastStringWrite, nodeList->getOwnerID());
         
         endOfBroadcastStringWrite += _myAvatar.getBroadcastData(endOfBroadcastStringWrite);
-        
-        broadcastToNodes(broadcastString, endOfBroadcastStringWrite - broadcastString, NODE_TYPE_VOXEL_SERVER);
-        broadcastToNodes(broadcastString, endOfBroadcastStringWrite - broadcastString, NODE_TYPE_AVATAR_MIXER);
+
+        const char nodeTypesOfInterest[] = { NODE_TYPE_VOXEL_SERVER, NODE_TYPE_AVATAR_MIXER }; 
+        controlledBroadcastToNodes(broadcastString, endOfBroadcastStringWrite - broadcastString,
+                                   nodeTypesOfInterest, sizeof(nodeTypesOfInterest));
         
         // once in a while, send my voxel url
         const float AVATAR_VOXEL_URL_SEND_INTERVAL = 1.0f; // seconds
@@ -2350,8 +2399,9 @@ void Application::displayOverlay() {
     
         #ifndef _WIN32
         _audio.render(_glWidget->width(), _glWidget->height());
-        _audioScope.render(20, _glWidget->height() - 200);
-        //_audio.renderEchoCompare();     //  PER:  Will turn back on to further test echo
+        if (_oscilloscopeOn->isChecked()) {
+            _audioScope.render(20, _glWidget->height() - 200);
+        }
         #endif
 
        //noiseTest(_glWidget->width(), _glWidget->height());
@@ -2431,7 +2481,52 @@ void Application::displayOverlay() {
     
     // render the webcam input frame
     _webcam.renderPreview(_glWidget->width(), _glWidget->height());
-    
+
+    _palette.render(_glWidget->width(), _glWidget->height());
+
+    if (_eyedropperMode->isChecked() && _voxelPaintColor->data().value<QColor>() != _swatch.getColor()) {
+        QColor color = _voxelPaintColor->data().value<QColor>();
+        TextRenderer textRenderer(SANS_FONT_FAMILY, 11, 50);
+        const char line1[] = "Assign this color to a swatch";
+        const char line2[] = "by choosing a key from 1 to 8.";
+
+        int left = (_glWidget->width() - POPUP_WIDTH - 2 * POPUP_MARGIN) / 2;
+        int top = _glWidget->height() / 40;
+
+        glBegin(GL_POLYGON);
+        glColor3f(0.0f, 0.0f, 0.0f);
+        for (double a = M_PI; a < 1.5f * M_PI; a += POPUP_STEP) {
+            glVertex2f(left + POPUP_MARGIN * cos(a)              , top + POPUP_MARGIN * sin(a));
+        }
+        for (double a = 1.5f * M_PI; a < 2.0f * M_PI; a += POPUP_STEP) {
+            glVertex2f(left + POPUP_WIDTH + POPUP_MARGIN * cos(a), top + POPUP_MARGIN * sin(a));
+        }
+        for (double a = 0.0f; a < 0.5f * M_PI; a += POPUP_STEP) {
+            glVertex2f(left + POPUP_WIDTH + POPUP_MARGIN * cos(a), top + POPUP_HEIGHT + POPUP_MARGIN * sin(a));
+        }
+        for (double a = 0.5f * M_PI; a < 1.0f * M_PI; a += POPUP_STEP) {
+            glVertex2f(left + POPUP_MARGIN * cos(a)              , top + POPUP_HEIGHT + POPUP_MARGIN * sin(a));
+        }
+        glEnd();
+
+        glBegin(GL_QUADS);
+        glColor3f(color.redF(),
+                  color.greenF(),
+                  color.blueF());
+        glVertex2f(left               , top);
+        glVertex2f(left + SWATCH_WIDTH, top);
+        glVertex2f(left + SWATCH_WIDTH, top + SWATCH_HEIGHT);
+        glVertex2f(left               , top + SWATCH_HEIGHT);
+        glEnd();
+
+        glColor3f(1.0f, 1.0f, 1.0f);
+        textRenderer.draw(left + SWATCH_WIDTH + POPUP_MARGIN, top + FIRST_LINE_OFFSET , line1);
+        textRenderer.draw(left + SWATCH_WIDTH + POPUP_MARGIN, top + SECOND_LINE_OFFSET, line2);
+    }
+    else {
+        _swatch.checkColor();
+    }
+
     glPopMatrix();
 }
 
@@ -2953,6 +3048,7 @@ void Application::eyedropperVoxelUnderCursor() {
 }
 
 void Application::goHome() {
+    printLog("Going Home!\n");
     _myAvatar.setPosition(START_LOCATION);
 }
 
@@ -3127,7 +3223,8 @@ void Application::loadSettings(QSettings* settings) {
     settings->endGroup();
 
     scanMenuBar(&Application::loadAction, settings);
-    getAvatar()->loadData(settings);    
+    getAvatar()->loadData(settings);
+    _swatch.loadData(settings);
 }
 
 
@@ -3149,6 +3246,7 @@ void Application::saveSettings(QSettings* settings) {
     
     scanMenuBar(&Application::saveAction, settings);
     getAvatar()->saveData(settings);
+    _swatch.saveData(settings);
 }
 
 void Application::importSettings() {
