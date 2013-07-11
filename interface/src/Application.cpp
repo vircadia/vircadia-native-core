@@ -2031,10 +2031,11 @@ void Application::updateAvatar(float deltaTime) {
         _headMouseY = max(_headMouseY, 0);
         _headMouseY = min(_headMouseY, _glWidget->height());
 
-        // Set lookAtPosition if an avatar is at the center of the screen
+        const float MIDPOINT_OF_SCREEN = 0.5;
 
+        // Set lookAtPosition if an avatar is at the center of the screen
         glm::vec3 screenCenterRayOrigin, screenCenterRayDirection;
-        _viewFrustum.computePickRay(0.5, 0.5, screenCenterRayOrigin, screenCenterRayDirection);
+        _viewFrustum.computePickRay(MIDPOINT_OF_SCREEN, MIDPOINT_OF_SCREEN, screenCenterRayOrigin, screenCenterRayDirection);
 
         glm::vec3 eyePosition;
         if (isLookingAtOtherAvatar(screenCenterRayOrigin, screenCenterRayDirection, eyePosition)) {
