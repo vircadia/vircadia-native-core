@@ -35,7 +35,7 @@ AvatarData::AvatarData(Node* owningNode) :
     _wantResIn(false),
     _wantColor(true),
     _wantDelta(false),
-    _wantOcclusionCulling(false),
+    _wantOcclusionCulling(true),
     _headData(NULL),
     _handData(NULL)
 {
