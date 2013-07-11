@@ -130,7 +130,7 @@ void Head::resetHairPhysics() {
         
         _hairTuft[t].length       = HAIR_LENGTH;
         _hairTuft[t].thickness    = HAIR_THICKNESS;
-        _hairTuft[t].basePosition = _position + up * _scale * 0.9f;
+        _hairTuft[t].basePosition = _position + up * _scale * BODY_BALL_RADIUS_HEAD_BASE * 0.9f;
         _hairTuft[t].midPosition  = _hairTuft[t].basePosition + up * _hairTuft[t].length * ONE_HALF;			
         _hairTuft[t].endPosition  = _hairTuft[t].midPosition  + up * _hairTuft[t].length * ONE_HALF;			
         _hairTuft[t].midVelocity  = glm::vec3(0.0f, 0.0f, 0.0f);			
@@ -261,25 +261,25 @@ void Head::calculateGeometry() {
 
     //calculate the eye positions 
     _leftEyePosition  = _position 
-                      - right * _scale * EYE_RIGHT_OFFSET
-                      + up * _scale * EYE_UP_OFFSET
-                      + front * _scale * EYE_FRONT_OFFSET;
+                      - right * _scale * BODY_BALL_RADIUS_HEAD_BASE * EYE_RIGHT_OFFSET
+                      + up * _scale * BODY_BALL_RADIUS_HEAD_BASE * EYE_UP_OFFSET
+                      + front * _scale * BODY_BALL_RADIUS_HEAD_BASE * EYE_FRONT_OFFSET;
     _rightEyePosition = _position
-                      + right * _scale * EYE_RIGHT_OFFSET 
-                      + up * _scale * EYE_UP_OFFSET 
-                      + front * _scale * EYE_FRONT_OFFSET;
+                      + right * _scale * BODY_BALL_RADIUS_HEAD_BASE * EYE_RIGHT_OFFSET 
+                      + up * _scale * BODY_BALL_RADIUS_HEAD_BASE * EYE_UP_OFFSET 
+                      + front * _scale * BODY_BALL_RADIUS_HEAD_BASE * EYE_FRONT_OFFSET;
 
     //calculate the eyebrow positions 
     _leftEyeBrowPosition  = _leftEyePosition; 
     _rightEyeBrowPosition = _rightEyePosition;
     
     //calculate the ear positions 
-    _leftEarPosition  = _position - right * _scale * EAR_RIGHT_OFFSET;
-    _rightEarPosition = _position + right * _scale * EAR_RIGHT_OFFSET;
+    _leftEarPosition  = _position - right * _scale * BODY_BALL_RADIUS_HEAD_BASE * EAR_RIGHT_OFFSET;
+    _rightEarPosition = _position + right * _scale * BODY_BALL_RADIUS_HEAD_BASE * EAR_RIGHT_OFFSET;
 
     //calculate the mouth position 
-    _mouthPosition    = _position + up * _scale * MOUTH_UP_OFFSET
-                                  + front * _scale;
+    _mouthPosition    = _position + up * _scale * BODY_BALL_RADIUS_HEAD_BASE * MOUTH_UP_OFFSET
+                                  + front * _scale * BODY_BALL_RADIUS_HEAD_BASE;
 }
 
 
@@ -295,11 +295,11 @@ void Head::render(bool lookingInMirror, float alpha) {
     
     renderMohawk();
     renderHeadSphere();
-    renderEyeBalls();    
+    renderEyeBalls();
     renderEars();
     renderMouth();    
     renderEyeBrows();
-        
+    
     if (_renderLookatVectors) {
         renderLookatVectors(_leftEyePosition, _rightEyePosition, _lookAtPosition);
     }
@@ -404,7 +404,9 @@ glm::quat Head::getCameraOrientation () const {
 void Head::renderHeadSphere() {
     glPushMatrix();
         glTranslatef(_position.x, _position.y, _position.z); //translate to head position
-        glScalef(_scale, _scale, _scale); //scale to head size        
+        glScalef(_scale * BODY_BALL_RADIUS_HEAD_BASE,
+                 _scale * BODY_BALL_RADIUS_HEAD_BASE,
+                 _scale * BODY_BALL_RADIUS_HEAD_BASE); //scale to head size
         glColor4f(_skinColor.x, _skinColor.y, _skinColor.z, _renderAlpha);
         glutSolidSphere(1, 30, 30);
     glPopMatrix();
@@ -415,13 +417,13 @@ void Head::renderEars() {
     glPushMatrix();
         glColor4f(_skinColor.x, _skinColor.y, _skinColor.z, _renderAlpha);
         glTranslatef(_leftEarPosition.x, _leftEarPosition.y, _leftEarPosition.z);        
-        glutSolidSphere(0.02, 30, 30);
+        glutSolidSphere(_scale * 0.02, 30, 30);
     glPopMatrix();
 
     glPushMatrix();
         glColor4f(_skinColor.x, _skinColor.y, _skinColor.z, _renderAlpha);
         glTranslatef(_rightEarPosition.x, _rightEarPosition.y, _rightEarPosition.z);        
-        glutSolidSphere(0.02, 30, 30);
+        glutSolidSphere(_scale * 0.02, 30, 30);
     glPopMatrix();
 }
 
@@ -434,9 +436,9 @@ void Head::renderMouth() {
     glm::vec3 up    = orientation * IDENTITY_UP;
     glm::vec3 front = orientation * IDENTITY_FRONT;
 
-    glm::vec3 r = right * _scale * (0.30f + s * 0.0014f );
-    glm::vec3 u = up * _scale * (0.05f + s * 0.0040f );
-    glm::vec3 f = front * _scale *  0.09f;
+    glm::vec3 r = right * _scale * BODY_BALL_RADIUS_HEAD_BASE * (0.30f + s * 0.0014f );
+    glm::vec3 u = up * _scale * BODY_BALL_RADIUS_HEAD_BASE * (0.05f + s * 0.0040f );
+    glm::vec3 f = front * _scale * BODY_BALL_RADIUS_HEAD_BASE *  0.09f;
 
     glm::vec3 middle      = _mouthPosition;
     glm::vec3 leftCorner  = _mouthPosition - r * 1.0f;
@@ -449,7 +451,7 @@ void Head::renderMouth() {
     // constrain all mouth vertices to a sphere slightly larger than the head...
     const float MOUTH_OFFSET_OFF_FACE = 0.003f;
     
-    float constrainedRadius = _scale + MOUTH_OFFSET_OFF_FACE;
+    float constrainedRadius = _scale * BODY_BALL_RADIUS_HEAD_BASE + MOUTH_OFFSET_OFF_FACE;
     middle      = _position + glm::normalize(middle      - _position) * constrainedRadius;
     leftCorner  = _position + glm::normalize(leftCorner  - _position) * constrainedRadius;
     rightCorner = _position + glm::normalize(rightCorner - _position) * constrainedRadius;
@@ -484,9 +486,9 @@ void Head::renderMouth() {
 
 void Head::renderEyeBrows() {   
 
-    float height = _scale * 0.3f + _browAudioLift;
-    float length = _scale * 0.2f;
-    float width  = _scale * 0.07f;
+    float height = _scale * BODY_BALL_RADIUS_HEAD_BASE * 0.3f + _browAudioLift;
+    float length = _scale * BODY_BALL_RADIUS_HEAD_BASE * 0.2f;
+    float width  = _scale * BODY_BALL_RADIUS_HEAD_BASE * 0.07f;
 
     glColor3f(0.3f, 0.25f, 0.2f);
 
@@ -505,7 +507,7 @@ void Head::renderEyeBrows() {
     glm::vec3 r = right * length; 
     glm::vec3 u = up * height; 
     glm::vec3 t = up * (height + width); 
-    glm::vec3 f = front * _scale * -0.1f;
+    glm::vec3 f = front * _scale * BODY_BALL_RADIUS_HEAD_BASE * -0.1f;
      
     for (int i = 0; i < 2; i++) {
     
@@ -553,14 +555,14 @@ void Head::renderEyeBalls() {
     glPushMatrix();
         glColor3fv(EYEBALL_COLOR);
         glTranslatef(_leftEyePosition.x, _leftEyePosition.y, _leftEyePosition.z);        
-        glutSolidSphere(EYEBALL_RADIUS, 30, 30);
+        glutSolidSphere(_scale * EYEBALL_RADIUS, 30, 30);
     glPopMatrix();
     
     //render white ball of right eyeball
     glPushMatrix();
         glColor3fv(EYEBALL_COLOR);
         glTranslatef(_rightEyePosition.x, _rightEyePosition.y, _rightEyePosition.z);
-        glutSolidSphere(EYEBALL_RADIUS, 30, 30);
+        glutSolidSphere(_scale * EYEBALL_RADIUS, 30, 30);
     glPopMatrix();
 
     _irisProgram->bind();
@@ -580,13 +582,15 @@ void Head::renderEyeBalls() {
         glm::vec3 rotationAxis = glm::axis(rotation);           
         glRotatef(glm::angle(rotation), rotationAxis.x, rotationAxis.y, rotationAxis.z);
         glTranslatef(0.0f, 0.0f, -IRIS_PROTRUSION);
-        glScalef(IRIS_RADIUS * 2.0f, IRIS_RADIUS * 2.0f, IRIS_RADIUS); // flatten the iris
+        glScalef(_scale * IRIS_RADIUS * 2.0f,
+                 _scale * IRIS_RADIUS * 2.0f,
+                 _scale * IRIS_RADIUS); // flatten the iris
         
         // this ugliness is simply to invert the model transform and get the eye position in model space
         _irisProgram->setUniform(_eyePositionLocation, (glm::inverse(rotation) *
             (Application::getInstance()->getCamera()->getPosition() - _leftEyePosition) +
-                glm::vec3(0.0f, 0.0f, IRIS_PROTRUSION)) * glm::vec3(1.0f / (IRIS_RADIUS * 2.0f),
-                    1.0f / (IRIS_RADIUS * 2.0f), 1.0f / IRIS_RADIUS));
+                glm::vec3(0.0f, 0.0f, _scale * IRIS_PROTRUSION)) * glm::vec3(1.0f / (_scale * IRIS_RADIUS * 2.0f),
+                    1.0f / (_scale * IRIS_RADIUS * 2.0f), 1.0f / _scale * IRIS_RADIUS));
         
         glutSolidSphere(0.5f, 15, 15);
     }
@@ -602,13 +606,15 @@ void Head::renderEyeBalls() {
         glm::vec3 rotationAxis = glm::axis(rotation);        
         glRotatef(glm::angle(rotation), rotationAxis.x, rotationAxis.y, rotationAxis.z);
         glTranslatef(0.0f, 0.0f, -IRIS_PROTRUSION);
-        glScalef(IRIS_RADIUS * 2.0f, IRIS_RADIUS * 2.0f, IRIS_RADIUS); // flatten the iris
+        glScalef(_scale * IRIS_RADIUS * 2.0f,
+                 _scale * IRIS_RADIUS * 2.0f,
+                 _scale * IRIS_RADIUS); // flatten the iris
         
         // this ugliness is simply to invert the model transform and get the eye position in model space
         _irisProgram->setUniform(_eyePositionLocation, (glm::inverse(rotation) *
             (Application::getInstance()->getCamera()->getPosition() - _rightEyePosition) +
-                glm::vec3(0.0f, 0.0f, IRIS_PROTRUSION)) * glm::vec3(1.0f / (IRIS_RADIUS * 2.0f),
-                    1.0f / (IRIS_RADIUS * 2.0f), 1.0f / IRIS_RADIUS));
+                glm::vec3(0.0f, 0.0f, _scale * IRIS_PROTRUSION)) * glm::vec3(1.0f / (_scale * IRIS_RADIUS * 2.0f),
+                    1.0f / (_scale * IRIS_RADIUS * 2.0f), 1.0f / _scale * IRIS_RADIUS));
         
         glutSolidSphere(0.5f, 15, 15);
     }
@@ -626,7 +632,7 @@ void Head::renderEyeBalls() {
         glTranslatef(_leftEyePosition.x, _leftEyePosition.y, _leftEyePosition.z);  //translate to eyeball position
         glm::vec3 rotationAxis = glm::axis(orientation);
         glRotatef(glm::angle(orientation), rotationAxis.x, rotationAxis.y, rotationAxis.z);
-        glScalef(EYELID_RADIUS, EYELID_RADIUS, EYELID_RADIUS);
+        glScalef(_scale * EYELID_RADIUS, _scale * EYELID_RADIUS, _scale * EYELID_RADIUS);
         glRotatef(-90 * _leftEyeBlink, 1, 0, 0);
         Application::getInstance()->getGeometryCache()->renderHemisphere(15, 10);
         glRotatef(180 * _leftEyeBlink, 1, 0, 0);
@@ -639,7 +645,7 @@ void Head::renderEyeBalls() {
         glTranslatef(_rightEyePosition.x, _rightEyePosition.y, _rightEyePosition.z);  //translate to eyeball position
         glm::vec3 rotationAxis = glm::axis(orientation);
         glRotatef(glm::angle(orientation), rotationAxis.x, rotationAxis.y, rotationAxis.z);
-        glScalef(EYELID_RADIUS, EYELID_RADIUS, EYELID_RADIUS);
+        glScalef(_scale * EYELID_RADIUS, _scale * EYELID_RADIUS, _scale * EYELID_RADIUS);
         glRotatef(-90 * _rightEyeBlink, 1, 0, 0);
         Application::getInstance()->getGeometryCache()->renderHemisphere(15, 10);
         glRotatef(180 * _rightEyeBlink, 1, 0, 0);
@@ -682,7 +688,7 @@ void Head::updateHairPhysics(float deltaTime) {
         = front * sinf(radian)
         + up    * cosf(radian);
         
-        _hairTuft[t].basePosition = _position + _scale * 0.9f * baseDirection;
+        _hairTuft[t].basePosition = _position + _scale * BODY_BALL_RADIUS_HEAD_BASE * 0.9f * baseDirection;
                 
         glm::vec3 midAxis = _hairTuft[t].midPosition - _hairTuft[t].basePosition;
         glm::vec3 endAxis = _hairTuft[t].endPosition - _hairTuft[t].midPosition;

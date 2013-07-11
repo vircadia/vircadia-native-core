@@ -23,6 +23,30 @@
 #include "Skeleton.h"
 #include "Transmitter.h"
 
+const float BODY_BALL_RADIUS_PELVIS           = 0.07;
+const float BODY_BALL_RADIUS_TORSO            = 0.065;
+const float BODY_BALL_RADIUS_CHEST            = 0.08;
+const float BODY_BALL_RADIUS_NECK_BASE        = 0.03;
+const float BODY_BALL_RADIUS_HEAD_BASE        = 0.07;
+const float BODY_BALL_RADIUS_LEFT_COLLAR      = 0.04;
+const float BODY_BALL_RADIUS_LEFT_SHOULDER    = 0.03;
+const float BODY_BALL_RADIUS_LEFT_ELBOW       = 0.02;
+const float BODY_BALL_RADIUS_LEFT_WRIST       = 0.02;
+const float BODY_BALL_RADIUS_LEFT_FINGERTIPS  = 0.01;
+const float BODY_BALL_RADIUS_RIGHT_COLLAR     = 0.04;
+const float BODY_BALL_RADIUS_RIGHT_SHOULDER   = 0.03;
+const float BODY_BALL_RADIUS_RIGHT_ELBOW      = 0.02;
+const float BODY_BALL_RADIUS_RIGHT_WRIST      = 0.02;
+const float BODY_BALL_RADIUS_RIGHT_FINGERTIPS = 0.01;
+const float BODY_BALL_RADIUS_LEFT_HIP         = 0.04;
+const float BODY_BALL_RADIUS_LEFT_MID_THIGH   = 0.03;
+const float BODY_BALL_RADIUS_LEFT_KNEE        = 0.025;
+const float BODY_BALL_RADIUS_LEFT_HEEL        = 0.025;
+const float BODY_BALL_RADIUS_LEFT_TOES        = 0.025;
+const float BODY_BALL_RADIUS_RIGHT_HIP        = 0.04;
+const float BODY_BALL_RADIUS_RIGHT_KNEE       = 0.025;
+const float BODY_BALL_RADIUS_RIGHT_HEEL       = 0.025;
+const float BODY_BALL_RADIUS_RIGHT_TOES       = 0.025;
 
 enum AvatarBodyBallID
 {
@@ -203,6 +227,7 @@ private:
     float       _pelvisStandingHeight;
     float       _pelvisFloatingHeight;
     float       _pelvisToHeadLength;
+    float       _uniformScaler;
     float       _height;
     Balls*      _balls;
     AvatarTouch _avatarTouch;
@@ -238,6 +263,7 @@ private:
     void applyHardCollision(const glm::vec3& penetration, float elasticity, float damping);
     void applyCollisionWithOtherAvatar( Avatar * other, float deltaTime );
     void checkForMouseRayTouching();
+    void uniformScale(float uniformScaler);
 };
 
 #endif

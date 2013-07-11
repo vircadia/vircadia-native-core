@@ -84,6 +84,7 @@ Avatar::Avatar(Node* owningNode) :
     _leanScale(0.5f),
     _pelvisStandingHeight(0.0f),
     _pelvisFloatingHeight(0.0f),
+    _uniformScaler(1.0f),
     _distanceToNearestAvatar(std::numeric_limits<float>::max()),
     _gravity(0.0f, -1.0f, 0.0f),
     _worldUpDirection(DEFAULT_UP_DIRECTION),
@@ -107,6 +108,8 @@ Avatar::Avatar(Node* owningNode) :
     _skeleton.initialize();
     
     initializeBodyBalls();
+    
+    //uniformScale(0.5f);
     
     _height               = _skeleton.getHeight() + _bodyBall[ BODY_BALL_LEFT_HEEL ].radius + _bodyBall[ BODY_BALL_HEAD_BASE ].radius;
     
@@ -141,32 +144,32 @@ void Avatar::initializeBodyBalls() {
     }
     
     // specify the radius of each ball
-    _bodyBall[ BODY_BALL_PELVIS           ].radius = 0.07;
-    _bodyBall[ BODY_BALL_TORSO            ].radius = 0.065;
-    _bodyBall[ BODY_BALL_CHEST            ].radius = 0.08;
-    _bodyBall[ BODY_BALL_NECK_BASE        ].radius = 0.03;
-    _bodyBall[ BODY_BALL_HEAD_BASE        ].radius = 0.07;
-    _bodyBall[ BODY_BALL_LEFT_COLLAR      ].radius = 0.04;
-    _bodyBall[ BODY_BALL_LEFT_SHOULDER    ].radius = 0.03;
-    _bodyBall[ BODY_BALL_LEFT_ELBOW       ].radius = 0.02;
-    _bodyBall[ BODY_BALL_LEFT_WRIST       ].radius = 0.02;
-    _bodyBall[ BODY_BALL_LEFT_FINGERTIPS  ].radius = 0.01;
-    _bodyBall[ BODY_BALL_RIGHT_COLLAR     ].radius = 0.04;
-    _bodyBall[ BODY_BALL_RIGHT_SHOULDER   ].radius = 0.03;
-    _bodyBall[ BODY_BALL_RIGHT_ELBOW      ].radius = 0.02;
-    _bodyBall[ BODY_BALL_RIGHT_WRIST      ].radius = 0.02;
-    _bodyBall[ BODY_BALL_RIGHT_FINGERTIPS ].radius = 0.01;
-    _bodyBall[ BODY_BALL_LEFT_HIP         ].radius = 0.04;
+    _bodyBall[ BODY_BALL_PELVIS           ].radius = BODY_BALL_RADIUS_PELVIS;
+    _bodyBall[ BODY_BALL_TORSO            ].radius = BODY_BALL_RADIUS_TORSO;
+    _bodyBall[ BODY_BALL_CHEST            ].radius = BODY_BALL_RADIUS_CHEST;
+    _bodyBall[ BODY_BALL_NECK_BASE        ].radius = BODY_BALL_RADIUS_NECK_BASE;
+    _bodyBall[ BODY_BALL_HEAD_BASE        ].radius = BODY_BALL_RADIUS_HEAD_BASE;
+    _bodyBall[ BODY_BALL_LEFT_COLLAR      ].radius = BODY_BALL_RADIUS_LEFT_COLLAR;
+    _bodyBall[ BODY_BALL_LEFT_SHOULDER    ].radius = BODY_BALL_RADIUS_LEFT_SHOULDER;
+    _bodyBall[ BODY_BALL_LEFT_ELBOW       ].radius = BODY_BALL_RADIUS_LEFT_ELBOW;
+    _bodyBall[ BODY_BALL_LEFT_WRIST       ].radius = BODY_BALL_RADIUS_LEFT_WRIST;
+    _bodyBall[ BODY_BALL_LEFT_FINGERTIPS  ].radius = BODY_BALL_RADIUS_LEFT_FINGERTIPS;
+    _bodyBall[ BODY_BALL_RIGHT_COLLAR     ].radius = BODY_BALL_RADIUS_RIGHT_COLLAR;
+    _bodyBall[ BODY_BALL_RIGHT_SHOULDER   ].radius = BODY_BALL_RADIUS_RIGHT_SHOULDER;
+    _bodyBall[ BODY_BALL_RIGHT_ELBOW      ].radius = BODY_BALL_RADIUS_RIGHT_ELBOW;
+    _bodyBall[ BODY_BALL_RIGHT_WRIST      ].radius = BODY_BALL_RADIUS_RIGHT_WRIST;
+    _bodyBall[ BODY_BALL_RIGHT_FINGERTIPS ].radius = BODY_BALL_RADIUS_RIGHT_FINGERTIPS;
+    _bodyBall[ BODY_BALL_LEFT_HIP         ].radius = BODY_BALL_RADIUS_LEFT_HIP;
     
-    //_bodyBall[ BODY_BALL_LEFT_MID_THIGH ].radius = 0.03;
+    //_bodyBall[ BODY_BALL_LEFT_MID_THIGH ].radius = BODY_BALL_RADIUS_LEFT_MID_THIGH;
     
-    _bodyBall[ BODY_BALL_LEFT_KNEE        ].radius = 0.025;
-    _bodyBall[ BODY_BALL_LEFT_HEEL        ].radius = 0.025;
-    _bodyBall[ BODY_BALL_LEFT_TOES        ].radius = 0.025;
-    _bodyBall[ BODY_BALL_RIGHT_HIP        ].radius = 0.04;
-    _bodyBall[ BODY_BALL_RIGHT_KNEE       ].radius = 0.025;
-    _bodyBall[ BODY_BALL_RIGHT_HEEL       ].radius = 0.025;
-    _bodyBall[ BODY_BALL_RIGHT_TOES       ].radius = 0.025;
+    _bodyBall[ BODY_BALL_LEFT_KNEE        ].radius = BODY_BALL_RADIUS_LEFT_KNEE;
+    _bodyBall[ BODY_BALL_LEFT_HEEL        ].radius = BODY_BALL_RADIUS_LEFT_HEEL;
+    _bodyBall[ BODY_BALL_LEFT_TOES        ].radius = BODY_BALL_RADIUS_LEFT_TOES;
+    _bodyBall[ BODY_BALL_RIGHT_HIP        ].radius = BODY_BALL_RADIUS_RIGHT_HIP;
+    _bodyBall[ BODY_BALL_RIGHT_KNEE       ].radius = BODY_BALL_RADIUS_RIGHT_KNEE;
+    _bodyBall[ BODY_BALL_RIGHT_HEEL       ].radius = BODY_BALL_RADIUS_RIGHT_HEEL;
+    _bodyBall[ BODY_BALL_RIGHT_TOES       ].radius = BODY_BALL_RADIUS_RIGHT_TOES;
     
     
     // specify the parent joint for each ball
@@ -675,7 +678,7 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     
     _head.setBodyRotation   (glm::vec3(_bodyPitch, _bodyYaw, _bodyRoll));
     _head.setPosition(_bodyBall[ BODY_BALL_HEAD_BASE ].position);
-    _head.setScale   (_bodyBall[ BODY_BALL_HEAD_BASE ].radius);
+    _head.setScale   (_uniformScaler);
     _head.setSkinColor(glm::vec3(SKIN_COLOR[0], SKIN_COLOR[1], SKIN_COLOR[2]));
     _head.simulate(deltaTime, isMyAvatar());
     
@@ -1399,4 +1402,38 @@ void Avatar::renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2,
     }
     
     glEnd();
+}
+
+void Avatar::uniformScale(float uniformScaler) {
+    _uniformScaler *= uniformScaler;
+    
+    _skeleton.uniformScale(_uniformScaler);
+    
+    // specify the new radius of each ball
+    _bodyBall[ BODY_BALL_PELVIS           ].radius = _uniformScaler * BODY_BALL_RADIUS_PELVIS;
+    _bodyBall[ BODY_BALL_TORSO            ].radius = _uniformScaler * BODY_BALL_RADIUS_TORSO;
+    _bodyBall[ BODY_BALL_CHEST            ].radius = _uniformScaler * BODY_BALL_RADIUS_CHEST;
+    _bodyBall[ BODY_BALL_NECK_BASE        ].radius = _uniformScaler * BODY_BALL_RADIUS_NECK_BASE;
+    _bodyBall[ BODY_BALL_HEAD_BASE        ].radius = _uniformScaler * BODY_BALL_RADIUS_HEAD_BASE;
+    _bodyBall[ BODY_BALL_LEFT_COLLAR      ].radius = _uniformScaler * BODY_BALL_RADIUS_LEFT_COLLAR;
+    _bodyBall[ BODY_BALL_LEFT_SHOULDER    ].radius = _uniformScaler * BODY_BALL_RADIUS_LEFT_SHOULDER;
+    _bodyBall[ BODY_BALL_LEFT_ELBOW       ].radius = _uniformScaler * BODY_BALL_RADIUS_LEFT_ELBOW;
+    _bodyBall[ BODY_BALL_LEFT_WRIST       ].radius = _uniformScaler * BODY_BALL_RADIUS_LEFT_WRIST;
+    _bodyBall[ BODY_BALL_LEFT_FINGERTIPS  ].radius = _uniformScaler * BODY_BALL_RADIUS_LEFT_FINGERTIPS;
+    _bodyBall[ BODY_BALL_RIGHT_COLLAR     ].radius = _uniformScaler * BODY_BALL_RADIUS_RIGHT_COLLAR;
+    _bodyBall[ BODY_BALL_RIGHT_SHOULDER   ].radius = _uniformScaler * BODY_BALL_RADIUS_RIGHT_SHOULDER;
+    _bodyBall[ BODY_BALL_RIGHT_ELBOW      ].radius = _uniformScaler * BODY_BALL_RADIUS_RIGHT_ELBOW;
+    _bodyBall[ BODY_BALL_RIGHT_WRIST      ].radius = _uniformScaler * BODY_BALL_RADIUS_RIGHT_WRIST;
+    _bodyBall[ BODY_BALL_RIGHT_FINGERTIPS ].radius = _uniformScaler * BODY_BALL_RADIUS_RIGHT_FINGERTIPS;
+    _bodyBall[ BODY_BALL_LEFT_HIP         ].radius = _uniformScaler * BODY_BALL_RADIUS_LEFT_HIP;
+    
+    //_bodyBall[ BODY_BALL_LEFT_MID_THIGH ].radius = _uniformScaler * BODY_BALL_RADIUS_LEFT_MID_THIGH;
+    
+    _bodyBall[ BODY_BALL_LEFT_KNEE        ].radius = _uniformScaler * BODY_BALL_RADIUS_LEFT_KNEE;
+    _bodyBall[ BODY_BALL_LEFT_HEEL        ].radius = _uniformScaler * BODY_BALL_RADIUS_LEFT_HEEL;
+    _bodyBall[ BODY_BALL_LEFT_TOES        ].radius = _uniformScaler * BODY_BALL_RADIUS_LEFT_TOES;
+    _bodyBall[ BODY_BALL_RIGHT_HIP        ].radius = _uniformScaler * BODY_BALL_RADIUS_RIGHT_HIP;
+    _bodyBall[ BODY_BALL_RIGHT_KNEE       ].radius = _uniformScaler * BODY_BALL_RADIUS_RIGHT_KNEE;
+    _bodyBall[ BODY_BALL_RIGHT_HEEL       ].radius = _uniformScaler * BODY_BALL_RADIUS_RIGHT_HEEL;
+    _bodyBall[ BODY_BALL_RIGHT_TOES       ].radius = _uniformScaler * BODY_BALL_RADIUS_RIGHT_TOES;
 }

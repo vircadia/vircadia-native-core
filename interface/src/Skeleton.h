@@ -49,6 +49,7 @@ public:
     Skeleton();
 
     void initialize();
+    void uniformScale(float scaler);
     void update(float deltaTime, const glm::quat&, glm::vec3 position);
     void render();
     
