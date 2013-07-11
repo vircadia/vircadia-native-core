@@ -73,7 +73,7 @@ int main(int argc, const char* argv[]) {
     ssize_t receivedBytes = 0;
     
     unsigned char *broadcastPacket = new unsigned char[MAX_PACKET_SIZE];
-    *broadcastPacket = PACKET_HEADER_BULK_AVATAR_DATA;
+    int numHeaderBytes = populateTypeAndVersion(broadcastPacket, PACKET_TYPE_BULK_AVATAR_DATA);
     
     unsigned char* currentBufferPosition = NULL;
     
@@ -92,9 +92,10 @@ int main(int argc, const char* argv[]) {
             NodeList::getInstance()->sendDomainServerCheckIn();
         }
         
-        if (nodeList->getNodeSocket()->receive(nodeAddress, packetData, &receivedBytes)) {
+        if (nodeList->getNodeSocket()->receive(nodeAddress, packetData, &receivedBytes) &&
+            packetVersionMatch(packetData)) {
             switch (packetData[0]) {
-                case PACKET_HEADER_HEAD_DATA:
+                case PACKET_TYPE_HEAD_DATA:
                     // grab the node ID from the packet
                     unpackNodeId(packetData + 1, &nodeID);
                     
@@ -103,8 +104,8 @@ int main(int argc, const char* argv[]) {
                     
                     // parse positional data from an node
                     nodeList->updateNodeWithData(avatarNode, packetData, receivedBytes);
-                case PACKET_HEADER_INJECT_AUDIO:
-                    currentBufferPosition = broadcastPacket + 1;
+                case PACKET_TYPE_INJECT_AUDIO:
+                    currentBufferPosition = broadcastPacket + numHeaderBytes;
                     
                     // send back a packet with other active node data to this node
                     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
@@ -116,9 +117,9 @@ int main(int argc, const char* argv[]) {
                     nodeList->getNodeSocket()->send(nodeAddress, broadcastPacket, currentBufferPosition - broadcastPacket);
                     
                     break;
-                case PACKET_HEADER_AVATAR_VOXEL_URL:
+                case PACKET_TYPE_AVATAR_VOXEL_URL:
                     // grab the node ID from the packet
-                    unpackNodeId(packetData + 1, &nodeID);
+                    unpackNodeId(packetData + numBytesForPacketHeader(packetData), &nodeID);
                     
                     // let everyone else know about the update
                     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
@@ -127,7 +128,7 @@ int main(int argc, const char* argv[]) {
                         }
                     }
                     break;
-                case PACKET_HEADER_DOMAIN:
+                case PACKET_TYPE_DOMAIN:
                     // ignore the DS packet, for now nodes are added only when they communicate directly with us
                     break;
                 default:

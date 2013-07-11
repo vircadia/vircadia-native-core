@@ -72,7 +72,6 @@ NodeList::~NodeList() {
     
     // stop the spawned threads, if they were started
     stopSilentNodeRemovalThread();
-    stopPingUnknownNodesThread();
     
     pthread_mutex_destroy(&mutex);
 }
@@ -81,27 +80,29 @@ void NodeList::timePingReply(sockaddr *nodeAddress, unsigned char *packetData) {
     for(NodeList::iterator node = begin(); node != end(); node++) {
         if (socketMatch(node->getPublicSocket(), nodeAddress) || 
             socketMatch(node->getLocalSocket(), nodeAddress)) {     
-            int pingTime = usecTimestampNow() - *(uint64_t *)(packetData + 1);
+
+            int pingTime = usecTimestampNow() - *(uint64_t*)(packetData + numBytesForPacketHeader(packetData));
+            
             node->setPingMs(pingTime / 1000);
             break;
         }
     }
 }
 
-void NodeList::processNodeData(sockaddr *senderAddress, unsigned char *packetData, size_t dataBytes) {
-    switch (((char *)packetData)[0]) {
-        case PACKET_HEADER_DOMAIN: {
+void NodeList::processNodeData(sockaddr* senderAddress, unsigned char* packetData, size_t dataBytes) {
+    switch (packetData[0]) {
+        case PACKET_TYPE_DOMAIN: {
             processDomainServerList(packetData, dataBytes);
             break;
         }
-        case PACKET_HEADER_PING: {
+        case PACKET_TYPE_PING: {
             char pingPacket[dataBytes];
             memcpy(pingPacket, packetData, dataBytes);
-            pingPacket[0] = PACKET_HEADER_PING_REPLY;
+            populateTypeAndVersion((unsigned char*) pingPacket, PACKET_TYPE_PING_REPLY);
             _nodeSocket.send(senderAddress, pingPacket, dataBytes);
             break;
         }
-        case PACKET_HEADER_PING_REPLY: {
+        case PACKET_TYPE_PING_REPLY: {
             timePingReply(senderAddress, packetData);
             break;
         }
@@ -118,18 +119,23 @@ void NodeList::processBulkNodeData(sockaddr *senderAddress, unsigned char *packe
         bulkSendNode->setLastHeardMicrostamp(usecTimestampNow());
         bulkSendNode->recordBytesReceived(numTotalBytes);
     }
-
+    
+    int numBytesPacketHeader = numBytesForPacketHeader(packetData);
+    
     unsigned char *startPosition = packetData;
-    unsigned char *currentPosition = startPosition + 1;
+    unsigned char *currentPosition = startPosition + numBytesPacketHeader;
     unsigned char packetHolder[numTotalBytes];
     
-    packetHolder[0] = PACKET_HEADER_HEAD_DATA;
+    // we've already verified packet version for the bulk packet, so all head data in the packet is also up to date
+    populateTypeAndVersion(packetHolder, PACKET_TYPE_HEAD_DATA);
     
     uint16_t nodeID = -1;
     
     while ((currentPosition - startPosition) < numTotalBytes) {
         unpackNodeId(currentPosition, &nodeID);
-        memcpy(packetHolder + 1, currentPosition, numTotalBytes - (currentPosition - startPosition));
+        memcpy(packetHolder + numBytesPacketHeader,
+               currentPosition,
+               numTotalBytes - (currentPosition - startPosition));
         
         Node* matchingNode = nodeWithID(nodeID);
         
@@ -139,8 +145,8 @@ void NodeList::processBulkNodeData(sockaddr *senderAddress, unsigned char *packe
         }
         
         currentPosition += updateNodeWithData(matchingNode,
-                                               packetHolder,
-                                               numTotalBytes - (currentPosition - startPosition));
+                                              packetHolder,
+                                              numTotalBytes - (currentPosition - startPosition));
     }
     
     unlock();
@@ -213,6 +219,7 @@ void NodeList::setNodeTypesOfInterest(const char* nodeTypesOfInterest, int numNo
 
 void NodeList::sendDomainServerCheckIn() {
     static bool printedDomainServerIP = false;
+    
     //  Lookup the IP address of the domain server if we need to
     if (atoi(DOMAIN_IP) == 0) {
         struct hostent* pHostInfo;
@@ -229,26 +236,32 @@ void NodeList::sendDomainServerCheckIn() {
         printedDomainServerIP = true;
     }
     
-    // construct the DS check in packet if we need to
     static unsigned char* checkInPacket = NULL;
-    static int checkInPacketSize;
-
+    static int checkInPacketSize = 0;
+    
+    // construct the DS check in packet if we need to    
     if (!checkInPacket) {
         int numBytesNodesOfInterest = _nodeTypesOfInterest ? strlen((char*) _nodeTypesOfInterest) : 0;
         
+        const int IP_ADDRESS_BYTES = 4;
+        
         // check in packet has header, node type, port, IP, node types of interest, null termination
-        int numPacketBytes = sizeof(PACKET_HEADER) + sizeof(NODE_TYPE) + sizeof(uint16_t) + (sizeof(char) * 4) +
-            numBytesNodesOfInterest + sizeof(unsigned char);
+        int numPacketBytes = sizeof(PACKET_TYPE) + sizeof(PACKET_VERSION) + sizeof(NODE_TYPE) + sizeof(uint16_t) +
+            IP_ADDRESS_BYTES + numBytesNodesOfInterest + sizeof(unsigned char);
         
         checkInPacket = new unsigned char[numPacketBytes];
         unsigned char* packetPosition = checkInPacket;
         
-        *(packetPosition++) = (memchr(SOLO_NODE_TYPES, _ownerType, sizeof(SOLO_NODE_TYPES)))
-                ? PACKET_HEADER_DOMAIN_REPORT_FOR_DUTY
-                : PACKET_HEADER_DOMAIN_LIST_REQUEST;
+        PACKET_TYPE nodePacketType = (memchr(SOLO_NODE_TYPES, _ownerType, sizeof(SOLO_NODE_TYPES)))
+            ? PACKET_TYPE_DOMAIN_REPORT_FOR_DUTY
+            : PACKET_TYPE_DOMAIN_LIST_REQUEST;
+        
+        int numHeaderBytes = populateTypeAndVersion(packetPosition, nodePacketType);
+        packetPosition += numHeaderBytes;
+        
         *(packetPosition++) = _ownerType;
         
-        packetPosition += packSocket(checkInPacket + sizeof(PACKET_HEADER) + sizeof(NODE_TYPE),
+        packetPosition += packSocket(checkInPacket + numHeaderBytes + sizeof(NODE_TYPE),
                                      getLocalAddress(),
                                      htons(_nodeSocket.getListeningPort()));
         
@@ -269,7 +282,7 @@ void NodeList::sendDomainServerCheckIn() {
     _nodeSocket.send(DOMAIN_IP, DOMAINSERVER_PORT, checkInPacket, checkInPacketSize);
 }
 
-int NodeList::processDomainServerList(unsigned char *packetData, size_t dataBytes) {
+int NodeList::processDomainServerList(unsigned char* packetData, size_t dataBytes) {
     int readNodes = 0;
 
     char nodeType;
@@ -281,16 +294,16 @@ int NodeList::processDomainServerList(unsigned char *packetData, size_t dataByte
     sockaddr_in nodeLocalSocket;
     nodeLocalSocket.sin_family = AF_INET;
     
-    unsigned char *readPtr = packetData + 1;
-    unsigned char *startPtr = packetData;
+    unsigned char* readPtr = packetData + numBytesForPacketHeader(packetData);
+    unsigned char* startPtr = packetData;
     
     while((readPtr - startPtr) < dataBytes - sizeof(uint16_t)) {
         nodeType = *readPtr++;
-        readPtr += unpackNodeId(readPtr, (uint16_t *)&nodeId);
-        readPtr += unpackSocket(readPtr, (sockaddr *)&nodePublicSocket);
-        readPtr += unpackSocket(readPtr, (sockaddr *)&nodeLocalSocket);
+        readPtr += unpackNodeId(readPtr, (uint16_t*) &nodeId);
+        readPtr += unpackSocket(readPtr, (sockaddr*) &nodePublicSocket);
+        readPtr += unpackSocket(readPtr, (sockaddr*) &nodeLocalSocket);
         
-        addOrUpdateNode((sockaddr *)&nodePublicSocket, (sockaddr *)&nodeLocalSocket, nodeType, nodeId);
+        addOrUpdateNode((sockaddr*) &nodePublicSocket, (sockaddr*) &nodeLocalSocket, nodeType, nodeId);
     }
     
     // read out our ID from the packet
@@ -399,46 +412,6 @@ Node* NodeList::soloNodeOfType(char nodeType) {
     }
     
     return NULL;
-}
-
-void *pingUnknownNodes(void *args) {
-    
-    NodeList* nodeList = (NodeList*) args;
-    const int PING_INTERVAL_USECS = 1 * 1000000;
-    
-    timeval lastSend;
-    
-    while (!pingUnknownNodeThreadStopFlag) {
-        gettimeofday(&lastSend, NULL);
-        
-        for(NodeList::iterator node = nodeList->begin();
-            node != nodeList->end();
-            node++) {
-            if (!node->getActiveSocket() && node->getPublicSocket() && node->getLocalSocket()) {
-                // ping both of the sockets for the node so we can figure out
-                // which socket we can use
-                nodeList->getNodeSocket()->send(node->getPublicSocket(), &PACKET_HEADER_PING, 1);
-                nodeList->getNodeSocket()->send(node->getLocalSocket(), &PACKET_HEADER_PING, 1);
-            }
-        }
-        
-        int usecToSleep = PING_INTERVAL_USECS - (usecTimestampNow() - usecTimestamp(&lastSend));
-        
-        if (usecToSleep > 0) {
-            usleep(usecToSleep);
-        }
-    }
-    
-    return NULL;
-}
-
-void NodeList::startPingUnknownNodesThread() {
-    pthread_create(&pingUnknownNodesThread, NULL, pingUnknownNodes, (void *)this);
-}
-
-void NodeList::stopPingUnknownNodesThread() {
-    pingUnknownNodeThreadStopFlag = true;
-    pthread_join(pingUnknownNodesThread, NULL);
 }
 
 void *removeSilentNodes(void *args) {

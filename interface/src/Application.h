@@ -136,7 +136,8 @@ private slots:
     void doTrueVoxelColors();
     void doTreeStats();
     void setWantsMonochrome(bool wantsMonochrome);
-    void setWantsDelta(bool wantsDelta);
+    void setWantsLowResMoving(bool wantsLowResMoving);
+    void disableDeltaSending(bool disableDeltaSending);
     void disableOcclusionCulling(bool disableOcclusionCulling);
     void updateVoxelModeActions();
     void decreaseVoxelSize();
@@ -170,7 +171,7 @@ private:
 
     static void sendVoxelServerAddScene();
     static bool sendVoxelsOperation(VoxelNode* node, void* extraData);
-    static void sendVoxelEditMessage(PACKET_HEADER header, VoxelDetail& detail);
+    static void sendVoxelEditMessage(PACKET_TYPE type, VoxelDetail& detail);
     static void sendAvatarVoxelURLMessage(const QUrl& url);
     static void processAvatarVoxelURLMessage(unsigned char *packetData, size_t dataBytes);
     static void sendPingPackets();

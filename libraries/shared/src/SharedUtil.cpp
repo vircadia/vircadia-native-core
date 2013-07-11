@@ -11,16 +11,19 @@
 #include <cstring>
 #include <cctype>
 #include <time.h>
+
 #ifdef _WIN32
 #include "Syssocket.h"
 #endif
-#include "Log.h"
-#include "SharedUtil.h"
-#include "OctalCode.h"
 
 #ifdef __APPLE__
 #include <CoreFoundation/CoreFoundation.h>
 #endif
+
+#include "Log.h"
+#include "OctalCode.h"
+#include "PacketHeaders.h"
+#include "SharedUtil.h"
 
 uint64_t usecTimestamp(timeval *time) {
     return (time->tv_sec * 1000000 + time->tv_usec);
@@ -209,13 +212,14 @@ bool createVoxelEditMessage(unsigned char command, short int sequence,
     int messageSize = MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE; // just a guess for now
     int actualMessageSize = 3;
     unsigned char* messageBuffer = new unsigned char[messageSize];
-    unsigned short int* sequenceAt = (unsigned short int*)&messageBuffer[1];
     
-    messageBuffer[0]=command;
-    *sequenceAt=sequence;
-    unsigned char* copyAt = &messageBuffer[3];
+    int numBytesPacketHeader = populateTypeAndVersion(messageBuffer, command);
+    unsigned short int* sequenceAt = (unsigned short int*) &messageBuffer[numBytesPacketHeader];
+  
+    *sequenceAt = sequence;
+    unsigned char* copyAt = &messageBuffer[numBytesPacketHeader + sizeof(sequence)];
 
-    for (int i=0;i<voxelCount && success;i++) {
+    for (int i = 0; i < voxelCount && success; i++) {
         // get the coded voxel
         unsigned char* voxelData = pointToVoxel(voxelDetails[i].x,voxelDetails[i].y,voxelDetails[i].z,
             voxelDetails[i].s,voxelDetails[i].red,voxelDetails[i].green,voxelDetails[i].blue);
@@ -224,12 +228,12 @@ bool createVoxelEditMessage(unsigned char command, short int sequence,
         
         // make sure we have room to copy this voxel
         if (actualMessageSize+lengthOfVoxelData > MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE) {
-            success=false;
+            success = false;
         } else {
             // add it to our message
-            memcpy(copyAt,voxelData,lengthOfVoxelData);
-            copyAt+=lengthOfVoxelData;
-            actualMessageSize+=lengthOfVoxelData;
+            memcpy(copyAt, voxelData, lengthOfVoxelData);
+            copyAt += lengthOfVoxelData;
+            actualMessageSize += lengthOfVoxelData;
         }
         // cleanup
         delete[] voxelData;
@@ -238,9 +242,10 @@ bool createVoxelEditMessage(unsigned char command, short int sequence,
     if (success) {    
         // finally, copy the result to the output
         bufferOut = new unsigned char[actualMessageSize];
-        sizeOut=actualMessageSize;
-        memcpy(bufferOut,messageBuffer,actualMessageSize);
+        sizeOut = actualMessageSize;
+        memcpy(bufferOut, messageBuffer, actualMessageSize);
     }
+    
     delete[] messageBuffer; // clean up our temporary buffer
     return success;
 }

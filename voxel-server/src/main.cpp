@@ -2,7 +2,7 @@
 //  main.cpp
 //  Voxel Server
 //
-//  Created by Stephen Birara on 03/06/13.
+//  Created by Stephen Birarda on 03/06/13.
 //  Copyright (c) 2012 High Fidelity, Inc. All rights reserved.
 //
 
@@ -123,9 +123,47 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
 
     int maxLevelReached = 0;
     uint64_t start = usecTimestampNow();
+    int truePacketsSent = 0;
+    int trueBytesSent = 0;
 
     // FOR NOW... node tells us if it wants to receive only view frustum deltas
     bool wantDelta = viewFrustumChanged && nodeData->getWantDelta();
+
+    // If our packet already has content in it, then we must use the color choice of the waiting packet.    
+    // If we're starting a fresh packet, then... 
+    //     If we're moving, and the client asked for low res, then we force monochrome, otherwise, use 
+    //     the clients requested color state.
+    bool wantColor = ((nodeData->getWantLowResMoving() && viewFrustumChanged) ? false : nodeData->getWantColor());
+
+    // If we have a packet waiting, and our desired want color, doesn't match the current waiting packets color
+    // then let's just send that waiting packet.    
+    if (wantColor != nodeData->getCurrentPacketIsColor()) {
+    
+        if (nodeData->isPacketWaiting()) {
+            if (::debugVoxelSending) {
+                printf("wantColor=%s --- SENDING PARTIAL PACKET! nodeData->getCurrentPacketIsColor()=%s\n", 
+                       debug::valueOf(wantColor), debug::valueOf(nodeData->getCurrentPacketIsColor()));
+            }
+            nodeList->getNodeSocket()->send(node->getActiveSocket(),
+                                            nodeData->getPacket(), nodeData->getPacketLength());
+            trueBytesSent += nodeData->getPacketLength();
+            truePacketsSent++;
+            nodeData->resetVoxelPacket();
+        } else {
+            if (::debugVoxelSending) {
+                printf("wantColor=%s --- FIXING HEADER! nodeData->getCurrentPacketIsColor()=%s\n", 
+                       debug::valueOf(wantColor), debug::valueOf(nodeData->getCurrentPacketIsColor()));
+            }
+            nodeData->resetVoxelPacket();
+        }
+    }
+    
+    if (::debugVoxelSending) {
+        printf("wantColor=%s getCurrentPacketIsColor()=%s, viewFrustumChanged=%s, getWantLowResMoving()=%s\n", 
+               debug::valueOf(wantColor), debug::valueOf(nodeData->getCurrentPacketIsColor()),
+               debug::valueOf(viewFrustumChanged), debug::valueOf(nodeData->getWantLowResMoving()));
+    }
+
     const ViewFrustum* lastViewFrustum =  wantDelta ? &nodeData->getLastKnownViewFrustum() : NULL;
 
     if (::debugVoxelSending) {
@@ -149,9 +187,11 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
                 } else {
                     printf("elapsed time to send scene = %f seconds", elapsedSceneSend);
                 }
-                printf(" [occlusionCulling: %s]\n", debug::valueOf(nodeData->getWantOcclusionCulling()));
+                printf(" [occlusionCulling:%s, wantDelta:%s, wantColor:%s ]\n", 
+                       debug::valueOf(nodeData->getWantOcclusionCulling()), debug::valueOf(wantDelta), 
+                       debug::valueOf(wantColor));
             }
-            nodeData->setLastTimeBagEmpty(now);
+            nodeData->setLastTimeBagEmpty(now); // huh? why is this inside debug? probably not what we want
         }
                 
         // if our view has changed, we need to reset these things...
@@ -199,8 +239,6 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
         static unsigned char tempOutputBuffer[MAX_VOXEL_PACKET_SIZE - 1]; // save on allocs by making this static
         int bytesWritten = 0;
         int packetsSentThisInterval = 0;
-        int truePacketsSent = 0;
-        int trueBytesSent = 0;
         uint64_t start = usecTimestampNow();
 
         bool shouldSendEnvironments = shouldDo(ENVIRONMENT_SEND_INTERVAL_USECS, VOXEL_SEND_INTERVAL_USECS);
@@ -224,10 +262,12 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
                 VoxelNode* subTree = nodeData->nodeBag.extract();
                 bool wantOcclusionCulling = nodeData->getWantOcclusionCulling();
                 CoverageMap* coverageMap = wantOcclusionCulling ? &nodeData->map : IGNORE_COVERAGE_MAP;
+                int boundaryLevelAdjust = viewFrustumChanged && nodeData->getWantLowResMoving() 
+                                          ? LOW_RES_MOVING_ADJUST : NO_BOUNDARY_ADJUST;
                 
-                EncodeBitstreamParams params(INT_MAX, &nodeData->getCurrentViewFrustum(), nodeData->getWantColor(), 
+                EncodeBitstreamParams params(INT_MAX, &nodeData->getCurrentViewFrustum(), wantColor, 
                                              WANT_EXISTS_BITS, DONT_CHOP, wantDelta, lastViewFrustum,
-                                             wantOcclusionCulling, coverageMap);
+                                             wantOcclusionCulling, coverageMap, boundaryLevelAdjust);
 
                 bytesWritten = serverTree.encodeTreeBitstream(subTree, &tempOutputBuffer[0], MAX_VOXEL_PACKET_SIZE - 1,
                                                               nodeData->nodeBag, params);
@@ -254,18 +294,19 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
                     trueBytesSent += nodeData->getPacketLength();
                     truePacketsSent++;
                     nodeData->resetVoxelPacket();
-                    
                 }
                 packetsSentThisInterval = PACKETS_PER_CLIENT_PER_INTERVAL; // done for now, no nodes left
             }
         }
         // send the environment packet
         if (shouldSendEnvironments) {
-            int envPacketLength = 1;
-            *tempOutputBuffer = PACKET_HEADER_ENVIRONMENT_DATA;
-            for (int i = 0; i < sizeof(environmentData) / sizeof(environmentData[0]); i++) {
+            int numBytesPacketHeader = populateTypeAndVersion(tempOutputBuffer, PACKET_TYPE_ENVIRONMENT_DATA);
+            int envPacketLength = numBytesPacketHeader;
+            
+            for (int i = 0; i < sizeof(environmentData) / sizeof(EnvironmentData); i++) {
                 envPacketLength += environmentData[i].getBroadcastData(tempOutputBuffer + envPacketLength);
             }
+            
             nodeList->getNodeSocket()->send(node->getActiveSocket(), tempOutputBuffer, envPacketLength);
             trueBytesSent += envPacketLength;
             truePacketsSent++;
@@ -509,19 +550,24 @@ int main(int argc, const char * argv[]) {
         // check to see if we need to persist our voxel state
         persistVoxelsWhenDirty();
     
-        if (nodeList->getNodeSocket()->receive(&nodePublicAddress, packetData, &receivedBytes)) {
-            if (packetData[0] == PACKET_HEADER_SET_VOXEL || packetData[0] == PACKET_HEADER_SET_VOXEL_DESTRUCTIVE) {
-                bool destructive = (packetData[0] == PACKET_HEADER_SET_VOXEL_DESTRUCTIVE);
+        if (nodeList->getNodeSocket()->receive(&nodePublicAddress, packetData, &receivedBytes) &&
+            packetVersionMatch(packetData)) {
+            
+            int numBytesPacketHeader = numBytesForPacketHeader(packetData);
+            
+            if (packetData[0] == PACKET_TYPE_SET_VOXEL || packetData[0] == PACKET_TYPE_SET_VOXEL_DESTRUCTIVE) {
+                bool destructive = (packetData[0] == PACKET_TYPE_SET_VOXEL_DESTRUCTIVE);
                 PerformanceWarning warn(::shouldShowAnimationDebug,
-                                        destructive ? "PACKET_HEADER_SET_VOXEL_DESTRUCTIVE" : "PACKET_HEADER_SET_VOXEL",
+                                        destructive ? "PACKET_TYPE_SET_VOXEL_DESTRUCTIVE" : "PACKET_TYPE_SET_VOXEL",
                                         ::shouldShowAnimationDebug);
-                unsigned short int itemNumber = (*((unsigned short int*)&packetData[1]));
+                
+                unsigned short int itemNumber = (*((unsigned short int*)(packetData + numBytesPacketHeader)));
                 if (::shouldShowAnimationDebug) {
                     printf("got %s - command from client receivedBytes=%ld itemNumber=%d\n",
-                        destructive ? "PACKET_HEADER_SET_VOXEL_DESTRUCTIVE" : "PACKET_HEADER_SET_VOXEL",
+                        destructive ? "PACKET_TYPE_SET_VOXEL_DESTRUCTIVE" : "PACKET_TYPE_SET_VOXEL",
                         receivedBytes,itemNumber);
                 }
-                int atByte = sizeof(PACKET_HEADER) + sizeof(itemNumber);
+                int atByte = numBytesPacketHeader + sizeof(itemNumber);
                 unsigned char* voxelData = (unsigned char*)&packetData[atByte];
                 while (atByte < receivedBytes) {
                     unsigned char octets = (unsigned char)*voxelData;
@@ -563,21 +609,20 @@ int main(int argc, const char * argv[]) {
                     voxelData += voxelDataSize;
                     atByte += voxelDataSize;
                 }
-            }
-            if (packetData[0] == PACKET_HEADER_ERASE_VOXEL) {
+            } else if (packetData[0] == PACKET_TYPE_ERASE_VOXEL) {
 
                 // Send these bits off to the VoxelTree class to process them
                 pthread_mutex_lock(&::treeLock);
                 serverTree.processRemoveVoxelBitstream((unsigned char*)packetData, receivedBytes);
                 pthread_mutex_unlock(&::treeLock);
-            }
-            if (packetData[0] == PACKET_HEADER_Z_COMMAND) {
+            } else if (packetData[0] == PACKET_TYPE_Z_COMMAND) {
 
                 // the Z command is a special command that allows the sender to send the voxel server high level semantic
                 // requests, like erase all, or add sphere scene
-                char* command = (char*) &packetData[1]; // start of the command
+                
+                char* command = (char*) &packetData[numBytesPacketHeader]; // start of the command
                 int commandLength = strlen(command); // commands are null terminated strings
-                int totalLength = sizeof(PACKET_HEADER_Z_COMMAND) + commandLength + 1; // 1 for null termination
+                int totalLength = numBytesPacketHeader + commandLength + 1; // 1 for null termination
                 printf("got Z message len(%ld)= %s\n", receivedBytes, command);
                 bool rebroadcast = true; // by default rebroadcast
 
@@ -603,21 +648,20 @@ int main(int argc, const char * argv[]) {
                     printf("rebroadcasting Z message to connected nodes... nodeList.broadcastToNodes()\n");
                     nodeList->broadcastToNodes(packetData, receivedBytes, &NODE_TYPE_AGENT, 1);
                 }
-            }
-            // If we got a PACKET_HEADER_HEAD_DATA, then we're talking to an NODE_TYPE_AVATAR, and we
-            // need to make sure we have it in our nodeList.
-            if (packetData[0] == PACKET_HEADER_HEAD_DATA) {
+            } else if (packetData[0] == PACKET_TYPE_HEAD_DATA) {
+                // If we got a PACKET_TYPE_HEAD_DATA, then we're talking to an NODE_TYPE_AVATAR, and we
+                // need to make sure we have it in our nodeList.
+                
                 uint16_t nodeID = 0;
-                unpackNodeId(packetData + sizeof(PACKET_HEADER_HEAD_DATA), &nodeID);
+                unpackNodeId(packetData + numBytesPacketHeader, &nodeID);
                 Node* node = nodeList->addOrUpdateNode(&nodePublicAddress,
-                                                           &nodePublicAddress,
-                                                           NODE_TYPE_AGENT,
-                                                           nodeID);
+                                                       &nodePublicAddress,
+                                                       NODE_TYPE_AGENT,
+                                                       nodeID);
                 
                 nodeList->updateNodeWithData(node, packetData, receivedBytes);
-            }
-            // If the packet is a ping, let processNodeData handle it.
-            if (packetData[0] == PACKET_HEADER_PING) {
+            } else if (packetData[0] == PACKET_TYPE_PING) {
+                // If the packet is a ping, let processNodeData handle it.
                 nodeList->processNodeData(&nodePublicAddress, packetData, receivedBytes);
             }
         }
