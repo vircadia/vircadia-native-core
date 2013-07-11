@@ -892,13 +892,11 @@ bool VoxelSystem::removeOutOfViewOperation(VoxelNode* node, void* extraData) {
 bool VoxelSystem::isViewChanging() {
     bool result = false; // assume the best
 
-/** TEMPORARY HACK ******
     // If our viewFrustum has changed since our _lastKnowViewFrustum
-    if (_viewFrustum && !_lastKnowViewFrustum.matches(_viewFrustum)) {
+    if (!_lastKnowViewFrustum.matches(Application::getInstance()->getViewFrustum())) {
         result = true;
-        _lastKnowViewFrustum = *_viewFrustum; // save last known
+        _lastKnowViewFrustum = *Application::getInstance()->getViewFrustum(); // save last known
     }
-**/
     return result;
 }
 
