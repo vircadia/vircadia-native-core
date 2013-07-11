@@ -2,7 +2,7 @@
 //  main.cpp
 //  Voxel Server
 //
-//  Created by Stephen Birara on 03/06/13.
+//  Created by Stephen Birarda on 03/06/13.
 //  Copyright (c) 2012 High Fidelity, Inc. All rights reserved.
 //
 
@@ -571,15 +571,13 @@ int main(int argc, const char * argv[]) {
                     voxelData += voxelDataSize;
                     atByte += voxelDataSize;
                 }
-            }
-            if (packetData[0] == PACKET_TYPE_ERASE_VOXEL) {
+            } else if (packetData[0] == PACKET_TYPE_ERASE_VOXEL) {
 
                 // Send these bits off to the VoxelTree class to process them
                 pthread_mutex_lock(&::treeLock);
                 serverTree.processRemoveVoxelBitstream((unsigned char*)packetData, receivedBytes);
                 pthread_mutex_unlock(&::treeLock);
-            }
-            if (packetData[0] == PACKET_TYPE_Z_COMMAND) {
+            } else if (packetData[0] == PACKET_TYPE_Z_COMMAND) {
 
                 // the Z command is a special command that allows the sender to send the voxel server high level semantic
                 // requests, like erase all, or add sphere scene
@@ -612,10 +610,10 @@ int main(int argc, const char * argv[]) {
                     printf("rebroadcasting Z message to connected nodes... nodeList.broadcastToNodes()\n");
                     nodeList->broadcastToNodes(packetData, receivedBytes, &NODE_TYPE_AGENT, 1);
                 }
-            }
-            // If we got a PACKET_TYPE_HEAD_DATA, then we're talking to an NODE_TYPE_AVATAR, and we
-            // need to make sure we have it in our nodeList.
-            if (packetData[0] == PACKET_TYPE_HEAD_DATA) {
+            } else if (packetData[0] == PACKET_TYPE_HEAD_DATA) {
+                // If we got a PACKET_TYPE_HEAD_DATA, then we're talking to an NODE_TYPE_AVATAR, and we
+                // need to make sure we have it in our nodeList.
+                
                 uint16_t nodeID = 0;
                 unpackNodeId(packetData + numBytesPacketHeader, &nodeID);
                 Node* node = nodeList->addOrUpdateNode(&nodePublicAddress,
@@ -624,9 +622,8 @@ int main(int argc, const char * argv[]) {
                                                        nodeID);
                 
                 nodeList->updateNodeWithData(node, packetData, receivedBytes);
-            }
-            // If the packet is a ping, let processNodeData handle it.
-            if (packetData[0] == PACKET_TYPE_PING) {
+            } else if (packetData[0] == PACKET_TYPE_PING) {
+                // If the packet is a ping, let processNodeData handle it.
                 nodeList->processNodeData(&nodePublicAddress, packetData, receivedBytes);
             }
         }
