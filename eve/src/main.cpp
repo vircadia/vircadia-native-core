@@ -128,7 +128,7 @@ int main(int argc, const char* argv[]) {
     broadcastPacket[0] = PACKET_HEADER_HEAD_DATA;
     
     timeval thisSend;
-    long long numMicrosecondsSleep = 0;
+    int numMicrosecondsSleep = 0;
     
     int handStateTimer = 0;
     

@@ -499,6 +499,20 @@ void runTimingTests() {
     gettimeofday(&endTime, NULL);
     elapsedMsecs = diffclock(&startTime, &endTime);
     printLog("powf(f, 0.5) usecs: %f\n", 1000.0f * elapsedMsecs / (float) numTests);
+
+    //  Vector Math
+    float distance;
+    glm::vec3 pointA(randVector()), pointB(randVector());
+    gettimeofday(&startTime, NULL);
+    for (int i = 1; i < numTests; i++) {
+        //glm::vec3 temp = pointA - pointB;
+        //float distanceSquared = glm::dot(temp, temp);
+        distance = glm::distance(pointA, pointB);
+    }
+    gettimeofday(&endTime, NULL);
+    elapsedMsecs = diffclock(&startTime, &endTime);
+    printLog("vector math usecs: %f [%f msecs total for %d tests]\n", 
+             1000.0f * elapsedMsecs / (float) numTests, elapsedMsecs, numTests);
     
     //  Vec3 test
     glm::vec3 vecA(randVector()), vecB(randVector());
