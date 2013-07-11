@@ -114,7 +114,7 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
 
     unsigned char command = *sourceBuffer;
     int numBytesPacketHeader = numBytesForPacketHeader(sourceBuffer);
-    unsigned char *voxelData = sourceBuffer + numBytesPacketHeader;
+    unsigned char* voxelData = sourceBuffer + numBytesPacketHeader;
 
     pthread_mutex_lock(&_treeLock);
 

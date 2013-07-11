@@ -79,7 +79,7 @@ void AudioInjector::injectAudio(UDPSocket* injectorSocket, sockaddr* destination
         
         unsigned char dataPacket[(BUFFER_LENGTH_SAMPLES_PER_CHANNEL * sizeof(int16_t)) + leadingBytes];
         
-        unsigned char *currentPacketPtr = dataPacket + populateTypeAndVersion(dataPacket, PACKET_TYPE_INJECT_AUDIO);
+        unsigned char* currentPacketPtr = dataPacket + populateTypeAndVersion(dataPacket, PACKET_TYPE_INJECT_AUDIO);
         
         // copy the identifier for this injector
         memcpy(currentPacketPtr, &_streamIdentifier, sizeof(_streamIdentifier));
