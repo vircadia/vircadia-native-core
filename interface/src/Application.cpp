@@ -1236,12 +1236,16 @@ void Application::doTreeStats() {
     _voxels.collectStatsForTreesAndVBOs();
 }
 
+void Application::setWantsLowResMoving(bool wantsLowResMoving) {
+    _myAvatar.setWantLowResMoving(wantsLowResMoving);
+}
+
 void Application::setWantsMonochrome(bool wantsMonochrome) {
     _myAvatar.setWantColor(!wantsMonochrome);
 }
 
-void Application::setWantsDelta(bool wantsDelta) {
-    _myAvatar.setWantDelta(wantsDelta);
+void Application::disableDeltaSending(bool disableDeltaSending) {
+    _myAvatar.setWantDelta(!disableDeltaSending);
 }
 
 void Application::disableOcclusionCulling(bool disableOcclusionCulling) {
@@ -1635,9 +1639,11 @@ void Application::initMenu() {
     renderDebugMenu->addAction("FALSE Color Occluded V2 Voxels", this, SLOT(doFalseColorizeOccludedV2()), Qt::CTRL | Qt::Key_P);
     renderDebugMenu->addAction("Show TRUE Colors", this, SLOT(doTrueVoxelColors()), Qt::CTRL | Qt::Key_T);
 
-    debugMenu->addAction("Wants Monochrome", this, SLOT(setWantsMonochrome(bool)))->setCheckable(true);
-    debugMenu->addAction("Wants View Delta Sending", this, SLOT(setWantsDelta(bool)))->setCheckable(true);
     (_shouldLowPassFilter = debugMenu->addAction("Test: LowPass filter"))->setCheckable(true);
+
+    debugMenu->addAction("Wants Monochrome", this, SLOT(setWantsMonochrome(bool)))->setCheckable(true);
+    debugMenu->addAction("Use Lower Resolution While Moving", this, SLOT(setWantsLowResMoving(bool)))->setCheckable(true);
+    debugMenu->addAction("Disable Delta Sending", this, SLOT(disableDeltaSending(bool)))->setCheckable(true);
     debugMenu->addAction("Disable Occlusion Culling", this, SLOT(disableOcclusionCulling(bool)), 
                          Qt::SHIFT | Qt::Key_C)->setCheckable(true);
 
