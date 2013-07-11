@@ -53,6 +53,7 @@ public:
     uint64_t  getLastTimeBagEmpty() const                      { return _lastTimeBagEmpty; };
     void      setLastTimeBagEmpty(uint64_t lastTimeBagEmpty)  { _lastTimeBagEmpty = lastTimeBagEmpty; };
 
+    bool getCurrentPacketIsColor() const { return _currentPacketIsColor; };
 private:
     VoxelNodeData(const VoxelNodeData &);
     VoxelNodeData& operator= (const VoxelNodeData&);
@@ -67,7 +68,8 @@ private:
     ViewFrustum _currentViewFrustum;
     ViewFrustum _lastKnownViewFrustum;
     uint64_t _lastTimeBagEmpty;
-
+    bool _viewFrustumChanging;
+    bool _currentPacketIsColor;
 };
 
 #endif /* defined(__hifi__VoxelNodeData__) */

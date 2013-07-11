@@ -50,7 +50,7 @@ void Webcam::setEnabled(bool enabled) {
         QMetaObject::invokeMethod(_grabber, "grabFrame");
     
     } else {
-        _grabberThread.quit();
+        QMetaObject::invokeMethod(_grabber, "shutdown");
         _active = false;
     }
 }
@@ -267,8 +267,8 @@ FrameGrabber::FrameGrabber() : _initialized(false), _capture(0), _searchWindow(0
 }
 
 FrameGrabber::~FrameGrabber() {
-    if (_capture != 0) {
-        cvReleaseCapture(&_capture);
+    if (_initialized) {
+        shutdown();
     }
 }
 
@@ -364,6 +364,16 @@ void FrameGrabber::reset() {
         _userGenerator.GetSkeletonCap().RequestCalibration(_userID, true);
     }
 #endif
+}
+
+void FrameGrabber::shutdown() {
+    if (_capture != 0) {
+        cvReleaseCapture(&_capture);
+        _capture = 0;
+    }
+    _initialized = false;
+    
+    thread()->quit();
 }
 
 void FrameGrabber::grabFrame() {
@@ -475,7 +485,7 @@ bool FrameGrabber::init() {
 
     // load our face cascade
     switchToResourcesParentIfRequired();
-    if (!_faceCascade.load("resources/haarcascades/haarcascade_frontalface_alt.xml")) {
+    if (_faceCascade.empty() && !_faceCascade.load("resources/haarcascades/haarcascade_frontalface_alt.xml")) {
         printLog("Failed to load Haar cascade for face tracking.\n");
         return false;
     }

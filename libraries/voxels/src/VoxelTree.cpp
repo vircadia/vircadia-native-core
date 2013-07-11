@@ -596,7 +596,7 @@ void VoxelTree::readCodeColorBufferToTreeRecursion(VoxelNode* node, void* extraD
 
 void VoxelTree::processRemoveVoxelBitstream(unsigned char * bitstream, int bufferSizeBytes) {
     //unsigned short int itemNumber = (*((unsigned short int*)&bitstream[sizeof(PACKET_HEADER)]));
-    int atByte = sizeof(short int) + sizeof(PACKET_HEADER);
+    int atByte = sizeof(short int) + numBytesForPacketHeader(bitstream);
     unsigned char* voxelCode = (unsigned char*)&bitstream[atByte];
     while (atByte < bufferSizeBytes) {
         int codeLength = numberOfThreeBitSectionsInCode(voxelCode);
@@ -1169,7 +1169,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
     // caller can pass NULL as viewFrustum if they want everything
     if (params.viewFrustum) {
         float distance = node->distanceToCamera(*params.viewFrustum);
-        float boundaryDistance = boundaryDistanceForRenderLevel(*node->getOctalCode() + 1);
+        float boundaryDistance = boundaryDistanceForRenderLevel(node->getLevel() + params.boundaryLevelAdjust);
 
         // If we're too far away for our render level, then just return
         if (distance >= boundaryDistance) {
@@ -1182,7 +1182,26 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
         if (!node->isInView(*params.viewFrustum)) {
             return bytesAtThisLevel;
         }
+        
+        // Ok, we are in view, but if we're in delta mode, then we also want to make sure we weren't already in view
+        // because we don't send nodes from the previously know in view frustum.
+        bool wasInView = false;
+        
+        if (params.deltaViewFrustum && params.lastViewFrustum) {
+            ViewFrustum::location location = node->inFrustum(*params.lastViewFrustum);
+            
+            // If we're a leaf, then either intersect or inside is considered "formerly in view"
+            if (node->isLeaf()) {
+                wasInView = location != ViewFrustum::OUTSIDE;
+            } else {
+                wasInView = location == ViewFrustum::INSIDE;
+            }
+        }
 
+        // If we were in view, then bail out early!        
+        if (wasInView) {
+            return bytesAtThisLevel;
+        }            
 
         // If the user also asked for occlusion culling, check if this node is occluded, but only if it's not a leaf.
         // leaf occlusion is handled down below when we check child nodes
@@ -1200,16 +1219,9 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
                 CoverageMapStorageResult result = params.map->checkMap(voxelPolygon, false);
                 delete voxelPolygon; // cleanup
                 if (result == OCCLUDED) {
-                    //node->printDebugDetails("upper section, non-Leaf is occluded!! node=");
-                    //args->nonLeavesOccluded++;
-
-                    //args->subtreeVoxelsSkipped += (subArgs.voxelsTouched - 1);
-                    //args->totalVoxels += (subArgs.voxelsTouched - 1);
-
                     return bytesAtThisLevel;
                 }
             } else {
-                //node->printDebugDetails("upper section, shadow Not in view node=");
                 // If this shadow wasn't "all in view" then we ignored it for occlusion culling, but
                 // we do need to clean up memory and proceed as normal...
                 delete voxelPolygon;
@@ -1285,7 +1297,8 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
         if (childIsInView) {
             // Before we determine consider this further, let's see if it's in our LOD scope...
             float distance = distancesToChildren[i]; // params.viewFrustum ? childNode->distanceToCamera(*params.viewFrustum) : 0;
-            float boundaryDistance = params.viewFrustum ? boundaryDistanceForRenderLevel(*childNode->getOctalCode() + 1) : 1;
+            float boundaryDistance = !params.viewFrustum ? 1 :
+                                     boundaryDistanceForRenderLevel(childNode->getLevel() + params.boundaryLevelAdjust);
 
             if (distance < boundaryDistance) {
                 inViewCount++;
@@ -1341,7 +1354,8 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
                 if (params.viewFrustum && childNode->isColored() && !childNode->isLeaf()) {
                     int grandChildrenInView = 0;
                     int grandChildrenInLOD = 0;
-                    float grandChildBoundaryDistance = boundaryDistanceForRenderLevel(childNode->getLevel() + 2);
+                    float grandChildBoundaryDistance = boundaryDistanceForRenderLevel(childNode->getLevel() + 
+                                                                                      1 + params.boundaryLevelAdjust);
                     for (int grandChildIndex = 0; grandChildIndex < NUMBER_OF_CHILDREN; grandChildIndex++) {
                         VoxelNode* grandChild = childNode->getChildAtIndex(grandChildIndex);
                         

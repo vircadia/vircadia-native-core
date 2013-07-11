@@ -31,7 +31,7 @@ const short NO_READ_MAXIMUM_MSECS = 3000;
 const int GRAVITY_SAMPLES = 60;                     //  Use the first few samples to baseline values
 const int NORTH_SAMPLES = 30;
 const int ACCELERATION_SENSOR_FUSION_SAMPLES = 20;
-const int COMPASS_SENSOR_FUSION_SAMPLES = 200;
+const int COMPASS_SENSOR_FUSION_SAMPLES = 100;
 const int LONG_TERM_RATE_SAMPLES = 1000;            
 
 const bool USING_INVENSENSE_MPU9150 = 1;
@@ -383,7 +383,7 @@ void SerialInterface::resetSerial() {
 glm::vec3 SerialInterface::recenterCompass(const glm::vec3& compass) {
     // compensate for "hard iron" distortion by subtracting the midpoint on each axis; see
     // http://www.sensorsmag.com/sensors/motion-velocity-displacement/compensating-tilt-hard-iron-and-soft-iron-effects-6475
-    return compass - (_compassMinima + _compassMaxima) * 0.5f;
+    return (compass - (_compassMinima + _compassMaxima) * 0.5f) / (_compassMaxima - _compassMinima);
 }
 
 
