@@ -514,6 +514,20 @@ void runTimingTests() {
     printLog("vector math usecs: %f [%f msecs total for %d tests]\n", 
              1000.0f * elapsedMsecs / (float) numTests, elapsedMsecs, numTests);
     
+    //  Vec3 test
+    glm::vec3 vecA(randVector()), vecB(randVector());
+    float result;
+    
+    gettimeofday(&startTime, NULL);
+    for (int i = 1; i < numTests; i++) {
+        glm::vec3 temp = vecA-vecB;
+        result = glm::dot(temp,temp);
+    }
+    gettimeofday(&endTime, NULL);
+    elapsedMsecs = diffclock(&startTime, &endTime);
+    printLog("vec3 assign and dot() usecs: %f\n", 1000.0f * elapsedMsecs / (float) numTests);
+
+    
 }
 
 float loadSetting(QSettings* settings, const char* name, float defaultValue) {
