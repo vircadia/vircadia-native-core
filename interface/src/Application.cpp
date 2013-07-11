@@ -2016,6 +2016,17 @@ void Application::updateAvatar(float deltaTime) {
         _headMouseY = max(_headMouseY, 0);
         _headMouseY = min(_headMouseY, _glWidget->height());
 
+        // Set lookAtPosition if an avatar is at the center of the screen
+
+        glm::vec3 screenCenterRayOrigin, screenCenterRayDirection;
+        _viewFrustum.computePickRay(0.5, 0.5, screenCenterRayOrigin, screenCenterRayDirection);
+
+        glm::vec3 eyePosition;
+        if (isLookingAtOtherAvatar(screenCenterRayOrigin, screenCenterRayDirection, eyePosition)) {
+            glm::vec3 myLookAtFromMouse(eyePosition);
+            _myAvatar.getHead().setLookAtPosition(myLookAtFromMouse);
+        }
+
     }
 
     if (OculusManager::isConnected()) {
