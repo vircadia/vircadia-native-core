@@ -89,8 +89,8 @@ void NodeList::timePingReply(sockaddr *nodeAddress, unsigned char *packetData) {
     }
 }
 
-void NodeList::processNodeData(sockaddr *senderAddress, unsigned char *packetData, size_t dataBytes) {
-    switch (((char *)packetData)[0]) {
+void NodeList::processNodeData(sockaddr* senderAddress, unsigned char* packetData, size_t dataBytes) {
+    switch (packetData[0]) {
         case PACKET_TYPE_DOMAIN: {
             processDomainServerList(packetData, dataBytes);
             break;
@@ -238,13 +238,15 @@ void NodeList::sendDomainServerCheckIn() {
     // construct the DS check in packet if we need to
     static unsigned char* checkInPacket = NULL;
     static int checkInPacketSize;
+    
+    const int IP_ADDRESS_BYTES = 4;
 
     if (!checkInPacket) {
         int numBytesNodesOfInterest = _nodeTypesOfInterest ? strlen((char*) _nodeTypesOfInterest) : 0;
         
         // check in packet has header, node type, port, IP, node types of interest, null termination
         int numPacketBytes = sizeof(PACKET_TYPE) + sizeof(PACKET_VERSION) + sizeof(NODE_TYPE) + sizeof(uint16_t) +
-            (sizeof(char) * 4) + numBytesNodesOfInterest + sizeof(unsigned char);
+            IP_ADDRESS_BYTES + numBytesNodesOfInterest + sizeof(unsigned char);
         
         checkInPacket = new unsigned char[numPacketBytes];
         unsigned char* packetPosition = checkInPacket;
