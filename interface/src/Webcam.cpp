@@ -32,8 +32,8 @@ int rotatedRectMetaType = qRegisterMetaType<RotatedRect>("cv::RotatedRect");
 
 Webcam::Webcam() : _enabled(false), _active(false), _frameTextureID(0), _depthTextureID(0) {
     // the grabber simply runs as fast as possible
-    //_grabber = new FrameGrabber();
-    //_grabber->moveToThread(&_grabberThread);
+    _grabber = new FrameGrabber();
+    _grabber->moveToThread(&_grabberThread);
 }
 
 void Webcam::setEnabled(bool enabled) {
@@ -41,8 +41,6 @@ void Webcam::setEnabled(bool enabled) {
         return;
     }
     if ((_enabled = enabled)) {
-        _grabber = new FrameGrabber();
-        _grabber->moveToThread(&_grabberThread);
         _grabberThread.start();
         _startTimestamp = 0;
         _frameCount = 0;
@@ -52,9 +50,8 @@ void Webcam::setEnabled(bool enabled) {
         QMetaObject::invokeMethod(_grabber, "grabFrame");
     
     } else {
-        _grabber->deleteLater();
+        QMetaObject::invokeMethod(_grabber, "shutdown");
         _grabberThread.quit();
-        _grabber = 0;
         _active = false;
     }
 }
@@ -273,10 +270,7 @@ FrameGrabber::FrameGrabber() : _initialized(false), _capture(0), _searchWindow(0
 }
 
 FrameGrabber::~FrameGrabber() {
-    if (_capture != 0) {
-        qDebug() << "Releasing.";
-        cvReleaseCapture(&_capture);
-    }
+    shutdown();
 }
 
 #ifdef HAVE_OPENNI
@@ -373,6 +367,14 @@ void FrameGrabber::reset() {
 #endif
 }
 
+void FrameGrabber::shutdown() {
+    if (_capture != 0) {
+        cvReleaseCapture(&_capture);
+        _capture = 0;
+    }
+    _initialized = false;
+}
+
 void FrameGrabber::grabFrame() {
     if (!(_initialized || init())) {
         return;
@@ -427,6 +429,10 @@ void FrameGrabber::grabFrame() {
 #endif
 
     if (frame.empty()) {
+        if (_capture == 0) {
+            // reinitialize
+            
+        }
         IplImage* image = cvQueryFrame(_capture);
         if (image == 0) {
             // try again later
@@ -482,7 +488,7 @@ bool FrameGrabber::init() {
 
     // load our face cascade
     switchToResourcesParentIfRequired();
-    if (!_faceCascade.load("resources/haarcascades/haarcascade_frontalface_alt.xml")) {
+    if (_faceCascade.empty() && !_faceCascade.load("resources/haarcascades/haarcascade_frontalface_alt.xml")) {
         printLog("Failed to load Haar cascade for face tracking.\n");
         return false;
     }
