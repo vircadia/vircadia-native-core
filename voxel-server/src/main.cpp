@@ -32,7 +32,7 @@
 
 const char* LOCAL_VOXELS_PERSIST_FILE = "resources/voxels.svo";
 const char* VOXELS_PERSIST_FILE = "/etc/highfidelity/voxel-server/resources/voxels.svo";
-const long long VOXEL_PERSIST_INTERVAL = 1000 * 30; // every 30 seconds
+const int VOXEL_PERSIST_INTERVAL = 1000 * 30; // every 30 seconds
 
 const int VOXEL_LISTEN_PORT = 40106;
 
@@ -110,8 +110,6 @@ void eraseVoxelTreeAndCleanupNodeVisitData() {
     }
 }
 
-
-
 pthread_mutex_t treeLock;
 
 // Version of voxel distributor that sends the deepest LOD level at once
@@ -124,7 +122,7 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
     pthread_mutex_lock(&::treeLock);
 
     int maxLevelReached = 0;
-    long long start = usecTimestampNow();
+    uint64_t start = usecTimestampNow();
 
     // FOR NOW... node tells us if it wants to receive only view frustum deltas
     bool wantDelta = viewFrustumChanged && nodeData->getWantDelta();
@@ -143,7 +141,7 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
         if (::debugVoxelSending) {
             printf("(viewFrustumChanged=%s || nodeData->nodeBag.isEmpty() =%s)...\n",
                    debug::valueOf(viewFrustumChanged), debug::valueOf(nodeData->nodeBag.isEmpty()));
-            long long now = usecTimestampNow();
+            uint64_t now = usecTimestampNow();
             if (nodeData->getLastTimeBagEmpty() > 0) {
                 float elapsedSceneSend = (now - nodeData->getLastTimeBagEmpty()) / 1000000.0f;
                 if (viewFrustumChanged) {
@@ -180,7 +178,7 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
             nodeData->nodeBag.insert(serverTree.rootNode);
         }
     }
-    long long end = usecTimestampNow();
+    uint64_t end = usecTimestampNow();
     int elapsedmsec = (end - start)/1000;
     if (elapsedmsec > 100) {
         if (elapsedmsec > 1000) {
@@ -203,12 +201,12 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
         int packetsSentThisInterval = 0;
         int truePacketsSent = 0;
         int trueBytesSent = 0;
-        long long start = usecTimestampNow();
+        uint64_t start = usecTimestampNow();
 
         bool shouldSendEnvironments = shouldDo(ENVIRONMENT_SEND_INTERVAL_USECS, VOXEL_SEND_INTERVAL_USECS);
         while (packetsSentThisInterval < PACKETS_PER_CLIENT_PER_INTERVAL - (shouldSendEnvironments ? 1 : 0)) {        
             // Check to see if we're taking too long, and if so bail early...
-            long long now = usecTimestampNow();
+            uint64_t now = usecTimestampNow();
             long elapsedUsec = (now - start);
             long elapsedUsecPerPacket = (truePacketsSent == 0) ? 0 : (elapsedUsec / truePacketsSent);
             long usecRemaining = (VOXEL_SEND_INTERVAL_USECS - elapsedUsec);
@@ -273,7 +271,7 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
             truePacketsSent++;
         }
         
-        long long end = usecTimestampNow();
+        uint64_t end = usecTimestampNow();
         int elapsedmsec = (end - start)/1000;
         if (elapsedmsec > 100) {
             if (elapsedmsec > 1000) {
@@ -305,10 +303,10 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
     pthread_mutex_unlock(&::treeLock);
 }
 
-long long lastPersistVoxels = 0;
+uint64_t lastPersistVoxels = 0;
 void persistVoxelsWhenDirty() {
-    long long now = usecTimestampNow();
-    long long sinceLastTime = (now - ::lastPersistVoxels) / 1000;
+    uint64_t now = usecTimestampNow();
+    int sinceLastTime = (now - ::lastPersistVoxels) / 1000;
 
     // check the dirty bit and persist here...
     if (::wantVoxelPersist && ::serverTree.isDirty() && sinceLastTime > VOXEL_PERSIST_INTERVAL) {
@@ -348,7 +346,7 @@ void *distributeVoxelsToListeners(void *args) {
         }
         
         // dynamically sleep until we need to fire off the next set of voxels
-        long long usecToSleep =  VOXEL_SEND_INTERVAL_USECS - (usecTimestampNow() - usecTimestamp(&lastSendTime));
+        int usecToSleep =  VOXEL_SEND_INTERVAL_USECS - (usecTimestampNow() - usecTimestamp(&lastSendTime));
         
         if (usecToSleep > 0) {
             usleep(usecToSleep);
