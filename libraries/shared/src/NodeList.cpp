@@ -81,7 +81,7 @@ void NodeList::timePingReply(sockaddr *nodeAddress, unsigned char *packetData) {
         if (socketMatch(node->getPublicSocket(), nodeAddress) || 
             socketMatch(node->getLocalSocket(), nodeAddress)) {     
 
-            int pingTime = usecTimestampNow() - *(uint64_t *)(packetData + numBytesForPacketHeader(packetData));
+            int pingTime = usecTimestampNow() - *(uint64_t*)(packetData + numBytesForPacketHeader(packetData));
             
             node->setPingMs(pingTime / 1000);
             break;
