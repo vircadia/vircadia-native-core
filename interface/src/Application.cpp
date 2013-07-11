@@ -1738,9 +1738,7 @@ bool Application::isLookingAtOtherAvatar(glm::vec3 &mouseRayOrigin, glm::vec3 &m
         if (node->getLinkedData() != NULL && node->getType() == NODE_TYPE_AGENT) {
             Avatar *avatar = (Avatar *)node->getLinkedData();
             glm::vec3 headPosition = avatar->getHead().getPosition();
-            printf("x: %f   y: %f   z: %f \n", mouseRayOrigin.x, mouseRayOrigin.y, mouseRayOrigin.z);
             if (rayIntersectsSphere(mouseRayOrigin, mouseRayDirection, headPosition, 0.07)) {
-                printf("lalala\n");
                 eyePosition = avatar->getHead().getEyeLevelPosition();
                 return true;
             }
