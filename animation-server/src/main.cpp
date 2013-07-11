@@ -646,7 +646,7 @@ void* animateVoxels(void* args) {
         }
         
         uint64_t end = usecTimestampNow();
-        int elapsedSeconds = (end - ::start) / 1000000;
+        uint64_t elapsedSeconds = (end - ::start) / 1000000;
         if (::shouldShowPacketsPerSecond) {
             printf("packetsSent=%ld, bytesSent=%ld pps=%f bps=%f\n",packetsSent,bytesSent,
                 (float)(packetsSent/elapsedSeconds),(float)(bytesSent/elapsedSeconds));

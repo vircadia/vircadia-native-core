@@ -177,7 +177,7 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
         return; // bail early, it hasn't been long enough since the last time we ran
     }
 
-    int sinceLastViewCulling = (start - _lastViewCulling) / 1000;
+    uint64_t sinceLastViewCulling = (start - _lastViewCulling) / 1000;
     // If the view frustum is no longer changing, but has changed, since last time, then remove nodes that are out of view
     if ((sinceLastViewCulling >= std::max((float) _lastViewCullingElapsed, VIEW_CULLING_RATE_IN_MILLISECONDS))
             && !isViewChanging() && hasViewChanged()) {
