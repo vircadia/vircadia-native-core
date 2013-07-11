@@ -177,7 +177,7 @@ int main(int argc, const char * argv[])
             // send the constructed list back to this node
             nodeList->getNodeSocket()->send(destinationSocket,
                                             broadcastPacket,
-                                            (currentBufferPos - startPointer) + 1);
+                                            (currentBufferPos - startPointer) + numHeaderBytes);
         }
         
         if (Logstash::shouldSendStats()) {
