@@ -170,16 +170,16 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
 void VoxelSystem::setupNewVoxelsForDrawing() {
     PerformanceWarning warn(_renderWarningsOn, "setupNewVoxelsForDrawing()"); // would like to include _voxelsInArrays, _voxelsUpdated
     uint64_t start = usecTimestampNow();
-    int sinceLastTime = (start - _setupNewVoxelsForDrawingLastFinished) / 1000;
+    uint64_t sinceLastTime = (start - _setupNewVoxelsForDrawingLastFinished) / 1000;
 
     bool iAmDebugging = false;  // if you're debugging set this to true, so you won't get skipped for slow debugging
-    if (!iAmDebugging && sinceLastTime <= std::max(_setupNewVoxelsForDrawingLastElapsed, SIXTY_FPS_IN_MILLISECONDS)) {
+    if (!iAmDebugging && sinceLastTime <= std::max((float) _setupNewVoxelsForDrawingLastElapsed, SIXTY_FPS_IN_MILLISECONDS)) {
         return; // bail early, it hasn't been long enough since the last time we ran
     }
 
-    int sinceLastViewCulling = (start - _lastViewCulling) / 1000;
+    uint64_t sinceLastViewCulling = (start - _lastViewCulling) / 1000;
     // If the view frustum is no longer changing, but has changed, since last time, then remove nodes that are out of view
-    if ((sinceLastViewCulling >= std::max(_lastViewCullingElapsed, VIEW_CULLING_RATE_IN_MILLISECONDS)) 
+    if ((sinceLastViewCulling >= std::max((float) _lastViewCullingElapsed, VIEW_CULLING_RATE_IN_MILLISECONDS))
             && !isViewChanging() && hasViewChanged()) {
         _lastViewCulling = start;
 

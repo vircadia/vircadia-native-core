@@ -160,10 +160,10 @@ private:
     bool _writeRenderFullVBO;
     bool _readRenderFullVBO;
     
-    double _setupNewVoxelsForDrawingLastElapsed;
-    double _setupNewVoxelsForDrawingLastFinished;
-    double _lastViewCulling;
-    double _lastViewCullingElapsed;
+    int _setupNewVoxelsForDrawingLastElapsed;
+    uint64_t _setupNewVoxelsForDrawingLastFinished;
+    uint64_t _lastViewCulling;
+    int _lastViewCullingElapsed;
     
     GLuint _vboVerticesID;
     GLuint _vboNormalsID;
