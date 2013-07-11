@@ -1169,7 +1169,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
     // caller can pass NULL as viewFrustum if they want everything
     if (params.viewFrustum) {
         float distance = node->distanceToCamera(*params.viewFrustum);
-        float boundaryDistance = boundaryDistanceForRenderLevel(*node->getOctalCode() + 1);
+        float boundaryDistance = boundaryDistanceForRenderLevel(node->getLevel() + params.boundaryLevelAdjust);
 
         // If we're too far away for our render level, then just return
         if (distance >= boundaryDistance) {
@@ -1297,7 +1297,8 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
         if (childIsInView) {
             // Before we determine consider this further, let's see if it's in our LOD scope...
             float distance = distancesToChildren[i]; // params.viewFrustum ? childNode->distanceToCamera(*params.viewFrustum) : 0;
-            float boundaryDistance = params.viewFrustum ? boundaryDistanceForRenderLevel(*childNode->getOctalCode() + 1) : 1;
+            float boundaryDistance = !params.viewFrustum ? 1 :
+                                     boundaryDistanceForRenderLevel(childNode->getLevel() + params.boundaryLevelAdjust);
 
             if (distance < boundaryDistance) {
                 inViewCount++;
@@ -1353,7 +1354,8 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
                 if (params.viewFrustum && childNode->isColored() && !childNode->isLeaf()) {
                     int grandChildrenInView = 0;
                     int grandChildrenInLOD = 0;
-                    float grandChildBoundaryDistance = boundaryDistanceForRenderLevel(childNode->getLevel() + 2);
+                    float grandChildBoundaryDistance = boundaryDistanceForRenderLevel(childNode->getLevel() + 
+                                                                                      1 + params.boundaryLevelAdjust);
                     for (int grandChildIndex = 0; grandChildIndex < NUMBER_OF_CHILDREN; grandChildIndex++) {
                         VoxelNode* grandChild = childNode->getChildAtIndex(grandChildIndex);
                         

@@ -33,6 +33,8 @@ typedef enum {GRADIENT, RANDOM, NATURAL} creationMode;
 #define WANT_OCCLUSION_CULLING true
 #define IGNORE_COVERAGE_MAP    NULL
 #define DONT_CHOP              0
+#define NO_BOUNDARY_ADJUST     0
+#define LOW_RES_MOVING_ADJUST  1
 
 class EncodeBitstreamParams {
 public:
@@ -46,6 +48,7 @@ public:
     const ViewFrustum*  lastViewFrustum;
     bool                wantOcclusionCulling;
     long                childWasInViewDiscarded;
+    int                 boundaryLevelAdjust;
 
     CoverageMap*        map;
     
@@ -58,18 +61,20 @@ public:
         bool                deltaViewFrustum    = false, 
         const ViewFrustum*  lastViewFrustum     = IGNORE_VIEW_FRUSTUM,
         bool                wantOcclusionCulling= NO_OCCLUSION_CULLING,
-        CoverageMap*        map                 = IGNORE_COVERAGE_MAP) :
-            maxEncodeLevel      (maxEncodeLevel),
-            maxLevelReached     (0),
-            viewFrustum         (viewFrustum),
-            includeColor        (includeColor),
-            includeExistsBits   (includeExistsBits),
-            chopLevels          (chopLevels),
-            deltaViewFrustum    (deltaViewFrustum),
-            lastViewFrustum     (lastViewFrustum),
-            wantOcclusionCulling(wantOcclusionCulling),
-            childWasInViewDiscarded(0),
-            map                 (map)
+        CoverageMap*        map                 = IGNORE_COVERAGE_MAP,
+        int                 boundaryLevelAdjust = NO_BOUNDARY_ADJUST) :
+            maxEncodeLevel          (maxEncodeLevel),
+            maxLevelReached         (0),
+            viewFrustum             (viewFrustum),
+            includeColor            (includeColor),
+            includeExistsBits       (includeExistsBits),
+            chopLevels              (chopLevels),
+            deltaViewFrustum        (deltaViewFrustum),
+            lastViewFrustum         (lastViewFrustum),
+            wantOcclusionCulling    (wantOcclusionCulling),
+            childWasInViewDiscarded (0),
+            boundaryLevelAdjust     (boundaryLevelAdjust),
+            map                     (map)
     {}
 };
 

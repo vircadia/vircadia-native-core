@@ -262,10 +262,12 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
                 VoxelNode* subTree = nodeData->nodeBag.extract();
                 bool wantOcclusionCulling = nodeData->getWantOcclusionCulling();
                 CoverageMap* coverageMap = wantOcclusionCulling ? &nodeData->map : IGNORE_COVERAGE_MAP;
+                int boundaryLevelAdjust = viewFrustumChanged && nodeData->getWantLowResMoving() 
+                                          ? LOW_RES_MOVING_ADJUST : NO_BOUNDARY_ADJUST;
                 
                 EncodeBitstreamParams params(INT_MAX, &nodeData->getCurrentViewFrustum(), wantColor, 
                                              WANT_EXISTS_BITS, DONT_CHOP, wantDelta, lastViewFrustum,
-                                             wantOcclusionCulling, coverageMap);
+                                             wantOcclusionCulling, coverageMap, boundaryLevelAdjust);
 
                 bytesWritten = serverTree.encodeTreeBitstream(subTree, &tempOutputBuffer[0], MAX_VOXEL_PACKET_SIZE - 1,
                                                               nodeData->nodeBag, params);
