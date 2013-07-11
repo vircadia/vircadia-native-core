@@ -1284,6 +1284,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
                 if (params.viewFrustum && childNode->isColored() && !childNode->isLeaf()) {
                     int grandChildrenInView = 0;
                     int grandChildrenInLOD = 0;
+                    float grandChildBoundaryDistance = boundaryDistanceForRenderLevel(childNode->getLevel() + 2);
                     for (int grandChildIndex = 0; grandChildIndex < NUMBER_OF_CHILDREN; grandChildIndex++) {
                         VoxelNode* grandChild = childNode->getChildAtIndex(grandChildIndex);
                         
@@ -1291,7 +1292,6 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
                             grandChildrenInView++;
                         
                             float grandChildDistance = grandChild->distanceToCamera(*params.viewFrustum);
-                            float grandChildBoundaryDistance = boundaryDistanceForRenderLevel(grandChild->getLevel() + 1);
                             if (grandChildDistance < grandChildBoundaryDistance) {
                                 grandChildrenInLOD++;
                             }
