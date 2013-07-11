@@ -53,8 +53,8 @@ public:
     glm::quat getOrientation() const;
     glm::quat getCameraOrientation () const;
     
-    glm::vec3 getPosition()       const { return _position; }
-    glm::vec3 getEyeLevelPosition() const { return _eyeLevelPosition; }
+    glm::vec3 getPosition() const { return _position; }
+    const glm::vec3& getEyeLevelPosition() const { return _eyeLevelPosition; }
     glm::vec3 getRightDirection() const { return getOrientation() * IDENTITY_RIGHT; }
     glm::vec3 getUpDirection   () const { return getOrientation() * IDENTITY_UP;    }
     glm::vec3 getFrontDirection() const { return getOrientation() * IDENTITY_FRONT; }

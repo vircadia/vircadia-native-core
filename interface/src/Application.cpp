@@ -1734,14 +1734,15 @@ void Application::init() {
 
 const float MAX_AVATAR_EDIT_VELOCITY = 1.0f;
 const float MAX_VOXEL_EDIT_DISTANCE = 20.0f;
+const float HEAD_SPHERE_RADIUS = 0.07;
 
-bool Application::isLookingAtOtherAvatar(glm::vec3 &mouseRayOrigin, glm::vec3 &mouseRayDirection, glm::vec3 &eyePosition) {
+bool Application::isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection, glm::vec3& eyePosition) {
     NodeList* nodeList = NodeList::getInstance();
     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
         if (node->getLinkedData() != NULL && node->getType() == NODE_TYPE_AGENT) {
-            Avatar *avatar = (Avatar *)node->getLinkedData();
+            Avatar* avatar = (Avatar *) node->getLinkedData();
             glm::vec3 headPosition = avatar->getHead().getPosition();
-            if (rayIntersectsSphere(mouseRayOrigin, mouseRayDirection, headPosition, 0.07)) {
+            if (rayIntersectsSphere(mouseRayOrigin, mouseRayDirection, headPosition, HEAD_SPHERE_RADIUS)) {
                 eyePosition = avatar->getHead().getEyeLevelPosition();
                 return true;
             }
