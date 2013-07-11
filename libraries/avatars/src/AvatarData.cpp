@@ -32,7 +32,6 @@ AvatarData::AvatarData(Node* owningNode) :
     _cameraNearClip(0.0f),
     _cameraFarClip(0.0f),
     _keyState(NO_KEY_DOWN),
-    _wantResIn(false),
     _wantColor(true),
     _wantDelta(false),
     _wantOcclusionCulling(true),
@@ -113,7 +112,6 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     
     // bitMask of less than byte wide items
     unsigned char bitItems = 0;
-    if (_wantResIn) { setAtBit(bitItems, WANT_RESIN_AT_BIT); }
     if (_wantColor) { setAtBit(bitItems, WANT_COLOR_AT_BIT); }
     if (_wantDelta) { setAtBit(bitItems, WANT_DELTA_AT_BIT); }
     if (_wantOcclusionCulling) { setAtBit(bitItems, WANT_OCCLUSION_CULLING_BIT); }
@@ -240,7 +238,6 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     // voxel sending features...
     unsigned char bitItems = 0;
     bitItems = (unsigned char)*sourceBuffer++;
-    _wantResIn = oneAtBit(bitItems, WANT_RESIN_AT_BIT);
     _wantColor = oneAtBit(bitItems, WANT_COLOR_AT_BIT);
     _wantDelta = oneAtBit(bitItems, WANT_DELTA_AT_BIT);
     _wantOcclusionCulling = oneAtBit(bitItems, WANT_OCCLUSION_CULLING_BIT);

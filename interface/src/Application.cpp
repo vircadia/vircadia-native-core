@@ -1235,10 +1235,6 @@ void Application::setWantsMonochrome(bool wantsMonochrome) {
     _myAvatar.setWantColor(!wantsMonochrome);
 }
 
-void Application::setWantsResIn(bool wantsResIn) {
-    _myAvatar.setWantResIn(wantsResIn);
-}
-
 void Application::setWantsDelta(bool wantsDelta) {
     _myAvatar.setWantDelta(wantsDelta);
 }
@@ -1629,7 +1625,6 @@ void Application::initMenu() {
     renderDebugMenu->addAction("FALSE Color Occluded V2 Voxels", this, SLOT(doFalseColorizeOccludedV2()), Qt::CTRL | Qt::Key_P);
     renderDebugMenu->addAction("Show TRUE Colors", this, SLOT(doTrueVoxelColors()), Qt::CTRL | Qt::Key_T);
 
-    debugMenu->addAction("Wants Res-In", this, SLOT(setWantsResIn(bool)))->setCheckable(true);
     debugMenu->addAction("Wants Monochrome", this, SLOT(setWantsMonochrome(bool)))->setCheckable(true);
     debugMenu->addAction("Wants View Delta Sending", this, SLOT(setWantsDelta(bool)))->setCheckable(true);
     (_shouldLowPassFilter = debugMenu->addAction("Test: LowPass filter"))->setCheckable(true);

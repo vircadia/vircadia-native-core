@@ -98,7 +98,6 @@ void VoxelTree::recurseTreeWithOperationDistanceSortedTimed(PointerStack* stackO
             for (int i = currentCount-1; i >= 0; i--) {
                 VoxelNode* child = sortedChildren[i];
                 stackOfNodes->push(child);
-//printLog("stackOfNodes->size()=%d child->getLevel()=%d\n",stackOfNodes->size(), child->getLevel());
             }
         }
 
