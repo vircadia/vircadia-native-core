@@ -33,7 +33,7 @@ AvatarData::AvatarData(Node* owningNode) :
     _cameraFarClip(0.0f),
     _keyState(NO_KEY_DOWN),
     _wantColor(true),
-    _wantDelta(false),
+    _wantDelta(true),
     _wantOcclusionCulling(true),
     _headData(NULL),
     _handData(NULL)

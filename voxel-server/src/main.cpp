@@ -151,7 +151,9 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
                 } else {
                     printf("elapsed time to send scene = %f seconds", elapsedSceneSend);
                 }
-                printf(" [occlusionCulling: %s]\n", debug::valueOf(nodeData->getWantOcclusionCulling()));
+                printf(" [occlusionCulling:%s, wantDelta:%s, wantColor:%s ]\n", 
+                       debug::valueOf(nodeData->getWantOcclusionCulling()), debug::valueOf(wantDelta), 
+                       debug::valueOf(wantColor));
             }
             nodeData->setLastTimeBagEmpty(now);
         }
