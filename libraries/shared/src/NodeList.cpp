@@ -63,7 +63,10 @@ NodeList::NodeList(char newOwnerType, unsigned int newSocketListenPort) :
     _ownerType(newOwnerType),
     _nodeTypesOfInterest(NULL),
     _ownerID(UNKNOWN_NODE_ID),
-    _lastNodeID(0) {
+    _lastNodeID(0),
+    _printedDomainServerIP(false),
+    _checkInPacket(NULL),
+    _checkInPacketSize(0) {
     pthread_mutex_init(&mutex, 0);
 }
 
@@ -218,7 +221,6 @@ void NodeList::setNodeTypesOfInterest(const char* nodeTypesOfInterest, int numNo
 }
 
 void NodeList::sendDomainServerCheckIn() {
-    static bool printedDomainServerIP = false;
     //  Lookup the IP address of the domain server if we need to
     if (atoi(DOMAIN_IP) == 0) {
         struct hostent* pHostInfo;
@@ -230,26 +232,23 @@ void NodeList::sendDomainServerCheckIn() {
         } else {
             printLog("Failed domain server lookup\n");
         }
-    } else if (!printedDomainServerIP) {
+    } else if (!_printedDomainServerIP) {
         printLog("Domain Server IP: %s\n", DOMAIN_IP);
-        printedDomainServerIP = true;
+        _printedDomainServerIP = true;
     }
     
-    // construct the DS check in packet if we need to
-    static unsigned char* checkInPacket = NULL;
-    static int checkInPacketSize;
-    
-    const int IP_ADDRESS_BYTES = 4;
-
-    if (!checkInPacket) {
+    // construct the DS check in packet if we need to    
+    if (!_checkInPacket) {
         int numBytesNodesOfInterest = _nodeTypesOfInterest ? strlen((char*) _nodeTypesOfInterest) : 0;
+        
+        const int IP_ADDRESS_BYTES = 4;
         
         // check in packet has header, node type, port, IP, node types of interest, null termination
         int numPacketBytes = sizeof(PACKET_TYPE) + sizeof(PACKET_VERSION) + sizeof(NODE_TYPE) + sizeof(uint16_t) +
             IP_ADDRESS_BYTES + numBytesNodesOfInterest + sizeof(unsigned char);
         
-        checkInPacket = new unsigned char[numPacketBytes];
-        unsigned char* packetPosition = checkInPacket;
+        _checkInPacket = new unsigned char[numPacketBytes];
+        unsigned char* packetPosition = _checkInPacket;
         
         PACKET_TYPE nodePacketType = (memchr(SOLO_NODE_TYPES, _ownerType, sizeof(SOLO_NODE_TYPES)))
             ? PACKET_TYPE_DOMAIN_REPORT_FOR_DUTY
@@ -260,7 +259,7 @@ void NodeList::sendDomainServerCheckIn() {
         
         *(packetPosition++) = _ownerType;
         
-        packetPosition += packSocket(checkInPacket + numHeaderBytes + sizeof(NODE_TYPE),
+        packetPosition += packSocket(_checkInPacket + numHeaderBytes + sizeof(NODE_TYPE),
                                      getLocalAddress(),
                                      htons(_nodeSocket.getListeningPort()));
         
@@ -275,10 +274,10 @@ void NodeList::sendDomainServerCheckIn() {
             packetPosition += numBytesNodesOfInterest;
         }
         
-        checkInPacketSize = packetPosition - checkInPacket;
+        _checkInPacketSize = packetPosition - _checkInPacket;
     }
     
-    _nodeSocket.send(DOMAIN_IP, DOMAINSERVER_PORT, checkInPacket, checkInPacketSize);
+    _nodeSocket.send(DOMAIN_IP, DOMAINSERVER_PORT, _checkInPacket, _checkInPacketSize);
 }
 
 int NodeList::processDomainServerList(unsigned char* packetData, size_t dataBytes) {
