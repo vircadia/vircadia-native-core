@@ -251,7 +251,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
 
     // start the nodeList threads
     NodeList::getInstance()->startSilentNodeRemovalThread();
-    NodeList::getInstance()->startPingUnknownNodesThread();
     
     _window->setCentralWidget(_glWidget);
     
@@ -906,12 +905,13 @@ void Application::wheelEvent(QWheelEvent* event) {
 void Application::sendPingPackets() {
 
     char nodeTypesOfInterest[] = {NODE_TYPE_VOXEL_SERVER, NODE_TYPE_AUDIO_MIXER, NODE_TYPE_AVATAR_MIXER};
+
     uint64_t currentTime = usecTimestampNow();
-    unsigned char pingPacket[1 + sizeof(currentTime)];
-    pingPacket[0] = PACKET_HEADER_PING;
+    unsigned char pingPacket[numBytesForPacketHeader((unsigned char*) &PACKET_TYPE_PING) + sizeof(currentTime)];
+    int numHeaderBytes = populateTypeAndVersion(pingPacket, PACKET_TYPE_PING);
     
     memcpy(&pingPacket[1], &currentTime, sizeof(currentTime));
-    getInstance()->controlledBroadcastToNodes(pingPacket, 1 + sizeof(currentTime), 
+    getInstance()->controlledBroadcastToNodes(pingPacket, numHeaderBytes + sizeof(currentTime),
                                               nodeTypesOfInterest, sizeof(nodeTypesOfInterest));
 }
 
@@ -1020,7 +1020,11 @@ void Application::sendAvatarVoxelURLMessage(const QUrl& url) {
         return; // we don't yet know who we are
     }
     QByteArray message;
-    message.append(PACKET_HEADER_AVATAR_VOXEL_URL);
+    
+    char packetHeader[MAX_PACKET_HEADER_BYTES];
+    int numBytesPacketHeader = populateTypeAndVersion((unsigned char*) packetHeader, PACKET_TYPE_AVATAR_VOXEL_URL);
+
+    message.append(packetHeader, numBytesPacketHeader);
     message.append((const char*)&ownerID, sizeof(ownerID));
     message.append(url.toEncoded());
 
@@ -1029,8 +1033,9 @@ void Application::sendAvatarVoxelURLMessage(const QUrl& url) {
 
 void Application::processAvatarVoxelURLMessage(unsigned char *packetData, size_t dataBytes) {
     // skip the header
-    packetData++;
-    dataBytes--;
+    int numBytesPacketHeader = numBytesForPacketHeader(packetData);
+    packetData += numBytesPacketHeader;
+    dataBytes -= numBytesPacketHeader;
     
     // read the node id
     uint16_t nodeID = *(uint16_t*)packetData;
@@ -1252,11 +1257,11 @@ void Application::updateVoxelModeActions() {
     } 
 }
 
-void Application::sendVoxelEditMessage(PACKET_HEADER header, VoxelDetail& detail) {
+void Application::sendVoxelEditMessage(PACKET_TYPE type, VoxelDetail& detail) {
     unsigned char* bufferOut;
     int sizeOut;
 
-    if (createVoxelEditMessage(header, 0, 1, &detail, bufferOut, sizeOut)){
+    if (createVoxelEditMessage(type, 0, 1, &detail, bufferOut, sizeOut)){
         Application::controlledBroadcastToNodes(bufferOut, sizeOut, & NODE_TYPE_VOXEL_SERVER, 1);
         delete[] bufferOut;
     }
@@ -1343,7 +1348,8 @@ bool Application::sendVoxelsOperation(VoxelNode* node, void* extraData) {
         // if we have room don't have room in the buffer, then send the previously generated message first
         if (args->bufferInUse + codeAndColorLength > MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE) {
             controlledBroadcastToNodes(args->messageBuffer, args->bufferInUse, & NODE_TYPE_VOXEL_SERVER, 1);
-            args->bufferInUse = sizeof(PACKET_HEADER_SET_VOXEL_DESTRUCTIVE) + sizeof(unsigned short int); // reset
+            args->bufferInUse = numBytesForPacketHeader((unsigned char*) &PACKET_TYPE_SET_VOXEL_DESTRUCTIVE)
+                + sizeof(unsigned short int); // reset
         }
         
         // copy this node's code color details into our buffer.
@@ -1410,10 +1416,12 @@ void Application::importVoxels() {
     // the server as an set voxel message, this will also rebase the voxels to the new location
     unsigned char* calculatedOctCode = NULL;
     SendVoxelsOperationArgs args;
-    args.messageBuffer[0] = PACKET_HEADER_SET_VOXEL_DESTRUCTIVE;
-    unsigned short int* sequenceAt = (unsigned short int*)&args.messageBuffer[sizeof(PACKET_HEADER_SET_VOXEL_DESTRUCTIVE)];
+    
+    int numBytesPacketHeader = populateTypeAndVersion(args.messageBuffer, PACKET_TYPE_SET_VOXEL_DESTRUCTIVE);
+    
+    unsigned short int* sequenceAt = (unsigned short int*)&args.messageBuffer[numBytesPacketHeader];
     *sequenceAt = 0;
-    args.bufferInUse = sizeof(PACKET_HEADER_SET_VOXEL_DESTRUCTIVE) + sizeof(unsigned short int); // set to command + sequence
+    args.bufferInUse = numBytesPacketHeader + sizeof(unsigned short int); // set to command + sequence
 
     // we only need the selected voxel to get the newBaseOctCode, which we can actually calculate from the
     // voxel size/position details.
@@ -1426,7 +1434,7 @@ void Application::importVoxels() {
     importVoxels.recurseTreeWithOperation(sendVoxelsOperation, &args);
 
     // If we have voxels left in the packet, then send the packet
-    if (args.bufferInUse > (sizeof(PACKET_HEADER_SET_VOXEL_DESTRUCTIVE) + sizeof(unsigned short int))) {
+    if (args.bufferInUse > (numBytesPacketHeader + sizeof(unsigned short int))) {
         controlledBroadcastToNodes(args.messageBuffer, args.bufferInUse, & NODE_TYPE_VOXEL_SERVER, 1);
     }
     
@@ -1461,10 +1469,12 @@ void Application::pasteVoxels() {
     // Recurse the clipboard tree, where everything is root relative, and send all the colored voxels to 
     // the server as an set voxel message, this will also rebase the voxels to the new location
     SendVoxelsOperationArgs args;
-    args.messageBuffer[0] = PACKET_HEADER_SET_VOXEL_DESTRUCTIVE;
-    unsigned short int* sequenceAt = (unsigned short int*)&args.messageBuffer[sizeof(PACKET_HEADER_SET_VOXEL_DESTRUCTIVE)];
+    
+    int numBytesPacketHeader = populateTypeAndVersion(args.messageBuffer, PACKET_TYPE_SET_VOXEL_DESTRUCTIVE);
+    
+    unsigned short int* sequenceAt = (unsigned short int*)&args.messageBuffer[numBytesPacketHeader];
     *sequenceAt = 0;
-    args.bufferInUse = sizeof(PACKET_HEADER_SET_VOXEL_DESTRUCTIVE) + sizeof(unsigned short int); // set to command + sequence
+    args.bufferInUse = numBytesPacketHeader + sizeof(unsigned short int); // set to command + sequence
 
     // we only need the selected voxel to get the newBaseOctCode, which we can actually calculate from the
     // voxel size/position details. If we don't have an actual selectedNode then use the mouseVoxel to create a 
@@ -1478,7 +1488,7 @@ void Application::pasteVoxels() {
     _clipboardTree.recurseTreeWithOperation(sendVoxelsOperation, &args);
     
     // If we have voxels left in the packet, then send the packet
-    if (args.bufferInUse > (sizeof(PACKET_HEADER_SET_VOXEL_DESTRUCTIVE) + sizeof(unsigned short int))) {
+    if (args.bufferInUse > (numBytesPacketHeader + sizeof(unsigned short int))) {
         controlledBroadcastToNodes(args.messageBuffer, args.bufferInUse, & NODE_TYPE_VOXEL_SERVER, 1);
     }
     
@@ -2069,7 +2079,8 @@ void Application::updateAvatar(float deltaTime) {
         unsigned char broadcastString[200];
         unsigned char* endOfBroadcastStringWrite = broadcastString;
         
-        *(endOfBroadcastStringWrite++) = PACKET_HEADER_HEAD_DATA;
+        endOfBroadcastStringWrite += populateTypeAndVersion(endOfBroadcastStringWrite, PACKET_TYPE_HEAD_DATA);
+        
         endOfBroadcastStringWrite += packNodeId(endOfBroadcastStringWrite, nodeList->getOwnerID());
         
         endOfBroadcastStringWrite += _myAvatar.getBroadcastData(endOfBroadcastStringWrite);
@@ -2099,8 +2110,8 @@ void Application::updateAvatar(float deltaTime) {
             _paintingVoxel.y >= 0.0 && _paintingVoxel.y <= 1.0 &&
             _paintingVoxel.z >= 0.0 && _paintingVoxel.z <= 1.0) {
 
-            PACKET_HEADER message = (_destructiveAddVoxel->isChecked() ?
-                PACKET_HEADER_SET_VOXEL_DESTRUCTIVE : PACKET_HEADER_SET_VOXEL);
+            PACKET_TYPE message = (_destructiveAddVoxel->isChecked() ?
+                PACKET_TYPE_SET_VOXEL_DESTRUCTIVE : PACKET_TYPE_SET_VOXEL);
             sendVoxelEditMessage(message, _paintingVoxel);
         }
     }
@@ -2982,8 +2993,8 @@ void Application::shiftPaintingColor() {
 void Application::maybeEditVoxelUnderCursor() {
     if (_addVoxelMode->isChecked() || _colorVoxelMode->isChecked()) {
         if (_mouseVoxel.s != 0) {
-            PACKET_HEADER message = (_destructiveAddVoxel->isChecked() ?
-                PACKET_HEADER_SET_VOXEL_DESTRUCTIVE : PACKET_HEADER_SET_VOXEL);
+            PACKET_TYPE message = (_destructiveAddVoxel->isChecked() ?
+                PACKET_TYPE_SET_VOXEL_DESTRUCTIVE : PACKET_TYPE_SET_VOXEL);
             sendVoxelEditMessage(message, _mouseVoxel);
             
             // create the voxel locally so it appears immediately
@@ -3056,7 +3067,7 @@ void Application::maybeEditVoxelUnderCursor() {
 void Application::deleteVoxelUnderCursor() {
     if (_mouseVoxel.s != 0) {
         // sending delete to the server is sufficient, server will send new version so we see updates soon enough
-        sendVoxelEditMessage(PACKET_HEADER_ERASE_VOXEL, _mouseVoxel);
+        sendVoxelEditMessage(PACKET_TYPE_ERASE_VOXEL, _mouseVoxel);
         AudioInjector* voxelInjector = AudioInjectionManager::injectorWithCapacity(5000);
         voxelInjector->setPosition(glm::vec3(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z));
 //        voxelInjector->setBearing(0); //straight down the z axis
@@ -3166,36 +3177,39 @@ void* Application::networkReceive(void* args) {
             app->_packetCount++;
             app->_bytesCount += bytesReceived;
             
-            switch (app->_incomingPacket[0]) {
-                case PACKET_HEADER_TRANSMITTER_DATA_V2:
-                    //  V2 = IOS transmitter app 
-                    app->_myTransmitter.processIncomingData(app->_incomingPacket, bytesReceived);
-                    
-                    break;
-                case PACKET_HEADER_MIXED_AUDIO:
-                    app->_audio.addReceivedAudioToBuffer(app->_incomingPacket, bytesReceived);
-                    break;
-                case PACKET_HEADER_VOXEL_DATA:
-                case PACKET_HEADER_VOXEL_DATA_MONOCHROME:
-                case PACKET_HEADER_Z_COMMAND:
-                case PACKET_HEADER_ERASE_VOXEL:
-                    app->_voxels.parseData(app->_incomingPacket, bytesReceived);
-                    break;
-                case PACKET_HEADER_ENVIRONMENT_DATA:
-                    app->_environment.parseData(&senderAddress, app->_incomingPacket, bytesReceived);
-                    break;
-                case PACKET_HEADER_BULK_AVATAR_DATA:
-                    NodeList::getInstance()->processBulkNodeData(&senderAddress,
-                                                                   app->_incomingPacket,
-                                                                   bytesReceived);
-                    getInstance()->_bandwidthMeter.inputStream(BandwidthMeter::AVATARS).updateValue(bytesReceived);
-                    break;
-                case PACKET_HEADER_AVATAR_VOXEL_URL:
-                    processAvatarVoxelURLMessage(app->_incomingPacket, bytesReceived);
-                    break;
-                default:
-                    NodeList::getInstance()->processNodeData(&senderAddress, app->_incomingPacket, bytesReceived);
-                    break;
+            if (packetVersionMatch(app->_incomingPacket)) {
+                // only process this packet if we have a match on the packet version
+                switch (app->_incomingPacket[0]) {
+                    case PACKET_TYPE_TRANSMITTER_DATA_V2:
+                        //  V2 = IOS transmitter app
+                        app->_myTransmitter.processIncomingData(app->_incomingPacket, bytesReceived);
+                        
+                        break;
+                    case PACKET_TYPE_MIXED_AUDIO:
+                        app->_audio.addReceivedAudioToBuffer(app->_incomingPacket, bytesReceived);
+                        break;
+                    case PACKET_TYPE_VOXEL_DATA:
+                    case PACKET_TYPE_VOXEL_DATA_MONOCHROME:
+                    case PACKET_TYPE_Z_COMMAND:
+                    case PACKET_TYPE_ERASE_VOXEL:
+                        app->_voxels.parseData(app->_incomingPacket, bytesReceived);
+                        break;
+                    case PACKET_TYPE_ENVIRONMENT_DATA:
+                        app->_environment.parseData(&senderAddress, app->_incomingPacket, bytesReceived);
+                        break;
+                    case PACKET_TYPE_BULK_AVATAR_DATA:
+                        NodeList::getInstance()->processBulkNodeData(&senderAddress,
+                                                                     app->_incomingPacket,
+                                                                     bytesReceived);
+                        getInstance()->_bandwidthMeter.inputStream(BandwidthMeter::AVATARS).updateValue(bytesReceived);
+                        break;
+                    case PACKET_TYPE_AVATAR_VOXEL_URL:
+                        processAvatarVoxelURLMessage(app->_incomingPacket, bytesReceived);
+                        break;
+                    default:
+                        NodeList::getInstance()->processNodeData(&senderAddress, app->_incomingPacket, bytesReceived);
+                        break;
+                }
             }
         } else if (!app->_enableNetworkThread) {
             break;
