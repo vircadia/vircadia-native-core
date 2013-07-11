@@ -537,3 +537,13 @@ float loadSetting(QSettings* settings, const char* name, float defaultValue) {
     }
     return value;
 }
+
+bool rayIntersectsSphere(glm::vec3& rayStarting, glm::vec3& rayNormalizedDirection, glm::vec3& sphereCenter, double sphereRadius) {
+    glm::vec3 vecFromRayToSphereCenter = sphereCenter - rayStarting;
+    double projection = glm::dot(vecFromRayToSphereCenter, rayNormalizedDirection);
+    double shortestDistance = sqrt(glm::dot(vecFromRayToSphereCenter, vecFromRayToSphereCenter) - projection * projection);
+    if (shortestDistance <= sphereRadius) {
+        return true;
+    }
+    return false;
+}
