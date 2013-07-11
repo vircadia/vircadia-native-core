@@ -53,7 +53,6 @@ public:
     uint64_t  getLastTimeBagEmpty() const                      { return _lastTimeBagEmpty; };
     void      setLastTimeBagEmpty(uint64_t lastTimeBagEmpty)  { _lastTimeBagEmpty = lastTimeBagEmpty; };
 
-
 private:
     VoxelNodeData(const VoxelNodeData &);
     VoxelNodeData& operator= (const VoxelNodeData&);

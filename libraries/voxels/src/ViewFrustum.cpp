@@ -12,10 +12,14 @@
 
 #include <glm/gtx/transform.hpp>
 
-#include "ViewFrustum.h"
-#include "VoxelConstants.h"
 #include "SharedUtil.h"
 #include "Log.h"
+
+#include "CoverageMap.h"
+#include "GeometryUtil.h"
+#include "ViewFrustum.h"
+#include "VoxelConstants.h"
+
 
 using namespace std;
 
@@ -262,6 +266,7 @@ ViewFrustum::location ViewFrustum::sphereInFrustum(const glm::vec3& center, floa
 
 
 ViewFrustum::location ViewFrustum::boxInFrustum(const AABox& box) const {
+
     ViewFrustum::location regularResult = INSIDE;
     ViewFrustum::location keyholeResult = OUTSIDE;
 
@@ -274,11 +279,11 @@ ViewFrustum::location ViewFrustum::boxInFrustum(const AABox& box) const {
     }
 
     for(int i=0; i < 6; i++) {
-        glm::vec3 normal = _planes[i].getNormal();
-        glm::vec3 boxVertexP = box.getVertexP(normal);
+        const glm::vec3& normal = _planes[i].getNormal();
+        const glm::vec3& boxVertexP = box.getVertexP(normal);
         float planeToBoxVertexPDistance = _planes[i].distance(boxVertexP);
 
-        glm::vec3 boxVertexN = box.getVertexN(normal);
+        const glm::vec3& boxVertexN = box.getVertexN(normal);
         float planeToBoxVertexNDistance = _planes[i].distance(boxVertexN);
         
         if (planeToBoxVertexPDistance < 0) {
@@ -451,16 +456,22 @@ glm::vec2 ViewFrustum::projectPoint(glm::vec3 point, bool& pointInView) const {
 
 const int MAX_POSSIBLE_COMBINATIONS = 43;
 
-const int hullVertexLookup[MAX_POSSIBLE_COMBINATIONS][MAX_SHADOW_VERTEX_COUNT+1] = {
+const int hullVertexLookup[MAX_POSSIBLE_COMBINATIONS][MAX_PROJECTED_POLYGON_VERTEX_COUNT+1] = {
     // Number of vertices in shadow polygon for the visible faces, then a list of the index of each vertice from the AABox
+
+//0
     {0}, // inside
     {4, BOTTOM_RIGHT_NEAR, BOTTOM_RIGHT_FAR, TOP_RIGHT_FAR, TOP_RIGHT_NEAR}, // right
-    {4, BOTTOM_LEFT_NEAR,  BOTTOM_LEFT_FAR,  TOP_LEFT_FAR,  TOP_LEFT_NEAR},  // left 
+    {4, BOTTOM_LEFT_FAR, BOTTOM_LEFT_NEAR,  TOP_LEFT_NEAR, TOP_LEFT_FAR  },  // left 
     {0}, // n/a
-    {4, BOTTOM_RIGHT_NEAR, BOTTOM_RIGHT_FAR, BOTTOM_LEFT_FAR, BOTTOM_LEFT_NEAR}, // bottom
-    {6, BOTTOM_RIGHT_NEAR, TOP_RIGHT_NEAR, TOP_RIGHT_FAR, BOTTOM_RIGHT_FAR, BOTTOM_LEFT_FAR, BOTTOM_LEFT_NEAR},//bottom, right
-    {6, BOTTOM_RIGHT_NEAR, BOTTOM_RIGHT_FAR, BOTTOM_LEFT_FAR, TOP_LEFT_FAR, TOP_LEFT_NEAR, BOTTOM_LEFT_NEAR},//bottom, left
+
+//4
+    {4, BOTTOM_RIGHT_NEAR, BOTTOM_LEFT_NEAR, BOTTOM_LEFT_FAR, BOTTOM_RIGHT_FAR}, // bottom
+//5
+    {6, BOTTOM_RIGHT_NEAR, BOTTOM_LEFT_NEAR, BOTTOM_LEFT_FAR, BOTTOM_RIGHT_FAR, TOP_RIGHT_FAR, TOP_RIGHT_NEAR },//bottom, right
+    {6, BOTTOM_RIGHT_NEAR, BOTTOM_LEFT_NEAR, TOP_LEFT_NEAR, TOP_LEFT_FAR, BOTTOM_LEFT_FAR, BOTTOM_RIGHT_FAR, },//bottom, left
     {0}, // n/a
+//8
     {4, TOP_RIGHT_NEAR, TOP_RIGHT_FAR, TOP_LEFT_FAR, TOP_LEFT_NEAR},         // top
     {6, TOP_RIGHT_NEAR, BOTTOM_RIGHT_NEAR, BOTTOM_RIGHT_FAR, TOP_RIGHT_FAR, TOP_LEFT_FAR, TOP_LEFT_NEAR},   // top, right
     {6, TOP_RIGHT_NEAR, TOP_RIGHT_FAR, TOP_LEFT_FAR, BOTTOM_LEFT_FAR, BOTTOM_LEFT_NEAR, TOP_LEFT_NEAR},   // top, left
@@ -469,32 +480,52 @@ const int hullVertexLookup[MAX_POSSIBLE_COMBINATIONS][MAX_SHADOW_VERTEX_COUNT+1]
     {0}, // n/a
     {0}, // n/a
     {0}, // n/a
-    {4, BOTTOM_RIGHT_NEAR, TOP_RIGHT_NEAR, TOP_LEFT_NEAR, BOTTOM_LEFT_NEAR}, // front or near
-    {6, BOTTOM_RIGHT_NEAR, BOTTOM_RIGHT_FAR, TOP_RIGHT_FAR, TOP_RIGHT_NEAR, TOP_LEFT_NEAR, BOTTOM_LEFT_NEAR}, // front, right
-    {6, BOTTOM_RIGHT_NEAR, TOP_RIGHT_NEAR, TOP_LEFT_NEAR, TOP_LEFT_FAR, BOTTOM_LEFT_FAR, BOTTOM_LEFT_NEAR}, // front, left
+//16
+    {4, BOTTOM_LEFT_NEAR, BOTTOM_RIGHT_NEAR, TOP_RIGHT_NEAR, TOP_LEFT_NEAR }, // front or near
+
+    {6, BOTTOM_LEFT_NEAR, BOTTOM_RIGHT_NEAR, BOTTOM_RIGHT_FAR, TOP_RIGHT_FAR, TOP_RIGHT_NEAR, TOP_LEFT_NEAR }, // front, right
+    {6, BOTTOM_LEFT_FAR, BOTTOM_LEFT_NEAR, BOTTOM_RIGHT_NEAR, TOP_RIGHT_NEAR, TOP_LEFT_NEAR, TOP_LEFT_FAR, }, // front, left
     {0}, // n/a
-    {6, BOTTOM_RIGHT_NEAR, BOTTOM_RIGHT_FAR, BOTTOM_LEFT_FAR, BOTTOM_LEFT_NEAR, TOP_LEFT_NEAR, TOP_RIGHT_NEAR}, // front,bottom
-    {6, BOTTOM_LEFT_NEAR, TOP_LEFT_NEAR, TOP_RIGHT_NEAR, TOP_RIGHT_FAR, BOTTOM_RIGHT_FAR, BOTTOM_LEFT_FAR}, //front,bottom,right
-    {6, BOTTOM_RIGHT_NEAR, BOTTOM_RIGHT_FAR, BOTTOM_LEFT_FAR, TOP_LEFT_FAR, TOP_LEFT_NEAR, TOP_RIGHT_NEAR}, //front,bottom,left
+//20
+    {6, BOTTOM_LEFT_NEAR, BOTTOM_LEFT_FAR, BOTTOM_RIGHT_FAR, BOTTOM_RIGHT_NEAR, TOP_RIGHT_NEAR, TOP_LEFT_NEAR }, // front,bottom
+
+//21
+    {6, BOTTOM_LEFT_NEAR, BOTTOM_LEFT_FAR, BOTTOM_RIGHT_FAR, TOP_RIGHT_FAR, TOP_RIGHT_NEAR, TOP_LEFT_NEAR }, //front,bottom,right
+//22
+    {6, BOTTOM_LEFT_FAR, BOTTOM_RIGHT_FAR, BOTTOM_RIGHT_NEAR, TOP_RIGHT_NEAR, TOP_LEFT_NEAR, TOP_LEFT_FAR  }, //front,bottom,left
     {0}, // n/a
-    {6, BOTTOM_RIGHT_NEAR, TOP_RIGHT_NEAR, TOP_RIGHT_FAR, TOP_LEFT_FAR, TOP_LEFT_NEAR, BOTTOM_LEFT_NEAR}, // front, top
-    {6, BOTTOM_RIGHT_NEAR, BOTTOM_RIGHT_FAR, TOP_RIGHT_FAR, TOP_LEFT_FAR, TOP_LEFT_NEAR, BOTTOM_LEFT_NEAR}, // front, top, right
-    {6, BOTTOM_RIGHT_NEAR, TOP_RIGHT_NEAR, TOP_RIGHT_FAR, TOP_LEFT_FAR, BOTTOM_LEFT_FAR, BOTTOM_LEFT_NEAR}, // front, top, left
+
+    {6, BOTTOM_LEFT_NEAR, BOTTOM_RIGHT_NEAR, TOP_RIGHT_NEAR, TOP_RIGHT_FAR, TOP_LEFT_FAR, TOP_LEFT_NEAR}, // front, top
+
+    {6, BOTTOM_LEFT_NEAR, BOTTOM_RIGHT_NEAR, BOTTOM_RIGHT_FAR, TOP_RIGHT_FAR, TOP_LEFT_FAR, TOP_LEFT_NEAR }, // front, top, right
+
+    {6, BOTTOM_LEFT_FAR, BOTTOM_LEFT_NEAR, BOTTOM_RIGHT_NEAR, TOP_RIGHT_NEAR, TOP_RIGHT_FAR, TOP_LEFT_FAR }, // front, top, left
     {0}, // n/a
     {0}, // n/a
     {0}, // n/a
     {0}, // n/a
     {0}, // n/a
-    {4, BOTTOM_RIGHT_FAR, TOP_RIGHT_FAR, TOP_LEFT_FAR, BOTTOM_LEFT_FAR}, // back
-    {6, BOTTOM_RIGHT_NEAR, TOP_RIGHT_NEAR, TOP_RIGHT_FAR, TOP_LEFT_FAR, BOTTOM_LEFT_FAR, BOTTOM_RIGHT_FAR}, // back, right
-    {6, BOTTOM_RIGHT_FAR, TOP_RIGHT_FAR, TOP_LEFT_FAR, TOP_LEFT_NEAR, BOTTOM_LEFT_NEAR, BOTTOM_LEFT_FAR}, // back, left
+//32
+    {4, BOTTOM_RIGHT_FAR, BOTTOM_LEFT_FAR, TOP_LEFT_FAR, TOP_RIGHT_FAR }, // back
+    {6, BOTTOM_RIGHT_NEAR, BOTTOM_RIGHT_FAR, BOTTOM_LEFT_FAR, TOP_LEFT_FAR, TOP_RIGHT_FAR, TOP_RIGHT_NEAR}, // back, right
+//34
+    {6, BOTTOM_RIGHT_FAR, BOTTOM_LEFT_FAR, BOTTOM_LEFT_NEAR, TOP_LEFT_NEAR, TOP_LEFT_FAR, TOP_RIGHT_FAR }, // back, left
+    
+    
     {0}, // n/a
-    {6, BOTTOM_RIGHT_NEAR, BOTTOM_RIGHT_FAR, TOP_RIGHT_FAR, TOP_LEFT_FAR, BOTTOM_LEFT_FAR, BOTTOM_LEFT_NEAR}, // back, bottom
-    {6, BOTTOM_RIGHT_NEAR, TOP_RIGHT_NEAR, TOP_RIGHT_FAR, TOP_LEFT_FAR, BOTTOM_LEFT_FAR, BOTTOM_LEFT_NEAR},//back, bottom, right
-    {6, BOTTOM_RIGHT_NEAR, BOTTOM_RIGHT_FAR, TOP_RIGHT_FAR, TOP_LEFT_FAR, TOP_LEFT_NEAR, BOTTOM_LEFT_NEAR},//back, bottom, left
+//36
+    {6, BOTTOM_RIGHT_NEAR, BOTTOM_LEFT_NEAR, BOTTOM_LEFT_FAR, TOP_LEFT_FAR, TOP_RIGHT_FAR, BOTTOM_RIGHT_FAR}, // back, bottom
+    {6, BOTTOM_RIGHT_NEAR, BOTTOM_LEFT_NEAR, BOTTOM_LEFT_FAR, TOP_LEFT_FAR, TOP_RIGHT_FAR, TOP_RIGHT_NEAR},//back, bottom, right
+
+// 38
+    {6, BOTTOM_RIGHT_NEAR, BOTTOM_LEFT_NEAR, TOP_LEFT_NEAR, TOP_LEFT_FAR, TOP_RIGHT_FAR, BOTTOM_RIGHT_FAR },//back, bottom, left
     {0}, // n/a
-    {6, BOTTOM_RIGHT_FAR, TOP_RIGHT_FAR, TOP_RIGHT_NEAR, TOP_LEFT_NEAR, TOP_LEFT_FAR, BOTTOM_LEFT_FAR}, // back, top
+
+// 40
+    {6, BOTTOM_RIGHT_FAR, BOTTOM_LEFT_FAR, TOP_LEFT_FAR, TOP_LEFT_NEAR, TOP_RIGHT_NEAR, TOP_RIGHT_FAR}, // back, top
+    
     {6, BOTTOM_RIGHT_NEAR, BOTTOM_RIGHT_FAR, BOTTOM_LEFT_FAR, TOP_LEFT_FAR, TOP_LEFT_NEAR, TOP_RIGHT_NEAR}, // back, top, right
+//42
     {6, TOP_RIGHT_NEAR, TOP_RIGHT_FAR, BOTTOM_RIGHT_FAR, BOTTOM_LEFT_FAR, BOTTOM_LEFT_NEAR, TOP_LEFT_NEAR}, // back, top, left
 };
 
@@ -508,9 +539,11 @@ VoxelProjectedPolygon ViewFrustum::getProjectedPolygon(const AABox& box) const {
                + ((_position.z < bottomNearRight.z) << 4)   // 16 = front/near |  the 6 defining
                + ((_position.z > topFarLeft.z     ) << 5);  // 32 = back/far   |          planes
 
-    int vertexCount = hullVertexLookup[lookUp][0];  //look up number of vertices
+    //printLog(">>>>>>>>> ViewFrustum::getProjectedPolygon() lookup=%d\n",lookUp);
 
-    VoxelProjectedPolygon shadow(vertexCount);
+    int vertexCount = hullVertexLookup[lookUp][0];  //look up number of vertices
+    
+    VoxelProjectedPolygon projectedPolygon(vertexCount);
     
     bool pointInView = true;
     bool allPointsInView = false; // assume the best, but wait till we know we have a vertex
@@ -523,13 +556,40 @@ VoxelProjectedPolygon ViewFrustum::getProjectedPolygon(const AABox& box) const {
             glm::vec2 projectedPoint = projectPoint(point, pointInView);
             allPointsInView = allPointsInView && pointInView;
             anyPointsInView = anyPointsInView || pointInView;
-            shadow.setVertex(i, projectedPoint);
+            projectedPolygon.setVertex(i, projectedPoint);
         }
+        
+        /***
+        // Now that we've got the polygon, if it extends beyond the clipping window, then let's clip it
+        // NOTE: This clipping does not improve our overall performance. It basically causes more polygons to
+        // end up in the same quad/half and so the polygon lists get longer, and that's more calls to polygon.occludes()
+        if ( (projectedPolygon.getMaxX() > PolygonClip::RIGHT_OF_CLIPPING_WINDOW ) ||
+             (projectedPolygon.getMaxY() > PolygonClip::TOP_OF_CLIPPING_WINDOW   ) ||
+             (projectedPolygon.getMaxX() < PolygonClip::LEFT_OF_CLIPPING_WINDOW  ) ||
+             (projectedPolygon.getMaxY() < PolygonClip::BOTTOM_OF_CLIPPING_WINDOW) ) {
+             
+            CoverageRegion::_clippedPolygons++;
+             
+            glm::vec2* clippedVertices;
+            int        clippedVertexCount;
+            PolygonClip::clipToScreen(projectedPolygon.getVertices(), vertexCount, clippedVertices, clippedVertexCount);
+            
+            // Now reset the vertices of our projectedPolygon object
+            projectedPolygon.setVertexCount(clippedVertexCount);
+            for(int i = 0; i < clippedVertexCount; i++) {
+                projectedPolygon.setVertex(i, clippedVertices[i]);
+            }
+            delete[] clippedVertices;
+            
+            lookUp += PROJECTION_CLIPPED;
+        }
+        ***/
     }
     // set the distance from our camera position, to the closest vertex
     float distance = glm::distance(getPosition(), box.getCenter());
-    shadow.setDistance(distance);
-    shadow.setAnyInView(anyPointsInView);
-    shadow.setAllInView(allPointsInView);
-    return shadow;
+    projectedPolygon.setDistance(distance);
+    projectedPolygon.setAnyInView(anyPointsInView);
+    projectedPolygon.setAllInView(allPointsInView);
+    projectedPolygon.setProjectionType(lookUp); // remember the projection type
+    return projectedPolygon;
 }

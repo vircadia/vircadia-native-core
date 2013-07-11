@@ -440,3 +440,25 @@ int insertIntoSortedArrays(void* value, float key, int originalIndex,
     return -1; // error case
 }
 
+int removeFromSortedArrays(void* value, void** valueArray, float* keyArray, int* originalIndexArray, 
+                           int currentCount, int maxCount) {
+
+    int i = 0;
+    if (currentCount > 0) {
+        while (i < currentCount && value != valueArray[i]) {
+            i++;
+        }
+        
+        if (value == valueArray[i] && i < currentCount) {
+            // i is the location of the item we were looking for
+            // shift array elements to the left
+            memmove(&valueArray[i], &valueArray[i + 1], sizeof(void*) * ((currentCount-1) - i));
+            memmove(&keyArray[i], &keyArray[i + 1], sizeof(float) * ((currentCount-1) - i));
+            if (originalIndexArray) {
+                memmove(&originalIndexArray[i], &originalIndexArray[i + 1], sizeof(int) * ((currentCount-1) - i));
+            }
+            return currentCount-1;
+        }
+    }
+    return -1; // error case
+}

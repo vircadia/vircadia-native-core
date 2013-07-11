@@ -251,7 +251,7 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
     uint64_t start = usecTimestampNow();
 
     // FOR NOW... node tells us if it wants to receive only view frustum deltas
-    bool wantDelta = nodeData->getWantDelta();
+    bool wantDelta = viewFrustumChanged && nodeData->getWantDelta();
     const ViewFrustum* lastViewFrustum =  wantDelta ? &nodeData->getLastKnownViewFrustum() : NULL;
 
     if (::debugVoxelSending) {
@@ -270,7 +270,6 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
             uint64_t now = usecTimestampNow();
             if (nodeData->getLastTimeBagEmpty() > 0) {
                 float elapsedSceneSend = (now - nodeData->getLastTimeBagEmpty()) / 1000000.0f;
-                
                 if (viewFrustumChanged) {
                     printf("viewFrustumChanged resetting after elapsed time to send scene = %f seconds", elapsedSceneSend);
                 } else {
@@ -304,7 +303,6 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
         } else {
             nodeData->nodeBag.insert(serverTree.rootNode);
         }
-
     }
     uint64_t end = usecTimestampNow();
     int elapsedmsec = (end - start)/1000;
@@ -350,7 +348,6 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
             
             if (!nodeData->nodeBag.isEmpty()) {
                 VoxelNode* subTree = nodeData->nodeBag.extract();
-
                 bool wantOcclusionCulling = nodeData->getWantOcclusionCulling();
                 CoverageMap* coverageMap = wantOcclusionCulling ? &nodeData->map : IGNORE_COVERAGE_MAP;
                 
@@ -360,12 +357,16 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
 
                 bytesWritten = serverTree.encodeTreeBitstream(subTree, &tempOutputBuffer[0], MAX_VOXEL_PACKET_SIZE - 1,
                                                               nodeData->nodeBag, params);
+
+                if (::debugVoxelSending && wantDelta) {
+                    printf("encodeTreeBitstream() childWasInViewDiscarded=%ld\n", params.childWasInViewDiscarded);
+                }
                 
                 if (nodeData->getAvailable() >= bytesWritten) {
                     nodeData->writeToPacket(&tempOutputBuffer[0], bytesWritten);
                 } else {
                     nodeList->getNodeSocket()->send(node->getActiveSocket(),
-                                                     nodeData->getPacket(), nodeData->getPacketLength());
+                                                    nodeData->getPacket(), nodeData->getPacketLength());
                     trueBytesSent += nodeData->getPacketLength();
                     truePacketsSent++;
                     packetsSentThisInterval++;
@@ -375,7 +376,7 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
             } else {
                 if (nodeData->isPacketWaiting()) {
                     nodeList->getNodeSocket()->send(node->getActiveSocket(),
-                                                     nodeData->getPacket(), nodeData->getPacketLength());
+                                                    nodeData->getPacket(), nodeData->getPacketLength());
                     trueBytesSent += nodeData->getPacketLength();
                     truePacketsSent++;
                     nodeData->resetVoxelPacket();
@@ -417,6 +418,9 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
         if (nodeData->nodeBag.isEmpty()) {
             nodeData->updateLastKnownViewFrustum();
             nodeData->setViewSent(true);
+            if (::debugVoxelSending) {
+                nodeData->map.printStats();
+            }
             nodeData->map.erase(); // It would be nice if we could save this, and only reset it when the view frustum changes
         }
         
@@ -463,12 +467,7 @@ void *distributeVoxelsToListeners(void *args) {
                 if (::debugVoxelSending) {
                     printf("nodeData->updateCurrentViewFrustum() changed=%s\n", debug::valueOf(viewFrustumChanged));
                 }
-
-                if (nodeData->getWantResIn()) { 
-                    resInVoxelDistributor(nodeList, node, nodeData);
-                } else {
-                    deepestLevelVoxelDistributor(nodeList, node, nodeData, viewFrustumChanged);
-                }
+                deepestLevelVoxelDistributor(nodeList, node, nodeData, viewFrustumChanged);
             }
         }
         
@@ -755,3 +754,5 @@ int main(int argc, const char * argv[]) {
 
     return 0;
 }
+
+
