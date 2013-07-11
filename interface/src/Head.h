@@ -35,7 +35,7 @@ public:
     void init();
     void reset();
     void simulate(float deltaTime, bool isMine);
-    void render(bool lookingInMirror, float alpha);
+    void render(float alpha);
     void renderMohawk();
 
     void setScale          (float     scale             ) { _scale              = scale;              }
@@ -102,7 +102,6 @@ private:
     float       _audioAttack;
     float       _returnSpringScale; //strength of return springs
     glm::vec3   _bodyRotation;
-    bool        _lookingInMirror;
     bool        _renderLookatVectors;
     HairTuft    _hairTuft[NUM_HAIR_TUFTS];
     glm::vec3*  _mohawkTriangleFan;
