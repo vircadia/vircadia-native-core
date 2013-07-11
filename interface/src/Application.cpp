@@ -2610,10 +2610,6 @@ void Application::displayStats() {
         }
         delete []perfStatLinesArray; // we're responsible for cleanup
     }
-
-
-    
-
 }
 
 void Application::renderThrustAtVoxel(const glm::vec3& thrust) {
@@ -2626,8 +2622,8 @@ void Application::renderThrustAtVoxel(const glm::vec3& thrust) {
         glVertex3f(voxelTouched.x + thrust.x, voxelTouched.y + thrust.y, voxelTouched.z + thrust.z);
         glEnd();
     }
-    
 }
+
 void Application::renderLineToTouchedVoxel() {
     //  Draw a teal line to the voxel I am currently dragging on
     if (_mousePressed) {
