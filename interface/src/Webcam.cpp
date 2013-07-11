@@ -51,7 +51,6 @@ void Webcam::setEnabled(bool enabled) {
     
     } else {
         QMetaObject::invokeMethod(_grabber, "shutdown");
-        _grabberThread.quit();
         _active = false;
     }
 }
@@ -146,9 +145,7 @@ Webcam::~Webcam() {
     _grabberThread.quit();
     _grabberThread.wait();
     
-    if (_grabber != 0) {
-        delete _grabber;
-    }
+    delete _grabber;
 }
 
 void Webcam::setFrame(const Mat& frame, int format, const Mat& depth, const RotatedRect& faceRect, const JointVector& joints) {
@@ -270,7 +267,9 @@ FrameGrabber::FrameGrabber() : _initialized(false), _capture(0), _searchWindow(0
 }
 
 FrameGrabber::~FrameGrabber() {
-    shutdown();
+    if (_initialized) {
+        shutdown();
+    }
 }
 
 #ifdef HAVE_OPENNI
@@ -373,6 +372,8 @@ void FrameGrabber::shutdown() {
         _capture = 0;
     }
     _initialized = false;
+    
+    thread()->quit();
 }
 
 void FrameGrabber::grabFrame() {
