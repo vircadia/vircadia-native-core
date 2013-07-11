@@ -94,6 +94,7 @@ public:
 public slots:
     
     void reset();
+    void shutdown();
     void grabFrame();
     
 private:
