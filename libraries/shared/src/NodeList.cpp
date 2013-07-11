@@ -237,7 +237,7 @@ void NodeList::sendDomainServerCheckIn() {
     
     // construct the DS check in packet if we need to
     static unsigned char* checkInPacket = NULL;
-    static int checkInPacketSize;
+    static int checkInPacketSize = 0;
     
     const int IP_ADDRESS_BYTES = 4;
 
