@@ -10,6 +10,7 @@
 #include <QtDebug>
 
 #include <GeometryUtil.h>
+#include <PacketHeaders.h>
 #include <SharedUtil.h>
 
 #include "Camera.h"
@@ -138,8 +139,10 @@ bool Environment::findCapsulePenetration(const glm::vec3& start, const glm::vec3
 int Environment::parseData(sockaddr *senderAddress, unsigned char* sourceBuffer, int numBytes) {
     // push past the packet header
     unsigned char* start = sourceBuffer;
-    sourceBuffer++;
-    numBytes--;
+    
+    int numBytesPacketHeader = numBytesForPacketHeader(sourceBuffer);
+    sourceBuffer += numBytesPacketHeader;
+    numBytes -= numBytesPacketHeader;
     
     // get the lock for the duration of the call
     QMutexLocker locker(&_mutex);
