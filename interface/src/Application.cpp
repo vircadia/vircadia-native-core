@@ -906,7 +906,7 @@ void Application::wheelEvent(QWheelEvent* event) {
 void Application::sendPingPackets() {
 
     char nodeTypesOfInterest[] = {NODE_TYPE_VOXEL_SERVER, NODE_TYPE_AUDIO_MIXER, NODE_TYPE_AVATAR_MIXER};
-    long long currentTime = usecTimestampNow();
+    uint64_t currentTime = usecTimestampNow();
     unsigned char pingPacket[1 + sizeof(currentTime)];
     pingPacket[0] = PACKET_HEADER_PING;
     
@@ -1219,6 +1219,10 @@ void Application::doFalseColorizeOccluded() {
     _voxels.falseColorizeOccluded();
 }
 
+void Application::doFalseColorizeOccludedV2() {
+    _voxels.falseColorizeOccludedV2();
+}
+
 void Application::doTrueVoxelColors() {
     _voxels.trueColorize();
 }
@@ -1231,16 +1235,12 @@ void Application::setWantsMonochrome(bool wantsMonochrome) {
     _myAvatar.setWantColor(!wantsMonochrome);
 }
 
-void Application::setWantsResIn(bool wantsResIn) {
-    _myAvatar.setWantResIn(wantsResIn);
-}
-
 void Application::setWantsDelta(bool wantsDelta) {
     _myAvatar.setWantDelta(wantsDelta);
 }
 
-void Application::setWantsOcclusionCulling(bool wantsOcclusionCulling) {
-    _myAvatar.setWantOcclusionCulling(wantsOcclusionCulling);
+void Application::disableOcclusionCulling(bool disableOcclusionCulling) {
+    _myAvatar.setWantOcclusionCulling(!disableOcclusionCulling);
 }
 
 void Application::updateVoxelModeActions() {
@@ -1622,13 +1622,20 @@ void Application::initMenu() {
     renderDebugMenu->addAction("FALSE Color Voxels by Distance", this, SLOT(doFalseColorizeByDistance()));
     renderDebugMenu->addAction("FALSE Color Voxel Out of View", this, SLOT(doFalseColorizeInView()));
     renderDebugMenu->addAction("FALSE Color Occluded Voxels", this, SLOT(doFalseColorizeOccluded()), Qt::CTRL | Qt::Key_O);
+    renderDebugMenu->addAction("FALSE Color Occluded V2 Voxels", this, SLOT(doFalseColorizeOccludedV2()), Qt::CTRL | Qt::Key_P);
     renderDebugMenu->addAction("Show TRUE Colors", this, SLOT(doTrueVoxelColors()), Qt::CTRL | Qt::Key_T);
 
-    debugMenu->addAction("Wants Res-In", this, SLOT(setWantsResIn(bool)))->setCheckable(true);
     debugMenu->addAction("Wants Monochrome", this, SLOT(setWantsMonochrome(bool)))->setCheckable(true);
     debugMenu->addAction("Wants View Delta Sending", this, SLOT(setWantsDelta(bool)))->setCheckable(true);
     (_shouldLowPassFilter = debugMenu->addAction("Test: LowPass filter"))->setCheckable(true);
-    debugMenu->addAction("Wants Occlusion Culling", this, SLOT(setWantsOcclusionCulling(bool)))->setCheckable(true);
+    debugMenu->addAction("Disable Occlusion Culling", this, SLOT(disableOcclusionCulling(bool)), 
+                         Qt::SHIFT | Qt::Key_C)->setCheckable(true);
+
+    (_renderCoverageMap = debugMenu->addAction("Render Coverage Map"))->setCheckable(true);
+    _renderCoverageMap->setShortcut(Qt::SHIFT | Qt::CTRL | Qt::Key_O);
+    (_renderCoverageMapV2 = debugMenu->addAction("Render Coverage Map V2"))->setCheckable(true);
+    _renderCoverageMapV2->setShortcut(Qt::SHIFT | Qt::CTRL | Qt::Key_P);
+
 
     QMenu* settingsMenu = menuBar->addMenu("Settings");
     (_settingsAutosave = settingsMenu->addAction("Autosave"))->setCheckable(true);
@@ -1689,8 +1696,6 @@ void Application::init() {
     _headMouseX = _mouseX = _glWidget->width() / 2;
     _headMouseY = _mouseY = _glWidget->height() / 2;
 
-    _stars.readInput(STAR_FILE, STAR_CACHE_FILE, 0);
-  
     _myAvatar.init();
     _myAvatar.setPosition(START_LOCATION);
     _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
@@ -1716,7 +1721,6 @@ void Application::init() {
     
     printLog("Loaded settings.\n");
 
-    
     sendAvatarVoxelURLMessage(_myAvatar.getVoxels()->getVoxelURL());
 
     _palette.init(_glWidget->width(), _glWidget->height());
@@ -1730,6 +1734,22 @@ void Application::init() {
 
 const float MAX_AVATAR_EDIT_VELOCITY = 1.0f;
 const float MAX_VOXEL_EDIT_DISTANCE = 20.0f;
+const float HEAD_SPHERE_RADIUS = 0.07;
+
+bool Application::isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection, glm::vec3& eyePosition) {
+    NodeList* nodeList = NodeList::getInstance();
+    for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+        if (node->getLinkedData() != NULL && node->getType() == NODE_TYPE_AGENT) {
+            Avatar* avatar = (Avatar *) node->getLinkedData();
+            glm::vec3 headPosition = avatar->getHead().getPosition();
+            if (rayIntersectsSphere(mouseRayOrigin, mouseRayDirection, headPosition, HEAD_SPHERE_RADIUS)) {
+                eyePosition = avatar->getHead().getEyeLevelPosition();
+                return true;
+            }
+        }
+    }
+    return false;
+}
 
 void Application::update(float deltaTime) {
     //  Use Transmitter Hand to move hand if connected, else use mouse
@@ -1757,8 +1777,15 @@ void Application::update(float deltaTime) {
     _myAvatar.setMouseRay(mouseRayOrigin, mouseRayDirection);
     
     // Set where I am looking based on my mouse ray (so that other people can see)
-    glm::vec3 myLookAtFromMouse(mouseRayOrigin + mouseRayDirection);
-    _myAvatar.getHead().setLookAtPosition(myLookAtFromMouse);
+    glm::vec3 eyePosition;
+    if (isLookingAtOtherAvatar(mouseRayOrigin, mouseRayDirection, eyePosition)) {
+        // If the mouse is over another avatar's head...
+        glm::vec3 myLookAtFromMouse(eyePosition);
+         _myAvatar.getHead().setLookAtPosition(myLookAtFromMouse);
+    } else {
+        glm::vec3 myLookAtFromMouse(mouseRayOrigin + mouseRayDirection);
+        _myAvatar.getHead().setLookAtPosition(myLookAtFromMouse);
+    }
 
     //  If we are dragging on a voxel, add thrust according to the amount the mouse is dragging
     const float VOXEL_GRAB_THRUST = 0.0f;
@@ -1993,6 +2020,17 @@ void Application::updateAvatar(float deltaTime) {
         _headMouseX = min(_headMouseX, _glWidget->width());
         _headMouseY = max(_headMouseY, 0);
         _headMouseY = min(_headMouseY, _glWidget->height());
+
+        // Set lookAtPosition if an avatar is at the center of the screen
+
+        glm::vec3 screenCenterRayOrigin, screenCenterRayDirection;
+        _viewFrustum.computePickRay(0.5, 0.5, screenCenterRayOrigin, screenCenterRayDirection);
+
+        glm::vec3 eyePosition;
+        if (isLookingAtOtherAvatar(screenCenterRayOrigin, screenCenterRayDirection, eyePosition)) {
+            glm::vec3 myLookAtFromMouse(eyePosition);
+            _myAvatar.getHead().setLookAtPosition(myLookAtFromMouse);
+        }
 
     }
 
@@ -2246,6 +2284,15 @@ void Application::displayOculus(Camera& whichCamera) {
 void Application::displaySide(Camera& whichCamera) {
     // transform by eye offset
 
+    // flip x if in mirror mode (also requires reversing winding order for backface culling)
+    if (_lookingInMirror->isChecked()) {
+        glScalef(-1.0f, 1.0f, 1.0f);
+        glFrontFace(GL_CW);
+    
+    } else {
+        glFrontFace(GL_CCW);
+    }
+
     glm::vec3 eyeOffsetPos = whichCamera.getEyeOffsetPosition();
     glm::quat eyeOffsetOrient = whichCamera.getEyeOffsetOrientation();
     glm::vec3 eyeOffsetAxis = glm::axis(eyeOffsetOrient);
@@ -2281,6 +2328,9 @@ void Application::displaySide(Camera& whichCamera) {
     glMateriali(GL_FRONT, GL_SHININESS, 96);
     
     if (_renderStarsOn->isChecked()) {
+        if (!_stars.getFileLoaded()) {
+            _stars.readInput(STAR_FILE, STAR_CACHE_FILE, 0);
+        }
         // should be the first rendering pass - w/o depth buffer / lighting
 
         // compute starfield alpha based on distance from atmosphere
@@ -2379,6 +2429,7 @@ void Application::displaySide(Camera& whichCamera) {
     
     // brad's frustum for debugging
     if (_frustumOn->isChecked()) renderViewFrustum(_viewFrustum);
+    
 }
 
 void Application::displayOverlay() {
@@ -2427,6 +2478,9 @@ void Application::displayOverlay() {
     
     if (_renderStatsOn->isChecked()) { displayStats(); }
 
+    // testing rendering coverage map
+    if (_renderCoverageMapV2->isChecked()) { renderCoverageMapV2(); }
+    if (_renderCoverageMap->isChecked())   { renderCoverageMap(); }
     if (_bandwidthDisplayOn->isChecked()) { _bandwidthMeter.render(_glWidget->width(), _glWidget->height()); }
 
     if (_logOn->isChecked()) { LogDisplay::instance.render(_glWidget->width(), _glWidget->height()); }
@@ -2439,7 +2493,7 @@ void Application::displayOverlay() {
     //  Show on-screen msec timer
     if (_renderFrameTimerOn->isChecked()) {
         char frameTimer[10];
-        long long mSecsNow = floor(usecTimestampNow() / 1000.0 + 0.5);
+        uint64_t mSecsNow = floor(usecTimestampNow() / 1000.0 + 0.5);
         sprintf(frameTimer, "%d\n", (int)(mSecsNow % 1000));
         drawtext(_glWidget->width() - 100, _glWidget->height() - 20, 0.30, 0, 1.0, 0, frameTimer, 0, 0, 0);
         drawtext(_glWidget->width() - 102, _glWidget->height() - 22, 0.30, 0, 1.0, 0, frameTimer, 1, 1, 1);
@@ -2612,8 +2666,8 @@ void Application::renderThrustAtVoxel(const glm::vec3& thrust) {
         glVertex3f(voxelTouched.x + thrust.x, voxelTouched.y + thrust.y, voxelTouched.z + thrust.z);
         glEnd();
     }
-    
 }
+
 void Application::renderLineToTouchedVoxel() {
     //  Draw a teal line to the voxel I am currently dragging on
     if (_mousePressed) {
@@ -2627,6 +2681,149 @@ void Application::renderLineToTouchedVoxel() {
         glEnd();
     }
 }
+
+
+glm::vec2 Application::getScaledScreenPoint(glm::vec2 projectedPoint) {
+    float horizontalScale = _glWidget->width() / 2.0f;
+    float verticalScale   = _glWidget->height() / 2.0f;
+    
+    // -1,-1 is 0,windowHeight 
+    // 1,1 is windowWidth,0
+    
+    // -1,1                    1,1
+    // +-----------------------+ 
+    // |           |           |
+    // |           |           |
+    // | -1,0      |           |
+    // |-----------+-----------|
+    // |          0,0          |
+    // |           |           |
+    // |           |           |
+    // |           |           |
+    // +-----------------------+
+    // -1,-1                   1,-1
+    
+    glm::vec2 screenPoint((projectedPoint.x + 1.0) * horizontalScale, 
+        ((projectedPoint.y + 1.0) * -verticalScale) + _glWidget->height());
+        
+    return screenPoint;
+}
+
+// render the coverage map on screen
+void Application::renderCoverageMapV2() {
+    
+    //printLog("renderCoverageMap()\n");
+    
+    glDisable(GL_LIGHTING);
+    glLineWidth(2.0);
+    glBegin(GL_LINES);
+    glColor3f(0,1,1);
+    
+    renderCoverageMapsV2Recursively(&_voxels.myCoverageMapV2);
+
+    glEnd();
+    glEnable(GL_LIGHTING);
+}
+
+void Application::renderCoverageMapsV2Recursively(CoverageMapV2* map) {
+    // render ourselves...
+    if (map->isCovered()) {
+        BoundingBox box = map->getBoundingBox();
+
+        glm::vec2 firstPoint = getScaledScreenPoint(box.getVertex(0));
+        glm::vec2 lastPoint(firstPoint);
+    
+        for (int i = 1; i < box.getVertexCount(); i++) {
+            glm::vec2 thisPoint = getScaledScreenPoint(box.getVertex(i));
+
+            glVertex2f(lastPoint.x, lastPoint.y);
+            glVertex2f(thisPoint.x, thisPoint.y);
+            lastPoint = thisPoint;
+        }
+
+        glVertex2f(lastPoint.x, lastPoint.y);
+        glVertex2f(firstPoint.x, firstPoint.y);
+    } else {
+        // iterate our children and call render on them.
+        for (int i = 0; i < CoverageMapV2::NUMBER_OF_CHILDREN; i++) {
+            CoverageMapV2* childMap = map->getChild(i);
+            if (childMap) {
+                renderCoverageMapsV2Recursively(childMap);
+            }
+        }
+    }
+}
+
+// render the coverage map on screen
+void Application::renderCoverageMap() {
+    
+    //printLog("renderCoverageMap()\n");
+    
+    glDisable(GL_LIGHTING);
+    glLineWidth(2.0);
+    glBegin(GL_LINES);
+    glColor3f(0,0,1);
+    
+    renderCoverageMapsRecursively(&_voxels.myCoverageMap);
+
+    glEnd();
+    glEnable(GL_LIGHTING);
+}
+
+void Application::renderCoverageMapsRecursively(CoverageMap* map) {
+    for (int i = 0; i < map->getPolygonCount(); i++) {
+    
+        VoxelProjectedPolygon* polygon = map->getPolygon(i);
+        
+        if (polygon->getProjectionType()        == (PROJECTION_RIGHT | PROJECTION_NEAR | PROJECTION_BOTTOM)) {
+            glColor3f(.5,0,0); // dark red
+        } else if (polygon->getProjectionType() == (PROJECTION_NEAR | PROJECTION_RIGHT)) {
+            glColor3f(.5,.5,0); // dark yellow
+        } else if (polygon->getProjectionType() == (PROJECTION_NEAR | PROJECTION_LEFT)) {
+            glColor3f(.5,.5,.5); // gray
+        } else if (polygon->getProjectionType() == (PROJECTION_NEAR | PROJECTION_LEFT | PROJECTION_BOTTOM)) {
+            glColor3f(.5,0,.5); // dark magenta
+        } else if (polygon->getProjectionType() == (PROJECTION_NEAR | PROJECTION_BOTTOM)) {
+            glColor3f(.75,0,0); // red
+        } else if (polygon->getProjectionType() == (PROJECTION_NEAR | PROJECTION_TOP)) {
+            glColor3f(1,0,1); // magenta
+        } else if (polygon->getProjectionType() == (PROJECTION_NEAR | PROJECTION_LEFT | PROJECTION_TOP)) {
+            glColor3f(0,0,1); // Blue
+        } else if (polygon->getProjectionType() == (PROJECTION_NEAR | PROJECTION_RIGHT | PROJECTION_TOP)) {
+            glColor3f(0,1,0); // green
+        } else if (polygon->getProjectionType() == (PROJECTION_NEAR)) {
+            glColor3f(1,1,0); // yellow
+        } else if (polygon->getProjectionType() == (PROJECTION_FAR | PROJECTION_RIGHT | PROJECTION_BOTTOM)) {
+            glColor3f(0,.5,.5); // dark cyan
+        } else {
+            glColor3f(1,0,0);
+        }
+
+        glm::vec2 firstPoint = getScaledScreenPoint(polygon->getVertex(0));
+        glm::vec2 lastPoint(firstPoint);
+    
+        for (int i = 1; i < polygon->getVertexCount(); i++) {
+            glm::vec2 thisPoint = getScaledScreenPoint(polygon->getVertex(i));
+
+            glVertex2f(lastPoint.x, lastPoint.y);
+            glVertex2f(thisPoint.x, thisPoint.y);
+            lastPoint = thisPoint;
+        }
+
+        glVertex2f(lastPoint.x, lastPoint.y);
+        glVertex2f(firstPoint.x, firstPoint.y);
+    }
+
+    // iterate our children and call render on them.
+    for (int i = 0; i < CoverageMapV2::NUMBER_OF_CHILDREN; i++) {
+        CoverageMap* childMap = map->getChild(i);
+        if (childMap) {
+            renderCoverageMapsRecursively(childMap);
+        }
+    }
+}
+
+
 
 /////////////////////////////////////////////////////////////////////////////////////
 // renderViewFrustum()

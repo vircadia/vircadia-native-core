@@ -14,6 +14,7 @@
 #include "VoxelNode.h"
 #include "VoxelNodeBag.h"
 #include "CoverageMap.h"
+#include "PointerStack.h"
 
 // Callback function, for recuseTreeWithOperation
 typedef bool (*RecurseVoxelTreeOperation)(VoxelNode* node, void* extraData);
@@ -36,6 +37,7 @@ typedef enum {GRADIENT, RANDOM, NATURAL} creationMode;
 class EncodeBitstreamParams {
 public:
     int                 maxEncodeLevel;
+    int                 maxLevelReached;
     const ViewFrustum*  viewFrustum;
     bool                includeColor;
     bool                includeExistsBits;
@@ -43,11 +45,13 @@ public:
     bool                deltaViewFrustum;
     const ViewFrustum*  lastViewFrustum;
     bool                wantOcclusionCulling;
+    long                childWasInViewDiscarded;
+
     CoverageMap*        map;
     
     EncodeBitstreamParams(
         int                 maxEncodeLevel      = INT_MAX, 
-        const ViewFrustum*  viewFrustum         = IGNORE_VIEW_FRUSTUM, 
+        const ViewFrustum*  viewFrustum         = IGNORE_VIEW_FRUSTUM,
         bool                includeColor        = WANT_COLOR, 
         bool                includeExistsBits   = WANT_EXISTS_BITS,
         int                 chopLevels          = 0, 
@@ -55,8 +59,8 @@ public:
         const ViewFrustum*  lastViewFrustum     = IGNORE_VIEW_FRUSTUM,
         bool                wantOcclusionCulling= NO_OCCLUSION_CULLING,
         CoverageMap*        map                 = IGNORE_COVERAGE_MAP) :
-        
             maxEncodeLevel      (maxEncodeLevel),
+            maxLevelReached     (0),
             viewFrustum         (viewFrustum),
             includeColor        (includeColor),
             includeExistsBits   (includeExistsBits),
@@ -64,6 +68,7 @@ public:
             deltaViewFrustum    (deltaViewFrustum),
             lastViewFrustum     (lastViewFrustum),
             wantOcclusionCulling(wantOcclusionCulling),
+            childWasInViewDiscarded(0),
             map                 (map)
     {}
 };
@@ -148,6 +153,11 @@ public:
     void recurseNodeWithOperation(VoxelNode* node, RecurseVoxelTreeOperation operation, void* extraData);
     void recurseNodeWithOperationDistanceSorted(VoxelNode* node, RecurseVoxelTreeOperation operation, 
                 const glm::vec3& point, void* extraData);
+
+
+    void recurseTreeWithOperationDistanceSortedTimed(PointerStack* stackOfNodes, long allowedTime,
+                                                            RecurseVoxelTreeOperation operation, 
+                                                            const glm::vec3& point, void* extraData);
     
 private:
     void deleteVoxelCodeFromTreeRecursion(VoxelNode* node, void* extraData);
@@ -172,6 +182,7 @@ private:
     bool _shouldReaverage;
 };
 
-int boundaryDistanceForRenderLevel(unsigned int renderLevel);
+float boundaryDistanceForRenderLevel(unsigned int renderLevel);
+float boundaryDistanceSquaredForRenderLevel(unsigned int renderLevel);
 
 #endif /* defined(__hifi__VoxelTree__) */

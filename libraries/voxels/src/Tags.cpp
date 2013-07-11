@@ -115,8 +115,8 @@ TagCompound::TagCompound(std::stringstream &ss) :
     _width(0),
     _length(0),
     _height(0),
-    _blocksId(NULL),
-    _blocksData(NULL)
+    _blocksData(NULL),
+    _blocksId(NULL)
 {
     int tagId;
 

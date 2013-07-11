@@ -131,13 +131,13 @@ private slots:
     void doFalseRandomizeEveryOtherVoxelColors();
     void doFalseColorizeByDistance();
     void doFalseColorizeOccluded();
+    void doFalseColorizeOccludedV2();
     void doFalseColorizeInView();
     void doTrueVoxelColors();
     void doTreeStats();
     void setWantsMonochrome(bool wantsMonochrome);
-    void setWantsResIn(bool wantsResIn);
     void setWantsDelta(bool wantsDelta);
-    void setWantsOcclusionCulling(bool wantsOcclusionCulling);
+    void disableOcclusionCulling(bool disableOcclusionCulling);
     void updateVoxelModeActions();
     void decreaseVoxelSize();
     void increaseVoxelSize();
@@ -153,6 +153,14 @@ private slots:
     void copyVoxels();
     void pasteVoxels();
     void runTests();
+
+    void renderCoverageMap();
+    void renderCoverageMapsRecursively(CoverageMap* map);
+
+    void renderCoverageMapV2();
+    void renderCoverageMapsV2Recursively(CoverageMapV2* map);
+
+    glm::vec2 getScaledScreenPoint(glm::vec2 projectedPoint);
     void goHome();
 
 private:
@@ -173,6 +181,7 @@ private:
     void init();
     
     void update(float deltaTime);
+    bool isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection, glm::vec3& eyePosition);
     void updateAvatar(float deltaTime);
     void loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum);
     
@@ -246,6 +255,9 @@ private:
     QAction* _fullScreenMode;        // whether we are in full screen mode
     QAction* _frustumRenderModeAction;
     QAction* _settingsAutosave;      // Whether settings are saved automatically
+
+    QAction* _renderCoverageMapV2;
+    QAction* _renderCoverageMap;
     
     BandwidthMeter _bandwidthMeter;
     BandwidthDialog* _bandwidthDialog;
