@@ -212,7 +212,7 @@ int main(int argc, char* argv[]) {
                         
                         // use the UDPSocket instance attached to our node list to ask avatar mixer for a list of avatars
                         nodeList->getNodeSocket()->send(avatarMixer->getActiveSocket(),
-                                                        &broadcastPacket,
+                                                        broadcastPacket,
                                                         numBytesPacketHeader);
                     }
                 } else {
