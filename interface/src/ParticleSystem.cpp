@@ -15,7 +15,7 @@ ParticleSystem::ParticleSystem() {
 
     _numberOfParticles = 1500;
     assert(_numberOfParticles <= MAX_PARTICLES);
-
+    
     _bounce             = 0.9f;
     _timer              = 0.0f;
     _airFriction        = 6.0f;
@@ -34,18 +34,32 @@ ParticleSystem::ParticleSystem() {
         _particle[p].position = _home;
         _particle[p].velocity = glm::vec3(0.0f, 0.0f, 0.0f);
         
-        float red   = 0.5f + 0.5f * sinf(((float)p / (float)_numberOfParticles) * 3.141592 * 2.0f);
-        float green = 0.3f + 0.3f * sinf(((float)p / (float)_numberOfParticles) * 3.141592 * 2.0f);
-        float blue  = 0.2f - 0.2f * sinf(((float)p / (float)_numberOfParticles) * 3.141592 * 2.0f);
+        float radian = ((float)p / (float)_numberOfParticles) * PI_TIMES_TWO;
+        float wave = sinf(radian);
+        
+        float red   = 0.5f + 0.5f * wave;
+        float green = 0.3f + 0.3f * wave;
+        float blue  = 0.2f - 0.2f * wave;
         
         _particle[p].color    = glm::vec3(red, green, blue);
-        _particle[p].age      = 0;
+        _particle[p].age      = 0.0f;
         _particle[p].radius   = 0.01f;
     }
 }
 
 void ParticleSystem::simulate(float deltaTime) {
+    
+    runSpecialEffectsTest(deltaTime);
+ 
+    for (unsigned int p = 0; p < _numberOfParticles; p++) {
+        updateParticle(p, deltaTime);
+    }
+}
 
+
+
+void ParticleSystem::runSpecialEffectsTest(float deltaTime) {
+   
     _timer += deltaTime;
 
     _gravity            = 0.01f  + 0.01f  * sinf( _timer * 0.52f );
@@ -62,79 +76,81 @@ void ParticleSystem::simulate(float deltaTime) {
         1.0f,
         0.0f + 0.5f * cosf( _timer * 0.75f )
     );
+}
 
-    for (unsigned int p = 0; p < _numberOfParticles; p++) {
 
-        // apply random jitter
-        _particle[p].velocity += 
-        glm::vec3
-        (
-            -_jitter * ONE_HALF + _jitter * randFloat(), 
-            -_jitter * ONE_HALF + _jitter * randFloat(), 
-            -_jitter * ONE_HALF + _jitter * randFloat()
-        ) * deltaTime;
+
+void ParticleSystem::updateParticle(int p, float deltaTime) {
+
+    _particle[p].age += deltaTime;
+
+    // apply random jitter
+    _particle[p].velocity += 
+    glm::vec3
+    (
+        -_jitter * ONE_HALF + _jitter * randFloat(), 
+        -_jitter * ONE_HALF + _jitter * randFloat(), 
+        -_jitter * ONE_HALF + _jitter * randFloat()
+    ) * deltaTime;
+    
+    
+    // apply attraction to home position
+    glm::vec3 vectorToHome = _home - _particle[p].position;
+    _particle[p].velocity += vectorToHome * _homeAttraction * deltaTime;
+    
+    // apply neighbor attraction
+    int neighbor = p + 1;
+    if (neighbor == _numberOfParticles ) {
+        neighbor = 0;
+    }
+    glm::vec3 vectorToNeighbor = _particle[p].position - _particle[neighbor].position;
+    
+    _particle[p].velocity -= vectorToNeighbor * _neighborAttraction * deltaTime;
+
+    float distanceToNeighbor = glm::length(vectorToNeighbor);
+    if (distanceToNeighbor > 0.0f) {
+        _particle[neighbor].velocity += (vectorToNeighbor / ( 1.0f + distanceToNeighbor * distanceToNeighbor)) * _neighborRepulsion * deltaTime;
+    }
+    
+    // apply tornado force
+    glm::vec3 tornadoDirection = glm::cross(vectorToHome, _tornadoAxis);
+    _particle[p].velocity += tornadoDirection * _tornadoForce * deltaTime;
+
+    // apply air friction
+    float drag = 1.0 - _airFriction * deltaTime;
+    if (drag < 0.0f) {
+        _particle[p].velocity = glm::vec3(0.0f, 0.0f, 0.0f);
+    } else {
+        _particle[p].velocity *= drag;
+    }
+    
+    // apply gravity
+    _particle[p].velocity.y -= _gravity * deltaTime;       
+
+    // update position by velocity
+    _particle[p].position += _particle[p].velocity;
+    
+    // collision with ground
+    if (_particle[p].position.y < _particle[p].radius) {
+        _particle[p].position.y = _particle[p].radius;
         
-        
-        // apply attraction to home position
-        glm::vec3 vectorToHome = _home - _particle[p].position;
-        _particle[p].velocity += vectorToHome * _homeAttraction * deltaTime;
-        
-        // apply neighbor attraction
-        int neighbor = p + 1;
-        if (neighbor == _numberOfParticles ) {
-            neighbor = 0;
+        if (_particle[p].velocity.y < 0.0f) {
+            _particle[p].velocity.y *= -_bounce;
         }
-        glm::vec3 vectorToNeighbor = _particle[p].position - _particle[neighbor].position;
-        
-        _particle[p].velocity -= vectorToNeighbor * _neighborAttraction * deltaTime;
-
-        float distanceToNeighbor = glm::length(vectorToNeighbor);
-        if (distanceToNeighbor > 0.0f) {
-            _particle[neighbor].velocity += (vectorToNeighbor / ( 1.0f + distanceToNeighbor * distanceToNeighbor)) * _neighborRepulsion * deltaTime;
-        }
-        
-        // apply tornado force
-        glm::vec3 tornadoDirection = glm::cross(vectorToHome, _tornadoAxis);
-        _particle[p].velocity += tornadoDirection * _tornadoForce * deltaTime;
-
-        // apply air friction
-        float drag = 1.0 - _airFriction * deltaTime;
-        if (drag < 0.0f) {
-            _particle[p].velocity = glm::vec3(0.0f, 0.0f, 0.0f);
-        } else {
-            _particle[p].velocity *= drag;
-        }
-        
-        // apply gravity
-        _particle[p].velocity.y -= _gravity * deltaTime;       
-
-        // update position by velocity
-        _particle[p].position += _particle[p].velocity;
-        
-        // collision with ground
-        if (_particle[p].position.y < _particle[p].radius) {
-            _particle[p].position.y = _particle[p].radius;
-            
-            if (_particle[p].velocity.y < 0.0f) {
-                _particle[p].velocity.y *= -_bounce;
-            }
-        }
-        
-        // collision with sphere
-        glm::vec3 vectorToSphereCenter = _TEST_bigSpherePosition - _particle[p].position;
-        float distanceToSphereCenter = glm::length(vectorToSphereCenter);
-        float combinedRadius = _TEST_bigSphereRadius + _particle[p].radius;
-        if (distanceToSphereCenter < combinedRadius) {
-        
-            if (distanceToSphereCenter > 0.0f){
-                glm::vec3 directionToSphereCenter = vectorToSphereCenter / distanceToSphereCenter;
-                _particle[p].position = _TEST_bigSpherePosition - directionToSphereCenter * combinedRadius;            
-                //_particle[p].velocity.y += 0.005f;            
-            }
+    }
+    
+    // collision with sphere
+    glm::vec3 vectorToSphereCenter = _TEST_bigSpherePosition - _particle[p].position;
+    float distanceToSphereCenter = glm::length(vectorToSphereCenter);
+    float combinedRadius = _TEST_bigSphereRadius + _particle[p].radius;
+    if (distanceToSphereCenter < combinedRadius) {
+    
+        if (distanceToSphereCenter > 0.0f){
+            glm::vec3 directionToSphereCenter = vectorToSphereCenter / distanceToSphereCenter;
+            _particle[p].position = _TEST_bigSpherePosition - directionToSphereCenter * combinedRadius;            
         }
     }
 }
-
 
 
 void ParticleSystem::render() {

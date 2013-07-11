@@ -9,7 +9,7 @@
 #ifndef hifi_ParticleSystem_h
 #define hifi_ParticleSystem_h
 
-const int MAX_PARTICLES = 2000;
+const int MAX_PARTICLES = 5000;
 const int MAX_EMITTERS  = 10;
 
 class ParticleSystem {
@@ -20,11 +20,12 @@ public:
     void render();
     
 private:
+
     struct Particle {
         glm::vec3   position;
         glm::vec3   velocity;
         glm::vec3   color;
-        int         age;
+        float       age;
         float       radius;
     };  
 
@@ -49,6 +50,10 @@ private:
     float      _neighborRepulsion;
     float      _TEST_bigSphereRadius;
     glm::vec3  _TEST_bigSpherePosition;
+    
+    // private methods
+    void updateParticle(int index, float deltaTime);
+    void runSpecialEffectsTest(float deltaTime);
 };
 
 #endif
