@@ -259,57 +259,6 @@ bool VoxelProjectedPolygon::pointInside(const glm::vec2& point, bool* matchesVer
     return true;
 }
  
-/*   
-
-// This old version of pointInside works on concave or convex polygons. But it's slower, and since we don't need
-// to support concave polygons, we don't need to do this extra heavy lifting
-bool VoxelProjectedPolygon::pointInside(const glm::vec2& point, bool* matchesVertex) const {
-    // first check the bounding boxes, the point must be fully within the boounding box of this shadow
-    if ((point.x > getMaxX()) ||
-        (point.y > getMaxY()) ||
-        (point.x < getMinX()) ||
-        (point.y < getMinY())) {
-        return false;
-    }
-    
-    //float e = (getMaxX() - getMinX()) / 100.0f; // some epsilon
-    float e = 1.0f; // some epsilon
-    
-    // We need to have one ray that goes from a known outside position to the point in question. We'll pick a
-    // start point outside of our min X, min Y
-    glm::vec2 r1p1(getMinX() - e, point.y);
-    glm::vec2 r1p2(point);
-
-    glm::vec2 r2p1(getVertex(getVertexCount()-1)); // start with last vertex to first vertex
-    glm::vec2 r2p2;
-    
-    // Test the ray against all sides
-    int intersections = 0;
-    bool someVertexMatches = false;
-    for (int i = 0; i < getVertexCount(); i++) {
-        r2p2 = getVertex(i);
-
-        // if the point in question matches one of our vetices, then we consider it to NOT be inside.        
-        if (point.x == r2p2.x && point.y == r2p2.y) {
-            // caller wants to know if we match any of the vertices
-            if (matchesVertex) {
-                *matchesVertex = true;
-            }
-            return false;
-        }
-
-        // if we're still processing, then check for intersections        
-        if (doLineSegmentsIntersect(r1p1, r1p2, r2p1, r2p2)) {
-            intersections++;
-        }
-        r2p1 = r2p2; // set up for next side
-    }
-
-    // If odd number of intersections and we got here, we're inside
-    return ((intersections & 1) == 1);
-}
-*/
-
 void VoxelProjectedPolygon::printDebugDetails() const {
     printf("VoxelProjectedPolygon...");
     printf("    minX=%f maxX=%f minY=%f maxY=%f\n", getMinX(), getMaxX(), getMinY(), getMaxY());
@@ -324,7 +273,6 @@ bool VoxelProjectedPolygon::intersects(const BoundingBox& box) const {
     VoxelProjectedPolygon testee(box);
     return intersects(testee);
 }
-
 
 bool VoxelProjectedPolygon::intersects(const VoxelProjectedPolygon& testee) const {
     VoxelProjectedPolygon::intersects_calls++;
