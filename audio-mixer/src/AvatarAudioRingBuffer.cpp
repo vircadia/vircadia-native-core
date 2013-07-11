@@ -24,6 +24,6 @@ AvatarAudioRingBuffer::~AvatarAudioRingBuffer() {
 }
 
 int AvatarAudioRingBuffer::parseData(unsigned char* sourceBuffer, int numBytes) {
-    _shouldLoopbackForNode = (sourceBuffer[0] == PACKET_HEADER_MICROPHONE_AUDIO_WITH_ECHO);
+    _shouldLoopbackForNode = (sourceBuffer[0] == PACKET_TYPE_MICROPHONE_AUDIO_WITH_ECHO);
     return PositionalAudioRingBuffer::parseData(sourceBuffer, numBytes);
 }

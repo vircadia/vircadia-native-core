@@ -88,8 +88,6 @@ public:
     void simulate(float deltaTime, Transmitter* transmitter);
     void updateThrust(float deltaTime, Transmitter * transmitter);
     void updateFromGyrosAndOrWebcam(bool gyroLook, const glm::vec3& amplifyAngles);
-    void updateFromMouse(int mouseX, int mouseY, int screenWidth, int screenHeight);
-    void updateFromTouch(float touchAvgDistX, float touchAvgDistY);
     void addBodyYaw(float y) {_bodyYaw += y;};
     void render(bool lookingInMirror, bool renderAvatarBalls);
 
@@ -151,10 +149,6 @@ public:
 
     //  Get the position/rotation of a single body ball
     void getBodyBallTransform(AvatarJointID jointID, glm::vec3& position, glm::quat& rotation) const;
-    
-    //read/write avatar data
-    void writeAvatarDataToFile();
-    void readAvatarDataFromFile();
 
     static void renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2, float radius1, float radius2);
 

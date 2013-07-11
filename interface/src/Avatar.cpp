@@ -324,7 +324,7 @@ void Avatar::updateFromGyrosAndOrWebcam(bool gyroLook, const glm::vec3& amplifyA
     //  Update torso lean distance based on accelerometer data
     const float TORSO_LENGTH = 0.5f;
     const float MAX_LEAN = 45.0f;
-    _head.setLeanSideways(glm::clamp(glm::degrees(atanf(-estimatedPosition.x * _leanScale / TORSO_LENGTH)),
+    _head.setLeanSideways(glm::clamp(glm::degrees(atanf(estimatedPosition.x * _leanScale / TORSO_LENGTH)),
         -MAX_LEAN, MAX_LEAN));
     _head.setLeanForward(glm::clamp(glm::degrees(atanf(estimatedPosition.z * _leanScale / TORSO_LENGTH)),
         -MAX_LEAN, MAX_LEAN));
@@ -350,34 +350,7 @@ glm::vec3 Avatar::getUprightHeadPosition() const {
     return _position + getWorldAlignedOrientation() * glm::vec3(0.0f, _pelvisToHeadLength, 0.0f);
 }
 
-void  Avatar::updateFromMouse(int mouseX, int mouseY, int screenWidth, int screenHeight) {
-    //  Update head yaw and pitch based on mouse input
-    const float MOUSE_ROTATE_SPEED = 0.01f;
-    const float MOUSE_PITCH_SPEED = 0.02f;
-    const int TITLE_BAR_HEIGHT = 46;
-    
-    if ((mouseX > 1) && (mouseX < screenWidth) && (mouseY > TITLE_BAR_HEIGHT) && (mouseY < screenHeight)) {
-        //
-        //  Mouse must be inside screen (not at edge) and not on title bar for movement to happen
-        //
-        
-        int pixelMoveThreshold = screenWidth / 6;
-        glm::vec2 mouseVector(mouseX - (screenWidth / 2), mouseY - (screenHeight / 2));
-        if (glm::length(mouseVector) > pixelMoveThreshold) {
-            mouseVector -= glm::normalize(mouseVector) * (float) pixelMoveThreshold;
-            _head.addYaw(-mouseVector.x * MOUSE_ROTATE_SPEED);
-            _head.addPitch(-mouseVector.y * MOUSE_PITCH_SPEED);
-        }
-    }
-}
 
-void  Avatar::updateFromTouch(float touchAvgDistX, float touchAvgDistY) {
-    const float TOUCH_ROTATE_SPEED = 0.01f;
-    const float TOUCH_PITCH_SPEED = 0.02f;
-    
-    _head.addYaw(-touchAvgDistX * TOUCH_ROTATE_SPEED);
-    _head.addPitch(-touchAvgDistY * TOUCH_PITCH_SPEED);
-}
 
 void Avatar::updateThrust(float deltaTime, Transmitter * transmitter) {
     //
@@ -1249,7 +1222,7 @@ void Avatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
             //  Always render other people, and render myself when beyond threshold distance
             if (b == BODY_BALL_HEAD_BASE) { // the head is rendered as a special
                 if (alpha > 0.0f) {
-                    _head.render(lookingInMirror, alpha);
+                    _head.render(alpha);
                 }
             } else if (alpha > 0.0f) {
                 //  Render the body ball sphere

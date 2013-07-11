@@ -96,8 +96,6 @@ public:
     
     void startSilentNodeRemovalThread();
     void stopSilentNodeRemovalThread();
-    void startPingUnknownNodesThread();
-    void stopPingUnknownNodesThread();
     
     friend class NodeListIterator;
 private:
@@ -120,7 +118,6 @@ private:
     uint16_t _lastNodeID;
     pthread_t removeSilentNodesThread;
     pthread_t checkInWithDomainServerThread;
-    pthread_t pingUnknownNodesThread;
     pthread_mutex_t mutex;
     
     void handlePingReply(sockaddr *nodeAddress);

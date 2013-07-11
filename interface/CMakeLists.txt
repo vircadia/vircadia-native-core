@@ -10,6 +10,7 @@ project(${TARGET_NAME})
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../cmake/modules/")
 set(LIBOVR_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/LibOVR)
 set(LEAP_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/Leap)
+set(MOTIONDRIVER_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/MotionDriver)
 set(PORTAUDIO_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/PortAudio)
 set(OPENCV_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/OpenCV)
 set(UVCCAMERACONTROL_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/UVCCameraControl)
@@ -92,10 +93,11 @@ link_hifi_library(audio ${TARGET_NAME} ${ROOT_DIR})
 find_package(GLM REQUIRED)
 find_package(LibOVR)
 find_package(Leap)
+find_package(MotionDriver)
 find_package(OpenCV)
-find_package(ZLIB)
-find_package(UVCCameraControl)
 find_package(OpenNI)
+find_package(UVCCameraControl)
+find_package(ZLIB)
 
 # let the source know that we have OpenNI/NITE for Kinect
 if (OPENNI_FOUND)
@@ -118,6 +120,7 @@ include_directories(
   ${GLM_INCLUDE_DIRS} 
   ${LIBOVR_INCLUDE_DIRS}
   ${LEAP_INCLUDE_DIRS}
+  ${MOTIONDRIVER_INCLUDE_DIRS}
   ${OPENCV_INCLUDE_DIRS}
 )
 
@@ -125,6 +128,7 @@ SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${OPENCV_INCLUDE_DIRS}")
 target_link_libraries(
   ${TARGET_NAME} 
   ${QT_LIBRARIES}
+  ${MOTIONDRIVER_LIBRARIES}
   ${OPENCV_LIBRARIES} 
   ${ZLIB_LIBRARIES}
   fervor

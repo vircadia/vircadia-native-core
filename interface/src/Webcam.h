@@ -73,10 +73,10 @@ private:
     cv::RotatedRect _initialFaceRect;
     JointVector _joints;
     
-    long long _startTimestamp;
+    uint64_t _startTimestamp;
     int _frameCount;
     
-    long long _lastFrameTimestamp;
+    uint64_t _lastFrameTimestamp;
     
     glm::vec3 _estimatedPosition;
     glm::vec3 _estimatedRotation;
@@ -94,6 +94,7 @@ public:
 public slots:
     
     void reset();
+    void shutdown();
     void grabFrame();
     
 private:

@@ -144,7 +144,8 @@ int main(int argc, char* argv[]) {
             nodeList->linkedDataCreateCallback = createAvatarDataForNode;
     
             timeval lastSend = {};
-            unsigned char broadcastPacket = PACKET_HEADER_INJECT_AUDIO;            
+            int numBytesPacketHeader = numBytesForPacketHeader((unsigned char*) &PACKET_TYPE_INJECT_AUDIO);
+            unsigned char* broadcastPacket = new unsigned char[numBytesPacketHeader];
             
             timeval lastDomainServerCheckIn = {};
             
@@ -168,10 +169,10 @@ int main(int argc, char* argv[]) {
                     NodeList::getInstance()->sendDomainServerCheckIn();
                 }
                 
-                while (nodeList->getNodeSocket()->receive(&senderAddress, incomingPacket, &bytesReceived)) {
+                while (nodeList->getNodeSocket()->receive(&senderAddress, incomingPacket, &bytesReceived) &&
+                       packetVersionMatch(incomingPacket)) {
                     switch (incomingPacket[0]) {
-                        case PACKET_HEADER_BULK_AVATAR_DATA:
-                            // this is the positional data for other nodes
+                        case PACKET_TYPE_BULK_AVATAR_DATA:                  // this is the positional data for other nodes
                             // pass that off to the nodeList processBulkNodeData method
                             nodeList->processBulkNodeData(&senderAddress, incomingPacket, bytesReceived);
                             break;
@@ -211,8 +212,8 @@ int main(int argc, char* argv[]) {
                         
                         // use the UDPSocket instance attached to our node list to ask avatar mixer for a list of avatars
                         nodeList->getNodeSocket()->send(avatarMixer->getActiveSocket(),
-                                                          &broadcastPacket,
-                                                          sizeof(broadcastPacket));
+                                                        broadcastPacket,
+                                                        numBytesPacketHeader);
                     }
                 } else {
                     if (!injector.isInjectingAudio() && (::shouldLoopAudio || !::hasInjectedAudioOnce)) {
