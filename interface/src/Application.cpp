@@ -73,6 +73,8 @@ using namespace std;
 static char STAR_FILE[] = "https://s3-us-west-1.amazonaws.com/highfidelity/stars.txt";
 static char STAR_CACHE_FILE[] = "cachedStars.txt";
 
+static const bool TESTING_PARTICLE_SYSTEM = true;
+
 static const int BANDWIDTH_METER_CLICK_MAX_DRAG_LENGTH = 6; // farther dragged clicks are ignored 
 
 const glm::vec3 START_LOCATION(4.f, 0.f, 5.f);   //  Where one's own node begins in the world
@@ -1964,6 +1966,10 @@ void Application::update(float deltaTime) {
     _audio.setLastVelocity(_myAvatar.getVelocity());
     _audio.eventuallyAnalyzePing();
     #endif
+    
+    if (TESTING_PARTICLE_SYSTEM) {
+        _particleSystem.simulate(deltaTime);    
+    }
 }
 
 void Application::updateAvatar(float deltaTime) {
@@ -2372,6 +2378,10 @@ void Application::displaySide(Camera& whichCamera) {
         } 
         _myAvatar.render(_lookingInMirror->isChecked(), _renderAvatarBalls->isChecked());
         _myAvatar.setDisplayingLookatVectors(_renderLookatOn->isChecked());
+    }
+
+    if (TESTING_PARTICLE_SYSTEM) {
+        _particleSystem.render();    
     }
     
     //  Render the world box
