@@ -88,6 +88,11 @@ int insertIntoSortedArrays(void* value, float key, int originalIndex,
                            void** valueArray, float* keyArray, int* originalIndexArray, 
                            int currentCount, int maxCount);
 
+int removeFromSortedArrays(void* value, void** valueArray, float* keyArray, int* originalIndexArray, 
+                           int currentCount, int maxCount);
+
+
+
 // Helper Class for debugging
 class debug {
 public:                           

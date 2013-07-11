@@ -67,7 +67,6 @@ Head::Head(Avatar* owningAvatar) :
     _audioAttack(0.0f),
     _returnSpringScale(1.0f),
     _bodyRotation(0.0f, 0.0f, 0.0f),
-    _lookingInMirror(false),
     _renderLookatVectors(false),
     _mohawkTriangleFan(NULL),
      _mohawkColors(NULL),
@@ -283,11 +282,10 @@ void Head::calculateGeometry() {
 }
 
 
-void Head::render(bool lookingInMirror, float alpha) {
+void Head::render(float alpha) {
 
     _renderAlpha = alpha;
-    _lookingInMirror = lookingInMirror;
-    
+
     calculateGeometry();
 
     glEnable(GL_DEPTH_TEST);
@@ -375,8 +373,8 @@ void Head::renderMohawk() {
     } else {
         glPushMatrix();
         glTranslatef(_position.x, _position.y, _position.z);
-        glRotatef((_lookingInMirror ? (_bodyRotation.y - _yaw) : (_bodyRotation.y + _yaw)), 0, 1, 0);
-        glRotatef(_lookingInMirror ? _roll: -_roll, 0, 0, 1);
+        glRotatef(_bodyRotation.y + _yaw, 0, 1, 0);
+        glRotatef(-_roll, 0, 0, 1);
         glRotatef(-_pitch - _bodyRotation.x, 1, 0, 0);
        
         glBegin(GL_TRIANGLE_FAN);
@@ -391,8 +389,7 @@ void Head::renderMohawk() {
 }
 
 glm::quat Head::getOrientation() const {
-    return glm::quat(glm::radians(_bodyRotation)) * glm::quat(glm::radians(_lookingInMirror ?
-        glm::vec3(_pitch, -_yaw, -_roll) : glm::vec3(_pitch, _yaw, _roll)));
+    return glm::quat(glm::radians(_bodyRotation)) * glm::quat(glm::radians(glm::vec3(_pitch, _yaw, _roll)));
 }
 
 glm::quat Head::getCameraOrientation () const {
@@ -627,7 +624,7 @@ void Head::renderEyeBalls() {
         glm::vec3 rotationAxis = glm::axis(orientation);
         glRotatef(glm::angle(orientation), rotationAxis.x, rotationAxis.y, rotationAxis.z);
         glScalef(EYELID_RADIUS, EYELID_RADIUS, EYELID_RADIUS);
-        glRotatef(-90 * _leftEyeBlink, 1, 0, 0);
+        glRotatef(-40 - 50 * _leftEyeBlink, 1, 0, 0);
         Application::getInstance()->getGeometryCache()->renderHemisphere(15, 10);
         glRotatef(180 * _leftEyeBlink, 1, 0, 0);
         Application::getInstance()->getGeometryCache()->renderHemisphere(15, 10);
@@ -640,7 +637,7 @@ void Head::renderEyeBalls() {
         glm::vec3 rotationAxis = glm::axis(orientation);
         glRotatef(glm::angle(orientation), rotationAxis.x, rotationAxis.y, rotationAxis.z);
         glScalef(EYELID_RADIUS, EYELID_RADIUS, EYELID_RADIUS);
-        glRotatef(-90 * _rightEyeBlink, 1, 0, 0);
+        glRotatef(-40 - 50 * _rightEyeBlink, 1, 0, 0);
         Application::getInstance()->getGeometryCache()->renderHemisphere(15, 10);
         glRotatef(180 * _rightEyeBlink, 1, 0, 0);
         Application::getInstance()->getGeometryCache()->renderHemisphere(15, 10);
