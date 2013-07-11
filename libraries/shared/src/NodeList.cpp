@@ -81,7 +81,7 @@ void NodeList::timePingReply(sockaddr *nodeAddress, unsigned char *packetData) {
     for(NodeList::iterator node = begin(); node != end(); node++) {
         if (socketMatch(node->getPublicSocket(), nodeAddress) || 
             socketMatch(node->getLocalSocket(), nodeAddress)) {     
-            int pingTime = usecTimestampNow() - *(long long *)(packetData + 1);
+            int pingTime = usecTimestampNow() - *(uint64_t *)(packetData + 1);
             node->setPingMs(pingTime / 1000);
             break;
         }
@@ -422,7 +422,7 @@ void *pingUnknownNodes(void *args) {
             }
         }
         
-        long long usecToSleep = PING_INTERVAL_USECS - (usecTimestampNow() - usecTimestamp(&lastSend));
+        int usecToSleep = PING_INTERVAL_USECS - (usecTimestampNow() - usecTimestamp(&lastSend));
         
         if (usecToSleep > 0) {
             usleep(usecToSleep);
@@ -443,7 +443,8 @@ void NodeList::stopPingUnknownNodesThread() {
 
 void *removeSilentNodes(void *args) {
     NodeList* nodeList = (NodeList*) args;
-    long long checkTimeUSecs, sleepTime;
+    uint64_t checkTimeUSecs;
+    int sleepTime;
     
     while (!silentNodeThreadStopFlag) {
         checkTimeUSecs = usecTimestampNow();

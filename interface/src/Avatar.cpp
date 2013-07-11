@@ -327,7 +327,7 @@ void Avatar::updateFromGyrosAndOrWebcam(bool gyroLook, const glm::vec3& amplifyA
     //  Update torso lean distance based on accelerometer data
     const float TORSO_LENGTH = 0.5f;
     const float MAX_LEAN = 45.0f;
-    _head.setLeanSideways(glm::clamp(glm::degrees(atanf(-estimatedPosition.x * _leanScale / TORSO_LENGTH)),
+    _head.setLeanSideways(glm::clamp(glm::degrees(atanf(estimatedPosition.x * _leanScale / TORSO_LENGTH)),
         -MAX_LEAN, MAX_LEAN));
     _head.setLeanForward(glm::clamp(glm::degrees(atanf(estimatedPosition.z * _leanScale / TORSO_LENGTH)),
         -MAX_LEAN, MAX_LEAN));
@@ -1225,7 +1225,7 @@ void Avatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
             //  Always render other people, and render myself when beyond threshold distance
             if (b == BODY_BALL_HEAD_BASE) { // the head is rendered as a special
                 if (alpha > 0.0f) {
-                    _head.render(lookingInMirror, alpha);
+                    _head.render(alpha);
                 }
             } else if (alpha > 0.0f) {
                 //  Render the body ball sphere

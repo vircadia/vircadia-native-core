@@ -47,7 +47,7 @@ const unsigned short MIXER_LISTEN_PORT = 55443;
 const short JITTER_BUFFER_MSECS = 12;
 const short JITTER_BUFFER_SAMPLES = JITTER_BUFFER_MSECS * (SAMPLE_RATE / 1000.0);
 
-const long long BUFFER_SEND_INTERVAL_USECS = floorf((BUFFER_LENGTH_SAMPLES_PER_CHANNEL / SAMPLE_RATE) * 1000000);
+const unsigned int BUFFER_SEND_INTERVAL_USECS = floorf((BUFFER_LENGTH_SAMPLES_PER_CHANNEL / SAMPLE_RATE) * 1000000);
 
 const long MAX_SAMPLE_VALUE = std::numeric_limits<int16_t>::max();
 const long MIN_SAMPLE_VALUE = std::numeric_limits<int16_t>::min();
@@ -412,7 +412,7 @@ int main(int argc, const char* argv[]) {
             numStatCollections++;
         }
         
-        long long usecToSleep = usecTimestamp(&startTime) + (++nextFrame * BUFFER_SEND_INTERVAL_USECS) - usecTimestampNow();
+        int usecToSleep = usecTimestamp(&startTime) + (++nextFrame * BUFFER_SEND_INTERVAL_USECS) - usecTimestampNow();
         
         if (usecToSleep > 0) {
             usleep(usecToSleep);

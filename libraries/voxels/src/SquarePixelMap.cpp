@@ -3,12 +3,15 @@
 //  hifi
 //
 //  Created by Tomáš Horáček on 6/25/13.
-//
+//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
 
-#include "SquarePixelMap.h"
-#include <string.h>
+#include <algorithm>
+#include <stdint.h>
 #include <stdlib.h>
+#include <string.h>
+
+#include "SquarePixelMap.h"
 
 #define CHILD_COORD_X_IS_1 0x1
 #define CHILD_COORD_Y_IS_1 0x2
