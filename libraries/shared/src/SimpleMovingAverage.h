@@ -11,7 +11,7 @@
 #ifndef __hifi__Stats__
 #define __hifi__Stats__
 
-#include <iostream>
+#include <stdint.h>
 
 class SimpleMovingAverage {
 public:
