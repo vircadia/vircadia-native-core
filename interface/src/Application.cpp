@@ -904,15 +904,15 @@ void Application::wheelEvent(QWheelEvent* event) {
 
 void Application::sendPingPackets() {
 
-    char nodeTypesOfInterest[] = {NODE_TYPE_VOXEL_SERVER, NODE_TYPE_AUDIO_MIXER, NODE_TYPE_AVATAR_MIXER};
+    const char nodesToPing[] = {NODE_TYPE_VOXEL_SERVER, NODE_TYPE_AUDIO_MIXER, NODE_TYPE_AVATAR_MIXER};
 
     uint64_t currentTime = usecTimestampNow();
     unsigned char pingPacket[numBytesForPacketHeader((unsigned char*) &PACKET_TYPE_PING) + sizeof(currentTime)];
     int numHeaderBytes = populateTypeAndVersion(pingPacket, PACKET_TYPE_PING);
     
-    memcpy(&pingPacket[1], &currentTime, sizeof(currentTime));
-    getInstance()->controlledBroadcastToNodes(pingPacket, numHeaderBytes + sizeof(currentTime),
-                                              nodeTypesOfInterest, sizeof(nodeTypesOfInterest));
+    memcpy(pingPacket + numHeaderBytes, &currentTime, sizeof(currentTime));
+    getInstance()->controlledBroadcastToNodes(pingPacket, sizeof(pingPacket),
+                                              nodesToPing, sizeof(nodesToPing));
 }
 
 //  Every second, check the frame rates and other stuff

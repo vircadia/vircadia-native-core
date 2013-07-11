@@ -180,7 +180,7 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     unsigned char* startPosition = sourceBuffer;
     
     // push past the node ID
-    sourceBuffer += + sizeof(uint16_t);
+    sourceBuffer += sizeof(uint16_t);
     
     // Body world position
     memcpy(&_position, sourceBuffer, sizeof(float) * 3);
