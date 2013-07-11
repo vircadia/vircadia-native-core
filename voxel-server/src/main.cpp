@@ -123,11 +123,47 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
 
     int maxLevelReached = 0;
     uint64_t start = usecTimestampNow();
+    int truePacketsSent = 0;
+    int trueBytesSent = 0;
 
     // FOR NOW... node tells us if it wants to receive only view frustum deltas
     bool wantDelta = viewFrustumChanged && nodeData->getWantDelta();
-    bool wantColor = nodeData->getWantColor();
+
+    // If our packet already has content in it, then we must use the color choice of the waiting packet.    
+    // If we're starting a fresh packet, then... 
+    //     If we're moving, and the client asked for low res, then we force monochrome, otherwise, use 
+    //     the clients requested color state.
+    bool wantColor = ((nodeData->getWantLowResMoving() && viewFrustumChanged) ? false : nodeData->getWantColor());
+
+    // If we have a packet waiting, and our desired want color, doesn't match the current waiting packets color
+    // then let's just send that waiting packet.    
+    if (wantColor != nodeData->getCurrentPacketIsColor()) {
     
+        if (nodeData->isPacketWaiting()) {
+            if (::debugVoxelSending) {
+                printf("wantColor=%s --- SENDING PARTIAL PACKET! nodeData->getCurrentPacketIsColor()=%s\n", 
+                       debug::valueOf(wantColor), debug::valueOf(nodeData->getCurrentPacketIsColor()));
+            }
+            nodeList->getNodeSocket()->send(node->getActiveSocket(),
+                                            nodeData->getPacket(), nodeData->getPacketLength());
+            trueBytesSent += nodeData->getPacketLength();
+            truePacketsSent++;
+            nodeData->resetVoxelPacket();
+        } else {
+            if (::debugVoxelSending) {
+                printf("wantColor=%s --- FIXING HEADER! nodeData->getCurrentPacketIsColor()=%s\n", 
+                       debug::valueOf(wantColor), debug::valueOf(nodeData->getCurrentPacketIsColor()));
+            }
+            nodeData->resetVoxelPacket();
+        }
+    }
+    
+    if (::debugVoxelSending) {
+        printf("wantColor=%s getCurrentPacketIsColor()=%s, viewFrustumChanged=%s, getWantLowResMoving()=%s\n", 
+               debug::valueOf(wantColor), debug::valueOf(nodeData->getCurrentPacketIsColor()),
+               debug::valueOf(viewFrustumChanged), debug::valueOf(nodeData->getWantLowResMoving()));
+    }
+
     const ViewFrustum* lastViewFrustum =  wantDelta ? &nodeData->getLastKnownViewFrustum() : NULL;
 
     if (::debugVoxelSending) {
@@ -155,7 +191,7 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
                        debug::valueOf(nodeData->getWantOcclusionCulling()), debug::valueOf(wantDelta), 
                        debug::valueOf(wantColor));
             }
-            nodeData->setLastTimeBagEmpty(now);
+            nodeData->setLastTimeBagEmpty(now); // huh? why is this inside debug? probably not what we want
         }
                 
         // if our view has changed, we need to reset these things...
@@ -203,8 +239,6 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
         static unsigned char tempOutputBuffer[MAX_VOXEL_PACKET_SIZE - 1]; // save on allocs by making this static
         int bytesWritten = 0;
         int packetsSentThisInterval = 0;
-        int truePacketsSent = 0;
-        int trueBytesSent = 0;
         uint64_t start = usecTimestampNow();
 
         bool shouldSendEnvironments = shouldDo(ENVIRONMENT_SEND_INTERVAL_USECS, VOXEL_SEND_INTERVAL_USECS);
@@ -258,7 +292,6 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
                     trueBytesSent += nodeData->getPacketLength();
                     truePacketsSent++;
                     nodeData->resetVoxelPacket();
-                    
                 }
                 packetsSentThisInterval = PACKETS_PER_CLIENT_PER_INTERVAL; // done for now, no nodes left
             }

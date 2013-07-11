@@ -136,6 +136,7 @@ private slots:
     void doTrueVoxelColors();
     void doTreeStats();
     void setWantsMonochrome(bool wantsMonochrome);
+    void setWantsLowResMoving(bool wantsLowResMoving);
     void disableDeltaSending(bool disableDeltaSending);
     void disableOcclusionCulling(bool disableOcclusionCulling);
     void updateVoxelModeActions();
