@@ -361,7 +361,8 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
                 if (nodeData->getAvailable() >= bytesWritten) {
                     nodeData->writeToPacket(&tempOutputBuffer[0], bytesWritten);
                 } else {
-                    nodeList->getNodeSocket()->send(node->getActiveSocket(),nodeData->getPacket(), nodeData->getPacketLength());
+                    nodeList->getNodeSocket()->send(node->getActiveSocket(),
+                                                    nodeData->getPacket(), nodeData->getPacketLength());
                     trueBytesSent += nodeData->getPacketLength();
                     truePacketsSent++;
                     packetsSentThisInterval++;
@@ -370,7 +371,8 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
                 }
             } else {
                 if (nodeData->isPacketWaiting()) {
-                    nodeList->getNodeSocket()->send(node->getActiveSocket(),nodeData->getPacket(), nodeData->getPacketLength());
+                    nodeList->getNodeSocket()->send(node->getActiveSocket(),
+                                                    nodeData->getPacket(), nodeData->getPacketLength());
                     trueBytesSent += nodeData->getPacketLength();
                     truePacketsSent++;
                     nodeData->resetVoxelPacket();
