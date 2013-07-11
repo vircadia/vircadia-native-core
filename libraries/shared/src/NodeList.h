@@ -113,10 +113,6 @@ private:
     pthread_t checkInWithDomainServerThread;
     pthread_mutex_t mutex;
     
-    bool _printedDomainServerIP;
-    unsigned char* _checkInPacket;
-    int _checkInPacketSize;
-    
     void handlePingReply(sockaddr *nodeAddress);
     void timePingReply(sockaddr *nodeAddress, unsigned char *packetData);
 };
