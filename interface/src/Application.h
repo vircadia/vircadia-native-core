@@ -20,27 +20,27 @@
 #include <QList>
 
 #include <NodeList.h>
+#include <PacketHeaders.h>
 
-#include "BandwidthMeter.h"
-#include "ui/BandwidthDialog.h"
+#include <ViewFrustum.h>
 
 #ifndef _WIN32
 #include "Audio.h"
 #endif
 
+#include "BandwidthMeter.h"
 #include "Camera.h"
 #include "Environment.h"
-#include "HandControl.h"
 #include "SerialInterface.h"
 #include "Stars.h"
-#include "ViewFrustum.h"
-#include "VoxelSystem.h"
-#include "PacketHeaders.h"
-#include "Webcam.h"
-#include "renderer/GeometryCache.h"
-#include "ui/ChatEntry.h"
-#include "ToolsPalette.h"
 #include "Swatch.h"
+#include "ToolsPalette.h"
+#include "VoxelSystem.h"
+#include "Webcam.h"
+#include "avatar/HandControl.h"
+#include "renderer/GeometryCache.h"
+#include "ui/BandwidthDialog.h"
+#include "ui/ChatEntry.h"
 
 class QAction;
 class QActionGroup;

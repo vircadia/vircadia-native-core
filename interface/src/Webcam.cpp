@@ -148,7 +148,8 @@ Webcam::~Webcam() {
     delete _grabber;
 }
 
-void Webcam::setFrame(const Mat& frame, int format, const Mat& depth, const RotatedRect& faceRect, const JointVector& joints) {
+void Webcam::setFrame(const Mat& frame, int format, const Mat& depth, const Mat& depthPreview,
+        const RotatedRect& faceRect, const JointVector& joints) {
     IplImage image = frame;
     glPixelStorei(GL_UNPACK_ROW_LENGTH, image.widthStep / 3);
     if (_frameTextureID == 0) {
@@ -164,8 +165,8 @@ void Webcam::setFrame(const Mat& frame, int format, const Mat& depth, const Rota
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, _frameWidth, _frameHeight, format, GL_UNSIGNED_BYTE, image.imageData);
     }
     
-    if (!depth.empty()) {
-        IplImage depthImage = depth;
+    if (!depthPreview.empty()) {
+        IplImage depthImage = depthPreview;
         glPixelStorei(GL_UNPACK_ROW_LENGTH, depthImage.widthStep);
         if (_depthTextureID == 0) {
             glGenTextures(1, &_depthTextureID);
@@ -381,7 +382,7 @@ void FrameGrabber::grabFrame() {
         return;
     }
     int format = GL_BGR;
-    Mat frame;
+    Mat frame, depth;
     JointVector joints;
     
 #ifdef HAVE_OPENNI
@@ -390,7 +391,7 @@ void FrameGrabber::grabFrame() {
         frame = Mat(_imageMetaData.YRes(), _imageMetaData.XRes(), CV_8UC3, (void*)_imageGenerator.GetImageMap());
         format = GL_RGB;
         
-        Mat depth = Mat(_depthMetaData.YRes(), _depthMetaData.XRes(), CV_16UC1, (void*)_depthGenerator.GetDepthMap());
+        depth = Mat(_depthMetaData.YRes(), _depthMetaData.XRes(), CV_16UC1, (void*)_depthGenerator.GetDepthMap());
         const double EIGHT_BIT_MAX = 255;
         const double ELEVEN_BIT_MAX = 2047;
         depth.convertTo(_grayDepthFrame, CV_8UC1, EIGHT_BIT_MAX / ELEVEN_BIT_MAX);
@@ -476,7 +477,7 @@ void FrameGrabber::grabFrame() {
         _searchWindow = faceRect.boundingRect();
     }   
     QMetaObject::invokeMethod(Application::getInstance()->getWebcam(), "setFrame",
-        Q_ARG(cv::Mat, frame), Q_ARG(int, format), Q_ARG(cv::Mat, _grayDepthFrame),
+        Q_ARG(cv::Mat, frame), Q_ARG(int, format), Q_ARG(cv::Mat, depth), Q_ARG(cv::Mat, _grayDepthFrame),
         Q_ARG(cv::RotatedRect, faceRect), Q_ARG(JointVector, joints));
 }
 

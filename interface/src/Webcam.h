@@ -54,7 +54,7 @@ public slots:
     
     void setEnabled(bool enabled);
     void setFrame(const cv::Mat& video, int format, const cv::Mat& depth,
-        const cv::RotatedRect& faceRect, const JointVector& joints);
+        const cv::Mat& depthPreview, const cv::RotatedRect& faceRect, const JointVector& joints);
     
 private:
     

@@ -36,7 +36,7 @@ configure_file(InterfaceConfig.h.in ${PROJECT_BINARY_DIR}/includes/InterfaceConf
 
 # grab the implementation and header files from src dirs
 file(GLOB INTERFACE_SRCS src/*.cpp src/*.h)
-foreach(SUBDIR ui renderer)
+foreach(SUBDIR avatar ui renderer)
   file(GLOB SUBDIR_SRCS src/${SUBDIR}/*.cpp src/${SUBDIR}/*.h)
   set(INTERFACE_SRCS ${INTERFACE_SRCS} ${SUBDIR_SRCS})
 endforeach(SUBDIR)
@@ -75,7 +75,7 @@ add_subdirectory(external/fervor/)
 include_directories(external/fervor/)
 
 # run qt moc on qt-enabled headers
-qt4_wrap_cpp(INTERFACE_SRCS src/Application.h src/AvatarVoxelSystem.h src/Webcam.h src/ui/BandwidthDialog.h)
+qt4_wrap_cpp(INTERFACE_SRCS src/Application.h src/Webcam.h src/avatar/AvatarVoxelSystem.h src/ui/BandwidthDialog.h)
 
 # create the executable, make it a bundle on OS X
 add_executable(${TARGET_NAME} MACOSX_BUNDLE ${INTERFACE_SRCS})

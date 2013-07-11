@@ -14,7 +14,7 @@
 #include <StdDev.h>
 
 #include "Oscilloscope.h"
-#include "Avatar.h"
+#include "avatar/Avatar.h"
 
 static const int NUM_AUDIO_CHANNELS = 2;
 
