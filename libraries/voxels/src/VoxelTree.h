@@ -17,7 +17,7 @@
 #include "PointerStack.h"
 
 // Callback function, for recuseTreeWithOperation
-typedef bool (*RecurseVoxelTreeOperation)(VoxelNode* node, int level, void* extraData);
+typedef bool (*RecurseVoxelTreeOperation)(VoxelNode* node, void* extraData);
 typedef enum {GRADIENT, RANDOM, NATURAL} creationMode;
 
 #define NO_EXISTS_BITS         false
@@ -147,8 +147,8 @@ public:
     
     bool getShouldReaverage() const { return _shouldReaverage; }
 
-    void recurseNodeWithOperation(VoxelNode* node, int& level, RecurseVoxelTreeOperation operation, void* extraData);
-    void recurseNodeWithOperationDistanceSorted(VoxelNode* node, int& level, RecurseVoxelTreeOperation operation, 
+    void recurseNodeWithOperation(VoxelNode* node, RecurseVoxelTreeOperation operation, void* extraData);
+    void recurseNodeWithOperationDistanceSorted(VoxelNode* node, RecurseVoxelTreeOperation operation, 
                 const glm::vec3& point, void* extraData);
 
 
@@ -167,7 +167,7 @@ private:
                                        VoxelNode* node, const ViewFrustum& viewFrustum, VoxelNodeBag& bag,
                                        bool deltaViewFrustum, const ViewFrustum* lastViewFrustum);
 
-    static bool countVoxelsOperation(VoxelNode* node, int level, void* extraData);
+    static bool countVoxelsOperation(VoxelNode* node, void* extraData);
 
     VoxelNode* nodeForOctalCode(VoxelNode* ancestorNode, unsigned char* needleCode, VoxelNode** parentOfFoundNode) const;
     VoxelNode* createMissingNode(VoxelNode* lastParentNode, unsigned char* deepestCodeToCreate);

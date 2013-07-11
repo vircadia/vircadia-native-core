@@ -1298,7 +1298,7 @@ struct SendVoxelsOperationArgs {
 
 };
 
-bool Application::sendVoxelsOperation(VoxelNode* node, int level, void* extraData) {
+bool Application::sendVoxelsOperation(VoxelNode* node, void* extraData) {
     SendVoxelsOperationArgs* args = (SendVoxelsOperationArgs*)extraData;
     if (node->isColored()) {
         unsigned char* nodeOctalCode = node->getOctalCode();

@@ -64,7 +64,6 @@ void VoxelTree::recurseTreeWithOperationDistanceSortedTimed(PointerStack* stackO
                                                             RecurseVoxelTreeOperation operation, 
                                                             const glm::vec3& point, void* extraData) {
 
-    int ignored = 0;
     long long start = usecTimestampNow();
     
     // start case, stack empty, so start with root...
@@ -75,7 +74,7 @@ void VoxelTree::recurseTreeWithOperationDistanceSortedTimed(PointerStack* stackO
         VoxelNode* node = (VoxelNode*)stackOfNodes->top();
         stackOfNodes->pop();
     
-        if (operation(node, ignored, extraData)) {
+        if (operation(node, extraData)) {
 
             //sortChildren... CLOSEST to FURTHEST
             // determine the distance sorted order of our children
@@ -120,18 +119,16 @@ void VoxelTree::recurseTreeWithOperationDistanceSortedTimed(PointerStack* stackO
 // stops recursion if operation function returns false.
 void VoxelTree::recurseTreeWithOperation(RecurseVoxelTreeOperation operation, void* extraData) {
     int level = 0;
-    recurseNodeWithOperation(rootNode, level, operation, extraData);
+    recurseNodeWithOperation(rootNode, operation, extraData);
 }
 
 // Recurses voxel node with an operation function
-void VoxelTree::recurseNodeWithOperation(VoxelNode* node, int& level, RecurseVoxelTreeOperation operation, void* extraData) {
-    if (operation(node, level, extraData)) {
+void VoxelTree::recurseNodeWithOperation(VoxelNode* node, RecurseVoxelTreeOperation operation, void* extraData) {
+    if (operation(node, extraData)) {
         for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
             VoxelNode* child = node->getChildAtIndex(i);
             if (child) {
-                level++;
-                recurseNodeWithOperation(child, level, operation, extraData);
-                level--;
+                recurseNodeWithOperation(child, operation, extraData);
             }
         }
     }
@@ -142,14 +139,13 @@ void VoxelTree::recurseNodeWithOperation(VoxelNode* node, int& level, RecurseVox
 void VoxelTree::recurseTreeWithOperationDistanceSorted(RecurseVoxelTreeOperation operation,
                                                        const glm::vec3& point, void* extraData) {
 
-    int level = 0;
-    recurseNodeWithOperationDistanceSorted(rootNode, level, operation, point, extraData);
+    recurseNodeWithOperationDistanceSorted(rootNode, operation, point, extraData);
 }
 
 // Recurses voxel node with an operation function
-void VoxelTree::recurseNodeWithOperationDistanceSorted(VoxelNode* node, int& level, RecurseVoxelTreeOperation operation, 
+void VoxelTree::recurseNodeWithOperationDistanceSorted(VoxelNode* node, RecurseVoxelTreeOperation operation, 
                                                        const glm::vec3& point, void* extraData) {
-    if (operation(node, level, extraData)) {
+    if (operation(node, extraData)) {
         // determine the distance sorted order of our children
         VoxelNode*  sortedChildren[NUMBER_OF_CHILDREN];
         float       distancesToChildren[NUMBER_OF_CHILDREN];
@@ -174,9 +170,7 @@ void VoxelTree::recurseNodeWithOperationDistanceSorted(VoxelNode* node, int& lev
             if (childNode) {
                 //printLog("recurseNodeWithOperationDistanceSorted() PROCESSING child[%d] distance=%f...\n", i, distancesToChildren[i]);
                 //childNode->printDebugDetails("");
-                level++;
-                recurseNodeWithOperationDistanceSorted(childNode, level, operation, point, extraData);
-                level--;
+                recurseNodeWithOperationDistanceSorted(childNode, operation, point, extraData);
             }
         }
     }
@@ -921,7 +915,7 @@ public:
     bool found;
 };
 
-bool findRayIntersectionOp(VoxelNode* node, int level, void* extraData) {
+bool findRayIntersectionOp(VoxelNode* node, void* extraData) {
     RayArgs* args = static_cast<RayArgs*>(extraData);
     AABox box = node->getAABox();
     float distance;
@@ -957,7 +951,7 @@ public:
     bool found;
 };
 
-bool findSpherePenetrationOp(VoxelNode* node, int level, void* extraData) {
+bool findSpherePenetrationOp(VoxelNode* node, void* extraData) {
     SphereArgs* args = static_cast<SphereArgs*>(extraData);
 
     // coarse check against bounds
@@ -994,7 +988,7 @@ public:
     bool found;
 };
 
-bool findCapsulePenetrationOp(VoxelNode* node, int level, void* extraData) {
+bool findCapsulePenetrationOp(VoxelNode* node, void* extraData) {
     CapsuleArgs* args = static_cast<CapsuleArgs*>(extraData);
 
     // coarse check against bounds
@@ -1672,7 +1666,7 @@ unsigned long VoxelTree::getVoxelCount() {
     return nodeCount;
 }
 
-bool VoxelTree::countVoxelsOperation(VoxelNode* node, int level, void* extraData) {
+bool VoxelTree::countVoxelsOperation(VoxelNode* node, void* extraData) {
     (*(unsigned long*)extraData)++;
     return true; // keep going
 }

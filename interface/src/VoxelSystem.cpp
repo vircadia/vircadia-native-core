@@ -701,7 +701,7 @@ void VoxelSystem::killLocalVoxels() {
 }
 
 
-bool VoxelSystem::randomColorOperation(VoxelNode* node, int level, void* extraData) {
+bool VoxelSystem::randomColorOperation(VoxelNode* node, void* extraData) {
     _nodeCount++;
     if (node->isColored()) {
         nodeColor newColor = { 255, randomColorValue(150), randomColorValue(150), 1 };
@@ -717,7 +717,7 @@ void VoxelSystem::randomizeVoxelColors() {
     setupNewVoxelsForDrawing();
 }
 
-bool VoxelSystem::falseColorizeRandomOperation(VoxelNode* node, int level, void* extraData) {
+bool VoxelSystem::falseColorizeRandomOperation(VoxelNode* node, void* extraData) {
     _nodeCount++;
     // always false colorize
     node->setFalseColor(255, randomColorValue(150), randomColorValue(150));
@@ -731,7 +731,7 @@ void VoxelSystem::falseColorizeRandom() {
     setupNewVoxelsForDrawing();
 }
 
-bool VoxelSystem::trueColorizeOperation(VoxelNode* node, int level, void* extraData) {
+bool VoxelSystem::trueColorizeOperation(VoxelNode* node, void* extraData) {
     _nodeCount++;
     node->setFalseColored(false);
     return true;
@@ -746,7 +746,7 @@ void VoxelSystem::trueColorize() {
 }
 
 // Will false colorize voxels that are not in view
-bool VoxelSystem::falseColorizeInViewOperation(VoxelNode* node, int level, void* extraData) {
+bool VoxelSystem::falseColorizeInViewOperation(VoxelNode* node, void* extraData) {
     const ViewFrustum* viewFrustum = (const ViewFrustum*) extraData;
     _nodeCount++;
     if (node->isColored()) {
@@ -766,7 +766,7 @@ void VoxelSystem::falseColorizeInView(ViewFrustum* viewFrustum) {
 }
 
 // Will false colorize voxels based on distance from view
-bool VoxelSystem::falseColorizeDistanceFromViewOperation(VoxelNode* node, int level, void* extraData) {
+bool VoxelSystem::falseColorizeDistanceFromViewOperation(VoxelNode* node, void* extraData) {
     ViewFrustum* viewFrustum = (ViewFrustum*) extraData;
     if (node->isColored()) {
         float distance = node->distanceToCamera(*viewFrustum);
@@ -789,7 +789,7 @@ float VoxelSystem::_minDistance = FLT_MAX;
 // Helper function will get the distance from view range, would be nice if you could just keep track
 // of this as voxels are created and/or colored... seems like some transform math could do that so
 // we wouldn't need to do two passes of the tree
-bool VoxelSystem::getDistanceFromViewRangeOperation(VoxelNode* node, int level, void* extraData) {
+bool VoxelSystem::getDistanceFromViewRangeOperation(VoxelNode* node, void* extraData) {
     ViewFrustum* viewFrustum = (ViewFrustum*) extraData;
     // only do this for truly colored voxels...
     if (node->isColored()) {
@@ -842,7 +842,7 @@ public:
 
 // "Remove" voxels from the tree that are not in view. We don't actually delete them,
 // we remove them from the tree and place them into a holding area for later deletion
-bool VoxelSystem::removeOutOfViewOperation(VoxelNode* node, int level, void* extraData) {
+bool VoxelSystem::removeOutOfViewOperation(VoxelNode* node, void* extraData) {
     removeOutOfViewArgs* args = (removeOutOfViewArgs*)extraData;
 
     // If our node was previously added to the don't recurse bag, then return false to
@@ -977,7 +977,7 @@ public:
     bool colorThis;
 };
 
-bool VoxelSystem::falseColorizeRandomEveryOtherOperation(VoxelNode* node, int level, void* extraData) {
+bool VoxelSystem::falseColorizeRandomEveryOtherOperation(VoxelNode* node, void* extraData) {
     falseColorizeRandomEveryOtherArgs* args = (falseColorizeRandomEveryOtherArgs*)extraData;
     args->totalNodes++;
     if (node->isColored()) {
@@ -1030,7 +1030,7 @@ public:
     bool hasIndexFound[MAX_VOXELS_PER_SYSTEM];
 };
 
-bool VoxelSystem::collectStatsForTreesAndVBOsOperation(VoxelNode* node, int level, void* extraData) {
+bool VoxelSystem::collectStatsForTreesAndVBOsOperation(VoxelNode* node, void* extraData) {
     collectStatsForTreesAndVBOsArgs* args = (collectStatsForTreesAndVBOsArgs*)extraData;
     args->totalNodes++;
 
@@ -1182,7 +1182,7 @@ struct FalseColorizeSubTreeOperationArgs {
     long voxelsTouched;
 };
 
-bool VoxelSystem::falseColorizeSubTreeOperation(VoxelNode* node, int level, void* extraData) {
+bool VoxelSystem::falseColorizeSubTreeOperation(VoxelNode* node, void* extraData) {
     if (node->getShouldRender()) {
         FalseColorizeSubTreeOperationArgs* args = (FalseColorizeSubTreeOperationArgs*) extraData;
         node->setFalseColor(args->color[0], args->color[1], args->color[2]);
@@ -1191,7 +1191,7 @@ bool VoxelSystem::falseColorizeSubTreeOperation(VoxelNode* node, int level, void
     return true;    
 }
 
-bool VoxelSystem::falseColorizeOccludedOperation(VoxelNode* node, int level, void* extraData) {
+bool VoxelSystem::falseColorizeOccludedOperation(VoxelNode* node, void* extraData) {
 
     FalseColorizeOccludedArgs* args = (FalseColorizeOccludedArgs*) extraData;
     args->totalVoxels++;
@@ -1228,7 +1228,7 @@ bool VoxelSystem::falseColorizeOccludedOperation(VoxelNode* node, int level, voi
             subArgs.color[2] = 0;
             subArgs.voxelsTouched = 0;
             
-            args->tree->recurseNodeWithOperation(node, level, falseColorizeSubTreeOperation, &subArgs );
+            args->tree->recurseNodeWithOperation(node, falseColorizeSubTreeOperation, &subArgs );
             
             args->subtreeVoxelsSkipped += (subArgs.voxelsTouched - 1);
             args->totalVoxels += (subArgs.voxelsTouched - 1);
@@ -1312,7 +1312,7 @@ void VoxelSystem::falseColorizeOccluded() {
     setupNewVoxelsForDrawing();
 }
 
-bool VoxelSystem::falseColorizeOccludedV2Operation(VoxelNode* node, int level, void* extraData) {
+bool VoxelSystem::falseColorizeOccludedV2Operation(VoxelNode* node, void* extraData) {
 
     FalseColorizeOccludedArgs* args = (FalseColorizeOccludedArgs*) extraData;
     args->totalVoxels++;
@@ -1349,7 +1349,7 @@ bool VoxelSystem::falseColorizeOccludedV2Operation(VoxelNode* node, int level, v
             subArgs.color[2] = 0;
             subArgs.voxelsTouched = 0;
             
-            args->tree->recurseNodeWithOperation(node, level, falseColorizeSubTreeOperation, &subArgs );
+            args->tree->recurseNodeWithOperation(node, falseColorizeSubTreeOperation, &subArgs );
             
             args->subtreeVoxelsSkipped += (subArgs.voxelsTouched - 1);
             args->totalVoxels += (subArgs.voxelsTouched - 1);

@@ -170,7 +170,7 @@ private:
                                            const char* nodeTypes, int numNodeTypes);
 
     static void sendVoxelServerAddScene();
-    static bool sendVoxelsOperation(VoxelNode* node, int level, void* extraData);
+    static bool sendVoxelsOperation(VoxelNode* node, void* extraData);
     static void sendVoxelEditMessage(PACKET_HEADER header, VoxelDetail& detail);
     static void sendAvatarVoxelURLMessage(const QUrl& url);
     static void processAvatarVoxelURLMessage(unsigned char *packetData, size_t dataBytes);

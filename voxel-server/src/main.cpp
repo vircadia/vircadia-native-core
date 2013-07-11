@@ -415,6 +415,9 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
         if (nodeData->nodeBag.isEmpty()) {
             nodeData->updateLastKnownViewFrustum();
             nodeData->setViewSent(true);
+            if (::debugVoxelSending) {
+                nodeData->map.printStats();
+            }
             nodeData->map.erase(); // It would be nice if we could save this, and only reset it when the view frustum changes
         }
         
@@ -808,7 +811,7 @@ struct CountSubTreeOperationArgs {
 };
 
 
-bool scanTreeWithOcclusionOperation(VoxelNode* node, int level, void* extraData) {
+bool scanTreeWithOcclusionOperation(VoxelNode* node, void* extraData) {
     
     ScanTreeArgs* args = (ScanTreeArgs*) extraData;
     
