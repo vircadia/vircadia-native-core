@@ -93,7 +93,7 @@ int main(int argc, const char * argv[])
             
             int numBytesSenderHeader = numBytesForPacketHeader(packetData);
             
-            nodeType = packetData[1];
+            nodeType = *(packetData + numBytesSenderHeader);
             int numBytesSocket = unpackSocket(packetData + numBytesSenderHeader + sizeof(NODE_TYPE),
                                               (sockaddr*) &nodeLocalAddress);
             
