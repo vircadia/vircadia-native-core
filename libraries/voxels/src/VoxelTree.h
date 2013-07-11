@@ -45,6 +45,8 @@ public:
     bool                deltaViewFrustum;
     const ViewFrustum*  lastViewFrustum;
     bool                wantOcclusionCulling;
+    long                childWasInViewDiscarded;
+
     CoverageMap*        map;
     
     EncodeBitstreamParams(
@@ -66,6 +68,7 @@ public:
             deltaViewFrustum    (deltaViewFrustum),
             lastViewFrustum     (lastViewFrustum),
             wantOcclusionCulling(wantOcclusionCulling),
+            childWasInViewDiscarded(0),
             map                 (map)
     {}
 };

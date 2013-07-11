@@ -1331,10 +1331,6 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
                 } // wants occlusion culling & isLeaf()
 
 
-                bool childWasInView = (childNode && params.deltaViewFrustum &&
-
-                                      (params.lastViewFrustum && ViewFrustum::INSIDE == childNode->inFrustum(*params.lastViewFrustum)));
-
                 // There are two types of nodes for which we want to send colors:
                 // 1) Leaves - obviously
                 // 2) Non-leaves who's children would be visible and beyond our LOD.
@@ -1360,15 +1356,34 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
                     }
                     // if any of our grandchildren ARE in view, then we don't want to include our color. If none are, then
                     // we do want to include our color
-                    if (grandChildrenInView > 0 && grandChildrenInLOD==0) {
+                    if (grandChildrenInView > 0 && grandChildrenInLOD == 0) {
                         isLeafOrLOD = true;
                     }
                 }
                 
                 // track children with actual color, only if the child wasn't previously in view!
-                if (childNode && isLeafOrLOD && childNode->isColored() && !childWasInView && !childIsOccluded) {
-                    childrenColoredBits += (1 << (7 - originalIndex));
-                    inViewWithColorCount++;
+                if (childNode && isLeafOrLOD && childNode->isColored() && !childIsOccluded) {
+                    bool childWasInView = false;
+                    
+                    if (childNode && params.deltaViewFrustum && params.lastViewFrustum) {
+                        ViewFrustum::location location = childNode->inFrustum(*params.lastViewFrustum);
+                        
+                        // If we're a leaf, then either intersect or inside is considered "formerly in view"
+                        if (childNode->isLeaf()) {
+                            childWasInView = location != ViewFrustum::OUTSIDE;
+                        } else {
+                            childWasInView = location == ViewFrustum::INSIDE;
+                        }
+                    }                    
+
+                    // If our child wasn't in view (or we're ignoring wasInView) then we add it to our sending items
+                    if (!childWasInView) {
+                        childrenColoredBits += (1 << (7 - originalIndex));
+                        inViewWithColorCount++;
+                    } else {
+                        // otherwise just track stats of the items we discarded
+                        params.childWasInViewDiscarded++;
+                    }
                 }
             }
         }

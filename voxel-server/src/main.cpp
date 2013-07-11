@@ -127,7 +127,7 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
     long long start = usecTimestampNow();
 
     // FOR NOW... node tells us if it wants to receive only view frustum deltas
-    bool wantDelta = nodeData->getWantDelta();
+    bool wantDelta = viewFrustumChanged && nodeData->getWantDelta();
     const ViewFrustum* lastViewFrustum =  wantDelta ? &nodeData->getLastKnownViewFrustum() : NULL;
 
     if (::debugVoxelSending) {
@@ -233,6 +233,10 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
 
                 bytesWritten = serverTree.encodeTreeBitstream(subTree, &tempOutputBuffer[0], MAX_VOXEL_PACKET_SIZE - 1,
                                                               nodeData->nodeBag, params);
+
+                if (::debugVoxelSending && wantDelta) {
+                    printf("encodeTreeBitstream() childWasInViewDiscarded=%ld\n", params.childWasInViewDiscarded);
+                }
                 
                 if (nodeData->getAvailable() >= bytesWritten) {
                     nodeData->writeToPacket(&tempOutputBuffer[0], bytesWritten);
