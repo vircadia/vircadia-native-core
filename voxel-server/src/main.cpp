@@ -128,6 +128,8 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
 
     // FOR NOW... node tells us if it wants to receive only view frustum deltas
     bool wantDelta = viewFrustumChanged && nodeData->getWantDelta();
+    bool wantColor = nodeData->getWantColor();
+    
     const ViewFrustum* lastViewFrustum =  wantDelta ? &nodeData->getLastKnownViewFrustum() : NULL;
 
     if (::debugVoxelSending) {
@@ -227,7 +229,7 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
                 bool wantOcclusionCulling = nodeData->getWantOcclusionCulling();
                 CoverageMap* coverageMap = wantOcclusionCulling ? &nodeData->map : IGNORE_COVERAGE_MAP;
                 
-                EncodeBitstreamParams params(INT_MAX, &nodeData->getCurrentViewFrustum(), nodeData->getWantColor(), 
+                EncodeBitstreamParams params(INT_MAX, &nodeData->getCurrentViewFrustum(), wantColor, 
                                              WANT_EXISTS_BITS, DONT_CHOP, wantDelta, lastViewFrustum,
                                              wantOcclusionCulling, coverageMap);
 

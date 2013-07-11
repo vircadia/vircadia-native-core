@@ -67,6 +67,7 @@ private:
     ViewFrustum _currentViewFrustum;
     ViewFrustum _lastKnownViewFrustum;
     long long _lastTimeBagEmpty;
+    bool _viewFrustumChanging;
 
 };
 

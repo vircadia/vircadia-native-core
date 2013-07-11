@@ -1182,7 +1182,26 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
         if (!node->isInView(*params.viewFrustum)) {
             return bytesAtThisLevel;
         }
+        
+        // Ok, we are in view, but if we're in delta mode, then we also want to make sure we weren't already in view
+        // because we don't send nodes from the previously know in view frustum.
+        bool wasInView = false;
+        
+        if (params.deltaViewFrustum && params.lastViewFrustum) {
+            ViewFrustum::location location = node->inFrustum(*params.lastViewFrustum);
+            
+            // If we're a leaf, then either intersect or inside is considered "formerly in view"
+            if (node->isLeaf()) {
+                wasInView = location != ViewFrustum::OUTSIDE;
+            } else {
+                wasInView = location == ViewFrustum::INSIDE;
+            }
+        }
 
+        // If we were in view, then bail out early!        
+        if (wasInView) {
+            return bytesAtThisLevel;
+        }            
 
         // If the user also asked for occlusion culling, check if this node is occluded, but only if it's not a leaf.
         // leaf occlusion is handled down below when we check child nodes
@@ -1200,16 +1219,9 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
                 CoverageMapStorageResult result = params.map->checkMap(voxelPolygon, false);
                 delete voxelPolygon; // cleanup
                 if (result == OCCLUDED) {
-                    //node->printDebugDetails("upper section, non-Leaf is occluded!! node=");
-                    //args->nonLeavesOccluded++;
-
-                    //args->subtreeVoxelsSkipped += (subArgs.voxelsTouched - 1);
-                    //args->totalVoxels += (subArgs.voxelsTouched - 1);
-
                     return bytesAtThisLevel;
                 }
             } else {
-                //node->printDebugDetails("upper section, shadow Not in view node=");
                 // If this shadow wasn't "all in view" then we ignored it for occlusion culling, but
                 // we do need to clean up memory and proceed as normal...
                 delete voxelPolygon;

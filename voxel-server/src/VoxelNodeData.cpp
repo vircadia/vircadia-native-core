@@ -17,7 +17,8 @@ VoxelNodeData::VoxelNodeData(Node* owningNode) :
     _voxelPacketAvailableBytes(MAX_VOXEL_PACKET_SIZE),
     _maxSearchLevel(1),
     _maxLevelReachedInLastSearch(1),
-    _lastTimeBagEmpty(0)
+    _lastTimeBagEmpty(0),
+    _viewFrustumChanging(false)
 {
     _voxelPacket = new unsigned char[MAX_VOXEL_PACKET_SIZE];
     _voxelPacketAt = _voxelPacket;
@@ -27,7 +28,8 @@ VoxelNodeData::VoxelNodeData(Node* owningNode) :
 
 
 void VoxelNodeData::resetVoxelPacket() {
-    _voxelPacket[0] = getWantColor() ? PACKET_HEADER_VOXEL_DATA : PACKET_HEADER_VOXEL_DATA_MONOCHROME;
+    bool wantColor = getWantColor();
+    _voxelPacket[0] = wantColor ? PACKET_HEADER_VOXEL_DATA : PACKET_HEADER_VOXEL_DATA_MONOCHROME;
     _voxelPacketAt = &_voxelPacket[1];
     _voxelPacketAvailableBytes = MAX_VOXEL_PACKET_SIZE - 1;
     _voxelPacketWaiting = false;
@@ -63,6 +65,7 @@ bool VoxelNodeData::updateCurrentViewFrustum() {
         _currentViewFrustum.calculate();
         currentViewFrustumChanged = true;
     }
+    _viewFrustumChanging = currentViewFrustumChanged;
     return currentViewFrustumChanged;
 }
 
