@@ -32,8 +32,8 @@ int rotatedRectMetaType = qRegisterMetaType<RotatedRect>("cv::RotatedRect");
 
 Webcam::Webcam() : _enabled(false), _active(false), _frameTextureID(0), _depthTextureID(0) {
     // the grabber simply runs as fast as possible
-    _grabber = new FrameGrabber();
-    _grabber->moveToThread(&_grabberThread);
+    //_grabber = new FrameGrabber();
+    //_grabber->moveToThread(&_grabberThread);
 }
 
 void Webcam::setEnabled(bool enabled) {
@@ -41,6 +41,8 @@ void Webcam::setEnabled(bool enabled) {
         return;
     }
     if ((_enabled = enabled)) {
+        _grabber = new FrameGrabber();
+        _grabber->moveToThread(&_grabberThread);
         _grabberThread.start();
         _startTimestamp = 0;
         _frameCount = 0;
@@ -50,7 +52,9 @@ void Webcam::setEnabled(bool enabled) {
         QMetaObject::invokeMethod(_grabber, "grabFrame");
     
     } else {
+        _grabber->deleteLater();
         _grabberThread.quit();
+        _grabber = 0;
         _active = false;
     }
 }
@@ -145,7 +149,9 @@ Webcam::~Webcam() {
     _grabberThread.quit();
     _grabberThread.wait();
     
-    delete _grabber;
+    if (_grabber != 0) {
+        delete _grabber;
+    }
 }
 
 void Webcam::setFrame(const Mat& frame, int format, const Mat& depth, const RotatedRect& faceRect, const JointVector& joints) {
@@ -268,6 +274,7 @@ FrameGrabber::FrameGrabber() : _initialized(false), _capture(0), _searchWindow(0
 
 FrameGrabber::~FrameGrabber() {
     if (_capture != 0) {
+        qDebug() << "Releasing.";
         cvReleaseCapture(&_capture);
     }
 }
