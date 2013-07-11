@@ -335,7 +335,7 @@ void NodeList::sendAssignmentRequest() {
     static sockaddr_in assignmentServerSocket = socketForHostname(ASSIGNMENT_SERVER_HOSTNAME);
     assignmentServerSocket.sin_port = htons(ASSIGNMENT_SERVER_PORT);
     
-    _nodeSocket.send((sockaddr*) &assignmentServerSocket, &PACKET_HEADER_REQUEST_ASSIGNMENT, 1);
+    _nodeSocket.send((sockaddr*) &assignmentServerSocket, &PACKET_TYPE_REQUEST_ASSIGNMENT, 1);
 }
 
 Node* NodeList::addOrUpdateNode(sockaddr* publicSocket, sockaddr* localSocket, char nodeType, uint16_t nodeId) {

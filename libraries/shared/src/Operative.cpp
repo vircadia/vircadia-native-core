@@ -113,7 +113,7 @@ void Operative::removeOldBug() {
     }
     
     // send the "erase message" first...
-    PACKET_HEADER message = PACKET_HEADER_ERASE_VOXEL;
+    PACKET_TYPE message = PACKET_TYPE_ERASE_VOXEL;
     if (createVoxelEditMessage(message, 0, VOXELS_PER_BUG, (VoxelDetail*)&details, bufferOut, sizeOut)){
         
         _packetsSent++;
@@ -182,7 +182,7 @@ void Operative::renderMovingBug() {
     }
     
     // send the "create message" ...
-    PACKET_HEADER message = PACKET_HEADER_SET_VOXEL_DESTRUCTIVE;
+    PACKET_TYPE message = PACKET_TYPE_SET_VOXEL_DESTRUCTIVE;
     if (createVoxelEditMessage(message, 0, VOXELS_PER_BUG, (VoxelDetail*)&details, bufferOut, sizeOut)){
         
         _packetsSent++;
@@ -235,7 +235,7 @@ void Operative::run() {
         if (usecToSleep > 0) {
             usleep(usecToSleep);
         } else {
-            std::cout << "Last send took too much time, not sleeping!\n";
+            printf("Last send took too much time, not sleeping!\n");
         }
     }
     
