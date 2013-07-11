@@ -110,7 +110,7 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
                 ? PACKET_TYPE_MICROPHONE_AUDIO_WITH_ECHO
                 : PACKET_TYPE_MICROPHONE_AUDIO_NO_ECHO;
             
-            unsigned char *currentPacketPtr = dataPacket + populateTypeAndVersion(dataPacket, packetType);
+            unsigned char* currentPacketPtr = dataPacket + populateTypeAndVersion(dataPacket, packetType);
             
             // memcpy the three float positions
             memcpy(currentPacketPtr, &headPosition, sizeof(headPosition));
