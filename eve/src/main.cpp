@@ -49,9 +49,10 @@ void *receiveNodeData(void *args) {
     NodeList* nodeList = NodeList::getInstance();
     
     while (!::stopReceiveNodeDataThread) {
-        if (nodeList->getNodeSocket()->receive(&senderAddress, incomingPacket, &bytesReceived)) { 
+        if (nodeList->getNodeSocket()->receive(&senderAddress, incomingPacket, &bytesReceived) &&
+            packetVersionMatch(incomingPacket)) {
             switch (incomingPacket[0]) {
-                case PACKET_HEADER_BULK_AVATAR_DATA:
+                case PACKET_TYPE_BULK_AVATAR_DATA:
                     // this is the positional data for other nodes
                     // pass that off to the nodeList processBulkNodeData method
                     nodeList->processBulkNodeData(&senderAddress, incomingPacket, bytesReceived);
@@ -84,9 +85,6 @@ int main(int argc, const char* argv[]) {
     
     // start the node list thread that will kill off nodes when they stop talking
     nodeList->startSilentNodeRemovalThread();
-    
-    // start the ping thread that hole punches to create an active connection to other nodes
-    nodeList->startPingUnknownNodesThread();
     
     pthread_t receiveNodeDataThread;
     pthread_create(&receiveNodeDataThread, NULL, receiveNodeData, NULL);
@@ -125,7 +123,7 @@ int main(int argc, const char* argv[]) {
     nodeList->linkedDataCreateCallback = createAvatarDataForNode;
     
     unsigned char broadcastPacket[MAX_PACKET_SIZE];
-    broadcastPacket[0] = PACKET_HEADER_HEAD_DATA;
+    int numHeaderBytes = populateTypeAndVersion(broadcastPacket, PACKET_TYPE_HEAD_DATA);
     
     timeval thisSend;
     int numMicrosecondsSleep = 0;
@@ -153,7 +151,7 @@ int main(int argc, const char* argv[]) {
         
         // make sure we actually have an avatar mixer with an active socket
         if (nodeList->getOwnerID() != UNKNOWN_NODE_ID && avatarMixer && avatarMixer->getActiveSocket() != NULL) {
-            unsigned char* packetPosition = broadcastPacket + sizeof(PACKET_HEADER);
+            unsigned char* packetPosition = broadcastPacket + numHeaderBytes;
             packetPosition += packNodeId(packetPosition, nodeList->getOwnerID());
             
             // use the getBroadcastData method in the AvatarData class to populate the broadcastPacket buffer
@@ -210,6 +208,5 @@ int main(int argc, const char* argv[]) {
     pthread_join(receiveNodeDataThread, NULL);
     
     // stop the node list's threads
-    nodeList->stopPingUnknownNodesThread();
     nodeList->stopSilentNodeRemovalThread();
 }
