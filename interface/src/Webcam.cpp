@@ -197,8 +197,8 @@ void Webcam::setFrame(const Mat& frame, int format, const Mat& depth, const Rota
     
     const int MAX_FPS = 60;
     const int MIN_FRAME_DELAY = 1000000 / MAX_FPS;
-    long long now = usecTimestampNow();
-    long long remaining = MIN_FRAME_DELAY;
+    uint64_t now = usecTimestampNow();
+    int remaining = MIN_FRAME_DELAY;
     if (_startTimestamp == 0) {
         _startTimestamp = now;
     } else {

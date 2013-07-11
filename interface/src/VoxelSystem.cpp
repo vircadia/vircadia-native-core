@@ -23,6 +23,7 @@
 #include "Log.h"
 #include "VoxelConstants.h"
 #include "CoverageMap.h"
+#include "CoverageMapV2.h"
 #include "InterfaceConfig.h"
 #include "renderer/ProgramObject.h"
 
@@ -168,17 +169,17 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
 
 void VoxelSystem::setupNewVoxelsForDrawing() {
     PerformanceWarning warn(_renderWarningsOn, "setupNewVoxelsForDrawing()"); // would like to include _voxelsInArrays, _voxelsUpdated
-    long long start = usecTimestampNow();
-    long long sinceLastTime = (start - _setupNewVoxelsForDrawingLastFinished) / 1000;
+    uint64_t start = usecTimestampNow();
+    uint64_t sinceLastTime = (start - _setupNewVoxelsForDrawingLastFinished) / 1000;
 
     bool iAmDebugging = false;  // if you're debugging set this to true, so you won't get skipped for slow debugging
-    if (!iAmDebugging && sinceLastTime <= std::max(_setupNewVoxelsForDrawingLastElapsed, SIXTY_FPS_IN_MILLISECONDS)) {
+    if (!iAmDebugging && sinceLastTime <= std::max((float) _setupNewVoxelsForDrawingLastElapsed, SIXTY_FPS_IN_MILLISECONDS)) {
         return; // bail early, it hasn't been long enough since the last time we ran
     }
 
-    long long sinceLastViewCulling = (start - _lastViewCulling) / 1000;
+    uint64_t sinceLastViewCulling = (start - _lastViewCulling) / 1000;
     // If the view frustum is no longer changing, but has changed, since last time, then remove nodes that are out of view
-    if ((sinceLastViewCulling >= std::max(_lastViewCullingElapsed, VIEW_CULLING_RATE_IN_MILLISECONDS)) 
+    if ((sinceLastViewCulling >= std::max((float) _lastViewCullingElapsed, VIEW_CULLING_RATE_IN_MILLISECONDS))
             && !isViewChanging() && hasViewChanged()) {
         _lastViewCulling = start;
 
@@ -192,7 +193,7 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
         // VBO reubuilding. Possibly we should do this only if our actual VBO usage crosses some lower boundary.
         cleanupRemovedVoxels();
 
-        long long endViewCulling = usecTimestampNow();
+        uint64_t endViewCulling = usecTimestampNow();
         _lastViewCullingElapsed = (endViewCulling - start) / 1000;
     }    
     
@@ -229,8 +230,8 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
 
     pthread_mutex_unlock(&_bufferWriteLock);
 
-    long long end = usecTimestampNow();
-    long long elapsedmsec = (end - start) / 1000;
+    uint64_t end = usecTimestampNow();
+    int elapsedmsec = (end - start) / 1000;
     _setupNewVoxelsForDrawingLastFinished = end;
     _setupNewVoxelsForDrawingLastElapsed = elapsedmsec;
 }
@@ -1089,13 +1090,13 @@ void VoxelSystem::collectStatsForTreesAndVBOs() {
     args.expectedMax = _voxelsInWriteArrays;
     _tree->recurseTreeWithOperation(collectStatsForTreesAndVBOsOperation,&args);
 
-    printLog("_voxelsDirty=%s _voxelsInWriteArrays=%ld minDirty=%ld maxDirty=%ld \n", debug::valueOf(_voxelsDirty),
-        _voxelsInWriteArrays, minDirty, maxDirty);
-
-    printLog("stats: total %ld, leaves %ld, dirty %ld, colored %ld, shouldRender %ld, inVBO %ld\n",
+    printLog("Local Voxel Tree Statistics:\n total nodes %ld \n leaves %ld \n dirty %ld \n colored %ld \n shouldRender %ld \n",
         args.totalNodes, args.leafNodes, args.dirtyNodes, args.coloredNodes, args.shouldRenderNodes);
 
-    printLog("inVBO %ld, nodesInVBOOverExpectedMax %ld, duplicateVBOIndex %ld, nodesInVBONotShouldRender %ld\n", 
+    printLog(" _voxelsDirty=%s \n _voxelsInWriteArrays=%ld \n minDirty=%ld \n maxDirty=%ld \n", debug::valueOf(_voxelsDirty),
+        _voxelsInWriteArrays, minDirty, maxDirty);
+
+    printLog(" inVBO %ld \n nodesInVBOOverExpectedMax %ld \n duplicateVBOIndex %ld \n nodesInVBONotShouldRender %ld \n", 
         args.nodesInVBO, args.nodesInVBOOverExpectedMax, args.duplicateVBOIndex, args.nodesInVBONotShouldRender);
 
     glBufferIndex minInVBO = GLBUFFER_INDEX_UNKNOWN;
@@ -1108,7 +1109,7 @@ void VoxelSystem::collectStatsForTreesAndVBOs() {
         }
     }
 
-    printLog("minInVBO=%ld maxInVBO=%ld _voxelsInWriteArrays=%ld _voxelsInReadArrays=%ld\n", 
+    printLog(" minInVBO=%ld \n maxInVBO=%ld \n _voxelsInWriteArrays=%ld \n _voxelsInReadArrays=%ld \n", 
             minInVBO, maxInVBO, _voxelsInWriteArrays, _voxelsInReadArrays);
 
 }
@@ -1162,6 +1163,7 @@ void VoxelSystem::copyFromTreeIntoSubTree(VoxelTree* sourceTree, VoxelNode* dest
 struct FalseColorizeOccludedArgs {
     ViewFrustum* viewFrustum;
     CoverageMap* map;
+    CoverageMapV2* mapV2;
     VoxelTree* tree;
     long totalVoxels;
     long coloredVoxels;
@@ -1181,9 +1183,11 @@ struct FalseColorizeSubTreeOperationArgs {
 };
 
 bool VoxelSystem::falseColorizeSubTreeOperation(VoxelNode* node, void* extraData) {
-    FalseColorizeSubTreeOperationArgs* args = (FalseColorizeSubTreeOperationArgs*) extraData;
-    node->setFalseColor(args->color[0], args->color[1], args->color[2]);
-    args->voxelsTouched++;
+    if (node->getShouldRender()) {
+        FalseColorizeSubTreeOperationArgs* args = (FalseColorizeSubTreeOperationArgs*) extraData;
+        node->setFalseColor(args->color[0], args->color[1], args->color[2]);
+        args->voxelsTouched++;
+    }
     return true;    
 }
 
@@ -1263,12 +1267,143 @@ bool VoxelSystem::falseColorizeOccludedOperation(VoxelNode* node, void* extraDat
     }
     return true; // keep going!
 }
+
 void VoxelSystem::falseColorizeOccluded() {
     PerformanceWarning warn(true, "falseColorizeOccluded()",true);
-    CoverageMap map;
+    myCoverageMap.erase();
+    
     FalseColorizeOccludedArgs args;
     args.viewFrustum = Application::getInstance()->getViewFrustum();
-    args.map = &map; 
+    args.map = &myCoverageMap; 
+    args.totalVoxels = 0;
+    args.coloredVoxels = 0;
+    args.occludedVoxels = 0;
+    args.notOccludedVoxels = 0;
+    args.outOfView = 0;
+    args.subtreeVoxelsSkipped = 0;
+    args.nonLeaves = 0;
+    args.stagedForDeletion = 0;
+    args.nonLeavesOutOfView = 0;
+    args.nonLeavesOccluded = 0;
+    args.tree = _tree;
+
+    VoxelProjectedPolygon::pointInside_calls = 0;
+    VoxelProjectedPolygon::occludes_calls = 0;
+    VoxelProjectedPolygon::intersects_calls = 0;
+    
+    glm::vec3 position = args.viewFrustum->getPosition() * (1.0f/TREE_SCALE);
+
+    _tree->recurseTreeWithOperationDistanceSorted(falseColorizeOccludedOperation, position, (void*)&args);
+
+    printLog("falseColorizeOccluded()\n    position=(%f,%f)\n    total=%ld\n    colored=%ld\n    occluded=%ld\n    notOccluded=%ld\n    outOfView=%ld\n    subtreeVoxelsSkipped=%ld\n    stagedForDeletion=%ld\n    nonLeaves=%ld\n    nonLeavesOutOfView=%ld\n    nonLeavesOccluded=%ld\n    pointInside_calls=%ld\n    occludes_calls=%ld\n intersects_calls=%ld\n", 
+        position.x, position.y,
+        args.totalVoxels, args.coloredVoxels, args.occludedVoxels, 
+        args.notOccludedVoxels, args.outOfView, args.subtreeVoxelsSkipped, 
+        args.stagedForDeletion, 
+        args.nonLeaves, args.nonLeavesOutOfView, args.nonLeavesOccluded,
+        VoxelProjectedPolygon::pointInside_calls,
+        VoxelProjectedPolygon::occludes_calls,
+        VoxelProjectedPolygon::intersects_calls
+    );
+
+
+    //myCoverageMap.erase();
+
+    setupNewVoxelsForDrawing();
+}
+
+bool VoxelSystem::falseColorizeOccludedV2Operation(VoxelNode* node, void* extraData) {
+
+    FalseColorizeOccludedArgs* args = (FalseColorizeOccludedArgs*) extraData;
+    args->totalVoxels++;
+
+    // if this node is staged for deletion, then just return
+    if (node->isStagedForDeletion()) {
+        args->stagedForDeletion++;
+        return true;
+    }
+    
+    // If we are a parent, let's see if we're completely occluded.
+    if (!node->isLeaf()) {
+        args->nonLeaves++;
+
+        AABox voxelBox = node->getAABox();
+        voxelBox.scale(TREE_SCALE);
+        VoxelProjectedPolygon* voxelPolygon = new VoxelProjectedPolygon(args->viewFrustum->getProjectedPolygon(voxelBox));
+
+        // If we're not all in view, then ignore it, and just return. But keep searching...
+        if (!voxelPolygon->getAllInView()) {
+            args->nonLeavesOutOfView++;
+            delete voxelPolygon;
+            return true;
+        }
+
+        CoverageMapV2StorageResult result = args->mapV2->checkMap(voxelPolygon, false);
+        if (result == V2_OCCLUDED) {
+            args->nonLeavesOccluded++;
+            delete voxelPolygon;
+            
+            FalseColorizeSubTreeOperationArgs subArgs;
+            subArgs.color[0] = 0;
+            subArgs.color[1] = 255;
+            subArgs.color[2] = 0;
+            subArgs.voxelsTouched = 0;
+            
+            args->tree->recurseNodeWithOperation(node, falseColorizeSubTreeOperation, &subArgs );
+            
+            args->subtreeVoxelsSkipped += (subArgs.voxelsTouched - 1);
+            args->totalVoxels += (subArgs.voxelsTouched - 1);
+            
+            return false;
+        }
+
+        delete voxelPolygon;
+        return true; // keep looking...
+    }
+
+    if (node->isLeaf() && node->isColored() && node->getShouldRender()) {
+        args->coloredVoxels++;
+
+        AABox voxelBox = node->getAABox();
+        voxelBox.scale(TREE_SCALE);
+        VoxelProjectedPolygon* voxelPolygon = new VoxelProjectedPolygon(args->viewFrustum->getProjectedPolygon(voxelBox));
+
+        // If we're not all in view, then ignore it, and just return. But keep searching...
+        if (!voxelPolygon->getAllInView()) {
+            args->outOfView++;
+            delete voxelPolygon;
+            return true;
+        }
+
+        CoverageMapV2StorageResult result = args->mapV2->checkMap(voxelPolygon, true);
+        if (result == V2_OCCLUDED) {
+            node->setFalseColor(255, 0, 0);
+            args->occludedVoxels++;
+        } else if (result == V2_STORED) {
+            args->notOccludedVoxels++;
+            //printLog("***** falseColorizeOccludedOperation() NODE is STORED *****\n");
+        } else if (result == V2_DOESNT_FIT) {
+            //printLog("***** falseColorizeOccludedOperation() NODE DOESNT_FIT???? *****\n");
+        }
+        delete voxelPolygon; // V2 maps don't store polygons, so we're always in charge of freeing
+    }
+    return true; // keep going!
+}
+
+
+void VoxelSystem::falseColorizeOccludedV2() {
+    PerformanceWarning warn(true, "falseColorizeOccludedV2()",true);
+    myCoverageMapV2.erase();
+
+    CoverageMapV2::wantDebugging = true;
+
+    VoxelProjectedPolygon::pointInside_calls = 0;
+    VoxelProjectedPolygon::occludes_calls = 0;
+    VoxelProjectedPolygon::intersects_calls = 0;
+    
+    FalseColorizeOccludedArgs args;
+    args.viewFrustum = Application::getInstance()->getViewFrustum();
+    args.mapV2 = &myCoverageMapV2; 
     args.totalVoxels = 0;
     args.coloredVoxels = 0;
     args.occludedVoxels = 0;
@@ -1283,15 +1418,22 @@ void VoxelSystem::falseColorizeOccluded() {
     
     glm::vec3 position = args.viewFrustum->getPosition() * (1.0f/TREE_SCALE);
 
-    _tree->recurseTreeWithOperationDistanceSorted(falseColorizeOccludedOperation, position, (void*)&args);
+    _tree->recurseTreeWithOperationDistanceSorted(falseColorizeOccludedV2Operation, position, (void*)&args);
 
-    printLog("falseColorizeOccluded()\n    total=%ld\n    colored=%ld\n    occluded=%ld\n    notOccluded=%ld\n    outOfView=%ld\n    subtreeVoxelsSkipped=%ld\n    stagedForDeletion=%ld\n    nonLeaves=%ld\n    nonLeavesOutOfView=%ld\n    nonLeavesOccluded=%ld\n", 
+    printLog("falseColorizeOccludedV2()\n    position=(%f,%f)\n    total=%ld\n    colored=%ld\n    occluded=%ld\n    notOccluded=%ld\n    outOfView=%ld\n    subtreeVoxelsSkipped=%ld\n    stagedForDeletion=%ld\n    nonLeaves=%ld\n    nonLeavesOutOfView=%ld\n    nonLeavesOccluded=%ld\n    pointInside_calls=%ld\n    occludes_calls=%ld\n    intersects_calls=%ld\n", 
+        position.x, position.y,
         args.totalVoxels, args.coloredVoxels, args.occludedVoxels, 
         args.notOccludedVoxels, args.outOfView, args.subtreeVoxelsSkipped, 
         args.stagedForDeletion, 
-        args.nonLeaves, args.nonLeavesOutOfView, args.nonLeavesOccluded);
+        args.nonLeaves, args.nonLeavesOutOfView, args.nonLeavesOccluded,
+        VoxelProjectedPolygon::pointInside_calls,
+        VoxelProjectedPolygon::occludes_calls,
+        VoxelProjectedPolygon::intersects_calls
+    );
+    //myCoverageMapV2.erase();
 
 
     setupNewVoxelsForDrawing();
 }
+
 

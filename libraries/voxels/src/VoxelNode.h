@@ -29,7 +29,7 @@ private:
 #endif
     glBufferIndex _glBufferIndex;
     bool _isDirty;
-    long long _lastChanged;
+    uint64_t _lastChanged;
     bool _shouldRender;
     bool _isStagedForDeletion;
     AABox _box;
@@ -62,7 +62,7 @@ public:
     const glm::vec3& getCenter() const { return _box.getCenter(); };
     const glm::vec3& getCorner() const { return _box.getCorner(); };
     float getScale() const { return _box.getSize().x;  /* voxelScale = (1 / powf(2, *node->getOctalCode())); */ };
-    int getLevel() const { return *_octalCode + 1; /* one based or zero based? */ };
+    int getLevel() const { return *_octalCode + 1; /* one based or zero based? this doesn't correctly handle 2 byte case */ };
     
     float getEnclosingRadius() const;
     
@@ -80,7 +80,7 @@ public:
     void printDebugDetails(const char* label) const;
     bool isDirty() const { return _isDirty; };
     void clearDirtyBit() { _isDirty = false; };
-    bool hasChangedSince(long long time) const { return (_lastChanged > time);  };
+    bool hasChangedSince(uint64_t time) const { return (_lastChanged > time);  };
     void markWithChangedTime() { _lastChanged = usecTimestampNow();  };
     void handleSubtreeChanged(VoxelTree* myTree);
     
