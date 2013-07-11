@@ -277,7 +277,7 @@ void NodeList::sendDomainServerCheckIn() {
         _checkInPacketSize = packetPosition - _checkInPacket;
     }
     
-    _nodeSocket.send(DOMAIN_IP, DOMAINSERVER_PORT, checkInPacket, checkInPacketSize);
+    _nodeSocket.send(DOMAIN_IP, DOMAINSERVER_PORT, _checkInPacket, _checkInPacketSize);
 }
 
 int NodeList::processDomainServerList(unsigned char* packetData, size_t dataBytes) {
