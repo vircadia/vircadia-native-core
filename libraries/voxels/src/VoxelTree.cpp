@@ -1349,13 +1349,10 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
                 // 2) Non-leaves who's children would be visible but are beyond our LOD.
                 bool isLeafOrLOD = childNode->isLeaf();
                 if (params.viewFrustum && childNode->isColored() && !childNode->isLeaf()) {
-                    float distanceToNode       = distance;
                     int   childLevel           = childNode->getLevel();
                     float childBoundary        = boundaryDistanceForRenderLevel(childLevel + params.boundaryLevelAdjust);
                     float grandChildBoundary   = boundaryDistanceForRenderLevel(childLevel + 1 + params.boundaryLevelAdjust);
-                    bool  inChildBoundary      = (distanceToNode <= childBoundary);
-                    bool  inGrandChildBoundary = (distanceToNode <= grandChildBoundary);
-                    isLeafOrLOD = (inChildBoundary && !inGrandChildBoundary);
+                    isLeafOrLOD = ((distance <= childBoundary) && !(distance <= grandChildBoundary));
                 }
                 
                 // track children with actual color, only if the child wasn't previously in view!
