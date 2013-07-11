@@ -261,9 +261,8 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
         }
         // send the environment packet
         if (shouldSendEnvironments) {
-            int envPacketLength = 1;
-            
             int numBytesPacketHeader = populateTypeAndVersion(tempOutputBuffer, PACKET_TYPE_ENVIRONMENT_DATA);
+            int envPacketLength = numBytesPacketHeader;
             
             for (int i = 0; i < sizeof(environmentData) / numBytesPacketHeader; i++) {
                 envPacketLength += environmentData[i].getBroadcastData(tempOutputBuffer + envPacketLength);
