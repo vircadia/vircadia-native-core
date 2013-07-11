@@ -31,24 +31,38 @@ public:
     static int _maxPolygonsUsed;
     static int _totalPolygons;
     static int _occlusionTests;
+    static int _regionSkips;
+    static int _tooSmallSkips;
+    static int _regionFullSkips;
     static int _outOfOrderPolygon;
+    static int _clippedPolygons;
 
 
     const char* getRegionName() const;
+    
+    int getPolygonCount() const { return _polygonCount; };
+    VoxelProjectedPolygon* getPolygon(int index) const { return _polygons[index]; };
 
 private:
     void init();
 
     bool                    _isRoot; // is this map the root, if so, it never returns DOESNT_FIT
     BoundingBox             _myBoundingBox;
+    BoundingBox             _currentCoveredBounds; // area in this region currently covered by some polygon
     bool                    _managePolygons; // will the coverage map delete the polygons on destruct
     RegionName              _regionName;
     int                     _polygonCount; // how many polygons at this level
     int                     _polygonArraySize; // how much room is there to store polygons at this level
     VoxelProjectedPolygon**  _polygons;
+    
+    // we will use one or the other of these depending on settings in the code.
     float*                  _polygonDistances;
+    float*                  _polygonSizes;
     void growPolygonArray();
     static const int DEFAULT_GROW_SIZE = 100;
+    
+    bool mergeItemsInArray(VoxelProjectedPolygon* seed, bool seedInArray);
+    
 };
 
 class CoverageMap {
@@ -68,9 +82,14 @@ public:
     BoundingBox getChildBoundingBox(int childIndex);
     
     void erase(); // erase the coverage map
+    void printStats();
 
     static bool wantDebugging;
 
+    int getPolygonCount() const;
+    VoxelProjectedPolygon* getPolygon(int index) const;
+    CoverageMap* getChild(int childIndex) const { return _childMaps[childIndex]; };
+    
 private:
     void init();
 
@@ -89,6 +108,7 @@ private:
 
     static int  _mapCount;
     static int  _checkMapRootCalls;
+    static int  _notAllInView;
 };
 
 

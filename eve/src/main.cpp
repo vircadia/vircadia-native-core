@@ -126,7 +126,7 @@ int main(int argc, const char* argv[]) {
     int numHeaderBytes = populateTypeAndVersion(broadcastPacket, PACKET_TYPE_HEAD_DATA);
     
     timeval thisSend;
-    long long numMicrosecondsSleep = 0;
+    int numMicrosecondsSleep = 0;
     
     int handStateTimer = 0;
     

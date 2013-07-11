@@ -32,10 +32,9 @@ AvatarData::AvatarData(Node* owningNode) :
     _cameraNearClip(0.0f),
     _cameraFarClip(0.0f),
     _keyState(NO_KEY_DOWN),
-    _wantResIn(false),
     _wantColor(true),
     _wantDelta(false),
-    _wantOcclusionCulling(false),
+    _wantOcclusionCulling(true),
     _headData(NULL),
     _handData(NULL)
 {
@@ -113,7 +112,6 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     
     // bitMask of less than byte wide items
     unsigned char bitItems = 0;
-    if (_wantResIn) { setAtBit(bitItems, WANT_RESIN_AT_BIT); }
     if (_wantColor) { setAtBit(bitItems, WANT_COLOR_AT_BIT); }
     if (_wantDelta) { setAtBit(bitItems, WANT_DELTA_AT_BIT); }
     if (_wantOcclusionCulling) { setAtBit(bitItems, WANT_OCCLUSION_CULLING_BIT); }
@@ -150,6 +148,13 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
             destinationBuffer += packFloatScalarToSignedTwoByteFixed(destinationBuffer, fingerRoots[i].y, 4);
             destinationBuffer += packFloatScalarToSignedTwoByteFixed(destinationBuffer, fingerRoots[i].z, 4);
         }
+    }
+    
+    // skeleton joints
+    *destinationBuffer++ = (unsigned char)_joints.size();
+    for (vector<JointData>::iterator it = _joints.begin(); it != _joints.end(); it++) {
+        *destinationBuffer++ = (unsigned char)it->jointID;
+        destinationBuffer += packOrientationQuatToBytes(destinationBuffer, it->rotation);
     }
     
     return destinationBuffer - bufferStart;
@@ -234,7 +239,6 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     // voxel sending features...
     unsigned char bitItems = 0;
     bitItems = (unsigned char)*sourceBuffer++;
-    _wantResIn = oneAtBit(bitItems, WANT_RESIN_AT_BIT);
     _wantColor = oneAtBit(bitItems, WANT_COLOR_AT_BIT);
     _wantDelta = oneAtBit(bitItems, WANT_DELTA_AT_BIT);
     _wantOcclusionCulling = oneAtBit(bitItems, WANT_OCCLUSION_CULLING_BIT);
@@ -262,6 +266,16 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
         }
         _handData->setFingerTips(fingerTips);
         _handData->setFingerRoots(fingerRoots);
+    }
+    
+    // skeleton joints
+    if (sourceBuffer - startPosition < numBytes) // safety check
+    {
+        _joints.resize(*sourceBuffer++);
+        for (vector<JointData>::iterator it = _joints.begin(); it != _joints.end(); it++) {
+            it->jointID = *sourceBuffer++;
+            sourceBuffer += unpackOrientationQuatFromBytes(sourceBuffer, it->rotation); 
+        }
     }
     
     return sourceBuffer - startPosition;

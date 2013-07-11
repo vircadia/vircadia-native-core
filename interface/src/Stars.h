@@ -65,6 +65,7 @@ class Stars  {
         float changeLOD(float factor,
                         float overalloc = 0.25, float realloc = 0.15);
 
+        bool getFileLoaded() const { return _fileLoaded; };
     private:
         // don't copy/assign
         Stars(Stars const&); // = delete;
@@ -73,6 +74,8 @@ class Stars  {
         // variables
 
         starfield::Controller* _controller;
+        
+        bool _fileLoaded;
 };
 
 

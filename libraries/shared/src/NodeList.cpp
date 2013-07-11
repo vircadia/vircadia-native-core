@@ -80,7 +80,9 @@ void NodeList::timePingReply(sockaddr *nodeAddress, unsigned char *packetData) {
     for(NodeList::iterator node = begin(); node != end(); node++) {
         if (socketMatch(node->getPublicSocket(), nodeAddress) || 
             socketMatch(node->getLocalSocket(), nodeAddress)) {     
-            int pingTime = usecTimestampNow() - *(long long *)(packetData + numBytesForPacketHeader(packetData));
+
+            int pingTime = usecTimestampNow() - *(uint64_t *)(packetData + numBytesForPacketHeader(packetData));
+            
             node->setPingMs(pingTime / 1000);
             break;
         }
@@ -411,7 +413,8 @@ Node* NodeList::soloNodeOfType(char nodeType) {
 
 void *removeSilentNodes(void *args) {
     NodeList* nodeList = (NodeList*) args;
-    long long checkTimeUSecs, sleepTime;
+    uint64_t checkTimeUSecs;
+    int sleepTime;
     
     while (!silentNodeThreadStopFlag) {
         checkTimeUSecs = usecTimestampNow();

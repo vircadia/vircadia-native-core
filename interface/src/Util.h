@@ -25,7 +25,6 @@
 // the standard mono font family
 #define MONO_FONT_FAMILY "Courier"
 
-
 void eulerToOrthonormals(glm::vec3 * angles, glm::vec3 * fwd, glm::vec3 * left, glm::vec3 * up);
 
 float azimuth_to(glm::vec3 head_pos, glm::vec3 source_pos);
@@ -71,5 +70,7 @@ void runTimingTests();
 
 
 float loadSetting(QSettings* settings, const char* name, float defaultValue);
+
+bool rayIntersectsSphere(glm::vec3& rayStarting, glm::vec3& rayNormalizedDirection, glm::vec3& sphereCenter, double sphereRadius);
 
 #endif
