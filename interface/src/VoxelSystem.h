@@ -11,11 +11,15 @@
 
 #include "InterfaceConfig.h"
 #include <glm/glm.hpp>
+
 #include <SharedUtil.h>
 #include <UDPSocket.h>
+
+#include <CoverageMapV2.h>
 #include <NodeData.h>
-#include <VoxelTree.h>
 #include <ViewFrustum.h>
+#include <VoxelTree.h>
+
 #include "Camera.h"
 #include "Util.h"
 #include "world.h"
@@ -57,6 +61,7 @@ public:
     void falseColorizeDistanceFromView(ViewFrustum* viewFrustum);
     void falseColorizeRandomEveryOther();
     void falseColorizeOccluded();
+    void falseColorizeOccludedV2();
 
     void killLocalVoxels();
     void setRenderPipelineWarnings(bool on) { _renderWarningsOn = on; };
@@ -84,6 +89,9 @@ public:
 
     void copySubTreeIntoNewTree(VoxelNode* startNode, VoxelTree* destinationTree, bool rebaseToRoot);
     void copyFromTreeIntoSubTree(VoxelTree* sourceTree, VoxelNode* destinationNode);
+
+    CoverageMapV2 myCoverageMapV2;
+    CoverageMap   myCoverageMap;
     
 protected:
     float _treeScale; 
@@ -123,6 +131,8 @@ private:
     static bool collectStatsForTreesAndVBOsOperation(VoxelNode* node, void* extraData);
     static bool falseColorizeOccludedOperation(VoxelNode* node, void* extraData);
     static bool falseColorizeSubTreeOperation(VoxelNode* node, void* extraData);
+    static bool falseColorizeOccludedV2Operation(VoxelNode* node, void* extraData);
+
 
     int updateNodeInArraysAsFullVBO(VoxelNode* node);
     int updateNodeInArraysAsPartialVBO(VoxelNode* node);

@@ -53,7 +53,6 @@ public:
     long long getLastTimeBagEmpty() const                      { return _lastTimeBagEmpty; };
     void      setLastTimeBagEmpty(long long lastTimeBagEmpty)  { _lastTimeBagEmpty = lastTimeBagEmpty; };
 
-
 private:
     VoxelNodeData(const VoxelNodeData &);
     VoxelNodeData& operator= (const VoxelNodeData&);

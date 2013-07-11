@@ -29,10 +29,14 @@
 
 #include <glm/gtc/noise.hpp>
 
-
-int boundaryDistanceForRenderLevel(unsigned int renderLevel) {
-    float voxelSizeScale = 50000.0f;
+float boundaryDistanceForRenderLevel(unsigned int renderLevel) {
+    const float voxelSizeScale = 50000.0f;
     return voxelSizeScale / powf(2, renderLevel);
+}
+
+float boundaryDistanceSquaredForRenderLevel(unsigned int renderLevel) {
+    const float voxelSizeScale = (50000.0f/TREE_SCALE) * (50000.0f/TREE_SCALE);
+    return voxelSizeScale / powf(2, (2 * renderLevel));
 }
 
 VoxelTree::VoxelTree(bool shouldReaverage) :
@@ -55,6 +59,61 @@ VoxelTree::~VoxelTree() {
     }
 }
 
+
+void VoxelTree::recurseTreeWithOperationDistanceSortedTimed(PointerStack* stackOfNodes, long allowedTime,
+                                                            RecurseVoxelTreeOperation operation, 
+                                                            const glm::vec3& point, void* extraData) {
+
+    long long start = usecTimestampNow();
+    
+    // start case, stack empty, so start with root...
+    if (stackOfNodes->empty()) {
+        stackOfNodes->push(rootNode);
+    }
+    while (!stackOfNodes->empty()) {
+        VoxelNode* node = (VoxelNode*)stackOfNodes->top();
+        stackOfNodes->pop();
+    
+        if (operation(node, extraData)) {
+
+            //sortChildren... CLOSEST to FURTHEST
+            // determine the distance sorted order of our children
+            VoxelNode*  sortedChildren[NUMBER_OF_CHILDREN];
+            float       distancesToChildren[NUMBER_OF_CHILDREN];
+            int         indexOfChildren[NUMBER_OF_CHILDREN]; // not really needed
+            int         currentCount = 0;
+
+            for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
+                VoxelNode* childNode = node->getChildAtIndex(i);
+                if (childNode) {
+                    // chance to optimize, doesn't need to be actual distance!! Could be distance squared
+                    float distanceSquared = childNode->distanceSquareToPoint(point); 
+                    currentCount = insertIntoSortedArrays((void*)childNode, distanceSquared, i,
+                                                          (void**)&sortedChildren, (float*)&distancesToChildren, 
+                                                          (int*)&indexOfChildren, currentCount, NUMBER_OF_CHILDREN);
+                }
+            }
+
+            //iterate sorted children FURTHEST to CLOSEST
+            for (int i = currentCount-1; i >= 0; i--) {
+                VoxelNode* child = sortedChildren[i];
+                stackOfNodes->push(child);
+            }
+        }
+
+        // at this point, we can check to see if we should bail for timing reasons
+        // because if we bail at this point, then reenter the while, we will basically
+        // be back to processing the stack from same place we left off, and all can proceed normally
+        long long now = usecTimestampNow();
+        long elapsedTime = now - start;
+
+        if (elapsedTime > allowedTime) {
+            return; // caller responsible for calling us again to finish the job!
+        }
+    }
+}
+
+
 // Recurses voxel tree calling the RecurseVoxelTreeOperation function for each node.
 // stops recursion if operation function returns false.
 void VoxelTree::recurseTreeWithOperation(RecurseVoxelTreeOperation operation, void* extraData) {
@@ -62,7 +121,7 @@ void VoxelTree::recurseTreeWithOperation(RecurseVoxelTreeOperation operation, vo
 }
 
 // Recurses voxel node with an operation function
-void VoxelTree::recurseNodeWithOperation(VoxelNode* node,RecurseVoxelTreeOperation operation, void* extraData) {
+void VoxelTree::recurseNodeWithOperation(VoxelNode* node, RecurseVoxelTreeOperation operation, void* extraData) {
     if (operation(node, extraData)) {
         for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
             VoxelNode* child = node->getChildAtIndex(i);
@@ -77,15 +136,15 @@ void VoxelTree::recurseNodeWithOperation(VoxelNode* node,RecurseVoxelTreeOperati
 // stops recursion if operation function returns false.
 void VoxelTree::recurseTreeWithOperationDistanceSorted(RecurseVoxelTreeOperation operation,
                                                        const glm::vec3& point, void* extraData) {
+
     recurseNodeWithOperationDistanceSorted(rootNode, operation, point, extraData);
 }
 
 // Recurses voxel node with an operation function
-void VoxelTree::recurseNodeWithOperationDistanceSorted(VoxelNode* node, RecurseVoxelTreeOperation operation,
+void VoxelTree::recurseNodeWithOperationDistanceSorted(VoxelNode* node, RecurseVoxelTreeOperation operation, 
                                                        const glm::vec3& point, void* extraData) {
     if (operation(node, extraData)) {
         // determine the distance sorted order of our children
-
         VoxelNode*  sortedChildren[NUMBER_OF_CHILDREN];
         float       distancesToChildren[NUMBER_OF_CHILDREN];
         int         indexOfChildren[NUMBER_OF_CHILDREN]; // not really needed
@@ -1099,6 +1158,8 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
 
     // Keep track of how deep we've encoded.
     currentEncodeLevel++;
+    
+    params.maxLevelReached = std::max(currentEncodeLevel,params.maxLevelReached);
 
     // If we've reached our max Search Level, then stop searching.
     if (currentEncodeLevel >= params.maxEncodeLevel) {
@@ -1270,10 +1331,6 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
                 } // wants occlusion culling & isLeaf()
 
 
-                bool childWasInView = (childNode && params.deltaViewFrustum &&
-
-                                      (params.lastViewFrustum && ViewFrustum::INSIDE == childNode->inFrustum(*params.lastViewFrustum)));
-
                 // There are two types of nodes for which we want to send colors:
                 // 1) Leaves - obviously
                 // 2) Non-leaves who's children would be visible and beyond our LOD.
@@ -1299,15 +1356,34 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
                     }
                     // if any of our grandchildren ARE in view, then we don't want to include our color. If none are, then
                     // we do want to include our color
-                    if (grandChildrenInView > 0 && grandChildrenInLOD==0) {
+                    if (grandChildrenInView > 0 && grandChildrenInLOD == 0) {
                         isLeafOrLOD = true;
                     }
                 }
                 
                 // track children with actual color, only if the child wasn't previously in view!
-                if (childNode && isLeafOrLOD && childNode->isColored() && !childWasInView && !childIsOccluded) {
-                    childrenColoredBits += (1 << (7 - originalIndex));
-                    inViewWithColorCount++;
+                if (childNode && isLeafOrLOD && childNode->isColored() && !childIsOccluded) {
+                    bool childWasInView = false;
+                    
+                    if (childNode && params.deltaViewFrustum && params.lastViewFrustum) {
+                        ViewFrustum::location location = childNode->inFrustum(*params.lastViewFrustum);
+                        
+                        // If we're a leaf, then either intersect or inside is considered "formerly in view"
+                        if (childNode->isLeaf()) {
+                            childWasInView = location != ViewFrustum::OUTSIDE;
+                        } else {
+                            childWasInView = location == ViewFrustum::INSIDE;
+                        }
+                    }                    
+
+                    // If our child wasn't in view (or we're ignoring wasInView) then we add it to our sending items
+                    if (!childWasInView) {
+                        childrenColoredBits += (1 << (7 - originalIndex));
+                        inViewWithColorCount++;
+                    } else {
+                        // otherwise just track stats of the items we discarded
+                        params.childWasInViewDiscarded++;
+                    }
                 }
             }
         }
