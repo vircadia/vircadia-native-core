@@ -25,7 +25,7 @@ ParticleSystem::ParticleSystem() {
     _neighborAttraction = 0.02f;
     _neighborRepulsion  = 0.9f;
     _tornadoAxis        = glm::normalize(glm::vec3(0.1f, 1.0f, 0.1f));
-    _home               = glm::vec3(5.0f, 0.5f, 5.0f);
+    _home               = glm::vec3(5.0f, 1.0f, 5.0f);
     
     _TEST_bigSphereRadius = 0.5f;
     _TEST_bigSpherePosition = glm::vec3( 5.0f, _TEST_bigSphereRadius, 5.0f);
@@ -129,7 +129,7 @@ void ParticleSystem::simulate(float deltaTime) {
             if (distanceToSphereCenter > 0.0f){
                 glm::vec3 directionToSphereCenter = vectorToSphereCenter / distanceToSphereCenter;
                 _particle[p].position = _TEST_bigSpherePosition - directionToSphereCenter * combinedRadius;            
-                _particle[p].velocity.y += 0.005f;            
+                //_particle[p].velocity.y += 0.005f;            
             }
         }
     }
