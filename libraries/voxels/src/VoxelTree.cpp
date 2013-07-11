@@ -118,7 +118,6 @@ void VoxelTree::recurseTreeWithOperationDistanceSortedTimed(PointerStack* stackO
 // Recurses voxel tree calling the RecurseVoxelTreeOperation function for each node.
 // stops recursion if operation function returns false.
 void VoxelTree::recurseTreeWithOperation(RecurseVoxelTreeOperation operation, void* extraData) {
-    int level = 0;
     recurseNodeWithOperation(rootNode, operation, extraData);
 }
 
