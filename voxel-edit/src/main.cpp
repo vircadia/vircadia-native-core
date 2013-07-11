@@ -13,7 +13,7 @@
 VoxelTree myTree;
 
 int _nodeCount=0;
-bool countVoxelsOperation(VoxelNode* node, int level, void* extraData) {
+bool countVoxelsOperation(VoxelNode* node, void* extraData) {
     if (node->isColored()){
         _nodeCount++;
     }
