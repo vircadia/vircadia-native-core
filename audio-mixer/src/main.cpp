@@ -6,41 +6,44 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
+#include <errno.h>
+#include <fcntl.h>
+#include <fstream>
 #include <iostream>
+#include <limits>
 #include <math.h>
-#include <string.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <fstream>
-#include <limits>
-#include <signal.h>
-
-#include <glm/gtx/norm.hpp>
-#include <glm/gtx/vector_angle.hpp>
-#include <NodeList.h>
-#include <Node.h>
-#include <NodeTypes.h>
-#include <SharedUtil.h>
-#include <StdDev.h>
-#include <Logstash.h>
-
-#include "InjectedAudioRingBuffer.h"
-#include "AvatarAudioRingBuffer.h"
-#include <AudioRingBuffer.h>
-#include "PacketHeaders.h"
+#include <string.h>
 
 #ifdef _WIN32
 #include "Syssocket.h"
 #include "Systime.h"
 #include <math.h>
 #else
+#include <arpa/inet.h>
+#include <netinet/in.h>
 #include <sys/time.h>
 #include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
 #endif //_WIN32
+
+#include <glm/glm.hpp>
+#include <glm/gtx/norm.hpp>
+#include <glm/gtx/vector_angle.hpp>
+
+#include <Logstash.h>
+#include <NodeList.h>
+#include <Node.h>
+#include <NodeTypes.h>
+#include <PacketHeaders.h>
+#include <SharedUtil.h>
+#include <StdDev.h>
+
+#include <AudioRingBuffer.h>
+
+#include "AvatarAudioRingBuffer.h"
+#include "InjectedAudioRingBuffer.h"
 
 const unsigned short MIXER_LISTEN_PORT = 55443;
 
@@ -49,17 +52,8 @@ const short JITTER_BUFFER_SAMPLES = JITTER_BUFFER_MSECS * (SAMPLE_RATE / 1000.0)
 
 const unsigned int BUFFER_SEND_INTERVAL_USECS = floorf((BUFFER_LENGTH_SAMPLES_PER_CHANNEL / SAMPLE_RATE) * 1000000);
 
-const long MAX_SAMPLE_VALUE = std::numeric_limits<int16_t>::max();
-const long MIN_SAMPLE_VALUE = std::numeric_limits<int16_t>::min();
-
-void plateauAdditionOfSamples(int16_t &mixSample, int16_t sampleToAdd) {
-    long sumSample = sampleToAdd + mixSample;
-    
-    long normalizedSample = std::min(MAX_SAMPLE_VALUE, sumSample);
-    normalizedSample = std::max(MIN_SAMPLE_VALUE, sumSample);
-    
-    mixSample = normalizedSample;
-}
+const int MAX_SAMPLE_VALUE = std::numeric_limits<int16_t>::max();
+const int MIN_SAMPLE_VALUE = std::numeric_limits<int16_t>::min();
 
 void attachNewBufferToNode(Node *newNode) {
     if (!newNode->getLinkedData()) {
@@ -103,8 +97,9 @@ int main(int argc, const char* argv[]) {
     int nextFrame = 0;
     timeval startTime;
     
-    unsigned char clientPacket[BUFFER_LENGTH_BYTES_STEREO + sizeof(PACKET_HEADER_MIXED_AUDIO)];
-    clientPacket[0] = PACKET_HEADER_MIXED_AUDIO;
+    int numBytesPacketHeader = numBytesForPacketHeader((unsigned char*) &PACKET_TYPE_MIXED_AUDIO);
+    unsigned char clientPacket[BUFFER_LENGTH_BYTES_STEREO + numBytesPacketHeader];
+    populateTypeAndVersion(clientPacket, PACKET_TYPE_MIXED_AUDIO);
     
     int16_t clientSamples[BUFFER_LENGTH_SAMPLES_PER_CHANNEL * 2] = {};
     
@@ -304,16 +299,23 @@ int main(int argc, const char* argv[]) {
                                 // pull the earlier sample for the delayed channel
                                 int earlierSample = delaySamplePointer[s] * attenuationCoefficient * weakChannelAmplitudeRatio;
                                 
-                                plateauAdditionOfSamples(delayedChannel[s], earlierSample);
+                                delayedChannel[s] = glm::clamp(delayedChannel[s] + earlierSample,
+                                                               MIN_SAMPLE_VALUE,
+                                                               MAX_SAMPLE_VALUE);
                             }
                             
                             int16_t currentSample = stkFrameBuffer[s] * attenuationCoefficient;
                             
-                            plateauAdditionOfSamples(goodChannel[s], currentSample);
+                            goodChannel[s] = glm::clamp(goodChannel[s] + currentSample,
+                                                        MIN_SAMPLE_VALUE,
+                                                        MAX_SAMPLE_VALUE);
                             
                             if (s + numSamplesDelay < BUFFER_LENGTH_SAMPLES_PER_CHANNEL) {
-                                plateauAdditionOfSamples(delayedChannel[s + numSamplesDelay],
-                                                         currentSample * weakChannelAmplitudeRatio);
+                                int sumSample = delayedChannel[s + numSamplesDelay]
+                                    + (currentSample * weakChannelAmplitudeRatio);
+                                delayedChannel[s + numSamplesDelay] = glm::clamp(sumSample,
+                                                                                 MIN_SAMPLE_VALUE,
+                                                                                 MAX_SAMPLE_VALUE);
                             }
                             
                             if (s >= BUFFER_LENGTH_SAMPLES_PER_CHANNEL - PHASE_DELAY_AT_90) {
@@ -325,7 +327,7 @@ int main(int argc, const char* argv[]) {
                     }
                 }
                 
-                memcpy(clientPacket + sizeof(PACKET_HEADER_MIXED_AUDIO), clientSamples, sizeof(clientSamples));
+                memcpy(clientPacket + numBytesPacketHeader, clientSamples, sizeof(clientSamples));
                 nodeList->getNodeSocket()->send(node->getPublicSocket(), clientPacket, sizeof(clientPacket));
             }
         }
@@ -345,13 +347,14 @@ int main(int argc, const char* argv[]) {
         }
         
         // pull any new audio data from nodes off of the network stack
-        while (nodeList->getNodeSocket()->receive(nodeAddress, packetData, &receivedBytes)) {
-            if (packetData[0] == PACKET_HEADER_MICROPHONE_AUDIO_NO_ECHO ||
-                packetData[0] == PACKET_HEADER_MICROPHONE_AUDIO_WITH_ECHO) {
+        while (nodeList->getNodeSocket()->receive(nodeAddress, packetData, &receivedBytes) &&
+               packetVersionMatch(packetData)) {
+            if (packetData[0] == PACKET_TYPE_MICROPHONE_AUDIO_NO_ECHO ||
+                packetData[0] == PACKET_TYPE_MICROPHONE_AUDIO_WITH_ECHO) {
                 Node* avatarNode = nodeList->addOrUpdateNode(nodeAddress,
-                                                                 nodeAddress,
-                                                                 NODE_TYPE_AGENT,
-                                                                 nodeList->getLastNodeID());
+                                                             nodeAddress,
+                                                             NODE_TYPE_AGENT,
+                                                             nodeList->getLastNodeID());
                 
                 if (avatarNode->getNodeID() == nodeList->getLastNodeID()) {
                     nodeList->increaseNodeID();
@@ -363,7 +366,7 @@ int main(int argc, const char* argv[]) {
                     // kill off this node - temporary solution to mixer crash on mac sleep
                     avatarNode->setAlive(false);
                 }
-            } else if (packetData[0] == PACKET_HEADER_INJECT_AUDIO) {
+            } else if (packetData[0] == PACKET_TYPE_INJECT_AUDIO) {
                 Node* matchingInjector = NULL;
                 
                 for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
@@ -382,16 +385,16 @@ int main(int argc, const char* argv[]) {
                 
                 if (!matchingInjector) {
                     matchingInjector = nodeList->addOrUpdateNode(NULL,
-                                                                   NULL,
-                                                                   NODE_TYPE_AUDIO_INJECTOR,
-                                                                   nodeList->getLastNodeID());
+                                                                 NULL,
+                                                                 NODE_TYPE_AUDIO_INJECTOR,
+                                                                 nodeList->getLastNodeID());
                     nodeList->increaseNodeID();
                     
                 }
                 
                 // give the new audio data to the matching injector node
                 nodeList->updateNodeWithData(matchingInjector, packetData, receivedBytes);
-            } else if (packetData[0] == PACKET_HEADER_PING) {
+            } else if (packetData[0] == PACKET_TYPE_PING) {
 
                 // If the packet is a ping, let processNodeData handle it.
                 nodeList->processNodeData(nodeAddress, packetData, receivedBytes);

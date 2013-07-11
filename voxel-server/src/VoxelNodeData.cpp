@@ -29,13 +29,13 @@ VoxelNodeData::VoxelNodeData(Node* owningNode) :
 
 
 void VoxelNodeData::resetVoxelPacket() {
-
     // If we're moving, and the client asked for low res, then we force monochrome, otherwise, use 
     // the clients requested color state.    
     _currentPacketIsColor = (getWantLowResMoving() && _viewFrustumChanging) ? false : getWantColor();
-    _voxelPacket[0] = _currentPacketIsColor ? PACKET_HEADER_VOXEL_DATA : PACKET_HEADER_VOXEL_DATA_MONOCHROME;
-    _voxelPacketAt = &_voxelPacket[1];
-    _voxelPacketAvailableBytes = MAX_VOXEL_PACKET_SIZE - 1;
+    PACKET_TYPE voxelPacketType = _currentPacketIsColor ? PACKET_TYPE_VOXEL_DATA : PACKET_TYPE_VOXEL_DATA_MONOCHROME;
+    int numBytesPacketHeader = populateTypeAndVersion(_voxelPacket, voxelPacketType);
+    _voxelPacketAt = _voxelPacket + numBytesPacketHeader;
+    _voxelPacketAvailableBytes = MAX_VOXEL_PACKET_SIZE - numBytesPacketHeader;
     _voxelPacketWaiting = false;
 }
 

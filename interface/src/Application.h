@@ -171,7 +171,7 @@ private:
 
     static void sendVoxelServerAddScene();
     static bool sendVoxelsOperation(VoxelNode* node, void* extraData);
-    static void sendVoxelEditMessage(PACKET_HEADER header, VoxelDetail& detail);
+    static void sendVoxelEditMessage(PACKET_TYPE type, VoxelDetail& detail);
     static void sendAvatarVoxelURLMessage(const QUrl& url);
     static void processAvatarVoxelURLMessage(unsigned char *packetData, size_t dataBytes);
     static void sendPingPackets();
@@ -182,6 +182,7 @@ private:
     void init();
     
     void update(float deltaTime);
+    bool isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection, glm::vec3& eyePosition);
     void updateAvatar(float deltaTime);
     void loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum);
     

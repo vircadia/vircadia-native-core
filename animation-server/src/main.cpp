@@ -48,11 +48,11 @@ bool wantLocalDomain = false;
 unsigned long packetsSent = 0;
 unsigned long bytesSent = 0;
 
-static void sendVoxelEditMessage(PACKET_HEADER header, VoxelDetail& detail) {
+static void sendVoxelEditMessage(PACKET_TYPE type, VoxelDetail& detail) {
     unsigned char* bufferOut;
     int sizeOut;
     
-    if (createVoxelEditMessage(header, 0, 1, &detail, bufferOut, sizeOut)){
+    if (createVoxelEditMessage(type, 0, 1, &detail, bufferOut, sizeOut)){
 
         ::packetsSent++;
         ::bytesSent += sizeOut;
@@ -161,7 +161,7 @@ static void renderMovingBug() {
     }
     
     // send the "erase message" first...
-    PACKET_HEADER message = PACKET_HEADER_ERASE_VOXEL;
+    PACKET_TYPE message = PACKET_TYPE_ERASE_VOXEL;
     if (createVoxelEditMessage(message, 0, VOXELS_PER_BUG, (VoxelDetail*)&details, bufferOut, sizeOut)){
 
         ::packetsSent++;
@@ -231,7 +231,7 @@ static void renderMovingBug() {
     }
     
     // send the "create message" ...
-    message = PACKET_HEADER_SET_VOXEL_DESTRUCTIVE;
+    message = PACKET_TYPE_SET_VOXEL_DESTRUCTIVE;
     if (createVoxelEditMessage(message, 0, VOXELS_PER_BUG, (VoxelDetail*)&details, bufferOut, sizeOut)){
 
         ::packetsSent++;
@@ -276,7 +276,7 @@ static void sendVoxelBlinkMessage() {
     detail.green = 0   * ::intensity;
     detail.blue  = 0   * ::intensity;
     
-    PACKET_HEADER message = PACKET_HEADER_SET_VOXEL_DESTRUCTIVE;
+    PACKET_TYPE message = PACKET_TYPE_SET_VOXEL_DESTRUCTIVE;
 
     sendVoxelEditMessage(message, detail);
 }
@@ -293,7 +293,7 @@ unsigned char onColor[3]  = {   0, 255, 255 };
 const float STRING_OF_LIGHTS_SIZE = 0.125f / TREE_SCALE; // approximately 1/8th meter
 
 static void sendBlinkingStringOfLights() {
-    PACKET_HEADER message = PACKET_HEADER_SET_VOXEL_DESTRUCTIVE; // we're a bully!
+    PACKET_TYPE message = PACKET_TYPE_SET_VOXEL_DESTRUCTIVE; // we're a bully!
     float lightScale = STRING_OF_LIGHTS_SIZE;
     static VoxelDetail details[LIGHTS_PER_SEGMENT];
     unsigned char* bufferOut;
@@ -423,7 +423,7 @@ const int PACKETS_PER_DANCE_FLOOR = DANCE_FLOOR_VOXELS_PER_PACKET / (DANCE_FLOOR
 int danceFloorColors[DANCE_FLOOR_WIDTH][DANCE_FLOOR_LENGTH];
 
 void sendDanceFloor() {
-    PACKET_HEADER message = PACKET_HEADER_SET_VOXEL_DESTRUCTIVE; // we're a bully!
+    PACKET_TYPE message = PACKET_TYPE_SET_VOXEL_DESTRUCTIVE; // we're a bully!
     float lightScale = DANCE_FLOOR_LIGHT_SIZE;
     static VoxelDetail details[DANCE_FLOOR_VOXELS_PER_PACKET];
     unsigned char* bufferOut;
@@ -550,7 +550,7 @@ bool billboardMessage[BILLBOARD_HEIGHT][BILLBOARD_WIDTH] = {
 };
 
 static void sendBillboard() {
-    PACKET_HEADER message = PACKET_HEADER_SET_VOXEL_DESTRUCTIVE; // we're a bully!
+    PACKET_TYPE message = PACKET_TYPE_SET_VOXEL_DESTRUCTIVE; // we're a bully!
     float lightScale = BILLBOARD_LIGHT_SIZE;
     static VoxelDetail details[VOXELS_PER_PACKET];
     unsigned char* bufferOut;
@@ -726,7 +726,8 @@ int main(int argc, const char * argv[])
         }
         
         // Nodes sending messages to us...
-        if (nodeList->getNodeSocket()->receive(&nodePublicAddress, packetData, &receivedBytes)) {
+        if (nodeList->getNodeSocket()->receive(&nodePublicAddress, packetData, &receivedBytes) &&
+            packetVersionMatch(packetData)) {
             NodeList::getInstance()->processNodeData(&nodePublicAddress, packetData, receivedBytes);
         }
     }
