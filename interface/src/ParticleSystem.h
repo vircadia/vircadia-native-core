@@ -9,7 +9,8 @@
 #ifndef hifi_ParticleSystem_h
 #define hifi_ParticleSystem_h
 
-const int   MAX_PARTICLES   = 2000;
+const int MAX_PARTICLES = 2000;
+const int MAX_EMITTERS  = 10;
 
 class ParticleSystem {
 public:
@@ -29,12 +30,13 @@ private:
 
     struct Emitter {
         glm::vec3 position;
-        
+        glm::vec3 direction;
     };  
     
     float      _bounce;
     float      _gravity;
     float      _timer;
+    Emitter    _emitter[MAX_EMITTERS];
     Particle   _particle[MAX_PARTICLES];
     int        _numberOfParticles;
     glm::vec3  _home;
