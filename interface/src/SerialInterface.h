@@ -13,7 +13,7 @@
 #include "Log.h"
 
 // These includes are for serial port reading/writing
-#ifdef __APPLE__
+#ifndef _WIN32
 #include <unistd.h>
 #include <fcntl.h>
 #include <termios.h>
@@ -33,11 +33,13 @@ public:
                         _estimatedVelocity(0, 0, 0),
                         _lastAcceleration(0, 0, 0),
                         _lastRotationRates(0, 0, 0),
-                        _angularVelocityToLinearAccel( // experimentally derived initial values
+                        _compassMinima(-235, -132, -184), // experimentally derived initial values follow
+                        _compassMaxima(83, 155, 120),
+                        _angularVelocityToLinearAccel(
                             0.003f, -0.001f, -0.006f, 
                             -0.005f, -0.001f, -0.006f,
                             0.010f, 0.004f, 0.007f),
-                        _angularAccelToLinearAccel( // experimentally derived initial values
+                        _angularAccelToLinearAccel(
                             0.0f, 0.0f, 0.002f,
                             0.0f, 0.0f, 0.001f,
                             -0.002f, -0.002f, 0.0f)
@@ -64,11 +66,14 @@ private:
     void initializePort(char* portname);
     void resetSerial();
 
+    glm::vec3 recenterCompass(const glm::vec3& compass);
+
     bool _active;
     int _serialDescriptor;
     int totalSamples;
     timeval lastGoodRead;
     glm::vec3 _gravity;
+    glm::vec3 _north;
     glm::vec3 _averageRotationRates;
     glm::vec3 _averageAcceleration;
     glm::vec3 _estimatedRotation;
@@ -77,6 +82,9 @@ private:
     glm::vec3 _estimatedAcceleration;
     glm::vec3 _lastAcceleration;
     glm::vec3 _lastRotationRates;
+    glm::vec3 _lastCompass;
+    glm::vec3 _compassMinima;
+    glm::vec3 _compassMaxima;
     
     glm::mat3 _angularVelocityToLinearAccel;
     glm::mat3 _angularAccelToLinearAccel;
