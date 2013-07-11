@@ -430,10 +430,6 @@ void FrameGrabber::grabFrame() {
 #endif
 
     if (frame.empty()) {
-        if (_capture == 0) {
-            // reinitialize
-            
-        }
         IplImage* image = cvQueryFrame(_capture);
         if (image == 0) {
             // try again later
