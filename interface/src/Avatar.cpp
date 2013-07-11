@@ -16,11 +16,13 @@
 #include "Hand.h"
 #include "Head.h"
 #include "Log.h"
+#include "Physics.h"
 #include "ui/TextRenderer.h"
 #include <NodeList.h>
 #include <NodeTypes.h>
 #include <PacketHeaders.h>
 #include <OculusManager.h>
+
 
 using namespace std;
 
@@ -553,21 +555,13 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
         _bodyYawDelta   *= bodySpinMomentum;
         _bodyRollDelta  *= bodySpinMomentum;
         
-        // Decay velocity.  If velocity is really low, increase decay to simulate static friction
-        const float VELOCITY_DECAY_UNDER_THRUST = 0.2;
-        const float VELOCITY_FAST_DECAY = 0.6;
-        const float VELOCITY_SLOW_DECAY = 3.0;
-        const float VELOCITY_FAST_THRESHOLD = 2.0f;
-        float decayConstant, decay;
-        if (glm::length(_thrust) > 0.f) {
-            decayConstant = VELOCITY_DECAY_UNDER_THRUST;
-        } else if (glm::length(_velocity) > VELOCITY_FAST_THRESHOLD) {
-            decayConstant = VELOCITY_FAST_DECAY;
-        } else {
-            decayConstant = VELOCITY_SLOW_DECAY;
-        }             
-        decay = glm::clamp(1.0f - decayConstant * deltaTime, 0.0f, 1.0f);
-        _velocity *= decay;
+        const float MAX_STATIC_FRICTION_VELOCITY = 0.25f;
+        const float STATIC_FRICTION_STRENGTH = 20.f;
+        applyStaticFriction(deltaTime, _velocity, MAX_STATIC_FRICTION_VELOCITY, STATIC_FRICTION_STRENGTH);
+        
+        const float LINEAR_DAMPING_STRENGTH = 0.2f;
+        const float SQUARED_DAMPING_STRENGTH = 0.1f;
+        applyDamping(deltaTime, _velocity, LINEAR_DAMPING_STRENGTH, SQUARED_DAMPING_STRENGTH);
                 
         //pitch and roll the body as a function of forward speed and turning delta
         const float BODY_PITCH_WHILE_WALKING      = -20.0;
