@@ -33,8 +33,8 @@ public:
                         _estimatedVelocity(0, 0, 0),
                         _lastAcceleration(0, 0, 0),
                         _lastRotationRates(0, 0, 0),
-                        _compassMinima(-235, -132, -184), // experimentally derived initial values follow
-                        _compassMaxima(83, 155, 120),
+                        _compassMinima(-211, -132, -186),
+                        _compassMaxima(89, 95, 98),
                         _angularVelocityToLinearAccel(
                             0.003f, -0.001f, -0.006f, 
                             -0.005f, -0.001f, -0.006f,
