@@ -2246,6 +2246,15 @@ void Application::displayOculus(Camera& whichCamera) {
 void Application::displaySide(Camera& whichCamera) {
     // transform by eye offset
 
+    // flip x if in mirror mode (also requires reversing winding order for backface culling)
+    if (_lookingInMirror->isChecked()) {
+        glScalef(-1.0f, 1.0f, 1.0f);
+        glFrontFace(GL_CW);
+    
+    } else {
+        glFrontFace(GL_CCW);
+    }
+
     glm::vec3 eyeOffsetPos = whichCamera.getEyeOffsetPosition();
     glm::quat eyeOffsetOrient = whichCamera.getEyeOffsetOrientation();
     glm::vec3 eyeOffsetAxis = glm::axis(eyeOffsetOrient);
