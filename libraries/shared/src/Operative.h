@@ -9,6 +9,8 @@
 #ifndef __hifi__Operative__
 #define __hifi__Operative__
 
+#import "AudioInjector.h"
+
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
@@ -17,6 +19,8 @@ public:
     Operative();
     
     bool volatile shouldStop;
+    AudioInjector* injector;
+    
     void run();
 private:
     void renderMovingBug();

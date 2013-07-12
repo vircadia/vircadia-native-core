@@ -30,7 +30,7 @@ const char SOLO_NODE_TYPES[3] = {
 };
 
 char DOMAIN_HOSTNAME[] = "highfidelity.below92.com";
-char DOMAIN_IP[100] = "";    //  IP Address will be re-set by lookup on startup
+char DOMAIN_IP[100] = "192.168.1.47";    //  IP Address will be re-set by lookup on startup
 const int DOMAINSERVER_PORT = 40102;
 
 bool silentNodeThreadStopFlag = false;

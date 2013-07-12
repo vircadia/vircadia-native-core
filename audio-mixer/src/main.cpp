@@ -374,7 +374,7 @@ int main(int argc, const char* argv[]) {
                        
                         InjectedAudioRingBuffer* ringBuffer = (InjectedAudioRingBuffer*) node->getLinkedData();
                         if (memcmp(ringBuffer->getStreamIdentifier(),
-                                   packetData + 1,
+                                   packetData + numBytesForPacketHeader(packetData),
                                    STREAM_IDENTIFIER_NUM_BYTES) == 0) {
                             // this is the matching stream, assign to matchingInjector and stop looking
                             matchingInjector = &*node;

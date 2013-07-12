@@ -39,12 +39,12 @@ Pod::Spec.new do |s|
     sp.public_header_files = "librares/shared/src"
     sp.exclude_files = "libraries/shared/src/UrlReader.*"
     sp.dependency 'glm'
+    sp.xcconfig = { 'CLANG_CXX_LIBRARY' => "libc++" }
   end
   
   s.subspec "audio" do |sp|
     sp.source_files = "libraries/audio/src"
     sp.public_header_files = "libraries/audio/src"
-    sp.xcconfig = { 'CLANG_CXX_LIBRARY' => "libc++" }
     sp.dependency 'glm'
   end
 

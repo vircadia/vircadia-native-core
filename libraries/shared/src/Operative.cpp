@@ -6,6 +6,8 @@
 //  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
 
+#include "AudioInjectionManager.h"
+
 #include "NodeList.h"
 #include "NodeTypes.h"
 #include "PacketHeaders.h"
@@ -210,13 +212,18 @@ void Operative::run() {
     
     // change the owner type on our NodeList
     NodeList::getInstance()->setOwnerType(NODE_TYPE_AGENT);
-    NodeList::getInstance()->setNodeTypesOfInterest(&NODE_TYPE_VOXEL_SERVER, 1);
+    const char NODE_TYPES_OF_INTEREST[] = {NODE_TYPE_VOXEL_SERVER, NODE_TYPE_AUDIO_MIXER};
+    NodeList::getInstance()->setNodeTypesOfInterest(NODE_TYPES_OF_INTEREST, 2);
     NodeList::getInstance()->getNodeSocket()->setBlocking(false);
     
     while (!shouldStop) {
         gettimeofday(&lastSendTime, NULL);
         
         renderMovingBug();
+        
+        if (!injector->isInjectingAudio()) {
+            AudioInjectionManager::threadInjector(injector);
+        }
         
         // send a check in packet to the domain server if DOMAIN_SERVER_CHECK_IN_USECS has elapsed
         if (usecTimestampNow() - usecTimestamp(&lastDomainServerCheckIn) >= DOMAIN_SERVER_CHECK_IN_USECS) {

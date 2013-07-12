@@ -12,7 +12,7 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/component_wise.hpp>
 
-#include <UDPSocket.h>
+#include "UDPSocket.h"
 
 #include "AudioRingBuffer.h"
 
