@@ -29,7 +29,7 @@ int main(int argc, const char* argv[]) {
     unsigned char assignmentPacket[numHeaderBytes + sizeof(char)];
     populateTypeAndVersion(assignmentPacket, PACKET_TYPE_SEND_ASSIGNMENT);
     
-    int birdIndex = 0;
+    int birdIndex = 1;
     
     while (true) {
         if (serverSocket.receive((sockaddr*) &senderSocket, &senderData, &receivedBytes)) {
