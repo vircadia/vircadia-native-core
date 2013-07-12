@@ -544,7 +544,7 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     
         // add thrust to velocity
         _velocity += _thrust * deltaTime;
-
+        
         // update body yaw by body yaw delta
         orientation = orientation * glm::quat(glm::radians(
                                                            glm::vec3(_bodyPitchDelta, _bodyYawDelta, _bodyRollDelta) * deltaTime));
