@@ -14,7 +14,7 @@
 PACKET_VERSION versionForPacketType(PACKET_TYPE type) {
     switch (type) {
         default:
-            return 1;
+            return 0;
             break;
     }
 }
