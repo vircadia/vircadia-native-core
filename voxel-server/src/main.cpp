@@ -133,7 +133,7 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
     // If we're starting a fresh packet, then... 
     //     If we're moving, and the client asked for low res, then we force monochrome, otherwise, use 
     //     the clients requested color state.
-    bool wantColor = ((nodeData->getWantLowResMoving() && viewFrustumChanged) ? false : nodeData->getWantColor());
+    bool wantColor = LOW_RES_MONO && nodeData->getWantLowResMoving() && viewFrustumChanged ? false : nodeData->getWantColor();
 
     // If we have a packet waiting, and our desired want color, doesn't match the current waiting packets color
     // then let's just send that waiting packet.    
