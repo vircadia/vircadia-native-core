@@ -213,6 +213,8 @@ private:
     float       _elapsedTimeMoving;             //  Timers to drive camera transitions when moving
     float       _elapsedTimeStopped;
     float       _elapsedTimeSinceCollision;
+    bool        _speedBrakes;
+    bool        _isThrustOn;
     
     AvatarVoxelSystem _voxels;
     
