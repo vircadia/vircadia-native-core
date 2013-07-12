@@ -363,7 +363,7 @@ void Avatar::updateThrust(float deltaTime, Transmitter * transmitter) {
     //
     //  Gather thrust information from keyboard and sensors to apply to avatar motion 
     //
-    glm::quat orientation = getOrientation();
+    glm::quat orientation = getHead().getOrientation();
     glm::vec3 front = orientation * IDENTITY_FRONT;
     glm::vec3 right = orientation * IDENTITY_RIGHT;
     glm::vec3 up = orientation * IDENTITY_UP;
