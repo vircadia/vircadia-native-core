@@ -54,7 +54,7 @@ void Hand::calculateGeometry() {
     _position = head.getPosition() + head.getOrientation() * offset;
     _orientation = head.getOrientation();
 
-    int numLeapBalls = _fingerTips.size() + _fingerRoots.size();
+    int numLeapBalls = _fingerTips.size();
     _leapBalls.resize(numLeapBalls);
     
     for (int i = 0; i < _fingerTips.size(); ++i) {
