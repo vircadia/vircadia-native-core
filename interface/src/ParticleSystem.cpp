@@ -8,59 +8,91 @@
 #include <glm/glm.hpp>
 #include "InterfaceConfig.h"
 #include <SharedUtil.h>
-
 #include "ParticleSystem.h"
+#include "Application.h"
 
 ParticleSystem::ParticleSystem() {
 
-    _numberOfParticles = 1500;
-    assert(_numberOfParticles <= MAX_PARTICLES);
-    
-    _bounce             = 0.9f;
-    _timer              = 0.0f;
-    _airFriction        = 6.0f;
-    _jitter             = 0.1f;
-    _homeAttraction     = 0.0f;
-    _tornadoForce       = 0.0f;
-    _neighborAttraction = 0.02f;
-    _neighborRepulsion  = 0.9f;
-    _tornadoAxis        = glm::normalize(glm::vec3(0.1f, 1.0f, 0.1f));
-    _home               = glm::vec3(5.0f, 1.0f, 5.0f);
-    
-    _TEST_bigSphereRadius = 0.5f;
+    _gravity                = 0.005;
+    _numEmitters            = 1;
+    _bounce                 = 0.9f;
+    _timer                  = 0.0f;
+    _airFriction            = 6.0f;
+    _jitter                 = 0.1f;
+    _homeAttraction         = 0.0f;
+    _tornadoForce           = 0.0f;
+    _neighborAttraction     = 0.02f;
+    _neighborRepulsion      = 0.9f;
+    _TEST_bigSphereRadius   = 0.5f;
     _TEST_bigSpherePosition = glm::vec3( 5.0f, _TEST_bigSphereRadius, 5.0f);
-
-    for (unsigned int p = 0; p < _numberOfParticles; p++) {
-        _particle[p].position = _home;
-        _particle[p].velocity = glm::vec3(0.0f, 0.0f, 0.0f);
+    _numParticles           = 1500;
+    
+    for (unsigned int e = 0; e < _numEmitters; e++) {
+    
+        _emitter[e].position  = glm::vec3(0.0f, 0.0f, 0.0f);
+        _emitter[e].rotation  = glm::quat();
+        _emitter[e].right     = IDENTITY_RIGHT;
+        _emitter[e].up        = IDENTITY_UP;
+        _emitter[e].front     = IDENTITY_FRONT;
+    };  
+    
+    for (unsigned int p = 0; p < _numParticles; p++) {
         
-        float radian = ((float)p / (float)_numberOfParticles) * PI_TIMES_TWO;
+        float radian = ((float)p / (float)_numParticles) * PI_TIMES_TWO;
         float wave = sinf(radian);
         
         float red   = 0.5f + 0.5f * wave;
         float green = 0.3f + 0.3f * wave;
         float blue  = 0.2f - 0.2f * wave;
         
-        _particle[p].color    = glm::vec3(red, green, blue);
-        _particle[p].age      = 0.0f;
-        _particle[p].radius   = 0.01f;
+        _particle[p].color        = glm::vec3(red, green, blue);
+        _particle[p].age          = 0.0f;
+        _particle[p].radius       = 0.01f;
+        _particle[p].emitterIndex = 0;
+        _particle[p].position     = glm::vec3(0.0f, 0.0f, 0.0f);
+        _particle[p].velocity     = glm::vec3(0.0f, 0.0f, 0.0f);
     }
+    
+    assert(_numParticles <= MAX_PARTICLES);
+    assert(_numEmitters  <= MAX_EMITTERS );
 }
+
 
 void ParticleSystem::simulate(float deltaTime) {
     
-    runSpecialEffectsTest(deltaTime);
- 
-    for (unsigned int p = 0; p < _numberOfParticles; p++) {
+    // update emitters
+    for (unsigned int e = 0; e < _numEmitters; e++) {
+        updateEmitter(e, deltaTime);
+    }
+    
+    // update particles
+    for (unsigned int p = 0; p < _numParticles; p++) {
         updateParticle(p, deltaTime);
     }
+
+    // apply special effects
+    runSpecialEffectsTest(deltaTime);
 }
 
+void ParticleSystem::updateEmitter(int e, float deltaTime) {
 
+    _emitter[e].front = _emitter[e].rotation * IDENTITY_FRONT;
+    _emitter[e].right = _emitter[e].rotation * IDENTITY_RIGHT;
+    _emitter[e].up    = _emitter[e].rotation * IDENTITY_UP;    
+}
 
 void ParticleSystem::runSpecialEffectsTest(float deltaTime) {
-   
+
     _timer += deltaTime;
+   
+   glm::vec3 tilt = glm::vec3
+    (
+        30.0f * sinf( _timer * 0.55f ),
+        0.0f,
+        30.0f * cosf( _timer * 0.75f )
+    );
+   
+    _emitter[0].rotation = glm::quat(glm::radians(tilt));
 
     _gravity            = 0.01f  + 0.01f  * sinf( _timer * 0.52f );
     _airFriction        = 3.0f   + 2.0f   * sinf( _timer * 0.32f );
@@ -69,13 +101,6 @@ void ParticleSystem::runSpecialEffectsTest(float deltaTime) {
     _tornadoForce       = 0.0f   + 0.03f  * sinf( _timer * 0.7f  );
     _neighborAttraction = 0.1f   + 0.1f   * cosf( _timer * 0.8f  );
     _neighborRepulsion  = 0.4f   + 0.3f   * sinf( _timer * 0.4f  );
-
-    _tornadoAxis = glm::vec3
-    (
-        0.0f + 0.5f * sinf( _timer * 0.55f ),
-        1.0f,
-        0.0f + 0.5f * cosf( _timer * 0.75f )
-    );
 }
 
 
@@ -95,12 +120,12 @@ void ParticleSystem::updateParticle(int p, float deltaTime) {
     
     
     // apply attraction to home position
-    glm::vec3 vectorToHome = _home - _particle[p].position;
+    glm::vec3 vectorToHome = _emitter[_particle[p].emitterIndex].position - _particle[p].position;
     _particle[p].velocity += vectorToHome * _homeAttraction * deltaTime;
     
     // apply neighbor attraction
     int neighbor = p + 1;
-    if (neighbor == _numberOfParticles ) {
+    if (neighbor == _numParticles ) {
         neighbor = 0;
     }
     glm::vec3 vectorToNeighbor = _particle[p].position - _particle[neighbor].position;
@@ -113,8 +138,9 @@ void ParticleSystem::updateParticle(int p, float deltaTime) {
     }
     
     // apply tornado force
-    glm::vec3 tornadoDirection = glm::cross(vectorToHome, _tornadoAxis);
-    _particle[p].velocity += tornadoDirection * _tornadoForce * deltaTime;
+    //glm::vec3 tornadoDirection = glm::cross(vectorToHome, _emitter[_particle[p].emitterIndex].up);
+    //_particle[p].velocity += tornadoDirection * _tornadoForce * deltaTime;
+    //_particle[p].velocity += _emitter[_particle[p].emitterIndex].up * _tornadoForce * deltaTime;
 
     // apply air friction
     float drag = 1.0 - _airFriction * deltaTime;
@@ -155,25 +181,65 @@ void ParticleSystem::updateParticle(int p, float deltaTime) {
 
 void ParticleSystem::render() {
 
-    for (unsigned int p = 0; p < _numberOfParticles; p++) {
-        glColor3f(_particle[p].color.x, _particle[p].color.y, _particle[p].color.z);
-        glPushMatrix();
-        glTranslatef(_particle[p].position.x, _particle[p].position.y, _particle[p].position.z);
-        glutSolidSphere(_particle[p].radius, 6, 6);
-        glPopMatrix();
-    
-        // render velocity lines
-        glColor4f( _particle[p].color.x, _particle[p].color.y, _particle[p].color.z, 0.5f);
-        glm::vec3 end = _particle[p].position - _particle[p].velocity * 2.0f;
-        glBegin(GL_LINES);
-        glVertex3f(_particle[p].position.x, _particle[p].position.y, _particle[p].position.z);
-        glVertex3f(end.x, end.y, end.z);
-        
-        glEnd();
-        
+    // render the emitters
+    for (unsigned int e = 0; e < _numEmitters; e++) {
+        renderEmitter(e, 0.2f);
+    };  
+
+    // render the particles
+    for (unsigned int p = 0; p < _numParticles; p++) {
+        renderParticle(p);
     }
 }
 
+
+
+void ParticleSystem::renderParticle(int p) {
+
+    glColor3f(_particle[p].color.x, _particle[p].color.y, _particle[p].color.z);
+    glPushMatrix();
+    glTranslatef(_particle[p].position.x, _particle[p].position.y, _particle[p].position.z);
+    glutSolidSphere(_particle[p].radius, 6, 6);
+    glPopMatrix();
+
+    // render velocity lines
+    glColor4f( _particle[p].color.x, _particle[p].color.y, _particle[p].color.z, 0.5f);
+    glm::vec3 end = _particle[p].position - _particle[p].velocity * 2.0f;
+    glBegin(GL_LINES);
+    glVertex3f(_particle[p].position.x, _particle[p].position.y, _particle[p].position.z);
+    glVertex3f(end.x, end.y, end.z);
+    
+    glEnd();
+}
+
+
+
+void ParticleSystem::renderEmitter(int e, float size) {
+    
+    glm::vec3 r = _emitter[e].right * size;
+    glm::vec3 u = _emitter[e].up    * size;
+    glm::vec3 f = _emitter[e].front * size;
+
+    glLineWidth(2.0f);
+
+    glColor3f(0.8f, 0.4, 0.4);
+    glBegin(GL_LINES);
+    glVertex3f(_emitter[e].position.x, _emitter[e].position.y, _emitter[e].position.z);
+    glVertex3f(_emitter[e].position.x + r.x, _emitter[e].position.y + r.y, _emitter[e].position.z + r.z);
+    glEnd();
+
+    glColor3f(0.4f, 0.8, 0.4);
+    glBegin(GL_LINES);
+    glVertex3f(_emitter[e].position.x, _emitter[e].position.y, _emitter[e].position.z);
+    glVertex3f(_emitter[e].position.x + u.x, _emitter[e].position.y + u.y, _emitter[e].position.z + u.z);
+    glEnd();
+
+    glColor3f(0.4f, 0.4, 0.8);
+    glBegin(GL_LINES);
+    glVertex3f(_emitter[e].position.x, _emitter[e].position.y, _emitter[e].position.z);
+    glVertex3f(_emitter[e].position.x + f.x, _emitter[e].position.y + f.y, _emitter[e].position.z + f.z);
+    glEnd();
+}
 
 
 

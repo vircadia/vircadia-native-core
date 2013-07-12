@@ -73,7 +73,7 @@ using namespace std;
 static char STAR_FILE[] = "https://s3-us-west-1.amazonaws.com/highfidelity/stars.txt";
 static char STAR_CACHE_FILE[] = "cachedStars.txt";
 
-static const bool TESTING_PARTICLE_SYSTEM = false;
+static const bool TESTING_PARTICLE_SYSTEM = true;
 
 static const int BANDWIDTH_METER_CLICK_MAX_DRAG_LENGTH = 6; // farther dragged clicks are ignored 
 
@@ -2010,6 +2010,8 @@ void Application::update(float deltaTime) {
     #endif
     
     if (TESTING_PARTICLE_SYSTEM) {
+        glm::vec3 particleEmitterPosition = glm::vec3(5.0f, 1.0f, 5.0f);   
+        _particleSystem.setEmitterPosition(0, particleEmitterPosition);
         _particleSystem.simulate(deltaTime);    
     }
 }
