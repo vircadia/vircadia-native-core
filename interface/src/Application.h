@@ -278,6 +278,7 @@ private:
     timeval _timerStart, _timerEnd;
     timeval _lastTimeUpdated;
     bool _justStarted;
+    bool _particleSystemInitialized;
 
     Stars _stars;
     

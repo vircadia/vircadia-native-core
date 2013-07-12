@@ -18,13 +18,18 @@ class ParticleSystem {
 public:
     ParticleSystem();
     
-    void setEmitterPosition(int e, glm::vec3 position) { _emitter[e].position = position; }
-    void simulate(float deltaTime);
-    void render();
+    int addEmitter();                                           // add (create) an emitter and get its unique id
+    void useOrangeBlueColorPalette();                           // apply a nice preset color palette to the particles
+    void setCollisionSphere(glm::vec3 position, float radius);  // specify a sphere for the particles to collide with
+    void emitParticlesNow(int e, int numParticles);             // tell this emitter to generate this many particles right now
+    void simulate(float deltaTime);                             // run it
+    void render();                                              // show it
+    void setEmitterPosition(int e, glm::vec3 position) { _emitter[e].position = position; } // set the position of this emitter
     
 private:
 
     struct Particle {
+        bool        alive;
         glm::vec3   position;
         glm::vec3   velocity;
         glm::vec3   color;
@@ -54,8 +59,9 @@ private:
     float      _tornadoForce;
     float      _neighborAttraction;
     float      _neighborRepulsion;
-    float      _TEST_bigSphereRadius;
-    glm::vec3  _TEST_bigSpherePosition;
+    bool       _usingCollisionSphere;
+    glm::vec3  _collisionSpherePosition;
+    float      _collisionSphereRadius;
     
     // private methods
     void updateEmitter(int e, float deltaTime);

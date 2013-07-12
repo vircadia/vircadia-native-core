@@ -172,6 +172,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _frameCount(0),
         _fps(120.0f),
         _justStarted(true),
+        _particleSystemInitialized(false),        
         _wantToKillLocalVoxels(false),
         _frustumDrawingMode(FRUSTUM_DRAW_MODE_ALL),
         _viewFrustumOffsetYaw(-135.0),
@@ -1749,8 +1750,9 @@ void Application::init() {
     _palette.addTool(&_swatch);
     _palette.addAction(_colorVoxelMode, 0, 2);
     _palette.addAction(_eyedropperMode, 0, 3);
-    _palette.addAction(_selectVoxelMode, 0, 4);
+    _palette.addAction(_selectVoxelMode, 0, 4);    
 }
+
 
 const float MAX_AVATAR_EDIT_VELOCITY = 1.0f;
 const float MAX_VOXEL_EDIT_DISTANCE = 20.0f;
@@ -2010,9 +2012,23 @@ void Application::update(float deltaTime) {
     #endif
     
     if (TESTING_PARTICLE_SYSTEM) {
-        glm::vec3 particleEmitterPosition = glm::vec3(5.0f, 1.0f, 5.0f);   
-        _particleSystem.setEmitterPosition(0, particleEmitterPosition);
-        _particleSystem.simulate(deltaTime);    
+        if (_particleSystemInitialized) {
+            _particleSystem.simulate(deltaTime);    
+        } else {
+            int coolDemoEmitter = _particleSystem.addEmitter();
+            
+            if (coolDemoEmitter != -1) {
+                glm::vec3 particleEmitterPosition = glm::vec3(5.0f, 1.3f, 5.0f);   
+                _particleSystem.setEmitterPosition(coolDemoEmitter, particleEmitterPosition);
+                _particleSystem.emitParticlesNow(coolDemoEmitter, 1500);   
+            }
+            
+            glm::vec3 collisionSpherePosition = glm::vec3( 5.0f, 0.5f, 5.0f );   
+            float collisionSphereRadius = 0.5f;            
+            _particleSystem.setCollisionSphere(collisionSpherePosition, collisionSphereRadius);
+            _particleSystemInitialized = true;         
+            _particleSystem.useOrangeBlueColorPalette();
+        }        
     }
 }
 
@@ -2459,7 +2475,9 @@ void Application::displaySide(Camera& whichCamera) {
     }
 
     if (TESTING_PARTICLE_SYSTEM) {
-        _particleSystem.render();    
+        if (_particleSystemInitialized) {
+            _particleSystem.render();    
+        }
     }
     
     //  Render the world box
