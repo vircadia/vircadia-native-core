@@ -36,7 +36,7 @@ Operative::Operative() :
     _bugPosition(BUG_VOXEL_SIZE * 20.0, BUG_VOXEL_SIZE * 30.0, BUG_VOXEL_SIZE * 20.0),
     _bugDirection(0, 0, 1),
     _bugPathCenter(BUG_VOXEL_SIZE * 150.0, BUG_VOXEL_SIZE * 30.0, BUG_VOXEL_SIZE * 150.0),
-    _bugPathRadius(BUG_VOXEL_SIZE * 140.0),
+    _bugPathRadius(BUG_VOXEL_SIZE * 40.0),
     _bugPathTheta(0.0f),
     _bugRotation(0.0f),
     _bugAngleDelta(0.2 * (M_PI / 180.0f)),
@@ -221,7 +221,7 @@ void Operative::run() {
         
         renderMovingBug();
         
-        if (!injector->isInjectingAudio()) {
+        if (!injector->isInjectingAudio() && randIntInRange(1, 100) == 99) {
             AudioInjectionManager::threadInjector(injector);
         }
         
