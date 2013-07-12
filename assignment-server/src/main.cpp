@@ -7,9 +7,12 @@
 //
 
 #include <arpa/inet.h>
+#include <fstream>
 
 #include <PacketHeaders.h>
+#include <SharedUtil.h>
 #include <UDPSocket.h>
+
 
 const int ASSIGNMENT_SERVER_LISTEN_PORT = 7007;
 const int MAX_PACKET_SIZE_BYTES = 1400;
@@ -22,11 +25,20 @@ int main(int argc, const char* argv[]) {
     
     UDPSocket serverSocket(ASSIGNMENT_SERVER_LISTEN_PORT);
     
+    int numHeaderBytes = numBytesForPacketHeader((unsigned char*) &PACKET_TYPE_SEND_ASSIGNMENT);
+    unsigned char assignmentPacket[numHeaderBytes + sizeof(char)];
+    populateTypeAndVersion(assignmentPacket, PACKET_TYPE_SEND_ASSIGNMENT);
+    
     while (true) {
         if (serverSocket.receive((sockaddr*) &senderSocket, &senderData, &receivedBytes)) {
-            if (senderData[0] == PACKET_HEADER_REQUEST_ASSIGNMENT) {
+            if (senderData[0] == PACKET_TYPE_REQUEST_ASSIGNMENT) {
                 // for now just send back a dummy assignment packet
-                serverSocket.send((sockaddr*) &senderSocket, &PACKET_HEADER_SEND_ASSIGNMENT, 1);
+                
+                // pick a random number between 1 and 6 so the user grabs a random bird sound
+                assignmentPacket[numHeaderBytes] = randIntInRange(1, 7);
+                
+                // send the assignment
+                serverSocket.send((sockaddr*) &senderSocket, assignmentPacket, sizeof(assignmentPacket));
             }
         }
     }    
