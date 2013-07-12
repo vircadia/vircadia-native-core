@@ -221,6 +221,8 @@ void Operative::run() {
         
         renderMovingBug();
         
+        injector->setPosition(_bugPosition);
+        
         if (!injector->isInjectingAudio() && randIntInRange(1, 100) == 99) {
             AudioInjectionManager::threadInjector(injector);
         }
