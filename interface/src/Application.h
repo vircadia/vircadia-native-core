@@ -332,6 +332,8 @@ private:
     float _touchDragStartedAvgX;
     float _touchDragStartedAvgY;
     bool _isTouchPressed; //  true if multitouch has been pressed (clear when finished)
+    float _yawFromTouch;
+    float _pitchFromTouch;
     
     VoxelDetail _mouseVoxelDragging;
     glm::vec3 _voxelThrust;
