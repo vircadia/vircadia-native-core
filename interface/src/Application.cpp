@@ -183,6 +183,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _touchAvgX(0.0f),
         _touchAvgY(0.0f),
         _isTouchPressed(false),
+        _yawFromTouch(0.0f),
+        _pitchFromTouch(0.0f),
         _mousePressed(false),
         _mouseVoxelScale(1.0f / 1024.0f),
         _justEditedVoxel(false),
@@ -969,6 +971,9 @@ void Application::idle() {
     gettimeofday(&check, NULL);
     
     //  Only run simulation code if more than IDLE_SIMULATE_MSECS have passed since last time we ran
+    sendPostedEvents(NULL, QEvent::TouchBegin);
+    sendPostedEvents(NULL, QEvent::TouchUpdate);
+    sendPostedEvents(NULL, QEvent::TouchEnd);
 
     double timeSinceLastUpdate = diffclock(&_lastTimeUpdated, &check);
     if (timeSinceLastUpdate > IDLE_SIMULATE_MSECS) {
@@ -978,9 +983,6 @@ void Application::idle() {
         // This is necessary because id the idle() call takes longer than the
         // interval between idle() calls, the event loop never gets to run,
         // and touch events get delayed.
-        sendPostedEvents(NULL, QEvent::TouchBegin);
-        sendPostedEvents(NULL, QEvent::TouchUpdate);
-        sendPostedEvents(NULL, QEvent::TouchEnd);
 
         const float BIGGEST_DELTA_TIME_SECS = 0.25f;
         update(glm::clamp((float)timeSinceLastUpdate / 1000.f, 0.f, BIGGEST_DELTA_TIME_SECS));
@@ -1902,12 +1904,9 @@ void Application::update(float deltaTime) {
     if (_isTouchPressed) {
         float TOUCH_YAW_SCALE = -50.0f;
         float TOUCH_PITCH_SCALE = -50.0f;
-        _myAvatar.getHead().addYaw((_touchAvgX - _lastTouchAvgX)
-                                   * TOUCH_YAW_SCALE
-                                   * deltaTime);
-        _myAvatar.getHead().addPitch((_touchAvgY - _lastTouchAvgY)
-                                     * TOUCH_PITCH_SCALE
-                                     * deltaTime);
+        _yawFromTouch += ((_touchAvgX - _lastTouchAvgX) * TOUCH_YAW_SCALE * deltaTime);
+        _pitchFromTouch += ((_touchAvgY - _lastTouchAvgY) * TOUCH_PITCH_SCALE * deltaTime);
+        
         _lastTouchAvgX = _touchAvgX;
         _lastTouchAvgY = _touchAvgY;
     }
@@ -2011,11 +2010,20 @@ void Application::update(float deltaTime) {
 
 void Application::updateAvatar(float deltaTime) {
 
+    // When head is rotated via touch/mouse look, slowly turn body to follow
+    const float BODY_FOLLOW_HEAD_RATE = 0.5f;
+    // update body yaw by body yaw delta
+    _myAvatar.setOrientation(_myAvatar.getOrientation()
+                             * glm::quat(glm::vec3(0, _yawFromTouch * deltaTime * BODY_FOLLOW_HEAD_RATE, 0) * deltaTime));
+    _yawFromTouch -= _yawFromTouch * deltaTime * BODY_FOLLOW_HEAD_RATE;
+    
     // Update my avatar's state from gyros and/or webcam
     _myAvatar.updateFromGyrosAndOrWebcam(_gyroLook->isChecked(),
                                          glm::vec3(_headCameraPitchYawScale,
                                                    _headCameraPitchYawScale,
-                                                   _headCameraPitchYawScale));
+                                                   _headCameraPitchYawScale),
+                                         _yawFromTouch,
+                                         _pitchFromTouch);
         
     if (_serialHeadSensor.isActive()) {
       
@@ -2055,8 +2063,8 @@ void Application::updateAvatar(float deltaTime) {
         float yaw, pitch, roll;
         OculusManager::getEulerAngles(yaw, pitch, roll);
     
-        _myAvatar.getHead().setYaw(yaw);
-        _myAvatar.getHead().setPitch(pitch);
+        _myAvatar.getHead().setYaw(yaw + _yawFromTouch);
+        _myAvatar.getHead().setPitch(pitch + _pitchFromTouch);
         _myAvatar.getHead().setRoll(roll);
     }
      
