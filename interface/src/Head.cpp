@@ -128,8 +128,8 @@ void Head::resetHairPhysics() {
     glm::vec3 up = getUpDirection();
     for (int t = 0; t < NUM_HAIR_TUFTS; t ++) {
         
-        _hairTuft[t].length       = HAIR_LENGTH;
-        _hairTuft[t].thickness    = HAIR_THICKNESS;
+        _hairTuft[t].length       = _scale * HAIR_LENGTH;
+        _hairTuft[t].thickness    = _scale * HAIR_THICKNESS;
         _hairTuft[t].basePosition = _position + up * _scale * BODY_BALL_RADIUS_HEAD_BASE * 0.9f;
         _hairTuft[t].midPosition  = _hairTuft[t].basePosition + up * _hairTuft[t].length * ONE_HALF;			
         _hairTuft[t].endPosition  = _hairTuft[t].midPosition  + up * _hairTuft[t].length * ONE_HALF;			
@@ -306,6 +306,15 @@ void Head::render(float alpha) {
     }
 }
 
+void Head::setScale (float scale) {
+    _scale = scale;
+    
+    delete[] _mohawkTriangleFan;
+    delete[] _mohawkColors;
+    createMohawk();
+    
+    resetHairPhysics();
+}
 
 void Head::createMohawk() {
     uint16_t nodeId = 0;
@@ -318,7 +327,7 @@ void Head::createMohawk() {
         }
     }
     srand(nodeId);
-    float height = 0.08f + randFloat() * 0.05f;
+    float height = _scale * (0.08f + randFloat() * 0.05f);
     float variance = 0.03 + randFloat() * 0.03f;
     const float RAD_PER_TRIANGLE = (2.3f + randFloat() * 0.2f) / (float)MOHAWK_TRIANGLES;
     _mohawkTriangleFan = new glm::vec3[MOHAWK_TRIANGLES];
@@ -326,7 +335,7 @@ void Head::createMohawk() {
     _mohawkTriangleFan[0] = glm::vec3(0, 0, 0);
     glm::vec3 basicColor(randFloat(), randFloat(), randFloat());
     _mohawkColors[0] = basicColor;
-        
+    
     for (int i = 1; i < MOHAWK_TRIANGLES; i++) {
         _mohawkTriangleFan[i]  = glm::vec3((randFloat() - 0.5f) * variance,
                                            height * cosf(i * RAD_PER_TRIANGLE - PIf / 2.f)

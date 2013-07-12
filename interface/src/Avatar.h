@@ -139,6 +139,7 @@ public:
     glm::vec3        getBodyRightDirection     ()                const { return getOrientation() * IDENTITY_RIGHT; }
     glm::vec3        getBodyUpDirection        ()                const { return getOrientation() * IDENTITY_UP; }
     glm::vec3        getBodyFrontDirection     ()                const { return getOrientation() * IDENTITY_FRONT; }
+    float            getScale                  ()                const { return _scale;}
     const glm::vec3& getVelocity               ()                const { return _velocity;}
     float            getSpeed                  ()                const { return _speed;}
     float            getHeight                 ()                const { return _height;}
@@ -221,7 +222,7 @@ private:
     float       _pelvisStandingHeight;
     float       _pelvisFloatingHeight;
     float       _pelvisToHeadLength;
-    float       _uniformScaler;
+    float       _scale;
     float       _height;
     Balls*      _balls;
     AvatarTouch _avatarTouch;

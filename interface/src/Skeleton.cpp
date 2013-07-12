@@ -40,7 +40,7 @@ const glm::vec3 AVATAR_JOINT_POSITION_RIGHT_KNEE       = glm::vec3( 0.00, -0.25,
 const glm::vec3 AVATAR_JOINT_POSITION_RIGHT_HEEL       = glm::vec3( 0.00, -0.23,  0.00);
 const glm::vec3 AVATAR_JOINT_POSITION_RIGHT_TOES       = glm::vec3( 0.00,  0.00, -0.06);
 
-Skeleton::Skeleton() {
+Skeleton::Skeleton() : _floatingHeight(FLOATING_HEIGHT){
 }
 
 void Skeleton::initialize() {
@@ -89,7 +89,6 @@ void Skeleton::initialize() {
     joint[ AVATAR_JOINT_RIGHT_HEEL		  ].parent = AVATAR_JOINT_RIGHT_KNEE;
     joint[ AVATAR_JOINT_RIGHT_TOES		  ].parent = AVATAR_JOINT_RIGHT_HEEL;
     
-    // specify the bind pose position
     uniformScale(1.0f);
 }
 
@@ -139,6 +138,8 @@ void Skeleton::uniformScale(float uniformScaler) {
             joint[ joint[b].parent ].absoluteBindPoseRotation;
         }
     }
+    
+    _floatingHeight = uniformScaler * FLOATING_HEIGHT;
 }
 
 // calculate positions and rotations of all bones by traversing the skeleton tree:
@@ -185,7 +186,7 @@ float Skeleton::getPelvisStandingHeight() {
 float Skeleton::getPelvisFloatingHeight() {
     return joint[ AVATAR_JOINT_LEFT_HEEL ].length +
            joint[ AVATAR_JOINT_LEFT_KNEE ].length +
-           FLOATING_HEIGHT;
+           _floatingHeight;
 }
 
 float Skeleton::getPelvisToHeadLength() {

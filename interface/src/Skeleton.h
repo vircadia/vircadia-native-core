@@ -73,7 +73,8 @@ public:
         float         length;                    // the length of vector connecting the joint and its parent
     };
 
-    AvatarJoint    joint[ NUM_AVATAR_JOINTS ];        
- };
+    AvatarJoint    joint[ NUM_AVATAR_JOINTS ];
+    float          _floatingHeight;
+};
 
 #endif
