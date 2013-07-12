@@ -41,6 +41,7 @@
 #include "ui/ChatEntry.h"
 #include "ToolsPalette.h"
 #include "Swatch.h"
+#include "ParticleSystem.h"
 
 class QAction;
 class QActionGroup;
@@ -365,6 +366,8 @@ private:
     int _hmdWarpParamLocation;
     
     GeometryCache _geometryCache;
+    
+    ParticleSystem _particleSystem;
     
     #ifndef _WIN32
     Audio _audio;
