@@ -14,6 +14,10 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
+#include "SharedUtil.h"
+
+const int VOXELS_PER_BUG = 18;
+
 class Operative {
 public:
     Operative();
@@ -25,6 +29,8 @@ public:
 private:
     void renderMovingBug();
     void removeOldBug();
+    
+    VoxelDetail _bugDetails[VOXELS_PER_BUG];
     
     glm::vec3 _bugPosition;
     glm::vec3 _bugDirection;

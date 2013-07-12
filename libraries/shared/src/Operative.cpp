@@ -16,7 +16,6 @@
 #include "Operative.h"
 
 const float BUG_VOXEL_SIZE = 0.0625f / 128;
-const int VOXELS_PER_BUG = 18;
 
 glm::vec3 rotatePoint(glm::vec3 point, float angle) {
     //  First, create the quaternion based on this angle of rotation
@@ -127,7 +126,6 @@ void Operative::removeOldBug() {
 }
 
 void Operative::renderMovingBug() {
-    VoxelDetail details[VOXELS_PER_BUG];
     unsigned char* bufferOut;
     int sizeOut;
     
@@ -168,24 +166,24 @@ void Operative::renderMovingBug() {
     
     // Generate voxels for where bug is going to
     for (int i = 0; i < VOXELS_PER_BUG; i++) {
-        details[i].s = BUG_VOXEL_SIZE;
+        _bugDetails[i].s = BUG_VOXEL_SIZE;
         
         glm::vec3 partAt = BUG_PARTS[i].partLocation * BUG_VOXEL_SIZE * (_bugDirection.x < 0 ? -1.0f : 1.0f);
         glm::vec3 rotatedPartAt = rotatePoint(partAt, _bugRotation);
         glm::vec3 offsetPartAt = rotatedPartAt + _bugPosition;
         
-        details[i].x = offsetPartAt.x;
-        details[i].y = offsetPartAt.y;
-        details[i].z = offsetPartAt.z;
+        _bugDetails[i].x = offsetPartAt.x;
+        _bugDetails[i].y = offsetPartAt.y;
+        _bugDetails[i].z = offsetPartAt.z;
         
-        details[i].red   = BUG_PARTS[i].partColor[0];
-        details[i].green = BUG_PARTS[i].partColor[1];
-        details[i].blue  = BUG_PARTS[i].partColor[2];
+        _bugDetails[i].red   = BUG_PARTS[i].partColor[0];
+        _bugDetails[i].green = BUG_PARTS[i].partColor[1];
+        _bugDetails[i].blue  = BUG_PARTS[i].partColor[2];
     }
     
     // send the "create message" ...
     PACKET_TYPE message = PACKET_TYPE_SET_VOXEL_DESTRUCTIVE;
-    if (createVoxelEditMessage(message, 0, VOXELS_PER_BUG, (VoxelDetail*)&details, bufferOut, sizeOut)){
+    if (createVoxelEditMessage(message, 0, VOXELS_PER_BUG, (VoxelDetail*)&_bugDetails, bufferOut, sizeOut)){
         
         _packetsSent++;
         _bytesSent += sizeOut;
@@ -221,7 +219,9 @@ void Operative::run() {
         
         renderMovingBug();
         
-        injector->setPosition(_bugPosition);
+        glm::vec3 latestPosition(_bugDetails[5].x, _bugDetails[5].y, _bugDetails[5].z);
+        latestPosition *= 128;
+        injector->setPosition(latestPosition);
         
         if (!injector->isInjectingAudio() && randIntInRange(1, 100) == 99) {
             AudioInjectionManager::threadInjector(injector);

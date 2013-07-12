@@ -41,7 +41,7 @@ int main(int argc, const char* argv[]) {
             
                 // wrap back to 0 if the bird index is 6 now
                 if (birdIndex == 6) {
-                    birdIndex = 0;
+                    birdIndex = 1;
                 }
                 
                 // send the assignment
