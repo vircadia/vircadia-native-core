@@ -99,10 +99,6 @@ find_package(OpenNI)
 find_package(UVCCameraControl)
 find_package(ZLIB)
 
-# link the stk library
-set(STK_ROOT_DIR ${ROOT_DIR}/externals/stk)
-find_package(STK REQUIRED)
-
 # let the source know that we have OpenNI/NITE for Kinect
 if (OPENNI_FOUND)
     add_definitions(-DHAVE_OPENNI)
@@ -126,7 +122,6 @@ include_directories(
   ${LEAP_INCLUDE_DIRS}
   ${MOTIONDRIVER_INCLUDE_DIRS}
   ${OPENCV_INCLUDE_DIRS}
-  ${STK_INCLUDE_DIRS}
 )
 
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${OPENCV_INCLUDE_DIRS}")
@@ -136,7 +131,6 @@ target_link_libraries(
   ${MOTIONDRIVER_LIBRARIES}
   ${OPENCV_LIBRARIES} 
   ${ZLIB_LIBRARIES}
-  ${STK_LIBRARIES}
   fervor
 )
 
