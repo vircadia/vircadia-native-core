@@ -50,6 +50,7 @@ Camera::Camera() {
     _targetPosition    = glm::vec3(0.0f, 0.0f, 0.0f);
     _position          = glm::vec3(0.0f, 0.0f, 0.0f);
     _idealPosition     = glm::vec3(0.0f, 0.0f, 0.0f);
+    _scale             = 1.0f;
 }
 
 void Camera::update(float deltaTime)  {
@@ -123,18 +124,18 @@ void Camera::setMode(CameraMode m) {
     _previousTightness = _tightness;
 
     if (_mode == CAMERA_MODE_THIRD_PERSON) {
-        _newUpShift   = CAMERA_THIRD_PERSON_MODE_UP_SHIFT;
-        _newDistance  = CAMERA_THIRD_PERSON_MODE_DISTANCE;
+        _newUpShift   = _scale * CAMERA_THIRD_PERSON_MODE_UP_SHIFT;
+        _newDistance  = _scale * CAMERA_THIRD_PERSON_MODE_DISTANCE;
         _newTightness = CAMERA_THIRD_PERSON_MODE_TIGHTNESS;
         
     } else if (_mode == CAMERA_MODE_FIRST_PERSON) {
-        _newUpShift   = CAMERA_FIRST_PERSON_MODE_UP_SHIFT;
-        _newDistance  = CAMERA_FIRST_PERSON_MODE_DISTANCE;
+        _newUpShift   = _scale * CAMERA_FIRST_PERSON_MODE_UP_SHIFT;
+        _newDistance  = _scale * CAMERA_FIRST_PERSON_MODE_DISTANCE;
         _newTightness = CAMERA_FIRST_PERSON_MODE_TIGHTNESS;
         
     } else if (_mode == CAMERA_MODE_MIRROR) {
-        _newUpShift   = CAMERA_MIRROR_MODE_UP_SHIFT;
-        _newDistance  = CAMERA_MIRROR_MODE_DISTANCE;
+        _newUpShift   = _scale * CAMERA_MIRROR_MODE_UP_SHIFT;
+        _newDistance  = _scale * CAMERA_MIRROR_MODE_DISTANCE;
         _newTightness = CAMERA_MIRROR_MODE_TIGHTNESS;
     }
 }
@@ -172,6 +173,15 @@ void Camera::setEyeOffsetPosition  (const glm::vec3& p) {
 void Camera::setEyeOffsetOrientation  (const glm::quat& o) {
     _eyeOffsetOrientation = o;
     _frustumNeedsReshape = true;
+}
+
+void Camera::setScale(float s) {
+    _scale = s;
+
+    _nearClip    *= _scale;
+    _farClip     *= _scale;
+    _newUpShift  *= _scale;
+    _newDistance *= _scale;
 }
 
 void Camera::initialize() {

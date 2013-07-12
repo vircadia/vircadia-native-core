@@ -1750,6 +1750,10 @@ void Application::init() {
     _palette.addAction(_colorVoxelMode, 0, 2);
     _palette.addAction(_eyedropperMode, 0, 3);
     _palette.addAction(_selectVoxelMode, 0, 4);
+
+    float scale = 1.0f;
+    _myAvatar.uniformScale(scale);
+    _myCamera.setScale(scale);
 }
 
 const float MAX_AVATAR_EDIT_VELOCITY = 1.0f;

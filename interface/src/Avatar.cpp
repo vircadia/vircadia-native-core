@@ -112,13 +112,9 @@ Avatar::Avatar(Node* owningNode) :
     _skeleton.initialize();
     
     initializeBodyBalls();
-    
-    if (isMyAvatar()) {
-        uniformScale(0.25f);
-    }
         
     _height               = _skeleton.getHeight() + _bodyBall[ BODY_BALL_LEFT_HEEL ].radius + _bodyBall[ BODY_BALL_HEAD_BASE ].radius;
-    
+
     _maxArmLength         = _skeleton.getArmLength();
     _pelvisStandingHeight = _skeleton.getPelvisStandingHeight() + _bodyBall[ BODY_BALL_LEFT_HEEL ].radius;
     _pelvisFloatingHeight = _skeleton.getPelvisFloatingHeight() + _bodyBall[ BODY_BALL_LEFT_HEEL ].radius;
@@ -429,8 +425,7 @@ void Avatar::updateThrust(float deltaTime, Transmitter * transmitter) {
     }
     
     //  Update speed brake status
-    
-    const float MIN_SPEED_BRAKE_VELOCITY = 0.4f;
+    const float MIN_SPEED_BRAKE_VELOCITY = _scale * 0.4f;
     if ((glm::length(_thrust) == 0.0f) && _isThrustOn && (glm::length(_velocity) > MIN_SPEED_BRAKE_VELOCITY)) {
         _speedBrakes = true;
     } 
@@ -439,7 +434,6 @@ void Avatar::updateThrust(float deltaTime, Transmitter * transmitter) {
         _speedBrakes = false;
     }
     _isThrustOn = (glm::length(_thrust) > EPSILON);
-
 }
 
 void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
@@ -540,7 +534,8 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
         if (USING_AVATAR_GRAVITY) {
             // For gravity, always move the avatar by the amount driven by gravity, so that the collision
             // routines will detect it and collide every frame when pulled by gravity to a surface
-            // 
+            //
+
             _velocity += _scale * _gravity * (GRAVITY_EARTH * deltaTime);
             _position += _scale * _gravity * (GRAVITY_EARTH * deltaTime) * deltaTime;
         }
@@ -575,13 +570,13 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
         _bodyYawDelta   *= bodySpinMomentum;
         _bodyRollDelta  *= bodySpinMomentum;
         
-        const float MAX_STATIC_FRICTION_VELOCITY = 0.5f;
-        const float STATIC_FRICTION_STRENGTH = 20.f;
+        const float MAX_STATIC_FRICTION_VELOCITY = _scale * 0.5f;
+        const float STATIC_FRICTION_STRENGTH = _scale * 20.f;
         applyStaticFriction(deltaTime, _velocity, MAX_STATIC_FRICTION_VELOCITY, STATIC_FRICTION_STRENGTH);
         
         const float LINEAR_DAMPING_STRENGTH = 1.0f;
-        const float SPEED_BRAKE_POWER = 10.0f;
-        const float SQUARED_DAMPING_STRENGTH = 0.2f;
+        const float SPEED_BRAKE_POWER = _scale * 10.0f;
+        const float SQUARED_DAMPING_STRENGTH = _scale * 0.2f;
         if (_speedBrakes) {
             applyDamping(deltaTime, _velocity, LINEAR_DAMPING_STRENGTH * SPEED_BRAKE_POWER, SQUARED_DAMPING_STRENGTH * SPEED_BRAKE_POWER);
         } else {
@@ -597,7 +592,7 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
                                                                      BODY_ROLL_WHILE_TURNING  * deltaTime * _speed * _bodyYawDelta)));
         
         // these forces keep the body upright...
-        const float BODY_UPRIGHT_FORCE = 10.0;
+        const float BODY_UPRIGHT_FORCE = _scale * 10.0;
         float tiltDecay = BODY_UPRIGHT_FORCE * deltaTime;
         if  (tiltDecay > 1.0f) {tiltDecay = 1.0f;}
         
@@ -1227,8 +1222,8 @@ glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
 }
 
 float Avatar::getBallRenderAlpha(int ball, bool lookingInMirror) const {
-    const float RENDER_OPAQUE_OUTSIDE = 1.25f; // render opaque if greater than this distance
-    const float DO_NOT_RENDER_INSIDE = 0.75f; // do not render if less than this distance
+    const float RENDER_OPAQUE_OUTSIDE = _scale * 1.25f; // render opaque if greater than this distance
+    const float DO_NOT_RENDER_INSIDE = _scale * 0.75f; // do not render if less than this distance
     float distanceToCamera = glm::length(Application::getInstance()->getCamera()->getPosition() - _bodyBall[ball].position);
     return (lookingInMirror || !isMyAvatar()) ? 1.0f : glm::clamp(
         (distanceToCamera - DO_NOT_RENDER_INSIDE) / (RENDER_OPAQUE_OUTSIDE - DO_NOT_RENDER_INSIDE), 0.f, 1.f);

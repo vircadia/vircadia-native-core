@@ -46,6 +46,7 @@ public:
     void setFarClip             ( float       f      );
     void setEyeOffsetPosition   ( const glm::vec3& p );
     void setEyeOffsetOrientation( const glm::quat& o );
+    void setScale               ( const float s      );
     
     const glm::vec3& getTargetPosition       () { return _targetPosition; }
     const glm::vec3& getPosition             () { return _position;    }
@@ -90,6 +91,7 @@ private:
     float       _modeShift;
     float       _linearModeShift;
     float       _modeShiftRate;
+    float       _scale;
 
     void updateFollowMode( float deltaTime );
 };

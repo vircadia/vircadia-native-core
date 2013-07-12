@@ -129,6 +129,7 @@ public:
     void setGravity                (glm::vec3 gravity);
     void setMouseRay               (const glm::vec3 &origin, const glm::vec3 &direction);
     void setOrientation            (const glm::quat& orientation);
+    void uniformScale(float uniformScaler);
 
     //getters
     bool             isInitialized             ()                const { return _initialized;}
@@ -263,7 +264,6 @@ private:
     void applyHardCollision(const glm::vec3& penetration, float elasticity, float damping);
     void applyCollisionWithOtherAvatar( Avatar * other, float deltaTime );
     void checkForMouseRayTouching();
-    void uniformScale(float uniformScaler);
 };
 
 #endif
