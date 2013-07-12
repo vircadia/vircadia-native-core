@@ -96,6 +96,8 @@ Avatar::Avatar(Node* owningNode) :
     _elapsedTimeMoving(0.0f),
     _elapsedTimeStopped(0.0f),
     _elapsedTimeSinceCollision(0.0f),
+    _speedBrakes(false),
+    _isThrustOn(false),
     _voxels(this)
 {
     // give the pointer to our head to inherited _headData variable from AvatarData
@@ -420,8 +422,21 @@ void Avatar::updateThrust(float deltaTime, Transmitter * transmitter) {
             up;
         }
     }
-}
     
+    //  Update speed brake status
+    
+    const float MIN_SPEED_BRAKE_VELOCITY = 0.4f;
+    if ((glm::length(_thrust) == 0.0f) && _isThrustOn && (glm::length(_velocity) > MIN_SPEED_BRAKE_VELOCITY)) {
+        _speedBrakes = true;
+    } 
+     
+    if (_speedBrakes && (glm::length(_velocity) < MIN_SPEED_BRAKE_VELOCITY)) {
+        _speedBrakes = false;
+    }
+    _isThrustOn = (glm::length(_thrust) > EPSILON);
+
+}
+
 void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     
     glm::quat orientation = getOrientation();
@@ -559,9 +574,14 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
         const float STATIC_FRICTION_STRENGTH = 20.f;
         applyStaticFriction(deltaTime, _velocity, MAX_STATIC_FRICTION_VELOCITY, STATIC_FRICTION_STRENGTH);
         
-        const float LINEAR_DAMPING_STRENGTH = 3.0f;
+        const float LINEAR_DAMPING_STRENGTH = 1.0f;
+        const float SPEED_BRAKE_POWER = 10.0f;
         const float SQUARED_DAMPING_STRENGTH = 0.2f;
-        applyDamping(deltaTime, _velocity, LINEAR_DAMPING_STRENGTH, SQUARED_DAMPING_STRENGTH);
+        if (_speedBrakes) {
+            applyDamping(deltaTime, _velocity, LINEAR_DAMPING_STRENGTH * SPEED_BRAKE_POWER, SQUARED_DAMPING_STRENGTH * SPEED_BRAKE_POWER);
+        } else {
+            applyDamping(deltaTime, _velocity, LINEAR_DAMPING_STRENGTH, SQUARED_DAMPING_STRENGTH);            
+        }
         
         //pitch and roll the body as a function of forward speed and turning delta
         const float BODY_PITCH_WHILE_WALKING      = -20.0;
