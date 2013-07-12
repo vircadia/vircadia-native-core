@@ -10,11 +10,17 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
+
+#include <SharedUtil.h>
+
 #include <AvatarData.h>
-#include "world.h"
+
+#include <VoxelConstants.h>
+
+#include "Face.h"
 #include "InterfaceConfig.h"
 #include "SerialInterface.h"
-#include <SharedUtil.h>
+#include "world.h"
 
 enum eyeContactTargets 
 {
@@ -53,11 +59,14 @@ public:
     glm::quat getOrientation() const;
     glm::quat getCameraOrientation () const;
     
+    float getScale() const { return _scale; }
     glm::vec3 getPosition() const { return _position; }
     const glm::vec3& getEyeLevelPosition() const { return _eyeLevelPosition; }
     glm::vec3 getRightDirection() const { return getOrientation() * IDENTITY_RIGHT; }
     glm::vec3 getUpDirection   () const { return getOrientation() * IDENTITY_UP;    }
     glm::vec3 getFrontDirection() const { return getOrientation() * IDENTITY_FRONT; }
+    
+    Face& getFace() { return _face; }
     
     const bool getReturnToCenter() const { return _returnHeadToCenter; } // Do you want head to try to return to center (depends on interface detected)
     float getAverageLoudness() {return _averageLoudness;};
@@ -120,6 +129,7 @@ private:
     bool        _isCameraMoving;
     bool        _cameraFollowsHead;
     float       _cameraFollowHeadRate;
+    Face        _face;
     
     static ProgramObject* _irisProgram;
     static GLuint _irisTextureID;

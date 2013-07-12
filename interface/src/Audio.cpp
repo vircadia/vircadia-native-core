@@ -448,7 +448,7 @@ void Audio::addReceivedAudioToBuffer(unsigned char* receivedData, int receivedBy
     
     //printf("Got audio packet %d\n", _packetsReceivedThisPlayback);
     
-    _ringBuffer.parseData((unsigned char*) receivedData, PACKET_LENGTH_BYTES + sizeof(PACKET_TYPE));
+    _ringBuffer.parseData((unsigned char*) receivedData, receivedBytes);
    
     Application::getInstance()->getBandwidthMeter()->inputStream(BandwidthMeter::AUDIO)
             .updateValue(PACKET_LENGTH_BYTES + sizeof(PACKET_TYPE));

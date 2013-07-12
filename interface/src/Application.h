@@ -31,6 +31,7 @@
 #include "BandwidthMeter.h"
 #include "Camera.h"
 #include "Environment.h"
+#include "ParticleSystem.h"
 #include "SerialInterface.h"
 #include "Stars.h"
 #include "Swatch.h"
@@ -332,6 +333,8 @@ private:
     float _touchDragStartedAvgX;
     float _touchDragStartedAvgY;
     bool _isTouchPressed; //  true if multitouch has been pressed (clear when finished)
+    float _yawFromTouch;
+    float _pitchFromTouch;
     
     VoxelDetail _mouseVoxelDragging;
     glm::vec3 _voxelThrust;
@@ -363,6 +366,8 @@ private:
     int _hmdWarpParamLocation;
     
     GeometryCache _geometryCache;
+    
+    ParticleSystem _particleSystem;
     
     #ifndef _WIN32
     Audio _audio;

@@ -82,7 +82,8 @@ Head::Head(Avatar* owningAvatar) :
     _cameraYaw(_yaw),
     _isCameraMoving(false),
     _cameraFollowsHead(false),
-    _cameraFollowHeadRate(0.0f)
+    _cameraFollowHeadRate(0.0f),
+    _face(this)
 {
     if (USING_PHYSICAL_MOHAWK) {
         resetHairPhysics();
@@ -289,17 +290,19 @@ void Head::render(float alpha) {
 
     _renderAlpha = alpha;
 
-    calculateGeometry();
+    if (!_face.render(alpha)) {
+        calculateGeometry();
 
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_RESCALE_NORMAL);
+        glEnable(GL_DEPTH_TEST);
+        glEnable(GL_RESCALE_NORMAL);
     
-    renderMohawk();
-    renderHeadSphere();
-    renderEyeBalls();    
-    renderEars();
-    renderMouth();    
-    renderEyeBrows();
+        renderMohawk();
+        renderHeadSphere();
+        renderEyeBalls();    
+        renderEars();
+        renderMouth();    
+        renderEyeBrows();
+    }
         
     if (_renderLookatVectors) {
         renderLookatVectors(_leftEyePosition, _rightEyePosition, _lookAtPosition);

@@ -30,7 +30,7 @@ int jointVectorMetaType = qRegisterMetaType<JointVector>("JointVector");
 int matMetaType = qRegisterMetaType<Mat>("cv::Mat");
 int rotatedRectMetaType = qRegisterMetaType<RotatedRect>("cv::RotatedRect");
 
-Webcam::Webcam() : _enabled(false), _active(false), _frameTextureID(0), _depthTextureID(0) {
+Webcam::Webcam() : _enabled(false), _active(false), _colorTextureID(0), _depthTextureID(0) {
     // the grabber simply runs as fast as possible
     _grabber = new FrameGrabber();
     _grabber->moveToThread(&_grabberThread);
@@ -65,13 +65,13 @@ void Webcam::reset() {
 }
 
 void Webcam::renderPreview(int screenWidth, int screenHeight) {
-    if (_enabled && _frameTextureID != 0) {
-        glBindTexture(GL_TEXTURE_2D, _frameTextureID);
+    if (_enabled && _colorTextureID != 0) {
+        glBindTexture(GL_TEXTURE_2D, _colorTextureID);
         glEnable(GL_TEXTURE_2D);
         glColor3f(1.0f, 1.0f, 1.0f);
         glBegin(GL_QUADS);
             const int PREVIEW_HEIGHT = 200;
-            int previewWidth = _frameWidth * PREVIEW_HEIGHT / _frameHeight;
+            int previewWidth = _textureSize.width * PREVIEW_HEIGHT / _textureSize.height;
             int top = screenHeight - 600;
             int left = screenWidth - previewWidth - 10;
             
@@ -88,16 +88,14 @@ void Webcam::renderPreview(int screenWidth, int screenHeight) {
         if (_depthTextureID != 0) {
             glBindTexture(GL_TEXTURE_2D, _depthTextureID);
             glBegin(GL_QUADS);
-                int depthPreviewWidth = _depthWidth * PREVIEW_HEIGHT / _depthHeight;
-                int depthLeft = screenWidth - depthPreviewWidth - 10;
                 glTexCoord2f(0, 0);
-                glVertex2f(depthLeft, top - PREVIEW_HEIGHT);
+                glVertex2f(left, top - PREVIEW_HEIGHT);
                 glTexCoord2f(1, 0);
-                glVertex2f(depthLeft + depthPreviewWidth, top - PREVIEW_HEIGHT);
+                glVertex2f(left + previewWidth, top - PREVIEW_HEIGHT);
                 glTexCoord2f(1, 1);
-                glVertex2f(depthLeft + depthPreviewWidth, top);
+                glVertex2f(left + previewWidth, top);
                 glTexCoord2f(0, 1);
-                glVertex2f(depthLeft, top);
+                glVertex2f(left, top);
             glEnd();
             
             glBindTexture(GL_TEXTURE_2D, 0);
@@ -107,10 +105,10 @@ void Webcam::renderPreview(int screenWidth, int screenHeight) {
                 glColor3f(1.0f, 0.0f, 0.0f);
                 glPointSize(4.0f);
                 glBegin(GL_POINTS);
-                    float projectedScale = PREVIEW_HEIGHT / (float)_depthHeight;
+                    float projectedScale = PREVIEW_HEIGHT / _textureSize.height;
                     foreach (const Joint& joint, _joints) {
                         if (joint.isValid) {
-                            glVertex2f(depthLeft + joint.projected.x * projectedScale,
+                            glVertex2f(left + joint.projected.x * projectedScale,
                                 top - PREVIEW_HEIGHT + joint.projected.y * projectedScale);
                         }
                     }
@@ -126,8 +124,8 @@ void Webcam::renderPreview(int screenWidth, int screenHeight) {
         glBegin(GL_LINE_LOOP);
             Point2f facePoints[4];
             _faceRect.points(facePoints);
-            float xScale = previewWidth / (float)_frameWidth;
-            float yScale = PREVIEW_HEIGHT / (float)_frameHeight;
+            float xScale = previewWidth / _textureSize.width;
+            float yScale = PREVIEW_HEIGHT / _textureSize.height;
             glVertex2f(left + facePoints[0].x * xScale, top + facePoints[0].y * yScale);
             glVertex2f(left + facePoints[1].x * xScale, top + facePoints[1].y * yScale);
             glVertex2f(left + facePoints[2].x * xScale, top + facePoints[2].y * yScale);
@@ -148,21 +146,22 @@ Webcam::~Webcam() {
     delete _grabber;
 }
 
-void Webcam::setFrame(const Mat& frame, int format, const Mat& depth, const Mat& depthPreview,
+void Webcam::setFrame(const Mat& color, int format, const Mat& depth, const Mat& depthPreview,
         const RotatedRect& faceRect, const JointVector& joints) {
-    IplImage image = frame;
-    glPixelStorei(GL_UNPACK_ROW_LENGTH, image.widthStep / 3);
-    if (_frameTextureID == 0) {
-        glGenTextures(1, &_frameTextureID);
-        glBindTexture(GL_TEXTURE_2D, _frameTextureID);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, _frameWidth = image.width, _frameHeight = image.height, 0, format,
-            GL_UNSIGNED_BYTE, image.imageData);
+    IplImage colorImage = color;
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, colorImage.widthStep / 3);
+    if (_colorTextureID == 0) {
+        glGenTextures(1, &_colorTextureID);
+        glBindTexture(GL_TEXTURE_2D, _colorTextureID);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, _textureSize.width = colorImage.width, _textureSize.height = colorImage.height,
+            0, format, GL_UNSIGNED_BYTE, colorImage.imageData);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        printLog("Capturing video at %dx%d.\n", _frameWidth, _frameHeight);
+        printLog("Capturing video at %gx%g.\n", _textureSize.width, _textureSize.height);
     
     } else {
-        glBindTexture(GL_TEXTURE_2D, _frameTextureID);
-        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, _frameWidth, _frameHeight, format, GL_UNSIGNED_BYTE, image.imageData);
+        glBindTexture(GL_TEXTURE_2D, _colorTextureID);
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, _textureSize.width, _textureSize.height, format,
+            GL_UNSIGNED_BYTE, colorImage.imageData);
     }
     
     if (!depthPreview.empty()) {
@@ -171,14 +170,13 @@ void Webcam::setFrame(const Mat& frame, int format, const Mat& depth, const Mat&
         if (_depthTextureID == 0) {
             glGenTextures(1, &_depthTextureID);
             glBindTexture(GL_TEXTURE_2D, _depthTextureID);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, _depthWidth = depthImage.width, _depthHeight = depthImage.height, 0,
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, depthImage.width, depthImage.height, 0,
                 GL_LUMINANCE, GL_UNSIGNED_BYTE, depthImage.imageData);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            printLog("Capturing depth at %dx%d.\n", _depthWidth, _depthHeight);
             
         } else {
             glBindTexture(GL_TEXTURE_2D, _depthTextureID);
-            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, _depthWidth, _depthHeight, GL_LUMINANCE,
+            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, _textureSize.width, _textureSize.height, GL_LUMINANCE,
                 GL_UNSIGNED_BYTE, depthImage.imageData);        
         }
     }
@@ -200,6 +198,27 @@ void Webcam::setFrame(const Mat& frame, int format, const Mat& depth, const Mat&
         remaining -= (now - _lastFrameTimestamp);
     }
     _lastFrameTimestamp = now;
+    
+    // correct for 180 degree rotations
+    if (_faceRect.angle < -90.0f) {
+        _faceRect.angle += 180.0f;
+        
+    } else if (_faceRect.angle > 90.0f) {
+        _faceRect.angle -= 180.0f;
+    }
+    
+    // compute the smoothed face rect
+    if (_estimatedFaceRect.size.area() == 0) {
+        _estimatedFaceRect = _faceRect;
+        
+    } else {
+        const float FACE_RECT_SMOOTHING = 0.9f;
+        _estimatedFaceRect.center.x = glm::mix(_faceRect.center.x, _estimatedFaceRect.center.x, FACE_RECT_SMOOTHING);
+        _estimatedFaceRect.center.y = glm::mix(_faceRect.center.y, _estimatedFaceRect.center.y, FACE_RECT_SMOOTHING);
+        _estimatedFaceRect.size.width = glm::mix(_faceRect.size.width, _estimatedFaceRect.size.width, FACE_RECT_SMOOTHING);
+        _estimatedFaceRect.size.height = glm::mix(_faceRect.size.height, _estimatedFaceRect.size.height, FACE_RECT_SMOOTHING); 
+        _estimatedFaceRect.angle = glm::mix(_faceRect.angle, _estimatedFaceRect.angle, FACE_RECT_SMOOTHING);
+    }
     
     // see if we have joint data
     if (!_joints.isEmpty()) {
@@ -227,30 +246,23 @@ void Webcam::setFrame(const Mat& frame, int format, const Mat& depth, const Mat&
         _estimatedPosition = _estimatedJoints[AVATAR_JOINT_HEAD_BASE].position;
         
     } else {
-        // roll is just the angle of the face rect (correcting for 180 degree rotations)
-        float roll = faceRect.angle;
-        if (roll < -90.0f) {
-            roll += 180.0f;
-            
-        } else if (roll > 90.0f) {
-            roll -= 180.0f;
-        }
+        // roll is just the angle of the face rect
         const float ROTATION_SMOOTHING = 0.95f;
-        _estimatedRotation.z = glm::mix(roll, _estimatedRotation.z, ROTATION_SMOOTHING);
+        _estimatedRotation.z = glm::mix(_faceRect.angle, _estimatedRotation.z, ROTATION_SMOOTHING);
         
         // determine position based on translation and scaling of the face rect
         if (_initialFaceRect.size.area() == 0) {
-            _initialFaceRect = faceRect;
+            _initialFaceRect = _faceRect;
             _estimatedPosition = glm::vec3();
         
         } else {
-            float proportion = sqrtf(_initialFaceRect.size.area() / (float)faceRect.size.area());
+            float proportion = sqrtf(_initialFaceRect.size.area() / (float)_faceRect.size.area());
             const float DISTANCE_TO_CAMERA = 0.333f;
             const float POSITION_SCALE = 0.5f;
             float z = DISTANCE_TO_CAMERA * proportion - DISTANCE_TO_CAMERA;
             glm::vec3 position = glm::vec3(
-                (faceRect.center.x - _initialFaceRect.center.x) * proportion * POSITION_SCALE / _frameWidth,
-                (faceRect.center.y - _initialFaceRect.center.y) * proportion * POSITION_SCALE / _frameWidth,
+                (_faceRect.center.x - _initialFaceRect.center.x) * proportion * POSITION_SCALE / _textureSize.width,
+                (_faceRect.center.y - _initialFaceRect.center.y) * proportion * POSITION_SCALE / _textureSize.width,
                 z);
             const float POSITION_SMOOTHING = 0.95f;
             _estimatedPosition = glm::mix(position, _estimatedPosition, POSITION_SMOOTHING);
@@ -382,13 +394,13 @@ void FrameGrabber::grabFrame() {
         return;
     }
     int format = GL_BGR;
-    Mat frame, depth;
+    Mat color, depth;
     JointVector joints;
     
 #ifdef HAVE_OPENNI
     if (_depthGenerator.IsValid()) {
         _xnContext.WaitAnyUpdateAll();
-        frame = Mat(_imageMetaData.YRes(), _imageMetaData.XRes(), CV_8UC3, (void*)_imageGenerator.GetImageMap());
+        color = Mat(_imageMetaData.YRes(), _imageMetaData.XRes(), CV_8UC3, (void*)_imageGenerator.GetImageMap());
         format = GL_RGB;
         
         depth = Mat(_depthMetaData.YRes(), _depthMetaData.XRes(), CV_16UC1, (void*)_depthGenerator.GetDepthMap());
@@ -430,7 +442,7 @@ void FrameGrabber::grabFrame() {
     }
 #endif
 
-    if (frame.empty()) {
+    if (color.empty()) {
         IplImage* image = cvQueryFrame(_capture);
         if (image == 0) {
             // try again later
@@ -443,7 +455,7 @@ void FrameGrabber::grabFrame() {
             printLog("Invalid webcam image format.\n");
             return;
         }
-        frame = image;
+        color = image;
     }
     
     // if we don't have a search window (yet), try using the face cascade
@@ -452,10 +464,10 @@ void FrameGrabber::grabFrame() {
     const float* range = ranges;
     if (_searchWindow.area() == 0) {
         vector<cv::Rect> faces;
-        _faceCascade.detectMultiScale(frame, faces, 1.1, 6);
+        _faceCascade.detectMultiScale(color, faces, 1.1, 6);
         if (!faces.empty()) {
             _searchWindow = faces.front();
-            updateHSVFrame(frame, format);
+            updateHSVFrame(color, format);
         
             Mat faceHsv(_hsvFrame, _searchWindow);
             Mat faceMask(_mask, _searchWindow);
@@ -468,7 +480,7 @@ void FrameGrabber::grabFrame() {
     }
     RotatedRect faceRect;
     if (_searchWindow.area() > 0) {
-        updateHSVFrame(frame, format);
+        updateHSVFrame(color, format);
         
         calcBackProject(&_hsvFrame, 1, &channels, _histogram, _backProject, &range);
         bitwise_and(_backProject, _mask, _backProject);
@@ -477,7 +489,7 @@ void FrameGrabber::grabFrame() {
         _searchWindow = faceRect.boundingRect();
     }   
     QMetaObject::invokeMethod(Application::getInstance()->getWebcam(), "setFrame",
-        Q_ARG(cv::Mat, frame), Q_ARG(int, format), Q_ARG(cv::Mat, depth), Q_ARG(cv::Mat, _grayDepthFrame),
+        Q_ARG(cv::Mat, color), Q_ARG(int, format), Q_ARG(cv::Mat, depth), Q_ARG(cv::Mat, _grayDepthFrame),
         Q_ARG(cv::RotatedRect, faceRect), Q_ARG(JointVector, joints));
 }
 

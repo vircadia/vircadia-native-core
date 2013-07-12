@@ -87,7 +87,10 @@ public:
     void reset();
     void simulate(float deltaTime, Transmitter* transmitter);
     void updateThrust(float deltaTime, Transmitter * transmitter);
-    void updateFromGyrosAndOrWebcam(bool gyroLook, const glm::vec3& amplifyAngles);
+    void updateFromGyrosAndOrWebcam(bool gyroLook,
+                                    const glm::vec3& amplifyAngle,
+                                    float yawFromTouch,
+                                    float pitchFromTouch);
     void addBodyYaw(float y) {_bodyYaw += y;};
     void render(bool lookingInMirror, bool renderAvatarBalls);
 
@@ -210,6 +213,8 @@ private:
     float       _elapsedTimeMoving;             //  Timers to drive camera transitions when moving
     float       _elapsedTimeStopped;
     float       _elapsedTimeSinceCollision;
+    bool        _speedBrakes;
+    bool        _isThrustOn;
     
     AvatarVoxelSystem _voxels;
     

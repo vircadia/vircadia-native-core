@@ -16,11 +16,13 @@
 #include "Hand.h"
 #include "Head.h"
 #include "Log.h"
+#include "Physics.h"
 #include "ui/TextRenderer.h"
 #include <NodeList.h>
 #include <NodeTypes.h>
 #include <PacketHeaders.h>
 #include <OculusManager.h>
+
 
 using namespace std;
 
@@ -94,6 +96,8 @@ Avatar::Avatar(Node* owningNode) :
     _elapsedTimeMoving(0.0f),
     _elapsedTimeStopped(0.0f),
     _elapsedTimeSinceCollision(0.0f),
+    _speedBrakes(false),
+    _isThrustOn(false),
     _voxels(this)
 {
     // give the pointer to our head to inherited _headData variable from AvatarData
@@ -285,7 +289,10 @@ void Avatar::reset() {
 }
 
 //  Update avatar head rotation with sensor data
-void Avatar::updateFromGyrosAndOrWebcam(bool gyroLook, const glm::vec3& amplifyAngle) {
+void Avatar::updateFromGyrosAndOrWebcam(bool gyroLook,
+                                        const glm::vec3& amplifyAngle,
+                                        float yawFromTouch,
+                                        float pitchFromTouch) {
     SerialInterface* gyros = Application::getInstance()->getSerialHeadSensor();
     Webcam* webcam = Application::getInstance()->getWebcam();
     glm::vec3 estimatedPosition, estimatedRotation;
@@ -296,6 +303,8 @@ void Avatar::updateFromGyrosAndOrWebcam(bool gyroLook, const glm::vec3& amplifyA
         estimatedRotation = webcam->getEstimatedRotation();
     
     } else {
+        _head.setPitch(pitchFromTouch);
+        _head.setYaw(yawFromTouch);
         return;
     }
     if (webcam->isActive()) {
@@ -316,8 +325,8 @@ void Avatar::updateFromGyrosAndOrWebcam(bool gyroLook, const glm::vec3& amplifyA
             }
         }
     }
-    _head.setPitch(estimatedRotation.x * amplifyAngle.x);
-    _head.setYaw(estimatedRotation.y * amplifyAngle.y);
+    _head.setPitch(estimatedRotation.x * amplifyAngle.x + pitchFromTouch);
+    _head.setYaw(estimatedRotation.y * amplifyAngle.y + yawFromTouch);
     _head.setRoll(estimatedRotation.z * amplifyAngle.z);
     _head.setCameraFollowsHead(gyroLook);
         
@@ -356,16 +365,16 @@ void Avatar::updateThrust(float deltaTime, Transmitter * transmitter) {
     //
     //  Gather thrust information from keyboard and sensors to apply to avatar motion 
     //
-    glm::quat orientation = getOrientation();
+    glm::quat orientation = getHead().getOrientation();
     glm::vec3 front = orientation * IDENTITY_FRONT;
     glm::vec3 right = orientation * IDENTITY_RIGHT;
     glm::vec3 up = orientation * IDENTITY_UP;
 
     const float THRUST_MAG_UP = 800.0f;
-    const float THRUST_MAG_DOWN = 200.f;
-    const float THRUST_MAG_FWD = 300.f;
-    const float THRUST_MAG_BACK = 150.f;
-    const float THRUST_MAG_LATERAL = 200.f;
+    const float THRUST_MAG_DOWN = 300.f;
+    const float THRUST_MAG_FWD = 500.f;
+    const float THRUST_MAG_BACK = 300.f;
+    const float THRUST_MAG_LATERAL = 250.f;
     const float THRUST_JUMP = 120.f;
     
     //  Add Thrusts from keyboard
@@ -413,14 +422,27 @@ void Avatar::updateThrust(float deltaTime, Transmitter * transmitter) {
             up;
         }
     }
-}
     
+    //  Update speed brake status
+    
+    const float MIN_SPEED_BRAKE_VELOCITY = 0.4f;
+    if ((glm::length(_thrust) == 0.0f) && _isThrustOn && (glm::length(_velocity) > MIN_SPEED_BRAKE_VELOCITY)) {
+        _speedBrakes = true;
+    } 
+     
+    if (_speedBrakes && (glm::length(_velocity) < MIN_SPEED_BRAKE_VELOCITY)) {
+        _speedBrakes = false;
+    }
+    _isThrustOn = (glm::length(_thrust) > EPSILON);
+
+}
+
 void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     
     glm::quat orientation = getOrientation();
     glm::vec3 front = orientation * IDENTITY_FRONT;
     glm::vec3 right = orientation * IDENTITY_RIGHT;
-
+    
     // Update movement timers
     if (isMyAvatar()) {
         _elapsedTimeSinceCollision += deltaTime;
@@ -443,9 +465,6 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     glm::vec3 oldVelocity = getVelocity();
     
     if (isMyAvatar()) {
-        // update position by velocity
-        _position += _velocity * deltaTime;
-        
         // calculate speed
         _speed = glm::length(_velocity);
     }
@@ -480,7 +499,7 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
         enableHandMovement &= (it->jointID != AVATAR_JOINT_RIGHT_WRIST);
     }
     
-     // update avatar skeleton
+    // update avatar skeleton
     _skeleton.update(deltaTime, getOrientation(), _position);
             
     //determine the lengths of the body springs now that we have updated the skeleton at least once
@@ -501,51 +520,49 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
         _ballSpringsInitialized = true;
     }
     
-    
     // if this is not my avatar, then hand position comes from transmitted data
     if (!isMyAvatar()) {
         _skeleton.joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position = _handPosition;
     }
-    
-    //detect and respond to collisions with other avatars...
-    if (isMyAvatar()) {
-        updateAvatarCollisions(deltaTime);
-    }
-    
+        
     //update the movement of the hand and process handshaking with other avatars...
     updateHandMovementAndTouching(deltaTime, enableHandMovement);
     _avatarTouch.simulate(deltaTime);
     
-    // apply gravity and collision with the ground/floor
-    if (isMyAvatar() && USING_AVATAR_GRAVITY) {
-        _velocity += _gravity * (GRAVITY_EARTH * deltaTime);
-    }
     if (isMyAvatar()) {
+
+        // apply gravity
+        if (USING_AVATAR_GRAVITY) {
+            // For gravity, always move the avatar by the amount driven by gravity, so that the collision
+            // routines will detect it and collide every frame when pulled by gravity to a surface
+            // 
+            _velocity += _gravity * (GRAVITY_EARTH * deltaTime);
+            _position += _gravity * (GRAVITY_EARTH * deltaTime) * deltaTime;
+        }
+
         updateCollisionWithEnvironment();
+        updateCollisionWithVoxels();
+        updateAvatarCollisions(deltaTime);
     }
     
     // update body balls
     updateBodyBalls(deltaTime);
     
+
     // test for avatar collision response with the big sphere
     if (usingBigSphereCollisionTest) {
         updateCollisionWithSphere(_TEST_bigSpherePosition, _TEST_bigSphereRadius, deltaTime);
     }
     
-    // collision response with voxels
-    if (isMyAvatar()) {
-        updateCollisionWithVoxels();
-    }
-    
+        
     if (isMyAvatar()) {
     
         // add thrust to velocity
         _velocity += _thrust * deltaTime;
-
+        
         // update body yaw by body yaw delta
         orientation = orientation * glm::quat(glm::radians(
                                                            glm::vec3(_bodyPitchDelta, _bodyYawDelta, _bodyRollDelta) * deltaTime));
-        
         // decay body rotation momentum
         float bodySpinMomentum = 1.0 - BODY_SPIN_FRICTION * deltaTime;
         if  (bodySpinMomentum < 0.0f) { bodySpinMomentum = 0.0f; }
@@ -553,22 +570,19 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
         _bodyYawDelta   *= bodySpinMomentum;
         _bodyRollDelta  *= bodySpinMomentum;
         
-        // Decay velocity.  If velocity is really low, increase decay to simulate static friction
-        const float VELOCITY_DECAY_UNDER_THRUST = 0.2;
-        const float VELOCITY_FAST_DECAY = 0.6;
-        const float VELOCITY_SLOW_DECAY = 3.0;
-        const float VELOCITY_FAST_THRESHOLD = 2.0f;
-        float decayConstant, decay;
-        if (glm::length(_thrust) > 0.f) {
-            decayConstant = VELOCITY_DECAY_UNDER_THRUST;
-        } else if (glm::length(_velocity) > VELOCITY_FAST_THRESHOLD) {
-            decayConstant = VELOCITY_FAST_DECAY;
+        const float MAX_STATIC_FRICTION_VELOCITY = 0.5f;
+        const float STATIC_FRICTION_STRENGTH = 20.f;
+        applyStaticFriction(deltaTime, _velocity, MAX_STATIC_FRICTION_VELOCITY, STATIC_FRICTION_STRENGTH);
+        
+        const float LINEAR_DAMPING_STRENGTH = 1.0f;
+        const float SPEED_BRAKE_POWER = 10.0f;
+        const float SQUARED_DAMPING_STRENGTH = 0.2f;
+        if (_speedBrakes) {
+            applyDamping(deltaTime, _velocity, LINEAR_DAMPING_STRENGTH * SPEED_BRAKE_POWER, SQUARED_DAMPING_STRENGTH * SPEED_BRAKE_POWER);
         } else {
-            decayConstant = VELOCITY_SLOW_DECAY;
-        }             
-        decay = glm::clamp(1.0f - decayConstant * deltaTime, 0.0f, 1.0f);
-        _velocity *= decay;
-                
+            applyDamping(deltaTime, _velocity, LINEAR_DAMPING_STRENGTH, SQUARED_DAMPING_STRENGTH);            
+        }
+        
         //pitch and roll the body as a function of forward speed and turning delta
         const float BODY_PITCH_WHILE_WALKING      = -20.0;
         const float BODY_ROLL_WHILE_TURNING       = 0.2;
@@ -658,6 +672,9 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     } else {
         _mode = AVATAR_MODE_INTERACTING;
     }
+    
+    // update position by velocity, and subtract the change added earlier for gravity 
+    _position += _velocity * deltaTime;
     
     // Zero thrust out now that we've added it to velocity in this frame
     _thrust = glm::vec3(0, 0, 0);

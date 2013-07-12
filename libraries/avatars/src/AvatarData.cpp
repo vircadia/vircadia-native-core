@@ -137,6 +137,11 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     if (numFingerVectors > 255)
         numFingerVectors = 0; // safety. We shouldn't ever get over 255, so consider that invalid.
 
+    /////////////////////////////////
+    // Temporarily disable Leap finger sending, as it's causing a crash whenever someone's got a Leap connected
+    numFingerVectors = 0;
+    /////////////////////////////////
+    
     *destinationBuffer++ = (unsigned char)numFingerVectors;
     
     if (numFingerVectors > 0) {
@@ -255,8 +260,8 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     // leap hand data
     if (sourceBuffer - startPosition < numBytes)    // safety check
     {
-        std::vector<glm::vec3> fingerTips = _handData->getFingerTips();
-        std::vector<glm::vec3> fingerRoots = _handData->getFingerRoots();
+        std::vector<glm::vec3> fingerTips;
+        std::vector<glm::vec3> fingerRoots;
         unsigned int numFingerVectors = *sourceBuffer++;
         unsigned int numFingerTips = numFingerVectors / 2;
         unsigned int numFingerRoots = numFingerVectors - numFingerTips;
@@ -266,6 +271,11 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
             sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(fingerTips[i].x), 4);
             sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(fingerTips[i].y), 4);
             sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(fingerTips[i].z), 4);
+        }
+        for (size_t i = 0; i < numFingerRoots; ++i) {
+            sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(fingerRoots[i].x), 4);
+            sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(fingerRoots[i].y), 4);
+            sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(fingerRoots[i].z), 4);
         }
         _handData->setFingerTips(fingerTips);
         _handData->setFingerRoots(fingerRoots);

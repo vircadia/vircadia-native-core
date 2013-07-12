@@ -42,7 +42,13 @@ public:
     Webcam();
     ~Webcam();
 
-    const bool isActive() const { return _active; }
+    bool isActive() const { return _active; }
+    
+    GLuint getColorTextureID() const { return _colorTextureID; }
+    GLuint getDepthTextureID() const { return _depthTextureID; }
+    const cv::Size2f& getTextureSize() const { return _textureSize; }
+    
+    const cv::RotatedRect& getEstimatedFaceRect() const { return _estimatedFaceRect; }
     const glm::vec3& getEstimatedPosition() const { return _estimatedPosition; }
     const glm::vec3& getEstimatedRotation() const { return _estimatedRotation; }
     const JointVector& getEstimatedJoints() const { return _estimatedJoints; }
@@ -53,7 +59,7 @@ public:
 public slots:
     
     void setEnabled(bool enabled);
-    void setFrame(const cv::Mat& video, int format, const cv::Mat& depth,
+    void setFrame(const cv::Mat& color, int format, const cv::Mat& depth,
         const cv::Mat& depthPreview, const cv::RotatedRect& faceRect, const JointVector& joints);
     
 private:
@@ -63,12 +69,9 @@ private:
     
     bool _enabled;
     bool _active;
-    int _frameWidth;
-    int _frameHeight;
-    int _depthWidth;
-    int _depthHeight;
-    GLuint _frameTextureID;
+    GLuint _colorTextureID;
     GLuint _depthTextureID;
+    cv::Size2f _textureSize;
     cv::RotatedRect _faceRect;
     cv::RotatedRect _initialFaceRect;
     JointVector _joints;
@@ -78,6 +81,7 @@ private:
     
     uint64_t _lastFrameTimestamp;
     
+    cv::RotatedRect _estimatedFaceRect;
     glm::vec3 _estimatedPosition;
     glm::vec3 _estimatedRotation;
     JointVector _estimatedJoints;
