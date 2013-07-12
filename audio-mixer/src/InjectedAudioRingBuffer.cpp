@@ -21,7 +21,7 @@ InjectedAudioRingBuffer::InjectedAudioRingBuffer() :
 }
 
 int InjectedAudioRingBuffer::parseData(unsigned char* sourceBuffer, int numBytes) {
-    unsigned char* currentBuffer =  sourceBuffer + sizeof(PACKET_HEADER_INJECT_AUDIO);
+    unsigned char* currentBuffer =  sourceBuffer + numBytesForPacketHeader(sourceBuffer);
     
     // pull stream identifier from the packet
     memcpy(&_streamIdentifier, currentBuffer, sizeof(_streamIdentifier));

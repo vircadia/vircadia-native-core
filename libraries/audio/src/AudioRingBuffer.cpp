@@ -34,7 +34,8 @@ void AudioRingBuffer::reset() {
 }
 
 int AudioRingBuffer::parseData(unsigned char* sourceBuffer, int numBytes) {
-    return parseAudioSamples(sourceBuffer + sizeof(PACKET_HEADER_MIXED_AUDIO), numBytes - sizeof(PACKET_HEADER_MIXED_AUDIO));
+    int numBytesPacketHeader = numBytesForPacketHeader(sourceBuffer);
+    return parseAudioSamples(sourceBuffer + numBytesPacketHeader, numBytes - numBytesPacketHeader);
 }
 
 int AudioRingBuffer::parseAudioSamples(unsigned char* sourceBuffer, int numBytes) {
