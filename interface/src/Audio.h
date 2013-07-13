@@ -44,6 +44,8 @@ public:
     
     void lowPassFilter(int16_t* inputBuffer);
 
+    void setCollisionSoundMagnitude(float collisionSoundMagnitude) { _collisionSoundMagnitude = collisionSoundMagnitude; }
+    
     void ping();
 
     // Call periodically to eventually perform round trip time analysis,
@@ -81,7 +83,9 @@ private:
     float _flangeIntensity;
     float _flangeRate;
     float _flangeWeight;
-
+    float _collisionSoundMagnitude;
+    int _proceduralEffectSample;
+    
     // Audio callback in class context.
     inline void performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* outputRight);
 

@@ -326,7 +326,9 @@ Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples) :
     _lastYawMeasuredMaximum(0),
     _flangeIntensity(0.0f),
     _flangeRate(0.0f),
-    _flangeWeight(0.0f)
+    _flangeWeight(0.0f),
+    _collisionSoundMagnitude(0.0f),
+    _proceduralEffectSample(0)
 {
     outputPortAudioError(Pa_Initialize());
     
@@ -591,12 +593,29 @@ void Audio::addProceduralSounds(int16_t* inputBuffer, int numSamples) {
     float speed = glm::length(_lastVelocity);
     float volume = VOLUME_BASELINE * (1.f - speed / MAX_AUDIBLE_VELOCITY);
     
+    //  Test tone (should be continuous!)
+    /*
+    for (int i = 0; i < numSamples; i++) {
+        inputBuffer[i] += (int16_t) (_proceduralEffectSample + i)%16 * 10;
+    }*/
+    
     //  Add a noise-modulated sinewave with volume that tapers off with speed increasing
-    if ((speed > MIN_AUDIBLE_VELOCITY) && (speed < MAX_AUDIBLE_VELOCITY)) {
+    if (0) {  //((speed > MIN_AUDIBLE_VELOCITY) && (speed < MAX_AUDIBLE_VELOCITY)) {
         for (int i = 0; i < numSamples; i++) {
-            inputBuffer[i] += (int16_t)((sinf((float) i / SOUND_PITCH * speed) * randFloat()) * volume * speed);
+            inputBuffer[i] += (int16_t)((sinf((float) (_proceduralEffectSample + i) / SOUND_PITCH * speed) * (1.f + randFloat() * 0.0f)) * volume * speed);
         }
     }
+    const float COLLISION_SOUND_CUTOFF_LEVEL = 5.0f;
+    const float COLLISION_SOUND_PITCH_1 = 2.0f;
+    const float COLLISION_SOUND_DECAY = 1.f/1024.f;
+    const float COLLISION_VOLUME_BASELINE = 10.f;
+    if (_collisionSoundMagnitude > COLLISION_SOUND_CUTOFF_LEVEL) {
+        for (int i = 0; i < numSamples; i++) {
+            inputBuffer[i] += (int16_t) ((sinf((float) (_proceduralEffectSample + i) / COLLISION_SOUND_PITCH_1) * COLLISION_VOLUME_BASELINE * _collisionSoundMagnitude));
+            _collisionSoundMagnitude *= (1.f - COLLISION_SOUND_DECAY);
+        }
+    }
+    _proceduralEffectSample += numSamples;
 }
 
 // -----------------------------------------------------------

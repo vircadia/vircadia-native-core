@@ -873,6 +873,7 @@ void Avatar::updateCollisionWithEnvironment() {
                                                                              _position - up * (_pelvisFloatingHeight - radius),
                                                                              _position + up * (_height - _pelvisFloatingHeight - radius), radius, penetration)) {
         applyHardCollision(penetration, ENVIRONMENT_SURFACE_ELASTICITY, ENVIRONMENT_SURFACE_DAMPING);
+        
     }
 }
 
@@ -909,6 +910,13 @@ void Avatar::applyHardCollision(const glm::vec3& penetration, float elasticity, 
         if ((glm::length(_velocity) < HALTING_VELOCITY) && (glm::length(_thrust) == 0.f)) {
             // If moving really slowly after a collision, and not applying forces, stop altogether
             _velocity *= 0.f;
+        }
+        //  Push the collision into the audio system for procedural effects
+        const float AUDIBLE_COLLISION_THRESHOLD = 200.f;
+        const float COLLISION_VOLUME = 10000.f;
+        float collisionSoundLevel = penetrationLength * COLLISION_VOLUME;
+        if (collisionSoundLevel > AUDIBLE_COLLISION_THRESHOLD) {
+            Application::getInstance()->getAudio()->setCollisionSoundMagnitude(collisionSoundLevel);
         }
     }
 }
