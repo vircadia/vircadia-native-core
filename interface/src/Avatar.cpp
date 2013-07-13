@@ -92,7 +92,7 @@ Avatar::Avatar(Node* owningNode) :
     _mouseRayOrigin(0.0f, 0.0f, 0.0f),
     _mouseRayDirection(0.0f, 0.0f, 0.0f),
     _interactingOther(NULL),
-    _isMouseTurningRight(false),
+    _isMouseTurningRight(false), 
     _elapsedTimeMoving(0.0f),
     _elapsedTimeStopped(0.0f),
     _elapsedTimeSinceCollision(0.0f),
@@ -1222,8 +1222,8 @@ glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
 }
 
 float Avatar::getBallRenderAlpha(int ball, bool lookingInMirror) const {
-    const float RENDER_OPAQUE_OUTSIDE = 1.25f; // render opaque if greater than this distance
-    const float DO_NOT_RENDER_INSIDE = 0.75f; // do not render if less than this distance
+    const float RENDER_OPAQUE_OUTSIDE = 0.25f; // render opaque if greater than this distance
+    const float DO_NOT_RENDER_INSIDE = 0.25f; // do not render if less than this distance
     float distanceToCamera = glm::length(Application::getInstance()->getCamera()->getPosition() - _bodyBall[ball].position);
     return (lookingInMirror || !isMyAvatar()) ? 1.0f : glm::clamp(
         (distanceToCamera - DO_NOT_RENDER_INSIDE) / (RENDER_OPAQUE_OUTSIDE - DO_NOT_RENDER_INSIDE), 0.f, 1.f);
