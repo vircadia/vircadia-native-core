@@ -215,7 +215,7 @@ void Webcam::setFrame(const Mat& frame, int format, const Mat& depth, const Rota
             if (!_joints[i].isValid) {
                 continue;
             }
-            const float JOINT_SMOOTHING = 0.9f;
+            const float JOINT_SMOOTHING = 0.5f;
             _estimatedJoints[i].isValid = true;
             _estimatedJoints[i].position = glm::mix(_joints[i].position - origin,
                 _estimatedJoints[i].position, JOINT_SMOOTHING);
