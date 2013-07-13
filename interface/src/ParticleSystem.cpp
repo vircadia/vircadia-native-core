@@ -11,22 +11,28 @@
 #include "ParticleSystem.h"
 #include "Application.h"
 
+const float DEFAULT_PARTICLE_BOUNCE       = 1.0f;
+const float DEFAULT_PARTICLE_AIR_FRICTION = 2.0f;
+const float DEFAULT_PARTICLE_JITTER       = 0.05f;
+const float DEFAULT_PARTICLE_GRAVITY      = 0.05f;
+
 ParticleSystem::ParticleSystem() {
 
-    _gravity                 = 0.005;
-    _numEmitters             = 0;
-    _bounce                  = 0.9f;
     _timer                   = 0.0f;
-    _airFriction             = 6.0f;
-    _jitter                  = 0.1f;
-    _homeAttraction          = 0.0f;
+    _numEmitters             = 0;
+    _gravity                 = DEFAULT_PARTICLE_GRAVITY;
+    _bounce                  = DEFAULT_PARTICLE_BOUNCE;
+    _airFriction             = DEFAULT_PARTICLE_AIR_FRICTION;
+    _jitter                  = DEFAULT_PARTICLE_JITTER;
+    _emitterAttraction       = 0.0f;
     _tornadoForce            = 0.0f;
-    _neighborAttraction      = 0.02f;
-    _neighborRepulsion       = 0.9f;
+    _neighborAttraction      = 0.0f;
+    _neighborRepulsion       = 0.0f;
     _collisionSphereRadius   = 0.0f;
     _collisionSpherePosition = glm::vec3(0.0f, 0.0f, 0.0f);
     _numParticles            = 0;
     _usingCollisionSphere    = false;
+    _upDirection             = glm::vec3(0.0f, 1.0f, 0.0f); // default
     
     for (unsigned int e = 0; e < MAX_EMITTERS; e++) {
         _emitter[e].position  = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -39,7 +45,8 @@ ParticleSystem::ParticleSystem() {
     for (unsigned int p = 0; p < MAX_PARTICLES; p++) {
         _particle[p].alive        = false;
         _particle[p].age          = 0.0f;
-        _particle[p].radius       = 0.01f;
+        _particle[p].lifespan     = 0.0f;
+        _particle[p].radius       = 0.0f;
         _particle[p].emitterIndex = 0;
         _particle[p].position     = glm::vec3(0.0f, 0.0f, 0.0f);
         _particle[p].velocity     = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -71,9 +78,6 @@ void ParticleSystem::simulate(float deltaTime) {
             updateParticle(p, deltaTime);
         }
     }
-    
-    // apply special effects
-    runSpecialEffectsTest(deltaTime);
 }
 
 void ParticleSystem::updateEmitter(int e, float deltaTime) {
@@ -84,37 +88,61 @@ void ParticleSystem::updateEmitter(int e, float deltaTime) {
 }
 
 
-
-void ParticleSystem::emitParticlesNow(int e, int num) {
-
-    _numParticles = num;
-    
-    if (_numParticles > MAX_PARTICLES) {
-        _numParticles = MAX_PARTICLES;
-    }
+void ParticleSystem::emitParticlesNow(int e, int num, float radius, glm::vec4 color, glm::vec3 velocity, float lifespan) {
 
     for (unsigned int p = 0; p < num; p++) {
-        _particle[p].alive = true;
-        _particle[p].position = _emitter[e].position;
+        createParticle(_emitter[e].position, velocity, radius, color, lifespan);
     }
 }
 
-void ParticleSystem::useOrangeBlueColorPalette() {
+void ParticleSystem::createParticle(glm::vec3 position, glm::vec3 velocity, float radius, glm::vec4 color, float lifespan) {
+        
+    for (unsigned int p = 0; p < MAX_PARTICLES; p++) {
+        if (!_particle[p].alive) {
+        
+            _particle[p].lifespan = lifespan;
+            _particle[p].alive    = true;
+            _particle[p].age      = 0.0f;
+            _particle[p].position = position;
+            _particle[p].velocity = velocity;
+            _particle[p].radius   = radius;
+            _particle[p].color    = color;
+
+            _numParticles ++;            
+                        
+            assert(_numParticles <= MAX_PARTICLES);
+            
+            return;
+        }
+    }
+}
+
+void ParticleSystem::killParticle(int p) {
+
+    assert( p >= 0);
+    assert( p < MAX_PARTICLES);
+    assert( _numParticles > 0);
+
+    _particle[p].alive = false;
+    _numParticles --;
+}
+
+
+void ParticleSystem::setOrangeBlueColorPalette() {
 
     for (unsigned int p = 0; p < _numParticles; p++) {
 
         float radian = ((float)p / (float)_numParticles) * PI_TIMES_TWO;
         float wave   = sinf(radian);
+        
         float red    = 0.5f + 0.5f * wave;
         float green  = 0.3f + 0.3f * wave;
         float blue   = 0.2f - 0.2f * wave;
-        _particle[p].color        = glm::vec3(red, green, blue);
+        float alpha  = 1.0f;
+        
+        _particle[p].color = glm::vec4(red, green, blue, alpha);
     }
 }
-
-
-
-
 
 
 void ParticleSystem::runSpecialEffectsTest(float deltaTime) {
@@ -130,13 +158,13 @@ void ParticleSystem::runSpecialEffectsTest(float deltaTime) {
    
     _emitter[0].rotation = glm::quat(glm::radians(tilt));
     
-    _gravity            = 0.0f   + 0.02f  * sinf( _timer * 0.52f );
-    _airFriction        = 3.0f   + 1.0f   * sinf( _timer * 0.32f );
-    _jitter             = 0.05f  + 0.05f  * sinf( _timer * 0.42f );
-    _homeAttraction     = 0.01f  + 0.01f  * cosf( _timer * 0.6f  );
-    _tornadoForce       = 0.0f   + 0.03f  * sinf( _timer * 0.7f  );
-    _neighborAttraction = 0.1f   + 0.1f   * cosf( _timer * 0.8f  );
-    _neighborRepulsion  = 0.4f   + 0.3f   * sinf( _timer * 0.4f  );
+    _gravity            = 0.0f + DEFAULT_PARTICLE_GRAVITY * sinf( _timer * 0.52f );
+    _airFriction        = (DEFAULT_PARTICLE_AIR_FRICTION + 0.5f) + 2.0f * sinf( _timer * 0.32f );
+    _jitter             = DEFAULT_PARTICLE_JITTER       + DEFAULT_PARTICLE_JITTER  * sinf( _timer * 0.42f );
+    _emitterAttraction  = 0.015f                        + 0.015f                   * cosf( _timer * 0.6f  );
+    _tornadoForce       = 0.0f                          + 0.03f                    * sinf( _timer * 0.7f  );
+    _neighborAttraction = 0.1f                          + 0.1f                     * cosf( _timer * 0.8f  );
+    _neighborRepulsion  = 0.2f                          + 0.2f                     * sinf( _timer * 0.4f  );
 
     if (_gravity < 0.0f) {
         _gravity = 0.0f;
@@ -144,10 +172,13 @@ void ParticleSystem::runSpecialEffectsTest(float deltaTime) {
 }
 
 
-
 void ParticleSystem::updateParticle(int p, float deltaTime) {
 
     _particle[p].age += deltaTime;
+    
+    if (_particle[p].age > _particle[p].lifespan) {
+        killParticle(p);
+    }
 
     // apply random jitter
     _particle[p].velocity += 
@@ -160,7 +191,7 @@ void ParticleSystem::updateParticle(int p, float deltaTime) {
     
     // apply attraction to home position
     glm::vec3 vectorToHome = _emitter[_particle[p].emitterIndex].position - _particle[p].position;
-    _particle[p].velocity += vectorToHome * _homeAttraction * deltaTime;
+    _particle[p].velocity += vectorToHome * _emitterAttraction * deltaTime;
     
     // apply neighbor attraction
     int neighbor = p + 1;
@@ -189,7 +220,7 @@ void ParticleSystem::updateParticle(int p, float deltaTime) {
     }
     
     // apply gravity
-    _particle[p].velocity.y -= _gravity * deltaTime;       
+    _particle[p].velocity -= _upDirection * _gravity * deltaTime;       
 
     // update position by velocity
     _particle[p].position += _particle[p].velocity;
@@ -239,11 +270,9 @@ void ParticleSystem::render() {
     }
 }
 
-
-
 void ParticleSystem::renderParticle(int p) {
 
-    glColor3f(_particle[p].color.x, _particle[p].color.y, _particle[p].color.z);
+    glColor4f(_particle[p].color.r, _particle[p].color.g, _particle[p].color.b, _particle[p].color.a );
     glPushMatrix();
     glTranslatef(_particle[p].position.x, _particle[p].position.y, _particle[p].position.z);
     glutSolidSphere(_particle[p].radius, 6, 6);

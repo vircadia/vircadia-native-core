@@ -2011,23 +2011,37 @@ void Application::update(float deltaTime) {
     _audio.eventuallyAnalyzePing();
     #endif
     
+    
     if (TESTING_PARTICLE_SYSTEM) {
         if (_particleSystemInitialized) {
-            _particleSystem.simulate(deltaTime);    
-        } else {
-            int coolDemoEmitter = _particleSystem.addEmitter();
             
+            // update the particle system
+            _particleSystem.setUpDirection(glm::vec3(0.0f, 1.0f, 0.0f));  
+            _particleSystem.simulate(deltaTime);  
+            _particleSystem.runSpecialEffectsTest(deltaTime);  
+        } else {
+            // create a stable test emitter and spit out a bunch of particles
+            int coolDemoEmitter = _particleSystem.addEmitter();
             if (coolDemoEmitter != -1) {
-                glm::vec3 particleEmitterPosition = glm::vec3(5.0f, 1.3f, 5.0f);   
+                glm::vec3 particleEmitterPosition = glm::vec3(5.0f, 1.0f, 5.0f);   
                 _particleSystem.setEmitterPosition(coolDemoEmitter, particleEmitterPosition);
-                _particleSystem.emitParticlesNow(coolDemoEmitter, 1500);   
+                float radius = 0.01f;
+                glm::vec4 color(0.0f, 0.0f, 0.0f, 1.0f);
+                glm::vec3 velocity(0.0f, 0.1f, 0.0f);
+                float lifespan = 100000.0f;
+                _particleSystem.emitParticlesNow(coolDemoEmitter, 1500, radius, color, velocity, lifespan);   
             }
             
+            // determine a collision sphere
             glm::vec3 collisionSpherePosition = glm::vec3( 5.0f, 0.5f, 5.0f );   
             float collisionSphereRadius = 0.5f;            
             _particleSystem.setCollisionSphere(collisionSpherePosition, collisionSphereRadius);
+            
+            // signal that the particle system has been initialized 
             _particleSystemInitialized = true;         
-            _particleSystem.useOrangeBlueColorPalette();
+
+            // apply a preset color palette  
+            _particleSystem.setOrangeBlueColorPalette();
         }        
     }
 }
