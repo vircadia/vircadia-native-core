@@ -129,7 +129,7 @@ public:
     void setGravity                (glm::vec3 gravity);
     void setMouseRay               (const glm::vec3 &origin, const glm::vec3 &direction);
     void setOrientation            (const glm::quat& orientation);
-    void uniformScale(float uniformScaler);
+    void setScale                  (const float scale);
 
     //getters
     bool             isInitialized             ()                const { return _initialized;}

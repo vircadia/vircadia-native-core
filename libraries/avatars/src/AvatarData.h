@@ -112,6 +112,7 @@ protected:
     float _bodyYaw;
     float _bodyPitch;
     float _bodyRoll;
+    float _newScale;
 
     //  Hand state (are we grabbing something or not)
     char _handState;

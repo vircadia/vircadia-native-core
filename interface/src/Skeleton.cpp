@@ -89,39 +89,39 @@ void Skeleton::initialize() {
     joint[ AVATAR_JOINT_RIGHT_HEEL		  ].parent = AVATAR_JOINT_RIGHT_KNEE;
     joint[ AVATAR_JOINT_RIGHT_TOES		  ].parent = AVATAR_JOINT_RIGHT_HEEL;
     
-    uniformScale(1.0f);
+    setScale(1.0f);
 }
 
-void Skeleton::uniformScale(float uniformScaler) {
+void Skeleton::setScale(float scale) {
     // specify the bind pose position
-    joint[ AVATAR_JOINT_PELVIS           ].bindPosePosition = uniformScaler * AVATAR_JOINT_POSITION_PELVIS;
-    joint[ AVATAR_JOINT_TORSO            ].bindPosePosition = uniformScaler * AVATAR_JOINT_POSITION_TORSO;
-    joint[ AVATAR_JOINT_CHEST            ].bindPosePosition = uniformScaler * AVATAR_JOINT_POSITION_CHEST;
-    joint[ AVATAR_JOINT_NECK_BASE        ].bindPosePosition = uniformScaler * AVATAR_JOINT_POSITION_NECK_BASE;
-    joint[ AVATAR_JOINT_HEAD_BASE        ].bindPosePosition = uniformScaler * AVATAR_JOINT_POSITION_HEAD_BASE;
-    joint[ AVATAR_JOINT_HEAD_TOP         ].bindPosePosition = uniformScaler * AVATAR_JOINT_POSITION_HEAD_TOP;
+    joint[ AVATAR_JOINT_PELVIS           ].bindPosePosition = scale * AVATAR_JOINT_POSITION_PELVIS;
+    joint[ AVATAR_JOINT_TORSO            ].bindPosePosition = scale * AVATAR_JOINT_POSITION_TORSO;
+    joint[ AVATAR_JOINT_CHEST            ].bindPosePosition = scale * AVATAR_JOINT_POSITION_CHEST;
+    joint[ AVATAR_JOINT_NECK_BASE        ].bindPosePosition = scale * AVATAR_JOINT_POSITION_NECK_BASE;
+    joint[ AVATAR_JOINT_HEAD_BASE        ].bindPosePosition = scale * AVATAR_JOINT_POSITION_HEAD_BASE;
+    joint[ AVATAR_JOINT_HEAD_TOP         ].bindPosePosition = scale * AVATAR_JOINT_POSITION_HEAD_TOP;
     
-    joint[ AVATAR_JOINT_LEFT_COLLAR      ].bindPosePosition = uniformScaler * AVATAR_JOINT_POSITION_LEFT_COLLAR;
-    joint[ AVATAR_JOINT_LEFT_SHOULDER    ].bindPosePosition = uniformScaler * AVATAR_JOINT_POSITION_LEFT_SHOULDER;
-    joint[ AVATAR_JOINT_LEFT_ELBOW       ].bindPosePosition = uniformScaler * AVATAR_JOINT_POSITION_LEFT_ELBOW;
-    joint[ AVATAR_JOINT_LEFT_WRIST       ].bindPosePosition = uniformScaler * AVATAR_JOINT_POSITION_LEFT_WRIST;
-    joint[ AVATAR_JOINT_LEFT_FINGERTIPS  ].bindPosePosition = uniformScaler * AVATAR_JOINT_POSITION_LEFT_FINGERTIPS;
+    joint[ AVATAR_JOINT_LEFT_COLLAR      ].bindPosePosition = scale * AVATAR_JOINT_POSITION_LEFT_COLLAR;
+    joint[ AVATAR_JOINT_LEFT_SHOULDER    ].bindPosePosition = scale * AVATAR_JOINT_POSITION_LEFT_SHOULDER;
+    joint[ AVATAR_JOINT_LEFT_ELBOW       ].bindPosePosition = scale * AVATAR_JOINT_POSITION_LEFT_ELBOW;
+    joint[ AVATAR_JOINT_LEFT_WRIST       ].bindPosePosition = scale * AVATAR_JOINT_POSITION_LEFT_WRIST;
+    joint[ AVATAR_JOINT_LEFT_FINGERTIPS  ].bindPosePosition = scale * AVATAR_JOINT_POSITION_LEFT_FINGERTIPS;
     
-    joint[ AVATAR_JOINT_RIGHT_COLLAR     ].bindPosePosition = uniformScaler * AVATAR_JOINT_POSITION_RIGHT_COLLAR;
-    joint[ AVATAR_JOINT_RIGHT_SHOULDER   ].bindPosePosition = uniformScaler * AVATAR_JOINT_POSITION_RIGHT_SHOULDER;
-    joint[ AVATAR_JOINT_RIGHT_ELBOW      ].bindPosePosition = uniformScaler * AVATAR_JOINT_POSITION_RIGHT_ELBOW;
-    joint[ AVATAR_JOINT_RIGHT_WRIST      ].bindPosePosition = uniformScaler * AVATAR_JOINT_POSITION_RIGHT_WRIST;
-    joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].bindPosePosition = uniformScaler * AVATAR_JOINT_POSITION_RIGHT_FINGERTIPS;
+    joint[ AVATAR_JOINT_RIGHT_COLLAR     ].bindPosePosition = scale * AVATAR_JOINT_POSITION_RIGHT_COLLAR;
+    joint[ AVATAR_JOINT_RIGHT_SHOULDER   ].bindPosePosition = scale * AVATAR_JOINT_POSITION_RIGHT_SHOULDER;
+    joint[ AVATAR_JOINT_RIGHT_ELBOW      ].bindPosePosition = scale * AVATAR_JOINT_POSITION_RIGHT_ELBOW;
+    joint[ AVATAR_JOINT_RIGHT_WRIST      ].bindPosePosition = scale * AVATAR_JOINT_POSITION_RIGHT_WRIST;
+    joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].bindPosePosition = scale * AVATAR_JOINT_POSITION_RIGHT_FINGERTIPS;
     
-    joint[ AVATAR_JOINT_LEFT_HIP         ].bindPosePosition = uniformScaler * AVATAR_JOINT_POSITION_LEFT_HIP;
-    joint[ AVATAR_JOINT_LEFT_KNEE        ].bindPosePosition = uniformScaler * AVATAR_JOINT_POSITION_LEFT_KNEE;
-    joint[ AVATAR_JOINT_LEFT_HEEL        ].bindPosePosition = uniformScaler * AVATAR_JOINT_POSITION_LEFT_HEEL;
-    joint[ AVATAR_JOINT_LEFT_TOES        ].bindPosePosition = uniformScaler * AVATAR_JOINT_POSITION_LEFT_TOES;
+    joint[ AVATAR_JOINT_LEFT_HIP         ].bindPosePosition = scale * AVATAR_JOINT_POSITION_LEFT_HIP;
+    joint[ AVATAR_JOINT_LEFT_KNEE        ].bindPosePosition = scale * AVATAR_JOINT_POSITION_LEFT_KNEE;
+    joint[ AVATAR_JOINT_LEFT_HEEL        ].bindPosePosition = scale * AVATAR_JOINT_POSITION_LEFT_HEEL;
+    joint[ AVATAR_JOINT_LEFT_TOES        ].bindPosePosition = scale * AVATAR_JOINT_POSITION_LEFT_TOES;
     
-    joint[ AVATAR_JOINT_RIGHT_HIP        ].bindPosePosition = uniformScaler * AVATAR_JOINT_POSITION_RIGHT_HIP;
-    joint[ AVATAR_JOINT_RIGHT_KNEE       ].bindPosePosition = uniformScaler * AVATAR_JOINT_POSITION_RIGHT_KNEE;
-    joint[ AVATAR_JOINT_RIGHT_HEEL       ].bindPosePosition = uniformScaler * AVATAR_JOINT_POSITION_RIGHT_HEEL;
-    joint[ AVATAR_JOINT_RIGHT_TOES       ].bindPosePosition = uniformScaler * AVATAR_JOINT_POSITION_RIGHT_TOES;
+    joint[ AVATAR_JOINT_RIGHT_HIP        ].bindPosePosition = scale * AVATAR_JOINT_POSITION_RIGHT_HIP;
+    joint[ AVATAR_JOINT_RIGHT_KNEE       ].bindPosePosition = scale * AVATAR_JOINT_POSITION_RIGHT_KNEE;
+    joint[ AVATAR_JOINT_RIGHT_HEEL       ].bindPosePosition = scale * AVATAR_JOINT_POSITION_RIGHT_HEEL;
+    joint[ AVATAR_JOINT_RIGHT_TOES       ].bindPosePosition = scale * AVATAR_JOINT_POSITION_RIGHT_TOES;
     
     // calculate bone length, absolute bind positions/rotations
     for (int b = 0; b < NUM_AVATAR_JOINTS; b++) {
@@ -139,7 +139,7 @@ void Skeleton::uniformScale(float uniformScaler) {
         }
     }
     
-    _floatingHeight = uniformScaler * FLOATING_HEIGHT;
+    _floatingHeight = scale * FLOATING_HEIGHT;
 }
 
 // calculate positions and rotations of all bones by traversing the skeleton tree:

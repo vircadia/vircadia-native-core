@@ -124,18 +124,18 @@ void Camera::setMode(CameraMode m) {
     _previousTightness = _tightness;
 
     if (_mode == CAMERA_MODE_THIRD_PERSON) {
-        _newUpShift   = _scale * CAMERA_THIRD_PERSON_MODE_UP_SHIFT;
-        _newDistance  = _scale * CAMERA_THIRD_PERSON_MODE_DISTANCE;
+        _newUpShift   = CAMERA_THIRD_PERSON_MODE_UP_SHIFT;
+        _newDistance  = CAMERA_THIRD_PERSON_MODE_DISTANCE;
         _newTightness = CAMERA_THIRD_PERSON_MODE_TIGHTNESS;
         
     } else if (_mode == CAMERA_MODE_FIRST_PERSON) {
-        _newUpShift   = _scale * CAMERA_FIRST_PERSON_MODE_UP_SHIFT;
-        _newDistance  = _scale * CAMERA_FIRST_PERSON_MODE_DISTANCE;
+        _newUpShift   = CAMERA_FIRST_PERSON_MODE_UP_SHIFT;
+        _newDistance  = CAMERA_FIRST_PERSON_MODE_DISTANCE;
         _newTightness = CAMERA_FIRST_PERSON_MODE_TIGHTNESS;
         
     } else if (_mode == CAMERA_MODE_MIRROR) {
-        _newUpShift   = _scale * CAMERA_MIRROR_MODE_UP_SHIFT;
-        _newDistance  = _scale * CAMERA_MIRROR_MODE_DISTANCE;
+        _newUpShift   = CAMERA_MIRROR_MODE_UP_SHIFT;
+        _newDistance  = CAMERA_MIRROR_MODE_DISTANCE;
         _newTightness = CAMERA_MIRROR_MODE_TIGHTNESS;
     }
 }
@@ -177,11 +177,8 @@ void Camera::setEyeOffsetOrientation  (const glm::quat& o) {
 
 void Camera::setScale(float s) {
     _scale = s;
-
-    _nearClip    *= _scale;
-    _farClip     *= _scale;
-    _newUpShift  *= _scale;
-    _newDistance *= _scale;
+    _needsToInitialize = true;
+    _frustumNeedsReshape = true;
 }
 
 void Camera::initialize() {

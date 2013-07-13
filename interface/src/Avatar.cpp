@@ -442,6 +442,11 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     glm::vec3 front = orientation * IDENTITY_FRONT;
     glm::vec3 right = orientation * IDENTITY_RIGHT;
     
+    //
+    if (!isMyAvatar() && _scale != _newScale) {
+        setScale(_newScale);
+    }
+
     // Update movement timers
     if (isMyAvatar()) {
         _elapsedTimeSinceCollision += deltaTime;
@@ -1391,10 +1396,10 @@ void Avatar::renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2,
     glEnd();
 }
 
-void Avatar::uniformScale(float uniformScaler) {
-    _scale *= uniformScaler;
+void Avatar::setScale(const float scale) {_scale = scale;
+    _newScale = _scale;
     
-    _skeleton.uniformScale(_scale);
+    _skeleton.setScale(_scale);
     
     // specify the new radius of each ball
     _bodyBall[ BODY_BALL_PELVIS           ].radius = _scale * BODY_BALL_RADIUS_PELVIS;
@@ -1432,3 +1437,4 @@ void Avatar::uniformScale(float uniformScaler) {
     _pelvisToHeadLength   = _skeleton.getPelvisToHeadLength();
     _avatarTouch.setReachableRadius(_scale * PERIPERSONAL_RADIUS);
 }
+

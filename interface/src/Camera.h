@@ -55,8 +55,8 @@ public:
     CameraMode       getMode                 () { return _mode;        }
     float            getFieldOfView          () { return _fieldOfView; }
     float            getAspectRatio          () { return _aspectRatio; }
-    float            getNearClip             () { return _nearClip;    }
-    float            getFarClip              () { return _farClip;     }
+    float            getNearClip             () { return _scale * _nearClip; }
+    float            getFarClip              () { return _scale * _farClip; }
     const glm::vec3& getEyeOffsetPosition    () { return _eyeOffsetPosition;   }
     const glm::quat& getEyeOffsetOrientation () { return _eyeOffsetOrientation; }
     
