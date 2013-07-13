@@ -124,18 +124,18 @@ void Camera::setMode(CameraMode m) {
     _previousTightness = _tightness;
 
     if (_mode == CAMERA_MODE_THIRD_PERSON) {
-        _newUpShift   = CAMERA_THIRD_PERSON_MODE_UP_SHIFT;
-        _newDistance  = CAMERA_THIRD_PERSON_MODE_DISTANCE;
+        _newUpShift   = _scale * CAMERA_THIRD_PERSON_MODE_UP_SHIFT;
+        _newDistance  = _scale * CAMERA_THIRD_PERSON_MODE_DISTANCE;
         _newTightness = CAMERA_THIRD_PERSON_MODE_TIGHTNESS;
         
     } else if (_mode == CAMERA_MODE_FIRST_PERSON) {
-        _newUpShift   = CAMERA_FIRST_PERSON_MODE_UP_SHIFT;
-        _newDistance  = CAMERA_FIRST_PERSON_MODE_DISTANCE;
+        _newUpShift   = _scale * CAMERA_FIRST_PERSON_MODE_UP_SHIFT;
+        _newDistance  = _scale * CAMERA_FIRST_PERSON_MODE_DISTANCE;
         _newTightness = CAMERA_FIRST_PERSON_MODE_TIGHTNESS;
         
     } else if (_mode == CAMERA_MODE_MIRROR) {
-        _newUpShift   = CAMERA_MIRROR_MODE_UP_SHIFT;
-        _newDistance  = CAMERA_MIRROR_MODE_DISTANCE;
+        _newUpShift   = _scale * CAMERA_MIRROR_MODE_UP_SHIFT;
+        _newDistance  = _scale * CAMERA_MIRROR_MODE_DISTANCE;
         _newTightness = CAMERA_MIRROR_MODE_TIGHTNESS;
     }
 }
