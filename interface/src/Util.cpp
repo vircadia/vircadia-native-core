@@ -499,6 +499,34 @@ void runTimingTests() {
     gettimeofday(&endTime, NULL);
     elapsedMsecs = diffclock(&startTime, &endTime);
     printLog("powf(f, 0.5) usecs: %f\n", 1000.0f * elapsedMsecs / (float) numTests);
+
+    //  Vector Math
+    float distance;
+    glm::vec3 pointA(randVector()), pointB(randVector());
+    gettimeofday(&startTime, NULL);
+    for (int i = 1; i < numTests; i++) {
+        //glm::vec3 temp = pointA - pointB;
+        //float distanceSquared = glm::dot(temp, temp);
+        distance = glm::distance(pointA, pointB);
+    }
+    gettimeofday(&endTime, NULL);
+    elapsedMsecs = diffclock(&startTime, &endTime);
+    printLog("vector math usecs: %f [%f msecs total for %d tests]\n", 
+             1000.0f * elapsedMsecs / (float) numTests, elapsedMsecs, numTests);
+    
+    //  Vec3 test
+    glm::vec3 vecA(randVector()), vecB(randVector());
+    float result;
+    
+    gettimeofday(&startTime, NULL);
+    for (int i = 1; i < numTests; i++) {
+        glm::vec3 temp = vecA-vecB;
+        result = glm::dot(temp,temp);
+    }
+    gettimeofday(&endTime, NULL);
+    elapsedMsecs = diffclock(&startTime, &endTime);
+    printLog("vec3 assign and dot() usecs: %f\n", 1000.0f * elapsedMsecs / (float) numTests);
+
     
 }
 
@@ -508,4 +536,14 @@ float loadSetting(QSettings* settings, const char* name, float defaultValue) {
         value = defaultValue;
     }
     return value;
+}
+
+bool rayIntersectsSphere(glm::vec3& rayStarting, glm::vec3& rayNormalizedDirection, glm::vec3& sphereCenter, double sphereRadius) {
+    glm::vec3 vecFromRayToSphereCenter = sphereCenter - rayStarting;
+    double projection = glm::dot(vecFromRayToSphereCenter, rayNormalizedDirection);
+    double shortestDistance = sqrt(glm::dot(vecFromRayToSphereCenter, vecFromRayToSphereCenter) - projection * projection);
+    if (shortestDistance <= sphereRadius) {
+        return true;
+    }
+    return false;
 }

@@ -35,7 +35,7 @@ public:
     void init();
     void reset();
     void simulate(float deltaTime, bool isMine);
-    void render(bool lookingInMirror, float alpha);
+    void render(float alpha);
     void renderMohawk();
 
     void setScale          (float     scale             ) { _scale              = scale;              }
@@ -53,7 +53,8 @@ public:
     glm::quat getOrientation() const;
     glm::quat getCameraOrientation () const;
     
-    glm::vec3 getPosition()       const { return _position; }
+    glm::vec3 getPosition() const { return _position; }
+    const glm::vec3& getEyeLevelPosition() const { return _eyeLevelPosition; }
     glm::vec3 getRightDirection() const { return getOrientation() * IDENTITY_RIGHT; }
     glm::vec3 getUpDirection   () const { return getOrientation() * IDENTITY_UP;    }
     glm::vec3 getFrontDirection() const { return getOrientation() * IDENTITY_FRONT; }
@@ -88,7 +89,8 @@ private:
     glm::vec3   _position;
     glm::vec3   _rotation;
     glm::vec3   _leftEyePosition;
-    glm::vec3   _rightEyePosition; 
+    glm::vec3   _rightEyePosition;
+    glm::vec3   _eyeLevelPosition; 
     glm::vec3   _leftEyeBrowPosition;
     glm::vec3   _rightEyeBrowPosition; 
     glm::vec3   _leftEarPosition;
@@ -102,7 +104,6 @@ private:
     float       _audioAttack;
     float       _returnSpringScale; //strength of return springs
     glm::vec3   _bodyRotation;
-    bool        _lookingInMirror;
     bool        _renderLookatVectors;
     HairTuft    _hairTuft[NUM_HAIR_TUFTS];
     glm::vec3*  _mohawkTriangleFan;

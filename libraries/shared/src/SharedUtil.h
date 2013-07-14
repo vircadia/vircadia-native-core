@@ -36,8 +36,8 @@ static const float DECIMETER        = 0.1f;
 static const float CENTIMETER       = 0.01f;
 static const float MILLIIMETER      = 0.001f;
 
-long long usecTimestamp(timeval *time);
-long long usecTimestampNow();
+uint64_t usecTimestamp(timeval *time);
+uint64_t usecTimestampNow();
 
 float randFloat();
 int randIntInRange (int min, int max);
@@ -87,6 +87,11 @@ void usleep(int waitTime);
 int insertIntoSortedArrays(void* value, float key, int originalIndex, 
                            void** valueArray, float* keyArray, int* originalIndexArray, 
                            int currentCount, int maxCount);
+
+int removeFromSortedArrays(void* value, void** valueArray, float* keyArray, int* originalIndexArray, 
+                           int currentCount, int maxCount);
+
+
 
 // Helper Class for debugging
 class debug {

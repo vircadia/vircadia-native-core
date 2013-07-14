@@ -39,6 +39,9 @@
 #include "Webcam.h"
 #include "renderer/GeometryCache.h"
 #include "ui/ChatEntry.h"
+#include "ToolsPalette.h"
+#include "Swatch.h"
+#include "ParticleSystem.h"
 
 class QAction;
 class QActionGroup;
@@ -129,16 +132,18 @@ private slots:
     void doFalseRandomizeEveryOtherVoxelColors();
     void doFalseColorizeByDistance();
     void doFalseColorizeOccluded();
+    void doFalseColorizeOccludedV2();
     void doFalseColorizeInView();
     void doTrueVoxelColors();
     void doTreeStats();
     void setWantsMonochrome(bool wantsMonochrome);
-    void setWantsResIn(bool wantsResIn);
-    void setWantsDelta(bool wantsDelta);
-    void setWantsOcclusionCulling(bool wantsOcclusionCulling);
+    void setWantsLowResMoving(bool wantsLowResMoving);
+    void disableDeltaSending(bool disableDeltaSending);
+    void disableOcclusionCulling(bool disableOcclusionCulling);
     void updateVoxelModeActions();
     void decreaseVoxelSize();
     void increaseVoxelSize();
+    void resetSwatchColors();
     void chooseVoxelPaintColor();
     void loadSettings(QSettings* set = NULL);
     void saveSettings(QSettings* set = NULL);
@@ -150,14 +155,27 @@ private slots:
     void copyVoxels();
     void pasteVoxels();
     void runTests();
+
+    void renderCoverageMap();
+    void renderCoverageMapsRecursively(CoverageMap* map);
+
+    void renderCoverageMapV2();
+    void renderCoverageMapsV2Recursively(CoverageMapV2* map);
+
+    glm::vec2 getScaledScreenPoint(glm::vec2 projectedPoint);
+    void goHome();
+
 private:
 
-    static void broadcastToNodes(unsigned char* data, size_t bytes, const char type);
+    static void controlledBroadcastToNodes(unsigned char* broadcastData, size_t dataBytes, 
+                                           const char* nodeTypes, int numNodeTypes);
+
     static void sendVoxelServerAddScene();
     static bool sendVoxelsOperation(VoxelNode* node, void* extraData);
+    static void sendVoxelEditMessage(PACKET_TYPE type, VoxelDetail& detail);
     static void sendAvatarVoxelURLMessage(const QUrl& url);
     static void processAvatarVoxelURLMessage(unsigned char *packetData, size_t dataBytes);
-    static void sendVoxelEditMessage(PACKET_HEADER header, VoxelDetail& detail);
+    static void sendPingPackets();
     
     void initMenu();
     void updateFrustumRenderModeAction();
@@ -165,6 +183,7 @@ private:
     void init();
     
     void update(float deltaTime);
+    bool isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection, glm::vec3& eyePosition);
     void updateAvatar(float deltaTime);
     void loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum);
     
@@ -181,7 +200,6 @@ private:
     void maybeEditVoxelUnderCursor();
     void deleteVoxelUnderCursor();
     void eyedropperVoxelUnderCursor();
-    void goHome();
     void resetSensors();
     
     void setMenuShortcutsEnabled(bool enabled);
@@ -208,8 +226,6 @@ private:
     QAction* _shouldLowPassFilter;   // Use test lowpass filter
     QAction* _gyroLook;              // Whether to allow the gyro data from head to move your view
     QAction* _renderAvatarBalls;     // Switch between voxels and joints/balls for avatar render
-    QAction* _mouseLook;             // Whether the have the mouse near edge of screen move your view
-    QAction* _touchLook;             // Whether a 2-finger touch may be used to control look direction
     QAction* _showHeadMouse;         // Whether the have the mouse near edge of screen move your view
     QAction* _transmitterDrives;     // Whether to have Transmitter data move/steer the Avatar
     QAction* _gravityUse;            // Whether gravity is on or not
@@ -226,6 +242,7 @@ private:
     QAction* _manualFirstPerson;     // Whether to force first-person mode
     QAction* _manualThirdPerson;     // Whether to force third-person mode
     QAction* _logOn;                 // Whether to show on-screen log
+    QAction* _oscilloscopeOn;        // Whether to show the oscilloscope
     QAction* _bandwidthDisplayOn;    // Whether to show on-screen bandwidth bars
     QActionGroup* _voxelModeActions; // The group of voxel edit mode actions
     QAction* _addVoxelMode;          // Whether add voxel mode is enabled
@@ -240,6 +257,9 @@ private:
     QAction* _fullScreenMode;        // whether we are in full screen mode
     QAction* _frustumRenderModeAction;
     QAction* _settingsAutosave;      // Whether settings are saved automatically
+
+    QAction* _renderCoverageMapV2;
+    QAction* _renderCoverageMap;
     
     BandwidthMeter _bandwidthMeter;
     BandwidthDialog* _bandwidthDialog;
@@ -256,7 +276,7 @@ private:
     float _fps;
     timeval _applicationStartupTime;
     timeval _timerStart, _timerEnd;
-    timeval _lastTimeIdle;
+    timeval _lastTimeUpdated;
     bool _justStarted;
 
     Stars _stars;
@@ -308,9 +328,13 @@ private:
 
     float _touchAvgX;
     float _touchAvgY;
+    float _lastTouchAvgX;
+    float _lastTouchAvgY;
     float _touchDragStartedAvgX;
     float _touchDragStartedAvgY;
     bool _isTouchPressed; //  true if multitouch has been pressed (clear when finished)
+    float _yawFromTouch;
+    float _pitchFromTouch;
     
     VoxelDetail _mouseVoxelDragging;
     glm::vec3 _voxelThrust;
@@ -343,6 +367,8 @@ private:
     
     GeometryCache _geometryCache;
     
+    ParticleSystem _particleSystem;
+    
     #ifndef _WIN32
     Audio _audio;
     #endif
@@ -356,7 +382,12 @@ private:
     int _packetsPerSecond;
     int _bytesPerSecond;
     int _bytesCount;
+    
+    StDev _idleLoopStdev;
+    float _idleLoopMeasuredJitter;
 
+    ToolsPalette _palette;
+    Swatch _swatch;
 };
 
 #endif /* defined(__interface__Application__) */

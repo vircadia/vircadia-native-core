@@ -13,9 +13,12 @@
 
 int CoverageMap::_mapCount = 0;
 int CoverageMap::_checkMapRootCalls = 0;
+int CoverageMap::_notAllInView = 0;
 bool CoverageMap::wantDebugging = false;
 
-const BoundingBox CoverageMap::ROOT_BOUNDING_BOX = BoundingBox(glm::vec2(-2.f,-2.f), glm::vec2(4.f,4.f));
+const int MAX_POLYGONS_PER_REGION = 50;
+
+const BoundingBox CoverageMap::ROOT_BOUNDING_BOX = BoundingBox(glm::vec2(-1.f,-1.f), glm::vec2(2.f,2.f));
 
 // Coverage Map's polygon coordinates are from -1 to 1 in the following mapping to screen space.
 //
@@ -64,6 +67,22 @@ CoverageMap::~CoverageMap() {
     erase();
 };
 
+void CoverageMap::printStats() {
+    printLog("CoverageMap::printStats()...\n");
+    printLog("MINIMUM_POLYGON_AREA_TO_STORE=%f\n",MINIMUM_POLYGON_AREA_TO_STORE);
+    printLog("_mapCount=%d\n",_mapCount);
+    printLog("_checkMapRootCalls=%d\n",_checkMapRootCalls);
+    printLog("_notAllInView=%d\n",_notAllInView);
+    printLog("_maxPolygonsUsed=%d\n",CoverageRegion::_maxPolygonsUsed);
+    printLog("_totalPolygons=%d\n",CoverageRegion::_totalPolygons);
+    printLog("_occlusionTests=%d\n",CoverageRegion::_occlusionTests);
+    printLog("_regionSkips=%d\n",CoverageRegion::_regionSkips);
+    printLog("_tooSmallSkips=%d\n",CoverageRegion::_tooSmallSkips);
+    printLog("_regionFullSkips=%d\n",CoverageRegion::_regionFullSkips);
+    printLog("_outOfOrderPolygon=%d\n",CoverageRegion::_outOfOrderPolygon);
+    printLog("_clippedPolygons=%d\n",CoverageRegion::_clippedPolygons);
+}
+
 void CoverageMap::erase() {
     // tell our regions to erase()
     _topHalf.erase();
@@ -81,19 +100,19 @@ void CoverageMap::erase() {
 
     if (_isRoot && wantDebugging) {
         printLog("CoverageMap last to be deleted...\n");
-        printLog("MINIMUM_POLYGON_AREA_TO_STORE=%f\n",MINIMUM_POLYGON_AREA_TO_STORE);
-        printLog("_mapCount=%d\n",_mapCount);
-        printLog("_checkMapRootCalls=%d\n",_checkMapRootCalls);
-        printLog("_maxPolygonsUsed=%d\n",CoverageRegion::_maxPolygonsUsed);
-        printLog("_totalPolygons=%d\n",CoverageRegion::_totalPolygons);
-        printLog("_occlusionTests=%d\n",CoverageRegion::_occlusionTests);
-        printLog("_outOfOrderPolygon=%d\n",CoverageRegion::_outOfOrderPolygon);
+        printStats();
+        
         CoverageRegion::_maxPolygonsUsed = 0;
         CoverageRegion::_totalPolygons = 0;
         CoverageRegion::_occlusionTests = 0;
+        CoverageRegion::_regionSkips = 0;
+        CoverageRegion::_tooSmallSkips = 0;
+        CoverageRegion::_regionFullSkips = 0;
         CoverageRegion::_outOfOrderPolygon = 0;
+        CoverageRegion::_clippedPolygons = 0;
         _mapCount = 0;
         _checkMapRootCalls = 0;
+        _notAllInView = 0;
     }
 }
 
@@ -121,16 +140,60 @@ BoundingBox CoverageMap::getChildBoundingBox(int childIndex) {
     return result;
 }
 
+int CoverageMap::getPolygonCount() const {
+    return (_topHalf.getPolygonCount() +
+        _bottomHalf.getPolygonCount() +
+        _leftHalf.getPolygonCount() +
+        _rightHalf.getPolygonCount() +
+        _remainder.getPolygonCount());
+}
+
+VoxelProjectedPolygon* CoverageMap::getPolygon(int index) const {
+    int base = 0;
+    if ((index - base) < _topHalf.getPolygonCount()) {
+        return _topHalf.getPolygon((index - base));
+    }
+    base += _topHalf.getPolygonCount();
+
+    if ((index - base) < _bottomHalf.getPolygonCount()) {
+        return _bottomHalf.getPolygon((index - base));
+    }
+    base += _bottomHalf.getPolygonCount();
+
+    if ((index - base) < _leftHalf.getPolygonCount()) {
+        return _leftHalf.getPolygon((index - base));
+    }
+    base += _leftHalf.getPolygonCount();
+
+    if ((index - base) < _rightHalf.getPolygonCount()) {
+        return _rightHalf.getPolygon((index - base));
+    }
+    base += _rightHalf.getPolygonCount();
+
+    if ((index - base) < _remainder.getPolygonCount()) {
+        return _remainder.getPolygon((index - base));
+    }
+    return NULL;
+}
+
+
+
 // possible results = STORED/NOT_STORED, OCCLUDED, DOESNT_FIT
 CoverageMapStorageResult CoverageMap::checkMap(VoxelProjectedPolygon* polygon, bool storeIt) {
 
     if (_isRoot) {
         _checkMapRootCalls++;
+
+        //printLog("CoverageMap::checkMap()... storeIt=%s\n", debug::valueOf(storeIt));
+        //polygon->printDebugDetails();
+
     }
 
     // short circuit: we don't handle polygons that aren't all in view, so, if the polygon in question is
     // not in view, then we just discard it with a DOESNT_FIT, this saves us time checking values later.
     if (!polygon->getAllInView()) {
+        _notAllInView++;
+        //printLog("CoverageMap2::checkMap()... V2_OCCLUDED\n");
         return DOESNT_FIT;
     }
 
@@ -142,22 +205,25 @@ CoverageMapStorageResult CoverageMap::checkMap(VoxelProjectedPolygon* polygon, b
         bool fitsInAHalf = false;
         
         // Check each half of the box independently
-        if (_topHalf.contains(polygonBox)) {
-            result = _topHalf.checkRegion(polygon, polygonBox, storeIt);
-            storeIn = &_topHalf;
-            fitsInAHalf = true;
-        } else if (_bottomHalf.contains(polygonBox)) {
-            result  = _bottomHalf.checkRegion(polygon, polygonBox, storeIt);
-            storeIn = &_bottomHalf;
-            fitsInAHalf = true;
-        } else if (_leftHalf.contains(polygonBox)) {
-            result  = _leftHalf.checkRegion(polygon, polygonBox, storeIt);
-            storeIn = &_leftHalf;
-            fitsInAHalf = true;
-        } else if (_rightHalf.contains(polygonBox)) {
-            result  = _rightHalf.checkRegion(polygon, polygonBox, storeIt);
-            storeIn = &_rightHalf;
-            fitsInAHalf = true;
+        const bool useRegions = true; // for now we will continue to use regions
+        if (useRegions) {
+            if (_topHalf.contains(polygonBox)) {
+                result = _topHalf.checkRegion(polygon, polygonBox, storeIt);
+                storeIn = &_topHalf;
+                fitsInAHalf = true;
+            } else if (_bottomHalf.contains(polygonBox)) {
+                result  = _bottomHalf.checkRegion(polygon, polygonBox, storeIt);
+                storeIn = &_bottomHalf;
+                fitsInAHalf = true;
+            } else if (_leftHalf.contains(polygonBox)) {
+                result  = _leftHalf.checkRegion(polygon, polygonBox, storeIt);
+                storeIn = &_leftHalf;
+                fitsInAHalf = true;
+            } else if (_rightHalf.contains(polygonBox)) {
+                result  = _rightHalf.checkRegion(polygon, polygonBox, storeIt);
+                storeIn = &_rightHalf;
+                fitsInAHalf = true;
+            }
         }
         
         // if we got this far, there are one of two possibilities, either a polygon doesn't fit
@@ -171,36 +237,77 @@ CoverageMapStorageResult CoverageMap::checkMap(VoxelProjectedPolygon* polygon, b
         // It's possible that this first set of checks might have resulted in an out of order polygon
         // in which case we just return..
         if (result == STORED || result == OCCLUDED) {
+        
+            /*
+            if (result == STORED)
+                printLog("CoverageMap2::checkMap()... STORED\n");
+            else
+                printLog("CoverageMap2::checkMap()... OCCLUDED\n");
+            */
+            
             return result;
         }
         
         // if we made it here, then it means the polygon being stored is not occluded
         // at this level of the quad tree, so we can continue to insert it into the map. 
         // First we check to see if it fits in any of our sub maps
-        for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
-            BoundingBox childMapBoundingBox = getChildBoundingBox(i);
-            if (childMapBoundingBox.contains(polygon->getBoundingBox())) {
-                // if no child map exists yet, then create it
-                if (!_childMaps[i]) {
-                    _childMaps[i] = new CoverageMap(childMapBoundingBox, NOT_ROOT, _managePolygons);
+        const bool useChildMaps = true; // for now we will continue to use child maps
+        if (useChildMaps) {        
+            for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
+                BoundingBox childMapBoundingBox = getChildBoundingBox(i);
+                if (childMapBoundingBox.contains(polygon->getBoundingBox())) {
+                    // if no child map exists yet, then create it
+                    if (!_childMaps[i]) {
+                        _childMaps[i] = new CoverageMap(childMapBoundingBox, NOT_ROOT, _managePolygons);
+                    }
+                    result = _childMaps[i]->checkMap(polygon, storeIt);
+
+                    /*
+                    switch (result) {
+                        case STORED:
+                            printLog("checkMap() = STORED\n");
+                            break;
+                        case NOT_STORED:
+                            printLog("checkMap() = NOT_STORED\n");
+                            break;
+                        case OCCLUDED:
+                            printLog("checkMap() = OCCLUDED\n");
+                            break;
+                        default:
+                            printLog("checkMap() = ????? \n");
+                            break;
+                    }
+                    */
+                
+                    return result;
                 }
-                return _childMaps[i]->checkMap(polygon, storeIt);
             }
         }
         // if we got this far, then the polygon is in our bounding box, but doesn't fit in
         // any of our child bounding boxes, so we should add it here.
         if (storeIt) {
             if (polygon->getBoundingBox().area() > CoverageMap::MINIMUM_POLYGON_AREA_TO_STORE) {
-                //printLog("storing polygon of area: %f\n",polygon->getBoundingBox().area());                    
-                storeIn->storeInArray(polygon);
-                return STORED;
+                //printLog("storing polygon of area: %f\n",polygon->getBoundingBox().area());
+                if (storeIn->getPolygonCount() < MAX_POLYGONS_PER_REGION) {
+                    storeIn->storeInArray(polygon);
+                    //printLog("CoverageMap2::checkMap()... STORED\n");
+                    return STORED;
+                } else {
+                    CoverageRegion::_regionFullSkips++;
+                    //printLog("CoverageMap2::checkMap()... NOT_STORED\n");
+                    return NOT_STORED;
+                }
             } else {
+                CoverageRegion::_tooSmallSkips++;
+                //printLog("CoverageMap2::checkMap()... NOT_STORED\n");
                 return NOT_STORED;
             }
         } else {
+            //printLog("CoverageMap2::checkMap()... NOT_STORED\n");
             return NOT_STORED;
         }
     }
+    //printLog("CoverageMap2::checkMap()... DOESNT_FIT\n");
     return DOESNT_FIT;
 }
 
@@ -223,12 +330,13 @@ void CoverageRegion::init() {
     _polygonArraySize = 0;
     _polygons = NULL;
     _polygonDistances = NULL;
+    _polygonSizes = NULL;
 }
 
 
 void CoverageRegion::erase() {
 
-/*
+/**
     if (_polygonCount) {
         printLog("CoverageRegion::erase()...\n");
         printLog("_polygonCount=%d\n",_polygonCount);
@@ -238,7 +346,7 @@ void CoverageRegion::erase() {
         //    _polygons[i]->getBoundingBox().printDebugDetails();
         //}
     }
-*/
+**/
     // If we're in charge of managing the polygons, then clean them up first
     if (_managePolygons) {
         for (int i = 0; i < _polygonCount; i++) {
@@ -258,11 +366,16 @@ void CoverageRegion::erase() {
         delete[] _polygonDistances;
         _polygonDistances = NULL;
     }
+    if (_polygonSizes) {
+        delete[] _polygonSizes;
+        _polygonSizes = NULL;
+    }
 }
 
 void CoverageRegion::growPolygonArray() {
     VoxelProjectedPolygon** newPolygons  = new VoxelProjectedPolygon*[_polygonArraySize + DEFAULT_GROW_SIZE];
-    float*                 newDistances = new float[_polygonArraySize + DEFAULT_GROW_SIZE];
+    float*                  newDistances = new float[_polygonArraySize + DEFAULT_GROW_SIZE];
+    float*                  newSizes     = new float[_polygonArraySize + DEFAULT_GROW_SIZE];
 
 
     if (_polygons) {
@@ -270,9 +383,12 @@ void CoverageRegion::growPolygonArray() {
         delete[] _polygons;
         memcpy(newDistances, _polygonDistances, sizeof(float) * _polygonCount);
         delete[] _polygonDistances;
+        memcpy(newSizes, _polygonSizes, sizeof(float) * _polygonCount);
+        delete[] _polygonSizes;
     }
-    _polygons = newPolygons;
+    _polygons         = newPolygons;
     _polygonDistances = newDistances;
+    _polygonSizes     = newSizes;
     _polygonArraySize = _polygonArraySize + DEFAULT_GROW_SIZE;
     //printLog("CoverageMap::growPolygonArray() _polygonArraySize=%d...\n",_polygonArraySize);
 }
@@ -297,26 +413,87 @@ const char* CoverageRegion::getRegionName() const {
 int CoverageRegion::_maxPolygonsUsed = 0;
 int CoverageRegion::_totalPolygons = 0;
 int CoverageRegion::_occlusionTests = 0;
+int CoverageRegion::_regionSkips = 0;
+int CoverageRegion::_tooSmallSkips = 0;
+int CoverageRegion::_regionFullSkips = 0;
 int CoverageRegion::_outOfOrderPolygon = 0;
+int CoverageRegion::_clippedPolygons = 0;
+
+
+bool CoverageRegion::mergeItemsInArray(VoxelProjectedPolygon* seed, bool seedInArray) {
+    for (int i = 0; i < _polygonCount; i++) {
+        VoxelProjectedPolygon* otherPolygon = _polygons[i];
+        if (otherPolygon->canMerge(*seed)) {
+            otherPolygon->merge(*seed);
+
+            if (seedInArray) {
+                const int IGNORED = NULL;
+                // remove this otherOtherPolygon for our polygon array
+                _polygonCount = removeFromSortedArrays((void*)seed,
+                                                       (void**)_polygons, _polygonDistances, IGNORED,
+                                                       _polygonCount, _polygonArraySize);
+                _totalPolygons--;
+            }
+        
+            //printLog("_polygonCount=%d\n",_polygonCount);
+        
+            // clean up
+            if (_managePolygons) {
+                delete seed;
+            }
+            
+            // Now run again using our newly merged polygon as the seed
+            mergeItemsInArray(otherPolygon, true);
+            
+            return true;
+        }
+    }
+    return false;
+}
 
 // just handles storage in the array, doesn't test for occlusion or
 // determining if this is the correct map to store in!
 void CoverageRegion::storeInArray(VoxelProjectedPolygon* polygon) {
 
+    _currentCoveredBounds.explandToInclude(polygon->getBoundingBox());
+    
+    
+    // Before we actually store this polygon in the array, check to see if this polygon can be merged to any of the existing
+    // polygons already in our array.
+    if (mergeItemsInArray(polygon, false)) {
+        return; // exit early
+    }
+    
+    // only after we attempt to merge!
     _totalPolygons++;
 
     if (_polygonArraySize < _polygonCount + 1) {
         growPolygonArray();
     }
 
-    // This old code assumes that polygons will always be added in z-buffer order, but that doesn't seem to
-    // be a good assumption. So instead, we will need to sort this by distance. Use a binary search to find the
-    // insertion point in this array, and shift the array accordingly
+    // As an experiment we're going to see if we get an improvement by storing the polygons in coverage area sorted order
+    // this means the bigger polygons are earlier in the array. We should have a higher probability of being occluded earlier
+    // in the list. We still check to see if the polygon is "in front" of the target polygon before we test occlusion. Since
+    // sometimes things come out of order.
+    const bool SORT_BY_SIZE = false;
     const int IGNORED = NULL;
-    _polygonCount = insertIntoSortedArrays((void*)polygon, polygon->getDistance(), IGNORED,
-                                           (void**)_polygons, _polygonDistances, IGNORED,
-                                           _polygonCount, _polygonArraySize);
-
+    if (SORT_BY_SIZE) {
+        // This old code assumes that polygons will always be added in z-buffer order, but that doesn't seem to
+        // be a good assumption. So instead, we will need to sort this by distance. Use a binary search to find the
+        // insertion point in this array, and shift the array accordingly
+        float area = polygon->getBoundingBox().area();
+        float reverseArea = 4.0f - area;
+        //printLog("store by size area=%f reverse area=%f\n", area, reverseArea);
+        _polygonCount = insertIntoSortedArrays((void*)polygon, reverseArea, IGNORED,
+                                               (void**)_polygons, _polygonSizes, IGNORED,
+                                               _polygonCount, _polygonArraySize);
+    } else {
+        const int IGNORED = NULL;
+        _polygonCount = insertIntoSortedArrays((void*)polygon, polygon->getDistance(), IGNORED,
+                                               (void**)_polygons, _polygonDistances, IGNORED,
+                                               _polygonCount, _polygonArraySize);
+    }
+                                           
     // Debugging and Optimization Tuning code.
     if (_polygonCount > _maxPolygonsUsed) {
         _maxPolygonsUsed = _polygonCount;
@@ -335,37 +512,47 @@ CoverageMapStorageResult CoverageRegion::checkRegion(VoxelProjectedPolygon* poly
 
     if (_isRoot || _myBoundingBox.contains(polygonBox)) {
         result = NOT_STORED; // if we got here, then we DO fit...
+        
+        // only actually check the polygons if this polygon is in the covered bounds for this region
+        if (!_currentCoveredBounds.contains(polygonBox)) {
+            _regionSkips += _polygonCount;
+        } else {
+            // check to make sure this polygon isn't occluded by something at this level
+            for (int i = 0; i < _polygonCount; i++) {
+                VoxelProjectedPolygon* polygonAtThisLevel = _polygons[i];
 
-        // check to make sure this polygon isn't occluded by something at this level
-        for (int i = 0; i < _polygonCount; i++) {
-            VoxelProjectedPolygon* polygonAtThisLevel = _polygons[i];
-            // Check to make sure that the polygon in question is "behind" the polygon in the list
-            // otherwise, we don't need to test it's occlusion (although, it means we've potentially
-            // added an item previously that may be occluded??? Is that possible? Maybe not, because two
-            // voxels can't have the exact same outline. So one occludes the other, they can't both occlude
-            // each other.
-        
-        
-            _occlusionTests++;
-            if (polygonAtThisLevel->occludes(*polygon)) {
-                // if the polygonAtThisLevel is actually behind the one we're inserting, then we don't
-                // want to report our inserted one as occluded, but we do want to add our inserted one.
-                if (polygonAtThisLevel->getDistance() >= polygon->getDistance()) {
-                    _outOfOrderPolygon++;
-                    if (storeIt) {
-                        if (polygon->getBoundingBox().area() > CoverageMap::MINIMUM_POLYGON_AREA_TO_STORE) {
-                            //printLog("storing polygon of area: %f\n",polygon->getBoundingBox().area());                    
-                            storeInArray(polygon);
-                            return STORED;
+                // Check to make sure that the polygon in question is "behind" the polygon in the list
+                // otherwise, we don't need to test it's occlusion (although, it means we've potentially
+                // added an item previously that may be occluded??? Is that possible? Maybe not, because two
+                // voxels can't have the exact same outline. So one occludes the other, they can't both occlude
+                // each other.
+                
+                _occlusionTests++;
+                if (polygonAtThisLevel->occludes(*polygon)) {
+                    // if the polygonAtThisLevel is actually behind the one we're inserting, then we don't
+                    // want to report our inserted one as occluded, but we do want to add our inserted one.
+                    if (polygonAtThisLevel->getDistance() >= polygon->getDistance()) {
+                        _outOfOrderPolygon++;
+                        if (storeIt) {
+                            if (polygon->getBoundingBox().area() > CoverageMap::MINIMUM_POLYGON_AREA_TO_STORE) {
+                                if (getPolygonCount() < MAX_POLYGONS_PER_REGION) {
+                                    storeInArray(polygon);
+                                    return STORED;
+                                } else {
+                                    CoverageRegion::_regionFullSkips++;
+                                    return NOT_STORED;
+                                }
+                            } else {
+                                _tooSmallSkips++;
+                                return NOT_STORED;
+                            }
                         } else {
                             return NOT_STORED;
                         }
-                    } else {
-                        return NOT_STORED;
                     }
+                    // this polygon is occluded by a closer polygon, so don't store it, and let the caller know
+                    return OCCLUDED;
                 }
-                // this polygon is occluded by a closer polygon, so don't store it, and let the caller know
-                return OCCLUDED;
             }
         }
     }

@@ -5,7 +5,7 @@
 //  Read interface data from the gyros/accelerometer Invensense board using the SerialUSB
 //
 
-#ifdef __APPLE__
+#ifndef _WIN32
 #include <regex.h>
 #include <sys/time.h>
 #include <string>
@@ -14,6 +14,11 @@
 #include <math.h>
 
 #include <glm/gtx/vector_angle.hpp>
+
+extern "C" {
+    #include <inv_tty.h>
+    #include <inv_mpu.h>
+}
 
 #include <SharedUtil.h>
 
@@ -24,24 +29,31 @@
 
 const short NO_READ_MAXIMUM_MSECS = 3000;
 const int GRAVITY_SAMPLES = 60;                     //  Use the first few samples to baseline values
-const int SENSOR_FUSION_SAMPLES = 20;
+const int NORTH_SAMPLES = 30;
+const int ACCELERATION_SENSOR_FUSION_SAMPLES = 20;
+const int COMPASS_SENSOR_FUSION_SAMPLES = 100;
 const int LONG_TERM_RATE_SAMPLES = 1000;            
 
 const bool USING_INVENSENSE_MPU9150 = 1;
 
 void SerialInterface::pair() {
     
-#ifdef __APPLE__
+#ifndef _WIN32
     // look for a matching gyro setup
     DIR *devDir;
     struct dirent *entry;
     int matchStatus;
     regex_t regex;
     
-    // for now this only works on OS X, where the usb serial shows up as /dev/tty.usb*
+    // for now this only works on OS X, where the usb serial shows up as /dev/tty.usb*,
+    // and (possibly just Ubuntu) Linux, where it shows up as /dev/ttyACM*
     if((devDir = opendir("/dev"))) {
         while((entry = readdir(devDir))) {
+#ifdef __APPLE__
             regcomp(&regex, "tty\\.usb", REG_EXTENDED|REG_NOSUB);
+#else
+            regcomp(&regex, "ttyACM", REG_EXTENDED|REG_NOSUB);
+#endif
             matchStatus = regexec(&regex, entry->d_name, (size_t) 0, NULL, 0);
             if (matchStatus == 0) {
                 char *serialPortname = new char[100];
@@ -60,7 +72,7 @@ void SerialInterface::pair() {
 
 //  connect to the serial port
 void SerialInterface::initializePort(char* portname) {
-#ifdef __APPLE__
+#ifndef _WIN32
     _serialDescriptor = open(portname, O_RDWR | O_NOCTTY | O_NDELAY);
     
     printLog("Opening SerialUSB %s: ", portname);
@@ -87,22 +99,17 @@ void SerialInterface::initializePort(char* portname) {
         int currentFlags = fcntl(_serialDescriptor, F_GETFL);
         fcntl(_serialDescriptor, F_SETFL, currentFlags & ~O_NONBLOCK);
         
-        // there are extra commands to send to the invensense when it fires up
-        
-        // this takes it out of SLEEP
-        write(_serialDescriptor, "WR686B01\n", 9);
-        
-        // delay after the wakeup
-        usleep(10000);
+        // make sure there's nothing queued up to be read
+        tcflush(_serialDescriptor, TCIOFLUSH);
         
         // this disables streaming so there's no garbage data on reads
         write(_serialDescriptor, "SD\n", 3);
+        char result[4];
+        read(_serialDescriptor, result, 4);
         
-        // delay after disabling streaming
-        usleep(10000);
-        
-        // flush whatever was produced by the last two commands
-        tcflush(_serialDescriptor, TCIOFLUSH);
+        tty_set_file_descriptor(_serialDescriptor);
+        mpu_init(0);
+        mpu_set_sensors(INV_XYZ_GYRO | INV_XYZ_ACCEL | INV_XYZ_COMPASS);
     }
     
     printLog("Connected.\n");
@@ -187,56 +194,39 @@ void SerialInterface::renderLevels(int width, int height) {
     }
 }
 
-void convertHexToInt(unsigned char* sourceBuffer, int& destinationInt) {
-    unsigned int byte[2];
-    
-    for(int i = 0; i < 2; i++) {
-        sscanf((char*) sourceBuffer + 2 * i, "%2x", &byte[i]);
-    }
-    
-    int16_t result = (byte[0] << 8);
-    result += byte[1];
-    
-    destinationInt = result;
-}
 void SerialInterface::readData(float deltaTime) {
-#ifdef __APPLE__
+#ifndef _WIN32
     
     int initialSamples = totalSamples;
     
     if (USING_INVENSENSE_MPU9150) { 
-        unsigned char sensorBuffer[36];
-        
+
         // ask the invensense for raw gyro data
-        write(_serialDescriptor, "RD683B0E\n", 9);
-        read(_serialDescriptor, sensorBuffer, 36);
-        
-        int accelXRate, accelYRate, accelZRate;
-        
-        convertHexToInt(sensorBuffer + 6, accelZRate);
-        convertHexToInt(sensorBuffer + 10, accelYRate);
-        convertHexToInt(sensorBuffer + 14, accelXRate);
+        short accelData[3];
+        mpu_get_accel_reg(accelData, 0);
         
         const float LSB_TO_METERS_PER_SECOND2 = 1.f / 16384.f * GRAVITY_EARTH;
                                                                 //  From MPU-9150 register map, with setting on
                                                                 //  highest resolution = +/- 2G
         
-        _lastAcceleration = glm::vec3(-accelXRate, -accelYRate, -accelZRate) * LSB_TO_METERS_PER_SECOND2;
-                
-        
-        int rollRate, yawRate, pitchRate;
-        
-        convertHexToInt(sensorBuffer + 22, rollRate);
-        convertHexToInt(sensorBuffer + 26, yawRate);
-        convertHexToInt(sensorBuffer + 30, pitchRate);
+        _lastAcceleration = glm::vec3(-accelData[2], -accelData[1], -accelData[0]) * LSB_TO_METERS_PER_SECOND2;
+          
+        short gyroData[3];
+        mpu_get_gyro_reg(gyroData, 0);
         
         //  Convert the integer rates to floats
         const float LSB_TO_DEGREES_PER_SECOND = 1.f / 16.4f;     //  From MPU-9150 register map, 2000 deg/sec.
         glm::vec3 rotationRates;
-        rotationRates[0] = ((float) -pitchRate) * LSB_TO_DEGREES_PER_SECOND;
-        rotationRates[1] = ((float) -yawRate) * LSB_TO_DEGREES_PER_SECOND;
-        rotationRates[2] = ((float) -rollRate) * LSB_TO_DEGREES_PER_SECOND;
-
+        rotationRates[0] = ((float) -gyroData[2]) * LSB_TO_DEGREES_PER_SECOND;
+        rotationRates[1] = ((float) -gyroData[1]) * LSB_TO_DEGREES_PER_SECOND;
+        rotationRates[2] = ((float) -gyroData[0]) * LSB_TO_DEGREES_PER_SECOND;
+      
+        short compassData[3];
+        mpu_get_compass_reg(compassData, 0);
+      
+        // Convert integer values to floats, update extents
+        _lastCompass = glm::vec3(compassData[2], -compassData[0], -compassData[1]);
+        
         // update and subtract the long term average
         _averageRotationRates = (1.f - 1.f/(float)LONG_TERM_RATE_SAMPLES) * _averageRotationRates +
                 1.f/(float)LONG_TERM_RATE_SAMPLES * rotationRates;
@@ -323,19 +313,31 @@ void SerialInterface::readData(float deltaTime) {
         } 
         else {
             if (totalSamples < GRAVITY_SAMPLES) {
-                _gravity = (1.f - 1.f/(float)GRAVITY_SAMPLES) * _gravity +
-                1.f/(float)GRAVITY_SAMPLES * _lastAcceleration;
+                _gravity = glm::mix(_gravity, _lastAcceleration, 1.0f / GRAVITY_SAMPLES);
+                
+                //  North samples start later, because the initial compass readings are screwy
+                int northSample = totalSamples - (GRAVITY_SAMPLES - NORTH_SAMPLES);
+                if (northSample == 0) {
+                    _north = _lastCompass;
+                    
+                } else if (northSample > 0) {
+                    _north = glm::mix(_north, _lastCompass, 1.0f / NORTH_SAMPLES);
+                }
             } else {
                 //  Use gravity reading to do sensor fusion on the pitch and roll estimation
                 estimatedRotation = safeMix(estimatedRotation,
                     rotationBetween(estimatedRotation * _lastAcceleration, _gravity) * estimatedRotation,
-                    1.0f / SENSOR_FUSION_SAMPLES);
+                    1.0f / ACCELERATION_SENSOR_FUSION_SAMPLES);
                 
-                //  Without a compass heading, always decay estimated Yaw slightly
-                const float YAW_DECAY = 0.999f;
-                glm::vec3 forward = estimatedRotation * glm::vec3(0.0f, 0.0f, -1.0f);
-                estimatedRotation = safeMix(glm::angleAxis(glm::degrees(atan2f(forward.x, -forward.z)),
-                    glm::vec3(0.0f, 1.0f, 0.0f)) * estimatedRotation, estimatedRotation, YAW_DECAY);
+                //  Update the compass extents
+                _compassMinima = glm::min(_compassMinima, _lastCompass);
+                _compassMaxima = glm::max(_compassMaxima, _lastCompass);
+        
+                //  Same deal with the compass heading
+                estimatedRotation = safeMix(estimatedRotation,
+                    rotationBetween(estimatedRotation * recenterCompass(_lastCompass),
+                        recenterCompass(_north)) * estimatedRotation,
+                    1.0f / COMPASS_SENSOR_FUSION_SAMPLES);
             }
         }
         
@@ -371,13 +373,17 @@ void SerialInterface::resetAverages() {
 }
 
 void SerialInterface::resetSerial() {
-#ifdef __APPLE__
+#ifndef _WIN32
     resetAverages();
     _active = false;
     gettimeofday(&lastGoodRead, NULL);
 #endif
 }
 
-
+glm::vec3 SerialInterface::recenterCompass(const glm::vec3& compass) {
+    // compensate for "hard iron" distortion by subtracting the midpoint on each axis; see
+    // http://www.sensorsmag.com/sensors/motion-velocity-displacement/compensating-tilt-hard-iron-and-soft-iron-effects-6475
+    return (compass - (_compassMinima + _compassMaxima) * 0.5f) / (_compassMaxima - _compassMinima);
+}
 
 

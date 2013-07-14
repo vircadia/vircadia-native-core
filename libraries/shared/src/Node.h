@@ -37,11 +37,11 @@ public:
     uint16_t getNodeID() const { return _nodeID; }
     void setNodeID(uint16_t nodeID) { _nodeID = nodeID;}
     
-    long long getWakeMicrostamp() const { return _wakeMicrostamp; }
-    void setWakeMicrostamp(long long wakeMicrostamp) { _wakeMicrostamp = wakeMicrostamp; }
+    uint64_t getWakeMicrostamp() const { return _wakeMicrostamp; }
+    void setWakeMicrostamp(uint64_t wakeMicrostamp) { _wakeMicrostamp = wakeMicrostamp; }
     
-    long long getLastHeardMicrostamp() const { return _lastHeardMicrostamp; }
-    void setLastHeardMicrostamp(long long lastHeardMicrostamp) { _lastHeardMicrostamp = lastHeardMicrostamp; }
+    uint64_t getLastHeardMicrostamp() const { return _lastHeardMicrostamp; }
+    void setLastHeardMicrostamp(uint64_t lastHeardMicrostamp) { _lastHeardMicrostamp = lastHeardMicrostamp; }
     
     sockaddr* getPublicSocket() const { return _publicSocket; }
     void setPublicSocket(sockaddr* publicSocket) { _publicSocket = publicSocket; }
@@ -74,8 +74,8 @@ private:
     
     char _type;
     uint16_t _nodeID;
-    long long _wakeMicrostamp;
-    long long _lastHeardMicrostamp;
+    uint64_t _wakeMicrostamp;
+    uint64_t _lastHeardMicrostamp;
     sockaddr* _publicSocket;
     sockaddr* _localSocket;
     sockaddr* _activeSocket;

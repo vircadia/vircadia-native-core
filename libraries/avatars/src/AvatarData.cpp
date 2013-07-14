@@ -32,10 +32,10 @@ AvatarData::AvatarData(Node* owningNode) :
     _cameraNearClip(0.0f),
     _cameraFarClip(0.0f),
     _keyState(NO_KEY_DOWN),
-    _wantResIn(false),
     _wantColor(true),
-    _wantDelta(false),
-    _wantOcclusionCulling(false),
+    _wantDelta(true),
+    _wantLowResMoving(false),
+    _wantOcclusionCulling(true),
     _headData(NULL),
     _handData(NULL)
 {
@@ -113,9 +113,9 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     
     // bitMask of less than byte wide items
     unsigned char bitItems = 0;
-    if (_wantResIn) { setAtBit(bitItems, WANT_RESIN_AT_BIT); }
-    if (_wantColor) { setAtBit(bitItems, WANT_COLOR_AT_BIT); }
-    if (_wantDelta) { setAtBit(bitItems, WANT_DELTA_AT_BIT); }
+    if (_wantLowResMoving)     { setAtBit(bitItems, WANT_LOW_RES_MOVING_BIT); }
+    if (_wantColor)            { setAtBit(bitItems, WANT_COLOR_AT_BIT); }
+    if (_wantDelta)            { setAtBit(bitItems, WANT_DELTA_AT_BIT); }
     if (_wantOcclusionCulling) { setAtBit(bitItems, WANT_OCCLUSION_CULLING_BIT); }
 
     // key state
@@ -137,6 +137,11 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     if (numFingerVectors > 255)
         numFingerVectors = 0; // safety. We shouldn't ever get over 255, so consider that invalid.
 
+    /////////////////////////////////
+    // Temporarily disable Leap finger sending, as it's causing a crash whenever someone's got a Leap connected
+    numFingerVectors = 0;
+    /////////////////////////////////
+    
     *destinationBuffer++ = (unsigned char)numFingerVectors;
     
     if (numFingerVectors > 0) {
@@ -150,6 +155,13 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
             destinationBuffer += packFloatScalarToSignedTwoByteFixed(destinationBuffer, fingerRoots[i].y, 4);
             destinationBuffer += packFloatScalarToSignedTwoByteFixed(destinationBuffer, fingerRoots[i].z, 4);
         }
+    }
+    
+    // skeleton joints
+    *destinationBuffer++ = (unsigned char)_joints.size();
+    for (vector<JointData>::iterator it = _joints.begin(); it != _joints.end(); it++) {
+        *destinationBuffer++ = (unsigned char)it->jointID;
+        destinationBuffer += packOrientationQuatToBytes(destinationBuffer, it->rotation);
     }
     
     return destinationBuffer - bufferStart;
@@ -169,12 +181,13 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     }
     
     // increment to push past the packet header
-    sourceBuffer += sizeof(PACKET_HEADER_HEAD_DATA);
+    int numBytesPacketHeader = numBytesForPacketHeader(sourceBuffer);
+    sourceBuffer += numBytesPacketHeader;
     
     unsigned char* startPosition = sourceBuffer;
     
     // push past the node ID
-    sourceBuffer += + sizeof(uint16_t);
+    sourceBuffer += sizeof(uint16_t);
     
     // Body world position
     memcpy(&_position, sourceBuffer, sizeof(float) * 3);
@@ -233,9 +246,9 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     // voxel sending features...
     unsigned char bitItems = 0;
     bitItems = (unsigned char)*sourceBuffer++;
-    _wantResIn = oneAtBit(bitItems, WANT_RESIN_AT_BIT);
-    _wantColor = oneAtBit(bitItems, WANT_COLOR_AT_BIT);
-    _wantDelta = oneAtBit(bitItems, WANT_DELTA_AT_BIT);
+    _wantLowResMoving     = oneAtBit(bitItems, WANT_LOW_RES_MOVING_BIT);
+    _wantColor            = oneAtBit(bitItems, WANT_COLOR_AT_BIT);
+    _wantDelta            = oneAtBit(bitItems, WANT_DELTA_AT_BIT);
     _wantOcclusionCulling = oneAtBit(bitItems, WANT_OCCLUSION_CULLING_BIT);
 
     // key state, stored as a semi-nibble in the bitItems
@@ -247,8 +260,8 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     // leap hand data
     if (sourceBuffer - startPosition < numBytes)    // safety check
     {
-        std::vector<glm::vec3> fingerTips = _handData->getFingerTips();
-        std::vector<glm::vec3> fingerRoots = _handData->getFingerRoots();
+        std::vector<glm::vec3> fingerTips;
+        std::vector<glm::vec3> fingerRoots;
         unsigned int numFingerVectors = *sourceBuffer++;
         unsigned int numFingerTips = numFingerVectors / 2;
         unsigned int numFingerRoots = numFingerVectors - numFingerTips;
@@ -259,8 +272,23 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
             sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(fingerTips[i].y), 4);
             sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(fingerTips[i].z), 4);
         }
+        for (size_t i = 0; i < numFingerRoots; ++i) {
+            sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(fingerRoots[i].x), 4);
+            sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(fingerRoots[i].y), 4);
+            sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(fingerRoots[i].z), 4);
+        }
         _handData->setFingerTips(fingerTips);
         _handData->setFingerRoots(fingerRoots);
+    }
+    
+    // skeleton joints
+    if (sourceBuffer - startPosition < numBytes) // safety check
+    {
+        _joints.resize(*sourceBuffer++);
+        for (vector<JointData>::iterator it = _joints.begin(); it != _joints.end(); it++) {
+            it->jointID = *sourceBuffer++;
+            sourceBuffer += unpackOrientationQuatFromBytes(sourceBuffer, it->rotation); 
+        }
     }
     
     return sourceBuffer - startPosition;

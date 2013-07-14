@@ -3,15 +3,20 @@
 //  hifi
 //
 //  Created by Philip Rosedale on 5/20/13.
-//
+//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
 
-#include "Transmitter.h"
-#include "InterfaceConfig.h"
-#include "Util.h"
 #include <cstring>
+
 #include <glm/glm.hpp>
+
+#include <PacketHeaders.h>
+
+#include "InterfaceConfig.h"
 #include "Log.h"
+#include "Transmitter.h"
+#include "Util.h"
+
 
 const float DELTA_TIME = 1.f / 60.f;
 const float DECAY_RATE = 0.15f;
@@ -45,7 +50,9 @@ void Transmitter::resetLevels() {
 }
 
 void Transmitter::processIncomingData(unsigned char* packetData, int numBytes) {
-    const int PACKET_HEADER_SIZE = 1;                   //  Packet's first byte is 'T'
+    //  Packet's first byte is 'T'
+    int numBytesPacketHeader = numBytesForPacketHeader(packetData);
+    
     const int ROTATION_MARKER_SIZE = 1;                 //  'R' = Rotation (clockwise about x,y,z)
     const int ACCELERATION_MARKER_SIZE = 1;             //  'A' = Acceleration (x,y,z)
     if (!_lastReceivedPacket) {
@@ -53,10 +60,10 @@ void Transmitter::processIncomingData(unsigned char* packetData, int numBytes) {
     }
     gettimeofday(_lastReceivedPacket, NULL);
     
-    if (numBytes == PACKET_HEADER_SIZE + ROTATION_MARKER_SIZE + ACCELERATION_MARKER_SIZE
+    if (numBytes == numBytesPacketHeader + ROTATION_MARKER_SIZE + ACCELERATION_MARKER_SIZE
             + sizeof(_lastRotationRate) + sizeof(_lastAcceleration)
             + sizeof(_touchState.x) + sizeof(_touchState.y) + sizeof(_touchState.state)) {
-        unsigned char* packetDataPosition = &packetData[PACKET_HEADER_SIZE + ROTATION_MARKER_SIZE];
+        unsigned char* packetDataPosition = packetData + numBytesPacketHeader + ROTATION_MARKER_SIZE;
         memcpy(&_lastRotationRate, packetDataPosition, sizeof(_lastRotationRate));
         packetDataPosition += sizeof(_lastRotationRate) + ACCELERATION_MARKER_SIZE;
         memcpy(&_lastAcceleration, packetDataPosition, sizeof(_lastAcceleration));

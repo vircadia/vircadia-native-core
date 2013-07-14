@@ -11,6 +11,7 @@
 
 #include <string>
 #include <inttypes.h>
+#include <vector>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -19,7 +20,7 @@
 #include "HeadData.h"
 #include "HandData.h"
 
-const int WANT_RESIN_AT_BIT = 0;
+const int WANT_LOW_RES_MOVING_BIT = 0;
 const int WANT_COLOR_AT_BIT = 1;
 const int WANT_DELTA_AT_BIT = 2;
 const int KEY_STATE_START_BIT = 3;  // 4th and 5th bits
@@ -35,6 +36,8 @@ enum KeyState
     INSERT_KEY_DOWN,
     DELETE_KEY_DOWN
 };
+
+class JointData;
 
 class AvatarData : public NodeData {
 public:
@@ -88,13 +91,14 @@ public:
     const std::string& chatMessage () const { return _chatMessage; }
 
     // related to Voxel Sending strategies
-    bool getWantResIn() const { return _wantResIn; }
-    bool getWantColor() const { return _wantColor; }
-    bool getWantDelta() const { return _wantDelta; }
+    bool getWantColor() const            { return _wantColor; }
+    bool getWantDelta() const            { return _wantDelta; }
+    bool getWantLowResMoving() const     { return _wantLowResMoving; }
     bool getWantOcclusionCulling() const { return _wantOcclusionCulling; }
-    void setWantResIn(bool wantResIn) { _wantResIn = wantResIn; }
-    void setWantColor(bool wantColor) { _wantColor = wantColor; }
-    void setWantDelta(bool wantDelta) { _wantDelta = wantDelta; }
+
+    void setWantColor(bool wantColor)                       { _wantColor = wantColor; }
+    void setWantDelta(bool wantDelta)                       { _wantDelta = wantDelta; }
+    void setWantLowResMoving(bool wantLowResMoving)         { _wantLowResMoving = wantLowResMoving; }
     void setWantOcclusionCulling(bool wantOcclusionCulling) { _wantOcclusionCulling = wantOcclusionCulling; }
     
     void setHeadData(HeadData* headData) { _headData = headData; }
@@ -127,19 +131,28 @@ protected:
     std::string _chatMessage;
     
     // voxel server sending items
-    bool _wantResIn;
     bool _wantColor;
     bool _wantDelta;
+    bool _wantLowResMoving;
     bool _wantOcclusionCulling;
+    
+    std::vector<JointData> _joints;
     
     HeadData* _headData;
     HandData* _handData;
+    
 private:
     // privatize the copy constructor and assignment operator so they cannot be called
     AvatarData(const AvatarData&);
     AvatarData& operator= (const AvatarData&);
 };
 
+class JointData {
+public:
+    
+    int jointID;
+    glm::quat rotation;
+};
 
 // These pack/unpack functions are designed to start specific known types in as efficient a manner
 // as possible. Taking advantage of the known characteristics of the semantic types.
