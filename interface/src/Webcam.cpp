@@ -406,7 +406,7 @@ void FrameGrabber::grabFrame() {
         depth = Mat(_depthMetaData.YRes(), _depthMetaData.XRes(), CV_16UC1, (void*)_depthGenerator.GetDepthMap());
         const double EIGHT_BIT_MAX = 255;
         const double ELEVEN_BIT_MAX = 2047;
-        depth.convertTo(_grayDepthFrame, CV_8UC1, EIGHT_BIT_MAX / ELEVEN_BIT_MAX);
+        depth.convertTo(_grayDepthFrame, CV_8UC1, 1.0, -512);
         
         _userID = 0;
         XnUInt16 userCount = 1; 
