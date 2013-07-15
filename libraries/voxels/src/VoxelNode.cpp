@@ -335,11 +335,42 @@ ViewFrustum::location VoxelNode::inFrustum(const ViewFrustum& viewFrustum) const
     return viewFrustum.boxInFrustum(box);
 }
 
+// There are two types of nodes for which we want to "render"
+// 1) Leaves that are in the LOD
+// 2) Non-leaves are more complicated though... usually you don't want to render them, but if their children
+//    wouldn't be rendered, then you do want to render them. But sometimes they have some children that ARE 
+//    in the LOD, and others that are not. In this case we want to render the parent, and none of the children.
+//
+//    Since, if we know the camera position and orientation, we can know which of the corners is the "furthest" 
+//    corner. We can use we can use this corner as our "voxel position" to do our distance calculations off of.
+//    By doing this, we don't need to test each child voxel's position vs the LOD boundary
+bool VoxelNode::calculateShouldRender(const ViewFrustum* viewFrustum, int boundaryLevelAdjust) const {
+    bool shouldRender = false;
+    if (isColored()) {
+        float furthestDistance = furthestDistanceToCamera(*viewFrustum);
+        float boundary         = boundaryDistanceForRenderLevel(getLevel() + boundaryLevelAdjust);
+        float childBoundary    = boundaryDistanceForRenderLevel(getLevel() + 1 + boundaryLevelAdjust);
+        bool  inBoundary       = (furthestDistance <= boundary);
+        bool  inChildBoundary  = (furthestDistance <= childBoundary);
+        shouldRender = (isLeaf() && inChildBoundary) || (inBoundary && !inChildBoundary);
+    }
+    return shouldRender;
+}
+
+// Calculates the distance to the furthest point of the voxel to the camera
+float VoxelNode::furthestDistanceToCamera(const ViewFrustum& viewFrustum) const {
+    AABox box = getAABox();
+    box.scale(TREE_SCALE);
+    glm::vec3 furthestPoint = viewFrustum.getFurthestPointFromCamera(box);
+    glm::vec3 temp = viewFrustum.getPosition() - furthestPoint;
+    float distanceToVoxelCenter = sqrtf(glm::dot(temp, temp));
+    return distanceToVoxelCenter;
+}
+
 float VoxelNode::distanceToCamera(const ViewFrustum& viewFrustum) const {
     glm::vec3 center = _box.getCenter() * (float)TREE_SCALE;
     glm::vec3 temp = viewFrustum.getPosition() - center;
-    float distanceSquared = glm::dot(temp, temp);
-    float distanceToVoxelCenter = sqrtf(distanceSquared);
+    float distanceToVoxelCenter = sqrtf(glm::dot(temp, temp));
     return distanceToVoxelCenter;
 }
 
@@ -351,7 +382,6 @@ float VoxelNode::distanceSquareToPoint(const glm::vec3& point) const {
 
 float VoxelNode::distanceToPoint(const glm::vec3& point) const {
     glm::vec3 temp = point - _box.getCenter();
-    float distanceSquare = glm::dot(temp, temp);
-    float distance = sqrtf(distanceSquare);
+    float distance = sqrtf(glm::dot(temp, temp));
     return distance;
 }
