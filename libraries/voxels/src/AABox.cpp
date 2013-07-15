@@ -18,6 +18,7 @@ void AABox::scale(float scale) {
     _corner = _corner * scale;
     _size = _size * scale;
     _center = _center * scale;
+    _topFarLeft = _topFarLeft * scale;
 }
 
 
@@ -60,6 +61,7 @@ void AABox::setBox(const glm::vec3& corner,  const glm::vec3& size) {
         _corner.z -= _size.z;
     }
     _center = _corner + (_size * 0.5f);
+    _topFarLeft = _corner + _size;
 }
 
 glm::vec3 AABox::getVertexP(const glm::vec3& normal) const {
