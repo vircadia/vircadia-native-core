@@ -1410,10 +1410,9 @@ void Application::importVoxels() {
                 _glWidget, tr("Import Voxels"), desktopLocation,
                 tr("Sparse Voxel Octree Files, Square PNG, Schematic Files (*.svo *.png *.schematic)"));
 
-    QByteArray fileNameAscii = fileNameString.toAscii();
-    const char* fileName = fileNameAscii.data();
-    
-    VoxelTree importVoxels;
+    const char* fileName = fileNameString.toAscii().data();
+
+    _clipboardTree.eraseAllVoxels();
     if (fileNameString.endsWith(".png", Qt::CaseInsensitive)) {
         QImage pngImage = QImage(fileName);
         if (pngImage.height() != pngImage.width()) {
@@ -1429,43 +1428,11 @@ void Application::importVoxels() {
             pixels = reinterpret_cast<const uint32_t*>(tmp.constBits());
         }
         
-        importVoxels.readFromSquareARGB32Pixels(pixels, pngImage.height());        
+        _clipboardTree.readFromSquareARGB32Pixels(pixels, pngImage.height());
     } else if (fileNameString.endsWith(".svo", Qt::CaseInsensitive)) {
-        importVoxels.readFromSVOFile(fileName);
-    } else {
-        importVoxels.readFromSchematicFile(fileName);
-    }
-    
-    VoxelNode* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
-    
-    // Recurse the Import Voxels tree, where everything is root relative, and send all the colored voxels to 
-    // the server as an set voxel message, this will also rebase the voxels to the new location
-    unsigned char* calculatedOctCode = NULL;
-    SendVoxelsOperationArgs args;
-    
-    int numBytesPacketHeader = populateTypeAndVersion(args.messageBuffer, PACKET_TYPE_SET_VOXEL_DESTRUCTIVE);
-    
-    unsigned short int* sequenceAt = (unsigned short int*)&args.messageBuffer[numBytesPacketHeader];
-    *sequenceAt = 0;
-    args.bufferInUse = numBytesPacketHeader + sizeof(unsigned short int); // set to command + sequence
-
-    // we only need the selected voxel to get the newBaseOctCode, which we can actually calculate from the
-    // voxel size/position details.
-    if (selectedNode) {
-        args.newBaseOctCode = selectedNode->getOctalCode();
-    } else {
-        args.newBaseOctCode = calculatedOctCode = pointToVoxel(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
-    }
-
-    importVoxels.recurseTreeWithOperation(sendVoxelsOperation, &args);
-
-    // If we have voxels left in the packet, then send the packet
-    if (args.bufferInUse > (numBytesPacketHeader + sizeof(unsigned short int))) {
-        controlledBroadcastToNodes(args.messageBuffer, args.bufferInUse, & NODE_TYPE_VOXEL_SERVER, 1);
-    }
-    
-    if (calculatedOctCode) {
-        delete[] calculatedOctCode;
+        _clipboardTree.readFromSVOFile(fileName);
+    } else if (fileNameString.endsWith(".schematic", Qt::CaseInsensitive)) {
+        _clipboardTree.readFromSchematicFile(fileName);
     }
 
     // restore the main window's active state
