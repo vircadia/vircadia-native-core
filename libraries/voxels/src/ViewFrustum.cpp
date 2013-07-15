@@ -532,16 +532,12 @@ const int hullVertexLookup[MAX_POSSIBLE_COMBINATIONS][MAX_PROJECTED_POLYGON_VERT
 VoxelProjectedPolygon ViewFrustum::getProjectedPolygon(const AABox& box) const {
     const glm::vec3& bottomNearRight = box.getCorner();
     const glm::vec3& topFarLeft      = box.getTopFarLeft();
-    
-    
     int lookUp = ((_position.x < bottomNearRight.x)     )   //  1 = right      |   compute 6-bit
                + ((_position.x > topFarLeft.x     ) << 1)   //  2 = left       |         code to
                + ((_position.y < bottomNearRight.y) << 2)   //  4 = bottom     | classify camera
                + ((_position.y > topFarLeft.y     ) << 3)   //  8 = top        | with respect to
                + ((_position.z < bottomNearRight.z) << 4)   // 16 = front/near |  the 6 defining
                + ((_position.z > topFarLeft.z     ) << 5);  // 32 = back/far   |          planes
-
-    //printLog(">>>>>>>>> ViewFrustum::getProjectedPolygon() lookup=%d\n",lookUp);
 
     int vertexCount = hullVertexLookup[lookUp][0];  //look up number of vertices
     
