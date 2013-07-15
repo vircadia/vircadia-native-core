@@ -1333,7 +1333,9 @@ struct SendVoxelsOperationArgs {
     unsigned char* newBaseOctCode;
     unsigned char messageBuffer[MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE];
     int bufferInUse;
-
+    uint64_t lastSendTime;
+    int packetsSent;
+    uint64_t bytesSent;
 };
 
 bool Application::sendVoxelsOperation(VoxelNode* node, void* extraData) {
@@ -1365,17 +1367,30 @@ bool Application::sendVoxelsOperation(VoxelNode* node, void* extraData) {
         codeColorBuffer[bytesInCode + GREEN_INDEX] = node->getColor()[GREEN_INDEX];
         codeColorBuffer[bytesInCode + BLUE_INDEX ] = node->getColor()[BLUE_INDEX ];
         
-        // TODO: sendVoxelsOperation() is sending voxels too fast.
-        //       This printf function accidently slowed down sending
-        //       and hot-fixed the bug when importing
-        //       large PNG models (256x256 px and more)
-        static unsigned int sendVoxelsOperationCalled = 0; printf("sending voxel #%u\n", ++sendVoxelsOperationCalled);
-
         // if we have room don't have room in the buffer, then send the previously generated message first
         if (args->bufferInUse + codeAndColorLength > MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE) {
+
+            args->packetsSent++;
+            args->bytesSent += args->bufferInUse;
+
             controlledBroadcastToNodes(args->messageBuffer, args->bufferInUse, & NODE_TYPE_VOXEL_SERVER, 1);
             args->bufferInUse = numBytesForPacketHeader((unsigned char*) &PACKET_TYPE_SET_VOXEL_DESTRUCTIVE)
                 + sizeof(unsigned short int); // reset
+                
+            uint64_t now = usecTimestampNow();
+            // dynamically sleep until we need to fire off the next set of voxels
+            const uint64_t CLIENT_TO_SERVER_VOXEL_SEND_INTERVAL_USECS = 1000 * 5; // 1 packet every 10 milliseconds
+            uint64_t elapsed = now - args->lastSendTime;
+            int usecToSleep =  CLIENT_TO_SERVER_VOXEL_SEND_INTERVAL_USECS - elapsed;
+            if (usecToSleep > 0) {
+                printLog("sendVoxelsOperation: packet: %d bytes:%ld elapsed %ld usecs, sleeping for %d usecs!\n", 
+                    args->packetsSent, args->bytesSent, elapsed, usecToSleep);
+                usleep(usecToSleep);
+            } else {
+                printLog("sendVoxelsOperation: packet: %d bytes:%ld elapsed %ld usecs, no need to sleep!\n", 
+                    args->packetsSent, args->bytesSent, elapsed);
+            }
+            args->lastSendTime = now;
         }
         
         // copy this node's code color details into our buffer.
@@ -1442,6 +1457,9 @@ void Application::importVoxels() {
     // the server as an set voxel message, this will also rebase the voxels to the new location
     unsigned char* calculatedOctCode = NULL;
     SendVoxelsOperationArgs args;
+    args.lastSendTime = usecTimestampNow();
+    args.packetsSent = 0;
+    args.bytesSent = 0;
     
     int numBytesPacketHeader = populateTypeAndVersion(args.messageBuffer, PACKET_TYPE_SET_VOXEL_DESTRUCTIVE);
     
@@ -1462,6 +1480,9 @@ void Application::importVoxels() {
     // If we have voxels left in the packet, then send the packet
     if (args.bufferInUse > (numBytesPacketHeader + sizeof(unsigned short int))) {
         controlledBroadcastToNodes(args.messageBuffer, args.bufferInUse, & NODE_TYPE_VOXEL_SERVER, 1);
+        printLog("sending packet: %d\n", ++args.packetsSent);
+        args.bytesSent += args.bufferInUse;
+        printLog("total bytes sent: %ld\n", args.bytesSent);
     }
     
     if (calculatedOctCode) {
@@ -1495,6 +1516,9 @@ void Application::pasteVoxels() {
     // Recurse the clipboard tree, where everything is root relative, and send all the colored voxels to 
     // the server as an set voxel message, this will also rebase the voxels to the new location
     SendVoxelsOperationArgs args;
+    args.lastSendTime = usecTimestampNow();
+    args.packetsSent = 0;
+    args.bytesSent = 0;
     
     int numBytesPacketHeader = populateTypeAndVersion(args.messageBuffer, PACKET_TYPE_SET_VOXEL_DESTRUCTIVE);
     
@@ -1516,6 +1540,9 @@ void Application::pasteVoxels() {
     // If we have voxels left in the packet, then send the packet
     if (args.bufferInUse > (numBytesPacketHeader + sizeof(unsigned short int))) {
         controlledBroadcastToNodes(args.messageBuffer, args.bufferInUse, & NODE_TYPE_VOXEL_SERVER, 1);
+        printLog("sending packet: %d\n", ++args.packetsSent);
+        args.bytesSent += args.bufferInUse;
+        printLog("total bytes sent: %ld\n", args.bytesSent);
     }
     
     if (calculatedOctCode) {
