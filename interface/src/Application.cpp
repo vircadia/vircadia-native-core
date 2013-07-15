@@ -2037,7 +2037,6 @@ void Application::update(float deltaTime) {
     _audio.eventuallyAnalyzePing();
     #endif
     
-    
     if (TESTING_PARTICLE_SYSTEM) {
         if (!_particleSystemInitialized) {
             
@@ -2100,6 +2099,13 @@ void Application::update(float deltaTime) {
                     1.0f + cosf(t * 9.0f) * 0.02f, 
                     3.0f + sinf(t * 7.0f) * 0.02f
                 );
+                
+                
+//_myAvatar.getHand().setLeapFingers(LeapManager::getFingerTips(), LeapManager::getFingerRoots());
+//_myAvatar.getHand().setLeapHands(LeapManager::getHandPositions(), LeapManager::getHandNormals());
+                
+                
+                
                        
                 glm::vec3 tilt = glm::vec3
                 (
