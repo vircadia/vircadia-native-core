@@ -97,7 +97,7 @@ int main(int argc, const char* argv[]) {
             switch (packetData[0]) {
                 case PACKET_TYPE_HEAD_DATA:
                     // grab the node ID from the packet
-                    unpackNodeId(packetData + 1, &nodeID);
+                    unpackNodeId(packetData + numBytesForPacketHeader(packetData), &nodeID);
                     
                     // add or update the node in our list
                     avatarNode = nodeList->addOrUpdateNode(nodeAddress, nodeAddress, NODE_TYPE_AGENT, nodeID);

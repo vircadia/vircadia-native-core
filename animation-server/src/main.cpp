@@ -434,7 +434,7 @@ void sendDanceFloor() {
         for (int i = 0; i < DANCE_FLOOR_WIDTH; i++) {
             for (int j = 0; j < DANCE_FLOOR_LENGTH; j++) {
 
-                int randomColorIndex = randIntInRange( -(DANCE_FLOOR_COLORS), (DANCE_FLOOR_COLORS + 1));
+                int randomColorIndex = randIntInRange(-DANCE_FLOOR_COLORS, DANCE_FLOOR_COLORS);
                 ::danceFloorColors[i][j] = randomColorIndex;
                 ::danceFloorLights[i][j] = ::danceFloorPosition + 
                                          glm::vec3(i * DANCE_FLOOR_LIGHT_SIZE, 0, j * DANCE_FLOOR_LIGHT_SIZE);
