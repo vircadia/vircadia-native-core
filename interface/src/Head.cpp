@@ -227,7 +227,8 @@ void Head::simulate(float deltaTime, bool isMine) {
         const float CAMERA_FOLLOW_HEAD_RATE_MAX = 0.5f;
         const float CAMERA_FOLLOW_HEAD_RATE_RAMP_RATE = 1.05f;
         const float CAMERA_STOP_TOLERANCE_DEGREES = 0.1f;
-        const float CAMERA_START_TOLERANCE_DEGREES = 2.0f;
+        const float CAMERA_PITCH_START_TOLERANCE_DEGREES = 10.0f;
+        const float CAMERA_YAW_START_TOLERANCE_DEGREES = 3.0f;
         float cameraHeadAngleDifference = glm::length(glm::vec2(_pitch - _cameraPitch, _yaw - _cameraYaw));
         if (_isCameraMoving) {
             _cameraFollowHeadRate = glm::clamp(_cameraFollowHeadRate * CAMERA_FOLLOW_HEAD_RATE_RAMP_RATE,
@@ -240,7 +241,8 @@ void Head::simulate(float deltaTime, bool isMine) {
                 _isCameraMoving = false;
             }
         } else {
-            if (cameraHeadAngleDifference > CAMERA_START_TOLERANCE_DEGREES) {
+            if ((fabs(_pitch - _cameraPitch) > CAMERA_PITCH_START_TOLERANCE_DEGREES) ||
+                (fabs(_yaw - _cameraYaw) > CAMERA_YAW_START_TOLERANCE_DEGREES)) {
                 _isCameraMoving = true;
                 _cameraFollowHeadRate = CAMERA_FOLLOW_HEAD_RATE_START;
             }

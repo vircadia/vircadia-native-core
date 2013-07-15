@@ -97,7 +97,7 @@ private:
     inline void analyzePing();
 
     // Add sounds that we want the user to not hear themselves, by adding on top of mic input signal
-    void addProceduralSounds(int16_t* inputBuffer, int numSamples);
+    void addProceduralSounds(int16_t* inputBuffer, int16_t* outputLeft, int16_t* outputRight, int numSamples);
 
 
     // Audio callback called by portaudio. Calls 'performIO'.

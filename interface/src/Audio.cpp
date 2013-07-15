@@ -75,9 +75,12 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
     NodeList* nodeList = NodeList::getInstance();
     Application* interface = Application::getInstance();
     Avatar* interfaceAvatar = interface->getAvatar();
- 
+
+    memset(outputLeft, 0, PACKET_LENGTH_BYTES_PER_CHANNEL);
+    memset(outputRight, 0, PACKET_LENGTH_BYTES_PER_CHANNEL);
+
     // Add Procedural effects to input samples
-    addProceduralSounds(inputLeft, BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
+    addProceduralSounds(inputLeft, outputLeft, outputRight, BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
     
     if (nodeList && inputLeft) {
         
@@ -129,12 +132,8 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
             interface->getBandwidthMeter()->outputStream(BandwidthMeter::AUDIO)
                     .updateValue(BUFFER_LENGTH_BYTES_PER_CHANNEL + leadingBytes);
         }
-        
     }
-    
-    memset(outputLeft, 0, PACKET_LENGTH_BYTES_PER_CHANNEL);
-    memset(outputRight, 0, PACKET_LENGTH_BYTES_PER_CHANNEL);
-    
+        
     AudioRingBuffer* ringBuffer = &_ringBuffer;
     
     // if there is anything in the ring buffer, decide what to do:
@@ -245,11 +244,11 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
                     }
                 }
 #ifndef TEST_AUDIO_LOOPBACK
-                outputLeft[s] = leftSample;
-                outputRight[s] = rightSample;
+                outputLeft[s] += leftSample;
+                outputRight[s] += rightSample;
 #else 
-                outputLeft[s] = inputLeft[s];
-                outputRight[s] = inputLeft[s];                    
+                outputLeft[s] += inputLeft[s];
+                outputRight[s] += inputLeft[s];
 #endif
             }
             ringBuffer->setNextOutput(ringBuffer->getNextOutput() + PACKET_LENGTH_SAMPLES);
@@ -584,7 +583,10 @@ void Audio::lowPassFilter(int16_t* inputBuffer) {
 }
 
 //  Take a pointer to the acquired microphone input samples and add procedural sounds
-void Audio::addProceduralSounds(int16_t* inputBuffer, int numSamples) {
+void Audio::addProceduralSounds(int16_t* inputBuffer,
+                                int16_t* outputLeft,
+                                int16_t* outputRight,
+                                int numSamples) {
     const float MAX_AUDIBLE_VELOCITY = 6.0;
     const float MIN_AUDIBLE_VELOCITY = 0.1;
     const int VOLUME_BASELINE = 400;
@@ -600,18 +602,25 @@ void Audio::addProceduralSounds(int16_t* inputBuffer, int numSamples) {
     }*/
     
     //  Add a noise-modulated sinewave with volume that tapers off with speed increasing
-    if (0) {  //((speed > MIN_AUDIBLE_VELOCITY) && (speed < MAX_AUDIBLE_VELOCITY)) {
+    if ((speed > MIN_AUDIBLE_VELOCITY) && (speed < MAX_AUDIBLE_VELOCITY)) {
         for (int i = 0; i < numSamples; i++) {
-            inputBuffer[i] += (int16_t)((sinf((float) (_proceduralEffectSample + i) / SOUND_PITCH * speed) * (1.f + randFloat() * 0.0f)) * volume * speed);
+            //inputBuffer[i] += (int16_t)((sinf((float) (_proceduralEffectSample + i) / SOUND_PITCH * speed) * (1.f + randFloat() * 0.0f)) * volume * speed);
+            inputBuffer[i] += (int16_t)(sinf((float) (_proceduralEffectSample + i) / SOUND_PITCH ) * volume * (1.f + randFloat() * 0.25f) * speed);
+            
+
         }
     }
     const float COLLISION_SOUND_CUTOFF_LEVEL = 5.0f;
     const float COLLISION_SOUND_PITCH_1 = 2.0f;
     const float COLLISION_SOUND_DECAY = 1.f/1024.f;
     const float COLLISION_VOLUME_BASELINE = 10.f;
+    int sample;
     if (_collisionSoundMagnitude > COLLISION_SOUND_CUTOFF_LEVEL) {
         for (int i = 0; i < numSamples; i++) {
-            inputBuffer[i] += (int16_t) ((sinf((float) (_proceduralEffectSample + i) / COLLISION_SOUND_PITCH_1) * COLLISION_VOLUME_BASELINE * _collisionSoundMagnitude));
+            sample = (int16_t) ((sinf((float) (_proceduralEffectSample + i) / COLLISION_SOUND_PITCH_1) * COLLISION_VOLUME_BASELINE * _collisionSoundMagnitude));
+            inputBuffer[i] += sample;
+            outputLeft[i] += sample;
+            outputRight[i] += sample;
             _collisionSoundMagnitude *= (1.f - COLLISION_SOUND_DECAY);
         }
     }
