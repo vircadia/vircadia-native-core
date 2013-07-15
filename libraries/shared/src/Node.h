@@ -86,7 +86,7 @@ private:
     NodeData* _linkedData;
     bool _isAlive;
     int _pingMs;
-    pthread_mutex_t mutex;
+    pthread_mutex_t _mutex;
 };
 
 

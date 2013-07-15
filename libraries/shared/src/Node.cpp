@@ -54,7 +54,7 @@ Node::Node(sockaddr* publicSocket, sockaddr* localSocket, char type, uint16_t no
         _localSocket = NULL;
     }
     
-    pthread_mutex_init(&mutex, 0);
+    pthread_mutex_init(&_mutex, 0);
 }
 
 Node::~Node() {
@@ -63,7 +63,7 @@ Node::~Node() {
     delete _linkedData;
     delete _bytesReceivedMovingAverage;
     
-    pthread_mutex_destroy(&mutex);
+    pthread_mutex_destroy(&_mutex);
 }
 
 // Names of Node Types
