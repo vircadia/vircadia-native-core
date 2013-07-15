@@ -78,12 +78,17 @@ NodeList::~NodeList() {
     stopSilentNodeRemovalThread();
 }
 
-void NodeList::setDomainHostname(const char* domainHostname) {
-    memcpy(_domainHostname, domainHostname, sizeof(&domainHostname));
+void NodeList::setDomainHostname(const char* domainHostname) {    
+    memset(_domainHostname, 0, sizeof(_domainHostname));
+    memcpy(_domainHostname, domainHostname, strlen(domainHostname));
+    
+    // reset the domain IP so the hostname is checked again
+    setDomainIP("");
 }
 
 void NodeList::setDomainIP(const char* domainIP) {
-    memcpy(_domainIP, domainIP, sizeof(&domainIP));
+    memset(_domainIP, 0, sizeof(_domainIP));
+    memcpy(_domainIP, domainIP, strlen(domainIP));
 }
 
 void NodeList::setDomainIPToLocalhost() {
@@ -132,37 +137,37 @@ void NodeList::processBulkNodeData(sockaddr *senderAddress, unsigned char *packe
     if (bulkSendNode) {
         bulkSendNode->setLastHeardMicrostamp(usecTimestampNow());
         bulkSendNode->recordBytesReceived(numTotalBytes);
-    }
-    
-    int numBytesPacketHeader = numBytesForPacketHeader(packetData);
-    
-    unsigned char *startPosition = packetData;
-    unsigned char *currentPosition = startPosition + numBytesPacketHeader;
-    unsigned char packetHolder[numTotalBytes];
-    
-    // we've already verified packet version for the bulk packet, so all head data in the packet is also up to date
-    populateTypeAndVersion(packetHolder, PACKET_TYPE_HEAD_DATA);
-    
-    uint16_t nodeID = -1;
-    
-    while ((currentPosition - startPosition) < numTotalBytes) {
-        unpackNodeId(currentPosition, &nodeID);
-        memcpy(packetHolder + numBytesPacketHeader,
-               currentPosition,
-               numTotalBytes - (currentPosition - startPosition));
         
-        Node* matchingNode = nodeWithID(nodeID);
+        int numBytesPacketHeader = numBytesForPacketHeader(packetData);
         
-        if (!matchingNode) {
-            // we're missing this node, we need to add it to the list
-            matchingNode = addOrUpdateNode(NULL, NULL, NODE_TYPE_AGENT, nodeID);
+        unsigned char *startPosition = packetData;
+        unsigned char *currentPosition = startPosition + numBytesPacketHeader;
+        unsigned char packetHolder[numTotalBytes];
+        
+        // we've already verified packet version for the bulk packet, so all head data in the packet is also up to date
+        populateTypeAndVersion(packetHolder, PACKET_TYPE_HEAD_DATA);
+        
+        uint16_t nodeID = -1;
+        
+        while ((currentPosition - startPosition) < numTotalBytes) {
+            unpackNodeId(currentPosition, &nodeID);
+            memcpy(packetHolder + numBytesPacketHeader,
+                   currentPosition,
+                   numTotalBytes - (currentPosition - startPosition));
+            
+            Node* matchingNode = nodeWithID(nodeID);
+            
+            if (!matchingNode) {
+                // we're missing this node, we need to add it to the list
+                matchingNode = addOrUpdateNode(NULL, NULL, NODE_TYPE_AGENT, nodeID);
+            }
+            
+            currentPosition += updateNodeWithData(matchingNode,
+                                                  packetHolder,
+                                                  numTotalBytes - (currentPosition - startPosition));
+            
         }
-        
-        currentPosition += updateNodeWithData(matchingNode,
-                                              packetHolder,
-                                              numTotalBytes - (currentPosition - startPosition));
-        
-    }
+    }    
 }
 
 int NodeList::updateNodeWithData(sockaddr *senderAddress, unsigned char *packetData, size_t dataBytes) {
@@ -234,7 +239,9 @@ void NodeList::clear() {
         Node** nodeBucket = _nodeBuckets[i / NODES_PER_BUCKET];
         Node* node = nodeBucket[i % NODES_PER_BUCKET];
         
+        node->lock();
         delete node;
+        
         node = NULL;
     }
     
@@ -254,6 +261,7 @@ void NodeList::sendDomainServerCheckIn() {
     
     //  Lookup the IP address of the domain server if we need to
     if (atoi(_domainIP) == 0) {
+        printf("Looking up %s\n", _domainHostname);
         struct hostent* pHostInfo;
         if ((pHostInfo = gethostbyname(_domainHostname)) != NULL) {
             sockaddr_in tempAddress;

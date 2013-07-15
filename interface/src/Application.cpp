@@ -1140,6 +1140,14 @@ void Application::editPreferences() {
         return;
     }
     
+    // check if the domain server hostname is new - if so we need to clear the nodelist and delete the local voxels
+    const char* newHostname = domainServerHostname->text().toLocal8Bit().data();
+    
+    if (memcmp(NodeList::getInstance()->getDomainHostname(), newHostname, sizeof(&newHostname)) != 0) {
+        NodeList::getInstance()->clear();
+        NodeList::getInstance()->setDomainHostname(newHostname);
+    }
+    
     QUrl url(avatarURL->text());
     _myAvatar.getVoxels()->setVoxelURL(url);
     sendAvatarVoxelURLMessage(url);
