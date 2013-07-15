@@ -37,6 +37,7 @@
 #include "VoxelSystem.h"
 #include "PacketHeaders.h"
 #include "Webcam.h"
+#include "renderer/AmbientOcclusionEffect.h"
 #include "renderer/GeometryCache.h"
 #include "ui/ChatEntry.h"
 #include "ToolsPalette.h"
@@ -366,6 +367,7 @@ private:
     int _hmdWarpParamLocation;
     
     GeometryCache _geometryCache;
+    AmbientOcclusionEffect _ambientOcclusionEffect;
     
     ParticleSystem _particleSystem;
     

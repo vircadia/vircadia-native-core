@@ -2463,6 +2463,8 @@ void Application::displaySide(Camera& whichCamera) {
     //  Render the world box
     if (!_lookingInMirror->isChecked() && _renderStatsOn->isChecked()) { render_world_box(); }
     
+    _ambientOcclusionEffect.render(_glWidget->width(), _glWidget->height());
+    
     // brad's frustum for debugging
     if (_frustumOn->isChecked()) renderViewFrustum(_viewFrustum);
     
