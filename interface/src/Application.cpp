@@ -1678,6 +1678,8 @@ void Application::initMenu() {
     (_renderCoverageMapV2 = debugMenu->addAction("Render Coverage Map V2"))->setCheckable(true);
     _renderCoverageMapV2->setShortcut(Qt::SHIFT | Qt::CTRL | Qt::Key_P);
 
+    (_simulateLeapHand = debugMenu->addAction("Simulate Leap Hand"))->setCheckable(true);
+    (_testRaveGlove = debugMenu->addAction("Test RaveGlove"))->setCheckable(true);
 
     QMenu* settingsMenu = menuBar->addMenu("Settings");
     (_settingsAutosave = settingsMenu->addAction("Autosave"))->setCheckable(true);
@@ -1936,6 +1938,7 @@ void Application::update(float deltaTime) {
     }
     
     // Leap finger-sensing device
+    LeapManager::enableFakeFingers(_simulateLeapHand->isChecked() || _testRaveGlove->isChecked());
     LeapManager::nextFrame();
     _myAvatar.getHand().setLeapFingers(LeapManager::getFingerTips(), LeapManager::getFingerRoots());
     _myAvatar.getHand().setLeapHands(LeapManager::getHandPositions(), LeapManager::getHandNormals());
