@@ -1140,10 +1140,24 @@ void Application::editPreferences() {
         return;
     }
     
-    // check if the domain server hostname is new - if so we need to clear the nodelist and delete the local voxels
+    
     const char* newHostname = domainServerHostname->text().toLocal8Bit().data();
     
+    // check if the domain server hostname is new 
     if (memcmp(NodeList::getInstance()->getDomainHostname(), newHostname, sizeof(&newHostname)) != 0) {
+        // if so we need to clear the nodelist and delete the local voxels
+        Node *voxelServer = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_VOXEL_SERVER);
+        
+        if (voxelServer) {
+            voxelServer->lock();
+        }
+        
+        _voxels.killLocalVoxels();
+        
+        if (voxelServer) {
+            voxelServer->unlock();
+        }
+        
         NodeList::getInstance()->clear();
         NodeList::getInstance()->setDomainHostname(newHostname);
     }
