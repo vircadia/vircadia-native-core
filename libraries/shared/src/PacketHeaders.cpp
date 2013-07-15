@@ -9,6 +9,7 @@
 #include <stdio.h>
 
 #include "PacketHeaders.h"
+#include "Log.h"
 
 PACKET_VERSION versionForPacketType(PACKET_TYPE type) {
     switch (type) {
@@ -24,7 +25,7 @@ bool packetVersionMatch(unsigned char* packetHeader) {
     if (packetHeader[1] == versionForPacketType(packetHeader[0])) {
         return true;
     } else {
-        printf("There is a packet version mismatch for packet with header %c\n", packetHeader[0]);
+        printLog("There is a packet version mismatch for packet with header %c\n", packetHeader[0]);
         return false;
     }
 }
