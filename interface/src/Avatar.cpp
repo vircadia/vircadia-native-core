@@ -86,6 +86,7 @@ Avatar::Avatar(Node* owningNode) :
     _leanScale(0.5f),
     _pelvisStandingHeight(0.0f),
     _pelvisFloatingHeight(0.0f),
+    _scale(1.0f),
     _distanceToNearestAvatar(std::numeric_limits<float>::max()),
     _gravity(0.0f, -1.0f, 0.0f),
     _worldUpDirection(DEFAULT_UP_DIRECTION),
@@ -111,9 +112,9 @@ Avatar::Avatar(Node* owningNode) :
     _skeleton.initialize();
     
     initializeBodyBalls();
-    
+        
     _height               = _skeleton.getHeight() + _bodyBall[ BODY_BALL_LEFT_HEEL ].radius + _bodyBall[ BODY_BALL_HEAD_BASE ].radius;
-    
+
     _maxArmLength         = _skeleton.getArmLength();
     _pelvisStandingHeight = _skeleton.getPelvisStandingHeight() + _bodyBall[ BODY_BALL_LEFT_HEEL ].radius;
     _pelvisFloatingHeight = _skeleton.getPelvisFloatingHeight() + _bodyBall[ BODY_BALL_LEFT_HEEL ].radius;
@@ -145,32 +146,32 @@ void Avatar::initializeBodyBalls() {
     }
     
     // specify the radius of each ball
-    _bodyBall[ BODY_BALL_PELVIS           ].radius = 0.07;
-    _bodyBall[ BODY_BALL_TORSO            ].radius = 0.065;
-    _bodyBall[ BODY_BALL_CHEST            ].radius = 0.08;
-    _bodyBall[ BODY_BALL_NECK_BASE        ].radius = 0.03;
-    _bodyBall[ BODY_BALL_HEAD_BASE        ].radius = 0.07;
-    _bodyBall[ BODY_BALL_LEFT_COLLAR      ].radius = 0.04;
-    _bodyBall[ BODY_BALL_LEFT_SHOULDER    ].radius = 0.03;
-    _bodyBall[ BODY_BALL_LEFT_ELBOW       ].radius = 0.02;
-    _bodyBall[ BODY_BALL_LEFT_WRIST       ].radius = 0.02;
-    _bodyBall[ BODY_BALL_LEFT_FINGERTIPS  ].radius = 0.01;
-    _bodyBall[ BODY_BALL_RIGHT_COLLAR     ].radius = 0.04;
-    _bodyBall[ BODY_BALL_RIGHT_SHOULDER   ].radius = 0.03;
-    _bodyBall[ BODY_BALL_RIGHT_ELBOW      ].radius = 0.02;
-    _bodyBall[ BODY_BALL_RIGHT_WRIST      ].radius = 0.02;
-    _bodyBall[ BODY_BALL_RIGHT_FINGERTIPS ].radius = 0.01;
-    _bodyBall[ BODY_BALL_LEFT_HIP         ].radius = 0.04;
+    _bodyBall[ BODY_BALL_PELVIS           ].radius = BODY_BALL_RADIUS_PELVIS;
+    _bodyBall[ BODY_BALL_TORSO            ].radius = BODY_BALL_RADIUS_TORSO;
+    _bodyBall[ BODY_BALL_CHEST            ].radius = BODY_BALL_RADIUS_CHEST;
+    _bodyBall[ BODY_BALL_NECK_BASE        ].radius = BODY_BALL_RADIUS_NECK_BASE;
+    _bodyBall[ BODY_BALL_HEAD_BASE        ].radius = BODY_BALL_RADIUS_HEAD_BASE;
+    _bodyBall[ BODY_BALL_LEFT_COLLAR      ].radius = BODY_BALL_RADIUS_LEFT_COLLAR;
+    _bodyBall[ BODY_BALL_LEFT_SHOULDER    ].radius = BODY_BALL_RADIUS_LEFT_SHOULDER;
+    _bodyBall[ BODY_BALL_LEFT_ELBOW       ].radius = BODY_BALL_RADIUS_LEFT_ELBOW;
+    _bodyBall[ BODY_BALL_LEFT_WRIST       ].radius = BODY_BALL_RADIUS_LEFT_WRIST;
+    _bodyBall[ BODY_BALL_LEFT_FINGERTIPS  ].radius = BODY_BALL_RADIUS_LEFT_FINGERTIPS;
+    _bodyBall[ BODY_BALL_RIGHT_COLLAR     ].radius = BODY_BALL_RADIUS_RIGHT_COLLAR;
+    _bodyBall[ BODY_BALL_RIGHT_SHOULDER   ].radius = BODY_BALL_RADIUS_RIGHT_SHOULDER;
+    _bodyBall[ BODY_BALL_RIGHT_ELBOW      ].radius = BODY_BALL_RADIUS_RIGHT_ELBOW;
+    _bodyBall[ BODY_BALL_RIGHT_WRIST      ].radius = BODY_BALL_RADIUS_RIGHT_WRIST;
+    _bodyBall[ BODY_BALL_RIGHT_FINGERTIPS ].radius = BODY_BALL_RADIUS_RIGHT_FINGERTIPS;
+    _bodyBall[ BODY_BALL_LEFT_HIP         ].radius = BODY_BALL_RADIUS_LEFT_HIP;
     
-    //_bodyBall[ BODY_BALL_LEFT_MID_THIGH ].radius = 0.03;
+    //_bodyBall[ BODY_BALL_LEFT_MID_THIGH ].radius = BODY_BALL_RADIUS_LEFT_MID_THIGH;
     
-    _bodyBall[ BODY_BALL_LEFT_KNEE        ].radius = 0.025;
-    _bodyBall[ BODY_BALL_LEFT_HEEL        ].radius = 0.025;
-    _bodyBall[ BODY_BALL_LEFT_TOES        ].radius = 0.025;
-    _bodyBall[ BODY_BALL_RIGHT_HIP        ].radius = 0.04;
-    _bodyBall[ BODY_BALL_RIGHT_KNEE       ].radius = 0.025;
-    _bodyBall[ BODY_BALL_RIGHT_HEEL       ].radius = 0.025;
-    _bodyBall[ BODY_BALL_RIGHT_TOES       ].radius = 0.025;
+    _bodyBall[ BODY_BALL_LEFT_KNEE        ].radius = BODY_BALL_RADIUS_LEFT_KNEE;
+    _bodyBall[ BODY_BALL_LEFT_HEEL        ].radius = BODY_BALL_RADIUS_LEFT_HEEL;
+    _bodyBall[ BODY_BALL_LEFT_TOES        ].radius = BODY_BALL_RADIUS_LEFT_TOES;
+    _bodyBall[ BODY_BALL_RIGHT_HIP        ].radius = BODY_BALL_RADIUS_RIGHT_HIP;
+    _bodyBall[ BODY_BALL_RIGHT_KNEE       ].radius = BODY_BALL_RADIUS_RIGHT_KNEE;
+    _bodyBall[ BODY_BALL_RIGHT_HEEL       ].radius = BODY_BALL_RADIUS_RIGHT_HEEL;
+    _bodyBall[ BODY_BALL_RIGHT_TOES       ].radius = BODY_BALL_RADIUS_RIGHT_TOES;
     
     
     // specify the parent joint for each ball
@@ -331,7 +332,7 @@ void Avatar::updateFromGyrosAndOrWebcam(bool gyroLook,
     _head.setCameraFollowsHead(gyroLook);
         
     //  Update torso lean distance based on accelerometer data
-    const float TORSO_LENGTH = 0.5f;
+    const float TORSO_LENGTH = _scale * 0.5f;
     const float MAX_LEAN = 45.0f;
     _head.setLeanSideways(glm::clamp(glm::degrees(atanf(estimatedPosition.x * _leanScale / TORSO_LENGTH)),
         -MAX_LEAN, MAX_LEAN));
@@ -378,18 +379,18 @@ void Avatar::updateThrust(float deltaTime, Transmitter * transmitter) {
     const float THRUST_JUMP = 120.f;
     
     //  Add Thrusts from keyboard
-    if (_driveKeys[FWD      ]) {_thrust       += THRUST_MAG_FWD * deltaTime * front;}
-    if (_driveKeys[BACK     ]) {_thrust       -= THRUST_MAG_BACK * deltaTime * front;}
-    if (_driveKeys[RIGHT    ]) {_thrust       += THRUST_MAG_LATERAL * deltaTime * right;}
-    if (_driveKeys[LEFT     ]) {_thrust       -= THRUST_MAG_LATERAL * deltaTime * right;}
-    if (_driveKeys[UP       ]) {_thrust       += THRUST_MAG_UP * deltaTime * up;}
-    if (_driveKeys[DOWN     ]) {_thrust       -= THRUST_MAG_DOWN * deltaTime * up;}
+    if (_driveKeys[FWD      ]) {_thrust       += _scale * THRUST_MAG_FWD * deltaTime * front;}
+    if (_driveKeys[BACK     ]) {_thrust       -= _scale * THRUST_MAG_BACK * deltaTime * front;}
+    if (_driveKeys[RIGHT    ]) {_thrust       += _scale * THRUST_MAG_LATERAL * deltaTime * right;}
+    if (_driveKeys[LEFT     ]) {_thrust       -= _scale * THRUST_MAG_LATERAL * deltaTime * right;}
+    if (_driveKeys[UP       ]) {_thrust       += _scale * THRUST_MAG_UP * deltaTime * up;}
+    if (_driveKeys[DOWN     ]) {_thrust       -= _scale * THRUST_MAG_DOWN * deltaTime * up;}
     if (_driveKeys[ROT_RIGHT]) {_bodyYawDelta -= YAW_MAG    * deltaTime;}
     if (_driveKeys[ROT_LEFT ]) {_bodyYawDelta += YAW_MAG    * deltaTime;}
     
     //  Add one time jumping force if requested
     if (_shouldJump) {
-        _thrust += THRUST_JUMP * up;
+        _thrust += _scale * THRUST_JUMP * up;
         _shouldJump = false;
     }
     
@@ -424,8 +425,7 @@ void Avatar::updateThrust(float deltaTime, Transmitter * transmitter) {
     }
     
     //  Update speed brake status
-    
-    const float MIN_SPEED_BRAKE_VELOCITY = 0.4f;
+    const float MIN_SPEED_BRAKE_VELOCITY = _scale * 0.4f;
     if ((glm::length(_thrust) == 0.0f) && _isThrustOn && (glm::length(_velocity) > MIN_SPEED_BRAKE_VELOCITY)) {
         _speedBrakes = true;
     } 
@@ -434,7 +434,6 @@ void Avatar::updateThrust(float deltaTime, Transmitter * transmitter) {
         _speedBrakes = false;
     }
     _isThrustOn = (glm::length(_thrust) > EPSILON);
-
 }
 
 void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
@@ -443,6 +442,11 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     glm::vec3 front = orientation * IDENTITY_FRONT;
     glm::vec3 right = orientation * IDENTITY_RIGHT;
     
+    //
+    if (!isMyAvatar() && _scale != _newScale) {
+        setScale(_newScale);
+    }
+
     // Update movement timers
     if (isMyAvatar()) {
         _elapsedTimeSinceCollision += deltaTime;
@@ -528,16 +532,17 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     //update the movement of the hand and process handshaking with other avatars...
     updateHandMovementAndTouching(deltaTime, enableHandMovement);
     _avatarTouch.simulate(deltaTime);
-    
+
     if (isMyAvatar()) {
 
         // apply gravity
         if (USING_AVATAR_GRAVITY) {
             // For gravity, always move the avatar by the amount driven by gravity, so that the collision
             // routines will detect it and collide every frame when pulled by gravity to a surface
-            // 
-            _velocity += _gravity * (GRAVITY_EARTH * deltaTime);
-            _position += _gravity * (GRAVITY_EARTH * deltaTime) * deltaTime;
+            //
+
+            _velocity += _scale * _gravity * (GRAVITY_EARTH * deltaTime);
+            _position += _scale * _gravity * (GRAVITY_EARTH * deltaTime) * deltaTime;
         }
 
         updateCollisionWithEnvironment();
@@ -571,11 +576,11 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
         _bodyRollDelta  *= bodySpinMomentum;
         
         const float MAX_STATIC_FRICTION_VELOCITY = 0.5f;
-        const float STATIC_FRICTION_STRENGTH = 20.f;
+        const float STATIC_FRICTION_STRENGTH = _scale * 20.f;
         applyStaticFriction(deltaTime, _velocity, MAX_STATIC_FRICTION_VELOCITY, STATIC_FRICTION_STRENGTH);
         
         const float LINEAR_DAMPING_STRENGTH = 1.0f;
-        const float SPEED_BRAKE_POWER = 10.0f;
+        const float SPEED_BRAKE_POWER = _scale * 10.0f;
         const float SQUARED_DAMPING_STRENGTH = 0.2f;
         if (_speedBrakes) {
             applyDamping(deltaTime, _velocity, LINEAR_DAMPING_STRENGTH * SPEED_BRAKE_POWER, SQUARED_DAMPING_STRENGTH * SPEED_BRAKE_POWER);
@@ -592,7 +597,7 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
                                                                      BODY_ROLL_WHILE_TURNING  * deltaTime * _speed * _bodyYawDelta)));
         
         // these forces keep the body upright...
-        const float BODY_UPRIGHT_FORCE = 10.0;
+        const float BODY_UPRIGHT_FORCE = _scale * 10.0;
         float tiltDecay = BODY_UPRIGHT_FORCE * deltaTime;
         if  (tiltDecay > 1.0f) {tiltDecay = 1.0f;}
         
@@ -662,7 +667,7 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     
     _head.setBodyRotation   (glm::vec3(_bodyPitch, _bodyYaw, _bodyRoll));
     _head.setPosition(_bodyBall[ BODY_BALL_HEAD_BASE ].position);
-    _head.setScale   (_bodyBall[ BODY_BALL_HEAD_BASE ].radius);
+    _head.setScale(_scale);
     _head.setSkinColor(glm::vec3(SKIN_COLOR[0], SKIN_COLOR[1], SKIN_COLOR[2]));
     _head.simulate(deltaTime, isMyAvatar());
     
@@ -748,7 +753,7 @@ void Avatar::updateHandMovementAndTouching(float deltaTime, bool enableHandMovem
                 if (distance < closestDistance) {
                     closestDistance = distance;
                     
-                    if (distance < PERIPERSONAL_RADIUS) {
+                    if (distance < _scale * PERIPERSONAL_RADIUS) {
                         _interactingOther = otherAvatar;
                     }
                 }
@@ -1017,7 +1022,7 @@ void Avatar::render(bool lookingInMirror, bool renderAvatarBalls) {
     }
     
     // render a simple round on the ground projected down from the avatar's position
-    renderDiskShadow(_position, glm::vec3(0.0f, 1.0f, 0.0f), 0.1f, 0.2f);
+    renderDiskShadow(_position, glm::vec3(0.0f, 1.0f, 0.0f), _scale * 0.1f, 0.2f);
     
     // render body
     renderBody(lookingInMirror, renderAvatarBalls);
@@ -1091,7 +1096,7 @@ void Avatar::resetBodyBalls() {
 
 void Avatar::updateBodyBalls(float deltaTime) {
     // Check for a large repositioning, and re-initialize balls if this has happened
-    const float BEYOND_BODY_SPRING_RANGE = 2.f;
+    const float BEYOND_BODY_SPRING_RANGE = _scale * 2.f;
     if (glm::length(_position - _bodyBall[BODY_BALL_PELVIS].position) > BEYOND_BODY_SPRING_RANGE) {
         resetBodyBalls();
     }
@@ -1222,8 +1227,8 @@ glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
 }
 
 float Avatar::getBallRenderAlpha(int ball, bool lookingInMirror) const {
-    const float RENDER_OPAQUE_OUTSIDE = 0.25f; // render opaque if greater than this distance
-    const float DO_NOT_RENDER_INSIDE = 0.25f; // do not render if less than this distance
+    const float RENDER_OPAQUE_OUTSIDE = _scale * 0.25f; // render opaque if greater than this distance
+    const float DO_NOT_RENDER_INSIDE = _scale * 0.25f; // do not render if less than this distance
     float distanceToCamera = glm::length(Application::getInstance()->getCamera()->getPosition() - _bodyBall[ball].position);
     return (lookingInMirror || !isMyAvatar()) ? 1.0f : glm::clamp(
         (distanceToCamera - DO_NOT_RENDER_INSIDE) / (RENDER_OPAQUE_OUTSIDE - DO_NOT_RENDER_INSIDE), 0.f, 1.f);
@@ -1390,3 +1395,47 @@ void Avatar::renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2,
     
     glEnd();
 }
+
+void Avatar::setScale(const float scale) {
+    _scale = scale;
+    _newScale = _scale;
+    
+    _skeleton.setScale(_scale);
+    
+    // specify the new radius of each ball
+    _bodyBall[ BODY_BALL_PELVIS           ].radius = _scale * BODY_BALL_RADIUS_PELVIS;
+    _bodyBall[ BODY_BALL_TORSO            ].radius = _scale * BODY_BALL_RADIUS_TORSO;
+    _bodyBall[ BODY_BALL_CHEST            ].radius = _scale * BODY_BALL_RADIUS_CHEST;
+    _bodyBall[ BODY_BALL_NECK_BASE        ].radius = _scale * BODY_BALL_RADIUS_NECK_BASE;
+    _bodyBall[ BODY_BALL_HEAD_BASE        ].radius = _scale * BODY_BALL_RADIUS_HEAD_BASE;
+    _bodyBall[ BODY_BALL_LEFT_COLLAR      ].radius = _scale * BODY_BALL_RADIUS_LEFT_COLLAR;
+    _bodyBall[ BODY_BALL_LEFT_SHOULDER    ].radius = _scale * BODY_BALL_RADIUS_LEFT_SHOULDER;
+    _bodyBall[ BODY_BALL_LEFT_ELBOW       ].radius = _scale * BODY_BALL_RADIUS_LEFT_ELBOW;
+    _bodyBall[ BODY_BALL_LEFT_WRIST       ].radius = _scale * BODY_BALL_RADIUS_LEFT_WRIST;
+    _bodyBall[ BODY_BALL_LEFT_FINGERTIPS  ].radius = _scale * BODY_BALL_RADIUS_LEFT_FINGERTIPS;
+    _bodyBall[ BODY_BALL_RIGHT_COLLAR     ].radius = _scale * BODY_BALL_RADIUS_RIGHT_COLLAR;
+    _bodyBall[ BODY_BALL_RIGHT_SHOULDER   ].radius = _scale * BODY_BALL_RADIUS_RIGHT_SHOULDER;
+    _bodyBall[ BODY_BALL_RIGHT_ELBOW      ].radius = _scale * BODY_BALL_RADIUS_RIGHT_ELBOW;
+    _bodyBall[ BODY_BALL_RIGHT_WRIST      ].radius = _scale * BODY_BALL_RADIUS_RIGHT_WRIST;
+    _bodyBall[ BODY_BALL_RIGHT_FINGERTIPS ].radius = _scale * BODY_BALL_RADIUS_RIGHT_FINGERTIPS;
+    _bodyBall[ BODY_BALL_LEFT_HIP         ].radius = _scale * BODY_BALL_RADIUS_LEFT_HIP;
+    
+    //_bodyBall[ BODY_BALL_LEFT_MID_THIGH ].radius = _scale * BODY_BALL_RADIUS_LEFT_MID_THIGH;
+    
+    _bodyBall[ BODY_BALL_LEFT_KNEE        ].radius = _scale * BODY_BALL_RADIUS_LEFT_KNEE;
+    _bodyBall[ BODY_BALL_LEFT_HEEL        ].radius = _scale * BODY_BALL_RADIUS_LEFT_HEEL;
+    _bodyBall[ BODY_BALL_LEFT_TOES        ].radius = _scale * BODY_BALL_RADIUS_LEFT_TOES;
+    _bodyBall[ BODY_BALL_RIGHT_HIP        ].radius = _scale * BODY_BALL_RADIUS_RIGHT_HIP;
+    _bodyBall[ BODY_BALL_RIGHT_KNEE       ].radius = _scale * BODY_BALL_RADIUS_RIGHT_KNEE;
+    _bodyBall[ BODY_BALL_RIGHT_HEEL       ].radius = _scale * BODY_BALL_RADIUS_RIGHT_HEEL;
+    _bodyBall[ BODY_BALL_RIGHT_TOES       ].radius = _scale * BODY_BALL_RADIUS_RIGHT_TOES;
+    
+    _height               = _skeleton.getHeight() + _bodyBall[ BODY_BALL_LEFT_HEEL ].radius + _bodyBall[ BODY_BALL_HEAD_BASE ].radius;
+    
+    _maxArmLength         = _skeleton.getArmLength();
+    _pelvisStandingHeight = _skeleton.getPelvisStandingHeight() + _bodyBall[ BODY_BALL_LEFT_HEEL ].radius;
+    _pelvisFloatingHeight = _skeleton.getPelvisFloatingHeight() + _bodyBall[ BODY_BALL_LEFT_HEEL ].radius;
+    _pelvisToHeadLength   = _skeleton.getPelvisToHeadLength();
+    _avatarTouch.setReachableRadius(_scale * PERIPERSONAL_RADIUS);
+}
+
