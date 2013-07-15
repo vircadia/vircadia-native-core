@@ -13,6 +13,22 @@
 #include "AABox.h"
 #include "GeometryUtil.h"
 
+AABox::AABox(const glm::vec3& corner, float size) : _corner(corner), _size(size, size, size), _topFarLeft(_corner + _size)
+{
+};
+
+AABox::AABox(const glm::vec3& corner, float x, float y, float z) : _corner(corner), _size(x, y, z), _topFarLeft(_corner + _size)
+{
+};
+
+AABox::AABox(const glm::vec3& corner, const glm::vec3& size) : _corner(corner), _size(size), _topFarLeft(_corner + _size)
+{
+};
+
+AABox::AABox() : _corner(0,0,0), _size(0,0,0), _topFarLeft(0,0,0)
+{
+};
+
 
 void AABox::scale(float scale) {
     _corner = _corner * scale;
