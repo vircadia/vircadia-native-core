@@ -6,8 +6,9 @@
 //  Copyright (c) 2012 High Fidelity, Inc. All rights reserved.
 //
 
-#include <fstream>
 #include <cstring>
+#include <fstream>
+#include <limits>
 
 #include "PacketHeaders.h"
 #include "SharedUtil.h"
@@ -125,7 +126,7 @@ void AudioInjector::injectAudio(UDPSocket* injectorSocket, sockaddr* destination
             lastRMS /= BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
             lastRMS = sqrtf(lastRMS);
             
-            _lastFrameIntensity = lastRMS / INT16_MAX;
+            _lastFrameIntensity = lastRMS / std::numeric_limits<int16_t>::max();
             
             int usecToSleep = usecTimestamp(&startTime) + (++nextFrame * INJECT_INTERVAL_USECS) - usecTimestampNow();
             if (usecToSleep > 0) {
