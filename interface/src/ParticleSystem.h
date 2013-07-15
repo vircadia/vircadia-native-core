@@ -11,8 +11,8 @@
 
 #include <glm/gtc/quaternion.hpp>
 
-const int MAX_PARTICLES = 10000;
-const int MAX_EMITTERS  = 10;
+const int MAX_PARTICLES = 5000;
+const int MAX_EMITTERS  = 20;
 
 class ParticleSystem {
 public:
@@ -22,13 +22,14 @@ public:
     void emitParticlesNow(int e, int numParticles, float radius, glm::vec4 color, glm::vec3 velocity, float lifespan);
     void simulate(float deltaTime);
     void render();
-    void runSpecialEffectsTest(float deltaTime); // for debugging and artistic exploration
      
     void setOrangeBlueColorPalette(); // apply a nice preset color palette to the particles
-    void setCollisionSphere(glm::vec3 position, float radius);  // specify a sphere for the particles to collide with
+    void setCollisionSphere(int e, glm::vec3 position, float radius);  // specify a sphere for the particles to collide with
     void setEmitterPosition(int e, glm::vec3 position) { _emitter[e].position = position; } // set the position of this emitter
     void setEmitterRotation(int e, glm::quat rotation) { _emitter[e].rotation = rotation; } // set the rotation of this emitter
     void setUpDirection(glm::vec3 upDirection) {_upDirection = upDirection;} // tell particle system which direction is up
+    void setShowingEmitter(int e, bool showing) { _emitter[e].showingEmitter = showing;}
+    
     
 private:
 
@@ -38,6 +39,18 @@ private:
         glm::vec3 right;
         glm::vec3 up;
         glm::vec3 front;
+        float     bounce;
+        float     gravity;
+        float     airFriction;
+        float     jitter;
+        float     emitterAttraction;
+        float     tornadoForce;
+        float     neighborAttraction;
+        float     neighborRepulsion;
+        bool      usingCollisionSphere;
+        glm::vec3 collisionSpherePosition;
+        float     collisionSphereRadius;
+        bool      showingEmitter;
     };  
 
     struct Particle {
@@ -52,27 +65,17 @@ private:
     };  
         
     glm::vec3  _upDirection;
-    float      _bounce;
-    float      _gravity;
     float      _timer;
     Emitter    _emitter[MAX_EMITTERS];
     Particle   _particle[MAX_PARTICLES];
     int        _numParticles;
     int        _numEmitters;
-    float      _airFriction;
-    float      _jitter;
-    float      _emitterAttraction;
-    float      _tornadoForce;
-    float      _neighborAttraction;
-    float      _neighborRepulsion;
-    bool       _usingCollisionSphere;
-    glm::vec3  _collisionSpherePosition;
-    float      _collisionSphereRadius;
     
     // private methods
     void updateEmitter(int e, float deltaTime);
     void updateParticle(int index, float deltaTime);
-    void createParticle(glm::vec3 position, glm::vec3 velocity, float radius, glm::vec4 color, float lifespan);
+    void createParticle(int e, glm::vec3 position, glm::vec3 velocity, float radius, glm::vec4 color, float lifespan);
+    void runSpecialEffectsTest(int e, float deltaTime); // for debugging and artistic exploration
     void killParticle(int p);
     void renderEmitter(int emitterIndex, float size);
     void renderParticle(int p);

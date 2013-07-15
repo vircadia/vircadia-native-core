@@ -279,6 +279,8 @@ private:
     timeval _lastTimeUpdated;
     bool _justStarted;
     bool _particleSystemInitialized;
+    int  _coolDemoParticleEmitter;
+    int  _fingerParticleEmitter;
 
     Stars _stars;
     
