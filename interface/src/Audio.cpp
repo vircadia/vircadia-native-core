@@ -97,7 +97,7 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
         
         if (audioMixer) {
             audioMixer->lock();
-            sockaddr_in audioSocket = *audioMixer->getActiveSocket();
+            sockaddr_in audioSocket = *(sockaddr_in*) audioMixer->getActiveSocket();
             audioMixer->unlock();
             
             glm::vec3 headPosition = interfaceAvatar->getHeadJointPosition();
@@ -126,7 +126,7 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
             
             // copy the audio data to the last BUFFER_LENGTH_BYTES bytes of the data packet
             memcpy(currentPacketPtr, inputLeft, BUFFER_LENGTH_BYTES_PER_CHANNEL);
-            nodeList->getNodeSocket()->send(audioSocket,
+            nodeList->getNodeSocket()->send((sockaddr*) &audioSocket,
                                             dataPacket,
                                             BUFFER_LENGTH_BYTES_PER_CHANNEL + leadingBytes);
 
