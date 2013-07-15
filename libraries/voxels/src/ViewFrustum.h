@@ -90,6 +90,7 @@ public:
     
     glm::vec2 projectPoint(glm::vec3 point, bool& pointInView) const;
     VoxelProjectedPolygon getProjectedPolygon(const AABox& box) const;
+    glm::vec3 getFurthestPointFromCamera(const AABox& box) const;
 
 private:
 
