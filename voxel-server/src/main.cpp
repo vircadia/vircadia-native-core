@@ -60,7 +60,6 @@ bool wantLocalDomain = false;
 bool wantColorRandomizer = false;
 bool debugVoxelSending = false;
 bool shouldShowAnimationDebug = false;
-bool wantSearchForColoredNodes = false;
 
 EnvironmentData environmentData[3];
 
@@ -121,8 +120,6 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
 
     pthread_mutex_lock(&::treeLock);
 
-    int maxLevelReached = 0;
-    uint64_t start = usecTimestampNow();
     int truePacketsSent = 0;
     int trueBytesSent = 0;
 
@@ -133,7 +130,7 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
     // If we're starting a fresh packet, then... 
     //     If we're moving, and the client asked for low res, then we force monochrome, otherwise, use 
     //     the clients requested color state.
-    bool wantColor = ((nodeData->getWantLowResMoving() && viewFrustumChanged) ? false : nodeData->getWantColor());
+    bool wantColor = LOW_RES_MONO && nodeData->getWantLowResMoving() && viewFrustumChanged ? false : nodeData->getWantColor();
 
     // If we have a packet waiting, and our desired want color, doesn't match the current waiting packets color
     // then let's just send that waiting packet.    
@@ -200,38 +197,7 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
             nodeData->map.erase();
         }
 
-        // For now, we're going to disable the "search for colored nodes" because that strategy doesn't work when we support
-        // deletion of nodes. Instead if we just start at the root we get the correct behavior we want. We are keeping this
-        // code for now because we want to be able to go back to it and find a solution to support both. The search method
-        // helps improve overall bitrate performance.
-        if (::wantSearchForColoredNodes) {
-            // If the bag was empty, then send everything in view, not just the delta
-            maxLevelReached = serverTree.searchForColoredNodes(INT_MAX, serverTree.rootNode, nodeData->getCurrentViewFrustum(), 
-                                                               nodeData->nodeBag, wantDelta, lastViewFrustum);
-
-            // if nothing was found in view, send the root node.
-            if (nodeData->nodeBag.isEmpty()){
-                nodeData->nodeBag.insert(serverTree.rootNode);
-            }
-            nodeData->setViewSent(false);
-        } else {
-            nodeData->nodeBag.insert(serverTree.rootNode);
-        }
-    }
-    uint64_t end = usecTimestampNow();
-    int elapsedmsec = (end - start)/1000;
-    if (elapsedmsec > 100) {
-        if (elapsedmsec > 1000) {
-            int elapsedsec = (end - start)/1000000;
-            printf("WARNING! searchForColoredNodes() took %d seconds to identify %d nodes at level %d\n",
-                elapsedsec, nodeData->nodeBag.count(), maxLevelReached);
-        } else {
-            printf("WARNING! searchForColoredNodes() took %d milliseconds to identify %d nodes at level %d\n",
-                elapsedmsec, nodeData->nodeBag.count(), maxLevelReached);
-        }
-    } else if (::debugVoxelSending) {
-        printf("searchForColoredNodes() took %d milliseconds to identify %d nodes at level %d\n",
-                elapsedmsec, nodeData->nodeBag.count(), maxLevelReached);
+        nodeData->nodeBag.insert(serverTree.rootNode);
     }
 
     // If we have something in our nodeBag, then turn them into packets and send them out...
@@ -437,10 +403,6 @@ int main(int argc, const char * argv[]) {
     const char* WANT_COLOR_RANDOMIZER = "--wantColorRandomizer";
     ::wantColorRandomizer = cmdOptionExists(argc, argv, WANT_COLOR_RANDOMIZER);
     printf("wantColorRandomizer=%s\n", debug::valueOf(::wantColorRandomizer));
-
-    const char* WANT_SEARCH_FOR_NODES = "--wantSearchForColoredNodes";
-    ::wantSearchForColoredNodes = cmdOptionExists(argc, argv, WANT_SEARCH_FOR_NODES);
-    printf("wantSearchForColoredNodes=%s\n", debug::valueOf(::wantSearchForColoredNodes));
 
     // By default we will voxel persist, if you want to disable this, then pass in this parameter
     const char* NO_VOXEL_PERSIST = "--NoVoxelPersist";
