@@ -81,7 +81,7 @@ void LeapManager::terminate() {
 }
 
 void LeapManager::nextFrame() {
-    if (_listener && _controller && _controller->devices().count() > 0) {
+    if (controllersExist()) {
         _listener->onFrame(*_controller);
     }
 }

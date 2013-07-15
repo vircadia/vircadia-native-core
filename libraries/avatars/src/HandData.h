@@ -21,7 +21,7 @@ public:
     HandData(AvatarData* owningAvatar);
     
     // These methods return the positions in Leap-relative space.
-    // To vonvert to world coordinates, use Hand::leapPositionToWorldPosition.
+    // To convert to world coordinates, use Hand::leapPositionToWorldPosition.
     const std::vector<glm::vec3>& getFingerTips() const { return _fingerTips; }
     const std::vector<glm::vec3>& getFingerRoots() const { return _fingerRoots; }
     const std::vector<glm::vec3>& getHandPositions() const { return _handPositions; }
