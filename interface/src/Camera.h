@@ -46,6 +46,7 @@ public:
     void setFarClip             ( float       f      );
     void setEyeOffsetPosition   ( const glm::vec3& p );
     void setEyeOffsetOrientation( const glm::quat& o );
+    void setScale               ( const float s      );
     
     const glm::vec3& getTargetPosition       () { return _targetPosition; }
     const glm::vec3& getPosition             () { return _position;    }
@@ -54,10 +55,11 @@ public:
     CameraMode       getMode                 () { return _mode;        }
     float            getFieldOfView          () { return _fieldOfView; }
     float            getAspectRatio          () { return _aspectRatio; }
-    float            getNearClip             () { return _nearClip;    }
-    float            getFarClip              () { return _farClip;     }
+    float            getNearClip             () { return _scale * _nearClip; }
+    float            getFarClip              () { return _scale * _farClip; }
     const glm::vec3& getEyeOffsetPosition    () { return _eyeOffsetPosition;   }
     const glm::quat& getEyeOffsetOrientation () { return _eyeOffsetOrientation; }
+    float            getScale                () { return _scale; }
     
     bool getFrustumNeedsReshape(); // call to find out if the view frustum needs to be reshaped
     void setFrustumWasReshaped();  // call this after reshaping the view frustum.
@@ -90,6 +92,7 @@ private:
     float       _modeShift;
     float       _linearModeShift;
     float       _modeShiftRate;
+    float       _scale;
 
     void updateFollowMode( float deltaTime );
 };

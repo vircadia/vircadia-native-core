@@ -44,7 +44,7 @@ public:
     void render(float alpha);
     void renderMohawk();
 
-    void setScale          (float     scale             ) { _scale              = scale;              }
+    void setScale          (float     scale             );
     void setPosition       (glm::vec3 position          ) { _position           = position;           }
     void setBodyRotation   (glm::vec3 bodyRotation      ) { _bodyRotation       = bodyRotation;       }
     void setGravity        (glm::vec3 gravity           ) { _gravity            = gravity;            }

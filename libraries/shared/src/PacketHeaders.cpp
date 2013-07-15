@@ -13,6 +13,9 @@
 
 PACKET_VERSION versionForPacketType(PACKET_TYPE type) {
     switch (type) {
+        case PACKET_TYPE_HEAD_DATA:
+            return 1;
+            break;
         default:
             return 0;
             break;

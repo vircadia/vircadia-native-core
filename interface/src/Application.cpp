@@ -1182,6 +1182,24 @@ void Application::setRenderThirdPerson(bool thirdPerson) {
     }
 }
 
+void Application::increaseAvatarSize() {
+    if (5.0f < _myAvatar.getScale() + 0.05f) {
+        return;
+    }
+
+    _myAvatar.setScale(_myAvatar.getScale() + 0.05f);
+    _myCamera.setScale(_myAvatar.getScale() + 0.05f);
+}
+
+void Application::decreaseAvatarSize() {
+    if (_myAvatar.getScale() - 0.05f < 0.15f) {
+        return;
+    }
+
+    _myAvatar.setScale(_myAvatar.getScale() - 0.05f);
+    _myCamera.setScale(_myAvatar.getScale() - 0.05f);
+}
+
 void Application::setFrustumOffset(bool frustumOffset) {
     // reshape so that OpenGL will get the right lens details for the camera of choice  
     resizeGL(_glWidget->width(), _glWidget->height());
@@ -1555,7 +1573,7 @@ void Application::initMenu() {
     _renderAvatarsOn->setChecked(true);
     (_renderAvatarBalls = renderMenu->addAction("Avatar as Balls"))->setCheckable(true);
     _renderAvatarBalls->setChecked(false);
-    renderMenu->addAction("Cycle Voxeltar Mode", _myAvatar.getVoxels(), SLOT(cycleMode()));
+    renderMenu->addAction("Cycle Voxel Mode", _myAvatar.getVoxels(), SLOT(cycleMode()));
     (_renderFrameTimerOn = renderMenu->addAction("Show Timer"))->setCheckable(true);
     _renderFrameTimerOn->setChecked(false);
     (_renderLookatOn = renderMenu->addAction("Lookat Vectors"))->setCheckable(true);
@@ -1564,6 +1582,9 @@ void Application::initMenu() {
         "First Person", this, SLOT(setRenderFirstPerson(bool)), Qt::Key_P))->setCheckable(true);
     (_manualThirdPerson = renderMenu->addAction(
         "Third Person", this, SLOT(setRenderThirdPerson(bool))))->setCheckable(true);
+    renderMenu->addAction("Increase Avatar Size", this, SLOT(increaseAvatarSize()), Qt::SHIFT | Qt::Key_Plus);
+    renderMenu->addAction("Decrease Avatar Size", this, SLOT(decreaseAvatarSize()), Qt::SHIFT | Qt::Key_Minus);
+
     
     QMenu* toolsMenu = menuBar->addMenu("Tools");
     (_renderStatsOn = toolsMenu->addAction("Stats"))->setCheckable(true);
