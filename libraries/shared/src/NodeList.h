@@ -65,6 +65,8 @@ public:
     int size() { return _numNodes; }
     int getNumAliveNodes() const;
     
+    void clear();
+    
     void lock() { pthread_mutex_lock(&mutex); }
     void unlock() { pthread_mutex_unlock(&mutex); }
     
