@@ -174,7 +174,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _justStarted(true),
         _particleSystemInitialized(false),     
         _coolDemoParticleEmitter(-1),
-        _fingerParticleEmitter(-1),
         _wantToKillLocalVoxels(false),
         _frustumDrawingMode(FRUSTUM_DRAW_MODE_ALL),
         _viewFrustumOffsetYaw(-135.0),
@@ -210,6 +209,12 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _bytesCount(0),
         _swatch(NULL)
 {
+    
+    // initialize all finger particle emitters with an invalid id as default
+    for (int f = 0; f< NUM_FINGERS_PER_HAND; f ++ ) {
+        _fingerParticleEmitter[f] = -1;
+    }
+
     _applicationStartupTime = startup_time;
     _window->setWindowTitle("Interface");
     printLog("Interface Startup:\n");
@@ -2042,8 +2047,7 @@ void Application::update(float deltaTime) {
             
             // create a stable test emitter and spit out a bunch of particles
             _coolDemoParticleEmitter = _particleSystem.addEmitter();
-            _fingerParticleEmitter   = _particleSystem.addEmitter();
-
+            
             if (_coolDemoParticleEmitter != -1) {
                 _particleSystem.setShowingEmitter(_coolDemoParticleEmitter, true);
                 glm::vec3 particleEmitterPosition = glm::vec3(5.0f, 1.0f, 5.0f);   
@@ -2060,11 +2064,11 @@ void Application::update(float deltaTime) {
                 _particleSystem.emitParticlesNow(_coolDemoParticleEmitter, 1500, radius, color, velocity, lifespan);   
             }
             
-            if (_fingerParticleEmitter != -1) {
-                _particleSystem.setShowingEmitter(_fingerParticleEmitter, false);
+            for ( int f = 0; f< NUM_FINGERS_PER_HAND; f ++ ) {
+                _fingerParticleEmitter[f] = _particleSystem.addEmitter();
+                _particleSystem.setShowingEmitter(_fingerParticleEmitter[f], true);
             }
-            
-            
+                       
             // signal that the particle system has been initialized 
             _particleSystemInitialized = true;         
 
@@ -2073,10 +2077,8 @@ void Application::update(float deltaTime) {
         } else {
             // update the particle system
             
-          
             static float t = 0.0f;
             t += deltaTime;
-            
             
             if (_coolDemoParticleEmitter != -1) {
                            
@@ -2090,40 +2092,35 @@ void Application::update(float deltaTime) {
                 _particleSystem.setEmitterRotation(_coolDemoParticleEmitter, glm::quat(glm::radians(tilt)));
             }
             
-            if (_fingerParticleEmitter != -1) {
-            
-                glm::vec3 particleEmitterPosition = 
-                glm::vec3
-                (
-                    3.0f + sinf(t * 8.0f) * 0.02f, 
-                    1.0f + cosf(t * 9.0f) * 0.02f, 
-                    3.0f + sinf(t * 7.0f) * 0.02f
-                );
-                
-                
-//_myAvatar.getHand().setLeapFingers(LeapManager::getFingerTips(), LeapManager::getFingerRoots());
-//_myAvatar.getHand().setLeapHands(LeapManager::getHandPositions(), LeapManager::getHandNormals());
-                
-                
-                
-                       
-                glm::vec3 tilt = glm::vec3
-                (
-                    30.0f * sinf( t * 0.55f ),
-                    0.0f,
-                    30.0f * cosf( t * 0.75f )
-                );
-                
-                glm::quat particleEmitterRotation = glm::quat(glm::radians(tilt));
+            const std::vector<glm::vec3>& fingerTips    = _myAvatar.getHand().getFingerTips();
+            const std::vector<glm::vec3>& fingerRoots   = _myAvatar.getHand().getFingerRoots();
+            const std::vector<glm::vec3>& handPositions = _myAvatar.getHand().getHandPositions();
+            const std::vector<glm::vec3>& handNormals   = _myAvatar.getHand().getHandNormals();
 
-                _particleSystem.setEmitterPosition(_fingerParticleEmitter, particleEmitterPosition);
-                _particleSystem.setEmitterRotation(_fingerParticleEmitter, particleEmitterRotation);
+            for ( int f = 0; f< fingerTips.size(); f ++ ) {
                 
-                float radius = 0.01f;
-                glm::vec4 color(1.0f, 1.0f, 1.0f, 1.0f);
-                glm::vec3 velocity(0.0f, 0.01f, 0.0f);
-                float lifespan = 0.4f;
-                _particleSystem.emitParticlesNow(_fingerParticleEmitter, 1, radius, color, velocity, lifespan);   
+                if (_fingerParticleEmitter[f] != -1) {
+                        
+                    glm::vec3 particleEmitterPosition = _myAvatar.getHand().leapPositionToWorldPosition(fingerTips[f]);
+                           
+                    glm::vec3 tilt = glm::vec3
+                    (
+                        30.0f * sinf( t * 0.55f ),
+                        0.0f,
+                        30.0f * cosf( t * 0.75f )
+                    );
+                    
+                    glm::quat particleEmitterRotation = glm::quat(glm::radians(tilt));
+
+                    _particleSystem.setEmitterPosition(_fingerParticleEmitter[0], particleEmitterPosition);
+                    _particleSystem.setEmitterRotation(_fingerParticleEmitter[0], particleEmitterRotation);
+                    
+                    float radius = 0.01f;
+                    glm::vec4 color(1.0f, 1.0f, 1.0f, 1.0f);
+                    glm::vec3 velocity(0.0f, 0.01f, 0.0f);
+                    float lifespan = 0.4f;
+                    _particleSystem.emitParticlesNow(_fingerParticleEmitter[0], 1, radius, color, velocity, lifespan); 
+                }  
             }
             
             _particleSystem.setUpDirection(glm::vec3(0.0f, 1.0f, 0.0f));  

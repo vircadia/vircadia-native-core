@@ -13,7 +13,6 @@
 
 const float DEFAULT_PARTICLE_BOUNCE       = 1.0f;
 const float DEFAULT_PARTICLE_AIR_FRICTION = 2.0f;
-const float DEFAULT_PARTICLE_GRAVITY      = 0.05f;
 
 ParticleSystem::ParticleSystem() {
 
@@ -30,7 +29,7 @@ ParticleSystem::ParticleSystem() {
         _emitter[e].front                   = IDENTITY_FRONT;
         _emitter[e].bounce                  = DEFAULT_PARTICLE_BOUNCE;
         _emitter[e].airFriction             = DEFAULT_PARTICLE_AIR_FRICTION;
-        _emitter[e].gravity                 = DEFAULT_PARTICLE_GRAVITY;
+        _emitter[e].gravity                 = 0.0f;
         _emitter[e].jitter                  = 0.0f;
         _emitter[e].emitterAttraction       = 0.0f;
         _emitter[e].tornadoForce            = 0.0f;
@@ -56,11 +55,20 @@ ParticleSystem::ParticleSystem() {
 
 
 int ParticleSystem::addEmitter() {
+
+    printf( "\n" );
+    printf( "ParticleSystem::addEmitter\n" );
+
     _numEmitters ++;
     
     if (_numEmitters > MAX_EMITTERS) {
+
+        printf( "Oops! _numEmitters > MAX_EMITTERS... returning -1\n" );
+
         return -1;
     }
+
+    printf( "ok, _numEmitters is %d,and the index of this newly added emitter is %d.\n", _numEmitters, _numEmitters-1 );
     
     return _numEmitters - 1;
 }
@@ -153,13 +161,13 @@ void ParticleSystem::runSpecialEffectsTest(int e, float deltaTime) {
 
     _timer += deltaTime;
        
-    _emitter[e].gravity            = 0.0f + DEFAULT_PARTICLE_GRAVITY * sinf( _timer * 0.52f );
+    _emitter[e].gravity            = 0.0f                           + 0.05f        * sinf( _timer * 0.52f );
     _emitter[e].airFriction        = (DEFAULT_PARTICLE_AIR_FRICTION + 0.5f) + 2.0f * sinf( _timer * 0.32f );
-    _emitter[e].jitter             = 0.05f                         + 0.05f                    * sinf( _timer * 0.42f );
-    _emitter[e].emitterAttraction  = 0.015f                        + 0.015f                   * cosf( _timer * 0.6f  );
-    _emitter[e].tornadoForce       = 0.0f                          + 0.03f                    * sinf( _timer * 0.7f  );
-    _emitter[e].neighborAttraction = 0.1f                          + 0.1f                     * cosf( _timer * 0.8f  );
-    _emitter[e].neighborRepulsion  = 0.2f                          + 0.2f                     * sinf( _timer * 0.4f  );
+    _emitter[e].jitter             = 0.05f                          + 0.05f        * sinf( _timer * 0.42f );
+    _emitter[e].emitterAttraction  = 0.015f                         + 0.015f       * cosf( _timer * 0.6f  );
+    _emitter[e].tornadoForce       = 0.0f                           + 0.03f        * sinf( _timer * 0.7f  );
+    _emitter[e].neighborAttraction = 0.1f                           + 0.1f         * cosf( _timer * 0.8f  );
+    _emitter[e].neighborRepulsion  = 0.2f                           + 0.2f         * sinf( _timer * 0.4f  );
 
     if (_emitter[e].gravity < 0.0f) {
         _emitter[e].gravity = 0.0f;

@@ -18,6 +18,7 @@
 #include <SharedUtil.h>
 #include <vector>
 
+const int NUM_FINGERS_PER_HAND = 5;
 
 class Avatar;
 class ProgramObject;

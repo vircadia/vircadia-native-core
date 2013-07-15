@@ -285,7 +285,7 @@ private:
     bool _justStarted;
     bool _particleSystemInitialized;
     int  _coolDemoParticleEmitter;
-    int  _fingerParticleEmitter;
+    int  _fingerParticleEmitter[NUM_FINGERS_PER_HAND];
 
     Stars _stars;
     
