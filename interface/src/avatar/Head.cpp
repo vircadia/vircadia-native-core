@@ -593,7 +593,7 @@ void Head::renderEyeBalls() {
         glm::quat rotation = rotationBetween(front, targetLookatVector) * orientation;
         glm::vec3 rotationAxis = glm::axis(rotation);           
         glRotatef(glm::angle(rotation), rotationAxis.x, rotationAxis.y, rotationAxis.z);
-        glTranslatef(0.0f, 0.0f, -IRIS_PROTRUSION);
+        glTranslatef(0.0f, 0.0f, -_scale * IRIS_PROTRUSION);
         glScalef(_scale * IRIS_RADIUS * 2.0f,
                  _scale * IRIS_RADIUS * 2.0f,
                  _scale * IRIS_RADIUS); // flatten the iris
@@ -602,7 +602,7 @@ void Head::renderEyeBalls() {
         _irisProgram->setUniform(_eyePositionLocation, (glm::inverse(rotation) *
             (Application::getInstance()->getCamera()->getPosition() - _leftEyePosition) +
                 glm::vec3(0.0f, 0.0f, _scale * IRIS_PROTRUSION)) * glm::vec3(1.0f / (_scale * IRIS_RADIUS * 2.0f),
-                    1.0f / (_scale * IRIS_RADIUS * 2.0f), 1.0f / _scale * IRIS_RADIUS));
+                    1.0f / (_scale * IRIS_RADIUS * 2.0f), 1.0f / (_scale * IRIS_RADIUS)));
         
         glutSolidSphere(0.5f, 15, 15);
     }
@@ -617,7 +617,7 @@ void Head::renderEyeBalls() {
         glm::quat rotation = rotationBetween(front, targetLookatVector) * orientation;
         glm::vec3 rotationAxis = glm::axis(rotation);        
         glRotatef(glm::angle(rotation), rotationAxis.x, rotationAxis.y, rotationAxis.z);
-        glTranslatef(0.0f, 0.0f, -IRIS_PROTRUSION);
+        glTranslatef(0.0f, 0.0f, -_scale * IRIS_PROTRUSION);
         glScalef(_scale * IRIS_RADIUS * 2.0f,
                  _scale * IRIS_RADIUS * 2.0f,
                  _scale * IRIS_RADIUS); // flatten the iris
@@ -626,7 +626,7 @@ void Head::renderEyeBalls() {
         _irisProgram->setUniform(_eyePositionLocation, (glm::inverse(rotation) *
             (Application::getInstance()->getCamera()->getPosition() - _rightEyePosition) +
                 glm::vec3(0.0f, 0.0f, _scale * IRIS_PROTRUSION)) * glm::vec3(1.0f / (_scale * IRIS_RADIUS * 2.0f),
-                    1.0f / (_scale * IRIS_RADIUS * 2.0f), 1.0f / _scale * IRIS_RADIUS));
+                    1.0f / (_scale * IRIS_RADIUS * 2.0f), 1.0f / (_scale * IRIS_RADIUS)));
         
         glutSolidSphere(0.5f, 15, 15);
     }

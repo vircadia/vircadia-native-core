@@ -8,6 +8,7 @@
 
 #include <glm/gtx/quaternion.hpp>
 
+#include "Avatar.h"
 #include "Head.h"
 #include "Face.h"
 #include "renderer/ProgramObject.h"
@@ -33,8 +34,9 @@ bool Face::render(float alpha) {
     glTranslatef(_owningHead->getPosition().x, _owningHead->getPosition().y, _owningHead->getPosition().z);
     glm::quat orientation = _owningHead->getOrientation();
     glm::vec3 axis = glm::axis(orientation);
-    //glRotatef(glm::angle(orientation), axis.x, axis.y, axis.z);
-    glScalef(_owningHead->getScale(), _owningHead->getScale(), _owningHead->getScale());
+    glRotatef(glm::angle(orientation), axis.x, axis.y, axis.z);
+    float scale = BODY_BALL_RADIUS_HEAD_BASE * _owningHead->getScale();
+    glScalef(scale, scale, scale);
 
     glColor4f(1.0f, 1.0f, 1.0f, alpha);
     
@@ -121,6 +123,9 @@ bool Face::render(float alpha) {
         glEnableClientState(GL_VERTEX_ARRAY);
         glVertexPointer(2, GL_FLOAT, 0, 0);
         
+        glEnable(GL_ALPHA_TEST);
+        glAlphaFunc(GL_EQUAL, 1.0f);
+        
         if (_renderMode == POINTS) {
             glPointSize(3.0f);
             glDrawArrays(GL_POINTS, 0, VERTEX_COUNT);
@@ -130,6 +135,8 @@ bool Face::render(float alpha) {
             glDrawRangeElementsEXT(GL_TRIANGLES, 0, VERTEX_COUNT - 1, INDEX_COUNT, GL_UNSIGNED_INT, 0);
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
         }
+        
+        glDisable(GL_ALPHA_TEST);
         
         glDisableClientState(GL_VERTEX_ARRAY);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -144,13 +151,13 @@ bool Face::render(float alpha) {
         
         glBegin(GL_QUADS);
         glTexCoord2f(points[0].x / _textureSize.width, points[0].y / _textureSize.height);
-        glVertex3f(0.5f, 0, 0);    
+        glVertex3f(0.5f, -aspect * 0.5f, -0.5f);    
         glTexCoord2f(points[1].x / _textureSize.width, points[1].y / _textureSize.height);
-        glVertex3f(0.5f, aspect, 0);
+        glVertex3f(0.5f, aspect * 0.5f, -0.5f);
         glTexCoord2f(points[2].x / _textureSize.width, points[2].y / _textureSize.height);
-        glVertex3f(-0.5f, aspect, 0);
+        glVertex3f(-0.5f, aspect * 0.5f, -0.5f);
         glTexCoord2f(points[3].x / _textureSize.width, points[3].y / _textureSize.height);
-        glVertex3f(-0.5f, 0, 0);
+        glVertex3f(-0.5f, -aspect * 0.5f, -0.5f);
         glEnd();
         
         glDisable(GL_TEXTURE_2D);

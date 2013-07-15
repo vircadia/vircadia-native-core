@@ -23,9 +23,10 @@ uniform sampler2D depthTexture;
 void main(void) {
     gl_TexCoord[0] = vec4(texCoordCorner + gl_Vertex.x * texCoordRight + gl_Vertex.y * texCoordUp, 0.0, 1.0);
     float depth = texture2D(depthTexture, gl_TexCoord[0].st).r;
+    
     const float MIN_VISIBLE_DEPTH = 1.0 / 255.0;
     const float MAX_VISIBLE_DEPTH = 254.0 / 255.0;
     gl_FrontColor = vec4(1.0, 1.0, 1.0, step(MIN_VISIBLE_DEPTH, depth) * (1.0 - step(MAX_VISIBLE_DEPTH, depth)));
     gl_Position = gl_ModelViewProjectionMatrix * vec4(0.5 - gl_Vertex.x,
-        gl_Vertex.y * length(texCoordUp) / length(texCoordRight), depth * -2.0 + 1.0, 1.0);
+        (gl_Vertex.y - 0.5) * length(texCoordUp) / length(texCoordRight), depth * 2.0 - 2.0, 1.0);
 }

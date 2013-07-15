@@ -1574,6 +1574,7 @@ void Application::initMenu() {
     (_renderAvatarBalls = renderMenu->addAction("Avatar as Balls"))->setCheckable(true);
     _renderAvatarBalls->setChecked(false);
     renderMenu->addAction("Cycle Voxel Mode", _myAvatar.getVoxels(), SLOT(cycleMode()));
+    renderMenu->addAction("Cycle Face Mode", &_myAvatar.getHead().getFace(), SLOT(cycleRenderMode()));
     (_renderFrameTimerOn = renderMenu->addAction("Show Timer"))->setCheckable(true);
     _renderFrameTimerOn->setChecked(false);
     (_renderLookatOn = renderMenu->addAction("Lookat Vectors"))->setCheckable(true);
