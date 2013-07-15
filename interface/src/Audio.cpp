@@ -96,6 +96,10 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
         Node* audioMixer = nodeList->soloNodeOfType(NODE_TYPE_AUDIO_MIXER);
         
         if (audioMixer) {
+            audioMixer->lock();
+            sockaddr_in audioSocket = *audioMixer->getActiveSocket();
+            audioMixer->unlock();
+            
             glm::vec3 headPosition = interfaceAvatar->getHeadJointPosition();
             glm::quat headOrientation = interfaceAvatar->getHead().getOrientation();
             
@@ -122,12 +126,13 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
             
             // copy the audio data to the last BUFFER_LENGTH_BYTES bytes of the data packet
             memcpy(currentPacketPtr, inputLeft, BUFFER_LENGTH_BYTES_PER_CHANNEL);
-            nodeList->getNodeSocket()->send(audioMixer->getActiveSocket(),
-                                              dataPacket,
-                                              BUFFER_LENGTH_BYTES_PER_CHANNEL + leadingBytes);
+            nodeList->getNodeSocket()->send(audioSocket,
+                                            dataPacket,
+                                            BUFFER_LENGTH_BYTES_PER_CHANNEL + leadingBytes);
 
             interface->getBandwidthMeter()->outputStream(BandwidthMeter::AUDIO).updateValue(BUFFER_LENGTH_BYTES_PER_CHANNEL
                                                                                             + leadingBytes);
+            
         }
         
     }
