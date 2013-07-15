@@ -144,17 +144,132 @@ Webcam::~Webcam() {
     // stop the grabber thread
     _grabberThread.quit();
     _grabberThread.wait();
-
+    
     delete _grabber;
 }
 
 void Webcam::setFrame(const Mat& frame, int format, const Mat& depth, const RotatedRect& faceRect, const JointVector& joints) {
+    IplImage image = frame;
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, image.widthStep / 3);
+    if (_frameTextureID == 0) {
+        glGenTextures(1, &_frameTextureID);
+        glBindTexture(GL_TEXTURE_2D, _frameTextureID);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, _frameWidth = image.width, _frameHeight = image.height, 0, format,
+            GL_UNSIGNED_BYTE, image.imageData);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        printLog("Capturing video at %dx%d.\n", _frameWidth, _frameHeight);
+    
+    } else {
+        glBindTexture(GL_TEXTURE_2D, _frameTextureID);
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, _frameWidth, _frameHeight, format, GL_UNSIGNED_BYTE, image.imageData);
+    }
+    
+    if (!depth.empty()) {
+        IplImage depthImage = depth;
+        glPixelStorei(GL_UNPACK_ROW_LENGTH, depthImage.widthStep);
+        if (_depthTextureID == 0) {
+            glGenTextures(1, &_depthTextureID);
+            glBindTexture(GL_TEXTURE_2D, _depthTextureID);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, _depthWidth = depthImage.width, _depthHeight = depthImage.height, 0,
+                GL_LUMINANCE, GL_UNSIGNED_BYTE, depthImage.imageData);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            printLog("Capturing depth at %dx%d.\n", _depthWidth, _depthHeight);
+            
+        } else {
+            glBindTexture(GL_TEXTURE_2D, _depthTextureID);
+            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, _depthWidth, _depthHeight, GL_LUMINANCE,
+                GL_UNSIGNED_BYTE, depthImage.imageData);        
+        }
+    }
+    glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    
+    // store our face rect and joints, update our frame count for fps computation
+    _faceRect = faceRect;
+    _joints = joints;
+    _frameCount++;
+    
+    const int MAX_FPS = 60;
+    const int MIN_FRAME_DELAY = 1000000 / MAX_FPS;
+    uint64_t now = usecTimestampNow();
+    int remaining = MIN_FRAME_DELAY;
+    if (_startTimestamp == 0) {
+        _startTimestamp = now;
+    } else {
+        remaining -= (now - _lastFrameTimestamp);
+    }
+    _lastFrameTimestamp = now;
+    
+    // see if we have joint data
+    if (!_joints.isEmpty()) {
+        _estimatedJoints.resize(NUM_AVATAR_JOINTS);
+        glm::vec3 origin;
+        if (_joints[AVATAR_JOINT_LEFT_HIP].isValid && _joints[AVATAR_JOINT_RIGHT_HIP].isValid) {
+            origin = glm::mix(_joints[AVATAR_JOINT_LEFT_HIP].position, _joints[AVATAR_JOINT_RIGHT_HIP].position, 0.5f);
+        
+        } else if (_joints[AVATAR_JOINT_TORSO].isValid) {
+            const glm::vec3 TORSO_TO_PELVIS = glm::vec3(0.0f, -0.09f, -0.01f);
+            origin = _joints[AVATAR_JOINT_TORSO].position + TORSO_TO_PELVIS;
+        }
+        for (int i = 0; i < NUM_AVATAR_JOINTS; i++) {
+            if (!_joints[i].isValid) {
+                continue;
+            }
+            const float JOINT_SMOOTHING = 0.5f;
+            _estimatedJoints[i].isValid = true;
+            _estimatedJoints[i].position = glm::mix(_joints[i].position - origin,
+                _estimatedJoints[i].position, JOINT_SMOOTHING);
+            _estimatedJoints[i].rotation = safeMix(_joints[i].rotation,
+                _estimatedJoints[i].rotation, JOINT_SMOOTHING);
+        }
+        _estimatedRotation = safeEulerAngles(_estimatedJoints[AVATAR_JOINT_HEAD_BASE].rotation);
+        _estimatedPosition = _estimatedJoints[AVATAR_JOINT_HEAD_BASE].position;
+        
+    } else {
+        // roll is just the angle of the face rect (correcting for 180 degree rotations)
+        float roll = faceRect.angle;
+        if (roll < -90.0f) {
+            roll += 180.0f;
+            
+        } else if (roll > 90.0f) {
+            roll -= 180.0f;
+        }
+        const float ROTATION_SMOOTHING = 0.95f;
+        _estimatedRotation.z = glm::mix(roll, _estimatedRotation.z, ROTATION_SMOOTHING);
+        
+        // determine position based on translation and scaling of the face rect
+        if (_initialFaceRect.size.area() == 0) {
+            _initialFaceRect = faceRect;
+            _estimatedPosition = glm::vec3();
+        
+        } else {
+            float proportion = sqrtf(_initialFaceRect.size.area() / (float)faceRect.size.area());
+            const float DISTANCE_TO_CAMERA = 0.333f;
+            const float POSITION_SCALE = 0.5f;
+            float z = DISTANCE_TO_CAMERA * proportion - DISTANCE_TO_CAMERA;
+            glm::vec3 position = glm::vec3(
+                (faceRect.center.x - _initialFaceRect.center.x) * proportion * POSITION_SCALE / _frameWidth,
+                (faceRect.center.y - _initialFaceRect.center.y) * proportion * POSITION_SCALE / _frameWidth,
+                z);
+            const float POSITION_SMOOTHING = 0.95f;
+            _estimatedPosition = glm::mix(position, _estimatedPosition, POSITION_SMOOTHING);
+        }
+    }
+    
+    // note that we have data
+    _active = true;
+    
+    // let the grabber know we're ready for the next frame
+    QTimer::singleShot(qMax((int)remaining / 1000, 0), _grabber, SLOT(grabFrame()));
 }
 
 FrameGrabber::FrameGrabber() : _initialized(false), _capture(0), _searchWindow(0, 0, 0, 0) {
 }
 
 FrameGrabber::~FrameGrabber() {
+    if (_initialized) {
+        shutdown();
+    }
 }
 
 #ifdef HAVE_OPENNI
@@ -242,18 +357,188 @@ static void XN_CALLBACK_TYPE calibrationCompleted(SkeletonCapability& capability
 #endif
 
 void FrameGrabber::reset() {
+    _searchWindow = cv::Rect(0, 0, 0, 0);
+
+#ifdef HAVE_OPENNI
+    if (_userGenerator.IsValid() && _userGenerator.GetSkeletonCap().IsTracking(_userID)) {
+        _userGenerator.GetSkeletonCap().RequestCalibration(_userID, true);
+    }
+#endif
 }
 
 void FrameGrabber::shutdown() {
+    if (_capture != 0) {
+        cvReleaseCapture(&_capture);
+        _capture = 0;
+    }
+    _initialized = false;
+    
+    thread()->quit();
 }
 
 void FrameGrabber::grabFrame() {
+    if (!(_initialized || init())) {
+        return;
+    }
+    int format = GL_BGR;
+    Mat frame;
+    JointVector joints;
+    
+#ifdef HAVE_OPENNI
+    if (_depthGenerator.IsValid()) {
+        _xnContext.WaitAnyUpdateAll();
+        frame = Mat(_imageMetaData.YRes(), _imageMetaData.XRes(), CV_8UC3, (void*)_imageGenerator.GetImageMap());
+        format = GL_RGB;
+        
+        Mat depth = Mat(_depthMetaData.YRes(), _depthMetaData.XRes(), CV_16UC1, (void*)_depthGenerator.GetDepthMap());
+        const double EIGHT_BIT_MAX = 255;
+        const double ELEVEN_BIT_MAX = 2047;
+        depth.convertTo(_grayDepthFrame, CV_8UC1, EIGHT_BIT_MAX / ELEVEN_BIT_MAX);
+        
+        _userID = 0;
+        XnUInt16 userCount = 1; 
+        _userGenerator.GetUsers(&_userID, userCount);
+        if (userCount > 0 && _userGenerator.GetSkeletonCap().IsTracking(_userID)) {
+            joints.resize(NUM_AVATAR_JOINTS);
+            const int MAX_ACTIVE_JOINTS = 16;
+            XnSkeletonJoint activeJoints[MAX_ACTIVE_JOINTS];
+            XnUInt16 activeJointCount = MAX_ACTIVE_JOINTS;
+            _userGenerator.GetSkeletonCap().EnumerateActiveJoints(activeJoints, activeJointCount);
+            XnSkeletonJointTransformation transform;
+            for (int i = 0; i < activeJointCount; i++) {
+                AvatarJointID avatarJoint = xnToAvatarJoint(activeJoints[i]);
+                if (avatarJoint == AVATAR_JOINT_NULL) {
+                    continue;
+                }
+                _userGenerator.GetSkeletonCap().GetSkeletonJoint(_userID, activeJoints[i], transform);
+                XnVector3D projected;
+                _depthGenerator.ConvertRealWorldToProjective(1, &transform.position.position, &projected);
+                glm::quat rotation = xnToGLM(transform.orientation.orientation);
+                int parentJoint = getParentJoint(activeJoints[i]);
+                if (parentJoint != -1) {
+                    XnSkeletonJointOrientation parentOrientation;
+                    _userGenerator.GetSkeletonCap().GetSkeletonJointOrientation(
+                        _userID, (XnSkeletonJoint)parentJoint, parentOrientation);
+                    rotation = glm::inverse(xnToGLM(parentOrientation.orientation)) * rotation;
+                }
+                const float METERS_PER_MM = 1.0f / 1000.0f;
+                joints[avatarJoint] = Joint(xnToGLM(transform.position.position, true) * METERS_PER_MM,
+                    rotation, xnToGLM(projected));
+            }
+        }
+    }
+#endif
+
+    if (frame.empty()) {
+        IplImage* image = cvQueryFrame(_capture);
+        if (image == 0) {
+            // try again later
+            QMetaObject::invokeMethod(this, "grabFrame", Qt::QueuedConnection);
+            return;
+        }
+        // make sure it's in the format we expect
+        if (image->nChannels != 3 || image->depth != IPL_DEPTH_8U || image->dataOrder != IPL_DATA_ORDER_PIXEL ||
+                image->origin != 0) {
+            printLog("Invalid webcam image format.\n");
+            return;
+        }
+        frame = image;
+    }
+    
+    // if we don't have a search window (yet), try using the face cascade
+    int channels = 0;
+    float ranges[] = { 0, 180 };
+    const float* range = ranges;
+    if (_searchWindow.area() == 0) {
+        vector<cv::Rect> faces;
+        _faceCascade.detectMultiScale(frame, faces, 1.1, 6);
+        if (!faces.empty()) {
+            _searchWindow = faces.front();
+            updateHSVFrame(frame, format);
+        
+            Mat faceHsv(_hsvFrame, _searchWindow);
+            Mat faceMask(_mask, _searchWindow);
+            int sizes = 30;
+            calcHist(&faceHsv, 1, &channels, faceMask, _histogram, 1, &sizes, &range);
+            double min, max;
+            minMaxLoc(_histogram, &min, &max);
+            _histogram.convertTo(_histogram, -1, (max == 0.0) ? 0.0 : 255.0 / max);
+        }
+    }
+    RotatedRect faceRect;
+    if (_searchWindow.area() > 0) {
+        updateHSVFrame(frame, format);
+        
+        calcBackProject(&_hsvFrame, 1, &channels, _histogram, _backProject, &range);
+        bitwise_and(_backProject, _mask, _backProject);
+        
+        faceRect = CamShift(_backProject, _searchWindow, TermCriteria(CV_TERMCRIT_EPS | CV_TERMCRIT_ITER, 10, 1));
+        _searchWindow = faceRect.boundingRect();
+    }   
+    QMetaObject::invokeMethod(Application::getInstance()->getWebcam(), "setFrame",
+        Q_ARG(cv::Mat, frame), Q_ARG(int, format), Q_ARG(cv::Mat, _grayDepthFrame),
+        Q_ARG(cv::RotatedRect, faceRect), Q_ARG(JointVector, joints));
 }
 
 bool FrameGrabber::init() {
+    _initialized = true;
+
+    // load our face cascade
+    switchToResourcesParentIfRequired();
+    if (_faceCascade.empty() && !_faceCascade.load("resources/haarcascades/haarcascade_frontalface_alt.xml")) {
+        printLog("Failed to load Haar cascade for face tracking.\n");
+        return false;
+    }
+
+    // first try for a Kinect
+#ifdef HAVE_OPENNI
+    _xnContext.Init();
+    if (_depthGenerator.Create(_xnContext) == XN_STATUS_OK && _imageGenerator.Create(_xnContext) == XN_STATUS_OK &&
+            _userGenerator.Create(_xnContext) == XN_STATUS_OK &&
+                _userGenerator.IsCapabilitySupported(XN_CAPABILITY_SKELETON)) {
+        _depthGenerator.GetMetaData(_depthMetaData);
+        _imageGenerator.SetPixelFormat(XN_PIXEL_FORMAT_RGB24);
+        _imageGenerator.GetMetaData(_imageMetaData);
+        
+        XnCallbackHandle userCallbacks, calibrationStartCallback, calibrationCompleteCallback;
+        _userGenerator.RegisterUserCallbacks(newUser, lostUser, 0, userCallbacks);
+        _userGenerator.GetSkeletonCap().RegisterToCalibrationStart(calibrationStarted, 0, calibrationStartCallback);
+        _userGenerator.GetSkeletonCap().RegisterToCalibrationComplete(calibrationCompleted, 0, calibrationCompleteCallback);
+        
+        _userGenerator.GetSkeletonCap().SetSkeletonProfile(XN_SKEL_PROFILE_UPPER);
+        
+        _xnContext.StartGeneratingAll();
+        return true;
+    }
+#endif
+
+    // next, an ordinary webcam
+    if ((_capture = cvCaptureFromCAM(-1)) == 0) {
+        printLog("Failed to open webcam.\n");
+        return false;
+    }
+    const int IDEAL_FRAME_WIDTH = 320;
+    const int IDEAL_FRAME_HEIGHT = 240;
+    cvSetCaptureProperty(_capture, CV_CAP_PROP_FRAME_WIDTH, IDEAL_FRAME_WIDTH);
+    cvSetCaptureProperty(_capture, CV_CAP_PROP_FRAME_HEIGHT, IDEAL_FRAME_HEIGHT);
+    
+#ifdef __APPLE__
+    configureCamera(0x5ac, 0x8510, false, 0.975, 0.5, 1.0, 0.5, true, 0.5);
+#else
+    cvSetCaptureProperty(_capture, CV_CAP_PROP_EXPOSURE, 0.5);
+    cvSetCaptureProperty(_capture, CV_CAP_PROP_CONTRAST, 0.5);
+    cvSetCaptureProperty(_capture, CV_CAP_PROP_SATURATION, 0.5);
+    cvSetCaptureProperty(_capture, CV_CAP_PROP_BRIGHTNESS, 0.5);
+    cvSetCaptureProperty(_capture, CV_CAP_PROP_HUE, 0.5);
+    cvSetCaptureProperty(_capture, CV_CAP_PROP_GAIN, 0.5);
+#endif
+
+    return true;
 }
 
 void FrameGrabber::updateHSVFrame(const Mat& frame, int format) {
+    cvtColor(frame, _hsvFrame, format == GL_RGB ? CV_RGB2HSV : CV_BGR2HSV);
+    inRange(_hsvFrame, Scalar(0, 55, 65), Scalar(180, 256, 256), _mask);
 }
 
 Joint::Joint(const glm::vec3& position, const glm::quat& rotation, const glm::vec3& projected) :
