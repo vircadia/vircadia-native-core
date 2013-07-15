@@ -12,8 +12,13 @@
 #include <sstream>
 
 bool LeapManager::_libraryExists = false;
+bool LeapManager::_doFakeFingers = false;
 Leap::Controller* LeapManager::_controller = NULL;
 HifiLeapListener* LeapManager::_listener = NULL;
+
+namespace {
+glm::vec3 fakeHandOffset(0.0f, 50.0f, 50.0f);
+}   // end anonymous namespace
 
 class HifiLeapListener  : public Leap::Listener {
 public:
@@ -76,47 +81,87 @@ void LeapManager::terminate() {
 }
 
 void LeapManager::nextFrame() {
-    if (_listener && _controller)
+    if (controllersExist()) {
         _listener->onFrame(*_controller);
+    }
+}
+
+void LeapManager::enableFakeFingers(bool enable) {
+    _doFakeFingers = enable;
+}
+
+bool LeapManager::controllersExist() {
+    return _listener && _controller && _controller->devices().count() > 0;
 }
 
 const std::vector<glm::vec3>& LeapManager::getFingerTips() {
-    if (_listener) {
+    if (controllersExist()) {
         return _listener->fingerTips;
     }
     else {
-        static std::vector<glm::vec3> empty;
-        return empty;
+        static std::vector<glm::vec3> stubData;
+        stubData.clear();
+        if (_doFakeFingers) {
+            // Simulated data
+            float scale = 1.5f;
+            stubData.push_back(glm::vec3( -60.0f, 0.0f, -40.0f) * scale + fakeHandOffset);
+            stubData.push_back(glm::vec3( -20.0f, 0.0f, -60.0f) * scale + fakeHandOffset);
+            stubData.push_back(glm::vec3(  20.0f, 0.0f, -60.0f) * scale + fakeHandOffset);
+            stubData.push_back(glm::vec3(  60.0f, 0.0f, -40.0f) * scale + fakeHandOffset);
+            stubData.push_back(glm::vec3( -50.0f, 0.0f,  30.0f) * scale + fakeHandOffset);
+        }
+        return stubData;
     }
 }
 
 const std::vector<glm::vec3>& LeapManager::getFingerRoots() {
-    if (_listener) {
+    if (controllersExist()) {
         return _listener->fingerRoots;
     }
     else {
-        static std::vector<glm::vec3> empty;
-        return empty;
+        static std::vector<glm::vec3> stubData;
+        stubData.clear();
+        if (_doFakeFingers) {
+            // Simulated data
+            float scale = 0.75f;
+            stubData.push_back(glm::vec3( -60.0f, 0.0f, -40.0f) * scale + fakeHandOffset);
+            stubData.push_back(glm::vec3( -20.0f, 0.0f, -60.0f) * scale + fakeHandOffset);
+            stubData.push_back(glm::vec3(  20.0f, 0.0f, -60.0f) * scale + fakeHandOffset);
+            stubData.push_back(glm::vec3(  60.0f, 0.0f, -40.0f) * scale + fakeHandOffset);
+            stubData.push_back(glm::vec3( -50.0f, 0.0f,  30.0f) * scale + fakeHandOffset);
+        }
+        return stubData;
     }
 }
 
 const std::vector<glm::vec3>& LeapManager::getHandPositions() {
-    if (_listener) {
+    if (controllersExist()) {
         return _listener->handPositions;
     }
     else {
-        static std::vector<glm::vec3> empty;
-        return empty;
+        static std::vector<glm::vec3> stubData;
+        stubData.clear();
+        if (_doFakeFingers) {
+            // Simulated data
+            glm::vec3 handOffset(0.0f, 50.0f, 50.0f);
+            stubData.push_back(glm::vec3( 0.0f, 0.0f, 0.0f) + fakeHandOffset);
+        }
+        return stubData;
     }
 }
 
 const std::vector<glm::vec3>& LeapManager::getHandNormals() {
-    if (_listener) {
+    if (controllersExist()) {
         return _listener->handNormals;
     }
     else {
-        static std::vector<glm::vec3> empty;
-        return empty;
+        static std::vector<glm::vec3> stubData;
+        stubData.clear();
+        if (_doFakeFingers) {
+            // Simulated data
+            stubData.push_back(glm::vec3(0.0f, 1.0f, 0.0f));
+        }
+        return stubData;
     }
 }
 
