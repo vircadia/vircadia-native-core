@@ -1244,6 +1244,12 @@ void Application::setRenderWarnings(bool renderWarnings) {
     _voxels.setRenderPipelineWarnings(renderWarnings);
 }
 
+void Application::setRenderVoxels(bool voxelRender) {
+    if (voxelRender) {
+        doKillLocalVoxels();
+    }
+}
+
 void Application::doKillLocalVoxels() {
     _wantToKillLocalVoxels = true;
 }
@@ -1554,9 +1560,8 @@ void Application::initMenu() {
     optionsMenu->addAction("Go Home", this, SLOT(goHome()));
     
     QMenu* renderMenu = menuBar->addMenu("Render");
-    (_renderVoxels = renderMenu->addAction("Voxels"))->setCheckable(true);
+    (_renderVoxels = renderMenu->addAction("Voxels", this, SLOT(setRenderVoxels(bool)), Qt::SHIFT | Qt::Key_V))->setCheckable(true);
     _renderVoxels->setChecked(true);
-    _renderVoxels->setShortcut(Qt::SHIFT | Qt::Key_V);
     (_renderVoxelTextures = renderMenu->addAction("Voxel Textures"))->setCheckable(true);
     (_renderStarsOn = renderMenu->addAction("Stars"))->setCheckable(true);
     _renderStarsOn->setChecked(true);
