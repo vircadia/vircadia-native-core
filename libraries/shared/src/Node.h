@@ -66,8 +66,8 @@ public:
     int getPingMs() const { return _pingMs; };
     void setPingMs(int pingMs) { _pingMs = pingMs; };
     
-    void lock() { pthread_mutex_lock(&mutex); }
-    void unlock() { pthread_mutex_unlock(&mutex); }
+    void lock() { pthread_mutex_lock(&_mutex); }
+    void unlock() { pthread_mutex_unlock(&_mutex); }
 
     static void printLog(Node const&);
 private:
