@@ -24,6 +24,7 @@ AvatarData::AvatarData(Node* owningNode) :
     _bodyYaw(-90.0),
     _bodyPitch(0.0),
     _bodyRoll(0.0),
+    _newScale(1.0f),
     _handState(0),
     _cameraPosition(0,0,0),
     _cameraOrientation(),
@@ -71,6 +72,7 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _bodyYaw);
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _bodyPitch);
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _bodyRoll);
+    destinationBuffer += packFloatRatioToTwoByte(destinationBuffer, _newScale);
     
     // Head rotation (NOTE: This needs to become a quaternion to save two bytes)
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->_yaw);
@@ -197,7 +199,8 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &_bodyYaw);
     sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &_bodyPitch);
     sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &_bodyRoll);
-    
+    sourceBuffer += unpackFloatRatioFromTwoByte(            sourceBuffer,  _newScale);
+
     // Head rotation (NOTE: This needs to become a quaternion to save two bytes)
     float headYaw, headPitch, headRoll;
     sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &headYaw);
