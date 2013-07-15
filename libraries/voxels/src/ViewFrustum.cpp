@@ -530,16 +530,14 @@ const int hullVertexLookup[MAX_POSSIBLE_COMBINATIONS][MAX_PROJECTED_POLYGON_VERT
 };
 
 VoxelProjectedPolygon ViewFrustum::getProjectedPolygon(const AABox& box) const {
-    glm::vec3 bottomNearRight = box.getCorner();
-    glm::vec3 topFarLeft      = box.getCorner() + box.getSize();
+    const glm::vec3& bottomNearRight = box.getCorner();
+    const glm::vec3& topFarLeft      = box.getTopFarLeft();
     int lookUp = ((_position.x < bottomNearRight.x)     )   //  1 = right      |   compute 6-bit
                + ((_position.x > topFarLeft.x     ) << 1)   //  2 = left       |         code to
                + ((_position.y < bottomNearRight.y) << 2)   //  4 = bottom     | classify camera
                + ((_position.y > topFarLeft.y     ) << 3)   //  8 = top        | with respect to
                + ((_position.z < bottomNearRight.z) << 4)   // 16 = front/near |  the 6 defining
                + ((_position.z > topFarLeft.z     ) << 5);  // 32 = back/far   |          planes
-
-    //printLog(">>>>>>>>> ViewFrustum::getProjectedPolygon() lookup=%d\n",lookUp);
 
     int vertexCount = hullVertexLookup[lookUp][0];  //look up number of vertices
     
@@ -592,4 +590,41 @@ VoxelProjectedPolygon ViewFrustum::getProjectedPolygon(const AABox& box) const {
     projectedPolygon.setAllInView(allPointsInView);
     projectedPolygon.setProjectionType(lookUp); // remember the projection type
     return projectedPolygon;
+}
+
+
+// Similar strategy to getProjectedPolygon() we use the knowledge of camera position relative to the
+// axis-aligned voxels to determine which of the voxels vertices must be the furthest. No need for
+// squares and square-roots. Just compares.
+glm::vec3 ViewFrustum::getFurthestPointFromCamera(const AABox& box) const {
+    const glm::vec3& center          = box.getCenter();
+    const glm::vec3& bottomNearRight = box.getCorner();
+    const glm::vec3& topFarLeft      = box.getTopFarLeft();
+
+    glm::vec3 furthestPoint;
+    if (_position.x < center.x) {
+        // we are to the right of the center, so the left edge is furthest
+        furthestPoint.x = topFarLeft.x; 
+    } else {
+        // we are to the left of the center, so the right edge is furthest (at center ok too)
+        furthestPoint.x = bottomNearRight.x; 
+    }
+
+    if (_position.y < center.y) {
+        // we are below of the center, so the top edge is furthest
+        furthestPoint.y = topFarLeft.y; 
+    } else {
+        // we are above the center, so the lower edge is furthest (at center ok too)
+        furthestPoint.y = bottomNearRight.y; 
+    }
+
+    if (_position.z < center.z) {
+        // we are to the near side of the center, so the far side edge is furthest
+        furthestPoint.z = topFarLeft.z; 
+    } else {
+        // we are to the far side of the center, so the near side edge is furthest (at center ok too)
+        furthestPoint.z = bottomNearRight.z; 
+    }
+
+    return furthestPoint;
 }

@@ -318,6 +318,7 @@ Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples) :
     _totalPacketsReceived(0),
     _firstPacketReceivedTime(),
     _packetsReceivedThisPlayback(0),
+    _echoSamplesLeft(NULL),
     _isSendingEchoPing(false),
     _pingAnalysisPending(false),
     _pingFramesToRecord(0),

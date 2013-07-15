@@ -1182,6 +1182,24 @@ void Application::setRenderThirdPerson(bool thirdPerson) {
     }
 }
 
+void Application::increaseAvatarSize() {
+    if (5.0f < _myAvatar.getScale() + 0.05f) {
+        return;
+    }
+
+    _myAvatar.setScale(_myAvatar.getScale() + 0.05f);
+    _myCamera.setScale(_myAvatar.getScale() + 0.05f);
+}
+
+void Application::decreaseAvatarSize() {
+    if (_myAvatar.getScale() - 0.05f < 0.15f) {
+        return;
+    }
+
+    _myAvatar.setScale(_myAvatar.getScale() - 0.05f);
+    _myCamera.setScale(_myAvatar.getScale() - 0.05f);
+}
+
 void Application::setFrustumOffset(bool frustumOffset) {
     // reshape so that OpenGL will get the right lens details for the camera of choice  
     resizeGL(_glWidget->width(), _glWidget->height());
@@ -1392,10 +1410,9 @@ void Application::importVoxels() {
                 _glWidget, tr("Import Voxels"), desktopLocation,
                 tr("Sparse Voxel Octree Files, Square PNG, Schematic Files (*.svo *.png *.schematic)"));
 
-    QByteArray fileNameAscii = fileNameString.toAscii();
-    const char* fileName = fileNameAscii.data();
-    
-    VoxelTree importVoxels;
+    const char* fileName = fileNameString.toAscii().data();
+
+    _clipboardTree.eraseAllVoxels();
     if (fileNameString.endsWith(".png", Qt::CaseInsensitive)) {
         QImage pngImage = QImage(fileName);
         if (pngImage.height() != pngImage.width()) {
@@ -1411,43 +1428,11 @@ void Application::importVoxels() {
             pixels = reinterpret_cast<const uint32_t*>(tmp.constBits());
         }
         
-        importVoxels.readFromSquareARGB32Pixels(pixels, pngImage.height());        
+        _clipboardTree.readFromSquareARGB32Pixels(pixels, pngImage.height());
     } else if (fileNameString.endsWith(".svo", Qt::CaseInsensitive)) {
-        importVoxels.readFromSVOFile(fileName);
-    } else {
-        importVoxels.readFromSchematicFile(fileName);
-    }
-    
-    VoxelNode* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
-    
-    // Recurse the Import Voxels tree, where everything is root relative, and send all the colored voxels to 
-    // the server as an set voxel message, this will also rebase the voxels to the new location
-    unsigned char* calculatedOctCode = NULL;
-    SendVoxelsOperationArgs args;
-    
-    int numBytesPacketHeader = populateTypeAndVersion(args.messageBuffer, PACKET_TYPE_SET_VOXEL_DESTRUCTIVE);
-    
-    unsigned short int* sequenceAt = (unsigned short int*)&args.messageBuffer[numBytesPacketHeader];
-    *sequenceAt = 0;
-    args.bufferInUse = numBytesPacketHeader + sizeof(unsigned short int); // set to command + sequence
-
-    // we only need the selected voxel to get the newBaseOctCode, which we can actually calculate from the
-    // voxel size/position details.
-    if (selectedNode) {
-        args.newBaseOctCode = selectedNode->getOctalCode();
-    } else {
-        args.newBaseOctCode = calculatedOctCode = pointToVoxel(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
-    }
-
-    importVoxels.recurseTreeWithOperation(sendVoxelsOperation, &args);
-
-    // If we have voxels left in the packet, then send the packet
-    if (args.bufferInUse > (numBytesPacketHeader + sizeof(unsigned short int))) {
-        controlledBroadcastToNodes(args.messageBuffer, args.bufferInUse, & NODE_TYPE_VOXEL_SERVER, 1);
-    }
-    
-    if (calculatedOctCode) {
-        delete[] calculatedOctCode;
+        _clipboardTree.readFromSVOFile(fileName);
+    } else if (fileNameString.endsWith(".schematic", Qt::CaseInsensitive)) {
+        _clipboardTree.readFromSchematicFile(fileName);
     }
 
     // restore the main window's active state
@@ -1555,7 +1540,7 @@ void Application::initMenu() {
     _renderAvatarsOn->setChecked(true);
     (_renderAvatarBalls = renderMenu->addAction("Avatar as Balls"))->setCheckable(true);
     _renderAvatarBalls->setChecked(false);
-    renderMenu->addAction("Cycle Voxeltar Mode", _myAvatar.getVoxels(), SLOT(cycleMode()));
+    renderMenu->addAction("Cycle Voxel Mode", _myAvatar.getVoxels(), SLOT(cycleMode()));
     (_renderFrameTimerOn = renderMenu->addAction("Show Timer"))->setCheckable(true);
     _renderFrameTimerOn->setChecked(false);
     (_renderLookatOn = renderMenu->addAction("Lookat Vectors"))->setCheckable(true);
@@ -1564,6 +1549,9 @@ void Application::initMenu() {
         "First Person", this, SLOT(setRenderFirstPerson(bool)), Qt::Key_P))->setCheckable(true);
     (_manualThirdPerson = renderMenu->addAction(
         "Third Person", this, SLOT(setRenderThirdPerson(bool))))->setCheckable(true);
+    renderMenu->addAction("Increase Avatar Size", this, SLOT(increaseAvatarSize()), Qt::SHIFT | Qt::Key_Plus);
+    renderMenu->addAction("Decrease Avatar Size", this, SLOT(decreaseAvatarSize()), Qt::SHIFT | Qt::Key_Minus);
+
     
     QMenu* toolsMenu = menuBar->addMenu("Tools");
     (_renderStatsOn = toolsMenu->addAction("Stats"))->setCheckable(true);
@@ -1656,6 +1644,8 @@ void Application::initMenu() {
     (_renderCoverageMapV2 = debugMenu->addAction("Render Coverage Map V2"))->setCheckable(true);
     _renderCoverageMapV2->setShortcut(Qt::SHIFT | Qt::CTRL | Qt::Key_P);
 
+    (_simulateLeapHand = debugMenu->addAction("Simulate Leap Hand"))->setCheckable(true);
+    (_testRaveGlove = debugMenu->addAction("Test RaveGlove"))->setCheckable(true);
 
     QMenu* settingsMenu = menuBar->addMenu("Settings");
     (_settingsAutosave = settingsMenu->addAction("Autosave"))->setCheckable(true);
@@ -1914,6 +1904,7 @@ void Application::update(float deltaTime) {
     }
     
     // Leap finger-sensing device
+    LeapManager::enableFakeFingers(_simulateLeapHand->isChecked() || _testRaveGlove->isChecked());
     LeapManager::nextFrame();
     _myAvatar.getHand().setLeapFingers(LeapManager::getFingerTips(), LeapManager::getFingerRoots());
     _myAvatar.getHand().setLeapHands(LeapManager::getHandPositions(), LeapManager::getHandNormals());

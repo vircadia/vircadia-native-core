@@ -891,17 +891,6 @@ void VoxelTree::createSphere(float radius, float xc, float yc, float zc, float v
     }
 }
 
-int VoxelTree::searchForColoredNodes(int maxSearchLevel, VoxelNode* node, const ViewFrustum& viewFrustum, VoxelNodeBag& bag,
-                                     bool deltaViewFrustum, const ViewFrustum* lastViewFrustum) {
-
-    // call the recursive version, this will add all found colored node roots to the bag
-    int currentSearchLevel = 0;
-
-    int levelReached = searchForColoredNodesRecursion(maxSearchLevel, currentSearchLevel, rootNode,
-                                                      viewFrustum, bag, deltaViewFrustum, lastViewFrustum);
-    return levelReached;
-}
-
 // combines the ray cast arguments into a single object
 class RayArgs {
 public:
@@ -1012,88 +1001,6 @@ bool VoxelTree::findCapsulePenetration(const glm::vec3& start, const glm::vec3& 
     penetration = glm::vec3(0.0f, 0.0f, 0.0f);
     recurseTreeWithOperation(findCapsulePenetrationOp, &args);
     return args.found;
-}
-
-int VoxelTree::searchForColoredNodesRecursion(int maxSearchLevel, int& currentSearchLevel,
-                                              VoxelNode* node, const ViewFrustum& viewFrustum, VoxelNodeBag& bag,
-                                              bool deltaViewFrustum, const ViewFrustum* lastViewFrustum) {
-
-    // Keep track of how deep we've searched.
-    currentSearchLevel++;
-
-    // If we've passed our max Search Level, then stop searching. return last level searched
-    if (currentSearchLevel > maxSearchLevel) {
-        return currentSearchLevel-1;
-    }
-
-    // If we're at a node that is out of view, then we can return, because no nodes below us will be in view!
-    if (!node->isInView(viewFrustum)) {
-        return currentSearchLevel;
-    }
-
-    // Ok, this is a little tricky, each child may have been deeper than the others, so we need to track
-    // how deep each child went. And we actually return the maximum of each child. We use these variables below
-    // when we recurse the children.
-    int thisLevel = currentSearchLevel;
-    int maxChildLevel = thisLevel;
-
-    VoxelNode* inViewChildren[NUMBER_OF_CHILDREN];
-    float      distancesToChildren[NUMBER_OF_CHILDREN];
-    int        positionOfChildren[NUMBER_OF_CHILDREN];
-    int        inViewCount = 0;
-    int        inViewNotLeafCount = 0;
-    int        inViewWithColorCount = 0;
-
-    // for each child node, check to see if they exist, are colored, and in view, and if so
-    // add them to our distance ordered array of children
-    for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
-        VoxelNode* childNode = node->getChildAtIndex(i);
-        bool childIsColored = (childNode && childNode->isColored());
-        bool childIsInView  = (childNode && childNode->isInView(viewFrustum));
-        bool childIsLeaf    = (childNode && childNode->isLeaf());
-
-        if (childIsInView) {
-
-            // track children in view as existing and not a leaf
-            if (!childIsLeaf) {
-                inViewNotLeafCount++;
-            }
-
-            // track children with actual color
-            if (childIsColored) {
-                inViewWithColorCount++;
-            }
-
-            float distance = childNode->distanceToCamera(viewFrustum);
-
-            if (distance < boundaryDistanceForRenderLevel(*childNode->getOctalCode() + 1)) {
-                inViewCount = insertIntoSortedArrays((void*)childNode, distance, i,
-                                                     (void**)&inViewChildren, (float*)&distancesToChildren,
-                                                     (int*)&positionOfChildren, inViewCount, NUMBER_OF_CHILDREN);
-            }
-        }
-    }
-
-    // If we have children with color, then we do want to add this node (and it's descendants) to the bag to be written
-    // we don't need to dig deeper.
-    //
-    // XXXBHG - this might be a good time to look at colors and add them to a dictionary? But we're not planning
-    // on scanning the whole tree, so we won't actually see all the colors, so maybe no point in that.
-    if (inViewWithColorCount) {
-        bag.insert(node);
-    } else {
-        // at this point, we need to iterate the children who are in view, even if not colored
-        // and we need to determine if there's a deeper tree below them that we care about. We will iterate
-        // these based on which tree is closer.
-        for (int i = 0; i < inViewCount; i++) {
-            VoxelNode* childNode = inViewChildren[i];
-            thisLevel = currentSearchLevel; // reset this, since the children will munge it up
-            int childLevelReached = searchForColoredNodesRecursion(maxSearchLevel, thisLevel, childNode, viewFrustum, bag,
-                                                                   deltaViewFrustum, lastViewFrustum);
-            maxChildLevel = std::max(maxChildLevel, childLevelReached);
-        }
-    }
-    return maxChildLevel;
 }
 
 int VoxelTree::encodeTreeBitstream(VoxelNode* node, unsigned char* outputBuffer, int availableBytes, VoxelNodeBag& bag,
@@ -1344,19 +1251,10 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
                 } // wants occlusion culling & isLeaf()
 
 
-                // There are two types of nodes for which we want to send colors:
-                // 1) Leaves - obviously
-                // 2) Non-leaves who's children would be visible but are beyond our LOD.
-                bool isLeafOrLOD = childNode->isLeaf();
-                if (params.viewFrustum && childNode->isColored() && !childNode->isLeaf()) {
-                    int   childLevel           = childNode->getLevel();
-                    float childBoundary        = boundaryDistanceForRenderLevel(childLevel + params.boundaryLevelAdjust);
-                    float grandChildBoundary   = boundaryDistanceForRenderLevel(childLevel + 1 + params.boundaryLevelAdjust);
-                    isLeafOrLOD = ((distance <= childBoundary) && !(distance <= grandChildBoundary));
-                }
+                bool shouldRender = childNode->calculateShouldRender(params.viewFrustum, params.boundaryLevelAdjust);
                 
                 // track children with actual color, only if the child wasn't previously in view!
-                if (childNode && isLeafOrLOD && childNode->isColored() && !childIsOccluded) {
+                if (shouldRender && !childIsOccluded) {
                     bool childWasInView = false;
                     
                     if (childNode && params.deltaViewFrustum && params.lastViewFrustum) {
@@ -1368,7 +1266,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
                         } else {
                             childWasInView = location == ViewFrustum::INSIDE;
                         }
-                    }                    
+                    }         
 
                     // If our child wasn't in view (or we're ignoring wasInView) then we add it to our sending items
                     if (!childWasInView) {

@@ -119,6 +119,8 @@ private slots:
     
     void setRenderFirstPerson(bool firstPerson);
     void setRenderThirdPerson(bool thirdPerson);
+    void increaseAvatarSize();
+    void decreaseAvatarSize();
     
     void renderThrustAtVoxel(const glm::vec3& thrust);
     void renderLineToTouchedVoxel();
@@ -261,6 +263,9 @@ private:
 
     QAction* _renderCoverageMapV2;
     QAction* _renderCoverageMap;
+
+    QAction* _simulateLeapHand;      // When there's no Leap, use this to pretend there is one and feed fake hand data
+    QAction* _testRaveGlove;         // Test fancy sparkle-rave-glove mode
     
     BandwidthMeter _bandwidthMeter;
     BandwidthDialog* _bandwidthDialog;
