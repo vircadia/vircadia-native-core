@@ -147,8 +147,8 @@ void NodeList::processBulkNodeData(sockaddr *senderAddress, unsigned char *packe
         
         int numBytesPacketHeader = numBytesForPacketHeader(packetData);
         
-        unsigned char *startPosition = packetData;
-        unsigned char *currentPosition = startPosition + numBytesPacketHeader;
+        unsigned char* startPosition = packetData;
+        unsigned char* currentPosition = startPosition + numBytesPacketHeader;
         unsigned char packetHolder[numTotalBytes];
         
         // we've already verified packet version for the bulk packet, so all head data in the packet is also up to date

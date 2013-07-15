@@ -3271,7 +3271,7 @@ void* Application::networkReceive(void* args) {
                     case PACKET_TYPE_Z_COMMAND:
                     case PACKET_TYPE_ERASE_VOXEL:
                     case PACKET_TYPE_ENVIRONMENT_DATA: {
-                        Node *voxelServer = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_VOXEL_SERVER);
+                        Node* voxelServer = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_VOXEL_SERVER);
                         if (voxelServer) {
                             voxelServer->lock();
                             
