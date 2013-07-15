@@ -3270,11 +3270,21 @@ void* Application::networkReceive(void* args) {
                     case PACKET_TYPE_VOXEL_DATA_MONOCHROME:
                     case PACKET_TYPE_Z_COMMAND:
                     case PACKET_TYPE_ERASE_VOXEL:
-                        app->_voxels.parseData(app->_incomingPacket, bytesReceived);
+                    case PACKET_TYPE_ENVIRONMENT_DATA: {
+                        Node *voxelServer = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_VOXEL_SERVER);
+                        if (voxelServer) {
+                            voxelServer->lock();
+                            
+                            if (app->_incomingPacket[0] == PACKET_TYPE_ENVIRONMENT_DATA) {
+                                app->_environment.parseData(&senderAddress, app->_incomingPacket, bytesReceived);
+                            } else {
+                                app->_voxels.parseData(app->_incomingPacket, bytesReceived);
+                            }
+                            
+                            voxelServer->unlock();
+                        }
                         break;
-                    case PACKET_TYPE_ENVIRONMENT_DATA:
-                        app->_environment.parseData(&senderAddress, app->_incomingPacket, bytesReceived);
-                        break;
+                    }
                     case PACKET_TYPE_BULK_AVATAR_DATA:
                         NodeList::getInstance()->processBulkNodeData(&senderAddress,
                                                                      app->_incomingPacket,
