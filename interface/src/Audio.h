@@ -85,6 +85,7 @@ private:
     float _flangeWeight;
     float _collisionSoundMagnitude;
     int _proceduralEffectSample;
+    float _heartbeatMagnitude;
     
     // Audio callback in class context.
     inline void performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* outputRight);

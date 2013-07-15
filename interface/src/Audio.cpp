@@ -327,7 +327,8 @@ Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples) :
     _flangeRate(0.0f),
     _flangeWeight(0.0f),
     _collisionSoundMagnitude(0.0f),
-    _proceduralEffectSample(0)
+    _proceduralEffectSample(0),
+    _heartbeatMagnitude(0.0f)
 {
     outputPortAudioError(Pa_Initialize());
     
@@ -601,6 +602,9 @@ void Audio::addProceduralSounds(int16_t* inputBuffer,
         inputBuffer[i] += (int16_t) (_proceduralEffectSample + i)%16 * 10;
     }*/
     
+    //
+    // Travelling noise
+    //
     //  Add a noise-modulated sinewave with volume that tapers off with speed increasing
     if ((speed > MIN_AUDIBLE_VELOCITY) && (speed < MAX_AUDIBLE_VELOCITY)) {
         for (int i = 0; i < numSamples; i++) {
@@ -624,6 +628,10 @@ void Audio::addProceduralSounds(int16_t* inputBuffer,
             _collisionSoundMagnitude *= (1.f - COLLISION_SOUND_DECAY);
         }
     }
+    
+    //if (_heartbeatMagnitude > 0.0f) {
+    //
+    //}
     _proceduralEffectSample += numSamples;
 }
 
