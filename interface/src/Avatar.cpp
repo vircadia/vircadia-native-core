@@ -575,13 +575,13 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
         _bodyYawDelta   *= bodySpinMomentum;
         _bodyRollDelta  *= bodySpinMomentum;
         
-        const float MAX_STATIC_FRICTION_VELOCITY = _scale * 0.5f;
+        const float MAX_STATIC_FRICTION_VELOCITY = 0.5f;
         const float STATIC_FRICTION_STRENGTH = _scale * 20.f;
         applyStaticFriction(deltaTime, _velocity, MAX_STATIC_FRICTION_VELOCITY, STATIC_FRICTION_STRENGTH);
         
         const float LINEAR_DAMPING_STRENGTH = 1.0f;
         const float SPEED_BRAKE_POWER = _scale * 10.0f;
-        const float SQUARED_DAMPING_STRENGTH = _scale * 0.2f;
+        const float SQUARED_DAMPING_STRENGTH = 0.2f;
         if (_speedBrakes) {
             applyDamping(deltaTime, _velocity, LINEAR_DAMPING_STRENGTH * SPEED_BRAKE_POWER, SQUARED_DAMPING_STRENGTH * SPEED_BRAKE_POWER);
         } else {

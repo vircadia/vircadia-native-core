@@ -92,14 +92,14 @@ void Camera::updateFollowMode(float deltaTime) {
     
     if (_needsToInitialize || (_tightness == 0.0f)) {
         _rotation = _targetRotation;
-        _idealPosition = _targetPosition + _rotation * glm::vec3(0.0f, _upShift, _distance);
+        _idealPosition = _targetPosition + _scale * (_rotation * glm::vec3(0.0f, _upShift, _distance));
         _position = _idealPosition;
         _needsToInitialize = false;
 
     } else {
         // pull rotation towards ideal
         _rotation = safeMix(_rotation, _targetRotation, t);
-        _idealPosition = _targetPosition + _rotation * glm::vec3(0.0f, _upShift, _distance);
+        _idealPosition = _targetPosition + _scale * (_rotation * glm::vec3(0.0f, _upShift, _distance));
         _position += (_idealPosition - _position) * t;
     }
 }
@@ -124,18 +124,18 @@ void Camera::setMode(CameraMode m) {
     _previousTightness = _tightness;
 
     if (_mode == CAMERA_MODE_THIRD_PERSON) {
-        _newUpShift   = _scale * CAMERA_THIRD_PERSON_MODE_UP_SHIFT;
-        _newDistance  = _scale * CAMERA_THIRD_PERSON_MODE_DISTANCE;
+        _newUpShift   = CAMERA_THIRD_PERSON_MODE_UP_SHIFT;
+        _newDistance  = CAMERA_THIRD_PERSON_MODE_DISTANCE;
         _newTightness = CAMERA_THIRD_PERSON_MODE_TIGHTNESS;
         
     } else if (_mode == CAMERA_MODE_FIRST_PERSON) {
-        _newUpShift   = _scale * CAMERA_FIRST_PERSON_MODE_UP_SHIFT;
-        _newDistance  = _scale * CAMERA_FIRST_PERSON_MODE_DISTANCE;
+        _newUpShift   = CAMERA_FIRST_PERSON_MODE_UP_SHIFT;
+        _newDistance  = CAMERA_FIRST_PERSON_MODE_DISTANCE;
         _newTightness = CAMERA_FIRST_PERSON_MODE_TIGHTNESS;
         
     } else if (_mode == CAMERA_MODE_MIRROR) {
-        _newUpShift   = _scale * CAMERA_MIRROR_MODE_UP_SHIFT;
-        _newDistance  = _scale * CAMERA_MIRROR_MODE_DISTANCE;
+        _newUpShift   = CAMERA_MIRROR_MODE_UP_SHIFT;
+        _newDistance  = CAMERA_MIRROR_MODE_DISTANCE;
         _newTightness = CAMERA_MIRROR_MODE_TIGHTNESS;
     }
 }

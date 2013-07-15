@@ -1183,21 +1183,21 @@ void Application::setRenderThirdPerson(bool thirdPerson) {
 }
 
 void Application::increaseAvatarSize() {
-    if (3.0f < _myAvatar.getScale() + 0.25f) {
+    if (5.0f < _myAvatar.getScale() + 0.05f) {
         return;
     }
 
-    _myAvatar.setScale(_myAvatar.getScale() + 0.25f);
-    _myCamera.setScale(_myAvatar.getScale() + 0.25f);
+    _myAvatar.setScale(_myAvatar.getScale() + 0.05f);
+    _myCamera.setScale(_myAvatar.getScale() + 0.05f);
 }
 
 void Application::decreaseAvatarSize() {
-    if (_myAvatar.getScale() + 0.25f < 0.25f) {
+    if (_myAvatar.getScale() - 0.05f < 0.15f) {
         return;
     }
 
-    _myAvatar.setScale(_myAvatar.getScale() - 0.25f);
-    _myCamera.setScale(_myAvatar.getScale() - 0.25f);
+    _myAvatar.setScale(_myAvatar.getScale() - 0.05f);
+    _myCamera.setScale(_myAvatar.getScale() - 0.05f);
 }
 
 void Application::setFrustumOffset(bool frustumOffset) {

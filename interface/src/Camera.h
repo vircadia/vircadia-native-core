@@ -59,6 +59,7 @@ public:
     float            getFarClip              () { return _scale * _farClip; }
     const glm::vec3& getEyeOffsetPosition    () { return _eyeOffsetPosition;   }
     const glm::quat& getEyeOffsetOrientation () { return _eyeOffsetOrientation; }
+    float            getScale                () { return _scale; }
     
     bool getFrustumNeedsReshape(); // call to find out if the view frustum needs to be reshaped
     void setFrustumWasReshaped();  // call this after reshaping the view frustum.

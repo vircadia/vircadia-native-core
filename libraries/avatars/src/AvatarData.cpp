@@ -200,7 +200,6 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &_bodyPitch);
     sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &_bodyRoll);
     sourceBuffer += unpackFloatRatioFromTwoByte(            sourceBuffer,  _newScale);
-    std::cout << "New Scale : " << _newScale << std::endl;
 
     // Head rotation (NOTE: This needs to become a quaternion to save two bytes)
     float headYaw, headPitch, headRoll;
