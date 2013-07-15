@@ -112,7 +112,14 @@ void NodeList::timePingReply(sockaddr *nodeAddress, unsigned char *packetData) {
 void NodeList::processNodeData(sockaddr* senderAddress, unsigned char* packetData, size_t dataBytes) {
     switch (packetData[0]) {
         case PACKET_TYPE_DOMAIN: {
-            processDomainServerList(packetData, dataBytes);
+            // only process the DS if this is our current domain server
+            sockaddr_in domainServerSocket = *(sockaddr_in*) senderAddress;
+            const char* domainSenderIP = inet_ntoa(domainServerSocket.sin_addr);
+            
+            if (memcmp(domainSenderIP, _domainIP, strlen(domainSenderIP)) == 0) {
+                processDomainServerList(packetData, dataBytes);
+            }
+            
             break;
         }
         case PACKET_TYPE_PING: {
