@@ -126,8 +126,8 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
                                               dataPacket,
                                               BUFFER_LENGTH_BYTES_PER_CHANNEL + leadingBytes);
 
-            interface->getBandwidthMeter()->outputStream(BandwidthMeter::AUDIO)
-                    .updateValue(BUFFER_LENGTH_BYTES_PER_CHANNEL + leadingBytes);
+            interface->getBandwidthMeter()->outputStream(BandwidthMeter::AUDIO).updateValue(BUFFER_LENGTH_BYTES_PER_CHANNEL
+                                                                                            + leadingBytes);
         }
         
     }

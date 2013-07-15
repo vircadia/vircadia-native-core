@@ -29,9 +29,9 @@ const char SOLO_NODE_TYPES[3] = {
     NODE_TYPE_VOXEL_SERVER
 };
 
-char DOMAIN_HOSTNAME[] = "highfidelity.below92.com";
-char DOMAIN_IP[100] = "";    //  IP Address will be re-set by lookup on startup
-const int DOMAINSERVER_PORT = 40102;
+const char DEFAULT_DOMAIN_HOSTNAME[MAX_HOSTNAME_BYTES] = "root.highfidelity.io";
+const char DEFAULT_DOMAIN_IP[INET_ADDRSTRLEN] = "";    //  IP Address will be re-set by lookup on startup
+const int DEFAULT_DOMAINSERVER_PORT = 40102;
 
 bool silentNodeThreadStopFlag = false;
 bool pingUnknownNodeThreadStopFlag = false;
@@ -63,8 +63,10 @@ NodeList::NodeList(char newOwnerType, unsigned int newSocketListenPort) :
     _ownerType(newOwnerType),
     _nodeTypesOfInterest(NULL),
     _ownerID(UNKNOWN_NODE_ID),
-    _lastNodeID(0) {
-    pthread_mutex_init(&mutex, 0);
+    _lastNodeID(0)
+{
+    memcpy(_domainHostname, DEFAULT_DOMAIN_HOSTNAME, sizeof(DEFAULT_DOMAIN_HOSTNAME));
+    memcpy(_domainIP, DEFAULT_DOMAIN_IP, sizeof(DEFAULT_DOMAIN_IP));
 }
 
 NodeList::~NodeList() {
@@ -74,8 +76,19 @@ NodeList::~NodeList() {
     
     // stop the spawned threads, if they were started
     stopSilentNodeRemovalThread();
-    
-    pthread_mutex_destroy(&mutex);
+}
+
+void NodeList::setDomainHostname(const char* domainHostname) {
+    memcpy(_domainHostname, domainHostname, sizeof(&domainHostname));
+}
+
+void NodeList::setDomainIP(const char* domainIP) {
+    memcpy(_domainIP, domainIP, sizeof(&domainIP));
+}
+
+void NodeList::setDomainIPToLocalhost() {
+    int ip = getLocalAddress();
+    sprintf(_domainIP, "%d.%d.%d.%d", (ip & 0xFF), ((ip >> 8) & 0xFF),((ip >> 16) & 0xFF), ((ip >> 24) & 0xFF));
 }
 
 void NodeList::timePingReply(sockaddr *nodeAddress, unsigned char *packetData) {
@@ -112,7 +125,6 @@ void NodeList::processNodeData(sockaddr* senderAddress, unsigned char* packetDat
 }
 
 void NodeList::processBulkNodeData(sockaddr *senderAddress, unsigned char *packetData, int numTotalBytes) {
-    lock();
     
     // find the avatar mixer in our node list and update the lastRecvTime from it
     Node* bulkSendNode = nodeWithAddress(senderAddress);
@@ -149,9 +161,8 @@ void NodeList::processBulkNodeData(sockaddr *senderAddress, unsigned char *packe
         currentPosition += updateNodeWithData(matchingNode,
                                               packetHolder,
                                               numTotalBytes - (currentPosition - startPosition));
+        
     }
-    
-    unlock();
 }
 
 int NodeList::updateNodeWithData(sockaddr *senderAddress, unsigned char *packetData, size_t dataBytes) {
@@ -166,6 +177,8 @@ int NodeList::updateNodeWithData(sockaddr *senderAddress, unsigned char *packetD
 }
 
 int NodeList::updateNodeWithData(Node *node, unsigned char *packetData, int dataBytes) {
+    node->lock();
+    
     node->setLastHeardMicrostamp(usecTimestampNow());
     
     if (node->getActiveSocket()) {
@@ -176,7 +189,11 @@ int NodeList::updateNodeWithData(Node *node, unsigned char *packetData, int data
         linkedDataCreateCallback(node);
     }
     
-    return node->getLinkedData()->parseData(packetData, dataBytes);
+    int numParsedBytes = node->getLinkedData()->parseData(packetData, dataBytes);
+    
+    node->unlock();
+    
+    return numParsedBytes;
 }
 
 Node* NodeList::nodeWithAddress(sockaddr *senderAddress) {
@@ -236,18 +253,18 @@ void NodeList::sendDomainServerCheckIn() {
     static bool printedDomainServerIP = false;
     
     //  Lookup the IP address of the domain server if we need to
-    if (atoi(DOMAIN_IP) == 0) {
+    if (atoi(_domainIP) == 0) {
         struct hostent* pHostInfo;
-        if ((pHostInfo = gethostbyname(DOMAIN_HOSTNAME)) != NULL) {
+        if ((pHostInfo = gethostbyname(_domainHostname)) != NULL) {
             sockaddr_in tempAddress;
             memcpy(&tempAddress.sin_addr, pHostInfo->h_addr_list[0], pHostInfo->h_length);
-            strcpy(DOMAIN_IP, inet_ntoa(tempAddress.sin_addr));
-            printLog("Domain Server: %s \n", DOMAIN_HOSTNAME);
+            strcpy(_domainIP, inet_ntoa(tempAddress.sin_addr));
+            printLog("Domain Server: %s \n", _domainHostname);
         } else {
             printLog("Failed domain server lookup\n");
         }
     } else if (!printedDomainServerIP) {
-        printLog("Domain Server IP: %s\n", DOMAIN_IP);
+        printLog("Domain Server IP: %s\n", _domainIP);
         printedDomainServerIP = true;
     }
     
@@ -294,7 +311,7 @@ void NodeList::sendDomainServerCheckIn() {
         checkInPacketSize = packetPosition - checkInPacket;
     }
     
-    _nodeSocket.send(DOMAIN_IP, DOMAINSERVER_PORT, checkInPacket, checkInPacketSize);
+    _nodeSocket.send(_domainIP, DEFAULT_DOMAINSERVER_PORT, checkInPacket, checkInPacketSize);
 }
 
 int NodeList::processDomainServerList(unsigned char* packetData, size_t dataBytes) {

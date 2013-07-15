@@ -65,6 +65,9 @@ public:
 
     int getPingMs() const { return _pingMs; };
     void setPingMs(int pingMs) { _pingMs = pingMs; };
+    
+    void lock() { pthread_mutex_lock(&mutex); }
+    void unlock() { pthread_mutex_unlock(&mutex); }
 
     static void printLog(Node const&);
 private:
@@ -83,6 +86,7 @@ private:
     NodeData* _linkedData;
     bool _isAlive;
     int _pingMs;
+    pthread_mutex_t mutex;
 };
 
 
