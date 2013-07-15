@@ -50,6 +50,9 @@ public:
     // getters
     const glm::vec3& getLeapBallPosition       (int ball)       const { return _leapBalls[ball].position;}
 
+    // position conversion
+    glm::vec3 leapPositionToWorldPosition(const glm::vec3& leapPosition);
+
 private:
     // disallow copies of the Hand, copy of owning Avatar is disallowed too
     Hand(const Hand&);
@@ -66,7 +69,6 @@ private:
     // private methods
     void renderHandSpheres();
     void calculateGeometry();
-    glm::vec3 leapPositionToWorldPosition(const glm::vec3& leapPosition);
 };
 
 #endif
