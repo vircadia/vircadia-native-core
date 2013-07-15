@@ -91,7 +91,11 @@ void LeapManager::enableFakeFingers(bool enable) {
 }
 
 bool LeapManager::controllersExist() {
+#ifdef LEAP_STUBS
+    return false;
+#else
     return _listener && _controller && _controller->devices().count() > 0;
+#endif
 }
 
 const std::vector<glm::vec3>& LeapManager::getFingerTips() {
