@@ -19,8 +19,9 @@ int Face::_texCoordCornerLocation;
 int Face::_texCoordRightLocation;
 int Face::_texCoordUpLocation;
 GLuint Face::_vboID;
+GLuint Face::_iboID;
 
-Face::Face(Head* owningHead) : _owningHead(owningHead), _colorTextureID(0), _depthTextureID(0) {
+Face::Face(Head* owningHead) : _owningHead(owningHead), _renderMode(MESH), _colorTextureID(0), _depthTextureID(0) {
 }
 
 bool Face::render(float alpha) {
@@ -48,6 +49,12 @@ bool Face::render(float alpha) {
         const int VERTEX_COUNT = VERTEX_WIDTH * VERTEX_HEIGHT;
         const int ELEMENTS_PER_VERTEX = 2;
         const int BUFFER_ELEMENTS = VERTEX_COUNT * ELEMENTS_PER_VERTEX;
+        const int QUAD_WIDTH = VERTEX_WIDTH - 1;
+        const int QUAD_HEIGHT = VERTEX_HEIGHT - 1;
+        const int QUAD_COUNT = QUAD_WIDTH * QUAD_HEIGHT;
+        const int TRIANGLES_PER_QUAD = 2;   
+        const int INDICES_PER_TRIANGLE = 3;
+        const int INDEX_COUNT = QUAD_COUNT * TRIANGLES_PER_QUAD * INDICES_PER_TRIANGLE;
         
         if (_program == 0) {
             _program = new ProgramObject();
@@ -77,12 +84,31 @@ bool Face::render(float alpha) {
             glBufferData(GL_ARRAY_BUFFER, BUFFER_ELEMENTS * sizeof(float), vertices, GL_STATIC_DRAW);
             delete[] vertices;
             
+            glGenBuffers(1, &_iboID);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _iboID);
+            int* indices = new int[INDEX_COUNT];
+            int* indexPosition = indices;
+            for (int i = 0; i < QUAD_HEIGHT; i++) {
+                for (int j = 0; j < QUAD_WIDTH; j++) {
+                    *indexPosition++ = i * VERTEX_WIDTH + j;
+                    *indexPosition++ = (i + 1) * VERTEX_WIDTH + j;
+                    *indexPosition++ = i * VERTEX_WIDTH + j + 1;
+                    
+                    *indexPosition++ = i * VERTEX_WIDTH + j + 1;
+                    *indexPosition++ = (i + 1) * VERTEX_WIDTH + j;
+                    *indexPosition++ = (i + 1) * VERTEX_WIDTH + j + 1;
+                }
+            }
+            glBufferData(GL_ELEMENT_ARRAY_BUFFER, INDEX_COUNT * sizeof(int), indices, GL_STATIC_DRAW);
+            delete[] indices;
+            
         } else {
             glBindBuffer(GL_ARRAY_BUFFER, _vboID);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _iboID);
         }
         glBindTexture(GL_TEXTURE_2D, _depthTextureID);
         
-        glActiveTexture(GL_TEXTURE0 + 1);
+        glActiveTexture(GL_TEXTURE1);
         glBindTexture(GL_TEXTURE_2D, _colorTextureID);
         
         _program->bind();
@@ -94,9 +120,17 @@ bool Face::render(float alpha) {
             (points[1].x - points[0].x) / _textureSize.width, (points[1].y - points[0].y) / _textureSize.height);
         glEnableClientState(GL_VERTEX_ARRAY);
         glVertexPointer(2, GL_FLOAT, 0, 0);
-        glPointSize(3.0f);
-        glDrawArrays(GL_POINTS, 0, VERTEX_COUNT);
-        glPointSize(1.0f);
+        
+        if (_renderMode == POINTS) {
+            glPointSize(3.0f);
+            glDrawArrays(GL_POINTS, 0, VERTEX_COUNT);
+            glPointSize(1.0f);
+        
+        } else {
+            glDrawRangeElementsEXT(GL_TRIANGLES, 0, VERTEX_COUNT - 1, INDEX_COUNT, GL_UNSIGNED_INT, 0);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+        }
+        
         glDisableClientState(GL_VERTEX_ARRAY);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         _program->release();
@@ -127,5 +161,9 @@ bool Face::render(float alpha) {
     glPopMatrix();
     
     return true;
+}
+
+void Face::cycleRenderMode() {
+    _renderMode = (RenderMode)((_renderMode + 1) % RENDER_MODE_COUNT);    
 }
 

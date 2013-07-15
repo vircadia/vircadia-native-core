@@ -520,6 +520,11 @@ bool FrameGrabber::init() {
         
         _userGenerator.GetSkeletonCap().SetSkeletonProfile(XN_SKEL_PROFILE_UPPER);
         
+        // make the depth viewpoint match that of the video image
+        if (_depthGenerator.IsCapabilitySupported(XN_CAPABILITY_ALTERNATIVE_VIEW_POINT)) {
+            _depthGenerator.GetAlternativeViewPointCap().SetViewPoint(_imageGenerator);
+        }
+        
         _xnContext.StartGeneratingAll();
         return true;
     }
