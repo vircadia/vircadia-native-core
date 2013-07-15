@@ -35,6 +35,8 @@ public:
     unsigned char getVolume() const  { return _volume; }
     void setVolume(unsigned char volume) { _volume = volume; }
     
+    float getLastFrameIntensity() const { return _lastFrameIntensity; }
+    
     const glm::vec3& getPosition() const { return _position; }
     void setPosition(const glm::vec3& position) { _position = position; }
     
@@ -56,6 +58,7 @@ private:
     unsigned char _volume;
     int _indexOfNextSlot;
     bool _isInjectingAudio;
+    float _lastFrameIntensity;
 };
 
 #endif /* defined(__hifi__AudioInjector__) */

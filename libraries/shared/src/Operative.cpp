@@ -176,9 +176,11 @@ void Operative::renderMovingBug() {
         _bugDetails[i].y = offsetPartAt.y;
         _bugDetails[i].z = offsetPartAt.z;
         
-        _bugDetails[i].red   = BUG_PARTS[i].partColor[0];
-        _bugDetails[i].green = BUG_PARTS[i].partColor[1];
-        _bugDetails[i].blue  = BUG_PARTS[i].partColor[2];
+        float colorRatio = (powf(injector->getLastFrameIntensity(), 0.5) * 0.5f) + 0.5f;
+        
+        _bugDetails[i].red   = BUG_PARTS[i].partColor[0] * colorRatio;
+        _bugDetails[i].green = BUG_PARTS[i].partColor[1] * colorRatio;
+        _bugDetails[i].blue  = BUG_PARTS[i].partColor[2] * colorRatio;
     }
     
     // send the "create message" ...

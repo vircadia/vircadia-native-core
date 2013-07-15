@@ -20,7 +20,8 @@ AudioInjector::AudioInjector(const char* filename) :
     _radius(0.0f),
     _volume(MAX_INJECTOR_VOLUME),
     _indexOfNextSlot(0),
-    _isInjectingAudio(false)
+    _isInjectingAudio(false),
+    _lastFrameIntensity(0.0f)
 {
     loadRandomIdentifier(_streamIdentifier, STREAM_IDENTIFIER_NUM_BYTES);
     
@@ -50,7 +51,8 @@ AudioInjector::AudioInjector(int maxNumSamples) :
     _radius(0.0f),
     _volume(MAX_INJECTOR_VOLUME),
     _indexOfNextSlot(0),
-    _isInjectingAudio(false)
+    _isInjectingAudio(false),
+    _lastFrameIntensity(0.0f)
 {
     loadRandomIdentifier(_streamIdentifier, STREAM_IDENTIFIER_NUM_BYTES);
     
@@ -112,6 +114,18 @@ void AudioInjector::injectAudio(UDPSocket* injectorSocket, sockaddr* destination
             memcpy(currentPacketPtr, _audioSampleArray + i, numSamplesToCopy * sizeof(int16_t));
             
             injectorSocket->send(destinationSocket, dataPacket, sizeof(dataPacket));
+            
+            // calculate the intensity for this frame
+            float lastRMS = 0;
+            
+            for (int j = 0; j < BUFFER_LENGTH_SAMPLES_PER_CHANNEL; j++) {
+                lastRMS +=  _audioSampleArray[i + j] * _audioSampleArray[i + j];
+            }
+            
+            lastRMS /= BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
+            lastRMS = sqrtf(lastRMS);
+            
+            _lastFrameIntensity = lastRMS / INT16_MAX;
             
             int usecToSleep = usecTimestamp(&startTime) + (++nextFrame * INJECT_INTERVAL_USECS) - usecTimestampNow();
             if (usecToSleep > 0) {
