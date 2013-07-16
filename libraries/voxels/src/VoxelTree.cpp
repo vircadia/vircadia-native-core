@@ -448,7 +448,6 @@ void VoxelTree::deleteVoxelCodeFromTreeRecursion(VoxelNode* node, void* extraDat
                 ancestorNode->setColor(node->getColor());
             }
         }
-
         _isDirty = true;
         args->pathChanged = true;
 
