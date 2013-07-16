@@ -82,6 +82,7 @@ const glm::vec3 START_LOCATION(4.f, 0.f, 5.f);   //  Where one's own node begins
 
 const int IDLE_SIMULATE_MSECS = 16;              //  How often should call simulate and other stuff
                                                  //  in the idle loop?  (60 FPS is default)
+static QTimer* idleTimer = NULL;
 
 const int STARTUP_JITTER_SAMPLES = PACKET_LENGTH_SAMPLES_PER_CHANNEL / 2;
                                                  //  Startup optimistically with small jitter buffer that 
@@ -341,7 +342,7 @@ void Application::initializeGL() {
     timer->start(1000);
     
     // call our idle function whenever we can
-    QTimer* idleTimer = new QTimer(this);
+    idleTimer = new QTimer(this);
     connect(idleTimer, SIGNAL(timeout()), SLOT(idle()));
     idleTimer->start(0);
     _idleLoopStdev.reset();
@@ -973,19 +974,9 @@ void Application::idle() {
     gettimeofday(&check, NULL);
     
     //  Only run simulation code if more than IDLE_SIMULATE_MSECS have passed since last time we ran
-    sendPostedEvents(NULL, QEvent::TouchBegin);
-    sendPostedEvents(NULL, QEvent::TouchUpdate);
-    sendPostedEvents(NULL, QEvent::TouchEnd);
 
     double timeSinceLastUpdate = diffclock(&_lastTimeUpdated, &check);
     if (timeSinceLastUpdate > IDLE_SIMULATE_MSECS) {
-        
-        // If we're using multi-touch look, immediately process any
-        // touch events, and no other events.
-        // This is necessary because id the idle() call takes longer than the
-        // interval between idle() calls, the event loop never gets to run,
-        // and touch events get delayed.
-
         const float BIGGEST_DELTA_TIME_SECS = 0.25f;
         update(glm::clamp((float)timeSinceLastUpdate / 1000.f, 0.f, BIGGEST_DELTA_TIME_SECS));
         _glWidget->updateGL();
@@ -998,6 +989,9 @@ void Application::idle() {
             _idleLoopMeasuredJitter = _idleLoopStdev.getStDev();
             _idleLoopStdev.reset();
         }
+
+        // After finishing all of the above work, restart the idle timer, allowing 2ms to process events.
+        idleTimer->start(2);
     }
 }
 void Application::terminate() {
