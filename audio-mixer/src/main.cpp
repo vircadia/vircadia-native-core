@@ -70,16 +70,15 @@ bool wantLocalDomain = false;
 int main(int argc, const char* argv[]) {
     setvbuf(stdout, NULL, _IOLBF, 0);
     
+    NodeList* nodeList = NodeList::createInstance(NODE_TYPE_AUDIO_MIXER, MIXER_LISTEN_PORT);
+    
     // Handle Local Domain testing with the --local command line
     const char* local = "--local";
     ::wantLocalDomain = cmdOptionExists(argc, argv,local);
     if (::wantLocalDomain) {
         printf("Local Domain MODE!\n");
-        int ip = getLocalAddress();
-        sprintf(DOMAIN_IP,"%d.%d.%d.%d", (ip & 0xFF), ((ip >> 8) & 0xFF),((ip >> 16) & 0xFF), ((ip >> 24) & 0xFF));
-    }
-    
-    NodeList* nodeList = NodeList::createInstance(NODE_TYPE_AUDIO_MIXER, MIXER_LISTEN_PORT);
+        nodeList->setDomainIPToLocalhost();
+    }    
     
     ssize_t receivedBytes = 0;
     
