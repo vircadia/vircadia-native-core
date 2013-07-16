@@ -1421,11 +1421,11 @@ bool Application::sendVoxelsOperation(VoxelNode* node, void* extraData) {
             uint64_t elapsed = now - args->lastSendTime;
             int usecToSleep =  CLIENT_TO_SERVER_VOXEL_SEND_INTERVAL_USECS - elapsed;
             if (usecToSleep > 0) {
-                qDebug("sendVoxelsOperation: packet: %d bytes:%ld elapsed %lld usecs, sleeping for %d usecs!\n",
+                qDebug("sendVoxelsOperation: packet: %d bytes:%lld elapsed %lld usecs, sleeping for %d usecs!\n",
                        args->packetsSent, args->bytesSent, elapsed, usecToSleep);
                 usleep(usecToSleep);
             } else {
-                qDebug("sendVoxelsOperation: packet: %d bytes:%ld elapsed %lld usecs, no need to sleep!\n",
+                qDebug("sendVoxelsOperation: packet: %d bytes:%lld elapsed %lld usecs, no need to sleep!\n",
                        args->packetsSent, args->bytesSent, elapsed);
             }
             args->lastSendTime = now;
@@ -1611,7 +1611,7 @@ void Application::pasteVoxels() {
         controlledBroadcastToNodes(args.messageBuffer, args.bufferInUse, & NODE_TYPE_VOXEL_SERVER, 1);
         qDebug("sending packet: %d\n", ++args.packetsSent);
         args.bytesSent += args.bufferInUse;
-        qDebug("total bytes sent: %ld\n", args.bytesSent);
+        qDebug("total bytes sent: %lld\n", args.bytesSent);
     }
     
     if (calculatedOctCode) {
