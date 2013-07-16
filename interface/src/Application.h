@@ -154,6 +154,7 @@ private slots:
     void exportSettings();
     void exportVoxels();
     void importVoxels();
+    void importVoxelsToClipboard();
     void cutVoxels();
     void copyVoxels();
     void pasteVoxels();
