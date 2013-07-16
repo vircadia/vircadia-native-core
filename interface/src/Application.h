@@ -128,6 +128,7 @@ private slots:
     void cycleFrustumRenderMode();
     
     void setRenderWarnings(bool renderWarnings);
+    void setRenderVoxels(bool renderVoxels);
     void doKillLocalVoxels();
     void doRandomizeVoxelColors();
     void doFalseRandomizeVoxelColors();
@@ -153,6 +154,7 @@ private slots:
     void exportSettings();
     void exportVoxels();
     void importVoxels();
+    void importVoxelsToClipboard();
     void cutVoxels();
     void copyVoxels();
     void pasteVoxels();

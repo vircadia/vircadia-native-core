@@ -1251,7 +1251,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
                 } // wants occlusion culling & isLeaf()
 
 
-                bool shouldRender = childNode->calculateShouldRender(params.viewFrustum, params.boundaryLevelAdjust);
+                bool shouldRender = !params.viewFrustum ? true : childNode->calculateShouldRender(params.viewFrustum, params.boundaryLevelAdjust);
                 
                 // track children with actual color, only if the child wasn't previously in view!
                 if (shouldRender && !childIsOccluded) {

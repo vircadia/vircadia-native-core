@@ -53,6 +53,8 @@ Node::Node(sockaddr* publicSocket, sockaddr* localSocket, char type, uint16_t no
     } else {
         _localSocket = NULL;
     }
+    
+    pthread_mutex_init(&_mutex, 0);
 }
 
 Node::~Node() {
@@ -60,6 +62,8 @@ Node::~Node() {
     delete _localSocket;
     delete _linkedData;
     delete _bytesReceivedMovingAverage;
+    
+    pthread_mutex_destroy(&_mutex);
 }
 
 // Names of Node Types

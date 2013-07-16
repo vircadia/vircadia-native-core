@@ -82,6 +82,7 @@ const glm::vec3 START_LOCATION(4.f, 0.f, 5.f);   //  Where one's own node begins
 
 const int IDLE_SIMULATE_MSECS = 16;              //  How often should call simulate and other stuff
                                                  //  in the idle loop?  (60 FPS is default)
+static QTimer* idleTimer = NULL;
 
 const int STARTUP_JITTER_SAMPLES = PACKET_LENGTH_SAMPLES_PER_CHANNEL / 2;
                                                  //  Startup optimistically with small jitter buffer that 
@@ -227,14 +228,14 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     
     const char* domainIP = getCmdOption(argc, constArgv, "--domain");
     if (domainIP) {
-        strcpy(DOMAIN_IP, domainIP);
+        NodeList::getInstance()->setDomainIP(domainIP);
     }
     
     // Handle Local Domain testing with the --local command line
     if (cmdOptionExists(argc, constArgv, "--local")) {
         printLog("Local Domain MODE!\n");
-        int ip = getLocalAddress();
-        sprintf(DOMAIN_IP,"%d.%d.%d.%d", (ip & 0xFF), ((ip >> 8) & 0xFF),((ip >> 16) & 0xFF), ((ip >> 24) & 0xFF));
+        
+        NodeList::getInstance()->setDomainIPToLocalhost();
     }
     
     // Check to see if the user passed in a command line option for loading a local
@@ -341,7 +342,7 @@ void Application::initializeGL() {
     timer->start(1000);
     
     // call our idle function whenever we can
-    QTimer* idleTimer = new QTimer(this);
+    idleTimer = new QTimer(this);
     connect(idleTimer, SIGNAL(timeout()), SLOT(idle()));
     idleTimer->start(0);
     _idleLoopStdev.reset();
@@ -973,19 +974,9 @@ void Application::idle() {
     gettimeofday(&check, NULL);
     
     //  Only run simulation code if more than IDLE_SIMULATE_MSECS have passed since last time we ran
-    sendPostedEvents(NULL, QEvent::TouchBegin);
-    sendPostedEvents(NULL, QEvent::TouchUpdate);
-    sendPostedEvents(NULL, QEvent::TouchEnd);
 
     double timeSinceLastUpdate = diffclock(&_lastTimeUpdated, &check);
     if (timeSinceLastUpdate > IDLE_SIMULATE_MSECS) {
-        
-        // If we're using multi-touch look, immediately process any
-        // touch events, and no other events.
-        // This is necessary because id the idle() call takes longer than the
-        // interval between idle() calls, the event loop never gets to run,
-        // and touch events get delayed.
-
         const float BIGGEST_DELTA_TIME_SECS = 0.25f;
         update(glm::clamp((float)timeSinceLastUpdate / 1000.f, 0.f, BIGGEST_DELTA_TIME_SECS));
         _glWidget->updateGL();
@@ -998,6 +989,9 @@ void Application::idle() {
             _idleLoopMeasuredJitter = _idleLoopStdev.getStDev();
             _idleLoopStdev.reset();
         }
+
+        // After finishing all of the above work, restart the idle timer, allowing 2ms to process events.
+        idleTimer->start(2);
     }
 }
 void Application::terminate() {
@@ -1101,8 +1095,14 @@ void Application::editPreferences() {
     QFormLayout* form = new QFormLayout();
     layout->addLayout(form, 1);
     
+    const int QLINE_MINIMUM_WIDTH = 400;
+    
+    QLineEdit* domainServerHostname = new QLineEdit(QString(NodeList::getInstance()->getDomainHostname()));
+    domainServerHostname->setMinimumWidth(QLINE_MINIMUM_WIDTH);
+    form->addRow("Domain server:", domainServerHostname);
+    
     QLineEdit* avatarURL = new QLineEdit(_myAvatar.getVoxels()->getVoxelURL().toString());
-    avatarURL->setMinimumWidth(400);
+    avatarURL->setMinimumWidth(QLINE_MINIMUM_WIDTH);
     form->addRow("Avatar URL:", avatarURL);
     
     QSpinBox* horizontalFieldOfView = new QSpinBox();
@@ -1133,9 +1133,33 @@ void Application::editPreferences() {
     if (dialog.exec() != QDialog::Accepted) {
         return;
     }
+    
+    
+    const char* newHostname = domainServerHostname->text().toLocal8Bit().data();
+    
+    // check if the domain server hostname is new 
+    if (memcmp(NodeList::getInstance()->getDomainHostname(), newHostname, sizeof(&newHostname)) != 0) {
+        // if so we need to clear the nodelist and delete the local voxels
+        Node *voxelServer = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_VOXEL_SERVER);
+        
+        if (voxelServer) {
+            voxelServer->lock();
+        }
+        
+        _voxels.killLocalVoxels();
+        
+        if (voxelServer) {
+            voxelServer->unlock();
+        }
+        
+        NodeList::getInstance()->clear();
+        NodeList::getInstance()->setDomainHostname(newHostname);
+    }
+    
     QUrl url(avatarURL->text());
     _myAvatar.getVoxels()->setVoxelURL(url);
     sendAvatarVoxelURLMessage(url);
+    
     _headCameraPitchYawScale = headCameraPitchYawScale->value();
     _myAvatar.setLeanScale(leanScale->value());
     _audioJitterBufferSamples = audioJitterBufferSamples->value();
@@ -1212,6 +1236,12 @@ void Application::cycleFrustumRenderMode() {
 
 void Application::setRenderWarnings(bool renderWarnings) {
     _voxels.setRenderPipelineWarnings(renderWarnings);
+}
+
+void Application::setRenderVoxels(bool voxelRender) {
+    if (!voxelRender) {
+        doKillLocalVoxels();
+    }
 }
 
 void Application::doKillLocalVoxels() {
@@ -1333,7 +1363,9 @@ struct SendVoxelsOperationArgs {
     unsigned char* newBaseOctCode;
     unsigned char messageBuffer[MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE];
     int bufferInUse;
-
+    uint64_t lastSendTime;
+    int packetsSent;
+    uint64_t bytesSent;
 };
 
 bool Application::sendVoxelsOperation(VoxelNode* node, void* extraData) {
@@ -1365,17 +1397,30 @@ bool Application::sendVoxelsOperation(VoxelNode* node, void* extraData) {
         codeColorBuffer[bytesInCode + GREEN_INDEX] = node->getColor()[GREEN_INDEX];
         codeColorBuffer[bytesInCode + BLUE_INDEX ] = node->getColor()[BLUE_INDEX ];
         
-        // TODO: sendVoxelsOperation() is sending voxels too fast.
-        //       This printf function accidently slowed down sending
-        //       and hot-fixed the bug when importing
-        //       large PNG models (256x256 px and more)
-        static unsigned int sendVoxelsOperationCalled = 0; printf("sending voxel #%u\n", ++sendVoxelsOperationCalled);
-
         // if we have room don't have room in the buffer, then send the previously generated message first
         if (args->bufferInUse + codeAndColorLength > MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE) {
+
+            args->packetsSent++;
+            args->bytesSent += args->bufferInUse;
+
             controlledBroadcastToNodes(args->messageBuffer, args->bufferInUse, & NODE_TYPE_VOXEL_SERVER, 1);
             args->bufferInUse = numBytesForPacketHeader((unsigned char*) &PACKET_TYPE_SET_VOXEL_DESTRUCTIVE)
                 + sizeof(unsigned short int); // reset
+                
+            uint64_t now = usecTimestampNow();
+            // dynamically sleep until we need to fire off the next set of voxels
+            const uint64_t CLIENT_TO_SERVER_VOXEL_SEND_INTERVAL_USECS = 1000 * 5; // 1 packet every 10 milliseconds
+            uint64_t elapsed = now - args->lastSendTime;
+            int usecToSleep =  CLIENT_TO_SERVER_VOXEL_SEND_INTERVAL_USECS - elapsed;
+            if (usecToSleep > 0) {
+                printLog("sendVoxelsOperation: packet: %d bytes:%ld elapsed %ld usecs, sleeping for %d usecs!\n", 
+                    args->packetsSent, args->bytesSent, elapsed, usecToSleep);
+                usleep(usecToSleep);
+            } else {
+                printLog("sendVoxelsOperation: packet: %d bytes:%ld elapsed %ld usecs, no need to sleep!\n", 
+                    args->packetsSent, args->bytesSent, elapsed);
+            }
+            args->lastSendTime = now;
         }
         
         // copy this node's code color details into our buffer.
@@ -1404,14 +1449,15 @@ void Application::exportVoxels() {
     _window->activateWindow();
 }
 
-void Application::importVoxels() {
+const char* IMPORT_FILE_TYPES = "Sparse Voxel Octree Files, Square PNG, Schematic Files (*.svo *.png *.schematic)";
+void Application::importVoxelsToClipboard() {
     QString desktopLocation = QDesktopServices::storageLocation(QDesktopServices::DesktopLocation);
-    QString fileNameString = QFileDialog::getOpenFileName(
-                _glWidget, tr("Import Voxels"), desktopLocation,
-                tr("Sparse Voxel Octree Files, Square PNG, Schematic Files (*.svo *.png *.schematic)"));
+    QString fileNameString = QFileDialog::getOpenFileName(_glWidget, tr("Import Voxels to Clipboard"), desktopLocation,
+                                                          tr(IMPORT_FILE_TYPES));
 
-    const char* fileName = fileNameString.toAscii().data();
-
+    QByteArray fileNameAscii = fileNameString.toAscii();
+    const char* fileName = fileNameAscii.data();
+    
     _clipboardTree.eraseAllVoxels();
     if (fileNameString.endsWith(".png", Qt::CaseInsensitive)) {
         QImage pngImage = QImage(fileName);
@@ -1427,12 +1473,81 @@ void Application::importVoxels() {
             QImage tmp = pngImage.convertToFormat(QImage::Format_ARGB32);
             pixels = reinterpret_cast<const uint32_t*>(tmp.constBits());
         }
-        
         _clipboardTree.readFromSquareARGB32Pixels(pixels, pngImage.height());
     } else if (fileNameString.endsWith(".svo", Qt::CaseInsensitive)) {
         _clipboardTree.readFromSVOFile(fileName);
     } else if (fileNameString.endsWith(".schematic", Qt::CaseInsensitive)) {
         _clipboardTree.readFromSchematicFile(fileName);
+    }
+
+    // restore the main window's active state
+    _window->activateWindow();
+}
+
+void Application::importVoxels() {
+    QString desktopLocation = QDesktopServices::storageLocation(QDesktopServices::DesktopLocation);
+    QString fileNameString = QFileDialog::getOpenFileName(_glWidget, tr("Import Voxels"), desktopLocation,
+                                                          tr(IMPORT_FILE_TYPES));
+
+    QByteArray fileNameAscii = fileNameString.toAscii();
+    const char* fileName = fileNameAscii.data();
+    
+    VoxelTree importVoxels;
+    if (fileNameString.endsWith(".png", Qt::CaseInsensitive)) {
+        QImage pngImage = QImage(fileName);
+        if (pngImage.height() != pngImage.width()) {
+            printLog("ERROR: Bad PNG size: height != width.\n");
+            return;
+        }
+        
+        const uint32_t* pixels;
+        if (pngImage.format() == QImage::Format_ARGB32) {
+            pixels = reinterpret_cast<const uint32_t*>(pngImage.constBits());
+        } else {
+            QImage tmp = pngImage.convertToFormat(QImage::Format_ARGB32);
+            pixels = reinterpret_cast<const uint32_t*>(tmp.constBits());
+        }
+        
+        importVoxels.readFromSquareARGB32Pixels(pixels, pngImage.height());        
+    } else if (fileNameString.endsWith(".svo", Qt::CaseInsensitive)) {
+        importVoxels.readFromSVOFile(fileName);
+    } else if (fileNameString.endsWith(".schematic", Qt::CaseInsensitive)) {
+        importVoxels.readFromSchematicFile(fileName);
+    }
+    
+    VoxelNode* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+    
+    // Recurse the Import Voxels tree, where everything is root relative, and send all the colored voxels to 
+    // the server as an set voxel message, this will also rebase the voxels to the new location
+    unsigned char* calculatedOctCode = NULL;
+    SendVoxelsOperationArgs args;
+    args.lastSendTime = usecTimestampNow();
+    args.packetsSent = 0;
+    args.bytesSent = 0;
+    
+    int numBytesPacketHeader = populateTypeAndVersion(args.messageBuffer, PACKET_TYPE_SET_VOXEL_DESTRUCTIVE);
+    
+    unsigned short int* sequenceAt = (unsigned short int*)&args.messageBuffer[numBytesPacketHeader];
+    *sequenceAt = 0;
+    args.bufferInUse = numBytesPacketHeader + sizeof(unsigned short int); // set to command + sequence
+
+    // we only need the selected voxel to get the newBaseOctCode, which we can actually calculate from the
+    // voxel size/position details.
+    if (selectedNode) {
+        args.newBaseOctCode = selectedNode->getOctalCode();
+    } else {
+        args.newBaseOctCode = calculatedOctCode = pointToVoxel(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+    }
+
+    importVoxels.recurseTreeWithOperation(sendVoxelsOperation, &args);
+
+    // If we have voxels left in the packet, then send the packet
+    if (args.bufferInUse > (numBytesPacketHeader + sizeof(unsigned short int))) {
+        controlledBroadcastToNodes(args.messageBuffer, args.bufferInUse, & NODE_TYPE_VOXEL_SERVER, 1);
+    }
+    
+    if (calculatedOctCode) {
+        delete[] calculatedOctCode;
     }
 
     // restore the main window's active state
@@ -1462,6 +1577,9 @@ void Application::pasteVoxels() {
     // Recurse the clipboard tree, where everything is root relative, and send all the colored voxels to 
     // the server as an set voxel message, this will also rebase the voxels to the new location
     SendVoxelsOperationArgs args;
+    args.lastSendTime = usecTimestampNow();
+    args.packetsSent = 0;
+    args.bytesSent = 0;
     
     int numBytesPacketHeader = populateTypeAndVersion(args.messageBuffer, PACKET_TYPE_SET_VOXEL_DESTRUCTIVE);
     
@@ -1483,6 +1601,9 @@ void Application::pasteVoxels() {
     // If we have voxels left in the packet, then send the packet
     if (args.bufferInUse > (numBytesPacketHeader + sizeof(unsigned short int))) {
         controlledBroadcastToNodes(args.messageBuffer, args.bufferInUse, & NODE_TYPE_VOXEL_SERVER, 1);
+        printLog("sending packet: %d\n", ++args.packetsSent);
+        args.bytesSent += args.bufferInUse;
+        printLog("total bytes sent: %ld\n", args.bytesSent);
     }
     
     if (calculatedOctCode) {
@@ -1524,9 +1645,8 @@ void Application::initMenu() {
     optionsMenu->addAction("Go Home", this, SLOT(goHome()));
     
     QMenu* renderMenu = menuBar->addMenu("Render");
-    (_renderVoxels = renderMenu->addAction("Voxels"))->setCheckable(true);
+    (_renderVoxels = renderMenu->addAction("Voxels", this, SLOT(setRenderVoxels(bool)), Qt::SHIFT | Qt::Key_V))->setCheckable(true);
     _renderVoxels->setChecked(true);
-    _renderVoxels->setShortcut(Qt::SHIFT | Qt::Key_V);
     (_renderVoxelTextures = renderMenu->addAction("Voxel Textures"))->setCheckable(true);
     (_renderStarsOn = renderMenu->addAction("Stars"))->setCheckable(true);
     _renderStarsOn->setChecked(true);
@@ -1602,6 +1722,7 @@ void Application::initMenu() {
     
     voxelMenu->addAction("Export Voxels", this, SLOT(exportVoxels()), Qt::CTRL | Qt::Key_E);
     voxelMenu->addAction("Import Voxels", this, SLOT(importVoxels()), Qt::CTRL | Qt::Key_I);
+    voxelMenu->addAction("Import Voxels to Clipboard", this, SLOT(importVoxelsToClipboard()), Qt::SHIFT | Qt::CTRL | Qt::Key_I);
     voxelMenu->addAction("Cut Voxels",    this, SLOT(cutVoxels()),    Qt::CTRL | Qt::Key_X);
     voxelMenu->addAction("Copy Voxels",   this, SLOT(copyVoxels()),   Qt::CTRL | Qt::Key_C);
     voxelMenu->addAction("Paste Voxels",  this, SLOT(pasteVoxels()),  Qt::CTRL | Qt::Key_V);
@@ -1927,8 +2048,8 @@ void Application::update(float deltaTime) {
     
     //loop through all the other avatars and simulate them...
     NodeList* nodeList = NodeList::getInstance();
-    nodeList->lock();
     for(NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+        node->lock();
         if (node->getLinkedData() != NULL) {
             Avatar *avatar = (Avatar *)node->getLinkedData();
             if (!avatar->isInitialized()) {
@@ -1937,8 +2058,8 @@ void Application::update(float deltaTime) {
             avatar->simulate(deltaTime, NULL);
             avatar->setMouseRay(mouseRayOrigin, mouseRayDirection);
         }
+        node->unlock();
     }
-    nodeList->unlock();
 
     //  Simulate myself
     if (_gravityUse->isChecked()) {
@@ -2427,8 +2548,10 @@ void Application::displaySide(Camera& whichCamera) {
     if (_renderAvatarsOn->isChecked()) {
         //  Render avatars of other nodes
         NodeList* nodeList = NodeList::getInstance();
-        nodeList->lock();
+        
         for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+            node->lock();
+            
             if (node->getLinkedData() != NULL && node->getType() == NODE_TYPE_AGENT) {
                 Avatar *avatar = (Avatar *)node->getLinkedData();
                 if (!avatar->isInitialized()) {
@@ -2437,8 +2560,9 @@ void Application::displaySide(Camera& whichCamera) {
                 avatar->render(false, _renderAvatarBalls->isChecked());
                 avatar->setDisplayingLookatVectors(_renderLookatOn->isChecked());
             }
+            
+            node->unlock();
         }
-        nodeList->unlock();
         
         // Render my own Avatar
         if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
@@ -3187,7 +3311,7 @@ void* Application::networkReceive(void* args) {
         if (app->_wantToKillLocalVoxels) {
             app->_voxels.killLocalVoxels();
             app->_wantToKillLocalVoxels = false;
-        }
+        }       
     
         if (NodeList::getInstance()->getNodeSocket()->receive(&senderAddress, app->_incomingPacket, &bytesReceived)) {
             app->_packetCount++;
@@ -3208,11 +3332,23 @@ void* Application::networkReceive(void* args) {
                     case PACKET_TYPE_VOXEL_DATA_MONOCHROME:
                     case PACKET_TYPE_Z_COMMAND:
                     case PACKET_TYPE_ERASE_VOXEL:
-                        app->_voxels.parseData(app->_incomingPacket, bytesReceived);
+                    case PACKET_TYPE_ENVIRONMENT_DATA: {
+                        if (app->_renderVoxels->isChecked()) {
+                            Node* voxelServer = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_VOXEL_SERVER);
+                            if (voxelServer) {
+                                voxelServer->lock();
+                                
+                                if (app->_incomingPacket[0] == PACKET_TYPE_ENVIRONMENT_DATA) {
+                                    app->_environment.parseData(&senderAddress, app->_incomingPacket, bytesReceived);
+                                } else {
+                                    app->_voxels.parseData(app->_incomingPacket, bytesReceived);
+                                }
+                                
+                                voxelServer->unlock();
+                            }
+                        }
                         break;
-                    case PACKET_TYPE_ENVIRONMENT_DATA:
-                        app->_environment.parseData(&senderAddress, app->_incomingPacket, bytesReceived);
-                        break;
+                    }
                     case PACKET_TYPE_BULK_AVATAR_DATA:
                         NodeList::getInstance()->processBulkNodeData(&senderAddress,
                                                                      app->_incomingPacket,
