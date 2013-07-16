@@ -1244,6 +1244,12 @@ void Application::setRenderWarnings(bool renderWarnings) {
     _voxels.setRenderPipelineWarnings(renderWarnings);
 }
 
+void Application::setRenderVoxels(bool voxelRender) {
+    if (!voxelRender) {
+        doKillLocalVoxels();
+    }
+}
+
 void Application::doKillLocalVoxels() {
     _wantToKillLocalVoxels = true;
 }
@@ -1554,9 +1560,8 @@ void Application::initMenu() {
     optionsMenu->addAction("Go Home", this, SLOT(goHome()));
     
     QMenu* renderMenu = menuBar->addMenu("Render");
-    (_renderVoxels = renderMenu->addAction("Voxels"))->setCheckable(true);
+    (_renderVoxels = renderMenu->addAction("Voxels", this, SLOT(setRenderVoxels(bool)), Qt::SHIFT | Qt::Key_V))->setCheckable(true);
     _renderVoxels->setChecked(true);
-    _renderVoxels->setShortcut(Qt::SHIFT | Qt::Key_V);
     (_renderVoxelTextures = renderMenu->addAction("Voxel Textures"))->setCheckable(true);
     (_renderStarsOn = renderMenu->addAction("Stars"))->setCheckable(true);
     _renderStarsOn->setChecked(true);
@@ -3219,7 +3224,7 @@ void* Application::networkReceive(void* args) {
         if (app->_wantToKillLocalVoxels) {
             app->_voxels.killLocalVoxels();
             app->_wantToKillLocalVoxels = false;
-        }
+        }       
     
         if (NodeList::getInstance()->getNodeSocket()->receive(&senderAddress, app->_incomingPacket, &bytesReceived)) {
             app->_packetCount++;
@@ -3241,17 +3246,19 @@ void* Application::networkReceive(void* args) {
                     case PACKET_TYPE_Z_COMMAND:
                     case PACKET_TYPE_ERASE_VOXEL:
                     case PACKET_TYPE_ENVIRONMENT_DATA: {
-                        Node* voxelServer = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_VOXEL_SERVER);
-                        if (voxelServer) {
-                            voxelServer->lock();
-                            
-                            if (app->_incomingPacket[0] == PACKET_TYPE_ENVIRONMENT_DATA) {
-                                app->_environment.parseData(&senderAddress, app->_incomingPacket, bytesReceived);
-                            } else {
-                                app->_voxels.parseData(app->_incomingPacket, bytesReceived);
+                        if (app->_renderVoxels->isChecked()) {
+                            Node* voxelServer = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_VOXEL_SERVER);
+                            if (voxelServer) {
+                                voxelServer->lock();
+                                
+                                if (app->_incomingPacket[0] == PACKET_TYPE_ENVIRONMENT_DATA) {
+                                    app->_environment.parseData(&senderAddress, app->_incomingPacket, bytesReceived);
+                                } else {
+                                    app->_voxels.parseData(app->_incomingPacket, bytesReceived);
+                                }
+                                
+                                voxelServer->unlock();
                             }
-                            
-                            voxelServer->unlock();
                         }
                         break;
                     }
