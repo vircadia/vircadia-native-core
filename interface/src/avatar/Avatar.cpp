@@ -316,6 +316,7 @@ void Avatar::updateFromGyrosAndOrWebcam(bool gyroLook,
         _head.getFace().setDepthTextureID(webcam->getDepthTextureID());
         _head.getFace().setTextureSize(webcam->getTextureSize());
         _head.getFace().setTextureRect(webcam->getEstimatedFaceRect());
+        _head.getFace().setKeyPoints(webcam->getKeyPoints());
         
         // compute and store the joint rotations
         const JointVector& joints = webcam->getEstimatedJoints();
