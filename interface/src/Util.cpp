@@ -6,7 +6,6 @@
 //  Copyright (c) 2012 High Fidelity, Inc. All rights reserved.
 //
 
-#include "InterfaceConfig.h"
 #include <iostream>
 #include <cstring>
 #include <time.h>
@@ -15,16 +14,16 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/noise.hpp>
 #include <glm/gtx/quaternion.hpp>
+
 #include <AvatarData.h>
 #include <SharedUtil.h>
 
-#include "Log.h"
+#include "InterfaceConfig.h"
 #include "ui/TextRenderer.h"
-#include "world.h"
-#include "Util.h"
-
-
 #include "VoxelConstants.h"
+#include "world.h"
+
+#include "Util.h"
 
 using namespace std;
 
@@ -452,7 +451,7 @@ void renderOrientationDirections(glm::vec3 position, const glm::quat& orientatio
 
 bool closeEnoughForGovernmentWork(float a, float b) {
     float distance = std::abs(a-b);
-    //printLog("closeEnoughForGovernmentWork() a=%1.10f b=%1.10f distance=%1.10f\n",a,b,distance);
+    //qDebug("closeEnoughForGovernmentWork() a=%1.10f b=%1.10f distance=%1.10f\n",a,b,distance);
     return (distance < 0.00001f);
 }
 
@@ -470,7 +469,7 @@ void runTimingTests() {
         gettimeofday(&endTime, NULL);
     }
     elapsedMsecs = diffclock(&startTime, &endTime);
-    printLog("gettimeofday() usecs: %f\n", 1000.0f * elapsedMsecs / (float) numTests);
+    qDebug("gettimeofday() usecs: %f\n", 1000.0f * elapsedMsecs / (float) numTests);
     
     // Random number generation
     gettimeofday(&startTime, NULL);
@@ -479,7 +478,7 @@ void runTimingTests() {
     }
     gettimeofday(&endTime, NULL);
     elapsedMsecs = diffclock(&startTime, &endTime);
-    printLog("rand() stored in array usecs: %f\n", 1000.0f * elapsedMsecs / (float) numTests);
+    qDebug("rand() stored in array usecs: %f\n", 1000.0f * elapsedMsecs / (float) numTests);
 
     // Random number generation using randFloat()
     gettimeofday(&startTime, NULL);
@@ -488,7 +487,7 @@ void runTimingTests() {
     }
     gettimeofday(&endTime, NULL);
     elapsedMsecs = diffclock(&startTime, &endTime);
-    printLog("randFloat() stored in array usecs: %f\n", 1000.0f * elapsedMsecs / (float) numTests);
+    qDebug("randFloat() stored in array usecs: %f\n", 1000.0f * elapsedMsecs / (float) numTests);
 
     //  PowF function
     fTest = 1145323.2342f;
@@ -498,7 +497,7 @@ void runTimingTests() {
     }
     gettimeofday(&endTime, NULL);
     elapsedMsecs = diffclock(&startTime, &endTime);
-    printLog("powf(f, 0.5) usecs: %f\n", 1000.0f * elapsedMsecs / (float) numTests);
+    qDebug("powf(f, 0.5) usecs: %f\n", 1000.0f * elapsedMsecs / (float) numTests);
 
     //  Vector Math
     float distance;
@@ -511,7 +510,7 @@ void runTimingTests() {
     }
     gettimeofday(&endTime, NULL);
     elapsedMsecs = diffclock(&startTime, &endTime);
-    printLog("vector math usecs: %f [%f msecs total for %d tests]\n", 
+    qDebug("vector math usecs: %f [%f msecs total for %d tests]\n", 
              1000.0f * elapsedMsecs / (float) numTests, elapsedMsecs, numTests);
     
     //  Vec3 test
@@ -525,7 +524,7 @@ void runTimingTests() {
     }
     gettimeofday(&endTime, NULL);
     elapsedMsecs = diffclock(&startTime, &endTime);
-    printLog("vec3 assign and dot() usecs: %f\n", 1000.0f * elapsedMsecs / (float) numTests);
+    qDebug("vec3 assign and dot() usecs: %f\n", 1000.0f * elapsedMsecs / (float) numTests);
 
     
 }

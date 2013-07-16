@@ -5,9 +5,10 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 
 #include <glm/gtx/quaternion.hpp>
+
 #include <SharedUtil.h>
 #include <VoxelConstants.h>
-#include "Log.h"
+
 #include "Camera.h"
 #include "Util.h"
 
