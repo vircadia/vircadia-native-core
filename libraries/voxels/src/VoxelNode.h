@@ -41,7 +41,7 @@ private:
     void calculateAABox();
 
     void init(unsigned char * octalCode);
-    
+
 public:
     VoxelNode(); // root node constructor
     VoxelNode(unsigned char * octalCode); // regular constructor
