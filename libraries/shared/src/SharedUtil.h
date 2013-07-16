@@ -9,9 +9,11 @@
 #ifndef __hifi__SharedUtil__
 #define __hifi__SharedUtil__
 
+#include <math.h>
 #include <stdint.h>
 #include <unistd.h>
-#include <math.h>
+
+#include <QDebug>
 
 #ifdef _WIN32
 #include "Systime.h"
@@ -65,6 +67,8 @@ void loadRandomIdentifier(unsigned char* identifierBuffer, int numBytes);
 
 const char* getCmdOption(int argc, const char * argv[],const char* option);
 bool cmdOptionExists(int argc, const char * argv[],const char* option);
+
+void sharedMessageHandler(QtMsgType type, const char* message);
 
 struct VoxelDetail {
 	float x;

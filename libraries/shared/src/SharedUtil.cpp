@@ -188,6 +188,10 @@ bool cmdOptionExists(int argc, const char * argv[],const char* option) {
     return false;
 }
 
+void sharedMessageHandler(QtMsgType type, const char* message) {
+    fprintf(stdout, "%s", message);
+}
+
 //////////////////////////////////////////////////////////////////////////////////////////
 // Function:    createVoxelEditMessage()
 // Description: creates an "insert" or "remove" voxel message for a voxel code 
