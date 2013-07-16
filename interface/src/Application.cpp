@@ -1447,7 +1447,7 @@ void Application::importVoxels() {
         importVoxels.readFromSquareARGB32Pixels(pixels, pngImage.height());        
     } else if (fileNameString.endsWith(".svo", Qt::CaseInsensitive)) {
         importVoxels.readFromSVOFile(fileName);
-    } else {
+    } else if (fileNameString.endsWith(".schematic", Qt::CaseInsensitive)) {
         importVoxels.readFromSchematicFile(fileName);
     }
     
@@ -1480,9 +1480,6 @@ void Application::importVoxels() {
     // If we have voxels left in the packet, then send the packet
     if (args.bufferInUse > (numBytesPacketHeader + sizeof(unsigned short int))) {
         controlledBroadcastToNodes(args.messageBuffer, args.bufferInUse, & NODE_TYPE_VOXEL_SERVER, 1);
-        printLog("sending packet: %d\n", ++args.packetsSent);
-        args.bytesSent += args.bufferInUse;
-        printLog("total bytes sent: %ld\n", args.bytesSent);
     }
     
     if (calculatedOctCode) {
@@ -1704,6 +1701,8 @@ void Application::initMenu() {
     (_renderCoverageMapV2 = debugMenu->addAction("Render Coverage Map V2"))->setCheckable(true);
     _renderCoverageMapV2->setShortcut(Qt::SHIFT | Qt::CTRL | Qt::Key_P);
 
+    (_simulateLeapHand = debugMenu->addAction("Simulate Leap Hand"))->setCheckable(true);
+    (_testRaveGlove = debugMenu->addAction("Test RaveGlove"))->setCheckable(true);
 
     QMenu* settingsMenu = menuBar->addMenu("Settings");
     (_settingsAutosave = settingsMenu->addAction("Autosave"))->setCheckable(true);
@@ -1962,6 +1961,7 @@ void Application::update(float deltaTime) {
     }
     
     // Leap finger-sensing device
+    LeapManager::enableFakeFingers(_simulateLeapHand->isChecked() || _testRaveGlove->isChecked());
     LeapManager::nextFrame();
     _myAvatar.getHand().setLeapFingers(LeapManager::getFingerTips(), LeapManager::getFingerRoots());
     _myAvatar.getHand().setLeapHands(LeapManager::getHandPositions(), LeapManager::getHandNormals());
