@@ -1048,7 +1048,7 @@ void Avatar::render(bool lookingInMirror, bool renderAvatarBalls) {
         }
         glPushMatrix();
         
-        glm::vec3 chatPosition = _bodyBall[BODY_BALL_HEAD_BASE].position + getBodyUpDirection() * chatMessageHeight;
+        glm::vec3 chatPosition = _bodyBall[BODY_BALL_HEAD_BASE].position + getBodyUpDirection() * chatMessageHeight * _scale;
         glTranslatef(chatPosition.x, chatPosition.y, chatPosition.z);
         glm::quat chatRotation = Application::getInstance()->getCamera()->getRotation();
         glm::vec3 chatAxis = glm::axis(chatRotation);
@@ -1058,7 +1058,7 @@ void Avatar::render(bool lookingInMirror, bool renderAvatarBalls) {
         glColor3f(0, 0.8, 0);
         glRotatef(180, 0, 1, 0);
         glRotatef(180, 0, 0, 1);
-        glScalef(chatMessageScale, chatMessageScale, 1.0f);
+        glScalef(_scale * chatMessageScale, _scale * chatMessageScale, 1.0f);
         
         glDisable(GL_LIGHTING);
         glDepthMask(false);
