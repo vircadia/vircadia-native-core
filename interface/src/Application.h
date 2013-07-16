@@ -129,6 +129,7 @@ private slots:
     void cycleFrustumRenderMode();
     
     void setRenderWarnings(bool renderWarnings);
+    void setRenderVoxels(bool renderVoxels);
     void doKillLocalVoxels();
     void doRandomizeVoxelColors();
     void doFalseRandomizeVoxelColors();
