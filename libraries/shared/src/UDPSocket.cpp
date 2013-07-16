@@ -6,10 +6,9 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
-#include "UDPSocket.h"
-#include <fcntl.h>
 #include <cstdio>
 #include <errno.h>
+#include <fcntl.h>
 #include <string.h>
 
 #ifdef _WIN32
@@ -21,7 +20,9 @@
 #include <unistd.h>
 #endif
 
-#include "Log.h"
+#include <QDebug>
+
+#include "UDPSocket.h"
 
 sockaddr_in destSockaddr, senderAddress;
 
@@ -134,7 +135,7 @@ UDPSocket::UDPSocket(int listeningPort) : listeningPort(listeningPort), blocking
     handle = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     
     if (handle <= 0) {
-        printLog("Failed to create socket.\n");
+        qDebug("Failed to create socket.\n");
         return;
     }
     
@@ -147,7 +148,7 @@ UDPSocket::UDPSocket(int listeningPort) : listeningPort(listeningPort), blocking
     bind_address.sin_port = htons((uint16_t) listeningPort);
     
     if (bind(handle, (const sockaddr*) &bind_address, sizeof(sockaddr_in)) < 0) {
-        printLog("Failed to bind socket to port %d.\n", listeningPort);
+        qDebug("Failed to bind socket to port %d.\n", listeningPort);
         return;
     }
     
@@ -164,7 +165,7 @@ UDPSocket::UDPSocket(int listeningPort) : listeningPort(listeningPort), blocking
     tv.tv_usec = 500000;
     setsockopt(handle, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv, sizeof tv);
     
-    printLog("Created UDP socket listening on port %d.\n", listeningPort);
+    qDebug("Created UDP socket listening on port %d.\n", listeningPort);
 }
 
 UDPSocket::~UDPSocket() {
@@ -244,7 +245,7 @@ int UDPSocket::send(sockaddr* destAddress, const void* data, size_t byteLength) 
                             0, (sockaddr *) destAddress, sizeof(sockaddr_in));
     
     if (sent_bytes != byteLength) {
-        printLog("Failed to send packet: %s\n", strerror(errno));
+        qDebug("Failed to send packet: %s\n", strerror(errno));
         return false;
     }
     

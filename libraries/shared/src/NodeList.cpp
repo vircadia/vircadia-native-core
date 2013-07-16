@@ -11,11 +11,12 @@
 #include <cstdlib>
 #include <cstdio>
 
+#include <QDebug>
+
 #include "NodeList.h"
 #include "NodeTypes.h"
 #include "PacketHeaders.h"
 #include "SharedUtil.h"
-#include "Log.h"
 
 #ifdef _WIN32
 #include "Syssocket.h"
@@ -42,7 +43,7 @@ NodeList* NodeList::createInstance(char ownerType, unsigned int socketListenPort
     if (!_sharedInstance) {
         _sharedInstance = new NodeList(ownerType, socketListenPort);
     } else {
-        printLog("NodeList createInstance called with existing instance.\n");
+        qDebug("NodeList createInstance called with existing instance.\n");
     }
     
     return _sharedInstance;
@@ -50,7 +51,7 @@ NodeList* NodeList::createInstance(char ownerType, unsigned int socketListenPort
 
 NodeList* NodeList::getInstance() {
     if (!_sharedInstance) {
-        printLog("NodeList getInstance called before call to createInstance. Returning NULL pointer.\n");
+        qDebug("NodeList getInstance called before call to createInstance. Returning NULL pointer.\n");
     }
     
     return _sharedInstance;
@@ -274,12 +275,13 @@ void NodeList::sendDomainServerCheckIn() {
             sockaddr_in tempAddress;
             memcpy(&tempAddress.sin_addr, pHostInfo->h_addr_list[0], pHostInfo->h_length);
             strcpy(_domainIP, inet_ntoa(tempAddress.sin_addr));
-            printLog("Domain Server: %s \n", _domainHostname);
+
+            qDebug("Domain Server: %s\n", _domainHostname);
         } else {
-            printLog("Failed domain server lookup\n");
+            qDebug("Failed domain server lookup\n");
         }
     } else if (!printedDomainServerIP) {
-        printLog("Domain Server IP: %s\n", _domainIP);
+        qDebug("Domain Server IP: %s\n", _domainIP);
         printedDomainServerIP = true;
     }
     
@@ -428,8 +430,7 @@ void NodeList::addNodeToList(Node* newNode) {
     
     ++_numNodes;
     
-    printLog("Added ");
-    Node::printLog(*newNode);
+    qDebug() << "Added" << *newNode << "\n";
 }
 
 unsigned NodeList::broadcastToNodes(unsigned char *broadcastData, size_t dataBytes, const char* nodeTypes, int numNodeTypes) {
@@ -484,8 +485,7 @@ void *removeSilentNodes(void *args) {
             if ((checkTimeUSecs - node->getLastHeardMicrostamp()) > NODE_SILENCE_THRESHOLD_USECS
             	&& node->getType() != NODE_TYPE_VOXEL_SERVER) {
             
-                printLog("Killed ");
-                Node::printLog(*node);
+                qDebug() << "Killed" << *node << "\n";
                 
                 node->setAlive(false);
             }

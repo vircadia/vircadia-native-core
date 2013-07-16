@@ -164,6 +164,13 @@ void GLCanvas::wheelEvent(QWheelEvent* event) {
     Application::getInstance()->wheelEvent(event);
 }
 
+void messageHandler(QtMsgType type, const char* message) {
+    printf("%s", message);
+    fflush(stdout);
+    
+    LogDisplay::instance.addMessage(message);
+}
+
 Application::Application(int& argc, char** argv, timeval &startup_time) :
         QApplication(argc, argv),
         _window(new QMainWindow(desktop())),
@@ -210,7 +217,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
 {
     _applicationStartupTime = startup_time;
     _window->setWindowTitle("Interface");
-    printLog("Interface Startup:\n");
+    
+    qInstallMsgHandler(messageHandler);
     
     unsigned int listenPort = 0; // bind to an ephemeral port by default
     const char** constArgv = const_cast<const char**>(argv);
@@ -233,7 +241,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     
     // Handle Local Domain testing with the --local command line
     if (cmdOptionExists(argc, constArgv, "--local")) {
-        printLog("Local Domain MODE!\n");
+        qDebug("Local Domain MODE!\n");
         
         NodeList::getInstance()->setDomainIPToLocalhost();
     }
@@ -297,7 +305,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
 }
 
 void Application::initializeGL() {
-    printLog( "Created Display Window.\n" );
+    qDebug( "Created Display Window.\n" );
     
     // initialize glut for shape drawing; Qt apparently initializes it on OS X
     #ifndef __APPLE__
@@ -312,10 +320,10 @@ void Application::initializeGL() {
     _viewFrustumOffsetCamera.setFarClip(500.0 * TREE_SCALE);
     
     initDisplay();
-    printLog( "Initialized Display.\n" );
+    qDebug( "Initialized Display.\n" );
     
     init();
-    printLog( "Init() complete.\n" );
+    qDebug( "Init() complete.\n" );
     
     // Check to see if the user passed in a command line option for randomizing colors
     bool wantColorRandomizer = !arguments().contains("--NoColorRandomizer");
@@ -324,13 +332,13 @@ void Application::initializeGL() {
     // Voxel File. If so, load it now.
     if (!_voxelsFilename.isEmpty()) {
         _voxels.loadVoxelsFile(_voxelsFilename.constData(), wantColorRandomizer);
-        printLog("Local Voxel File loaded.\n");
+        qDebug("Local Voxel File loaded.\n");
     }
     
     // create thread for receipt of data via UDP
     if (_enableNetworkThread) {
         pthread_create(&_networkReceiveThread, NULL, networkReceive, NULL);
-        printLog("Network receive thread created.\n"); 
+        qDebug("Network receive thread created.\n"); 
     }
     
     // call terminate before exiting
@@ -352,7 +360,7 @@ void Application::initializeGL() {
         _justStarted = false;
         char title[50];
         sprintf(title, "Interface: %4.2f seconds\n", startupTime);
-        printLog("%s", title);
+        qDebug("%s", title);
         _window->setWindowTitle(title);
         
         const char LOGSTASH_INTERFACE_START_TIME_KEY[] = "interface-start-time";
@@ -1363,7 +1371,9 @@ struct SendVoxelsOperationArgs {
     unsigned char* newBaseOctCode;
     unsigned char messageBuffer[MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE];
     int bufferInUse;
-
+    uint64_t lastSendTime;
+    int packetsSent;
+    uint64_t bytesSent;
 };
 
 bool Application::sendVoxelsOperation(VoxelNode* node, void* extraData) {
@@ -1395,17 +1405,30 @@ bool Application::sendVoxelsOperation(VoxelNode* node, void* extraData) {
         codeColorBuffer[bytesInCode + GREEN_INDEX] = node->getColor()[GREEN_INDEX];
         codeColorBuffer[bytesInCode + BLUE_INDEX ] = node->getColor()[BLUE_INDEX ];
         
-        // TODO: sendVoxelsOperation() is sending voxels too fast.
-        //       This printf function accidently slowed down sending
-        //       and hot-fixed the bug when importing
-        //       large PNG models (256x256 px and more)
-        static unsigned int sendVoxelsOperationCalled = 0; printf("sending voxel #%u\n", ++sendVoxelsOperationCalled);
-
         // if we have room don't have room in the buffer, then send the previously generated message first
         if (args->bufferInUse + codeAndColorLength > MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE) {
+
+            args->packetsSent++;
+            args->bytesSent += args->bufferInUse;
+
             controlledBroadcastToNodes(args->messageBuffer, args->bufferInUse, & NODE_TYPE_VOXEL_SERVER, 1);
             args->bufferInUse = numBytesForPacketHeader((unsigned char*) &PACKET_TYPE_SET_VOXEL_DESTRUCTIVE)
                 + sizeof(unsigned short int); // reset
+                
+            uint64_t now = usecTimestampNow();
+            // dynamically sleep until we need to fire off the next set of voxels
+            const uint64_t CLIENT_TO_SERVER_VOXEL_SEND_INTERVAL_USECS = 1000 * 5; // 1 packet every 10 milliseconds
+            uint64_t elapsed = now - args->lastSendTime;
+            int usecToSleep =  CLIENT_TO_SERVER_VOXEL_SEND_INTERVAL_USECS - elapsed;
+            if (usecToSleep > 0) {
+                qDebug("sendVoxelsOperation: packet: %d bytes:%lld elapsed %lld usecs, sleeping for %d usecs!\n",
+                       args->packetsSent, args->bytesSent, elapsed, usecToSleep);
+                usleep(usecToSleep);
+            } else {
+                qDebug("sendVoxelsOperation: packet: %d bytes:%lld elapsed %lld usecs, no need to sleep!\n",
+                       args->packetsSent, args->bytesSent, elapsed);
+            }
+            args->lastSendTime = now;
         }
         
         // copy this node's code color details into our buffer.
@@ -1434,19 +1457,54 @@ void Application::exportVoxels() {
     _window->activateWindow();
 }
 
-void Application::importVoxels() {
+const char* IMPORT_FILE_TYPES = "Sparse Voxel Octree Files, Square PNG, Schematic Files (*.svo *.png *.schematic)";
+void Application::importVoxelsToClipboard() {
     QString desktopLocation = QDesktopServices::storageLocation(QDesktopServices::DesktopLocation);
-    QString fileNameString = QFileDialog::getOpenFileName(
-                _glWidget, tr("Import Voxels"), desktopLocation,
-                tr("Sparse Voxel Octree Files, Square PNG, Schematic Files (*.svo *.png *.schematic)"));
+    QString fileNameString = QFileDialog::getOpenFileName(_glWidget, tr("Import Voxels to Clipboard"), desktopLocation,
+                                                          tr(IMPORT_FILE_TYPES));
 
-    const char* fileName = fileNameString.toAscii().data();
-
+    QByteArray fileNameAscii = fileNameString.toAscii();
+    const char* fileName = fileNameAscii.data();
+    
     _clipboardTree.eraseAllVoxels();
     if (fileNameString.endsWith(".png", Qt::CaseInsensitive)) {
         QImage pngImage = QImage(fileName);
         if (pngImage.height() != pngImage.width()) {
-            printLog("ERROR: Bad PNG size: height != width.\n");
+            qDebug("ERROR: Bad PNG size: height != width.\n");
+            return;
+        }
+        
+        const uint32_t* pixels;
+        if (pngImage.format() == QImage::Format_ARGB32) {
+            pixels = reinterpret_cast<const uint32_t*>(pngImage.constBits());
+        } else {
+            QImage tmp = pngImage.convertToFormat(QImage::Format_ARGB32);
+            pixels = reinterpret_cast<const uint32_t*>(tmp.constBits());
+        }
+        _clipboardTree.readFromSquareARGB32Pixels(pixels, pngImage.height());
+    } else if (fileNameString.endsWith(".svo", Qt::CaseInsensitive)) {
+        _clipboardTree.readFromSVOFile(fileName);
+    } else if (fileNameString.endsWith(".schematic", Qt::CaseInsensitive)) {
+        _clipboardTree.readFromSchematicFile(fileName);
+    }
+
+    // restore the main window's active state
+    _window->activateWindow();
+}
+
+void Application::importVoxels() {
+    QString desktopLocation = QDesktopServices::storageLocation(QDesktopServices::DesktopLocation);
+    QString fileNameString = QFileDialog::getOpenFileName(_glWidget, tr("Import Voxels"), desktopLocation,
+                                                          tr(IMPORT_FILE_TYPES));
+
+    QByteArray fileNameAscii = fileNameString.toAscii();
+    const char* fileName = fileNameAscii.data();
+    
+    VoxelTree importVoxels;
+    if (fileNameString.endsWith(".png", Qt::CaseInsensitive)) {
+        QImage pngImage = QImage(fileName);
+        if (pngImage.height() != pngImage.width()) {
+            qDebug("ERROR: Bad PNG size: height != width.\n");
             return;
         }
         
@@ -1458,11 +1516,46 @@ void Application::importVoxels() {
             pixels = reinterpret_cast<const uint32_t*>(tmp.constBits());
         }
         
-        _clipboardTree.readFromSquareARGB32Pixels(pixels, pngImage.height());
+        importVoxels.readFromSquareARGB32Pixels(pixels, pngImage.height());        
     } else if (fileNameString.endsWith(".svo", Qt::CaseInsensitive)) {
-        _clipboardTree.readFromSVOFile(fileName);
+        importVoxels.readFromSVOFile(fileName);
     } else if (fileNameString.endsWith(".schematic", Qt::CaseInsensitive)) {
-        _clipboardTree.readFromSchematicFile(fileName);
+        importVoxels.readFromSchematicFile(fileName);
+    }
+    
+    VoxelNode* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+    
+    // Recurse the Import Voxels tree, where everything is root relative, and send all the colored voxels to 
+    // the server as an set voxel message, this will also rebase the voxels to the new location
+    unsigned char* calculatedOctCode = NULL;
+    SendVoxelsOperationArgs args;
+    args.lastSendTime = usecTimestampNow();
+    args.packetsSent = 0;
+    args.bytesSent = 0;
+    
+    int numBytesPacketHeader = populateTypeAndVersion(args.messageBuffer, PACKET_TYPE_SET_VOXEL_DESTRUCTIVE);
+    
+    unsigned short int* sequenceAt = (unsigned short int*)&args.messageBuffer[numBytesPacketHeader];
+    *sequenceAt = 0;
+    args.bufferInUse = numBytesPacketHeader + sizeof(unsigned short int); // set to command + sequence
+
+    // we only need the selected voxel to get the newBaseOctCode, which we can actually calculate from the
+    // voxel size/position details.
+    if (selectedNode) {
+        args.newBaseOctCode = selectedNode->getOctalCode();
+    } else {
+        args.newBaseOctCode = calculatedOctCode = pointToVoxel(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+    }
+
+    importVoxels.recurseTreeWithOperation(sendVoxelsOperation, &args);
+
+    // If we have voxels left in the packet, then send the packet
+    if (args.bufferInUse > (numBytesPacketHeader + sizeof(unsigned short int))) {
+        controlledBroadcastToNodes(args.messageBuffer, args.bufferInUse, & NODE_TYPE_VOXEL_SERVER, 1);
+    }
+    
+    if (calculatedOctCode) {
+        delete[] calculatedOctCode;
     }
 
     // restore the main window's active state
@@ -1492,6 +1585,9 @@ void Application::pasteVoxels() {
     // Recurse the clipboard tree, where everything is root relative, and send all the colored voxels to 
     // the server as an set voxel message, this will also rebase the voxels to the new location
     SendVoxelsOperationArgs args;
+    args.lastSendTime = usecTimestampNow();
+    args.packetsSent = 0;
+    args.bytesSent = 0;
     
     int numBytesPacketHeader = populateTypeAndVersion(args.messageBuffer, PACKET_TYPE_SET_VOXEL_DESTRUCTIVE);
     
@@ -1513,6 +1609,9 @@ void Application::pasteVoxels() {
     // If we have voxels left in the packet, then send the packet
     if (args.bufferInUse > (numBytesPacketHeader + sizeof(unsigned short int))) {
         controlledBroadcastToNodes(args.messageBuffer, args.bufferInUse, & NODE_TYPE_VOXEL_SERVER, 1);
+        qDebug("sending packet: %d\n", ++args.packetsSent);
+        args.bytesSent += args.bufferInUse;
+        qDebug("total bytes sent: %lld\n", args.bytesSent);
     }
     
     if (calculatedOctCode) {
@@ -1578,8 +1677,8 @@ void Application::initMenu() {
         "First Person", this, SLOT(setRenderFirstPerson(bool)), Qt::Key_P))->setCheckable(true);
     (_manualThirdPerson = renderMenu->addAction(
         "Third Person", this, SLOT(setRenderThirdPerson(bool))))->setCheckable(true);
-    renderMenu->addAction("Increase Avatar Size", this, SLOT(increaseAvatarSize()), Qt::SHIFT | Qt::Key_Plus);
-    renderMenu->addAction("Decrease Avatar Size", this, SLOT(decreaseAvatarSize()), Qt::SHIFT | Qt::Key_Minus);
+    renderMenu->addAction("Increase Avatar Size", this, SLOT(increaseAvatarSize()), Qt::ALT | Qt::Key_Plus);
+    renderMenu->addAction("Decrease Avatar Size", this, SLOT(decreaseAvatarSize()), Qt::ALT | Qt::Key_Minus);
 
     
     QMenu* toolsMenu = menuBar->addMenu("Tools");
@@ -1630,6 +1729,7 @@ void Application::initMenu() {
     
     voxelMenu->addAction("Export Voxels", this, SLOT(exportVoxels()), Qt::CTRL | Qt::Key_E);
     voxelMenu->addAction("Import Voxels", this, SLOT(importVoxels()), Qt::CTRL | Qt::Key_I);
+    voxelMenu->addAction("Import Voxels to Clipboard", this, SLOT(importVoxelsToClipboard()), Qt::SHIFT | Qt::CTRL | Qt::Key_I);
     voxelMenu->addAction("Cut Voxels",    this, SLOT(cutVoxels()),    Qt::CTRL | Qt::Key_X);
     voxelMenu->addAction("Copy Voxels",   this, SLOT(copyVoxels()),   Qt::CTRL | Qt::Key_C);
     voxelMenu->addAction("Paste Voxels",  this, SLOT(pasteVoxels()),  Qt::CTRL | Qt::Key_V);
@@ -1758,7 +1858,7 @@ void Application::init() {
         _audio.setJitterBufferSamples(_audioJitterBufferSamples);
     }
     
-    printLog("Loaded settings.\n");
+    qDebug("Loaded settings.\n");
 
     sendAvatarVoxelURLMessage(_myAvatar.getVoxels()->getVoxelURL());
 
@@ -2771,7 +2871,7 @@ glm::vec2 Application::getScaledScreenPoint(glm::vec2 projectedPoint) {
 // render the coverage map on screen
 void Application::renderCoverageMapV2() {
     
-    //printLog("renderCoverageMap()\n");
+    //qDebug("renderCoverageMap()\n");
     
     glDisable(GL_LIGHTING);
     glLineWidth(2.0);
@@ -2816,7 +2916,7 @@ void Application::renderCoverageMapsV2Recursively(CoverageMapV2* map) {
 // render the coverage map on screen
 void Application::renderCoverageMap() {
     
-    //printLog("renderCoverageMap()\n");
+    //qDebug("renderCoverageMap()\n");
     
     glDisable(GL_LIGHTING);
     glLineWidth(2.0);
@@ -3147,7 +3247,7 @@ void Application::eyedropperVoxelUnderCursor() {
 }
 
 void Application::goHome() {
-    printLog("Going Home!\n");
+    qDebug("Going Home!\n");
     _myAvatar.setPosition(START_LOCATION);
 }
 

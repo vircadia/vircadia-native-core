@@ -16,15 +16,16 @@
 //
 
 #include "Application.h"
-#include "Log.h"
+
+#include <QDebug>
 
 int main(int argc, const char * argv[]) {
     timeval startup_time;
     gettimeofday(&startup_time, NULL);
     
     Application app(argc, const_cast<char**>(argv), startup_time);
-    printLog( "Created QT Application.\n" );
+    qDebug( "Created QT Application.\n" );
     int exitCode = app.exec();
-    printLog("Normal exit.\n");
+    qDebug("Normal exit.\n");
     return exitCode;
 }   

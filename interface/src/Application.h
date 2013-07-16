@@ -21,27 +21,28 @@
 
 #include <NodeList.h>
 
-#include "BandwidthMeter.h"
-#include "ui/BandwidthDialog.h"
-
 #ifndef _WIN32
 #include "Audio.h"
 #endif
 
+#include "Avatar.h"
+#include "BandwidthMeter.h"
 #include "Camera.h"
 #include "Environment.h"
 #include "HandControl.h"
+#include "PacketHeaders.h"
+#include "ParticleSystem.h"
+#include "renderer/GeometryCache.h"
 #include "SerialInterface.h"
 #include "Stars.h"
+#include "Swatch.h"
+#include "ToolsPalette.h"
+#include "ui/ChatEntry.h"
+#include "ui/BandwidthDialog.h"
 #include "ViewFrustum.h"
 #include "VoxelSystem.h"
-#include "PacketHeaders.h"
 #include "Webcam.h"
-#include "renderer/GeometryCache.h"
-#include "ui/ChatEntry.h"
-#include "ToolsPalette.h"
-#include "Swatch.h"
-#include "ParticleSystem.h"
+
 
 class QAction;
 class QActionGroup;
@@ -154,6 +155,7 @@ private slots:
     void exportSettings();
     void exportVoxels();
     void importVoxels();
+    void importVoxelsToClipboard();
     void cutVoxels();
     void copyVoxels();
     void pasteVoxels();
