@@ -1421,12 +1421,12 @@ bool Application::sendVoxelsOperation(VoxelNode* node, void* extraData) {
             uint64_t elapsed = now - args->lastSendTime;
             int usecToSleep =  CLIENT_TO_SERVER_VOXEL_SEND_INTERVAL_USECS - elapsed;
             if (usecToSleep > 0) {
-                printLog("sendVoxelsOperation: packet: %d bytes:%ld elapsed %ld usecs, sleeping for %d usecs!\n", 
-                    args->packetsSent, args->bytesSent, elapsed, usecToSleep);
+                qDebug("sendVoxelsOperation: packet: %d bytes:%ld elapsed %lld usecs, sleeping for %d usecs!\n",
+                       args->packetsSent, args->bytesSent, elapsed, usecToSleep);
                 usleep(usecToSleep);
             } else {
-                printLog("sendVoxelsOperation: packet: %d bytes:%ld elapsed %ld usecs, no need to sleep!\n", 
-                    args->packetsSent, args->bytesSent, elapsed);
+                qDebug("sendVoxelsOperation: packet: %d bytes:%ld elapsed %lld usecs, no need to sleep!\n",
+                       args->packetsSent, args->bytesSent, elapsed);
             }
             args->lastSendTime = now;
         }
@@ -1504,7 +1504,7 @@ void Application::importVoxels() {
     if (fileNameString.endsWith(".png", Qt::CaseInsensitive)) {
         QImage pngImage = QImage(fileName);
         if (pngImage.height() != pngImage.width()) {
-            printLog("ERROR: Bad PNG size: height != width.\n");
+            qDebug("ERROR: Bad PNG size: height != width.\n");
             return;
         }
         
@@ -1609,9 +1609,9 @@ void Application::pasteVoxels() {
     // If we have voxels left in the packet, then send the packet
     if (args.bufferInUse > (numBytesPacketHeader + sizeof(unsigned short int))) {
         controlledBroadcastToNodes(args.messageBuffer, args.bufferInUse, & NODE_TYPE_VOXEL_SERVER, 1);
-        printLog("sending packet: %d\n", ++args.packetsSent);
+        qDebug("sending packet: %d\n", ++args.packetsSent);
         args.bytesSent += args.bufferInUse;
-        printLog("total bytes sent: %ld\n", args.bytesSent);
+        qDebug("total bytes sent: %ld\n", args.bytesSent);
     }
     
     if (calculatedOctCode) {
