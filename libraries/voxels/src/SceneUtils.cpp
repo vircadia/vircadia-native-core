@@ -3,11 +3,14 @@
 //  hifi
 //
 //  Created by Brad Hefta-Gaub on 5/7/2013.
-//
+//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
 
-#include "SceneUtils.h"
+#include <algorithm>
+
 #include <glm/gtc/noise.hpp>
+
+#include "SceneUtils.h"
 
 void addCornersAndAxisLines(VoxelTree* tree) {
     // We want our corner voxels to be about 1/2 meter high, and our TREE_SCALE is in meters, so...    

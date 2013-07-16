@@ -18,12 +18,13 @@
 
 using namespace std;
 
-AvatarData::AvatarData(Agent* owningAgent) :
-    AgentData(owningAgent),
+AvatarData::AvatarData(Node* owningNode) :
+    NodeData(owningNode),
     _handPosition(0,0,0),
     _bodyYaw(-90.0),
     _bodyPitch(0.0),
     _bodyRoll(0.0),
+    _newScale(1.0f),
     _handState(0),
     _cameraPosition(0,0,0),
     _cameraOrientation(),
@@ -32,16 +33,19 @@ AvatarData::AvatarData(Agent* owningAgent) :
     _cameraNearClip(0.0f),
     _cameraFarClip(0.0f),
     _keyState(NO_KEY_DOWN),
-    _wantResIn(false),
     _wantColor(true),
-    _wantDelta(false),
-    _headData(NULL)
+    _wantDelta(true),
+    _wantLowResMoving(false),
+    _wantOcclusionCulling(true),
+    _headData(NULL),
+    _handData(NULL)
 {
     
 }
 
 AvatarData::~AvatarData() {
     delete _headData;
+    delete _handData;
 }
 
 int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
@@ -55,6 +59,10 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     if (!_headData) {
         _headData = new HeadData(this);
     }
+    // lazily allocate memory for HeadData in case we're not an Avatar instance
+    if (!_handData) {
+        _handData = new HandData(this);
+    }
     
     // Body world position
     memcpy(destinationBuffer, &_position, sizeof(float) * 3);
@@ -64,6 +72,7 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _bodyYaw);
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _bodyPitch);
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _bodyRoll);
+    destinationBuffer += packFloatRatioToTwoByte(destinationBuffer, _newScale);
     
     // Head rotation (NOTE: This needs to become a quaternion to save two bytes)
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->_yaw);
@@ -106,9 +115,10 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     
     // bitMask of less than byte wide items
     unsigned char bitItems = 0;
-    if (_wantResIn) { setAtBit(bitItems,WANT_RESIN_AT_BIT); }
-    if (_wantColor) { setAtBit(bitItems,WANT_COLOR_AT_BIT); }
-    if (_wantDelta) { setAtBit(bitItems,WANT_DELTA_AT_BIT); }
+    if (_wantLowResMoving)     { setAtBit(bitItems, WANT_LOW_RES_MOVING_BIT); }
+    if (_wantColor)            { setAtBit(bitItems, WANT_COLOR_AT_BIT); }
+    if (_wantDelta)            { setAtBit(bitItems, WANT_DELTA_AT_BIT); }
+    if (_wantOcclusionCulling) { setAtBit(bitItems, WANT_OCCLUSION_CULLING_BIT); }
 
     // key state
     setSemiNibbleAt(bitItems,KEY_STATE_START_BIT,_keyState);
@@ -116,24 +126,70 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     setSemiNibbleAt(bitItems,HAND_STATE_START_BIT,_handState);
     *destinationBuffer++ = bitItems;
     
+    // leap hand data
+    // In order to make the hand data version-robust, hand data packing is just a series of vec3's,
+    // with conventions. If a client doesn't know the conventions, they can just get the vec3's
+    // and render them as balls, or ignore them, without crashing or disrupting anyone.
+    // Current convention:
+    //    Zero or more fingetTip positions, followed by the same number of fingerRoot positions
+    
+    const std::vector<glm::vec3>& fingerTips = _handData->getFingerTips();
+    const std::vector<glm::vec3>& fingerRoots = _handData->getFingerRoots();
+    size_t numFingerVectors = fingerTips.size() + fingerRoots.size();
+    if (numFingerVectors > 255)
+        numFingerVectors = 0; // safety. We shouldn't ever get over 255, so consider that invalid.
+
+    /////////////////////////////////
+    // Temporarily disable Leap finger sending, as it's causing a crash whenever someone's got a Leap connected
+    numFingerVectors = 0;
+    /////////////////////////////////
+    
+    *destinationBuffer++ = (unsigned char)numFingerVectors;
+    
+    if (numFingerVectors > 0) {
+        for (size_t i = 0; i < fingerTips.size(); ++i) {
+            destinationBuffer += packFloatScalarToSignedTwoByteFixed(destinationBuffer, fingerTips[i].x, 4);
+            destinationBuffer += packFloatScalarToSignedTwoByteFixed(destinationBuffer, fingerTips[i].y, 4);
+            destinationBuffer += packFloatScalarToSignedTwoByteFixed(destinationBuffer, fingerTips[i].z, 4);
+        }
+        for (size_t i = 0; i < fingerRoots.size(); ++i) {
+            destinationBuffer += packFloatScalarToSignedTwoByteFixed(destinationBuffer, fingerRoots[i].x, 4);
+            destinationBuffer += packFloatScalarToSignedTwoByteFixed(destinationBuffer, fingerRoots[i].y, 4);
+            destinationBuffer += packFloatScalarToSignedTwoByteFixed(destinationBuffer, fingerRoots[i].z, 4);
+        }
+    }
+    
+    // skeleton joints
+    *destinationBuffer++ = (unsigned char)_joints.size();
+    for (vector<JointData>::iterator it = _joints.begin(); it != _joints.end(); it++) {
+        *destinationBuffer++ = (unsigned char)it->jointID;
+        destinationBuffer += packOrientationQuatToBytes(destinationBuffer, it->rotation);
+    }
+    
     return destinationBuffer - bufferStart;
 }
 
-// called on the other agents - assigns it to my views of the others
+// called on the other nodes - assigns it to my views of the others
 int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
 
     // lazily allocate memory for HeadData in case we're not an Avatar instance
     if (!_headData) {
         _headData = new HeadData(this);
     }
-
+    
+    // lazily allocate memory for HandData in case we're not an Avatar instance
+    if (!_handData) {
+        _handData = new HandData(this);
+    }
+    
     // increment to push past the packet header
-    sourceBuffer += sizeof(PACKET_HEADER_HEAD_DATA);
+    int numBytesPacketHeader = numBytesForPacketHeader(sourceBuffer);
+    sourceBuffer += numBytesPacketHeader;
     
     unsigned char* startPosition = sourceBuffer;
     
-    // push past the agent ID
-    sourceBuffer += + sizeof(uint16_t);
+    // push past the node ID
+    sourceBuffer += sizeof(uint16_t);
     
     // Body world position
     memcpy(&_position, sourceBuffer, sizeof(float) * 3);
@@ -143,7 +199,8 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &_bodyYaw);
     sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &_bodyPitch);
     sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &_bodyRoll);
-    
+    sourceBuffer += unpackFloatRatioFromTwoByte(            sourceBuffer,  _newScale);
+
     // Head rotation (NOTE: This needs to become a quaternion to save two bytes)
     float headYaw, headPitch, headRoll;
     sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &headYaw);
@@ -192,9 +249,10 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     // voxel sending features...
     unsigned char bitItems = 0;
     bitItems = (unsigned char)*sourceBuffer++;
-    _wantResIn = oneAtBit(bitItems,WANT_RESIN_AT_BIT);
-    _wantColor = oneAtBit(bitItems,WANT_COLOR_AT_BIT);
-    _wantDelta = oneAtBit(bitItems,WANT_DELTA_AT_BIT);
+    _wantLowResMoving     = oneAtBit(bitItems, WANT_LOW_RES_MOVING_BIT);
+    _wantColor            = oneAtBit(bitItems, WANT_COLOR_AT_BIT);
+    _wantDelta            = oneAtBit(bitItems, WANT_DELTA_AT_BIT);
+    _wantOcclusionCulling = oneAtBit(bitItems, WANT_OCCLUSION_CULLING_BIT);
 
     // key state, stored as a semi-nibble in the bitItems
     _keyState = (KeyState)getSemiNibbleAt(bitItems,KEY_STATE_START_BIT);
@@ -202,6 +260,40 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     // hand state, stored as a semi-nibble in the bitItems
     _handState = getSemiNibbleAt(bitItems,HAND_STATE_START_BIT);
 
+    // leap hand data
+    if (sourceBuffer - startPosition < numBytes)    // safety check
+    {
+        std::vector<glm::vec3> fingerTips;
+        std::vector<glm::vec3> fingerRoots;
+        unsigned int numFingerVectors = *sourceBuffer++;
+        unsigned int numFingerTips = numFingerVectors / 2;
+        unsigned int numFingerRoots = numFingerVectors - numFingerTips;
+        fingerTips.resize(numFingerTips);
+        fingerRoots.resize(numFingerRoots);
+        for (size_t i = 0; i < numFingerTips; ++i) {
+            sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(fingerTips[i].x), 4);
+            sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(fingerTips[i].y), 4);
+            sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(fingerTips[i].z), 4);
+        }
+        for (size_t i = 0; i < numFingerRoots; ++i) {
+            sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(fingerRoots[i].x), 4);
+            sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(fingerRoots[i].y), 4);
+            sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(fingerRoots[i].z), 4);
+        }
+        _handData->setFingerTips(fingerTips);
+        _handData->setFingerRoots(fingerRoots);
+    }
+    
+    // skeleton joints
+    if (sourceBuffer - startPosition < numBytes) // safety check
+    {
+        _joints.resize(*sourceBuffer++);
+        for (vector<JointData>::iterator it = _joints.begin(); it != _joints.end(); it++) {
+            it->jointID = *sourceBuffer++;
+            sourceBuffer += unpackOrientationQuatFromBytes(sourceBuffer, it->rotation); 
+        }
+    }
+    
     return sourceBuffer - startPosition;
 }
 
@@ -210,6 +302,18 @@ glm::vec3 AvatarData::calculateCameraDirection() const {
     return direction;
 }
 
+
+// Allows sending of fixed-point numbers: radix 1 makes 15.1 number, radix 8 makes 8.8 number, etc
+int packFloatScalarToSignedTwoByteFixed(unsigned char* buffer, float scalar, int radix) {
+    int16_t outVal = (int16_t)(scalar * (float)(1 << radix));
+    memcpy(buffer, &outVal, sizeof(uint16_t));
+    return sizeof(uint16_t);
+}
+
+int unpackFloatScalarFromSignedTwoByteFixed(int16_t* byteFixedPointer, float* destinationPointer, int radix) {
+    *destinationPointer = *byteFixedPointer / (float)(1 << radix);
+    return sizeof(int16_t);
+}
 
 int packFloatAngleToTwoByte(unsigned char* buffer, float angle) {
     const float ANGLE_CONVERSION_RATIO = (std::numeric_limits<uint16_t>::max() / 360.0);

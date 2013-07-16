@@ -3,7 +3,7 @@
 //  hifi
 //
 //  Created by Philip Rosedale on 5/20/13.
-//
+//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
 
 #ifndef __hifi__Transmitter__

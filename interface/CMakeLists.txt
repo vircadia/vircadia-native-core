@@ -8,9 +8,12 @@ project(${TARGET_NAME})
 
 # setup for find modules
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../cmake/modules/")
-set(LODEPNG_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/LodePNG)
 set(LIBOVR_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/LibOVR)
+set(LEAP_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/Leap)
+set(MOTIONDRIVER_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/MotionDriver)
 set(PORTAUDIO_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/PortAudio)
+set(OPENCV_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/OpenCV)
+set(UVCCAMERACONTROL_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/UVCCameraControl)
 
 if (APPLE)
   set(GL_HEADERS "#include <GLUT/glut.h>\n#include <OpenGL/glext.h>")
@@ -63,12 +66,16 @@ if (APPLE)
   
 endif (APPLE)
 
-find_package(Qt4 REQUIRED QtCore QtGui QtNetwork QtOpenGL)
+find_package(Qt4 REQUIRED QtCore QtGui QtNetwork QtOpenGL QtWebKit QtSvg)
 include(${QT_USE_FILE})
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${QT_QTGUI_INCLUDE_DIR}")
 
+set(QUAZIP_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/quazip)
+add_subdirectory(external/fervor/)
+include_directories(external/fervor/)
+
 # run qt moc on qt-enabled headers
-qt4_wrap_cpp(INTERFACE_SRCS src/Application.h src/AvatarVoxelSystem.h)
+qt4_wrap_cpp(INTERFACE_SRCS src/Application.h src/AvatarVoxelSystem.h src/Webcam.h src/ui/BandwidthDialog.h)
 
 # create the executable, make it a bundle on OS X
 add_executable(${TARGET_NAME} MACOSX_BUNDLE ${INTERFACE_SRCS})
@@ -84,8 +91,21 @@ link_hifi_library(audio ${TARGET_NAME} ${ROOT_DIR})
 
 # find required libraries
 find_package(GLM REQUIRED)
-find_package(LodePNG REQUIRED)
 find_package(LibOVR)
+find_package(Leap)
+find_package(MotionDriver)
+find_package(OpenCV)
+find_package(OpenNI)
+find_package(UVCCameraControl)
+find_package(ZLIB)
+
+# let the source know that we have OpenNI/NITE for Kinect
+if (OPENNI_FOUND)
+    add_definitions(-DHAVE_OPENNI)
+    include_directories(SYSTEM ${OPENNI_INCLUDE_DIRS})
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${OPENNI_INCLUDE_DIRS}")
+    target_link_libraries(${TARGET_NAME} ${OPENNI_LIBRARIES})
+endif (OPENNI_FOUND)
 
 # include headers for interface and InterfaceConfig.
 include_directories(
@@ -98,35 +118,61 @@ include_directories(
 include_directories(
   SYSTEM
   ${GLM_INCLUDE_DIRS} 
-  ${LODEPNG_INCLUDE_DIRS}
   ${LIBOVR_INCLUDE_DIRS}
+  ${LEAP_INCLUDE_DIRS}
+  ${MOTIONDRIVER_INCLUDE_DIRS}
+  ${OPENCV_INCLUDE_DIRS}
 )
 
-target_link_libraries(${TARGET_NAME} ${QT_LIBRARIES})
+SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${OPENCV_INCLUDE_DIRS}")
+target_link_libraries(
+  ${TARGET_NAME} 
+  ${QT_LIBRARIES}
+  ${MOTIONDRIVER_LIBRARIES}
+  ${OPENCV_LIBRARIES} 
+  ${ZLIB_LIBRARIES}
+  fervor
+)
 
 if (APPLE)
     # link in required OS X frameworks and include the right GL headers
+    find_library(AppKit AppKit)
     find_library(AudioToolbox AudioToolbox)
     find_library(AudioUnit AudioUnit)
     find_library(CoreAudio CoreAudio)
     find_library(CoreServices CoreServices)
     find_library(Carbon Carbon)
+    find_library(Foundation Foundation)
     find_library(GLUT GLUT)
     find_library(OpenGL OpenGL)
     find_library(IOKit IOKit)
+    find_library(QTKit QTKit)
+    find_library(QuartzCore QuartzCore)
+    
+    include_directories(SYSTEM ${UVCCAMERACONTROL_INCLUDE_DIRS})
     
     target_link_libraries(
-        ${TARGET_NAME} 
+        ${TARGET_NAME}
+        ${AppKit}
         ${AudioToolbox} 
         ${AudioUnit} 
         ${CoreAudio} 
         ${CoreServices} 
-        ${Carbon} 
+        ${Carbon}
+        ${Foundation} 
         ${GLUT} 
         ${OpenGL}
         ${IOKit}
+        ${QTKit}
+        ${QuartzCore}
+        ${UVCCAMERACONTROL_LIBRARIES}
         ${LIBOVR_LIBRARIES}
     )
+    
+    if (LEAP_FOUND)
+      target_link_libraries(${TARGET_NAME} ${LEAP_LIBRARIES})
+    endif(LEAP_FOUND)
+    
 else (APPLE)
     find_package(OpenGL REQUIRED)
     find_package(GLUT REQUIRED)
@@ -141,12 +187,9 @@ if (WIN32)
         ${CMAKE_CURRENT_SOURCE_DIR}/external/glut/Release/glew32.lib
         ${CMAKE_CURRENT_SOURCE_DIR}/external/glut/Release/freeglut.lib
         ${CMAKE_CURRENT_SOURCE_DIR}/external/glut/Release/pthread_lib.lib
-        ${CMAKE_CURRENT_SOURCE_DIR}/external/glut/Release/lodepng.lib
         wsock32.lib
     )
 else (WIN32)
-  target_link_libraries(${TARGET_NAME} ${LODEPNG_LIBRARIES})
-
   # link the PortAudio library
   find_package(PortAudio REQUIRED)
   include_directories(${PORTAUDIO_INCLUDE_DIRS})

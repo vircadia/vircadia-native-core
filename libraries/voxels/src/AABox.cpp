@@ -13,63 +13,103 @@
 #include "AABox.h"
 #include "GeometryUtil.h"
 
+AABox::AABox(const glm::vec3& corner, float size) : _corner(corner), _size(size, size, size), _topFarLeft(_corner + _size)
+{
+};
+
+AABox::AABox(const glm::vec3& corner, float x, float y, float z) : _corner(corner), _size(x, y, z), _topFarLeft(_corner + _size)
+{
+};
+
+AABox::AABox(const glm::vec3& corner, const glm::vec3& size) : _corner(corner), _size(size), _topFarLeft(_corner + _size)
+{
+};
+
+AABox::AABox() : _corner(0,0,0), _size(0,0,0), _topFarLeft(0,0,0)
+{
+};
+
 
 void AABox::scale(float scale) {
     _corner = _corner * scale;
     _size = _size * scale;
     _center = _center * scale;
+    _topFarLeft = _topFarLeft * scale;
 }
-	
+
+
+glm::vec3 AABox::getVertex(BoxVertex vertex) const {
+    switch (vertex) {
+        case BOTTOM_LEFT_NEAR:
+            return _corner + glm::vec3(_size.x, 0, 0);
+        case BOTTOM_RIGHT_NEAR:
+            return _corner;
+        case TOP_RIGHT_NEAR:
+            return _corner + glm::vec3(0, _size.y, 0);
+        case TOP_LEFT_NEAR:
+            return _corner + glm::vec3(_size.x, _size.y, 0);
+        case BOTTOM_LEFT_FAR:
+            return _corner + glm::vec3(_size.x, 0, _size.z);
+        case BOTTOM_RIGHT_FAR:
+            return _corner + glm::vec3(0, 0, _size.z);
+        case TOP_RIGHT_FAR:
+            return _corner + glm::vec3(0, _size.y, _size.z);
+        case TOP_LEFT_FAR:
+            return _corner + _size;
+    }
+}
 
 void AABox::setBox(const glm::vec3& corner,  const glm::vec3& size) {
-	_corner = corner;
-	_size = size;
-	
-	// In the event that the caller gave us negative sizes, fix things up to be reasonable
-	if (_size.x < 0.0) {
-		_size.x = -size.x;
-		_corner.x -= _size.x;
-	}
-	if (_size.y < 0.0) {
-		_size.y = -size.y;
-		_corner.y -= _size.y;
-	}
-	if (_size.z < 0.0) {
-		_size.z = -size.z;
-		_corner.z -= _size.z;
-	}
-	_center = _corner + (_size * 0.5f);
+    _corner = corner;
+    _size = size;
+
+    // In the event that the caller gave us negative sizes, fix things up to be reasonable
+    if (_size.x < 0.0) {
+        _size.x = -size.x;
+        _corner.x -= _size.x;
+    }
+    if (_size.y < 0.0) {
+        _size.y = -size.y;
+        _corner.y -= _size.y;
+    }
+    if (_size.z < 0.0) {
+        _size.z = -size.z;
+        _corner.z -= _size.z;
+    }
+    _center = _corner + (_size * 0.5f);
+    _topFarLeft = _corner + _size;
 }
 
-glm::vec3 AABox::getVertexP(const glm::vec3 &normal) const {
-	glm::vec3 res = _corner;
-	if (normal.x > 0)
-		res.x += _size.x;
-
-	if (normal.y > 0)
-		res.y += _size.y;
-
-	if (normal.z > 0)
-		res.z += _size.z;
-
-	return(res);
+glm::vec3 AABox::getVertexP(const glm::vec3& normal) const {
+    glm::vec3 result = _corner;
+    if (normal.x > 0) {
+        result.x += _size.x;
+    }
+    if (normal.y > 0) {
+        result.y += _size.y;
+    }
+    if (normal.z > 0) {
+        result.z += _size.z;
+    }
+    return result;
 }
 
+glm::vec3 AABox::getVertexN(const glm::vec3& normal) const {
+    glm::vec3 result = _corner;
 
+    if (normal.x < 0) {
+        result.x += _size.x;
+    }
 
-glm::vec3 AABox::getVertexN(const glm::vec3 &normal) const {
-	glm::vec3 res = _corner;
+    if (normal.y < 0) {
+        result.y += _size.y;
+    }
 
-	if (normal.x < 0)
-		res.x += _size.x;
+    if (normal.z < 0) {
+        result.z += _size.z;
+    }
 
-	if (normal.y < 0)
-		res.y += _size.y;
-
-	if (normal.z < 0)
-		res.z += _size.z;
-
-	return(res);
+    return result;
 }
 
 // determines whether a value is within the extents
@@ -82,6 +122,17 @@ bool AABox::contains(const glm::vec3& point) const {
         isWithin(point.y, _corner.y, _size.y) &&
         isWithin(point.z, _corner.z, _size.z);
 }
+
+bool AABox::contains(const AABox& otherBox) const {
+    for (int v = BOTTOM_LEFT_NEAR; v < TOP_LEFT_FAR; v++) {
+        glm::vec3 vertex = otherBox.getVertex((BoxVertex)v);
+        if (!contains(vertex)) {
+            return false;
+        }
+    }
+    return true;
+}
+
 
 // determines whether a value is within the expanded extents
 static bool isWithinExpanded(float value, float corner, float size, float expansion) {
@@ -99,7 +150,6 @@ static bool findIntersection(float origin, float direction, float corner, float 
     if (direction > EPSILON) {
         distance = (corner - origin) / direction;
         return true;
-        
     } else if (direction < -EPSILON) {
         distance = (corner + size - origin) / direction;
         return true;

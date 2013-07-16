@@ -15,8 +15,9 @@
 #include <glm/gtc/quaternion.hpp>
 #include "Plane.h"
 #include "AABox.h"
+#include "VoxelProjectedPolygon.h"
 
-const float DEFAULT_KEYHOLE_RADIUS = 2.0f;
+const float DEFAULT_KEYHOLE_RADIUS = 3.0f;
 
 class ViewFrustum {
 public:
@@ -87,12 +88,16 @@ public:
 
     void printDebugDetails() const;
     
+    glm::vec2 projectPoint(glm::vec3 point, bool& pointInView) const;
+    VoxelProjectedPolygon getProjectedPolygon(const AABox& box) const;
+    glm::vec3 getFurthestPointFromCamera(const AABox& box) const;
+
 private:
 
     // Used for keyhole calculations
-    ViewFrustum::location pointInSphere(const glm::vec3& point, const glm::vec3& center, float radius) const;
-    ViewFrustum::location sphereInSphere(const glm::vec3& centerA, float radiusA, const glm::vec3& centerB, float radiusB) const;
-    ViewFrustum::location boxInSphere(const AABox& box, const glm::vec3& center, float radius) const;
+    ViewFrustum::location pointInKeyhole(const glm::vec3& point) const;
+    ViewFrustum::location sphereInKeyhole(const glm::vec3& center, float radius) const;
+    ViewFrustum::location boxInKeyhole(const AABox& box) const;
     
     // camera location/orientation attributes
     glm::vec3   _position;
@@ -113,6 +118,7 @@ private:
     
     // keyhole attributes
     float       _keyholeRadius;
+    AABox       _keyholeBoundingBox;
 
     
     // Calculated values
@@ -133,6 +139,8 @@ private:
     
     const char* debugPlaneName (int plane) const;
     
+    // Used to project points
+    glm::mat4 _ourModelViewProjectionMatrix;
 };
 
 

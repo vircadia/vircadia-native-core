@@ -22,18 +22,30 @@ enum BoxFace {
     MAX_Z_FACE
 };
 
+
+enum BoxVertex {
+    BOTTOM_LEFT_NEAR   = 0,
+    BOTTOM_RIGHT_NEAR  = 1,
+    TOP_RIGHT_NEAR     = 2,
+    TOP_LEFT_NEAR      = 3,
+    BOTTOM_LEFT_FAR    = 4,
+    BOTTOM_RIGHT_FAR   = 5,
+    TOP_RIGHT_FAR      = 6,
+    TOP_LEFT_FAR       = 7
+};
+
 const int FACE_COUNT = 6;
 
-    class AABox 
+class AABox 
 {
 
 public:
 
-    AABox(const glm::vec3& corner, float size) : _corner(corner), _size(size, size, size) { };
-    AABox(const glm::vec3& corner, float x, float y, float z) : _corner(corner), _size(x, y, z) { };
-    AABox(const glm::vec3& corner, const glm::vec3& size) : _corner(corner), _size(size) { };
-    AABox() : _corner(0,0,0), _size(0,0,0) { }
-    ~AABox() { }
+    AABox(const glm::vec3& corner, float size);
+    AABox(const glm::vec3& corner, float x, float y, float z);
+    AABox(const glm::vec3& corner, const glm::vec3& size);
+    AABox();
+    ~AABox() {};
 
     void setBox(const glm::vec3& corner, float x, float y, float z) { setBox(corner,glm::vec3(x,y,z)); };
     void setBox(const glm::vec3& corner, const glm::vec3& size);
@@ -44,11 +56,15 @@ public:
 
     void scale(float scale);
 
-    const glm::vec3& getCorner() const { return _corner; };
-    const glm::vec3& getSize() const { return _size; };
-    const glm::vec3& getCenter() const { return _center; };
+    const glm::vec3& getCorner() const     { return _corner; };
+    const glm::vec3& getSize() const       { return _size; };
+    const glm::vec3& getCenter() const     { return _center; };
+    const glm::vec3& getTopFarLeft() const { return _topFarLeft; };
+
+    glm::vec3 getVertex(BoxVertex vertex) const;
 
     bool contains(const glm::vec3& point) const;
+    bool contains(const AABox& otherBox) const;
     bool expandedContains(const glm::vec3& point, float expansion) const;
     bool expandedIntersectsSegment(const glm::vec3& start, const glm::vec3& end, float expansion) const;
     bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance, BoxFace& face) const;
@@ -66,6 +82,7 @@ private:
     glm::vec3 _corner;
     glm::vec3 _center;
     glm::vec3 _size;
+    glm::vec3 _topFarLeft;
 };
 
 

@@ -14,8 +14,8 @@
 #include <string.h>
 #include <sstream>
 
-#include <AgentList.h>
-#include <AgentTypes.h>
+#include <NodeList.h>
+#include <NodeTypes.h>
 #include <AvatarData.h>
 #include <SharedUtil.h>
 #include <PacketHeaders.h>
@@ -35,11 +35,12 @@ enum {
 };
 
 // Command line parameter defaults
-bool loopAudio = true;
+bool shouldLoopAudio = true;
+bool hasInjectedAudioOnce = false;
 float sleepIntervalMin = 1.00;
 float sleepIntervalMax = 2.00;
 char *sourceAudioFile = NULL;
-const char *allowedParameters = ":sb::t::c::a::f::d::r:";
+const char *allowedParameters = ":sc::a::f::t::r:";
 float floatArguments[4] = {0.0f, 0.0f, 0.0f, 0.0f};
 unsigned char volume = DEFAULT_INJECTOR_VOLUME;
 float triggerDistance = 0.0f;
@@ -47,13 +48,11 @@ float radius = 0.0f;
 
 void usage(void) {
     std::cout << "High Fidelity - Interface audio injector" << std::endl;
-    std::cout << "   -s                             Random sleep mode. If not specified will default to constant loop." << std::endl;
-    std::cout << "   -b FLOAT                       Min. number of seconds to sleep. Only valid in random sleep mode. Default 1.0" << std::endl;
-    std::cout << "   -t FLOAT                       Max. number of seconds to sleep. Only valid in random sleep mode. Default 2.0" << std::endl;
+    std::cout << "   -s                             Single play mode. If not specified will default to constant loop." << std::endl;
     std::cout << "   -c FLOAT,FLOAT,FLOAT,FLOAT     X,Y,Z,YAW position in universe where audio will be originating from and direction. Defaults to 0,0,0,0" << std::endl;
     std::cout << "   -a 0-255                       Attenuation curve modifier, defaults to 255" << std::endl;
     std::cout << "   -f FILENAME                    Name of audio source file. Required - RAW format, 22050hz 16bit signed mono" << std::endl;
-    std::cout << "   -d FLOAT                       Trigger distance for injection. If not specified will loop constantly" << std::endl;
+    std::cout << "   -t FLOAT                       Trigger distance for injection. If not specified will loop constantly" << std::endl;
     std::cout << "   -r FLOAT                       Radius for spherical source. If not specified injected audio is point source" << std::endl;
 }
 
@@ -62,16 +61,8 @@ bool processParameters(int parameterCount, char* parameterData[]) {
     while ((p = getopt(parameterCount, parameterData, allowedParameters)) != -1) {
         switch (p) {
             case 's':
-                ::loopAudio = false;
-                std::cout << "[DEBUG] Random sleep mode enabled" << std::endl;
-                break;
-            case 'b':
-                ::sleepIntervalMin = atof(optarg);
-                std::cout << "[DEBUG] Min delay between plays " << sleepIntervalMin << "sec" << std::endl;
-                break;
-            case 't':
-                ::sleepIntervalMax = atof(optarg);
-                std::cout << "[DEBUG] Max delay between plays " << sleepIntervalMax << "sec" << std::endl;
+                ::shouldLoopAudio = false;
+                std::cout << "[DEBUG] Single play mode enabled" << std::endl;
                 break;
             case 'f':
                 ::sourceAudioFile = optarg;
@@ -97,7 +88,7 @@ bool processParameters(int parameterCount, char* parameterData[]) {
                 ::volume = atoi(optarg);
                 std::cout << "[DEBUG] Attenuation modifier: " << optarg << std::endl;
                 break;
-            case 'd':
+            case 't':
                 ::triggerDistance = atof(optarg);
                 std::cout << "[DEBUG] Trigger distance: " << optarg << std::endl;
                 break;
@@ -113,38 +104,9 @@ bool processParameters(int parameterCount, char* parameterData[]) {
     return true;
 };
 
-bool stopReceiveAgentDataThread;
-
-void *receiveAgentData(void *args) {
-    sockaddr senderAddress;
-    ssize_t bytesReceived;
-    unsigned char incomingPacket[MAX_PACKET_SIZE];
-    
-    AgentList* agentList = AgentList::getInstance();
-    
-    while (!::stopReceiveAgentDataThread) {
-        if (agentList->getAgentSocket()->receive(&senderAddress, incomingPacket, &bytesReceived)) {
-            switch (incomingPacket[0]) {
-                case PACKET_HEADER_BULK_AVATAR_DATA:
-                    // this is the positional data for other agents
-                    // pass that off to the agentList processBulkAgentData method
-                    agentList->processBulkAgentData(&senderAddress, incomingPacket, bytesReceived);
-                    break;
-                default:
-                    // have the agentList handle list of agents from DS, replies from other agents, etc.
-                    agentList->processAgentData(&senderAddress, incomingPacket, bytesReceived);
-                    break;
-            }
-        }
-    }
-    
-    pthread_exit(0);
-    return NULL;
-}
-
-void createAvatarDataForAgent(Agent* agent) {
-    if (!agent->getLinkedData()) {
-        agent->setLinkedData(new AvatarData(agent));
+void createAvatarDataForNode(Node* node) {
+    if (!node->getLinkedData()) {
+        node->setLinkedData(new AvatarData(node));
     }
 }
 
@@ -161,17 +123,11 @@ int main(int argc, char* argv[]) {
         } else {
             AudioInjector injector(sourceAudioFile);
             
-            // create an AgentList instance to handle communication with other agents
-            AgentList* agentList = AgentList::createInstance(AGENT_TYPE_AUDIO_INJECTOR, AUDIO_UDP_SEND_PORT);
+            // create an NodeList instance to handle communication with other nodes
+            NodeList* nodeList = NodeList::createInstance(NODE_TYPE_AUDIO_INJECTOR, AUDIO_UDP_SEND_PORT);
             
-            pthread_t receiveAgentDataThread;
-            pthread_create(&receiveAgentDataThread, NULL, receiveAgentData, NULL);
-            
-            // start telling the domain server that we are alive
-            agentList->startDomainServerCheckInThread();
-            
-            // start the agent list thread that will kill off agents when they stop talking
-            agentList->startSilentAgentRemovalThread();
+            // start the node list thread that will kill off nodes when they stop talking
+            nodeList->startSilentNodeRemovalThread();
             
             injector.setPosition(glm::vec3(::floatArguments[INJECTOR_POSITION_X],
                                            ::floatArguments[INJECTOR_POSITION_Y],
@@ -184,84 +140,92 @@ int main(int argc, char* argv[]) {
                 injector.setRadius(::radius);
             }
 
-            // register the callback for agent data creation
-            agentList->linkedDataCreateCallback = createAvatarDataForAgent;
+            // register the callback for node data creation
+            nodeList->linkedDataCreateCallback = createAvatarDataForNode;
+    
+            timeval lastSend = {};
+            int numBytesPacketHeader = numBytesForPacketHeader((unsigned char*) &PACKET_TYPE_INJECT_AUDIO);
+            unsigned char* broadcastPacket = new unsigned char[numBytesPacketHeader];
             
-            unsigned char broadcastPacket = PACKET_HEADER_INJECT_AUDIO;
+            timeval lastDomainServerCheckIn = {};
             
-            timeval thisSend;
-            double numMicrosecondsSleep = 0;
+            sockaddr senderAddress;
+            ssize_t bytesReceived;
+            unsigned char incomingPacket[MAX_PACKET_SIZE];
             
-            while (true) {
-                if (::triggerDistance) {
-                    
-                    // update the thisSend timeval to the current time
-                    gettimeofday(&thisSend, NULL);
-                    
-                    // find the current avatar mixer
-                    Agent* avatarMixer = agentList->soloAgentOfType(AGENT_TYPE_AVATAR_MIXER);
-                    
-                    // make sure we actually have an avatar mixer with an active socket
-                    if (avatarMixer && avatarMixer->getActiveSocket() != NULL) {
-                        // use the UDPSocket instance attached to our agent list to ask avatar mixer for a list of avatars
-                        agentList->getAgentSocket()->send(avatarMixer->getActiveSocket(),
-                                                          &broadcastPacket,
-                                                          sizeof(broadcastPacket));
+            // the audio injector needs to know about the avatar mixer and the audio mixer
+            const char INJECTOR_NODES_OF_INTEREST[] = {NODE_TYPE_AUDIO_MIXER, NODE_TYPE_AVATAR_MIXER};
+           
+            int bytesNodesOfInterest = (::triggerDistance > 0)
+                ? sizeof(INJECTOR_NODES_OF_INTEREST)
+                : sizeof(INJECTOR_NODES_OF_INTEREST) - 1;
+            
+            NodeList::getInstance()->setNodeTypesOfInterest(INJECTOR_NODES_OF_INTEREST, bytesNodesOfInterest);
+            
+            while (true) {                
+                // send a check in packet to the domain server if DOMAIN_SERVER_CHECK_IN_USECS has elapsed
+                if (usecTimestampNow() - usecTimestamp(&lastDomainServerCheckIn) >= DOMAIN_SERVER_CHECK_IN_USECS) {
+                    gettimeofday(&lastDomainServerCheckIn, NULL);
+                    NodeList::getInstance()->sendDomainServerCheckIn();
+                }
+                
+                while (nodeList->getNodeSocket()->receive(&senderAddress, incomingPacket, &bytesReceived) &&
+                       packetVersionMatch(incomingPacket)) {
+                    switch (incomingPacket[0]) {
+                        case PACKET_TYPE_BULK_AVATAR_DATA:                  // this is the positional data for other nodes
+                            // pass that off to the nodeList processBulkNodeData method
+                            nodeList->processBulkNodeData(&senderAddress, incomingPacket, bytesReceived);
+                            break;
+                        default:
+                            // have the nodeList handle list of nodes from DS, replies from other nodes, etc.
+                            nodeList->processNodeData(&senderAddress, incomingPacket, bytesReceived);
+                            break;
                     }
-                    
+                }
+                
+                if (::triggerDistance) {
                     if (!injector.isInjectingAudio()) {
-                        // enumerate the other agents to decide if one is close enough that we should inject
-                        for (AgentList::iterator agent = agentList->begin(); agent != agentList->end(); agent++) {
-                            AvatarData* avatarData = (AvatarData*) agent->getLinkedData();
+                        // enumerate the other nodes to decide if one is close enough that we should inject
+                        for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+                            AvatarData* avatarData = (AvatarData*) node->getLinkedData();
                             
                             if (avatarData) {
                                 glm::vec3 tempVector = injector.getPosition() - avatarData->getPosition();
-                                float squareDistance = glm::dot(tempVector, tempVector);
                                 
-                                if (squareDistance <= ::triggerDistance) {
-                                    // look for an audio mixer in our agent list
-                                    Agent* audioMixer = AgentList::getInstance()->soloAgentOfType(AGENT_TYPE_AUDIO_MIXER);
-                                    
-                                    if (audioMixer) {                                        
-                                        // we have an active audio mixer we can send data to
-                                        AudioInjectionManager::threadInjector(&injector);
-                                    }
+                                if (glm::dot(tempVector, tempVector) <= ::triggerDistance) {
+                                    // use the AudioInjectionManager to thread this injector
+                                    AudioInjectionManager::threadInjector(&injector);
                                 }
                             }
                         }
                     }
                     
-                    // sleep for the correct amount of time to have data send be consistently timed
-                    if ((numMicrosecondsSleep = (AVATAR_MIXER_DATA_SEND_INTERVAL_MSECS * 1000) -
-                         (usecTimestampNow() - usecTimestamp(&thisSend))) > 0) {
-                        usleep(numMicrosecondsSleep);
+                    // find the current avatar mixer
+                    Node* avatarMixer = nodeList->soloNodeOfType(NODE_TYPE_AVATAR_MIXER);
+                    
+                    // make sure we actually have an avatar mixer with an active socket
+                    if (avatarMixer && avatarMixer->getActiveSocket() != NULL
+                        && (usecTimestampNow() - usecTimestamp(&lastSend) > AVATAR_MIXER_DATA_SEND_INTERVAL_MSECS)) {
+                        
+                        // update the lastSend timeval to the current time
+                        gettimeofday(&lastSend, NULL);
+                        
+                        // use the UDPSocket instance attached to our node list to ask avatar mixer for a list of avatars
+                        nodeList->getNodeSocket()->send(avatarMixer->getActiveSocket(),
+                                                        broadcastPacket,
+                                                        numBytesPacketHeader);
                     }
                 } else {
-                    // look for an audio mixer in our agent list
-                    Agent* audioMixer = AgentList::getInstance()->soloAgentOfType(AGENT_TYPE_AUDIO_MIXER);
-                    
-                    if (audioMixer) {
-                        injector.injectAudio(agentList->getAgentSocket(), audioMixer->getActiveSocket());
+                    if (!injector.isInjectingAudio() && (::shouldLoopAudio || !::hasInjectedAudioOnce)) {
+                        // use the AudioInjectionManager to thread this injector
+                        AudioInjectionManager::threadInjector(&injector);
+                        ::hasInjectedAudioOnce = true;
                     }
-                    
-                    float delay = 0;
-                    int usecDelay = 0;
-                    
-                    if (!::loopAudio) {
-                        delay = randFloatInRange(::sleepIntervalMin, ::sleepIntervalMax);
-                        usecDelay = delay * 1000 * 1000;
-                        usleep(usecDelay);
-                    }                    
                 }
             }
             
-            // stop the receive agent data thread
-            stopReceiveAgentDataThread = true;
-            pthread_join(receiveAgentDataThread, NULL);
-            
-            // stop the agent list's threads
-            agentList->stopDomainServerCheckInThread();
-            agentList->stopSilentAgentRemovalThread();
+            // stop the node list's threads
+            nodeList->stopSilentNodeRemovalThread();
         }
     }
 }

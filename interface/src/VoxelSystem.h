@@ -11,11 +11,15 @@
 
 #include "InterfaceConfig.h"
 #include <glm/glm.hpp>
+
 #include <SharedUtil.h>
 #include <UDPSocket.h>
-#include <AgentData.h>
-#include <VoxelTree.h>
+
+#include <CoverageMapV2.h>
+#include <NodeData.h>
 #include <ViewFrustum.h>
+#include <VoxelTree.h>
+
 #include "Camera.h"
 #include "Util.h"
 #include "world.h"
@@ -24,7 +28,7 @@ class ProgramObject;
 
 const int NUM_CHILDREN = 8;
 
-class VoxelSystem : public AgentData {
+class VoxelSystem : public NodeData {
 public:
     VoxelSystem(float treeScale = TREE_SCALE, int maxVoxels = MAX_VOXELS_PER_SYSTEM);
     ~VoxelSystem();
@@ -56,6 +60,8 @@ public:
     void falseColorizeInView(ViewFrustum* viewFrustum);
     void falseColorizeDistanceFromView(ViewFrustum* viewFrustum);
     void falseColorizeRandomEveryOther();
+    void falseColorizeOccluded();
+    void falseColorizeOccludedV2();
 
     void killLocalVoxels();
     void setRenderPipelineWarnings(bool on) { _renderWarningsOn = on; };
@@ -83,6 +89,9 @@ public:
 
     void copySubTreeIntoNewTree(VoxelNode* startNode, VoxelTree* destinationTree, bool rebaseToRoot);
     void copyFromTreeIntoSubTree(VoxelTree* sourceTree, VoxelNode* destinationNode);
+
+    CoverageMapV2 myCoverageMapV2;
+    CoverageMap   myCoverageMap;
     
 protected:
     float _treeScale; 
@@ -120,6 +129,10 @@ private:
     static bool removeOutOfViewOperation(VoxelNode* node, void* extraData);
     static bool falseColorizeRandomEveryOtherOperation(VoxelNode* node, void* extraData);
     static bool collectStatsForTreesAndVBOsOperation(VoxelNode* node, void* extraData);
+    static bool falseColorizeOccludedOperation(VoxelNode* node, void* extraData);
+    static bool falseColorizeSubTreeOperation(VoxelNode* node, void* extraData);
+    static bool falseColorizeOccludedV2Operation(VoxelNode* node, void* extraData);
+
 
     int updateNodeInArraysAsFullVBO(VoxelNode* node);
     int updateNodeInArraysAsPartialVBO(VoxelNode* node);
@@ -147,10 +160,10 @@ private:
     bool _writeRenderFullVBO;
     bool _readRenderFullVBO;
     
-    double _setupNewVoxelsForDrawingLastElapsed;
-    double _setupNewVoxelsForDrawingLastFinished;
-    double _lastViewCulling;
-    double _lastViewCullingElapsed;
+    int _setupNewVoxelsForDrawingLastElapsed;
+    uint64_t _setupNewVoxelsForDrawingLastFinished;
+    uint64_t _lastViewCulling;
+    int _lastViewCullingElapsed;
     
     GLuint _vboVerticesID;
     GLuint _vboNormalsID;

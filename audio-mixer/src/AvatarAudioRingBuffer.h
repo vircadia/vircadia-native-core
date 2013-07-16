@@ -9,21 +9,30 @@
 #ifndef __hifi__AvatarAudioRingBuffer__
 #define __hifi__AvatarAudioRingBuffer__
 
+#include <Stk.h>
+#include <TwoPole.h>
+
 #include "PositionalAudioRingBuffer.h"
+
+typedef std::map<uint16_t, stk::TwoPole*> TwoPoleNodeMap;
 
 class AvatarAudioRingBuffer : public PositionalAudioRingBuffer {
 public:
     AvatarAudioRingBuffer();
+    ~AvatarAudioRingBuffer();
     
     int parseData(unsigned char* sourceBuffer, int numBytes);
     
-    bool shouldLoopbackForAgent() const { return _shouldLoopbackForAgent; }
+    TwoPoleNodeMap& getTwoPoles() { return _twoPoles; }
+    
+    bool shouldLoopbackForNode() const { return _shouldLoopbackForNode; }
 private:
     // disallow copying of AvatarAudioRingBuffer objects
     AvatarAudioRingBuffer(const AvatarAudioRingBuffer&);
     AvatarAudioRingBuffer& operator= (const AvatarAudioRingBuffer&);
     
-    bool _shouldLoopbackForAgent;
+    TwoPoleNodeMap _twoPoles;
+    bool _shouldLoopbackForNode;
 };
 
 #endif /* defined(__hifi__AvatarAudioRingBuffer__) */

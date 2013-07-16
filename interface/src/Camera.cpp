@@ -22,8 +22,9 @@ const float CAMERA_THIRD_PERSON_MODE_DISTANCE  = 1.5f;
 const float CAMERA_THIRD_PERSON_MODE_TIGHTNESS = 8.0f;
 
 const float CAMERA_MIRROR_MODE_UP_SHIFT        = 0.0f;
-const float CAMERA_MIRROR_MODE_DISTANCE        = 0.2f;
+const float CAMERA_MIRROR_MODE_DISTANCE        = 0.3f;
 const float CAMERA_MIRROR_MODE_TIGHTNESS       = 100.0f;
+
 
 Camera::Camera() {
 
@@ -35,7 +36,7 @@ Camera::Camera() {
     _linearModeShift   = 0.0f;
     _mode              = CAMERA_MODE_THIRD_PERSON;
     _tightness         = 10.0f; // default
-    _fieldOfView       = 60.0f; // default
+    _fieldOfView       = HORIZONTAL_FIELD_OF_VIEW_DEGREES; 
     _nearClip          = 0.08f; // default
     _farClip           = 50.0f * TREE_SCALE; // default
     _upShift           = 0.0f;
@@ -49,6 +50,7 @@ Camera::Camera() {
     _targetPosition    = glm::vec3(0.0f, 0.0f, 0.0f);
     _position          = glm::vec3(0.0f, 0.0f, 0.0f);
     _idealPosition     = glm::vec3(0.0f, 0.0f, 0.0f);
+    _scale             = 1.0f;
 }
 
 void Camera::update(float deltaTime)  {
@@ -71,7 +73,7 @@ void Camera::updateFollowMode(float deltaTime) {
         _distance  = _previousDistance  * (1.0f - _modeShift) + _newDistance  * _modeShift;
         _tightness = _previousTightness * (1.0f - _modeShift) + _newTightness * _modeShift;
 
-        if (_linearModeShift > 1.0f ) {
+        if (_needsToInitialize || _linearModeShift > 1.0f) {
             _linearModeShift = 1.0f;
             _modeShift = 1.0f;
             _upShift   = _newUpShift;
@@ -90,14 +92,14 @@ void Camera::updateFollowMode(float deltaTime) {
     
     if (_needsToInitialize || (_tightness == 0.0f)) {
         _rotation = _targetRotation;
-        _idealPosition = _targetPosition + _rotation * glm::vec3(0.0f, _upShift, _distance);
+        _idealPosition = _targetPosition + _scale * (_rotation * glm::vec3(0.0f, _upShift, _distance));
         _position = _idealPosition;
         _needsToInitialize = false;
 
     } else {
         // pull rotation towards ideal
         _rotation = safeMix(_rotation, _targetRotation, t);
-        _idealPosition = _targetPosition + _rotation * glm::vec3(0.0f, _upShift, _distance);
+        _idealPosition = _targetPosition + _scale * (_rotation * glm::vec3(0.0f, _upShift, _distance));
         _position += (_idealPosition - _position) * t;
     }
 }
@@ -170,6 +172,12 @@ void Camera::setEyeOffsetPosition  (const glm::vec3& p) {
 
 void Camera::setEyeOffsetOrientation  (const glm::quat& o) {
     _eyeOffsetOrientation = o;
+    _frustumNeedsReshape = true;
+}
+
+void Camera::setScale(float s) {
+    _scale = s;
+    _needsToInitialize = true;
     _frustumNeedsReshape = true;
 }
 

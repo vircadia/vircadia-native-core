@@ -13,21 +13,70 @@
 #include "ViewFrustum.h"
 #include "VoxelNode.h"
 #include "VoxelNodeBag.h"
+#include "CoverageMap.h"
+#include "PointerStack.h"
 
 // Callback function, for recuseTreeWithOperation
 typedef bool (*RecurseVoxelTreeOperation)(VoxelNode* node, void* extraData);
 typedef enum {GRADIENT, RANDOM, NATURAL} creationMode;
 
-#define NO_EXISTS_BITS      false
-#define WANT_EXISTS_BITS    true
-#define NO_COLOR            false
-#define WANT_COLOR          true
-#define IGNORE_VIEW_FRUSTUM NULL
-#define JUST_STAGE_DELETION true
-#define ACTUALLY_DELETE     false
-#define COLLAPSE_EMPTY_TREE true
-#define DONT_COLLAPSE       false
-#define DONT_CHOP_LEVELS    0
+#define NO_EXISTS_BITS         false
+#define WANT_EXISTS_BITS       true
+#define NO_COLOR               false
+#define WANT_COLOR             true
+#define IGNORE_VIEW_FRUSTUM    NULL
+#define JUST_STAGE_DELETION    true
+#define ACTUALLY_DELETE        false
+#define COLLAPSE_EMPTY_TREE    true
+#define DONT_COLLAPSE          false
+#define NO_OCCLUSION_CULLING   false
+#define WANT_OCCLUSION_CULLING true
+#define IGNORE_COVERAGE_MAP    NULL
+#define DONT_CHOP              0
+#define NO_BOUNDARY_ADJUST     0
+#define LOW_RES_MOVING_ADJUST  1
+
+class EncodeBitstreamParams {
+public:
+    int                 maxEncodeLevel;
+    int                 maxLevelReached;
+    const ViewFrustum*  viewFrustum;
+    bool                includeColor;
+    bool                includeExistsBits;
+    int                 chopLevels;
+    bool                deltaViewFrustum;
+    const ViewFrustum*  lastViewFrustum;
+    bool                wantOcclusionCulling;
+    long                childWasInViewDiscarded;
+    int                 boundaryLevelAdjust;
+
+    CoverageMap*        map;
+    
+    EncodeBitstreamParams(
+        int                 maxEncodeLevel      = INT_MAX, 
+        const ViewFrustum*  viewFrustum         = IGNORE_VIEW_FRUSTUM,
+        bool                includeColor        = WANT_COLOR, 
+        bool                includeExistsBits   = WANT_EXISTS_BITS,
+        int                 chopLevels          = 0, 
+        bool                deltaViewFrustum    = false, 
+        const ViewFrustum*  lastViewFrustum     = IGNORE_VIEW_FRUSTUM,
+        bool                wantOcclusionCulling= NO_OCCLUSION_CULLING,
+        CoverageMap*        map                 = IGNORE_COVERAGE_MAP,
+        int                 boundaryLevelAdjust = NO_BOUNDARY_ADJUST) :
+            maxEncodeLevel          (maxEncodeLevel),
+            maxLevelReached         (0),
+            viewFrustum             (viewFrustum),
+            includeColor            (includeColor),
+            includeExistsBits       (includeExistsBits),
+            chopLevels              (chopLevels),
+            deltaViewFrustum        (deltaViewFrustum),
+            lastViewFrustum         (lastViewFrustum),
+            wantOcclusionCulling    (wantOcclusionCulling),
+            childWasInViewDiscarded (0),
+            boundaryLevelAdjust     (boundaryLevelAdjust),
+            map                     (map)
+    {}
+};
 
 class VoxelTree {
 public:
@@ -68,16 +117,11 @@ public:
                       creationMode mode, bool destructive = false, bool debug = false);
 
     void recurseTreeWithOperation(RecurseVoxelTreeOperation operation, void* extraData=NULL);
+    void recurseTreeWithOperationDistanceSorted(RecurseVoxelTreeOperation operation, 
+                                                const glm::vec3& point, void* extraData=NULL);
 
-    int encodeTreeBitstream(int maxEncodeLevel, VoxelNode* node, unsigned char* outputBuffer, int availableBytes,
-                            VoxelNodeBag& bag, const ViewFrustum* viewFrustum, 
-                            bool includeColor = WANT_COLOR, bool includeExistsBits = WANT_EXISTS_BITS, 
-                            int chopLevels = DONT_CHOP_LEVELS, 
-                            bool deltaViewFrustum = false, const ViewFrustum* lastViewFrustum = NULL, 
-                            double lastViewFrustumSent = 0) const;
-
-    int searchForColoredNodes(int maxSearchLevel, VoxelNode* node, const ViewFrustum& viewFrustum, VoxelNodeBag& bag, 
-            bool deltaViewFrustum = false, const ViewFrustum* lastViewFrustum = NULL);
+    int encodeTreeBitstream(VoxelNode* node, unsigned char* outputBuffer, int availableBytes, VoxelNodeBag& bag, 
+                            EncodeBitstreamParams& params) const;
 
     bool isDirty() const { return _isDirty; };
     void clearDirtyBit() { _isDirty = false; };
@@ -96,6 +140,10 @@ public:
     // these will read/write files that match the wireformat, excluding the 'V' leading
     void writeToSVOFile(const char* filename, VoxelNode* node = NULL) const;
     bool readFromSVOFile(const char* filename);
+    // reads voxels from square image with alpha as a Y-axis
+    bool readFromSquareARGB32Pixels(const uint32_t* pixels, int dimension);
+    bool readFromSchematicFile(const char* filename);
+    void computeBlockColor(int id, int data, int& r, int& g, int& b, int& create);
 
     unsigned long getVoxelCount();
 
@@ -103,24 +151,25 @@ public:
     void copyFromTreeIntoSubTree(VoxelTree* sourceTree, VoxelNode* destinationNode);
     
     bool getShouldReaverage() const { return _shouldReaverage; }
+
+    void recurseNodeWithOperation(VoxelNode* node, RecurseVoxelTreeOperation operation, void* extraData);
+    void recurseNodeWithOperationDistanceSorted(VoxelNode* node, RecurseVoxelTreeOperation operation, 
+                const glm::vec3& point, void* extraData);
+
+
+    void recurseTreeWithOperationDistanceSortedTimed(PointerStack* stackOfNodes, long allowedTime,
+                                                            RecurseVoxelTreeOperation operation, 
+                                                            const glm::vec3& point, void* extraData);
     
 private:
     void deleteVoxelCodeFromTreeRecursion(VoxelNode* node, void* extraData);
     void readCodeColorBufferToTreeRecursion(VoxelNode* node, void* extraData);
 
-    int encodeTreeBitstreamRecursion(int maxEncodeLevel, int& currentEncodeLevel,
-                                     VoxelNode* node, unsigned char* outputBuffer, int availableBytes, VoxelNodeBag& bag, 
-                                     const ViewFrustum* viewFrustum, bool includeColor, bool includeExistsBits,
-                                     int chopLevels, bool deltaViewFrustum, const ViewFrustum* lastViewFrustum, 
-                                     double lastViewFrustumSent) const;
-
-    int searchForColoredNodesRecursion(int maxSearchLevel, int& currentSearchLevel, 
-                                       VoxelNode* node, const ViewFrustum& viewFrustum, VoxelNodeBag& bag,
-                                       bool deltaViewFrustum, const ViewFrustum* lastViewFrustum);
+    int encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outputBuffer, int availableBytes, VoxelNodeBag& bag, 
+                                     EncodeBitstreamParams& params, int& currentEncodeLevel) const;
 
     static bool countVoxelsOperation(VoxelNode* node, void* extraData);
 
-    void recurseNodeWithOperation(VoxelNode* node, RecurseVoxelTreeOperation operation, void* extraData);
     VoxelNode* nodeForOctalCode(VoxelNode* ancestorNode, unsigned char* needleCode, VoxelNode** parentOfFoundNode) const;
     VoxelNode* createMissingNode(VoxelNode* lastParentNode, unsigned char* deepestCodeToCreate);
     int readNodeData(VoxelNode *destinationNode, unsigned char* nodeData, int bufferSizeBytes, 
@@ -131,6 +180,7 @@ private:
     bool _shouldReaverage;
 };
 
-int boundaryDistanceForRenderLevel(unsigned int renderLevel);
+float boundaryDistanceForRenderLevel(unsigned int renderLevel);
+float boundaryDistanceSquaredForRenderLevel(unsigned int renderLevel);
 
 #endif /* defined(__hifi__VoxelTree__) */

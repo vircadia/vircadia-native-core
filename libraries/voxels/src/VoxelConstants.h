@@ -20,6 +20,8 @@ const glm::vec3 IDENTITY_RIGHT = glm::vec3( 1.0f, 0.0f, 0.0f);
 const glm::vec3 IDENTITY_UP    = glm::vec3( 0.0f, 1.0f, 0.0f);
 const glm::vec3 IDENTITY_FRONT = glm::vec3( 0.0f, 0.0f,-1.0f);
 
+const bool LOW_RES_MONO = false; // while in "low res mode" do voxels switch to monochrome
+
 const int TREE_SCALE = 128;
 
 const int NUMBER_OF_CHILDREN = 8;
@@ -34,7 +36,7 @@ const int COLOR_VALUES_PER_VOXEL = NUMBER_OF_COLORS * VERTICES_PER_VOXEL;
 typedef unsigned long int glBufferIndex;
 const glBufferIndex GLBUFFER_INDEX_UNKNOWN = ULONG_MAX;
 
-const double SIXTY_FPS_IN_MILLISECONDS = 1000.0/60;
-const double VIEW_CULLING_RATE_IN_MILLISECONDS = 1000.0; // once a second is fine
+const float SIXTY_FPS_IN_MILLISECONDS = 1000.0f / 60.0f;
+const float VIEW_CULLING_RATE_IN_MILLISECONDS = 1000.0f; // once a second is fine
 
 #endif

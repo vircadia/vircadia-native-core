@@ -3,6 +3,7 @@
 //  hifi
 //
 //  Created by Brad Hefta-Gaub on 3/29/13.
+//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
 //  Poor-man's performance stats collector class. Useful for collecting timing
 //  details from various portions of the code.
@@ -104,17 +105,17 @@ int PerfStat::DumpStats(char** array) {
 
 // Destructor handles recording all of our stats
 PerformanceWarning::~PerformanceWarning() {
-    double end = usecTimestampNow();
+    uint64_t end = usecTimestampNow();
     double elapsedmsec = (end - _start) / 1000.0;
     if ((_alwaysDisplay || _renderWarningsOn) && elapsedmsec > 1) {
         if (elapsedmsec > 1000) {
             double elapsedsec = (end - _start) / 1000000.0;
-            printLog("WARNING! %s took %lf seconds\n", _message, elapsedsec);
+            printLog("%s%s took %lf seconds\n", (_alwaysDisplay ? "" : "WARNING!"), _message, elapsedsec);
         } else {
-            printLog("WARNING! %s took %lf milliseconds\n", _message, elapsedmsec);
+            printLog("%s%s took %lf milliseconds\n", (_alwaysDisplay ? "" : "WARNING!"), _message, elapsedmsec);
         }
     } else if (_alwaysDisplay) {
-        printLog("WARNING! %s took %lf milliseconds\n", _message, elapsedmsec);
+        printLog("%s took %lf milliseconds\n", _message, elapsedmsec);
     }
 };
 

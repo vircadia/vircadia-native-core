@@ -3,7 +3,7 @@
 //  hifi
 //
 //  Created by Stephen Birarda on 2/22/13.
-//
+//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
 
 #include <cstdlib>
@@ -11,25 +11,28 @@
 #include <cstring>
 #include <cctype>
 #include <time.h>
+
 #ifdef _WIN32
 #include "Syssocket.h"
 #endif
-#include "Log.h"
-#include "SharedUtil.h"
-#include "OctalCode.h"
 
 #ifdef __APPLE__
 #include <CoreFoundation/CoreFoundation.h>
 #endif
 
-double usecTimestamp(timeval *time) {
-    return (time->tv_sec * 1000000.0 + time->tv_usec);
+#include "Log.h"
+#include "OctalCode.h"
+#include "PacketHeaders.h"
+#include "SharedUtil.h"
+
+uint64_t usecTimestamp(timeval *time) {
+    return (time->tv_sec * 1000000 + time->tv_usec);
 }
 
-double usecTimestampNow() {
+uint64_t usecTimestampNow() {
     timeval now;
     gettimeofday(&now, NULL);
-    return (now.tv_sec * 1000000.0 + now.tv_usec);
+    return (now.tv_sec * 1000000 + now.tv_usec);
 }
 
 float randFloat () {
@@ -37,7 +40,7 @@ float randFloat () {
 }
 
 int randIntInRange (int min, int max) {
-    return min + (rand() % (max - min));
+    return min + (rand() % ((max + 1) - min));
 }
 
 float randFloatInRange (float min,float max) {
@@ -45,7 +48,7 @@ float randFloatInRange (float min,float max) {
 }
 
 unsigned char randomColorValue(int miniumum) {
-    return miniumum + (rand() % (255 - miniumum));
+    return miniumum + (rand() % (256 - miniumum));
 }
 
 bool randomBoolean() {
@@ -102,14 +105,23 @@ void setAtBit(unsigned char& byte, int bitIndex) {
 }
 
 int  getSemiNibbleAt(unsigned char& byte, int bitIndex) {
-    return (byte >> (7 - bitIndex) & 3); // semi-nibbles store 00, 01, 10, or 11
+    return (byte >> (6 - bitIndex) & 3); // semi-nibbles store 00, 01, 10, or 11
 }
 
 void setSemiNibbleAt(unsigned char& byte, int bitIndex, int value) {
     //assert(value <= 3 && value >= 0);
-    byte += ((value & 3) << (7 - bitIndex)); // semi-nibbles store 00, 01, 10, or 11
+    byte += ((value & 3) << (6 - bitIndex)); // semi-nibbles store 00, 01, 10, or 11
 }
 
+bool isInEnvironment(const char* environment) {
+    char* environmentString = getenv("HIFI_ENVIRONMENT");
+    
+    if (environmentString && strcmp(environmentString, environment) == 0) {
+        return true;
+    } else {
+        return false;
+    }
+}
 
 void switchToResourcesParentIfRequired() {
 #ifdef __APPLE__
@@ -200,13 +212,14 @@ bool createVoxelEditMessage(unsigned char command, short int sequence,
     int messageSize = MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE; // just a guess for now
     int actualMessageSize = 3;
     unsigned char* messageBuffer = new unsigned char[messageSize];
-    unsigned short int* sequenceAt = (unsigned short int*)&messageBuffer[1];
     
-    messageBuffer[0]=command;
-    *sequenceAt=sequence;
-    unsigned char* copyAt = &messageBuffer[3];
+    int numBytesPacketHeader = populateTypeAndVersion(messageBuffer, command);
+    unsigned short int* sequenceAt = (unsigned short int*) &messageBuffer[numBytesPacketHeader];
+  
+    *sequenceAt = sequence;
+    unsigned char* copyAt = &messageBuffer[numBytesPacketHeader + sizeof(sequence)];
 
-    for (int i=0;i<voxelCount && success;i++) {
+    for (int i = 0; i < voxelCount && success; i++) {
         // get the coded voxel
         unsigned char* voxelData = pointToVoxel(voxelDetails[i].x,voxelDetails[i].y,voxelDetails[i].z,
             voxelDetails[i].s,voxelDetails[i].red,voxelDetails[i].green,voxelDetails[i].blue);
@@ -215,12 +228,12 @@ bool createVoxelEditMessage(unsigned char command, short int sequence,
         
         // make sure we have room to copy this voxel
         if (actualMessageSize+lengthOfVoxelData > MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE) {
-            success=false;
+            success = false;
         } else {
             // add it to our message
-            memcpy(copyAt,voxelData,lengthOfVoxelData);
-            copyAt+=lengthOfVoxelData;
-            actualMessageSize+=lengthOfVoxelData;
+            memcpy(copyAt, voxelData, lengthOfVoxelData);
+            copyAt += lengthOfVoxelData;
+            actualMessageSize += lengthOfVoxelData;
         }
         // cleanup
         delete[] voxelData;
@@ -229,9 +242,10 @@ bool createVoxelEditMessage(unsigned char command, short int sequence,
     if (success) {    
         // finally, copy the result to the output
         bufferOut = new unsigned char[actualMessageSize];
-        sizeOut=actualMessageSize;
-        memcpy(bufferOut,messageBuffer,actualMessageSize);
+        sizeOut = actualMessageSize;
+        memcpy(bufferOut, messageBuffer, actualMessageSize);
     }
+    
     delete[] messageBuffer; // clean up our temporary buffer
     return success;
 }
@@ -395,11 +409,11 @@ void printVoxelCode(unsigned char* voxelCode) {
     }
 #endif
 
-
 // Inserts the value and key into three arrays sorted by the key array, the first array is the value,
 // the second array is a sorted key for the value, the third array is the index for the value in it original
 // non-sorted array 
 // returns -1 if size exceeded
+// originalIndexArray is optional
 int insertIntoSortedArrays(void* value, float key, int originalIndex, 
                            void** valueArray, float* keyArray, int* originalIndexArray, 
                            int currentCount, int maxCount) {
@@ -413,17 +427,43 @@ int insertIntoSortedArrays(void* value, float key, int originalIndex,
             // i is our desired location
             // shift array elements to the right
             if (i < currentCount && i+1 < maxCount) {
-                memcpy(&valueArray[i + 1], &valueArray[i], sizeof(void*) * (currentCount - i));
-                memcpy(&keyArray[i + 1], &keyArray[i], sizeof(float) * (currentCount - i));
-                memcpy(&originalIndexArray[i + 1], &originalIndexArray[i], sizeof(int) * (currentCount - i));
+                memmove(&valueArray[i + 1], &valueArray[i], sizeof(void*) * (currentCount - i));
+                memmove(&keyArray[i + 1], &keyArray[i], sizeof(float) * (currentCount - i));
+                if (originalIndexArray) {
+                    memmove(&originalIndexArray[i + 1], &originalIndexArray[i], sizeof(int) * (currentCount - i));
+                }
             }
         }
         // place new element at i
         valueArray[i] = value;
         keyArray[i] = key;
-        originalIndexArray[i] = originalIndex;
+        if (originalIndexArray) {
+            originalIndexArray[i] = originalIndex;
+        }
         return currentCount + 1;
     }
     return -1; // error case
 }
 
+int removeFromSortedArrays(void* value, void** valueArray, float* keyArray, int* originalIndexArray, 
+                           int currentCount, int maxCount) {
+
+    int i = 0;
+    if (currentCount > 0) {
+        while (i < currentCount && value != valueArray[i]) {
+            i++;
+        }
+        
+        if (value == valueArray[i] && i < currentCount) {
+            // i is the location of the item we were looking for
+            // shift array elements to the left
+            memmove(&valueArray[i], &valueArray[i + 1], sizeof(void*) * ((currentCount-1) - i));
+            memmove(&keyArray[i], &keyArray[i + 1], sizeof(float) * ((currentCount-1) - i));
+            if (originalIndexArray) {
+                memmove(&originalIndexArray[i], &originalIndexArray[i + 1], sizeof(int) * ((currentCount-1) - i));
+            }
+            return currentCount-1;
+        }
+    }
+    return -1; // error case
+}

@@ -10,14 +10,16 @@
 #include <cstdlib>
 #include <cstring>
 #include <cstdio>
-#include <OctalCode.h>
-#include <AgentList.h>
-#include <AgentTypes.h>
+#include <iostream>
+
 #include <EnvironmentData.h>
-#include <VoxelTree.h>
-#include <SharedUtil.h>
+#include <NodeList.h>
+#include <NodeTypes.h>
+#include <OctalCode.h>
 #include <PacketHeaders.h>
 #include <SceneUtils.h>
+#include <SharedUtil.h>
+#include <VoxelTree.h>
 
 #ifdef _WIN32
 #include "Syssocket.h"
@@ -46,11 +48,11 @@ bool wantLocalDomain = false;
 unsigned long packetsSent = 0;
 unsigned long bytesSent = 0;
 
-static void sendVoxelEditMessage(PACKET_HEADER header, VoxelDetail& detail) {
+static void sendVoxelEditMessage(PACKET_TYPE type, VoxelDetail& detail) {
     unsigned char* bufferOut;
     int sizeOut;
     
-    if (createVoxelEditMessage(header, 0, 1, &detail, bufferOut, sizeOut)){
+    if (createVoxelEditMessage(type, 0, 1, &detail, bufferOut, sizeOut)){
 
         ::packetsSent++;
         ::bytesSent += sizeOut;
@@ -59,7 +61,7 @@ static void sendVoxelEditMessage(PACKET_HEADER header, VoxelDetail& detail) {
             printf("sending packet of size=%d\n",sizeOut);
         }
 
-        AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL, 1);
+        NodeList::getInstance()->broadcastToNodes(bufferOut, sizeOut, &NODE_TYPE_VOXEL_SERVER, 1);
         delete[] bufferOut;
     }
 }
@@ -159,7 +161,7 @@ static void renderMovingBug() {
     }
     
     // send the "erase message" first...
-    PACKET_HEADER message = PACKET_HEADER_ERASE_VOXEL;
+    PACKET_TYPE message = PACKET_TYPE_ERASE_VOXEL;
     if (createVoxelEditMessage(message, 0, VOXELS_PER_BUG, (VoxelDetail*)&details, bufferOut, sizeOut)){
 
         ::packetsSent++;
@@ -168,7 +170,7 @@ static void renderMovingBug() {
         if (::shouldShowPacketsPerSecond) {
             printf("sending packet of size=%d\n", sizeOut);
         }
-        AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL, 1);
+        NodeList::getInstance()->broadcastToNodes(bufferOut, sizeOut, &NODE_TYPE_VOXEL_SERVER, 1);
         delete[] bufferOut;
     }
 
@@ -229,7 +231,7 @@ static void renderMovingBug() {
     }
     
     // send the "create message" ...
-    message = PACKET_HEADER_SET_VOXEL_DESTRUCTIVE;
+    message = PACKET_TYPE_SET_VOXEL_DESTRUCTIVE;
     if (createVoxelEditMessage(message, 0, VOXELS_PER_BUG, (VoxelDetail*)&details, bufferOut, sizeOut)){
 
         ::packetsSent++;
@@ -238,11 +240,10 @@ static void renderMovingBug() {
         if (::shouldShowPacketsPerSecond) {
             printf("sending packet of size=%d\n", sizeOut);
         }
-        AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL, 1);
+        NodeList::getInstance()->broadcastToNodes(bufferOut, sizeOut, &NODE_TYPE_VOXEL_SERVER, 1);
         delete[] bufferOut;
     }
 }
-
 
 
 float intensity = 0.5f;
@@ -275,7 +276,7 @@ static void sendVoxelBlinkMessage() {
     detail.green = 0   * ::intensity;
     detail.blue  = 0   * ::intensity;
     
-    PACKET_HEADER message = PACKET_HEADER_SET_VOXEL_DESTRUCTIVE;
+    PACKET_TYPE message = PACKET_TYPE_SET_VOXEL_DESTRUCTIVE;
 
     sendVoxelEditMessage(message, detail);
 }
@@ -292,7 +293,7 @@ unsigned char onColor[3]  = {   0, 255, 255 };
 const float STRING_OF_LIGHTS_SIZE = 0.125f / TREE_SCALE; // approximately 1/8th meter
 
 static void sendBlinkingStringOfLights() {
-    PACKET_HEADER message = PACKET_HEADER_SET_VOXEL_DESTRUCTIVE; // we're a bully!
+    PACKET_TYPE message = PACKET_TYPE_SET_VOXEL_DESTRUCTIVE; // we're a bully!
     float lightScale = STRING_OF_LIGHTS_SIZE;
     static VoxelDetail details[LIGHTS_PER_SEGMENT];
     unsigned char* bufferOut;
@@ -345,7 +346,7 @@ static void sendBlinkingStringOfLights() {
                 if (::shouldShowPacketsPerSecond) {
                     printf("sending packet of size=%d\n",sizeOut);
                 }
-                AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL, 1);
+                NodeList::getInstance()->broadcastToNodes(bufferOut, sizeOut, &NODE_TYPE_VOXEL_SERVER, 1);
                 delete[] bufferOut;
             }
 
@@ -387,7 +388,7 @@ static void sendBlinkingStringOfLights() {
             if (::shouldShowPacketsPerSecond) {
                 printf("sending packet of size=%d\n",sizeOut);
             }
-            AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL, 1);
+            NodeList::getInstance()->broadcastToNodes(bufferOut, sizeOut, &NODE_TYPE_VOXEL_SERVER, 1);
             delete[] bufferOut;
         }
     }
@@ -422,7 +423,7 @@ const int PACKETS_PER_DANCE_FLOOR = DANCE_FLOOR_VOXELS_PER_PACKET / (DANCE_FLOOR
 int danceFloorColors[DANCE_FLOOR_WIDTH][DANCE_FLOOR_LENGTH];
 
 void sendDanceFloor() {
-    PACKET_HEADER message = PACKET_HEADER_SET_VOXEL_DESTRUCTIVE; // we're a bully!
+    PACKET_TYPE message = PACKET_TYPE_SET_VOXEL_DESTRUCTIVE; // we're a bully!
     float lightScale = DANCE_FLOOR_LIGHT_SIZE;
     static VoxelDetail details[DANCE_FLOOR_VOXELS_PER_PACKET];
     unsigned char* bufferOut;
@@ -433,7 +434,7 @@ void sendDanceFloor() {
         for (int i = 0; i < DANCE_FLOOR_WIDTH; i++) {
             for (int j = 0; j < DANCE_FLOOR_LENGTH; j++) {
 
-                int randomColorIndex = randIntInRange( -(DANCE_FLOOR_COLORS), (DANCE_FLOOR_COLORS + 1));
+                int randomColorIndex = randIntInRange(-DANCE_FLOOR_COLORS, DANCE_FLOOR_COLORS);
                 ::danceFloorColors[i][j] = randomColorIndex;
                 ::danceFloorLights[i][j] = ::danceFloorPosition + 
                                          glm::vec3(i * DANCE_FLOOR_LIGHT_SIZE, 0, j * DANCE_FLOOR_LIGHT_SIZE);
@@ -510,7 +511,7 @@ void sendDanceFloor() {
                     if (::shouldShowPacketsPerSecond) {
                         printf("sending packet of size=%d\n", sizeOut);
                     }
-                    AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL, 1);
+                    NodeList::getInstance()->broadcastToNodes(bufferOut, sizeOut, &NODE_TYPE_VOXEL_SERVER, 1);
                     delete[] bufferOut;
                 }
             }
@@ -549,7 +550,7 @@ bool billboardMessage[BILLBOARD_HEIGHT][BILLBOARD_WIDTH] = {
 };
 
 static void sendBillboard() {
-    PACKET_HEADER message = PACKET_HEADER_SET_VOXEL_DESTRUCTIVE; // we're a bully!
+    PACKET_TYPE message = PACKET_TYPE_SET_VOXEL_DESTRUCTIVE; // we're a bully!
     float lightScale = BILLBOARD_LIGHT_SIZE;
     static VoxelDetail details[VOXELS_PER_PACKET];
     unsigned char* bufferOut;
@@ -607,7 +608,7 @@ static void sendBillboard() {
                     if (::shouldShowPacketsPerSecond) {
                         printf("sending packet of size=%d\n", sizeOut);
                     }
-                    AgentList::getInstance()->broadcastToAgents(bufferOut, sizeOut, &AGENT_TYPE_VOXEL, 1);
+                    NodeList::getInstance()->broadcastToNodes(bufferOut, sizeOut, &NODE_TYPE_VOXEL_SERVER, 1);
                     delete[] bufferOut;
                 }
             }
@@ -644,14 +645,14 @@ void* animateVoxels(void* args) {
             sendDanceFloor();
         }
         
-        double end = usecTimestampNow();
-        double elapsedSeconds = (end - ::start) / 1000000.0;
+        uint64_t end = usecTimestampNow();
+        uint64_t elapsedSeconds = (end - ::start) / 1000000;
         if (::shouldShowPacketsPerSecond) {
             printf("packetsSent=%ld, bytesSent=%ld pps=%f bps=%f\n",packetsSent,bytesSent,
                 (float)(packetsSent/elapsedSeconds),(float)(bytesSent/elapsedSeconds));
         }
         // dynamically sleep until we need to fire off the next set of voxels
-        double usecToSleep =  ANIMATE_VOXELS_INTERVAL_USECS - (usecTimestampNow() - usecTimestamp(&lastSendTime));
+        uint64_t usecToSleep =  ANIMATE_VOXELS_INTERVAL_USECS - (usecTimestampNow() - usecTimestamp(&lastSendTime));
         
         if (usecToSleep > 0) {
             usleep(usecToSleep);
@@ -668,7 +669,7 @@ int main(int argc, const char * argv[])
 {
     ::start = usecTimestampNow();
 
-    AgentList* agentList = AgentList::createInstance(AGENT_TYPE_ANIMATION_SERVER, ANIMATION_LISTEN_PORT);
+    NodeList* nodeList = NodeList::createInstance(NODE_TYPE_ANIMATION_SERVER, ANIMATION_LISTEN_PORT);
     setvbuf(stdout, NULL, _IOLBF, 0);
 
     // Handle Local Domain testing with the --local command line
@@ -696,33 +697,37 @@ int main(int argc, const char * argv[])
     ::wantLocalDomain = cmdOptionExists(argc, argv,local);
     if (::wantLocalDomain) {
         printf("Local Domain MODE!\n");
-        int ip = getLocalAddress();
-        sprintf(DOMAIN_IP,"%d.%d.%d.%d", (ip & 0xFF), ((ip >> 8) & 0xFF),((ip >> 16) & 0xFF), ((ip >> 24) & 0xFF));
+        nodeList->setDomainIPToLocalhost();
     }
 
-    agentList->linkedDataCreateCallback = NULL; // do we need a callback?
-    agentList->startSilentAgentRemovalThread();
-    agentList->startDomainServerCheckInThread();
+    nodeList->linkedDataCreateCallback = NULL; // do we need a callback?
+    nodeList->startSilentNodeRemovalThread();
     
     srand((unsigned)time(0));
 
     pthread_t animateVoxelThread;
     pthread_create(&animateVoxelThread, NULL, animateVoxels, NULL);
 
-    sockaddr agentPublicAddress;
+    sockaddr nodePublicAddress;
     
     unsigned char* packetData = new unsigned char[MAX_PACKET_SIZE];
     ssize_t receivedBytes;
+    
+    timeval lastDomainServerCheckIn = {};
+    NodeList::getInstance()->setNodeTypesOfInterest(&NODE_TYPE_VOXEL_SERVER, 1);
 
-    // loop to send to agents requesting data
+    // loop to send to nodes requesting data
     while (true) {
-        // Agents sending messages to us...    
-        if (agentList->getAgentSocket()->receive(&agentPublicAddress, packetData, &receivedBytes)) {
-            switch (packetData[0]) {
-                default: {
-                    AgentList::getInstance()->processAgentData(&agentPublicAddress, packetData, receivedBytes);
-                } break;
-            }
+        // send a check in packet to the domain server if DOMAIN_SERVER_CHECK_IN_USECS has elapsed
+        if (usecTimestampNow() - usecTimestamp(&lastDomainServerCheckIn) >= DOMAIN_SERVER_CHECK_IN_USECS) {
+            gettimeofday(&lastDomainServerCheckIn, NULL);
+            NodeList::getInstance()->sendDomainServerCheckIn();
+        }
+        
+        // Nodes sending messages to us...
+        if (nodeList->getNodeSocket()->receive(&nodePublicAddress, packetData, &receivedBytes) &&
+            packetVersionMatch(packetData)) {
+            NodeList::getInstance()->processNodeData(&nodePublicAddress, packetData, receivedBytes);
         }
     }
     

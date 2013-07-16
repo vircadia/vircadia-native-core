@@ -17,6 +17,7 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
+#include <QSettings>
 
 // the standard sans serif font family
 #define SANS_FONT_FAMILY "Helvetica"
@@ -24,13 +25,14 @@
 // the standard mono font family
 #define MONO_FONT_FAMILY "Courier"
 
-
 void eulerToOrthonormals(glm::vec3 * angles, glm::vec3 * fwd, glm::vec3 * left, glm::vec3 * up);
 
 float azimuth_to(glm::vec3 head_pos, glm::vec3 source_pos);
 float angle_to(glm::vec3 head_pos, glm::vec3 source_pos, float render_yaw, float head_yaw);
 
 float randFloat();
+const glm::vec3 randVector();
+
 void render_world_box();
 int widthText(float scale, int mono, char const* string);
 float widthChar(float scale, int mono, char ch);
@@ -65,5 +67,10 @@ void renderSphereOutline(glm::vec3 position, float radius, int numSides, glm::ve
 void renderCircle(glm::vec3 position, float radius, glm::vec3 surfaceNormal, int numSides );
 
 void runTimingTests();
+
+
+float loadSetting(QSettings* settings, const char* name, float defaultValue);
+
+bool rayIntersectsSphere(glm::vec3& rayStarting, glm::vec3& rayNormalizedDirection, glm::vec3& sphereCenter, double sphereRadius);
 
 #endif

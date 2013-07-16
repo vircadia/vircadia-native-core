@@ -12,10 +12,14 @@
 
 #include <glm/gtx/transform.hpp>
 
-#include "ViewFrustum.h"
-#include "VoxelConstants.h"
 #include "SharedUtil.h"
 #include "Log.h"
+
+#include "CoverageMap.h"
+#include "GeometryUtil.h"
+#include "ViewFrustum.h"
+#include "VoxelConstants.h"
+
 
 using namespace std;
 
@@ -115,6 +119,18 @@ void ViewFrustum::calculate() {
     _planes[NEAR_PLANE  ].set3Points(_nearBottomRight,_nearBottomLeft,_nearTopLeft);
     _planes[FAR_PLANE   ].set3Points(_farBottomLeft,_farBottomRight,_farTopRight);
 
+    // Also calculate our projection matrix in case people want to project points...
+    // Projection matrix : Field of View, ratio, display range : near to far
+    glm::mat4 projection = glm::perspective(_fieldOfView, _aspectRatio, _nearClip, _farClip);
+    glm::vec3 lookAt     = _position + _direction;
+    glm::mat4 view       = glm::lookAt(_position, lookAt, _up);
+
+    // Our ModelViewProjection : multiplication of our 3 matrices (note: model is identity, so we can drop it)
+    _ourModelViewProjectionMatrix = projection * view; // Remember, matrix multiplication is the other way around
+    
+    // Set up our keyhole bounding box...
+    glm::vec3 corner = _position - _keyholeRadius;
+    _keyholeBoundingBox = AABox(corner,(_keyholeRadius * 2.0f));
 }
 
 //enum { TOP_PLANE = 0, BOTTOM_PLANE, LEFT_PLANE, RIGHT_PLANE, NEAR_PLANE, FAR_PLANE };
@@ -130,14 +146,14 @@ const char* ViewFrustum::debugPlaneName (int plane) const {
     return "Unknown";
 }
 
-ViewFrustum::location ViewFrustum::pointInSphere(const glm::vec3& point, const glm::vec3& center, float radius ) const {
+ViewFrustum::location ViewFrustum::pointInKeyhole(const glm::vec3& point) const {
 
     ViewFrustum::location result = INTERSECT;
     
-    float distance = glm::distance(point, center);
-    if (distance > radius) {
+    float distance = glm::distance(point, _position);
+    if (distance > _keyholeRadius) {
         result = OUTSIDE;
-    } else if (distance < radius) {
+    } else if (distance < _keyholeRadius) {
         result = INSIDE;
     }
     
@@ -147,15 +163,13 @@ ViewFrustum::location ViewFrustum::pointInSphere(const glm::vec3& point, const g
 // To determine if two spheres intersect, simply calculate the distance between the centers of the two spheres.
 // If the distance is greater than the sum of the two sphere radii, they don’t intersect. Otherwise they intersect.
 // If the distance plus the radius of sphere A is less than the radius of sphere B then, sphere A is inside of sphere B
-ViewFrustum::location ViewFrustum::sphereInSphere(const glm::vec3& centerA, float radiusA,
-                                                 const glm::vec3& centerB, float radiusB ) const {
-
+ViewFrustum::location ViewFrustum::sphereInKeyhole(const glm::vec3& center, float radius) const {
     ViewFrustum::location result = INTERSECT;
     
-    float distanceFromAtoB = glm::distance(centerA, centerB);
-    if (distanceFromAtoB > (radiusA + radiusB)) {
+    float distance = glm::distance(center, _position);
+    if (distance > (radius + _keyholeRadius)) {
         result = OUTSIDE;
-    } else if ((distanceFromAtoB + radiusA) < radiusB) {
+    } else if ((distance + radius) < _keyholeRadius) {
         result = INSIDE;
     }
     
@@ -166,9 +180,16 @@ ViewFrustum::location ViewFrustum::sphereInSphere(const glm::vec3& centerA, floa
 // A box is inside a sphere if all of its corners are inside the sphere
 // A box intersects a sphere if any of its edges (as rays) interesect the sphere
 // A box is outside a sphere if none of its edges (as rays) interesect the sphere
-ViewFrustum::location ViewFrustum::boxInSphere(const AABox& box, const glm::vec3& center, float radius) const {
+ViewFrustum::location ViewFrustum::boxInKeyhole(const AABox& box) const {
+
+    // First check to see if the box is in the bounding box for the sphere, if it's not, then we can short circuit
+    // this and not check with sphere penetration which is more expensive
+    if (!_keyholeBoundingBox.contains(box)) {
+        return OUTSIDE;
+    }
+
     glm::vec3 penetration;
-    bool intersects = box.findSpherePenetration(center, radius, penetration);
+    bool intersects = box.findSpherePenetration(_position, _keyholeRadius, penetration);
 
     ViewFrustum::location result = OUTSIDE;
     
@@ -177,31 +198,17 @@ ViewFrustum::location ViewFrustum::boxInSphere(const AABox& box, const glm::vec3
         result = INTERSECT;
 
         // test all the corners, if they are all inside the sphere, the entire box is in the sphere
-        glm::vec3 testPoint = box.getCorner();
-        glm::vec3 size = box.getSize();
-        if (pointInSphere(testPoint, center, radius)) {
-            testPoint = box.getCorner() + glm::vec3(size.x, 0.0f, 0.0f);
-            if (pointInSphere(testPoint, center, radius)) {
-                testPoint = box.getCorner() + glm::vec3(0.0f, 0.0f, size.z);
-                if (pointInSphere(testPoint, center, radius)) {
-                    testPoint = box.getCorner() + glm::vec3(size.x, 0.0f, size.z);
-                    if (pointInSphere(testPoint, center, radius)) {
-                        testPoint = box.getCorner() + glm::vec3(0.0f, size.y, 0.0f);
-                        if (pointInSphere(testPoint, center, radius)) {
-                            testPoint = box.getCorner() + glm::vec3(size.x, size.y, 0.0f);
-                            if (pointInSphere(testPoint, center, radius)) {
-                                testPoint = box.getCorner() + glm::vec3(0.0f, size.y, size.z);
-                                if (pointInSphere(testPoint, center, radius)) {
-                                    testPoint = box.getCorner() + glm::vec3(size.x, size.y, size.z);
-                                    if (pointInSphere(testPoint, center, radius)) {
-                                        result = INSIDE;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+        bool allPointsInside = true; // assume the best
+        for (int v = BOTTOM_LEFT_NEAR; v < TOP_LEFT_FAR; v++) {
+            glm::vec3 vertex = box.getVertex((BoxVertex)v);
+            if (!pointInKeyhole(vertex)) {
+                allPointsInside = false;
+                break;
             }
+        }
+        
+        if (allPointsInside) {
+            result = INSIDE;
         }
     }
     
@@ -214,7 +221,7 @@ ViewFrustum::location ViewFrustum::pointInFrustum(const glm::vec3& point) const 
 
     // If we have a keyholeRadius, check that first, since it's cheaper
     if (_keyholeRadius >= 0.0f) {
-        keyholeResult = pointInSphere(point, _position, _keyholeRadius);
+        keyholeResult = pointInKeyhole(point);
     }
     if (keyholeResult == INSIDE) {
         return keyholeResult;
@@ -237,7 +244,7 @@ ViewFrustum::location ViewFrustum::sphereInFrustum(const glm::vec3& center, floa
 
     // If we have a keyholeRadius, check that first, since it's cheaper
     if (_keyholeRadius >= 0.0f) {
-        keyholeResult = sphereInSphere(center, radius, _position, _keyholeRadius);
+        keyholeResult = sphereInKeyhole(center, radius);
     }
     if (keyholeResult == INSIDE) {
         return keyholeResult;
@@ -259,23 +266,24 @@ ViewFrustum::location ViewFrustum::sphereInFrustum(const glm::vec3& center, floa
 
 
 ViewFrustum::location ViewFrustum::boxInFrustum(const AABox& box) const {
+
     ViewFrustum::location regularResult = INSIDE;
     ViewFrustum::location keyholeResult = OUTSIDE;
 
     // If we have a keyholeRadius, check that first, since it's cheaper
     if (_keyholeRadius >= 0.0f) {
-        keyholeResult = boxInSphere(box, _position, _keyholeRadius);
+        keyholeResult = boxInKeyhole(box);
     }
     if (keyholeResult == INSIDE) {
         return keyholeResult;
     }
 
     for(int i=0; i < 6; i++) {
-        glm::vec3 normal = _planes[i].getNormal();
-        glm::vec3 boxVertexP = box.getVertexP(normal);
+        const glm::vec3& normal = _planes[i].getNormal();
+        const glm::vec3& boxVertexP = box.getVertexP(normal);
         float planeToBoxVertexPDistance = _planes[i].distance(boxVertexP);
 
-        glm::vec3 boxVertexN = box.getVertexN(normal);
+        const glm::vec3& boxVertexN = box.getVertexN(normal);
         float planeToBoxVertexNDistance = _planes[i].distance(boxVertexN);
         
         if (planeToBoxVertexPDistance < 0) {
@@ -425,3 +433,198 @@ void ViewFrustum::printDebugDetails() const {
         _eyeOffsetOrientation.w );
 }
 
+glm::vec2 ViewFrustum::projectPoint(glm::vec3 point, bool& pointInView) const {
+
+    glm::vec4 pointVec4 = glm::vec4(point,1)    ;
+    glm::vec4 projectedPointVec4 = _ourModelViewProjectionMatrix * pointVec4;
+    pointInView = (projectedPointVec4.w > 0); // math! If the w result is negative then the point is behind the viewer
+    
+    // what happens with w is 0???
+    float x = projectedPointVec4.x / projectedPointVec4.w;
+    float y = projectedPointVec4.y / projectedPointVec4.w;
+    glm::vec2 projectedPoint(x,y);
+    
+    // if the point is out of view we also need to flip the signs of x and y
+    if (!pointInView) {
+        projectedPoint.x = -x;
+        projectedPoint.y = -y;
+    }
+
+    return projectedPoint;
+}
+
+
+const int MAX_POSSIBLE_COMBINATIONS = 43;
+
+const int hullVertexLookup[MAX_POSSIBLE_COMBINATIONS][MAX_PROJECTED_POLYGON_VERTEX_COUNT+1] = {
+    // Number of vertices in shadow polygon for the visible faces, then a list of the index of each vertice from the AABox
+
+//0
+    {0}, // inside
+    {4, BOTTOM_RIGHT_NEAR, BOTTOM_RIGHT_FAR, TOP_RIGHT_FAR, TOP_RIGHT_NEAR}, // right
+    {4, BOTTOM_LEFT_FAR, BOTTOM_LEFT_NEAR,  TOP_LEFT_NEAR, TOP_LEFT_FAR  },  // left 
+    {0}, // n/a
+
+//4
+    {4, BOTTOM_RIGHT_NEAR, BOTTOM_LEFT_NEAR, BOTTOM_LEFT_FAR, BOTTOM_RIGHT_FAR}, // bottom
+//5
+    {6, BOTTOM_RIGHT_NEAR, BOTTOM_LEFT_NEAR, BOTTOM_LEFT_FAR, BOTTOM_RIGHT_FAR, TOP_RIGHT_FAR, TOP_RIGHT_NEAR },//bottom, right
+    {6, BOTTOM_RIGHT_NEAR, BOTTOM_LEFT_NEAR, TOP_LEFT_NEAR, TOP_LEFT_FAR, BOTTOM_LEFT_FAR, BOTTOM_RIGHT_FAR, },//bottom, left
+    {0}, // n/a
+//8
+    {4, TOP_RIGHT_NEAR, TOP_RIGHT_FAR, TOP_LEFT_FAR, TOP_LEFT_NEAR},         // top
+    {6, TOP_RIGHT_NEAR, BOTTOM_RIGHT_NEAR, BOTTOM_RIGHT_FAR, TOP_RIGHT_FAR, TOP_LEFT_FAR, TOP_LEFT_NEAR},   // top, right
+    {6, TOP_RIGHT_NEAR, TOP_RIGHT_FAR, TOP_LEFT_FAR, BOTTOM_LEFT_FAR, BOTTOM_LEFT_NEAR, TOP_LEFT_NEAR},   // top, left
+    {0}, // n/a
+    {0}, // n/a
+    {0}, // n/a
+    {0}, // n/a
+    {0}, // n/a
+//16
+    {4, BOTTOM_LEFT_NEAR, BOTTOM_RIGHT_NEAR, TOP_RIGHT_NEAR, TOP_LEFT_NEAR }, // front or near
+
+    {6, BOTTOM_LEFT_NEAR, BOTTOM_RIGHT_NEAR, BOTTOM_RIGHT_FAR, TOP_RIGHT_FAR, TOP_RIGHT_NEAR, TOP_LEFT_NEAR }, // front, right
+    {6, BOTTOM_LEFT_FAR, BOTTOM_LEFT_NEAR, BOTTOM_RIGHT_NEAR, TOP_RIGHT_NEAR, TOP_LEFT_NEAR, TOP_LEFT_FAR, }, // front, left
+    {0}, // n/a
+//20
+    {6, BOTTOM_LEFT_NEAR, BOTTOM_LEFT_FAR, BOTTOM_RIGHT_FAR, BOTTOM_RIGHT_NEAR, TOP_RIGHT_NEAR, TOP_LEFT_NEAR }, // front,bottom
+
+//21
+    {6, BOTTOM_LEFT_NEAR, BOTTOM_LEFT_FAR, BOTTOM_RIGHT_FAR, TOP_RIGHT_FAR, TOP_RIGHT_NEAR, TOP_LEFT_NEAR }, //front,bottom,right
+//22
+    {6, BOTTOM_LEFT_FAR, BOTTOM_RIGHT_FAR, BOTTOM_RIGHT_NEAR, TOP_RIGHT_NEAR, TOP_LEFT_NEAR, TOP_LEFT_FAR  }, //front,bottom,left
+    {0}, // n/a
+
+    {6, BOTTOM_LEFT_NEAR, BOTTOM_RIGHT_NEAR, TOP_RIGHT_NEAR, TOP_RIGHT_FAR, TOP_LEFT_FAR, TOP_LEFT_NEAR}, // front, top
+
+    {6, BOTTOM_LEFT_NEAR, BOTTOM_RIGHT_NEAR, BOTTOM_RIGHT_FAR, TOP_RIGHT_FAR, TOP_LEFT_FAR, TOP_LEFT_NEAR }, // front, top, right
+
+    {6, BOTTOM_LEFT_FAR, BOTTOM_LEFT_NEAR, BOTTOM_RIGHT_NEAR, TOP_RIGHT_NEAR, TOP_RIGHT_FAR, TOP_LEFT_FAR }, // front, top, left
+    {0}, // n/a
+    {0}, // n/a
+    {0}, // n/a
+    {0}, // n/a
+    {0}, // n/a
+//32
+    {4, BOTTOM_RIGHT_FAR, BOTTOM_LEFT_FAR, TOP_LEFT_FAR, TOP_RIGHT_FAR }, // back
+    {6, BOTTOM_RIGHT_NEAR, BOTTOM_RIGHT_FAR, BOTTOM_LEFT_FAR, TOP_LEFT_FAR, TOP_RIGHT_FAR, TOP_RIGHT_NEAR}, // back, right
+//34
+    {6, BOTTOM_RIGHT_FAR, BOTTOM_LEFT_FAR, BOTTOM_LEFT_NEAR, TOP_LEFT_NEAR, TOP_LEFT_FAR, TOP_RIGHT_FAR }, // back, left
+    
+    
+    {0}, // n/a
+//36
+    {6, BOTTOM_RIGHT_NEAR, BOTTOM_LEFT_NEAR, BOTTOM_LEFT_FAR, TOP_LEFT_FAR, TOP_RIGHT_FAR, BOTTOM_RIGHT_FAR}, // back, bottom
+    {6, BOTTOM_RIGHT_NEAR, BOTTOM_LEFT_NEAR, BOTTOM_LEFT_FAR, TOP_LEFT_FAR, TOP_RIGHT_FAR, TOP_RIGHT_NEAR},//back, bottom, right
+
+// 38
+    {6, BOTTOM_RIGHT_NEAR, BOTTOM_LEFT_NEAR, TOP_LEFT_NEAR, TOP_LEFT_FAR, TOP_RIGHT_FAR, BOTTOM_RIGHT_FAR },//back, bottom, left
+    {0}, // n/a
+
+// 40
+    {6, BOTTOM_RIGHT_FAR, BOTTOM_LEFT_FAR, TOP_LEFT_FAR, TOP_LEFT_NEAR, TOP_RIGHT_NEAR, TOP_RIGHT_FAR}, // back, top
+    
+    {6, BOTTOM_RIGHT_NEAR, BOTTOM_RIGHT_FAR, BOTTOM_LEFT_FAR, TOP_LEFT_FAR, TOP_LEFT_NEAR, TOP_RIGHT_NEAR}, // back, top, right
+//42
+    {6, TOP_RIGHT_NEAR, TOP_RIGHT_FAR, BOTTOM_RIGHT_FAR, BOTTOM_LEFT_FAR, BOTTOM_LEFT_NEAR, TOP_LEFT_NEAR}, // back, top, left
+};
+
+VoxelProjectedPolygon ViewFrustum::getProjectedPolygon(const AABox& box) const {
+    const glm::vec3& bottomNearRight = box.getCorner();
+    const glm::vec3& topFarLeft      = box.getTopFarLeft();
+    int lookUp = ((_position.x < bottomNearRight.x)     )   //  1 = right      |   compute 6-bit
+               + ((_position.x > topFarLeft.x     ) << 1)   //  2 = left       |         code to
+               + ((_position.y < bottomNearRight.y) << 2)   //  4 = bottom     | classify camera
+               + ((_position.y > topFarLeft.y     ) << 3)   //  8 = top        | with respect to
+               + ((_position.z < bottomNearRight.z) << 4)   // 16 = front/near |  the 6 defining
+               + ((_position.z > topFarLeft.z     ) << 5);  // 32 = back/far   |          planes
+
+    int vertexCount = hullVertexLookup[lookUp][0];  //look up number of vertices
+    
+    VoxelProjectedPolygon projectedPolygon(vertexCount);
+    
+    bool pointInView = true;
+    bool allPointsInView = false; // assume the best, but wait till we know we have a vertex
+    bool anyPointsInView = false; // assume the worst!
+    if (vertexCount) {
+        allPointsInView = true; // assume the best!
+        for(int i = 0; i < vertexCount; i++) {
+            int vertexNum = hullVertexLookup[lookUp][i+1];
+            glm::vec3 point = box.getVertex((BoxVertex)vertexNum);
+            glm::vec2 projectedPoint = projectPoint(point, pointInView);
+            allPointsInView = allPointsInView && pointInView;
+            anyPointsInView = anyPointsInView || pointInView;
+            projectedPolygon.setVertex(i, projectedPoint);
+        }
+        
+        /***
+        // Now that we've got the polygon, if it extends beyond the clipping window, then let's clip it
+        // NOTE: This clipping does not improve our overall performance. It basically causes more polygons to
+        // end up in the same quad/half and so the polygon lists get longer, and that's more calls to polygon.occludes()
+        if ( (projectedPolygon.getMaxX() > PolygonClip::RIGHT_OF_CLIPPING_WINDOW ) ||
+             (projectedPolygon.getMaxY() > PolygonClip::TOP_OF_CLIPPING_WINDOW   ) ||
+             (projectedPolygon.getMaxX() < PolygonClip::LEFT_OF_CLIPPING_WINDOW  ) ||
+             (projectedPolygon.getMaxY() < PolygonClip::BOTTOM_OF_CLIPPING_WINDOW) ) {
+             
+            CoverageRegion::_clippedPolygons++;
+             
+            glm::vec2* clippedVertices;
+            int        clippedVertexCount;
+            PolygonClip::clipToScreen(projectedPolygon.getVertices(), vertexCount, clippedVertices, clippedVertexCount);
+            
+            // Now reset the vertices of our projectedPolygon object
+            projectedPolygon.setVertexCount(clippedVertexCount);
+            for(int i = 0; i < clippedVertexCount; i++) {
+                projectedPolygon.setVertex(i, clippedVertices[i]);
+            }
+            delete[] clippedVertices;
+            
+            lookUp += PROJECTION_CLIPPED;
+        }
+        ***/
+    }
+    // set the distance from our camera position, to the closest vertex
+    float distance = glm::distance(getPosition(), box.getCenter());
+    projectedPolygon.setDistance(distance);
+    projectedPolygon.setAnyInView(anyPointsInView);
+    projectedPolygon.setAllInView(allPointsInView);
+    projectedPolygon.setProjectionType(lookUp); // remember the projection type
+    return projectedPolygon;
+}
+
+
+// Similar strategy to getProjectedPolygon() we use the knowledge of camera position relative to the
+// axis-aligned voxels to determine which of the voxels vertices must be the furthest. No need for
+// squares and square-roots. Just compares.
+glm::vec3 ViewFrustum::getFurthestPointFromCamera(const AABox& box) const {
+    const glm::vec3& center          = box.getCenter();
+    const glm::vec3& bottomNearRight = box.getCorner();
+    const glm::vec3& topFarLeft      = box.getTopFarLeft();
+
+    glm::vec3 furthestPoint;
+    if (_position.x < center.x) {
+        // we are to the right of the center, so the left edge is furthest
+        furthestPoint.x = topFarLeft.x; 
+    } else {
+        // we are to the left of the center, so the right edge is furthest (at center ok too)
+        furthestPoint.x = bottomNearRight.x; 
+    }
+
+    if (_position.y < center.y) {
+        // we are below of the center, so the top edge is furthest
+        furthestPoint.y = topFarLeft.y; 
+    } else {
+        // we are above the center, so the lower edge is furthest (at center ok too)
+        furthestPoint.y = bottomNearRight.y; 
+    }
+
+    if (_position.z < center.z) {
+        // we are to the near side of the center, so the far side edge is furthest
+        furthestPoint.z = topFarLeft.z; 
+    } else {
+        // we are to the far side of the center, so the near side edge is furthest (at center ok too)
+        furthestPoint.z = bottomNearRight.z; 
+    }
+
+    return furthestPoint;
+}

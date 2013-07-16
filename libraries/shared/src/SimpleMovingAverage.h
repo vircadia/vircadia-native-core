@@ -3,14 +3,15 @@
 //  hifi
 //
 //  Created by Stephen Birarda on 4/18/13.
-//  Replaces Brad Hefta-Gaub's CounterStats class (RIP)
+//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
+//  Replaces Brad Hefta-Gaub's CounterStats class (RIP)
 //
 
 #ifndef __hifi__Stats__
 #define __hifi__Stats__
 
-#include <iostream>
+#include <stdint.h>
 
 class SimpleMovingAverage {
 public:
@@ -25,7 +26,7 @@ public:
     float getAverageSampleValuePerSecond();
 private:
     int _numSamples;
-    double _lastEventTimestamp;
+    uint64_t _lastEventTimestamp;
     float _average;
     float _eventDeltaAverage;
     

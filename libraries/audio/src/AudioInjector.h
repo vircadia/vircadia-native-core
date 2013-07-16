@@ -11,6 +11,7 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
+#include <glm/gtx/component_wise.hpp>
 
 #include <UDPSocket.h>
 
@@ -20,7 +21,7 @@ const int STREAM_IDENTIFIER_NUM_BYTES = 8;
 
 const int MAX_INJECTOR_VOLUME = 0xFF;
 
-const float INJECT_INTERVAL_USECS = (BUFFER_LENGTH_SAMPLES_PER_CHANNEL / SAMPLE_RATE) * 1000000;
+const int INJECT_INTERVAL_USECS = floorf((BUFFER_LENGTH_SAMPLES_PER_CHANNEL / SAMPLE_RATE) * 1000000);
 
 class AudioInjector {
 public:

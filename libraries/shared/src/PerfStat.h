@@ -3,6 +3,7 @@
 //  hifi
 //
 //  Created by Brad Hefta-Gaub on 3/29/13.
+//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
 //  Poor-man's performance stats collector class. Useful for collecting timing
 //  details from various portions of the code.
@@ -84,7 +85,7 @@ typedef std::map<std::string,PerfStatHistory,std::less<std::string> >::iterator 
 
 class PerformanceWarning {
 private:
-	double _start;
+	uint64_t _start;
 	const char* _message;
 	bool _renderWarningsOn;
 	bool _alwaysDisplay;
