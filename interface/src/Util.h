@@ -57,7 +57,10 @@ glm::quat safeMix(const glm::quat& q1, const glm::quat& q2, float alpha);
 
 double diffclock(timeval *clock1,timeval *clock2);
 
-void drawGroundPlaneGrid(float size);
+void renderGroundPlaneGrid(float size, float impact);
+
+void renderCollisionOverlay(int width, int height, float magnitude);
+
 
 void renderDiskShadow(glm::vec3 position, glm::vec3 upDirection, float radius, float darkness);
 

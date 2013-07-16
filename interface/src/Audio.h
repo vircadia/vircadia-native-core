@@ -43,10 +43,10 @@ public:
     int getJitterBufferSamples() { return _jitterBufferSamples; };
     
     void lowPassFilter(int16_t* inputBuffer);
-
-    void setCollisionSoundMagnitude(float collisionSoundMagnitude) { _collisionSoundMagnitude = collisionSoundMagnitude; }
     
     void startCollisionSound(float magnitude, float frequency, float noise, float duration);
+    float getCollisionSoundMagnitude() { return _collisionSoundMagnitude; };
+    
     
     void ping();
 

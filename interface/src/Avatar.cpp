@@ -545,8 +545,8 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
             _position += _scale * _gravity * (GRAVITY_EARTH * deltaTime) * deltaTime;
         }
 
-        updateCollisionWithEnvironment();
-        updateCollisionWithVoxels();
+        updateCollisionWithEnvironment(deltaTime);
+        updateCollisionWithVoxels(deltaTime);
         updateAvatarCollisions(deltaTime);
     }
     
@@ -867,7 +867,7 @@ void Avatar::updateCollisionWithSphere(glm::vec3 position, float radius, float d
     }
 }
 
-void Avatar::updateCollisionWithEnvironment() {
+void Avatar::updateCollisionWithEnvironment(float deltaTime) {
     
     glm::vec3 up = getBodyUpDirection();
     float radius = _height * 0.125f;
@@ -878,7 +878,12 @@ void Avatar::updateCollisionWithEnvironment() {
     if (Application::getInstance()->getEnvironment()->findCapsulePenetration(
                                                                              _position - up * (_pelvisFloatingHeight - radius),
                                                                              _position + up * (_height - _pelvisFloatingHeight - radius), radius, penetration)) {
-        createCollisionSound(penetration, ENVIRONMENT_COLLISION_FREQUENCY);
+        float velocityTowardCollision = glm::dot(_velocity, glm::normalize(penetration));
+        if (velocityTowardCollision > 0.2) {
+            Application::getInstance()->setGroundPlaneImpact(1.0f);
+        }
+        updateCollisionSound(penetration, deltaTime, ENVIRONMENT_COLLISION_FREQUENCY);
+        
         applyHardCollision(penetration, ENVIRONMENT_SURFACE_ELASTICITY, ENVIRONMENT_SURFACE_DAMPING);
         
         
@@ -886,7 +891,7 @@ void Avatar::updateCollisionWithEnvironment() {
 }
 
 
-void Avatar::updateCollisionWithVoxels() {
+void Avatar::updateCollisionWithVoxels(float deltaTime) {
     float radius = _height * 0.125f;
     const float VOXEL_ELASTICITY = 1.4f;
     const float VOXEL_DAMPING = 0.0;
@@ -895,7 +900,7 @@ void Avatar::updateCollisionWithVoxels() {
     if (Application::getInstance()->getVoxels()->findCapsulePenetration(
                                                                         _position - glm::vec3(0.0f, _pelvisFloatingHeight - radius, 0.0f),
                                                                         _position + glm::vec3(0.0f, _height - _pelvisFloatingHeight - radius, 0.0f), radius, penetration)) {
-        createCollisionSound(penetration, VOXEL_COLLISION_FREQUENCY);
+        updateCollisionSound(penetration, deltaTime, VOXEL_COLLISION_FREQUENCY);
         applyHardCollision(penetration, VOXEL_ELASTICITY, VOXEL_DAMPING);
     }
 }
@@ -924,26 +929,34 @@ void Avatar::applyHardCollision(const glm::vec3& penetration, float elasticity, 
     }
 }
 
-void Avatar::createCollisionSound(const glm::vec3 &penetration, float frequency) {
-    //  Push the collision into the audio system for procedural effects
-    const float AUDIBLE_COLLISION_THRESHOLD = 0.2f;
-    const float COLLISION_VOLUME = 1000.f;
-    const float MAX_COLLISION_VOLUME = 15000.f;
+void Avatar::updateCollisionSound(const glm::vec3 &penetration, float deltaTime, float frequency) {
+    //  consider whether to have the collision make a sound
+    const float AUDIBLE_COLLISION_THRESHOLD = 0.02f;
+    const float COLLISION_LOUDNESS = 1.f;
     const float DURATION_SCALING = 0.004f;
-    float velocityTowardCollision = glm::dot(_velocity, glm::normalize(penetration));
-    float velocityTangentToCollision = glm::length(_velocity) - velocityTowardCollision;
-    if (velocityTowardCollision > AUDIBLE_COLLISION_THRESHOLD) {
-        Application::getInstance()->getAudio()->startCollisionSound(
-            fmax(COLLISION_VOLUME * velocityTowardCollision, MAX_COLLISION_VOLUME),
-            frequency,
-            fmin(velocityTangentToCollision / velocityTowardCollision, 1.f),
-            1.f - DURATION_SCALING * powf(frequency, 0.5f) / velocityTowardCollision);
-        
+    const float NOISE_SCALING = 0.1f;
+    glm::vec3 velocity = _velocity;
+    glm::vec3 gravity = getGravity();
+    
+    if (glm::length(gravity) > EPSILON) {
+        //  If gravity is on, remove the effect of gravity on velocity for this
+        //  frame, so that we are not constantly colliding with the surface 
+        velocity -= _scale * glm::length(gravity) * GRAVITY_EARTH * deltaTime * glm::normalize(gravity);
     }
-    //float collisionSoundLevel = penetrationLength * COLLISION_VOLUME;
-    //if (collisionSoundLevel > AUDIBLE_COLLISION_THRESHOLD) {
-    //    Application::getInstance()->getAudio()->setCollisionSoundMagnitude(collisionSoundLevel);
-    //}
+    float velocityTowardCollision = glm::dot(velocity, glm::normalize(penetration));
+    float velocityTangentToCollision = glm::length(velocity) - velocityTowardCollision;
+    
+    if (velocityTowardCollision > AUDIBLE_COLLISION_THRESHOLD) {
+        //  Volume is proportional to collision velocity
+        //  Base frequency is modified upward by the angle of the collision
+        //  Noise is a function of the angle of collision
+        //  Duration of the sound is a function of both base frequency and velocity of impact
+        Application::getInstance()->getAudio()->startCollisionSound(
+            fmin(COLLISION_LOUDNESS * velocityTowardCollision, 1.f),
+            frequency * (1.f + velocityTangentToCollision / velocityTowardCollision),
+            fmin(velocityTangentToCollision / velocityTowardCollision * NOISE_SCALING, 1.f),
+            1.f - DURATION_SCALING * powf(frequency, 0.5f) / velocityTowardCollision);
+    }
 }
 
 void Avatar::updateAvatarCollisions(float deltaTime) {

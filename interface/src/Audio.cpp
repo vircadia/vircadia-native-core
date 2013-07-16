@@ -605,11 +605,7 @@ void Audio::addProceduralSounds(int16_t* inputBuffer,
     float speed = glm::length(_lastVelocity);
     float volume = VOLUME_BASELINE * (1.f - speed / MAX_AUDIBLE_VELOCITY);
     
-    //  Test tone (should be continuous!)
-    /*
-    for (int i = 0; i < numSamples; i++) {
-        inputBuffer[i] += (int16_t) (_proceduralEffectSample + i)%16 * 10;
-    }*/
+    int sample;
     
     //
     // Travelling noise
@@ -617,32 +613,32 @@ void Audio::addProceduralSounds(int16_t* inputBuffer,
     //  Add a noise-modulated sinewave with volume that tapers off with speed increasing
     if ((speed > MIN_AUDIBLE_VELOCITY) && (speed < MAX_AUDIBLE_VELOCITY)) {
         for (int i = 0; i < numSamples; i++) {
-            //inputBuffer[i] += (int16_t)((sinf((float) (_proceduralEffectSample + i) / SOUND_PITCH * speed) * (1.f + randFloat() * 0.0f)) * volume * speed);
             inputBuffer[i] += (int16_t)(sinf((float) (_proceduralEffectSample + i) / SOUND_PITCH ) * volume * (1.f + randFloat() * 0.25f) * speed);
-            
-
         }
     }
-    const float COLLISION_SOUND_CUTOFF_LEVEL = 5.0f;
-    int sample;
+    const float COLLISION_SOUND_CUTOFF_LEVEL = 0.01f;
+    const float COLLISION_SOUND_MAX_VOLUME = 1000.f;
+    const float UP_MAJOR_FIFTH = powf(1.5f, 4.0f);
+    float t;
     if (_collisionSoundMagnitude > COLLISION_SOUND_CUTOFF_LEVEL) {
         for (int i = 0; i < numSamples; i++) {
-            sample = (int16_t) (((sinf(((float)_proceduralEffectSample + (float)i) * _collisionSoundFrequency) * (1.f - _collisionSoundNoise)
-                     + ((randFloat() * 2.f - 1.0f) * _collisionSoundNoise))
-                     * _collisionSoundMagnitude));
+            t = (float) _proceduralEffectSample + (float) i;
+            sample = sinf(t * _collisionSoundFrequency) +
+                     sinf(t * _collisionSoundFrequency / 4.f) +
+                     sinf(t * _collisionSoundFrequency / 16.f * UP_MAJOR_FIFTH);
+            sample *= _collisionSoundMagnitude * COLLISION_SOUND_MAX_VOLUME;
             inputBuffer[i] += sample;
             outputLeft[i] += sample;
             outputRight[i] += sample;
             _collisionSoundMagnitude *= _collisionSoundDuration;
         }
     }
-    
-    //if (_heartbeatMagnitude > 0.0f) {
-    //
-    //}
     _proceduralEffectSample += numSamples;
 }
 
+//
+//  Starts a collision sound.  magnitude is 0-1, with 1 the loudest possible sound.
+//
 void Audio::startCollisionSound(float magnitude, float frequency, float noise, float duration) {
     _collisionSoundMagnitude = magnitude;
     _collisionSoundFrequency = frequency;
