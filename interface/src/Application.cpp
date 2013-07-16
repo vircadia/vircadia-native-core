@@ -166,6 +166,8 @@ void GLCanvas::wheelEvent(QWheelEvent* event) {
 
 void messageHandler(QtMsgType type, const char* message) {
     printf("%s", message);
+    fflush(stdout);
+    
     LogDisplay::instance.addMessage(message);
 }
 
