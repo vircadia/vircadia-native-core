@@ -1455,11 +1455,11 @@ void Application::exportVoxels() {
     _window->activateWindow();
 }
 
+const char* IMPORT_FILE_TYPES = "Sparse Voxel Octree Files, Square PNG, Schematic Files (*.svo *.png *.schematic)";
 void Application::importVoxelsToClipboard() {
     QString desktopLocation = QDesktopServices::storageLocation(QDesktopServices::DesktopLocation);
-    QString fileNameString = QFileDialog::getOpenFileName(
-                _glWidget, tr("Import Voxels to Clipboard"), desktopLocation,
-                tr("Sparse Voxel Octree Files, Square PNG, Schematic Files (*.svo *.png *.schematic)"));
+    QString fileNameString = QFileDialog::getOpenFileName(_glWidget, tr("Import Voxels to Clipboard"), desktopLocation,
+                                                          tr(IMPORT_FILE_TYPES));
 
     QByteArray fileNameAscii = fileNameString.toAscii();
     const char* fileName = fileNameAscii.data();
@@ -1493,9 +1493,8 @@ void Application::importVoxelsToClipboard() {
 
 void Application::importVoxels() {
     QString desktopLocation = QDesktopServices::storageLocation(QDesktopServices::DesktopLocation);
-    QString fileNameString = QFileDialog::getOpenFileName(
-                _glWidget, tr("Import Voxels"), desktopLocation,
-                tr("Sparse Voxel Octree Files, Square PNG, Schematic Files (*.svo *.png *.schematic)"));
+    QString fileNameString = QFileDialog::getOpenFileName(_glWidget, tr("Import Voxels"), desktopLocation,
+                                                          tr(IMPORT_FILE_TYPES));
 
     QByteArray fileNameAscii = fileNameString.toAscii();
     const char* fileName = fileNameAscii.data();
