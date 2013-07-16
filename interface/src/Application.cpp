@@ -1479,8 +1479,7 @@ void Application::importVoxelsToClipboard() {
             QImage tmp = pngImage.convertToFormat(QImage::Format_ARGB32);
             pixels = reinterpret_cast<const uint32_t*>(tmp.constBits());
         }
-        
-        _clipboardTree.readFromSquareARGB32Pixels(pixels, pngImage.height());        
+        _clipboardTree.readFromSquareARGB32Pixels(pixels, pngImage.height());
     } else if (fileNameString.endsWith(".svo", Qt::CaseInsensitive)) {
         _clipboardTree.readFromSVOFile(fileName);
     } else if (fileNameString.endsWith(".schematic", Qt::CaseInsensitive)) {
