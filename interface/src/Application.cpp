@@ -1363,7 +1363,9 @@ struct SendVoxelsOperationArgs {
     unsigned char* newBaseOctCode;
     unsigned char messageBuffer[MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE];
     int bufferInUse;
-
+    uint64_t lastSendTime;
+    int packetsSent;
+    uint64_t bytesSent;
 };
 
 bool Application::sendVoxelsOperation(VoxelNode* node, void* extraData) {
@@ -1395,17 +1397,30 @@ bool Application::sendVoxelsOperation(VoxelNode* node, void* extraData) {
         codeColorBuffer[bytesInCode + GREEN_INDEX] = node->getColor()[GREEN_INDEX];
         codeColorBuffer[bytesInCode + BLUE_INDEX ] = node->getColor()[BLUE_INDEX ];
         
-        // TODO: sendVoxelsOperation() is sending voxels too fast.
-        //       This printf function accidently slowed down sending
-        //       and hot-fixed the bug when importing
-        //       large PNG models (256x256 px and more)
-        static unsigned int sendVoxelsOperationCalled = 0; printf("sending voxel #%u\n", ++sendVoxelsOperationCalled);
-
         // if we have room don't have room in the buffer, then send the previously generated message first
         if (args->bufferInUse + codeAndColorLength > MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE) {
+
+            args->packetsSent++;
+            args->bytesSent += args->bufferInUse;
+
             controlledBroadcastToNodes(args->messageBuffer, args->bufferInUse, & NODE_TYPE_VOXEL_SERVER, 1);
             args->bufferInUse = numBytesForPacketHeader((unsigned char*) &PACKET_TYPE_SET_VOXEL_DESTRUCTIVE)
                 + sizeof(unsigned short int); // reset
+                
+            uint64_t now = usecTimestampNow();
+            // dynamically sleep until we need to fire off the next set of voxels
+            const uint64_t CLIENT_TO_SERVER_VOXEL_SEND_INTERVAL_USECS = 1000 * 5; // 1 packet every 10 milliseconds
+            uint64_t elapsed = now - args->lastSendTime;
+            int usecToSleep =  CLIENT_TO_SERVER_VOXEL_SEND_INTERVAL_USECS - elapsed;
+            if (usecToSleep > 0) {
+                printLog("sendVoxelsOperation: packet: %d bytes:%ld elapsed %ld usecs, sleeping for %d usecs!\n", 
+                    args->packetsSent, args->bytesSent, elapsed, usecToSleep);
+                usleep(usecToSleep);
+            } else {
+                printLog("sendVoxelsOperation: packet: %d bytes:%ld elapsed %ld usecs, no need to sleep!\n", 
+                    args->packetsSent, args->bytesSent, elapsed);
+            }
+            args->lastSendTime = now;
         }
         
         // copy this node's code color details into our buffer.
@@ -1434,14 +1449,15 @@ void Application::exportVoxels() {
     _window->activateWindow();
 }
 
-void Application::importVoxels() {
+const char* IMPORT_FILE_TYPES = "Sparse Voxel Octree Files, Square PNG, Schematic Files (*.svo *.png *.schematic)";
+void Application::importVoxelsToClipboard() {
     QString desktopLocation = QDesktopServices::storageLocation(QDesktopServices::DesktopLocation);
-    QString fileNameString = QFileDialog::getOpenFileName(
-                _glWidget, tr("Import Voxels"), desktopLocation,
-                tr("Sparse Voxel Octree Files, Square PNG, Schematic Files (*.svo *.png *.schematic)"));
+    QString fileNameString = QFileDialog::getOpenFileName(_glWidget, tr("Import Voxels to Clipboard"), desktopLocation,
+                                                          tr(IMPORT_FILE_TYPES));
 
-    const char* fileName = fileNameString.toAscii().data();
-
+    QByteArray fileNameAscii = fileNameString.toAscii();
+    const char* fileName = fileNameAscii.data();
+    
     _clipboardTree.eraseAllVoxels();
     if (fileNameString.endsWith(".png", Qt::CaseInsensitive)) {
         QImage pngImage = QImage(fileName);
@@ -1457,12 +1473,81 @@ void Application::importVoxels() {
             QImage tmp = pngImage.convertToFormat(QImage::Format_ARGB32);
             pixels = reinterpret_cast<const uint32_t*>(tmp.constBits());
         }
-        
         _clipboardTree.readFromSquareARGB32Pixels(pixels, pngImage.height());
     } else if (fileNameString.endsWith(".svo", Qt::CaseInsensitive)) {
         _clipboardTree.readFromSVOFile(fileName);
     } else if (fileNameString.endsWith(".schematic", Qt::CaseInsensitive)) {
         _clipboardTree.readFromSchematicFile(fileName);
+    }
+
+    // restore the main window's active state
+    _window->activateWindow();
+}
+
+void Application::importVoxels() {
+    QString desktopLocation = QDesktopServices::storageLocation(QDesktopServices::DesktopLocation);
+    QString fileNameString = QFileDialog::getOpenFileName(_glWidget, tr("Import Voxels"), desktopLocation,
+                                                          tr(IMPORT_FILE_TYPES));
+
+    QByteArray fileNameAscii = fileNameString.toAscii();
+    const char* fileName = fileNameAscii.data();
+    
+    VoxelTree importVoxels;
+    if (fileNameString.endsWith(".png", Qt::CaseInsensitive)) {
+        QImage pngImage = QImage(fileName);
+        if (pngImage.height() != pngImage.width()) {
+            printLog("ERROR: Bad PNG size: height != width.\n");
+            return;
+        }
+        
+        const uint32_t* pixels;
+        if (pngImage.format() == QImage::Format_ARGB32) {
+            pixels = reinterpret_cast<const uint32_t*>(pngImage.constBits());
+        } else {
+            QImage tmp = pngImage.convertToFormat(QImage::Format_ARGB32);
+            pixels = reinterpret_cast<const uint32_t*>(tmp.constBits());
+        }
+        
+        importVoxels.readFromSquareARGB32Pixels(pixels, pngImage.height());        
+    } else if (fileNameString.endsWith(".svo", Qt::CaseInsensitive)) {
+        importVoxels.readFromSVOFile(fileName);
+    } else if (fileNameString.endsWith(".schematic", Qt::CaseInsensitive)) {
+        importVoxels.readFromSchematicFile(fileName);
+    }
+    
+    VoxelNode* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+    
+    // Recurse the Import Voxels tree, where everything is root relative, and send all the colored voxels to 
+    // the server as an set voxel message, this will also rebase the voxels to the new location
+    unsigned char* calculatedOctCode = NULL;
+    SendVoxelsOperationArgs args;
+    args.lastSendTime = usecTimestampNow();
+    args.packetsSent = 0;
+    args.bytesSent = 0;
+    
+    int numBytesPacketHeader = populateTypeAndVersion(args.messageBuffer, PACKET_TYPE_SET_VOXEL_DESTRUCTIVE);
+    
+    unsigned short int* sequenceAt = (unsigned short int*)&args.messageBuffer[numBytesPacketHeader];
+    *sequenceAt = 0;
+    args.bufferInUse = numBytesPacketHeader + sizeof(unsigned short int); // set to command + sequence
+
+    // we only need the selected voxel to get the newBaseOctCode, which we can actually calculate from the
+    // voxel size/position details.
+    if (selectedNode) {
+        args.newBaseOctCode = selectedNode->getOctalCode();
+    } else {
+        args.newBaseOctCode = calculatedOctCode = pointToVoxel(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+    }
+
+    importVoxels.recurseTreeWithOperation(sendVoxelsOperation, &args);
+
+    // If we have voxels left in the packet, then send the packet
+    if (args.bufferInUse > (numBytesPacketHeader + sizeof(unsigned short int))) {
+        controlledBroadcastToNodes(args.messageBuffer, args.bufferInUse, & NODE_TYPE_VOXEL_SERVER, 1);
+    }
+    
+    if (calculatedOctCode) {
+        delete[] calculatedOctCode;
     }
 
     // restore the main window's active state
@@ -1492,6 +1577,9 @@ void Application::pasteVoxels() {
     // Recurse the clipboard tree, where everything is root relative, and send all the colored voxels to 
     // the server as an set voxel message, this will also rebase the voxels to the new location
     SendVoxelsOperationArgs args;
+    args.lastSendTime = usecTimestampNow();
+    args.packetsSent = 0;
+    args.bytesSent = 0;
     
     int numBytesPacketHeader = populateTypeAndVersion(args.messageBuffer, PACKET_TYPE_SET_VOXEL_DESTRUCTIVE);
     
@@ -1513,6 +1601,9 @@ void Application::pasteVoxels() {
     // If we have voxels left in the packet, then send the packet
     if (args.bufferInUse > (numBytesPacketHeader + sizeof(unsigned short int))) {
         controlledBroadcastToNodes(args.messageBuffer, args.bufferInUse, & NODE_TYPE_VOXEL_SERVER, 1);
+        printLog("sending packet: %d\n", ++args.packetsSent);
+        args.bytesSent += args.bufferInUse;
+        printLog("total bytes sent: %ld\n", args.bytesSent);
     }
     
     if (calculatedOctCode) {
@@ -1630,6 +1721,7 @@ void Application::initMenu() {
     
     voxelMenu->addAction("Export Voxels", this, SLOT(exportVoxels()), Qt::CTRL | Qt::Key_E);
     voxelMenu->addAction("Import Voxels", this, SLOT(importVoxels()), Qt::CTRL | Qt::Key_I);
+    voxelMenu->addAction("Import Voxels to Clipboard", this, SLOT(importVoxelsToClipboard()), Qt::SHIFT | Qt::CTRL | Qt::Key_I);
     voxelMenu->addAction("Cut Voxels",    this, SLOT(cutVoxels()),    Qt::CTRL | Qt::Key_X);
     voxelMenu->addAction("Copy Voxels",   this, SLOT(copyVoxels()),   Qt::CTRL | Qt::Key_C);
     voxelMenu->addAction("Paste Voxels",  this, SLOT(pasteVoxels()),  Qt::CTRL | Qt::Key_V);
