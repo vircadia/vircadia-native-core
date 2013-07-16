@@ -46,6 +46,8 @@ public:
 
     void setCollisionSoundMagnitude(float collisionSoundMagnitude) { _collisionSoundMagnitude = collisionSoundMagnitude; }
     
+    void startCollisionSound(float magnitude, float frequency, float noise, float duration);
+    
     void ping();
 
     // Call periodically to eventually perform round trip time analysis,
@@ -84,6 +86,9 @@ private:
     float _flangeRate;
     float _flangeWeight;
     float _collisionSoundMagnitude;
+    float _collisionSoundFrequency;
+    float _collisionSoundNoise;
+    float _collisionSoundDuration;
     int _proceduralEffectSample;
     float _heartbeatMagnitude;
     

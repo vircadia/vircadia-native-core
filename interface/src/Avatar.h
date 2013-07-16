@@ -262,6 +262,7 @@ private:
     void updateCollisionWithEnvironment();
     void updateCollisionWithVoxels();
     void applyHardCollision(const glm::vec3& penetration, float elasticity, float damping);
+    void createCollisionSound(const glm::vec3& penetration, float frequency);
     void applyCollisionWithOtherAvatar( Avatar * other, float deltaTime );
     void checkForMouseRayTouching();
 };

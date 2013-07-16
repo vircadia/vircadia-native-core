@@ -333,6 +333,9 @@ Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples) :
     _flangeRate(0.0f),
     _flangeWeight(0.0f),
     _collisionSoundMagnitude(0.0f),
+    _collisionSoundFrequency(0.0f),
+    _collisionSoundNoise(0.0f),
+    _collisionSoundDuration(0.0f),
     _proceduralEffectSample(0),
     _heartbeatMagnitude(0.0f)
 {
@@ -621,17 +624,16 @@ void Audio::addProceduralSounds(int16_t* inputBuffer,
         }
     }
     const float COLLISION_SOUND_CUTOFF_LEVEL = 5.0f;
-    const float COLLISION_SOUND_PITCH_1 = 2.0f;
-    const float COLLISION_SOUND_DECAY = 1.f/1024.f;
-    const float COLLISION_VOLUME_BASELINE = 10.f;
     int sample;
     if (_collisionSoundMagnitude > COLLISION_SOUND_CUTOFF_LEVEL) {
         for (int i = 0; i < numSamples; i++) {
-            sample = (int16_t) ((sinf((float) (_proceduralEffectSample + i) / COLLISION_SOUND_PITCH_1) * COLLISION_VOLUME_BASELINE * _collisionSoundMagnitude));
+            sample = (int16_t) (((sinf(((float)_proceduralEffectSample + (float)i) * _collisionSoundFrequency) * (1.f - _collisionSoundNoise)
+                     + ((randFloat() * 2.f - 1.0f) * _collisionSoundNoise))
+                     * _collisionSoundMagnitude));
             inputBuffer[i] += sample;
             outputLeft[i] += sample;
             outputRight[i] += sample;
-            _collisionSoundMagnitude *= (1.f - COLLISION_SOUND_DECAY);
+            _collisionSoundMagnitude *= _collisionSoundDuration;
         }
     }
     
@@ -641,6 +643,12 @@ void Audio::addProceduralSounds(int16_t* inputBuffer,
     _proceduralEffectSample += numSamples;
 }
 
+void Audio::startCollisionSound(float magnitude, float frequency, float noise, float duration) {
+    _collisionSoundMagnitude = magnitude;
+    _collisionSoundFrequency = frequency;
+    _collisionSoundNoise = noise;
+    _collisionSoundDuration = duration;
+}
 // -----------------------------------------------------------
 // Accoustic ping (audio system round trip time determination)
 // -----------------------------------------------------------

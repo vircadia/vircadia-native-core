@@ -873,11 +873,14 @@ void Avatar::updateCollisionWithEnvironment() {
     float radius = _height * 0.125f;
     const float ENVIRONMENT_SURFACE_ELASTICITY = 1.0f;
     const float ENVIRONMENT_SURFACE_DAMPING = 0.01;
+    const float ENVIRONMENT_COLLISION_FREQUENCY = 0.05f;
     glm::vec3 penetration;
     if (Application::getInstance()->getEnvironment()->findCapsulePenetration(
                                                                              _position - up * (_pelvisFloatingHeight - radius),
                                                                              _position + up * (_height - _pelvisFloatingHeight - radius), radius, penetration)) {
+        createCollisionSound(penetration, ENVIRONMENT_COLLISION_FREQUENCY);
         applyHardCollision(penetration, ENVIRONMENT_SURFACE_ELASTICITY, ENVIRONMENT_SURFACE_DAMPING);
+        
         
     }
 }
@@ -887,10 +890,12 @@ void Avatar::updateCollisionWithVoxels() {
     float radius = _height * 0.125f;
     const float VOXEL_ELASTICITY = 1.4f;
     const float VOXEL_DAMPING = 0.0;
+    const float VOXEL_COLLISION_FREQUENCY = 0.5f;
     glm::vec3 penetration;
     if (Application::getInstance()->getVoxels()->findCapsulePenetration(
                                                                         _position - glm::vec3(0.0f, _pelvisFloatingHeight - radius, 0.0f),
                                                                         _position + glm::vec3(0.0f, _height - _pelvisFloatingHeight - radius, 0.0f), radius, penetration)) {
+        createCollisionSound(penetration, VOXEL_COLLISION_FREQUENCY);
         applyHardCollision(penetration, VOXEL_ELASTICITY, VOXEL_DAMPING);
     }
 }
@@ -916,14 +921,29 @@ void Avatar::applyHardCollision(const glm::vec3& penetration, float elasticity, 
             // If moving really slowly after a collision, and not applying forces, stop altogether
             _velocity *= 0.f;
         }
-        //  Push the collision into the audio system for procedural effects
-        const float AUDIBLE_COLLISION_THRESHOLD = 200.f;
-        const float COLLISION_VOLUME = 10000.f;
-        float collisionSoundLevel = penetrationLength * COLLISION_VOLUME;
-        if (collisionSoundLevel > AUDIBLE_COLLISION_THRESHOLD) {
-            Application::getInstance()->getAudio()->setCollisionSoundMagnitude(collisionSoundLevel);
-        }
     }
+}
+
+void Avatar::createCollisionSound(const glm::vec3 &penetration, float frequency) {
+    //  Push the collision into the audio system for procedural effects
+    const float AUDIBLE_COLLISION_THRESHOLD = 0.2f;
+    const float COLLISION_VOLUME = 1000.f;
+    const float MAX_COLLISION_VOLUME = 15000.f;
+    const float DURATION_SCALING = 0.004f;
+    float velocityTowardCollision = glm::dot(_velocity, glm::normalize(penetration));
+    float velocityTangentToCollision = glm::length(_velocity) - velocityTowardCollision;
+    if (velocityTowardCollision > AUDIBLE_COLLISION_THRESHOLD) {
+        Application::getInstance()->getAudio()->startCollisionSound(
+            fmax(COLLISION_VOLUME * velocityTowardCollision, MAX_COLLISION_VOLUME),
+            frequency,
+            fmin(velocityTangentToCollision / velocityTowardCollision, 1.f),
+            1.f - DURATION_SCALING * powf(frequency, 0.5f) / velocityTowardCollision);
+        
+    }
+    //float collisionSoundLevel = penetrationLength * COLLISION_VOLUME;
+    //if (collisionSoundLevel > AUDIBLE_COLLISION_THRESHOLD) {
+    //    Application::getInstance()->getAudio()->setCollisionSoundMagnitude(collisionSoundLevel);
+    //}
 }
 
 void Avatar::updateAvatarCollisions(float deltaTime) {
