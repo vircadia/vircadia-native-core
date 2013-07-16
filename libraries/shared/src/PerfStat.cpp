@@ -59,7 +59,7 @@ PerfStat::~PerfStat() {
 	}
 
 	if (wantDebugOut) {	
-		qDebug("PerfStats: %s elapsed:%f average:%lf count:%ld total:%lf ut:%d us:%d ue:%d t:%ld s:%ld e:%ld\n",
+		qDebug("PerfStats: %s elapsed:%f average:%lf count:%ld total:%lf ut:%d us:%d ue:%d t:%ld s:%ld e:%ld",
                this->group.c_str(),elapsed,average,count,totalTime,
                (end.tv_usec-start.tv_usec),start.tv_usec,end.tv_usec,
                (end.tv_sec-start.tv_sec),start.tv_sec,end.tv_sec
@@ -111,12 +111,12 @@ PerformanceWarning::~PerformanceWarning() {
     if ((_alwaysDisplay || _renderWarningsOn) && elapsedmsec > 1) {
         if (elapsedmsec > 1000) {
             double elapsedsec = (end - _start) / 1000000.0;
-            qDebug("%s%s took %lf seconds\n", (_alwaysDisplay ? "" : "WARNING!"), _message, elapsedsec);
+            qDebug("%s%s took %lf seconds", (_alwaysDisplay ? "" : "WARNING!"), _message, elapsedsec);
         } else {
-            qDebug("%s%s took %lf milliseconds\n", (_alwaysDisplay ? "" : "WARNING!"), _message, elapsedmsec);
+            qDebug("%s%s took %lf milliseconds", (_alwaysDisplay ? "" : "WARNING!"), _message, elapsedmsec);
         }
     } else if (_alwaysDisplay) {
-        qDebug("%s took %lf milliseconds\n", _message, elapsedmsec);
+        qDebug("%s took %lf milliseconds", _message, elapsedmsec);
     }
 };
 

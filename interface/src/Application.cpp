@@ -210,7 +210,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
 {
     _applicationStartupTime = startup_time;
     _window->setWindowTitle("Interface");
-    qDebug("Interface Startup:\n");
+    qDebug("Interface Startup:");
     
     unsigned int listenPort = 0; // bind to an ephemeral port by default
     const char** constArgv = const_cast<const char**>(argv);
@@ -233,7 +233,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     
     // Handle Local Domain testing with the --local command line
     if (cmdOptionExists(argc, constArgv, "--local")) {
-        qDebug("Local Domain MODE!\n");
+        qDebug("Local Domain MODE!");
         
         NodeList::getInstance()->setDomainIPToLocalhost();
     }
@@ -297,7 +297,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
 }
 
 void Application::initializeGL() {
-    qDebug( "Created Display Window.\n" );
+    qDebug( "Created Display Window." );
     
     // initialize glut for shape drawing; Qt apparently initializes it on OS X
     #ifndef __APPLE__
@@ -312,10 +312,10 @@ void Application::initializeGL() {
     _viewFrustumOffsetCamera.setFarClip(500.0 * TREE_SCALE);
     
     initDisplay();
-    qDebug( "Initialized Display.\n" );
+    qDebug( "Initialized Display." );
     
     init();
-    qDebug( "Init() complete.\n" );
+    qDebug( "Init() complete." );
     
     // Check to see if the user passed in a command line option for randomizing colors
     bool wantColorRandomizer = !arguments().contains("--NoColorRandomizer");
@@ -324,13 +324,13 @@ void Application::initializeGL() {
     // Voxel File. If so, load it now.
     if (!_voxelsFilename.isEmpty()) {
         _voxels.loadVoxelsFile(_voxelsFilename.constData(), wantColorRandomizer);
-        qDebug("Local Voxel File loaded.\n");
+        qDebug("Local Voxel File loaded.");
     }
     
     // create thread for receipt of data via UDP
     if (_enableNetworkThread) {
         pthread_create(&_networkReceiveThread, NULL, networkReceive, NULL);
-        qDebug("Network receive thread created.\n"); 
+        qDebug("Network receive thread created.");
     }
     
     // call terminate before exiting
@@ -351,7 +351,7 @@ void Application::initializeGL() {
         float startupTime = (usecTimestampNow() - usecTimestamp(&_applicationStartupTime)) / 1000000.0;
         _justStarted = false;
         char title[50];
-        sprintf(title, "Interface: %4.2f seconds\n", startupTime);
+        sprintf(title, "Interface: %4.2f seconds", startupTime);
         qDebug("%s", title);
         _window->setWindowTitle(title);
         
@@ -1446,7 +1446,7 @@ void Application::importVoxels() {
     if (fileNameString.endsWith(".png", Qt::CaseInsensitive)) {
         QImage pngImage = QImage(fileName);
         if (pngImage.height() != pngImage.width()) {
-            qDebug("ERROR: Bad PNG size: height != width.\n");
+            qDebug("ERROR: Bad PNG size: height != width.");
             return;
         }
         
@@ -1758,7 +1758,7 @@ void Application::init() {
         _audio.setJitterBufferSamples(_audioJitterBufferSamples);
     }
     
-    qDebug("Loaded settings.\n");
+    qDebug("Loaded settings.");
 
     sendAvatarVoxelURLMessage(_myAvatar.getVoxels()->getVoxelURL());
 
@@ -2771,7 +2771,7 @@ glm::vec2 Application::getScaledScreenPoint(glm::vec2 projectedPoint) {
 // render the coverage map on screen
 void Application::renderCoverageMapV2() {
     
-    //qDebug("renderCoverageMap()\n");
+    //qDebug("renderCoverageMap()");
     
     glDisable(GL_LIGHTING);
     glLineWidth(2.0);
@@ -2816,7 +2816,7 @@ void Application::renderCoverageMapsV2Recursively(CoverageMapV2* map) {
 // render the coverage map on screen
 void Application::renderCoverageMap() {
     
-    //qDebug("renderCoverageMap()\n");
+    //qDebug("renderCoverageMap()");
     
     glDisable(GL_LIGHTING);
     glLineWidth(2.0);
@@ -3147,7 +3147,7 @@ void Application::eyedropperVoxelUnderCursor() {
 }
 
 void Application::goHome() {
-    qDebug("Going Home!\n");
+    qDebug("Going Home!");
     _myAvatar.setPosition(START_LOCATION);
 }
 

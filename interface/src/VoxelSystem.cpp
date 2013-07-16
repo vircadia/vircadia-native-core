@@ -144,16 +144,16 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
             int commandLength = strlen(command); // commands are null terminated strings
             int totalLength = 1+commandLength+1;
 
-            qDebug("got Z message len(%d)= %s\n", numBytes, command);
+            qDebug("got Z message len(%d)= %s", numBytes, command);
 
             while (totalLength <= numBytes) {
                 if (0==strcmp(command,(char*)"erase all")) {
-                    qDebug("got Z message == erase all\n");
+                    qDebug("got Z message == erase all");
                     _tree->eraseAllVoxels();
                     _voxelsInReadArrays = _voxelsInWriteArrays = 0; // better way to do this??
                 }
                 if (0==strcmp(command,(char*)"add scene")) {
-                    qDebug("got Z message == add scene - NOT SUPPORTED ON INTERFACE\n");
+                    qDebug("got Z message == add scene - NOT SUPPORTED ON INTERFACE");
                 }
                 totalLength += commandLength+1;
             }
@@ -708,7 +708,7 @@ bool VoxelSystem::randomColorOperation(VoxelNode* node, void* extraData) {
 void VoxelSystem::randomizeVoxelColors() {
     _nodeCount = 0;
     _tree->recurseTreeWithOperation(randomColorOperation);
-    qDebug("setting randomized true color for %d nodes\n", _nodeCount);
+    qDebug("setting randomized true color for %d nodes", _nodeCount);
     setupNewVoxelsForDrawing();
 }
 
@@ -722,7 +722,7 @@ bool VoxelSystem::falseColorizeRandomOperation(VoxelNode* node, void* extraData)
 void VoxelSystem::falseColorizeRandom() {
     _nodeCount = 0;
     _tree->recurseTreeWithOperation(falseColorizeRandomOperation);
-    qDebug("setting randomized false color for %d nodes\n", _nodeCount);
+    qDebug("setting randomized false color for %d nodes", _nodeCount);
     setupNewVoxelsForDrawing();
 }
 
@@ -736,7 +736,7 @@ void VoxelSystem::trueColorize() {
     PerformanceWarning warn(true, "trueColorize()",true);
     _nodeCount = 0;
     _tree->recurseTreeWithOperation(trueColorizeOperation);
-    qDebug("setting true color for %d nodes\n", _nodeCount);
+    qDebug("setting true color for %d nodes", _nodeCount);
     setupNewVoxelsForDrawing();
 }
 
@@ -756,7 +756,7 @@ bool VoxelSystem::falseColorizeInViewOperation(VoxelNode* node, void* extraData)
 void VoxelSystem::falseColorizeInView(ViewFrustum* viewFrustum) {
     _nodeCount = 0;
     _tree->recurseTreeWithOperation(falseColorizeInViewOperation,(void*)viewFrustum);
-    qDebug("setting in view false color for %d nodes\n", _nodeCount);
+    qDebug("setting in view false color for %d nodes", _nodeCount);
     setupNewVoxelsForDrawing();
 }
 
@@ -806,10 +806,10 @@ void VoxelSystem::falseColorizeDistanceFromView(ViewFrustum* viewFrustum) {
     _maxDistance = 0.0;
     _minDistance = FLT_MAX;
     _tree->recurseTreeWithOperation(getDistanceFromViewRangeOperation,(void*)viewFrustum);
-    qDebug("determining distance range for %d nodes\n", _nodeCount);
+    qDebug("determining distance range for %d nodes", _nodeCount);
     _nodeCount = 0;
     _tree->recurseTreeWithOperation(falseColorizeDistanceFromViewOperation,(void*)viewFrustum);
-    qDebug("setting in distance false color for %d nodes\n", _nodeCount);
+    qDebug("setting in distance false color for %d nodes", _nodeCount);
     setupNewVoxelsForDrawing();
 }
 
@@ -921,7 +921,7 @@ void VoxelSystem::removeOutOfView() {
     }
     bool showRemoveDebugDetails = false;
     if (showRemoveDebugDetails) {
-        qDebug("removeOutOfView() scanned=%ld removed=%ld inside=%ld intersect=%ld outside=%ld _removedVoxels.count()=%d \n", 
+        qDebug("removeOutOfView() scanned=%ld removed=%ld inside=%ld intersect=%ld outside=%ld _removedVoxels.count()=%d ", 
                 args.nodesScanned, args.nodesRemoved, args.nodesInside, 
                 args.nodesIntersect, args.nodesOutside, _removedVoxels.count()
             );
@@ -987,7 +987,7 @@ bool VoxelSystem::falseColorizeRandomEveryOtherOperation(VoxelNode* node, void* 
 void VoxelSystem::falseColorizeRandomEveryOther() {
     falseColorizeRandomEveryOtherArgs args;
     _tree->recurseTreeWithOperation(falseColorizeRandomEveryOtherOperation,&args);
-    qDebug("randomized false color for every other node: total %ld, colorable %ld, colored %ld\n", 
+    qDebug("randomized false color for every other node: total %ld, colorable %ld, colored %ld", 
         args.totalNodes, args.colorableNodes, args.coloredNodes);
     setupNewVoxelsForDrawing();
 }
@@ -1048,7 +1048,7 @@ bool VoxelSystem::collectStatsForTreesAndVBOsOperation(VoxelNode* node, void* ex
         unsigned long nodeIndex = node->getBufferIndex();
         if (args->hasIndexFound[nodeIndex]) {
             args->duplicateVBOIndex++;
-            qDebug("duplicateVBO found... index=%ld, isDirty=%s, shouldRender=%s \n", nodeIndex, 
+            qDebug("duplicateVBO found... index=%ld, isDirty=%s, shouldRender=%s ", nodeIndex, 
                     debug::valueOf(node->isDirty()), debug::valueOf(node->getShouldRender()));
         } else {
             args->hasIndexFound[nodeIndex] = true;
@@ -1083,13 +1083,13 @@ void VoxelSystem::collectStatsForTreesAndVBOs() {
     args.expectedMax = _voxelsInWriteArrays;
     _tree->recurseTreeWithOperation(collectStatsForTreesAndVBOsOperation,&args);
 
-    qDebug("Local Voxel Tree Statistics:\n total nodes %ld \n leaves %ld \n dirty %ld \n colored %ld \n shouldRender %ld \n",
+    qDebug("Local Voxel Tree Statistics:\n total nodes %ld \n leaves %ld \n dirty %ld \n colored %ld \n shouldRender %ld ",
         args.totalNodes, args.leafNodes, args.dirtyNodes, args.coloredNodes, args.shouldRenderNodes);
 
-    qDebug(" _voxelsDirty=%s \n _voxelsInWriteArrays=%ld \n minDirty=%ld \n maxDirty=%ld \n", debug::valueOf(_voxelsDirty),
+    qDebug(" _voxelsDirty=%s \n _voxelsInWriteArrays=%ld \n minDirty=%ld \n maxDirty=%ld ", debug::valueOf(_voxelsDirty),
         _voxelsInWriteArrays, minDirty, maxDirty);
 
-    qDebug(" inVBO %ld \n nodesInVBOOverExpectedMax %ld \n duplicateVBOIndex %ld \n nodesInVBONotShouldRender %ld \n", 
+    qDebug(" inVBO %ld \n nodesInVBOOverExpectedMax %ld \n duplicateVBOIndex %ld \n nodesInVBONotShouldRender %ld ", 
         args.nodesInVBO, args.nodesInVBOOverExpectedMax, args.duplicateVBOIndex, args.nodesInVBONotShouldRender);
 
     glBufferIndex minInVBO = GLBUFFER_INDEX_UNKNOWN;
@@ -1102,7 +1102,7 @@ void VoxelSystem::collectStatsForTreesAndVBOs() {
         }
     }
 
-    qDebug(" minInVBO=%ld \n maxInVBO=%ld \n _voxelsInWriteArrays=%ld \n _voxelsInReadArrays=%ld \n", 
+    qDebug(" minInVBO=%ld \n maxInVBO=%ld \n _voxelsInWriteArrays=%ld \n _voxelsInReadArrays=%ld ", 
             minInVBO, maxInVBO, _voxelsInWriteArrays, _voxelsInReadArrays);
 
 }
@@ -1127,7 +1127,7 @@ void VoxelSystem::createVoxel(float x, float y, float z, float s,
                               unsigned char red, unsigned char green, unsigned char blue, bool destructive) {
     pthread_mutex_lock(&_treeLock);
     
-    //qDebug("VoxelSystem::createVoxel(%f,%f,%f,%f)\n",x,y,z,s);
+    //qDebug("VoxelSystem::createVoxel(%f,%f,%f,%f)",x,y,z,s);
     _tree->createVoxel(x, y, z, s, red, green, blue, destructive); 
     setupNewVoxelsForDrawing(); 
     
@@ -1253,9 +1253,9 @@ bool VoxelSystem::falseColorizeOccludedOperation(VoxelNode* node, void* extraDat
             args->occludedVoxels++;
         } else if (result == STORED) {
             args->notOccludedVoxels++;
-            //qDebug("***** falseColorizeOccludedOperation() NODE is STORED *****\n");
+            //qDebug("***** falseColorizeOccludedOperation() NODE is STORED *****");
         } else if (result == DOESNT_FIT) {
-            //qDebug("***** falseColorizeOccludedOperation() NODE DOESNT_FIT???? *****\n");
+            //qDebug("***** falseColorizeOccludedOperation() NODE DOESNT_FIT???? *****");
         }
     }
     return true; // keep going!
@@ -1288,7 +1288,7 @@ void VoxelSystem::falseColorizeOccluded() {
 
     _tree->recurseTreeWithOperationDistanceSorted(falseColorizeOccludedOperation, position, (void*)&args);
 
-    qDebug("falseColorizeOccluded()\n    position=(%f,%f)\n    total=%ld\n    colored=%ld\n    occluded=%ld\n    notOccluded=%ld\n    outOfView=%ld\n    subtreeVoxelsSkipped=%ld\n    stagedForDeletion=%ld\n    nonLeaves=%ld\n    nonLeavesOutOfView=%ld\n    nonLeavesOccluded=%ld\n    pointInside_calls=%ld\n    occludes_calls=%ld\n intersects_calls=%ld\n", 
+    qDebug("falseColorizeOccluded()\n    position=(%f,%f)\n    total=%ld\n    colored=%ld\n    occluded=%ld\n    notOccluded=%ld\n    outOfView=%ld\n    subtreeVoxelsSkipped=%ld\n    stagedForDeletion=%ld\n    nonLeaves=%ld\n    nonLeavesOutOfView=%ld\n    nonLeavesOccluded=%ld\n    pointInside_calls=%ld\n    occludes_calls=%ld\n intersects_calls=%ld", 
         position.x, position.y,
         args.totalVoxels, args.coloredVoxels, args.occludedVoxels, 
         args.notOccludedVoxels, args.outOfView, args.subtreeVoxelsSkipped, 
@@ -1374,9 +1374,9 @@ bool VoxelSystem::falseColorizeOccludedV2Operation(VoxelNode* node, void* extraD
             args->occludedVoxels++;
         } else if (result == V2_STORED) {
             args->notOccludedVoxels++;
-            //qDebug("***** falseColorizeOccludedOperation() NODE is STORED *****\n");
+            //qDebug("***** falseColorizeOccludedOperation() NODE is STORED *****");
         } else if (result == V2_DOESNT_FIT) {
-            //qDebug("***** falseColorizeOccludedOperation() NODE DOESNT_FIT???? *****\n");
+            //qDebug("***** falseColorizeOccludedOperation() NODE DOESNT_FIT???? *****");
         }
         delete voxelPolygon; // V2 maps don't store polygons, so we're always in charge of freeing
     }
@@ -1413,7 +1413,7 @@ void VoxelSystem::falseColorizeOccludedV2() {
 
     _tree->recurseTreeWithOperationDistanceSorted(falseColorizeOccludedV2Operation, position, (void*)&args);
 
-    qDebug("falseColorizeOccludedV2()\n    position=(%f,%f)\n    total=%ld\n    colored=%ld\n    occluded=%ld\n    notOccluded=%ld\n    outOfView=%ld\n    subtreeVoxelsSkipped=%ld\n    stagedForDeletion=%ld\n    nonLeaves=%ld\n    nonLeavesOutOfView=%ld\n    nonLeavesOccluded=%ld\n    pointInside_calls=%ld\n    occludes_calls=%ld\n    intersects_calls=%ld\n", 
+    qDebug("falseColorizeOccludedV2()\n    position=(%f,%f)\n    total=%ld\n    colored=%ld\n    occluded=%ld\n    notOccluded=%ld\n    outOfView=%ld\n    subtreeVoxelsSkipped=%ld\n    stagedForDeletion=%ld\n    nonLeaves=%ld\n    nonLeavesOutOfView=%ld\n    nonLeavesOccluded=%ld\n    pointInside_calls=%ld\n    occludes_calls=%ld\n    intersects_calls=%ld", 
         position.x, position.y,
         args.totalVoxels, args.coloredVoxels, args.occludedVoxels, 
         args.notOccludedVoxels, args.outOfView, args.subtreeVoxelsSkipped, 

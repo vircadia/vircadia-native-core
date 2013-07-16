@@ -38,7 +38,7 @@ void Transmitter::checkForLostTransmitter() {
         int msecsSinceLast = diffclock(_lastReceivedPacket, &now);
         if (msecsSinceLast > TIME_TO_ASSUME_LOST_MSECS) {
             resetLevels();
-            qDebug("Transmitter signal lost.\n");
+            qDebug("Transmitter signal lost.");
         }
     }
 }
@@ -93,12 +93,12 @@ void Transmitter::processIncomingData(unsigned char* packetData, int numBytes) {
         _estimatedRotation.y *= (1.f - DECAY_RATE * DELTA_TIME);
 
         if (!_isConnected) {
-            qDebug("Transmitter Connected.\n");
+            qDebug("Transmitter Connected.");
             _isConnected = true;
             _estimatedRotation *= 0.0;
         }
     } else {
-        qDebug("Transmitter packet read error, %d bytes.\n", numBytes);
+        qDebug("Transmitter packet read error, %d bytes.", numBytes);
     }
 }
 

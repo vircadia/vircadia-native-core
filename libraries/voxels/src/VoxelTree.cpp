@@ -157,7 +157,7 @@ void VoxelTree::recurseNodeWithOperationDistanceSorted(VoxelNode* node, RecurseV
             if (childNode) {
                 // chance to optimize, doesn't need to be actual distance!! Could be distance squared
                 float distanceSquared = childNode->distanceSquareToPoint(point);
-                //qDebug("recurseNodeWithOperationDistanceSorted() CHECKING child[%d] point=%f,%f center=%f,%f distance=%f...\n", i, point.x, point.y, center.x, center.y, distance);
+                //qDebug("recurseNodeWithOperationDistanceSorted() CHECKING child[%d] point=%f,%f center=%f,%f distance=%f...", i, point.x, point.y, center.x, center.y, distance);
                 //childNode->printDebugDetails("");
                 currentCount = insertIntoSortedArrays((void*)childNode, distanceSquared, i,
                                                       (void**)&sortedChildren, (float*)&distancesToChildren,
@@ -168,7 +168,7 @@ void VoxelTree::recurseNodeWithOperationDistanceSorted(VoxelNode* node, RecurseV
         for (int i = 0; i < currentCount; i++) {
             VoxelNode* childNode = sortedChildren[i];
             if (childNode) {
-                //qDebug("recurseNodeWithOperationDistanceSorted() PROCESSING child[%d] distance=%f...\n", i, distancesToChildren[i]);
+                //qDebug("recurseNodeWithOperationDistanceSorted() PROCESSING child[%d] distance=%f...", i, distancesToChildren[i]);
                 //childNode->printDebugDetails("");
                 recurseNodeWithOperationDistanceSorted(childNode, operation, point, extraData);
             }
@@ -460,7 +460,7 @@ void VoxelTree::deleteVoxelCodeFromTreeRecursion(VoxelNode* node, void* extraDat
     // isn't a colored leaf, and the child branch doesn't exist, so there's nothing to do below and
     // we can safely return, ending the recursion and unwinding
     if (!childNode) {
-        //qDebug("new___deleteVoxelCodeFromTree() child branch doesn't exist, but parent is not a leaf, just unwind\n");
+        //qDebug("new___deleteVoxelCodeFromTree() child branch doesn't exist, but parent is not a leaf, just unwind");
         return;
     }
 
@@ -548,7 +548,7 @@ void VoxelTree::readCodeColorBufferToTreeRecursion(VoxelNode* node, void* extraD
             }
         } else {
             if (!node->isLeaf()) {
-                qDebug("WARNING! operation would require deleting children, add Voxel ignored!\n ");
+                qDebug("WARNING! operation would require deleting children, add Voxel ignored! ");
             }
         }
 
@@ -688,7 +688,7 @@ void VoxelTree::loadVoxelsFile(const char* fileName, bool wantColorRandomizer) {
 
     int totalBytesRead = 0;
     if(file.is_open()) {
-        qDebug("loading file...\n");
+        qDebug("loading file...");
         bool bail = false;
         while (!file.eof() && !bail) {
             file.get(octets);
@@ -713,14 +713,14 @@ void VoxelTree::loadVoxelsFile(const char* fileName, bool wantColorRandomizer) {
             file.get(colorRead);
             blue = (unsigned char)colorRead;
 
-            qDebug("voxel color from file  red:%d, green:%d, blue:%d \n",red,green,blue);
+            qDebug("voxel color from file  red:%d, green:%d, blue:%d ",red,green,blue);
             vCount++;
 
             int colorRandomizer = wantColorRandomizer ? randIntInRange (-5, 5) : 0;
             voxelData[lengthInBytes+1] = std::max(0,std::min(255,red + colorRandomizer));
             voxelData[lengthInBytes+2] = std::max(0,std::min(255,green + colorRandomizer));
             voxelData[lengthInBytes+3] = std::max(0,std::min(255,blue + colorRandomizer));
-            qDebug("voxel color after rand red:%d, green:%d, blue:%d\n",
+            qDebug("voxel color after rand red:%d, green:%d, blue:%d",
                      voxelData[lengthInBytes+1], voxelData[lengthInBytes+2], voxelData[lengthInBytes+3]);
 
             //printVoxelCode(voxelData);
@@ -821,7 +821,7 @@ void VoxelTree::createSphere(float radius, float xc, float yc, float zc, float v
 
         if (debug) {
             int percentComplete = 100 * (thisRadius/radius);
-            qDebug("percentComplete=%d\n",percentComplete);
+            qDebug("percentComplete=%d",percentComplete);
         }
 
         for (float theta=0.0; theta <= 2 * M_PI; theta += angleDelta) {
@@ -837,7 +837,7 @@ void VoxelTree::createSphere(float radius, float xc, float yc, float zc, float v
                 // 2) In all modes, we will use our "outer" color to draw the voxels. Otherwise we will use the average color
                 if (lastLayer) {
                     if (false && debug) {
-                        qDebug("adding candy shell: theta=%f phi=%f thisRadius=%f radius=%f\n",
+                        qDebug("adding candy shell: theta=%f phi=%f thisRadius=%f radius=%f",
                                  theta, phi, thisRadius,radius);
                     }
                     switch (mode) {
@@ -861,7 +861,7 @@ void VoxelTree::createSphere(float radius, float xc, float yc, float zc, float v
                         green = (unsigned char)std::min(255, std::max(0, (int)(g1 + ((g2 - g1) * gradient))));
                         blue  = (unsigned char)std::min(255, std::max(0, (int)(b1 + ((b2 - b1) * gradient))));
                         if (debug) {
-                            qDebug("perlin=%f gradient=%f color=(%d,%d,%d)\n",perlin, gradient, red, green, blue);
+                            qDebug("perlin=%f gradient=%f color=(%d,%d,%d)",perlin, gradient, red, green, blue);
                         }
                         } break;
                     }
@@ -1178,7 +1178,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
             if (childNode) {
                 // chance to optimize, doesn't need to be actual distance!! Could be distance squared
                 //float distanceSquared = childNode->distanceSquareToPoint(point);
-                //qDebug("recurseNodeWithOperationDistanceSorted() CHECKING child[%d] point=%f,%f center=%f,%f distance=%f...\n", i, point.x, point.y, center.x, center.y, distance);
+                //qDebug("recurseNodeWithOperationDistanceSorted() CHECKING child[%d] point=%f,%f center=%f,%f distance=%f...", i, point.x, point.y, center.x, center.y, distance);
                 //childNode->printDebugDetails("");
 
                 float distance = params.viewFrustum ? childNode->distanceToCamera(*params.viewFrustum) : 0;
@@ -1434,7 +1434,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
 bool VoxelTree::readFromSVOFile(const char* fileName) {
     std::ifstream file(fileName, std::ios::in|std::ios::binary|std::ios::ate);
     if(file.is_open()) {
-        qDebug("loading file %s...\n", fileName);
+        qDebug("loading file %s...", fileName);
 
         // get file length....
         unsigned long fileLength = file.tellg();
@@ -1462,14 +1462,14 @@ bool VoxelTree::readFromSchematicFile(const char *fileName) {
     std::stringstream ss;
     int err = retrieveData(fileName, ss);
     if (err && ss.get() != TAG_Compound) {
-        qDebug("[ERROR] Invalid schematic file.\n");
+        qDebug("[ERROR] Invalid schematic file.");
         return false;
     }
 
     ss.get();
     TagCompound schematics(ss);
     if (!schematics.getBlocksId() || !schematics.getBlocksData()) {
-        qDebug("[ERROR] Invalid schematic file.\n");
+        qDebug("[ERROR] Invalid schematic file.");
         return false;
     }
 
@@ -1532,7 +1532,7 @@ bool VoxelTree::readFromSchematicFile(const char *fileName) {
         }
     }
 
-    qDebug("Created %d voxels from minecraft import.\n", count);
+    qDebug("Created %d voxels from minecraft import.", count);
 
     return true;
 }
@@ -1542,7 +1542,7 @@ void VoxelTree::writeToSVOFile(const char* fileName, VoxelNode* node) const {
     std::ofstream file(fileName, std::ios::out|std::ios::binary);
 
     if(file.is_open()) {
-        qDebug("saving to file %s...\n", fileName);
+        qDebug("saving to file %s...", fileName);
 
         VoxelNodeBag nodeBag;
         // If we were given a specific node, start from there, otherwise start from root

@@ -95,7 +95,7 @@ void BoundingBox::printDebugDetails(const char* label) const {
     } else {
         qDebug("BoundingBox");
     }
-    qDebug("\n    _set=%s\n    corner=%f,%f size=%f,%f\n    bounds=[(%f,%f) to (%f,%f)]\n", 
+    qDebug("\n    _set=%s\n    corner=%f,%f size=%f,%f\n    bounds=[(%f,%f) to (%f,%f)]", 
         debug::valueOf(_set), corner.x, corner.y, size.x, size.y, corner.x, corner.y, corner.x+size.x, corner.y+size.y);
 }
 

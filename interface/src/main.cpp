@@ -24,8 +24,8 @@ int main(int argc, const char * argv[]) {
     gettimeofday(&startup_time, NULL);
     
     Application app(argc, const_cast<char**>(argv), startup_time);
-    qDebug( "Created QT Application.\n" );
+    qDebug( "Created QT Application." );
     int exitCode = app.exec();
-    qDebug("Normal exit.\n");
+    qDebug("Normal exit.");
     return exitCode;
 }   

@@ -100,7 +100,7 @@ void SerialInterface::initializePort(char* portname) {
     qDebug("Opening SerialUSB %s: ", portname);
     
     if (_serialDescriptor == -1) {
-        qDebug("Failed.\n");
+        qDebug("Failed.");
         return;
     }
     
@@ -134,7 +134,7 @@ void SerialInterface::initializePort(char* portname) {
         mpu_set_sensors(INV_XYZ_GYRO | INV_XYZ_ACCEL | INV_XYZ_COMPASS);
     }
     
-    qDebug("Connected.\n");
+    qDebug("Connected.");
     resetSerial();
     
     _active = true;
@@ -373,7 +373,7 @@ void SerialInterface::readData(float deltaTime) {
         gettimeofday(&now, NULL);
         
         if (diffclock(&lastGoodRead, &now) > NO_READ_MAXIMUM_MSECS) {
-            qDebug("No data - Shutting down SerialInterface.\n");
+            qDebug("No data - Shutting down SerialInterface.");
             resetSerial();
         }
     } else {
