@@ -22,24 +22,23 @@ ParticleSystem::ParticleSystem() {
     _upDirection  = glm::vec3(0.0f, 1.0f, 0.0f); // default
         
     for (unsigned int e = 0; e < MAX_EMITTERS; e++) {
-        _emitter[e].position                = glm::vec3(0.0f, 0.0f, 0.0f);
-        _emitter[e].rotation                = glm::quat();
-        _emitter[e].right                   = IDENTITY_RIGHT;
-        _emitter[e].up                      = IDENTITY_UP;
-        _emitter[e].front                   = IDENTITY_FRONT;
-        _emitter[e].bounce                  = DEFAULT_PARTICLE_BOUNCE;
-        _emitter[e].airFriction             = DEFAULT_PARTICLE_AIR_FRICTION;
-        _emitter[e].gravity                 = 0.0f;
-        _emitter[e].jitter                  = 0.0f;
-        _emitter[e].emitterAttraction       = 0.0f;
-        _emitter[e].tornadoForce            = 0.0f;
-        _emitter[e].neighborAttraction      = 0.0f;
-        _emitter[e].neighborRepulsion       = 0.0f;
-        _emitter[e].collisionSphereRadius   = 0.0f;
-        _emitter[e].collisionSpherePosition = glm::vec3(0.0f, 0.0f, 0.0f);
-        _emitter[e].usingCollisionSphere    = false;
-        _emitter[e].showingEmitter          = false;
-
+        _emitter[e].position       = glm::vec3(0.0f, 0.0f, 0.0f);
+        _emitter[e].rotation       = glm::quat();
+        _emitter[e].right          = IDENTITY_RIGHT;
+        _emitter[e].up             = IDENTITY_UP;
+        _emitter[e].front          = IDENTITY_FRONT;
+        _emitter[e].showingEmitter = false;
+        _emitter[e].particleAttributes.bounce                  = DEFAULT_PARTICLE_BOUNCE;
+        _emitter[e].particleAttributes.airFriction             = DEFAULT_PARTICLE_AIR_FRICTION;
+        _emitter[e].particleAttributes.gravity                 = 0.0f;
+        _emitter[e].particleAttributes.jitter                  = 0.0f;
+        _emitter[e].particleAttributes.emitterAttraction       = 0.0f;
+        _emitter[e].particleAttributes.tornadoForce            = 0.0f;
+        _emitter[e].particleAttributes.neighborAttraction      = 0.0f;
+        _emitter[e].particleAttributes.neighborRepulsion       = 0.0f;
+        _emitter[e].particleAttributes.collisionSphereRadius   = 0.0f;
+        _emitter[e].particleAttributes.collisionSpherePosition = glm::vec3(0.0f, 0.0f, 0.0f);
+        _emitter[e].particleAttributes.usingCollisionSphere    = false;
     };  
     
     for (unsigned int p = 0; p < MAX_PARTICLES; p++) {
@@ -56,19 +55,11 @@ ParticleSystem::ParticleSystem() {
 
 int ParticleSystem::addEmitter() {
 
-    printf( "\n" );
-    printf( "ParticleSystem::addEmitter\n" );
-
     _numEmitters ++;
     
     if (_numEmitters > MAX_EMITTERS) {
-
-        printf( "Oops! _numEmitters > MAX_EMITTERS... returning -1\n" );
-
         return -1;
     }
-
-    printf( "ok, _numEmitters is %d,and the index of this newly added emitter is %d.\n", _numEmitters, _numEmitters-1 );
     
     return _numEmitters - 1;
 }
@@ -80,8 +71,6 @@ void ParticleSystem::simulate(float deltaTime) {
     for (unsigned int e = 0; e < _numEmitters; e++) {
         updateEmitter(e, deltaTime);        
     }
-    
-    runSpecialEffectsTest(0, deltaTime);  
     
     // update particles
     for (unsigned int p = 0; p < _numParticles; p++) {
@@ -157,22 +146,21 @@ void ParticleSystem::setOrangeBlueColorPalette() {
 }
 
 
-void ParticleSystem::runSpecialEffectsTest(int e, float deltaTime) {
+void ParticleSystem::setParticleAttributesForEmitter(int emitterIndex, ParticleAttributes attributes) {
 
-    _timer += deltaTime;
-       
-    _emitter[e].gravity            = 0.0f                           + 0.05f        * sinf( _timer * 0.52f );
-    _emitter[e].airFriction        = (DEFAULT_PARTICLE_AIR_FRICTION + 0.5f) + 2.0f * sinf( _timer * 0.32f );
-    _emitter[e].jitter             = 0.05f                          + 0.05f        * sinf( _timer * 0.42f );
-    _emitter[e].emitterAttraction  = 0.015f                         + 0.015f       * cosf( _timer * 0.6f  );
-    _emitter[e].tornadoForce       = 0.0f                           + 0.03f        * sinf( _timer * 0.7f  );
-    _emitter[e].neighborAttraction = 0.1f                           + 0.1f         * cosf( _timer * 0.8f  );
-    _emitter[e].neighborRepulsion  = 0.2f                           + 0.2f         * sinf( _timer * 0.4f  );
-
-    if (_emitter[e].gravity < 0.0f) {
-        _emitter[e].gravity = 0.0f;
-    }
+    _emitter[emitterIndex].particleAttributes.bounce                  = attributes.bounce;
+    _emitter[emitterIndex].particleAttributes.gravity                 = attributes.gravity;
+    _emitter[emitterIndex].particleAttributes.airFriction             = attributes.airFriction;
+    _emitter[emitterIndex].particleAttributes.jitter                  = attributes.jitter;
+    _emitter[emitterIndex].particleAttributes.emitterAttraction       = attributes.emitterAttraction;
+    _emitter[emitterIndex].particleAttributes.tornadoForce            = attributes.tornadoForce;
+    _emitter[emitterIndex].particleAttributes.neighborAttraction      = attributes.neighborAttraction;
+    _emitter[emitterIndex].particleAttributes.neighborRepulsion       = attributes.neighborRepulsion;
+    _emitter[emitterIndex].particleAttributes.usingCollisionSphere    = attributes.usingCollisionSphere;
+    _emitter[emitterIndex].particleAttributes.collisionSpherePosition = attributes.collisionSpherePosition;
+    _emitter[emitterIndex].particleAttributes.collisionSphereRadius   = attributes.collisionSphereRadius;
 }
+
 
 
 void ParticleSystem::updateParticle(int p, float deltaTime) {
@@ -189,14 +177,14 @@ void ParticleSystem::updateParticle(int p, float deltaTime) {
     _particle[p].velocity += 
     glm::vec3
     (
-        -myEmitter.jitter * ONE_HALF + myEmitter.jitter * randFloat(), 
-        -myEmitter.jitter * ONE_HALF + myEmitter.jitter * randFloat(), 
-        -myEmitter.jitter * ONE_HALF + myEmitter.jitter * randFloat()
+        -myEmitter.particleAttributes.jitter * ONE_HALF + myEmitter.particleAttributes.jitter * randFloat(), 
+        -myEmitter.particleAttributes.jitter * ONE_HALF + myEmitter.particleAttributes.jitter * randFloat(), 
+        -myEmitter.particleAttributes.jitter * ONE_HALF + myEmitter.particleAttributes.jitter * randFloat()
     ) * deltaTime;
     
     // apply attraction to home position
     glm::vec3 vectorToHome = myEmitter.position - _particle[p].position;
-    _particle[p].velocity += vectorToHome * myEmitter.emitterAttraction * deltaTime;
+    _particle[p].velocity += vectorToHome * myEmitter.particleAttributes.emitterAttraction * deltaTime;
     
     // apply neighbor attraction
     int neighbor = p + 1;
@@ -207,20 +195,20 @@ void ParticleSystem::updateParticle(int p, float deltaTime) {
     if ( _particle[neighbor].emitterIndex == _particle[p].emitterIndex) {
         glm::vec3 vectorToNeighbor = _particle[p].position - _particle[neighbor].position;
     
-        _particle[p].velocity -= vectorToNeighbor * myEmitter.neighborAttraction * deltaTime;
+        _particle[p].velocity -= vectorToNeighbor * myEmitter.particleAttributes.neighborAttraction * deltaTime;
 
         float distanceToNeighbor = glm::length(vectorToNeighbor);
         if (distanceToNeighbor > 0.0f) {
-            _particle[neighbor].velocity += (vectorToNeighbor / ( 1.0f + distanceToNeighbor * distanceToNeighbor)) * myEmitter.neighborRepulsion * deltaTime;
+            _particle[neighbor].velocity += (vectorToNeighbor / ( 1.0f + distanceToNeighbor * distanceToNeighbor)) * myEmitter.particleAttributes.neighborRepulsion * deltaTime;
         }
     }
     
     // apply tornado force
     glm::vec3 tornadoDirection = glm::cross(vectorToHome, myEmitter.up);
-    _particle[p].velocity += tornadoDirection * myEmitter.tornadoForce * deltaTime;
+    _particle[p].velocity += tornadoDirection * myEmitter.particleAttributes.tornadoForce * deltaTime;
 
     // apply air friction
-    float drag = 1.0 - myEmitter.airFriction * deltaTime;
+    float drag = 1.0 - myEmitter.particleAttributes.airFriction * deltaTime;
     if (drag < 0.0f) {
         _particle[p].velocity = glm::vec3(0.0f, 0.0f, 0.0f);
     } else {
@@ -228,7 +216,7 @@ void ParticleSystem::updateParticle(int p, float deltaTime) {
     }
     
     // apply gravity
-    _particle[p].velocity -= _upDirection * myEmitter.gravity * deltaTime;       
+    _particle[p].velocity -= _upDirection * myEmitter.particleAttributes.gravity * deltaTime;       
 
     // update position by velocity
     _particle[p].position += _particle[p].velocity;
@@ -238,29 +226,29 @@ void ParticleSystem::updateParticle(int p, float deltaTime) {
         _particle[p].position.y = _particle[p].radius;
         
         if (_particle[p].velocity.y < 0.0f) {
-            _particle[p].velocity.y *= -myEmitter.bounce;
+            _particle[p].velocity.y *= -myEmitter.particleAttributes.bounce;
         }
     }
     
     // collision with sphere
-    if (myEmitter.usingCollisionSphere) {
-        glm::vec3 vectorToSphereCenter = myEmitter.collisionSpherePosition - _particle[p].position;
+    if (myEmitter.particleAttributes.usingCollisionSphere) {
+        glm::vec3 vectorToSphereCenter = myEmitter.particleAttributes.collisionSpherePosition - _particle[p].position;
         float distanceToSphereCenter = glm::length(vectorToSphereCenter);
-        float combinedRadius = myEmitter.collisionSphereRadius + _particle[p].radius;
+        float combinedRadius = myEmitter.particleAttributes.collisionSphereRadius + _particle[p].radius;
         if (distanceToSphereCenter < combinedRadius) {
         
             if (distanceToSphereCenter > 0.0f){
                 glm::vec3 directionToSphereCenter = vectorToSphereCenter / distanceToSphereCenter;
-                _particle[p].position = myEmitter.collisionSpherePosition - directionToSphereCenter * combinedRadius;            
+                _particle[p].position = myEmitter.particleAttributes.collisionSpherePosition - directionToSphereCenter * combinedRadius;            
             }
         }
     }
 }
 
 void ParticleSystem::setCollisionSphere(int e, glm::vec3 position, float radius) {
-    _emitter[e].usingCollisionSphere    = true;
-    _emitter[e].collisionSpherePosition = position; 
-    _emitter[e].collisionSphereRadius   = radius;
+    _emitter[e].particleAttributes.usingCollisionSphere    = true;
+    _emitter[e].particleAttributes.collisionSpherePosition = position; 
+    _emitter[e].particleAttributes.collisionSphereRadius   = radius;
 }
 
 void ParticleSystem::render() {

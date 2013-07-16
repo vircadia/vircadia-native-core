@@ -73,7 +73,7 @@ using namespace std;
 static char STAR_FILE[] = "https://s3-us-west-1.amazonaws.com/highfidelity/stars.txt";
 static char STAR_CACHE_FILE[] = "cachedStars.txt";
 
-static const bool TESTING_PARTICLE_SYSTEM = true;
+static const bool TESTING_PARTICLE_SYSTEM = false;
 
 static const int BANDWIDTH_METER_CLICK_MAX_DRAG_LENGTH = 6; // farther dragged clicks are ignored 
 
@@ -209,12 +209,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _bytesCount(0),
         _swatch(NULL)
 {
-    
-    // initialize all finger particle emitters with an invalid id as default
-    for (int f = 0; f< NUM_FINGERS_PER_HAND; f ++ ) {
-        _fingerParticleEmitter[f] = -1;
-    }
-
     _applicationStartupTime = startup_time;
     _window->setWindowTitle("Interface");
     printLog("Interface Startup:\n");
@@ -1995,6 +1989,8 @@ void Application::update(float deltaTime) {
         _myAvatar.simulate(deltaTime, NULL);
     }
     
+    _myAvatar.getHand().simulate(deltaTime, true);
+    
     if (!OculusManager::isConnected()) {        
         if (_lookingInMirror->isChecked()) {
             if (_myCamera.getMode() != CAMERA_MODE_MIRROR) {
@@ -2043,90 +2039,8 @@ void Application::update(float deltaTime) {
     #endif
     
     if (TESTING_PARTICLE_SYSTEM) {
-        if (!_particleSystemInitialized) {
-            
-            // create a stable test emitter and spit out a bunch of particles
-            _coolDemoParticleEmitter = _particleSystem.addEmitter();
-            
-            if (_coolDemoParticleEmitter != -1) {
-                _particleSystem.setShowingEmitter(_coolDemoParticleEmitter, true);
-                glm::vec3 particleEmitterPosition = glm::vec3(5.0f, 1.0f, 5.0f);   
-                _particleSystem.setEmitterPosition(_coolDemoParticleEmitter, particleEmitterPosition);
-                float radius = 0.01f;
-                glm::vec4 color(0.0f, 0.0f, 0.0f, 1.0f);
-                glm::vec3 velocity(0.0f, 0.1f, 0.0f);
-                float lifespan = 100000.0f;
-                
-                // determine a collision sphere
-                glm::vec3 collisionSpherePosition = glm::vec3( 5.0f, 0.5f, 5.0f );   
-                float collisionSphereRadius = 0.5f;            
-                _particleSystem.setCollisionSphere(_coolDemoParticleEmitter, collisionSpherePosition, collisionSphereRadius);
-                _particleSystem.emitParticlesNow(_coolDemoParticleEmitter, 1500, radius, color, velocity, lifespan);   
-            }
-            
-            for ( int f = 0; f< NUM_FINGERS_PER_HAND; f ++ ) {
-                _fingerParticleEmitter[f] = _particleSystem.addEmitter();
-                _particleSystem.setShowingEmitter(_fingerParticleEmitter[f], true);
-            }
-                       
-            // signal that the particle system has been initialized 
-            _particleSystemInitialized = true;         
-
-            // apply a preset color palette  
-            _particleSystem.setOrangeBlueColorPalette();            
-        } else {
-            // update the particle system
-            
-            static float t = 0.0f;
-            t += deltaTime;
-            
-            if (_coolDemoParticleEmitter != -1) {
-                           
-               glm::vec3 tilt = glm::vec3
-                (
-                    30.0f * sinf( t * 0.55f ),
-                    0.0f,
-                    30.0f * cosf( t * 0.75f )
-                );
-             
-                _particleSystem.setEmitterRotation(_coolDemoParticleEmitter, glm::quat(glm::radians(tilt)));
-            }
-            
-            const std::vector<glm::vec3>& fingerTips    = _myAvatar.getHand().getFingerTips();
-            const std::vector<glm::vec3>& fingerRoots   = _myAvatar.getHand().getFingerRoots();
-            const std::vector<glm::vec3>& handPositions = _myAvatar.getHand().getHandPositions();
-            const std::vector<glm::vec3>& handNormals   = _myAvatar.getHand().getHandNormals();
-
-            for ( int f = 0; f< fingerTips.size(); f ++ ) {
-                
-                if (_fingerParticleEmitter[f] != -1) {
-                        
-                    glm::vec3 particleEmitterPosition = _myAvatar.getHand().leapPositionToWorldPosition(fingerTips[f]);
-                           
-                    glm::vec3 tilt = glm::vec3
-                    (
-                        30.0f * sinf( t * 0.55f ),
-                        0.0f,
-                        30.0f * cosf( t * 0.75f )
-                    );
-                    
-                    glm::quat particleEmitterRotation = glm::quat(glm::radians(tilt));
-
-                    _particleSystem.setEmitterPosition(_fingerParticleEmitter[0], particleEmitterPosition);
-                    _particleSystem.setEmitterRotation(_fingerParticleEmitter[0], particleEmitterRotation);
-                    
-                    float radius = 0.01f;
-                    glm::vec4 color(1.0f, 1.0f, 1.0f, 1.0f);
-                    glm::vec3 velocity(0.0f, 0.01f, 0.0f);
-                    float lifespan = 0.4f;
-                    _particleSystem.emitParticlesNow(_fingerParticleEmitter[0], 1, radius, color, velocity, lifespan); 
-                }  
-            }
-            
-            _particleSystem.setUpDirection(glm::vec3(0.0f, 1.0f, 0.0f));  
-            _particleSystem.simulate(deltaTime);  
-        }        
-    }
+        updateParticleSystem(deltaTime);
+    }        
 }
 
 void Application::updateAvatar(float deltaTime) {
@@ -3469,5 +3383,78 @@ void Application::exportSettings() {
         tmp.sync();
     }
 }
+
+
+
+void Application::updateParticleSystem(float deltaTime) {
+
+    if (!_particleSystemInitialized) {
+        // create a stable test emitter and spit out a bunch of particles
+        _coolDemoParticleEmitter = _particleSystem.addEmitter();
+        
+        if (_coolDemoParticleEmitter != -1) {
+            _particleSystem.setShowingEmitter(_coolDemoParticleEmitter, true);
+            glm::vec3 particleEmitterPosition = glm::vec3(5.0f, 1.0f, 5.0f);   
+            _particleSystem.setEmitterPosition(_coolDemoParticleEmitter, particleEmitterPosition);
+            float radius = 0.01f;
+            glm::vec4 color(0.0f, 0.0f, 0.0f, 1.0f);
+            glm::vec3 velocity(0.0f, 0.1f, 0.0f);
+            float lifespan = 100000.0f;
+            
+            // determine a collision sphere
+            glm::vec3 collisionSpherePosition = glm::vec3( 5.0f, 0.5f, 5.0f );   
+            float collisionSphereRadius = 0.5f;            
+            _particleSystem.setCollisionSphere(_coolDemoParticleEmitter, collisionSpherePosition, collisionSphereRadius);
+            _particleSystem.emitParticlesNow(_coolDemoParticleEmitter, 1500, radius, color, velocity, lifespan);   
+        }
+        
+        // signal that the particle system has been initialized 
+        _particleSystemInitialized = true;         
+
+        // apply a preset color palette  
+        _particleSystem.setOrangeBlueColorPalette();            
+    } else {
+        // update the particle system
+        
+        static float t = 0.0f;
+        t += deltaTime;
+        
+        if (_coolDemoParticleEmitter != -1) {
+                       
+           glm::vec3 tilt = glm::vec3
+            (
+                30.0f * sinf( t * 0.55f ),
+                0.0f,
+                30.0f * cosf( t * 0.75f )
+            );
+         
+            _particleSystem.setEmitterRotation(_coolDemoParticleEmitter, glm::quat(glm::radians(tilt)));
+            
+            ParticleSystem::ParticleAttributes attributes;
+
+            attributes.gravity                 = 0.0f   + 0.05f  * sinf( t * 0.52f );
+            attributes.airFriction             = 2.5    + 2.0f   * sinf( t * 0.32f );
+            attributes.jitter                  = 0.05f  + 0.05f  * sinf( t * 0.42f );
+            attributes.emitterAttraction       = 0.015f + 0.015f * cosf( t * 0.6f  );
+            attributes.tornadoForce            = 0.0f   + 0.03f  * sinf( t * 0.7f  );
+            attributes.neighborAttraction      = 0.1f   + 0.1f   * cosf( t * 0.8f  );
+            attributes.neighborRepulsion       = 0.2f   + 0.2f   * sinf( t * 0.4f  );
+            attributes.bounce                  = 1.0f;
+            attributes.usingCollisionSphere    = true;
+            attributes.collisionSpherePosition = glm::vec3( 5.0f, 0.5f, 5.0f );
+            attributes.collisionSphereRadius   = 0.5f;
+            
+            if (attributes.gravity < 0.0f) {
+                attributes.gravity = 0.0f;
+            }
+            
+            _particleSystem.setParticleAttributesForEmitter(_coolDemoParticleEmitter, attributes);
+        }
+        
+        _particleSystem.setUpDirection(glm::vec3(0.0f, 1.0f, 0.0f));  
+        _particleSystem.simulate(deltaTime); 
+    }
+}
+
 
 

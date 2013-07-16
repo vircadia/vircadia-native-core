@@ -83,6 +83,8 @@ public:
     
     const glm::vec3 getMouseVoxelWorldCoordinates(const VoxelDetail _mouseVoxel);
     
+    void updateParticleSystem(float deltaTime);
+    
     Avatar* getAvatar() { return &_myAvatar; }
     Camera* getCamera() { return &_myCamera; }
     ViewFrustum* getViewFrustum() { return &_viewFrustum; }
@@ -285,7 +287,6 @@ private:
     bool _justStarted;
     bool _particleSystemInitialized;
     int  _coolDemoParticleEmitter;
-    int  _fingerParticleEmitter[NUM_FINGERS_PER_HAND];
 
     Stars _stars;
     

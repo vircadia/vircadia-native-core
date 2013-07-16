@@ -16,29 +16,8 @@ const int MAX_EMITTERS  = 20;
 
 class ParticleSystem {
 public:
-    ParticleSystem();
-    
-    int  addEmitter(); // add (create) an emitter and get its unique id
-    void emitParticlesNow(int e, int numParticles, float radius, glm::vec4 color, glm::vec3 velocity, float lifespan);
-    void simulate(float deltaTime);
-    void render();
-     
-    void setOrangeBlueColorPalette(); // apply a nice preset color palette to the particles
-    void setCollisionSphere(int e, glm::vec3 position, float radius);  // specify a sphere for the particles to collide with
-    void setEmitterPosition(int e, glm::vec3 position) { _emitter[e].position = position; } // set the position of this emitter
-    void setEmitterRotation(int e, glm::quat rotation) { _emitter[e].rotation = rotation; } // set the rotation of this emitter
-    void setUpDirection(glm::vec3 upDirection) {_upDirection = upDirection;} // tell particle system which direction is up
-    void setShowingEmitter(int e, bool showing) { _emitter[e].showingEmitter = showing;}
-    
-    
-private:
 
-    struct Emitter {
-        glm::vec3 position;
-        glm::quat rotation;
-        glm::vec3 right;
-        glm::vec3 up;
-        glm::vec3 front;
+    struct ParticleAttributes {
         float     bounce;
         float     gravity;
         float     airFriction;
@@ -50,7 +29,34 @@ private:
         bool      usingCollisionSphere;
         glm::vec3 collisionSpherePosition;
         float     collisionSphereRadius;
+    };  
+
+    ParticleSystem();
+    
+    int  addEmitter(); // add (create) an emitter and get its unique id
+    void emitParticlesNow(int e, int numParticles, float radius, glm::vec4 color, glm::vec3 velocity, float lifespan);
+    void simulate(float deltaTime);
+    void render();
+     
+    void setParticleAttributesForEmitter(int emitterIndex, ParticleAttributes attributes);
+    void setOrangeBlueColorPalette(); // apply a nice preset color palette to the particles
+    void setUpDirection(glm::vec3 upDirection) {_upDirection = upDirection;} // tell particle system which direction is up
+
+    void setCollisionSphere(int emitterIndex, glm::vec3 position, float radius);  // specify a sphere for the particles to collide with
+    void setEmitterPosition(int emitterIndex, glm::vec3 position) { _emitter[emitterIndex].position       = position; } // set position of emitter
+    void setEmitterRotation(int emitterIndex, glm::quat rotation) { _emitter[emitterIndex].rotation       = rotation; } // set rotation of emitter
+    void setShowingEmitter (int emitterIndex, bool showing      ) { _emitter[emitterIndex].showingEmitter = showing;  } // set its visibiity
+    
+private:
+    
+   struct Emitter {
+        glm::vec3 position;
+        glm::quat rotation;
+        glm::vec3 right;
+        glm::vec3 up;
+        glm::vec3 front;
         bool      showingEmitter;
+        ParticleAttributes particleAttributes;
     };  
 
     struct Particle {
@@ -75,7 +81,7 @@ private:
     void updateEmitter(int e, float deltaTime);
     void updateParticle(int index, float deltaTime);
     void createParticle(int e, glm::vec3 position, glm::vec3 velocity, float radius, glm::vec4 color, float lifespan);
-    void runSpecialEffectsTest(int e, float deltaTime); // for debugging and artistic exploration
+    //void runSpecialEffectsTest(int e, float deltaTime); // for debugging and artistic exploration
     void killParticle(int p);
     void renderEmitter(int emitterIndex, float size);
     void renderParticle(int p);
