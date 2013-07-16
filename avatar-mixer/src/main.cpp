@@ -60,8 +60,7 @@ int main(int argc, const char* argv[]) {
     const char* local = "--local";
     if (cmdOptionExists(argc, argv, local)) {
         printf("Local Domain MODE!\n");
-        int ip = getLocalAddress();
-        sprintf(DOMAIN_IP,"%d.%d.%d.%d", (ip & 0xFF), ((ip >> 8) & 0xFF),((ip >> 16) & 0xFF), ((ip >> 24) & 0xFF));
+        nodeList->setDomainIPToLocalhost();
     }
     
     nodeList->linkedDataCreateCallback = attachAvatarDataToNode;
@@ -97,7 +96,7 @@ int main(int argc, const char* argv[]) {
             switch (packetData[0]) {
                 case PACKET_TYPE_HEAD_DATA:
                     // grab the node ID from the packet
-                    unpackNodeId(packetData + 1, &nodeID);
+                    unpackNodeId(packetData + numBytesForPacketHeader(packetData), &nodeID);
                     
                     // add or update the node in our list
                     avatarNode = nodeList->addOrUpdateNode(nodeAddress, nodeAddress, NODE_TYPE_AGENT, nodeID);

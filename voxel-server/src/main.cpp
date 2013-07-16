@@ -383,8 +383,7 @@ int main(int argc, const char * argv[]) {
     ::wantLocalDomain = cmdOptionExists(argc, argv,local);
     if (::wantLocalDomain) {
         printf("Local Domain MODE!\n");
-        int ip = getLocalAddress();
-        sprintf(DOMAIN_IP,"%d.%d.%d.%d", (ip & 0xFF), ((ip >> 8) & 0xFF),((ip >> 16) & 0xFF), ((ip >> 24) & 0xFF));
+        nodeList->setDomainIPToLocalhost();
     }
 
     nodeList->linkedDataCreateCallback = &attachVoxelNodeDataToNode;
