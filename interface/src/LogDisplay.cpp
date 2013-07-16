@@ -97,9 +97,8 @@ void LogDisplay::addMessage(const char* ptr) {
         fprintf(_stream, "%s", ptr);
     }
 
-    while (true) {
+    while (*ptr != '\0') {
         // process the characters
-        bool isEndOfMessage = (*ptr == '\0');
         char c = *ptr++;
 
         if (c == '\t') { 
@@ -150,10 +149,6 @@ void LogDisplay::addMessage(const char* ptr) {
             // remember start position in character buffer for next line and reset character count
             _writeLineStartPos = _writePos;
             _writtenInLine = 0;
-        }
-        
-        if (isEndOfMessage) {
-            break;
         }
     }
 

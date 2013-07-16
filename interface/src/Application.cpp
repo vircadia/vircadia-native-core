@@ -165,7 +165,7 @@ void GLCanvas::wheelEvent(QWheelEvent* event) {
 }
 
 void messageHandler(QtMsgType type, const char* message) {
-    printf("%s\n", message);
+    printf("%s", message);
     LogDisplay::instance.addMessage(message);
 }
 
@@ -215,7 +215,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
 {
     _applicationStartupTime = startup_time;
     _window->setWindowTitle("Interface");
-    qDebug("Interface Startup:\n");
     
     qInstallMsgHandler(messageHandler);
     

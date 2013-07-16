@@ -420,7 +420,7 @@ void NodeList::addNodeToList(Node* newNode) {
     
     ++_numNodes;
     
-    qDebug() << "Added " << *newNode;
+    qDebug() << "Added" << *newNode << "\n";
 }
 
 unsigned NodeList::broadcastToNodes(unsigned char *broadcastData, size_t dataBytes, const char* nodeTypes, int numNodeTypes) {
@@ -475,7 +475,7 @@ void *removeSilentNodes(void *args) {
             if ((checkTimeUSecs - node->getLastHeardMicrostamp()) > NODE_SILENCE_THRESHOLD_USECS
             	&& node->getType() != NODE_TYPE_VOXEL_SERVER) {
             
-                qDebug() << "Killed" << *node;
+                qDebug() << "Killed" << *node << "\n";
                 
                 node->setAlive(false);
             }

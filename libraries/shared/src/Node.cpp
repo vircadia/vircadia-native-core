@@ -150,5 +150,5 @@ QDebug operator<<(QDebug debug, const Node &node) {
     
     debug << "#" << node.getNodeID() << node.getTypeName() << node.getType();
     debug.nospace() << publicAddressBuffer << ":" << publicAddressPort;
-    return debug.space();
+    return debug.nospace();
 }
