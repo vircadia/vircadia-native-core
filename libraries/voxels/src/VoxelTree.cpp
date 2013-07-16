@@ -1287,7 +1287,9 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
                         }
                     }         
 
-                    // If our child wasn't in view (or we're ignoring wasInView) then we add it to our sending items
+                    // If our child wasn't in view (or we're ignoring wasInView) then we add it to our sending items.
+                    // Or if we were previously in the view, but this node has changed since it was last sent, then we do
+                    // need to send it.
                     if (!childWasInView || 
                         (params.deltaViewFrustum && 
                          childNode->hasChangedSince(params.lastViewFrustumSent - CHANGE_FUDGE))){
