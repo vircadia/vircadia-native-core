@@ -377,7 +377,9 @@ void attachVoxelNodeDataToNode(Node* newNode) {
 int main(int argc, const char * argv[]) {
 
     pthread_mutex_init(&::treeLock, NULL);
-
+    
+    qInstallMsgHandler(sharedMessageHandler);
+    
     NodeList* nodeList = NodeList::createInstance(NODE_TYPE_VOXEL_SERVER, VOXEL_LISTEN_PORT);
     setvbuf(stdout, NULL, _IOLBF, 0);
 

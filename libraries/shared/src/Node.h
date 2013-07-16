@@ -9,8 +9,8 @@
 #ifndef __hifi__Node__
 #define __hifi__Node__
 
-#include <stdint.h>
 #include <ostream>
+#include <stdint.h>
 
 #ifdef _WIN32
 #include "Syssocket.h"
@@ -18,8 +18,10 @@
 #include <sys/socket.h>
 #endif
 
-#include "SimpleMovingAverage.h"
+#include <QDebug>
+
 #include "NodeData.h"
+#include "SimpleMovingAverage.h"
 
 class Node {
 public:
@@ -89,8 +91,9 @@ private:
     pthread_mutex_t _mutex;
 };
 
-
 int unpackNodeId(unsigned char *packedData, uint16_t *nodeId);
 int packNodeId(unsigned char *packStore, uint16_t nodeId);
+
+QDebug operator<<(QDebug debug, const Node &message);
 
 #endif /* defined(__hifi__Node__) */
