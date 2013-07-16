@@ -313,6 +313,9 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
 uint64_t lastPersistVoxels = 0;
 void persistVoxelsWhenDirty() {
     uint64_t now = usecTimestampNow();
+    if (::lastPersistVoxels == 0) {
+        ::lastPersistVoxels = now;
+    }
     int sinceLastTime = (now - ::lastPersistVoxels) / 1000;
 
     // check the dirty bit and persist here...

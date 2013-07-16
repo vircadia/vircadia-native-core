@@ -1322,7 +1322,11 @@ void Avatar::loadData(QSettings* settings) {
     _voxels.setVoxelURL(settings->value("voxelURL").toUrl());
     
     _leanScale = loadSetting(settings, "leanScale", 0.5f);
-    
+
+    _scale = loadSetting(settings, "scale", 1.0f);
+    setScale(_scale);
+    Application::getInstance()->getCamera()->setScale(_scale);
+
     settings->endGroup();
 }
 
@@ -1345,6 +1349,7 @@ void Avatar::saveData(QSettings* set) {
     set->setValue("voxelURL", _voxels.getVoxelURL());
     
     set->setValue("leanScale", _leanScale);
+    set->setValue("scale", _scale);
     
     set->endGroup();
 }
