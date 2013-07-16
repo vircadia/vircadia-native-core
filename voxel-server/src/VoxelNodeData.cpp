@@ -24,8 +24,6 @@ VoxelNodeData::VoxelNodeData(Node* owningNode) :
 {
     _voxelPacket = new unsigned char[MAX_VOXEL_PACKET_SIZE];
     _voxelPacketAt = _voxelPacket;
-    _lastViewFrustumSent = 0;
-    
     resetVoxelPacket();
 }
 

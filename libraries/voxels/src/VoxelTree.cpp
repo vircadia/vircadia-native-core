@@ -1012,12 +1012,18 @@ int VoxelTree::encodeTreeBitstream(VoxelNode* node, unsigned char* outputBuffer,
 
     // How many bytes have we written so far at this level;
     int bytesWritten = 0;
+    
+    // These two cases should not ever happen... but if they do, we don't want to crash.
+    if (!node || !node->getOctalCode()) {
+        qDebug("VoxelTree::encodeTreeBitstream() BAD VoxelNode! Bailing!");
+        return bytesWritten;
+    }
 
     // If we're at a node that is out of view, then we can return, because no nodes below us will be in view!
     if (params.viewFrustum && !node->isInView(*params.viewFrustum)) {
         return bytesWritten;
     }
-
+    
     // write the octal code
     int codeLength;
     if (params.chopLevels) {
@@ -1076,7 +1082,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
     if (currentEncodeLevel >= params.maxEncodeLevel) {
         return bytesAtThisLevel;
     }
-
+    
     // caller can pass NULL as viewFrustum if they want everything
     if (params.viewFrustum) {
         float distance = node->distanceToCamera(*params.viewFrustum);
@@ -1109,10 +1115,26 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
             }
         }
 
-        // If we were in view, then bail out early!        
-        if (wasInView) {
+        // If we were in view, and haven't changed, then bail out early!
+        if (wasInView && params.deltaViewFrustum) {
+            printf("wasInView... params.lastViewFrustumSent=[%lld] getLastChanged()=%lld\n", 
+                params.lastViewFrustumSent, node->getLastChanged());
+        }
+        
+        if (wasInView && !(params.deltaViewFrustum && node->hasChangedSince(params.lastViewFrustumSent - CHANGE_FUDGE))) {
+        //if (wasInView) {
             return bytesAtThisLevel;
-        }            
+        }
+
+/**        
+        // now, if we're not in delta sending mode, but the voxel hasn't changed, then we can bail early...
+        if (!params.deltaViewFrustum && !node->hasChangedSince(params.lastViewFrustumSent - CHANGE_FUDGE)) {
+            printf("not delta sending, and the node hasn't changed, bail early... params.lastViewFrustumSent=[%lld] getLastChanged()=%lld\n", 
+                params.lastViewFrustumSent, node->getLastChanged());
+            return bytesAtThisLevel;
+        }
+**/
+        
 
         // If the user also asked for occlusion culling, check if this node is occluded, but only if it's not a leaf.
         // leaf occlusion is handled down below when we check child nodes
@@ -1258,7 +1280,6 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
                 bool shouldRender = !params.viewFrustum ? true : childNode->calculateShouldRender(params.viewFrustum, params.boundaryLevelAdjust);
                 
                 // track children with actual color, only if the child wasn't previously in view!
-                //(!childWasInView || childNode->hasChangedSince(lastViewFrustumSent) )) {
                 if (shouldRender && !childIsOccluded) {
                     bool childWasInView = false;
                     
@@ -1274,7 +1295,9 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
                     }         
 
                     // If our child wasn't in view (or we're ignoring wasInView) then we add it to our sending items
-                    if (!childWasInView) {
+                    if (!childWasInView || 
+                        (params.deltaViewFrustum && 
+                         childNode->hasChangedSince(params.lastViewFrustumSent - CHANGE_FUDGE))){
                         childrenColoredBits += (1 << (7 - originalIndex));
                         inViewWithColorCount++;
                     } else {

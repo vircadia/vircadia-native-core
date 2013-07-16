@@ -21,6 +21,7 @@ const glm::vec3 IDENTITY_UP    = glm::vec3( 0.0f, 1.0f, 0.0f);
 const glm::vec3 IDENTITY_FRONT = glm::vec3( 0.0f, 0.0f,-1.0f);
 
 const bool LOW_RES_MONO = false; // while in "low res mode" do voxels switch to monochrome
+const uint64_t CHANGE_FUDGE = 1000*200; // useconds of fudge in determining if we want to resend changed voxels
 
 const int TREE_SCALE = 128;
 
