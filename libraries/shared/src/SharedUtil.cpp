@@ -40,7 +40,7 @@ float randFloat () {
 }
 
 int randIntInRange (int min, int max) {
-    return min + (rand() % (max - min));
+    return min + (rand() % ((max + 1) - min));
 }
 
 float randFloatInRange (float min,float max) {
@@ -48,7 +48,7 @@ float randFloatInRange (float min,float max) {
 }
 
 unsigned char randomColorValue(int miniumum) {
-    return miniumum + (rand() % (255 - miniumum));
+    return miniumum + (rand() % (256 - miniumum));
 }
 
 bool randomBoolean() {
