@@ -1245,7 +1245,7 @@ void Application::setRenderWarnings(bool renderWarnings) {
 }
 
 void Application::setRenderVoxels(bool voxelRender) {
-    if (voxelRender) {
+    if (!voxelRender) {
         doKillLocalVoxels();
     }
 }
@@ -3224,7 +3224,7 @@ void* Application::networkReceive(void* args) {
         if (app->_wantToKillLocalVoxels) {
             app->_voxels.killLocalVoxels();
             app->_wantToKillLocalVoxels = false;
-        }
+        }       
     
         if (NodeList::getInstance()->getNodeSocket()->receive(&senderAddress, app->_incomingPacket, &bytesReceived)) {
             app->_packetCount++;
@@ -3246,17 +3246,19 @@ void* Application::networkReceive(void* args) {
                     case PACKET_TYPE_Z_COMMAND:
                     case PACKET_TYPE_ERASE_VOXEL:
                     case PACKET_TYPE_ENVIRONMENT_DATA: {
-                        Node* voxelServer = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_VOXEL_SERVER);
-                        if (voxelServer) {
-                            voxelServer->lock();
-                            
-                            if (app->_incomingPacket[0] == PACKET_TYPE_ENVIRONMENT_DATA) {
-                                app->_environment.parseData(&senderAddress, app->_incomingPacket, bytesReceived);
-                            } else {
-                                app->_voxels.parseData(app->_incomingPacket, bytesReceived);
+                        if (app->_renderVoxels->isChecked()) {
+                            Node* voxelServer = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_VOXEL_SERVER);
+                            if (voxelServer) {
+                                voxelServer->lock();
+                                
+                                if (app->_incomingPacket[0] == PACKET_TYPE_ENVIRONMENT_DATA) {
+                                    app->_environment.parseData(&senderAddress, app->_incomingPacket, bytesReceived);
+                                } else {
+                                    app->_voxels.parseData(app->_incomingPacket, bytesReceived);
+                                }
+                                
+                                voxelServer->unlock();
                             }
-                            
-                            voxelServer->unlock();
                         }
                         break;
                     }
