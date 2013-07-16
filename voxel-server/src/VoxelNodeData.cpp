@@ -84,8 +84,7 @@ void VoxelNodeData::updateLastKnownViewFrustum() {
     }
     
     // save that we know the view has been sent.
-    double now = usecTimestampNow();
-    printf("updateLastKnownViewFrustum() setLastViewSent() to %lf\n", now);
-    setLastViewSent(now);
+    uint64_t now = usecTimestampNow();
+    setLastTimeBagEmpty(now); // is this what we want? poor names
 }
 
