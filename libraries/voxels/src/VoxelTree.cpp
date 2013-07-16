@@ -449,7 +449,6 @@ void VoxelTree::deleteVoxelCodeFromTreeRecursion(VoxelNode* node, void* extraDat
             }
         }
 
-        // track our tree dirtiness
         _isDirty = true;
         args->pathChanged = true;
 
