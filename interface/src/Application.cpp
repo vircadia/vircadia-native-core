@@ -164,6 +164,11 @@ void GLCanvas::wheelEvent(QWheelEvent* event) {
     Application::getInstance()->wheelEvent(event);
 }
 
+void messageHandler(QtMsgType type, const char* message) {
+    printf("%s\n", message);
+    LogDisplay::instance.addMessage(message);
+}
+
 Application::Application(int& argc, char** argv, timeval &startup_time) :
         QApplication(argc, argv),
         _window(new QMainWindow(desktop())),
@@ -211,6 +216,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     _applicationStartupTime = startup_time;
     _window->setWindowTitle("Interface");
     qDebug("Interface Startup:");
+    
+    qInstallMsgHandler(messageHandler);
     
     unsigned int listenPort = 0; // bind to an ephemeral port by default
     const char** constArgv = const_cast<const char**>(argv);

@@ -43,7 +43,7 @@ NodeList* NodeList::createInstance(char ownerType, unsigned int socketListenPort
     if (!_sharedInstance) {
         _sharedInstance = new NodeList(ownerType, socketListenPort);
     } else {
-        qDebug("NodeList createInstance called with existing instance.");
+        qDebug("NodeList createInstance called with existing instance.\n");
     }
     
     return _sharedInstance;
@@ -51,7 +51,7 @@ NodeList* NodeList::createInstance(char ownerType, unsigned int socketListenPort
 
 NodeList* NodeList::getInstance() {
     if (!_sharedInstance) {
-        qDebug("NodeList getInstance called before call to createInstance. Returning NULL pointer.");
+        qDebug("NodeList getInstance called before call to createInstance. Returning NULL pointer.\n");
     }
     
     return _sharedInstance;
@@ -275,9 +275,9 @@ void NodeList::sendDomainServerCheckIn() {
             sockaddr_in tempAddress;
             memcpy(&tempAddress.sin_addr, pHostInfo->h_addr_list[0], pHostInfo->h_length);
             strcpy(_domainIP, inet_ntoa(tempAddress.sin_addr));
-            qDebug("Domain Server: %s ", _domainHostname);
+            qDebug("Domain Server: %s", _domainHostname);
         } else {
-            qDebug("Failed domain server lookup");
+            qDebug("Failed domain server lookup\n");
         }
     } else if (!printedDomainServerIP) {
         qDebug("Domain Server IP: %s", _domainIP);

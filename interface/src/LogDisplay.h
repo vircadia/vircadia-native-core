@@ -21,8 +21,8 @@ public:
 
     void render(unsigned screenWidth, unsigned screenHeight);
     
-    // log formatted message 
-    inline void addMessage(char const*);
+    // log formatted message
+    void addMessage(const char* message);
 
     // settings 
 

@@ -15,7 +15,7 @@
 #include "Util.h"
 
 using namespace std;
-FILE* const LogDisplay::DEFAULT_STREAM = stdout;
+FILE* const LogDisplay::DEFAULT_STREAM = 0l;
 
 //
 // Singleton constructor
@@ -88,7 +88,7 @@ void LogDisplay::setCharacterSize(unsigned width, unsigned height) {
 // Logging
 //
 
-inline void LogDisplay::addMessage(char const* ptr) {
+void LogDisplay::addMessage(const char* ptr) {
 
     pthread_mutex_lock(& _mutex);
 
