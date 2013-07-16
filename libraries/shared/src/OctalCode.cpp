@@ -25,12 +25,12 @@ int numberOfThreeBitSectionsInCode(unsigned char * octalCode) {
 
 void printOctalCode(unsigned char * octalCode) {
     if (!octalCode) {
-        qDebug("NULL");
+        qDebug("NULL\n");
     } else {
         for (int i = 0; i < bytesRequiredForCodeLength(*octalCode); i++) {
             outputBits(octalCode[i],false);
         }
-        qDebug("");
+        qDebug("\n");
     }
 }
 

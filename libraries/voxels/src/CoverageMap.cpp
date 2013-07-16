@@ -63,7 +63,7 @@ CoverageMap::CoverageMap(BoundingBox boundingBox, bool isRoot, bool managePolygo
 { 
     _mapCount++;
     init(); 
-    //qDebug("CoverageMap created... _mapCount=%d",_mapCount);
+    //qDebug("CoverageMap created... _mapCount=%d\n",_mapCount);
 };
 
 CoverageMap::~CoverageMap() {
@@ -71,19 +71,19 @@ CoverageMap::~CoverageMap() {
 };
 
 void CoverageMap::printStats() {
-    qDebug("CoverageMap::printStats()...");
-    qDebug("MINIMUM_POLYGON_AREA_TO_STORE=%f",MINIMUM_POLYGON_AREA_TO_STORE);
-    qDebug("_mapCount=%d",_mapCount);
-    qDebug("_checkMapRootCalls=%d",_checkMapRootCalls);
-    qDebug("_notAllInView=%d",_notAllInView);
-    qDebug("_maxPolygonsUsed=%d",CoverageRegion::_maxPolygonsUsed);
-    qDebug("_totalPolygons=%d",CoverageRegion::_totalPolygons);
-    qDebug("_occlusionTests=%d",CoverageRegion::_occlusionTests);
-    qDebug("_regionSkips=%d",CoverageRegion::_regionSkips);
-    qDebug("_tooSmallSkips=%d",CoverageRegion::_tooSmallSkips);
-    qDebug("_regionFullSkips=%d",CoverageRegion::_regionFullSkips);
-    qDebug("_outOfOrderPolygon=%d",CoverageRegion::_outOfOrderPolygon);
-    qDebug("_clippedPolygons=%d",CoverageRegion::_clippedPolygons);
+    qDebug("CoverageMap::printStats()...\n");
+    qDebug("MINIMUM_POLYGON_AREA_TO_STORE=%f\n",MINIMUM_POLYGON_AREA_TO_STORE);
+    qDebug("_mapCount=%d\n",_mapCount);
+    qDebug("_checkMapRootCalls=%d\n",_checkMapRootCalls);
+    qDebug("_notAllInView=%d\n",_notAllInView);
+    qDebug("_maxPolygonsUsed=%d\n",CoverageRegion::_maxPolygonsUsed);
+    qDebug("_totalPolygons=%d\n",CoverageRegion::_totalPolygons);
+    qDebug("_occlusionTests=%d\n",CoverageRegion::_occlusionTests);
+    qDebug("_regionSkips=%d\n",CoverageRegion::_regionSkips);
+    qDebug("_tooSmallSkips=%d\n",CoverageRegion::_tooSmallSkips);
+    qDebug("_regionFullSkips=%d\n",CoverageRegion::_regionFullSkips);
+    qDebug("_outOfOrderPolygon=%d\n",CoverageRegion::_outOfOrderPolygon);
+    qDebug("_clippedPolygons=%d\n",CoverageRegion::_clippedPolygons);
 }
 
 void CoverageMap::erase() {
@@ -102,7 +102,7 @@ void CoverageMap::erase() {
     }
 
     if (_isRoot && wantDebugging) {
-        qDebug("CoverageMap last to be deleted...");
+        qDebug("CoverageMap last to be deleted...\n");
         printStats();
         
         CoverageRegion::_maxPolygonsUsed = 0;
@@ -187,7 +187,7 @@ CoverageMapStorageResult CoverageMap::checkMap(VoxelProjectedPolygon* polygon, b
     if (_isRoot) {
         _checkMapRootCalls++;
 
-        //qDebug("CoverageMap::checkMap()... storeIt=%s", debug::valueOf(storeIt));
+        //qDebug("CoverageMap::checkMap()... storeIt=%s\n", debug::valueOf(storeIt));
         //polygon->printDebugDetails();
 
     }
@@ -196,7 +196,7 @@ CoverageMapStorageResult CoverageMap::checkMap(VoxelProjectedPolygon* polygon, b
     // not in view, then we just discard it with a DOESNT_FIT, this saves us time checking values later.
     if (!polygon->getAllInView()) {
         _notAllInView++;
-        //qDebug("CoverageMap2::checkMap()... V2_OCCLUDED");
+        //qDebug("CoverageMap2::checkMap()... V2_OCCLUDED\n");
         return DOESNT_FIT;
     }
 
@@ -243,9 +243,9 @@ CoverageMapStorageResult CoverageMap::checkMap(VoxelProjectedPolygon* polygon, b
         
             /*
             if (result == STORED)
-                qDebug("CoverageMap2::checkMap()... STORED");
+                qDebug("CoverageMap2::checkMap()... STORED\n");
             else
-                qDebug("CoverageMap2::checkMap()... OCCLUDED");
+                qDebug("CoverageMap2::checkMap()... OCCLUDED\n");
             */
             
             return result;
@@ -268,16 +268,16 @@ CoverageMapStorageResult CoverageMap::checkMap(VoxelProjectedPolygon* polygon, b
                     /*
                     switch (result) {
                         case STORED:
-                            qDebug("checkMap() = STORED");
+                            qDebug("checkMap() = STORED\n");
                             break;
                         case NOT_STORED:
-                            qDebug("checkMap() = NOT_STORED");
+                            qDebug("checkMap() = NOT_STORED\n");
                             break;
                         case OCCLUDED:
-                            qDebug("checkMap() = OCCLUDED");
+                            qDebug("checkMap() = OCCLUDED\n");
                             break;
                         default:
-                            qDebug("checkMap() = ????? ");
+                            qDebug("checkMap() = ????? \n");
                             break;
                     }
                     */
@@ -290,27 +290,27 @@ CoverageMapStorageResult CoverageMap::checkMap(VoxelProjectedPolygon* polygon, b
         // any of our child bounding boxes, so we should add it here.
         if (storeIt) {
             if (polygon->getBoundingBox().area() > CoverageMap::MINIMUM_POLYGON_AREA_TO_STORE) {
-                //qDebug("storing polygon of area: %f",polygon->getBoundingBox().area());
+                //qDebug("storing polygon of area: %f\n",polygon->getBoundingBox().area());
                 if (storeIn->getPolygonCount() < MAX_POLYGONS_PER_REGION) {
                     storeIn->storeInArray(polygon);
-                    //qDebug("CoverageMap2::checkMap()... STORED");
+                    //qDebug("CoverageMap2::checkMap()... STORED\n");
                     return STORED;
                 } else {
                     CoverageRegion::_regionFullSkips++;
-                    //qDebug("CoverageMap2::checkMap()... NOT_STORED");
+                    //qDebug("CoverageMap2::checkMap()... NOT_STORED\n");
                     return NOT_STORED;
                 }
             } else {
                 CoverageRegion::_tooSmallSkips++;
-                //qDebug("CoverageMap2::checkMap()... NOT_STORED");
+                //qDebug("CoverageMap2::checkMap()... NOT_STORED\n");
                 return NOT_STORED;
             }
         } else {
-            //qDebug("CoverageMap2::checkMap()... NOT_STORED");
+            //qDebug("CoverageMap2::checkMap()... NOT_STORED\n");
             return NOT_STORED;
         }
     }
-    //qDebug("CoverageMap2::checkMap()... DOESNT_FIT");
+    //qDebug("CoverageMap2::checkMap()... DOESNT_FIT\n");
     return DOESNT_FIT;
 }
 
@@ -341,8 +341,8 @@ void CoverageRegion::erase() {
 
 /**
     if (_polygonCount) {
-        qDebug("CoverageRegion::erase()...");
-        qDebug("_polygonCount=%d",_polygonCount);
+        qDebug("CoverageRegion::erase()...\n");
+        qDebug("_polygonCount=%d\n",_polygonCount);
         _myBoundingBox.printDebugDetails(getRegionName());
         //for (int i = 0; i < _polygonCount; i++) {
         //    qDebug("_polygons[%d]=",i);
@@ -393,7 +393,7 @@ void CoverageRegion::growPolygonArray() {
     _polygonDistances = newDistances;
     _polygonSizes     = newSizes;
     _polygonArraySize = _polygonArraySize + DEFAULT_GROW_SIZE;
-    //qDebug("CoverageMap::growPolygonArray() _polygonArraySize=%d...",_polygonArraySize);
+    //qDebug("CoverageMap::growPolygonArray() _polygonArraySize=%d...\n",_polygonArraySize);
 }
 
 const char* CoverageRegion::getRegionName() const {
@@ -438,7 +438,7 @@ bool CoverageRegion::mergeItemsInArray(VoxelProjectedPolygon* seed, bool seedInA
                 _totalPolygons--;
             }
         
-            //qDebug("_polygonCount=%d",_polygonCount);
+            //qDebug("_polygonCount=%d\n",_polygonCount);
         
             // clean up
             if (_managePolygons) {
@@ -486,7 +486,7 @@ void CoverageRegion::storeInArray(VoxelProjectedPolygon* polygon) {
         // insertion point in this array, and shift the array accordingly
         float area = polygon->getBoundingBox().area();
         float reverseArea = 4.0f - area;
-        //qDebug("store by size area=%f reverse area=%f", area, reverseArea);
+        //qDebug("store by size area=%f reverse area=%f\n", area, reverseArea);
         _polygonCount = insertIntoSortedArrays((void*)polygon, reverseArea, IGNORED,
                                                (void**)_polygons, _polygonSizes, IGNORED,
                                                _polygonCount, _polygonArraySize);
@@ -500,10 +500,10 @@ void CoverageRegion::storeInArray(VoxelProjectedPolygon* polygon) {
     // Debugging and Optimization Tuning code.
     if (_polygonCount > _maxPolygonsUsed) {
         _maxPolygonsUsed = _polygonCount;
-        //qDebug("CoverageRegion new _maxPolygonsUsed reached=%d region=%s",_maxPolygonsUsed, getRegionName());
+        //qDebug("CoverageRegion new _maxPolygonsUsed reached=%d region=%s\n",_maxPolygonsUsed, getRegionName());
         //_myBoundingBox.printDebugDetails("map._myBoundingBox");
     } else {
-        //qDebug("CoverageRegion::storeInArray() _polygonCount=%d region=%s",_polygonCount, getRegionName());
+        //qDebug("CoverageRegion::storeInArray() _polygonCount=%d region=%s\n",_polygonCount, getRegionName());
     }
 }
 

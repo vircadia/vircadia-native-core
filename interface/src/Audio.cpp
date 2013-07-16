@@ -152,11 +152,11 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
             //  If not enough audio has arrived to start playback, keep waiting
             //
 #ifdef SHOW_AUDIO_DEBUG
-            qDebug("%i,%i,%i,%i",
-                   _packetsReceivedThisPlayback,
-                   ringBuffer->diffLastWriteNextOutput(),
-                   PACKET_LENGTH_SAMPLES,
-                   _jitterBufferSamples);
+            qDebug("%i,%i,%i,%i\n",
+                     _packetsReceivedThisPlayback,
+                     ringBuffer->diffLastWriteNextOutput(),
+                     PACKET_LENGTH_SAMPLES,
+                     _jitterBufferSamples);
 #endif
         } else if (ringBuffer->isStarted() && ringBuffer->diffLastWriteNextOutput() == 0) {
             //
@@ -169,7 +169,7 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
             _packetsReceivedThisPlayback = 0;
             _wasStarved = 10;          //   Frames for which to render the indication that the system was starved.
 #ifdef SHOW_AUDIO_DEBUG
-            qDebug("Starved, remaining samples = %d",
+            qDebug("Starved, remaining samples = %d\n",
                      ringBuffer->diffLastWriteNextOutput());
 #endif
 
@@ -180,10 +180,10 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
             if (!ringBuffer->isStarted()) {
                 ringBuffer->setStarted(true);
 #ifdef SHOW_AUDIO_DEBUG
-                qDebug("starting playback %0.1f msecs delayed, jitter = %d, pkts recvd: %d",
-                       (usecTimestampNow() - usecTimestamp(&_firstPacketReceivedTime))/1000.0,
-                       _jitterBufferSamples,
-                       _packetsReceivedThisPlayback);
+                qDebug("starting playback %0.1f msecs delayed, jitter = %d, pkts recvd: %d \n",
+                         (usecTimestampNow() - usecTimestamp(&_firstPacketReceivedTime))/1000.0,
+                         _jitterBufferSamples,
+                         _packetsReceivedThisPlayback);
 #endif
             }
 
@@ -300,8 +300,8 @@ int Audio::audioCallback (const void* inputBuffer,
 
 static void outputPortAudioError(PaError error) {
     if (error != paNoError) {
-        qDebug("-- portaudio termination error --");
-        qDebug("PortAudio error (%d): %s", error, Pa_GetErrorText(error));
+        qDebug("-- portaudio termination error --\n");
+        qDebug("PortAudio error (%d): %s\n", error, Pa_GetErrorText(error));
     }
 }
 
@@ -350,7 +350,7 @@ Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples) :
     outputParameters.device = Pa_GetDefaultOutputDevice();
 
     if (inputParameters.device == -1 || outputParameters.device == -1) {
-        qDebug("Audio: Missing device.");
+        qDebug("Audio: Missing device.\n");
         outputPortAudioError(Pa_Terminate());
         return;
     }
@@ -385,12 +385,12 @@ Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples) :
     outputPortAudioError(Pa_StartStream(_stream));
     
     // Uncomment these lines to see the system-reported latency
-    //qDebug("Default low input, output latency (secs): %0.4f, %0.4f",
+    //qDebug("Default low input, output latency (secs): %0.4f, %0.4f\n",
     //         Pa_GetDeviceInfo(Pa_GetDefaultInputDevice())->defaultLowInputLatency,
     //         Pa_GetDeviceInfo(Pa_GetDefaultOutputDevice())->defaultLowOutputLatency);
     
     const PaStreamInfo* streamInfo = Pa_GetStreamInfo(_stream);
-    qDebug("Started audio with reported latency msecs In/Out: %.0f, %.0f", streamInfo->inputLatency * 1000.f,
+    qDebug("Started audio with reported latency msecs In/Out: %.0f, %.0f\n", streamInfo->inputLatency * 1000.f,
              streamInfo->outputLatency * 1000.f);
 
     gettimeofday(&_lastReceiveTime, NULL);
@@ -651,7 +651,7 @@ inline void Audio::eventuallySendRecvPing(int16_t* inputLeft, int16_t* outputLef
         // As of the next frame, we'll be recoding PING_FRAMES_TO_RECORD from 
         // the mic (pointless to start now as we can't record unsent audio).
         _isSendingEchoPing = false;
-        qDebug("Send audio ping");
+        qDebug("Send audio ping\n");
 
     } else if (_pingFramesToRecord > 0) {
 
@@ -665,7 +665,7 @@ inline void Audio::eventuallySendRecvPing(int16_t* inputLeft, int16_t* outputLef
 
         if (_pingFramesToRecord == 0) {
             _pingAnalysisPending = true;
-            qDebug("Received ping echo");
+            qDebug("Received ping echo\n");
         }
     }
 }
@@ -689,25 +689,25 @@ inline void Audio::analyzePing() {
     // Determine extrema
     int botAt = findExtremum(_echoSamplesLeft, PING_SAMPLES_TO_ANALYZE, -1);
     if (botAt == -1) {
-        qDebug("Audio Ping: Minimum not found.");
+        qDebug("Audio Ping: Minimum not found.\n");
         return;
     }
     int topAt = findExtremum(_echoSamplesLeft, PING_SAMPLES_TO_ANALYZE, 1);
     if (topAt == -1) {
-        qDebug("Audio Ping: Maximum not found.");
+        qDebug("Audio Ping: Maximum not found.\n");
         return;
     }
 
     // Determine peak amplitude - warn if low
     int ampli = (_echoSamplesLeft[topAt] - _echoSamplesLeft[botAt]) / 2;
     if (ampli < PING_MIN_AMPLI) {
-        qDebug("Audio Ping unreliable - low amplitude %d.", ampli);
+        qDebug("Audio Ping unreliable - low amplitude %d.\n", ampli);
     }
 
     // Determine period - warn if doesn't look like our signal
     int halfPeriod = abs(topAt - botAt);
     if (abs(halfPeriod-PING_HALF_PERIOD) > PING_MAX_PERIOD_DIFFERENCE) {
-        qDebug("Audio Ping unreliable - peak distance %d vs. %d", halfPeriod, PING_HALF_PERIOD);
+        qDebug("Audio Ping unreliable - peak distance %d vs. %d\n", halfPeriod, PING_HALF_PERIOD);
     }
 
     // Ping is sent:
@@ -748,7 +748,7 @@ inline void Audio::analyzePing() {
 
     int delay = (botAt + topAt) / 2 + PING_PERIOD;
 
-    qDebug("\n| Audio Ping results:\n+----- ---- --- - -  -   -   -\n"
+    qDebug("\n| Audio Ping results:\n+----- ---- --- - -  -   -   -\n\n"
              "Delay = %d samples (%d ms)\nPeak amplitude = %d\n\n",
              delay, (delay * 1000) / int(SAMPLE_RATE), ampli);
 }

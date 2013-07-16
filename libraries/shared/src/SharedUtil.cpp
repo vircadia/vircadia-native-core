@@ -65,7 +65,7 @@ void outputBufferBits(unsigned char* buffer, int length, bool withNewLine) {
         outputBits(buffer[i], false);
     }
     if (withNewLine) {
-        qDebug("");
+        qDebug("\n");
     }
 }
 
@@ -82,7 +82,7 @@ void outputBits(unsigned char byte, bool withNewLine) {
     qDebug(" ] ");
     
     if (withNewLine) {
-        qDebug("");
+        qDebug("\n");
     }
 }
 
@@ -386,11 +386,11 @@ void printVoxelCode(unsigned char* voxelCode) {
 	unsigned int voxelSizeInOctets = (voxelSizeInBits/3);
 	unsigned int voxelBufferSize = voxelSizeInBytes+1+3; // 1 for size, 3 for color
 
-    qDebug("octets=%d",octets);
-    qDebug("voxelSizeInBits=%d",voxelSizeInBits);
-    qDebug("voxelSizeInBytes=%d",voxelSizeInBytes);
-    qDebug("voxelSizeInOctets=%d",voxelSizeInOctets);
-    qDebug("voxelBufferSize=%d",voxelBufferSize);
+    qDebug("octets=%d\n",octets);
+    qDebug("voxelSizeInBits=%d\n",voxelSizeInBits);
+    qDebug("voxelSizeInBytes=%d\n",voxelSizeInBytes);
+    qDebug("voxelSizeInOctets=%d\n",voxelSizeInOctets);
+    qDebug("voxelBufferSize=%d\n",voxelBufferSize);
     
     for(int i=0;i<voxelBufferSize;i++) {
         qDebug("i=%d ",i);

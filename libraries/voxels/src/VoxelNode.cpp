@@ -259,7 +259,7 @@ bool VoxelNode::collapseIdenticalLeaves() {
         // if no child, child isn't a leaf, or child doesn't have a color
         if (!_children[i] || _children[i]->isStagedForDeletion() || !_children[i]->isLeaf() || !_children[i]->isColored()) {
             allChildrenMatch=false;
-            //qDebug("SADNESS child missing or not colored! i=%d",i);
+            //qDebug("SADNESS child missing or not colored! i=%d\n",i);
             break;
         } else {
             if (i==0) {
@@ -276,7 +276,7 @@ bool VoxelNode::collapseIdenticalLeaves() {
     
     
     if (allChildrenMatch) {
-        //qDebug("allChildrenMatch: pruning tree");
+        //qDebug("allChildrenMatch: pruning tree\n");
         for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
             delete _children[i]; // delete all the child nodes
             _children[i]=NULL; // set it to NULL
@@ -310,13 +310,13 @@ void VoxelNode::printDebugDetails(const char* label) const {
         }
     }
 
-    qDebug("%s - Voxel at corner=(%f,%f,%f) size=%f\n isLeaf=%s isColored=%s (%d,%d,%d,%d) isDirty=%s shouldRender=%s children=", label,
+    qDebug("%s - Voxel at corner=(%f,%f,%f) size=%f\n isLeaf=%s isColored=%s (%d,%d,%d,%d) isDirty=%s shouldRender=%s\n children=", label,
         _box.getCorner().x, _box.getCorner().y, _box.getCorner().z, _box.getSize().x,
         debug::valueOf(isLeaf()), debug::valueOf(isColored()), getColor()[0], getColor()[1], getColor()[2], getColor()[3],
         debug::valueOf(isDirty()), debug::valueOf(getShouldRender()));
         
     outputBits(childBits, false);
-    qDebug(" octalCode=");
+    qDebug("\n octalCode=");
     printOctalCode(_octalCode);
 }
 

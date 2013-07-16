@@ -93,7 +93,7 @@ const Mode MODES[] = {
 
 void AvatarVoxelSystem::cycleMode() {
     _mode = (_mode + 1) % (sizeof(MODES) / sizeof(MODES[0]));
-    qDebug("Voxeltar bind mode %d.", _mode);
+    qDebug("Voxeltar bind mode %d.\n", _mode);
     
     // rebind
     QUrl url = _voxelURL;
@@ -255,7 +255,7 @@ void AvatarVoxelSystem::handleVoxelDownloadProgress(qint64 bytesReceived, qint64
 }
 
 void AvatarVoxelSystem::handleVoxelReplyError() {
-    qDebug("%s", _voxelReply->errorString().toAscii().constData());
+    qDebug("%s\n", _voxelReply->errorString().toAscii().constData());
     
     _voxelReply->disconnect(this);
     _voxelReply->deleteLater();

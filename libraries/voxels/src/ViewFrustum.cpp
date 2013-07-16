@@ -322,40 +322,40 @@ bool ViewFrustum::matches(const ViewFrustum& compareTo, bool debug) const {
            testMatches(compareTo._eyeOffsetOrientation, _eyeOffsetOrientation);
 
     if (!result && debug) {
-        qDebug("ViewFrustum::matches()... result=%s", debug::valueOf(result));
-        qDebug("%s -- compareTo._position=%f,%f,%f _position=%f,%f,%f", 
+        qDebug("ViewFrustum::matches()... result=%s\n", debug::valueOf(result));
+        qDebug("%s -- compareTo._position=%f,%f,%f _position=%f,%f,%f\n", 
             (testMatches(compareTo._position,_position) ? "MATCHES " : "NO MATCH"),
             compareTo._position.x, compareTo._position.y, compareTo._position.z,
             _position.x, _position.y, _position.z );
-        qDebug("%s -- compareTo._direction=%f,%f,%f _direction=%f,%f,%f", 
+        qDebug("%s -- compareTo._direction=%f,%f,%f _direction=%f,%f,%f\n", 
             (testMatches(compareTo._direction, _direction) ? "MATCHES " : "NO MATCH"),
             compareTo._direction.x, compareTo._direction.y, compareTo._direction.z,
             _direction.x, _direction.y, _direction.z );
-        qDebug("%s -- compareTo._up=%f,%f,%f _up=%f,%f,%f", 
+        qDebug("%s -- compareTo._up=%f,%f,%f _up=%f,%f,%f\n", 
             (testMatches(compareTo._up, _up) ? "MATCHES " : "NO MATCH"),
             compareTo._up.x, compareTo._up.y, compareTo._up.z,
             _up.x, _up.y, _up.z );
-        qDebug("%s -- compareTo._right=%f,%f,%f _right=%f,%f,%f", 
+        qDebug("%s -- compareTo._right=%f,%f,%f _right=%f,%f,%f\n", 
             (testMatches(compareTo._right, _right) ? "MATCHES " : "NO MATCH"),
             compareTo._right.x, compareTo._right.y, compareTo._right.z,
             _right.x, _right.y, _right.z );
-        qDebug("%s -- compareTo._fieldOfView=%f _fieldOfView=%f", 
+        qDebug("%s -- compareTo._fieldOfView=%f _fieldOfView=%f\n", 
             (testMatches(compareTo._fieldOfView, _fieldOfView) ? "MATCHES " : "NO MATCH"),
             compareTo._fieldOfView, _fieldOfView);
-        qDebug("%s -- compareTo._aspectRatio=%f _aspectRatio=%f", 
+        qDebug("%s -- compareTo._aspectRatio=%f _aspectRatio=%f\n", 
             (testMatches(compareTo._aspectRatio, _aspectRatio) ? "MATCHES " : "NO MATCH"),
             compareTo._aspectRatio, _aspectRatio);
-        qDebug("%s -- compareTo._nearClip=%f _nearClip=%f", 
+        qDebug("%s -- compareTo._nearClip=%f _nearClip=%f\n", 
             (testMatches(compareTo._nearClip, _nearClip) ? "MATCHES " : "NO MATCH"),
             compareTo._nearClip, _nearClip);
-        qDebug("%s -- compareTo._farClip=%f _farClip=%f", 
+        qDebug("%s -- compareTo._farClip=%f _farClip=%f\n", 
             (testMatches(compareTo._farClip, _farClip) ? "MATCHES " : "NO MATCH"),
             compareTo._farClip, _farClip);
-        qDebug("%s -- compareTo._eyeOffsetPosition=%f,%f,%f _eyeOffsetPosition=%f,%f,%f", 
+        qDebug("%s -- compareTo._eyeOffsetPosition=%f,%f,%f _eyeOffsetPosition=%f,%f,%f\n", 
             (testMatches(compareTo._eyeOffsetPosition, _eyeOffsetPosition) ? "MATCHES " : "NO MATCH"),
             compareTo._eyeOffsetPosition.x, compareTo._eyeOffsetPosition.y, compareTo._eyeOffsetPosition.z,
             _eyeOffsetPosition.x, _eyeOffsetPosition.y, _eyeOffsetPosition.z);
-        qDebug("%s -- compareTo._eyeOffsetOrientation=%f,%f,%f,%f _eyeOffsetOrientation=%f,%f,%f,%f", 
+        qDebug("%s -- compareTo._eyeOffsetOrientation=%f,%f,%f,%f _eyeOffsetOrientation=%f,%f,%f,%f\n", 
             (testMatches(compareTo._eyeOffsetOrientation, _eyeOffsetOrientation) ? "MATCHES " : "NO MATCH"),
             compareTo._eyeOffsetOrientation.x, compareTo._eyeOffsetOrientation.y,
                 compareTo._eyeOffsetOrientation.z, compareTo._eyeOffsetOrientation.w,
@@ -418,17 +418,17 @@ void ViewFrustum::computeOffAxisFrustum(float& left, float& right, float& bottom
 }
 
 void ViewFrustum::printDebugDetails() const {
-    qDebug("ViewFrustum::printDebugDetails()... ");
-    qDebug("_position=%f,%f,%f",  _position.x, _position.y, _position.z );
-    qDebug("_direction=%f,%f,%f", _direction.x, _direction.y, _direction.z );
-    qDebug("_up=%f,%f,%f", _up.x, _up.y, _up.z );
-    qDebug("_right=%f,%f,%f", _right.x, _right.y, _right.z );
-    qDebug("_fieldOfView=%f", _fieldOfView);
-    qDebug("_aspectRatio=%f", _aspectRatio);
-    qDebug("_nearClip=%f", _nearClip);
-    qDebug("_farClip=%f", _farClip);
-    qDebug("_eyeOffsetPosition=%f,%f,%f",  _eyeOffsetPosition.x, _eyeOffsetPosition.y, _eyeOffsetPosition.z );
-    qDebug("_eyeOffsetOrientation=%f,%f,%f,%f",  _eyeOffsetOrientation.x, _eyeOffsetOrientation.y, _eyeOffsetOrientation.z,
+    qDebug("ViewFrustum::printDebugDetails()... \n");
+    qDebug("_position=%f,%f,%f\n",  _position.x, _position.y, _position.z );
+    qDebug("_direction=%f,%f,%f\n", _direction.x, _direction.y, _direction.z );
+    qDebug("_up=%f,%f,%f\n", _up.x, _up.y, _up.z );
+    qDebug("_right=%f,%f,%f\n", _right.x, _right.y, _right.z );
+    qDebug("_fieldOfView=%f\n", _fieldOfView);
+    qDebug("_aspectRatio=%f\n", _aspectRatio);
+    qDebug("_nearClip=%f\n", _nearClip);
+    qDebug("_farClip=%f\n", _farClip);
+    qDebug("_eyeOffsetPosition=%f,%f,%f\n",  _eyeOffsetPosition.x, _eyeOffsetPosition.y, _eyeOffsetPosition.z );
+    qDebug("_eyeOffsetOrientation=%f,%f,%f,%f\n",  _eyeOffsetOrientation.x, _eyeOffsetOrientation.y, _eyeOffsetOrientation.z,
         _eyeOffsetOrientation.w );
 }
 

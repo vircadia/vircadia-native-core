@@ -275,12 +275,13 @@ void NodeList::sendDomainServerCheckIn() {
             sockaddr_in tempAddress;
             memcpy(&tempAddress.sin_addr, pHostInfo->h_addr_list[0], pHostInfo->h_length);
             strcpy(_domainIP, inet_ntoa(tempAddress.sin_addr));
-            qDebug("Domain Server: %s", _domainHostname);
+
+            qDebug("Domain Server: %s\n", _domainHostname);
         } else {
             qDebug("Failed domain server lookup\n");
         }
     } else if (!printedDomainServerIP) {
-        qDebug("Domain Server IP: %s", _domainIP);
+        qDebug("Domain Server IP: %s\n", _domainIP);
         printedDomainServerIP = true;
     }
     
@@ -419,7 +420,7 @@ void NodeList::addNodeToList(Node* newNode) {
     
     ++_numNodes;
     
-    qDebug() << "Added" << *newNode;
+    qDebug() << "Added " << *newNode;
 }
 
 unsigned NodeList::broadcastToNodes(unsigned char *broadcastData, size_t dataBytes, const char* nodeTypes, int numNodeTypes) {
