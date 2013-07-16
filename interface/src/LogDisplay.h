@@ -12,7 +12,6 @@
 #include <stdarg.h>
 #include <pthread.h>
 
-#include "Log.h"
 #include "ui/TextRenderer.h"
 
 class LogDisplay {
@@ -21,6 +20,9 @@ public:
     static LogDisplay instance;
 
     void render(unsigned screenWidth, unsigned screenHeight);
+    
+    // log formatted message 
+    inline void addMessage(char const*);
 
     // settings 
 
@@ -49,12 +51,6 @@ private:
     // don't copy/assign
     LogDisplay(LogDisplay const&); // = delete;
     LogDisplay& operator=(LogDisplay const&); // = delete;
-
-    // format and log message - entrypoint used to replace global 'printLog'
-    static int printLogHandler(char const* fmt, ...);
-
-    // log formatted message (called by printLogHandler)
-    inline void addMessage(char const*);
 
     TextRenderer    _textRenderer;
     FILE*           _stream;            // FILE as secondary destination for log messages

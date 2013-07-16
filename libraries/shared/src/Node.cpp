@@ -6,21 +6,22 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
-#include "stdio.h"
-
-#include <pthread.h>
-#include "Node.h"
-#include "NodeTypes.h"
 #include <cstring>
-#include "Log.h"
-#include "UDPSocket.h"
-#include "SharedUtil.h"
+#include <pthread.h>
+#include <stdio.h>
 
 #ifdef _WIN32
 #include "Syssocket.h"
 #else
 #include <arpa/inet.h>
 #endif
+
+#include "Node.h"
+#include "NodeTypes.h"
+#include "SharedUtil.h"
+#include "UDPSocket.h"
+
+#include <QDebug>
 
 int unpackNodeId(unsigned char* packedData, uint16_t* nodeId) {
     memcpy(nodeId, packedData, sizeof(uint16_t));
@@ -140,18 +141,14 @@ float Node::getAverageKilobitsPerSecond() {
     }
 }
 
-void Node::printLog(Node const& node) {
-    
+QDebug operator<<(QDebug debug, const Node &node) {
     char publicAddressBuffer[16] = {'\0'};
-    unsigned short publicAddressPort = loadBufferWithSocketInfo(publicAddressBuffer, node._publicSocket);
+    unsigned short publicAddressPort = loadBufferWithSocketInfo(publicAddressBuffer, node.getPublicSocket());
     
     //char localAddressBuffer[16] = {'\0'};
     //unsigned short localAddressPort = loadBufferWithSocketInfo(localAddressBuffer, node.localSocket);
     
-    ::printLog("# %d %s (%c) @ %s:%d\n",
-               node._nodeID,
-               node.getTypeName(),
-               node._type,
-               publicAddressBuffer,
-               publicAddressPort);
+    debug << "#" << node.getNodeID() << node.getTypeName() << node.getType();
+    debug.nospace() << publicAddressBuffer << ":" << publicAddressPort;
+    return debug.space();
 }

@@ -5,24 +5,25 @@
 //  Created by Philip Rosedale on 9/11/12.
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 
+#include <vector>
+
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/vector_angle.hpp>
-#include <vector>
+
+#include <NodeList.h>
+#include <NodeTypes.h>
+#include <OculusManager.h>
+#include <PacketHeaders.h>
 #include <SharedUtil.h>
-#include "world.h"
+
 #include "Application.h"
 #include "Avatar.h"
 #include "Hand.h"
 #include "Head.h"
-#include "Log.h"
 #include "Physics.h"
+#include "world.h"
 #include "ui/TextRenderer.h"
-#include <NodeList.h>
-#include <NodeTypes.h>
-#include <PacketHeaders.h>
-#include <OculusManager.h>
-
 
 using namespace std;
 

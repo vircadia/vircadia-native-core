@@ -6,10 +6,13 @@
 //
 
 #include <algorithm>
-#include "VoxelProjectedPolygon.h"
+
+#include <QDebug>
+
 #include "GeometryUtil.h"
-#include "Log.h"
 #include "SharedUtil.h"
+#include "VoxelProjectedPolygon.h"
+
 
 glm::vec2 BoundingBox::getVertex(int vertexNumber) const {
     switch (vertexNumber) {
@@ -88,11 +91,11 @@ void BoundingBox::explandToInclude(const BoundingBox& box) {
 
 void BoundingBox::printDebugDetails(const char* label) const {
     if (label) {
-        printLog(label);
+        qDebug() << label;
     } else {
-        printLog("BoundingBox");
+        qDebug("BoundingBox");
     }
-    printLog("\n    _set=%s\n    corner=%f,%f size=%f,%f\n    bounds=[(%f,%f) to (%f,%f)]\n", 
+    qDebug("\n    _set=%s\n    corner=%f,%f size=%f,%f\n    bounds=[(%f,%f) to (%f,%f)]\n", 
         debug::valueOf(_set), corner.x, corner.y, size.x, size.y, corner.x, corner.y, corner.x+size.x, corner.y+size.y);
 }
 
