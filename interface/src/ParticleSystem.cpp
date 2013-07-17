@@ -396,7 +396,7 @@ void ParticleSystem::renderEmitter(int e, float size) {
     glm::vec3 r = _emitter[e].right * size;
     glm::vec3 u = _emitter[e].up    * size;
     glm::vec3 f = _emitter[e].front * size;
-    
+
     glLineWidth(2.0f);
 
     glColor3f(0.8f, 0.4, 0.4);

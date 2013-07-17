@@ -86,6 +86,7 @@ private:
     void updateEmitter(int e, float deltaTime);
     void updateParticle(int index, float deltaTime);
     void createParticle(int e, glm::vec3 position, glm::vec3 velocity, float radius, glm::vec4 color, float lifespan);
+    //void runSpecialEffectsTest(int e, float deltaTime); // for debugging and artistic exploration
     void killParticle(int p);
     void renderEmitter(int emitterIndex, float size);
     void renderParticle(int p);
