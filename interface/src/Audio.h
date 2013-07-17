@@ -42,7 +42,11 @@ public:
     int getJitterBufferSamples() { return _jitterBufferSamples; };
     
     void lowPassFilter(int16_t* inputBuffer);
-
+    
+    void startCollisionSound(float magnitude, float frequency, float noise, float duration);
+    float getCollisionSoundMagnitude() { return _collisionSoundMagnitude; };
+    
+    
     void ping();
 
     // Call periodically to eventually perform round trip time analysis,
@@ -80,7 +84,13 @@ private:
     float _flangeIntensity;
     float _flangeRate;
     float _flangeWeight;
-
+    float _collisionSoundMagnitude;
+    float _collisionSoundFrequency;
+    float _collisionSoundNoise;
+    float _collisionSoundDuration;
+    int _proceduralEffectSample;
+    float _heartbeatMagnitude;
+    
     // Audio callback in class context.
     inline void performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* outputRight);
 
@@ -92,7 +102,7 @@ private:
     inline void analyzePing();
 
     // Add sounds that we want the user to not hear themselves, by adding on top of mic input signal
-    void addProceduralSounds(int16_t* inputBuffer, int numSamples);
+    void addProceduralSounds(int16_t* inputBuffer, int16_t* outputLeft, int16_t* outputRight, int numSamples);
 
 
     // Audio callback called by portaudio. Calls 'performIO'.
