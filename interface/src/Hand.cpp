@@ -176,9 +176,39 @@ void Hand::setLeapHands(const std::vector<glm::vec3>& handPositions,
 void Hand::updateFingerParticles(float deltaTime) {
 
     if (!_particleSystemInitialized) {
+                    
         for ( int f = 0; f< NUM_FINGERS_PER_HAND; f ++ ) {
+
             _fingerParticleEmitter[f] = _particleSystem.addEmitter();
+            
+            glm::vec4 color(1.0f, 0.6f, 0.0f, 0.5f);
+
+            //_particleSystem.setEmitterParticle(f, true, 0.012f, color);
+
+            ParticleSystem::ParticleAttributes attributes;
+
+           // set attributes for each life stage of the particle:
+            attributes.radius               = 0.001f;
+            attributes.gravity              = 0.0f;
+            attributes.airFriction          = 0.0f;
+            attributes.jitter               = 0.0f;
+            attributes.emitterAttraction    = 0.0f;
+            attributes.tornadoForce         = 0.0f;
+            attributes.neighborAttraction   = 0.0f;
+            attributes.neighborRepulsion    = 0.0f;
+            attributes.bounce               = 1.0f;
+            attributes.usingCollisionSphere = false;
+            _particleSystem.setParticleAttributes(_fingerParticleEmitter[f], 0, attributes);
+
+            attributes.radius = 0.002f;
+            attributes.jitter = 0.01f;
+            _particleSystem.setParticleAttributes(_fingerParticleEmitter[f], 1, attributes);
+
+            attributes.radius = 0.007f;
+            attributes.gravity = -0.01f;
+             _particleSystem.setParticleAttributes(_fingerParticleEmitter[f], 2, attributes);
         }
+
         _particleSystemInitialized = true;         
     } else {
         // update the particles
@@ -208,7 +238,7 @@ void Hand::updateFingerParticles(float deltaTime) {
                 
                 float radius = 0.005f;
                 glm::vec4 color(1.0f, 0.6f, 0.0f, 0.5f);
-                glm::vec3 velocity = fingerDirection * 0.005f;
+                glm::vec3 velocity = fingerDirection * 0.002f;
                 float lifespan = 0.3f;
                 _particleSystem.emitParticlesNow(_fingerParticleEmitter[0], 1, radius, color, velocity, lifespan); 
             }  

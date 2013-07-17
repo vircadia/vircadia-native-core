@@ -3546,6 +3546,7 @@ void Application::updateParticleSystem(float deltaTime) {
             
             ParticleSystem::ParticleAttributes attributes;
 
+            attributes.radius                  = 0.01f;
             attributes.gravity                 = 0.0f   + 0.05f  * sinf( t * 0.52f );
             attributes.airFriction             = 2.5    + 2.0f   * sinf( t * 0.32f );
             attributes.jitter                  = 0.05f  + 0.05f  * sinf( t * 0.42f );

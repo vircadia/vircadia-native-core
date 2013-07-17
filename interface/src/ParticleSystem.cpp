@@ -11,6 +11,7 @@
 #include "ParticleSystem.h"
 #include "Application.h"
 
+const float DEFAULT_PARTICLE_RADIUS       = 0.01f;
 const float DEFAULT_PARTICLE_BOUNCE       = 1.0f;
 const float DEFAULT_PARTICLE_AIR_FRICTION = 2.0f;
 
@@ -19,7 +20,7 @@ ParticleSystem::ParticleSystem() {
     _numEmitters  = 0;
     _numParticles = 0;
     _upDirection  = glm::vec3(0.0f, 1.0f, 0.0f); // default
-        
+            
     for (unsigned int e = 0; e < MAX_EMITTERS; e++) {
         _emitter[e].position = glm::vec3(0.0f, 0.0f, 0.0f);
         _emitter[e].rotation = glm::quat();
@@ -27,8 +28,17 @@ ParticleSystem::ParticleSystem() {
         _emitter[e].up       = IDENTITY_UP;
         _emitter[e].front    = IDENTITY_FRONT;
         _emitter[e].visible  = false;
-        
+        _emitter[e].baseParticle.alive        = false;
+        _emitter[e].baseParticle.age          = 0.0f;
+        _emitter[e].baseParticle.lifespan     = 0.0f;
+        _emitter[e].baseParticle.radius       = 0.0f;
+        _emitter[e].baseParticle.emitterIndex = 0;
+        _emitter[e].baseParticle.position     = glm::vec3(0.0f, 0.0f, 0.0f);
+        _emitter[e].baseParticle.velocity     = glm::vec3(0.0f, 0.0f, 0.0f);
+    
+            
         for (int s = 0; s<NUM_PARTICLE_LIFE_STAGES; s++) {
+            _emitter[e].particleAttributes[s].radius                  = DEFAULT_PARTICLE_RADIUS;
             _emitter[e].particleAttributes[s].bounce                  = DEFAULT_PARTICLE_BOUNCE;
             _emitter[e].particleAttributes[s].airFriction             = DEFAULT_PARTICLE_AIR_FRICTION;
             _emitter[e].particleAttributes[s].gravity                 = 0.0f;
@@ -112,8 +122,9 @@ void ParticleSystem::createParticle(int e, glm::vec3 position, glm::vec3 velocit
             _particle[p].age          = 0.0f;
             _particle[p].position     = position;
             _particle[p].velocity     = velocity;
-            _particle[p].radius       = radius;
             _particle[p].color        = color;
+
+            _particle[p].radius = _emitter[e].particleAttributes[0].radius;
 
             _numParticles ++;            
                         
@@ -163,6 +174,7 @@ void ParticleSystem::setParticleAttributes(int emitterIndex, int lifeStage, Part
 
     ParticleAttributes * a = &_emitter[emitterIndex].particleAttributes[lifeStage];
     
+    a->radius                  = attributes.radius;
     a->bounce                  = attributes.bounce;
     a->gravity                 = attributes.gravity;
     a->airFriction             = attributes.airFriction;
@@ -183,7 +195,15 @@ void ParticleSystem::updateParticle(int p, float deltaTime) {
         
     float ageFraction = _particle[p].age / _particle[p].lifespan;
     
+    
+    
+    
     int lifeStage = (int)( ageFraction * NUM_PARTICLE_LIFE_STAGES );
+    
+    
+    _particle[p].radius = _emitter[_particle[p].emitterIndex].particleAttributes[lifeStage].radius;
+    
+    
     
     Emitter myEmitter = _emitter[_particle[p].emitterIndex];
 
@@ -272,10 +292,34 @@ void ParticleSystem::setCollisionSphere(int e, glm::vec3 position, float radius)
     _emitter[e].particleAttributes[lifeStage].collisionSphereRadius   = radius;
 }
 
+void ParticleSystem::setEmitterParticle(int emitterIndex, bool showing ) {
+
+    _emitter[emitterIndex].baseParticle.alive = true;
+    _emitter[emitterIndex].baseParticle.emitterIndex = emitterIndex;
+}
+
+void ParticleSystem::setEmitterParticle(int emitterIndex, bool showing, float radius, glm::vec4 color ) {
+
+    _emitter[emitterIndex].baseParticle.alive        = true;
+    _emitter[emitterIndex].baseParticle.emitterIndex = emitterIndex;
+    _emitter[emitterIndex].baseParticle.radius       = radius;
+    _emitter[emitterIndex].baseParticle.color        = color;
+}
+
+
 void ParticleSystem::render() {
 
     // render the emitters
     for (unsigned int e = 0; e < _numEmitters; e++) {
+
+        if (_emitter[e].baseParticle.alive) {
+            glColor4f(_emitter[e].baseParticle.color.r, _emitter[e].baseParticle.color.g, _emitter[e].baseParticle.color.b, _emitter[e].baseParticle.color.a );
+            glPushMatrix();
+            glTranslatef(_emitter[e].position.x, _emitter[e].position.y, _emitter[e].position.z);
+            glutSolidSphere(_emitter[e].baseParticle.radius, 6, 6);
+            glPopMatrix();
+        }
+
         if (_emitter[e].visible) {
             renderEmitter(e, 0.2f);
         }
