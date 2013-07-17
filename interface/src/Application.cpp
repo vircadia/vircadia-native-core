@@ -2022,7 +2022,7 @@ void Application::update(float deltaTime) {
     if (_myAvatar.getMode() == AVATAR_MODE_WALKING) {
         _handControl.stop();
     }
-       
+
     //  Update from Touch
     if (_isTouchPressed) {
         float TOUCH_YAW_SCALE = -50.0f;
@@ -3562,7 +3562,7 @@ void Application::updateParticleSystem(float deltaTime) {
                 attributes.gravity = 0.0f;
             }
             
-            _particleSystem.setParticleAttributesForEmitter(_coolDemoParticleEmitter, attributes);
+            _particleSystem.setParticleAttributes(_coolDemoParticleEmitter, attributes);
         }
         
         _particleSystem.setUpDirection(glm::vec3(0.0f, 1.0f, 0.0f));  

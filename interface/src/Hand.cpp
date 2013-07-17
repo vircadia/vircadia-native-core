@@ -178,7 +178,7 @@ void Hand::updateFingerParticles(float deltaTime) {
     if (!_particleSystemInitialized) {
         for ( int f = 0; f< NUM_FINGERS_PER_HAND; f ++ ) {
             _fingerParticleEmitter[f] = _particleSystem.addEmitter();
-            _particleSystem.setShowingEmitter(_fingerParticleEmitter[f], true);
+            //_particleSystem.setShowingEmitter(_fingerParticleEmitter[f], true);
         }
         _particleSystemInitialized = true;         
     } else {
@@ -193,23 +193,23 @@ void Hand::updateFingerParticles(float deltaTime) {
                     
                 glm::vec3 particleEmitterPosition = leapPositionToWorldPosition(_fingerTips[f]);
                        
-                // this aspect is still being designed....
-                       
-                glm::vec3 tilt = glm::vec3
-                (
-                    30.0f * sinf( t * 0.55f ),
-                    0.0f,
-                    30.0f * cosf( t * 0.75f )
-                );
-                
-                glm::quat particleEmitterRotation = glm::quat(glm::radians(tilt));
+                glm::vec3 fingerDirection = particleEmitterPosition - leapPositionToWorldPosition(_fingerRoots[f]);  
+                float fingerLength = glm::length(fingerDirection);      
+
+                if (fingerLength > 0.0f) {
+                    fingerDirection /= fingerLength;
+                } else {
+                    fingerDirection = IDENTITY_UP;
+                }
+
+                glm::quat particleEmitterRotation = rotationBetween(IDENTITY_UP, fingerDirection);
 
                 _particleSystem.setEmitterPosition(_fingerParticleEmitter[0], particleEmitterPosition);
                 _particleSystem.setEmitterRotation(_fingerParticleEmitter[0], particleEmitterRotation);
                 
                 float radius = 0.005f;
                 glm::vec4 color(1.0f, 0.6f, 0.0f, 0.5f);
-                glm::vec3 velocity(0.0f, 0.005f, 0.0f);
+                glm::vec3 velocity = fingerDirection * 0.005f;
                 float lifespan = 0.3f;
                 _particleSystem.emitParticlesNow(_fingerParticleEmitter[0], 1, radius, color, velocity, lifespan); 
             }  
