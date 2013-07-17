@@ -2022,7 +2022,7 @@ void Application::update(float deltaTime) {
     if (_myAvatar.getMode() == AVATAR_MODE_WALKING) {
         _handControl.stop();
     }
-
+       
     //  Update from Touch
     if (_isTouchPressed) {
         float TOUCH_YAW_SCALE = -50.0f;

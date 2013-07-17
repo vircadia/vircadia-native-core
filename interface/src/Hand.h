@@ -19,8 +19,6 @@
 #include <SharedUtil.h>
 #include <vector>
 
-const int NUM_FINGERS_PER_HAND = 5;
-
 class Avatar;
 class ProgramObject;
 
@@ -56,9 +54,6 @@ public:
     const glm::vec3& getLeapBallPosition       (int ball)       const { return _leapBalls[ball].position;}
     bool isRaveGloveActive                     ()               const { return _isRaveGloveActive; }
 
-    // position conversion
-    glm::vec3 leapPositionToWorldPosition(const glm::vec3& leapPosition);
-
 private:
     // disallow copies of the Hand, copy of owning Avatar is disallowed too
     Hand(const Hand&);
@@ -71,8 +66,6 @@ private:
     bool        _lookingInMirror;
     bool        _isRaveGloveActive;
     glm::vec3   _ballColor;
-    glm::vec3   _position;
-    glm::quat   _orientation;
     std::vector<HandBall>	_leapBalls;
     
     bool _particleSystemInitialized;
