@@ -8,12 +8,15 @@
 #include <QTimer>
 #include <QtDebug>
 
-#include <Log.h>
-#include <SharedUtil.h>
+#include <vpx_encoder.h>
+#include <vp8cx.h>
 
 #ifdef __APPLE__
 #include <UVCCameraControl.hpp>
 #endif
+
+#include <Log.h>
+#include <SharedUtil.h>
 
 #include "Application.h"
 #include "Webcam.h"
@@ -504,6 +507,8 @@ void FrameGrabber::grabFrame() {
     }
 #endif
 
+    //vpx_codec_encode(&_encoderContext, img, pts, duration, 0, VPX_DL_REALTIME);
+
     QMetaObject::invokeMethod(Application::getInstance()->getWebcam(), "setFrame",
         Q_ARG(cv::Mat, color), Q_ARG(int, format), Q_ARG(cv::Mat, _grayDepthFrame),
         Q_ARG(cv::RotatedRect, faceRect), Q_ARG(JointVector, joints));
@@ -518,6 +523,9 @@ bool FrameGrabber::init() {
         printLog("Failed to load Haar cascade for face tracking.\n");
         return false;
     }
+
+    // initialize encoder context
+    vpx_codec_enc_init(&_encoderContext, vpx_codec_vp8_cx(), 0, 0);
 
     // first try for a Kinect
 #ifdef HAVE_OPENNI

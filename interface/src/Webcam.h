@@ -23,6 +23,8 @@
     #include <XnCppWrapper.h>
 #endif
 
+#include <vpx_codec.h>
+
 #include "InterfaceConfig.h"
 
 class QImage;
@@ -116,6 +118,8 @@ private:
     cv::Rect _searchWindow;
     cv::Mat _grayDepthFrame;
     double _depthOffset;
+    
+    vpx_codec_ctx_t _encoderContext;
     
 #ifdef HAVE_OPENNI
     xn::Context _xnContext;
