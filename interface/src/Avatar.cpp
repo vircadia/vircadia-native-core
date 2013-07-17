@@ -821,10 +821,13 @@ void Avatar::updateHandMovementAndTouching(float deltaTime, bool enableHandMovem
         }
         
         // If there's a leap-interaction hand visible, use that as the endpoint
-        if (getHand().getHandPositions().size() > 0) {
-            _skeleton.joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position =
-                getHand().leapPositionToWorldPosition(getHand().getHandPositions()[0]);
+        for (size_t i = 0; i < getHand().getPalms().size(); ++i) {
+            PalmData& palm = getHand().getPalms()[i];
+            if (palm.isActive()) {
+                _skeleton.joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position = palm.getPosition();
+            }
         }
+        
     }//if (_isMine)
     
     //constrain right arm length and re-adjust elbow position as it bends

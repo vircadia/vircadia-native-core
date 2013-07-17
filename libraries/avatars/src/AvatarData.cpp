@@ -127,36 +127,22 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     *destinationBuffer++ = bitItems;
     
     // leap hand data
-    // In order to make the hand data version-robust, hand data packing is just a series of vec3's,
-    // with conventions. If a client doesn't know the conventions, they can just get the vec3's
-    // and render them as balls, or ignore them, without crashing or disrupting anyone.
-    // Current convention:
-    //    Zero or more fingetTip positions, followed by the same number of fingerRoot positions
-    
-    const std::vector<glm::vec3>& fingerTips = _handData->getFingerTips();
-    const std::vector<glm::vec3>& fingerRoots = _handData->getFingerRoots();
-    size_t numFingerVectors = fingerTips.size() + fingerRoots.size();
-    if (numFingerVectors > 255)
-        numFingerVectors = 0; // safety. We shouldn't ever get over 255, so consider that invalid.
+    std::vector<glm::vec3> fingerVectors;
+    _handData->encodeRemoteData(fingerVectors);
 
     /////////////////////////////////
     // Temporarily disable Leap finger sending, as it's causing a crash whenever someone's got a Leap connected
-    numFingerVectors = 0;
+    fingerVectors.clear();
     /////////////////////////////////
-    
-    *destinationBuffer++ = (unsigned char)numFingerVectors;
-    
-    if (numFingerVectors > 0) {
-        for (size_t i = 0; i < fingerTips.size(); ++i) {
-            destinationBuffer += packFloatScalarToSignedTwoByteFixed(destinationBuffer, fingerTips[i].x, 4);
-            destinationBuffer += packFloatScalarToSignedTwoByteFixed(destinationBuffer, fingerTips[i].y, 4);
-            destinationBuffer += packFloatScalarToSignedTwoByteFixed(destinationBuffer, fingerTips[i].z, 4);
-        }
-        for (size_t i = 0; i < fingerRoots.size(); ++i) {
-            destinationBuffer += packFloatScalarToSignedTwoByteFixed(destinationBuffer, fingerRoots[i].x, 4);
-            destinationBuffer += packFloatScalarToSignedTwoByteFixed(destinationBuffer, fingerRoots[i].y, 4);
-            destinationBuffer += packFloatScalarToSignedTwoByteFixed(destinationBuffer, fingerRoots[i].z, 4);
-        }
+    if (fingerVectors.size() > 255)
+        fingerVectors.clear(); // safety. We shouldn't ever get over 255, so consider that invalid.
+
+    *destinationBuffer++ = (unsigned char)fingerVectors.size();
+
+    for (size_t i = 0; i < fingerVectors.size(); ++i) {
+        destinationBuffer += packFloatScalarToSignedTwoByteFixed(destinationBuffer, fingerVectors[i].x, 4);
+        destinationBuffer += packFloatScalarToSignedTwoByteFixed(destinationBuffer, fingerVectors[i].y, 4);
+        destinationBuffer += packFloatScalarToSignedTwoByteFixed(destinationBuffer, fingerVectors[i].z, 4);
     }
     
     // skeleton joints
@@ -263,25 +249,16 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     // leap hand data
     if (sourceBuffer - startPosition < numBytes)    // safety check
     {
-        std::vector<glm::vec3> fingerTips;
-        std::vector<glm::vec3> fingerRoots;
         unsigned int numFingerVectors = *sourceBuffer++;
-        unsigned int numFingerTips = numFingerVectors / 2;
-        unsigned int numFingerRoots = numFingerVectors - numFingerTips;
-        fingerTips.resize(numFingerTips);
-        fingerRoots.resize(numFingerRoots);
-        for (size_t i = 0; i < numFingerTips; ++i) {
-            sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(fingerTips[i].x), 4);
-            sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(fingerTips[i].y), 4);
-            sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(fingerTips[i].z), 4);
+        if (numFingerVectors > 0) {
+            std::vector<glm::vec3> fingerVectors(numFingerVectors);
+            for (size_t i = 0; i < numFingerVectors; ++i) {
+                sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(fingerVectors[i].x), 4);
+                sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(fingerVectors[i].y), 4);
+                sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(fingerVectors[i].z), 4);
+            }
+            _handData->decodeRemoteData(fingerVectors);
         }
-        for (size_t i = 0; i < numFingerRoots; ++i) {
-            sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(fingerRoots[i].x), 4);
-            sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(fingerRoots[i].y), 4);
-            sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(fingerRoots[i].z), 4);
-        }
-        _handData->setFingerTips(fingerTips);
-        _handData->setFingerRoots(fingerRoots);
     }
     
     // skeleton joints

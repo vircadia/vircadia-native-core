@@ -27,14 +27,6 @@ public:
     
     // These methods return the positions in Leap-relative space.
     // To convert to world coordinates, use Hand::leapPositionToWorldPosition.
-    const std::vector<glm::vec3>& getFingerTips() const { return _fingerTips; }
-    const std::vector<glm::vec3>& getFingerRoots() const { return _fingerRoots; }
-    const std::vector<glm::vec3>& getHandPositions() const { return _handPositions; }
-    const std::vector<glm::vec3>& getHandNormals() const { return _handNormals; }
-    void setFingerTips(const std::vector<glm::vec3>& fingerTips) { _fingerTips = fingerTips; }
-    void setFingerRoots(const std::vector<glm::vec3>& fingerRoots) { _fingerRoots = fingerRoots; }
-    void setHandPositions(const std::vector<glm::vec3>& handPositons) { _handPositions = handPositons; }
-    void setHandNormals(const std::vector<glm::vec3>& handNormals) { _handNormals = handNormals; }
     
     // position conversion
     glm::vec3 leapPositionToWorldPosition(const glm::vec3& leapPosition) {
@@ -45,12 +37,15 @@ public:
         return glm::normalize(_baseOrientation * leapDirection);
     }
 
+    std::vector<PalmData>& getPalms()    { return _palms; }
+    size_t                 getNumPalms() { return _palms.size(); }
+
+    // Use these for sending and receiving hand data
+    void encodeRemoteData(std::vector<glm::vec3>& fingerVectors);
+    void decodeRemoteData(const std::vector<glm::vec3>& fingerVectors);
+    
     friend class AvatarData;
 protected:
-    std::vector<glm::vec3> _fingerTips;
-    std::vector<glm::vec3> _fingerRoots;
-    std::vector<glm::vec3> _handPositions;
-    std::vector<glm::vec3> _handNormals;
     glm::vec3              _basePosition;      // Hands are placed relative to this
     glm::quat              _baseOrientation;   // Hands are placed relative to this
     AvatarData* _owningAvatarData;
@@ -64,6 +59,17 @@ private:
 class FingerData {
 public:
     FingerData(PalmData* owningPalmData, HandData* owningHandData);
+
+    glm::vec3        getTipPosition()     const { return _owningHandData->leapPositionToWorldPosition(_tipRawPosition); }
+    glm::vec3        getRootPosition()    const { return _owningHandData->leapPositionToWorldPosition(_rootRawPosition); }
+    const glm::vec3& getTipRawPosition()  const { return _tipRawPosition; }
+    const glm::vec3& getRootRawPosition() const { return _rootRawPosition; }
+    bool             isActive()           const { return _isActive; }
+
+    void setActive(bool active)                   { _isActive = active; }
+    void setRawTipPosition(const glm::vec3& pos)  { _tipRawPosition = pos; }
+    void setRawRootPosition(const glm::vec3& pos) { _rootRawPosition = pos; }
+
 private:
     glm::vec3 _tipRawPosition;
     glm::vec3 _rootRawPosition;
@@ -75,10 +81,19 @@ private:
 class PalmData {
 public:
     PalmData(HandData* owningHandData);
-    glm::vec3 getPosition() const { return _owningHandData->leapPositionToWorldPosition(_rawPosition); }
-    glm::vec3 getNormal()   const { return _owningHandData->leapDirectionToWorldDirection(_rawNormal); }
+    glm::vec3 getPosition()           const { return _owningHandData->leapPositionToWorldPosition(_rawPosition); }
+    glm::vec3 getNormal()             const { return _owningHandData->leapDirectionToWorldDirection(_rawNormal); }
     const glm::vec3& getRawPosition() const { return _rawPosition; }
     const glm::vec3& getRawNormal()   const { return _rawNormal; }
+    bool             isActive()       const { return _isActive; }
+
+    std::vector<FingerData>& getFingers()    { return _fingers; }
+    size_t                   getNumFingers() { return _fingers.size(); }
+
+    void setActive(bool active)                { _isActive = active; }
+    void setRawPosition(const glm::vec3& pos)  { _rawPosition = pos; }
+    void setRawNormal(const glm::vec3& normal) { _rawNormal = normal; }
+
 private:
     std::vector<FingerData> _fingers;
     glm::vec3 _rawPosition;
