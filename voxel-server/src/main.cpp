@@ -384,7 +384,6 @@ void attachVoxelNodeDataToNode(Node* newNode) {
 }
 
 int main(int argc, const char * argv[]) {
-
     pthread_mutex_init(&::treeLock, NULL);
     
     qInstallMsgHandler(sharedMessageHandler);

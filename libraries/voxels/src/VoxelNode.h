@@ -15,33 +15,19 @@
 #include "VoxelConstants.h"
 
 class VoxelTree; // forward delclaration
+class VoxelNode; // forward delclaration
 
 typedef unsigned char colorPart;
 typedef unsigned char nodeColor[4];
 typedef unsigned char rgbColor[3];
 
+// Callback function, for delete hook
+typedef void (*VoxelNodeDeleteHook)(VoxelNode* node, void* extraData);
+const int VOXEL_NODE_MAX_DELETE_HOOKS = 100;
+const int VOXEL_NODE_NO_MORE_HOOKS_AVAILABLE = -1;
+
+
 class VoxelNode {
-private:
-    nodeColor _trueColor;
-#ifndef NO_FALSE_COLOR // !NO_FALSE_COLOR means, does have false color
-    nodeColor _currentColor;
-    bool      _falseColored;
-#endif
-    glBufferIndex _glBufferIndex;
-    bool _isDirty;
-    uint64_t _lastChanged;
-    bool _shouldRender;
-    bool _isStagedForDeletion;
-    AABox _box;
-    unsigned char* _octalCode;
-    VoxelNode* _children[8];
-    int _childCount;
-    float _density;             // If leaf: density = 1, if internal node: 0-1 density of voxels inside
-
-    void calculateAABox();
-
-    void init(unsigned char * octalCode);
-
 public:
     VoxelNode(); // root node constructor
     VoxelNode(unsigned char * octalCode); // regular constructor
@@ -118,6 +104,33 @@ public:
     const nodeColor& getTrueColor() const { return _trueColor; };
     const nodeColor& getColor() const { return _trueColor; };
 #endif
+
+    static int  addDeleteHook(VoxelNodeDeleteHook hook, void* extraData = NULL);
+    static void removeDeleteHook(int hookID);
+private:
+    void calculateAABox();
+    void init(unsigned char * octalCode);
+    void notifyDeleteHooks();
+
+    nodeColor _trueColor;
+#ifndef NO_FALSE_COLOR // !NO_FALSE_COLOR means, does have false color
+    nodeColor _currentColor;
+    bool      _falseColored;
+#endif
+    glBufferIndex   _glBufferIndex;
+    bool            _isDirty;
+    uint64_t        _lastChanged;
+    bool            _shouldRender;
+    bool            _isStagedForDeletion;
+    AABox           _box;
+    unsigned char*  _octalCode;
+    VoxelNode*      _children[8];
+    int             _childCount;
+    float           _density;       // If leaf: density = 1, if internal node: 0-1 density of voxels inside
+    
+    static VoxelNodeDeleteHook  _hooks[VOXEL_NODE_MAX_DELETE_HOOKS];
+    static void*                _hooksExtraData[VOXEL_NODE_MAX_DELETE_HOOKS];
+    static int                  _hooksInUse;
 };
 
 #endif /* defined(__hifi__VoxelNode__) */

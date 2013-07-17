@@ -84,6 +84,8 @@ public:
     
     const glm::vec3 getMouseVoxelWorldCoordinates(const VoxelDetail _mouseVoxel);
     
+    void updateParticleSystem(float deltaTime);
+    
     Avatar* getAvatar() { return &_myAvatar; }
     Audio* getAudio() { return &_audio; }
     Camera* getCamera() { return &_myCamera; }
@@ -290,6 +292,8 @@ private:
     timeval _timerStart, _timerEnd;
     timeval _lastTimeUpdated;
     bool _justStarted;
+    bool _particleSystemInitialized;
+    int  _coolDemoParticleEmitter;
 
     Stars _stars;
     
