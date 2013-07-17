@@ -76,9 +76,12 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
     NodeList* nodeList = NodeList::getInstance();
     Application* interface = Application::getInstance();
     Avatar* interfaceAvatar = interface->getAvatar();
- 
+
+    memset(outputLeft, 0, PACKET_LENGTH_BYTES_PER_CHANNEL);
+    memset(outputRight, 0, PACKET_LENGTH_BYTES_PER_CHANNEL);
+
     // Add Procedural effects to input samples
-    addProceduralSounds(inputLeft, BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
+    addProceduralSounds(inputLeft, outputLeft, outputRight, BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
     
     if (nodeList && inputLeft) {
         
@@ -135,12 +138,8 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
                                                                                             + leadingBytes);
             
         }
-        
     }
-    
-    memset(outputLeft, 0, PACKET_LENGTH_BYTES_PER_CHANNEL);
-    memset(outputRight, 0, PACKET_LENGTH_BYTES_PER_CHANNEL);
-    
+        
     AudioRingBuffer* ringBuffer = &_ringBuffer;
     
     // if there is anything in the ring buffer, decide what to do:
@@ -251,11 +250,11 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
                     }
                 }
 #ifndef TEST_AUDIO_LOOPBACK
-                outputLeft[s] = leftSample;
-                outputRight[s] = rightSample;
+                outputLeft[s] += leftSample;
+                outputRight[s] += rightSample;
 #else 
-                outputLeft[s] = inputLeft[s];
-                outputRight[s] = inputLeft[s];                    
+                outputLeft[s] += inputLeft[s];
+                outputRight[s] += inputLeft[s];
 #endif
             }
             ringBuffer->setNextOutput(ringBuffer->getNextOutput() + PACKET_LENGTH_SAMPLES);
@@ -333,7 +332,13 @@ Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples) :
     _lastYawMeasuredMaximum(0),
     _flangeIntensity(0.0f),
     _flangeRate(0.0f),
-    _flangeWeight(0.0f)
+    _flangeWeight(0.0f),
+    _collisionSoundMagnitude(0.0f),
+    _collisionSoundFrequency(0.0f),
+    _collisionSoundNoise(0.0f),
+    _collisionSoundDuration(0.0f),
+    _proceduralEffectSample(0),
+    _heartbeatMagnitude(0.0f)
 {
     outputPortAudioError(Pa_Initialize());
     
@@ -589,7 +594,10 @@ void Audio::lowPassFilter(int16_t* inputBuffer) {
 }
 
 //  Take a pointer to the acquired microphone input samples and add procedural sounds
-void Audio::addProceduralSounds(int16_t* inputBuffer, int numSamples) {
+void Audio::addProceduralSounds(int16_t* inputBuffer,
+                                int16_t* outputLeft,
+                                int16_t* outputRight,
+                                int numSamples) {
     const float MAX_AUDIBLE_VELOCITY = 6.0;
     const float MIN_AUDIBLE_VELOCITY = 0.1;
     const int VOLUME_BASELINE = 400;
@@ -598,14 +606,48 @@ void Audio::addProceduralSounds(int16_t* inputBuffer, int numSamples) {
     float speed = glm::length(_lastVelocity);
     float volume = VOLUME_BASELINE * (1.f - speed / MAX_AUDIBLE_VELOCITY);
     
+    int sample;
+    
+    //
+    // Travelling noise
+    //
     //  Add a noise-modulated sinewave with volume that tapers off with speed increasing
     if ((speed > MIN_AUDIBLE_VELOCITY) && (speed < MAX_AUDIBLE_VELOCITY)) {
         for (int i = 0; i < numSamples; i++) {
-            inputBuffer[i] += (int16_t)((sinf((float) i / SOUND_PITCH * speed) * randFloat()) * volume * speed);
+            inputBuffer[i] += (int16_t)(sinf((float) (_proceduralEffectSample + i) / SOUND_PITCH ) * volume * (1.f + randFloat() * 0.25f) * speed);
         }
     }
+    const float COLLISION_SOUND_CUTOFF_LEVEL = 0.01f;
+    const float COLLISION_SOUND_MAX_VOLUME = 1000.f;
+    const float UP_MAJOR_FIFTH = powf(1.5f, 4.0f);
+    const float DOWN_TWO_OCTAVES = 4.f;
+    const float DOWN_FOUR_OCTAVES = 16.f;
+    float t;
+    if (_collisionSoundMagnitude > COLLISION_SOUND_CUTOFF_LEVEL) {
+        for (int i = 0; i < numSamples; i++) {
+            t = (float) _proceduralEffectSample + (float) i;
+            sample = sinf(t * _collisionSoundFrequency) +
+                     sinf(t * _collisionSoundFrequency / DOWN_TWO_OCTAVES) +
+                     sinf(t * _collisionSoundFrequency / DOWN_FOUR_OCTAVES * UP_MAJOR_FIFTH);
+            sample *= _collisionSoundMagnitude * COLLISION_SOUND_MAX_VOLUME;
+            inputBuffer[i] += sample;
+            outputLeft[i] += sample;
+            outputRight[i] += sample;
+            _collisionSoundMagnitude *= _collisionSoundDuration;
+        }
+    }
+    _proceduralEffectSample += numSamples;
 }
 
+//
+//  Starts a collision sound.  magnitude is 0-1, with 1 the loudest possible sound. 
+//
+void Audio::startCollisionSound(float magnitude, float frequency, float noise, float duration) {
+    _collisionSoundMagnitude = magnitude;
+    _collisionSoundFrequency = frequency;
+    _collisionSoundNoise = noise;
+    _collisionSoundDuration = duration;
+}
 // -----------------------------------------------------------
 // Accoustic ping (audio system round trip time determination)
 // -----------------------------------------------------------
