@@ -48,7 +48,11 @@ public:
     void updateLastKnownViewFrustum();
 
     bool getViewSent() const        { return _viewSent; };
-    void setViewSent(bool viewSent) { _viewSent = viewSent; }
+    void setViewSent(bool viewSent);
+
+    bool getViewFrustumChanging()            const { return _viewFrustumChanging;            };
+    bool getViewFrustumJustStoppedChanging() const { return _viewFrustumJustStoppedChanging; };
+    
 
     uint64_t  getLastTimeBagEmpty() const                      { return _lastTimeBagEmpty; };
     void      setLastTimeBagEmpty(uint64_t lastTimeBagEmpty)  { _lastTimeBagEmpty = lastTimeBagEmpty; };
@@ -69,6 +73,7 @@ private:
     ViewFrustum _lastKnownViewFrustum;
     uint64_t _lastTimeBagEmpty;
     bool _viewFrustumChanging;
+    bool _viewFrustumJustStoppedChanging;
     bool _currentPacketIsColor;
 };
 

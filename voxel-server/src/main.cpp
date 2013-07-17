@@ -205,6 +205,7 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
             }
         }
 
+        // This is the start of "resending" the scene.
         nodeData->nodeBag.insert(serverTree.rootNode);
     }
 
@@ -242,15 +243,12 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
                 EncodeBitstreamParams params(INT_MAX, &nodeData->getCurrentViewFrustum(), wantColor, 
                                              WANT_EXISTS_BITS, DONT_CHOP, wantDelta, lastViewFrustum,
                                              wantOcclusionCulling, coverageMap, boundaryLevelAdjust,
-                                             nodeData->getLastTimeBagEmpty());
-
+                                             nodeData->getLastTimeBagEmpty(),
+                                             nodeData->getViewFrustumJustStoppedChanging());
+                                             
                 bytesWritten = serverTree.encodeTreeBitstream(subTree, &tempOutputBuffer[0], MAX_VOXEL_PACKET_SIZE - 1,
                                                               nodeData->nodeBag, params);
 
-                if (::debugVoxelSending && wantDelta) {
-                    printf("encodeTreeBitstream() childWasInViewDiscarded=%ld\n", params.childWasInViewDiscarded);
-                }
-                
                 if (nodeData->getAvailable() >= bytesWritten) {
                     nodeData->writeToPacket(&tempOutputBuffer[0], bytesWritten);
                 } else {
