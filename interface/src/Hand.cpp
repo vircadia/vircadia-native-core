@@ -21,9 +21,7 @@ Hand::Hand(Avatar* owningAvatar) :
     _owningAvatar(owningAvatar),
     _renderAlpha(1.0),
     _lookingInMirror(false),
-    _ballColor(0.0, 0.0, 0.4),
-    _position(0.0, 0.4, 0.0),
-    _orientation(0.0, 0.0, 0.0, 1.0)
+    _ballColor(0.0, 0.0, 0.4)
 {
 }
 
@@ -42,23 +40,18 @@ void Hand::reset() {
 void Hand::simulate(float deltaTime, bool isMine) {
 }
 
-glm::vec3 Hand::leapPositionToWorldPosition(const glm::vec3& leapPosition) {
-    float unitScale = 0.001; // convert mm to meters
-    return _position + _orientation * (leapPosition * unitScale);
-}
-
 void Hand::calculateGeometry() {
-    glm::vec3 offset(0.2, -0.2, -0.3);  // place the hand in front of the face where we can see it
     
+    glm::vec3 handOffset(0.2, -0.2, -0.3);  // place the hand in front of the face where we can see it
     Head& head = _owningAvatar->getHead();
-    _position = head.getPosition() + head.getOrientation() * offset;
-    _orientation = head.getOrientation();
+    _basePosition = head.getPosition() + head.getOrientation() * handOffset;
+    _baseOrientation = head.getOrientation();
 
     int numLeapBalls = _fingerTips.size();
     _leapBalls.resize(numLeapBalls);
     
     for (int i = 0; i < _fingerTips.size(); ++i) {
-        _leapBalls[i].rotation = _orientation;
+        _leapBalls[i].rotation = _baseOrientation;
         _leapBalls[i].position = leapPositionToWorldPosition(_fingerTips[i]);
         _leapBalls[i].radius         = 0.01;
         _leapBalls[i].touchForce     = 0.0;
