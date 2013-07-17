@@ -200,7 +200,9 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
             // only set our last sent time if we weren't resetting due to frustum change
             uint64_t now = usecTimestampNow();
             nodeData->setLastTimeBagEmpty(now);
-            printf("ENTIRE SCENE SENT! nodeData->setLastTimeBagEmpty(now=[%lld])\n", now);
+            if (::debugVoxelSending) {
+                printf("ENTIRE SCENE SENT! nodeData->setLastTimeBagEmpty(now=[%lld])\n", now);
+            }
         }
 
         nodeData->nodeBag.insert(serverTree.rootNode);
