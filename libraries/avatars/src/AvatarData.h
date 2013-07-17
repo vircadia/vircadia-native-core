@@ -29,7 +29,6 @@ const int WANT_OCCLUSION_CULLING_BIT = 7; // 8th bit
 
 const float MAX_AUDIO_LOUDNESS = 1000.0; // close enough for mouth animation
 
-
 enum KeyState
 {
     NO_KEY_DOWN = 0,

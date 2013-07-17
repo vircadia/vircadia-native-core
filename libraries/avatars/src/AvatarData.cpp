@@ -222,7 +222,7 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     memcpy(&handPositionRelative, sourceBuffer, sizeof(float) * 3);
     _handPosition = _position + handPositionRelative;
     sourceBuffer += sizeof(float) * 3;
-    
+
     // Lookat Position
     memcpy(&_headData->_lookAtPosition, sourceBuffer, sizeof(_headData->_lookAtPosition));
     sourceBuffer += sizeof(_headData->_lookAtPosition);
@@ -430,4 +430,3 @@ int unpackFloatFromByte(unsigned char* buffer, float& value, float scaleBy) {
     value = ((float)holder / (float) 255) * scaleBy;
     return sizeof(holder);
 }
-
