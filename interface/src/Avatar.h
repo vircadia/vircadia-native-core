@@ -162,6 +162,8 @@ public:
     glm::quat        getOrientation            () const;
     glm::quat        getWorldAlignedOrientation() const;
     
+    glm::vec3        getGravity        ()         const { return _gravity; }
+    
     glm::vec3 getUprightHeadPosition() const;
     
     AvatarVoxelSystem* getVoxels() { return &_voxels; }
@@ -262,9 +264,10 @@ private:
     void updateAvatarCollisions(float deltaTime);
     void updateArmIKAndConstraints( float deltaTime );
     void updateCollisionWithSphere( glm::vec3 position, float radius, float deltaTime );
-    void updateCollisionWithEnvironment();
-    void updateCollisionWithVoxels();
+    void updateCollisionWithEnvironment(float deltaTime);
+    void updateCollisionWithVoxels(float deltaTime);
     void applyHardCollision(const glm::vec3& penetration, float elasticity, float damping);
+    void updateCollisionSound(const glm::vec3& penetration, float deltaTime, float frequency);
     void applyCollisionWithOtherAvatar( Avatar * other, float deltaTime );
     void checkForMouseRayTouching();
 };
