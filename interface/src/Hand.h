@@ -46,9 +46,11 @@ public:
                             const std::vector<glm::vec3>& fingerRoots);
     void setLeapHands      (const std::vector<glm::vec3>& handPositions,
                             const std::vector<glm::vec3>& handNormals);
+    void setRaveGloveActive(bool active) { _isRaveGloveActive = active; }
 
     // getters
     const glm::vec3& getLeapBallPosition       (int ball)       const { return _leapBalls[ball].position;}
+    bool isRaveGloveActive                     ()               const { return _isRaveGloveActive; }
 
     // position conversion
     glm::vec3 leapPositionToWorldPosition(const glm::vec3& leapPosition);
@@ -61,12 +63,14 @@ private:
     Avatar*     _owningAvatar;
     float       _renderAlpha;
     bool        _lookingInMirror;
+    bool        _isRaveGloveActive;
     glm::vec3   _ballColor;
     glm::vec3   _position;
     glm::quat   _orientation;
     std::vector<HandBall>	_leapBalls;
     
     // private methods
+    void renderRaveGloveStage();
     void renderHandSpheres();
     void calculateGeometry();
 };

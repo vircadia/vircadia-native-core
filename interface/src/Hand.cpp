@@ -74,10 +74,41 @@ void Hand::render(bool lookingInMirror) {
     
     calculateGeometry();
 
+    if (_isRaveGloveActive)
+        renderRaveGloveStage();
+
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_RESCALE_NORMAL);
     
     renderHandSpheres();
+}
+
+void Hand::renderRaveGloveStage() {
+    if (_owningAvatar && _owningAvatar->isMyAvatar()) {
+        Head& head = _owningAvatar->getHead();
+        glm::quat headOrientation = head.getOrientation();
+        glm::vec3 headPosition = head.getPosition();
+        float scale = 100.0f;
+        glm::vec3 vc = headOrientation * glm::vec3( 0.0f,  0.0f, -30.0f) + headPosition;
+        glm::vec3 v0 = headOrientation * (glm::vec3(-1.0f, -1.0f, 0.0f) * scale) + vc;
+        glm::vec3 v1 = headOrientation * (glm::vec3( 1.0f, -1.0f, 0.0f) * scale) + vc;
+        glm::vec3 v2 = headOrientation * (glm::vec3( 1.0f,  1.0f, 0.0f) * scale) + vc;
+        glm::vec3 v3 = headOrientation * (glm::vec3(-1.0f,  1.0f, 0.0f) * scale) + vc;
+
+        glDisable(GL_DEPTH_TEST);
+        glEnable(GL_BLEND);
+        glBegin(GL_TRIANGLE_FAN);
+        glColor4f(0.0f, 0.0f, 0.0f, 1.0f);
+        glVertex3fv((float*)&vc);
+        glColor4f(0.0f, 0.0f, 0.0f, 0.5f);
+        glVertex3fv((float*)&v0);
+        glVertex3fv((float*)&v1);
+        glVertex3fv((float*)&v2);
+        glVertex3fv((float*)&v3);
+        glVertex3fv((float*)&v0);
+        glEnd();
+        glEnable(GL_DEPTH_TEST);
+    }
 }
 
 void Hand::renderHandSpheres() {

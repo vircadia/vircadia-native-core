@@ -2033,6 +2033,7 @@ void Application::update(float deltaTime) {
     // Leap finger-sensing device
     LeapManager::enableFakeFingers(_simulateLeapHand->isChecked() || _testRaveGlove->isChecked());
     LeapManager::nextFrame();
+    _myAvatar.getHand().setRaveGloveActive(_testRaveGlove->isChecked());
     _myAvatar.getHand().setLeapFingers(LeapManager::getFingerTips(), LeapManager::getFingerRoots());
     _myAvatar.getHand().setLeapHands(LeapManager::getHandPositions(), LeapManager::getHandNormals());
     
