@@ -214,10 +214,43 @@ void Hand::setLeapHands(const std::vector<glm::vec3>& handPositions,
 void Hand::updateFingerParticles(float deltaTime) {
 
     if (!_particleSystemInitialized) {
+                    
         for ( int f = 0; f< NUM_FINGERS_PER_HAND; f ++ ) {
+
             _fingerParticleEmitter[f] = _particleSystem.addEmitter();
-            _particleSystem.setShowingEmitter(_fingerParticleEmitter[f], true);
+            
+            ParticleSystem::ParticleAttributes attributes;
+
+           // set attributes for each life stage of the particle:
+            attributes.radius               = 0.0f;
+            attributes.color                = glm::vec4( 1.0f, 1.0f, 0.5f, 0.5f);
+            attributes.gravity              = 0.0f;
+            attributes.airFriction          = 0.0f;
+            attributes.jitter               = 0.002f;
+            attributes.emitterAttraction    = 0.0f;
+            attributes.tornadoForce         = 0.0f;
+            attributes.neighborAttraction   = 0.0f;
+            attributes.neighborRepulsion    = 0.0f;
+            attributes.bounce               = 1.0f;
+            attributes.usingCollisionSphere = false;
+            _particleSystem.setParticleAttributes(_fingerParticleEmitter[f], 0, attributes);
+
+            attributes.radius = 0.01f;
+            attributes.jitter = 0.0f;
+            attributes.gravity = -0.005f;
+            attributes.color  = glm::vec4( 1.0f, 0.2f, 0.0f, 0.4f);
+            _particleSystem.setParticleAttributes(_fingerParticleEmitter[f], 1, attributes);
+
+            attributes.radius = 0.01f;
+            attributes.gravity = 0.0f;
+            attributes.color  = glm::vec4( 0.0f, 0.0f, 0.0f, 0.2f);
+             _particleSystem.setParticleAttributes(_fingerParticleEmitter[f], 2, attributes);
+
+            attributes.radius = 0.02f;
+            attributes.color  = glm::vec4( 0.0f, 0.0f, 0.0f, 0.0f);
+             _particleSystem.setParticleAttributes(_fingerParticleEmitter[f], 3, attributes);
         }
+
         _particleSystemInitialized = true;         
     } else {
         // update the particles
@@ -236,24 +269,25 @@ void Hand::updateFingerParticles(float deltaTime) {
                             
                             glm::vec3 particleEmitterPosition = finger.getTipPosition();
                             
-                            // this aspect is still being designed....
-                            const float tiltMag = 30.0f;
-                            const float tiltXFreq = 0.55f;
-                            const float tiltZFreq = 0.75f;
-                            glm::vec3 tilt = glm::vec3(tiltMag * sinf( t * tiltXFreq ),
-                                                       0.0f,
-                                                       tiltMag * cosf( t * tiltZFreq ));
+                            glm::vec3 fingerDirection = particleEmitterPosition - leapPositionToWorldPosition(finger.getRootPosition());
+                            float fingerLength = glm::length(fingerDirection);
                             
-                            glm::quat particleEmitterRotation = glm::quat(glm::radians(tilt));
+                            if (fingerLength > 0.0f) {
+                                fingerDirection /= fingerLength;
+                            } else {
+                                fingerDirection = IDENTITY_UP;
+                            }
                             
-                            _particleSystem.setEmitterPosition(_fingerParticleEmitter[0], particleEmitterPosition);
-                            _particleSystem.setEmitterRotation(_fingerParticleEmitter[0], particleEmitterRotation);
+                            glm::quat particleEmitterRotation = rotationBetween(IDENTITY_UP, fingerDirection);
                             
-                            const float radius = 0.005f;
+                            _particleSystem.setEmitterPosition(_fingerParticleEmitter[f], particleEmitterPosition);
+                            _particleSystem.setEmitterRotation(_fingerParticleEmitter[f], particleEmitterRotation);
+                            
+                            float radius = 0.005f;
                             const glm::vec4 color(1.0f, 0.6f, 0.0f, 0.5f);
-                            const glm::vec3 velocity(0.0f, 0.005f, 0.0f);
-                            const float lifespan = 0.3f;
-                            _particleSystem.emitParticlesNow(_fingerParticleEmitter[0], 1, radius, color, velocity, lifespan);
+                            const glm::vec3 velocity = fingerDirection * 0.002f;
+                            const float lifespan = 1.0f;
+                            _particleSystem.emitParticlesNow(_fingerParticleEmitter[f], 1, radius, color, velocity, lifespan); 
                         }
                     }
                 }
