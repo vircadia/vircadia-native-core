@@ -23,8 +23,13 @@ Hand::Hand(Avatar* owningAvatar) :
     _lookingInMirror(false),
     _ballColor(0.0, 0.0, 0.4),
     _position(0.0, 0.4, 0.0),
-    _orientation(0.0, 0.0, 0.0, 1.0)
+    _orientation(0.0, 0.0, 0.0, 1.0),
+    _particleSystemInitialized(false)
 {
+    // initialize all finger particle emitters with an invalid id as default
+    for (int f = 0; f< NUM_FINGERS_PER_HAND; f ++ ) {
+        _fingerParticleEmitter[f] = -1;
+    }
 }
 
 void Hand::init() {
@@ -40,6 +45,7 @@ void Hand::reset() {
 }
 
 void Hand::simulate(float deltaTime, bool isMine) {
+    updateFingerParticles(deltaTime);
 }
 
 glm::vec3 Hand::leapPositionToWorldPosition(const glm::vec3& leapPosition) {
@@ -69,6 +75,10 @@ void Hand::calculateGeometry() {
 
 void Hand::render(bool lookingInMirror) {
 
+    if (_particleSystemInitialized) {
+        _particleSystem.render();    
+    }
+        
     _renderAlpha = 1.0;
     _lookingInMirror = lookingInMirror;
     
@@ -161,5 +171,54 @@ void Hand::setLeapHands(const std::vector<glm::vec3>& handPositions,
     _handPositions = handPositions;
     _handNormals = handNormals;
 }
+
+
+void Hand::updateFingerParticles(float deltaTime) {
+
+    if (!_particleSystemInitialized) {
+        for ( int f = 0; f< NUM_FINGERS_PER_HAND; f ++ ) {
+            _fingerParticleEmitter[f] = _particleSystem.addEmitter();
+            _particleSystem.setShowingEmitter(_fingerParticleEmitter[f], true);
+        }
+        _particleSystemInitialized = true;         
+    } else {
+        // update the particles
+        
+        static float t = 0.0f;
+        t += deltaTime;
+                
+        for ( int f = 0; f< _fingerTips.size(); f ++ ) {
+            
+            if (_fingerParticleEmitter[f] != -1) {
+                    
+                glm::vec3 particleEmitterPosition = leapPositionToWorldPosition(_fingerTips[f]);
+                       
+                // this aspect is still being designed....
+                       
+                glm::vec3 tilt = glm::vec3
+                (
+                    30.0f * sinf( t * 0.55f ),
+                    0.0f,
+                    30.0f * cosf( t * 0.75f )
+                );
+                
+                glm::quat particleEmitterRotation = glm::quat(glm::radians(tilt));
+
+                _particleSystem.setEmitterPosition(_fingerParticleEmitter[0], particleEmitterPosition);
+                _particleSystem.setEmitterRotation(_fingerParticleEmitter[0], particleEmitterRotation);
+                
+                float radius = 0.005f;
+                glm::vec4 color(1.0f, 0.6f, 0.0f, 0.5f);
+                glm::vec3 velocity(0.0f, 0.005f, 0.0f);
+                float lifespan = 0.3f;
+                _particleSystem.emitParticlesNow(_fingerParticleEmitter[0], 1, radius, color, velocity, lifespan); 
+            }  
+        }
+        
+        _particleSystem.setUpDirection(glm::vec3(0.0f, 1.0f, 0.0f));  
+        _particleSystem.simulate(deltaTime); 
+    }
+}
+
 
 
