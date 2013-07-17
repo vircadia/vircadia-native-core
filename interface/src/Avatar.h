@@ -118,7 +118,8 @@ public:
                                     const glm::vec3& amplifyAngle,
                                     float yawFromTouch,
                                     float pitchFromTouch);
-    void addBodyYaw(float y) {_bodyYaw += y;};
+    void addBodyYaw(float bodyYaw) {_bodyYaw += bodyYaw;};
+    void addBodyYawDelta(float bodyYawDelta) {_bodyYawDelta += bodyYawDelta;}
     void render(bool lookingInMirror, bool renderAvatarBalls);
 
     //setters
@@ -155,6 +156,7 @@ public:
     float            getElapsedTimeStopped     ()                const { return _elapsedTimeStopped;}
     float            getElapsedTimeMoving      ()                const { return _elapsedTimeMoving;}
     float            getElapsedTimeSinceCollision()              const { return _elapsedTimeSinceCollision;}
+    const glm::vec3& getLastCollisionPosition  ()                const { return _lastCollisionPosition;}
     float            getAbsoluteHeadYaw        () const;
     float            getAbsoluteHeadPitch      () const;
     Head&            getHead                   () {return _head; }
@@ -245,6 +247,7 @@ private:
     float       _elapsedTimeMoving;             //  Timers to drive camera transitions when moving
     float       _elapsedTimeStopped;
     float       _elapsedTimeSinceCollision;
+    glm::vec3   _lastCollisionPosition;
     bool        _speedBrakes;
     bool        _isThrustOn;
     
