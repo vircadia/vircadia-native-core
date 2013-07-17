@@ -1011,12 +1011,6 @@ int VoxelTree::encodeTreeBitstream(VoxelNode* node, unsigned char* outputBuffer,
     // How many bytes have we written so far at this level;
     int bytesWritten = 0;
     
-    // These two cases should not ever happen... but if they do, we don't want to crash.
-    if (!node || !node->getOctalCode()) {
-        qDebug("VoxelTree::encodeTreeBitstream() BAD VoxelNode! Bailing!");
-        return bytesWritten;
-    }
-
     // If we're at a node that is out of view, then we can return, because no nodes below us will be in view!
     if (params.viewFrustum && !node->isInView(*params.viewFrustum)) {
         return bytesWritten;
