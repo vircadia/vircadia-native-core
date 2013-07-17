@@ -525,8 +525,6 @@ void runTimingTests() {
     gettimeofday(&endTime, NULL);
     elapsedMsecs = diffclock(&startTime, &endTime);
     qDebug("vec3 assign and dot() usecs: %f\n", 1000.0f * elapsedMsecs / (float) numTests);
-
-    
 }
 
 float loadSetting(QSettings* settings, const char* name, float defaultValue) {

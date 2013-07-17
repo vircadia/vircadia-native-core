@@ -55,6 +55,7 @@
 #include <PacketHeaders.h>
 #include <PairingHandler.h>
 #include <PerfStat.h>
+#include <math.h>
 
 #include "Application.h"
 #include "InterfaceConfig.h"
@@ -196,6 +197,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _mousePressed(false),
         _mouseVoxelScale(1.0f / 1024.0f),
         _justEditedVoxel(false),
+        _isLookingAtOtherAvatar(false),
         _paintOn(false),
         _dominantColor(0),
         _perfStatsOn(false),
@@ -1881,11 +1883,32 @@ bool Application::isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3& m
             glm::vec3 headPosition = avatar->getHead().getPosition();
             if (rayIntersectsSphere(mouseRayOrigin, mouseRayDirection, headPosition, HEAD_SPHERE_RADIUS)) {
                 eyePosition = avatar->getHead().getEyeLevelPosition();
+                renderLookatIndicator(headPosition);
                 return true;
             }
         }
     }
     return false;
+}
+
+void Application::renderLookatIndicator(glm::vec3& pointOfInterest) {
+    // Render a circle between me and the avatar in question.
+
+    // I need a vector that is perpendicular to the vector from my camera position to the head position.
+    // Start by locating point on vector that will be the center of the circle.
+    glm::vec3 direction = glm::normalize(pointOfInterest - _myCamera.getPosition());
+    const float DISTANCE_FROM_HEAD_SPHERE = 0.1f;
+    glm::vec3 indicatorOrigin = pointOfInterest - DISTANCE_FROM_HEAD_SPHERE * direction;
+    // Then find a perpendicular vector/point
+    // const float ARB_X = 1.0f;
+    // const float ARB_Y = 1.0f;
+
+    // float z = - (direction.x * ARB_X + direction.y * ARB_Y) / direction.z;
+    // glm::vec3 perpendicular(ARB_X, ARB_Y, z);
+    // perpendicular = glm::normalize(perpendicular);
+    // glm::vec3 startingVertex = indicatorOrigin + perpendicular;
+    renderCircle(indicatorOrigin, 0.1, direction, 30);
+
 }
 
 void Application::update(float deltaTime) {
@@ -1915,7 +1938,7 @@ void Application::update(float deltaTime) {
     
     // Set where I am looking based on my mouse ray (so that other people can see)
     glm::vec3 eyePosition;
-    if (isLookingAtOtherAvatar(mouseRayOrigin, mouseRayDirection, eyePosition)) {
+    if (_isLookingAtOtherAvatar = isLookingAtOtherAvatar(mouseRayOrigin, mouseRayDirection, eyePosition)) {
         // If the mouse is over another avatar's head...
         glm::vec3 myLookAtFromMouse(eyePosition);
          _myAvatar.getHead().setLookAtPosition(myLookAtFromMouse);
@@ -1932,7 +1955,7 @@ void Application::update(float deltaTime) {
         glm::vec3 front = orientation * IDENTITY_FRONT;
         glm::vec3 up = orientation * IDENTITY_UP;
         glm::vec3 towardVoxel = getMouseVoxelWorldCoordinates(_mouseVoxelDragging)
-                                - _myAvatar.getCameraPosition();
+                                - _myAvatar.getCameraPosition(); // is this an error? getCameraPosition dne
         towardVoxel = front * glm::length(towardVoxel);
         glm::vec3 lateralToVoxel = glm::cross(up, glm::normalize(towardVoxel)) * glm::length(towardVoxel);
         _voxelThrust = glm::vec3(0, 0, 0);
@@ -2176,7 +2199,7 @@ void Application::updateAvatar(float deltaTime) {
         _viewFrustum.computePickRay(MIDPOINT_OF_SCREEN, MIDPOINT_OF_SCREEN, screenCenterRayOrigin, screenCenterRayDirection);
 
         glm::vec3 eyePosition;
-        if (isLookingAtOtherAvatar(screenCenterRayOrigin, screenCenterRayDirection, eyePosition)) {
+        if (_isLookingAtOtherAvatar = isLookingAtOtherAvatar(screenCenterRayOrigin, screenCenterRayDirection, eyePosition)) {
             glm::vec3 myLookAtFromMouse(eyePosition);
             _myAvatar.getHead().setLookAtPosition(myLookAtFromMouse);
         }
@@ -2204,7 +2227,7 @@ void Application::updateAvatar(float deltaTime) {
     // actually need to calculate the view frustum planes to send these details 
     // to the server.
     loadViewFrustum(_myCamera, _viewFrustum);
-    _myAvatar.setCameraPosition(_viewFrustum.getPosition());
+    _myAvatar.setCameraPosition(_viewFrustum.getPosition()); // setCameraPosition() dne
     _myAvatar.setCameraOrientation(_viewFrustum.getOrientation());
     _myAvatar.setCameraFov(_viewFrustum.getFieldOfView());
     _myAvatar.setCameraAspectRatio(_viewFrustum.getAspectRatio());
