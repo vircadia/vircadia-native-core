@@ -19,8 +19,6 @@
 #include <SharedUtil.h>
 #include <vector>
 
-const int NUM_FINGERS_PER_HAND = 5;
-
 class Avatar;
 class ProgramObject;
 
@@ -68,8 +66,6 @@ private:
     bool        _lookingInMirror;
     bool        _isRaveGloveActive;
     glm::vec3   _ballColor;
-//    glm::vec3   _position;
-//    glm::quat   _orientation;
     std::vector<HandBall>	_leapBalls;
     
     bool _particleSystemInitialized;

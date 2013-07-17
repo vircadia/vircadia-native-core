@@ -19,6 +19,8 @@ class AvatarData;
 class FingerData;
 class PalmData;
 
+const int NUM_FINGERS_PER_HAND = 5;
+
 class HandData {
 public:
     HandData(AvatarData* owningAvatar);

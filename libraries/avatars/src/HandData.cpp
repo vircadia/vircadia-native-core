@@ -23,7 +23,7 @@ _rawNormal(0, 1, 0),
 _isActive(false),
 _owningHandData(owningHandData)
 {
-    for (int i = 0; i < 5; ++i)
+    for (int i = 0; i < NUM_FINGERS_PER_HAND; ++i)
         _fingers.push_back(FingerData(this, owningHandData));
 }
 
