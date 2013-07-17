@@ -620,13 +620,15 @@ void Audio::addProceduralSounds(int16_t* inputBuffer,
     const float COLLISION_SOUND_CUTOFF_LEVEL = 0.01f;
     const float COLLISION_SOUND_MAX_VOLUME = 1000.f;
     const float UP_MAJOR_FIFTH = powf(1.5f, 4.0f);
+    const float DOWN_TWO_OCTAVES = 4.f;
+    const float DOWN_FOUR_OCTAVES = 16.f;
     float t;
     if (_collisionSoundMagnitude > COLLISION_SOUND_CUTOFF_LEVEL) {
         for (int i = 0; i < numSamples; i++) {
             t = (float) _proceduralEffectSample + (float) i;
             sample = sinf(t * _collisionSoundFrequency) +
-                     sinf(t * _collisionSoundFrequency / 4.f) +
-                     sinf(t * _collisionSoundFrequency / 16.f * UP_MAJOR_FIFTH);
+                     sinf(t * _collisionSoundFrequency / DOWN_TWO_OCTAVES) +
+                     sinf(t * _collisionSoundFrequency / DOWN_FOUR_OCTAVES * UP_MAJOR_FIFTH);
             sample *= _collisionSoundMagnitude * COLLISION_SOUND_MAX_VOLUME;
             inputBuffer[i] += sample;
             outputLeft[i] += sample;
@@ -638,7 +640,7 @@ void Audio::addProceduralSounds(int16_t* inputBuffer,
 }
 
 //
-//  Starts a collision sound.  magnitude is 0-1, with 1 the loudest possible sound.
+//  Starts a collision sound.  magnitude is 0-1, with 1 the loudest possible sound. 
 //
 void Audio::startCollisionSound(float magnitude, float frequency, float noise, float duration) {
     _collisionSoundMagnitude = magnitude;

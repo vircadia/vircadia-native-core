@@ -881,12 +881,13 @@ void Avatar::updateCollisionWithEnvironment(float deltaTime) {
     const float ENVIRONMENT_SURFACE_ELASTICITY = 1.0f;
     const float ENVIRONMENT_SURFACE_DAMPING = 0.01;
     const float ENVIRONMENT_COLLISION_FREQUENCY = 0.05f;
+    const float VISIBLE_GROUND_COLLISION_VELOCITY = 0.2f;
     glm::vec3 penetration;
     if (Application::getInstance()->getEnvironment()->findCapsulePenetration(
                                                                              _position - up * (_pelvisFloatingHeight - radius),
                                                                              _position + up * (_height - _pelvisFloatingHeight - radius), radius, penetration)) {
         float velocityTowardCollision = glm::dot(_velocity, glm::normalize(penetration));
-        if (velocityTowardCollision > 0.2) {
+        if (velocityTowardCollision > VISIBLE_GROUND_COLLISION_VELOCITY) {
             Application::getInstance()->setGroundPlaneImpact(1.0f);
         }
         updateCollisionSound(penetration, deltaTime, ENVIRONMENT_COLLISION_FREQUENCY);
