@@ -27,7 +27,6 @@ using namespace xn;
 
 // register types with Qt metatype system
 int jointVectorMetaType = qRegisterMetaType<JointVector>("JointVector");
-int keyPointVectorMetaType = qRegisterMetaType<KeyPointVector>("KeyPointVector"); 
 int matMetaType = qRegisterMetaType<Mat>("cv::Mat");
 int rotatedRectMetaType = qRegisterMetaType<RotatedRect>("cv::RotatedRect");
 
@@ -133,18 +132,8 @@ void Webcam::renderPreview(int screenWidth, int screenHeight) {
             glVertex2f(left + facePoints[3].x * xScale, top + facePoints[3].y * yScale);
         glEnd();
         
-        if (!_keyPoints.empty()) {
-            glColor3f(0.0f, 1.0f, 0.0f);
-            glBegin(GL_POINTS);
-            for (KeyPointVector::iterator it = _keyPoints.begin(); it != _keyPoints.end(); it++) {
-                glVertex2f(left + it->pt.x * xScale, top + it->pt.y * yScale);
-            }
-            glEnd();
-        }
-        
         char fps[30];
-        sprintf(fps, "FPS: %d, Points: %d", (int)(roundf(_frameCount * 1000000.0f / (usecTimestampNow() - _startTimestamp))),
-            (int)_keyPoints.size());
+        sprintf(fps, "FPS: %d", (int)(roundf(_frameCount * 1000000.0f / (usecTimestampNow() - _startTimestamp))));
         drawtext(left, top + PREVIEW_HEIGHT + 20, 0.10, 0, 1, 0, fps);
     }
 }
@@ -157,8 +146,7 @@ Webcam::~Webcam() {
     delete _grabber;
 }
 
-void Webcam::setFrame(const Mat& color, int format, const Mat& depth, const Mat& depthPreview,
-        const RotatedRect& faceRect, const KeyPointVector& keyPoints, const JointVector& joints) {
+void Webcam::setFrame(const Mat& color, int format, const Mat& depth, const RotatedRect& faceRect, const JointVector& joints) {
     IplImage colorImage = color;
     glPixelStorei(GL_UNPACK_ROW_LENGTH, colorImage.widthStep / 3);
     if (_colorTextureID == 0) {
@@ -175,15 +163,16 @@ void Webcam::setFrame(const Mat& color, int format, const Mat& depth, const Mat&
             GL_UNSIGNED_BYTE, colorImage.imageData);
     }
     
-    if (!depthPreview.empty()) {
-        IplImage depthImage = depthPreview;
+    if (!depth.empty()) {
+        IplImage depthImage = depth;
         glPixelStorei(GL_UNPACK_ROW_LENGTH, depthImage.widthStep);
         if (_depthTextureID == 0) {
             glGenTextures(1, &_depthTextureID);
             glBindTexture(GL_TEXTURE_2D, _depthTextureID);
             glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, depthImage.width, depthImage.height, 0,
                 GL_LUMINANCE, GL_UNSIGNED_BYTE, depthImage.imageData);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
             
         } else {
             glBindTexture(GL_TEXTURE_2D, _depthTextureID);
@@ -197,7 +186,6 @@ void Webcam::setFrame(const Mat& color, int format, const Mat& depth, const Mat&
     // store our face rect and joints, update our frame count for fps computation
     _faceRect = faceRect;
     _joints = joints;
-    _keyPoints = keyPoints;
     _frameCount++;
     
     const int MAX_FPS = 60;
@@ -288,7 +276,7 @@ void Webcam::setFrame(const Mat& color, int format, const Mat& depth, const Mat&
     QTimer::singleShot(qMax((int)remaining / 1000, 0), _grabber, SLOT(grabFrame()));
 }
 
-FrameGrabber::FrameGrabber() : _initialized(false), _capture(0), _searchWindow(0, 0, 0, 0), _depthOffset(-512.0) {
+FrameGrabber::FrameGrabber() : _initialized(false), _capture(0), _searchWindow(0, 0, 0, 0), _depthOffset(0.0) {
 }
 
 FrameGrabber::~FrameGrabber() {
@@ -501,7 +489,7 @@ void FrameGrabber::grabFrame() {
         
         faceRect = CamShift(_backProject, _searchWindow, TermCriteria(CV_TERMCRIT_EPS | CV_TERMCRIT_ITER, 10, 1));
         Rect faceBounds = faceRect.boundingRect();
-        Rect imageBounds(0, 0, depth.cols, depth.rows);
+        Rect imageBounds(0, 0, color.cols, color.rows);
         _searchWindow = Rect(clip(faceBounds.tl(), imageBounds), clip(faceBounds.br(), imageBounds));
     }
 
@@ -509,31 +497,16 @@ void FrameGrabber::grabFrame() {
     if (_depthGenerator.IsValid()) {
         if (_searchWindow.area() > 0) {
             const double DEPTH_OFFSET_SMOOTHING = 0.95;
-            _depthOffset = glm::mix(128.0 - mean(depth(_searchWindow))[0], _depthOffset, DEPTH_OFFSET_SMOOTHING);
+            double meanOffset = 128.0 - mean(depth(_searchWindow))[0];
+            _depthOffset = (_depthOffset == 0.0) ? meanOffset : glm::mix(meanOffset, _depthOffset, DEPTH_OFFSET_SMOOTHING);
         }
         depth.convertTo(_grayDepthFrame, CV_8UC1, 1.0, _depthOffset);
     }
 #endif
 
-    KeyPointVector keyPoints;
-    if (!_hsvFrame.empty()) {
-        _grayFrame.create(_hsvFrame.rows, _hsvFrame.cols, CV_8UC1);
-        int fromTo[] = { 2, 0 };
-        Mat hsvInner = _hsvFrame(_searchWindow);
-        Mat grayInner = _grayFrame(_searchWindow);
-        mixChannels(&hsvInner, 1, &grayInner, 1, fromTo, 1);
-        FAST(grayInner, keyPoints, 4);
-    
-        // offset the detected points
-        for (KeyPointVector::iterator it = keyPoints.begin(); it != keyPoints.end(); it++) {
-            it->pt.x += _searchWindow.x;
-            it->pt.y += _searchWindow.y;
-        }
-    }
-    
     QMetaObject::invokeMethod(Application::getInstance()->getWebcam(), "setFrame",
-        Q_ARG(cv::Mat, color), Q_ARG(int, format), Q_ARG(cv::Mat, depth), Q_ARG(cv::Mat, _grayDepthFrame),
-        Q_ARG(cv::RotatedRect, faceRect), Q_ARG(KeyPointVector, keyPoints), Q_ARG(JointVector, joints));
+        Q_ARG(cv::Mat, color), Q_ARG(int, format), Q_ARG(cv::Mat, _grayDepthFrame),
+        Q_ARG(cv::RotatedRect, faceRect), Q_ARG(JointVector, joints));
 }
 
 bool FrameGrabber::init() {

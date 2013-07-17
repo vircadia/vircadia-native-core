@@ -33,7 +33,6 @@ class FrameGrabber;
 class Joint;
 
 typedef QVector<Joint> JointVector;
-typedef std::vector<cv::KeyPoint> KeyPointVector;
 
 class Webcam : public QObject {
     Q_OBJECT
@@ -48,7 +47,6 @@ public:
     GLuint getColorTextureID() const { return _colorTextureID; }
     GLuint getDepthTextureID() const { return _depthTextureID; }
     const cv::Size2f& getTextureSize() const { return _textureSize; }
-    const KeyPointVector& getKeyPoints() const { return _keyPoints; }
     
     const cv::RotatedRect& getEstimatedFaceRect() const { return _estimatedFaceRect; }
     const glm::vec3& getEstimatedPosition() const { return _estimatedPosition; }
@@ -61,8 +59,8 @@ public:
 public slots:
     
     void setEnabled(bool enabled);
-    void setFrame(const cv::Mat& color, int format, const cv::Mat& depth, const cv::Mat& depthPreview,
-        const cv::RotatedRect& faceRect, const KeyPointVector& keyPoints, const JointVector& joints);
+    void setFrame(const cv::Mat& color, int format, const cv::Mat& depth,
+        const cv::RotatedRect& faceRect, const JointVector& joints);
     
 private:
     
@@ -76,7 +74,6 @@ private:
     cv::Size2f _textureSize;
     cv::RotatedRect _faceRect;
     cv::RotatedRect _initialFaceRect;
-    KeyPointVector _keyPoints;
     JointVector _joints;
     
     uint64_t _startTimestamp;
@@ -113,7 +110,6 @@ private:
     CvCapture* _capture;
     cv::CascadeClassifier _faceCascade;
     cv::Mat _hsvFrame;
-    cv::Mat _grayFrame;
     cv::Mat _mask;
     cv::SparseMat _histogram;
     cv::Mat _backProject;
@@ -145,7 +141,6 @@ public:
 };
 
 Q_DECLARE_METATYPE(JointVector)
-Q_DECLARE_METATYPE(KeyPointVector)
 Q_DECLARE_METATYPE(cv::Mat)
 Q_DECLARE_METATYPE(cv::RotatedRect)
 

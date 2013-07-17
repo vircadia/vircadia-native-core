@@ -14,7 +14,6 @@
 #include <opencv2/opencv.hpp>
 
 #include "InterfaceConfig.h"
-#include "Webcam.h"
 
 class Head;
 class ProgramObject;
@@ -30,7 +29,6 @@ public:
     void setDepthTextureID(GLuint depthTextureID) { _depthTextureID = depthTextureID; }
     void setTextureSize(const cv::Size2f& textureSize) { _textureSize = textureSize; }
     void setTextureRect(const cv::RotatedRect& textureRect) { _textureRect = textureRect; }
-    void setKeyPoints(const KeyPointVector& keyPoints) { _keyPoints = keyPoints; }
     
     bool render(float alpha);
     
@@ -40,7 +38,7 @@ public slots:
     
 private:
 
-    enum RenderMode { MESH, POINTS, KEY_POINTS, RENDER_MODE_COUNT };
+    enum RenderMode { MESH, POINTS, RENDER_MODE_COUNT };
 
     Head* _owningHead;
     RenderMode _renderMode;
@@ -48,7 +46,6 @@ private:
     GLuint _depthTextureID;
     cv::Size2f _textureSize;
     cv::RotatedRect _textureRect;
-    KeyPointVector _keyPoints;
     
     static ProgramObject* _program;
     static int _texCoordCornerLocation;

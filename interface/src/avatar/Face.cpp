@@ -22,7 +22,7 @@ int Face::_texCoordUpLocation;
 GLuint Face::_vboID;
 GLuint Face::_iboID;
 
-Face::Face(Head* owningHead) : _owningHead(owningHead), _renderMode(POINTS), _colorTextureID(0), _depthTextureID(0) {
+Face::Face(Head* owningHead) : _owningHead(owningHead), _renderMode(MESH), _colorTextureID(0), _depthTextureID(0) {
 }
 
 bool Face::render(float alpha) {
@@ -130,27 +130,10 @@ bool Face::render(float alpha) {
             glDrawRangeElementsEXT(GL_TRIANGLES, 0, VERTEX_COUNT - 1, INDEX_COUNT, GL_UNSIGNED_INT, 0);
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
         
-        } else if (_renderMode == POINTS) {
+        } else { // _renderMode == POINTS
             glPointSize(5.0f);
             glDrawArrays(GL_POINTS, 0, VERTEX_COUNT);
             glPointSize(1.0f);
-        
-        } else if (_renderMode == KEY_POINTS) {
-            glPointSize(10.0f);
-            float widthSquared = _textureRect.size.width * _textureRect.size.width;
-            float heightSquared = _textureRect.size.height * _textureRect.size.height;
-            float rightX = (points[3].x - points[0].x) / widthSquared;
-            float rightY = (points[3].y - points[0].y) / widthSquared;
-            float upX = (points[1].x - points[0].x) / heightSquared;
-            float upY = (points[1].y - points[0].y) / heightSquared;
-            glBegin(GL_POINTS);
-            for (KeyPointVector::iterator it = _keyPoints.begin(); it != _keyPoints.end(); it++) { 
-                float relativeX = it->pt.x - points[0].x;
-                float relativeY = it->pt.y - points[0].y;
-                glVertex2f(relativeX * rightX + relativeY * rightY, relativeX * upX + relativeY * upY);
-            }
-            glEnd();
-            glPointSize(1.0f);    
         }
         
         glDisable(GL_ALPHA_TEST);
