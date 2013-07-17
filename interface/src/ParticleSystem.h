@@ -42,17 +42,15 @@ public:
     void emitParticlesNow(int emitterIndex, int numParticles, float radius, glm::vec4 color, glm::vec3 velocity, float lifespan);
     void simulate(float deltaTime);
     void render();
+
+    void setUpDirection(glm::vec3 upDirection) {_upDirection = upDirection;} // tell particle system which direction is up
     void setEmitterBaseParticle(int emitterIndex, bool showing );
     void setEmitterBaseParticle(int emitterIndex, bool showing, float radius, glm::vec4 color );
-     
-    void setOrangeBlueColorPalette(); // apply a nice preset color palette to the particles
-    void setUpDirection(glm::vec3 upDirection) {_upDirection = upDirection;} // tell particle system which direction is up
-    void setParticleAttributes(int emitterIndex,                ParticleAttributes attributes);
-    void setParticleAttributes(int emitterIndex, int lifeStage, ParticleAttributes attributes);
-    void setCollisionSphere   (int emitterIndex, glm::vec3 position, float radius);  // specify a sphere for the particles to collide with
-    void setEmitterPosition   (int emitterIndex, glm::vec3 position) { _emitter[emitterIndex].position = position; } // set position of emitter
-    void setEmitterRotation   (int emitterIndex, glm::quat rotation) { _emitter[emitterIndex].rotation = rotation; } // set rotation of emitter
-    void setShowingEmitter    (int emitterIndex, bool showing      ) { _emitter[emitterIndex].visible  = showing;  } // set its visibiity
+    void setParticleAttributes (int emitterIndex,                ParticleAttributes attributes);
+    void setParticleAttributes (int emitterIndex, int lifeStage, ParticleAttributes attributes);
+    void setEmitterPosition    (int emitterIndex, glm::vec3 position) { _emitter[emitterIndex].position = position; } // set position of emitter
+    void setEmitterRotation    (int emitterIndex, glm::quat rotation) { _emitter[emitterIndex].rotation = rotation; } // set rotation of emitter
+    void setShowingEmitter     (int emitterIndex, bool showing      ) { _emitter[emitterIndex].visible  = showing;  } // set its visibiity
     
 private:
     

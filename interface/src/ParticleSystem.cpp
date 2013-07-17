@@ -147,7 +147,7 @@ void ParticleSystem::killParticle(int p) {
     _numParticles --;
 }
 
-
+/*
 void ParticleSystem::setOrangeBlueColorPalette() {
 
     for (unsigned int p = 0; p < _numParticles; p++) {
@@ -163,6 +163,7 @@ void ParticleSystem::setOrangeBlueColorPalette() {
         _particle[p].color = glm::vec4(red, green, blue, alpha);
     }
 }
+*/
 
 
 void ParticleSystem::setParticleAttributes(int emitterIndex, ParticleAttributes attributes) {
@@ -201,13 +202,7 @@ void ParticleSystem::updateParticle(int p, float deltaTime) {
     int lifeStage = (int)( ageFraction * (NUM_PARTICLE_LIFE_STAGES-1) );
 
     float lifeStageFraction = ageFraction * ( NUM_PARTICLE_LIFE_STAGES - 1 ) - lifeStage;
-    
-    /*
-    if ( p == 0 ) {
-        printf( "lifespan = %f    ageFraction = %f   lifeStage = %d   lifeStageFraction = %f\n", _particle[p].lifespan, ageFraction, lifeStage, lifeStageFraction );
-    }
-    */
-    
+        
     _particle[p].radius
     = _emitter[_particle[p].emitterIndex].particleAttributes[lifeStage  ].radius * (1.0f - lifeStageFraction)
     + _emitter[_particle[p].emitterIndex].particleAttributes[lifeStage+1].radius * lifeStageFraction;
@@ -294,6 +289,7 @@ void ParticleSystem::updateParticle(int p, float deltaTime) {
     _particle[p].age += deltaTime;    
 }
 
+/*
 void ParticleSystem::setCollisionSphere(int e, glm::vec3 position, float radius) {
 
     int lifeStage = 0;
@@ -302,6 +298,7 @@ void ParticleSystem::setCollisionSphere(int e, glm::vec3 position, float radius)
     _emitter[e].particleAttributes[lifeStage].collisionSpherePosition = position; 
     _emitter[e].particleAttributes[lifeStage].collisionSphereRadius   = radius;
 }
+*/
 
 void ParticleSystem::setEmitterBaseParticle(int emitterIndex, bool showing ) {
 
