@@ -98,6 +98,7 @@ Avatar::Avatar(Node* owningNode) :
     _elapsedTimeMoving(0.0f),
     _elapsedTimeStopped(0.0f),
     _elapsedTimeSinceCollision(0.0f),
+    _lastCollisionPosition(0, 0, 0),
     _speedBrakes(false),
     _isThrustOn(false),
     _voxels(this)
@@ -541,11 +542,11 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
             // For gravity, always move the avatar by the amount driven by gravity, so that the collision
             // routines will detect it and collide every frame when pulled by gravity to a surface
             //
-
-            _velocity += _scale * _gravity * (GRAVITY_EARTH * deltaTime);
-            _position += _scale * _gravity * (GRAVITY_EARTH * deltaTime) * deltaTime;
+            const float MIN_DISTANCE_AFTER_COLLISION_FOR_GRAVITY = 0.02f;
+            if (glm::length(_position - _lastCollisionPosition) > MIN_DISTANCE_AFTER_COLLISION_FOR_GRAVITY) {
+                _velocity += _scale * _gravity * (GRAVITY_EARTH * deltaTime);
+            }
         }
-
         updateCollisionWithEnvironment(deltaTime);
         updateCollisionWithVoxels(deltaTime);
         updateAvatarCollisions(deltaTime);
@@ -890,11 +891,9 @@ void Avatar::updateCollisionWithEnvironment(float deltaTime) {
         if (velocityTowardCollision > VISIBLE_GROUND_COLLISION_VELOCITY) {
             Application::getInstance()->setGroundPlaneImpact(1.0f);
         }
+        _lastCollisionPosition = _position;
         updateCollisionSound(penetration, deltaTime, ENVIRONMENT_COLLISION_FREQUENCY);
-        
         applyHardCollision(penetration, ENVIRONMENT_SURFACE_ELASTICITY, ENVIRONMENT_SURFACE_DAMPING);
-        
-        
     }
 }
 
@@ -908,6 +907,7 @@ void Avatar::updateCollisionWithVoxels(float deltaTime) {
     if (Application::getInstance()->getVoxels()->findCapsulePenetration(
                                                                         _position - glm::vec3(0.0f, _pelvisFloatingHeight - radius, 0.0f),
                                                                         _position + glm::vec3(0.0f, _height - _pelvisFloatingHeight - radius, 0.0f), radius, penetration)) {
+        _lastCollisionPosition = _position;
         updateCollisionSound(penetration, deltaTime, VOXEL_COLLISION_FREQUENCY);
         applyHardCollision(penetration, VOXEL_ELASTICITY, VOXEL_DAMPING);
     }
