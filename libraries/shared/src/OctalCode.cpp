@@ -7,6 +7,7 @@
 //
 
 #include <algorithm> // std:min
+#include <cassert>
 #include <cmath>
 #include <cstring>
 
@@ -16,6 +17,7 @@
 #include "OctalCode.h"
 
 int numberOfThreeBitSectionsInCode(unsigned char * octalCode) {
+    assert(octalCode);
     if (*octalCode == 255) {
         return *octalCode + numberOfThreeBitSectionsInCode(octalCode + 1);
     } else {
