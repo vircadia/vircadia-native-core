@@ -542,10 +542,9 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
             // For gravity, always move the avatar by the amount driven by gravity, so that the collision
             // routines will detect it and collide every frame when pulled by gravity to a surface
             //
-            const float MIN_DISTANCE_AFTER_COLLISION_FOR_GRAVITY = 0.01f;
+            const float MIN_DISTANCE_AFTER_COLLISION_FOR_GRAVITY = 0.02f;
             if (glm::length(_position - _lastCollisionPosition) > MIN_DISTANCE_AFTER_COLLISION_FOR_GRAVITY) {
                 _velocity += _scale * _gravity * (GRAVITY_EARTH * deltaTime);
-                _position += _scale * _gravity * (GRAVITY_EARTH * deltaTime) * deltaTime;
             }
         }
         updateCollisionWithEnvironment(deltaTime);
