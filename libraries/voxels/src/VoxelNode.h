@@ -85,6 +85,7 @@ public:
     void clearDirtyBit() { _isDirty = false; };
     bool hasChangedSince(uint64_t time) const { return (_lastChanged > time);  };
     void markWithChangedTime() { _lastChanged = usecTimestampNow();  };
+    uint64_t getLastChanged() const { return _lastChanged; };
     void handleSubtreeChanged(VoxelTree* myTree);
     
     glBufferIndex getBufferIndex() const { return _glBufferIndex; };

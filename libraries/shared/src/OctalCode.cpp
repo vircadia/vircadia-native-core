@@ -6,14 +6,18 @@
 //  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
 
-#include <cmath>
 #include <algorithm> // std:min
+#include <cassert>
+#include <cmath>
 #include <cstring>
+
+#include <QDebug>
+
 #include "SharedUtil.h"
 #include "OctalCode.h"
-#include "Log.h"
 
 int numberOfThreeBitSectionsInCode(unsigned char * octalCode) {
+    assert(octalCode);
     if (*octalCode == 255) {
         return *octalCode + numberOfThreeBitSectionsInCode(octalCode + 1);
     } else {
@@ -23,12 +27,12 @@ int numberOfThreeBitSectionsInCode(unsigned char * octalCode) {
 
 void printOctalCode(unsigned char * octalCode) {
     if (!octalCode) {
-        printLog("NULL\n");
+        qDebug("NULL\n");
     } else {
         for (int i = 0; i < bytesRequiredForCodeLength(*octalCode); i++) {
             outputBits(octalCode[i],false);
         }
-        printLog("\n");
+        qDebug("\n");
     }
 }
 

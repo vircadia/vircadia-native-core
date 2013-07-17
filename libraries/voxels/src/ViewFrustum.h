@@ -3,9 +3,9 @@
 //  hifi
 //
 //  Created by Brad Hefta-Gaub on 04/11/13.
+//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
 //  Simple view frustum class.
-//
 //
 
 #ifndef __hifi__ViewFrustum__
@@ -13,8 +13,10 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
-#include "Plane.h"
+
 #include "AABox.h"
+#include "Plane.h"
+
 #include "VoxelProjectedPolygon.h"
 
 const float DEFAULT_KEYHOLE_RADIUS = 3.0f;
@@ -135,7 +137,7 @@ private:
     glm::vec3   _nearBottomLeft;
     glm::vec3   _nearBottomRight;
     enum { TOP_PLANE = 0, BOTTOM_PLANE, LEFT_PLANE, RIGHT_PLANE, NEAR_PLANE, FAR_PLANE };
-    Plane _planes[6]; // How will this be used?
+    ::Plane _planes[6]; // How will this be used?
     
     const char* debugPlaneName (int plane) const;
     

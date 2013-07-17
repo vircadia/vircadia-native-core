@@ -10,12 +10,13 @@
 //
 //
 
-#include "PerfStat.h"
 #include <cstdio>
-#include <string>
 #include <map>
+#include <string>
 
-#include "Log.h"
+#include <QDebug>
+
+#include "PerfStat.h"
 
 // Static class members initialization here!
 std::map<std::string,PerfStatHistory,std::less<std::string> > PerfStat::groupHistoryMap;
@@ -58,11 +59,11 @@ PerfStat::~PerfStat() {
 	}
 
 	if (wantDebugOut) {	
-		printLog("PerfStats: %s elapsed:%f average:%lf count:%ld total:%lf ut:%d us:%d ue:%d t:%ld s:%ld e:%ld\n",
-			this->group.c_str(),elapsed,average,count,totalTime,
-			(end.tv_usec-start.tv_usec),start.tv_usec,end.tv_usec,
-			(end.tv_sec-start.tv_sec),start.tv_sec,end.tv_sec
-		);
+		qDebug("PerfStats: %s elapsed:%f average:%lf count:%ld total:%lf ut:%d us:%d ue:%d t:%ld s:%ld e:%ld\n",
+               this->group.c_str(),elapsed,average,count,totalTime,
+               (end.tv_usec-start.tv_usec),start.tv_usec,end.tv_usec,
+               (end.tv_sec-start.tv_sec),start.tv_sec,end.tv_sec
+        );
 	}
 };
 
@@ -110,12 +111,12 @@ PerformanceWarning::~PerformanceWarning() {
     if ((_alwaysDisplay || _renderWarningsOn) && elapsedmsec > 1) {
         if (elapsedmsec > 1000) {
             double elapsedsec = (end - _start) / 1000000.0;
-            printLog("%s%s took %lf seconds\n", (_alwaysDisplay ? "" : "WARNING!"), _message, elapsedsec);
+            qDebug("%s%s took %lf seconds\n", (_alwaysDisplay ? "" : "WARNING!"), _message, elapsedsec);
         } else {
-            printLog("%s%s took %lf milliseconds\n", (_alwaysDisplay ? "" : "WARNING!"), _message, elapsedmsec);
+            qDebug("%s%s took %lf milliseconds\n", (_alwaysDisplay ? "" : "WARNING!"), _message, elapsedmsec);
         }
     } else if (_alwaysDisplay) {
-        printLog("%s took %lf milliseconds\n", _message, elapsedmsec);
+        qDebug("%s took %lf milliseconds\n", _message, elapsedmsec);
     }
 };
 

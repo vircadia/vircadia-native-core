@@ -10,18 +10,21 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
-#include <AvatarData.h>
+
 #include <QSettings>
-#include "world.h"
+
+#include <AvatarData.h>
+
 #include "AvatarTouch.h"
 #include "AvatarVoxelSystem.h"
-#include "InterfaceConfig.h"
-#include "SerialInterface.h"
 #include "Balls.h"
 #include "Hand.h"
 #include "Head.h"
+#include "InterfaceConfig.h"
 #include "Skeleton.h"
+#include "SerialInterface.h"
 #include "Transmitter.h"
+#include "world.h"
 
 const float BODY_BALL_RADIUS_PELVIS           = 0.07;
 const float BODY_BALL_RADIUS_TORSO            = 0.065;

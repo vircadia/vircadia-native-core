@@ -5,24 +5,25 @@
 //  Created by Philip Rosedale on 9/11/12.
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 
+#include <vector>
+
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/vector_angle.hpp>
-#include <vector>
+
+#include <NodeList.h>
+#include <NodeTypes.h>
+#include <OculusManager.h>
+#include <PacketHeaders.h>
 #include <SharedUtil.h>
-#include "world.h"
+
 #include "Application.h"
 #include "Avatar.h"
 #include "Hand.h"
 #include "Head.h"
-#include "Log.h"
 #include "Physics.h"
+#include "world.h"
 #include "ui/TextRenderer.h"
-#include <NodeList.h>
-#include <NodeTypes.h>
-#include <PacketHeaders.h>
-#include <OculusManager.h>
-
 
 using namespace std;
 
@@ -818,6 +819,12 @@ void Avatar::updateHandMovementAndTouching(float deltaTime, bool enableHandMovem
         } else {
             _avatarTouch.setHasInteractingOther(false);
         }
+        
+        // If there's a leap-interaction hand visible, use that as the endpoint
+        if (getHand().getHandPositions().size() > 0) {
+            _skeleton.joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position =
+                getHand().leapPositionToWorldPosition(getHand().getHandPositions()[0]);
+        }
     }//if (_isMine)
     
     //constrain right arm length and re-adjust elbow position as it bends
@@ -1047,7 +1054,7 @@ void Avatar::render(bool lookingInMirror, bool renderAvatarBalls) {
         }
         glPushMatrix();
         
-        glm::vec3 chatPosition = _bodyBall[BODY_BALL_HEAD_BASE].position + getBodyUpDirection() * chatMessageHeight;
+        glm::vec3 chatPosition = _bodyBall[BODY_BALL_HEAD_BASE].position + getBodyUpDirection() * chatMessageHeight * _scale;
         glTranslatef(chatPosition.x, chatPosition.y, chatPosition.z);
         glm::quat chatRotation = Application::getInstance()->getCamera()->getRotation();
         glm::vec3 chatAxis = glm::axis(chatRotation);
@@ -1057,7 +1064,7 @@ void Avatar::render(bool lookingInMirror, bool renderAvatarBalls) {
         glColor3f(0, 0.8, 0);
         glRotatef(180, 0, 1, 0);
         glRotatef(180, 0, 0, 1);
-        glScalef(chatMessageScale, chatMessageScale, 1.0f);
+        glScalef(_scale * chatMessageScale, _scale * chatMessageScale, 1.0f);
         
         glDisable(GL_LIGHTING);
         glDepthMask(false);
@@ -1321,7 +1328,11 @@ void Avatar::loadData(QSettings* settings) {
     _voxels.setVoxelURL(settings->value("voxelURL").toUrl());
     
     _leanScale = loadSetting(settings, "leanScale", 0.5f);
-    
+
+    _scale = loadSetting(settings, "scale", 1.0f);
+    setScale(_scale);
+    Application::getInstance()->getCamera()->setScale(_scale);
+
     settings->endGroup();
 }
 
@@ -1344,6 +1355,7 @@ void Avatar::saveData(QSettings* set) {
     set->setValue("voxelURL", _voxels.getVoxelURL());
     
     set->setValue("leanScale", _leanScale);
+    set->setValue("scale", _scale);
     
     set->endGroup();
 }

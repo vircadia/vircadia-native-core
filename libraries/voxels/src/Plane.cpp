@@ -12,8 +12,6 @@
 
 #include <stdio.h>
 
-#include "Log.h"
-
 // These are some useful utilities that vec3 is missing
 void printVec3(const char* name, const glm::vec3& v) {
     printf("%s x=%f y=%f z=%f\n", name, v.x, v.y, v.z);
