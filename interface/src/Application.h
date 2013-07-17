@@ -87,6 +87,7 @@ public:
     void updateParticleSystem(float deltaTime);
     
     Avatar* getAvatar() { return &_myAvatar; }
+    Audio* getAudio() { return &_audio; }
     Camera* getCamera() { return &_myCamera; }
     ViewFrustum* getViewFrustum() { return &_viewFrustum; }
     VoxelSystem* getVoxels() { return &_voxels; }
@@ -102,6 +103,9 @@ public:
     
     QNetworkAccessManager* getNetworkAccessManager() { return _networkAccessManager; }
     GeometryCache* getGeometryCache() { return &_geometryCache; }
+    
+    void setGroundPlaneImpact(float groundPlaneImpact) { _groundPlaneImpact = groundPlaneImpact; }
+
     
 private slots:
     
@@ -208,7 +212,7 @@ private:
     void deleteVoxelUnderCursor();
     void eyedropperVoxelUnderCursor();
     void resetSensors();
-    
+            
     void setMenuShortcutsEnabled(bool enabled);
     
     void updateCursor();
@@ -347,6 +351,8 @@ private:
     bool _isTouchPressed; //  true if multitouch has been pressed (clear when finished)
     float _yawFromTouch;
     float _pitchFromTouch;
+    
+    float _groundPlaneImpact; 
     
     VoxelDetail _mouseVoxelDragging;
     glm::vec3 _voxelThrust;

@@ -195,6 +195,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _isTouchPressed(false),
         _yawFromTouch(0.0f),
         _pitchFromTouch(0.0f),
+        _groundPlaneImpact(0.0f),
         _mousePressed(false),
         _mouseVoxelScale(1.0f / 1024.0f),
         _justEditedVoxel(false),
@@ -2528,7 +2529,7 @@ void Application::displaySide(Camera& whichCamera) {
 
     //draw a grid ground plane....
     if (_renderGroundPlaneOn->isChecked()) {
-        drawGroundPlaneGrid(EDGE_SIZE_GROUND_PLANE);
+        renderGroundPlaneGrid(EDGE_SIZE_GROUND_PLANE, _audio.getCollisionSoundMagnitude());
     } 
     //  Draw voxels
     if (_renderVoxels->isChecked()) {
@@ -2606,6 +2607,9 @@ void Application::displayOverlay() {
         glDisable(GL_DEPTH_TEST);
         glDisable(GL_LIGHTING);
     
+        //  Display a single screen-size quad to 
+        renderCollisionOverlay(_glWidget->width(), _glWidget->height(), _audio.getCollisionSoundMagnitude());
+   
         #ifndef _WIN32
         _audio.render(_glWidget->width(), _glWidget->height());
         if (_oscilloscopeOn->isChecked()) {
