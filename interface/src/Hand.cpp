@@ -62,11 +62,12 @@ void Hand::calculateGeometry() {
             for (size_t f = 0; f < palm.getNumFingers(); ++f) {
                 FingerData& finger = palm.getFingers()[f];
                 if (finger.isActive()) {
+                    const float standardBallRadius = 0.01f;
                     _leapBalls.resize(_leapBalls.size() + 1);
                     HandBall& ball = _leapBalls.back();
                     ball.rotation = _baseOrientation;
                     ball.position = finger.getTipPosition();
-                    ball.radius         = 0.01;
+                    ball.radius         = standardBallRadius;
                     ball.touchForce     = 0.0;
                     ball.isCollidable   = true;
                 }
@@ -161,9 +162,10 @@ void Hand::renderHandSpheres() {
     for (size_t i = 0; i < getNumPalms(); ++i) {
         PalmData& palm = getPalms()[i];
         if (palm.isActive()) {
+            const float palmThickness = 0.002f;
             glColor4f(_ballColor.r, _ballColor.g, _ballColor.b, 0.25);
             glm::vec3 tip = palm.getPosition();
-            glm::vec3 root = palm.getPosition() + palm.getNormal() * 0.002f;
+            glm::vec3 root = palm.getPosition() + palm.getNormal() * palmThickness;
             Avatar::renderJointConnectingCone(root, tip, 0.05, 0.03);
         }
     }
@@ -235,23 +237,22 @@ void Hand::updateFingerParticles(float deltaTime) {
                             glm::vec3 particleEmitterPosition = finger.getTipPosition();
                             
                             // this aspect is still being designed....
-                            
-                            glm::vec3 tilt = glm::vec3
-                            (
-                             30.0f * sinf( t * 0.55f ),
-                             0.0f,
-                             30.0f * cosf( t * 0.75f )
-                             );
+                            const float tiltMag = 30.0f;
+                            const float tiltXFreq = 0.55f;
+                            const float tiltZFreq = 0.75f;
+                            glm::vec3 tilt = glm::vec3(tiltMag * sinf( t * tiltXFreq ),
+                                                       0.0f,
+                                                       tiltMag * cosf( t * tiltZFreq ));
                             
                             glm::quat particleEmitterRotation = glm::quat(glm::radians(tilt));
                             
                             _particleSystem.setEmitterPosition(_fingerParticleEmitter[0], particleEmitterPosition);
                             _particleSystem.setEmitterRotation(_fingerParticleEmitter[0], particleEmitterRotation);
                             
-                            float radius = 0.005f;
-                            glm::vec4 color(1.0f, 0.6f, 0.0f, 0.5f);
-                            glm::vec3 velocity(0.0f, 0.005f, 0.0f);
-                            float lifespan = 0.3f;
+                            const float radius = 0.005f;
+                            const glm::vec4 color(1.0f, 0.6f, 0.0f, 0.5f);
+                            const glm::vec3 velocity(0.0f, 0.005f, 0.0f);
+                            const float lifespan = 0.3f;
                             _particleSystem.emitParticlesNow(_fingerParticleEmitter[0], 1, radius, color, velocity, lifespan);
                         }
                     }

@@ -30,7 +30,7 @@ public:
     
     // position conversion
     glm::vec3 leapPositionToWorldPosition(const glm::vec3& leapPosition) {
-        float unitScale = 0.001;            // convert mm to meters
+        const float unitScale = 0.001;            // convert mm to meters
         return _basePosition + _baseOrientation * (leapPosition * unitScale);
     }
     glm::vec3 leapDirectionToWorldDirection(const glm::vec3& leapDirection) {

@@ -13,8 +13,9 @@ HandData::HandData(AvatarData* owningAvatar) :
     _baseOrientation(0.0f, 0.0f, 0.0f, 1.0f),
     _owningAvatarData(owningAvatar)
 {
-    for (int i = 0; i < 2; ++i)
+    for (int i = 0; i < 2; ++i) {
         _palms.push_back(PalmData(this));
+    }
 }
 
 PalmData::PalmData(HandData* owningHandData) :
@@ -23,8 +24,9 @@ _rawNormal(0, 1, 0),
 _isActive(false),
 _owningHandData(owningHandData)
 {
-    for (int i = 0; i < NUM_FINGERS_PER_HAND; ++i)
+    for (int i = 0; i < NUM_FINGERS_PER_HAND; ++i) {
         _fingers.push_back(FingerData(this, owningHandData));
+    }
 }
 
 FingerData::FingerData(PalmData* owningPalmData, HandData* owningHandData) :

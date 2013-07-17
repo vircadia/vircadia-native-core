@@ -18,6 +18,8 @@
 
 using namespace std;
 
+static const float fingerVectorRadix = 4; // bits of precision when converting from float<->fixed
+
 AvatarData::AvatarData(Node* owningNode) :
     NodeData(owningNode),
     _handPosition(0,0,0),
@@ -140,9 +142,9 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     *destinationBuffer++ = (unsigned char)fingerVectors.size();
 
     for (size_t i = 0; i < fingerVectors.size(); ++i) {
-        destinationBuffer += packFloatScalarToSignedTwoByteFixed(destinationBuffer, fingerVectors[i].x, 4);
-        destinationBuffer += packFloatScalarToSignedTwoByteFixed(destinationBuffer, fingerVectors[i].y, 4);
-        destinationBuffer += packFloatScalarToSignedTwoByteFixed(destinationBuffer, fingerVectors[i].z, 4);
+        destinationBuffer += packFloatScalarToSignedTwoByteFixed(destinationBuffer, fingerVectors[i].x, fingerVectorRadix);
+        destinationBuffer += packFloatScalarToSignedTwoByteFixed(destinationBuffer, fingerVectors[i].y, fingerVectorRadix);
+        destinationBuffer += packFloatScalarToSignedTwoByteFixed(destinationBuffer, fingerVectors[i].z, fingerVectorRadix);
     }
     
     // skeleton joints
@@ -253,9 +255,9 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
         if (numFingerVectors > 0) {
             std::vector<glm::vec3> fingerVectors(numFingerVectors);
             for (size_t i = 0; i < numFingerVectors; ++i) {
-                sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(fingerVectors[i].x), 4);
-                sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(fingerVectors[i].y), 4);
-                sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(fingerVectors[i].z), 4);
+                sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(fingerVectors[i].x), fingerVectorRadix);
+                sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(fingerVectors[i].y), fingerVectorRadix);
+                sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(fingerVectors[i].z), fingerVectorRadix);
             }
             _handData->decodeRemoteData(fingerVectors);
         }
