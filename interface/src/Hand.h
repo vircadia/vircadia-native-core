@@ -15,9 +15,11 @@
 #include "world.h"
 #include "InterfaceConfig.h"
 #include "SerialInterface.h"
+#include "ParticleSystem.h"
 #include <SharedUtil.h>
 #include <vector>
 
+const int NUM_FINGERS_PER_HAND = 5;
 
 class Avatar;
 class ProgramObject;
@@ -46,7 +48,9 @@ public:
                             const std::vector<glm::vec3>& fingerRoots);
     void setLeapHands      (const std::vector<glm::vec3>& handPositions,
                             const std::vector<glm::vec3>& handNormals);
+    void updateFingerParticles(float deltaTime);
     void setRaveGloveActive(bool active) { _isRaveGloveActive = active; }
+
 
     // getters
     const glm::vec3& getLeapBallPosition       (int ball)       const { return _leapBalls[ball].position;}
@@ -56,6 +60,8 @@ private:
     // disallow copies of the Hand, copy of owning Avatar is disallowed too
     Hand(const Hand&);
     Hand& operator= (const Hand&);
+    
+    ParticleSystem _particleSystem;
 
     Avatar*     _owningAvatar;
     float       _renderAlpha;
@@ -65,6 +71,9 @@ private:
 //    glm::vec3   _position;
 //    glm::quat   _orientation;
     std::vector<HandBall>	_leapBalls;
+    
+    bool _particleSystemInitialized;
+    int  _fingerParticleEmitter[NUM_FINGERS_PER_HAND];
     
     // private methods
     void renderRaveGloveStage();
