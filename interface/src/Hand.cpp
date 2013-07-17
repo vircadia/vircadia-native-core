@@ -178,7 +178,6 @@ void Hand::updateFingerParticles(float deltaTime) {
     if (!_particleSystemInitialized) {
         for ( int f = 0; f< NUM_FINGERS_PER_HAND; f ++ ) {
             _fingerParticleEmitter[f] = _particleSystem.addEmitter();
-            //_particleSystem.setShowingEmitter(_fingerParticleEmitter[f], true);
         }
         _particleSystemInitialized = true;         
     } else {
