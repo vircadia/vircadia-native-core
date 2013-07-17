@@ -29,6 +29,9 @@ Hand::Hand(Avatar* owningAvatar) :
     // initialize all finger particle emitters with an invalid id as default
     for (int f = 0; f< NUM_FINGERS_PER_HAND; f ++ ) {
         _fingerParticleEmitter[f] = -1;
+
+        //glm::vec4 color(1.0f, 0.6f, 0.0f, 0.5f);
+        //_particleSystem.setEmitterBaseParticle(f, true, 0.012f, color);
     }
 }
 
@@ -181,17 +184,14 @@ void Hand::updateFingerParticles(float deltaTime) {
 
             _fingerParticleEmitter[f] = _particleSystem.addEmitter();
             
-            glm::vec4 color(1.0f, 0.6f, 0.0f, 0.5f);
-
-            //_particleSystem.setEmitterParticle(f, true, 0.012f, color);
-
             ParticleSystem::ParticleAttributes attributes;
 
            // set attributes for each life stage of the particle:
-            attributes.radius               = 0.001f;
+            attributes.radius               = 0.0f;
+            attributes.color                = glm::vec4( 1.0f, 1.0f, 0.5f, 0.5f);
             attributes.gravity              = 0.0f;
             attributes.airFriction          = 0.0f;
-            attributes.jitter               = 0.0f;
+            attributes.jitter               = 0.002f;
             attributes.emitterAttraction    = 0.0f;
             attributes.tornadoForce         = 0.0f;
             attributes.neighborAttraction   = 0.0f;
@@ -200,13 +200,20 @@ void Hand::updateFingerParticles(float deltaTime) {
             attributes.usingCollisionSphere = false;
             _particleSystem.setParticleAttributes(_fingerParticleEmitter[f], 0, attributes);
 
-            attributes.radius = 0.002f;
-            attributes.jitter = 0.01f;
+            attributes.radius = 0.01f;
+            attributes.jitter = 0.0f;
+            attributes.gravity = -0.005f;
+            attributes.color  = glm::vec4( 1.0f, 0.2f, 0.0f, 0.4f);
             _particleSystem.setParticleAttributes(_fingerParticleEmitter[f], 1, attributes);
 
-            attributes.radius = 0.007f;
-            attributes.gravity = -0.01f;
+            attributes.radius = 0.01f;
+            attributes.gravity = 0.0f;
+            attributes.color  = glm::vec4( 0.0f, 0.0f, 0.0f, 0.2f);
              _particleSystem.setParticleAttributes(_fingerParticleEmitter[f], 2, attributes);
+
+            attributes.radius = 0.02f;
+            attributes.color  = glm::vec4( 0.0f, 0.0f, 0.0f, 0.0f);
+             _particleSystem.setParticleAttributes(_fingerParticleEmitter[f], 3, attributes);
         }
 
         _particleSystemInitialized = true;         
@@ -233,14 +240,14 @@ void Hand::updateFingerParticles(float deltaTime) {
 
                 glm::quat particleEmitterRotation = rotationBetween(IDENTITY_UP, fingerDirection);
 
-                _particleSystem.setEmitterPosition(_fingerParticleEmitter[0], particleEmitterPosition);
-                _particleSystem.setEmitterRotation(_fingerParticleEmitter[0], particleEmitterRotation);
+                _particleSystem.setEmitterPosition(_fingerParticleEmitter[f], particleEmitterPosition);
+                _particleSystem.setEmitterRotation(_fingerParticleEmitter[f], particleEmitterRotation);
                 
                 float radius = 0.005f;
                 glm::vec4 color(1.0f, 0.6f, 0.0f, 0.5f);
                 glm::vec3 velocity = fingerDirection * 0.002f;
-                float lifespan = 0.3f;
-                _particleSystem.emitParticlesNow(_fingerParticleEmitter[0], 1, radius, color, velocity, lifespan); 
+                float lifespan = 1.0f;
+                _particleSystem.emitParticlesNow(_fingerParticleEmitter[f], 1, radius, color, velocity, lifespan); 
             }  
         }
         

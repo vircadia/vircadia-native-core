@@ -39,6 +39,7 @@ ParticleSystem::ParticleSystem() {
             
         for (int s = 0; s<NUM_PARTICLE_LIFE_STAGES; s++) {
             _emitter[e].particleAttributes[s].radius                  = DEFAULT_PARTICLE_RADIUS;
+            _emitter[e].particleAttributes[s].color                   = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
             _emitter[e].particleAttributes[s].bounce                  = DEFAULT_PARTICLE_BOUNCE;
             _emitter[e].particleAttributes[s].airFriction             = DEFAULT_PARTICLE_AIR_FRICTION;
             _emitter[e].particleAttributes[s].gravity                 = 0.0f;
@@ -125,6 +126,7 @@ void ParticleSystem::createParticle(int e, glm::vec3 position, glm::vec3 velocit
             _particle[p].color        = color;
 
             _particle[p].radius = _emitter[e].particleAttributes[0].radius;
+            _particle[p].color  = _emitter[e].particleAttributes[0].color;
 
             _numParticles ++;            
                         
@@ -175,6 +177,7 @@ void ParticleSystem::setParticleAttributes(int emitterIndex, int lifeStage, Part
     ParticleAttributes * a = &_emitter[emitterIndex].particleAttributes[lifeStage];
     
     a->radius                  = attributes.radius;
+    a->color                   = attributes.color;
     a->bounce                  = attributes.bounce;
     a->gravity                 = attributes.gravity;
     a->airFriction             = attributes.airFriction;
@@ -192,19 +195,27 @@ void ParticleSystem::setParticleAttributes(int emitterIndex, int lifeStage, Part
 void ParticleSystem::updateParticle(int p, float deltaTime) {
 
     assert(_particle[p].age <= _particle[p].lifespan);
-        
+    
     float ageFraction = _particle[p].age / _particle[p].lifespan;
+        
+    int lifeStage = (int)( ageFraction * (NUM_PARTICLE_LIFE_STAGES-1) );
+
+    float lifeStageFraction = ageFraction * ( NUM_PARTICLE_LIFE_STAGES - 1 ) - lifeStage;
     
+    /*
+    if ( p == 0 ) {
+        printf( "lifespan = %f    ageFraction = %f   lifeStage = %d   lifeStageFraction = %f\n", _particle[p].lifespan, ageFraction, lifeStage, lifeStageFraction );
+    }
+    */
     
-    
-    
-    int lifeStage = (int)( ageFraction * NUM_PARTICLE_LIFE_STAGES );
-    
-    
-    _particle[p].radius = _emitter[_particle[p].emitterIndex].particleAttributes[lifeStage].radius;
-    
-    
-    
+    _particle[p].radius
+    = _emitter[_particle[p].emitterIndex].particleAttributes[lifeStage  ].radius * (1.0f - lifeStageFraction)
+    + _emitter[_particle[p].emitterIndex].particleAttributes[lifeStage+1].radius * lifeStageFraction;
+
+    _particle[p].color
+    = _emitter[_particle[p].emitterIndex].particleAttributes[lifeStage  ].color * (1.0f - lifeStageFraction)
+    + _emitter[_particle[p].emitterIndex].particleAttributes[lifeStage+1].color * lifeStageFraction;
+        
     Emitter myEmitter = _emitter[_particle[p].emitterIndex];
 
     // apply random jitter
@@ -292,13 +303,13 @@ void ParticleSystem::setCollisionSphere(int e, glm::vec3 position, float radius)
     _emitter[e].particleAttributes[lifeStage].collisionSphereRadius   = radius;
 }
 
-void ParticleSystem::setEmitterParticle(int emitterIndex, bool showing ) {
+void ParticleSystem::setEmitterBaseParticle(int emitterIndex, bool showing ) {
 
     _emitter[emitterIndex].baseParticle.alive = true;
     _emitter[emitterIndex].baseParticle.emitterIndex = emitterIndex;
 }
 
-void ParticleSystem::setEmitterParticle(int emitterIndex, bool showing, float radius, glm::vec4 color ) {
+void ParticleSystem::setEmitterBaseParticle(int emitterIndex, bool showing, float radius, glm::vec4 color ) {
 
     _emitter[emitterIndex].baseParticle.alive        = true;
     _emitter[emitterIndex].baseParticle.emitterIndex = emitterIndex;
@@ -310,7 +321,7 @@ void ParticleSystem::setEmitterParticle(int emitterIndex, bool showing, float ra
 void ParticleSystem::render() {
 
     // render the emitters
-    for (unsigned int e = 0; e < _numEmitters; e++) {
+    for (int e = 0; e < _numEmitters; e++) {
 
         if (_emitter[e].baseParticle.alive) {
             glColor4f(_emitter[e].baseParticle.color.r, _emitter[e].baseParticle.color.g, _emitter[e].baseParticle.color.b, _emitter[e].baseParticle.color.a );
@@ -370,14 +381,14 @@ void ParticleSystem::renderParticle(int p) {
         glutSolidSphere(_particle[p].radius, 6, 6);
         glPopMatrix();
 
-        // render velocity lines
-        glColor4f( _particle[p].color.x, _particle[p].color.y, _particle[p].color.z, 0.5f);
-        glm::vec3 end = _particle[p].position - _particle[p].velocity * 2.0f;
-        glBegin(GL_LINES);
-        glVertex3f(_particle[p].position.x, _particle[p].position.y, _particle[p].position.z);
-        glVertex3f(end.x, end.y, end.z);
-        
-        glEnd();
+        if (SHOW_VELOCITY_TAILS) {
+            glColor4f( _particle[p].color.x, _particle[p].color.y, _particle[p].color.z, 0.5f);
+            glm::vec3 end = _particle[p].position - _particle[p].velocity * 2.0f;
+            glBegin(GL_LINES);
+            glVertex3f(_particle[p].position.x, _particle[p].position.y, _particle[p].position.z);
+            glVertex3f(end.x, end.y, end.z);            
+            glEnd();
+        }
     }
 }
 

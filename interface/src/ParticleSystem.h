@@ -13,14 +13,16 @@
 
 const int  MAX_PARTICLES = 5000;
 const int  MAX_EMITTERS  = 20;
-const int  NUM_PARTICLE_LIFE_STAGES = 3;
+const int  NUM_PARTICLE_LIFE_STAGES = 4;
 const bool USE_BILLBOARD_RENDERING = false;
+const bool SHOW_VELOCITY_TAILS     = false;
 
 class ParticleSystem {
 public:
 
     struct ParticleAttributes {
         float     radius;
+        glm::vec4 color;
         float     bounce;
         float     gravity;
         float     airFriction;
@@ -40,8 +42,8 @@ public:
     void emitParticlesNow(int emitterIndex, int numParticles, float radius, glm::vec4 color, glm::vec3 velocity, float lifespan);
     void simulate(float deltaTime);
     void render();
-    void setEmitterParticle(int emitterIndex, bool showing );
-    void setEmitterParticle(int emitterIndex, bool showing, float radius, glm::vec4 color );
+    void setEmitterBaseParticle(int emitterIndex, bool showing );
+    void setEmitterBaseParticle(int emitterIndex, bool showing, float radius, glm::vec4 color );
      
     void setOrangeBlueColorPalette(); // apply a nice preset color palette to the particles
     void setUpDirection(glm::vec3 upDirection) {_upDirection = upDirection;} // tell particle system which direction is up
