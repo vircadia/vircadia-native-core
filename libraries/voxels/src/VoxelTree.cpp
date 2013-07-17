@@ -1114,14 +1114,12 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
             return bytesAtThisLevel;
         }
 
-        /** Not ready for production - coming soon.
-        // If we're not in delta sending mode, but the voxel hasn't changed, then we can also bail early...
-        if (!params.deltaViewFrustum && !node->hasChangedSince(params.lastViewFrustumSent - CHANGE_FUDGE)) {
-            printf("not delta sending, and the node hasn't changed, bail early... lastSent=%lld getLastChanged=%lld\n", 
-                params.lastViewFrustumSent, node->getLastChanged());
+        // If we're not in delta sending mode, and we weren't asked to do a force send, and the voxel hasn't changed, 
+        // then we can also bail early and save bits
+        if (!params.forceSendScene && !params.deltaViewFrustum && 
+            !node->hasChangedSince(params.lastViewFrustumSent - CHANGE_FUDGE)) {
             return bytesAtThisLevel;
         }
-        **/
 
         // If the user also asked for occlusion culling, check if this node is occluded, but only if it's not a leaf.
         // leaf occlusion is handled down below when we check child nodes

@@ -51,7 +51,7 @@ public:
     long                childWasInViewDiscarded;
     int                 boundaryLevelAdjust;
     uint64_t            lastViewFrustumSent;
-
+    bool                forceSendScene;
     CoverageMap*        map;
     
     EncodeBitstreamParams(
@@ -65,7 +65,8 @@ public:
         bool                wantOcclusionCulling= NO_OCCLUSION_CULLING,
         CoverageMap*        map                 = IGNORE_COVERAGE_MAP,
         int                 boundaryLevelAdjust = NO_BOUNDARY_ADJUST,
-        uint64_t            lastViewFrustumSent = IGNORE_LAST_SENT) :
+        uint64_t            lastViewFrustumSent = IGNORE_LAST_SENT,
+        bool                forceSendScene      = true) :
             maxEncodeLevel          (maxEncodeLevel),
             maxLevelReached         (0),
             viewFrustum             (viewFrustum),
@@ -78,6 +79,7 @@ public:
             childWasInViewDiscarded (0),
             boundaryLevelAdjust     (boundaryLevelAdjust),
             lastViewFrustumSent     (lastViewFrustumSent),
+            forceSendScene          (forceSendScene),
             map                     (map)
     {}
 };
