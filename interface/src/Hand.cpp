@@ -216,9 +216,13 @@ void Hand::updateFingerParticles(float deltaTime) {
     if (!_particleSystemInitialized) {
                     
         for ( int f = 0; f< NUM_FINGERS_PER_HAND; f ++ ) {
+        
+            _particleSystem.setShowingEmitter(f, true );
 
             _fingerParticleEmitter[f] = _particleSystem.addEmitter();
             
+            assert( _fingerParticleEmitter[f] != -1 );
+                                    
             ParticleSystem::ParticleAttributes attributes;
 
            // set attributes for each life stage of the particle:
@@ -277,17 +281,17 @@ void Hand::updateFingerParticles(float deltaTime) {
                             } else {
                                 fingerDirection = IDENTITY_UP;
                             }
+                                                        
+                            glm::quat particleEmitterRotation = rotationBetween(palm.getNormal(), fingerDirection);
                             
-                            glm::quat particleEmitterRotation = rotationBetween(IDENTITY_UP, fingerDirection);
+                            //glm::quat particleEmitterRotation = glm::angleAxis(0.0f, fingerDirection);                            
                             
                             _particleSystem.setEmitterPosition(_fingerParticleEmitter[f], particleEmitterPosition);
                             _particleSystem.setEmitterRotation(_fingerParticleEmitter[f], particleEmitterRotation);
                             
-                            float radius = 0.005f;
-                            const glm::vec4 color(1.0f, 0.6f, 0.0f, 0.5f);
                             const glm::vec3 velocity = fingerDirection * 0.002f;
                             const float lifespan = 1.0f;
-                            _particleSystem.emitParticlesNow(_fingerParticleEmitter[f], 1, radius, color, velocity, lifespan); 
+                            _particleSystem.emitParticlesNow(_fingerParticleEmitter[f], 1, velocity, lifespan); 
                         }
                     }
                 }
