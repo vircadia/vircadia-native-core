@@ -200,9 +200,6 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
             // only set our last sent time if we weren't resetting due to frustum change
             uint64_t now = usecTimestampNow();
             nodeData->setLastTimeBagEmpty(now);
-            if (::debugVoxelSending) {
-                printf("ENTIRE SCENE SENT! nodeData->setLastTimeBagEmpty(now=[%lld])\n", now);
-            }
         }
         
         nodeData->stats.sceneCompleted();
@@ -210,7 +207,10 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
         
         // This is the start of "resending" the scene.
         nodeData->nodeBag.insert(serverTree.rootNode);
-        nodeData->stats.sceneStarted();
+        
+        // start tracking our stats
+        bool fullScene = (!viewFrustumChanged || !nodeData->getWantDelta()) && nodeData->getViewFrustumJustStoppedChanging();
+        nodeData->stats.sceneStarted(fullScene, viewFrustumChanged);
     }
 
     // If we have something in our nodeBag, then turn them into packets and send them out...
@@ -243,12 +243,15 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
                 CoverageMap* coverageMap = wantOcclusionCulling ? &nodeData->map : IGNORE_COVERAGE_MAP;
                 int boundaryLevelAdjust = viewFrustumChanged && nodeData->getWantLowResMoving() 
                                           ? LOW_RES_MOVING_ADJUST : NO_BOUNDARY_ADJUST;
+
+                bool fullScene = (!viewFrustumChanged || !nodeData->getWantDelta()) && 
+                                 nodeData->getViewFrustumJustStoppedChanging();
                 
                 EncodeBitstreamParams params(INT_MAX, &nodeData->getCurrentViewFrustum(), wantColor, 
                                              WANT_EXISTS_BITS, DONT_CHOP, wantDelta, lastViewFrustum,
                                              wantOcclusionCulling, coverageMap, boundaryLevelAdjust,
                                              nodeData->getLastTimeBagEmpty(),
-                                             nodeData->getViewFrustumJustStoppedChanging());
+                                             fullScene, &nodeData->stats);
                                              
                 bytesWritten = serverTree.encodeTreeBitstream(subTree, &tempOutputBuffer[0], MAX_VOXEL_PACKET_SIZE - 1,
                                                               nodeData->nodeBag, params);
@@ -258,6 +261,8 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
                 } else {
                     nodeList->getNodeSocket()->send(node->getActiveSocket(),
                                                     nodeData->getPacket(), nodeData->getPacketLength());
+                                                    
+                    nodeData->stats.packetSent(nodeData->getPacketLength());
                     trueBytesSent += nodeData->getPacketLength();
                     truePacketsSent++;
                     packetsSentThisInterval++;
@@ -268,6 +273,7 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
                 if (nodeData->isPacketWaiting()) {
                     nodeList->getNodeSocket()->send(node->getActiveSocket(),
                                                     nodeData->getPacket(), nodeData->getPacketLength());
+                    nodeData->stats.packetSent(nodeData->getPacketLength());
                     trueBytesSent += nodeData->getPacketLength();
                     truePacketsSent++;
                     nodeData->resetVoxelPacket();

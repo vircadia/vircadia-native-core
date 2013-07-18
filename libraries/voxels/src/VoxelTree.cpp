@@ -1037,6 +1037,13 @@ int VoxelTree::encodeTreeBitstream(VoxelNode* node, unsigned char* outputBuffer,
     availableBytes -= codeLength; // keep track or remaining space
 
     int currentEncodeLevel = 0;
+    
+    // record some stats, this is the one node that we won't record below in the recursion function, so we need to 
+    // track it here
+    if (params.stats) {
+        params.stats->traversed(node);
+    }
+    
     int childBytesWritten = encodeTreeBitstreamRecursion(node, outputBuffer, availableBytes, bag, params, currentEncodeLevel);
 
     // if childBytesWritten == 1 then something went wrong... that's not possible
@@ -1081,6 +1088,9 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
 
         // If we're too far away for our render level, then just return
         if (distance >= boundaryDistance) {
+            if (params.stats) {
+                params.stats->skippedDistance(node);
+            }
             return bytesAtThisLevel;
         }
 
@@ -1088,6 +1098,9 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
         // although technically, we really shouldn't ever be here, because our callers shouldn't be calling us if
         // we're out of view
         if (!node->isInView(*params.viewFrustum)) {
+            if (params.stats) {
+                params.stats->skippedOutOfView(node);
+            }
             return bytesAtThisLevel;
         }
         
@@ -1110,6 +1123,9 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
         // if we're in deltaViewFrustum mode, and this node has changed since it was last sent, then we do
         // need to send it.
         if (wasInView && !(params.deltaViewFrustum && node->hasChangedSince(params.lastViewFrustumSent - CHANGE_FUDGE))) {
+            if (params.stats) {
+                params.stats->skippedWasInView(node);
+            }
             return bytesAtThisLevel;
         }
 
@@ -1117,6 +1133,9 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
         // then we can also bail early and save bits
         if (!params.forceSendScene && !params.deltaViewFrustum && 
             !node->hasChangedSince(params.lastViewFrustumSent - CHANGE_FUDGE)) {
+            if (params.stats) {
+                params.stats->skippedNoChange(node);
+            }
             return bytesAtThisLevel;
         }
 
@@ -1136,6 +1155,9 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
                 CoverageMapStorageResult result = params.map->checkMap(voxelPolygon, false);
                 delete voxelPolygon; // cleanup
                 if (result == OCCLUDED) {
+                    if (params.stats) {
+                        params.stats->skippedOccluded(node);
+                    }
                     return bytesAtThisLevel;
                 }
             } else {
@@ -1201,6 +1223,12 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
             distancesToChildren[i] = 0.0f;
             currentCount++;
         }
+
+        // track stats
+        if (params.stats && childNode) {
+            params.stats->traversed(childNode);
+        }
+    
     }
 
     // for each child node in Distance sorted order..., check to see if they exist, are colored, and in view, and if so
@@ -1211,13 +1239,21 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
 
         bool childIsInView  = (childNode && (!params.viewFrustum || childNode->isInView(*params.viewFrustum)));
 
-        if (childIsInView) {
+        if (!childIsInView) {
+            if (params.stats) {
+                params.stats->skippedOutOfView(childNode);
+            }
+        } else {
             // Before we determine consider this further, let's see if it's in our LOD scope...
             float distance = distancesToChildren[i]; // params.viewFrustum ? childNode->distanceToCamera(*params.viewFrustum) : 0;
             float boundaryDistance = !params.viewFrustum ? 1 :
                                      boundaryDistanceForRenderLevel(childNode->getLevel() + params.boundaryLevelAdjust);
 
-            if (distance < boundaryDistance) {
+            if (!(distance < boundaryDistance)) {
+                if (params.stats) {
+                    params.stats->skippedDistance(childNode);
+                }
+            } else {
                 inViewCount++;
 
                 // track children in view as existing and not a leaf, if they're a leaf,
@@ -1261,7 +1297,18 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
                 } // wants occlusion culling & isLeaf()
 
 
-                bool shouldRender = !params.viewFrustum ? true : childNode->calculateShouldRender(params.viewFrustum, params.boundaryLevelAdjust);
+                bool shouldRender = !params.viewFrustum ? true : 
+                                    childNode->calculateShouldRender(params.viewFrustum, params.boundaryLevelAdjust);
+                     
+                // track some stats               
+                if (params.stats) {
+                    if (!shouldRender) {
+                        params.stats->skippedDistance(childNode);
+                    }
+                    if (childIsOccluded) {
+                        params.stats->skippedOccluded(childNode);
+                    }
+                }
                 
                 // track children with actual color, only if the child wasn't previously in view!
                 if (shouldRender && !childIsOccluded) {
@@ -1288,7 +1335,14 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
                         inViewWithColorCount++;
                     } else {
                         // otherwise just track stats of the items we discarded
-                        params.childWasInViewDiscarded++;
+                        if (params.stats) {
+                            if (childWasInView) {
+                                params.stats->skippedWasInView(childNode);
+                            } else {
+                                params.stats->skippedNoChange(childNode);
+                            }
+                        }
+                        
                     }
                 }
             }
@@ -1297,14 +1351,23 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
     *writeToThisLevelBuffer = childrenColoredBits;
     writeToThisLevelBuffer += sizeof(childrenColoredBits); // move the pointer
     bytesAtThisLevel += sizeof(childrenColoredBits); // keep track of byte count
+    if (params.stats) {
+        params.stats->colorBitsWritten(node);
+    }
 
     // write the color data...
     if (params.includeColor) {
         for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
             if (oneAtBit(childrenColoredBits, i)) {
-                memcpy(writeToThisLevelBuffer, &node->getChildAtIndex(i)->getColor(), BYTES_PER_COLOR);
+                VoxelNode* childNode = node->getChildAtIndex(i);
+                memcpy(writeToThisLevelBuffer, &childNode->getColor(), BYTES_PER_COLOR);
                 writeToThisLevelBuffer += BYTES_PER_COLOR; // move the pointer for color
                 bytesAtThisLevel += BYTES_PER_COLOR; // keep track of byte count for color
+
+                if (params.stats) {
+                    params.stats->colorSent(childNode);
+                }
+
             }
         }
     }
@@ -1315,12 +1378,18 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
         *writeToThisLevelBuffer = childrenExistInTreeBits;
         writeToThisLevelBuffer += sizeof(childrenExistInTreeBits); // move the pointer
         bytesAtThisLevel += sizeof(childrenExistInTreeBits); // keep track of byte count
+        if (params.stats) {
+            params.stats->existsBitsWritten(node);
+        }
     }
 
     // write the child exist bits
     *writeToThisLevelBuffer = childrenExistInPacketBits;
     writeToThisLevelBuffer += sizeof(childrenExistInPacketBits); // move the pointer
     bytesAtThisLevel += sizeof(childrenExistInPacketBits); // keep track of byte count
+    if (params.stats) {
+        params.stats->existsInPacketBitsWritten(node);
+    }
 
     // We only need to keep digging, if there is at least one child that is inView, and not a leaf.
     keepDiggingDeeper = (inViewNotLeafCount > 0);
@@ -1333,6 +1402,11 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
         availableBytes -= bytesAtThisLevel;
     } else {
         bag.insert(node);
+
+        if (params.stats) {
+            params.stats->didntFit(node);
+        }
+
         return 0;
     }
 
