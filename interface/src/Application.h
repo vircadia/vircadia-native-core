@@ -21,27 +21,28 @@
 
 #include <NodeList.h>
 
-#include "BandwidthMeter.h"
-#include "ui/BandwidthDialog.h"
-
 #ifndef _WIN32
 #include "Audio.h"
 #endif
 
+#include "Avatar.h"
+#include "BandwidthMeter.h"
 #include "Camera.h"
 #include "Environment.h"
 #include "HandControl.h"
+#include "PacketHeaders.h"
+#include "ParticleSystem.h"
+#include "renderer/GeometryCache.h"
 #include "SerialInterface.h"
 #include "Stars.h"
+#include "Swatch.h"
+#include "ToolsPalette.h"
+#include "ui/ChatEntry.h"
+#include "ui/BandwidthDialog.h"
 #include "ViewFrustum.h"
 #include "VoxelSystem.h"
-#include "PacketHeaders.h"
 #include "Webcam.h"
-#include "renderer/GeometryCache.h"
-#include "ui/ChatEntry.h"
-#include "ToolsPalette.h"
-#include "Swatch.h"
-#include "ParticleSystem.h"
+
 
 class QAction;
 class QActionGroup;
@@ -83,7 +84,10 @@ public:
     
     const glm::vec3 getMouseVoxelWorldCoordinates(const VoxelDetail _mouseVoxel);
     
+    void updateParticleSystem(float deltaTime);
+    
     Avatar* getAvatar() { return &_myAvatar; }
+    Audio* getAudio() { return &_audio; }
     Camera* getCamera() { return &_myCamera; }
     ViewFrustum* getViewFrustum() { return &_viewFrustum; }
     VoxelSystem* getVoxels() { return &_voxels; }
@@ -99,6 +103,9 @@ public:
     
     QNetworkAccessManager* getNetworkAccessManager() { return _networkAccessManager; }
     GeometryCache* getGeometryCache() { return &_geometryCache; }
+    
+    void setGroundPlaneImpact(float groundPlaneImpact) { _groundPlaneImpact = groundPlaneImpact; }
+
     
 private slots:
     
@@ -118,6 +125,8 @@ private slots:
     
     void setRenderFirstPerson(bool firstPerson);
     void setRenderThirdPerson(bool thirdPerson);
+    void increaseAvatarSize();
+    void decreaseAvatarSize();
     
     void renderThrustAtVoxel(const glm::vec3& thrust);
     void renderLineToTouchedVoxel();
@@ -126,6 +135,7 @@ private slots:
     void cycleFrustumRenderMode();
     
     void setRenderWarnings(bool renderWarnings);
+    void setRenderVoxels(bool renderVoxels);
     void doKillLocalVoxels();
     void doRandomizeVoxelColors();
     void doFalseRandomizeVoxelColors();
@@ -151,6 +161,7 @@ private slots:
     void exportSettings();
     void exportVoxels();
     void importVoxels();
+    void importVoxelsToClipboard();
     void cutVoxels();
     void copyVoxels();
     void pasteVoxels();
@@ -201,7 +212,7 @@ private:
     void deleteVoxelUnderCursor();
     void eyedropperVoxelUnderCursor();
     void resetSensors();
-    
+            
     void setMenuShortcutsEnabled(bool enabled);
     
     void updateCursor();
@@ -260,6 +271,9 @@ private:
 
     QAction* _renderCoverageMapV2;
     QAction* _renderCoverageMap;
+
+    QAction* _simulateLeapHand;      // When there's no Leap, use this to pretend there is one and feed fake hand data
+    QAction* _testRaveGlove;         // Test fancy sparkle-rave-glove mode
     
     BandwidthMeter _bandwidthMeter;
     BandwidthDialog* _bandwidthDialog;
@@ -278,6 +292,8 @@ private:
     timeval _timerStart, _timerEnd;
     timeval _lastTimeUpdated;
     bool _justStarted;
+    bool _particleSystemInitialized;
+    int  _coolDemoParticleEmitter;
 
     Stars _stars;
     
@@ -335,6 +351,8 @@ private:
     bool _isTouchPressed; //  true if multitouch has been pressed (clear when finished)
     float _yawFromTouch;
     float _pitchFromTouch;
+    
+    float _groundPlaneImpact; 
     
     VoxelDetail _mouseVoxelDragging;
     glm::vec3 _voxelThrust;

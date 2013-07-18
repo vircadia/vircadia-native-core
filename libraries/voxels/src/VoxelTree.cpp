@@ -9,25 +9,27 @@
 #ifdef _WIN32
 #define _USE_MATH_DEFINES
 #endif
+
 #include <cstring>
 #include <cstdio>
 #include <cmath>
-#include "SharedUtil.h"
-#include "Log.h"
-#include "PacketHeaders.h"
-#include "OctalCode.h"
-#include "GeometryUtil.h"
-#include "VoxelTree.h"
-#include "VoxelNodeBag.h"
-#include "ViewFrustum.h"
 #include <fstream> // to load voxels from file
-#include "VoxelConstants.h"
-#include "CoverageMap.h"
-#include "SquarePixelMap.h"
-#include "Tags.h"
-
 
 #include <glm/gtc/noise.hpp>
+
+#include <QDebug>
+
+#include "CoverageMap.h"
+#include "GeometryUtil.h"
+#include "OctalCode.h"
+#include "PacketHeaders.h"
+#include "SharedUtil.h"
+#include "SquarePixelMap.h"
+#include "Tags.h"
+#include "ViewFrustum.h"
+#include "VoxelConstants.h"
+#include "VoxelNodeBag.h"
+#include "VoxelTree.h"
 
 float boundaryDistanceForRenderLevel(unsigned int renderLevel) {
     const float voxelSizeScale = 50000.0f;
@@ -155,7 +157,7 @@ void VoxelTree::recurseNodeWithOperationDistanceSorted(VoxelNode* node, RecurseV
             if (childNode) {
                 // chance to optimize, doesn't need to be actual distance!! Could be distance squared
                 float distanceSquared = childNode->distanceSquareToPoint(point);
-                //printLog("recurseNodeWithOperationDistanceSorted() CHECKING child[%d] point=%f,%f center=%f,%f distance=%f...\n", i, point.x, point.y, center.x, center.y, distance);
+                //qDebug("recurseNodeWithOperationDistanceSorted() CHECKING child[%d] point=%f,%f center=%f,%f distance=%f...\n", i, point.x, point.y, center.x, center.y, distance);
                 //childNode->printDebugDetails("");
                 currentCount = insertIntoSortedArrays((void*)childNode, distanceSquared, i,
                                                       (void**)&sortedChildren, (float*)&distancesToChildren,
@@ -166,7 +168,7 @@ void VoxelTree::recurseNodeWithOperationDistanceSorted(VoxelNode* node, RecurseV
         for (int i = 0; i < currentCount; i++) {
             VoxelNode* childNode = sortedChildren[i];
             if (childNode) {
-                //printLog("recurseNodeWithOperationDistanceSorted() PROCESSING child[%d] distance=%f...\n", i, distancesToChildren[i]);
+                //qDebug("recurseNodeWithOperationDistanceSorted() PROCESSING child[%d] distance=%f...\n", i, distancesToChildren[i]);
                 //childNode->printDebugDetails("");
                 recurseNodeWithOperationDistanceSorted(childNode, operation, point, extraData);
             }
@@ -371,7 +373,6 @@ void VoxelTree::deleteVoxelAt(float x, float y, float z, float s, bool stage) {
     delete[] octalCode; // cleanup memory
 }
 
-
 class DeleteVoxelCodeFromTreeArgs {
 public:
     bool            stage;
@@ -458,7 +459,7 @@ void VoxelTree::deleteVoxelCodeFromTreeRecursion(VoxelNode* node, void* extraDat
     // isn't a colored leaf, and the child branch doesn't exist, so there's nothing to do below and
     // we can safely return, ending the recursion and unwinding
     if (!childNode) {
-        //printLog("new___deleteVoxelCodeFromTree() child branch doesn't exist, but parent is not a leaf, just unwind\n");
+        //qDebug("new___deleteVoxelCodeFromTree() child branch doesn't exist, but parent is not a leaf, just unwind\n");
         return;
     }
 
@@ -546,7 +547,7 @@ void VoxelTree::readCodeColorBufferToTreeRecursion(VoxelNode* node, void* extraD
             }
         } else {
             if (!node->isLeaf()) {
-                printLog("WARNING! operation would require deleting children, add Voxel ignored!\n ");
+                qDebug("WARNING! operation would require deleting children, add Voxel ignored!\n ");
             }
         }
 
@@ -619,13 +620,13 @@ void VoxelTree::printTreeForDebugging(VoxelNode *startNode) {
         }
     }
 
-    printLog("color mask: ");
+    qDebug("color mask: ");
     outputBits(colorMask);
 
     // output the colors we have
     for (int j = 0; j < NUMBER_OF_CHILDREN; j++) {
         if (startNode->getChildAtIndex(j) && startNode->getChildAtIndex(j)->isColored()) {
-            printLog("color %d : ",j);
+            qDebug("color %d : ",j);
             for (int c = 0; c < 3; c++) {
                 outputBits(startNode->getChildAtIndex(j)->getTrueColor()[c],false);
             }
@@ -641,7 +642,7 @@ void VoxelTree::printTreeForDebugging(VoxelNode *startNode) {
         }
     }
 
-    printLog("child mask: ");
+    qDebug("child mask: ");
     outputBits(childMask);
 
     if (childMask > 0) {
@@ -686,7 +687,7 @@ void VoxelTree::loadVoxelsFile(const char* fileName, bool wantColorRandomizer) {
 
     int totalBytesRead = 0;
     if(file.is_open()) {
-        printLog("loading file...\n");
+        qDebug("loading file...\n");
         bool bail = false;
         while (!file.eof() && !bail) {
             file.get(octets);
@@ -711,14 +712,14 @@ void VoxelTree::loadVoxelsFile(const char* fileName, bool wantColorRandomizer) {
             file.get(colorRead);
             blue = (unsigned char)colorRead;
 
-            printLog("voxel color from file  red:%d, green:%d, blue:%d \n",red,green,blue);
+            qDebug("voxel color from file  red:%d, green:%d, blue:%d \n",red,green,blue);
             vCount++;
 
             int colorRandomizer = wantColorRandomizer ? randIntInRange (-5, 5) : 0;
             voxelData[lengthInBytes+1] = std::max(0,std::min(255,red + colorRandomizer));
             voxelData[lengthInBytes+2] = std::max(0,std::min(255,green + colorRandomizer));
             voxelData[lengthInBytes+3] = std::max(0,std::min(255,blue + colorRandomizer));
-            printLog("voxel color after rand red:%d, green:%d, blue:%d\n",
+            qDebug("voxel color after rand red:%d, green:%d, blue:%d\n",
                      voxelData[lengthInBytes+1], voxelData[lengthInBytes+2], voxelData[lengthInBytes+3]);
 
             //printVoxelCode(voxelData);
@@ -819,7 +820,7 @@ void VoxelTree::createSphere(float radius, float xc, float yc, float zc, float v
 
         if (debug) {
             int percentComplete = 100 * (thisRadius/radius);
-            printLog("percentComplete=%d\n",percentComplete);
+            qDebug("percentComplete=%d\n",percentComplete);
         }
 
         for (float theta=0.0; theta <= 2 * M_PI; theta += angleDelta) {
@@ -835,7 +836,7 @@ void VoxelTree::createSphere(float radius, float xc, float yc, float zc, float v
                 // 2) In all modes, we will use our "outer" color to draw the voxels. Otherwise we will use the average color
                 if (lastLayer) {
                     if (false && debug) {
-                        printLog("adding candy shell: theta=%f phi=%f thisRadius=%f radius=%f\n",
+                        qDebug("adding candy shell: theta=%f phi=%f thisRadius=%f radius=%f\n",
                                  theta, phi, thisRadius,radius);
                     }
                     switch (mode) {
@@ -859,7 +860,7 @@ void VoxelTree::createSphere(float radius, float xc, float yc, float zc, float v
                         green = (unsigned char)std::min(255, std::max(0, (int)(g1 + ((g2 - g1) * gradient))));
                         blue  = (unsigned char)std::min(255, std::max(0, (int)(b1 + ((b2 - b1) * gradient))));
                         if (debug) {
-                            printLog("perlin=%f gradient=%f color=(%d,%d,%d)\n",perlin, gradient, red, green, blue);
+                            qDebug("perlin=%f gradient=%f color=(%d,%d,%d)\n",perlin, gradient, red, green, blue);
                         }
                         } break;
                     }
@@ -1003,17 +1004,18 @@ bool VoxelTree::findCapsulePenetration(const glm::vec3& start, const glm::vec3& 
     return args.found;
 }
 
+
 int VoxelTree::encodeTreeBitstream(VoxelNode* node, unsigned char* outputBuffer, int availableBytes, VoxelNodeBag& bag,
                                    EncodeBitstreamParams& params) const {
 
     // How many bytes have we written so far at this level;
     int bytesWritten = 0;
-
+    
     // If we're at a node that is out of view, then we can return, because no nodes below us will be in view!
     if (params.viewFrustum && !node->isInView(*params.viewFrustum)) {
         return bytesWritten;
     }
-
+    
     // write the octal code
     int codeLength;
     if (params.chopLevels) {
@@ -1072,7 +1074,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
     if (currentEncodeLevel >= params.maxEncodeLevel) {
         return bytesAtThisLevel;
     }
-
+    
     // caller can pass NULL as viewFrustum if they want everything
     if (params.viewFrustum) {
         float distance = node->distanceToCamera(*params.viewFrustum);
@@ -1105,10 +1107,19 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
             }
         }
 
-        // If we were in view, then bail out early!        
-        if (wasInView) {
+        // If we were previously in the view, then we normally will return out of here and stop recursing. But
+        // if we're in deltaViewFrustum mode, and this node has changed since it was last sent, then we do
+        // need to send it.
+        if (wasInView && !(params.deltaViewFrustum && node->hasChangedSince(params.lastViewFrustumSent - CHANGE_FUDGE))) {
             return bytesAtThisLevel;
-        }            
+        }
+
+        // If we're not in delta sending mode, and we weren't asked to do a force send, and the voxel hasn't changed, 
+        // then we can also bail early and save bits
+        if (!params.forceSendScene && !params.deltaViewFrustum && 
+            !node->hasChangedSince(params.lastViewFrustumSent - CHANGE_FUDGE)) {
+            return bytesAtThisLevel;
+        }
 
         // If the user also asked for occlusion culling, check if this node is occluded, but only if it's not a leaf.
         // leaf occlusion is handled down below when we check child nodes
@@ -1176,7 +1187,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
             if (childNode) {
                 // chance to optimize, doesn't need to be actual distance!! Could be distance squared
                 //float distanceSquared = childNode->distanceSquareToPoint(point);
-                //printLog("recurseNodeWithOperationDistanceSorted() CHECKING child[%d] point=%f,%f center=%f,%f distance=%f...\n", i, point.x, point.y, center.x, center.y, distance);
+                //qDebug("recurseNodeWithOperationDistanceSorted() CHECKING child[%d] point=%f,%f center=%f,%f distance=%f...\n", i, point.x, point.y, center.x, center.y, distance);
                 //childNode->printDebugDetails("");
 
                 float distance = params.viewFrustum ? childNode->distanceToCamera(*params.viewFrustum) : 0;
@@ -1251,7 +1262,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
                 } // wants occlusion culling & isLeaf()
 
 
-                bool shouldRender = childNode->calculateShouldRender(params.viewFrustum, params.boundaryLevelAdjust);
+                bool shouldRender = !params.viewFrustum ? true : childNode->calculateShouldRender(params.viewFrustum, params.boundaryLevelAdjust);
                 
                 // track children with actual color, only if the child wasn't previously in view!
                 if (shouldRender && !childIsOccluded) {
@@ -1268,8 +1279,12 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
                         }
                     }         
 
-                    // If our child wasn't in view (or we're ignoring wasInView) then we add it to our sending items
-                    if (!childWasInView) {
+                    // If our child wasn't in view (or we're ignoring wasInView) then we add it to our sending items.
+                    // Or if we were previously in the view, but this node has changed since it was last sent, then we do
+                    // need to send it.
+                    if (!childWasInView || 
+                        (params.deltaViewFrustum && 
+                         childNode->hasChangedSince(params.lastViewFrustumSent - CHANGE_FUDGE))){
                         childrenColoredBits += (1 << (7 - originalIndex));
                         inViewWithColorCount++;
                     } else {
@@ -1353,7 +1368,6 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
             if (oneAtBit(childrenExistInPacketBits, originalIndex)) {
 
                 int thisLevel = currentEncodeLevel;
-
                 // remember this for reshuffling
                 recursiveSliceStarts[originalIndex] = outputBuffer;
 
@@ -1432,7 +1446,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
 bool VoxelTree::readFromSVOFile(const char* fileName) {
     std::ifstream file(fileName, std::ios::in|std::ios::binary|std::ios::ate);
     if(file.is_open()) {
-        printLog("loading file %s...\n", fileName);
+        qDebug("loading file %s...\n", fileName);
 
         // get file length....
         unsigned long fileLength = file.tellg();
@@ -1460,14 +1474,14 @@ bool VoxelTree::readFromSchematicFile(const char *fileName) {
     std::stringstream ss;
     int err = retrieveData(fileName, ss);
     if (err && ss.get() != TAG_Compound) {
-        printLog("[ERROR] Invalid schematic file.\n");
+        qDebug("[ERROR] Invalid schematic file.\n");
         return false;
     }
 
     ss.get();
     TagCompound schematics(ss);
     if (!schematics.getBlocksId() || !schematics.getBlocksData()) {
-        printLog("[ERROR] Invalid schematic file.\n");
+        qDebug("[ERROR] Invalid schematic file.\n");
         return false;
     }
 
@@ -1530,7 +1544,7 @@ bool VoxelTree::readFromSchematicFile(const char *fileName) {
         }
     }
 
-    printLog("Created %d voxels from minecraft import.\n", count);
+    qDebug("Created %d voxels from minecraft import.\n", count);
 
     return true;
 }
@@ -1540,7 +1554,7 @@ void VoxelTree::writeToSVOFile(const char* fileName, VoxelNode* node) const {
     std::ofstream file(fileName, std::ios::out|std::ios::binary);
 
     if(file.is_open()) {
-        printLog("saving to file %s...\n", fileName);
+        qDebug("saving to file %s...\n", fileName);
 
         VoxelNodeBag nodeBag;
         // If we were given a specific node, start from there, otherwise start from root

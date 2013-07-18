@@ -5,9 +5,10 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 
 #include <glm/gtx/quaternion.hpp>
+
 #include <SharedUtil.h>
 #include <VoxelConstants.h>
-#include "Log.h"
+
 #include "Camera.h"
 #include "Util.h"
 
@@ -50,6 +51,7 @@ Camera::Camera() {
     _targetPosition    = glm::vec3(0.0f, 0.0f, 0.0f);
     _position          = glm::vec3(0.0f, 0.0f, 0.0f);
     _idealPosition     = glm::vec3(0.0f, 0.0f, 0.0f);
+    _scale             = 1.0f;
 }
 
 void Camera::update(float deltaTime)  {
@@ -91,14 +93,14 @@ void Camera::updateFollowMode(float deltaTime) {
     
     if (_needsToInitialize || (_tightness == 0.0f)) {
         _rotation = _targetRotation;
-        _idealPosition = _targetPosition + _rotation * glm::vec3(0.0f, _upShift, _distance);
+        _idealPosition = _targetPosition + _scale * (_rotation * glm::vec3(0.0f, _upShift, _distance));
         _position = _idealPosition;
         _needsToInitialize = false;
 
     } else {
         // pull rotation towards ideal
         _rotation = safeMix(_rotation, _targetRotation, t);
-        _idealPosition = _targetPosition + _rotation * glm::vec3(0.0f, _upShift, _distance);
+        _idealPosition = _targetPosition + _scale * (_rotation * glm::vec3(0.0f, _upShift, _distance));
         _position += (_idealPosition - _position) * t;
     }
 }
@@ -171,6 +173,12 @@ void Camera::setEyeOffsetPosition  (const glm::vec3& p) {
 
 void Camera::setEyeOffsetOrientation  (const glm::quat& o) {
     _eyeOffsetOrientation = o;
+    _frustumNeedsReshape = true;
+}
+
+void Camera::setScale(float s) {
+    _scale = s;
+    _needsToInitialize = true;
     _frustumNeedsReshape = true;
 }
 

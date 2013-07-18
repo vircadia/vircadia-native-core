@@ -434,7 +434,7 @@ void sendDanceFloor() {
         for (int i = 0; i < DANCE_FLOOR_WIDTH; i++) {
             for (int j = 0; j < DANCE_FLOOR_LENGTH; j++) {
 
-                int randomColorIndex = randIntInRange( -(DANCE_FLOOR_COLORS), (DANCE_FLOOR_COLORS + 1));
+                int randomColorIndex = randIntInRange(-DANCE_FLOOR_COLORS, DANCE_FLOOR_COLORS);
                 ::danceFloorColors[i][j] = randomColorIndex;
                 ::danceFloorLights[i][j] = ::danceFloorPosition + 
                                          glm::vec3(i * DANCE_FLOOR_LIGHT_SIZE, 0, j * DANCE_FLOOR_LIGHT_SIZE);
@@ -697,8 +697,7 @@ int main(int argc, const char * argv[])
     ::wantLocalDomain = cmdOptionExists(argc, argv,local);
     if (::wantLocalDomain) {
         printf("Local Domain MODE!\n");
-        int ip = getLocalAddress();
-        sprintf(DOMAIN_IP,"%d.%d.%d.%d", (ip & 0xFF), ((ip >> 8) & 0xFF),((ip >> 16) & 0xFF), ((ip >> 24) & 0xFF));
+        nodeList->setDomainIPToLocalhost();
     }
 
     nodeList->linkedDataCreateCallback = NULL; // do we need a callback?

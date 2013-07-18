@@ -20,7 +20,9 @@ namespace Leap {
 
 class LeapManager {
 public:
-    static void nextFrame();  // called once per frame to get new Leap data
+    static void nextFrame();                    // called once per frame to get new Leap data
+    static bool controllersExist();             // Returns true if there's at least one active Leap plugged in
+    static void enableFakeFingers(bool enable); // put fake data in if there's no Leap plugged in
     static const std::vector<glm::vec3>& getFingerTips();
     static const std::vector<glm::vec3>& getFingerRoots();
     static const std::vector<glm::vec3>& getHandPositions();
@@ -31,6 +33,7 @@ public:
     
 private:
     static bool _libraryExists;            // The library is present, so we won't crash if we call it.
+    static bool _doFakeFingers;
     static Leap::Controller* _controller;
     static HifiLeapListener* _listener;
 };

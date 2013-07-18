@@ -7,11 +7,13 @@
 //
 
 #include <algorithm>
+#include <cstring>
+
+#include <QDebug>
+
+#include <SharedUtil.h>
 
 #include "CoverageMapV2.h"
-#include <SharedUtil.h>
-#include <cstring>
-#include "Log.h"
 
 int CoverageMapV2::_mapCount = 0;
 int CoverageMapV2::_checkMapRootCalls = 0;
@@ -59,7 +61,7 @@ CoverageMapV2::CoverageMapV2(BoundingBox boundingBox, bool isRoot, bool isCovere
 { 
     _mapCount++;
     init(); 
-    //printLog("CoverageMapV2 created... _mapCount=%d\n",_mapCount);
+    //qDebug("CoverageMapV2 created... _mapCount=%d\n",_mapCount);
 };
 
 CoverageMapV2::~CoverageMapV2() {
@@ -76,11 +78,11 @@ void CoverageMapV2::erase() {
     }
 
     if (_isRoot && wantDebugging) {
-        printLog("CoverageMapV2 last to be deleted...\n");
-        printLog("MINIMUM_POLYGON_AREA_TO_STORE=%f\n",MINIMUM_POLYGON_AREA_TO_STORE);
-        printLog("_mapCount=%d\n",_mapCount);
-        printLog("_checkMapRootCalls=%d\n",_checkMapRootCalls);
-        printLog("_notAllInView=%d\n",_notAllInView);
+        qDebug("CoverageMapV2 last to be deleted...\n");
+        qDebug("MINIMUM_POLYGON_AREA_TO_STORE=%f\n",MINIMUM_POLYGON_AREA_TO_STORE);
+        qDebug("_mapCount=%d\n",_mapCount);
+        qDebug("_checkMapRootCalls=%d\n",_checkMapRootCalls);
+        qDebug("_notAllInView=%d\n",_notAllInView);
         _mapCount = 0;
         _checkMapRootCalls = 0;
         _notAllInView = 0;

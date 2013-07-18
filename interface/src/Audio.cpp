@@ -7,24 +7,25 @@
 //
 #ifndef _WIN32
 
-#include <iostream>
+#include <cstring>
 #include <fstream>
+
+#include <iostream>
 #include <pthread.h>
 #include <sys/stat.h>
-#include <cstring>
 
-#include <StdDev.h>
-#include <UDPSocket.h>
-#include <SharedUtil.h>
-#include <PacketHeaders.h>
+
+#include <AngleUtil.h>
 #include <NodeList.h>
 #include <NodeTypes.h>
-#include <AngleUtil.h>
+#include <PacketHeaders.h>
+#include <SharedUtil.h>
+#include <StdDev.h>
+#include <UDPSocket.h>
 
 #include "Application.h"
 #include "Audio.h"
 #include "Util.h"
-#include "Log.h"
 
 //  Uncomment the following definition to test audio device latency by copying output to input
 //#define TEST_AUDIO_LOOPBACK
@@ -75,9 +76,12 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
     NodeList* nodeList = NodeList::getInstance();
     Application* interface = Application::getInstance();
     Avatar* interfaceAvatar = interface->getAvatar();
- 
+
+    memset(outputLeft, 0, PACKET_LENGTH_BYTES_PER_CHANNEL);
+    memset(outputRight, 0, PACKET_LENGTH_BYTES_PER_CHANNEL);
+
     // Add Procedural effects to input samples
-    addProceduralSounds(inputLeft, BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
+    addProceduralSounds(inputLeft, outputLeft, outputRight, BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
     
     if (nodeList && inputLeft) {
         
@@ -96,6 +100,10 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
         Node* audioMixer = nodeList->soloNodeOfType(NODE_TYPE_AUDIO_MIXER);
         
         if (audioMixer) {
+            audioMixer->lock();
+            sockaddr_in audioSocket = *(sockaddr_in*) audioMixer->getActiveSocket();
+            audioMixer->unlock();
+            
             glm::vec3 headPosition = interfaceAvatar->getHeadJointPosition();
             glm::quat headOrientation = interfaceAvatar->getHead().getOrientation();
             
@@ -122,19 +130,16 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
             
             // copy the audio data to the last BUFFER_LENGTH_BYTES bytes of the data packet
             memcpy(currentPacketPtr, inputLeft, BUFFER_LENGTH_BYTES_PER_CHANNEL);
-            nodeList->getNodeSocket()->send(audioMixer->getActiveSocket(),
-                                              dataPacket,
-                                              BUFFER_LENGTH_BYTES_PER_CHANNEL + leadingBytes);
+            nodeList->getNodeSocket()->send((sockaddr*) &audioSocket,
+                                            dataPacket,
+                                            BUFFER_LENGTH_BYTES_PER_CHANNEL + leadingBytes);
 
-            interface->getBandwidthMeter()->outputStream(BandwidthMeter::AUDIO)
-                    .updateValue(BUFFER_LENGTH_BYTES_PER_CHANNEL + leadingBytes);
+            interface->getBandwidthMeter()->outputStream(BandwidthMeter::AUDIO).updateValue(BUFFER_LENGTH_BYTES_PER_CHANNEL
+                                                                                            + leadingBytes);
+            
         }
-        
     }
-    
-    memset(outputLeft, 0, PACKET_LENGTH_BYTES_PER_CHANNEL);
-    memset(outputRight, 0, PACKET_LENGTH_BYTES_PER_CHANNEL);
-    
+        
     AudioRingBuffer* ringBuffer = &_ringBuffer;
     
     // if there is anything in the ring buffer, decide what to do:
@@ -146,7 +151,7 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
             //  If not enough audio has arrived to start playback, keep waiting
             //
 #ifdef SHOW_AUDIO_DEBUG
-            printLog("%i,%i,%i,%i\n",
+            qDebug("%i,%i,%i,%i\n",
                      _packetsReceivedThisPlayback,
                      ringBuffer->diffLastWriteNextOutput(),
                      PACKET_LENGTH_SAMPLES,
@@ -163,7 +168,7 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
             _packetsReceivedThisPlayback = 0;
             _wasStarved = 10;          //   Frames for which to render the indication that the system was starved.
 #ifdef SHOW_AUDIO_DEBUG
-            printLog("Starved, remaining samples = %d\n",
+            qDebug("Starved, remaining samples = %d\n",
                      ringBuffer->diffLastWriteNextOutput());
 #endif
 
@@ -174,7 +179,7 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
             if (!ringBuffer->isStarted()) {
                 ringBuffer->setStarted(true);
 #ifdef SHOW_AUDIO_DEBUG
-                printLog("starting playback %0.1f msecs delayed, jitter = %d, pkts recvd: %d \n",
+                qDebug("starting playback %0.1f msecs delayed, jitter = %d, pkts recvd: %d \n",
                          (usecTimestampNow() - usecTimestamp(&_firstPacketReceivedTime))/1000.0,
                          _jitterBufferSamples,
                          _packetsReceivedThisPlayback);
@@ -245,11 +250,11 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
                     }
                 }
 #ifndef TEST_AUDIO_LOOPBACK
-                outputLeft[s] = leftSample;
-                outputRight[s] = rightSample;
+                outputLeft[s] += leftSample;
+                outputRight[s] += rightSample;
 #else 
-                outputLeft[s] = inputLeft[s];
-                outputRight[s] = inputLeft[s];                    
+                outputLeft[s] += inputLeft[s];
+                outputRight[s] += inputLeft[s];
 #endif
             }
             ringBuffer->setNextOutput(ringBuffer->getNextOutput() + PACKET_LENGTH_SAMPLES);
@@ -294,8 +299,8 @@ int Audio::audioCallback (const void* inputBuffer,
 
 static void outputPortAudioError(PaError error) {
     if (error != paNoError) {
-        printLog("-- portaudio termination error --\n");
-        printLog("PortAudio error (%d): %s\n", error, Pa_GetErrorText(error));
+        qDebug("-- portaudio termination error --\n");
+        qDebug("PortAudio error (%d): %s\n", error, Pa_GetErrorText(error));
     }
 }
 
@@ -327,7 +332,13 @@ Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples) :
     _lastYawMeasuredMaximum(0),
     _flangeIntensity(0.0f),
     _flangeRate(0.0f),
-    _flangeWeight(0.0f)
+    _flangeWeight(0.0f),
+    _collisionSoundMagnitude(0.0f),
+    _collisionSoundFrequency(0.0f),
+    _collisionSoundNoise(0.0f),
+    _collisionSoundDuration(0.0f),
+    _proceduralEffectSample(0),
+    _heartbeatMagnitude(0.0f)
 {
     outputPortAudioError(Pa_Initialize());
     
@@ -344,7 +355,7 @@ Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples) :
     outputParameters.device = Pa_GetDefaultOutputDevice();
 
     if (inputParameters.device == -1 || outputParameters.device == -1) {
-        printLog("Audio: Missing device.\n");
+        qDebug("Audio: Missing device.\n");
         outputPortAudioError(Pa_Terminate());
         return;
     }
@@ -379,12 +390,12 @@ Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples) :
     outputPortAudioError(Pa_StartStream(_stream));
     
     // Uncomment these lines to see the system-reported latency
-    //printLog("Default low input, output latency (secs): %0.4f, %0.4f\n",
+    //qDebug("Default low input, output latency (secs): %0.4f, %0.4f\n",
     //         Pa_GetDeviceInfo(Pa_GetDefaultInputDevice())->defaultLowInputLatency,
     //         Pa_GetDeviceInfo(Pa_GetDefaultOutputDevice())->defaultLowOutputLatency);
     
     const PaStreamInfo* streamInfo = Pa_GetStreamInfo(_stream);
-    printLog("Started audio with reported latency msecs In/Out: %.0f, %.0f\n", streamInfo->inputLatency * 1000.f,
+    qDebug("Started audio with reported latency msecs In/Out: %.0f, %.0f\n", streamInfo->inputLatency * 1000.f,
              streamInfo->outputLatency * 1000.f);
 
     gettimeofday(&_lastReceiveTime, NULL);
@@ -583,7 +594,10 @@ void Audio::lowPassFilter(int16_t* inputBuffer) {
 }
 
 //  Take a pointer to the acquired microphone input samples and add procedural sounds
-void Audio::addProceduralSounds(int16_t* inputBuffer, int numSamples) {
+void Audio::addProceduralSounds(int16_t* inputBuffer,
+                                int16_t* outputLeft,
+                                int16_t* outputRight,
+                                int numSamples) {
     const float MAX_AUDIBLE_VELOCITY = 6.0;
     const float MIN_AUDIBLE_VELOCITY = 0.1;
     const int VOLUME_BASELINE = 400;
@@ -592,14 +606,48 @@ void Audio::addProceduralSounds(int16_t* inputBuffer, int numSamples) {
     float speed = glm::length(_lastVelocity);
     float volume = VOLUME_BASELINE * (1.f - speed / MAX_AUDIBLE_VELOCITY);
     
+    int sample;
+    
+    //
+    // Travelling noise
+    //
     //  Add a noise-modulated sinewave with volume that tapers off with speed increasing
     if ((speed > MIN_AUDIBLE_VELOCITY) && (speed < MAX_AUDIBLE_VELOCITY)) {
         for (int i = 0; i < numSamples; i++) {
-            inputBuffer[i] += (int16_t)((sinf((float) i / SOUND_PITCH * speed) * randFloat()) * volume * speed);
+            inputBuffer[i] += (int16_t)(sinf((float) (_proceduralEffectSample + i) / SOUND_PITCH ) * volume * (1.f + randFloat() * 0.25f) * speed);
         }
     }
+    const float COLLISION_SOUND_CUTOFF_LEVEL = 0.01f;
+    const float COLLISION_SOUND_MAX_VOLUME = 1000.f;
+    const float UP_MAJOR_FIFTH = powf(1.5f, 4.0f);
+    const float DOWN_TWO_OCTAVES = 4.f;
+    const float DOWN_FOUR_OCTAVES = 16.f;
+    float t;
+    if (_collisionSoundMagnitude > COLLISION_SOUND_CUTOFF_LEVEL) {
+        for (int i = 0; i < numSamples; i++) {
+            t = (float) _proceduralEffectSample + (float) i;
+            sample = sinf(t * _collisionSoundFrequency) +
+                     sinf(t * _collisionSoundFrequency / DOWN_TWO_OCTAVES) +
+                     sinf(t * _collisionSoundFrequency / DOWN_FOUR_OCTAVES * UP_MAJOR_FIFTH);
+            sample *= _collisionSoundMagnitude * COLLISION_SOUND_MAX_VOLUME;
+            inputBuffer[i] += sample;
+            outputLeft[i] += sample;
+            outputRight[i] += sample;
+            _collisionSoundMagnitude *= _collisionSoundDuration;
+        }
+    }
+    _proceduralEffectSample += numSamples;
 }
 
+//
+//  Starts a collision sound.  magnitude is 0-1, with 1 the loudest possible sound. 
+//
+void Audio::startCollisionSound(float magnitude, float frequency, float noise, float duration) {
+    _collisionSoundMagnitude = magnitude;
+    _collisionSoundFrequency = frequency;
+    _collisionSoundNoise = noise;
+    _collisionSoundDuration = duration;
+}
 // -----------------------------------------------------------
 // Accoustic ping (audio system round trip time determination)
 // -----------------------------------------------------------
@@ -645,7 +693,7 @@ inline void Audio::eventuallySendRecvPing(int16_t* inputLeft, int16_t* outputLef
         // As of the next frame, we'll be recoding PING_FRAMES_TO_RECORD from 
         // the mic (pointless to start now as we can't record unsent audio).
         _isSendingEchoPing = false;
-        printLog("Send audio ping\n");
+        qDebug("Send audio ping\n");
 
     } else if (_pingFramesToRecord > 0) {
 
@@ -659,7 +707,7 @@ inline void Audio::eventuallySendRecvPing(int16_t* inputLeft, int16_t* outputLef
 
         if (_pingFramesToRecord == 0) {
             _pingAnalysisPending = true;
-            printLog("Received ping echo\n");
+            qDebug("Received ping echo\n");
         }
     }
 }
@@ -683,25 +731,25 @@ inline void Audio::analyzePing() {
     // Determine extrema
     int botAt = findExtremum(_echoSamplesLeft, PING_SAMPLES_TO_ANALYZE, -1);
     if (botAt == -1) {
-        printLog("Audio Ping: Minimum not found.\n");
+        qDebug("Audio Ping: Minimum not found.\n");
         return;
     }
     int topAt = findExtremum(_echoSamplesLeft, PING_SAMPLES_TO_ANALYZE, 1);
     if (topAt == -1) {
-        printLog("Audio Ping: Maximum not found.\n");
+        qDebug("Audio Ping: Maximum not found.\n");
         return;
     }
 
     // Determine peak amplitude - warn if low
     int ampli = (_echoSamplesLeft[topAt] - _echoSamplesLeft[botAt]) / 2;
     if (ampli < PING_MIN_AMPLI) {
-        printLog("Audio Ping unreliable - low amplitude %d.\n", ampli);
+        qDebug("Audio Ping unreliable - low amplitude %d.\n", ampli);
     }
 
     // Determine period - warn if doesn't look like our signal
     int halfPeriod = abs(topAt - botAt);
     if (abs(halfPeriod-PING_HALF_PERIOD) > PING_MAX_PERIOD_DIFFERENCE) {
-        printLog("Audio Ping unreliable - peak distance %d vs. %d\n", halfPeriod, PING_HALF_PERIOD);
+        qDebug("Audio Ping unreliable - peak distance %d vs. %d\n", halfPeriod, PING_HALF_PERIOD);
     }
 
     // Ping is sent:
@@ -742,7 +790,7 @@ inline void Audio::analyzePing() {
 
     int delay = (botAt + topAt) / 2 + PING_PERIOD;
 
-    printLog("\n| Audio Ping results:\n+----- ---- --- - -  -   -   -\n\n"
+    qDebug("\n| Audio Ping results:\n+----- ---- --- - -  -   -   -\n\n"
              "Delay = %d samples (%d ms)\nPeak amplitude = %d\n\n",
              delay, (delay * 1000) / int(SAMPLE_RATE), ampli);
 }
