@@ -1143,10 +1143,11 @@ void Application::editPreferences() {
         return;
     }
     
-    const char* newHostname = domainServerHostname->text().toStdString().c_str();
-    
+    char newHostname[MAX_HOSTNAME_BYTES] = {};
+    memcpy(newHostname, domainServerHostname->text().toAscii().data(), domainServerHostname->text().size());
+   
     // check if the domain server hostname is new 
-    if (memcmp(NodeList::getInstance()->getDomainHostname(), newHostname, sizeof(&newHostname)) != 0) {
+    if (memcmp(NodeList::getInstance()->getDomainHostname(), newHostname, strlen(newHostname)) != 0) {
         // if so we need to clear the nodelist and delete the existing voxel and environment data
         Node *voxelServer = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_VOXEL_SERVER);
         
