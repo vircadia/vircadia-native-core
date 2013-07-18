@@ -147,24 +147,6 @@ void ParticleSystem::killParticle(int p) {
     _numParticles --;
 }
 
-/*
-void ParticleSystem::setOrangeBlueColorPalette() {
-
-    for (unsigned int p = 0; p < _numParticles; p++) {
-
-        float radian = ((float)p / (float)_numParticles) * PI_TIMES_TWO;
-        float wave   = sinf(radian);
-        
-        float red    = 0.5f + 0.5f * wave;
-        float green  = 0.3f + 0.3f * wave;
-        float blue   = 0.2f - 0.2f * wave;
-        float alpha  = 1.0f;
-        
-        _particle[p].color = glm::vec4(red, green, blue, alpha);
-    }
-}
-*/
-
 
 void ParticleSystem::setParticleAttributes(int emitterIndex, ParticleAttributes attributes) {
 
