@@ -1676,6 +1676,8 @@ void Application::initMenu() {
     _renderFrameTimerOn->setChecked(false);
     (_renderLookatOn = renderMenu->addAction("Lookat Vectors"))->setCheckable(true);
     _renderLookatOn->setChecked(false);
+    (_renderLookatIndicatorOn = renderMenu->addAction("Lookat Indicator"))->setCheckable(true);
+    _renderLookatIndicatorOn->setChecked(true);
     (_manualFirstPerson = renderMenu->addAction(
         "First Person", this, SLOT(setRenderFirstPerson(bool)), Qt::Key_P))->setCheckable(true);
     (_manualThirdPerson = renderMenu->addAction(
@@ -1887,7 +1889,7 @@ bool Application::isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3& m
             glm::vec3 headPosition = avatar->getHead().getPosition();
             if (rayIntersectsSphere(mouseRayOrigin, mouseRayDirection, headPosition, HEAD_SPHERE_RADIUS)) {
                 eyePosition = avatar->getHead().getEyeLevelPosition();
-                renderLookatIndicator(headPosition);
+                _lookatOtherPosition = headPosition;
                 return true;
             }
         }
@@ -1895,24 +1897,19 @@ bool Application::isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3& m
     return false;
 }
 
-void Application::renderLookatIndicator(glm::vec3& pointOfInterest) {
-    // Render a circle between me and the avatar in question.
+void Application::renderLookatIndicator(glm::vec3 pointOfInterest, Camera& whichCamera) {
 
-    // I need a vector that is perpendicular to the vector from my camera position to the head position.
-    // Start by locating point on vector that will be the center of the circle.
-    glm::vec3 direction = glm::normalize(pointOfInterest - _myCamera.getPosition());
+    glm::vec3 direction = glm::normalize(pointOfInterest - whichCamera.getPosition());
     const float DISTANCE_FROM_HEAD_SPHERE = 0.1f;
     glm::vec3 indicatorOrigin = pointOfInterest - DISTANCE_FROM_HEAD_SPHERE * direction;
-    // Then find a perpendicular vector/point
-    // const float ARB_X = 1.0f;
-    // const float ARB_Y = 1.0f;
 
-    // float z = - (direction.x * ARB_X + direction.y * ARB_Y) / direction.z;
-    // glm::vec3 perpendicular(ARB_X, ARB_Y, z);
-    // perpendicular = glm::normalize(perpendicular);
-    // glm::vec3 startingVertex = indicatorOrigin + perpendicular;
-    renderCircle(indicatorOrigin, 0.1, direction, 30);
+    // glm::vec3 haloOrigin(pointOfInterest.x, pointOfInterest.y + DISTANCE_FROM_HEAD_SPHERE, pointOfInterest.z);
 
+    glColor3f(1.0f, 0.0f, 0.0f);
+    // renderCircle(haloOrigin, 0.1f, glm::vec3(0.0f, 1.0f, 0.0f), 30);
+    // glm::vec3 normal;
+    // _viewFrustum.computeNormalToNearClipPlane(normal);
+    renderCircle(indicatorOrigin, 0.1f, _viewFrustum.getDirection(), 30);
 }
 
 void Application::update(float deltaTime) {
@@ -2605,6 +2602,10 @@ void Application::displaySide(Camera& whichCamera) {
         } 
         _myAvatar.render(_lookingInMirror->isChecked(), _renderAvatarBalls->isChecked());
         _myAvatar.setDisplayingLookatVectors(_renderLookatOn->isChecked());
+
+        if (_renderLookatIndicatorOn->isChecked() && _isLookingAtOtherAvatar) {
+            renderLookatIndicator(_lookatOtherPosition, whichCamera);
+        }
     }
 
     if (TESTING_PARTICLE_SYSTEM) {

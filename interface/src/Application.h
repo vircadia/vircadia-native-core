@@ -195,6 +195,7 @@ private:
     
     void update(float deltaTime);
     bool isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection, glm::vec3& eyePosition);
+    void renderLookatIndicator(glm::vec3 pointOfInterest, Camera& whichCamera);
     void updateAvatar(float deltaTime);
     void loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum);
     
@@ -250,6 +251,7 @@ private:
     QAction* _renderStatsOn;         // Whether to show onscreen text overlay with stats
     QAction* _renderFrameTimerOn;    // Whether to show onscreen text overlay with stats
     QAction* _renderLookatOn;        // Whether to show lookat vectors from avatar eyes if looking at something
+    QAction* _renderLookatIndicatorOn;
     QAction* _manualFirstPerson;     // Whether to force first-person mode
     QAction* _manualThirdPerson;     // Whether to force third-person mode
     QAction* _logOn;                 // Whether to show on-screen log
@@ -365,6 +367,7 @@ private:
     bool _justEditedVoxel;        // set when we've just added/deleted/colored a voxel
 
     bool _isLookingAtOtherAvatar;
+    glm::vec3 _lookatOtherPosition;
     
     bool _paintOn;                // Whether to paint voxels as you fly around
     unsigned char _dominantColor; // The dominant color of the voxel we're painting
