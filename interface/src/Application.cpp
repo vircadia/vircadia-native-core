@@ -73,7 +73,7 @@ using namespace std;
 static char STAR_FILE[] = "http://s3-us-west-1.amazonaws.com/highfidelity/stars.txt";
 static char STAR_CACHE_FILE[] = "cachedStars.txt";
 
-static const bool TESTING_PARTICLE_SYSTEM = false;
+static const bool TESTING_PARTICLE_SYSTEM = true;
 
 static const int BANDWIDTH_METER_CLICK_MAX_DRAG_LENGTH = 6; // farther dragged clicks are ignored 
 
@@ -3510,23 +3510,13 @@ void Application::updateParticleSystem(float deltaTime) {
             _particleSystem.setShowingEmitter(_coolDemoParticleEmitter, true);
             glm::vec3 particleEmitterPosition = glm::vec3(5.0f, 1.0f, 5.0f);   
             _particleSystem.setEmitterPosition(_coolDemoParticleEmitter, particleEmitterPosition);
-            float radius = 0.01f;
-            glm::vec4 color(0.0f, 0.0f, 0.0f, 1.0f);
             glm::vec3 velocity(0.0f, 0.1f, 0.0f);
             float lifespan = 100000.0f;
-            
-            // determine a collision sphere
-            glm::vec3 collisionSpherePosition = glm::vec3( 5.0f, 0.5f, 5.0f );   
-            float collisionSphereRadius = 0.5f;            
-            _particleSystem.setCollisionSphere(_coolDemoParticleEmitter, collisionSpherePosition, collisionSphereRadius);
-            _particleSystem.emitParticlesNow(_coolDemoParticleEmitter, 1500, radius, color, velocity, lifespan);   
+            _particleSystem.emitParticlesNow(_coolDemoParticleEmitter, 1500, velocity, lifespan);   
         }
         
         // signal that the particle system has been initialized 
         _particleSystemInitialized = true;         
-
-        // apply a preset color palette  
-        _particleSystem.setOrangeBlueColorPalette();            
     } else {
         // update the particle system
         
@@ -3547,6 +3537,7 @@ void Application::updateParticleSystem(float deltaTime) {
             ParticleSystem::ParticleAttributes attributes;
 
             attributes.radius                  = 0.01f;
+            attributes.color                   = glm::vec4( 1.0f, 1.0f, 1.0f, 1.0f);
             attributes.gravity                 = 0.0f   + 0.05f  * sinf( t * 0.52f );
             attributes.airFriction             = 2.5    + 2.0f   * sinf( t * 0.32f );
             attributes.jitter                  = 0.05f  + 0.05f  * sinf( t * 0.42f );
@@ -3563,7 +3554,7 @@ void Application::updateParticleSystem(float deltaTime) {
                 attributes.gravity = 0.0f;
             }
             
-            _particleSystem.setParticleAttributes(_coolDemoParticleEmitter, attributes);
+            _particleSystem.setParticleAttributes(_coolDemoParticleEmitter, attributes);            
         }
         
         _particleSystem.setUpDirection(glm::vec3(0.0f, 1.0f, 0.0f));  
