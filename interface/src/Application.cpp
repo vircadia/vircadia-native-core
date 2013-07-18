@@ -197,6 +197,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _pitchFromTouch(0.0f),
         _groundPlaneImpact(0.0f),
         _mousePressed(false),
+        _isHoverVoxel(false),
+        _isHoverVoxelSounding(false),
         _mouseVoxelScale(1.0f / 1024.0f),
         _justEditedVoxel(false),
         _paintOn(false),
@@ -848,6 +850,15 @@ void Application::mousePressEvent(QMouseEvent* event) {
             _mouseVoxelDragging = _mouseVoxel;
             _mousePressed = true;
             maybeEditVoxelUnderCursor();
+            if (_isHoverVoxel && !_isHoverVoxelSounding) {
+                _hoverVoxelOriginalColor[0] = _hoverVoxel.red;
+                _hoverVoxelOriginalColor[1] = _hoverVoxel.green;
+                _hoverVoxelOriginalColor[2] = _hoverVoxel.blue;
+                _hoverVoxelOriginalColor[3] = 1;
+                _audio.startCollisionSound(1.0, 220, 0.0, 0.999f);
+                qDebug("s = %f\n", _hoverVoxel.s);
+                _isHoverVoxelSounding = true;
+            }
             
         } else if (event->button() == Qt::RightButton && checkedVoxelModeAction() != 0) {
             deleteVoxelUnderCursor();
@@ -1927,7 +1938,27 @@ void Application::update(float deltaTime) {
         glm::vec3 myLookAtFromMouse(mouseRayOrigin + mouseRayDirection);
         _myAvatar.getHead().setLookAtPosition(myLookAtFromMouse);
     }
-
+    
+    //  Find the voxel we are hovering over, and respond if clicked
+    float distance;
+    BoxFace face;
+    
+    //  If we have clicked on a voxel, update it's color
+    if (_isHoverVoxelSounding) {
+        qDebug("clicking on voxel\n");
+        VoxelNode* hoveredNode = _voxels.getVoxelAt(_hoverVoxel.x, _hoverVoxel.y, _hoverVoxel.z, _hoverVoxel.s);
+        nodeColor clickColor = { 1, 0, 0, 1 };
+        float bright = _audio.getCollisionSoundMagnitude();
+        hoveredNode->setColor(clickColor);
+        if (bright < 0.01f) {
+            hoveredNode->setColor(_hoverVoxelOriginalColor);
+            _isHoverVoxelSounding = false;
+        }
+    } else {
+        //  Check for a new hover voxel
+        _isHoverVoxel = _voxels.findRayIntersection(mouseRayOrigin, mouseRayDirection, _hoverVoxel, distance, face);
+    }
+    
     //  If we are dragging on a voxel, add thrust according to the amount the mouse is dragging
     const float VOXEL_GRAB_THRUST = 0.0f;
     if (_mousePressed && (_mouseVoxel.s != 0)) {
@@ -1953,8 +1984,6 @@ void Application::update(float deltaTime) {
         (fabs(_myAvatar.getVelocity().x) +
          fabs(_myAvatar.getVelocity().y) +
          fabs(_myAvatar.getVelocity().z)) / 3 < MAX_AVATAR_EDIT_VELOCITY) {
-        float distance;
-        BoxFace face;
         if (_voxels.findRayIntersection(mouseRayOrigin, mouseRayDirection, _mouseVoxel, distance, face)) {
             if (distance < MAX_VOXEL_EDIT_DISTANCE) {
                 // find the nearest voxel with the desired scale
@@ -2140,7 +2169,7 @@ void Application::update(float deltaTime) {
 }
 
 void Application::updateAvatar(float deltaTime) {
-
+    
     // When head is rotated via touch/mouse look, slowly turn body to follow
     const float BODY_FOLLOW_HEAD_RATE = 0.5f;
     // update body yaw by body yaw delta
