@@ -1148,14 +1148,18 @@ void Application::editPreferences() {
     
     // check if the domain server hostname is new 
     if (memcmp(NodeList::getInstance()->getDomainHostname(), newHostname, sizeof(&newHostname)) != 0) {
-        // if so we need to clear the nodelist and delete the local voxels
+        // if so we need to clear the nodelist and delete the existing voxel and environment data
         Node *voxelServer = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_VOXEL_SERVER);
         
         if (voxelServer) {
             voxelServer->lock();
         }
         
+        // kill the local voxels
         _voxels.killLocalVoxels();
+        
+        // reset the environment to default
+        _environment.resetToDefault();
         
         if (voxelServer) {
             voxelServer->unlock();
