@@ -472,8 +472,7 @@ void *removeSilentNodes(void *args) {
         
         for(NodeList::iterator node = nodeList->begin(); node != nodeList->end(); ++node) {
             
-            if ((checkTimeUSecs - node->getLastHeardMicrostamp()) > NODE_SILENCE_THRESHOLD_USECS
-            	&& node->getType() != NODE_TYPE_VOXEL_SERVER) {
+            if ((checkTimeUSecs - node->getLastHeardMicrostamp()) > NODE_SILENCE_THRESHOLD_USECS) {
             
                 qDebug() << "Killed" << *node << "\n";
                 
