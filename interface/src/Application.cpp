@@ -1933,7 +1933,12 @@ void Application::update(float deltaTime) {
         // If the mouse is over another avatar's head...
         glm::vec3 myLookAtFromMouse(eyePosition);
          _myAvatar.getHead().setLookAtPosition(myLookAtFromMouse);
+    } else if (_isHoverVoxel) {
+        //  Look at the hovered voxel
+        glm::vec3 lookAtSpot = getMouseVoxelWorldCoordinates(_hoverVoxel);
+        _myAvatar.getHead().setLookAtPosition(lookAtSpot);
     } else {
+        //  Just look in direction of the mouse ray
         glm::vec3 myLookAtFromMouse(mouseRayOrigin + mouseRayDirection);
         _myAvatar.getHead().setLookAtPosition(myLookAtFromMouse);
     }
