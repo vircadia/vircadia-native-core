@@ -9,6 +9,8 @@
 #ifndef __hifi__VoxelSceneStats__
 #define __hifi__VoxelSceneStats__
 
+#include <stdint.h>
+
 
 class VoxelSceneStats {
 public:

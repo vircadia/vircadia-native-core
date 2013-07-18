@@ -6,6 +6,8 @@
 //
 //
 
+#include <SharedUtil.h>
+
 #include "VoxelSceneStats.h"
 
 VoxelSceneStats::VoxelSceneStats() :
@@ -25,7 +27,6 @@ VoxelSceneStats::VoxelSceneStats() :
     packets(0),
     bytes(0),
     passes(0),
-    elapsedUsecsToSend(0),
     wasFinished(false),
     wasMoving(false),
     hadDeltaView(false),
