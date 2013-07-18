@@ -1143,8 +1143,7 @@ void Application::editPreferences() {
         return;
     }
     
-    
-    const char* newHostname = domainServerHostname->text().toLocal8Bit().data();
+    const char* newHostname = domainServerHostname->text().toStdString().c_str();
     
     // check if the domain server hostname is new 
     if (memcmp(NodeList::getInstance()->getDomainHostname(), newHostname, sizeof(&newHostname)) != 0) {
