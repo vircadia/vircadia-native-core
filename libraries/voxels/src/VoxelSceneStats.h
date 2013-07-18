@@ -74,6 +74,18 @@ private:
     unsigned long _internalDidntFit;
     unsigned long _leavesDidntFit;
 
+    unsigned long _colorBitsWritten;
+    unsigned long _internalColorBitsWritten;
+    unsigned long _leavesColorBitsWritten;
+
+    unsigned long _existsBitsWritten;
+    unsigned long _internalExistsBitsWritten;
+    unsigned long _leavesExistsBitsWritten;
+
+    unsigned long _existsInPacketBitsWritten;
+    unsigned long _internalExistsInPacketBitsWritten;
+    unsigned long _leavesExistsInPacketBitsWritten;
+
     unsigned long total;
     unsigned long internalOutOfView;
     unsigned long internalOccluded;
