@@ -44,9 +44,9 @@ const int MIN_BRIGHTNESS = 64;
 const float DEATH_STAR_RADIUS = 4.0;
 const float MAX_CUBE = 0.05f;
 
-const int VOXEL_SEND_INTERVAL_USECS = 100 * 1000;
-int PACKETS_PER_CLIENT_PER_INTERVAL = 30;
-const int SENDING_TIME_TO_SPARE = 20 * 1000; // usec of sending interval to spare for calculating voxels
+const int VOXEL_SEND_INTERVAL_USECS = 17 * 1000; // approximately 60fps
+int PACKETS_PER_CLIENT_PER_INTERVAL = 20;
+const int SENDING_TIME_TO_SPARE = 5 * 1000; // usec of sending interval to spare for calculating voxels
 
 const int MAX_VOXEL_TREE_DEPTH_LEVELS = 4;
 
