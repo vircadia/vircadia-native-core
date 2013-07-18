@@ -204,9 +204,13 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
                 printf("ENTIRE SCENE SENT! nodeData->setLastTimeBagEmpty(now=[%lld])\n", now);
             }
         }
-
+        
+        nodeData->stats.sceneCompleted();
+        nodeData->stats.printDebugDetails();
+        
         // This is the start of "resending" the scene.
         nodeData->nodeBag.insert(serverTree.rootNode);
+        nodeData->stats.sceneStarted();
     }
 
     // If we have something in our nodeBag, then turn them into packets and send them out...
