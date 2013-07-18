@@ -70,7 +70,7 @@
 using namespace std;
 
 //  Starfield information
-static char STAR_FILE[] = "https://s3-us-west-1.amazonaws.com/highfidelity/stars.txt";
+static char STAR_FILE[] = "http://s3-us-west-1.amazonaws.com/highfidelity/stars.txt";
 static char STAR_CACHE_FILE[] = "cachedStars.txt";
 
 static const bool TESTING_PARTICLE_SYSTEM = false;
