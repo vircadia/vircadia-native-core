@@ -12,9 +12,11 @@
 #include <iostream>
 #include <NodeData.h>
 #include <AvatarData.h>
-#include "VoxelNodeBag.h"
-#include "VoxelConstants.h"
-#include "CoverageMap.h"
+
+#include <CoverageMap.h>
+#include <VoxelConstants.h>
+#include <VoxelNodeBag.h>
+#include <VoxelSceneStats.h>
 
 class VoxelNodeData : public AvatarData {
 public:
