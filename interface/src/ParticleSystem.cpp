@@ -271,17 +271,6 @@ void ParticleSystem::updateParticle(int p, float deltaTime) {
     _particle[p].age += deltaTime;    
 }
 
-/*
-void ParticleSystem::setCollisionSphere(int e, glm::vec3 position, float radius) {
-
-    int lifeStage = 0;
-    
-    _emitter[e].particleAttributes[lifeStage].usingCollisionSphere    = true;
-    _emitter[e].particleAttributes[lifeStage].collisionSpherePosition = position; 
-    _emitter[e].particleAttributes[lifeStage].collisionSphereRadius   = radius;
-}
-*/
-
 void ParticleSystem::setEmitterBaseParticle(int emitterIndex, bool showing ) {
 
     _emitter[emitterIndex].baseParticle.alive = true;
