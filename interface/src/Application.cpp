@@ -1907,9 +1907,12 @@ void Application::renderLookatIndicator(glm::vec3 pointOfInterest, Camera& which
 
     glColor3f(1.0f, 0.0f, 0.0f);
     // renderCircle(haloOrigin, 0.1f, glm::vec3(0.0f, 1.0f, 0.0f), 30);
-    // glm::vec3 normal;
-    // _viewFrustum.computeNormalToNearClipPlane(normal);
-    renderCircle(indicatorOrigin, 0.1f, _viewFrustum.getDirection(), 30);
+    loadViewFrustum(_myCamera, _viewFrustum);
+    glm::vec3 normal;
+    _viewFrustum.computeNormalToOffset(normal);
+
+    // Plane::Plane p(_viewFrustum.getOffsetPosition(), _viewFrustum.getOffsetUp(), _viewFrustum.getOffsetRight());
+    renderCircle(indicatorOrigin, 0.1f, normal, 30);
 }
 
 void Application::update(float deltaTime) {
