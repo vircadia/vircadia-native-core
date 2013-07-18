@@ -13,6 +13,8 @@
 
 #include <opencv2/opencv.hpp>
 
+#include <vpx_codec.h>
+
 #include "InterfaceConfig.h"
 
 class Head;
@@ -24,11 +26,14 @@ class Face : public QObject {
 public:
     
     Face(Head* owningHead);
+    ~Face();
 
     void setColorTextureID(GLuint colorTextureID) { _colorTextureID = colorTextureID; }
     void setDepthTextureID(GLuint depthTextureID) { _depthTextureID = depthTextureID; }
     void setTextureSize(const cv::Size2f& textureSize) { _textureSize = textureSize; }
     void setTextureRect(const cv::RotatedRect& textureRect) { _textureRect = textureRect; }
+    
+    int processVideoMessage(unsigned char* packetData, size_t dataBytes);
     
     bool render(float alpha);
     
@@ -46,6 +51,12 @@ private:
     GLuint _depthTextureID;
     cv::Size2f _textureSize;
     cv::RotatedRect _textureRect;
+    
+    vpx_codec_ctx_t _codec;
+    
+    QByteArray _arrivingFrame;
+    int _frameCount;
+    int _frameBytesRemaining;
     
     static ProgramObject* _program;
     static int _texCoordCornerLocation;

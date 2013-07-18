@@ -99,6 +99,10 @@ public:
     
     QNetworkAccessManager* getNetworkAccessManager() { return _networkAccessManager; }
     GeometryCache* getGeometryCache() { return &_geometryCache; }
+
+public slots:
+
+    void sendAvatarFaceVideoMessage(int frameCount, const QByteArray& data);    
     
 private slots:
     
@@ -178,7 +182,8 @@ private:
     static bool sendVoxelsOperation(VoxelNode* node, void* extraData);
     static void sendVoxelEditMessage(PACKET_TYPE type, VoxelDetail& detail);
     static void sendAvatarVoxelURLMessage(const QUrl& url);
-    static void processAvatarVoxelURLMessage(unsigned char *packetData, size_t dataBytes);
+    static void processAvatarVoxelURLMessage(unsigned char* packetData, size_t dataBytes);
+    static void processAvatarFaceVideoMessage(unsigned char* packetData, size_t dataBytes);
     static void sendPingPackets();
     
     void initMenu();

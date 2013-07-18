@@ -8,6 +8,11 @@
 
 #include <glm/gtx/quaternion.hpp>
 
+#include <vpx_decoder.h>
+#include <vp8dx.h>
+
+#include <PacketHeaders.h>
+
 #include "Avatar.h"
 #include "Head.h"
 #include "Face.h"
@@ -22,7 +27,56 @@ int Face::_texCoordUpLocation;
 GLuint Face::_vboID;
 GLuint Face::_iboID;
 
-Face::Face(Head* owningHead) : _owningHead(owningHead), _renderMode(MESH), _colorTextureID(0), _depthTextureID(0) {
+Face::Face(Head* owningHead) : _owningHead(owningHead), _renderMode(MESH),
+    _colorTextureID(0), _depthTextureID(0), _codec(), _frameCount(0) {
+}
+
+Face::~Face() {
+    if (_codec.name != 0) {
+        vpx_codec_destroy(&_codec);
+        _codec.name = 0;
+    }
+}
+
+int Face::processVideoMessage(unsigned char* packetData, size_t dataBytes) {
+    if (_codec.name == 0) {
+        // initialize decoder context
+        vpx_codec_dec_init(&_codec, vpx_codec_vp8_dx(), 0, 0);
+    }
+    // skip the header
+    unsigned char* packetPosition = packetData;
+
+    int frameCount = *(uint32_t*)packetPosition;
+    packetPosition += sizeof(uint32_t);
+    
+    int frameSize = *(uint32_t*)packetPosition;
+    packetPosition += sizeof(uint32_t);
+    
+    int frameOffset = *(uint32_t*)packetPosition;
+    packetPosition += sizeof(uint32_t);
+    
+    if (frameCount < _frameCount) { // old frame; ignore
+        return dataBytes; 
+    
+    } else if (frameCount > _frameCount) { // new frame; reset
+        _frameCount = frameCount;
+        _frameBytesRemaining = frameSize;
+        _arrivingFrame.resize(frameSize);
+    }
+    
+    int payloadSize = dataBytes - (packetPosition - packetData);
+    memcpy(_arrivingFrame.data() + frameOffset, packetPosition, payloadSize);
+    
+    if ((_frameBytesRemaining -= payloadSize) <= 0) {
+        int result = vpx_codec_decode(&_codec, (const uint8_t*)_arrivingFrame.constData(), _arrivingFrame.size(), 0, 0);
+        vpx_codec_iter_t iterator = 0;
+        vpx_image_t* image;
+        while ((image = vpx_codec_get_frame(&_codec, &iterator)) != 0) {
+            
+        }
+    }
+    
+    return dataBytes;
 }
 
 bool Face::render(float alpha) {

@@ -279,7 +279,8 @@ void Webcam::setFrame(const Mat& color, int format, const Mat& depth, const Rota
     QTimer::singleShot(qMax((int)remaining / 1000, 0), _grabber, SLOT(grabFrame()));
 }
 
-FrameGrabber::FrameGrabber() : _initialized(false), _capture(0), _searchWindow(0, 0, 0, 0), _depthOffset(0.0) {
+FrameGrabber::FrameGrabber() : _initialized(false), _capture(0), _searchWindow(0, 0, 0, 0),
+    _depthOffset(0.0), _codec(), _frameCount(0) {
 }
 
 FrameGrabber::~FrameGrabber() {
@@ -386,6 +387,10 @@ void FrameGrabber::shutdown() {
     if (_capture != 0) {
         cvReleaseCapture(&_capture);
         _capture = 0;
+    }
+    if (_codec.name != 0) {
+        vpx_codec_destroy(&_codec);
+        _codec.name = 0;
     }
     _initialized = false;
     
@@ -507,7 +512,28 @@ void FrameGrabber::grabFrame() {
     }
 #endif
 
-    //vpx_codec_encode(&_encoderContext, img, pts, duration, 0, VPX_DL_REALTIME);
+    if (_codec.name == 0) {
+        // initialize encoder context
+        vpx_codec_enc_cfg_t codecConfig;
+        vpx_codec_enc_config_default(vpx_codec_vp8_cx(), &codecConfig, 0);
+        codecConfig.rc_target_bitrate = color.cols * color.rows * codecConfig.rc_target_bitrate /
+            codecConfig.g_w / codecConfig.g_h;
+        codecConfig.g_w = color.cols;
+        codecConfig.g_h = color.rows;
+        vpx_codec_enc_init(&_codec, vpx_codec_vp8_cx(), &codecConfig, 0); 
+    }
+    vpx_image_t vpxImage;
+    vpx_img_wrap(&vpxImage, VPX_IMG_FMT_YV12, color.cols, color.rows, 1, color.ptr());    
+    vpx_codec_encode(&_codec, &vpxImage, ++_frameCount, 1, 0, VPX_DL_REALTIME);
+
+    vpx_codec_iter_t iterator = 0;
+    const vpx_codec_cx_pkt_t* packet;
+    while ((packet = vpx_codec_get_cx_data(&_codec, &iterator)) != 0) {
+        if (packet->kind == VPX_CODEC_CX_FRAME_PKT) {
+            QMetaObject::invokeMethod(Application::getInstance(), "sendAvatarFaceVideoMessage", Q_ARG(int, _frameCount),
+                Q_ARG(QByteArray, QByteArray((const char*)packet->data.frame.buf, packet->data.frame.sz)));
+        }
+    }
 
     QMetaObject::invokeMethod(Application::getInstance()->getWebcam(), "setFrame",
         Q_ARG(cv::Mat, color), Q_ARG(int, format), Q_ARG(cv::Mat, _grayDepthFrame),
@@ -523,9 +549,6 @@ bool FrameGrabber::init() {
         printLog("Failed to load Haar cascade for face tracking.\n");
         return false;
     }
-
-    // initialize encoder context
-    vpx_codec_enc_init(&_encoderContext, vpx_codec_vp8_cx(), 0, 0);
 
     // first try for a Kinect
 #ifdef HAVE_OPENNI

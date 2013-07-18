@@ -119,7 +119,8 @@ private:
     cv::Mat _grayDepthFrame;
     double _depthOffset;
     
-    vpx_codec_ctx_t _encoderContext;
+    vpx_codec_ctx_t _codec;
+    int _frameCount;
     
 #ifdef HAVE_OPENNI
     xn::Context _xnContext;
