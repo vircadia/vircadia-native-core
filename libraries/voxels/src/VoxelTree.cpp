@@ -32,12 +32,11 @@
 #include "VoxelTree.h"
 
 float boundaryDistanceForRenderLevel(unsigned int renderLevel) {
-    const float voxelSizeScale = 50000.0f;
-    return voxelSizeScale / powf(2, renderLevel);
+    return ::VOXEL_SIZE_SCALE / powf(2, renderLevel);
 }
 
 float boundaryDistanceSquaredForRenderLevel(unsigned int renderLevel) {
-    const float voxelSizeScale = (50000.0f/TREE_SCALE) * (50000.0f/TREE_SCALE);
+    const float voxelSizeScale = (::VOXEL_SIZE_SCALE/TREE_SCALE) * (::VOXEL_SIZE_SCALE/TREE_SCALE);
     return voxelSizeScale / powf(2, (2 * renderLevel));
 }
 
