@@ -50,7 +50,8 @@ public:
     GLuint getDepthTextureID() const { return _depthTextureID; }
     const cv::Size2f& getTextureSize() const { return _textureSize; }
     
-    const cv::RotatedRect& getEstimatedFaceRect() const { return _estimatedFaceRect; }
+    const cv::RotatedRect& getFaceRect() const { return _faceRect; }
+    
     const glm::vec3& getEstimatedPosition() const { return _estimatedPosition; }
     const glm::vec3& getEstimatedRotation() const { return _estimatedRotation; }
     const JointVector& getEstimatedJoints() const { return _estimatedJoints; }
@@ -63,7 +64,7 @@ public slots:
     void setEnabled(bool enabled);
     void setFrame(const cv::Mat& color, int format, const cv::Mat& depth,
         const cv::RotatedRect& faceRect, const JointVector& joints);
-    
+
 private:
     
     QThread _grabberThread;
@@ -83,7 +84,6 @@ private:
     
     uint64_t _lastFrameTimestamp;
     
-    cv::RotatedRect _estimatedFaceRect;
     glm::vec3 _estimatedPosition;
     glm::vec3 _estimatedRotation;
     JointVector _estimatedJoints;
@@ -121,6 +121,9 @@ private:
     
     vpx_codec_ctx_t _codec;
     int _frameCount;
+    cv::Mat _faceFrame;
+    QByteArray _encodedFace;
+    cv::RotatedRect _smoothedFaceRect;
     
 #ifdef HAVE_OPENNI
     xn::Context _xnContext;

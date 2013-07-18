@@ -202,27 +202,6 @@ void Webcam::setFrame(const Mat& color, int format, const Mat& depth, const Rota
     }
     _lastFrameTimestamp = now;
     
-    // correct for 180 degree rotations
-    if (_faceRect.angle < -90.0f) {
-        _faceRect.angle += 180.0f;
-        
-    } else if (_faceRect.angle > 90.0f) {
-        _faceRect.angle -= 180.0f;
-    }
-    
-    // compute the smoothed face rect
-    if (_estimatedFaceRect.size.area() == 0) {
-        _estimatedFaceRect = _faceRect;
-        
-    } else {
-        const float FACE_RECT_SMOOTHING = 0.9f;
-        _estimatedFaceRect.center.x = glm::mix(_faceRect.center.x, _estimatedFaceRect.center.x, FACE_RECT_SMOOTHING);
-        _estimatedFaceRect.center.y = glm::mix(_faceRect.center.y, _estimatedFaceRect.center.y, FACE_RECT_SMOOTHING);
-        _estimatedFaceRect.size.width = glm::mix(_faceRect.size.width, _estimatedFaceRect.size.width, FACE_RECT_SMOOTHING);
-        _estimatedFaceRect.size.height = glm::mix(_faceRect.size.height, _estimatedFaceRect.size.height, FACE_RECT_SMOOTHING); 
-        _estimatedFaceRect.angle = glm::mix(_faceRect.angle, _estimatedFaceRect.angle, FACE_RECT_SMOOTHING);
-    }
-    
     // see if we have joint data
     if (!_joints.isEmpty()) {
         _estimatedJoints.resize(NUM_AVATAR_JOINTS);
@@ -503,6 +482,7 @@ void FrameGrabber::grabFrame() {
 
 #ifdef HAVE_OPENNI
     if (_depthGenerator.IsValid()) {
+        // convert from 11 to 8 bits, centered about the mean face depth (if possible)
         if (_searchWindow.area() > 0) {
             const double DEPTH_OFFSET_SMOOTHING = 0.95;
             double meanOffset = 128.0 - mean(depth(_searchWindow))[0];
@@ -512,20 +492,91 @@ void FrameGrabber::grabFrame() {
     }
 #endif
 
+    const int ENCODED_FACE_WIDTH = 192;
+    const int ENCODED_FACE_HEIGHT = 192;
     if (_codec.name == 0) {
         // initialize encoder context
         vpx_codec_enc_cfg_t codecConfig;
         vpx_codec_enc_config_default(vpx_codec_vp8_cx(), &codecConfig, 0);
-        codecConfig.rc_target_bitrate = color.cols * color.rows * codecConfig.rc_target_bitrate /
+        codecConfig.rc_target_bitrate = ENCODED_FACE_WIDTH * ENCODED_FACE_HEIGHT * codecConfig.rc_target_bitrate /
             codecConfig.g_w / codecConfig.g_h;
-        codecConfig.g_w = color.cols;
-        codecConfig.g_h = color.rows;
+        codecConfig.g_w = ENCODED_FACE_WIDTH;
+        codecConfig.g_h = ENCODED_FACE_HEIGHT;
         vpx_codec_enc_init(&_codec, vpx_codec_vp8_cx(), &codecConfig, 0); 
     }
+    
+    // correct for 180 degree rotations
+    if (faceRect.angle < -90.0f) {
+        faceRect.angle += 180.0f;
+        
+    } else if (faceRect.angle > 90.0f) {
+        faceRect.angle -= 180.0f;
+    }
+    
+    // compute the smoothed face rect
+    if (_smoothedFaceRect.size.area() == 0) {
+        _smoothedFaceRect = faceRect;
+        
+    } else {
+        const float FACE_RECT_SMOOTHING = 0.9f;
+        _smoothedFaceRect.center.x = glm::mix(faceRect.center.x, _smoothedFaceRect.center.x, FACE_RECT_SMOOTHING);
+        _smoothedFaceRect.center.y = glm::mix(faceRect.center.y, _smoothedFaceRect.center.y, FACE_RECT_SMOOTHING);
+        _smoothedFaceRect.size.width = glm::mix(faceRect.size.width, _smoothedFaceRect.size.width, FACE_RECT_SMOOTHING);
+        _smoothedFaceRect.size.height = glm::mix(faceRect.size.height, _smoothedFaceRect.size.height, FACE_RECT_SMOOTHING); 
+        _smoothedFaceRect.angle = glm::mix(faceRect.angle, _smoothedFaceRect.angle, FACE_RECT_SMOOTHING);
+    }
+    
+    // resize/rotate face into encoding rectangle
+    _faceFrame.create(ENCODED_FACE_WIDTH, ENCODED_FACE_HEIGHT, CV_8UC3);
+    Point2f sourcePoints[4];
+    _smoothedFaceRect.points(sourcePoints);
+    Point2f destPoints[] = { Point2f(0, ENCODED_FACE_HEIGHT), Point2f(0, 0), Point2f(ENCODED_FACE_WIDTH, 0) };
+    warpAffine(color, _faceFrame, getAffineTransform(sourcePoints, destPoints), _faceFrame.size());
+    
+    // convert from RGB to YV12
+    const int ENCODED_BITS_PER_Y = 8;
+    const int ENCODED_BITS_PER_VU = 2;
+    const int ENCODED_BITS_PER_PIXEL = ENCODED_BITS_PER_Y + 2 * ENCODED_BITS_PER_VU;
+    const int BITS_PER_BYTE = 8;
+    _encodedFace.resize(ENCODED_FACE_WIDTH * ENCODED_FACE_HEIGHT * ENCODED_BITS_PER_PIXEL / BITS_PER_BYTE);
+    uchar* ydest = (uchar*)_encodedFace.data();
+    uchar* vdest = ydest + ENCODED_FACE_WIDTH * ENCODED_FACE_HEIGHT * ENCODED_BITS_PER_Y / BITS_PER_BYTE;
+    uchar* udest = vdest + ENCODED_FACE_WIDTH * ENCODED_FACE_HEIGHT * ENCODED_BITS_PER_VU / BITS_PER_BYTE;
+    const int Y_RED_WEIGHT = (int)(0.299 * 256);
+    const int Y_GREEN_WEIGHT = (int)(0.587 * 256);
+    const int Y_BLUE_WEIGHT = (int)(0.114 * 256);
+    const int V_RED_WEIGHT = (int)(0.713 * 256);
+    const int U_BLUE_WEIGHT = (int)(0.564 * 256);
+    for (int i = 0; i < ENCODED_FACE_HEIGHT; i += 2) {
+        for (int j = 0; j < ENCODED_FACE_WIDTH; j += 2) {
+            uchar* tl = _faceFrame.ptr(i, j);
+            uchar* tr = _faceFrame.ptr(i, j + 1);
+            uchar* bl = _faceFrame.ptr(i + 1, j);
+            uchar* br = _faceFrame.ptr(i + 1, j + 1);
+            
+            ydest[0] = (tl[0] * Y_RED_WEIGHT + tl[1] * Y_GREEN_WEIGHT + tl[2] * Y_BLUE_WEIGHT) >> 8;
+            ydest[1] = (tr[0] * Y_RED_WEIGHT + tr[1] * Y_GREEN_WEIGHT + tr[2] * Y_BLUE_WEIGHT) >> 8;
+            ydest[ENCODED_FACE_WIDTH] = (bl[0] * Y_RED_WEIGHT + bl[1] * Y_GREEN_WEIGHT + bl[2] * Y_BLUE_WEIGHT) >> 8;
+            ydest[ENCODED_FACE_WIDTH + 1] = (br[0] * Y_RED_WEIGHT + br[1] * Y_GREEN_WEIGHT + br[2] * Y_BLUE_WEIGHT) >> 8;
+            ydest += 2;
+            
+            int totalBlue = tl[0] + tr[0] + bl[0] + br[0];
+            int totalGreen = tl[1] + tr[1] + bl[1] + br[1];
+            int totalRed = tl[2] + tr[2] + bl[2] + br[2];
+            int totalY = (totalRed * Y_RED_WEIGHT + totalGreen * Y_GREEN_WEIGHT + totalBlue * Y_BLUE_WEIGHT) >> 8;
+            
+            *vdest++ = (((totalRed - totalY) * V_RED_WEIGHT) >> 10) + 128;
+            *udest++ = (((totalBlue - totalY) * U_BLUE_WEIGHT) >> 10) + 128;
+        }
+        ydest += ENCODED_FACE_WIDTH;
+    }
+    
+    // encode the frame
     vpx_image_t vpxImage;
-    vpx_img_wrap(&vpxImage, VPX_IMG_FMT_YV12, color.cols, color.rows, 1, color.ptr());    
-    vpx_codec_encode(&_codec, &vpxImage, ++_frameCount, 1, 0, VPX_DL_REALTIME);
+    vpx_img_wrap(&vpxImage, VPX_IMG_FMT_YV12, ENCODED_FACE_WIDTH, ENCODED_FACE_HEIGHT, 1, (unsigned char*)_encodedFace.data());
+    int result = vpx_codec_encode(&_codec, &vpxImage, ++_frameCount, 1, 0, VPX_DL_REALTIME);
 
+    // extract the encoded frame
     vpx_codec_iter_t iterator = 0;
     const vpx_codec_cx_pkt_t* packet;
     while ((packet = vpx_codec_get_cx_data(&_codec, &iterator)) != 0) {
@@ -537,7 +588,7 @@ void FrameGrabber::grabFrame() {
 
     QMetaObject::invokeMethod(Application::getInstance()->getWebcam(), "setFrame",
         Q_ARG(cv::Mat, color), Q_ARG(int, format), Q_ARG(cv::Mat, _grayDepthFrame),
-        Q_ARG(cv::RotatedRect, faceRect), Q_ARG(JointVector, joints));
+        Q_ARG(cv::RotatedRect, _smoothedFaceRect), Q_ARG(JointVector, joints));
 }
 
 bool FrameGrabber::init() {

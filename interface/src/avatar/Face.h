@@ -40,7 +40,11 @@ public:
 public slots:
 
     void cycleRenderMode();
-    
+
+private slots:
+
+    void setFrame(const cv::Mat& color);    
+        
 private:
 
     enum RenderMode { MESH, POINTS, RENDER_MODE_COUNT };

@@ -13,6 +13,7 @@
 
 #include <PacketHeaders.h>
 
+#include "Application.h"
 #include "Avatar.h"
 #include "Head.h"
 #include "Face.h"
@@ -28,13 +29,22 @@ GLuint Face::_vboID;
 GLuint Face::_iboID;
 
 Face::Face(Head* owningHead) : _owningHead(owningHead), _renderMode(MESH),
-    _colorTextureID(0), _depthTextureID(0), _codec(), _frameCount(0) {
+        _colorTextureID(0), _depthTextureID(0), _codec(), _frameCount(0) {
+    // we may have been created in the network thread, but we live in the main thread
+    moveToThread(Application::getInstance()->thread());
 }
 
 Face::~Face() {
     if (_codec.name != 0) {
         vpx_codec_destroy(&_codec);
-        _codec.name = 0;
+        
+        // delete our textures, since we know that we own them
+        if (_colorTextureID != 0) {
+            glDeleteTextures(1, &_colorTextureID);
+        }
+        if (_depthTextureID != 0) {
+            glDeleteTextures(1, &_depthTextureID);
+        }
     }
 }
 
@@ -72,7 +82,54 @@ int Face::processVideoMessage(unsigned char* packetData, size_t dataBytes) {
         vpx_codec_iter_t iterator = 0;
         vpx_image_t* image;
         while ((image = vpx_codec_get_frame(&_codec, &iterator)) != 0) {
-            
+            // convert from YV12 to RGB
+            Mat frame(image->h, image->w, CV_8UC3);
+            uchar* ysrc = image->planes[0];
+            uchar* vsrc = image->planes[1];
+            uchar* usrc = image->planes[2];
+            const int RED_V_WEIGHT = (int)(1.403 * 256);
+            const int GREEN_V_WEIGHT = (int)(0.714 * 256);
+            const int GREEN_U_WEIGHT = (int)(0.344 * 256);
+            const int BLUE_U_WEIGHT = (int)(1.773 * 256);
+            for (int i = 0; i < image->h; i += 2) {
+                for (int j = 0; j < image->w; j += 2) {
+                    uchar* tl = frame.ptr(i, j);
+                    uchar* tr = frame.ptr(i, j + 1);
+                    uchar* bl = frame.ptr(i + 1, j);
+                    uchar* br = frame.ptr(i + 1, j + 1);
+                    
+                    int v = *vsrc++ - 128;
+                    int u = *usrc++ - 128;
+                    
+                    int redOffset = (RED_V_WEIGHT * v) >> 8;
+                    int greenOffset = (GREEN_V_WEIGHT * v + GREEN_U_WEIGHT * u) >> 8;
+                    int blueOffset = (BLUE_U_WEIGHT * u) >> 8;
+                    
+                    int ytl = ysrc[0];
+                    int ytr = ysrc[1];
+                    int ybl = ysrc[image->w];
+                    int ybr = ysrc[image->w + 1];
+                    ysrc += 2;
+                    
+                    tl[0] = ytl + redOffset;
+                    tl[1] = ytl - greenOffset;
+                    tl[2] = ytl + blueOffset;
+                    
+                    tr[0] = ytr + redOffset;
+                    tr[1] = ytr - greenOffset; 
+                    tr[2] = ytr + blueOffset;
+                    
+                    bl[0] = ybl + redOffset;
+                    bl[1] = ybl - greenOffset;
+                    bl[2] = ybl + blueOffset;
+                    
+                    br[0] = ybr + redOffset;
+                    br[1] = ybr - greenOffset;
+                    br[2] = ybr + blueOffset;
+                }
+                ysrc += image->w;
+            }
+            QMetaObject::invokeMethod(this, "setFrame", Q_ARG(cv::Mat, frame));
         }
     }
     
@@ -226,5 +283,21 @@ bool Face::render(float alpha) {
 
 void Face::cycleRenderMode() {
     _renderMode = (RenderMode)((_renderMode + 1) % RENDER_MODE_COUNT);    
+}
+
+void Face::setFrame(const cv::Mat& color) {
+    if (_colorTextureID == 0) {
+        glGenTextures(1, &_colorTextureID);
+        glBindTexture(GL_TEXTURE_2D, _colorTextureID);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, color.cols, color.rows, 0, GL_RGB, GL_UNSIGNED_BYTE, color.ptr());
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        _textureSize = color.size();
+        _textureRect = RotatedRect(Point2f(color.cols * 0.5f, color.rows * 0.5f), _textureSize, 0.0f);
+        
+    } else {
+        glBindTexture(GL_TEXTURE_2D, _colorTextureID);
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, color.cols, color.rows, GL_RGB, GL_UNSIGNED_BYTE, color.ptr());
+    }
+    glBindTexture(GL_TEXTURE_2D, 0);
 }
 
