@@ -16,6 +16,8 @@ HandData::HandData(AvatarData* owningAvatar) :
     for (int i = 0; i < 2; ++i) {
         _palms.push_back(PalmData(this));
     }
+    const int standardTrailLength = 30;
+    setFingerTrailLength(standardTrailLength);
 }
 
 PalmData::PalmData(HandData* owningHandData) :
@@ -79,4 +81,67 @@ void HandData::decodeRemoteData(const std::vector<glm::vec3>& fingerVectors) {
         }
     }
 }
+
+void HandData::setFingerTrailLength(unsigned int length) {
+    for (size_t i = 0; i < getNumPalms(); ++i) {
+        PalmData& palm = getPalms()[i];
+        for (size_t f = 0; f < palm.getNumFingers(); ++f) {
+            FingerData& finger = palm.getFingers()[f];
+            finger.setTrailLength(length);
+        }
+    }
+}
+
+void HandData::updateFingerTrails() {
+    for (size_t i = 0; i < getNumPalms(); ++i) {
+        PalmData& palm = getPalms()[i];
+        for (size_t f = 0; f < palm.getNumFingers(); ++f) {
+            FingerData& finger = palm.getFingers()[f];
+            finger.updateTrail();
+        }
+    }
+}
+
+void FingerData::setTrailLength(unsigned int length) {
+    _tipTrailPositions.resize(length);
+    _tipTrailCurrentStartIndex = 0;
+    _tipTrailCurrentValidLength = 0;
+}
+
+void FingerData::updateTrail() {
+    if (_tipTrailPositions.size() == 0)
+        return;
+    
+    if (_isActive) {
+        // Add the next point in the trail.
+        _tipTrailCurrentStartIndex--;
+        if (_tipTrailCurrentStartIndex < 0)
+            _tipTrailCurrentStartIndex = _tipTrailPositions.size() - 1;
+        
+        _tipTrailPositions[_tipTrailCurrentStartIndex] = getTipPosition();
+        
+        if (_tipTrailCurrentValidLength < _tipTrailPositions.size())
+            _tipTrailCurrentValidLength++;
+    }
+    else {
+        // It's not active, so just shorten the trail.
+        if (_tipTrailCurrentValidLength > 0)
+            _tipTrailCurrentValidLength--;
+    }
+}
+
+int FingerData::getTrailNumPositions() {
+    return _tipTrailCurrentValidLength;
+}
+
+const glm::vec3& FingerData::getTrailPosition(int index) {
+    if (index >= _tipTrailCurrentValidLength) {
+        static glm::vec3 zero(0,0,0);
+        return zero;
+    }
+    int posIndex = (index + _tipTrailCurrentStartIndex) % _tipTrailCurrentValidLength;
+    return _tipTrailPositions[posIndex];
+}
+
+
 

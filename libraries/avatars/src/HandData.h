@@ -40,6 +40,9 @@ public:
     std::vector<PalmData>& getPalms()    { return _palms; }
     size_t                 getNumPalms() { return _palms.size(); }
 
+    void setFingerTrailLength(unsigned int length);
+    void updateFingerTrails();
+
     // Use these for sending and receiving hand data
     void encodeRemoteData(std::vector<glm::vec3>& fingerVectors);
     void decodeRemoteData(const std::vector<glm::vec3>& fingerVectors);
@@ -69,11 +72,19 @@ public:
     void setActive(bool active)                   { _isActive = active; }
     void setRawTipPosition(const glm::vec3& pos)  { _tipRawPosition = pos; }
     void setRawRootPosition(const glm::vec3& pos) { _rootRawPosition = pos; }
+    void setTrailLength(unsigned int length);
+    void updateTrail();
 
+    int              getTrailNumPositions();
+    const glm::vec3& getTrailPosition(int index);
+    
 private:
     glm::vec3 _tipRawPosition;
     glm::vec3 _rootRawPosition;
     bool      _isActive;        // This has current valid data
+    std::vector<glm::vec3> _tipTrailPositions;
+    int                    _tipTrailCurrentStartIndex;
+    int                    _tipTrailCurrentValidLength;
     PalmData* _owningPalmData;
     HandData* _owningHandData;
 };

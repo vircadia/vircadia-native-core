@@ -74,6 +74,7 @@ private:
     // private methods
     void renderRaveGloveStage();
     void renderHandSpheres();
+    void renderFingerTrails();
     void calculateGeometry();
 };
 
