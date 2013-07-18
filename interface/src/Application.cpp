@@ -1143,25 +1143,20 @@ void Application::editPreferences() {
         return;
     }
     
-    
-    const char* newHostname = domainServerHostname->text().toLocal8Bit().data();
-    
+    char newHostname[MAX_HOSTNAME_BYTES] = {};
+    memcpy(newHostname, domainServerHostname->text().toAscii().data(), domainServerHostname->text().size());
+   
     // check if the domain server hostname is new 
-    if (memcmp(NodeList::getInstance()->getDomainHostname(), newHostname, sizeof(&newHostname)) != 0) {
-        // if so we need to clear the nodelist and delete the local voxels
-        Node *voxelServer = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_VOXEL_SERVER);
-        
-        if (voxelServer) {
-            voxelServer->lock();
-        }
-        
-        _voxels.killLocalVoxels();
-        
-        if (voxelServer) {
-            voxelServer->unlock();
-        }
+    if (memcmp(NodeList::getInstance()->getDomainHostname(), newHostname, strlen(newHostname)) != 0) {
         
         NodeList::getInstance()->clear();
+        
+        // kill the local voxels
+        _voxels.killLocalVoxels();
+        
+        // reset the environment to default
+        _environment.resetToDefault();
+        
         NodeList::getInstance()->setDomainHostname(newHostname);
     }
     
@@ -3352,7 +3347,7 @@ void* Application::networkReceive(void* args) {
                     case PACKET_TYPE_ENVIRONMENT_DATA: {
                         if (app->_renderVoxels->isChecked()) {
                             Node* voxelServer = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_VOXEL_SERVER);
-                            if (voxelServer) {
+                            if (voxelServer && socketMatch(voxelServer->getActiveSocket(), &senderAddress)) {
                                 voxelServer->lock();
                                 
                                 if (app->_incomingPacket[0] == PACKET_TYPE_ENVIRONMENT_DATA) {
