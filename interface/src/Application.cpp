@@ -855,8 +855,7 @@ void Application::mousePressEvent(QMouseEvent* event) {
                 _hoverVoxelOriginalColor[1] = _hoverVoxel.green;
                 _hoverVoxelOriginalColor[2] = _hoverVoxel.blue;
                 _hoverVoxelOriginalColor[3] = 1;
-                _audio.startCollisionSound(1.0, 220, 0.0, 0.999f);
-                qDebug("s = %f\n", _hoverVoxel.s);
+                _audio.startCollisionSound(1.0, 14080 * _hoverVoxel.s * TREE_SCALE, 0.0, 0.999f);
                 _isHoverVoxelSounding = true;
             }
             
@@ -1945,10 +1944,11 @@ void Application::update(float deltaTime) {
     
     //  If we have clicked on a voxel, update it's color
     if (_isHoverVoxelSounding) {
-        qDebug("clicking on voxel\n");
         VoxelNode* hoveredNode = _voxels.getVoxelAt(_hoverVoxel.x, _hoverVoxel.y, _hoverVoxel.z, _hoverVoxel.s);
-        nodeColor clickColor = { 1, 0, 0, 1 };
         float bright = _audio.getCollisionSoundMagnitude();
+        nodeColor clickColor = { 255 * bright + _hoverVoxelOriginalColor[0] * (1.f - bright),
+                                _hoverVoxelOriginalColor[1] * (1.f - bright),
+                                _hoverVoxelOriginalColor[2] * (1.f - bright), 1 };
         hoveredNode->setColor(clickColor);
         if (bright < 0.01f) {
             hoveredNode->setColor(_hoverVoxelOriginalColor);
@@ -1956,7 +1956,17 @@ void Application::update(float deltaTime) {
         }
     } else {
         //  Check for a new hover voxel
+        glm::vec4 oldVoxel(_hoverVoxel.x, _hoverVoxel.y, _hoverVoxel.z, _hoverVoxel.s);
         _isHoverVoxel = _voxels.findRayIntersection(mouseRayOrigin, mouseRayDirection, _hoverVoxel, distance, face);
+        if (_isHoverVoxel && glm::vec4(_hoverVoxel.x, _hoverVoxel.y, _hoverVoxel.z, _hoverVoxel.s) != oldVoxel) {
+            //qDebug("bing! x,y,z = %f,%f,%f\n", _hoverVoxel.x, _hoverVoxel.y, _hoverVoxel.z);
+            _hoverVoxelOriginalColor[0] = _hoverVoxel.red;
+            _hoverVoxelOriginalColor[1] = _hoverVoxel.green;
+            _hoverVoxelOriginalColor[2] = _hoverVoxel.blue;
+            _hoverVoxelOriginalColor[3] = 1;
+            _audio.startCollisionSound(1.0, 14080 * _hoverVoxel.s * TREE_SCALE, 0.0, 0.992f);
+            _isHoverVoxelSounding = true;
+        }
     }
     
     //  If we are dragging on a voxel, add thrust according to the amount the mouse is dragging
