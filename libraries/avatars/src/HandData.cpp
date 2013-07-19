@@ -24,6 +24,7 @@ PalmData::PalmData(HandData* owningHandData) :
 _rawPosition(0, 0, 0),
 _rawNormal(0, 1, 0),
 _isActive(false),
+_leapID(-1),
 _owningHandData(owningHandData)
 {
     for (int i = 0; i < NUM_FINGERS_PER_HAND; ++i) {
@@ -35,6 +36,7 @@ FingerData::FingerData(PalmData* owningPalmData, HandData* owningHandData) :
 _tipRawPosition(0, 0, 0),
 _rootRawPosition(0, 0, 0),
 _isActive(false),
+_leapID(-1),
 _owningPalmData(owningPalmData),
 _owningHandData(owningHandData)
 {

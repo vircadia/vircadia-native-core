@@ -68,8 +68,10 @@ public:
     const glm::vec3& getTipRawPosition()  const { return _tipRawPosition; }
     const glm::vec3& getRootRawPosition() const { return _rootRawPosition; }
     bool             isActive()           const { return _isActive; }
+    int              getLeapID()          const { return _leapID; }
 
     void setActive(bool active)                   { _isActive = active; }
+    void setLeapID(int id)                        { _leapID = id; }
     void setRawTipPosition(const glm::vec3& pos)  { _tipRawPosition = pos; }
     void setRawRootPosition(const glm::vec3& pos) { _rootRawPosition = pos; }
     void setTrailLength(unsigned int length);
@@ -81,7 +83,8 @@ public:
 private:
     glm::vec3 _tipRawPosition;
     glm::vec3 _rootRawPosition;
-    bool      _isActive;        // This has current valid data
+    bool      _isActive;            // This has current valid data
+    int       _leapID;              // the Leap's serial id for this tracked object
     std::vector<glm::vec3> _tipTrailPositions;
     int                    _tipTrailCurrentStartIndex;
     int                    _tipTrailCurrentValidLength;
@@ -97,11 +100,13 @@ public:
     const glm::vec3& getRawPosition() const { return _rawPosition; }
     const glm::vec3& getRawNormal()   const { return _rawNormal; }
     bool             isActive()       const { return _isActive; }
+    int              getLeapID()      const { return _leapID; }
 
     std::vector<FingerData>& getFingers()    { return _fingers; }
     size_t                   getNumFingers() { return _fingers.size(); }
 
     void setActive(bool active)                { _isActive = active; }
+    void setLeapID(int id)                     { _leapID = id; }
     void setRawPosition(const glm::vec3& pos)  { _rawPosition = pos; }
     void setRawNormal(const glm::vec3& normal) { _rawNormal = normal; }
 
@@ -109,7 +114,8 @@ private:
     std::vector<FingerData> _fingers;
     glm::vec3 _rawPosition;
     glm::vec3 _rawNormal;
-    bool      _isActive;        // This has current valid data
+    bool      _isActive;            // This has current valid data
+    int       _leapID;              // the Leap's serial id for this tracked object
     HandData* _owningHandData;
 };
 

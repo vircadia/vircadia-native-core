@@ -203,45 +203,6 @@ void Hand::renderFingerTrails() {
     }
 }
 
-void Hand::setLeapFingers(const std::vector<glm::vec3>& fingerTips,
-                          const std::vector<glm::vec3>& fingerRoots) {
-    // TODO: add id-checking here to increase finger stability
-    
-    size_t fingerIndex = 0;
-    for (size_t i = 0; i < getNumPalms(); ++i) {
-        PalmData& palm = getPalms()[i];
-        for (size_t f = 0; f < palm.getNumFingers(); ++f) {
-            FingerData& finger = palm.getFingers()[f];
-            if (fingerIndex < fingerTips.size()) {
-                finger.setActive(true);
-                finger.setRawTipPosition(fingerTips[fingerIndex]);
-                finger.setRawRootPosition(fingerRoots[fingerIndex]);
-                fingerIndex++;
-            }
-            else {
-                finger.setActive(false);
-            }
-        }
-    }
-    updateFingerTrails();
-}
-
-void Hand::setLeapHands(const std::vector<glm::vec3>& handPositions,
-                          const std::vector<glm::vec3>& handNormals) {
-    for (size_t i = 0; i < getNumPalms(); ++i) {
-        PalmData& palm = getPalms()[i];
-        if (i < handPositions.size()) {
-            palm.setActive(true);
-            palm.setRawPosition(handPositions[i]);
-            palm.setRawNormal(handNormals[i]);
-        }
-        else {
-            palm.setActive(false);
-        }
-    }
-}
-
-
 void Hand::updateFingerParticles(float deltaTime) {
 
     if (!_particleSystemInitialized) {
