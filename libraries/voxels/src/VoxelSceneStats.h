@@ -10,6 +10,7 @@
 #define __hifi__VoxelSceneStats__
 
 #include <stdint.h>
+#include <NodeList.h>
 
 class VoxelNode;
 
@@ -20,6 +21,7 @@ public:
     void reset();
     void sceneStarted(bool fullScene, bool moving);
     void sceneCompleted();
+
     void printDebugDetails();
     void packetSent(int bytes);
 
@@ -41,8 +43,18 @@ public:
 
     int packIntoMessage(unsigned char* destinationBuffer, int availableBytes);
     int unpackFromMessage(unsigned char* sourceBuffer, int availableBytes);
+
+    bool readyToSend() const { return _readyToSend; }
+    void markAsSent() { _readyToSend = false; }
+    unsigned char* getStatsMessage() { return &_statsMessage[0]; }
+    int getStatsMessageLength() const { return _statsMessageLength; }
+
     
 private:
+    bool _readyToSend;
+    unsigned char _statsMessage[MAX_PACKET_SIZE];
+    int _statsMessageLength;
+
     // scene timing data in usecs
     uint64_t _start;
     uint64_t _end;

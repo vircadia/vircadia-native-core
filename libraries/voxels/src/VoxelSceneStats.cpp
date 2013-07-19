@@ -14,6 +14,7 @@
 
 VoxelSceneStats::VoxelSceneStats() {
     reset();
+    _readyToSend = false;
 }
 
 VoxelSceneStats::~VoxelSceneStats() {
@@ -29,6 +30,9 @@ void VoxelSceneStats::sceneStarted(bool fullScene, bool moving) {
 void VoxelSceneStats::sceneCompleted() {
     _end = usecTimestampNow();
     _elapsed = _end - _start;
+
+    _statsMessageLength = packIntoMessage(_statsMessage, sizeof(_statsMessage));
+    _readyToSend = true;
 }
 
 void VoxelSceneStats::encodeStarted() {

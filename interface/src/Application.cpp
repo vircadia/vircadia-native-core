@@ -3339,12 +3339,6 @@ void* Application::networkReceive(void* args) {
             if (packetVersionMatch(app->_incomingPacket)) {
                 // only process this packet if we have a match on the packet version
                 switch (app->_incomingPacket[0]) {
-                    case PACKET_TYPE_VOXEL_STATS:{
-                        VoxelSceneStats stats;
-                        int statsMessageLength = stats.unpackFromMessage(app->_incomingPacket, bytesReceived);
-                        stats.printDebugDetails();
-                        break;
-                    }
                     case PACKET_TYPE_TRANSMITTER_DATA_V2:
                         //  V2 = IOS transmitter app
                         app->_myTransmitter.processIncomingData(app->_incomingPacket, bytesReceived);
@@ -3357,16 +3351,39 @@ void* Application::networkReceive(void* args) {
                     case PACKET_TYPE_VOXEL_DATA_MONOCHROME:
                     case PACKET_TYPE_Z_COMMAND:
                     case PACKET_TYPE_ERASE_VOXEL:
+                    case PACKET_TYPE_VOXEL_STATS:
                     case PACKET_TYPE_ENVIRONMENT_DATA: {
+                    
+                        unsigned char* messageData = app->_incomingPacket;
+                        ssize_t messageLength = bytesReceived;
+
+                        // note: PACKET_TYPE_VOXEL_STATS can have PACKET_TYPE_VOXEL_DATA or PACKET_TYPE_VOXEL_DATA_MONOCHROME
+                        // immediately following them inside the same packet. So, we process the PACKET_TYPE_VOXEL_STATS first
+                        // then process any remaining bytes as if it was another packet
+                        if (messageData[0] == PACKET_TYPE_VOXEL_STATS) {
+                            VoxelSceneStats stats;
+                            int statsMessageLength = stats.unpackFromMessage(messageData, messageLength);
+                            stats.printDebugDetails();
+                            if (messageLength > statsMessageLength) {
+                                messageData += statsMessageLength;
+                                messageLength -= statsMessageLength;
+                                if (!packetVersionMatch(messageData)) {
+                                    break; // bail since piggyback data doesn't match our versioning
+                                }
+                            } else {
+                                break; // bail since no piggyback data
+                            }
+                        } // fall through to piggyback message
+                        
                         if (app->_renderVoxels->isChecked()) {
                             Node* voxelServer = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_VOXEL_SERVER);
                             if (voxelServer) {
                                 voxelServer->lock();
                                 
-                                if (app->_incomingPacket[0] == PACKET_TYPE_ENVIRONMENT_DATA) {
-                                    app->_environment.parseData(&senderAddress, app->_incomingPacket, bytesReceived);
+                                if (messageData[0] == PACKET_TYPE_ENVIRONMENT_DATA) {
+                                    app->_environment.parseData(&senderAddress, messageData, messageLength);
                                 } else {
-                                    app->_voxels.parseData(app->_incomingPacket, bytesReceived);
+                                    app->_voxels.parseData(messageData, messageLength);
                                 }
                                 
                                 voxelServer->unlock();

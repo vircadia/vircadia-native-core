@@ -112,6 +112,44 @@ void eraseVoxelTreeAndCleanupNodeVisitData() {
 
 pthread_mutex_t treeLock;
 
+void handlePacketSend(NodeList* nodeList, 
+                      NodeList::iterator& node,
+                      VoxelNodeData* nodeData, 
+                      int& trueBytesSent, int& truePacketsSent) {
+    // If we've got a stats message ready to send, then see if we can piggyback them together
+    if (nodeData->stats.readyToSend()) {
+        // Send the stats message to the client
+        unsigned char* statsMessage = nodeData->stats.getStatsMessage();
+        int statsMessageLength = nodeData->stats.getStatsMessageLength();
+
+        // If the size of the stats message and the voxel message will fit in a packet, then piggyback them
+        if (nodeData->getPacketLength() + statsMessageLength < MAX_PACKET_SIZE) {
+
+            // copy voxel message to back of stats message
+            memcpy(statsMessage + statsMessageLength, nodeData->getPacket(), nodeData->getPacketLength());
+            statsMessageLength += nodeData->getPacketLength();
+
+            // actually send it
+            nodeList->getNodeSocket()->send(node->getActiveSocket(), statsMessage, statsMessageLength);
+        } else {
+            // not enough room in the packet, send two packets
+            nodeList->getNodeSocket()->send(node->getActiveSocket(), statsMessage, statsMessageLength);
+            nodeList->getNodeSocket()->send(node->getActiveSocket(),
+                                            nodeData->getPacket(), nodeData->getPacketLength());
+        }
+    } else {
+        // just send the voxel packet
+        nodeList->getNodeSocket()->send(node->getActiveSocket(),
+                                        nodeData->getPacket(), nodeData->getPacketLength());
+    }
+    // remember to track our stats
+    nodeData->stats.packetSent(nodeData->getPacketLength());
+    trueBytesSent += nodeData->getPacketLength();
+    truePacketsSent++;
+    nodeData->resetVoxelPacket();
+}
+
+
 // Version of voxel distributor that sends the deepest LOD level at once
 void deepestLevelVoxelDistributor(NodeList* nodeList, 
                                   NodeList::iterator& node,
@@ -142,12 +180,9 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
                 printf("wantColor=%s --- SENDING PARTIAL PACKET! nodeData->getCurrentPacketIsColor()=%s\n", 
                        debug::valueOf(wantColor), debug::valueOf(nodeData->getCurrentPacketIsColor()));
             }
-            nodeList->getNodeSocket()->send(node->getActiveSocket(),
-                                            nodeData->getPacket(), nodeData->getPacketLength());
-            nodeData->stats.packetSent(nodeData->getPacketLength());
-            trueBytesSent += nodeData->getPacketLength();
-            truePacketsSent++;
-            nodeData->resetVoxelPacket();
+
+            handlePacketSend(nodeList, node, nodeData, trueBytesSent, truePacketsSent);
+
         } else {
             if (::debugVoxelSending) {
                 printf("wantColor=%s --- FIXING HEADER! nodeData->getCurrentPacketIsColor()=%s\n", 
@@ -209,11 +244,6 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
         if (::displayVoxelStats) {
             nodeData->stats.printDebugDetails();
         }
-
-        // Send the stats message to the client
-        unsigned char statsMessage[MAX_PACKET_SIZE];
-        int statsMessageLength = nodeData->stats.packIntoMessage(statsMessage, sizeof(statsMessage));
-        nodeList->getNodeSocket()->send(node->getActiveSocket(), statsMessage, statsMessageLength);
         
         // This is the start of "resending" the scene.
         nodeData->nodeBag.insert(serverTree.rootNode);
@@ -271,22 +301,14 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
                 if (nodeData->getAvailable() >= bytesWritten) {
                     nodeData->writeToPacket(&tempOutputBuffer[0], bytesWritten);
                 } else {
-                    nodeList->getNodeSocket()->send(node->getActiveSocket(),
-                                                    nodeData->getPacket(), nodeData->getPacketLength());
-                    nodeData->stats.packetSent(nodeData->getPacketLength());
-                    trueBytesSent += nodeData->getPacketLength();
-                    truePacketsSent++;
+                    handlePacketSend(nodeList, node, nodeData, trueBytesSent, truePacketsSent);
                     packetsSentThisInterval++;
                     nodeData->resetVoxelPacket();
                     nodeData->writeToPacket(&tempOutputBuffer[0], bytesWritten);
                 }
             } else {
                 if (nodeData->isPacketWaiting()) {
-                    nodeList->getNodeSocket()->send(node->getActiveSocket(),
-                                                    nodeData->getPacket(), nodeData->getPacketLength());
-                    nodeData->stats.packetSent(nodeData->getPacketLength());
-                    trueBytesSent += nodeData->getPacketLength();
-                    truePacketsSent++;
+                    handlePacketSend(nodeList, node, nodeData, trueBytesSent, truePacketsSent);
                     nodeData->resetVoxelPacket();
                 }
                 packetsSentThisInterval = PACKETS_PER_CLIENT_PER_INTERVAL; // done for now, no nodes left
