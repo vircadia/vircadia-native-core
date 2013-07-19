@@ -1894,20 +1894,11 @@ bool Application::isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3& m
 
 void Application::renderLookatIndicator(glm::vec3 pointOfInterest, Camera& whichCamera) {
 
-    glm::vec3 direction = glm::normalize(pointOfInterest - whichCamera.getPosition());
     const float DISTANCE_FROM_HEAD_SPHERE = 0.1f;
-    glm::vec3 indicatorOrigin = pointOfInterest - DISTANCE_FROM_HEAD_SPHERE * direction;
-
-    // glm::vec3 haloOrigin(pointOfInterest.x, pointOfInterest.y + DISTANCE_FROM_HEAD_SPHERE, pointOfInterest.z);
-
-    glColor3f(1.0f, 0.0f, 0.0f);
-    // renderCircle(haloOrigin, 0.1f, glm::vec3(0.0f, 1.0f, 0.0f), 30);
-    loadViewFrustum(_myCamera, _viewFrustum);
-    glm::vec3 normal;
-    _viewFrustum.computeNormalToOffset(normal);
-
-    // Plane::Plane p(_viewFrustum.getOffsetPosition(), _viewFrustum.getOffsetUp(), _viewFrustum.getOffsetRight());
-    renderCircle(indicatorOrigin, 0.1f, normal, 30);
+    const float YELLOW[] = { 1.0f, 1.0f, 0.0f };
+    glm::vec3 haloOrigin(pointOfInterest.x, pointOfInterest.y + DISTANCE_FROM_HEAD_SPHERE, pointOfInterest.z);
+    glColor3f(YELLOW[0], YELLOW[1], YELLOW[2]);
+    renderCircle(haloOrigin, 0.1f, glm::vec3(0.0f, 1.0f, 0.0f), 30);
 }
 
 void Application::update(float deltaTime) {
