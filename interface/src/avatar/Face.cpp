@@ -84,7 +84,7 @@ int Face::processVideoMessage(unsigned char* packetData, size_t dataBytes) {
     
     if ((_frameBytesRemaining -= payloadSize) <= 0) {
         float aspectRatio = *(const float*)_arrivingFrame.constData();
-        int result = vpx_codec_decode(&_codec, (const uint8_t*)_arrivingFrame.constData() + sizeof(float),
+        vpx_codec_decode(&_codec, (const uint8_t*)_arrivingFrame.constData() + sizeof(float),
             _arrivingFrame.size() - sizeof(float), 0, 0);
         vpx_codec_iter_t iterator = 0;
         vpx_image_t* image;

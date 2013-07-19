@@ -1,10 +1,10 @@
 #version 120
 
 //
-//  iris.frag
+//  face.frag
 //  fragment shader
 //
-//  Created by Andrzej Kapolka on 6/13/13.
+//  Created by Andrzej Kapolka on 7/12/13.
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
@@ -12,6 +12,6 @@
 uniform sampler2D colorTexture;
 
 void main(void) {
-    // modulate texture by diffuse color and add specular contribution
+    // for now, just modulate color
     gl_FragColor = gl_Color * texture2D(colorTexture, gl_TexCoord[0].st);
 }
