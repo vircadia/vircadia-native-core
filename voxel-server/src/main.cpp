@@ -60,6 +60,7 @@ bool wantLocalDomain = false;
 bool wantColorRandomizer = false;
 bool debugVoxelSending = false;
 bool shouldShowAnimationDebug = false;
+bool displayVoxelStats = false;
 
 EnvironmentData environmentData[3];
 
@@ -204,7 +205,10 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
         }
         
         nodeData->stats.sceneCompleted();
-        nodeData->stats.printDebugDetails();
+        
+        if (::displayVoxelStats) {
+            nodeData->stats.printDebugDetails();
+        }
         
         // This is the start of "resending" the scene.
         nodeData->nodeBag.insert(serverTree.rootNode);
@@ -380,7 +384,9 @@ void *distributeVoxelsToListeners(void *args) {
         if (usecToSleep > 0) {
             usleep(usecToSleep);
         } else {
-            std::cout << "Last send took too much time, not sleeping!\n";
+            if (::debugVoxelSending) {
+                std::cout << "Last send took too much time, not sleeping!\n";
+            }
         }
     }
     
@@ -413,6 +419,10 @@ int main(int argc, const char * argv[]) {
     nodeList->startSilentNodeRemovalThread();
     
     srand((unsigned)time(0));
+    
+    const char* DISPLAY_VOXEL_STATS = "--displayVoxelStats";
+    ::displayVoxelStats = cmdOptionExists(argc, argv, DISPLAY_VOXEL_STATS);
+    printf("displayVoxelStats=%s\n", debug::valueOf(::displayVoxelStats));
 
     const char* DEBUG_VOXEL_SENDING = "--debugVoxelSending";
     ::debugVoxelSending = cmdOptionExists(argc, argv, DEBUG_VOXEL_SENDING);
