@@ -327,8 +327,8 @@ void Face::setFrame(const cv::Mat& color, const cv::Mat& depth, float aspectRati
             glBindTexture(GL_TEXTURE_2D, _depthTextureID);
             glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, depth.cols, depth.rows, 0,
                 GL_LUMINANCE, GL_UNSIGNED_BYTE, depth.ptr());
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
             
         } else {
             glBindTexture(GL_TEXTURE_2D, _depthTextureID);
