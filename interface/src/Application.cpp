@@ -938,6 +938,36 @@ void Application::sendPingPackets() {
                                               nodesToPing, sizeof(nodesToPing));
 }
 
+void Application::sendAvatarFaceVideoMessage(int frameCount, const QByteArray& data) {
+    unsigned char packet[MAX_PACKET_SIZE];
+    unsigned char* packetPosition = packet;
+    
+    packetPosition += populateTypeAndVersion(packetPosition, PACKET_TYPE_AVATAR_FACE_VIDEO);
+    
+    *(uint16_t*)packetPosition = NodeList::getInstance()->getOwnerID();
+    packetPosition += sizeof(uint16_t);
+    
+    *(uint32_t*)packetPosition = frameCount;
+    packetPosition += sizeof(uint32_t);
+    
+    *(uint32_t*)packetPosition = data.size();
+    packetPosition += sizeof(uint32_t);
+    
+    uint32_t* offsetPosition = (uint32_t*)packetPosition;
+    packetPosition += sizeof(uint32_t);
+    
+    int headerSize = packetPosition - packet;
+    
+    // break the data up into submessages of the maximum size
+    *offsetPosition = 0;
+    while (*offsetPosition < data.size()) {
+        int payloadSize = min(data.size() - (int)*offsetPosition, MAX_PACKET_SIZE - headerSize);
+        memcpy(packetPosition, data.constData() + *offsetPosition, payloadSize);
+        getInstance()->controlledBroadcastToNodes(packet, headerSize + payloadSize, &NODE_TYPE_AVATAR_MIXER, 1);
+        *offsetPosition += payloadSize;
+    }
+}
+
 //  Every second, check the frame rates and other stuff
 void Application::timer() {
     gettimeofday(&_timerEnd, NULL);
@@ -1047,7 +1077,7 @@ void Application::sendAvatarVoxelURLMessage(const QUrl& url) {
     controlledBroadcastToNodes((unsigned char*)message.data(), message.size(), & NODE_TYPE_AVATAR_MIXER, 1);
 }
 
-void Application::processAvatarVoxelURLMessage(unsigned char *packetData, size_t dataBytes) {
+static Avatar* processAvatarMessageHeader(unsigned char*& packetData, size_t& dataBytes) {
     // skip the header
     int numBytesPacketHeader = numBytesForPacketHeader(packetData);
     packetData += numBytesPacketHeader;
@@ -1061,16 +1091,29 @@ void Application::processAvatarVoxelURLMessage(unsigned char *packetData, size_t
     // make sure the node exists
     Node* node = NodeList::getInstance()->nodeWithID(nodeID);
     if (!node || !node->getLinkedData()) {
-        return;
+        return NULL;
     }
     Avatar* avatar = static_cast<Avatar*>(node->getLinkedData());
-    if (!avatar->isInitialized()) {
-        return; // wait until initialized
-    }
+    return avatar->isInitialized() ? avatar : NULL;
+}
+
+void Application::processAvatarVoxelURLMessage(unsigned char* packetData, size_t dataBytes) {
+    Avatar* avatar = processAvatarMessageHeader(packetData, dataBytes);
+    if (!avatar) {
+        return;
+    } 
     QUrl url = QUrl::fromEncoded(QByteArray((char*)packetData, dataBytes));
     
     // invoke the set URL function on the simulate/render thread
     QMetaObject::invokeMethod(avatar->getVoxels(), "setVoxelURL", Q_ARG(QUrl, url));
+}
+
+void Application::processAvatarFaceVideoMessage(unsigned char* packetData, size_t dataBytes) {
+    Avatar* avatar = processAvatarMessageHeader(packetData, dataBytes);
+    if (!avatar) {
+        return;
+    }
+    avatar->getHead().getFace().processVideoMessage(packetData, dataBytes);
 }
 
 void Application::checkBandwidthMeterClick() {
@@ -1682,6 +1725,7 @@ void Application::initMenu() {
     (_renderAvatarBalls = renderMenu->addAction("Avatar as Balls"))->setCheckable(true);
     _renderAvatarBalls->setChecked(false);
     renderMenu->addAction("Cycle Voxel Mode", _myAvatar.getVoxels(), SLOT(cycleMode()));
+    renderMenu->addAction("Cycle Face Mode", &_myAvatar.getHead().getFace(), SLOT(cycleRenderMode()));
     (_renderFrameTimerOn = renderMenu->addAction("Show Timer"))->setCheckable(true);
     _renderFrameTimerOn->setChecked(false);
     (_renderLookatOn = renderMenu->addAction("Lookat Vectors"))->setCheckable(true);
@@ -3401,6 +3445,9 @@ void* Application::networkReceive(void* args) {
                         break;
                     case PACKET_TYPE_AVATAR_VOXEL_URL:
                         processAvatarVoxelURLMessage(app->_incomingPacket, bytesReceived);
+                        break;
+                    case PACKET_TYPE_AVATAR_FACE_VIDEO:
+                        processAvatarFaceVideoMessage(app->_incomingPacket, bytesReceived);
                         break;
                     default:
                         NodeList::getInstance()->processNodeData(&senderAddress, app->_incomingPacket, bytesReceived);
