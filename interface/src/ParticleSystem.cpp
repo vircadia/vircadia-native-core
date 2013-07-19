@@ -22,6 +22,7 @@ ParticleSystem::ParticleSystem() {
     _upDirection  = glm::vec3(0.0f, 1.0f, 0.0f); // default
             
     for (unsigned int emitterIndex = 0; emitterIndex < MAX_EMITTERS; emitterIndex++) {
+    
         _emitter[emitterIndex].position                  = glm::vec3(0.0f, 0.0f, 0.0f);
         _emitter[emitterIndex].direction                 = glm::vec3(0.0f, 1.0f, 0.0f);
         _emitter[emitterIndex].visible                   = false;
@@ -346,36 +347,12 @@ void ParticleSystem::renderParticle(int p) {
 
 
 void ParticleSystem::renderEmitter(int e, float size) {
-        
-    /*
-    glm::vec3 r = _emitter[e].rotation * IDENTITY_FRONT * size;
-    glm::vec3 u = _emitter[e].rotation * IDENTITY_RIGHT * size;
-    glm::vec3 f = _emitter[e].rotation * IDENTITY_UP    * size;
-    */
 
-    glm::vec3 f = _emitter[e].direction;
-    //glm::vec3 r = glm::vec3(_emitter[e].direction.y, _emitter[e].direction.z, _emitter[e].direction.x);
-    //glm::vec3 u = glm::vec3(_emitter[e].direction.z, _emitter[e].direction.x, _emitter[e].direction.y);
-    
     glLineWidth(2.0f);
-
-/*
-    glColor3f(0.8f, 0.4, 0.4);
-    glBegin(GL_LINES);
-    glVertex3f(_emitter[e].position.x, _emitter[e].position.y, _emitter[e].position.z);
-    glVertex3f(_emitter[e].position.x + r.x, _emitter[e].position.y + r.y, _emitter[e].position.z + r.z);
-    glEnd();
-
-    glColor3f(0.4f, 0.8, 0.4);
-    glBegin(GL_LINES);
-    glVertex3f(_emitter[e].position.x, _emitter[e].position.y, _emitter[e].position.z);
-    glVertex3f(_emitter[e].position.x + u.x, _emitter[e].position.y + u.y, _emitter[e].position.z + u.z);
-    glEnd();
-*/
     glColor3f(0.4f, 0.4, 0.8);
     glBegin(GL_LINES);
     glVertex3f(_emitter[e].position.x, _emitter[e].position.y, _emitter[e].position.z);
-    glVertex3f(_emitter[e].position.x + f.x, _emitter[e].position.y + f.y, _emitter[e].position.z + f.z);
+    glVertex3f(_emitter[e].position.x + _emitter[e].direction.x, _emitter[e].position.y + _emitter[e].direction.y, _emitter[e].position.z + _emitter[e].direction.z);
     glEnd();
 }
 
