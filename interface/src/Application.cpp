@@ -199,6 +199,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _mousePressed(false),
         _mouseVoxelScale(1.0f / 1024.0f),
         _justEditedVoxel(false),
+        _isLookingAtOtherAvatar(false),
         _paintOn(false),
         _dominantColor(0),
         _perfStatsOn(false),
@@ -1685,6 +1686,8 @@ void Application::initMenu() {
     _renderFrameTimerOn->setChecked(false);
     (_renderLookatOn = renderMenu->addAction("Lookat Vectors"))->setCheckable(true);
     _renderLookatOn->setChecked(false);
+    (_renderLookatIndicatorOn = renderMenu->addAction("Lookat Indicator"))->setCheckable(true);
+    _renderLookatIndicatorOn->setChecked(true);
     (_manualFirstPerson = renderMenu->addAction(
         "First Person", this, SLOT(setRenderFirstPerson(bool)), Qt::Key_P))->setCheckable(true);
     (_manualThirdPerson = renderMenu->addAction(
@@ -1895,11 +1898,21 @@ bool Application::isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3& m
             glm::vec3 headPosition = avatar->getHead().getPosition();
             if (rayIntersectsSphere(mouseRayOrigin, mouseRayDirection, headPosition, HEAD_SPHERE_RADIUS)) {
                 eyePosition = avatar->getHead().getEyeLevelPosition();
+                _lookatOtherPosition = headPosition;
                 return true;
             }
         }
     }
     return false;
+}
+
+void Application::renderLookatIndicator(glm::vec3 pointOfInterest, Camera& whichCamera) {
+
+    const float DISTANCE_FROM_HEAD_SPHERE = 0.1f;
+    const float YELLOW[] = { 1.0f, 1.0f, 0.0f };
+    glm::vec3 haloOrigin(pointOfInterest.x, pointOfInterest.y + DISTANCE_FROM_HEAD_SPHERE, pointOfInterest.z);
+    glColor3f(YELLOW[0], YELLOW[1], YELLOW[2]);
+    renderCircle(haloOrigin, 0.1f, glm::vec3(0.0f, 1.0f, 0.0f), 30);
 }
 
 void Application::update(float deltaTime) {
@@ -1929,7 +1942,7 @@ void Application::update(float deltaTime) {
     
     // Set where I am looking based on my mouse ray (so that other people can see)
     glm::vec3 eyePosition;
-    if (isLookingAtOtherAvatar(mouseRayOrigin, mouseRayDirection, eyePosition)) {
+    if (_isLookingAtOtherAvatar = isLookingAtOtherAvatar(mouseRayOrigin, mouseRayDirection, eyePosition)) {
         // If the mouse is over another avatar's head...
         glm::vec3 myLookAtFromMouse(eyePosition);
          _myAvatar.getHead().setLookAtPosition(myLookAtFromMouse);
@@ -1946,7 +1959,7 @@ void Application::update(float deltaTime) {
         glm::vec3 front = orientation * IDENTITY_FRONT;
         glm::vec3 up = orientation * IDENTITY_UP;
         glm::vec3 towardVoxel = getMouseVoxelWorldCoordinates(_mouseVoxelDragging)
-                                - _myAvatar.getCameraPosition();
+                                - _myAvatar.getCameraPosition(); // is this an error? getCameraPosition dne
         towardVoxel = front * glm::length(towardVoxel);
         glm::vec3 lateralToVoxel = glm::cross(up, glm::normalize(towardVoxel)) * glm::length(towardVoxel);
         _voxelThrust = glm::vec3(0, 0, 0);
@@ -2193,7 +2206,7 @@ void Application::updateAvatar(float deltaTime) {
         _viewFrustum.computePickRay(MIDPOINT_OF_SCREEN, MIDPOINT_OF_SCREEN, screenCenterRayOrigin, screenCenterRayDirection);
 
         glm::vec3 eyePosition;
-        if (isLookingAtOtherAvatar(screenCenterRayOrigin, screenCenterRayDirection, eyePosition)) {
+        if (_isLookingAtOtherAvatar = isLookingAtOtherAvatar(screenCenterRayOrigin, screenCenterRayDirection, eyePosition)) {
             glm::vec3 myLookAtFromMouse(eyePosition);
             _myAvatar.getHead().setLookAtPosition(myLookAtFromMouse);
         }
@@ -2221,7 +2234,7 @@ void Application::updateAvatar(float deltaTime) {
     // actually need to calculate the view frustum planes to send these details 
     // to the server.
     loadViewFrustum(_myCamera, _viewFrustum);
-    _myAvatar.setCameraPosition(_viewFrustum.getPosition());
+    _myAvatar.setCameraPosition(_viewFrustum.getPosition()); // setCameraPosition() dne
     _myAvatar.setCameraOrientation(_viewFrustum.getOrientation());
     _myAvatar.setCameraFov(_viewFrustum.getFieldOfView());
     _myAvatar.setCameraAspectRatio(_viewFrustum.getAspectRatio());
@@ -2592,6 +2605,10 @@ void Application::displaySide(Camera& whichCamera) {
         } 
         _myAvatar.render(_lookingInMirror->isChecked(), _renderAvatarBalls->isChecked());
         _myAvatar.setDisplayingLookatVectors(_renderLookatOn->isChecked());
+
+        if (_renderLookatIndicatorOn->isChecked() && _isLookingAtOtherAvatar) {
+            renderLookatIndicator(_lookatOtherPosition, whichCamera);
+        }
     }
 
     if (TESTING_PARTICLE_SYSTEM) {
