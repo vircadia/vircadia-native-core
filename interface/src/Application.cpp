@@ -55,7 +55,6 @@
 #include <PacketHeaders.h>
 #include <PairingHandler.h>
 #include <PerfStat.h>
-// #include <math.h>
 
 #include "Application.h"
 #include "InterfaceConfig.h"
