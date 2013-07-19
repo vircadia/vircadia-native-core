@@ -210,10 +210,6 @@ void ParticleSystem::updateParticle(int p, float deltaTime) {
     }
     
     // apply tornado force
-    
-    
-    //glm::vec3 emitterUp = myEmitter.rotation * IDENTITY_UP;    
-    
     glm::vec3 tornadoDirection = glm::cross(vectorToHome, myEmitter.direction);
     _particle[p].velocity += tornadoDirection * myEmitter.particleAttributes[lifeStage].tornadoForce * deltaTime;
 

@@ -3556,14 +3556,6 @@ void Application::updateParticleSystem(float deltaTime) {
         
         if (_coolDemoParticleEmitter != -1) {
                        
-           glm::vec3 tilt = glm::vec3
-            (
-                30.0f * sinf( t * 0.55f ),
-                0.0f,
-                30.0f * cosf( t * 0.75f )
-            );
-         
-            //_particleSystem.setEmitterRotation(_coolDemoParticleEmitter, glm::quat(glm::radians(tilt)));
             _particleSystem.setEmitterDirection(_coolDemoParticleEmitter, glm::vec3(0.0f, 1.0f, 0.0f));
             
             ParticleSystem::ParticleAttributes attributes;

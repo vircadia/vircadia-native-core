@@ -254,8 +254,6 @@ void Hand::updateFingerParticles(float deltaTime) {
                     
         for ( int f = 0; f< NUM_FINGERS_PER_HAND; f ++ ) {
         
-            //_particleSystem.setShowingEmitter(f, true);
-
             _fingerParticleEmitter[f] = _particleSystem.addEmitter();
             
             assert( _fingerParticleEmitter[f] != -1 );
