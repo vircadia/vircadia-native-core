@@ -67,6 +67,7 @@ private:
     static int _texCoordCornerLocation;
     static int _texCoordRightLocation;
     static int _texCoordUpLocation;
+    static int _aspectRatioLocation;
     static GLuint _vboID;
     static GLuint _iboID;
 };

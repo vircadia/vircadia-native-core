@@ -25,6 +25,7 @@ ProgramObject* Face::_program = 0;
 int Face::_texCoordCornerLocation;
 int Face::_texCoordRightLocation;
 int Face::_texCoordUpLocation;
+int Face::_aspectRatioLocation;
 GLuint Face::_vboID;
 GLuint Face::_iboID;
 
@@ -205,6 +206,7 @@ bool Face::render(float alpha) {
             _texCoordCornerLocation = _program->uniformLocation("texCoordCorner");
             _texCoordRightLocation = _program->uniformLocation("texCoordRight");
             _texCoordUpLocation = _program->uniformLocation("texCoordUp");
+            _aspectRatioLocation = _program->uniformLocation("aspectRatio");
             
             glGenBuffers(1, &_vboID);
             glBindBuffer(GL_ARRAY_BUFFER, _vboID);
@@ -253,6 +255,7 @@ bool Face::render(float alpha) {
             (points[3].x - points[0].x) / _textureSize.width, (points[3].y - points[0].y) / _textureSize.height);
         _program->setUniformValue(_texCoordUpLocation,
             (points[1].x - points[0].x) / _textureSize.width, (points[1].y - points[0].y) / _textureSize.height);
+        _program->setUniformValue(_aspectRatioLocation, _aspectRatio);
         glEnableClientState(GL_VERTEX_ARRAY);
         glVertexPointer(2, GL_FLOAT, 0, 0);
         

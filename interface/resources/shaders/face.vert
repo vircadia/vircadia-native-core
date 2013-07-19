@@ -17,6 +17,9 @@ uniform vec2 texCoordRight;
 // the texture coordinate vector from bottom to the top
 uniform vec2 texCoordUp;
 
+// the aspect ratio of the image
+uniform float aspectRatio;
+
 // the depth texture
 uniform sampler2D depthTexture;
 
@@ -29,5 +32,5 @@ void main(void) {
     const float MAX_VISIBLE_DEPTH = 254.0 / 255.0;
     gl_FrontColor = vec4(1.0, 1.0, 1.0, step(MIN_VISIBLE_DEPTH, depth) * (1.0 - step(MAX_VISIBLE_DEPTH, depth)));
     gl_Position = gl_ModelViewProjectionMatrix * vec4(0.5 - gl_Vertex.x,
-        (gl_Vertex.y - 0.5) * length(texCoordUp) / length(texCoordRight), depth * 2.0 - 2.0, 1.0);
+        (gl_Vertex.y - 0.5) / aspectRatio, depth * 2.0 - 2.0, 1.0);
 }
