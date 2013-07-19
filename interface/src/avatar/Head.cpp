@@ -272,7 +272,7 @@ void Head::calculateGeometry() {
                       + up * _scale * BODY_BALL_RADIUS_HEAD_BASE * EYE_UP_OFFSET 
                       + front * _scale * BODY_BALL_RADIUS_HEAD_BASE * EYE_FRONT_OFFSET;
 
-    _eyeLevelPosition = _position + up * _scale * EYE_UP_OFFSET;
+    _eyeLevelPosition = _position + up * _scale * BODY_BALL_RADIUS_HEAD_BASE * EYE_UP_OFFSET;
 
     //calculate the eyebrow positions 
     _leftEyeBrowPosition  = _leftEyePosition; 
