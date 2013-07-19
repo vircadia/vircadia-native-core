@@ -235,6 +235,31 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         NodeList::getInstance()->getNodeSocket()->setBlocking(false);
     }
     
+    // setup QSettings    
+#ifdef Q_WS_MAC
+    QString resourcesPath = QCoreApplication::applicationDirPath() + "/../Resources";
+#else
+    QString resourcesPath = QCoreApplication::applicationDirPath() + "/resources";
+#endif
+    
+    // read the ApplicationInfo.ini file for Name/Version/Domain information
+    QSettings applicationInfo(resourcesPath + "/info/ApplicationInfo.ini", QSettings::IniFormat);
+    
+    // set the associated application properties
+    applicationInfo.beginGroup("INFO");
+    
+    setApplicationName(applicationInfo.value("name").toString());
+    setApplicationVersion(applicationInfo.value("version").toString());
+    setOrganizationName(applicationInfo.value("organizationName").toString());
+    setOrganizationDomain(applicationInfo.value("organizationDomain").toString());
+    
+    _settings = new QSettings(this);
+    
+    // check if there is a saved domain server hostname
+    // this must be done now instead of with the other setting checks to allow manual override with
+    // --domain or --local options
+    NodeList::getInstance()->loadData(_settings);
+    
     const char* domainIP = getCmdOption(argc, constArgv, "--domain");
     if (domainIP) {
         NodeList::getInstance()->setDomainIP(domainIP);
@@ -267,23 +292,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     NodeList::getInstance()->startSilentNodeRemovalThread();
     
     _window->setCentralWidget(_glWidget);
-    
-#ifdef Q_WS_MAC
-    QString resourcesPath = QCoreApplication::applicationDirPath() + "/../Resources";
-#else
-    QString resourcesPath = QCoreApplication::applicationDirPath() + "/resources";
-#endif
-    
-    // read the ApplicationInfo.ini file for Name/Version/Domain information
-    QSettings applicationInfo(resourcesPath + "/info/ApplicationInfo.ini", QSettings::IniFormat);
-    
-    // set the associated application properties
-    applicationInfo.beginGroup("INFO");
-    
-    setApplicationName(applicationInfo.value("name").toString());
-    setApplicationVersion(applicationInfo.value("version").toString());
-    setOrganizationName(applicationInfo.value("organizationName").toString());
-    setOrganizationDomain(applicationInfo.value("organizationDomain").toString());
     
 #if defined(Q_WS_MAC) && defined(QT_NO_DEBUG)
     // if this is a release OS X build use fervor to check for an update    
@@ -1143,26 +1151,29 @@ void Application::editPreferences() {
         return;
     }
     
+    QByteArray newHostname;
     
-    const char* newHostname = domainServerHostname->text().toLocal8Bit().data();
-    
+    if (domainServerHostname->text().size() > 0) {
+        // the user input a new hostname, use that
+        newHostname = domainServerHostname->text().toAscii();
+    } else {
+        // the user left the field blank, use the default hostname
+        newHostname = QByteArray(DEFAULT_DOMAIN_HOSTNAME);
+    }
+   
     // check if the domain server hostname is new 
-    if (memcmp(NodeList::getInstance()->getDomainHostname(), newHostname, sizeof(&newHostname)) != 0) {
-        // if so we need to clear the nodelist and delete the local voxels
-        Node *voxelServer = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_VOXEL_SERVER);
-        
-        if (voxelServer) {
-            voxelServer->lock();
-        }
-        
-        _voxels.killLocalVoxels();
-        
-        if (voxelServer) {
-            voxelServer->unlock();
-        }
+    if (memcmp(NodeList::getInstance()->getDomainHostname(), newHostname.constData(), newHostname.size()) != 0) {
         
         NodeList::getInstance()->clear();
-        NodeList::getInstance()->setDomainHostname(newHostname);
+        
+        // kill the local voxels
+        _voxels.killLocalVoxels();
+        
+        // reset the environment to default
+        _environment.resetToDefault();
+        
+        // set the new hostname
+        NodeList::getInstance()->setDomainHostname(newHostname.constData());
     }
     
     QUrl url(avatarURL->text());
@@ -1786,7 +1797,6 @@ void Application::initMenu() {
     settingsMenu->addAction("Export settings", this, SLOT(exportSettings()));
     
     _networkAccessManager = new QNetworkAccessManager(this);
-    _settings = new QSettings(this);
 }
 
 void Application::updateFrustumRenderModeAction() {
@@ -3352,7 +3362,7 @@ void* Application::networkReceive(void* args) {
                     case PACKET_TYPE_ENVIRONMENT_DATA: {
                         if (app->_renderVoxels->isChecked()) {
                             Node* voxelServer = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_VOXEL_SERVER);
-                            if (voxelServer) {
+                            if (voxelServer && socketMatch(voxelServer->getActiveSocket(), &senderAddress)) {
                                 voxelServer->lock();
                                 
                                 if (app->_incomingPacket[0] == PACKET_TYPE_ENVIRONMENT_DATA) {
@@ -3456,7 +3466,7 @@ void Application::saveSettings(QSettings* settings) {
     if (!settings) { 
         settings = getSettings();
     }
-
+    
     settings->setValue("headCameraPitchYawScale", _headCameraPitchYawScale);
     settings->setValue("audioJitterBufferSamples", _audioJitterBufferSamples);
     settings->setValue("horizontalFieldOfView", _horizontalFieldOfView);
@@ -3471,6 +3481,9 @@ void Application::saveSettings(QSettings* settings) {
     scanMenuBar(&Application::saveAction, settings);
     getAvatar()->saveData(settings);
     _swatch.saveData(settings);
+    
+    // ask the NodeList to save its data
+    NodeList::getInstance()->saveData(settings);
 }
 
 void Application::importSettings() {
