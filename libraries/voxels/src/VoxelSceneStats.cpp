@@ -70,6 +70,7 @@ void VoxelSceneStats::reset() {
     _colorBitsWritten = 0;
     _existsBitsWritten = 0;
     _existsInPacketBitsWritten = 0;
+    _treesRemoved = 0;
 }
 
 void VoxelSceneStats::packetSent(int bytes) {
@@ -169,6 +170,7 @@ void VoxelSceneStats::childBitsRemoved(bool includesExistsBits, bool includesCol
     if (includesColors) {
         _colorBitsWritten--;
     }
+    _treesRemoved++;
 }
 
 
@@ -214,4 +216,5 @@ void VoxelSceneStats::printDebugDetails() {
     qDebug("    color bits          : %lu\n", _colorBitsWritten         );
     qDebug("    exists bits         : %lu\n", _existsBitsWritten        );
     qDebug("    in packet bit       : %lu\n", _existsInPacketBitsWritten);
+    qDebug("    trees removed       : %lu\n", _treesRemoved             );
 }

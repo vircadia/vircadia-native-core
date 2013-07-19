@@ -78,6 +78,7 @@ private:
     unsigned long _colorBitsWritten;
     unsigned long _existsBitsWritten;
     unsigned long _existsInPacketBitsWritten;
+    unsigned long _treesRemoved;
 
     // Accounting Notes:
     //
@@ -87,7 +88,11 @@ private:
     //    tree, because LOD may cause us to send an average color for an internal node instead of recursing deeper to
     //    the leaves.
     //
-    // 2) the stats balance if: _traversed = all skipped + all sent
+    // 2) the stats balance if: (working assumption) 
+    //     if _colorSent > 0 
+    /           _traversed = all skipped + _colorSent + _colorBitsWritten 
+    //     else
+    //          _traversed = all skipped + _colorSent + _colorBitsWritten  + _treesRemoved
     //
     
     // scene network related data
