@@ -1091,15 +1091,15 @@ static Avatar* processAvatarMessageHeader(unsigned char*& packetData, size_t& da
     // make sure the node exists
     Node* node = NodeList::getInstance()->nodeWithID(nodeID);
     if (!node || !node->getLinkedData()) {
-        return 0;
+        return NULL;
     }
     Avatar* avatar = static_cast<Avatar*>(node->getLinkedData());
-    return avatar->isInitialized() ? avatar : 0;
+    return avatar->isInitialized() ? avatar : NULL;
 }
 
 void Application::processAvatarVoxelURLMessage(unsigned char* packetData, size_t dataBytes) {
     Avatar* avatar = processAvatarMessageHeader(packetData, dataBytes);
-    if (avatar == 0) {
+    if (!avatar) {
         return;
     } 
     QUrl url = QUrl::fromEncoded(QByteArray((char*)packetData, dataBytes));
@@ -1110,7 +1110,7 @@ void Application::processAvatarVoxelURLMessage(unsigned char* packetData, size_t
 
 void Application::processAvatarFaceVideoMessage(unsigned char* packetData, size_t dataBytes) {
     Avatar* avatar = processAvatarMessageHeader(packetData, dataBytes);
-    if (avatar == 0) {
+    if (!avatar) {
         return;
     }
     avatar->getHead().getFace().processVideoMessage(packetData, dataBytes);

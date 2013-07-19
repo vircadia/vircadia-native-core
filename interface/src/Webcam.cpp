@@ -134,7 +134,8 @@ void Webcam::renderPreview(int screenWidth, int screenHeight) {
             glVertex2f(left + facePoints[3].x * xScale, top + facePoints[3].y * yScale);
         glEnd();
         
-        char fps[30];
+        const int MAX_FPS_CHARACTERS = 30;
+        char fps[MAX_FPS_CHARACTERS];
         sprintf(fps, "FPS: %d", (int)(roundf(_frameCount * 1000000.0f / (usecTimestampNow() - _startTimestamp))));
         drawtext(left, top + PREVIEW_HEIGHT + 20, 0.10, 0, 1, 0, fps);
     }
@@ -484,7 +485,8 @@ void FrameGrabber::grabFrame() {
         // convert from 11 to 8 bits, centered about the mean face depth (if possible)
         if (_searchWindow.area() > 0) {
             const double DEPTH_OFFSET_SMOOTHING = 0.95;
-            double meanOffset = 128.0 - mean(depth(_searchWindow))[0];
+            const double EIGHT_BIT_MIDPOINT = 128.0;
+            double meanOffset = EIGHT_BIT_MIDPOINT - mean(depth(_searchWindow))[0];
             _depthOffset = (_depthOffset == 0.0) ? meanOffset : glm::mix(meanOffset, _depthOffset, DEPTH_OFFSET_SMOOTHING);
         }
         depth.convertTo(_grayDepthFrame, CV_8UC1, 1.0, _depthOffset);
