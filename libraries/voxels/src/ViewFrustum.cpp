@@ -364,11 +364,6 @@ bool ViewFrustum::matches(const ViewFrustum& compareTo, bool debug) const {
     return result;
 }
 
-void ViewFrustum::computeNormalToOffset(glm::vec3& normal) const {
-    Plane offsetPlane(_offsetPosition, _offsetRight, _offsetUp);
-    normal = offsetPlane.getNormal();
-}
-
 void ViewFrustum::computePickRay(float x, float y, glm::vec3& origin, glm::vec3& direction) const {
     origin = _nearTopLeft + x*(_nearTopRight - _nearTopLeft) + y*(_nearBottomLeft - _nearTopLeft);
     direction = glm::normalize(origin - _position);

@@ -42,7 +42,6 @@
 #include "ViewFrustum.h"
 #include "VoxelSystem.h"
 #include "Webcam.h"
-#include "Plane.h"
 
 
 class QAction;

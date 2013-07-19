@@ -83,8 +83,6 @@ public:
     bool matches(const ViewFrustum& compareTo, bool debug = false) const;
     bool matches(const ViewFrustum* compareTo, bool debug = false) const { return matches(*compareTo, debug); };
 
-    void computeNormalToOffset(glm::vec3& normal) const;
-
     void computePickRay(float x, float y, glm::vec3& origin, glm::vec3& direction) const;
 
     void computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& near, float& far,
