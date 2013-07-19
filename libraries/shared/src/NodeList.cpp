@@ -499,6 +499,32 @@ void NodeList::startSilentNodeRemovalThread() {
 void NodeList::stopSilentNodeRemovalThread() {
     silentNodeThreadStopFlag = true;
     pthread_join(removeSilentNodesThread, NULL);
+    
+}
+
+const QString QSETTINGS_GROUP_NAME = "NodeList";
+const QString DOMAIN_SERVER_SETTING_KEY = "domainServerHostname";
+
+void NodeList::loadData(QSettings *settings) {
+    settings->beginGroup(DOMAIN_SERVER_SETTING_KEY);
+    
+    QString domainServerHostname = settings->value(DOMAIN_SERVER_SETTING_KEY).toString();
+    
+    if (domainServerHostname.size() > 0) {
+        memset(_domainHostname, 0, MAX_HOSTNAME_BYTES);
+        memcpy(_domainHostname, domainServerHostname.toAscii().constData(), domainServerHostname.size());
+    }
+    
+    settings->endGroup();
+}
+
+void NodeList::saveData(QSettings* settings) {
+    if (memcmp(_domainHostname, DEFAULT_DOMAIN_HOSTNAME, strlen(DEFAULT_DOMAIN_HOSTNAME)) != 0) {
+        // the user is using a different hostname, store it
+        settings->beginGroup(DOMAIN_SERVER_SETTING_KEY);
+        settings->setValue(DOMAIN_SERVER_SETTING_KEY, QVariant(_domainHostname));
+        settings->endGroup();
+    }
 }
 
 NodeList::iterator NodeList::begin() const {

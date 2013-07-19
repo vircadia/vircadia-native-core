@@ -235,6 +235,31 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         NodeList::getInstance()->getNodeSocket()->setBlocking(false);
     }
     
+    // setup QSettings    
+#ifdef Q_WS_MAC
+    QString resourcesPath = QCoreApplication::applicationDirPath() + "/../Resources";
+#else
+    QString resourcesPath = QCoreApplication::applicationDirPath() + "/resources";
+#endif
+    
+    // read the ApplicationInfo.ini file for Name/Version/Domain information
+    QSettings applicationInfo(resourcesPath + "/info/ApplicationInfo.ini", QSettings::IniFormat);
+    
+    // set the associated application properties
+    applicationInfo.beginGroup("INFO");
+    
+    setApplicationName(applicationInfo.value("name").toString());
+    setApplicationVersion(applicationInfo.value("version").toString());
+    setOrganizationName(applicationInfo.value("organizationName").toString());
+    setOrganizationDomain(applicationInfo.value("organizationDomain").toString());
+    
+    _settings = new QSettings(this);
+    
+    // check if there is a saved domain server hostname
+    // this must be done now instead of with the other setting checks to allow manual override with
+    // --domain or --local options
+    NodeList::getInstance()->loadData(_settings);
+    
     const char* domainIP = getCmdOption(argc, constArgv, "--domain");
     if (domainIP) {
         NodeList::getInstance()->setDomainIP(domainIP);
@@ -267,23 +292,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     NodeList::getInstance()->startSilentNodeRemovalThread();
     
     _window->setCentralWidget(_glWidget);
-    
-#ifdef Q_WS_MAC
-    QString resourcesPath = QCoreApplication::applicationDirPath() + "/../Resources";
-#else
-    QString resourcesPath = QCoreApplication::applicationDirPath() + "/resources";
-#endif
-    
-    // read the ApplicationInfo.ini file for Name/Version/Domain information
-    QSettings applicationInfo(resourcesPath + "/info/ApplicationInfo.ini", QSettings::IniFormat);
-    
-    // set the associated application properties
-    applicationInfo.beginGroup("INFO");
-    
-    setApplicationName(applicationInfo.value("name").toString());
-    setApplicationVersion(applicationInfo.value("version").toString());
-    setOrganizationName(applicationInfo.value("organizationName").toString());
-    setOrganizationDomain(applicationInfo.value("organizationDomain").toString());
     
 #if defined(Q_WS_MAC) && defined(QT_NO_DEBUG)
     // if this is a release OS X build use fervor to check for an update    
@@ -1781,7 +1789,6 @@ void Application::initMenu() {
     settingsMenu->addAction("Export settings", this, SLOT(exportSettings()));
     
     _networkAccessManager = new QNetworkAccessManager(this);
-    _settings = new QSettings(this);
 }
 
 void Application::updateFrustumRenderModeAction() {
@@ -3451,7 +3458,7 @@ void Application::saveSettings(QSettings* settings) {
     if (!settings) { 
         settings = getSettings();
     }
-
+    
     settings->setValue("headCameraPitchYawScale", _headCameraPitchYawScale);
     settings->setValue("audioJitterBufferSamples", _audioJitterBufferSamples);
     settings->setValue("horizontalFieldOfView", _horizontalFieldOfView);
@@ -3466,6 +3473,9 @@ void Application::saveSettings(QSettings* settings) {
     scanMenuBar(&Application::saveAction, settings);
     getAvatar()->saveData(settings);
     _swatch.saveData(settings);
+    
+    // ask the NodeList to save its data
+    NodeList::getInstance()->saveData(settings);
 }
 
 void Application::importSettings() {
