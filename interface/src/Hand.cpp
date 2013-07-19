@@ -14,6 +14,8 @@
 #include "Util.h"
 #include "renderer/ProgramObject.h"
 
+const bool SHOW_LEAP_HAND = true;
+
 using namespace std;
 
 Hand::Hand(Avatar* owningAvatar) :
@@ -83,6 +85,7 @@ void Hand::render(bool lookingInMirror) {
     _lookingInMirror = lookingInMirror;
     
     calculateGeometry();
+    updateFingerParticleEmitters(); // do this right after calculateGeometry
 
     if (_isRaveGloveActive) {
         renderRaveGloveStage();
@@ -95,7 +98,9 @@ void Hand::render(bool lookingInMirror) {
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_RESCALE_NORMAL);
     
-    renderHandSpheres();
+    if ( SHOW_LEAP_HAND ) {
+        renderHandSpheres();
+    }
 }
 
 void Hand::renderRaveGloveStage() {
@@ -210,6 +215,38 @@ void Hand::setLeapHands(const std::vector<glm::vec3>& handPositions,
     }
 }
 
+void Hand::updateFingerParticleEmitters() {
+
+    if (_particleSystemInitialized) {
+         
+        int fingerIndex = 0;
+        for (size_t i = 0; i < getNumPalms(); ++i) {
+            PalmData& palm = getPalms()[i];
+            if (palm.isActive()) {
+                for (size_t f = 0; f < palm.getNumFingers(); ++f) {
+                    FingerData& finger = palm.getFingers()[f];
+                    if (finger.isActive()) {
+                        if (_fingerParticleEmitter[fingerIndex] != -1) {
+                                                        
+                            glm::vec3 fingerDirection = finger.getTipPosition() - finger.getRootPosition();
+                            float fingerLength = glm::length(fingerDirection);
+                            
+                            if (fingerLength > 0.0f) {
+                                fingerDirection /= fingerLength;
+                            } else {
+                                fingerDirection = IDENTITY_UP;
+                            }
+                            
+                            _particleSystem.setEmitterPosition (_fingerParticleEmitter[f], finger.getTipPosition());
+                            _particleSystem.setEmitterDirection(_fingerParticleEmitter[f], fingerDirection);
+                         }
+                    }
+                }
+            }
+        }
+    }
+}
+
 
 void Hand::updateFingerParticles(float deltaTime) {
 
@@ -217,7 +254,7 @@ void Hand::updateFingerParticles(float deltaTime) {
                     
         for ( int f = 0; f< NUM_FINGERS_PER_HAND; f ++ ) {
         
-            _particleSystem.setShowingEmitter(f, true );
+            //_particleSystem.setShowingEmitter(f, true);
 
             _fingerParticleEmitter[f] = _particleSystem.addEmitter();
             
@@ -258,9 +295,6 @@ void Hand::updateFingerParticles(float deltaTime) {
         _particleSystemInitialized = true;         
     } else {
         // update the particles
-        
-        static float t = 0.0f;
-        t += deltaTime;
 
         int fingerIndex = 0;
         for (size_t i = 0; i < getNumPalms(); ++i) {
@@ -270,33 +304,14 @@ void Hand::updateFingerParticles(float deltaTime) {
                     FingerData& finger = palm.getFingers()[f];
                     if (finger.isActive()) {
                         if (_fingerParticleEmitter[fingerIndex] != -1) {
-                            
-                            glm::vec3 particleEmitterPosition = finger.getTipPosition();
-                            
-                            glm::vec3 fingerDirection = particleEmitterPosition - leapPositionToWorldPosition(finger.getRootPosition());
-                            float fingerLength = glm::length(fingerDirection);
-                            
-                            if (fingerLength > 0.0f) {
-                                fingerDirection /= fingerLength;
-                            } else {
-                                fingerDirection = IDENTITY_UP;
-                            }
-                                                        
-                            glm::quat particleEmitterRotation = rotationBetween(palm.getNormal(), fingerDirection);
-                            
-                            //glm::quat particleEmitterRotation = glm::angleAxis(0.0f, fingerDirection);                            
-                            
-                            _particleSystem.setEmitterPosition(_fingerParticleEmitter[f], particleEmitterPosition);
-                            _particleSystem.setEmitterRotation(_fingerParticleEmitter[f], particleEmitterRotation);
-                            
-                            const glm::vec3 velocity = fingerDirection * 0.002f;
+                            const float thrust = 0.002;
                             const float lifespan = 1.0f;
-                            _particleSystem.emitParticlesNow(_fingerParticleEmitter[f], 1, velocity, lifespan); 
+                            _particleSystem.emitParticlesNow(_fingerParticleEmitter[f], 1, thrust, lifespan); 
                         }
                     }
                 }
             }
-        }
+        }        
         
         _particleSystem.setUpDirection(glm::vec3(0.0f, 1.0f, 0.0f));  
         _particleSystem.simulate(deltaTime); 

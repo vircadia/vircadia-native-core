@@ -22,9 +22,9 @@ ParticleSystem::ParticleSystem() {
     _upDirection  = glm::vec3(0.0f, 1.0f, 0.0f); // default
             
     for (unsigned int emitterIndex = 0; emitterIndex < MAX_EMITTERS; emitterIndex++) {
-        _emitter[emitterIndex].position = glm::vec3(0.0f, 0.0f, 0.0f);
-        _emitter[emitterIndex].rotation = glm::quat();
-        _emitter[emitterIndex].visible  = false;
+        _emitter[emitterIndex].position                  = glm::vec3(0.0f, 0.0f, 0.0f);
+        _emitter[emitterIndex].direction                 = glm::vec3(0.0f, 1.0f, 0.0f);
+        _emitter[emitterIndex].visible                   = false;
         _emitter[emitterIndex].baseParticle.alive        = false;
         _emitter[emitterIndex].baseParticle.age          = 0.0f;
         _emitter[emitterIndex].baseParticle.lifespan     = 0.0f;
@@ -90,10 +90,10 @@ void ParticleSystem::simulate(float deltaTime) {
     }
 }
 
-void ParticleSystem::emitParticlesNow(int e, int num, glm::vec3 velocity, float lifespan) {
+void ParticleSystem::emitParticlesNow(int e, int num, float thrust, float lifespan) {
 
     for (unsigned int p = 0; p < num; p++) {
-        createParticle(e, velocity, lifespan);
+        createParticle(e, _emitter[e].direction * thrust, lifespan);
     }
 }
 
@@ -212,9 +212,9 @@ void ParticleSystem::updateParticle(int p, float deltaTime) {
     // apply tornado force
     
     
-    glm::vec3 emitterUp = myEmitter.rotation * IDENTITY_UP;    
+    //glm::vec3 emitterUp = myEmitter.rotation * IDENTITY_UP;    
     
-    glm::vec3 tornadoDirection = glm::cross(vectorToHome, emitterUp);
+    glm::vec3 tornadoDirection = glm::cross(vectorToHome, myEmitter.direction);
     _particle[p].velocity += tornadoDirection * myEmitter.particleAttributes[lifeStage].tornadoForce * deltaTime;
 
     // apply air friction
@@ -351,12 +351,19 @@ void ParticleSystem::renderParticle(int p) {
 
 void ParticleSystem::renderEmitter(int e, float size) {
         
+    /*
     glm::vec3 r = _emitter[e].rotation * IDENTITY_FRONT * size;
     glm::vec3 u = _emitter[e].rotation * IDENTITY_RIGHT * size;
     glm::vec3 f = _emitter[e].rotation * IDENTITY_UP    * size;
+    */
 
+    glm::vec3 f = _emitter[e].direction;
+    //glm::vec3 r = glm::vec3(_emitter[e].direction.y, _emitter[e].direction.z, _emitter[e].direction.x);
+    //glm::vec3 u = glm::vec3(_emitter[e].direction.z, _emitter[e].direction.x, _emitter[e].direction.y);
+    
     glLineWidth(2.0f);
 
+/*
     glColor3f(0.8f, 0.4, 0.4);
     glBegin(GL_LINES);
     glVertex3f(_emitter[e].position.x, _emitter[e].position.y, _emitter[e].position.z);
@@ -368,7 +375,7 @@ void ParticleSystem::renderEmitter(int e, float size) {
     glVertex3f(_emitter[e].position.x, _emitter[e].position.y, _emitter[e].position.z);
     glVertex3f(_emitter[e].position.x + u.x, _emitter[e].position.y + u.y, _emitter[e].position.z + u.z);
     glEnd();
-
+*/
     glColor3f(0.4f, 0.4, 0.8);
     glBegin(GL_LINES);
     glVertex3f(_emitter[e].position.x, _emitter[e].position.y, _emitter[e].position.z);

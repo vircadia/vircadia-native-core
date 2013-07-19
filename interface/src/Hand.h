@@ -47,6 +47,7 @@ public:
     void setLeapHands      (const std::vector<glm::vec3>& handPositions,
                             const std::vector<glm::vec3>& handNormals);
     void updateFingerParticles(float deltaTime);
+    void updateFingerParticleEmitters();
     void setRaveGloveActive(bool active) { _isRaveGloveActive = active; }
 
 

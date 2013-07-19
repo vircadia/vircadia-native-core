@@ -38,7 +38,7 @@ public:
     ParticleSystem();
     
     int  addEmitter(); // add (create new) emitter and get its unique id
-    void emitParticlesNow(int emitterIndex, int numParticles, glm::vec3 velocity, float lifespan);
+    void emitParticlesNow(int emitterIndex, int numParticles, float thrust, float lifespan);
     void simulate(float deltaTime);
     void render();
 
@@ -48,7 +48,7 @@ public:
     void setParticleAttributes (int emitterIndex, ParticleAttributes attributes);
     void setParticleAttributes (int emitterIndex, int lifeStage, ParticleAttributes attributes);
     void setEmitterPosition    (int emitterIndex, glm::vec3 position) { _emitter[emitterIndex].position = position; } // set position of emitter
-    void setEmitterRotation    (int emitterIndex, glm::quat rotation) { _emitter[emitterIndex].rotation = rotation; } // set rotation of emitter
+    void setEmitterDirection   (int emitterIndex, glm::vec3 direction) { _emitter[emitterIndex].direction = direction; } // set directional axis (normal) 
     void setShowingEmitter     (int emitterIndex, bool showing      ) { _emitter[emitterIndex].visible  = showing;  } // set its visibiity
     
 private:
@@ -66,7 +66,7 @@ private:
         
    struct Emitter {
         glm::vec3 position;
-        glm::quat rotation;
+        glm::vec3 direction;
         bool      visible;
         Particle  baseParticle; // a non-physical particle at the emitter position
         ParticleAttributes particleAttributes[NUM_PARTICLE_LIFE_STAGES]; // the attributes of particles emitted from this emitter
