@@ -31,9 +31,10 @@ public:
     void skippedOccluded(const VoxelNode* node);
     void colorSent(const VoxelNode* node);
     void didntFit(const VoxelNode* node);
-    void colorBitsWritten(const VoxelNode* node);
-    void existsBitsWritten(const VoxelNode* node);
-    void existsInPacketBitsWritten(const VoxelNode* node);
+    void colorBitsWritten();
+    void existsBitsWritten();
+    void existsInPacketBitsWritten();
+    void childBitsRemoved(bool includesExistsBits, bool includesColors);
     
 private:
     // scene timing data in usecs
@@ -75,24 +76,19 @@ private:
     unsigned long _leavesDidntFit;
 
     unsigned long _colorBitsWritten;
-    unsigned long _internalColorBitsWritten;
-    unsigned long _leavesColorBitsWritten;
-
     unsigned long _existsBitsWritten;
-    unsigned long _internalExistsBitsWritten;
-    unsigned long _leavesExistsBitsWritten;
-
     unsigned long _existsInPacketBitsWritten;
-    unsigned long _internalExistsInPacketBitsWritten;
-    unsigned long _leavesExistsInPacketBitsWritten;
 
-    unsigned long total;
-    unsigned long internalOutOfView;
-    unsigned long internalOccluded;
-    unsigned long internalDirty;
-    unsigned long leavesOutOfView;
-    unsigned long leavesOccluded;
-    unsigned long leavesDirty;
+    // Accounting Notes:
+    //
+    // 1) number of voxels sent can be calculated as _colorSent + _colorBitsWritten. This works because each internal 
+    //    node in a packet will have a _colorBitsWritten included for it and each "leaf" in the packet will have a
+    //    _colorSent written for it. Note that these "leaf" nodes in the packets may not be actual leaves in the full
+    //    tree, because LOD may cause us to send an average color for an internal node instead of recursing deeper to
+    //    the leaves.
+    //
+    // 2) the stats balance if: _traversed = all skipped + all sent
+    //
     
     // scene network related data
     unsigned int  _packets;

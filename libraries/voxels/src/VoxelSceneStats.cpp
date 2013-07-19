@@ -68,17 +68,8 @@ void VoxelSceneStats::reset() {
     _leavesDidntFit = 0;
 
     _colorBitsWritten = 0;
-    _internalColorBitsWritten = 0;
-    _leavesColorBitsWritten = 0;
-
     _existsBitsWritten = 0;
-    _internalExistsBitsWritten = 0;
-    _leavesExistsBitsWritten = 0;
-
     _existsInPacketBitsWritten = 0;
-    _internalExistsInPacketBitsWritten = 0;
-    _leavesExistsInPacketBitsWritten = 0;
-
 }
 
 void VoxelSceneStats::packetSent(int bytes) {
@@ -158,33 +149,27 @@ void VoxelSceneStats::didntFit(const VoxelNode* node) {
     }
 }
 
-void VoxelSceneStats::colorBitsWritten(const VoxelNode* node) {
+void VoxelSceneStats::colorBitsWritten() {
     _colorBitsWritten++;
-    if (node->isLeaf()) {
-        _leavesColorBitsWritten++;
-    } else {
-        _internalColorBitsWritten++;
-    }
 }
 
-void VoxelSceneStats::existsBitsWritten(const VoxelNode* node) {
+void VoxelSceneStats::existsBitsWritten() {
     _existsBitsWritten++;
-    if (node->isLeaf()) {
-        _leavesExistsBitsWritten++;
-    } else {
-        _internalExistsBitsWritten++;
-    }
 }
 
-void VoxelSceneStats::existsInPacketBitsWritten(const VoxelNode* node) {
+void VoxelSceneStats::existsInPacketBitsWritten() {
     _existsInPacketBitsWritten++;
-    if (node->isLeaf()) {
-        _leavesExistsInPacketBitsWritten++;
-    } else {
-        _internalExistsInPacketBitsWritten++;
-    }
 }
 
+void VoxelSceneStats::childBitsRemoved(bool includesExistsBits, bool includesColors) {
+    _existsInPacketBitsWritten--;
+    if (includesExistsBits) {
+        _existsBitsWritten--;
+    }
+    if (includesColors) {
+        _colorBitsWritten--;
+    }
+}
 
 
 void VoxelSceneStats::printDebugDetails() {
@@ -227,12 +212,6 @@ void VoxelSceneStats::printDebugDetails() {
     qDebug("        internal        : %lu\n", _internalDidntFit         );
     qDebug("        leaves          : %lu\n", _leavesDidntFit           );
     qDebug("    color bits          : %lu\n", _colorBitsWritten         );
-    qDebug("        internal        : %lu\n", _internalColorBitsWritten );
-    qDebug("        leaves          : %lu\n", _leavesColorBitsWritten   );
     qDebug("    exists bits         : %lu\n", _existsBitsWritten        );
-    qDebug("        internal        : %lu\n", _internalExistsBitsWritten);
-    qDebug("        leaves          : %lu\n", _leavesExistsBitsWritten  );
-    qDebug("    in packet bit       : %lu\n", _existsInPacketBitsWritten        );
-    qDebug("        internal        : %lu\n", _internalExistsInPacketBitsWritten);
-    qDebug("        leaves          : %lu\n", _leavesExistsInPacketBitsWritten  );
+    qDebug("    in packet bit       : %lu\n", _existsInPacketBitsWritten);
 }

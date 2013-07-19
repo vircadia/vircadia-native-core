@@ -143,6 +143,7 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
             }
             nodeList->getNodeSocket()->send(node->getActiveSocket(),
                                             nodeData->getPacket(), nodeData->getPacketLength());
+            nodeData->stats.packetSent(nodeData->getPacketLength());
             trueBytesSent += nodeData->getPacketLength();
             truePacketsSent++;
             nodeData->resetVoxelPacket();
@@ -261,7 +262,6 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
                 } else {
                     nodeList->getNodeSocket()->send(node->getActiveSocket(),
                                                     nodeData->getPacket(), nodeData->getPacketLength());
-                                                    
                     nodeData->stats.packetSent(nodeData->getPacketLength());
                     trueBytesSent += nodeData->getPacketLength();
                     truePacketsSent++;

@@ -1302,7 +1302,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
                      
                 // track some stats               
                 if (params.stats) {
-                    if (!shouldRender) {
+                    if (!shouldRender && childNode->isLeaf()) {
                         params.stats->skippedDistance(childNode);
                     }
                     if (childIsOccluded) {
@@ -1352,7 +1352,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
     writeToThisLevelBuffer += sizeof(childrenColoredBits); // move the pointer
     bytesAtThisLevel += sizeof(childrenColoredBits); // keep track of byte count
     if (params.stats) {
-        params.stats->colorBitsWritten(node);
+        params.stats->colorBitsWritten();
     }
 
     // write the color data...
@@ -1379,7 +1379,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
         writeToThisLevelBuffer += sizeof(childrenExistInTreeBits); // move the pointer
         bytesAtThisLevel += sizeof(childrenExistInTreeBits); // keep track of byte count
         if (params.stats) {
-            params.stats->existsBitsWritten(node);
+            params.stats->existsBitsWritten();
         }
     }
 
@@ -1388,7 +1388,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
     writeToThisLevelBuffer += sizeof(childrenExistInPacketBits); // move the pointer
     bytesAtThisLevel += sizeof(childrenExistInPacketBits); // keep track of byte count
     if (params.stats) {
-        params.stats->existsInPacketBitsWritten(node);
+        params.stats->existsInPacketBitsWritten();
     }
 
     // We only need to keep digging, if there is at least one child that is inView, and not a leaf.
@@ -1467,7 +1467,12 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
                 // so, if the child returns 2 bytes out, we can actually consider that an empty tree also!!
                 //
                 // we can make this act like no bytes out, by just resetting the bytes out in this case
-                if (params.includeColor && childTreeBytesOut == 2) {
+                if (params.includeColor && !params.includeExistsBits && childTreeBytesOut == 2) {
+                    childTreeBytesOut = 0; // this is the degenerate case of a tree with no colors and no child trees
+                }
+                // If we've asked for existBits, this is also true, except that the tree will output 3 bytes
+                // NOTE: does this introduce a problem with detecting deletion??
+                if (params.includeColor && params.includeExistsBits && childTreeBytesOut == 3) {
                     childTreeBytesOut = 0; // this is the degenerate case of a tree with no colors and no child trees
                 }
 
@@ -1482,6 +1487,11 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
                     childrenExistInPacketBits -= (1 << (7 - originalIndex));
                     // repair the child exists mask
                     *childExistsPlaceHolder = childrenExistInPacketBits;
+
+                    if (params.stats) {
+                        params.stats->childBitsRemoved(params.includeExistsBits, params.includeColor);
+                    }
+                    
                     // Note: no need to move the pointer, cause we already stored this
                 } // end if (childTreeBytesOut == 0)
             } // end if (oneAtBit(childrenExistInPacketBits, originalIndex))
