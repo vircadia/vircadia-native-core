@@ -6,6 +6,7 @@
 //
 //
 
+#include <PacketHeaders.h>
 #include <SharedUtil.h>
 
 #include "VoxelNode.h"
@@ -183,6 +184,156 @@ void VoxelSceneStats::childBitsRemoved(bool includesExistsBits, bool includesCol
         _colorBitsWritten--;
     }
     _treesRemoved++;
+}
+
+int VoxelSceneStats::packIntoMessage(unsigned char* destinationBuffer, int availableBytes) {
+    unsigned char* bufferStart = destinationBuffer;
+    
+    int headerLength = populateTypeAndVersion(destinationBuffer, PACKET_TYPE_VOXEL_STATS);
+    destinationBuffer += headerLength;
+    
+    memcpy(destinationBuffer, &_start, sizeof(_start));
+    destinationBuffer += sizeof(_start);
+    memcpy(destinationBuffer, &_end, sizeof(_end));
+    destinationBuffer += sizeof(_end);
+    memcpy(destinationBuffer, &_elapsed, sizeof(_elapsed));
+    destinationBuffer += sizeof(_elapsed);
+    memcpy(destinationBuffer, &_totalEncodeTime, sizeof(_totalEncodeTime));
+    destinationBuffer += sizeof(_totalEncodeTime);
+    memcpy(destinationBuffer, &_fullSceneDraw, sizeof(_fullSceneDraw));
+    destinationBuffer += sizeof(_fullSceneDraw);
+    memcpy(destinationBuffer, &_moving, sizeof(_moving));
+    destinationBuffer += sizeof(_moving);
+    memcpy(destinationBuffer, &_packets, sizeof(_packets));
+    destinationBuffer += sizeof(_packets);
+    memcpy(destinationBuffer, &_bytes, sizeof(_bytes));
+    destinationBuffer += sizeof(_bytes);
+
+    memcpy(destinationBuffer, &_internal, sizeof(_internal));
+    destinationBuffer += sizeof(_internal);
+    memcpy(destinationBuffer, &_leaves, sizeof(_leaves));
+    destinationBuffer += sizeof(_leaves);
+    memcpy(destinationBuffer, &_internalSkippedDistance, sizeof(_internalSkippedDistance));
+    destinationBuffer += sizeof(_internalSkippedDistance);
+    memcpy(destinationBuffer, &_leavesSkippedDistance, sizeof(_leavesSkippedDistance));
+    destinationBuffer += sizeof(_leavesSkippedDistance);
+    memcpy(destinationBuffer, &_internalSkippedOutOfView, sizeof(_internalSkippedOutOfView));
+    destinationBuffer += sizeof(_internalSkippedOutOfView);
+    memcpy(destinationBuffer, &_leavesSkippedOutOfView, sizeof(_leavesSkippedOutOfView));
+    destinationBuffer += sizeof(_leavesSkippedOutOfView);
+    memcpy(destinationBuffer, &_internalSkippedWasInView, sizeof(_internalSkippedWasInView));
+    destinationBuffer += sizeof(_internalSkippedWasInView);
+    memcpy(destinationBuffer, &_leavesSkippedWasInView, sizeof(_leavesSkippedWasInView));
+    destinationBuffer += sizeof(_leavesSkippedWasInView);
+    memcpy(destinationBuffer, &_internalSkippedNoChange, sizeof(_internalSkippedNoChange));
+    destinationBuffer += sizeof(_internalSkippedNoChange);
+    memcpy(destinationBuffer, &_leavesSkippedNoChange, sizeof(_leavesSkippedNoChange));
+    destinationBuffer += sizeof(_leavesSkippedNoChange);
+    memcpy(destinationBuffer, &_internalSkippedOccluded, sizeof(_internalSkippedOccluded));
+    destinationBuffer += sizeof(_internalSkippedOccluded);
+    memcpy(destinationBuffer, &_leavesSkippedOccluded, sizeof(_leavesSkippedOccluded));
+    destinationBuffer += sizeof(_leavesSkippedOccluded);
+    memcpy(destinationBuffer, &_internalColorSent, sizeof(_internalColorSent));
+    destinationBuffer += sizeof(_internalColorSent);
+    memcpy(destinationBuffer, &_leavesColorSent, sizeof(_leavesColorSent));
+    destinationBuffer += sizeof(_leavesColorSent);
+    memcpy(destinationBuffer, &_internalDidntFit, sizeof(_internalDidntFit));
+    destinationBuffer += sizeof(_internalDidntFit);
+    memcpy(destinationBuffer, &_leavesDidntFit, sizeof(_leavesDidntFit));
+    destinationBuffer += sizeof(_leavesDidntFit);
+    memcpy(destinationBuffer, &_colorBitsWritten, sizeof(_colorBitsWritten));
+    destinationBuffer += sizeof(_colorBitsWritten);
+    memcpy(destinationBuffer, &_existsBitsWritten, sizeof(_existsBitsWritten));
+    destinationBuffer += sizeof(_existsBitsWritten);
+    memcpy(destinationBuffer, &_existsInPacketBitsWritten, sizeof(_existsInPacketBitsWritten));
+    destinationBuffer += sizeof(_existsInPacketBitsWritten);
+    memcpy(destinationBuffer, &_treesRemoved, sizeof(_treesRemoved));
+    destinationBuffer += sizeof(_treesRemoved);
+    
+    return destinationBuffer - bufferStart; // includes header!
+}
+
+int VoxelSceneStats::unpackFromMessage(unsigned char* sourceBuffer, int availableBytes) {
+    unsigned char* startPosition = sourceBuffer;
+
+    // increment to push past the packet header
+    int numBytesPacketHeader = numBytesForPacketHeader(sourceBuffer);
+    sourceBuffer += numBytesPacketHeader;
+    
+    memcpy(&_start, sourceBuffer, sizeof(_start));
+    sourceBuffer += sizeof(_start);
+    memcpy(&_end, sourceBuffer, sizeof(_end));
+    sourceBuffer += sizeof(_end);
+    memcpy(&_elapsed, sourceBuffer, sizeof(_elapsed));
+    sourceBuffer += sizeof(_elapsed);
+    memcpy(&_totalEncodeTime, sourceBuffer, sizeof(_totalEncodeTime));
+    sourceBuffer += sizeof(_totalEncodeTime);
+    memcpy(&_fullSceneDraw, sourceBuffer, sizeof(_fullSceneDraw));
+    sourceBuffer += sizeof(_fullSceneDraw);
+    memcpy(&_moving, sourceBuffer, sizeof(_moving));
+    sourceBuffer += sizeof(_moving);
+    memcpy(&_packets, sourceBuffer, sizeof(_packets));
+    sourceBuffer += sizeof(_packets);
+    memcpy(&_bytes, sourceBuffer, sizeof(_bytes));
+    sourceBuffer += sizeof(_bytes);
+    memcpy(&_internal, sourceBuffer, sizeof(_internal));
+    sourceBuffer += sizeof(_internal);
+    memcpy(&_leaves, sourceBuffer, sizeof(_leaves));
+    sourceBuffer += sizeof(_leaves);
+    _traversed = _internal + _leaves;
+    
+    memcpy(&_internalSkippedDistance, sourceBuffer, sizeof(_internalSkippedDistance));
+    sourceBuffer += sizeof(_internalSkippedDistance);
+    memcpy(&_leavesSkippedDistance, sourceBuffer, sizeof(_leavesSkippedDistance));
+    sourceBuffer += sizeof(_leavesSkippedDistance);
+    _skippedDistance = _internalSkippedDistance + _leavesSkippedDistance;
+    
+    memcpy(&_internalSkippedOutOfView, sourceBuffer, sizeof(_internalSkippedOutOfView));
+    sourceBuffer += sizeof(_internalSkippedOutOfView);
+    memcpy(&_leavesSkippedOutOfView, sourceBuffer, sizeof(_leavesSkippedOutOfView));
+    sourceBuffer += sizeof(_leavesSkippedOutOfView);
+    _skippedOutOfView = _internalSkippedOutOfView + _leavesSkippedOutOfView;
+
+    memcpy(&_internalSkippedWasInView, sourceBuffer, sizeof(_internalSkippedWasInView));
+    sourceBuffer += sizeof(_internalSkippedWasInView);
+    memcpy(&_leavesSkippedWasInView, sourceBuffer, sizeof(_leavesSkippedWasInView));
+    sourceBuffer += sizeof(_leavesSkippedWasInView);
+    _skippedWasInView = _internalSkippedWasInView + _leavesSkippedWasInView;
+
+    memcpy(&_internalSkippedNoChange, sourceBuffer, sizeof(_internalSkippedNoChange));
+    sourceBuffer += sizeof(_internalSkippedNoChange);
+    memcpy(&_leavesSkippedNoChange, sourceBuffer, sizeof(_leavesSkippedNoChange));
+    sourceBuffer += sizeof(_leavesSkippedNoChange);
+    _skippedNoChange = _internalSkippedNoChange + _leavesSkippedNoChange;
+
+    memcpy(&_internalSkippedOccluded, sourceBuffer, sizeof(_internalSkippedOccluded));
+    sourceBuffer += sizeof(_internalSkippedOccluded);
+    memcpy(&_leavesSkippedOccluded, sourceBuffer, sizeof(_leavesSkippedOccluded));
+    sourceBuffer += sizeof(_leavesSkippedOccluded);
+    _skippedOccluded = _internalSkippedOccluded + _leavesSkippedOccluded;
+
+    memcpy(&_internalColorSent, sourceBuffer, sizeof(_internalColorSent));
+    sourceBuffer += sizeof(_internalColorSent);
+    memcpy(&_leavesColorSent, sourceBuffer, sizeof(_leavesColorSent));
+    sourceBuffer += sizeof(_leavesColorSent);
+    _colorSent = _internalColorSent + _leavesColorSent;
+
+    memcpy(&_internalDidntFit, sourceBuffer, sizeof(_internalDidntFit));
+    sourceBuffer += sizeof(_internalDidntFit);
+    memcpy(&_leavesDidntFit, sourceBuffer, sizeof(_leavesDidntFit));
+    sourceBuffer += sizeof(_leavesDidntFit);
+    _didntFit = _internalDidntFit + _leavesDidntFit;
+
+    memcpy(&_colorBitsWritten, sourceBuffer, sizeof(_colorBitsWritten));
+    sourceBuffer += sizeof(_colorBitsWritten);
+    memcpy(&_existsBitsWritten, sourceBuffer, sizeof(_existsBitsWritten));
+    sourceBuffer += sizeof(_existsBitsWritten);
+    memcpy(&_existsInPacketBitsWritten, sourceBuffer, sizeof(_existsInPacketBitsWritten));
+    sourceBuffer += sizeof(_existsInPacketBitsWritten);
+    memcpy(&_treesRemoved, sourceBuffer, sizeof(_treesRemoved));
+    sourceBuffer += sizeof(_treesRemoved);
+
+    return sourceBuffer - startPosition; // includes header!
 }
 
 

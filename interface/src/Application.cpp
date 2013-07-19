@@ -56,6 +56,8 @@
 #include <PairingHandler.h>
 #include <PerfStat.h>
 
+#include <VoxelSceneStats.h>
+
 #include "Application.h"
 #include "InterfaceConfig.h"
 #include "LogDisplay.h"
@@ -3337,6 +3339,12 @@ void* Application::networkReceive(void* args) {
             if (packetVersionMatch(app->_incomingPacket)) {
                 // only process this packet if we have a match on the packet version
                 switch (app->_incomingPacket[0]) {
+                    case PACKET_TYPE_VOXEL_STATS:{
+                        VoxelSceneStats stats;
+                        int statsMessageLength = stats.unpackFromMessage(app->_incomingPacket, bytesReceived);
+                        stats.printDebugDetails();
+                        break;
+                    }
                     case PACKET_TYPE_TRANSMITTER_DATA_V2:
                         //  V2 = IOS transmitter app
                         app->_myTransmitter.processIncomingData(app->_incomingPacket, bytesReceived);

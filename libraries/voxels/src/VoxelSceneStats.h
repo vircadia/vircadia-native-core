@@ -38,6 +38,9 @@ public:
     void existsBitsWritten();
     void existsInPacketBitsWritten();
     void childBitsRemoved(bool includesExistsBits, bool includesColors);
+
+    int packIntoMessage(unsigned char* destinationBuffer, int availableBytes);
+    int unpackFromMessage(unsigned char* sourceBuffer, int availableBytes);
     
 private:
     // scene timing data in usecs

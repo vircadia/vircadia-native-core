@@ -209,6 +209,11 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
         if (::displayVoxelStats) {
             nodeData->stats.printDebugDetails();
         }
+
+        // Send the stats message to the client
+        unsigned char statsMessage[MAX_PACKET_SIZE];
+        int statsMessageLength = nodeData->stats.packIntoMessage(statsMessage, sizeof(statsMessage));
+        nodeList->getNodeSocket()->send(node->getActiveSocket(), statsMessage, statsMessageLength);
         
         // This is the start of "resending" the scene.
         nodeData->nodeBag.insert(serverTree.rootNode);
