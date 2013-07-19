@@ -121,7 +121,8 @@ private:
     
     vpx_codec_ctx_t _codec;
     int _frameCount;
-    cv::Mat _faceFrame;
+    cv::Mat _faceColor;
+    cv::Mat _faceDepth;
     QByteArray _encodedFace;
     cv::RotatedRect _smoothedFaceRect;
     

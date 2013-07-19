@@ -48,6 +48,11 @@ Face::~Face() {
     }
 }
 
+void Face::setTextureRect(const cv::RotatedRect& textureRect) {
+    _textureRect = textureRect;
+    _aspectRatio = _textureRect.size.width / _textureRect.size.height;
+}
+
 int Face::processVideoMessage(unsigned char* packetData, size_t dataBytes) {
     if (_codec.name == 0) {
         // initialize decoder context
@@ -78,25 +83,31 @@ int Face::processVideoMessage(unsigned char* packetData, size_t dataBytes) {
     memcpy(_arrivingFrame.data() + frameOffset, packetPosition, payloadSize);
     
     if ((_frameBytesRemaining -= payloadSize) <= 0) {
-        int result = vpx_codec_decode(&_codec, (const uint8_t*)_arrivingFrame.constData(), _arrivingFrame.size(), 0, 0);
+        float aspectRatio = *(const float*)_arrivingFrame.constData();
+        int result = vpx_codec_decode(&_codec, (const uint8_t*)_arrivingFrame.constData() + sizeof(float),
+            _arrivingFrame.size() - sizeof(float), 0, 0);
         vpx_codec_iter_t iterator = 0;
         vpx_image_t* image;
         while ((image = vpx_codec_get_frame(&_codec, &iterator)) != 0) {
             // convert from YV12 to RGB
-            Mat frame(image->h, image->w, CV_8UC3);
-            uchar* ysrc = image->planes[0];
-            uchar* vsrc = image->planes[1];
-            uchar* usrc = image->planes[2];
+            const int imageHeight = image->d_w;
+            Mat color(imageHeight, image->d_w, CV_8UC3);
+            uchar* yline = image->planes[0];
+            uchar* vline = image->planes[1];
+            uchar* uline = image->planes[2];
             const int RED_V_WEIGHT = (int)(1.403 * 256);
             const int GREEN_V_WEIGHT = (int)(0.714 * 256);
             const int GREEN_U_WEIGHT = (int)(0.344 * 256);
             const int BLUE_U_WEIGHT = (int)(1.773 * 256);
-            for (int i = 0; i < image->h; i += 2) {
-                for (int j = 0; j < image->w; j += 2) {
-                    uchar* tl = frame.ptr(i, j);
-                    uchar* tr = frame.ptr(i, j + 1);
-                    uchar* bl = frame.ptr(i + 1, j);
-                    uchar* br = frame.ptr(i + 1, j + 1);
+            for (int i = 0; i < imageHeight; i += 2) {
+                uchar* ysrc = yline;
+                uchar* vsrc = vline;
+                uchar* usrc = uline;
+                for (int j = 0; j < image->d_w; j += 2) {
+                    uchar* tl = color.ptr(i, j);
+                    uchar* tr = color.ptr(i, j + 1);
+                    uchar* bl = color.ptr(i + 1, j);
+                    uchar* br = color.ptr(i + 1, j + 1);
                     
                     int v = *vsrc++ - 128;
                     int u = *usrc++ - 128;
@@ -127,9 +138,22 @@ int Face::processVideoMessage(unsigned char* packetData, size_t dataBytes) {
                     br[1] = ybr - greenOffset;
                     br[2] = ybr + blueOffset;
                 }
-                ysrc += image->w;
+                yline += image->stride[0] * 2;
+                vline += image->stride[1];
+                uline += image->stride[2];
             }
-            QMetaObject::invokeMethod(this, "setFrame", Q_ARG(cv::Mat, frame));
+            Mat depth;
+            if (image->d_h > imageHeight) {
+                // if the height is greater than the width, we have depth data
+                depth.create(imageHeight, image->d_w, CV_8UC1);
+                uchar* src = image->planes[0] + image->stride[0] * imageHeight;
+                for (int i = 0; i < imageHeight; i++) {
+                    memcpy(depth.ptr(i), src, image->d_w);
+                    src += image->stride[0];
+                }
+            }
+            QMetaObject::invokeMethod(this, "setFrame", Q_ARG(cv::Mat, color),
+                Q_ARG(cv::Mat, depth), Q_ARG(float, aspectRatio));
         }
     }
     
@@ -153,8 +177,6 @@ bool Face::render(float alpha) {
     
     Point2f points[4];
     _textureRect.points(points);
-    
-    float aspect = _textureRect.size.height / _textureRect.size.width;
     
     if (_depthTextureID != 0) {
         const int VERTEX_WIDTH = 100;
@@ -262,13 +284,13 @@ bool Face::render(float alpha) {
         
         glBegin(GL_QUADS);
         glTexCoord2f(points[0].x / _textureSize.width, points[0].y / _textureSize.height);
-        glVertex3f(0.5f, -aspect * 0.5f, -0.5f);    
+        glVertex3f(0.5f, -0.5f / _aspectRatio, -0.5f);    
         glTexCoord2f(points[1].x / _textureSize.width, points[1].y / _textureSize.height);
-        glVertex3f(0.5f, aspect * 0.5f, -0.5f);
+        glVertex3f(0.5f, 0.5f / _aspectRatio, -0.5f);
         glTexCoord2f(points[2].x / _textureSize.width, points[2].y / _textureSize.height);
-        glVertex3f(-0.5f, aspect * 0.5f, -0.5f);
+        glVertex3f(-0.5f, 0.5f / _aspectRatio, -0.5f);
         glTexCoord2f(points[3].x / _textureSize.width, points[3].y / _textureSize.height);
-        glVertex3f(-0.5f, -aspect * 0.5f, -0.5f);
+        glVertex3f(-0.5f, -0.5f / _aspectRatio, -0.5f);
         glEnd();
         
         glDisable(GL_TEXTURE_2D);
@@ -285,7 +307,7 @@ void Face::cycleRenderMode() {
     _renderMode = (RenderMode)((_renderMode + 1) % RENDER_MODE_COUNT);    
 }
 
-void Face::setFrame(const cv::Mat& color) {
+void Face::setFrame(const cv::Mat& color, const cv::Mat& depth, float aspectRatio) {
     if (_colorTextureID == 0) {
         glGenTextures(1, &_colorTextureID);
         glBindTexture(GL_TEXTURE_2D, _colorTextureID);
@@ -298,6 +320,23 @@ void Face::setFrame(const cv::Mat& color) {
         glBindTexture(GL_TEXTURE_2D, _colorTextureID);
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, color.cols, color.rows, GL_RGB, GL_UNSIGNED_BYTE, color.ptr());
     }
+    
+    if (!depth.empty()) {
+        if (_depthTextureID == 0) {
+            glGenTextures(1, &_depthTextureID);
+            glBindTexture(GL_TEXTURE_2D, _depthTextureID);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, depth.cols, depth.rows, 0,
+                GL_LUMINANCE, GL_UNSIGNED_BYTE, depth.ptr());
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+            
+        } else {
+            glBindTexture(GL_TEXTURE_2D, _depthTextureID);
+            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, depth.cols, depth.rows, GL_LUMINANCE, GL_UNSIGNED_BYTE, depth.ptr());
+        }
+    }
     glBindTexture(GL_TEXTURE_2D, 0);
+    
+    _aspectRatio = aspectRatio;
 }
 

@@ -31,7 +31,7 @@ public:
     void setColorTextureID(GLuint colorTextureID) { _colorTextureID = colorTextureID; }
     void setDepthTextureID(GLuint depthTextureID) { _depthTextureID = depthTextureID; }
     void setTextureSize(const cv::Size2f& textureSize) { _textureSize = textureSize; }
-    void setTextureRect(const cv::RotatedRect& textureRect) { _textureRect = textureRect; }
+    void setTextureRect(const cv::RotatedRect& textureRect);
     
     int processVideoMessage(unsigned char* packetData, size_t dataBytes);
     
@@ -43,7 +43,7 @@ public slots:
 
 private slots:
 
-    void setFrame(const cv::Mat& color);    
+    void setFrame(const cv::Mat& color, const cv::Mat& depth, float aspectRatio);    
         
 private:
 
@@ -55,6 +55,7 @@ private:
     GLuint _depthTextureID;
     cv::Size2f _textureSize;
     cv::RotatedRect _textureRect;
+    float _aspectRatio;
     
     vpx_codec_ctx_t _codec;
     
