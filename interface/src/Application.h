@@ -20,16 +20,15 @@
 #include <QList>
 
 #include <NodeList.h>
+#include <PacketHeaders.h>
 
 #ifndef _WIN32
 #include "Audio.h"
 #endif
 
-#include "Avatar.h"
 #include "BandwidthMeter.h"
 #include "Camera.h"
 #include "Environment.h"
-#include "HandControl.h"
 #include "PacketHeaders.h"
 #include "ParticleSystem.h"
 #include "renderer/GeometryCache.h"
@@ -37,12 +36,13 @@
 #include "Stars.h"
 #include "Swatch.h"
 #include "ToolsPalette.h"
-#include "ui/ChatEntry.h"
-#include "ui/BandwidthDialog.h"
 #include "ViewFrustum.h"
 #include "VoxelSystem.h"
 #include "Webcam.h"
-
+#include "avatar/Avatar.h"
+#include "avatar/HandControl.h"
+#include "ui/BandwidthDialog.h"
+#include "ui/ChatEntry.h"
 
 class QAction;
 class QActionGroup;
@@ -103,6 +103,10 @@ public:
     
     QNetworkAccessManager* getNetworkAccessManager() { return _networkAccessManager; }
     GeometryCache* getGeometryCache() { return &_geometryCache; }
+
+public slots:
+
+    void sendAvatarFaceVideoMessage(int frameCount, const QByteArray& data);    
     
     void setGroundPlaneImpact(float groundPlaneImpact) { _groundPlaneImpact = groundPlaneImpact; }
 
@@ -185,7 +189,8 @@ private:
     static bool sendVoxelsOperation(VoxelNode* node, void* extraData);
     static void sendVoxelEditMessage(PACKET_TYPE type, VoxelDetail& detail);
     static void sendAvatarVoxelURLMessage(const QUrl& url);
-    static void processAvatarVoxelURLMessage(unsigned char *packetData, size_t dataBytes);
+    static void processAvatarVoxelURLMessage(unsigned char* packetData, size_t dataBytes);
+    static void processAvatarFaceVideoMessage(unsigned char* packetData, size_t dataBytes);
     static void sendPingPackets();
     
     void initMenu();
