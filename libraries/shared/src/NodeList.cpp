@@ -519,12 +519,17 @@ void NodeList::loadData(QSettings *settings) {
 }
 
 void NodeList::saveData(QSettings* settings) {
+    settings->beginGroup(DOMAIN_SERVER_SETTING_KEY);
+    
     if (memcmp(_domainHostname, DEFAULT_DOMAIN_HOSTNAME, strlen(DEFAULT_DOMAIN_HOSTNAME)) != 0) {
         // the user is using a different hostname, store it
-        settings->beginGroup(DOMAIN_SERVER_SETTING_KEY);
         settings->setValue(DOMAIN_SERVER_SETTING_KEY, QVariant(_domainHostname));
-        settings->endGroup();
+    } else {
+        // the user has switched back to default, remove the current setting
+        settings->remove(DOMAIN_SERVER_SETTING_KEY);
     }
+    
+    settings->endGroup();
 }
 
 NodeList::iterator NodeList::begin() const {

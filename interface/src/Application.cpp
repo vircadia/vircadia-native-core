@@ -1151,11 +1151,18 @@ void Application::editPreferences() {
         return;
     }
     
-    char newHostname[MAX_HOSTNAME_BYTES] = {};
-    memcpy(newHostname, domainServerHostname->text().toAscii().data(), domainServerHostname->text().size());
+    QByteArray newHostname;
+    
+    if (domainServerHostname->text().size() > 0) {
+        // the user input a new hostname, use that
+        newHostname = domainServerHostname->text().toAscii();
+    } else {
+        // the user left the field blank, use the default hostname
+        newHostname = QByteArray(DEFAULT_DOMAIN_HOSTNAME);
+    }
    
     // check if the domain server hostname is new 
-    if (memcmp(NodeList::getInstance()->getDomainHostname(), newHostname, strlen(newHostname)) != 0) {
+    if (memcmp(NodeList::getInstance()->getDomainHostname(), newHostname.constData(), newHostname.size()) != 0) {
         
         NodeList::getInstance()->clear();
         
@@ -1165,7 +1172,8 @@ void Application::editPreferences() {
         // reset the environment to default
         _environment.resetToDefault();
         
-        NodeList::getInstance()->setDomainHostname(newHostname);
+        // set the new hostname
+        NodeList::getInstance()->setDomainHostname(newHostname.constData());
     }
     
     QUrl url(avatarURL->text());
