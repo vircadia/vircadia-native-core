@@ -15,7 +15,7 @@
 #include "Util.h"
 
 using namespace std;
-FILE* const LogDisplay::DEFAULT_STREAM = stdout;
+FILE* const LogDisplay::DEFAULT_STREAM = 0l;
 
 //
 // Singleton constructor
@@ -26,9 +26,7 @@ LogDisplay LogDisplay::instance;
 // State management
 //
 
-LogDisplay::LogDisplay() :
-
-    
+LogDisplay::LogDisplay() :    
     _textRenderer(SANS_FONT_FAMILY, -1, -1, false, TextRenderer::SHADOW_EFFECT),
     _stream(DEFAULT_STREAM),
     _chars(0l),
@@ -53,8 +51,6 @@ LogDisplay::LogDisplay() :
     memset(_lines, 0, LINE_BUFFER_SIZE * sizeof(char*));
 
     setCharacterSize(DEFAULT_CHAR_WIDTH, DEFAULT_CHAR_HEIGHT);
-
-    printLog = & printLogHandler;
 }
 
 
@@ -92,32 +88,7 @@ void LogDisplay::setCharacterSize(unsigned width, unsigned height) {
 // Logging
 //
 
-int LogDisplay::printLogHandler(char const* fmt, ...) {
-
-    va_list args;
-    int n;
-    char buf[MAX_MESSAGE_LENGTH];
-    va_start(args,fmt);
-
-    // print to buffer
-    n = vsnprintf(buf, MAX_MESSAGE_LENGTH, fmt, args); 
-    if (n > 0) {
-
-        // all fine? log the message
-        instance.addMessage(buf);
-
-    } else {
-
-        // error? -> mutter on stream or stderr
-        fprintf(instance._stream != 0l ? instance._stream : stderr,
-                "Log: Failed to log message with format string = \"%s\".\n", fmt);
-    }
-
-    va_end(args);
-    return n;
-}
-
-inline void LogDisplay::addMessage(char const* ptr) {
+void LogDisplay::addMessage(const char* ptr) {
 
     pthread_mutex_lock(& _mutex);
 

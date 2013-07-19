@@ -10,7 +10,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../cmake
 
 # setup the project
 include(${MACRO_DIR}/SetupHifiProject.cmake)
-setup_hifi_project(${TARGET_NAME})
+setup_hifi_project(${TARGET_NAME} TRUE)
 
 # include glm
 include(${MACRO_DIR}/IncludeGLM.cmake)

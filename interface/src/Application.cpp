@@ -70,10 +70,10 @@
 using namespace std;
 
 //  Starfield information
-static char STAR_FILE[] = "https://s3-us-west-1.amazonaws.com/highfidelity/stars.txt";
+static char STAR_FILE[] = "http://s3-us-west-1.amazonaws.com/highfidelity/stars.txt";
 static char STAR_CACHE_FILE[] = "cachedStars.txt";
 
-static const bool TESTING_PARTICLE_SYSTEM = false;
+static const bool TESTING_PARTICLE_SYSTEM = true;
 
 static const int BANDWIDTH_METER_CLICK_MAX_DRAG_LENGTH = 6; // farther dragged clicks are ignored 
 
@@ -164,6 +164,11 @@ void GLCanvas::wheelEvent(QWheelEvent* event) {
     Application::getInstance()->wheelEvent(event);
 }
 
+void messageHandler(QtMsgType type, const char* message) {
+    fprintf(stdout, "%s", message);    
+    LogDisplay::instance.addMessage(message);
+}
+
 Application::Application(int& argc, char** argv, timeval &startup_time) :
         QApplication(argc, argv),
         _window(new QMainWindow(desktop())),
@@ -173,6 +178,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _frameCount(0),
         _fps(120.0f),
         _justStarted(true),
+        _particleSystemInitialized(false),     
+        _coolDemoParticleEmitter(-1),
         _wantToKillLocalVoxels(false),
         _frustumDrawingMode(FRUSTUM_DRAW_MODE_ALL),
         _viewFrustumOffsetYaw(-135.0),
@@ -188,6 +195,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _isTouchPressed(false),
         _yawFromTouch(0.0f),
         _pitchFromTouch(0.0f),
+        _groundPlaneImpact(0.0f),
         _mousePressed(false),
         _mouseVoxelScale(1.0f / 1024.0f),
         _justEditedVoxel(false),
@@ -210,7 +218,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
 {
     _applicationStartupTime = startup_time;
     _window->setWindowTitle("Interface");
-    printLog("Interface Startup:\n");
+    
+    qInstallMsgHandler(messageHandler);
     
     unsigned int listenPort = 0; // bind to an ephemeral port by default
     const char** constArgv = const_cast<const char**>(argv);
@@ -233,7 +242,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     
     // Handle Local Domain testing with the --local command line
     if (cmdOptionExists(argc, constArgv, "--local")) {
-        printLog("Local Domain MODE!\n");
+        qDebug("Local Domain MODE!\n");
         
         NodeList::getInstance()->setDomainIPToLocalhost();
     }
@@ -297,7 +306,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
 }
 
 void Application::initializeGL() {
-    printLog( "Created Display Window.\n" );
+    qDebug( "Created Display Window.\n" );
     
     // initialize glut for shape drawing; Qt apparently initializes it on OS X
     #ifndef __APPLE__
@@ -312,10 +321,10 @@ void Application::initializeGL() {
     _viewFrustumOffsetCamera.setFarClip(500.0 * TREE_SCALE);
     
     initDisplay();
-    printLog( "Initialized Display.\n" );
+    qDebug( "Initialized Display.\n" );
     
     init();
-    printLog( "Init() complete.\n" );
+    qDebug( "Init() complete.\n" );
     
     // Check to see if the user passed in a command line option for randomizing colors
     bool wantColorRandomizer = !arguments().contains("--NoColorRandomizer");
@@ -324,13 +333,13 @@ void Application::initializeGL() {
     // Voxel File. If so, load it now.
     if (!_voxelsFilename.isEmpty()) {
         _voxels.loadVoxelsFile(_voxelsFilename.constData(), wantColorRandomizer);
-        printLog("Local Voxel File loaded.\n");
+        qDebug("Local Voxel File loaded.\n");
     }
     
     // create thread for receipt of data via UDP
     if (_enableNetworkThread) {
         pthread_create(&_networkReceiveThread, NULL, networkReceive, NULL);
-        printLog("Network receive thread created.\n"); 
+        qDebug("Network receive thread created.\n"); 
     }
     
     // call terminate before exiting
@@ -352,7 +361,7 @@ void Application::initializeGL() {
         _justStarted = false;
         char title[50];
         sprintf(title, "Interface: %4.2f seconds\n", startupTime);
-        printLog("%s", title);
+        qDebug("%s", title);
         _window->setWindowTitle(title);
         
         const char LOGSTASH_INTERFACE_START_TIME_KEY[] = "interface-start-time";
@@ -1177,25 +1186,20 @@ void Application::editPreferences() {
         return;
     }
     
-    
-    const char* newHostname = domainServerHostname->text().toLocal8Bit().data();
-    
+    char newHostname[MAX_HOSTNAME_BYTES] = {};
+    memcpy(newHostname, domainServerHostname->text().toAscii().data(), domainServerHostname->text().size());
+   
     // check if the domain server hostname is new 
-    if (memcmp(NodeList::getInstance()->getDomainHostname(), newHostname, sizeof(&newHostname)) != 0) {
-        // if so we need to clear the nodelist and delete the local voxels
-        Node *voxelServer = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_VOXEL_SERVER);
-        
-        if (voxelServer) {
-            voxelServer->lock();
-        }
-        
-        _voxels.killLocalVoxels();
-        
-        if (voxelServer) {
-            voxelServer->unlock();
-        }
+    if (memcmp(NodeList::getInstance()->getDomainHostname(), newHostname, strlen(newHostname)) != 0) {
         
         NodeList::getInstance()->clear();
+        
+        // kill the local voxels
+        _voxels.killLocalVoxels();
+        
+        // reset the environment to default
+        _environment.resetToDefault();
+        
         NodeList::getInstance()->setDomainHostname(newHostname);
     }
     
@@ -1456,12 +1460,12 @@ bool Application::sendVoxelsOperation(VoxelNode* node, void* extraData) {
             uint64_t elapsed = now - args->lastSendTime;
             int usecToSleep =  CLIENT_TO_SERVER_VOXEL_SEND_INTERVAL_USECS - elapsed;
             if (usecToSleep > 0) {
-                printLog("sendVoxelsOperation: packet: %d bytes:%ld elapsed %ld usecs, sleeping for %d usecs!\n", 
-                    args->packetsSent, args->bytesSent, elapsed, usecToSleep);
+                qDebug("sendVoxelsOperation: packet: %d bytes:%lld elapsed %lld usecs, sleeping for %d usecs!\n",
+                       args->packetsSent, args->bytesSent, elapsed, usecToSleep);
                 usleep(usecToSleep);
             } else {
-                printLog("sendVoxelsOperation: packet: %d bytes:%ld elapsed %ld usecs, no need to sleep!\n", 
-                    args->packetsSent, args->bytesSent, elapsed);
+                qDebug("sendVoxelsOperation: packet: %d bytes:%lld elapsed %lld usecs, no need to sleep!\n",
+                       args->packetsSent, args->bytesSent, elapsed);
             }
             args->lastSendTime = now;
         }
@@ -1505,7 +1509,7 @@ void Application::importVoxelsToClipboard() {
     if (fileNameString.endsWith(".png", Qt::CaseInsensitive)) {
         QImage pngImage = QImage(fileName);
         if (pngImage.height() != pngImage.width()) {
-            printLog("ERROR: Bad PNG size: height != width.\n");
+            qDebug("ERROR: Bad PNG size: height != width.\n");
             return;
         }
         
@@ -1539,7 +1543,7 @@ void Application::importVoxels() {
     if (fileNameString.endsWith(".png", Qt::CaseInsensitive)) {
         QImage pngImage = QImage(fileName);
         if (pngImage.height() != pngImage.width()) {
-            printLog("ERROR: Bad PNG size: height != width.\n");
+            qDebug("ERROR: Bad PNG size: height != width.\n");
             return;
         }
         
@@ -1644,9 +1648,9 @@ void Application::pasteVoxels() {
     // If we have voxels left in the packet, then send the packet
     if (args.bufferInUse > (numBytesPacketHeader + sizeof(unsigned short int))) {
         controlledBroadcastToNodes(args.messageBuffer, args.bufferInUse, & NODE_TYPE_VOXEL_SERVER, 1);
-        printLog("sending packet: %d\n", ++args.packetsSent);
+        qDebug("sending packet: %d\n", ++args.packetsSent);
         args.bytesSent += args.bufferInUse;
-        printLog("total bytes sent: %ld\n", args.bytesSent);
+        qDebug("total bytes sent: %lld\n", args.bytesSent);
     }
     
     if (calculatedOctCode) {
@@ -1713,8 +1717,8 @@ void Application::initMenu() {
         "First Person", this, SLOT(setRenderFirstPerson(bool)), Qt::Key_P))->setCheckable(true);
     (_manualThirdPerson = renderMenu->addAction(
         "Third Person", this, SLOT(setRenderThirdPerson(bool))))->setCheckable(true);
-    renderMenu->addAction("Increase Avatar Size", this, SLOT(increaseAvatarSize()), Qt::SHIFT | Qt::Key_Plus);
-    renderMenu->addAction("Decrease Avatar Size", this, SLOT(decreaseAvatarSize()), Qt::SHIFT | Qt::Key_Minus);
+    renderMenu->addAction("Increase Avatar Size", this, SLOT(increaseAvatarSize()), Qt::ALT | Qt::Key_Plus);
+    renderMenu->addAction("Decrease Avatar Size", this, SLOT(decreaseAvatarSize()), Qt::ALT | Qt::Key_Minus);
 
     
     QMenu* toolsMenu = menuBar->addMenu("Tools");
@@ -1894,7 +1898,7 @@ void Application::init() {
         _audio.setJitterBufferSamples(_audioJitterBufferSamples);
     }
     
-    printLog("Loaded settings.\n");
+    qDebug("Loaded settings.\n");
 
     sendAvatarVoxelURLMessage(_myAvatar.getVoxels()->getVoxelURL());
 
@@ -1904,8 +1908,9 @@ void Application::init() {
     _palette.addTool(&_swatch);
     _palette.addAction(_colorVoxelMode, 0, 2);
     _palette.addAction(_eyedropperMode, 0, 3);
-    _palette.addAction(_selectVoxelMode, 0, 4);
+    _palette.addAction(_selectVoxelMode, 0, 4);    
 }
+
 
 const float MAX_AVATAR_EDIT_VELOCITY = 1.0f;
 const float MAX_VOXEL_EDIT_DISTANCE = 20.0f;
@@ -2071,6 +2076,7 @@ void Application::update(float deltaTime) {
     // Leap finger-sensing device
     LeapManager::enableFakeFingers(_simulateLeapHand->isChecked() || _testRaveGlove->isChecked());
     LeapManager::nextFrame();
+    _myAvatar.getHand().setRaveGloveActive(_testRaveGlove->isChecked());
     _myAvatar.getHand().setLeapFingers(LeapManager::getFingerTips(), LeapManager::getFingerRoots());
     _myAvatar.getHand().setLeapHands(LeapManager::getHandPositions(), LeapManager::getHandNormals());
     
@@ -2117,6 +2123,8 @@ void Application::update(float deltaTime) {
     } else {
         _myAvatar.simulate(deltaTime, NULL);
     }
+    
+    _myAvatar.getHand().simulate(deltaTime, true);
     
     if (!OculusManager::isConnected()) {        
         if (_lookingInMirror->isChecked()) {
@@ -2166,8 +2174,8 @@ void Application::update(float deltaTime) {
     #endif
     
     if (TESTING_PARTICLE_SYSTEM) {
-        _particleSystem.simulate(deltaTime);    
-    }
+        updateParticleSystem(deltaTime);
+    }        
 }
 
 void Application::updateAvatar(float deltaTime) {
@@ -2560,7 +2568,7 @@ void Application::displaySide(Camera& whichCamera) {
 
     //draw a grid ground plane....
     if (_renderGroundPlaneOn->isChecked()) {
-        drawGroundPlaneGrid(EDGE_SIZE_GROUND_PLANE);
+        renderGroundPlaneGrid(EDGE_SIZE_GROUND_PLANE, _audio.getCollisionSoundMagnitude());
     } 
     //  Draw voxels
     if (_renderVoxels->isChecked()) {
@@ -2616,7 +2624,9 @@ void Application::displaySide(Camera& whichCamera) {
     }
 
     if (TESTING_PARTICLE_SYSTEM) {
-        _particleSystem.render();    
+        if (_particleSystemInitialized) {
+            _particleSystem.render();    
+        }
     }
     
     //  Render the world box
@@ -2636,6 +2646,9 @@ void Application::displayOverlay() {
         glDisable(GL_DEPTH_TEST);
         glDisable(GL_LIGHTING);
     
+        //  Display a single screen-size quad to 
+        renderCollisionOverlay(_glWidget->width(), _glWidget->height(), _audio.getCollisionSoundMagnitude());
+   
         #ifndef _WIN32
         _audio.render(_glWidget->width(), _glWidget->height());
         if (_oscilloscopeOn->isChecked()) {
@@ -2907,7 +2920,7 @@ glm::vec2 Application::getScaledScreenPoint(glm::vec2 projectedPoint) {
 // render the coverage map on screen
 void Application::renderCoverageMapV2() {
     
-    //printLog("renderCoverageMap()\n");
+    //qDebug("renderCoverageMap()\n");
     
     glDisable(GL_LIGHTING);
     glLineWidth(2.0);
@@ -2952,7 +2965,7 @@ void Application::renderCoverageMapsV2Recursively(CoverageMapV2* map) {
 // render the coverage map on screen
 void Application::renderCoverageMap() {
     
-    //printLog("renderCoverageMap()\n");
+    //qDebug("renderCoverageMap()\n");
     
     glDisable(GL_LIGHTING);
     glLineWidth(2.0);
@@ -3283,7 +3296,7 @@ void Application::eyedropperVoxelUnderCursor() {
 }
 
 void Application::goHome() {
-    printLog("Going Home!\n");
+    qDebug("Going Home!\n");
     _myAvatar.setPosition(START_LOCATION);
 }
 
@@ -3378,7 +3391,7 @@ void* Application::networkReceive(void* args) {
                     case PACKET_TYPE_ENVIRONMENT_DATA: {
                         if (app->_renderVoxels->isChecked()) {
                             Node* voxelServer = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_VOXEL_SERVER);
-                            if (voxelServer) {
+                            if (voxelServer && socketMatch(voxelServer->getActiveSocket(), &senderAddress)) {
                                 voxelServer->lock();
                                 
                                 if (app->_incomingPacket[0] == PACKET_TYPE_ENVIRONMENT_DATA) {
@@ -3526,5 +3539,70 @@ void Application::exportSettings() {
         tmp.sync();
     }
 }
+
+
+
+void Application::updateParticleSystem(float deltaTime) {
+
+    if (!_particleSystemInitialized) {
+        // create a stable test emitter and spit out a bunch of particles
+        _coolDemoParticleEmitter = _particleSystem.addEmitter();
+        
+        if (_coolDemoParticleEmitter != -1) {
+            _particleSystem.setShowingEmitter(_coolDemoParticleEmitter, true);
+            glm::vec3 particleEmitterPosition = glm::vec3(5.0f, 1.0f, 5.0f);   
+            _particleSystem.setEmitterPosition(_coolDemoParticleEmitter, particleEmitterPosition);
+            glm::vec3 velocity(0.0f, 0.1f, 0.0f);
+            float lifespan = 100000.0f;
+            _particleSystem.emitParticlesNow(_coolDemoParticleEmitter, 1500, velocity, lifespan);   
+        }
+        
+        // signal that the particle system has been initialized 
+        _particleSystemInitialized = true;         
+    } else {
+        // update the particle system
+        
+        static float t = 0.0f;
+        t += deltaTime;
+        
+        if (_coolDemoParticleEmitter != -1) {
+                       
+           glm::vec3 tilt = glm::vec3
+            (
+                30.0f * sinf( t * 0.55f ),
+                0.0f,
+                30.0f * cosf( t * 0.75f )
+            );
+         
+            _particleSystem.setEmitterRotation(_coolDemoParticleEmitter, glm::quat(glm::radians(tilt)));
+            
+            ParticleSystem::ParticleAttributes attributes;
+
+            attributes.radius                  = 0.01f;
+            attributes.color                   = glm::vec4( 1.0f, 1.0f, 1.0f, 1.0f);
+            attributes.gravity                 = 0.0f   + 0.05f  * sinf( t * 0.52f );
+            attributes.airFriction             = 2.5    + 2.0f   * sinf( t * 0.32f );
+            attributes.jitter                  = 0.05f  + 0.05f  * sinf( t * 0.42f );
+            attributes.emitterAttraction       = 0.015f + 0.015f * cosf( t * 0.6f  );
+            attributes.tornadoForce            = 0.0f   + 0.03f  * sinf( t * 0.7f  );
+            attributes.neighborAttraction      = 0.1f   + 0.1f   * cosf( t * 0.8f  );
+            attributes.neighborRepulsion       = 0.2f   + 0.2f   * sinf( t * 0.4f  );
+            attributes.bounce                  = 1.0f;
+            attributes.usingCollisionSphere    = true;
+            attributes.collisionSpherePosition = glm::vec3( 5.0f, 0.5f, 5.0f );
+            attributes.collisionSphereRadius   = 0.5f;
+            
+            if (attributes.gravity < 0.0f) {
+                attributes.gravity = 0.0f;
+            }
+            
+            _particleSystem.setParticleAttributes(_coolDemoParticleEmitter, attributes);            
+        }
+        
+        _particleSystem.setUpDirection(glm::vec3(0.0f, 1.0f, 0.0f));  
+        _particleSystem.simulate(deltaTime); 
+    }
+}
+
 
 

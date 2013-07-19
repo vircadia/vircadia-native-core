@@ -15,7 +15,6 @@
 #include <UVCCameraControl.hpp>
 #endif
 
-#include <Log.h>
 #include <SharedUtil.h>
 
 #include "Application.h"
@@ -158,7 +157,7 @@ void Webcam::setFrame(const Mat& color, int format, const Mat& depth, const Rota
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, _textureSize.width = colorImage.width, _textureSize.height = colorImage.height,
             0, format, GL_UNSIGNED_BYTE, colorImage.imageData);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        printLog("Capturing video at %gx%g.\n", _textureSize.width, _textureSize.height);
+        qDebug("Capturing video at %gx%g.\n", _textureSize.width, _textureSize.height);
     
     } else {
         glBindTexture(GL_TEXTURE_2D, _colorTextureID);
@@ -327,26 +326,26 @@ static glm::quat xnToGLM(const XnMatrix3X3& matrix) {
 }
 
 static void XN_CALLBACK_TYPE newUser(UserGenerator& generator, XnUserID id, void* cookie) {
-    printLog("Found user %d.\n", id);
+    qDebug("Found user %d.\n", id);
     generator.GetSkeletonCap().RequestCalibration(id, false);
 }
 
 static void XN_CALLBACK_TYPE lostUser(UserGenerator& generator, XnUserID id, void* cookie) {
-    printLog("Lost user %d.\n", id);
+    qDebug("Lost user %d.\n", id);
 }
 
 static void XN_CALLBACK_TYPE calibrationStarted(SkeletonCapability& capability, XnUserID id, void* cookie) {
-    printLog("Calibration started for user %d.\n", id);
+    qDebug("Calibration started for user %d.\n", id);
 }
 
 static void XN_CALLBACK_TYPE calibrationCompleted(SkeletonCapability& capability,
         XnUserID id, XnCalibrationStatus status, void* cookie) {
     if (status == XN_CALIBRATION_STATUS_OK) {
-        printLog("Calibration completed for user %d.\n", id);
+        qDebug("Calibration completed for user %d.\n", id);
         capability.StartTracking(id);
     
     } else {
-        printLog("Calibration failed to user %d.\n", id);
+        qDebug("Calibration failed to user %d.\n", id);
         capability.RequestCalibration(id, true);
     }
 }
@@ -441,7 +440,7 @@ void FrameGrabber::grabFrame() {
         // make sure it's in the format we expect
         if (image->nChannels != 3 || image->depth != IPL_DEPTH_8U || image->dataOrder != IPL_DATA_ORDER_PIXEL ||
                 image->origin != 0) {
-            printLog("Invalid webcam image format.\n");
+            qDebug("Invalid webcam image format.\n");
             return;
         }
         color = image;
@@ -629,7 +628,7 @@ bool FrameGrabber::init() {
     // load our face cascade
     switchToResourcesParentIfRequired();
     if (_faceCascade.empty() && !_faceCascade.load("resources/haarcascades/haarcascade_frontalface_alt.xml")) {
-        printLog("Failed to load Haar cascade for face tracking.\n");
+        qDebug("Failed to load Haar cascade for face tracking.\n");
         return false;
     }
 
@@ -662,7 +661,7 @@ bool FrameGrabber::init() {
 
     // next, an ordinary webcam
     if ((_capture = cvCaptureFromCAM(-1)) == 0) {
-        printLog("Failed to open webcam.\n");
+        qDebug("Failed to open webcam.\n");
         return false;
     }
     const int IDEAL_FRAME_WIDTH = 320;

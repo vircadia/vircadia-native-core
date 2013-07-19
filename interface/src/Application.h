@@ -22,8 +22,6 @@
 #include <NodeList.h>
 #include <PacketHeaders.h>
 
-#include <ViewFrustum.h>
-
 #ifndef _WIN32
 #include "Audio.h"
 #endif
@@ -31,15 +29,18 @@
 #include "BandwidthMeter.h"
 #include "Camera.h"
 #include "Environment.h"
+#include "PacketHeaders.h"
 #include "ParticleSystem.h"
+#include "renderer/GeometryCache.h"
 #include "SerialInterface.h"
 #include "Stars.h"
 #include "Swatch.h"
 #include "ToolsPalette.h"
+#include "ViewFrustum.h"
 #include "VoxelSystem.h"
 #include "Webcam.h"
+#include "avatar/Avatar.h"
 #include "avatar/HandControl.h"
-#include "renderer/GeometryCache.h"
 #include "ui/BandwidthDialog.h"
 #include "ui/ChatEntry.h"
 
@@ -83,7 +84,10 @@ public:
     
     const glm::vec3 getMouseVoxelWorldCoordinates(const VoxelDetail _mouseVoxel);
     
+    void updateParticleSystem(float deltaTime);
+    
     Avatar* getAvatar() { return &_myAvatar; }
+    Audio* getAudio() { return &_audio; }
     Camera* getCamera() { return &_myCamera; }
     ViewFrustum* getViewFrustum() { return &_viewFrustum; }
     VoxelSystem* getVoxels() { return &_voxels; }
@@ -103,6 +107,9 @@ public:
 public slots:
 
     void sendAvatarFaceVideoMessage(int frameCount, const QByteArray& data);    
+    
+    void setGroundPlaneImpact(float groundPlaneImpact) { _groundPlaneImpact = groundPlaneImpact; }
+
     
 private slots:
     
@@ -210,7 +217,7 @@ private:
     void deleteVoxelUnderCursor();
     void eyedropperVoxelUnderCursor();
     void resetSensors();
-    
+            
     void setMenuShortcutsEnabled(bool enabled);
     
     void updateCursor();
@@ -290,6 +297,8 @@ private:
     timeval _timerStart, _timerEnd;
     timeval _lastTimeUpdated;
     bool _justStarted;
+    bool _particleSystemInitialized;
+    int  _coolDemoParticleEmitter;
 
     Stars _stars;
     
@@ -347,6 +356,8 @@ private:
     bool _isTouchPressed; //  true if multitouch has been pressed (clear when finished)
     float _yawFromTouch;
     float _pitchFromTouch;
+    
+    float _groundPlaneImpact; 
     
     VoxelDetail _mouseVoxelDragging;
     glm::vec3 _voxelThrust;

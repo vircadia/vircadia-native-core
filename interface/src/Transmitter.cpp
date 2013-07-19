@@ -13,10 +13,8 @@
 #include <PacketHeaders.h>
 
 #include "InterfaceConfig.h"
-#include "Log.h"
 #include "Transmitter.h"
 #include "Util.h"
-
 
 const float DELTA_TIME = 1.f / 60.f;
 const float DECAY_RATE = 0.15f;
@@ -40,7 +38,7 @@ void Transmitter::checkForLostTransmitter() {
         int msecsSinceLast = diffclock(_lastReceivedPacket, &now);
         if (msecsSinceLast > TIME_TO_ASSUME_LOST_MSECS) {
             resetLevels();
-            printLog("Transmitter signal lost.\n");
+            qDebug("Transmitter signal lost.\n");
         }
     }
 }
@@ -95,12 +93,12 @@ void Transmitter::processIncomingData(unsigned char* packetData, int numBytes) {
         _estimatedRotation.y *= (1.f - DECAY_RATE * DELTA_TIME);
 
         if (!_isConnected) {
-            printLog("Transmitter Connected.\n");
+            qDebug("Transmitter Connected.\n");
             _isConnected = true;
             _estimatedRotation *= 0.0;
         }
     } else {
-        printLog("Transmitter packet read error, %d bytes.\n", numBytes);
+        qDebug("Transmitter packet read error, %d bytes.\n", numBytes);
     }
 }
 

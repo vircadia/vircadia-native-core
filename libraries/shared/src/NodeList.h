@@ -32,7 +32,7 @@ const int DOMAIN_SERVER_CHECK_IN_USECS = 1 * 1000000;
 
 extern const char SOLO_NODE_TYPES[3];
 
-const int MAX_HOSTNAME_BYTES = 255;
+const int MAX_HOSTNAME_BYTES = 256;
 
 extern const char DEFAULT_DOMAIN_HOSTNAME[MAX_HOSTNAME_BYTES];
 extern const char DEFAULT_DOMAIN_IP[INET_ADDRSTRLEN];    //  IP Address will be re-set by lookup on startup

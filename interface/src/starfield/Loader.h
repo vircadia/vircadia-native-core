@@ -38,12 +38,12 @@ namespace starfield {
 
             if (! UrlReader::readUrl(url, *this, cacheFile))
             {
-                printLog("%s:%d: %s\n",
+                qDebug("%s:%d: %s\n",
                         _urlStr, _lineNo, getError());
 
                 return false;
             }
-            printLog("Loaded %u stars.\n", _recordsRead);
+            qDebug("Loaded %u stars.\n", _recordsRead);
 
             return true;
         }
@@ -63,7 +63,7 @@ namespace starfield {
 
             _vertices->clear();
             _vertices->reserve(_limit);
-// printLog("Stars.cpp: loader begin %s\n", url);
+// qDebug("Stars.cpp: loader begin %s\n", url);
         }
         
         size_t transfer(char* input, size_t bytes) {
@@ -103,7 +103,7 @@ namespace starfield {
 
                 } else {
 
-                    printLog("Stars.cpp:%d: Bad input from %s\n", 
+                    qDebug("Stars.cpp:%d: Bad input from %s\n", 
                             _lineNo, _urlStr);
                 }
 
@@ -128,7 +128,7 @@ namespace starfield {
             // remember the brightness at its top
             if (_recordsRead == _limit) {
 
-// printLog("Stars.cpp: vertex limit reached -> heap mode\n");
+// qDebug("Stars.cpp: vertex limit reached -> heap mode\n");
 
                 make_heap(
                     _vertices->begin(), _vertices->end(),

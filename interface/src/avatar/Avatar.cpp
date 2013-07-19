@@ -5,24 +5,25 @@
 //  Created by Philip Rosedale on 9/11/12.
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 
+#include <vector>
+
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/vector_angle.hpp>
-#include <vector>
+
+#include <NodeList.h>
+#include <NodeTypes.h>
+#include <OculusManager.h>
+#include <PacketHeaders.h>
 #include <SharedUtil.h>
-#include "world.h"
+
 #include "Application.h"
 #include "Avatar.h"
 #include "Hand.h"
 #include "Head.h"
-#include "Log.h"
 #include "Physics.h"
+#include "world.h"
 #include "ui/TextRenderer.h"
-#include <NodeList.h>
-#include <NodeTypes.h>
-#include <PacketHeaders.h>
-#include <OculusManager.h>
-
 
 using namespace std;
 
@@ -97,6 +98,7 @@ Avatar::Avatar(Node* owningNode) :
     _elapsedTimeMoving(0.0f),
     _elapsedTimeStopped(0.0f),
     _elapsedTimeSinceCollision(0.0f),
+    _lastCollisionPosition(0, 0, 0),
     _speedBrakes(false),
     _isThrustOn(false),
     _voxels(this)
@@ -548,13 +550,13 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
             // For gravity, always move the avatar by the amount driven by gravity, so that the collision
             // routines will detect it and collide every frame when pulled by gravity to a surface
             //
-
-            _velocity += _scale * _gravity * (GRAVITY_EARTH * deltaTime);
-            _position += _scale * _gravity * (GRAVITY_EARTH * deltaTime) * deltaTime;
+            const float MIN_DISTANCE_AFTER_COLLISION_FOR_GRAVITY = 0.02f;
+            if (glm::length(_position - _lastCollisionPosition) > MIN_DISTANCE_AFTER_COLLISION_FOR_GRAVITY) {
+                _velocity += _scale * _gravity * (GRAVITY_EARTH * deltaTime);
+            }
         }
-
-        updateCollisionWithEnvironment();
-        updateCollisionWithVoxels();
+        updateCollisionWithEnvironment(deltaTime);
+        updateCollisionWithVoxels(deltaTime);
         updateAvatarCollisions(deltaTime);
     }
     
@@ -826,6 +828,15 @@ void Avatar::updateHandMovementAndTouching(float deltaTime, bool enableHandMovem
         } else {
             _avatarTouch.setHasInteractingOther(false);
         }
+        
+        // If there's a leap-interaction hand visible, use that as the endpoint
+        for (size_t i = 0; i < getHand().getPalms().size(); ++i) {
+            PalmData& palm = getHand().getPalms()[i];
+            if (palm.isActive()) {
+                _skeleton.joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position = palm.getPosition();
+            }
+        }
+        
     }//if (_isMine)
     
     //constrain right arm length and re-adjust elbow position as it bends
@@ -875,29 +886,40 @@ void Avatar::updateCollisionWithSphere(glm::vec3 position, float radius, float d
     }
 }
 
-void Avatar::updateCollisionWithEnvironment() {
+void Avatar::updateCollisionWithEnvironment(float deltaTime) {
     
     glm::vec3 up = getBodyUpDirection();
     float radius = _height * 0.125f;
     const float ENVIRONMENT_SURFACE_ELASTICITY = 1.0f;
     const float ENVIRONMENT_SURFACE_DAMPING = 0.01;
+    const float ENVIRONMENT_COLLISION_FREQUENCY = 0.05f;
+    const float VISIBLE_GROUND_COLLISION_VELOCITY = 0.2f;
     glm::vec3 penetration;
     if (Application::getInstance()->getEnvironment()->findCapsulePenetration(
                                                                              _position - up * (_pelvisFloatingHeight - radius),
                                                                              _position + up * (_height - _pelvisFloatingHeight - radius), radius, penetration)) {
+        float velocityTowardCollision = glm::dot(_velocity, glm::normalize(penetration));
+        if (velocityTowardCollision > VISIBLE_GROUND_COLLISION_VELOCITY) {
+            Application::getInstance()->setGroundPlaneImpact(1.0f);
+        }
+        _lastCollisionPosition = _position;
+        updateCollisionSound(penetration, deltaTime, ENVIRONMENT_COLLISION_FREQUENCY);
         applyHardCollision(penetration, ENVIRONMENT_SURFACE_ELASTICITY, ENVIRONMENT_SURFACE_DAMPING);
     }
 }
 
 
-void Avatar::updateCollisionWithVoxels() {
+void Avatar::updateCollisionWithVoxels(float deltaTime) {
     float radius = _height * 0.125f;
     const float VOXEL_ELASTICITY = 1.4f;
     const float VOXEL_DAMPING = 0.0;
+    const float VOXEL_COLLISION_FREQUENCY = 0.5f;
     glm::vec3 penetration;
     if (Application::getInstance()->getVoxels()->findCapsulePenetration(
                                                                         _position - glm::vec3(0.0f, _pelvisFloatingHeight - radius, 0.0f),
                                                                         _position + glm::vec3(0.0f, _height - _pelvisFloatingHeight - radius, 0.0f), radius, penetration)) {
+        _lastCollisionPosition = _position;
+        updateCollisionSound(penetration, deltaTime, VOXEL_COLLISION_FREQUENCY);
         applyHardCollision(penetration, VOXEL_ELASTICITY, VOXEL_DAMPING);
     }
 }
@@ -923,6 +945,36 @@ void Avatar::applyHardCollision(const glm::vec3& penetration, float elasticity, 
             // If moving really slowly after a collision, and not applying forces, stop altogether
             _velocity *= 0.f;
         }
+    }
+}
+
+void Avatar::updateCollisionSound(const glm::vec3 &penetration, float deltaTime, float frequency) {
+    //  consider whether to have the collision make a sound
+    const float AUDIBLE_COLLISION_THRESHOLD = 0.02f;
+    const float COLLISION_LOUDNESS = 1.f;
+    const float DURATION_SCALING = 0.004f;
+    const float NOISE_SCALING = 0.1f;
+    glm::vec3 velocity = _velocity;
+    glm::vec3 gravity = getGravity();
+    
+    if (glm::length(gravity) > EPSILON) {
+        //  If gravity is on, remove the effect of gravity on velocity for this
+        //  frame, so that we are not constantly colliding with the surface 
+        velocity -= _scale * glm::length(gravity) * GRAVITY_EARTH * deltaTime * glm::normalize(gravity);
+    }
+    float velocityTowardCollision = glm::dot(velocity, glm::normalize(penetration));
+    float velocityTangentToCollision = glm::length(velocity) - velocityTowardCollision;
+    
+    if (velocityTowardCollision > AUDIBLE_COLLISION_THRESHOLD) {
+        //  Volume is proportional to collision velocity
+        //  Base frequency is modified upward by the angle of the collision
+        //  Noise is a function of the angle of collision
+        //  Duration of the sound is a function of both base frequency and velocity of impact
+        Application::getInstance()->getAudio()->startCollisionSound(
+            fmin(COLLISION_LOUDNESS * velocityTowardCollision, 1.f),
+            frequency * (1.f + velocityTangentToCollision / velocityTowardCollision),
+            fmin(velocityTangentToCollision / velocityTowardCollision * NOISE_SCALING, 1.f),
+            1.f - DURATION_SCALING * powf(frequency, 0.5f) / velocityTowardCollision);
     }
 }
 
@@ -1055,7 +1107,7 @@ void Avatar::render(bool lookingInMirror, bool renderAvatarBalls) {
         }
         glPushMatrix();
         
-        glm::vec3 chatPosition = _bodyBall[BODY_BALL_HEAD_BASE].position + getBodyUpDirection() * chatMessageHeight;
+        glm::vec3 chatPosition = _bodyBall[BODY_BALL_HEAD_BASE].position + getBodyUpDirection() * chatMessageHeight * _scale;
         glTranslatef(chatPosition.x, chatPosition.y, chatPosition.z);
         glm::quat chatRotation = Application::getInstance()->getCamera()->getRotation();
         glm::vec3 chatAxis = glm::axis(chatRotation);
@@ -1065,7 +1117,7 @@ void Avatar::render(bool lookingInMirror, bool renderAvatarBalls) {
         glColor3f(0, 0.8, 0);
         glRotatef(180, 0, 1, 0);
         glRotatef(180, 0, 0, 1);
-        glScalef(chatMessageScale, chatMessageScale, 1.0f);
+        glScalef(_scale * chatMessageScale, _scale * chatMessageScale, 1.0f);
         
         glDisable(GL_LIGHTING);
         glDepthMask(false);
