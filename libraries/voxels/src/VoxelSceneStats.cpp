@@ -29,8 +29,20 @@ void VoxelSceneStats::sceneCompleted() {
     _end = usecTimestampNow();
     _elapsed = _end - _start;
 }
+
+void VoxelSceneStats::encodeStarted() {
+    _encodeStart = usecTimestampNow();
+}
+
+void VoxelSceneStats::encodeStopped() {
+    _totalEncodeTime += (usecTimestampNow() - _encodeStart);
+}
+
     
 void VoxelSceneStats::reset() {
+    _totalEncodeTime = 0;
+    _encodeStart = 0;
+
     _packets = 0;
     _bytes = 0;
     _passes = 0;
@@ -177,9 +189,10 @@ void VoxelSceneStats::childBitsRemoved(bool includesExistsBits, bool includesCol
 void VoxelSceneStats::printDebugDetails() {
     qDebug("\n------------------------------\n");
     qDebug("VoxelSceneStats:\n");
-    qDebug("    start  : %llu \n", _start);
-    qDebug("    end    : %llu \n", _end);
-    qDebug("    elapsed: %llu \n", _elapsed);
+    qDebug("    start    : %llu \n", _start);
+    qDebug("    end      : %llu \n", _end);
+    qDebug("    elapsed  : %llu \n", _elapsed);
+    qDebug("    encoding : %llu \n", _totalEncodeTime);
     qDebug("\n");
     qDebug("    full scene: %s\n", debug::valueOf(_fullSceneDraw));
     qDebug("    moving: %s\n", debug::valueOf(_moving));

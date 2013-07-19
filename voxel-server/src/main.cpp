@@ -253,9 +253,11 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
                                              wantOcclusionCulling, coverageMap, boundaryLevelAdjust,
                                              nodeData->getLastTimeBagEmpty(),
                                              fullScene, &nodeData->stats);
-                                             
+                      
+                nodeData->stats.encodeStarted();
                 bytesWritten = serverTree.encodeTreeBitstream(subTree, &tempOutputBuffer[0], MAX_VOXEL_PACKET_SIZE - 1,
                                                               nodeData->nodeBag, params);
+                nodeData->stats.encodeStopped();
 
                 if (nodeData->getAvailable() >= bytesWritten) {
                     nodeData->writeToPacket(&tempOutputBuffer[0], bytesWritten);

@@ -22,6 +22,9 @@ public:
     void sceneCompleted();
     void printDebugDetails();
     void packetSent(int bytes);
+
+    void encodeStarted();
+    void encodeStopped();
     
     void traversed(const VoxelNode* node);
     void skippedDistance(const VoxelNode* node);
@@ -41,6 +44,9 @@ private:
     uint64_t _start;
     uint64_t _end;
     uint64_t _elapsed;
+
+    uint64_t _totalEncodeTime;
+    uint64_t _encodeStart;
     
     // scene voxel related data
     unsigned long _traversed;
@@ -90,7 +96,7 @@ private:
     //
     // 2) the stats balance if: (working assumption) 
     //     if _colorSent > 0 
-    /           _traversed = all skipped + _colorSent + _colorBitsWritten 
+    //          _traversed = all skipped + _colorSent + _colorBitsWritten
     //     else
     //          _traversed = all skipped + _colorSent + _colorBitsWritten  + _treesRemoved
     //

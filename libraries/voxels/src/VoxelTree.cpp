@@ -1488,7 +1488,8 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
                     // repair the child exists mask
                     *childExistsPlaceHolder = childrenExistInPacketBits;
 
-                    if (params.stats) {
+                    // If this is the last of the child exists bits, then we're actually be rolling out the entire tree
+                    if (params.stats && childrenExistInPacketBits == 0) {
                         params.stats->childBitsRemoved(params.includeExistsBits, params.includeColor);
                     }
                     
