@@ -3587,10 +3587,12 @@ void Application::updateParticleSystem(float deltaTime) {
             _particleSystem.setShowingEmitter(_coolDemoParticleEmitter, true);
             glm::vec3 particleEmitterPosition = glm::vec3(5.0f, 1.0f, 5.0f);   
             _particleSystem.setEmitterPosition(_coolDemoParticleEmitter, particleEmitterPosition);
+            
+            _particleSystem.setEmitterParticleLifespan(_coolDemoParticleEmitter, 100000.0f);
+
             int   num = 1500;
             float thrust = 0.1f;
-            float lifespan = 100000.0f;
-            _particleSystem.emitParticlesNow(_coolDemoParticleEmitter, num, thrust, lifespan);   
+            _particleSystem.emitParticlesNow(_coolDemoParticleEmitter, num, thrust);   
         }
         
         // signal that the particle system has been initialized 

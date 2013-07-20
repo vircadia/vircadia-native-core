@@ -14,6 +14,7 @@
 const float DEFAULT_PARTICLE_RADIUS       = 0.01f;
 const float DEFAULT_PARTICLE_BOUNCE       = 1.0f;
 const float DEFAULT_PARTICLE_AIR_FRICTION = 2.0f;
+const float DEFAULT_PARTICLE_LIFESPAN     = 1.0f;
 
 ParticleSystem::ParticleSystem() {
 
@@ -26,6 +27,7 @@ ParticleSystem::ParticleSystem() {
         _emitter[emitterIndex].position                  = glm::vec3(0.0f, 0.0f, 0.0f);
         _emitter[emitterIndex].direction                 = glm::vec3(0.0f, 1.0f, 0.0f);
         _emitter[emitterIndex].visible                   = false;
+        _emitter[emitterIndex].particleLifespan          = DEFAULT_PARTICLE_LIFESPAN;
         _emitter[emitterIndex].baseParticle.alive        = false;
         _emitter[emitterIndex].baseParticle.age          = 0.0f;
         _emitter[emitterIndex].baseParticle.lifespan     = 0.0f;
@@ -91,23 +93,23 @@ void ParticleSystem::simulate(float deltaTime) {
     }
 }
 
-void ParticleSystem::emitParticlesNow(int e, int num, float thrust, float lifespan) {
+void ParticleSystem::emitParticlesNow(int e, int num, float thrust) {
 
     for (unsigned int p = 0; p < num; p++) {
-        createParticle(e, _emitter[e].direction * thrust, lifespan);
+        createParticle(e, _emitter[e].direction * thrust);
     }
 }
 
-void ParticleSystem::createParticle(int e, glm::vec3 velocity, float lifespan) {
+void ParticleSystem::createParticle(int e, glm::vec3 velocity) {
         
     for (unsigned int p = 0; p < MAX_PARTICLES; p++) {
         if (!_particle[p].alive) {
         
             _particle[p].emitterIndex = e;    
-            _particle[p].lifespan     = lifespan;
             _particle[p].alive        = true;
             _particle[p].age          = 0.0f;
             _particle[p].velocity     = velocity;
+            _particle[p].lifespan     = _emitter[e].particleLifespan;
             _particle[p].position     = _emitter[e].position;
             _particle[p].radius       = _emitter[e].particleAttributes[0].radius;
             _particle[p].color        = _emitter[e].particleAttributes[0].color;
@@ -261,13 +263,13 @@ void ParticleSystem::setEmitterBaseParticle(int emitterIndex, bool showing ) {
     _emitter[emitterIndex].baseParticle.emitterIndex = emitterIndex;
 }
 
-void ParticleSystem::setEmitterBaseParticle(int emitterIndex, bool showing, float radius, glm::vec4 color ) {
+void ParticleSystem::killAllParticles() {
 
-    _emitter[emitterIndex].baseParticle.alive        = true;
-    _emitter[emitterIndex].baseParticle.emitterIndex = emitterIndex;
-    _emitter[emitterIndex].baseParticle.radius       = radius;
-    _emitter[emitterIndex].baseParticle.color        = color;
+    for (unsigned int p = 0; p < _numParticles; p++) {
+        killParticle(p);
+    }
 }
+
 
 
 void ParticleSystem::render() {

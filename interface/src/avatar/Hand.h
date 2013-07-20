@@ -61,19 +61,21 @@ private:
     Hand& operator= (const Hand&);
     
     ParticleSystem _particleSystem;
-
-    Avatar*     _owningAvatar;
-    float       _renderAlpha;
-    bool        _lookingInMirror;
-    bool        _isRaveGloveActive;
-    glm::vec3   _ballColor;
+    float          _testRaveGloveClock;
+    int            _testRaveGloveMode;
+    bool           _particleSystemInitialized;
+    int            _fingerParticleEmitter[NUM_FINGERS_PER_HAND];
+    Avatar*        _owningAvatar;
+    float          _renderAlpha;
+    bool           _lookingInMirror;
+    bool           _isRaveGloveActive;
+    glm::vec3      _ballColor;
     std::vector<HandBall>	_leapBalls;
     
-    bool _particleSystemInitialized;
-    int  _fingerParticleEmitter[NUM_FINGERS_PER_HAND];
     
     // private methods
     void renderRaveGloveStage();
+    void setRaveGloveMode(int mode);
     void renderHandSpheres();
     void calculateGeometry();
 };
