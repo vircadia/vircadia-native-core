@@ -1,5 +1,5 @@
 //
-//  Tags.h
+//  Tags.cpp
 //  hifi
 //
 //  Created by Clement Brisset on 7/3/13.
