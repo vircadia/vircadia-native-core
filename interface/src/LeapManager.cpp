@@ -7,7 +7,7 @@
 //
 
 #include "LeapManager.h"
-#include "Avatar.h"
+#include "avatar/Avatar.h"
 #include <Leap.h>
 #include <dlfcn.h>     // needed for RTLD_LAZY
 #include <sstream>
