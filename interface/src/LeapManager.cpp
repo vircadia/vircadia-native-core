@@ -54,15 +54,6 @@ void LeapManager::nextFrame(Avatar& avatar) {
     
     // If we actually get valid Leap data, this will be set to true;
     bool gotRealData = false;
-    // First, deactivate everything.
-    for (size_t i = 0; i < hand.getNumPalms(); ++i) {
-        PalmData& palm = hand.getPalms()[i];
-        palm.setActive(false);
-        for (size_t f = 0; f < palm.getNumFingers(); ++f) {
-            FingerData& finger = palm.getFingers()[f];
-            finger.setActive(false);
-        }
-    }
 
     if (controllersExist()) {
         _listener->onFrame(*_controller);
@@ -70,57 +61,70 @@ void LeapManager::nextFrame(Avatar& avatar) {
 
 #ifndef LEAP_STUBS
     if (controllersExist()) {
-        // Performance note:
-        //   This is a first pass.
-        //   Once all of this is stable, perfoamance may be improved ysing std::map or another
-        //   associative container to match serialized Leap ID's with available fingers.
-        //   That will make this code shorter and more efficient.
-        
+        gotRealData = true;
         // First, see which palms and fingers are still valid.
         Leap::Frame& frame = _listener->lastFrame;
         
         // Note that this is O(n^2) at worst, but n is very small.
 
+        // After this many frames of no data, assume the digit is lost.
+        const int assumeLostAfterFrameCount = 10;
+
+        // Increment our frame data counters
+        for (size_t i = 0; i < hand.getNumPalms(); ++i) {
+            PalmData& palm = hand.getPalms()[i];
+            palm.incrementFramesWithoutData();
+            if (palm.getFramesWithoutData() > assumeLostAfterFrameCount) {
+                palm.setActive(false);
+            }
+            for (size_t f = 0; f < palm.getNumFingers(); ++f) {
+                FingerData& finger = palm.getFingers()[f];
+                finger.incrementFramesWithoutData();
+                if (finger.getFramesWithoutData() > assumeLostAfterFrameCount) {
+                    finger.setActive(false);
+                }
+            }
+        }
+
         size_t numLeapHands = frame.hands().count();
         std::vector<PalmData*> palmAssignment(numLeapHands);
+        
         // Look for matches
         for (size_t index = 0; index < numLeapHands; ++index) {
+            PalmData* takeoverCandidate = NULL;
             palmAssignment[index] = NULL;
             Leap::Hand leapHand = frame.hands()[index];
             int id = leapHand.id();
             if (leapHand.isValid()) {
-                for (size_t i = 0; i < hand.getNumPalms(); ++i) {
+                for (size_t i = 0; i < hand.getNumPalms() && palmAssignment[index] == NULL; ++i) {
                     PalmData& palm = hand.getPalms()[i];
                     if (palm.getLeapID() == id) {
                         // Found hand with the same ID. We're set!
                         palmAssignment[index] = &palm;
-                        palm.setActive(true);
+                        palm.resetFramesWithoutData();
                     }
+                    else if (palm.getFramesWithoutData() > assumeLostAfterFrameCount) {
+                        takeoverCandidate = &palm;
+                    }
+                }
+                if (palmAssignment[index] == NULL) {
+                    palmAssignment[index] = takeoverCandidate;
+                }
+                if (palmAssignment[index] == NULL) {
+                    palmAssignment[index] = &hand.addNewPalm();
                 }
             }
         }
-        // Fill empty slots
-        for (size_t index = 0; index < numLeapHands; ++index) {
-            if (palmAssignment[index] == NULL) {
-                Leap::Hand leapHand = frame.hands()[index];
-                if (leapHand.isValid()) {
-                    for (size_t i = 0; i < hand.getNumPalms() && palmAssignment[index] == NULL; ++i) {
-                        PalmData& palm = hand.getPalms()[i];
-                        if (!palm.isActive()) {
-                            // Found a free hand to use.
-                            palmAssignment[index] = &palm;
-                            palm.setActive(true);
-                            palm.setLeapID(leapHand.id());
-                        }
-                    }
-                }
-            }
-        }
+        
         // Apply the assignments
         for (size_t index = 0; index < numLeapHands; ++index) {
             if (palmAssignment[index]) {
                 Leap::Hand leapHand = frame.hands()[index];
                 PalmData& palm = *(palmAssignment[index]);
+
+                palm.resetFramesWithoutData();
+                palm.setLeapID(leapHand.id());
+                palm.setActive(true);
                 const Leap::Vector pos = leapHand.palmPosition();
                 const Leap::Vector normal = leapHand.palmNormal();
                 palm.setRawPosition(glm::vec3(pos.x, pos.y, pos.z));
@@ -128,59 +132,58 @@ void LeapManager::nextFrame(Avatar& avatar) {
             }
         }
 
-        size_t numLeapFingers = frame.fingers().count();
-        std::vector<FingerData*> fingerAssignment(numLeapFingers);
-        // Look for matches
-        for (size_t index = 0; index < numLeapFingers; ++index) {
-            fingerAssignment[index] = NULL;
-            Leap::Finger leapFinger = frame.fingers()[index];
-            int id = leapFinger.id();
-            if (leapFinger.isValid()) {
-                for (size_t i = 0; i < hand.getNumPalms(); ++i) {
-                    PalmData& palm = hand.getPalms()[i];
-                    for (size_t f = 0; f < palm.getNumFingers(); ++f) {
-                        FingerData& finger = palm.getFingers()[f];
-                        if (finger.getLeapID() == id) {
-                            // Found finger with the same ID. We're set!
-                            fingerAssignment[index] = &finger;
-                            finger.setActive(true);
-                        }
-                    }
-                }
-            }
-        }
-        // Fill empty slots
-        for (size_t index = 0; index < numLeapFingers; ++index) {
-            if (fingerAssignment[index] == NULL) {
-                Leap::Finger leapFinger = frame.fingers()[index];
-                if (leapFinger.isValid()) {
-                    for (size_t i = 0; i < hand.getNumPalms() && fingerAssignment[index] == NULL; ++i) {
-                        PalmData& palm = hand.getPalms()[i];
-                        for (size_t f = 0; f < palm.getNumFingers() && fingerAssignment[index] == NULL; ++f) {
-                            FingerData& finger = palm.getFingers()[f];
-                            if (!finger.isActive()) {
-                                // Found a free finger to use.
-                                fingerAssignment[index] = &finger;
-                                finger.setActive(true);
-                                finger.setLeapID(leapFinger.id());
+        // Look for fingers per palm
+        for (size_t i = 0; i < hand.getNumPalms(); ++i) {
+            PalmData& palm = hand.getPalms()[i];
+            if (palm.isActive()) {
+                Leap::Hand leapHand = frame.hand(palm.getLeapID());
+                if (leapHand.isValid()) {
+                    int numLeapFingers = leapHand.fingers().count();
+                    std::vector<FingerData*> fingerAssignment(numLeapFingers);
+
+                    
+                    // Look for matches
+                    for (size_t index = 0; index < numLeapFingers; ++index) {
+                        FingerData* takeoverCandidate = NULL;
+                        fingerAssignment[index] = NULL;
+                        Leap::Finger leapFinger = leapHand.fingers()[index];
+                        int id = leapFinger.id();
+                        if (leapFinger.isValid()) {
+                            for (size_t f = 0; f < palm.getNumFingers() && fingerAssignment[index] == NULL; ++f) {
+                                FingerData& finger = palm.getFingers()[f];
+                                if (finger.getLeapID() == id) {
+                                    // Found hand with the same ID. We're set!
+                                    fingerAssignment[index] = &finger;
+                                }
+                                else if (finger.getFramesWithoutData() > assumeLostAfterFrameCount) {
+                                    takeoverCandidate = &finger;
+                                }
+                            }
+                            // If we didn't find a match, but we found an unused finger, us it.
+                            if (fingerAssignment[index] == NULL) {
+                                fingerAssignment[index] = takeoverCandidate;
                             }
                         }
                     }
+
+                    // Apply the assignments
+                    for (size_t index = 0; index < numLeapFingers; ++index) {
+                        if (fingerAssignment[index]) {
+                            Leap::Finger leapFinger = leapHand.fingers()[index];
+                            FingerData& finger = *(fingerAssignment[index]);
+                            
+                            finger.resetFramesWithoutData();
+                            finger.setLeapID(leapFinger.id());
+                            finger.setActive(true);
+                            const Leap::Vector tip = leapFinger.stabilizedTipPosition();
+                            const Leap::Vector root = tip - leapFinger.direction() * leapFinger.length();
+                            finger.setRawTipPosition(glm::vec3(tip.x, tip.y, tip.z));
+                            finger.setRawRootPosition(glm::vec3(root.x, root.y, root.z));
+                        }
+                    }
                 }
             }
         }
-        // Apply the assignments
-        for (size_t index = 0; index < numLeapFingers; ++index) {
-            if (fingerAssignment[index]) {
-                Leap::Finger leapFinger = frame.fingers()[index];
-                FingerData& finger = *(fingerAssignment[index]);
-                const Leap::Vector tip = leapFinger.stabilizedTipPosition();
-                const Leap::Vector root = tip - leapFinger.direction() * leapFinger.length();
-                finger.setRawTipPosition(glm::vec3(tip.x, tip.y, tip.z));
-                finger.setRawRootPosition(glm::vec3(root.x, root.y, root.z));
-            }
-        }
-        gotRealData = true;
     }
 #endif
     if (!gotRealData) {

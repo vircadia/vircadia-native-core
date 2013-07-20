@@ -13,18 +13,19 @@ HandData::HandData(AvatarData* owningAvatar) :
     _baseOrientation(0.0f, 0.0f, 0.0f, 1.0f),
     _owningAvatarData(owningAvatar)
 {
-    for (int i = 0; i < 2; ++i) {
-        _palms.push_back(PalmData(this));
-    }
-    const int standardTrailLength = 30;
-    setFingerTrailLength(standardTrailLength);
+}
+
+PalmData& HandData::addNewPalm()  {
+    _palms.push_back(PalmData(this));
+    return _palms.back();
 }
 
 PalmData::PalmData(HandData* owningHandData) :
 _rawPosition(0, 0, 0),
 _rawNormal(0, 1, 0),
 _isActive(false),
-_leapID(-1),
+_leapID(LEAPID_INVALID),
+_numFramesWithoutData(0),
 _owningHandData(owningHandData)
 {
     for (int i = 0; i < NUM_FINGERS_PER_HAND; ++i) {
@@ -36,10 +37,13 @@ FingerData::FingerData(PalmData* owningPalmData, HandData* owningHandData) :
 _tipRawPosition(0, 0, 0),
 _rootRawPosition(0, 0, 0),
 _isActive(false),
-_leapID(-1),
+_leapID(LEAPID_INVALID),
+_numFramesWithoutData(0),
 _owningPalmData(owningPalmData),
 _owningHandData(owningHandData)
 {
+    const int standardTrailLength = 30;
+    setTrailLength(standardTrailLength);
 }
 
 void HandData::encodeRemoteData(std::vector<glm::vec3>& fingerVectors) {
