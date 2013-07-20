@@ -13,6 +13,9 @@ HandData::HandData(AvatarData* owningAvatar) :
     _baseOrientation(0.0f, 0.0f, 0.0f, 1.0f),
     _owningAvatarData(owningAvatar)
 {
+    // Start with two palms
+    addNewPalm();
+    addNewPalm();
 }
 
 PalmData& HandData::addNewPalm()  {
