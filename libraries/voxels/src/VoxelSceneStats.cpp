@@ -390,9 +390,21 @@ void VoxelSceneStats::printDebugDetails() {
 
 
 VoxelSceneStats::ItemInfo VoxelSceneStats::_ITEMS[] = {
-    { "Elapsed"  , 0x40ff40d0 },
-    { "Encode"   , 0xffef40c0 },
-    { "Network"  , 0xd0d0d0a0 }
+    { "Elapsed"              , 0x40ff40d0 },
+    { "Encode"               , 0xffef40c0 },
+    { "Network"              , 0xd0d0d0a0 },
+    { "Voxels Sent"          , 0x40ff40d0 },
+    { "Colors Sent"          , 0xffef40c0 },
+    { "Bitmasks Sent"        , 0xd0d0d0a0 },
+    { "Traversed"            , 0x40ff40d0 },
+    { "Skipped - Total"      , 0xffef40c0 },
+    { "Skipped - Distance"   , 0xd0d0d0a0 },
+    { "Skipped - Out of View", 0x40ff40d0 },
+    { "Skipped - Was in View", 0xffef40c0 },
+    { "Skipped - No Change"  , 0xd0d0d0a0 },
+    { "Skipped - Occluded"   , 0x40ff40d0 },
+    { "Didn't fit in packet" , 0xffef40c0 },
+    { "Mode"                 , 0xd0d0d0a0 },
 };
 
 char* VoxelSceneStats::getItemValue(int item) {
@@ -412,6 +424,77 @@ char* VoxelSceneStats::getItemValue(int item) {
             float elapsedSecs = ((float)_elapsed / (float)USECS_PER_SECOND);
             calculatedKBPS = elapsedSecs == 0 ? 0 : ((_bytes * 8) / elapsedSecs) / 1000;
             sprintf(_itemValueBuffer, "%d packets %lu bytes (%d kbps)", _packets, _bytes, calculatedKBPS);
+            break;
+        }
+        case ITEM_VOXELS: {
+            unsigned long total = _existsInPacketBitsWritten + _colorSent;
+            float calculatedBPV = total == 0 ? 0 : (_bytes * 8) / total;
+            sprintf(_itemValueBuffer, "%lu total (%.2f bits/voxel) %lu internal %lu leaves", 
+                    total, calculatedBPV, _existsInPacketBitsWritten, _colorSent);
+            break;
+        }
+        case ITEM_TRAVERSED: {
+            sprintf(_itemValueBuffer, "%lu total %lu internal %lu leaves", 
+                    _traversed, _internal, _leaves);
+            break;
+        }
+        case ITEM_SKIPPED: {
+            unsigned long total    = _skippedDistance + _skippedOutOfView + 
+                                     _skippedWasInView + _skippedNoChange + _skippedOccluded;
+                                     
+            unsigned long internal = _internalSkippedDistance + _internalSkippedOutOfView + 
+                                     _internalSkippedWasInView + _internalSkippedNoChange + _internalSkippedOccluded;
+                                     
+            unsigned long leaves   = _leavesSkippedDistance + _leavesSkippedOutOfView + 
+                                     _leavesSkippedWasInView + _leavesSkippedNoChange + _leavesSkippedOccluded;
+
+            sprintf(_itemValueBuffer, "%lu total %lu internal %lu leaves", 
+                    total, internal, leaves);
+            break;
+        }
+        case ITEM_SKIPPED_DISTANCE: {
+            sprintf(_itemValueBuffer, "%lu total %lu internal %lu leaves", 
+                    _skippedDistance, _internalSkippedDistance, _leavesSkippedDistance);
+            break;
+        }
+        case ITEM_SKIPPED_OUT_OF_VIEW: {
+            sprintf(_itemValueBuffer, "%lu total %lu internal %lu leaves", 
+                    _skippedOutOfView, _internalSkippedOutOfView, _leavesSkippedOutOfView);
+            break;
+        }
+        case ITEM_SKIPPED_WAS_IN_VIEW: {
+            sprintf(_itemValueBuffer, "%lu total %lu internal %lu leaves", 
+                    _skippedWasInView, _internalSkippedWasInView, _leavesSkippedWasInView);
+            break;
+        }
+        case ITEM_SKIPPED_NO_CHANGE: {
+            sprintf(_itemValueBuffer, "%lu total %lu internal %lu leaves", 
+                    _skippedNoChange, _internalSkippedNoChange, _leavesSkippedNoChange);
+            break;
+        }
+        case ITEM_SKIPPED_OCCLUDED: {
+            sprintf(_itemValueBuffer, "%lu total %lu internal %lu leaves", 
+                    _skippedOccluded, _internalSkippedOccluded, _leavesSkippedOccluded);
+            break;
+        }
+        case ITEM_COLORS: {
+            sprintf(_itemValueBuffer, "%lu total %lu internal %lu leaves", 
+                    _colorSent, _internalColorSent, _leavesColorSent);
+            break;
+        }
+        case ITEM_DIDNT_FIT: {
+            sprintf(_itemValueBuffer, "%lu total %lu internal %lu leaves (removed: %lu)", 
+                    _didntFit, _internalDidntFit, _leavesDidntFit, _treesRemoved);
+            break;
+        }
+        case ITEM_BITS: {
+            sprintf(_itemValueBuffer, "colors: %lu, exists: %lu, in packets: %lu", 
+                    _colorBitsWritten, _existsBitsWritten, _existsInPacketBitsWritten);
+            break;
+        }
+        case ITEM_MODE: {
+            sprintf(_itemValueBuffer, "%s - %s", (_fullSceneDraw ? "Full Scene" : "Partial Scene"), 
+                    (_moving ? "Moving" : "Stationary"));
             break;
         }
         default:

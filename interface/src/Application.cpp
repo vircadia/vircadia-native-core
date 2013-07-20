@@ -3382,7 +3382,6 @@ void* Application::networkReceive(void* args) {
                         // then process any remaining bytes as if it was another packet
                         if (messageData[0] == PACKET_TYPE_VOXEL_STATS) {
                             int statsMessageLength = app->_voxelSceneStats.unpackFromMessage(messageData, messageLength);
-                            app->_voxelSceneStats.printDebugDetails();
                             if (messageLength > statsMessageLength) {
                                 messageData += statsMessageLength;
                                 messageLength -= statsMessageLength;

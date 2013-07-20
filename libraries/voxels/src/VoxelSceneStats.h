@@ -53,6 +53,18 @@ public:
         ITEM_ELAPSED,
         ITEM_ENCODE,
         ITEM_PACKETS,
+        ITEM_VOXELS,
+        ITEM_COLORS,
+        ITEM_BITS,
+        ITEM_TRAVERSED,
+        ITEM_SKIPPED,
+        ITEM_SKIPPED_DISTANCE,
+        ITEM_SKIPPED_OUT_OF_VIEW,
+        ITEM_SKIPPED_WAS_IN_VIEW,
+        ITEM_SKIPPED_NO_CHANGE,
+        ITEM_SKIPPED_OCCLUDED,
+        ITEM_DIDNT_FIT,
+        ITEM_MODE,
         ITEM_COUNT
     };
 

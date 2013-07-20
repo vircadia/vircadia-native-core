@@ -41,7 +41,9 @@ VoxelStatsDialog::VoxelStatsDialog(QWidget* parent, VoxelSceneStats* model) :
         rgb = ((rgb & 0xfefefeu) >> 1) + ((rgb & 0xf8f8f8) >> 3);
         palette.setColor(QPalette::WindowText, QColor::fromRgb(rgb));
         label->setPalette(palette);
-        label->setText("                                                            ");
+        
+        // This is my hackery attempt at making QDialog auto-size to a width that will hold our info. It kinda works.
+        label->setText("123456789012345678901234567890123456789012345678901234567890");
 
         snprintf(strBuf, sizeof(strBuf), " %s:", itemInfo.caption);
         form->addRow(strBuf, label);
