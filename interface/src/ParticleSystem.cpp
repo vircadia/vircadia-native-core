@@ -30,7 +30,8 @@ ParticleSystem::ParticleSystem() {
         _emitter[emitterIndex].particleLifespan          = DEFAULT_PARTICLE_LIFESPAN;
         _emitter[emitterIndex].baseParticle.alive        = false;
         _emitter[emitterIndex].baseParticle.age          = 0.0f;
-        _emitter[emitterIndex].baseParticle.lifespan     = 0.0f;
+        _emitter[emitterIndex].thrust                    = 0.0f;
+        _emitter[emitterIndex].rate                      = 0.0f;
         _emitter[emitterIndex].baseParticle.radius       = 0.0f;
         _emitter[emitterIndex].baseParticle.emitterIndex = 0;
         _emitter[emitterIndex].baseParticle.position     = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -59,7 +60,6 @@ ParticleSystem::ParticleSystem() {
     for (unsigned int p = 0; p < MAX_PARTICLES; p++) {
         _particle[p].alive        = false;
         _particle[p].age          = 0.0f;
-        _particle[p].lifespan     = 0.0f;
         _particle[p].radius       = 0.0f;
         _particle[p].emitterIndex = 0;
         _particle[p].position     = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -84,7 +84,7 @@ void ParticleSystem::simulate(float deltaTime) {
     // update particles
     for (unsigned int p = 0; p < _numParticles; p++) {
         if (_particle[p].alive) {
-            if (_particle[p].age > _particle[p].lifespan) {
+            if (_particle[p].age > _emitter[_particle[p].emitterIndex].particleLifespan) {
                 killParticle(p);
             } else {
                 updateParticle(p, deltaTime);
@@ -93,10 +93,10 @@ void ParticleSystem::simulate(float deltaTime) {
     }
 }
 
-void ParticleSystem::emitParticlesNow(int e, int num, float thrust) {
+void ParticleSystem::emitNow(int e) {
 
-    for (unsigned int p = 0; p < num; p++) {
-        createParticle(e, _emitter[e].direction * thrust);
+    for (unsigned int p = 0; p < _emitter[e].rate; p++) {
+        createParticle(e, _emitter[e].direction);
     }
 }
 
@@ -108,8 +108,7 @@ void ParticleSystem::createParticle(int e, glm::vec3 velocity) {
             _particle[p].emitterIndex = e;    
             _particle[p].alive        = true;
             _particle[p].age          = 0.0f;
-            _particle[p].velocity     = velocity;
-            _particle[p].lifespan     = _emitter[e].particleLifespan;
+            _particle[p].velocity     = _emitter[e].direction * _emitter[e].thrust;
             _particle[p].position     = _emitter[e].position;
             _particle[p].radius       = _emitter[e].particleAttributes[0].radius;
             _particle[p].color        = _emitter[e].particleAttributes[0].color;
@@ -163,9 +162,9 @@ void ParticleSystem::setParticleAttributes(int emitterIndex, int lifeStage, Part
 
 void ParticleSystem::updateParticle(int p, float deltaTime) {
 
-    assert(_particle[p].age <= _particle[p].lifespan);
+    assert(_particle[p].age <= _emitter[_particle[p].emitterIndex].particleLifespan);
     
-    float ageFraction = _particle[p].age / _particle[p].lifespan;
+    float ageFraction = _particle[p].age / _emitter[_particle[p].emitterIndex].particleLifespan;
         
     int lifeStage = (int)( ageFraction * (NUM_PARTICLE_LIFE_STAGES-1) );
 
@@ -257,7 +256,7 @@ void ParticleSystem::updateParticle(int p, float deltaTime) {
     _particle[p].age += deltaTime;    
 }
 
-void ParticleSystem::setEmitterBaseParticle(int emitterIndex, bool showing ) {
+void ParticleSystem::setShowingEmitterBaseParticle(int emitterIndex, bool showing ) {
 
     _emitter[emitterIndex].baseParticle.alive = true;
     _emitter[emitterIndex].baseParticle.emitterIndex = emitterIndex;
@@ -269,7 +268,6 @@ void ParticleSystem::killAllParticles() {
         killParticle(p);
     }
 }
-
 
 
 void ParticleSystem::render() {
@@ -346,8 +344,6 @@ void ParticleSystem::renderParticle(int p) {
     }
 }
 
-
-
 void ParticleSystem::renderEmitter(int e, float size) {
 
     glLineWidth(2.0f);
@@ -357,8 +353,6 @@ void ParticleSystem::renderEmitter(int e, float size) {
     glVertex3f(_emitter[e].position.x + _emitter[e].direction.x, _emitter[e].position.y + _emitter[e].direction.y, _emitter[e].position.z + _emitter[e].direction.z);
     glEnd();
 }
-
-
 
 
 

@@ -220,6 +220,7 @@ void Hand::setLeapHands(const std::vector<glm::vec3>& handPositions,
     }
 }
 
+// call this right after the geometry of the leap hands are set
 void Hand::updateFingerParticleEmitters() {
 
     if (_particleSystemInitialized) {
@@ -253,22 +254,25 @@ void Hand::updateFingerParticleEmitters() {
 }
 
 
+
+// call this from within the simulate method
 void Hand::updateFingerParticles(float deltaTime) {
 
     if (!_particleSystemInitialized) {
     
+        // start up the rave glove finger particles...
         for ( int f = 0; f< NUM_FINGERS_PER_HAND; f ++ ) {
             _fingerParticleEmitter[f] = _particleSystem.addEmitter();
             assert( _fingerParticleEmitter[f] != -1 );
         }
                                             
         setRaveGloveMode(_testRaveGloveMode);
+        _particleSystem.setUpDirection(glm::vec3(0.0f, 1.0f, 0.0f));
         _particleSystemInitialized = true;         
-    } else {
-        // update the particles
-        
+    } else {        
         _testRaveGloveClock += deltaTime;
         
+        // cycle through the rave glove test modes...
         if (_testRaveGloveClock > 4) {
             _testRaveGloveClock = 0.0f;
             _testRaveGloveMode ++;
@@ -278,6 +282,23 @@ void Hand::updateFingerParticles(float deltaTime) {
             setRaveGloveMode(_testRaveGloveMode);            
         }
 
+        if (_testRaveGloveMode == 3) {
+            ParticleSystem::ParticleAttributes attributes;
+            float red   = 0.5f + 0.5f * sinf(_testRaveGloveClock * 1.4f);
+            float green = 0.5f + 0.5f * cosf(_testRaveGloveClock * 1.7f);
+            float blue  = 0.5f + 0.5f * sinf(_testRaveGloveClock * 2.0f);
+            
+            attributes.color = glm::vec4(red, green, blue, 1.0f);            
+            attributes.radius = 0.02f;
+            for ( int f = 0; f< NUM_FINGERS_PER_HAND; f ++ ) {
+                _particleSystem.setParticleAttributes(_fingerParticleEmitter[f], 0, attributes);
+                _particleSystem.setParticleAttributes(_fingerParticleEmitter[f], 1, attributes);
+                _particleSystem.setParticleAttributes(_fingerParticleEmitter[f], 2, attributes);
+                _particleSystem.setParticleAttributes(_fingerParticleEmitter[f], 3, attributes);
+            }
+        }
+
+        // update the particles
         int fingerIndex = 0;
         for (size_t i = 0; i < getNumPalms(); ++i) {
             PalmData& palm = getPalms()[i];
@@ -286,19 +307,16 @@ void Hand::updateFingerParticles(float deltaTime) {
                     FingerData& finger = palm.getFingers()[f];
                     if (finger.isActive()) {
                         if (_fingerParticleEmitter[fingerIndex] != -1) {
-                            const float thrust = 0.002;
-                            _particleSystem.emitParticlesNow(_fingerParticleEmitter[f], 10, thrust); 
+                            _particleSystem.emitNow(_fingerParticleEmitter[f]); 
                         }
                     }
                 }
             }
         }        
-        
-        _particleSystem.setUpDirection(glm::vec3(0.0f, 1.0f, 0.0f));  
+         
         _particleSystem.simulate(deltaTime); 
     }
 }
-
 
 void Hand::setRaveGloveMode(int mode) {
 
@@ -314,6 +332,8 @@ void Hand::setRaveGloveMode(int mode) {
         if (mode == 0) {
 
             _particleSystem.setEmitterParticleLifespan(_fingerParticleEmitter[f], 1.0f);
+            _particleSystem.setEmitterThrust(_fingerParticleEmitter[f], 0.002f);
+            _particleSystem.setEmitterRate(_fingerParticleEmitter[f], 1.0);
 
             attributes.radius               = 0.0f;
             attributes.color                = glm::vec4( 1.0f, 1.0f, 0.5f, 0.5f);
@@ -351,6 +371,8 @@ void Hand::setRaveGloveMode(int mode) {
         } else if (mode == 1) {
             
             _particleSystem.setEmitterParticleLifespan(_fingerParticleEmitter[f], 1.0f);
+            _particleSystem.setEmitterThrust(_fingerParticleEmitter[f], 0.002f);
+            _particleSystem.setEmitterRate(_fingerParticleEmitter[f], 10.0);
 
             attributes.radius               = 0.001f;
             attributes.color                = glm::vec4( 0.8f, 0.9f, 1.0f, 0.5f);
@@ -382,6 +404,8 @@ void Hand::setRaveGloveMode(int mode) {
         } else if (mode == 2) {
             
             _particleSystem.setEmitterParticleLifespan(_fingerParticleEmitter[f], 0.05f);
+            _particleSystem.setEmitterThrust(_fingerParticleEmitter[f], 0.002f);
+            _particleSystem.setEmitterRate(_fingerParticleEmitter[f], 1.0);
 
             attributes.radius               = 0.0f;
             attributes.color                = glm::vec4( 1.0f, 0.0f, 0.0f, 1.0f);
@@ -409,13 +433,14 @@ void Hand::setRaveGloveMode(int mode) {
             _particleSystem.setParticleAttributes(_fingerParticleEmitter[f], 3, attributes);
 
         //-----------------------------------------
-        // something
+        // color cycle
         //-----------------------------------------
         } else if (mode == 3) {
             
             _particleSystem.setEmitterParticleLifespan(_fingerParticleEmitter[f], 0.05f);
+            _particleSystem.setEmitterThrust(_fingerParticleEmitter[f], 0.002f);
 
-            attributes.radius               = 0.0f;
+            attributes.radius               = 0.02f;
             attributes.color                = glm::vec4( 1.0f, 0.0f, 0.0f, 1.0f);
             attributes.gravity              = 0.0f;
             attributes.airFriction          = 0.0f;
@@ -424,20 +449,11 @@ void Hand::setRaveGloveMode(int mode) {
             attributes.tornadoForce         = 0.0f;
             attributes.neighborAttraction   = 0.0f;
             attributes.neighborRepulsion    = 0.0f;
-            attributes.bounce               = 1.0f;
+            attributes.bounce               = 0.0f;
             attributes.usingCollisionSphere = false;            
             _particleSystem.setParticleAttributes(_fingerParticleEmitter[f], 0, attributes);
-
-            attributes.radius = 0.01f;
-            attributes.color = glm::vec4( 1.0f, 1.0f, 0.0f, 1.0f);
             _particleSystem.setParticleAttributes(_fingerParticleEmitter[f], 1, attributes);
-
-            attributes.radius = 0.01f;
-            attributes.color = glm::vec4( 0.0f, 0.0f, 1.0f, 1.0f);
             _particleSystem.setParticleAttributes(_fingerParticleEmitter[f], 2, attributes);
-
-            attributes.radius = 0.0f;
-            attributes.color = glm::vec4( 1.0f, 1.0f, 1.0f, 1.0f);
             _particleSystem.setParticleAttributes(_fingerParticleEmitter[f], 3, attributes);
         }
     }

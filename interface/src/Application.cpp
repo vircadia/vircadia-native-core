@@ -3589,10 +3589,10 @@ void Application::updateParticleSystem(float deltaTime) {
             _particleSystem.setEmitterPosition(_coolDemoParticleEmitter, particleEmitterPosition);
             
             _particleSystem.setEmitterParticleLifespan(_coolDemoParticleEmitter, 100000.0f);
+            _particleSystem.setEmitterThrust(_coolDemoParticleEmitter, 0.0f);
+            _particleSystem.setEmitterRate(_coolDemoParticleEmitter, 1500);
 
-            int   num = 1500;
-            float thrust = 0.1f;
-            _particleSystem.emitParticlesNow(_coolDemoParticleEmitter, num, thrust);   
+            _particleSystem.emitNow(_coolDemoParticleEmitter);   
         }
         
         // signal that the particle system has been initialized 

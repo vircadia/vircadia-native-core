@@ -38,21 +38,23 @@ public:
     ParticleSystem();
     
     int  addEmitter(); // add (create new) emitter and get its unique id
-    void emitParticlesNow(int emitterIndex, int numParticles, float thrust);
+    void emitNow(int emitterIndex);
     void simulate(float deltaTime);
     void killAllParticles();
     void render();
     
     void setUpDirection(glm::vec3 upDirection) {_upDirection = upDirection;} // tell particle system which direction is up
-    void setEmitterBaseParticle      (int emitterIndex, bool showing );
-    void setParticleAttributes       (int emitterIndex, ParticleAttributes attributes); // set attributes for whole life of particles
-    void setParticleAttributes       (int emitterIndex, int lifeStage, ParticleAttributes attributes); // set attributes for this life stage of particles
-    void setEmitterBaseParticleColor (int emitterIndex, glm::vec4 color    ) {_emitter[emitterIndex].baseParticle.color  = color;     }
-    void setEmitterBaseParticleRadius(int emitterIndex, float     radius   ) {_emitter[emitterIndex].baseParticle.radius = radius;    }
-    void setEmitterPosition          (int emitterIndex, glm::vec3 position ) {_emitter[emitterIndex].position            = position;  } 
-    void setEmitterDirection         (int emitterIndex, glm::vec3 direction) {_emitter[emitterIndex].direction           = direction; } 
-    void setShowingEmitter           (int emitterIndex, bool      showing  ) {_emitter[emitterIndex].visible             = showing;   }  
-    void setEmitterParticleLifespan  (int emitterIndex, float     lifespan ) {_emitter[emitterIndex].particleLifespan    = lifespan;  }
+    void setShowingEmitterBaseParticle(int emitterIndex, bool showing );
+    void setParticleAttributes        (int emitterIndex, ParticleAttributes attributes); // set attributes for whole life of particles
+    void setParticleAttributes        (int emitterIndex, int lifeStage, ParticleAttributes attributes); // set attributes for this life stage of particles
+    void setEmitterBaseParticleColor  (int emitterIndex, glm::vec4 color    ) {_emitter[emitterIndex].baseParticle.color  = color;     }
+    void setEmitterBaseParticleRadius (int emitterIndex, float     radius   ) {_emitter[emitterIndex].baseParticle.radius = radius;    }
+    void setEmitterPosition           (int emitterIndex, glm::vec3 position ) {_emitter[emitterIndex].position            = position;  } 
+    void setEmitterDirection          (int emitterIndex, glm::vec3 direction) {_emitter[emitterIndex].direction           = direction; } 
+    void setShowingEmitter            (int emitterIndex, bool      showing  ) {_emitter[emitterIndex].visible             = showing;   }  
+    void setEmitterParticleLifespan   (int emitterIndex, float     lifespan ) {_emitter[emitterIndex].particleLifespan    = lifespan;  }
+    void setEmitterThrust             (int emitterIndex, float     thrust   ) {_emitter[emitterIndex].thrust              = thrust;    }
+    void setEmitterRate               (int emitterIndex, float     rate     ) {_emitter[emitterIndex].rate                = rate;      }
     
 private:
     
@@ -63,7 +65,6 @@ private:
         glm::vec4 color;        // color (rgba)
         float     age;          // age in seconds
         float     radius;       // radius
-        float     lifespan;     // how long this particle stays alive (in seconds)
         int       emitterIndex; // which emitter created this particle?
     };  
         
@@ -72,6 +73,8 @@ private:
         glm::vec3 direction;
         bool      visible;
         float     particleLifespan;
+        float     thrust;
+        float     rate;
         Particle  baseParticle; // a non-physical particle at the emitter position
         ParticleAttributes particleAttributes[NUM_PARTICLE_LIFE_STAGES]; // the attributes of particles emitted from this emitter
     };  
