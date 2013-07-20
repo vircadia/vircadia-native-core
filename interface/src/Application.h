@@ -39,6 +39,7 @@
 #include "ToolsPalette.h"
 #include "ui/ChatEntry.h"
 #include "ui/BandwidthDialog.h"
+#include "ui/VoxelStatsDialog.h"
 #include "ViewFrustum.h"
 #include "VoxelSystem.h"
 #include "Webcam.h"
@@ -116,6 +117,9 @@ private slots:
     void bandwidthDetails();
     void editPreferences();
     void bandwidthDetailsClosed();
+
+    void voxelStatsDetails();
+    void voxelStatsDetailsClosed();
     
     void pair();
     
@@ -277,6 +281,7 @@ private:
     
     BandwidthMeter _bandwidthMeter;
     BandwidthDialog* _bandwidthDialog;
+    VoxelStatsDialog* _voxelStatsDialog;
 
     SerialInterface _serialHeadSensor;
     QNetworkAccessManager* _networkAccessManager;
@@ -406,6 +411,8 @@ private:
 
     ToolsPalette _palette;
     Swatch _swatch;
+    
+    VoxelSceneStats _voxelSceneStats;
 };
 
 #endif /* defined(__interface__Application__) */

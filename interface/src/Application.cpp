@@ -176,6 +176,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _window(new QMainWindow(desktop())),
         _glWidget(new GLCanvas()),
         _bandwidthDialog(NULL),
+        _voxelStatsDialog(NULL),
         _displayLevels(false),
         _frameCount(0),
         _fps(120.0f),
@@ -1097,6 +1098,21 @@ void Application::bandwidthDetailsClosed() {
     delete dlg;
 }
 
+void Application::voxelStatsDetails() {
+    if (!_voxelStatsDialog) {
+        _voxelStatsDialog = new VoxelStatsDialog(_glWidget, &_voxelSceneStats);
+        connect(_voxelStatsDialog, SIGNAL(closed()), SLOT(voxelStatsDetailsClosed()));
+        _voxelStatsDialog->show();
+    } 
+    _voxelStatsDialog->raise();
+}
+
+void Application::voxelStatsDetailsClosed() {
+    QDialog* dlg = _voxelStatsDialog;
+    _voxelStatsDialog = NULL;
+    delete dlg;
+}
+
 void Application::editPreferences() {
     QDialog dialog(_glWidget);
     dialog.setWindowTitle("Interface Preferences");
@@ -1695,6 +1711,7 @@ void Application::initMenu() {
     (_bandwidthDisplayOn = toolsMenu->addAction("Bandwidth Display"))->setCheckable(true);
     _bandwidthDisplayOn->setChecked(true);
     toolsMenu->addAction("Bandwidth Details", this, SLOT(bandwidthDetails()));
+    toolsMenu->addAction("Voxel Stats Details", this, SLOT(voxelStatsDetails()));
 
  
     QMenu* voxelMenu = menuBar->addMenu("Voxels");
@@ -2127,6 +2144,9 @@ void Application::update(float deltaTime) {
     // Update bandwidth dialog, if any
     if (_bandwidthDialog) {
         _bandwidthDialog->update();
+    }
+    if (_voxelStatsDialog) {
+        _voxelStatsDialog->update();
     }
 
     //  Update audio stats for procedural sounds
@@ -3361,9 +3381,8 @@ void* Application::networkReceive(void* args) {
                         // immediately following them inside the same packet. So, we process the PACKET_TYPE_VOXEL_STATS first
                         // then process any remaining bytes as if it was another packet
                         if (messageData[0] == PACKET_TYPE_VOXEL_STATS) {
-                            VoxelSceneStats stats;
-                            int statsMessageLength = stats.unpackFromMessage(messageData, messageLength);
-                            stats.printDebugDetails();
+                            int statsMessageLength = app->_voxelSceneStats.unpackFromMessage(messageData, messageLength);
+                            app->_voxelSceneStats.printDebugDetails();
                             if (messageLength > statsMessageLength) {
                                 messageData += statsMessageLength;
                                 messageLength -= statsMessageLength;

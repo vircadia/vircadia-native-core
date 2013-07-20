@@ -49,6 +49,22 @@ public:
     unsigned char* getStatsMessage() { return &_statsMessage[0]; }
     int getStatsMessageLength() const { return _statsMessageLength; }
 
+    enum {
+        ITEM_ELAPSED,
+        ITEM_ENCODE,
+        ITEM_PACKETS,
+        ITEM_COUNT
+    };
+
+    // Meta information about each stats item
+    struct ItemInfo {
+        char const* const   caption;
+        char const*         unitCaption;
+        unsigned            colorRGBA;
+    };
+    
+    ItemInfo& getItemInfo(int item) { return _ITEMS[item]; };
+    char* getItemValue(int item);
     
 private:
     bool _readyToSend;
@@ -124,6 +140,11 @@ private:
     // features related items
     bool _moving;
     bool _fullSceneDraw;
+
+
+    static ItemInfo _ITEMS[];
+    static int const MAX_ITEM_VALUE_LENGTH = 40;
+    char _itemValueBuffer[MAX_ITEM_VALUE_LENGTH];
 };
 
 #endif /* defined(__hifi__VoxelSceneStats__) */

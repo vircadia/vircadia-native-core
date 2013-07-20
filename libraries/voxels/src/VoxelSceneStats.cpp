@@ -12,6 +12,7 @@
 #include "VoxelNode.h"
 #include "VoxelSceneStats.h"
 
+
 VoxelSceneStats::VoxelSceneStats() {
     reset();
     _readyToSend = false;
@@ -386,3 +387,29 @@ void VoxelSceneStats::printDebugDetails() {
     qDebug("    in packet bit       : %lu\n", _existsInPacketBitsWritten);
     qDebug("    trees removed       : %lu\n", _treesRemoved             );
 }
+
+
+VoxelSceneStats::ItemInfo VoxelSceneStats::_ITEMS[] = {
+    { "Elapsed" , "usecs", 0x40ff40d0 },
+    { "Encode"  , "usecs", 0xffef40c0 },
+    { "Packets" , ""     , 0xd0d0d0a0 }
+};
+
+char* VoxelSceneStats::getItemValue(int item) {
+    switch(item) {
+        case ITEM_ELAPSED:
+            sprintf(_itemValueBuffer, "%llu", _elapsed);
+            break;
+        case ITEM_ENCODE:
+            sprintf(_itemValueBuffer, "%llu", _totalEncodeTime);
+            break;
+        case ITEM_PACKETS:
+            sprintf(_itemValueBuffer, "%d", _packets);
+            break;
+        default:
+            sprintf(_itemValueBuffer, "");
+            break;
+    }
+    return _itemValueBuffer;
+}
+
