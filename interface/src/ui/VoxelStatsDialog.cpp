@@ -41,6 +41,7 @@ VoxelStatsDialog::VoxelStatsDialog(QWidget* parent, VoxelSceneStats* model) :
         rgb = ((rgb & 0xfefefeu) >> 1) + ((rgb & 0xf8f8f8) >> 3);
         palette.setColor(QPalette::WindowText, QColor::fromRgb(rgb));
         label->setPalette(palette);
+        label->setText("                                                            ");
 
         snprintf(strBuf, sizeof(strBuf), " %s:", itemInfo.caption);
         form->addRow(strBuf, label);
@@ -50,7 +51,7 @@ VoxelStatsDialog::VoxelStatsDialog(QWidget* parent, VoxelSceneStats* model) :
 void VoxelStatsDialog::paintEvent(QPaintEvent* event) {
 
     // Update labels
-    char strBuf[64];
+    char strBuf[256];
     for (int i = 0; i < VoxelSceneStats::ITEM_COUNT; ++i) {
         QLabel* label = _labels[i];
         snprintf(strBuf, sizeof(strBuf), "%s", _model->getItemValue(i));

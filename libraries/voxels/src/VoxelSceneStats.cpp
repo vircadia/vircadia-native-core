@@ -354,7 +354,7 @@ void VoxelSceneStats::printDebugDetails() {
     qDebug("    moving: %s\n", debug::valueOf(_moving));
     qDebug("\n");
     qDebug("    packets: %d\n", _packets);
-    qDebug("    bytes  : %d\n", _bytes);
+    qDebug("    bytes  : %ld\n", _bytes);
     qDebug("\n");
     qDebug("    traversed           : %lu\n", _traversed                );
     qDebug("        internal        : %lu\n", _internal                 );
@@ -390,22 +390,30 @@ void VoxelSceneStats::printDebugDetails() {
 
 
 VoxelSceneStats::ItemInfo VoxelSceneStats::_ITEMS[] = {
-    { "Elapsed" , "usecs", 0x40ff40d0 },
-    { "Encode"  , "usecs", 0xffef40c0 },
-    { "Packets" , ""     , 0xd0d0d0a0 }
+    { "Elapsed"  , 0x40ff40d0 },
+    { "Encode"   , 0xffef40c0 },
+    { "Network"  , 0xd0d0d0a0 }
 };
 
 char* VoxelSceneStats::getItemValue(int item) {
+    const uint64_t USECS_PER_SECOND = 1000 * 1000;
+    int calcFPS;
+    int calculatedKBPS;
     switch(item) {
         case ITEM_ELAPSED:
-            sprintf(_itemValueBuffer, "%llu", _elapsed);
+            calcFPS = (float)USECS_PER_SECOND / (float)_elapsed;
+            sprintf(_itemValueBuffer, "%llu usecs (%d fps)", _elapsed, calcFPS);
             break;
         case ITEM_ENCODE:
-            sprintf(_itemValueBuffer, "%llu", _totalEncodeTime);
+            calcFPS = (float)USECS_PER_SECOND / (float)_totalEncodeTime;
+            sprintf(_itemValueBuffer, "%llu usecs (%d fps)", _totalEncodeTime, calcFPS);
             break;
-        case ITEM_PACKETS:
-            sprintf(_itemValueBuffer, "%d", _packets);
+        case ITEM_PACKETS: {
+            float elapsedSecs = ((float)_elapsed / (float)USECS_PER_SECOND);
+            calculatedKBPS = elapsedSecs == 0 ? 0 : ((_bytes * 8) / elapsedSecs) / 1000;
+            sprintf(_itemValueBuffer, "%d packets %lu bytes (%d kbps)", _packets, _bytes, calculatedKBPS);
             break;
+        }
         default:
             sprintf(_itemValueBuffer, "");
             break;

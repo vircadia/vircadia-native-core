@@ -59,7 +59,6 @@ public:
     // Meta information about each stats item
     struct ItemInfo {
         char const* const   caption;
-        char const*         unitCaption;
         unsigned            colorRGBA;
     };
     
@@ -134,7 +133,7 @@ private:
     
     // scene network related data
     unsigned int  _packets;
-    unsigned int  _bytes;
+    unsigned long _bytes;
     unsigned int  _passes;
     
     // features related items
@@ -143,7 +142,7 @@ private:
 
 
     static ItemInfo _ITEMS[];
-    static int const MAX_ITEM_VALUE_LENGTH = 40;
+    static int const MAX_ITEM_VALUE_LENGTH = 128;
     char _itemValueBuffer[MAX_ITEM_VALUE_LENGTH];
 };
 
