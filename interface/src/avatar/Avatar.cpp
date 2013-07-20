@@ -313,6 +313,12 @@ void Avatar::updateFromGyrosAndOrWebcam(bool gyroLook,
     if (webcam->isActive()) {
         estimatedPosition = webcam->getEstimatedPosition();
         
+        // apply face data
+        _head.getFace().setColorTextureID(webcam->getColorTextureID());
+        _head.getFace().setDepthTextureID(webcam->getDepthTextureID());
+        _head.getFace().setTextureSize(webcam->getTextureSize());
+        _head.getFace().setTextureRect(webcam->getFaceRect());
+        
         // compute and store the joint rotations
         const JointVector& joints = webcam->getEstimatedJoints();
         _joints.clear();
@@ -327,6 +333,8 @@ void Avatar::updateFromGyrosAndOrWebcam(bool gyroLook,
                 }
             }
         }
+    } else {
+        _head.getFace().setColorTextureID(0);
     }
     _head.setPitch(estimatedRotation.x * amplifyAngle.x + pitchFromTouch);
     _head.setYaw(estimatedRotation.y * amplifyAngle.y + yawFromTouch);
