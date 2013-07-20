@@ -42,6 +42,7 @@
 #include "ViewFrustum.h"
 #include "VoxelSystem.h"
 #include "Webcam.h"
+#include "PieMenu.h"
 
 
 class QAction;
@@ -208,7 +209,7 @@ private:
      
     void setupPaintingVoxel();
     void shiftPaintingColor();
-    void maybeEditVoxelUnderCursor();
+    bool maybeEditVoxelUnderCursor();
     void deleteVoxelUnderCursor();
     void eyedropperVoxelUnderCursor();
     void resetSensors();
@@ -406,6 +407,8 @@ private:
 
     ToolsPalette _palette;
     Swatch _swatch;
+
+    PieMenu _pieMenu;
 };
 
 #endif /* defined(__interface__Application__) */

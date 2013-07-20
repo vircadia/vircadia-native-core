@@ -835,6 +835,8 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
                 deleteVoxelUnderCursor();
             }
         }
+
+        _pieMenu.mouseMoveEvent(_mouseX, _mouseY);
     }
 }
 
@@ -847,7 +849,10 @@ void Application::mousePressEvent(QMouseEvent* event) {
             _mouseDragStartedY = _mouseY;
             _mouseVoxelDragging = _mouseVoxel;
             _mousePressed = true;
-            maybeEditVoxelUnderCursor();
+
+            if (!maybeEditVoxelUnderCursor()) {
+                _pieMenu.mousePressEvent(_mouseX, _mouseY);
+            }
             
         } else if (event->button() == Qt::RightButton && checkedVoxelModeAction() != 0) {
             deleteVoxelUnderCursor();
@@ -862,6 +867,8 @@ void Application::mouseReleaseEvent(QMouseEvent* event) {
             _mouseY = event->y();
             _mousePressed = false;
             checkBandwidthMeterClick();
+
+            _pieMenu.mouseReleaseEvent(_mouseX, _mouseY);
         }
     }
 }
@@ -2740,6 +2747,10 @@ void Application::displayOverlay() {
         _swatch.checkColor();
     }
 
+    if (_pieMenu.isDisplayed()) {
+        _pieMenu.render();
+    }
+
     glPopMatrix();
 }
 
@@ -3147,7 +3158,7 @@ void Application::shiftPaintingColor() {
 }
 
 
-void Application::maybeEditVoxelUnderCursor() {
+bool Application::maybeEditVoxelUnderCursor() {
     if (_addVoxelMode->isChecked() || _colorVoxelMode->isChecked()) {
         if (_mouseVoxel.s != 0) {
             PACKET_TYPE message = (_destructiveAddVoxel->isChecked() ?
@@ -3218,7 +3229,11 @@ void Application::maybeEditVoxelUnderCursor() {
         deleteVoxelUnderCursor();
     } else if (_eyedropperMode->isChecked()) {
         eyedropperVoxelUnderCursor();
+    } else {
+        return false;
     }
+
+    return true;
 }
 
 void Application::deleteVoxelUnderCursor() {
