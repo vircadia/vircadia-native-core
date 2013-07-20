@@ -250,7 +250,7 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
         
         // start tracking our stats
         bool fullScene = (!viewFrustumChanged || !nodeData->getWantDelta()) && nodeData->getViewFrustumJustStoppedChanging();
-        nodeData->stats.sceneStarted(fullScene, viewFrustumChanged);
+        nodeData->stats.sceneStarted(fullScene, viewFrustumChanged, ::serverTree.rootNode);
     }
 
     // If we have something in our nodeBag, then turn them into packets and send them out...
@@ -486,8 +486,10 @@ int main(int argc, const char * argv[]) {
         
         ::serverTree.clearDirtyBit(); // the tree is clean since we just loaded it
         printf("DONE loading voxels from file... fileRead=%s\n", debug::valueOf(persistantFileRead));
-        unsigned long nodeCount = ::serverTree.getVoxelCount();
-        printf("Nodes after loading scene %ld nodes\n", nodeCount);
+        unsigned long nodeCount         = ::serverTree.rootNode->getSubTreeNodeCount();
+        unsigned long internalNodeCount = ::serverTree.rootNode->getSubTreeInternalNodeCount();
+        unsigned long leafNodeCount     = ::serverTree.rootNode->getSubTreeLeafNodeCount();
+        printf("Nodes after loading scene %lu nodes %lu internal %lu leaves\n", nodeCount, internalNodeCount, leafNodeCount);
     }
 
     // Check to see if the user passed in a command line option for loading an old style local

@@ -21,9 +21,13 @@ VoxelSceneStats::VoxelSceneStats() {
 VoxelSceneStats::~VoxelSceneStats() {
 }
 
-void VoxelSceneStats::sceneStarted(bool fullScene, bool moving) {
-    _start = usecTimestampNow();
+void VoxelSceneStats::sceneStarted(bool fullScene, bool moving, VoxelNode* root) {
     reset(); // resets packet and voxel stats
+    _start = usecTimestampNow();
+    _totalVoxels   = root->getSubTreeNodeCount();
+    _totalInternal = root->getSubTreeInternalNodeCount();
+    _totalLeaves   = root->getSubTreeLeafNodeCount();
+    
     _fullSceneDraw = fullScene;
     _moving = moving;
 }
@@ -52,6 +56,10 @@ void VoxelSceneStats::reset() {
     _packets = 0;
     _bytes = 0;
     _passes = 0;
+
+    _totalVoxels = 0;
+    _totalInternal = 0;
+    _totalLeaves = 0;
 
     _traversed = 0;
     _internal = 0;
@@ -214,6 +222,10 @@ int VoxelSceneStats::packIntoMessage(unsigned char* destinationBuffer, int avail
     memcpy(destinationBuffer, &_bytes, sizeof(_bytes));
     destinationBuffer += sizeof(_bytes);
 
+    memcpy(destinationBuffer, &_totalInternal, sizeof(_totalInternal));
+    destinationBuffer += sizeof(_totalInternal);
+    memcpy(destinationBuffer, &_totalLeaves, sizeof(_totalLeaves));
+    destinationBuffer += sizeof(_totalLeaves);
     memcpy(destinationBuffer, &_internal, sizeof(_internal));
     destinationBuffer += sizeof(_internal);
     memcpy(destinationBuffer, &_leaves, sizeof(_leaves));
@@ -281,12 +293,19 @@ int VoxelSceneStats::unpackFromMessage(unsigned char* sourceBuffer, int availabl
     sourceBuffer += sizeof(_packets);
     memcpy(&_bytes, sourceBuffer, sizeof(_bytes));
     sourceBuffer += sizeof(_bytes);
+
+    memcpy(&_totalInternal, sourceBuffer, sizeof(_totalInternal));
+    sourceBuffer += sizeof(_totalInternal);
+    memcpy(&_totalLeaves, sourceBuffer, sizeof(_totalLeaves));
+    sourceBuffer += sizeof(_totalLeaves);
+    _totalVoxels = _totalInternal + _totalLeaves;
+
     memcpy(&_internal, sourceBuffer, sizeof(_internal));
     sourceBuffer += sizeof(_internal);
     memcpy(&_leaves, sourceBuffer, sizeof(_leaves));
     sourceBuffer += sizeof(_leaves);
     _traversed = _internal + _leaves;
-    
+  
     memcpy(&_internalSkippedDistance, sourceBuffer, sizeof(_internalSkippedDistance));
     sourceBuffer += sizeof(_internalSkippedDistance);
     memcpy(&_leavesSkippedDistance, sourceBuffer, sizeof(_leavesSkippedDistance));
@@ -356,6 +375,9 @@ void VoxelSceneStats::printDebugDetails() {
     qDebug("    packets: %d\n", _packets);
     qDebug("    bytes  : %ld\n", _bytes);
     qDebug("\n");
+    qDebug("    total voxels        : %lu\n", _totalVoxels              );
+    qDebug("        internal        : %lu\n", _totalInternal            );
+    qDebug("        leaves          : %lu\n", _totalLeaves              );
     qDebug("    traversed           : %lu\n", _traversed                );
     qDebug("        internal        : %lu\n", _internal                 );
     qDebug("        leaves          : %lu\n", _leaves                   );
@@ -393,18 +415,19 @@ VoxelSceneStats::ItemInfo VoxelSceneStats::_ITEMS[] = {
     { "Elapsed"              , 0x40ff40d0 },
     { "Encode"               , 0xffef40c0 },
     { "Network"              , 0xd0d0d0a0 },
-    { "Voxels Sent"          , 0x40ff40d0 },
-    { "Colors Sent"          , 0xffef40c0 },
-    { "Bitmasks Sent"        , 0xd0d0d0a0 },
-    { "Traversed"            , 0x40ff40d0 },
-    { "Skipped - Total"      , 0xffef40c0 },
-    { "Skipped - Distance"   , 0xd0d0d0a0 },
-    { "Skipped - Out of View", 0x40ff40d0 },
-    { "Skipped - Was in View", 0xffef40c0 },
-    { "Skipped - No Change"  , 0xd0d0d0a0 },
-    { "Skipped - Occluded"   , 0x40ff40d0 },
-    { "Didn't fit in packet" , 0xffef40c0 },
-    { "Mode"                 , 0xd0d0d0a0 },
+    { "Voxels on Server"     , 0x40ff40d0 },
+    { "Voxels Sent"          , 0xffef40c0 },
+    { "Colors Sent"          , 0xd0d0d0a0 },
+    { "Bitmasks Sent"        , 0x40ff40d0 },
+    { "Traversed"            , 0xffef40c0 },
+    { "Skipped - Total"      , 0xd0d0d0a0 },
+    { "Skipped - Distance"   , 0x40ff40d0 },
+    { "Skipped - Out of View", 0xffef40c0 },
+    { "Skipped - Was in View", 0xd0d0d0a0 },
+    { "Skipped - No Change"  , 0x40ff40d0 },
+    { "Skipped - Occluded"   , 0xffef40c0 },
+    { "Didn't fit in packet" , 0xd0d0d0a0 },
+    { "Mode"                 , 0x40ff40d0 },
 };
 
 char* VoxelSceneStats::getItemValue(int item) {
@@ -426,10 +449,15 @@ char* VoxelSceneStats::getItemValue(int item) {
             sprintf(_itemValueBuffer, "%d packets %lu bytes (%d kbps)", _packets, _bytes, calculatedKBPS);
             break;
         }
+        case ITEM_VOXELS_SERVER: {
+            sprintf(_itemValueBuffer, "%lu total %lu internal %lu leaves", 
+                    _totalVoxels, _totalInternal, _totalLeaves);
+            break;
+        }
         case ITEM_VOXELS: {
             unsigned long total = _existsInPacketBitsWritten + _colorSent;
             float calculatedBPV = total == 0 ? 0 : (_bytes * 8) / total;
-            sprintf(_itemValueBuffer, "%lu total (%.2f bits/voxel) %lu internal %lu leaves", 
+            sprintf(_itemValueBuffer, "%lu (%.2f bits/voxel) %lu internal %lu leaves", 
                     total, calculatedBPV, _existsInPacketBitsWritten, _colorSent);
             break;
         }

@@ -673,6 +673,9 @@ void VoxelTree::reaverageVoxelColors(VoxelNode *startNode) {
         if (hasChildren && !startNode->collapseIdenticalLeaves()) {
             startNode->setColorFromAverageOfChildren();
         }
+        
+        // this is also a good time to recalculateSubTreeNodeCount()
+        startNode->recalculateSubTreeNodeCount();
     }
 }
 

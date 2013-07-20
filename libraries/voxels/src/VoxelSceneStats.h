@@ -19,7 +19,7 @@ public:
     VoxelSceneStats();
     ~VoxelSceneStats();
     void reset();
-    void sceneStarted(bool fullScene, bool moving);
+    void sceneStarted(bool fullScene, bool moving, VoxelNode* root);
     void sceneCompleted();
 
     void printDebugDetails();
@@ -53,6 +53,7 @@ public:
         ITEM_ELAPSED,
         ITEM_ENCODE,
         ITEM_PACKETS,
+        ITEM_VOXELS_SERVER,
         ITEM_VOXELS,
         ITEM_COLORS,
         ITEM_BITS,
@@ -91,6 +92,10 @@ private:
     uint64_t _encodeStart;
     
     // scene voxel related data
+    unsigned long _totalVoxels;
+    unsigned long _totalInternal;
+    unsigned long _totalLeaves;
+
     unsigned long _traversed;
     unsigned long _internal;
     unsigned long _leaves;
