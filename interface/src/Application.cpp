@@ -2865,27 +2865,19 @@ void Application::displayStats() {
     drawtext(10, statsVerticalOffset + 230, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
     
     voxelStats.str("");
-    voxelStats << "Voxels Created: " << _voxels.getVoxelsCreated() / 1000.f << "K (" << _voxels.getVoxelsCreatedPerSecondAverage() / 1000.f
-    << "Kps) ";
+    char* voxelDetails = _voxelSceneStats.getItemValue(VoxelSceneStats::ITEM_VOXELS);
+    voxelStats << "Voxels Sent from Server: " << voxelDetails;
     drawtext(10, statsVerticalOffset + 250, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
-    
-    voxelStats.str("");
-    voxelStats << "Voxels Colored: " << _voxels.getVoxelsColored() / 1000.f << "K (" << _voxels.getVoxelsColoredPerSecondAverage() / 1000.f
-    << "Kps) ";
-    drawtext(10, statsVerticalOffset + 270, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
-    
-    voxelStats.str("");
-    voxelStats << "Voxel Bits Read: " << _voxels.getVoxelsBytesRead() * 8.f / 1000000.f 
-    << "M (" << _voxels.getVoxelsBytesReadPerSecondAverage() * 8.f / 1000000.f << " Mbps)";
-    drawtext(10, statsVerticalOffset + 290,0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
 
     voxelStats.str("");
-    float voxelsBytesPerColored = _voxels.getVoxelsColored()
-        ? ((float) _voxels.getVoxelsBytesRead() / _voxels.getVoxelsColored())
-        : 0;
-    
-    voxelStats << "Voxels Bits per Colored: " << voxelsBytesPerColored * 8;
-    drawtext(10, statsVerticalOffset + 310, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+    voxelDetails = _voxelSceneStats.getItemValue(VoxelSceneStats::ITEM_ELAPSED);
+    voxelStats << "Scene Send Time from Server: " << voxelDetails;
+    drawtext(10, statsVerticalOffset + 270, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+
+    voxelStats.str("");
+    voxelDetails = _voxelSceneStats.getItemValue(VoxelSceneStats::ITEM_ENCODE);
+    voxelStats << "Encode Time on Server: " << voxelDetails;
+    drawtext(10, statsVerticalOffset + 290, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
     
     Node *avatarMixer = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_AVATAR_MIXER);
     char avatarMixerStats[200];
