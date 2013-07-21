@@ -20,16 +20,15 @@
 #include <QList>
 
 #include <NodeList.h>
+#include <PacketHeaders.h>
 
 #ifndef _WIN32
 #include "Audio.h"
 #endif
 
-#include "Avatar.h"
 #include "BandwidthMeter.h"
 #include "Camera.h"
 #include "Environment.h"
-#include "HandControl.h"
 #include "PacketHeaders.h"
 #include "ParticleSystem.h"
 #include "renderer/GeometryCache.h"
@@ -37,12 +36,13 @@
 #include "Stars.h"
 #include "Swatch.h"
 #include "ToolsPalette.h"
-#include "ui/ChatEntry.h"
-#include "ui/BandwidthDialog.h"
 #include "ViewFrustum.h"
 #include "VoxelSystem.h"
 #include "Webcam.h"
-
+#include "avatar/Avatar.h"
+#include "avatar/HandControl.h"
+#include "ui/BandwidthDialog.h"
+#include "ui/ChatEntry.h"
 
 class QAction;
 class QActionGroup;
@@ -103,6 +103,10 @@ public:
     
     QNetworkAccessManager* getNetworkAccessManager() { return _networkAccessManager; }
     GeometryCache* getGeometryCache() { return &_geometryCache; }
+
+public slots:
+
+    void sendAvatarFaceVideoMessage(int frameCount, const QByteArray& data);    
     
     void setGroundPlaneImpact(float groundPlaneImpact) { _groundPlaneImpact = groundPlaneImpact; }
 
@@ -185,7 +189,8 @@ private:
     static bool sendVoxelsOperation(VoxelNode* node, void* extraData);
     static void sendVoxelEditMessage(PACKET_TYPE type, VoxelDetail& detail);
     static void sendAvatarVoxelURLMessage(const QUrl& url);
-    static void processAvatarVoxelURLMessage(unsigned char *packetData, size_t dataBytes);
+    static void processAvatarVoxelURLMessage(unsigned char* packetData, size_t dataBytes);
+    static void processAvatarFaceVideoMessage(unsigned char* packetData, size_t dataBytes);
     static void sendPingPackets();
     
     void initMenu();
@@ -195,6 +200,7 @@ private:
     
     void update(float deltaTime);
     bool isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection, glm::vec3& eyePosition);
+    void renderLookatIndicator(glm::vec3 pointOfInterest, Camera& whichCamera);
     void updateAvatar(float deltaTime);
     void loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum);
     
@@ -250,6 +256,7 @@ private:
     QAction* _renderStatsOn;         // Whether to show onscreen text overlay with stats
     QAction* _renderFrameTimerOn;    // Whether to show onscreen text overlay with stats
     QAction* _renderLookatOn;        // Whether to show lookat vectors from avatar eyes if looking at something
+    QAction* _renderLookatIndicatorOn;
     QAction* _manualFirstPerson;     // Whether to force first-person mode
     QAction* _manualThirdPerson;     // Whether to force third-person mode
     QAction* _logOn;                 // Whether to show on-screen log
@@ -363,6 +370,9 @@ private:
     float _mouseVoxelScale;       // the scale for adding/removing voxels
     glm::vec3 _lastMouseVoxelPos; // the position of the last mouse voxel edit
     bool _justEditedVoxel;        // set when we've just added/deleted/colored a voxel
+
+    bool _isLookingAtOtherAvatar;
+    glm::vec3 _lookatOtherPosition;
     
     bool _paintOn;                // Whether to paint voxels as you fly around
     unsigned char _dominantColor; // The dominant color of the voxel we're painting

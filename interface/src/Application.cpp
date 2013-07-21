@@ -199,6 +199,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _mousePressed(false),
         _mouseVoxelScale(1.0f / 1024.0f),
         _justEditedVoxel(false),
+        _isLookingAtOtherAvatar(false),
         _paintOn(false),
         _dominantColor(0),
         _perfStatsOn(false),
@@ -235,6 +236,31 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         NodeList::getInstance()->getNodeSocket()->setBlocking(false);
     }
     
+    // setup QSettings    
+#ifdef Q_WS_MAC
+    QString resourcesPath = QCoreApplication::applicationDirPath() + "/../Resources";
+#else
+    QString resourcesPath = QCoreApplication::applicationDirPath() + "/resources";
+#endif
+    
+    // read the ApplicationInfo.ini file for Name/Version/Domain information
+    QSettings applicationInfo(resourcesPath + "/info/ApplicationInfo.ini", QSettings::IniFormat);
+    
+    // set the associated application properties
+    applicationInfo.beginGroup("INFO");
+    
+    setApplicationName(applicationInfo.value("name").toString());
+    setApplicationVersion(applicationInfo.value("version").toString());
+    setOrganizationName(applicationInfo.value("organizationName").toString());
+    setOrganizationDomain(applicationInfo.value("organizationDomain").toString());
+    
+    _settings = new QSettings(this);
+    
+    // check if there is a saved domain server hostname
+    // this must be done now instead of with the other setting checks to allow manual override with
+    // --domain or --local options
+    NodeList::getInstance()->loadData(_settings);
+    
     const char* domainIP = getCmdOption(argc, constArgv, "--domain");
     if (domainIP) {
         NodeList::getInstance()->setDomainIP(domainIP);
@@ -267,23 +293,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     NodeList::getInstance()->startSilentNodeRemovalThread();
     
     _window->setCentralWidget(_glWidget);
-    
-#ifdef Q_WS_MAC
-    QString resourcesPath = QCoreApplication::applicationDirPath() + "/../Resources";
-#else
-    QString resourcesPath = QCoreApplication::applicationDirPath() + "/resources";
-#endif
-    
-    // read the ApplicationInfo.ini file for Name/Version/Domain information
-    QSettings applicationInfo(resourcesPath + "/info/ApplicationInfo.ini", QSettings::IniFormat);
-    
-    // set the associated application properties
-    applicationInfo.beginGroup("INFO");
-    
-    setApplicationName(applicationInfo.value("name").toString());
-    setApplicationVersion(applicationInfo.value("version").toString());
-    setOrganizationName(applicationInfo.value("organizationName").toString());
-    setOrganizationDomain(applicationInfo.value("organizationDomain").toString());
     
 #if defined(Q_WS_MAC) && defined(QT_NO_DEBUG)
     // if this is a release OS X build use fervor to check for an update    
@@ -929,6 +938,36 @@ void Application::sendPingPackets() {
                                               nodesToPing, sizeof(nodesToPing));
 }
 
+void Application::sendAvatarFaceVideoMessage(int frameCount, const QByteArray& data) {
+    unsigned char packet[MAX_PACKET_SIZE];
+    unsigned char* packetPosition = packet;
+    
+    packetPosition += populateTypeAndVersion(packetPosition, PACKET_TYPE_AVATAR_FACE_VIDEO);
+    
+    *(uint16_t*)packetPosition = NodeList::getInstance()->getOwnerID();
+    packetPosition += sizeof(uint16_t);
+    
+    *(uint32_t*)packetPosition = frameCount;
+    packetPosition += sizeof(uint32_t);
+    
+    *(uint32_t*)packetPosition = data.size();
+    packetPosition += sizeof(uint32_t);
+    
+    uint32_t* offsetPosition = (uint32_t*)packetPosition;
+    packetPosition += sizeof(uint32_t);
+    
+    int headerSize = packetPosition - packet;
+    
+    // break the data up into submessages of the maximum size
+    *offsetPosition = 0;
+    while (*offsetPosition < data.size()) {
+        int payloadSize = min(data.size() - (int)*offsetPosition, MAX_PACKET_SIZE - headerSize);
+        memcpy(packetPosition, data.constData() + *offsetPosition, payloadSize);
+        getInstance()->controlledBroadcastToNodes(packet, headerSize + payloadSize, &NODE_TYPE_AVATAR_MIXER, 1);
+        *offsetPosition += payloadSize;
+    }
+}
+
 //  Every second, check the frame rates and other stuff
 void Application::timer() {
     gettimeofday(&_timerEnd, NULL);
@@ -1038,7 +1077,7 @@ void Application::sendAvatarVoxelURLMessage(const QUrl& url) {
     controlledBroadcastToNodes((unsigned char*)message.data(), message.size(), & NODE_TYPE_AVATAR_MIXER, 1);
 }
 
-void Application::processAvatarVoxelURLMessage(unsigned char *packetData, size_t dataBytes) {
+static Avatar* processAvatarMessageHeader(unsigned char*& packetData, size_t& dataBytes) {
     // skip the header
     int numBytesPacketHeader = numBytesForPacketHeader(packetData);
     packetData += numBytesPacketHeader;
@@ -1052,16 +1091,29 @@ void Application::processAvatarVoxelURLMessage(unsigned char *packetData, size_t
     // make sure the node exists
     Node* node = NodeList::getInstance()->nodeWithID(nodeID);
     if (!node || !node->getLinkedData()) {
-        return;
+        return NULL;
     }
     Avatar* avatar = static_cast<Avatar*>(node->getLinkedData());
-    if (!avatar->isInitialized()) {
-        return; // wait until initialized
-    }
+    return avatar->isInitialized() ? avatar : NULL;
+}
+
+void Application::processAvatarVoxelURLMessage(unsigned char* packetData, size_t dataBytes) {
+    Avatar* avatar = processAvatarMessageHeader(packetData, dataBytes);
+    if (!avatar) {
+        return;
+    } 
     QUrl url = QUrl::fromEncoded(QByteArray((char*)packetData, dataBytes));
     
     // invoke the set URL function on the simulate/render thread
     QMetaObject::invokeMethod(avatar->getVoxels(), "setVoxelURL", Q_ARG(QUrl, url));
+}
+
+void Application::processAvatarFaceVideoMessage(unsigned char* packetData, size_t dataBytes) {
+    Avatar* avatar = processAvatarMessageHeader(packetData, dataBytes);
+    if (!avatar) {
+        return;
+    }
+    avatar->getHead().getFace().processVideoMessage(packetData, dataBytes);
 }
 
 void Application::checkBandwidthMeterClick() {
@@ -1143,26 +1195,29 @@ void Application::editPreferences() {
         return;
     }
     
+    QByteArray newHostname;
     
-    const char* newHostname = domainServerHostname->text().toLocal8Bit().data();
-    
+    if (domainServerHostname->text().size() > 0) {
+        // the user input a new hostname, use that
+        newHostname = domainServerHostname->text().toAscii();
+    } else {
+        // the user left the field blank, use the default hostname
+        newHostname = QByteArray(DEFAULT_DOMAIN_HOSTNAME);
+    }
+   
     // check if the domain server hostname is new 
-    if (memcmp(NodeList::getInstance()->getDomainHostname(), newHostname, sizeof(&newHostname)) != 0) {
-        // if so we need to clear the nodelist and delete the local voxels
-        Node *voxelServer = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_VOXEL_SERVER);
-        
-        if (voxelServer) {
-            voxelServer->lock();
-        }
-        
-        _voxels.killLocalVoxels();
-        
-        if (voxelServer) {
-            voxelServer->unlock();
-        }
+    if (memcmp(NodeList::getInstance()->getDomainHostname(), newHostname.constData(), newHostname.size()) != 0) {
         
         NodeList::getInstance()->clear();
-        NodeList::getInstance()->setDomainHostname(newHostname);
+        
+        // kill the local voxels
+        _voxels.killLocalVoxels();
+        
+        // reset the environment to default
+        _environment.resetToDefault();
+        
+        // set the new hostname
+        NodeList::getInstance()->setDomainHostname(newHostname.constData());
     }
     
     QUrl url(avatarURL->text());
@@ -1670,10 +1725,13 @@ void Application::initMenu() {
     (_renderAvatarBalls = renderMenu->addAction("Avatar as Balls"))->setCheckable(true);
     _renderAvatarBalls->setChecked(false);
     renderMenu->addAction("Cycle Voxel Mode", _myAvatar.getVoxels(), SLOT(cycleMode()));
+    renderMenu->addAction("Cycle Face Mode", &_myAvatar.getHead().getFace(), SLOT(cycleRenderMode()));
     (_renderFrameTimerOn = renderMenu->addAction("Show Timer"))->setCheckable(true);
     _renderFrameTimerOn->setChecked(false);
     (_renderLookatOn = renderMenu->addAction("Lookat Vectors"))->setCheckable(true);
     _renderLookatOn->setChecked(false);
+    (_renderLookatIndicatorOn = renderMenu->addAction("Lookat Indicator"))->setCheckable(true);
+    _renderLookatIndicatorOn->setChecked(true);
     (_manualFirstPerson = renderMenu->addAction(
         "First Person", this, SLOT(setRenderFirstPerson(bool)), Qt::Key_P))->setCheckable(true);
     (_manualThirdPerson = renderMenu->addAction(
@@ -1786,7 +1844,6 @@ void Application::initMenu() {
     settingsMenu->addAction("Export settings", this, SLOT(exportSettings()));
     
     _networkAccessManager = new QNetworkAccessManager(this);
-    _settings = new QSettings(this);
 }
 
 void Application::updateFrustumRenderModeAction() {
@@ -1885,11 +1942,21 @@ bool Application::isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3& m
             glm::vec3 headPosition = avatar->getHead().getPosition();
             if (rayIntersectsSphere(mouseRayOrigin, mouseRayDirection, headPosition, HEAD_SPHERE_RADIUS)) {
                 eyePosition = avatar->getHead().getEyeLevelPosition();
+                _lookatOtherPosition = headPosition;
                 return true;
             }
         }
     }
     return false;
+}
+
+void Application::renderLookatIndicator(glm::vec3 pointOfInterest, Camera& whichCamera) {
+
+    const float DISTANCE_FROM_HEAD_SPHERE = 0.1f;
+    const float YELLOW[] = { 1.0f, 1.0f, 0.0f };
+    glm::vec3 haloOrigin(pointOfInterest.x, pointOfInterest.y + DISTANCE_FROM_HEAD_SPHERE, pointOfInterest.z);
+    glColor3f(YELLOW[0], YELLOW[1], YELLOW[2]);
+    renderCircle(haloOrigin, 0.1f, glm::vec3(0.0f, 1.0f, 0.0f), 30);
 }
 
 void Application::update(float deltaTime) {
@@ -1919,7 +1986,7 @@ void Application::update(float deltaTime) {
     
     // Set where I am looking based on my mouse ray (so that other people can see)
     glm::vec3 eyePosition;
-    if (isLookingAtOtherAvatar(mouseRayOrigin, mouseRayDirection, eyePosition)) {
+    if (_isLookingAtOtherAvatar = isLookingAtOtherAvatar(mouseRayOrigin, mouseRayDirection, eyePosition)) {
         // If the mouse is over another avatar's head...
         glm::vec3 myLookAtFromMouse(eyePosition);
          _myAvatar.getHead().setLookAtPosition(myLookAtFromMouse);
@@ -1936,7 +2003,7 @@ void Application::update(float deltaTime) {
         glm::vec3 front = orientation * IDENTITY_FRONT;
         glm::vec3 up = orientation * IDENTITY_UP;
         glm::vec3 towardVoxel = getMouseVoxelWorldCoordinates(_mouseVoxelDragging)
-                                - _myAvatar.getCameraPosition();
+                                - _myAvatar.getCameraPosition(); // is this an error? getCameraPosition dne
         towardVoxel = front * glm::length(towardVoxel);
         glm::vec3 lateralToVoxel = glm::cross(up, glm::normalize(towardVoxel)) * glm::length(towardVoxel);
         _voxelThrust = glm::vec3(0, 0, 0);
@@ -2036,10 +2103,8 @@ void Application::update(float deltaTime) {
     
     // Leap finger-sensing device
     LeapManager::enableFakeFingers(_simulateLeapHand->isChecked() || _testRaveGlove->isChecked());
-    LeapManager::nextFrame();
     _myAvatar.getHand().setRaveGloveActive(_testRaveGlove->isChecked());
-    _myAvatar.getHand().setLeapFingers(LeapManager::getFingerTips(), LeapManager::getFingerRoots());
-    _myAvatar.getHand().setLeapHands(LeapManager::getHandPositions(), LeapManager::getHandNormals());
+    LeapManager::nextFrame(_myAvatar);
     
      //  Read serial port interface devices
     if (_serialHeadSensor.isActive()) {
@@ -2183,7 +2248,7 @@ void Application::updateAvatar(float deltaTime) {
         _viewFrustum.computePickRay(MIDPOINT_OF_SCREEN, MIDPOINT_OF_SCREEN, screenCenterRayOrigin, screenCenterRayDirection);
 
         glm::vec3 eyePosition;
-        if (isLookingAtOtherAvatar(screenCenterRayOrigin, screenCenterRayDirection, eyePosition)) {
+        if (_isLookingAtOtherAvatar = isLookingAtOtherAvatar(screenCenterRayOrigin, screenCenterRayDirection, eyePosition)) {
             glm::vec3 myLookAtFromMouse(eyePosition);
             _myAvatar.getHead().setLookAtPosition(myLookAtFromMouse);
         }
@@ -2211,7 +2276,7 @@ void Application::updateAvatar(float deltaTime) {
     // actually need to calculate the view frustum planes to send these details 
     // to the server.
     loadViewFrustum(_myCamera, _viewFrustum);
-    _myAvatar.setCameraPosition(_viewFrustum.getPosition());
+    _myAvatar.setCameraPosition(_viewFrustum.getPosition()); // setCameraPosition() dne
     _myAvatar.setCameraOrientation(_viewFrustum.getOrientation());
     _myAvatar.setCameraFov(_viewFrustum.getFieldOfView());
     _myAvatar.setCameraAspectRatio(_viewFrustum.getAspectRatio());
@@ -2582,6 +2647,10 @@ void Application::displaySide(Camera& whichCamera) {
         } 
         _myAvatar.render(_lookingInMirror->isChecked(), _renderAvatarBalls->isChecked());
         _myAvatar.setDisplayingLookatVectors(_renderLookatOn->isChecked());
+
+        if (_renderLookatIndicatorOn->isChecked() && _isLookingAtOtherAvatar) {
+            renderLookatIndicator(_lookatOtherPosition, whichCamera);
+        }
     }
 
     if (TESTING_PARTICLE_SYSTEM) {
@@ -3352,7 +3421,7 @@ void* Application::networkReceive(void* args) {
                     case PACKET_TYPE_ENVIRONMENT_DATA: {
                         if (app->_renderVoxels->isChecked()) {
                             Node* voxelServer = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_VOXEL_SERVER);
-                            if (voxelServer) {
+                            if (voxelServer && socketMatch(voxelServer->getActiveSocket(), &senderAddress)) {
                                 voxelServer->lock();
                                 
                                 if (app->_incomingPacket[0] == PACKET_TYPE_ENVIRONMENT_DATA) {
@@ -3374,6 +3443,9 @@ void* Application::networkReceive(void* args) {
                         break;
                     case PACKET_TYPE_AVATAR_VOXEL_URL:
                         processAvatarVoxelURLMessage(app->_incomingPacket, bytesReceived);
+                        break;
+                    case PACKET_TYPE_AVATAR_FACE_VIDEO:
+                        processAvatarFaceVideoMessage(app->_incomingPacket, bytesReceived);
                         break;
                     default:
                         NodeList::getInstance()->processNodeData(&senderAddress, app->_incomingPacket, bytesReceived);
@@ -3456,7 +3528,7 @@ void Application::saveSettings(QSettings* settings) {
     if (!settings) { 
         settings = getSettings();
     }
-
+    
     settings->setValue("headCameraPitchYawScale", _headCameraPitchYawScale);
     settings->setValue("audioJitterBufferSamples", _audioJitterBufferSamples);
     settings->setValue("horizontalFieldOfView", _horizontalFieldOfView);
@@ -3471,6 +3543,9 @@ void Application::saveSettings(QSettings* settings) {
     scanMenuBar(&Application::saveAction, settings);
     getAvatar()->saveData(settings);
     _swatch.saveData(settings);
+    
+    // ask the NodeList to save its data
+    NodeList::getInstance()->saveData(settings);
 }
 
 void Application::importSettings() {
