@@ -13,9 +13,10 @@
 #include "VoxelSceneStats.h"
 
 
-VoxelSceneStats::VoxelSceneStats() {
+VoxelSceneStats::VoxelSceneStats() : _elapsedAverage(100), _bitsPerVoxelAverage(100) {
     reset();
     _readyToSend = false;
+    _started = false;
 }
 
 VoxelSceneStats::~VoxelSceneStats() {
@@ -23,6 +24,7 @@ VoxelSceneStats::~VoxelSceneStats() {
 
 void VoxelSceneStats::sceneStarted(bool fullScene, bool moving, VoxelNode* root) {
     reset(); // resets packet and voxel stats
+    _started = true;
     _start = usecTimestampNow();
     _totalVoxels   = root->getSubTreeNodeCount();
     _totalInternal = root->getSubTreeInternalNodeCount();
@@ -33,11 +35,15 @@ void VoxelSceneStats::sceneStarted(bool fullScene, bool moving, VoxelNode* root)
 }
 
 void VoxelSceneStats::sceneCompleted() {
-    _end = usecTimestampNow();
-    _elapsed = _end - _start;
+    if (_started) {
+        _end = usecTimestampNow();
+        _elapsed = _end - _start;
+        _elapsedAverage.updateAverage((float)_elapsed);
 
-    _statsMessageLength = packIntoMessage(_statsMessage, sizeof(_statsMessage));
-    _readyToSend = true;
+        _statsMessageLength = packIntoMessage(_statsMessage, sizeof(_statsMessage));
+        _readyToSend = true;
+        _started = false;
+    }
 }
 
 void VoxelSceneStats::encodeStarted() {
@@ -356,6 +362,13 @@ int VoxelSceneStats::unpackFromMessage(unsigned char* sourceBuffer, int availabl
     sourceBuffer += sizeof(_existsInPacketBitsWritten);
     memcpy(&_treesRemoved, sourceBuffer, sizeof(_treesRemoved));
     sourceBuffer += sizeof(_treesRemoved);
+    
+    // running averages
+    _elapsedAverage.updateAverage((float)_elapsed);
+    unsigned long total = _existsInPacketBitsWritten + _colorSent;
+    float calculatedBPV = total == 0 ? 0 : (_bytes * 8) / total;
+    _bitsPerVoxelAverage.updateAverage(calculatedBPV);
+
 
     return sourceBuffer - startPosition; // includes header!
 }
@@ -432,13 +445,17 @@ VoxelSceneStats::ItemInfo VoxelSceneStats::_ITEMS[] = {
 
 char* VoxelSceneStats::getItemValue(int item) {
     const uint64_t USECS_PER_SECOND = 1000 * 1000;
-    int calcFPS;
-    int calculatedKBPS;
+    int calcFPS, calcAverageFPS, calculatedKBPS;
     switch(item) {
-        case ITEM_ELAPSED:
+        case ITEM_ELAPSED: {
             calcFPS = (float)USECS_PER_SECOND / (float)_elapsed;
-            sprintf(_itemValueBuffer, "%llu usecs (%d fps)", _elapsed, calcFPS);
+            float elapsedAverage = _elapsedAverage.getAverage();
+            calcAverageFPS = (float)USECS_PER_SECOND / (float)elapsedAverage;
+
+            sprintf(_itemValueBuffer, "%llu usecs (%d fps) Average: %.0f usecs (%d fps)", 
+                    _elapsed, calcFPS, elapsedAverage, calcAverageFPS);
             break;
+        }
         case ITEM_ENCODE:
             calcFPS = (float)USECS_PER_SECOND / (float)_totalEncodeTime;
             sprintf(_itemValueBuffer, "%llu usecs (%d fps)", _totalEncodeTime, calcFPS);
@@ -457,8 +474,9 @@ char* VoxelSceneStats::getItemValue(int item) {
         case ITEM_VOXELS: {
             unsigned long total = _existsInPacketBitsWritten + _colorSent;
             float calculatedBPV = total == 0 ? 0 : (_bytes * 8) / total;
-            sprintf(_itemValueBuffer, "%lu (%.2f bits/voxel) %lu internal %lu leaves", 
-                    total, calculatedBPV, _existsInPacketBitsWritten, _colorSent);
+            float averageBPV = _bitsPerVoxelAverage.getAverage();
+            sprintf(_itemValueBuffer, "%lu (%.2f bits/voxel Average: %.2f bits/voxel) %lu internal %lu leaves", 
+                    total, calculatedBPV, averageBPV, _existsInPacketBitsWritten, _colorSent);
             break;
         }
         case ITEM_TRAVERSED: {

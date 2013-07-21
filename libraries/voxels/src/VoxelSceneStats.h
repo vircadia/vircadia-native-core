@@ -84,9 +84,13 @@ private:
     int _statsMessageLength;
 
     // scene timing data in usecs
+    bool     _started;
     uint64_t _start;
     uint64_t _end;
     uint64_t _elapsed;
+    
+    SimpleMovingAverage _elapsedAverage;
+    SimpleMovingAverage _bitsPerVoxelAverage;
 
     uint64_t _totalEncodeTime;
     uint64_t _encodeStart;
