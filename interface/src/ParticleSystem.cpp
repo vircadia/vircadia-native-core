@@ -11,10 +11,11 @@
 #include "ParticleSystem.h"
 #include "Application.h"
 
-const float DEFAULT_PARTICLE_RADIUS       = 0.01f;
-const float DEFAULT_PARTICLE_BOUNCE       = 1.0f;
-const float DEFAULT_PARTICLE_AIR_FRICTION = 2.0f;
-const float DEFAULT_PARTICLE_LIFESPAN     = 1.0f;
+const float DEFAULT_PARTICLE_RADIUS            = 0.01f;
+const float DEFAULT_PARTICLE_BOUNCE            = 1.0f;
+const float DEFAULT_PARTICLE_AIR_FRICTION      = 2.0f;
+const float DEFAULT_PARTICLE_LIFESPAN          = 1.0f;
+const int   DEFAULT_PARTICLE_SPHERE_RESOLUTION = 6;
 
 ParticleSystem::ParticleSystem() {
 
@@ -27,6 +28,7 @@ ParticleSystem::ParticleSystem() {
         _emitter[emitterIndex].position                  = glm::vec3(0.0f, 0.0f, 0.0f);
         _emitter[emitterIndex].direction                 = glm::vec3(0.0f, 1.0f, 0.0f);
         _emitter[emitterIndex].visible                   = false;
+        _emitter[emitterIndex].particleResolution        = DEFAULT_PARTICLE_SPHERE_RESOLUTION;
         _emitter[emitterIndex].particleLifespan          = DEFAULT_PARTICLE_LIFESPAN;
         _emitter[emitterIndex].baseParticle.alive        = false;
         _emitter[emitterIndex].baseParticle.age          = 0.0f;
@@ -279,7 +281,7 @@ void ParticleSystem::render() {
             glColor4f(_emitter[e].baseParticle.color.r, _emitter[e].baseParticle.color.g, _emitter[e].baseParticle.color.b, _emitter[e].baseParticle.color.a );
             glPushMatrix();
             glTranslatef(_emitter[e].position.x, _emitter[e].position.y, _emitter[e].position.z);
-            glutSolidSphere(_emitter[e].baseParticle.radius, 6, 6);
+            glutSolidSphere(_emitter[e].baseParticle.radius, _emitter[e].particleResolution, _emitter[e].particleResolution);
             glPopMatrix();
         }
 
@@ -330,7 +332,7 @@ void ParticleSystem::renderParticle(int p) {
     } else {
         glPushMatrix();
         glTranslatef(_particle[p].position.x, _particle[p].position.y, _particle[p].position.z);
-        glutSolidSphere(_particle[p].radius, 6, 6);
+        glutSolidSphere(_particle[p].radius, _emitter[_particle[p].emitterIndex].particleResolution, _emitter[_particle[p].emitterIndex].particleResolution);
         glPopMatrix();
 
         if (SHOW_VELOCITY_TAILS) {
