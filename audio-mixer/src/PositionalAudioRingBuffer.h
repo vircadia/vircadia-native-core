@@ -16,9 +16,12 @@
 class PositionalAudioRingBuffer : public AudioRingBuffer {
 public:
     PositionalAudioRingBuffer();
+    ~PositionalAudioRingBuffer();
     
     int parseData(unsigned char* sourceBuffer, int numBytes);
     int parsePositionalData(unsigned char* sourceBuffer, int numBytes);
+    int parseSourceData(unsigned char* sourceBuffer, int numBytes);
+    int parseListenModeData(unsigned char* sourceBuffer, int numBytes);
     
     bool shouldBeAddedToMix(int numJitterBufferSamples);
     
@@ -36,6 +39,13 @@ protected:
     glm::vec3 _position;
     glm::quat _orientation;
     bool _willBeAddedToMix;
+    
+    int     _sourceID;
+    int     _listenMode;
+    float   _listenRadius;
+    int     _listenSourceCount;
+    int*    _listenSources;
+    
 };
 
 #endif /* defined(__hifi__PositionalAudioRingBuffer__) */

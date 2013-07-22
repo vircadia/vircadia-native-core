@@ -27,6 +27,14 @@ const short RING_BUFFER_LENGTH_SAMPLES = RING_BUFFER_LENGTH_FRAMES * BUFFER_LENG
 
 class AudioRingBuffer : public NodeData {
 public:
+
+    static int const DEFAULT_LISTEN_LIST_SIZE = 100;
+    enum {
+        NORMAL,
+        OMNI_DIRECTIONAL_POINT,
+        SELECTED_SOURCES
+    };
+
     AudioRingBuffer(bool isStereo);
     ~AudioRingBuffer();
 

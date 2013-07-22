@@ -3447,9 +3447,19 @@ void* Application::networkReceive(void* args) {
                     case PACKET_TYPE_AVATAR_FACE_VIDEO:
                         processAvatarFaceVideoMessage(app->_incomingPacket, bytesReceived);
                         break;
-                    default:
+                    default: {
                         NodeList::getInstance()->processNodeData(&senderAddress, app->_incomingPacket, bytesReceived);
+
+                        // Check to see if we have our ownerID
+                        uint16_t ownerID = NodeList::getInstance()->getOwnerID();
+    
+                        if (ownerID != app->_audio.getSourceID()) {
+                            app->_audio.setSourceID(ownerID);
+                        }
+
+
                         break;
+                    }
                 }
             }
         } else if (!app->_enableNetworkThread) {

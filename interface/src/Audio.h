@@ -54,6 +54,12 @@ public:
     // The results of the analysis are written to the log.
     bool eventuallyAnalyzePing();
 
+    int  getSourceID() const { return _sourceID; };
+    void setSourceID(int sourceID) { _sourceID = sourceID; };
+    void setListenMode(int mode) { _listenMode = mode; };
+    void setListenRadius(float radius) { _listenRadius = radius; };
+    void addListenSource(int sourceID);
+    void removeListenSource(int sourceID);
 
 private:    
     PaStream* _stream;
@@ -90,6 +96,13 @@ private:
     float _collisionSoundDuration;
     int _proceduralEffectSample;
     float _heartbeatMagnitude;
+
+    int     _sourceID;
+    int     _listenMode;
+    float   _listenRadius;
+    int     _listenSourceCount;
+    int     _listenSourcesArraySize;
+    int*    _listenSources;
     
     // Audio callback in class context.
     inline void performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* outputRight);

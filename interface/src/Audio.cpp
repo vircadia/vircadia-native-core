@@ -120,6 +120,27 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
             
             unsigned char* currentPacketPtr = dataPacket + populateTypeAndVersion(dataPacket, packetType);
             
+            // pack Source Data
+            memcpy(currentPacketPtr, &_sourceID, sizeof(_sourceID));
+            currentPacketPtr += (sizeof(_sourceID));
+            
+            // pack Listen Mode Data
+            memcpy(currentPacketPtr, &_listenMode, sizeof(_listenMode));
+            currentPacketPtr += (sizeof(_listenMode));
+    
+            if (_listenMode == AudioRingBuffer::OMNI_DIRECTIONAL_POINT) {
+                memcpy(currentPacketPtr, &_listenRadius, sizeof(_listenRadius));
+                currentPacketPtr += (sizeof(_listenRadius));
+            } else if (_listenMode == AudioRingBuffer::SELECTED_SOURCES) {
+                memcpy(currentPacketPtr, &_listenSourceCount, sizeof(_listenSourceCount));
+                currentPacketPtr += (sizeof(_listenSourceCount));
+
+                if (_listenSources) {
+                    memcpy(currentPacketPtr, &_listenSources, sizeof(int) * _listenSourceCount);
+                    currentPacketPtr += (sizeof(int) * _listenSourceCount);
+                }
+            }
+            
             // memcpy the three float positions
             memcpy(currentPacketPtr, &headPosition, sizeof(headPosition));
             currentPacketPtr += (sizeof(headPosition));
@@ -309,6 +330,49 @@ void Audio::reset() {
     _ringBuffer.reset();
 }
 
+void Audio::addListenSource(int sourceID) {
+
+    // If we don't yet have a list of listen sources, make one
+    if (!_listenSources) {
+        _listenSources = new int[AudioRingBuffer::DEFAULT_LISTEN_LIST_SIZE];
+    }
+    
+    // First check to see if the source is already in our list
+    for (int i = 0; i < _listenSourceCount; i++) {
+        if (_listenSources[i] == sourceID) {
+            return; // already in list
+        }
+    }
+    
+    // we know it's not in the list, check to see if we have room to add our source
+    if (_listenSourceCount + 1 < _listenSourcesArraySize) {
+        int* newList = new int[_listenSourcesArraySize + AudioRingBuffer::DEFAULT_LISTEN_LIST_SIZE];
+        memmove(newList, _listenSources, _listenSourcesArraySize);
+        delete[] _listenSources;
+        _listenSources = newList;
+        _listenSourcesArraySize += AudioRingBuffer::DEFAULT_LISTEN_LIST_SIZE;
+    }
+    _listenSources[_listenSourceCount] = sourceID;
+    _listenSourceCount++;
+}
+
+void Audio::removeListenSource(int sourceID) {
+    // If we don't yet have a list of listen sources, make one
+    if (_listenSources) {
+        // First check to see if the source is already in our list
+        for (int i = 0; i < _listenSourceCount; i++) {
+            if (_listenSources[i] == sourceID) {
+            
+                // found it, so, move the items forward in list
+                memmove(&_listenSources[i], &_listenSources[i+1], _listenSourceCount - i);
+                _listenSourceCount--;
+                return;
+            }
+        }
+    }
+}
+
+
 Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples) :
     _stream(NULL),
     _ringBuffer(true),
@@ -338,7 +402,13 @@ Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples) :
     _collisionSoundNoise(0.0f),
     _collisionSoundDuration(0.0f),
     _proceduralEffectSample(0),
-    _heartbeatMagnitude(0.0f)
+    _heartbeatMagnitude(0.0f),
+    _sourceID(UNKNOWN_NODE_ID),
+    _listenMode(AudioRingBuffer::NORMAL),
+    _listenRadius(0.0f),
+    _listenSourceCount(0),
+    _listenSourcesArraySize(0),
+    _listenSources(NULL)
 {
     outputPortAudioError(Pa_Initialize());
     
@@ -407,6 +477,10 @@ Audio::~Audio() {
         outputPortAudioError(Pa_Terminate());
     }
     delete[] _echoSamplesLeft;
+
+    if (_listenSources) {
+        delete[] _listenSources;
+    }
 }
 
 void Audio::addReceivedAudioToBuffer(unsigned char* receivedData, int receivedBytes) {
