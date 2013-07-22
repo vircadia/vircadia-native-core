@@ -14,36 +14,37 @@
 #include "VoxelSceneStats.h"
 
 
-VoxelSceneStats::VoxelSceneStats() : _elapsedAverage(100), _bitsPerVoxelAverage(100) {
+const int samples = 100;
+VoxelSceneStats::VoxelSceneStats() : 
+    _elapsedAverage(samples), 
+    _bitsPerVoxelAverage(samples) 
+{
     reset();
     _readyToSend = false;
-    _started = false;
+    _isStarted = false;
 }
 
-VoxelSceneStats::~VoxelSceneStats() {
-}
-
-void VoxelSceneStats::sceneStarted(bool fullScene, bool moving, VoxelNode* root) {
+void VoxelSceneStats::sceneStarted(bool isFullScene, bool isMoving, VoxelNode* root) {
     reset(); // resets packet and voxel stats
-    _started = true;
+    _isStarted = true;
     _start = usecTimestampNow();
     _totalVoxels   = root->getSubTreeNodeCount();
     _totalInternal = root->getSubTreeInternalNodeCount();
     _totalLeaves   = root->getSubTreeLeafNodeCount();
     
-    _fullSceneDraw = fullScene;
-    _moving = moving;
+    _isFullScene = isFullScene;
+    _isMoving = isMoving;
 }
 
 void VoxelSceneStats::sceneCompleted() {
-    if (_started) {
+    if (_isStarted) {
         _end = usecTimestampNow();
         _elapsed = _end - _start;
         _elapsedAverage.updateAverage((float)_elapsed);
 
         _statsMessageLength = packIntoMessage(_statsMessage, sizeof(_statsMessage));
         _readyToSend = true;
-        _started = false;
+        _isStarted = false;
     }
 }
 
@@ -220,10 +221,10 @@ int VoxelSceneStats::packIntoMessage(unsigned char* destinationBuffer, int avail
     destinationBuffer += sizeof(_elapsed);
     memcpy(destinationBuffer, &_totalEncodeTime, sizeof(_totalEncodeTime));
     destinationBuffer += sizeof(_totalEncodeTime);
-    memcpy(destinationBuffer, &_fullSceneDraw, sizeof(_fullSceneDraw));
-    destinationBuffer += sizeof(_fullSceneDraw);
-    memcpy(destinationBuffer, &_moving, sizeof(_moving));
-    destinationBuffer += sizeof(_moving);
+    memcpy(destinationBuffer, &_isFullScene, sizeof(_isFullScene));
+    destinationBuffer += sizeof(_isFullScene);
+    memcpy(destinationBuffer, &_isMoving, sizeof(_isMoving));
+    destinationBuffer += sizeof(_isMoving);
     memcpy(destinationBuffer, &_packets, sizeof(_packets));
     destinationBuffer += sizeof(_packets);
     memcpy(destinationBuffer, &_bytes, sizeof(_bytes));
@@ -292,10 +293,10 @@ int VoxelSceneStats::unpackFromMessage(unsigned char* sourceBuffer, int availabl
     sourceBuffer += sizeof(_elapsed);
     memcpy(&_totalEncodeTime, sourceBuffer, sizeof(_totalEncodeTime));
     sourceBuffer += sizeof(_totalEncodeTime);
-    memcpy(&_fullSceneDraw, sourceBuffer, sizeof(_fullSceneDraw));
-    sourceBuffer += sizeof(_fullSceneDraw);
-    memcpy(&_moving, sourceBuffer, sizeof(_moving));
-    sourceBuffer += sizeof(_moving);
+    memcpy(&_isFullScene, sourceBuffer, sizeof(_isFullScene));
+    sourceBuffer += sizeof(_isFullScene);
+    memcpy(&_isMoving, sourceBuffer, sizeof(_isMoving));
+    sourceBuffer += sizeof(_isMoving);
     memcpy(&_packets, sourceBuffer, sizeof(_packets));
     sourceBuffer += sizeof(_packets);
     memcpy(&_bytes, sourceBuffer, sizeof(_bytes));
@@ -383,8 +384,8 @@ void VoxelSceneStats::printDebugDetails() {
     qDebug("    elapsed  : %llu \n", _elapsed);
     qDebug("    encoding : %llu \n", _totalEncodeTime);
     qDebug("\n");
-    qDebug("    full scene: %s\n", debug::valueOf(_fullSceneDraw));
-    qDebug("    moving: %s\n", debug::valueOf(_moving));
+    qDebug("    full scene: %s\n", debug::valueOf(_isFullScene));
+    qDebug("    moving: %s\n", debug::valueOf(_isMoving));
     qDebug("\n");
     qDebug("    packets: %d\n", _packets);
     qDebug("    bytes  : %ld\n", _bytes);
@@ -540,8 +541,8 @@ char* VoxelSceneStats::getItemValue(int item) {
             break;
         }
         case ITEM_MODE: {
-            sprintf(_itemValueBuffer, "%s - %s", (_fullSceneDraw ? "Full Scene" : "Partial Scene"), 
-                    (_moving ? "Moving" : "Stationary"));
+            sprintf(_itemValueBuffer, "%s - %s", (_isFullScene ? "Full Scene" : "Partial Scene"), 
+                    (_isMoving ? "Moving" : "Stationary"));
             break;
         }
         default:

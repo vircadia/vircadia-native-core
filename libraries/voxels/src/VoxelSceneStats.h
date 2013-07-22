@@ -18,7 +18,6 @@ class VoxelNode;
 class VoxelSceneStats {
 public:
     VoxelSceneStats();
-    ~VoxelSceneStats();
     void reset();
     void sceneStarted(bool fullScene, bool moving, VoxelNode* root);
     void sceneCompleted();
@@ -85,7 +84,7 @@ private:
     int _statsMessageLength;
 
     // scene timing data in usecs
-    bool     _started;
+    bool     _isStarted;
     uint64_t _start;
     uint64_t _end;
     uint64_t _elapsed;
@@ -159,8 +158,8 @@ private:
     unsigned int  _passes;
     
     // features related items
-    bool _moving;
-    bool _fullSceneDraw;
+    bool _isMoving;
+    bool _isFullScene;
 
 
     static ItemInfo _ITEMS[];
