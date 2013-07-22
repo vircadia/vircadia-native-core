@@ -56,7 +56,6 @@ void VoxelSceneStats::encodeStopped() {
     _totalEncodeTime += (usecTimestampNow() - _encodeStart);
 }
 
-    
 void VoxelSceneStats::reset() {
     _totalEncodeTime = 0;
     _encodeStart = 0;
