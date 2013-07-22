@@ -424,24 +424,27 @@ void VoxelSceneStats::printDebugDetails() {
     qDebug("    trees removed       : %lu\n", _treesRemoved             );
 }
 
+const unsigned greenish  = 0x40ff40d0;
+const unsigned yellowish = 0xffef40c0;
+const unsigned greyish   = 0xd0d0d0a0;
 
 VoxelSceneStats::ItemInfo VoxelSceneStats::_ITEMS[] = {
-    { "Elapsed"              , 0x40ff40d0 },
-    { "Encode"               , 0xffef40c0 },
-    { "Network"              , 0xd0d0d0a0 },
-    { "Voxels on Server"     , 0x40ff40d0 },
-    { "Voxels Sent"          , 0xffef40c0 },
-    { "Colors Sent"          , 0xd0d0d0a0 },
-    { "Bitmasks Sent"        , 0x40ff40d0 },
-    { "Traversed"            , 0xffef40c0 },
-    { "Skipped - Total"      , 0xd0d0d0a0 },
-    { "Skipped - Distance"   , 0x40ff40d0 },
-    { "Skipped - Out of View", 0xffef40c0 },
-    { "Skipped - Was in View", 0xd0d0d0a0 },
-    { "Skipped - No Change"  , 0x40ff40d0 },
-    { "Skipped - Occluded"   , 0xffef40c0 },
-    { "Didn't fit in packet" , 0xd0d0d0a0 },
-    { "Mode"                 , 0x40ff40d0 },
+    { "Elapsed"              , greenish  },
+    { "Encode"               , yellowish },
+    { "Network"              , greyish   },
+    { "Voxels on Server"     , greenish  },
+    { "Voxels Sent"          , yellowish },
+    { "Colors Sent"          , greyish   },
+    { "Bitmasks Sent"        , greenish  },
+    { "Traversed"            , yellowish },
+    { "Skipped - Total"      , greyish   },
+    { "Skipped - Distance"   , greenish  },
+    { "Skipped - Out of View", yellowish },
+    { "Skipped - Was in View", greyish   },
+    { "Skipped - No Change"  , greenish  },
+    { "Skipped - Occluded"   , yellowish },
+    { "Didn't fit in packet" , greyish   },
+    { "Mode"                 , greenish  },
 };
 
 char* VoxelSceneStats::getItemValue(int item) {
