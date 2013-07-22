@@ -38,7 +38,9 @@ VoxelStatsDialog::VoxelStatsDialog(QWidget* parent, VoxelSceneStats* model) :
         // Set foreground color to 62.5% brightness of the meter (otherwise will be hard to read on the bright background)
         QPalette palette = label->palette();
         unsigned rgb = itemInfo.colorRGBA >> 8;
-        rgb = ((rgb & 0xfefefeu) >> 1) + ((rgb & 0xf8f8f8) >> 3);
+        const unsigned colorpart1 = 0xfefefeu;
+        const unsigned colorpart2 = 0xf8f8f8;
+        rgb = ((rgb & colorpart1) >> 1) + ((rgb & colorpart2) >> 3);
         palette.setColor(QPalette::WindowText, QColor::fromRgb(rgb));
         label->setPalette(palette);
         
