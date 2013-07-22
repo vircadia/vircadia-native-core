@@ -60,18 +60,17 @@ private:
     float          _testRaveGloveClock;
     int            _testRaveGloveMode;
     bool           _particleSystemInitialized;
-    int            _fingerParticleEmitter[NUM_FINGERS_PER_HAND];
+    int            _fingerParticleEmitter[NUM_FINGERS];
     Avatar*        _owningAvatar;
     float          _renderAlpha;
     bool           _lookingInMirror;
     bool           _isRaveGloveActive;
     glm::vec3      _ballColor;
-    std::vector<HandBall>	_leapBalls;
-    
+    std::vector<HandBall> _leapBalls;
     
     // private methods
     void setLeapHands(const std::vector<glm::vec3>& handPositions,
-                          const std::vector<glm::vec3>& handNormals);
+                      const std::vector<glm::vec3>& handNormals);
 
     void renderRaveGloveStage();
     void setRaveGloveMode(int mode);

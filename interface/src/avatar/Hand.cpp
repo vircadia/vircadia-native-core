@@ -32,7 +32,7 @@ Hand::Hand(Avatar* owningAvatar) :
 
  {
     // initialize all finger particle emitters with an invalid id as default
-    for (int f = 0; f< NUM_FINGERS_PER_HAND; f ++ ) {
+    for (int f = 0; f< NUM_FINGERS; f ++ ) {
         _fingerParticleEmitter[f] = -1;
     }
 }
@@ -232,7 +232,7 @@ void Hand::setLeapHands(const std::vector<glm::vec3>& handPositions,
 void Hand::updateFingerParticleEmitters() {
 
     if (_particleSystemInitialized) {
-         
+    
         int fingerIndex = 0;
         for (size_t i = 0; i < getNumPalms(); ++i) {
             PalmData& palm = getPalms()[i];
@@ -240,7 +240,7 @@ void Hand::updateFingerParticleEmitters() {
                 for (size_t f = 0; f < palm.getNumFingers(); ++f) {
                     FingerData& finger = palm.getFingers()[f];
                     if (finger.isActive()) {
-                        if (_fingerParticleEmitter[fingerIndex] != -1) {
+                        if (_fingerParticleEmitter[0] != -1) {
                                                         
                             glm::vec3 fingerDirection = finger.getTipPosition() - finger.getRootPosition();
                             float fingerLength = glm::length(fingerDirection);
@@ -251,8 +251,9 @@ void Hand::updateFingerParticleEmitters() {
                                 fingerDirection = IDENTITY_UP;
                             }
                             
-                            _particleSystem.setEmitterPosition (_fingerParticleEmitter[f], finger.getTipPosition());
-                            _particleSystem.setEmitterDirection(_fingerParticleEmitter[f], fingerDirection);
+                            _particleSystem.setEmitterPosition (_fingerParticleEmitter[fingerIndex], finger.getTipPosition());
+                            _particleSystem.setEmitterDirection(_fingerParticleEmitter[fingerIndex], fingerDirection);
+                            fingerIndex ++;
                          }
                     }
                 }
@@ -262,14 +263,13 @@ void Hand::updateFingerParticleEmitters() {
 }
 
 
-
 // call this from within the simulate method
 void Hand::updateFingerParticles(float deltaTime) {
 
     if (!_particleSystemInitialized) {
     
         // start up the rave glove finger particles...
-        for ( int f = 0; f< NUM_FINGERS_PER_HAND; f ++ ) {
+        for ( int f = 0; f< NUM_FINGERS; f ++ ) {
             _fingerParticleEmitter[f] = _particleSystem.addEmitter();
             assert( _fingerParticleEmitter[f] != -1 );
         }
@@ -298,7 +298,7 @@ void Hand::updateFingerParticles(float deltaTime) {
             
             attributes.color = glm::vec4(red, green, blue, 1.0f);            
             attributes.radius = 0.02f;
-            for ( int f = 0; f< NUM_FINGERS_PER_HAND; f ++ ) {
+            for ( int f = 0; f< NUM_FINGERS; f ++ ) {
                 _particleSystem.setParticleAttributes(_fingerParticleEmitter[f], 0, attributes);
                 _particleSystem.setParticleAttributes(_fingerParticleEmitter[f], 1, attributes);
                 _particleSystem.setParticleAttributes(_fingerParticleEmitter[f], 2, attributes);
@@ -314,8 +314,9 @@ void Hand::updateFingerParticles(float deltaTime) {
                 for (size_t f = 0; f < palm.getNumFingers(); ++f) {
                     FingerData& finger = palm.getFingers()[f];
                     if (finger.isActive()) {
-                        if (_fingerParticleEmitter[fingerIndex] != -1) {
-                            _particleSystem.emitNow(_fingerParticleEmitter[f]); 
+                        if (_fingerParticleEmitter[0] != -1) {
+                            _particleSystem.emitNow(_fingerParticleEmitter[fingerIndex]);
+                            fingerIndex ++; 
                         }
                     }
                 }
@@ -330,7 +331,7 @@ void Hand::setRaveGloveMode(int mode) {
 
     _particleSystem.killAllParticles();
 
-    for ( int f = 0; f< NUM_FINGERS_PER_HAND; f ++ ) {
+    for ( int f = 0; f< NUM_FINGERS; f ++ ) {
                                     
         ParticleSystem::ParticleAttributes attributes;
 

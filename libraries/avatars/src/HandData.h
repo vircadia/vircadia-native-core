@@ -19,7 +19,10 @@ class AvatarData;
 class FingerData;
 class PalmData;
 
+const int NUM_HANDS = 2;
 const int NUM_FINGERS_PER_HAND = 5;
+const int NUM_FINGERS = NUM_HANDS * NUM_FINGERS_PER_HAND;
+
 const int LEAPID_INVALID = -1;
 
 class HandData {
