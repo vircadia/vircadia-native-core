@@ -42,10 +42,6 @@ public:
     void render(bool lookingInMirror);
 
     void setBallColor      (glm::vec3 ballColor         ) { _ballColor          = ballColor;          }
-    void setLeapFingers    (const std::vector<glm::vec3>& fingerTips,
-                            const std::vector<glm::vec3>& fingerRoots);
-    void setLeapHands      (const std::vector<glm::vec3>& handPositions,
-                            const std::vector<glm::vec3>& handNormals);
     void updateFingerParticles(float deltaTime);
     void updateFingerParticleEmitters();
     void setRaveGloveActive(bool active) { _isRaveGloveActive = active; }
@@ -74,9 +70,13 @@ private:
     
     
     // private methods
+    void setLeapHands(const std::vector<glm::vec3>& handPositions,
+                          const std::vector<glm::vec3>& handNormals);
+
     void renderRaveGloveStage();
     void setRaveGloveMode(int mode);
     void renderHandSpheres();
+    void renderFingerTrails();
     void calculateGeometry();
 };
 

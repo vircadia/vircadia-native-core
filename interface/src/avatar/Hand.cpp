@@ -104,6 +104,7 @@ void Hand::render(bool lookingInMirror) {
     glEnable(GL_RESCALE_NORMAL);
     
     if ( SHOW_LEAP_HAND ) {
+        renderFingerTrails();
         renderHandSpheres();
     }
 }
@@ -183,23 +184,30 @@ void Hand::renderHandSpheres() {
     glPopMatrix();
 }
 
-void Hand::setLeapFingers(const std::vector<glm::vec3>& fingerTips,
-                          const std::vector<glm::vec3>& fingerRoots) {
-    // TODO: add id-checking here to increase finger stability
-    
-    size_t fingerIndex = 0;
+void Hand::renderFingerTrails() {
+    // Draw the finger root cones
     for (size_t i = 0; i < getNumPalms(); ++i) {
         PalmData& palm = getPalms()[i];
-        for (size_t f = 0; f < palm.getNumFingers(); ++f) {
-            FingerData& finger = palm.getFingers()[f];
-            if (fingerIndex < fingerTips.size()) {
-                finger.setActive(true);
-                finger.setRawTipPosition(fingerTips[fingerIndex]);
-                finger.setRawRootPosition(fingerRoots[fingerIndex]);
-                fingerIndex++;
-            }
-            else {
-                finger.setActive(false);
+        if (palm.isActive()) {
+            for (size_t f = 0; f < palm.getNumFingers(); ++f) {
+                FingerData& finger = palm.getFingers()[f];
+                int numPositions = finger.getTrailNumPositions();
+                if (numPositions > 0) {
+                    glBegin(GL_TRIANGLE_STRIP);
+                    for (int t = 0; t < numPositions; ++t)
+                    {
+                        const glm::vec3& center = finger.getTrailPosition(t);
+                        const float halfWidth = 0.001f;
+                        const glm::vec3 edgeDirection(1.0f, 0.0f, 0.0f);
+                        glm::vec3 edge0 = center + edgeDirection * halfWidth;
+                        glm::vec3 edge1 = center - edgeDirection * halfWidth;
+                        float alpha = 1.0f - ((float)t / (float)(numPositions - 1));
+                        glColor4f(1.0f, 0.0f, 0.0f, alpha);
+                        glVertex3fv((float*)&edge0);
+                        glVertex3fv((float*)&edge1);
+                    }
+                    glEnd();
+                }
             }
         }
     }
