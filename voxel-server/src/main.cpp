@@ -117,7 +117,7 @@ void handlePacketSend(NodeList* nodeList,
                       VoxelNodeData* nodeData, 
                       int& trueBytesSent, int& truePacketsSent) {
     // If we've got a stats message ready to send, then see if we can piggyback them together
-    if (nodeData->stats.readyToSend()) {
+    if (nodeData->stats.isReadyToSend()) {
         // Send the stats message to the client
         unsigned char* statsMessage = nodeData->stats.getStatsMessage();
         int statsMessageLength = nodeData->stats.getStatsMessageLength();

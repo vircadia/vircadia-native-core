@@ -20,7 +20,7 @@ VoxelSceneStats::VoxelSceneStats() :
     _bitsPerVoxelAverage(samples) 
 {
     reset();
-    _readyToSend = false;
+    _isReadyToSend = false;
     _isStarted = false;
 }
 
@@ -43,7 +43,7 @@ void VoxelSceneStats::sceneCompleted() {
         _elapsedAverage.updateAverage((float)_elapsed);
 
         _statsMessageLength = packIntoMessage(_statsMessage, sizeof(_statsMessage));
-        _readyToSend = true;
+        _isReadyToSend = true;
         _isStarted = false;
     }
 }

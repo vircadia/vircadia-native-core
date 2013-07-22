@@ -44,8 +44,8 @@ public:
     int packIntoMessage(unsigned char* destinationBuffer, int availableBytes);
     int unpackFromMessage(unsigned char* sourceBuffer, int availableBytes);
 
-    bool readyToSend() const { return _readyToSend; }
-    void markAsSent() { _readyToSend = false; }
+    bool isReadyToSend() const { return _isReadyToSend; }
+    void markAsSent() { _isReadyToSend = false; }
     unsigned char* getStatsMessage() { return &_statsMessage[0]; }
     int getStatsMessageLength() const { return _statsMessageLength; }
 
@@ -79,7 +79,7 @@ public:
     char* getItemValue(int item);
     
 private:
-    bool _readyToSend;
+    bool _isReadyToSend;
     unsigned char _statsMessage[MAX_PACKET_SIZE];
     int _statsMessageLength;
 
