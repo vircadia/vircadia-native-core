@@ -482,8 +482,7 @@ void *removeSilentNodes(void *args) {
         
         for(NodeList::iterator node = nodeList->begin(); node != nodeList->end(); ++node) {
             
-            if ((checkTimeUSecs - node->getLastHeardMicrostamp()) > NODE_SILENCE_THRESHOLD_USECS
-            	&& node->getType() != NODE_TYPE_VOXEL_SERVER) {
+            if ((checkTimeUSecs - node->getLastHeardMicrostamp()) > NODE_SILENCE_THRESHOLD_USECS) {
             
                 qDebug() << "Killed" << *node << "\n";
                 
@@ -510,6 +509,37 @@ void NodeList::startSilentNodeRemovalThread() {
 void NodeList::stopSilentNodeRemovalThread() {
     silentNodeThreadStopFlag = true;
     pthread_join(removeSilentNodesThread, NULL);
+    
+}
+
+const QString QSETTINGS_GROUP_NAME = "NodeList";
+const QString DOMAIN_SERVER_SETTING_KEY = "domainServerHostname";
+
+void NodeList::loadData(QSettings *settings) {
+    settings->beginGroup(DOMAIN_SERVER_SETTING_KEY);
+    
+    QString domainServerHostname = settings->value(DOMAIN_SERVER_SETTING_KEY).toString();
+    
+    if (domainServerHostname.size() > 0) {
+        memset(_domainHostname, 0, MAX_HOSTNAME_BYTES);
+        memcpy(_domainHostname, domainServerHostname.toAscii().constData(), domainServerHostname.size());
+    }
+    
+    settings->endGroup();
+}
+
+void NodeList::saveData(QSettings* settings) {
+    settings->beginGroup(DOMAIN_SERVER_SETTING_KEY);
+    
+    if (memcmp(_domainHostname, DEFAULT_DOMAIN_HOSTNAME, strlen(DEFAULT_DOMAIN_HOSTNAME)) != 0) {
+        // the user is using a different hostname, store it
+        settings->setValue(DOMAIN_SERVER_SETTING_KEY, QVariant(_domainHostname));
+    } else {
+        // the user has switched back to default, remove the current setting
+        settings->remove(DOMAIN_SERVER_SETTING_KEY);
+    }
+    
+    settings->endGroup();
 }
 
 NodeList::iterator NodeList::begin() const {

@@ -21,8 +21,10 @@ const glm::vec3 IDENTITY_UP    = glm::vec3( 0.0f, 1.0f, 0.0f);
 const glm::vec3 IDENTITY_FRONT = glm::vec3( 0.0f, 0.0f,-1.0f);
 
 const bool LOW_RES_MONO = false; // while in "low res mode" do voxels switch to monochrome
+const uint64_t CHANGE_FUDGE = 1000 * 200; // useconds of fudge in determining if we want to resend changed voxels
 
-const int TREE_SCALE = 128;
+const int   TREE_SCALE = 128; // This is the number of meters of the 0.0 to 1.0 voxel universe
+const float VOXEL_SIZE_SCALE = 50000.0f; // This controls the LOD bigger will make smaller voxels visible at greater distance
 
 const int NUMBER_OF_CHILDREN = 8;
 const int MAX_VOXEL_PACKET_SIZE = 1492;

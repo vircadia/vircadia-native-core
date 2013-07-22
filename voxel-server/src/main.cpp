@@ -44,9 +44,9 @@ const int MIN_BRIGHTNESS = 64;
 const float DEATH_STAR_RADIUS = 4.0;
 const float MAX_CUBE = 0.05f;
 
-const int VOXEL_SEND_INTERVAL_USECS = 100 * 1000;
-int PACKETS_PER_CLIENT_PER_INTERVAL = 30;
-const int SENDING_TIME_TO_SPARE = 20 * 1000; // usec of sending interval to spare for calculating voxels
+const int VOXEL_SEND_INTERVAL_USECS = 17 * 1000; // approximately 60fps
+int PACKETS_PER_CLIENT_PER_INTERVAL = 20;
+const int SENDING_TIME_TO_SPARE = 5 * 1000; // usec of sending interval to spare for calculating voxels
 
 const int MAX_VOXEL_TREE_DEPTH_LEVELS = 4;
 
@@ -173,10 +173,10 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
     // If the current view frustum has changed OR we have nothing to send, then search against 
     // the current view frustum for things to send.
     if (viewFrustumChanged || nodeData->nodeBag.isEmpty()) {
+        uint64_t now = usecTimestampNow();
         if (::debugVoxelSending) {
             printf("(viewFrustumChanged=%s || nodeData->nodeBag.isEmpty() =%s)...\n",
                    debug::valueOf(viewFrustumChanged), debug::valueOf(nodeData->nodeBag.isEmpty()));
-            uint64_t now = usecTimestampNow();
             if (nodeData->getLastTimeBagEmpty() > 0) {
                 float elapsedSceneSend = (now - nodeData->getLastTimeBagEmpty()) / 1000000.0f;
                 if (viewFrustumChanged) {
@@ -188,15 +188,24 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
                        debug::valueOf(nodeData->getWantOcclusionCulling()), debug::valueOf(wantDelta), 
                        debug::valueOf(wantColor));
             }
-            nodeData->setLastTimeBagEmpty(now); // huh? why is this inside debug? probably not what we want
         }
                 
         // if our view has changed, we need to reset these things...
         if (viewFrustumChanged) {
             nodeData->nodeBag.deleteAll();
             nodeData->map.erase();
+        } 
+        
+        if (!viewFrustumChanged && !nodeData->getWantDelta()) {
+            // only set our last sent time if we weren't resetting due to frustum change
+            uint64_t now = usecTimestampNow();
+            nodeData->setLastTimeBagEmpty(now);
+            if (::debugVoxelSending) {
+                printf("ENTIRE SCENE SENT! nodeData->setLastTimeBagEmpty(now=[%lld])\n", now);
+            }
         }
 
+        // This is the start of "resending" the scene.
         nodeData->nodeBag.insert(serverTree.rootNode);
     }
 
@@ -233,15 +242,13 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
                 
                 EncodeBitstreamParams params(INT_MAX, &nodeData->getCurrentViewFrustum(), wantColor, 
                                              WANT_EXISTS_BITS, DONT_CHOP, wantDelta, lastViewFrustum,
-                                             wantOcclusionCulling, coverageMap, boundaryLevelAdjust);
-
+                                             wantOcclusionCulling, coverageMap, boundaryLevelAdjust,
+                                             nodeData->getLastTimeBagEmpty(),
+                                             nodeData->getViewFrustumJustStoppedChanging());
+                                             
                 bytesWritten = serverTree.encodeTreeBitstream(subTree, &tempOutputBuffer[0], MAX_VOXEL_PACKET_SIZE - 1,
                                                               nodeData->nodeBag, params);
 
-                if (::debugVoxelSending && wantDelta) {
-                    printf("encodeTreeBitstream() childWasInViewDiscarded=%ld\n", params.childWasInViewDiscarded);
-                }
-                
                 if (nodeData->getAvailable() >= bytesWritten) {
                     nodeData->writeToPacket(&tempOutputBuffer[0], bytesWritten);
                 } else {
@@ -375,9 +382,10 @@ void attachVoxelNodeDataToNode(Node* newNode) {
 }
 
 int main(int argc, const char * argv[]) {
-
     pthread_mutex_init(&::treeLock, NULL);
-
+    
+    qInstallMsgHandler(sharedMessageHandler);
+    
     NodeList* nodeList = NodeList::createInstance(NODE_TYPE_VOXEL_SERVER, VOXEL_LISTEN_PORT);
     setvbuf(stdout, NULL, _IOLBF, 0);
 

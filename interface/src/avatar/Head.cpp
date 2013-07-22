@@ -82,7 +82,8 @@ Head::Head(Avatar* owningAvatar) :
     _cameraYaw(_yaw),
     _isCameraMoving(false),
     _cameraFollowsHead(false),
-    _cameraFollowHeadRate(0.0f)
+    _cameraFollowHeadRate(0.0f),
+    _face(this)
 {
     if (USING_PHYSICAL_MOHAWK) {
         resetHairPhysics();
@@ -226,8 +227,9 @@ void Head::simulate(float deltaTime, bool isMine) {
         const float CAMERA_FOLLOW_HEAD_RATE_START = 0.01f;
         const float CAMERA_FOLLOW_HEAD_RATE_MAX = 0.5f;
         const float CAMERA_FOLLOW_HEAD_RATE_RAMP_RATE = 1.05f;
-        const float CAMERA_STOP_TOLERANCE_DEGREES = 0.1f;
-        const float CAMERA_START_TOLERANCE_DEGREES = 2.0f;
+        const float CAMERA_STOP_TOLERANCE_DEGREES = 0.5f;
+        const float CAMERA_PITCH_START_TOLERANCE_DEGREES = 20.0f;       
+        const float CAMERA_YAW_START_TOLERANCE_DEGREES = 10.0f;
         float cameraHeadAngleDifference = glm::length(glm::vec2(_pitch - _cameraPitch, _yaw - _cameraYaw));
         if (_isCameraMoving) {
             _cameraFollowHeadRate = glm::clamp(_cameraFollowHeadRate * CAMERA_FOLLOW_HEAD_RATE_RAMP_RATE,
@@ -240,7 +242,8 @@ void Head::simulate(float deltaTime, bool isMine) {
                 _isCameraMoving = false;
             }
         } else {
-            if (cameraHeadAngleDifference > CAMERA_START_TOLERANCE_DEGREES) {
+            if ((fabs(_pitch - _cameraPitch) > CAMERA_PITCH_START_TOLERANCE_DEGREES) ||
+                (fabs(_yaw - _cameraYaw) > CAMERA_YAW_START_TOLERANCE_DEGREES)) {
                 _isCameraMoving = true;
                 _cameraFollowHeadRate = CAMERA_FOLLOW_HEAD_RATE_START;
             }
@@ -269,7 +272,7 @@ void Head::calculateGeometry() {
                       + up * _scale * BODY_BALL_RADIUS_HEAD_BASE * EYE_UP_OFFSET 
                       + front * _scale * BODY_BALL_RADIUS_HEAD_BASE * EYE_FRONT_OFFSET;
 
-    _eyeLevelPosition = _position + up * _scale * EYE_UP_OFFSET;
+    _eyeLevelPosition = _position + up * _scale * BODY_BALL_RADIUS_HEAD_BASE * EYE_UP_OFFSET;
 
     //calculate the eyebrow positions 
     _leftEyeBrowPosition  = _leftEyePosition; 
@@ -289,18 +292,20 @@ void Head::render(float alpha) {
 
     _renderAlpha = alpha;
 
-    calculateGeometry();
+    if (!_face.render(alpha)) {
+        calculateGeometry();
 
-    glEnable(GL_DEPTH_TEST);
-    glEnable(GL_RESCALE_NORMAL);
+        glEnable(GL_DEPTH_TEST);
+        glEnable(GL_RESCALE_NORMAL);
     
-    renderMohawk();
-    renderHeadSphere();
-    renderEyeBalls();
-    renderEars();
-    renderMouth();    
-    renderEyeBrows();
-    
+        renderMohawk();
+        renderHeadSphere();
+        renderEyeBalls();    
+        renderEars();
+        renderMouth();    
+        renderEyeBrows();
+    }
+        
     if (_renderLookatVectors) {
         renderLookatVectors(_leftEyePosition, _rightEyePosition, _lookAtPosition);
     }
@@ -590,7 +595,7 @@ void Head::renderEyeBalls() {
         glm::quat rotation = rotationBetween(front, targetLookatVector) * orientation;
         glm::vec3 rotationAxis = glm::axis(rotation);           
         glRotatef(glm::angle(rotation), rotationAxis.x, rotationAxis.y, rotationAxis.z);
-        glTranslatef(0.0f, 0.0f, -IRIS_PROTRUSION);
+        glTranslatef(0.0f, 0.0f, -_scale * IRIS_PROTRUSION);
         glScalef(_scale * IRIS_RADIUS * 2.0f,
                  _scale * IRIS_RADIUS * 2.0f,
                  _scale * IRIS_RADIUS); // flatten the iris
@@ -614,7 +619,7 @@ void Head::renderEyeBalls() {
         glm::quat rotation = rotationBetween(front, targetLookatVector) * orientation;
         glm::vec3 rotationAxis = glm::axis(rotation);        
         glRotatef(glm::angle(rotation), rotationAxis.x, rotationAxis.y, rotationAxis.z);
-        glTranslatef(0.0f, 0.0f, -IRIS_PROTRUSION);
+        glTranslatef(0.0f, 0.0f, -_scale * IRIS_PROTRUSION);
         glScalef(_scale * IRIS_RADIUS * 2.0f,
                  _scale * IRIS_RADIUS * 2.0f,
                  _scale * IRIS_RADIUS); // flatten the iris

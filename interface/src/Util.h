@@ -57,7 +57,10 @@ glm::quat safeMix(const glm::quat& q1, const glm::quat& q2, float alpha);
 
 double diffclock(timeval *clock1,timeval *clock2);
 
-void drawGroundPlaneGrid(float size);
+void renderGroundPlaneGrid(float size, float impact);
+
+void renderCollisionOverlay(int width, int height, float magnitude);
+
 
 void renderDiskShadow(glm::vec3 position, glm::vec3 upDirection, float radius, float darkness);
 
@@ -67,7 +70,6 @@ void renderSphereOutline(glm::vec3 position, float radius, int numSides, glm::ve
 void renderCircle(glm::vec3 position, float radius, glm::vec3 surfaceNormal, int numSides );
 
 void runTimingTests();
-
 
 float loadSetting(QSettings* settings, const char* name, float defaultValue);
 

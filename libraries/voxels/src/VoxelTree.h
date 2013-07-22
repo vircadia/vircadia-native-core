@@ -35,6 +35,7 @@ typedef enum {GRADIENT, RANDOM, NATURAL} creationMode;
 #define DONT_CHOP              0
 #define NO_BOUNDARY_ADJUST     0
 #define LOW_RES_MOVING_ADJUST  1
+#define IGNORE_LAST_SENT       0
 
 class EncodeBitstreamParams {
 public:
@@ -49,7 +50,8 @@ public:
     bool                wantOcclusionCulling;
     long                childWasInViewDiscarded;
     int                 boundaryLevelAdjust;
-
+    uint64_t            lastViewFrustumSent;
+    bool                forceSendScene;
     CoverageMap*        map;
     
     EncodeBitstreamParams(
@@ -62,7 +64,9 @@ public:
         const ViewFrustum*  lastViewFrustum     = IGNORE_VIEW_FRUSTUM,
         bool                wantOcclusionCulling= NO_OCCLUSION_CULLING,
         CoverageMap*        map                 = IGNORE_COVERAGE_MAP,
-        int                 boundaryLevelAdjust = NO_BOUNDARY_ADJUST) :
+        int                 boundaryLevelAdjust = NO_BOUNDARY_ADJUST,
+        uint64_t            lastViewFrustumSent = IGNORE_LAST_SENT,
+        bool                forceSendScene      = true) :
             maxEncodeLevel          (maxEncodeLevel),
             maxLevelReached         (0),
             viewFrustum             (viewFrustum),
@@ -74,6 +78,8 @@ public:
             wantOcclusionCulling    (wantOcclusionCulling),
             childWasInViewDiscarded (0),
             boundaryLevelAdjust     (boundaryLevelAdjust),
+            lastViewFrustumSent     (lastViewFrustumSent),
+            forceSendScene          (forceSendScene),
             map                     (map)
     {}
 };

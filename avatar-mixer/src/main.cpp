@@ -117,6 +117,7 @@ int main(int argc, const char* argv[]) {
                     
                     break;
                 case PACKET_TYPE_AVATAR_VOXEL_URL:
+                case PACKET_TYPE_AVATAR_FACE_VIDEO:
                     // grab the node ID from the packet
                     unpackNodeId(packetData + numBytesForPacketHeader(packetData), &nodeID);
                     

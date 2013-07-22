@@ -325,22 +325,38 @@ void drawvec3(int x, int y, float scale, float rotate, float thick, int mono, gl
     glPopMatrix();
 } 
 
+void renderCollisionOverlay(int width, int height, float magnitude) {
+    const float MIN_VISIBLE_COLLISION = 0.01f;
+    if (magnitude > MIN_VISIBLE_COLLISION) {
+        glColor4f(0, 0, 0, magnitude);
+        glBegin(GL_QUADS);
+        glVertex2f(0, 0);
+        glVertex2d(width, 0);
+        glVertex2d(width, height);
+        glVertex2d(0, height);
+        glEnd();
+    }
+}
 
-void drawGroundPlaneGrid(float size) {
-	glColor3f(0.4f, 0.5f, 0.3f); 
+void renderGroundPlaneGrid(float size, float impact) {
 	glLineWidth(2.0);
-		
+    glm::vec4 impactColor(1, 0, 0, 1);
+    glm::vec3 lineColor(0.4, 0.5, 0.3);
+    glm::vec4 surfaceColor(0.5, 0.5, 0.5, 0.4);
+    
+    glColor3fv(&lineColor.x);
     for (float x = 0; x <= size; x++) {
 		glBegin(GL_LINES);
-		glVertex3f(x, 0.0f, 0);
-		glVertex3f(x, 0.0f, size);
-        glVertex3f(0, 0.0f, x);
-		glVertex3f(size, 0.0f, x);
+		glVertex3f(x, 0, 0);
+		glVertex3f(x, 0, size);
+        glVertex3f(0, 0, x);
+		glVertex3f(size, 0, x);
         glEnd();
     }
         
-    // Draw a translucent quad just underneath the grid.
-    glColor4f(0.5, 0.5, 0.5, 0.4);
+    // Draw the floor, colored for recent impact
+    glm::vec4 floorColor = impact * impactColor + (1.f - impact) * surfaceColor;
+    glColor4fv(&floorColor.x);
     glBegin(GL_QUADS);
     glVertex3f(0, 0, 0);
     glVertex3f(size, 0, 0);
@@ -525,8 +541,6 @@ void runTimingTests() {
     gettimeofday(&endTime, NULL);
     elapsedMsecs = diffclock(&startTime, &endTime);
     qDebug("vec3 assign and dot() usecs: %f\n", 1000.0f * elapsedMsecs / (float) numTests);
-
-    
 }
 
 float loadSetting(QSettings* settings, const char* name, float defaultValue) {
