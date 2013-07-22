@@ -1300,8 +1300,9 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
                 } // wants occlusion culling & isLeaf()
 
 
-                bool shouldRender = !params.viewFrustum ? true : 
-                                    childNode->calculateShouldRender(params.viewFrustum, params.boundaryLevelAdjust);
+                bool shouldRender = !params.viewFrustum 
+                                    ? true 
+                                    : childNode->calculateShouldRender(params.viewFrustum, params.boundaryLevelAdjust);
                      
                 // track some stats               
                 if (params.stats) {
