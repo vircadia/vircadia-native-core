@@ -17,7 +17,6 @@
 class VoxelStatsDialog : public QDialog {
     Q_OBJECT
 public:
-
     // Sets up the UI
     VoxelStatsDialog(QWidget* parent, VoxelSceneStats* model);
 
@@ -25,11 +24,9 @@ signals:
     void closed();
 
 public slots:
-
     void reject();
 
 protected:
-
     // State <- data model held by BandwidthMeter
     void paintEvent(QPaintEvent*);
 
