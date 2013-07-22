@@ -440,9 +440,9 @@ void Hand::setRaveGloveMode(int mode) {
         //-----------------------------------------
         } else if (mode == 3) {
             
-            _particleSystem.setEmitterParticleLifespan  (_fingerParticleEmitter[f], 0.05f  );
+            _particleSystem.setEmitterParticleLifespan  (_fingerParticleEmitter[f], 0.05f);
             _particleSystem.setEmitterThrust            (_fingerParticleEmitter[f], 0.002f );
-            _particleSystem.setEmitterRate              (_fingerParticleEmitter[f], 1.0f   );
+            _particleSystem.setEmitterRate              (_fingerParticleEmitter[f], 1.0f    );
             _particleSystem.setEmitterParticleResolution(_fingerParticleEmitter[f], 20     );
 
             attributes.radius               = 0.02f;
