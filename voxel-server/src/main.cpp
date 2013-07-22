@@ -249,8 +249,8 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
         nodeData->nodeBag.insert(serverTree.rootNode);
         
         // start tracking our stats
-        bool fullScene = (!viewFrustumChanged || !nodeData->getWantDelta()) && nodeData->getViewFrustumJustStoppedChanging();
-        nodeData->stats.sceneStarted(fullScene, viewFrustumChanged, ::serverTree.rootNode);
+        bool isFullScene = (!viewFrustumChanged || !nodeData->getWantDelta()) && nodeData->getViewFrustumJustStoppedChanging();
+        nodeData->stats.sceneStarted(isFullScene, viewFrustumChanged, ::serverTree.rootNode);
     }
 
     // If we have something in our nodeBag, then turn them into packets and send them out...
@@ -284,14 +284,14 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
                 int boundaryLevelAdjust = viewFrustumChanged && nodeData->getWantLowResMoving() 
                                           ? LOW_RES_MOVING_ADJUST : NO_BOUNDARY_ADJUST;
 
-                bool fullScene = (!viewFrustumChanged || !nodeData->getWantDelta()) && 
+                bool isFullScene = (!viewFrustumChanged || !nodeData->getWantDelta()) && 
                                  nodeData->getViewFrustumJustStoppedChanging();
                 
                 EncodeBitstreamParams params(INT_MAX, &nodeData->getCurrentViewFrustum(), wantColor, 
                                              WANT_EXISTS_BITS, DONT_CHOP, wantDelta, lastViewFrustum,
                                              wantOcclusionCulling, coverageMap, boundaryLevelAdjust,
                                              nodeData->getLastTimeBagEmpty(),
-                                             fullScene, &nodeData->stats);
+                                             isFullScene, &nodeData->stats);
                       
                 nodeData->stats.encodeStarted();
                 bytesWritten = serverTree.encodeTreeBitstream(subTree, &tempOutputBuffer[0], MAX_VOXEL_PACKET_SIZE - 1,
