@@ -1953,10 +1953,13 @@ bool Application::isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3& m
 void Application::renderLookatIndicator(glm::vec3 pointOfInterest, Camera& whichCamera) {
 
     const float DISTANCE_FROM_HEAD_SPHERE = 0.1f;
+    const float INDICATOR_RADIUS = 0.1f;
     const float YELLOW[] = { 1.0f, 1.0f, 0.0f };
+    const int NUM_SEGMENTS = 30;
     glm::vec3 haloOrigin(pointOfInterest.x, pointOfInterest.y + DISTANCE_FROM_HEAD_SPHERE, pointOfInterest.z);
     glColor3f(YELLOW[0], YELLOW[1], YELLOW[2]);
-    renderCircle(haloOrigin, 0.1f, glm::vec3(0.0f, 1.0f, 0.0f), 30);
+    glm::vec3 normalToFloor(0.0f, 1.0f, 0.0f);
+    renderCircle(haloOrigin, INDICATOR_RADIUS, normalToFloor, NUM_SEGMENTS);
 }
 
 void Application::update(float deltaTime) {
@@ -2003,7 +2006,7 @@ void Application::update(float deltaTime) {
         glm::vec3 front = orientation * IDENTITY_FRONT;
         glm::vec3 up = orientation * IDENTITY_UP;
         glm::vec3 towardVoxel = getMouseVoxelWorldCoordinates(_mouseVoxelDragging)
-                                - _myAvatar.getCameraPosition(); // is this an error? getCameraPosition dne
+                                - _myAvatar.getCameraPosition();
         towardVoxel = front * glm::length(towardVoxel);
         glm::vec3 lateralToVoxel = glm::cross(up, glm::normalize(towardVoxel)) * glm::length(towardVoxel);
         _voxelThrust = glm::vec3(0, 0, 0);
@@ -2276,7 +2279,7 @@ void Application::updateAvatar(float deltaTime) {
     // actually need to calculate the view frustum planes to send these details 
     // to the server.
     loadViewFrustum(_myCamera, _viewFrustum);
-    _myAvatar.setCameraPosition(_viewFrustum.getPosition()); // setCameraPosition() dne
+    _myAvatar.setCameraPosition(_viewFrustum.getPosition());
     _myAvatar.setCameraOrientation(_viewFrustum.getOrientation());
     _myAvatar.setCameraFov(_viewFrustum.getFieldOfView());
     _myAvatar.setCameraAspectRatio(_viewFrustum.getAspectRatio());
