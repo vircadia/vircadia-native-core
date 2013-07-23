@@ -40,11 +40,13 @@ bool hasInjectedAudioOnce = false;
 float sleepIntervalMin = 1.00;
 float sleepIntervalMax = 2.00;
 char *sourceAudioFile = NULL;
-const char *allowedParameters = ":sc::a::f::t::r:";
+const char *allowedParameters = ":sc::a::f::t::r:l";
 float floatArguments[4] = {0.0f, 0.0f, 0.0f, 0.0f};
 unsigned char volume = DEFAULT_INJECTOR_VOLUME;
 float triggerDistance = 0.0f;
 float radius = 0.0f;
+bool wantLocalDomain = false;
+
 
 void usage(void) {
     std::cout << "High Fidelity - Interface audio injector" << std::endl;
@@ -54,6 +56,7 @@ void usage(void) {
     std::cout << "   -f FILENAME                    Name of audio source file. Required - RAW format, 22050hz 16bit signed mono" << std::endl;
     std::cout << "   -t FLOAT                       Trigger distance for injection. If not specified will loop constantly" << std::endl;
     std::cout << "   -r FLOAT                       Radius for spherical source. If not specified injected audio is point source" << std::endl;
+    std::cout << "   -l                             Local domain mode." << std::endl;
 }
 
 bool processParameters(int parameterCount, char* parameterData[]) {
@@ -96,6 +99,9 @@ bool processParameters(int parameterCount, char* parameterData[]) {
                 ::radius = atof(optarg);
                 std::cout << "[DEBUG] Injector radius: " << optarg << std::endl;
                 break;
+            case 'l':
+                ::wantLocalDomain = true;
+                break;
             default:
                 usage();
                 return false;
@@ -111,6 +117,7 @@ void createAvatarDataForNode(Node* node) {
 }
 
 int main(int argc, char* argv[]) {
+
     // new seed for random audio sleep times
     srand(time(0));
     
@@ -125,6 +132,11 @@ int main(int argc, char* argv[]) {
             
             // create an NodeList instance to handle communication with other nodes
             NodeList* nodeList = NodeList::createInstance(NODE_TYPE_AUDIO_INJECTOR, AUDIO_UDP_SEND_PORT);
+            
+            if (::wantLocalDomain) {
+                printf("Local Domain MODE!\n");
+                nodeList->setDomainIPToLocalhost();
+            }
             
             // start the node list thread that will kill off nodes when they stop talking
             nodeList->startSilentNodeRemovalThread();
