@@ -200,6 +200,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _mouseVoxelScale(1.0f / 1024.0f),
         _justEditedVoxel(false),
         _isLookingAtOtherAvatar(false),
+        _lookatIndicatorScale(1.0f),
         _paintOn(false),
         _dominantColor(0),
         _perfStatsOn(false),
@@ -1942,6 +1943,7 @@ bool Application::isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3& m
             glm::vec3 headPosition = avatar->getHead().getPosition();
             if (rayIntersectsSphere(mouseRayOrigin, mouseRayDirection, headPosition, HEAD_SPHERE_RADIUS)) {
                 eyePosition = avatar->getHead().getEyeLevelPosition();
+                _lookatIndicatorScale = avatar->getScale();
                 _lookatOtherPosition = headPosition;
                 return true;
             }
@@ -1952,8 +1954,8 @@ bool Application::isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3& m
 
 void Application::renderLookatIndicator(glm::vec3 pointOfInterest, Camera& whichCamera) {
 
-    const float DISTANCE_FROM_HEAD_SPHERE = 0.1f;
-    const float INDICATOR_RADIUS = 0.1f;
+    const float DISTANCE_FROM_HEAD_SPHERE = 0.1f * _lookatIndicatorScale;
+    const float INDICATOR_RADIUS = 0.1f * _lookatIndicatorScale;
     const float YELLOW[] = { 1.0f, 1.0f, 0.0f };
     const int NUM_SEGMENTS = 30;
     glm::vec3 haloOrigin(pointOfInterest.x, pointOfInterest.y + DISTANCE_FROM_HEAD_SPHERE, pointOfInterest.z);

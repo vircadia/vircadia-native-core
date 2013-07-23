@@ -373,6 +373,7 @@ private:
 
     bool _isLookingAtOtherAvatar;
     glm::vec3 _lookatOtherPosition;
+    float _lookatIndicatorScale;
     
     bool _paintOn;                // Whether to paint voxels as you fly around
     unsigned char _dominantColor; // The dominant color of the voxel we're painting
