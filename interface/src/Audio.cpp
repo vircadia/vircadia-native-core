@@ -112,7 +112,7 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
             
             // we need the amount of bytes in the buffer + 1 for type
             // + 12 for 3 floats for position + float for bearing + 1 attenuation byte
-            unsigned char dataPacket[BUFFER_LENGTH_BYTES_PER_CHANNEL + leadingBytes];
+            unsigned char dataPacket[MAX_PACKET_SIZE];
             
             PACKET_TYPE packetType = (Application::getInstance()->shouldEchoAudio())
                 ? PACKET_TYPE_MICROPHONE_AUDIO_WITH_ECHO
@@ -123,21 +123,25 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
             // pack Source Data
             memcpy(currentPacketPtr, &_sourceID, sizeof(_sourceID));
             currentPacketPtr += (sizeof(_sourceID));
+            leadingBytes += (sizeof(_sourceID));
             
             // pack Listen Mode Data
             memcpy(currentPacketPtr, &_listenMode, sizeof(_listenMode));
             currentPacketPtr += (sizeof(_listenMode));
+            leadingBytes += (sizeof(_listenMode));
     
             if (_listenMode == AudioRingBuffer::OMNI_DIRECTIONAL_POINT) {
                 memcpy(currentPacketPtr, &_listenRadius, sizeof(_listenRadius));
                 currentPacketPtr += (sizeof(_listenRadius));
+                leadingBytes += (sizeof(_listenRadius));
             } else if (_listenMode == AudioRingBuffer::SELECTED_SOURCES) {
                 memcpy(currentPacketPtr, &_listenSourceCount, sizeof(_listenSourceCount));
                 currentPacketPtr += (sizeof(_listenSourceCount));
-
+                leadingBytes += (sizeof(_listenSourceCount));
                 if (_listenSources) {
-                    memcpy(currentPacketPtr, &_listenSources, sizeof(int) * _listenSourceCount);
+                    memcpy(currentPacketPtr, _listenSources, sizeof(int) * _listenSourceCount);
                     currentPacketPtr += (sizeof(int) * _listenSourceCount);
+                    leadingBytes += (sizeof(int) * _listenSourceCount);
                 }
             }
             
@@ -354,6 +358,12 @@ void Audio::addListenSource(int sourceID) {
     }
     _listenSources[_listenSourceCount] = sourceID;
     _listenSourceCount++;
+}
+
+void Audio::clearListenSources() {
+    delete[] _listenSources;
+    _listenSources = NULL;
+    _listenSourceCount = 0;
 }
 
 void Audio::removeListenSource(int sourceID) {

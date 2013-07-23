@@ -30,6 +30,10 @@ public:
     
     const glm::vec3& getPosition() const { return _position; }
     const glm::quat& getOrientation() const { return _orientation; }
+
+    bool isListeningToSource(PositionalAudioRingBuffer* other);
+    int getSourceID() const { return _sourceID; }
+    int getListeningMode() const { return _listenMode; }
     
 protected:
     // disallow copying of PositionalAudioRingBuffer objects

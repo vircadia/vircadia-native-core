@@ -170,6 +170,10 @@ private slots:
     void copyVoxels();
     void pasteVoxels();
     void runTests();
+    void setListenModeNormal();
+    void setListenModePoint();
+    void setListenModeSingleSource();
+
 
     void renderCoverageMap();
     void renderCoverageMapsRecursively(CoverageMap* map);

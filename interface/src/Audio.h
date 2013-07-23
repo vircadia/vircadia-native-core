@@ -60,6 +60,7 @@ public:
     void setListenRadius(float radius) { _listenRadius = radius; };
     void addListenSource(int sourceID);
     void removeListenSource(int sourceID);
+    void clearListenSources();
 
 private:    
     PaStream* _stream;

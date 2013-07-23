@@ -32,6 +32,32 @@ PositionalAudioRingBuffer::~PositionalAudioRingBuffer() {
     }
 }
 
+bool PositionalAudioRingBuffer::isListeningToSource(PositionalAudioRingBuffer* other) {
+    switch (_listenMode) {
+        default:
+        case AudioRingBuffer::NORMAL:
+            return true;
+        break;
+
+        case AudioRingBuffer::OMNI_DIRECTIONAL_POINT: {
+            float distance = glm::distance(_position, other->_position);
+            return distance <= _listenRadius;
+        break;
+        }
+        case AudioRingBuffer::SELECTED_SOURCES:
+            if (_listenSources) {
+                for (int i = 0; i < _listenSourceCount; i++) {
+                    if (other->_sourceID == _listenSources[i]) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        break;
+    }
+}
+
+
 int PositionalAudioRingBuffer::parseData(unsigned char* sourceBuffer, int numBytes) {
     unsigned char* currentBuffer = sourceBuffer + numBytesForPacketHeader(sourceBuffer);
     currentBuffer += parseSourceData(currentBuffer, numBytes - (currentBuffer - sourceBuffer));
@@ -56,21 +82,19 @@ int PositionalAudioRingBuffer::parseListenModeData(unsigned char* sourceBuffer, 
 
     memcpy(&_listenMode, currentBuffer, sizeof(_listenMode));
     currentBuffer += sizeof(_listenMode);
-    
+
     if (_listenMode == AudioRingBuffer::OMNI_DIRECTIONAL_POINT) {
         memcpy(&_listenRadius, currentBuffer, sizeof(_listenRadius));
         currentBuffer += sizeof(_listenRadius);
     } else if (_listenMode == AudioRingBuffer::SELECTED_SOURCES) {
         memcpy(&_listenSourceCount, currentBuffer, sizeof(_listenSourceCount));
         currentBuffer += sizeof(_listenSourceCount);
-
         if (_listenSources) {
             delete[] _listenSources;
         }
         _listenSources = new int[_listenSourceCount];
         memcpy(_listenSources, currentBuffer, sizeof(int) * _listenSourceCount);
         currentBuffer += sizeof(int) * _listenSourceCount;
-
     }
     
     return currentBuffer - sourceBuffer;
@@ -81,7 +105,7 @@ int PositionalAudioRingBuffer::parsePositionalData(unsigned char* sourceBuffer, 
     
     memcpy(&_position, currentBuffer, sizeof(_position));
     currentBuffer += sizeof(_position);
-    
+
     memcpy(&_orientation, currentBuffer, sizeof(_orientation));
     currentBuffer += sizeof(_orientation);
     
