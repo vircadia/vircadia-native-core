@@ -36,7 +36,7 @@
 
 const int AVATAR_LISTEN_PORT = 55444;
 
-unsigned char *addNodeToBroadcastPacket(unsigned char *currentPosition, Node *nodeToAdd) {
+unsigned char* addNodeToBroadcastPacket(unsigned char *currentPosition, Node *nodeToAdd) {
     currentPosition += packNodeId(currentPosition, nodeToAdd->getNodeID());
 
     AvatarData *nodeData = (AvatarData *)nodeToAdd->getLinkedData();
@@ -49,6 +49,47 @@ void attachAvatarDataToNode(Node* newNode) {
     if (newNode->getLinkedData() == NULL) {
         newNode->setLinkedData(new AvatarData(newNode));
     }
+}
+
+unsigned char broadcastPacketBuffer[MAX_PACKET_SIZE];
+unsigned char avatarDataBuffer[MAX_PACKET_SIZE];
+void broadcastAvatarData(NodeList* nodeList, sockaddr* nodeAddress) {
+    unsigned char* broadcastPacket = (unsigned char*)&::broadcastPacketBuffer[0];
+    int numHeaderBytes = populateTypeAndVersion(broadcastPacket, PACKET_TYPE_BULK_AVATAR_DATA);
+    unsigned char* currentBufferPosition = NULL;
+    currentBufferPosition = broadcastPacket + numHeaderBytes;
+    int packetLength = currentBufferPosition - broadcastPacket;
+    int packetsSent = 0;
+
+    // send back a packet with other active node data to this node
+    for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+        if (node->getLinkedData() && !socketMatch(nodeAddress, node->getActiveSocket())) {
+            unsigned char* avatarDataEndpoint = addNodeToBroadcastPacket((unsigned char*)&avatarDataBuffer[0], &*node);
+            int avatarDataLength = avatarDataEndpoint - (unsigned char*)&avatarDataBuffer;
+
+            if (avatarDataLength + packetLength <= MAX_PACKET_SIZE) {
+                memcpy(currentBufferPosition, &avatarDataBuffer[0], avatarDataLength);
+                packetLength += avatarDataLength;
+                currentBufferPosition += avatarDataLength;
+            } else {
+                packetsSent++;
+                //printf("packetsSent=%d packetLength=%d\n", packetsSent, packetLength);
+                nodeList->getNodeSocket()->send(nodeAddress, broadcastPacket, currentBufferPosition - broadcastPacket);
+                
+                // reset the packet
+                currentBufferPosition = broadcastPacket + numHeaderBytes;
+                packetLength = currentBufferPosition - broadcastPacket;
+                
+                // copy the avatar that didn't fit into the next packet
+                memcpy(currentBufferPosition, &avatarDataBuffer[0], avatarDataLength);
+                packetLength += avatarDataLength;
+                currentBufferPosition += avatarDataLength;
+            }
+        }
+    }
+    packetsSent++;
+    //printf("packetsSent=%d packetLength=%d\n", packetsSent, packetLength);
+    nodeList->getNodeSocket()->send(nodeAddress, broadcastPacket, currentBufferPosition - broadcastPacket);
 }
 
 int main(int argc, const char* argv[]) {
@@ -67,14 +108,11 @@ int main(int argc, const char* argv[]) {
     
     nodeList->startSilentNodeRemovalThread();
     
-    sockaddr *nodeAddress = new sockaddr;
-    unsigned char *packetData = new unsigned char[MAX_PACKET_SIZE];
+    sockaddr* nodeAddress = new sockaddr;
     ssize_t receivedBytes = 0;
     
-    unsigned char *broadcastPacket = new unsigned char[MAX_PACKET_SIZE];
-    int numHeaderBytes = populateTypeAndVersion(broadcastPacket, PACKET_TYPE_BULK_AVATAR_DATA);
+    unsigned char* packetData = new unsigned char[MAX_PACKET_SIZE];
     
-    unsigned char* currentBufferPosition = NULL;
     
     uint16_t nodeID = 0;
     Node* avatarNode = NULL;
@@ -104,17 +142,7 @@ int main(int argc, const char* argv[]) {
                     // parse positional data from an node
                     nodeList->updateNodeWithData(avatarNode, packetData, receivedBytes);
                 case PACKET_TYPE_INJECT_AUDIO:
-                    currentBufferPosition = broadcastPacket + numHeaderBytes;
-                    
-                    // send back a packet with other active node data to this node
-                    for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
-                        if (node->getLinkedData() && !socketMatch(nodeAddress, node->getActiveSocket())) {
-                            currentBufferPosition = addNodeToBroadcastPacket(currentBufferPosition, &*node);
-                        }
-                    }
-                    
-                    nodeList->getNodeSocket()->send(nodeAddress, broadcastPacket, currentBufferPosition - broadcastPacket);
-                    
+                    broadcastAvatarData(nodeList, nodeAddress);
                     break;
                 case PACKET_TYPE_AVATAR_VOXEL_URL:
                 case PACKET_TYPE_AVATAR_FACE_VIDEO:
