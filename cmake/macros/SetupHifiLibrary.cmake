@@ -3,11 +3,12 @@ MACRO(SETUP_HIFI_LIBRARY TARGET)
 
     # grab the implemenation and header files
     file(GLOB LIB_SRCS src/*.h src/*.cpp)
+    set(LIB_SRCS ${LIB_SRCS} ${WRAPPED_SRCS})
 
     # create a library and set the property so it can be referenced later
     add_library(${TARGET} ${LIB_SRCS})
     
-    find_package(Qt4 REQUIRED QtCore)
+    find_package(Qt5 REQUIRED QtCore)
     include(${QT_USE_FILE})
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${QT_QTGUI_INCLUDE_DIR}")
 

@@ -6,6 +6,10 @@ set(MACRO_DIR ${ROOT_DIR}/cmake/macros)
 set(TARGET_NAME shared)
 project(${TARGET_NAME})
 
+find_package(Qt5 REQUIRED QtCore)
+include(${QT_USE_FILE})
+qt5_wrap_cpp(WRAPPED_SRCS src/NodeData.h)
+
 include(${MACRO_DIR}/SetupHifiLibrary.cmake)
 setup_hifi_library(${TARGET_NAME})
 

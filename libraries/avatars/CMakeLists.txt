@@ -8,6 +8,10 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../../cm
 
 set(TARGET_NAME avatars)
 
+find_package(Qt5 REQUIRED QtCore)
+include(${QT_USE_FILE})
+qt5_wrap_cpp(WRAPPED_SRCS src/AvatarData.h)
+
 include(${MACRO_DIR}/SetupHifiLibrary.cmake)
 setup_hifi_library(${TARGET_NAME})
 
