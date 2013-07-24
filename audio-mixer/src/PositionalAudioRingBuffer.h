@@ -33,7 +33,7 @@ public:
 
     bool isListeningToSource(PositionalAudioRingBuffer* other);
     int getSourceID() const { return _sourceID; }
-    int getListeningMode() const { return _listenMode; }
+    ListenMode getListeningMode() const { return _listenMode; }
     
 protected:
     // disallow copying of PositionalAudioRingBuffer objects
@@ -44,11 +44,11 @@ protected:
     glm::quat _orientation;
     bool _willBeAddedToMix;
     
-    int     _sourceID;
-    int     _listenMode;
-    float   _listenRadius;
-    int     _listenSourceCount;
-    int*    _listenSources;
+    int         _sourceID;
+    ListenMode  _listenMode;
+    float       _listenRadius;
+    int         _listenSourceCount;
+    int*        _listenSources;
     
 };
 

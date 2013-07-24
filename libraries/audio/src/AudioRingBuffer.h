@@ -29,11 +29,11 @@ class AudioRingBuffer : public NodeData {
 public:
 
     static int const DEFAULT_LISTEN_LIST_SIZE = 100;
-    enum {
+    typedef enum {
         NORMAL,
         OMNI_DIRECTIONAL_POINT,
         SELECTED_SOURCES
-    };
+    } ListenMode;
 
     AudioRingBuffer(bool isStereo);
     ~AudioRingBuffer();
