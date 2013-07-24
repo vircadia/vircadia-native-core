@@ -43,6 +43,7 @@
 #include "avatar/HandControl.h"
 #include "ui/BandwidthDialog.h"
 #include "ui/ChatEntry.h"
+#include "ui/VoxelStatsDialog.h"
 
 class QAction;
 class QActionGroup;
@@ -120,6 +121,9 @@ private slots:
     void bandwidthDetails();
     void editPreferences();
     void bandwidthDetailsClosed();
+
+    void voxelStatsDetails();
+    void voxelStatsDetailsClosed();
     
     void pair();
     
@@ -284,6 +288,7 @@ private:
     
     BandwidthMeter _bandwidthMeter;
     BandwidthDialog* _bandwidthDialog;
+    VoxelStatsDialog* _voxelStatsDialog;
 
     SerialInterface _serialHeadSensor;
     QNetworkAccessManager* _networkAccessManager;
@@ -416,6 +421,8 @@ private:
 
     ToolsPalette _palette;
     Swatch _swatch;
+    
+    VoxelSceneStats _voxelSceneStats;
 };
 
 #endif /* defined(__interface__Application__) */
