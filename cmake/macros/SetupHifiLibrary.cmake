@@ -8,9 +8,8 @@ MACRO(SETUP_HIFI_LIBRARY TARGET)
     # create a library and set the property so it can be referenced later
     add_library(${TARGET} ${LIB_SRCS})
     
-    find_package(Qt5 REQUIRED QtCore)
-    include(${QT_USE_FILE})
-    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${QT_QTGUI_INCLUDE_DIR}")
+    find_package(Qt5Core REQUIRED)
+    qt5_use_modules(${TARGET} Core)
 
     target_link_libraries(${TARGET} ${QT_LIBRARIES})
 ENDMACRO(SETUP_HIFI_LIBRARY _target)

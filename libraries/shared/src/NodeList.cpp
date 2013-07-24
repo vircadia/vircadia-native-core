@@ -522,7 +522,7 @@ void NodeList::loadData(QSettings *settings) {
     
     if (domainServerHostname.size() > 0) {
         memset(_domainHostname, 0, MAX_HOSTNAME_BYTES);
-        memcpy(_domainHostname, domainServerHostname.toAscii().constData(), domainServerHostname.size());
+        memcpy(_domainHostname, domainServerHostname.toLocal8Bit().constData(), domainServerHostname.size());
     }
     
     settings->endGroup();

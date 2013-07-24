@@ -67,20 +67,21 @@ if (APPLE)
   
 endif (APPLE)
 
-find_package(Qt5 REQUIRED QtCore QtGui QtNetwork QtOpenGL QtWebKit QtSvg)
-include(${QT_USE_FILE})
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${QT_QTGUI_INCLUDE_DIR}")
+find_package(Qt5Core REQUIRED)
+find_package(Qt5Gui REQUIRED)
+find_package(Qt5Network REQUIRED)
+find_package(Qt5OpenGL REQUIRED)
+find_package(Qt5WebKit REQUIRED)
+find_package(Qt5Svg REQUIRED)
 
 set(QUAZIP_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/quazip)
 add_subdirectory(external/fervor/)
 include_directories(external/fervor/)
 
-# run qt moc on qt-enabled headers
-qt5_wrap_cpp(INTERFACE_SRCS src/Application.h src/Webcam.h src/avatar/AvatarVoxelSystem.h
-    src/avatar/Face.h src/ui/BandwidthDialog.h)
-
 # create the executable, make it a bundle on OS X
 add_executable(${TARGET_NAME} MACOSX_BUNDLE ${INTERFACE_SRCS})
+
+qt5_use_modules(${TARGET_NAME} Core Gui Network OpenGL WebKit Svg)
 
 # link in the hifi shared library
 include(${MACRO_DIR}/LinkHifiLibrary.cmake)

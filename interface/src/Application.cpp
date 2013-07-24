@@ -56,6 +56,8 @@
 #include <PairingHandler.h>
 #include <PerfStat.h>
 
+#include <VoxelSceneStats.h>
+
 #include "Application.h"
 #include "InterfaceConfig.h"
 #include "LogDisplay.h"
@@ -164,9 +166,9 @@ void GLCanvas::wheelEvent(QWheelEvent* event) {
     Application::getInstance()->wheelEvent(event);
 }
 
-void messageHandler(QtMsgType type, const char* message) {
-    fprintf(stdout, "%s", message);    
-    LogDisplay::instance.addMessage(message);
+void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString &message) {
+    fprintf(stdout, "%s", message.toLocal8Bit().constData());
+    LogDisplay::instance.addMessage(message.toLocal8Bit().constData());
 }
 
 Application::Application(int& argc, char** argv, timeval &startup_time) :
@@ -174,6 +176,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _window(new QMainWindow(desktop())),
         _glWidget(new GLCanvas()),
         _bandwidthDialog(NULL),
+        _voxelStatsDialog(NULL),
         _displayLevels(false),
         _frameCount(0),
         _fps(120.0f),
@@ -220,7 +223,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     _applicationStartupTime = startup_time;
     _window->setWindowTitle("Interface");
     
-    qInstallMsgHandler(messageHandler);
+    qInstallMessageHandler(messageHandler);
     
     unsigned int listenPort = 0; // bind to an ephemeral port by default
     const char** constArgv = const_cast<const char**>(argv);
@@ -1147,6 +1150,21 @@ void Application::bandwidthDetailsClosed() {
     delete dlg;
 }
 
+void Application::voxelStatsDetails() {
+    if (!_voxelStatsDialog) {
+        _voxelStatsDialog = new VoxelStatsDialog(_glWidget, &_voxelSceneStats);
+        connect(_voxelStatsDialog, SIGNAL(closed()), SLOT(voxelStatsDetailsClosed()));
+        _voxelStatsDialog->show();
+    } 
+    _voxelStatsDialog->raise();
+}
+
+void Application::voxelStatsDetailsClosed() {
+    QDialog* dlg = _voxelStatsDialog;
+    _voxelStatsDialog = NULL;
+    delete dlg;
+}
+
 void Application::editPreferences() {
     QDialog dialog(_glWidget);
     dialog.setWindowTitle("Interface Preferences");
@@ -1199,7 +1217,7 @@ void Application::editPreferences() {
     
     if (domainServerHostname->text().size() > 0) {
         // the user input a new hostname, use that
-        newHostname = domainServerHostname->text().toAscii();
+        newHostname = domainServerHostname->text().toLocal8Bit();
     } else {
         // the user left the field blank, use the default hostname
         newHostname = QByteArray(DEFAULT_DOMAIN_HOSTNAME);
@@ -1495,12 +1513,12 @@ bool Application::sendVoxelsOperation(VoxelNode* node, void* extraData) {
 }
 
 void Application::exportVoxels() {
-    QString desktopLocation = QDesktopServices::storageLocation(QDesktopServices::DesktopLocation);
+    QString desktopLocation = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
     QString suggestedName = desktopLocation.append("/voxels.svo");
 
     QString fileNameString = QFileDialog::getSaveFileName(_glWidget, tr("Export Voxels"), suggestedName, 
                                                           tr("Sparse Voxel Octree Files (*.svo)"));
-    QByteArray fileNameAscii = fileNameString.toAscii();
+    QByteArray fileNameAscii = fileNameString.toLocal8Bit();
     const char* fileName = fileNameAscii.data();
     VoxelNode* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
     if (selectedNode) {
@@ -1515,11 +1533,11 @@ void Application::exportVoxels() {
 
 const char* IMPORT_FILE_TYPES = "Sparse Voxel Octree Files, Square PNG, Schematic Files (*.svo *.png *.schematic)";
 void Application::importVoxelsToClipboard() {
-    QString desktopLocation = QDesktopServices::storageLocation(QDesktopServices::DesktopLocation);
+    QString desktopLocation = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
     QString fileNameString = QFileDialog::getOpenFileName(_glWidget, tr("Import Voxels to Clipboard"), desktopLocation,
                                                           tr(IMPORT_FILE_TYPES));
 
-    QByteArray fileNameAscii = fileNameString.toAscii();
+    QByteArray fileNameAscii = fileNameString.toLocal8Bit();
     const char* fileName = fileNameAscii.data();
     
     _clipboardTree.eraseAllVoxels();
@@ -1549,11 +1567,11 @@ void Application::importVoxelsToClipboard() {
 }
 
 void Application::importVoxels() {
-    QString desktopLocation = QDesktopServices::storageLocation(QDesktopServices::DesktopLocation);
+    QString desktopLocation = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
     QString fileNameString = QFileDialog::getOpenFileName(_glWidget, tr("Import Voxels"), desktopLocation,
                                                           tr(IMPORT_FILE_TYPES));
 
-    QByteArray fileNameAscii = fileNameString.toAscii();
+    QByteArray fileNameAscii = fileNameString.toLocal8Bit();
     const char* fileName = fileNameAscii.data();
     
     VoxelTree importVoxels;
@@ -1751,6 +1769,7 @@ void Application::initMenu() {
     (_bandwidthDisplayOn = toolsMenu->addAction("Bandwidth Display"))->setCheckable(true);
     _bandwidthDisplayOn->setChecked(true);
     toolsMenu->addAction("Bandwidth Details", this, SLOT(bandwidthDetails()));
+    toolsMenu->addAction("Voxel Stats Details", this, SLOT(voxelStatsDetails()));
 
  
     QMenu* voxelMenu = menuBar->addMenu("Voxels");
@@ -1986,7 +2005,7 @@ void Application::update(float deltaTime) {
     
     // Set where I am looking based on my mouse ray (so that other people can see)
     glm::vec3 eyePosition;
-    if (_isLookingAtOtherAvatar = isLookingAtOtherAvatar(mouseRayOrigin, mouseRayDirection, eyePosition)) {
+    if ((_isLookingAtOtherAvatar = isLookingAtOtherAvatar(mouseRayOrigin, mouseRayDirection, eyePosition))) {
         // If the mouse is over another avatar's head...
         glm::vec3 myLookAtFromMouse(eyePosition);
          _myAvatar.getHead().setLookAtPosition(myLookAtFromMouse);
@@ -2191,6 +2210,9 @@ void Application::update(float deltaTime) {
     if (_bandwidthDialog) {
         _bandwidthDialog->update();
     }
+    if (_voxelStatsDialog) {
+        _voxelStatsDialog->update();
+    }
 
     //  Update audio stats for procedural sounds
     #ifndef _WIN32
@@ -2248,7 +2270,7 @@ void Application::updateAvatar(float deltaTime) {
         _viewFrustum.computePickRay(MIDPOINT_OF_SCREEN, MIDPOINT_OF_SCREEN, screenCenterRayOrigin, screenCenterRayDirection);
 
         glm::vec3 eyePosition;
-        if (_isLookingAtOtherAvatar = isLookingAtOtherAvatar(screenCenterRayOrigin, screenCenterRayDirection, eyePosition)) {
+        if ((_isLookingAtOtherAvatar = isLookingAtOtherAvatar(screenCenterRayOrigin, screenCenterRayDirection, eyePosition))) {
             glm::vec3 myLookAtFromMouse(eyePosition);
             _myAvatar.getHead().setLookAtPosition(myLookAtFromMouse);
         }
@@ -2843,27 +2865,19 @@ void Application::displayStats() {
     drawtext(10, statsVerticalOffset + 230, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
     
     voxelStats.str("");
-    voxelStats << "Voxels Created: " << _voxels.getVoxelsCreated() / 1000.f << "K (" << _voxels.getVoxelsCreatedPerSecondAverage() / 1000.f
-    << "Kps) ";
+    char* voxelDetails = _voxelSceneStats.getItemValue(VoxelSceneStats::ITEM_VOXELS);
+    voxelStats << "Voxels Sent from Server: " << voxelDetails;
     drawtext(10, statsVerticalOffset + 250, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
-    
-    voxelStats.str("");
-    voxelStats << "Voxels Colored: " << _voxels.getVoxelsColored() / 1000.f << "K (" << _voxels.getVoxelsColoredPerSecondAverage() / 1000.f
-    << "Kps) ";
-    drawtext(10, statsVerticalOffset + 270, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
-    
-    voxelStats.str("");
-    voxelStats << "Voxel Bits Read: " << _voxels.getVoxelsBytesRead() * 8.f / 1000000.f 
-    << "M (" << _voxels.getVoxelsBytesReadPerSecondAverage() * 8.f / 1000000.f << " Mbps)";
-    drawtext(10, statsVerticalOffset + 290,0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
 
     voxelStats.str("");
-    float voxelsBytesPerColored = _voxels.getVoxelsColored()
-        ? ((float) _voxels.getVoxelsBytesRead() / _voxels.getVoxelsColored())
-        : 0;
-    
-    voxelStats << "Voxels Bits per Colored: " << voxelsBytesPerColored * 8;
-    drawtext(10, statsVerticalOffset + 310, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+    voxelDetails = _voxelSceneStats.getItemValue(VoxelSceneStats::ITEM_ELAPSED);
+    voxelStats << "Scene Send Time from Server: " << voxelDetails;
+    drawtext(10, statsVerticalOffset + 270, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+
+    voxelStats.str("");
+    voxelDetails = _voxelSceneStats.getItemValue(VoxelSceneStats::ITEM_ENCODE);
+    voxelStats << "Encode Time on Server: " << voxelDetails;
+    drawtext(10, statsVerticalOffset + 290, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
     
     Node *avatarMixer = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_AVATAR_MIXER);
     char avatarMixerStats[200];
@@ -3418,16 +3432,37 @@ void* Application::networkReceive(void* args) {
                     case PACKET_TYPE_VOXEL_DATA_MONOCHROME:
                     case PACKET_TYPE_Z_COMMAND:
                     case PACKET_TYPE_ERASE_VOXEL:
+                    case PACKET_TYPE_VOXEL_STATS:
                     case PACKET_TYPE_ENVIRONMENT_DATA: {
+                    
+                        unsigned char* messageData = app->_incomingPacket;
+                        ssize_t messageLength = bytesReceived;
+
+                        // note: PACKET_TYPE_VOXEL_STATS can have PACKET_TYPE_VOXEL_DATA or PACKET_TYPE_VOXEL_DATA_MONOCHROME
+                        // immediately following them inside the same packet. So, we process the PACKET_TYPE_VOXEL_STATS first
+                        // then process any remaining bytes as if it was another packet
+                        if (messageData[0] == PACKET_TYPE_VOXEL_STATS) {
+                            int statsMessageLength = app->_voxelSceneStats.unpackFromMessage(messageData, messageLength);
+                            if (messageLength > statsMessageLength) {
+                                messageData += statsMessageLength;
+                                messageLength -= statsMessageLength;
+                                if (!packetVersionMatch(messageData)) {
+                                    break; // bail since piggyback data doesn't match our versioning
+                                }
+                            } else {
+                                break; // bail since no piggyback data
+                            }
+                        } // fall through to piggyback message
+                        
                         if (app->_renderVoxels->isChecked()) {
                             Node* voxelServer = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_VOXEL_SERVER);
                             if (voxelServer && socketMatch(voxelServer->getActiveSocket(), &senderAddress)) {
                                 voxelServer->lock();
                                 
-                                if (app->_incomingPacket[0] == PACKET_TYPE_ENVIRONMENT_DATA) {
-                                    app->_environment.parseData(&senderAddress, app->_incomingPacket, bytesReceived);
+                                if (messageData[0] == PACKET_TYPE_ENVIRONMENT_DATA) {
+                                    app->_environment.parseData(&senderAddress, messageData, messageLength);
                                 } else {
-                                    app->_voxels.parseData(app->_incomingPacket, bytesReceived);
+                                    app->_voxels.parseData(messageData, messageLength);
                                 }
                                 
                                 voxelServer->unlock();
@@ -3549,7 +3584,7 @@ void Application::saveSettings(QSettings* settings) {
 }
 
 void Application::importSettings() {
-    QString locationDir(QDesktopServices::displayName(QDesktopServices::DesktopLocation));
+    QString locationDir(QStandardPaths::displayName(QStandardPaths::DesktopLocation));
     QString fileName = QFileDialog::getOpenFileName(_window,
                                                     tr("Open .ini config file"),
                                                     locationDir,
@@ -3561,7 +3596,7 @@ void Application::importSettings() {
 }
 
 void Application::exportSettings() {
-    QString locationDir(QDesktopServices::displayName(QDesktopServices::DesktopLocation));
+    QString locationDir(QStandardPaths::displayName(QStandardPaths::DesktopLocation));
     QString fileName = QFileDialog::getSaveFileName(_window,
                                                    tr("Save .ini config file"),
 						    locationDir,
