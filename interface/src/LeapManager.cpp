@@ -12,6 +12,9 @@
 #include <dlfcn.h>     // needed for RTLD_LAZY
 #include <sstream>
 
+// Uncomment the next line to use Leap-smoothed stabilized (slower) data.
+//#define USE_STABILIZED_DATA
+
 bool LeapManager::_libraryExists = false;
 bool LeapManager::_doFakeFingers = false;
 Leap::Controller* LeapManager::_controller = NULL;
@@ -175,7 +178,11 @@ void LeapManager::nextFrame(Avatar& avatar) {
                             finger.resetFramesWithoutData();
                             finger.setLeapID(leapFinger.id());
                             finger.setActive(true);
+#ifdef USE_STABILIZED_DATA
                             const Leap::Vector tip = leapFinger.stabilizedTipPosition();
+#else
+                            const Leap::Vector tip = leapFinger.tipPosition();
+#endif
                             const Leap::Vector root = tip - leapFinger.direction() * leapFinger.length();
                             finger.setRawTipPosition(glm::vec3(tip.x, tip.y, tip.z));
                             finger.setRawRootPosition(glm::vec3(root.x, root.y, root.z));
