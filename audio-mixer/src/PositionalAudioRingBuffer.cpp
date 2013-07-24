@@ -37,13 +37,13 @@ bool PositionalAudioRingBuffer::isListeningToSource(PositionalAudioRingBuffer* o
         default:
         case AudioRingBuffer::NORMAL:
             return true;
-        break;
+            break;
 
         case AudioRingBuffer::OMNI_DIRECTIONAL_POINT: {
             float distance = glm::distance(_position, other->_position);
             return distance <= _listenRadius;
-        break;
-        }
+            break;
+        } 
         case AudioRingBuffer::SELECTED_SOURCES:
             if (_listenSources) {
                 for (int i = 0; i < _listenSourceCount; i++) {
@@ -53,7 +53,7 @@ bool PositionalAudioRingBuffer::isListeningToSource(PositionalAudioRingBuffer* o
                 }
             }
             return false;
-        break;
+            break;
     }
 }
 

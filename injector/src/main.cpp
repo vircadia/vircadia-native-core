@@ -45,7 +45,7 @@ float floatArguments[4] = {0.0f, 0.0f, 0.0f, 0.0f};
 unsigned char volume = DEFAULT_INJECTOR_VOLUME;
 float triggerDistance = 0.0f;
 float radius = 0.0f;
-bool wantLocalDomain = false;
+bool wantsLocalDomain = false;
 
 
 void usage(void) {
@@ -100,7 +100,7 @@ bool processParameters(int parameterCount, char* parameterData[]) {
                 std::cout << "[DEBUG] Injector radius: " << optarg << std::endl;
                 break;
             case 'l':
-                ::wantLocalDomain = true;
+                ::wantsLocalDomain = true;
                 break;
             default:
                 usage();
@@ -133,7 +133,7 @@ int main(int argc, char* argv[]) {
             // create an NodeList instance to handle communication with other nodes
             NodeList* nodeList = NodeList::createInstance(NODE_TYPE_AUDIO_INJECTOR, AUDIO_UDP_SEND_PORT);
             
-            if (::wantLocalDomain) {
+            if (::wantsLocalDomain) {
                 printf("Local Domain MODE!\n");
                 nodeList->setDomainIPToLocalhost();
             }
