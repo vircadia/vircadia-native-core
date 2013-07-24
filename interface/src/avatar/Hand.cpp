@@ -15,7 +15,7 @@
 #include "renderer/ProgramObject.h"
 
 const bool  SHOW_LEAP_HAND = false;
-const int   NUM_TEST_RAVE_GLOVE_MODES = 5;
+const int   NUM_TEST_RAVE_GLOVE_MODES = 6;
 const float TEST_RAVE_GLOVE_MODE_DURATION = 7.0f;
 
 using namespace std;
@@ -342,14 +342,14 @@ void Hand::updateFingerParticles(float deltaTime) {
                     FingerData& finger = palm.getFingers()[f];
                     if (finger.isActive()) {
                         if (_fingerParticleEmitter[0] != -1) {
-                            _particleSystem.emitNow(_fingerParticleEmitter[fingerIndex]);
+                            _particleSystem.emitNow(_fingerParticleEmitter[fingerIndex]);                            
                             fingerIndex ++; 
                         }
                     }
                 }
             }
         }        
-         
+
         _particleSystem.simulate(deltaTime); 
     }
 }
@@ -529,6 +529,43 @@ void Hand::setRaveGloveMode(int mode) {
 
             attributes.radius = 0.0f;
             attributes.color = glm::vec4( 0.0f, 0.0f, 0.0f, 1.0f);
+            _particleSystem.setParticleAttributes(_fingerParticleEmitter[f], 3, attributes);
+        
+        //-----------------------------------------
+        // flashy trails
+        //-----------------------------------------
+        } else if (mode == 5) {
+            
+            _particleSystem.setParticleRenderStyle       (_fingerParticleEmitter[f], PARTICLE_RENDER_STYLE_RIBBON  );
+            _particleSystem.setShowingEmitterBaseParticle(_fingerParticleEmitter[f], false   );
+            _particleSystem.setEmitterParticleLifespan   (_fingerParticleEmitter[f], 0.2    );
+            _particleSystem.setEmitterThrust             (_fingerParticleEmitter[f], 0.002f );
+            _particleSystem.setEmitterRate               (_fingerParticleEmitter[f], 6.0    );
+            _particleSystem.setEmitterParticleResolution (_fingerParticleEmitter[f], 12     );
+
+            attributes.radius               = 0.0f;
+            attributes.color                = glm::vec4( 1.0f, 1.0f, 1.0f, 1.0f);
+            attributes.gravity              = 0.0f;
+            attributes.airFriction          = 0.0f;
+            attributes.jitter               = 0.01f;
+            attributes.emitterAttraction    = 0.0f;
+            attributes.tornadoForce         = 0.0f;
+            attributes.neighborAttraction   = 0.0f;
+            attributes.neighborRepulsion    = 0.0f;
+            attributes.bounce               = 1.0f;
+            attributes.usingCollisionSphere = false;            
+            _particleSystem.setParticleAttributes(_fingerParticleEmitter[f], 0, attributes);
+
+            attributes.radius = 0.01f;
+            attributes.color = glm::vec4( 1.0f, 1.0f, 0.0f, 1.0f);
+            _particleSystem.setParticleAttributes(_fingerParticleEmitter[f], 1, attributes);
+
+            attributes.radius = 0.01f;
+            attributes.color = glm::vec4( 1.0f, 0.0f, .0f, 1.0f);
+            _particleSystem.setParticleAttributes(_fingerParticleEmitter[f], 2, attributes);
+
+            attributes.radius = 0.0f;
+            attributes.color = glm::vec4( 0.0f, 0.0f, 1.0f, 0.0f);
             _particleSystem.setParticleAttributes(_fingerParticleEmitter[f], 3, attributes);
         }
     }

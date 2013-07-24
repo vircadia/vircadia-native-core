@@ -69,13 +69,12 @@ ParticleSystem::ParticleSystem() {
 
 int ParticleSystem::addEmitter() {
 
-    _numEmitters ++;
-    
-    if (_numEmitters > MAX_EMITTERS) {
-        return -1;
+    if (_numEmitters < MAX_EMITTERS) {
+        _numEmitters ++;
+        return _numEmitters - 1;
     }
     
-    return _numEmitters - 1;
+    return -1;
 }
 
 
@@ -95,12 +94,16 @@ void ParticleSystem::simulate(float deltaTime) {
 
 void ParticleSystem::emitNow(int e) {
 
-    for (unsigned int p = 0; p < _emitter[e].rate; p++) {
-        createParticle(e, _emitter[e].direction);
+    assert( e >= 0 );
+    assert( e <= MAX_EMITTERS );
+    assert( _emitter[e].rate >= 0 );
+
+    for (int p = 0; p < _emitter[e].rate; p++) {
+        createParticle(e);
     }
 }
 
-void ParticleSystem::createParticle(int e, glm::vec3 velocity) {
+void ParticleSystem::createParticle(int e) {
         
     for (unsigned int p = 0; p < MAX_PARTICLES; p++) {
         if (!_particle[p].alive) {

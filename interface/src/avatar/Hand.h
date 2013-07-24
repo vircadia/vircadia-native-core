@@ -19,8 +19,6 @@
 #include <SharedUtil.h>
 #include <vector>
 
-//const int MAX_TRAIL_PARTICLES = 20;
-
 class Avatar;
 class ProgramObject;
 
@@ -63,7 +61,6 @@ private:
     int            _testRaveGloveMode;
     bool           _particleSystemInitialized;
     int            _fingerParticleEmitter[NUM_FINGERS];
-    //int            _fingerTrailParticleEmitter[NUM_FINGERS][MAX_TRAIL_PARTICLES];
     Avatar*        _owningAvatar;
     float          _renderAlpha;
     bool           _lookingInMirror;

@@ -11,7 +11,7 @@
 #include <glm/gtc/quaternion.hpp>
 
 const int  MAX_PARTICLES            = 5000;
-const int  MAX_EMITTERS             = 1000;
+const int  MAX_EMITTERS             = 100;
 const int  NUM_PARTICLE_LIFE_STAGES = 4;  // each equal time-division of the particle's life can have different attributes
 const bool SHOW_VELOCITY_TAILS      = false;
 
@@ -99,7 +99,7 @@ private:
     
     // private methods
     void updateParticle(int index, float deltaTime);
-    void createParticle(int e, glm::vec3 velocity);
+    void createParticle(int e);
     void killParticle(int p);
     void renderEmitter(int emitterIndex, float size);
     void renderParticle(int p);
