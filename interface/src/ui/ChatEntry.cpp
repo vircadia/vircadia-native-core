@@ -66,7 +66,7 @@ bool ChatEntry::keyPressEvent(QKeyEvent* event) {
                 return true;
             }
             if (_contents.size() < MAX_CONTENT_LENGTH) {
-                _contents.insert(_cursorPos, 1, text.at(0).toAscii());
+                _contents.insert(_cursorPos, 1, text.at(0).toLatin1());
                 _cursorPos++;
             }
             return true;
