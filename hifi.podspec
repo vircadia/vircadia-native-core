@@ -36,7 +36,6 @@ Pod::Spec.new do |s|
   
   s.subspec "shared" do |sp|
     sp.source_files = "libraries/shared/src"
-    sp.public_header_files = "librares/shared/src"
     sp.exclude_files = "libraries/shared/src/UrlReader.*"
     sp.dependency 'glm'
     sp.xcconfig = { 'CLANG_CXX_LIBRARY' => "libc++" }
@@ -44,7 +43,11 @@ Pod::Spec.new do |s|
   
   s.subspec "audio" do |sp|
     sp.source_files = "libraries/audio/src"
-    sp.public_header_files = "libraries/audio/src"
+    sp.dependency 'glm'
+  end
+  
+  s.subspec "avatars" do |sp|
+    sp.source_files = "libraries/avatar/src"
     sp.dependency 'glm'
   end
 

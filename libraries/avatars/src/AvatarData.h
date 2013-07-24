@@ -16,6 +16,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
+#include <QtCore/QObject>
+
 #include <NodeData.h>
 #include "HeadData.h"
 #include "HandData.h"
@@ -39,6 +41,7 @@ enum KeyState
 class JointData;
 
 class AvatarData : public NodeData {
+  Q_OBJECT
 public:
     AvatarData(Node* owningNode = NULL);
     ~AvatarData();

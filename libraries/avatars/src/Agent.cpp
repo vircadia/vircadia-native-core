@@ -9,7 +9,7 @@
 #import <QtScript/QScriptEngine>
 #import <QtNetwork/QtNetwork>
 
-#include <AvatarData.h>
+#include "AvatarData.h"
 
 #include "Agent.h"
 
