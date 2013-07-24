@@ -11,6 +11,11 @@
 
 #include <vector>
 
+#include "InterfaceConfig.h"
+#include "Util.h"
+
+#include <QImage>
+
 class QAction;
 
 class PieMenu {
@@ -29,11 +34,15 @@ public:
     void mouseReleaseEvent(int x, int y);
 
 private:
+    QImage _textureImage;
+    GLuint _textureID;
+
     // position of the menu
-    int _x;
-    int _y;
-    int _radiusIntern;
-    int _radiusExtern;
+    int   _x;
+    int   _y;
+    int   _radiusIntern;
+    int   _radiusExtern;
+    float _magnification;
 
     int _mouseX;
     int _mouseY;

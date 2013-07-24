@@ -11,22 +11,47 @@
 #include <cmath>
 
 #include <QAction>
+#include <QSvgRenderer>
+#include <QPainter>
 #include <QGLWidget>
+#include <SharedUtil.h>
 
 PieMenu::PieMenu() :
     _radiusIntern(30),
     _radiusExtern(70),
+    _magnification(1.2f),
     _isDisplayed(false) {
-
-    addAction(NULL);
-    addAction(NULL);
-    addAction(NULL);
-    addAction(NULL);
-    addAction(NULL);
 }
 
 void PieMenu::init(const char *fileName, int screenWidth, int screenHeight) {
+    // Load SVG
+    switchToResourcesParentIfRequired();
+    QSvgRenderer renderer((QString) QString(fileName));
 
+    // Prepare a QImage with desired characteritisc
+    QImage image(2 * _radiusExtern, 2 * _radiusExtern, QImage::Format_ARGB32);
+    image.fill(0x0);
+
+    // Get QPainter that paints to the image
+    QPainter painter(&image);
+    renderer.render(&painter);
+
+    //get the OpenGL-friendly image
+    _textureImage = QGLWidget::convertToGLFormat(image);
+
+    glGenTextures(1, &_textureID);
+    glBindTexture(GL_TEXTURE_2D, _textureID);
+
+    //generate the texture
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
+                  _textureImage.width(),
+                  _textureImage.height(),
+                  0, GL_RGBA, GL_UNSIGNED_BYTE,
+                  _textureImage.bits());
+
+    //texture parameters
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 }
 
 void PieMenu::addAction(QAction* action){
@@ -44,15 +69,10 @@ void PieMenu::render() {
     float distance  = sqrt((_mouseX - _x) * (_mouseX - _x) +
                            (_mouseY - _y) * (_mouseY - _y));
 
-    glBegin(GL_QUAD_STRIP);
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, _textureID);
+
     glColor3f(1.0f, 1.0f, 1.0f);
-    for (float i = start; i < end; i += step) {
-        glVertex2f(_x + _radiusIntern * cos(i), _y + _radiusIntern * sin(i));
-        glVertex2f(_x + _radiusExtern * cos(i), _y + _radiusExtern * sin(i));
-    }
-    glVertex2f(_x + _radiusIntern * cos(end), _y + _radiusIntern * sin(end));
-    glVertex2f(_x + _radiusExtern * cos(end), _y + _radiusExtern * sin(end));
-    glEnd();
 
     if (_radiusIntern < distance) {
         float angle = atan2((_mouseY - _y), (_mouseX - _x)) - start;
@@ -62,18 +82,36 @@ void PieMenu::render() {
 
         start = start + _selectedAction * 2.0f * M_PI / _actions.size();
         end   = start + 2.0f * M_PI / _actions.size();
-        glBegin(GL_QUAD_STRIP);
-        glColor3f(0.0f, 0.0f, 0.0f);
+        glBegin(GL_TRIANGLE_FAN);
+        glTexCoord2f(0.5f, 0.5f);
+        glVertex2f(_x, _y);
         for (float i = start; i < end; i += step) {
-            glVertex2f(_x + _radiusIntern * cos(i), _y + _radiusIntern * sin(i));
-            glVertex2f(_x + _radiusExtern * cos(i), _y + _radiusExtern * sin(i));
+            glTexCoord2f(0.5f + 0.5f * cos(i), 0.5f - 0.5f * sin(i));
+            glVertex2f(_x + _magnification * _radiusExtern * cos(i),
+                       _y + _magnification * _radiusExtern * sin(i));
         }
-        glVertex2f(_x + _radiusIntern * cos(end), _y + _radiusIntern * sin(end));
-        glVertex2f(_x + _radiusExtern * cos(end), _y + _radiusExtern * sin(end));
+        glTexCoord2f(0.5f + 0.5f * cos(end), 0.5f +  - 0.5f * sin(end));
+        glVertex2f(_x + _magnification * _radiusExtern * cos(end),
+                   _y + _magnification * _radiusExtern * sin(end));
         glEnd();
     } else {
         _selectedAction = -1;
+
+        glBegin(GL_QUADS);
+        glTexCoord2f(1, 1);
+        glVertex2f(_x + _radiusExtern, _y - _radiusExtern);
+
+        glTexCoord2f(1, 0);
+        glVertex2f(_x + _radiusExtern, _y + _radiusExtern);
+
+        glTexCoord2f(0, 0);
+        glVertex2f(_x - _radiusExtern, _y + _radiusExtern);
+
+        glTexCoord2f(0, 1);
+        glVertex2f(_x - _radiusExtern, _y - _radiusExtern);
+        glEnd();
     }
+    glDisable(GL_TEXTURE_2D);
 }
 
 void PieMenu::resize(int screenWidth, int screenHeight) {
@@ -87,11 +125,14 @@ void PieMenu::mouseMoveEvent(int x, int y) {
 void PieMenu::mousePressEvent(int x, int y) {
     _x = _mouseX = x;
     _y = _mouseY = y;
+    _selectedAction = -1;
     _isDisplayed = true;
 }
 
 void PieMenu::mouseReleaseEvent(int x, int y) {
-    // TODO
+    if (0 <= _selectedAction && _selectedAction < _actions.size() && _actions[_selectedAction]) {
+        _actions[_selectedAction]->trigger();
+    }
 
     _isDisplayed = false;
 }
