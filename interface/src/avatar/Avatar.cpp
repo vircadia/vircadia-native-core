@@ -101,7 +101,8 @@ Avatar::Avatar(Node* owningNode) :
     _lastCollisionPosition(0, 0, 0),
     _speedBrakes(false),
     _isThrustOn(false),
-    _voxels(this)
+    _voxels(this),
+    _leadingAvatar(NULL)
 {
     // give the pointer to our head to inherited _headData variable from AvatarData
     _headData = &_head;
@@ -449,7 +450,7 @@ void Avatar::updateThrust(float deltaTime, Transmitter * transmitter) {
 void Avatar::follow(Avatar* leadingAvatar) {
     _leadingAvatar = leadingAvatar;
 
-
+    qDebug("[DEBUG] %d\n", _leadingAvatar);
 }
 
 void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
