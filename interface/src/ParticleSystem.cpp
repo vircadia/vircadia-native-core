@@ -367,12 +367,9 @@ void ParticleSystem::renderParticle(int p) {
                 
                     v /= distance;
 
-                    glm::vec3 up    = glm::normalize(glm::cross(v, _upDirection));
-                    glm::vec3 right = glm::normalize(glm::cross(up, v));
-                    
-                    right *= _particle[p].radius;
-                    up    *= _particle[p].radius;
-                    
+                    glm::vec3 up    = glm::normalize(glm::cross(v, _upDirection)) * _particle[p].radius;
+                    glm::vec3 right = glm::normalize(glm::cross(up, v          )) * _particle[p].radius;
+                                        
                     glm::vec3 p0Left  = _particle[p ].position - right;
                     glm::vec3 p0Right = _particle[p ].position + right;
                     glm::vec3 p0Down  = _particle[p ].position - up;
@@ -383,28 +380,40 @@ void ParticleSystem::renderParticle(int p) {
                     glm::vec3 ppDown  = _particle[pp].position - up;
                     glm::vec3 ppUp    = _particle[pp].position + up;
                                         
-                    glBegin(GL_TRIANGLES);             
-                    glVertex3f(p0Left.x,  p0Left.y,  p0Left.z  ); 
-                    glVertex3f(p0Right.x, p0Right.y, p0Right.z ); 
-                    glVertex3f(ppLeft.x,  ppLeft.y,  ppLeft.z  ); 
-                    glEnd();
+                    glBegin(GL_TRIANGLES);    
+                             
+                        glVertex3f(p0Left.x,  p0Left.y,  p0Left.z  ); 
+                        glVertex3f(p0Right.x, p0Right.y, p0Right.z ); 
+                        glVertex3f(ppLeft.x,  ppLeft.y,  ppLeft.z  ); 
 
-                    glBegin(GL_TRIANGLES);             
-                    glVertex3f(p0Right.x, p0Right.y, p0Right.z ); 
-                    glVertex3f(ppLeft.x,  ppLeft.y,  ppLeft.z  ); 
-                    glVertex3f(ppRight.x, ppRight.y, ppRight.z ); 
-                    glEnd();
+                        glVertex3f(p0Right.x, p0Right.y, p0Right.z ); 
+                        glVertex3f(ppLeft.x,  ppLeft.y,  ppLeft.z  ); 
+                        glVertex3f(ppRight.x, ppRight.y, ppRight.z ); 
 
-                    glBegin(GL_TRIANGLES);             
-                    glVertex3f(p0Up.x,   p0Up.y,   p0Up.z   ); 
-                    glVertex3f(p0Down.x, p0Down.y, p0Down.z ); 
-                    glVertex3f(ppDown.x, ppDown.y, ppDown.z ); 
-                    glEnd();
+                        glVertex3f(p0Up.x,    p0Up.y,    p0Up.z    ); 
+                        glVertex3f(p0Down.x,  p0Down.y,  p0Down.z  ); 
+                        glVertex3f(ppDown.x,  ppDown.y,  ppDown.z  ); 
 
-                    glBegin(GL_TRIANGLES);             
-                    glVertex3f(p0Up.x,   p0Up.y,   p0Up.z ); 
-                    glVertex3f(ppUp.x, ppUp.y, ppUp.z ); 
-                    glVertex3f(ppDown.x, ppDown.y, ppDown.z ); 
+                        glVertex3f(p0Up.x,    p0Up.y,    p0Up.z    ); 
+                        glVertex3f(ppUp.x,    ppUp.y,    ppUp.z    ); 
+                        glVertex3f(ppDown.x,  ppDown.y,  ppDown.z  ); 
+
+                        glVertex3f(p0Up.x,    p0Up.y,    p0Left.z  ); 
+                        glVertex3f(p0Right.x, p0Right.y, p0Right.z ); 
+                        glVertex3f(p0Down.x,  p0Down.y,  p0Down.z  ); 
+
+                        glVertex3f(p0Up.x,    p0Up.y,    p0Left.z  ); 
+                        glVertex3f(p0Left.x,  p0Left.y,  p0Left.z  ); 
+                        glVertex3f(p0Down.x,  p0Down.y,  p0Down.z  ); 
+
+                        glVertex3f(ppUp.x,    ppUp.y,    ppLeft.z  ); 
+                        glVertex3f(ppRight.x, ppRight.y, ppRight.z ); 
+                        glVertex3f(ppDown.x,  ppDown.y,  ppDown.z  ); 
+
+                        glVertex3f(ppUp.x,    ppUp.y,    ppLeft.z  ); 
+                        glVertex3f(ppLeft.x,  ppLeft.y,  ppLeft.z  ); 
+                        glVertex3f(ppDown.x,  ppDown.y,  ppDown.z  ); 
+                        
                     glEnd();
                 }            
             }                        
