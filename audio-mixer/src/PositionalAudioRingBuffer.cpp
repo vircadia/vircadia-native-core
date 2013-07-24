@@ -61,7 +61,7 @@ bool PositionalAudioRingBuffer::isListeningToNode(Node& other) const {
 
 int PositionalAudioRingBuffer::parseData(unsigned char* sourceBuffer, int numBytes) {
     unsigned char* currentBuffer = sourceBuffer + numBytesForPacketHeader(sourceBuffer);
-    currentBuffer += sizeof(int); // the source ID
+    currentBuffer += sizeof(uint16_t); // the source ID
     currentBuffer += parseListenModeData(currentBuffer, numBytes - (currentBuffer - sourceBuffer));
     currentBuffer += parsePositionalData(currentBuffer, numBytes - (currentBuffer - sourceBuffer));
     currentBuffer += parseAudioSamples(currentBuffer, numBytes - (currentBuffer - sourceBuffer));
@@ -126,5 +126,6 @@ bool PositionalAudioRingBuffer::shouldBeAddedToMix(int numJitterBufferSamples) {
             return true;
         }
     }
+    printf("packet mismatch...\n");
     return false;
 }

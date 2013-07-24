@@ -121,9 +121,10 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
             unsigned char* currentPacketPtr = dataPacket + populateTypeAndVersion(dataPacket, packetType);
             
             // pack Source Data
-            memcpy(currentPacketPtr, &_sourceID, sizeof(_sourceID));
-            currentPacketPtr += (sizeof(_sourceID));
-            leadingBytes += (sizeof(_sourceID));
+            uint16_t ownerID = NodeList::getInstance()->getOwnerID();
+            memcpy(currentPacketPtr, &ownerID, sizeof(ownerID));
+            currentPacketPtr += (sizeof(ownerID));
+            leadingBytes += (sizeof(ownerID));
             
             // pack Listen Mode Data
             memcpy(currentPacketPtr, &_listenMode, sizeof(_listenMode));
@@ -413,7 +414,6 @@ Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples) :
     _collisionSoundDuration(0.0f),
     _proceduralEffectSample(0),
     _heartbeatMagnitude(0.0f),
-    _sourceID(UNKNOWN_NODE_ID),
     _listenMode(AudioRingBuffer::NORMAL),
     _listenRadius(0.0f),
     _listenSourceCount(0),

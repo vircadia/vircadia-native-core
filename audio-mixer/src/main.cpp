@@ -353,7 +353,7 @@ int main(int argc, const char* argv[]) {
                 packetData[0] == PACKET_TYPE_MICROPHONE_AUDIO_WITH_ECHO) {
 
                 unsigned char* currentBuffer = packetData + numBytesForPacketHeader(packetData);
-                int sourceID;
+                uint16_t sourceID;
                 memcpy(&sourceID, currentBuffer, sizeof(sourceID));
 
                 Node* avatarNode = nodeList->addOrUpdateNode(nodeAddress,

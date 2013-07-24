@@ -54,8 +54,6 @@ public:
     // The results of the analysis are written to the log.
     bool eventuallyAnalyzePing();
 
-    int  getSourceID() const { return _sourceID; };
-    void setSourceID(int sourceID) { _sourceID = sourceID; };
     void setListenMode(AudioRingBuffer::ListenMode mode) { _listenMode = mode; };
     void setListenRadius(float radius) { _listenRadius = radius; };
     void addListenSource(int sourceID);
@@ -98,7 +96,6 @@ private:
     int _proceduralEffectSample;
     float _heartbeatMagnitude;
 
-    int                         _sourceID;
     AudioRingBuffer::ListenMode _listenMode;
     float                       _listenRadius;
     int                         _listenSourceCount;
