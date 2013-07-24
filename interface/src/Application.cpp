@@ -56,6 +56,8 @@
 #include <PairingHandler.h>
 #include <PerfStat.h>
 
+#include <VoxelSceneStats.h>
+
 #include "Application.h"
 #include "InterfaceConfig.h"
 #include "LogDisplay.h"
@@ -174,6 +176,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _window(new QMainWindow(desktop())),
         _glWidget(new GLCanvas()),
         _bandwidthDialog(NULL),
+        _voxelStatsDialog(NULL),
         _displayLevels(false),
         _frameCount(0),
         _fps(120.0f),
@@ -200,6 +203,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _mouseVoxelScale(1.0f / 1024.0f),
         _justEditedVoxel(false),
         _isLookingAtOtherAvatar(false),
+        _lookatIndicatorScale(1.0f),
         _paintOn(false),
         _dominantColor(0),
         _perfStatsOn(false),
@@ -1154,6 +1158,21 @@ void Application::bandwidthDetailsClosed() {
     delete dlg;
 }
 
+void Application::voxelStatsDetails() {
+    if (!_voxelStatsDialog) {
+        _voxelStatsDialog = new VoxelStatsDialog(_glWidget, &_voxelSceneStats);
+        connect(_voxelStatsDialog, SIGNAL(closed()), SLOT(voxelStatsDetailsClosed()));
+        _voxelStatsDialog->show();
+    } 
+    _voxelStatsDialog->raise();
+}
+
+void Application::voxelStatsDetailsClosed() {
+    QDialog* dlg = _voxelStatsDialog;
+    _voxelStatsDialog = NULL;
+    delete dlg;
+}
+
 void Application::editPreferences() {
     QDialog dialog(_glWidget);
     dialog.setWindowTitle("Interface Preferences");
@@ -1758,6 +1777,7 @@ void Application::initMenu() {
     (_bandwidthDisplayOn = toolsMenu->addAction("Bandwidth Display"))->setCheckable(true);
     _bandwidthDisplayOn->setChecked(true);
     toolsMenu->addAction("Bandwidth Details", this, SLOT(bandwidthDetails()));
+    toolsMenu->addAction("Voxel Stats Details", this, SLOT(voxelStatsDetails()));
 
  
     QMenu* voxelMenu = menuBar->addMenu("Voxels");
@@ -1842,6 +1862,11 @@ void Application::initMenu() {
     (_simulateLeapHand = debugMenu->addAction("Simulate Leap Hand"))->setCheckable(true);
     (_testRaveGlove = debugMenu->addAction("Test RaveGlove"))->setCheckable(true);
 
+    QMenu* audioDebugMenu = debugMenu->addMenu("Audio Debugging Tools");
+    audioDebugMenu->addAction("Listen Mode Normal", this, SLOT(setListenModeNormal()), Qt::CTRL | Qt::Key_1);
+    audioDebugMenu->addAction("Listen Mode Point/Radius", this, SLOT(setListenModePoint()), Qt::CTRL | Qt::Key_2);
+    audioDebugMenu->addAction("Listen Mode Single Source", this, SLOT(setListenModeSingleSource()), Qt::CTRL | Qt::Key_3);
+
     QMenu* settingsMenu = menuBar->addMenu("Settings");
     (_settingsAutosave = settingsMenu->addAction("Autosave"))->setCheckable(true);
     _settingsAutosave->setChecked(true);
@@ -1852,6 +1877,30 @@ void Application::initMenu() {
     
     _networkAccessManager = new QNetworkAccessManager(this);
 }
+
+void Application::setListenModeNormal() {
+    _audio.setListenMode(AudioRingBuffer::NORMAL);
+}
+
+void Application::setListenModePoint() {
+    _audio.setListenMode(AudioRingBuffer::OMNI_DIRECTIONAL_POINT);
+    _audio.setListenRadius(1.0);
+}
+
+void Application::setListenModeSingleSource() {
+    _audio.setListenMode(AudioRingBuffer::SELECTED_SOURCES);
+    _audio.clearListenSources();
+
+    glm::vec3 mouseRayOrigin = _myAvatar.getMouseRayOrigin();
+    glm::vec3 mouseRayDirection  = _myAvatar.getMouseRayDirection();
+    glm::vec3 eyePositionIgnored;
+    uint16_t nodeID;
+
+    if (isLookingAtOtherAvatar(mouseRayOrigin, mouseRayDirection, eyePositionIgnored, nodeID)) {
+        _audio.addListenSource(nodeID);
+    }
+}
+
 
 void Application::updateFrustumRenderModeAction() {
     switch (_frustumDrawingMode) {
@@ -1941,7 +1990,10 @@ const float MAX_AVATAR_EDIT_VELOCITY = 1.0f;
 const float MAX_VOXEL_EDIT_DISTANCE = 20.0f;
 const float HEAD_SPHERE_RADIUS = 0.07;
 
-bool Application::isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection, glm::vec3& eyePosition) {
+
+bool Application::isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection, 
+                                         glm::vec3& eyePosition, uint16_t& nodeID) {
+                                         
     NodeList* nodeList = NodeList::getInstance();
     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
         if (node->getLinkedData() != NULL && node->getType() == NODE_TYPE_AGENT) {
@@ -1949,7 +2001,9 @@ bool Application::isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3& m
             glm::vec3 headPosition = avatar->getHead().getPosition();
             if (rayIntersectsSphere(mouseRayOrigin, mouseRayDirection, headPosition, HEAD_SPHERE_RADIUS)) {
                 eyePosition = avatar->getHead().getEyeLevelPosition();
+                _lookatIndicatorScale = avatar->getScale();
                 _lookatOtherPosition = headPosition;
+                nodeID = avatar->getOwningNode()->getNodeID();
                 return true;
             }
         }
@@ -1959,11 +2013,13 @@ bool Application::isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3& m
 
 void Application::renderLookatIndicator(glm::vec3 pointOfInterest, Camera& whichCamera) {
 
-    const float DISTANCE_FROM_HEAD_SPHERE = 0.1f;
+    const float DISTANCE_FROM_HEAD_SPHERE = 0.1f * _lookatIndicatorScale;
+    const float INDICATOR_RADIUS = 0.1f * _lookatIndicatorScale;
     const float YELLOW[] = { 1.0f, 1.0f, 0.0f };
+    const int NUM_SEGMENTS = 30;
     glm::vec3 haloOrigin(pointOfInterest.x, pointOfInterest.y + DISTANCE_FROM_HEAD_SPHERE, pointOfInterest.z);
     glColor3f(YELLOW[0], YELLOW[1], YELLOW[2]);
-    renderCircle(haloOrigin, 0.1f, glm::vec3(0.0f, 1.0f, 0.0f), 30);
+    renderCircle(haloOrigin, INDICATOR_RADIUS, IDENTITY_UP, NUM_SEGMENTS);
 }
 
 void Application::update(float deltaTime) {
@@ -1993,7 +2049,9 @@ void Application::update(float deltaTime) {
     
     // Set where I am looking based on my mouse ray (so that other people can see)
     glm::vec3 eyePosition;
-    if (_isLookingAtOtherAvatar = isLookingAtOtherAvatar(mouseRayOrigin, mouseRayDirection, eyePosition)) {
+    uint16_t  ignored;
+    _isLookingAtOtherAvatar = isLookingAtOtherAvatar(mouseRayOrigin, mouseRayDirection, eyePosition, ignored);
+    if (_isLookingAtOtherAvatar) {
         // If the mouse is over another avatar's head...
         glm::vec3 myLookAtFromMouse(eyePosition);
          _myAvatar.getHead().setLookAtPosition(myLookAtFromMouse);
@@ -2010,7 +2068,7 @@ void Application::update(float deltaTime) {
         glm::vec3 front = orientation * IDENTITY_FRONT;
         glm::vec3 up = orientation * IDENTITY_UP;
         glm::vec3 towardVoxel = getMouseVoxelWorldCoordinates(_mouseVoxelDragging)
-                                - _myAvatar.getCameraPosition(); // is this an error? getCameraPosition dne
+                                - _myAvatar.getCameraPosition();
         towardVoxel = front * glm::length(towardVoxel);
         glm::vec3 lateralToVoxel = glm::cross(up, glm::normalize(towardVoxel)) * glm::length(towardVoxel);
         _voxelThrust = glm::vec3(0, 0, 0);
@@ -2198,6 +2256,9 @@ void Application::update(float deltaTime) {
     if (_bandwidthDialog) {
         _bandwidthDialog->update();
     }
+    if (_voxelStatsDialog) {
+        _voxelStatsDialog->update();
+    }
 
     //  Update audio stats for procedural sounds
     #ifndef _WIN32
@@ -2255,7 +2316,9 @@ void Application::updateAvatar(float deltaTime) {
         _viewFrustum.computePickRay(MIDPOINT_OF_SCREEN, MIDPOINT_OF_SCREEN, screenCenterRayOrigin, screenCenterRayDirection);
 
         glm::vec3 eyePosition;
-        if (_isLookingAtOtherAvatar = isLookingAtOtherAvatar(screenCenterRayOrigin, screenCenterRayDirection, eyePosition)) {
+        uint16_t  ignored;
+        _isLookingAtOtherAvatar = isLookingAtOtherAvatar(screenCenterRayOrigin, screenCenterRayDirection, eyePosition, ignored);
+        if (_isLookingAtOtherAvatar) {
             glm::vec3 myLookAtFromMouse(eyePosition);
             _myAvatar.getHead().setLookAtPosition(myLookAtFromMouse);
         }
@@ -2283,7 +2346,7 @@ void Application::updateAvatar(float deltaTime) {
     // actually need to calculate the view frustum planes to send these details 
     // to the server.
     loadViewFrustum(_myCamera, _viewFrustum);
-    _myAvatar.setCameraPosition(_viewFrustum.getPosition()); // setCameraPosition() dne
+    _myAvatar.setCameraPosition(_viewFrustum.getPosition());
     _myAvatar.setCameraOrientation(_viewFrustum.getOrientation());
     _myAvatar.setCameraFov(_viewFrustum.getFieldOfView());
     _myAvatar.setCameraAspectRatio(_viewFrustum.getAspectRatio());
@@ -2854,27 +2917,19 @@ void Application::displayStats() {
     drawtext(10, statsVerticalOffset + 230, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
     
     voxelStats.str("");
-    voxelStats << "Voxels Created: " << _voxels.getVoxelsCreated() / 1000.f << "K (" << _voxels.getVoxelsCreatedPerSecondAverage() / 1000.f
-    << "Kps) ";
+    char* voxelDetails = _voxelSceneStats.getItemValue(VoxelSceneStats::ITEM_VOXELS);
+    voxelStats << "Voxels Sent from Server: " << voxelDetails;
     drawtext(10, statsVerticalOffset + 250, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
-    
-    voxelStats.str("");
-    voxelStats << "Voxels Colored: " << _voxels.getVoxelsColored() / 1000.f << "K (" << _voxels.getVoxelsColoredPerSecondAverage() / 1000.f
-    << "Kps) ";
-    drawtext(10, statsVerticalOffset + 270, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
-    
-    voxelStats.str("");
-    voxelStats << "Voxel Bits Read: " << _voxels.getVoxelsBytesRead() * 8.f / 1000000.f 
-    << "M (" << _voxels.getVoxelsBytesReadPerSecondAverage() * 8.f / 1000000.f << " Mbps)";
-    drawtext(10, statsVerticalOffset + 290,0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
 
     voxelStats.str("");
-    float voxelsBytesPerColored = _voxels.getVoxelsColored()
-        ? ((float) _voxels.getVoxelsBytesRead() / _voxels.getVoxelsColored())
-        : 0;
-    
-    voxelStats << "Voxels Bits per Colored: " << voxelsBytesPerColored * 8;
-    drawtext(10, statsVerticalOffset + 310, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+    voxelDetails = _voxelSceneStats.getItemValue(VoxelSceneStats::ITEM_ELAPSED);
+    voxelStats << "Scene Send Time from Server: " << voxelDetails;
+    drawtext(10, statsVerticalOffset + 270, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+
+    voxelStats.str("");
+    voxelDetails = _voxelSceneStats.getItemValue(VoxelSceneStats::ITEM_ENCODE);
+    voxelStats << "Encode Time on Server: " << voxelDetails;
+    drawtext(10, statsVerticalOffset + 290, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
     
     Node *avatarMixer = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_AVATAR_MIXER);
     char avatarMixerStats[200];
@@ -3433,16 +3488,37 @@ void* Application::networkReceive(void* args) {
                     case PACKET_TYPE_VOXEL_DATA_MONOCHROME:
                     case PACKET_TYPE_Z_COMMAND:
                     case PACKET_TYPE_ERASE_VOXEL:
+                    case PACKET_TYPE_VOXEL_STATS:
                     case PACKET_TYPE_ENVIRONMENT_DATA: {
+                    
+                        unsigned char* messageData = app->_incomingPacket;
+                        ssize_t messageLength = bytesReceived;
+
+                        // note: PACKET_TYPE_VOXEL_STATS can have PACKET_TYPE_VOXEL_DATA or PACKET_TYPE_VOXEL_DATA_MONOCHROME
+                        // immediately following them inside the same packet. So, we process the PACKET_TYPE_VOXEL_STATS first
+                        // then process any remaining bytes as if it was another packet
+                        if (messageData[0] == PACKET_TYPE_VOXEL_STATS) {
+                            int statsMessageLength = app->_voxelSceneStats.unpackFromMessage(messageData, messageLength);
+                            if (messageLength > statsMessageLength) {
+                                messageData += statsMessageLength;
+                                messageLength -= statsMessageLength;
+                                if (!packetVersionMatch(messageData)) {
+                                    break; // bail since piggyback data doesn't match our versioning
+                                }
+                            } else {
+                                break; // bail since no piggyback data
+                            }
+                        } // fall through to piggyback message
+                        
                         if (app->_renderVoxels->isChecked()) {
                             Node* voxelServer = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_VOXEL_SERVER);
                             if (voxelServer && socketMatch(voxelServer->getActiveSocket(), &senderAddress)) {
                                 voxelServer->lock();
                                 
-                                if (app->_incomingPacket[0] == PACKET_TYPE_ENVIRONMENT_DATA) {
-                                    app->_environment.parseData(&senderAddress, app->_incomingPacket, bytesReceived);
+                                if (messageData[0] == PACKET_TYPE_ENVIRONMENT_DATA) {
+                                    app->_environment.parseData(&senderAddress, messageData, messageLength);
                                 } else {
-                                    app->_voxels.parseData(app->_incomingPacket, bytesReceived);
+                                    app->_voxels.parseData(messageData, messageLength);
                                 }
                                 
                                 voxelServer->unlock();
