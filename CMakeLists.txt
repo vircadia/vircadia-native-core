@@ -2,7 +2,8 @@ cmake_minimum_required(VERSION 2.8)
 
 project(hifi)
 
-set(CMAKE_PREFIX_PATH "/usr/local/Cellar/qt5/5.1.0/lib/cmake")
+message($ENV{QT_CMAKE_PREFIX_PATH})
+set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} $ENV{QT_CMAKE_PREFIX_PATH})
 
 # Find includes in corresponding build directories
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
