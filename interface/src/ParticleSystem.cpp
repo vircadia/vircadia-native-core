@@ -162,11 +162,11 @@ void ParticleSystem::killParticle(int p) {
 void ParticleSystem::setParticleAttributes(int emitterIndex, ParticleAttributes attributes) {
 
     for (int lifeStage = 0; lifeStage < NUM_PARTICLE_LIFE_STAGES; lifeStage ++ ) {
-        setParticleAttributes(emitterIndex, lifeStage, attributes);
+        setParticleAttributes(emitterIndex, (ParticleLifeStage)lifeStage, attributes);
     }
 }
 
-void ParticleSystem::setParticleAttributes(int emitterIndex, int lifeStage, ParticleAttributes attributes) {
+void ParticleSystem::setParticleAttributes(int emitterIndex, ParticleLifeStage lifeStage, ParticleAttributes attributes) {
 
     ParticleAttributes * a = &_emitter[emitterIndex].particleAttributes[lifeStage];
     

@@ -3650,10 +3650,12 @@ void Application::exportSettings() {
 }
 
 
-
 void Application::updateParticleSystem(float deltaTime) {
 
     if (!_particleSystemInitialized) {
+    
+        const int   LIFESPAN_IN_SECONDS  = 100000.0f;
+        const float EMIT_RATE_IN_SECONDS = 10000.0;
         // create a stable test emitter and spit out a bunch of particles
         _coolDemoParticleEmitter = _particleSystem.addEmitter();
         
@@ -3662,9 +3664,9 @@ void Application::updateParticleSystem(float deltaTime) {
             glm::vec3 particleEmitterPosition = glm::vec3(5.0f, 1.0f, 5.0f);   
             
             _particleSystem.setEmitterPosition        (_coolDemoParticleEmitter, particleEmitterPosition);
-            _particleSystem.setEmitterParticleLifespan(_coolDemoParticleEmitter, 100000.0f);
+            _particleSystem.setEmitterParticleLifespan(_coolDemoParticleEmitter, LIFESPAN_IN_SECONDS);
             _particleSystem.setEmitterThrust          (_coolDemoParticleEmitter, 0.0f);
-            _particleSystem.setEmitterRate            (_coolDemoParticleEmitter, 10000.0); // to emit a pile o particles now
+            _particleSystem.setEmitterRate            (_coolDemoParticleEmitter, EMIT_RATE_IN_SECONDS); // to emit a pile o particles now
         }
         
         // signal that the particle system has been initialized 

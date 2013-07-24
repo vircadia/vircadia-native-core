@@ -10,9 +10,8 @@
 
 #include <glm/gtc/quaternion.hpp>
 
-const int  MAX_PARTICLES            = 5000;
-const int  MAX_EMITTERS             = 100;
-const int  NUM_PARTICLE_LIFE_STAGES = 4;  // each equal time-division of the particle's life can have different attributes
+const int  MAX_PARTICLES = 5000;
+const int  MAX_EMITTERS  = 100;
 
 enum ParticleRenderStyle
 {
@@ -21,6 +20,19 @@ enum ParticleRenderStyle
     PARTICLE_RENDER_STYLE_RIBBON,
     NUM_PARTICLE_RENDER_STYLES
 };
+
+
+enum ParticleLifeStage
+{
+    PARTICLE_LIFESTAGE_0 = 0,
+    PARTICLE_LIFESTAGE_1,
+    PARTICLE_LIFESTAGE_2,
+    PARTICLE_LIFESTAGE_3,
+    NUM_PARTICLE_LIFE_STAGES
+};
+
+
+
 
 class ParticleSystem {
 public:
@@ -51,7 +63,7 @@ public:
     
     void setUpDirection(glm::vec3 upDirection) {_upDirection = upDirection;} // tell particle system which direction is up
     void setParticleAttributes        (int emitterIndex, ParticleAttributes attributes); // set attributes for whole life of particles
-    void setParticleAttributes        (int emitterIndex, int lifeStage, ParticleAttributes attributes); // set attributes for this life stage of particles
+    void setParticleAttributes        (int emitterIndex, ParticleLifeStage lifeStage, ParticleAttributes attributes); // set attributes for this life stage
     void setEmitterPosition           (int emitterIndex, glm::vec3           position    ) {_emitter[emitterIndex].position            = position;    } 
     void setEmitterParticleResolution (int emitterIndex, int                 resolution  ) {_emitter[emitterIndex].particleResolution  = resolution;  } 
     void setEmitterDirection          (int emitterIndex, glm::vec3           direction   ) {_emitter[emitterIndex].direction           = direction;   } 
