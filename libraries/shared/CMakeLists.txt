@@ -7,11 +7,11 @@ set(TARGET_NAME shared)
 project(${TARGET_NAME})
 
 find_package(Qt5Core REQUIRED)
-include(${QT_USE_FILE})
-qt5_wrap_cpp(WRAPPED_SRCS src/NodeData.h)
 
 include(${MACRO_DIR}/SetupHifiLibrary.cmake)
 setup_hifi_library(${TARGET_NAME})
+
+qt5_use_modules(${TARGET_NAME} Core)
 
 set(EXTERNAL_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external)
 

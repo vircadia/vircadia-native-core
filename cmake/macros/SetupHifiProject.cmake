@@ -9,8 +9,7 @@ MACRO(SETUP_HIFI_PROJECT TARGET INCLUDE_QT)
     
     IF (${INCLUDE_QT})
       find_package(Qt5Core REQUIRED)
-      include(${QT_USE_FILE})
-      SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${QT_QTGUI_INCLUDE_DIR}")
+      qt5_use_modules(${TARGET} Core)
     ENDIF()
 
     target_link_libraries(${TARGET} ${QT_LIBRARIES})
