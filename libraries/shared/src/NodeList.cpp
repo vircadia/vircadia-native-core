@@ -11,7 +11,7 @@
 #include <cstdlib>
 #include <cstdio>
 
-#include <QDebug>
+#include <QtCore/QDebug>
 
 #include "NodeList.h"
 #include "NodeTypes.h"

@@ -11,7 +11,7 @@
 #include <cmath>
 #include <cstring>
 
-#include <QDebug>
+#include <QtCore/QDebug>
 
 #include "SharedUtil.h"
 #include "OctalCode.h"

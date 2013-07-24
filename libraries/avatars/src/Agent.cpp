@@ -31,7 +31,7 @@ void Agent::run(QUrl scriptURL) {
     
     AvatarData *someObject = new AvatarData;
     
-    QScriptValue objectValue = engine.newObject();
+    QScriptValue objectValue = engine.newQObject(someObject);
     engine.globalObject().setProperty("AvatarData", objectValue);
     
     qDebug() << "Execution of script:" << engine.evaluate(scriptString).toString();

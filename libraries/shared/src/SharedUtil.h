@@ -13,7 +13,7 @@
 #include <stdint.h>
 #include <unistd.h>
 
-#include <QDebug>
+#include <QtCore/QDebug>
 
 #ifdef _WIN32
 #include "Systime.h"

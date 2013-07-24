@@ -35,7 +35,7 @@ Pod::Spec.new do |s|
   # s.exclude_files = 'Classes/Exclude'
   
   s.subspec "shared" do |sp|
-    sp.source_files = "libraries/shared/src"
+    sp.source_files = 'libraries/shared/src', 'libraries/shared/moc_*'
     sp.exclude_files = "libraries/shared/src/UrlReader.*"
     sp.dependency 'glm'
     sp.xcconfig = { 'CLANG_CXX_LIBRARY' => "libc++" }
@@ -47,9 +47,12 @@ Pod::Spec.new do |s|
   end
   
   s.subspec "avatars" do |sp|
-    sp.source_files = "libraries/avatar/src"
+    sp.source_files = 'libraries/avatars/src', 'libraries/avatars/moc_*'
     sp.dependency 'glm'
   end
+  
+  s.xcconfig = { 'HEADER_SEARCH_PATHS' => '${PODS_ROOT}/../../qt5-device/qtbase/include' }
+  s.libraries = 'libQtCoreCombined', 'libQt5Network', 'libQt5Script'
 
   # A list of file patterns which select the header files that should be
   # made available to the application. If the pattern is a directory then the

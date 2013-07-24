@@ -106,6 +106,9 @@ public:
     void setHeadData(HeadData* headData) { _headData = headData; }
     void setHandData(HandData* handData) { _handData = handData; }
     
+public slots:
+    void setPosition(float x, float y, float z) { _position = glm::vec3(x, y, z); }
+    
 protected:
     glm::vec3 _position;
     glm::vec3 _handPosition;

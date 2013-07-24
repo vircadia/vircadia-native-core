@@ -14,7 +14,7 @@
 #include <map>
 #include <string>
 
-#include <QDebug>
+#include <QtCore/QDebug>
 
 #include "PerfStat.h"
 

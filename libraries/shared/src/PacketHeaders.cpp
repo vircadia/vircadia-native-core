@@ -8,7 +8,7 @@
 
 #include <stdio.h>
 
-#include <QDebug>
+#include <QtCore/QDebug>
 
 #include "PacketHeaders.h"
 

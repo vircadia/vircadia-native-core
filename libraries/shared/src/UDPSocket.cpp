@@ -20,7 +20,7 @@
 #include <unistd.h>
 #endif
 
-#include <QDebug>
+#include <QtCore/QDebug>
 
 #include "UDPSocket.h"
 

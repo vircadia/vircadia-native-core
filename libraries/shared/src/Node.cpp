@@ -21,7 +21,7 @@
 #include "SharedUtil.h"
 #include "UDPSocket.h"
 
-#include <QDebug>
+#include <QtCore/QDebug>
 
 int unpackNodeId(unsigned char* packedData, uint16_t* nodeId) {
     memcpy(nodeId, packedData, sizeof(uint16_t));

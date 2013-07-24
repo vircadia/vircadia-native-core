@@ -20,7 +20,7 @@
 #include <CoreFoundation/CoreFoundation.h>
 #endif
 
-#include <QDebug>
+#include <QtCore/QDebug>
 
 #include "OctalCode.h"
 #include "PacketHeaders.h"

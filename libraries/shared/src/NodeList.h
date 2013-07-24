@@ -14,7 +14,7 @@
 #include <iterator>
 #include <unistd.h>
 
-#include <QSettings>
+#include <QtCore/QSettings>
 
 #include "Node.h"
 #include "NodeTypes.h"
