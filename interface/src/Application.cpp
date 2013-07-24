@@ -3660,13 +3660,11 @@ void Application::updateParticleSystem(float deltaTime) {
         if (_coolDemoParticleEmitter != -1) {
             _particleSystem.setShowingEmitter(_coolDemoParticleEmitter, true);
             glm::vec3 particleEmitterPosition = glm::vec3(5.0f, 1.0f, 5.0f);   
-            _particleSystem.setEmitterPosition(_coolDemoParticleEmitter, particleEmitterPosition);
             
+            _particleSystem.setEmitterPosition        (_coolDemoParticleEmitter, particleEmitterPosition);
             _particleSystem.setEmitterParticleLifespan(_coolDemoParticleEmitter, 100000.0f);
-            _particleSystem.setEmitterThrust(_coolDemoParticleEmitter, 0.0f);
-            _particleSystem.setEmitterRate(_coolDemoParticleEmitter, 1500);
-
-            _particleSystem.emitNow(_coolDemoParticleEmitter);   
+            _particleSystem.setEmitterThrust          (_coolDemoParticleEmitter, 0.0f);
+            _particleSystem.setEmitterRate            (_coolDemoParticleEmitter, 10000.0); // to emit a pile o particles now
         }
         
         // signal that the particle system has been initialized 
@@ -3674,6 +3672,7 @@ void Application::updateParticleSystem(float deltaTime) {
     } else {
         // update the particle system
         
+        static bool emitting = true;
         static float t = 0.0f;
         t += deltaTime;
         
@@ -3706,6 +3705,13 @@ void Application::updateParticleSystem(float deltaTime) {
         
         _particleSystem.setUpDirection(glm::vec3(0.0f, 1.0f, 0.0f));  
         _particleSystem.simulate(deltaTime); 
+        
+        if (_coolDemoParticleEmitter != -1) {
+            if (emitting) {
+                _particleSystem.setEmitterRate(_coolDemoParticleEmitter, 0.0); // stop emitter
+                emitting = false;
+            }
+        }
     }
 }
 

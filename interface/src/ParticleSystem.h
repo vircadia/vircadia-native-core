@@ -13,7 +13,6 @@
 const int  MAX_PARTICLES            = 5000;
 const int  MAX_EMITTERS             = 100;
 const int  NUM_PARTICLE_LIFE_STAGES = 4;  // each equal time-division of the particle's life can have different attributes
-const bool SHOW_VELOCITY_TAILS      = false;
 
 enum ParticleRenderStyle
 {
@@ -46,7 +45,6 @@ public:
     ParticleSystem();
     
     int  addEmitter(); // add (create new) emitter and get its unique id
-    void emitNow(int emitterIndex);
     void simulate(float deltaTime);
     void killAllParticles();
     void render();
@@ -83,6 +81,7 @@ private:
         bool      visible;             // whether or not a line is shown indicating the emitter (indicating its direction)
         float     particleLifespan;    // how long the particle shall live, in seconds
         int       particleResolution;  // for sphere-based particles
+        float     emitReserve;         // baed on 'rate', this is the number of particles that need to be emitted at a given time step
         float     thrust;              // the initial velocity upon emitting along the emitter direction 
         float     rate;                // currently, how many particles emitted during a simulation time step
         bool      showingBaseParticle; // if true, a copy of particle 0 is shown on the emitter position

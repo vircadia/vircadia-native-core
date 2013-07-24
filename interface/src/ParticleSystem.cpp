@@ -31,6 +31,7 @@ ParticleSystem::ParticleSystem() {
         _emitter[emitterIndex].particleResolution  = DEFAULT_PARTICLE_SPHERE_RESOLUTION;
         _emitter[emitterIndex].particleLifespan    = DEFAULT_PARTICLE_LIFESPAN;
         _emitter[emitterIndex].showingBaseParticle = false;
+        _emitter[emitterIndex].emitReserve         = 0.0;
         _emitter[emitterIndex].thrust              = 0.0f;
         _emitter[emitterIndex].rate                = 0.0f;
         _emitter[emitterIndex].currentParticle     = 0;
@@ -80,6 +81,24 @@ int ParticleSystem::addEmitter() {
 
 void ParticleSystem::simulate(float deltaTime) {
     
+    // emit particles
+    for (int e = 0; e < _numEmitters; e++) {
+        
+        assert( e >= 0 );
+        assert( e <= MAX_EMITTERS );
+        assert( _emitter[e].rate >= 0 );
+        
+        _emitter[e].emitReserve += _emitter[e].rate * deltaTime;
+    
+        int numParticlesEmittedThisTime = (int)_emitter[e].emitReserve;
+        
+        _emitter[e].emitReserve -= numParticlesEmittedThisTime;
+    
+        for (int p = 0; p < numParticlesEmittedThisTime; p++) {
+            createParticle(e);
+        }
+    }
+
     // update particles
     for (unsigned int p = 0; p < _numParticles; p++) {
         if (_particle[p].alive) {
@@ -89,17 +108,6 @@ void ParticleSystem::simulate(float deltaTime) {
                 updateParticle(p, deltaTime);
             }
         }
-    }
-}
-
-void ParticleSystem::emitNow(int e) {
-
-    assert( e >= 0 );
-    assert( e <= MAX_EMITTERS );
-    assert( _emitter[e].rate >= 0 );
-
-    for (int p = 0; p < _emitter[e].rate; p++) {
-        createParticle(e);
     }
 }
 
@@ -115,11 +123,12 @@ void ParticleSystem::createParticle(int e) {
             _particle[p].position         = _emitter[e].position;
             _particle[p].radius           = _emitter[e].particleAttributes[0].radius;
             _particle[p].color            = _emitter[e].particleAttributes[0].color;
+            _particle[p].previousParticle = -1;
             
-            if (( _particle[_emitter[e].currentParticle].alive) && (_particle[_emitter[e].currentParticle].emitterIndex == e )) {
-                _particle[p].previousParticle = _emitter[e].currentParticle;
-            } else {
-                _particle[p].previousParticle = -1;
+            if ( _particle[_emitter[e].currentParticle].alive) {            
+                if (_particle[_emitter[e].currentParticle].emitterIndex == e ) {
+                    _particle[p].previousParticle = _emitter[e].currentParticle;
+                }
             }
             
             _emitter[e].currentParticle = p;
@@ -128,7 +137,7 @@ void ParticleSystem::createParticle(int e) {
                         
             assert(_numParticles <= MAX_PARTICLES);
             
-            return;
+            break;
         }
     }
 }
@@ -139,9 +148,15 @@ void ParticleSystem::killParticle(int p) {
     assert( p < MAX_PARTICLES);
     assert( _numParticles > 0);
 
-    _particle[p].alive = false;
+    _particle[p].alive            = false;
+    _particle[p].previousParticle = -1;
+    _particle[p].position         = _emitter[_particle[p].emitterIndex].position;
+    _particle[p].velocity         = glm::vec3(0.0f, 0.0f, 0.0f);
+    _particle[p].age              = 0.0f;
+    _particle[p].emitterIndex     = -1; 
+
     _numParticles --;
-}
+ }
 
 
 void ParticleSystem::setParticleAttributes(int emitterIndex, ParticleAttributes attributes) {
@@ -274,11 +289,15 @@ void ParticleSystem::updateParticle(int p, float deltaTime) {
 
 void ParticleSystem::killAllParticles() {
 
+    for (int e = 0; e < _numEmitters; e++) {
+        _emitter[e].currentParticle = -1;
+        _emitter[e].emitReserve = 0.0f;
+    }
+    
     for (unsigned int p = 0; p < _numParticles; p++) {
         killParticle(p);
     }
 }
-
 
 void ParticleSystem::render() {
 
@@ -340,29 +359,24 @@ void ParticleSystem::renderParticle(int p) {
             glEnd();
         }
     } else if (_emitter[_particle[p].emitterIndex].particleRenderStyle == PARTICLE_RENDER_STYLE_SPHERE) {
+
         glPushMatrix();
         glTranslatef(_particle[p].position.x, _particle[p].position.y, _particle[p].position.z);
         glutSolidSphere(_particle[p].radius, _emitter[_particle[p].emitterIndex].particleResolution, _emitter[_particle[p].emitterIndex].particleResolution);
         glPopMatrix();
 
-        if (SHOW_VELOCITY_TAILS) {
-            glColor4f( _particle[p].color.x, _particle[p].color.y, _particle[p].color.z, 0.5f);
-            glm::vec3 end = _particle[p].position - _particle[p].velocity * 2.0f;
-            glBegin(GL_LINES);
-            glVertex3f(_particle[p].position.x, _particle[p].position.y, _particle[p].position.z);
-            glVertex3f(end.x, end.y, end.z);            
-            glEnd();
-        }
     } else if (_emitter[_particle[p].emitterIndex].particleRenderStyle == PARTICLE_RENDER_STYLE_RIBBON) {
     
         if (_particle[p].previousParticle != -1) {
-            if (_particle[_particle[p].previousParticle].alive) {
+            if ((_particle[p].alive)
+            &&  (_particle[_particle[p].previousParticle].alive)
+            &&  (_particle[_particle[p].previousParticle].emitterIndex == _particle[p].emitterIndex )) {
             
                 int pp = _particle[p].previousParticle;
 
                 glm::vec3 v = _particle[p].position - _particle[pp].position;
                 float distance = glm::length(v);
-    
+
                 if (distance > 0.0f) {
                 
                     v /= distance;
@@ -415,7 +429,7 @@ void ParticleSystem::renderParticle(int p) {
                         glVertex3f(ppDown.x,  ppDown.y,  ppDown.z  ); 
                         
                     glEnd();
-                }            
+                }
             }                        
         }
     }
