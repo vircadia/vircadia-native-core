@@ -189,6 +189,8 @@ private slots:
     glm::vec2 getScaledScreenPoint(glm::vec2 projectedPoint);
     void goHome();
 
+    void toggleFollowMode();
+
 private:
 
     static void controlledBroadcastToNodes(unsigned char* broadcastData, size_t dataBytes, 
@@ -292,6 +294,8 @@ private:
 
     QAction* _simulateLeapHand;      // When there's no Leap, use this to pretend there is one and feed fake hand data
     QAction* _testRaveGlove;         // Test fancy sparkle-rave-glove mode
+
+    QAction* _followMode;
     
     BandwidthMeter _bandwidthMeter;
     BandwidthDialog* _bandwidthDialog;

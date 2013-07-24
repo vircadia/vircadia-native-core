@@ -446,6 +446,12 @@ void Avatar::updateThrust(float deltaTime, Transmitter * transmitter) {
     _isThrustOn = (glm::length(_thrust) > EPSILON);
 }
 
+void Avatar::follow(Avatar* leadingAvatar) {
+    _leadingAvatar = leadingAvatar;
+
+
+}
+
 void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     
     glm::quat orientation = getOrientation();

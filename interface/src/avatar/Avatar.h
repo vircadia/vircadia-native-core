@@ -114,6 +114,7 @@ public:
     void reset();
     void simulate(float deltaTime, Transmitter* transmitter);
     void updateThrust(float deltaTime, Transmitter * transmitter);
+    void follow(Avatar* leadingAvatar);
     void updateFromGyrosAndOrWebcam(bool gyroLook,
                                     const glm::vec3& amplifyAngle,
                                     float yawFromTouch,
@@ -157,18 +158,16 @@ public:
     float            getElapsedTimeMoving      ()                const { return _elapsedTimeMoving;}
     float            getElapsedTimeSinceCollision()              const { return _elapsedTimeSinceCollision;}
     const glm::vec3& getLastCollisionPosition  ()                const { return _lastCollisionPosition;}
-    float            getAbsoluteHeadYaw        () const;
-    float            getAbsoluteHeadPitch      () const;
-    Head&            getHead                   () {return _head; }
-    Hand&            getHand                   () {return _hand; }
-    glm::quat        getOrientation            () const;
-    glm::quat        getWorldAlignedOrientation() const;
-    
-    const glm::vec3& getMouseRayOrigin()    const { return _mouseRayOrigin;    }
-    const glm::vec3& getMouseRayDirection() const { return _mouseRayDirection; }
-
-    
-    glm::vec3        getGravity        ()         const { return _gravity; }
+    float            getAbsoluteHeadYaw        ()                const;
+    float            getAbsoluteHeadPitch      ()                const;
+    Head&            getHead                   ()                      {return _head; }
+    Hand&            getHand                   ()                      {return _hand; }
+    glm::quat        getOrientation            ()                const;
+    glm::quat        getWorldAlignedOrientation()                const;
+    const glm::vec3& getMouseRayOrigin         ()                const { return _mouseRayOrigin;    }
+    const glm::vec3& getMouseRayDirection      ()                const { return _mouseRayDirection; }
+    Avatar*          getLeadingAvatar          ()                const {return _leadingAvatar; }
+    glm::vec3        getGravity                ()                const { return _gravity; }
     
     glm::vec3 getUprightHeadPosition() const;
     
@@ -254,6 +253,7 @@ private:
     glm::vec3   _lastCollisionPosition;
     bool        _speedBrakes;
     bool        _isThrustOn;
+    Avatar*     _leadingAvatar;
     
     AvatarVoxelSystem _voxels;
     
