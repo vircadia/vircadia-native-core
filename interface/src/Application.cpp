@@ -1960,8 +1960,7 @@ void Application::renderLookatIndicator(glm::vec3 pointOfInterest, Camera& which
     const int NUM_SEGMENTS = 30;
     glm::vec3 haloOrigin(pointOfInterest.x, pointOfInterest.y + DISTANCE_FROM_HEAD_SPHERE, pointOfInterest.z);
     glColor3f(YELLOW[0], YELLOW[1], YELLOW[2]);
-    glm::vec3 normalToFloor(0.0f, 1.0f, 0.0f);
-    renderCircle(haloOrigin, INDICATOR_RADIUS, normalToFloor, NUM_SEGMENTS);
+    renderCircle(haloOrigin, INDICATOR_RADIUS, IDENTITY_UP, NUM_SEGMENTS);
 }
 
 void Application::update(float deltaTime) {
