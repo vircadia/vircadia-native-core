@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8)
 project(Fervor)
-find_package(Qt5 REQUIRED)
+find_package(QtCore QtNetwork REQUIRED)
 
 add_definitions(-DFV_GUI)
 

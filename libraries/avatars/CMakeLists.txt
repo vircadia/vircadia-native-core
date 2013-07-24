@@ -8,7 +8,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../../cm
 
 set(TARGET_NAME avatars)
 
-find_package(Qt5 REQUIRED QtCore)
+find_package(Qt5Core)
 include(${QT_USE_FILE})
 qt5_wrap_cpp(WRAPPED_SRCS src/AvatarData.h)
 
