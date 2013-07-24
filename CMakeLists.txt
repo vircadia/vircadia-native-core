@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 2.8)
 
 project(hifi)
 
-message($ENV{QT_CMAKE_PREFIX_PATH})
 set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} $ENV{QT_CMAKE_PREFIX_PATH})
 
 # Find includes in corresponding build directories
