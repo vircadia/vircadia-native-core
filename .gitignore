@@ -4,6 +4,7 @@ CMakeFiles/
 CMakeScripts/
 cmake_install.cmake
 build/
+Makefile
 
 # Xcode
 *.xcodeproj
