@@ -10,8 +10,9 @@
 #include <cstring>
 #include <stdint.h>
 
-#include <SharedUtil.h>
+#include <NodeList.h>
 #include <PacketHeaders.h>
+#include <SharedUtil.h>
 
 #include "AvatarData.h"
 //#include <VoxelConstants.h>
@@ -48,6 +49,24 @@ AvatarData::AvatarData(Node* owningNode) :
 AvatarData::~AvatarData() {
     delete _headData;
     delete _handData;
+}
+
+void AvatarData::sendData() {
+    
+    // called from Agent visual loop to send data
+    if (Node* avatarMixer = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_AVATAR_MIXER)) {
+        unsigned char packet[MAX_PACKET_SIZE];
+        
+        unsigned char* endOfPacket = packet;
+        endOfPacket += populateTypeAndVersion(endOfPacket, PACKET_TYPE_HEAD_DATA);
+        endOfPacket += packNodeId(endOfPacket, NodeList::getInstance()->getOwnerID());
+        
+        int numPacketBytes = (endOfPacket - packet) + getBroadcastData(endOfPacket);
+        
+        qDebug("The current body yaw is %f\n", _bodyYaw);
+        
+        NodeList::getInstance()->getNodeSocket()->send(avatarMixer->getActiveSocket(), packet, numPacketBytes);
+    }
 }
 
 int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {

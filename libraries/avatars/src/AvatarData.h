@@ -56,7 +56,6 @@ public:
     
     //  Body Rotation
     float getBodyYaw() const { return _bodyYaw; }
-    void setBodyYaw(float bodyYaw) { _bodyYaw = bodyYaw; }
     float getBodyPitch() const { return _bodyPitch; }
     void setBodyPitch(float bodyPitch) { _bodyPitch = bodyPitch; }
     float getBodyRoll() const {return _bodyRoll; }
@@ -108,6 +107,8 @@ public:
     
 public slots:
     void setPosition(float x, float y, float z) { _position = glm::vec3(x, y, z); }
+    void setBodyYaw(float bodyYaw) { _bodyYaw = bodyYaw; }
+    void sendData();
     
 protected:
     glm::vec3 _position;

@@ -117,8 +117,10 @@ void NodeList::processNodeData(sockaddr* senderAddress, unsigned char* packetDat
             sockaddr_in domainServerSocket = *(sockaddr_in*) senderAddress;
             const char* domainSenderIP = inet_ntoa(domainServerSocket.sin_addr);
             
+            processDomainServerList(packetData, dataBytes);
+            
             if (memcmp(domainSenderIP, _domainIP, strlen(domainSenderIP)) == 0) {
-                processDomainServerList(packetData, dataBytes);
+                
             }
             
             break;

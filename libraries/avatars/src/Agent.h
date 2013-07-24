@@ -16,14 +16,19 @@
 
 #include "SharedUtil.h"
 
+#include <QtCore/QObject>
 #include <QtCore/QUrl>
 
-class Agent {
-public:    
-    bool volatile shouldStop;
+class Agent : public QObject {
+    Q_OBJECT
+public:
+    Agent();
+    
+    bool volatile _shouldStop;
     
     void run(QUrl scriptUrl);
-private:
+signals:
+    void preSendCallback();
 };
 
 #endif /* defined(__hifi__Operative__) */
