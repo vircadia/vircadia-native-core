@@ -43,6 +43,7 @@
 #include "avatar/HandControl.h"
 #include "ui/BandwidthDialog.h"
 #include "ui/ChatEntry.h"
+#include "ui/VoxelStatsDialog.h"
 
 class QAction;
 class QActionGroup;
@@ -120,6 +121,9 @@ private slots:
     void bandwidthDetails();
     void editPreferences();
     void bandwidthDetailsClosed();
+
+    void voxelStatsDetails();
+    void voxelStatsDetailsClosed();
     
     void pair();
     
@@ -170,6 +174,10 @@ private slots:
     void copyVoxels();
     void pasteVoxels();
     void runTests();
+    void setListenModeNormal();
+    void setListenModePoint();
+    void setListenModeSingleSource();
+
 
     void renderCoverageMap();
     void renderCoverageMapsRecursively(CoverageMap* map);
@@ -199,7 +207,9 @@ private:
     void init();
     
     void update(float deltaTime);
-    bool isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection, glm::vec3& eyePosition);
+    bool isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection, 
+                                glm::vec3& eyePosition, uint16_t& nodeID);
+                                
     void renderLookatIndicator(glm::vec3 pointOfInterest, Camera& whichCamera);
     void updateAvatar(float deltaTime);
     void loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum);
@@ -284,6 +294,7 @@ private:
     
     BandwidthMeter _bandwidthMeter;
     BandwidthDialog* _bandwidthDialog;
+    VoxelStatsDialog* _voxelStatsDialog;
 
     SerialInterface _serialHeadSensor;
     QNetworkAccessManager* _networkAccessManager;
@@ -416,6 +427,8 @@ private:
 
     ToolsPalette _palette;
     Swatch _swatch;
+    
+    VoxelSceneStats _voxelSceneStats;
 };
 
 #endif /* defined(__interface__Application__) */

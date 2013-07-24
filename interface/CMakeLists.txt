@@ -77,7 +77,7 @@ include_directories(external/fervor/)
 
 # run qt moc on qt-enabled headers
 qt4_wrap_cpp(INTERFACE_SRCS src/Application.h src/Webcam.h src/avatar/AvatarVoxelSystem.h
-    src/avatar/Face.h src/ui/BandwidthDialog.h)
+    src/avatar/Face.h src/ui/BandwidthDialog.h  src/ui/VoxelStatsDialog.h)
 
 # create the executable, make it a bundle on OS X
 add_executable(${TARGET_NAME} MACOSX_BUNDLE ${INTERFACE_SRCS})
