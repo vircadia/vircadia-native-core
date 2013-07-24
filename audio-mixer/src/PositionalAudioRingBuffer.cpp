@@ -8,6 +8,7 @@
 
 #include <cstring>
 
+#include <Node.h>
 #include <PacketHeaders.h>
 
 #include "PositionalAudioRingBuffer.h"
@@ -17,7 +18,6 @@ PositionalAudioRingBuffer::PositionalAudioRingBuffer() :
     _position(0.0f, 0.0f, 0.0f),
     _orientation(0.0f, 0.0f, 0.0f, 0.0f),
     _willBeAddedToMix(false),
-    _sourceID(-1),
     _listenMode(AudioRingBuffer::NORMAL),
     _listenRadius(0.0f),
     _listenSourceCount(0),
@@ -32,7 +32,7 @@ PositionalAudioRingBuffer::~PositionalAudioRingBuffer() {
     }
 }
 
-bool PositionalAudioRingBuffer::isListeningToSource(PositionalAudioRingBuffer* other) {
+bool PositionalAudioRingBuffer::isListeningToNode(Node& other) const {
     switch (_listenMode) {
         default:
         case AudioRingBuffer::NORMAL:
@@ -40,14 +40,15 @@ bool PositionalAudioRingBuffer::isListeningToSource(PositionalAudioRingBuffer* o
             break;
 
         case AudioRingBuffer::OMNI_DIRECTIONAL_POINT: {
-            float distance = glm::distance(_position, other->_position);
+            PositionalAudioRingBuffer* otherNodeBuffer = (PositionalAudioRingBuffer*) other.getLinkedData();
+            float distance = glm::distance(_position, otherNodeBuffer->_position);
             return distance <= _listenRadius;
             break;
         } 
         case AudioRingBuffer::SELECTED_SOURCES:
             if (_listenSources) {
                 for (int i = 0; i < _listenSourceCount; i++) {
-                    if (other->_sourceID == _listenSources[i]) {
+                    if (other.getNodeID() == _listenSources[i]) {
                         return true;
                     }
                 }
@@ -60,19 +61,10 @@ bool PositionalAudioRingBuffer::isListeningToSource(PositionalAudioRingBuffer* o
 
 int PositionalAudioRingBuffer::parseData(unsigned char* sourceBuffer, int numBytes) {
     unsigned char* currentBuffer = sourceBuffer + numBytesForPacketHeader(sourceBuffer);
-    currentBuffer += parseSourceData(currentBuffer, numBytes - (currentBuffer - sourceBuffer));
+    currentBuffer += sizeof(int); // the source ID
     currentBuffer += parseListenModeData(currentBuffer, numBytes - (currentBuffer - sourceBuffer));
     currentBuffer += parsePositionalData(currentBuffer, numBytes - (currentBuffer - sourceBuffer));
     currentBuffer += parseAudioSamples(currentBuffer, numBytes - (currentBuffer - sourceBuffer));
-    
-    return currentBuffer - sourceBuffer;
-}
-
-int PositionalAudioRingBuffer::parseSourceData(unsigned char* sourceBuffer, int numBytes) {
-    unsigned char* currentBuffer = sourceBuffer;
-    
-    memcpy(&_sourceID, currentBuffer, sizeof(_sourceID));
-    currentBuffer += sizeof(_sourceID);
     
     return currentBuffer - sourceBuffer;
 }
@@ -134,6 +126,5 @@ bool PositionalAudioRingBuffer::shouldBeAddedToMix(int numJitterBufferSamples) {
             return true;
         }
     }
-    
     return false;
 }

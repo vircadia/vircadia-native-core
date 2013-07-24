@@ -141,7 +141,6 @@ int main(int argc, const char* argv[]) {
         
         for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
             PositionalAudioRingBuffer* positionalRingBuffer = (PositionalAudioRingBuffer*) node->getLinkedData();
-            
             if (positionalRingBuffer && positionalRingBuffer->shouldBeAddedToMix(JITTER_BUFFER_SAMPLES)) {
                 // this is a ring buffer that is ready to go
                 // set its flag so we know to push its buffer when all is said and done
@@ -161,14 +160,11 @@ int main(int argc, const char* argv[]) {
                 
                 // loop through all other nodes that have sufficient audio to mix
                 for (NodeList::iterator otherNode = nodeList->begin(); otherNode != nodeList->end(); otherNode++) {
-
                     if (((PositionalAudioRingBuffer*) otherNode->getLinkedData())->willBeAddedToMix()
                         && (otherNode != node || (otherNode == node && nodeRingBuffer->shouldLoopbackForNode()))) {
-                        
                         PositionalAudioRingBuffer* otherNodeBuffer = (PositionalAudioRingBuffer*) otherNode->getLinkedData();
-
                         // based on our listen mode we will do this mixing...
-                        if (nodeRingBuffer->isListeningToSource(otherNodeBuffer)) {
+                        if (nodeRingBuffer->isListeningToNode(*otherNode)) {
                             float bearingRelativeAngleToSource = 0.0f;
                             float attenuationCoefficient = 1.0f;
                             int numSamplesDelay = 0;
@@ -355,14 +351,15 @@ int main(int argc, const char* argv[]) {
                packetVersionMatch(packetData)) {
             if (packetData[0] == PACKET_TYPE_MICROPHONE_AUDIO_NO_ECHO ||
                 packetData[0] == PACKET_TYPE_MICROPHONE_AUDIO_WITH_ECHO) {
+
+                unsigned char* currentBuffer = packetData + numBytesForPacketHeader(packetData);
+                int sourceID;
+                memcpy(&sourceID, currentBuffer, sizeof(sourceID));
+
                 Node* avatarNode = nodeList->addOrUpdateNode(nodeAddress,
                                                              nodeAddress,
                                                              NODE_TYPE_AGENT,
-                                                             nodeList->getLastNodeID());
-                
-                if (avatarNode->getNodeID() == nodeList->getLastNodeID()) {
-                    nodeList->increaseNodeID();
-                }
+                                                             sourceID);
                 
                 nodeList->updateNodeWithData(nodeAddress, packetData, receivedBytes);
                 

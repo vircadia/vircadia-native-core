@@ -20,7 +20,6 @@ public:
     
     int parseData(unsigned char* sourceBuffer, int numBytes);
     int parsePositionalData(unsigned char* sourceBuffer, int numBytes);
-    int parseSourceData(unsigned char* sourceBuffer, int numBytes);
     int parseListenModeData(unsigned char* sourceBuffer, int numBytes);
     
     bool shouldBeAddedToMix(int numJitterBufferSamples);
@@ -31,8 +30,7 @@ public:
     const glm::vec3& getPosition() const { return _position; }
     const glm::quat& getOrientation() const { return _orientation; }
 
-    bool isListeningToSource(PositionalAudioRingBuffer* other);
-    int getSourceID() const { return _sourceID; }
+    bool isListeningToNode(Node& other) const;
     ListenMode getListeningMode() const { return _listenMode; }
     
 protected:
@@ -44,7 +42,6 @@ protected:
     glm::quat _orientation;
     bool _willBeAddedToMix;
     
-    int         _sourceID;
     ListenMode  _listenMode;
     float       _listenRadius;
     int         _listenSourceCount;
