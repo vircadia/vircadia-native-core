@@ -9,6 +9,7 @@
 #ifndef __hifi__PositionalAudioRingBuffer__
 #define __hifi__PositionalAudioRingBuffer__
 
+#include <vector>
 #include <glm/gtx/quaternion.hpp>
 
 #include <AudioRingBuffer.h>
@@ -42,11 +43,9 @@ protected:
     glm::quat _orientation;
     bool _willBeAddedToMix;
     
-    ListenMode  _listenMode;
-    float       _listenRadius;
-    int         _listenSourceCount;
-    int*        _listenSources;
-    
+    ListenMode          _listenMode;
+    float               _listenRadius;
+    std::vector<int>    _listenSources;
 };
 
 #endif /* defined(__hifi__PositionalAudioRingBuffer__) */

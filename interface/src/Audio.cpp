@@ -136,13 +136,14 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
                 currentPacketPtr += (sizeof(_listenRadius));
                 leadingBytes += (sizeof(_listenRadius));
             } else if (_listenMode == AudioRingBuffer::SELECTED_SOURCES) {
-                memcpy(currentPacketPtr, &_listenSourceCount, sizeof(_listenSourceCount));
-                currentPacketPtr += (sizeof(_listenSourceCount));
-                leadingBytes += (sizeof(_listenSourceCount));
-                if (_listenSources) {
-                    memcpy(currentPacketPtr, _listenSources, sizeof(int) * _listenSourceCount);
-                    currentPacketPtr += (sizeof(int) * _listenSourceCount);
-                    leadingBytes += (sizeof(int) * _listenSourceCount);
+                int listenSourceCount = _listenSources.size();
+                memcpy(currentPacketPtr, &listenSourceCount, sizeof(listenSourceCount));
+                currentPacketPtr += (sizeof(listenSourceCount));
+                leadingBytes += (sizeof(listenSourceCount));
+                for (int i = 0; i < listenSourceCount; i++) {
+                    memcpy(currentPacketPtr, &_listenSources[i], sizeof(_listenSources[i]));
+                    currentPacketPtr += sizeof(_listenSources[i]);
+                    leadingBytes += sizeof(_listenSources[i]);
                 }
             }
             
@@ -336,49 +337,18 @@ void Audio::reset() {
 }
 
 void Audio::addListenSource(int sourceID) {
-
-    // If we don't yet have a list of listen sources, make one
-    if (!_listenSources) {
-        _listenSources = new int[AudioRingBuffer::DEFAULT_LISTEN_LIST_SIZE];
-    }
-    
-    // First check to see if the source is already in our list
-    for (int i = 0; i < _listenSourceCount; i++) {
-        if (_listenSources[i] == sourceID) {
-            return; // already in list
-        }
-    }
-    
-    // we know it's not in the list, check to see if we have room to add our source
-    if (_listenSourceCount + 1 < _listenSourcesArraySize) {
-        int* newList = new int[_listenSourcesArraySize + AudioRingBuffer::DEFAULT_LISTEN_LIST_SIZE];
-        memmove(newList, _listenSources, _listenSourcesArraySize);
-        delete[] _listenSources;
-        _listenSources = newList;
-        _listenSourcesArraySize += AudioRingBuffer::DEFAULT_LISTEN_LIST_SIZE;
-    }
-    _listenSources[_listenSourceCount] = sourceID;
-    _listenSourceCount++;
+    _listenSources.push_back(sourceID);
 }
 
 void Audio::clearListenSources() {
-    delete[] _listenSources;
-    _listenSources = NULL;
-    _listenSourceCount = 0;
+    _listenSources.clear();
 }
 
 void Audio::removeListenSource(int sourceID) {
-    // If we don't yet have a list of listen sources, make one
-    if (_listenSources) {
-        // First check to see if the source is already in our list
-        for (int i = 0; i < _listenSourceCount; i++) {
-            if (_listenSources[i] == sourceID) {
-            
-                // found it, so, move the items forward in list
-                memmove(&_listenSources[i], &_listenSources[i+1], _listenSourceCount - i);
-                _listenSourceCount--;
-                return;
-            }
+    for (int i = 0; i < _listenSources.size(); i++) {
+        if (_listenSources[i] == sourceID) {
+            _listenSources.erase(_listenSources.begin() + i);
+            return;
         }
     }
 }
@@ -415,10 +385,7 @@ Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples) :
     _proceduralEffectSample(0),
     _heartbeatMagnitude(0.0f),
     _listenMode(AudioRingBuffer::NORMAL),
-    _listenRadius(0.0f),
-    _listenSourceCount(0),
-    _listenSourcesArraySize(0),
-    _listenSources(NULL)
+    _listenRadius(0.0f)
 {
     outputPortAudioError(Pa_Initialize());
     
@@ -487,10 +454,6 @@ Audio::~Audio() {
         outputPortAudioError(Pa_Terminate());
     }
     delete[] _echoSamplesLeft;
-
-    if (_listenSources) {
-        delete[] _listenSources;
-    }
 }
 
 void Audio::addReceivedAudioToBuffer(unsigned char* receivedData, int receivedBytes) {

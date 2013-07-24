@@ -19,17 +19,12 @@ PositionalAudioRingBuffer::PositionalAudioRingBuffer() :
     _orientation(0.0f, 0.0f, 0.0f, 0.0f),
     _willBeAddedToMix(false),
     _listenMode(AudioRingBuffer::NORMAL),
-    _listenRadius(0.0f),
-    _listenSourceCount(0),
-    _listenSources(NULL)
+    _listenRadius(0.0f)
 {
     
 }
 
 PositionalAudioRingBuffer::~PositionalAudioRingBuffer() {
-    if (_listenSources) {
-        delete[] _listenSources;
-    }
 }
 
 bool PositionalAudioRingBuffer::isListeningToNode(Node& other) const {
@@ -46,11 +41,9 @@ bool PositionalAudioRingBuffer::isListeningToNode(Node& other) const {
             break;
         } 
         case AudioRingBuffer::SELECTED_SOURCES:
-            if (_listenSources) {
-                for (int i = 0; i < _listenSourceCount; i++) {
-                    if (other.getNodeID() == _listenSources[i]) {
-                        return true;
-                    }
+            for (int i = 0; i < _listenSources.size(); i++) {
+                if (other.getNodeID() == _listenSources[i]) {
+                    return true;
                 }
             }
             return false;
@@ -79,14 +72,15 @@ int PositionalAudioRingBuffer::parseListenModeData(unsigned char* sourceBuffer, 
         memcpy(&_listenRadius, currentBuffer, sizeof(_listenRadius));
         currentBuffer += sizeof(_listenRadius);
     } else if (_listenMode == AudioRingBuffer::SELECTED_SOURCES) {
-        memcpy(&_listenSourceCount, currentBuffer, sizeof(_listenSourceCount));
-        currentBuffer += sizeof(_listenSourceCount);
-        if (_listenSources) {
-            delete[] _listenSources;
+        int listenSourcesCount;
+        memcpy(&listenSourcesCount, currentBuffer, sizeof(listenSourcesCount));
+        currentBuffer += sizeof(listenSourcesCount);
+        for (int i = 0; i < listenSourcesCount; i++) {
+            int sourceID;
+            memcpy(&sourceID, currentBuffer, sizeof(sourceID));
+            currentBuffer += sizeof(sourceID);
+            _listenSources.push_back(sourceID);
         }
-        _listenSources = new int[_listenSourceCount];
-        memcpy(_listenSources, currentBuffer, sizeof(int) * _listenSourceCount);
-        currentBuffer += sizeof(int) * _listenSourceCount;
     }
     
     return currentBuffer - sourceBuffer;

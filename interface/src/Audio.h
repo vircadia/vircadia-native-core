@@ -9,6 +9,7 @@
 #ifndef __interface__Audio__
 #define __interface__Audio__
 
+#include <vector>
 #include <portaudio.h>
 #include <AudioRingBuffer.h>
 #include <StdDev.h>
@@ -98,9 +99,7 @@ private:
 
     AudioRingBuffer::ListenMode _listenMode;
     float                       _listenRadius;
-    int                         _listenSourceCount;
-    int                         _listenSourcesArraySize;
-    int*                        _listenSources;
+    std::vector<int>            _listenSources;
     
     // Audio callback in class context.
     inline void performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* outputRight);
