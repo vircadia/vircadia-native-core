@@ -56,7 +56,7 @@ public:
 
     int  getSourceID() const { return _sourceID; };
     void setSourceID(int sourceID) { _sourceID = sourceID; };
-    void setListenMode(int mode) { _listenMode = mode; };
+    void setListenMode(AudioRingBuffer::ListenMode mode) { _listenMode = mode; };
     void setListenRadius(float radius) { _listenRadius = radius; };
     void addListenSource(int sourceID);
     void removeListenSource(int sourceID);
@@ -98,12 +98,12 @@ private:
     int _proceduralEffectSample;
     float _heartbeatMagnitude;
 
-    int     _sourceID;
-    int     _listenMode;
-    float   _listenRadius;
-    int     _listenSourceCount;
-    int     _listenSourcesArraySize;
-    int*    _listenSources;
+    int                         _sourceID;
+    AudioRingBuffer::ListenMode _listenMode;
+    float                       _listenRadius;
+    int                         _listenSourceCount;
+    int                         _listenSourcesArraySize;
+    int*                        _listenSources;
     
     // Audio callback in class context.
     inline void performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* outputRight);
