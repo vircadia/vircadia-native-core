@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 2.8)
 project(Fervor)
-find_package(Qt4 REQUIRED)
+find_package(Qt5 REQUIRED)
 
 add_definitions(-DFV_GUI)
 
@@ -13,8 +13,8 @@ list(REMOVE_ITEM FERVOR_HEADERS ${HEADER_PATH}/fvversioncomparator.h)
 
 file(GLOB FERVOR_UI *.ui)
 
-qt4_wrap_ui(FERVOR_WRAPPED_UI ${FERVOR_UI})
-qt4_wrap_cpp(FERVOR_MOC_SOURCES ${FERVOR_HEADERS})
+qt5_wrap_ui(FERVOR_WRAPPED_UI ${FERVOR_UI})
+qt5_wrap_cpp(FERVOR_MOC_SOURCES ${FERVOR_HEADERS})
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../cmake/modules/")
 find_package(Quazip REQUIRED)

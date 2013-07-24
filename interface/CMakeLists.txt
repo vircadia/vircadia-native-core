@@ -67,7 +67,7 @@ if (APPLE)
   
 endif (APPLE)
 
-find_package(Qt4 REQUIRED QtCore QtGui QtNetwork QtOpenGL QtWebKit QtSvg)
+find_package(Qt5 REQUIRED QtCore QtGui QtNetwork QtOpenGL QtWebKit QtSvg)
 include(${QT_USE_FILE})
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${QT_QTGUI_INCLUDE_DIR}")
 
@@ -76,7 +76,7 @@ add_subdirectory(external/fervor/)
 include_directories(external/fervor/)
 
 # run qt moc on qt-enabled headers
-qt4_wrap_cpp(INTERFACE_SRCS src/Application.h src/Webcam.h src/avatar/AvatarVoxelSystem.h
+qt5_wrap_cpp(INTERFACE_SRCS src/Application.h src/Webcam.h src/avatar/AvatarVoxelSystem.h
     src/avatar/Face.h src/ui/BandwidthDialog.h)
 
 # create the executable, make it a bundle on OS X
