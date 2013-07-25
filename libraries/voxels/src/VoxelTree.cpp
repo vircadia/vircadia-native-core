@@ -1071,6 +1071,9 @@ int VoxelTree::encodeTreeBitstream(VoxelNode* node, unsigned char* outputBuffer,
 int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outputBuffer, int availableBytes, VoxelNodeBag& bag,
                                             EncodeBitstreamParams& params, int& currentEncodeLevel) const {
 
+    // you can't call this without a valid node
+    assert(node);
+    
     // How many bytes have we written so far at this level;
     int bytesAtThisLevel = 0;
 
@@ -1228,6 +1231,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
         }
 
         // track stats
+        // must check childNode here, because it could be we got here with no childNode
         if (params.stats && childNode) {
             params.stats->traversed(childNode);
         }
@@ -1243,7 +1247,8 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
         bool childIsInView  = (childNode && (!params.viewFrustum || childNode->isInView(*params.viewFrustum)));
 
         if (!childIsInView) {
-            if (params.stats) {
+            // must check childNode here, because it could be we got here because there was no childNode
+            if (params.stats && childNode) {
                 params.stats->skippedOutOfView(childNode);
             }
         } else {
@@ -1253,6 +1258,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
                                      boundaryDistanceForRenderLevel(childNode->getLevel() + params.boundaryLevelAdjust);
 
             if (!(distance < boundaryDistance)) {
+                // don't need to check childNode here, because we can't get here with no childNode
                 if (params.stats) {
                     params.stats->skippedDistance(childNode);
                 }
@@ -1306,9 +1312,11 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
                      
                 // track some stats               
                 if (params.stats) {
+                    // don't need to check childNode here, because we can't get here with no childNode
                     if (!shouldRender && childNode->isLeaf()) {
                         params.stats->skippedDistance(childNode);
                     }
+                    // don't need to check childNode here, because we can't get here with no childNode
                     if (childIsOccluded) {
                         params.stats->skippedOccluded(childNode);
                     }
@@ -1339,6 +1347,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
                         inViewWithColorCount++;
                     } else {
                         // otherwise just track stats of the items we discarded
+                        // don't need to check childNode here, because we can't get here with no childNode
                         if (params.stats) {
                             if (childWasInView) {
                                 params.stats->skippedWasInView(childNode);
@@ -1368,6 +1377,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
                 writeToThisLevelBuffer += BYTES_PER_COLOR; // move the pointer for color
                 bytesAtThisLevel += BYTES_PER_COLOR; // keep track of byte count for color
 
+                // don't need to check childNode here, because we can't get here with no childNode
                 if (params.stats) {
                     params.stats->colorSent(childNode);
                 }
@@ -1407,6 +1417,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
     } else {
         bag.insert(node);
 
+        // don't need to check node here, because we can't get here with no node
         if (params.stats) {
             params.stats->didntFit(node);
         }
