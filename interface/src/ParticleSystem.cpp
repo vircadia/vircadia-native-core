@@ -24,18 +24,20 @@ ParticleSystem::ParticleSystem() {
     _upDirection  = glm::vec3(0.0f, 1.0f, 0.0f); // default
             
     for (unsigned int emitterIndex = 0; emitterIndex < MAX_EMITTERS; emitterIndex++) {
-    
-        _emitter[emitterIndex].position            = glm::vec3(0.0f, 0.0f, 0.0f);
-        _emitter[emitterIndex].direction           = glm::vec3(0.0f, 1.0f, 0.0f);
-        _emitter[emitterIndex].visible             = false;
-        _emitter[emitterIndex].particleResolution  = DEFAULT_PARTICLE_SPHERE_RESOLUTION;
-        _emitter[emitterIndex].particleLifespan    = DEFAULT_PARTICLE_LIFESPAN;
-        _emitter[emitterIndex].showingBaseParticle = false;
-        _emitter[emitterIndex].emitReserve         = 0.0;
-        _emitter[emitterIndex].thrust              = 0.0f;
-        _emitter[emitterIndex].rate                = 0.0f;
-        _emitter[emitterIndex].currentParticle     = 0;
-        _emitter[emitterIndex].particleRenderStyle = PARTICLE_RENDER_STYLE_SPHERE;
+        
+        Emitter e = _emitter[emitterIndex];
+        
+        e.position            = glm::vec3(0.0f, 0.0f, 0.0f);
+        e.direction           = glm::vec3(0.0f, 1.0f, 0.0f);
+        e.visible             = false;
+        e.particleResolution  = DEFAULT_PARTICLE_SPHERE_RESOLUTION;
+        e.particleLifespan    = DEFAULT_PARTICLE_LIFESPAN;
+        e.showingBaseParticle = false;
+        e.emitReserve         = 0.0;
+        e.thrust              = 0.0f;
+        e.rate                = 0.0f;
+        e.currentParticle     = 0;
+        e.particleRenderStyle = PARTICLE_RENDER_STYLE_SPHERE;
             
         for (int lifeStage = 0; lifeStage<NUM_PARTICLE_LIFE_STAGES; lifeStage++) {
 
