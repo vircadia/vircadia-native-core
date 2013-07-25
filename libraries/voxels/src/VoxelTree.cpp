@@ -1485,11 +1485,13 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
                 if (params.includeColor && !params.includeExistsBits && childTreeBytesOut == 2) {
                     childTreeBytesOut = 0; // this is the degenerate case of a tree with no colors and no child trees
                 }
-                // If we've asked for existBits, this is also true, except that the tree will output 3 bytes
-                // NOTE: does this introduce a problem with detecting deletion??
-                if (params.includeColor && params.includeExistsBits && childTreeBytesOut == 3) {
-                    childTreeBytesOut = 0; // this is the degenerate case of a tree with no colors and no child trees
-                }
+                // We used to try to collapse trees that didn't contain any data, but this does appear to create a problem
+                // in detecting node deletion. So, I've commented this out but left it in here as a warning to anyone else
+                // about not attempting to add this optimization back in, without solving the node deletion case.
+                // We need to send these bitMasks in case the exists in tree bitmask is indicating the deletion of a tree
+                //if (params.includeColor && params.includeExistsBits && childTreeBytesOut == 3) {
+                //    childTreeBytesOut = 0; // this is the degenerate case of a tree with no colors and no child trees
+                //}
 
                 bytesAtThisLevel += childTreeBytesOut;
                 availableBytes -= childTreeBytesOut;
