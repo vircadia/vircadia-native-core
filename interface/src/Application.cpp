@@ -3421,7 +3421,6 @@ void Application::toggleFollowMode() {
                                                    eyePositionIgnored,
                                                    nodeIDIgnored);
 
-    qDebug("[DEBUG] toggleFollowMode() %d\n", leadingAvatar);
     _myAvatar.follow(leadingAvatar);
 }
 

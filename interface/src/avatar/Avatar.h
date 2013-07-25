@@ -253,8 +253,10 @@ private:
     glm::vec3   _lastCollisionPosition;
     bool        _speedBrakes;
     bool        _isThrustOn;
+
     Avatar*     _leadingAvatar;
-    
+    float       _stringLength;
+
     AvatarVoxelSystem _voxels;
     
     // private methods...
