@@ -9,6 +9,7 @@
 #ifndef __interface__Audio__
 #define __interface__Audio__
 
+#include <vector>
 #include <portaudio.h>
 #include <AudioRingBuffer.h>
 #include <StdDev.h>
@@ -54,6 +55,11 @@ public:
     // The results of the analysis are written to the log.
     bool eventuallyAnalyzePing();
 
+    void setListenMode(AudioRingBuffer::ListenMode mode) { _listenMode = mode; };
+    void setListenRadius(float radius) { _listenRadius = radius; };
+    void addListenSource(int sourceID);
+    void removeListenSource(int sourceID);
+    void clearListenSources();
 
 private:    
     PaStream* _stream;
@@ -90,6 +96,10 @@ private:
     float _collisionSoundDuration;
     int _proceduralEffectSample;
     float _heartbeatMagnitude;
+
+    AudioRingBuffer::ListenMode _listenMode;
+    float                       _listenRadius;
+    std::vector<int>            _listenSources;
     
     // Audio callback in class context.
     inline void performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* outputRight);

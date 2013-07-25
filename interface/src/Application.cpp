@@ -203,6 +203,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _mouseVoxelScale(1.0f / 1024.0f),
         _justEditedVoxel(false),
         _isLookingAtOtherAvatar(false),
+        _lookatIndicatorScale(1.0f),
         _paintOn(false),
         _dominantColor(0),
         _perfStatsOn(false),
@@ -1854,6 +1855,11 @@ void Application::initMenu() {
     (_simulateLeapHand = debugMenu->addAction("Simulate Leap Hand"))->setCheckable(true);
     (_testRaveGlove = debugMenu->addAction("Test RaveGlove"))->setCheckable(true);
 
+    QMenu* audioDebugMenu = debugMenu->addMenu("Audio Debugging Tools");
+    audioDebugMenu->addAction("Listen Mode Normal", this, SLOT(setListenModeNormal()), Qt::CTRL | Qt::Key_1);
+    audioDebugMenu->addAction("Listen Mode Point/Radius", this, SLOT(setListenModePoint()), Qt::CTRL | Qt::Key_2);
+    audioDebugMenu->addAction("Listen Mode Single Source", this, SLOT(setListenModeSingleSource()), Qt::CTRL | Qt::Key_3);
+
     QMenu* settingsMenu = menuBar->addMenu("Settings");
     (_settingsAutosave = settingsMenu->addAction("Autosave"))->setCheckable(true);
     _settingsAutosave->setChecked(true);
@@ -1864,6 +1870,30 @@ void Application::initMenu() {
     
     _networkAccessManager = new QNetworkAccessManager(this);
 }
+
+void Application::setListenModeNormal() {
+    _audio.setListenMode(AudioRingBuffer::NORMAL);
+}
+
+void Application::setListenModePoint() {
+    _audio.setListenMode(AudioRingBuffer::OMNI_DIRECTIONAL_POINT);
+    _audio.setListenRadius(1.0);
+}
+
+void Application::setListenModeSingleSource() {
+    _audio.setListenMode(AudioRingBuffer::SELECTED_SOURCES);
+    _audio.clearListenSources();
+
+    glm::vec3 mouseRayOrigin = _myAvatar.getMouseRayOrigin();
+    glm::vec3 mouseRayDirection  = _myAvatar.getMouseRayDirection();
+    glm::vec3 eyePositionIgnored;
+    uint16_t nodeID;
+
+    if (isLookingAtOtherAvatar(mouseRayOrigin, mouseRayDirection, eyePositionIgnored, nodeID)) {
+        _audio.addListenSource(nodeID);
+    }
+}
+
 
 void Application::updateFrustumRenderModeAction() {
     switch (_frustumDrawingMode) {
@@ -1953,7 +1983,13 @@ const float MAX_AVATAR_EDIT_VELOCITY = 1.0f;
 const float MAX_VOXEL_EDIT_DISTANCE = 20.0f;
 const float HEAD_SPHERE_RADIUS = 0.07;
 
-bool Application::isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection, glm::vec3& eyePosition) {
+
+static uint16_t DEFAULT_NODE_ID_REF = 1;
+
+
+bool Application::isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection, 
+                                         glm::vec3& eyePosition, uint16_t& nodeID = DEFAULT_NODE_ID_REF) {
+                                         
     NodeList* nodeList = NodeList::getInstance();
     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
         if (node->getLinkedData() != NULL && node->getType() == NODE_TYPE_AGENT) {
@@ -1961,7 +1997,9 @@ bool Application::isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3& m
             glm::vec3 headPosition = avatar->getHead().getPosition();
             if (rayIntersectsSphere(mouseRayOrigin, mouseRayDirection, headPosition, HEAD_SPHERE_RADIUS)) {
                 eyePosition = avatar->getHead().getEyeLevelPosition();
+                _lookatIndicatorScale = avatar->getScale();
                 _lookatOtherPosition = headPosition;
+                nodeID = avatar->getOwningNode()->getNodeID();
                 return true;
             }
         }
@@ -1971,11 +2009,13 @@ bool Application::isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3& m
 
 void Application::renderLookatIndicator(glm::vec3 pointOfInterest, Camera& whichCamera) {
 
-    const float DISTANCE_FROM_HEAD_SPHERE = 0.1f;
+    const float DISTANCE_FROM_HEAD_SPHERE = 0.1f * _lookatIndicatorScale;
+    const float INDICATOR_RADIUS = 0.1f * _lookatIndicatorScale;
     const float YELLOW[] = { 1.0f, 1.0f, 0.0f };
+    const int NUM_SEGMENTS = 30;
     glm::vec3 haloOrigin(pointOfInterest.x, pointOfInterest.y + DISTANCE_FROM_HEAD_SPHERE, pointOfInterest.z);
     glColor3f(YELLOW[0], YELLOW[1], YELLOW[2]);
-    renderCircle(haloOrigin, 0.1f, glm::vec3(0.0f, 1.0f, 0.0f), 30);
+    renderCircle(haloOrigin, INDICATOR_RADIUS, IDENTITY_UP, NUM_SEGMENTS);
 }
 
 void Application::update(float deltaTime) {
@@ -2005,7 +2045,9 @@ void Application::update(float deltaTime) {
     
     // Set where I am looking based on my mouse ray (so that other people can see)
     glm::vec3 eyePosition;
-    if ((_isLookingAtOtherAvatar = isLookingAtOtherAvatar(mouseRayOrigin, mouseRayDirection, eyePosition))) {
+
+    _isLookingAtOtherAvatar = isLookingAtOtherAvatar(mouseRayOrigin, mouseRayDirection, eyePosition);
+    if (_isLookingAtOtherAvatar) {
         // If the mouse is over another avatar's head...
         glm::vec3 myLookAtFromMouse(eyePosition);
          _myAvatar.getHead().setLookAtPosition(myLookAtFromMouse);
@@ -2022,7 +2064,7 @@ void Application::update(float deltaTime) {
         glm::vec3 front = orientation * IDENTITY_FRONT;
         glm::vec3 up = orientation * IDENTITY_UP;
         glm::vec3 towardVoxel = getMouseVoxelWorldCoordinates(_mouseVoxelDragging)
-                                - _myAvatar.getCameraPosition(); // is this an error? getCameraPosition dne
+                                - _myAvatar.getCameraPosition();
         towardVoxel = front * glm::length(towardVoxel);
         glm::vec3 lateralToVoxel = glm::cross(up, glm::normalize(towardVoxel)) * glm::length(towardVoxel);
         _voxelThrust = glm::vec3(0, 0, 0);
@@ -2270,7 +2312,9 @@ void Application::updateAvatar(float deltaTime) {
         _viewFrustum.computePickRay(MIDPOINT_OF_SCREEN, MIDPOINT_OF_SCREEN, screenCenterRayOrigin, screenCenterRayDirection);
 
         glm::vec3 eyePosition;
-        if ((_isLookingAtOtherAvatar = isLookingAtOtherAvatar(screenCenterRayOrigin, screenCenterRayDirection, eyePosition))) {
+        
+        _isLookingAtOtherAvatar = isLookingAtOtherAvatar(screenCenterRayOrigin, screenCenterRayDirection, eyePosition);
+        if (_isLookingAtOtherAvatar) {
             glm::vec3 myLookAtFromMouse(eyePosition);
             _myAvatar.getHead().setLookAtPosition(myLookAtFromMouse);
         }
@@ -2298,7 +2342,7 @@ void Application::updateAvatar(float deltaTime) {
     // actually need to calculate the view frustum planes to send these details 
     // to the server.
     loadViewFrustum(_myCamera, _viewFrustum);
-    _myAvatar.setCameraPosition(_viewFrustum.getPosition()); // setCameraPosition() dne
+    _myAvatar.setCameraPosition(_viewFrustum.getPosition());
     _myAvatar.setCameraOrientation(_viewFrustum.getOrientation());
     _myAvatar.setCameraFov(_viewFrustum.getFieldOfView());
     _myAvatar.setCameraAspectRatio(_viewFrustum.getAspectRatio());
