@@ -58,13 +58,12 @@ void attachAvatarDataToNode(Node* newNode) {
 //    3) if we need to rate limit the amount of data we send, we can use a distance weighted "semi-random" function to 
 //       determine which avatars are included in the packet stream
 //    4) we should optimize the avatar data format to be more compact (100 bytes is pretty wasteful).
-unsigned char broadcastPacketBuffer[MAX_PACKET_SIZE];
-unsigned char avatarDataBuffer[MAX_PACKET_SIZE];
 void broadcastAvatarData(NodeList* nodeList, sockaddr* nodeAddress) {
-    unsigned char* broadcastPacket = (unsigned char*)&::broadcastPacketBuffer[0];
+    static unsigned char broadcastPacketBuffer[MAX_PACKET_SIZE];
+    static unsigned char avatarDataBuffer[MAX_PACKET_SIZE];
+    unsigned char* broadcastPacket = (unsigned char*)&broadcastPacketBuffer[0];
     int numHeaderBytes = populateTypeAndVersion(broadcastPacket, PACKET_TYPE_BULK_AVATAR_DATA);
-    unsigned char* currentBufferPosition = NULL;
-    currentBufferPosition = broadcastPacket + numHeaderBytes;
+    unsigned char* currentBufferPosition = broadcastPacket + numHeaderBytes;
     int packetLength = currentBufferPosition - broadcastPacket;
     int packetsSent = 0;
 
