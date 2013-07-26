@@ -8,12 +8,7 @@
 #ifndef hifi_Hand_h
 #define hifi_Hand_h
 
-#include <QApplication>
 #include <QAction>
-#include <QSettings>
-#include <QTouchEvent>
-#include <QList>
-
 #include <glm/glm.hpp>
 #include <AvatarData.h>
 #include <HandData.h>
