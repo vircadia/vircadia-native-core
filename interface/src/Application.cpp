@@ -3715,6 +3715,9 @@ void Application::updateParticleSystem(float deltaTime) {
             attributes.usingCollisionSphere    = true;
             attributes.collisionSpherePosition = glm::vec3( 5.0f, 0.5f, 5.0f );
             attributes.collisionSphereRadius   = 0.5f;
+            attributes.usingCollisionPlane     = true;
+            attributes.collisionPlanePosition  = glm::vec3( 5.0f, 0.0f, 5.0f );
+            attributes.collisionPlaneNormal    = glm::vec3( 0.0f, 1.0f, 0.0f );
             
             if (attributes.gravity < 0.0f) {
                 attributes.gravity = 0.0f;

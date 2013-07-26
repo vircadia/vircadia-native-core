@@ -350,6 +350,7 @@ void Hand::setRaveGloveMode(int mode) {
             attributes.neighborRepulsion    = 0.0f;
             attributes.bounce               = 0.0f;
             attributes.usingCollisionSphere = false;            
+            attributes.usingCollisionPlane  = false;            
             _particleSystem.setParticleAttributes(_fingerParticleEmitter[f], PARTICLE_LIFESTAGE_0, attributes);
             _particleSystem.setParticleAttributes(_fingerParticleEmitter[f], PARTICLE_LIFESTAGE_1, attributes);
             _particleSystem.setParticleAttributes(_fingerParticleEmitter[f], PARTICLE_LIFESTAGE_2, attributes);
@@ -377,6 +378,7 @@ void Hand::setRaveGloveMode(int mode) {
             attributes.neighborRepulsion    = 0.0f;
             attributes.bounce               = 0.0f;
             attributes.usingCollisionSphere = false;            
+            attributes.usingCollisionPlane  = false;            
             _particleSystem.setParticleAttributes(_fingerParticleEmitter[f], PARTICLE_LIFESTAGE_0, attributes);
 
             attributes.radius = 0.002f;
@@ -412,6 +414,7 @@ void Hand::setRaveGloveMode(int mode) {
             attributes.neighborRepulsion    = 0.0f;
             attributes.bounce               = 1.0f;
             attributes.usingCollisionSphere = false;
+            attributes.usingCollisionPlane  = false;            
             _particleSystem.setParticleAttributes(_fingerParticleEmitter[f], PARTICLE_LIFESTAGE_0, attributes);
 
             attributes.radius = 0.01f;
@@ -452,6 +455,7 @@ void Hand::setRaveGloveMode(int mode) {
             attributes.neighborRepulsion    = 0.0f;
             attributes.bounce               = 1.0f;
             attributes.usingCollisionSphere = false;            
+            attributes.usingCollisionPlane  = false;            
             _particleSystem.setParticleAttributes(_fingerParticleEmitter[f], PARTICLE_LIFESTAGE_0, attributes);
 
             attributes.gravity = 0.01f;
@@ -488,6 +492,7 @@ void Hand::setRaveGloveMode(int mode) {
             attributes.neighborRepulsion    = 0.0f;
             attributes.bounce               = 1.0f;
             attributes.usingCollisionSphere = false;            
+            attributes.usingCollisionPlane  = false;            
             _particleSystem.setParticleAttributes(_fingerParticleEmitter[f], PARTICLE_LIFESTAGE_0, attributes);
 
             attributes.radius = 0.01f;
@@ -525,6 +530,7 @@ void Hand::setRaveGloveMode(int mode) {
             attributes.neighborRepulsion    = 0.0f;
             attributes.bounce               = 1.0f;
             attributes.usingCollisionSphere = false;            
+            attributes.usingCollisionPlane  = false;            
             _particleSystem.setParticleAttributes(_fingerParticleEmitter[f], PARTICLE_LIFESTAGE_0, attributes);
 
             attributes.radius = 0.01f;
@@ -562,6 +568,7 @@ void Hand::setRaveGloveMode(int mode) {
             attributes.neighborRepulsion    = 0.0f;
             attributes.bounce               = 1.0f;
             attributes.usingCollisionSphere = false;            
+            attributes.usingCollisionPlane  = false;            
             _particleSystem.setParticleAttributes(_fingerParticleEmitter[f], PARTICLE_LIFESTAGE_0, attributes);
 
             attributes.radius = 0.005f;
@@ -599,6 +606,7 @@ void Hand::setRaveGloveMode(int mode) {
             attributes.neighborRepulsion    = 1.1f;
             attributes.bounce               = 0.0f;
             attributes.usingCollisionSphere = false;            
+            attributes.usingCollisionPlane  = false;            
             _particleSystem.setParticleAttributes(_fingerParticleEmitter[f], PARTICLE_LIFESTAGE_0, attributes);
 
             attributes.radius               = 0.002f;

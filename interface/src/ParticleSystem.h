@@ -51,6 +51,9 @@ public:
         bool      usingCollisionSphere;     // set to true to allow collision with a sphere
         glm::vec3 collisionSpherePosition;  // position of the collision sphere
         float     collisionSphereRadius;    // radius of the collision sphere
+        bool      usingCollisionPlane;      // set to true to allow collision with a plane
+        glm::vec3 collisionPlanePosition;   // reference position of the collision plane
+        glm::vec3 collisionPlaneNormal;     // the surface normal of the collision plane
     };  
 
     // public methods...

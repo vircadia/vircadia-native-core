@@ -56,6 +56,9 @@ ParticleSystem::ParticleSystem() {
             a->collisionSphereRadius   = 0.0f;
             a->collisionSpherePosition = glm::vec3(0.0f, 0.0f, 0.0f);
             a->usingCollisionSphere    = false;
+            a->collisionPlaneNormal    = _upDirection;
+            a->collisionPlanePosition  = glm::vec3(0.0f, 0.0f, 0.0f);
+            a->usingCollisionPlane     = false;
         }
     };  
     
@@ -186,6 +189,9 @@ void ParticleSystem::setParticleAttributes(int emitterIndex, ParticleLifeStage l
     a->usingCollisionSphere    = attributes.usingCollisionSphere;
     a->collisionSpherePosition = attributes.collisionSpherePosition;
     a->collisionSphereRadius   = attributes.collisionSphereRadius;
+    a->usingCollisionPlane     = attributes.usingCollisionPlane;
+    a->collisionPlanePosition  = attributes.collisionPlanePosition;
+    a->collisionPlaneNormal    = attributes.collisionPlaneNormal;
 }
 
 
@@ -260,13 +266,16 @@ void ParticleSystem::updateParticle(int p, float deltaTime) {
 
         // update position by velocity
         _particle[p].position += _particle[p].velocity;
-        
-        // collision with ground
-        if (_particle[p].position.y < _particle[p].radius) {
-            _particle[p].position.y = _particle[p].radius;
-            
-            if (_particle[p].velocity.y < 0.0f) {
-                _particle[p].velocity.y *= -myEmitter.particleAttributes[lifeStage].bounce;
+                
+        // collision with the plane surface
+        if (myEmitter.particleAttributes[lifeStage].usingCollisionPlane) {
+            glm::vec3 vectorFromParticleToPlanePosition = _particle[p].position - myEmitter.particleAttributes[lifeStage].collisionPlanePosition;
+            glm::vec3 normal = myEmitter.particleAttributes[lifeStage].collisionPlaneNormal;
+            float dot = glm::dot(vectorFromParticleToPlanePosition, normal);
+            if (dot < _particle[p].radius) {
+                _particle[p].position += normal * (_particle[p].radius - dot);
+                float planeNormalComponentOfVelocity = glm::dot(_particle[p].velocity, normal);
+                _particle[p].velocity -= normal * planeNormalComponentOfVelocity * (1.0f + myEmitter.particleAttributes[lifeStage].bounce);
             }
         }
         
