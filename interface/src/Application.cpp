@@ -2723,28 +2723,15 @@ void Application::displaySide(Camera& whichCamera) {
     
     if (TESTING_PARTICLE_SYSTEM) {
         if (_particleSystemInitialized) {
-        
-        
-
-/*
-glPushMatrix();
-glColor3f(1, 0, 1);
-glTranslatef(0.0f, 0.0f, 5.0f);
-_particleSystem.render();
-glPopMatrix();
-*/
-        
-_particleSystem.render();    
+            _particleSystem.render();    
         }
     }
-
 
     //  Render the world box
     if (!_lookingInMirror->isChecked() && _renderStatsOn->isChecked()) { render_world_box(); }
     
     // brad's frustum for debugging
     if (_frustumOn->isChecked()) renderViewFrustum(_viewFrustum);
-    
 }
 
 void Application::displayOverlay() {
