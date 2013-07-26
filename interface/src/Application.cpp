@@ -551,6 +551,7 @@ void Application::sendVoxelServerAddScene() {
 }
 
 void Application::keyPressEvent(QKeyEvent* event) {
+
     if (activeWindow() == _window) {
         if (_chatEntryOn) {
             if (_chatEntry.keyPressEvent(event)) {
@@ -565,6 +566,11 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 setMenuShortcutsEnabled(true);
             }
             return;
+        }
+
+        //this is for switching between modes for the leap rave glove test
+        if (_simulateLeapHand->isChecked() || _testRaveGlove->isChecked()) {
+            _myAvatar.getHand().setRaveGloveEffectsMode((QKeyEvent*)event);
         }
         
         bool shifted = event->modifiers().testFlag(Qt::ShiftModifier);
@@ -765,7 +771,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_6:
             case Qt::Key_7:
             case Qt::Key_8:
-                _swatch.handleEvent(event->key(), _eyedropperMode->isChecked());
+                _swatch.handleEvent(event->key(), _eyedropperMode->isChecked());                
                 break;
             default:
                 event->ignore();
@@ -776,6 +782,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
 
 void Application::keyReleaseEvent(QKeyEvent* event) {
     if (activeWindow() == _window) {
+    
         if (_chatEntryOn) {
             _myAvatar.setKeyState(NO_KEY_DOWN);
             return;
@@ -2652,8 +2659,16 @@ void Application::displaySide(Camera& whichCamera) {
     float sphereRadius = 0.25f;
     glColor3f(1,0,0);
     glPushMatrix();
-        glutSolidSphere(sphereRadius, 15, 15);
+    glutSolidSphere(sphereRadius, 15, 15);
     glPopMatrix();
+
+/*
+glPushMatrix();
+glColor3f(1, 0, 1);
+glTranslatef(0.0f, 0.0f, 5.0f);
+_particleSystem.render();
+glPopMatrix();
+*/
 
     //draw a grid ground plane....
     if (_renderGroundPlaneOn->isChecked()) {
@@ -2715,13 +2730,25 @@ void Application::displaySide(Camera& whichCamera) {
             renderLookatIndicator(_lookatOtherPosition, whichCamera);
         }
     }
-
+    
     if (TESTING_PARTICLE_SYSTEM) {
         if (_particleSystemInitialized) {
-            _particleSystem.render();    
+        
+        
+
+/*
+glPushMatrix();
+glColor3f(1, 0, 1);
+glTranslatef(0.0f, 0.0f, 5.0f);
+_particleSystem.render();
+glPopMatrix();
+*/
+        
+_particleSystem.render();    
         }
     }
-    
+
+
     //  Render the world box
     if (!_lookingInMirror->isChecked() && _renderStatsOn->isChecked()) { render_world_box(); }
     
@@ -3658,8 +3685,9 @@ void Application::updateParticleSystem(float deltaTime) {
         const float EMIT_RATE_IN_SECONDS = 10000.0;
         // create a stable test emitter and spit out a bunch of particles
         _coolDemoParticleEmitter = _particleSystem.addEmitter();
-        
+                
         if (_coolDemoParticleEmitter != -1) {
+                
             _particleSystem.setShowingEmitter(_coolDemoParticleEmitter, true);
             glm::vec3 particleEmitterPosition = glm::vec3(5.0f, 1.0f, 5.0f);   
             
@@ -3673,7 +3701,7 @@ void Application::updateParticleSystem(float deltaTime) {
         _particleSystemInitialized = true;         
     } else {
         // update the particle system
-        
+         
         static bool emitting = true;
         static float t = 0.0f;
         t += deltaTime;

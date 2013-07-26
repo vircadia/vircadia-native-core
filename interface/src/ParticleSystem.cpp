@@ -25,19 +25,19 @@ ParticleSystem::ParticleSystem() {
             
     for (unsigned int emitterIndex = 0; emitterIndex < MAX_EMITTERS; emitterIndex++) {
         
-        Emitter e = _emitter[emitterIndex];
+        Emitter * e = &_emitter[emitterIndex];
         
-        e.position            = glm::vec3(0.0f, 0.0f, 0.0f);
-        e.direction           = glm::vec3(0.0f, 1.0f, 0.0f);
-        e.visible             = false;
-        e.particleResolution  = DEFAULT_PARTICLE_SPHERE_RESOLUTION;
-        e.particleLifespan    = DEFAULT_PARTICLE_LIFESPAN;
-        e.showingBaseParticle = false;
-        e.emitReserve         = 0.0;
-        e.thrust              = 0.0f;
-        e.rate                = 0.0f;
-        e.currentParticle     = 0;
-        e.particleRenderStyle = PARTICLE_RENDER_STYLE_SPHERE;
+        e->position            = glm::vec3(0.0f, 0.0f, 0.0f);
+        e->direction           = glm::vec3(0.0f, 1.0f, 0.0f);
+        e->visible             = false;
+        e->particleResolution  = DEFAULT_PARTICLE_SPHERE_RESOLUTION;
+        e->particleLifespan    = DEFAULT_PARTICLE_LIFESPAN;
+        e->showingBaseParticle = false;
+        e->emitReserve         = 0.0;
+        e->thrust              = 0.0f;
+        e->rate                = 0.0f;
+        e->currentParticle     = 0;
+        e->particleRenderStyle = PARTICLE_RENDER_STYLE_SPHERE;
             
         for (int lifeStage = 0; lifeStage<NUM_PARTICLE_LIFE_STAGES; lifeStage++) {
 
@@ -102,8 +102,9 @@ void ParticleSystem::simulate(float deltaTime) {
     }
 
     // update particles
+    
     for (unsigned int p = 0; p < _numParticles; p++) {
-        if (_particle[p].alive) {
+        if (_particle[p].alive) {        
             if (_particle[p].age > _emitter[_particle[p].emitterIndex].particleLifespan) {
                 killParticle(p);
             } else {
@@ -319,12 +320,12 @@ void ParticleSystem::render() {
         }
     };  
     
-    // render the particles
+        // render the particles
     for (unsigned int p = 0; p < _numParticles; p++) {
         if (_particle[p].alive) {
             if (_emitter[_particle[p].emitterIndex].particleLifespan > 0.0) {
                 renderParticle(p);
-            }
+             }
         }
     }
 }
@@ -363,8 +364,8 @@ void ParticleSystem::renderParticle(int p) {
     } else if (_emitter[_particle[p].emitterIndex].particleRenderStyle == PARTICLE_RENDER_STYLE_SPHERE) {
 
         glPushMatrix();
-        glTranslatef(_particle[p].position.x, _particle[p].position.y, _particle[p].position.z);
-        glutSolidSphere(_particle[p].radius, _emitter[_particle[p].emitterIndex].particleResolution, _emitter[_particle[p].emitterIndex].particleResolution);
+            glTranslatef(_particle[p].position.x, _particle[p].position.y, _particle[p].position.z);            
+            glutSolidSphere(_particle[p].radius, _emitter[_particle[p].emitterIndex].particleResolution, _emitter[_particle[p].emitterIndex].particleResolution);
         glPopMatrix();
 
     } else if (_emitter[_particle[p].emitterIndex].particleRenderStyle == PARTICLE_RENDER_STYLE_RIBBON) {

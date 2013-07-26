@@ -8,6 +8,12 @@
 #ifndef hifi_Hand_h
 #define hifi_Hand_h
 
+#include <QApplication>
+#include <QAction>
+#include <QSettings>
+#include <QTouchEvent>
+#include <QList>
+
 #include <glm/glm.hpp>
 #include <AvatarData.h>
 #include <HandData.h>
@@ -21,6 +27,22 @@
 
 class Avatar;
 class ProgramObject;
+
+enum RaveGloveEffectsMode
+{
+	RAVE_GLOVE_EFFECTS_MODE_NULL = -1,
+	RAVE_GLOVE_EFFECTS_MODE_0,
+	RAVE_GLOVE_EFFECTS_MODE_1,
+	RAVE_GLOVE_EFFECTS_MODE_2,
+	RAVE_GLOVE_EFFECTS_MODE_3,
+	RAVE_GLOVE_EFFECTS_MODE_4,
+	RAVE_GLOVE_EFFECTS_MODE_5,
+	RAVE_GLOVE_EFFECTS_MODE_6,
+	RAVE_GLOVE_EFFECTS_MODE_7,
+	RAVE_GLOVE_EFFECTS_MODE_8,
+	RAVE_GLOVE_EFFECTS_MODE_9,
+	NUM_RAVE_GLOVE_EFFECTS_MODES
+};
 
 class Hand : public HandData {
 public:
@@ -45,7 +67,7 @@ public:
     void updateFingerParticles(float deltaTime);
     void updateFingerParticleEmitters();
     void setRaveGloveActive(bool active) { _isRaveGloveActive = active; }
-
+    void setRaveGloveEffectsMode(QKeyEvent* event);
 
     // getters
     const glm::vec3& getLeapBallPosition       (int ball)       const { return _leapBalls[ball].position;}

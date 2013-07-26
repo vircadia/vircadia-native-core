@@ -32,6 +32,18 @@ const float MAX_AUDIO_LOUDNESS = 1000.0; // close enough for mouth animation
 enum KeyState
 {
     NO_KEY_DOWN = 0,
+    /*
+    ONE_KEY_DOWN,
+    TOW_KEY_DOWN,
+    THREE_KEY_DOWN,
+    FOUR_KEY_DOWN,
+    FIVE_KEY_DOWN,
+    SIX_KEY_DOWN,
+    SEVEN_KEY_DOWN,
+    EIGHT_KEY_DOWN,
+    NINE_KEY_DOWN,
+    ZERO_KEY_DOWN,
+    */
     INSERT_KEY_DOWN,
     DELETE_KEY_DOWN
 };
