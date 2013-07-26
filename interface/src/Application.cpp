@@ -770,7 +770,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_6:
             case Qt::Key_7:
             case Qt::Key_8:
-                _swatch.handleEvent(event->key(), _eyedropperMode->isChecked());                
+                _swatch.handleEvent(event->key(), _eyedropperMode->isChecked());
                 break;
             default:
                 event->ignore();
@@ -2657,16 +2657,8 @@ void Application::displaySide(Camera& whichCamera) {
     float sphereRadius = 0.25f;
     glColor3f(1,0,0);
     glPushMatrix();
-    glutSolidSphere(sphereRadius, 15, 15);
+        glutSolidSphere(sphereRadius, 15, 15);
     glPopMatrix();
-
-/*
-glPushMatrix();
-glColor3f(1, 0, 1);
-glTranslatef(0.0f, 0.0f, 5.0f);
-_particleSystem.render();
-glPopMatrix();
-*/
 
     //draw a grid ground plane....
     if (_renderGroundPlaneOn->isChecked()) {
