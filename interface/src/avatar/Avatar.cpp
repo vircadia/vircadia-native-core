@@ -370,7 +370,11 @@ glm::vec3 Avatar::getUprightHeadPosition() const {
     return _position + getWorldAlignedOrientation() * glm::vec3(0.0f, _pelvisToHeadLength, 0.0f);
 }
 
-
+glm::vec3 Avatar::getUprightEyeLevelPosition() const {
+    const float EYE_UP_OFFSET = 0.36f;
+    glm::vec3 up = getWorldAlignedOrientation() * IDENTITY_UP;
+    return _position + up * _scale * BODY_BALL_RADIUS_HEAD_BASE * EYE_UP_OFFSET + glm::vec3(0.0f, _pelvisToHeadLength, 0.0f);;
+}
 
 void Avatar::updateThrust(float deltaTime, Transmitter * transmitter) {
     //
