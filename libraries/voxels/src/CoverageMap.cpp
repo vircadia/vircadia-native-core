@@ -430,10 +430,10 @@ bool CoverageRegion::mergeItemsInArray(VoxelProjectedPolygon* seed, bool seedInA
             otherPolygon->merge(*seed);
 
             if (seedInArray) {
-                const int IGNORED = NULL;
+                int* IGNORED_ADDRESS = NULL;
                 // remove this otherOtherPolygon for our polygon array
                 _polygonCount = removeFromSortedArrays((void*)seed,
-                                                       (void**)_polygons, _polygonDistances, IGNORED,
+                                                       (void**)_polygons, _polygonDistances, IGNORED_ADDRESS,
                                                        _polygonCount, _polygonArraySize);
                 _totalPolygons--;
             }
@@ -479,7 +479,8 @@ void CoverageRegion::storeInArray(VoxelProjectedPolygon* polygon) {
     // in the list. We still check to see if the polygon is "in front" of the target polygon before we test occlusion. Since
     // sometimes things come out of order.
     const bool SORT_BY_SIZE = false;
-    const int IGNORED = NULL;
+    const int  IGNORED = 0;
+    int* IGNORED_ADDRESS = NULL;
     if (SORT_BY_SIZE) {
         // This old code assumes that polygons will always be added in z-buffer order, but that doesn't seem to
         // be a good assumption. So instead, we will need to sort this by distance. Use a binary search to find the
@@ -488,12 +489,11 @@ void CoverageRegion::storeInArray(VoxelProjectedPolygon* polygon) {
         float reverseArea = 4.0f - area;
         //qDebug("store by size area=%f reverse area=%f\n", area, reverseArea);
         _polygonCount = insertIntoSortedArrays((void*)polygon, reverseArea, IGNORED,
-                                               (void**)_polygons, _polygonSizes, IGNORED,
+                                               (void**)_polygons, _polygonSizes, IGNORED_ADDRESS,
                                                _polygonCount, _polygonArraySize);
     } else {
-        const int IGNORED = NULL;
         _polygonCount = insertIntoSortedArrays((void*)polygon, polygon->getDistance(), IGNORED,
-                                               (void**)_polygons, _polygonDistances, IGNORED,
+                                               (void**)_polygons, _polygonDistances, IGNORED_ADDRESS,
                                                _polygonCount, _polygonArraySize);
     }
                                            

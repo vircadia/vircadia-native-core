@@ -313,6 +313,12 @@ void Avatar::updateFromGyrosAndOrWebcam(bool gyroLook,
     if (webcam->isActive()) {
         estimatedPosition = webcam->getEstimatedPosition();
         
+        // apply face data
+        _head.getFace().setColorTextureID(webcam->getColorTextureID());
+        _head.getFace().setDepthTextureID(webcam->getDepthTextureID());
+        _head.getFace().setTextureSize(webcam->getTextureSize());
+        _head.getFace().setTextureRect(webcam->getFaceRect());
+        
         // compute and store the joint rotations
         const JointVector& joints = webcam->getEstimatedJoints();
         _joints.clear();
@@ -327,6 +333,8 @@ void Avatar::updateFromGyrosAndOrWebcam(bool gyroLook,
                 }
             }
         }
+    } else {
+        _head.getFace().setColorTextureID(0);
     }
     _head.setPitch(estimatedRotation.x * amplifyAngle.x + pitchFromTouch);
     _head.setYaw(estimatedRotation.y * amplifyAngle.y + yawFromTouch);
@@ -822,13 +830,14 @@ void Avatar::updateHandMovementAndTouching(float deltaTime, bool enableHandMovem
         }
         
         // If there's a leap-interaction hand visible, use that as the endpoint
-        for (size_t i = 0; i < getHand().getPalms().size(); ++i) {
-            PalmData& palm = getHand().getPalms()[i];
-            if (palm.isActive()) {
-                _skeleton.joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position = palm.getPosition();
+        if (!getHand().isRaveGloveActive()) {
+            for (size_t i = 0; i < getHand().getPalms().size(); ++i) {
+                PalmData& palm = getHand().getPalms()[i];
+                if (palm.isActive()) {
+                    _skeleton.joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position = palm.getPosition();
+                }
             }
         }
-        
     }//if (_isMine)
     
     //constrain right arm length and re-adjust elbow position as it bends

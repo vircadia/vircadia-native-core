@@ -44,9 +44,9 @@ const int MIN_BRIGHTNESS = 64;
 const float DEATH_STAR_RADIUS = 4.0;
 const float MAX_CUBE = 0.05f;
 
-const int VOXEL_SEND_INTERVAL_USECS = 100 * 1000;
-int PACKETS_PER_CLIENT_PER_INTERVAL = 30;
-const int SENDING_TIME_TO_SPARE = 20 * 1000; // usec of sending interval to spare for calculating voxels
+const int VOXEL_SEND_INTERVAL_USECS = 17 * 1000; // approximately 60fps
+int PACKETS_PER_CLIENT_PER_INTERVAL = 20;
+const int SENDING_TIME_TO_SPARE = 5 * 1000; // usec of sending interval to spare for calculating voxels
 
 const int MAX_VOXEL_TREE_DEPTH_LEVELS = 4;
 
@@ -60,6 +60,7 @@ bool wantLocalDomain = false;
 bool wantColorRandomizer = false;
 bool debugVoxelSending = false;
 bool shouldShowAnimationDebug = false;
+bool displayVoxelStats = false;
 
 EnvironmentData environmentData[3];
 
@@ -111,6 +112,44 @@ void eraseVoxelTreeAndCleanupNodeVisitData() {
 
 pthread_mutex_t treeLock;
 
+void handlePacketSend(NodeList* nodeList, 
+                      NodeList::iterator& node,
+                      VoxelNodeData* nodeData, 
+                      int& trueBytesSent, int& truePacketsSent) {
+    // If we've got a stats message ready to send, then see if we can piggyback them together
+    if (nodeData->stats.isReadyToSend()) {
+        // Send the stats message to the client
+        unsigned char* statsMessage = nodeData->stats.getStatsMessage();
+        int statsMessageLength = nodeData->stats.getStatsMessageLength();
+
+        // If the size of the stats message and the voxel message will fit in a packet, then piggyback them
+        if (nodeData->getPacketLength() + statsMessageLength < MAX_PACKET_SIZE) {
+
+            // copy voxel message to back of stats message
+            memcpy(statsMessage + statsMessageLength, nodeData->getPacket(), nodeData->getPacketLength());
+            statsMessageLength += nodeData->getPacketLength();
+
+            // actually send it
+            nodeList->getNodeSocket()->send(node->getActiveSocket(), statsMessage, statsMessageLength);
+        } else {
+            // not enough room in the packet, send two packets
+            nodeList->getNodeSocket()->send(node->getActiveSocket(), statsMessage, statsMessageLength);
+            nodeList->getNodeSocket()->send(node->getActiveSocket(),
+                                            nodeData->getPacket(), nodeData->getPacketLength());
+        }
+    } else {
+        // just send the voxel packet
+        nodeList->getNodeSocket()->send(node->getActiveSocket(),
+                                        nodeData->getPacket(), nodeData->getPacketLength());
+    }
+    // remember to track our stats
+    nodeData->stats.packetSent(nodeData->getPacketLength());
+    trueBytesSent += nodeData->getPacketLength();
+    truePacketsSent++;
+    nodeData->resetVoxelPacket();
+}
+
+
 // Version of voxel distributor that sends the deepest LOD level at once
 void deepestLevelVoxelDistributor(NodeList* nodeList, 
                                   NodeList::iterator& node,
@@ -141,11 +180,9 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
                 printf("wantColor=%s --- SENDING PARTIAL PACKET! nodeData->getCurrentPacketIsColor()=%s\n", 
                        debug::valueOf(wantColor), debug::valueOf(nodeData->getCurrentPacketIsColor()));
             }
-            nodeList->getNodeSocket()->send(node->getActiveSocket(),
-                                            nodeData->getPacket(), nodeData->getPacketLength());
-            trueBytesSent += nodeData->getPacketLength();
-            truePacketsSent++;
-            nodeData->resetVoxelPacket();
+
+            handlePacketSend(nodeList, node, nodeData, trueBytesSent, truePacketsSent);
+
         } else {
             if (::debugVoxelSending) {
                 printf("wantColor=%s --- FIXING HEADER! nodeData->getCurrentPacketIsColor()=%s\n", 
@@ -200,13 +237,20 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
             // only set our last sent time if we weren't resetting due to frustum change
             uint64_t now = usecTimestampNow();
             nodeData->setLastTimeBagEmpty(now);
-            if (::debugVoxelSending) {
-                printf("ENTIRE SCENE SENT! nodeData->setLastTimeBagEmpty(now=[%lld])\n", now);
-            }
         }
-
+        
+        nodeData->stats.sceneCompleted();
+        
+        if (::displayVoxelStats) {
+            nodeData->stats.printDebugDetails();
+        }
+        
         // This is the start of "resending" the scene.
         nodeData->nodeBag.insert(serverTree.rootNode);
+        
+        // start tracking our stats
+        bool isFullScene = (!viewFrustumChanged || !nodeData->getWantDelta()) && nodeData->getViewFrustumJustStoppedChanging();
+        nodeData->stats.sceneStarted(isFullScene, viewFrustumChanged, ::serverTree.rootNode);
     }
 
     // If we have something in our nodeBag, then turn them into packets and send them out...
@@ -239,33 +283,32 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
                 CoverageMap* coverageMap = wantOcclusionCulling ? &nodeData->map : IGNORE_COVERAGE_MAP;
                 int boundaryLevelAdjust = viewFrustumChanged && nodeData->getWantLowResMoving() 
                                           ? LOW_RES_MOVING_ADJUST : NO_BOUNDARY_ADJUST;
+
+                bool isFullScene = (!viewFrustumChanged || !nodeData->getWantDelta()) && 
+                                 nodeData->getViewFrustumJustStoppedChanging();
                 
                 EncodeBitstreamParams params(INT_MAX, &nodeData->getCurrentViewFrustum(), wantColor, 
                                              WANT_EXISTS_BITS, DONT_CHOP, wantDelta, lastViewFrustum,
                                              wantOcclusionCulling, coverageMap, boundaryLevelAdjust,
                                              nodeData->getLastTimeBagEmpty(),
-                                             nodeData->getViewFrustumJustStoppedChanging());
-                                             
+                                             isFullScene, &nodeData->stats);
+                      
+                nodeData->stats.encodeStarted();
                 bytesWritten = serverTree.encodeTreeBitstream(subTree, &tempOutputBuffer[0], MAX_VOXEL_PACKET_SIZE - 1,
                                                               nodeData->nodeBag, params);
+                nodeData->stats.encodeStopped();
 
                 if (nodeData->getAvailable() >= bytesWritten) {
                     nodeData->writeToPacket(&tempOutputBuffer[0], bytesWritten);
                 } else {
-                    nodeList->getNodeSocket()->send(node->getActiveSocket(),
-                                                    nodeData->getPacket(), nodeData->getPacketLength());
-                    trueBytesSent += nodeData->getPacketLength();
-                    truePacketsSent++;
+                    handlePacketSend(nodeList, node, nodeData, trueBytesSent, truePacketsSent);
                     packetsSentThisInterval++;
                     nodeData->resetVoxelPacket();
                     nodeData->writeToPacket(&tempOutputBuffer[0], bytesWritten);
                 }
             } else {
                 if (nodeData->isPacketWaiting()) {
-                    nodeList->getNodeSocket()->send(node->getActiveSocket(),
-                                                    nodeData->getPacket(), nodeData->getPacketLength());
-                    trueBytesSent += nodeData->getPacketLength();
-                    truePacketsSent++;
+                    handlePacketSend(nodeList, node, nodeData, trueBytesSent, truePacketsSent);
                     nodeData->resetVoxelPacket();
                 }
                 packetsSentThisInterval = PACKETS_PER_CLIENT_PER_INTERVAL; // done for now, no nodes left
@@ -368,7 +411,9 @@ void *distributeVoxelsToListeners(void *args) {
         if (usecToSleep > 0) {
             usleep(usecToSleep);
         } else {
-            std::cout << "Last send took too much time, not sleeping!\n";
+            if (::debugVoxelSending) {
+                std::cout << "Last send took too much time, not sleeping!\n";
+            }
         }
     }
     
@@ -401,6 +446,10 @@ int main(int argc, const char * argv[]) {
     nodeList->startSilentNodeRemovalThread();
     
     srand((unsigned)time(0));
+    
+    const char* DISPLAY_VOXEL_STATS = "--displayVoxelStats";
+    ::displayVoxelStats = cmdOptionExists(argc, argv, DISPLAY_VOXEL_STATS);
+    printf("displayVoxelStats=%s\n", debug::valueOf(::displayVoxelStats));
 
     const char* DEBUG_VOXEL_SENDING = "--debugVoxelSending";
     ::debugVoxelSending = cmdOptionExists(argc, argv, DEBUG_VOXEL_SENDING);
@@ -437,8 +486,10 @@ int main(int argc, const char * argv[]) {
         
         ::serverTree.clearDirtyBit(); // the tree is clean since we just loaded it
         printf("DONE loading voxels from file... fileRead=%s\n", debug::valueOf(persistantFileRead));
-        unsigned long nodeCount = ::serverTree.getVoxelCount();
-        printf("Nodes after loading scene %ld nodes\n", nodeCount);
+        unsigned long nodeCount         = ::serverTree.rootNode->getSubTreeNodeCount();
+        unsigned long internalNodeCount = ::serverTree.rootNode->getSubTreeInternalNodeCount();
+        unsigned long leafNodeCount     = ::serverTree.rootNode->getSubTreeLeafNodeCount();
+        printf("Nodes after loading scene %lu nodes %lu internal %lu leaves\n", nodeCount, internalNodeCount, leafNodeCount);
     }
 
     // Check to see if the user passed in a command line option for loading an old style local

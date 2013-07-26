@@ -95,6 +95,7 @@ void Hand::render(bool lookingInMirror) {
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_RESCALE_NORMAL);
     
+    renderFingerTrails();
     renderHandSpheres();
 }
 
@@ -173,52 +174,47 @@ void Hand::renderHandSpheres() {
     glPopMatrix();
 }
 
-void Hand::setLeapFingers(const std::vector<glm::vec3>& fingerTips,
-                          const std::vector<glm::vec3>& fingerRoots) {
-    // TODO: add id-checking here to increase finger stability
-    
-    size_t fingerIndex = 0;
+void Hand::renderFingerTrails() {
+    // Draw the finger root cones
     for (size_t i = 0; i < getNumPalms(); ++i) {
         PalmData& palm = getPalms()[i];
-        for (size_t f = 0; f < palm.getNumFingers(); ++f) {
-            FingerData& finger = palm.getFingers()[f];
-            if (fingerIndex < fingerTips.size()) {
-                finger.setActive(true);
-                finger.setRawTipPosition(fingerTips[fingerIndex]);
-                finger.setRawRootPosition(fingerRoots[fingerIndex]);
-                fingerIndex++;
-            }
-            else {
-                finger.setActive(false);
+        if (palm.isActive()) {
+            for (size_t f = 0; f < palm.getNumFingers(); ++f) {
+                FingerData& finger = palm.getFingers()[f];
+                int numPositions = finger.getTrailNumPositions();
+                if (numPositions > 0) {
+                    glBegin(GL_TRIANGLE_STRIP);
+                    for (int t = 0; t < numPositions; ++t)
+                    {
+                        const glm::vec3& center = finger.getTrailPosition(t);
+                        const float halfWidth = 0.001f;
+                        const glm::vec3 edgeDirection(1.0f, 0.0f, 0.0f);
+                        glm::vec3 edge0 = center + edgeDirection * halfWidth;
+                        glm::vec3 edge1 = center - edgeDirection * halfWidth;
+                        float alpha = 1.0f - ((float)t / (float)(numPositions - 1));
+                        glColor4f(1.0f, 0.0f, 0.0f, alpha);
+                        glVertex3fv((float*)&edge0);
+                        glVertex3fv((float*)&edge1);
+                    }
+                    glEnd();
+                }
             }
         }
     }
 }
-
-void Hand::setLeapHands(const std::vector<glm::vec3>& handPositions,
-                          const std::vector<glm::vec3>& handNormals) {
-    for (size_t i = 0; i < getNumPalms(); ++i) {
-        PalmData& palm = getPalms()[i];
-        if (i < handPositions.size()) {
-            palm.setActive(true);
-            palm.setRawPosition(handPositions[i]);
-            palm.setRawNormal(handNormals[i]);
-        }
-        else {
-            palm.setActive(false);
-        }
-    }
-}
-
 
 void Hand::updateFingerParticles(float deltaTime) {
 
     if (!_particleSystemInitialized) {
                     
         for ( int f = 0; f< NUM_FINGERS_PER_HAND; f ++ ) {
+        
+            _particleSystem.setShowingEmitter(f, true );
 
             _fingerParticleEmitter[f] = _particleSystem.addEmitter();
             
+            assert( _fingerParticleEmitter[f] != -1 );
+                                    
             ParticleSystem::ParticleAttributes attributes;
 
            // set attributes for each life stage of the particle:
@@ -277,17 +273,17 @@ void Hand::updateFingerParticles(float deltaTime) {
                             } else {
                                 fingerDirection = IDENTITY_UP;
                             }
+                                                        
+                            glm::quat particleEmitterRotation = rotationBetween(palm.getNormal(), fingerDirection);
                             
-                            glm::quat particleEmitterRotation = rotationBetween(IDENTITY_UP, fingerDirection);
+                            //glm::quat particleEmitterRotation = glm::angleAxis(0.0f, fingerDirection);                            
                             
                             _particleSystem.setEmitterPosition(_fingerParticleEmitter[f], particleEmitterPosition);
                             _particleSystem.setEmitterRotation(_fingerParticleEmitter[f], particleEmitterRotation);
                             
-                            float radius = 0.005f;
-                            const glm::vec4 color(1.0f, 0.6f, 0.0f, 0.5f);
                             const glm::vec3 velocity = fingerDirection * 0.002f;
                             const float lifespan = 1.0f;
-                            _particleSystem.emitParticlesNow(_fingerParticleEmitter[f], 1, radius, color, velocity, lifespan); 
+                            _particleSystem.emitParticlesNow(_fingerParticleEmitter[f], 1, velocity, lifespan); 
                         }
                     }
                 }
