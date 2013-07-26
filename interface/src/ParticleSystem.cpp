@@ -16,6 +16,7 @@ const float DEFAULT_PARTICLE_BOUNCE            = 1.0f;
 const float DEFAULT_PARTICLE_AIR_FRICTION      = 2.0f;
 const float DEFAULT_PARTICLE_LIFESPAN          = 1.0f;
 const int   DEFAULT_PARTICLE_SPHERE_RESOLUTION = 6;
+const float DEFAULT_EMITTER_RENDER_LENGTH      = 0.2f;
 
 ParticleSystem::ParticleSystem() {
 
@@ -325,7 +326,7 @@ void ParticleSystem::render() {
         }
 
         if (_emitter[e].visible) {
-            renderEmitter(e, 0.2f);
+            renderEmitter(e, DEFAULT_EMITTER_RENDER_LENGTH);
         }
     };  
     
@@ -447,14 +448,14 @@ void ParticleSystem::renderParticle(int p) {
     }
 }
 
-
 void ParticleSystem::renderEmitter(int e, float size) {
 
-    glLineWidth(2.0f);
+    glm::vec3 v = _emitter[e].direction * size;
+    
     glColor3f(0.4f, 0.4, 0.8);
     glBegin(GL_LINES);
     glVertex3f(_emitter[e].position.x, _emitter[e].position.y, _emitter[e].position.z);
-    glVertex3f(_emitter[e].position.x + _emitter[e].direction.x, _emitter[e].position.y + _emitter[e].direction.y, _emitter[e].position.z + _emitter[e].direction.z);
+    glVertex3f(_emitter[e].position.x + v.x, _emitter[e].position.y + v.y, _emitter[e].position.z + v.z);
     glEnd();
 }
 
