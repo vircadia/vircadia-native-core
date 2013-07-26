@@ -311,8 +311,7 @@ int VoxelTree::readNodeData(VoxelNode* destinationNode, unsigned char* nodeData,
             // now also check the childrenInTreeMask, if the mask is missing the bit, then it means we need to delete this child
             // subtree/node, because it shouldn't actually exist in the tree.
             if (!oneAtBit(childrenInTreeMask, i) && destinationNode->getChildAtIndex(i)) {
-                bool stagedForDeletion = false; // assume staging is not needed
-                destinationNode->safeDeepDeleteChildAtIndex(i, stagedForDeletion);
+                destinationNode->safeDeepDeleteChildAtIndex(i);
                 _isDirty = true; // by definition!
             }
         }
@@ -366,15 +365,14 @@ void VoxelTree::readBitstreamToTree(unsigned char * bitstream, unsigned long int
     this->voxelsBytesReadStats.updateAverage(bufferSizeBytes);
 }
 
-void VoxelTree::deleteVoxelAt(float x, float y, float z, float s, bool stage) {
+void VoxelTree::deleteVoxelAt(float x, float y, float z, float s) {
     unsigned char* octalCode = pointToVoxel(x,y,z,s,0,0,0);
-    deleteVoxelCodeFromTree(octalCode, stage);
+    deleteVoxelCodeFromTree(octalCode);
     delete[] octalCode; // cleanup memory
 }
 
 class DeleteVoxelCodeFromTreeArgs {
 public:
-    bool            stage;
     bool            collapseEmptyTrees;
     unsigned char*  codeBuffer;
     int             lengthOfCode;
@@ -384,11 +382,10 @@ public:
 
 // Note: uses the codeColorBuffer format, but the color's are ignored, because
 // this only finds and deletes the node from the tree.
-void VoxelTree::deleteVoxelCodeFromTree(unsigned char* codeBuffer, bool stage, bool collapseEmptyTrees) {
+void VoxelTree::deleteVoxelCodeFromTree(unsigned char* codeBuffer, bool collapseEmptyTrees) {
     // recurse the tree while decoding the codeBuffer, once you find the node in question, recurse
     // back and implement color reaveraging, and marking of lastChanged
     DeleteVoxelCodeFromTreeArgs args;
-    args.stage              = stage;
     args.collapseEmptyTrees = collapseEmptyTrees;
     args.codeBuffer         = codeBuffer;
     args.lengthOfCode       = numberOfThreeBitSectionsInCode(codeBuffer);
@@ -408,7 +405,6 @@ void VoxelTree::deleteVoxelCodeFromTreeRecursion(VoxelNode* node, void* extraDat
     // matches, then we've reached  our target node.
     if (lengthOfNodeCode == args->lengthOfCode) {
         // we've reached our target, depending on how we're called we may be able to operate on it
-        // if we're in "stage" mode, then we can could have the node staged, otherwise we can't really delete
         // it here, we need to recurse up, and delete it there. So we handle these cases the same to keep
         // the logic consistent.
         args->deleteLastChild = true;
@@ -468,11 +464,7 @@ void VoxelTree::deleteVoxelCodeFromTreeRecursion(VoxelNode* node, void* extraDat
 
     // If the lower level determined it needs to be deleted, then we should delete now.
     if (args->deleteLastChild) {
-        if (args->stage) {
-            childNode->stageForDeletion();
-        } else {
-            node->deleteChildAtIndex(childIndex); // note: this will track dirtiness and lastChanged for this node
-        }
+        node->deleteChildAtIndex(childIndex); // note: this will track dirtiness and lastChanged for this node
 
         // track our tree dirtiness
         _isDirty = true;
@@ -602,7 +594,7 @@ void VoxelTree::processRemoveVoxelBitstream(unsigned char * bitstream, int buffe
         int codeLength = numberOfThreeBitSectionsInCode(voxelCode);
         int voxelDataSize = bytesRequiredForCodeLength(codeLength) + SIZE_OF_COLOR_DATA;
 
-        deleteVoxelCodeFromTree(voxelCode, ACTUALLY_DELETE, COLLAPSE_EMPTY_TREE);
+        deleteVoxelCodeFromTree(voxelCode, COLLAPSE_EMPTY_TREE);
 
         voxelCode+=voxelDataSize;
         atByte+=voxelDataSize;

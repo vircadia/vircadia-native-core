@@ -187,6 +187,13 @@ private:
     
     static ProgramObject* _perlinModulateProgram;
     static GLuint _permutationNormalTextureID;
+    
+    int _hookID;
+    std::vector<glBufferIndex> _freeIdexes;
+
+    static void voxelNodeDeleteHook(VoxelNode* node, void* extraData);
+    void freeBufferIndex(glBufferIndex index);
+    void clearFreeBufferIndexes();
 };
 
 #endif

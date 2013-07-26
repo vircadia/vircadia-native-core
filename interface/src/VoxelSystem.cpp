@@ -58,6 +58,32 @@ VoxelSystem::VoxelSystem(float treeScale, int maxVoxels) :
     _tree = new VoxelTree();
     pthread_mutex_init(&_bufferWriteLock, NULL);
     pthread_mutex_init(&_treeLock, NULL);
+
+    _hookID = VoxelNode::addDeleteHook(voxelNodeDeleteHook, (void*)this);
+}
+
+void VoxelSystem::voxelNodeDeleteHook(VoxelNode* node, void* extraData) {
+    VoxelSystem* theSystem = (VoxelSystem*)extraData;
+    
+    if (node->isKnownBufferIndex()) {
+        theSystem->freeBufferIndex(node->getBufferIndex());
+    }
+}
+
+void VoxelSystem::freeBufferIndex(glBufferIndex index) {
+    _freeIdexes.push_back(index);
+}
+
+void VoxelSystem::clearFreeBufferIndexes() {
+    for (int i = 0; i < _freeIdexes.size(); i++) {
+        glBufferIndex nodeIndex = _freeIdexes[i];
+        glm::vec3 startVertex(FLT_MAX, FLT_MAX, FLT_MAX);
+        float voxelScale = 0;
+        _writeVoxelDirtyArray[nodeIndex] = true;
+        nodeColor color = { 0, 0, 0, 0};
+        updateNodeInArrays(nodeIndex, startVertex, voxelScale, color);
+    }
+    _freeIdexes.clear();
 }
 
 VoxelSystem::~VoxelSystem() {
@@ -70,6 +96,8 @@ VoxelSystem::~VoxelSystem() {
     delete _tree;
     pthread_mutex_destroy(&_bufferWriteLock);
     pthread_mutex_destroy(&_treeLock);
+
+    VoxelNode::removeDeleteHook(_hookID);
 }
 
 void VoxelSystem::loadVoxelsFile(const char* fileName, bool wantColorRandomizer) {
@@ -173,6 +201,9 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
     PerformanceWarning warn(_renderWarningsOn, "setupNewVoxelsForDrawing()"); // would like to include _voxelsInArrays, _voxelsUpdated
     uint64_t start = usecTimestampNow();
     uint64_t sinceLastTime = (start - _setupNewVoxelsForDrawingLastFinished) / 1000;
+    
+    // clear up the VBOs for any nodes that have been recently deleted.
+    clearFreeBufferIndexes();
 
     bool iAmDebugging = false;  // if you're debugging set this to true, so you won't get skipped for slow debugging
     if (!iAmDebugging && sinceLastTime <= std::max((float) _setupNewVoxelsForDrawingLastElapsed, SIXTY_FPS_IN_MILLISECONDS)) {
@@ -182,7 +213,7 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
     uint64_t sinceLastViewCulling = (start - _lastViewCulling) / 1000;
     // If the view frustum is no longer changing, but has changed, since last time, then remove nodes that are out of view
     if ((sinceLastViewCulling >= std::max((float) _lastViewCullingElapsed, VIEW_CULLING_RATE_IN_MILLISECONDS))
-            && !isViewChanging() && hasViewChanged()) {
+            && !isViewChanging()) {
         _lastViewCulling = start;
 
         // When we call removeOutOfView() voxels, we don't actually remove the voxels from the VBOs, but we do remove
@@ -239,6 +270,7 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
 }
 
 void VoxelSystem::cleanupRemovedVoxels() {
+    //printf("cleanupRemovedVoxels...\n");
     PerformanceWarning warn(_renderWarningsOn, "cleanupRemovedVoxels()");
     if (!_removedVoxels.isEmpty()) {
         while (!_removedVoxels.isEmpty()) {
@@ -323,7 +355,7 @@ int VoxelSystem::newTreeToArrays(VoxelNode* node) {
     bool  shouldRender    = false; // assume we don't need to render it
     // if it's colored, we might need to render it!
     shouldRender = node->calculateShouldRender(Application::getInstance()->getViewFrustum());
-    node->setShouldRender(shouldRender && !node->isStagedForDeletion());
+    node->setShouldRender(shouldRender);
     // let children figure out their renderness
     if (!node->isLeaf()) {
         for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
@@ -338,13 +370,6 @@ int VoxelSystem::newTreeToArrays(VoxelNode* node) {
         voxelsUpdated += updateNodeInArraysAsPartialVBO(node);
     }
     node->clearDirtyBit(); // clear the dirty bit, do this before we potentially delete things.
-    
-    // If the node has been asked to be deleted, but we've gotten to here, after updateNodeInArraysXXX()
-    // then it means our VBOs are "clean" and our vertices have been removed or not added. So we can now
-    // safely remove the node from the tree and actually delete it.
-    if (node->isStagedForDeletion()) {
-        _tree->deleteVoxelCodeFromTree(node->getOctalCode());
-    }
     
     return voxelsUpdated;
 }
@@ -1111,7 +1136,7 @@ void VoxelSystem::collectStatsForTreesAndVBOs() {
 void VoxelSystem::deleteVoxelAt(float x, float y, float z, float s) {
     pthread_mutex_lock(&_treeLock);
     
-    _tree->deleteVoxelAt(x, y, z, s, true);
+    _tree->deleteVoxelAt(x, y, z, s);
     
     // redraw!
     setupNewVoxelsForDrawing();  // do we even need to do this? Or will the next network receive kick in?
@@ -1167,7 +1192,6 @@ struct FalseColorizeOccludedArgs {
     long nonLeaves;
     long nonLeavesOutOfView;
     long nonLeavesOccluded;
-    long stagedForDeletion;
 };
 
 struct FalseColorizeSubTreeOperationArgs {
@@ -1189,12 +1213,6 @@ bool VoxelSystem::falseColorizeOccludedOperation(VoxelNode* node, void* extraDat
     FalseColorizeOccludedArgs* args = (FalseColorizeOccludedArgs*) extraData;
     args->totalVoxels++;
 
-    // if this node is staged for deletion, then just return
-    if (node->isStagedForDeletion()) {
-        args->stagedForDeletion++;
-        return true;
-    }
-    
     // If we are a parent, let's see if we're completely occluded.
     if (!node->isLeaf()) {
         args->nonLeaves++;
@@ -1275,7 +1293,6 @@ void VoxelSystem::falseColorizeOccluded() {
     args.outOfView = 0;
     args.subtreeVoxelsSkipped = 0;
     args.nonLeaves = 0;
-    args.stagedForDeletion = 0;
     args.nonLeavesOutOfView = 0;
     args.nonLeavesOccluded = 0;
     args.tree = _tree;
@@ -1288,11 +1305,10 @@ void VoxelSystem::falseColorizeOccluded() {
 
     _tree->recurseTreeWithOperationDistanceSorted(falseColorizeOccludedOperation, position, (void*)&args);
 
-    qDebug("falseColorizeOccluded()\n    position=(%f,%f)\n    total=%ld\n    colored=%ld\n    occluded=%ld\n    notOccluded=%ld\n    outOfView=%ld\n    subtreeVoxelsSkipped=%ld\n    stagedForDeletion=%ld\n    nonLeaves=%ld\n    nonLeavesOutOfView=%ld\n    nonLeavesOccluded=%ld\n    pointInside_calls=%ld\n    occludes_calls=%ld\n intersects_calls=%ld\n", 
+    qDebug("falseColorizeOccluded()\n    position=(%f,%f)\n    total=%ld\n    colored=%ld\n    occluded=%ld\n    notOccluded=%ld\n    outOfView=%ld\n    subtreeVoxelsSkipped=%ld\n    nonLeaves=%ld\n    nonLeavesOutOfView=%ld\n    nonLeavesOccluded=%ld\n    pointInside_calls=%ld\n    occludes_calls=%ld\n intersects_calls=%ld\n", 
         position.x, position.y,
         args.totalVoxels, args.coloredVoxels, args.occludedVoxels, 
         args.notOccludedVoxels, args.outOfView, args.subtreeVoxelsSkipped, 
-        args.stagedForDeletion, 
         args.nonLeaves, args.nonLeavesOutOfView, args.nonLeavesOccluded,
         VoxelProjectedPolygon::pointInside_calls,
         VoxelProjectedPolygon::occludes_calls,
@@ -1310,12 +1326,6 @@ bool VoxelSystem::falseColorizeOccludedV2Operation(VoxelNode* node, void* extraD
     FalseColorizeOccludedArgs* args = (FalseColorizeOccludedArgs*) extraData;
     args->totalVoxels++;
 
-    // if this node is staged for deletion, then just return
-    if (node->isStagedForDeletion()) {
-        args->stagedForDeletion++;
-        return true;
-    }
-    
     // If we are a parent, let's see if we're completely occluded.
     if (!node->isLeaf()) {
         args->nonLeaves++;
@@ -1404,7 +1414,6 @@ void VoxelSystem::falseColorizeOccludedV2() {
     args.outOfView = 0;
     args.subtreeVoxelsSkipped = 0;
     args.nonLeaves = 0;
-    args.stagedForDeletion = 0;
     args.nonLeavesOutOfView = 0;
     args.nonLeavesOccluded = 0;
     args.tree = _tree;
@@ -1413,11 +1422,10 @@ void VoxelSystem::falseColorizeOccludedV2() {
 
     _tree->recurseTreeWithOperationDistanceSorted(falseColorizeOccludedV2Operation, position, (void*)&args);
 
-    qDebug("falseColorizeOccludedV2()\n    position=(%f,%f)\n    total=%ld\n    colored=%ld\n    occluded=%ld\n    notOccluded=%ld\n    outOfView=%ld\n    subtreeVoxelsSkipped=%ld\n    stagedForDeletion=%ld\n    nonLeaves=%ld\n    nonLeavesOutOfView=%ld\n    nonLeavesOccluded=%ld\n    pointInside_calls=%ld\n    occludes_calls=%ld\n    intersects_calls=%ld\n", 
+    qDebug("falseColorizeOccludedV2()\n    position=(%f,%f)\n    total=%ld\n    colored=%ld\n    occluded=%ld\n    notOccluded=%ld\n    outOfView=%ld\n    subtreeVoxelsSkipped=%ld\n    nonLeaves=%ld\n    nonLeavesOutOfView=%ld\n    nonLeavesOccluded=%ld\n    pointInside_calls=%ld\n    occludes_calls=%ld\n    intersects_calls=%ld\n", 
         position.x, position.y,
         args.totalVoxels, args.coloredVoxels, args.occludedVoxels, 
         args.notOccludedVoxels, args.outOfView, args.subtreeVoxelsSkipped, 
-        args.stagedForDeletion, 
         args.nonLeaves, args.nonLeavesOutOfView, args.nonLeavesOccluded,
         VoxelProjectedPolygon::pointInside_calls,
         VoxelProjectedPolygon::occludes_calls,

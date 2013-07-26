@@ -27,8 +27,6 @@ typedef enum {GRADIENT, RANDOM, NATURAL} creationMode;
 #define NO_COLOR               false
 #define WANT_COLOR             true
 #define IGNORE_VIEW_FRUSTUM    NULL
-#define JUST_STAGE_DELETION    true
-#define ACTUALLY_DELETE        false
 #define COLLAPSE_EMPTY_TREE    true
 #define DONT_COLLAPSE          false
 #define NO_OCCLUSION_CULLING   false
@@ -113,12 +111,11 @@ public:
                              bool includeColor = WANT_COLOR, bool includeExistsBits = WANT_EXISTS_BITS, 
                              VoxelNode* destinationNode = NULL);
     void readCodeColorBufferToTree(unsigned char* codeColorBuffer, bool destructive = false);
-    void deleteVoxelCodeFromTree(unsigned char* codeBuffer, bool stage = ACTUALLY_DELETE, 
-                                 bool collapseEmptyTrees = DONT_COLLAPSE);
+    void deleteVoxelCodeFromTree(unsigned char* codeBuffer, bool collapseEmptyTrees = DONT_COLLAPSE);
     void printTreeForDebugging(VoxelNode* startNode);
     void reaverageVoxelColors(VoxelNode* startNode);
 
-    void deleteVoxelAt(float x, float y, float z, float s, bool stage = false);
+    void deleteVoxelAt(float x, float y, float z, float s);
     VoxelNode* getVoxelAt(float x, float y, float z, float s) const;
     void createVoxel(float x, float y, float z, float s, 
                      unsigned char red, unsigned char green, unsigned char blue, bool destructive = false);

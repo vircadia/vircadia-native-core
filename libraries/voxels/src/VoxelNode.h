@@ -38,7 +38,7 @@ public:
     void deleteChildAtIndex(int childIndex);
     VoxelNode* removeChildAtIndex(int childIndex);
     VoxelNode* addChildAtIndex(int childIndex);
-    void safeDeepDeleteChildAtIndex(int childIndex, bool& stagedForDeletion); // handles staging or deletion of all descendents
+    void safeDeepDeleteChildAtIndex(int childIndex); // handles deletion of all descendents
 
     void setColorFromAverageOfChildren();
     void setRandomColor(int minimumBrightness);
@@ -82,10 +82,6 @@ public:
     void setShouldRender(bool shouldRender);
     bool getShouldRender() const { return _shouldRender; }
 
-    // Used by VoxelSystem to mark a node as to be deleted on next render pass
-    void stageForDeletion() { _isStagedForDeletion = true; _isDirty = true; };
-    bool isStagedForDeletion() const { return _isStagedForDeletion; }
-
 #ifndef NO_FALSE_COLOR // !NO_FALSE_COLOR means, does have false color
     void setFalseColor(colorPart red, colorPart green, colorPart blue);
     void setFalseColored(bool isFalseColored);
@@ -127,7 +123,6 @@ private:
     bool            _isDirty;
     uint64_t        _lastChanged;
     bool            _shouldRender;
-    bool            _isStagedForDeletion;
     AABox           _box;
     unsigned char*  _octalCode;
     VoxelNode*      _children[8];
