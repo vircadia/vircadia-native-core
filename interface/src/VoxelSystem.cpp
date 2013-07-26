@@ -60,6 +60,7 @@ VoxelSystem::VoxelSystem(float treeScale, int maxVoxels) :
     pthread_mutex_init(&_treeLock, NULL);
 
     _hookID = VoxelNode::addDeleteHook(voxelNodeDeleteHook, (void*)this);
+    _abandonedVBOSlots = 0;
 }
 
 void VoxelSystem::voxelNodeDeleteHook(VoxelNode* node, void* extraData) {
@@ -82,6 +83,7 @@ void VoxelSystem::clearFreeBufferIndexes() {
         _writeVoxelDirtyArray[nodeIndex] = true;
         nodeColor color = { 0, 0, 0, 0};
         updateNodeInArrays(nodeIndex, startVertex, voxelScale, color);
+        _abandonedVBOSlots++;
     }
     _freeIdexes.clear();
 }
@@ -243,6 +245,10 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
         }
         _voxelsUpdated = newTreeToArrays(_tree->rootNode);
         _tree->clearDirtyBit(); // after we pull the trees into the array, we can consider the tree clean
+
+        if (_writeRenderFullVBO) {
+            _abandonedVBOSlots = 0; // reset the count of our abandoned slots
+        }
         
         // since we called treeToArrays, we can assume that our VBO is in sync, and so partial updates to the VBOs are
         // ok again, until/unless we call removeOutOfView() 
@@ -270,13 +276,19 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
 }
 
 void VoxelSystem::cleanupRemovedVoxels() {
-    //printf("cleanupRemovedVoxels...\n");
     PerformanceWarning warn(_renderWarningsOn, "cleanupRemovedVoxels()");
+    // This handles cleanup of voxels that were culled as part of our regular out of view culling operation
     if (!_removedVoxels.isEmpty()) {
         while (!_removedVoxels.isEmpty()) {
             delete _removedVoxels.extract();
         }
         _writeRenderFullVBO = true; // if we remove voxels, we must update our full VBOs
+    }
+    // we also might have VBO slots that have been abandoned, if too many of our VBO slots
+    // are abandonded we want to rerender our full VBOs
+    const float TOO_MANY_ABANDONED_RATIO = 0.25f;
+    if (!_writeRenderFullVBO && (_abandonedVBOSlots > (_voxelsInWriteArrays * TOO_MANY_ABANDONED_RATIO))) {
+        _writeRenderFullVBO = true;
     }
 }
 
@@ -418,6 +430,7 @@ int VoxelSystem::updateNodeInArraysAsPartialVBO(VoxelNode* node) {
             // and our scale as infinitely small
             startVertex[0] = startVertex[1] = startVertex[2] = FLT_MAX;
             voxelScale = 0;
+            _abandonedVBOSlots++;
         }
 
         // If this node has not yet been written to the array, then add it to the end of the array.
@@ -470,7 +483,6 @@ void VoxelSystem::init() {
     _voxelsDirty = false;
     _voxelsInWriteArrays = 0;
     _voxelsInReadArrays = 0;
-    _unusedArraySpace = 0;
 
     // we will track individual dirty sections with these arrays of bools
     _writeVoxelDirtyArray = new bool[_maxVoxels];

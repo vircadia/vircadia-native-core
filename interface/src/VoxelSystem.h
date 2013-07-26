@@ -155,7 +155,7 @@ private:
     unsigned long _voxelsUpdated;
     unsigned long _voxelsInReadArrays;
     unsigned long _voxelsInWriteArrays;
-    unsigned long _unusedArraySpace;
+    unsigned long _abandonedVBOSlots;
     
     bool _writeRenderFullVBO;
     bool _readRenderFullVBO;
