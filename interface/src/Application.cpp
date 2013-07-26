@@ -551,7 +551,6 @@ void Application::sendVoxelServerAddScene() {
 }
 
 void Application::keyPressEvent(QKeyEvent* event) {
-
     if (activeWindow() == _window) {
         if (_chatEntryOn) {
             if (_chatEntry.keyPressEvent(event)) {
@@ -782,7 +781,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
 
 void Application::keyReleaseEvent(QKeyEvent* event) {
     if (activeWindow() == _window) {
-    
         if (_chatEntryOn) {
             _myAvatar.setKeyState(NO_KEY_DOWN);
             return;
