@@ -500,8 +500,9 @@ void FrameGrabber::grabFrame() {
         // initialize encoder context
         vpx_codec_enc_cfg_t codecConfig;
         vpx_codec_enc_config_default(vpx_codec_vp8_cx(), &codecConfig, 0);
-        codecConfig.rc_target_bitrate = ENCODED_FACE_WIDTH * combinedFaceHeight * codecConfig.rc_target_bitrate /
-            codecConfig.g_w / codecConfig.g_h;
+        const int QUALITY_MULTIPLIER = 2;
+        codecConfig.rc_target_bitrate = QUALITY_MULTIPLIER * ENCODED_FACE_WIDTH * combinedFaceHeight *
+            codecConfig.rc_target_bitrate / codecConfig.g_w / codecConfig.g_h;
         codecConfig.g_w = ENCODED_FACE_WIDTH;
         codecConfig.g_h = combinedFaceHeight;
         vpx_codec_enc_init(&_codec, vpx_codec_vp8_cx(), &codecConfig, 0); 
