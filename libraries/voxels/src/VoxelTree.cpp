@@ -310,7 +310,7 @@ int VoxelTree::readNodeData(VoxelNode* destinationNode, unsigned char* nodeData,
     // question is responsible for. Maybe we can handle this in the server and not "remove" bits for
     // portions of the server that the server is not responsible for.... or maybe we need to let the client
     // manage this concept.
-    const bool singleVoxelServer = true;
+    const bool singleVoxelServer = false;
     if (singleVoxelServer && includeExistsBits) {
         for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
             // now also check the childrenInTreeMask, if the mask is missing the bit, then it means we need to delete this child
