@@ -336,7 +336,6 @@ void Hand::setRaveGloveMode(int mode) {
             _raveGloveParticleSystem.setParticleRenderStyle       (_raveGloveEmitter[f], PARTICLE_RENDER_STYLE_SPHERE );
             _raveGloveParticleSystem.setShowingEmitterBaseParticle(_raveGloveEmitter[f], true );
             _raveGloveParticleSystem.setEmitterParticleLifespan   (_raveGloveEmitter[f], 0.0f );
-
             _raveGloveParticleSystem.setEmitterThrust             (_raveGloveEmitter[f], 0.0f );
             _raveGloveParticleSystem.setEmitterRate               (_raveGloveEmitter[f], 30.0f );
             _raveGloveParticleSystem.setEmitterParticleResolution (_raveGloveEmitter[f], 20   );

@@ -2719,8 +2719,8 @@ void Application::displaySide(Camera& whichCamera) {
             renderLookatIndicator(_lookatOtherPosition, whichCamera);
         }
     }
-    
-    if (TESTING_PARTICLE_SYSTEM) {
+
+    if (_renderParticleSystemOn->isChecked()) {
         if (_particleSystemInitialized) {
             _particleSystem.render();    
         }
