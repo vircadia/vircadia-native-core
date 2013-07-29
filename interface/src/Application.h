@@ -267,6 +267,7 @@ private:
     QAction* _renderFrameTimerOn;    // Whether to show onscreen text overlay with stats
     QAction* _renderLookatOn;        // Whether to show lookat vectors from avatar eyes if looking at something
     QAction* _renderLookatIndicatorOn;
+    QAction* _renderParticleSystemOn;
     QAction* _manualFirstPerson;     // Whether to force first-person mode
     QAction* _manualThirdPerson;     // Whether to force third-person mode
     QAction* _logOn;                 // Whether to show on-screen log
