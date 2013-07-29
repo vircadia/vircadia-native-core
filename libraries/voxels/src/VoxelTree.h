@@ -22,21 +22,23 @@
 typedef bool (*RecurseVoxelTreeOperation)(VoxelNode* node, void* extraData);
 typedef enum {GRADIENT, RANDOM, NATURAL} creationMode;
 
-#define NO_EXISTS_BITS         false
-#define WANT_EXISTS_BITS       true
-#define NO_COLOR               false
-#define WANT_COLOR             true
-#define IGNORE_VIEW_FRUSTUM    NULL
-#define COLLAPSE_EMPTY_TREE    true
-#define DONT_COLLAPSE          false
-#define NO_OCCLUSION_CULLING   false
-#define WANT_OCCLUSION_CULLING true
-#define IGNORE_COVERAGE_MAP    NULL
-#define DONT_CHOP              0
-#define NO_BOUNDARY_ADJUST     0
-#define LOW_RES_MOVING_ADJUST  1
-#define IGNORE_LAST_SENT       0
+const bool NO_EXISTS_BITS         = false;
+const bool WANT_EXISTS_BITS       = true;
+const bool NO_COLOR               = false;
+const bool WANT_COLOR             = true;
+const bool COLLAPSE_EMPTY_TREE    = true;
+const bool DONT_COLLAPSE          = false;
+const bool NO_OCCLUSION_CULLING   = false;
+const bool WANT_OCCLUSION_CULLING = true;
+
+const int DONT_CHOP              = 0;
+const int NO_BOUNDARY_ADJUST     = 0;
+const int LOW_RES_MOVING_ADJUST  = 1;
+const uint64_t IGNORE_LAST_SENT  = 0;
+
 #define IGNORE_SCENE_STATS     NULL
+#define IGNORE_VIEW_FRUSTUM    NULL
+#define IGNORE_COVERAGE_MAP    NULL
 
 class EncodeBitstreamParams {
 public:
