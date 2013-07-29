@@ -447,7 +447,7 @@ void Avatar::updateThrust(float deltaTime, Transmitter * transmitter) {
 }
 
 void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
-        
+
     glm::quat orientation = getOrientation();
     glm::vec3 front = orientation * IDENTITY_FRONT;
     glm::vec3 right = orientation * IDENTITY_RIGHT;
