@@ -305,8 +305,13 @@ int VoxelTree::readNodeData(VoxelNode* destinationNode, unsigned char* nodeData,
         childIndex++;
     }
 
-
-    if (false && includeExistsBits) {
+    // Here's where we need to handle the idea of multiple voxel servers. If we have multiple voxel
+    // servers, then we don't want to "honor" exists bits for portions of the tree that the server in
+    // question is responsible for. Maybe we can handle this in the server and not "remove" bits for
+    // portions of the server that the server is not responsible for.... or maybe we need to let the client
+    // manage this concept.
+    const bool singleVoxelServer = true;
+    if (singleVoxelServer && includeExistsBits) {
         for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
             // now also check the childrenInTreeMask, if the mask is missing the bit, then it means we need to delete this child
             // subtree/node, because it shouldn't actually exist in the tree.

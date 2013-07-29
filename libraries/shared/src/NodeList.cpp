@@ -24,8 +24,6 @@
 #include <arpa/inet.h>
 #endif
 
-//    NODE_TYPE_VOXEL_SERVER - removed!
-
 const char SOLO_NODE_TYPES[2] = {
     NODE_TYPE_AVATAR_MIXER,
     NODE_TYPE_AUDIO_MIXER
