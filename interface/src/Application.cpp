@@ -2709,7 +2709,6 @@ void Application::displaySide(Camera& whichCamera) {
             _myAvatar.getHead().setLookAtPosition(_myCamera.getPosition());
         } 
         _myAvatar.render(_lookingInMirror->isChecked(), _renderAvatarBalls->isChecked());
-        _myAvatar.setDisplayingLookatVectors(_renderLookatOn->isChecked());
 
         if (_renderLookatIndicatorOn->isChecked() && _isLookingAtOtherAvatar) {
             renderLookatIndicator(_lookatOtherPosition, whichCamera);
