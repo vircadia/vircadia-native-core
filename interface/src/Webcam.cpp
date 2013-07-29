@@ -596,10 +596,14 @@ void FrameGrabber::grabFrame() {
         _faceDepth.create(ENCODED_FACE_WIDTH, ENCODED_FACE_HEIGHT, CV_8UC1);
         warpAffine(_grayDepthFrame, _faceDepth, transform, _faceDepth.size());
         
-        uchar* dest = (uchar*)_encodedFace.data() + vpxImage.stride[0] * ENCODED_FACE_HEIGHT;
+        uchar* dline = (uchar*)_encodedFace.data() + vpxImage.stride[0] * ENCODED_FACE_HEIGHT;
+        uchar* src = _faceDepth.ptr();
         for (int i = 0; i < ENCODED_FACE_HEIGHT; i++) {
-            memcpy(dest, _faceDepth.ptr(i), ENCODED_FACE_WIDTH);
-            dest += vpxImage.stride[0];
+            uchar* dest = dline;
+            for (int j = 0; j < ENCODED_FACE_WIDTH; j++) {
+                *dest++ = *src++;    
+            }
+            dline += vpxImage.stride[0];
         }
     }
     
