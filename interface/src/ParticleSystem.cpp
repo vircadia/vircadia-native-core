@@ -28,7 +28,6 @@ ParticleSystem::ParticleSystem() {
     for (unsigned int emitterIndex = 0; emitterIndex < MAX_EMITTERS; emitterIndex++) {
         
         Emitter * e = &_emitter[emitterIndex];
-        
         e->position            = glm::vec3(0.0f, 0.0f, 0.0f);
         e->direction           = glm::vec3(0.0f, 1.0f, 0.0f);
         e->visible             = false;
@@ -42,31 +41,7 @@ ParticleSystem::ParticleSystem() {
         e->particleRenderStyle = PARTICLE_RENDER_STYLE_SPHERE;
             
         for (int lifeStage = 0; lifeStage<NUM_PARTICLE_LIFE_STAGES; lifeStage++) {
-
-            ParticleAttributes * a = &_emitter[emitterIndex].particleAttributes[lifeStage];
-
-            setParticleAttributesToDefault(a);
-
-            /*
-            a->radius                  = DEFAULT_PARTICLE_RADIUS;
-            a->color                   = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
-            a->bounce                  = DEFAULT_PARTICLE_BOUNCE;
-            a->airFriction             = DEFAULT_PARTICLE_AIR_FRICTION;
-            a->gravity                 = 0.0f;
-            a->jitter                  = 0.0f;
-            a->emitterAttraction       = 0.0f;
-            a->tornadoForce            = 0.0f;
-            a->neighborAttraction      = 0.0f;
-            a->neighborRepulsion       = 0.0f;
-            a->collisionSphereRadius   = 0.0f;
-            a->collisionSpherePosition = glm::vec3(0.0f, 0.0f, 0.0f);
-            a->usingCollisionSphere    = false;
-            a->collisionPlaneNormal    = _upDirection;
-            a->collisionPlanePosition  = glm::vec3(0.0f, 0.0f, 0.0f);
-            a->usingCollisionPlane     = false;
-            a->modulationAmplitude     = 0.0f;
-            a->modulationStyle         = COLOR_MODULATION_STYLE_NULL;
-            */
+            setParticleAttributesToDefault(&_emitter[emitterIndex].particleAttributes[lifeStage]);
         }
     };  
     
