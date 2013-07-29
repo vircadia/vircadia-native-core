@@ -20,6 +20,7 @@ const float DEFAULT_EMITTER_RENDER_LENGTH      = 0.2f;
 
 ParticleSystem::ParticleSystem() {
 
+    _timer        = 0.0f;
     _numEmitters  = 0;
     _numParticles = 0;
     _upDirection  = glm::vec3(0.0f, 1.0f, 0.0f); // default
@@ -44,6 +45,9 @@ ParticleSystem::ParticleSystem() {
 
             ParticleAttributes * a = &_emitter[emitterIndex].particleAttributes[lifeStage];
 
+            setParticleAttributesToDefault(a);
+
+            /*
             a->radius                  = DEFAULT_PARTICLE_RADIUS;
             a->color                   = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
             a->bounce                  = DEFAULT_PARTICLE_BOUNCE;
@@ -60,6 +64,9 @@ ParticleSystem::ParticleSystem() {
             a->collisionPlaneNormal    = _upDirection;
             a->collisionPlanePosition  = glm::vec3(0.0f, 0.0f, 0.0f);
             a->usingCollisionPlane     = false;
+            a->modulationAmplitude     = 0.0f;
+            a->modulationStyle         = COLOR_MODULATION_STYLE_NULL;
+            */
         }
     };  
     
@@ -86,6 +93,8 @@ int ParticleSystem::addEmitter() {
 
 
 void ParticleSystem::simulate(float deltaTime) {
+    
+    _timer += deltaTime;
     
     // emit particles
     for (int e = 0; e < _numEmitters; e++) {
@@ -173,6 +182,31 @@ void ParticleSystem::setParticleAttributes(int emitterIndex, ParticleAttributes 
     }
 }
 
+void ParticleSystem::setParticleAttributesToDefault(ParticleAttributes * a) {
+
+    a->radius                  = DEFAULT_PARTICLE_RADIUS;
+    a->color                   = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
+    a->bounce                  = DEFAULT_PARTICLE_BOUNCE;
+    a->airFriction             = DEFAULT_PARTICLE_AIR_FRICTION;
+    a->gravity                 = 0.0f;
+    a->jitter                  = 0.0f;
+    a->emitterAttraction       = 0.0f;
+    a->tornadoForce            = 0.0f;
+    a->neighborAttraction      = 0.0f;
+    a->neighborRepulsion       = 0.0f;
+    a->collisionSphereRadius   = 0.0f;
+    a->collisionSpherePosition = glm::vec3(0.0f, 0.0f, 0.0f);
+    a->usingCollisionSphere    = false;
+    a->collisionPlaneNormal    = _upDirection;
+    a->collisionPlanePosition  = glm::vec3(0.0f, 0.0f, 0.0f);
+    a->usingCollisionPlane     = false;
+    a->modulationAmplitude     = 0.0f;
+    a->modulationRate          = 0.0;
+    a->modulationStyle         = COLOR_MODULATION_STYLE_NULL;
+
+}
+
+
 void ParticleSystem::setParticleAttributes(int emitterIndex, ParticleLifeStage lifeStage, ParticleAttributes attributes) {
 
     ParticleAttributes * a = &_emitter[emitterIndex].particleAttributes[lifeStage];
@@ -193,32 +227,34 @@ void ParticleSystem::setParticleAttributes(int emitterIndex, ParticleLifeStage l
     a->usingCollisionPlane     = attributes.usingCollisionPlane;
     a->collisionPlanePosition  = attributes.collisionPlanePosition;
     a->collisionPlaneNormal    = attributes.collisionPlaneNormal;
+    a->modulationAmplitude     = attributes.modulationAmplitude;
+    a->modulationRate          = attributes.modulationRate;
+    a->modulationStyle         = attributes.modulationStyle;
 }
+
 
 
 void ParticleSystem::updateParticle(int p, float deltaTime) {
 
+    Emitter myEmitter = _emitter[_particle[p].emitterIndex];
+
+    assert(_particle[p].age <= myEmitter.particleLifespan);
+
+    float ageFraction = 0.0f;
+    int   lifeStage = 0;
+    float lifeStageFraction = 0.0f;
+
     if (_emitter[_particle[p].emitterIndex].particleLifespan > 0.0) {
-
-        Emitter myEmitter = _emitter[_particle[p].emitterIndex];
-
-        assert(_particle[p].age <= myEmitter.particleLifespan);
         
-        float ageFraction = _particle[p].age / myEmitter.particleLifespan;
+        ageFraction       = _particle[p].age / myEmitter.particleLifespan;
+        lifeStage         = (int)( ageFraction * (NUM_PARTICLE_LIFE_STAGES-1) );
+        lifeStageFraction = ageFraction * ( NUM_PARTICLE_LIFE_STAGES - 1 ) - lifeStage;
             
-        int lifeStage = (int)( ageFraction * (NUM_PARTICLE_LIFE_STAGES-1) );
-
-        float lifeStageFraction = ageFraction * ( NUM_PARTICLE_LIFE_STAGES - 1 ) - lifeStage;
-            
-
+        // adjust radius
         _particle[p].radius
         = myEmitter.particleAttributes[lifeStage  ].radius * (1.0f - lifeStageFraction)
         + myEmitter.particleAttributes[lifeStage+1].radius * lifeStageFraction;
-
-        _particle[p].color
-        = myEmitter.particleAttributes[lifeStage  ].color * (1.0f - lifeStageFraction)
-        + myEmitter.particleAttributes[lifeStage+1].color * lifeStageFraction;
-            
+        
         // apply random jitter
         float j = myEmitter.particleAttributes[lifeStage].jitter;
         _particle[p].velocity += 
@@ -293,8 +329,37 @@ void ParticleSystem::updateParticle(int p, float deltaTime) {
                 }
             }
         }
-    }  
+    }
 
+    // adjust color
+    _particle[p].color
+    = myEmitter.particleAttributes[lifeStage  ].color * (1.0f - lifeStageFraction)
+    + myEmitter.particleAttributes[lifeStage+1].color * lifeStageFraction;
+       
+    // apply color modulation
+    if (myEmitter.particleAttributes[lifeStage  ].modulationAmplitude > 0.0f) {
+        float modulation = 0.0f;
+        float radian = _timer * myEmitter.particleAttributes[lifeStage  ].modulationRate * PI_TIMES_TWO;
+        if (myEmitter.particleAttributes[lifeStage  ].modulationStyle == COLOR_MODULATION_STYLE_LIGHNTESS_PULSE) {
+            if ( sinf(radian) > 0.0f ) {
+                modulation = myEmitter.particleAttributes[lifeStage].modulationAmplitude;
+            }
+        } else if (myEmitter.particleAttributes[lifeStage].modulationStyle == COLOR_MODULATION_STYLE_LIGHTNESS_WAVE) {
+            float a = myEmitter.particleAttributes[lifeStage].modulationAmplitude;
+            modulation = a * ONE_HALF + sinf(radian) * a * ONE_HALF;
+        }
+        
+        _particle[p].color.r += modulation;
+        _particle[p].color.g += modulation;
+        _particle[p].color.b += modulation;
+        _particle[p].color.a += modulation;
+        
+        if (_particle[p].color.r > 1.0f) {_particle[p].color.r = 1.0f;}
+        if (_particle[p].color.g > 1.0f) {_particle[p].color.g = 1.0f;}
+        if (_particle[p].color.b > 1.0f) {_particle[p].color.b = 1.0f;}
+        if (_particle[p].color.a > 1.0f) {_particle[p].color.a = 1.0f;}
+    }
+    
     // do this at the end...
     _particle[p].age += deltaTime;  
 }

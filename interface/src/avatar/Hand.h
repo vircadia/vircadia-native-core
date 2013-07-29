@@ -59,8 +59,8 @@ public:
     void render(bool lookingInMirror);
 
     void setBallColor      (glm::vec3 ballColor         ) { _ballColor          = ballColor;          }
-    void updateFingerParticles(float deltaTime);
-    void updateFingerParticleEmitters();
+    void updateRaveGloveParticles(float deltaTime);
+    void updateRaveGloveEmitters();
     void setRaveGloveActive(bool active) { _isRaveGloveActive = active; }
     void setRaveGloveEffectsMode(QKeyEvent* event);
 
@@ -73,15 +73,16 @@ private:
     Hand(const Hand&);
     Hand& operator= (const Hand&);
     
-    ParticleSystem _particleSystem;
-    float          _testRaveGloveClock;
-    int            _testRaveGloveMode;
-    bool           _particleSystemInitialized;
-    int            _fingerParticleEmitter[NUM_FINGERS];
+    ParticleSystem _raveGloveParticleSystem;
+    float          _raveGloveClock;
+    int            _raveGloveMode;
+    bool           _raveGloveInitialized;
+    int            _raveGloveEmitter[NUM_FINGERS];
+    bool           _isRaveGloveActive;
+
     Avatar*        _owningAvatar;
     float          _renderAlpha;
     bool           _lookingInMirror;
-    bool           _isRaveGloveActive;
     glm::vec3      _ballColor;
     std::vector<HandBall> _leapBalls;
     

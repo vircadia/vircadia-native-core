@@ -22,6 +22,15 @@ enum ParticleRenderStyle
 };
 
 
+enum ColorModulationStyle
+{
+    COLOR_MODULATION_STYLE_NULL = -1,
+    COLOR_MODULATION_STYLE_LIGHNTESS_PULSE,
+    COLOR_MODULATION_STYLE_LIGHTNESS_WAVE,
+    NUM_COLOR_MODULATION_STYLES
+};
+
+
 enum ParticleLifeStage
 {
     PARTICLE_LIFESTAGE_0 = 0,
@@ -54,6 +63,9 @@ public:
         bool      usingCollisionPlane;      // set to true to allow collision with a plane
         glm::vec3 collisionPlanePosition;   // reference position of the collision plane
         glm::vec3 collisionPlaneNormal;     // the surface normal of the collision plane
+        float     modulationAmplitude;      // sets the degree (from 0 to 1) of the modulating effect 
+        float     modulationRate;           // the period of modulation, in seconds 
+        ColorModulationStyle modulationStyle; // to choose between color modulation styles
     };  
 
     // public methods...
@@ -65,6 +77,7 @@ public:
     void render();
     
     void setUpDirection(glm::vec3 upDirection) {_upDirection = upDirection;} // tell particle system which direction is up
+    void setParticleAttributesToDefault(ParticleAttributes * attributes); // set these attributes to their default values
     void setParticleAttributes        (int emitterIndex, ParticleAttributes attributes); // set attributes for whole life of particles
     void setParticleAttributes        (int emitterIndex, ParticleLifeStage lifeStage, ParticleAttributes attributes); // set attributes for this life stage
     void setEmitterPosition           (int emitterIndex, glm::vec3           position    ) {_emitter[emitterIndex].position            = position;    } 
@@ -110,6 +123,7 @@ private:
     Particle  _particle[MAX_PARTICLES];
     int       _numParticles;
     int       _numEmitters;
+    float     _timer;
     
     // private methods
     void updateParticle(int index, float deltaTime);
