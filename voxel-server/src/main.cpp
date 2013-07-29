@@ -36,8 +36,6 @@ const int MAX_FILENAME_LENGTH = 1024;
 char voxelPersistFilename[MAX_FILENAME_LENGTH];
 const int VOXEL_PERSIST_INTERVAL = 1000 * 30; // every 30 seconds
 
-//::wantLocalDomain ? LOCAL_VOXELS_PERSIST_FILE : VOXELS_PERSIST_FILE
-
 const int VOXEL_LISTEN_PORT = 40106;
 
 
@@ -700,15 +698,11 @@ int main(int argc, const char * argv[]) {
                     nodeList->broadcastToNodes(packetData, receivedBytes, &NODE_TYPE_AGENT, 1);
                 }
             } else if (packetData[0] == PACKET_TYPE_HEAD_DATA) {
-
                 // If we got a PACKET_TYPE_HEAD_DATA, then we're talking to an NODE_TYPE_AVATAR, and we
                 // need to make sure we have it in our nodeList.
                 
                 uint16_t nodeID = 0;
                 unpackNodeId(packetData + numBytesPacketHeader, &nodeID);
-
-printf("got PACKET_TYPE_HEAD_DATA... nodeID=%d\n", nodeID);
-
                 Node* node = nodeList->addOrUpdateNode(&nodePublicAddress,
                                                        &nodePublicAddress,
                                                        NODE_TYPE_AGENT,
