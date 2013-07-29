@@ -378,10 +378,10 @@ int VoxelSceneStats::unpackFromMessage(unsigned char* sourceBuffer, int availabl
 void VoxelSceneStats::printDebugDetails() {
     qDebug("\n------------------------------\n");
     qDebug("VoxelSceneStats:\n");
-    qDebug("    start    : %llu \n", _start);
-    qDebug("    end      : %llu \n", _end);
-    qDebug("    elapsed  : %llu \n", _elapsed);
-    qDebug("    encoding : %llu \n", _totalEncodeTime);
+    qDebug("    start    : %llu \n", (long long unsigned int)_start);
+    qDebug("    end      : %llu \n", (long long unsigned int)_end);
+    qDebug("    elapsed  : %llu \n", (long long unsigned int)_elapsed);
+    qDebug("    encoding : %llu \n", (long long unsigned int)_totalEncodeTime);
     qDebug("\n");
     qDebug("    full scene: %s\n", debug::valueOf(_isFullScene));
     qDebug("    moving: %s\n", debug::valueOf(_isMoving));
@@ -457,12 +457,12 @@ char* VoxelSceneStats::getItemValue(int item) {
             calcAverageFPS = (float)USECS_PER_SECOND / (float)elapsedAverage;
 
             sprintf(_itemValueBuffer, "%llu usecs (%d fps) Average: %.0f usecs (%d fps)", 
-                    _elapsed, calcFPS, elapsedAverage, calcAverageFPS);
+                    (long long unsigned int)_elapsed, calcFPS, elapsedAverage, calcAverageFPS);
             break;
         }
         case ITEM_ENCODE:
             calcFPS = (float)USECS_PER_SECOND / (float)_totalEncodeTime;
-            sprintf(_itemValueBuffer, "%llu usecs (%d fps)", _totalEncodeTime, calcFPS);
+            sprintf(_itemValueBuffer, "%llu usecs (%d fps)", (long long unsigned int)_totalEncodeTime, calcFPS);
             break;
         case ITEM_PACKETS: {
             float elapsedSecs = ((float)_elapsed / (float)USECS_PER_SECOND);
