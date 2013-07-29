@@ -21,7 +21,6 @@ enum ParticleRenderStyle
     NUM_PARTICLE_RENDER_STYLES
 };
 
-
 enum ColorModulationStyle
 {
     COLOR_MODULATION_STYLE_NULL = -1,
@@ -29,7 +28,6 @@ enum ColorModulationStyle
     COLOR_MODULATION_STYLE_LIGHTNESS_WAVE,
     NUM_COLOR_MODULATION_STYLES
 };
-
 
 enum ParticleLifeStage
 {
@@ -39,9 +37,6 @@ enum ParticleLifeStage
     PARTICLE_LIFESTAGE_3,
     NUM_PARTICLE_LIFE_STAGES
 };
-
-
-
 
 class ParticleSystem {
 public:
@@ -80,7 +75,7 @@ public:
     void setParticleAttributesToDefault(ParticleAttributes * attributes); // set these attributes to their default values
     void setParticleAttributes        (int emitterIndex, ParticleAttributes attributes); // set attributes for whole life of particles
     void setParticleAttributes        (int emitterIndex, ParticleLifeStage lifeStage, ParticleAttributes attributes); // set attributes for this life stage
-    void setEmitterPosition           (int emitterIndex, glm::vec3           position    ) {_emitter[emitterIndex].position            = position;    } 
+    void setEmitterPosition           (int emitterIndex, glm::vec3           position    );
     void setEmitterParticleResolution (int emitterIndex, int                 resolution  ) {_emitter[emitterIndex].particleResolution  = resolution;  } 
     void setEmitterDirection          (int emitterIndex, glm::vec3           direction   ) {_emitter[emitterIndex].direction           = direction;   } 
     void setShowingEmitter            (int emitterIndex, bool                showing     ) {_emitter[emitterIndex].visible             = showing;     }  
@@ -105,11 +100,13 @@ private:
         
    struct Emitter {
         glm::vec3 position;            // the position of the emitter in world coordinates
+        glm::vec3 previousPosition;    // the position of the emitter in the previous time step
         glm::vec3 direction;           // a normalized vector used as an axis for particle emission and other effects
         bool      visible;             // whether or not a line is shown indicating the emitter (indicating its direction)
         float     particleLifespan;    // how long the particle shall live, in seconds
         int       particleResolution;  // for sphere-based particles
         float     emitReserve;         // baed on 'rate', this is the number of particles that need to be emitted at a given time step
+        int       numParticlesEmittedThisTime; //the integer number of particles to emit at the preent time step
         float     thrust;              // the initial velocity upon emitting along the emitter direction 
         float     rate;                // currently, how many particles emitted during a simulation time step
         bool      showingBaseParticle; // if true, a copy of particle 0 is shown on the emitter position
@@ -127,7 +124,7 @@ private:
     
     // private methods
     void updateParticle(int index, float deltaTime);
-    void createParticle(int e);
+    void createParticle(int e, float timeFraction);
     void killParticle(int p);
     void renderEmitter(int emitterIndex, float size);
     void renderParticle(int p);

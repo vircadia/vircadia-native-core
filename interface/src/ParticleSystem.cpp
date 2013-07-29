@@ -29,6 +29,7 @@ ParticleSystem::ParticleSystem() {
         
         Emitter * e = &_emitter[emitterIndex];
         e->position            = glm::vec3(0.0f, 0.0f, 0.0f);
+        e->previousPosition    = glm::vec3(0.0f, 0.0f, 0.0f);
         e->direction           = glm::vec3(0.0f, 1.0f, 0.0f);
         e->visible             = false;
         e->particleResolution  = DEFAULT_PARTICLE_SPHERE_RESOLUTION;
@@ -39,6 +40,7 @@ ParticleSystem::ParticleSystem() {
         e->rate                = 0.0f;
         e->currentParticle     = 0;
         e->particleRenderStyle = PARTICLE_RENDER_STYLE_SPHERE;
+        e->numParticlesEmittedThisTime = 0;
             
         for (int lifeStage = 0; lifeStage<NUM_PARTICLE_LIFE_STAGES; lifeStage++) {
             setParticleAttributesToDefault(&_emitter[emitterIndex].particleAttributes[lifeStage]);
@@ -80,12 +82,13 @@ void ParticleSystem::simulate(float deltaTime) {
         
         _emitter[e].emitReserve += _emitter[e].rate * deltaTime;
     
-        int numParticlesEmittedThisTime = (int)_emitter[e].emitReserve;
+        _emitter[e].numParticlesEmittedThisTime = (int)_emitter[e].emitReserve;
         
-        _emitter[e].emitReserve -= numParticlesEmittedThisTime;
+        _emitter[e].emitReserve -= _emitter[e].numParticlesEmittedThisTime;
     
-        for (int p = 0; p < numParticlesEmittedThisTime; p++) {
-            createParticle(e);
+        for (int p = 0; p < _emitter[e].numParticlesEmittedThisTime; p++) {
+            float timeFraction = (float)p / (float)_emitter[e].numParticlesEmittedThisTime;
+            createParticle(e, timeFraction);
         }
     }
 
@@ -102,7 +105,7 @@ void ParticleSystem::simulate(float deltaTime) {
     }
 }
 
-void ParticleSystem::createParticle(int e) {
+void ParticleSystem::createParticle(int e, float timeFraction) {
         
     for (unsigned int p = 0; p < MAX_PARTICLES; p++) {
         if (!_particle[p].alive) {
@@ -111,7 +114,10 @@ void ParticleSystem::createParticle(int e) {
             _particle[p].alive            = true;
             _particle[p].age              = 0.0f;
             _particle[p].velocity         = _emitter[e].direction * _emitter[e].thrust;
-            _particle[p].position         = _emitter[e].position;
+            
+//_particle[p].position = _emitter[e].position;
+_particle[p].position = _emitter[e].previousPosition + timeFraction * (_emitter[e].position - _emitter[e].previousPosition);
+            
             _particle[p].radius           = _emitter[e].particleAttributes[0].radius;
             _particle[p].color            = _emitter[e].particleAttributes[0].color;
             _particle[p].previousParticle = -1;
@@ -148,6 +154,12 @@ void ParticleSystem::killParticle(int p) {
 
     _numParticles --;
  }
+
+
+void ParticleSystem::setEmitterPosition(int emitterIndex, glm::vec3 position) {
+    _emitter[emitterIndex].previousPosition = _emitter[emitterIndex].position;    
+    _emitter[emitterIndex].position = position;    
+} 
 
 
 void ParticleSystem::setParticleAttributes(int emitterIndex, ParticleAttributes attributes) {

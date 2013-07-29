@@ -392,7 +392,7 @@ void Hand::setRaveGloveMode(int mode) {
             _raveGloveParticleSystem.setShowingEmitterBaseParticle(_raveGloveEmitter[f], false  );
             _raveGloveParticleSystem.setEmitterParticleLifespan   (_raveGloveEmitter[f], 1.0f   );
             _raveGloveParticleSystem.setEmitterThrust             (_raveGloveEmitter[f], 0.002f );
-            _raveGloveParticleSystem.setEmitterRate               (_raveGloveEmitter[f], 50.0    );
+            _raveGloveParticleSystem.setEmitterRate               (_raveGloveEmitter[f], 120.0    );
             _raveGloveParticleSystem.setEmitterParticleResolution (_raveGloveEmitter[f], 6      );
 
             _raveGloveParticleSystem.setParticleAttributesToDefault(&attributes);
@@ -400,7 +400,7 @@ void Hand::setRaveGloveMode(int mode) {
             attributes.radius      = 0.005f;
             attributes.color       = glm::vec4( 1.0f, 1.0f, 0.5f, 0.5f);
             attributes.airFriction = 0.0f;
-            attributes.jitter      = 0.002f;
+            attributes.jitter      = 0.003f;
             _raveGloveParticleSystem.setParticleAttributes(_raveGloveEmitter[f], PARTICLE_LIFESTAGE_0, attributes);
 
             attributes.radius = 0.01f;
@@ -435,7 +435,7 @@ void Hand::setRaveGloveMode(int mode) {
             attributes.radius      = 0.001f;
             attributes.color       = glm::vec4( 0.8f, 0.9f, 1.0f, 0.5f);
             attributes.airFriction = 0.0f;
-            attributes.jitter      = 0.002f;
+            attributes.jitter      = 0.004f;
             attributes.bounce      = 1.0f;
             _raveGloveParticleSystem.setParticleAttributes(_raveGloveEmitter[f], PARTICLE_LIFESTAGE_0, attributes);
 
@@ -478,7 +478,7 @@ void Hand::setRaveGloveMode(int mode) {
             attributes.color = glm::vec4( 1.0f, 0.0f, 1.0f, 1.0f);
             _raveGloveParticleSystem.setParticleAttributes(_raveGloveEmitter[f], PARTICLE_LIFESTAGE_2, attributes);
 
-            attributes.radius = 0.0f;
+            attributes.radius = 0.01f;
             attributes.color = glm::vec4( 0.0f, 0.0f, 0.0f, 1.0f);
             _raveGloveParticleSystem.setParticleAttributes(_raveGloveEmitter[f], PARTICLE_LIFESTAGE_3, attributes);
         
@@ -528,6 +528,7 @@ void Hand::setRaveGloveMode(int mode) {
 
             _raveGloveParticleSystem.setParticleAttributesToDefault(&attributes);
 
+            attributes.color       = glm::vec4( 0.3f, 0.3f, 0.3f, 0.4f);
             attributes.radius      = 0.0f;
             attributes.airFriction = 0.0f;
             attributes.jitter      = 0.0001f;
