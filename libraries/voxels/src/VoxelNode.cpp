@@ -44,6 +44,8 @@ void VoxelNode::init(unsigned char * octalCode) {
         _children[i] = NULL;
     }
     _childCount = 0;
+    _subtreeNodeCount = 1; // that's me
+    _subtreeLeafNodeCount = 0; // that's me
     
     _glBufferIndex = GLBUFFER_INDEX_UNKNOWN;
     _isDirty = true;
@@ -78,6 +80,24 @@ void VoxelNode::handleSubtreeChanged(VoxelTree* myTree) {
     // here's a good place to do color re-averaging...
     if (myTree->getShouldReaverage()) {
         setColorFromAverageOfChildren();
+    }
+    
+    recalculateSubTreeNodeCount();
+}
+
+void VoxelNode::recalculateSubTreeNodeCount() {
+    // Assuming the tree below me as changed, I need to recalculate my node count
+    _subtreeNodeCount = 1; // that's me
+    if (isLeaf()) {
+        _subtreeLeafNodeCount = 1;
+    } else {
+        _subtreeLeafNodeCount = 0;
+        for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
+            if (_children[i]) {
+                _subtreeNodeCount += _children[i]->_subtreeNodeCount;
+                _subtreeLeafNodeCount += _children[i]->_subtreeLeafNodeCount;
+            }
+        }
     }
 }
 

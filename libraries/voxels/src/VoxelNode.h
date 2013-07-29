@@ -107,6 +107,12 @@ public:
 
     static int  addDeleteHook(VoxelNodeDeleteHook hook, void* extraData = NULL);
     static void removeDeleteHook(int hookID);
+    
+    void recalculateSubTreeNodeCount();
+    unsigned long getSubTreeNodeCount()         const { return _subtreeNodeCount; };
+    unsigned long getSubTreeInternalNodeCount() const { return _subtreeNodeCount - _subtreeLeafNodeCount; };
+    unsigned long getSubTreeLeafNodeCount()     const { return _subtreeLeafNodeCount; };
+
 private:
     void calculateAABox();
     void init(unsigned char * octalCode);
@@ -126,6 +132,8 @@ private:
     unsigned char*  _octalCode;
     VoxelNode*      _children[8];
     int             _childCount;
+    unsigned long   _subtreeNodeCount;
+    unsigned long   _subtreeLeafNodeCount;
     float           _density;       // If leaf: density = 1, if internal node: 0-1 density of voxels inside
     
     static VoxelNodeDeleteHook  _hooks[VOXEL_NODE_MAX_DELETE_HOOKS];

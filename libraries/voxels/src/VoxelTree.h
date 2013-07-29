@@ -9,12 +9,14 @@
 #ifndef __hifi__VoxelTree__
 #define __hifi__VoxelTree__
 
-#include "SimpleMovingAverage.h"
+#include <PointerStack.h>
+#include <SimpleMovingAverage.h>
+
+#include "CoverageMap.h"
 #include "ViewFrustum.h"
 #include "VoxelNode.h"
 #include "VoxelNodeBag.h"
-#include "CoverageMap.h"
-#include "PointerStack.h"
+#include "VoxelSceneStats.h"
 
 // Callback function, for recuseTreeWithOperation
 typedef bool (*RecurseVoxelTreeOperation)(VoxelNode* node, void* extraData);
@@ -36,6 +38,7 @@ typedef enum {GRADIENT, RANDOM, NATURAL} creationMode;
 #define NO_BOUNDARY_ADJUST     0
 #define LOW_RES_MOVING_ADJUST  1
 #define IGNORE_LAST_SENT       0
+#define IGNORE_SCENE_STATS     NULL
 
 class EncodeBitstreamParams {
 public:
@@ -48,10 +51,10 @@ public:
     bool                deltaViewFrustum;
     const ViewFrustum*  lastViewFrustum;
     bool                wantOcclusionCulling;
-    long                childWasInViewDiscarded;
     int                 boundaryLevelAdjust;
     uint64_t            lastViewFrustumSent;
     bool                forceSendScene;
+    VoxelSceneStats*    stats;
     CoverageMap*        map;
     
     EncodeBitstreamParams(
@@ -66,7 +69,8 @@ public:
         CoverageMap*        map                 = IGNORE_COVERAGE_MAP,
         int                 boundaryLevelAdjust = NO_BOUNDARY_ADJUST,
         uint64_t            lastViewFrustumSent = IGNORE_LAST_SENT,
-        bool                forceSendScene      = true) :
+        bool                forceSendScene      = true,
+        VoxelSceneStats*    stats               = IGNORE_SCENE_STATS) :
             maxEncodeLevel          (maxEncodeLevel),
             maxLevelReached         (0),
             viewFrustum             (viewFrustum),
@@ -76,10 +80,10 @@ public:
             deltaViewFrustum        (deltaViewFrustum),
             lastViewFrustum         (lastViewFrustum),
             wantOcclusionCulling    (wantOcclusionCulling),
-            childWasInViewDiscarded (0),
             boundaryLevelAdjust     (boundaryLevelAdjust),
             lastViewFrustumSent     (lastViewFrustumSent),
             forceSendScene          (forceSendScene),
+            stats                   (stats),
             map                     (map)
     {}
 };
