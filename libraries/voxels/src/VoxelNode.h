@@ -14,18 +14,19 @@
 #include "ViewFrustum.h"
 #include "VoxelConstants.h"
 
-class VoxelTree; // forward delclaration
-class VoxelNode; // forward delclaration
+class VoxelTree; // forward declaration
+class VoxelNode; // forward declaration
+class VoxelSystem; // forward declaration
 
 typedef unsigned char colorPart;
 typedef unsigned char nodeColor[4];
 typedef unsigned char rgbColor[3];
 
-// Callback function, for delete hook
-typedef void (*VoxelNodeDeleteHook)(VoxelNode* node, void* extraData);
-const int VOXEL_NODE_MAX_DELETE_HOOKS = 100;
-const int VOXEL_NODE_NO_MORE_HOOKS_AVAILABLE = -1;
-
+// Callers who want delete hook callbacks should implement this class
+class VoxelNodeDeleteHook {
+public:
+    virtual void nodeDeleted(VoxelNode* node) = 0;
+};
 
 class VoxelNode {
 public:
@@ -77,6 +78,9 @@ public:
     glBufferIndex getBufferIndex() const { return _glBufferIndex; };
     bool isKnownBufferIndex() const { return (_glBufferIndex != GLBUFFER_INDEX_UNKNOWN); };
     void setBufferIndex(glBufferIndex index) { _glBufferIndex = index; };
+    VoxelSystem* getVoxelSystem() const { return _voxelSystem; };
+    void setVoxelSystem(VoxelSystem* voxelSystem) { _voxelSystem = voxelSystem; };
+    
 
     // Used by VoxelSystem for rendering in/out of view and LOD
     void setShouldRender(bool shouldRender);
@@ -101,8 +105,8 @@ public:
     const nodeColor& getColor() const { return _trueColor; };
 #endif
 
-    static int  addDeleteHook(VoxelNodeDeleteHook hook, void* extraData = NULL);
-    static void removeDeleteHook(int hookID);
+    static void addDeleteHook(VoxelNodeDeleteHook* hook);
+    static void removeDeleteHook(VoxelNodeDeleteHook* hook);
     
     void recalculateSubTreeNodeCount();
     unsigned long getSubTreeNodeCount()         const { return _subtreeNodeCount; };
@@ -120,6 +124,7 @@ private:
     bool      _falseColored;
 #endif
     glBufferIndex   _glBufferIndex;
+    VoxelSystem*    _voxelSystem;
     bool            _isDirty;
     uint64_t        _lastChanged;
     bool            _shouldRender;
@@ -130,10 +135,8 @@ private:
     unsigned long   _subtreeNodeCount;
     unsigned long   _subtreeLeafNodeCount;
     float           _density;       // If leaf: density = 1, if internal node: 0-1 density of voxels inside
-    
-    static VoxelNodeDeleteHook  _hooks[VOXEL_NODE_MAX_DELETE_HOOKS];
-    static void*                _hooksExtraData[VOXEL_NODE_MAX_DELETE_HOOKS];
-    static int                  _hooksInUse;
+
+    static std::vector<VoxelNodeDeleteHook*> _hooks;
 };
 
 #endif /* defined(__hifi__VoxelNode__) */

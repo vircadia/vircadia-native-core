@@ -48,6 +48,7 @@ void VoxelNode::init(unsigned char * octalCode) {
     _subtreeLeafNodeCount = 0; // that's me
     
     _glBufferIndex = GLBUFFER_INDEX_UNKNOWN;
+    _voxelSystem = NULL;
     _isDirty = true;
     _shouldRender = false;
     markWithChangedTime();
@@ -399,43 +400,23 @@ float VoxelNode::distanceToPoint(const glm::vec3& point) const {
     return distance;
 }
 
-VoxelNodeDeleteHook VoxelNode::_hooks[VOXEL_NODE_MAX_DELETE_HOOKS];
-void* VoxelNode::_hooksExtraData[VOXEL_NODE_MAX_DELETE_HOOKS];
-int VoxelNode::_hooksInUse = 0;
+std::vector<VoxelNodeDeleteHook*> VoxelNode::_hooks;
 
-int VoxelNode::addDeleteHook(VoxelNodeDeleteHook hook, void* extraData) {
-    // If first use, initialize the _hooks array
-    if (_hooksInUse == 0) {
-        memset(_hooks, 0, sizeof(_hooks));
-        memset(_hooksExtraData, 0, sizeof(_hooksExtraData));
-    }
-    // find first available slot
-    for (int i = 0; i < VOXEL_NODE_MAX_DELETE_HOOKS; i++) {
-        if (!_hooks[i]) {
-            _hooks[i] = hook;
-            _hooksExtraData[i] = extraData;
-            _hooksInUse++;
-            return i;
-        }
-    }
-    // if we got here, then we're out of room in our hooks, return error
-    return VOXEL_NODE_NO_MORE_HOOKS_AVAILABLE;
+void VoxelNode::addDeleteHook(VoxelNodeDeleteHook* hook) {
+    _hooks.push_back(hook);
 }
 
-void VoxelNode::removeDeleteHook(int hookID) {
-    if (_hooks[hookID]) {
-        _hooks[hookID] = NULL;
-        _hooksExtraData[hookID] = NULL;
-        _hooksInUse--;
+void VoxelNode::removeDeleteHook(VoxelNodeDeleteHook* hook) {
+    for (int i = 0; i < _hooks.size(); i++) {
+        if (_hooks[i] == hook) {
+            _hooks.erase(_hooks.begin() + i);
+            return;
+        }
     }
 }
 
 void VoxelNode::notifyDeleteHooks() {
-    if (_hooksInUse > 0) {
-        for (int i = 0; i < VOXEL_NODE_MAX_DELETE_HOOKS; i++) {
-            if (_hooks[i]) {
-                _hooks[i](this, _hooksExtraData[i]);
-            }
-        }
+    for (int i = 0; i < _hooks.size(); i++) {
+        _hooks[i]->nodeDeleted(this);
     }
 }

@@ -16,7 +16,7 @@
 
 #include "VoxelNode.h"
 
-class VoxelNodeBag {
+class VoxelNodeBag : public VoxelNodeDeleteHook {
 
 public:
     VoxelNodeBag();
@@ -33,6 +33,8 @@ public:
     void deleteAll();
 
     static void voxelNodeDeleteHook(VoxelNode* node, void* extraData);
+
+    virtual void nodeDeleted(VoxelNode* node);
 
 private:
     

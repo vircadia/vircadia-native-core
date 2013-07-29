@@ -28,7 +28,7 @@ class ProgramObject;
 
 const int NUM_CHILDREN = 8;
 
-class VoxelSystem : public NodeData {
+class VoxelSystem : public NodeData, public VoxelNodeDeleteHook {
 public:
     VoxelSystem(float treeScale = TREE_SCALE, int maxVoxels = MAX_VOXELS_PER_SYSTEM);
     ~VoxelSystem();
@@ -92,6 +92,8 @@ public:
 
     CoverageMapV2 myCoverageMapV2;
     CoverageMap   myCoverageMap;
+
+    virtual void nodeDeleted(VoxelNode* node);
     
 protected:
     float _treeScale; 
@@ -191,7 +193,6 @@ private:
     int _hookID;
     std::vector<glBufferIndex> _freeIndexes;
 
-    static void voxelNodeDeleteHook(VoxelNode* node, void* extraData);
     void freeBufferIndex(glBufferIndex index);
     void clearFreeBufferIndexes();
 };

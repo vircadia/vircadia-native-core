@@ -59,15 +59,13 @@ VoxelSystem::VoxelSystem(float treeScale, int maxVoxels) :
     pthread_mutex_init(&_bufferWriteLock, NULL);
     pthread_mutex_init(&_treeLock, NULL);
 
-    _hookID = VoxelNode::addDeleteHook(voxelNodeDeleteHook, this);
+    VoxelNode::addDeleteHook(this);
     _abandonedVBOSlots = 0;
 }
 
-void VoxelSystem::voxelNodeDeleteHook(VoxelNode* node, void* extraData) {
-    VoxelSystem* theSystem = (VoxelSystem*)extraData;
-    
-    if (node->isKnownBufferIndex()) {
-        theSystem->freeBufferIndex(node->getBufferIndex());
+void VoxelSystem::nodeDeleted(VoxelNode* node) {
+    if (node->isKnownBufferIndex() && (node->getVoxelSystem() == this)) {
+        freeBufferIndex(node->getBufferIndex());
     }
 }
 
@@ -99,7 +97,7 @@ VoxelSystem::~VoxelSystem() {
     pthread_mutex_destroy(&_bufferWriteLock);
     pthread_mutex_destroy(&_treeLock);
 
-    VoxelNode::removeDeleteHook(_hookID);
+    VoxelNode::removeDeleteHook(this);
 }
 
 void VoxelSystem::loadVoxelsFile(const char* fileName, bool wantColorRandomizer) {
@@ -401,11 +399,13 @@ int VoxelSystem::updateNodeInArraysAsFullVBO(VoxelNode* node) {
         // and RGB color for each added vertex
         updateNodeInArrays(nodeIndex, startVertex, voxelScale, node->getColor());
         node->setBufferIndex(nodeIndex);
+        node->setVoxelSystem(this);
         _writeVoxelDirtyArray[nodeIndex] = true; // just in case we switch to Partial mode
         _voxelsInWriteArrays++; // our know vertices in the arrays
         return 1; // rendered
     } else {
         node->setBufferIndex(GLBUFFER_INDEX_UNKNOWN);
+        node->setVoxelSystem(NULL);
     }
     
     return 0; // not-rendered
@@ -440,6 +440,7 @@ int VoxelSystem::updateNodeInArraysAsPartialVBO(VoxelNode* node) {
         } else {
             nodeIndex = _voxelsInWriteArrays;
             node->setBufferIndex(nodeIndex);
+            node->setVoxelSystem(this);
             _voxelsInWriteArrays++;
         }
         _writeVoxelDirtyArray[nodeIndex] = true;
