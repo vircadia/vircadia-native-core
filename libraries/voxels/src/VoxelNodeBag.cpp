@@ -13,7 +13,7 @@ VoxelNodeBag::VoxelNodeBag() :
     _bagElements(NULL),
     _elementsInUse(0),
     _sizeOfElementsArray(0) {
-    _hookID = VoxelNode::addDeleteHook(voxelNodeDeleteHook, (void*)this);
+    _hookID = VoxelNode::addDeleteHook(voxelNodeDeleteHook, this);
 };
 
 VoxelNodeBag::~VoxelNodeBag() {

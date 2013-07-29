@@ -59,7 +59,7 @@ VoxelSystem::VoxelSystem(float treeScale, int maxVoxels) :
     pthread_mutex_init(&_bufferWriteLock, NULL);
     pthread_mutex_init(&_treeLock, NULL);
 
-    _hookID = VoxelNode::addDeleteHook(voxelNodeDeleteHook, (void*)this);
+    _hookID = VoxelNode::addDeleteHook(voxelNodeDeleteHook, this);
     _abandonedVBOSlots = 0;
 }
 
