@@ -306,7 +306,7 @@ int VoxelTree::readNodeData(VoxelNode* destinationNode, unsigned char* nodeData,
     }
 
 
-    if (includeExistsBits) {
+    if (false && includeExistsBits) {
         for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
             // now also check the childrenInTreeMask, if the mask is missing the bit, then it means we need to delete this child
             // subtree/node, because it shouldn't actually exist in the tree.

@@ -24,10 +24,11 @@
 #include <arpa/inet.h>
 #endif
 
-const char SOLO_NODE_TYPES[3] = {
+//    NODE_TYPE_VOXEL_SERVER - removed!
+
+const char SOLO_NODE_TYPES[2] = {
     NODE_TYPE_AVATAR_MIXER,
-    NODE_TYPE_AUDIO_MIXER,
-    NODE_TYPE_VOXEL_SERVER
+    NODE_TYPE_AUDIO_MIXER
 };
 
 const char DEFAULT_DOMAIN_HOSTNAME[MAX_HOSTNAME_BYTES] = "root.highfidelity.io";

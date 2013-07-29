@@ -3496,7 +3496,8 @@ void* Application::networkReceive(void* args) {
                         } // fall through to piggyback message
                         
                         if (app->_renderVoxels->isChecked()) {
-                            Node* voxelServer = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_VOXEL_SERVER);
+                            //Node* voxelServer = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_VOXEL_SERVER);
+                            Node* voxelServer = NodeList::getInstance()->nodeWithAddress(&senderAddress);
                             if (voxelServer && socketMatch(voxelServer->getActiveSocket(), &senderAddress)) {
                                 voxelServer->lock();
                                 

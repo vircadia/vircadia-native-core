@@ -32,7 +32,7 @@ const unsigned int NODE_SOCKET_LISTEN_PORT = 40103;
 const int NODE_SILENCE_THRESHOLD_USECS = 2 * 1000000;
 const int DOMAIN_SERVER_CHECK_IN_USECS = 1 * 1000000;
 
-extern const char SOLO_NODE_TYPES[3];
+extern const char SOLO_NODE_TYPES[2];
 
 const int MAX_HOSTNAME_BYTES = 256;
 

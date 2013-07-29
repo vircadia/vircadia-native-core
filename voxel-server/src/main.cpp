@@ -32,7 +32,11 @@
 
 const char* LOCAL_VOXELS_PERSIST_FILE = "resources/voxels.svo";
 const char* VOXELS_PERSIST_FILE = "/etc/highfidelity/voxel-server/resources/voxels.svo";
+const int MAX_FILENAME_LENGTH = 1024;
+char voxelPersistFilename[MAX_FILENAME_LENGTH];
 const int VOXEL_PERSIST_INTERVAL = 1000 * 30; // every 30 seconds
+
+//::wantLocalDomain ? LOCAL_VOXELS_PERSIST_FILE : VOXELS_PERSIST_FILE
 
 const int VOXEL_LISTEN_PORT = 40106;
 
@@ -375,7 +379,7 @@ void persistVoxelsWhenDirty() {
                                     "persistVoxelsWhenDirty() - writeToSVOFile()", ::shouldShowAnimationDebug);
 
             printf("saving voxels to file...\n");
-            serverTree.writeToSVOFile(::wantLocalDomain ? LOCAL_VOXELS_PERSIST_FILE : VOXELS_PERSIST_FILE);
+            serverTree.writeToSVOFile(::voxelPersistFilename);
             serverTree.clearDirtyBit(); // tree is clean after saving
             printf("DONE saving voxels to file...\n");
         }
@@ -431,7 +435,20 @@ int main(int argc, const char * argv[]) {
     
     qInstallMsgHandler(sharedMessageHandler);
     
-    NodeList* nodeList = NodeList::createInstance(NODE_TYPE_VOXEL_SERVER, VOXEL_LISTEN_PORT);
+    int listenPort = VOXEL_LISTEN_PORT;
+    // Check to see if the user passed in a command line option for setting listen port
+    const char* PORT_PARAMETER = "--port";
+    const char* portParameter = getCmdOption(argc, argv, PORT_PARAMETER);
+    if (portParameter) {
+        listenPort = atoi(portParameter);
+        if (listenPort < 1) {
+            listenPort = VOXEL_LISTEN_PORT;
+        }
+        printf("portParameter=%s listenPort=%d\n", portParameter, listenPort);
+    }
+    
+    
+    NodeList* nodeList = NodeList::createInstance(NODE_TYPE_VOXEL_SERVER, listenPort);
     setvbuf(stdout, NULL, _IOLBF, 0);
 
     // Handle Local Domain testing with the --local command line
@@ -473,8 +490,19 @@ int main(int argc, const char * argv[]) {
     // if we want Voxel Persistance, load the local file now...
     bool persistantFileRead = false;
     if (::wantVoxelPersist) {
-        printf("loading voxels from file...\n");
-        persistantFileRead = ::serverTree.readFromSVOFile(::wantLocalDomain ? LOCAL_VOXELS_PERSIST_FILE : VOXELS_PERSIST_FILE);
+
+        // Check to see if the user passed in a command line option for setting packet send rate
+        const char* VOXELS_PERSIST_FILENAME = "--voxelsPersistFilename";
+        const char* voxelsPersistFilenameParameter = getCmdOption(argc, argv, VOXELS_PERSIST_FILENAME);
+        if (voxelsPersistFilenameParameter) {
+            strcpy(voxelPersistFilename, voxelsPersistFilenameParameter);
+        } else {
+            strcpy(voxelPersistFilename, ::wantLocalDomain ? LOCAL_VOXELS_PERSIST_FILE : VOXELS_PERSIST_FILE);
+        }
+
+        printf("loading voxels from file: %s...\n", voxelPersistFilename);
+
+        persistantFileRead = ::serverTree.readFromSVOFile(::voxelPersistFilename);
         if (persistantFileRead) {
             PerformanceWarning warn(::shouldShowAnimationDebug,
                                     "persistVoxelsWhenDirty() - reaverageVoxelColors()", ::shouldShowAnimationDebug);
@@ -672,11 +700,15 @@ int main(int argc, const char * argv[]) {
                     nodeList->broadcastToNodes(packetData, receivedBytes, &NODE_TYPE_AGENT, 1);
                 }
             } else if (packetData[0] == PACKET_TYPE_HEAD_DATA) {
+
                 // If we got a PACKET_TYPE_HEAD_DATA, then we're talking to an NODE_TYPE_AVATAR, and we
                 // need to make sure we have it in our nodeList.
                 
                 uint16_t nodeID = 0;
                 unpackNodeId(packetData + numBytesPacketHeader, &nodeID);
+
+printf("got PACKET_TYPE_HEAD_DATA... nodeID=%d\n", nodeID);
+
                 Node* node = nodeList->addOrUpdateNode(&nodePublicAddress,
                                                        &nodePublicAddress,
                                                        NODE_TYPE_AGENT,
