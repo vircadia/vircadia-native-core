@@ -75,8 +75,6 @@ using namespace std;
 static char STAR_FILE[] = "http://s3-us-west-1.amazonaws.com/highfidelity/stars.txt";
 static char STAR_CACHE_FILE[] = "cachedStars.txt";
 
-static const bool TESTING_PARTICLE_SYSTEM = true;
-
 static const int BANDWIDTH_METER_CLICK_MAX_DRAG_LENGTH = 6; // farther dragged clicks are ignored 
 
 const glm::vec3 START_LOCATION(4.f, 0.f, 5.f);   //  Where one's own node begins in the world
@@ -407,7 +405,7 @@ void Application::paintGL() {
     
     } else if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
         _myCamera.setTightness(0.0f);  //  In first person, camera follows head exactly without delay
-        _myCamera.setTargetPosition(_myAvatar.getUprightHeadPosition());
+        _myCamera.setTargetPosition(_myAvatar.getUprightEyeLevelPosition());
         _myCamera.setTargetRotation(_myAvatar.getHead().getCameraOrientation());
         
     } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
@@ -1497,11 +1495,11 @@ bool Application::sendVoxelsOperation(VoxelNode* node, void* extraData) {
             int usecToSleep =  CLIENT_TO_SERVER_VOXEL_SEND_INTERVAL_USECS - elapsed;
             if (usecToSleep > 0) {
                 qDebug("sendVoxelsOperation: packet: %d bytes:%lld elapsed %lld usecs, sleeping for %d usecs!\n",
-                       args->packetsSent, args->bytesSent, elapsed, usecToSleep);
+                       args->packetsSent, (long long int)args->bytesSent, (long long int)elapsed, usecToSleep);
                 usleep(usecToSleep);
             } else {
                 qDebug("sendVoxelsOperation: packet: %d bytes:%lld elapsed %lld usecs, no need to sleep!\n",
-                       args->packetsSent, args->bytesSent, elapsed);
+                       args->packetsSent, (long long int)args->bytesSent, (long long int)elapsed);
             }
             args->lastSendTime = now;
         }
@@ -1686,7 +1684,7 @@ void Application::pasteVoxels() {
         controlledBroadcastToNodes(args.messageBuffer, args.bufferInUse, & NODE_TYPE_VOXEL_SERVER, 1);
         qDebug("sending packet: %d\n", ++args.packetsSent);
         args.bytesSent += args.bufferInUse;
-        qDebug("total bytes sent: %lld\n", args.bytesSent);
+        qDebug("total bytes sent: %lld\n", (long long int)args.bytesSent);
     }
     
     if (calculatedOctCode) {
@@ -1751,6 +1749,8 @@ void Application::initMenu() {
     _renderLookatOn->setChecked(false);
     (_renderLookatIndicatorOn = renderMenu->addAction("Lookat Indicator"))->setCheckable(true);
     _renderLookatIndicatorOn->setChecked(true);
+    (_renderParticleSystemOn = renderMenu->addAction("Particle System"))->setCheckable(true);
+    _renderParticleSystemOn->setChecked(true);
     (_manualFirstPerson = renderMenu->addAction(
         "First Person", this, SLOT(setRenderFirstPerson(bool)), Qt::Key_P))->setCheckable(true);
     (_manualThirdPerson = renderMenu->addAction(
@@ -2260,7 +2260,7 @@ void Application::update(float deltaTime) {
     _audio.eventuallyAnalyzePing();
     #endif
     
-    if (TESTING_PARTICLE_SYSTEM) {
+    if (_renderParticleSystemOn->isChecked()) {
         updateParticleSystem(deltaTime);
     }        
 }
@@ -2709,14 +2709,13 @@ void Application::displaySide(Camera& whichCamera) {
             _myAvatar.getHead().setLookAtPosition(_myCamera.getPosition());
         } 
         _myAvatar.render(_lookingInMirror->isChecked(), _renderAvatarBalls->isChecked());
-        _myAvatar.setDisplayingLookatVectors(_renderLookatOn->isChecked());
 
         if (_renderLookatIndicatorOn->isChecked() && _isLookingAtOtherAvatar) {
             renderLookatIndicator(_lookatOtherPosition, whichCamera);
         }
     }
 
-    if (TESTING_PARTICLE_SYSTEM) {
+    if (_renderParticleSystemOn->isChecked()) {
         if (_particleSystemInitialized) {
             _particleSystem.render();    
         }
