@@ -81,7 +81,7 @@ void VoxelSystem::clearFreeBufferIndexes() {
         glm::vec3 startVertex(FLT_MAX, FLT_MAX, FLT_MAX);
         float voxelScale = 0;
         _writeVoxelDirtyArray[nodeIndex] = true;
-        nodeColor color = { 0, 0, 0, 0};
+        nodeColor color = {0, 0, 0, 0};
         updateNodeInArrays(nodeIndex, startVertex, voxelScale, color);
         _abandonedVBOSlots++;
     }
