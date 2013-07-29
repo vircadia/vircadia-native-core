@@ -72,12 +72,12 @@ void VoxelSystem::voxelNodeDeleteHook(VoxelNode* node, void* extraData) {
 }
 
 void VoxelSystem::freeBufferIndex(glBufferIndex index) {
-    _freeIdexes.push_back(index);
+    _freeIndexes.push_back(index);
 }
 
 void VoxelSystem::clearFreeBufferIndexes() {
-    for (int i = 0; i < _freeIdexes.size(); i++) {
-        glBufferIndex nodeIndex = _freeIdexes[i];
+    for (int i = 0; i < _freeIndexes.size(); i++) {
+        glBufferIndex nodeIndex = _freeIndexes[i];
         glm::vec3 startVertex(FLT_MAX, FLT_MAX, FLT_MAX);
         float voxelScale = 0;
         _writeVoxelDirtyArray[nodeIndex] = true;
@@ -85,7 +85,7 @@ void VoxelSystem::clearFreeBufferIndexes() {
         updateNodeInArrays(nodeIndex, startVertex, voxelScale, color);
         _abandonedVBOSlots++;
     }
-    _freeIdexes.clear();
+    _freeIndexes.clear();
 }
 
 VoxelSystem::~VoxelSystem() {

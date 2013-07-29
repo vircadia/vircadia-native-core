@@ -189,7 +189,7 @@ private:
     static GLuint _permutationNormalTextureID;
     
     int _hookID;
-    std::vector<glBufferIndex> _freeIdexes;
+    std::vector<glBufferIndex> _freeIndexes;
 
     static void voxelNodeDeleteHook(VoxelNode* node, void* extraData);
     void freeBufferIndex(glBufferIndex index);
