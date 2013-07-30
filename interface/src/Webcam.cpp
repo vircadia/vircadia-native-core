@@ -480,19 +480,6 @@ void FrameGrabber::grabFrame() {
         _searchWindow = Rect(clip(faceBounds.tl(), imageBounds), clip(faceBounds.br(), imageBounds));
     }
 
-#ifdef HAVE_OPENNI
-    if (_depthGenerator.IsValid()) {
-        // convert from 11 to 8 bits, centered about the mean face depth (if possible)
-        if (_searchWindow.area() > 0) {
-            const double DEPTH_OFFSET_SMOOTHING = 0.95;
-            const double EIGHT_BIT_MIDPOINT = 128.0;
-            double meanOffset = EIGHT_BIT_MIDPOINT - mean(depth(_searchWindow))[0];
-            _depthOffset = (_depthOffset == 0.0) ? meanOffset : glm::mix(meanOffset, _depthOffset, DEPTH_OFFSET_SMOOTHING);
-        }
-        depth.convertTo(_grayDepthFrame, CV_8UC1, 1.0, _depthOffset);
-    }
-#endif
-
     const int ENCODED_FACE_WIDTH = 128;
     const int ENCODED_FACE_HEIGHT = 128;
     int combinedFaceHeight = ENCODED_FACE_HEIGHT * (depth.empty() ? 1 : 2);
@@ -591,19 +578,52 @@ void FrameGrabber::grabFrame() {
         uline += vpxImage.stride[2];
     }
     
-    // if we have depth data, warp that and just copy it in
     if (!depth.empty()) {
-        _faceDepth.create(ENCODED_FACE_WIDTH, ENCODED_FACE_HEIGHT, CV_8UC1);
-        warpAffine(_grayDepthFrame, _faceDepth, transform, _faceDepth.size());
+        // warp the face depth without interpolation (because it will contain invalid zero values)
+        _faceDepth.create(ENCODED_FACE_WIDTH, ENCODED_FACE_HEIGHT, CV_16UC1);
+        warpAffine(depth, _faceDepth, transform, _faceDepth.size(), INTER_NEAREST);
         
-        uchar* dline = (uchar*)_encodedFace.data() + vpxImage.stride[0] * ENCODED_FACE_HEIGHT;
-        uchar* src = _faceDepth.ptr();
+        // find the mean of the valid values
+        qint64 depthTotal = 0;
+        qint64 depthSamples = 0;
+        ushort* src = _faceDepth.ptr<ushort>();
         for (int i = 0; i < ENCODED_FACE_HEIGHT; i++) {
-            uchar* dest = dline;
             for (int j = 0; j < ENCODED_FACE_WIDTH; j++) {
-                *dest++ = *src++;    
+                ushort depth = *src++;
+                if (depth != 0) {
+                    depthTotal += depth;
+                    depthSamples++;
+                }
             }
-            dline += vpxImage.stride[0];
+        }
+        double mean = (depthSamples == 0) ? 0.0 : depthTotal / (double)depthSamples;
+        
+        // update the depth offset based on the mean
+        const double DEPTH_OFFSET_SMOOTHING = 0.95;
+        const double EIGHT_BIT_MIDPOINT = 128.0;
+        double meanOffset = EIGHT_BIT_MIDPOINT - mean;
+        _depthOffset = (_depthOffset == 0.0) ? meanOffset : glm::mix(meanOffset, _depthOffset, DEPTH_OFFSET_SMOOTHING);
+
+        // convert from 11 to 8 bits for preview/local display
+        depth.convertTo(_grayDepthFrame, CV_8UC1, 1.0, _depthOffset);
+
+        // likewise for the encoded representation
+        uchar* yline = (uchar*)_encodedFace.data() + vpxImage.stride[0] * ENCODED_FACE_HEIGHT;
+        src = _faceDepth.ptr<ushort>();
+        const char UNKNOWN_DEPTH = 0;
+        const char MAXIMUM_DEPTH = 255;
+        for (int i = 0; i < ENCODED_FACE_HEIGHT; i++) {
+            uchar* ydest = yline;
+            for (int j = 0; j < ENCODED_FACE_WIDTH; j++) {
+                ushort depth = *src++;
+                if (depth == UNKNOWN_DEPTH) {
+                    *ydest++ = MAXIMUM_DEPTH;
+                    
+                } else {
+                    *ydest++ = saturate_cast<uchar>(depth + _depthOffset);
+                }
+            }
+            yline += vpxImage.stride[0];
         }
     }
     
