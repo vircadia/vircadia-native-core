@@ -808,19 +808,15 @@ void VoxelSystem::falseColorizeInView(ViewFrustum* viewFrustum) {
     setupNewVoxelsForDrawing();
 }
 
-// combines the removeOutOfView args into a single class
+// helper classes and args for falseColorizeBySource
 class groupColor {
 public:
     unsigned char red, green, blue;
     groupColor(unsigned char red, unsigned char green, unsigned char blue) :
         red(red), green(green), blue(blue) { };
 
-    groupColor(const groupColor& color) :
-        red(color.red), green(color.green), blue(color.blue) { };
-
     groupColor() :
         red(0), green(0), blue(0) { };
-
 };
 
 class colorizeBySourceArgs {
