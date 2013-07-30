@@ -93,8 +93,6 @@ public:
     void setColor(const nodeColor& color);
     const nodeColor& getTrueColor() const { return _trueColor; };
     const nodeColor& getColor() const { return _currentColor; };
-    void setDensity(float density) { _density = density; };
-    float getDensity() const { return _density; };
 #else
     void setFalseColor(colorPart red, colorPart green, colorPart blue) { /* no op */ };
     void setFalseColored(bool isFalseColored) { /* no op */ };
@@ -104,6 +102,11 @@ public:
     const nodeColor& getTrueColor() const { return _trueColor; };
     const nodeColor& getColor() const { return _trueColor; };
 #endif
+
+    void     setDensity(float density)            { _density = density;   };
+    float    getDensity()                   const { return _density;      };
+    void     setSourceID(uint16_t sourceID)       { _sourceID = sourceID; };
+    uint16_t getSourceID()                  const { return _sourceID;     };
 
     static void addDeleteHook(VoxelNodeDeleteHook* hook);
     static void removeDeleteHook(VoxelNodeDeleteHook* hook);
@@ -135,6 +138,7 @@ private:
     unsigned long   _subtreeNodeCount;
     unsigned long   _subtreeLeafNodeCount;
     float           _density;       // If leaf: density = 1, if internal node: 0-1 density of voxels inside
+    uint16_t        _sourceID;
 
     static std::vector<VoxelNodeDeleteHook*> _hooks;
 };

@@ -250,7 +250,8 @@ void AvatarVoxelSystem::handleVoxelDownloadProgress(qint64 bytesReceived, qint64
     _voxelReply->deleteLater();
     _voxelReply = 0;
     
-    _tree->readBitstreamToTree((unsigned char*)entirety.data(), entirety.size(), WANT_COLOR, NO_EXISTS_BITS);
+    ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS);
+    _tree->readBitstreamToTree((unsigned char*)entirety.data(), entirety.size(), args);
     setupNewVoxelsForDrawing();
 }
 

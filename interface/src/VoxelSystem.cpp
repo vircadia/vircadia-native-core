@@ -23,6 +23,8 @@
 #include <PacketHeaders.h>
 #include <PerfStat.h>
 #include <SharedUtil.h>
+#include <NodeList.h>
+#include <NodeTypes.h>
 
 #include "Application.h"
 #include "CoverageMap.h"
@@ -61,6 +63,8 @@ VoxelSystem::VoxelSystem(float treeScale, int maxVoxels) :
 
     VoxelNode::addDeleteHook(this);
     _abandonedVBOSlots = 0;
+    _falseColorizeBySource = false;
+    _dataSourceID = UNKNOWN_NODE_ID;
 }
 
 void VoxelSystem::nodeDeleted(VoxelNode* node) {
@@ -153,13 +157,15 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
         case PACKET_TYPE_VOXEL_DATA: {
             PerformanceWarning warn(_renderWarningsOn, "readBitstreamToTree()");
             // ask the VoxelTree to read the bitstream into the tree
-            _tree->readBitstreamToTree(voxelData, numBytes - numBytesPacketHeader, WANT_COLOR, WANT_EXISTS_BITS);
+            ReadBitstreamToTreeParams args(WANT_COLOR, WANT_EXISTS_BITS, NULL, getDataSourceID());
+            _tree->readBitstreamToTree(voxelData, numBytes - numBytesPacketHeader, args);
         }
             break;
         case PACKET_TYPE_VOXEL_DATA_MONOCHROME: {
             PerformanceWarning warn(_renderWarningsOn, "readBitstreamToTree()");
             // ask the VoxelTree to read the MONOCHROME bitstream into the tree
-            _tree->readBitstreamToTree(voxelData, numBytes - numBytesPacketHeader, NO_COLOR, WANT_EXISTS_BITS);
+            ReadBitstreamToTreeParams args(NO_COLOR, WANT_EXISTS_BITS, NULL, getDataSourceID());
+            _tree->readBitstreamToTree(voxelData, numBytes - numBytesPacketHeader, args);
         }
             break;
         case PACKET_TYPE_Z_COMMAND:
@@ -747,6 +753,7 @@ void VoxelSystem::randomizeVoxelColors() {
     _nodeCount = 0;
     _tree->recurseTreeWithOperation(randomColorOperation);
     qDebug("setting randomized true color for %d nodes\n", _nodeCount);
+    _tree->setDirtyBit();
     setupNewVoxelsForDrawing();
 }
 
@@ -761,6 +768,7 @@ void VoxelSystem::falseColorizeRandom() {
     _nodeCount = 0;
     _tree->recurseTreeWithOperation(falseColorizeRandomOperation);
     qDebug("setting randomized false color for %d nodes\n", _nodeCount);
+    _tree->setDirtyBit();
     setupNewVoxelsForDrawing();
 }
 
@@ -775,6 +783,7 @@ void VoxelSystem::trueColorize() {
     _nodeCount = 0;
     _tree->recurseTreeWithOperation(trueColorizeOperation);
     qDebug("setting true color for %d nodes\n", _nodeCount);
+    _tree->setDirtyBit();
     setupNewVoxelsForDrawing();
 }
 
@@ -795,6 +804,84 @@ void VoxelSystem::falseColorizeInView(ViewFrustum* viewFrustum) {
     _nodeCount = 0;
     _tree->recurseTreeWithOperation(falseColorizeInViewOperation,(void*)viewFrustum);
     qDebug("setting in view false color for %d nodes\n", _nodeCount);
+    _tree->setDirtyBit();
+    setupNewVoxelsForDrawing();
+}
+
+// combines the removeOutOfView args into a single class
+class groupColor {
+public:
+    unsigned char red, green, blue;
+    groupColor(unsigned char red, unsigned char green, unsigned char blue) :
+        red(red), green(green), blue(blue) { };
+
+    groupColor(const groupColor& color) :
+        red(color.red), green(color.green), blue(color.blue) { };
+
+    groupColor() :
+        red(0), green(0), blue(0) { };
+
+};
+
+class colorizeBySourceArgs {
+public:
+    std::map<uint16_t, groupColor> colors;
+};
+
+// Will false colorize voxels that are not in view
+bool VoxelSystem::falseColorizeBySourceOperation(VoxelNode* node, void* extraData) {
+    colorizeBySourceArgs* args = (colorizeBySourceArgs*)extraData;
+    _nodeCount++;
+    if (node->isColored()) {
+        // pick a color based on the source - we want each source to be obviously different
+        uint16_t nodeID = node->getSourceID();
+        
+        //printf("false colorizing from source %d, color: %d, %d, %d\n", nodeID, 
+        //        args->colors[nodeID].red, args->colors[nodeID].green,  args->colors[nodeID].blue);
+                
+        node->setFalseColor(args->colors[nodeID].red, args->colors[nodeID].green,  args->colors[nodeID].blue);
+    }
+    return true; // keep going!
+}
+
+void VoxelSystem::falseColorizeBySource() {
+    _nodeCount = 0;
+    colorizeBySourceArgs args;
+    const int NUMBER_OF_COLOR_GROUPS = 3;
+    const unsigned char MIN_COLOR = 128;
+    int voxelServerCount = 0;
+    groupColor groupColors[NUMBER_OF_COLOR_GROUPS] = { groupColor(255, 0, 0), 
+                                                       groupColor(0, 255, 0), 
+                                                       groupColor(0, 0, 255)};
+    
+    // create a bunch of colors we'll use during colorization
+    NodeList* nodeList = NodeList::getInstance();
+    for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+        if (node->getType() == NODE_TYPE_VOXEL_SERVER) {
+            uint16_t nodeID = node->getNodeID();
+            int groupColor = voxelServerCount % NUMBER_OF_COLOR_GROUPS;
+            args.colors[nodeID] = groupColors[groupColor];
+
+            //printf("assigning color for source %d, color: %d, %d, %d\n", nodeID,
+            //       args.colors[nodeID].red, args.colors[nodeID].green, args.colors[nodeID].blue);
+            
+            if (groupColors[groupColor].red > 0) {
+                groupColors[groupColor].red = ((groupColors[groupColor].red - MIN_COLOR)/2) + MIN_COLOR;
+            }
+            if (groupColors[groupColor].green > 0) {
+                groupColors[groupColor].green = ((groupColors[groupColor].green - MIN_COLOR)/2) + MIN_COLOR;
+            }
+            if (groupColors[groupColor].blue > 0) {
+                groupColors[groupColor].blue = ((groupColors[groupColor].blue - MIN_COLOR)/2) + MIN_COLOR;
+            }
+
+            voxelServerCount++;
+        }
+    }
+    
+    _tree->recurseTreeWithOperation(falseColorizeBySourceOperation, &args);
+    qDebug("setting false color by source for %d nodes\n", _nodeCount);
+    _tree->setDirtyBit();
     setupNewVoxelsForDrawing();
 }
 
@@ -848,6 +935,7 @@ void VoxelSystem::falseColorizeDistanceFromView(ViewFrustum* viewFrustum) {
     _nodeCount = 0;
     _tree->recurseTreeWithOperation(falseColorizeDistanceFromViewOperation,(void*)viewFrustum);
     qDebug("setting in distance false color for %d nodes\n", _nodeCount);
+    _tree->setDirtyBit();
     setupNewVoxelsForDrawing();
 }
 
@@ -1027,6 +1115,7 @@ void VoxelSystem::falseColorizeRandomEveryOther() {
     _tree->recurseTreeWithOperation(falseColorizeRandomEveryOtherOperation,&args);
     qDebug("randomized false color for every other node: total %ld, colorable %ld, colored %ld\n", 
         args.totalNodes, args.colorableNodes, args.coloredNodes);
+    _tree->setDirtyBit();
     setupNewVoxelsForDrawing();
 }
 
@@ -1331,6 +1420,7 @@ void VoxelSystem::falseColorizeOccluded() {
 
     //myCoverageMap.erase();
 
+    _tree->setDirtyBit();
     setupNewVoxelsForDrawing();
 }
 
@@ -1447,6 +1537,7 @@ void VoxelSystem::falseColorizeOccludedV2() {
     //myCoverageMapV2.erase();
 
 
+    _tree->setDirtyBit();
     setupNewVoxelsForDrawing();
 }
 

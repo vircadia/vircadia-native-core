@@ -1361,6 +1361,10 @@ void Application::doFalseColorizeOccludedV2() {
     _voxels.falseColorizeOccludedV2();
 }
 
+void Application::doFalseColorizeBySource() {
+    _voxels.falseColorizeBySource();
+}
+
 void Application::doTrueVoxelColors() {
     _voxels.trueColorize();
 }
@@ -1837,6 +1841,7 @@ void Application::initMenu() {
     renderDebugMenu->addAction("FALSE Color Voxel Out of View", this, SLOT(doFalseColorizeInView()));
     renderDebugMenu->addAction("FALSE Color Occluded Voxels", this, SLOT(doFalseColorizeOccluded()), Qt::CTRL | Qt::Key_O);
     renderDebugMenu->addAction("FALSE Color Occluded V2 Voxels", this, SLOT(doFalseColorizeOccludedV2()), Qt::CTRL | Qt::Key_P);
+    renderDebugMenu->addAction("FALSE Color By Source", this, SLOT(doFalseColorizeBySource()), Qt::CTRL | Qt::SHIFT | Qt::Key_S);
     renderDebugMenu->addAction("Show TRUE Colors", this, SLOT(doTrueVoxelColors()), Qt::CTRL | Qt::Key_T);
 
     (_shouldLowPassFilter = debugMenu->addAction("Test: LowPass filter"))->setCheckable(true);
@@ -3518,7 +3523,9 @@ void* Application::networkReceive(void* args) {
                                 if (messageData[0] == PACKET_TYPE_ENVIRONMENT_DATA) {
                                     app->_environment.parseData(&senderAddress, messageData, messageLength);
                                 } else {
+                                    app->_voxels.setDataSourceID(voxelServer->getNodeID());
                                     app->_voxels.parseData(messageData, messageLength);
+                                    app->_voxels.setDataSourceID(UNKNOWN_NODE_ID);
                                 }
                                 
                                 voxelServer->unlock();

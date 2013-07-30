@@ -88,6 +88,25 @@ public:
     {}
 };
 
+class ReadBitstreamToTreeParams {
+public:
+    bool                includeColor;
+    bool                includeExistsBits;
+    VoxelNode*          destinationNode;
+    uint16_t            sourceID;
+    
+    ReadBitstreamToTreeParams(
+        bool                includeColor        = WANT_COLOR, 
+        bool                includeExistsBits   = WANT_EXISTS_BITS,
+        VoxelNode*          destinationNode     = NULL,
+        uint16_t            sourceID            = UNKNOWN_NODE_ID) :
+            includeColor            (includeColor),
+            includeExistsBits       (includeExistsBits),
+            destinationNode         (destinationNode),
+            sourceID                (sourceID)
+    {}
+};
+
 class VoxelTree {
 public:
     // when a voxel is created in the tree (object new'd)
@@ -109,9 +128,7 @@ public:
     void eraseAllVoxels();
 
     void processRemoveVoxelBitstream(unsigned char* bitstream, int bufferSizeBytes);
-    void readBitstreamToTree(unsigned char* bitstream,  unsigned long int bufferSizeBytes, 
-                             bool includeColor = WANT_COLOR, bool includeExistsBits = WANT_EXISTS_BITS, 
-                             VoxelNode* destinationNode = NULL);
+    void readBitstreamToTree(unsigned char* bitstream,  unsigned long int bufferSizeBytes, ReadBitstreamToTreeParams& args);
     void readCodeColorBufferToTree(unsigned char* codeColorBuffer, bool destructive = false);
     void deleteVoxelCodeFromTree(unsigned char* codeBuffer, bool collapseEmptyTrees = DONT_COLLAPSE);
     void printTreeForDebugging(VoxelNode* startNode);
@@ -181,8 +198,7 @@ private:
 
     VoxelNode* nodeForOctalCode(VoxelNode* ancestorNode, unsigned char* needleCode, VoxelNode** parentOfFoundNode) const;
     VoxelNode* createMissingNode(VoxelNode* lastParentNode, unsigned char* deepestCodeToCreate);
-    int readNodeData(VoxelNode *destinationNode, unsigned char* nodeData, int bufferSizeBytes, 
-                     bool includeColor = WANT_COLOR, bool includeExistsBits = WANT_EXISTS_BITS);
+    int readNodeData(VoxelNode *destinationNode, unsigned char* nodeData, int bufferSizeBytes, ReadBitstreamToTreeParams& args);
     
     bool _isDirty;
     unsigned long int _nodesChangedFromBitstream;
