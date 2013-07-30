@@ -569,9 +569,9 @@ void FrameGrabber::grabFrame() {
             
             ydest[0] = (tl[redIndex] * Y_RED_WEIGHT + tl[1] * Y_GREEN_WEIGHT + tl[blueIndex] * Y_BLUE_WEIGHT) >> 8;
             ydest[1] = (tr[redIndex] * Y_RED_WEIGHT + tr[1] * Y_GREEN_WEIGHT + tr[blueIndex] * Y_BLUE_WEIGHT) >> 8;
-            ydest[ENCODED_FACE_WIDTH] = (bl[redIndex] * Y_RED_WEIGHT + bl[greenIndex] *
+            ydest[vpxImage.stride[0]] = (bl[redIndex] * Y_RED_WEIGHT + bl[greenIndex] *
                 Y_GREEN_WEIGHT + bl[blueIndex] * Y_BLUE_WEIGHT) >> 8;
-            ydest[ENCODED_FACE_WIDTH + 1] = (br[redIndex] * Y_RED_WEIGHT + br[greenIndex] *
+            ydest[vpxImage.stride[0] + 1] = (br[redIndex] * Y_RED_WEIGHT + br[greenIndex] *
                 Y_GREEN_WEIGHT + br[blueIndex] * Y_BLUE_WEIGHT) >> 8;
             ydest += 2;
             
@@ -616,26 +616,37 @@ void FrameGrabber::grabFrame() {
             glm::mix(mean, _smoothedMeanFaceDepth, DEPTH_OFFSET_SMOOTHING);
 
         // convert from 11 to 8 bits for preview/local display
-        const double EIGHT_BIT_MIDPOINT = 128.0;
+        const uchar EIGHT_BIT_MIDPOINT = 128;
         double depthOffset = EIGHT_BIT_MIDPOINT - _smoothedMeanFaceDepth;
         depth.convertTo(_grayDepthFrame, CV_8UC1, 1.0, depthOffset);
 
         // likewise for the encoded representation
-        uchar* yline = (uchar*)_encodedFace.data() + vpxImage.stride[0] * ENCODED_FACE_HEIGHT;
-        src = _faceDepth.ptr<ushort>();
-        const char EIGHT_BIT_MAXIMUM = 255;
-        for (int i = 0; i < ENCODED_FACE_HEIGHT; i++) {
+        uchar* yline = vpxImage.planes[0] + vpxImage.stride[0] * ENCODED_FACE_HEIGHT;
+        uchar* vline = vpxImage.planes[1] + vpxImage.stride[1] * (ENCODED_FACE_HEIGHT / 2);
+        const uchar EIGHT_BIT_MAXIMUM = 255;
+        for (int i = 0; i < ENCODED_FACE_HEIGHT; i += 2) {
             uchar* ydest = yline;
-            for (int j = 0; j < ENCODED_FACE_WIDTH; j++) {
-                ushort depth = *src++;
-                if (depth == ELEVEN_BIT_MINIMUM) {
-                    *ydest++ = EIGHT_BIT_MAXIMUM;
-                    
-                } else {
-                    *ydest++ = saturate_cast<uchar>(depth + depthOffset);
-                }
+            uchar* vdest = vline;
+            for (int j = 0; j < ENCODED_FACE_WIDTH; j += 2) {
+                ushort tl = *_faceDepth.ptr<ushort>(i, j);
+                ushort tr = *_faceDepth.ptr<ushort>(i, j + 1);
+                ushort bl = *_faceDepth.ptr<ushort>(i + 1, j);
+                ushort br = *_faceDepth.ptr<ushort>(i + 1, j + 1);
+            
+                uchar mask = EIGHT_BIT_MIDPOINT;
+                
+                ydest[0] = (tl == ELEVEN_BIT_MINIMUM) ? (mask = EIGHT_BIT_MAXIMUM) : saturate_cast<uchar>(tl + depthOffset);
+                ydest[1] = (tr == ELEVEN_BIT_MINIMUM) ? (mask = EIGHT_BIT_MAXIMUM) : saturate_cast<uchar>(tr + depthOffset);
+                ydest[vpxImage.stride[0]] = (bl == ELEVEN_BIT_MINIMUM) ?
+                    (mask = EIGHT_BIT_MAXIMUM) : saturate_cast<uchar>(bl + depthOffset);
+                ydest[vpxImage.stride[0] + 1] = (br == ELEVEN_BIT_MINIMUM) ?
+                    (mask = EIGHT_BIT_MAXIMUM) : saturate_cast<uchar>(br + depthOffset);
+                ydest += 2;
+            
+                *vdest++ = mask;
             }
-            yline += vpxImage.stride[0];
+            yline += vpxImage.stride[0] * 2;
+            vline += vpxImage.stride[1];
         }
     }
     

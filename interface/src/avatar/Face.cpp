@@ -147,10 +147,31 @@ int Face::processVideoMessage(unsigned char* packetData, size_t dataBytes) {
             if (image->d_h > imageHeight) {
                 // if the height is greater than the width, we have depth data
                 depth.create(imageHeight, image->d_w, CV_8UC1);
-                uchar* src = image->planes[0] + image->stride[0] * imageHeight;
-                for (int i = 0; i < imageHeight; i++) {
-                    memcpy(depth.ptr(i), src, image->d_w);
-                    src += image->stride[0];
+                uchar* yline = image->planes[0] + image->stride[0] * imageHeight;
+                uchar* vline = image->planes[1] + image->stride[1] * (imageHeight / 2);
+                const uchar EIGHT_BIT_MAXIMUM = 255;
+                const uchar MASK_THRESHOLD = 192;
+                for (int i = 0; i < imageHeight; i += 2) {
+                    uchar* ysrc = yline;
+                    uchar* vsrc = vline;
+                    for (int j = 0; j < image->d_w; j += 2) {
+                        
+                        if (*vsrc++ >= MASK_THRESHOLD) {
+                            *depth.ptr(i, j) = EIGHT_BIT_MAXIMUM;
+                            *depth.ptr(i, j + 1) = EIGHT_BIT_MAXIMUM;
+                            *depth.ptr(i + 1, j) = EIGHT_BIT_MAXIMUM;
+                            *depth.ptr(i + 1, j + 1) = EIGHT_BIT_MAXIMUM;
+                        
+                        } else {
+                            *depth.ptr(i, j) = ysrc[0];
+                            *depth.ptr(i, j + 1) = ysrc[1];
+                            *depth.ptr(i + 1, j) = ysrc[image->stride[0]];
+                            *depth.ptr(i + 1, j + 1) = ysrc[image->stride[0] + 1];
+                        }
+                        ysrc += 2;
+                    }
+                    yline += image->stride[0] * 2;
+                    vline += image->stride[1];
                 }
             }
             QMetaObject::invokeMethod(this, "setFrame", Q_ARG(cv::Mat, color),
