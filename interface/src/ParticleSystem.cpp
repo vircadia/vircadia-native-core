@@ -22,7 +22,6 @@ ParticleSystem::ParticleSystem() {
 
     _timer        = 0.0f;
     _numEmitters  = 0;
-    _numParticles = 0;
     _upDirection  = glm::vec3(0.0f, 1.0f, 0.0f); // default
             
     for (unsigned int emitterIndex = 0; emitterIndex < MAX_EMITTERS; emitterIndex++) {
@@ -94,9 +93,9 @@ void ParticleSystem::simulate(float deltaTime) {
 
     // update particles
     
-    for (unsigned int p = 0; p < _numParticles; p++) {
+    for (int p = 0; p < MAX_PARTICLES; p++) {
         if (_particle[p].alive) {        
-            if (_particle[p].age > _emitter[_particle[p].emitterIndex].particleLifespan) {
+            if (_particle[p].age > _emitter[_particle[p].emitterIndex].particleLifespan) {            
                 killParticle(p);
             } else {
                 updateParticle(p, deltaTime);
@@ -114,10 +113,7 @@ void ParticleSystem::createParticle(int e, float timeFraction) {
             _particle[p].alive            = true;
             _particle[p].age              = 0.0f;
             _particle[p].velocity         = _emitter[e].direction * _emitter[e].thrust;
-            
-//_particle[p].position = _emitter[e].position;
-_particle[p].position = _emitter[e].previousPosition + timeFraction * (_emitter[e].position - _emitter[e].previousPosition);
-            
+            _particle[p].position         = _emitter[e].previousPosition + timeFraction * (_emitter[e].position - _emitter[e].previousPosition);
             _particle[p].radius           = _emitter[e].particleAttributes[0].radius;
             _particle[p].color            = _emitter[e].particleAttributes[0].color;
             _particle[p].previousParticle = -1;
@@ -130,10 +126,6 @@ _particle[p].position = _emitter[e].previousPosition + timeFraction * (_emitter[
             
             _emitter[e].currentParticle = p;
             
-            _numParticles ++;            
-                        
-            assert(_numParticles <= MAX_PARTICLES);
-            
             break;
         }
     }
@@ -143,7 +135,6 @@ void ParticleSystem::killParticle(int p) {
 
     assert( p >= 0);
     assert( p < MAX_PARTICLES);
-    assert( _numParticles > 0);
 
     _particle[p].alive            = false;
     _particle[p].previousParticle = -1;
@@ -151,8 +142,6 @@ void ParticleSystem::killParticle(int p) {
     _particle[p].velocity         = glm::vec3(0.0f, 0.0f, 0.0f);
     _particle[p].age              = 0.0f;
     _particle[p].emitterIndex     = -1; 
-
-    _numParticles --;
  }
 
 
@@ -195,6 +184,9 @@ void ParticleSystem::setParticleAttributesToDefault(ParticleAttributes * a) {
 
 
 void ParticleSystem::setParticleAttributes(int emitterIndex, ParticleLifeStage lifeStage, ParticleAttributes attributes) {
+
+    assert(lifeStage >= 0 );
+    assert(lifeStage <  NUM_PARTICLE_LIFE_STAGES );
 
     ParticleAttributes * a = &_emitter[emitterIndex].particleAttributes[lifeStage];
     
@@ -258,7 +250,7 @@ void ParticleSystem::updateParticle(int p, float deltaTime) {
         
         // apply neighbor attraction
         int neighbor = p + 1;
-        if (neighbor == _numParticles ) {
+        if (neighbor == MAX_PARTICLES ) {
             neighbor = 0;
         }
         
@@ -355,11 +347,15 @@ void ParticleSystem::updateParticle(int p, float deltaTime) {
 void ParticleSystem::killAllParticles() {
 
     for (int e = 0; e < _numEmitters; e++) {
-        _emitter[e].currentParticle = -1;
-        _emitter[e].emitReserve = 0.0f;
+        _emitter[e].currentParticle             = -1;
+        _emitter[e].emitReserve                 = 0.0f;
+        _emitter[e].previousPosition            = _emitter[e].position;
+        _emitter[e].rate                        = 0.0f;
+        _emitter[e].currentParticle             = 0;
+        _emitter[e].numParticlesEmittedThisTime = 0;
     }
     
-    for (unsigned int p = 0; p < _numParticles; p++) {
+    for (int p = 0; p < MAX_PARTICLES; p++) {
         killParticle(p);
     }
 }
@@ -383,7 +379,7 @@ void ParticleSystem::render() {
     };  
     
         // render the particles
-    for (unsigned int p = 0; p < _numParticles; p++) {
+    for (int p = 0; p < MAX_PARTICLES; p++) {
         if (_particle[p].alive) {
             if (_emitter[_particle[p].emitterIndex].particleLifespan > 0.0) {
                 renderParticle(p);

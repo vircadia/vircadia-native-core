@@ -118,7 +118,6 @@ private:
     glm::vec3 _upDirection;
     Emitter   _emitter[MAX_EMITTERS];
     Particle  _particle[MAX_PARTICLES];
-    int       _numParticles;
     int       _numEmitters;
     float     _timer;
     
