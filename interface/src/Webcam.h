@@ -23,6 +23,8 @@
     #include <XnCppWrapper.h>
 #endif
 
+#include <vpx_codec.h>
+
 #include "InterfaceConfig.h"
 
 class QImage;
@@ -42,7 +44,14 @@ public:
     Webcam();
     ~Webcam();
 
-    const bool isActive() const { return _active; }
+    bool isActive() const { return _active; }
+    
+    GLuint getColorTextureID() const { return _colorTextureID; }
+    GLuint getDepthTextureID() const { return _depthTextureID; }
+    const cv::Size2f& getTextureSize() const { return _textureSize; }
+    
+    const cv::RotatedRect& getFaceRect() const { return _faceRect; }
+    
     const glm::vec3& getEstimatedPosition() const { return _estimatedPosition; }
     const glm::vec3& getEstimatedRotation() const { return _estimatedRotation; }
     const JointVector& getEstimatedJoints() const { return _estimatedJoints; }
@@ -53,9 +62,9 @@ public:
 public slots:
     
     void setEnabled(bool enabled);
-    void setFrame(const cv::Mat& video, int format, const cv::Mat& depth,
+    void setFrame(const cv::Mat& color, int format, const cv::Mat& depth,
         const cv::RotatedRect& faceRect, const JointVector& joints);
-    
+
 private:
     
     QThread _grabberThread;
@@ -63,12 +72,9 @@ private:
     
     bool _enabled;
     bool _active;
-    int _frameWidth;
-    int _frameHeight;
-    int _depthWidth;
-    int _depthHeight;
-    GLuint _frameTextureID;
+    GLuint _colorTextureID;
     GLuint _depthTextureID;
+    cv::Size2f _textureSize;
     cv::RotatedRect _faceRect;
     cv::RotatedRect _initialFaceRect;
     JointVector _joints;
@@ -111,7 +117,15 @@ private:
     cv::Mat _backProject;
     cv::Rect _searchWindow;
     cv::Mat _grayDepthFrame;
-
+    double _depthOffset;
+    
+    vpx_codec_ctx_t _codec;
+    int _frameCount;
+    cv::Mat _faceColor;
+    cv::Mat _faceDepth;
+    QByteArray _encodedFace;
+    cv::RotatedRect _smoothedFaceRect;
+    
 #ifdef HAVE_OPENNI
     xn::Context _xnContext;
     xn::DepthGenerator _depthGenerator;

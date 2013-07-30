@@ -9,33 +9,36 @@
 #ifndef __hifi__VoxelTree__
 #define __hifi__VoxelTree__
 
-#include "SimpleMovingAverage.h"
+#include <PointerStack.h>
+#include <SimpleMovingAverage.h>
+
+#include "CoverageMap.h"
 #include "ViewFrustum.h"
 #include "VoxelNode.h"
 #include "VoxelNodeBag.h"
-#include "CoverageMap.h"
-#include "PointerStack.h"
+#include "VoxelSceneStats.h"
 
 // Callback function, for recuseTreeWithOperation
 typedef bool (*RecurseVoxelTreeOperation)(VoxelNode* node, void* extraData);
 typedef enum {GRADIENT, RANDOM, NATURAL} creationMode;
 
-#define NO_EXISTS_BITS         false
-#define WANT_EXISTS_BITS       true
-#define NO_COLOR               false
-#define WANT_COLOR             true
+const bool NO_EXISTS_BITS         = false;
+const bool WANT_EXISTS_BITS       = true;
+const bool NO_COLOR               = false;
+const bool WANT_COLOR             = true;
+const bool COLLAPSE_EMPTY_TREE    = true;
+const bool DONT_COLLAPSE          = false;
+const bool NO_OCCLUSION_CULLING   = false;
+const bool WANT_OCCLUSION_CULLING = true;
+
+const int DONT_CHOP              = 0;
+const int NO_BOUNDARY_ADJUST     = 0;
+const int LOW_RES_MOVING_ADJUST  = 1;
+const uint64_t IGNORE_LAST_SENT  = 0;
+
+#define IGNORE_SCENE_STATS     NULL
 #define IGNORE_VIEW_FRUSTUM    NULL
-#define JUST_STAGE_DELETION    true
-#define ACTUALLY_DELETE        false
-#define COLLAPSE_EMPTY_TREE    true
-#define DONT_COLLAPSE          false
-#define NO_OCCLUSION_CULLING   false
-#define WANT_OCCLUSION_CULLING true
 #define IGNORE_COVERAGE_MAP    NULL
-#define DONT_CHOP              0
-#define NO_BOUNDARY_ADJUST     0
-#define LOW_RES_MOVING_ADJUST  1
-#define IGNORE_LAST_SENT       0
 
 class EncodeBitstreamParams {
 public:
@@ -48,10 +51,10 @@ public:
     bool                deltaViewFrustum;
     const ViewFrustum*  lastViewFrustum;
     bool                wantOcclusionCulling;
-    long                childWasInViewDiscarded;
     int                 boundaryLevelAdjust;
     uint64_t            lastViewFrustumSent;
     bool                forceSendScene;
+    VoxelSceneStats*    stats;
     CoverageMap*        map;
     
     EncodeBitstreamParams(
@@ -66,7 +69,8 @@ public:
         CoverageMap*        map                 = IGNORE_COVERAGE_MAP,
         int                 boundaryLevelAdjust = NO_BOUNDARY_ADJUST,
         uint64_t            lastViewFrustumSent = IGNORE_LAST_SENT,
-        bool                forceSendScene      = true) :
+        bool                forceSendScene      = true,
+        VoxelSceneStats*    stats               = IGNORE_SCENE_STATS) :
             maxEncodeLevel          (maxEncodeLevel),
             maxLevelReached         (0),
             viewFrustum             (viewFrustum),
@@ -76,10 +80,10 @@ public:
             deltaViewFrustum        (deltaViewFrustum),
             lastViewFrustum         (lastViewFrustum),
             wantOcclusionCulling    (wantOcclusionCulling),
-            childWasInViewDiscarded (0),
             boundaryLevelAdjust     (boundaryLevelAdjust),
             lastViewFrustumSent     (lastViewFrustumSent),
             forceSendScene          (forceSendScene),
+            stats                   (stats),
             map                     (map)
     {}
 };
@@ -109,12 +113,11 @@ public:
                              bool includeColor = WANT_COLOR, bool includeExistsBits = WANT_EXISTS_BITS, 
                              VoxelNode* destinationNode = NULL);
     void readCodeColorBufferToTree(unsigned char* codeColorBuffer, bool destructive = false);
-    void deleteVoxelCodeFromTree(unsigned char* codeBuffer, bool stage = ACTUALLY_DELETE, 
-                                 bool collapseEmptyTrees = DONT_COLLAPSE);
+    void deleteVoxelCodeFromTree(unsigned char* codeBuffer, bool collapseEmptyTrees = DONT_COLLAPSE);
     void printTreeForDebugging(VoxelNode* startNode);
     void reaverageVoxelColors(VoxelNode* startNode);
 
-    void deleteVoxelAt(float x, float y, float z, float s, bool stage = false);
+    void deleteVoxelAt(float x, float y, float z, float s);
     VoxelNode* getVoxelAt(float x, float y, float z, float s) const;
     void createVoxel(float x, float y, float z, float s, 
                      unsigned char red, unsigned char green, unsigned char blue, bool destructive = false);

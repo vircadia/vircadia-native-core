@@ -14,6 +14,8 @@
 #include <iterator>
 #include <unistd.h>
 
+#include <QSettings>
+
 #include "Node.h"
 #include "UDPSocket.h"
 
@@ -98,6 +100,9 @@ public:
     
     void startSilentNodeRemovalThread();
     void stopSilentNodeRemovalThread();
+    
+    void loadData(QSettings* settings);
+    void saveData(QSettings* settings);
     
     friend class NodeListIterator;
 private:
