@@ -418,7 +418,8 @@ void Avatar::updateThrust(float deltaTime, Transmitter * transmitter) {
         if (glm::length(_position - _leadingAvatar->getPosition()) > _scale * _stringLength) {
             _thrust += _scale * THRUST_MAG_FWD * deltaTime * front;
         } else {
-            toTarget = _leadingAvatar->getHead().getLookAtPosition();
+            toTarget = _leadingAvatar->getHead().getLookAtPosition() - _position;
+            getHead().setLookAtPosition(_leadingAvatar->getHead().getLookAtPosition());
         }
 
         float yawAngle = angleBetween(front, glm::vec3(toTarget.x, 0.f, toTarget.z));
