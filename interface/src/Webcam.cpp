@@ -152,6 +152,8 @@ Webcam::~Webcam() {
     delete _grabber;
 }
 
+const float METERS_PER_MM = 1.0f / 1000.0f;
+
 void Webcam::setFrame(const Mat& color, int format, const Mat& depth, float meanFaceDepth,
         const RotatedRect& faceRect, const JointVector& joints) {
     IplImage colorImage = color;
@@ -250,7 +252,7 @@ void Webcam::setFrame(const Mat& color, int format, const Mat& depth, float mean
                 z = INITIAL_DISTANCE_TO_CAMERA * proportion - INITIAL_DISTANCE_TO_CAMERA;           
                    
             } else {
-                z = (meanFaceDepth - _initialFaceDepth) / 1000.0f;    
+                z = (meanFaceDepth - _initialFaceDepth) * METERS_PER_MM;    
                 proportion = meanFaceDepth / _initialFaceDepth;
             }
             const float POSITION_SCALE = 0.5f;
@@ -437,7 +439,6 @@ void FrameGrabber::grabFrame() {
                         _userID, (XnSkeletonJoint)parentJoint, parentOrientation);
                     rotation = glm::inverse(xnToGLM(parentOrientation.orientation)) * rotation;
                 }
-                const float METERS_PER_MM = 1.0f / 1000.0f;
                 joints[avatarJoint] = Joint(xnToGLM(transform.position.position, true) * METERS_PER_MM,
                     rotation, xnToGLM(projected));
             }
