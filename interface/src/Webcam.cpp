@@ -269,7 +269,7 @@ void Webcam::setFrame(const Mat& color, int format, const Mat& depth, float mean
 }
 
 FrameGrabber::FrameGrabber() : _initialized(false), _capture(0), _searchWindow(0, 0, 0, 0),
-    _smoothedMeanFaceDepth(UNINITIALIZED_FACE_DEPTH), _codec(), _frameCount(0) {
+    _smoothedMeanFaceDepth(UNINITIALIZED_FACE_DEPTH), _colorCodec(), _depthCodec(), _frameCount(0) {
 }
 
 FrameGrabber::~FrameGrabber() {
@@ -377,9 +377,13 @@ void FrameGrabber::shutdown() {
         cvReleaseCapture(&_capture);
         _capture = 0;
     }
-    if (_codec.name != 0) {
-        vpx_codec_destroy(&_codec);
-        _codec.name = 0;
+    if (_colorCodec.name != 0) {
+        vpx_codec_destroy(&_colorCodec);
+        _colorCodec.name = 0;
+    }
+    if (_depthCodec.name != 0) {
+        vpx_codec_destroy(&_depthCodec);
+        _depthCodec.name = 0;
     }
     _initialized = false;
     
@@ -492,17 +496,19 @@ void FrameGrabber::grabFrame() {
 
     const int ENCODED_FACE_WIDTH = 128;
     const int ENCODED_FACE_HEIGHT = 128;
-    int combinedFaceHeight = ENCODED_FACE_HEIGHT * (depth.empty() ? 1 : 2);
-    if (_codec.name == 0) {
-        // initialize encoder context
+    if (_colorCodec.name == 0) {
+        // initialize encoder context(s)
         vpx_codec_enc_cfg_t codecConfig;
         vpx_codec_enc_config_default(vpx_codec_vp8_cx(), &codecConfig, 0);
-        const int QUALITY_MULTIPLIER = 2;
-        codecConfig.rc_target_bitrate = QUALITY_MULTIPLIER * ENCODED_FACE_WIDTH * combinedFaceHeight *
+        codecConfig.rc_target_bitrate = ENCODED_FACE_WIDTH * ENCODED_FACE_HEIGHT *
             codecConfig.rc_target_bitrate / codecConfig.g_w / codecConfig.g_h;
         codecConfig.g_w = ENCODED_FACE_WIDTH;
-        codecConfig.g_h = combinedFaceHeight;
-        vpx_codec_enc_init(&_codec, vpx_codec_vp8_cx(), &codecConfig, 0); 
+        codecConfig.g_h = ENCODED_FACE_HEIGHT;
+        vpx_codec_enc_init(&_colorCodec, vpx_codec_vp8_cx(), &codecConfig, 0);
+        
+        if (!depth.empty()) {
+            vpx_codec_enc_init(&_depthCodec, vpx_codec_vp8_cx(), &codecConfig, 0);
+        }
     }
     
     // correct for 180 degree rotations
@@ -539,9 +545,9 @@ void FrameGrabber::grabFrame() {
     const int ENCODED_BITS_PER_VU = 2;
     const int ENCODED_BITS_PER_PIXEL = ENCODED_BITS_PER_Y + 2 * ENCODED_BITS_PER_VU;
     const int BITS_PER_BYTE = 8;
-    _encodedFace.fill(128, ENCODED_FACE_WIDTH * combinedFaceHeight * ENCODED_BITS_PER_PIXEL / BITS_PER_BYTE);
+    _encodedFace.resize(ENCODED_FACE_WIDTH * ENCODED_FACE_HEIGHT * ENCODED_BITS_PER_PIXEL / BITS_PER_BYTE);
     vpx_image_t vpxImage;
-    vpx_img_wrap(&vpxImage, VPX_IMG_FMT_YV12, ENCODED_FACE_WIDTH, combinedFaceHeight, 1, (unsigned char*)_encodedFace.data());
+    vpx_img_wrap(&vpxImage, VPX_IMG_FMT_YV12, ENCODED_FACE_WIDTH, ENCODED_FACE_HEIGHT, 1, (unsigned char*)_encodedFace.data());
     uchar* yline = vpxImage.planes[0];
     uchar* vline = vpxImage.planes[1];
     uchar* uline = vpxImage.planes[2];
@@ -588,6 +594,24 @@ void FrameGrabber::grabFrame() {
         uline += vpxImage.stride[2];
     }
     
+    // encode the frame
+    vpx_codec_encode(&_colorCodec, &vpxImage, ++_frameCount, 1, 0, VPX_DL_REALTIME);
+
+    // start the payload off with the aspect ratio
+    QByteArray payload(sizeof(float), 0);
+    *(float*)payload.data() = _smoothedFaceRect.size.width / _smoothedFaceRect.size.height;
+
+    // extract the encoded frame
+    vpx_codec_iter_t iterator = 0;
+    const vpx_codec_cx_pkt_t* packet;
+    while ((packet = vpx_codec_get_cx_data(&_colorCodec, &iterator)) != 0) {
+        if (packet->kind == VPX_CODEC_CX_FRAME_PKT) {
+            // prepend the length, which will indicate whether there's a depth frame too
+            payload.append((const char*)&packet->data.frame.sz, sizeof(packet->data.frame.sz));
+            payload.append((const char*)packet->data.frame.buf, packet->data.frame.sz);
+        }
+    }
+    
     if (!depth.empty()) {
         // warp the face depth without interpolation (because it will contain invalid zero values)
         _faceDepth.create(ENCODED_FACE_WIDTH, ENCODED_FACE_HEIGHT, CV_16UC1);
@@ -621,12 +645,14 @@ void FrameGrabber::grabFrame() {
         depth.convertTo(_grayDepthFrame, CV_8UC1, 1.0, depthOffset);
 
         // likewise for the encoded representation
-        uchar* yline = vpxImage.planes[0] + vpxImage.stride[0] * ENCODED_FACE_HEIGHT;
-        uchar* vline = vpxImage.planes[1] + vpxImage.stride[1] * (ENCODED_FACE_HEIGHT / 2);
+        uchar* yline = vpxImage.planes[0];
+        uchar* vline = vpxImage.planes[1];
+        uchar* uline = vpxImage.planes[2];
         const uchar EIGHT_BIT_MAXIMUM = 255;
         for (int i = 0; i < ENCODED_FACE_HEIGHT; i += 2) {
             uchar* ydest = yline;
             uchar* vdest = vline;
+            uchar* udest = uline;
             for (int j = 0; j < ENCODED_FACE_WIDTH; j += 2) {
                 ushort tl = *_faceDepth.ptr<ushort>(i, j);
                 ushort tr = *_faceDepth.ptr<ushort>(i, j + 1);
@@ -644,28 +670,28 @@ void FrameGrabber::grabFrame() {
                 ydest += 2;
             
                 *vdest++ = mask;
+                *udest++ = EIGHT_BIT_MIDPOINT;
             }
             yline += vpxImage.stride[0] * 2;
             vline += vpxImage.stride[1];
+            uline += vpxImage.stride[2];
+        }
+        
+        // encode the frame
+        vpx_codec_encode(&_depthCodec, &vpxImage, _frameCount, 1, 0, VPX_DL_REALTIME);
+
+        // extract the encoded frame
+        vpx_codec_iter_t iterator = 0;
+        const vpx_codec_cx_pkt_t* packet;
+        while ((packet = vpx_codec_get_cx_data(&_depthCodec, &iterator)) != 0) {
+            if (packet->kind == VPX_CODEC_CX_FRAME_PKT) {
+                payload.append((const char*)packet->data.frame.buf, packet->data.frame.sz);
+            }
         }
     }
     
-    // encode the frame
-    vpx_codec_encode(&_codec, &vpxImage, ++_frameCount, 1, 0, VPX_DL_REALTIME);
-
-    // extract the encoded frame
-    vpx_codec_iter_t iterator = 0;
-    const vpx_codec_cx_pkt_t* packet;
-    while ((packet = vpx_codec_get_cx_data(&_codec, &iterator)) != 0) {
-        if (packet->kind == VPX_CODEC_CX_FRAME_PKT) {
-            // prepend the aspect ratio
-            QByteArray payload(sizeof(float), 0);
-            *(float*)payload.data() = _smoothedFaceRect.size.width / _smoothedFaceRect.size.height;
-            payload.append((const char*)packet->data.frame.buf, packet->data.frame.sz);
-            QMetaObject::invokeMethod(Application::getInstance(), "sendAvatarFaceVideoMessage", Q_ARG(int, _frameCount),
-                Q_ARG(QByteArray, payload));
-        }
-    }
+    QMetaObject::invokeMethod(Application::getInstance(), "sendAvatarFaceVideoMessage",
+        Q_ARG(int, _frameCount), Q_ARG(QByteArray, payload));
 
     QMetaObject::invokeMethod(Application::getInstance()->getWebcam(), "setFrame",
         Q_ARG(cv::Mat, color), Q_ARG(int, format), Q_ARG(cv::Mat, _grayDepthFrame), Q_ARG(float, _smoothedMeanFaceDepth),

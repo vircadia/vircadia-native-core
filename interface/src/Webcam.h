@@ -120,7 +120,8 @@ private:
     cv::Mat _grayDepthFrame;
     float _smoothedMeanFaceDepth;
     
-    vpx_codec_ctx_t _codec;
+    vpx_codec_ctx_t _colorCodec;
+    vpx_codec_ctx_t _depthCodec;
     int _frameCount;
     cv::Mat _faceColor;
     cv::Mat _faceDepth;
