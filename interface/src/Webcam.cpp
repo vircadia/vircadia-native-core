@@ -587,10 +587,12 @@ void FrameGrabber::grabFrame() {
         qint64 depthTotal = 0;
         qint64 depthSamples = 0;
         ushort* src = _faceDepth.ptr<ushort>();
+        const ushort ELEVEN_BIT_MINIMUM = 0;
+        const ushort ELEVEN_BIT_MAXIMUM = 2047;
         for (int i = 0; i < ENCODED_FACE_HEIGHT; i++) {
             for (int j = 0; j < ENCODED_FACE_WIDTH; j++) {
                 ushort depth = *src++;
-                if (depth != 0) {
+                if (depth != ELEVEN_BIT_MINIMUM && depth != ELEVEN_BIT_MAXIMUM) {
                     depthTotal += depth;
                     depthSamples++;
                 }
@@ -610,14 +612,13 @@ void FrameGrabber::grabFrame() {
         // likewise for the encoded representation
         uchar* yline = (uchar*)_encodedFace.data() + vpxImage.stride[0] * ENCODED_FACE_HEIGHT;
         src = _faceDepth.ptr<ushort>();
-        const char UNKNOWN_DEPTH = 0;
-        const char MAXIMUM_DEPTH = 255;
+        const char EIGHT_BIT_MAXIMUM = 255;
         for (int i = 0; i < ENCODED_FACE_HEIGHT; i++) {
             uchar* ydest = yline;
             for (int j = 0; j < ENCODED_FACE_WIDTH; j++) {
                 ushort depth = *src++;
-                if (depth == UNKNOWN_DEPTH) {
-                    *ydest++ = MAXIMUM_DEPTH;
+                if (depth == ELEVEN_BIT_MINIMUM) {
+                    *ydest++ = EIGHT_BIT_MAXIMUM;
                     
                 } else {
                     *ydest++ = saturate_cast<uchar>(depth + _depthOffset);
