@@ -57,8 +57,11 @@ void Webcam::setEnabled(bool enabled) {
     }
 }
 
+const float UNINITIALIZED_FACE_DEPTH = 0.0f;
+
 void Webcam::reset() {
     _initialFaceRect = RotatedRect();
+    _initialFaceDepth = UNINITIALIZED_FACE_DEPTH;
     
     if (_enabled) {
         // send a message to the grabber
@@ -149,7 +152,8 @@ Webcam::~Webcam() {
     delete _grabber;
 }
 
-void Webcam::setFrame(const Mat& color, int format, const Mat& depth, const RotatedRect& faceRect, const JointVector& joints) {
+void Webcam::setFrame(const Mat& color, int format, const Mat& depth, float meanFaceDepth,
+        const RotatedRect& faceRect, const JointVector& joints) {
     IplImage colorImage = color;
     glPixelStorei(GL_UNPACK_ROW_LENGTH, colorImage.widthStep / 3);
     if (_colorTextureID == 0) {
@@ -232,22 +236,28 @@ void Webcam::setFrame(const Mat& color, int format, const Mat& depth, const Rota
         const float ROTATION_SMOOTHING = 0.95f;
         _estimatedRotation.z = glm::mix(_faceRect.angle, _estimatedRotation.z, ROTATION_SMOOTHING);
         
-        // determine position based on translation and scaling of the face rect
+        // determine position based on translation and scaling of the face rect/mean face depth
         if (_initialFaceRect.size.area() == 0) {
             _initialFaceRect = _faceRect;
             _estimatedPosition = glm::vec3();
+            _initialFaceDepth = meanFaceDepth;
         
         } else {
-            float proportion = sqrtf(_initialFaceRect.size.area() / (float)_faceRect.size.area());
-            const float DISTANCE_TO_CAMERA = 0.333f;
+            float proportion, z;
+            if (meanFaceDepth == UNINITIALIZED_FACE_DEPTH) {
+                proportion = sqrtf(_initialFaceRect.size.area() / (float)_faceRect.size.area());
+                const float INITIAL_DISTANCE_TO_CAMERA = 0.333f;
+                z = INITIAL_DISTANCE_TO_CAMERA * proportion - INITIAL_DISTANCE_TO_CAMERA;           
+                   
+            } else {
+                z = (meanFaceDepth - _initialFaceDepth) / 1000.0f;    
+                proportion = meanFaceDepth / _initialFaceDepth;
+            }
             const float POSITION_SCALE = 0.5f;
-            float z = DISTANCE_TO_CAMERA * proportion - DISTANCE_TO_CAMERA;
-            glm::vec3 position = glm::vec3(
+            _estimatedPosition = glm::vec3(
                 (_faceRect.center.x - _initialFaceRect.center.x) * proportion * POSITION_SCALE / _textureSize.width,
                 (_faceRect.center.y - _initialFaceRect.center.y) * proportion * POSITION_SCALE / _textureSize.width,
                 z);
-            const float POSITION_SMOOTHING = 0.95f;
-            _estimatedPosition = glm::mix(position, _estimatedPosition, POSITION_SMOOTHING);
         }
     }
     
@@ -259,7 +269,7 @@ void Webcam::setFrame(const Mat& color, int format, const Mat& depth, const Rota
 }
 
 FrameGrabber::FrameGrabber() : _initialized(false), _capture(0), _searchWindow(0, 0, 0, 0),
-    _depthOffset(0.0), _codec(), _frameCount(0) {
+    _smoothedMeanFaceDepth(UNINITIALIZED_FACE_DEPTH), _codec(), _frameCount(0) {
 }
 
 FrameGrabber::~FrameGrabber() {
@@ -598,16 +608,17 @@ void FrameGrabber::grabFrame() {
                 }
             }
         }
-        double mean = (depthSamples == 0) ? 0.0 : depthTotal / (double)depthSamples;
+        float mean = (depthSamples == 0) ? UNINITIALIZED_FACE_DEPTH : depthTotal / (float)depthSamples;
         
-        // update the depth offset based on the mean
-        const double DEPTH_OFFSET_SMOOTHING = 0.95;
-        const double EIGHT_BIT_MIDPOINT = 128.0;
-        double meanOffset = EIGHT_BIT_MIDPOINT - mean;
-        _depthOffset = (_depthOffset == 0.0) ? meanOffset : glm::mix(meanOffset, _depthOffset, DEPTH_OFFSET_SMOOTHING);
+        // smooth the mean over time
+        const float DEPTH_OFFSET_SMOOTHING = 0.95f;
+        _smoothedMeanFaceDepth = (_smoothedMeanFaceDepth == UNINITIALIZED_FACE_DEPTH) ? mean :
+            glm::mix(mean, _smoothedMeanFaceDepth, DEPTH_OFFSET_SMOOTHING);
 
         // convert from 11 to 8 bits for preview/local display
-        depth.convertTo(_grayDepthFrame, CV_8UC1, 1.0, _depthOffset);
+        const double EIGHT_BIT_MIDPOINT = 128.0;
+        double depthOffset = EIGHT_BIT_MIDPOINT - _smoothedMeanFaceDepth;
+        depth.convertTo(_grayDepthFrame, CV_8UC1, 1.0, depthOffset);
 
         // likewise for the encoded representation
         uchar* yline = (uchar*)_encodedFace.data() + vpxImage.stride[0] * ENCODED_FACE_HEIGHT;
@@ -621,7 +632,7 @@ void FrameGrabber::grabFrame() {
                     *ydest++ = EIGHT_BIT_MAXIMUM;
                     
                 } else {
-                    *ydest++ = saturate_cast<uchar>(depth + _depthOffset);
+                    *ydest++ = saturate_cast<uchar>(depth + depthOffset);
                 }
             }
             yline += vpxImage.stride[0];
@@ -646,7 +657,7 @@ void FrameGrabber::grabFrame() {
     }
 
     QMetaObject::invokeMethod(Application::getInstance()->getWebcam(), "setFrame",
-        Q_ARG(cv::Mat, color), Q_ARG(int, format), Q_ARG(cv::Mat, _grayDepthFrame),
+        Q_ARG(cv::Mat, color), Q_ARG(int, format), Q_ARG(cv::Mat, _grayDepthFrame), Q_ARG(float, _smoothedMeanFaceDepth),
         Q_ARG(cv::RotatedRect, _smoothedFaceRect), Q_ARG(JointVector, joints));
 }
 
