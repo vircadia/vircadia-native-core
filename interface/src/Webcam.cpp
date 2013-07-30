@@ -508,6 +508,8 @@ void FrameGrabber::grabFrame() {
         vpx_codec_enc_init(&_colorCodec, vpx_codec_vp8_cx(), &codecConfig, 0);
         
         if (!depth.empty()) {
+            int DEPTH_BITRATE_MULTIPLIER = 2;
+            codecConfig.rc_target_bitrate *= 2;
             vpx_codec_enc_init(&_depthCodec, vpx_codec_vp8_cx(), &codecConfig, 0);
         }
     }
@@ -660,14 +662,14 @@ void FrameGrabber::grabFrame() {
                 ushort bl = *_faceDepth.ptr<ushort>(i + 1, j);
                 ushort br = *_faceDepth.ptr<ushort>(i + 1, j + 1);
             
-                uchar mask = EIGHT_BIT_MIDPOINT;
+                uchar mask = EIGHT_BIT_MAXIMUM;
                 
-                ydest[0] = (tl == ELEVEN_BIT_MINIMUM) ? (mask = EIGHT_BIT_MAXIMUM) : saturate_cast<uchar>(tl + depthOffset);
-                ydest[1] = (tr == ELEVEN_BIT_MINIMUM) ? (mask = EIGHT_BIT_MAXIMUM) : saturate_cast<uchar>(tr + depthOffset);
+                ydest[0] = (tl == ELEVEN_BIT_MINIMUM) ? (mask = EIGHT_BIT_MIDPOINT) : saturate_cast<uchar>(tl + depthOffset);
+                ydest[1] = (tr == ELEVEN_BIT_MINIMUM) ? (mask = EIGHT_BIT_MIDPOINT) : saturate_cast<uchar>(tr + depthOffset);
                 ydest[vpxImage.stride[0]] = (bl == ELEVEN_BIT_MINIMUM) ?
-                    (mask = EIGHT_BIT_MAXIMUM) : saturate_cast<uchar>(bl + depthOffset);
+                    (mask = EIGHT_BIT_MIDPOINT) : saturate_cast<uchar>(bl + depthOffset);
                 ydest[vpxImage.stride[0] + 1] = (br == ELEVEN_BIT_MINIMUM) ?
-                    (mask = EIGHT_BIT_MAXIMUM) : saturate_cast<uchar>(br + depthOffset);
+                    (mask = EIGHT_BIT_MIDPOINT) : saturate_cast<uchar>(br + depthOffset);
                 ydest += 2;
             
                 *vdest++ = mask;

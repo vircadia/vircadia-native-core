@@ -171,8 +171,7 @@ int Face::processVideoMessage(unsigned char* packetData, size_t dataBytes) {
                         uchar* ysrc = yline;
                         uchar* vsrc = vline;
                         for (int j = 0; j < image->d_w; j += 2) {
-                            
-                            if (*vsrc++ >= MASK_THRESHOLD) {
+                            if (*vsrc++ < MASK_THRESHOLD) {
                                 *depth.ptr(i, j) = EIGHT_BIT_MAXIMUM;
                                 *depth.ptr(i, j + 1) = EIGHT_BIT_MAXIMUM;
                                 *depth.ptr(i + 1, j) = EIGHT_BIT_MAXIMUM;
