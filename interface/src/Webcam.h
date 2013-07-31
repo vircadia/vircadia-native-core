@@ -19,8 +19,8 @@
 
 #include <opencv2/opencv.hpp>
 
-#ifdef HAVE_OPENNI
-    #include <XnCppWrapper.h>
+#if defined(HAVE_OPENNI) && !defined(Q_MOC_RUN)
+#include <XnCppWrapper.h>
 #endif
 
 #include <vpx_codec.h>
@@ -62,7 +62,7 @@ public:
 public slots:
     
     void setEnabled(bool enabled);
-    void setFrame(const cv::Mat& color, int format, const cv::Mat& depth,
+    void setFrame(const cv::Mat& color, int format, const cv::Mat& depth, float meanFaceDepth,
         const cv::RotatedRect& faceRect, const JointVector& joints);
 
 private:
@@ -77,6 +77,7 @@ private:
     cv::Size2f _textureSize;
     cv::RotatedRect _faceRect;
     cv::RotatedRect _initialFaceRect;
+    float _initialFaceDepth;
     JointVector _joints;
     
     uint64_t _startTimestamp;
@@ -117,9 +118,10 @@ private:
     cv::Mat _backProject;
     cv::Rect _searchWindow;
     cv::Mat _grayDepthFrame;
-    double _depthOffset;
+    float _smoothedMeanFaceDepth;
     
-    vpx_codec_ctx_t _codec;
+    vpx_codec_ctx_t _colorCodec;
+    vpx_codec_ctx_t _depthCodec;
     int _frameCount;
     cv::Mat _faceColor;
     cv::Mat _faceDepth;
