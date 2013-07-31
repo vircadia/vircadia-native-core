@@ -14,7 +14,7 @@
 #include "Util.h"
 #include "renderer/ProgramObject.h"
 
-const bool SHOW_LEAP_HAND = false;
+const bool SHOW_LEAP_HAND = true;
 
 using namespace std;
 
@@ -246,17 +246,42 @@ void Hand::setLeapHands(const std::vector<glm::vec3>& handPositions,
 // call this right after the geometry of the leap hands are set
 void Hand::updateRaveGloveEmitters() {
 
+    bool debug = false;
+
     if (_raveGloveInitialized) {
-    
-        int fingerIndex = 0;
+        
+        if(debug) printf( "\n" );
+        if(debug) printf( "------------------------------------\n" );
+        if(debug) printf( "updating rave glove emitters:\n" );
+        if(debug) printf( "------------------------------------\n" );
+        
+        int emitterIndex = 0;
+
         for (size_t i = 0; i < getNumPalms(); ++i) {
             PalmData& palm = getPalms()[i];
+            
+            if(debug) printf( "\n" );
+            if(debug) printf( "palm %d ", (int)i );
+            
             if (palm.isActive()) {
+            
+                if(debug) printf( "is active\n" );
+
                 for (size_t f = 0; f < palm.getNumFingers(); ++f) {
                     FingerData& finger = palm.getFingers()[f];
+
+                    if(debug) printf( "emitterIndex %d:    ", emitterIndex );
+
                     if (finger.isActive()) {
-                        if (_raveGloveEmitter[0] != NULL_EMITTER) {
-                                                        
+                    
+                        if ((emitterIndex >=0)
+                        &&  (emitterIndex < NUM_FINGERS)) {
+                        
+                            assert(emitterIndex >=0 );
+                            assert(emitterIndex < NUM_FINGERS );
+
+                            if(debug) printf( "_raveGloveEmitter[%d] = %d\n", emitterIndex, _raveGloveEmitter[emitterIndex] );
+                            
                             glm::vec3 fingerDirection = finger.getTipPosition() - finger.getRootPosition();
                             float fingerLength = glm::length(fingerDirection);
                             
@@ -266,15 +291,20 @@ void Hand::updateRaveGloveEmitters() {
                                 fingerDirection = IDENTITY_UP;
                             }
                             
-                            assert(_raveGloveEmitter[fingerIndex] >=0 );
-                            assert(_raveGloveEmitter[fingerIndex] < NUM_FINGERS );
+                            assert(_raveGloveEmitter[emitterIndex] >=0 );
+                            assert(_raveGloveEmitter[emitterIndex] < NUM_FINGERS );
                             
-                            _raveGloveParticleSystem.setEmitterPosition (_raveGloveEmitter[fingerIndex], finger.getTipPosition());
-                            _raveGloveParticleSystem.setEmitterDirection(_raveGloveEmitter[fingerIndex], fingerDirection);
-                            fingerIndex ++;
-                         }
+                            _raveGloveParticleSystem.setEmitterPosition (_raveGloveEmitter[emitterIndex], finger.getTipPosition());
+                            _raveGloveParticleSystem.setEmitterDirection(_raveGloveEmitter[emitterIndex], fingerDirection);
+                        }
+                    } else {
+                        if(debug) printf( "BOGUS finger\n" );
                     }
+                            
+                    emitterIndex ++;
                 }
+            } else {
+                if(debug) printf( "is NOT active\n" );
             }
         }
     }
@@ -286,10 +316,16 @@ void Hand::updateRaveGloveParticles(float deltaTime) {
 
     if (!_raveGloveInitialized) {
     
+        //printf( "Initializing rave glove emitters:\n" );
+        //printf( "The indices of the emitters are:\n" );
+    
         // start up the rave glove finger particles...
         for ( int f = 0; f< NUM_FINGERS; f ++ ) {
             _raveGloveEmitter[f] = _raveGloveParticleSystem.addEmitter();
+            assert( _raveGloveEmitter[f] >= 0 );
             assert( _raveGloveEmitter[f] != NULL_EMITTER );
+
+            //printf( "%d\n", _raveGloveEmitter[f] );
         }
                                             
         setRaveGloveMode(RAVE_GLOVE_EFFECTS_MODE_2);

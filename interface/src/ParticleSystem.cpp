@@ -80,9 +80,7 @@ void ParticleSystem::simulate(float deltaTime) {
         assert(_emitter[e].rate >= 0);
         
         _emitter[e].emitReserve += _emitter[e].rate * deltaTime;
-    
         _emitter[e].numParticlesEmittedThisTime = (int)_emitter[e].emitReserve;
-        
         _emitter[e].emitReserve -= _emitter[e].numParticlesEmittedThisTime;
     
         for (int p = 0; p < _emitter[e].numParticlesEmittedThisTime; p++) {
@@ -114,8 +112,8 @@ void ParticleSystem::createParticle(int e, float timeFraction) {
             _particle[p].age              = 0.0f;
             _particle[p].velocity         = _emitter[e].direction * _emitter[e].thrust;
             _particle[p].position         = _emitter[e].previousPosition + timeFraction * (_emitter[e].position - _emitter[e].previousPosition);
-            _particle[p].radius           = _emitter[e].particleAttributes[0].radius;
-            _particle[p].color            = _emitter[e].particleAttributes[0].color;
+            _particle[p].radius           = _emitter[e].particleAttributes[PARTICLE_LIFESTAGE_0].radius;
+            _particle[p].color            = _emitter[e].particleAttributes[PARTICLE_LIFESTAGE_0].color;
             _particle[p].previousParticle = NULL_PARTICLE;
             
             if (_particle[_emitter[e].currentParticle].alive) {            
@@ -142,6 +140,8 @@ void ParticleSystem::killParticle(int p) {
     _particle[p].velocity         = glm::vec3(0.0f, 0.0f, 0.0f);
     _particle[p].age              = 0.0f;
     _particle[p].emitterIndex     = NULL_PARTICLE; 
+    _particle[p].color            = glm::vec4(0.0f, 0.0f, 0.0f, 0.0f);
+    _particle[p].radius           = 0.0f;
  }
 
 
