@@ -267,6 +267,8 @@ void Hand::updateRaveGloveEmitters() {
                                 fingerDirection = IDENTITY_UP;
                             }
                             
+                            assert(_raveGloveEmitter[fingerIndex] >=0 );
+                            assert(_raveGloveEmitter[fingerIndex] < NUM_FINGERS );
                             _raveGloveParticleSystem.setEmitterPosition (_raveGloveEmitter[fingerIndex], finger.getTipPosition());
                             _raveGloveParticleSystem.setEmitterDirection(_raveGloveEmitter[fingerIndex], fingerDirection);
                             fingerIndex ++;
