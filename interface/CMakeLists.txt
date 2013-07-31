@@ -130,8 +130,7 @@ include_directories(
 
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${OPENCV_INCLUDE_DIRS}")
 target_link_libraries(
-  ${TARGET_NAME} 
-  ${QT_LIBRARIES}
+  ${TARGET_NAME}
   ${LIBVPX_LIBRARIES}
   ${MOTIONDRIVER_LIBRARIES}
   ${OPENCV_LIBRARIES} 
