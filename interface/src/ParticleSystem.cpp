@@ -51,7 +51,7 @@ ParticleSystem::ParticleSystem() {
         _particle[p].age              = 0.0f;
         _particle[p].radius           = 0.0f;
         _particle[p].emitterIndex     = 0;
-        _particle[p].previousParticle = -1;
+        _particle[p].previousParticle = NULL_PARTICLE;
         _particle[p].position         = glm::vec3(0.0f, 0.0f, 0.0f);
         _particle[p].velocity         = glm::vec3(0.0f, 0.0f, 0.0f);
     }    
@@ -64,7 +64,7 @@ int ParticleSystem::addEmitter() {
         return _numEmitters - 1;
     }
     
-    return -1;
+    return NULL_EMITTER;
 }
 
 
@@ -75,9 +75,9 @@ void ParticleSystem::simulate(float deltaTime) {
     // emit particles
     for (int e = 0; e < _numEmitters; e++) {
         
-        assert( e >= 0 );
-        assert( e <= MAX_EMITTERS );
-        assert( _emitter[e].rate >= 0 );
+        assert(e >= 0);
+        assert(e <= MAX_EMITTERS);
+        assert(_emitter[e].rate >= 0);
         
         _emitter[e].emitReserve += _emitter[e].rate * deltaTime;
     
@@ -116,10 +116,10 @@ void ParticleSystem::createParticle(int e, float timeFraction) {
             _particle[p].position         = _emitter[e].previousPosition + timeFraction * (_emitter[e].position - _emitter[e].previousPosition);
             _particle[p].radius           = _emitter[e].particleAttributes[0].radius;
             _particle[p].color            = _emitter[e].particleAttributes[0].color;
-            _particle[p].previousParticle = -1;
+            _particle[p].previousParticle = NULL_PARTICLE;
             
-            if ( _particle[_emitter[e].currentParticle].alive) {            
-                if (_particle[_emitter[e].currentParticle].emitterIndex == e ) {
+            if (_particle[_emitter[e].currentParticle].alive) {            
+                if (_particle[_emitter[e].currentParticle].emitterIndex == e) {
                     _particle[p].previousParticle = _emitter[e].currentParticle;
                 }
             }
@@ -133,15 +133,15 @@ void ParticleSystem::createParticle(int e, float timeFraction) {
 
 void ParticleSystem::killParticle(int p) {
 
-    assert( p >= 0);
-    assert( p < MAX_PARTICLES);
+    assert(p >= 0);
+    assert(p < MAX_PARTICLES);
 
     _particle[p].alive            = false;
-    _particle[p].previousParticle = -1;
+    _particle[p].previousParticle = NULL_PARTICLE;
     _particle[p].position         = _emitter[_particle[p].emitterIndex].position;
     _particle[p].velocity         = glm::vec3(0.0f, 0.0f, 0.0f);
     _particle[p].age              = 0.0f;
-    _particle[p].emitterIndex     = -1; 
+    _particle[p].emitterIndex     = NULL_PARTICLE; 
  }
 
 
@@ -153,7 +153,7 @@ void ParticleSystem::setEmitterPosition(int emitterIndex, glm::vec3 position) {
 
 void ParticleSystem::setParticleAttributes(int emitterIndex, ParticleAttributes attributes) {
 
-    for (int lifeStage = 0; lifeStage < NUM_PARTICLE_LIFE_STAGES; lifeStage ++ ) {
+    for (int lifeStage = 0; lifeStage < NUM_PARTICLE_LIFE_STAGES; lifeStage ++) {
         setParticleAttributes(emitterIndex, (ParticleLifeStage)lifeStage, attributes);
     }
 }
@@ -185,8 +185,8 @@ void ParticleSystem::setParticleAttributesToDefault(ParticleAttributes * a) {
 
 void ParticleSystem::setParticleAttributes(int emitterIndex, ParticleLifeStage lifeStage, ParticleAttributes attributes) {
 
-    assert(lifeStage >= 0 );
-    assert(lifeStage <  NUM_PARTICLE_LIFE_STAGES );
+    assert(lifeStage >= 0);
+    assert(lifeStage <  NUM_PARTICLE_LIFE_STAGES);
 
     ParticleAttributes * a = &_emitter[emitterIndex].particleAttributes[lifeStage];
     
@@ -226,8 +226,8 @@ void ParticleSystem::updateParticle(int p, float deltaTime) {
     if (_emitter[_particle[p].emitterIndex].particleLifespan > 0.0) {
         
         ageFraction       = _particle[p].age / myEmitter.particleLifespan;
-        lifeStage         = (int)( ageFraction * (NUM_PARTICLE_LIFE_STAGES-1) );
-        lifeStageFraction = ageFraction * ( NUM_PARTICLE_LIFE_STAGES - 1 ) - lifeStage;
+        lifeStage         = (int)(ageFraction * (NUM_PARTICLE_LIFE_STAGES - 1));
+        lifeStageFraction = ageFraction * (NUM_PARTICLE_LIFE_STAGES - 1) - lifeStage;
             
         // adjust radius
         _particle[p].radius
@@ -250,18 +250,18 @@ void ParticleSystem::updateParticle(int p, float deltaTime) {
         
         // apply neighbor attraction
         int neighbor = p + 1;
-        if (neighbor == MAX_PARTICLES ) {
+        if (neighbor == MAX_PARTICLES) {
             neighbor = 0;
         }
         
-        if ( _particle[neighbor].emitterIndex == _particle[p].emitterIndex) {
+        if (_particle[neighbor].emitterIndex == _particle[p].emitterIndex) {
             glm::vec3 vectorToNeighbor = _particle[p].position - _particle[neighbor].position;
         
             _particle[p].velocity -= vectorToNeighbor * myEmitter.particleAttributes[lifeStage].neighborAttraction * deltaTime;
 
             float distanceToNeighbor = glm::length(vectorToNeighbor);
             if (distanceToNeighbor > 0.0f) {
-                _particle[neighbor].velocity += (vectorToNeighbor / ( 1.0f + distanceToNeighbor * distanceToNeighbor)) * myEmitter.particleAttributes[lifeStage].neighborRepulsion * deltaTime;
+                _particle[neighbor].velocity += (vectorToNeighbor / (1.0f + distanceToNeighbor * distanceToNeighbor)) * myEmitter.particleAttributes[lifeStage].neighborRepulsion * deltaTime;
             }
         }
         
@@ -320,7 +320,7 @@ void ParticleSystem::updateParticle(int p, float deltaTime) {
         float modulation = 0.0f;
         float radian = _timer * myEmitter.particleAttributes[lifeStage  ].modulationRate * PI_TIMES_TWO;
         if (myEmitter.particleAttributes[lifeStage  ].modulationStyle == COLOR_MODULATION_STYLE_LIGHNTESS_PULSE) {
-            if ( sinf(radian) > 0.0f ) {
+            if (sinf(radian) > 0.0f) {
                 modulation = myEmitter.particleAttributes[lifeStage].modulationAmplitude;
             }
         } else if (myEmitter.particleAttributes[lifeStage].modulationStyle == COLOR_MODULATION_STYLE_LIGHTNESS_WAVE) {
@@ -347,7 +347,7 @@ void ParticleSystem::updateParticle(int p, float deltaTime) {
 void ParticleSystem::killAllParticles() {
 
     for (int e = 0; e < _numEmitters; e++) {
-        _emitter[e].currentParticle             = -1;
+        _emitter[e].currentParticle             = NULL_PARTICLE;
         _emitter[e].emitReserve                 = 0.0f;
         _emitter[e].previousPosition            = _emitter[e].position;
         _emitter[e].rate                        = 0.0f;
@@ -366,7 +366,7 @@ void ParticleSystem::render() {
     for (int e = 0; e < _numEmitters; e++) {
 
         if (_emitter[e].showingBaseParticle) {
-            glColor4f(_particle[0].color.r, _particle[0].color.g, _particle[0].color.b, _particle[0].color.a );
+            glColor4f(_particle[0].color.r, _particle[0].color.g, _particle[0].color.b, _particle[0].color.a);
             glPushMatrix();
             glTranslatef(_emitter[e].position.x, _emitter[e].position.y, _emitter[e].position.z);
             glutSolidSphere(_particle[0].radius, _emitter[e].particleResolution, _emitter[e].particleResolution);
@@ -390,7 +390,7 @@ void ParticleSystem::render() {
 
 void ParticleSystem::renderParticle(int p) {
 
-    glColor4f(_particle[p].color.r, _particle[p].color.g, _particle[p].color.b, _particle[p].color.a );
+    glColor4f(_particle[p].color.r, _particle[p].color.g, _particle[p].color.b, _particle[p].color.a);
 
     if (_emitter[_particle[p].emitterIndex].particleRenderStyle == PARTICLE_RENDER_STYLE_BILLBOARD) {
         glm::vec3 cameraPosition = Application::getInstance()->getCamera()->getPosition();
@@ -428,66 +428,64 @@ void ParticleSystem::renderParticle(int p) {
 
     } else if (_emitter[_particle[p].emitterIndex].particleRenderStyle == PARTICLE_RENDER_STYLE_RIBBON) {
     
-        if (_particle[p].previousParticle != -1) {
+        if (_particle[p].previousParticle != NULL_PARTICLE) {
             if ((_particle[p].alive)
             &&  (_particle[_particle[p].previousParticle].alive)
-            &&  (_particle[_particle[p].previousParticle].emitterIndex == _particle[p].emitterIndex )) {
+            &&  (_particle[_particle[p].previousParticle].emitterIndex == _particle[p].emitterIndex)) {
             
-                int pp = _particle[p].previousParticle;
-
-                glm::vec3 v = _particle[p].position - _particle[pp].position;
-                float distance = glm::length(v);
+                glm::vec3 vectorFromPreviousParticle = _particle[p].position - _particle[_particle[p].previousParticle].position;
+                float distance = glm::length(vectorFromPreviousParticle);
 
                 if (distance > 0.0f) {
                 
-                    v /= distance;
+                    vectorFromPreviousParticle /= distance;
 
-                    glm::vec3 up    = glm::normalize(glm::cross(v, _upDirection)) * _particle[p].radius;
-                    glm::vec3 right = glm::normalize(glm::cross(up, v          )) * _particle[p].radius;
+                    glm::vec3 up    = glm::normalize(glm::cross(vectorFromPreviousParticle, _upDirection)) * _particle[p].radius;
+                    glm::vec3 right = glm::normalize(glm::cross(up, vectorFromPreviousParticle          )) * _particle[p].radius;
                                         
                     glm::vec3 p0Left  = _particle[p ].position - right;
                     glm::vec3 p0Right = _particle[p ].position + right;
                     glm::vec3 p0Down  = _particle[p ].position - up;
                     glm::vec3 p0Up    = _particle[p ].position + up;
 
-                    glm::vec3 ppLeft  = _particle[pp].position - right;
-                    glm::vec3 ppRight = _particle[pp].position + right;
-                    glm::vec3 ppDown  = _particle[pp].position - up;
-                    glm::vec3 ppUp    = _particle[pp].position + up;
+                    glm::vec3 ppLeft  = _particle[_particle[p].previousParticle].position - right;
+                    glm::vec3 ppRight = _particle[_particle[p].previousParticle].position + right;
+                    glm::vec3 ppDown  = _particle[_particle[p].previousParticle].position - up;
+                    glm::vec3 ppUp    = _particle[_particle[p].previousParticle].position + up;
                                         
                     glBegin(GL_TRIANGLES);    
                              
-                        glVertex3f(p0Left.x,  p0Left.y,  p0Left.z  ); 
-                        glVertex3f(p0Right.x, p0Right.y, p0Right.z ); 
-                        glVertex3f(ppLeft.x,  ppLeft.y,  ppLeft.z  ); 
+                        glVertex3f(p0Left.x,  p0Left.y,  p0Left.z ); 
+                        glVertex3f(p0Right.x, p0Right.y, p0Right.z); 
+                        glVertex3f(ppLeft.x,  ppLeft.y,  ppLeft.z ); 
 
-                        glVertex3f(p0Right.x, p0Right.y, p0Right.z ); 
-                        glVertex3f(ppLeft.x,  ppLeft.y,  ppLeft.z  ); 
-                        glVertex3f(ppRight.x, ppRight.y, ppRight.z ); 
+                        glVertex3f(p0Right.x, p0Right.y, p0Right.z); 
+                        glVertex3f(ppLeft.x,  ppLeft.y,  ppLeft.z ); 
+                        glVertex3f(ppRight.x, ppRight.y, ppRight.z); 
 
-                        glVertex3f(p0Up.x,    p0Up.y,    p0Up.z    ); 
-                        glVertex3f(p0Down.x,  p0Down.y,  p0Down.z  ); 
-                        glVertex3f(ppDown.x,  ppDown.y,  ppDown.z  ); 
+                        glVertex3f(p0Up.x,    p0Up.y,    p0Up.z   ); 
+                        glVertex3f(p0Down.x,  p0Down.y,  p0Down.z ); 
+                        glVertex3f(ppDown.x,  ppDown.y,  ppDown.z ); 
 
-                        glVertex3f(p0Up.x,    p0Up.y,    p0Up.z    ); 
-                        glVertex3f(ppUp.x,    ppUp.y,    ppUp.z    ); 
-                        glVertex3f(ppDown.x,  ppDown.y,  ppDown.z  ); 
+                        glVertex3f(p0Up.x,    p0Up.y,    p0Up.z   ); 
+                        glVertex3f(ppUp.x,    ppUp.y,    ppUp.z   ); 
+                        glVertex3f(ppDown.x,  ppDown.y,  ppDown.z ); 
 
-                        glVertex3f(p0Up.x,    p0Up.y,    p0Left.z  ); 
-                        glVertex3f(p0Right.x, p0Right.y, p0Right.z ); 
-                        glVertex3f(p0Down.x,  p0Down.y,  p0Down.z  ); 
+                        glVertex3f(p0Up.x,    p0Up.y,    p0Left.z ); 
+                        glVertex3f(p0Right.x, p0Right.y, p0Right.z); 
+                        glVertex3f(p0Down.x,  p0Down.y,  p0Down.z ); 
 
-                        glVertex3f(p0Up.x,    p0Up.y,    p0Left.z  ); 
-                        glVertex3f(p0Left.x,  p0Left.y,  p0Left.z  ); 
-                        glVertex3f(p0Down.x,  p0Down.y,  p0Down.z  ); 
+                        glVertex3f(p0Up.x,    p0Up.y,    p0Left.z ); 
+                        glVertex3f(p0Left.x,  p0Left.y,  p0Left.z ); 
+                        glVertex3f(p0Down.x,  p0Down.y,  p0Down.z ); 
 
-                        glVertex3f(ppUp.x,    ppUp.y,    ppLeft.z  ); 
-                        glVertex3f(ppRight.x, ppRight.y, ppRight.z ); 
-                        glVertex3f(ppDown.x,  ppDown.y,  ppDown.z  ); 
+                        glVertex3f(ppUp.x,    ppUp.y,    ppLeft.z ); 
+                        glVertex3f(ppRight.x, ppRight.y, ppRight.z); 
+                        glVertex3f(ppDown.x,  ppDown.y,  ppDown.z ); 
 
-                        glVertex3f(ppUp.x,    ppUp.y,    ppLeft.z  ); 
-                        glVertex3f(ppLeft.x,  ppLeft.y,  ppLeft.z  ); 
-                        glVertex3f(ppDown.x,  ppDown.y,  ppDown.z  ); 
+                        glVertex3f(ppUp.x,    ppUp.y,    ppLeft.z ); 
+                        glVertex3f(ppLeft.x,  ppLeft.y,  ppLeft.z ); 
+                        glVertex3f(ppDown.x,  ppDown.y,  ppDown.z ); 
                         
                     glEnd();
                 }

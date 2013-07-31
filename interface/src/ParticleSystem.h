@@ -11,6 +11,8 @@
 #include <glm/gtc/quaternion.hpp>
 
 const int  MAX_PARTICLES = 5000;
+const int  NULL_EMITTER  = -1;
+const int  NULL_PARTICLE = -1;
 const int  MAX_EMITTERS  = 100;
 
 enum ParticleRenderStyle

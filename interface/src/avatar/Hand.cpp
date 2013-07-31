@@ -14,7 +14,7 @@
 #include "Util.h"
 #include "renderer/ProgramObject.h"
 
-const bool SHOW_LEAP_HAND = true;
+const bool SHOW_LEAP_HAND = false;
 
 using namespace std;
 
@@ -22,18 +22,17 @@ Hand::Hand(Avatar* owningAvatar) :
     HandData((AvatarData*)owningAvatar),
     
     _raveGloveClock(0.0f),
-    _raveGloveMode(0),
+    _raveGloveMode(RAVE_GLOVE_EFFECTS_MODE_0),
     _raveGloveInitialized(false),
+    _isRaveGloveActive(false),
     _owningAvatar(owningAvatar),
     _renderAlpha(1.0),
     _lookingInMirror(false),
-    _isRaveGloveActive(false),
-    _ballColor(0.0, 0.0, 0.4)
-
+    _ballColor(0.0, 0.0, 0.4)    
  {
     // initialize all finger particle emitters with an invalid id as default
     for (int f = 0; f< NUM_FINGERS; f ++ ) {
-        _raveGloveEmitter[f] = -1;
+        _raveGloveEmitter[f] = NULL_EMITTER;
     }
 }
 
@@ -58,7 +57,7 @@ void Hand::simulate(float deltaTime, bool isMine) {
 }
 
 void Hand::calculateGeometry() {
-    glm::vec3 offset(0.0, -0.2, -0.3);  // place the hand in front of the face where we can see it
+    glm::vec3 offset(0.2, -0.2, -0.3);  // place the hand in front of the face where we can see it
     
     Head& head = _owningAvatar->getHead();
     _basePosition = head.getPosition() + head.getOrientation() * offset;
@@ -256,7 +255,7 @@ void Hand::updateRaveGloveEmitters() {
                 for (size_t f = 0; f < palm.getNumFingers(); ++f) {
                     FingerData& finger = palm.getFingers()[f];
                     if (finger.isActive()) {
-                        if (_raveGloveEmitter[0] != -1) {
+                        if (_raveGloveEmitter[0] != NULL_EMITTER) {
                                                         
                             glm::vec3 fingerDirection = finger.getTipPosition() - finger.getRootPosition();
                             float fingerLength = glm::length(fingerDirection);
@@ -269,6 +268,7 @@ void Hand::updateRaveGloveEmitters() {
                             
                             assert(_raveGloveEmitter[fingerIndex] >=0 );
                             assert(_raveGloveEmitter[fingerIndex] < NUM_FINGERS );
+                            
                             _raveGloveParticleSystem.setEmitterPosition (_raveGloveEmitter[fingerIndex], finger.getTipPosition());
                             _raveGloveParticleSystem.setEmitterDirection(_raveGloveEmitter[fingerIndex], fingerDirection);
                             fingerIndex ++;
@@ -289,7 +289,7 @@ void Hand::updateRaveGloveParticles(float deltaTime) {
         // start up the rave glove finger particles...
         for ( int f = 0; f< NUM_FINGERS; f ++ ) {
             _raveGloveEmitter[f] = _raveGloveParticleSystem.addEmitter();
-            assert( _raveGloveEmitter[f] != -1 );
+            assert( _raveGloveEmitter[f] != NULL_EMITTER );
         }
                                             
         setRaveGloveMode(RAVE_GLOVE_EFFECTS_MODE_2);
@@ -299,13 +299,15 @@ void Hand::updateRaveGloveParticles(float deltaTime) {
         
         _raveGloveClock += deltaTime;
         
+        // this rave glove effect oscillates though various colors and radii that are meant to show off some effects
         if (_raveGloveMode == RAVE_GLOVE_EFFECTS_MODE_0) {
             ParticleSystem::ParticleAttributes attributes;
             float red   = 0.5f + 0.5f * sinf(_raveGloveClock * 1.4f);
             float green = 0.5f + 0.5f * cosf(_raveGloveClock * 1.7f);
             float blue  = 0.5f + 0.5f * sinf(_raveGloveClock * 2.0f);
+            float alpha = 1.0f;
             
-            attributes.color = glm::vec4(red, green, blue, 1.0f);            
+            attributes.color = glm::vec4(red, green, blue, alpha);            
             attributes.radius = 0.01f + 0.005f * sinf(_raveGloveClock * 2.2f);
             attributes.modulationAmplitude = 0.0f;
             
