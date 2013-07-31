@@ -1,8 +1,6 @@
 cmake_minimum_required(VERSION 2.8)
 project(Fervor)
 
-set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} $ENV{QT_CMAKE_PREFIX_PATH})
-
 find_package(Qt5Core REQUIRED)
 find_package(Qt5Network REQUIRED)
 find_package(Qt5WebKit REQUIRED)
