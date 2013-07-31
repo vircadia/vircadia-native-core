@@ -620,25 +620,35 @@ void FrameGrabber::grabFrame() {
         _faceDepth.create(ENCODED_FACE_WIDTH, ENCODED_FACE_HEIGHT, CV_16UC1);
         warpAffine(depth, _faceDepth, transform, _faceDepth.size(), INTER_NEAREST);
         
-        // find the mean of the valid values
-        qint64 depthTotal = 0;
-        qint64 depthSamples = 0;
-        ushort* src = _faceDepth.ptr<ushort>();
+        _smoothedFaceDepth.create(ENCODED_FACE_WIDTH, ENCODED_FACE_HEIGHT, CV_16UC1);
+        
+        // smooth and find the minimum/mean of the valid values
         const ushort ELEVEN_BIT_MINIMUM = 0;
         const ushort ELEVEN_BIT_MAXIMUM = 2047;
+        const float DEPTH_SMOOTHING = 0.25f;
+        qint64 depthTotal = 0;
+        qint64 depthSamples = 0;
+        ushort depthMinimum = ELEVEN_BIT_MAXIMUM;
+        ushort* src = _faceDepth.ptr<ushort>();
+        ushort* dest = _smoothedFaceDepth.ptr<ushort>();
         for (int i = 0; i < ENCODED_FACE_HEIGHT; i++) {
             for (int j = 0; j < ENCODED_FACE_WIDTH; j++) {
                 ushort depth = *src++;
                 if (depth != ELEVEN_BIT_MINIMUM && depth != ELEVEN_BIT_MAXIMUM) {
                     depthTotal += depth;
+                    depthMinimum = min(depthMinimum, depth);
                     depthSamples++;
+                    
+                    *dest = (*dest == ELEVEN_BIT_MINIMUM) ? depth : (ushort)glm::mix(depth, *dest, DEPTH_SMOOTHING);
                 }
+                dest++;
             }
         }
-        float mean = (depthSamples == 0) ? UNINITIALIZED_FACE_DEPTH : depthTotal / (float)depthSamples;
+        const ushort DEPTH_MINIMUM_OFFSET = 64;
+        float mean = (depthSamples == 0) ? UNINITIALIZED_FACE_DEPTH : depthMinimum + DEPTH_MINIMUM_OFFSET;
         
         // smooth the mean over time
-        const float DEPTH_OFFSET_SMOOTHING = 0.95f;
+        const float DEPTH_OFFSET_SMOOTHING = 0.5f;
         _smoothedMeanFaceDepth = (_smoothedMeanFaceDepth == UNINITIALIZED_FACE_DEPTH) ? mean :
             glm::mix(mean, _smoothedMeanFaceDepth, DEPTH_OFFSET_SMOOTHING);
 
@@ -657,10 +667,10 @@ void FrameGrabber::grabFrame() {
             uchar* vdest = vline;
             uchar* udest = uline;
             for (int j = 0; j < ENCODED_FACE_WIDTH; j += 2) {
-                ushort tl = *_faceDepth.ptr<ushort>(i, j);
-                ushort tr = *_faceDepth.ptr<ushort>(i, j + 1);
-                ushort bl = *_faceDepth.ptr<ushort>(i + 1, j);
-                ushort br = *_faceDepth.ptr<ushort>(i + 1, j + 1);
+                ushort tl = *_smoothedFaceDepth.ptr<ushort>(i, j);
+                ushort tr = *_smoothedFaceDepth.ptr<ushort>(i, j + 1);
+                ushort bl = *_smoothedFaceDepth.ptr<ushort>(i + 1, j);
+                ushort br = *_smoothedFaceDepth.ptr<ushort>(i + 1, j + 1);
             
                 uchar mask = EIGHT_BIT_MAXIMUM;
                 

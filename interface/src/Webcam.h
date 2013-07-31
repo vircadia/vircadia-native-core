@@ -125,6 +125,7 @@ private:
     int _frameCount;
     cv::Mat _faceColor;
     cv::Mat _faceDepth;
+    cv::Mat _smoothedFaceDepth;
     QByteArray _encodedFace;
     cv::RotatedRect _smoothedFaceRect;
     
