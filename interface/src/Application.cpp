@@ -164,9 +164,9 @@ void GLCanvas::wheelEvent(QWheelEvent* event) {
     Application::getInstance()->wheelEvent(event);
 }
 
-void messageHandler(QtMsgType type, const char* message) {
-    fprintf(stdout, "%s", message);    
-    LogDisplay::instance.addMessage(message);
+void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString &message) {
+    fprintf(stdout, "%s", message.toLocal8Bit().constData());
+    LogDisplay::instance.addMessage(message.toLocal8Bit().constData());
 }
 
 Application::Application(int& argc, char** argv, timeval &startup_time) :
@@ -222,7 +222,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     _applicationStartupTime = startup_time;
     _window->setWindowTitle("Interface");
     
-    qInstallMsgHandler(messageHandler);
+    qInstallMessageHandler(messageHandler);
     
     unsigned int listenPort = 0; // bind to an ephemeral port by default
     const char** constArgv = const_cast<const char**>(argv);
@@ -1221,7 +1221,7 @@ void Application::editPreferences() {
     
     if (domainServerHostname->text().size() > 0) {
         // the user input a new hostname, use that
-        newHostname = domainServerHostname->text().toAscii();
+        newHostname = domainServerHostname->text().toLocal8Bit();
     } else {
         // the user left the field blank, use the default hostname
         newHostname = QByteArray(DEFAULT_DOMAIN_HOSTNAME);
@@ -1517,12 +1517,12 @@ bool Application::sendVoxelsOperation(VoxelNode* node, void* extraData) {
 }
 
 void Application::exportVoxels() {
-    QString desktopLocation = QDesktopServices::storageLocation(QDesktopServices::DesktopLocation);
+    QString desktopLocation = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
     QString suggestedName = desktopLocation.append("/voxels.svo");
 
     QString fileNameString = QFileDialog::getSaveFileName(_glWidget, tr("Export Voxels"), suggestedName, 
                                                           tr("Sparse Voxel Octree Files (*.svo)"));
-    QByteArray fileNameAscii = fileNameString.toAscii();
+    QByteArray fileNameAscii = fileNameString.toLocal8Bit();
     const char* fileName = fileNameAscii.data();
     VoxelNode* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
     if (selectedNode) {
@@ -1537,11 +1537,11 @@ void Application::exportVoxels() {
 
 const char* IMPORT_FILE_TYPES = "Sparse Voxel Octree Files, Square PNG, Schematic Files (*.svo *.png *.schematic)";
 void Application::importVoxelsToClipboard() {
-    QString desktopLocation = QDesktopServices::storageLocation(QDesktopServices::DesktopLocation);
+    QString desktopLocation = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
     QString fileNameString = QFileDialog::getOpenFileName(_glWidget, tr("Import Voxels to Clipboard"), desktopLocation,
                                                           tr(IMPORT_FILE_TYPES));
 
-    QByteArray fileNameAscii = fileNameString.toAscii();
+    QByteArray fileNameAscii = fileNameString.toLocal8Bit();
     const char* fileName = fileNameAscii.data();
     
     _clipboardTree.eraseAllVoxels();
@@ -1571,11 +1571,11 @@ void Application::importVoxelsToClipboard() {
 }
 
 void Application::importVoxels() {
-    QString desktopLocation = QDesktopServices::storageLocation(QDesktopServices::DesktopLocation);
+    QString desktopLocation = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
     QString fileNameString = QFileDialog::getOpenFileName(_glWidget, tr("Import Voxels"), desktopLocation,
                                                           tr(IMPORT_FILE_TYPES));
 
-    QByteArray fileNameAscii = fileNameString.toAscii();
+    QByteArray fileNameAscii = fileNameString.toLocal8Bit();
     const char* fileName = fileNameAscii.data();
     
     VoxelTree importVoxels;
@@ -1989,8 +1989,11 @@ const float MAX_VOXEL_EDIT_DISTANCE = 20.0f;
 const float HEAD_SPHERE_RADIUS = 0.07;
 
 
+static uint16_t DEFAULT_NODE_ID_REF = 1;
+
+
 bool Application::isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection, 
-                                         glm::vec3& eyePosition, uint16_t& nodeID) {
+                                         glm::vec3& eyePosition, uint16_t& nodeID = DEFAULT_NODE_ID_REF) {
                                          
     NodeList* nodeList = NodeList::getInstance();
     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
@@ -2047,8 +2050,8 @@ void Application::update(float deltaTime) {
     
     // Set where I am looking based on my mouse ray (so that other people can see)
     glm::vec3 eyePosition;
-    uint16_t  ignored;
-    _isLookingAtOtherAvatar = isLookingAtOtherAvatar(mouseRayOrigin, mouseRayDirection, eyePosition, ignored);
+
+    _isLookingAtOtherAvatar = isLookingAtOtherAvatar(mouseRayOrigin, mouseRayDirection, eyePosition);
     if (_isLookingAtOtherAvatar) {
         // If the mouse is over another avatar's head...
         glm::vec3 myLookAtFromMouse(eyePosition);
@@ -2314,8 +2317,8 @@ void Application::updateAvatar(float deltaTime) {
         _viewFrustum.computePickRay(MIDPOINT_OF_SCREEN, MIDPOINT_OF_SCREEN, screenCenterRayOrigin, screenCenterRayDirection);
 
         glm::vec3 eyePosition;
-        uint16_t  ignored;
-        _isLookingAtOtherAvatar = isLookingAtOtherAvatar(screenCenterRayOrigin, screenCenterRayDirection, eyePosition, ignored);
+        
+        _isLookingAtOtherAvatar = isLookingAtOtherAvatar(screenCenterRayOrigin, screenCenterRayDirection, eyePosition);
         if (_isLookingAtOtherAvatar) {
             glm::vec3 myLookAtFromMouse(eyePosition);
             _myAvatar.getHead().setLookAtPosition(myLookAtFromMouse);
@@ -3628,7 +3631,7 @@ void Application::saveSettings(QSettings* settings) {
 }
 
 void Application::importSettings() {
-    QString locationDir(QDesktopServices::displayName(QDesktopServices::DesktopLocation));
+    QString locationDir(QStandardPaths::displayName(QStandardPaths::DesktopLocation));
     QString fileName = QFileDialog::getOpenFileName(_window,
                                                     tr("Open .ini config file"),
                                                     locationDir,
@@ -3640,7 +3643,7 @@ void Application::importSettings() {
 }
 
 void Application::exportSettings() {
-    QString locationDir(QDesktopServices::displayName(QDesktopServices::DesktopLocation));
+    QString locationDir(QStandardPaths::displayName(QStandardPaths::DesktopLocation));
     QString fileName = QFileDialog::getSaveFileName(_window,
                                                    tr("Save .ini config file"),
 						    locationDir,
