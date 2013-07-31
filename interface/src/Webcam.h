@@ -62,7 +62,7 @@ public:
 public slots:
     
     void setEnabled(bool enabled);
-    void setFrame(const cv::Mat& color, int format, const cv::Mat& depth, float meanFaceDepth,
+    void setFrame(const cv::Mat& color, int format, const cv::Mat& depth, float midFaceDepth,
         const cv::RotatedRect& faceRect, const JointVector& joints);
 
 private:
@@ -118,7 +118,7 @@ private:
     cv::Mat _backProject;
     cv::Rect _searchWindow;
     cv::Mat _grayDepthFrame;
-    float _smoothedMeanFaceDepth;
+    float _smoothedMidFaceDepth;
     
     vpx_codec_ctx_t _colorCodec;
     vpx_codec_ctx_t _depthCodec;
