@@ -3,8 +3,6 @@ cmake_minimum_required(VERSION 2.8)
 set(ROOT_DIR ..)
 set(MACRO_DIR ${ROOT_DIR}/cmake/macros)
 
-set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} $ENV{QT_CMAKE_PREFIX_PATH})
-
 set(TARGET_NAME interface)
 project(${TARGET_NAME})
 
@@ -73,7 +71,6 @@ find_package(Qt5Core REQUIRED)
 find_package(Qt5Gui REQUIRED)
 find_package(Qt5Network REQUIRED)
 find_package(Qt5OpenGL REQUIRED)
-find_package(Qt5WebKit REQUIRED)
 find_package(Qt5Svg REQUIRED)
 
 set(QUAZIP_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/quazip)
@@ -83,7 +80,7 @@ include_directories(external/fervor/)
 # create the executable, make it a bundle on OS X
 add_executable(${TARGET_NAME} MACOSX_BUNDLE ${INTERFACE_SRCS})
 
-qt5_use_modules(${TARGET_NAME} Core Gui Network OpenGL WebKit Svg)
+qt5_use_modules(${TARGET_NAME} Core Gui Network OpenGL Svg)
 
 # link in the hifi shared library
 include(${MACRO_DIR}/LinkHifiLibrary.cmake)
