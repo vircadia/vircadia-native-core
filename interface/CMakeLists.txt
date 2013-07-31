@@ -3,6 +3,8 @@ cmake_minimum_required(VERSION 2.8)
 set(ROOT_DIR ..)
 set(MACRO_DIR ${ROOT_DIR}/cmake/macros)
 
+set(CMAKE_PREFIX_PATH ${CMAKE_PREFIX_PATH} $ENV{QT_CMAKE_PREFIX_PATH})
+
 set(TARGET_NAME interface)
 project(${TARGET_NAME})
 
