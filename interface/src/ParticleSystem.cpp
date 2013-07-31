@@ -41,7 +41,7 @@ ParticleSystem::ParticleSystem() {
         e->particleRenderStyle = PARTICLE_RENDER_STYLE_SPHERE;
         e->numParticlesEmittedThisTime = 0;
             
-        for (int lifeStage = 0; lifeStage<NUM_PARTICLE_LIFE_STAGES; lifeStage++) {
+        for (int lifeStage = 0; lifeStage < NUM_PARTICLE_LIFE_STAGES; lifeStage++) {
             setParticleAttributesToDefault(&_emitter[emitterIndex].particleAttributes[lifeStage]);
         }
     };  
