@@ -81,12 +81,12 @@ def hifiJob(String targetName, Boolean deploy) {
 static Closure cmakeBuild(srcDir, instCommand) {
     return { project ->
         project / 'builders' / 'hudson.plugins.cmake.CmakeBuilder' {
-            sourceDir srcDir
+            sourceDir '.'
             buildDir 'build'
             installDir ''
             buildType 'RelWithDebInfo'
             generator 'Unix Makefiles'
-            makeCommand 'make'
+            makeCommand "make ${srcDir}"
             installCommand instCommand
             preloadScript ''
             cmakeArgs ''
