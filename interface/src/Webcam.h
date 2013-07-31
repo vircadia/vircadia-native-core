@@ -9,6 +9,10 @@
 #ifndef __interface__Webcam__
 #define __interface__Webcam__
 
+#if defined(HAVE_OPENNI) && !defined(Q_MOC_RUN)
+#include <XnCppWrapper.h>
+#endif
+
 #include <QMetaType>
 #include <QObject>
 #include <QThread>
@@ -19,9 +23,6 @@
 
 #include <opencv2/opencv.hpp>
 
-#ifdef HAVE_OPENNI
-    #include <XnCppWrapper.h>
-#endif
 
 #include <vpx_codec.h>
 
