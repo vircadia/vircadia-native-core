@@ -14,7 +14,7 @@
 #include "Util.h"
 #include "renderer/ProgramObject.h"
 
-const bool SHOW_LEAP_HAND = true;
+const bool SHOW_LEAP_HAND = false;
 
 using namespace std;
 
@@ -22,7 +22,7 @@ Hand::Hand(Avatar* owningAvatar) :
     HandData((AvatarData*)owningAvatar),
     
     _raveGloveClock(0.0f),
-    _raveGloveMode(RAVE_GLOVE_EFFECTS_MODE_0),
+    _raveGloveMode(RAVE_GLOVE_EFFECTS_MODE_THROBBING_COLOR),
     _raveGloveInitialized(false),
     _isRaveGloveActive(false),
     _owningAvatar(owningAvatar),
@@ -86,17 +86,18 @@ void Hand::calculateGeometry() {
 
 void Hand::setRaveGloveEffectsMode(QKeyEvent* event) {
     switch (event->key()) {
-        case Qt::Key_0: setRaveGloveMode(RAVE_GLOVE_EFFECTS_MODE_0); break;
-        case Qt::Key_1: setRaveGloveMode(RAVE_GLOVE_EFFECTS_MODE_1); break;
-        case Qt::Key_2: setRaveGloveMode(RAVE_GLOVE_EFFECTS_MODE_2); break;
-        case Qt::Key_3: setRaveGloveMode(RAVE_GLOVE_EFFECTS_MODE_3); break;
-        case Qt::Key_4: setRaveGloveMode(RAVE_GLOVE_EFFECTS_MODE_4); break;
-        case Qt::Key_5: setRaveGloveMode(RAVE_GLOVE_EFFECTS_MODE_5); break;
-        case Qt::Key_6: setRaveGloveMode(RAVE_GLOVE_EFFECTS_MODE_6); break;
-        case Qt::Key_7: setRaveGloveMode(RAVE_GLOVE_EFFECTS_MODE_7); break;
-        case Qt::Key_8: setRaveGloveMode(RAVE_GLOVE_EFFECTS_MODE_8); break;
-        case Qt::Key_9: setRaveGloveMode(RAVE_GLOVE_EFFECTS_MODE_9); break;
-    };        
+    
+        case Qt::Key_0: setRaveGloveMode(RAVE_GLOVE_EFFECTS_MODE_THROBBING_COLOR); break;
+        case Qt::Key_1: setRaveGloveMode(RAVE_GLOVE_EFFECTS_MODE_TRAILS         ); break;
+        case Qt::Key_2: setRaveGloveMode(RAVE_GLOVE_EFFECTS_MODE_FIRE           ); break;
+        case Qt::Key_3: setRaveGloveMode(RAVE_GLOVE_EFFECTS_MODE_WATER          ); break;
+        case Qt::Key_4: setRaveGloveMode(RAVE_GLOVE_EFFECTS_MODE_FLASHY         ); break;
+        case Qt::Key_5: setRaveGloveMode(RAVE_GLOVE_EFFECTS_MODE_BOZO_SPARKLER  ); break;
+        case Qt::Key_6: setRaveGloveMode(RAVE_GLOVE_EFFECTS_MODE_LONG_SPARKLER  ); break;
+        case Qt::Key_7: setRaveGloveMode(RAVE_GLOVE_EFFECTS_MODE_SNAKE          ); break;
+        case Qt::Key_8: setRaveGloveMode(RAVE_GLOVE_EFFECTS_MODE_PULSE          ); break;
+        case Qt::Key_9: setRaveGloveMode(RAVE_GLOVE_EFFECTS_MODE_THROB          ); break;
+     };        
 }
 
 void Hand::render(bool lookingInMirror) {
@@ -327,8 +328,8 @@ void Hand::updateRaveGloveParticles(float deltaTime) {
 
             //printf( "%d\n", _raveGloveEmitter[f] );
         }
-                                            
-        setRaveGloveMode(RAVE_GLOVE_EFFECTS_MODE_2);
+                                                    
+        setRaveGloveMode(RAVE_GLOVE_EFFECTS_MODE_FIRE);
         _raveGloveParticleSystem.setUpDirection(glm::vec3(0.0f, 1.0f, 0.0f));
         _raveGloveInitialized = true;         
     } else {        
@@ -336,7 +337,7 @@ void Hand::updateRaveGloveParticles(float deltaTime) {
         _raveGloveClock += deltaTime;
         
         // this rave glove effect oscillates though various colors and radii that are meant to show off some effects
-        if (_raveGloveMode == RAVE_GLOVE_EFFECTS_MODE_0) {
+        if (_raveGloveMode == RAVE_GLOVE_EFFECTS_MODE_THROBBING_COLOR) {
             ParticleSystem::ParticleAttributes attributes;
             float red   = 0.5f + 0.5f * sinf(_raveGloveClock * 1.4f);
             float green = 0.5f + 0.5f * cosf(_raveGloveClock * 1.7f);
@@ -372,7 +373,7 @@ void Hand::setRaveGloveMode(int mode) {
         //-----------------------------------------
         // throbbing color cycle
         //-----------------------------------------
-        if (mode == RAVE_GLOVE_EFFECTS_MODE_0) {
+        if (mode == RAVE_GLOVE_EFFECTS_MODE_THROBBING_COLOR) {
             _raveGloveParticleSystem.setParticleRenderStyle       (_raveGloveEmitter[f], PARTICLE_RENDER_STYLE_SPHERE );
             _raveGloveParticleSystem.setShowingEmitterBaseParticle(_raveGloveEmitter[f], true );
             _raveGloveParticleSystem.setEmitterParticleLifespan   (_raveGloveEmitter[f], 0.0f );
@@ -395,7 +396,7 @@ void Hand::setRaveGloveMode(int mode) {
         //-----------------------------------------
         // trails
         //-----------------------------------------
-        } else if (mode == RAVE_GLOVE_EFFECTS_MODE_1) {            
+        } else if (mode == RAVE_GLOVE_EFFECTS_MODE_TRAILS) {            
             _raveGloveParticleSystem.setParticleRenderStyle       (_raveGloveEmitter[f], PARTICLE_RENDER_STYLE_RIBBON );
             _raveGloveParticleSystem.setShowingEmitterBaseParticle(_raveGloveEmitter[f], false );
             _raveGloveParticleSystem.setEmitterParticleLifespan   (_raveGloveEmitter[f], 1.0f );
@@ -426,7 +427,7 @@ void Hand::setRaveGloveMode(int mode) {
         //-----------------------------------------
         // Fire!
         //-----------------------------------------
-        if (mode == RAVE_GLOVE_EFFECTS_MODE_2) {
+        if (mode == RAVE_GLOVE_EFFECTS_MODE_FIRE) {
 
             _raveGloveParticleSystem.setParticleRenderStyle       (_raveGloveEmitter[f], PARTICLE_RENDER_STYLE_SPHERE  );
             _raveGloveParticleSystem.setShowingEmitterBaseParticle(_raveGloveEmitter[f], false  );
@@ -461,7 +462,7 @@ void Hand::setRaveGloveMode(int mode) {
         //-----------------------------------------
         // water
         //-----------------------------------------
-        } else if (mode == RAVE_GLOVE_EFFECTS_MODE_3) {
+        } else if (mode == RAVE_GLOVE_EFFECTS_MODE_WATER) {
             
             _raveGloveParticleSystem.setParticleRenderStyle       (_raveGloveEmitter[f], PARTICLE_RENDER_STYLE_SPHERE );
             _raveGloveParticleSystem.setShowingEmitterBaseParticle(_raveGloveEmitter[f], true   );
@@ -493,7 +494,7 @@ void Hand::setRaveGloveMode(int mode) {
         //-----------------------------------------
         // flashy
         //-----------------------------------------
-        } else if (mode == RAVE_GLOVE_EFFECTS_MODE_4) {
+        } else if (mode == RAVE_GLOVE_EFFECTS_MODE_FLASHY) {
             
             _raveGloveParticleSystem.setParticleRenderStyle       (_raveGloveEmitter[f], PARTICLE_RENDER_STYLE_SPHERE  );
             _raveGloveParticleSystem.setShowingEmitterBaseParticle(_raveGloveEmitter[f], true   );
@@ -525,7 +526,7 @@ void Hand::setRaveGloveMode(int mode) {
         //-----------------------------------------
         // Bozo sparkler
         //-----------------------------------------
-        } else if (mode == RAVE_GLOVE_EFFECTS_MODE_5) {
+        } else if (mode == RAVE_GLOVE_EFFECTS_MODE_BOZO_SPARKLER) {
             
             _raveGloveParticleSystem.setParticleRenderStyle       (_raveGloveEmitter[f], PARTICLE_RENDER_STYLE_RIBBON  );
             _raveGloveParticleSystem.setShowingEmitterBaseParticle(_raveGloveEmitter[f], false   );
@@ -557,7 +558,7 @@ void Hand::setRaveGloveMode(int mode) {
         //-----------------------------------------
         // long sparkler
         //-----------------------------------------
-        } else if (mode == RAVE_GLOVE_EFFECTS_MODE_6) {
+        } else if (mode == RAVE_GLOVE_EFFECTS_MODE_LONG_SPARKLER) {
             
             _raveGloveParticleSystem.setParticleRenderStyle       (_raveGloveEmitter[f], PARTICLE_RENDER_STYLE_RIBBON  );
             _raveGloveParticleSystem.setShowingEmitterBaseParticle(_raveGloveEmitter[f], false   );
@@ -590,7 +591,7 @@ void Hand::setRaveGloveMode(int mode) {
         //-----------------------------------------
         // bubble snake
         //-----------------------------------------
-        } else if (mode == RAVE_GLOVE_EFFECTS_MODE_7) {
+        } else if (mode == RAVE_GLOVE_EFFECTS_MODE_SNAKE) {
             
             _raveGloveParticleSystem.setParticleRenderStyle       (_raveGloveEmitter[f], PARTICLE_RENDER_STYLE_SPHERE  );
             _raveGloveParticleSystem.setShowingEmitterBaseParticle(_raveGloveEmitter[f], true   );
@@ -627,7 +628,7 @@ void Hand::setRaveGloveMode(int mode) {
         //-----------------------------------------
         // pulse
         //-----------------------------------------
-        } else if (mode == RAVE_GLOVE_EFFECTS_MODE_8) {
+        } else if (mode == RAVE_GLOVE_EFFECTS_MODE_PULSE) {
             
             _raveGloveParticleSystem.setParticleRenderStyle       (_raveGloveEmitter[f], PARTICLE_RENDER_STYLE_SPHERE  );
             _raveGloveParticleSystem.setShowingEmitterBaseParticle(_raveGloveEmitter[f], true );
@@ -651,7 +652,7 @@ void Hand::setRaveGloveMode(int mode) {
         //-----------------------------------------
         // throb
         //-----------------------------------------
-        } else if (mode == RAVE_GLOVE_EFFECTS_MODE_9) {
+        } else if (mode == RAVE_GLOVE_EFFECTS_MODE_LONG_SPARKLER) {
             
             _raveGloveParticleSystem.setParticleRenderStyle       (_raveGloveEmitter[f], PARTICLE_RENDER_STYLE_SPHERE  );
             _raveGloveParticleSystem.setShowingEmitterBaseParticle(_raveGloveEmitter[f], true );
