@@ -80,8 +80,6 @@ include_directories(external/fervor/)
 # create the executable, make it a bundle on OS X
 add_executable(${TARGET_NAME} MACOSX_BUNDLE ${INTERFACE_SRCS})
 
-qt5_use_modules(${TARGET_NAME} Core Gui Network OpenGL Svg)
-
 # link in the hifi shared library
 include(${MACRO_DIR}/LinkHifiLibrary.cmake)
 
@@ -109,6 +107,8 @@ if (OPENNI_FOUND)
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${OPENNI_INCLUDE_DIRS}")
     target_link_libraries(${TARGET_NAME} ${OPENNI_LIBRARIES})
 endif (OPENNI_FOUND)
+
+qt5_use_modules(${TARGET_NAME} Core Gui Network OpenGL Svg)
 
 # include headers for interface and InterfaceConfig.
 include_directories(
