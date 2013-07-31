@@ -48,9 +48,9 @@ void VoxelNode::init(unsigned char * octalCode) {
     _subtreeLeafNodeCount = 0; // that's me
     
     _glBufferIndex = GLBUFFER_INDEX_UNKNOWN;
+    _voxelSystem = NULL;
     _isDirty = true;
     _shouldRender = false;
-    _isStagedForDeletion = false;
     markWithChangedTime();
     calculateAABox();
 }
@@ -159,28 +159,18 @@ VoxelNode* VoxelNode::addChildAtIndex(int childIndex) {
 }
 
 // handles staging or deletion of all deep children
-void VoxelNode::safeDeepDeleteChildAtIndex(int childIndex, bool& stagedForDeletion) {
+void VoxelNode::safeDeepDeleteChildAtIndex(int childIndex) {
     VoxelNode* childToDelete = getChildAtIndex(childIndex);
     if (childToDelete) {
         // If the child is not a leaf, then call ourselves recursively on all the children
         if (!childToDelete->isLeaf()) {
             // delete all it's children
             for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
-                childToDelete->safeDeepDeleteChildAtIndex(i, stagedForDeletion);
+                childToDelete->safeDeepDeleteChildAtIndex(i);
             }
         }
-        // if this node has a BufferIndex then we need to stage it for deletion
-        // instead of actually deleting it from the tree
-        if (childToDelete->isKnownBufferIndex()) {
-            stagedForDeletion = true;
-        }
-        if (stagedForDeletion) {
-            childToDelete->stageForDeletion();
-            _isDirty = true;
-        } else {
-            deleteChildAtIndex(childIndex);
-            _isDirty = true;
-        } 
+        deleteChildAtIndex(childIndex);
+        _isDirty = true;
         markWithChangedTime();
     }
 }
@@ -190,7 +180,7 @@ void VoxelNode::setColorFromAverageOfChildren() {
     int colorArray[4] = {0,0,0,0};
     float density = 0.0f;
     for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
-        if (_children[i] && !_children[i]->isStagedForDeletion() && _children[i]->isColored()) {
+        if (_children[i] && _children[i]->isColored()) {
             for (int j = 0; j < 3; j++) {
                 colorArray[j] += _children[i]->getTrueColor()[j]; // color averaging should always be based on true colors
             }
@@ -279,7 +269,7 @@ bool VoxelNode::collapseIdenticalLeaves() {
     int red,green,blue;
     for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
         // if no child, child isn't a leaf, or child doesn't have a color
-        if (!_children[i] || _children[i]->isStagedForDeletion() || !_children[i]->isLeaf() || !_children[i]->isColored()) {
+        if (!_children[i] || !_children[i]->isLeaf() || !_children[i]->isColored()) {
             allChildrenMatch=false;
             //qDebug("SADNESS child missing or not colored! i=%d\n",i);
             break;
@@ -410,43 +400,23 @@ float VoxelNode::distanceToPoint(const glm::vec3& point) const {
     return distance;
 }
 
-VoxelNodeDeleteHook VoxelNode::_hooks[VOXEL_NODE_MAX_DELETE_HOOKS];
-void* VoxelNode::_hooksExtraData[VOXEL_NODE_MAX_DELETE_HOOKS];
-int VoxelNode::_hooksInUse = 0;
+std::vector<VoxelNodeDeleteHook*> VoxelNode::_hooks;
 
-int VoxelNode::addDeleteHook(VoxelNodeDeleteHook hook, void* extraData) {
-    // If first use, initialize the _hooks array
-    if (_hooksInUse == 0) {
-        memset(_hooks, 0, sizeof(_hooks));
-        memset(_hooksExtraData, 0, sizeof(_hooksExtraData));
-    }
-    // find first available slot
-    for (int i = 0; i < VOXEL_NODE_MAX_DELETE_HOOKS; i++) {
-        if (!_hooks[i]) {
-            _hooks[i] = hook;
-            _hooksExtraData[i] = extraData;
-            _hooksInUse++;
-            return i;
-        }
-    }
-    // if we got here, then we're out of room in our hooks, return error
-    return VOXEL_NODE_NO_MORE_HOOKS_AVAILABLE;
+void VoxelNode::addDeleteHook(VoxelNodeDeleteHook* hook) {
+    _hooks.push_back(hook);
 }
 
-void VoxelNode::removeDeleteHook(int hookID) {
-    if (_hooks[hookID]) {
-        _hooks[hookID] = NULL;
-        _hooksExtraData[hookID] = NULL;
-        _hooksInUse--;
+void VoxelNode::removeDeleteHook(VoxelNodeDeleteHook* hook) {
+    for (int i = 0; i < _hooks.size(); i++) {
+        if (_hooks[i] == hook) {
+            _hooks.erase(_hooks.begin() + i);
+            return;
+        }
     }
 }
 
 void VoxelNode::notifyDeleteHooks() {
-    if (_hooksInUse > 0) {
-        for (int i = 0; i < VOXEL_NODE_MAX_DELETE_HOOKS; i++) {
-            if (_hooks[i]) {
-                _hooks[i](this, _hooksExtraData[i]);
-            }
-        }
+    for (int i = 0; i < _hooks.size(); i++) {
+        _hooks[i]->nodeDeleted(this);
     }
 }

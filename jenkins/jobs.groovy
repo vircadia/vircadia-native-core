@@ -90,7 +90,7 @@ static Closure cmakeBuild(srcDir, instCommand) {
             installCommand instCommand
             preloadScript ''
             cmakeArgs ''
-            projectCmakePath '/usr/bin/cmake'
+            projectCmakePath '/usr/local/bin/cmake'
             cleanBuild 'false'
             cleanInstallDir 'false'
             builderImpl ''

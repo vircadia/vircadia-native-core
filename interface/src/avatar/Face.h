@@ -57,7 +57,8 @@ private:
     cv::RotatedRect _textureRect;
     float _aspectRatio;
     
-    vpx_codec_ctx_t _codec;
+    vpx_codec_ctx_t _colorCodec;
+    vpx_codec_ctx_t _depthCodec;
     
     QByteArray _arrivingFrame;
     int _frameCount;

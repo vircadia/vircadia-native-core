@@ -30,19 +30,25 @@ GLuint Face::_vboID;
 GLuint Face::_iboID;
 
 Face::Face(Head* owningHead) : _owningHead(owningHead), _renderMode(MESH),
-        _colorTextureID(0), _depthTextureID(0), _codec(), _frameCount(0) {
+        _colorTextureID(0), _depthTextureID(0), _colorCodec(), _depthCodec(), _frameCount(0) {
     // we may have been created in the network thread, but we live in the main thread
     moveToThread(Application::getInstance()->thread());
 }
 
 Face::~Face() {
-    if (_codec.name != 0) {
-        vpx_codec_destroy(&_codec);
+    if (_colorCodec.name != 0) {
+        vpx_codec_destroy(&_colorCodec);
         
-        // delete our textures, since we know that we own them
+        // delete our texture, since we know that we own it
         if (_colorTextureID != 0) {
             glDeleteTextures(1, &_colorTextureID);
         }
+        
+    }
+    if (_depthCodec.name != 0) {
+        vpx_codec_destroy(&_depthCodec);
+        
+        // delete our texture, since we know that we own it
         if (_depthTextureID != 0) {
             glDeleteTextures(1, &_depthTextureID);
         }
@@ -55,9 +61,9 @@ void Face::setTextureRect(const cv::RotatedRect& textureRect) {
 }
 
 int Face::processVideoMessage(unsigned char* packetData, size_t dataBytes) {
-    if (_codec.name == 0) {
+    if (_colorCodec.name == 0) {
         // initialize decoder context
-        vpx_codec_dec_init(&_codec, vpx_codec_vp8_dx(), 0, 0);
+        vpx_codec_dec_init(&_colorCodec, vpx_codec_vp8_dx(), 0, 0);
     }
     // skip the header
     unsigned char* packetPosition = packetData;
@@ -85,14 +91,14 @@ int Face::processVideoMessage(unsigned char* packetData, size_t dataBytes) {
     
     if ((_frameBytesRemaining -= payloadSize) <= 0) {
         float aspectRatio = *(const float*)_arrivingFrame.constData();
-        vpx_codec_decode(&_codec, (const uint8_t*)_arrivingFrame.constData() + sizeof(float),
-            _arrivingFrame.size() - sizeof(float), 0, 0);
+        size_t colorSize = *(const size_t*)(_arrivingFrame.constData() + sizeof(float));
+        const uint8_t* colorData = (const uint8_t*)(_arrivingFrame.constData() + sizeof(float) + sizeof(size_t));
+        vpx_codec_decode(&_colorCodec, colorData, colorSize, 0, 0);
         vpx_codec_iter_t iterator = 0;
         vpx_image_t* image;
-        while ((image = vpx_codec_get_frame(&_codec, &iterator)) != 0) {
+        while ((image = vpx_codec_get_frame(&_colorCodec, &iterator)) != 0) {
             // convert from YV12 to RGB
-            const int imageHeight = image->d_w;
-            Mat color(imageHeight, image->d_w, CV_8UC3);
+            Mat color(image->d_h, image->d_w, CV_8UC3);
             uchar* yline = image->planes[0];
             uchar* vline = image->planes[1];
             uchar* uline = image->planes[2];
@@ -100,7 +106,7 @@ int Face::processVideoMessage(unsigned char* packetData, size_t dataBytes) {
             const int GREEN_V_WEIGHT = (int)(0.714 * 256);
             const int GREEN_U_WEIGHT = (int)(0.344 * 256);
             const int BLUE_U_WEIGHT = (int)(1.773 * 256);
-            for (int i = 0; i < imageHeight; i += 2) {
+            for (int i = 0; i < image->d_h; i += 2) {
                 uchar* ysrc = yline;
                 uchar* vsrc = vline;
                 uchar* usrc = uline;
@@ -144,13 +150,44 @@ int Face::processVideoMessage(unsigned char* packetData, size_t dataBytes) {
                 uline += image->stride[2];
             }
             Mat depth;
-            if (image->d_h > imageHeight) {
-                // if the height is greater than the width, we have depth data
-                depth.create(imageHeight, image->d_w, CV_8UC1);
-                uchar* src = image->planes[0] + image->stride[0] * imageHeight;
-                for (int i = 0; i < imageHeight; i++) {
-                    memcpy(depth.ptr(i), src, image->d_w);
-                    src += image->stride[0];
+            
+            const uint8_t* depthData = colorData + colorSize;
+            int depthSize = _arrivingFrame.size() - ((const char*)depthData - _arrivingFrame.constData());
+            if (depthSize > 0) {
+                if (_depthCodec.name == 0) {
+                    // initialize decoder context
+                    vpx_codec_dec_init(&_depthCodec, vpx_codec_vp8_dx(), 0, 0);
+                }
+                vpx_codec_decode(&_depthCodec, depthData, depthSize, 0, 0);
+                vpx_codec_iter_t iterator = 0;
+                vpx_image_t* image;
+                while ((image = vpx_codec_get_frame(&_depthCodec, &iterator)) != 0) {
+                    depth.create(image->d_h, image->d_w, CV_8UC1);
+                    uchar* yline = image->planes[0];
+                    uchar* vline = image->planes[1];
+                    const uchar EIGHT_BIT_MAXIMUM = 255;
+                    const uchar MASK_THRESHOLD = 192;
+                    for (int i = 0; i < image->d_h; i += 2) {
+                        uchar* ysrc = yline;
+                        uchar* vsrc = vline;
+                        for (int j = 0; j < image->d_w; j += 2) {
+                            if (*vsrc++ < MASK_THRESHOLD) {
+                                *depth.ptr(i, j) = EIGHT_BIT_MAXIMUM;
+                                *depth.ptr(i, j + 1) = EIGHT_BIT_MAXIMUM;
+                                *depth.ptr(i + 1, j) = EIGHT_BIT_MAXIMUM;
+                                *depth.ptr(i + 1, j + 1) = EIGHT_BIT_MAXIMUM;
+                            
+                            } else {
+                                *depth.ptr(i, j) = ysrc[0];
+                                *depth.ptr(i, j + 1) = ysrc[1];
+                                *depth.ptr(i + 1, j) = ysrc[image->stride[0]];
+                                *depth.ptr(i + 1, j + 1) = ysrc[image->stride[0] + 1];
+                            }
+                            ysrc += 2;
+                        }
+                        yline += image->stride[0] * 2;
+                        vline += image->stride[1];
+                    }
                 }
             }
             QMetaObject::invokeMethod(this, "setFrame", Q_ARG(cv::Mat, color),
