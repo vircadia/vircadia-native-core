@@ -3679,8 +3679,8 @@ void Application::updateParticleSystem(float deltaTime) {
         // update the particle system
          
         static bool emitting = true;
-        static float t = 0.0f;
-        t += deltaTime;
+        static float effectsTimer = 0.0f;
+        effectsTimer += deltaTime;
         
         if (_coolDemoParticleEmitter != -1) {
                        
@@ -3690,13 +3690,13 @@ void Application::updateParticleSystem(float deltaTime) {
 
             attributes.radius                  = 0.01f;
             attributes.color                   = glm::vec4( 1.0f, 1.0f, 1.0f, 1.0f);
-            attributes.gravity                 = 0.0f   + 0.05f  * sinf( t * 0.52f );
-            attributes.airFriction             = 2.5    + 2.0f   * sinf( t * 0.32f );
-            attributes.jitter                  = 0.05f  + 0.05f  * sinf( t * 0.42f );
-            attributes.emitterAttraction       = 0.015f + 0.015f * cosf( t * 0.6f  );
-            attributes.tornadoForce            = 0.0f   + 0.03f  * sinf( t * 0.7f  );
-            attributes.neighborAttraction      = 0.1f   + 0.1f   * cosf( t * 0.8f  );
-            attributes.neighborRepulsion       = 0.2f   + 0.2f   * sinf( t * 0.4f  );
+            attributes.gravity                 = 0.0f   + 0.05f  * sinf( effectsTimer * 0.52f );
+            attributes.airFriction             = 2.5    + 2.0f   * sinf( effectsTimer * 0.32f );
+            attributes.jitter                  = 0.05f  + 0.05f  * sinf( effectsTimer * 0.42f );
+            attributes.emitterAttraction       = 0.015f + 0.015f * cosf( effectsTimer * 0.6f  );
+            attributes.tornadoForce            = 0.0f   + 0.03f  * sinf( effectsTimer * 0.7f  );
+            attributes.neighborAttraction      = 0.1f   + 0.1f   * cosf( effectsTimer * 0.8f  );
+            attributes.neighborRepulsion       = 0.2f   + 0.2f   * sinf( effectsTimer * 0.4f  );
             attributes.bounce                  = 1.0f;
             attributes.usingCollisionSphere    = true;
             attributes.collisionSpherePosition = glm::vec3( 5.0f, 0.5f, 5.0f );
@@ -3715,9 +3715,11 @@ void Application::updateParticleSystem(float deltaTime) {
         _particleSystem.setUpDirection(glm::vec3(0.0f, 1.0f, 0.0f));  
         _particleSystem.simulate(deltaTime); 
         
+        const float EMIT_RATE_IN_SECONDS = 0.0;
+
         if (_coolDemoParticleEmitter != -1) {
             if (emitting) {
-                _particleSystem.setEmitterRate(_coolDemoParticleEmitter, 0.0); // stop emitter
+                _particleSystem.setEmitterRate(_coolDemoParticleEmitter, EMIT_RATE_IN_SECONDS); // stop emitter
                 emitting = false;
             }
         }
