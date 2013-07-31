@@ -564,6 +564,11 @@ void Application::keyPressEvent(QKeyEvent* event) {
             }
             return;
         }
+
+        //this is for switching between modes for the leap rave glove test
+        if (_simulateLeapHand->isChecked() || _testRaveGlove->isChecked()) {
+            _myAvatar.getHand().setRaveGloveEffectsMode((QKeyEvent*)event);
+        }
         
         bool shifted = event->modifiers().testFlag(Qt::ShiftModifier);
         switch (event->key()) {
@@ -2723,13 +2728,12 @@ void Application::displaySide(Camera& whichCamera) {
             _particleSystem.render();    
         }
     }
-    
+
     //  Render the world box
     if (!_lookingInMirror->isChecked() && _renderStatsOn->isChecked()) { render_world_box(); }
     
     // brad's frustum for debugging
     if (_frustumOn->isChecked()) renderViewFrustum(_viewFrustum);
-    
 }
 
 void Application::displayOverlay() {
@@ -3652,56 +3656,57 @@ void Application::exportSettings() {
 }
 
 
-
 void Application::updateParticleSystem(float deltaTime) {
 
     if (!_particleSystemInitialized) {
+    
+        const int   LIFESPAN_IN_SECONDS  = 100000.0f;
+        const float EMIT_RATE_IN_SECONDS = 10000.0;
         // create a stable test emitter and spit out a bunch of particles
         _coolDemoParticleEmitter = _particleSystem.addEmitter();
-        
+                
         if (_coolDemoParticleEmitter != -1) {
+                
             _particleSystem.setShowingEmitter(_coolDemoParticleEmitter, true);
             glm::vec3 particleEmitterPosition = glm::vec3(5.0f, 1.0f, 5.0f);   
-            _particleSystem.setEmitterPosition(_coolDemoParticleEmitter, particleEmitterPosition);
-            glm::vec3 velocity(0.0f, 0.1f, 0.0f);
-            float lifespan = 100000.0f;
-            _particleSystem.emitParticlesNow(_coolDemoParticleEmitter, 1500, velocity, lifespan);   
+            
+            _particleSystem.setEmitterPosition        (_coolDemoParticleEmitter, particleEmitterPosition);
+            _particleSystem.setEmitterParticleLifespan(_coolDemoParticleEmitter, LIFESPAN_IN_SECONDS);
+            _particleSystem.setEmitterThrust          (_coolDemoParticleEmitter, 0.0f);
+            _particleSystem.setEmitterRate            (_coolDemoParticleEmitter, EMIT_RATE_IN_SECONDS); // to emit a pile o particles now
         }
         
         // signal that the particle system has been initialized 
         _particleSystemInitialized = true;         
     } else {
         // update the particle system
-        
-        static float t = 0.0f;
-        t += deltaTime;
+         
+        static bool emitting = true;
+        static float effectsTimer = 0.0f;
+        effectsTimer += deltaTime;
         
         if (_coolDemoParticleEmitter != -1) {
                        
-           glm::vec3 tilt = glm::vec3
-            (
-                30.0f * sinf( t * 0.55f ),
-                0.0f,
-                30.0f * cosf( t * 0.75f )
-            );
-         
-            _particleSystem.setEmitterRotation(_coolDemoParticleEmitter, glm::quat(glm::radians(tilt)));
+            _particleSystem.setEmitterDirection(_coolDemoParticleEmitter, glm::vec3(0.0f, 1.0f, 0.0f));
             
             ParticleSystem::ParticleAttributes attributes;
 
             attributes.radius                  = 0.01f;
             attributes.color                   = glm::vec4( 1.0f, 1.0f, 1.0f, 1.0f);
-            attributes.gravity                 = 0.0f   + 0.05f  * sinf( t * 0.52f );
-            attributes.airFriction             = 2.5    + 2.0f   * sinf( t * 0.32f );
-            attributes.jitter                  = 0.05f  + 0.05f  * sinf( t * 0.42f );
-            attributes.emitterAttraction       = 0.015f + 0.015f * cosf( t * 0.6f  );
-            attributes.tornadoForce            = 0.0f   + 0.03f  * sinf( t * 0.7f  );
-            attributes.neighborAttraction      = 0.1f   + 0.1f   * cosf( t * 0.8f  );
-            attributes.neighborRepulsion       = 0.2f   + 0.2f   * sinf( t * 0.4f  );
+            attributes.gravity                 = 0.0f   + 0.05f  * sinf( effectsTimer * 0.52f );
+            attributes.airFriction             = 2.5    + 2.0f   * sinf( effectsTimer * 0.32f );
+            attributes.jitter                  = 0.05f  + 0.05f  * sinf( effectsTimer * 0.42f );
+            attributes.emitterAttraction       = 0.015f + 0.015f * cosf( effectsTimer * 0.6f  );
+            attributes.tornadoForce            = 0.0f   + 0.03f  * sinf( effectsTimer * 0.7f  );
+            attributes.neighborAttraction      = 0.1f   + 0.1f   * cosf( effectsTimer * 0.8f  );
+            attributes.neighborRepulsion       = 0.2f   + 0.2f   * sinf( effectsTimer * 0.4f  );
             attributes.bounce                  = 1.0f;
             attributes.usingCollisionSphere    = true;
             attributes.collisionSpherePosition = glm::vec3( 5.0f, 0.5f, 5.0f );
             attributes.collisionSphereRadius   = 0.5f;
+            attributes.usingCollisionPlane     = true;
+            attributes.collisionPlanePosition  = glm::vec3( 5.0f, 0.0f, 5.0f );
+            attributes.collisionPlaneNormal    = glm::vec3( 0.0f, 1.0f, 0.0f );
             
             if (attributes.gravity < 0.0f) {
                 attributes.gravity = 0.0f;
@@ -3712,6 +3717,15 @@ void Application::updateParticleSystem(float deltaTime) {
         
         _particleSystem.setUpDirection(glm::vec3(0.0f, 1.0f, 0.0f));  
         _particleSystem.simulate(deltaTime); 
+        
+        const float EMIT_RATE_IN_SECONDS = 0.0;
+
+        if (_coolDemoParticleEmitter != -1) {
+            if (emitting) {
+                _particleSystem.setEmitterRate(_coolDemoParticleEmitter, EMIT_RATE_IN_SECONDS); // stop emitter
+                emitting = false;
+            }
+        }
     }
 }
 
