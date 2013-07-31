@@ -14,7 +14,7 @@
 #include "Util.h"
 #include "renderer/ProgramObject.h"
 
-const bool SHOW_LEAP_HAND = false;
+const bool SHOW_LEAP_HAND = true;
 
 using namespace std;
 
@@ -58,7 +58,7 @@ void Hand::simulate(float deltaTime, bool isMine) {
 }
 
 void Hand::calculateGeometry() {
-    glm::vec3 offset(0.2, -0.2, -0.3);  // place the hand in front of the face where we can see it
+    glm::vec3 offset(0.0, -0.2, -0.3);  // place the hand in front of the face where we can see it
     
     Head& head = _owningAvatar->getHead();
     _basePosition = head.getPosition() + head.getOrientation() * offset;
