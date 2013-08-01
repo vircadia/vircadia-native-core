@@ -44,7 +44,10 @@ public:
     Webcam();
     ~Webcam();
 
+    FrameGrabber* getGrabber() { return _grabber; }
+
     bool isActive() const { return _active; }
+    bool isSending() const { return _sending; }
     
     GLuint getColorTextureID() const { return _colorTextureID; }
     GLuint getDepthTextureID() const { return _depthTextureID; }
@@ -65,7 +68,7 @@ public slots:
     
     void setEnabled(bool enabled);
     void setFrame(const cv::Mat& color, int format, const cv::Mat& depth, float midFaceDepth,
-        float aspectRatio, const cv::RotatedRect& faceRect, const JointVector& joints);
+        float aspectRatio, const cv::RotatedRect& faceRect, bool sending, const JointVector& joints);
 
 private:
     
@@ -74,6 +77,7 @@ private:
     
     bool _enabled;
     bool _active;
+    bool _sending;
     GLuint _colorTextureID;
     GLuint _depthTextureID;
     cv::Size2f _textureSize;
@@ -114,6 +118,7 @@ private:
     
     bool init();
     void updateHSVFrame(const cv::Mat& frame, int format);
+    void destroyCodecs();
     
     bool _initialized;
     VideoSendMode _videoSendMode;

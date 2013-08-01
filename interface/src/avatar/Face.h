@@ -51,6 +51,8 @@ private:
 
     enum RenderMode { MESH, POINTS, RENDER_MODE_COUNT };
 
+    void destroyCodecs();
+
     Head* _owningHead;
     RenderMode _renderMode;
     GLuint _colorTextureID;
@@ -61,6 +63,7 @@ private:
     
     vpx_codec_ctx_t _colorCodec;
     vpx_codec_ctx_t _depthCodec;
+    bool _lastFullFrame;
     
     QByteArray _arrivingFrame;
     int _frameCount;

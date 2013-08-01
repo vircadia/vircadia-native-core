@@ -156,7 +156,7 @@ Webcam::~Webcam() {
 const float METERS_PER_MM = 1.0f / 1000.0f;
 
 void Webcam::setFrame(const Mat& color, int format, const Mat& depth, float midFaceDepth,
-        float aspectRatio, const RotatedRect& faceRect, const JointVector& joints) {
+        float aspectRatio, const RotatedRect& faceRect, bool sending, const JointVector& joints) {
     IplImage colorImage = color;
     glPixelStorei(GL_UNPACK_ROW_LENGTH, colorImage.widthStep / 3);
     if (_colorTextureID == 0) {
@@ -196,6 +196,7 @@ void Webcam::setFrame(const Mat& color, int format, const Mat& depth, float midF
     // store our various data, update our frame count for fps computation
     _aspectRatio = aspectRatio;
     _faceRect = faceRect;
+    _sending = sending;
     _joints = joints;
     _frameCount++;
     
@@ -369,6 +370,8 @@ static void XN_CALLBACK_TYPE calibrationCompleted(SkeletonCapability& capability
 void FrameGrabber::cycleVideoSendMode() {
     _videoSendMode = (VideoSendMode)((_videoSendMode + 1) % VIDEO_SEND_MODE_COUNT);
     _searchWindow = cv::Rect(0, 0, 0, 0);
+    
+    destroyCodecs();
 }
 
 void FrameGrabber::reset() {
@@ -386,14 +389,7 @@ void FrameGrabber::shutdown() {
         cvReleaseCapture(&_capture);
         _capture = 0;
     }
-    if (_colorCodec.name != 0) {
-        vpx_codec_destroy(&_colorCodec);
-        _colorCodec.name = 0;
-    }
-    if (_depthCodec.name != 0) {
-        vpx_codec_destroy(&_depthCodec);
-        _depthCodec.name = 0;
-    }
+    destroyCodecs();
     _initialized = false;
     
     thread()->quit();
@@ -469,16 +465,17 @@ void FrameGrabber::grabFrame() {
         color = image;
     }
     
-    RotatedRect faceRect;
     int encodedWidth;
     int encodedHeight;
     int depthBitrateMultiplier = 1;
+    Mat faceTransform;
+    float aspectRatio;
     if (_videoSendMode == FULL_FRAME_VIDEO) {
         // no need to find the face if we're sending full frame video
-        faceRect.center = Point2f(color.cols / 2.0f, color.rows / 2.0f);
-        faceRect.size = Size2f(color.cols, color.rows);
+        _smoothedFaceRect = RotatedRect(Point2f(color.cols / 2.0f, color.rows / 2.0f), Size2f(color.cols, color.rows), 0.0f);
         encodedWidth = color.cols;
         encodedHeight = color.rows;
+        aspectRatio = FULL_FRAME_ASPECT;
         
     } else {
         // if we don't have a search window (yet), try using the face cascade
@@ -501,6 +498,7 @@ void FrameGrabber::grabFrame() {
                 _histogram.convertTo(_histogram, -1, (max == 0.0) ? 0.0 : 255.0 / max);
             }
         }
+        RotatedRect faceRect;
         if (_searchWindow.area() > 0) {
             updateHSVFrame(color, format);
             
@@ -517,33 +515,81 @@ void FrameGrabber::grabFrame() {
         encodedWidth = ENCODED_FACE_WIDTH;
         encodedHeight = ENCODED_FACE_HEIGHT;
         depthBitrateMultiplier = 2;
+        
+        // correct for 180 degree rotations
+        if (faceRect.angle < -90.0f) {
+            faceRect.angle += 180.0f;
+            
+        } else if (faceRect.angle > 90.0f) {
+            faceRect.angle -= 180.0f;
+        }
+        
+        // compute the smoothed face rect
+        if (_smoothedFaceRect.size.area() == 0) {
+            _smoothedFaceRect = faceRect;
+            
+        } else {
+            const float FACE_RECT_SMOOTHING = 0.9f;
+            _smoothedFaceRect.center.x = glm::mix(faceRect.center.x, _smoothedFaceRect.center.x, FACE_RECT_SMOOTHING);
+            _smoothedFaceRect.center.y = glm::mix(faceRect.center.y, _smoothedFaceRect.center.y, FACE_RECT_SMOOTHING);
+            _smoothedFaceRect.size.width = glm::mix(faceRect.size.width, _smoothedFaceRect.size.width, FACE_RECT_SMOOTHING);
+            _smoothedFaceRect.size.height = glm::mix(faceRect.size.height, _smoothedFaceRect.size.height, FACE_RECT_SMOOTHING); 
+            _smoothedFaceRect.angle = glm::mix(faceRect.angle, _smoothedFaceRect.angle, FACE_RECT_SMOOTHING);
+        }
+    
+        // use the face rect to compute the face transform, aspect ratio
+        Point2f sourcePoints[4];
+        _smoothedFaceRect.points(sourcePoints);
+        Point2f destPoints[] = { Point2f(0, encodedHeight), Point2f(0, 0), Point2f(encodedWidth, 0) };
+        faceTransform = getAffineTransform(sourcePoints, destPoints);
+        aspectRatio = _smoothedFaceRect.size.width / _smoothedFaceRect.size.height;
+    }
+        
+    const ushort ELEVEN_BIT_MINIMUM = 0;
+    const uchar EIGHT_BIT_MIDPOINT = 128;
+    double depthOffset;
+    if (!depth.empty()) {
+        if (_videoSendMode == FACE_VIDEO) {
+            // warp the face depth without interpolation (because it will contain invalid zero values)
+            _faceDepth.create(encodedHeight, encodedWidth, CV_16UC1);
+            warpAffine(depth, _faceDepth, faceTransform, _faceDepth.size(), INTER_NEAREST);
+        
+        } else {
+            _faceDepth = depth;
+        }
+        _smoothedFaceDepth.create(encodedHeight, encodedWidth, CV_16UC1);
+            
+        // smooth the depth over time
+        const ushort ELEVEN_BIT_MAXIMUM = 2047;
+        const float DEPTH_SMOOTHING = 0.25f;
+        ushort* src = _faceDepth.ptr<ushort>();
+        ushort* dest = _smoothedFaceDepth.ptr<ushort>();
+        ushort minimumDepth = numeric_limits<ushort>::max();
+        for (int i = 0; i < encodedHeight; i++) {
+            for (int j = 0; j < encodedWidth; j++) {
+                ushort depth = *src++;
+                if (depth != ELEVEN_BIT_MINIMUM && depth != ELEVEN_BIT_MAXIMUM) {
+                    minimumDepth = min(minimumDepth, depth);
+                    *dest = (*dest == ELEVEN_BIT_MINIMUM) ? depth : (ushort)glm::mix(depth, *dest, DEPTH_SMOOTHING);
+                }
+                dest++;
+            }
+        }
+        const ushort MINIMUM_DEPTH_OFFSET = 64;
+        const float FIXED_MID_DEPTH = 640.0f;
+        float midFaceDepth = (_videoSendMode == FACE_VIDEO) ? (minimumDepth + MINIMUM_DEPTH_OFFSET) : FIXED_MID_DEPTH;
+        
+        // smooth the mid face depth over time
+        const float MID_FACE_DEPTH_SMOOTHING = 0.5f;
+        _smoothedMidFaceDepth = (_smoothedMidFaceDepth == UNINITIALIZED_FACE_DEPTH) ? midFaceDepth :
+            glm::mix(midFaceDepth, _smoothedMidFaceDepth, MID_FACE_DEPTH_SMOOTHING);
+
+        // convert from 11 to 8 bits for preview/local display
+        depthOffset = EIGHT_BIT_MIDPOINT - _smoothedMidFaceDepth;
+        depth.convertTo(_grayDepthFrame, CV_8UC1, 1.0, depthOffset);
     }
     
-    // correct for 180 degree rotations
-    if (faceRect.angle < -90.0f) {
-        faceRect.angle += 180.0f;
-        
-    } else if (faceRect.angle > 90.0f) {
-        faceRect.angle -= 180.0f;
-    }
-    
-    // compute the smoothed face rect
-    if (_smoothedFaceRect.size.area() == 0) {
-        _smoothedFaceRect = faceRect;
-        
-    } else {
-        const float FACE_RECT_SMOOTHING = 0.9f;
-        _smoothedFaceRect.center.x = glm::mix(faceRect.center.x, _smoothedFaceRect.center.x, FACE_RECT_SMOOTHING);
-        _smoothedFaceRect.center.y = glm::mix(faceRect.center.y, _smoothedFaceRect.center.y, FACE_RECT_SMOOTHING);
-        _smoothedFaceRect.size.width = glm::mix(faceRect.size.width, _smoothedFaceRect.size.width, FACE_RECT_SMOOTHING);
-        _smoothedFaceRect.size.height = glm::mix(faceRect.size.height, _smoothedFaceRect.size.height, FACE_RECT_SMOOTHING); 
-        _smoothedFaceRect.angle = glm::mix(faceRect.angle, _smoothedFaceRect.angle, FACE_RECT_SMOOTHING);
-    }
-    
-    // the aspect ratio is derived from the face rect dimensions unless we're full-frame
-    float aspectRatio = (_videoSendMode == FULL_FRAME_VIDEO) ? FULL_FRAME_ASPECT : 
-        (_smoothedFaceRect.size.width / _smoothedFaceRect.size.height);
-        
+    QByteArray payload;
     if (_videoSendMode != NO_VIDEO) {
         if (_colorCodec.name == 0) {
             // initialize encoder context(s)
@@ -565,11 +611,7 @@ void FrameGrabber::grabFrame() {
         if (_videoSendMode == FACE_VIDEO) {
             // resize/rotate face into encoding rectangle
             _faceColor.create(encodedHeight, encodedWidth, CV_8UC3);
-            Point2f sourcePoints[4];
-            _smoothedFaceRect.points(sourcePoints);
-            Point2f destPoints[] = { Point2f(0, encodedHeight), Point2f(0, 0), Point2f(encodedWidth, 0) };
-            transform = getAffineTransform(sourcePoints, destPoints);
-            warpAffine(color, _faceColor, transform, _faceColor.size());
+            warpAffine(color, _faceColor, faceTransform, _faceColor.size());
         
         } else {
             _faceColor = color;
@@ -635,8 +677,7 @@ void FrameGrabber::grabFrame() {
         vpx_codec_encode(&_colorCodec, &vpxImage, ++_frameCount, 1, 0, VPX_DL_REALTIME);
 
         // start the payload off with the aspect ratio (zero for full frame)
-        QByteArray payload(sizeof(float), 0);
-        *(float*)payload.data() = aspectRatio;
+        payload.append((const char*)&aspectRatio, sizeof(float));
 
         // extract the encoded frame
         vpx_codec_iter_t iterator = 0;
@@ -650,48 +691,7 @@ void FrameGrabber::grabFrame() {
         }
         
         if (!depth.empty()) {
-            if (_videoSendMode == FACE_VIDEO) {
-                // warp the face depth without interpolation (because it will contain invalid zero values)
-                _faceDepth.create(encodedHeight, encodedWidth, CV_16UC1);
-                warpAffine(depth, _faceDepth, transform, _faceDepth.size(), INTER_NEAREST);
-            
-            } else {
-                _faceDepth = depth;
-            }
-            _smoothedFaceDepth.create(encodedHeight, encodedWidth, CV_16UC1);
-            
-            // smooth the depth over time
-            const ushort ELEVEN_BIT_MINIMUM = 0;
-            const ushort ELEVEN_BIT_MAXIMUM = 2047;
-            const float DEPTH_SMOOTHING = 0.25f;
-            ushort* src = _faceDepth.ptr<ushort>();
-            ushort* dest = _smoothedFaceDepth.ptr<ushort>();
-            ushort minimumDepth = numeric_limits<ushort>::max();
-            for (int i = 0; i < encodedHeight; i++) {
-                for (int j = 0; j < encodedWidth; j++) {
-                    ushort depth = *src++;
-                    if (depth != ELEVEN_BIT_MINIMUM && depth != ELEVEN_BIT_MAXIMUM) {
-                        minimumDepth = min(minimumDepth, depth);
-                        *dest = (*dest == ELEVEN_BIT_MINIMUM) ? depth : (ushort)glm::mix(depth, *dest, DEPTH_SMOOTHING);
-                    }
-                    dest++;
-                }
-            }
-            const ushort MINIMUM_DEPTH_OFFSET = 64;
-            const float FIXED_MID_DEPTH = 640.0f;
-            float midFaceDepth = (_videoSendMode == FACE_VIDEO) ? (minimumDepth + MINIMUM_DEPTH_OFFSET) : FIXED_MID_DEPTH;
-            
-            // smooth the mid face depth over time
-            const float MID_FACE_DEPTH_SMOOTHING = 0.5f;
-            _smoothedMidFaceDepth = (_smoothedMidFaceDepth == UNINITIALIZED_FACE_DEPTH) ? midFaceDepth :
-                glm::mix(midFaceDepth, _smoothedMidFaceDepth, MID_FACE_DEPTH_SMOOTHING);
-
-            // convert from 11 to 8 bits for preview/local display
-            const uchar EIGHT_BIT_MIDPOINT = 128;
-            double depthOffset = EIGHT_BIT_MIDPOINT - _smoothedMidFaceDepth;
-            depth.convertTo(_grayDepthFrame, CV_8UC1, 1.0, depthOffset);
-
-            // likewise for the encoded representation
+            // convert with mask
             uchar* yline = vpxImage.planes[0];
             uchar* vline = vpxImage.planes[1];
             uchar* uline = vpxImage.planes[2];
@@ -738,14 +738,15 @@ void FrameGrabber::grabFrame() {
                 }
             }
         }
-    
-        QMetaObject::invokeMethod(Application::getInstance(), "sendAvatarFaceVideoMessage",
-            Q_ARG(int, _frameCount), Q_ARG(QByteArray, payload));
     }
     
+    QMetaObject::invokeMethod(Application::getInstance(), "sendAvatarFaceVideoMessage",
+            Q_ARG(int, _frameCount), Q_ARG(QByteArray, payload));
+            
     QMetaObject::invokeMethod(Application::getInstance()->getWebcam(), "setFrame",
         Q_ARG(cv::Mat, color), Q_ARG(int, format), Q_ARG(cv::Mat, _grayDepthFrame), Q_ARG(float, _smoothedMidFaceDepth),
-        Q_ARG(float, aspectRatio), Q_ARG(cv::RotatedRect, _smoothedFaceRect), Q_ARG(JointVector, joints));
+        Q_ARG(float, aspectRatio), Q_ARG(cv::RotatedRect, _smoothedFaceRect), Q_ARG(bool, !payload.isEmpty()),
+        Q_ARG(JointVector, joints));
 }
 
 bool FrameGrabber::init() {
@@ -812,6 +813,17 @@ bool FrameGrabber::init() {
 void FrameGrabber::updateHSVFrame(const Mat& frame, int format) {
     cvtColor(frame, _hsvFrame, format == GL_RGB ? CV_RGB2HSV : CV_BGR2HSV);
     inRange(_hsvFrame, Scalar(0, 55, 65), Scalar(180, 256, 256), _mask);
+}
+
+void FrameGrabber::destroyCodecs() {
+    if (_colorCodec.name != 0) {
+        vpx_codec_destroy(&_colorCodec);
+        _colorCodec.name = 0;
+    }
+    if (_depthCodec.name != 0) {
+        vpx_codec_destroy(&_depthCodec);
+        _depthCodec.name = 0;
+    }
 }
 
 Joint::Joint(const glm::vec3& position, const glm::quat& rotation, const glm::vec3& projected) :
