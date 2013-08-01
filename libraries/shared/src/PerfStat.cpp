@@ -61,8 +61,8 @@ PerfStat::~PerfStat() {
 	if (wantDebugOut) {	
 		qDebug("PerfStats: %s elapsed:%f average:%lf count:%ld total:%lf ut:%ld us:%ld ue:%ld t:%ld s:%ld e:%ld\n",
                this->group.c_str(),elapsed,average,count,totalTime,
-               (end.tv_usec-start.tv_usec),start.tv_usec,end.tv_usec,
-               (end.tv_sec-start.tv_sec),start.tv_sec,end.tv_sec
+               (long)(end.tv_usec-start.tv_usec), (long)start.tv_usec, (long)end.tv_usec,
+               (long)(end.tv_sec-start.tv_sec), (long)start.tv_sec, (long)end.tv_sec
         );
 	}
 };
