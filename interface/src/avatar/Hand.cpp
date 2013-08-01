@@ -14,7 +14,7 @@
 #include "Util.h"
 #include "renderer/ProgramObject.h"
 
-const bool SHOW_LEAP_HAND = false;
+const bool SHOW_LEAP_HAND = true;
 
 using namespace std;
 
@@ -120,8 +120,9 @@ void Hand::render(bool lookingInMirror) {
     glEnable(GL_RESCALE_NORMAL);
     
     if ( SHOW_LEAP_HAND ) {
-        renderFingerTrails();
-        renderHandSpheres();
+        renderLeapHands();
+        //renderFingerTrails();
+        //renderHandSpheres();
     }
 }
 
@@ -153,7 +154,42 @@ void Hand::renderRaveGloveStage() {
     }
 }
 
-void Hand::renderHandSpheres() {
+
+
+void Hand::renderLeapHands() {
+    for (size_t i = 0; i < getNumPalms(); ++i) {
+        PalmData& hand = getPalms()[i];
+        if (hand.isActive()) {
+            renderLeapHand(hand);
+        }
+    }
+}
+
+
+void Hand::renderLeapHand(PalmData& hand) {
+
+    glPushMatrix();
+        const float palmThickness = 0.002f;
+        glColor4f(0.5f, 0.5f, 0.5f, 1.0);
+        glm::vec3 tip = hand.getPosition();
+        glm::vec3 root = hand.getPosition() + hand.getNormal() * palmThickness;
+        Avatar::renderJointConnectingCone(root, tip, 0.05, 0.03);
+        
+        for (size_t f = 0; f < hand.getNumFingers(); ++f) {
+            FingerData& finger = hand.getFingers()[f];
+            if (finger.isActive()) {
+                glColor4f(_ballColor.r, _ballColor.g, _ballColor.b, 0.5);
+                glm::vec3 tip = finger.getTipPosition();
+                glm::vec3 root = finger.getRootPosition();
+                Avatar::renderJointConnectingCone(root, tip, 0.001, 0.003);
+            }
+        }
+         
+    glPopMatrix();
+}
+
+
+void Hand::renderLeapHandSpheres() {
     glPushMatrix();
     // Draw the leap balls
     for (size_t i = 0; i < _leapBalls.size(); i++) {
@@ -200,7 +236,7 @@ void Hand::renderHandSpheres() {
     glPopMatrix();
 }
 
-void Hand::renderFingerTrails() {
+void Hand::renderLeapFingerTrails() {
     // Draw the finger root cones
     for (size_t i = 0; i < getNumPalms(); ++i) {
         PalmData& palm = getPalms()[i];

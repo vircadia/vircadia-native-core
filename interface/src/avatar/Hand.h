@@ -92,8 +92,10 @@ private:
 
     void renderRaveGloveStage();
     void setRaveGloveMode(int mode);
-    void renderHandSpheres();
-    void renderFingerTrails();
+    void renderLeapHandSpheres();
+    void renderLeapHands();
+    void renderLeapHand(PalmData& hand);
+    void renderLeapFingerTrails();
     void calculateGeometry();
 };
 
