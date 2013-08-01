@@ -68,7 +68,7 @@ void loadRandomIdentifier(unsigned char* identifierBuffer, int numBytes);
 const char* getCmdOption(int argc, const char * argv[],const char* option);
 bool cmdOptionExists(int argc, const char * argv[],const char* option);
 
-void sharedMessageHandler(QtMsgType type, const char* message);
+void sharedMessageHandler(QtMsgType type, const QMessageLogContext& context, const QString &message);
 
 struct VoxelDetail {
 	float x;

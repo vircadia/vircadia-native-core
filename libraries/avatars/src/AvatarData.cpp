@@ -132,10 +132,6 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     std::vector<glm::vec3> fingerVectors;
     _handData->encodeRemoteData(fingerVectors);
 
-    /////////////////////////////////
-    // Temporarily disable Leap finger sending, as it's causing a crash whenever someone's got a Leap connected
-    fingerVectors.clear();
-    /////////////////////////////////
     if (fingerVectors.size() > 255)
         fingerVectors.clear(); // safety. We shouldn't ever get over 255, so consider that invalid.
 
@@ -249,8 +245,8 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     _handState = getSemiNibbleAt(bitItems,HAND_STATE_START_BIT);
 
     // leap hand data
-    if (sourceBuffer - startPosition < numBytes)    // safety check
-    {
+    if (sourceBuffer - startPosition < numBytes) {
+        // check passed, bytes match
         unsigned int numFingerVectors = *sourceBuffer++;
         if (numFingerVectors > 0) {
             std::vector<glm::vec3> fingerVectors(numFingerVectors);
@@ -264,8 +260,8 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     }
     
     // skeleton joints
-    if (sourceBuffer - startPosition < numBytes) // safety check
-    {
+    if (sourceBuffer - startPosition < numBytes) {
+        // check passed, bytes match
         _joints.resize(*sourceBuffer++);
         for (vector<JointData>::iterator it = _joints.begin(); it != _joints.end(); it++) {
             it->jointID = *sourceBuffer++;

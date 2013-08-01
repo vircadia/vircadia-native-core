@@ -188,8 +188,8 @@ bool cmdOptionExists(int argc, const char * argv[],const char* option) {
     return false;
 }
 
-void sharedMessageHandler(QtMsgType type, const char* message) {
-    fprintf(stdout, "%s", message);
+void sharedMessageHandler(QtMsgType type, const QMessageLogContext& context, const QString &message) {
+    fprintf(stdout, "%s", message.toLocal8Bit().constData());
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////

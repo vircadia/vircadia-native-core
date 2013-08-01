@@ -19,8 +19,8 @@
 
 #include <opencv2/opencv.hpp>
 
-#ifdef HAVE_OPENNI
-    #include <XnCppWrapper.h>
+#if defined(HAVE_OPENNI) && !defined(Q_MOC_RUN)
+#include <XnCppWrapper.h>
 #endif
 
 #include <vpx_codec.h>
