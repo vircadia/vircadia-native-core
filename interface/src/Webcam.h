@@ -100,16 +100,20 @@ public:
 
 public slots:
     
+    void cycleVideoSendMode();
     void reset();
     void shutdown();
     void grabFrame();
     
 private:
     
+    enum VideoSendMode { NO_VIDEO, FACE_VIDEO, FULL_FRAME_VIDEO, VIDEO_SEND_MODE_COUNT };
+    
     bool init();
     void updateHSVFrame(const cv::Mat& frame, int format);
     
     bool _initialized;
+    VideoSendMode _videoSendMode;
     CvCapture* _capture;
     cv::CascadeClassifier _faceCascade;
     cv::Mat _hsvFrame;
