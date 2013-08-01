@@ -855,6 +855,11 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
     }
 }
 
+const bool MAKE_SOUND_ON_VOXEL_HOVER = false;
+const bool MAKE_SOUND_ON_VOXEL_CLICK = true;
+const float HOVER_VOXEL_FREQUENCY = 14080.f;
+const float HOVER_VOXEL_DECAY = 0.999f;
+
 void Application::mousePressEvent(QMouseEvent* event) {
     if (activeWindow() == _window) {
         if (event->button() == Qt::LeftButton) {
@@ -865,12 +870,12 @@ void Application::mousePressEvent(QMouseEvent* event) {
             _mouseVoxelDragging = _mouseVoxel;
             _mousePressed = true;
             maybeEditVoxelUnderCursor();
-            if (_isHoverVoxel && !_isHoverVoxelSounding) {
+            if (MAKE_SOUND_ON_VOXEL_CLICK && _isHoverVoxel && !_isHoverVoxelSounding) {
                 _hoverVoxelOriginalColor[0] = _hoverVoxel.red;
                 _hoverVoxelOriginalColor[1] = _hoverVoxel.green;
                 _hoverVoxelOriginalColor[2] = _hoverVoxel.blue;
                 _hoverVoxelOriginalColor[3] = 1;
-                _audio.startCollisionSound(1.0, 14080 * _hoverVoxel.s * TREE_SCALE, 0.0, 0.999f);
+                _audio.startCollisionSound(1.0, HOVER_VOXEL_FREQUENCY * _hoverVoxel.s * TREE_SCALE, 0.0, HOVER_VOXEL_DECAY);
                 _isHoverVoxelSounding = true;
             }
             
@@ -2090,18 +2095,17 @@ void Application::update(float deltaTime) {
         if (bright < 0.01f) {
             hoveredNode->setColor(_hoverVoxelOriginalColor);
             _isHoverVoxelSounding = false;
-        }
+        }   
     } else {
         //  Check for a new hover voxel
         glm::vec4 oldVoxel(_hoverVoxel.x, _hoverVoxel.y, _hoverVoxel.z, _hoverVoxel.s);
         _isHoverVoxel = _voxels.findRayIntersection(mouseRayOrigin, mouseRayDirection, _hoverVoxel, distance, face);
-        if (_isHoverVoxel && glm::vec4(_hoverVoxel.x, _hoverVoxel.y, _hoverVoxel.z, _hoverVoxel.s) != oldVoxel) {
-            //qDebug("bing! x,y,z = %f,%f,%f\n", _hoverVoxel.x, _hoverVoxel.y, _hoverVoxel.z);
+        if (MAKE_SOUND_ON_VOXEL_HOVER && _isHoverVoxel && glm::vec4(_hoverVoxel.x, _hoverVoxel.y, _hoverVoxel.z, _hoverVoxel.s) != oldVoxel) {
             _hoverVoxelOriginalColor[0] = _hoverVoxel.red;
             _hoverVoxelOriginalColor[1] = _hoverVoxel.green;
             _hoverVoxelOriginalColor[2] = _hoverVoxel.blue;
             _hoverVoxelOriginalColor[3] = 1;
-            _audio.startCollisionSound(1.0, 14080 * _hoverVoxel.s * TREE_SCALE, 0.0, 0.992f);
+            _audio.startCollisionSound(1.0, HOVER_VOXEL_FREQUENCY * _hoverVoxel.s * TREE_SCALE, 0.0, HOVER_VOXEL_DECAY);
             _isHoverVoxelSounding = true;
         }
     }

@@ -339,7 +339,7 @@ void renderCollisionOverlay(int width, int height, float magnitude) {
 }
 
 void renderGroundPlaneGrid(float size, float impact) {
-    float IMPACT_SOUND_MAGNITUDE_FOR_RECOLOR = 0.3f;
+    float IMPACT_SOUND_MAGNITUDE_FOR_RECOLOR = 1.f;
 	glLineWidth(2.0);
     glm::vec4 impactColor(1, 0, 0, 1);
     glm::vec3 lineColor(0.4, 0.5, 0.3);
