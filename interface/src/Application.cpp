@@ -75,8 +75,6 @@ using namespace std;
 static char STAR_FILE[] = "http://s3-us-west-1.amazonaws.com/highfidelity/stars.txt";
 static char STAR_CACHE_FILE[] = "cachedStars.txt";
 
-static const bool TESTING_PARTICLE_SYSTEM = true;
-
 static const int BANDWIDTH_METER_CLICK_MAX_DRAG_LENGTH = 6; // farther dragged clicks are ignored 
 
 const glm::vec3 START_LOCATION(4.f, 0.f, 5.f);   //  Where one's own node begins in the world
@@ -203,6 +201,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _mouseVoxelScale(1.0f / 1024.0f),
         _justEditedVoxel(false),
         _isLookingAtOtherAvatar(false),
+        _lookatIndicatorScale(1.0f),
         _paintOn(false),
         _dominantColor(0),
         _perfStatsOn(false),
@@ -406,7 +405,7 @@ void Application::paintGL() {
     
     } else if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
         _myCamera.setTightness(0.0f);  //  In first person, camera follows head exactly without delay
-        _myCamera.setTargetPosition(_myAvatar.getUprightHeadPosition());
+        _myCamera.setTargetPosition(_myAvatar.getUprightEyeLevelPosition());
         _myCamera.setTargetRotation(_myAvatar.getHead().getCameraOrientation());
         
     } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
@@ -564,6 +563,11 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 setMenuShortcutsEnabled(true);
             }
             return;
+        }
+
+        //this is for switching between modes for the leap rave glove test
+        if (_simulateLeapHand->isChecked() || _testRaveGlove->isChecked()) {
+            _myAvatar.getHand().setRaveGloveEffectsMode((QKeyEvent*)event);
         }
         
         bool shifted = event->modifiers().testFlag(Qt::ShiftModifier);
@@ -1496,11 +1500,11 @@ bool Application::sendVoxelsOperation(VoxelNode* node, void* extraData) {
             int usecToSleep =  CLIENT_TO_SERVER_VOXEL_SEND_INTERVAL_USECS - elapsed;
             if (usecToSleep > 0) {
                 qDebug("sendVoxelsOperation: packet: %d bytes:%lld elapsed %lld usecs, sleeping for %d usecs!\n",
-                       args->packetsSent, args->bytesSent, elapsed, usecToSleep);
+                       args->packetsSent, (long long int)args->bytesSent, (long long int)elapsed, usecToSleep);
                 usleep(usecToSleep);
             } else {
                 qDebug("sendVoxelsOperation: packet: %d bytes:%lld elapsed %lld usecs, no need to sleep!\n",
-                       args->packetsSent, args->bytesSent, elapsed);
+                       args->packetsSent, (long long int)args->bytesSent, (long long int)elapsed);
             }
             args->lastSendTime = now;
         }
@@ -1685,7 +1689,7 @@ void Application::pasteVoxels() {
         controlledBroadcastToNodes(args.messageBuffer, args.bufferInUse, & NODE_TYPE_VOXEL_SERVER, 1);
         qDebug("sending packet: %d\n", ++args.packetsSent);
         args.bytesSent += args.bufferInUse;
-        qDebug("total bytes sent: %lld\n", args.bytesSent);
+        qDebug("total bytes sent: %lld\n", (long long int)args.bytesSent);
     }
     
     if (calculatedOctCode) {
@@ -1750,6 +1754,8 @@ void Application::initMenu() {
     _renderLookatOn->setChecked(false);
     (_renderLookatIndicatorOn = renderMenu->addAction("Lookat Indicator"))->setCheckable(true);
     _renderLookatIndicatorOn->setChecked(true);
+    (_renderParticleSystemOn = renderMenu->addAction("Particle System"))->setCheckable(true);
+    _renderParticleSystemOn->setChecked(true);
     (_manualFirstPerson = renderMenu->addAction(
         "First Person", this, SLOT(setRenderFirstPerson(bool)), Qt::Key_P))->setCheckable(true);
     (_manualThirdPerson = renderMenu->addAction(
@@ -1854,6 +1860,11 @@ void Application::initMenu() {
     (_simulateLeapHand = debugMenu->addAction("Simulate Leap Hand"))->setCheckable(true);
     (_testRaveGlove = debugMenu->addAction("Test RaveGlove"))->setCheckable(true);
 
+    QMenu* audioDebugMenu = debugMenu->addMenu("Audio Debugging Tools");
+    audioDebugMenu->addAction("Listen Mode Normal", this, SLOT(setListenModeNormal()), Qt::CTRL | Qt::Key_1);
+    audioDebugMenu->addAction("Listen Mode Point/Radius", this, SLOT(setListenModePoint()), Qt::CTRL | Qt::Key_2);
+    audioDebugMenu->addAction("Listen Mode Single Source", this, SLOT(setListenModeSingleSource()), Qt::CTRL | Qt::Key_3);
+
     QMenu* settingsMenu = menuBar->addMenu("Settings");
     (_settingsAutosave = settingsMenu->addAction("Autosave"))->setCheckable(true);
     _settingsAutosave->setChecked(true);
@@ -1864,6 +1875,30 @@ void Application::initMenu() {
     
     _networkAccessManager = new QNetworkAccessManager(this);
 }
+
+void Application::setListenModeNormal() {
+    _audio.setListenMode(AudioRingBuffer::NORMAL);
+}
+
+void Application::setListenModePoint() {
+    _audio.setListenMode(AudioRingBuffer::OMNI_DIRECTIONAL_POINT);
+    _audio.setListenRadius(1.0);
+}
+
+void Application::setListenModeSingleSource() {
+    _audio.setListenMode(AudioRingBuffer::SELECTED_SOURCES);
+    _audio.clearListenSources();
+
+    glm::vec3 mouseRayOrigin = _myAvatar.getMouseRayOrigin();
+    glm::vec3 mouseRayDirection  = _myAvatar.getMouseRayDirection();
+    glm::vec3 eyePositionIgnored;
+    uint16_t nodeID;
+
+    if (isLookingAtOtherAvatar(mouseRayOrigin, mouseRayDirection, eyePositionIgnored, nodeID)) {
+        _audio.addListenSource(nodeID);
+    }
+}
+
 
 void Application::updateFrustumRenderModeAction() {
     switch (_frustumDrawingMode) {
@@ -1953,7 +1988,13 @@ const float MAX_AVATAR_EDIT_VELOCITY = 1.0f;
 const float MAX_VOXEL_EDIT_DISTANCE = 20.0f;
 const float HEAD_SPHERE_RADIUS = 0.07;
 
-bool Application::isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection, glm::vec3& eyePosition) {
+
+static uint16_t DEFAULT_NODE_ID_REF = 1;
+
+
+bool Application::isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection, 
+                                         glm::vec3& eyePosition, uint16_t& nodeID = DEFAULT_NODE_ID_REF) {
+                                         
     NodeList* nodeList = NodeList::getInstance();
     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
         if (node->getLinkedData() != NULL && node->getType() == NODE_TYPE_AGENT) {
@@ -1961,7 +2002,9 @@ bool Application::isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3& m
             glm::vec3 headPosition = avatar->getHead().getPosition();
             if (rayIntersectsSphere(mouseRayOrigin, mouseRayDirection, headPosition, HEAD_SPHERE_RADIUS)) {
                 eyePosition = avatar->getHead().getEyeLevelPosition();
+                _lookatIndicatorScale = avatar->getScale();
                 _lookatOtherPosition = headPosition;
+                nodeID = avatar->getOwningNode()->getNodeID();
                 return true;
             }
         }
@@ -1971,11 +2014,13 @@ bool Application::isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3& m
 
 void Application::renderLookatIndicator(glm::vec3 pointOfInterest, Camera& whichCamera) {
 
-    const float DISTANCE_FROM_HEAD_SPHERE = 0.1f;
+    const float DISTANCE_FROM_HEAD_SPHERE = 0.1f * _lookatIndicatorScale;
+    const float INDICATOR_RADIUS = 0.1f * _lookatIndicatorScale;
     const float YELLOW[] = { 1.0f, 1.0f, 0.0f };
+    const int NUM_SEGMENTS = 30;
     glm::vec3 haloOrigin(pointOfInterest.x, pointOfInterest.y + DISTANCE_FROM_HEAD_SPHERE, pointOfInterest.z);
     glColor3f(YELLOW[0], YELLOW[1], YELLOW[2]);
-    renderCircle(haloOrigin, 0.1f, glm::vec3(0.0f, 1.0f, 0.0f), 30);
+    renderCircle(haloOrigin, INDICATOR_RADIUS, IDENTITY_UP, NUM_SEGMENTS);
 }
 
 void Application::update(float deltaTime) {
@@ -2005,7 +2050,9 @@ void Application::update(float deltaTime) {
     
     // Set where I am looking based on my mouse ray (so that other people can see)
     glm::vec3 eyePosition;
-    if ((_isLookingAtOtherAvatar = isLookingAtOtherAvatar(mouseRayOrigin, mouseRayDirection, eyePosition))) {
+
+    _isLookingAtOtherAvatar = isLookingAtOtherAvatar(mouseRayOrigin, mouseRayDirection, eyePosition);
+    if (_isLookingAtOtherAvatar) {
         // If the mouse is over another avatar's head...
         glm::vec3 myLookAtFromMouse(eyePosition);
          _myAvatar.getHead().setLookAtPosition(myLookAtFromMouse);
@@ -2022,7 +2069,7 @@ void Application::update(float deltaTime) {
         glm::vec3 front = orientation * IDENTITY_FRONT;
         glm::vec3 up = orientation * IDENTITY_UP;
         glm::vec3 towardVoxel = getMouseVoxelWorldCoordinates(_mouseVoxelDragging)
-                                - _myAvatar.getCameraPosition(); // is this an error? getCameraPosition dne
+                                - _myAvatar.getCameraPosition();
         towardVoxel = front * glm::length(towardVoxel);
         glm::vec3 lateralToVoxel = glm::cross(up, glm::normalize(towardVoxel)) * glm::length(towardVoxel);
         _voxelThrust = glm::vec3(0, 0, 0);
@@ -2221,7 +2268,7 @@ void Application::update(float deltaTime) {
     _audio.eventuallyAnalyzePing();
     #endif
     
-    if (TESTING_PARTICLE_SYSTEM) {
+    if (_renderParticleSystemOn->isChecked()) {
         updateParticleSystem(deltaTime);
     }        
 }
@@ -2270,7 +2317,9 @@ void Application::updateAvatar(float deltaTime) {
         _viewFrustum.computePickRay(MIDPOINT_OF_SCREEN, MIDPOINT_OF_SCREEN, screenCenterRayOrigin, screenCenterRayDirection);
 
         glm::vec3 eyePosition;
-        if ((_isLookingAtOtherAvatar = isLookingAtOtherAvatar(screenCenterRayOrigin, screenCenterRayDirection, eyePosition))) {
+        
+        _isLookingAtOtherAvatar = isLookingAtOtherAvatar(screenCenterRayOrigin, screenCenterRayDirection, eyePosition);
+        if (_isLookingAtOtherAvatar) {
             glm::vec3 myLookAtFromMouse(eyePosition);
             _myAvatar.getHead().setLookAtPosition(myLookAtFromMouse);
         }
@@ -2298,7 +2347,7 @@ void Application::updateAvatar(float deltaTime) {
     // actually need to calculate the view frustum planes to send these details 
     // to the server.
     loadViewFrustum(_myCamera, _viewFrustum);
-    _myAvatar.setCameraPosition(_viewFrustum.getPosition()); // setCameraPosition() dne
+    _myAvatar.setCameraPosition(_viewFrustum.getPosition());
     _myAvatar.setCameraOrientation(_viewFrustum.getOrientation());
     _myAvatar.setCameraFov(_viewFrustum.getFieldOfView());
     _myAvatar.setCameraAspectRatio(_viewFrustum.getAspectRatio());
@@ -2308,7 +2357,7 @@ void Application::updateAvatar(float deltaTime) {
     NodeList* nodeList = NodeList::getInstance();
     if (nodeList->getOwnerID() != UNKNOWN_NODE_ID) {
         // if I know my ID, send head/hand data to the avatar mixer and voxel server
-        unsigned char broadcastString[200];
+        unsigned char broadcastString[MAX_PACKET_SIZE];
         unsigned char* endOfBroadcastStringWrite = broadcastString;
         
         endOfBroadcastStringWrite += populateTypeAndVersion(endOfBroadcastStringWrite, PACKET_TYPE_HEAD_DATA);
@@ -2627,13 +2676,14 @@ void Application::displaySide(Camera& whichCamera) {
     if (_mouseVoxel.s != 0) {
         glDisable(GL_LIGHTING);
         glPushMatrix();
+        glScalef(TREE_SCALE, TREE_SCALE, TREE_SCALE);
+        renderMouseVoxelGrid(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
         if (_addVoxelMode->isChecked()) {
             // use a contrasting color so that we can see what we're doing
             glColor3ub(_mouseVoxel.red + 128, _mouseVoxel.green + 128, _mouseVoxel.blue + 128);
         } else {
             glColor3ub(_mouseVoxel.red, _mouseVoxel.green, _mouseVoxel.blue);
         }
-        glScalef(TREE_SCALE, TREE_SCALE, TREE_SCALE);
         glTranslatef(_mouseVoxel.x + _mouseVoxel.s*0.5f,
                      _mouseVoxel.y + _mouseVoxel.s*0.5f,
                      _mouseVoxel.z + _mouseVoxel.s*0.5f);
@@ -2668,25 +2718,23 @@ void Application::displaySide(Camera& whichCamera) {
             _myAvatar.getHead().setLookAtPosition(_myCamera.getPosition());
         } 
         _myAvatar.render(_lookingInMirror->isChecked(), _renderAvatarBalls->isChecked());
-        _myAvatar.setDisplayingLookatVectors(_renderLookatOn->isChecked());
 
         if (_renderLookatIndicatorOn->isChecked() && _isLookingAtOtherAvatar) {
             renderLookatIndicator(_lookatOtherPosition, whichCamera);
         }
     }
 
-    if (TESTING_PARTICLE_SYSTEM) {
+    if (_renderParticleSystemOn->isChecked()) {
         if (_particleSystemInitialized) {
             _particleSystem.render();    
         }
     }
-    
+
     //  Render the world box
     if (!_lookingInMirror->isChecked() && _renderStatsOn->isChecked()) { render_world_box(); }
     
     // brad's frustum for debugging
     if (_frustumOn->isChecked()) renderViewFrustum(_viewFrustum);
-    
 }
 
 void Application::displayOverlay() {
@@ -3609,56 +3657,57 @@ void Application::exportSettings() {
 }
 
 
-
 void Application::updateParticleSystem(float deltaTime) {
 
     if (!_particleSystemInitialized) {
+    
+        const int   LIFESPAN_IN_SECONDS  = 100000.0f;
+        const float EMIT_RATE_IN_SECONDS = 10000.0;
         // create a stable test emitter and spit out a bunch of particles
         _coolDemoParticleEmitter = _particleSystem.addEmitter();
-        
+                
         if (_coolDemoParticleEmitter != -1) {
+                
             _particleSystem.setShowingEmitter(_coolDemoParticleEmitter, true);
             glm::vec3 particleEmitterPosition = glm::vec3(5.0f, 1.0f, 5.0f);   
-            _particleSystem.setEmitterPosition(_coolDemoParticleEmitter, particleEmitterPosition);
-            glm::vec3 velocity(0.0f, 0.1f, 0.0f);
-            float lifespan = 100000.0f;
-            _particleSystem.emitParticlesNow(_coolDemoParticleEmitter, 1500, velocity, lifespan);   
+            
+            _particleSystem.setEmitterPosition        (_coolDemoParticleEmitter, particleEmitterPosition);
+            _particleSystem.setEmitterParticleLifespan(_coolDemoParticleEmitter, LIFESPAN_IN_SECONDS);
+            _particleSystem.setEmitterThrust          (_coolDemoParticleEmitter, 0.0f);
+            _particleSystem.setEmitterRate            (_coolDemoParticleEmitter, EMIT_RATE_IN_SECONDS); // to emit a pile o particles now
         }
         
         // signal that the particle system has been initialized 
         _particleSystemInitialized = true;         
     } else {
         // update the particle system
-        
-        static float t = 0.0f;
-        t += deltaTime;
+         
+        static bool emitting = true;
+        static float effectsTimer = 0.0f;
+        effectsTimer += deltaTime;
         
         if (_coolDemoParticleEmitter != -1) {
                        
-           glm::vec3 tilt = glm::vec3
-            (
-                30.0f * sinf( t * 0.55f ),
-                0.0f,
-                30.0f * cosf( t * 0.75f )
-            );
-         
-            _particleSystem.setEmitterRotation(_coolDemoParticleEmitter, glm::quat(glm::radians(tilt)));
+            _particleSystem.setEmitterDirection(_coolDemoParticleEmitter, glm::vec3(0.0f, 1.0f, 0.0f));
             
             ParticleSystem::ParticleAttributes attributes;
 
             attributes.radius                  = 0.01f;
             attributes.color                   = glm::vec4( 1.0f, 1.0f, 1.0f, 1.0f);
-            attributes.gravity                 = 0.0f   + 0.05f  * sinf( t * 0.52f );
-            attributes.airFriction             = 2.5    + 2.0f   * sinf( t * 0.32f );
-            attributes.jitter                  = 0.05f  + 0.05f  * sinf( t * 0.42f );
-            attributes.emitterAttraction       = 0.015f + 0.015f * cosf( t * 0.6f  );
-            attributes.tornadoForce            = 0.0f   + 0.03f  * sinf( t * 0.7f  );
-            attributes.neighborAttraction      = 0.1f   + 0.1f   * cosf( t * 0.8f  );
-            attributes.neighborRepulsion       = 0.2f   + 0.2f   * sinf( t * 0.4f  );
+            attributes.gravity                 = 0.0f   + 0.05f  * sinf( effectsTimer * 0.52f );
+            attributes.airFriction             = 2.5    + 2.0f   * sinf( effectsTimer * 0.32f );
+            attributes.jitter                  = 0.05f  + 0.05f  * sinf( effectsTimer * 0.42f );
+            attributes.emitterAttraction       = 0.015f + 0.015f * cosf( effectsTimer * 0.6f  );
+            attributes.tornadoForce            = 0.0f   + 0.03f  * sinf( effectsTimer * 0.7f  );
+            attributes.neighborAttraction      = 0.1f   + 0.1f   * cosf( effectsTimer * 0.8f  );
+            attributes.neighborRepulsion       = 0.2f   + 0.2f   * sinf( effectsTimer * 0.4f  );
             attributes.bounce                  = 1.0f;
             attributes.usingCollisionSphere    = true;
             attributes.collisionSpherePosition = glm::vec3( 5.0f, 0.5f, 5.0f );
             attributes.collisionSphereRadius   = 0.5f;
+            attributes.usingCollisionPlane     = true;
+            attributes.collisionPlanePosition  = glm::vec3( 5.0f, 0.0f, 5.0f );
+            attributes.collisionPlaneNormal    = glm::vec3( 0.0f, 1.0f, 0.0f );
             
             if (attributes.gravity < 0.0f) {
                 attributes.gravity = 0.0f;
@@ -3669,6 +3718,15 @@ void Application::updateParticleSystem(float deltaTime) {
         
         _particleSystem.setUpDirection(glm::vec3(0.0f, 1.0f, 0.0f));  
         _particleSystem.simulate(deltaTime); 
+        
+        const float EMIT_RATE_IN_SECONDS = 0.0;
+
+        if (_coolDemoParticleEmitter != -1) {
+            if (emitting) {
+                _particleSystem.setEmitterRate(_coolDemoParticleEmitter, EMIT_RATE_IN_SECONDS); // stop emitter
+                emitting = false;
+            }
+        }
     }
 }
 

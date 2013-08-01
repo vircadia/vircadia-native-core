@@ -8,6 +8,7 @@
 #ifndef hifi_Hand_h
 #define hifi_Hand_h
 
+#include <QAction>
 #include <glm/glm.hpp>
 #include <AvatarData.h>
 #include <HandData.h>
@@ -21,6 +22,22 @@
 
 class Avatar;
 class ProgramObject;
+
+enum RaveGloveEffectsMode
+{
+	RAVE_GLOVE_EFFECTS_MODE_NULL = -1,
+	RAVE_GLOVE_EFFECTS_MODE_THROBBING_COLOR,
+	RAVE_GLOVE_EFFECTS_MODE_TRAILS,
+	RAVE_GLOVE_EFFECTS_MODE_FIRE,
+	RAVE_GLOVE_EFFECTS_MODE_WATER,
+	RAVE_GLOVE_EFFECTS_MODE_FLASHY,
+	RAVE_GLOVE_EFFECTS_MODE_BOZO_SPARKLER,
+	RAVE_GLOVE_EFFECTS_MODE_LONG_SPARKLER,
+	RAVE_GLOVE_EFFECTS_MODE_SNAKE,
+	RAVE_GLOVE_EFFECTS_MODE_PULSE,
+	RAVE_GLOVE_EFFECTS_MODE_THROB,
+	NUM_RAVE_GLOVE_EFFECTS_MODES
+};
 
 class Hand : public HandData {
 public:
@@ -42,9 +59,10 @@ public:
     void render(bool lookingInMirror);
 
     void setBallColor      (glm::vec3 ballColor         ) { _ballColor          = ballColor;          }
-    void updateFingerParticles(float deltaTime);
+    void updateRaveGloveParticles(float deltaTime);
+    void updateRaveGloveEmitters();
     void setRaveGloveActive(bool active) { _isRaveGloveActive = active; }
-
+    void setRaveGloveEffectsMode(QKeyEvent* event);
 
     // getters
     const glm::vec3& getLeapBallPosition       (int ball)       const { return _leapBalls[ball].position;}
@@ -55,20 +73,25 @@ private:
     Hand(const Hand&);
     Hand& operator= (const Hand&);
     
-    ParticleSystem _particleSystem;
+    ParticleSystem _raveGloveParticleSystem;
+    float          _raveGloveClock;
+    int            _raveGloveMode;
+    bool           _raveGloveInitialized;
+    int            _raveGloveEmitter[NUM_FINGERS];
+    bool           _isRaveGloveActive;
 
-    Avatar*     _owningAvatar;
-    float       _renderAlpha;
-    bool        _lookingInMirror;
-    bool        _isRaveGloveActive;
-    glm::vec3   _ballColor;
-    std::vector<HandBall>	_leapBalls;
-    
-    bool _particleSystemInitialized;
-    int  _fingerParticleEmitter[NUM_FINGERS_PER_HAND];
+    Avatar*        _owningAvatar;
+    float          _renderAlpha;
+    bool           _lookingInMirror;
+    glm::vec3      _ballColor;
+    std::vector<HandBall> _leapBalls;
     
     // private methods
+    void setLeapHands(const std::vector<glm::vec3>& handPositions,
+                      const std::vector<glm::vec3>& handNormals);
+
     void renderRaveGloveStage();
+    void setRaveGloveMode(int mode);
     void renderHandSpheres();
     void renderFingerTrails();
     void calculateGeometry();

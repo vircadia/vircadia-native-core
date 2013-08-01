@@ -354,6 +354,12 @@ int NodeList::processDomainServerList(unsigned char* packetData, size_t dataByte
         readPtr += unpackSocket(readPtr, (sockaddr*) &nodePublicSocket);
         readPtr += unpackSocket(readPtr, (sockaddr*) &nodeLocalSocket);
         
+        // if the public socket address is 0 then it's reachable at the same IP
+        // as the domain server
+        if (nodePublicSocket.sin_addr.s_addr == 0) {
+            inet_aton(_domainIP, &nodePublicSocket.sin_addr);
+        }
+        
         addOrUpdateNode((sockaddr*) &nodePublicSocket, (sockaddr*) &nodeLocalSocket, nodeType, nodeId);
     }
     
