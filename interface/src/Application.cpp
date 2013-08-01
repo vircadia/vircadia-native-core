@@ -2324,19 +2324,17 @@ void Application::update(float deltaTime) {
 
 void Application::updateAvatar(float deltaTime) {
     
-    // When head is rotated via touch/mouse look, slowly turn body to follow
-    const float BODY_FOLLOW_HEAD_RATE = 0.5f;
-    // update body yaw by body yaw delta
+    // rotate body yaw for yaw received from multitouch
     _myAvatar.setOrientation(_myAvatar.getOrientation()
-                             * glm::quat(glm::vec3(0, _yawFromTouch * deltaTime * BODY_FOLLOW_HEAD_RATE, 0) * deltaTime));
-    _yawFromTouch -= _yawFromTouch * deltaTime * BODY_FOLLOW_HEAD_RATE;
+                             * glm::quat(glm::vec3(0, _yawFromTouch * deltaTime, 0)));
+    _yawFromTouch = 0.f;
     
     // Update my avatar's state from gyros and/or webcam
     _myAvatar.updateFromGyrosAndOrWebcam(_gyroLook->isChecked(),
                                          glm::vec3(_headCameraPitchYawScale,
                                                    _headCameraPitchYawScale,
                                                    _headCameraPitchYawScale),
-                                         _yawFromTouch,
+                                         0.f,
                                          _pitchFromTouch);
         
     if (_serialHeadSensor.isActive()) {
