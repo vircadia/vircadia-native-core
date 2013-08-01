@@ -2723,13 +2723,14 @@ void Application::displaySide(Camera& whichCamera) {
     if (_mouseVoxel.s != 0) {
         glDisable(GL_LIGHTING);
         glPushMatrix();
+        glScalef(TREE_SCALE, TREE_SCALE, TREE_SCALE);
+        renderMouseVoxelGrid(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
         if (_addVoxelMode->isChecked()) {
             // use a contrasting color so that we can see what we're doing
             glColor3ub(_mouseVoxel.red + 128, _mouseVoxel.green + 128, _mouseVoxel.blue + 128);
         } else {
             glColor3ub(_mouseVoxel.red, _mouseVoxel.green, _mouseVoxel.blue);
         }
-        glScalef(TREE_SCALE, TREE_SCALE, TREE_SCALE);
         glTranslatef(_mouseVoxel.x + _mouseVoxel.s*0.5f,
                      _mouseVoxel.y + _mouseVoxel.s*0.5f,
                      _mouseVoxel.z + _mouseVoxel.s*0.5f);
