@@ -1728,6 +1728,7 @@ void Application::initMenu() {
     _testPing->setChecked(true);
     (_fullScreenMode = optionsMenu->addAction("Fullscreen", this, SLOT(setFullscreen(bool)), Qt::Key_F))->setCheckable(true);
     optionsMenu->addAction("Webcam", &_webcam, SLOT(setEnabled(bool)))->setCheckable(true);
+    optionsMenu->addAction("Toggle Skeleton Tracking", &_webcam, SLOT(toggleSkeletonTracking(bool)))->setCheckable(true);
     optionsMenu->addAction("Go Home", this, SLOT(goHome()));
     
     QMenu* renderMenu = menuBar->addMenu("Render");

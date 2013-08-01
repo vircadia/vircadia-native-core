@@ -32,7 +32,7 @@ int jointVectorMetaType = qRegisterMetaType<JointVector>("JointVector");
 int matMetaType = qRegisterMetaType<Mat>("cv::Mat");
 int rotatedRectMetaType = qRegisterMetaType<RotatedRect>("cv::RotatedRect");
 
-Webcam::Webcam() : _enabled(false), _active(false), _colorTextureID(0), _depthTextureID(0) {
+Webcam::Webcam() : _enabled(false), _active(false), _colorTextureID(0), _depthTextureID(0), _skeletonTrackingOn(false) {
     // the grabber simply runs as fast as possible
     _grabber = new FrameGrabber();
     _grabber->moveToThread(&_grabberThread);
@@ -194,7 +194,7 @@ void Webcam::setFrame(const Mat& color, int format, const Mat& depth, float mean
     
     // store our face rect and joints, update our frame count for fps computation
     _faceRect = faceRect;
-    _joints = joints;
+    if (_skeletonTrackingOn) _joints = joints;
     _frameCount++;
     
     const int MAX_FPS = 60;

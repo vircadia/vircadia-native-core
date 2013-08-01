@@ -45,7 +45,7 @@ public:
     ~Webcam();
 
     bool isActive() const { return _active; }
-    
+
     GLuint getColorTextureID() const { return _colorTextureID; }
     GLuint getDepthTextureID() const { return _depthTextureID; }
     const cv::Size2f& getTextureSize() const { return _textureSize; }
@@ -57,13 +57,14 @@ public:
     const JointVector& getEstimatedJoints() const { return _estimatedJoints; }
 
     void reset();
-    void renderPreview(int screenWidth, int screenHeight);
+    void renderPreview(int screenWidth, int screenHeight);  
 
 public slots:
     
     void setEnabled(bool enabled);
     void setFrame(const cv::Mat& color, int format, const cv::Mat& depth, float meanFaceDepth,
         const cv::RotatedRect& faceRect, const JointVector& joints);
+    void toggleSkeletonTracking(bool toggle) { _skeletonTrackingOn = toggle; };
 
 private:
     
@@ -88,6 +89,8 @@ private:
     glm::vec3 _estimatedPosition;
     glm::vec3 _estimatedRotation;
     JointVector _estimatedJoints;
+
+    bool _skeletonTrackingOn;
 };
 
 class FrameGrabber : public QObject {
