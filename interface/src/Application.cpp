@@ -2357,7 +2357,7 @@ void Application::updateAvatar(float deltaTime) {
     NodeList* nodeList = NodeList::getInstance();
     if (nodeList->getOwnerID() != UNKNOWN_NODE_ID) {
         // if I know my ID, send head/hand data to the avatar mixer and voxel server
-        unsigned char broadcastString[200];
+        unsigned char broadcastString[MAX_PACKET_SIZE];
         unsigned char* endOfBroadcastStringWrite = broadcastString;
         
         endOfBroadcastStringWrite += populateTypeAndVersion(endOfBroadcastStringWrite, PACKET_TYPE_HEAD_DATA);
