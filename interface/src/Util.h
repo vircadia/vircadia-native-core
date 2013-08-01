@@ -59,8 +59,9 @@ double diffclock(timeval *clock1,timeval *clock2);
 
 void renderGroundPlaneGrid(float size, float impact);
 
-void renderCollisionOverlay(int width, int height, float magnitude);
+void renderMouseVoxelGrid(const float& mouseVoxelX, const float& mouseVoxelY, const float& mouseVoxelZ, const float& mouseVoxelS);
 
+void renderCollisionOverlay(int width, int height, float magnitude);
 
 void renderDiskShadow(glm::vec3 position, glm::vec3 upDirection, float radius, float darkness);
 

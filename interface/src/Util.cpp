@@ -365,7 +365,33 @@ void renderGroundPlaneGrid(float size, float impact) {
     glEnd();
 }
 
+void renderMouseVoxelGrid(const float& mouseVoxelX, const float& mouseVoxelY, const float& mouseVoxelZ, const float& mouseVoxelS) {
+    glm::vec3 origin = glm::vec3(mouseVoxelX, mouseVoxelY, mouseVoxelZ);
 
+    glLineWidth(3.0);
+    
+    const int HALF_GRID_DIMENSIONS = 4;
+    glBegin(GL_LINES);
+
+    glm::vec3 xColor(0.0, 0.6, 0.0);
+    glColor3fv(&xColor.x);
+
+    glVertex3f(origin.x + HALF_GRID_DIMENSIONS * mouseVoxelS, 0, origin.z);
+    glVertex3f(origin.x - HALF_GRID_DIMENSIONS * mouseVoxelS, 0, origin.z);
+
+    glm::vec3 zColor(0.0, 0.0, 0.6);
+    glColor3fv(&zColor.x);
+
+    glVertex3f(origin.x, 0, origin.z + HALF_GRID_DIMENSIONS * mouseVoxelS);
+    glVertex3f(origin.x, 0, origin.z - HALF_GRID_DIMENSIONS * mouseVoxelS);
+
+    glm::vec3 yColor(0.6, 0.0, 0.0);
+    glColor3fv(&yColor.x);
+
+    glVertex3f(origin.x, 0, origin.z);
+    glVertex3f(origin.x, origin.y, origin.z);
+    glEnd();
+}
 
 void renderDiskShadow(glm::vec3 position, glm::vec3 upDirection, float radius, float darkness) {
 
