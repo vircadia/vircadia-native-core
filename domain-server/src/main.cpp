@@ -55,10 +55,10 @@ int main(int argc, const char * argv[])
 	// domain server
 	bool isLocalMode = cmdOptionExists(argc, argv, "--local");
 	if (isLocalMode) {
-		printf("NOTE: Running in Local Mode!\n");
+		printf("NOTE: Running in local mode!\n");
 	} else {
 		printf("--------------------------------------------------\n");
-		printf("NOTE: Running in EC2 Mode. \n");
+		printf("NOTE: Not running in local mode. \n");
 		printf("If you're a developer testing a local system, you\n");
 		printf("probably want to include --local on command line.\n");
 		printf("--------------------------------------------------\n");
