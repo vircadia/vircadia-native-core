@@ -57,8 +57,11 @@ void Webcam::setEnabled(bool enabled) {
     }
 }
 
+const float UNINITIALIZED_FACE_DEPTH = 0.0f;
+
 void Webcam::reset() {
     _initialFaceRect = RotatedRect();
+    _initialFaceDepth = UNINITIALIZED_FACE_DEPTH;
     
     if (_enabled) {
         // send a message to the grabber
@@ -149,7 +152,10 @@ Webcam::~Webcam() {
     delete _grabber;
 }
 
-void Webcam::setFrame(const Mat& color, int format, const Mat& depth, const RotatedRect& faceRect, const JointVector& joints) {
+const float METERS_PER_MM = 1.0f / 1000.0f;
+
+void Webcam::setFrame(const Mat& color, int format, const Mat& depth, float meanFaceDepth,
+        const RotatedRect& faceRect, const JointVector& joints) {
     IplImage colorImage = color;
     glPixelStorei(GL_UNPACK_ROW_LENGTH, colorImage.widthStep / 3);
     if (_colorTextureID == 0) {
@@ -232,22 +238,28 @@ void Webcam::setFrame(const Mat& color, int format, const Mat& depth, const Rota
         const float ROTATION_SMOOTHING = 0.95f;
         _estimatedRotation.z = glm::mix(_faceRect.angle, _estimatedRotation.z, ROTATION_SMOOTHING);
         
-        // determine position based on translation and scaling of the face rect
+        // determine position based on translation and scaling of the face rect/mean face depth
         if (_initialFaceRect.size.area() == 0) {
             _initialFaceRect = _faceRect;
             _estimatedPosition = glm::vec3();
+            _initialFaceDepth = meanFaceDepth;
         
         } else {
-            float proportion = sqrtf(_initialFaceRect.size.area() / (float)_faceRect.size.area());
-            const float DISTANCE_TO_CAMERA = 0.333f;
+            float proportion, z;
+            if (meanFaceDepth == UNINITIALIZED_FACE_DEPTH) {
+                proportion = sqrtf(_initialFaceRect.size.area() / (float)_faceRect.size.area());
+                const float INITIAL_DISTANCE_TO_CAMERA = 0.333f;
+                z = INITIAL_DISTANCE_TO_CAMERA * proportion - INITIAL_DISTANCE_TO_CAMERA;           
+                   
+            } else {
+                z = (meanFaceDepth - _initialFaceDepth) * METERS_PER_MM;    
+                proportion = meanFaceDepth / _initialFaceDepth;
+            }
             const float POSITION_SCALE = 0.5f;
-            float z = DISTANCE_TO_CAMERA * proportion - DISTANCE_TO_CAMERA;
-            glm::vec3 position = glm::vec3(
+            _estimatedPosition = glm::vec3(
                 (_faceRect.center.x - _initialFaceRect.center.x) * proportion * POSITION_SCALE / _textureSize.width,
                 (_faceRect.center.y - _initialFaceRect.center.y) * proportion * POSITION_SCALE / _textureSize.width,
                 z);
-            const float POSITION_SMOOTHING = 0.95f;
-            _estimatedPosition = glm::mix(position, _estimatedPosition, POSITION_SMOOTHING);
         }
     }
     
@@ -259,7 +271,7 @@ void Webcam::setFrame(const Mat& color, int format, const Mat& depth, const Rota
 }
 
 FrameGrabber::FrameGrabber() : _initialized(false), _capture(0), _searchWindow(0, 0, 0, 0),
-    _depthOffset(0.0), _codec(), _frameCount(0) {
+    _smoothedMeanFaceDepth(UNINITIALIZED_FACE_DEPTH), _colorCodec(), _depthCodec(), _frameCount(0) {
 }
 
 FrameGrabber::~FrameGrabber() {
@@ -367,9 +379,13 @@ void FrameGrabber::shutdown() {
         cvReleaseCapture(&_capture);
         _capture = 0;
     }
-    if (_codec.name != 0) {
-        vpx_codec_destroy(&_codec);
-        _codec.name = 0;
+    if (_colorCodec.name != 0) {
+        vpx_codec_destroy(&_colorCodec);
+        _colorCodec.name = 0;
+    }
+    if (_depthCodec.name != 0) {
+        vpx_codec_destroy(&_depthCodec);
+        _depthCodec.name = 0;
     }
     _initialized = false;
     
@@ -423,7 +439,6 @@ void FrameGrabber::grabFrame() {
                         _userID, (XnSkeletonJoint)parentJoint, parentOrientation);
                     rotation = glm::inverse(xnToGLM(parentOrientation.orientation)) * rotation;
                 }
-                const float METERS_PER_MM = 1.0f / 1000.0f;
                 joints[avatarJoint] = Joint(xnToGLM(transform.position.position, true) * METERS_PER_MM,
                     rotation, xnToGLM(projected));
             }
@@ -480,31 +495,23 @@ void FrameGrabber::grabFrame() {
         _searchWindow = Rect(clip(faceBounds.tl(), imageBounds), clip(faceBounds.br(), imageBounds));
     }
 
-#ifdef HAVE_OPENNI
-    if (_depthGenerator.IsValid()) {
-        // convert from 11 to 8 bits, centered about the mean face depth (if possible)
-        if (_searchWindow.area() > 0) {
-            const double DEPTH_OFFSET_SMOOTHING = 0.95;
-            const double EIGHT_BIT_MIDPOINT = 128.0;
-            double meanOffset = EIGHT_BIT_MIDPOINT - mean(depth(_searchWindow))[0];
-            _depthOffset = (_depthOffset == 0.0) ? meanOffset : glm::mix(meanOffset, _depthOffset, DEPTH_OFFSET_SMOOTHING);
-        }
-        depth.convertTo(_grayDepthFrame, CV_8UC1, 1.0, _depthOffset);
-    }
-#endif
-
     const int ENCODED_FACE_WIDTH = 128;
     const int ENCODED_FACE_HEIGHT = 128;
-    int combinedFaceHeight = ENCODED_FACE_HEIGHT * (depth.empty() ? 1 : 2);
-    if (_codec.name == 0) {
-        // initialize encoder context
+    if (_colorCodec.name == 0) {
+        // initialize encoder context(s)
         vpx_codec_enc_cfg_t codecConfig;
         vpx_codec_enc_config_default(vpx_codec_vp8_cx(), &codecConfig, 0);
-        codecConfig.rc_target_bitrate = ENCODED_FACE_WIDTH * combinedFaceHeight * codecConfig.rc_target_bitrate /
-            codecConfig.g_w / codecConfig.g_h;
+        codecConfig.rc_target_bitrate = ENCODED_FACE_WIDTH * ENCODED_FACE_HEIGHT *
+            codecConfig.rc_target_bitrate / codecConfig.g_w / codecConfig.g_h;
         codecConfig.g_w = ENCODED_FACE_WIDTH;
-        codecConfig.g_h = combinedFaceHeight;
-        vpx_codec_enc_init(&_codec, vpx_codec_vp8_cx(), &codecConfig, 0); 
+        codecConfig.g_h = ENCODED_FACE_HEIGHT;
+        vpx_codec_enc_init(&_colorCodec, vpx_codec_vp8_cx(), &codecConfig, 0);
+        
+        if (!depth.empty()) {
+            int DEPTH_BITRATE_MULTIPLIER = 2;
+            codecConfig.rc_target_bitrate *= 2;
+            vpx_codec_enc_init(&_depthCodec, vpx_codec_vp8_cx(), &codecConfig, 0);
+        }
     }
     
     // correct for 180 degree rotations
@@ -541,9 +548,9 @@ void FrameGrabber::grabFrame() {
     const int ENCODED_BITS_PER_VU = 2;
     const int ENCODED_BITS_PER_PIXEL = ENCODED_BITS_PER_Y + 2 * ENCODED_BITS_PER_VU;
     const int BITS_PER_BYTE = 8;
-    _encodedFace.fill(128, ENCODED_FACE_WIDTH * combinedFaceHeight * ENCODED_BITS_PER_PIXEL / BITS_PER_BYTE);
+    _encodedFace.resize(ENCODED_FACE_WIDTH * ENCODED_FACE_HEIGHT * ENCODED_BITS_PER_PIXEL / BITS_PER_BYTE);
     vpx_image_t vpxImage;
-    vpx_img_wrap(&vpxImage, VPX_IMG_FMT_YV12, ENCODED_FACE_WIDTH, combinedFaceHeight, 1, (unsigned char*)_encodedFace.data());
+    vpx_img_wrap(&vpxImage, VPX_IMG_FMT_YV12, ENCODED_FACE_WIDTH, ENCODED_FACE_HEIGHT, 1, (unsigned char*)_encodedFace.data());
     uchar* yline = vpxImage.planes[0];
     uchar* vline = vpxImage.planes[1];
     uchar* uline = vpxImage.planes[2];
@@ -571,9 +578,9 @@ void FrameGrabber::grabFrame() {
             
             ydest[0] = (tl[redIndex] * Y_RED_WEIGHT + tl[1] * Y_GREEN_WEIGHT + tl[blueIndex] * Y_BLUE_WEIGHT) >> 8;
             ydest[1] = (tr[redIndex] * Y_RED_WEIGHT + tr[1] * Y_GREEN_WEIGHT + tr[blueIndex] * Y_BLUE_WEIGHT) >> 8;
-            ydest[ENCODED_FACE_WIDTH] = (bl[redIndex] * Y_RED_WEIGHT + bl[greenIndex] *
+            ydest[vpxImage.stride[0]] = (bl[redIndex] * Y_RED_WEIGHT + bl[greenIndex] *
                 Y_GREEN_WEIGHT + bl[blueIndex] * Y_BLUE_WEIGHT) >> 8;
-            ydest[ENCODED_FACE_WIDTH + 1] = (br[redIndex] * Y_RED_WEIGHT + br[greenIndex] *
+            ydest[vpxImage.stride[0] + 1] = (br[redIndex] * Y_RED_WEIGHT + br[greenIndex] *
                 Y_GREEN_WEIGHT + br[blueIndex] * Y_BLUE_WEIGHT) >> 8;
             ydest += 2;
             
@@ -590,37 +597,107 @@ void FrameGrabber::grabFrame() {
         uline += vpxImage.stride[2];
     }
     
-    // if we have depth data, warp that and just copy it in
-    if (!depth.empty()) {
-        _faceDepth.create(ENCODED_FACE_WIDTH, ENCODED_FACE_HEIGHT, CV_8UC1);
-        warpAffine(_grayDepthFrame, _faceDepth, transform, _faceDepth.size());
-        
-        uchar* dest = (uchar*)_encodedFace.data() + vpxImage.stride[0] * ENCODED_FACE_HEIGHT;
-        for (int i = 0; i < ENCODED_FACE_HEIGHT; i++) {
-            memcpy(dest, _faceDepth.ptr(i), ENCODED_FACE_WIDTH);
-            dest += vpxImage.stride[0];
-        }
-    }
-    
     // encode the frame
-    vpx_codec_encode(&_codec, &vpxImage, ++_frameCount, 1, 0, VPX_DL_REALTIME);
+    vpx_codec_encode(&_colorCodec, &vpxImage, ++_frameCount, 1, 0, VPX_DL_REALTIME);
+
+    // start the payload off with the aspect ratio
+    QByteArray payload(sizeof(float), 0);
+    *(float*)payload.data() = _smoothedFaceRect.size.width / _smoothedFaceRect.size.height;
 
     // extract the encoded frame
     vpx_codec_iter_t iterator = 0;
     const vpx_codec_cx_pkt_t* packet;
-    while ((packet = vpx_codec_get_cx_data(&_codec, &iterator)) != 0) {
+    while ((packet = vpx_codec_get_cx_data(&_colorCodec, &iterator)) != 0) {
         if (packet->kind == VPX_CODEC_CX_FRAME_PKT) {
-            // prepend the aspect ratio
-            QByteArray payload(sizeof(float), 0);
-            *(float*)payload.data() = _smoothedFaceRect.size.width / _smoothedFaceRect.size.height;
+            // prepend the length, which will indicate whether there's a depth frame too
+            payload.append((const char*)&packet->data.frame.sz, sizeof(packet->data.frame.sz));
             payload.append((const char*)packet->data.frame.buf, packet->data.frame.sz);
-            QMetaObject::invokeMethod(Application::getInstance(), "sendAvatarFaceVideoMessage", Q_ARG(int, _frameCount),
-                Q_ARG(QByteArray, payload));
         }
     }
+    
+    if (!depth.empty()) {
+        // warp the face depth without interpolation (because it will contain invalid zero values)
+        _faceDepth.create(ENCODED_FACE_WIDTH, ENCODED_FACE_HEIGHT, CV_16UC1);
+        warpAffine(depth, _faceDepth, transform, _faceDepth.size(), INTER_NEAREST);
+        
+        // find the mean of the valid values
+        qint64 depthTotal = 0;
+        qint64 depthSamples = 0;
+        ushort* src = _faceDepth.ptr<ushort>();
+        const ushort ELEVEN_BIT_MINIMUM = 0;
+        const ushort ELEVEN_BIT_MAXIMUM = 2047;
+        for (int i = 0; i < ENCODED_FACE_HEIGHT; i++) {
+            for (int j = 0; j < ENCODED_FACE_WIDTH; j++) {
+                ushort depth = *src++;
+                if (depth != ELEVEN_BIT_MINIMUM && depth != ELEVEN_BIT_MAXIMUM) {
+                    depthTotal += depth;
+                    depthSamples++;
+                }
+            }
+        }
+        float mean = (depthSamples == 0) ? UNINITIALIZED_FACE_DEPTH : depthTotal / (float)depthSamples;
+        
+        // smooth the mean over time
+        const float DEPTH_OFFSET_SMOOTHING = 0.95f;
+        _smoothedMeanFaceDepth = (_smoothedMeanFaceDepth == UNINITIALIZED_FACE_DEPTH) ? mean :
+            glm::mix(mean, _smoothedMeanFaceDepth, DEPTH_OFFSET_SMOOTHING);
+
+        // convert from 11 to 8 bits for preview/local display
+        const uchar EIGHT_BIT_MIDPOINT = 128;
+        double depthOffset = EIGHT_BIT_MIDPOINT - _smoothedMeanFaceDepth;
+        depth.convertTo(_grayDepthFrame, CV_8UC1, 1.0, depthOffset);
+
+        // likewise for the encoded representation
+        uchar* yline = vpxImage.planes[0];
+        uchar* vline = vpxImage.planes[1];
+        uchar* uline = vpxImage.planes[2];
+        const uchar EIGHT_BIT_MAXIMUM = 255;
+        for (int i = 0; i < ENCODED_FACE_HEIGHT; i += 2) {
+            uchar* ydest = yline;
+            uchar* vdest = vline;
+            uchar* udest = uline;
+            for (int j = 0; j < ENCODED_FACE_WIDTH; j += 2) {
+                ushort tl = *_faceDepth.ptr<ushort>(i, j);
+                ushort tr = *_faceDepth.ptr<ushort>(i, j + 1);
+                ushort bl = *_faceDepth.ptr<ushort>(i + 1, j);
+                ushort br = *_faceDepth.ptr<ushort>(i + 1, j + 1);
+            
+                uchar mask = EIGHT_BIT_MAXIMUM;
+                
+                ydest[0] = (tl == ELEVEN_BIT_MINIMUM) ? (mask = EIGHT_BIT_MIDPOINT) : saturate_cast<uchar>(tl + depthOffset);
+                ydest[1] = (tr == ELEVEN_BIT_MINIMUM) ? (mask = EIGHT_BIT_MIDPOINT) : saturate_cast<uchar>(tr + depthOffset);
+                ydest[vpxImage.stride[0]] = (bl == ELEVEN_BIT_MINIMUM) ?
+                    (mask = EIGHT_BIT_MIDPOINT) : saturate_cast<uchar>(bl + depthOffset);
+                ydest[vpxImage.stride[0] + 1] = (br == ELEVEN_BIT_MINIMUM) ?
+                    (mask = EIGHT_BIT_MIDPOINT) : saturate_cast<uchar>(br + depthOffset);
+                ydest += 2;
+            
+                *vdest++ = mask;
+                *udest++ = EIGHT_BIT_MIDPOINT;
+            }
+            yline += vpxImage.stride[0] * 2;
+            vline += vpxImage.stride[1];
+            uline += vpxImage.stride[2];
+        }
+        
+        // encode the frame
+        vpx_codec_encode(&_depthCodec, &vpxImage, _frameCount, 1, 0, VPX_DL_REALTIME);
+
+        // extract the encoded frame
+        vpx_codec_iter_t iterator = 0;
+        const vpx_codec_cx_pkt_t* packet;
+        while ((packet = vpx_codec_get_cx_data(&_depthCodec, &iterator)) != 0) {
+            if (packet->kind == VPX_CODEC_CX_FRAME_PKT) {
+                payload.append((const char*)packet->data.frame.buf, packet->data.frame.sz);
+            }
+        }
+    }
+    
+    QMetaObject::invokeMethod(Application::getInstance(), "sendAvatarFaceVideoMessage",
+        Q_ARG(int, _frameCount), Q_ARG(QByteArray, payload));
 
     QMetaObject::invokeMethod(Application::getInstance()->getWebcam(), "setFrame",
-        Q_ARG(cv::Mat, color), Q_ARG(int, format), Q_ARG(cv::Mat, _grayDepthFrame),
+        Q_ARG(cv::Mat, color), Q_ARG(int, format), Q_ARG(cv::Mat, _grayDepthFrame), Q_ARG(float, _smoothedMeanFaceDepth),
         Q_ARG(cv::RotatedRect, _smoothedFaceRect), Q_ARG(JointVector, joints));
 }
 
