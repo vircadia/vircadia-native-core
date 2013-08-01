@@ -109,8 +109,6 @@ public slots:
 
     void sendAvatarFaceVideoMessage(int frameCount, const QByteArray& data);    
     
-    void setGroundPlaneImpact(float groundPlaneImpact) { _groundPlaneImpact = groundPlaneImpact; }
-
     
 private slots:
     
@@ -370,8 +368,6 @@ private:
     bool _isTouchPressed; //  true if multitouch has been pressed (clear when finished)
     float _yawFromTouch;
     float _pitchFromTouch;
-    
-    float _groundPlaneImpact; 
     
     VoxelDetail _mouseVoxelDragging;
     glm::vec3 _voxelThrust;

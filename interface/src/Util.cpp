@@ -339,6 +339,7 @@ void renderCollisionOverlay(int width, int height, float magnitude) {
 }
 
 void renderGroundPlaneGrid(float size, float impact) {
+    float IMPACT_SOUND_MAGNITUDE_FOR_RECOLOR = 0.3f;
 	glLineWidth(2.0);
     glm::vec4 impactColor(1, 0, 0, 1);
     glm::vec3 lineColor(0.4, 0.5, 0.3);
@@ -355,7 +356,12 @@ void renderGroundPlaneGrid(float size, float impact) {
     }
         
     // Draw the floor, colored for recent impact
-    glm::vec4 floorColor = impact * impactColor + (1.f - impact) * surfaceColor;
+    glm::vec4 floorColor;
+    if (impact > IMPACT_SOUND_MAGNITUDE_FOR_RECOLOR) {
+        floorColor = impact * impactColor + (1.f - impact) * surfaceColor;
+    } else {
+        floorColor = surfaceColor;        
+    }
     glColor4fv(&floorColor.x);
     glBegin(GL_QUADS);
     glVertex3f(0, 0, 0);

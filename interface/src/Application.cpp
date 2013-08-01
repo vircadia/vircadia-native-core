@@ -196,7 +196,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _isTouchPressed(false),
         _yawFromTouch(0.0f),
         _pitchFromTouch(0.0f),
-        _groundPlaneImpact(0.0f),
         _mousePressed(false),
         _isHoverVoxel(false),
         _isHoverVoxelSounding(false),
@@ -2789,8 +2788,12 @@ void Application::displayOverlay() {
         glDisable(GL_DEPTH_TEST);
         glDisable(GL_LIGHTING);
     
-        //  Display a single screen-size quad to 
-        renderCollisionOverlay(_glWidget->width(), _glWidget->height(), _audio.getCollisionSoundMagnitude());
+        //  Display a single screen-size quad to create an alpha blended 'collision' flash
+        float collisionSoundMagnitude = _audio.getCollisionSoundMagnitude();
+        const float VISIBLE_COLLISION_SOUND_MAGNITUDE = 0.5f;
+        if (collisionSoundMagnitude > VISIBLE_COLLISION_SOUND_MAGNITUDE) {
+                renderCollisionOverlay(_glWidget->width(), _glWidget->height(), _audio.getCollisionSoundMagnitude());
+        }
    
         #ifndef _WIN32
         _audio.render(_glWidget->width(), _glWidget->height());
