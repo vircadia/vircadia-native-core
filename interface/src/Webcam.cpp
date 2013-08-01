@@ -569,7 +569,8 @@ void FrameGrabber::grabFrame() {
             _faceColor = color;
         }
         
-        // convert from RGB to YV12
+        // convert from RGB to YV12: see http://www.fourcc.org/yuv.php and
+        // http://docs.opencv.org/modules/imgproc/doc/miscellaneous_transformations.html#cvtcolor
         const int ENCODED_BITS_PER_Y = 8;
         const int ENCODED_BITS_PER_VU = 2;
         const int ENCODED_BITS_PER_PIXEL = ENCODED_BITS_PER_Y + 2 * ENCODED_BITS_PER_VU;
@@ -627,9 +628,10 @@ void FrameGrabber::grabFrame() {
         // encode the frame
         vpx_codec_encode(&_colorCodec, &vpxImage, ++_frameCount, 1, 0, VPX_DL_REALTIME);
 
-        // start the payload off with the aspect ratio
+        // start the payload off with the aspect ratio (zero for no face)
         QByteArray payload(sizeof(float), 0);
-        *(float*)payload.data() = _smoothedFaceRect.size.width / _smoothedFaceRect.size.height;
+        *(float*)payload.data() = (_videoSendMode == FACE_VIDEO) ?
+            (_smoothedFaceRect.size.width / _smoothedFaceRect.size.height) : 0.0f;
 
         // extract the encoded frame
         vpx_codec_iter_t iterator = 0;

@@ -97,7 +97,8 @@ int Face::processVideoMessage(unsigned char* packetData, size_t dataBytes) {
         vpx_codec_iter_t iterator = 0;
         vpx_image_t* image;
         while ((image = vpx_codec_get_frame(&_colorCodec, &iterator)) != 0) {
-            // convert from YV12 to RGB
+            // convert from YV12 to RGB: see http://www.fourcc.org/yuv.php and
+            // http://docs.opencv.org/modules/imgproc/doc/miscellaneous_transformations.html#cvtcolor
             Mat color(image->d_h, image->d_w, CV_8UC3);
             uchar* yline = image->planes[0];
             uchar* vline = image->planes[1];
@@ -208,9 +209,19 @@ bool Face::render(float alpha) {
     glm::quat orientation = _owningHead->getOrientation();
     glm::vec3 axis = glm::axis(orientation);
     glRotatef(glm::angle(orientation), axis.x, axis.y, axis.z);
-    float scale = BODY_BALL_RADIUS_HEAD_BASE * _owningHead->getScale();
+        
+    float aspect, scale;
+    if (_aspectRatio == 0.0f) {
+        aspect = _textureSize.width / _textureSize.height;
+        const float FULL_FRAME_SCALE = 0.5f;
+        scale = FULL_FRAME_SCALE * _owningHead->getScale();
+        
+    } else {
+        aspect = _aspectRatio;
+        scale = BODY_BALL_RADIUS_HEAD_BASE * _owningHead->getScale();    
+    }
     glScalef(scale, scale, scale);
-
+    
     glColor4f(1.0f, 1.0f, 1.0f, alpha);
     
     Point2f points[4];
@@ -292,7 +303,7 @@ bool Face::render(float alpha) {
             (points[3].x - points[0].x) / _textureSize.width, (points[3].y - points[0].y) / _textureSize.height);
         _program->setUniformValue(_texCoordUpLocation,
             (points[1].x - points[0].x) / _textureSize.width, (points[1].y - points[0].y) / _textureSize.height);
-        _program->setUniformValue(_aspectRatioLocation, _aspectRatio);
+        _program->setUniformValue(_aspectRatioLocation, aspect);
         glEnableClientState(GL_VERTEX_ARRAY);
         glVertexPointer(2, GL_FLOAT, 0, 0);
         
@@ -324,13 +335,13 @@ bool Face::render(float alpha) {
         
         glBegin(GL_QUADS);
         glTexCoord2f(points[0].x / _textureSize.width, points[0].y / _textureSize.height);
-        glVertex3f(0.5f, -0.5f / _aspectRatio, -0.5f);    
+        glVertex3f(0.5f, -0.5f / aspect, -0.5f);    
         glTexCoord2f(points[1].x / _textureSize.width, points[1].y / _textureSize.height);
-        glVertex3f(0.5f, 0.5f / _aspectRatio, -0.5f);
+        glVertex3f(0.5f, 0.5f / aspect, -0.5f);
         glTexCoord2f(points[2].x / _textureSize.width, points[2].y / _textureSize.height);
-        glVertex3f(-0.5f, 0.5f / _aspectRatio, -0.5f);
+        glVertex3f(-0.5f, 0.5f / aspect, -0.5f);
         glTexCoord2f(points[3].x / _textureSize.width, points[3].y / _textureSize.height);
-        glVertex3f(-0.5f, -0.5f / _aspectRatio, -0.5f);
+        glVertex3f(-0.5f, -0.5f / aspect, -0.5f);
         glEnd();
         
         glDisable(GL_TEXTURE_2D);
