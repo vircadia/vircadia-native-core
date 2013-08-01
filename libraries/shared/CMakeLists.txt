@@ -6,8 +6,12 @@ set(MACRO_DIR ${ROOT_DIR}/cmake/macros)
 set(TARGET_NAME shared)
 project(${TARGET_NAME})
 
+find_package(Qt5Core REQUIRED)
+
 include(${MACRO_DIR}/SetupHifiLibrary.cmake)
 setup_hifi_library(${TARGET_NAME})
+
+qt5_use_modules(${TARGET_NAME} Core)
 
 set(EXTERNAL_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external)
 
