@@ -19,6 +19,7 @@
 
 #include "Application.h"
 #include "Webcam.h"
+#include "avatar/Face.h"
 
 using namespace cv;
 using namespace std;
@@ -155,7 +156,7 @@ Webcam::~Webcam() {
 const float METERS_PER_MM = 1.0f / 1000.0f;
 
 void Webcam::setFrame(const Mat& color, int format, const Mat& depth, float midFaceDepth,
-        const RotatedRect& faceRect, const JointVector& joints) {
+        float aspectRatio, const RotatedRect& faceRect, const JointVector& joints) {
     IplImage colorImage = color;
     glPixelStorei(GL_UNPACK_ROW_LENGTH, colorImage.widthStep / 3);
     if (_colorTextureID == 0) {
@@ -192,7 +193,8 @@ void Webcam::setFrame(const Mat& color, int format, const Mat& depth, float midF
     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
     glBindTexture(GL_TEXTURE_2D, 0);
     
-    // store our face rect and joints, update our frame count for fps computation
+    // store our various data, update our frame count for fps computation
+    _aspectRatio = aspectRatio;
     _faceRect = faceRect;
     _joints = joints;
     _frameCount++;
@@ -538,6 +540,10 @@ void FrameGrabber::grabFrame() {
         _smoothedFaceRect.angle = glm::mix(faceRect.angle, _smoothedFaceRect.angle, FACE_RECT_SMOOTHING);
     }
     
+    // the aspect ratio is derived from the face rect dimensions unless we're full-frame
+    float aspectRatio = (_videoSendMode == FULL_FRAME_VIDEO) ? FULL_FRAME_ASPECT : 
+        (_smoothedFaceRect.size.width / _smoothedFaceRect.size.height);
+        
     if (_videoSendMode != NO_VIDEO) {
         if (_colorCodec.name == 0) {
             // initialize encoder context(s)
@@ -628,10 +634,9 @@ void FrameGrabber::grabFrame() {
         // encode the frame
         vpx_codec_encode(&_colorCodec, &vpxImage, ++_frameCount, 1, 0, VPX_DL_REALTIME);
 
-        // start the payload off with the aspect ratio (zero for no face)
+        // start the payload off with the aspect ratio (zero for full frame)
         QByteArray payload(sizeof(float), 0);
-        *(float*)payload.data() = (_videoSendMode == FACE_VIDEO) ?
-            (_smoothedFaceRect.size.width / _smoothedFaceRect.size.height) : 0.0f;
+        *(float*)payload.data() = aspectRatio;
 
         // extract the encoded frame
         vpx_codec_iter_t iterator = 0;
@@ -740,7 +745,7 @@ void FrameGrabber::grabFrame() {
     
     QMetaObject::invokeMethod(Application::getInstance()->getWebcam(), "setFrame",
         Q_ARG(cv::Mat, color), Q_ARG(int, format), Q_ARG(cv::Mat, _grayDepthFrame), Q_ARG(float, _smoothedMidFaceDepth),
-        Q_ARG(cv::RotatedRect, _smoothedFaceRect), Q_ARG(JointVector, joints));
+        Q_ARG(float, aspectRatio), Q_ARG(cv::RotatedRect, _smoothedFaceRect), Q_ARG(JointVector, joints));
 }
 
 bool FrameGrabber::init() {

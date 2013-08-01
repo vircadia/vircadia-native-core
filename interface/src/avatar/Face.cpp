@@ -17,6 +17,7 @@
 #include "Avatar.h"
 #include "Head.h"
 #include "Face.h"
+#include "Webcam.h"
 #include "renderer/ProgramObject.h"
 
 using namespace cv;
@@ -25,7 +26,6 @@ ProgramObject* Face::_program = 0;
 int Face::_texCoordCornerLocation;
 int Face::_texCoordRightLocation;
 int Face::_texCoordUpLocation;
-int Face::_aspectRatioLocation;
 GLuint Face::_vboID;
 GLuint Face::_iboID;
 
@@ -55,11 +55,19 @@ Face::~Face() {
     }
 }
 
-void Face::setTextureRect(const cv::RotatedRect& textureRect) {
-    _textureRect = textureRect;
-    _aspectRatio = _textureRect.size.width / _textureRect.size.height;
+void Face::setFrameFromWebcam() {
+    Webcam* webcam = Application::getInstance()->getWebcam();
+    _colorTextureID = webcam->getColorTextureID();
+    _depthTextureID = webcam->getDepthTextureID();
+    _textureSize = webcam->getTextureSize();
+    _textureRect = webcam->getFaceRect();
+    _aspectRatio = webcam->getAspectRatio();
 }
 
+void Face::clearFrame() {
+    _colorTextureID = 0;
+}
+    
 int Face::processVideoMessage(unsigned char* packetData, size_t dataBytes) {
     if (_colorCodec.name == 0) {
         // initialize decoder context
@@ -210,17 +218,20 @@ bool Face::render(float alpha) {
     glm::vec3 axis = glm::axis(orientation);
     glRotatef(glm::angle(orientation), axis.x, axis.y, axis.z);
         
-    float aspect, scale;
-    if (_aspectRatio == 0.0f) {
+    float aspect, xScale, zScale;
+    if (_aspectRatio == FULL_FRAME_ASPECT) {
         aspect = _textureSize.width / _textureSize.height;
         const float FULL_FRAME_SCALE = 0.5f;
-        scale = FULL_FRAME_SCALE * _owningHead->getScale();
+        xScale = FULL_FRAME_SCALE * _owningHead->getScale();
+        zScale = xScale * 0.3f;
         
     } else {
         aspect = _aspectRatio;
-        scale = BODY_BALL_RADIUS_HEAD_BASE * _owningHead->getScale();    
+        xScale = BODY_BALL_RADIUS_HEAD_BASE * _owningHead->getScale();
+        zScale = xScale * 1.5f;
+        glTranslatef(0.0f, -xScale * 0.75f, -xScale);
     }
-    glScalef(scale, scale, scale);
+    glScalef(xScale, xScale / aspect, zScale);
     
     glColor4f(1.0f, 1.0f, 1.0f, alpha);
     
@@ -254,7 +265,6 @@ bool Face::render(float alpha) {
             _texCoordCornerLocation = _program->uniformLocation("texCoordCorner");
             _texCoordRightLocation = _program->uniformLocation("texCoordRight");
             _texCoordUpLocation = _program->uniformLocation("texCoordUp");
-            _aspectRatioLocation = _program->uniformLocation("aspectRatio");
             
             glGenBuffers(1, &_vboID);
             glBindBuffer(GL_ARRAY_BUFFER, _vboID);
@@ -303,7 +313,6 @@ bool Face::render(float alpha) {
             (points[3].x - points[0].x) / _textureSize.width, (points[3].y - points[0].y) / _textureSize.height);
         _program->setUniformValue(_texCoordUpLocation,
             (points[1].x - points[0].x) / _textureSize.width, (points[1].y - points[0].y) / _textureSize.height);
-        _program->setUniformValue(_aspectRatioLocation, aspect);
         glEnableClientState(GL_VERTEX_ARRAY);
         glVertexPointer(2, GL_FLOAT, 0, 0);
         
@@ -335,13 +344,13 @@ bool Face::render(float alpha) {
         
         glBegin(GL_QUADS);
         glTexCoord2f(points[0].x / _textureSize.width, points[0].y / _textureSize.height);
-        glVertex3f(0.5f, -0.5f / aspect, -0.5f);    
+        glVertex3f(0.5f, -0.5f, 0.0f);    
         glTexCoord2f(points[1].x / _textureSize.width, points[1].y / _textureSize.height);
-        glVertex3f(0.5f, 0.5f / aspect, -0.5f);
+        glVertex3f(0.5f, 0.5f, 0.0f);
         glTexCoord2f(points[2].x / _textureSize.width, points[2].y / _textureSize.height);
-        glVertex3f(-0.5f, 0.5f / aspect, -0.5f);
+        glVertex3f(-0.5f, 0.5f, 0.0f);
         glTexCoord2f(points[3].x / _textureSize.width, points[3].y / _textureSize.height);
-        glVertex3f(-0.5f, -0.5f / aspect, -0.5f);
+        glVertex3f(-0.5f, -0.5f, 0.0f);
         glEnd();
         
         glDisable(GL_TEXTURE_2D);

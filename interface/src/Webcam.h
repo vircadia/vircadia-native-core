@@ -50,6 +50,8 @@ public:
     GLuint getDepthTextureID() const { return _depthTextureID; }
     const cv::Size2f& getTextureSize() const { return _textureSize; }
     
+    float getAspectRatio() const { return _aspectRatio; }
+    
     const cv::RotatedRect& getFaceRect() const { return _faceRect; }
     
     const glm::vec3& getEstimatedPosition() const { return _estimatedPosition; }
@@ -63,7 +65,7 @@ public slots:
     
     void setEnabled(bool enabled);
     void setFrame(const cv::Mat& color, int format, const cv::Mat& depth, float midFaceDepth,
-        const cv::RotatedRect& faceRect, const JointVector& joints);
+        float aspectRatio, const cv::RotatedRect& faceRect, const JointVector& joints);
 
 private:
     
@@ -75,6 +77,7 @@ private:
     GLuint _colorTextureID;
     GLuint _depthTextureID;
     cv::Size2f _textureSize;
+    float _aspectRatio;
     cv::RotatedRect _faceRect;
     cv::RotatedRect _initialFaceRect;
     float _initialFaceDepth;
