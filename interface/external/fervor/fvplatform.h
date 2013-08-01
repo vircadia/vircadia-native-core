@@ -1,7 +1,7 @@
 #ifndef FVPLATFORM_H
 #define FVPLATFORM_H
 
-#include <QObject>
+#include <QtCore/QObject>
 
 class FvPlatform : public QObject
 {

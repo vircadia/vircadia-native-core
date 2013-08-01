@@ -14,19 +14,25 @@
 #include "Util.h"
 #include "renderer/ProgramObject.h"
 
+const bool SHOW_LEAP_HAND = false;
+
 using namespace std;
 
 Hand::Hand(Avatar* owningAvatar) :
     HandData((AvatarData*)owningAvatar),
+    
+    _raveGloveClock(0.0f),
+    _raveGloveMode(RAVE_GLOVE_EFFECTS_MODE_THROBBING_COLOR),
+    _raveGloveInitialized(false),
+    _isRaveGloveActive(false),
     _owningAvatar(owningAvatar),
     _renderAlpha(1.0),
     _lookingInMirror(false),
-    _ballColor(0.0, 0.0, 0.4),
-    _particleSystemInitialized(false)
-{
+    _ballColor(0.0, 0.0, 0.4)    
+ {
     // initialize all finger particle emitters with an invalid id as default
-    for (int f = 0; f< NUM_FINGERS_PER_HAND; f ++ ) {
-        _fingerParticleEmitter[f] = -1;
+    for (int f = 0; f< NUM_FINGERS; f ++ ) {
+        _raveGloveEmitter[f] = NULL_EMITTER;
     }
 }
 
@@ -35,16 +41,18 @@ void Hand::init() {
     if (_owningAvatar && _owningAvatar->isMyAvatar()) {
         _ballColor = glm::vec3(0.0, 0.4, 0.0);
     }
-    else
+    else {
         _ballColor = glm::vec3(0.0, 0.0, 0.4);
+    }
 }
 
 void Hand::reset() {
 }
 
+
 void Hand::simulate(float deltaTime, bool isMine) {
     if (_isRaveGloveActive) {
-        updateFingerParticles(deltaTime);
+        updateRaveGloveParticles(deltaTime);
     }
 }
 
@@ -76,6 +84,21 @@ void Hand::calculateGeometry() {
     }
 }
 
+void Hand::setRaveGloveEffectsMode(QKeyEvent* event) {
+    switch (event->key()) {
+    
+        case Qt::Key_0: setRaveGloveMode(RAVE_GLOVE_EFFECTS_MODE_THROBBING_COLOR); break;
+        case Qt::Key_1: setRaveGloveMode(RAVE_GLOVE_EFFECTS_MODE_TRAILS         ); break;
+        case Qt::Key_2: setRaveGloveMode(RAVE_GLOVE_EFFECTS_MODE_FIRE           ); break;
+        case Qt::Key_3: setRaveGloveMode(RAVE_GLOVE_EFFECTS_MODE_WATER          ); break;
+        case Qt::Key_4: setRaveGloveMode(RAVE_GLOVE_EFFECTS_MODE_FLASHY         ); break;
+        case Qt::Key_5: setRaveGloveMode(RAVE_GLOVE_EFFECTS_MODE_BOZO_SPARKLER  ); break;
+        case Qt::Key_6: setRaveGloveMode(RAVE_GLOVE_EFFECTS_MODE_LONG_SPARKLER  ); break;
+        case Qt::Key_7: setRaveGloveMode(RAVE_GLOVE_EFFECTS_MODE_SNAKE          ); break;
+        case Qt::Key_8: setRaveGloveMode(RAVE_GLOVE_EFFECTS_MODE_PULSE          ); break;
+        case Qt::Key_9: setRaveGloveMode(RAVE_GLOVE_EFFECTS_MODE_THROB          ); break;
+     };        
+}
 
 void Hand::render(bool lookingInMirror) {
     
@@ -87,16 +110,19 @@ void Hand::render(bool lookingInMirror) {
     if (_isRaveGloveActive) {
         renderRaveGloveStage();
 
-        if (_particleSystemInitialized) {
-            _particleSystem.render();
+        if (_raveGloveInitialized) {
+            updateRaveGloveEmitters(); // do this after calculateGeometry
+            _raveGloveParticleSystem.render();
         }
     }
     
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_RESCALE_NORMAL);
     
-    renderFingerTrails();
-    renderHandSpheres();
+    if ( SHOW_LEAP_HAND ) {
+        renderFingerTrails();
+        renderHandSpheres();
+    }
 }
 
 void Hand::renderRaveGloveStage() {
@@ -203,69 +229,61 @@ void Hand::renderFingerTrails() {
     }
 }
 
-void Hand::updateFingerParticles(float deltaTime) {
-
-    if (!_particleSystemInitialized) {
-                    
-        for ( int f = 0; f< NUM_FINGERS_PER_HAND; f ++ ) {
-        
-            _particleSystem.setShowingEmitter(f, true );
-
-            _fingerParticleEmitter[f] = _particleSystem.addEmitter();
-            
-            assert( _fingerParticleEmitter[f] != -1 );
-                                    
-            ParticleSystem::ParticleAttributes attributes;
-
-           // set attributes for each life stage of the particle:
-            attributes.radius               = 0.0f;
-            attributes.color                = glm::vec4( 1.0f, 1.0f, 0.5f, 0.5f);
-            attributes.gravity              = 0.0f;
-            attributes.airFriction          = 0.0f;
-            attributes.jitter               = 0.002f;
-            attributes.emitterAttraction    = 0.0f;
-            attributes.tornadoForce         = 0.0f;
-            attributes.neighborAttraction   = 0.0f;
-            attributes.neighborRepulsion    = 0.0f;
-            attributes.bounce               = 1.0f;
-            attributes.usingCollisionSphere = false;
-            _particleSystem.setParticleAttributes(_fingerParticleEmitter[f], 0, attributes);
-
-            attributes.radius = 0.01f;
-            attributes.jitter = 0.0f;
-            attributes.gravity = -0.005f;
-            attributes.color  = glm::vec4( 1.0f, 0.2f, 0.0f, 0.4f);
-            _particleSystem.setParticleAttributes(_fingerParticleEmitter[f], 1, attributes);
-
-            attributes.radius = 0.01f;
-            attributes.gravity = 0.0f;
-            attributes.color  = glm::vec4( 0.0f, 0.0f, 0.0f, 0.2f);
-             _particleSystem.setParticleAttributes(_fingerParticleEmitter[f], 2, attributes);
-
-            attributes.radius = 0.02f;
-            attributes.color  = glm::vec4( 0.0f, 0.0f, 0.0f, 0.0f);
-             _particleSystem.setParticleAttributes(_fingerParticleEmitter[f], 3, attributes);
+void Hand::setLeapHands(const std::vector<glm::vec3>& handPositions,
+                          const std::vector<glm::vec3>& handNormals) {
+    for (size_t i = 0; i < getNumPalms(); ++i) {
+        PalmData& palm = getPalms()[i];
+        if (i < handPositions.size()) {
+            palm.setActive(true);
+            palm.setRawPosition(handPositions[i]);
+            palm.setRawNormal(handNormals[i]);
         }
+        else {
+            palm.setActive(false);
+        }
+    }
+}
 
-        _particleSystemInitialized = true;         
-    } else {
-        // update the particles
+// call this right after the geometry of the leap hands are set
+void Hand::updateRaveGloveEmitters() {
+
+    bool debug = false;
+
+    if (_raveGloveInitialized) {
         
-        static float t = 0.0f;
-        t += deltaTime;
+        if(debug) printf( "\n" );
+        if(debug) printf( "------------------------------------\n" );
+        if(debug) printf( "updating rave glove emitters:\n" );
+        if(debug) printf( "------------------------------------\n" );
+        
+        int emitterIndex = 0;
 
-        int fingerIndex = 0;
         for (size_t i = 0; i < getNumPalms(); ++i) {
             PalmData& palm = getPalms()[i];
+            
+            if(debug) printf( "\n" );
+            if(debug) printf( "palm %d ", (int)i );
+            
             if (palm.isActive()) {
+            
+                if(debug) printf( "is active\n" );
+
                 for (size_t f = 0; f < palm.getNumFingers(); ++f) {
                     FingerData& finger = palm.getFingers()[f];
+
+                    if(debug) printf( "emitterIndex %d:    ", emitterIndex );
+
                     if (finger.isActive()) {
-                        if (_fingerParticleEmitter[fingerIndex] != -1) {
+                    
+                        if ((emitterIndex >=0)
+                        &&  (emitterIndex < NUM_FINGERS)) {
+                        
+                            assert(emitterIndex >=0 );
+                            assert(emitterIndex < NUM_FINGERS );
+
+                            if(debug) printf( "_raveGloveEmitter[%d] = %d\n", emitterIndex, _raveGloveEmitter[emitterIndex] );
                             
-                            glm::vec3 particleEmitterPosition = finger.getTipPosition();
-                            
-                            glm::vec3 fingerDirection = particleEmitterPosition - leapPositionToWorldPosition(finger.getRootPosition());
+                            glm::vec3 fingerDirection = finger.getTipPosition() - finger.getRootPosition();
                             float fingerLength = glm::length(fingerDirection);
                             
                             if (fingerLength > 0.0f) {
@@ -273,27 +291,391 @@ void Hand::updateFingerParticles(float deltaTime) {
                             } else {
                                 fingerDirection = IDENTITY_UP;
                             }
-                                                        
-                            glm::quat particleEmitterRotation = rotationBetween(palm.getNormal(), fingerDirection);
                             
-                            //glm::quat particleEmitterRotation = glm::angleAxis(0.0f, fingerDirection);                            
+                            assert(_raveGloveEmitter[emitterIndex] >=0 );
+                            assert(_raveGloveEmitter[emitterIndex] < NUM_FINGERS );
                             
-                            _particleSystem.setEmitterPosition(_fingerParticleEmitter[f], particleEmitterPosition);
-                            _particleSystem.setEmitterRotation(_fingerParticleEmitter[f], particleEmitterRotation);
-                            
-                            const glm::vec3 velocity = fingerDirection * 0.002f;
-                            const float lifespan = 1.0f;
-                            _particleSystem.emitParticlesNow(_fingerParticleEmitter[f], 1, velocity, lifespan); 
+                            _raveGloveParticleSystem.setEmitterPosition (_raveGloveEmitter[emitterIndex], finger.getTipPosition());
+                            _raveGloveParticleSystem.setEmitterDirection(_raveGloveEmitter[emitterIndex], fingerDirection);
                         }
+                    } else {
+                        if(debug) printf( "BOGUS finger\n" );
                     }
+                            
+                    emitterIndex ++;
                 }
+            } else {
+                if(debug) printf( "is NOT active\n" );
             }
         }
-        
-        _particleSystem.setUpDirection(glm::vec3(0.0f, 1.0f, 0.0f));  
-        _particleSystem.simulate(deltaTime); 
     }
 }
+
+
+// call this from within the simulate method
+void Hand::updateRaveGloveParticles(float deltaTime) {
+
+    if (!_raveGloveInitialized) {
+    
+        //printf( "Initializing rave glove emitters:\n" );
+        //printf( "The indices of the emitters are:\n" );
+    
+        // start up the rave glove finger particles...
+        for ( int f = 0; f< NUM_FINGERS; f ++ ) {
+            _raveGloveEmitter[f] = _raveGloveParticleSystem.addEmitter();
+            assert( _raveGloveEmitter[f] >= 0 );
+            assert( _raveGloveEmitter[f] != NULL_EMITTER );
+
+            //printf( "%d\n", _raveGloveEmitter[f] );
+        }
+                                                    
+        setRaveGloveMode(RAVE_GLOVE_EFFECTS_MODE_FIRE);
+        _raveGloveParticleSystem.setUpDirection(glm::vec3(0.0f, 1.0f, 0.0f));
+        _raveGloveInitialized = true;         
+    } else {        
+        
+        _raveGloveClock += deltaTime;
+        
+        // this rave glove effect oscillates though various colors and radii that are meant to show off some effects
+        if (_raveGloveMode == RAVE_GLOVE_EFFECTS_MODE_THROBBING_COLOR) {
+            ParticleSystem::ParticleAttributes attributes;
+            float red   = 0.5f + 0.5f * sinf(_raveGloveClock * 1.4f);
+            float green = 0.5f + 0.5f * cosf(_raveGloveClock * 1.7f);
+            float blue  = 0.5f + 0.5f * sinf(_raveGloveClock * 2.0f);
+            float alpha = 1.0f;
+            
+            attributes.color = glm::vec4(red, green, blue, alpha);            
+            attributes.radius = 0.01f + 0.005f * sinf(_raveGloveClock * 2.2f);
+            attributes.modulationAmplitude = 0.0f;
+            
+            for ( int f = 0; f< NUM_FINGERS; f ++ ) {
+                _raveGloveParticleSystem.setParticleAttributes(_raveGloveEmitter[f], PARTICLE_LIFESTAGE_0, attributes);
+                _raveGloveParticleSystem.setParticleAttributes(_raveGloveEmitter[f], PARTICLE_LIFESTAGE_1, attributes);
+                _raveGloveParticleSystem.setParticleAttributes(_raveGloveEmitter[f], PARTICLE_LIFESTAGE_2, attributes);
+                _raveGloveParticleSystem.setParticleAttributes(_raveGloveEmitter[f], PARTICLE_LIFESTAGE_3, attributes);
+            }
+        } 
+
+        _raveGloveParticleSystem.simulate(deltaTime); 
+    }
+}
+
+void Hand::setRaveGloveMode(int mode) {
+
+    _raveGloveMode = mode;
+
+    _raveGloveParticleSystem.killAllParticles();
+
+    for ( int f = 0; f< NUM_FINGERS; f ++ ) {
+
+        ParticleSystem::ParticleAttributes attributes;
+
+        //-----------------------------------------
+        // throbbing color cycle
+        //-----------------------------------------
+        if (mode == RAVE_GLOVE_EFFECTS_MODE_THROBBING_COLOR) {
+            _raveGloveParticleSystem.setParticleRenderStyle       (_raveGloveEmitter[f], PARTICLE_RENDER_STYLE_SPHERE );
+            _raveGloveParticleSystem.setShowingEmitterBaseParticle(_raveGloveEmitter[f], true );
+            _raveGloveParticleSystem.setEmitterParticleLifespan   (_raveGloveEmitter[f], 0.0f );
+            _raveGloveParticleSystem.setEmitterThrust             (_raveGloveEmitter[f], 0.0f );
+            _raveGloveParticleSystem.setEmitterRate               (_raveGloveEmitter[f], 30.0f );
+            _raveGloveParticleSystem.setEmitterParticleResolution (_raveGloveEmitter[f], 20   );
+
+            _raveGloveParticleSystem.setParticleAttributesToDefault(&attributes);
+            
+            attributes.radius      = 0.02f;
+            attributes.gravity     = 0.0f;
+            attributes.airFriction = 0.0f;
+            attributes.jitter      = 0.0f;
+            attributes.bounce      = 0.0f;
+            _raveGloveParticleSystem.setParticleAttributes(_raveGloveEmitter[f], PARTICLE_LIFESTAGE_0, attributes);
+            _raveGloveParticleSystem.setParticleAttributes(_raveGloveEmitter[f], PARTICLE_LIFESTAGE_1, attributes);
+            _raveGloveParticleSystem.setParticleAttributes(_raveGloveEmitter[f], PARTICLE_LIFESTAGE_2, attributes);
+            _raveGloveParticleSystem.setParticleAttributes(_raveGloveEmitter[f], PARTICLE_LIFESTAGE_3, attributes);
+
+        //-----------------------------------------
+        // trails
+        //-----------------------------------------
+        } else if (mode == RAVE_GLOVE_EFFECTS_MODE_TRAILS) {            
+            _raveGloveParticleSystem.setParticleRenderStyle       (_raveGloveEmitter[f], PARTICLE_RENDER_STYLE_RIBBON );
+            _raveGloveParticleSystem.setShowingEmitterBaseParticle(_raveGloveEmitter[f], false );
+            _raveGloveParticleSystem.setEmitterParticleLifespan   (_raveGloveEmitter[f], 1.0f );
+            _raveGloveParticleSystem.setEmitterThrust             (_raveGloveEmitter[f], 0.0f );
+            _raveGloveParticleSystem.setEmitterRate               (_raveGloveEmitter[f], 50.0f );
+            _raveGloveParticleSystem.setEmitterParticleResolution (_raveGloveEmitter[f], 5    );
+
+            _raveGloveParticleSystem.setParticleAttributesToDefault(&attributes);
+
+            attributes.radius      = 0.001f;
+            attributes.color       = glm::vec4( 1.0f, 0.5f, 0.2f, 1.0f);
+            attributes.gravity     = 0.005f;
+            attributes.airFriction = 0.0f;
+            attributes.jitter      = 0.0f;
+            attributes.bounce      = 0.0f;
+            _raveGloveParticleSystem.setParticleAttributes(_raveGloveEmitter[f], PARTICLE_LIFESTAGE_0, attributes);
+
+            attributes.radius = 0.002f;
+            _raveGloveParticleSystem.setParticleAttributes(_raveGloveEmitter[f], PARTICLE_LIFESTAGE_1, attributes);
+
+            attributes.color = glm::vec4( 1.0f, 0.2f, 0.2f, 0.5f);
+            _raveGloveParticleSystem.setParticleAttributes(_raveGloveEmitter[f], PARTICLE_LIFESTAGE_2, attributes);
+
+            attributes.color = glm::vec4( 1.0f, 0.2f, 0.2f, 0.0f);
+            _raveGloveParticleSystem.setParticleAttributes(_raveGloveEmitter[f], PARTICLE_LIFESTAGE_3, attributes);
+        }
+        
+        //-----------------------------------------
+        // Fire!
+        //-----------------------------------------
+        if (mode == RAVE_GLOVE_EFFECTS_MODE_FIRE) {
+
+            _raveGloveParticleSystem.setParticleRenderStyle       (_raveGloveEmitter[f], PARTICLE_RENDER_STYLE_SPHERE  );
+            _raveGloveParticleSystem.setShowingEmitterBaseParticle(_raveGloveEmitter[f], false  );
+            _raveGloveParticleSystem.setEmitterParticleLifespan   (_raveGloveEmitter[f], 1.0f   );
+            _raveGloveParticleSystem.setEmitterThrust             (_raveGloveEmitter[f], 0.002f );
+            _raveGloveParticleSystem.setEmitterRate               (_raveGloveEmitter[f], 120.0    );
+            _raveGloveParticleSystem.setEmitterParticleResolution (_raveGloveEmitter[f], 6      );
+
+            _raveGloveParticleSystem.setParticleAttributesToDefault(&attributes);
+
+            attributes.radius      = 0.005f;
+            attributes.color       = glm::vec4( 1.0f, 1.0f, 0.5f, 0.5f);
+            attributes.airFriction = 0.0f;
+            attributes.jitter      = 0.003f;
+            _raveGloveParticleSystem.setParticleAttributes(_raveGloveEmitter[f], PARTICLE_LIFESTAGE_0, attributes);
+
+            attributes.radius = 0.01f;
+            attributes.jitter = 0.0f;
+            attributes.gravity = -0.005f;
+            attributes.color  = glm::vec4( 1.0f, 0.2f, 0.0f, 0.4f);
+            _raveGloveParticleSystem.setParticleAttributes(_raveGloveEmitter[f], PARTICLE_LIFESTAGE_1, attributes);
+
+            attributes.radius = 0.01f;
+            attributes.gravity = 0.0f;
+            attributes.color  = glm::vec4( 0.4f, 0.4f, 0.4f, 0.2f);
+             _raveGloveParticleSystem.setParticleAttributes(_raveGloveEmitter[f], PARTICLE_LIFESTAGE_2, attributes);
+
+            attributes.radius = 0.02f;
+            attributes.color  = glm::vec4( 0.4f, 0.6f, 0.9f, 0.0f);
+            _raveGloveParticleSystem.setParticleAttributes(_raveGloveEmitter[f], PARTICLE_LIFESTAGE_3, attributes);
+            
+        //-----------------------------------------
+        // water
+        //-----------------------------------------
+        } else if (mode == RAVE_GLOVE_EFFECTS_MODE_WATER) {
+            
+            _raveGloveParticleSystem.setParticleRenderStyle       (_raveGloveEmitter[f], PARTICLE_RENDER_STYLE_SPHERE );
+            _raveGloveParticleSystem.setShowingEmitterBaseParticle(_raveGloveEmitter[f], true   );
+            _raveGloveParticleSystem.setEmitterParticleLifespan   (_raveGloveEmitter[f], 0.6f   );
+            _raveGloveParticleSystem.setEmitterThrust             (_raveGloveEmitter[f], 0.001f );
+            _raveGloveParticleSystem.setEmitterRate               (_raveGloveEmitter[f], 100.0  );
+            _raveGloveParticleSystem.setEmitterParticleResolution (_raveGloveEmitter[f], 5      );
+
+            _raveGloveParticleSystem.setParticleAttributesToDefault(&attributes);
+
+            attributes.radius      = 0.001f;
+            attributes.color       = glm::vec4( 0.8f, 0.9f, 1.0f, 0.5f);
+            attributes.airFriction = 0.0f;
+            attributes.jitter      = 0.004f;
+            attributes.bounce      = 1.0f;
+            _raveGloveParticleSystem.setParticleAttributes(_raveGloveEmitter[f], PARTICLE_LIFESTAGE_0, attributes);
+
+            attributes.gravity = 0.01f;
+            attributes.jitter  = 0.0f;
+            _raveGloveParticleSystem.setParticleAttributes(_raveGloveEmitter[f], PARTICLE_LIFESTAGE_1, attributes);
+
+            attributes.color  = glm::vec4( 0.8f, 0.9f, 1.0f, 0.2f);
+            attributes.radius = 0.002f;
+            _raveGloveParticleSystem.setParticleAttributes(_raveGloveEmitter[f], PARTICLE_LIFESTAGE_2, attributes);
+
+            attributes.color = glm::vec4( 0.8f, 0.9f, 1.0f, 0.0f);
+            _raveGloveParticleSystem.setParticleAttributes(_raveGloveEmitter[f], PARTICLE_LIFESTAGE_3, attributes);
+            
+        //-----------------------------------------
+        // flashy
+        //-----------------------------------------
+        } else if (mode == RAVE_GLOVE_EFFECTS_MODE_FLASHY) {
+            
+            _raveGloveParticleSystem.setParticleRenderStyle       (_raveGloveEmitter[f], PARTICLE_RENDER_STYLE_SPHERE  );
+            _raveGloveParticleSystem.setShowingEmitterBaseParticle(_raveGloveEmitter[f], true   );
+            _raveGloveParticleSystem.setEmitterParticleLifespan   (_raveGloveEmitter[f], 0.1    );
+            _raveGloveParticleSystem.setEmitterThrust             (_raveGloveEmitter[f], 0.002f );
+            _raveGloveParticleSystem.setEmitterRate               (_raveGloveEmitter[f], 100.0    );
+            _raveGloveParticleSystem.setEmitterParticleResolution (_raveGloveEmitter[f], 12     );
+
+            _raveGloveParticleSystem.setParticleAttributesToDefault(&attributes);
+
+            attributes.radius      = 0.0f;
+            attributes.color       = glm::vec4( 1.0f, 1.0f, 1.0f, 1.0f);
+            attributes.airFriction = 0.0f;
+            attributes.jitter      = 0.05f;
+            _raveGloveParticleSystem.setParticleAttributes(_raveGloveEmitter[f], PARTICLE_LIFESTAGE_0, attributes);
+
+            attributes.radius = 0.01f;
+            attributes.color = glm::vec4( 1.0f, 1.0f, 0.0f, 1.0f);
+            _raveGloveParticleSystem.setParticleAttributes(_raveGloveEmitter[f], PARTICLE_LIFESTAGE_1, attributes);
+
+            attributes.radius = 0.01f;
+            attributes.color = glm::vec4( 1.0f, 0.0f, 1.0f, 1.0f);
+            _raveGloveParticleSystem.setParticleAttributes(_raveGloveEmitter[f], PARTICLE_LIFESTAGE_2, attributes);
+
+            attributes.radius = 0.01f;
+            attributes.color = glm::vec4( 0.0f, 0.0f, 0.0f, 1.0f);
+            _raveGloveParticleSystem.setParticleAttributes(_raveGloveEmitter[f], PARTICLE_LIFESTAGE_3, attributes);
+        
+        //-----------------------------------------
+        // Bozo sparkler
+        //-----------------------------------------
+        } else if (mode == RAVE_GLOVE_EFFECTS_MODE_BOZO_SPARKLER) {
+            
+            _raveGloveParticleSystem.setParticleRenderStyle       (_raveGloveEmitter[f], PARTICLE_RENDER_STYLE_RIBBON  );
+            _raveGloveParticleSystem.setShowingEmitterBaseParticle(_raveGloveEmitter[f], false   );
+            _raveGloveParticleSystem.setEmitterParticleLifespan   (_raveGloveEmitter[f], 0.2    );
+            _raveGloveParticleSystem.setEmitterThrust             (_raveGloveEmitter[f], 0.002f );
+            _raveGloveParticleSystem.setEmitterRate               (_raveGloveEmitter[f], 100.0    );
+            _raveGloveParticleSystem.setEmitterParticleResolution (_raveGloveEmitter[f], 12     );
+
+            _raveGloveParticleSystem.setParticleAttributesToDefault(&attributes);
+
+            attributes.radius      = 0.0f;
+            attributes.color       = glm::vec4( 1.0f, 1.0f, 1.0f, 1.0f);
+            attributes.airFriction = 0.0f;
+            attributes.jitter      = 0.01f;
+            _raveGloveParticleSystem.setParticleAttributes(_raveGloveEmitter[f], PARTICLE_LIFESTAGE_0, attributes);
+
+            attributes.radius = 0.01f;
+            attributes.color = glm::vec4( 1.0f, 1.0f, 0.0f, 1.0f);
+            _raveGloveParticleSystem.setParticleAttributes(_raveGloveEmitter[f], PARTICLE_LIFESTAGE_1, attributes);
+
+            attributes.radius = 0.01f;
+            attributes.color = glm::vec4( 1.0f, 0.0f, .0f, 1.0f);
+            _raveGloveParticleSystem.setParticleAttributes(_raveGloveEmitter[f], PARTICLE_LIFESTAGE_2, attributes);
+
+            attributes.radius = 0.0f;
+            attributes.color = glm::vec4( 0.0f, 0.0f, 1.0f, 0.0f);
+            _raveGloveParticleSystem.setParticleAttributes(_raveGloveEmitter[f], PARTICLE_LIFESTAGE_3, attributes);
+        
+        //-----------------------------------------
+        // long sparkler
+        //-----------------------------------------
+        } else if (mode == RAVE_GLOVE_EFFECTS_MODE_LONG_SPARKLER) {
+            
+            _raveGloveParticleSystem.setParticleRenderStyle       (_raveGloveEmitter[f], PARTICLE_RENDER_STYLE_RIBBON  );
+            _raveGloveParticleSystem.setShowingEmitterBaseParticle(_raveGloveEmitter[f], false   );
+            _raveGloveParticleSystem.setEmitterParticleLifespan   (_raveGloveEmitter[f], 1.0     );
+            _raveGloveParticleSystem.setEmitterThrust             (_raveGloveEmitter[f], 0.002f  );
+            _raveGloveParticleSystem.setEmitterRate               (_raveGloveEmitter[f], 100.0     );
+            _raveGloveParticleSystem.setEmitterParticleResolution (_raveGloveEmitter[f], 7       );
+
+            _raveGloveParticleSystem.setParticleAttributesToDefault(&attributes);
+
+            attributes.color       = glm::vec4( 0.3f, 0.3f, 0.3f, 0.4f);
+            attributes.radius      = 0.0f;
+            attributes.airFriction = 0.0f;
+            attributes.jitter      = 0.0001f;
+            attributes.bounce      = 1.0f;
+            _raveGloveParticleSystem.setParticleAttributes(_raveGloveEmitter[f], PARTICLE_LIFESTAGE_0, attributes);
+
+            attributes.radius = 0.005f;
+            attributes.color = glm::vec4( 0.0f, 0.5f, 0.5f, 0.8f);
+            _raveGloveParticleSystem.setParticleAttributes(_raveGloveEmitter[f], PARTICLE_LIFESTAGE_1, attributes);
+
+            attributes.radius = 0.007f;
+            attributes.color = glm::vec4( 0.5f, 0.0f, 0.5f, 0.5f);
+            _raveGloveParticleSystem.setParticleAttributes(_raveGloveEmitter[f], PARTICLE_LIFESTAGE_2, attributes);
+
+            attributes.radius = 0.02f;
+            attributes.color = glm::vec4( 0.0f, 0.0f, 1.0f, 0.0f);
+            _raveGloveParticleSystem.setParticleAttributes(_raveGloveEmitter[f], PARTICLE_LIFESTAGE_3, attributes);
+        
+        //-----------------------------------------
+        // bubble snake
+        //-----------------------------------------
+        } else if (mode == RAVE_GLOVE_EFFECTS_MODE_SNAKE) {
+            
+            _raveGloveParticleSystem.setParticleRenderStyle       (_raveGloveEmitter[f], PARTICLE_RENDER_STYLE_SPHERE  );
+            _raveGloveParticleSystem.setShowingEmitterBaseParticle(_raveGloveEmitter[f], true   );
+            _raveGloveParticleSystem.setEmitterParticleLifespan   (_raveGloveEmitter[f], 1.0    );
+            _raveGloveParticleSystem.setEmitterThrust             (_raveGloveEmitter[f], 0.002f );
+            _raveGloveParticleSystem.setEmitterRate               (_raveGloveEmitter[f], 100.0    );
+            _raveGloveParticleSystem.setEmitterParticleResolution (_raveGloveEmitter[f], 7      );
+
+            _raveGloveParticleSystem.setParticleAttributesToDefault(&attributes);
+
+            attributes.radius             = 0.001f;
+            attributes.color              = glm::vec4( 0.5f, 1.0f, 0.5f, 1.0f);
+            attributes.airFriction        = 0.01f;
+            attributes.jitter             = 0.0f;
+            attributes.emitterAttraction  = 0.0f;
+            attributes.tornadoForce       = 1.1f;
+            attributes.neighborAttraction = 1.1f;
+            attributes.neighborRepulsion  = 1.1f;
+            attributes.bounce             = 0.0f;
+            _raveGloveParticleSystem.setParticleAttributes(_raveGloveEmitter[f], PARTICLE_LIFESTAGE_0, attributes);
+
+            attributes.radius = 0.002f;
+            attributes.color  = glm::vec4( 1.0f, 1.0f, 1.0f, 1.0f);
+            _raveGloveParticleSystem.setParticleAttributes(_raveGloveEmitter[f], PARTICLE_LIFESTAGE_1, attributes);
+
+            attributes.radius = 0.003f;
+            attributes.color  = glm::vec4( 0.3f, 0.3f, 0.3f, 0.5f);
+            _raveGloveParticleSystem.setParticleAttributes(_raveGloveEmitter[f], PARTICLE_LIFESTAGE_2, attributes);
+
+            attributes.radius = 0.004f;
+            attributes.color  = glm::vec4( 0.3f, 0.3f, 0.3f, 0.0f);
+            _raveGloveParticleSystem.setParticleAttributes(_raveGloveEmitter[f], PARTICLE_LIFESTAGE_3, attributes);
+        
+        //-----------------------------------------
+        // pulse
+        //-----------------------------------------
+        } else if (mode == RAVE_GLOVE_EFFECTS_MODE_PULSE) {
+            
+            _raveGloveParticleSystem.setParticleRenderStyle       (_raveGloveEmitter[f], PARTICLE_RENDER_STYLE_SPHERE  );
+            _raveGloveParticleSystem.setShowingEmitterBaseParticle(_raveGloveEmitter[f], true );
+            _raveGloveParticleSystem.setEmitterParticleLifespan   (_raveGloveEmitter[f], 0.0  );
+            _raveGloveParticleSystem.setEmitterThrust             (_raveGloveEmitter[f], 0.0f );
+            _raveGloveParticleSystem.setEmitterRate               (_raveGloveEmitter[f], 30.0 );
+            _raveGloveParticleSystem.setEmitterParticleResolution (_raveGloveEmitter[f], 20   );
+
+            _raveGloveParticleSystem.setParticleAttributesToDefault(&attributes);
+
+            attributes.radius               = 0.01f;
+            attributes.color                = glm::vec4( 0.1f, 0.2f, 0.4f, 0.5f);
+            attributes.modulationAmplitude  = 0.9;
+            attributes.modulationRate       = 7.0;
+            attributes.modulationStyle      = COLOR_MODULATION_STYLE_LIGHNTESS_PULSE;
+            _raveGloveParticleSystem.setParticleAttributes(_raveGloveEmitter[f], PARTICLE_LIFESTAGE_0, attributes);
+            _raveGloveParticleSystem.setParticleAttributes(_raveGloveEmitter[f], PARTICLE_LIFESTAGE_1, attributes);
+            _raveGloveParticleSystem.setParticleAttributes(_raveGloveEmitter[f], PARTICLE_LIFESTAGE_2, attributes);
+            _raveGloveParticleSystem.setParticleAttributes(_raveGloveEmitter[f], PARTICLE_LIFESTAGE_3, attributes);
+        
+        //-----------------------------------------
+        // throb
+        //-----------------------------------------
+        } else if (mode == RAVE_GLOVE_EFFECTS_MODE_LONG_SPARKLER) {
+            
+            _raveGloveParticleSystem.setParticleRenderStyle       (_raveGloveEmitter[f], PARTICLE_RENDER_STYLE_SPHERE  );
+            _raveGloveParticleSystem.setShowingEmitterBaseParticle(_raveGloveEmitter[f], true );
+            _raveGloveParticleSystem.setEmitterParticleLifespan   (_raveGloveEmitter[f], 0.0  );
+            _raveGloveParticleSystem.setEmitterThrust             (_raveGloveEmitter[f], 0.0f );
+            _raveGloveParticleSystem.setEmitterRate               (_raveGloveEmitter[f], 30.0 );
+            _raveGloveParticleSystem.setEmitterParticleResolution (_raveGloveEmitter[f], 20   );
+
+            _raveGloveParticleSystem.setParticleAttributesToDefault(&attributes);
+
+            attributes.radius               = 0.01f;
+            attributes.color                = glm::vec4( 0.5f, 0.4f, 0.3f, 0.5f);
+            attributes.modulationAmplitude  = 0.3;
+            attributes.modulationRate       = 1.0;
+            attributes.modulationStyle      = COLOR_MODULATION_STYLE_LIGHTNESS_WAVE;
+            _raveGloveParticleSystem.setParticleAttributes(_raveGloveEmitter[f], PARTICLE_LIFESTAGE_0, attributes);
+            _raveGloveParticleSystem.setParticleAttributes(_raveGloveEmitter[f], PARTICLE_LIFESTAGE_1, attributes);
+            _raveGloveParticleSystem.setParticleAttributes(_raveGloveEmitter[f], PARTICLE_LIFESTAGE_2, attributes);
+            _raveGloveParticleSystem.setParticleAttributes(_raveGloveEmitter[f], PARTICLE_LIFESTAGE_3, attributes);
+        }
+    }
+}
+
 
 
 
