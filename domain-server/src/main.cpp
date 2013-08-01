@@ -104,9 +104,10 @@ int main(int argc, const char * argv[])
             // so hardcode the EC2 public address for now
             if (nodePublicAddress.sin_addr.s_addr == serverLocalAddress) {
             	// If we're not running "local" then we do replace the IP
-            	// with the EC2 IP. Otherwise, we use our normal public IP
+            	// with 0. This designates to clients that the server is reachable
+                // at the same IP address 
             	if (!isLocalMode) {
-	                nodePublicAddress.sin_addr.s_addr = 895283510; // local IP in this format...
+	                nodePublicAddress.sin_addr.s_addr = 0;
                     destinationSocket = (sockaddr*) &nodeLocalAddress;
 	            }
             }
