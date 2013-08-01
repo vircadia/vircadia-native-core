@@ -932,8 +932,10 @@ void Application::touchEndEvent(QTouchEvent* event) {
     _isTouchPressed = false;
 }
 
+const bool USE_MOUSEWHEEL = false; 
 void Application::wheelEvent(QWheelEvent* event) {
-    if (activeWindow() == _window) {
+    //  Wheel Events disabled for now because they are also activated by touch look pitch up/down.  
+    if (USE_MOUSEWHEEL && (activeWindow() == _window)) {
         if (checkedVoxelModeAction() == 0) {
             event->ignore();
             return;
