@@ -13,6 +13,7 @@
 #include <SimpleMovingAverage.h>
 
 #include "CoverageMap.h"
+#include "JurisdictionMap.h"
 #include "ViewFrustum.h"
 #include "VoxelNode.h"
 #include "VoxelNodeBag.h"
@@ -36,9 +37,10 @@ const int NO_BOUNDARY_ADJUST     = 0;
 const int LOW_RES_MOVING_ADJUST  = 1;
 const uint64_t IGNORE_LAST_SENT  = 0;
 
-#define IGNORE_SCENE_STATS     NULL
-#define IGNORE_VIEW_FRUSTUM    NULL
-#define IGNORE_COVERAGE_MAP    NULL
+#define IGNORE_SCENE_STATS       NULL
+#define IGNORE_VIEW_FRUSTUM      NULL
+#define IGNORE_COVERAGE_MAP      NULL
+#define IGNORE_JURISDICTION_MAP  NULL
 
 class EncodeBitstreamParams {
 public:
@@ -56,6 +58,7 @@ public:
     bool                forceSendScene;
     VoxelSceneStats*    stats;
     CoverageMap*        map;
+    JurisdictionMap*    jurisdictionMap;
     
     EncodeBitstreamParams(
         int                 maxEncodeLevel      = INT_MAX, 
@@ -70,7 +73,8 @@ public:
         int                 boundaryLevelAdjust = NO_BOUNDARY_ADJUST,
         uint64_t            lastViewFrustumSent = IGNORE_LAST_SENT,
         bool                forceSendScene      = true,
-        VoxelSceneStats*    stats               = IGNORE_SCENE_STATS) :
+        VoxelSceneStats*    stats               = IGNORE_SCENE_STATS,
+        JurisdictionMap*    jurisdictionMap     = IGNORE_JURISDICTION_MAP) :
             maxEncodeLevel          (maxEncodeLevel),
             maxLevelReached         (0),
             viewFrustum             (viewFrustum),
@@ -84,7 +88,8 @@ public:
             lastViewFrustumSent     (lastViewFrustumSent),
             forceSendScene          (forceSendScene),
             stats                   (stats),
-            map                     (map)
+            map                     (map),
+            jurisdictionMap         (jurisdictionMap)
     {}
 };
 
@@ -186,7 +191,8 @@ public:
     void recurseTreeWithOperationDistanceSortedTimed(PointerStack* stackOfNodes, long allowedTime,
                                                             RecurseVoxelTreeOperation operation, 
                                                             const glm::vec3& point, void* extraData);
-    
+
+
 private:
     void deleteVoxelCodeFromTreeRecursion(VoxelNode* node, void* extraData);
     void readCodeColorBufferToTreeRecursion(VoxelNode* node, void* extraData);

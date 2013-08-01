@@ -306,13 +306,7 @@ int VoxelTree::readNodeData(VoxelNode* destinationNode, unsigned char* nodeData,
         childIndex++;
     }
 
-    // Here's where we need to handle the idea of multiple voxel servers. If we have multiple voxel
-    // servers, then we don't want to "honor" exists bits for portions of the tree that the server in
-    // question is responsible for. Maybe we can handle this in the server and not "remove" bits for
-    // portions of the server that the server is not responsible for.... or maybe we need to let the client
-    // manage this concept.
-    const bool singleVoxelServer = false;
-    if (singleVoxelServer && args.includeExistsBits) {
+    if (args.includeExistsBits) {
         for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
             // now also check the childrenInTreeMask, if the mask is missing the bit, then it means we need to delete this child
             // subtree/node, because it shouldn't actually exist in the tree.
@@ -1203,9 +1197,18 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
     for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
         VoxelNode* childNode = node->getChildAtIndex(i);
 
-        // if the caller wants to include childExistsBits, then include them even if not in view
-        if (params.includeExistsBits && childNode) {
-            childrenExistInTreeBits += (1 << (7 - i));
+        // if the caller wants to include childExistsBits, then include them even if not in view, if however,
+        // we're in a portion of the tree that's not our responsibility, then we assume the child nodes exist
+        // even if they don't in our local tree
+        bool notMyJurisdictionBro = false;
+        if (params.jurisdictionMap) {
+            notMyJurisdictionBro = !params.jurisdictionMap->isMyJurisdiction(node, i);
+        }
+        if (params.includeExistsBits) {
+            // If the child is known to exist, OR, it's not my jurisdiction, then we mark the bit as existing
+            if (childNode || notMyJurisdictionBro) {
+                childrenExistInTreeBits += (1 << (7 - i));
+            }
         }
 
         if (params.wantOcclusionCulling) {
