@@ -852,6 +852,8 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
                 deleteVoxelUnderCursor();
             }
         }
+
+        _pieMenu.mouseMoveEvent(_mouseX, _mouseY);
     }
 }
 
@@ -869,7 +871,12 @@ void Application::mousePressEvent(QMouseEvent* event) {
             _mouseDragStartedY = _mouseY;
             _mouseVoxelDragging = _mouseVoxel;
             _mousePressed = true;
-            maybeEditVoxelUnderCursor();
+
+
+            if (!maybeEditVoxelUnderCursor()) {
+                _pieMenu.mousePressEvent(_mouseX, _mouseY);
+            }
+
             if (MAKE_SOUND_ON_VOXEL_CLICK && _isHoverVoxel && !_isHoverVoxelSounding) {
                 _hoverVoxelOriginalColor[0] = _hoverVoxel.red;
                 _hoverVoxelOriginalColor[1] = _hoverVoxel.green;
@@ -892,6 +899,8 @@ void Application::mouseReleaseEvent(QMouseEvent* event) {
             _mouseY = event->y();
             _mousePressed = false;
             checkBandwidthMeterClick();
+
+            _pieMenu.mouseReleaseEvent(_mouseX, _mouseY);
         }
     }
 }
@@ -1381,6 +1390,10 @@ void Application::doFalseColorizeOccluded() {
 
 void Application::doFalseColorizeOccludedV2() {
     _voxels.falseColorizeOccludedV2();
+}
+
+void Application::doFalseColorizeBySource() {
+    _voxels.falseColorizeBySource();
 }
 
 void Application::doTrueVoxelColors() {
@@ -1919,6 +1932,7 @@ void Application::initMenu() {
     renderDebugMenu->addAction("FALSE Color Voxel Out of View", this, SLOT(doFalseColorizeInView()));
     renderDebugMenu->addAction("FALSE Color Occluded Voxels", this, SLOT(doFalseColorizeOccluded()), Qt::CTRL | Qt::Key_O);
     renderDebugMenu->addAction("FALSE Color Occluded V2 Voxels", this, SLOT(doFalseColorizeOccludedV2()), Qt::CTRL | Qt::Key_P);
+    renderDebugMenu->addAction("FALSE Color By Source", this, SLOT(doFalseColorizeBySource()), Qt::CTRL | Qt::SHIFT | Qt::Key_S);
     renderDebugMenu->addAction("Show TRUE Colors", this, SLOT(doTrueVoxelColors()), Qt::CTRL | Qt::Key_T);
 
     (_shouldLowPassFilter = debugMenu->addAction("Test: LowPass filter"))->setCheckable(true);
@@ -2057,7 +2071,15 @@ void Application::init() {
     _palette.addTool(&_swatch);
     _palette.addAction(_colorVoxelMode, 0, 2);
     _palette.addAction(_eyedropperMode, 0, 3);
-    _palette.addAction(_selectVoxelMode, 0, 4);    
+    _palette.addAction(_selectVoxelMode, 0, 4);
+
+    _pieMenu.init("./resources/images/hifi-interface-tools-v2-pie.svg",
+                  _glWidget->width(),
+                  _glWidget->height());
+
+    _followMode = new QAction(this);
+    connect(_followMode, SIGNAL(triggered()), this, SLOT(toggleFollowMode()));
+    _pieMenu.addAction(_followMode);
 }
 
 
@@ -2069,7 +2091,7 @@ const float HEAD_SPHERE_RADIUS = 0.07;
 static uint16_t DEFAULT_NODE_ID_REF = 1;
 
 
-bool Application::isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection, 
+Avatar* Application::isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection,
                                          glm::vec3& eyePosition, uint16_t& nodeID = DEFAULT_NODE_ID_REF) {
                                          
     NodeList* nodeList = NodeList::getInstance();
@@ -2082,11 +2104,11 @@ bool Application::isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3& m
                 _lookatIndicatorScale = avatar->getScale();
                 _lookatOtherPosition = headPosition;
                 nodeID = avatar->getOwningNode()->getNodeID();
-                return true;
+                return avatar;
             }
         }
     }
-    return false;
+    return NULL;
 }
 
 void Application::renderLookatIndicator(glm::vec3 pointOfInterest, Camera& whichCamera) {
@@ -2992,6 +3014,10 @@ void Application::displayOverlay() {
         _swatch.checkColor();
     }
 
+    if (_pieMenu.isDisplayed()) {
+        _pieMenu.render();
+    }
+
     glPopMatrix();
 }
 
@@ -3004,19 +3030,35 @@ void Application::displayStats() {
     drawtext(10, statsVerticalOffset + 15, 0.10f, 0, 1.0, 0, stats);
 
     if (_testPing->isChecked()) {
-        int pingAudio = 0, pingAvatar = 0, pingVoxel = 0;
+        int pingAudio = 0, pingAvatar = 0, pingVoxel = 0, pingVoxelMax = 0;
 
-        NodeList *nodeList = NodeList::getInstance();
-        Node *audioMixerNode = nodeList->soloNodeOfType(NODE_TYPE_AUDIO_MIXER);
-        Node *avatarMixerNode = nodeList->soloNodeOfType(NODE_TYPE_AVATAR_MIXER);
-        Node *voxelServerNode = nodeList->soloNodeOfType(NODE_TYPE_VOXEL_SERVER);
+        NodeList* nodeList = NodeList::getInstance();
+        Node* audioMixerNode = nodeList->soloNodeOfType(NODE_TYPE_AUDIO_MIXER);
+        Node* avatarMixerNode = nodeList->soloNodeOfType(NODE_TYPE_AVATAR_MIXER);
 
         pingAudio = audioMixerNode ? audioMixerNode->getPingMs() : 0;
         pingAvatar = avatarMixerNode ? avatarMixerNode->getPingMs() : 0;
-        pingVoxel = voxelServerNode ? voxelServerNode->getPingMs() : 0;
+
+
+        // Now handle voxel servers, since there could be more than one, we average their ping times
+        unsigned long totalPingVoxel = 0;
+        int voxelServerCount = 0;
+        for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+            if (node->getType() == NODE_TYPE_VOXEL_SERVER) {
+                totalPingVoxel += node->getPingMs();
+                voxelServerCount++;
+                if (pingVoxelMax < node->getPingMs()) {
+                    pingVoxelMax = node->getPingMs();
+                }
+            }
+        }
+        if (voxelServerCount) {
+            pingVoxel = totalPingVoxel/voxelServerCount;
+        }
+
 
         char pingStats[200];
-        sprintf(pingStats, "Ping audio/avatar/voxel: %d / %d / %d ", pingAudio, pingAvatar, pingVoxel);
+        sprintf(pingStats, "Ping audio/avatar/voxel: %d / %d / %d avg %d max ", pingAudio, pingAvatar, pingVoxel, pingVoxelMax);
         drawtext(10, statsVerticalOffset + 35, 0.10f, 0, 1.0, 0, pingStats);
     }
  
@@ -3391,7 +3433,7 @@ void Application::shiftPaintingColor() {
 }
 
 
-void Application::maybeEditVoxelUnderCursor() {
+bool Application::maybeEditVoxelUnderCursor() {
     if (_addVoxelMode->isChecked() || _colorVoxelMode->isChecked()) {
         if (_mouseVoxel.s != 0) {
             PACKET_TYPE message = (_destructiveAddVoxel->isChecked() ?
@@ -3462,7 +3504,11 @@ void Application::maybeEditVoxelUnderCursor() {
         deleteVoxelUnderCursor();
     } else if (_eyedropperMode->isChecked()) {
         eyedropperVoxelUnderCursor();
+    } else {
+        return false;
     }
+
+    return true;
 }
 
 void Application::deleteVoxelUnderCursor() {
@@ -3503,6 +3549,22 @@ void Application::eyedropperVoxelUnderCursor() {
 void Application::goHome() {
     qDebug("Going Home!\n");
     _myAvatar.setPosition(START_LOCATION);
+}
+
+
+void Application::toggleFollowMode() {
+    glm::vec3 mouseRayOrigin, mouseRayDirection;
+    _viewFrustum.computePickRay(_pieMenu.getX() / (float)_glWidget->width(),
+                                _pieMenu.getY() / (float)_glWidget->height(),
+                                mouseRayOrigin, mouseRayDirection);
+    glm::vec3 eyePositionIgnored;
+    uint16_t  nodeIDIgnored;
+    Avatar* leadingAvatar = isLookingAtOtherAvatar(mouseRayOrigin,
+                                                   mouseRayDirection,
+                                                   eyePositionIgnored,
+                                                   nodeIDIgnored);
+
+    _myAvatar.follow(leadingAvatar);
 }
 
 void Application::resetSensors() {
@@ -3617,13 +3679,15 @@ void* Application::networkReceive(void* args) {
                         } // fall through to piggyback message
                         
                         if (app->_renderVoxels->isChecked()) {
-                            Node* voxelServer = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_VOXEL_SERVER);
+                            Node* voxelServer = NodeList::getInstance()->nodeWithAddress(&senderAddress);
                             if (voxelServer && socketMatch(voxelServer->getActiveSocket(), &senderAddress)) {
                                 voxelServer->lock();
                                 if (messageData[0] == PACKET_TYPE_ENVIRONMENT_DATA) {
                                     app->_environment.parseData(&senderAddress, messageData, messageLength);
                                 } else {
+                                    app->_voxels.setDataSourceID(voxelServer->getNodeID());
                                     app->_voxels.parseData(messageData, messageLength);
+                                    app->_voxels.setDataSourceID(UNKNOWN_NODE_ID);
                                 }
                                 voxelServer->unlock();
                             }
