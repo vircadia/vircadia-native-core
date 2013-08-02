@@ -857,7 +857,7 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
 
 const bool MAKE_SOUND_ON_VOXEL_HOVER = false;
 const bool MAKE_SOUND_ON_VOXEL_CLICK = true;
-const float HOVER_VOXEL_FREQUENCY = 14080.f;
+const float HOVER_VOXEL_FREQUENCY = 7040.f;
 const float HOVER_VOXEL_DECAY = 0.999f;
 
 void Application::mousePressEvent(QMouseEvent* event) {
