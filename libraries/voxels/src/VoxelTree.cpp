@@ -1078,6 +1078,15 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
     if (currentEncodeLevel >= params.maxEncodeLevel) {
         return bytesAtThisLevel;
     }
+
+    // If we've been provided a jurisdiction map, then we need to honor it.
+    if (params.jurisdictionMap) {
+        // here's how it works... if we're currently above our root jurisdiction, then we proceed normally.
+        // but once we're in our own jurisdiction, then we need to make sure we're not below it.
+        if (JurisdictionMap::BELOW == params.jurisdictionMap->isMyJurisdiction(node->getOctalCode(), CHECK_NODE_ONLY)) {
+            return bytesAtThisLevel;
+        }
+    }
     
     // caller can pass NULL as viewFrustum if they want everything
     if (params.viewFrustum) {
@@ -1200,13 +1209,13 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
         // if the caller wants to include childExistsBits, then include them even if not in view, if however,
         // we're in a portion of the tree that's not our responsibility, then we assume the child nodes exist
         // even if they don't in our local tree
-        bool notMyJurisdictionBro = false;
+        bool notMyJurisdiction = false;
         if (params.jurisdictionMap) {
-            notMyJurisdictionBro = !params.jurisdictionMap->isMyJurisdiction(node, i);
+            notMyJurisdiction = (JurisdictionMap::BELOW == params.jurisdictionMap->isMyJurisdiction(node->getOctalCode(), i));
         }
         if (params.includeExistsBits) {
             // If the child is known to exist, OR, it's not my jurisdiction, then we mark the bit as existing
-            if (childNode || notMyJurisdictionBro) {
+            if (childNode || notMyJurisdiction) {
                 childrenExistInTreeBits += (1 << (7 - i));
             }
         }

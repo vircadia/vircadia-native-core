@@ -12,16 +12,20 @@
 #include <vector>
 #include <QString>
 
-class VoxelNode; // forward declaration
-
 class JurisdictionMap {
 public:
+    enum Area {
+        ABOVE,
+        WITHIN,
+        BELOW
+    };
+    
     JurisdictionMap();
     JurisdictionMap(const char* filename);
     JurisdictionMap(unsigned char* rootOctalCode, const std::vector<unsigned char*>& endNodes);
     ~JurisdictionMap();
 
-    bool isMyJurisdiction(VoxelNode* node, int childIndex) const;
+    Area isMyJurisdiction(unsigned char* nodeOctalCode, int childIndex) const;
 
     bool writeToFile(const char* filename);
     bool readFromFile(const char* filename);
@@ -32,7 +36,6 @@ private:
 
     unsigned char*  hexStringToOctalCode(const QString& input) const;
     QString         octalCodeToHexString(unsigned char* octalCode) const;
-
 
     unsigned char* _rootOctalCode;
     std::vector<unsigned char*> _endNodes;

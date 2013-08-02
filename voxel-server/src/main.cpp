@@ -67,6 +67,8 @@ bool debugVoxelReceiving = false;
 
 EnvironmentData environmentData[3];
 
+int receivedPacketCount = 0;
+JurisdictionMap* jurisdiction = NULL;
 
 void randomlyFillVoxelTree(int levelsToGo, VoxelNode *currentRootNode) {
     // randomly generate children for this node
@@ -294,7 +296,7 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
                                              WANT_EXISTS_BITS, DONT_CHOP, wantDelta, lastViewFrustum,
                                              wantOcclusionCulling, coverageMap, boundaryLevelAdjust,
                                              nodeData->getLastTimeBagEmpty(),
-                                             isFullScene, &nodeData->stats);
+                                             isFullScene, &nodeData->stats, ::jurisdiction);
                       
                 nodeData->stats.encodeStarted();
                 bytesWritten = serverTree.encodeTreeBitstream(subTree, &tempOutputBuffer[0], MAX_VOXEL_PACKET_SIZE - 1,
@@ -428,9 +430,6 @@ void attachVoxelNodeDataToNode(Node* newNode) {
         newNode->setLinkedData(new VoxelNodeData(newNode));
     }
 }
-
-int receivedPacketCount = 0;
-JurisdictionMap* jurisdiction = NULL;
 
 int main(int argc, const char * argv[]) {
     pthread_mutex_init(&::treeLock, NULL);
