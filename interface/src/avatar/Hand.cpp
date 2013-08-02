@@ -85,7 +85,7 @@ void Hand::calculateGeometry() {
         }
     }
 
-    // generate finger rot balls....
+    // generate finger root balls....
     _leapFingerRootBalls.clear();
     for (size_t i = 0; i < getNumPalms(); ++i) {
         PalmData& palm = getPalms()[i];
