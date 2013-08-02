@@ -12,7 +12,6 @@
 #define __interface__world__
 
 
-const float WORLD_SIZE = 10.0;
 #define PIf 3.14159265f
 
 const float GRAVITY_EARTH = 9.80665f;

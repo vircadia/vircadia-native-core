@@ -570,7 +570,9 @@ void Application::keyPressEvent(QKeyEvent* event) {
         if (_simulateLeapHand->isChecked() || _testRaveGlove->isChecked()) {
             _myAvatar.getHand().setRaveGloveEffectsMode((QKeyEvent*)event);
         }
-        
+
+        bool alt     = event->modifiers().testFlag(Qt::AltModifier);
+        bool meta    = event->modifiers().testFlag(Qt::MetaModifier);
         bool shifted = event->modifiers().testFlag(Qt::ShiftModifier);
         switch (event->key()) {
             case Qt::Key_BracketLeft:
@@ -644,7 +646,13 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
                 
             case Qt::Key_C:
-                _myAvatar.setDriveKeys(DOWN, 1);
+                if (shifted)  {
+                    _occlusionCulling->trigger();
+                } else if (meta) {
+                    chooseVoxelPaintColor();
+                } else {
+                    _myAvatar.setDriveKeys(DOWN, 1);
+                }
                 break;
                 
             case Qt::Key_W:
@@ -652,7 +660,11 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
                 
             case Qt::Key_S:
-                _myAvatar.setDriveKeys(BACK, 1);
+                if (shifted)  {
+                    doTreeStats();
+                } else {
+                    _myAvatar.setDriveKeys(BACK, 1);
+                }
                 break;
                 
             case Qt::Key_Space:
@@ -661,11 +673,19 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
                 
             case Qt::Key_G:
-                goHome();
+                if (shifted) {
+                    _gravityUse->trigger();
+                } else {
+                    _eyedropperMode->trigger();
+                }
                 break;
                 
             case Qt::Key_A:
-                _myAvatar.setDriveKeys(ROT_LEFT, 1);
+                if (shifted) {
+                    _renderAtmosphereOn->trigger();
+                } else {
+                    _myAvatar.setDriveKeys(ROT_LEFT, 1);
+                }
                 break;
                 
             case Qt::Key_D:
@@ -755,12 +775,66 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 }
                 resizeGL(_glWidget->width(), _glWidget->height());
                 break;
+            case Qt::Key_N:
+                _noise->trigger();
+                break;
+            case Qt::Key_H:
+                _lookingInMirror->trigger();
+                break;
+            case Qt::Key_F:
+                if (shifted)  {
+                    _frustumOn->trigger();
+                } else {
+                    _fullScreenMode->trigger();
+                }
+                break;
+            case Qt::Key_V:
+                if (shifted) {
+                    _renderVoxels->trigger();
+                } else {
+                    _addVoxelMode->trigger();
+                }
+                break;
+            case Qt::Key_P:
+                 _manualFirstPerson->trigger();
+                 break;
+            case Qt::Key_R:
+                if (shifted)  {
+                    _frustumRenderModeAction->trigger();
+                } else {
+                    _deleteVoxelMode->trigger();
+                }
+                break;
+            case Qt::Key_B:
+            _colorVoxelMode->trigger();
+                break;
+            case Qt::Key_O:
+                if (shifted)  {
+                    _viewFrustumFromOffset->trigger();
+                } else {
+                    _selectVoxelMode->trigger();
+                }
+                break;
+            case Qt::Key_Slash:
+                _renderStatsOn->trigger();
+                break;
             case Qt::Key_Backspace:
             case Qt::Key_Delete:
                 if (_selectVoxelMode->isChecked()) {
                     deleteVoxelUnderCursor();
                 }
                 break;
+            case Qt::Key_Plus:
+                if (alt) {
+                    increaseAvatarSize();
+                }
+                break;
+            case Qt::Key_Minus:
+                if (alt) {
+                    decreaseAvatarSize();
+                }
+                break;
+
             case Qt::Key_1:
             case Qt::Key_2:
             case Qt::Key_3:
@@ -859,7 +933,7 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
 
 const bool MAKE_SOUND_ON_VOXEL_HOVER = false;
 const bool MAKE_SOUND_ON_VOXEL_CLICK = true;
-const float HOVER_VOXEL_FREQUENCY = 14080.f;
+const float HOVER_VOXEL_FREQUENCY = 7040.f;
 const float HOVER_VOXEL_DECAY = 0.999f;
 
 void Application::mousePressEvent(QMouseEvent* event) {
@@ -1791,10 +1865,12 @@ void Application::initMenu() {
     _window->setMenuBar(menuBar);
     
     QMenu* fileMenu = menuBar->addMenu("File");
-    fileMenu->addAction("Quit", this, SLOT(quit()), Qt::CTRL | Qt::Key_Q);
+    QAction* quitAction = fileMenu->addAction("Quit", this, SLOT(quit()), Qt::CTRL | Qt::Key_Q);
+    quitAction->setMenuRole(QAction::QuitRole);
 
     QMenu* editMenu = menuBar->addMenu("Edit");
-    editMenu->addAction("Preferences...", this, SLOT(editPreferences()));
+    QAction* preferencesAction = editMenu->addAction("Preferences...", this, SLOT(editPreferences()), Qt::CTRL | Qt::Key_Comma);
+    preferencesAction->setMenuRole(QAction::PreferencesRole);
 
     QMenu* pairMenu = menuBar->addMenu("Pair");
     pairMenu->addAction("Pair", this, SLOT(pair()));
@@ -1803,7 +1879,7 @@ void Application::initMenu() {
     (_lookingInMirror = optionsMenu->addAction("Mirror", this, SLOT(setRenderMirrored(bool)), Qt::Key_H))->setCheckable(true);
     (_echoAudioMode = optionsMenu->addAction("Echo Audio"))->setCheckable(true);
     
-    optionsMenu->addAction("Noise", this, SLOT(setNoise(bool)), Qt::Key_N)->setCheckable(true);
+    (_noise = optionsMenu->addAction("Noise", this, SLOT(setNoise(bool)), Qt::Key_N))->setCheckable(true);
     (_gyroLook = optionsMenu->addAction("Smooth Gyro Look"))->setCheckable(true);
     _gyroLook->setChecked(true);
     (_showHeadMouse = optionsMenu->addAction("Head Mouse"))->setCheckable(true);
@@ -1819,7 +1895,7 @@ void Application::initMenu() {
     optionsMenu->addAction("Webcam", &_webcam, SLOT(setEnabled(bool)))->setCheckable(true);
     optionsMenu->addAction("Toggle Skeleton Tracking", &_webcam, SLOT(setSkeletonTrackingOn(bool)))->setCheckable(true);
     optionsMenu->addAction("Cycle Webcam Send Mode", _webcam.getGrabber(), SLOT(cycleVideoSendMode()));
-    optionsMenu->addAction("Go Home", this, SLOT(goHome()));
+    optionsMenu->addAction("Go Home", this, SLOT(goHome()), Qt::CTRL | Qt::Key_G);
     
     QMenu* renderMenu = menuBar->addMenu("Render");
     (_renderVoxels = renderMenu->addAction("Voxels", this, SLOT(setRenderVoxels(bool)), Qt::SHIFT | Qt::Key_V))->setCheckable(true);
@@ -1888,8 +1964,8 @@ void Application::initMenu() {
         "Get Color Mode", this, SLOT(updateVoxelModeActions()),   Qt::Key_G))->setCheckable(true);
     _voxelModeActions->addAction(_eyedropperMode);
 
-    voxelMenu->addAction("Decrease Voxel Size", this, SLOT(decreaseVoxelSize()),       QKeySequence::ZoomOut);
-    voxelMenu->addAction("Increase Voxel Size", this, SLOT(increaseVoxelSize()),       QKeySequence::ZoomIn);
+    voxelMenu->addAction("Decrease Voxel Size", this, SLOT(decreaseVoxelSize()), QKeySequence::ZoomOut);
+    voxelMenu->addAction("Increase Voxel Size", this, SLOT(increaseVoxelSize()), QKeySequence::ZoomIn);
     voxelMenu->addAction("Reset Swatch Colors", this, SLOT(resetSwatchColors()));
 
     _voxelPaintColor = voxelMenu->addAction("Voxel Paint Color", this, 
@@ -1916,7 +1992,7 @@ void Application::initMenu() {
     (_viewFrustumFromOffset = frustumMenu->addAction(
         "Use Offset Camera", this, SLOT(setFrustumOffset(bool)), Qt::SHIFT | Qt::Key_O))->setCheckable(true); 
     _frustumRenderModeAction = frustumMenu->addAction(
-        "Render Mode", this, SLOT(cycleFrustumRenderMode()), Qt::SHIFT | Qt::Key_R); 
+        "Render Mode", this, SLOT(cycleFrustumRenderMode()), Qt::SHIFT | Qt::Key_R);
     updateFrustumRenderModeAction();
     
     debugMenu->addAction("Run Timing Tests", this, SLOT(runTests()));
@@ -1940,8 +2016,8 @@ void Application::initMenu() {
     debugMenu->addAction("Wants Monochrome", this, SLOT(setWantsMonochrome(bool)))->setCheckable(true);
     debugMenu->addAction("Use Lower Resolution While Moving", this, SLOT(setWantsLowResMoving(bool)))->setCheckable(true);
     debugMenu->addAction("Disable Delta Sending", this, SLOT(disableDeltaSending(bool)))->setCheckable(true);
-    debugMenu->addAction("Disable Occlusion Culling", this, SLOT(disableOcclusionCulling(bool)), 
-                         Qt::SHIFT | Qt::Key_C)->setCheckable(true);
+    (_occlusionCulling = debugMenu->addAction("Disable Occlusion Culling", this, SLOT(disableOcclusionCulling(bool)),
+                         Qt::SHIFT | Qt::Key_C))->setCheckable(true);
 
     (_renderCoverageMap = debugMenu->addAction("Render Coverage Map"))->setCheckable(true);
     _renderCoverageMap->setShortcut(Qt::SHIFT | Qt::CTRL | Qt::Key_O);
@@ -2162,7 +2238,8 @@ void Application::update(float deltaTime) {
         _myAvatar.getHead().setLookAtPosition(lookAtSpot);
     } else {
         //  Just look in direction of the mouse ray
-        glm::vec3 myLookAtFromMouse(mouseRayOrigin + mouseRayDirection);
+        const float FAR_AWAY_STARE = TREE_SCALE;
+        glm::vec3 myLookAtFromMouse(mouseRayOrigin + mouseRayDirection * FAR_AWAY_STARE);
         _myAvatar.getHead().setLookAtPosition(myLookAtFromMouse);
     }
     
@@ -2173,15 +2250,21 @@ void Application::update(float deltaTime) {
     //  If we have clicked on a voxel, update it's color
     if (_isHoverVoxelSounding) {
         VoxelNode* hoveredNode = _voxels.getVoxelAt(_hoverVoxel.x, _hoverVoxel.y, _hoverVoxel.z, _hoverVoxel.s);
-        float bright = _audio.getCollisionSoundMagnitude();
-        nodeColor clickColor = { 255 * bright + _hoverVoxelOriginalColor[0] * (1.f - bright),
-                                _hoverVoxelOriginalColor[1] * (1.f - bright),
-                                _hoverVoxelOriginalColor[2] * (1.f - bright), 1 };
-        hoveredNode->setColor(clickColor);
-        if (bright < 0.01f) {
-            hoveredNode->setColor(_hoverVoxelOriginalColor);
+        if (hoveredNode) {
+            float bright = _audio.getCollisionSoundMagnitude();
+            nodeColor clickColor = { 255 * bright + _hoverVoxelOriginalColor[0] * (1.f - bright),
+                                    _hoverVoxelOriginalColor[1] * (1.f - bright),
+                                    _hoverVoxelOriginalColor[2] * (1.f - bright), 1 };
+            hoveredNode->setColor(clickColor);
+            if (bright < 0.01f) {
+                hoveredNode->setColor(_hoverVoxelOriginalColor);
+                _isHoverVoxelSounding = false;
+            }
+        } else {
+            //  Voxel is not found, clear all
             _isHoverVoxelSounding = false;
-        }   
+            _isHoverVoxel = false; 
+        }
     } else {
         //  Check for a new hover voxel
         glm::vec4 oldVoxel(_hoverVoxel.x, _hoverVoxel.y, _hoverVoxel.z, _hoverVoxel.s);
@@ -2849,8 +2932,9 @@ void Application::displaySide(Camera& whichCamera) {
             _myAvatar.getHead().setLookAtPosition(_myCamera.getPosition());
         } 
         _myAvatar.render(_lookingInMirror->isChecked(), _renderAvatarBalls->isChecked());
+        _myAvatar.setDisplayingLookatVectors(_renderLookatOn->isChecked());
 
-        if (_renderLookatIndicatorOn->isChecked() && _isLookingAtOtherAvatar) {
+        if (_renderLookatIndicatorOn->isChecked()) {
             renderLookatIndicator(_lookatOtherPosition, whichCamera);
         }
     }
@@ -2862,7 +2946,7 @@ void Application::displaySide(Camera& whichCamera) {
     }
 
     //  Render the world box
-    if (!_lookingInMirror->isChecked() && _renderStatsOn->isChecked()) { render_world_box(); }
+    if (!_lookingInMirror->isChecked() && _renderStatsOn->isChecked()) { renderWorldBox(); }
     
     // brad's frustum for debugging
     if (_frustumOn->isChecked()) renderViewFrustum(_viewFrustum);
