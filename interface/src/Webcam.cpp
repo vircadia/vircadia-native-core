@@ -469,7 +469,8 @@ void FrameGrabber::grabFrame() {
     const int ENCODED_FACE_HEIGHT = 128;
     int encodedWidth;
     int encodedHeight;
-    int depthBitrateMultiplier = 1;
+    float colorBitrateMultiplier = 1.0f;
+    float depthBitrateMultiplier = 1.0f;
     Mat faceTransform;
     float aspectRatio;
     if (_videoSendMode == FULL_FRAME_VIDEO) {
@@ -478,6 +479,7 @@ void FrameGrabber::grabFrame() {
         encodedWidth = color.cols;
         encodedHeight = color.rows;
         aspectRatio = FULL_FRAME_ASPECT;
+        colorBitrateMultiplier = 4.0f;
         
     } else {
         // if we don't have a search window (yet), try using the face cascade
@@ -514,7 +516,7 @@ void FrameGrabber::grabFrame() {
         }
         encodedWidth = ENCODED_FACE_WIDTH;
         encodedHeight = ENCODED_FACE_HEIGHT;
-        depthBitrateMultiplier = 2;
+        depthBitrateMultiplier = 2.0f;
         
         // correct for 180 degree rotations
         if (faceRect.angle < -90.0f) {
@@ -595,7 +597,7 @@ void FrameGrabber::grabFrame() {
             // initialize encoder context(s)
             vpx_codec_enc_cfg_t codecConfig;
             vpx_codec_enc_config_default(vpx_codec_vp8_cx(), &codecConfig, 0);
-            codecConfig.rc_target_bitrate = ENCODED_FACE_WIDTH * ENCODED_FACE_HEIGHT *
+            codecConfig.rc_target_bitrate = ENCODED_FACE_WIDTH * ENCODED_FACE_HEIGHT * colorBitrateMultiplier * 
                 codecConfig.rc_target_bitrate / codecConfig.g_w / codecConfig.g_h;
             codecConfig.g_w = encodedWidth;
             codecConfig.g_h = encodedHeight;
