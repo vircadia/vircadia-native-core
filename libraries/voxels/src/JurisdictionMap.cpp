@@ -64,11 +64,11 @@ bool JurisdictionMap::isMyJurisdiction(VoxelNode* node, int childIndex) const {
 bool JurisdictionMap::readFromFile(const char* filename) {
     QString     settingsFile(filename);
     QSettings   settings(settingsFile, QSettings::IniFormat);
-    QString     rootCode = settings.value("root","").toString();
+    QString     rootCode = settings.value("root","00").toString();
     qDebug() << "rootCode=" << rootCode << "\n";
 
-    unsigned char* rootOctCode = hexStringToOctalCode(rootCode);
-    printOctalCode(rootOctCode);
+    _rootOctalCode = hexStringToOctalCode(rootCode);
+    printOctalCode(_rootOctalCode);
 
     settings.beginGroup("endNodes");
     const QStringList childKeys = settings.childKeys();
@@ -91,12 +91,15 @@ bool JurisdictionMap::writeToFile(const char* filename) {
     QString     settingsFile(filename);
     QSettings   settings(settingsFile, QSettings::IniFormat);
 
-    settings.setValue("root", "rootNodeValue");
+
+    QString rootNodeValue = octalCodeToHexString(_rootOctalCode);
+
+    settings.setValue("root", rootNodeValue);
     
     settings.beginGroup("endNodes");
     for (int i = 0; i < _endNodes.size(); i++) {
         QString key = QString("endnode%1").arg(i);
-        QString value = QString("valuenode%1").arg(i);
+        QString value = octalCodeToHexString(_endNodes[i]);
         settings.setValue(key, value);
     }
     settings.endGroup();
@@ -104,23 +107,46 @@ bool JurisdictionMap::writeToFile(const char* filename) {
 }
 
 
-unsigned char* JurisdictionMap::hexStringToOctalCode(const QString& input) {
-    // i variable used to hold position in string
-    int i = 0;
-    // x variable used to hold byte array element position
-    int x = 0;
+unsigned char* JurisdictionMap::hexStringToOctalCode(const QString& input) const {
+    const int HEX_NUMBER_BASE = 16;
+    const int HEX_BYTE_SIZE = 2;
+    int stringIndex = 0;
+    int byteArrayIndex = 0;
+
     // allocate byte array based on half of string length
-    unsigned char* bytes = new unsigned char[(input.length()) / 2];
+    unsigned char* bytes = new unsigned char[(input.length()) / HEX_BYTE_SIZE];
+    
     // loop through the string - 2 bytes at a time converting
     //  it to decimal equivalent and store in byte array
-    while (input.length() > i + 1) {
-    
-        bool ok;
-        uint value = input.mid(i, 2).toUInt(&ok,16); 
-        bytes[x] = (unsigned char)value;
-        i += 2;
-        x += 1;
+    bool ok;
+    while (stringIndex < input.length()) {
+        uint value = input.mid(stringIndex, HEX_BYTE_SIZE).toUInt(&ok, HEX_NUMBER_BASE);
+        if (!ok) {
+            break;
+        }
+        bytes[byteArrayIndex] = (unsigned char)value;
+        stringIndex += HEX_BYTE_SIZE;
+        byteArrayIndex++;
     }
-    // return the finished byte array of decimal values
+    
+    // something went wrong
+    if (!ok) {
+        delete[] bytes;
+        return NULL;
+    }
     return bytes;
+}
+
+QString JurisdictionMap::octalCodeToHexString(unsigned char* octalCode) const {
+    const int HEX_NUMBER_BASE = 16;
+    const int HEX_BYTE_SIZE = 2;
+    QString output;
+    if (!octalCode) {
+        output = "00";
+    } else {
+        for (int i = 0; i < bytesRequiredForCodeLength(*octalCode); i++) {
+            output.append(QString("%1").arg(octalCode[i], HEX_BYTE_SIZE, HEX_NUMBER_BASE, QChar('0')).toUpper());
+        }
+    }
+    return output;
 }

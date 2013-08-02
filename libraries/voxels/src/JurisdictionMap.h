@@ -30,7 +30,8 @@ private:
     void clear();
     void init(unsigned char* rootOctalCode, const std::vector<unsigned char*>& endNodes);
 
-    unsigned char* hexStringToOctalCode(const QString& input);
+    unsigned char*  hexStringToOctalCode(const QString& input) const;
+    QString         octalCodeToHexString(unsigned char* octalCode) const;
 
 
     unsigned char* _rootOctalCode;

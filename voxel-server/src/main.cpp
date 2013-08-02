@@ -459,9 +459,9 @@ int main(int argc, const char * argv[]) {
         printf("after readFromFile().... jurisdictionFile=%s\n", jurisdictionFile);
 
         // test writing the file...
-        //printf("about to writeToFile().... jurisdictionFile=%s\n", jurisdictionFile);
-        //jurisdiction->writeToFile(jurisdictionFile);
-        //printf("after writeToFile().... jurisdictionFile=%s\n", jurisdictionFile);
+        printf("about to writeToFile().... jurisdictionFile=%s\n", jurisdictionFile);
+        jurisdiction->writeToFile(jurisdictionFile);
+        printf("after writeToFile().... jurisdictionFile=%s\n", jurisdictionFile);
     }
     
     NodeList* nodeList = NodeList::createInstance(NODE_TYPE_VOXEL_SERVER, listenPort);
