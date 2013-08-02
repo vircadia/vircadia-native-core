@@ -196,8 +196,9 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _isTouchPressed(false),
         _yawFromTouch(0.0f),
         _pitchFromTouch(0.0f),
-        _groundPlaneImpact(0.0f),
         _mousePressed(false),
+        _isHoverVoxel(false),
+        _isHoverVoxelSounding(false),
         _mouseVoxelScale(1.0f / 1024.0f),
         _justEditedVoxel(false),
         _isLookingAtOtherAvatar(false),
@@ -851,8 +852,15 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
                 deleteVoxelUnderCursor();
             }
         }
+
+        _pieMenu.mouseMoveEvent(_mouseX, _mouseY);
     }
 }
+
+const bool MAKE_SOUND_ON_VOXEL_HOVER = false;
+const bool MAKE_SOUND_ON_VOXEL_CLICK = true;
+const float HOVER_VOXEL_FREQUENCY = 14080.f;
+const float HOVER_VOXEL_DECAY = 0.999f;
 
 void Application::mousePressEvent(QMouseEvent* event) {
     if (activeWindow() == _window) {
@@ -863,7 +871,20 @@ void Application::mousePressEvent(QMouseEvent* event) {
             _mouseDragStartedY = _mouseY;
             _mouseVoxelDragging = _mouseVoxel;
             _mousePressed = true;
-            maybeEditVoxelUnderCursor();
+
+
+            if (!maybeEditVoxelUnderCursor()) {
+                _pieMenu.mousePressEvent(_mouseX, _mouseY);
+            }
+
+            if (MAKE_SOUND_ON_VOXEL_CLICK && _isHoverVoxel && !_isHoverVoxelSounding) {
+                _hoverVoxelOriginalColor[0] = _hoverVoxel.red;
+                _hoverVoxelOriginalColor[1] = _hoverVoxel.green;
+                _hoverVoxelOriginalColor[2] = _hoverVoxel.blue;
+                _hoverVoxelOriginalColor[3] = 1;
+                _audio.startCollisionSound(1.0, HOVER_VOXEL_FREQUENCY * _hoverVoxel.s * TREE_SCALE, 0.0, HOVER_VOXEL_DECAY);
+                _isHoverVoxelSounding = true;
+            }
             
         } else if (event->button() == Qt::RightButton && checkedVoxelModeAction() != 0) {
             deleteVoxelUnderCursor();
@@ -878,6 +899,8 @@ void Application::mouseReleaseEvent(QMouseEvent* event) {
             _mouseY = event->y();
             _mousePressed = false;
             checkBandwidthMeterClick();
+
+            _pieMenu.mouseReleaseEvent(_mouseX, _mouseY);
         }
     }
 }
@@ -918,8 +941,10 @@ void Application::touchEndEvent(QTouchEvent* event) {
     _isTouchPressed = false;
 }
 
+const bool USE_MOUSEWHEEL = false; 
 void Application::wheelEvent(QWheelEvent* event) {
-    if (activeWindow() == _window) {
+    //  Wheel Events disabled for now because they are also activated by touch look pitch up/down.  
+    if (USE_MOUSEWHEEL && (activeWindow() == _window)) {
         if (checkedVoxelModeAction() == 0) {
             event->ignore();
             return;
@@ -2046,7 +2071,15 @@ void Application::init() {
     _palette.addTool(&_swatch);
     _palette.addAction(_colorVoxelMode, 0, 2);
     _palette.addAction(_eyedropperMode, 0, 3);
-    _palette.addAction(_selectVoxelMode, 0, 4);    
+    _palette.addAction(_selectVoxelMode, 0, 4);
+
+    _pieMenu.init("./resources/images/hifi-interface-tools-v2-pie.svg",
+                  _glWidget->width(),
+                  _glWidget->height());
+
+    _followMode = new QAction(this);
+    connect(_followMode, SIGNAL(triggered()), this, SLOT(toggleFollowMode()));
+    _pieMenu.addAction(_followMode);
 }
 
 
@@ -2058,7 +2091,7 @@ const float HEAD_SPHERE_RADIUS = 0.07;
 static uint16_t DEFAULT_NODE_ID_REF = 1;
 
 
-bool Application::isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection, 
+Avatar* Application::isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection,
                                          glm::vec3& eyePosition, uint16_t& nodeID = DEFAULT_NODE_ID_REF) {
                                          
     NodeList* nodeList = NodeList::getInstance();
@@ -2071,11 +2104,11 @@ bool Application::isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3& m
                 _lookatIndicatorScale = avatar->getScale();
                 _lookatOtherPosition = headPosition;
                 nodeID = avatar->getOwningNode()->getNodeID();
-                return true;
+                return avatar;
             }
         }
     }
-    return false;
+    return NULL;
 }
 
 void Application::renderLookatIndicator(glm::vec3 pointOfInterest, Camera& whichCamera) {
@@ -2090,6 +2123,7 @@ void Application::renderLookatIndicator(glm::vec3 pointOfInterest, Camera& which
 }
 
 void Application::update(float deltaTime) {
+
     //  Use Transmitter Hand to move hand if connected, else use mouse
     if (_myTransmitter.isConnected()) {
         const float HAND_FORCE_SCALING = 0.01f;
@@ -2122,11 +2156,46 @@ void Application::update(float deltaTime) {
         // If the mouse is over another avatar's head...
         glm::vec3 myLookAtFromMouse(eyePosition);
          _myAvatar.getHead().setLookAtPosition(myLookAtFromMouse);
+    } else if (_isHoverVoxel) {
+        //  Look at the hovered voxel
+        glm::vec3 lookAtSpot = getMouseVoxelWorldCoordinates(_hoverVoxel);
+        _myAvatar.getHead().setLookAtPosition(lookAtSpot);
     } else {
+        //  Just look in direction of the mouse ray
         glm::vec3 myLookAtFromMouse(mouseRayOrigin + mouseRayDirection);
         _myAvatar.getHead().setLookAtPosition(myLookAtFromMouse);
     }
-
+    
+    //  Find the voxel we are hovering over, and respond if clicked
+    float distance;
+    BoxFace face;
+    
+    //  If we have clicked on a voxel, update it's color
+    if (_isHoverVoxelSounding) {
+        VoxelNode* hoveredNode = _voxels.getVoxelAt(_hoverVoxel.x, _hoverVoxel.y, _hoverVoxel.z, _hoverVoxel.s);
+        float bright = _audio.getCollisionSoundMagnitude();
+        nodeColor clickColor = { 255 * bright + _hoverVoxelOriginalColor[0] * (1.f - bright),
+                                _hoverVoxelOriginalColor[1] * (1.f - bright),
+                                _hoverVoxelOriginalColor[2] * (1.f - bright), 1 };
+        hoveredNode->setColor(clickColor);
+        if (bright < 0.01f) {
+            hoveredNode->setColor(_hoverVoxelOriginalColor);
+            _isHoverVoxelSounding = false;
+        }   
+    } else {
+        //  Check for a new hover voxel
+        glm::vec4 oldVoxel(_hoverVoxel.x, _hoverVoxel.y, _hoverVoxel.z, _hoverVoxel.s);
+        _isHoverVoxel = _voxels.findRayIntersection(mouseRayOrigin, mouseRayDirection, _hoverVoxel, distance, face);
+        if (MAKE_SOUND_ON_VOXEL_HOVER && _isHoverVoxel && glm::vec4(_hoverVoxel.x, _hoverVoxel.y, _hoverVoxel.z, _hoverVoxel.s) != oldVoxel) {
+            _hoverVoxelOriginalColor[0] = _hoverVoxel.red;
+            _hoverVoxelOriginalColor[1] = _hoverVoxel.green;
+            _hoverVoxelOriginalColor[2] = _hoverVoxel.blue;
+            _hoverVoxelOriginalColor[3] = 1;
+            _audio.startCollisionSound(1.0, HOVER_VOXEL_FREQUENCY * _hoverVoxel.s * TREE_SCALE, 0.0, HOVER_VOXEL_DECAY);
+            _isHoverVoxelSounding = true;
+        }
+    }
+    
     //  If we are dragging on a voxel, add thrust according to the amount the mouse is dragging
     const float VOXEL_GRAB_THRUST = 0.0f;
     if (_mousePressed && (_mouseVoxel.s != 0)) {
@@ -2152,8 +2221,6 @@ void Application::update(float deltaTime) {
         (fabs(_myAvatar.getVelocity().x) +
          fabs(_myAvatar.getVelocity().y) +
          fabs(_myAvatar.getVelocity().z)) / 3 < MAX_AVATAR_EDIT_VELOCITY) {
-        float distance;
-        BoxFace face;
         if (_voxels.findRayIntersection(mouseRayOrigin, mouseRayDirection, _mouseVoxel, distance, face)) {
             if (distance < MAX_VOXEL_EDIT_DISTANCE) {
                 // find the nearest voxel with the desired scale
@@ -2340,20 +2407,18 @@ void Application::update(float deltaTime) {
 }
 
 void Application::updateAvatar(float deltaTime) {
-
-    // When head is rotated via touch/mouse look, slowly turn body to follow
-    const float BODY_FOLLOW_HEAD_RATE = 0.5f;
-    // update body yaw by body yaw delta
+    
+    // rotate body yaw for yaw received from multitouch
     _myAvatar.setOrientation(_myAvatar.getOrientation()
-                             * glm::quat(glm::vec3(0, _yawFromTouch * deltaTime * BODY_FOLLOW_HEAD_RATE, 0) * deltaTime));
-    _yawFromTouch -= _yawFromTouch * deltaTime * BODY_FOLLOW_HEAD_RATE;
+                             * glm::quat(glm::vec3(0, _yawFromTouch * deltaTime, 0)));
+    _yawFromTouch = 0.f;
     
     // Update my avatar's state from gyros and/or webcam
     _myAvatar.updateFromGyrosAndOrWebcam(_gyroLook->isChecked(),
                                          glm::vec3(_headCameraPitchYawScale,
                                                    _headCameraPitchYawScale,
                                                    _headCameraPitchYawScale),
-                                         _yawFromTouch,
+                                         0.f,
                                          _pitchFromTouch);
         
     if (_serialHeadSensor.isActive()) {
@@ -2812,8 +2877,12 @@ void Application::displayOverlay() {
         glDisable(GL_DEPTH_TEST);
         glDisable(GL_LIGHTING);
     
-        //  Display a single screen-size quad to 
-        renderCollisionOverlay(_glWidget->width(), _glWidget->height(), _audio.getCollisionSoundMagnitude());
+        //  Display a single screen-size quad to create an alpha blended 'collision' flash
+        float collisionSoundMagnitude = _audio.getCollisionSoundMagnitude();
+        const float VISIBLE_COLLISION_SOUND_MAGNITUDE = 0.5f;
+        if (collisionSoundMagnitude > VISIBLE_COLLISION_SOUND_MAGNITUDE) {
+                renderCollisionOverlay(_glWidget->width(), _glWidget->height(), _audio.getCollisionSoundMagnitude());
+        }
    
         #ifndef _WIN32
         _audio.render(_glWidget->width(), _glWidget->height());
@@ -2943,6 +3012,10 @@ void Application::displayOverlay() {
     }
     else {
         _swatch.checkColor();
+    }
+
+    if (_pieMenu.isDisplayed()) {
+        _pieMenu.render();
     }
 
     glPopMatrix();
@@ -3360,7 +3433,7 @@ void Application::shiftPaintingColor() {
 }
 
 
-void Application::maybeEditVoxelUnderCursor() {
+bool Application::maybeEditVoxelUnderCursor() {
     if (_addVoxelMode->isChecked() || _colorVoxelMode->isChecked()) {
         if (_mouseVoxel.s != 0) {
             PACKET_TYPE message = (_destructiveAddVoxel->isChecked() ?
@@ -3431,7 +3504,11 @@ void Application::maybeEditVoxelUnderCursor() {
         deleteVoxelUnderCursor();
     } else if (_eyedropperMode->isChecked()) {
         eyedropperVoxelUnderCursor();
+    } else {
+        return false;
     }
+
+    return true;
 }
 
 void Application::deleteVoxelUnderCursor() {
@@ -3472,6 +3549,22 @@ void Application::eyedropperVoxelUnderCursor() {
 void Application::goHome() {
     qDebug("Going Home!\n");
     _myAvatar.setPosition(START_LOCATION);
+}
+
+
+void Application::toggleFollowMode() {
+    glm::vec3 mouseRayOrigin, mouseRayDirection;
+    _viewFrustum.computePickRay(_pieMenu.getX() / (float)_glWidget->width(),
+                                _pieMenu.getY() / (float)_glWidget->height(),
+                                mouseRayOrigin, mouseRayDirection);
+    glm::vec3 eyePositionIgnored;
+    uint16_t  nodeIDIgnored;
+    Avatar* leadingAvatar = isLookingAtOtherAvatar(mouseRayOrigin,
+                                                   mouseRayDirection,
+                                                   eyePositionIgnored,
+                                                   nodeIDIgnored);
+
+    _myAvatar.follow(leadingAvatar);
 }
 
 void Application::resetSensors() {
