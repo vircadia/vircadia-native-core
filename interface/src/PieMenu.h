@@ -28,6 +28,8 @@ public:
     void resize(int screenWidth, int screenHeight);
 
     bool isDisplayed() const {return _isDisplayed;}
+    int  getX       () const {return _x;}
+    int  getY       () const {return _y;}
 
     void mouseMoveEvent   (int x, int y);
     void mousePressEvent  (int x, int y);

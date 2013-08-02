@@ -2071,6 +2071,10 @@ void Application::init() {
     _pieMenu.init("./resources/images/hifi-interface-tools-v2-pie.svg",
                   _glWidget->width(),
                   _glWidget->height());
+
+    _followMode = new QAction(this);
+    connect(_followMode, SIGNAL(triggered()), this, SLOT(toggleFollowMode()));
+    _pieMenu.addAction(_followMode);
 }
 
 
@@ -2082,7 +2086,7 @@ const float HEAD_SPHERE_RADIUS = 0.07;
 static uint16_t DEFAULT_NODE_ID_REF = 1;
 
 
-bool Application::isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection, 
+Avatar* Application::isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection,
                                          glm::vec3& eyePosition, uint16_t& nodeID = DEFAULT_NODE_ID_REF) {
                                          
     NodeList* nodeList = NodeList::getInstance();
@@ -2095,11 +2099,11 @@ bool Application::isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3& m
                 _lookatIndicatorScale = avatar->getScale();
                 _lookatOtherPosition = headPosition;
                 nodeID = avatar->getOwningNode()->getNodeID();
-                return true;
+                return avatar;
             }
         }
     }
-    return false;
+    return NULL;
 }
 
 void Application::renderLookatIndicator(glm::vec3 pointOfInterest, Camera& whichCamera) {
@@ -3524,6 +3528,22 @@ void Application::eyedropperVoxelUnderCursor() {
 void Application::goHome() {
     qDebug("Going Home!\n");
     _myAvatar.setPosition(START_LOCATION);
+}
+
+
+void Application::toggleFollowMode() {
+    glm::vec3 mouseRayOrigin, mouseRayDirection;
+    _viewFrustum.computePickRay(_pieMenu.getX() / (float)_glWidget->width(),
+                                _pieMenu.getY() / (float)_glWidget->height(),
+                                mouseRayOrigin, mouseRayDirection);
+    glm::vec3 eyePositionIgnored;
+    uint16_t  nodeIDIgnored;
+    Avatar* leadingAvatar = isLookingAtOtherAvatar(mouseRayOrigin,
+                                                   mouseRayDirection,
+                                                   eyePositionIgnored,
+                                                   nodeIDIgnored);
+
+    _myAvatar.follow(leadingAvatar);
 }
 
 void Application::resetSensors() {

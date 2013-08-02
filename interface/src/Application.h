@@ -187,6 +187,8 @@ private slots:
     glm::vec2 getScaledScreenPoint(glm::vec2 projectedPoint);
     void goHome();
 
+    void toggleFollowMode();
+
 private:
 
     static void controlledBroadcastToNodes(unsigned char* broadcastData, size_t dataBytes, 
@@ -206,7 +208,7 @@ private:
     void init();
     
     void update(float deltaTime);
-    bool isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection, 
+    Avatar* isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection,
                                 glm::vec3& eyePosition, uint16_t& nodeID);
                                 
     void renderLookatIndicator(glm::vec3 pointOfInterest, Camera& whichCamera);
@@ -291,6 +293,8 @@ private:
 
     QAction* _simulateLeapHand;      // When there's no Leap, use this to pretend there is one and feed fake hand data
     QAction* _testRaveGlove;         // Test fancy sparkle-rave-glove mode
+
+    QAction* _followMode;
     
     BandwidthMeter _bandwidthMeter;
     BandwidthDialog* _bandwidthDialog;
