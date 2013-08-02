@@ -150,6 +150,7 @@ private slots:
     void doFalseColorizeByDistance();
     void doFalseColorizeOccluded();
     void doFalseColorizeOccludedV2();
+    void doFalseColorizeBySource();
     void doFalseColorizeInView();
     void doTrueVoxelColors();
     void doTreeStats();

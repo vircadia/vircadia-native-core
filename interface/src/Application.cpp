@@ -1392,6 +1392,10 @@ void Application::doFalseColorizeOccludedV2() {
     _voxels.falseColorizeOccludedV2();
 }
 
+void Application::doFalseColorizeBySource() {
+    _voxels.falseColorizeBySource();
+}
+
 void Application::doTrueVoxelColors() {
     _voxels.trueColorize();
 }
@@ -1928,6 +1932,7 @@ void Application::initMenu() {
     renderDebugMenu->addAction("FALSE Color Voxel Out of View", this, SLOT(doFalseColorizeInView()));
     renderDebugMenu->addAction("FALSE Color Occluded Voxels", this, SLOT(doFalseColorizeOccluded()), Qt::CTRL | Qt::Key_O);
     renderDebugMenu->addAction("FALSE Color Occluded V2 Voxels", this, SLOT(doFalseColorizeOccludedV2()), Qt::CTRL | Qt::Key_P);
+    renderDebugMenu->addAction("FALSE Color By Source", this, SLOT(doFalseColorizeBySource()), Qt::CTRL | Qt::SHIFT | Qt::Key_S);
     renderDebugMenu->addAction("Show TRUE Colors", this, SLOT(doTrueVoxelColors()), Qt::CTRL | Qt::Key_T);
 
     (_shouldLowPassFilter = debugMenu->addAction("Test: LowPass filter"))->setCheckable(true);
@@ -3025,19 +3030,35 @@ void Application::displayStats() {
     drawtext(10, statsVerticalOffset + 15, 0.10f, 0, 1.0, 0, stats);
 
     if (_testPing->isChecked()) {
-        int pingAudio = 0, pingAvatar = 0, pingVoxel = 0;
+        int pingAudio = 0, pingAvatar = 0, pingVoxel = 0, pingVoxelMax = 0;
 
-        NodeList *nodeList = NodeList::getInstance();
-        Node *audioMixerNode = nodeList->soloNodeOfType(NODE_TYPE_AUDIO_MIXER);
-        Node *avatarMixerNode = nodeList->soloNodeOfType(NODE_TYPE_AVATAR_MIXER);
-        Node *voxelServerNode = nodeList->soloNodeOfType(NODE_TYPE_VOXEL_SERVER);
+        NodeList* nodeList = NodeList::getInstance();
+        Node* audioMixerNode = nodeList->soloNodeOfType(NODE_TYPE_AUDIO_MIXER);
+        Node* avatarMixerNode = nodeList->soloNodeOfType(NODE_TYPE_AVATAR_MIXER);
 
         pingAudio = audioMixerNode ? audioMixerNode->getPingMs() : 0;
         pingAvatar = avatarMixerNode ? avatarMixerNode->getPingMs() : 0;
-        pingVoxel = voxelServerNode ? voxelServerNode->getPingMs() : 0;
+
+
+        // Now handle voxel servers, since there could be more than one, we average their ping times
+        unsigned long totalPingVoxel = 0;
+        int voxelServerCount = 0;
+        for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+            if (node->getType() == NODE_TYPE_VOXEL_SERVER) {
+                totalPingVoxel += node->getPingMs();
+                voxelServerCount++;
+                if (pingVoxelMax < node->getPingMs()) {
+                    pingVoxelMax = node->getPingMs();
+                }
+            }
+        }
+        if (voxelServerCount) {
+            pingVoxel = totalPingVoxel/voxelServerCount;
+        }
+
 
         char pingStats[200];
-        sprintf(pingStats, "Ping audio/avatar/voxel: %d / %d / %d ", pingAudio, pingAvatar, pingVoxel);
+        sprintf(pingStats, "Ping audio/avatar/voxel: %d / %d / %d avg %d max ", pingAudio, pingAvatar, pingVoxel, pingVoxelMax);
         drawtext(10, statsVerticalOffset + 35, 0.10f, 0, 1.0, 0, pingStats);
     }
  
@@ -3658,13 +3679,15 @@ void* Application::networkReceive(void* args) {
                         } // fall through to piggyback message
                         
                         if (app->_renderVoxels->isChecked()) {
-                            Node* voxelServer = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_VOXEL_SERVER);
+                            Node* voxelServer = NodeList::getInstance()->nodeWithAddress(&senderAddress);
                             if (voxelServer && socketMatch(voxelServer->getActiveSocket(), &senderAddress)) {
                                 voxelServer->lock();
                                 if (messageData[0] == PACKET_TYPE_ENVIRONMENT_DATA) {
                                     app->_environment.parseData(&senderAddress, messageData, messageLength);
                                 } else {
+                                    app->_voxels.setDataSourceID(voxelServer->getNodeID());
                                     app->_voxels.parseData(messageData, messageLength);
+                                    app->_voxels.setDataSourceID(UNKNOWN_NODE_ID);
                                 }
                                 voxelServer->unlock();
                             }
