@@ -196,8 +196,9 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _isTouchPressed(false),
         _yawFromTouch(0.0f),
         _pitchFromTouch(0.0f),
-        _groundPlaneImpact(0.0f),
         _mousePressed(false),
+        _isHoverVoxel(false),
+        _isHoverVoxelSounding(false),
         _mouseVoxelScale(1.0f / 1024.0f),
         _justEditedVoxel(false),
         _isLookingAtOtherAvatar(false),
@@ -856,6 +857,11 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
     }
 }
 
+const bool MAKE_SOUND_ON_VOXEL_HOVER = false;
+const bool MAKE_SOUND_ON_VOXEL_CLICK = true;
+const float HOVER_VOXEL_FREQUENCY = 14080.f;
+const float HOVER_VOXEL_DECAY = 0.999f;
+
 void Application::mousePressEvent(QMouseEvent* event) {
     if (activeWindow() == _window) {
         if (event->button() == Qt::LeftButton) {
@@ -866,8 +872,18 @@ void Application::mousePressEvent(QMouseEvent* event) {
             _mouseVoxelDragging = _mouseVoxel;
             _mousePressed = true;
 
+
             if (!maybeEditVoxelUnderCursor()) {
                 _pieMenu.mousePressEvent(_mouseX, _mouseY);
+            }
+
+            if (MAKE_SOUND_ON_VOXEL_CLICK && _isHoverVoxel && !_isHoverVoxelSounding) {
+                _hoverVoxelOriginalColor[0] = _hoverVoxel.red;
+                _hoverVoxelOriginalColor[1] = _hoverVoxel.green;
+                _hoverVoxelOriginalColor[2] = _hoverVoxel.blue;
+                _hoverVoxelOriginalColor[3] = 1;
+                _audio.startCollisionSound(1.0, HOVER_VOXEL_FREQUENCY * _hoverVoxel.s * TREE_SCALE, 0.0, HOVER_VOXEL_DECAY);
+                _isHoverVoxelSounding = true;
             }
             
         } else if (event->button() == Qt::RightButton && checkedVoxelModeAction() != 0) {
@@ -925,8 +941,10 @@ void Application::touchEndEvent(QTouchEvent* event) {
     _isTouchPressed = false;
 }
 
+const bool USE_MOUSEWHEEL = false; 
 void Application::wheelEvent(QWheelEvent* event) {
-    if (activeWindow() == _window) {
+    //  Wheel Events disabled for now because they are also activated by touch look pitch up/down.  
+    if (USE_MOUSEWHEEL && (activeWindow() == _window)) {
         if (checkedVoxelModeAction() == 0) {
             event->ignore();
             return;
@@ -972,14 +990,15 @@ void Application::sendAvatarFaceVideoMessage(int frameCount, const QByteArray& d
     
     int headerSize = packetPosition - packet;
     
-    // break the data up into submessages of the maximum size
+    // break the data up into submessages of the maximum size (at least one, for zero-length packets)
     *offsetPosition = 0;
-    while (*offsetPosition < data.size()) {
+    do {
         int payloadSize = min(data.size() - (int)*offsetPosition, MAX_PACKET_SIZE - headerSize);
         memcpy(packetPosition, data.constData() + *offsetPosition, payloadSize);
         getInstance()->controlledBroadcastToNodes(packet, headerSize + payloadSize, &NODE_TYPE_AVATAR_MIXER, 1);
         *offsetPosition += payloadSize;
-    }
+         
+    } while (*offsetPosition < data.size());
 }
 
 //  Every second, check the frame rates and other stuff
@@ -1502,16 +1521,18 @@ bool Application::sendVoxelsOperation(VoxelNode* node, void* extraData) {
                 
             uint64_t now = usecTimestampNow();
             // dynamically sleep until we need to fire off the next set of voxels
-            const uint64_t CLIENT_TO_SERVER_VOXEL_SEND_INTERVAL_USECS = 1000 * 5; // 1 packet every 10 milliseconds
             uint64_t elapsed = now - args->lastSendTime;
             int usecToSleep =  CLIENT_TO_SERVER_VOXEL_SEND_INTERVAL_USECS - elapsed;
             if (usecToSleep > 0) {
-                qDebug("sendVoxelsOperation: packet: %d bytes:%lld elapsed %lld usecs, sleeping for %d usecs!\n",
-                       args->packetsSent, (long long int)args->bytesSent, (long long int)elapsed, usecToSleep);
+                //qDebug("sendVoxelsOperation: packet: %d bytes:%lld elapsed %lld usecs, sleeping for %d usecs!\n",
+                //       args->packetsSent, (long long int)args->bytesSent, (long long int)elapsed, usecToSleep);
+
+                Application::getInstance()->timer();
+
                 usleep(usecToSleep);
             } else {
-                qDebug("sendVoxelsOperation: packet: %d bytes:%lld elapsed %lld usecs, no need to sleep!\n",
-                       args->packetsSent, (long long int)args->bytesSent, (long long int)elapsed);
+                //qDebug("sendVoxelsOperation: packet: %d bytes:%lld elapsed %lld usecs, no need to sleep!\n",
+                //       args->packetsSent, (long long int)args->bytesSent, (long long int)elapsed);
             }
             args->lastSendTime = now;
         }
@@ -1579,70 +1600,127 @@ void Application::importVoxelsToClipboard() {
 
 void Application::importVoxels() {
     QString desktopLocation = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
-    QString fileNameString = QFileDialog::getOpenFileName(_glWidget, tr("Import Voxels"), desktopLocation,
+
+    QStringList fileNameStringList = QFileDialog::getOpenFileNames(_glWidget, tr("Import Voxels"), desktopLocation, 
                                                           tr(IMPORT_FILE_TYPES));
 
-    QByteArray fileNameAscii = fileNameString.toLocal8Bit();
-    const char* fileName = fileNameAscii.data();
+
+    // remember the "selected" voxel point before we do any importing...
+    float originalX = _mouseVoxel.x;
+    float originalZ = _mouseVoxel.z;
+
+    const int PNG_TYPE_NAME_LENGTH = 4;
+    const int SVO_TYPE_NAME_LENGTH = 4;
+    const int SCH_TYPE_NAME_LENGTH = 10;
+
+    for (int i = 0; i < fileNameStringList.size(); i++) {
+        QString fileNameString = fileNameStringList.at(i);
+        QByteArray fileNameAscii = fileNameString.toLocal8Bit();
+        const char* fileName = fileNameAscii.data();
     
-    VoxelTree importVoxels;
-    if (fileNameString.endsWith(".png", Qt::CaseInsensitive)) {
-        QImage pngImage = QImage(fileName);
-        if (pngImage.height() != pngImage.width()) {
-            qDebug("ERROR: Bad PNG size: height != width.\n");
-            return;
+        int fileTypeNameLength = 0;
+        VoxelTree importVoxels;
+        if (fileNameString.endsWith(".png", Qt::CaseInsensitive)) {
+            QImage pngImage = QImage(fileName);
+            fileTypeNameLength = PNG_TYPE_NAME_LENGTH;
+            if (pngImage.height() != pngImage.width()) {
+                qDebug("ERROR: Bad PNG size: height != width.\n");
+                return;
+            }
+        
+            const uint32_t* pixels;
+            if (pngImage.format() == QImage::Format_ARGB32) {
+                pixels = reinterpret_cast<const uint32_t*>(pngImage.constBits());
+            } else {
+                QImage tmp = pngImage.convertToFormat(QImage::Format_ARGB32);
+                pixels = reinterpret_cast<const uint32_t*>(tmp.constBits());
+            }
+        
+            importVoxels.readFromSquareARGB32Pixels(pixels, pngImage.height());        
+        } else if (fileNameString.endsWith(".svo", Qt::CaseInsensitive)) {
+            importVoxels.readFromSVOFile(fileName);
+            fileTypeNameLength = SVO_TYPE_NAME_LENGTH;
+        } else if (fileNameString.endsWith(".schematic", Qt::CaseInsensitive)) {
+            importVoxels.readFromSchematicFile(fileName);
+            fileTypeNameLength = SCH_TYPE_NAME_LENGTH;
         }
         
-        const uint32_t* pixels;
-        if (pngImage.format() == QImage::Format_ARGB32) {
-            pixels = reinterpret_cast<const uint32_t*>(pngImage.constBits());
+        int indexOfFirstPeriod = fileNameString.indexOf('.');
+
+        QString fileCoord = fileNameString.mid(indexOfFirstPeriod + 1, 
+                                               fileNameString.length() - indexOfFirstPeriod - fileTypeNameLength - 1);
+
+        indexOfFirstPeriod = fileCoord.indexOf('.');
+        QString columnNumString = fileCoord.right(fileCoord.length() - indexOfFirstPeriod - 1);
+        QString rowNumString = fileCoord.left(indexOfFirstPeriod);
+
+        int columnNum = columnNumString.toFloat();
+        int rowNum = rowNumString.toFloat();
+        
+        qDebug("columnNum: %d\t rowNum: %d\n", columnNum, rowNum);
+
+        _mouseVoxel.x = originalX + (columnNum - 1) * _mouseVoxel.s;
+        _mouseVoxel.z = originalZ + (rowNum    - 1) * _mouseVoxel.s;
+        
+        VoxelNode* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+    
+        // Recurse the Import Voxels tree, where everything is root relative, and send all the colored voxels to 
+        // the server as an set voxel message, this will also rebase the voxels to the new location
+        unsigned char* calculatedOctCode = NULL;
+        SendVoxelsOperationArgs args;
+        args.lastSendTime = usecTimestampNow();
+        args.packetsSent = 0;
+        args.bytesSent = 0;
+    
+        int numBytesPacketHeader = populateTypeAndVersion(args.messageBuffer, PACKET_TYPE_SET_VOXEL_DESTRUCTIVE);
+    
+        unsigned short int* sequenceAt = (unsigned short int*)&args.messageBuffer[numBytesPacketHeader];
+        *sequenceAt = 0;
+        args.bufferInUse = numBytesPacketHeader + sizeof(unsigned short int); // set to command + sequence
+
+        // we only need the selected voxel to get the newBaseOctCode, which we can actually calculate from the
+        // voxel size/position details.
+        if (selectedNode) {
+            args.newBaseOctCode = selectedNode->getOctalCode();
         } else {
-            QImage tmp = pngImage.convertToFormat(QImage::Format_ARGB32);
-            pixels = reinterpret_cast<const uint32_t*>(tmp.constBits());
+            args.newBaseOctCode = calculatedOctCode = pointToVoxel(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+        }
+    
+        qDebug("column:%d, row:%d, voxel:%f,%f,%f,%f\n", columnNum, rowNum, _mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s );
+        
+        // send the insert/paste of these voxels
+        importVoxels.recurseTreeWithOperation(sendVoxelsOperation, &args);
+    
+        // If we have voxels left in the packet, then send the packet
+        if (args.bufferInUse > (numBytesPacketHeader + sizeof(unsigned short int))) {
+            controlledBroadcastToNodes(args.messageBuffer, args.bufferInUse, & NODE_TYPE_VOXEL_SERVER, 1);
+
+
+            args.packetsSent++;
+            args.bytesSent += args.bufferInUse;
+
+            uint64_t now = usecTimestampNow();
+            // dynamically sleep until we need to fire off the next set of voxels
+            uint64_t elapsed = now - args.lastSendTime;
+            int usecToSleep =  CLIENT_TO_SERVER_VOXEL_SEND_INTERVAL_USECS - elapsed;
+
+            if (usecToSleep > 0) {
+                //qDebug("after sendVoxelsOperation: packet: %d bytes:%lld elapsed %lld usecs, sleeping for %d usecs!\n",
+                //       args.packetsSent, (long long int)args.bytesSent, (long long int)elapsed, usecToSleep);
+                usleep(usecToSleep);
+            } else {
+                //qDebug("after sendVoxelsOperation: packet: %d bytes:%lld elapsed %lld usecs, no need to sleep!\n",
+                //       args.packetsSent, (long long int)args.bytesSent, (long long int)elapsed);
+            }
+            args.lastSendTime = now;
         }
         
-        importVoxels.readFromSquareARGB32Pixels(pixels, pngImage.height());        
-    } else if (fileNameString.endsWith(".svo", Qt::CaseInsensitive)) {
-        importVoxels.readFromSVOFile(fileName);
-    } else if (fileNameString.endsWith(".schematic", Qt::CaseInsensitive)) {
-        importVoxels.readFromSchematicFile(fileName);
+        if (calculatedOctCode) {
+            delete[] calculatedOctCode;
+        }
+
     }
     
-    VoxelNode* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
-    
-    // Recurse the Import Voxels tree, where everything is root relative, and send all the colored voxels to 
-    // the server as an set voxel message, this will also rebase the voxels to the new location
-    unsigned char* calculatedOctCode = NULL;
-    SendVoxelsOperationArgs args;
-    args.lastSendTime = usecTimestampNow();
-    args.packetsSent = 0;
-    args.bytesSent = 0;
-    
-    int numBytesPacketHeader = populateTypeAndVersion(args.messageBuffer, PACKET_TYPE_SET_VOXEL_DESTRUCTIVE);
-    
-    unsigned short int* sequenceAt = (unsigned short int*)&args.messageBuffer[numBytesPacketHeader];
-    *sequenceAt = 0;
-    args.bufferInUse = numBytesPacketHeader + sizeof(unsigned short int); // set to command + sequence
-
-    // we only need the selected voxel to get the newBaseOctCode, which we can actually calculate from the
-    // voxel size/position details.
-    if (selectedNode) {
-        args.newBaseOctCode = selectedNode->getOctalCode();
-    } else {
-        args.newBaseOctCode = calculatedOctCode = pointToVoxel(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
-    }
-
-    importVoxels.recurseTreeWithOperation(sendVoxelsOperation, &args);
-
-    // If we have voxels left in the packet, then send the packet
-    if (args.bufferInUse > (numBytesPacketHeader + sizeof(unsigned short int))) {
-        controlledBroadcastToNodes(args.messageBuffer, args.bufferInUse, & NODE_TYPE_VOXEL_SERVER, 1);
-    }
-    
-    if (calculatedOctCode) {
-        delete[] calculatedOctCode;
-    }
-
     // restore the main window's active state
     _window->activateWindow();
 }
@@ -1735,6 +1813,8 @@ void Application::initMenu() {
     _testPing->setChecked(true);
     (_fullScreenMode = optionsMenu->addAction("Fullscreen", this, SLOT(setFullscreen(bool)), Qt::Key_F))->setCheckable(true);
     optionsMenu->addAction("Webcam", &_webcam, SLOT(setEnabled(bool)))->setCheckable(true);
+    optionsMenu->addAction("Toggle Skeleton Tracking", &_webcam, SLOT(setSkeletonTrackingOn(bool)))->setCheckable(true);
+    optionsMenu->addAction("Cycle Webcam Send Mode", _webcam.getGrabber(), SLOT(cycleVideoSendMode()));
     optionsMenu->addAction("Go Home", this, SLOT(goHome()));
     
     QMenu* renderMenu = menuBar->addMenu("Render");
@@ -1762,7 +1842,6 @@ void Application::initMenu() {
     (_renderLookatIndicatorOn = renderMenu->addAction("Lookat Indicator"))->setCheckable(true);
     _renderLookatIndicatorOn->setChecked(true);
     (_renderParticleSystemOn = renderMenu->addAction("Particle System"))->setCheckable(true);
-    _renderParticleSystemOn->setChecked(true);
     (_manualFirstPerson = renderMenu->addAction(
         "First Person", this, SLOT(setRenderFirstPerson(bool)), Qt::Key_P))->setCheckable(true);
     (_manualThirdPerson = renderMenu->addAction(
@@ -2039,6 +2118,7 @@ void Application::renderLookatIndicator(glm::vec3 pointOfInterest, Camera& which
 }
 
 void Application::update(float deltaTime) {
+
     //  Use Transmitter Hand to move hand if connected, else use mouse
     if (_myTransmitter.isConnected()) {
         const float HAND_FORCE_SCALING = 0.01f;
@@ -2071,11 +2151,46 @@ void Application::update(float deltaTime) {
         // If the mouse is over another avatar's head...
         glm::vec3 myLookAtFromMouse(eyePosition);
          _myAvatar.getHead().setLookAtPosition(myLookAtFromMouse);
+    } else if (_isHoverVoxel) {
+        //  Look at the hovered voxel
+        glm::vec3 lookAtSpot = getMouseVoxelWorldCoordinates(_hoverVoxel);
+        _myAvatar.getHead().setLookAtPosition(lookAtSpot);
     } else {
+        //  Just look in direction of the mouse ray
         glm::vec3 myLookAtFromMouse(mouseRayOrigin + mouseRayDirection);
         _myAvatar.getHead().setLookAtPosition(myLookAtFromMouse);
     }
-
+    
+    //  Find the voxel we are hovering over, and respond if clicked
+    float distance;
+    BoxFace face;
+    
+    //  If we have clicked on a voxel, update it's color
+    if (_isHoverVoxelSounding) {
+        VoxelNode* hoveredNode = _voxels.getVoxelAt(_hoverVoxel.x, _hoverVoxel.y, _hoverVoxel.z, _hoverVoxel.s);
+        float bright = _audio.getCollisionSoundMagnitude();
+        nodeColor clickColor = { 255 * bright + _hoverVoxelOriginalColor[0] * (1.f - bright),
+                                _hoverVoxelOriginalColor[1] * (1.f - bright),
+                                _hoverVoxelOriginalColor[2] * (1.f - bright), 1 };
+        hoveredNode->setColor(clickColor);
+        if (bright < 0.01f) {
+            hoveredNode->setColor(_hoverVoxelOriginalColor);
+            _isHoverVoxelSounding = false;
+        }   
+    } else {
+        //  Check for a new hover voxel
+        glm::vec4 oldVoxel(_hoverVoxel.x, _hoverVoxel.y, _hoverVoxel.z, _hoverVoxel.s);
+        _isHoverVoxel = _voxels.findRayIntersection(mouseRayOrigin, mouseRayDirection, _hoverVoxel, distance, face);
+        if (MAKE_SOUND_ON_VOXEL_HOVER && _isHoverVoxel && glm::vec4(_hoverVoxel.x, _hoverVoxel.y, _hoverVoxel.z, _hoverVoxel.s) != oldVoxel) {
+            _hoverVoxelOriginalColor[0] = _hoverVoxel.red;
+            _hoverVoxelOriginalColor[1] = _hoverVoxel.green;
+            _hoverVoxelOriginalColor[2] = _hoverVoxel.blue;
+            _hoverVoxelOriginalColor[3] = 1;
+            _audio.startCollisionSound(1.0, HOVER_VOXEL_FREQUENCY * _hoverVoxel.s * TREE_SCALE, 0.0, HOVER_VOXEL_DECAY);
+            _isHoverVoxelSounding = true;
+        }
+    }
+    
     //  If we are dragging on a voxel, add thrust according to the amount the mouse is dragging
     const float VOXEL_GRAB_THRUST = 0.0f;
     if (_mousePressed && (_mouseVoxel.s != 0)) {
@@ -2101,8 +2216,6 @@ void Application::update(float deltaTime) {
         (fabs(_myAvatar.getVelocity().x) +
          fabs(_myAvatar.getVelocity().y) +
          fabs(_myAvatar.getVelocity().z)) / 3 < MAX_AVATAR_EDIT_VELOCITY) {
-        float distance;
-        BoxFace face;
         if (_voxels.findRayIntersection(mouseRayOrigin, mouseRayDirection, _mouseVoxel, distance, face)) {
             if (distance < MAX_VOXEL_EDIT_DISTANCE) {
                 // find the nearest voxel with the desired scale
@@ -2289,20 +2402,18 @@ void Application::update(float deltaTime) {
 }
 
 void Application::updateAvatar(float deltaTime) {
-
-    // When head is rotated via touch/mouse look, slowly turn body to follow
-    const float BODY_FOLLOW_HEAD_RATE = 0.5f;
-    // update body yaw by body yaw delta
+    
+    // rotate body yaw for yaw received from multitouch
     _myAvatar.setOrientation(_myAvatar.getOrientation()
-                             * glm::quat(glm::vec3(0, _yawFromTouch * deltaTime * BODY_FOLLOW_HEAD_RATE, 0) * deltaTime));
-    _yawFromTouch -= _yawFromTouch * deltaTime * BODY_FOLLOW_HEAD_RATE;
+                             * glm::quat(glm::vec3(0, _yawFromTouch * deltaTime, 0)));
+    _yawFromTouch = 0.f;
     
     // Update my avatar's state from gyros and/or webcam
     _myAvatar.updateFromGyrosAndOrWebcam(_gyroLook->isChecked(),
                                          glm::vec3(_headCameraPitchYawScale,
                                                    _headCameraPitchYawScale,
                                                    _headCameraPitchYawScale),
-                                         _yawFromTouch,
+                                         0.f,
                                          _pitchFromTouch);
         
     if (_serialHeadSensor.isActive()) {
@@ -2761,8 +2872,12 @@ void Application::displayOverlay() {
         glDisable(GL_DEPTH_TEST);
         glDisable(GL_LIGHTING);
     
-        //  Display a single screen-size quad to 
-        renderCollisionOverlay(_glWidget->width(), _glWidget->height(), _audio.getCollisionSoundMagnitude());
+        //  Display a single screen-size quad to create an alpha blended 'collision' flash
+        float collisionSoundMagnitude = _audio.getCollisionSoundMagnitude();
+        const float VISIBLE_COLLISION_SOUND_MAGNITUDE = 0.5f;
+        if (collisionSoundMagnitude > VISIBLE_COLLISION_SOUND_MAGNITUDE) {
+                renderCollisionOverlay(_glWidget->width(), _glWidget->height(), _audio.getCollisionSoundMagnitude());
+        }
    
         #ifndef _WIN32
         _audio.render(_glWidget->width(), _glWidget->height());
@@ -3501,6 +3616,7 @@ void* Application::networkReceive(void* args) {
         }       
     
         if (NodeList::getInstance()->getNodeSocket()->receive(&senderAddress, app->_incomingPacket, &bytesReceived)) {
+        
             app->_packetCount++;
             app->_bytesCount += bytesReceived;
             
@@ -3545,13 +3661,11 @@ void* Application::networkReceive(void* args) {
                             Node* voxelServer = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_VOXEL_SERVER);
                             if (voxelServer && socketMatch(voxelServer->getActiveSocket(), &senderAddress)) {
                                 voxelServer->lock();
-                                
                                 if (messageData[0] == PACKET_TYPE_ENVIRONMENT_DATA) {
                                     app->_environment.parseData(&senderAddress, messageData, messageLength);
                                 } else {
                                     app->_voxels.parseData(messageData, messageLength);
                                 }
-                                
                                 voxelServer->unlock();
                             }
                         }

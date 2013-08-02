@@ -315,10 +315,7 @@ void Avatar::updateFromGyrosAndOrWebcam(bool gyroLook,
         estimatedPosition = webcam->getEstimatedPosition();
         
         // apply face data
-        _head.getFace().setColorTextureID(webcam->getColorTextureID());
-        _head.getFace().setDepthTextureID(webcam->getDepthTextureID());
-        _head.getFace().setTextureSize(webcam->getTextureSize());
-        _head.getFace().setTextureRect(webcam->getFaceRect());
+        _head.getFace().setFrameFromWebcam();
         
         // compute and store the joint rotations
         const JointVector& joints = webcam->getEstimatedJoints();
@@ -335,7 +332,7 @@ void Avatar::updateFromGyrosAndOrWebcam(bool gyroLook,
             }
         }
     } else {
-        _head.getFace().setColorTextureID(0);
+        _head.getFace().clearFrame();
     }
     _head.setPitch(estimatedRotation.x * amplifyAngle.x + pitchFromTouch);
     _head.setYaw(estimatedRotation.y * amplifyAngle.y + yawFromTouch);
@@ -941,21 +938,15 @@ void Avatar::updateCollisionWithSphere(glm::vec3 position, float radius, float d
 }
 
 void Avatar::updateCollisionWithEnvironment(float deltaTime) {
-    
     glm::vec3 up = getBodyUpDirection();
     float radius = _height * 0.125f;
     const float ENVIRONMENT_SURFACE_ELASTICITY = 1.0f;
     const float ENVIRONMENT_SURFACE_DAMPING = 0.01;
     const float ENVIRONMENT_COLLISION_FREQUENCY = 0.05f;
-    const float VISIBLE_GROUND_COLLISION_VELOCITY = 0.2f;
     glm::vec3 penetration;
     if (Application::getInstance()->getEnvironment()->findCapsulePenetration(
                                                                              _position - up * (_pelvisFloatingHeight - radius),
                                                                              _position + up * (_height - _pelvisFloatingHeight - radius), radius, penetration)) {
-        float velocityTowardCollision = glm::dot(_velocity, glm::normalize(penetration));
-        if (velocityTowardCollision > VISIBLE_GROUND_COLLISION_VELOCITY) {
-            Application::getInstance()->setGroundPlaneImpact(1.0f);
-        }
         _lastCollisionPosition = _position;
         updateCollisionSound(penetration, deltaTime, ENVIRONMENT_COLLISION_FREQUENCY);
         applyHardCollision(penetration, ENVIRONMENT_SURFACE_ELASTICITY, ENVIRONMENT_SURFACE_DAMPING);
@@ -1349,9 +1340,15 @@ float Avatar::getBallRenderAlpha(int ball, bool lookingInMirror) const {
 }
 
 void Avatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
-    
-    //  Render the body as balls and cones
-    if (renderAvatarBalls || !_voxels.getVoxelURL().isValid()) {
+
+    if (_head.getFace().isFullFrame()) {
+        //  Render the full-frame video
+        float alpha = getBallRenderAlpha(BODY_BALL_HEAD_BASE, lookingInMirror);
+        if (alpha > 0.0f) {
+            _head.getFace().render(1.0f);
+        }
+    } else if (renderAvatarBalls || !_voxels.getVoxelURL().isValid()) {
+        //  Render the body as balls and cones
         for (int b = 0; b < NUM_AVATAR_BODY_BALLS; b++) {
             float alpha = getBallRenderAlpha(b, lookingInMirror);
             
