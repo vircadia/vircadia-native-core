@@ -51,6 +51,7 @@ void Hand::reset() {
 
 
 void Hand::simulate(float deltaTime, bool isMine) {
+
     if (_isRaveGloveActive) {
         updateRaveGloveParticles(deltaTime);
     }
@@ -120,9 +121,9 @@ void Hand::render(bool lookingInMirror) {
     glEnable(GL_RESCALE_NORMAL);
     
     if ( SHOW_LEAP_HAND ) {
-        renderLeapHands();
-        //renderFingerTrails();
-        //renderHandSpheres();
+        //renderLeapHands();
+        renderLeapFingerTrails();
+        renderLeapHandSpheres();
     }
 }
 
@@ -155,7 +156,6 @@ void Hand::renderRaveGloveStage() {
 }
 
 
-
 void Hand::renderLeapHands() {
     for (size_t i = 0; i < getNumPalms(); ++i) {
         PalmData& hand = getPalms()[i];
@@ -164,7 +164,6 @@ void Hand::renderLeapHands() {
         }
     }
 }
-
 
 void Hand::renderLeapHand(PalmData& hand) {
 
@@ -264,6 +263,7 @@ void Hand::renderLeapFingerTrails() {
         }
     }
 }
+
 
 void Hand::setLeapHands(const std::vector<glm::vec3>& handPositions,
                           const std::vector<glm::vec3>& handNormals) {

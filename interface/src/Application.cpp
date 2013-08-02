@@ -2024,6 +2024,7 @@ void Application::renderLookatIndicator(glm::vec3 pointOfInterest, Camera& which
 }
 
 void Application::update(float deltaTime) {
+
     //  Use Transmitter Hand to move hand if connected, else use mouse
     if (_myTransmitter.isConnected()) {
         const float HAND_FORCE_SCALING = 0.01f;
