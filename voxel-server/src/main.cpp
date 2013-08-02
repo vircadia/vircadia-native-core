@@ -61,6 +61,7 @@ bool wantColorRandomizer = false;
 bool debugVoxelSending = false;
 bool shouldShowAnimationDebug = false;
 bool displayVoxelStats = false;
+bool debugVoxelReceiving = false;
 
 EnvironmentData environmentData[3];
 
@@ -426,6 +427,8 @@ void attachVoxelNodeDataToNode(Node* newNode) {
     }
 }
 
+int receivedPacketCount = 0;
+
 int main(int argc, const char * argv[]) {
     pthread_mutex_init(&::treeLock, NULL);
     
@@ -454,6 +457,10 @@ int main(int argc, const char * argv[]) {
     const char* DEBUG_VOXEL_SENDING = "--debugVoxelSending";
     ::debugVoxelSending = cmdOptionExists(argc, argv, DEBUG_VOXEL_SENDING);
     printf("debugVoxelSending=%s\n", debug::valueOf(::debugVoxelSending));
+
+    const char* DEBUG_VOXEL_RECEIVING = "--debugVoxelReceiving";
+    ::debugVoxelReceiving = cmdOptionExists(argc, argv, DEBUG_VOXEL_RECEIVING);
+    printf("debugVoxelReceiving=%s\n", debug::valueOf(::debugVoxelReceiving));
 
     const char* WANT_ANIMATION_DEBUG = "--shouldShowAnimationDebug";
     ::shouldShowAnimationDebug = cmdOptionExists(argc, argv, WANT_ANIMATION_DEBUG);
@@ -584,11 +591,19 @@ int main(int argc, const char * argv[]) {
                                         destructive ? "PACKET_TYPE_SET_VOXEL_DESTRUCTIVE" : "PACKET_TYPE_SET_VOXEL",
                                         ::shouldShowAnimationDebug);
                 
+                ::receivedPacketCount++;
+                
                 unsigned short int itemNumber = (*((unsigned short int*)(packetData + numBytesPacketHeader)));
                 if (::shouldShowAnimationDebug) {
                     printf("got %s - command from client receivedBytes=%ld itemNumber=%d\n",
                         destructive ? "PACKET_TYPE_SET_VOXEL_DESTRUCTIVE" : "PACKET_TYPE_SET_VOXEL",
                         receivedBytes,itemNumber);
+                }
+                
+                if (::debugVoxelReceiving) {
+                    printf("got %s - %d command from client receivedBytes=%ld itemNumber=%d\n",
+                        destructive ? "PACKET_TYPE_SET_VOXEL_DESTRUCTIVE" : "PACKET_TYPE_SET_VOXEL",
+                        ::receivedPacketCount, receivedBytes,itemNumber);
                 }
                 int atByte = numBytesPacketHeader + sizeof(itemNumber);
                 unsigned char* voxelData = (unsigned char*)&packetData[atByte];

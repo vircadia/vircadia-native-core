@@ -44,11 +44,16 @@ public:
     Webcam();
     ~Webcam();
 
+    FrameGrabber* getGrabber() { return _grabber; }
+
     bool isActive() const { return _active; }
+    bool isSending() const { return _sending; }
     
     GLuint getColorTextureID() const { return _colorTextureID; }
     GLuint getDepthTextureID() const { return _depthTextureID; }
     const cv::Size2f& getTextureSize() const { return _textureSize; }
+    
+    float getAspectRatio() const { return _aspectRatio; }
     
     const cv::RotatedRect& getFaceRect() const { return _faceRect; }
     
@@ -62,8 +67,8 @@ public:
 public slots:
     
     void setEnabled(bool enabled);
-    void setFrame(const cv::Mat& color, int format, const cv::Mat& depth, float meanFaceDepth,
-        const cv::RotatedRect& faceRect, const JointVector& joints);
+    void setFrame(const cv::Mat& color, int format, const cv::Mat& depth, float midFaceDepth,
+        float aspectRatio, const cv::RotatedRect& faceRect, bool sending, const JointVector& joints);
 
 private:
     
@@ -72,9 +77,11 @@ private:
     
     bool _enabled;
     bool _active;
+    bool _sending;
     GLuint _colorTextureID;
     GLuint _depthTextureID;
     cv::Size2f _textureSize;
+    float _aspectRatio;
     cv::RotatedRect _faceRect;
     cv::RotatedRect _initialFaceRect;
     float _initialFaceDepth;
@@ -100,16 +107,21 @@ public:
 
 public slots:
     
+    void cycleVideoSendMode();
     void reset();
     void shutdown();
     void grabFrame();
     
 private:
     
+    enum VideoSendMode { NO_VIDEO, FACE_VIDEO, FULL_FRAME_VIDEO, VIDEO_SEND_MODE_COUNT };
+    
     bool init();
     void updateHSVFrame(const cv::Mat& frame, int format);
+    void destroyCodecs();
     
     bool _initialized;
+    VideoSendMode _videoSendMode;
     CvCapture* _capture;
     cv::CascadeClassifier _faceCascade;
     cv::Mat _hsvFrame;
@@ -118,13 +130,14 @@ private:
     cv::Mat _backProject;
     cv::Rect _searchWindow;
     cv::Mat _grayDepthFrame;
-    float _smoothedMeanFaceDepth;
+    float _smoothedMidFaceDepth;
     
     vpx_codec_ctx_t _colorCodec;
     vpx_codec_ctx_t _depthCodec;
     int _frameCount;
     cv::Mat _faceColor;
     cv::Mat _faceDepth;
+    cv::Mat _smoothedFaceDepth;
     QByteArray _encodedFace;
     cv::RotatedRect _smoothedFaceRect;
     

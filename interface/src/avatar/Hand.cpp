@@ -14,7 +14,7 @@
 #include "Util.h"
 #include "renderer/ProgramObject.h"
 
-const bool SHOW_LEAP_HAND = false;
+const bool SHOW_LEAP_HAND = true;
 
 using namespace std;
 
