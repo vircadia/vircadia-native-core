@@ -20,6 +20,8 @@
 class Head;
 class ProgramObject;
 
+const float FULL_FRAME_ASPECT = 0.0f;
+
 class Face : public QObject {
     Q_OBJECT
     
@@ -28,10 +30,10 @@ public:
     Face(Head* owningHead);
     ~Face();
 
-    void setColorTextureID(GLuint colorTextureID) { _colorTextureID = colorTextureID; }
-    void setDepthTextureID(GLuint depthTextureID) { _depthTextureID = depthTextureID; }
-    void setTextureSize(const cv::Size2f& textureSize) { _textureSize = textureSize; }
-    void setTextureRect(const cv::RotatedRect& textureRect);
+    bool isFullFrame() const { return _colorTextureID != 0 && _aspectRatio == FULL_FRAME_ASPECT; }
+
+    void setFrameFromWebcam();
+    void clearFrame();
     
     int processVideoMessage(unsigned char* packetData, size_t dataBytes);
     
@@ -49,6 +51,8 @@ private:
 
     enum RenderMode { MESH, POINTS, RENDER_MODE_COUNT };
 
+    void destroyCodecs();
+
     Head* _owningHead;
     RenderMode _renderMode;
     GLuint _colorTextureID;
@@ -59,6 +63,7 @@ private:
     
     vpx_codec_ctx_t _colorCodec;
     vpx_codec_ctx_t _depthCodec;
+    bool _lastFullFrame;
     
     QByteArray _arrivingFrame;
     int _frameCount;
@@ -68,7 +73,6 @@ private:
     static int _texCoordCornerLocation;
     static int _texCoordRightLocation;
     static int _texCoordUpLocation;
-    static int _aspectRatioLocation;
     static GLuint _vboID;
     static GLuint _iboID;
 };

@@ -965,14 +965,15 @@ void Application::sendAvatarFaceVideoMessage(int frameCount, const QByteArray& d
     
     int headerSize = packetPosition - packet;
     
-    // break the data up into submessages of the maximum size
+    // break the data up into submessages of the maximum size (at least one, for zero-length packets)
     *offsetPosition = 0;
-    while (*offsetPosition < data.size()) {
+    do {
         int payloadSize = min(data.size() - (int)*offsetPosition, MAX_PACKET_SIZE - headerSize);
         memcpy(packetPosition, data.constData() + *offsetPosition, payloadSize);
         getInstance()->controlledBroadcastToNodes(packet, headerSize + payloadSize, &NODE_TYPE_AVATAR_MIXER, 1);
         *offsetPosition += payloadSize;
-    }
+         
+    } while (*offsetPosition < data.size());
 }
 
 //  Every second, check the frame rates and other stuff
@@ -1791,6 +1792,8 @@ void Application::initMenu() {
     _testPing->setChecked(true);
     (_fullScreenMode = optionsMenu->addAction("Fullscreen", this, SLOT(setFullscreen(bool)), Qt::Key_F))->setCheckable(true);
     optionsMenu->addAction("Webcam", &_webcam, SLOT(setEnabled(bool)))->setCheckable(true);
+    optionsMenu->addAction("Toggle Skeleton Tracking", &_webcam, SLOT(setSkeletonTrackingOn(bool)))->setCheckable(true);
+    optionsMenu->addAction("Cycle Webcam Send Mode", _webcam.getGrabber(), SLOT(cycleVideoSendMode()));
     optionsMenu->addAction("Go Home", this, SLOT(goHome()));
     
     QMenu* renderMenu = menuBar->addMenu("Render");
@@ -1818,7 +1821,6 @@ void Application::initMenu() {
     (_renderLookatIndicatorOn = renderMenu->addAction("Lookat Indicator"))->setCheckable(true);
     _renderLookatIndicatorOn->setChecked(true);
     (_renderParticleSystemOn = renderMenu->addAction("Particle System"))->setCheckable(true);
-    _renderParticleSystemOn->setChecked(true);
     (_manualFirstPerson = renderMenu->addAction(
         "First Person", this, SLOT(setRenderFirstPerson(bool)), Qt::Key_P))->setCheckable(true);
     (_manualThirdPerson = renderMenu->addAction(
