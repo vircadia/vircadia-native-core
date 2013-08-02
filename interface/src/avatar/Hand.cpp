@@ -64,7 +64,8 @@ void Hand::calculateGeometry() {
     _basePosition = head.getPosition() + head.getOrientation() * offset;
     _baseOrientation = head.getOrientation();
 
-    _leapBalls.clear();
+    // generate finger tip balls....
+    _leapFingerTipBalls.clear();
     for (size_t i = 0; i < getNumPalms(); ++i) {
         PalmData& palm = getPalms()[i];
         if (palm.isActive()) {
@@ -72,10 +73,31 @@ void Hand::calculateGeometry() {
                 FingerData& finger = palm.getFingers()[f];
                 if (finger.isActive()) {
                     const float standardBallRadius = 0.01f;
-                    _leapBalls.resize(_leapBalls.size() + 1);
-                    HandBall& ball = _leapBalls.back();
+                    _leapFingerTipBalls.resize(_leapFingerTipBalls.size() + 1);
+                    HandBall& ball = _leapFingerTipBalls.back();
                     ball.rotation = _baseOrientation;
                     ball.position = finger.getTipPosition();
+                    ball.radius         = standardBallRadius;
+                    ball.touchForce     = 0.0;
+                    ball.isCollidable   = true;
+                }
+            }
+        }
+    }
+
+    // generate finger rot balls....
+    _leapFingerRootBalls.clear();
+    for (size_t i = 0; i < getNumPalms(); ++i) {
+        PalmData& palm = getPalms()[i];
+        if (palm.isActive()) {
+            for (size_t f = 0; f < palm.getNumFingers(); ++f) {
+                FingerData& finger = palm.getFingers()[f];
+                if (finger.isActive()) {
+                    const float standardBallRadius = 0.01f;
+                    _leapFingerRootBalls.resize(_leapFingerRootBalls.size() + 1);
+                    HandBall& ball = _leapFingerRootBalls.back();
+                    ball.rotation = _baseOrientation;
+                    ball.position = finger.getRootPosition();
                     ball.radius         = standardBallRadius;
                     ball.touchForce     = 0.0;
                     ball.isCollidable   = true;
@@ -191,15 +213,28 @@ void Hand::renderLeapHand(PalmData& hand) {
 void Hand::renderLeapHandSpheres() {
     glPushMatrix();
     // Draw the leap balls
-    for (size_t i = 0; i < _leapBalls.size(); i++) {
+    for (size_t i = 0; i < _leapFingerTipBalls.size(); i++) {
         float alpha = 1.0f;
         
         if (alpha > 0.0f) {
             glColor4f(_ballColor.r, _ballColor.g, _ballColor.b, alpha);
             
             glPushMatrix();
-            glTranslatef(_leapBalls[i].position.x, _leapBalls[i].position.y, _leapBalls[i].position.z);
-            glutSolidSphere(_leapBalls[i].radius, 20.0f, 20.0f);
+            glTranslatef(_leapFingerTipBalls[i].position.x, _leapFingerTipBalls[i].position.y, _leapFingerTipBalls[i].position.z);
+            glutSolidSphere(_leapFingerTipBalls[i].radius, 20.0f, 20.0f);
+            glPopMatrix();
+        }
+    }
+
+    for (size_t i = 0; i < _leapFingerRootBalls.size(); i++) {
+        float alpha = 1.0f;
+        
+        if (alpha > 0.0f) {
+            glColor4f(0.3f, 0.4f, 0.6f, alpha);
+            
+            glPushMatrix();
+            glTranslatef(_leapFingerRootBalls[i].position.x, _leapFingerRootBalls[i].position.y, _leapFingerRootBalls[i].position.z);
+            glutSolidSphere(_leapFingerRootBalls[i].radius, 20.0f, 20.0f);
             glPopMatrix();
         }
     }
@@ -281,69 +316,27 @@ void Hand::setLeapHands(const std::vector<glm::vec3>& handPositions,
 }
 
 
-// call this right after the geometry of the leap hands are set
+// call this soon after the geometry of the leap hands are set
 void Hand::updateRaveGloveEmitters() {
 
-    bool debug = false;
+    for (size_t i = 0; i < NUM_FINGERS; i++) {
+        _raveGloveParticleSystem.setEmitterActive(_raveGloveEmitter[i], false);
+    }
 
-    if (_raveGloveInitialized) {
-        
-        if(debug) printf( "\n" );
-        if(debug) printf( "------------------------------------\n" );
-        if(debug) printf( "updating rave glove emitters:       \n" );
-        if(debug) printf( "------------------------------------\n" );
-        
-        int emitterIndex = 0;
-
-        for (size_t i = 0; i < getNumPalms(); ++i) {
-            PalmData& palm = getPalms()[i];
+    for (size_t i = 0; i < _leapFingerTipBalls.size(); i++) {
+        if (i < NUM_FINGERS) {
+            glm::vec3 fingerDirection = _leapFingerTipBalls[i].position - _leapFingerRootBalls[i].position;
+            float fingerLength = glm::length(fingerDirection);
             
-            if(debug) printf( "\n" );
-            if(debug) printf( "palm %d ", (int)i );
-            
-            if (palm.isActive()) {
-            
-                if(debug) printf( "is active\n" );
-
-                for (size_t f = 0; f < palm.getNumFingers(); ++f) {
-                    FingerData& finger = palm.getFingers()[f];
-
-                    if(debug) printf( "emitterIndex %d:     ", emitterIndex );
-
-                    if ((emitterIndex >=0)
-                    &&  (emitterIndex < NUM_FINGERS)) {
-
-                        _raveGloveParticleSystem.setEmitterActive(_raveGloveEmitter[emitterIndex], false); // set to false by default...
-
-                        if (finger.isActive()) {
-                            _raveGloveParticleSystem.setEmitterActive(_raveGloveEmitter[emitterIndex], true);
-                            
-                            if(debug) printf( "_raveGloveEmitter[%d] = %d\n", emitterIndex, _raveGloveEmitter[emitterIndex] );
-                            
-                            glm::vec3 fingerDirection = finger.getTipPosition() - finger.getRootPosition();
-                            float fingerLength = glm::length(fingerDirection);
-                            
-                            if (fingerLength > 0.0f) {
-                                fingerDirection /= fingerLength;
-                            } else {
-                                fingerDirection = IDENTITY_UP;
-                            }
-                            
-                            assert(_raveGloveEmitter[emitterIndex] >=0 );
-                            assert(_raveGloveEmitter[emitterIndex] < NUM_FINGERS );
-                            
-                            _raveGloveParticleSystem.setEmitterPosition (_raveGloveEmitter[emitterIndex], finger.getTipPosition());
-                            _raveGloveParticleSystem.setEmitterDirection(_raveGloveEmitter[emitterIndex], fingerDirection);
-                        }
-                    } else {
-                        if(debug) printf( "BOGUS finger\n" );
-                    }
-                            
-                    emitterIndex ++;
-                }
+            if (fingerLength > 0.0f) {
+                fingerDirection /= fingerLength;
             } else {
-                if(debug) printf( "is NOT active\n" );
+                fingerDirection = IDENTITY_UP;
             }
+
+            _raveGloveParticleSystem.setEmitterActive   (_raveGloveEmitter[i], true);
+            _raveGloveParticleSystem.setEmitterPosition (_raveGloveEmitter[i], _leapFingerTipBalls[i].position);
+            _raveGloveParticleSystem.setEmitterDirection(_raveGloveEmitter[i], fingerDirection);
         }
     }
 }
