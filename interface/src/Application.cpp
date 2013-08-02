@@ -565,7 +565,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
             }
             return;
         }
-        
+        bool meta    = event->modifiers().testFlag(Qt::MetaModifier);
         bool shifted = event->modifiers().testFlag(Qt::ShiftModifier);
         switch (event->key()) {
             case Qt::Key_BracketLeft:
@@ -639,7 +639,14 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
                 
             case Qt::Key_C:
-                _myAvatar.setDriveKeys(DOWN, 1);
+                if (shifted)  {
+                    _occlusionCulling->toggle();
+                    disableOcclusionCulling(_occlusionCulling->isChecked());
+                } else if (meta) {
+                    chooseVoxelPaintColor();
+                } else {
+                    _myAvatar.setDriveKeys(DOWN, 1);
+                }
                 break;
                 
             case Qt::Key_W:
@@ -647,7 +654,11 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
                 
             case Qt::Key_S:
-                _myAvatar.setDriveKeys(BACK, 1);
+                if (shifted)  {
+                    doTreeStats();
+                } else {
+                    _myAvatar.setDriveKeys(BACK, 1);
+                }
                 break;
                 
             case Qt::Key_Space:
@@ -656,11 +667,20 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
                 
             case Qt::Key_G:
-                goHome();
+                if (shifted) {
+                    _gravityUse->toggle();
+                } else {
+                    _eyedropperMode->toggle();
+                    updateVoxelModeActions();
+                }
                 break;
                 
             case Qt::Key_A:
-                _myAvatar.setDriveKeys(ROT_LEFT, 1);
+                if (shifted) {
+                    _renderAtmosphereOn->toggle();
+                } else {
+                    _myAvatar.setDriveKeys(ROT_LEFT, 1);
+                }
                 break;
                 
             case Qt::Key_D:
@@ -749,6 +769,60 @@ void Application::keyPressEvent(QKeyEvent* event) {
                     _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0, 0, 0.001));
                 }
                 resizeGL(_glWidget->width(), _glWidget->height());
+                break;
+            case Qt::Key_H:
+                _noise->toggle();
+                setNoise(_noise->isChecked());
+                break;
+            case Qt::Key_N:
+                _lookingInMirror->toggle();
+                setRenderMirrored(_lookingInMirror->isChecked());
+                break;
+            case Qt::Key_F:
+                if (shifted)  {
+                    _frustumOn->toggle();
+                } else {
+                    _fullScreenMode->toggle();
+                    setFullscreen(_fullScreenMode->isChecked());
+                }
+                break;
+            case Qt::Key_V:
+                if (shifted) {
+                    _renderVoxels->toggle();
+                    setRenderVoxels(_renderVoxels->isChecked());
+                } else {
+                    _addVoxelMode->toggle();
+                    updateVoxelModeActions();
+                }
+                break;
+            case Qt::Key_P:
+                 _manualFirstPerson->toggle();
+                 setRenderFirstPerson(_manualFirstPerson->isChecked());
+                 break;
+            case Qt::Key_R:
+                if (shifted)  {
+                    _frustumRenderModeAction->toggle();
+                    cycleFrustumRenderMode();
+                } else {
+                    _deleteVoxelMode->toggle();
+                    updateVoxelModeActions();
+                }
+                break;
+            case Qt::Key_B:
+                _colorVoxelMode->toggle();
+                updateVoxelModeActions();
+                break;
+            case Qt::Key_O:
+                if (shifted)  {
+                    _viewFrustumFromOffset->toggle();
+                    setFrustumOffset(_viewFrustumFromOffset->isChecked());
+                } else {
+                    _selectVoxelMode->toggle();
+                    updateVoxelModeActions();
+                }
+                break;
+            case Qt::Key_Slash:
+                _renderStatsOn->toggle();
                 break;
             case Qt::Key_Backspace:
             case Qt::Key_Delete:
@@ -1710,7 +1784,7 @@ void Application::initMenu() {
     (_lookingInMirror = optionsMenu->addAction("Mirror", this, SLOT(setRenderMirrored(bool)), Qt::Key_H))->setCheckable(true);
     (_echoAudioMode = optionsMenu->addAction("Echo Audio"))->setCheckable(true);
     
-    optionsMenu->addAction("Noise", this, SLOT(setNoise(bool)), Qt::Key_N)->setCheckable(true);
+    (_noise = optionsMenu->addAction("Noise", this, SLOT(setNoise(bool)), Qt::Key_N))->setCheckable(true);
     (_gyroLook = optionsMenu->addAction("Smooth Gyro Look"))->setCheckable(true);
     _gyroLook->setChecked(true);
     (_showHeadMouse = optionsMenu->addAction("Head Mouse"))->setCheckable(true);
@@ -1724,7 +1798,7 @@ void Application::initMenu() {
     _testPing->setChecked(true);
     (_fullScreenMode = optionsMenu->addAction("Fullscreen", this, SLOT(setFullscreen(bool)), Qt::Key_F))->setCheckable(true);
     optionsMenu->addAction("Webcam", &_webcam, SLOT(setEnabled(bool)))->setCheckable(true);
-    optionsMenu->addAction("Go Home", this, SLOT(goHome()));
+    optionsMenu->addAction("Go Home", this, SLOT(goHome()), Qt::CTRL | Qt::Key_G);
     
     QMenu* renderMenu = menuBar->addMenu("Render");
     (_renderVoxels = renderMenu->addAction("Voxels", this, SLOT(setRenderVoxels(bool)), Qt::SHIFT | Qt::Key_V))->setCheckable(true);
@@ -1792,8 +1866,8 @@ void Application::initMenu() {
         "Get Color Mode", this, SLOT(updateVoxelModeActions()),   Qt::Key_G))->setCheckable(true);
     _voxelModeActions->addAction(_eyedropperMode);
 
-    voxelMenu->addAction("Decrease Voxel Size", this, SLOT(decreaseVoxelSize()),       QKeySequence::ZoomOut);
-    voxelMenu->addAction("Increase Voxel Size", this, SLOT(increaseVoxelSize()),       QKeySequence::ZoomIn);
+    voxelMenu->addAction("Decrease Voxel Size", this, SLOT(decreaseVoxelSize()), QKeySequence::ZoomOut);
+    voxelMenu->addAction("Increase Voxel Size", this, SLOT(increaseVoxelSize()), QKeySequence::ZoomIn);
     voxelMenu->addAction("Reset Swatch Colors", this, SLOT(resetSwatchColors()));
 
     _voxelPaintColor = voxelMenu->addAction("Voxel Paint Color", this, 
@@ -1820,7 +1894,7 @@ void Application::initMenu() {
     (_viewFrustumFromOffset = frustumMenu->addAction(
         "Use Offset Camera", this, SLOT(setFrustumOffset(bool)), Qt::SHIFT | Qt::Key_O))->setCheckable(true); 
     _frustumRenderModeAction = frustumMenu->addAction(
-        "Render Mode", this, SLOT(cycleFrustumRenderMode()), Qt::SHIFT | Qt::Key_R); 
+        "Render Mode", this, SLOT(cycleFrustumRenderMode()), Qt::SHIFT | Qt::Key_R);
     updateFrustumRenderModeAction();
     
     debugMenu->addAction("Run Timing Tests", this, SLOT(runTests()));
@@ -1843,8 +1917,8 @@ void Application::initMenu() {
     debugMenu->addAction("Wants Monochrome", this, SLOT(setWantsMonochrome(bool)))->setCheckable(true);
     debugMenu->addAction("Use Lower Resolution While Moving", this, SLOT(setWantsLowResMoving(bool)))->setCheckable(true);
     debugMenu->addAction("Disable Delta Sending", this, SLOT(disableDeltaSending(bool)))->setCheckable(true);
-    debugMenu->addAction("Disable Occlusion Culling", this, SLOT(disableOcclusionCulling(bool)), 
-                         Qt::SHIFT | Qt::Key_C)->setCheckable(true);
+    (_occlusionCulling = debugMenu->addAction("Disable Occlusion Culling", this, SLOT(disableOcclusionCulling(bool)),
+                         Qt::SHIFT | Qt::Key_C))->setCheckable(true);
 
     (_renderCoverageMap = debugMenu->addAction("Render Coverage Map"))->setCheckable(true);
     _renderCoverageMap->setShortcut(Qt::SHIFT | Qt::CTRL | Qt::Key_O);
