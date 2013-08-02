@@ -314,10 +314,7 @@ void Avatar::updateFromGyrosAndOrWebcam(bool gyroLook,
         estimatedPosition = webcam->getEstimatedPosition();
         
         // apply face data
-        _head.getFace().setColorTextureID(webcam->getColorTextureID());
-        _head.getFace().setDepthTextureID(webcam->getDepthTextureID());
-        _head.getFace().setTextureSize(webcam->getTextureSize());
-        _head.getFace().setTextureRect(webcam->getFaceRect());
+        _head.getFace().setFrameFromWebcam();
         
         // compute and store the joint rotations
         const JointVector& joints = webcam->getEstimatedJoints();
@@ -334,7 +331,7 @@ void Avatar::updateFromGyrosAndOrWebcam(bool gyroLook,
             }
         }
     } else {
-        _head.getFace().setColorTextureID(0);
+        _head.getFace().clearFrame();
     }
     _head.setPitch(estimatedRotation.x * amplifyAngle.x + pitchFromTouch);
     _head.setYaw(estimatedRotation.y * amplifyAngle.y + yawFromTouch);
@@ -1300,9 +1297,15 @@ float Avatar::getBallRenderAlpha(int ball, bool lookingInMirror) const {
 }
 
 void Avatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
-    
-    //  Render the body as balls and cones
-    if (renderAvatarBalls || !_voxels.getVoxelURL().isValid()) {
+
+    if (_head.getFace().isFullFrame()) {
+        //  Render the full-frame video
+        float alpha = getBallRenderAlpha(BODY_BALL_HEAD_BASE, lookingInMirror);
+        if (alpha > 0.0f) {
+            _head.getFace().render(1.0f);
+        }
+    } else if (renderAvatarBalls || !_voxels.getVoxelURL().isValid()) {
+        //  Render the body as balls and cones
         for (int b = 0; b < NUM_AVATAR_BODY_BALLS; b++) {
             float alpha = getBallRenderAlpha(b, lookingInMirror);
             
