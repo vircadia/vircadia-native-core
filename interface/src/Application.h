@@ -39,6 +39,7 @@
 #include "ViewFrustum.h"
 #include "VoxelSystem.h"
 #include "Webcam.h"
+#include "PieMenu.h"
 #include "avatar/Avatar.h"
 #include "avatar/HandControl.h"
 #include "ui/BandwidthDialog.h"
@@ -222,7 +223,7 @@ private:
      
     void setupPaintingVoxel();
     void shiftPaintingColor();
-    void maybeEditVoxelUnderCursor();
+    bool maybeEditVoxelUnderCursor();
     void deleteVoxelUnderCursor();
     void eyedropperVoxelUnderCursor();
     void resetSensors();
@@ -429,6 +430,8 @@ private:
 
     ToolsPalette _palette;
     Swatch _swatch;
+
+    PieMenu _pieMenu;
     
     VoxelSceneStats _voxelSceneStats;
 };

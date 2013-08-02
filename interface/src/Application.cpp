@@ -852,6 +852,8 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
                 deleteVoxelUnderCursor();
             }
         }
+
+        _pieMenu.mouseMoveEvent(_mouseX, _mouseY);
     }
 }
 
@@ -869,7 +871,12 @@ void Application::mousePressEvent(QMouseEvent* event) {
             _mouseDragStartedY = _mouseY;
             _mouseVoxelDragging = _mouseVoxel;
             _mousePressed = true;
-            maybeEditVoxelUnderCursor();
+
+
+            if (!maybeEditVoxelUnderCursor()) {
+                _pieMenu.mousePressEvent(_mouseX, _mouseY);
+            }
+
             if (MAKE_SOUND_ON_VOXEL_CLICK && _isHoverVoxel && !_isHoverVoxelSounding) {
                 _hoverVoxelOriginalColor[0] = _hoverVoxel.red;
                 _hoverVoxelOriginalColor[1] = _hoverVoxel.green;
@@ -892,6 +899,8 @@ void Application::mouseReleaseEvent(QMouseEvent* event) {
             _mouseY = event->y();
             _mousePressed = false;
             checkBandwidthMeterClick();
+
+            _pieMenu.mouseReleaseEvent(_mouseX, _mouseY);
         }
     }
 }
@@ -2057,7 +2066,11 @@ void Application::init() {
     _palette.addTool(&_swatch);
     _palette.addAction(_colorVoxelMode, 0, 2);
     _palette.addAction(_eyedropperMode, 0, 3);
-    _palette.addAction(_selectVoxelMode, 0, 4);    
+    _palette.addAction(_selectVoxelMode, 0, 4);
+
+    _pieMenu.init("./resources/images/hifi-interface-tools-v2-pie.svg",
+                  _glWidget->width(),
+                  _glWidget->height());
 }
 
 
@@ -2992,6 +3005,10 @@ void Application::displayOverlay() {
         _swatch.checkColor();
     }
 
+    if (_pieMenu.isDisplayed()) {
+        _pieMenu.render();
+    }
+
     glPopMatrix();
 }
 
@@ -3391,7 +3408,7 @@ void Application::shiftPaintingColor() {
 }
 
 
-void Application::maybeEditVoxelUnderCursor() {
+bool Application::maybeEditVoxelUnderCursor() {
     if (_addVoxelMode->isChecked() || _colorVoxelMode->isChecked()) {
         if (_mouseVoxel.s != 0) {
             PACKET_TYPE message = (_destructiveAddVoxel->isChecked() ?
@@ -3462,7 +3479,11 @@ void Application::maybeEditVoxelUnderCursor() {
         deleteVoxelUnderCursor();
     } else if (_eyedropperMode->isChecked()) {
         eyedropperVoxelUnderCursor();
+    } else {
+        return false;
     }
+
+    return true;
 }
 
 void Application::deleteVoxelUnderCursor() {
