@@ -53,6 +53,9 @@ void HandData::encodeRemoteData(std::vector<glm::vec3>& fingerVectors) {
     fingerVectors.clear();
     for (size_t i = 0; i < getNumPalms(); ++i) {
         PalmData& palm = getPalms()[i];
+        if (!palm.isActive()) {
+            continue;
+        }
         fingerVectors.push_back(palm.getRawPosition());
         fingerVectors.push_back(palm.getRawNormal());
         for (size_t f = 0; f < palm.getNumFingers(); ++f) {
