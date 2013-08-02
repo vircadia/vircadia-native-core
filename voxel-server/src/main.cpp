@@ -456,11 +456,22 @@ int main(int argc, const char * argv[]) {
         printf("about to readFromFile().... jurisdictionFile=%s\n", jurisdictionFile);
         jurisdiction = new JurisdictionMap(jurisdictionFile);
         printf("after readFromFile().... jurisdictionFile=%s\n", jurisdictionFile);
+    } else {
+        const char* JURISDICTION_ROOT = "--jurisdictionRoot";
+        const char* jurisdictionRoot = getCmdOption(argc, argv, JURISDICTION_ROOT);
+        if (jurisdictionRoot) {
+            printf("jurisdictionRoot=%s\n", jurisdictionRoot);
+        }
 
-        // test writing the file...
-        printf("about to writeToFile().... jurisdictionFile=%s\n", jurisdictionFile);
-        jurisdiction->writeToFile(jurisdictionFile);
-        printf("after writeToFile().... jurisdictionFile=%s\n", jurisdictionFile);
+        const char* JURISDICTION_ENDNODES = "--jurisdictionEndNodes";
+        const char* jurisdictionEndNodes = getCmdOption(argc, argv, JURISDICTION_ENDNODES);
+        if (jurisdictionEndNodes) {
+            printf("jurisdictionEndNodes=%s\n", jurisdictionEndNodes);
+        }
+
+        if (jurisdictionRoot || jurisdictionEndNodes) {
+            jurisdiction = new JurisdictionMap(jurisdictionRoot, jurisdictionEndNodes);
+        }
     }
     
     NodeList* nodeList = NodeList::createInstance(NODE_TYPE_VOXEL_SERVER, listenPort);
