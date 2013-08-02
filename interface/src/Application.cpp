@@ -2162,7 +2162,8 @@ void Application::update(float deltaTime) {
         _myAvatar.getHead().setLookAtPosition(lookAtSpot);
     } else {
         //  Just look in direction of the mouse ray
-        glm::vec3 myLookAtFromMouse(mouseRayOrigin + mouseRayDirection);
+        const float FAR_AWAY_STARE = TREE_SCALE;
+        glm::vec3 myLookAtFromMouse(mouseRayOrigin + mouseRayDirection * FAR_AWAY_STARE);
         _myAvatar.getHead().setLookAtPosition(myLookAtFromMouse);
     }
     
@@ -2855,8 +2856,9 @@ void Application::displaySide(Camera& whichCamera) {
             _myAvatar.getHead().setLookAtPosition(_myCamera.getPosition());
         } 
         _myAvatar.render(_lookingInMirror->isChecked(), _renderAvatarBalls->isChecked());
+        _myAvatar.setDisplayingLookatVectors(_renderLookatOn->isChecked());
 
-        if (_renderLookatIndicatorOn->isChecked() && _isLookingAtOtherAvatar) {
+        if (_renderLookatIndicatorOn->isChecked()) {
             renderLookatIndicator(_lookatOtherPosition, whichCamera);
         }
     }
