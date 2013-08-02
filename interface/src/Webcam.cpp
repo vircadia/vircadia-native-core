@@ -465,6 +465,8 @@ void FrameGrabber::grabFrame() {
         color = image;
     }
     
+    const int ENCODED_FACE_WIDTH = 128;
+    const int ENCODED_FACE_HEIGHT = 128;
     int encodedWidth;
     int encodedHeight;
     int depthBitrateMultiplier = 1;
@@ -510,8 +512,6 @@ void FrameGrabber::grabFrame() {
             Rect imageBounds(0, 0, color.cols, color.rows);
             _searchWindow = Rect(clip(faceBounds.tl(), imageBounds), clip(faceBounds.br(), imageBounds));
         }
-        const int ENCODED_FACE_WIDTH = 128;
-        const int ENCODED_FACE_HEIGHT = 128;
         encodedWidth = ENCODED_FACE_WIDTH;
         encodedHeight = ENCODED_FACE_HEIGHT;
         depthBitrateMultiplier = 2;
@@ -595,7 +595,7 @@ void FrameGrabber::grabFrame() {
             // initialize encoder context(s)
             vpx_codec_enc_cfg_t codecConfig;
             vpx_codec_enc_config_default(vpx_codec_vp8_cx(), &codecConfig, 0);
-            codecConfig.rc_target_bitrate = encodedWidth * encodedHeight *
+            codecConfig.rc_target_bitrate = ENCODED_FACE_WIDTH * ENCODED_FACE_HEIGHT *
                 codecConfig.rc_target_bitrate / codecConfig.g_w / codecConfig.g_h;
             codecConfig.g_w = encodedWidth;
             codecConfig.g_h = encodedHeight;
