@@ -1816,7 +1816,6 @@ void Application::initMenu() {
     (_renderLookatIndicatorOn = renderMenu->addAction("Lookat Indicator"))->setCheckable(true);
     _renderLookatIndicatorOn->setChecked(true);
     (_renderParticleSystemOn = renderMenu->addAction("Particle System"))->setCheckable(true);
-    _renderParticleSystemOn->setChecked(true);
     (_manualFirstPerson = renderMenu->addAction(
         "First Person", this, SLOT(setRenderFirstPerson(bool)), Qt::Key_P))->setCheckable(true);
     (_manualThirdPerson = renderMenu->addAction(
