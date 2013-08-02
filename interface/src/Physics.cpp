@@ -38,3 +38,7 @@ void applyDamping(float deltaTime, glm::vec3& velocity, float linearStrength, fl
     }
 }
 
+void applyDampedSpring(float deltaTime, glm::vec3& velocity, glm::vec3& position, glm::vec3& targetPosition, float k, float damping) {
+    
+}
+

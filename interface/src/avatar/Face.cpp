@@ -17,6 +17,7 @@
 #include "Avatar.h"
 #include "Head.h"
 #include "Face.h"
+#include "Webcam.h"
 #include "renderer/ProgramObject.h"
 
 using namespace cv;
@@ -25,7 +26,6 @@ ProgramObject* Face::_program = 0;
 int Face::_texCoordCornerLocation;
 int Face::_texCoordRightLocation;
 int Face::_texCoordUpLocation;
-int Face::_aspectRatioLocation;
 GLuint Face::_vboID;
 GLuint Face::_iboID;
 
@@ -55,17 +55,25 @@ Face::~Face() {
     }
 }
 
-void Face::setTextureRect(const cv::RotatedRect& textureRect) {
-    _textureRect = textureRect;
-    _aspectRatio = _textureRect.size.width / _textureRect.size.height;
+void Face::setFrameFromWebcam() {
+    Webcam* webcam = Application::getInstance()->getWebcam();
+    if (webcam->isSending()) {
+        _colorTextureID = webcam->getColorTextureID();
+        _depthTextureID = webcam->getDepthTextureID();
+        _textureSize = webcam->getTextureSize();
+        _textureRect = webcam->getFaceRect();
+        _aspectRatio = webcam->getAspectRatio();
+    
+    } else {
+        clearFrame();
+    }
 }
 
+void Face::clearFrame() {
+    _colorTextureID = 0;
+}
+    
 int Face::processVideoMessage(unsigned char* packetData, size_t dataBytes) {
-    if (_colorCodec.name == 0) {
-        // initialize decoder context
-        vpx_codec_dec_init(&_colorCodec, vpx_codec_vp8_dx(), 0, 0);
-    }
-    // skip the header
     unsigned char* packetPosition = packetData;
 
     int frameCount = *(uint32_t*)packetPosition;
@@ -89,110 +97,135 @@ int Face::processVideoMessage(unsigned char* packetData, size_t dataBytes) {
     int payloadSize = dataBytes - (packetPosition - packetData);
     memcpy(_arrivingFrame.data() + frameOffset, packetPosition, payloadSize);
     
-    if ((_frameBytesRemaining -= payloadSize) <= 0) {
-        float aspectRatio = *(const float*)_arrivingFrame.constData();
-        size_t colorSize = *(const size_t*)(_arrivingFrame.constData() + sizeof(float));
-        const uint8_t* colorData = (const uint8_t*)(_arrivingFrame.constData() + sizeof(float) + sizeof(size_t));
-        vpx_codec_decode(&_colorCodec, colorData, colorSize, 0, 0);
-        vpx_codec_iter_t iterator = 0;
-        vpx_image_t* image;
-        while ((image = vpx_codec_get_frame(&_colorCodec, &iterator)) != 0) {
-            // convert from YV12 to RGB
-            Mat color(image->d_h, image->d_w, CV_8UC3);
-            uchar* yline = image->planes[0];
-            uchar* vline = image->planes[1];
-            uchar* uline = image->planes[2];
-            const int RED_V_WEIGHT = (int)(1.403 * 256);
-            const int GREEN_V_WEIGHT = (int)(0.714 * 256);
-            const int GREEN_U_WEIGHT = (int)(0.344 * 256);
-            const int BLUE_U_WEIGHT = (int)(1.773 * 256);
-            for (int i = 0; i < image->d_h; i += 2) {
-                uchar* ysrc = yline;
-                uchar* vsrc = vline;
-                uchar* usrc = uline;
-                for (int j = 0; j < image->d_w; j += 2) {
-                    uchar* tl = color.ptr(i, j);
-                    uchar* tr = color.ptr(i, j + 1);
-                    uchar* bl = color.ptr(i + 1, j);
-                    uchar* br = color.ptr(i + 1, j + 1);
-                    
-                    int v = *vsrc++ - 128;
-                    int u = *usrc++ - 128;
-                    
-                    int redOffset = (RED_V_WEIGHT * v) >> 8;
-                    int greenOffset = (GREEN_V_WEIGHT * v + GREEN_U_WEIGHT * u) >> 8;
-                    int blueOffset = (BLUE_U_WEIGHT * u) >> 8;
-                    
-                    int ytl = ysrc[0];
-                    int ytr = ysrc[1];
-                    int ybl = ysrc[image->w];
-                    int ybr = ysrc[image->w + 1];
-                    ysrc += 2;
-                    
-                    tl[0] = ytl + redOffset;
-                    tl[1] = ytl - greenOffset;
-                    tl[2] = ytl + blueOffset;
-                    
-                    tr[0] = ytr + redOffset;
-                    tr[1] = ytr - greenOffset; 
-                    tr[2] = ytr + blueOffset;
-                    
-                    bl[0] = ybl + redOffset;
-                    bl[1] = ybl - greenOffset;
-                    bl[2] = ybl + blueOffset;
-                    
-                    br[0] = ybr + redOffset;
-                    br[1] = ybr - greenOffset;
-                    br[2] = ybr + blueOffset;
-                }
-                yline += image->stride[0] * 2;
-                vline += image->stride[1];
-                uline += image->stride[2];
+    if ((_frameBytesRemaining -= payloadSize) > 0) {
+        return dataBytes; // wait for the rest of the frame
+    }
+    
+    if (frameSize == 0) {
+        // destroy the codecs, if we have any
+        destroyCodecs();
+    
+        // disables video data
+        QMetaObject::invokeMethod(this, "setFrame", Q_ARG(cv::Mat, Mat()),
+            Q_ARG(cv::Mat, Mat()), Q_ARG(float, 0.0f));
+        return dataBytes;
+    }
+    
+    // the switch from full frame to not (or vice versa) requires us to reinit the codecs
+    float aspectRatio = *(const float*)_arrivingFrame.constData();
+    bool fullFrame = (aspectRatio == FULL_FRAME_ASPECT);
+    if (fullFrame != _lastFullFrame) {
+        destroyCodecs();
+        _lastFullFrame = fullFrame;
+    }
+    
+    if (_colorCodec.name == 0) {
+        // initialize decoder context
+        vpx_codec_dec_init(&_colorCodec, vpx_codec_vp8_dx(), 0, 0);
+    }
+    
+    size_t colorSize = *(const size_t*)(_arrivingFrame.constData() + sizeof(float));
+    const uint8_t* colorData = (const uint8_t*)(_arrivingFrame.constData() + sizeof(float) + sizeof(size_t));
+    vpx_codec_decode(&_colorCodec, colorData, colorSize, 0, 0);
+    vpx_codec_iter_t iterator = 0;
+    vpx_image_t* image;
+    while ((image = vpx_codec_get_frame(&_colorCodec, &iterator)) != 0) {
+        // convert from YV12 to RGB: see http://www.fourcc.org/yuv.php and
+        // http://docs.opencv.org/modules/imgproc/doc/miscellaneous_transformations.html#cvtcolor
+        Mat color(image->d_h, image->d_w, CV_8UC3);
+        uchar* yline = image->planes[0];
+        uchar* vline = image->planes[1];
+        uchar* uline = image->planes[2];
+        const int RED_V_WEIGHT = (int)(1.403 * 256);
+        const int GREEN_V_WEIGHT = (int)(0.714 * 256);
+        const int GREEN_U_WEIGHT = (int)(0.344 * 256);
+        const int BLUE_U_WEIGHT = (int)(1.773 * 256);
+        for (int i = 0; i < image->d_h; i += 2) {
+            uchar* ysrc = yline;
+            uchar* vsrc = vline;
+            uchar* usrc = uline;
+            for (int j = 0; j < image->d_w; j += 2) {
+                uchar* tl = color.ptr(i, j);
+                uchar* tr = color.ptr(i, j + 1);
+                uchar* bl = color.ptr(i + 1, j);
+                uchar* br = color.ptr(i + 1, j + 1);
+                
+                int v = *vsrc++ - 128;
+                int u = *usrc++ - 128;
+                
+                int redOffset = (RED_V_WEIGHT * v) >> 8;
+                int greenOffset = (GREEN_V_WEIGHT * v + GREEN_U_WEIGHT * u) >> 8;
+                int blueOffset = (BLUE_U_WEIGHT * u) >> 8;
+                
+                int ytl = ysrc[0];
+                int ytr = ysrc[1];
+                int ybl = ysrc[image->w];
+                int ybr = ysrc[image->w + 1];
+                ysrc += 2;
+                
+                tl[0] = ytl + redOffset;
+                tl[1] = ytl - greenOffset;
+                tl[2] = ytl + blueOffset;
+                
+                tr[0] = ytr + redOffset;
+                tr[1] = ytr - greenOffset; 
+                tr[2] = ytr + blueOffset;
+                
+                bl[0] = ybl + redOffset;
+                bl[1] = ybl - greenOffset;
+                bl[2] = ybl + blueOffset;
+                
+                br[0] = ybr + redOffset;
+                br[1] = ybr - greenOffset;
+                br[2] = ybr + blueOffset;
             }
-            Mat depth;
-            
-            const uint8_t* depthData = colorData + colorSize;
-            int depthSize = _arrivingFrame.size() - ((const char*)depthData - _arrivingFrame.constData());
-            if (depthSize > 0) {
-                if (_depthCodec.name == 0) {
-                    // initialize decoder context
-                    vpx_codec_dec_init(&_depthCodec, vpx_codec_vp8_dx(), 0, 0);
-                }
-                vpx_codec_decode(&_depthCodec, depthData, depthSize, 0, 0);
-                vpx_codec_iter_t iterator = 0;
-                vpx_image_t* image;
-                while ((image = vpx_codec_get_frame(&_depthCodec, &iterator)) != 0) {
-                    depth.create(image->d_h, image->d_w, CV_8UC1);
-                    uchar* yline = image->planes[0];
-                    uchar* vline = image->planes[1];
-                    const uchar EIGHT_BIT_MAXIMUM = 255;
-                    const uchar MASK_THRESHOLD = 192;
-                    for (int i = 0; i < image->d_h; i += 2) {
-                        uchar* ysrc = yline;
-                        uchar* vsrc = vline;
-                        for (int j = 0; j < image->d_w; j += 2) {
-                            if (*vsrc++ < MASK_THRESHOLD) {
-                                *depth.ptr(i, j) = EIGHT_BIT_MAXIMUM;
-                                *depth.ptr(i, j + 1) = EIGHT_BIT_MAXIMUM;
-                                *depth.ptr(i + 1, j) = EIGHT_BIT_MAXIMUM;
-                                *depth.ptr(i + 1, j + 1) = EIGHT_BIT_MAXIMUM;
-                            
-                            } else {
-                                *depth.ptr(i, j) = ysrc[0];
-                                *depth.ptr(i, j + 1) = ysrc[1];
-                                *depth.ptr(i + 1, j) = ysrc[image->stride[0]];
-                                *depth.ptr(i + 1, j + 1) = ysrc[image->stride[0] + 1];
-                            }
-                            ysrc += 2;
-                        }
-                        yline += image->stride[0] * 2;
-                        vline += image->stride[1];
-                    }
-                }
-            }
-            QMetaObject::invokeMethod(this, "setFrame", Q_ARG(cv::Mat, color),
-                Q_ARG(cv::Mat, depth), Q_ARG(float, aspectRatio));
+            yline += image->stride[0] * 2;
+            vline += image->stride[1];
+            uline += image->stride[2];
         }
+        Mat depth;
+        
+        const uint8_t* depthData = colorData + colorSize;
+        int depthSize = _arrivingFrame.size() - ((const char*)depthData - _arrivingFrame.constData());
+        if (depthSize > 0) {
+            if (_depthCodec.name == 0) {
+                // initialize decoder context
+                vpx_codec_dec_init(&_depthCodec, vpx_codec_vp8_dx(), 0, 0);
+            }
+            vpx_codec_decode(&_depthCodec, depthData, depthSize, 0, 0);
+            vpx_codec_iter_t iterator = 0;
+            vpx_image_t* image;
+            while ((image = vpx_codec_get_frame(&_depthCodec, &iterator)) != 0) {
+                depth.create(image->d_h, image->d_w, CV_8UC1);
+                uchar* yline = image->planes[0];
+                uchar* vline = image->planes[1];
+                const uchar EIGHT_BIT_MAXIMUM = 255;
+                const uchar MASK_THRESHOLD = 192;
+                for (int i = 0; i < image->d_h; i += 2) {
+                    uchar* ysrc = yline;
+                    uchar* vsrc = vline;
+                    for (int j = 0; j < image->d_w; j += 2) {
+                        if (*vsrc++ < MASK_THRESHOLD) {
+                            *depth.ptr(i, j) = EIGHT_BIT_MAXIMUM;
+                            *depth.ptr(i, j + 1) = EIGHT_BIT_MAXIMUM;
+                            *depth.ptr(i + 1, j) = EIGHT_BIT_MAXIMUM;
+                            *depth.ptr(i + 1, j + 1) = EIGHT_BIT_MAXIMUM;
+                        
+                        } else {
+                            *depth.ptr(i, j) = ysrc[0];
+                            *depth.ptr(i, j + 1) = ysrc[1];
+                            *depth.ptr(i + 1, j) = ysrc[image->stride[0]];
+                            *depth.ptr(i + 1, j + 1) = ysrc[image->stride[0] + 1];
+                        }
+                        ysrc += 2;
+                    }
+                    yline += image->stride[0] * 2;
+                    vline += image->stride[1];
+                }
+            }
+        }
+        QMetaObject::invokeMethod(this, "setFrame", Q_ARG(cv::Mat, color),
+            Q_ARG(cv::Mat, depth), Q_ARG(float, aspectRatio));
     }
     
     return dataBytes;
@@ -208,9 +241,22 @@ bool Face::render(float alpha) {
     glm::quat orientation = _owningHead->getOrientation();
     glm::vec3 axis = glm::axis(orientation);
     glRotatef(glm::angle(orientation), axis.x, axis.y, axis.z);
-    float scale = BODY_BALL_RADIUS_HEAD_BASE * _owningHead->getScale();
-    glScalef(scale, scale, scale);
-
+        
+    float aspect, xScale, zScale;
+    if (_aspectRatio == FULL_FRAME_ASPECT) {
+        aspect = _textureSize.width / _textureSize.height;
+        const float FULL_FRAME_SCALE = 0.5f;
+        xScale = FULL_FRAME_SCALE * _owningHead->getScale();
+        zScale = xScale * 0.3f;
+        
+    } else {
+        aspect = _aspectRatio;
+        xScale = BODY_BALL_RADIUS_HEAD_BASE * _owningHead->getScale();
+        zScale = xScale * 1.5f;
+        glTranslatef(0.0f, -xScale * 0.75f, -xScale);
+    }
+    glScalef(xScale, xScale / aspect, zScale);
+    
     glColor4f(1.0f, 1.0f, 1.0f, alpha);
     
     Point2f points[4];
@@ -243,7 +289,6 @@ bool Face::render(float alpha) {
             _texCoordCornerLocation = _program->uniformLocation("texCoordCorner");
             _texCoordRightLocation = _program->uniformLocation("texCoordRight");
             _texCoordUpLocation = _program->uniformLocation("texCoordUp");
-            _aspectRatioLocation = _program->uniformLocation("aspectRatio");
             
             glGenBuffers(1, &_vboID);
             glBindBuffer(GL_ARRAY_BUFFER, _vboID);
@@ -292,7 +337,6 @@ bool Face::render(float alpha) {
             (points[3].x - points[0].x) / _textureSize.width, (points[3].y - points[0].y) / _textureSize.height);
         _program->setUniformValue(_texCoordUpLocation,
             (points[1].x - points[0].x) / _textureSize.width, (points[1].y - points[0].y) / _textureSize.height);
-        _program->setUniformValue(_aspectRatioLocation, _aspectRatio);
         glEnableClientState(GL_VERTEX_ARRAY);
         glVertexPointer(2, GL_FLOAT, 0, 0);
         
@@ -324,13 +368,13 @@ bool Face::render(float alpha) {
         
         glBegin(GL_QUADS);
         glTexCoord2f(points[0].x / _textureSize.width, points[0].y / _textureSize.height);
-        glVertex3f(0.5f, -0.5f / _aspectRatio, -0.5f);    
+        glVertex3f(0.5f, -0.5f, 0.0f);    
         glTexCoord2f(points[1].x / _textureSize.width, points[1].y / _textureSize.height);
-        glVertex3f(0.5f, 0.5f / _aspectRatio, -0.5f);
+        glVertex3f(0.5f, 0.5f, 0.0f);
         glTexCoord2f(points[2].x / _textureSize.width, points[2].y / _textureSize.height);
-        glVertex3f(-0.5f, 0.5f / _aspectRatio, -0.5f);
+        glVertex3f(-0.5f, 0.5f, 0.0f);
         glTexCoord2f(points[3].x / _textureSize.width, points[3].y / _textureSize.height);
-        glVertex3f(-0.5f, -0.5f / _aspectRatio, -0.5f);
+        glVertex3f(-0.5f, -0.5f, 0.0f);
         glEnd();
         
         glDisable(GL_TEXTURE_2D);
@@ -348,23 +392,40 @@ void Face::cycleRenderMode() {
 }
 
 void Face::setFrame(const cv::Mat& color, const cv::Mat& depth, float aspectRatio) {
+    if (color.empty()) {
+        // release our textures, if any; there's no more video
+        if (_colorTextureID != 0) {
+            glDeleteTextures(1, &_colorTextureID);
+            _colorTextureID = 0;
+        }
+        if (_depthTextureID != 0) {
+            glDeleteTextures(1, &_depthTextureID);
+            _depthTextureID = 0;
+        }
+        return;
+    }
+
     if (_colorTextureID == 0) {
         glGenTextures(1, &_colorTextureID);
-        glBindTexture(GL_TEXTURE_2D, _colorTextureID);
+    }
+    glBindTexture(GL_TEXTURE_2D, _colorTextureID);
+    bool recreateTextures = (_textureSize.width != color.cols || _textureSize.height != color.rows);
+    if (recreateTextures) {
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, color.cols, color.rows, 0, GL_RGB, GL_UNSIGNED_BYTE, color.ptr());
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         _textureSize = color.size();
         _textureRect = RotatedRect(Point2f(color.cols * 0.5f, color.rows * 0.5f), _textureSize, 0.0f);
-        
+    
     } else {
-        glBindTexture(GL_TEXTURE_2D, _colorTextureID);
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, color.cols, color.rows, GL_RGB, GL_UNSIGNED_BYTE, color.ptr());
     }
     
     if (!depth.empty()) {
         if (_depthTextureID == 0) {
             glGenTextures(1, &_depthTextureID);
-            glBindTexture(GL_TEXTURE_2D, _depthTextureID);
+        }
+        glBindTexture(GL_TEXTURE_2D, _depthTextureID);
+        if (recreateTextures) {
             glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, depth.cols, depth.rows, 0,
                 GL_LUMINANCE, GL_UNSIGNED_BYTE, depth.ptr());
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -380,3 +441,13 @@ void Face::setFrame(const cv::Mat& color, const cv::Mat& depth, float aspectRati
     _aspectRatio = aspectRatio;
 }
 
+void Face::destroyCodecs() {
+    if (_colorCodec.name != 0) {
+        vpx_codec_destroy(&_colorCodec);
+        _colorCodec.name = 0;
+    }
+    if (_depthCodec.name != 0) {
+        vpx_codec_destroy(&_depthCodec);
+        _depthCodec.name = 0;
+    }
+}

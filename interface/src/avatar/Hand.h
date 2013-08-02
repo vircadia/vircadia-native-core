@@ -65,8 +65,9 @@ public:
     void setRaveGloveEffectsMode(QKeyEvent* event);
 
     // getters
-    const glm::vec3& getLeapBallPosition       (int ball)       const { return _leapBalls[ball].position;}
-    bool isRaveGloveActive                     ()               const { return _isRaveGloveActive; }
+    const glm::vec3& getLeapFingerTipBallPosition (int ball) const { return _leapFingerTipBalls [ball].position;}
+    const glm::vec3& getLeapFingerRootBallPosition(int ball) const { return _leapFingerRootBalls[ball].position;}
+    bool isRaveGloveActive() const { return _isRaveGloveActive; }
 
 private:
     // disallow copies of the Hand, copy of owning Avatar is disallowed too
@@ -84,7 +85,8 @@ private:
     float          _renderAlpha;
     bool           _lookingInMirror;
     glm::vec3      _ballColor;
-    std::vector<HandBall> _leapBalls;
+    std::vector<HandBall> _leapFingerTipBalls;
+    std::vector<HandBall> _leapFingerRootBalls;
     
     // private methods
     void setLeapHands(const std::vector<glm::vec3>& handPositions,
@@ -92,8 +94,10 @@ private:
 
     void renderRaveGloveStage();
     void setRaveGloveMode(int mode);
-    void renderHandSpheres();
-    void renderFingerTrails();
+    void renderLeapHandSpheres();
+    void renderLeapHands();
+    void renderLeapHand(PalmData& hand);
+    void renderLeapFingerTrails();
     void calculateGeometry();
 };
 
