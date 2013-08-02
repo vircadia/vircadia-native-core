@@ -10,6 +10,7 @@
 #define __hifi__JurisdictionMap__
 
 #include <vector>
+#include <QString>
 
 class VoxelNode; // forward declaration
 
@@ -20,15 +21,16 @@ public:
     JurisdictionMap(unsigned char* rootOctalCode, const std::vector<unsigned char*>& endNodes);
     ~JurisdictionMap();
 
-
     bool isMyJurisdiction(VoxelNode* node, int childIndex) const;
+
+    bool writeToFile(const char* filename);
+    bool readFromFile(const char* filename);
     
 private:
     void clear();
     void init(unsigned char* rootOctalCode, const std::vector<unsigned char*>& endNodes);
 
-    bool writeToFile(const char* filename);
-    bool readFromFile(const char* filename);
+    unsigned char* hexStringToOctalCode(const QString& input);
 
 
     unsigned char* _rootOctalCode;

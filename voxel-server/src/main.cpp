@@ -430,6 +430,7 @@ void attachVoxelNodeDataToNode(Node* newNode) {
 }
 
 int receivedPacketCount = 0;
+JurisdictionMap* jurisdiction = NULL;
 
 int main(int argc, const char * argv[]) {
     pthread_mutex_init(&::treeLock, NULL);
@@ -447,7 +448,21 @@ int main(int argc, const char * argv[]) {
         }
         printf("portParameter=%s listenPort=%d\n", portParameter, listenPort);
     }
-    
+
+    const char* JURISDICTION_FILE = "--jurisdictionFile";
+    const char* jurisdictionFile = getCmdOption(argc, argv, JURISDICTION_FILE);
+    if (jurisdictionFile) {
+        printf("jurisdictionFile=%s\n", jurisdictionFile);
+
+        printf("about to readFromFile().... jurisdictionFile=%s\n", jurisdictionFile);
+        jurisdiction = new JurisdictionMap(jurisdictionFile);
+        printf("after readFromFile().... jurisdictionFile=%s\n", jurisdictionFile);
+
+        // test writing the file...
+        //printf("about to writeToFile().... jurisdictionFile=%s\n", jurisdictionFile);
+        //jurisdiction->writeToFile(jurisdictionFile);
+        //printf("after writeToFile().... jurisdictionFile=%s\n", jurisdictionFile);
+    }
     
     NodeList* nodeList = NodeList::createInstance(NODE_TYPE_VOXEL_SERVER, listenPort);
     setvbuf(stdout, NULL, _IOLBF, 0);
@@ -733,6 +748,10 @@ int main(int argc, const char * argv[]) {
     
     pthread_join(sendVoxelThread, NULL);
     pthread_mutex_destroy(&::treeLock);
+    
+    if (jurisdiction) {
+        delete jurisdiction;
+    }
 
     return 0;
 }
