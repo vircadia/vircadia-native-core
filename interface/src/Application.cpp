@@ -164,9 +164,9 @@ void GLCanvas::wheelEvent(QWheelEvent* event) {
     Application::getInstance()->wheelEvent(event);
 }
 
-void messageHandler(QtMsgType type, const char* message) {
-    fprintf(stdout, "%s", message);    
-    LogDisplay::instance.addMessage(message);
+void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString &message) {
+    fprintf(stdout, "%s", message.toLocal8Bit().constData());
+    LogDisplay::instance.addMessage(message.toLocal8Bit().constData());
 }
 
 Application::Application(int& argc, char** argv, timeval &startup_time) :
@@ -222,7 +222,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     _applicationStartupTime = startup_time;
     _window->setWindowTitle("Interface");
     
-    qInstallMsgHandler(messageHandler);
+    qInstallMessageHandler(messageHandler);
     
     unsigned int listenPort = 0; // bind to an ephemeral port by default
     const char** constArgv = const_cast<const char**>(argv);
@@ -563,6 +563,11 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 setMenuShortcutsEnabled(true);
             }
             return;
+        }
+
+        //this is for switching between modes for the leap rave glove test
+        if (_simulateLeapHand->isChecked() || _testRaveGlove->isChecked()) {
+            _myAvatar.getHand().setRaveGloveEffectsMode((QKeyEvent*)event);
         }
         
         bool shifted = event->modifiers().testFlag(Qt::ShiftModifier);
@@ -1216,7 +1221,7 @@ void Application::editPreferences() {
     
     if (domainServerHostname->text().size() > 0) {
         // the user input a new hostname, use that
-        newHostname = domainServerHostname->text().toAscii();
+        newHostname = domainServerHostname->text().toLocal8Bit();
     } else {
         // the user left the field blank, use the default hostname
         newHostname = QByteArray(DEFAULT_DOMAIN_HOSTNAME);
@@ -1494,16 +1499,18 @@ bool Application::sendVoxelsOperation(VoxelNode* node, void* extraData) {
                 
             uint64_t now = usecTimestampNow();
             // dynamically sleep until we need to fire off the next set of voxels
-            const uint64_t CLIENT_TO_SERVER_VOXEL_SEND_INTERVAL_USECS = 1000 * 5; // 1 packet every 10 milliseconds
             uint64_t elapsed = now - args->lastSendTime;
             int usecToSleep =  CLIENT_TO_SERVER_VOXEL_SEND_INTERVAL_USECS - elapsed;
             if (usecToSleep > 0) {
-                qDebug("sendVoxelsOperation: packet: %d bytes:%lld elapsed %lld usecs, sleeping for %d usecs!\n",
-                       args->packetsSent, (long long int)args->bytesSent, (long long int)elapsed, usecToSleep);
+                //qDebug("sendVoxelsOperation: packet: %d bytes:%lld elapsed %lld usecs, sleeping for %d usecs!\n",
+                //       args->packetsSent, (long long int)args->bytesSent, (long long int)elapsed, usecToSleep);
+
+                Application::getInstance()->timer();
+
                 usleep(usecToSleep);
             } else {
-                qDebug("sendVoxelsOperation: packet: %d bytes:%lld elapsed %lld usecs, no need to sleep!\n",
-                       args->packetsSent, (long long int)args->bytesSent, (long long int)elapsed);
+                //qDebug("sendVoxelsOperation: packet: %d bytes:%lld elapsed %lld usecs, no need to sleep!\n",
+                //       args->packetsSent, (long long int)args->bytesSent, (long long int)elapsed);
             }
             args->lastSendTime = now;
         }
@@ -1516,12 +1523,12 @@ bool Application::sendVoxelsOperation(VoxelNode* node, void* extraData) {
 }
 
 void Application::exportVoxels() {
-    QString desktopLocation = QDesktopServices::storageLocation(QDesktopServices::DesktopLocation);
+    QString desktopLocation = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
     QString suggestedName = desktopLocation.append("/voxels.svo");
 
     QString fileNameString = QFileDialog::getSaveFileName(_glWidget, tr("Export Voxels"), suggestedName, 
                                                           tr("Sparse Voxel Octree Files (*.svo)"));
-    QByteArray fileNameAscii = fileNameString.toAscii();
+    QByteArray fileNameAscii = fileNameString.toLocal8Bit();
     const char* fileName = fileNameAscii.data();
     VoxelNode* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
     if (selectedNode) {
@@ -1536,11 +1543,11 @@ void Application::exportVoxels() {
 
 const char* IMPORT_FILE_TYPES = "Sparse Voxel Octree Files, Square PNG, Schematic Files (*.svo *.png *.schematic)";
 void Application::importVoxelsToClipboard() {
-    QString desktopLocation = QDesktopServices::storageLocation(QDesktopServices::DesktopLocation);
+    QString desktopLocation = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
     QString fileNameString = QFileDialog::getOpenFileName(_glWidget, tr("Import Voxels to Clipboard"), desktopLocation,
                                                           tr(IMPORT_FILE_TYPES));
 
-    QByteArray fileNameAscii = fileNameString.toAscii();
+    QByteArray fileNameAscii = fileNameString.toLocal8Bit();
     const char* fileName = fileNameAscii.data();
     
     _clipboardTree.eraseAllVoxels();
@@ -1570,71 +1577,128 @@ void Application::importVoxelsToClipboard() {
 }
 
 void Application::importVoxels() {
-    QString desktopLocation = QDesktopServices::storageLocation(QDesktopServices::DesktopLocation);
-    QString fileNameString = QFileDialog::getOpenFileName(_glWidget, tr("Import Voxels"), desktopLocation,
+    QString desktopLocation = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
+
+    QStringList fileNameStringList = QFileDialog::getOpenFileNames(_glWidget, tr("Import Voxels"), desktopLocation, 
                                                           tr(IMPORT_FILE_TYPES));
 
-    QByteArray fileNameAscii = fileNameString.toAscii();
-    const char* fileName = fileNameAscii.data();
+
+    // remember the "selected" voxel point before we do any importing...
+    float originalX = _mouseVoxel.x;
+    float originalZ = _mouseVoxel.z;
+
+    const int PNG_TYPE_NAME_LENGTH = 4;
+    const int SVO_TYPE_NAME_LENGTH = 4;
+    const int SCH_TYPE_NAME_LENGTH = 10;
+
+    for (int i = 0; i < fileNameStringList.size(); i++) {
+        QString fileNameString = fileNameStringList.at(i);
+        QByteArray fileNameAscii = fileNameString.toLocal8Bit();
+        const char* fileName = fileNameAscii.data();
     
-    VoxelTree importVoxels;
-    if (fileNameString.endsWith(".png", Qt::CaseInsensitive)) {
-        QImage pngImage = QImage(fileName);
-        if (pngImage.height() != pngImage.width()) {
-            qDebug("ERROR: Bad PNG size: height != width.\n");
-            return;
+        int fileTypeNameLength = 0;
+        VoxelTree importVoxels;
+        if (fileNameString.endsWith(".png", Qt::CaseInsensitive)) {
+            QImage pngImage = QImage(fileName);
+            fileTypeNameLength = PNG_TYPE_NAME_LENGTH;
+            if (pngImage.height() != pngImage.width()) {
+                qDebug("ERROR: Bad PNG size: height != width.\n");
+                return;
+            }
+        
+            const uint32_t* pixels;
+            if (pngImage.format() == QImage::Format_ARGB32) {
+                pixels = reinterpret_cast<const uint32_t*>(pngImage.constBits());
+            } else {
+                QImage tmp = pngImage.convertToFormat(QImage::Format_ARGB32);
+                pixels = reinterpret_cast<const uint32_t*>(tmp.constBits());
+            }
+        
+            importVoxels.readFromSquareARGB32Pixels(pixels, pngImage.height());        
+        } else if (fileNameString.endsWith(".svo", Qt::CaseInsensitive)) {
+            importVoxels.readFromSVOFile(fileName);
+            fileTypeNameLength = SVO_TYPE_NAME_LENGTH;
+        } else if (fileNameString.endsWith(".schematic", Qt::CaseInsensitive)) {
+            importVoxels.readFromSchematicFile(fileName);
+            fileTypeNameLength = SCH_TYPE_NAME_LENGTH;
         }
         
-        const uint32_t* pixels;
-        if (pngImage.format() == QImage::Format_ARGB32) {
-            pixels = reinterpret_cast<const uint32_t*>(pngImage.constBits());
+        int indexOfFirstPeriod = fileNameString.indexOf('.');
+
+        QString fileCoord = fileNameString.mid(indexOfFirstPeriod + 1, 
+                                               fileNameString.length() - indexOfFirstPeriod - fileTypeNameLength - 1);
+
+        indexOfFirstPeriod = fileCoord.indexOf('.');
+        QString columnNumString = fileCoord.right(fileCoord.length() - indexOfFirstPeriod - 1);
+        QString rowNumString = fileCoord.left(indexOfFirstPeriod);
+
+        int columnNum = columnNumString.toFloat();
+        int rowNum = rowNumString.toFloat();
+        
+        qDebug("columnNum: %d\t rowNum: %d\n", columnNum, rowNum);
+
+        _mouseVoxel.x = originalX + (columnNum - 1) * _mouseVoxel.s;
+        _mouseVoxel.z = originalZ + (rowNum    - 1) * _mouseVoxel.s;
+        
+        VoxelNode* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+    
+        // Recurse the Import Voxels tree, where everything is root relative, and send all the colored voxels to 
+        // the server as an set voxel message, this will also rebase the voxels to the new location
+        unsigned char* calculatedOctCode = NULL;
+        SendVoxelsOperationArgs args;
+        args.lastSendTime = usecTimestampNow();
+        args.packetsSent = 0;
+        args.bytesSent = 0;
+    
+        int numBytesPacketHeader = populateTypeAndVersion(args.messageBuffer, PACKET_TYPE_SET_VOXEL_DESTRUCTIVE);
+    
+        unsigned short int* sequenceAt = (unsigned short int*)&args.messageBuffer[numBytesPacketHeader];
+        *sequenceAt = 0;
+        args.bufferInUse = numBytesPacketHeader + sizeof(unsigned short int); // set to command + sequence
+
+        // we only need the selected voxel to get the newBaseOctCode, which we can actually calculate from the
+        // voxel size/position details.
+        if (selectedNode) {
+            args.newBaseOctCode = selectedNode->getOctalCode();
         } else {
-            QImage tmp = pngImage.convertToFormat(QImage::Format_ARGB32);
-            pixels = reinterpret_cast<const uint32_t*>(tmp.constBits());
+            args.newBaseOctCode = calculatedOctCode = pointToVoxel(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+        }
+    
+        qDebug("column:%d, row:%d, voxel:%f,%f,%f,%f\n", columnNum, rowNum, _mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s );
+        
+        // send the insert/paste of these voxels
+        importVoxels.recurseTreeWithOperation(sendVoxelsOperation, &args);
+    
+        // If we have voxels left in the packet, then send the packet
+        if (args.bufferInUse > (numBytesPacketHeader + sizeof(unsigned short int))) {
+            controlledBroadcastToNodes(args.messageBuffer, args.bufferInUse, & NODE_TYPE_VOXEL_SERVER, 1);
+
+
+            args.packetsSent++;
+            args.bytesSent += args.bufferInUse;
+
+            uint64_t now = usecTimestampNow();
+            // dynamically sleep until we need to fire off the next set of voxels
+            uint64_t elapsed = now - args.lastSendTime;
+            int usecToSleep =  CLIENT_TO_SERVER_VOXEL_SEND_INTERVAL_USECS - elapsed;
+
+            if (usecToSleep > 0) {
+                //qDebug("after sendVoxelsOperation: packet: %d bytes:%lld elapsed %lld usecs, sleeping for %d usecs!\n",
+                //       args.packetsSent, (long long int)args.bytesSent, (long long int)elapsed, usecToSleep);
+                usleep(usecToSleep);
+            } else {
+                //qDebug("after sendVoxelsOperation: packet: %d bytes:%lld elapsed %lld usecs, no need to sleep!\n",
+                //       args.packetsSent, (long long int)args.bytesSent, (long long int)elapsed);
+            }
+            args.lastSendTime = now;
         }
         
-        importVoxels.readFromSquareARGB32Pixels(pixels, pngImage.height());        
-    } else if (fileNameString.endsWith(".svo", Qt::CaseInsensitive)) {
-        importVoxels.readFromSVOFile(fileName);
-    } else if (fileNameString.endsWith(".schematic", Qt::CaseInsensitive)) {
-        importVoxels.readFromSchematicFile(fileName);
+        if (calculatedOctCode) {
+            delete[] calculatedOctCode;
+        }
+
     }
     
-    VoxelNode* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
-    
-    // Recurse the Import Voxels tree, where everything is root relative, and send all the colored voxels to 
-    // the server as an set voxel message, this will also rebase the voxels to the new location
-    unsigned char* calculatedOctCode = NULL;
-    SendVoxelsOperationArgs args;
-    args.lastSendTime = usecTimestampNow();
-    args.packetsSent = 0;
-    args.bytesSent = 0;
-    
-    int numBytesPacketHeader = populateTypeAndVersion(args.messageBuffer, PACKET_TYPE_SET_VOXEL_DESTRUCTIVE);
-    
-    unsigned short int* sequenceAt = (unsigned short int*)&args.messageBuffer[numBytesPacketHeader];
-    *sequenceAt = 0;
-    args.bufferInUse = numBytesPacketHeader + sizeof(unsigned short int); // set to command + sequence
-
-    // we only need the selected voxel to get the newBaseOctCode, which we can actually calculate from the
-    // voxel size/position details.
-    if (selectedNode) {
-        args.newBaseOctCode = selectedNode->getOctalCode();
-    } else {
-        args.newBaseOctCode = calculatedOctCode = pointToVoxel(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
-    }
-
-    importVoxels.recurseTreeWithOperation(sendVoxelsOperation, &args);
-
-    // If we have voxels left in the packet, then send the packet
-    if (args.bufferInUse > (numBytesPacketHeader + sizeof(unsigned short int))) {
-        controlledBroadcastToNodes(args.messageBuffer, args.bufferInUse, & NODE_TYPE_VOXEL_SERVER, 1);
-    }
-    
-    if (calculatedOctCode) {
-        delete[] calculatedOctCode;
-    }
-
     // restore the main window's active state
     _window->activateWindow();
 }
@@ -1989,8 +2053,11 @@ const float MAX_VOXEL_EDIT_DISTANCE = 20.0f;
 const float HEAD_SPHERE_RADIUS = 0.07;
 
 
+static uint16_t DEFAULT_NODE_ID_REF = 1;
+
+
 bool Application::isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection, 
-                                         glm::vec3& eyePosition, uint16_t& nodeID) {
+                                         glm::vec3& eyePosition, uint16_t& nodeID = DEFAULT_NODE_ID_REF) {
                                          
     NodeList* nodeList = NodeList::getInstance();
     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
@@ -2047,8 +2114,8 @@ void Application::update(float deltaTime) {
     
     // Set where I am looking based on my mouse ray (so that other people can see)
     glm::vec3 eyePosition;
-    uint16_t  ignored;
-    _isLookingAtOtherAvatar = isLookingAtOtherAvatar(mouseRayOrigin, mouseRayDirection, eyePosition, ignored);
+
+    _isLookingAtOtherAvatar = isLookingAtOtherAvatar(mouseRayOrigin, mouseRayDirection, eyePosition);
     if (_isLookingAtOtherAvatar) {
         // If the mouse is over another avatar's head...
         glm::vec3 myLookAtFromMouse(eyePosition);
@@ -2314,8 +2381,8 @@ void Application::updateAvatar(float deltaTime) {
         _viewFrustum.computePickRay(MIDPOINT_OF_SCREEN, MIDPOINT_OF_SCREEN, screenCenterRayOrigin, screenCenterRayDirection);
 
         glm::vec3 eyePosition;
-        uint16_t  ignored;
-        _isLookingAtOtherAvatar = isLookingAtOtherAvatar(screenCenterRayOrigin, screenCenterRayDirection, eyePosition, ignored);
+        
+        _isLookingAtOtherAvatar = isLookingAtOtherAvatar(screenCenterRayOrigin, screenCenterRayDirection, eyePosition);
         if (_isLookingAtOtherAvatar) {
             glm::vec3 myLookAtFromMouse(eyePosition);
             _myAvatar.getHead().setLookAtPosition(myLookAtFromMouse);
@@ -2354,7 +2421,7 @@ void Application::updateAvatar(float deltaTime) {
     NodeList* nodeList = NodeList::getInstance();
     if (nodeList->getOwnerID() != UNKNOWN_NODE_ID) {
         // if I know my ID, send head/hand data to the avatar mixer and voxel server
-        unsigned char broadcastString[200];
+        unsigned char broadcastString[MAX_PACKET_SIZE];
         unsigned char* endOfBroadcastStringWrite = broadcastString;
         
         endOfBroadcastStringWrite += populateTypeAndVersion(endOfBroadcastStringWrite, PACKET_TYPE_HEAD_DATA);
@@ -2673,13 +2740,14 @@ void Application::displaySide(Camera& whichCamera) {
     if (_mouseVoxel.s != 0) {
         glDisable(GL_LIGHTING);
         glPushMatrix();
+        glScalef(TREE_SCALE, TREE_SCALE, TREE_SCALE);
+        renderMouseVoxelGrid(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
         if (_addVoxelMode->isChecked()) {
             // use a contrasting color so that we can see what we're doing
             glColor3ub(_mouseVoxel.red + 128, _mouseVoxel.green + 128, _mouseVoxel.blue + 128);
         } else {
             glColor3ub(_mouseVoxel.red, _mouseVoxel.green, _mouseVoxel.blue);
         }
-        glScalef(TREE_SCALE, TREE_SCALE, TREE_SCALE);
         glTranslatef(_mouseVoxel.x + _mouseVoxel.s*0.5f,
                      _mouseVoxel.y + _mouseVoxel.s*0.5f,
                      _mouseVoxel.z + _mouseVoxel.s*0.5f);
@@ -2725,13 +2793,12 @@ void Application::displaySide(Camera& whichCamera) {
             _particleSystem.render();    
         }
     }
-    
+
     //  Render the world box
     if (!_lookingInMirror->isChecked() && _renderStatsOn->isChecked()) { render_world_box(); }
     
     // brad's frustum for debugging
     if (_frustumOn->isChecked()) renderViewFrustum(_viewFrustum);
-    
 }
 
 void Application::displayOverlay() {
@@ -3475,6 +3542,7 @@ void* Application::networkReceive(void* args) {
         }       
     
         if (NodeList::getInstance()->getNodeSocket()->receive(&senderAddress, app->_incomingPacket, &bytesReceived)) {
+        
             app->_packetCount++;
             app->_bytesCount += bytesReceived;
             
@@ -3519,7 +3587,6 @@ void* Application::networkReceive(void* args) {
                             Node* voxelServer = NodeList::getInstance()->nodeWithAddress(&senderAddress);
                             if (voxelServer && socketMatch(voxelServer->getActiveSocket(), &senderAddress)) {
                                 voxelServer->lock();
-                                
                                 if (messageData[0] == PACKET_TYPE_ENVIRONMENT_DATA) {
                                     app->_environment.parseData(&senderAddress, messageData, messageLength);
                                 } else {
@@ -3527,7 +3594,6 @@ void* Application::networkReceive(void* args) {
                                     app->_voxels.parseData(messageData, messageLength);
                                     app->_voxels.setDataSourceID(UNKNOWN_NODE_ID);
                                 }
-                                
                                 voxelServer->unlock();
                             }
                         }
@@ -3647,7 +3713,7 @@ void Application::saveSettings(QSettings* settings) {
 }
 
 void Application::importSettings() {
-    QString locationDir(QDesktopServices::displayName(QDesktopServices::DesktopLocation));
+    QString locationDir(QStandardPaths::displayName(QStandardPaths::DesktopLocation));
     QString fileName = QFileDialog::getOpenFileName(_window,
                                                     tr("Open .ini config file"),
                                                     locationDir,
@@ -3659,7 +3725,7 @@ void Application::importSettings() {
 }
 
 void Application::exportSettings() {
-    QString locationDir(QDesktopServices::displayName(QDesktopServices::DesktopLocation));
+    QString locationDir(QStandardPaths::displayName(QStandardPaths::DesktopLocation));
     QString fileName = QFileDialog::getSaveFileName(_window,
                                                    tr("Save .ini config file"),
 						    locationDir,
@@ -3672,56 +3738,57 @@ void Application::exportSettings() {
 }
 
 
-
 void Application::updateParticleSystem(float deltaTime) {
 
     if (!_particleSystemInitialized) {
+    
+        const int   LIFESPAN_IN_SECONDS  = 100000.0f;
+        const float EMIT_RATE_IN_SECONDS = 10000.0;
         // create a stable test emitter and spit out a bunch of particles
         _coolDemoParticleEmitter = _particleSystem.addEmitter();
-        
+                
         if (_coolDemoParticleEmitter != -1) {
+                
             _particleSystem.setShowingEmitter(_coolDemoParticleEmitter, true);
             glm::vec3 particleEmitterPosition = glm::vec3(5.0f, 1.0f, 5.0f);   
-            _particleSystem.setEmitterPosition(_coolDemoParticleEmitter, particleEmitterPosition);
-            glm::vec3 velocity(0.0f, 0.1f, 0.0f);
-            float lifespan = 100000.0f;
-            _particleSystem.emitParticlesNow(_coolDemoParticleEmitter, 1500, velocity, lifespan);   
+            
+            _particleSystem.setEmitterPosition        (_coolDemoParticleEmitter, particleEmitterPosition);
+            _particleSystem.setEmitterParticleLifespan(_coolDemoParticleEmitter, LIFESPAN_IN_SECONDS);
+            _particleSystem.setEmitterThrust          (_coolDemoParticleEmitter, 0.0f);
+            _particleSystem.setEmitterRate            (_coolDemoParticleEmitter, EMIT_RATE_IN_SECONDS); // to emit a pile o particles now
         }
         
         // signal that the particle system has been initialized 
         _particleSystemInitialized = true;         
     } else {
         // update the particle system
-        
-        static float t = 0.0f;
-        t += deltaTime;
+         
+        static bool emitting = true;
+        static float effectsTimer = 0.0f;
+        effectsTimer += deltaTime;
         
         if (_coolDemoParticleEmitter != -1) {
                        
-           glm::vec3 tilt = glm::vec3
-            (
-                30.0f * sinf( t * 0.55f ),
-                0.0f,
-                30.0f * cosf( t * 0.75f )
-            );
-         
-            _particleSystem.setEmitterRotation(_coolDemoParticleEmitter, glm::quat(glm::radians(tilt)));
+            _particleSystem.setEmitterDirection(_coolDemoParticleEmitter, glm::vec3(0.0f, 1.0f, 0.0f));
             
             ParticleSystem::ParticleAttributes attributes;
 
             attributes.radius                  = 0.01f;
             attributes.color                   = glm::vec4( 1.0f, 1.0f, 1.0f, 1.0f);
-            attributes.gravity                 = 0.0f   + 0.05f  * sinf( t * 0.52f );
-            attributes.airFriction             = 2.5    + 2.0f   * sinf( t * 0.32f );
-            attributes.jitter                  = 0.05f  + 0.05f  * sinf( t * 0.42f );
-            attributes.emitterAttraction       = 0.015f + 0.015f * cosf( t * 0.6f  );
-            attributes.tornadoForce            = 0.0f   + 0.03f  * sinf( t * 0.7f  );
-            attributes.neighborAttraction      = 0.1f   + 0.1f   * cosf( t * 0.8f  );
-            attributes.neighborRepulsion       = 0.2f   + 0.2f   * sinf( t * 0.4f  );
+            attributes.gravity                 = 0.0f   + 0.05f  * sinf( effectsTimer * 0.52f );
+            attributes.airFriction             = 2.5    + 2.0f   * sinf( effectsTimer * 0.32f );
+            attributes.jitter                  = 0.05f  + 0.05f  * sinf( effectsTimer * 0.42f );
+            attributes.emitterAttraction       = 0.015f + 0.015f * cosf( effectsTimer * 0.6f  );
+            attributes.tornadoForce            = 0.0f   + 0.03f  * sinf( effectsTimer * 0.7f  );
+            attributes.neighborAttraction      = 0.1f   + 0.1f   * cosf( effectsTimer * 0.8f  );
+            attributes.neighborRepulsion       = 0.2f   + 0.2f   * sinf( effectsTimer * 0.4f  );
             attributes.bounce                  = 1.0f;
             attributes.usingCollisionSphere    = true;
             attributes.collisionSpherePosition = glm::vec3( 5.0f, 0.5f, 5.0f );
             attributes.collisionSphereRadius   = 0.5f;
+            attributes.usingCollisionPlane     = true;
+            attributes.collisionPlanePosition  = glm::vec3( 5.0f, 0.0f, 5.0f );
+            attributes.collisionPlaneNormal    = glm::vec3( 0.0f, 1.0f, 0.0f );
             
             if (attributes.gravity < 0.0f) {
                 attributes.gravity = 0.0f;
@@ -3732,6 +3799,15 @@ void Application::updateParticleSystem(float deltaTime) {
         
         _particleSystem.setUpDirection(glm::vec3(0.0f, 1.0f, 0.0f));  
         _particleSystem.simulate(deltaTime); 
+        
+        const float EMIT_RATE_IN_SECONDS = 0.0;
+
+        if (_coolDemoParticleEmitter != -1) {
+            if (emitting) {
+                _particleSystem.setEmitterRate(_coolDemoParticleEmitter, EMIT_RATE_IN_SECONDS); // stop emitter
+                emitting = false;
+            }
+        }
     }
 }
 

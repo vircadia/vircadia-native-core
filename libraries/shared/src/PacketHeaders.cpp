@@ -18,14 +18,15 @@ PACKET_VERSION versionForPacketType(PACKET_TYPE type) {
         case PACKET_TYPE_MICROPHONE_AUDIO_NO_ECHO:
         case PACKET_TYPE_MICROPHONE_AUDIO_WITH_ECHO:
             return 1;
-            break;
 
         case PACKET_TYPE_HEAD_DATA:
             return 2;
-            break;
+        
+        case PACKET_TYPE_AVATAR_FACE_VIDEO:
+            return 1;
+            
         default:
             return 0;
-            break;
     }
 }
 
