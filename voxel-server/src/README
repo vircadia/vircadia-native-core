@@ -15,6 +15,12 @@ OPTIONS
   --local 
         This will run the voxel server in "local domain mode" and will look for a domain-server running on the same IP
         address as the voxel server
+
+  --jurisdictionRoot [hex string of root octalcode]
+        Tells the server to honor jurisdiction from the specified root node and below
+
+  --jurisdictionEndNodes [<octcode>(<,octcode>...)]
+        Tells the server to honor jurisdiction from the root down to the octcodes included in the comma separted list
               
   --jurisdictionFile [filename]
         Tells the server to load it's jurisdiction from the specified file. When a voxel server is running with a limited
