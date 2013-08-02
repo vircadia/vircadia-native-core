@@ -981,14 +981,15 @@ void Application::sendAvatarFaceVideoMessage(int frameCount, const QByteArray& d
     
     int headerSize = packetPosition - packet;
     
-    // break the data up into submessages of the maximum size
+    // break the data up into submessages of the maximum size (at least one, for zero-length packets)
     *offsetPosition = 0;
-    while (*offsetPosition < data.size()) {
+    do {
         int payloadSize = min(data.size() - (int)*offsetPosition, MAX_PACKET_SIZE - headerSize);
         memcpy(packetPosition, data.constData() + *offsetPosition, payloadSize);
         getInstance()->controlledBroadcastToNodes(packet, headerSize + payloadSize, &NODE_TYPE_AVATAR_MIXER, 1);
         *offsetPosition += payloadSize;
-    }
+         
+    } while (*offsetPosition < data.size());
 }
 
 //  Every second, check the frame rates and other stuff
@@ -1803,6 +1804,7 @@ void Application::initMenu() {
     _testPing->setChecked(true);
     (_fullScreenMode = optionsMenu->addAction("Fullscreen", this, SLOT(setFullscreen(bool)), Qt::Key_F))->setCheckable(true);
     optionsMenu->addAction("Webcam", &_webcam, SLOT(setEnabled(bool)))->setCheckable(true);
+    optionsMenu->addAction("Cycle Webcam Send Mode", _webcam.getGrabber(), SLOT(cycleVideoSendMode()));
     optionsMenu->addAction("Go Home", this, SLOT(goHome()));
     
     QMenu* renderMenu = menuBar->addMenu("Render");
