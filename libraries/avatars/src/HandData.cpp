@@ -88,8 +88,9 @@ void HandData::decodeRemoteData(const std::vector<glm::vec3>& fingerVectors) {
         if (palmActive) {
             palm.setRawPosition(fingerVectors[vectorIndex++]);
             palm.setRawNormal(fingerVectors[vectorIndex++]);
-            for (size_t f = 0; f < NUM_FINGERS_PER_HAND; ++f) {            
-                FingerData& finger = palm.getFingers()[i];
+            for (size_t f = 0; f < NUM_FINGERS_PER_HAND; ++f) {
+                FingerData& finger = palm.getFingers()[f];
+                finger.setActive(true);
                 finger.setRawTipPosition(fingerVectors[vectorIndex++]);
                 finger.setRawRootPosition(fingerVectors[vectorIndex++]);
             }
