@@ -109,8 +109,6 @@ public slots:
 
     void sendAvatarFaceVideoMessage(int frameCount, const QByteArray& data);    
     
-    void setGroundPlaneImpact(float groundPlaneImpact) { _groundPlaneImpact = groundPlaneImpact; }
-
     
 private slots:
     
@@ -371,14 +369,16 @@ private:
     float _yawFromTouch;
     float _pitchFromTouch;
     
-    float _groundPlaneImpact; 
-    
     VoxelDetail _mouseVoxelDragging;
     glm::vec3 _voxelThrust;
     bool _mousePressed; //  true if mouse has been pressed (clear when finished)
 
+    VoxelDetail _hoverVoxel;      // Stuff about the voxel I am hovering or clicking
+    bool _isHoverVoxel;
+    bool _isHoverVoxelSounding;
+    nodeColor _hoverVoxelOriginalColor;
     
-    VoxelDetail _mouseVoxel;      // details of the voxel under the mouse cursor
+    VoxelDetail _mouseVoxel;      // details of the voxel to be edited
     float _mouseVoxelScale;       // the scale for adding/removing voxels
     glm::vec3 _lastMouseVoxelPos; // the position of the last mouse voxel edit
     bool _justEditedVoxel;        // set when we've just added/deleted/colored a voxel
