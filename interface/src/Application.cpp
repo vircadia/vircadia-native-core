@@ -571,6 +571,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
             _myAvatar.getHand().setRaveGloveEffectsMode((QKeyEvent*)event);
         }
 
+        bool alt     = event->modifiers().testFlag(Qt::AltModifier);
         bool meta    = event->modifiers().testFlag(Qt::MetaModifier);
         bool shifted = event->modifiers().testFlag(Qt::ShiftModifier);
         switch (event->key()) {
@@ -646,8 +647,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 
             case Qt::Key_C:
                 if (shifted)  {
-                    _occlusionCulling->toggle();
-                    disableOcclusionCulling(_occlusionCulling->isChecked());
+                    _occlusionCulling->trigger();
                 } else if (meta) {
                     chooseVoxelPaintColor();
                 } else {
@@ -674,16 +674,15 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 
             case Qt::Key_G:
                 if (shifted) {
-                    _gravityUse->toggle();
+                    _gravityUse->trigger();
                 } else {
-                    _eyedropperMode->toggle();
-                    updateVoxelModeActions();
+                    _eyedropperMode->trigger();
                 }
                 break;
                 
             case Qt::Key_A:
                 if (shifted) {
-                    _renderAtmosphereOn->toggle();
+                    _renderAtmosphereOn->trigger();
                 } else {
                     _myAvatar.setDriveKeys(ROT_LEFT, 1);
                 }
@@ -776,59 +775,48 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 }
                 resizeGL(_glWidget->width(), _glWidget->height());
                 break;
-            case Qt::Key_H:
-                _noise->toggle();
-                setNoise(_noise->isChecked());
-                break;
             case Qt::Key_N:
-                _lookingInMirror->toggle();
-                setRenderMirrored(_lookingInMirror->isChecked());
+                _noise->trigger();
+                break;
+            case Qt::Key_H:
+                _lookingInMirror->trigger();
                 break;
             case Qt::Key_F:
                 if (shifted)  {
-                    _frustumOn->toggle();
+                    _frustumOn->trigger();
                 } else {
-                    _fullScreenMode->toggle();
-                    setFullscreen(_fullScreenMode->isChecked());
+                    _fullScreenMode->trigger();
                 }
                 break;
             case Qt::Key_V:
                 if (shifted) {
-                    _renderVoxels->toggle();
-                    setRenderVoxels(_renderVoxels->isChecked());
+                    _renderVoxels->trigger();
                 } else {
-                    _addVoxelMode->toggle();
-                    updateVoxelModeActions();
+                    _addVoxelMode->trigger();
                 }
                 break;
             case Qt::Key_P:
-                 _manualFirstPerson->toggle();
-                 setRenderFirstPerson(_manualFirstPerson->isChecked());
+                 _manualFirstPerson->trigger();
                  break;
             case Qt::Key_R:
                 if (shifted)  {
-                    _frustumRenderModeAction->toggle();
-                    cycleFrustumRenderMode();
+                    _frustumRenderModeAction->trigger();
                 } else {
-                    _deleteVoxelMode->toggle();
-                    updateVoxelModeActions();
+                    _deleteVoxelMode->trigger();
                 }
                 break;
             case Qt::Key_B:
-                _colorVoxelMode->toggle();
-                updateVoxelModeActions();
+            _colorVoxelMode->trigger();
                 break;
             case Qt::Key_O:
                 if (shifted)  {
-                    _viewFrustumFromOffset->toggle();
-                    setFrustumOffset(_viewFrustumFromOffset->isChecked());
+                    _viewFrustumFromOffset->trigger();
                 } else {
-                    _selectVoxelMode->toggle();
-                    updateVoxelModeActions();
+                    _selectVoxelMode->trigger();
                 }
                 break;
             case Qt::Key_Slash:
-                _renderStatsOn->toggle();
+                _renderStatsOn->trigger();
                 break;
             case Qt::Key_Backspace:
             case Qt::Key_Delete:
@@ -836,6 +824,17 @@ void Application::keyPressEvent(QKeyEvent* event) {
                     deleteVoxelUnderCursor();
                 }
                 break;
+            case Qt::Key_Plus:
+                if (alt) {
+                    increaseAvatarSize();
+                }
+                break;
+            case Qt::Key_Minus:
+                if (alt) {
+                    decreaseAvatarSize();
+                }
+                break;
+
             case Qt::Key_1:
             case Qt::Key_2:
             case Qt::Key_3:
@@ -1866,10 +1865,12 @@ void Application::initMenu() {
     _window->setMenuBar(menuBar);
     
     QMenu* fileMenu = menuBar->addMenu("File");
-    fileMenu->addAction("Quit", this, SLOT(quit()), Qt::CTRL | Qt::Key_Q);
+    QAction* quitAction = fileMenu->addAction("Quit", this, SLOT(quit()), Qt::CTRL | Qt::Key_Q);
+    quitAction->setMenuRole(QAction::QuitRole);
 
     QMenu* editMenu = menuBar->addMenu("Edit");
-    editMenu->addAction("Preferences...", this, SLOT(editPreferences()));
+    QAction* preferencesAction = editMenu->addAction("Preferences...", this, SLOT(editPreferences()), Qt::CTRL | Qt::Key_Comma);
+    preferencesAction->setMenuRole(QAction::PreferencesRole);
 
     QMenu* pairMenu = menuBar->addMenu("Pair");
     pairMenu->addAction("Pair", this, SLOT(pair()));
