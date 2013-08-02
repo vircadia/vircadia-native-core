@@ -223,7 +223,7 @@ void noiseTest(int w, int h) {
     glEnd();
 }
     
-void render_world_box() {
+void renderWorldBox() {
     //  Show edge of world 
     glDisable(GL_LIGHTING);
     glColor4f(1.0, 1.0, 1.0, 1.0);
@@ -231,28 +231,28 @@ void render_world_box() {
     glBegin(GL_LINES);
     glColor3f(1, 0, 0);
     glVertex3f(0, 0, 0);
-    glVertex3f(WORLD_SIZE, 0, 0);
+    glVertex3f(TREE_SCALE, 0, 0);
     glColor3f(0, 1, 0);
     glVertex3f(0, 0, 0);
-    glVertex3f(0, WORLD_SIZE, 0);
+    glVertex3f(0, TREE_SCALE, 0);
     glColor3f(0, 0, 1);
     glVertex3f(0, 0, 0);
-    glVertex3f(0, 0, WORLD_SIZE);
+    glVertex3f(0, 0, TREE_SCALE);
     glEnd();
     //  Draw little marker dots along the axis
     glEnable(GL_LIGHTING);
     glPushMatrix();
-    glTranslatef(WORLD_SIZE, 0, 0);
+    glTranslatef(TREE_SCALE, 0, 0);
     glColor3f(1, 0, 0);
     glutSolidSphere(0.125, 10, 10);
     glPopMatrix();
     glPushMatrix();
-    glTranslatef(0, WORLD_SIZE, 0);
+    glTranslatef(0, TREE_SCALE, 0);
     glColor3f(0, 1, 0);
     glutSolidSphere(0.125, 10, 10);
     glPopMatrix();
     glPushMatrix();
-    glTranslatef(0, 0, WORLD_SIZE);
+    glTranslatef(0, 0, TREE_SCALE);
     glColor3f(0, 0, 1);
     glutSolidSphere(0.125, 10, 10);
     glPopMatrix();
