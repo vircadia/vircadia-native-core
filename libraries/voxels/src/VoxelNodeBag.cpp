@@ -13,11 +13,11 @@ VoxelNodeBag::VoxelNodeBag() :
     _bagElements(NULL),
     _elementsInUse(0),
     _sizeOfElementsArray(0) {
-    _hookID = VoxelNode::addDeleteHook(voxelNodeDeleteHook, (void*)this);
+    VoxelNode::addDeleteHook(this);
 };
 
 VoxelNodeBag::~VoxelNodeBag() {
-    VoxelNode::removeDeleteHook(_hookID);
+    VoxelNode::removeDeleteHook(this);
     deleteAll();
 }
 
@@ -126,9 +126,9 @@ void VoxelNodeBag::remove(VoxelNode* node) {
     }
 }
 
-void VoxelNodeBag::voxelNodeDeleteHook(VoxelNode* node, void* extraData) {
-    VoxelNodeBag* theBag = (VoxelNodeBag*)extraData;
-    theBag->remove(node); // note: remove can safely handle nodes that aren't in it, so we don't need to check contains()
+
+void VoxelNodeBag::nodeDeleted(VoxelNode* node) {
+    remove(node); // note: remove can safely handle nodes that aren't in it, so we don't need to check contains()
 }
 
 

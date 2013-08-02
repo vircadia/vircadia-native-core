@@ -39,6 +39,7 @@
 #include "ViewFrustum.h"
 #include "VoxelSystem.h"
 #include "Webcam.h"
+#include "PieMenu.h"
 #include "avatar/Avatar.h"
 #include "avatar/HandControl.h"
 #include "ui/BandwidthDialog.h"
@@ -109,8 +110,6 @@ public slots:
 
     void sendAvatarFaceVideoMessage(int frameCount, const QByteArray& data);    
     
-    void setGroundPlaneImpact(float groundPlaneImpact) { _groundPlaneImpact = groundPlaneImpact; }
-
     
 private slots:
     
@@ -151,6 +150,7 @@ private slots:
     void doFalseColorizeByDistance();
     void doFalseColorizeOccluded();
     void doFalseColorizeOccludedV2();
+    void doFalseColorizeBySource();
     void doFalseColorizeInView();
     void doTrueVoxelColors();
     void doTreeStats();
@@ -174,6 +174,10 @@ private slots:
     void copyVoxels();
     void pasteVoxels();
     void runTests();
+    void setListenModeNormal();
+    void setListenModePoint();
+    void setListenModeSingleSource();
+
 
     void renderCoverageMap();
     void renderCoverageMapsRecursively(CoverageMap* map);
@@ -183,6 +187,8 @@ private slots:
 
     glm::vec2 getScaledScreenPoint(glm::vec2 projectedPoint);
     void goHome();
+
+    void toggleFollowMode();
 
 private:
 
@@ -203,7 +209,9 @@ private:
     void init();
     
     void update(float deltaTime);
-    bool isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection, glm::vec3& eyePosition);
+    Avatar* isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection,
+                                glm::vec3& eyePosition, uint16_t& nodeID);
+                                
     void renderLookatIndicator(glm::vec3 pointOfInterest, Camera& whichCamera);
     void updateAvatar(float deltaTime);
     void loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum);
@@ -218,7 +226,7 @@ private:
      
     void setupPaintingVoxel();
     void shiftPaintingColor();
-    void maybeEditVoxelUnderCursor();
+    bool maybeEditVoxelUnderCursor();
     void deleteVoxelUnderCursor();
     void eyedropperVoxelUnderCursor();
     void resetSensors();
@@ -261,6 +269,7 @@ private:
     QAction* _renderFrameTimerOn;    // Whether to show onscreen text overlay with stats
     QAction* _renderLookatOn;        // Whether to show lookat vectors from avatar eyes if looking at something
     QAction* _renderLookatIndicatorOn;
+    QAction* _renderParticleSystemOn;
     QAction* _manualFirstPerson;     // Whether to force first-person mode
     QAction* _manualThirdPerson;     // Whether to force third-person mode
     QAction* _logOn;                 // Whether to show on-screen log
@@ -287,6 +296,8 @@ private:
 
     QAction* _simulateLeapHand;      // When there's no Leap, use this to pretend there is one and feed fake hand data
     QAction* _testRaveGlove;         // Test fancy sparkle-rave-glove mode
+
+    QAction* _followMode;
     
     BandwidthMeter _bandwidthMeter;
     BandwidthDialog* _bandwidthDialog;
@@ -366,20 +377,23 @@ private:
     float _yawFromTouch;
     float _pitchFromTouch;
     
-    float _groundPlaneImpact; 
-    
     VoxelDetail _mouseVoxelDragging;
     glm::vec3 _voxelThrust;
     bool _mousePressed; //  true if mouse has been pressed (clear when finished)
 
+    VoxelDetail _hoverVoxel;      // Stuff about the voxel I am hovering or clicking
+    bool _isHoverVoxel;
+    bool _isHoverVoxelSounding;
+    nodeColor _hoverVoxelOriginalColor;
     
-    VoxelDetail _mouseVoxel;      // details of the voxel under the mouse cursor
+    VoxelDetail _mouseVoxel;      // details of the voxel to be edited
     float _mouseVoxelScale;       // the scale for adding/removing voxels
     glm::vec3 _lastMouseVoxelPos; // the position of the last mouse voxel edit
     bool _justEditedVoxel;        // set when we've just added/deleted/colored a voxel
 
     bool _isLookingAtOtherAvatar;
     glm::vec3 _lookatOtherPosition;
+    float _lookatIndicatorScale;
     
     bool _paintOn;                // Whether to paint voxels as you fly around
     unsigned char _dominantColor; // The dominant color of the voxel we're painting
@@ -423,6 +437,8 @@ private:
 
     ToolsPalette _palette;
     Swatch _swatch;
+
+    PieMenu _pieMenu;
     
     VoxelSceneStats _voxelSceneStats;
 };

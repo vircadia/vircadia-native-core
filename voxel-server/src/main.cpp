@@ -32,6 +32,8 @@
 
 const char* LOCAL_VOXELS_PERSIST_FILE = "resources/voxels.svo";
 const char* VOXELS_PERSIST_FILE = "/etc/highfidelity/voxel-server/resources/voxels.svo";
+const int MAX_FILENAME_LENGTH = 1024;
+char voxelPersistFilename[MAX_FILENAME_LENGTH];
 const int VOXEL_PERSIST_INTERVAL = 1000 * 30; // every 30 seconds
 
 const int VOXEL_LISTEN_PORT = 40106;
@@ -61,9 +63,12 @@ bool wantColorRandomizer = false;
 bool debugVoxelSending = false;
 bool shouldShowAnimationDebug = false;
 bool displayVoxelStats = false;
+bool debugVoxelReceiving = false;
 
 EnvironmentData environmentData[3];
 
+int receivedPacketCount = 0;
+JurisdictionMap* jurisdiction = NULL;
 
 void randomlyFillVoxelTree(int levelsToGo, VoxelNode *currentRootNode) {
     // randomly generate children for this node
@@ -291,7 +296,7 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
                                              WANT_EXISTS_BITS, DONT_CHOP, wantDelta, lastViewFrustum,
                                              wantOcclusionCulling, coverageMap, boundaryLevelAdjust,
                                              nodeData->getLastTimeBagEmpty(),
-                                             isFullScene, &nodeData->stats);
+                                             isFullScene, &nodeData->stats, ::jurisdiction);
                       
                 nodeData->stats.encodeStarted();
                 bytesWritten = serverTree.encodeTreeBitstream(subTree, &tempOutputBuffer[0], MAX_VOXEL_PACKET_SIZE - 1,
@@ -375,7 +380,7 @@ void persistVoxelsWhenDirty() {
                                     "persistVoxelsWhenDirty() - writeToSVOFile()", ::shouldShowAnimationDebug);
 
             printf("saving voxels to file...\n");
-            serverTree.writeToSVOFile(::wantLocalDomain ? LOCAL_VOXELS_PERSIST_FILE : VOXELS_PERSIST_FILE);
+            serverTree.writeToSVOFile(::voxelPersistFilename);
             serverTree.clearDirtyBit(); // tree is clean after saving
             printf("DONE saving voxels to file...\n");
         }
@@ -429,9 +434,36 @@ void attachVoxelNodeDataToNode(Node* newNode) {
 int main(int argc, const char * argv[]) {
     pthread_mutex_init(&::treeLock, NULL);
     
-    qInstallMsgHandler(sharedMessageHandler);
+    qInstallMessageHandler(sharedMessageHandler);
     
-    NodeList* nodeList = NodeList::createInstance(NODE_TYPE_VOXEL_SERVER, VOXEL_LISTEN_PORT);
+    int listenPort = VOXEL_LISTEN_PORT;
+    // Check to see if the user passed in a command line option for setting listen port
+    const char* PORT_PARAMETER = "--port";
+    const char* portParameter = getCmdOption(argc, argv, PORT_PARAMETER);
+    if (portParameter) {
+        listenPort = atoi(portParameter);
+        if (listenPort < 1) {
+            listenPort = VOXEL_LISTEN_PORT;
+        }
+        printf("portParameter=%s listenPort=%d\n", portParameter, listenPort);
+    }
+
+    const char* JURISDICTION_FILE = "--jurisdictionFile";
+    const char* jurisdictionFile = getCmdOption(argc, argv, JURISDICTION_FILE);
+    if (jurisdictionFile) {
+        printf("jurisdictionFile=%s\n", jurisdictionFile);
+
+        printf("about to readFromFile().... jurisdictionFile=%s\n", jurisdictionFile);
+        jurisdiction = new JurisdictionMap(jurisdictionFile);
+        printf("after readFromFile().... jurisdictionFile=%s\n", jurisdictionFile);
+
+        // test writing the file...
+        printf("about to writeToFile().... jurisdictionFile=%s\n", jurisdictionFile);
+        jurisdiction->writeToFile(jurisdictionFile);
+        printf("after writeToFile().... jurisdictionFile=%s\n", jurisdictionFile);
+    }
+    
+    NodeList* nodeList = NodeList::createInstance(NODE_TYPE_VOXEL_SERVER, listenPort);
     setvbuf(stdout, NULL, _IOLBF, 0);
 
     // Handle Local Domain testing with the --local command line
@@ -455,6 +487,10 @@ int main(int argc, const char * argv[]) {
     ::debugVoxelSending = cmdOptionExists(argc, argv, DEBUG_VOXEL_SENDING);
     printf("debugVoxelSending=%s\n", debug::valueOf(::debugVoxelSending));
 
+    const char* DEBUG_VOXEL_RECEIVING = "--debugVoxelReceiving";
+    ::debugVoxelReceiving = cmdOptionExists(argc, argv, DEBUG_VOXEL_RECEIVING);
+    printf("debugVoxelReceiving=%s\n", debug::valueOf(::debugVoxelReceiving));
+
     const char* WANT_ANIMATION_DEBUG = "--shouldShowAnimationDebug";
     ::shouldShowAnimationDebug = cmdOptionExists(argc, argv, WANT_ANIMATION_DEBUG);
     printf("shouldShowAnimationDebug=%s\n", debug::valueOf(::shouldShowAnimationDebug));
@@ -473,8 +509,19 @@ int main(int argc, const char * argv[]) {
     // if we want Voxel Persistance, load the local file now...
     bool persistantFileRead = false;
     if (::wantVoxelPersist) {
-        printf("loading voxels from file...\n");
-        persistantFileRead = ::serverTree.readFromSVOFile(::wantLocalDomain ? LOCAL_VOXELS_PERSIST_FILE : VOXELS_PERSIST_FILE);
+
+        // Check to see if the user passed in a command line option for setting packet send rate
+        const char* VOXELS_PERSIST_FILENAME = "--voxelsPersistFilename";
+        const char* voxelsPersistFilenameParameter = getCmdOption(argc, argv, VOXELS_PERSIST_FILENAME);
+        if (voxelsPersistFilenameParameter) {
+            strcpy(voxelPersistFilename, voxelsPersistFilenameParameter);
+        } else {
+            strcpy(voxelPersistFilename, ::wantLocalDomain ? LOCAL_VOXELS_PERSIST_FILE : VOXELS_PERSIST_FILE);
+        }
+
+        printf("loading voxels from file: %s...\n", voxelPersistFilename);
+
+        persistantFileRead = ::serverTree.readFromSVOFile(::voxelPersistFilename);
         if (persistantFileRead) {
             PerformanceWarning warn(::shouldShowAnimationDebug,
                                     "persistVoxelsWhenDirty() - reaverageVoxelColors()", ::shouldShowAnimationDebug);
@@ -584,11 +631,19 @@ int main(int argc, const char * argv[]) {
                                         destructive ? "PACKET_TYPE_SET_VOXEL_DESTRUCTIVE" : "PACKET_TYPE_SET_VOXEL",
                                         ::shouldShowAnimationDebug);
                 
+                ::receivedPacketCount++;
+                
                 unsigned short int itemNumber = (*((unsigned short int*)(packetData + numBytesPacketHeader)));
                 if (::shouldShowAnimationDebug) {
                     printf("got %s - command from client receivedBytes=%ld itemNumber=%d\n",
                         destructive ? "PACKET_TYPE_SET_VOXEL_DESTRUCTIVE" : "PACKET_TYPE_SET_VOXEL",
                         receivedBytes,itemNumber);
+                }
+                
+                if (::debugVoxelReceiving) {
+                    printf("got %s - %d command from client receivedBytes=%ld itemNumber=%d\n",
+                        destructive ? "PACKET_TYPE_SET_VOXEL_DESTRUCTIVE" : "PACKET_TYPE_SET_VOXEL",
+                        ::receivedPacketCount, receivedBytes,itemNumber);
                 }
                 int atByte = numBytesPacketHeader + sizeof(itemNumber);
                 unsigned char* voxelData = (unsigned char*)&packetData[atByte];
@@ -692,6 +747,10 @@ int main(int argc, const char * argv[]) {
     
     pthread_join(sendVoxelThread, NULL);
     pthread_mutex_destroy(&::treeLock);
+    
+    if (jurisdiction) {
+        delete jurisdiction;
+    }
 
     return 0;
 }

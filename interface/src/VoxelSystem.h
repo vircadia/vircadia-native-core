@@ -28,11 +28,14 @@ class ProgramObject;
 
 const int NUM_CHILDREN = 8;
 
-class VoxelSystem : public NodeData {
+class VoxelSystem : public NodeData, public VoxelNodeDeleteHook {
 public:
     VoxelSystem(float treeScale = TREE_SCALE, int maxVoxels = MAX_VOXELS_PER_SYSTEM);
     ~VoxelSystem();
 
+    void setDataSourceID(int dataSourceID) { _dataSourceID = dataSourceID; };
+    int  getDataSourceID() const { return _dataSourceID; };
+    
     int parseData(unsigned char* sourceBuffer, int numBytes);
     
     virtual void init();
@@ -62,6 +65,8 @@ public:
     void falseColorizeRandomEveryOther();
     void falseColorizeOccluded();
     void falseColorizeOccludedV2();
+    void falseColorizeBySource();
+    
 
     void killLocalVoxels();
     void setRenderPipelineWarnings(bool on) { _renderWarningsOn = on; };
@@ -92,7 +97,9 @@ public:
 
     CoverageMapV2 myCoverageMapV2;
     CoverageMap   myCoverageMap;
-    
+
+    virtual void nodeDeleted(VoxelNode* node);
+        
 protected:
     float _treeScale; 
     int _maxVoxels;      
@@ -132,7 +139,7 @@ private:
     static bool falseColorizeOccludedOperation(VoxelNode* node, void* extraData);
     static bool falseColorizeSubTreeOperation(VoxelNode* node, void* extraData);
     static bool falseColorizeOccludedV2Operation(VoxelNode* node, void* extraData);
-
+    static bool falseColorizeBySourceOperation(VoxelNode* node, void* extraData);
 
     int updateNodeInArraysAsFullVBO(VoxelNode* node);
     int updateNodeInArraysAsPartialVBO(VoxelNode* node);
@@ -155,7 +162,7 @@ private:
     unsigned long _voxelsUpdated;
     unsigned long _voxelsInReadArrays;
     unsigned long _voxelsInWriteArrays;
-    unsigned long _unusedArraySpace;
+    unsigned long _abandonedVBOSlots;
     
     bool _writeRenderFullVBO;
     bool _readRenderFullVBO;
@@ -187,6 +194,15 @@ private:
     
     static ProgramObject* _perlinModulateProgram;
     static GLuint _permutationNormalTextureID;
+    
+    int _hookID;
+    std::vector<glBufferIndex> _freeIndexes;
+
+    void freeBufferIndex(glBufferIndex index);
+    void clearFreeBufferIndexes();
+    
+    bool _falseColorizeBySource;
+    int  _dataSourceID;
 };
 
 #endif

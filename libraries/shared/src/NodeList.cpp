@@ -24,10 +24,9 @@
 #include <arpa/inet.h>
 #endif
 
-const char SOLO_NODE_TYPES[3] = {
+const char SOLO_NODE_TYPES[2] = {
     NODE_TYPE_AVATAR_MIXER,
-    NODE_TYPE_AUDIO_MIXER,
-    NODE_TYPE_VOXEL_SERVER
+    NODE_TYPE_AUDIO_MIXER
 };
 
 const char DEFAULT_DOMAIN_HOSTNAME[MAX_HOSTNAME_BYTES] = "root.highfidelity.io";
@@ -352,6 +351,12 @@ int NodeList::processDomainServerList(unsigned char* packetData, size_t dataByte
         readPtr += unpackSocket(readPtr, (sockaddr*) &nodePublicSocket);
         readPtr += unpackSocket(readPtr, (sockaddr*) &nodeLocalSocket);
         
+        // if the public socket address is 0 then it's reachable at the same IP
+        // as the domain server
+        if (nodePublicSocket.sin_addr.s_addr == 0) {
+            inet_aton(_domainIP, &nodePublicSocket.sin_addr);
+        }
+        
         addOrUpdateNode((sockaddr*) &nodePublicSocket, (sockaddr*) &nodeLocalSocket, nodeType, nodeId);
     }
     
@@ -512,7 +517,7 @@ void NodeList::loadData(QSettings *settings) {
     
     if (domainServerHostname.size() > 0) {
         memset(_domainHostname, 0, MAX_HOSTNAME_BYTES);
-        memcpy(_domainHostname, domainServerHostname.toAscii().constData(), domainServerHostname.size());
+        memcpy(_domainHostname, domainServerHostname.toLocal8Bit().constData(), domainServerHostname.size());
     }
     
     settings->endGroup();
