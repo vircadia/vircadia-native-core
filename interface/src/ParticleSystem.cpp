@@ -27,6 +27,7 @@ ParticleSystem::ParticleSystem() {
     for (unsigned int emitterIndex = 0; emitterIndex < MAX_EMITTERS; emitterIndex++) {
         
         Emitter * e = &_emitter[emitterIndex];
+        e->active              = false;
         e->position            = glm::vec3(0.0f, 0.0f, 0.0f);
         e->previousPosition    = glm::vec3(0.0f, 0.0f, 0.0f);
         e->direction           = glm::vec3(0.0f, 1.0f, 0.0f);
@@ -72,25 +73,16 @@ void ParticleSystem::simulate(float deltaTime) {
     
     _timer += deltaTime;
     
-    // emit particles
-    for (int e = 0; e < _numEmitters; e++) {
+    // update emitters
+    for (int emitterIndex = 0; emitterIndex < _numEmitters; emitterIndex++) {
+        assert(emitterIndex <= MAX_EMITTERS);
         
-        assert(e >= 0);
-        assert(e <= MAX_EMITTERS);
-        assert(_emitter[e].rate >= 0);
-        
-        _emitter[e].emitReserve += _emitter[e].rate * deltaTime;
-        _emitter[e].numParticlesEmittedThisTime = (int)_emitter[e].emitReserve;
-        _emitter[e].emitReserve -= _emitter[e].numParticlesEmittedThisTime;
-    
-        for (int p = 0; p < _emitter[e].numParticlesEmittedThisTime; p++) {
-            float timeFraction = (float)p / (float)_emitter[e].numParticlesEmittedThisTime;
-            createParticle(e, timeFraction);
+        if (_emitter[emitterIndex].active) {
+            updateEmitter(emitterIndex, deltaTime);        
         }
     }
-
-    // update particles
     
+    // update particles
     for (int p = 0; p < MAX_PARTICLES; p++) {
         if (_particle[p].alive) {        
             if (_particle[p].age > _emitter[_particle[p].emitterIndex].particleLifespan) {            
@@ -101,6 +93,20 @@ void ParticleSystem::simulate(float deltaTime) {
         }
     }
 }
+
+
+void ParticleSystem::updateEmitter(int emitterIndex, float deltaTime) {
+    
+    _emitter[emitterIndex].emitReserve += _emitter[emitterIndex].rate * deltaTime;
+    _emitter[emitterIndex].numParticlesEmittedThisTime = (int)_emitter[emitterIndex].emitReserve;
+    _emitter[emitterIndex].emitReserve -= _emitter[emitterIndex].numParticlesEmittedThisTime;
+
+    for (int p = 0; p < _emitter[emitterIndex].numParticlesEmittedThisTime; p++) {
+        float timeFraction = (float)p / (float)_emitter[emitterIndex].numParticlesEmittedThisTime;
+        createParticle(emitterIndex, timeFraction);
+    }    
+}
+
 
 void ParticleSystem::createParticle(int e, float timeFraction) {
         
@@ -210,7 +216,6 @@ void ParticleSystem::setParticleAttributes(int emitterIndex, ParticleLifeStage l
     a->modulationRate          = attributes.modulationRate;
     a->modulationStyle         = attributes.modulationStyle;
 }
-
 
 
 void ParticleSystem::updateParticle(int p, float deltaTime) {
@@ -363,14 +368,16 @@ void ParticleSystem::killAllParticles() {
 void ParticleSystem::render() {
 
     // render the emitters
-    for (int e = 0; e < _numEmitters; e++) {
+    for (int e = 0; e < MAX_EMITTERS; e++) {
 
-        if (_emitter[e].showingBaseParticle) {
-            glColor4f(_particle[0].color.r, _particle[0].color.g, _particle[0].color.b, _particle[0].color.a);
-            glPushMatrix();
-            glTranslatef(_emitter[e].position.x, _emitter[e].position.y, _emitter[e].position.z);
-            glutSolidSphere(_particle[0].radius, _emitter[e].particleResolution, _emitter[e].particleResolution);
-            glPopMatrix();
+        if (_emitter[e].active) {
+            if (_emitter[e].showingBaseParticle) {
+                glColor4f(_particle[0].color.r, _particle[0].color.g, _particle[0].color.b, _particle[0].color.a);
+                glPushMatrix();
+                glTranslatef(_emitter[e].position.x, _emitter[e].position.y, _emitter[e].position.z);
+                glutSolidSphere(_particle[0].radius, _emitter[e].particleResolution, _emitter[e].particleResolution);
+                glPopMatrix();
+            }
         }
 
         if (_emitter[e].visible) {
