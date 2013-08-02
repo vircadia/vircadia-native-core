@@ -14,7 +14,7 @@
 #include "Util.h"
 #include "renderer/ProgramObject.h"
 
-const bool SHOW_LEAP_HAND = false;
+const bool SHOW_LEAP_HAND = true;
 
 using namespace std;
 
@@ -225,20 +225,7 @@ void Hand::renderLeapHandSpheres() {
             glPopMatrix();
         }
     }
-
-    for (size_t i = 0; i < _leapFingerRootBalls.size(); i++) {
-        float alpha = 1.0f;
         
-        if (alpha > 0.0f) {
-            glColor4f(0.3f, 0.4f, 0.6f, alpha);
-            
-            glPushMatrix();
-            glTranslatef(_leapFingerRootBalls[i].position.x, _leapFingerRootBalls[i].position.y, _leapFingerRootBalls[i].position.z);
-            glutSolidSphere(_leapFingerRootBalls[i].radius, 20.0f, 20.0f);
-            glPopMatrix();
-        }
-    }
-    
     // Draw the finger root cones
     for (size_t i = 0; i < getNumPalms(); ++i) {
         PalmData& palm = getPalms()[i];
