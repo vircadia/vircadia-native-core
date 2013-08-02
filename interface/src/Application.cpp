@@ -196,8 +196,9 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _isTouchPressed(false),
         _yawFromTouch(0.0f),
         _pitchFromTouch(0.0f),
-        _groundPlaneImpact(0.0f),
         _mousePressed(false),
+        _isHoverVoxel(false),
+        _isHoverVoxelSounding(false),
         _mouseVoxelScale(1.0f / 1024.0f),
         _justEditedVoxel(false),
         _isLookingAtOtherAvatar(false),
@@ -854,6 +855,11 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
     }
 }
 
+const bool MAKE_SOUND_ON_VOXEL_HOVER = false;
+const bool MAKE_SOUND_ON_VOXEL_CLICK = true;
+const float HOVER_VOXEL_FREQUENCY = 14080.f;
+const float HOVER_VOXEL_DECAY = 0.999f;
+
 void Application::mousePressEvent(QMouseEvent* event) {
     if (activeWindow() == _window) {
         if (event->button() == Qt::LeftButton) {
@@ -864,6 +870,14 @@ void Application::mousePressEvent(QMouseEvent* event) {
             _mouseVoxelDragging = _mouseVoxel;
             _mousePressed = true;
             maybeEditVoxelUnderCursor();
+            if (MAKE_SOUND_ON_VOXEL_CLICK && _isHoverVoxel && !_isHoverVoxelSounding) {
+                _hoverVoxelOriginalColor[0] = _hoverVoxel.red;
+                _hoverVoxelOriginalColor[1] = _hoverVoxel.green;
+                _hoverVoxelOriginalColor[2] = _hoverVoxel.blue;
+                _hoverVoxelOriginalColor[3] = 1;
+                _audio.startCollisionSound(1.0, HOVER_VOXEL_FREQUENCY * _hoverVoxel.s * TREE_SCALE, 0.0, HOVER_VOXEL_DECAY);
+                _isHoverVoxelSounding = true;
+            }
             
         } else if (event->button() == Qt::RightButton && checkedVoxelModeAction() != 0) {
             deleteVoxelUnderCursor();
@@ -918,8 +932,10 @@ void Application::touchEndEvent(QTouchEvent* event) {
     _isTouchPressed = false;
 }
 
+const bool USE_MOUSEWHEEL = false; 
 void Application::wheelEvent(QWheelEvent* event) {
-    if (activeWindow() == _window) {
+    //  Wheel Events disabled for now because they are also activated by touch look pitch up/down.  
+    if (USE_MOUSEWHEEL && (activeWindow() == _window)) {
         if (checkedVoxelModeAction() == 0) {
             event->ignore();
             return;
@@ -2118,11 +2134,46 @@ void Application::update(float deltaTime) {
         // If the mouse is over another avatar's head...
         glm::vec3 myLookAtFromMouse(eyePosition);
          _myAvatar.getHead().setLookAtPosition(myLookAtFromMouse);
+    } else if (_isHoverVoxel) {
+        //  Look at the hovered voxel
+        glm::vec3 lookAtSpot = getMouseVoxelWorldCoordinates(_hoverVoxel);
+        _myAvatar.getHead().setLookAtPosition(lookAtSpot);
     } else {
+        //  Just look in direction of the mouse ray
         glm::vec3 myLookAtFromMouse(mouseRayOrigin + mouseRayDirection);
         _myAvatar.getHead().setLookAtPosition(myLookAtFromMouse);
     }
-
+    
+    //  Find the voxel we are hovering over, and respond if clicked
+    float distance;
+    BoxFace face;
+    
+    //  If we have clicked on a voxel, update it's color
+    if (_isHoverVoxelSounding) {
+        VoxelNode* hoveredNode = _voxels.getVoxelAt(_hoverVoxel.x, _hoverVoxel.y, _hoverVoxel.z, _hoverVoxel.s);
+        float bright = _audio.getCollisionSoundMagnitude();
+        nodeColor clickColor = { 255 * bright + _hoverVoxelOriginalColor[0] * (1.f - bright),
+                                _hoverVoxelOriginalColor[1] * (1.f - bright),
+                                _hoverVoxelOriginalColor[2] * (1.f - bright), 1 };
+        hoveredNode->setColor(clickColor);
+        if (bright < 0.01f) {
+            hoveredNode->setColor(_hoverVoxelOriginalColor);
+            _isHoverVoxelSounding = false;
+        }   
+    } else {
+        //  Check for a new hover voxel
+        glm::vec4 oldVoxel(_hoverVoxel.x, _hoverVoxel.y, _hoverVoxel.z, _hoverVoxel.s);
+        _isHoverVoxel = _voxels.findRayIntersection(mouseRayOrigin, mouseRayDirection, _hoverVoxel, distance, face);
+        if (MAKE_SOUND_ON_VOXEL_HOVER && _isHoverVoxel && glm::vec4(_hoverVoxel.x, _hoverVoxel.y, _hoverVoxel.z, _hoverVoxel.s) != oldVoxel) {
+            _hoverVoxelOriginalColor[0] = _hoverVoxel.red;
+            _hoverVoxelOriginalColor[1] = _hoverVoxel.green;
+            _hoverVoxelOriginalColor[2] = _hoverVoxel.blue;
+            _hoverVoxelOriginalColor[3] = 1;
+            _audio.startCollisionSound(1.0, HOVER_VOXEL_FREQUENCY * _hoverVoxel.s * TREE_SCALE, 0.0, HOVER_VOXEL_DECAY);
+            _isHoverVoxelSounding = true;
+        }
+    }
+    
     //  If we are dragging on a voxel, add thrust according to the amount the mouse is dragging
     const float VOXEL_GRAB_THRUST = 0.0f;
     if (_mousePressed && (_mouseVoxel.s != 0)) {
@@ -2148,8 +2199,6 @@ void Application::update(float deltaTime) {
         (fabs(_myAvatar.getVelocity().x) +
          fabs(_myAvatar.getVelocity().y) +
          fabs(_myAvatar.getVelocity().z)) / 3 < MAX_AVATAR_EDIT_VELOCITY) {
-        float distance;
-        BoxFace face;
         if (_voxels.findRayIntersection(mouseRayOrigin, mouseRayDirection, _mouseVoxel, distance, face)) {
             if (distance < MAX_VOXEL_EDIT_DISTANCE) {
                 // find the nearest voxel with the desired scale
@@ -2336,20 +2385,18 @@ void Application::update(float deltaTime) {
 }
 
 void Application::updateAvatar(float deltaTime) {
-
-    // When head is rotated via touch/mouse look, slowly turn body to follow
-    const float BODY_FOLLOW_HEAD_RATE = 0.5f;
-    // update body yaw by body yaw delta
+    
+    // rotate body yaw for yaw received from multitouch
     _myAvatar.setOrientation(_myAvatar.getOrientation()
-                             * glm::quat(glm::vec3(0, _yawFromTouch * deltaTime * BODY_FOLLOW_HEAD_RATE, 0) * deltaTime));
-    _yawFromTouch -= _yawFromTouch * deltaTime * BODY_FOLLOW_HEAD_RATE;
+                             * glm::quat(glm::vec3(0, _yawFromTouch * deltaTime, 0)));
+    _yawFromTouch = 0.f;
     
     // Update my avatar's state from gyros and/or webcam
     _myAvatar.updateFromGyrosAndOrWebcam(_gyroLook->isChecked(),
                                          glm::vec3(_headCameraPitchYawScale,
                                                    _headCameraPitchYawScale,
                                                    _headCameraPitchYawScale),
-                                         _yawFromTouch,
+                                         0.f,
                                          _pitchFromTouch);
         
     if (_serialHeadSensor.isActive()) {
@@ -2808,8 +2855,12 @@ void Application::displayOverlay() {
         glDisable(GL_DEPTH_TEST);
         glDisable(GL_LIGHTING);
     
-        //  Display a single screen-size quad to 
-        renderCollisionOverlay(_glWidget->width(), _glWidget->height(), _audio.getCollisionSoundMagnitude());
+        //  Display a single screen-size quad to create an alpha blended 'collision' flash
+        float collisionSoundMagnitude = _audio.getCollisionSoundMagnitude();
+        const float VISIBLE_COLLISION_SOUND_MAGNITUDE = 0.5f;
+        if (collisionSoundMagnitude > VISIBLE_COLLISION_SOUND_MAGNITUDE) {
+                renderCollisionOverlay(_glWidget->width(), _glWidget->height(), _audio.getCollisionSoundMagnitude());
+        }
    
         #ifndef _WIN32
         _audio.render(_glWidget->width(), _glWidget->height());
