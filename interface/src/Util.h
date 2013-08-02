@@ -33,7 +33,7 @@ float angle_to(glm::vec3 head_pos, glm::vec3 source_pos, float render_yaw, float
 float randFloat();
 const glm::vec3 randVector();
 
-void render_world_box();
+void renderWorldBox();
 int widthText(float scale, int mono, char const* string);
 float widthChar(float scale, int mono, char ch);
 void drawtext(int x, int y, float scale, float rotate, float thick, int mono, 

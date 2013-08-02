@@ -257,3 +257,42 @@ unsigned char* rebaseOctalCode(unsigned char* originalOctalCode, unsigned char* 
     return newCode;
 }
 
+bool isAncestorOf(unsigned char* possibleAncestor, unsigned char* possibleDescendent, int descendentsChild) {
+    if (!possibleAncestor || !possibleDescendent) {
+        return false;
+    }
+
+    int ancestorCodeLength = numberOfThreeBitSectionsInCode(possibleAncestor);
+    if (ancestorCodeLength == 0) {
+        return true; // this is the root, it's the anscestor of all
+    }
+
+    int descendentCodeLength = numberOfThreeBitSectionsInCode(possibleDescendent);
+    
+    // if the caller also include a child, then our descendent length is actually one extra!
+    if (descendentsChild != CHECK_NODE_ONLY) {
+        descendentCodeLength++;
+    }
+    
+    if (ancestorCodeLength > descendentCodeLength) {
+        return false; // if the descendent is shorter, it can't be a descendent
+    }
+
+    // compare the sections for the ancestor to the descendent
+    for (int section = 0; section < ancestorCodeLength; section++) {
+        char sectionValueAncestor = getOctalCodeSectionValue(possibleAncestor, section);
+        char sectionValueDescendent;
+        if (ancestorCodeLength <= descendentCodeLength) {
+            sectionValueDescendent = getOctalCodeSectionValue(possibleDescendent, section);
+        } else {
+            assert(descendentsChild != CHECK_NODE_ONLY);
+            sectionValueDescendent = descendentsChild;
+        }
+        if (sectionValueAncestor != sectionValueDescendent) {
+            return false; // first non-match, means they don't match
+        }
+    }
+    
+    // they all match, so we are an ancestor
+    return true;
+}
