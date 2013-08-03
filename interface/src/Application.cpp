@@ -571,7 +571,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
             _myAvatar.getHand().setRaveGloveEffectsMode((QKeyEvent*)event);
         }
 
-        bool alt     = event->modifiers().testFlag(Qt::AltModifier);
         bool meta    = event->modifiers().testFlag(Qt::MetaModifier);
         bool shifted = event->modifiers().testFlag(Qt::ShiftModifier);
         switch (event->key()) {
@@ -825,14 +824,10 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 }
                 break;
             case Qt::Key_Plus:
-                if (alt) {
-                    increaseAvatarSize();
-                }
+                increaseAvatarSize();
                 break;
             case Qt::Key_Minus:
-                if (alt) {
-                    decreaseAvatarSize();
-                }
+                decreaseAvatarSize();
                 break;
 
             case Qt::Key_1:
@@ -1926,8 +1921,8 @@ void Application::initMenu() {
         "First Person", this, SLOT(setRenderFirstPerson(bool)), Qt::Key_P))->setCheckable(true);
     (_manualThirdPerson = renderMenu->addAction(
         "Third Person", this, SLOT(setRenderThirdPerson(bool))))->setCheckable(true);
-    renderMenu->addAction("Increase Avatar Size", this, SLOT(increaseAvatarSize()), Qt::ALT | Qt::Key_Plus);
-    renderMenu->addAction("Decrease Avatar Size", this, SLOT(decreaseAvatarSize()), Qt::ALT | Qt::Key_Minus);
+    renderMenu->addAction("Increase Avatar Size", this, SLOT(increaseAvatarSize()), Qt::Key_Plus);
+    renderMenu->addAction("Decrease Avatar Size", this, SLOT(decreaseAvatarSize()), Qt::Key_Minus);
 
     
     QMenu* toolsMenu = menuBar->addMenu("Tools");
