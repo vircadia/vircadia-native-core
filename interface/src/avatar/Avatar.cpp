@@ -101,8 +101,8 @@ Avatar::Avatar(Node* owningNode) :
     _lastCollisionPosition(0, 0, 0),
     _speedBrakes(false),
     _isThrustOn(false),
-    _voxels(this),
-    _leadingAvatar(NULL)
+    _leadingAvatar(NULL),
+    _voxels(this)
 {
     // give the pointer to our head to inherited _headData variable from AvatarData
     _headData = &_head;

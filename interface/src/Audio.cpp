@@ -412,10 +412,10 @@ Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples) :
     _collisionSoundDuration(0.0f),
     _proceduralEffectSample(0),
     _heartbeatMagnitude(0.0f),
-    _listenMode(AudioRingBuffer::NORMAL),
-    _listenRadius(0.0f),
     _songFileStream(NULL),
-    _songFileBytes(0)
+    _songFileBytes(0),
+    _listenMode(AudioRingBuffer::NORMAL),
+    _listenRadius(0.0f)
 {
     outputPortAudioError(Pa_Initialize());
     
