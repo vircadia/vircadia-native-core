@@ -44,11 +44,27 @@ JurisdictionMap::JurisdictionMap(const char* filename) : _rootOctalCode(NULL) {
     readFromFile(filename);
 }
 
-
 JurisdictionMap::JurisdictionMap(unsigned char* rootOctalCode, const std::vector<unsigned char*>& endNodes)  
     : _rootOctalCode(NULL) {
     init(rootOctalCode, endNodes);
 }
+
+JurisdictionMap::JurisdictionMap(const char* rootHexCode, const char* endNodesHexCodes) {
+    _rootOctalCode = hexStringToOctalCode(QString(rootHexCode));
+    
+    QString endNodesHexStrings(endNodesHexCodes);
+    QString delimiterPattern(",");
+    QStringList endNodeList = endNodesHexStrings.split(delimiterPattern);
+
+    for (int i = 0; i < endNodeList.size(); i++) {
+        QString endNodeHexString = endNodeList.at(i);
+
+        unsigned char* endNodeOctcode = hexStringToOctalCode(endNodeHexString);
+        //printOctalCode(endNodeOctcode);
+        _endNodes.push_back(endNodeOctcode);
+    }    
+}
+
 
 void JurisdictionMap::init(unsigned char* rootOctalCode, const std::vector<unsigned char*>& endNodes) {
     clear(); // clean up our own memory

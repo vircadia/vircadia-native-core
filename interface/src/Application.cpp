@@ -1877,7 +1877,7 @@ void Application::initMenu() {
     
     QMenu* optionsMenu = menuBar->addMenu("Options");
     (_lookingInMirror = optionsMenu->addAction("Mirror", this, SLOT(setRenderMirrored(bool)), Qt::Key_H))->setCheckable(true);
-    (_echoAudioMode = optionsMenu->addAction("Echo Audio"))->setCheckable(true);
+    
     
     (_noise = optionsMenu->addAction("Noise", this, SLOT(setNoise(bool)), Qt::Key_N))->setCheckable(true);
     (_gyroLook = optionsMenu->addAction("Smooth Gyro Look"))->setCheckable(true);
@@ -1896,6 +1896,10 @@ void Application::initMenu() {
     optionsMenu->addAction("Toggle Skeleton Tracking", &_webcam, SLOT(setSkeletonTrackingOn(bool)))->setCheckable(true);
     optionsMenu->addAction("Cycle Webcam Send Mode", _webcam.getGrabber(), SLOT(cycleVideoSendMode()));
     optionsMenu->addAction("Go Home", this, SLOT(goHome()), Qt::CTRL | Qt::Key_G);
+    
+    QMenu* audioMenu = menuBar->addMenu("Audio");
+    (_echoAudioMode = audioMenu->addAction("Echo Audio"))->setCheckable(true);
+    _rawAudioMicrophoneMix = audioMenu->addAction("Mix RAW Song", this, SLOT(toggleMixedSong()));
     
     QMenu* renderMenu = menuBar->addMenu("Render");
     (_renderVoxels = renderMenu->addAction("Voxels", this, SLOT(setRenderVoxels(bool)), Qt::SHIFT | Qt::Key_V))->setCheckable(true);
@@ -2063,6 +2067,22 @@ void Application::setListenModeSingleSource() {
 
     if (isLookingAtOtherAvatar(mouseRayOrigin, mouseRayDirection, eyePositionIgnored, nodeID)) {
         _audio.addListenSource(nodeID);
+    }
+}
+
+void Application::toggleMixedSong() {
+    if (_audio.getSongFileBytes() == 0) {
+        QString filename = QFileDialog::getOpenFileName(_glWidget,
+                                                        tr("Choose RAW Audio file"),
+                                                        QStandardPaths::writableLocation(QStandardPaths::DesktopLocation),
+                                                        tr("RAW Audio file (*.raw)"));
+        
+        QByteArray filenameArray = filename.toLocal8Bit();
+        _audio.importSongToMixWithMicrophone(filenameArray.data());
+        _rawAudioMicrophoneMix->setText("Stop Mixing Song");
+    } else {
+        _audio.stopMixingSongWithMicrophone();
+        _rawAudioMicrophoneMix->setText("Mix RAW Song");
     }
 }
 
