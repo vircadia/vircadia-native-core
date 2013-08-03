@@ -163,21 +163,21 @@ int Face::processVideoMessage(unsigned char* packetData, size_t dataBytes) {
                 int ybr = ysrc[image->w + 1];
                 ysrc += 2;
                 
-                tl[0] = ytl + redOffset;
-                tl[1] = ytl - greenOffset;
-                tl[2] = ytl + blueOffset;
+                tl[0] = saturate_cast<uchar>(ytl + redOffset);
+                tl[1] = saturate_cast<uchar>(ytl - greenOffset);
+                tl[2] = saturate_cast<uchar>(ytl + blueOffset);
                 
-                tr[0] = ytr + redOffset;
-                tr[1] = ytr - greenOffset; 
-                tr[2] = ytr + blueOffset;
+                tr[0] = saturate_cast<uchar>(ytr + redOffset);
+                tr[1] = saturate_cast<uchar>(ytr - greenOffset); 
+                tr[2] = saturate_cast<uchar>(ytr + blueOffset);
                 
-                bl[0] = ybl + redOffset;
-                bl[1] = ybl - greenOffset;
-                bl[2] = ybl + blueOffset;
+                bl[0] = saturate_cast<uchar>(ybl + redOffset);
+                bl[1] = saturate_cast<uchar>(ybl - greenOffset);
+                bl[2] = saturate_cast<uchar>(ybl + blueOffset);
                 
-                br[0] = ybr + redOffset;
-                br[1] = ybr - greenOffset;
-                br[2] = ybr + blueOffset;
+                br[0] = saturate_cast<uchar>(ybr + redOffset);
+                br[1] = saturate_cast<uchar>(ybr - greenOffset);
+                br[2] = saturate_cast<uchar>(ybr + blueOffset);
             }
             yline += image->stride[0] * 2;
             vline += image->stride[1];
