@@ -2238,7 +2238,7 @@ void Application::update(float deltaTime) {
     } else {
         //  Just look in direction of the mouse ray
         const float FAR_AWAY_STARE = TREE_SCALE;
-        lookAtSpot = mouseRayOrigin + mouseRayDirection * FAR_AWAY_STARE);
+        lookAtSpot = mouseRayOrigin + mouseRayDirection * FAR_AWAY_STARE;
         _myAvatar.getHead().setLookAtPosition(lookAtSpot);
     }
     
