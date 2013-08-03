@@ -177,6 +177,7 @@ private slots:
     void setListenModeNormal();
     void setListenModePoint();
     void setListenModeSingleSource();
+    void importMixSong();
 
 
     void renderCoverageMap();

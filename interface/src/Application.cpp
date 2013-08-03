@@ -1772,7 +1772,7 @@ void Application::initMenu() {
     
     QMenu* optionsMenu = menuBar->addMenu("Options");
     (_lookingInMirror = optionsMenu->addAction("Mirror", this, SLOT(setRenderMirrored(bool)), Qt::Key_H))->setCheckable(true);
-    (_echoAudioMode = optionsMenu->addAction("Echo Audio"))->setCheckable(true);
+    
     
     optionsMenu->addAction("Noise", this, SLOT(setNoise(bool)), Qt::Key_N)->setCheckable(true);
     (_gyroLook = optionsMenu->addAction("Smooth Gyro Look"))->setCheckable(true);
@@ -1790,6 +1790,10 @@ void Application::initMenu() {
     optionsMenu->addAction("Webcam", &_webcam, SLOT(setEnabled(bool)))->setCheckable(true);
     optionsMenu->addAction("Cycle Webcam Send Mode", _webcam.getGrabber(), SLOT(cycleVideoSendMode()));
     optionsMenu->addAction("Go Home", this, SLOT(goHome()));
+    
+    QMenu* audioMenu = menuBar->addMenu("Audio");
+    (_echoAudioMode = audioMenu->addAction("Echo Audio"))->setCheckable(true);
+    audioMenu->addAction("Mix RAW Audio", this, SLOT(importMixSong()));
     
     QMenu* renderMenu = menuBar->addMenu("Render");
     (_renderVoxels = renderMenu->addAction("Voxels", this, SLOT(setRenderVoxels(bool)), Qt::SHIFT | Qt::Key_V))->setCheckable(true);
@@ -1957,6 +1961,15 @@ void Application::setListenModeSingleSource() {
     if (isLookingAtOtherAvatar(mouseRayOrigin, mouseRayDirection, eyePositionIgnored, nodeID)) {
         _audio.addListenSource(nodeID);
     }
+}
+
+void Application::importMixSong() {    
+    QString filename = QFileDialog::getOpenFileName(_glWidget,
+                                                    tr("Choose RAW Audio file"),
+                                                    QStandardPaths::writableLocation(QStandardPaths::DesktopLocation),
+                                                    tr("RAW Audio file (*.raw)"));
+    
+    _audio.importSongToMixWithMicrophone(filename.toLocal8Bit().data());
 }
 
 
