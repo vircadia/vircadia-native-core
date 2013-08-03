@@ -161,17 +161,25 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
                     
                     _songFileStream->read((char*) &songSample, sizeof(songSample));
                     
+                    // attenuate the song samples since they will be loud
                     const float SONG_SAMPLE_ATTENUATION = 0.25;
                     songSample *= SONG_SAMPLE_ATTENUATION;
                     
+                    // add the song sample to the output and input buffersg
                     inputLeft[i] = inputLeft[i] + songSample;
                     outputLeft[i] = outputLeft[i] + songSample;
                     outputRight[i] =  outputLeft[i] + songSample;
                 }
             } else if (_songFileStream) {
+                // close the stream
                 _songFileStream->close();
+                
+                // delete the _songFileStream
                 delete _songFileStream;
                 _songFileStream = NULL;
+                
+                // reset the _songFileBytes back to zero
+                _songFileBytes = 0;
             }
             
             // copy the audio data to the last BUFFER_LENGTH_BYTES bytes of the data packet
