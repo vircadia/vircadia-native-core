@@ -92,6 +92,14 @@ private:
         glm::vec3 endVelocity;  
     };
 
+    struct Nose
+    {
+        glm::vec3 top;
+        glm::vec3 left;
+        glm::vec3 right;
+        glm::vec3 front;
+    };
+    
     float       _renderAlpha;
     bool        _returnHeadToCenter;
     glm::vec3   _skinColor;
@@ -105,6 +113,7 @@ private:
     glm::vec3   _leftEarPosition;
     glm::vec3   _rightEarPosition; 
     glm::vec3   _mouthPosition; 
+    Nose        _nose;
     float       _scale;
     float       _browAudioLift;
     glm::vec3   _gravity;
@@ -141,6 +150,7 @@ private:
     void renderEyeBalls();
     void renderEyeBrows();
     void renderEars();
+    void renderNose();
     void renderMouth();
     void renderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosition, glm::vec3 lookatPosition);
     void calculateGeometry();

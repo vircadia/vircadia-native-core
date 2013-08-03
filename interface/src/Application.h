@@ -288,6 +288,8 @@ private:
     QAction* _fullScreenMode;        // whether we are in full screen mode
     QAction* _frustumRenderModeAction;
     QAction* _settingsAutosave;      // Whether settings are saved automatically
+    QAction* _noise;
+    QAction* _occlusionCulling;
 
     QAction* _renderCoverageMapV2;
     QAction* _renderCoverageMap;
