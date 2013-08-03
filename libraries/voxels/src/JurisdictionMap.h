@@ -23,6 +23,7 @@ public:
     JurisdictionMap();
     JurisdictionMap(const char* filename);
     JurisdictionMap(unsigned char* rootOctalCode, const std::vector<unsigned char*>& endNodes);
+    JurisdictionMap(const char* rootHextString, const char* endNodesHextString);
     ~JurisdictionMap();
 
     Area isMyJurisdiction(unsigned char* nodeOctalCode, int childIndex) const;
