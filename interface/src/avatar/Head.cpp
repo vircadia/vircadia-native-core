@@ -17,7 +17,7 @@
 #include "renderer/ProgramObject.h"
 
 using namespace std;
- 
+
 const int   MOHAWK_TRIANGLES         =  50;
 const bool  USING_PHYSICAL_MOHAWK    =  true;
 const float EYE_RIGHT_OFFSET         =  0.27f;
@@ -36,6 +36,11 @@ const float HAIR_GRAVITY_FORCE       =  0.05f;
 const float HAIR_DRAG                =  10.0f;
 const float HAIR_LENGTH              =  0.09f;
 const float HAIR_THICKNESS           =  0.03f;
+const float NOSE_LENGTH              =  0.025;
+const float NOSE_WIDTH               =  0.03;
+const float NOSE_HEIGHT              =  0.034;
+const float NOSE_UP_OFFSET           = -0.07;
+const float NOSE_UPTURN              =  0.005;
 const float IRIS_RADIUS              =  0.007;
 const float IRIS_PROTRUSION          =  0.0145f;
 const char  IRIS_TEXTURE_FILENAME[]  =  "resources/images/iris.png";
@@ -100,7 +105,7 @@ void Head::init() {
     
         _irisProgram->setUniformValue("texture", 0);
         _eyePositionLocation = _irisProgram->uniformLocation("eyePosition");
-        
+                
         QImage image = QImage(IRIS_TEXTURE_FILENAME).convertToFormat(QImage::Format_ARGB32);
         
         glGenTextures(1, &_irisTextureID);
@@ -262,31 +267,40 @@ void Head::calculateGeometry() {
     glm::vec3 up    = orientation * IDENTITY_UP;
     glm::vec3 front = orientation * IDENTITY_FRONT;
 
+    float scale = _scale * BODY_BALL_RADIUS_HEAD_BASE;
+
     //calculate the eye positions 
     _leftEyePosition  = _position 
-                      - right * _scale * BODY_BALL_RADIUS_HEAD_BASE * EYE_RIGHT_OFFSET
-                      + up * _scale * BODY_BALL_RADIUS_HEAD_BASE * EYE_UP_OFFSET
-                      + front * _scale * BODY_BALL_RADIUS_HEAD_BASE * EYE_FRONT_OFFSET;
+                      - right * scale * EYE_RIGHT_OFFSET
+                      + up    * scale * EYE_UP_OFFSET
+                      + front * scale * EYE_FRONT_OFFSET;
     _rightEyePosition = _position
-                      + right * _scale * BODY_BALL_RADIUS_HEAD_BASE * EYE_RIGHT_OFFSET 
-                      + up * _scale * BODY_BALL_RADIUS_HEAD_BASE * EYE_UP_OFFSET 
-                      + front * _scale * BODY_BALL_RADIUS_HEAD_BASE * EYE_FRONT_OFFSET;
+                      + right * scale * EYE_RIGHT_OFFSET 
+                      + up    * scale * EYE_UP_OFFSET 
+                      + front * scale * EYE_FRONT_OFFSET;
 
-    _eyeLevelPosition = _rightEyePosition - right * _scale * BODY_BALL_RADIUS_HEAD_BASE * EYE_RIGHT_OFFSET;
+    _eyeLevelPosition = _rightEyePosition - right * scale * EYE_RIGHT_OFFSET;
 
     //calculate the eyebrow positions 
     _leftEyeBrowPosition  = _leftEyePosition; 
     _rightEyeBrowPosition = _rightEyePosition;
     
     //calculate the ear positions 
-    _leftEarPosition  = _position - right * _scale * BODY_BALL_RADIUS_HEAD_BASE * EAR_RIGHT_OFFSET;
-    _rightEarPosition = _position + right * _scale * BODY_BALL_RADIUS_HEAD_BASE * EAR_RIGHT_OFFSET;
+    _leftEarPosition  = _position - right * scale * EAR_RIGHT_OFFSET;
+    _rightEarPosition = _position + right * scale * EAR_RIGHT_OFFSET;
 
     //calculate the mouth position 
-    _mouthPosition    = _position + up * _scale * BODY_BALL_RADIUS_HEAD_BASE * MOUTH_UP_OFFSET
-                                  + front * _scale * BODY_BALL_RADIUS_HEAD_BASE;
-}
+    _mouthPosition = _position + up * scale * MOUTH_UP_OFFSET + front * scale;
 
+    // calculate nose geometry
+    glm::vec3 noseBase = _position + front * 0.95f * scale + up * NOSE_UP_OFFSET * scale;
+    
+    _nose.top   = noseBase + up    * _scale * NOSE_HEIGHT;
+    _nose.left  = noseBase - right * _scale * NOSE_WIDTH * ONE_HALF;
+    _nose.right = noseBase + right * _scale * NOSE_WIDTH * ONE_HALF;
+    _nose.front = noseBase + front * _scale * NOSE_LENGTH 
+                           + up    * _scale * NOSE_UPTURN;  
+}
 
 void Head::render(float alpha) {
 
@@ -302,7 +316,8 @@ void Head::render(float alpha) {
         renderHeadSphere();
         renderEyeBalls();    
         renderEars();
-        renderMouth();    
+        renderMouth();   
+        renderNose();
         renderEyeBrows();
     }
         
@@ -440,6 +455,42 @@ void Head::renderEars() {
         glutSolidSphere(_scale * 0.02, 30, 30);
     glPopMatrix();
 }
+
+
+void Head::renderNose() {
+
+    glm::vec3 bridgeVector = _nose.front - _nose.top;
+    glm::vec3 leftvector   = _nose.front - _nose.left;
+    glm::vec3 rightvector  = _nose.front - _nose.right;
+    
+    glm::vec3 leftNormal  (glm::normalize(glm::cross(leftvector,   bridgeVector)));
+    glm::vec3 rightNormal (glm::normalize(glm::cross(bridgeVector, rightvector )));
+    glm::vec3 bottomNormal(glm::normalize(glm::cross(rightvector,  leftvector  )));
+    
+    glColor4f(_skinColor.x, _skinColor.y, _skinColor.z, _renderAlpha);    
+    
+    glBegin(GL_TRIANGLES);          
+       
+    glNormal3f(leftNormal.x, leftNormal.y, leftNormal.z);
+    glVertex3f(_nose.top.x,   _nose.top.y,   _nose.top.z   ); 
+    glVertex3f(_nose.left.x,  _nose.left.y,  _nose.left.z  ); 
+    glVertex3f(_nose.front.x, _nose.front.y, _nose.front.z ); 
+
+    glNormal3f(rightNormal.x, rightNormal.y, rightNormal.z);
+    glVertex3f(_nose.top.x,   _nose.top.y,   _nose.top.z   ); 
+    glVertex3f(_nose.right.x, _nose.right.y, _nose.right.z ); 
+    glVertex3f(_nose.front.x, _nose.front.y, _nose.front.z ); 
+    
+    glNormal3f(bottomNormal.x, bottomNormal.y, bottomNormal.z);
+    glVertex3f(_nose.left.x,  _nose.left.y,  _nose.left.z  ); 
+    glVertex3f(_nose.right.x, _nose.right.y, _nose.right.z ); 
+    glVertex3f(_nose.front.x, _nose.front.y, _nose.front.z ); 
+
+    glEnd();
+}
+
+
+
 
 void Head::renderMouth() {
 
