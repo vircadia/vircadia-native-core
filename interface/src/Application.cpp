@@ -394,7 +394,7 @@ void Application::paintGL() {
         
     if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         _myCamera.setTightness     (100.0f); 
-        _myCamera.setTargetPosition(_myAvatar.getHead().getEyePosition());
+        _myCamera.setTargetPosition(_myAvatar.getUprightHeadPosition());
         _myCamera.setTargetRotation(_myAvatar.getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PIf, 0.0f)));
         
     } else if (OculusManager::isConnected()) {
@@ -406,7 +406,7 @@ void Application::paintGL() {
     
     } else if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
         _myCamera.setTightness(0.0f);  //  In first person, camera follows head exactly without delay
-        _myCamera.setTargetPosition(_myAvatar.getHead().getEyePosition());
+        _myCamera.setTargetPosition(_myAvatar.getEyePosition());
         _myCamera.setTargetRotation(_myAvatar.getHead().getCameraOrientation());
         
     } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {

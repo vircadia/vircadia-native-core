@@ -368,6 +368,19 @@ glm::vec3 Avatar::getUprightHeadPosition() const {
     return _position + getWorldAlignedOrientation() * glm::vec3(0.0f, _pelvisToHeadLength, 0.0f);
 }
 
+glm::vec3 Avatar::getEyePosition() {
+    const float EYE_UP_OFFSET = 0.36f;
+    const float EYE_FRONT_OFFSET = 0.8f;
+
+    glm::quat orientation = getWorldAlignedOrientation();
+    glm::vec3 up    = orientation * IDENTITY_UP;
+    glm::vec3 front = orientation * IDENTITY_FRONT;
+
+    float scale = _scale * BODY_BALL_RADIUS_HEAD_BASE;
+    
+    return getHead().getPosition() + up * scale * EYE_UP_OFFSET + front * scale * EYE_FRONT_OFFSET;
+}
+
 void Avatar::updateThrust(float deltaTime, Transmitter * transmitter) {
     //
     //  Gather thrust information from keyboard and sensors to apply to avatar motion 

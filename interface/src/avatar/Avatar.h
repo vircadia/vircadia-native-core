@@ -170,6 +170,7 @@ public:
     glm::vec3        getGravity                ()                const { return _gravity; }
     
     glm::vec3 getUprightHeadPosition() const;
+    glm::vec3 getEyePosition();
     
     AvatarVoxelSystem* getVoxels() { return &_voxels; }
     
