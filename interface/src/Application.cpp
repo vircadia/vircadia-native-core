@@ -1793,7 +1793,7 @@ void Application::initMenu() {
     
     QMenu* audioMenu = menuBar->addMenu("Audio");
     (_echoAudioMode = audioMenu->addAction("Echo Audio"))->setCheckable(true);
-    audioMenu->addAction("Mix RAW Audio", this, SLOT(importMixSong()));
+    _rawAudioMicrophoneMix = audioMenu->addAction("Mix RAW Song", this, SLOT(toggleMixedSong()));
     
     QMenu* renderMenu = menuBar->addMenu("Render");
     (_renderVoxels = renderMenu->addAction("Voxels", this, SLOT(setRenderVoxels(bool)), Qt::SHIFT | Qt::Key_V))->setCheckable(true);
@@ -1963,13 +1963,20 @@ void Application::setListenModeSingleSource() {
     }
 }
 
-void Application::importMixSong() {    
-    QString filename = QFileDialog::getOpenFileName(_glWidget,
-                                                    tr("Choose RAW Audio file"),
-                                                    QStandardPaths::writableLocation(QStandardPaths::DesktopLocation),
-                                                    tr("RAW Audio file (*.raw)"));
-    
-    _audio.importSongToMixWithMicrophone(filename.toLocal8Bit().data());
+void Application::toggleMixedSong() {
+    if (_audio.getSongFileBytes() == 0) {
+        QString filename = QFileDialog::getOpenFileName(_glWidget,
+                                                        tr("Choose RAW Audio file"),
+                                                        QStandardPaths::writableLocation(QStandardPaths::DesktopLocation),
+                                                        tr("RAW Audio file (*.raw)"));
+        
+        QByteArray filenameArray = filename.toLocal8Bit();
+        _audio.importSongToMixWithMicrophone(filenameArray.data());
+        _rawAudioMicrophoneMix->setText("Stop Mixing Song");
+    } else {
+        _audio.stopMixingSongWithMicrophone();
+        _rawAudioMicrophoneMix->setText("Mix RAW Song");
+    }
 }
 
 

@@ -168,6 +168,10 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
                     outputLeft[i] = outputLeft[i] + songSample;
                     outputRight[i] =  outputLeft[i] + songSample;
                 }
+            } else if (_songFileStream) {
+                _songFileStream->close();
+                delete _songFileStream;
+                _songFileStream = NULL;
             }
             
             // copy the audio data to the last BUFFER_LENGTH_BYTES bytes of the data packet
@@ -488,6 +492,10 @@ void Audio::importSongToMixWithMicrophone(const char* filename) {
     _songFileBytes = end - begin;
 }
 
+void Audio::stopMixingSongWithMicrophone() {
+    qDebug("Stop mixing called!");
+    _songFileBytes = 0;
+}
 
 void Audio::addReceivedAudioToBuffer(unsigned char* receivedData, int receivedBytes) {
     const int NUM_INITIAL_PACKETS_DISCARD = 3;

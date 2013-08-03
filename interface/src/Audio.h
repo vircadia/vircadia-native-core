@@ -53,6 +53,8 @@ public:
     void startCollisionSound(float magnitude, float frequency, float noise, float duration);
     float getCollisionSoundMagnitude() { return _collisionSoundMagnitude; };
     
+    int getSongFileBytes() { return _songFileBytes; }
+    
     void ping();
 
     // Call periodically to eventually perform round trip time analysis,
@@ -67,6 +69,9 @@ public:
     void clearListenSources();
     
     void importSongToMixWithMicrophone(const char* filename);
+    
+public slots:
+    void stopMixingSongWithMicrophone();
 
 private:
     PaStream* _stream;
