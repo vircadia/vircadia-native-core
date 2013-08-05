@@ -607,3 +607,12 @@ bool rayIntersectsSphere(glm::vec3& rayStarting, glm::vec3& rayNormalizedDirecti
     }
     return false;
 }
+
+bool pointInSphere(glm::vec3& point, glm::vec3& sphereCenter, double sphereRadius) {
+    glm::vec3 diff = point - sphereCenter;
+    double mag = sqrt(glm::dot(diff, diff));
+    if (mag <= sphereRadius) {
+        return true;
+    }
+    return false;
+}
