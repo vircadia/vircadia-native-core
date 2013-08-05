@@ -14,7 +14,6 @@
 #include <SharedUtil.h>
 #include <UDPSocket.h>
 
-const int ASSIGNMENT_SERVER_LISTEN_PORT = 7007;
 const int MAX_PACKET_SIZE_BYTES = 1400;
 
 struct Assignment {};

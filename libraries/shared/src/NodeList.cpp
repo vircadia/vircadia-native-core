@@ -368,7 +368,6 @@ int NodeList::processDomainServerList(unsigned char* packetData, size_t dataByte
 
 void NodeList::sendAssignmentRequest() {
     const char ASSIGNMENT_SERVER_HOSTNAME[] = "assignment.highfidelity.io";
-    const unsigned short ASSIGNMENT_SERVER_PORT = 7007;
     
     static sockaddr_in assignmentServerSocket = socketForHostname(ASSIGNMENT_SERVER_HOSTNAME);
     assignmentServerSocket.sin_port = htons(ASSIGNMENT_SERVER_PORT);
