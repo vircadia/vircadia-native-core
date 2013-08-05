@@ -22,9 +22,7 @@ Hand::Hand(Avatar* owningAvatar) :
     HandData((AvatarData*)owningAvatar),
     
     _raveGloveClock(0.0f),
-    _raveGloveMode(RAVE_GLOVE_EFFECTS_MODE_THROBBING_COLOR),
     _raveGloveInitialized(false),
-    _isRaveGloveActive(false),
     _owningAvatar(owningAvatar),
     _renderAlpha(1.0),
     _lookingInMirror(false),

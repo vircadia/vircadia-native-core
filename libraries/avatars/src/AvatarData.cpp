@@ -129,21 +129,7 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     *destinationBuffer++ = bitItems;
     
     // leap hand data
-    std::vector<glm::vec3> fingerVectors;
-    
-//printf("about to call _handData->encodeRemoteData(fingerVectors);\n");
-    _handData->encodeRemoteData(fingerVectors);
-
-    if (fingerVectors.size() > 255)
-        fingerVectors.clear(); // safety. We shouldn't ever get over 255, so consider that invalid.
-
-    *destinationBuffer++ = (unsigned char)fingerVectors.size();
-
-    for (size_t i = 0; i < fingerVectors.size(); ++i) {
-        destinationBuffer += packFloatScalarToSignedTwoByteFixed(destinationBuffer, fingerVectors[i].x, fingerVectorRadix);
-        destinationBuffer += packFloatScalarToSignedTwoByteFixed(destinationBuffer, fingerVectors[i].y, fingerVectorRadix);
-        destinationBuffer += packFloatScalarToSignedTwoByteFixed(destinationBuffer, fingerVectors[i].z, fingerVectorRadix);
-    }
+    destinationBuffer += _handData->encodeRemoteData(destinationBuffer);
     
     // skeleton joints
     *destinationBuffer++ = (unsigned char)_joints.size();
@@ -246,34 +232,10 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     // hand state, stored as a semi-nibble in the bitItems
     _handState = getSemiNibbleAt(bitItems,HAND_STATE_START_BIT);
 
-//printf("about to call leap hand data code in AvatarData::parseData...\n");
-
     // leap hand data
     if (sourceBuffer - startPosition < numBytes) {
-
-//printf("got inside of 'if (sourceBuffer - startPosition < numBytes)'\n");
-
-
         // check passed, bytes match
-        unsigned int numFingerVectors = *sourceBuffer++;
-
-//printf("numFingerVectors = %d\n", numFingerVectors);
-
-
-        if (numFingerVectors > 0) {
-        
-//printf("ok, we got fingers in AvatarData::parseData\n");
-        
-            std::vector<glm::vec3> fingerVectors(numFingerVectors);
-            for (size_t i = 0; i < numFingerVectors; ++i) {
-                sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(fingerVectors[i].x), fingerVectorRadix);
-                sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(fingerVectors[i].y), fingerVectorRadix);
-                sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(fingerVectors[i].z), fingerVectorRadix);
-            }
-            
-//printf("about to call _handData->decodeRemoteData(fingerVectors);\n");
-            _handData->decodeRemoteData(fingerVectors);
-        }
+        sourceBuffer += _handData->decodeRemoteData(sourceBuffer);
     }
     
     // skeleton joints
@@ -306,6 +268,23 @@ int unpackFloatScalarFromSignedTwoByteFixed(int16_t* byteFixedPointer, float* de
     *destinationPointer = *byteFixedPointer / (float)(1 << radix);
     return sizeof(int16_t);
 }
+
+int packFloatVec3ToSignedTwoByteFixed(unsigned char* destBuffer, const glm::vec3& srcVector, int radix) {
+    const unsigned char* startPosition = destBuffer;
+    destBuffer += packFloatScalarToSignedTwoByteFixed(destBuffer, srcVector.x, radix);
+    destBuffer += packFloatScalarToSignedTwoByteFixed(destBuffer, srcVector.y, radix);
+    destBuffer += packFloatScalarToSignedTwoByteFixed(destBuffer, srcVector.z, radix);
+    return destBuffer - startPosition;
+}
+
+int unpackFloatVec3FromSignedTwoByteFixed(unsigned char* sourceBuffer, glm::vec3& destination, int radix) {
+    const unsigned char* startPosition = sourceBuffer;
+    sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(destination.x), radix);
+    sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(destination.y), radix);
+    sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(destination.z), radix);
+    return sourceBuffer - startPosition;
+}
+
 
 int packFloatAngleToTwoByte(unsigned char* buffer, float angle) {
     const float ANGLE_CONVERSION_RATIO = (std::numeric_limits<uint16_t>::max() / 360.0);
