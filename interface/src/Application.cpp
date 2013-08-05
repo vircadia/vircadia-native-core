@@ -1734,7 +1734,7 @@ void Application::importVoxels() {
         // Where we plan to place this
         int columnNum = 1; 
         int rowNum = 1;
-        bool tileLocationUnspecified = false;
+        bool isTileLocationUnspecified = false;
         
         // If we're in multi-file mode, then look for tiling specification in the file name
         if (fileNameStringList.size() > 1) {
@@ -1745,7 +1745,7 @@ void Application::importVoxels() {
             // If the first period, is the extension, then this is not a grid name;
             if (fileNameString.mid(indexOfFirstPeriod, fileNameString.length() - indexOfFirstPeriod) == extension) {
                     qDebug("not a valid grid name... treat like tile Location Unspecified\n");
-                tileLocationUnspecified = true;
+                isTileLocationUnspecified = true;
             } else {
                 QString fileCoord = fileNameString.mid(indexOfFirstPeriod + 1, 
                                                        fileNameString.length() - indexOfFirstPeriod - fileTypeNameLength - 1);
@@ -1767,13 +1767,13 @@ void Application::importVoxels() {
                 // If there are no "grid sections" in the filename, then we're going to get
                 if (columnNum < 1 || rowNum < 1) {
                     qDebug("not a valid grid name... treat like tile Location Unspecified\n");
-                    tileLocationUnspecified = true;
+                    isTileLocationUnspecified = true;
                 }
             }
         }
 
-        if (tileLocationUnspecified) {
-            qDebug("tileLocationUnspecified... \n");
+        if (isTileLocationUnspecified) {
+            qDebug("tile Location is Unspecified... \n");
             columnNum = unspecifiedColumnNum; 
             rowNum = unspecifiedRowNum;
         
