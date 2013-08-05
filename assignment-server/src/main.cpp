@@ -10,13 +10,17 @@
 #include <fstream>
 #include <queue>
 
+#include <QtCore/QString>
+
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
 #include <UDPSocket.h>
 
 const int MAX_PACKET_SIZE_BYTES = 1400;
 
-struct Assignment {};
+struct Assignment {
+    QString scriptFilename;
+};
 
 int main(int argc, const char* argv[]) {
     
@@ -35,13 +39,16 @@ int main(int argc, const char* argv[]) {
     while (true) {
         if (serverSocket.receive((sockaddr*) &senderSocket, &senderData, &receivedBytes)) {
             
-            // int numHeaderBytes = numBytesForPacketHeader(senderData);
+            int numHeaderBytes = numBytesForPacketHeader(senderData);
             
             if (senderData[0] == PACKET_TYPE_REQUEST_ASSIGNMENT) {                
                 // grab the FI assignment in the queue, if it exists
                 if (assignmentQueue.size() > 0) {
-                    // Assignment firstAssignment = assignmentQueue.front();
+                    Assignment firstAssignment = assignmentQueue.front();
                     assignmentQueue.pop();
+                    
+                    QString scriptURL = QString("http://base8-compute.s3.amazonaws.com/%1").arg(firstAssignment.scriptFilename);
+                    memcpy(assignmentPacket + numHeaderBytes, scriptURL.toLocal8Bit().constData(), scriptURL.size());
 
                     // send the assignment
                     serverSocket.send((sockaddr*) &senderSocket, assignmentPacket, sizeof(assignmentPacket));
@@ -49,6 +56,11 @@ int main(int argc, const char* argv[]) {
             } else if (senderData[0] == PACKET_TYPE_SEND_ASSIGNMENT) {
                 Assignment newAssignment;
                 
+                senderData[receivedBytes] = '\0';
+                newAssignment.scriptFilename = QString((const char*)senderData + numHeaderBytes);
+                
+                qDebug() << "Added an assignment with script with filename" << newAssignment.scriptFilename << "\n";
+                                
                 // add this assignment to the queue
                 assignmentQueue.push(newAssignment);
             }
