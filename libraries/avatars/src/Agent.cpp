@@ -55,7 +55,7 @@ void Agent::run(QUrl scriptURL) {
     timeval lastDomainServerCheckIn = {};
     int numMicrosecondsSleep = 0;
     
-    const float DATA_SEND_INTERVAL_MSECS = (1 / 60) * 1000;
+    const float DATA_SEND_INTERVAL_USECS = (1 / 60) * 1000 * 1000;
     
     sockaddr_in senderAddress;
     unsigned char receivedData[MAX_PACKET_SIZE];
@@ -80,7 +80,7 @@ void Agent::run(QUrl scriptURL) {
         }
         
         // sleep for the correct amount of time to have data send be consistently timed
-        if ((numMicrosecondsSleep = (DATA_SEND_INTERVAL_MSECS * 1000) - (usecTimestampNow() - usecTimestamp(&thisSend))) > 0) {
+        if ((numMicrosecondsSleep = DATA_SEND_INTERVAL_USECS - (usecTimestampNow() - usecTimestamp(&thisSend))) > 0) {
             usleep(numMicrosecondsSleep);
         }
     }
