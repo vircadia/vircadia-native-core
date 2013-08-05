@@ -21,8 +21,6 @@ otherwise accompanies this software in either electronic or hard copy form.
 #include "Kernel/OVR_Timer.h"
 
 #include <IOKit/hid/IOHIDManager.h>
-#include <CoreGraphics/CGDirectDisplay.h>
-#include <CoreGraphics/CGDisplayConfiguration.h>
 
 
 namespace OVR { namespace OSX {
@@ -43,18 +41,11 @@ public:
     virtual void Shutdown();
 
     virtual ThreadCommandQueue* GetThreadQueue();
-    virtual ThreadId GetThreadId() const;
-    
+
     virtual DeviceEnumerator<> EnumerateDevicesEx(const DeviceEnumerationArgs& args);
 
     virtual bool  GetDeviceInfo(DeviceInfo* info) const;
 
-protected:
-    static void displayReconfigurationCallBack (CGDirectDisplayID display,
-                                                CGDisplayChangeSummaryFlags flags,
-                                                void *userInfo);
-  
-public: // data
     Ptr<DeviceManagerThread> pThread;
 };
 
@@ -99,7 +90,6 @@ public:
     CFRunLoopRef        GetRunLoop()
     { return RunLoop; }
     
-    void                Shutdown();
 private:
     CFRunLoopRef        RunLoop;
 

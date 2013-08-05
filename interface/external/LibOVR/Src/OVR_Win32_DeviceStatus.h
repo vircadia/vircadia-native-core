@@ -92,8 +92,6 @@ private: // data
 
     UINT_PTR            LastTimerId;
     Array<RecoveryTimerDesc> RecoveryTimers;
-
-    GUID                HidGuid;
 };
 
 }} // namespace OVR::Win32

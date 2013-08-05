@@ -40,16 +40,11 @@ public:
     virtual void Shutdown();
 
     virtual ThreadCommandQueue* GetThreadQueue();
-    virtual ThreadId GetThreadId() const;
 
     virtual DeviceEnumerator<> EnumerateDevicesEx(const DeviceEnumerationArgs& args);    
 
     virtual bool  GetDeviceInfo(DeviceInfo* info) const;
 
-    // Fills HIDDeviceDesc by using the path.
-    // Returns 'true' if successful, 'false' otherwise.
-    bool GetHIDDeviceDesc(const String& path, HIDDeviceDesc* pdevDesc) const;
-    
     Ptr<DeviceManagerThread> pThread;
 };
 
@@ -61,7 +56,7 @@ class DeviceManagerThread : public Thread, public ThreadCommandQueue, public Dev
     friend class DeviceManager;
     enum { ThreadStackSize = 32 * 1024 };
 public:
-    DeviceManagerThread(DeviceManager* pdevMgr);
+    DeviceManagerThread();
     ~DeviceManagerThread();
 
     virtual int Run();
@@ -72,7 +67,7 @@ public:
 
 
     // Notifier used for different updates (EVENT or regular timing or messages).
-    class Notifier
+    class Notifier  
     {
     public:
 		// Called when overlapped I/O handle is signaled.
@@ -113,8 +108,6 @@ public:
     // DeviceStatus::Notifier interface.
 	bool OnMessage(MessageType type, const String& devicePath);
 
-    void DetachDeviceManager();
-
 private:
     bool threadInitialized() { return hCommandEvent != 0; }
 
@@ -135,10 +128,6 @@ private:
 
 	// Object that manages notifications originating from Windows messages.
 	Ptr<DeviceStatus>		pStatusObject;
-
-    Lock                    DevMgrLock;
-    // pDeviceMgr should be accessed under DevMgrLock
-    DeviceManager*          pDeviceMgr; // back ptr, no addref. 
 };
 
 }} // namespace Win32::OVR

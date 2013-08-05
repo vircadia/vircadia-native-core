@@ -17,7 +17,6 @@ otherwise accompanies this software in either electronic or hard copy form.
 #define OVR_Win32_HMDDevice_h
 
 #include "OVR_Win32_DeviceManager.h"
-#include "OVR_Profile.h"
 
 namespace OVR { namespace Win32 {
 
@@ -77,22 +76,9 @@ public:
     virtual MatchResult MatchDevice(const DeviceCreateDesc& other,
                                     DeviceCreateDesc**) const;
 
-    // Matches device by path.
-    virtual bool        MatchDevice(const String& path);
-
-    virtual bool        UpdateMatchedCandidate(const DeviceCreateDesc&, bool* newDeviceFlag = NULL);
+    virtual bool        UpdateMatchedCandidate(const DeviceCreateDesc&);
 
     virtual bool GetDeviceInfo(DeviceInfo* info) const;
-
-    // Requests the currently used default profile. This profile affects the
-    // settings reported by HMDInfo. 
-    Profile* GetProfileAddRef() const;
-
-    ProfileType GetProfileType() const
-    {
-        return (HResolution >= 1920) ? Profile_RiftDKHD : Profile_RiftDK1;
-    }
-
 
     void  SetScreenParameters(int x, int y, unsigned hres, unsigned vres, float hsize, float vsize)
     {
@@ -128,26 +114,13 @@ class HMDDevice : public DeviceImpl<OVR::HMDDevice>
 {
 public:
     HMDDevice(HMDDeviceCreateDesc* createDesc);
-    ~HMDDevice();    
+    ~HMDDevice();
 
     virtual bool Initialize(DeviceBase* parent);
     virtual void Shutdown();
 
-    // Requests the currently used default profile. This profile affects the
-    // settings reported by HMDInfo. 
-    virtual Profile*    GetProfile() const;
-    virtual const char* GetProfileName() const;
-    virtual bool        SetProfileName(const char* name);
-
     // Query associated sensor.
     virtual OVR::SensorDevice* GetSensor();  
-
-protected:
-    HMDDeviceCreateDesc* getDesc() const { return (HMDDeviceCreateDesc*)pCreateDesc.GetPtr(); }
-
-    // User name for the profile used with this device.
-    String               ProfileName;
-    mutable Ptr<Profile> pCachedProfile;
 };
 
 
