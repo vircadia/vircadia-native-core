@@ -9,8 +9,6 @@
 #ifndef __hifi__Agent__
 #define __hifi__Agent__
 
-#import "AudioInjector.h"
-
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
