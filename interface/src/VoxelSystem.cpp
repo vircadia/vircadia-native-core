@@ -1560,7 +1560,7 @@ void VoxelSystem::falseColorizeOccludedV2() {
 void VoxelSystem::nodeAdded(Node* node) {
     if (node->getType() == NODE_TYPE_VOXEL_SERVER) {
         uint16_t nodeID = node->getNodeID();
-        //printf("VoxelSystem... voxel server %u added...\n", nodeID);
+        printf("VoxelSystem... voxel server %u added...\n", nodeID);
     }
 }
 
