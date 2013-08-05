@@ -344,9 +344,9 @@ void ParticleSystem::updateParticle(int p, float deltaTime) {
         } else if (myEmitter.particleAttributes[lifeStage].modulationStyle == COLOR_MODULATION_STYLE_RAINBOW_CYCLE) {
         
             float amp = myEmitter.particleAttributes[lifeStage].modulationAmplitude * ONE_HALF;
-            redModulation   = sinf(radian * 0.5f) * amp;
-            greenModulation = sinf(radian * 0.7f) * amp;
-            bueModulation   = sinf(radian * 1.0f) * amp;
+            redModulation   = sinf(radian * RAINBOW_CYCLE_RED_RATE  ) * amp;
+            greenModulation = sinf(radian * RAINBOW_CYCLE_GREEN_RATE) * amp;
+            bueModulation   = sinf(radian * RAINBOW_CYCLE_BLUE_RATE ) * amp;
         }
         
         _particle[p].color.r += redModulation;

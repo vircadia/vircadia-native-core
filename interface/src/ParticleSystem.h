@@ -15,6 +15,10 @@ const int  NULL_PARTICLE = -1;
 const int  MAX_EMITTERS  = 100;
 const int  MAX_PARTICLES = 5000;
 
+const float RAINBOW_CYCLE_RED_RATE   = 0.5f;
+const float RAINBOW_CYCLE_GREEN_RATE = 0.7f;
+const float RAINBOW_CYCLE_BLUE_RATE  = 1.0f;
+
 enum ParticleRenderStyle
 {
     PARTICLE_RENDER_STYLE_SPHERE = 0,
