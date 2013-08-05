@@ -21,7 +21,7 @@ class QNetworkReply;
 
 class Avatar;
 
-class AvatarVoxelSystem : public QObject, public VoxelSystem {
+class AvatarVoxelSystem : public VoxelSystem {
     Q_OBJECT
 
 public:

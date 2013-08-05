@@ -941,8 +941,9 @@ void Application::mousePressEvent(QMouseEvent* event) {
             _mouseVoxelDragging = _mouseVoxel;
             _mousePressed = true;
 
+            maybeEditVoxelUnderCursor();
 
-            if (!maybeEditVoxelUnderCursor()) {
+            if (!_palette.isActive()) {
                 _pieMenu.mousePressEvent(_mouseX, _mouseY);
             }
 
@@ -1686,14 +1687,25 @@ void Application::importVoxels() {
     const int SVO_TYPE_NAME_LENGTH = 4;
     const int SCH_TYPE_NAME_LENGTH = 10;
 
+    // assume this is where we'll place it if filename doesn't have tiling
+    int unspecifiedColumnNum = 1; 
+    int unspecifiedRowNum = 1;
+    
+    // if they select multiple files, but they don't specify the tiling, we
+    // will tile them to this size
+    int unspecifiedSquare = (sqrt(fileNameStringList.size()) + 0.5);
+    qDebug("unspecifiedSquare: %d\n", unspecifiedSquare);
+    
     for (int i = 0; i < fileNameStringList.size(); i++) {
         QString fileNameString = fileNameStringList.at(i);
+        QString extension;
         QByteArray fileNameAscii = fileNameString.toLocal8Bit();
         const char* fileName = fileNameAscii.data();
     
         int fileTypeNameLength = 0;
         VoxelTree importVoxels;
         if (fileNameString.endsWith(".png", Qt::CaseInsensitive)) {
+            extension = QString(".png");
             QImage pngImage = QImage(fileName);
             fileTypeNameLength = PNG_TYPE_NAME_LENGTH;
             if (pngImage.height() != pngImage.width()) {
@@ -1711,25 +1723,67 @@ void Application::importVoxels() {
         
             importVoxels.readFromSquareARGB32Pixels(pixels, pngImage.height());        
         } else if (fileNameString.endsWith(".svo", Qt::CaseInsensitive)) {
+            extension = QString(".svo");
             importVoxels.readFromSVOFile(fileName);
             fileTypeNameLength = SVO_TYPE_NAME_LENGTH;
         } else if (fileNameString.endsWith(".schematic", Qt::CaseInsensitive)) {
+            extension = QString(".schematic");
             importVoxels.readFromSchematicFile(fileName);
             fileTypeNameLength = SCH_TYPE_NAME_LENGTH;
         }
+
+        // Where we plan to place this
+        int columnNum = 1; 
+        int rowNum = 1;
+        bool isTileLocationUnspecified = false;
         
-        int indexOfFirstPeriod = fileNameString.indexOf('.');
+        // If we're in multi-file mode, then look for tiling specification in the file name
+        if (fileNameStringList.size() > 1) {
+            int indexOfFirstPeriod = fileNameString.indexOf('.');
 
-        QString fileCoord = fileNameString.mid(indexOfFirstPeriod + 1, 
-                                               fileNameString.length() - indexOfFirstPeriod - fileTypeNameLength - 1);
+            //qDebug("indexOfFirstPeriod: %d\n", indexOfFirstPeriod);
 
-        indexOfFirstPeriod = fileCoord.indexOf('.');
-        QString columnNumString = fileCoord.right(fileCoord.length() - indexOfFirstPeriod - 1);
-        QString rowNumString = fileCoord.left(indexOfFirstPeriod);
+            // If the first period, is the extension, then this is not a grid name;
+            if (fileNameString.mid(indexOfFirstPeriod, fileNameString.length() - indexOfFirstPeriod) == extension) {
+                    qDebug("not a valid grid name... treat like tile Location Unspecified\n");
+                isTileLocationUnspecified = true;
+            } else {
+                QString fileCoord = fileNameString.mid(indexOfFirstPeriod + 1, 
+                                                       fileNameString.length() - indexOfFirstPeriod - fileTypeNameLength - 1);
 
-        int columnNum = columnNumString.toFloat();
-        int rowNum = rowNumString.toFloat();
+                //qDebug() << "fileCoord: " << fileCoord << "\n";
+                indexOfFirstPeriod = fileCoord.indexOf('.');
+
+                //qDebug("indexOfFirstPeriod: %d\n", indexOfFirstPeriod);
+
+                QString columnNumString = fileCoord.right(fileCoord.length() - indexOfFirstPeriod - 1);
+                QString rowNumString = fileCoord.left(indexOfFirstPeriod);
+
+                //qDebug() << "columnNumString: " << columnNumString << "\n";
+                //qDebug() << "rowNumString: " << rowNumString << "\n";
+
+                columnNum = columnNumString.toFloat();
+                rowNum = rowNumString.toFloat();
+            
+                // If there are no "grid sections" in the filename, then we're going to get
+                if (columnNum < 1 || rowNum < 1) {
+                    qDebug("not a valid grid name... treat like tile Location Unspecified\n");
+                    isTileLocationUnspecified = true;
+                }
+            }
+        }
+
+        if (isTileLocationUnspecified) {
+            qDebug("tile Location is Unspecified... \n");
+            columnNum = unspecifiedColumnNum; 
+            rowNum = unspecifiedRowNum;
         
+            unspecifiedColumnNum++;
+            if (unspecifiedColumnNum > unspecifiedSquare) {
+                unspecifiedColumnNum = 1;
+                unspecifiedRowNum++;
+            }
+        }        
         qDebug("columnNum: %d\t rowNum: %d\n", columnNum, rowNum);
 
         _mouseVoxel.x = originalX + (columnNum - 1) * _mouseVoxel.s;

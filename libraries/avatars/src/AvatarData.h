@@ -16,6 +16,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
+#include <QtCore/QObject>
+
 #include <NodeData.h>
 #include "HeadData.h"
 #include "HandData.h"
@@ -39,6 +41,7 @@ enum KeyState
 class JointData;
 
 class AvatarData : public NodeData {
+  Q_OBJECT
 public:
     AvatarData(Node* owningNode = NULL);
     ~AvatarData();
@@ -53,7 +56,6 @@ public:
     
     //  Body Rotation
     float getBodyYaw() const { return _bodyYaw; }
-    void setBodyYaw(float bodyYaw) { _bodyYaw = bodyYaw; }
     float getBodyPitch() const { return _bodyPitch; }
     void setBodyPitch(float bodyPitch) { _bodyPitch = bodyPitch; }
     float getBodyRoll() const {return _bodyRoll; }
@@ -102,6 +104,11 @@ public:
     
     void setHeadData(HeadData* headData) { _headData = headData; }
     void setHandData(HandData* handData) { _handData = handData; }
+    
+public slots:
+    void setPosition(float x, float y, float z) { _position = glm::vec3(x, y, z); }
+    void setBodyYaw(float bodyYaw) { _bodyYaw = bodyYaw; }
+    void sendData();
     
 protected:
     glm::vec3 _position;
