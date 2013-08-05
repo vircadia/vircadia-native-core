@@ -2135,13 +2135,21 @@ void Application::toggleMixedSong() {
         
         QByteArray filenameArray = filename.toLocal8Bit();
         _audio.importSongToMixWithMicrophone(filenameArray.data());
-        _rawAudioMicrophoneMix->setText("Stop Mixing Song");
+        resetSongMixMenuItem();        
     } else {
         _audio.stopMixingSongWithMicrophone();
-        _rawAudioMicrophoneMix->setText("Mix RAW Song");
+        resetSongMixMenuItem();
     }
 }
 
+void Application::resetSongMixMenuItem() {
+    if (_audio.getSongFileBytes() == 0) {
+        _rawAudioMicrophoneMix->setText("Mix RAW Song");
+    } else {
+        _rawAudioMicrophoneMix->setText("Stop Mixing Song");
+    }
+    
+}
 
 void Application::updateFrustumRenderModeAction() {
     switch (_frustumDrawingMode) {
@@ -2251,7 +2259,7 @@ Avatar* Application::isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3
         if (node->getLinkedData() != NULL && node->getType() == NODE_TYPE_AGENT) {
             Avatar* avatar = (Avatar *) node->getLinkedData();
             glm::vec3 headPosition = avatar->getHead().getPosition();
-            if (rayIntersectsSphere(mouseRayOrigin, mouseRayDirection, headPosition, HEAD_SPHERE_RADIUS)) {
+            if (rayIntersectsSphere(mouseRayOrigin, mouseRayDirection, headPosition, HEAD_SPHERE_RADIUS * avatar->getScale())) {
                 eyePosition = avatar->getHead().getEyePosition();
                 _lookatIndicatorScale = avatar->getScale();
                 _lookatOtherPosition = headPosition;
@@ -2261,6 +2269,16 @@ Avatar* Application::isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3
         }
     }
     return NULL;
+}
+
+bool Application::isLookingAtMyAvatar(Avatar* avatar) {
+    glm::vec3 theirLookat = avatar->getHead().getLookAtPosition();
+    glm::vec3 myHeadPosition = _myAvatar.getHead().getPosition();
+    
+    if (pointInSphere(theirLookat, myHeadPosition, HEAD_SPHERE_RADIUS * _myAvatar.getScale())) {
+        return true;
+    }
+    return false;
 }
 
 void Application::renderLookatIndicator(glm::vec3 pointOfInterest, Camera& whichCamera) {
@@ -2954,6 +2972,23 @@ void Application::displaySide(Camera& whichCamera) {
 
     //draw a grid ground plane....
     if (_renderGroundPlaneOn->isChecked()) {
+        // draw grass plane with fog
+        glEnable(GL_FOG);
+        const float FOG_COLOR[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+        glFogfv(GL_FOG_COLOR, FOG_COLOR);
+        glFogi(GL_FOG_MODE, GL_EXP2);
+        glFogf(GL_FOG_DENSITY, 0.025f);
+        glPushMatrix();
+            const float GRASS_PLANE_SIZE = 256.0f;
+            glTranslatef(-GRASS_PLANE_SIZE * 0.5f, -0.01f, GRASS_PLANE_SIZE * 0.5f);
+            glScalef(GRASS_PLANE_SIZE, 1.0f, GRASS_PLANE_SIZE);
+            glRotatef(-90.0f, 1.0f, 0.0f, 0.0f);
+            glColor3ub(70, 134, 74);
+            const int GRASS_DIVISIONS = 40;
+            _geometryCache.renderSquare(GRASS_DIVISIONS, GRASS_DIVISIONS);
+        glPopMatrix();
+        glDisable(GL_FOG);
+        
         renderGroundPlaneGrid(EDGE_SIZE_GROUND_PLANE, _audio.getCollisionSoundMagnitude());
     } 
     //  Draw voxels
@@ -2994,6 +3029,9 @@ void Application::displaySide(Camera& whichCamera) {
                 Avatar *avatar = (Avatar *)node->getLinkedData();
                 if (!avatar->isInitialized()) {
                     avatar->init();
+                }
+                if (isLookingAtMyAvatar(avatar)) {
+                    avatar->getHead().setLookAtPosition(_myCamera.getPosition());
                 }
                 avatar->render(false, _renderAvatarBalls->isChecked());
                 avatar->setDisplayingLookatVectors(_renderLookatOn->isChecked());

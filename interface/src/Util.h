@@ -76,4 +76,6 @@ float loadSetting(QSettings* settings, const char* name, float defaultValue);
 
 bool rayIntersectsSphere(glm::vec3& rayStarting, glm::vec3& rayNormalizedDirection, glm::vec3& sphereCenter, double sphereRadius);
 
+bool pointInSphere(glm::vec3& point, glm::vec3& sphereCenter, double sphereRadius);
+
 #endif
