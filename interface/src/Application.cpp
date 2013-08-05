@@ -234,6 +234,9 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     
     NodeList::createInstance(NODE_TYPE_AGENT, listenPort);
     
+    NodeList::getInstance()->addHook(&_voxels);
+
+    
     _enableNetworkThread = !cmdOptionExists(argc, constArgv, "--nonblocking");
     if (!_enableNetworkThread) {
         NodeList::getInstance()->getNodeSocket()->setBlocking(false);
@@ -315,6 +318,10 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     _glWidget->setMouseTracking(true);
     
     // initialization continues in initializeGL when OpenGL context is ready
+}
+
+Application::~Application() {
+    NodeList::getInstance()->removeHook(&_voxels);
 }
 
 void Application::initializeGL() {

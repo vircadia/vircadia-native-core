@@ -1553,10 +1553,38 @@ void VoxelSystem::falseColorizeOccludedV2() {
         VoxelProjectedPolygon::intersects_calls
     );
     //myCoverageMapV2.erase();
-
-
     _tree->setDirtyBit();
     setupNewVoxelsForDrawing();
+}
+
+void VoxelSystem::nodeAdded(Node* node) {
+    if (node->getType() == NODE_TYPE_VOXEL_SERVER) {
+        uint16_t nodeID = node->getNodeID();
+        //printf("VoxelSystem... voxel server %u added...\n", nodeID);
+    }
+}
+
+bool VoxelSystem::killSourceVoxelsOperation(VoxelNode* node, void* extraData) {
+    uint16_t killedNodeID = *(uint16_t*)extraData;
+    for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
+        VoxelNode* childNode = node->getChildAtIndex(i);
+        if (childNode && childNode->getSourceID()== killedNodeID) {
+            node->safeDeepDeleteChildAtIndex(i);
+        }
+    }
+    return true;
+}
+
+void VoxelSystem::nodeKilled(Node* node) {
+    if (node->getType() == NODE_TYPE_VOXEL_SERVER) {
+        uint16_t nodeID = node->getNodeID();
+        //printf("VoxelSystem... voxel server %u removed...\n", nodeID);
+        
+        // Kill any voxels from the local tree
+        _tree->recurseTreeWithOperation(killSourceVoxelsOperation, &nodeID);
+        _tree->setDirtyBit();
+        setupNewVoxelsForDrawing();
+    }
 }
 
 

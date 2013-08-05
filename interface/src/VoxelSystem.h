@@ -28,7 +28,7 @@ class ProgramObject;
 
 const int NUM_CHILDREN = 8;
 
-class VoxelSystem : public NodeData, public VoxelNodeDeleteHook {
+class VoxelSystem : public NodeData, public VoxelNodeDeleteHook, public NodeListHook {
 public:
     VoxelSystem(float treeScale = TREE_SCALE, int maxVoxels = MAX_VOXELS_PER_SYSTEM);
     ~VoxelSystem();
@@ -99,6 +99,8 @@ public:
     CoverageMap   myCoverageMap;
 
     virtual void nodeDeleted(VoxelNode* node);
+    virtual void nodeAdded(Node* node);
+    virtual void nodeKilled(Node* node);
         
 protected:
     float _treeScale; 
@@ -140,6 +142,7 @@ private:
     static bool falseColorizeSubTreeOperation(VoxelNode* node, void* extraData);
     static bool falseColorizeOccludedV2Operation(VoxelNode* node, void* extraData);
     static bool falseColorizeBySourceOperation(VoxelNode* node, void* extraData);
+    static bool killSourceVoxelsOperation(VoxelNode* node, void* extraData);
 
     int updateNodeInArraysAsFullVBO(VoxelNode* node);
     int updateNodeInArraysAsPartialVBO(VoxelNode* node);

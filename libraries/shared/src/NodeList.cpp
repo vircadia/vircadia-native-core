@@ -435,6 +435,8 @@ void NodeList::addNodeToList(Node* newNode) {
     ++_numNodes;
     
     qDebug() << "Added" << *newNode << "\n";
+    
+    notifyHooksOfAddedNode(newNode);
 }
 
 unsigned NodeList::broadcastToNodes(unsigned char *broadcastData, size_t dataBytes, const char* nodeTypes, int numNodeTypes) {
@@ -476,7 +478,7 @@ Node* NodeList::soloNodeOfType(char nodeType) {
     return NULL;
 }
 
-void *removeSilentNodes(void *args) {
+void* removeSilentNodes(void *args) {
     NodeList* nodeList = (NodeList*) args;
     uint64_t checkTimeUSecs;
     int sleepTime;
@@ -489,6 +491,8 @@ void *removeSilentNodes(void *args) {
             if ((checkTimeUSecs - node->getLastHeardMicrostamp()) > NODE_SILENCE_THRESHOLD_USECS) {
             
                 qDebug() << "Killed" << *node << "\n";
+                
+                nodeList->notifyHooksOfKilledNode(&*node);
                 
                 node->setAlive(false);
             }
@@ -617,5 +621,30 @@ void NodeListIterator::skipDeadAndStopIncrement() {
             // skip over the dead nodes
             break;
         }
+    }
+}
+
+void NodeList::addHook(NodeListHook* hook) {
+    _hooks.push_back(hook);
+}
+
+void NodeList::removeHook(NodeListHook* hook) {
+    for (int i = 0; i < _hooks.size(); i++) {
+        if (_hooks[i] == hook) {
+            _hooks.erase(_hooks.begin() + i);
+            return;
+        }
+    }
+}
+
+void NodeList::notifyHooksOfAddedNode(Node* node) {
+    for (int i = 0; i < _hooks.size(); i++) {
+        _hooks[i]->nodeAdded(node);
+    }
+}
+
+void NodeList::notifyHooksOfKilledNode(Node* node) {
+    for (int i = 0; i < _hooks.size(); i++) {
+        _hooks[i]->nodeKilled(node);
     }
 }
