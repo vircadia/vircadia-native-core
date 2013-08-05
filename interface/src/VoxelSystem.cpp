@@ -860,12 +860,16 @@ bool VoxelSystem::falseColorizeBySourceOperation(VoxelNode* node, void* extraDat
 void VoxelSystem::falseColorizeBySource() {
     _nodeCount = 0;
     colorizeBySourceArgs args;
-    const int NUMBER_OF_COLOR_GROUPS = 3;
+    const int NUMBER_OF_COLOR_GROUPS = 6;
     const unsigned char MIN_COLOR = 128;
     int voxelServerCount = 0;
-    groupColor groupColors[NUMBER_OF_COLOR_GROUPS] = { groupColor(255, 0, 0), 
-                                                       groupColor(0, 255, 0), 
-                                                       groupColor(0, 0, 255)};
+    groupColor groupColors[NUMBER_OF_COLOR_GROUPS] = { groupColor(255,   0,   0), 
+                                                       groupColor(  0, 255,   0), 
+                                                       groupColor(  0,   0, 255),
+                                                       groupColor(255,   0, 255),
+                                                       groupColor(  0, 255, 255),
+                                                       groupColor(255, 255, 255)
+                                                       };
     
     // create a bunch of colors we'll use during colorization
     NodeList* nodeList = NodeList::getInstance();
