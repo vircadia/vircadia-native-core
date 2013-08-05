@@ -73,10 +73,29 @@ void VoxelSystem::nodeDeleted(VoxelNode* node) {
     }
 }
 
+// returns an available index, starts by reusing a previously freed index, but if there isn't one available
+// it will use the end of the VBO array and grow our accounting of that array.
+// and makes the index available for some other node to use
+glBufferIndex VoxelSystem::getNextBufferIndex() {
+    glBufferIndex output = GLBUFFER_INDEX_UNKNOWN;
+    // if there's a free index, use it...
+    if (_freeIndexes.size() > 0) {
+        output = _freeIndexes.back();
+        _freeIndexes.pop_back();
+    } else {
+        output = _voxelsInWriteArrays;
+        _voxelsInWriteArrays++;
+    }
+    return output;
+}
+
+// Doesn't actually clean up the VBOs for the index, but does release responsibility of the index from the VoxelNode, 
+// and makes the index available for some other node to use
 void VoxelSystem::freeBufferIndex(glBufferIndex index) {
     _freeIndexes.push_back(index);
 }
 
+// This will run through the list of _freeIndexes and reset their VBO array values to be "invisible".
 void VoxelSystem::clearFreeBufferIndexes() {
     for (int i = 0; i < _freeIndexes.size(); i++) {
         glBufferIndex nodeIndex = _freeIndexes[i];
@@ -246,12 +265,13 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
         _callsToTreesToArrays++;
         if (_writeRenderFullVBO) {
             _voxelsInWriteArrays = 0; // reset our VBO
+            _freeIndexes.clear(); // reset our free indexes
         }
         _voxelsUpdated = newTreeToArrays(_tree->rootNode);
         _tree->clearDirtyBit(); // after we pull the trees into the array, we can consider the tree clean
 
         if (_writeRenderFullVBO) {
-            _abandonedVBOSlots = 0; // reset the count of our abandoned slots
+            _abandonedVBOSlots = 0; // reset the count of our abandoned slots, why is this here and not earlier????
         }
         
         // since we called treeToArrays, we can assume that our VBO is in sync, and so partial updates to the VBOs are
@@ -399,15 +419,13 @@ int VoxelSystem::updateNodeInArraysAsFullVBO(VoxelNode* node) {
     if (node->getShouldRender()) {
         glm::vec3 startVertex = node->getCorner();
         float voxelScale = node->getScale();
-        glBufferIndex nodeIndex = _voxelsInWriteArrays;
+        glBufferIndex nodeIndex = getNextBufferIndex();
 
         // populate the array with points for the 8 vertices
         // and RGB color for each added vertex
         updateNodeInArrays(nodeIndex, startVertex, voxelScale, node->getColor());
         node->setBufferIndex(nodeIndex);
         node->setVoxelSystem(this);
-        _writeVoxelDirtyArray[nodeIndex] = true; // just in case we switch to Partial mode
-        _voxelsInWriteArrays++; // our know vertices in the arrays
         return 1; // rendered
     } else {
         node->setBufferIndex(GLBUFFER_INDEX_UNKNOWN);
@@ -444,10 +462,9 @@ int VoxelSystem::updateNodeInArraysAsPartialVBO(VoxelNode* node) {
         if (node->isKnownBufferIndex()) {
             nodeIndex = node->getBufferIndex();
         } else {
-            nodeIndex = _voxelsInWriteArrays;
+            nodeIndex = getNextBufferIndex();
             node->setBufferIndex(nodeIndex);
             node->setVoxelSystem(this);
-            _voxelsInWriteArrays++;
         }
         _writeVoxelDirtyArray[nodeIndex] = true;
 
@@ -843,13 +860,18 @@ bool VoxelSystem::falseColorizeBySourceOperation(VoxelNode* node, void* extraDat
 void VoxelSystem::falseColorizeBySource() {
     _nodeCount = 0;
     colorizeBySourceArgs args;
-    const int NUMBER_OF_COLOR_GROUPS = 3;
+    const int NUMBER_OF_COLOR_GROUPS = 6;
     const unsigned char MIN_COLOR = 128;
     int voxelServerCount = 0;
-    groupColor groupColors[NUMBER_OF_COLOR_GROUPS] = { groupColor(255, 0, 0), 
-                                                       groupColor(0, 255, 0), 
-                                                       groupColor(0, 0, 255)};
-    
+    groupColor groupColors[NUMBER_OF_COLOR_GROUPS] = { 
+        groupColor(255,   0,   0), 
+        groupColor(  0, 255,   0), 
+        groupColor(  0,   0, 255),
+        groupColor(255,   0, 255),
+        groupColor(  0, 255, 255),
+        groupColor(255, 255, 255)
+    };
+
     // create a bunch of colors we'll use during colorization
     NodeList* nodeList = NodeList::getInstance();
     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {

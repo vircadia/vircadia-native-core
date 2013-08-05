@@ -11,7 +11,7 @@
 #include <cstdlib>
 #include <cstdio>
 
-#include <QDebug>
+#include <QtCore/QDebug>
 
 #include "NodeList.h"
 #include "NodeTypes.h"
@@ -364,6 +364,15 @@ int NodeList::processDomainServerList(unsigned char* packetData, size_t dataByte
     unpackNodeId(readPtr, &_ownerID);
 
     return readNodes;
+}
+
+void NodeList::sendAssignmentRequest() {
+    const char ASSIGNMENT_SERVER_HOSTNAME[] = "assignment.highfidelity.io";
+    
+    static sockaddr_in assignmentServerSocket = socketForHostname(ASSIGNMENT_SERVER_HOSTNAME);
+    assignmentServerSocket.sin_port = htons(ASSIGNMENT_SERVER_PORT);
+    
+    _nodeSocket.send((sockaddr*) &assignmentServerSocket, &PACKET_TYPE_REQUEST_ASSIGNMENT, 1);
 }
 
 Node* NodeList::addOrUpdateNode(sockaddr* publicSocket, sockaddr* localSocket, char nodeType, uint16_t nodeId) {

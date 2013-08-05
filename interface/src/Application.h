@@ -177,6 +177,7 @@ private slots:
     void setListenModeNormal();
     void setListenModePoint();
     void setListenModeSingleSource();
+    void toggleMixedSong();
 
 
     void renderCoverageMap();
@@ -288,6 +289,9 @@ private:
     QAction* _fullScreenMode;        // whether we are in full screen mode
     QAction* _frustumRenderModeAction;
     QAction* _settingsAutosave;      // Whether settings are saved automatically
+    QAction* _rawAudioMicrophoneMix; // Mixing of a RAW audio file with microphone stream for rave gloves
+    QAction* _noise;
+    QAction* _occlusionCulling;
 
     QAction* _renderCoverageMapV2;
     QAction* _renderCoverageMap;

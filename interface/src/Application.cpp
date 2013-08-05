@@ -570,8 +570,9 @@ void Application::keyPressEvent(QKeyEvent* event) {
         if (_simulateLeapHand->isChecked() || _testRaveGlove->isChecked()) {
             _myAvatar.getHand().setRaveGloveEffectsMode((QKeyEvent*)event);
         }
-        
-        bool shifted = event->modifiers().testFlag(Qt::ShiftModifier);
+
+        bool isMeta    = event->modifiers().testFlag(Qt::MetaModifier);
+        bool isShifted = event->modifiers().testFlag(Qt::ShiftModifier);
         switch (event->key()) {
             case Qt::Key_BracketLeft:
                 _viewFrustumOffsetYaw -= 0.5;
@@ -644,7 +645,13 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
                 
             case Qt::Key_C:
-                _myAvatar.setDriveKeys(DOWN, 1);
+                if (isShifted)  {
+                    _occlusionCulling->trigger();
+                } else if (isMeta) {
+                    chooseVoxelPaintColor();
+                } else {
+                    _myAvatar.setDriveKeys(DOWN, 1);
+                }
                 break;
                 
             case Qt::Key_W:
@@ -652,7 +659,11 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
                 
             case Qt::Key_S:
-                _myAvatar.setDriveKeys(BACK, 1);
+                if (isShifted)  {
+                    doTreeStats();
+                } else {
+                    _myAvatar.setDriveKeys(BACK, 1);
+                }
                 break;
                 
             case Qt::Key_Space:
@@ -661,11 +672,19 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
                 
             case Qt::Key_G:
-                goHome();
+                if (isShifted) {
+                    _gravityUse->trigger();
+                } else {
+                    _eyedropperMode->trigger();
+                }
                 break;
                 
             case Qt::Key_A:
-                _myAvatar.setDriveKeys(ROT_LEFT, 1);
+                if (isShifted) {
+                    _renderAtmosphereOn->trigger();
+                } else {
+                    _myAvatar.setDriveKeys(ROT_LEFT, 1);
+                }
                 break;
                 
             case Qt::Key_D:
@@ -681,23 +700,23 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
                 
             case Qt::Key_Up:
-                _myAvatar.setDriveKeys(shifted ? UP : FWD, 1);
+                _myAvatar.setDriveKeys(isShifted ? UP : FWD, 1);
                 break;
                 
             case Qt::Key_Down:
-                _myAvatar.setDriveKeys(shifted ? DOWN : BACK, 1);
+                _myAvatar.setDriveKeys(isShifted ? DOWN : BACK, 1);
                 break;
                 
             case Qt::Key_Left:
-                _myAvatar.setDriveKeys(shifted ? LEFT : ROT_LEFT, 1);
+                _myAvatar.setDriveKeys(isShifted ? LEFT : ROT_LEFT, 1);
                 break;
                 
             case Qt::Key_Right:
-                _myAvatar.setDriveKeys(shifted ? RIGHT : ROT_RIGHT, 1);
+                _myAvatar.setDriveKeys(isShifted ? RIGHT : ROT_RIGHT, 1);
                 break;
                 
             case Qt::Key_I:
-                if (shifted) {
+                if (isShifted) {
                     _myCamera.setEyeOffsetOrientation(glm::normalize(
                                                                      glm::quat(glm::vec3(0.002f, 0, 0)) * _myCamera.getEyeOffsetOrientation()));
                 } else {
@@ -707,7 +726,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
                 
             case Qt::Key_K:
-                if (shifted) {
+                if (isShifted) {
                     _myCamera.setEyeOffsetOrientation(glm::normalize(
                                                                      glm::quat(glm::vec3(-0.002f, 0, 0)) * _myCamera.getEyeOffsetOrientation()));
                 } else {
@@ -717,7 +736,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
                 
             case Qt::Key_J:
-                if (shifted) {
+                if (isShifted) {
                     _myCamera.setEyeOffsetOrientation(glm::normalize(
                                                                      glm::quat(glm::vec3(0, 0.002f, 0)) * _myCamera.getEyeOffsetOrientation()));
                 } else {
@@ -727,7 +746,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
                 
             case Qt::Key_M:
-                if (shifted) {
+                if (isShifted) {
                     _myCamera.setEyeOffsetOrientation(glm::normalize(
                                                                      glm::quat(glm::vec3(0, -0.002f, 0)) * _myCamera.getEyeOffsetOrientation()));
                 } else {
@@ -737,7 +756,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
                 
             case Qt::Key_U:
-                if (shifted) {
+                if (isShifted) {
                     _myCamera.setEyeOffsetOrientation(glm::normalize(
                                                                      glm::quat(glm::vec3(0, 0, -0.002f)) * _myCamera.getEyeOffsetOrientation()));
                 } else {
@@ -747,7 +766,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
                 
             case Qt::Key_Y:
-                if (shifted) {
+                if (isShifted) {
                     _myCamera.setEyeOffsetOrientation(glm::normalize(
                                                                      glm::quat(glm::vec3(0, 0, 0.002f)) * _myCamera.getEyeOffsetOrientation()));
                 } else {
@@ -755,12 +774,62 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 }
                 resizeGL(_glWidget->width(), _glWidget->height());
                 break;
+            case Qt::Key_N:
+                _noise->trigger();
+                break;
+            case Qt::Key_H:
+                _lookingInMirror->trigger();
+                break;
+            case Qt::Key_F:
+                if (isShifted)  {
+                    _frustumOn->trigger();
+                } else {
+                    _fullScreenMode->trigger();
+                }
+                break;
+            case Qt::Key_V:
+                if (isShifted) {
+                    _renderVoxels->trigger();
+                } else {
+                    _addVoxelMode->trigger();
+                }
+                break;
+            case Qt::Key_P:
+                 _manualFirstPerson->trigger();
+                 break;
+            case Qt::Key_R:
+                if (isShifted)  {
+                    _frustumRenderModeAction->trigger();
+                } else {
+                    _deleteVoxelMode->trigger();
+                }
+                break;
+            case Qt::Key_B:
+            _colorVoxelMode->trigger();
+                break;
+            case Qt::Key_O:
+                if (isShifted)  {
+                    _viewFrustumFromOffset->trigger();
+                } else {
+                    _selectVoxelMode->trigger();
+                }
+                break;
+            case Qt::Key_Slash:
+                _renderStatsOn->trigger();
+                break;
             case Qt::Key_Backspace:
             case Qt::Key_Delete:
                 if (_selectVoxelMode->isChecked()) {
                     deleteVoxelUnderCursor();
                 }
                 break;
+            case Qt::Key_Plus:
+                increaseAvatarSize();
+                break;
+            case Qt::Key_Minus:
+                decreaseAvatarSize();
+                break;
+
             case Qt::Key_1:
             case Qt::Key_2:
             case Qt::Key_3:
@@ -859,7 +928,7 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
 
 const bool MAKE_SOUND_ON_VOXEL_HOVER = false;
 const bool MAKE_SOUND_ON_VOXEL_CLICK = true;
-const float HOVER_VOXEL_FREQUENCY = 14080.f;
+const float HOVER_VOXEL_FREQUENCY = 7040.f;
 const float HOVER_VOXEL_DECAY = 0.999f;
 
 void Application::mousePressEvent(QMouseEvent* event) {
@@ -872,8 +941,9 @@ void Application::mousePressEvent(QMouseEvent* event) {
             _mouseVoxelDragging = _mouseVoxel;
             _mousePressed = true;
 
+            maybeEditVoxelUnderCursor();
 
-            if (!maybeEditVoxelUnderCursor()) {
+            if (!_palette.isActive()) {
                 _pieMenu.mousePressEvent(_mouseX, _mouseY);
             }
 
@@ -1617,14 +1687,25 @@ void Application::importVoxels() {
     const int SVO_TYPE_NAME_LENGTH = 4;
     const int SCH_TYPE_NAME_LENGTH = 10;
 
+    // assume this is where we'll place it if filename doesn't have tiling
+    int unspecifiedColumnNum = 1; 
+    int unspecifiedRowNum = 1;
+    
+    // if they select multiple files, but they don't specify the tiling, we
+    // will tile them to this size
+    int unspecifiedSquare = (sqrt(fileNameStringList.size()) + 0.5);
+    qDebug("unspecifiedSquare: %d\n", unspecifiedSquare);
+    
     for (int i = 0; i < fileNameStringList.size(); i++) {
         QString fileNameString = fileNameStringList.at(i);
+        QString extension;
         QByteArray fileNameAscii = fileNameString.toLocal8Bit();
         const char* fileName = fileNameAscii.data();
     
         int fileTypeNameLength = 0;
         VoxelTree importVoxels;
         if (fileNameString.endsWith(".png", Qt::CaseInsensitive)) {
+            extension = QString(".png");
             QImage pngImage = QImage(fileName);
             fileTypeNameLength = PNG_TYPE_NAME_LENGTH;
             if (pngImage.height() != pngImage.width()) {
@@ -1642,25 +1723,67 @@ void Application::importVoxels() {
         
             importVoxels.readFromSquareARGB32Pixels(pixels, pngImage.height());        
         } else if (fileNameString.endsWith(".svo", Qt::CaseInsensitive)) {
+            extension = QString(".svo");
             importVoxels.readFromSVOFile(fileName);
             fileTypeNameLength = SVO_TYPE_NAME_LENGTH;
         } else if (fileNameString.endsWith(".schematic", Qt::CaseInsensitive)) {
+            extension = QString(".schematic");
             importVoxels.readFromSchematicFile(fileName);
             fileTypeNameLength = SCH_TYPE_NAME_LENGTH;
         }
+
+        // Where we plan to place this
+        int columnNum = 1; 
+        int rowNum = 1;
+        bool isTileLocationUnspecified = false;
         
-        int indexOfFirstPeriod = fileNameString.indexOf('.');
+        // If we're in multi-file mode, then look for tiling specification in the file name
+        if (fileNameStringList.size() > 1) {
+            int indexOfFirstPeriod = fileNameString.indexOf('.');
 
-        QString fileCoord = fileNameString.mid(indexOfFirstPeriod + 1, 
-                                               fileNameString.length() - indexOfFirstPeriod - fileTypeNameLength - 1);
+            //qDebug("indexOfFirstPeriod: %d\n", indexOfFirstPeriod);
 
-        indexOfFirstPeriod = fileCoord.indexOf('.');
-        QString columnNumString = fileCoord.right(fileCoord.length() - indexOfFirstPeriod - 1);
-        QString rowNumString = fileCoord.left(indexOfFirstPeriod);
+            // If the first period, is the extension, then this is not a grid name;
+            if (fileNameString.mid(indexOfFirstPeriod, fileNameString.length() - indexOfFirstPeriod) == extension) {
+                    qDebug("not a valid grid name... treat like tile Location Unspecified\n");
+                isTileLocationUnspecified = true;
+            } else {
+                QString fileCoord = fileNameString.mid(indexOfFirstPeriod + 1, 
+                                                       fileNameString.length() - indexOfFirstPeriod - fileTypeNameLength - 1);
 
-        int columnNum = columnNumString.toFloat();
-        int rowNum = rowNumString.toFloat();
+                //qDebug() << "fileCoord: " << fileCoord << "\n";
+                indexOfFirstPeriod = fileCoord.indexOf('.');
+
+                //qDebug("indexOfFirstPeriod: %d\n", indexOfFirstPeriod);
+
+                QString columnNumString = fileCoord.right(fileCoord.length() - indexOfFirstPeriod - 1);
+                QString rowNumString = fileCoord.left(indexOfFirstPeriod);
+
+                //qDebug() << "columnNumString: " << columnNumString << "\n";
+                //qDebug() << "rowNumString: " << rowNumString << "\n";
+
+                columnNum = columnNumString.toFloat();
+                rowNum = rowNumString.toFloat();
+            
+                // If there are no "grid sections" in the filename, then we're going to get
+                if (columnNum < 1 || rowNum < 1) {
+                    qDebug("not a valid grid name... treat like tile Location Unspecified\n");
+                    isTileLocationUnspecified = true;
+                }
+            }
+        }
+
+        if (isTileLocationUnspecified) {
+            qDebug("tile Location is Unspecified... \n");
+            columnNum = unspecifiedColumnNum; 
+            rowNum = unspecifiedRowNum;
         
+            unspecifiedColumnNum++;
+            if (unspecifiedColumnNum > unspecifiedSquare) {
+                unspecifiedColumnNum = 1;
+                unspecifiedRowNum++;
+            }
+        }        
         qDebug("columnNum: %d\t rowNum: %d\n", columnNum, rowNum);
 
         _mouseVoxel.x = originalX + (columnNum - 1) * _mouseVoxel.s;
@@ -1791,19 +1914,21 @@ void Application::initMenu() {
     _window->setMenuBar(menuBar);
     
     QMenu* fileMenu = menuBar->addMenu("File");
-    fileMenu->addAction("Quit", this, SLOT(quit()), Qt::CTRL | Qt::Key_Q);
+    QAction* quitAction = fileMenu->addAction("Quit", this, SLOT(quit()), Qt::CTRL | Qt::Key_Q);
+    quitAction->setMenuRole(QAction::QuitRole);
 
     QMenu* editMenu = menuBar->addMenu("Edit");
-    editMenu->addAction("Preferences...", this, SLOT(editPreferences()));
+    QAction* preferencesAction = editMenu->addAction("Preferences...", this, SLOT(editPreferences()), Qt::CTRL | Qt::Key_Comma);
+    preferencesAction->setMenuRole(QAction::PreferencesRole);
 
     QMenu* pairMenu = menuBar->addMenu("Pair");
     pairMenu->addAction("Pair", this, SLOT(pair()));
     
     QMenu* optionsMenu = menuBar->addMenu("Options");
     (_lookingInMirror = optionsMenu->addAction("Mirror", this, SLOT(setRenderMirrored(bool)), Qt::Key_H))->setCheckable(true);
-    (_echoAudioMode = optionsMenu->addAction("Echo Audio"))->setCheckable(true);
     
-    optionsMenu->addAction("Noise", this, SLOT(setNoise(bool)), Qt::Key_N)->setCheckable(true);
+    
+    (_noise = optionsMenu->addAction("Noise", this, SLOT(setNoise(bool)), Qt::Key_N))->setCheckable(true);
     (_gyroLook = optionsMenu->addAction("Smooth Gyro Look"))->setCheckable(true);
     _gyroLook->setChecked(true);
     (_showHeadMouse = optionsMenu->addAction("Head Mouse"))->setCheckable(true);
@@ -1819,7 +1944,11 @@ void Application::initMenu() {
     optionsMenu->addAction("Webcam", &_webcam, SLOT(setEnabled(bool)))->setCheckable(true);
     optionsMenu->addAction("Toggle Skeleton Tracking", &_webcam, SLOT(setSkeletonTrackingOn(bool)))->setCheckable(true);
     optionsMenu->addAction("Cycle Webcam Send Mode", _webcam.getGrabber(), SLOT(cycleVideoSendMode()));
-    optionsMenu->addAction("Go Home", this, SLOT(goHome()));
+    optionsMenu->addAction("Go Home", this, SLOT(goHome()), Qt::CTRL | Qt::Key_G);
+    
+    QMenu* audioMenu = menuBar->addMenu("Audio");
+    (_echoAudioMode = audioMenu->addAction("Echo Audio"))->setCheckable(true);
+    _rawAudioMicrophoneMix = audioMenu->addAction("Mix RAW Song", this, SLOT(toggleMixedSong()));
     
     QMenu* renderMenu = menuBar->addMenu("Render");
     (_renderVoxels = renderMenu->addAction("Voxels", this, SLOT(setRenderVoxels(bool)), Qt::SHIFT | Qt::Key_V))->setCheckable(true);
@@ -1850,8 +1979,8 @@ void Application::initMenu() {
         "First Person", this, SLOT(setRenderFirstPerson(bool)), Qt::Key_P))->setCheckable(true);
     (_manualThirdPerson = renderMenu->addAction(
         "Third Person", this, SLOT(setRenderThirdPerson(bool))))->setCheckable(true);
-    renderMenu->addAction("Increase Avatar Size", this, SLOT(increaseAvatarSize()), Qt::ALT | Qt::Key_Plus);
-    renderMenu->addAction("Decrease Avatar Size", this, SLOT(decreaseAvatarSize()), Qt::ALT | Qt::Key_Minus);
+    renderMenu->addAction("Increase Avatar Size", this, SLOT(increaseAvatarSize()), Qt::Key_Plus);
+    renderMenu->addAction("Decrease Avatar Size", this, SLOT(decreaseAvatarSize()), Qt::Key_Minus);
 
     
     QMenu* toolsMenu = menuBar->addMenu("Tools");
@@ -1888,8 +2017,8 @@ void Application::initMenu() {
         "Get Color Mode", this, SLOT(updateVoxelModeActions()),   Qt::Key_G))->setCheckable(true);
     _voxelModeActions->addAction(_eyedropperMode);
 
-    voxelMenu->addAction("Decrease Voxel Size", this, SLOT(decreaseVoxelSize()),       QKeySequence::ZoomOut);
-    voxelMenu->addAction("Increase Voxel Size", this, SLOT(increaseVoxelSize()),       QKeySequence::ZoomIn);
+    voxelMenu->addAction("Decrease Voxel Size", this, SLOT(decreaseVoxelSize()), QKeySequence::ZoomOut);
+    voxelMenu->addAction("Increase Voxel Size", this, SLOT(increaseVoxelSize()), QKeySequence::ZoomIn);
     voxelMenu->addAction("Reset Swatch Colors", this, SLOT(resetSwatchColors()));
 
     _voxelPaintColor = voxelMenu->addAction("Voxel Paint Color", this, 
@@ -1916,7 +2045,7 @@ void Application::initMenu() {
     (_viewFrustumFromOffset = frustumMenu->addAction(
         "Use Offset Camera", this, SLOT(setFrustumOffset(bool)), Qt::SHIFT | Qt::Key_O))->setCheckable(true); 
     _frustumRenderModeAction = frustumMenu->addAction(
-        "Render Mode", this, SLOT(cycleFrustumRenderMode()), Qt::SHIFT | Qt::Key_R); 
+        "Render Mode", this, SLOT(cycleFrustumRenderMode()), Qt::SHIFT | Qt::Key_R);
     updateFrustumRenderModeAction();
     
     debugMenu->addAction("Run Timing Tests", this, SLOT(runTests()));
@@ -1940,8 +2069,8 @@ void Application::initMenu() {
     debugMenu->addAction("Wants Monochrome", this, SLOT(setWantsMonochrome(bool)))->setCheckable(true);
     debugMenu->addAction("Use Lower Resolution While Moving", this, SLOT(setWantsLowResMoving(bool)))->setCheckable(true);
     debugMenu->addAction("Disable Delta Sending", this, SLOT(disableDeltaSending(bool)))->setCheckable(true);
-    debugMenu->addAction("Disable Occlusion Culling", this, SLOT(disableOcclusionCulling(bool)), 
-                         Qt::SHIFT | Qt::Key_C)->setCheckable(true);
+    (_occlusionCulling = debugMenu->addAction("Disable Occlusion Culling", this, SLOT(disableOcclusionCulling(bool)),
+                         Qt::SHIFT | Qt::Key_C))->setCheckable(true);
 
     (_renderCoverageMap = debugMenu->addAction("Render Coverage Map"))->setCheckable(true);
     _renderCoverageMap->setShortcut(Qt::SHIFT | Qt::CTRL | Qt::Key_O);
@@ -1987,6 +2116,22 @@ void Application::setListenModeSingleSource() {
 
     if (isLookingAtOtherAvatar(mouseRayOrigin, mouseRayDirection, eyePositionIgnored, nodeID)) {
         _audio.addListenSource(nodeID);
+    }
+}
+
+void Application::toggleMixedSong() {
+    if (_audio.getSongFileBytes() == 0) {
+        QString filename = QFileDialog::getOpenFileName(_glWidget,
+                                                        tr("Choose RAW Audio file"),
+                                                        QStandardPaths::writableLocation(QStandardPaths::DesktopLocation),
+                                                        tr("RAW Audio file (*.raw)"));
+        
+        QByteArray filenameArray = filename.toLocal8Bit();
+        _audio.importSongToMixWithMicrophone(filenameArray.data());
+        _rawAudioMicrophoneMix->setText("Stop Mixing Song");
+    } else {
+        _audio.stopMixingSongWithMicrophone();
+        _rawAudioMicrophoneMix->setText("Mix RAW Song");
     }
 }
 
@@ -2100,7 +2245,7 @@ Avatar* Application::isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3
             Avatar* avatar = (Avatar *) node->getLinkedData();
             glm::vec3 headPosition = avatar->getHead().getPosition();
             if (rayIntersectsSphere(mouseRayOrigin, mouseRayDirection, headPosition, HEAD_SPHERE_RADIUS)) {
-                eyePosition = avatar->getHead().getEyeLevelPosition();
+                eyePosition = avatar->getHead().getEyePosition();
                 _lookatIndicatorScale = avatar->getScale();
                 _lookatOtherPosition = headPosition;
                 nodeID = avatar->getOwningNode()->getNodeID();
@@ -2149,21 +2294,21 @@ void Application::update(float deltaTime) {
     _myAvatar.setMouseRay(mouseRayOrigin, mouseRayDirection);
     
     // Set where I am looking based on my mouse ray (so that other people can see)
-    glm::vec3 eyePosition;
+    glm::vec3 lookAtSpot;
 
-    _isLookingAtOtherAvatar = isLookingAtOtherAvatar(mouseRayOrigin, mouseRayDirection, eyePosition);
+    _isLookingAtOtherAvatar = isLookingAtOtherAvatar(mouseRayOrigin, mouseRayDirection, lookAtSpot);
     if (_isLookingAtOtherAvatar) {
         // If the mouse is over another avatar's head...
-        glm::vec3 myLookAtFromMouse(eyePosition);
-         _myAvatar.getHead().setLookAtPosition(myLookAtFromMouse);
+         _myAvatar.getHead().setLookAtPosition(lookAtSpot);
     } else if (_isHoverVoxel) {
         //  Look at the hovered voxel
-        glm::vec3 lookAtSpot = getMouseVoxelWorldCoordinates(_hoverVoxel);
+        lookAtSpot = getMouseVoxelWorldCoordinates(_hoverVoxel);
         _myAvatar.getHead().setLookAtPosition(lookAtSpot);
     } else {
         //  Just look in direction of the mouse ray
-        glm::vec3 myLookAtFromMouse(mouseRayOrigin + mouseRayDirection);
-        _myAvatar.getHead().setLookAtPosition(myLookAtFromMouse);
+        const float FAR_AWAY_STARE = TREE_SCALE;
+        lookAtSpot = mouseRayOrigin + mouseRayDirection * FAR_AWAY_STARE;
+        _myAvatar.getHead().setLookAtPosition(lookAtSpot);
     }
     
     //  Find the voxel we are hovering over, and respond if clicked
@@ -2173,15 +2318,21 @@ void Application::update(float deltaTime) {
     //  If we have clicked on a voxel, update it's color
     if (_isHoverVoxelSounding) {
         VoxelNode* hoveredNode = _voxels.getVoxelAt(_hoverVoxel.x, _hoverVoxel.y, _hoverVoxel.z, _hoverVoxel.s);
-        float bright = _audio.getCollisionSoundMagnitude();
-        nodeColor clickColor = { 255 * bright + _hoverVoxelOriginalColor[0] * (1.f - bright),
-                                _hoverVoxelOriginalColor[1] * (1.f - bright),
-                                _hoverVoxelOriginalColor[2] * (1.f - bright), 1 };
-        hoveredNode->setColor(clickColor);
-        if (bright < 0.01f) {
-            hoveredNode->setColor(_hoverVoxelOriginalColor);
+        if (hoveredNode) {
+            float bright = _audio.getCollisionSoundMagnitude();
+            nodeColor clickColor = { 255 * bright + _hoverVoxelOriginalColor[0] * (1.f - bright),
+                                    _hoverVoxelOriginalColor[1] * (1.f - bright),
+                                    _hoverVoxelOriginalColor[2] * (1.f - bright), 1 };
+            hoveredNode->setColor(clickColor);
+            if (bright < 0.01f) {
+                hoveredNode->setColor(_hoverVoxelOriginalColor);
+                _isHoverVoxelSounding = false;
+            }
+        } else {
+            //  Voxel is not found, clear all
             _isHoverVoxelSounding = false;
-        }   
+            _isHoverVoxel = false; 
+        }
     } else {
         //  Check for a new hover voxel
         glm::vec4 oldVoxel(_hoverVoxel.x, _hoverVoxel.y, _hoverVoxel.z, _hoverVoxel.s);
@@ -2732,7 +2883,7 @@ void Application::displaySide(Camera& whichCamera) {
     glRotatef(-glm::angle(rotation), axis.x, axis.y, axis.z);
 
     glTranslatef(-whichCamera.getPosition().x, -whichCamera.getPosition().y, -whichCamera.getPosition().z);
-    
+
     //  Setup 3D lights (after the camera transform, so that they are positioned in world space)
     glEnable(GL_COLOR_MATERIAL);
     glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
@@ -2849,6 +3000,7 @@ void Application::displaySide(Camera& whichCamera) {
             _myAvatar.getHead().setLookAtPosition(_myCamera.getPosition());
         } 
         _myAvatar.render(_lookingInMirror->isChecked(), _renderAvatarBalls->isChecked());
+        _myAvatar.setDisplayingLookatVectors(_renderLookatOn->isChecked());
 
         if (_renderLookatIndicatorOn->isChecked() && _isLookingAtOtherAvatar) {
             renderLookatIndicator(_lookatOtherPosition, whichCamera);
@@ -2862,7 +3014,7 @@ void Application::displaySide(Camera& whichCamera) {
     }
 
     //  Render the world box
-    if (!_lookingInMirror->isChecked() && _renderStatsOn->isChecked()) { render_world_box(); }
+    if (!_lookingInMirror->isChecked() && _renderStatsOn->isChecked()) { renderWorldBox(); }
     
     // brad's frustum for debugging
     if (_frustumOn->isChecked()) renderViewFrustum(_viewFrustum);

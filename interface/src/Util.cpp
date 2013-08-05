@@ -223,39 +223,54 @@ void noiseTest(int w, int h) {
     glEnd();
 }
     
-void render_world_box() {
-    //  Show edge of world 
+void renderWorldBox() {
+    //  Show edge of world
+    float red[] = {1, 0, 0};
+    float green[] = {0, 1, 0};
+    float blue[] = {0, 0, 1};
+    float gray[] = {0.5, 0.5, 0.5};
+    
     glDisable(GL_LIGHTING);
-    glColor4f(1.0, 1.0, 1.0, 1.0);
     glLineWidth(1.0);
     glBegin(GL_LINES);
-    glColor3f(1, 0, 0);
+    glColor3fv(red);
     glVertex3f(0, 0, 0);
-    glVertex3f(WORLD_SIZE, 0, 0);
-    glColor3f(0, 1, 0);
+    glVertex3f(TREE_SCALE, 0, 0);
+    glColor3fv(green);
     glVertex3f(0, 0, 0);
-    glVertex3f(0, WORLD_SIZE, 0);
-    glColor3f(0, 0, 1);
+    glVertex3f(0, TREE_SCALE, 0);
+    glColor3fv(blue);
     glVertex3f(0, 0, 0);
-    glVertex3f(0, 0, WORLD_SIZE);
+    glVertex3f(0, 0, TREE_SCALE);
+    glColor3fv(gray);
+    glVertex3f(0, 0, TREE_SCALE);
+    glVertex3f(TREE_SCALE, 0, TREE_SCALE);
+    glVertex3f(TREE_SCALE, 0, TREE_SCALE);
+    glVertex3f(TREE_SCALE, 0, 0);
     glEnd();
-    //  Draw little marker dots along the axis
+    //  Draw marker dots at very end
     glEnable(GL_LIGHTING);
     glPushMatrix();
-    glTranslatef(WORLD_SIZE, 0, 0);
-    glColor3f(1, 0, 0);
+    glTranslatef(TREE_SCALE, 0, 0);
+    glColor3fv(red);
     glutSolidSphere(0.125, 10, 10);
     glPopMatrix();
     glPushMatrix();
-    glTranslatef(0, WORLD_SIZE, 0);
-    glColor3f(0, 1, 0);
+    glTranslatef(0, TREE_SCALE, 0);
+    glColor3fv(green);
     glutSolidSphere(0.125, 10, 10);
     glPopMatrix();
     glPushMatrix();
-    glTranslatef(0, 0, WORLD_SIZE);
-    glColor3f(0, 0, 1);
+    glTranslatef(0, 0, TREE_SCALE);
+    glColor3fv(blue);
     glutSolidSphere(0.125, 10, 10);
     glPopMatrix();
+    glPushMatrix();
+    glColor3fv(gray);
+    glTranslatef(TREE_SCALE, 0, TREE_SCALE);
+    glutSolidSphere(0.125, 10, 10);
+    glPopMatrix();
+
 }
 
 double diffclock(timeval *clock1,timeval *clock2)
