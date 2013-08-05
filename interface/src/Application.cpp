@@ -2562,7 +2562,7 @@ void Application::update(float deltaTime) {
     
     if (_renderParticleSystemOn->isChecked()) {
         updateParticleSystem(deltaTime);
-    }        
+    }      
 }
 
 void Application::updateAvatar(float deltaTime) {
