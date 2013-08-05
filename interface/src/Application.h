@@ -213,6 +213,7 @@ private:
     void update(float deltaTime);
     Avatar* isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection,
                                 glm::vec3& eyePosition, uint16_t& nodeID);
+    bool isLookingAtMyAvatar(Avatar* avatar);
                                 
     void renderLookatIndicator(glm::vec3 pointOfInterest, Camera& whichCamera);
     void updateAvatar(float deltaTime);

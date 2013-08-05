@@ -2254,7 +2254,7 @@ Avatar* Application::isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3
         if (node->getLinkedData() != NULL && node->getType() == NODE_TYPE_AGENT) {
             Avatar* avatar = (Avatar *) node->getLinkedData();
             glm::vec3 headPosition = avatar->getHead().getPosition();
-            if (rayIntersectsSphere(mouseRayOrigin, mouseRayDirection, headPosition, HEAD_SPHERE_RADIUS)) {
+            if (rayIntersectsSphere(mouseRayOrigin, mouseRayDirection, headPosition, HEAD_SPHERE_RADIUS * avatar->getScale())) {
                 eyePosition = avatar->getHead().getEyePosition();
                 _lookatIndicatorScale = avatar->getScale();
                 _lookatOtherPosition = headPosition;
@@ -2264,6 +2264,16 @@ Avatar* Application::isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3
         }
     }
     return NULL;
+}
+
+bool Application::isLookingAtMyAvatar(Avatar* avatar) {
+    glm::vec3 theirLookat = avatar->getHead().getLookAtPosition();
+    glm::vec3 myHeadPosition = _myAvatar.getHead().getPosition();
+    
+    if (pointInSphere(theirLookat, myHeadPosition, HEAD_SPHERE_RADIUS * _myAvatar.getScale())) {
+        return true;
+    }
+    return false;
 }
 
 void Application::renderLookatIndicator(glm::vec3 pointOfInterest, Camera& whichCamera) {
@@ -3014,6 +3024,9 @@ void Application::displaySide(Camera& whichCamera) {
                 Avatar *avatar = (Avatar *)node->getLinkedData();
                 if (!avatar->isInitialized()) {
                     avatar->init();
+                }
+                if (isLookingAtMyAvatar(avatar)) {
+                    avatar->getHead().setLookAtPosition(_myCamera.getPosition());
                 }
                 avatar->render(false, _renderAvatarBalls->isChecked());
                 avatar->setDisplayingLookatVectors(_renderLookatOn->isChecked());
