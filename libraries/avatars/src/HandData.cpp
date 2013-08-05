@@ -7,11 +7,20 @@
 //
 
 #include "HandData.h"
+#include "AvatarData.h"
+
+// Glove flags
+#define GLOVE_FLAG_RAVE 0x01
+
+// When converting between fixed and float, use this as the radix.
+const int fingerVectorRadix = 4;
 
 HandData::HandData(AvatarData* owningAvatar) :
     _basePosition(0.0f, 0.0f, 0.0f),
     _baseOrientation(0.0f, 0.0f, 0.0f, 1.0f),
-    _owningAvatarData(owningAvatar)
+    _owningAvatarData(owningAvatar),
+    _isRaveGloveActive(false),
+    _raveGloveMode(RAVE_GLOVE_EFFECTS_MODE_THROBBING_COLOR)
 {
     // Start with two palms
     addNewPalm();
@@ -49,53 +58,113 @@ _owningHandData(owningHandData)
     setTrailLength(standardTrailLength);
 }
 
-void HandData::encodeRemoteData(std::vector<glm::vec3>& fingerVectors) {
-    fingerVectors.clear();
-    
-    for (size_t i = 0; i < getNumPalms(); ++i) {
+int HandData::encodeRemoteData(unsigned char* destinationBuffer) {
+    const unsigned char* startPosition = destinationBuffer;
 
-        PalmData& palm = getPalms()[i];
-        if (!palm.isActive()) {
-            continue;
+    unsigned char gloveFlags = 0;
+    if (isRaveGloveActive())
+        gloveFlags |= GLOVE_FLAG_RAVE;
+    
+    *destinationBuffer++ = gloveFlags;
+    *destinationBuffer++ = getRaveGloveMode();
+    
+    unsigned int numHands = 0;
+    for (unsigned int handIndex = 0; handIndex < getNumPalms(); ++handIndex) {
+        PalmData& palm = getPalms()[handIndex];
+        if (palm.isActive()) {
+            numHands++;
         }
-        fingerVectors.push_back(palm.getRawPosition());
-        fingerVectors.push_back(palm.getRawNormal());
-        for (size_t f = 0; f < palm.getNumFingers(); ++f) {
-            FingerData& finger = palm.getFingers()[f];
-            
-            if (finger.isActive()) {
-                fingerVectors.push_back(finger.getTipRawPosition());
-                fingerVectors.push_back(finger.getRootRawPosition());
+    }
+    *destinationBuffer++ = numHands;
+
+    for (unsigned int handIndex = 0; handIndex < getNumPalms(); ++handIndex) {
+        PalmData& palm = getPalms()[handIndex];
+        if (palm.isActive()) {
+            destinationBuffer += packFloatVec3ToSignedTwoByteFixed(destinationBuffer, palm.getRawPosition(), fingerVectorRadix);
+            destinationBuffer += packFloatVec3ToSignedTwoByteFixed(destinationBuffer, palm.getRawNormal(), fingerVectorRadix);
+
+            unsigned int numFingers = 0;
+            for (unsigned int fingerIndex = 0; fingerIndex < palm.getNumFingers(); ++fingerIndex) {
+                FingerData& finger = palm.getFingers()[fingerIndex];
+                if (finger.isActive()) {
+                    numFingers++;
+                }
             }
-            else {
-                fingerVectors.push_back(glm::vec3(0,0,0));
-                fingerVectors.push_back(glm::vec3(0,0,0));
+            *destinationBuffer++ = numFingers;
+
+            for (unsigned int fingerIndex = 0; fingerIndex < palm.getNumFingers(); ++fingerIndex) {
+                FingerData& finger = palm.getFingers()[fingerIndex];
+                if (finger.isActive()) {
+                    destinationBuffer += packFloatVec3ToSignedTwoByteFixed(destinationBuffer, finger.getTipRawPosition(), fingerVectorRadix);
+                    destinationBuffer += packFloatVec3ToSignedTwoByteFixed(destinationBuffer, finger.getRootRawPosition(), fingerVectorRadix);
+                }
             }
         }
     }
+    // One byte for error checking safety.
+    size_t checkLength = destinationBuffer - startPosition;
+    *destinationBuffer++ = (unsigned char)checkLength;
+
+    return destinationBuffer - startPosition;
 }
 
-void HandData::decodeRemoteData(const std::vector<glm::vec3>& fingerVectors) {
-    size_t vectorIndex = 0;
-    for (size_t i = 0; i < getNumPalms(); ++i) {
-        PalmData& palm = getPalms()[i];
-        // If a palm is active, there will be
-        //  1 vector for its position
-        //  1 vector for normal
-        // 10 vectors for fingers (5 tip/root pairs)
-        bool palmActive = fingerVectors.size() >= i * 12;
-        palm.setActive(palmActive);
-        if (palmActive) {
-            palm.setRawPosition(fingerVectors[vectorIndex++]);
-            palm.setRawNormal(fingerVectors[vectorIndex++]);
-            for (size_t f = 0; f < NUM_FINGERS_PER_HAND; ++f) {
-                FingerData& finger = palm.getFingers()[f];
+int HandData::decodeRemoteData(unsigned char* sourceBuffer) {
+    const unsigned char* startPosition = sourceBuffer;
+        
+    unsigned char gloveFlags = *sourceBuffer++;
+    char effectsMode = *sourceBuffer++;
+    unsigned int numHands = *sourceBuffer++;
+    
+    for (unsigned int handIndex = 0; handIndex < numHands; ++handIndex) {
+        if (handIndex >= getNumPalms())
+            addNewPalm();
+        PalmData& palm = getPalms()[handIndex];
+
+        glm::vec3 handPosition;
+        glm::vec3 handNormal;
+        sourceBuffer += unpackFloatVec3FromSignedTwoByteFixed(sourceBuffer, handPosition, fingerVectorRadix);
+        sourceBuffer += unpackFloatVec3FromSignedTwoByteFixed(sourceBuffer, handNormal, fingerVectorRadix);
+        unsigned int numFingers = *sourceBuffer++;
+
+        palm.setRawPosition(handPosition);
+        palm.setRawNormal(handNormal);
+        palm.setActive(true);
+        
+        for (unsigned int fingerIndex = 0; fingerIndex < numFingers; ++fingerIndex) {
+            if (fingerIndex < palm.getNumFingers()) {
+                FingerData& finger = palm.getFingers()[fingerIndex];
+
+                glm::vec3 tipPosition;
+                glm::vec3 rootPosition;
+                sourceBuffer += unpackFloatVec3FromSignedTwoByteFixed(sourceBuffer, tipPosition, fingerVectorRadix);
+                sourceBuffer += unpackFloatVec3FromSignedTwoByteFixed(sourceBuffer, rootPosition, fingerVectorRadix);
+
+                finger.setRawTipPosition(tipPosition);
+                finger.setRawRootPosition(rootPosition);
                 finger.setActive(true);
-                finger.setRawTipPosition(fingerVectors[vectorIndex++]);
-                finger.setRawRootPosition(fingerVectors[vectorIndex++]);
             }
         }
+        // Turn off any fingers which weren't used.
+        for (unsigned int fingerIndex = numFingers; fingerIndex < palm.getNumFingers(); ++fingerIndex) {
+            FingerData& finger = palm.getFingers()[fingerIndex];
+            finger.setActive(false);
+        }
     }
+    // Turn off any hands which weren't used.
+    for (unsigned int handIndex = numHands; handIndex < getNumPalms(); ++handIndex) {
+        PalmData& palm = getPalms()[handIndex];
+        palm.setActive(false);
+    }
+    
+    setRaveGloveActive((gloveFlags & GLOVE_FLAG_RAVE) != 0);
+    setRaveGloveMode(effectsMode);
+
+    // One byte for error checking safety.
+    unsigned char requiredLength = (unsigned char)(sourceBuffer - startPosition);
+    unsigned char checkLength = *sourceBuffer++;
+    assert(checkLength == requiredLength);
+
+    return sourceBuffer - startPosition;
 }
 
 void HandData::setFingerTrailLength(unsigned int length) {

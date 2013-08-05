@@ -25,6 +25,22 @@ const int NUM_FINGERS = NUM_HANDS * NUM_FINGERS_PER_HAND;
 
 const int LEAPID_INVALID = -1;
 
+enum RaveGloveEffectsMode
+{
+	RAVE_GLOVE_EFFECTS_MODE_NULL = -1,
+	RAVE_GLOVE_EFFECTS_MODE_THROBBING_COLOR,
+	RAVE_GLOVE_EFFECTS_MODE_TRAILS,
+	RAVE_GLOVE_EFFECTS_MODE_FIRE,
+	RAVE_GLOVE_EFFECTS_MODE_WATER,
+	RAVE_GLOVE_EFFECTS_MODE_FLASHY,
+	RAVE_GLOVE_EFFECTS_MODE_BOZO_SPARKLER,
+	RAVE_GLOVE_EFFECTS_MODE_LONG_SPARKLER,
+	RAVE_GLOVE_EFFECTS_MODE_SNAKE,
+	RAVE_GLOVE_EFFECTS_MODE_PULSE,
+	RAVE_GLOVE_EFFECTS_MODE_THROB,
+	NUM_RAVE_GLOVE_EFFECTS_MODES
+};
+
 class HandData {
 public:
     HandData(AvatarData* owningAvatar);
@@ -49,15 +65,22 @@ public:
     void updateFingerTrails();
 
     // Use these for sending and receiving hand data
-    void encodeRemoteData(std::vector<glm::vec3>& fingerVectors);
-    void decodeRemoteData(const std::vector<glm::vec3>& fingerVectors);
-    
+    int encodeRemoteData(unsigned char* destinationBuffer);
+    int decodeRemoteData(unsigned char* sourceBuffer);
+
+    void setRaveGloveActive(bool active)          { _isRaveGloveActive = active; }
+    virtual void setRaveGloveMode(int effectsMode)        { _raveGloveMode = effectsMode; }
+    bool isRaveGloveActive() const                { return _isRaveGloveActive; }
+    int  getRaveGloveMode()                       { return _raveGloveMode; }
+
     friend class AvatarData;
 protected:
     glm::vec3              _basePosition;      // Hands are placed relative to this
     glm::quat              _baseOrientation;   // Hands are placed relative to this
     AvatarData* _owningAvatarData;
     std::vector<PalmData>  _palms;
+    bool                   _isRaveGloveActive;
+    int                    _raveGloveMode;
 private:
     // privatize copy ctor and assignment operator so copies of this object cannot be made
     HandData(const HandData&);
