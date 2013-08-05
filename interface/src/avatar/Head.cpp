@@ -59,7 +59,7 @@ Head::Head(Avatar* owningAvatar) :
     _rotation(0.0f, 0.0f, 0.0f),
     _leftEyePosition(0.0f, 0.0f, 0.0f),
     _rightEyePosition(0.0f, 0.0f, 0.0f),
-    _eyeLevelPosition(0.0f, 0.0f, 0.0f),
+    _eyePosition(0.0f, 0.0f, 0.0f),
     _leftEyeBrowPosition(0.0f, 0.0f, 0.0f),
     _rightEyeBrowPosition(0.0f, 0.0f, 0.0f),
     _leftEarPosition(0.0f, 0.0f, 0.0f),
@@ -279,7 +279,7 @@ void Head::calculateGeometry() {
                       + up    * scale * EYE_UP_OFFSET 
                       + front * scale * EYE_FRONT_OFFSET;
 
-    _eyeLevelPosition = _rightEyePosition - right * scale * EYE_RIGHT_OFFSET;
+    _eyePosition = _rightEyePosition - right * scale * EYE_RIGHT_OFFSET;
 
     //calculate the eyebrow positions 
     _leftEyeBrowPosition  = _leftEyePosition; 

@@ -571,9 +571,8 @@ void Application::keyPressEvent(QKeyEvent* event) {
             _myAvatar.getHand().setRaveGloveEffectsMode((QKeyEvent*)event);
         }
 
-        bool alt     = event->modifiers().testFlag(Qt::AltModifier);
-        bool meta    = event->modifiers().testFlag(Qt::MetaModifier);
-        bool shifted = event->modifiers().testFlag(Qt::ShiftModifier);
+        bool isMeta    = event->modifiers().testFlag(Qt::MetaModifier);
+        bool isShifted = event->modifiers().testFlag(Qt::ShiftModifier);
         switch (event->key()) {
             case Qt::Key_BracketLeft:
                 _viewFrustumOffsetYaw -= 0.5;
@@ -646,9 +645,9 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
                 
             case Qt::Key_C:
-                if (shifted)  {
+                if (isShifted)  {
                     _occlusionCulling->trigger();
-                } else if (meta) {
+                } else if (isMeta) {
                     chooseVoxelPaintColor();
                 } else {
                     _myAvatar.setDriveKeys(DOWN, 1);
@@ -660,7 +659,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
                 
             case Qt::Key_S:
-                if (shifted)  {
+                if (isShifted)  {
                     doTreeStats();
                 } else {
                     _myAvatar.setDriveKeys(BACK, 1);
@@ -673,7 +672,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
                 
             case Qt::Key_G:
-                if (shifted) {
+                if (isShifted) {
                     _gravityUse->trigger();
                 } else {
                     _eyedropperMode->trigger();
@@ -681,7 +680,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
                 
             case Qt::Key_A:
-                if (shifted) {
+                if (isShifted) {
                     _renderAtmosphereOn->trigger();
                 } else {
                     _myAvatar.setDriveKeys(ROT_LEFT, 1);
@@ -701,23 +700,23 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
                 
             case Qt::Key_Up:
-                _myAvatar.setDriveKeys(shifted ? UP : FWD, 1);
+                _myAvatar.setDriveKeys(isShifted ? UP : FWD, 1);
                 break;
                 
             case Qt::Key_Down:
-                _myAvatar.setDriveKeys(shifted ? DOWN : BACK, 1);
+                _myAvatar.setDriveKeys(isShifted ? DOWN : BACK, 1);
                 break;
                 
             case Qt::Key_Left:
-                _myAvatar.setDriveKeys(shifted ? LEFT : ROT_LEFT, 1);
+                _myAvatar.setDriveKeys(isShifted ? LEFT : ROT_LEFT, 1);
                 break;
                 
             case Qt::Key_Right:
-                _myAvatar.setDriveKeys(shifted ? RIGHT : ROT_RIGHT, 1);
+                _myAvatar.setDriveKeys(isShifted ? RIGHT : ROT_RIGHT, 1);
                 break;
                 
             case Qt::Key_I:
-                if (shifted) {
+                if (isShifted) {
                     _myCamera.setEyeOffsetOrientation(glm::normalize(
                                                                      glm::quat(glm::vec3(0.002f, 0, 0)) * _myCamera.getEyeOffsetOrientation()));
                 } else {
@@ -727,7 +726,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
                 
             case Qt::Key_K:
-                if (shifted) {
+                if (isShifted) {
                     _myCamera.setEyeOffsetOrientation(glm::normalize(
                                                                      glm::quat(glm::vec3(-0.002f, 0, 0)) * _myCamera.getEyeOffsetOrientation()));
                 } else {
@@ -737,7 +736,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
                 
             case Qt::Key_J:
-                if (shifted) {
+                if (isShifted) {
                     _myCamera.setEyeOffsetOrientation(glm::normalize(
                                                                      glm::quat(glm::vec3(0, 0.002f, 0)) * _myCamera.getEyeOffsetOrientation()));
                 } else {
@@ -747,7 +746,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
                 
             case Qt::Key_M:
-                if (shifted) {
+                if (isShifted) {
                     _myCamera.setEyeOffsetOrientation(glm::normalize(
                                                                      glm::quat(glm::vec3(0, -0.002f, 0)) * _myCamera.getEyeOffsetOrientation()));
                 } else {
@@ -757,7 +756,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
                 
             case Qt::Key_U:
-                if (shifted) {
+                if (isShifted) {
                     _myCamera.setEyeOffsetOrientation(glm::normalize(
                                                                      glm::quat(glm::vec3(0, 0, -0.002f)) * _myCamera.getEyeOffsetOrientation()));
                 } else {
@@ -767,7 +766,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
                 
             case Qt::Key_Y:
-                if (shifted) {
+                if (isShifted) {
                     _myCamera.setEyeOffsetOrientation(glm::normalize(
                                                                      glm::quat(glm::vec3(0, 0, 0.002f)) * _myCamera.getEyeOffsetOrientation()));
                 } else {
@@ -782,14 +781,14 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 _lookingInMirror->trigger();
                 break;
             case Qt::Key_F:
-                if (shifted)  {
+                if (isShifted)  {
                     _frustumOn->trigger();
                 } else {
                     _fullScreenMode->trigger();
                 }
                 break;
             case Qt::Key_V:
-                if (shifted) {
+                if (isShifted) {
                     _renderVoxels->trigger();
                 } else {
                     _addVoxelMode->trigger();
@@ -799,7 +798,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                  _manualFirstPerson->trigger();
                  break;
             case Qt::Key_R:
-                if (shifted)  {
+                if (isShifted)  {
                     _frustumRenderModeAction->trigger();
                 } else {
                     _deleteVoxelMode->trigger();
@@ -809,7 +808,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
             _colorVoxelMode->trigger();
                 break;
             case Qt::Key_O:
-                if (shifted)  {
+                if (isShifted)  {
                     _viewFrustumFromOffset->trigger();
                 } else {
                     _selectVoxelMode->trigger();
@@ -825,14 +824,10 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 }
                 break;
             case Qt::Key_Plus:
-                if (alt) {
-                    increaseAvatarSize();
-                }
+                increaseAvatarSize();
                 break;
             case Qt::Key_Minus:
-                if (alt) {
-                    decreaseAvatarSize();
-                }
+                decreaseAvatarSize();
                 break;
 
             case Qt::Key_1:
@@ -1930,8 +1925,8 @@ void Application::initMenu() {
         "First Person", this, SLOT(setRenderFirstPerson(bool)), Qt::Key_P))->setCheckable(true);
     (_manualThirdPerson = renderMenu->addAction(
         "Third Person", this, SLOT(setRenderThirdPerson(bool))))->setCheckable(true);
-    renderMenu->addAction("Increase Avatar Size", this, SLOT(increaseAvatarSize()), Qt::ALT | Qt::Key_Plus);
-    renderMenu->addAction("Decrease Avatar Size", this, SLOT(decreaseAvatarSize()), Qt::ALT | Qt::Key_Minus);
+    renderMenu->addAction("Increase Avatar Size", this, SLOT(increaseAvatarSize()), Qt::Key_Plus);
+    renderMenu->addAction("Decrease Avatar Size", this, SLOT(decreaseAvatarSize()), Qt::Key_Minus);
 
     
     QMenu* toolsMenu = menuBar->addMenu("Tools");
@@ -2196,7 +2191,7 @@ Avatar* Application::isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3
             Avatar* avatar = (Avatar *) node->getLinkedData();
             glm::vec3 headPosition = avatar->getHead().getPosition();
             if (rayIntersectsSphere(mouseRayOrigin, mouseRayDirection, headPosition, HEAD_SPHERE_RADIUS)) {
-                eyePosition = avatar->getHead().getEyeLevelPosition();
+                eyePosition = avatar->getHead().getEyePosition();
                 _lookatIndicatorScale = avatar->getScale();
                 _lookatOtherPosition = headPosition;
                 nodeID = avatar->getOwningNode()->getNodeID();
@@ -2245,22 +2240,21 @@ void Application::update(float deltaTime) {
     _myAvatar.setMouseRay(mouseRayOrigin, mouseRayDirection);
     
     // Set where I am looking based on my mouse ray (so that other people can see)
-    glm::vec3 eyePosition;
+    glm::vec3 lookAtSpot;
 
-    _isLookingAtOtherAvatar = isLookingAtOtherAvatar(mouseRayOrigin, mouseRayDirection, eyePosition);
+    _isLookingAtOtherAvatar = isLookingAtOtherAvatar(mouseRayOrigin, mouseRayDirection, lookAtSpot);
     if (_isLookingAtOtherAvatar) {
         // If the mouse is over another avatar's head...
-        glm::vec3 myLookAtFromMouse(eyePosition);
-         _myAvatar.getHead().setLookAtPosition(myLookAtFromMouse);
+         _myAvatar.getHead().setLookAtPosition(lookAtSpot);
     } else if (_isHoverVoxel) {
         //  Look at the hovered voxel
-        glm::vec3 lookAtSpot = getMouseVoxelWorldCoordinates(_hoverVoxel);
+        lookAtSpot = getMouseVoxelWorldCoordinates(_hoverVoxel);
         _myAvatar.getHead().setLookAtPosition(lookAtSpot);
     } else {
         //  Just look in direction of the mouse ray
         const float FAR_AWAY_STARE = TREE_SCALE;
-        glm::vec3 myLookAtFromMouse(mouseRayOrigin + mouseRayDirection * FAR_AWAY_STARE);
-        _myAvatar.getHead().setLookAtPosition(myLookAtFromMouse);
+        lookAtSpot = mouseRayOrigin + mouseRayDirection * FAR_AWAY_STARE;
+        _myAvatar.getHead().setLookAtPosition(lookAtSpot);
     }
     
     //  Find the voxel we are hovering over, and respond if clicked
@@ -2835,7 +2829,7 @@ void Application::displaySide(Camera& whichCamera) {
     glRotatef(-glm::angle(rotation), axis.x, axis.y, axis.z);
 
     glTranslatef(-whichCamera.getPosition().x, -whichCamera.getPosition().y, -whichCamera.getPosition().z);
-    
+
     //  Setup 3D lights (after the camera transform, so that they are positioned in world space)
     glEnable(GL_COLOR_MATERIAL);
     glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
@@ -2954,7 +2948,7 @@ void Application::displaySide(Camera& whichCamera) {
         _myAvatar.render(_lookingInMirror->isChecked(), _renderAvatarBalls->isChecked());
         _myAvatar.setDisplayingLookatVectors(_renderLookatOn->isChecked());
 
-        if (_renderLookatIndicatorOn->isChecked()) {
+        if (_renderLookatIndicatorOn->isChecked() && _isLookingAtOtherAvatar) {
             renderLookatIndicator(_lookatOtherPosition, whichCamera);
         }
     }

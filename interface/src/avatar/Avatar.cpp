@@ -101,8 +101,8 @@ Avatar::Avatar(Node* owningNode) :
     _lastCollisionPosition(0, 0, 0),
     _speedBrakes(false),
     _isThrustOn(false),
-    _voxels(this),
-    _leadingAvatar(NULL)
+    _leadingAvatar(NULL),
+    _voxels(this)
 {
     // give the pointer to our head to inherited _headData variable from AvatarData
     _headData = &_head;
@@ -369,9 +369,22 @@ glm::vec3 Avatar::getUprightHeadPosition() const {
 }
 
 glm::vec3 Avatar::getUprightEyeLevelPosition() const {
-    const float EYE_UP_OFFSET = 0.36f;
+     const float EYE_UP_OFFSET = 0.36f;
     glm::vec3 up = getWorldAlignedOrientation() * IDENTITY_UP;
     return _position + up * _scale * BODY_BALL_RADIUS_HEAD_BASE * EYE_UP_OFFSET + glm::vec3(0.0f, _pelvisToHeadLength, 0.0f);
+}
+
+glm::vec3 Avatar::getEyePosition() {
+    const float EYE_UP_OFFSET = 0.36f;
+    const float EYE_FRONT_OFFSET = 0.8f;
+
+    glm::quat orientation = getWorldAlignedOrientation();
+    glm::vec3 up    = orientation * IDENTITY_UP;
+    glm::vec3 front = orientation * IDENTITY_FRONT;
+
+    float scale = _scale * BODY_BALL_RADIUS_HEAD_BASE;
+    
+    return getHead().getPosition() + up * scale * EYE_UP_OFFSET + front * scale * EYE_FRONT_OFFSET;
 }
 
 void Avatar::updateThrust(float deltaTime, Transmitter * transmitter) {
