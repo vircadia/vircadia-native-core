@@ -149,6 +149,8 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     
     // leap hand data
     std::vector<glm::vec3> fingerVectors;
+    
+//printf("about to call _handData->encodeRemoteData(fingerVectors);\n");
     _handData->encodeRemoteData(fingerVectors);
 
     if (fingerVectors.size() > 255)
@@ -263,17 +265,32 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     // hand state, stored as a semi-nibble in the bitItems
     _handState = getSemiNibbleAt(bitItems,HAND_STATE_START_BIT);
 
+//printf("about to call leap hand data code in AvatarData::parseData...\n");
+
     // leap hand data
     if (sourceBuffer - startPosition < numBytes) {
+
+//printf("got inside of 'if (sourceBuffer - startPosition < numBytes)'\n");
+
+
         // check passed, bytes match
         unsigned int numFingerVectors = *sourceBuffer++;
+
+//printf("numFingerVectors = %d\n", numFingerVectors);
+
+
         if (numFingerVectors > 0) {
+        
+//printf("ok, we got fingers in AvatarData::parseData\n");
+        
             std::vector<glm::vec3> fingerVectors(numFingerVectors);
             for (size_t i = 0; i < numFingerVectors; ++i) {
                 sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(fingerVectors[i].x), fingerVectorRadix);
                 sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(fingerVectors[i].y), fingerVectorRadix);
                 sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(fingerVectors[i].z), fingerVectorRadix);
             }
+            
+//printf("about to call _handData->decodeRemoteData(fingerVectors);\n");
             _handData->decodeRemoteData(fingerVectors);
         }
     }
