@@ -6,8 +6,8 @@
 //  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
 
-#import <QtScript/QScriptEngine>
-#import <QtNetwork/QtNetwork>
+#include <QtScript/QScriptEngine>
+#include <QtNetwork/QtNetwork>
 
 #include <NodeList.h>
 

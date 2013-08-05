@@ -191,4 +191,8 @@ int unpackFloatFromByte(unsigned char* buffer, float& value, float scaleBy);
 int packFloatScalarToSignedTwoByteFixed(unsigned char* buffer, float scalar, int radix);
 int unpackFloatScalarFromSignedTwoByteFixed(int16_t* byteFixedPointer, float* destinationPointer, int radix);
 
+// A convenience for sending vec3's as fixed-poimt floats
+int packFloatVec3ToSignedTwoByteFixed(unsigned char* destBuffer, const glm::vec3& srcVector, int radix);
+int unpackFloatVec3FromSignedTwoByteFixed(unsigned char* sourceBuffer, glm::vec3& destination, int radix);
+
 #endif /* defined(__hifi__AvatarData__) */

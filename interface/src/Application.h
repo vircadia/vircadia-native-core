@@ -105,11 +105,11 @@ public:
     
     QNetworkAccessManager* getNetworkAccessManager() { return _networkAccessManager; }
     GeometryCache* getGeometryCache() { return &_geometryCache; }
+    
+    void resetSongMixMenuItem();
 
 public slots:
-
     void sendAvatarFaceVideoMessage(int frameCount, const QByteArray& data);    
-    
     
 private slots:
     
