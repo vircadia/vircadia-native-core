@@ -121,7 +121,6 @@ int HandData::decodeRemoteData(unsigned char* sourceBuffer) {
     for (unsigned int handIndex = 0; handIndex < numHands; ++handIndex) {
         if (handIndex >= getNumPalms())
             addNewPalm();
-        if (handIndex < getNumPalms()) {
         PalmData& palm = getPalms()[handIndex];
 
         glm::vec3 handPosition;
@@ -133,6 +132,7 @@ int HandData::decodeRemoteData(unsigned char* sourceBuffer) {
         palm.setRawPosition(handPosition);
         palm.setRawNormal(handNormal);
         palm.setActive(true);
+        
         for (unsigned int fingerIndex = 0; fingerIndex < numFingers; ++fingerIndex) {
             if (fingerIndex < palm.getNumFingers()) {
                 FingerData& finger = palm.getFingers()[fingerIndex];
@@ -151,7 +151,6 @@ int HandData::decodeRemoteData(unsigned char* sourceBuffer) {
         for (unsigned int fingerIndex = numFingers; fingerIndex < palm.getNumFingers(); ++fingerIndex) {
             FingerData& finger = palm.getFingers()[fingerIndex];
             finger.setActive(false);
-        }
         }
     }
     // Turn off any hands which weren't used.
