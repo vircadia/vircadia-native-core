@@ -135,6 +135,7 @@ private slots:
     void setRenderThirdPerson(bool thirdPerson);
     void increaseAvatarSize();
     void decreaseAvatarSize();
+    void resetAvatarSize();
     
     void renderThrustAtVoxel(const glm::vec3& thrust);
     void renderLineToTouchedVoxel();

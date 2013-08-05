@@ -105,6 +105,12 @@ void Camera::updateFollowMode(float deltaTime) {
     }
 }
 
+float Camera::getFarClip() const {
+    return (_scale * _farClip < std::numeric_limits<int16_t>::max())
+            ? _scale * _farClip
+            : std::numeric_limits<int16_t>::max() - 1;
+}
+
 void Camera::setModeShiftRate ( float rate ) {
     
     _modeShiftRate = rate;
@@ -188,7 +194,7 @@ void Camera::initialize() {
 }
 
 // call to find out if the view frustum needs to be reshaped
-bool Camera::getFrustumNeedsReshape() {
+bool Camera::getFrustumNeedsReshape() const {
     return _frustumNeedsReshape;
 }
 

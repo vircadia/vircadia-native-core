@@ -27,10 +27,6 @@ HandData::HandData(AvatarData* owningAvatar) :
     addNewPalm();
 }
 
-HandData::~HandData() {
-}
-
-
 PalmData& HandData::addNewPalm()  {
     _palms.push_back(PalmData(this));
     return _palms.back();
@@ -109,6 +105,9 @@ int HandData::encodeRemoteData(unsigned char* destinationBuffer) {
     size_t checkLength = destinationBuffer - startPosition;
     *destinationBuffer++ = (unsigned char)checkLength;
 
+    // just a double-check, while tracing a crash.
+//    decodeRemoteData(destinationBuffer - (destinationBuffer - startPosition));
+    
     return destinationBuffer - startPosition;
 }
 
@@ -161,8 +160,9 @@ int HandData::decodeRemoteData(unsigned char* sourceBuffer) {
     }
     
     setRaveGloveActive((gloveFlags & GLOVE_FLAG_RAVE) != 0);
-    setRaveGloveMode(effectsMode);
-
+// This is disabled for crash tracing.
+//    setRaveGloveMode(effectsMode);
+    
     // One byte for error checking safety.
     unsigned char requiredLength = (unsigned char)(sourceBuffer - startPosition);
     unsigned char checkLength = *sourceBuffer++;

@@ -44,7 +44,7 @@ enum RaveGloveEffectsMode
 class HandData {
 public:
     HandData(AvatarData* owningAvatar);
-    virtual ~HandData();
+    virtual ~HandData() {}
     
     // These methods return the positions in Leap-relative space.
     // To convert to world coordinates, use Hand::leapPositionToWorldPosition.
