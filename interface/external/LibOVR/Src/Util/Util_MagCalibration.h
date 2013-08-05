@@ -31,12 +31,12 @@ public:
         Mag_Uninitialized = 0,
         Mag_AutoCalibrating = 1,
         Mag_ManuallyCalibrating = 2,
-        Mag_Calibrated  = 3,
+        Mag_Calibrated  = 3
     };
 
     MagCalibration() :
-        Status(Mag_Uninitialized),
-        MinMagDistance(0.3f), MinQuatDistance(0.5f),
+        Stat(Mag_Uninitialized),
+        MinMagDistance(0.2f), MinQuatDistance(0.5f),
         SampleCount(0)
     {
         MinMagDistanceSq = MinMagDistance * MinMagDistance;
@@ -44,15 +44,27 @@ public:
     }
 
     // Methods that are useful for either auto or manual calibration
-    bool     IsUnitialized() const     { return Status == Mag_Uninitialized; }
-    bool     IsCalibrated() const      { return Status == Mag_Calibrated; }
-    int      NumberOfSamples() const   { return SampleCount; }
-    void     ClearCalibration(SensorFusion& sf);
-   
+    bool     IsUnitialized() const       { return Stat == Mag_Uninitialized; }
+    bool     IsCalibrated() const        { return Stat == Mag_Calibrated; }
+    int      NumberOfSamples() const     { return SampleCount; }
+    int      RequiredSampleCount() const { return 4; }
+	void     AbortCalibration()
+	{
+        Stat = Mag_Uninitialized;
+        SampleCount = 0;
+	}
+
+    void     ClearCalibration(SensorFusion& sf) 
+    {
+        Stat = Mag_Uninitialized;
+        SampleCount = 0;
+        sf.ClearMagCalibration();
+	};
+  
     // Methods for automatic magnetometer calibration
     void     BeginAutoCalibration(SensorFusion& sf);
     unsigned UpdateAutoCalibration(SensorFusion& sf);
-    bool     IsAutoCalibrating() const { return Status == Mag_AutoCalibrating; }
+    bool     IsAutoCalibrating() const { return Stat == Mag_AutoCalibrating; }
 
     // Methods for building a manual (user-guided) calibraton procedure
     void     BeginManualCalibration(SensorFusion& sf);
@@ -60,7 +72,7 @@ public:
     bool     InsertIfAcceptable(const Quatf& q, const Vector3f& m);
     // Returns true if successful, requiring that SampleCount = 4
     bool     SetCalibration(SensorFusion& sf);
-    bool     IsManuallyCalibrating() const { return Status == Mag_ManuallyCalibrating; }
+    bool     IsManuallyCalibrating() const { return Stat == Mag_ManuallyCalibrating; }
 
     // This is the minimum acceptable distance (Euclidean) between raw
     // magnetometer values to be acceptable for usage in calibration.
@@ -92,7 +104,7 @@ private:
                                const Vector3f& p3, const Vector3f& p4);
 
     Vector3f MagCenter;
-    unsigned Status;
+    unsigned Stat;
     float    MinMagDistance;
     float    MinQuatDistance;
     float    MinMagDistanceSq;

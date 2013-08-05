@@ -1019,6 +1019,85 @@ public:
 typedef Quat<float>  Quatf;
 typedef Quat<double> Quatd;
 
+
+
+//-------------------------------------------------------------------------------------
+// ***** Angle
+
+// Cleanly representing the algebra of 2D rotations.
+// The operations maintain the angle between -Pi and Pi, the same range as atan2.
+// 
+
+template<class T>
+class Angle
+{
+public:
+	enum AngularUnits
+	{
+		Radians = 0,
+		Degrees = 1
+	};
+
+    Angle() : a(0) {}
+    
+	// Fix the range to be between -Pi and Pi
+	Angle(T a_, AngularUnits u = Radians) : a((u == Radians) ? a_ : a_*Math<T>::DegreeToRadFactor) { FixRange(); }
+
+	T    Get(AngularUnits u = Radians) const       { return (u == Radians) ? a : a*Math<T>::RadToDegreeFactor; }
+	void Set(const T& x, AngularUnits u = Radians) { a = (u == Radians) ? x : x*Math<T>::DegreeToRadFactor; FixRange(); }
+	int Sign() const                               { if (a == 0) return 0; else return (a > 0) ? 1 : -1; }
+	T   Abs() const                                { return (a > 0) ? a : -a; }
+
+    bool operator== (const Angle& b) const    { return a == b.a; }
+    bool operator!= (const Angle& b) const    { return a != b.a; }
+//	bool operator<  (const Angle& b) const    { return a < a.b; } 
+//	bool operator>  (const Angle& b) const    { return a > a.b; } 
+//	bool operator<= (const Angle& b) const    { return a <= a.b; } 
+//	bool operator>= (const Angle& b) const    { return a >= a.b; } 
+//	bool operator= (const T& x)               { a = x; FixRange(); }
+
+	// These operations assume a is already between -Pi and Pi.
+    Angle  operator+  (const Angle& b) const  { return Angle(a + b.a); }
+	Angle  operator+  (const T& x) const      { return Angle(a + x); }
+	Angle& operator+= (const Angle& b)        { a = a + b.a; FastFixRange(); return *this; }
+	Angle& operator+= (const T& x)            { a = a + x; FixRange(); return *this; }
+	Angle  operator-  (const Angle& b) const  { return Angle(a - b.a); }
+	Angle  operator-  (const T& x) const      { return Angle(a - x); }
+	Angle& operator-= (const Angle& b)        { a = a - b.a; FastFixRange(); return *this; }
+	Angle& operator-= (const T& x)            { a = a - x; FixRange(); return *this; }
+	
+	T   Distance(const Angle& b)              { T c = fabs(a - b.a); return (c <= Math<T>::Pi) ? c : Math<T>::TwoPi - c; }
+
+private:
+
+	// The stored angle, which should be maintained between -Pi and Pi
+	T a;
+
+	// Fixes the angle range to [-Pi,Pi], but assumes no more than 2Pi away on either side 
+	inline void FastFixRange()
+	{
+		if (a < -Math<T>::Pi)
+			a += Math<T>::TwoPi;
+		else if (a > Math<T>::Pi)
+			a -= Math<T>::TwoPi;
+	}
+
+	// Fixes the angle range to [-Pi,Pi] for any given range, but slower then the fast method
+	inline void FixRange()
+	{
+		a = fmod(a,Math<T>::TwoPi);
+		if (a < -Math<T>::Pi)
+			a += Math<T>::TwoPi;
+		else if (a > Math<T>::Pi)
+			a -= Math<T>::TwoPi;
+	}
+};
+
+
+typedef Angle<float>  Anglef;
+typedef Angle<double> Angled;
+
+
 //-------------------------------------------------------------------------------------
 // ***** Plane
 

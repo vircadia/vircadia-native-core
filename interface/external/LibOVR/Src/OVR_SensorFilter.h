@@ -46,7 +46,7 @@ public:
     };
 
     // Create a new filter with size i
-    SensorFilter(const int &i) 
+    SensorFilter(int i) 
     {
         OVR_ASSERT(i <= MaxFilterSize);
         LastIdx = -1;
@@ -66,28 +66,30 @@ public:
     };
 
     // Get element i.  0 is the most recent, 1 is one step ago, 2 is two steps ago, ...
-    Vector3f GetPrev(const int &i) 
+    Vector3f GetPrev(int i) const
     {
-        int idx = (LastIdx - i) % Size;
-        if (idx < 0) // Fix the negative mod problem
+		OVR_ASSERT(i >= 0); // 
+        int idx = (LastIdx - i);
+        if (idx < 0) // Fix the wraparound case
             idx += Size;
+		OVR_ASSERT(idx >= 0); // Multiple wraparounds not allowed
         return Elements[idx];
     };
 
     // Simple statistics
-    Vector3f Total();
-    Vector3f Mean();
-    Vector3f Median();
-    Vector3f Variance(); // The diagonal of covariance matrix
-    Matrix4f Covariance();
-    Vector3f PearsonCoefficient();
+    Vector3f Total() const;
+    Vector3f Mean() const;
+    Vector3f Median() const;
+    Vector3f Variance() const; // The diagonal of covariance matrix
+    Matrix4f Covariance() const;
+    Vector3f PearsonCoefficient() const;
 
     // A popular family of smoothing filters and smoothed derivatives
-    Vector3f SavitzkyGolaySmooth8();
-    Vector3f SavitzkyGolayDerivative4();
-    Vector3f SavitzkyGolayDerivative5();
-    Vector3f SavitzkyGolayDerivative12(); 
-    Vector3f SavitzkyGolayDerivativeN(const int &n);
+    Vector3f SavitzkyGolaySmooth8() const;
+    Vector3f SavitzkyGolayDerivative4() const;
+    Vector3f SavitzkyGolayDerivative5() const;
+    Vector3f SavitzkyGolayDerivative12() const; 
+    Vector3f SavitzkyGolayDerivativeN(int n) const;
 
     ~SensorFilter() {};
 };

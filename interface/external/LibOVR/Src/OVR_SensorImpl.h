@@ -33,6 +33,8 @@ public:
     // Enumerates devices, creating and destroying relevant objects in manager.
     virtual void EnumerateDevices(EnumerateVisitor& visitor);
 
+    virtual bool MatchVendorProduct(UInt16 vendorId, UInt16 productId) const;
+    virtual bool DetectHIDDevice(DeviceManager* pdevMgr, const HIDDeviceDesc& desc);
 protected:
     DeviceManager* getManager() const { return (DeviceManager*) pManager; }   
 };
@@ -58,11 +60,17 @@ public:
         if ((other.Type == Device_Sensor) && (pFactory == other.pFactory))
         {
             const SensorDeviceCreateDesc& s2 = (const SensorDeviceCreateDesc&) other;
-            if ((HIDDesc.Path == s2.HIDDesc.Path) &&
-                (HIDDesc.SerialNumber == s2.HIDDesc.SerialNumber))
+            if (MatchHIDDevice(s2.HIDDesc))
                 return Match_Found;
         }
         return Match_None;
+    }
+
+    virtual bool MatchHIDDevice(const HIDDeviceDesc& hidDesc) const
+    {
+        // should paths comparison be case insensitive?
+        return ((HIDDesc.Path.CompareNoCase(hidDesc.Path) == 0) &&
+                (HIDDesc.SerialNumber == hidDesc.SerialNumber));
     }
 
     virtual bool        GetDeviceInfo(DeviceInfo* info) const;
@@ -135,9 +143,21 @@ public:
     virtual bool SetRange(const SensorRange& range, bool waitFlag);
     virtual void GetRange(SensorRange* range) const;
 
+    // Sets report rate (in Hz) of MessageBodyFrame messages (delivered through MessageHandler::OnMessage call). 
+    // Currently supported maximum rate is 1000Hz. If the rate is set to 500 or 333 Hz then OnMessage will be 
+    // called twice or thrice at the same 'tick'. 
+    // If the rate is  < 333 then the OnMessage / MessageBodyFrame will be called three
+    // times for each 'tick': the first call will contain averaged values, the second
+    // and third calls will provide with most recent two recorded samples.
+    virtual void        SetReportRate(unsigned rateHz);
+    // Returns currently set report rate, in Hz. If 0 - error occurred.
+    // Note, this value may be different from the one provided for SetReportRate. The return
+    // value will contain the actual rate.
+    virtual unsigned    GetReportRate() const;
+
     // Hack to create HMD device from sensor display info.
-    static void EnumerateHMDFromSensorDisplayInfo(  const SensorDisplayInfoImpl& displayInfo, 
-                                                    DeviceFactory::EnumerateVisitor& visitor);
+    static void EnumerateHMDFromSensorDisplayInfo(const SensorDisplayInfoImpl& displayInfo, 
+                                                  DeviceFactory::EnumerateVisitor& visitor);
 protected:
 
     void openDevice();
@@ -145,6 +165,8 @@ protected:
 
     Void    setCoordinateFrame(CoordinateFrame coordframe);
     bool    setRange(const SensorRange& range);
+
+    Void    setReportRate(unsigned rateHz);
 
     // Called for decoded messages
     void        onTrackerMessage(TrackerMessage* message);

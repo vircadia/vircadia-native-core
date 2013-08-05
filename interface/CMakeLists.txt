@@ -131,6 +131,7 @@ include_directories(
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${OPENCV_INCLUDE_DIRS}")
 target_link_libraries(
   ${TARGET_NAME}
+  ${LIBOVR_LIBRARIES}
   ${LIBVPX_LIBRARIES}
   ${MOTIONDRIVER_LIBRARIES}
   ${OPENCV_LIBRARIES} 
@@ -170,7 +171,6 @@ if (APPLE)
         ${QTKit}
         ${QuartzCore}
         ${UVCCAMERACONTROL_LIBRARIES}
-        ${LIBOVR_LIBRARIES}
     )
     
     if (LEAP_FOUND)

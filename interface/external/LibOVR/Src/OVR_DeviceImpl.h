@@ -30,12 +30,18 @@ namespace OVR {
 class DeviceManagerImpl;
 class DeviceFactory;
 
+enum
+{
+    Oculus_VendorId = 0x2833
+};
+
 //-------------------------------------------------------------------------------------
 // Globally shared Lock implementation used for MessageHandlers.
 
 class SharedLock
 {    
 public:
+    SharedLock() : UseCount(0) {}
 
     Lock* GetLockAddRef();
     void  ReleaseLock(Lock* plock);
@@ -127,8 +133,8 @@ public:
             RemoveNode();
     }
 
-    DeviceManagerImpl* GetManagerImpl() { return pLock->pManager; }
-    Lock*              GetLock() const  { return &pLock->CreateLock; }
+    DeviceManagerImpl* GetManagerImpl() const { return pLock->pManager; }
+    Lock*              GetLock() const        { return &pLock->CreateLock; }
 
     // DeviceCreateDesc reference counting is tied to Devices list management,
     // see comments for HandleCount.
@@ -160,12 +166,21 @@ public:
     // but more searching is necessary. If this is the case UpdateMatchedCandidate will be called.
     virtual MatchResult       MatchDevice(const DeviceCreateDesc& other,
                                           DeviceCreateDesc** pcandidate) const = 0;
+    
     // Called for matched candidate after all potential matches are iterated.
     // Used to update HMDevice creation arguments from Sensor.
+    // Optional return param 'newDeviceFlag' will be set to true if the 
+    // 'desc' refers to a new device; false, otherwise.
     // Return 'false' to create new object, 'true' if done with this argument.
-    virtual bool              UpdateMatchedCandidate(const DeviceCreateDesc&) { return false; }
+    virtual bool              UpdateMatchedCandidate(
+        const DeviceCreateDesc& desc, bool* newDeviceFlag = NULL) 
+    { OVR_UNUSED2(desc, newDeviceFlag); return false; }
 
+    // Matches HID device to the descriptor.
+    virtual bool              MatchHIDDevice(const HIDDeviceDesc&) const { return false; }
 
+    // Matches device by path.
+    virtual bool              MatchDevice(const String& /*path*/) { return false; }
 //protected:
     DeviceFactory* const        pFactory;
     const DeviceType            Type;
@@ -292,6 +307,22 @@ public:
     // Enumerates factory devices by notifying EnumerateVisitor about every
     // device that is present.
     virtual void EnumerateDevices(EnumerateVisitor& visitor) = 0;
+
+    // Matches vendorId/productId pair with the factory; returns 'true'
+    // if the factory can handle the device.
+    virtual bool MatchVendorProduct(UInt16 vendorId, UInt16 productId) const
+    {
+        OVR_UNUSED2(vendorId, productId);
+        return false;
+    }
+
+    // Detects the HID device and adds the DeviceCreateDesc into Devices list, if
+    // the device belongs to this factory. Returns 'false', if not.
+    virtual bool DetectHIDDevice(DeviceManager* pdevMgr, const HIDDeviceDesc& desc)
+    {
+        OVR_UNUSED2(pdevMgr, desc);
+        return false;
+    }
     
 protected:
     DeviceManagerImpl* pManager;
@@ -318,10 +349,17 @@ public:
     virtual bool Initialize(DeviceBase* parent);
     virtual void Shutdown();
 
+
+    // Every DeviceManager has an associated profile manager, which us used to store
+    // user settings that may affect device behavior. 
+    virtual ProfileManager* GetProfileManager() const { return pProfileManager.GetPtr(); }
+
     // Override to return ThreadCommandQueue implementation used to post commands
     // to the background device manager thread (that must be created by Initialize).
     virtual ThreadCommandQueue* GetThreadQueue() = 0;
 
+    // Returns the thread id of the DeviceManager.
+    virtual ThreadId GetThreadId() const = 0;
 
     virtual DeviceEnumerator<> EnumerateDevicesEx(const DeviceEnumerationArgs& args);
 
@@ -361,11 +399,21 @@ public:
     // Enumerates devices for a particular factory.
     virtual Void EnumerateFactoryDevices(DeviceFactory* factory);
 
-    virtual HIDDeviceManager* GetHIDDeviceManager()
+    virtual HIDDeviceManager* GetHIDDeviceManager() const
     {
         return HidDeviceManager;
     }
 
+    // Adds device (DeviceCreateDesc*) into Devices. Returns NULL, 
+    // if unsuccessful or device is already in the list.
+    virtual Ptr<DeviceCreateDesc> AddDevice_NeedsLock(const DeviceCreateDesc& createDesc);
+    
+    // Finds a device descriptor by path and optional type.
+    Ptr<DeviceCreateDesc> FindDevice(const String& path, DeviceType = Device_None);
+
+    // Finds HID device by HIDDeviceDesc.
+    Ptr<DeviceCreateDesc> FindHIDDevice(const HIDDeviceDesc&);
+    void DetectHIDDevice(const HIDDeviceDesc&);
 
     // Manager Lock-protected list of devices.
     List<DeviceCreateDesc>  Devices;    
@@ -375,6 +423,7 @@ public:
 
 protected:
     Ptr<HIDDeviceManager>   HidDeviceManager;
+    Ptr<ProfileManager>     pProfileManager;
 };
 
 

@@ -35,6 +35,9 @@ public:
     // Enumerates devices, creating and destroying relevant objects in manager.
     virtual void EnumerateDevices(EnumerateVisitor& visitor);
 
+    virtual bool MatchVendorProduct(UInt16 vendorId, UInt16 productId) const;
+    virtual bool DetectHIDDevice(DeviceManager* pdevMgr, const HIDDeviceDesc& desc);
+
 protected:
     DeviceManager* getManager() const { return (DeviceManager*) pManager; }   
 };
@@ -60,13 +63,18 @@ public:
         if ((other.Type == Device_LatencyTester) && (pFactory == other.pFactory))
         {            
             const LatencyTestDeviceCreateDesc& s2 = (const LatencyTestDeviceCreateDesc&) other;
-            if ((HIDDesc.Path == s2.HIDDesc.Path) &&
-                (HIDDesc.SerialNumber == s2.HIDDesc.SerialNumber))
+            if (MatchHIDDevice(s2.HIDDesc))
                 return Match_Found;
         }
         return Match_None;
     }
 
+    virtual bool MatchHIDDevice(const HIDDeviceDesc& hidDesc) const
+    {
+        // should paths comparison be case insensitive?
+        return ((HIDDesc.Path.CompareNoCase(hidDesc.Path) == 0) &&
+                (HIDDesc.SerialNumber == hidDesc.SerialNumber));
+    }
     virtual bool        GetDeviceInfo(DeviceInfo* info) const;
 };
 
@@ -93,10 +101,9 @@ public:
     virtual bool SetConfiguration(const OVR::LatencyTestConfiguration& configuration, bool waitFlag = false);
     virtual bool GetConfiguration(OVR::LatencyTestConfiguration* configuration);
 
-    virtual bool SetCalibrate(const OVR::LatencyTestCalibrate& calibrate, bool waitFlag = false);
-    virtual bool GetCalibrate(OVR::LatencyTestCalibrate* calibrate);
+    virtual bool SetCalibrate(const Color& calibrationColor, bool waitFlag = false);
 
-    virtual bool SetStartTest(const OVR::LatencyTestStartTest& start, bool waitFlag = false);
+    virtual bool SetStartTest(const Color& targetColor, bool waitFlag = false);
     virtual bool SetDisplay(const LatencyTestDisplay& display, bool waitFlag = false);
 
 protected:
@@ -109,9 +116,8 @@ protected:
 
     bool    setConfiguration(const OVR::LatencyTestConfiguration& configuration);
     bool    getConfiguration(OVR::LatencyTestConfiguration* configuration);
-    bool    setCalibrate(const OVR::LatencyTestCalibrate& calibrate);
-    bool    getCalibrate(OVR::LatencyTestCalibrate* calibrate);
-    bool    setStartTest(const OVR::LatencyTestStartTest& start);
+    bool    setCalibrate(const Color& calibrationColor);
+    bool    setStartTest(const Color& targetColor);
     bool    setDisplay(const OVR::LatencyTestDisplay& display);
 
     // Called for decoded messages

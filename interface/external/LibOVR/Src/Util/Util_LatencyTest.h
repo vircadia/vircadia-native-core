@@ -69,6 +69,9 @@ public:
     bool        DisplayScreenColor(Color& colorToDisplay);
 	const char*	GetResultsString();
 
+    // Begin test. Equivalent to pressing the button on the latency tester.
+    void BeginTest();
+
 private:
     LatencyTest* getThis()  { return this; }
 
