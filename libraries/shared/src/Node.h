@@ -18,7 +18,7 @@
 #include <sys/socket.h>
 #endif
 
-#include <QDebug>
+#include <QtCore/QDebug>
 
 #include "NodeData.h"
 #include "SimpleMovingAverage.h"

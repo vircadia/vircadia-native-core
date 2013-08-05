@@ -6,12 +6,12 @@
 //  Copyright (c) 2012 High Fidelity, Inc. All rights reserved.
 //
 
-#include <fstream>
 #include <cstring>
+#include <fstream>
+#include <limits>
 
-#include <SharedUtil.h>
 #include <PacketHeaders.h>
-#include <UDPSocket.h>
+#include <SharedUtil.h>
 
 #include "AudioInjector.h"
 
@@ -21,7 +21,8 @@ AudioInjector::AudioInjector(const char* filename) :
     _radius(0.0f),
     _volume(MAX_INJECTOR_VOLUME),
     _indexOfNextSlot(0),
-    _isInjectingAudio(false)
+    _isInjectingAudio(false),
+    _lastFrameIntensity(0.0f)
 {
     loadRandomIdentifier(_streamIdentifier, STREAM_IDENTIFIER_NUM_BYTES);
     
@@ -51,7 +52,8 @@ AudioInjector::AudioInjector(int maxNumSamples) :
     _radius(0.0f),
     _volume(MAX_INJECTOR_VOLUME),
     _indexOfNextSlot(0),
-    _isInjectingAudio(false)
+    _isInjectingAudio(false),
+    _lastFrameIntensity(0.0f)
 {
     loadRandomIdentifier(_streamIdentifier, STREAM_IDENTIFIER_NUM_BYTES);
     
@@ -114,6 +116,18 @@ void AudioInjector::injectAudio(UDPSocket* injectorSocket, sockaddr* destination
             
             injectorSocket->send(destinationSocket, dataPacket, sizeof(dataPacket));
             
+            // calculate the intensity for this frame
+            float lastRMS = 0;
+            
+            for (int j = 0; j < BUFFER_LENGTH_SAMPLES_PER_CHANNEL; j++) {
+                lastRMS +=  _audioSampleArray[i + j] * _audioSampleArray[i + j];
+            }
+            
+            lastRMS /= BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
+            lastRMS = sqrtf(lastRMS);
+            
+            _lastFrameIntensity = lastRMS / std::numeric_limits<int16_t>::max();
+            
             int usecToSleep = usecTimestamp(&startTime) + (++nextFrame * INJECT_INTERVAL_USECS) - usecTimestampNow();
             if (usecToSleep > 0) {
                 usleep(usecToSleep);
@@ -131,8 +145,8 @@ void AudioInjector::addSample(const int16_t sample) {
     }
 }
 
-void AudioInjector::addSamples(int16_t* sampleBuffer, int numSamples) {
-    if (_audioSampleArray + _indexOfNextSlot + numSamples <= _audioSampleArray + (_numTotalSamples / sizeof(int16_t))) {
+void AudioInjector::addSamples(int16_t* sampleBuffer, int numSamples) {    
+    if (_audioSampleArray + _indexOfNextSlot + numSamples <= _audioSampleArray + _numTotalSamples) {
         // only copy the audio from the sample buffer if there's space
         memcpy(_audioSampleArray + _indexOfNextSlot, sampleBuffer, numSamples * sizeof(int16_t));
         _indexOfNextSlot += numSamples;

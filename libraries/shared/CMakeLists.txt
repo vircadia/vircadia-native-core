@@ -26,3 +26,6 @@ if (UNIX AND NOT APPLE)
     target_link_libraries(${TARGET_NAME} ${CMAKE_THREAD_LIBS_INIT})
 endif (UNIX AND NOT APPLE)
 
+# include GLM
+include(${MACRO_DIR}/IncludeGLM.cmake)
+include_glm(${TARGET_NAME} ${ROOT_DIR})

@@ -20,6 +20,8 @@ public:
     void addTool(Tool* tool);
     void render(int screenWidth, int screenHeight);
 
+    bool isActive();
+
 private:
     QImage _textureImage;
     GLuint _textureID;
