@@ -15,7 +15,7 @@
 #include <SharedUtil.h>
 
 #include "AvatarData.h"
-//#include <VoxelConstants.h>
+#include <VoxelConstants.h>
 
 using namespace std;
 
@@ -309,8 +309,7 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
 }
 
 glm::vec3 AvatarData::calculateCameraDirection() const {
-//    glm::vec3 direction = glm::vec3(_cameraOrientation * glm::vec4(IDENTITY_FRONT, 0.0f));
-    glm::vec3 direction;
+    glm::vec3 direction = glm::vec3(_cameraOrientation * glm::vec4(IDENTITY_FRONT, 0.0f));
     return direction;
 }
 

@@ -149,7 +149,6 @@ void AudioInjector::addSamples(int16_t* sampleBuffer, int numSamples) {
     if (_audioSampleArray + _indexOfNextSlot + numSamples <= _audioSampleArray + _numTotalSamples) {
         // only copy the audio from the sample buffer if there's space
         memcpy(_audioSampleArray + _indexOfNextSlot, sampleBuffer, numSamples * sizeof(int16_t));
-        printf("Copied %d samples to the buffer\n", numSamples);
         _indexOfNextSlot += numSamples;
     }
 }
