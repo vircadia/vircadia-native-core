@@ -3820,6 +3820,12 @@ void Application::attachNewHeadToNode(Node* newNode) {
     }
 }
 
+int Application::parseVoxelStats(unsigned char* messageData, ssize_t messageLength, sockaddr senderAddress) {
+    //Node* voxelServer = NodeList::getInstance()->nodeWithAddress(&senderAddress);
+    int statsMessageLength = _voxelSceneStats.unpackFromMessage(messageData, messageLength);
+    return statsMessageLength;
+}
+
 //  Receive packets from other nodes/servers and decide what to do with them!
 void* Application::networkReceive(void* args) {
     sockaddr senderAddress;
@@ -3863,7 +3869,8 @@ void* Application::networkReceive(void* args) {
                         // immediately following them inside the same packet. So, we process the PACKET_TYPE_VOXEL_STATS first
                         // then process any remaining bytes as if it was another packet
                         if (messageData[0] == PACKET_TYPE_VOXEL_STATS) {
-                            int statsMessageLength = app->_voxelSceneStats.unpackFromMessage(messageData, messageLength);
+                            
+                            int statsMessageLength = app->parseVoxelStats(messageData, messageLength, senderAddress);
                             if (messageLength > statsMessageLength) {
                                 messageData += statsMessageLength;
                                 messageLength -= statsMessageLength;

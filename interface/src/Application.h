@@ -445,6 +445,7 @@ private:
     PieMenu _pieMenu;
     
     VoxelSceneStats _voxelSceneStats;
+    int parseVoxelStats(unsigned char* messageData, ssize_t messageLength, sockaddr senderAddress);
 };
 
 #endif /* defined(__interface__Application__) */

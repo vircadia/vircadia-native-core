@@ -19,6 +19,7 @@ class VoxelNode;
 class VoxelSceneStats {
 public:
     VoxelSceneStats();
+    ~VoxelSceneStats();
     void reset();
     void sceneStarted(bool fullScene, bool moving, VoxelNode* root, JurisdictionMap* jurisdictionMap);
     void sceneCompleted();

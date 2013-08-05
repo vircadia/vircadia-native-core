@@ -25,6 +25,13 @@ VoxelSceneStats::VoxelSceneStats() :
     _jurisdictionRoot = NULL;
 }
 
+VoxelSceneStats::~VoxelSceneStats() {
+    if (_jurisdictionRoot) {
+        delete[] _jurisdictionRoot;
+    }
+}
+
+
 void VoxelSceneStats::sceneStarted(bool isFullScene, bool isMoving, VoxelNode* root, JurisdictionMap* jurisdictionMap) {
     reset(); // resets packet and voxel stats
     _isStarted = true;
@@ -35,7 +42,19 @@ void VoxelSceneStats::sceneStarted(bool isFullScene, bool isMoving, VoxelNode* r
     
     _isFullScene = isFullScene;
     _isMoving = isMoving;
-    _jurisdictionRoot = jurisdictionMap->getRootOctalCode();
+    
+    if (_jurisdictionRoot) {
+        delete[] _jurisdictionRoot;
+        _jurisdictionRoot = NULL;
+    }
+    if (jurisdictionMap) {
+        unsigned char* jurisdictionRoot = jurisdictionMap->getRootOctalCode();
+        if (jurisdictionRoot) {
+            int bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(jurisdictionRoot));
+            _jurisdictionRoot = new unsigned char[bytes];
+            memcpy(_jurisdictionRoot, jurisdictionRoot, bytes);
+        }
+    }
 }
 
 void VoxelSceneStats::sceneCompleted() {
