@@ -14,9 +14,10 @@
 #include <iterator>
 #include <unistd.h>
 
-#include <QSettings>
+#include <QtCore/QSettings>
 
 #include "Node.h"
+#include "NodeTypes.h"
 #include "UDPSocket.h"
 
 #ifdef _WIN32
@@ -54,14 +55,16 @@ public:
     NodeListIterator begin() const;
     NodeListIterator end() const;
     
+    
+    NODE_TYPE getOwnerType() const { return _ownerType; }
+    void setOwnerType(NODE_TYPE ownerType) { _ownerType = ownerType; }
+
     const char* getDomainHostname() const { return _domainHostname; };
     void setDomainHostname(const char* domainHostname);
     
     void setDomainIP(const char* domainIP);
     void setDomainIPToLocalhost();
-    
-    char getOwnerType() const { return _ownerType; }
-    
+        
     uint16_t getLastNodeID() const { return _lastNodeID; }
     void increaseNodeID() { ++_lastNodeID; }
     
@@ -80,8 +83,11 @@ public:
     void clear();
     
     void setNodeTypesOfInterest(const char* nodeTypesOfInterest, int numNodeTypesOfInterest);
+    
     void sendDomainServerCheckIn();
     int processDomainServerList(unsigned char *packetData, size_t dataBytes);
+    
+    void sendAssignmentRequest();
     
     Node* nodeWithAddress(sockaddr *senderAddress);
     Node* nodeWithID(uint16_t nodeID);
