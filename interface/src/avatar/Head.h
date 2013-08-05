@@ -18,6 +18,7 @@
 #include <VoxelConstants.h>
 
 #include "Face.h"
+#include "BendyLine.h"
 #include "InterfaceConfig.h"
 #include "SerialInterface.h"
 #include "world.h"
@@ -29,7 +30,7 @@ enum eyeContactTargets
     MOUTH
 };
 
-const int NUM_HAIR_TUFTS    = 4;
+const int NUM_HAIR_TUFTS = 4;
 
 class Avatar;
 class ProgramObject;
@@ -80,18 +81,6 @@ private:
     Head(const Head&);
     Head& operator= (const Head&);
 
-    struct HairTuft
-    {
-        float length;
-        float thickness;
-        
-        glm::vec3 basePosition;				
-        glm::vec3 midPosition;          
-        glm::vec3 endPosition;          
-        glm::vec3 midVelocity;          
-        glm::vec3 endVelocity;  
-    };
-
     struct Nose
     {
         glm::vec3 top;
@@ -123,7 +112,7 @@ private:
     float       _returnSpringScale; //strength of return springs
     glm::vec3   _bodyRotation;
     bool        _renderLookatVectors;
-    HairTuft    _hairTuft[NUM_HAIR_TUFTS];
+    BendyLine    _hairTuft[NUM_HAIR_TUFTS];
     glm::vec3*  _mohawkTriangleFan;
     glm::vec3*  _mohawkColors;
     glm::vec3   _saccade;

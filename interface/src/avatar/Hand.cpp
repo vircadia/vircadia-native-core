@@ -345,29 +345,6 @@ void Hand::updateRaveGloveParticles(float deltaTime) {
         _raveGloveParticleSystem.setUpDirection(glm::vec3(0.0f, 1.0f, 0.0f));
         _raveGloveInitialized = true;         
     } else {        
-        
-        _raveGloveClock += deltaTime;
-        
-        // this rave glove effect oscillates though various colors and radii that are meant to show off some effects
-        if (_raveGloveMode == RAVE_GLOVE_EFFECTS_MODE_THROBBING_COLOR) {
-            ParticleSystem::ParticleAttributes attributes;
-            float red   = 0.5f + 0.5f * sinf(_raveGloveClock * 2.4f);
-            float green = 0.5f + 0.5f * cosf(_raveGloveClock * 2.7f);
-            float blue  = 0.5f + 0.5f * sinf(_raveGloveClock * 3.0f);
-            float alpha = 1.0f;
-            
-            attributes.color = glm::vec4(red, green, blue, alpha);            
-            attributes.radius = 0.01f + 0.003f * sinf(_raveGloveClock * 50.0f);
-            attributes.modulationAmplitude = 0.0f;
-            
-            for ( int f = 0; f< NUM_FINGERS; f ++ ) {
-                _raveGloveParticleSystem.setParticleAttributes(_raveGloveEmitter[f], PARTICLE_LIFESTAGE_0, attributes);
-                _raveGloveParticleSystem.setParticleAttributes(_raveGloveEmitter[f], PARTICLE_LIFESTAGE_1, attributes);
-                _raveGloveParticleSystem.setParticleAttributes(_raveGloveEmitter[f], PARTICLE_LIFESTAGE_2, attributes);
-                _raveGloveParticleSystem.setParticleAttributes(_raveGloveEmitter[f], PARTICLE_LIFESTAGE_3, attributes);
-            }
-        } 
-
         _raveGloveParticleSystem.simulate(deltaTime); 
     }
 }
@@ -397,11 +374,15 @@ void Hand::setRaveGloveMode(int mode) {
 
             _raveGloveParticleSystem.setParticleAttributesToDefault(&attributes);
             
-            attributes.radius      = 0.02f;
-            attributes.gravity     = 0.0f;
-            attributes.airFriction = 0.0f;
-            attributes.jitter      = 0.0f;
-            attributes.bounce      = 0.0f;
+            attributes.modulationAmplitude = 1.0;
+            attributes.modulationRate      = 0.33;
+            attributes.modulationStyle     = COLOR_MODULATION_STYLE_RAINBOW_CYCLE;
+            attributes.color               = glm::vec4( 0.5f, 0.5f, 0.5f, 1.0f);
+            attributes.radius              = 0.02f;
+            attributes.gravity             = 0.0f;
+            attributes.airFriction         = 0.0f;
+            attributes.jitter              = 0.0f;
+            attributes.bounce              = 0.0f;
             _raveGloveParticleSystem.setParticleAttributes(_raveGloveEmitter[f], PARTICLE_LIFESTAGE_0, attributes);
             _raveGloveParticleSystem.setParticleAttributes(_raveGloveEmitter[f], PARTICLE_LIFESTAGE_1, attributes);
             _raveGloveParticleSystem.setParticleAttributes(_raveGloveEmitter[f], PARTICLE_LIFESTAGE_2, attributes);

@@ -322,27 +322,48 @@ void ParticleSystem::updateParticle(int p, float deltaTime) {
        
     // apply color modulation
     if (myEmitter.particleAttributes[lifeStage  ].modulationAmplitude > 0.0f) {
-        float modulation = 0.0f;
+        float redModulation   = 0.0f;
+        float greenModulation = 0.0f;
+        float bueModulation   = 0.0f;
         float radian = _timer * myEmitter.particleAttributes[lifeStage  ].modulationRate * PI_TIMES_TWO;
+        
         if (myEmitter.particleAttributes[lifeStage  ].modulationStyle == COLOR_MODULATION_STYLE_LIGHNTESS_PULSE) {
             if (sinf(radian) > 0.0f) {
-                modulation = myEmitter.particleAttributes[lifeStage].modulationAmplitude;
+                redModulation   = myEmitter.particleAttributes[lifeStage].modulationAmplitude;
+                greenModulation = myEmitter.particleAttributes[lifeStage].modulationAmplitude;
+                bueModulation   = myEmitter.particleAttributes[lifeStage].modulationAmplitude;
             }
+            
         } else if (myEmitter.particleAttributes[lifeStage].modulationStyle == COLOR_MODULATION_STYLE_LIGHTNESS_WAVE) {
-            float a = myEmitter.particleAttributes[lifeStage].modulationAmplitude;
-            modulation = a * ONE_HALF + sinf(radian) * a * ONE_HALF;
+            float amp = myEmitter.particleAttributes[lifeStage].modulationAmplitude;
+            float brightness = amp * ONE_HALF + sinf(radian) * amp * ONE_HALF;
+            redModulation   = brightness;
+            greenModulation = brightness;
+            bueModulation   = brightness;
+            
+        } else if (myEmitter.particleAttributes[lifeStage].modulationStyle == COLOR_MODULATION_STYLE_RAINBOW_CYCLE) {
+        
+            float amp = myEmitter.particleAttributes[lifeStage].modulationAmplitude * ONE_HALF;
+            redModulation   = sinf(radian * 0.5f) * amp;
+            greenModulation = sinf(radian * 0.7f) * amp;
+            bueModulation   = sinf(radian * 1.0f) * amp;
         }
         
-        _particle[p].color.r += modulation;
-        _particle[p].color.g += modulation;
-        _particle[p].color.b += modulation;
-        _particle[p].color.a += modulation;
+        _particle[p].color.r += redModulation;
+        _particle[p].color.g += greenModulation;
+        _particle[p].color.b += bueModulation;
+        _particle[p].color.a  = 1.0f;
         
         if (_particle[p].color.r > 1.0f) {_particle[p].color.r = 1.0f;}
         if (_particle[p].color.g > 1.0f) {_particle[p].color.g = 1.0f;}
         if (_particle[p].color.b > 1.0f) {_particle[p].color.b = 1.0f;}
         if (_particle[p].color.a > 1.0f) {_particle[p].color.a = 1.0f;}
-    }
+
+        if (_particle[p].color.r < 0.0f) {_particle[p].color.r = 0.0f;}
+        if (_particle[p].color.g < 0.0f) {_particle[p].color.g = 0.0f;}
+        if (_particle[p].color.b < 0.0f) {_particle[p].color.b = 0.0f;}
+        if (_particle[p].color.a < 0.0f) {_particle[p].color.a = 0.0f;}
+     }
     
     // do this at the end...
     _particle[p].age += deltaTime;  
