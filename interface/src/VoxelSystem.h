@@ -200,6 +200,7 @@ private:
 
     void freeBufferIndex(glBufferIndex index);
     void clearFreeBufferIndexes();
+    glBufferIndex getNextBufferIndex();
     
     bool _falseColorizeBySource;
     int  _dataSourceID;
