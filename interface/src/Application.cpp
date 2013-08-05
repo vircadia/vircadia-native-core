@@ -2967,6 +2967,7 @@ void Application::displaySide(Camera& whichCamera) {
     if (_renderGroundPlaneOn->isChecked()) {
         // draw grass plane with fog
         glEnable(GL_FOG);
+        glEnable(GL_NORMALIZE);        
         const float FOG_COLOR[] = { 1.0f, 1.0f, 1.0f, 1.0f };
         glFogfv(GL_FOG_COLOR, FOG_COLOR);
         glFogi(GL_FOG_MODE, GL_EXP2);
@@ -2981,6 +2982,7 @@ void Application::displaySide(Camera& whichCamera) {
             _geometryCache.renderSquare(GRASS_DIVISIONS, GRASS_DIVISIONS);
         glPopMatrix();
         glDisable(GL_FOG);
+        glDisable(GL_NORMALIZE);
         
         renderGroundPlaneGrid(EDGE_SIZE_GROUND_PLANE, _audio.getCollisionSoundMagnitude());
     } 
