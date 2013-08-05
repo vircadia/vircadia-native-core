@@ -27,6 +27,10 @@ HandData::HandData(AvatarData* owningAvatar) :
     addNewPalm();
 }
 
+HandData::~HandData() {
+}
+
+
 PalmData& HandData::addNewPalm()  {
     _palms.push_back(PalmData(this));
     return _palms.back();
