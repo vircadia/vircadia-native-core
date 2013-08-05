@@ -22,9 +22,10 @@ VoxelSceneStats::VoxelSceneStats() :
     reset();
     _isReadyToSend = false;
     _isStarted = false;
+    _jurisdictionRoot = NULL;
 }
 
-void VoxelSceneStats::sceneStarted(bool isFullScene, bool isMoving, VoxelNode* root) {
+void VoxelSceneStats::sceneStarted(bool isFullScene, bool isMoving, VoxelNode* root, JurisdictionMap* jurisdictionMap) {
     reset(); // resets packet and voxel stats
     _isStarted = true;
     _start = usecTimestampNow();
@@ -34,6 +35,7 @@ void VoxelSceneStats::sceneStarted(bool isFullScene, bool isMoving, VoxelNode* r
     
     _isFullScene = isFullScene;
     _isMoving = isMoving;
+    _jurisdictionRoot = jurisdictionMap->getRootOctalCode();
 }
 
 void VoxelSceneStats::sceneCompleted() {
@@ -273,6 +275,20 @@ int VoxelSceneStats::packIntoMessage(unsigned char* destinationBuffer, int avail
     destinationBuffer += sizeof(_existsInPacketBitsWritten);
     memcpy(destinationBuffer, &_treesRemoved, sizeof(_treesRemoved));
     destinationBuffer += sizeof(_treesRemoved);
+
+    // add the root jurisdiction
+    if (_jurisdictionRoot) {
+        // copy the 
+        int bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(_jurisdictionRoot));
+        memcpy(destinationBuffer, &bytes, sizeof(bytes));
+        destinationBuffer += sizeof(bytes);
+        memcpy(destinationBuffer, _jurisdictionRoot, bytes);
+        destinationBuffer += bytes;
+    } else {
+        int bytes = 0;
+        memcpy(destinationBuffer, &bytes, sizeof(bytes));
+        destinationBuffer += sizeof(bytes);
+    }
     
     return destinationBuffer - bufferStart; // includes header!
 }
@@ -363,6 +379,19 @@ int VoxelSceneStats::unpackFromMessage(unsigned char* sourceBuffer, int availabl
     sourceBuffer += sizeof(_existsInPacketBitsWritten);
     memcpy(&_treesRemoved, sourceBuffer, sizeof(_treesRemoved));
     sourceBuffer += sizeof(_treesRemoved);
+
+    // read the root jurisdiction
+    int bytes = 0;
+    memcpy(&bytes, sourceBuffer, sizeof(bytes));
+    sourceBuffer += sizeof(bytes);
+
+    if (bytes == 0) {
+        _jurisdictionRoot = NULL;
+    } else {
+        _jurisdictionRoot = new unsigned char[bytes];
+        memcpy(_jurisdictionRoot, sourceBuffer, bytes);
+        sourceBuffer += bytes;
+    }
     
     // running averages
     _elapsedAverage.updateAverage((float)_elapsed);
