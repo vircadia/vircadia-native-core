@@ -105,6 +105,12 @@ void Camera::updateFollowMode(float deltaTime) {
     }
 }
 
+float Camera::getFarClip() {
+    return (_scale * _farClip < std::numeric_limits<int16_t>::max())
+            ? _scale * _farClip
+            : std::numeric_limits<int16_t>::max() - 1;
+}
+
 void Camera::setModeShiftRate ( float rate ) {
     
     _modeShiftRate = rate;

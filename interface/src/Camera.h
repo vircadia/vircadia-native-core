@@ -56,7 +56,7 @@ public:
     float            getFieldOfView          () { return _fieldOfView; }
     float            getAspectRatio          () { return _aspectRatio; }
     float            getNearClip             () { return _scale * _nearClip; }
-    float            getFarClip              () { return _scale * _farClip; }
+    float            getFarClip              ();
     const glm::vec3& getEyeOffsetPosition    () { return _eyeOffsetPosition;   }
     const glm::quat& getEyeOffsetOrientation () { return _eyeOffsetOrientation; }
     float            getScale                () { return _scale; }

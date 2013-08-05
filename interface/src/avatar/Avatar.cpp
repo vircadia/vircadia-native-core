@@ -505,11 +505,6 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     glm::quat orientation = getOrientation();
     glm::vec3 front = orientation * IDENTITY_FRONT;
     glm::vec3 right = orientation * IDENTITY_RIGHT;
-    
-    //
-    if (!isMyAvatar() && _scale != _newScale) {
-        setScale(_newScale);
-    }
 
     // Update movement timers
     if (isMyAvatar()) {
@@ -523,17 +518,29 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
             _elapsedTimeMoving += deltaTime;
         }
     }
+
+    if (_leadingAvatar && !_leadingAvatar->getOwningNode()->isAlive()) {
+        follow(NULL);
+    }
+
+    // Ajust, scale, thrust and lookAt position when following an other avatar
+    if (isMyAvatar() && _leadingAvatar && _newScale != _leadingAvatar->getScale()) {
+        _newScale = _leadingAvatar->getScale();
+    }
+
+    if (isMyAvatar() && _scale != _newScale) {
+        float scale = 0.95f * _scale + 0.05f * _newScale;
+        setScale(scale);
+        Application::getInstance()->getCamera()->setScale(scale);
+    }
+
+    if (!isMyAvatar() && _scale != _newScale) {
+        setScale(_newScale);
+    }
     
     //  Collect thrust forces from keyboard and devices 
     if (isMyAvatar()) {
         updateThrust(deltaTime, transmitter);
-    }
-
-    // Ajust, scale, thrust and lookAt position when following an other avatar
-    if (isMyAvatar() && _leadingAvatar && _scale != _leadingAvatar->getScale()) {
-        float scale = 0.95f * _scale + 0.05f * _leadingAvatar->getScale();
-        setScale(scale);
-        Application::getInstance()->getCamera()->setScale(scale);
     }
     
     // copy velocity so we can use it later for acceleration
@@ -1446,7 +1453,7 @@ void Avatar::loadData(QSettings* settings) {
     
     _leanScale = loadSetting(settings, "leanScale", 0.5f);
 
-    _scale = loadSetting(settings, "scale", 1.0f);
+    _newScale = loadSetting(settings, "scale", 1.0f);
     setScale(_scale);
     Application::getInstance()->getCamera()->setScale(_scale);
 
@@ -1472,7 +1479,7 @@ void Avatar::saveData(QSettings* set) {
     set->setValue("voxelURL", _voxels.getVoxelURL());
     
     set->setValue("leanScale", _leanScale);
-    set->setValue("scale", _scale);
+    set->setValue("scale", _newScale);
     
     set->endGroup();
 }
@@ -1525,9 +1532,16 @@ void Avatar::renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2,
     glEnd();
 }
 
+void Avatar::setNewScale(const float scale) {
+    _newScale = scale;
+}
+
 void Avatar::setScale(const float scale) {
     _scale = scale;
-    _newScale = _scale;
+
+    if (_newScale * .98 < _scale && _scale < _newScale * 1.02) {
+        _scale = _newScale;
+    }
     
     _skeleton.setScale(_scale);
     
