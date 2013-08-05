@@ -26,7 +26,7 @@ int main(int argc, const char* argv[]) {
     unsigned char senderData[MAX_PACKET_SIZE_BYTES] = {};
     ssize_t receivedBytes = 0;
     
-    UDPSocket serverSocket(ASSIGNMENT_SERVER_LISTEN_PORT);
+    UDPSocket serverSocket(ASSIGNMENT_SERVER_PORT);
     
     int numHeaderBytes = numBytesForPacketHeader((unsigned char*) &PACKET_TYPE_SEND_ASSIGNMENT);
     unsigned char assignmentPacket[numHeaderBytes + sizeof(char)];
