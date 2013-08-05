@@ -63,8 +63,6 @@ void AvatarData::sendData() {
         
         int numPacketBytes = (endOfPacket - packet) + getBroadcastData(endOfPacket);
         
-        qDebug("The current body yaw is %f\n", _bodyYaw);
-        
         NodeList::getInstance()->getNodeSocket()->send(avatarMixer->getActiveSocket(), packet, numPacketBytes);
     }
 }
