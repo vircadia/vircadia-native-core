@@ -48,20 +48,20 @@ public:
     void setEyeOffsetOrientation( const glm::quat& o );
     void setScale               ( const float s      );
     
-    const glm::vec3& getTargetPosition       () { return _targetPosition; }
-    const glm::vec3& getPosition             () { return _position;    }
-    const glm::quat& getTargetRotation       () { return _targetRotation; }
-    const glm::quat& getRotation             () { return _rotation;    }
-    CameraMode       getMode                 () { return _mode;        }
-    float            getFieldOfView          () { return _fieldOfView; }
-    float            getAspectRatio          () { return _aspectRatio; }
-    float            getNearClip             () { return _scale * _nearClip; }
-    float            getFarClip              ();
-    const glm::vec3& getEyeOffsetPosition    () { return _eyeOffsetPosition;   }
-    const glm::quat& getEyeOffsetOrientation () { return _eyeOffsetOrientation; }
-    float            getScale                () { return _scale; }
+    const glm::vec3& getTargetPosition       () const { return _targetPosition; }
+    const glm::vec3& getPosition             () const { return _position;    }
+    const glm::quat& getTargetRotation       () const { return _targetRotation; }
+    const glm::quat& getRotation             () const { return _rotation;    }
+    CameraMode       getMode                 () const { return _mode;        }
+    float            getFieldOfView          () const { return _fieldOfView; }
+    float            getAspectRatio          () const { return _aspectRatio; }
+    float            getNearClip             () const { return _scale * _nearClip; }
+    float            getFarClip              () const;
+    const glm::vec3& getEyeOffsetPosition    () const { return _eyeOffsetPosition;   }
+    const glm::quat& getEyeOffsetOrientation () const { return _eyeOffsetOrientation; }
+    float            getScale                () const { return _scale; }
     
-    bool getFrustumNeedsReshape(); // call to find out if the view frustum needs to be reshaped
+    bool getFrustumNeedsReshape() const; // call to find out if the view frustum needs to be reshaped
     void setFrustumWasReshaped();  // call this after reshaping the view frustum.
 
 private:

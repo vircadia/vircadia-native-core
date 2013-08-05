@@ -26,6 +26,13 @@
 #include "Transmitter.h"
 #include "world.h"
 
+
+static const float MAX_SCALE           = 5.f;
+static const float MIN_SCALE           = .5f;
+static const float SCALING_RATIO       = .05f;
+static const float SMOOTHING_RATIO     = .05f; // 0 < ratio < 1
+static const float RESCALING_TOLERANCE = .02f;
+
 const float BODY_BALL_RADIUS_PELVIS           = 0.07;
 const float BODY_BALL_RADIUS_TORSO            = 0.065;
 const float BODY_BALL_RADIUS_CHEST            = 0.08;
@@ -134,7 +141,6 @@ public:
     void setGravity                (glm::vec3 gravity);
     void setMouseRay               (const glm::vec3 &origin, const glm::vec3 &direction);
     void setOrientation            (const glm::quat& orientation);
-    void setScale                  (const float scale);
     void setNewScale               (const float scale);
 
     //getters
@@ -283,6 +289,7 @@ private:
     void updateCollisionSound(const glm::vec3& penetration, float deltaTime, float frequency);
     void applyCollisionWithOtherAvatar( Avatar * other, float deltaTime );
     void checkForMouseRayTouching();
+    void setScale (const float scale);
 };
 
 #endif

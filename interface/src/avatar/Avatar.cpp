@@ -529,7 +529,7 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     }
 
     if (isMyAvatar() && _scale != _newScale) {
-        float scale = 0.95f * _scale + 0.05f * _newScale;
+        float scale = (1.f - SMOOTHING_RATIO) * _scale + SMOOTHING_RATIO * _newScale;
         setScale(scale);
         Application::getInstance()->getCamera()->setScale(scale);
     }
@@ -1539,7 +1539,8 @@ void Avatar::setNewScale(const float scale) {
 void Avatar::setScale(const float scale) {
     _scale = scale;
 
-    if (_newScale * .98 < _scale && _scale < _newScale * 1.02) {
+    if (_newScale * (1.f - RESCALING_TOLERANCE) < _scale &&
+            _scale < _newScale * (1.f + RESCALING_TOLERANCE)) {
         _scale = _newScale;
     }
     

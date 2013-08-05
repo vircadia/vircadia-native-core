@@ -1389,21 +1389,22 @@ void Application::setRenderThirdPerson(bool thirdPerson) {
 }
 
 void Application::increaseAvatarSize() {
-    if (5.0f < 1.05f * _myAvatar.getNewScale()) {
-        return;
+    if ((1.f + SCALING_RATIO) * _myAvatar.getNewScale() < MAX_SCALE) {
+        _myAvatar.setNewScale((1.f + SCALING_RATIO) * _myAvatar.getNewScale());
+        qDebug("Changed scale to %f\n", _myAvatar.getNewScale());
     }
-
-    _myAvatar.setNewScale(1.05f * _myAvatar.getNewScale());
-    qDebug("Changed scale to %f\n", _myAvatar.getNewScale());
 }
 
 void Application::decreaseAvatarSize() {
-    if (.95f * _myAvatar.getNewScale() < 0.15f) {
-        return;
+    if (MIN_SCALE < (1.f - SCALING_RATIO) * _myAvatar.getNewScale()) {
+        _myAvatar.setNewScale((1.f - SCALING_RATIO) * _myAvatar.getNewScale());
+        qDebug("Changed scale to %f\n", _myAvatar.getNewScale());
     }
+}
 
-    _myAvatar.setNewScale(.95f * _myAvatar.getNewScale());
-    qDebug("Changed scale to %f\n", _myAvatar.getNewScale());
+void Application::resetAvatarSize() {
+    _myAvatar.setNewScale(1.f);
+    qDebug("Reseted scale to %f\n", _myAvatar.getNewScale());
 }
 
 void Application::setFrustumOffset(bool frustumOffset) {
@@ -1981,6 +1982,7 @@ void Application::initMenu() {
         "Third Person", this, SLOT(setRenderThirdPerson(bool))))->setCheckable(true);
     renderMenu->addAction("Increase Avatar Size", this, SLOT(increaseAvatarSize()), Qt::Key_Plus);
     renderMenu->addAction("Decrease Avatar Size", this, SLOT(decreaseAvatarSize()), Qt::Key_Minus);
+    renderMenu->addAction("Reset Avatar Size", this, SLOT(resetAvatarSize()));
 
     
     QMenu* toolsMenu = menuBar->addMenu("Tools");
