@@ -941,8 +941,9 @@ void Application::mousePressEvent(QMouseEvent* event) {
             _mouseVoxelDragging = _mouseVoxel;
             _mousePressed = true;
 
+            maybeEditVoxelUnderCursor();
 
-            if (!maybeEditVoxelUnderCursor()) {
+            if (!_palette.isActive()) {
                 _pieMenu.mousePressEvent(_mouseX, _mouseY);
             }
 
