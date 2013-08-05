@@ -105,8 +105,13 @@ int HandData::encodeRemoteData(unsigned char* destinationBuffer) {
     size_t checkLength = destinationBuffer - startPosition;
     *destinationBuffer++ = (unsigned char)checkLength;
 
+    // just a double-check, while tracing a crash.
+//    decodeRemoteData(destinationBuffer - (destinationBuffer - startPosition));
+    
     return destinationBuffer - startPosition;
 }
+
+#define DISABLE_RECEIVE         // Temporary measure while a crash is being traced
 
 int HandData::decodeRemoteData(unsigned char* sourceBuffer) {
     const unsigned char* startPosition = sourceBuffer;
@@ -116,8 +121,11 @@ int HandData::decodeRemoteData(unsigned char* sourceBuffer) {
     unsigned int numHands = *sourceBuffer++;
     
     for (unsigned int handIndex = 0; handIndex < numHands; ++handIndex) {
+#ifndef DISABLE_RECEIVE
         if (handIndex >= getNumPalms())
             addNewPalm();
+#endif
+        if (handIndex < getNumPalms()) {
         PalmData& palm = getPalms()[handIndex];
 
         glm::vec3 handPosition;
@@ -126,10 +134,11 @@ int HandData::decodeRemoteData(unsigned char* sourceBuffer) {
         sourceBuffer += unpackFloatVec3FromSignedTwoByteFixed(sourceBuffer, handNormal, fingerVectorRadix);
         unsigned int numFingers = *sourceBuffer++;
 
+#ifndef DISABLE_RECEIVE
         palm.setRawPosition(handPosition);
         palm.setRawNormal(handNormal);
         palm.setActive(true);
-        
+#endif
         for (unsigned int fingerIndex = 0; fingerIndex < numFingers; ++fingerIndex) {
             if (fingerIndex < palm.getNumFingers()) {
                 FingerData& finger = palm.getFingers()[fingerIndex];
@@ -139,26 +148,35 @@ int HandData::decodeRemoteData(unsigned char* sourceBuffer) {
                 sourceBuffer += unpackFloatVec3FromSignedTwoByteFixed(sourceBuffer, tipPosition, fingerVectorRadix);
                 sourceBuffer += unpackFloatVec3FromSignedTwoByteFixed(sourceBuffer, rootPosition, fingerVectorRadix);
 
+#ifndef DISABLE_RECEIVE
                 finger.setRawTipPosition(tipPosition);
                 finger.setRawRootPosition(rootPosition);
                 finger.setActive(true);
+#endif
             }
         }
         // Turn off any fingers which weren't used.
         for (unsigned int fingerIndex = numFingers; fingerIndex < palm.getNumFingers(); ++fingerIndex) {
             FingerData& finger = palm.getFingers()[fingerIndex];
+#ifndef DISABLE_RECEIVE
             finger.setActive(false);
+#endif
+        }
         }
     }
     // Turn off any hands which weren't used.
     for (unsigned int handIndex = numHands; handIndex < getNumPalms(); ++handIndex) {
         PalmData& palm = getPalms()[handIndex];
+#ifndef DISABLE_RECEIVE
         palm.setActive(false);
+#endif
     }
     
+#ifndef DISABLE_RECEIVE
     setRaveGloveActive((gloveFlags & GLOVE_FLAG_RAVE) != 0);
     setRaveGloveMode(effectsMode);
-
+#endif
+    
     // One byte for error checking safety.
     unsigned char requiredLength = (unsigned char)(sourceBuffer - startPosition);
     unsigned char checkLength = *sourceBuffer++;
