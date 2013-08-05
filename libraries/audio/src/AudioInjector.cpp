@@ -10,8 +10,8 @@
 #include <fstream>
 #include <limits>
 
-#include "PacketHeaders.h"
-#include "SharedUtil.h"
+#include <PacketHeaders.h>
+#include <SharedUtil.h>
 
 #include "AudioInjector.h"
 
