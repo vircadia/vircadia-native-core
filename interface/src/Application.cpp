@@ -1389,21 +1389,22 @@ void Application::setRenderThirdPerson(bool thirdPerson) {
 }
 
 void Application::increaseAvatarSize() {
-    if (5.0f < _myAvatar.getScale() + 0.05f) {
-        return;
+    if ((1.f + SCALING_RATIO) * _myAvatar.getNewScale() < MAX_SCALE) {
+        _myAvatar.setNewScale((1.f + SCALING_RATIO) * _myAvatar.getNewScale());
+        qDebug("Changed scale to %f\n", _myAvatar.getNewScale());
     }
-
-    _myAvatar.setScale(_myAvatar.getScale() + 0.05f);
-    _myCamera.setScale(_myAvatar.getScale() + 0.05f);
 }
 
 void Application::decreaseAvatarSize() {
-    if (_myAvatar.getScale() - 0.05f < 0.15f) {
-        return;
+    if (MIN_SCALE < (1.f - SCALING_RATIO) * _myAvatar.getNewScale()) {
+        _myAvatar.setNewScale((1.f - SCALING_RATIO) * _myAvatar.getNewScale());
+        qDebug("Changed scale to %f\n", _myAvatar.getNewScale());
     }
+}
 
-    _myAvatar.setScale(_myAvatar.getScale() - 0.05f);
-    _myCamera.setScale(_myAvatar.getScale() - 0.05f);
+void Application::resetAvatarSize() {
+    _myAvatar.setNewScale(1.f);
+    qDebug("Reseted scale to %f\n", _myAvatar.getNewScale());
 }
 
 void Application::setFrustumOffset(bool frustumOffset) {
@@ -1981,6 +1982,7 @@ void Application::initMenu() {
         "Third Person", this, SLOT(setRenderThirdPerson(bool))))->setCheckable(true);
     renderMenu->addAction("Increase Avatar Size", this, SLOT(increaseAvatarSize()), Qt::Key_Plus);
     renderMenu->addAction("Decrease Avatar Size", this, SLOT(decreaseAvatarSize()), Qt::Key_Minus);
+    renderMenu->addAction("Reset Avatar Size", this, SLOT(resetAvatarSize()));
 
     
     QMenu* toolsMenu = menuBar->addMenu("Tools");
@@ -2252,7 +2254,7 @@ Avatar* Application::isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3
         if (node->getLinkedData() != NULL && node->getType() == NODE_TYPE_AGENT) {
             Avatar* avatar = (Avatar *) node->getLinkedData();
             glm::vec3 headPosition = avatar->getHead().getPosition();
-            if (rayIntersectsSphere(mouseRayOrigin, mouseRayDirection, headPosition, HEAD_SPHERE_RADIUS)) {
+            if (rayIntersectsSphere(mouseRayOrigin, mouseRayDirection, headPosition, HEAD_SPHERE_RADIUS * avatar->getScale())) {
                 eyePosition = avatar->getHead().getEyePosition();
                 _lookatIndicatorScale = avatar->getScale();
                 _lookatOtherPosition = headPosition;
@@ -2262,6 +2264,16 @@ Avatar* Application::isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3
         }
     }
     return NULL;
+}
+
+bool Application::isLookingAtMyAvatar(Avatar* avatar) {
+    glm::vec3 theirLookat = avatar->getHead().getLookAtPosition();
+    glm::vec3 myHeadPosition = _myAvatar.getHead().getPosition();
+    
+    if (pointInSphere(theirLookat, myHeadPosition, HEAD_SPHERE_RADIUS * _myAvatar.getScale())) {
+        return true;
+    }
+    return false;
 }
 
 void Application::renderLookatIndicator(glm::vec3 pointOfInterest, Camera& whichCamera) {
@@ -2957,6 +2969,7 @@ void Application::displaySide(Camera& whichCamera) {
     if (_renderGroundPlaneOn->isChecked()) {
         // draw grass plane with fog
         glEnable(GL_FOG);
+        glEnable(GL_NORMALIZE);        
         const float FOG_COLOR[] = { 1.0f, 1.0f, 1.0f, 1.0f };
         glFogfv(GL_FOG_COLOR, FOG_COLOR);
         glFogi(GL_FOG_MODE, GL_EXP2);
@@ -2971,6 +2984,7 @@ void Application::displaySide(Camera& whichCamera) {
             _geometryCache.renderSquare(GRASS_DIVISIONS, GRASS_DIVISIONS);
         glPopMatrix();
         glDisable(GL_FOG);
+        glDisable(GL_NORMALIZE);
         
         renderGroundPlaneGrid(EDGE_SIZE_GROUND_PLANE, _audio.getCollisionSoundMagnitude());
     } 
@@ -3012,6 +3026,9 @@ void Application::displaySide(Camera& whichCamera) {
                 Avatar *avatar = (Avatar *)node->getLinkedData();
                 if (!avatar->isInitialized()) {
                     avatar->init();
+                }
+                if (isLookingAtMyAvatar(avatar)) {
+                    avatar->getHead().setLookAtPosition(_myCamera.getPosition());
                 }
                 avatar->render(false, _renderAvatarBalls->isChecked());
                 avatar->setDisplayingLookatVectors(_renderLookatOn->isChecked());
