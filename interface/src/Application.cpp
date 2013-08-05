@@ -2128,13 +2128,21 @@ void Application::toggleMixedSong() {
         
         QByteArray filenameArray = filename.toLocal8Bit();
         _audio.importSongToMixWithMicrophone(filenameArray.data());
-        _rawAudioMicrophoneMix->setText("Stop Mixing Song");
+        resetSongMixMenuItem();        
     } else {
         _audio.stopMixingSongWithMicrophone();
-        _rawAudioMicrophoneMix->setText("Mix RAW Song");
+        resetSongMixMenuItem();
     }
 }
 
+void Application::resetSongMixMenuItem() {
+    if (_audio.getSongFileBytes() == 0) {
+        _rawAudioMicrophoneMix->setText("Mix RAW Song");
+    } else {
+        _rawAudioMicrophoneMix->setText("Stop Mixing Song");
+    }
+    
+}
 
 void Application::updateFrustumRenderModeAction() {
     switch (_frustumDrawingMode) {
