@@ -118,6 +118,7 @@ public:
     GeometryCache* getGeometryCache() { return &_geometryCache; }
     
     void resetSongMixMenuItem();
+    void setupWorldLight(Camera& whichCamera);
 
     virtual void nodeAdded(Node* node);
     virtual void nodeKilled(Node* node);

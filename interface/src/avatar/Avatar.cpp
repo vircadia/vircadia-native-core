@@ -1220,11 +1220,27 @@ void Avatar::render(bool lookingInMirror, bool renderAvatarBalls) {
     }
 }
 
-void Avatar::renderScreenTint(ScreenTintLayer layer) {
+void Avatar::renderScreenTint(ScreenTintLayer layer, Camera& whichCamera) {
     
     if (layer == SCREEN_TINT_BEFORE_AVATARS) {
         if (_hand.isRaveGloveActive()) {
             _hand.renderRaveGloveStage();
+            
+            // Set some mood lighting
+            GLfloat ambient_color[] = { 0.0, 0.0, 0.0 };
+            glLightfv(GL_LIGHT0, GL_AMBIENT, ambient_color);
+            GLfloat diffuse_color[] = { 0.4, 0.0, 0.0 };
+            glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse_color);
+            GLfloat specular_color[] = { 0.0, 0.0, 0.0, 0.0};
+            glLightfv(GL_LIGHT0, GL_SPECULAR, specular_color);
+            glMaterialfv(GL_FRONT, GL_SPECULAR, specular_color);
+            glMateriali(GL_FRONT, GL_SHININESS, 0);
+        }
+    }
+    else if (layer == SCREEN_TINT_BEFORE_AVATARS) {
+        if (_hand.isRaveGloveActive()) {
+            // Restore the world lighting
+            Application::getInstance()->setupWorldLight(whichCamera);
         }
     }
 }
