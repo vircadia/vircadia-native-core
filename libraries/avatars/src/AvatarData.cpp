@@ -52,7 +52,9 @@ AvatarData::~AvatarData() {
 }
 
 void AvatarData::setPositionFromVariantMap(QVariantMap positionMap) {
-    _position = glm::vec3(positionMap.value("x"), positionMap.value("y"), positionMap.value("z"));
+    _position = glm::vec3(positionMap.value("x").toFloat(), 
+                          positionMap.value("y").toFloat(),
+                          positionMap.value("z").toFloat());
 }
 
 QVariantMap AvatarData::getPositionVariantMap() {

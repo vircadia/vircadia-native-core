@@ -17,6 +17,7 @@
 #include <glm/gtc/quaternion.hpp>
 
 #include <QtCore/QObject>
+#include <QtCore/QVariantMap>
 
 #include <NodeData.h>
 #include "HeadData.h"
