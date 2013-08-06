@@ -30,7 +30,8 @@ public:
     Face(Head* owningHead);
     ~Face();
 
-    bool isFullFrame() const { return _colorTextureID != 0 && _aspectRatio == FULL_FRAME_ASPECT; }
+    bool isActive() const { return _colorTextureID != 0 || _depthTextureID != 0; }
+    bool isFullFrame() const { return isActive() && _aspectRatio == FULL_FRAME_ASPECT; }
 
     void setFrameFromWebcam();
     void clearFrame();
@@ -69,10 +70,20 @@ private:
     int _frameCount;
     int _frameBytesRemaining;
     
-    static ProgramObject* _program;
-    static int _texCoordCornerLocation;
-    static int _texCoordRightLocation;
-    static int _texCoordUpLocation;
+    struct Locations {
+        int texCoordCorner;
+        int texCoordRight;
+        int texCoordUp;
+    };
+
+    static ProgramObject* loadProgram(const QString& suffix, const char* secondTextureUniform, Locations& locations);
+    
+    static ProgramObject* _videoProgram;
+    static Locations _videoProgramLocations;
+    
+    static ProgramObject* _texturedProgram;
+    static Locations _texturedProgramLocations;
+    
     static GLuint _vboID;
     static GLuint _iboID;
 };

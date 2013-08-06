@@ -31,7 +31,6 @@
 #include "Environment.h"
 #include "PacketHeaders.h"
 #include "ParticleSystem.h"
-#include "renderer/GeometryCache.h"
 #include "SerialInterface.h"
 #include "Stars.h"
 #include "Swatch.h"
@@ -42,6 +41,8 @@
 #include "PieMenu.h"
 #include "avatar/Avatar.h"
 #include "avatar/HandControl.h"
+#include "renderer/GeometryCache.h"
+#include "renderer/TextureCache.h"
 #include "ui/BandwidthDialog.h"
 #include "ui/ChatEntry.h"
 #include "ui/VoxelStatsDialog.h"
@@ -105,6 +106,7 @@ public:
     
     QNetworkAccessManager* getNetworkAccessManager() { return _networkAccessManager; }
     GeometryCache* getGeometryCache() { return &_geometryCache; }
+    TextureCache* getTextureCache() { return &_textureCache; }
     
     void resetSongMixMenuItem();
 
@@ -419,6 +421,7 @@ private:
     int _hmdWarpParamLocation;
     
     GeometryCache _geometryCache;
+    TextureCache _textureCache;
     
     ParticleSystem _particleSystem;
     

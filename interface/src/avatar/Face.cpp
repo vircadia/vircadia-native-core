@@ -22,10 +22,10 @@
 
 using namespace cv;
 
-ProgramObject* Face::_program = 0;
-int Face::_texCoordCornerLocation;
-int Face::_texCoordRightLocation;
-int Face::_texCoordUpLocation;
+ProgramObject* Face::_videoProgram = 0;
+Face::Locations Face::_videoProgramLocations;
+ProgramObject* Face::_texturedProgram = 0;
+Face::Locations Face::_texturedProgramLocations;
 GLuint Face::_vboID;
 GLuint Face::_iboID;
 
@@ -71,6 +71,7 @@ void Face::setFrameFromWebcam() {
 
 void Face::clearFrame() {
     _colorTextureID = 0;
+    _depthTextureID = 0;
 }
     
 int Face::processVideoMessage(unsigned char* packetData, size_t dataBytes) {
@@ -119,120 +120,130 @@ int Face::processVideoMessage(unsigned char* packetData, size_t dataBytes) {
         _lastFullFrame = fullFrame;
     }
     
-    if (_colorCodec.name == 0) {
-        // initialize decoder context
-        vpx_codec_dec_init(&_colorCodec, vpx_codec_vp8_dx(), 0, 0);
+    // read the color data, if non-empty
+    Mat color;
+    const uint8_t* colorData = (const uint8_t*)(_arrivingFrame.constData() + sizeof(float) + sizeof(size_t));
+    size_t colorSize = *(const size_t*)(_arrivingFrame.constData() + sizeof(float));
+    if (colorSize > 0) {
+        if (_colorCodec.name == 0) {
+            // initialize decoder context
+            vpx_codec_dec_init(&_colorCodec, vpx_codec_vp8_dx(), 0, 0);
+        }
+        vpx_codec_decode(&_colorCodec, colorData, colorSize, 0, 0);
+        vpx_codec_iter_t iterator = 0;
+        vpx_image_t* image;
+        while ((image = vpx_codec_get_frame(&_colorCodec, &iterator)) != 0) {
+            // convert from YV12 to RGB: see http://www.fourcc.org/yuv.php and
+            // http://docs.opencv.org/modules/imgproc/doc/miscellaneous_transformations.html#cvtcolor
+            color.create(image->d_h, image->d_w, CV_8UC3);
+            uchar* yline = image->planes[0];
+            uchar* vline = image->planes[1];
+            uchar* uline = image->planes[2];
+            const int RED_V_WEIGHT = (int)(1.403 * 256);
+            const int GREEN_V_WEIGHT = (int)(0.714 * 256);
+            const int GREEN_U_WEIGHT = (int)(0.344 * 256);
+            const int BLUE_U_WEIGHT = (int)(1.773 * 256);
+            for (int i = 0; i < image->d_h; i += 2) {
+                uchar* ysrc = yline;
+                uchar* vsrc = vline;
+                uchar* usrc = uline;
+                for (int j = 0; j < image->d_w; j += 2) {
+                    uchar* tl = color.ptr(i, j);
+                    uchar* tr = color.ptr(i, j + 1);
+                    uchar* bl = color.ptr(i + 1, j);
+                    uchar* br = color.ptr(i + 1, j + 1);
+                    
+                    int v = *vsrc++ - 128;
+                    int u = *usrc++ - 128;
+                    
+                    int redOffset = (RED_V_WEIGHT * v) >> 8;
+                    int greenOffset = (GREEN_V_WEIGHT * v + GREEN_U_WEIGHT * u) >> 8;
+                    int blueOffset = (BLUE_U_WEIGHT * u) >> 8;
+                    
+                    int ytl = ysrc[0];
+                    int ytr = ysrc[1];
+                    int ybl = ysrc[image->w];
+                    int ybr = ysrc[image->w + 1];
+                    ysrc += 2;
+                    
+                    tl[0] = saturate_cast<uchar>(ytl + redOffset);
+                    tl[1] = saturate_cast<uchar>(ytl - greenOffset);
+                    tl[2] = saturate_cast<uchar>(ytl + blueOffset);
+                    
+                    tr[0] = saturate_cast<uchar>(ytr + redOffset);
+                    tr[1] = saturate_cast<uchar>(ytr - greenOffset); 
+                    tr[2] = saturate_cast<uchar>(ytr + blueOffset);
+                    
+                    bl[0] = saturate_cast<uchar>(ybl + redOffset);
+                    bl[1] = saturate_cast<uchar>(ybl - greenOffset);
+                    bl[2] = saturate_cast<uchar>(ybl + blueOffset);
+                    
+                    br[0] = saturate_cast<uchar>(ybr + redOffset);
+                    br[1] = saturate_cast<uchar>(ybr - greenOffset);
+                    br[2] = saturate_cast<uchar>(ybr + blueOffset);
+                }
+                yline += image->stride[0] * 2;
+                vline += image->stride[1];
+                uline += image->stride[2];
+            }
+        }
+    } else if (_colorCodec.name != 0) {
+        vpx_codec_destroy(&_colorCodec);
+        _colorCodec.name = 0;
     }
     
-    size_t colorSize = *(const size_t*)(_arrivingFrame.constData() + sizeof(float));
-    const uint8_t* colorData = (const uint8_t*)(_arrivingFrame.constData() + sizeof(float) + sizeof(size_t));
-    vpx_codec_decode(&_colorCodec, colorData, colorSize, 0, 0);
-    vpx_codec_iter_t iterator = 0;
-    vpx_image_t* image;
-    while ((image = vpx_codec_get_frame(&_colorCodec, &iterator)) != 0) {
-        // convert from YV12 to RGB: see http://www.fourcc.org/yuv.php and
-        // http://docs.opencv.org/modules/imgproc/doc/miscellaneous_transformations.html#cvtcolor
-        Mat color(image->d_h, image->d_w, CV_8UC3);
-        uchar* yline = image->planes[0];
-        uchar* vline = image->planes[1];
-        uchar* uline = image->planes[2];
-        const int RED_V_WEIGHT = (int)(1.403 * 256);
-        const int GREEN_V_WEIGHT = (int)(0.714 * 256);
-        const int GREEN_U_WEIGHT = (int)(0.344 * 256);
-        const int BLUE_U_WEIGHT = (int)(1.773 * 256);
-        for (int i = 0; i < image->d_h; i += 2) {
-            uchar* ysrc = yline;
-            uchar* vsrc = vline;
-            uchar* usrc = uline;
-            for (int j = 0; j < image->d_w; j += 2) {
-                uchar* tl = color.ptr(i, j);
-                uchar* tr = color.ptr(i, j + 1);
-                uchar* bl = color.ptr(i + 1, j);
-                uchar* br = color.ptr(i + 1, j + 1);
-                
-                int v = *vsrc++ - 128;
-                int u = *usrc++ - 128;
-                
-                int redOffset = (RED_V_WEIGHT * v) >> 8;
-                int greenOffset = (GREEN_V_WEIGHT * v + GREEN_U_WEIGHT * u) >> 8;
-                int blueOffset = (BLUE_U_WEIGHT * u) >> 8;
-                
-                int ytl = ysrc[0];
-                int ytr = ysrc[1];
-                int ybl = ysrc[image->w];
-                int ybr = ysrc[image->w + 1];
-                ysrc += 2;
-                
-                tl[0] = saturate_cast<uchar>(ytl + redOffset);
-                tl[1] = saturate_cast<uchar>(ytl - greenOffset);
-                tl[2] = saturate_cast<uchar>(ytl + blueOffset);
-                
-                tr[0] = saturate_cast<uchar>(ytr + redOffset);
-                tr[1] = saturate_cast<uchar>(ytr - greenOffset); 
-                tr[2] = saturate_cast<uchar>(ytr + blueOffset);
-                
-                bl[0] = saturate_cast<uchar>(ybl + redOffset);
-                bl[1] = saturate_cast<uchar>(ybl - greenOffset);
-                bl[2] = saturate_cast<uchar>(ybl + blueOffset);
-                
-                br[0] = saturate_cast<uchar>(ybr + redOffset);
-                br[1] = saturate_cast<uchar>(ybr - greenOffset);
-                br[2] = saturate_cast<uchar>(ybr + blueOffset);
-            }
-            yline += image->stride[0] * 2;
-            vline += image->stride[1];
-            uline += image->stride[2];
+    // read the depth data, if non-empty
+    Mat depth;
+    const uint8_t* depthData = colorData + colorSize;
+    int depthSize = _arrivingFrame.size() - ((const char*)depthData - _arrivingFrame.constData());
+    if (depthSize > 0) {
+        if (_depthCodec.name == 0) {
+            // initialize decoder context
+            vpx_codec_dec_init(&_depthCodec, vpx_codec_vp8_dx(), 0, 0);
         }
-        Mat depth;
-        
-        const uint8_t* depthData = colorData + colorSize;
-        int depthSize = _arrivingFrame.size() - ((const char*)depthData - _arrivingFrame.constData());
-        if (depthSize > 0) {
-            if (_depthCodec.name == 0) {
-                // initialize decoder context
-                vpx_codec_dec_init(&_depthCodec, vpx_codec_vp8_dx(), 0, 0);
-            }
-            vpx_codec_decode(&_depthCodec, depthData, depthSize, 0, 0);
-            vpx_codec_iter_t iterator = 0;
-            vpx_image_t* image;
-            while ((image = vpx_codec_get_frame(&_depthCodec, &iterator)) != 0) {
-                depth.create(image->d_h, image->d_w, CV_8UC1);
-                uchar* yline = image->planes[0];
-                uchar* vline = image->planes[1];
-                const uchar EIGHT_BIT_MAXIMUM = 255;
-                const uchar MASK_THRESHOLD = 192;
-                for (int i = 0; i < image->d_h; i += 2) {
-                    uchar* ysrc = yline;
-                    uchar* vsrc = vline;
-                    for (int j = 0; j < image->d_w; j += 2) {
-                        if (*vsrc++ < MASK_THRESHOLD) {
-                            *depth.ptr(i, j) = EIGHT_BIT_MAXIMUM;
-                            *depth.ptr(i, j + 1) = EIGHT_BIT_MAXIMUM;
-                            *depth.ptr(i + 1, j) = EIGHT_BIT_MAXIMUM;
-                            *depth.ptr(i + 1, j + 1) = EIGHT_BIT_MAXIMUM;
-                        
-                        } else {
-                            *depth.ptr(i, j) = ysrc[0];
-                            *depth.ptr(i, j + 1) = ysrc[1];
-                            *depth.ptr(i + 1, j) = ysrc[image->stride[0]];
-                            *depth.ptr(i + 1, j + 1) = ysrc[image->stride[0] + 1];
-                        }
-                        ysrc += 2;
+        vpx_codec_decode(&_depthCodec, depthData, depthSize, 0, 0);
+        vpx_codec_iter_t iterator = 0;
+        vpx_image_t* image;
+        while ((image = vpx_codec_get_frame(&_depthCodec, &iterator)) != 0) {
+            depth.create(image->d_h, image->d_w, CV_8UC1);
+            uchar* yline = image->planes[0];
+            uchar* vline = image->planes[1];
+            const uchar EIGHT_BIT_MAXIMUM = 255;
+            const uchar MASK_THRESHOLD = 192;
+            for (int i = 0; i < image->d_h; i += 2) {
+                uchar* ysrc = yline;
+                uchar* vsrc = vline;
+                for (int j = 0; j < image->d_w; j += 2) {
+                    if (*vsrc++ < MASK_THRESHOLD) {
+                        *depth.ptr(i, j) = EIGHT_BIT_MAXIMUM;
+                        *depth.ptr(i, j + 1) = EIGHT_BIT_MAXIMUM;
+                        *depth.ptr(i + 1, j) = EIGHT_BIT_MAXIMUM;
+                        *depth.ptr(i + 1, j + 1) = EIGHT_BIT_MAXIMUM;
+                    
+                    } else {
+                        *depth.ptr(i, j) = ysrc[0];
+                        *depth.ptr(i, j + 1) = ysrc[1];
+                        *depth.ptr(i + 1, j) = ysrc[image->stride[0]];
+                        *depth.ptr(i + 1, j + 1) = ysrc[image->stride[0] + 1];
                     }
-                    yline += image->stride[0] * 2;
-                    vline += image->stride[1];
+                    ysrc += 2;
                 }
+                yline += image->stride[0] * 2;
+                vline += image->stride[1];
             }
         }
-        QMetaObject::invokeMethod(this, "setFrame", Q_ARG(cv::Mat, color),
-            Q_ARG(cv::Mat, depth), Q_ARG(float, aspectRatio));
+    } else if (_depthCodec.name != 0) {
+        vpx_codec_destroy(&_depthCodec);
+        _depthCodec.name = 0;
     }
+    QMetaObject::invokeMethod(this, "setFrame", Q_ARG(cv::Mat, color),
+        Q_ARG(cv::Mat, depth), Q_ARG(float, aspectRatio));
     
     return dataBytes;
 }
 
 bool Face::render(float alpha) {
-    if (_colorTextureID == 0 || _textureRect.size.area() == 0) {
+    if (!isActive()) {
         return false;
     }
     glPushMatrix();
@@ -275,20 +286,9 @@ bool Face::render(float alpha) {
         const int INDICES_PER_TRIANGLE = 3;
         const int INDEX_COUNT = QUAD_COUNT * TRIANGLES_PER_QUAD * INDICES_PER_TRIANGLE;
         
-        if (_program == 0) {
-            _program = new ProgramObject();
-            _program->addShaderFromSourceFile(QGLShader::Vertex, "resources/shaders/face.vert");
-            _program->addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/face.frag");
-            _program->link();
-            
-            _program->bind();
-            _program->setUniformValue("depthTexture", 0);
-            _program->setUniformValue("colorTexture", 1);
-            _program->release();
-            
-            _texCoordCornerLocation = _program->uniformLocation("texCoordCorner");
-            _texCoordRightLocation = _program->uniformLocation("texCoordRight");
-            _texCoordUpLocation = _program->uniformLocation("texCoordUp");
+        if (_videoProgram == 0) {
+            _videoProgram = loadProgram(QString(), "colorTexture", _videoProgramLocations);
+            _texturedProgram = loadProgram("_textured", "permutationNormalTexture", _texturedProgramLocations);
             
             glGenBuffers(1, &_vboID);
             glBindBuffer(GL_ARRAY_BUFFER, _vboID);
@@ -328,14 +328,23 @@ bool Face::render(float alpha) {
         glBindTexture(GL_TEXTURE_2D, _depthTextureID);
         
         glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, _colorTextureID);
         
-        _program->bind();
-        _program->setUniformValue(_texCoordCornerLocation, 
+        ProgramObject* program = _videoProgram;
+        Locations* locations = &_videoProgramLocations;
+        if (false && _colorTextureID != 0) {
+            glBindTexture(GL_TEXTURE_2D, _colorTextureID);        
+        
+        } else {
+            glBindTexture(GL_TEXTURE_2D, Application::getInstance()->getTextureCache()->getPermutationNormalTextureID());
+            program = _texturedProgram;
+            locations = &_texturedProgramLocations;
+        }
+        program->bind();
+        program->setUniformValue(locations->texCoordCorner, 
             points[0].x / _textureSize.width, points[0].y / _textureSize.height);
-        _program->setUniformValue(_texCoordRightLocation,
+        program->setUniformValue(locations->texCoordRight,
             (points[3].x - points[0].x) / _textureSize.width, (points[3].y - points[0].y) / _textureSize.height);
-        _program->setUniformValue(_texCoordUpLocation,
+        program->setUniformValue(locations->texCoordUp,
             (points[1].x - points[0].x) / _textureSize.width, (points[1].y - points[0].y) / _textureSize.height);
         glEnableClientState(GL_VERTEX_ARRAY);
         glVertexPointer(2, GL_FLOAT, 0, 0);
@@ -357,7 +366,7 @@ bool Face::render(float alpha) {
         
         glDisableClientState(GL_VERTEX_ARRAY);
         glBindBuffer(GL_ARRAY_BUFFER, 0);
-        _program->release();
+        program->release();
         
         glBindTexture(GL_TEXTURE_2D, 0);
         glActiveTexture(GL_TEXTURE0);
@@ -392,32 +401,24 @@ void Face::cycleRenderMode() {
 }
 
 void Face::setFrame(const cv::Mat& color, const cv::Mat& depth, float aspectRatio) {
-    if (color.empty()) {
-        // release our textures, if any; there's no more video
-        if (_colorTextureID != 0) {
-            glDeleteTextures(1, &_colorTextureID);
-            _colorTextureID = 0;
+    Size2f textureSize;
+    if (!color.empty()) {
+        if (_colorTextureID == 0) {
+            glGenTextures(1, &_colorTextureID);
         }
-        if (_depthTextureID != 0) {
-            glDeleteTextures(1, &_depthTextureID);
-            _depthTextureID = 0;
+        glBindTexture(GL_TEXTURE_2D, _colorTextureID);
+        if (_textureSize.width != color.cols || _textureSize.height != color.rows) {
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, color.cols, color.rows, 0, GL_RGB, GL_UNSIGNED_BYTE, color.ptr());
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            textureSize = color.size();
+            _textureRect = RotatedRect(Point2f(color.cols * 0.5f, color.rows * 0.5f), textureSize, 0.0f);
+        
+        } else {
+            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, color.cols, color.rows, GL_RGB, GL_UNSIGNED_BYTE, color.ptr());
         }
-        return;
-    }
-
-    if (_colorTextureID == 0) {
-        glGenTextures(1, &_colorTextureID);
-    }
-    glBindTexture(GL_TEXTURE_2D, _colorTextureID);
-    bool recreateTextures = (_textureSize.width != color.cols || _textureSize.height != color.rows);
-    if (recreateTextures) {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, color.cols, color.rows, 0, GL_RGB, GL_UNSIGNED_BYTE, color.ptr());
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        _textureSize = color.size();
-        _textureRect = RotatedRect(Point2f(color.cols * 0.5f, color.rows * 0.5f), _textureSize, 0.0f);
-    
-    } else {
-        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, color.cols, color.rows, GL_RGB, GL_UNSIGNED_BYTE, color.ptr());
+    } else if (_colorTextureID != 0) {
+        glDeleteTextures(1, &_colorTextureID);
+        _colorTextureID = 0;
     }
     
     if (!depth.empty()) {
@@ -425,20 +426,25 @@ void Face::setFrame(const cv::Mat& color, const cv::Mat& depth, float aspectRati
             glGenTextures(1, &_depthTextureID);
         }
         glBindTexture(GL_TEXTURE_2D, _depthTextureID);
-        if (recreateTextures) {
+        if (_textureSize.width != depth.cols || _textureSize.height != depth.rows) {
             glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, depth.cols, depth.rows, 0,
                 GL_LUMINANCE, GL_UNSIGNED_BYTE, depth.ptr());
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+            textureSize = depth.size();
+            _textureRect = RotatedRect(Point2f(depth.cols * 0.5f, depth.rows * 0.5f), textureSize, 0.0f);
             
         } else {
-            glBindTexture(GL_TEXTURE_2D, _depthTextureID);
             glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, depth.cols, depth.rows, GL_LUMINANCE, GL_UNSIGNED_BYTE, depth.ptr());
         }
+    } else if (_depthTextureID != 0) {
+        glDeleteTextures(1, &_depthTextureID);
+        _depthTextureID = 0;
     }
     glBindTexture(GL_TEXTURE_2D, 0);
     
     _aspectRatio = aspectRatio;
+    _textureSize = textureSize;
 }
 
 void Face::destroyCodecs() {
@@ -450,4 +456,22 @@ void Face::destroyCodecs() {
         vpx_codec_destroy(&_depthCodec);
         _depthCodec.name = 0;
     }
+}
+
+ProgramObject* Face::loadProgram(const QString& suffix, const char* secondTextureUniform, Locations& locations) {
+    ProgramObject* program = new ProgramObject();
+    program->addShaderFromSourceFile(QGLShader::Vertex, "resources/shaders/face" + suffix + ".vert");
+    program->addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/face" + suffix + ".frag");
+    program->link();
+    
+    program->bind();
+    program->setUniformValue("depthTexture", 0);
+    program->setUniformValue(secondTextureUniform, 1);
+    program->release();
+    
+    locations.texCoordCorner = program->uniformLocation("texCoordCorner");
+    locations.texCoordRight = program->uniformLocation("texCoordRight");
+    locations.texCoordUp = program->uniformLocation("texCoordUp");
+    
+    return program;
 }
