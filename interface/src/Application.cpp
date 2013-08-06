@@ -235,6 +235,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     NodeList::createInstance(NODE_TYPE_AGENT, listenPort);
     
     NodeList::getInstance()->addHook(&_voxels);
+    NodeList::getInstance()->addHook(this);
 
     
     _enableNetworkThread = !cmdOptionExists(argc, constArgv, "--nonblocking");
@@ -322,6 +323,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
 
 Application::~Application() {
     NodeList::getInstance()->removeHook(&_voxels);
+    NodeList::getInstance()->removeHook(this);
 }
 
 void Application::initializeGL() {
@@ -3824,9 +3826,44 @@ void Application::attachNewHeadToNode(Node* newNode) {
     }
 }
 
+void Application::nodeAdded(Node* node) {
+}
+
+void Application::nodeKilled(Node* node) {
+    if (node->getType() == NODE_TYPE_VOXEL_SERVER) {
+        uint16_t nodeID = node->getNodeID();
+        // see if this is the first we've heard of this node...
+        if (_voxelServerJurisdictions.find(nodeID) != _voxelServerJurisdictions.end()) {
+            VoxelPositionSize jurisditionDetails;
+            jurisditionDetails = _voxelServerJurisdictions[nodeID];
+
+            printf("voxel server going away...... v[%f, %f, %f, %f]\n",
+                jurisditionDetails.x, jurisditionDetails.y, jurisditionDetails.z, jurisditionDetails.s);
+        }
+    }
+}
+
 int Application::parseVoxelStats(unsigned char* messageData, ssize_t messageLength, sockaddr senderAddress) {
-    //Node* voxelServer = NodeList::getInstance()->nodeWithAddress(&senderAddress);
+
+    // parse the incoming stats data, and stick it into our averaging stats object for now... even though this
+    // means mixing in stats from potentially multiple servers.
     int statsMessageLength = _voxelSceneStats.unpackFromMessage(messageData, messageLength);
+
+    // But, also identify the sender, and keep track of the contained jurisdiction root for this server
+    Node* voxelServer = NodeList::getInstance()->nodeWithAddress(&senderAddress);
+    uint16_t nodeID = voxelServer->getNodeID();
+
+    VoxelPositionSize jurisditionDetails;
+    voxelDetailsForCode(_voxelSceneStats.getJurisdictionRoot(), jurisditionDetails);
+    
+    // see if this is the first we've heard of this node...
+    if (_voxelServerJurisdictions.find(nodeID) == _voxelServerJurisdictions.end()) {
+        printf("stats from new voxel server... v[%f, %f, %f, %f]\n",
+            jurisditionDetails.x, jurisditionDetails.y, jurisditionDetails.z, jurisditionDetails.s);
+    }
+    // store jurisdiction details for later use
+    _voxelServerJurisdictions[nodeID] = jurisditionDetails;
+
     return statsMessageLength;
 }
 

@@ -639,12 +639,14 @@ void NodeList::removeHook(NodeListHook* hook) {
 
 void NodeList::notifyHooksOfAddedNode(Node* node) {
     for (int i = 0; i < _hooks.size(); i++) {
+printf("NodeList::notifyHooksOfAddedNode() i=%d\n", i);
         _hooks[i]->nodeAdded(node);
     }
 }
 
 void NodeList::notifyHooksOfKilledNode(Node* node) {
     for (int i = 0; i < _hooks.size(); i++) {
+printf("NodeList::notifyHooksOfKilledNode() i=%d\n", i);
         _hooks[i]->nodeKilled(node);
     }
 }

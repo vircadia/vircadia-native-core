@@ -80,6 +80,9 @@ public:
     ItemInfo& getItemInfo(int item) { return _ITEMS[item]; };
     char* getItemValue(int item);
     
+    unsigned char* getJurisdictionRoot() const { return _jurisdictionRoot; }
+
+    
 private:
     bool _isReadyToSend;
     unsigned char _statsMessage[MAX_PACKET_SIZE];

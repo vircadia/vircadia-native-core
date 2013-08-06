@@ -1578,7 +1578,7 @@ bool VoxelSystem::killSourceVoxelsOperation(VoxelNode* node, void* extraData) {
 void VoxelSystem::nodeKilled(Node* node) {
     if (node->getType() == NODE_TYPE_VOXEL_SERVER) {
         uint16_t nodeID = node->getNodeID();
-        //printf("VoxelSystem... voxel server %u removed...\n", nodeID);
+        printf("VoxelSystem... voxel server %u removed...\n", nodeID);
         
         // Kill any voxels from the local tree
         _tree->recurseTreeWithOperation(killSourceVoxelsOperation, &nodeID);
