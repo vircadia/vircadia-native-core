@@ -72,8 +72,9 @@ private:
     void setLeapHands(const std::vector<glm::vec3>& handPositions,
                       const std::vector<glm::vec3>& handNormals);
 
+    void activateNewRaveGloveMode();
+
     void renderRaveGloveStage();
-    virtual void setRaveGloveMode(int mode);
     void renderLeapHandSpheres();
     void renderLeapHands();
     void renderLeapHand(PalmData& hand);

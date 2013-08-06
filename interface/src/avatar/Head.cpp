@@ -84,6 +84,7 @@ Head::Head(Avatar* owningAvatar) :
     _rightEyeBlinkVelocity(0.0f),
     _timeWithoutTalking(0.0f),
     _cameraPitch(_pitch),
+    _mousePitch(0.f),
     _cameraYaw(_yaw),
     _isCameraMoving(false),
     _cameraFollowsHead(false),
@@ -428,7 +429,7 @@ glm::quat Head::getOrientation() const {
 glm::quat Head::getCameraOrientation () const {
     Avatar* owningAvatar = static_cast<Avatar*>(_owningAvatar);
     return owningAvatar->getWorldAlignedOrientation()
-            * glm::quat(glm::radians(glm::vec3(_cameraPitch, _cameraYaw, 0.0f)));
+            * glm::quat(glm::radians(glm::vec3(_cameraPitch + _mousePitch, _cameraYaw, 0.0f)));
 }
 
 void Head::renderHeadSphere() {

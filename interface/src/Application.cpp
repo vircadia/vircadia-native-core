@@ -2570,8 +2570,6 @@ void Application::update(float deltaTime) {
         _myAvatar.simulate(deltaTime, NULL);
     }
     
-    _myAvatar.getHand().simulate(deltaTime, true);
-    
     if (!OculusManager::isConnected()) {        
         if (_lookingInMirror->isChecked()) {
             if (_myCamera.getMode() != CAMERA_MODE_MIRROR) {
@@ -2624,7 +2622,7 @@ void Application::update(float deltaTime) {
     
     if (_renderParticleSystemOn->isChecked()) {
         updateParticleSystem(deltaTime);
-    }        
+    }      
 }
 
 void Application::updateAvatar(float deltaTime) {
@@ -2639,7 +2637,6 @@ void Application::updateAvatar(float deltaTime) {
                                          glm::vec3(_headCameraPitchYawScale,
                                                    _headCameraPitchYawScale,
                                                    _headCameraPitchYawScale),
-                                         0.f,
                                          _pitchFromTouch);
         
     if (_serialHeadSensor.isActive()) {
