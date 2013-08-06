@@ -492,10 +492,13 @@ void Avatar::follow(Avatar* leadingAvatar) {
 
     _leadingAvatar = leadingAvatar;
     if (_leadingAvatar != NULL) {
+        _leaderID = leadingAvatar->getOwningNode()->getNodeID();
         _stringLength = glm::length(_position - _leadingAvatar->getPosition()) / _scale;
         if (_stringLength > MAX_STRING_LENGTH) {
             _stringLength = MAX_STRING_LENGTH;
         }
+    } else {
+        _leaderID = UNKNOWN_NODE_ID;
     }
 }
 
