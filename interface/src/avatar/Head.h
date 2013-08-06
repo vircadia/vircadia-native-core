@@ -41,7 +41,7 @@ public:
     
     void init();
     void reset();
-    void simulate(float deltaTime, bool isMine);
+    void simulate(float deltaTime, bool isMine, float gyroCameraSensitivity);
     void render(float alpha);
     void renderMohawk();
 
