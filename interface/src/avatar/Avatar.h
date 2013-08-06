@@ -124,7 +124,6 @@ public:
     void follow(Avatar* leadingAvatar);
     void updateFromGyrosAndOrWebcam(bool gyroLook,
                                     const glm::vec3& amplifyAngle,
-                                    float yawFromTouch,
                                     float pitchFromTouch);
     void addBodyYaw(float bodyYaw) {_bodyYaw += bodyYaw;};
     void addBodyYawDelta(float bodyYawDelta) {_bodyYawDelta += bodyYawDelta;}

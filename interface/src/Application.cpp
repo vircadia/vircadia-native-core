@@ -2587,7 +2587,6 @@ void Application::updateAvatar(float deltaTime) {
                                          glm::vec3(_headCameraPitchYawScale,
                                                    _headCameraPitchYawScale,
                                                    _headCameraPitchYawScale),
-                                         0.f,
                                          _pitchFromTouch);
         
     if (_serialHeadSensor.isActive()) {
