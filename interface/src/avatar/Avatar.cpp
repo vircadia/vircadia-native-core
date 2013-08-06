@@ -101,6 +101,7 @@ Avatar::Avatar(Node* owningNode) :
     _lastCollisionPosition(0, 0, 0),
     _speedBrakes(false),
     _isThrustOn(false),
+    _isCollisionsOn(true),
     _leadingAvatar(NULL),
     _voxels(this)
 {
