@@ -57,6 +57,8 @@ public:
     
     void setCameraFollowsHead(bool cameraFollowsHead) { _cameraFollowsHead = cameraFollowsHead; }
     
+    void setMousePitch(float mousePitch) { _mousePitch = mousePitch; }
+    
     glm::quat getOrientation() const;
     glm::quat getCameraOrientation () const;
     
@@ -123,6 +125,7 @@ private:
     float       _rightEyeBlinkVelocity;
     float       _timeWithoutTalking;
     float       _cameraPitch;                   //  Used to position the camera differently from the head
+    float       _mousePitch;
     float       _cameraYaw;
     bool        _isCameraMoving;
     bool        _cameraFollowsHead;

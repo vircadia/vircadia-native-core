@@ -295,8 +295,8 @@ void Avatar::reset() {
 //  Update avatar head rotation with sensor data
 void Avatar::updateFromGyrosAndOrWebcam(bool gyroLook,
                                         const glm::vec3& amplifyAngle,
-                                        float yawFromTouch,
                                         float pitchFromTouch) {
+    _head.setMousePitch(pitchFromTouch);
     SerialInterface* gyros = Application::getInstance()->getSerialHeadSensor();
     Webcam* webcam = Application::getInstance()->getWebcam();
     glm::vec3 estimatedPosition, estimatedRotation;
@@ -308,7 +308,6 @@ void Avatar::updateFromGyrosAndOrWebcam(bool gyroLook,
     
     } else {
         _head.setPitch(pitchFromTouch);
-        _head.setYaw(yawFromTouch);
         return;
     }
     if (webcam->isActive()) {
@@ -334,8 +333,8 @@ void Avatar::updateFromGyrosAndOrWebcam(bool gyroLook,
     } else {
         _head.getFace().clearFrame();
     }
-    _head.setPitch(estimatedRotation.x * amplifyAngle.x + pitchFromTouch);
-    _head.setYaw(estimatedRotation.y * amplifyAngle.y + yawFromTouch);
+    _head.setPitch(estimatedRotation.x * amplifyAngle.x);
+    _head.setYaw(estimatedRotation.y * amplifyAngle.y);
     _head.setRoll(estimatedRotation.z * amplifyAngle.z);
     _head.setCameraFollowsHead(gyroLook);
         
