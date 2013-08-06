@@ -55,9 +55,6 @@ void Hand::simulate(float deltaTime, bool isMine) {
 
     if (_isRaveGloveActive) {
         if (_raveGloveEffectsModeChanged) {
-        
-        printf( "_raveGloveEffectsMode = %d\n", _raveGloveEffectsMode);
-        
             setRaveGloveMode(_raveGloveEffectsMode); 
             _raveGloveEffectsModeChanged = false;
         }
