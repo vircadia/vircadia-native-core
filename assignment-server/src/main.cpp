@@ -48,10 +48,11 @@ int main(int argc, const char* argv[]) {
                     assignmentQueue.pop();
                     
                     QString scriptURL = QString("http://base8-compute.s3.amazonaws.com/%1").arg(firstAssignment.scriptFilename);
-                    memcpy(assignmentPacket + numHeaderBytes, scriptURL.toLocal8Bit().constData(), scriptURL.size());
+                    int scriptURLBytes = scriptURL.size();
+                    memcpy(assignmentPacket + numHeaderBytes, scriptURL.toLocal8Bit().constData(), scriptURLBytes);
 
                     // send the assignment
-                    serverSocket.send((sockaddr*) &senderSocket, assignmentPacket, sizeof(assignmentPacket));
+                    serverSocket.send((sockaddr*) &senderSocket, assignmentPacket, numHeaderBytes + scriptURLBytes);
                 }
             } else if (senderData[0] == PACKET_TYPE_SEND_ASSIGNMENT) {
                 Assignment newAssignment;
