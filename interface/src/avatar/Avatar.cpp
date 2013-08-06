@@ -622,9 +622,12 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
                 _velocity += _scale * _gravity * (GRAVITY_EARTH * deltaTime);
             }
         }
-        updateCollisionWithEnvironment(deltaTime);
-        updateCollisionWithVoxels(deltaTime);
-        updateAvatarCollisions(deltaTime);
+
+        if (_isCollisionsOn) {
+            updateCollisionWithEnvironment(deltaTime);
+            updateCollisionWithVoxels(deltaTime);
+            updateAvatarCollisions(deltaTime);
+        }
     }
     
     // update body balls
@@ -632,7 +635,7 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     
 
     // test for avatar collision response with the big sphere
-    if (usingBigSphereCollisionTest) {
+    if (usingBigSphereCollisionTest && _isCollisionsOn) {
         updateCollisionWithSphere(_TEST_bigSpherePosition, _TEST_bigSphereRadius, deltaTime);
     }
     

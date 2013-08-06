@@ -141,6 +141,7 @@ public:
     void setMouseRay               (const glm::vec3 &origin, const glm::vec3 &direction);
     void setOrientation            (const glm::quat& orientation);
     void setNewScale               (const float scale);
+    void setWantCollisionsOn       (bool wantCollisionsOn            ) { _isCollisionsOn = wantCollisionsOn; }
 
     //getters
     bool             isInitialized             ()                const { return _initialized;}
@@ -262,6 +263,7 @@ private:
     glm::vec3   _lastCollisionPosition;
     bool        _speedBrakes;
     bool        _isThrustOn;
+    bool        _isCollisionsOn;
 
     Avatar*     _leadingAvatar;
     float       _stringLength;
