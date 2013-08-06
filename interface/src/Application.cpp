@@ -3701,6 +3701,62 @@ void Application::shiftPaintingColor() {
 }
 
 
+void Application::injectVoxelAddedSoundEffect() {
+    AudioInjector* voxelInjector = AudioInjectionManager::injectorWithCapacity(11025);
+    
+    if (voxelInjector) {
+        voxelInjector->setPosition(glm::vec3(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z));
+        //voxelInjector->setBearing(-1 * _myAvatar.getAbsoluteHeadYaw());
+        voxelInjector->setVolume (16 * pow (_mouseVoxel.s, 2) / .0000001); //255 is max, and also default value
+    
+        /* for (int i = 0; i
+         < 22050; i++) {
+         if (i % 4 == 0) {
+         voxelInjector->addSample(4000);
+         } else if (i % 4 == 1) {
+         voxelInjector->addSample(0);
+         } else if (i % 4 == 2) {
+         voxelInjector->addSample(-4000);
+         } else {
+         voxelInjector->addSample(0);
+         }
+         */
+    
+        const float BIG_VOXEL_MIN_SIZE = .01f;
+    
+        for (int i = 0; i < 11025; i++) {
+        
+            /*
+             A440 square wave
+             if (sin(i * 2 * PIE / 50)>=0) {
+             voxelInjector->addSample(4000);
+             } else {
+             voxelInjector->addSample(-4000);
+             }
+             */
+        
+            if (_mouseVoxel.s > BIG_VOXEL_MIN_SIZE) {
+                voxelInjector->addSample(20000 * sin((i * 2 * PIE) / (500 * sin((i + 1) / 200))));
+            } else {
+                voxelInjector->addSample(16000 * sin(i / (1.5 * log (_mouseVoxel.s / .0001) * ((i + 11025) / 5512.5)))); //808
+            }
+        }
+    
+        //voxelInjector->addSample(32500 * sin(i/(2 * 1 * ((i+5000)/5512.5)))); //80
+        //voxelInjector->addSample(20000 * sin(i/(6 * (_mouseVoxel.s/.001) *((i+5512.5)/5512.5)))); //808
+        //voxelInjector->addSample(20000 * sin(i/(6 * ((i+5512.5)/5512.5)))); //808
+        //voxelInjector->addSample(4000 * sin(i * 2 * PIE /50)); //A440 sine wave
+        //voxelInjector->addSample(4000 * sin(i * 2 * PIE /50) * sin (i/500)); //A440 sine wave with amplitude modulation
+    
+        //FM library
+        //voxelInjector->addSample(20000 * sin((i * 2 * PIE) /(500*sin((i+1)/200))));  //FM 1 dubstep
+        //voxelInjector->addSample(20000 * sin((i * 2 * PIE) /(300*sin((i+1)/5.0))));  //FM 2 flange sweep
+        //voxelInjector->addSample(10000 * sin((i * 2 * PIE) /(500*sin((i+1)/500.0))));  //FM 3 resonant pulse
+
+        AudioInjectionManager::threadInjector(voxelInjector);
+    }
+}
+
 bool Application::maybeEditVoxelUnderCursor() {
     if (_addVoxelMode->isChecked() || _colorVoxelMode->isChecked()) {
         if (_mouseVoxel.s != 0) {
@@ -3711,65 +3767,35 @@ bool Application::maybeEditVoxelUnderCursor() {
             // create the voxel locally so it appears immediately
             _voxels.createVoxel(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s,
                                 _mouseVoxel.red, _mouseVoxel.green, _mouseVoxel.blue, _destructiveAddVoxel->isChecked());
+
+            // Implement voxel fade effect
+            VoxelFade fade(VoxelFade::FADE_OUT, 1.0f, 1.0f, 1.0f);
+            const float VOXEL_BOUNDS_ADJUST = 0.01f;
+            float slightlyBigger = _mouseVoxel.s * VOXEL_BOUNDS_ADJUST;
+            fade.voxelDetails.x = _mouseVoxel.x - slightlyBigger;
+            fade.voxelDetails.y = _mouseVoxel.y - slightlyBigger;
+            fade.voxelDetails.z = _mouseVoxel.z - slightlyBigger;
+            fade.voxelDetails.s = _mouseVoxel.s + slightlyBigger + slightlyBigger;
+            _voxelFades.push_back(fade);
+            
+            // inject a sound effect
+            injectVoxelAddedSoundEffect();
             
             // remember the position for drag detection
             _justEditedVoxel = true;
             
-            AudioInjector* voxelInjector = AudioInjectionManager::injectorWithCapacity(11025);
-            voxelInjector->setPosition(glm::vec3(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z));
-            //_myAvatar.getPosition()
-//            voxelInjector->setBearing(-1 * _myAvatar.getAbsoluteHeadYaw());
-            voxelInjector->setVolume (16 * pow (_mouseVoxel.s, 2) / .0000001); //255 is max, and also default value
-            
-            /* for (int i = 0; i
-             < 22050; i++) {
-             if (i % 4 == 0) {
-             voxelInjector->addSample(4000);
-             } else if (i % 4 == 1) {
-             voxelInjector->addSample(0);
-             } else if (i % 4 == 2) {
-             voxelInjector->addSample(-4000);
-             } else {
-             voxelInjector->addSample(0);
-             }
-             */
-            
-            
-            const float BIG_VOXEL_MIN_SIZE = .01f;
-            
-            for (int i = 0; i < 11025; i++) {
-                
-                /*
-                 A440 square wave
-                 if (sin(i * 2 * PIE / 50)>=0) {
-                 voxelInjector->addSample(4000);
-                 } else {
-                 voxelInjector->addSample(-4000);
-                 }
-                 */
-                
-                if (_mouseVoxel.s > BIG_VOXEL_MIN_SIZE) {
-                    voxelInjector->addSample(20000 * sin((i * 2 * PIE) / (500 * sin((i + 1) / 200))));
-                } else {
-                    voxelInjector->addSample(16000 * sin(i / (1.5 * log (_mouseVoxel.s / .0001) * ((i + 11025) / 5512.5)))); //808
-                }
-            }
-            
-            //voxelInjector->addSample(32500 * sin(i/(2 * 1 * ((i+5000)/5512.5)))); //80
-            //voxelInjector->addSample(20000 * sin(i/(6 * (_mouseVoxel.s/.001) *((i+5512.5)/5512.5)))); //808
-            //voxelInjector->addSample(20000 * sin(i/(6 * ((i+5512.5)/5512.5)))); //808
-            //voxelInjector->addSample(4000 * sin(i * 2 * PIE /50)); //A440 sine wave
-            //voxelInjector->addSample(4000 * sin(i * 2 * PIE /50) * sin (i/500)); //A440 sine wave with amplitude modulation
-            
-            //FM library
-            //voxelInjector->addSample(20000 * sin((i * 2 * PIE) /(500*sin((i+1)/200))));  //FM 1 dubstep
-            //voxelInjector->addSample(20000 * sin((i * 2 * PIE) /(300*sin((i+1)/5.0))));  //FM 2 flange sweep
-            //voxelInjector->addSample(10000 * sin((i * 2 * PIE) /(500*sin((i+1)/500.0))));  //FM 3 resonant pulse
-
-            AudioInjectionManager::threadInjector(voxelInjector);
         }
     } else if (_deleteVoxelMode->isChecked()) {
         deleteVoxelUnderCursor();
+        VoxelFade fade(VoxelFade::FADE_OUT, NODE_KILLED_RED, NODE_KILLED_GREEN, NODE_KILLED_BLUE);
+        const float VOXEL_BOUNDS_ADJUST = 0.01f;
+        float slightlyBigger = _mouseVoxel.s * VOXEL_BOUNDS_ADJUST;
+        fade.voxelDetails.x = _mouseVoxel.x - slightlyBigger;
+        fade.voxelDetails.y = _mouseVoxel.y - slightlyBigger;
+        fade.voxelDetails.z = _mouseVoxel.z - slightlyBigger;
+        fade.voxelDetails.s = _mouseVoxel.s + slightlyBigger + slightlyBigger;
+        _voxelFades.push_back(fade);
+        
     } else if (_eyedropperMode->isChecked()) {
         eyedropperVoxelUnderCursor();
     } else {
@@ -3784,17 +3810,20 @@ void Application::deleteVoxelUnderCursor() {
         // sending delete to the server is sufficient, server will send new version so we see updates soon enough
         sendVoxelEditMessage(PACKET_TYPE_ERASE_VOXEL, _mouseVoxel);
         AudioInjector* voxelInjector = AudioInjectionManager::injectorWithCapacity(5000);
-        voxelInjector->setPosition(glm::vec3(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z));
-//        voxelInjector->setBearing(0); //straight down the z axis
-        voxelInjector->setVolume (255); //255 is max, and also default value
         
-        
-        for (int i = 0; i < 5000; i++) {
-            voxelInjector->addSample(10000 * sin((i * 2 * PIE) / (500 * sin((i + 1) / 500.0))));  //FM 3 resonant pulse
-            //voxelInjector->addSample(20000 * sin((i) /((4 / _mouseVoxel.s) * sin((i)/(20 * _mouseVoxel.s / .001)))));  //FM 2 comb filter
+        if (voxelInjector) {
+            voxelInjector->setPosition(glm::vec3(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z));
+            //voxelInjector->setBearing(0); //straight down the z axis
+            voxelInjector->setVolume (255); //255 is max, and also default value
+            
+            
+            for (int i = 0; i < 5000; i++) {
+                voxelInjector->addSample(10000 * sin((i * 2 * PIE) / (500 * sin((i + 1) / 500.0))));  //FM 3 resonant pulse
+                //voxelInjector->addSample(20000 * sin((i) /((4 / _mouseVoxel.s) * sin((i)/(20 * _mouseVoxel.s / .001)))));  //FM 2 comb filter
+            }
+            
+            AudioInjectionManager::threadInjector(voxelInjector);
         }
-        
-        AudioInjectionManager::threadInjector(voxelInjector);
     }
     // remember the position for drag detection
     _justEditedVoxel = true;
@@ -3906,10 +3935,6 @@ void Application::nodeKilled(Node* node) {
                 jurisditionDetails.x, jurisditionDetails.y, jurisditionDetails.z, jurisditionDetails.s);
                 
             // Add the jurisditionDetails object to the list of "fade outs"
-            const float NODE_KILLED_RED   = 1.0f;
-            const float NODE_KILLED_GREEN = 0.0f;
-            const float NODE_KILLED_BLUE  = 0.0f;
-            
             VoxelFade fade(VoxelFade::FADE_OUT, NODE_KILLED_RED, NODE_KILLED_GREEN, NODE_KILLED_BLUE);
             fade.voxelDetails = jurisditionDetails;
             _voxelFades.push_back(fade);
@@ -3936,10 +3961,6 @@ int Application::parseVoxelStats(unsigned char* messageData, ssize_t messageLeng
             jurisditionDetails.x, jurisditionDetails.y, jurisditionDetails.z, jurisditionDetails.s);
 
         // Add the jurisditionDetails object to the list of "fade outs"
-        const float NODE_ADDED_RED   = 0.0f;
-        const float NODE_ADDED_GREEN = 1.0f;
-        const float NODE_ADDED_BLUE  = 0.0f;
-        
         VoxelFade fade(VoxelFade::FADE_OUT, NODE_ADDED_RED, NODE_ADDED_GREEN, NODE_ADDED_BLUE);
         fade.voxelDetails = jurisditionDetails;
         _voxelFades.push_back(fade);
