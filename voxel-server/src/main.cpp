@@ -49,6 +49,7 @@ const float MAX_CUBE = 0.05f;
 const int VOXEL_SEND_INTERVAL_USECS = 17 * 1000; // approximately 60fps
 int PACKETS_PER_CLIENT_PER_INTERVAL = 20;
 const int SENDING_TIME_TO_SPARE = 5 * 1000; // usec of sending interval to spare for calculating voxels
+const int INTERVALS_PER_SECOND = 1000 * 1000 / VOXEL_SEND_INTERVAL_USECS;
 
 const int MAX_VOXEL_TREE_DEPTH_LEVELS = 4;
 
@@ -572,7 +573,7 @@ int main(int argc, const char * argv[]) {
     const char* PACKETS_PER_SECOND = "--packetsPerSecond";
     const char* packetsPerSecond = getCmdOption(argc, argv, PACKETS_PER_SECOND);
     if (packetsPerSecond) {
-        PACKETS_PER_CLIENT_PER_INTERVAL = atoi(packetsPerSecond)/10;
+        PACKETS_PER_CLIENT_PER_INTERVAL = atoi(packetsPerSecond)/INTERVALS_PER_SECOND;
         if (PACKETS_PER_CLIENT_PER_INTERVAL < 1) {
             PACKETS_PER_CLIENT_PER_INTERVAL = 1;
         }
