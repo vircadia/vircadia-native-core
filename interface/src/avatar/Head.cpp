@@ -338,7 +338,7 @@ void Head::setScale (float scale) {
 }
 
 void Head::createMohawk() {
-    uint16_t nodeId = 0;
+    uint16_t nodeId = UNKNOWN_NODE_ID;
     if (_owningAvatar->getOwningNode()) {
         nodeId = _owningAvatar->getOwningNode()->getNodeID();
     } else {

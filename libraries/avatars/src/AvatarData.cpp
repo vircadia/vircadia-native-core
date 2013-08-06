@@ -41,7 +41,8 @@ AvatarData::AvatarData(Node* owningNode) :
     _wantLowResMoving(false),
     _wantOcclusionCulling(true),
     _headData(NULL),
-    _handData(NULL)
+    _handData(NULL),
+    _leaderID(UNKNOWN_NODE_ID)
 {
     
 }
@@ -91,8 +92,14 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _bodyYaw);
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _bodyPitch);
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _bodyRoll);
+
+    // Body scale
     destinationBuffer += packFloatRatioToTwoByte(destinationBuffer, _newScale);
     
+    // Follow mode info
+    memcpy(destinationBuffer, &_leaderID, sizeof(_leaderID));
+    destinationBuffer += sizeof(uint16_t);
+
     // Head rotation (NOTE: This needs to become a quaternion to save two bytes)
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->_yaw);
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->_pitch);
@@ -188,7 +195,13 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &_bodyYaw);
     sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &_bodyPitch);
     sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &_bodyRoll);
+
+    // Body scale
     sourceBuffer += unpackFloatRatioFromTwoByte(            sourceBuffer,  _newScale);
+
+    // Follow mode info
+    memcpy(&_leaderID, sourceBuffer, sizeof(_leaderID));
+    sourceBuffer += sizeof(uint16_t);
 
     // Head rotation (NOTE: This needs to become a quaternion to save two bytes)
     float headYaw, headPitch, headRoll;

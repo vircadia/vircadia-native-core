@@ -27,7 +27,7 @@
 #include "world.h"
 
 
-static const float MAX_SCALE           = 5.f;
+static const float MAX_SCALE           = 10.f;
 static const float MIN_SCALE           = .5f;
 static const float SCALING_RATIO       = .05f;
 static const float SMOOTHING_RATIO     = .05f; // 0 < ratio < 1

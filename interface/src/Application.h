@@ -216,6 +216,7 @@ private:
     bool isLookingAtMyAvatar(Avatar* avatar);
                                 
     void renderLookatIndicator(glm::vec3 pointOfInterest, Camera& whichCamera);
+    void renderFollowIndicator();
     void updateAvatar(float deltaTime);
     void loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum);
     
