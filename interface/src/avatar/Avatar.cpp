@@ -748,6 +748,8 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     _head.setScale(_scale);
     _head.setSkinColor(glm::vec3(SKIN_COLOR[0], SKIN_COLOR[1], SKIN_COLOR[2]));
     _head.simulate(deltaTime, isMyAvatar());
+    _hand.simulate(deltaTime, isMyAvatar());
+
 
 
 
