@@ -6,8 +6,7 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
-#include <gl.h>                                // Header File For The OpenGL32 Library
-#include <GLUT/GLUT.h>
+#include "InterfaceConfig.h"
 
 #include <VoxelConstants.h>
 
