@@ -10,7 +10,7 @@
 #define __hifi__JurisdictionMap__
 
 #include <vector>
-#include <QString>
+#include <QtCore/QString>
 
 class JurisdictionMap {
 public:

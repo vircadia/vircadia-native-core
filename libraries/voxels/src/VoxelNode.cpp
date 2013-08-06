@@ -10,7 +10,7 @@
 #include <cstring>
 #include <stdio.h>
 
-#include <QDebug>
+#include <QtCore/QDebug>
 
 #include <NodeList.h>
 
