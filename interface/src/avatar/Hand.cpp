@@ -54,8 +54,8 @@ void Hand::reset() {
 void Hand::simulate(float deltaTime, bool isMine) {
 
     if (_isRaveGloveActive) {
-        if (_raveGloveEffectsModeChanged) {
-            setRaveGloveMode(_raveGloveEffectsMode); 
+        if (_raveGloveEffectsModeChanged && _raveGloveInitialized) {
+            activateNewRaveGloveMode();
             _raveGloveEffectsModeChanged = false;
         }
         
@@ -352,6 +352,7 @@ void Hand::updateRaveGloveParticles(float deltaTime) {
         }
                                                     
         setRaveGloveMode(RAVE_GLOVE_EFFECTS_MODE_FIRE);
+        activateNewRaveGloveMode();
         _raveGloveParticleSystem.setUpDirection(glm::vec3(0.0f, 1.0f, 0.0f));
         _raveGloveInitialized = true;         
     } else {        
@@ -359,11 +360,14 @@ void Hand::updateRaveGloveParticles(float deltaTime) {
     }
 }
 
+// The rave glove mode has changed, so activate the effects.
+void Hand::activateNewRaveGloveMode() {
 
-void Hand::setRaveGloveMode(int mode) {
-
-    _raveGloveMode = mode;
-
+    if (!_raveGloveInitialized) {
+        return;
+    }
+    
+    int mode = _raveGloveEffectsMode;
     _raveGloveParticleSystem.killAllParticles();
 
     for ( int f = 0; f< NUM_FINGERS; f ++ ) {

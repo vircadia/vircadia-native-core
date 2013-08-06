@@ -27,7 +27,7 @@
 #include "world.h"
 
 
-static const float MAX_SCALE           = 5.f;
+static const float MAX_SCALE           = 10.f;
 static const float MIN_SCALE           = .5f;
 static const float SCALING_RATIO       = .05f;
 static const float SMOOTHING_RATIO     = .05f; // 0 < ratio < 1
@@ -140,6 +140,7 @@ public:
     void setMouseRay               (const glm::vec3 &origin, const glm::vec3 &direction);
     void setOrientation            (const glm::quat& orientation);
     void setNewScale               (const float scale);
+    void setWantCollisionsOn       (bool wantCollisionsOn            ) { _isCollisionsOn = wantCollisionsOn; }
 
     //getters
     bool             isInitialized             ()                const { return _initialized;}
@@ -261,6 +262,7 @@ private:
     glm::vec3   _lastCollisionPosition;
     bool        _speedBrakes;
     bool        _isThrustOn;
+    bool        _isCollisionsOn;
 
     Avatar*     _leadingAvatar;
     float       _stringLength;

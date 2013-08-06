@@ -1944,6 +1944,7 @@ void Application::initMenu() {
     (_fullScreenMode = optionsMenu->addAction("Fullscreen", this, SLOT(setFullscreen(bool)), Qt::Key_F))->setCheckable(true);
     optionsMenu->addAction("Webcam", &_webcam, SLOT(setEnabled(bool)))->setCheckable(true);
     optionsMenu->addAction("Toggle Skeleton Tracking", &_webcam, SLOT(setSkeletonTrackingOn(bool)))->setCheckable(true);
+    (_wantCollisionsOn = optionsMenu->addAction("Turn collisions On", this, SLOT(toggleWantCollisionsOn())))->setCheckable(true);
     optionsMenu->addAction("Cycle Webcam Send Mode", _webcam.getGrabber(), SLOT(cycleVideoSendMode()));
     optionsMenu->addAction("Go Home", this, SLOT(goHome()), Qt::CTRL | Qt::Key_G);
     
@@ -2137,6 +2138,10 @@ void Application::toggleMixedSong() {
     }
 }
 
+void Application::toggleWantCollisionsOn() {
+    _myAvatar.setWantCollisionsOn(_wantCollisionsOn->isChecked());
+}
+
 void Application::resetSongMixMenuItem() {
     if (_audio.getSongFileBytes() == 0) {
         _rawAudioMicrophoneMix->setText("Mix RAW Song");
@@ -2285,6 +2290,56 @@ void Application::renderLookatIndicator(glm::vec3 pointOfInterest, Camera& which
     glm::vec3 haloOrigin(pointOfInterest.x, pointOfInterest.y + DISTANCE_FROM_HEAD_SPHERE, pointOfInterest.z);
     glColor3f(YELLOW[0], YELLOW[1], YELLOW[2]);
     renderCircle(haloOrigin, INDICATOR_RADIUS, IDENTITY_UP, NUM_SEGMENTS);
+}
+
+void Application::renderFollowIndicator() {
+    NodeList* nodeList = NodeList::getInstance();
+
+    glLineWidth(5);
+    glBegin(GL_LINES);
+    for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); ++node) {
+        if (node->getLinkedData() != NULL && node->getType() == NODE_TYPE_AGENT) {
+            Avatar* avatar = (Avatar *) node->getLinkedData();
+            Avatar* leader = NULL;
+
+            if (avatar->getLeaderID() != UNKNOWN_NODE_ID) {
+                if (avatar->getLeaderID() == NodeList::getInstance()->getOwnerID()) {
+                    leader = &_myAvatar;
+                } else {
+                    for (NodeList::iterator it = nodeList->begin(); it != nodeList->end(); ++it) {
+                        if(it->getNodeID() == avatar->getLeaderID()
+                                && it->getType() == NODE_TYPE_AGENT) {
+                            leader = (Avatar*) it->getLinkedData();
+                        }
+                    }
+                }
+
+                if (leader != NULL) {
+                    glColor3f(1.f, 0.f, 0.f);
+                    glVertex3f(avatar->getPosition().x,
+                               avatar->getPosition().y,
+                               avatar->getPosition().z);
+                    glColor3f(0.f, 1.f, 0.f);
+                    glVertex3f(leader->getPosition().x,
+                               leader->getPosition().y,
+                               leader->getPosition().z);
+                }
+            }
+        }
+    }
+
+    if (_myAvatar.getLeadingAvatar() != NULL) {
+        glColor3f(1.f, 0.f, 0.f);
+        glVertex3f(_myAvatar.getPosition().x,
+                   _myAvatar.getPosition().y,
+                   _myAvatar.getPosition().z);
+        glColor3f(0.f, 1.f, 0.f);
+        glVertex3f(_myAvatar.getLeadingAvatar()->getPosition().x,
+                   _myAvatar.getLeadingAvatar()->getPosition().y,
+                   _myAvatar.getLeadingAvatar()->getPosition().z);
+    }
+
+    glEnd();
 }
 
 void Application::update(float deltaTime) {
@@ -3054,6 +3109,8 @@ void Application::displaySide(Camera& whichCamera) {
     
     // brad's frustum for debugging
     if (_frustumOn->isChecked()) renderViewFrustum(_viewFrustum);
+
+    renderFollowIndicator();
 }
 
 void Application::displayOverlay() {
