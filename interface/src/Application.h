@@ -37,6 +37,7 @@
 #include "Swatch.h"
 #include "ToolsPalette.h"
 #include "ViewFrustum.h"
+#include "VoxelFade.h"
 #include "VoxelSystem.h"
 #include "Webcam.h"
 #include "PieMenu.h"
@@ -452,6 +453,8 @@ private:
     int parseVoxelStats(unsigned char* messageData, ssize_t messageLength, sockaddr senderAddress);
     
     std::map<uint16_t,VoxelPositionSize> _voxelServerJurisdictions;
+    
+    std::vector<VoxelFade> _voxelFades;
 };
 
 #endif /* defined(__interface__Application__) */

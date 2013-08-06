@@ -3069,6 +3069,19 @@ void Application::displaySide(Camera& whichCamera) {
     
     // brad's frustum for debugging
     if (_frustumOn->isChecked()) renderViewFrustum(_viewFrustum);
+    
+    // render voxel fades if they exist
+    if (_voxelFades.size() > 0) {
+        for(std::vector<VoxelFade>::iterator fade = _voxelFades.begin(); fade != _voxelFades.end();) {
+            fade->render();
+            if(fade->isDone()) {
+                fade = _voxelFades.erase(fade);
+            } else {
+                ++fade;
+            }
+        }
+    }
+        
 }
 
 void Application::displayOverlay() {
@@ -3839,6 +3852,15 @@ void Application::nodeKilled(Node* node) {
 
             printf("voxel server going away...... v[%f, %f, %f, %f]\n",
                 jurisditionDetails.x, jurisditionDetails.y, jurisditionDetails.z, jurisditionDetails.s);
+                
+            // Add the jurisditionDetails object to the list of "fade outs"
+            const float NODE_KILLED_RED   = 1.0f;
+            const float NODE_KILLED_GREEN = 0.0f;
+            const float NODE_KILLED_BLUE  = 0.0f;
+            
+            VoxelFade fade(VoxelFade::FADE_OUT, NODE_KILLED_RED, NODE_KILLED_GREEN, NODE_KILLED_BLUE);
+            fade.voxelDetails = jurisditionDetails;
+            _voxelFades.push_back(fade);
         }
     }
 }
@@ -3860,6 +3882,15 @@ int Application::parseVoxelStats(unsigned char* messageData, ssize_t messageLeng
     if (_voxelServerJurisdictions.find(nodeID) == _voxelServerJurisdictions.end()) {
         printf("stats from new voxel server... v[%f, %f, %f, %f]\n",
             jurisditionDetails.x, jurisditionDetails.y, jurisditionDetails.z, jurisditionDetails.s);
+
+        // Add the jurisditionDetails object to the list of "fade outs"
+        const float NODE_ADDED_RED   = 0.0f;
+        const float NODE_ADDED_GREEN = 1.0f;
+        const float NODE_ADDED_BLUE  = 0.0f;
+        
+        VoxelFade fade(VoxelFade::FADE_OUT, NODE_ADDED_RED, NODE_ADDED_GREEN, NODE_ADDED_BLUE);
+        fade.voxelDetails = jurisditionDetails;
+        _voxelFades.push_back(fade);
     }
     // store jurisdiction details for later use
     _voxelServerJurisdictions[nodeID] = jurisditionDetails;

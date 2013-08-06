@@ -37,7 +37,7 @@ float * firstVertexForCode(unsigned char * octalCode);
 void copyFirstVertexForCode(unsigned char * octalCode, float* output);
 
 struct VoxelPositionSize {
-    float x,y,z,s;
+    float x, y, z, s;
 };
 void voxelDetailsForCode(unsigned char * octalCode, VoxelPositionSize& voxelPositionSize);
 
