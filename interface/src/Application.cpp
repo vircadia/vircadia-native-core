@@ -3073,6 +3073,8 @@ void Application::displaySide(Camera& whichCamera) {
         glEnable(GL_LIGHTING);
     }
     
+    _myAvatar.renderScreenTint(SCREEN_TINT_BEFORE_AVATARS);
+    
     if (_renderAvatarsOn->isChecked()) {
         //  Render avatars of other nodes
         NodeList* nodeList = NodeList::getInstance();

@@ -41,6 +41,7 @@ public:
     void reset();
     void simulate(float deltaTime, bool isMine);
     void render(bool lookingInMirror);
+    void renderRaveGloveStage();
 
     void setBallColor      (glm::vec3 ballColor         ) { _ballColor          = ballColor;          }
     void updateRaveGloveParticles(float deltaTime);
@@ -74,7 +75,6 @@ private:
 
     void activateNewRaveGloveMode();
 
-    void renderRaveGloveStage();
     void renderLeapHandSpheres();
     void renderLeapHands();
     void renderLeapHand(PalmData& hand);

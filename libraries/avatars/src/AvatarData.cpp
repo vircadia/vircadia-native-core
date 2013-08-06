@@ -28,6 +28,7 @@ AvatarData::AvatarData(Node* owningNode) :
     _bodyPitch(0.0),
     _bodyRoll(0.0),
     _newScale(1.0f),
+    _leaderID(UNKNOWN_NODE_ID),
     _handState(0),
     _cameraPosition(0,0,0),
     _cameraOrientation(),
@@ -41,8 +42,7 @@ AvatarData::AvatarData(Node* owningNode) :
     _wantLowResMoving(false),
     _wantOcclusionCulling(true),
     _headData(NULL),
-    _handData(NULL),
-    _leaderID(UNKNOWN_NODE_ID)
+    _handData(NULL)
 {
     
 }

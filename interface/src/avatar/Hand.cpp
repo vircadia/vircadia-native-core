@@ -174,6 +174,7 @@ void Hand::renderRaveGloveStage() {
         glm::vec3 v3 = headOrientation * (glm::vec3(-1.0f,  1.0f, 0.0f) * scale) + vc;
 
         glDisable(GL_DEPTH_TEST);
+        glDepthMask(GL_FALSE);
         glEnable(GL_BLEND);
         glBegin(GL_TRIANGLE_FAN);
         glColor4f(0.0f, 0.0f, 0.0f, 1.0f);
@@ -185,6 +186,7 @@ void Hand::renderRaveGloveStage() {
         glVertex3fv((float*)&v3);
         glVertex3fv((float*)&v0);
         glEnd();
+        glDepthMask(GL_TRUE);
         glEnable(GL_DEPTH_TEST);
     }
 }
