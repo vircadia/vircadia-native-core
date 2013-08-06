@@ -129,7 +129,8 @@ void Hand::render(bool lookingInMirror) {
     calculateGeometry();
 
     if (_isRaveGloveActive) {
-        renderRaveGloveStage();
+        // Disable raveGloveStage while we work on the network glove features
+        // renderRaveGloveStage();
 
         if (_raveGloveInitialized) {
             updateRaveGloveEmitters(); // do this after calculateGeometry
