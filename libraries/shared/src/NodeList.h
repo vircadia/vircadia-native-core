@@ -45,6 +45,14 @@ const int UNKNOWN_NODE_ID = -1;
 
 class NodeListIterator;
 
+// Callers who want to hook add/kill callbacks should implement this class
+class NodeListHook {
+public:
+    virtual void nodeAdded(Node* node) = 0;
+    virtual void nodeKilled(Node* node) = 0;
+};
+
+
 class NodeList {
 public:
     static NodeList* createInstance(char ownerType, unsigned int socketListenPort = NODE_SOCKET_LISTEN_PORT);
@@ -111,6 +119,12 @@ public:
     void saveData(QSettings* settings);
     
     friend class NodeListIterator;
+    
+    void addHook(NodeListHook* hook);
+    void removeHook(NodeListHook* hook);
+    void notifyHooksOfAddedNode(Node* node);
+    void notifyHooksOfKilledNode(Node* node);
+    
 private:
     static NodeList* _sharedInstance;
     
@@ -136,6 +150,8 @@ private:
     
     void handlePingReply(sockaddr *nodeAddress);
     void timePingReply(sockaddr *nodeAddress, unsigned char *packetData);
+    
+    std::vector<NodeListHook*> _hooks;
 };
 
 class NodeListIterator : public std::iterator<std::input_iterator_tag, Node> {

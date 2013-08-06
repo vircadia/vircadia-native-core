@@ -37,6 +37,7 @@
 #include "Swatch.h"
 #include "ToolsPalette.h"
 #include "ViewFrustum.h"
+#include "VoxelFade.h"
 #include "VoxelSystem.h"
 #include "Webcam.h"
 #include "PieMenu.h"
@@ -59,13 +60,14 @@ class QWheelEvent;
 class Node;
 class ProgramObject;
 
-class Application : public QApplication {
+class Application : public QApplication, public NodeListHook {
     Q_OBJECT
 
 public:
     static Application* getInstance() { return static_cast<Application*>(QCoreApplication::instance()); }
 
     Application(int& argc, char** argv, timeval &startup_time);
+    ~Application();
 
     void initializeGL();
     void paintGL();
@@ -107,6 +109,9 @@ public:
     GeometryCache* getGeometryCache() { return &_geometryCache; }
     
     void resetSongMixMenuItem();
+
+    virtual void nodeAdded(Node* node);
+    virtual void nodeKilled(Node* node);
 
 public slots:
     void sendAvatarFaceVideoMessage(int frameCount, const QByteArray& data);    
@@ -448,6 +453,11 @@ private:
     PieMenu _pieMenu;
     
     VoxelSceneStats _voxelSceneStats;
+    int parseVoxelStats(unsigned char* messageData, ssize_t messageLength, sockaddr senderAddress);
+    
+    std::map<uint16_t,VoxelPositionSize> _voxelServerJurisdictions;
+    
+    std::vector<VoxelFade> _voxelFades;
 };
 
 #endif /* defined(__interface__Application__) */

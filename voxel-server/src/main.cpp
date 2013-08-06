@@ -64,6 +64,7 @@ bool debugVoxelSending = false;
 bool shouldShowAnimationDebug = false;
 bool displayVoxelStats = false;
 bool debugVoxelReceiving = false;
+bool sendEnvironments = true;
 
 EnvironmentData environmentData[3];
 
@@ -255,7 +256,7 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
         
         // start tracking our stats
         bool isFullScene = (!viewFrustumChanged || !nodeData->getWantDelta()) && nodeData->getViewFrustumJustStoppedChanging();
-        nodeData->stats.sceneStarted(isFullScene, viewFrustumChanged, ::serverTree.rootNode);
+        nodeData->stats.sceneStarted(isFullScene, viewFrustumChanged, ::serverTree.rootNode, ::jurisdiction);
     }
 
     // If we have something in our nodeBag, then turn them into packets and send them out...
@@ -265,7 +266,7 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
         int packetsSentThisInterval = 0;
         uint64_t start = usecTimestampNow();
 
-        bool shouldSendEnvironments = shouldDo(ENVIRONMENT_SEND_INTERVAL_USECS, VOXEL_SEND_INTERVAL_USECS);
+        bool shouldSendEnvironments = ::sendEnvironments && shouldDo(ENVIRONMENT_SEND_INTERVAL_USECS, VOXEL_SEND_INTERVAL_USECS);
         while (packetsSentThisInterval < PACKETS_PER_CLIENT_PER_INTERVAL - (shouldSendEnvironments ? 1 : 0)) {        
             // Check to see if we're taking too long, and if so bail early...
             uint64_t now = usecTimestampNow();
@@ -473,6 +474,15 @@ int main(int argc, const char * argv[]) {
             jurisdiction = new JurisdictionMap(jurisdictionRoot, jurisdictionEndNodes);
         }
     }
+
+    // should we send environments? Default is yes, but this command line suppresses sending
+    const char* DONT_SEND_ENVIRONMENTS = "--dontSendEnvironments";
+    bool dontSendEnvironments = cmdOptionExists(argc, argv, DONT_SEND_ENVIRONMENTS);
+    if (dontSendEnvironments) {
+        printf("Sending environments suppressed...\n");
+        ::sendEnvironments = false;
+    }
+    printf("Sending environments=%s\n", debug::valueOf(::sendEnvironments));
     
     NodeList* nodeList = NodeList::createInstance(NODE_TYPE_VOXEL_SERVER, listenPort);
     setvbuf(stdout, NULL, _IOLBF, 0);
