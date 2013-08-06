@@ -161,7 +161,8 @@ int HandData::decodeRemoteData(unsigned char* sourceBuffer) {
     }
     
     setRaveGloveActive((gloveFlags & GLOVE_FLAG_RAVE) != 0);
-    setRaveGloveMode(effectsMode);
+// Jeffrey: uncomment this to test locally, before unrolling it to the team.
+//    setRaveGloveMode(effectsMode);
     
     // One byte for error checking safety.
     unsigned char requiredLength = (unsigned char)(sourceBuffer - startPosition);
@@ -171,10 +172,10 @@ int HandData::decodeRemoteData(unsigned char* sourceBuffer) {
     return sourceBuffer - startPosition;
 }
 
-void HandData::setRaveGloveMode(int effectsMode)
-{
-    if (effectsMode != _raveGloveEffectsMode)
+void HandData::setRaveGloveMode(int effectsMode) {
+    if (effectsMode != _raveGloveEffectsMode) {
         _raveGloveEffectsModeChanged = true;
+    }
     _raveGloveEffectsMode = effectsMode;
 }
 
