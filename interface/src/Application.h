@@ -179,6 +179,7 @@ private slots:
     void setListenModePoint();
     void setListenModeSingleSource();
     void toggleMixedSong();
+    void toggleWantCollisionsOn();
 
 
     void renderCoverageMap();
@@ -294,6 +295,7 @@ private:
     QAction* _rawAudioMicrophoneMix; // Mixing of a RAW audio file with microphone stream for rave gloves
     QAction* _noise;
     QAction* _occlusionCulling;
+    QAction* _wantCollisionsOn;
 
     QAction* _renderCoverageMapV2;
     QAction* _renderCoverageMap;

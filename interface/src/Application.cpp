@@ -1944,6 +1944,7 @@ void Application::initMenu() {
     (_fullScreenMode = optionsMenu->addAction("Fullscreen", this, SLOT(setFullscreen(bool)), Qt::Key_F))->setCheckable(true);
     optionsMenu->addAction("Webcam", &_webcam, SLOT(setEnabled(bool)))->setCheckable(true);
     optionsMenu->addAction("Toggle Skeleton Tracking", &_webcam, SLOT(setSkeletonTrackingOn(bool)))->setCheckable(true);
+    (_wantCollisionsOn = optionsMenu->addAction("Turn collisions On", this, SLOT(toggleWantCollisionsOn())))->setCheckable(true);
     optionsMenu->addAction("Cycle Webcam Send Mode", _webcam.getGrabber(), SLOT(cycleVideoSendMode()));
     optionsMenu->addAction("Go Home", this, SLOT(goHome()), Qt::CTRL | Qt::Key_G);
     
@@ -2135,6 +2136,10 @@ void Application::toggleMixedSong() {
         _audio.stopMixingSongWithMicrophone();
         resetSongMixMenuItem();
     }
+}
+
+void Application::toggleWantCollisionsOn() {
+    _myAvatar.setWantCollisionsOn(_wantCollisionsOn->isChecked());
 }
 
 void Application::resetSongMixMenuItem() {
