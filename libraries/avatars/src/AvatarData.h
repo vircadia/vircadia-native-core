@@ -41,7 +41,12 @@ enum KeyState
 class JointData;
 
 class AvatarData : public NodeData {
-  Q_OBJECT
+    Q_OBJECT
+    
+    Q_PROPERTY(float bodyYaw READ getBodyYaw WRITE setBodyYaw)
+    Q_PROPERTY(float bodyPitch READ getBodyPitch WRITE setBodyPitch)
+    Q_PROPERTY(float bodyRoll READ getBodyRoll WRITE setBodyRoll)
+    Q_PROPERTY(QString chatMessage READ getQStringChatMessage WRITE setChatMessage)
 public:
     AvatarData(Node* owningNode = NULL);
     ~AvatarData();
@@ -56,10 +61,12 @@ public:
     
     //  Body Rotation
     float getBodyYaw() const { return _bodyYaw; }
+    void setBodyYaw(float bodyYaw) { _bodyYaw = bodyYaw; }
     float getBodyPitch() const { return _bodyPitch; }
     void setBodyPitch(float bodyPitch) { _bodyPitch = bodyPitch; }
     float getBodyRoll() const {return _bodyRoll; }
     void setBodyRoll(float bodyRoll) { _bodyRoll = bodyRoll; }
+
     
     //  Hand State
     void setHandState(char s) { _handState = s; };
@@ -89,7 +96,9 @@ public:
     
     // chat message
     void setChatMessage(const std::string& msg) { _chatMessage = msg; }
-    const std::string& chatMessage () const { return _chatMessage; }
+    void setChatMessage(const QString& string) { _chatMessage = string.toLocal8Bit().constData(); }
+    const std::string& setChatMessage() const { return _chatMessage; }
+    QString getQStringChatMessage() { return QString(_chatMessage.data()); }
 
     // related to Voxel Sending strategies
     bool getWantColor() const            { return _wantColor; }
@@ -107,7 +116,7 @@ public:
     
 public slots:
     void setPosition(float x, float y, float z) { _position = glm::vec3(x, y, z); }
-    void setBodyYaw(float bodyYaw) { _bodyYaw = bodyYaw; }
+    void setHandPosition(float x, float y, float z) { _position = glm::vec3(x, y, z); }
     void sendData();
     
 protected:
