@@ -64,10 +64,10 @@ void Hand::simulate(float deltaTime, bool isMine) {
 }
 
 void Hand::calculateGeometry() {
-    glm::vec3 offset(0.2, -0.2, -0.3);  // place the hand in front of the face where we can see it
+    const glm::vec3 leapHandsOffsetFromFace(0.0, -0.2, -0.3);  // place the hand in front of the face where we can see it
     
     Head& head = _owningAvatar->getHead();
-    _basePosition = head.getPosition() + head.getOrientation() * offset;
+    _basePosition = head.getPosition() + head.getOrientation() * leapHandsOffsetFromFace;
     _baseOrientation = head.getOrientation();
 
     // generate finger tip balls....
@@ -154,8 +154,10 @@ void Hand::render(bool lookingInMirror) {
     
     if ( SHOW_LEAP_HAND ) {
         //renderLeapHands();
-        renderLeapFingerTrails();
-        renderLeapHandSpheres();
+        if (!isRaveGloveActive()) {
+            renderLeapFingerTrails();
+            renderLeapHandSpheres();
+        }
     }
 }
 
