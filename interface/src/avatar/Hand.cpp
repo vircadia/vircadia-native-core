@@ -54,7 +54,7 @@ void Hand::reset() {
 void Hand::simulate(float deltaTime, bool isMine) {
 
     if (_isRaveGloveActive) {
-        if (_raveGloveEffectsModeChanged) {
+        if (_raveGloveEffectsModeChanged && _raveGloveInitialized) {
             activateNewRaveGloveMode();
             _raveGloveEffectsModeChanged = false;
         }
@@ -363,6 +363,10 @@ void Hand::updateRaveGloveParticles(float deltaTime) {
 // The rave glove mode has changed, so activate the effects.
 void Hand::activateNewRaveGloveMode() {
 
+    if (!_raveGloveInitialized) {
+        return;
+    }
+    
     int mode = _raveGloveEffectsMode;
     _raveGloveParticleSystem.killAllParticles();
 
