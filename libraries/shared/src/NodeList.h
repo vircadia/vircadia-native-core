@@ -74,7 +74,7 @@ public:
     void setDomainIPToLocalhost();
         
     uint16_t getLastNodeID() const { return _lastNodeID; }
-    void increaseNodeID() { ++_lastNodeID; }
+    void increaseNodeID() { (++_lastNodeID == UNKNOWN_NODE_ID) ? ++_lastNodeID : _lastNodeID; }
     
     uint16_t getOwnerID() const { return _ownerID; }
     void setOwnerID(uint16_t ownerID) { _ownerID = ownerID; }

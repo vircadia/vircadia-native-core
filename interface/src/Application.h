@@ -184,6 +184,7 @@ private slots:
     void setListenModePoint();
     void setListenModeSingleSource();
     void toggleMixedSong();
+    void toggleWantCollisionsOn();
 
 
     void renderCoverageMap();
@@ -221,6 +222,7 @@ private:
     bool isLookingAtMyAvatar(Avatar* avatar);
                                 
     void renderLookatIndicator(glm::vec3 pointOfInterest, Camera& whichCamera);
+    void renderFollowIndicator();
     void updateAvatar(float deltaTime);
     void loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum);
     
@@ -299,6 +301,7 @@ private:
     QAction* _rawAudioMicrophoneMix; // Mixing of a RAW audio file with microphone stream for rave gloves
     QAction* _noise;
     QAction* _occlusionCulling;
+    QAction* _wantCollisionsOn;
 
     QAction* _renderCoverageMapV2;
     QAction* _renderCoverageMap;

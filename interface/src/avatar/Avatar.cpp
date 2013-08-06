@@ -295,8 +295,8 @@ void Avatar::reset() {
 //  Update avatar head rotation with sensor data
 void Avatar::updateFromGyrosAndOrWebcam(bool gyroLook,
                                         const glm::vec3& amplifyAngle,
-                                        float yawFromTouch,
                                         float pitchFromTouch) {
+    _head.setMousePitch(pitchFromTouch);
     SerialInterface* gyros = Application::getInstance()->getSerialHeadSensor();
     Webcam* webcam = Application::getInstance()->getWebcam();
     glm::vec3 estimatedPosition, estimatedRotation;
@@ -308,7 +308,6 @@ void Avatar::updateFromGyrosAndOrWebcam(bool gyroLook,
     
     } else {
         _head.setPitch(pitchFromTouch);
-        _head.setYaw(yawFromTouch);
         return;
     }
     if (webcam->isActive()) {
@@ -334,8 +333,8 @@ void Avatar::updateFromGyrosAndOrWebcam(bool gyroLook,
     } else {
         _head.getFace().clearFrame();
     }
-    _head.setPitch(estimatedRotation.x * amplifyAngle.x + pitchFromTouch);
-    _head.setYaw(estimatedRotation.y * amplifyAngle.y + yawFromTouch);
+    _head.setPitch(estimatedRotation.x * amplifyAngle.x);
+    _head.setYaw(estimatedRotation.y * amplifyAngle.y);
     _head.setRoll(estimatedRotation.z * amplifyAngle.z);
     _head.setCameraFollowsHead(gyroLook);
         
@@ -493,10 +492,13 @@ void Avatar::follow(Avatar* leadingAvatar) {
 
     _leadingAvatar = leadingAvatar;
     if (_leadingAvatar != NULL) {
+        _leaderID = leadingAvatar->getOwningNode()->getNodeID();
         _stringLength = glm::length(_position - _leadingAvatar->getPosition()) / _scale;
         if (_stringLength > MAX_STRING_LENGTH) {
             _stringLength = MAX_STRING_LENGTH;
         }
+    } else {
+        _leaderID = UNKNOWN_NODE_ID;
     }
 }
 
@@ -623,9 +625,12 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
                 _velocity += _scale * _gravity * (GRAVITY_EARTH * deltaTime);
             }
         }
-        updateCollisionWithEnvironment(deltaTime);
-        updateCollisionWithVoxels(deltaTime);
-        updateAvatarCollisions(deltaTime);
+
+        if (_isCollisionsOn) {
+            updateCollisionWithEnvironment(deltaTime);
+            updateCollisionWithVoxels(deltaTime);
+            updateAvatarCollisions(deltaTime);
+        }
     }
     
     // update body balls
@@ -633,7 +638,7 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     
 
     // test for avatar collision response with the big sphere
-    if (usingBigSphereCollisionTest) {
+    if (usingBigSphereCollisionTest && _isCollisionsOn) {
         updateCollisionWithSphere(_TEST_bigSpherePosition, _TEST_bigSphereRadius, deltaTime);
     }
     
@@ -748,6 +753,8 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     _head.setScale(_scale);
     _head.setSkinColor(glm::vec3(SKIN_COLOR[0], SKIN_COLOR[1], SKIN_COLOR[2]));
     _head.simulate(deltaTime, isMyAvatar());
+    _hand.simulate(deltaTime, isMyAvatar());
+
 
 
 
@@ -1372,6 +1379,17 @@ void Avatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
         for (int b = 0; b < NUM_AVATAR_BODY_BALLS; b++) {
             float alpha = getBallRenderAlpha(b, lookingInMirror);
             
+            // When in rave glove mode, don't show the arms at all.
+            if (_hand.isRaveGloveActive()) {
+                if (b == BODY_BALL_LEFT_ELBOW
+                    || b == BODY_BALL_LEFT_WRIST
+                    || b == BODY_BALL_LEFT_FINGERTIPS
+                    || b == BODY_BALL_RIGHT_ELBOW
+                    || b == BODY_BALL_RIGHT_WRIST
+                    || b == BODY_BALL_RIGHT_FINGERTIPS) {
+                    continue;
+                }
+            }
             //  Always render other people, and render myself when beyond threshold distance
             if (b == BODY_BALL_HEAD_BASE) { // the head is rendered as a special
                 if (alpha > 0.0f) {
