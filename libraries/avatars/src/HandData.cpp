@@ -20,7 +20,8 @@ HandData::HandData(AvatarData* owningAvatar) :
     _baseOrientation(0.0f, 0.0f, 0.0f, 1.0f),
     _owningAvatarData(owningAvatar),
     _isRaveGloveActive(false),
-    _raveGloveMode(RAVE_GLOVE_EFFECTS_MODE_THROBBING_COLOR)
+    _raveGloveEffectsMode(RAVE_GLOVE_EFFECTS_MODE_THROBBING_COLOR),
+    _raveGloveEffectsModeChanged(false)
 {
     // Start with two palms
     addNewPalm();
@@ -160,8 +161,7 @@ int HandData::decodeRemoteData(unsigned char* sourceBuffer) {
     }
     
     setRaveGloveActive((gloveFlags & GLOVE_FLAG_RAVE) != 0);
-// This is disabled for crash tracing.
-//    setRaveGloveMode(effectsMode);
+    setRaveGloveMode(effectsMode);
     
     // One byte for error checking safety.
     unsigned char requiredLength = (unsigned char)(sourceBuffer - startPosition);
@@ -169,6 +169,13 @@ int HandData::decodeRemoteData(unsigned char* sourceBuffer) {
     assert(checkLength == requiredLength);
 
     return sourceBuffer - startPosition;
+}
+
+void HandData::setRaveGloveMode(int effectsMode)
+{
+    if (effectsMode != _raveGloveEffectsMode)
+        _raveGloveEffectsModeChanged = true;
+    _raveGloveEffectsMode = effectsMode;
 }
 
 void HandData::setFingerTrailLength(unsigned int length) {
