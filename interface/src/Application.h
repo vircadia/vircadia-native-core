@@ -358,7 +358,7 @@ private:
     Environment _environment;
     
     int _headMouseX, _headMouseY;
-    float _headCameraPitchYawScale;
+    float _gyroCameraSensitivity;
     
     int _audioJitterBufferSamples;     // Number of extra samples to wait before starting audio playback
     

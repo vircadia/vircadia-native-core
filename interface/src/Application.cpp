@@ -1290,9 +1290,9 @@ void Application::editPreferences() {
     horizontalFieldOfView->setValue(_horizontalFieldOfView);
     form->addRow("Horizontal field of view (degrees):", horizontalFieldOfView);
     
-    QDoubleSpinBox* headCameraPitchYawScale = new QDoubleSpinBox();
-    headCameraPitchYawScale->setValue(_headCameraPitchYawScale);
-    form->addRow("Head Camera Pitch/Yaw Scale:", headCameraPitchYawScale);
+    QDoubleSpinBox* gyroCameraSensitivity = new QDoubleSpinBox();
+    gyroCameraSensitivity->setValue(_gyroCameraSensitivity);
+    form->addRow("Gyro Camera Sensitivity (0 - 1):", gyroCameraSensitivity);
 
     QDoubleSpinBox* leanScale = new QDoubleSpinBox();
     leanScale->setValue(_myAvatar.getLeanScale());
@@ -1342,7 +1342,7 @@ void Application::editPreferences() {
     _myAvatar.getVoxels()->setVoxelURL(url);
     sendAvatarVoxelURLMessage(url);
     
-    _headCameraPitchYawScale = headCameraPitchYawScale->value();
+    _gyroCameraSensitivity = gyroCameraSensitivity->value();
     _myAvatar.setLeanScale(leanScale->value());
     _audioJitterBufferSamples = audioJitterBufferSamples->value();
     if (!shouldDynamicallySetJitterBuffer()) {
@@ -2500,7 +2500,7 @@ void Application::update(float deltaTime) {
             if (!avatar->isInitialized()) {
                 avatar->init();
             }
-            avatar->simulate(deltaTime, NULL);
+            avatar->simulate(deltaTime, NULL, 0.f);
             avatar->setMouseRay(mouseRayOrigin, mouseRayDirection);
         }
         node->unlock();
@@ -2515,9 +2515,9 @@ void Application::update(float deltaTime) {
     }
 
     if (_transmitterDrives->isChecked() && _myTransmitter.isConnected()) {
-        _myAvatar.simulate(deltaTime, &_myTransmitter);
+        _myAvatar.simulate(deltaTime, &_myTransmitter, _gyroCameraSensitivity);
     } else {
-        _myAvatar.simulate(deltaTime, NULL);
+        _myAvatar.simulate(deltaTime, NULL, _gyroCameraSensitivity);
     }
     
     if (!OculusManager::isConnected()) {        
@@ -2584,9 +2584,6 @@ void Application::updateAvatar(float deltaTime) {
     
     // Update my avatar's state from gyros and/or webcam
     _myAvatar.updateFromGyrosAndOrWebcam(_gyroLook->isChecked(),
-                                         glm::vec3(_headCameraPitchYawScale,
-                                                   _headCameraPitchYawScale,
-                                                   _headCameraPitchYawScale),
                                          _pitchFromTouch);
         
     if (_serialHeadSensor.isActive()) {
@@ -3951,11 +3948,11 @@ void Application::saveAction(QSettings* set, QAction* action) {
 }
 
 void Application::loadSettings(QSettings* settings) {
-    if (!settings) { 
+    if (!settings) {
         settings = getSettings();
     }
 
-    _headCameraPitchYawScale = loadSetting(settings, "headCameraPitchYawScale", 0.0f);
+    _gyroCameraSensitivity = loadSetting(settings, "gyroCameraSensitivity", 0.5f);
     _audioJitterBufferSamples = loadSetting(settings, "audioJitterBufferSamples", 0);
     _horizontalFieldOfView = loadSetting(settings, "horizontalFieldOfView", HORIZONTAL_FIELD_OF_VIEW_DEGREES);
 
@@ -3979,7 +3976,7 @@ void Application::saveSettings(QSettings* settings) {
         settings = getSettings();
     }
     
-    settings->setValue("headCameraPitchYawScale", _headCameraPitchYawScale);
+    settings->setValue("gyroCameraSensitivity", _gyroCameraSensitivity);
     settings->setValue("audioJitterBufferSamples", _audioJitterBufferSamples);
     settings->setValue("horizontalFieldOfView", _horizontalFieldOfView);
     settings->beginGroup("View Frustum Offset Camera");

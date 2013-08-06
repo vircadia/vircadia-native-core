@@ -294,7 +294,6 @@ void Avatar::reset() {
 
 //  Update avatar head rotation with sensor data
 void Avatar::updateFromGyrosAndOrWebcam(bool gyroLook,
-                                        const glm::vec3& amplifyAngle,
                                         float pitchFromTouch) {
     _head.setMousePitch(pitchFromTouch);
     SerialInterface* gyros = Application::getInstance()->getSerialHeadSensor();
@@ -333,9 +332,15 @@ void Avatar::updateFromGyrosAndOrWebcam(bool gyroLook,
     } else {
         _head.getFace().clearFrame();
     }
-    _head.setPitch(estimatedRotation.x * amplifyAngle.x);
-    _head.setYaw(estimatedRotation.y * amplifyAngle.y);
-    _head.setRoll(estimatedRotation.z * amplifyAngle.z);
+    
+    // Set the rotation of the avatar's head (as seen by others, not affecting view frustum)
+    // to be scaled.  Pitch is greater to emphasize nodding behavior / synchrony. 
+    const float AVATAR_HEAD_PITCH_MAGNIFY = 1.0f;
+    const float AVATAR_HEAD_YAW_MAGNIFY = 1.0f;
+    const float AVATAR_HEAD_ROLL_MAGNIFY = 1.0f;
+    _head.setPitch(estimatedRotation.x * AVATAR_HEAD_PITCH_MAGNIFY);
+    _head.setYaw(estimatedRotation.y * AVATAR_HEAD_YAW_MAGNIFY);
+    _head.setRoll(estimatedRotation.z * AVATAR_HEAD_ROLL_MAGNIFY);
     _head.setCameraFollowsHead(gyroLook);
         
     //  Update torso lean distance based on accelerometer data
@@ -390,7 +395,7 @@ void Avatar::updateThrust(float deltaTime, Transmitter * transmitter) {
     //
     //  Gather thrust information from keyboard and sensors to apply to avatar motion 
     //
-    glm::quat orientation = getHead().getOrientation();
+    glm::quat orientation = getHead().getCameraOrientation();
     glm::vec3 front = orientation * IDENTITY_FRONT;
     glm::vec3 right = orientation * IDENTITY_RIGHT;
     glm::vec3 up = orientation * IDENTITY_UP;
@@ -499,7 +504,7 @@ void Avatar::follow(Avatar* leadingAvatar) {
     }
 }
 
-void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
+void Avatar::simulate(float deltaTime, Transmitter* transmitter, float gyroCameraSensitivity) {
 
     glm::quat orientation = getOrientation();
     glm::vec3 front = orientation * IDENTITY_FRONT;
@@ -746,7 +751,7 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     _head.setPosition(_bodyBall[ BODY_BALL_HEAD_BASE ].position);
     _head.setScale(_scale);
     _head.setSkinColor(glm::vec3(SKIN_COLOR[0], SKIN_COLOR[1], SKIN_COLOR[2]));
-    _head.simulate(deltaTime, isMyAvatar());
+    _head.simulate(deltaTime, isMyAvatar(), gyroCameraSensitivity);
     _hand.simulate(deltaTime, isMyAvatar());
 
 

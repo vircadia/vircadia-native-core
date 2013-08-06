@@ -119,11 +119,10 @@ public:
     
     void init();
     void reset();
-    void simulate(float deltaTime, Transmitter* transmitter);
+    void simulate(float deltaTime, Transmitter* transmitter, float gyroCameraSensitivity);
     void updateThrust(float deltaTime, Transmitter * transmitter);
     void follow(Avatar* leadingAvatar);
     void updateFromGyrosAndOrWebcam(bool gyroLook,
-                                    const glm::vec3& amplifyAngle,
                                     float pitchFromTouch);
     void addBodyYaw(float bodyYaw) {_bodyYaw += bodyYaw;};
     void addBodyYawDelta(float bodyYawDelta) {_bodyYawDelta += bodyYawDelta;}
