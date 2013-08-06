@@ -43,6 +43,7 @@ class JointData;
 class AvatarData : public NodeData {
     Q_OBJECT
     
+    Q_PROPERTY(QVariantMap position READ getPositionVariantMap WRITE setPositionFromVariantMap)
     Q_PROPERTY(float bodyYaw READ getBodyYaw WRITE setBodyYaw)
     Q_PROPERTY(float bodyPitch READ getBodyPitch WRITE setBodyPitch)
     Q_PROPERTY(float bodyRoll READ getBodyRoll WRITE setBodyRoll)
@@ -55,6 +56,9 @@ public:
     
     void setPosition      (const glm::vec3 position      ) { _position       = position;       }
     void setHandPosition  (const glm::vec3 handPosition  ) { _handPosition   = handPosition;   }
+    
+    void setPositionFromVariantMap(QVariantMap positionMap);
+    QVariantMap getPositionVariantMap();
     
     int getBroadcastData(unsigned char* destinationBuffer);
     int parseData(unsigned char* sourceBuffer, int numBytes);
@@ -115,7 +119,6 @@ public:
     void setHandData(HandData* handData) { _handData = handData; }
     
 public slots:
-    void setPosition(float x, float y, float z) { _position = glm::vec3(x, y, z); }
     void setHandPosition(float x, float y, float z) { _position = glm::vec3(x, y, z); }
     void sendData();
     
