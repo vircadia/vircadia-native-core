@@ -72,6 +72,7 @@ void main(void) {
     // compute the specular component (sans exponent) based on the normal OpenGL lighting model
     float specular = max(0.0, dot(normalize(gl_LightSource[0].position.xyz + vec3(0.0, 0.0, 1.0)), normal));
     
+    // the base color is a subtle marble texture produced by modulating the phase of a sine wave by perlin noise
     vec3 color = mix(vec3(1.0, 1.0, 1.0), vec3(0.75, 0.75, 0.75),
         sin(dot(position, vec3(25.0, 25.0, 25.0)) + 2.0 * perlin(position * 10.0)));
     

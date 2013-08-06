@@ -112,18 +112,20 @@ int Face::processVideoMessage(unsigned char* packetData, size_t dataBytes) {
         return dataBytes;
     }
     
-    // the switch from full frame to not (or vice versa) requires us to reinit the codecs
+    // the switch between full frame or depth only modes requires us to reinit the codecs
     float aspectRatio = *(const float*)_arrivingFrame.constData();
+    size_t colorSize = *(const size_t*)(_arrivingFrame.constData() + sizeof(float));
     bool fullFrame = (aspectRatio == FULL_FRAME_ASPECT);
-    if (fullFrame != _lastFullFrame) {
+    bool depthOnly = (colorSize == 0);
+    if (fullFrame != _lastFullFrame || depthOnly != _lastDepthOnly) {
         destroyCodecs();
         _lastFullFrame = fullFrame;
+        _lastDepthOnly = depthOnly;
     }
     
     // read the color data, if non-empty
     Mat color;
     const uint8_t* colorData = (const uint8_t*)(_arrivingFrame.constData() + sizeof(float) + sizeof(size_t));
-    size_t colorSize = *(const size_t*)(_arrivingFrame.constData() + sizeof(float));
     if (colorSize > 0) {
         if (_colorCodec.name == 0) {
             // initialize decoder context
@@ -331,7 +333,7 @@ bool Face::render(float alpha) {
         
         ProgramObject* program = _videoProgram;
         Locations* locations = &_videoProgramLocations;
-        if (false && _colorTextureID != 0) {
+        if (_colorTextureID != 0) {
             glBindTexture(GL_TEXTURE_2D, _colorTextureID);        
         
         } else {
@@ -401,13 +403,14 @@ void Face::cycleRenderMode() {
 }
 
 void Face::setFrame(const cv::Mat& color, const cv::Mat& depth, float aspectRatio) {
-    Size2f textureSize;
+    Size2f textureSize = _textureSize;
     if (!color.empty()) {
-        if (_colorTextureID == 0) {
+        bool generate = (_colorTextureID == 0);
+        if (generate) {
             glGenTextures(1, &_colorTextureID);
         }
         glBindTexture(GL_TEXTURE_2D, _colorTextureID);
-        if (_textureSize.width != color.cols || _textureSize.height != color.rows) {
+        if (_textureSize.width != color.cols || _textureSize.height != color.rows || generate) {
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, color.cols, color.rows, 0, GL_RGB, GL_UNSIGNED_BYTE, color.ptr());
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
             textureSize = color.size();
@@ -422,11 +425,12 @@ void Face::setFrame(const cv::Mat& color, const cv::Mat& depth, float aspectRati
     }
     
     if (!depth.empty()) {
-        if (_depthTextureID == 0) {
+        bool generate = (_depthTextureID == 0);
+        if (generate) {
             glGenTextures(1, &_depthTextureID);
         }
         glBindTexture(GL_TEXTURE_2D, _depthTextureID);
-        if (_textureSize.width != depth.cols || _textureSize.height != depth.rows) {
+        if (_textureSize.width != depth.cols || _textureSize.height != depth.rows || generate) {
             glTexImage2D(GL_TEXTURE_2D, 0, GL_LUMINANCE, depth.cols, depth.rows, 0,
                 GL_LUMINANCE, GL_UNSIGNED_BYTE, depth.ptr());
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
