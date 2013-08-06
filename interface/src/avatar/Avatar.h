@@ -27,7 +27,7 @@
 #include "world.h"
 
 
-static const float MAX_SCALE           = 5.f;
+static const float MAX_SCALE           = 10.f;
 static const float MIN_SCALE           = .5f;
 static const float SCALING_RATIO       = .05f;
 static const float SMOOTHING_RATIO     = .05f; // 0 < ratio < 1
@@ -112,6 +112,15 @@ enum AvatarMode
     NUM_AVATAR_MODES
 };
 
+enum ScreenTintLayer
+{
+    SCREEN_TINT_BEFORE_LANDSCAPE = 0,
+    SCREEN_TINT_BEFORE_AVATARS,
+    SCREEN_TINT_BEFORE_MY_AVATAR,
+    SCREEN_TINT_AFTER_MY_AVATAR,
+    NUM_SCREEN_TINT_LAYERS
+};
+
 class Avatar : public AvatarData {
 public:
     Avatar(Node* owningNode = NULL);
@@ -119,16 +128,15 @@ public:
     
     void init();
     void reset();
-    void simulate(float deltaTime, Transmitter* transmitter);
+    void simulate(float deltaTime, Transmitter* transmitter, float gyroCameraSensitivity);
     void updateThrust(float deltaTime, Transmitter * transmitter);
     void follow(Avatar* leadingAvatar);
     void updateFromGyrosAndOrWebcam(bool gyroLook,
-                                    const glm::vec3& amplifyAngle,
-                                    float yawFromTouch,
                                     float pitchFromTouch);
     void addBodyYaw(float bodyYaw) {_bodyYaw += bodyYaw;};
     void addBodyYawDelta(float bodyYawDelta) {_bodyYawDelta += bodyYawDelta;}
     void render(bool lookingInMirror, bool renderAvatarBalls);
+    void renderScreenTint(ScreenTintLayer layer);
 
     //setters
     void setMousePressed           (bool      mousePressed           ) { _mousePressed    = mousePressed;} 
@@ -142,6 +150,7 @@ public:
     void setMouseRay               (const glm::vec3 &origin, const glm::vec3 &direction);
     void setOrientation            (const glm::quat& orientation);
     void setNewScale               (const float scale);
+    void setWantCollisionsOn       (bool wantCollisionsOn            ) { _isCollisionsOn = wantCollisionsOn; }
 
     //getters
     bool             isInitialized             ()                const { return _initialized;}
@@ -263,6 +272,7 @@ private:
     glm::vec3   _lastCollisionPosition;
     bool        _speedBrakes;
     bool        _isThrustOn;
+    bool        _isCollisionsOn;
 
     Avatar*     _leadingAvatar;
     float       _stringLength;

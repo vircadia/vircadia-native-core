@@ -14,6 +14,7 @@
 
 #include <limits.h>
 #include <OctalCode.h>
+#include <glm/glm.hpp>
 
 // this is where the coordinate system is represented
 const glm::vec3 IDENTITY_RIGHT = glm::vec3( 1.0f, 0.0f, 0.0f);

@@ -54,8 +54,8 @@ void Hand::reset() {
 void Hand::simulate(float deltaTime, bool isMine) {
 
     if (_isRaveGloveActive) {
-        if (_raveGloveEffectsModeChanged) {
-            setRaveGloveMode(_raveGloveEffectsMode); 
+        if (_raveGloveEffectsModeChanged && _raveGloveInitialized) {
+            activateNewRaveGloveMode();
             _raveGloveEffectsModeChanged = false;
         }
         
@@ -64,10 +64,10 @@ void Hand::simulate(float deltaTime, bool isMine) {
 }
 
 void Hand::calculateGeometry() {
-    glm::vec3 offset(0.2, -0.2, -0.3);  // place the hand in front of the face where we can see it
+    const glm::vec3 leapHandsOffsetFromFace(0.0, -0.2, -0.3);  // place the hand in front of the face where we can see it
     
     Head& head = _owningAvatar->getHead();
-    _basePosition = head.getPosition() + head.getOrientation() * offset;
+    _basePosition = head.getPosition() + head.getOrientation() * leapHandsOffsetFromFace;
     _baseOrientation = head.getOrientation();
 
     // generate finger tip balls....
@@ -154,8 +154,10 @@ void Hand::render(bool lookingInMirror) {
     
     if ( SHOW_LEAP_HAND ) {
         //renderLeapHands();
-        renderLeapFingerTrails();
-        renderLeapHandSpheres();
+        if (!isRaveGloveActive()) {
+            renderLeapFingerTrails();
+            renderLeapHandSpheres();
+        }
     }
 }
 
@@ -172,6 +174,7 @@ void Hand::renderRaveGloveStage() {
         glm::vec3 v3 = headOrientation * (glm::vec3(-1.0f,  1.0f, 0.0f) * scale) + vc;
 
         glDisable(GL_DEPTH_TEST);
+        glDepthMask(GL_FALSE);
         glEnable(GL_BLEND);
         glBegin(GL_TRIANGLE_FAN);
         glColor4f(0.0f, 0.0f, 0.0f, 1.0f);
@@ -183,6 +186,7 @@ void Hand::renderRaveGloveStage() {
         glVertex3fv((float*)&v3);
         glVertex3fv((float*)&v0);
         glEnd();
+        glDepthMask(GL_TRUE);
         glEnable(GL_DEPTH_TEST);
     }
 }
@@ -352,6 +356,7 @@ void Hand::updateRaveGloveParticles(float deltaTime) {
         }
                                                     
         setRaveGloveMode(RAVE_GLOVE_EFFECTS_MODE_FIRE);
+        activateNewRaveGloveMode();
         _raveGloveParticleSystem.setUpDirection(glm::vec3(0.0f, 1.0f, 0.0f));
         _raveGloveInitialized = true;         
     } else {        
@@ -359,11 +364,14 @@ void Hand::updateRaveGloveParticles(float deltaTime) {
     }
 }
 
+// The rave glove mode has changed, so activate the effects.
+void Hand::activateNewRaveGloveMode() {
 
-void Hand::setRaveGloveMode(int mode) {
-
-    _raveGloveMode = mode;
-
+    if (!_raveGloveInitialized) {
+        return;
+    }
+    
+    int mode = _raveGloveEffectsMode;
     _raveGloveParticleSystem.killAllParticles();
 
     for ( int f = 0; f< NUM_FINGERS; f ++ ) {
