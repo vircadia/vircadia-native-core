@@ -97,7 +97,7 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     destinationBuffer += packFloatRatioToTwoByte(destinationBuffer, _newScale);
     
     // Follow mode info
-    memcpy(destinationBuffer, &_leaderID, sizeof(_leaderID));
+    memcpy(destinationBuffer, &_leaderID, sizeof(uint16_t));
     destinationBuffer += sizeof(uint16_t);
 
     // Head rotation (NOTE: This needs to become a quaternion to save two bytes)
@@ -200,7 +200,7 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     sourceBuffer += unpackFloatRatioFromTwoByte(            sourceBuffer,  _newScale);
 
     // Follow mode info
-    memcpy(&_leaderID, sourceBuffer, sizeof(_leaderID));
+    memcpy(&_leaderID, sourceBuffer, sizeof(uint16_t));
     sourceBuffer += sizeof(uint16_t);
 
     // Head rotation (NOTE: This needs to become a quaternion to save two bytes)
