@@ -60,6 +60,15 @@ class QWheelEvent;
 class Node;
 class ProgramObject;
 
+static const float NODE_ADDED_RED   = 0.0f;
+static const float NODE_ADDED_GREEN = 1.0f;
+static const float NODE_ADDED_BLUE  = 0.0f;
+static const float NODE_KILLED_RED   = 1.0f;
+static const float NODE_KILLED_GREEN = 0.0f;
+static const float NODE_KILLED_BLUE  = 0.0f;
+
+
+
 class Application : public QApplication, public NodeListHook {
     Q_OBJECT
 
@@ -240,6 +249,7 @@ private:
     void deleteVoxelUnderCursor();
     void eyedropperVoxelUnderCursor();
     void resetSensors();
+    void injectVoxelAddedSoundEffect();
             
     void setMenuShortcutsEnabled(bool enabled);
     
