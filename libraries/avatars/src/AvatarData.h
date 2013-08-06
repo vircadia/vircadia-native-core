@@ -16,6 +16,8 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
+#include <QtCore/QObject>
+
 #include <NodeData.h>
 #include "HeadData.h"
 #include "HandData.h"
@@ -39,6 +41,7 @@ enum KeyState
 class JointData;
 
 class AvatarData : public NodeData {
+  Q_OBJECT
 public:
     AvatarData(Node* owningNode = NULL);
     ~AvatarData();
@@ -53,7 +56,6 @@ public:
     
     //  Body Rotation
     float getBodyYaw() const { return _bodyYaw; }
-    void setBodyYaw(float bodyYaw) { _bodyYaw = bodyYaw; }
     float getBodyPitch() const { return _bodyPitch; }
     void setBodyPitch(float bodyPitch) { _bodyPitch = bodyPitch; }
     float getBodyRoll() const {return _bodyRoll; }
@@ -90,10 +92,11 @@ public:
     const std::string& chatMessage () const { return _chatMessage; }
 
     // related to Voxel Sending strategies
-    bool getWantColor() const            { return _wantColor; }
-    bool getWantDelta() const            { return _wantDelta; }
-    bool getWantLowResMoving() const     { return _wantLowResMoving; }
+    bool getWantColor()            const { return _wantColor; }
+    bool getWantDelta()            const { return _wantDelta; }
+    bool getWantLowResMoving()     const { return _wantLowResMoving; }
     bool getWantOcclusionCulling() const { return _wantOcclusionCulling; }
+    uint16_t getLeaderID()         const { return _leaderID; }
 
     void setWantColor(bool wantColor)                       { _wantColor = wantColor; }
     void setWantDelta(bool wantDelta)                       { _wantDelta = wantDelta; }
@@ -103,6 +106,11 @@ public:
     void setHeadData(HeadData* headData) { _headData = headData; }
     void setHandData(HandData* handData) { _handData = handData; }
     
+public slots:
+    void setPosition(float x, float y, float z) { _position = glm::vec3(x, y, z); }
+    void setBodyYaw(float bodyYaw) { _bodyYaw = bodyYaw; }
+    void sendData();
+    
 protected:
     glm::vec3 _position;
     glm::vec3 _handPosition;
@@ -111,7 +119,12 @@ protected:
     float _bodyYaw;
     float _bodyPitch;
     float _bodyRoll;
+
+    // Body scale
     float _newScale;
+
+    // Following mode infos
+    uint16_t _leaderID;
 
     //  Hand state (are we grabbing something or not)
     char _handState;
@@ -183,5 +196,9 @@ int unpackFloatFromByte(unsigned char* buffer, float& value, float scaleBy);
 // Allows sending of fixed-point numbers: radix 1 makes 15.1 number, radix 8 makes 8.8 number, etc
 int packFloatScalarToSignedTwoByteFixed(unsigned char* buffer, float scalar, int radix);
 int unpackFloatScalarFromSignedTwoByteFixed(int16_t* byteFixedPointer, float* destinationPointer, int radix);
+
+// A convenience for sending vec3's as fixed-poimt floats
+int packFloatVec3ToSignedTwoByteFixed(unsigned char* destBuffer, const glm::vec3& srcVector, int radix);
+int unpackFloatVec3FromSignedTwoByteFixed(unsigned char* sourceBuffer, glm::vec3& destination, int radix);
 
 #endif /* defined(__hifi__AvatarData__) */

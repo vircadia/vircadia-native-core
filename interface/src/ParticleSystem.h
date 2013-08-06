@@ -10,10 +10,14 @@
 
 #include <glm/gtc/quaternion.hpp>
 
-const int  MAX_PARTICLES = 5000;
 const int  NULL_EMITTER  = -1;
 const int  NULL_PARTICLE = -1;
 const int  MAX_EMITTERS  = 100;
+const int  MAX_PARTICLES = 5000;
+
+const float RAINBOW_CYCLE_RED_RATE   = 0.5f;
+const float RAINBOW_CYCLE_GREEN_RATE = 0.7f;
+const float RAINBOW_CYCLE_BLUE_RATE  = 1.0f;
 
 enum ParticleRenderStyle
 {
@@ -28,6 +32,7 @@ enum ColorModulationStyle
     COLOR_MODULATION_STYLE_NULL = -1,
     COLOR_MODULATION_STYLE_LIGHNTESS_PULSE,
     COLOR_MODULATION_STYLE_LIGHTNESS_WAVE,
+    COLOR_MODULATION_STYLE_RAINBOW_CYCLE,
     NUM_COLOR_MODULATION_STYLES
 };
 
@@ -78,6 +83,7 @@ public:
     void setParticleAttributes        (int emitterIndex, ParticleAttributes attributes); // set attributes for whole life of particles
     void setParticleAttributes        (int emitterIndex, ParticleLifeStage lifeStage, ParticleAttributes attributes); // set attributes for this life stage
     void setEmitterPosition           (int emitterIndex, glm::vec3           position    );
+    void setEmitterActive             (int emitterIndex, bool                active      ) {_emitter[emitterIndex].active              = active;      }
     void setEmitterParticleResolution (int emitterIndex, int                 resolution  ) {_emitter[emitterIndex].particleResolution  = resolution;  } 
     void setEmitterDirection          (int emitterIndex, glm::vec3           direction   ) {_emitter[emitterIndex].direction           = direction;   } 
     void setShowingEmitter            (int emitterIndex, bool                showing     ) {_emitter[emitterIndex].visible             = showing;     }  
@@ -101,6 +107,7 @@ private:
     };  
         
    struct Emitter {
+        bool      active;              // if false, the emitter is disabled - allows for easy switching on and off
         glm::vec3 position;            // the position of the emitter in world coordinates
         glm::vec3 previousPosition;    // the position of the emitter in the previous time step
         glm::vec3 direction;           // a normalized vector used as an axis for particle emission and other effects
@@ -124,6 +131,7 @@ private:
     float     _timer;
     
     // private methods
+    void updateEmitter(int emitterIndex, float deltaTime);
     void updateParticle(int index, float deltaTime);
     void createParticle(int e, float timeFraction);
     void killParticle(int p);

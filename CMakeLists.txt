@@ -10,6 +10,7 @@ set(CMAKE_INCLUDE_CURRENT_DIR ON)
 set(CMAKE_AUTOMOC ON)
 
 add_subdirectory(animation-server)
+add_subdirectory(assignment-server)
 add_subdirectory(avatar-mixer)
 add_subdirectory(audio-mixer)
 add_subdirectory(domain-server)

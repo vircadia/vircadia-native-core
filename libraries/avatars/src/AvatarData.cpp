@@ -10,8 +10,9 @@
 #include <cstring>
 #include <stdint.h>
 
-#include <SharedUtil.h>
+#include <NodeList.h>
 #include <PacketHeaders.h>
+#include <SharedUtil.h>
 
 #include "AvatarData.h"
 #include <VoxelConstants.h>
@@ -27,6 +28,7 @@ AvatarData::AvatarData(Node* owningNode) :
     _bodyPitch(0.0),
     _bodyRoll(0.0),
     _newScale(1.0f),
+    _leaderID(UNKNOWN_NODE_ID),
     _handState(0),
     _cameraPosition(0,0,0),
     _cameraOrientation(),
@@ -48,6 +50,22 @@ AvatarData::AvatarData(Node* owningNode) :
 AvatarData::~AvatarData() {
     delete _headData;
     delete _handData;
+}
+
+void AvatarData::sendData() {
+    
+    // called from Agent visual loop to send data
+    if (Node* avatarMixer = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_AVATAR_MIXER)) {
+        unsigned char packet[MAX_PACKET_SIZE];
+        
+        unsigned char* endOfPacket = packet;
+        endOfPacket += populateTypeAndVersion(endOfPacket, PACKET_TYPE_HEAD_DATA);
+        endOfPacket += packNodeId(endOfPacket, NodeList::getInstance()->getOwnerID());
+        
+        int numPacketBytes = (endOfPacket - packet) + getBroadcastData(endOfPacket);
+        
+        NodeList::getInstance()->getNodeSocket()->send(avatarMixer->getActiveSocket(), packet, numPacketBytes);
+    }
 }
 
 int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
@@ -74,8 +92,14 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _bodyYaw);
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _bodyPitch);
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _bodyRoll);
+
+    // Body scale
     destinationBuffer += packFloatRatioToTwoByte(destinationBuffer, _newScale);
     
+    // Follow mode info
+    memcpy(destinationBuffer, &_leaderID, sizeof(uint16_t));
+    destinationBuffer += sizeof(uint16_t);
+
     // Head rotation (NOTE: This needs to become a quaternion to save two bytes)
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->_yaw);
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->_pitch);
@@ -129,19 +153,7 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     *destinationBuffer++ = bitItems;
     
     // leap hand data
-    std::vector<glm::vec3> fingerVectors;
-    _handData->encodeRemoteData(fingerVectors);
-
-    if (fingerVectors.size() > 255)
-        fingerVectors.clear(); // safety. We shouldn't ever get over 255, so consider that invalid.
-
-    *destinationBuffer++ = (unsigned char)fingerVectors.size();
-
-    for (size_t i = 0; i < fingerVectors.size(); ++i) {
-        destinationBuffer += packFloatScalarToSignedTwoByteFixed(destinationBuffer, fingerVectors[i].x, fingerVectorRadix);
-        destinationBuffer += packFloatScalarToSignedTwoByteFixed(destinationBuffer, fingerVectors[i].y, fingerVectorRadix);
-        destinationBuffer += packFloatScalarToSignedTwoByteFixed(destinationBuffer, fingerVectors[i].z, fingerVectorRadix);
-    }
+    destinationBuffer += _handData->encodeRemoteData(destinationBuffer);
     
     // skeleton joints
     *destinationBuffer++ = (unsigned char)_joints.size();
@@ -183,7 +195,13 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &_bodyYaw);
     sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &_bodyPitch);
     sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &_bodyRoll);
+
+    // Body scale
     sourceBuffer += unpackFloatRatioFromTwoByte(            sourceBuffer,  _newScale);
+
+    // Follow mode info
+    memcpy(&_leaderID, sourceBuffer, sizeof(uint16_t));
+    sourceBuffer += sizeof(uint16_t);
 
     // Head rotation (NOTE: This needs to become a quaternion to save two bytes)
     float headYaw, headPitch, headRoll;
@@ -247,16 +265,7 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     // leap hand data
     if (sourceBuffer - startPosition < numBytes) {
         // check passed, bytes match
-        unsigned int numFingerVectors = *sourceBuffer++;
-        if (numFingerVectors > 0) {
-            std::vector<glm::vec3> fingerVectors(numFingerVectors);
-            for (size_t i = 0; i < numFingerVectors; ++i) {
-                sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(fingerVectors[i].x), fingerVectorRadix);
-                sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(fingerVectors[i].y), fingerVectorRadix);
-                sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(fingerVectors[i].z), fingerVectorRadix);
-            }
-            _handData->decodeRemoteData(fingerVectors);
-        }
+        sourceBuffer += _handData->decodeRemoteData(sourceBuffer);
     }
     
     // skeleton joints
@@ -289,6 +298,23 @@ int unpackFloatScalarFromSignedTwoByteFixed(int16_t* byteFixedPointer, float* de
     *destinationPointer = *byteFixedPointer / (float)(1 << radix);
     return sizeof(int16_t);
 }
+
+int packFloatVec3ToSignedTwoByteFixed(unsigned char* destBuffer, const glm::vec3& srcVector, int radix) {
+    const unsigned char* startPosition = destBuffer;
+    destBuffer += packFloatScalarToSignedTwoByteFixed(destBuffer, srcVector.x, radix);
+    destBuffer += packFloatScalarToSignedTwoByteFixed(destBuffer, srcVector.y, radix);
+    destBuffer += packFloatScalarToSignedTwoByteFixed(destBuffer, srcVector.z, radix);
+    return destBuffer - startPosition;
+}
+
+int unpackFloatVec3FromSignedTwoByteFixed(unsigned char* sourceBuffer, glm::vec3& destination, int radix) {
+    const unsigned char* startPosition = sourceBuffer;
+    sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(destination.x), radix);
+    sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(destination.y), radix);
+    sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(destination.z), radix);
+    return sourceBuffer - startPosition;
+}
+
 
 int packFloatAngleToTwoByte(unsigned char* buffer, float angle) {
     const float ANGLE_CONVERSION_RATIO = (std::numeric_limits<uint16_t>::max() / 360.0);

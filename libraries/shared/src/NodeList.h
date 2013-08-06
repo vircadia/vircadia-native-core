@@ -14,9 +14,10 @@
 #include <iterator>
 #include <unistd.h>
 
-#include <QSettings>
+#include <QtCore/QSettings>
 
 #include "Node.h"
+#include "NodeTypes.h"
 #include "UDPSocket.h"
 
 #ifdef _WIN32
@@ -32,7 +33,7 @@ const unsigned int NODE_SOCKET_LISTEN_PORT = 40103;
 const int NODE_SILENCE_THRESHOLD_USECS = 2 * 1000000;
 const int DOMAIN_SERVER_CHECK_IN_USECS = 1 * 1000000;
 
-extern const char SOLO_NODE_TYPES[3];
+extern const char SOLO_NODE_TYPES[2];
 
 const int MAX_HOSTNAME_BYTES = 256;
 
@@ -44,6 +45,14 @@ const int UNKNOWN_NODE_ID = -1;
 
 class NodeListIterator;
 
+// Callers who want to hook add/kill callbacks should implement this class
+class NodeListHook {
+public:
+    virtual void nodeAdded(Node* node) = 0;
+    virtual void nodeKilled(Node* node) = 0;
+};
+
+
 class NodeList {
 public:
     static NodeList* createInstance(char ownerType, unsigned int socketListenPort = NODE_SOCKET_LISTEN_PORT);
@@ -54,16 +63,18 @@ public:
     NodeListIterator begin() const;
     NodeListIterator end() const;
     
+    
+    NODE_TYPE getOwnerType() const { return _ownerType; }
+    void setOwnerType(NODE_TYPE ownerType) { _ownerType = ownerType; }
+
     const char* getDomainHostname() const { return _domainHostname; };
     void setDomainHostname(const char* domainHostname);
     
     void setDomainIP(const char* domainIP);
     void setDomainIPToLocalhost();
-    
-    char getOwnerType() const { return _ownerType; }
-    
+        
     uint16_t getLastNodeID() const { return _lastNodeID; }
-    void increaseNodeID() { ++_lastNodeID; }
+    void increaseNodeID() { (++_lastNodeID == UNKNOWN_NODE_ID) ? ++_lastNodeID : _lastNodeID; }
     
     uint16_t getOwnerID() const { return _ownerID; }
     void setOwnerID(uint16_t ownerID) { _ownerID = ownerID; }
@@ -80,8 +91,11 @@ public:
     void clear();
     
     void setNodeTypesOfInterest(const char* nodeTypesOfInterest, int numNodeTypesOfInterest);
+    
     void sendDomainServerCheckIn();
     int processDomainServerList(unsigned char *packetData, size_t dataBytes);
+    
+    void sendAssignmentRequest();
     
     Node* nodeWithAddress(sockaddr *senderAddress);
     Node* nodeWithID(uint16_t nodeID);
@@ -105,6 +119,12 @@ public:
     void saveData(QSettings* settings);
     
     friend class NodeListIterator;
+    
+    void addHook(NodeListHook* hook);
+    void removeHook(NodeListHook* hook);
+    void notifyHooksOfAddedNode(Node* node);
+    void notifyHooksOfKilledNode(Node* node);
+    
 private:
     static NodeList* _sharedInstance;
     
@@ -130,6 +150,8 @@ private:
     
     void handlePingReply(sockaddr *nodeAddress);
     void timePingReply(sockaddr *nodeAddress, unsigned char *packetData);
+    
+    std::vector<NodeListHook*> _hooks;
 };
 
 class NodeListIterator : public std::iterator<std::input_iterator_tag, Node> {

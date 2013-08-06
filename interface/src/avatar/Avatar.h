@@ -26,6 +26,13 @@
 #include "Transmitter.h"
 #include "world.h"
 
+
+static const float MAX_SCALE           = 10.f;
+static const float MIN_SCALE           = .5f;
+static const float SCALING_RATIO       = .05f;
+static const float SMOOTHING_RATIO     = .05f; // 0 < ratio < 1
+static const float RESCALING_TOLERANCE = .02f;
+
 const float BODY_BALL_RADIUS_PELVIS           = 0.07;
 const float BODY_BALL_RADIUS_TORSO            = 0.065;
 const float BODY_BALL_RADIUS_CHEST            = 0.08;
@@ -105,6 +112,15 @@ enum AvatarMode
     NUM_AVATAR_MODES
 };
 
+enum ScreenTintLayer
+{
+    SCREEN_TINT_BEFORE_LANDSCAPE = 0,
+    SCREEN_TINT_BEFORE_AVATARS,
+    SCREEN_TINT_BEFORE_MY_AVATAR,
+    SCREEN_TINT_AFTER_MY_AVATAR,
+    NUM_SCREEN_TINT_LAYERS
+};
+
 class Avatar : public AvatarData {
 public:
     Avatar(Node* owningNode = NULL);
@@ -112,15 +128,15 @@ public:
     
     void init();
     void reset();
-    void simulate(float deltaTime, Transmitter* transmitter);
+    void simulate(float deltaTime, Transmitter* transmitter, float gyroCameraSensitivity);
     void updateThrust(float deltaTime, Transmitter * transmitter);
+    void follow(Avatar* leadingAvatar);
     void updateFromGyrosAndOrWebcam(bool gyroLook,
-                                    const glm::vec3& amplifyAngle,
-                                    float yawFromTouch,
                                     float pitchFromTouch);
     void addBodyYaw(float bodyYaw) {_bodyYaw += bodyYaw;};
     void addBodyYawDelta(float bodyYawDelta) {_bodyYawDelta += bodyYawDelta;}
     void render(bool lookingInMirror, bool renderAvatarBalls);
+    void renderScreenTint(ScreenTintLayer layer);
 
     //setters
     void setMousePressed           (bool      mousePressed           ) { _mousePressed    = mousePressed;} 
@@ -133,7 +149,8 @@ public:
     void setGravity                (glm::vec3 gravity);
     void setMouseRay               (const glm::vec3 &origin, const glm::vec3 &direction);
     void setOrientation            (const glm::quat& orientation);
-    void setScale                  (const float scale);
+    void setNewScale               (const float scale);
+    void setWantCollisionsOn       (bool wantCollisionsOn            ) { _isCollisionsOn = wantCollisionsOn; }
 
     //getters
     bool             isInitialized             ()                const { return _initialized;}
@@ -148,6 +165,7 @@ public:
     glm::vec3        getBodyUpDirection        ()                const { return getOrientation() * IDENTITY_UP; }
     glm::vec3        getBodyFrontDirection     ()                const { return getOrientation() * IDENTITY_FRONT; }
     float            getScale                  ()                const { return _scale;}
+    float            getNewScale               ()                const { return _newScale;}
     const glm::vec3& getVelocity               ()                const { return _velocity;}
     float            getSpeed                  ()                const { return _speed;}
     float            getHeight                 ()                const { return _height;}
@@ -157,21 +175,20 @@ public:
     float            getElapsedTimeMoving      ()                const { return _elapsedTimeMoving;}
     float            getElapsedTimeSinceCollision()              const { return _elapsedTimeSinceCollision;}
     const glm::vec3& getLastCollisionPosition  ()                const { return _lastCollisionPosition;}
-    float            getAbsoluteHeadYaw        () const;
-    float            getAbsoluteHeadPitch      () const;
-    Head&            getHead                   () {return _head; }
-    Hand&            getHand                   () {return _hand; }
-    glm::quat        getOrientation            () const;
-    glm::quat        getWorldAlignedOrientation() const;
-    
-    const glm::vec3& getMouseRayOrigin()    const { return _mouseRayOrigin;    }
-    const glm::vec3& getMouseRayDirection() const { return _mouseRayDirection; }
-
-    
-    glm::vec3        getGravity        ()         const { return _gravity; }
+    float            getAbsoluteHeadYaw        ()                const;
+    float            getAbsoluteHeadPitch      ()                const;
+    Head&            getHead                   ()                      {return _head; }
+    Hand&            getHand                   ()                      {return _hand; }
+    glm::quat        getOrientation            ()                const;
+    glm::quat        getWorldAlignedOrientation()                const;
+    const glm::vec3& getMouseRayOrigin         ()                const { return _mouseRayOrigin;    }
+    const glm::vec3& getMouseRayDirection      ()                const { return _mouseRayDirection; }
+    Avatar*          getLeadingAvatar          ()                const { return _leadingAvatar; }
+    glm::vec3        getGravity                ()                const { return _gravity; }
     
     glm::vec3 getUprightHeadPosition() const;
     glm::vec3 getUprightEyeLevelPosition() const;
+    glm::vec3 getEyePosition();
     
     AvatarVoxelSystem* getVoxels() { return &_voxels; }
     
@@ -255,7 +272,11 @@ private:
     glm::vec3   _lastCollisionPosition;
     bool        _speedBrakes;
     bool        _isThrustOn;
-    
+    bool        _isCollisionsOn;
+
+    Avatar*     _leadingAvatar;
+    float       _stringLength;
+
     AvatarVoxelSystem _voxels;
     
     // private methods...
@@ -278,6 +299,7 @@ private:
     void updateCollisionSound(const glm::vec3& penetration, float deltaTime, float frequency);
     void applyCollisionWithOtherAvatar( Avatar * other, float deltaTime );
     void checkForMouseRayTouching();
+    void setScale (const float scale);
 };
 
 #endif

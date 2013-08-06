@@ -11,7 +11,7 @@
 #include <cmath>
 #include <cstring>
 
-#include <QDebug>
+#include <QtCore/QDebug>
 
 #include "SharedUtil.h"
 #include "OctalCode.h"
@@ -113,6 +113,29 @@ unsigned char * childOctalCode(unsigned char * parentOctalCode, char childNumber
     }
     
     return newCode;
+}
+
+void voxelDetailsForCode(unsigned char * octalCode, VoxelPositionSize& voxelPositionSize) {
+    float output[3];
+    memset(&output[0], 0, 3 * sizeof(float));
+    float currentScale = 1.0;
+
+    if (octalCode) {
+        for (int i = 0; i < numberOfThreeBitSectionsInCode(octalCode); i++) {
+            currentScale *= 0.5;
+            int sectionIndex = sectionValue(octalCode + 1 + (BITS_IN_OCTAL * i / BITS_IN_BYTE), 
+                                            (BITS_IN_OCTAL * i) % BITS_IN_BYTE);
+        
+            for (int j = 0; j < BITS_IN_OCTAL; j++) {
+                output[j] += currentScale * (int)oneAtBit(sectionIndex, (BITS_IN_BYTE - BITS_IN_OCTAL) + j);
+            }
+        
+        }
+    }
+    voxelPositionSize.x = output[0];
+    voxelPositionSize.y = output[1];
+    voxelPositionSize.z = output[2];
+    voxelPositionSize.s = currentScale;
 }
 
 void copyFirstVertexForCode(unsigned char * octalCode, float* output) {
@@ -257,3 +280,42 @@ unsigned char* rebaseOctalCode(unsigned char* originalOctalCode, unsigned char* 
     return newCode;
 }
 
+bool isAncestorOf(unsigned char* possibleAncestor, unsigned char* possibleDescendent, int descendentsChild) {
+    if (!possibleAncestor || !possibleDescendent) {
+        return false;
+    }
+
+    int ancestorCodeLength = numberOfThreeBitSectionsInCode(possibleAncestor);
+    if (ancestorCodeLength == 0) {
+        return true; // this is the root, it's the anscestor of all
+    }
+
+    int descendentCodeLength = numberOfThreeBitSectionsInCode(possibleDescendent);
+    
+    // if the caller also include a child, then our descendent length is actually one extra!
+    if (descendentsChild != CHECK_NODE_ONLY) {
+        descendentCodeLength++;
+    }
+    
+    if (ancestorCodeLength > descendentCodeLength) {
+        return false; // if the descendent is shorter, it can't be a descendent
+    }
+
+    // compare the sections for the ancestor to the descendent
+    for (int section = 0; section < ancestorCodeLength; section++) {
+        char sectionValueAncestor = getOctalCodeSectionValue(possibleAncestor, section);
+        char sectionValueDescendent;
+        if (ancestorCodeLength <= descendentCodeLength) {
+            sectionValueDescendent = getOctalCodeSectionValue(possibleDescendent, section);
+        } else {
+            assert(descendentsChild != CHECK_NODE_ONLY);
+            sectionValueDescendent = descendentsChild;
+        }
+        if (sectionValueAncestor != sectionValueDescendent) {
+            return false; // first non-match, means they don't match
+        }
+    }
+    
+    // they all match, so we are an ancestor
+    return true;
+}

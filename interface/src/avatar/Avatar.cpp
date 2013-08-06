@@ -101,6 +101,8 @@ Avatar::Avatar(Node* owningNode) :
     _lastCollisionPosition(0, 0, 0),
     _speedBrakes(false),
     _isThrustOn(false),
+    _isCollisionsOn(true),
+    _leadingAvatar(NULL),
     _voxels(this)
 {
     // give the pointer to our head to inherited _headData variable from AvatarData
@@ -293,9 +295,8 @@ void Avatar::reset() {
 
 //  Update avatar head rotation with sensor data
 void Avatar::updateFromGyrosAndOrWebcam(bool gyroLook,
-                                        const glm::vec3& amplifyAngle,
-                                        float yawFromTouch,
                                         float pitchFromTouch) {
+    _head.setMousePitch(pitchFromTouch);
     SerialInterface* gyros = Application::getInstance()->getSerialHeadSensor();
     Webcam* webcam = Application::getInstance()->getWebcam();
     glm::vec3 estimatedPosition, estimatedRotation;
@@ -307,7 +308,6 @@ void Avatar::updateFromGyrosAndOrWebcam(bool gyroLook,
     
     } else {
         _head.setPitch(pitchFromTouch);
-        _head.setYaw(yawFromTouch);
         return;
     }
     if (webcam->isActive()) {
@@ -333,9 +333,15 @@ void Avatar::updateFromGyrosAndOrWebcam(bool gyroLook,
     } else {
         _head.getFace().clearFrame();
     }
-    _head.setPitch(estimatedRotation.x * amplifyAngle.x + pitchFromTouch);
-    _head.setYaw(estimatedRotation.y * amplifyAngle.y + yawFromTouch);
-    _head.setRoll(estimatedRotation.z * amplifyAngle.z);
+    
+    // Set the rotation of the avatar's head (as seen by others, not affecting view frustum)
+    // to be scaled.  Pitch is greater to emphasize nodding behavior / synchrony. 
+    const float AVATAR_HEAD_PITCH_MAGNIFY = 1.0f;
+    const float AVATAR_HEAD_YAW_MAGNIFY = 1.0f;
+    const float AVATAR_HEAD_ROLL_MAGNIFY = 1.0f;
+    _head.setPitch(estimatedRotation.x * AVATAR_HEAD_PITCH_MAGNIFY);
+    _head.setYaw(estimatedRotation.y * AVATAR_HEAD_YAW_MAGNIFY);
+    _head.setRoll(estimatedRotation.z * AVATAR_HEAD_ROLL_MAGNIFY);
     _head.setCameraFollowsHead(gyroLook);
         
     //  Update torso lean distance based on accelerometer data
@@ -368,16 +374,29 @@ glm::vec3 Avatar::getUprightHeadPosition() const {
 }
 
 glm::vec3 Avatar::getUprightEyeLevelPosition() const {
-    const float EYE_UP_OFFSET = 0.36f;
+     const float EYE_UP_OFFSET = 0.36f;
     glm::vec3 up = getWorldAlignedOrientation() * IDENTITY_UP;
     return _position + up * _scale * BODY_BALL_RADIUS_HEAD_BASE * EYE_UP_OFFSET + glm::vec3(0.0f, _pelvisToHeadLength, 0.0f);
+}
+
+glm::vec3 Avatar::getEyePosition() {
+    const float EYE_UP_OFFSET = 0.36f;
+    const float EYE_FRONT_OFFSET = 0.8f;
+
+    glm::quat orientation = getWorldAlignedOrientation();
+    glm::vec3 up    = orientation * IDENTITY_UP;
+    glm::vec3 front = orientation * IDENTITY_FRONT;
+
+    float scale = _scale * BODY_BALL_RADIUS_HEAD_BASE;
+    
+    return getHead().getPosition() + up * scale * EYE_UP_OFFSET + front * scale * EYE_FRONT_OFFSET;
 }
 
 void Avatar::updateThrust(float deltaTime, Transmitter * transmitter) {
     //
     //  Gather thrust information from keyboard and sensors to apply to avatar motion 
     //
-    glm::quat orientation = getHead().getOrientation();
+    glm::quat orientation = getHead().getCameraOrientation();
     glm::vec3 front = orientation * IDENTITY_FRONT;
     glm::vec3 right = orientation * IDENTITY_RIGHT;
     glm::vec3 up = orientation * IDENTITY_UP;
@@ -403,6 +422,33 @@ void Avatar::updateThrust(float deltaTime, Transmitter * transmitter) {
     if (_shouldJump) {
         _thrust += _scale * THRUST_JUMP * up;
         _shouldJump = false;
+    }
+
+    // Add thrusts from leading avatar
+    if (_leadingAvatar != NULL) {
+        glm::vec3 toTarget = _leadingAvatar->getPosition() - _position;
+
+        if (.5f < up.x * toTarget.x + up.y * toTarget.y + up.z * toTarget.z) {
+            _thrust += _scale * THRUST_MAG_UP * deltaTime * up;
+        } else if (up.x * toTarget.x + up.y * toTarget.y + up.z * toTarget.z < -.5f) {
+            _thrust -= _scale * THRUST_MAG_UP * deltaTime * up;
+        }
+
+        if (glm::length(_position - _leadingAvatar->getPosition()) > _scale * _stringLength) {
+            _thrust += _scale * THRUST_MAG_FWD * deltaTime * front;
+        } else {
+            toTarget = _leadingAvatar->getHead().getLookAtPosition() - _position;
+            getHead().setLookAtPosition(_leadingAvatar->getHead().getLookAtPosition());
+        }
+
+        float yawAngle = angleBetween(front, glm::vec3(toTarget.x, 0.f, toTarget.z));
+        if (yawAngle < -10.f || 10.f < yawAngle){
+            if (right.x * toTarget.x + right.y * toTarget.y + right.z * toTarget.z > 0) {
+                _bodyYawDelta -= YAW_MAG * deltaTime;
+            } else {
+                _bodyYawDelta += YAW_MAG * deltaTime;
+            }
+        }
     }
     
     //  Add thrusts from Transmitter
@@ -447,16 +493,26 @@ void Avatar::updateThrust(float deltaTime, Transmitter * transmitter) {
     _isThrustOn = (glm::length(_thrust) > EPSILON);
 }
 
-void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
+void Avatar::follow(Avatar* leadingAvatar) {
+    const float MAX_STRING_LENGTH = 2;
+
+    _leadingAvatar = leadingAvatar;
+    if (_leadingAvatar != NULL) {
+        _leaderID = leadingAvatar->getOwningNode()->getNodeID();
+        _stringLength = glm::length(_position - _leadingAvatar->getPosition()) / _scale;
+        if (_stringLength > MAX_STRING_LENGTH) {
+            _stringLength = MAX_STRING_LENGTH;
+        }
+    } else {
+        _leaderID = UNKNOWN_NODE_ID;
+    }
+}
+
+void Avatar::simulate(float deltaTime, Transmitter* transmitter, float gyroCameraSensitivity) {
 
     glm::quat orientation = getOrientation();
     glm::vec3 front = orientation * IDENTITY_FRONT;
     glm::vec3 right = orientation * IDENTITY_RIGHT;
-    
-    //
-    if (!isMyAvatar() && _scale != _newScale) {
-        setScale(_newScale);
-    }
 
     // Update movement timers
     if (isMyAvatar()) {
@@ -469,6 +525,25 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
             _elapsedTimeStopped = 0.f;
             _elapsedTimeMoving += deltaTime;
         }
+    }
+
+    if (_leadingAvatar && !_leadingAvatar->getOwningNode()->isAlive()) {
+        follow(NULL);
+    }
+
+    // Ajust, scale, thrust and lookAt position when following an other avatar
+    if (isMyAvatar() && _leadingAvatar && _newScale != _leadingAvatar->getScale()) {
+        _newScale = _leadingAvatar->getScale();
+    }
+
+    if (isMyAvatar() && _scale != _newScale) {
+        float scale = (1.f - SMOOTHING_RATIO) * _scale + SMOOTHING_RATIO * _newScale;
+        setScale(scale);
+        Application::getInstance()->getCamera()->setScale(scale);
+    }
+
+    if (!isMyAvatar() && _scale != _newScale) {
+        setScale(_newScale);
     }
     
     //  Collect thrust forces from keyboard and devices 
@@ -556,9 +631,12 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
                 _velocity += _scale * _gravity * (GRAVITY_EARTH * deltaTime);
             }
         }
-        updateCollisionWithEnvironment(deltaTime);
-        updateCollisionWithVoxels(deltaTime);
-        updateAvatarCollisions(deltaTime);
+
+        if (_isCollisionsOn) {
+            updateCollisionWithEnvironment(deltaTime);
+            updateCollisionWithVoxels(deltaTime);
+            updateAvatarCollisions(deltaTime);
+        }
     }
     
     // update body balls
@@ -566,7 +644,7 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     
 
     // test for avatar collision response with the big sphere
-    if (usingBigSphereCollisionTest) {
+    if (usingBigSphereCollisionTest && _isCollisionsOn) {
         updateCollisionWithSphere(_TEST_bigSpherePosition, _TEST_bigSphereRadius, deltaTime);
     }
     
@@ -680,8 +758,12 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     _head.setPosition(_bodyBall[ BODY_BALL_HEAD_BASE ].position);
     _head.setScale(_scale);
     _head.setSkinColor(glm::vec3(SKIN_COLOR[0], SKIN_COLOR[1], SKIN_COLOR[2]));
-    _head.simulate(deltaTime, isMyAvatar());
-    
+    _head.simulate(deltaTime, isMyAvatar(), gyroCameraSensitivity);
+    _hand.simulate(deltaTime, isMyAvatar());
+
+
+
+
     // use speed and angular velocity to determine walking vs. standing
     if (_speed + fabs(_bodyYawDelta) > 0.2) {
         _mode = AVATAR_MODE_WALKING;
@@ -1138,6 +1220,15 @@ void Avatar::render(bool lookingInMirror, bool renderAvatarBalls) {
     }
 }
 
+void Avatar::renderScreenTint(ScreenTintLayer layer) {
+    
+    if (layer == SCREEN_TINT_BEFORE_AVATARS) {
+        if (_hand.isRaveGloveActive()) {
+            _hand.renderRaveGloveStage();
+        }
+    }
+}
+
 void Avatar::resetBodyBalls() {
     for (int b = 0; b < NUM_AVATAR_BODY_BALLS; b++) {
         
@@ -1303,6 +1394,17 @@ void Avatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
         for (int b = 0; b < NUM_AVATAR_BODY_BALLS; b++) {
             float alpha = getBallRenderAlpha(b, lookingInMirror);
             
+            // When in rave glove mode, don't show the arms at all.
+            if (_hand.isRaveGloveActive()) {
+                if (b == BODY_BALL_LEFT_ELBOW
+                    || b == BODY_BALL_LEFT_WRIST
+                    || b == BODY_BALL_LEFT_FINGERTIPS
+                    || b == BODY_BALL_RIGHT_ELBOW
+                    || b == BODY_BALL_RIGHT_WRIST
+                    || b == BODY_BALL_RIGHT_FINGERTIPS) {
+                    continue;
+                }
+            }
             //  Always render other people, and render myself when beyond threshold distance
             if (b == BODY_BALL_HEAD_BASE) { // the head is rendered as a special
                 if (alpha > 0.0f) {
@@ -1384,7 +1486,7 @@ void Avatar::loadData(QSettings* settings) {
     
     _leanScale = loadSetting(settings, "leanScale", 0.5f);
 
-    _scale = loadSetting(settings, "scale", 1.0f);
+    _newScale = loadSetting(settings, "scale", 1.0f);
     setScale(_scale);
     Application::getInstance()->getCamera()->setScale(_scale);
 
@@ -1410,7 +1512,7 @@ void Avatar::saveData(QSettings* set) {
     set->setValue("voxelURL", _voxels.getVoxelURL());
     
     set->setValue("leanScale", _leanScale);
-    set->setValue("scale", _scale);
+    set->setValue("scale", _newScale);
     
     set->endGroup();
 }
@@ -1463,9 +1565,17 @@ void Avatar::renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2,
     glEnd();
 }
 
+void Avatar::setNewScale(const float scale) {
+    _newScale = scale;
+}
+
 void Avatar::setScale(const float scale) {
     _scale = scale;
-    _newScale = _scale;
+
+    if (_newScale * (1.f - RESCALING_TOLERANCE) < _scale &&
+            _scale < _newScale * (1.f + RESCALING_TOLERANCE)) {
+        _scale = _newScale;
+    }
     
     _skeleton.setScale(_scale);
     

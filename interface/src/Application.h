@@ -37,8 +37,10 @@
 #include "Swatch.h"
 #include "ToolsPalette.h"
 #include "ViewFrustum.h"
+#include "VoxelFade.h"
 #include "VoxelSystem.h"
 #include "Webcam.h"
+#include "PieMenu.h"
 #include "avatar/Avatar.h"
 #include "avatar/HandControl.h"
 #include "ui/BandwidthDialog.h"
@@ -58,13 +60,23 @@ class QWheelEvent;
 class Node;
 class ProgramObject;
 
-class Application : public QApplication {
+static const float NODE_ADDED_RED   = 0.0f;
+static const float NODE_ADDED_GREEN = 1.0f;
+static const float NODE_ADDED_BLUE  = 0.0f;
+static const float NODE_KILLED_RED   = 1.0f;
+static const float NODE_KILLED_GREEN = 0.0f;
+static const float NODE_KILLED_BLUE  = 0.0f;
+
+
+
+class Application : public QApplication, public NodeListHook {
     Q_OBJECT
 
 public:
     static Application* getInstance() { return static_cast<Application*>(QCoreApplication::instance()); }
 
     Application(int& argc, char** argv, timeval &startup_time);
+    ~Application();
 
     void initializeGL();
     void paintGL();
@@ -104,11 +116,14 @@ public:
     
     QNetworkAccessManager* getNetworkAccessManager() { return _networkAccessManager; }
     GeometryCache* getGeometryCache() { return &_geometryCache; }
+    
+    void resetSongMixMenuItem();
+
+    virtual void nodeAdded(Node* node);
+    virtual void nodeKilled(Node* node);
 
 public slots:
-
     void sendAvatarFaceVideoMessage(int frameCount, const QByteArray& data);    
-    
     
 private slots:
     
@@ -133,6 +148,7 @@ private slots:
     void setRenderThirdPerson(bool thirdPerson);
     void increaseAvatarSize();
     void decreaseAvatarSize();
+    void resetAvatarSize();
     
     void renderThrustAtVoxel(const glm::vec3& thrust);
     void renderLineToTouchedVoxel();
@@ -149,6 +165,7 @@ private slots:
     void doFalseColorizeByDistance();
     void doFalseColorizeOccluded();
     void doFalseColorizeOccludedV2();
+    void doFalseColorizeBySource();
     void doFalseColorizeInView();
     void doTrueVoxelColors();
     void doTreeStats();
@@ -175,6 +192,8 @@ private slots:
     void setListenModeNormal();
     void setListenModePoint();
     void setListenModeSingleSource();
+    void toggleMixedSong();
+    void toggleWantCollisionsOn();
 
 
     void renderCoverageMap();
@@ -185,6 +204,8 @@ private slots:
 
     glm::vec2 getScaledScreenPoint(glm::vec2 projectedPoint);
     void goHome();
+
+    void toggleFollowMode();
 
 private:
 
@@ -205,10 +226,12 @@ private:
     void init();
     
     void update(float deltaTime);
-    bool isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection, 
+    Avatar* isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection,
                                 glm::vec3& eyePosition, uint16_t& nodeID);
+    bool isLookingAtMyAvatar(Avatar* avatar);
                                 
     void renderLookatIndicator(glm::vec3 pointOfInterest, Camera& whichCamera);
+    void renderFollowIndicator();
     void updateAvatar(float deltaTime);
     void loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum);
     
@@ -222,10 +245,11 @@ private:
      
     void setupPaintingVoxel();
     void shiftPaintingColor();
-    void maybeEditVoxelUnderCursor();
+    bool maybeEditVoxelUnderCursor();
     void deleteVoxelUnderCursor();
     void eyedropperVoxelUnderCursor();
     void resetSensors();
+    void injectVoxelAddedSoundEffect();
             
     void setMenuShortcutsEnabled(bool enabled);
     
@@ -284,12 +308,18 @@ private:
     QAction* _fullScreenMode;        // whether we are in full screen mode
     QAction* _frustumRenderModeAction;
     QAction* _settingsAutosave;      // Whether settings are saved automatically
+    QAction* _rawAudioMicrophoneMix; // Mixing of a RAW audio file with microphone stream for rave gloves
+    QAction* _noise;
+    QAction* _occlusionCulling;
+    QAction* _wantCollisionsOn;
 
     QAction* _renderCoverageMapV2;
     QAction* _renderCoverageMap;
 
     QAction* _simulateLeapHand;      // When there's no Leap, use this to pretend there is one and feed fake hand data
     QAction* _testRaveGlove;         // Test fancy sparkle-rave-glove mode
+
+    QAction* _followMode;
     
     BandwidthMeter _bandwidthMeter;
     BandwidthDialog* _bandwidthDialog;
@@ -346,7 +376,7 @@ private:
     Environment _environment;
     
     int _headMouseX, _headMouseY;
-    float _headCameraPitchYawScale;
+    float _gyroCameraSensitivity;
     
     int _audioJitterBufferSamples;     // Number of extra samples to wait before starting audio playback
     
@@ -429,8 +459,15 @@ private:
 
     ToolsPalette _palette;
     Swatch _swatch;
+
+    PieMenu _pieMenu;
     
     VoxelSceneStats _voxelSceneStats;
+    int parseVoxelStats(unsigned char* messageData, ssize_t messageLength, sockaddr senderAddress);
+    
+    std::map<uint16_t,VoxelPositionSize> _voxelServerJurisdictions;
+    
+    std::vector<VoxelFade> _voxelFades;
 };
 
 #endif /* defined(__interface__Application__) */

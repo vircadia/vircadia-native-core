@@ -11,7 +11,7 @@
 #include <cstdlib>
 #include <cstdio>
 
-#include <QDebug>
+#include <QtCore/QDebug>
 
 #include "NodeList.h"
 #include "NodeTypes.h"
@@ -24,10 +24,9 @@
 #include <arpa/inet.h>
 #endif
 
-const char SOLO_NODE_TYPES[3] = {
+const char SOLO_NODE_TYPES[2] = {
     NODE_TYPE_AVATAR_MIXER,
-    NODE_TYPE_AUDIO_MIXER,
-    NODE_TYPE_VOXEL_SERVER
+    NODE_TYPE_AUDIO_MIXER
 };
 
 const char DEFAULT_DOMAIN_HOSTNAME[MAX_HOSTNAME_BYTES] = "root.highfidelity.io";
@@ -367,6 +366,15 @@ int NodeList::processDomainServerList(unsigned char* packetData, size_t dataByte
     return readNodes;
 }
 
+void NodeList::sendAssignmentRequest() {
+    const char ASSIGNMENT_SERVER_HOSTNAME[] = "assignment.highfidelity.io";
+    
+    static sockaddr_in assignmentServerSocket = socketForHostname(ASSIGNMENT_SERVER_HOSTNAME);
+    assignmentServerSocket.sin_port = htons(ASSIGNMENT_SERVER_PORT);
+    
+    _nodeSocket.send((sockaddr*) &assignmentServerSocket, &PACKET_TYPE_REQUEST_ASSIGNMENT, 1);
+}
+
 Node* NodeList::addOrUpdateNode(sockaddr* publicSocket, sockaddr* localSocket, char nodeType, uint16_t nodeId) {
     NodeList::iterator node = end();
     
@@ -427,6 +435,8 @@ void NodeList::addNodeToList(Node* newNode) {
     ++_numNodes;
     
     qDebug() << "Added" << *newNode << "\n";
+    
+    notifyHooksOfAddedNode(newNode);
 }
 
 unsigned NodeList::broadcastToNodes(unsigned char *broadcastData, size_t dataBytes, const char* nodeTypes, int numNodeTypes) {
@@ -468,7 +478,7 @@ Node* NodeList::soloNodeOfType(char nodeType) {
     return NULL;
 }
 
-void *removeSilentNodes(void *args) {
+void* removeSilentNodes(void *args) {
     NodeList* nodeList = (NodeList*) args;
     uint64_t checkTimeUSecs;
     int sleepTime;
@@ -481,6 +491,8 @@ void *removeSilentNodes(void *args) {
             if ((checkTimeUSecs - node->getLastHeardMicrostamp()) > NODE_SILENCE_THRESHOLD_USECS) {
             
                 qDebug() << "Killed" << *node << "\n";
+                
+                nodeList->notifyHooksOfKilledNode(&*node);
                 
                 node->setAlive(false);
             }
@@ -609,5 +621,32 @@ void NodeListIterator::skipDeadAndStopIncrement() {
             // skip over the dead nodes
             break;
         }
+    }
+}
+
+void NodeList::addHook(NodeListHook* hook) {
+    _hooks.push_back(hook);
+}
+
+void NodeList::removeHook(NodeListHook* hook) {
+    for (int i = 0; i < _hooks.size(); i++) {
+        if (_hooks[i] == hook) {
+            _hooks.erase(_hooks.begin() + i);
+            return;
+        }
+    }
+}
+
+void NodeList::notifyHooksOfAddedNode(Node* node) {
+    for (int i = 0; i < _hooks.size(); i++) {
+printf("NodeList::notifyHooksOfAddedNode() i=%d\n", i);
+        _hooks[i]->nodeAdded(node);
+    }
+}
+
+void NodeList::notifyHooksOfKilledNode(Node* node) {
+    for (int i = 0; i < _hooks.size(); i++) {
+printf("NodeList::notifyHooksOfKilledNode() i=%d\n", i);
+        _hooks[i]->nodeKilled(node);
     }
 }

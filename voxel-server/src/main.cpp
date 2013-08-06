@@ -32,6 +32,8 @@
 
 const char* LOCAL_VOXELS_PERSIST_FILE = "resources/voxels.svo";
 const char* VOXELS_PERSIST_FILE = "/etc/highfidelity/voxel-server/resources/voxels.svo";
+const int MAX_FILENAME_LENGTH = 1024;
+char voxelPersistFilename[MAX_FILENAME_LENGTH];
 const int VOXEL_PERSIST_INTERVAL = 1000 * 30; // every 30 seconds
 
 const int VOXEL_LISTEN_PORT = 40106;
@@ -47,6 +49,7 @@ const float MAX_CUBE = 0.05f;
 const int VOXEL_SEND_INTERVAL_USECS = 17 * 1000; // approximately 60fps
 int PACKETS_PER_CLIENT_PER_INTERVAL = 20;
 const int SENDING_TIME_TO_SPARE = 5 * 1000; // usec of sending interval to spare for calculating voxels
+const int INTERVALS_PER_SECOND = 1000 * 1000 / VOXEL_SEND_INTERVAL_USECS;
 
 const int MAX_VOXEL_TREE_DEPTH_LEVELS = 4;
 
@@ -62,9 +65,12 @@ bool debugVoxelSending = false;
 bool shouldShowAnimationDebug = false;
 bool displayVoxelStats = false;
 bool debugVoxelReceiving = false;
+bool sendEnvironments = true;
 
 EnvironmentData environmentData[3];
 
+int receivedPacketCount = 0;
+JurisdictionMap* jurisdiction = NULL;
 
 void randomlyFillVoxelTree(int levelsToGo, VoxelNode *currentRootNode) {
     // randomly generate children for this node
@@ -251,7 +257,7 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
         
         // start tracking our stats
         bool isFullScene = (!viewFrustumChanged || !nodeData->getWantDelta()) && nodeData->getViewFrustumJustStoppedChanging();
-        nodeData->stats.sceneStarted(isFullScene, viewFrustumChanged, ::serverTree.rootNode);
+        nodeData->stats.sceneStarted(isFullScene, viewFrustumChanged, ::serverTree.rootNode, ::jurisdiction);
     }
 
     // If we have something in our nodeBag, then turn them into packets and send them out...
@@ -261,7 +267,7 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
         int packetsSentThisInterval = 0;
         uint64_t start = usecTimestampNow();
 
-        bool shouldSendEnvironments = shouldDo(ENVIRONMENT_SEND_INTERVAL_USECS, VOXEL_SEND_INTERVAL_USECS);
+        bool shouldSendEnvironments = ::sendEnvironments && shouldDo(ENVIRONMENT_SEND_INTERVAL_USECS, VOXEL_SEND_INTERVAL_USECS);
         while (packetsSentThisInterval < PACKETS_PER_CLIENT_PER_INTERVAL - (shouldSendEnvironments ? 1 : 0)) {        
             // Check to see if we're taking too long, and if so bail early...
             uint64_t now = usecTimestampNow();
@@ -292,7 +298,7 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
                                              WANT_EXISTS_BITS, DONT_CHOP, wantDelta, lastViewFrustum,
                                              wantOcclusionCulling, coverageMap, boundaryLevelAdjust,
                                              nodeData->getLastTimeBagEmpty(),
-                                             isFullScene, &nodeData->stats);
+                                             isFullScene, &nodeData->stats, ::jurisdiction);
                       
                 nodeData->stats.encodeStarted();
                 bytesWritten = serverTree.encodeTreeBitstream(subTree, &tempOutputBuffer[0], MAX_VOXEL_PACKET_SIZE - 1,
@@ -376,7 +382,7 @@ void persistVoxelsWhenDirty() {
                                     "persistVoxelsWhenDirty() - writeToSVOFile()", ::shouldShowAnimationDebug);
 
             printf("saving voxels to file...\n");
-            serverTree.writeToSVOFile(::wantLocalDomain ? LOCAL_VOXELS_PERSIST_FILE : VOXELS_PERSIST_FILE);
+            serverTree.writeToSVOFile(::voxelPersistFilename);
             serverTree.clearDirtyBit(); // tree is clean after saving
             printf("DONE saving voxels to file...\n");
         }
@@ -427,14 +433,59 @@ void attachVoxelNodeDataToNode(Node* newNode) {
     }
 }
 
-int receivedPacketCount = 0;
-
 int main(int argc, const char * argv[]) {
     pthread_mutex_init(&::treeLock, NULL);
     
     qInstallMessageHandler(sharedMessageHandler);
     
-    NodeList* nodeList = NodeList::createInstance(NODE_TYPE_VOXEL_SERVER, VOXEL_LISTEN_PORT);
+    int listenPort = VOXEL_LISTEN_PORT;
+    // Check to see if the user passed in a command line option for setting listen port
+    const char* PORT_PARAMETER = "--port";
+    const char* portParameter = getCmdOption(argc, argv, PORT_PARAMETER);
+    if (portParameter) {
+        listenPort = atoi(portParameter);
+        if (listenPort < 1) {
+            listenPort = VOXEL_LISTEN_PORT;
+        }
+        printf("portParameter=%s listenPort=%d\n", portParameter, listenPort);
+    }
+
+    const char* JURISDICTION_FILE = "--jurisdictionFile";
+    const char* jurisdictionFile = getCmdOption(argc, argv, JURISDICTION_FILE);
+    if (jurisdictionFile) {
+        printf("jurisdictionFile=%s\n", jurisdictionFile);
+
+        printf("about to readFromFile().... jurisdictionFile=%s\n", jurisdictionFile);
+        jurisdiction = new JurisdictionMap(jurisdictionFile);
+        printf("after readFromFile().... jurisdictionFile=%s\n", jurisdictionFile);
+    } else {
+        const char* JURISDICTION_ROOT = "--jurisdictionRoot";
+        const char* jurisdictionRoot = getCmdOption(argc, argv, JURISDICTION_ROOT);
+        if (jurisdictionRoot) {
+            printf("jurisdictionRoot=%s\n", jurisdictionRoot);
+        }
+
+        const char* JURISDICTION_ENDNODES = "--jurisdictionEndNodes";
+        const char* jurisdictionEndNodes = getCmdOption(argc, argv, JURISDICTION_ENDNODES);
+        if (jurisdictionEndNodes) {
+            printf("jurisdictionEndNodes=%s\n", jurisdictionEndNodes);
+        }
+
+        if (jurisdictionRoot || jurisdictionEndNodes) {
+            jurisdiction = new JurisdictionMap(jurisdictionRoot, jurisdictionEndNodes);
+        }
+    }
+
+    // should we send environments? Default is yes, but this command line suppresses sending
+    const char* DONT_SEND_ENVIRONMENTS = "--dontSendEnvironments";
+    bool dontSendEnvironments = cmdOptionExists(argc, argv, DONT_SEND_ENVIRONMENTS);
+    if (dontSendEnvironments) {
+        printf("Sending environments suppressed...\n");
+        ::sendEnvironments = false;
+    }
+    printf("Sending environments=%s\n", debug::valueOf(::sendEnvironments));
+    
+    NodeList* nodeList = NodeList::createInstance(NODE_TYPE_VOXEL_SERVER, listenPort);
     setvbuf(stdout, NULL, _IOLBF, 0);
 
     // Handle Local Domain testing with the --local command line
@@ -480,8 +531,19 @@ int main(int argc, const char * argv[]) {
     // if we want Voxel Persistance, load the local file now...
     bool persistantFileRead = false;
     if (::wantVoxelPersist) {
-        printf("loading voxels from file...\n");
-        persistantFileRead = ::serverTree.readFromSVOFile(::wantLocalDomain ? LOCAL_VOXELS_PERSIST_FILE : VOXELS_PERSIST_FILE);
+
+        // Check to see if the user passed in a command line option for setting packet send rate
+        const char* VOXELS_PERSIST_FILENAME = "--voxelsPersistFilename";
+        const char* voxelsPersistFilenameParameter = getCmdOption(argc, argv, VOXELS_PERSIST_FILENAME);
+        if (voxelsPersistFilenameParameter) {
+            strcpy(voxelPersistFilename, voxelsPersistFilenameParameter);
+        } else {
+            strcpy(voxelPersistFilename, ::wantLocalDomain ? LOCAL_VOXELS_PERSIST_FILE : VOXELS_PERSIST_FILE);
+        }
+
+        printf("loading voxels from file: %s...\n", voxelPersistFilename);
+
+        persistantFileRead = ::serverTree.readFromSVOFile(::voxelPersistFilename);
         if (persistantFileRead) {
             PerformanceWarning warn(::shouldShowAnimationDebug,
                                     "persistVoxelsWhenDirty() - reaverageVoxelColors()", ::shouldShowAnimationDebug);
@@ -511,7 +573,7 @@ int main(int argc, const char * argv[]) {
     const char* PACKETS_PER_SECOND = "--packetsPerSecond";
     const char* packetsPerSecond = getCmdOption(argc, argv, PACKETS_PER_SECOND);
     if (packetsPerSecond) {
-        PACKETS_PER_CLIENT_PER_INTERVAL = atoi(packetsPerSecond)/10;
+        PACKETS_PER_CLIENT_PER_INTERVAL = atoi(packetsPerSecond)/INTERVALS_PER_SECOND;
         if (PACKETS_PER_CLIENT_PER_INTERVAL < 1) {
             PACKETS_PER_CLIENT_PER_INTERVAL = 1;
         }
@@ -707,6 +769,10 @@ int main(int argc, const char * argv[]) {
     
     pthread_join(sendVoxelThread, NULL);
     pthread_mutex_destroy(&::treeLock);
+    
+    if (jurisdiction) {
+        delete jurisdiction;
+    }
 
     return 0;
 }
