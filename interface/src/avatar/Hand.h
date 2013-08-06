@@ -60,6 +60,8 @@ private:
     float          _raveGloveClock;
     bool           _raveGloveInitialized;
     int            _raveGloveEmitter[NUM_FINGERS];
+    int            _raveGloveEffectsMode;
+    bool           _raveGloveEffectsModeChanged;
 
     Avatar*        _owningAvatar;
     float          _renderAlpha;
@@ -72,8 +74,9 @@ private:
     void setLeapHands(const std::vector<glm::vec3>& handPositions,
                       const std::vector<glm::vec3>& handNormals);
 
-    void renderRaveGloveStage();
     virtual void setRaveGloveMode(int mode);
+
+    void renderRaveGloveStage();
     void renderLeapHandSpheres();
     void renderLeapHands();
     void renderLeapHand(PalmData& hand);
