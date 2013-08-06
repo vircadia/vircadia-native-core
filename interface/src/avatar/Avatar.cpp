@@ -1373,6 +1373,17 @@ void Avatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
         for (int b = 0; b < NUM_AVATAR_BODY_BALLS; b++) {
             float alpha = getBallRenderAlpha(b, lookingInMirror);
             
+            // When in rave glove mode, don't show the arms at all.
+            if (_hand.isRaveGloveActive()) {
+                if (b == BODY_BALL_LEFT_ELBOW
+                    || b == BODY_BALL_LEFT_WRIST
+                    || b == BODY_BALL_LEFT_FINGERTIPS
+                    || b == BODY_BALL_RIGHT_ELBOW
+                    || b == BODY_BALL_RIGHT_WRIST
+                    || b == BODY_BALL_RIGHT_FINGERTIPS) {
+                    continue;
+                }
+            }
             //  Always render other people, and render myself when beyond threshold distance
             if (b == BODY_BALL_HEAD_BASE) { // the head is rendered as a special
                 if (alpha > 0.0f) {
