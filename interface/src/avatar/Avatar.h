@@ -112,6 +112,15 @@ enum AvatarMode
     NUM_AVATAR_MODES
 };
 
+enum ScreenTintLayer
+{
+    SCREEN_TINT_BEFORE_LANDSCAPE = 0,
+    SCREEN_TINT_BEFORE_AVATARS,
+    SCREEN_TINT_BEFORE_MY_AVATAR,
+    SCREEN_TINT_AFTER_MY_AVATAR,
+    NUM_SCREEN_TINT_LAYERS
+};
+
 class Avatar : public AvatarData {
 public:
     Avatar(Node* owningNode = NULL);
@@ -128,6 +137,7 @@ public:
     void addBodyYaw(float bodyYaw) {_bodyYaw += bodyYaw;};
     void addBodyYawDelta(float bodyYawDelta) {_bodyYawDelta += bodyYawDelta;}
     void render(bool lookingInMirror, bool renderAvatarBalls);
+    void renderScreenTint(ScreenTintLayer layer);
 
     //setters
     void setMousePressed           (bool      mousePressed           ) { _mousePressed    = mousePressed;} 

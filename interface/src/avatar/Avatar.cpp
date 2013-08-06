@@ -1214,6 +1214,15 @@ void Avatar::render(bool lookingInMirror, bool renderAvatarBalls) {
     }
 }
 
+void Avatar::renderScreenTint(ScreenTintLayer layer) {
+    
+    if (layer == SCREEN_TINT_BEFORE_AVATARS) {
+        if (_hand.isRaveGloveActive()) {
+            _hand.renderRaveGloveStage();
+        }
+    }
+}
+
 void Avatar::resetBodyBalls() {
     for (int b = 0; b < NUM_AVATAR_BODY_BALLS; b++) {
         
