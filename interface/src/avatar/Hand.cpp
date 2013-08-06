@@ -43,7 +43,7 @@ void Hand::init() {
         _ballColor = glm::vec3(0.0, 0.0, 0.4);
     }
     
-    _raveGloveEffectsMode = RAVE_GLOVE_EFFECTS_MODE_NULL;
+    _raveGloveEffectsMode = RAVE_GLOVE_EFFECTS_MODE_FIRE;
     _raveGloveEffectsModeChanged = false;
 }
 
@@ -360,7 +360,6 @@ void Hand::updateRaveGloveParticles(float deltaTime) {
         _raveGloveParticleSystem.simulate(deltaTime); 
     }
 }
-
 
 
 void Hand::setRaveGloveMode(int mode) {
