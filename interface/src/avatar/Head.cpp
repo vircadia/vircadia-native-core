@@ -30,9 +30,9 @@ const float MINIMUM_EYE_ROTATION_DOT =  0.5f; // based on a dot product: 1.0 is 
 const float EYEBALL_RADIUS           =  0.017;
 const float EYELID_RADIUS            =  0.019; 
 const float EYEBALL_COLOR[3]         =  { 0.9f, 0.9f, 0.8f };
-const float HAIR_SPRING_FORCE        =  10.0f;
+const float HAIR_SPRING_FORCE        =  7.0f;
 const float HAIR_TORQUE_FORCE        =  0.1f;
-const float HAIR_GRAVITY_FORCE       =  0.05f;
+const float HAIR_GRAVITY_FORCE       =  0.02f;
 const float HAIR_DRAG                =  10.0f;
 const float HAIR_LENGTH              =  0.09f;
 const float HAIR_THICKNESS           =  0.03f;
@@ -90,7 +90,7 @@ Head::Head(Avatar* owningAvatar) :
     _cameraFollowHeadRate(0.0f),
     _face(this)
 {
-    if (USING_PHYSICAL_MOHAWK) {
+    if (USING_PHYSICAL_MOHAWK) {    
         resetHairPhysics();
     }
 }
@@ -105,7 +105,7 @@ void Head::init() {
     
         _irisProgram->setUniformValue("texture", 0);
         _eyePositionLocation = _irisProgram->uniformLocation("eyePosition");
-                
+                        
         QImage image = QImage(IRIS_TEXTURE_FILENAME).convertToFormat(QImage::Format_ARGB32);
         
         glGenTextures(1, &_irisTextureID);
@@ -127,20 +127,20 @@ void Head::reset() {
     }
 }
 
-
-
-
 void Head::resetHairPhysics() {
-    glm::vec3 up = getUpDirection();
+    //glm::vec3 up = getUpDirection();
     for (int t = 0; t < NUM_HAIR_TUFTS; t ++) {
-        
-        _hairTuft[t].length       = _scale * HAIR_LENGTH;
-        _hairTuft[t].thickness    = _scale * HAIR_THICKNESS;
-        _hairTuft[t].basePosition = _position + up * _scale * BODY_BALL_RADIUS_HEAD_BASE * 0.9f;
-        _hairTuft[t].midPosition  = _hairTuft[t].basePosition + up * _hairTuft[t].length * ONE_HALF;			
-        _hairTuft[t].endPosition  = _hairTuft[t].midPosition  + up * _hairTuft[t].length * ONE_HALF;			
-        _hairTuft[t].midVelocity  = glm::vec3(0.0f, 0.0f, 0.0f);			
-        _hairTuft[t].endVelocity  = glm::vec3(0.0f, 0.0f, 0.0f);	
+        for (int t = 0; t < NUM_HAIR_TUFTS; t ++) {
+
+            _hairTuft[t].setSpringForce  (HAIR_SPRING_FORCE);
+            _hairTuft[t].setTorqueForce  (HAIR_TORQUE_FORCE);
+            _hairTuft[t].setGravityForce (HAIR_GRAVITY_FORCE * _gravity);
+            _hairTuft[t].setDrag         (HAIR_DRAG);
+            _hairTuft[t].setLength       (_scale * HAIR_LENGTH   );
+            _hairTuft[t].setThickness    (_scale * HAIR_THICKNESS);
+            _hairTuft[t].setBaseDirection(getUpDirection());
+            _hairTuft[t].reset();
+        }
     }
 }
 
@@ -223,6 +223,7 @@ void Head::simulate(float deltaTime, bool isMine) {
     // based on the nature of the lookat position, determine if the eyes can look / are looking at it.      
     if (USING_PHYSICAL_MOHAWK) {
         updateHairPhysics(deltaTime);
+        
     }
     
     // Update camera pitch and yaw independently from motion of head (for gyro-based interface)
@@ -376,17 +377,17 @@ void Head::renderMohawk() {
     if (USING_PHYSICAL_MOHAWK) {
         for (int t = 0; t < NUM_HAIR_TUFTS; t ++) {
 
-            glm::vec3 baseAxis   = _hairTuft[t].midPosition - _hairTuft[t].basePosition;
-            glm::vec3 midAxis    = _hairTuft[t].endPosition - _hairTuft[t].midPosition;
-            glm::vec3 viewVector = _hairTuft[t].basePosition - Application::getInstance()->getCamera()->getPosition();
+            glm::vec3 baseAxis   = _hairTuft[t].getMidPosition() - _hairTuft[t].getBasePosition();
+            glm::vec3 midAxis    = _hairTuft[t].getEndPosition() - _hairTuft[t].getMidPosition();
+            glm::vec3 viewVector = _hairTuft[t].getBasePosition() - Application::getInstance()->getCamera()->getPosition();
             
             glm::vec3 basePerpendicular = glm::normalize(glm::cross(baseAxis, viewVector));
             glm::vec3 midPerpendicular  = glm::normalize(glm::cross(midAxis,  viewVector));
 
-            glm::vec3 base1 = _hairTuft[t].basePosition - basePerpendicular * _hairTuft[t].thickness * ONE_HALF;
-            glm::vec3 base2 = _hairTuft[t].basePosition + basePerpendicular * _hairTuft[t].thickness * ONE_HALF;
-            glm::vec3 mid1  = _hairTuft[t].midPosition  - midPerpendicular  * _hairTuft[t].thickness * ONE_HALF * ONE_HALF;
-            glm::vec3 mid2  = _hairTuft[t].midPosition  + midPerpendicular  * _hairTuft[t].thickness * ONE_HALF * ONE_HALF;
+            glm::vec3 base1 = _hairTuft[t].getBasePosition() - basePerpendicular * _hairTuft[t].getThickness() * ONE_HALF;
+            glm::vec3 base2 = _hairTuft[t].getBasePosition() + basePerpendicular * _hairTuft[t].getThickness() * ONE_HALF;
+            glm::vec3 mid1  = _hairTuft[t].getMidPosition()  - midPerpendicular  * _hairTuft[t].getThickness() * ONE_HALF * ONE_HALF;
+            glm::vec3 mid2  = _hairTuft[t].getMidPosition()  + midPerpendicular  * _hairTuft[t].getThickness() * ONE_HALF * ONE_HALF;
             
             glColor3f(_mohawkColors[t].x, _mohawkColors[t].y, _mohawkColors[t].z);
 
@@ -399,7 +400,7 @@ void Head::renderMohawk() {
             glVertex3f(mid2.x,   mid2.y,   mid2.z  ); 
             glVertex3f(mid1.x,   mid1.y,   mid1.z  ); 
             glVertex3f(mid2.x,   mid2.y,   mid2.z  ); 
-            glVertex3f(_hairTuft[t].endPosition.x, _hairTuft[t].endPosition.y, _hairTuft[t].endPosition.z  ); 
+            glVertex3f(_hairTuft[t].getEndPosition().x, _hairTuft[t].getEndPosition().y, _hairTuft[t].getEndPosition().z  ); 
             glEnd();
         }
     } else {
@@ -735,100 +736,17 @@ void Head::renderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosi
     glEnd();
 }
 
-
 void Head::updateHairPhysics(float deltaTime) {
-
     glm::quat orientation = getOrientation();
     glm::vec3 up    = orientation * IDENTITY_UP;
     glm::vec3 front = orientation * IDENTITY_FRONT;
-
     for (int t = 0; t < NUM_HAIR_TUFTS; t ++) {
-
         float fraction = (float)t / (float)(NUM_HAIR_TUFTS - 1);
-        
         float angle = -20.0f + 40.0f * fraction;
-        
         float radian = angle * PI_OVER_180;
-        glm::vec3 baseDirection
-        = front * sinf(radian)
-        + up    * cosf(radian);
-        
-        _hairTuft[t].basePosition = _position + _scale * BODY_BALL_RADIUS_HEAD_BASE * 0.9f * baseDirection;
-                
-        glm::vec3 midAxis = _hairTuft[t].midPosition - _hairTuft[t].basePosition;
-        glm::vec3 endAxis = _hairTuft[t].endPosition - _hairTuft[t].midPosition;
-
-        float midLength = glm::length(midAxis);        
-        float endLength = glm::length(endAxis);
-
-        glm::vec3 midDirection;
-        glm::vec3 endDirection;
-        
-        if (midLength > 0.0f) {
-            midDirection = midAxis / midLength;
-        } else {
-            midDirection = up;
-        }
-        
-        if (endLength > 0.0f) {
-            endDirection = endAxis / endLength;
-        } else {
-            endDirection = up;
-        }
-        
-        // add spring force
-        float midForce = midLength - _hairTuft[t].length * ONE_HALF;
-        float endForce = endLength - _hairTuft[t].length * ONE_HALF;
-        _hairTuft[t].midVelocity -= midDirection * midForce * HAIR_SPRING_FORCE * deltaTime;
-        _hairTuft[t].endVelocity -= endDirection * endForce * HAIR_SPRING_FORCE * deltaTime;
-
-        // add gravity force
-        glm::vec3 gravityForce = _gravity * HAIR_GRAVITY_FORCE * deltaTime;
-        _hairTuft[t].midVelocity += gravityForce;
-        _hairTuft[t].endVelocity += gravityForce;
-    
-        // add torque force
-        _hairTuft[t].midVelocity += baseDirection * HAIR_TORQUE_FORCE * deltaTime;
-        _hairTuft[t].endVelocity += midDirection  * HAIR_TORQUE_FORCE * deltaTime;
-        
-        // add drag force
-        float momentum = 1.0f - (HAIR_DRAG * deltaTime);
-        if (momentum < 0.0f) {
-            _hairTuft[t].midVelocity = glm::vec3(0.0f, 0.0f, 0.0f);
-            _hairTuft[t].endVelocity = glm::vec3(0.0f, 0.0f, 0.0f);
-        } else {
-            _hairTuft[t].midVelocity *= momentum;
-            _hairTuft[t].endVelocity *= momentum;
-        }
-            
-        // update position by velocity
-        _hairTuft[t].midPosition  += _hairTuft[t].midVelocity;
-        _hairTuft[t].endPosition  += _hairTuft[t].endVelocity;
-
-        // clamp lengths
-        glm::vec3 newMidVector = _hairTuft[t].midPosition - _hairTuft[t].basePosition;
-        glm::vec3 newEndVector = _hairTuft[t].endPosition - _hairTuft[t].midPosition;
-
-        float newMidLength = glm::length(newMidVector);
-        float newEndLength = glm::length(newEndVector);
-        
-        glm::vec3 newMidDirection;
-        glm::vec3 newEndDirection;
-
-        if (newMidLength > 0.0f) {
-            newMidDirection = newMidVector/newMidLength;
-        } else {
-            newMidDirection = up;
-        }
-
-        if (newEndLength > 0.0f) {
-            newEndDirection = newEndVector/newEndLength;
-        } else {
-            newEndDirection = up;
-        }
-        
-        _hairTuft[t].endPosition = _hairTuft[t].midPosition  + newEndDirection * _hairTuft[t].length * ONE_HALF;
-        _hairTuft[t].midPosition = _hairTuft[t].basePosition + newMidDirection * _hairTuft[t].length * ONE_HALF;
+        glm::vec3 baseDirection = front * sinf(radian) + up * cosf(radian);
+        _hairTuft[t].setBasePosition (_position + _scale * BODY_BALL_RADIUS_HEAD_BASE * 0.9f * baseDirection);
+        _hairTuft[t].setBaseDirection(baseDirection);
+        _hairTuft[t].update(deltaTime);     
     }
 }
-

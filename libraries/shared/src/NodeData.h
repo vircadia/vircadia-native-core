@@ -9,9 +9,12 @@
 #ifndef hifi_NodeData_h
 #define hifi_NodeData_h
 
+#include <QtCore/QObject>
+
 class Node;
 
-class NodeData {
+class NodeData : public QObject {
+  Q_OBJECT
 public:
     NodeData(Node* owningNode);
     

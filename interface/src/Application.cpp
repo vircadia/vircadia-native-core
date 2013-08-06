@@ -941,8 +941,9 @@ void Application::mousePressEvent(QMouseEvent* event) {
             _mouseVoxelDragging = _mouseVoxel;
             _mousePressed = true;
 
+            maybeEditVoxelUnderCursor();
 
-            if (!maybeEditVoxelUnderCursor()) {
+            if (!_palette.isActive()) {
                 _pieMenu.mousePressEvent(_mouseX, _mouseY);
             }
 
@@ -1388,21 +1389,22 @@ void Application::setRenderThirdPerson(bool thirdPerson) {
 }
 
 void Application::increaseAvatarSize() {
-    if (5.0f < _myAvatar.getScale() + 0.05f) {
-        return;
+    if ((1.f + SCALING_RATIO) * _myAvatar.getNewScale() < MAX_SCALE) {
+        _myAvatar.setNewScale((1.f + SCALING_RATIO) * _myAvatar.getNewScale());
+        qDebug("Changed scale to %f\n", _myAvatar.getNewScale());
     }
-
-    _myAvatar.setScale(_myAvatar.getScale() + 0.05f);
-    _myCamera.setScale(_myAvatar.getScale() + 0.05f);
 }
 
 void Application::decreaseAvatarSize() {
-    if (_myAvatar.getScale() - 0.05f < 0.15f) {
-        return;
+    if (MIN_SCALE < (1.f - SCALING_RATIO) * _myAvatar.getNewScale()) {
+        _myAvatar.setNewScale((1.f - SCALING_RATIO) * _myAvatar.getNewScale());
+        qDebug("Changed scale to %f\n", _myAvatar.getNewScale());
     }
+}
 
-    _myAvatar.setScale(_myAvatar.getScale() - 0.05f);
-    _myCamera.setScale(_myAvatar.getScale() - 0.05f);
+void Application::resetAvatarSize() {
+    _myAvatar.setNewScale(1.f);
+    qDebug("Reseted scale to %f\n", _myAvatar.getNewScale());
 }
 
 void Application::setFrustumOffset(bool frustumOffset) {
@@ -1686,14 +1688,25 @@ void Application::importVoxels() {
     const int SVO_TYPE_NAME_LENGTH = 4;
     const int SCH_TYPE_NAME_LENGTH = 10;
 
+    // assume this is where we'll place it if filename doesn't have tiling
+    int unspecifiedColumnNum = 1; 
+    int unspecifiedRowNum = 1;
+    
+    // if they select multiple files, but they don't specify the tiling, we
+    // will tile them to this size
+    int unspecifiedSquare = (sqrt(fileNameStringList.size()) + 0.5);
+    qDebug("unspecifiedSquare: %d\n", unspecifiedSquare);
+    
     for (int i = 0; i < fileNameStringList.size(); i++) {
         QString fileNameString = fileNameStringList.at(i);
+        QString extension;
         QByteArray fileNameAscii = fileNameString.toLocal8Bit();
         const char* fileName = fileNameAscii.data();
     
         int fileTypeNameLength = 0;
         VoxelTree importVoxels;
         if (fileNameString.endsWith(".png", Qt::CaseInsensitive)) {
+            extension = QString(".png");
             QImage pngImage = QImage(fileName);
             fileTypeNameLength = PNG_TYPE_NAME_LENGTH;
             if (pngImage.height() != pngImage.width()) {
@@ -1711,25 +1724,67 @@ void Application::importVoxels() {
         
             importVoxels.readFromSquareARGB32Pixels(pixels, pngImage.height());        
         } else if (fileNameString.endsWith(".svo", Qt::CaseInsensitive)) {
+            extension = QString(".svo");
             importVoxels.readFromSVOFile(fileName);
             fileTypeNameLength = SVO_TYPE_NAME_LENGTH;
         } else if (fileNameString.endsWith(".schematic", Qt::CaseInsensitive)) {
+            extension = QString(".schematic");
             importVoxels.readFromSchematicFile(fileName);
             fileTypeNameLength = SCH_TYPE_NAME_LENGTH;
         }
+
+        // Where we plan to place this
+        int columnNum = 1; 
+        int rowNum = 1;
+        bool isTileLocationUnspecified = false;
         
-        int indexOfFirstPeriod = fileNameString.indexOf('.');
+        // If we're in multi-file mode, then look for tiling specification in the file name
+        if (fileNameStringList.size() > 1) {
+            int indexOfFirstPeriod = fileNameString.indexOf('.');
 
-        QString fileCoord = fileNameString.mid(indexOfFirstPeriod + 1, 
-                                               fileNameString.length() - indexOfFirstPeriod - fileTypeNameLength - 1);
+            //qDebug("indexOfFirstPeriod: %d\n", indexOfFirstPeriod);
 
-        indexOfFirstPeriod = fileCoord.indexOf('.');
-        QString columnNumString = fileCoord.right(fileCoord.length() - indexOfFirstPeriod - 1);
-        QString rowNumString = fileCoord.left(indexOfFirstPeriod);
+            // If the first period, is the extension, then this is not a grid name;
+            if (fileNameString.mid(indexOfFirstPeriod, fileNameString.length() - indexOfFirstPeriod) == extension) {
+                    qDebug("not a valid grid name... treat like tile Location Unspecified\n");
+                isTileLocationUnspecified = true;
+            } else {
+                QString fileCoord = fileNameString.mid(indexOfFirstPeriod + 1, 
+                                                       fileNameString.length() - indexOfFirstPeriod - fileTypeNameLength - 1);
 
-        int columnNum = columnNumString.toFloat();
-        int rowNum = rowNumString.toFloat();
+                //qDebug() << "fileCoord: " << fileCoord << "\n";
+                indexOfFirstPeriod = fileCoord.indexOf('.');
+
+                //qDebug("indexOfFirstPeriod: %d\n", indexOfFirstPeriod);
+
+                QString columnNumString = fileCoord.right(fileCoord.length() - indexOfFirstPeriod - 1);
+                QString rowNumString = fileCoord.left(indexOfFirstPeriod);
+
+                //qDebug() << "columnNumString: " << columnNumString << "\n";
+                //qDebug() << "rowNumString: " << rowNumString << "\n";
+
+                columnNum = columnNumString.toFloat();
+                rowNum = rowNumString.toFloat();
+            
+                // If there are no "grid sections" in the filename, then we're going to get
+                if (columnNum < 1 || rowNum < 1) {
+                    qDebug("not a valid grid name... treat like tile Location Unspecified\n");
+                    isTileLocationUnspecified = true;
+                }
+            }
+        }
+
+        if (isTileLocationUnspecified) {
+            qDebug("tile Location is Unspecified... \n");
+            columnNum = unspecifiedColumnNum; 
+            rowNum = unspecifiedRowNum;
         
+            unspecifiedColumnNum++;
+            if (unspecifiedColumnNum > unspecifiedSquare) {
+                unspecifiedColumnNum = 1;
+                unspecifiedRowNum++;
+            }
+        }        
         qDebug("columnNum: %d\t rowNum: %d\n", columnNum, rowNum);
 
         _mouseVoxel.x = originalX + (columnNum - 1) * _mouseVoxel.s;
@@ -1927,6 +1982,7 @@ void Application::initMenu() {
         "Third Person", this, SLOT(setRenderThirdPerson(bool))))->setCheckable(true);
     renderMenu->addAction("Increase Avatar Size", this, SLOT(increaseAvatarSize()), Qt::Key_Plus);
     renderMenu->addAction("Decrease Avatar Size", this, SLOT(decreaseAvatarSize()), Qt::Key_Minus);
+    renderMenu->addAction("Reset Avatar Size", this, SLOT(resetAvatarSize()));
 
     
     QMenu* toolsMenu = menuBar->addMenu("Tools");
@@ -2074,13 +2130,21 @@ void Application::toggleMixedSong() {
         
         QByteArray filenameArray = filename.toLocal8Bit();
         _audio.importSongToMixWithMicrophone(filenameArray.data());
-        _rawAudioMicrophoneMix->setText("Stop Mixing Song");
+        resetSongMixMenuItem();        
     } else {
         _audio.stopMixingSongWithMicrophone();
-        _rawAudioMicrophoneMix->setText("Mix RAW Song");
+        resetSongMixMenuItem();
     }
 }
 
+void Application::resetSongMixMenuItem() {
+    if (_audio.getSongFileBytes() == 0) {
+        _rawAudioMicrophoneMix->setText("Mix RAW Song");
+    } else {
+        _rawAudioMicrophoneMix->setText("Stop Mixing Song");
+    }
+    
+}
 
 void Application::updateFrustumRenderModeAction() {
     switch (_frustumDrawingMode) {
@@ -2190,7 +2254,7 @@ Avatar* Application::isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3
         if (node->getLinkedData() != NULL && node->getType() == NODE_TYPE_AGENT) {
             Avatar* avatar = (Avatar *) node->getLinkedData();
             glm::vec3 headPosition = avatar->getHead().getPosition();
-            if (rayIntersectsSphere(mouseRayOrigin, mouseRayDirection, headPosition, HEAD_SPHERE_RADIUS)) {
+            if (rayIntersectsSphere(mouseRayOrigin, mouseRayDirection, headPosition, HEAD_SPHERE_RADIUS * avatar->getScale())) {
                 eyePosition = avatar->getHead().getEyePosition();
                 _lookatIndicatorScale = avatar->getScale();
                 _lookatOtherPosition = headPosition;
@@ -2200,6 +2264,16 @@ Avatar* Application::isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3
         }
     }
     return NULL;
+}
+
+bool Application::isLookingAtMyAvatar(Avatar* avatar) {
+    glm::vec3 theirLookat = avatar->getHead().getLookAtPosition();
+    glm::vec3 myHeadPosition = _myAvatar.getHead().getPosition();
+    
+    if (pointInSphere(theirLookat, myHeadPosition, HEAD_SPHERE_RADIUS * _myAvatar.getScale())) {
+        return true;
+    }
+    return false;
 }
 
 void Application::renderLookatIndicator(glm::vec3 pointOfInterest, Camera& whichCamera) {
@@ -2891,6 +2965,25 @@ void Application::displaySide(Camera& whichCamera) {
 
     //draw a grid ground plane....
     if (_renderGroundPlaneOn->isChecked()) {
+        // draw grass plane with fog
+        glEnable(GL_FOG);
+        glEnable(GL_NORMALIZE);        
+        const float FOG_COLOR[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+        glFogfv(GL_FOG_COLOR, FOG_COLOR);
+        glFogi(GL_FOG_MODE, GL_EXP2);
+        glFogf(GL_FOG_DENSITY, 0.025f);
+        glPushMatrix();
+            const float GRASS_PLANE_SIZE = 256.0f;
+            glTranslatef(-GRASS_PLANE_SIZE * 0.5f, -0.01f, GRASS_PLANE_SIZE * 0.5f);
+            glScalef(GRASS_PLANE_SIZE, 1.0f, GRASS_PLANE_SIZE);
+            glRotatef(-90.0f, 1.0f, 0.0f, 0.0f);
+            glColor3ub(70, 134, 74);
+            const int GRASS_DIVISIONS = 40;
+            _geometryCache.renderSquare(GRASS_DIVISIONS, GRASS_DIVISIONS);
+        glPopMatrix();
+        glDisable(GL_FOG);
+        glDisable(GL_NORMALIZE);
+        
         renderGroundPlaneGrid(EDGE_SIZE_GROUND_PLANE, _audio.getCollisionSoundMagnitude());
     } 
     //  Draw voxels
@@ -2931,6 +3024,9 @@ void Application::displaySide(Camera& whichCamera) {
                 Avatar *avatar = (Avatar *)node->getLinkedData();
                 if (!avatar->isInitialized()) {
                     avatar->init();
+                }
+                if (isLookingAtMyAvatar(avatar)) {
+                    avatar->getHead().setLookAtPosition(_myCamera.getPosition());
                 }
                 avatar->render(false, _renderAvatarBalls->isChecked());
                 avatar->setDisplayingLookatVectors(_renderLookatOn->isChecked());

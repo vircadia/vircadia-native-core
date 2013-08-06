@@ -154,7 +154,7 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
             currentPacketPtr += sizeof(headOrientation);
             
             // check if we have a song to add to our audio
-            if (_songFileBytes > 0 && _songFileStream->tellg() <= _songFileBytes) {
+            if (_songFileBytes > 0 && _songFileStream->tellg() != -1) {
                 // iterate over BUFFER_LENGTH_SAMPLES_PER_CHANNEL from the song file and add that to our audio
                 for (int i = 0; i < BUFFER_LENGTH_SAMPLES_PER_CHANNEL; i++) {
                     int16_t songSample = 0;
@@ -180,6 +180,9 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
                 
                 // reset the _songFileBytes back to zero
                 _songFileBytes = 0;
+                
+                // call Application stopMixingSong method to fix menu item
+                Application::getInstance()->resetSongMixMenuItem();
             }
             
             // copy the audio data to the last BUFFER_LENGTH_BYTES bytes of the data packet
@@ -501,7 +504,6 @@ void Audio::importSongToMixWithMicrophone(const char* filename) {
 }
 
 void Audio::stopMixingSongWithMicrophone() {
-    qDebug("Stop mixing called!");
     _songFileBytes = 0;
 }
 

@@ -105,11 +105,11 @@ public:
     
     QNetworkAccessManager* getNetworkAccessManager() { return _networkAccessManager; }
     GeometryCache* getGeometryCache() { return &_geometryCache; }
+    
+    void resetSongMixMenuItem();
 
 public slots:
-
     void sendAvatarFaceVideoMessage(int frameCount, const QByteArray& data);    
-    
     
 private slots:
     
@@ -134,6 +134,7 @@ private slots:
     void setRenderThirdPerson(bool thirdPerson);
     void increaseAvatarSize();
     void decreaseAvatarSize();
+    void resetAvatarSize();
     
     void renderThrustAtVoxel(const glm::vec3& thrust);
     void renderLineToTouchedVoxel();
@@ -212,6 +213,7 @@ private:
     void update(float deltaTime);
     Avatar* isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection,
                                 glm::vec3& eyePosition, uint16_t& nodeID);
+    bool isLookingAtMyAvatar(Avatar* avatar);
                                 
     void renderLookatIndicator(glm::vec3 pointOfInterest, Camera& whichCamera);
     void updateAvatar(float deltaTime);
