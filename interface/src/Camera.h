@@ -11,7 +11,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-const float HORIZONTAL_FIELD_OF_VIEW_DEGREES   = 90.0f;
+const float DEFAULT_FIELD_OF_VIEW_DEGREES   = 90.0f;
 
 enum CameraMode
 {
