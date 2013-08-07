@@ -3806,7 +3806,7 @@ bool Application::maybeEditVoxelUnderCursor() {
         }
     } else if (_deleteVoxelMode->isChecked()) {
         deleteVoxelUnderCursor();
-        VoxelFade fade(VoxelFade::FADE_OUT, NODE_KILLED_RED, NODE_KILLED_GREEN, NODE_KILLED_BLUE);
+        VoxelFade fade(VoxelFade::FADE_OUT, 1.0f, 1.0f, 1.0f);
         const float VOXEL_BOUNDS_ADJUST = 0.01f;
         float slightlyBigger = _mouseVoxel.s * VOXEL_BOUNDS_ADJUST;
         fade.voxelDetails.x = _mouseVoxel.x - slightlyBigger;
