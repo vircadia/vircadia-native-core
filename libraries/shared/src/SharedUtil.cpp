@@ -215,7 +215,6 @@ bool createVoxelEditMessage(unsigned char command, short int sequence,
         
     bool success = true; // assume the best
     int messageSize = MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE; // just a guess for now
-    int actualMessageSize = 3;
     unsigned char* messageBuffer = new unsigned char[messageSize];
     
     int numBytesPacketHeader = populateTypeAndVersion(messageBuffer, command);
@@ -223,6 +222,7 @@ bool createVoxelEditMessage(unsigned char command, short int sequence,
   
     *sequenceAt = sequence;
     unsigned char* copyAt = &messageBuffer[numBytesPacketHeader + sizeof(sequence)];
+    int actualMessageSize = numBytesPacketHeader + sizeof(sequence);
 
     for (int i = 0; i < voxelCount && success; i++) {
         // get the coded voxel
@@ -232,7 +232,7 @@ bool createVoxelEditMessage(unsigned char command, short int sequence,
         int lengthOfVoxelData = bytesRequiredForCodeLength(*voxelData)+SIZE_OF_COLOR_DATA;
         
         // make sure we have room to copy this voxel
-        if (actualMessageSize+lengthOfVoxelData > MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE) {
+        if (actualMessageSize + lengthOfVoxelData > MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE) {
             success = false;
         } else {
             // add it to our message
