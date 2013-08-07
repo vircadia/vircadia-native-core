@@ -2326,13 +2326,13 @@ void Application::renderFollowIndicator() {
 
                 if (leader != NULL) {
                     glColor3f(1.f, 0.f, 0.f);
-                    glVertex3f(avatar->getPosition().x,
-                               avatar->getPosition().y,
-                               avatar->getPosition().z);
+                    glVertex3f((avatar->getHead().getPosition().x + avatar->getPosition().x) / 2.f,
+                               (avatar->getHead().getPosition().y + avatar->getPosition().y) / 2.f,
+                               (avatar->getHead().getPosition().z + avatar->getPosition().z) / 2.f);
                     glColor3f(0.f, 1.f, 0.f);
-                    glVertex3f(leader->getPosition().x,
-                               leader->getPosition().y,
-                               leader->getPosition().z);
+                    glVertex3f((leader->getHead().getPosition().x + leader->getPosition().x) / 2.f,
+                               (leader->getHead().getPosition().y + leader->getPosition().y) / 2.f,
+                               (leader->getHead().getPosition().z + leader->getPosition().z) / 2.f);
                 }
             }
         }
@@ -2340,13 +2340,13 @@ void Application::renderFollowIndicator() {
 
     if (_myAvatar.getLeadingAvatar() != NULL) {
         glColor3f(1.f, 0.f, 0.f);
-        glVertex3f(_myAvatar.getPosition().x,
-                   _myAvatar.getPosition().y,
-                   _myAvatar.getPosition().z);
+        glVertex3f((_myAvatar.getHead().getPosition().x + _myAvatar.getPosition().x) / 2.f,
+                   (_myAvatar.getHead().getPosition().y + _myAvatar.getPosition().y) / 2.f,
+                   (_myAvatar.getHead().getPosition().z + _myAvatar.getPosition().z) / 2.f);
         glColor3f(0.f, 1.f, 0.f);
-        glVertex3f(_myAvatar.getLeadingAvatar()->getPosition().x,
-                   _myAvatar.getLeadingAvatar()->getPosition().y,
-                   _myAvatar.getLeadingAvatar()->getPosition().z);
+        glVertex3f((_myAvatar.getLeadingAvatar()->getHead().getPosition().x + _myAvatar.getLeadingAvatar()->getPosition().x) / 2.f,
+                   (_myAvatar.getLeadingAvatar()->getHead().getPosition().y + _myAvatar.getLeadingAvatar()->getPosition().y) / 2.f,
+                   (_myAvatar.getLeadingAvatar()->getHead().getPosition().z + _myAvatar.getLeadingAvatar()->getPosition().z) / 2.f);
     }
 
     glEnd();
