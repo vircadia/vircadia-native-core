@@ -42,7 +42,7 @@ def hifiJob(String targetName, Boolean deploy) {
         if (deploy) {
             publishers {            
                 publishScp("${ARTIFACT_DESTINATION}") {
-                    entry("**/build/${targetName}", "deploy/${targetName}")
+                    entry("**/build/${targetName}/${targetName}", "deploy/${targetName}")
                 }
             }
         }
