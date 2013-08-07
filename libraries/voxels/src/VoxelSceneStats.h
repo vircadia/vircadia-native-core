@@ -12,14 +12,16 @@
 
 #include <stdint.h>
 #include <NodeList.h>
+#include "JurisdictionMap.h"
 
 class VoxelNode;
 
 class VoxelSceneStats {
 public:
     VoxelSceneStats();
+    ~VoxelSceneStats();
     void reset();
-    void sceneStarted(bool fullScene, bool moving, VoxelNode* root);
+    void sceneStarted(bool fullScene, bool moving, VoxelNode* root, JurisdictionMap* jurisdictionMap);
     void sceneCompleted();
 
     void printDebugDetails();
@@ -77,6 +79,9 @@ public:
     
     ItemInfo& getItemInfo(int item) { return _ITEMS[item]; };
     char* getItemValue(int item);
+    
+    unsigned char* getJurisdictionRoot() const { return _jurisdictionRoot; }
+
     
 private:
     bool _isReadyToSend;
@@ -165,6 +170,8 @@ private:
     static ItemInfo _ITEMS[];
     static int const MAX_ITEM_VALUE_LENGTH = 128;
     char _itemValueBuffer[MAX_ITEM_VALUE_LENGTH];
+    
+    unsigned char* _jurisdictionRoot;
 };
 
 #endif /* defined(__hifi__VoxelSceneStats__) */

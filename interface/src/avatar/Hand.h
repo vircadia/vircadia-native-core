@@ -20,6 +20,11 @@
 #include <SharedUtil.h>
 #include <vector>
 
+enum RaveLightsSetting {
+    RAVE_LIGHTS_AVATAR = 0,
+    RAVE_LIGHTS_PARTICLES
+};
+
 class Avatar;
 class ProgramObject;
 
@@ -41,6 +46,8 @@ public:
     void reset();
     void simulate(float deltaTime, bool isMine);
     void render(bool lookingInMirror);
+    void renderRaveGloveStage();
+    void setRaveLights(RaveLightsSetting setting);
 
     void setBallColor      (glm::vec3 ballColor         ) { _ballColor          = ballColor;          }
     void updateRaveGloveParticles(float deltaTime);
@@ -60,8 +67,6 @@ private:
     float          _raveGloveClock;
     bool           _raveGloveInitialized;
     int            _raveGloveEmitter[NUM_FINGERS];
-    int            _raveGloveEffectsMode;
-    bool           _raveGloveEffectsModeChanged;
 
     Avatar*        _owningAvatar;
     float          _renderAlpha;
@@ -74,9 +79,8 @@ private:
     void setLeapHands(const std::vector<glm::vec3>& handPositions,
                       const std::vector<glm::vec3>& handNormals);
 
-    virtual void setRaveGloveMode(int mode);
+    void activateNewRaveGloveMode();
 
-    void renderRaveGloveStage();
     void renderLeapHandSpheres();
     void renderLeapHands();
     void renderLeapHand(PalmData& hand);

@@ -31,17 +31,19 @@
 #include "Environment.h"
 #include "PacketHeaders.h"
 #include "ParticleSystem.h"
-#include "renderer/GeometryCache.h"
 #include "SerialInterface.h"
 #include "Stars.h"
 #include "Swatch.h"
 #include "ToolsPalette.h"
 #include "ViewFrustum.h"
+#include "VoxelFade.h"
 #include "VoxelSystem.h"
 #include "Webcam.h"
 #include "PieMenu.h"
 #include "avatar/Avatar.h"
 #include "avatar/HandControl.h"
+#include "renderer/GeometryCache.h"
+#include "renderer/TextureCache.h"
 #include "ui/BandwidthDialog.h"
 #include "ui/ChatEntry.h"
 #include "ui/VoxelStatsDialog.h"
@@ -59,13 +61,23 @@ class QWheelEvent;
 class Node;
 class ProgramObject;
 
-class Application : public QApplication {
+static const float NODE_ADDED_RED   = 0.0f;
+static const float NODE_ADDED_GREEN = 1.0f;
+static const float NODE_ADDED_BLUE  = 0.0f;
+static const float NODE_KILLED_RED   = 1.0f;
+static const float NODE_KILLED_GREEN = 0.0f;
+static const float NODE_KILLED_BLUE  = 0.0f;
+
+
+
+class Application : public QApplication, public NodeListHook {
     Q_OBJECT
 
 public:
     static Application* getInstance() { return static_cast<Application*>(QCoreApplication::instance()); }
 
     Application(int& argc, char** argv, timeval &startup_time);
+    ~Application();
 
     void initializeGL();
     void paintGL();
@@ -105,8 +117,13 @@ public:
     
     QNetworkAccessManager* getNetworkAccessManager() { return _networkAccessManager; }
     GeometryCache* getGeometryCache() { return &_geometryCache; }
+    TextureCache* getTextureCache() { return &_textureCache; }
     
     void resetSongMixMenuItem();
+    void setupWorldLight(Camera& whichCamera);
+
+    virtual void nodeAdded(Node* node);
+    virtual void nodeKilled(Node* node);
 
 public slots:
     void sendAvatarFaceVideoMessage(int frameCount, const QByteArray& data);    
@@ -179,6 +196,7 @@ private slots:
     void setListenModePoint();
     void setListenModeSingleSource();
     void toggleMixedSong();
+    void toggleWantCollisionsOn();
 
 
     void renderCoverageMap();
@@ -216,6 +234,7 @@ private:
     bool isLookingAtMyAvatar(Avatar* avatar);
                                 
     void renderLookatIndicator(glm::vec3 pointOfInterest, Camera& whichCamera);
+    void renderFollowIndicator();
     void updateAvatar(float deltaTime);
     void loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum);
     
@@ -233,6 +252,7 @@ private:
     void deleteVoxelUnderCursor();
     void eyedropperVoxelUnderCursor();
     void resetSensors();
+    void injectVoxelAddedSoundEffect();
             
     void setMenuShortcutsEnabled(bool enabled);
     
@@ -294,6 +314,7 @@ private:
     QAction* _rawAudioMicrophoneMix; // Mixing of a RAW audio file with microphone stream for rave gloves
     QAction* _noise;
     QAction* _occlusionCulling;
+    QAction* _wantCollisionsOn;
 
     QAction* _renderCoverageMapV2;
     QAction* _renderCoverageMap;
@@ -358,7 +379,7 @@ private:
     Environment _environment;
     
     int _headMouseX, _headMouseY;
-    float _headCameraPitchYawScale;
+    float _gyroCameraSensitivity;
     
     int _audioJitterBufferSamples;     // Number of extra samples to wait before starting audio playback
     
@@ -419,6 +440,7 @@ private:
     int _hmdWarpParamLocation;
     
     GeometryCache _geometryCache;
+    TextureCache _textureCache;
     
     ParticleSystem _particleSystem;
     
@@ -445,6 +467,11 @@ private:
     PieMenu _pieMenu;
     
     VoxelSceneStats _voxelSceneStats;
+    int parseVoxelStats(unsigned char* messageData, ssize_t messageLength, sockaddr senderAddress);
+    
+    std::map<uint16_t,VoxelPositionSize> _voxelServerJurisdictions;
+    
+    std::vector<VoxelFade> _voxelFades;
 };
 
 #endif /* defined(__interface__Application__) */

@@ -92,10 +92,11 @@ public:
     const std::string& chatMessage () const { return _chatMessage; }
 
     // related to Voxel Sending strategies
-    bool getWantColor() const            { return _wantColor; }
-    bool getWantDelta() const            { return _wantDelta; }
-    bool getWantLowResMoving() const     { return _wantLowResMoving; }
+    bool getWantColor()            const { return _wantColor; }
+    bool getWantDelta()            const { return _wantDelta; }
+    bool getWantLowResMoving()     const { return _wantLowResMoving; }
     bool getWantOcclusionCulling() const { return _wantOcclusionCulling; }
+    uint16_t getLeaderID()         const { return _leaderID; }
 
     void setWantColor(bool wantColor)                       { _wantColor = wantColor; }
     void setWantDelta(bool wantDelta)                       { _wantDelta = wantDelta; }
@@ -118,7 +119,12 @@ protected:
     float _bodyYaw;
     float _bodyPitch;
     float _bodyRoll;
+
+    // Body scale
     float _newScale;
+
+    // Following mode infos
+    uint16_t _leaderID;
 
     //  Hand state (are we grabbing something or not)
     char _handState;
