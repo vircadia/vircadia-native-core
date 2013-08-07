@@ -286,7 +286,7 @@ void Hand::renderLeapFingerTrails() {
         if (palm.isActive()) {
             for (size_t f = 0; f < palm.getNumFingers(); ++f) {
                 FingerData& finger = palm.getFingers()[f];
-                int numPositions = finger.getTrailNumPositions();
+                int numPositions = finger.getTrailNumPositions() - 1;
                 if (numPositions > 0) {
                     glBegin(GL_TRIANGLE_STRIP);
                     for (int t = 0; t < numPositions; ++t)
