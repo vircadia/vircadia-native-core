@@ -913,12 +913,10 @@ void Avatar::updateHandMovementAndTouching(float deltaTime, bool enableHandMovem
         }
         
         // If there's a leap-interaction hand visible, use that as the endpoint
-        if (!getHand().isRaveGloveActive()) {
-            for (size_t i = 0; i < getHand().getPalms().size(); ++i) {
-                PalmData& palm = getHand().getPalms()[i];
-                if (palm.isActive()) {
-                    _skeleton.joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position = palm.getPosition();
-                }
+        for (size_t i = 0; i < getHand().getPalms().size(); ++i) {
+            PalmData& palm = getHand().getPalms()[i];
+            if (palm.isActive()) {
+                _skeleton.joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position = palm.getPosition();
             }
         }
     }//if (_isMine)
@@ -1404,13 +1402,9 @@ void Avatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
         for (int b = 0; b < NUM_AVATAR_BODY_BALLS; b++) {
             float alpha = getBallRenderAlpha(b, lookingInMirror);
             
-            // When in rave glove mode, don't show the arms at all.
-            if (_hand.isRaveGloveActive()) {
-                if (b == BODY_BALL_LEFT_ELBOW
-                    || b == BODY_BALL_LEFT_WRIST
-                    || b == BODY_BALL_LEFT_FINGERTIPS
-                    || b == BODY_BALL_RIGHT_ELBOW
-                    || b == BODY_BALL_RIGHT_WRIST
+            // When we have leap hands, hide part of the arms.
+            if (_hand.getNumPalms() > 0) {
+                if (b == BODY_BALL_LEFT_FINGERTIPS
                     || b == BODY_BALL_RIGHT_FINGERTIPS) {
                     continue;
                 }
