@@ -1,4 +1,4 @@
-//
+=//
 //  AvatarData.cpp
 //  hifi
 //
@@ -64,6 +64,22 @@ QVariantMap AvatarData::getPositionVariantMap() {
     positionMap.insert("x", _position.x);
     positionMap.insert("y", _position.y);
     positionMap.insert("z", _position.z);
+    
+    return positionMap;
+}
+
+void AvatarData::setHandPositionFromVariantMap(QVariantMap handPositionMap) {
+    _handPosition = glm::vec3(handPositionMap.value("x").toFloat(),
+                              handPositionMap.value("y").toFloat(),
+                              handPositionMap.value("z").toFloat());
+}
+
+QVariantMap AvatarData::getHandPositionVariantMap() {
+    QVariantMap positionMap;
+    
+    positionMap.insert("x", _handPosition.x);
+    positionMap.insert("y", _handPosition.y);
+    positionMap.insert("z", _handPosition.z);
     
     return positionMap;
 }
