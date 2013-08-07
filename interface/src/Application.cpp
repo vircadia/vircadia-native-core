@@ -2743,7 +2743,7 @@ void Application::updateAvatar(float deltaTime) {
 
     // If I'm in paint mode, send a voxel out to VOXEL server nodes.
     if (_paintOn) {
-    
+
         glm::vec3 avatarPos = _myAvatar.getPosition();
 
         // For some reason, we don't want to flip X and Z here.
@@ -2754,7 +2754,7 @@ void Application::updateAvatar(float deltaTime) {
         if (_paintingVoxel.x >= 0.0 && _paintingVoxel.x <= 1.0 &&
             _paintingVoxel.y >= 0.0 && _paintingVoxel.y <= 1.0 &&
             _paintingVoxel.z >= 0.0 && _paintingVoxel.z <= 1.0) {
-
+            
             PACKET_TYPE message = (_destructiveAddVoxel->isChecked() ?
                 PACKET_TYPE_SET_VOXEL_DESTRUCTIVE : PACKET_TYPE_SET_VOXEL);
             sendVoxelEditMessage(message, _paintingVoxel);
@@ -3962,24 +3962,27 @@ int Application::parseVoxelStats(unsigned char* messageData, ssize_t messageLeng
 
     // But, also identify the sender, and keep track of the contained jurisdiction root for this server
     Node* voxelServer = NodeList::getInstance()->nodeWithAddress(&senderAddress);
-    uint16_t nodeID = voxelServer->getNodeID();
-
-    VoxelPositionSize jurisditionDetails;
-    voxelDetailsForCode(_voxelSceneStats.getJurisdictionRoot(), jurisditionDetails);
     
-    // see if this is the first we've heard of this node...
-    if (_voxelServerJurisdictions.find(nodeID) == _voxelServerJurisdictions.end()) {
-        printf("stats from new voxel server... v[%f, %f, %f, %f]\n",
-            jurisditionDetails.x, jurisditionDetails.y, jurisditionDetails.z, jurisditionDetails.s);
+    // quick fix for crash... why would voxelServer be NULL?
+    if (voxelServer) {
+        uint16_t nodeID = voxelServer->getNodeID();
 
-        // Add the jurisditionDetails object to the list of "fade outs"
-        VoxelFade fade(VoxelFade::FADE_OUT, NODE_ADDED_RED, NODE_ADDED_GREEN, NODE_ADDED_BLUE);
-        fade.voxelDetails = jurisditionDetails;
-        _voxelFades.push_back(fade);
+        VoxelPositionSize jurisditionDetails;
+        voxelDetailsForCode(_voxelSceneStats.getJurisdictionRoot(), jurisditionDetails);
+        
+        // see if this is the first we've heard of this node...
+        if (_voxelServerJurisdictions.find(nodeID) == _voxelServerJurisdictions.end()) {
+            printf("stats from new voxel server... v[%f, %f, %f, %f]\n",
+                jurisditionDetails.x, jurisditionDetails.y, jurisditionDetails.z, jurisditionDetails.s);
+
+            // Add the jurisditionDetails object to the list of "fade outs"
+            VoxelFade fade(VoxelFade::FADE_OUT, NODE_ADDED_RED, NODE_ADDED_GREEN, NODE_ADDED_BLUE);
+            fade.voxelDetails = jurisditionDetails;
+            _voxelFades.push_back(fade);
+        }
+        // store jurisdiction details for later use
+        _voxelServerJurisdictions[nodeID] = jurisditionDetails;
     }
-    // store jurisdiction details for later use
-    _voxelServerJurisdictions[nodeID] = jurisditionDetails;
-
     return statsMessageLength;
 }
 
