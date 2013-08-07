@@ -439,7 +439,7 @@ void Application::paintGL() {
     // myCamera is. But we also want to do meaningful camera transforms on OpenGL for the offset camera
     Camera whichCamera = _myCamera;
 
-    if (_frustumOn->isChecked()) {
+    if (_viewFrustumFromOffset->isChecked() && _frustumOn->isChecked()) {
 
         // set the camera to third-person view but offset so we can see the frustum
         _viewFrustumOffsetCamera.setTargetPosition(_myCamera.getTargetPosition());
@@ -467,42 +467,32 @@ void Application::paintGL() {
     _frameCount++;
 }
 
-void Application::resetCamerasOnResizeGL(Camera& camera, int width, int height) {
+void Application::resizeGL(int width, int height) {
     float aspectRatio = ((float)width/(float)height); // based on screen resize
 
     // reset the camera FOV to our preference...
-    camera.setFieldOfView(_horizontalFieldOfView);
+    _myCamera.setFieldOfView(_fieldOfView);
+
+    // get the lens details from the current camera
+    Camera& camera = _viewFrustumFromOffset->isChecked() ? _viewFrustumOffsetCamera : _myCamera;
+    float nearClip = camera.getNearClip();
+    float farClip = camera.getFarClip();
+    float fov;
 
     if (OculusManager::isConnected()) {
         // more magic numbers; see Oculus SDK docs, p. 32
         camera.setAspectRatio(aspectRatio *= 0.5);
-        camera.setFieldOfView(2 * atan((0.0468 * _oculusDistortionScale) / 0.041) * (180 / PIf));
-    } else {
-        camera.setAspectRatio(aspectRatio);
-        camera.setFieldOfView(_horizontalFieldOfView);
-    }
-}
-
-void Application::resizeGL(int width, int height) {
-
-    // tell both cameras about our new size
-    resetCamerasOnResizeGL(_myCamera, width, height);
-    resetCamerasOnResizeGL(_viewFrustumOffsetCamera, width, height);
-
-    float aspectRatio = ((float)width/(float)height); // based on screen resize
-
-    // get the lens details from the current camera
-    Camera& camera = _frustumOn->isChecked() ? _viewFrustumOffsetCamera : _myCamera;
-    float nearClip = camera.getNearClip();
-    float farClip = camera.getFarClip();
-
-    if (OculusManager::isConnected()) {
+        camera.setFieldOfView(fov = 2 * atan((0.0468 * _oculusDistortionScale) / 0.041) * (180 / PIf));
+        
         // resize the render texture
         if (_oculusTextureID != 0) {
             glBindTexture(GL_TEXTURE_2D, _oculusTextureID);
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
             glBindTexture(GL_TEXTURE_2D, 0);
         }
+    } else {
+        camera.setAspectRatio(aspectRatio);
+        camera.setFieldOfView(fov = _fieldOfView);
     }
 
     // Tell our viewFrustum about this change
@@ -829,7 +819,11 @@ void Application::keyPressEvent(QKeyEvent* event) {
             _colorVoxelMode->trigger();
                 break;
             case Qt::Key_O:
-                _selectVoxelMode->trigger();
+                if (isShifted)  {
+                    _viewFrustumFromOffset->trigger();
+                } else {
+                    _selectVoxelMode->trigger();
+                }
                 break;
             case Qt::Key_Slash:
                 _renderStatsOn->trigger();
@@ -1301,11 +1295,11 @@ void Application::editPreferences() {
     avatarURL->setMinimumWidth(QLINE_MINIMUM_WIDTH);
     form->addRow("Avatar URL:", avatarURL);
     
-    QSpinBox* horizontalFieldOfView = new QSpinBox();
-    horizontalFieldOfView->setMaximum(180);
-    horizontalFieldOfView->setMinimum(1);
-    horizontalFieldOfView->setValue(_horizontalFieldOfView);
-    form->addRow("Horizontal field of view (degrees):", horizontalFieldOfView);
+    QSpinBox* fieldOfView = new QSpinBox();
+    fieldOfView->setMaximum(180);
+    fieldOfView->setMinimum(1);
+    fieldOfView->setValue(_fieldOfView);
+    form->addRow("Vertical Field of View (Degrees):", fieldOfView);
     
     QDoubleSpinBox* gyroCameraSensitivity = new QDoubleSpinBox();
     gyroCameraSensitivity->setValue(_gyroCameraSensitivity);
@@ -1365,7 +1359,7 @@ void Application::editPreferences() {
     if (!shouldDynamicallySetJitterBuffer()) {
         _audio.setJitterBufferSamples(_audioJitterBufferSamples);
     }
-    _horizontalFieldOfView = horizontalFieldOfView->value();
+    _fieldOfView = fieldOfView->value();
     resizeGL(_glWidget->width(), _glWidget->height());
     
 }
@@ -2066,6 +2060,8 @@ void Application::initMenu() {
     QMenu* frustumMenu = debugMenu->addMenu("View Frustum Debugging Tools");
     (_frustumOn = frustumMenu->addAction("Display Frustum"))->setCheckable(true); 
     _frustumOn->setShortcut(Qt::SHIFT | Qt::Key_F);
+    (_viewFrustumFromOffset = frustumMenu->addAction(
+        "Use Offset Camera", this, SLOT(setFrustumOffset(bool)), Qt::SHIFT | Qt::Key_O))->setCheckable(true); 
     _frustumRenderModeAction = frustumMenu->addAction(
         "Render Mode", this, SLOT(cycleFrustumRenderMode()), Qt::SHIFT | Qt::Key_R);
     updateFrustumRenderModeAction();
@@ -4145,7 +4141,7 @@ void Application::loadSettings(QSettings* settings) {
 
     _gyroCameraSensitivity = loadSetting(settings, "gyroCameraSensitivity", 0.5f);
     _audioJitterBufferSamples = loadSetting(settings, "audioJitterBufferSamples", 0);
-    _horizontalFieldOfView = loadSetting(settings, "horizontalFieldOfView", HORIZONTAL_FIELD_OF_VIEW_DEGREES);
+    _fieldOfView = loadSetting(settings, "fieldOfView", DEFAULT_FIELD_OF_VIEW_DEGREES);
 
     settings->beginGroup("View Frustum Offset Camera");
     // in case settings is corrupt or missing loadSetting() will check for NaN
@@ -4169,7 +4165,7 @@ void Application::saveSettings(QSettings* settings) {
     
     settings->setValue("gyroCameraSensitivity", _gyroCameraSensitivity);
     settings->setValue("audioJitterBufferSamples", _audioJitterBufferSamples);
-    settings->setValue("horizontalFieldOfView", _horizontalFieldOfView);
+    settings->setValue("fieldOfView", _fieldOfView);
     settings->beginGroup("View Frustum Offset Camera");
     settings->setValue("viewFrustumOffsetYaw",      _viewFrustumOffsetYaw);
     settings->setValue("viewFrustumOffsetPitch",    _viewFrustumOffsetPitch);

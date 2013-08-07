@@ -384,7 +384,7 @@ private:
     
     int _audioJitterBufferSamples;     // Number of extra samples to wait before starting audio playback
     
-    float _horizontalFieldOfView;      // In Degrees, doesn't apply to HMD like Oculus
+    float _fieldOfView;      // In Degrees, doesn't apply to HMD like Oculus
     
     HandControl _handControl;
     
