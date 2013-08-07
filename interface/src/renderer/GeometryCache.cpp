@@ -169,18 +169,23 @@ void GeometryCache::renderHalfCylinder(int slices, int stacks) {
     int vertices = (slices + 1) * stacks;
     int indices = 2 * 3 * slices * (stacks - 1);
     if (vbo.first == 0) {    
-        GLfloat* vertexData = new GLfloat[vertices * 3];
+        GLfloat* vertexData = new GLfloat[vertices * 2 * 3];
         GLfloat* vertex = vertexData;
         for (int i = 0; i <= (stacks - 1); i++) {
             float y = (float)i / (stacks - 1);
-            float radius = 1.0f;
             
             for (int j = 0; j <= slices; j++) {
                 float theta = 3 * PIf / 2 + PIf * j / slices;
 
-                *(vertex++) = sinf(theta) * radius;
+                //normals
+                *(vertex++) = sinf(theta);
+                *(vertex++) = 0;
+                *(vertex++) = cosf(theta);
+
+                // vertices
+                *(vertex++) = sinf(theta);
                 *(vertex++) = y;
-                *(vertex++) = cosf(theta) * radius;
+                *(vertex++) = cosf(theta);
             }
         }
         
@@ -196,7 +201,7 @@ void GeometryCache::renderHalfCylinder(int slices, int stacks) {
             GLushort bottom = i * (slices + 1);
             GLushort top = bottom + slices + 1;
             for (int j = 0; j < slices; j++) {
-                int next = (j + 1) % slices;
+                int next = j + 1;
                 
                 *(index++) = bottom + j;
                 *(index++) = top + next;
@@ -220,9 +225,9 @@ void GeometryCache::renderHalfCylinder(int slices, int stacks) {
     }
     glEnableClientState(GL_VERTEX_ARRAY);
     glEnableClientState(GL_NORMAL_ARRAY);
- 
-    glVertexPointer(3, GL_FLOAT, 0, 0);
-    glNormalPointer(GL_FLOAT, 0, 0);
+
+    glNormalPointer(GL_FLOAT, 6 * sizeof(float), 0);
+    glVertexPointer(3, GL_FLOAT, 6 * sizeof(float), 3 * sizeof(float));
         
     glDrawRangeElementsEXT(GL_TRIANGLES, 0, vertices - 1, indices, GL_UNSIGNED_SHORT, 0);
         

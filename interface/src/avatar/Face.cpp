@@ -63,6 +63,8 @@ void Face::setFrameFromWebcam() {
         _textureSize = webcam->getTextureSize();
         _textureRect = webcam->getFaceRect();
         _aspectRatio = webcam->getAspectRatio();
+        _facePosition = webcam->getEstimatedPosition();
+        _faceRotation = webcam->getEstimatedRotation();
     
     } else {
         clearFrame();
@@ -264,7 +266,7 @@ bool Face::render(float alpha) {
         
         glPushMatrix();
         glScalef(xScale / 12, xScale / (aspect * 3), zScale / 2);
-        Application::getInstance()->getGeometryCache()->renderHalfCylinder(25,20);
+        Application::getInstance()->getGeometryCache()->renderHalfCylinder(25, 20);
         glPopMatrix();
     } else {
         aspect = _aspectRatio;
