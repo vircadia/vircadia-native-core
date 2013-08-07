@@ -159,6 +159,9 @@ const float METERS_PER_MM = 1.0f / 1000.0f;
 
 void Webcam::setFrame(const Mat& color, int format, const Mat& depth, float midFaceDepth,
         float aspectRatio, const RotatedRect& faceRect, bool sending, const JointVector& joints) {
+    if (!_enabled) {
+        return; // was queued before we shut down; ignore
+    }
     if (!color.empty()) {
         IplImage colorImage = color;
         glPixelStorei(GL_UNPACK_ROW_LENGTH, colorImage.widthStep / 3);
@@ -405,6 +408,10 @@ void FrameGrabber::shutdown() {
     }
     destroyCodecs();
     _initialized = false;
+
+    // send an empty video message to indicate that we're no longer sending
+    QMetaObject::invokeMethod(Application::getInstance(), "sendAvatarFaceVideoMessage",
+            Q_ARG(int, ++_frameCount), Q_ARG(QByteArray, QByteArray()));
 
     thread()->quit();
 }
