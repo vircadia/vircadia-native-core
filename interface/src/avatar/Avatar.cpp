@@ -913,10 +913,17 @@ void Avatar::updateHandMovementAndTouching(float deltaTime, bool enableHandMovem
         }
         
         // If there's a leap-interaction hand visible, use that as the endpoint
+        glm::vec3 rightMostHand;
+        bool anyHandsFound = false;
         for (size_t i = 0; i < getHand().getPalms().size(); ++i) {
             PalmData& palm = getHand().getPalms()[i];
             if (palm.isActive()) {
-                _skeleton.joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position = palm.getPosition();
+                if (!anyHandsFound
+                    || palm.getRawPosition().x > rightMostHand.x) {
+                    _skeleton.joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position = palm.getPosition();
+                    rightMostHand = palm.getRawPosition();
+                }
+                anyHandsFound = true;
             }
         }
     }//if (_isMine)
