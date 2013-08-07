@@ -471,7 +471,7 @@ void Application::resizeGL(int width, int height) {
     float aspectRatio = ((float)width/(float)height); // based on screen resize
 
     // reset the camera FOV to our preference...
-    _myCamera.setFieldOfView(_horizontalFieldOfView);
+    _myCamera.setFieldOfView(_fieldOfView);
 
     // get the lens details from the current camera
     Camera& camera = _viewFrustumFromOffset->isChecked() ? _viewFrustumOffsetCamera : _myCamera;
@@ -492,7 +492,7 @@ void Application::resizeGL(int width, int height) {
         }
     } else {
         camera.setAspectRatio(aspectRatio);
-        camera.setFieldOfView(fov = _horizontalFieldOfView);
+        camera.setFieldOfView(fov = _fieldOfView);
     }
 
     // Tell our viewFrustum about this change
@@ -1295,11 +1295,11 @@ void Application::editPreferences() {
     avatarURL->setMinimumWidth(QLINE_MINIMUM_WIDTH);
     form->addRow("Avatar URL:", avatarURL);
     
-    QSpinBox* horizontalFieldOfView = new QSpinBox();
-    horizontalFieldOfView->setMaximum(180);
-    horizontalFieldOfView->setMinimum(1);
-    horizontalFieldOfView->setValue(_horizontalFieldOfView);
-    form->addRow("Horizontal field of view (degrees):", horizontalFieldOfView);
+    QSpinBox* fieldOfView = new QSpinBox();
+    fieldOfView->setMaximum(180);
+    fieldOfView->setMinimum(1);
+    fieldOfView->setValue(_fieldOfView);
+    form->addRow("Vertical Field of View (Degrees):", fieldOfView);
     
     QDoubleSpinBox* gyroCameraSensitivity = new QDoubleSpinBox();
     gyroCameraSensitivity->setValue(_gyroCameraSensitivity);
@@ -1359,7 +1359,7 @@ void Application::editPreferences() {
     if (!shouldDynamicallySetJitterBuffer()) {
         _audio.setJitterBufferSamples(_audioJitterBufferSamples);
     }
-    _horizontalFieldOfView = horizontalFieldOfView->value();
+    _fieldOfView = fieldOfView->value();
     resizeGL(_glWidget->width(), _glWidget->height());
     
 }
@@ -1389,6 +1389,8 @@ void Application::setRenderFirstPerson(bool firstPerson) {
     if (firstPerson) {
         _lookingInMirror->setChecked(false);
         _manualThirdPerson->setChecked(false);
+    } else {
+        _manualThirdPerson->trigger();
     }
 }
 
@@ -3811,7 +3813,7 @@ bool Application::maybeEditVoxelUnderCursor() {
         }
     } else if (_deleteVoxelMode->isChecked()) {
         deleteVoxelUnderCursor();
-        VoxelFade fade(VoxelFade::FADE_OUT, NODE_KILLED_RED, NODE_KILLED_GREEN, NODE_KILLED_BLUE);
+        VoxelFade fade(VoxelFade::FADE_OUT, 1.0f, 1.0f, 1.0f);
         const float VOXEL_BOUNDS_ADJUST = 0.01f;
         float slightlyBigger = _mouseVoxel.s * VOXEL_BOUNDS_ADJUST;
         fade.voxelDetails.x = _mouseVoxel.x - slightlyBigger;
@@ -4144,7 +4146,7 @@ void Application::loadSettings(QSettings* settings) {
 
     _gyroCameraSensitivity = loadSetting(settings, "gyroCameraSensitivity", 0.5f);
     _audioJitterBufferSamples = loadSetting(settings, "audioJitterBufferSamples", 0);
-    _horizontalFieldOfView = loadSetting(settings, "horizontalFieldOfView", HORIZONTAL_FIELD_OF_VIEW_DEGREES);
+    _fieldOfView = loadSetting(settings, "fieldOfView", DEFAULT_FIELD_OF_VIEW_DEGREES);
 
     settings->beginGroup("View Frustum Offset Camera");
     // in case settings is corrupt or missing loadSetting() will check for NaN
@@ -4168,7 +4170,7 @@ void Application::saveSettings(QSettings* settings) {
     
     settings->setValue("gyroCameraSensitivity", _gyroCameraSensitivity);
     settings->setValue("audioJitterBufferSamples", _audioJitterBufferSamples);
-    settings->setValue("horizontalFieldOfView", _horizontalFieldOfView);
+    settings->setValue("fieldOfView", _fieldOfView);
     settings->beginGroup("View Frustum Offset Camera");
     settings->setValue("viewFrustumOffsetYaw",      _viewFrustumOffsetYaw);
     settings->setValue("viewFrustumOffsetPitch",    _viewFrustumOffsetPitch);

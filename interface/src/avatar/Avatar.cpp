@@ -130,6 +130,8 @@ Avatar::Avatar(Node* owningNode) :
     } else {
         _balls = NULL;
     }
+
+    _collisionRadius = _height * 0.125f;
 }
 
 
@@ -633,6 +635,10 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter, float gyroCamer
         }
 
         if (_isCollisionsOn) {
+            Camera* myCamera = Application::getInstance()->getCamera();
+            _collisionRadius = myCamera->getAspectRatio() * (myCamera->getNearClip() / cos(myCamera->getFieldOfView() / 2.f));
+            _collisionRadius *= COLLISION_RADIUS_SCALAR;
+
             updateCollisionWithEnvironment(deltaTime);
             updateCollisionWithVoxels(deltaTime);
             updateAvatarCollisions(deltaTime);
@@ -984,14 +990,14 @@ void Avatar::updateCollisionWithSphere(glm::vec3 position, float radius, float d
 
 void Avatar::updateCollisionWithEnvironment(float deltaTime) {
     glm::vec3 up = getBodyUpDirection();
-    float radius = _height * 0.125f;
+    float radius = _collisionRadius;
     const float ENVIRONMENT_SURFACE_ELASTICITY = 1.0f;
     const float ENVIRONMENT_SURFACE_DAMPING = 0.01;
     const float ENVIRONMENT_COLLISION_FREQUENCY = 0.05f;
     glm::vec3 penetration;
     if (Application::getInstance()->getEnvironment()->findCapsulePenetration(
                                                                              _position - up * (_pelvisFloatingHeight - radius),
-                                                                             _position + up * (_height - _pelvisFloatingHeight - radius), radius, penetration)) {
+                                                                             _position + up * (_height - _pelvisFloatingHeight + radius), radius, penetration)) {
         _lastCollisionPosition = _position;
         updateCollisionSound(penetration, deltaTime, ENVIRONMENT_COLLISION_FREQUENCY);
         applyHardCollision(penetration, ENVIRONMENT_SURFACE_ELASTICITY, ENVIRONMENT_SURFACE_DAMPING);
@@ -1000,14 +1006,14 @@ void Avatar::updateCollisionWithEnvironment(float deltaTime) {
 
 
 void Avatar::updateCollisionWithVoxels(float deltaTime) {
-    float radius = _height * 0.125f;
+    float radius = _collisionRadius;
     const float VOXEL_ELASTICITY = 1.4f;
     const float VOXEL_DAMPING = 0.0;
     const float VOXEL_COLLISION_FREQUENCY = 0.5f;
     glm::vec3 penetration;
     if (Application::getInstance()->getVoxels()->findCapsulePenetration(
                                                                         _position - glm::vec3(0.0f, _pelvisFloatingHeight - radius, 0.0f),
-                                                                        _position + glm::vec3(0.0f, _height - _pelvisFloatingHeight - radius, 0.0f), radius, penetration)) {
+                                                                        _position + glm::vec3(0.0f, _height - _pelvisFloatingHeight + radius, 0.0f), radius, penetration)) {
         _lastCollisionPosition = _position;
         updateCollisionSound(penetration, deltaTime, VOXEL_COLLISION_FREQUENCY);
         applyHardCollision(penetration, VOXEL_ELASTICITY, VOXEL_DAMPING);
