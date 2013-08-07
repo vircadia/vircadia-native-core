@@ -120,6 +120,7 @@ public:
     TextureCache* getTextureCache() { return &_textureCache; }
     
     void resetSongMixMenuItem();
+    void setupWorldLight(Camera& whichCamera);
 
     virtual void nodeAdded(Node* node);
     virtual void nodeKilled(Node* node);

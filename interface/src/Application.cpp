@@ -77,8 +77,10 @@ static char STAR_CACHE_FILE[] = "cachedStars.txt";
 
 static const int BANDWIDTH_METER_CLICK_MAX_DRAG_LENGTH = 6; // farther dragged clicks are ignored 
 
-const glm::vec3 START_LOCATION(4.f, 0.f, 5.f);   //  Where one's own node begins in the world
-                                                 // (will be overwritten if avatar data file is found)
+// Where one's own Avatar begins in the world (will be overwritten if avatar data file is found)
+// this is basically in the center of the ground plane. Slightly adjusted. This was asked for by
+// Grayson as he's building a street around here for demo dinner 2
+const glm::vec3 START_LOCATION(0.485f * TREE_SCALE, 0.f, 0.5f * TREE_SCALE);   
 
 const int IDLE_SIMULATE_MSECS = 16;              //  How often should call simulate and other stuff
                                                  //  in the idle loop?  (60 FPS is default)
@@ -2936,6 +2938,27 @@ void Application::displayOculus(Camera& whichCamera) {
     glPopMatrix();
 }
 
+void Application::setupWorldLight(Camera& whichCamera) {
+    
+    //  Setup 3D lights (after the camera transform, so that they are positioned in world space)
+    glEnable(GL_COLOR_MATERIAL);
+    glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
+    
+    glm::vec3 relativeSunLoc = glm::normalize(_environment.getClosestData(whichCamera.getPosition()).getSunLocation() -
+                                              whichCamera.getPosition());
+    GLfloat light_position0[] = { relativeSunLoc.x, relativeSunLoc.y, relativeSunLoc.z, 0.0 };
+    glLightfv(GL_LIGHT0, GL_POSITION, light_position0);
+    GLfloat ambient_color[] = { 0.7, 0.7, 0.8 };
+    glLightfv(GL_LIGHT0, GL_AMBIENT, ambient_color);
+    GLfloat diffuse_color[] = { 0.8, 0.7, 0.7 };
+    glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse_color);
+    GLfloat specular_color[] = { 1.0, 1.0, 1.0, 1.0};
+    glLightfv(GL_LIGHT0, GL_SPECULAR, specular_color);
+    
+    glMaterialfv(GL_FRONT, GL_SPECULAR, specular_color);
+    glMateriali(GL_FRONT, GL_SHININESS, 96);
+}
+
 void Application::displaySide(Camera& whichCamera) {
     // transform by eye offset
 
@@ -2965,22 +2988,7 @@ void Application::displaySide(Camera& whichCamera) {
     glTranslatef(-whichCamera.getPosition().x, -whichCamera.getPosition().y, -whichCamera.getPosition().z);
 
     //  Setup 3D lights (after the camera transform, so that they are positioned in world space)
-    glEnable(GL_COLOR_MATERIAL);
-    glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
-    
-    glm::vec3 relativeSunLoc = glm::normalize(_environment.getClosestData(whichCamera.getPosition()).getSunLocation() -
-        whichCamera.getPosition());
-    GLfloat light_position0[] = { relativeSunLoc.x, relativeSunLoc.y, relativeSunLoc.z, 0.0 };
-    glLightfv(GL_LIGHT0, GL_POSITION, light_position0);
-    GLfloat ambient_color[] = { 0.7, 0.7, 0.8 };   
-    glLightfv(GL_LIGHT0, GL_AMBIENT, ambient_color);
-    GLfloat diffuse_color[] = { 0.8, 0.7, 0.7 };  
-    glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse_color);
-    GLfloat specular_color[] = { 1.0, 1.0, 1.0, 1.0};
-    glLightfv(GL_LIGHT0, GL_SPECULAR, specular_color);
-    
-    glMaterialfv(GL_FRONT, GL_SPECULAR, specular_color);
-    glMateriali(GL_FRONT, GL_SHININESS, 96);
+    setupWorldLight(whichCamera);
     
     if (_renderStarsOn->isChecked()) {
         if (!_stars.getFileLoaded()) {
@@ -3046,7 +3054,7 @@ void Application::displaySide(Camera& whichCamera) {
         glDisable(GL_FOG);
         glDisable(GL_NORMALIZE);
         
-        renderGroundPlaneGrid(EDGE_SIZE_GROUND_PLANE, _audio.getCollisionSoundMagnitude());
+        //renderGroundPlaneGrid(EDGE_SIZE_GROUND_PLANE, _audio.getCollisionSoundMagnitude());
     } 
     //  Draw voxels
     if (_renderVoxels->isChecked()) {
@@ -3075,7 +3083,7 @@ void Application::displaySide(Camera& whichCamera) {
         glEnable(GL_LIGHTING);
     }
     
-    _myAvatar.renderScreenTint(SCREEN_TINT_BEFORE_AVATARS);
+    _myAvatar.renderScreenTint(SCREEN_TINT_BEFORE_AVATARS, whichCamera);
     
     if (_renderAvatarsOn->isChecked()) {
         //  Render avatars of other nodes
@@ -3110,6 +3118,8 @@ void Application::displaySide(Camera& whichCamera) {
             renderLookatIndicator(_lookatOtherPosition, whichCamera);
         }
     }
+
+    _myAvatar.renderScreenTint(SCREEN_TINT_AFTER_AVATARS, whichCamera);
 
     if (_renderParticleSystemOn->isChecked()) {
         if (_particleSystemInitialized) {
