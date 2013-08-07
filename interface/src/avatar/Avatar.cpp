@@ -31,7 +31,6 @@ const bool  BALLS_ON                      = false;
 const bool  USING_AVATAR_GRAVITY          = true;
 const glm::vec3 DEFAULT_UP_DIRECTION        (0.0f, 1.0f, 0.0f);
 const float YAW_MAG                       = 500.0;
-const float BODY_SPIN_FRICTION            = 5.0;
 const float MY_HAND_HOLDING_PULL          = 0.2;
 const float YOUR_HAND_HOLDING_PULL        = 1.0;
 const float BODY_SPRING_DEFAULT_TIGHTNESS = 1000.0f;
@@ -659,11 +658,18 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter, float gyroCamer
         orientation = orientation * glm::quat(glm::radians(
                                                            glm::vec3(_bodyPitchDelta, _bodyYawDelta, _bodyRollDelta) * deltaTime));
         // decay body rotation momentum
+        
+        const float BODY_SPIN_FRICTION = 7.5f;
         float bodySpinMomentum = 1.0 - BODY_SPIN_FRICTION * deltaTime;
         if  (bodySpinMomentum < 0.0f) { bodySpinMomentum = 0.0f; }
         _bodyPitchDelta *= bodySpinMomentum;
         _bodyYawDelta   *= bodySpinMomentum;
         _bodyRollDelta  *= bodySpinMomentum;
+        
+        float MINIMUM_ROTATION_RATE = 2.0f;
+        if (fabs(_bodyYawDelta) < MINIMUM_ROTATION_RATE) { _bodyYawDelta = 0.f; }
+        if (fabs(_bodyRollDelta) < MINIMUM_ROTATION_RATE) { _bodyRollDelta = 0.f; }
+        if (fabs(_bodyPitchDelta) < MINIMUM_ROTATION_RATE) { _bodyPitchDelta = 0.f; }
         
         const float MAX_STATIC_FRICTION_VELOCITY = 0.5f;
         const float STATIC_FRICTION_STRENGTH = _scale * 20.f;
