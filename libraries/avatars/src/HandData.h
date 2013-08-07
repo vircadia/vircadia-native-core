@@ -70,9 +70,9 @@ public:
     int decodeRemoteData(unsigned char* sourceBuffer);
 
     void setRaveGloveActive(bool active)          { _isRaveGloveActive = active; }
-    virtual void setRaveGloveMode(int effectsMode)        { _raveGloveMode = effectsMode; }
+    void setRaveGloveMode(int effectsMode);
     bool isRaveGloveActive() const                { return _isRaveGloveActive; }
-    int  getRaveGloveMode()                       { return _raveGloveMode; }
+    int  getRaveGloveMode()                       { return _raveGloveEffectsMode; }
 
     friend class AvatarData;
 protected:
@@ -81,7 +81,8 @@ protected:
     AvatarData* _owningAvatarData;
     std::vector<PalmData>  _palms;
     bool                   _isRaveGloveActive;
-    int                    _raveGloveMode;
+    int                    _raveGloveEffectsMode;
+    bool                   _raveGloveEffectsModeChanged;
 private:
     // privatize copy ctor and assignment operator so copies of this object cannot be made
     HandData(const HandData&);

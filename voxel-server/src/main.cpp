@@ -49,6 +49,7 @@ const float MAX_CUBE = 0.05f;
 const int VOXEL_SEND_INTERVAL_USECS = 17 * 1000; // approximately 60fps
 int PACKETS_PER_CLIENT_PER_INTERVAL = 20;
 const int SENDING_TIME_TO_SPARE = 5 * 1000; // usec of sending interval to spare for calculating voxels
+const int INTERVALS_PER_SECOND = 1000 * 1000 / VOXEL_SEND_INTERVAL_USECS;
 
 const int MAX_VOXEL_TREE_DEPTH_LEVELS = 4;
 
@@ -64,6 +65,7 @@ bool debugVoxelSending = false;
 bool shouldShowAnimationDebug = false;
 bool displayVoxelStats = false;
 bool debugVoxelReceiving = false;
+bool sendEnvironments = true;
 
 EnvironmentData environmentData[3];
 
@@ -255,7 +257,7 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
         
         // start tracking our stats
         bool isFullScene = (!viewFrustumChanged || !nodeData->getWantDelta()) && nodeData->getViewFrustumJustStoppedChanging();
-        nodeData->stats.sceneStarted(isFullScene, viewFrustumChanged, ::serverTree.rootNode);
+        nodeData->stats.sceneStarted(isFullScene, viewFrustumChanged, ::serverTree.rootNode, ::jurisdiction);
     }
 
     // If we have something in our nodeBag, then turn them into packets and send them out...
@@ -265,7 +267,7 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
         int packetsSentThisInterval = 0;
         uint64_t start = usecTimestampNow();
 
-        bool shouldSendEnvironments = shouldDo(ENVIRONMENT_SEND_INTERVAL_USECS, VOXEL_SEND_INTERVAL_USECS);
+        bool shouldSendEnvironments = ::sendEnvironments && shouldDo(ENVIRONMENT_SEND_INTERVAL_USECS, VOXEL_SEND_INTERVAL_USECS);
         while (packetsSentThisInterval < PACKETS_PER_CLIENT_PER_INTERVAL - (shouldSendEnvironments ? 1 : 0)) {        
             // Check to see if we're taking too long, and if so bail early...
             uint64_t now = usecTimestampNow();
@@ -473,6 +475,15 @@ int main(int argc, const char * argv[]) {
             jurisdiction = new JurisdictionMap(jurisdictionRoot, jurisdictionEndNodes);
         }
     }
+
+    // should we send environments? Default is yes, but this command line suppresses sending
+    const char* DONT_SEND_ENVIRONMENTS = "--dontSendEnvironments";
+    bool dontSendEnvironments = cmdOptionExists(argc, argv, DONT_SEND_ENVIRONMENTS);
+    if (dontSendEnvironments) {
+        printf("Sending environments suppressed...\n");
+        ::sendEnvironments = false;
+    }
+    printf("Sending environments=%s\n", debug::valueOf(::sendEnvironments));
     
     NodeList* nodeList = NodeList::createInstance(NODE_TYPE_VOXEL_SERVER, listenPort);
     setvbuf(stdout, NULL, _IOLBF, 0);
@@ -562,7 +573,7 @@ int main(int argc, const char * argv[]) {
     const char* PACKETS_PER_SECOND = "--packetsPerSecond";
     const char* packetsPerSecond = getCmdOption(argc, argv, PACKETS_PER_SECOND);
     if (packetsPerSecond) {
-        PACKETS_PER_CLIENT_PER_INTERVAL = atoi(packetsPerSecond)/10;
+        PACKETS_PER_CLIENT_PER_INTERVAL = atoi(packetsPerSecond)/INTERVALS_PER_SECOND;
         if (PACKETS_PER_CLIENT_PER_INTERVAL < 1) {
             PACKETS_PER_CLIENT_PER_INTERVAL = 1;
         }

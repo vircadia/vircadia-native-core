@@ -115,6 +115,29 @@ unsigned char * childOctalCode(unsigned char * parentOctalCode, char childNumber
     return newCode;
 }
 
+void voxelDetailsForCode(unsigned char * octalCode, VoxelPositionSize& voxelPositionSize) {
+    float output[3];
+    memset(&output[0], 0, 3 * sizeof(float));
+    float currentScale = 1.0;
+
+    if (octalCode) {
+        for (int i = 0; i < numberOfThreeBitSectionsInCode(octalCode); i++) {
+            currentScale *= 0.5;
+            int sectionIndex = sectionValue(octalCode + 1 + (BITS_IN_OCTAL * i / BITS_IN_BYTE), 
+                                            (BITS_IN_OCTAL * i) % BITS_IN_BYTE);
+        
+            for (int j = 0; j < BITS_IN_OCTAL; j++) {
+                output[j] += currentScale * (int)oneAtBit(sectionIndex, (BITS_IN_BYTE - BITS_IN_OCTAL) + j);
+            }
+        
+        }
+    }
+    voxelPositionSize.x = output[0];
+    voxelPositionSize.y = output[1];
+    voxelPositionSize.z = output[2];
+    voxelPositionSize.s = currentScale;
+}
+
 void copyFirstVertexForCode(unsigned char * octalCode, float* output) {
     memset(output, 0, 3 * sizeof(float));
     
