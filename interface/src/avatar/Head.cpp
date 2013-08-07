@@ -30,10 +30,12 @@ const float MINIMUM_EYE_ROTATION_DOT =  0.5f; // based on a dot product: 1.0 is 
 const float EYEBALL_RADIUS           =  0.017;
 const float EYELID_RADIUS            =  0.019; 
 const float EYEBALL_COLOR[3]         =  { 0.9f, 0.9f, 0.8f };
-const float HAIR_SPRING_FORCE        =  7.0f;
-const float HAIR_TORQUE_FORCE        =  0.1f;
-const float HAIR_GRAVITY_FORCE       =  0.02f;
+
+const float HAIR_SPRING_FORCE        =  15.0f;
+const float HAIR_TORQUE_FORCE        =  0.2f;
+const float HAIR_GRAVITY_FORCE       =  0.001f;
 const float HAIR_DRAG                =  10.0f;
+
 const float HAIR_LENGTH              =  0.09f;
 const float HAIR_THICKNESS           =  0.03f;
 const float NOSE_LENGTH              =  0.025;
@@ -75,7 +77,7 @@ Head::Head(Avatar* owningAvatar) :
     _bodyRotation(0.0f, 0.0f, 0.0f),
     _renderLookatVectors(false),
     _mohawkTriangleFan(NULL),
-     _mohawkColors(NULL),
+    _mohawkColors(NULL),
     _saccade(0.0f, 0.0f, 0.0f),
     _saccadeTarget(0.0f, 0.0f, 0.0f),
     _leftEyeBlink(0.0f),
@@ -129,7 +131,6 @@ void Head::reset() {
 }
 
 void Head::resetHairPhysics() {
-    //glm::vec3 up = getUpDirection();
     for (int t = 0; t < NUM_HAIR_TUFTS; t ++) {
         for (int t = 0; t < NUM_HAIR_TUFTS; t ++) {
 
@@ -333,9 +334,16 @@ void Head::setScale (float scale) {
     delete[] _mohawkTriangleFan;
     delete[] _mohawkColors;
     createMohawk();
+
+    if (USING_PHYSICAL_MOHAWK) {
+        for (int t = 0; t < NUM_HAIR_TUFTS; t ++) {
     
-    resetHairPhysics();
+            _hairTuft[t].setLength   (_scale * HAIR_LENGTH   );
+            _hairTuft[t].setThickness(_scale * HAIR_THICKNESS);
+        }
+    }
 }
+
 
 void Head::createMohawk() {
     uint16_t nodeId = UNKNOWN_NODE_ID;
@@ -724,19 +732,21 @@ void Head::renderEyeBalls() {
 
 void Head::renderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosition, glm::vec3 lookatPosition) {
 
-    glColor3f(0.0f, 0.0f, 0.0f);
     glLineWidth(2.0);
-    glBegin(GL_LINE_STRIP);
+    glBegin(GL_LINES);
+    glColor4f(0.2f, 0.2f, 0.2f, 1.f);
     glVertex3f(leftEyePosition.x, leftEyePosition.y, leftEyePosition.z);
+    glColor4f(1.0f, 1.0f, 1.0f, 0.f);
     glVertex3f(lookatPosition.x, lookatPosition.y, lookatPosition.z);
-    glEnd();
-    glBegin(GL_LINE_STRIP);
+    glColor4f(0.2f, 0.2f, 0.2f, 1.f);
     glVertex3f(rightEyePosition.x, rightEyePosition.y, rightEyePosition.z);
+    glColor4f(1.0f, 1.0f, 1.0f, 0.f);
     glVertex3f(lookatPosition.x, lookatPosition.y, lookatPosition.z);
     glEnd();
 }
 
 void Head::updateHairPhysics(float deltaTime) {
+
     glm::quat orientation = getOrientation();
     glm::vec3 up    = orientation * IDENTITY_UP;
     glm::vec3 front = orientation * IDENTITY_FRONT;

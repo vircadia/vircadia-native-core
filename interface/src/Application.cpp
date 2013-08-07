@@ -77,8 +77,10 @@ static char STAR_CACHE_FILE[] = "cachedStars.txt";
 
 static const int BANDWIDTH_METER_CLICK_MAX_DRAG_LENGTH = 6; // farther dragged clicks are ignored 
 
-const glm::vec3 START_LOCATION(4.f, 0.f, 5.f);   //  Where one's own node begins in the world
-                                                 // (will be overwritten if avatar data file is found)
+// Where one's own Avatar begins in the world (will be overwritten if avatar data file is found)
+// this is basically in the center of the ground plane. Slightly adjusted. This was asked for by
+// Grayson as he's building a street around here for demo dinner 2
+const glm::vec3 START_LOCATION(0.485f * TREE_SCALE, 0.f, 0.5f * TREE_SCALE);   
 
 const int IDLE_SIMULATE_MSECS = 16;              //  How often should call simulate and other stuff
                                                  //  in the idle loop?  (60 FPS is default)
@@ -2327,13 +2329,13 @@ void Application::renderFollowIndicator() {
 
                 if (leader != NULL) {
                     glColor3f(1.f, 0.f, 0.f);
-                    glVertex3f(avatar->getPosition().x,
-                               avatar->getPosition().y,
-                               avatar->getPosition().z);
+                    glVertex3f((avatar->getHead().getPosition().x + avatar->getPosition().x) / 2.f,
+                               (avatar->getHead().getPosition().y + avatar->getPosition().y) / 2.f,
+                               (avatar->getHead().getPosition().z + avatar->getPosition().z) / 2.f);
                     glColor3f(0.f, 1.f, 0.f);
-                    glVertex3f(leader->getPosition().x,
-                               leader->getPosition().y,
-                               leader->getPosition().z);
+                    glVertex3f((leader->getHead().getPosition().x + leader->getPosition().x) / 2.f,
+                               (leader->getHead().getPosition().y + leader->getPosition().y) / 2.f,
+                               (leader->getHead().getPosition().z + leader->getPosition().z) / 2.f);
                 }
             }
         }
@@ -2341,13 +2343,13 @@ void Application::renderFollowIndicator() {
 
     if (_myAvatar.getLeadingAvatar() != NULL) {
         glColor3f(1.f, 0.f, 0.f);
-        glVertex3f(_myAvatar.getPosition().x,
-                   _myAvatar.getPosition().y,
-                   _myAvatar.getPosition().z);
+        glVertex3f((_myAvatar.getHead().getPosition().x + _myAvatar.getPosition().x) / 2.f,
+                   (_myAvatar.getHead().getPosition().y + _myAvatar.getPosition().y) / 2.f,
+                   (_myAvatar.getHead().getPosition().z + _myAvatar.getPosition().z) / 2.f);
         glColor3f(0.f, 1.f, 0.f);
-        glVertex3f(_myAvatar.getLeadingAvatar()->getPosition().x,
-                   _myAvatar.getLeadingAvatar()->getPosition().y,
-                   _myAvatar.getLeadingAvatar()->getPosition().z);
+        glVertex3f((_myAvatar.getLeadingAvatar()->getHead().getPosition().x + _myAvatar.getLeadingAvatar()->getPosition().x) / 2.f,
+                   (_myAvatar.getLeadingAvatar()->getHead().getPosition().y + _myAvatar.getLeadingAvatar()->getPosition().y) / 2.f,
+                   (_myAvatar.getLeadingAvatar()->getHead().getPosition().z + _myAvatar.getLeadingAvatar()->getPosition().z) / 2.f);
     }
 
     glEnd();
@@ -2538,7 +2540,7 @@ void Application::update(float deltaTime) {
     }
     
     // Leap finger-sensing device
-    LeapManager::enableFakeFingers(_simulateLeapHand->isChecked() || _testRaveGlove->isChecked());
+    LeapManager::enableFakeFingers(_simulateLeapHand->isChecked());
     _myAvatar.getHand().setRaveGloveActive(_testRaveGlove->isChecked());
     LeapManager::nextFrame(_myAvatar);
     
@@ -2741,7 +2743,7 @@ void Application::updateAvatar(float deltaTime) {
 
     // If I'm in paint mode, send a voxel out to VOXEL server nodes.
     if (_paintOn) {
-    
+
         glm::vec3 avatarPos = _myAvatar.getPosition();
 
         // For some reason, we don't want to flip X and Z here.
@@ -2752,7 +2754,7 @@ void Application::updateAvatar(float deltaTime) {
         if (_paintingVoxel.x >= 0.0 && _paintingVoxel.x <= 1.0 &&
             _paintingVoxel.y >= 0.0 && _paintingVoxel.y <= 1.0 &&
             _paintingVoxel.z >= 0.0 && _paintingVoxel.z <= 1.0) {
-
+            
             PACKET_TYPE message = (_destructiveAddVoxel->isChecked() ?
                 PACKET_TYPE_SET_VOXEL_DESTRUCTIVE : PACKET_TYPE_SET_VOXEL);
             sendVoxelEditMessage(message, _paintingVoxel);
@@ -3052,7 +3054,7 @@ void Application::displaySide(Camera& whichCamera) {
         glDisable(GL_FOG);
         glDisable(GL_NORMALIZE);
         
-        renderGroundPlaneGrid(EDGE_SIZE_GROUND_PLANE, _audio.getCollisionSoundMagnitude());
+        //renderGroundPlaneGrid(EDGE_SIZE_GROUND_PLANE, _audio.getCollisionSoundMagnitude());
     } 
     //  Draw voxels
     if (_renderVoxels->isChecked()) {
@@ -3106,14 +3108,16 @@ void Application::displaySide(Camera& whichCamera) {
         }
         
         // Render my own Avatar
-        if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-            _myAvatar.getHead().setLookAtPosition(_myCamera.getPosition());
-        } 
-        _myAvatar.render(_lookingInMirror->isChecked(), _renderAvatarBalls->isChecked());
-        _myAvatar.setDisplayingLookatVectors(_renderLookatOn->isChecked());
+        if (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON) {
+            if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
+                _myAvatar.getHead().setLookAtPosition(_myCamera.getPosition());
+            }
+            _myAvatar.render(_lookingInMirror->isChecked(), _renderAvatarBalls->isChecked());
+            _myAvatar.setDisplayingLookatVectors(_renderLookatOn->isChecked());
 
-        if (_renderLookatIndicatorOn->isChecked() && _isLookingAtOtherAvatar) {
-            renderLookatIndicator(_lookatOtherPosition, whichCamera);
+            if (_renderLookatIndicatorOn->isChecked() && _isLookingAtOtherAvatar) {
+                renderLookatIndicator(_lookatOtherPosition, whichCamera);
+            }
         }
     }
 
@@ -3960,24 +3964,27 @@ int Application::parseVoxelStats(unsigned char* messageData, ssize_t messageLeng
 
     // But, also identify the sender, and keep track of the contained jurisdiction root for this server
     Node* voxelServer = NodeList::getInstance()->nodeWithAddress(&senderAddress);
-    uint16_t nodeID = voxelServer->getNodeID();
-
-    VoxelPositionSize jurisditionDetails;
-    voxelDetailsForCode(_voxelSceneStats.getJurisdictionRoot(), jurisditionDetails);
     
-    // see if this is the first we've heard of this node...
-    if (_voxelServerJurisdictions.find(nodeID) == _voxelServerJurisdictions.end()) {
-        printf("stats from new voxel server... v[%f, %f, %f, %f]\n",
-            jurisditionDetails.x, jurisditionDetails.y, jurisditionDetails.z, jurisditionDetails.s);
+    // quick fix for crash... why would voxelServer be NULL?
+    if (voxelServer) {
+        uint16_t nodeID = voxelServer->getNodeID();
 
-        // Add the jurisditionDetails object to the list of "fade outs"
-        VoxelFade fade(VoxelFade::FADE_OUT, NODE_ADDED_RED, NODE_ADDED_GREEN, NODE_ADDED_BLUE);
-        fade.voxelDetails = jurisditionDetails;
-        _voxelFades.push_back(fade);
+        VoxelPositionSize jurisditionDetails;
+        voxelDetailsForCode(_voxelSceneStats.getJurisdictionRoot(), jurisditionDetails);
+        
+        // see if this is the first we've heard of this node...
+        if (_voxelServerJurisdictions.find(nodeID) == _voxelServerJurisdictions.end()) {
+            printf("stats from new voxel server... v[%f, %f, %f, %f]\n",
+                jurisditionDetails.x, jurisditionDetails.y, jurisditionDetails.z, jurisditionDetails.s);
+
+            // Add the jurisditionDetails object to the list of "fade outs"
+            VoxelFade fade(VoxelFade::FADE_OUT, NODE_ADDED_RED, NODE_ADDED_GREEN, NODE_ADDED_BLUE);
+            fade.voxelDetails = jurisditionDetails;
+            _voxelFades.push_back(fade);
+        }
+        // store jurisdiction details for later use
+        _voxelServerJurisdictions[nodeID] = jurisditionDetails;
     }
-    // store jurisdiction details for later use
-    _voxelServerJurisdictions[nodeID] = jurisditionDetails;
-
     return statsMessageLength;
 }
 
@@ -4061,9 +4068,11 @@ void* Application::networkReceive(void* args) {
                         break;
                     case PACKET_TYPE_AVATAR_VOXEL_URL:
                         processAvatarVoxelURLMessage(app->_incomingPacket, bytesReceived);
+                        getInstance()->_bandwidthMeter.inputStream(BandwidthMeter::AVATARS).updateValue(bytesReceived);
                         break;
                     case PACKET_TYPE_AVATAR_FACE_VIDEO:
                         processAvatarFaceVideoMessage(app->_incomingPacket, bytesReceived);
+                        getInstance()->_bandwidthMeter.inputStream(BandwidthMeter::AVATARS).updateValue(bytesReceived);
                         break;
                     default:
                         NodeList::getInstance()->processNodeData(&senderAddress, app->_incomingPacket, bytesReceived);

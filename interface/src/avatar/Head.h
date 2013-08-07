@@ -114,7 +114,7 @@ private:
     float       _returnSpringScale; //strength of return springs
     glm::vec3   _bodyRotation;
     bool        _renderLookatVectors;
-    BendyLine    _hairTuft[NUM_HAIR_TUFTS];
+    BendyLine   _hairTuft[NUM_HAIR_TUFTS];
     glm::vec3*  _mohawkTriangleFan;
     glm::vec3*  _mohawkColors;
     glm::vec3   _saccade;
