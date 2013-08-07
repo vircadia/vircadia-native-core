@@ -30,6 +30,8 @@ public:
 
     bool writeToFile(const char* filename);
     bool readFromFile(const char* filename);
+
+    unsigned char*  getRootOctalCode() const { return _rootOctalCode; }
     
 private:
     void clear();
