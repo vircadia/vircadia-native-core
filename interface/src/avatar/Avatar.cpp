@@ -1427,7 +1427,7 @@ float Avatar::getBallRenderAlpha(int ball, bool lookingInMirror) const {
 
 void Avatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
 
-    if (Application::getInstance()->getCamera()->getMode() == CAMERA_MODE_FIRST_PERSON) {
+    if (isMyAvatar() && Application::getInstance()->getCamera()->getMode() == CAMERA_MODE_FIRST_PERSON) {
         // Dont display body
     } else if (_head.getFace().isFullFrame()) {
         //  Render the full-frame video
