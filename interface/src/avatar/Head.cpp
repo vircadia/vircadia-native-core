@@ -238,8 +238,12 @@ void Head::simulate(float deltaTime, bool isMine, float gyroCameraSensitivity) {
         const float CAMERA_STOP_TOLERANCE_DEGREES = 0.5f;
         const float PITCH_START_RANGE = 20.f;
         const float YAW_START_RANGE = 10.f;
-        float pitchStartTolerance = PITCH_START_RANGE * (1.f - gyroCameraSensitivity);
-        float yawStartTolerance = YAW_START_RANGE * (1.f - gyroCameraSensitivity);
+        float pitchStartTolerance = PITCH_START_RANGE
+                                    * (1.f - gyroCameraSensitivity)
+                                    + (2.f * CAMERA_STOP_TOLERANCE_DEGREES);
+        float yawStartTolerance = YAW_START_RANGE
+                                    * (1.f - gyroCameraSensitivity)
+                                    + (2.f * CAMERA_STOP_TOLERANCE_DEGREES);
 
         float cameraHeadAngleDifference = glm::length(glm::vec2(_pitch - _cameraPitch, _yaw - _cameraYaw));
         if (_isCameraMoving) {
