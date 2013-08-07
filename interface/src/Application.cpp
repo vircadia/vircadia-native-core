@@ -2681,7 +2681,7 @@ void Application::updateAvatar(float deltaTime) {
 
     // If I'm in paint mode, send a voxel out to VOXEL server nodes.
     if (_paintOn) {
-    
+
         glm::vec3 avatarPos = _myAvatar.getPosition();
 
         // For some reason, we don't want to flip X and Z here.
@@ -2692,7 +2692,7 @@ void Application::updateAvatar(float deltaTime) {
         if (_paintingVoxel.x >= 0.0 && _paintingVoxel.x <= 1.0 &&
             _paintingVoxel.y >= 0.0 && _paintingVoxel.y <= 1.0 &&
             _paintingVoxel.z >= 0.0 && _paintingVoxel.z <= 1.0) {
-
+            
             PACKET_TYPE message = (_destructiveAddVoxel->isChecked() ?
                 PACKET_TYPE_SET_VOXEL_DESTRUCTIVE : PACKET_TYPE_SET_VOXEL);
             sendVoxelEditMessage(message, _paintingVoxel);

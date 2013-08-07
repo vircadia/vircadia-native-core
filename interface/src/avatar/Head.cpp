@@ -30,10 +30,12 @@ const float MINIMUM_EYE_ROTATION_DOT =  0.5f; // based on a dot product: 1.0 is 
 const float EYEBALL_RADIUS           =  0.017;
 const float EYELID_RADIUS            =  0.019; 
 const float EYEBALL_COLOR[3]         =  { 0.9f, 0.9f, 0.8f };
-const float HAIR_SPRING_FORCE        =  7.0f;
-const float HAIR_TORQUE_FORCE        =  0.1f;
-const float HAIR_GRAVITY_FORCE       =  0.02f;
+
+const float HAIR_SPRING_FORCE        =  15.0f;
+const float HAIR_TORQUE_FORCE        =  0.2f;
+const float HAIR_GRAVITY_FORCE       =  0.001f;
 const float HAIR_DRAG                =  10.0f;
+
 const float HAIR_LENGTH              =  0.09f;
 const float HAIR_THICKNESS           =  0.03f;
 const float NOSE_LENGTH              =  0.025;
@@ -73,9 +75,10 @@ Head::Head(Avatar* owningAvatar) :
     _audioAttack(0.0f),
     _returnSpringScale(1.0f),
     _bodyRotation(0.0f, 0.0f, 0.0f),
+    _hairInitialized(false),
     _renderLookatVectors(false),
     _mohawkTriangleFan(NULL),
-     _mohawkColors(NULL),
+    _mohawkColors(NULL),
     _saccade(0.0f, 0.0f, 0.0f),
     _saccadeTarget(0.0f, 0.0f, 0.0f),
     _leftEyeBlink(0.0f),
@@ -128,7 +131,6 @@ void Head::reset() {
 }
 
 void Head::resetHairPhysics() {
-    //glm::vec3 up = getUpDirection();
     for (int t = 0; t < NUM_HAIR_TUFTS; t ++) {
         for (int t = 0; t < NUM_HAIR_TUFTS; t ++) {
 
@@ -334,7 +336,7 @@ void Head::setScale (float scale) {
     delete[] _mohawkColors;
     createMohawk();
     
-    resetHairPhysics();
+    //resetHairPhysics();
 }
 
 void Head::createMohawk() {
@@ -737,6 +739,7 @@ void Head::renderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosi
 }
 
 void Head::updateHairPhysics(float deltaTime) {
+
     glm::quat orientation = getOrientation();
     glm::vec3 up    = orientation * IDENTITY_UP;
     glm::vec3 front = orientation * IDENTITY_FRONT;
