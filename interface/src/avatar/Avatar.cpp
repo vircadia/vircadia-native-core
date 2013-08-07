@@ -636,6 +636,10 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter, float gyroCamer
         }
 
         if (_isCollisionsOn) {
+            Camera* myCamera = Application::getInstance()->getCamera();
+            _collisionRadius = myCamera->getAspectRatio() * (myCamera->getNearClip() / cos(myCamera->getFieldOfView() / 2.f));
+            _collisionRadius *= COLLISION_RADIUS_SCALAR;
+
             updateCollisionWithEnvironment(deltaTime);
             updateCollisionWithVoxels(deltaTime);
             updateAvatarCollisions(deltaTime);
@@ -1645,9 +1649,5 @@ void Avatar::setScale(const float scale) {
     _pelvisFloatingHeight = _skeleton.getPelvisFloatingHeight() + _bodyBall[ BODY_BALL_LEFT_HEEL ].radius;
     _pelvisToHeadLength   = _skeleton.getPelvisToHeadLength();
     _avatarTouch.setReachableRadius(_scale * PERIPERSONAL_RADIUS);
-
-    Camera* myCamera = Application::getInstance()->getCamera();
-    _collisionRadius = myCamera->getAspectRatio() * (myCamera->getNearClip() / cos(myCamera->getFieldOfView() / 2.f));
-    _collisionRadius *= COLLISION_RADIUS_SCALAR;
 }
 
