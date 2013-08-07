@@ -3363,6 +3363,11 @@ void Application::displayStats() {
     voxelDetails = _voxelSceneStats.getItemValue(VoxelSceneStats::ITEM_ENCODE);
     voxelStats << "Encode Time on Server: " << voxelDetails;
     drawtext(10, statsVerticalOffset + 290, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+
+    voxelStats.str("");
+    voxelDetails = _voxelSceneStats.getItemValue(VoxelSceneStats::ITEM_MODE);
+    voxelStats << "Sending Mode: " << voxelDetails;
+    drawtext(10, statsVerticalOffset + 310, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
     
     Node *avatarMixer = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_AVATAR_MIXER);
     char avatarMixerStats[200];
