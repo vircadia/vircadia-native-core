@@ -20,6 +20,7 @@ public:
     
     void renderHemisphere(int slices, int stacks);
     void renderSquare(int xDivisions, int yDivisions);
+    void renderHalfCylinder(int slices, int stacks);
 
 private:
     
@@ -28,6 +29,7 @@ private:
     
     QHash<IntPair, VerticesIndices> _hemisphereVBOs;
     QHash<IntPair, VerticesIndices> _squareVBOs;
+    QHash<IntPair, VerticesIndices> _halfCylinderVBOs;
 };
 
 #endif /* defined(__interface__GeometryCache__) */

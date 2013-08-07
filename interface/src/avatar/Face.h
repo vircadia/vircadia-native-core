@@ -61,7 +61,7 @@ private:
     cv::Size2f _textureSize;
     cv::RotatedRect _textureRect;
     float _aspectRatio;
-    
+
     vpx_codec_ctx_t _colorCodec;
     vpx_codec_ctx_t _depthCodec;
     bool _lastFullFrame;
