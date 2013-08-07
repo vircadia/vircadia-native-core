@@ -3150,6 +3150,9 @@ void Application::displaySide(Camera& whichCamera) {
     }
         
     renderFollowIndicator();
+    
+    // render the glow effect
+    _glowEffect.render();
 }
 
 void Application::displayOverlay() {

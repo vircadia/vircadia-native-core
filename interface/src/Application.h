@@ -43,6 +43,7 @@
 #include "avatar/Avatar.h"
 #include "avatar/HandControl.h"
 #include "renderer/GeometryCache.h"
+#include "renderer/GlowEffect.h"
 #include "renderer/TextureCache.h"
 #include "ui/BandwidthDialog.h"
 #include "ui/ChatEntry.h"
@@ -443,6 +444,7 @@ private:
     TextureCache _textureCache;
     
     ParticleSystem _particleSystem;
+    GlowEffect _glowEffect;
     
     #ifndef _WIN32
     Audio _audio;
