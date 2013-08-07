@@ -31,11 +31,11 @@
 #endif
 
 bool shouldShowPacketsPerSecond = false; // do we want to debug packets per second
-bool includeBillboard = false; 
-bool includeBorderTracer = false;
-bool includeMovingBug = false;
+bool includeBillboard = true; 
+bool includeBorderTracer = true;
+bool includeMovingBug = true;
 bool includeBlinkingVoxel = false;
-bool includeDanceFloor = false;
+bool includeDanceFloor = true;
 bool buildStreet = false;
 
 
@@ -624,7 +624,6 @@ const float ROAD_BRICK_SIZE = 0.125f/TREE_SCALE; //(ROAD_WIDTH_METERS / TREE_SCA
 const int ROAD_LENGTH = 1.0f / ROAD_BRICK_SIZE; // in bricks
 const int ROAD_WIDTH  = BRICKS_ACROSS_ROAD; // in bricks
 glm::vec3 roadPosition(0.5f - (ROAD_BRICK_SIZE * BRICKS_ACROSS_ROAD), 0.0f, 0.0f);
-//glm::vec3 roadPosition(0.0f, 0.0f, 0.0f);
 const int BRICKS_PER_PACKET = 32; // guessing
 const int PACKETS_PER_ROAD = VOXELS_PER_PACKET / (ROAD_LENGTH * ROAD_WIDTH);
 
