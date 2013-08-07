@@ -145,6 +145,9 @@ void Hand::render(bool lookingInMirror) {
 
         if (_raveGloveInitialized) {
             updateRaveGloveEmitters(); // do this after calculateGeometry
+            
+            // Use normal lighting for the particles
+            setRaveLights(RAVE_LIGHTS_PARTICLES);
             _raveGloveParticleSystem.render();
         }
     }
@@ -158,6 +161,31 @@ void Hand::render(bool lookingInMirror) {
             renderLeapFingerTrails();
             renderLeapHandSpheres();
         }
+    }
+}
+
+void Hand::setRaveLights(RaveLightsSetting setting) {
+    if (setting == RAVE_LIGHTS_AVATAR) {
+        // Set some mood lighting
+        GLfloat ambient_color[] = { 0.0, 0.0, 0.0 };
+        glLightfv(GL_LIGHT0, GL_AMBIENT, ambient_color);
+        GLfloat diffuse_color[] = { 0.4, 0.0, 0.0 };
+        glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse_color);
+        GLfloat specular_color[] = { 0.0, 0.0, 0.0, 0.0};
+        glLightfv(GL_LIGHT0, GL_SPECULAR, specular_color);
+        glMaterialfv(GL_FRONT, GL_SPECULAR, specular_color);
+        glMateriali(GL_FRONT, GL_SHININESS, 0);
+    }
+    else if (setting == RAVE_LIGHTS_PARTICLES) {
+        // particles use a brighter light setting
+        GLfloat ambient_color[] = { 0.7, 0.7, 0.8 };
+        glLightfv(GL_LIGHT0, GL_AMBIENT, ambient_color);
+        GLfloat diffuse_color[] = { 0.8, 0.7, 0.7 };
+        glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse_color);
+        GLfloat specular_color[] = { 1.0, 1.0, 1.0, 1.0};
+        glLightfv(GL_LIGHT0, GL_SPECULAR, specular_color);
+        glMaterialfv(GL_FRONT, GL_SPECULAR, specular_color);
+        glMateriali(GL_FRONT, GL_SHININESS, 96);
     }
 }
 
