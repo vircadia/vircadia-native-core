@@ -273,6 +273,7 @@ private:
     bool        _speedBrakes;
     bool        _isThrustOn;
     bool        _isCollisionsOn;
+    float       _collisionRadius;
 
     Avatar*     _leadingAvatar;
     float       _stringLength;

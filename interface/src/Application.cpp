@@ -1389,6 +1389,8 @@ void Application::setRenderFirstPerson(bool firstPerson) {
     if (firstPerson) {
         _lookingInMirror->setChecked(false);
         _manualThirdPerson->setChecked(false);
+    } else {
+        _manualThirdPerson->trigger();
     }
 }
 
