@@ -24,7 +24,7 @@ BendyLine::BendyLine(){
     
     _gravityForce  = glm::vec3(0.0f, 0.0f, 0.0f);
     _basePosition  = glm::vec3(0.0f, 0.0f, 0.0f);	
-    _baseDirection = glm::vec3(0.0f, 0.0f, 0.0f);  
+    _baseDirection = glm::vec3(0.0f, 1.0f, 0.0f);  
     _midPosition   = glm::vec3(0.0f, 0.0f, 0.0f);          
     _endPosition   = glm::vec3(0.0f, 0.0f, 0.0f);          
     _midVelocity   = glm::vec3(0.0f, 0.0f, 0.0f);          

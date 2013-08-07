@@ -117,7 +117,7 @@ enum ScreenTintLayer
     SCREEN_TINT_BEFORE_LANDSCAPE = 0,
     SCREEN_TINT_BEFORE_AVATARS,
     SCREEN_TINT_BEFORE_MY_AVATAR,
-    SCREEN_TINT_AFTER_MY_AVATAR,
+    SCREEN_TINT_AFTER_AVATARS,
     NUM_SCREEN_TINT_LAYERS
 };
 
@@ -136,7 +136,7 @@ public:
     void addBodyYaw(float bodyYaw) {_bodyYaw += bodyYaw;};
     void addBodyYawDelta(float bodyYawDelta) {_bodyYawDelta += bodyYawDelta;}
     void render(bool lookingInMirror, bool renderAvatarBalls);
-    void renderScreenTint(ScreenTintLayer layer);
+    void renderScreenTint(ScreenTintLayer layer, Camera& whichCamera);
 
     //setters
     void setMousePressed           (bool      mousePressed           ) { _mousePressed    = mousePressed;} 

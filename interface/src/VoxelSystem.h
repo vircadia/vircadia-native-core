@@ -196,7 +196,6 @@ private:
     bool _voxelsDirty;
     
     static ProgramObject* _perlinModulateProgram;
-    static GLuint _permutationNormalTextureID;
     
     int _hookID;
     std::vector<glBufferIndex> _freeIndexes;

@@ -78,7 +78,7 @@ void Hand::calculateGeometry() {
             for (size_t f = 0; f < palm.getNumFingers(); ++f) {
                 FingerData& finger = palm.getFingers()[f];
                 if (finger.isActive()) {
-                    const float standardBallRadius = 0.01f;
+                    const float standardBallRadius = 0.005f;
                     _leapFingerTipBalls.resize(_leapFingerTipBalls.size() + 1);
                     HandBall& ball = _leapFingerTipBalls.back();
                     ball.rotation = _baseOrientation;
@@ -99,7 +99,7 @@ void Hand::calculateGeometry() {
             for (size_t f = 0; f < palm.getNumFingers(); ++f) {
                 FingerData& finger = palm.getFingers()[f];
                 if (finger.isActive()) {
-                    const float standardBallRadius = 0.01f;
+                    const float standardBallRadius = 0.005f;
                     _leapFingerRootBalls.resize(_leapFingerRootBalls.size() + 1);
                     HandBall& ball = _leapFingerRootBalls.back();
                     ball.rotation = _baseOrientation;
@@ -139,12 +139,23 @@ void Hand::render(bool lookingInMirror) {
     
     calculateGeometry();
 
-    if (_isRaveGloveActive) {
-        // Disable raveGloveStage while we work on the network glove features
-        // renderRaveGloveStage();
+    if ( SHOW_LEAP_HAND ) {
+        if (!isRaveGloveActive()) {
+            renderLeapFingerTrails();
+        }
+        if (isRaveGloveActive()) {
+            // Use mood lighting for the hand itself
+            setRaveLights(RAVE_LIGHTS_AVATAR);
+        }
+        renderLeapHands();
+    }
 
+    if (_isRaveGloveActive) {
         if (_raveGloveInitialized) {
             updateRaveGloveEmitters(); // do this after calculateGeometry
+            
+            // Use normal lighting for the particles
+            setRaveLights(RAVE_LIGHTS_PARTICLES);
             _raveGloveParticleSystem.render();
         }
     }
@@ -152,86 +163,78 @@ void Hand::render(bool lookingInMirror) {
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_RESCALE_NORMAL);
     
-    if ( SHOW_LEAP_HAND ) {
-        //renderLeapHands();
-        if (!isRaveGloveActive()) {
-            renderLeapFingerTrails();
-            renderLeapHandSpheres();
-        }
+}
+
+void Hand::setRaveLights(RaveLightsSetting setting) {
+    if (setting == RAVE_LIGHTS_AVATAR) {
+        // Set some mood lighting
+        GLfloat ambient_color[] = { 0.0, 0.0, 0.0 };
+        glLightfv(GL_LIGHT0, GL_AMBIENT, ambient_color);
+        GLfloat diffuse_color[] = { 0.4, 0.0, 0.0 };
+        glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse_color);
+        GLfloat specular_color[] = { 0.0, 0.0, 0.0, 0.0};
+        glLightfv(GL_LIGHT0, GL_SPECULAR, specular_color);
+        glMaterialfv(GL_FRONT, GL_SPECULAR, specular_color);
+        glMateriali(GL_FRONT, GL_SHININESS, 0);
+    }
+    else if (setting == RAVE_LIGHTS_PARTICLES) {
+        // particles use a brighter light setting
+        GLfloat ambient_color[] = { 0.7, 0.7, 0.8 };
+        glLightfv(GL_LIGHT0, GL_AMBIENT, ambient_color);
+        GLfloat diffuse_color[] = { 0.8, 0.7, 0.7 };
+        glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse_color);
+        GLfloat specular_color[] = { 1.0, 1.0, 1.0, 1.0};
+        glLightfv(GL_LIGHT0, GL_SPECULAR, specular_color);
+        glMaterialfv(GL_FRONT, GL_SPECULAR, specular_color);
+        glMateriali(GL_FRONT, GL_SHININESS, 96);
     }
 }
 
 void Hand::renderRaveGloveStage() {
-    if (_owningAvatar && _owningAvatar->isMyAvatar()) {
-        Head& head = _owningAvatar->getHead();
-        glm::quat headOrientation = head.getOrientation();
-        glm::vec3 headPosition = head.getPosition();
-        float scale = 100.0f;
-        glm::vec3 vc = headOrientation * glm::vec3( 0.0f,  0.0f, -30.0f) + headPosition;
-        glm::vec3 v0 = headOrientation * (glm::vec3(-1.0f, -1.0f, 0.0f) * scale) + vc;
-        glm::vec3 v1 = headOrientation * (glm::vec3( 1.0f, -1.0f, 0.0f) * scale) + vc;
-        glm::vec3 v2 = headOrientation * (glm::vec3( 1.0f,  1.0f, 0.0f) * scale) + vc;
-        glm::vec3 v3 = headOrientation * (glm::vec3(-1.0f,  1.0f, 0.0f) * scale) + vc;
 
-        glDisable(GL_DEPTH_TEST);
-        glDepthMask(GL_FALSE);
-        glEnable(GL_BLEND);
-        glBegin(GL_TRIANGLE_FAN);
-        glColor4f(0.0f, 0.0f, 0.0f, 1.0f);
-        glVertex3fv((float*)&vc);
-        glColor4f(0.0f, 0.0f, 0.0f, 0.5f);
-        glVertex3fv((float*)&v0);
-        glVertex3fv((float*)&v1);
-        glVertex3fv((float*)&v2);
-        glVertex3fv((float*)&v3);
-        glVertex3fv((float*)&v0);
-        glEnd();
-        glDepthMask(GL_TRUE);
-        glEnable(GL_DEPTH_TEST);
-    }
-}
-
-
-void Hand::renderLeapHands() {
-    for (size_t i = 0; i < getNumPalms(); ++i) {
-        PalmData& hand = getPalms()[i];
-        if (hand.isActive()) {
-            renderLeapHand(hand);
-        }
-    }
-}
-
-void Hand::renderLeapHand(PalmData& hand) {
-
+    // Draw a simple fullscreen triangle fan, darkest in the center.
+    glMatrixMode(GL_PROJECTION);
     glPushMatrix();
-        const float palmThickness = 0.002f;
-        glColor4f(0.5f, 0.5f, 0.5f, 1.0);
-        glm::vec3 tip = hand.getPosition();
-        glm::vec3 root = hand.getPosition() + hand.getNormal() * palmThickness;
-        Avatar::renderJointConnectingCone(root, tip, 0.05, 0.03);
-        
-        for (size_t f = 0; f < hand.getNumFingers(); ++f) {
-            FingerData& finger = hand.getFingers()[f];
-            if (finger.isActive()) {
-                glColor4f(_ballColor.r, _ballColor.g, _ballColor.b, 0.5);
-                glm::vec3 tip = finger.getTipPosition();
-                glm::vec3 root = finger.getRootPosition();
-                Avatar::renderJointConnectingCone(root, tip, 0.001, 0.003);
-            }
-        }
-         
+    glLoadIdentity();
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+
+    glDisable(GL_DEPTH_TEST);
+    glDepthMask(GL_FALSE);
+    glEnable(GL_BLEND);
+    glBegin(GL_TRIANGLE_FAN);
+    // Dark center vertex
+    glColor4f(0.0f, 0.0f, 0.0f, 1.0f);
+    glVertex3f(0.0f, 0.0f, 0.0f);
+    // Lighter outer vertices
+    glColor4f(0.0f, 0.0f, 0.0f, 0.5f);
+    glVertex3f(-1.0f,-1.0f, 0.0f);
+    glVertex3f( 1.0f,-1.0f, 0.0f);
+    glVertex3f( 1.0f, 1.0f, 0.0f);
+    glVertex3f(-1.0f, 1.0f, 0.0f);
+    glVertex3f(-1.0f,-1.0f, 0.0f);
+    glEnd();
+    glDepthMask(GL_TRUE);
+    glEnable(GL_DEPTH_TEST);
+
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
     glPopMatrix();
 }
 
+void Hand::renderLeapHands() {
 
-void Hand::renderLeapHandSpheres() {
+    const float alpha = 1.0f;
+    //const glm::vec3 handColor = _ballColor;
+    const glm::vec3 handColor(1.0, 0.84, 0.66); // use the skin color
+    
     glPushMatrix();
     // Draw the leap balls
     for (size_t i = 0; i < _leapFingerTipBalls.size(); i++) {
-        float alpha = 1.0f;
-        
         if (alpha > 0.0f) {
-            glColor4f(_ballColor.r, _ballColor.g, _ballColor.b, alpha);
+            glColor4f(handColor.r, handColor.g, handColor.b, alpha);
             
             glPushMatrix();
             glTranslatef(_leapFingerTipBalls[i].position.x, _leapFingerTipBalls[i].position.y, _leapFingerTipBalls[i].position.z);
@@ -247,7 +250,7 @@ void Hand::renderLeapHandSpheres() {
             for (size_t f = 0; f < palm.getNumFingers(); ++f) {
                 FingerData& finger = palm.getFingers()[f];
                 if (finger.isActive()) {
-                    glColor4f(_ballColor.r, _ballColor.g, _ballColor.b, 0.5);
+                    glColor4f(handColor.r, handColor.g, handColor.b, 0.5);
                     glm::vec3 tip = finger.getTipPosition();
                     glm::vec3 root = finger.getRootPosition();
                     Avatar::renderJointConnectingCone(root, tip, 0.001, 0.003);
@@ -261,7 +264,7 @@ void Hand::renderLeapHandSpheres() {
         PalmData& palm = getPalms()[i];
         if (palm.isActive()) {
             const float palmThickness = 0.002f;
-            glColor4f(_ballColor.r, _ballColor.g, _ballColor.b, 0.25);
+            glColor4f(handColor.r, handColor.g, handColor.b, 0.25);
             glm::vec3 tip = palm.getPosition();
             glm::vec3 root = palm.getPosition() + palm.getNormal() * palmThickness;
             Avatar::renderJointConnectingCone(root, tip, 0.05, 0.03);

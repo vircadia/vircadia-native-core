@@ -913,12 +913,10 @@ void Avatar::updateHandMovementAndTouching(float deltaTime, bool enableHandMovem
         }
         
         // If there's a leap-interaction hand visible, use that as the endpoint
-        if (!getHand().isRaveGloveActive()) {
-            for (size_t i = 0; i < getHand().getPalms().size(); ++i) {
-                PalmData& palm = getHand().getPalms()[i];
-                if (palm.isActive()) {
-                    _skeleton.joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position = palm.getPosition();
-                }
+        for (size_t i = 0; i < getHand().getPalms().size(); ++i) {
+            PalmData& palm = getHand().getPalms()[i];
+            if (palm.isActive()) {
+                _skeleton.joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position = palm.getPosition();
             }
         }
     }//if (_isMine)
@@ -1159,6 +1157,10 @@ void Avatar::render(bool lookingInMirror, bool renderAvatarBalls) {
         glPopMatrix();
     }
     
+    if (Application::getInstance()->getAvatar()->getHand().isRaveGloveActive()) {
+        _hand.setRaveLights(RAVE_LIGHTS_AVATAR);
+    }
+    
     // render a simple round on the ground projected down from the avatar's position
     renderDiskShadow(_position, glm::vec3(0.0f, 1.0f, 0.0f), _scale * 0.1f, 0.2f);
     
@@ -1237,11 +1239,17 @@ void Avatar::render(bool lookingInMirror, bool renderAvatarBalls) {
     }
 }
 
-void Avatar::renderScreenTint(ScreenTintLayer layer) {
+void Avatar::renderScreenTint(ScreenTintLayer layer, Camera& whichCamera) {
     
     if (layer == SCREEN_TINT_BEFORE_AVATARS) {
         if (_hand.isRaveGloveActive()) {
             _hand.renderRaveGloveStage();
+        }
+    }
+    else if (layer == SCREEN_TINT_BEFORE_AVATARS) {
+        if (_hand.isRaveGloveActive()) {
+            // Restore the world lighting
+            Application::getInstance()->setupWorldLight(whichCamera);
         }
     }
 }
@@ -1411,13 +1419,9 @@ void Avatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
         for (int b = 0; b < NUM_AVATAR_BODY_BALLS; b++) {
             float alpha = getBallRenderAlpha(b, lookingInMirror);
             
-            // When in rave glove mode, don't show the arms at all.
-            if (_hand.isRaveGloveActive()) {
-                if (b == BODY_BALL_LEFT_ELBOW
-                    || b == BODY_BALL_LEFT_WRIST
-                    || b == BODY_BALL_LEFT_FINGERTIPS
-                    || b == BODY_BALL_RIGHT_ELBOW
-                    || b == BODY_BALL_RIGHT_WRIST
+            // When we have leap hands, hide part of the arms.
+            if (_hand.getNumPalms() > 0) {
+                if (b == BODY_BALL_LEFT_FINGERTIPS
                     || b == BODY_BALL_RIGHT_FINGERTIPS) {
                     continue;
                 }
