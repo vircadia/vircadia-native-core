@@ -168,8 +168,8 @@ void Webcam::setFrame(const Mat& color, int format, const Mat& depth, float midF
         if (_colorTextureID == 0) {
             glGenTextures(1, &_colorTextureID);
             glBindTexture(GL_TEXTURE_2D, _colorTextureID);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, _textureSize.width = colorImage.width, _textureSize.height = colorImage.height,
-                0, format, GL_UNSIGNED_BYTE, colorImage.imageData);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, _textureSize.width = colorImage.width,
+                _textureSize.height = colorImage.height, 0, format, GL_UNSIGNED_BYTE, colorImage.imageData);
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
             
         } else {
@@ -195,8 +195,8 @@ void Webcam::setFrame(const Mat& color, int format, const Mat& depth, float midF
 
         } else {
             glBindTexture(GL_TEXTURE_2D, _depthTextureID);
-            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, _textureSize.width, _textureSize.height, GL_LUMINANCE,
-                GL_UNSIGNED_BYTE, depthImage.imageData);
+            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, _textureSize.width = depthImage.width,
+                _textureSize.height = depthImage.height, GL_LUMINANCE, GL_UNSIGNED_BYTE, depthImage.imageData);
         }
     } else if (_depthTextureID != 0) {
         glDeleteTextures(1, &_depthTextureID);
