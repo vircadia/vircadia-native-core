@@ -75,7 +75,6 @@ Head::Head(Avatar* owningAvatar) :
     _audioAttack(0.0f),
     _returnSpringScale(1.0f),
     _bodyRotation(0.0f, 0.0f, 0.0f),
-    _hairInitialized(false),
     _renderLookatVectors(false),
     _mohawkTriangleFan(NULL),
     _mohawkColors(NULL),
@@ -335,9 +334,16 @@ void Head::setScale (float scale) {
     delete[] _mohawkTriangleFan;
     delete[] _mohawkColors;
     createMohawk();
+
+    if (USING_PHYSICAL_MOHAWK) {
+        for (int t = 0; t < NUM_HAIR_TUFTS; t ++) {
     
-    //resetHairPhysics();
+            _hairTuft[t].setLength   (_scale * HAIR_LENGTH   );
+            _hairTuft[t].setThickness(_scale * HAIR_THICKNESS);
+        }
+    }
 }
+
 
 void Head::createMohawk() {
     uint16_t nodeId = UNKNOWN_NODE_ID;

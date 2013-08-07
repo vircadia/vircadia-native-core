@@ -115,7 +115,6 @@ private:
     glm::vec3   _bodyRotation;
     bool        _renderLookatVectors;
     BendyLine   _hairTuft[NUM_HAIR_TUFTS];
-    bool        _hairInitialized;
     glm::vec3*  _mohawkTriangleFan;
     glm::vec3*  _mohawkColors;
     glm::vec3   _saccade;
