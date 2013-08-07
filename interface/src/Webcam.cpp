@@ -71,26 +71,28 @@ void Webcam::reset() {
 }
 
 void Webcam::renderPreview(int screenWidth, int screenHeight) {
-    if (_enabled && _colorTextureID != 0) {
-        glBindTexture(GL_TEXTURE_2D, _colorTextureID);
+    if (_enabled) {
         glEnable(GL_TEXTURE_2D);
         glColor3f(1.0f, 1.0f, 1.0f);
-        glBegin(GL_QUADS);
-            const int PREVIEW_HEIGHT = 200;
-            int previewWidth = _textureSize.width * PREVIEW_HEIGHT / _textureSize.height;
-            int top = screenHeight - 600;
-            int left = screenWidth - previewWidth - 10;
-
-            glTexCoord2f(0, 0);
-            glVertex2f(left, top);
-            glTexCoord2f(1, 0);
-            glVertex2f(left + previewWidth, top);
-            glTexCoord2f(1, 1);
-            glVertex2f(left + previewWidth, top + PREVIEW_HEIGHT);
-            glTexCoord2f(0, 1);
-            glVertex2f(left, top + PREVIEW_HEIGHT);
-        glEnd();
-
+        
+        const int PREVIEW_HEIGHT = 200;
+        int previewWidth = _textureSize.width * PREVIEW_HEIGHT / _textureSize.height;
+        int top = screenHeight - 600;
+        int left = screenWidth - previewWidth - 10;
+        if (_colorTextureID != 0) {
+            glBindTexture(GL_TEXTURE_2D, _colorTextureID);        
+            glBegin(GL_QUADS);
+                glTexCoord2f(0, 0);
+                glVertex2f(left, top);
+                glTexCoord2f(1, 0);
+                glVertex2f(left + previewWidth, top);
+                glTexCoord2f(1, 1);
+                glVertex2f(left + previewWidth, top + PREVIEW_HEIGHT);
+                glTexCoord2f(0, 1);
+                glVertex2f(left, top + PREVIEW_HEIGHT);
+            glEnd();
+        }
+        
         if (_depthTextureID != 0) {
             glBindTexture(GL_TEXTURE_2D, _depthTextureID);
             glBegin(GL_QUADS);
@@ -157,22 +159,26 @@ const float METERS_PER_MM = 1.0f / 1000.0f;
 
 void Webcam::setFrame(const Mat& color, int format, const Mat& depth, float midFaceDepth,
         float aspectRatio, const RotatedRect& faceRect, bool sending, const JointVector& joints) {
-    IplImage colorImage = color;
-    glPixelStorei(GL_UNPACK_ROW_LENGTH, colorImage.widthStep / 3);
-    if (_colorTextureID == 0) {
-        glGenTextures(1, &_colorTextureID);
-        glBindTexture(GL_TEXTURE_2D, _colorTextureID);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, _textureSize.width = colorImage.width, _textureSize.height = colorImage.height,
-            0, format, GL_UNSIGNED_BYTE, colorImage.imageData);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        qDebug("Capturing video at %gx%g.\n", _textureSize.width, _textureSize.height);
-
-    } else {
-        glBindTexture(GL_TEXTURE_2D, _colorTextureID);
-        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, _textureSize.width, _textureSize.height, format,
-            GL_UNSIGNED_BYTE, colorImage.imageData);
+    if (!color.empty()) {
+        IplImage colorImage = color;
+        glPixelStorei(GL_UNPACK_ROW_LENGTH, colorImage.widthStep / 3);
+        if (_colorTextureID == 0) {
+            glGenTextures(1, &_colorTextureID);
+            glBindTexture(GL_TEXTURE_2D, _colorTextureID);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, _textureSize.width = colorImage.width, _textureSize.height = colorImage.height,
+                0, format, GL_UNSIGNED_BYTE, colorImage.imageData);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            
+        } else {
+            glBindTexture(GL_TEXTURE_2D, _colorTextureID);
+            glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, _textureSize.width, _textureSize.height, format,
+                GL_UNSIGNED_BYTE, colorImage.imageData);
+        }
+    } else if (_colorTextureID != 0) {
+        glDeleteTextures(1, &_colorTextureID);
+        _colorTextureID = 0;
     }
-
+    
     if (!depth.empty()) {
         IplImage depthImage = depth;
         glPixelStorei(GL_UNPACK_ROW_LENGTH, depthImage.widthStep);
@@ -189,6 +195,9 @@ void Webcam::setFrame(const Mat& color, int format, const Mat& depth, float midF
             glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, _textureSize.width, _textureSize.height, GL_LUMINANCE,
                 GL_UNSIGNED_BYTE, depthImage.imageData);
         }
+    } else if (_depthTextureID != 0) {
+        glDeleteTextures(1, &_depthTextureID);
+        _depthTextureID = 0;
     }
     glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
     glBindTexture(GL_TEXTURE_2D, 0);
@@ -273,8 +282,8 @@ void Webcam::setFrame(const Mat& color, int format, const Mat& depth, float midF
     QTimer::singleShot(qMax((int)remaining / 1000, 0), _grabber, SLOT(grabFrame()));
 }
 
-FrameGrabber::FrameGrabber() : _initialized(false), _videoSendMode(FULL_FRAME_VIDEO), _capture(0), _searchWindow(0, 0, 0, 0),
-    _smoothedMidFaceDepth(UNINITIALIZED_FACE_DEPTH), _colorCodec(), _depthCodec(), _frameCount(0) {
+FrameGrabber::FrameGrabber() : _initialized(false), _videoSendMode(FULL_FRAME_VIDEO), _depthOnly(false), _capture(0),
+    _searchWindow(0, 0, 0, 0), _smoothedMidFaceDepth(UNINITIALIZED_FACE_DEPTH), _colorCodec(), _depthCodec(), _frameCount(0) {
 }
 
 FrameGrabber::~FrameGrabber() {
@@ -371,6 +380,11 @@ void FrameGrabber::cycleVideoSendMode() {
     _videoSendMode = (VideoSendMode)((_videoSendMode + 1) % VIDEO_SEND_MODE_COUNT);
     _searchWindow = cv::Rect(0, 0, 0, 0);
 
+    destroyCodecs();
+}
+
+void FrameGrabber::setDepthOnly(bool depthOnly) {
+    _depthOnly = depthOnly;
     destroyCodecs();
 }
 
@@ -479,7 +493,7 @@ void FrameGrabber::grabFrame() {
         encodedWidth = color.cols;
         encodedHeight = color.rows;
         aspectRatio = FULL_FRAME_ASPECT;
-        colorBitrateMultiplier = 4.0f;
+        colorBitrateMultiplier = depthBitrateMultiplier = 4.0f;
 
     } else {
         // if we don't have a search window (yet), try using the face cascade
@@ -591,108 +605,129 @@ void FrameGrabber::grabFrame() {
         depth.convertTo(_grayDepthFrame, CV_8UC1, 1.0, depthOffset);
     }
 
-    QByteArray payload;
+    // increment the frame count that identifies frames
+    _frameCount++;
+    
+    QByteArray payload;    
     if (_videoSendMode != NO_VIDEO) {
-        if (_colorCodec.name == 0) {
-            // initialize encoder context(s)
-            vpx_codec_enc_cfg_t codecConfig;
-            vpx_codec_enc_config_default(vpx_codec_vp8_cx(), &codecConfig, 0);
-            codecConfig.rc_target_bitrate = ENCODED_FACE_WIDTH * ENCODED_FACE_HEIGHT * colorBitrateMultiplier *
-                codecConfig.rc_target_bitrate / codecConfig.g_w / codecConfig.g_h;
-            codecConfig.g_w = encodedWidth;
-            codecConfig.g_h = encodedHeight;
-            vpx_codec_enc_init(&_colorCodec, vpx_codec_vp8_cx(), &codecConfig, 0);
-
-            if (!depth.empty()) {
-                codecConfig.rc_target_bitrate *= depthBitrateMultiplier;
-                vpx_codec_enc_init(&_depthCodec, vpx_codec_vp8_cx(), &codecConfig, 0);
-            }
-        }
-
-        Mat transform;
-        if (_videoSendMode == FACE_VIDEO) {
-            // resize/rotate face into encoding rectangle
-            _faceColor.create(encodedHeight, encodedWidth, CV_8UC3);
-            warpAffine(color, _faceColor, faceTransform, _faceColor.size());
-
-        } else {
-            _faceColor = color;
-        }
-
-        // convert from RGB to YV12: see http://www.fourcc.org/yuv.php and
-        // http://docs.opencv.org/modules/imgproc/doc/miscellaneous_transformations.html#cvtcolor
+        // start the payload off with the aspect ratio (zero for full frame)
+        payload.append((const char*)&aspectRatio, sizeof(float));
+   
+        // prepare the image in which we'll store the data
         const int ENCODED_BITS_PER_Y = 8;
         const int ENCODED_BITS_PER_VU = 2;
         const int ENCODED_BITS_PER_PIXEL = ENCODED_BITS_PER_Y + 2 * ENCODED_BITS_PER_VU;
         const int BITS_PER_BYTE = 8;
         _encodedFace.resize(encodedWidth * encodedHeight * ENCODED_BITS_PER_PIXEL / BITS_PER_BYTE);
         vpx_image_t vpxImage;
-        vpx_img_wrap(&vpxImage, VPX_IMG_FMT_YV12, encodedWidth, encodedHeight, 1,
-            (unsigned char*)_encodedFace.data());
-        uchar* yline = vpxImage.planes[0];
-        uchar* vline = vpxImage.planes[1];
-        uchar* uline = vpxImage.planes[2];
-        const int Y_RED_WEIGHT = (int)(0.299 * 256);
-        const int Y_GREEN_WEIGHT = (int)(0.587 * 256);
-        const int Y_BLUE_WEIGHT = (int)(0.114 * 256);
-        const int V_RED_WEIGHT = (int)(0.713 * 256);
-        const int U_BLUE_WEIGHT = (int)(0.564 * 256);
-        int redIndex = 0;
-        int greenIndex = 1;
-        int blueIndex = 2;
-        if (format == GL_BGR) {
-            redIndex = 2;
-            blueIndex = 0;
-        }
-        for (int i = 0; i < encodedHeight; i += 2) {
-            uchar* ydest = yline;
-            uchar* vdest = vline;
-            uchar* udest = uline;
-            for (int j = 0; j < encodedWidth; j += 2) {
-                uchar* tl = _faceColor.ptr(i, j);
-                uchar* tr = _faceColor.ptr(i, j + 1);
-                uchar* bl = _faceColor.ptr(i + 1, j);
-                uchar* br = _faceColor.ptr(i + 1, j + 1);
-
-                ydest[0] = (tl[redIndex] * Y_RED_WEIGHT + tl[1] * Y_GREEN_WEIGHT + tl[blueIndex] * Y_BLUE_WEIGHT) >> 8;
-                ydest[1] = (tr[redIndex] * Y_RED_WEIGHT + tr[1] * Y_GREEN_WEIGHT + tr[blueIndex] * Y_BLUE_WEIGHT) >> 8;
-                ydest[vpxImage.stride[0]] = (bl[redIndex] * Y_RED_WEIGHT + bl[greenIndex] *
-                    Y_GREEN_WEIGHT + bl[blueIndex] * Y_BLUE_WEIGHT) >> 8;
-                ydest[vpxImage.stride[0] + 1] = (br[redIndex] * Y_RED_WEIGHT + br[greenIndex] *
-                    Y_GREEN_WEIGHT + br[blueIndex] * Y_BLUE_WEIGHT) >> 8;
-                ydest += 2;
-
-                int totalRed = tl[redIndex] + tr[redIndex] + bl[redIndex] + br[redIndex];
-                int totalGreen = tl[greenIndex] + tr[greenIndex] + bl[greenIndex] + br[greenIndex];
-                int totalBlue = tl[blueIndex] + tr[blueIndex] + bl[blueIndex] + br[blueIndex];
-                int totalY = (totalRed * Y_RED_WEIGHT + totalGreen * Y_GREEN_WEIGHT + totalBlue * Y_BLUE_WEIGHT) >> 8;
-
-                *vdest++ = (((totalRed - totalY) * V_RED_WEIGHT) >> 10) + 128;
-                *udest++ = (((totalBlue - totalY) * U_BLUE_WEIGHT) >> 10) + 128;
+        vpx_img_wrap(&vpxImage, VPX_IMG_FMT_YV12, encodedWidth, encodedHeight, 1, (unsigned char*)_encodedFace.data());
+        
+        if (!_depthOnly || depth.empty()) {
+            if (_colorCodec.name == 0) {
+                // initialize encoder context
+                vpx_codec_enc_cfg_t codecConfig;
+                vpx_codec_enc_config_default(vpx_codec_vp8_cx(), &codecConfig, 0);
+                codecConfig.rc_target_bitrate = ENCODED_FACE_WIDTH * ENCODED_FACE_HEIGHT * colorBitrateMultiplier *
+                    codecConfig.rc_target_bitrate / codecConfig.g_w / codecConfig.g_h;
+                codecConfig.g_w = encodedWidth;
+                codecConfig.g_h = encodedHeight;
+                vpx_codec_enc_init(&_colorCodec, vpx_codec_vp8_cx(), &codecConfig, 0);
             }
-            yline += vpxImage.stride[0] * 2;
-            vline += vpxImage.stride[1];
-            uline += vpxImage.stride[2];
-        }
 
-        // encode the frame
-        vpx_codec_encode(&_colorCodec, &vpxImage, ++_frameCount, 1, 0, VPX_DL_REALTIME);
+            if (_videoSendMode == FACE_VIDEO) {
+                // resize/rotate face into encoding rectangle
+                _faceColor.create(encodedHeight, encodedWidth, CV_8UC3);
+                warpAffine(color, _faceColor, faceTransform, _faceColor.size());
 
-        // start the payload off with the aspect ratio (zero for full frame)
-        payload.append((const char*)&aspectRatio, sizeof(float));
-
-        // extract the encoded frame
-        vpx_codec_iter_t iterator = 0;
-        const vpx_codec_cx_pkt_t* packet;
-        while ((packet = vpx_codec_get_cx_data(&_colorCodec, &iterator)) != 0) {
-            if (packet->kind == VPX_CODEC_CX_FRAME_PKT) {
-                // prepend the length, which will indicate whether there's a depth frame too
-                payload.append((const char*)&packet->data.frame.sz, sizeof(packet->data.frame.sz));
-                payload.append((const char*)packet->data.frame.buf, packet->data.frame.sz);
+            } else {
+                _faceColor = color;
             }
-        }
 
+            // convert from RGB to YV12: see http://www.fourcc.org/yuv.php and
+            // http://docs.opencv.org/modules/imgproc/doc/miscellaneous_transformations.html#cvtcolor
+            uchar* yline = vpxImage.planes[0];
+            uchar* vline = vpxImage.planes[1];
+            uchar* uline = vpxImage.planes[2];
+            const int Y_RED_WEIGHT = (int)(0.299 * 256);
+            const int Y_GREEN_WEIGHT = (int)(0.587 * 256);
+            const int Y_BLUE_WEIGHT = (int)(0.114 * 256);
+            const int V_RED_WEIGHT = (int)(0.713 * 256);
+            const int U_BLUE_WEIGHT = (int)(0.564 * 256);
+            int redIndex = 0;
+            int greenIndex = 1;
+            int blueIndex = 2;
+            if (format == GL_BGR) {
+                redIndex = 2;
+                blueIndex = 0;
+            }
+            for (int i = 0; i < encodedHeight; i += 2) {
+                uchar* ydest = yline;
+                uchar* vdest = vline;
+                uchar* udest = uline;
+                for (int j = 0; j < encodedWidth; j += 2) {
+                    uchar* tl = _faceColor.ptr(i, j);
+                    uchar* tr = _faceColor.ptr(i, j + 1);
+                    uchar* bl = _faceColor.ptr(i + 1, j);
+                    uchar* br = _faceColor.ptr(i + 1, j + 1);
+
+                    ydest[0] = (tl[redIndex] * Y_RED_WEIGHT + tl[1] * Y_GREEN_WEIGHT + tl[blueIndex] * Y_BLUE_WEIGHT) >> 8;
+                    ydest[1] = (tr[redIndex] * Y_RED_WEIGHT + tr[1] * Y_GREEN_WEIGHT + tr[blueIndex] * Y_BLUE_WEIGHT) >> 8;
+                    ydest[vpxImage.stride[0]] = (bl[redIndex] * Y_RED_WEIGHT + bl[greenIndex] *
+                        Y_GREEN_WEIGHT + bl[blueIndex] * Y_BLUE_WEIGHT) >> 8;
+                    ydest[vpxImage.stride[0] + 1] = (br[redIndex] * Y_RED_WEIGHT + br[greenIndex] *
+                        Y_GREEN_WEIGHT + br[blueIndex] * Y_BLUE_WEIGHT) >> 8;
+                    ydest += 2;
+
+                    int totalRed = tl[redIndex] + tr[redIndex] + bl[redIndex] + br[redIndex];
+                    int totalGreen = tl[greenIndex] + tr[greenIndex] + bl[greenIndex] + br[greenIndex];
+                    int totalBlue = tl[blueIndex] + tr[blueIndex] + bl[blueIndex] + br[blueIndex];
+                    int totalY = (totalRed * Y_RED_WEIGHT + totalGreen * Y_GREEN_WEIGHT + totalBlue * Y_BLUE_WEIGHT) >> 8;
+
+                    *vdest++ = (((totalRed - totalY) * V_RED_WEIGHT) >> 10) + 128;
+                    *udest++ = (((totalBlue - totalY) * U_BLUE_WEIGHT) >> 10) + 128;
+                }
+                yline += vpxImage.stride[0] * 2;
+                vline += vpxImage.stride[1];
+                uline += vpxImage.stride[2];
+            }
+
+            // encode the frame
+            vpx_codec_encode(&_colorCodec, &vpxImage, _frameCount, 1, 0, VPX_DL_REALTIME);
+
+            // extract the encoded frame
+            vpx_codec_iter_t iterator = 0;
+            const vpx_codec_cx_pkt_t* packet;
+            while ((packet = vpx_codec_get_cx_data(&_colorCodec, &iterator)) != 0) {
+                if (packet->kind == VPX_CODEC_CX_FRAME_PKT) {
+                    // prepend the length, which will indicate whether there's a depth frame too
+                    payload.append((const char*)&packet->data.frame.sz, sizeof(packet->data.frame.sz));
+                    payload.append((const char*)packet->data.frame.buf, packet->data.frame.sz);
+                }
+            }
+        } else {
+            // zero length indicates no color info
+            const size_t ZERO_SIZE = 0;
+            payload.append((const char*)&ZERO_SIZE, sizeof(size_t));
+            
+            // we can use more bits for depth
+            depthBitrateMultiplier *= 2.0f;
+            
+            // don't bother reporting the color
+            color = Mat();
+        }
+        
         if (!depth.empty()) {
+            if (_depthCodec.name == 0) {
+                // initialize encoder context
+                vpx_codec_enc_cfg_t codecConfig;
+                vpx_codec_enc_config_default(vpx_codec_vp8_cx(), &codecConfig, 0);
+                codecConfig.rc_target_bitrate = ENCODED_FACE_WIDTH * ENCODED_FACE_HEIGHT * depthBitrateMultiplier *
+                    codecConfig.rc_target_bitrate / codecConfig.g_w / codecConfig.g_h;
+                codecConfig.g_w = encodedWidth;
+                codecConfig.g_h = encodedHeight;
+                vpx_codec_enc_init(&_depthCodec, vpx_codec_vp8_cx(), &codecConfig, 0);
+            }
+            
             // convert with mask
             uchar* yline = vpxImage.planes[0];
             uchar* vline = vpxImage.planes[1];
