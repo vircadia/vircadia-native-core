@@ -1389,6 +1389,8 @@ void Application::setRenderFirstPerson(bool firstPerson) {
     if (firstPerson) {
         _lookingInMirror->setChecked(false);
         _manualThirdPerson->setChecked(false);
+    } else {
+        _manualThirdPerson->trigger();
     }
 }
 
@@ -3363,6 +3365,11 @@ void Application::displayStats() {
     voxelDetails = _voxelSceneStats.getItemValue(VoxelSceneStats::ITEM_ENCODE);
     voxelStats << "Encode Time on Server: " << voxelDetails;
     drawtext(10, statsVerticalOffset + 290, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+
+    voxelStats.str("");
+    voxelDetails = _voxelSceneStats.getItemValue(VoxelSceneStats::ITEM_MODE);
+    voxelStats << "Sending Mode: " << voxelDetails;
+    drawtext(10, statsVerticalOffset + 310, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
     
     Node *avatarMixer = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_AVATAR_MIXER);
     char avatarMixerStats[200];
@@ -3801,7 +3808,7 @@ bool Application::maybeEditVoxelUnderCursor() {
         }
     } else if (_deleteVoxelMode->isChecked()) {
         deleteVoxelUnderCursor();
-        VoxelFade fade(VoxelFade::FADE_OUT, NODE_KILLED_RED, NODE_KILLED_GREEN, NODE_KILLED_BLUE);
+        VoxelFade fade(VoxelFade::FADE_OUT, 1.0f, 1.0f, 1.0f);
         const float VOXEL_BOUNDS_ADJUST = 0.01f;
         float slightlyBigger = _mouseVoxel.s * VOXEL_BOUNDS_ADJUST;
         fade.voxelDetails.x = _mouseVoxel.x - slightlyBigger;
