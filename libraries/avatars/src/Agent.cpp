@@ -42,7 +42,7 @@ void Agent::run(QUrl scriptURL) {
     AvatarData *testAvatarData = new AvatarData;
     
     QScriptValue avatarDataValue = engine.newQObject(testAvatarData);
-    engine.globalObject().setProperty("AvatarData", avatarDataValue);
+    engine.globalObject().setProperty("Avatar", avatarDataValue);
     
     QScriptValue agentValue = engine.newQObject(this);
     engine.globalObject().setProperty("Agent", agentValue);
