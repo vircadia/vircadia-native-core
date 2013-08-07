@@ -4068,9 +4068,11 @@ void* Application::networkReceive(void* args) {
                         break;
                     case PACKET_TYPE_AVATAR_VOXEL_URL:
                         processAvatarVoxelURLMessage(app->_incomingPacket, bytesReceived);
+                        getInstance()->_bandwidthMeter.inputStream(BandwidthMeter::AVATARS).updateValue(bytesReceived);
                         break;
                     case PACKET_TYPE_AVATAR_FACE_VIDEO:
                         processAvatarFaceVideoMessage(app->_incomingPacket, bytesReceived);
+                        getInstance()->_bandwidthMeter.inputStream(BandwidthMeter::AVATARS).updateValue(bytesReceived);
                         break;
                     default:
                         NodeList::getInstance()->processNodeData(&senderAddress, app->_incomingPacket, bytesReceived);

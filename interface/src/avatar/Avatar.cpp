@@ -308,6 +308,7 @@ void Avatar::updateFromGyrosAndOrWebcam(bool gyroLook,
     
     } else {
         _head.setPitch(pitchFromTouch);
+        _head.getFace().clearFrame();
         return;
     }
     if (webcam->isActive()) {
