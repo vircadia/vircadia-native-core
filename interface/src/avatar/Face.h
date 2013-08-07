@@ -61,9 +61,6 @@ private:
     cv::Size2f _textureSize;
     cv::RotatedRect _textureRect;
     float _aspectRatio;
-    
-    glm::vec3 _facePosition;
-    glm::vec3 _faceRotation;
 
     vpx_codec_ctx_t _colorCodec;
     vpx_codec_ctx_t _depthCodec;

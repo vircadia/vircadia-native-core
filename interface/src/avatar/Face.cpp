@@ -63,9 +63,6 @@ void Face::setFrameFromWebcam() {
         _textureSize = webcam->getTextureSize();
         _textureRect = webcam->getFaceRect();
         _aspectRatio = webcam->getAspectRatio();
-        _facePosition = webcam->getEstimatedPosition();
-        _faceRotation = webcam->getEstimatedRotation();
-    
     } else {
         clearFrame();
     }
