@@ -913,12 +913,17 @@ void Avatar::updateHandMovementAndTouching(float deltaTime, bool enableHandMovem
         }
         
         // If there's a leap-interaction hand visible, use that as the endpoint
-        if (!getHand().isRaveGloveActive()) {
-            for (size_t i = 0; i < getHand().getPalms().size(); ++i) {
-                PalmData& palm = getHand().getPalms()[i];
-                if (palm.isActive()) {
+        glm::vec3 rightMostHand;
+        bool anyHandsFound = false;
+        for (size_t i = 0; i < getHand().getPalms().size(); ++i) {
+            PalmData& palm = getHand().getPalms()[i];
+            if (palm.isActive()) {
+                if (!anyHandsFound
+                    || palm.getRawPosition().x > rightMostHand.x) {
                     _skeleton.joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position = palm.getPosition();
+                    rightMostHand = palm.getRawPosition();
                 }
+                anyHandsFound = true;
             }
         }
     }//if (_isMine)
@@ -1169,6 +1174,23 @@ void Avatar::render(bool lookingInMirror, bool renderAvatarBalls) {
     // render body
     renderBody(lookingInMirror, renderAvatarBalls);
     
+    // render sphere when far away
+    if (!isMyAvatar()) {
+        const float MAX_ANGLE = 10.f;
+        glm::vec3 toTarget = _position - Application::getInstance()->getAvatar()->getPosition();
+        glm::vec3 delta    = _height * (_head.getCameraOrientation() * IDENTITY_UP) / 2.f;
+        float angle = abs(angleBetween(toTarget + delta, toTarget - delta));
+
+        if (angle < MAX_ANGLE) {
+            glColor4f(0.5f, 0.8f, 0.8f, 1.f - angle / MAX_ANGLE);
+            glPushMatrix();
+            glTranslatef(_position.x, _position.y, _position.z);
+            glScalef(_height / 2.f, _height / 2.f, _height / 2.f);
+            glutSolidSphere(1.2f + _head.getAverageLoudness() * .0005f, 20, 20);
+            glPopMatrix();
+        }
+    }
+
     // if this is my avatar, then render my interactions with the other avatar
     if (isMyAvatar()) {
         _avatarTouch.render(Application::getInstance()->getCamera()->getPosition());
@@ -1404,13 +1426,9 @@ void Avatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
         for (int b = 0; b < NUM_AVATAR_BODY_BALLS; b++) {
             float alpha = getBallRenderAlpha(b, lookingInMirror);
             
-            // When in rave glove mode, don't show the arms at all.
-            if (_hand.isRaveGloveActive()) {
-                if (b == BODY_BALL_LEFT_ELBOW
-                    || b == BODY_BALL_LEFT_WRIST
-                    || b == BODY_BALL_LEFT_FINGERTIPS
-                    || b == BODY_BALL_RIGHT_ELBOW
-                    || b == BODY_BALL_RIGHT_WRIST
+            // When we have leap hands, hide part of the arms.
+            if (_hand.getNumPalms() > 0) {
+                if (b == BODY_BALL_LEFT_FINGERTIPS
                     || b == BODY_BALL_RIGHT_FINGERTIPS) {
                     continue;
                 }
