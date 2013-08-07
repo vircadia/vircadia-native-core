@@ -63,6 +63,12 @@ int main(int argc, const char* argv[]) {
                 qDebug() << "Added an assignment with script with filename" << newAssignment.scriptFilename << "\n";
                                 
                 // add this assignment to the queue
+                
+                // we're not a queue right now, only keep one assignment
+                if (assignmentQueue.size() > 0) {
+                    assignmentQueue.pop();
+                }
+                
                 assignmentQueue.push(newAssignment);
             }
         }
