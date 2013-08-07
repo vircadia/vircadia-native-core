@@ -312,7 +312,7 @@ bool Face::render(float alpha) {
             glGenBuffers(1, &_iboID);
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _iboID);
             int* indices = new int[INDEX_COUNT];
-            int* indexPosition = indices;
+            int* indexPosition = indices; 
             for (int i = 0; i < QUAD_HEIGHT; i++) {
                 for (int j = 0; j < QUAD_WIDTH; j++) {
                     *indexPosition++ = i * VERTEX_WIDTH + j;
