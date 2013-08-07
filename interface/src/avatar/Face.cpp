@@ -262,6 +262,10 @@ bool Face::render(float alpha) {
         xScale = FULL_FRAME_SCALE * _owningHead->getScale();
         zScale = xScale * 0.3f;
         
+        glPushMatrix();
+        glScalef(xScale / 12, xScale / (aspect * 3), zScale / 2);
+        Application::getInstance()->getGeometryCache()->renderHalfCylinder(25,20);
+        glPopMatrix();
     } else {
         aspect = _aspectRatio;
         xScale = BODY_BALL_RADIUS_HEAD_BASE * _owningHead->getScale();
