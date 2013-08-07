@@ -192,7 +192,7 @@ void GeometryCache::renderHalfCylinder(int slices, int stacks) {
         glGenBuffers(1, &vbo.first);
         glBindBuffer(GL_ARRAY_BUFFER, vbo.first);
         const int BYTES_PER_VERTEX = 3 * sizeof(GLfloat);
-        glBufferData(GL_ARRAY_BUFFER, vertices * BYTES_PER_VERTEX, vertexData, GL_STATIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, 2 * vertices * BYTES_PER_VERTEX, vertexData, GL_STATIC_DRAW);
         delete[] vertexData;
         
         GLushort* indexData = new GLushort[indices];
@@ -227,7 +227,7 @@ void GeometryCache::renderHalfCylinder(int slices, int stacks) {
     glEnableClientState(GL_NORMAL_ARRAY);
 
     glNormalPointer(GL_FLOAT, 6 * sizeof(float), 0);
-    glVertexPointer(3, GL_FLOAT, 6 * sizeof(float), 3 * sizeof(float));
+    glVertexPointer(3, GL_FLOAT, (6 * sizeof(float)), (const void *)(3 * sizeof(float)));
         
     glDrawRangeElementsEXT(GL_TRIANGLES, 0, vertices - 1, indices, GL_UNSIGNED_SHORT, 0);
         

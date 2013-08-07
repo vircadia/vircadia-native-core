@@ -265,6 +265,7 @@ bool Face::render(float alpha) {
         zScale = xScale * 0.3f;
         
         glPushMatrix();
+        glColor4f(1.0f, 1.0f, 1.0f, alpha);
         glScalef(xScale / 12, xScale / (aspect * 3), zScale / 2);
         Application::getInstance()->getGeometryCache()->renderHalfCylinder(25, 20);
         glPopMatrix();
