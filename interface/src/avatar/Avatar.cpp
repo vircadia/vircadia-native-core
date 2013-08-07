@@ -1159,6 +1159,10 @@ void Avatar::render(bool lookingInMirror, bool renderAvatarBalls) {
         glPopMatrix();
     }
     
+    if (Application::getInstance()->getAvatar()->getHand().isRaveGloveActive()) {
+        _hand.setRaveLights(RAVE_LIGHTS_AVATAR);
+    }
+    
     // render a simple round on the ground projected down from the avatar's position
     renderDiskShadow(_position, glm::vec3(0.0f, 1.0f, 0.0f), _scale * 0.1f, 0.2f);
     
@@ -1225,16 +1229,6 @@ void Avatar::renderScreenTint(ScreenTintLayer layer, Camera& whichCamera) {
     if (layer == SCREEN_TINT_BEFORE_AVATARS) {
         if (_hand.isRaveGloveActive()) {
             _hand.renderRaveGloveStage();
-            
-            // Set some mood lighting
-            GLfloat ambient_color[] = { 0.0, 0.0, 0.0 };
-            glLightfv(GL_LIGHT0, GL_AMBIENT, ambient_color);
-            GLfloat diffuse_color[] = { 0.4, 0.0, 0.0 };
-            glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse_color);
-            GLfloat specular_color[] = { 0.0, 0.0, 0.0, 0.0};
-            glLightfv(GL_LIGHT0, GL_SPECULAR, specular_color);
-            glMaterialfv(GL_FRONT, GL_SPECULAR, specular_color);
-            glMateriali(GL_FRONT, GL_SHININESS, 0);
         }
     }
     else if (layer == SCREEN_TINT_BEFORE_AVATARS) {
