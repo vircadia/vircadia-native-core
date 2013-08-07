@@ -439,7 +439,7 @@ void Application::paintGL() {
     // myCamera is. But we also want to do meaningful camera transforms on OpenGL for the offset camera
     Camera whichCamera = _myCamera;
 
-    if (_viewFrustumFromOffset->isChecked() && _frustumOn->isChecked()) {
+    if (_frustumOn->isChecked()) {
 
         // set the camera to third-person view but offset so we can see the frustum
         _viewFrustumOffsetCamera.setTargetPosition(_myCamera.getTargetPosition());
@@ -467,32 +467,42 @@ void Application::paintGL() {
     _frameCount++;
 }
 
-void Application::resizeGL(int width, int height) {
+void Application::resetCamerasOnResizeGL(Camera& camera, int width, int height) {
     float aspectRatio = ((float)width/(float)height); // based on screen resize
 
     // reset the camera FOV to our preference...
-    _myCamera.setFieldOfView(_horizontalFieldOfView);
-
-    // get the lens details from the current camera
-    Camera& camera = _viewFrustumFromOffset->isChecked() ? _viewFrustumOffsetCamera : _myCamera;
-    float nearClip = camera.getNearClip();
-    float farClip = camera.getFarClip();
-    float fov;
+    camera.setFieldOfView(_horizontalFieldOfView);
 
     if (OculusManager::isConnected()) {
         // more magic numbers; see Oculus SDK docs, p. 32
         camera.setAspectRatio(aspectRatio *= 0.5);
-        camera.setFieldOfView(fov = 2 * atan((0.0468 * _oculusDistortionScale) / 0.041) * (180 / PIf));
-        
+        camera.setFieldOfView(2 * atan((0.0468 * _oculusDistortionScale) / 0.041) * (180 / PIf));
+    } else {
+        camera.setAspectRatio(aspectRatio);
+        camera.setFieldOfView(_horizontalFieldOfView);
+    }
+}
+
+void Application::resizeGL(int width, int height) {
+
+    // tell both cameras about our new size
+    resetCamerasOnResizeGL(_myCamera, width, height);
+    resetCamerasOnResizeGL(_viewFrustumOffsetCamera, width, height);
+
+    float aspectRatio = ((float)width/(float)height); // based on screen resize
+
+    // get the lens details from the current camera
+    Camera& camera = _frustumOn->isChecked() ? _viewFrustumOffsetCamera : _myCamera;
+    float nearClip = camera.getNearClip();
+    float farClip = camera.getFarClip();
+
+    if (OculusManager::isConnected()) {
         // resize the render texture
         if (_oculusTextureID != 0) {
             glBindTexture(GL_TEXTURE_2D, _oculusTextureID);
             glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
             glBindTexture(GL_TEXTURE_2D, 0);
         }
-    } else {
-        camera.setAspectRatio(aspectRatio);
-        camera.setFieldOfView(fov = _horizontalFieldOfView);
     }
 
     // Tell our viewFrustum about this change
@@ -819,11 +829,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
             _colorVoxelMode->trigger();
                 break;
             case Qt::Key_O:
-                if (isShifted)  {
-                    _viewFrustumFromOffset->trigger();
-                } else {
-                    _selectVoxelMode->trigger();
-                }
+                _selectVoxelMode->trigger();
                 break;
             case Qt::Key_Slash:
                 _renderStatsOn->trigger();
@@ -2060,8 +2066,6 @@ void Application::initMenu() {
     QMenu* frustumMenu = debugMenu->addMenu("View Frustum Debugging Tools");
     (_frustumOn = frustumMenu->addAction("Display Frustum"))->setCheckable(true); 
     _frustumOn->setShortcut(Qt::SHIFT | Qt::Key_F);
-    (_viewFrustumFromOffset = frustumMenu->addAction(
-        "Use Offset Camera", this, SLOT(setFrustumOffset(bool)), Qt::SHIFT | Qt::Key_O))->setCheckable(true); 
     _frustumRenderModeAction = frustumMenu->addAction(
         "Render Mode", this, SLOT(cycleFrustumRenderMode()), Qt::SHIFT | Qt::Key_R);
     updateFrustumRenderModeAction();

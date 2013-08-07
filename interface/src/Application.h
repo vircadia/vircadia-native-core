@@ -211,6 +211,7 @@ private slots:
     void toggleFollowMode();
 
 private:
+    void resetCamerasOnResizeGL(Camera& camera, int width, int height);
 
     static void controlledBroadcastToNodes(unsigned char* broadcastData, size_t dataBytes, 
                                            const char* nodeTypes, int numNodeTypes);
