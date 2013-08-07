@@ -636,8 +636,13 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter, float gyroCamer
 
         if (_isCollisionsOn) {
             Camera* myCamera = Application::getInstance()->getCamera();
-            _collisionRadius = myCamera->getAspectRatio() * (myCamera->getNearClip() / cos(myCamera->getFieldOfView() / 2.f));
-            _collisionRadius *= COLLISION_RADIUS_SCALAR;
+
+            if (myCamera->getMode() == CAMERA_MODE_FIRST_PERSON) {
+                _collisionRadius = myCamera->getAspectRatio() * (myCamera->getNearClip() / cos(myCamera->getFieldOfView() / 2.f));
+                _collisionRadius *= COLLISION_RADIUS_SCALAR;
+            } else {
+                _collisionRadius = _height * .125f;
+            }
 
             updateCollisionWithEnvironment(deltaTime);
             updateCollisionWithVoxels(deltaTime);
@@ -1428,7 +1433,9 @@ float Avatar::getBallRenderAlpha(int ball, bool lookingInMirror) const {
 
 void Avatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
 
-    if (_head.getFace().isFullFrame()) {
+    if (Application::getInstance()->getCamera()->getMode() == CAMERA_MODE_FIRST_PERSON) {
+        // Dont display body
+    } else if (_head.getFace().isFullFrame()) {
         //  Render the full-frame video
         float alpha = getBallRenderAlpha(BODY_BALL_HEAD_BASE, lookingInMirror);
         if (alpha > 0.0f) {
