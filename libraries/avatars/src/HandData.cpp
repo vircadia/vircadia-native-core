@@ -55,7 +55,7 @@ _numFramesWithoutData(0),
 _owningPalmData(owningPalmData),
 _owningHandData(owningHandData)
 {
-    const int standardTrailLength = 30;
+    const int standardTrailLength = 10;
     setTrailLength(standardTrailLength);
 }
 
@@ -222,9 +222,8 @@ void FingerData::updateTrail() {
             _tipTrailCurrentValidLength++;
     }
     else {
-        // It's not active, so just shorten the trail.
-        if (_tipTrailCurrentValidLength > 0)
-            _tipTrailCurrentValidLength--;
+        // It's not active, so just kill the trail.
+        _tipTrailCurrentValidLength = 0;
     }
 }
 
