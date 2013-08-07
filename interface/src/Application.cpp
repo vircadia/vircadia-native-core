@@ -484,9 +484,6 @@ void Application::resizeGL(int width, int height) {
     resetCamerasOnResizeGL(_viewFrustumOffsetCamera, width, height);
     resetCamerasOnResizeGL(_myCamera, width, height);
 
-    // reset the camera FOV to our preference...
-    _myCamera.setFieldOfView(_fieldOfView);
-
     // resize the render texture
     if (OculusManager::isConnected() && _oculusTextureID != 0) {
         glBindTexture(GL_TEXTURE_2D, _oculusTextureID);
