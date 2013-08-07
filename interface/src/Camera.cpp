@@ -37,7 +37,8 @@ Camera::Camera() {
     _linearModeShift   = 0.0f;
     _mode              = CAMERA_MODE_THIRD_PERSON;
     _tightness         = 10.0f; // default
-    _fieldOfView       = HORIZONTAL_FIELD_OF_VIEW_DEGREES; 
+    _fieldOfView       = HORIZONTAL_FIELD_OF_VIEW_DEGREES;
+    _aspectRatio       = 16.f/9.f;
     _nearClip          = 0.08f; // default
     _farClip           = 50.0f * TREE_SCALE; // default
     _upShift           = 0.0f;
