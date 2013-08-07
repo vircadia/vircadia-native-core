@@ -3309,7 +3309,7 @@ void Application::displayStats() {
     int statsVerticalOffset = 8;
 
     char stats[200];
-    sprintf(stats, "%3.0f FPS, %d Pkts/sec, %3.2f Mbps", 
+    sprintf(stats, "%3.0f FPS, %d Pkts/sec, %3.2f Mbps   ", 
             _fps, _packetsPerSecond,  (float)_bytesPerSecond * 8.f / 1000000.f);
     drawtext(10, statsVerticalOffset + 15, 0.10f, 0, 1.0, 0, stats);
 
@@ -3340,11 +3340,16 @@ void Application::displayStats() {
             pingVoxel = totalPingVoxel/voxelServerCount;
         }
 
-
         char pingStats[200];
         sprintf(pingStats, "Ping audio/avatar/voxel: %d / %d / %d avg %d max ", pingAudio, pingAvatar, pingVoxel, pingVoxelMax);
         drawtext(10, statsVerticalOffset + 35, 0.10f, 0, 1.0, 0, pingStats);
     }
+    
+    char avatarStats[200];
+    glm::vec3 avatarPos = _myAvatar.getPosition();
+    sprintf(avatarStats, "Avatar position: %.3f, %.3f, %.3f, yaw = %.2f", avatarPos.x, avatarPos.y, avatarPos.z, _myAvatar.getBodyYaw());
+    drawtext(10, statsVerticalOffset + 55, 0.10f, 0, 1.0, 0, avatarStats);
+
  
     std::stringstream voxelStats;
     voxelStats.precision(4);
