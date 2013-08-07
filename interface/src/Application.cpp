@@ -439,7 +439,7 @@ void Application::paintGL() {
     // myCamera is. But we also want to do meaningful camera transforms on OpenGL for the offset camera
     Camera whichCamera = _myCamera;
 
-    if (_viewFrustumFromOffset->isChecked() && _frustumOn->isChecked()) {
+    if (_frustumOn->isChecked()) {
 
         // set the camera to third-person view but offset so we can see the frustum
         _viewFrustumOffsetCamera.setTargetPosition(_myCamera.getTargetPosition());
@@ -467,56 +467,49 @@ void Application::paintGL() {
     _frameCount++;
 }
 
-void Application::resizeGL(int width, int height) {
+void Application::resetCamerasOnResizeGL(Camera& camera, int width, int height) {
     float aspectRatio = ((float)width/(float)height); // based on screen resize
-
-    // reset the camera FOV to our preference...
-    _myCamera.setFieldOfView(_fieldOfView);
-
-    // get the lens details from the current camera
-    Camera& camera = _viewFrustumFromOffset->isChecked() ? _viewFrustumOffsetCamera : _myCamera;
-    float nearClip = camera.getNearClip();
-    float farClip = camera.getFarClip();
-    float fov;
-
+    
     if (OculusManager::isConnected()) {
         // more magic numbers; see Oculus SDK docs, p. 32
         camera.setAspectRatio(aspectRatio *= 0.5);
-        camera.setFieldOfView(fov = 2 * atan((0.0468 * _oculusDistortionScale) / 0.041) * (180 / PIf));
-        
-        // resize the render texture
-        if (_oculusTextureID != 0) {
-            glBindTexture(GL_TEXTURE_2D, _oculusTextureID);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
-            glBindTexture(GL_TEXTURE_2D, 0);
-        }
+        camera.setFieldOfView(2 * atan((0.0468 * _oculusDistortionScale) / 0.041) * (180 / PIf));
     } else {
         camera.setAspectRatio(aspectRatio);
-        camera.setFieldOfView(fov = _fieldOfView);
+        camera.setFieldOfView(_fieldOfView);
+    }
+}
+
+void Application::resizeGL(int width, int height) {
+    resetCamerasOnResizeGL(_viewFrustumOffsetCamera, width, height);
+    resetCamerasOnResizeGL(_myCamera, width, height);
+
+    // resize the render texture
+    if (OculusManager::isConnected() && _oculusTextureID != 0) {
+        glBindTexture(GL_TEXTURE_2D, _oculusTextureID);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+        glBindTexture(GL_TEXTURE_2D, 0);
     }
 
-    // Tell our viewFrustum about this change
-    _viewFrustum.setAspectRatio(aspectRatio);
+    // Tell our viewFrustum about this change, using the application camera
+    loadViewFrustum(_myCamera, _viewFrustum);
 
     glViewport(0, 0, width, height); // shouldn't this account for the menu???
 
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     
-    // XXXBHG - If we're in view frustum mode, then we need to do this little bit of hackery so that
-    // OpenGL won't clip our frustum rendering lines. This is a debug hack for sure! Basically, this makes
-    // the near clip a little bit closer (therefor you see more) and the far clip a little bit farther (also,
-    // to see more.)
-    if (_frustumOn->isChecked()) {
-        nearClip -= 0.01f;
-        farClip  += 0.01f;
-    }
-    
     // On window reshape, we need to tell OpenGL about our new setting
     float left, right, bottom, top, nearVal, farVal;
     glm::vec4 nearClipPlane, farClipPlane;
-    loadViewFrustum(camera, _viewFrustum);
     _viewFrustum.computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
+    
+    // If we're in Display Frustum mode, then we want to use the slightly adjust near/far clip values of the
+    // _viewFrustumOffsetCamera, so that we can see more of the application content in the application's frustum
+    if (_frustumOn->isChecked()) {
+        nearVal = _viewFrustumOffsetCamera.getNearClip();
+        farVal = _viewFrustumOffsetCamera.getFarClip();
+    }
     glFrustum(left, right, bottom, top, nearVal, farVal);
     
     glMatrixMode(GL_MODELVIEW);
@@ -819,11 +812,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
             _colorVoxelMode->trigger();
                 break;
             case Qt::Key_O:
-                if (isShifted)  {
-                    _viewFrustumFromOffset->trigger();
-                } else {
-                    _selectVoxelMode->trigger();
-                }
+                _selectVoxelMode->trigger();
                 break;
             case Qt::Key_Slash:
                 _renderStatsOn->trigger();
@@ -2060,8 +2049,6 @@ void Application::initMenu() {
     QMenu* frustumMenu = debugMenu->addMenu("View Frustum Debugging Tools");
     (_frustumOn = frustumMenu->addAction("Display Frustum"))->setCheckable(true); 
     _frustumOn->setShortcut(Qt::SHIFT | Qt::Key_F);
-    (_viewFrustumFromOffset = frustumMenu->addAction(
-        "Use Offset Camera", this, SLOT(setFrustumOffset(bool)), Qt::SHIFT | Qt::Key_O))->setCheckable(true); 
     _frustumRenderModeAction = frustumMenu->addAction(
         "Render Mode", this, SLOT(cycleFrustumRenderMode()), Qt::SHIFT | Qt::Key_R);
     updateFrustumRenderModeAction();
@@ -2776,6 +2763,7 @@ void Application::loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum) {
     float fov         = camera.getFieldOfView();
     float nearClip    = camera.getNearClip();
     float farClip     = camera.getFarClip();
+    float aspectRatio = camera.getAspectRatio();
 
     glm::quat rotation = camera.getRotation();
 
@@ -2784,6 +2772,7 @@ void Application::loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum) {
     viewFrustum.setOrientation(rotation);
     
     // Also make sure it's got the correct lens details from the camera
+    viewFrustum.setAspectRatio(aspectRatio);
     viewFrustum.setFieldOfView(fov);
     viewFrustum.setNearClip(nearClip);
     viewFrustum.setFarClip(farClip);
