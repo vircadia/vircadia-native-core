@@ -637,8 +637,13 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter, float gyroCamer
 
         if (_isCollisionsOn) {
             Camera* myCamera = Application::getInstance()->getCamera();
-            _collisionRadius = myCamera->getAspectRatio() * (myCamera->getNearClip() / cos(myCamera->getFieldOfView() / 2.f));
-            _collisionRadius *= COLLISION_RADIUS_SCALAR;
+
+            if (myCamera->getMode() == CAMERA_MODE_FIRST_PERSON) {
+                _collisionRadius = myCamera->getAspectRatio() * (myCamera->getNearClip() / cos(myCamera->getFieldOfView() / 2.f));
+                _collisionRadius *= COLLISION_RADIUS_SCALAR;
+            } else {
+                _collisionRadius = _height * .125f;
+            }
 
             updateCollisionWithEnvironment(deltaTime);
             updateCollisionWithVoxels(deltaTime);
