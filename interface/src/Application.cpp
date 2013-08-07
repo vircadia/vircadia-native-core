@@ -2329,13 +2329,13 @@ void Application::renderFollowIndicator() {
 
                 if (leader != NULL) {
                     glColor3f(1.f, 0.f, 0.f);
-                    glVertex3f(avatar->getPosition().x,
-                               avatar->getPosition().y,
-                               avatar->getPosition().z);
+                    glVertex3f((avatar->getHead().getPosition().x + avatar->getPosition().x) / 2.f,
+                               (avatar->getHead().getPosition().y + avatar->getPosition().y) / 2.f,
+                               (avatar->getHead().getPosition().z + avatar->getPosition().z) / 2.f);
                     glColor3f(0.f, 1.f, 0.f);
-                    glVertex3f(leader->getPosition().x,
-                               leader->getPosition().y,
-                               leader->getPosition().z);
+                    glVertex3f((leader->getHead().getPosition().x + leader->getPosition().x) / 2.f,
+                               (leader->getHead().getPosition().y + leader->getPosition().y) / 2.f,
+                               (leader->getHead().getPosition().z + leader->getPosition().z) / 2.f);
                 }
             }
         }
@@ -2343,13 +2343,13 @@ void Application::renderFollowIndicator() {
 
     if (_myAvatar.getLeadingAvatar() != NULL) {
         glColor3f(1.f, 0.f, 0.f);
-        glVertex3f(_myAvatar.getPosition().x,
-                   _myAvatar.getPosition().y,
-                   _myAvatar.getPosition().z);
+        glVertex3f((_myAvatar.getHead().getPosition().x + _myAvatar.getPosition().x) / 2.f,
+                   (_myAvatar.getHead().getPosition().y + _myAvatar.getPosition().y) / 2.f,
+                   (_myAvatar.getHead().getPosition().z + _myAvatar.getPosition().z) / 2.f);
         glColor3f(0.f, 1.f, 0.f);
-        glVertex3f(_myAvatar.getLeadingAvatar()->getPosition().x,
-                   _myAvatar.getLeadingAvatar()->getPosition().y,
-                   _myAvatar.getLeadingAvatar()->getPosition().z);
+        glVertex3f((_myAvatar.getLeadingAvatar()->getHead().getPosition().x + _myAvatar.getLeadingAvatar()->getPosition().x) / 2.f,
+                   (_myAvatar.getLeadingAvatar()->getHead().getPosition().y + _myAvatar.getLeadingAvatar()->getPosition().y) / 2.f,
+                   (_myAvatar.getLeadingAvatar()->getHead().getPosition().z + _myAvatar.getLeadingAvatar()->getPosition().z) / 2.f);
     }
 
     glEnd();
@@ -3108,14 +3108,16 @@ void Application::displaySide(Camera& whichCamera) {
         }
         
         // Render my own Avatar
-        if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-            _myAvatar.getHead().setLookAtPosition(_myCamera.getPosition());
-        } 
-        _myAvatar.render(_lookingInMirror->isChecked(), _renderAvatarBalls->isChecked());
-        _myAvatar.setDisplayingLookatVectors(_renderLookatOn->isChecked());
+        if (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON) {
+            if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
+                _myAvatar.getHead().setLookAtPosition(_myCamera.getPosition());
+            }
+            _myAvatar.render(_lookingInMirror->isChecked(), _renderAvatarBalls->isChecked());
+            _myAvatar.setDisplayingLookatVectors(_renderLookatOn->isChecked());
 
-        if (_renderLookatIndicatorOn->isChecked() && _isLookingAtOtherAvatar) {
-            renderLookatIndicator(_lookatOtherPosition, whichCamera);
+            if (_renderLookatIndicatorOn->isChecked() && _isLookingAtOtherAvatar) {
+                renderLookatIndicator(_lookatOtherPosition, whichCamera);
+            }
         }
     }
 
@@ -3361,6 +3363,11 @@ void Application::displayStats() {
     voxelDetails = _voxelSceneStats.getItemValue(VoxelSceneStats::ITEM_ENCODE);
     voxelStats << "Encode Time on Server: " << voxelDetails;
     drawtext(10, statsVerticalOffset + 290, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+
+    voxelStats.str("");
+    voxelDetails = _voxelSceneStats.getItemValue(VoxelSceneStats::ITEM_MODE);
+    voxelStats << "Sending Mode: " << voxelDetails;
+    drawtext(10, statsVerticalOffset + 310, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
     
     Node *avatarMixer = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_AVATAR_MIXER);
     char avatarMixerStats[200];
@@ -4066,9 +4073,11 @@ void* Application::networkReceive(void* args) {
                         break;
                     case PACKET_TYPE_AVATAR_VOXEL_URL:
                         processAvatarVoxelURLMessage(app->_incomingPacket, bytesReceived);
+                        getInstance()->_bandwidthMeter.inputStream(BandwidthMeter::AVATARS).updateValue(bytesReceived);
                         break;
                     case PACKET_TYPE_AVATAR_FACE_VIDEO:
                         processAvatarFaceVideoMessage(app->_incomingPacket, bytesReceived);
+                        getInstance()->_bandwidthMeter.inputStream(BandwidthMeter::AVATARS).updateValue(bytesReceived);
                         break;
                     default:
                         NodeList::getInstance()->processNodeData(&senderAddress, app->_incomingPacket, bytesReceived);

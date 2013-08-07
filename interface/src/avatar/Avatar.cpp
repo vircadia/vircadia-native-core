@@ -308,6 +308,7 @@ void Avatar::updateFromGyrosAndOrWebcam(bool gyroLook,
     
     } else {
         _head.setPitch(pitchFromTouch);
+        _head.getFace().clearFrame();
         return;
     }
     if (webcam->isActive()) {
@@ -913,10 +914,17 @@ void Avatar::updateHandMovementAndTouching(float deltaTime, bool enableHandMovem
         }
         
         // If there's a leap-interaction hand visible, use that as the endpoint
+        glm::vec3 rightMostHand;
+        bool anyHandsFound = false;
         for (size_t i = 0; i < getHand().getPalms().size(); ++i) {
             PalmData& palm = getHand().getPalms()[i];
             if (palm.isActive()) {
-                _skeleton.joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position = palm.getPosition();
+                if (!anyHandsFound
+                    || palm.getRawPosition().x > rightMostHand.x) {
+                    _skeleton.joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position = palm.getPosition();
+                    rightMostHand = palm.getRawPosition();
+                }
+                anyHandsFound = true;
             }
         }
     }//if (_isMine)
@@ -1167,6 +1175,23 @@ void Avatar::render(bool lookingInMirror, bool renderAvatarBalls) {
     // render body
     renderBody(lookingInMirror, renderAvatarBalls);
     
+    // render sphere when far away
+    if (!isMyAvatar()) {
+        const float MAX_ANGLE = 10.f;
+        glm::vec3 toTarget = _position - Application::getInstance()->getAvatar()->getPosition();
+        glm::vec3 delta    = _height * (_head.getCameraOrientation() * IDENTITY_UP) / 2.f;
+        float angle = abs(angleBetween(toTarget + delta, toTarget - delta));
+
+        if (angle < MAX_ANGLE) {
+            glColor4f(0.5f, 0.8f, 0.8f, 1.f - angle / MAX_ANGLE);
+            glPushMatrix();
+            glTranslatef(_position.x, _position.y, _position.z);
+            glScalef(_height / 2.f, _height / 2.f, _height / 2.f);
+            glutSolidSphere(1.2f + _head.getAverageLoudness() * .0005f, 20, 20);
+            glPopMatrix();
+        }
+    }
+
     // if this is my avatar, then render my interactions with the other avatar
     if (isMyAvatar()) {
         _avatarTouch.render(Application::getInstance()->getCamera()->getPosition());
