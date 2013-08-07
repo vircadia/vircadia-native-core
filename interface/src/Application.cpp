@@ -1952,10 +1952,11 @@ void Application::initMenu() {
     _testPing->setChecked(true);
     (_fullScreenMode = optionsMenu->addAction("Fullscreen", this, SLOT(setFullscreen(bool)), Qt::Key_F))->setCheckable(true);
     optionsMenu->addAction("Webcam", &_webcam, SLOT(setEnabled(bool)))->setCheckable(true);
-    optionsMenu->addAction("Toggle Skeleton Tracking", &_webcam, SLOT(setSkeletonTrackingOn(bool)))->setCheckable(true);
+    optionsMenu->addAction("Skeleton Tracking", &_webcam, SLOT(setSkeletonTrackingOn(bool)))->setCheckable(true);
     (_wantCollisionsOn = optionsMenu->addAction("Turn collisions On", this, SLOT(toggleWantCollisionsOn())))->setCheckable(true);
     _wantCollisionsOn->setChecked(true);
     optionsMenu->addAction("Cycle Webcam Send Mode", _webcam.getGrabber(), SLOT(cycleVideoSendMode()));
+    optionsMenu->addAction("Webcam Texture", _webcam.getGrabber(), SLOT(setDepthOnly(bool)))->setCheckable(true);
     optionsMenu->addAction("Go Home", this, SLOT(goHome()), Qt::CTRL | Qt::Key_G);
     
     QMenu* audioMenu = menuBar->addMenu("Audio");
@@ -2935,6 +2936,27 @@ void Application::displayOculus(Camera& whichCamera) {
     glPopMatrix();
 }
 
+void Application::setupWorldLight(Camera& whichCamera) {
+    
+    //  Setup 3D lights (after the camera transform, so that they are positioned in world space)
+    glEnable(GL_COLOR_MATERIAL);
+    glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
+    
+    glm::vec3 relativeSunLoc = glm::normalize(_environment.getClosestData(whichCamera.getPosition()).getSunLocation() -
+                                              whichCamera.getPosition());
+    GLfloat light_position0[] = { relativeSunLoc.x, relativeSunLoc.y, relativeSunLoc.z, 0.0 };
+    glLightfv(GL_LIGHT0, GL_POSITION, light_position0);
+    GLfloat ambient_color[] = { 0.7, 0.7, 0.8 };
+    glLightfv(GL_LIGHT0, GL_AMBIENT, ambient_color);
+    GLfloat diffuse_color[] = { 0.8, 0.7, 0.7 };
+    glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse_color);
+    GLfloat specular_color[] = { 1.0, 1.0, 1.0, 1.0};
+    glLightfv(GL_LIGHT0, GL_SPECULAR, specular_color);
+    
+    glMaterialfv(GL_FRONT, GL_SPECULAR, specular_color);
+    glMateriali(GL_FRONT, GL_SHININESS, 96);
+}
+
 void Application::displaySide(Camera& whichCamera) {
     // transform by eye offset
 
@@ -2964,22 +2986,7 @@ void Application::displaySide(Camera& whichCamera) {
     glTranslatef(-whichCamera.getPosition().x, -whichCamera.getPosition().y, -whichCamera.getPosition().z);
 
     //  Setup 3D lights (after the camera transform, so that they are positioned in world space)
-    glEnable(GL_COLOR_MATERIAL);
-    glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
-    
-    glm::vec3 relativeSunLoc = glm::normalize(_environment.getClosestData(whichCamera.getPosition()).getSunLocation() -
-        whichCamera.getPosition());
-    GLfloat light_position0[] = { relativeSunLoc.x, relativeSunLoc.y, relativeSunLoc.z, 0.0 };
-    glLightfv(GL_LIGHT0, GL_POSITION, light_position0);
-    GLfloat ambient_color[] = { 0.7, 0.7, 0.8 };   
-    glLightfv(GL_LIGHT0, GL_AMBIENT, ambient_color);
-    GLfloat diffuse_color[] = { 0.8, 0.7, 0.7 };  
-    glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse_color);
-    GLfloat specular_color[] = { 1.0, 1.0, 1.0, 1.0};
-    glLightfv(GL_LIGHT0, GL_SPECULAR, specular_color);
-    
-    glMaterialfv(GL_FRONT, GL_SPECULAR, specular_color);
-    glMateriali(GL_FRONT, GL_SHININESS, 96);
+    setupWorldLight(whichCamera);
     
     if (_renderStarsOn->isChecked()) {
         if (!_stars.getFileLoaded()) {
@@ -3074,7 +3081,7 @@ void Application::displaySide(Camera& whichCamera) {
         glEnable(GL_LIGHTING);
     }
     
-    _myAvatar.renderScreenTint(SCREEN_TINT_BEFORE_AVATARS);
+    _myAvatar.renderScreenTint(SCREEN_TINT_BEFORE_AVATARS, whichCamera);
     
     if (_renderAvatarsOn->isChecked()) {
         //  Render avatars of other nodes
@@ -3109,6 +3116,8 @@ void Application::displaySide(Camera& whichCamera) {
             renderLookatIndicator(_lookatOtherPosition, whichCamera);
         }
     }
+
+    _myAvatar.renderScreenTint(SCREEN_TINT_AFTER_AVATARS, whichCamera);
 
     if (_renderParticleSystemOn->isChecked()) {
         if (_particleSystemInitialized) {
