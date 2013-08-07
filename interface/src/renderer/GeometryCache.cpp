@@ -164,22 +164,23 @@ void GeometryCache::renderSquare(int xDivisions, int yDivisions) {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
-void GeometryCache::renderHalfCylinder(int slices, int stacks, float radius, float height) {
+void GeometryCache::renderHalfCylinder(int slices, int stacks) {
     VerticesIndices& vbo = _halfCylinderVBOs[IntPair(slices, stacks)];
-    int vertices = slices * (stacks - 1) + 1;
-    int indices = slices * 2 * 3 * (stacks - 2) + slices * 3;
+    int vertices = (slices + 1) * stacks;
+    int indices = 2 * 3 * slices * (stacks - 1);
     if (vbo.first == 0) {    
         GLfloat* vertexData = new GLfloat[vertices * 3];
         GLfloat* vertex = vertexData;
-        for (int i = 0; i < stacks; i++) {
-            float z = i * height / stacks;
+        for (int i = 0; i <= (stacks - 1); i++) {
+            float y = (float)i / (stacks - 1);
+            float radius = 1.0f;
             
-            for (int j = 0; j < slices; j++) {
+            for (int j = 0; j <= slices; j++) {
                 float theta = PIf * j / slices;
 
                 *(vertex++) = sinf(theta) * radius;
+                *(vertex++) = y;
                 *(vertex++) = cosf(theta) * radius;
-                *(vertex++) = z;
             }
         }
         
@@ -192,8 +193,8 @@ void GeometryCache::renderHalfCylinder(int slices, int stacks, float radius, flo
         GLushort* indexData = new GLushort[indices];
         GLushort* index = indexData;
         for (int i = 0; i < stacks - 1; i++) {
-            GLushort bottom = i * slices;
-            GLushort top = bottom + slices;
+            GLushort bottom = i * (slices + 1);
+            GLushort top = bottom + slices + 1;
             for (int j = 0; j < slices; j++) {
                 int next = (j + 1) % slices;
                 

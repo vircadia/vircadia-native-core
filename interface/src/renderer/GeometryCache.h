@@ -20,7 +20,7 @@ public:
     
     void renderHemisphere(int slices, int stacks);
     void renderSquare(int xDivisions, int yDivisions);
-    void renderHalfCylinder(int slices, int stacks, float radius, float height);
+    void renderHalfCylinder(int slices, int stacks);
 
 private:
     
