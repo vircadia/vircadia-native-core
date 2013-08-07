@@ -38,7 +38,7 @@ bool pingUnknownNodeThreadStopFlag = false;
 
 NodeList* NodeList::_sharedInstance = NULL;
 
-NodeList* NodeList::createInstance(char ownerType, unsigned int socketListenPort) {
+NodeList* NodeList::createInstance(char ownerType, unsigned short int socketListenPort) {
     if (!_sharedInstance) {
         _sharedInstance = new NodeList(ownerType, socketListenPort);
     } else {
@@ -56,7 +56,7 @@ NodeList* NodeList::getInstance() {
     return _sharedInstance;
 }
 
-NodeList::NodeList(char newOwnerType, unsigned int newSocketListenPort) :
+NodeList::NodeList(char newOwnerType, unsigned short int newSocketListenPort) :
     _nodeBuckets(),
     _numNodes(0),
     _nodeSocket(newSocketListenPort),
