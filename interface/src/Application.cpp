@@ -3099,14 +3099,16 @@ void Application::displaySide(Camera& whichCamera) {
         }
         
         // Render my own Avatar
-        if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-            _myAvatar.getHead().setLookAtPosition(_myCamera.getPosition());
-        } 
-        _myAvatar.render(_lookingInMirror->isChecked(), _renderAvatarBalls->isChecked());
-        _myAvatar.setDisplayingLookatVectors(_renderLookatOn->isChecked());
+        if (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON) {
+            if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
+                _myAvatar.getHead().setLookAtPosition(_myCamera.getPosition());
+            }
+            _myAvatar.render(_lookingInMirror->isChecked(), _renderAvatarBalls->isChecked());
+            _myAvatar.setDisplayingLookatVectors(_renderLookatOn->isChecked());
 
-        if (_renderLookatIndicatorOn->isChecked() && _isLookingAtOtherAvatar) {
-            renderLookatIndicator(_lookatOtherPosition, whichCamera);
+            if (_renderLookatIndicatorOn->isChecked() && _isLookingAtOtherAvatar) {
+                renderLookatIndicator(_lookatOtherPosition, whichCamera);
+            }
         }
     }
 
