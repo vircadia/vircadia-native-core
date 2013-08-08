@@ -297,7 +297,6 @@ void Avatar::reset() {
 //  Update avatar head rotation with sensor data
 void Avatar::updateFromGyrosAndOrWebcam(bool gyroLook,
                                         float pitchFromTouch) {
-    _head.setMousePitch(pitchFromTouch);
     SerialInterface* gyros = Application::getInstance()->getSerialHeadSensor();
     Webcam* webcam = Application::getInstance()->getWebcam();
     glm::vec3 estimatedPosition, estimatedRotation;
@@ -307,11 +306,17 @@ void Avatar::updateFromGyrosAndOrWebcam(bool gyroLook,
     } else if (webcam->isActive()) {
         estimatedRotation = webcam->getEstimatedRotation();
     
+    } else if (_leadingAvatar) {
+        _head.getFace().clearFrame();
+        return;
     } else {
+        _head.setMousePitch(pitchFromTouch);
         _head.setPitch(pitchFromTouch);
         _head.getFace().clearFrame();
         return;
     }
+    _head.setMousePitch(pitchFromTouch);
+
     if (webcam->isActive()) {
         estimatedPosition = webcam->getEstimatedPosition();
         
@@ -426,33 +431,43 @@ void Avatar::updateThrust(float deltaTime, Transmitter * transmitter) {
         _shouldJump = false;
     }
 
+
     // Add thrusts from leading avatar
+    const float FOLLOWING_RATE = .02f;
+
     if (_leadingAvatar != NULL) {
         glm::vec3 toTarget = _leadingAvatar->getPosition() - _position;
 
-        if (.5f < up.x * toTarget.x + up.y * toTarget.y + up.z * toTarget.z) {
-            _thrust += _scale * THRUST_MAG_UP * deltaTime * up;
-        } else if (up.x * toTarget.x + up.y * toTarget.y + up.z * toTarget.z < -.5f) {
-            _thrust -= _scale * THRUST_MAG_UP * deltaTime * up;
-        }
-
         if (glm::length(_position - _leadingAvatar->getPosition()) > _scale * _stringLength) {
-            _thrust += _scale * THRUST_MAG_FWD * deltaTime * front;
+            _position += toTarget * FOLLOWING_RATE;
         } else {
-            toTarget = _leadingAvatar->getHead().getLookAtPosition() - _position;
-            getHead().setLookAtPosition(_leadingAvatar->getHead().getLookAtPosition());
+            toTarget = _leadingAvatar->getHead().getLookAtPosition() - _head.getPosition();
         }
+        toTarget = glm::vec3(glm::dot(right, toTarget),
+                             glm::dot(up   , toTarget),
+                             glm::dot(front, toTarget));
 
-        float yawAngle = angleBetween(front, glm::vec3(toTarget.x, 0.f, toTarget.z));
-        if (yawAngle < -10.f || 10.f < yawAngle){
-            if (right.x * toTarget.x + right.y * toTarget.y + right.z * toTarget.z > 0) {
-                _bodyYawDelta -= YAW_MAG * deltaTime;
+        float yawAngle = angleBetween(-IDENTITY_FRONT, glm::vec3(toTarget.x, 0.f, toTarget.z));
+        if (5.f < glm::abs(yawAngle)){
+            if (IDENTITY_RIGHT.x * toTarget.x + IDENTITY_RIGHT.y * toTarget.y + IDENTITY_RIGHT.z * toTarget.z > 0) {
+                _bodyYawDelta -= yawAngle;
             } else {
-                _bodyYawDelta += YAW_MAG * deltaTime;
+                _bodyYawDelta += yawAngle;
             }
         }
+
+        float pitchAngle = glm::abs(90.f - angleBetween(IDENTITY_UP, toTarget));
+        if (1.f < glm::abs(pitchAngle) && yawAngle < 30.f){
+            if (IDENTITY_UP.x * toTarget.x + IDENTITY_UP.y * toTarget.y + IDENTITY_UP.z * toTarget.z > 0) {
+                _head.setMousePitch(_head.getMousePitch() + .10f * pitchAngle);
+            } else {
+                _head.setMousePitch(_head.getMousePitch() - .10f * pitchAngle);
+            }
+            _head.setPitch(_head.getMousePitch());
+        }
     }
-    
+
+
     //  Add thrusts from Transmitter
     if (transmitter) {
         transmitter->checkForLostTransmitter();
@@ -533,7 +548,7 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter, float gyroCamer
         follow(NULL);
     }
 
-    // Ajust, scale, thrust and lookAt position when following an other avatar
+    // Ajust, scale, position and lookAt position when following an other avatar
     if (isMyAvatar() && _leadingAvatar && _newScale != _leadingAvatar->getScale()) {
         _newScale = _leadingAvatar->getScale();
     }

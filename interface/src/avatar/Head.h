@@ -57,8 +57,9 @@ public:
     
     void setCameraFollowsHead(bool cameraFollowsHead) { _cameraFollowsHead = cameraFollowsHead; }
     
-    void setMousePitch(float mousePitch) { _mousePitch = mousePitch; }
-    
+    float getMousePitch()                 { return _mousePitch; }
+    void  setMousePitch(float mousePitch) { _mousePitch = mousePitch; }
+
     glm::quat getOrientation() const;
     glm::quat getCameraOrientation () const;
     
