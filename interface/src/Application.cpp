@@ -1181,6 +1181,13 @@ void Application::sendAvatarVoxelURLMessage(const QUrl& url) {
 }
 
 static Avatar* processAvatarMessageHeader(unsigned char*& packetData, size_t& dataBytes) {
+    // record the packet for stats-tracking
+    Application::getInstance()->getBandwidthMeter()->inputStream(BandwidthMeter::AVATARS).updateValue(dataBytes);
+    Node* avatarMixerNode = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_AVATAR_MIXER);
+    if (avatarMixerNode) {
+        avatarMixerNode->recordBytesReceived(dataBytes);
+    }
+    
     // skip the header
     int numBytesPacketHeader = numBytesForPacketHeader(packetData);
     packetData += numBytesPacketHeader;
@@ -2929,6 +2936,9 @@ void Application::displayOculus(Camera& whichCamera) {
     glPopMatrix();
 }
 
+const GLfloat WHITE_SPECULAR_COLOR[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+const GLfloat NO_SPECULAR_COLOR[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+
 void Application::setupWorldLight(Camera& whichCamera) {
     
     //  Setup 3D lights (after the camera transform, so that they are positioned in world space)
@@ -2943,10 +2953,9 @@ void Application::setupWorldLight(Camera& whichCamera) {
     glLightfv(GL_LIGHT0, GL_AMBIENT, ambient_color);
     GLfloat diffuse_color[] = { 0.8, 0.7, 0.7 };
     glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse_color);
-    GLfloat specular_color[] = { 1.0, 1.0, 1.0, 1.0};
-    glLightfv(GL_LIGHT0, GL_SPECULAR, specular_color);
     
-    glMaterialfv(GL_FRONT, GL_SPECULAR, specular_color);
+    glLightfv(GL_LIGHT0, GL_SPECULAR, WHITE_SPECULAR_COLOR);    
+    glMaterialfv(GL_FRONT, GL_SPECULAR, WHITE_SPECULAR_COLOR);
     glMateriali(GL_FRONT, GL_SHININESS, 96);
 }
 
@@ -3024,6 +3033,9 @@ void Application::displaySide(Camera& whichCamera) {
         glutSolidSphere(sphereRadius, 15, 15);
     glPopMatrix();
 
+    // disable specular lighting for ground and voxels
+    glMaterialfv(GL_FRONT, GL_SPECULAR, NO_SPECULAR_COLOR);
+
     //draw a grid ground plane....
     if (_renderGroundPlaneOn->isChecked()) {
         // draw grass plane with fog
@@ -3051,6 +3063,9 @@ void Application::displaySide(Camera& whichCamera) {
     if (_renderVoxels->isChecked()) {
         _voxels.render(_renderVoxelTextures->isChecked());
     }
+    
+    // restore default, white specular
+    glMaterialfv(GL_FRONT, GL_SPECULAR, WHITE_SPECULAR_COLOR);
     
     // indicate what we'll be adding/removing in mouse mode, if anything
     if (_mouseVoxel.s != 0) {
@@ -3950,6 +3965,8 @@ void Application::nodeKilled(Node* node) {
             // Add the jurisditionDetails object to the list of "fade outs"
             VoxelFade fade(VoxelFade::FADE_OUT, NODE_KILLED_RED, NODE_KILLED_GREEN, NODE_KILLED_BLUE);
             fade.voxelDetails = jurisditionDetails;
+            const float slightly_smaller = 0.99;
+            fade.voxelDetails.s = fade.voxelDetails.s * slightly_smaller;
             _voxelFades.push_back(fade);
         }
     }
@@ -3979,6 +3996,8 @@ int Application::parseVoxelStats(unsigned char* messageData, ssize_t messageLeng
             // Add the jurisditionDetails object to the list of "fade outs"
             VoxelFade fade(VoxelFade::FADE_OUT, NODE_ADDED_RED, NODE_ADDED_GREEN, NODE_ADDED_BLUE);
             fade.voxelDetails = jurisditionDetails;
+            const float slightly_smaller = 0.99;
+            fade.voxelDetails.s = fade.voxelDetails.s * slightly_smaller;
             _voxelFades.push_back(fade);
         }
         // store jurisdiction details for later use
@@ -4067,11 +4086,9 @@ void* Application::networkReceive(void* args) {
                         break;
                     case PACKET_TYPE_AVATAR_VOXEL_URL:
                         processAvatarVoxelURLMessage(app->_incomingPacket, bytesReceived);
-                        getInstance()->_bandwidthMeter.inputStream(BandwidthMeter::AVATARS).updateValue(bytesReceived);
                         break;
                     case PACKET_TYPE_AVATAR_FACE_VIDEO:
                         processAvatarFaceVideoMessage(app->_incomingPacket, bytesReceived);
-                        getInstance()->_bandwidthMeter.inputStream(BandwidthMeter::AVATARS).updateValue(bytesReceived);
                         break;
                     default:
                         NodeList::getInstance()->processNodeData(&senderAddress, app->_incomingPacket, bytesReceived);

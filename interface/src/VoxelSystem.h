@@ -206,6 +206,8 @@ private:
     
     bool _falseColorizeBySource;
     int  _dataSourceID;
+    
+    int _voxelServerCount;
 };
 
 #endif

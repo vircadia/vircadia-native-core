@@ -94,6 +94,8 @@ const char* Node::getTypeName() const {
             return NODE_TYPE_NAME_AUDIO_INJECTOR;
         case NODE_TYPE_ANIMATION_SERVER:
             return NODE_TYPE_NAME_ANIMATION_SERVER;
+        case NODE_TYPE_UNASSIGNED:
+            return NODE_TYPE_NAME_UNASSIGNED;
         default:
             return NODE_TYPE_NAME_UNKNOWN;
 	}
