@@ -439,7 +439,7 @@ void Application::paintGL() {
     // myCamera is. But we also want to do meaningful camera transforms on OpenGL for the offset camera
     Camera whichCamera = _myCamera;
 
-    if (_viewFrustumFromOffset->isChecked() && _frustumOn->isChecked()) {
+    if (_frustumOn->isChecked()) {
 
         // set the camera to third-person view but offset so we can see the frustum
         _viewFrustumOffsetCamera.setTargetPosition(_myCamera.getTargetPosition());
@@ -467,56 +467,49 @@ void Application::paintGL() {
     _frameCount++;
 }
 
-void Application::resizeGL(int width, int height) {
+void Application::resetCamerasOnResizeGL(Camera& camera, int width, int height) {
     float aspectRatio = ((float)width/(float)height); // based on screen resize
-
-    // reset the camera FOV to our preference...
-    _myCamera.setFieldOfView(_horizontalFieldOfView);
-
-    // get the lens details from the current camera
-    Camera& camera = _viewFrustumFromOffset->isChecked() ? _viewFrustumOffsetCamera : _myCamera;
-    float nearClip = camera.getNearClip();
-    float farClip = camera.getFarClip();
-    float fov;
-
+    
     if (OculusManager::isConnected()) {
         // more magic numbers; see Oculus SDK docs, p. 32
         camera.setAspectRatio(aspectRatio *= 0.5);
-        camera.setFieldOfView(fov = 2 * atan((0.0468 * _oculusDistortionScale) / 0.041) * (180 / PIf));
-        
-        // resize the render texture
-        if (_oculusTextureID != 0) {
-            glBindTexture(GL_TEXTURE_2D, _oculusTextureID);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
-            glBindTexture(GL_TEXTURE_2D, 0);
-        }
+        camera.setFieldOfView(2 * atan((0.0468 * _oculusDistortionScale) / 0.041) * (180 / PIf));
     } else {
         camera.setAspectRatio(aspectRatio);
-        camera.setFieldOfView(fov = _horizontalFieldOfView);
+        camera.setFieldOfView(_fieldOfView);
+    }
+}
+
+void Application::resizeGL(int width, int height) {
+    resetCamerasOnResizeGL(_viewFrustumOffsetCamera, width, height);
+    resetCamerasOnResizeGL(_myCamera, width, height);
+
+    // resize the render texture
+    if (OculusManager::isConnected() && _oculusTextureID != 0) {
+        glBindTexture(GL_TEXTURE_2D, _oculusTextureID);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
+        glBindTexture(GL_TEXTURE_2D, 0);
     }
 
-    // Tell our viewFrustum about this change
-    _viewFrustum.setAspectRatio(aspectRatio);
+    // Tell our viewFrustum about this change, using the application camera
+    loadViewFrustum(_myCamera, _viewFrustum);
 
     glViewport(0, 0, width, height); // shouldn't this account for the menu???
 
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     
-    // XXXBHG - If we're in view frustum mode, then we need to do this little bit of hackery so that
-    // OpenGL won't clip our frustum rendering lines. This is a debug hack for sure! Basically, this makes
-    // the near clip a little bit closer (therefor you see more) and the far clip a little bit farther (also,
-    // to see more.)
-    if (_frustumOn->isChecked()) {
-        nearClip -= 0.01f;
-        farClip  += 0.01f;
-    }
-    
     // On window reshape, we need to tell OpenGL about our new setting
     float left, right, bottom, top, nearVal, farVal;
     glm::vec4 nearClipPlane, farClipPlane;
-    loadViewFrustum(camera, _viewFrustum);
     _viewFrustum.computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
+    
+    // If we're in Display Frustum mode, then we want to use the slightly adjust near/far clip values of the
+    // _viewFrustumOffsetCamera, so that we can see more of the application content in the application's frustum
+    if (_frustumOn->isChecked()) {
+        nearVal = _viewFrustumOffsetCamera.getNearClip();
+        farVal = _viewFrustumOffsetCamera.getFarClip();
+    }
     glFrustum(left, right, bottom, top, nearVal, farVal);
     
     glMatrixMode(GL_MODELVIEW);
@@ -819,11 +812,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
             _colorVoxelMode->trigger();
                 break;
             case Qt::Key_O:
-                if (isShifted)  {
-                    _viewFrustumFromOffset->trigger();
-                } else {
-                    _selectVoxelMode->trigger();
-                }
+                _selectVoxelMode->trigger();
                 break;
             case Qt::Key_Slash:
                 _renderStatsOn->trigger();
@@ -1295,11 +1284,11 @@ void Application::editPreferences() {
     avatarURL->setMinimumWidth(QLINE_MINIMUM_WIDTH);
     form->addRow("Avatar URL:", avatarURL);
     
-    QSpinBox* horizontalFieldOfView = new QSpinBox();
-    horizontalFieldOfView->setMaximum(180);
-    horizontalFieldOfView->setMinimum(1);
-    horizontalFieldOfView->setValue(_horizontalFieldOfView);
-    form->addRow("Horizontal field of view (degrees):", horizontalFieldOfView);
+    QSpinBox* fieldOfView = new QSpinBox();
+    fieldOfView->setMaximum(180);
+    fieldOfView->setMinimum(1);
+    fieldOfView->setValue(_fieldOfView);
+    form->addRow("Vertical Field of View (Degrees):", fieldOfView);
     
     QDoubleSpinBox* gyroCameraSensitivity = new QDoubleSpinBox();
     gyroCameraSensitivity->setValue(_gyroCameraSensitivity);
@@ -1359,7 +1348,7 @@ void Application::editPreferences() {
     if (!shouldDynamicallySetJitterBuffer()) {
         _audio.setJitterBufferSamples(_audioJitterBufferSamples);
     }
-    _horizontalFieldOfView = horizontalFieldOfView->value();
+    _fieldOfView = fieldOfView->value();
     resizeGL(_glWidget->width(), _glWidget->height());
     
 }
@@ -2060,8 +2049,6 @@ void Application::initMenu() {
     QMenu* frustumMenu = debugMenu->addMenu("View Frustum Debugging Tools");
     (_frustumOn = frustumMenu->addAction("Display Frustum"))->setCheckable(true); 
     _frustumOn->setShortcut(Qt::SHIFT | Qt::Key_F);
-    (_viewFrustumFromOffset = frustumMenu->addAction(
-        "Use Offset Camera", this, SLOT(setFrustumOffset(bool)), Qt::SHIFT | Qt::Key_O))->setCheckable(true); 
     _frustumRenderModeAction = frustumMenu->addAction(
         "Render Mode", this, SLOT(cycleFrustumRenderMode()), Qt::SHIFT | Qt::Key_R);
     updateFrustumRenderModeAction();
@@ -2776,6 +2763,7 @@ void Application::loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum) {
     float fov         = camera.getFieldOfView();
     float nearClip    = camera.getNearClip();
     float farClip     = camera.getFarClip();
+    float aspectRatio = camera.getAspectRatio();
 
     glm::quat rotation = camera.getRotation();
 
@@ -2784,6 +2772,7 @@ void Application::loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum) {
     viewFrustum.setOrientation(rotation);
     
     // Also make sure it's got the correct lens details from the camera
+    viewFrustum.setAspectRatio(aspectRatio);
     viewFrustum.setFieldOfView(fov);
     viewFrustum.setNearClip(nearClip);
     viewFrustum.setFarClip(farClip);
@@ -2940,6 +2929,9 @@ void Application::displayOculus(Camera& whichCamera) {
     glPopMatrix();
 }
 
+const GLfloat WHITE_SPECULAR_COLOR[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+const GLfloat NO_SPECULAR_COLOR[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+
 void Application::setupWorldLight(Camera& whichCamera) {
     
     //  Setup 3D lights (after the camera transform, so that they are positioned in world space)
@@ -2954,10 +2946,9 @@ void Application::setupWorldLight(Camera& whichCamera) {
     glLightfv(GL_LIGHT0, GL_AMBIENT, ambient_color);
     GLfloat diffuse_color[] = { 0.8, 0.7, 0.7 };
     glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse_color);
-    GLfloat specular_color[] = { 1.0, 1.0, 1.0, 1.0};
-    glLightfv(GL_LIGHT0, GL_SPECULAR, specular_color);
     
-    glMaterialfv(GL_FRONT, GL_SPECULAR, specular_color);
+    glLightfv(GL_LIGHT0, GL_SPECULAR, WHITE_SPECULAR_COLOR);    
+    glMaterialfv(GL_FRONT, GL_SPECULAR, WHITE_SPECULAR_COLOR);
     glMateriali(GL_FRONT, GL_SHININESS, 96);
 }
 
@@ -3035,6 +3026,9 @@ void Application::displaySide(Camera& whichCamera) {
         glutSolidSphere(sphereRadius, 15, 15);
     glPopMatrix();
 
+    // disable specular lighting for ground and voxels
+    glMaterialfv(GL_FRONT, GL_SPECULAR, NO_SPECULAR_COLOR);
+
     //draw a grid ground plane....
     if (_renderGroundPlaneOn->isChecked()) {
         // draw grass plane with fog
@@ -3062,6 +3056,9 @@ void Application::displaySide(Camera& whichCamera) {
     if (_renderVoxels->isChecked()) {
         _voxels.render(_renderVoxelTextures->isChecked());
     }
+    
+    // restore default, white specular
+    glMaterialfv(GL_FRONT, GL_SPECULAR, WHITE_SPECULAR_COLOR);
     
     // indicate what we'll be adding/removing in mouse mode, if anything
     if (_mouseVoxel.s != 0) {
@@ -3110,16 +3107,14 @@ void Application::displaySide(Camera& whichCamera) {
         }
         
         // Render my own Avatar
-        if (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON) {
-            if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-                _myAvatar.getHead().setLookAtPosition(_myCamera.getPosition());
-            }
-            _myAvatar.render(_lookingInMirror->isChecked(), _renderAvatarBalls->isChecked());
-            _myAvatar.setDisplayingLookatVectors(_renderLookatOn->isChecked());
+        if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
+            _myAvatar.getHead().setLookAtPosition(_myCamera.getPosition());
+        }
+        _myAvatar.render(_lookingInMirror->isChecked(), _renderAvatarBalls->isChecked());
+        _myAvatar.setDisplayingLookatVectors(_renderLookatOn->isChecked());
 
-            if (_renderLookatIndicatorOn->isChecked() && _isLookingAtOtherAvatar) {
-                renderLookatIndicator(_lookatOtherPosition, whichCamera);
-            }
+        if (_renderLookatIndicatorOn->isChecked() && _isLookingAtOtherAvatar) {
+            renderLookatIndicator(_lookatOtherPosition, whichCamera);
         }
     }
 
@@ -3312,7 +3307,7 @@ void Application::displayStats() {
     int statsVerticalOffset = 8;
 
     char stats[200];
-    sprintf(stats, "%3.0f FPS, %d Pkts/sec, %3.2f Mbps", 
+    sprintf(stats, "%3.0f FPS, %d Pkts/sec, %3.2f Mbps   ", 
             _fps, _packetsPerSecond,  (float)_bytesPerSecond * 8.f / 1000000.f);
     drawtext(10, statsVerticalOffset + 15, 0.10f, 0, 1.0, 0, stats);
 
@@ -3343,11 +3338,16 @@ void Application::displayStats() {
             pingVoxel = totalPingVoxel/voxelServerCount;
         }
 
-
         char pingStats[200];
         sprintf(pingStats, "Ping audio/avatar/voxel: %d / %d / %d avg %d max ", pingAudio, pingAvatar, pingVoxel, pingVoxelMax);
         drawtext(10, statsVerticalOffset + 35, 0.10f, 0, 1.0, 0, pingStats);
     }
+    
+    char avatarStats[200];
+    glm::vec3 avatarPos = _myAvatar.getPosition();
+    sprintf(avatarStats, "Avatar position: %.3f, %.3f, %.3f, yaw = %.2f", avatarPos.x, avatarPos.y, avatarPos.z, _myAvatar.getBodyYaw());
+    drawtext(10, statsVerticalOffset + 55, 0.10f, 0, 1.0, 0, avatarStats);
+
  
     std::stringstream voxelStats;
     voxelStats.precision(4);
@@ -3961,6 +3961,8 @@ void Application::nodeKilled(Node* node) {
             // Add the jurisditionDetails object to the list of "fade outs"
             VoxelFade fade(VoxelFade::FADE_OUT, NODE_KILLED_RED, NODE_KILLED_GREEN, NODE_KILLED_BLUE);
             fade.voxelDetails = jurisditionDetails;
+            const float slightly_smaller = 0.99;
+            fade.voxelDetails.s = fade.voxelDetails.s * slightly_smaller;
             _voxelFades.push_back(fade);
         }
     }
@@ -3990,6 +3992,8 @@ int Application::parseVoxelStats(unsigned char* messageData, ssize_t messageLeng
             // Add the jurisditionDetails object to the list of "fade outs"
             VoxelFade fade(VoxelFade::FADE_OUT, NODE_ADDED_RED, NODE_ADDED_GREEN, NODE_ADDED_BLUE);
             fade.voxelDetails = jurisditionDetails;
+            const float slightly_smaller = 0.99;
+            fade.voxelDetails.s = fade.voxelDetails.s * slightly_smaller;
             _voxelFades.push_back(fade);
         }
         // store jurisdiction details for later use
@@ -4144,7 +4148,7 @@ void Application::loadSettings(QSettings* settings) {
 
     _gyroCameraSensitivity = loadSetting(settings, "gyroCameraSensitivity", 0.5f);
     _audioJitterBufferSamples = loadSetting(settings, "audioJitterBufferSamples", 0);
-    _horizontalFieldOfView = loadSetting(settings, "horizontalFieldOfView", HORIZONTAL_FIELD_OF_VIEW_DEGREES);
+    _fieldOfView = loadSetting(settings, "fieldOfView", DEFAULT_FIELD_OF_VIEW_DEGREES);
 
     settings->beginGroup("View Frustum Offset Camera");
     // in case settings is corrupt or missing loadSetting() will check for NaN
@@ -4168,7 +4172,7 @@ void Application::saveSettings(QSettings* settings) {
     
     settings->setValue("gyroCameraSensitivity", _gyroCameraSensitivity);
     settings->setValue("audioJitterBufferSamples", _audioJitterBufferSamples);
-    settings->setValue("horizontalFieldOfView", _horizontalFieldOfView);
+    settings->setValue("fieldOfView", _fieldOfView);
     settings->beginGroup("View Frustum Offset Camera");
     settings->setValue("viewFrustumOffsetYaw",      _viewFrustumOffsetYaw);
     settings->setValue("viewFrustumOffsetPitch",    _viewFrustumOffsetPitch);

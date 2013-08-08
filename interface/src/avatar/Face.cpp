@@ -63,7 +63,6 @@ void Face::setFrameFromWebcam() {
         _textureSize = webcam->getTextureSize();
         _textureRect = webcam->getFaceRect();
         _aspectRatio = webcam->getAspectRatio();
-    
     } else {
         clearFrame();
     }
@@ -262,6 +261,12 @@ bool Face::render(float alpha) {
         xScale = FULL_FRAME_SCALE * _owningHead->getScale();
         zScale = xScale * 0.3f;
         
+        glPushMatrix();
+        glTranslatef(0.0f, -0.2f, 0.0f);
+        glScalef(0.5f * xScale, xScale / aspect, zScale);
+        glColor4f(1.0f, 1.0f, 1.0f, alpha);
+        Application::getInstance()->getGeometryCache()->renderHalfCylinder(25, 20);
+        glPopMatrix();
     } else {
         aspect = _aspectRatio;
         xScale = BODY_BALL_RADIUS_HEAD_BASE * _owningHead->getScale();
@@ -308,7 +313,7 @@ bool Face::render(float alpha) {
             glGenBuffers(1, &_iboID);
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _iboID);
             int* indices = new int[INDEX_COUNT];
-            int* indexPosition = indices;
+            int* indexPosition = indices; 
             for (int i = 0; i < QUAD_HEIGHT; i++) {
                 for (int j = 0; j < QUAD_WIDTH; j++) {
                     *indexPosition++ = i * VERTEX_WIDTH + j;
