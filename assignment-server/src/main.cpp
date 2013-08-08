@@ -33,7 +33,7 @@ int main(int argc, const char* argv[]) {
     UDPSocket serverSocket(ASSIGNMENT_SERVER_PORT);
     
     int numHeaderBytes = numBytesForPacketHeader((unsigned char*) &PACKET_TYPE_SEND_ASSIGNMENT);
-    unsigned char assignmentPacket[numHeaderBytes + sizeof(char)];
+    unsigned char assignmentPacket[MAX_PACKET_SIZE_BYTES];
     populateTypeAndVersion(assignmentPacket, PACKET_TYPE_SEND_ASSIGNMENT);
     
     while (true) {
