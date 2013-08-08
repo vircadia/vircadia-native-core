@@ -17,7 +17,7 @@
 
 #include <glm/gtc/noise.hpp>
 
-#include <QDebug>
+#include <QtCore/QDebug>
 
 #include "CoverageMap.h"
 #include "GeometryUtil.h"

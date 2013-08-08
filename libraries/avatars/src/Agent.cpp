@@ -42,7 +42,7 @@ void Agent::run(QUrl scriptURL) {
     AvatarData *testAvatarData = new AvatarData;
     
     QScriptValue avatarDataValue = engine.newQObject(testAvatarData);
-    engine.globalObject().setProperty("AvatarData", avatarDataValue);
+    engine.globalObject().setProperty("Avatar", avatarDataValue);
     
     QScriptValue agentValue = engine.newQObject(this);
     engine.globalObject().setProperty("Agent", agentValue);
@@ -55,7 +55,7 @@ void Agent::run(QUrl scriptURL) {
     timeval lastDomainServerCheckIn = {};
     int numMicrosecondsSleep = 0;
     
-    const float DATA_SEND_INTERVAL_USECS = (1 / 60) * 1000 * 1000;
+    const float DATA_SEND_INTERVAL_USECS = (1 / 60.0f) * 1000 * 1000;
     
     sockaddr_in senderAddress;
     unsigned char receivedData[MAX_PACKET_SIZE];

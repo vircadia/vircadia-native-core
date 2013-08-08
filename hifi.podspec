@@ -51,6 +51,11 @@ Pod::Spec.new do |s|
     sp.dependency 'glm'
   end
   
+  s.subspec "voxels" do |sp|
+    sp.source_files = 'libraries/voxels/src', 'libraries/voxels/moc_*'
+    sp.dependency 'glm'
+  end
+  
   s.xcconfig = { 'HEADER_SEARCH_PATHS' => '${PODS_ROOT}/../../qt5-device/qtbase/include' }
   s.libraries = 'libQtCoreCombined', 'libQt5Network', 'libQt5Script'
 
