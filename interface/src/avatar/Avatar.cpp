@@ -433,7 +433,11 @@ void Avatar::updateThrust(float deltaTime, Transmitter * transmitter) {
 
 
     // Add thrusts from leading avatar
-    const float FOLLOWING_RATE = .02f;
+    const float FOLLOWING_RATE       = 0.02f;
+    const float MIN_YAW              = 5.0f;
+    const float MIN_PITCH            = 1.0f;
+    const float PITCH_RATE           = 0.1f;
+    const float MIN_YAW_BEFORE_PITCH = 30.0f;
 
     if (_leadingAvatar != NULL) {
         glm::vec3 toTarget = _leadingAvatar->getPosition() - _position;
@@ -448,7 +452,7 @@ void Avatar::updateThrust(float deltaTime, Transmitter * transmitter) {
                              glm::dot(front, toTarget));
 
         float yawAngle = angleBetween(-IDENTITY_FRONT, glm::vec3(toTarget.x, 0.f, toTarget.z));
-        if (5.f < glm::abs(yawAngle)){
+        if (glm::abs(yawAngle) > MIN_YAW){
             if (IDENTITY_RIGHT.x * toTarget.x + IDENTITY_RIGHT.y * toTarget.y + IDENTITY_RIGHT.z * toTarget.z > 0) {
                 _bodyYawDelta -= yawAngle;
             } else {
@@ -456,12 +460,12 @@ void Avatar::updateThrust(float deltaTime, Transmitter * transmitter) {
             }
         }
 
-        float pitchAngle = glm::abs(90.f - angleBetween(IDENTITY_UP, toTarget));
-        if (1.f < glm::abs(pitchAngle) && yawAngle < 30.f){
+        float pitchAngle = glm::abs(90.0f - angleBetween(IDENTITY_UP, toTarget));
+        if (glm::abs(pitchAngle) > MIN_PITCH && yawAngle < MIN_YAW_BEFORE_PITCH){
             if (IDENTITY_UP.x * toTarget.x + IDENTITY_UP.y * toTarget.y + IDENTITY_UP.z * toTarget.z > 0) {
-                _head.setMousePitch(_head.getMousePitch() + .10f * pitchAngle);
+                _head.setMousePitch(_head.getMousePitch() + PITCH_RATE * pitchAngle);
             } else {
-                _head.setMousePitch(_head.getMousePitch() - .10f * pitchAngle);
+                _head.setMousePitch(_head.getMousePitch() - PITCH_RATE * pitchAngle);
             }
             _head.setPitch(_head.getMousePitch());
         }
