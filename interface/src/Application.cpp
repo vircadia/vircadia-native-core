@@ -943,7 +943,7 @@ void Application::mousePressEvent(QMouseEvent* event) {
 
             maybeEditVoxelUnderCursor();
 
-            if (!_palette.isActive()) {
+            if (!_palette.isActive() && (!_isHoverVoxel || _isLookingAtOtherAvatar)) {
                 _pieMenu.mousePressEvent(_mouseX, _mouseY);
             }
 
