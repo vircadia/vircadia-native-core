@@ -67,6 +67,7 @@ bool displayVoxelStats = false;
 bool debugVoxelReceiving = false;
 bool sendEnvironments = true;
 bool sendMinimalEnvironment = false;
+bool dumpVoxelsOnMove = false;
 
 EnvironmentData environmentData[3];
 
@@ -237,6 +238,9 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
                 
         // if our view has changed, we need to reset these things...
         if (viewFrustumChanged) {
+            if (::dumpVoxelsOnMove) {
+                nodeData->nodeBag.deleteAll();
+            }
             nodeData->map.erase();
         } 
         
@@ -481,6 +485,12 @@ int main(int argc, const char * argv[]) {
             jurisdiction = new JurisdictionMap(jurisdictionRoot, jurisdictionEndNodes);
         }
     }
+    
+    
+    // should we send environments? Default is yes, but this command line suppresses sending
+    const char* DUMP_VOXELS_ON_MOVE = "--dumpVoxelsOnMove";
+    ::dumpVoxelsOnMove = cmdOptionExists(argc, argv, DUMP_VOXELS_ON_MOVE);
+    printf("dumpVoxelsOnMove=%s\n", debug::valueOf(::dumpVoxelsOnMove));
     
     // should we send environments? Default is yes, but this command line suppresses sending
     const char* DONT_SEND_ENVIRONMENTS = "--dontSendEnvironments";
