@@ -59,39 +59,39 @@ int main(int argc, const char * argv[])
 {
     qInstallMessageHandler(sharedMessageHandler);
 
-	const char* SAY_HELLO = "--sayHello";
+    const char* SAY_HELLO = "--sayHello";
     if (cmdOptionExists(argc, argv, SAY_HELLO)) {
-    	printf("I'm just saying hello...\n");
-	}
-	
-	
-	// Handles taking and SVO and splitting it into multiple SVOs based on
-	// jurisdiction details
-	const char* SPLIT_SVO = "--splitSVO";
+        printf("I'm just saying hello...\n");
+    }
+
+
+    // Handles taking and SVO and splitting it into multiple SVOs based on
+    // jurisdiction details
+    const char* SPLIT_SVO = "--splitSVO";
     const char* splitSVOFile = getCmdOption(argc, argv, SPLIT_SVO);
-	const char* SPLIT_JURISDICTION_ROOT = "--splitJurisdictionRoot";
-	const char* SPLIT_JURISDICTION_ENDNODES = "--splitJurisdictionEndNodes";
+    const char* SPLIT_JURISDICTION_ROOT = "--splitJurisdictionRoot";
+    const char* SPLIT_JURISDICTION_ENDNODES = "--splitJurisdictionEndNodes";
     const char* splitJurisdictionRoot = getCmdOption(argc, argv, SPLIT_JURISDICTION_ROOT);
     const char* splitJurisdictionEndNodes = getCmdOption(argc, argv, SPLIT_JURISDICTION_ENDNODES);
     if (splitSVOFile && splitJurisdictionRoot && splitJurisdictionEndNodes) {
         char outputFileName[512];
 
-    	printf("splitSVOFile: %s Jurisdictions Root: %s EndNodes: %s\n", 
-    	        splitSVOFile, splitJurisdictionRoot, splitJurisdictionEndNodes);
+        printf("splitSVOFile: %s Jurisdictions Root: %s EndNodes: %s\n", 
+                splitSVOFile, splitJurisdictionRoot, splitJurisdictionEndNodes);
 
         VoxelTree rootSVO;
 
         rootSVO.readFromSVOFile(splitSVOFile);
-    	JurisdictionMap jurisdiction(splitJurisdictionRoot, splitJurisdictionEndNodes);
-    	
-    	printf("Jurisdiction Root Octcode: ");
-    	printOctalCode(jurisdiction.getRootOctalCode());
+        JurisdictionMap jurisdiction(splitJurisdictionRoot, splitJurisdictionEndNodes);
+    
+        printf("Jurisdiction Root Octcode: ");
+        printOctalCode(jurisdiction.getRootOctalCode());
 
-    	printf("Jurisdiction End Nodes: %d \n", jurisdiction.getEndNodeCount());
-    	for (int i = 0; i < jurisdiction.getEndNodeCount(); i++) {
-    	    unsigned char* endNodeCode = jurisdiction.getEndNodeOctalCode(i);
-        	printf("End Node: %d ", i);
-        	printOctalCode(endNodeCode);
+        printf("Jurisdiction End Nodes: %d \n", jurisdiction.getEndNodeCount());
+        for (int i = 0; i < jurisdiction.getEndNodeCount(); i++) {
+            unsigned char* endNodeCode = jurisdiction.getEndNodeOctalCode(i);
+            printf("End Node: %d ", i);
+            printOctalCode(endNodeCode);
 
             // get the endNode details
             VoxelPositionSize endNodeDetails;
@@ -116,8 +116,8 @@ int main(int argc, const char * argv[])
             endNodeTree.createVoxel(0.0, 1.0, 1.0, 0.015625, 1, 1, 1, true);
             endNodeTree.createVoxel(1.0, 0.0, 1.0, 0.015625, 1, 1, 1, true);
 
-        	// Delete the voxel for the EndNode from the temporary tree, so we can
-        	// import our endNode content into it...
+            // Delete the voxel for the EndNode from the temporary tree, so we can
+            // import our endNode content into it...
             endNodeTree.deleteVoxelCodeFromTree(endNodeCode, COLLAPSE_EMPTY_TREE);
 
             VoxelNode* endNode = rootSVO.getVoxelAt(endNodeDetails.x, 
@@ -130,10 +130,10 @@ int main(int argc, const char * argv[])
             sprintf(outputFileName, "splitENDNODE%d%s", i, splitSVOFile);
             printf("outputFile: %s\n", outputFileName);
             endNodeTree.writeToSVOFile(outputFileName);
-        	
-        	// Delete the voxel for the EndNode from the root tree...
+        
+            // Delete the voxel for the EndNode from the root tree...
             rootSVO.deleteVoxelCodeFromTree(endNodeCode, COLLAPSE_EMPTY_TREE);
-            
+        
             // create a small voxel in center of each EndNode, this will is a hack
             // to work around a bug in voxel server that will send Voxel not exists
             // for regions that don't contain anything even if they're not in the
@@ -142,27 +142,27 @@ int main(int argc, const char * argv[])
             float y = endNodeDetails.y + endNodeDetails.s * 0.5;
             float z = endNodeDetails.z + endNodeDetails.s * 0.5;
             float s = endNodeDetails.s * 0.015625;
-            
+        
             rootSVO.createVoxel(x, y, z, s, 1, 1, 1, true);
-            
-    	}
+        
+        }
 
         sprintf(outputFileName, "splitROOT%s", splitSVOFile);
-    	printf("outputFile: %s\n", outputFileName);
+        printf("outputFile: %s\n", outputFileName);
         rootSVO.writeToSVOFile(outputFileName);
-    	
-    	printf("exiting now\n");
-    	return 0;
-	}
-
-	const char* DONT_CREATE_FILE = "--dontCreateSceneFile";
-    bool dontCreateFile = cmdOptionExists(argc, argv, DONT_CREATE_FILE);
     
+        printf("exiting now\n");
+        return 0;
+    }
+
+    const char* DONT_CREATE_FILE = "--dontCreateSceneFile";
+    bool dontCreateFile = cmdOptionExists(argc, argv, DONT_CREATE_FILE);
+
     if (dontCreateFile) {
-    	printf("You asked us not to create a scene file, so we will not.\n");
-	} else {
-    	printf("Creating Scene File...\n");
-    	
+        printf("You asked us not to create a scene file, so we will not.\n");
+    } else {
+        printf("Creating Scene File...\n");
+    
         const char* RUN_TUTORIAL = "--runTutorial";
         if (cmdOptionExists(argc, argv, RUN_TUTORIAL)) {
             voxelTutorial(&myTree);
