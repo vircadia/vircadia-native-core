@@ -122,6 +122,7 @@ private:
         int       currentParticle;     // the index of the most recently-emitted particle
         ParticleAttributes particleAttributes[NUM_PARTICLE_LIFE_STAGES]; // the attributes of particles emitted from this emitter
         ParticleRenderStyle particleRenderStyle;
+        float     maxParticleConnectDistance; // past this, don't connect the particles.
     };
 
     glm::vec3 _upDirection;
