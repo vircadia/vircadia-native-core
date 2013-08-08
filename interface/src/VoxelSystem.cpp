@@ -63,6 +63,7 @@ VoxelSystem::VoxelSystem(float treeScale, int maxVoxels) :
     _abandonedVBOSlots = 0;
     _falseColorizeBySource = false;
     _dataSourceID = UNKNOWN_NODE_ID;
+    _voxelServerCount = 0;
 }
 
 void VoxelSystem::nodeDeleted(VoxelNode* node) {
@@ -1538,6 +1539,7 @@ void VoxelSystem::nodeAdded(Node* node) {
     if (node->getType() == NODE_TYPE_VOXEL_SERVER) {
         uint16_t nodeID = node->getNodeID();
         printf("VoxelSystem... voxel server %u added...\n", nodeID);
+        _voxelServerCount++;
     }
 }
 
@@ -1545,8 +1547,11 @@ bool VoxelSystem::killSourceVoxelsOperation(VoxelNode* node, void* extraData) {
     uint16_t killedNodeID = *(uint16_t*)extraData;
     for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
         VoxelNode* childNode = node->getChildAtIndex(i);
-        if (childNode && childNode->getSourceID()== killedNodeID) {
-            node->safeDeepDeleteChildAtIndex(i);
+        if (childNode) {
+            uint16_t childNodeID = childNode->getSourceID();
+            if (childNodeID == killedNodeID) {
+                node->safeDeepDeleteChildAtIndex(i);
+            }
         }
     }
     return true;
@@ -1554,12 +1559,19 @@ bool VoxelSystem::killSourceVoxelsOperation(VoxelNode* node, void* extraData) {
 
 void VoxelSystem::nodeKilled(Node* node) {
     if (node->getType() == NODE_TYPE_VOXEL_SERVER) {
+        _voxelServerCount--;
         uint16_t nodeID = node->getNodeID();
         printf("VoxelSystem... voxel server %u removed...\n", nodeID);
         
-        // Kill any voxels from the local tree
-        _tree->recurseTreeWithOperation(killSourceVoxelsOperation, &nodeID);
-        _tree->setDirtyBit();
+        if (_voxelServerCount > 0) {
+            // Kill any voxels from the local tree that match this nodeID
+            _tree->recurseTreeWithOperation(killSourceVoxelsOperation, &nodeID);
+            _tree->setDirtyBit();
+        } else {
+            // Last server, take the easy way and kill all the local voxels!
+            _tree->eraseAllVoxels();
+            _voxelsInWriteArrays = _voxelsInReadArrays = 0; // better way to do this??
+        }
         setupNewVoxelsForDrawing();
     }
 }
