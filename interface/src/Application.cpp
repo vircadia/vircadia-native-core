@@ -3950,6 +3950,8 @@ void Application::nodeKilled(Node* node) {
             // Add the jurisditionDetails object to the list of "fade outs"
             VoxelFade fade(VoxelFade::FADE_OUT, NODE_KILLED_RED, NODE_KILLED_GREEN, NODE_KILLED_BLUE);
             fade.voxelDetails = jurisditionDetails;
+            const float slightly_smaller = 0.99;
+            fade.voxelDetails.s = fade.voxelDetails.s * slightly_smaller;
             _voxelFades.push_back(fade);
         }
     }
@@ -3979,6 +3981,8 @@ int Application::parseVoxelStats(unsigned char* messageData, ssize_t messageLeng
             // Add the jurisditionDetails object to the list of "fade outs"
             VoxelFade fade(VoxelFade::FADE_OUT, NODE_ADDED_RED, NODE_ADDED_GREEN, NODE_ADDED_BLUE);
             fade.voxelDetails = jurisditionDetails;
+            const float slightly_smaller = 0.99;
+            fade.voxelDetails.s = fade.voxelDetails.s * slightly_smaller;
             _voxelFades.push_back(fade);
         }
         // store jurisdiction details for later use
