@@ -226,6 +226,8 @@ void SerialInterface::readData(float deltaTime) {
         // ask the invensense for raw gyro data
         short accelData[3];
         if (mpu_get_accel_reg(accelData, 0)) {
+            close(_serialDescriptor);
+            qDebug("Disconnected SerialUSB.\n");
             _active = false;
             return; // disconnected
         }
