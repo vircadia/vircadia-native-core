@@ -32,9 +32,8 @@ int main(int argc, const char* argv[]) {
     
     UDPSocket serverSocket(ASSIGNMENT_SERVER_PORT);
     
-    int numHeaderBytes = numBytesForPacketHeader((unsigned char*) &PACKET_TYPE_SEND_ASSIGNMENT);
     unsigned char assignmentPacket[MAX_PACKET_SIZE_BYTES];
-    populateTypeAndVersion(assignmentPacket, PACKET_TYPE_SEND_ASSIGNMENT);
+    int numSendHeaderBytes = populateTypeAndVersion(assignmentPacket, PACKET_TYPE_SEND_ASSIGNMENT);
     
     while (true) {
         if (serverSocket.receive((sockaddr*) &senderSocket, &senderData, &receivedBytes)) {
@@ -53,7 +52,7 @@ int main(int argc, const char* argv[]) {
                     qDebug() << "Sending assignment with URL" << scriptURL << "\n";
                     
                     int scriptURLBytes = scriptURL.size();
-                    memcpy(assignmentPacket + numHeaderBytes, scriptURL.toLocal8Bit().constData(), scriptURLBytes);
+                    memcpy(assignmentPacket + numSendHeaderBytes, scriptURL.toLocal8Bit().constData(), scriptURLBytes);
 
                     // send the assignment
                     serverSocket.send((sockaddr*) &senderSocket, assignmentPacket, numHeaderBytes + scriptURLBytes);
