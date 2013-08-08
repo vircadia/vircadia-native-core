@@ -1548,7 +1548,7 @@ bool VoxelSystem::killSourceVoxelsOperation(VoxelNode* node, void* extraData) {
     for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
         VoxelNode* childNode = node->getChildAtIndex(i);
         if (childNode) {
-            uint16_t childNodeID = childNodeID = childNode->getSourceID();
+            uint16_t childNodeID = childNode->getSourceID();
             if (childNodeID == killedNodeID) {
                 node->safeDeepDeleteChildAtIndex(i);
             }
