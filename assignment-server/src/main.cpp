@@ -41,13 +41,17 @@ int main(int argc, const char* argv[]) {
             
             int numHeaderBytes = numBytesForPacketHeader(senderData);
             
-            if (senderData[0] == PACKET_TYPE_REQUEST_ASSIGNMENT) {                
+            if (senderData[0] == PACKET_TYPE_REQUEST_ASSIGNMENT) {       
+                qDebug() << "Assignment request received.\n";
                 // grab the FI assignment in the queue, if it exists
                 if (assignmentQueue.size() > 0) {
                     Assignment firstAssignment = assignmentQueue.front();
                     assignmentQueue.pop();
                     
                     QString scriptURL = QString("http://base8-compute.s3.amazonaws.com/%1").arg(firstAssignment.scriptFilename);
+                    
+                    qDebug() << "Sending assignment with URL" << scriptURL << "\n";
+                    
                     int scriptURLBytes = scriptURL.size();
                     memcpy(assignmentPacket + numHeaderBytes, scriptURL.toLocal8Bit().constData(), scriptURLBytes);
 
