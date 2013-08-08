@@ -52,6 +52,38 @@ AvatarData::~AvatarData() {
     delete _handData;
 }
 
+void AvatarData::setPositionFromVariantMap(QVariantMap positionMap) {
+    _position = glm::vec3(positionMap.value("x").toFloat(), 
+                          positionMap.value("y").toFloat(),
+                          positionMap.value("z").toFloat());
+}
+
+QVariantMap AvatarData::getPositionVariantMap() {
+    QVariantMap positionMap;
+    
+    positionMap.insert("x", _position.x);
+    positionMap.insert("y", _position.y);
+    positionMap.insert("z", _position.z);
+    
+    return positionMap;
+}
+
+void AvatarData::setHandPositionFromVariantMap(QVariantMap handPositionMap) {
+    _handPosition = glm::vec3(handPositionMap.value("x").toFloat(),
+                              handPositionMap.value("y").toFloat(),
+                              handPositionMap.value("z").toFloat());
+}
+
+QVariantMap AvatarData::getHandPositionVariantMap() {
+    QVariantMap positionMap;
+    
+    positionMap.insert("x", _handPosition.x);
+    positionMap.insert("y", _handPosition.y);
+    positionMap.insert("z", _handPosition.z);
+    
+    return positionMap;
+}
+
 void AvatarData::sendData() {
     
     // called from Agent visual loop to send data

@@ -7,7 +7,7 @@
 
 #include <cstring>
 
-#include <QDebug>
+#include <QtCore/QDebug>
 
 #include <SharedUtil.h>
 
