@@ -211,6 +211,7 @@ private slots:
     void toggleFollowMode();
 
 private:
+    void resetCamerasOnResizeGL(Camera& camera, int width, int height);
 
     static void controlledBroadcastToNodes(unsigned char* broadcastData, size_t dataBytes, 
                                            const char* nodeTypes, int numNodeTypes);
@@ -307,7 +308,6 @@ private:
     QAction* _voxelPaintColor;       // The color with which to paint voxels
     QAction* _destructiveAddVoxel;   // when doing voxel editing do we want them to be destructive
     QAction* _frustumOn;             // Whether or not to display the debug view frustum 
-    QAction* _viewFrustumFromOffset; // Whether or not to offset the view of the frustum
     QAction* _fullScreenMode;        // whether we are in full screen mode
     QAction* _frustumRenderModeAction;
     QAction* _settingsAutosave;      // Whether settings are saved automatically
