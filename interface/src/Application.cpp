@@ -1181,6 +1181,13 @@ void Application::sendAvatarVoxelURLMessage(const QUrl& url) {
 }
 
 static Avatar* processAvatarMessageHeader(unsigned char*& packetData, size_t& dataBytes) {
+    // record the packet for stats-tracking
+    Application::getInstance()->getBandwidthMeter()->inputStream(BandwidthMeter::AVATARS).updateValue(dataBytes);
+    Node* avatarMixerNode = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_AVATAR_MIXER);
+    if (avatarMixerNode) {
+        avatarMixerNode->recordBytesReceived(dataBytes);
+    }
+    
     // skip the header
     int numBytesPacketHeader = numBytesForPacketHeader(packetData);
     packetData += numBytesPacketHeader;
@@ -4079,11 +4086,9 @@ void* Application::networkReceive(void* args) {
                         break;
                     case PACKET_TYPE_AVATAR_VOXEL_URL:
                         processAvatarVoxelURLMessage(app->_incomingPacket, bytesReceived);
-                        getInstance()->_bandwidthMeter.inputStream(BandwidthMeter::AVATARS).updateValue(bytesReceived);
                         break;
                     case PACKET_TYPE_AVATAR_FACE_VIDEO:
                         processAvatarFaceVideoMessage(app->_incomingPacket, bytesReceived);
-                        getInstance()->_bandwidthMeter.inputStream(BandwidthMeter::AVATARS).updateValue(bytesReceived);
                         break;
                     default:
                         NodeList::getInstance()->processNodeData(&senderAddress, app->_incomingPacket, bytesReceived);
