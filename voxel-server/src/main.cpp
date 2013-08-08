@@ -66,6 +66,7 @@ bool shouldShowAnimationDebug = false;
 bool displayVoxelStats = false;
 bool debugVoxelReceiving = false;
 bool sendEnvironments = true;
+bool sendMinimalEnvironment = false;
 
 EnvironmentData environmentData[3];
 
@@ -325,8 +326,9 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
         if (shouldSendEnvironments) {
             int numBytesPacketHeader = populateTypeAndVersion(tempOutputBuffer, PACKET_TYPE_ENVIRONMENT_DATA);
             int envPacketLength = numBytesPacketHeader;
+            int environmentsToSend = ::sendMinimalEnvironment ? 1 : sizeof(environmentData) / sizeof(EnvironmentData);
             
-            for (int i = 0; i < sizeof(environmentData) / sizeof(EnvironmentData); i++) {
+            for (int i = 0; i < environmentsToSend; i++) {
                 envPacketLength += environmentData[i].getBroadcastData(tempOutputBuffer + envPacketLength);
             }
             
@@ -482,6 +484,11 @@ int main(int argc, const char * argv[]) {
     if (dontSendEnvironments) {
         printf("Sending environments suppressed...\n");
         ::sendEnvironments = false;
+    } else { 
+        // should we send environments? Default is yes, but this command line suppresses sending
+        const char* MINIMAL_ENVIRONMENT = "--MinimalEnvironment";
+        ::sendMinimalEnvironment = cmdOptionExists(argc, argv, MINIMAL_ENVIRONMENT);
+        printf("Using Minimal Environment=%s\n", debug::valueOf(::sendMinimalEnvironment));
     }
     printf("Sending environments=%s\n", debug::valueOf(::sendEnvironments));
     
@@ -494,6 +501,11 @@ int main(int argc, const char * argv[]) {
     if (::wantLocalDomain) {
         printf("Local Domain MODE!\n");
         nodeList->setDomainIPToLocalhost();
+    } else {
+        const char* domainIP = getCmdOption(argc, argv, "--domain");
+        if (domainIP) {
+            NodeList::getInstance()->setDomainHostname(domainIP);
+        }
     }
 
     nodeList->linkedDataCreateCallback = &attachVoxelNodeDataToNode;
