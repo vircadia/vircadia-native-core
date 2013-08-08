@@ -952,7 +952,15 @@ void Application::mousePressEvent(QMouseEvent* event) {
                 _hoverVoxelOriginalColor[1] = _hoverVoxel.green;
                 _hoverVoxelOriginalColor[2] = _hoverVoxel.blue;
                 _hoverVoxelOriginalColor[3] = 1;
-                _audio.startCollisionSound(1.0, HOVER_VOXEL_FREQUENCY * _hoverVoxel.s * TREE_SCALE, 0.0, HOVER_VOXEL_DECAY);
+                const float RED_CLICK_FREQUENCY = 1000.f;
+                const float GREEN_CLICK_FREQUENCY = 1250.f;
+                const float BLUE_CLICK_FREQUENCY = 1330.f;
+                const float MIDDLE_A_FREQUENCY = 440.f;
+                float frequency = MIDDLE_A_FREQUENCY + ((float)_hoverVoxel.red / 255.f * RED_CLICK_FREQUENCY +
+                                   (float)_hoverVoxel.green / 255.f * GREEN_CLICK_FREQUENCY +
+                                   (float)_hoverVoxel.blue / 255.f * BLUE_CLICK_FREQUENCY) / 3.f;
+                
+                _audio.startCollisionSound(1.0, frequency, 0.0, HOVER_VOXEL_DECAY);
                 _isHoverVoxelSounding = true;
             }
             
