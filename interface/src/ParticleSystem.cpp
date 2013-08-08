@@ -17,6 +17,7 @@ const float DEFAULT_PARTICLE_AIR_FRICTION      = 2.0f;
 const float DEFAULT_PARTICLE_LIFESPAN          = 1.0f;
 const int   DEFAULT_PARTICLE_SPHERE_RESOLUTION = 6;
 const float DEFAULT_EMITTER_RENDER_LENGTH      = 0.2f;
+const float DEFAULT_PARTICLE_CONNECT_DISTANCE  = 0.03f;
 
 ParticleSystem::ParticleSystem() {
 
@@ -41,7 +42,8 @@ ParticleSystem::ParticleSystem() {
         e->currentParticle     = 0;
         e->particleRenderStyle = PARTICLE_RENDER_STYLE_SPHERE;
         e->numParticlesEmittedThisTime = 0;
-            
+        e->maxParticleConnectDistance = DEFAULT_PARTICLE_CONNECT_DISTANCE;
+
         for (int lifeStage = 0; lifeStage < NUM_PARTICLE_LIFE_STAGES; lifeStage++) {
             setParticleAttributesToDefault(&_emitter[emitterIndex].particleAttributes[lifeStage]);
         }
@@ -110,6 +112,7 @@ void ParticleSystem::updateEmitter(int emitterIndex, float deltaTime) {
 
 void ParticleSystem::createParticle(int e, float timeFraction) {
         
+    float maxConnectDistSqr = _emitter[e].maxParticleConnectDistance * _emitter[e].maxParticleConnectDistance;
     for (unsigned int p = 0; p < MAX_PARTICLES; p++) {
         if (!_particle[p].alive) {
                 
@@ -122,9 +125,14 @@ void ParticleSystem::createParticle(int e, float timeFraction) {
             _particle[p].color            = _emitter[e].particleAttributes[PARTICLE_LIFESTAGE_0].color;
             _particle[p].previousParticle = NULL_PARTICLE;
             
-            if (_particle[_emitter[e].currentParticle].alive) {            
-                if (_particle[_emitter[e].currentParticle].emitterIndex == e) {
-                    _particle[p].previousParticle = _emitter[e].currentParticle;
+            Particle& prev = _particle[_emitter[e].currentParticle];
+            if (prev.alive) {
+                if (prev.emitterIndex == e) {
+                    glm::vec3 diff = prev.position - _particle[p].position;
+                    float sqrDist = glm::dot(diff, diff);
+                    if (sqrDist < maxConnectDistSqr) {
+                        _particle[p].previousParticle = _emitter[e].currentParticle;
+                    }
                 }
             }
             
