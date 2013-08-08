@@ -225,7 +225,10 @@ void SerialInterface::readData(float deltaTime) {
 
         // ask the invensense for raw gyro data
         short accelData[3];
-        mpu_get_accel_reg(accelData, 0);
+        if (mpu_get_accel_reg(accelData, 0)) {
+            _active = false;
+            return; // disconnected
+        }
         
         const float LSB_TO_METERS_PER_SECOND2 = 1.f / 16384.f * GRAVITY_EARTH;
                                                                 //  From MPU-9150 register map, with setting on
