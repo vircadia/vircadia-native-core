@@ -66,6 +66,7 @@ bool shouldShowAnimationDebug = false;
 bool displayVoxelStats = false;
 bool debugVoxelReceiving = false;
 bool sendEnvironments = true;
+bool dontDumpOnMove = false; // by default we dump on move
 
 EnvironmentData environmentData[3];
 
@@ -236,7 +237,10 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
                 
         // if our view has changed, we need to reset these things...
         if (viewFrustumChanged) {
-            nodeData->nodeBag.deleteAll();
+            if (!::dontDumpOnMove) {
+                printf("dumping nodeBag on move!\n");
+                nodeData->nodeBag.deleteAll();
+            }
             nodeData->map.erase();
         } 
         
@@ -252,12 +256,18 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
             nodeData->stats.printDebugDetails();
         }
         
-        // This is the start of "resending" the scene.
-        nodeData->nodeBag.insert(serverTree.rootNode);
-        
         // start tracking our stats
         bool isFullScene = (!viewFrustumChanged || !nodeData->getWantDelta()) && nodeData->getViewFrustumJustStoppedChanging();
+        
+        // If we're starting a full scene, then definitely we want to empty the nodeBag
+        if (isFullScene) {
+            printf(">>> dumping nodeBag before fullscene!\n");
+            nodeData->nodeBag.deleteAll();
+        }
         nodeData->stats.sceneStarted(isFullScene, viewFrustumChanged, ::serverTree.rootNode, ::jurisdiction);
+
+        // This is the start of "resending" the scene.
+        nodeData->nodeBag.insert(serverTree.rootNode);
     }
 
     // If we have something in our nodeBag, then turn them into packets and send them out...
@@ -474,6 +484,15 @@ int main(int argc, const char * argv[]) {
         if (jurisdictionRoot || jurisdictionEndNodes) {
             jurisdiction = new JurisdictionMap(jurisdictionRoot, jurisdictionEndNodes);
         }
+    }
+    
+    // should we dump the voxels from the node bag on move? default to FALSE, we do dump
+    const char* DONT_DUMP_ON_MOVE = "--dontDumpOnMove";
+    ::dontDumpOnMove = cmdOptionExists(argc, argv, DONT_DUMP_ON_MOVE);
+    if (::dontDumpOnMove) {
+        printf("dontDumpOnMove=TRUE we will not empty the node bag when clients move\n");
+    } else {
+        printf("dontDumpOnMove=FALSE [default!] we will empty the node bag when clients move\n");
     }
 
     // should we send environments? Default is yes, but this command line suppresses sending
