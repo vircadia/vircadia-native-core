@@ -237,7 +237,6 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
                 
         // if our view has changed, we need to reset these things...
         if (viewFrustumChanged) {
-            nodeData->nodeBag.deleteAll();
             nodeData->map.erase();
         } 
         
@@ -253,12 +252,17 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
             nodeData->stats.printDebugDetails();
         }
         
-        // This is the start of "resending" the scene.
-        nodeData->nodeBag.insert(serverTree.rootNode);
-        
         // start tracking our stats
         bool isFullScene = (!viewFrustumChanged || !nodeData->getWantDelta()) && nodeData->getViewFrustumJustStoppedChanging();
+        
+        // If we're starting a full scene, then definitely we want to empty the nodeBag
+        if (isFullScene) {
+            nodeData->nodeBag.deleteAll();
+        }
         nodeData->stats.sceneStarted(isFullScene, viewFrustumChanged, ::serverTree.rootNode, ::jurisdiction);
+
+        // This is the start of "resending" the scene.
+        nodeData->nodeBag.insert(serverTree.rootNode);
     }
 
     // If we have something in our nodeBag, then turn them into packets and send them out...
@@ -477,7 +481,7 @@ int main(int argc, const char * argv[]) {
             jurisdiction = new JurisdictionMap(jurisdictionRoot, jurisdictionEndNodes);
         }
     }
-
+    
     // should we send environments? Default is yes, but this command line suppresses sending
     const char* DONT_SEND_ENVIRONMENTS = "--dontSendEnvironments";
     bool dontSendEnvironments = cmdOptionExists(argc, argv, DONT_SEND_ENVIRONMENTS);
