@@ -390,13 +390,28 @@ int VoxelSystem::newTreeToArrays(VoxelNode* node) {
     bool  shouldRender    = false; // assume we don't need to render it
     // if it's colored, we might need to render it!
     shouldRender = node->calculateShouldRender(Application::getInstance()->getViewFrustum());
+    
     node->setShouldRender(shouldRender);
     // let children figure out their renderness
     if (!node->isLeaf()) {
+    
+        // As we check our children, see if any of them went from shouldRender to NOT shouldRender
+        // then we probably dropped LOD and if we don't have color, we want to average our children 
+        // for a new color.
+        int childrenGotHiddenCount = 0;
         for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
-            if (node->getChildAtIndex(i)) {
-                voxelsUpdated += newTreeToArrays(node->getChildAtIndex(i));
+            VoxelNode* childNode = node->getChildAtIndex(i);
+            if (childNode) {
+                bool wasShouldRender = childNode->getShouldRender();
+                voxelsUpdated += newTreeToArrays(childNode);
+                bool isShouldRender = childNode->getShouldRender();
+                if (wasShouldRender && !isShouldRender) {
+                    childrenGotHiddenCount++;
+                }
             }
+        }
+        if (childrenGotHiddenCount > 0) {
+            node->setColorFromAverageOfChildren();
         }
     }
     if (_writeRenderFullVBO) {
