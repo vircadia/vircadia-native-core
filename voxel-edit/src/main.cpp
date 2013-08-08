@@ -9,6 +9,7 @@
 #include <VoxelTree.h>
 #include <SharedUtil.h>
 #include <SceneUtils.h>
+#include <JurisdictionMap.h>
 
 VoxelTree myTree;
 
@@ -56,19 +57,107 @@ void voxelTutorial(VoxelTree * tree) {
 
 int main(int argc, const char * argv[])
 {
-	const char* SAY_HELLO = "--sayHello";
-    if (cmdOptionExists(argc, argv, SAY_HELLO)) {
-    	printf("I'm just saying hello...\n");
-	}
+    qInstallMessageHandler(sharedMessageHandler);
 
-	const char* DONT_CREATE_FILE = "--dontCreateSceneFile";
-    bool dontCreateFile = cmdOptionExists(argc, argv, DONT_CREATE_FILE);
+    // Handles taking and SVO and splitting it into multiple SVOs based on
+    // jurisdiction details
+    const char* SPLIT_SVO = "--splitSVO";
+    const char* splitSVOFile = getCmdOption(argc, argv, SPLIT_SVO);
+    const char* SPLIT_JURISDICTION_ROOT = "--splitJurisdictionRoot";
+    const char* SPLIT_JURISDICTION_ENDNODES = "--splitJurisdictionEndNodes";
+    const char* splitJurisdictionRoot = getCmdOption(argc, argv, SPLIT_JURISDICTION_ROOT);
+    const char* splitJurisdictionEndNodes = getCmdOption(argc, argv, SPLIT_JURISDICTION_ENDNODES);
+    if (splitSVOFile && splitJurisdictionRoot && splitJurisdictionEndNodes) {
+        char outputFileName[512];
+
+        printf("splitSVOFile: %s Jurisdictions Root: %s EndNodes: %s\n", 
+                splitSVOFile, splitJurisdictionRoot, splitJurisdictionEndNodes);
+
+        VoxelTree rootSVO;
+
+        rootSVO.readFromSVOFile(splitSVOFile);
+        JurisdictionMap jurisdiction(splitJurisdictionRoot, splitJurisdictionEndNodes);
     
+        printf("Jurisdiction Root Octcode: ");
+        printOctalCode(jurisdiction.getRootOctalCode());
+
+        printf("Jurisdiction End Nodes: %d \n", jurisdiction.getEndNodeCount());
+        for (int i = 0; i < jurisdiction.getEndNodeCount(); i++) {
+            unsigned char* endNodeCode = jurisdiction.getEndNodeOctalCode(i);
+            printf("End Node: %d ", i);
+            printOctalCode(endNodeCode);
+
+            // get the endNode details
+            VoxelPositionSize endNodeDetails;
+            voxelDetailsForCode(endNodeCode, endNodeDetails);
+
+            // Now, create a split SVO for the EndNode.
+            // copy the EndNode into a temporary tree
+            VoxelTree endNodeTree;
+
+            // create a small voxels at corners of the endNode Tree, this will is a hack
+            // to work around a bug in voxel server that will send Voxel not exists
+            // for regions that don't contain anything even if they're not in the
+            // jurisdiction of the server
+            // This hack assumes the end nodes for demo dinner since it only guarantees
+            // nodes in the 8 child voxels of the main root voxel 
+            const float verySmall = verySmall;
+            endNodeTree.createVoxel(0.0, 0.0, 0.0, verySmall, 1, 1, 1, true);
+            endNodeTree.createVoxel(1.0, 0.0, 0.0, verySmall, 1, 1, 1, true);
+            endNodeTree.createVoxel(0.0, 1.0, 0.0, verySmall, 1, 1, 1, true);
+            endNodeTree.createVoxel(0.0, 0.0, 1.0, verySmall, 1, 1, 1, true);
+            endNodeTree.createVoxel(1.0, 1.0, 1.0, verySmall, 1, 1, 1, true);
+            endNodeTree.createVoxel(1.0, 1.0, 0.0, verySmall, 1, 1, 1, true);
+            endNodeTree.createVoxel(0.0, 1.0, 1.0, verySmall, 1, 1, 1, true);
+            endNodeTree.createVoxel(1.0, 0.0, 1.0, verySmall, 1, 1, 1, true);
+
+            // Delete the voxel for the EndNode from the temporary tree, so we can
+            // import our endNode content into it...
+            endNodeTree.deleteVoxelCodeFromTree(endNodeCode, COLLAPSE_EMPTY_TREE);
+
+            VoxelNode* endNode = rootSVO.getVoxelAt(endNodeDetails.x, 
+                                                    endNodeDetails.y, 
+                                                    endNodeDetails.z, 
+                                                    endNodeDetails.s);
+
+            rootSVO.copySubTreeIntoNewTree(endNode, &endNodeTree, false);
+
+            sprintf(outputFileName, "splitENDNODE%d%s", i, splitSVOFile);
+            printf("outputFile: %s\n", outputFileName);
+            endNodeTree.writeToSVOFile(outputFileName);
+        
+            // Delete the voxel for the EndNode from the root tree...
+            rootSVO.deleteVoxelCodeFromTree(endNodeCode, COLLAPSE_EMPTY_TREE);
+        
+            // create a small voxel in center of each EndNode, this will is a hack
+            // to work around a bug in voxel server that will send Voxel not exists
+            // for regions that don't contain anything even if they're not in the
+            // jurisdiction of the server
+            float x = endNodeDetails.x + endNodeDetails.s * 0.5;
+            float y = endNodeDetails.y + endNodeDetails.s * 0.5;
+            float z = endNodeDetails.z + endNodeDetails.s * 0.5;
+            float s = endNodeDetails.s * verySmall;
+        
+            rootSVO.createVoxel(x, y, z, s, 1, 1, 1, true);
+        
+        }
+
+        sprintf(outputFileName, "splitROOT%s", splitSVOFile);
+        printf("outputFile: %s\n", outputFileName);
+        rootSVO.writeToSVOFile(outputFileName);
+    
+        printf("exiting now\n");
+        return 0;
+    }
+
+    const char* DONT_CREATE_FILE = "--dontCreateSceneFile";
+    bool dontCreateFile = cmdOptionExists(argc, argv, DONT_CREATE_FILE);
+
     if (dontCreateFile) {
-    	printf("You asked us not to create a scene file, so we will not.\n");
-	} else {
-    	printf("Creating Scene File...\n");
-    	
+        printf("You asked us not to create a scene file, so we will not.\n");
+    } else {
+        printf("Creating Scene File...\n");
+    
         const char* RUN_TUTORIAL = "--runTutorial";
         if (cmdOptionExists(argc, argv, RUN_TUTORIAL)) {
             voxelTutorial(&myTree);
