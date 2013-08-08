@@ -47,7 +47,7 @@ const float DEATH_STAR_RADIUS = 4.0;
 const float MAX_CUBE = 0.05f;
 
 const int VOXEL_SEND_INTERVAL_USECS = 17 * 1000; // approximately 60fps
-int PACKETS_PER_CLIENT_PER_INTERVAL = 20;
+int PACKETS_PER_CLIENT_PER_INTERVAL = 10;
 const int SENDING_TIME_TO_SPARE = 5 * 1000; // usec of sending interval to spare for calculating voxels
 const int INTERVALS_PER_SECOND = 1000 * 1000 / VOXEL_SEND_INTERVAL_USECS;
 
@@ -66,6 +66,8 @@ bool shouldShowAnimationDebug = false;
 bool displayVoxelStats = false;
 bool debugVoxelReceiving = false;
 bool sendEnvironments = true;
+bool sendMinimalEnvironment = false;
+bool dumpVoxelsOnMove = false;
 
 EnvironmentData environmentData[3];
 
@@ -236,7 +238,9 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
                 
         // if our view has changed, we need to reset these things...
         if (viewFrustumChanged) {
-            nodeData->nodeBag.deleteAll();
+            if (::dumpVoxelsOnMove) {
+                nodeData->nodeBag.deleteAll();
+            }
             nodeData->map.erase();
         } 
         
@@ -252,12 +256,17 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
             nodeData->stats.printDebugDetails();
         }
         
-        // This is the start of "resending" the scene.
-        nodeData->nodeBag.insert(serverTree.rootNode);
-        
         // start tracking our stats
         bool isFullScene = (!viewFrustumChanged || !nodeData->getWantDelta()) && nodeData->getViewFrustumJustStoppedChanging();
+        
+        // If we're starting a full scene, then definitely we want to empty the nodeBag
+        if (isFullScene) {
+            nodeData->nodeBag.deleteAll();
+        }
         nodeData->stats.sceneStarted(isFullScene, viewFrustumChanged, ::serverTree.rootNode, ::jurisdiction);
+
+        // This is the start of "resending" the scene.
+        nodeData->nodeBag.insert(serverTree.rootNode);
     }
 
     // If we have something in our nodeBag, then turn them into packets and send them out...
@@ -325,8 +334,9 @@ void deepestLevelVoxelDistributor(NodeList* nodeList,
         if (shouldSendEnvironments) {
             int numBytesPacketHeader = populateTypeAndVersion(tempOutputBuffer, PACKET_TYPE_ENVIRONMENT_DATA);
             int envPacketLength = numBytesPacketHeader;
+            int environmentsToSend = ::sendMinimalEnvironment ? 1 : sizeof(environmentData) / sizeof(EnvironmentData);
             
-            for (int i = 0; i < sizeof(environmentData) / sizeof(EnvironmentData); i++) {
+            for (int i = 0; i < environmentsToSend; i++) {
                 envPacketLength += environmentData[i].getBroadcastData(tempOutputBuffer + envPacketLength);
             }
             
@@ -475,13 +485,24 @@ int main(int argc, const char * argv[]) {
             jurisdiction = new JurisdictionMap(jurisdictionRoot, jurisdictionEndNodes);
         }
     }
-
+    
+    
+    // should we send environments? Default is yes, but this command line suppresses sending
+    const char* DUMP_VOXELS_ON_MOVE = "--dumpVoxelsOnMove";
+    ::dumpVoxelsOnMove = cmdOptionExists(argc, argv, DUMP_VOXELS_ON_MOVE);
+    printf("dumpVoxelsOnMove=%s\n", debug::valueOf(::dumpVoxelsOnMove));
+    
     // should we send environments? Default is yes, but this command line suppresses sending
     const char* DONT_SEND_ENVIRONMENTS = "--dontSendEnvironments";
     bool dontSendEnvironments = cmdOptionExists(argc, argv, DONT_SEND_ENVIRONMENTS);
     if (dontSendEnvironments) {
         printf("Sending environments suppressed...\n");
         ::sendEnvironments = false;
+    } else { 
+        // should we send environments? Default is yes, but this command line suppresses sending
+        const char* MINIMAL_ENVIRONMENT = "--MinimalEnvironment";
+        ::sendMinimalEnvironment = cmdOptionExists(argc, argv, MINIMAL_ENVIRONMENT);
+        printf("Using Minimal Environment=%s\n", debug::valueOf(::sendMinimalEnvironment));
     }
     printf("Sending environments=%s\n", debug::valueOf(::sendEnvironments));
     
@@ -494,6 +515,11 @@ int main(int argc, const char * argv[]) {
     if (::wantLocalDomain) {
         printf("Local Domain MODE!\n");
         nodeList->setDomainIPToLocalhost();
+    } else {
+        const char* domainIP = getCmdOption(argc, argv, "--domain");
+        if (domainIP) {
+            NodeList::getInstance()->setDomainHostname(domainIP);
+        }
     }
 
     nodeList->linkedDataCreateCallback = &attachVoxelNodeDataToNode;

@@ -12,7 +12,7 @@
 
 #include <glm/gtx/transform.hpp>
 
-#include <QDebug>
+#include <QtCore/QDebug>
 
 #include "CoverageMap.h"
 #include "GeometryUtil.h"
