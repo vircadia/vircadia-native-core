@@ -59,12 +59,6 @@ int main(int argc, const char * argv[])
 {
     qInstallMessageHandler(sharedMessageHandler);
 
-    const char* SAY_HELLO = "--sayHello";
-    if (cmdOptionExists(argc, argv, SAY_HELLO)) {
-        printf("I'm just saying hello...\n");
-    }
-
-
     // Handles taking and SVO and splitting it into multiple SVOs based on
     // jurisdiction details
     const char* SPLIT_SVO = "--splitSVO";
@@ -107,14 +101,15 @@ int main(int argc, const char * argv[])
             // jurisdiction of the server
             // This hack assumes the end nodes for demo dinner since it only guarantees
             // nodes in the 8 child voxels of the main root voxel 
-            endNodeTree.createVoxel(0.0, 0.0, 0.0, 0.015625, 1, 1, 1, true);
-            endNodeTree.createVoxel(1.0, 0.0, 0.0, 0.015625, 1, 1, 1, true);
-            endNodeTree.createVoxel(0.0, 1.0, 0.0, 0.015625, 1, 1, 1, true);
-            endNodeTree.createVoxel(0.0, 0.0, 1.0, 0.015625, 1, 1, 1, true);
-            endNodeTree.createVoxel(1.0, 1.0, 1.0, 0.015625, 1, 1, 1, true);
-            endNodeTree.createVoxel(1.0, 1.0, 0.0, 0.015625, 1, 1, 1, true);
-            endNodeTree.createVoxel(0.0, 1.0, 1.0, 0.015625, 1, 1, 1, true);
-            endNodeTree.createVoxel(1.0, 0.0, 1.0, 0.015625, 1, 1, 1, true);
+            const float verySmall = verySmall;
+            endNodeTree.createVoxel(0.0, 0.0, 0.0, verySmall, 1, 1, 1, true);
+            endNodeTree.createVoxel(1.0, 0.0, 0.0, verySmall, 1, 1, 1, true);
+            endNodeTree.createVoxel(0.0, 1.0, 0.0, verySmall, 1, 1, 1, true);
+            endNodeTree.createVoxel(0.0, 0.0, 1.0, verySmall, 1, 1, 1, true);
+            endNodeTree.createVoxel(1.0, 1.0, 1.0, verySmall, 1, 1, 1, true);
+            endNodeTree.createVoxel(1.0, 1.0, 0.0, verySmall, 1, 1, 1, true);
+            endNodeTree.createVoxel(0.0, 1.0, 1.0, verySmall, 1, 1, 1, true);
+            endNodeTree.createVoxel(1.0, 0.0, 1.0, verySmall, 1, 1, 1, true);
 
             // Delete the voxel for the EndNode from the temporary tree, so we can
             // import our endNode content into it...
@@ -141,7 +136,7 @@ int main(int argc, const char * argv[])
             float x = endNodeDetails.x + endNodeDetails.s * 0.5;
             float y = endNodeDetails.y + endNodeDetails.s * 0.5;
             float z = endNodeDetails.z + endNodeDetails.s * 0.5;
-            float s = endNodeDetails.s * 0.015625;
+            float s = endNodeDetails.s * verySmall;
         
             rootSVO.createVoxel(x, y, z, s, 1, 1, 1, true);
         
