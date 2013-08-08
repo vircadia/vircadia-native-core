@@ -101,6 +101,7 @@ public:
     
     void updateParticleSystem(float deltaTime);
     
+    QGLWidget* getGLWidget() { return _glWidget; }
     Avatar* getAvatar() { return &_myAvatar; }
     Audio* getAudio() { return &_audio; }
     Camera* getCamera() { return &_myCamera; }

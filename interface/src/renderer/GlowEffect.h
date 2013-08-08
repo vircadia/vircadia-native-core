@@ -9,11 +9,24 @@
 #ifndef __interface__GlowEffect__
 #define __interface__GlowEffect__
 
+class ProgramObject;
+
 class GlowEffect {
 public:
     
+    void init();
+    
     void prepare();
+    
+    void bind();
+    void release();
+    
     void render();
+
+private:
+    
+    ProgramObject* _horizontalBlurProgram;
+    ProgramObject* _verticalBlurProgram;    
 };
 
 #endif /* defined(__interface__GlowEffect__) */

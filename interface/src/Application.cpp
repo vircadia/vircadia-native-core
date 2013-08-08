@@ -2202,6 +2202,8 @@ void Application::init() {
     
     _environment.init();
     
+    _glowEffect.init();
+    
     _handControl.setScreenDimensions(_glWidget->width(), _glWidget->height());
 
     _headMouseX = _mouseX = _glWidget->width() / 2;
@@ -3022,6 +3024,9 @@ void Application::displaySide(Camera& whichCamera) {
     glEnable(GL_LIGHTING);
     glEnable(GL_DEPTH_TEST);
     
+    // prepare the glow effect
+    _glowEffect.prepare();
+    
     //  Enable to show line from me to the voxel I am touching
     //renderLineToTouchedVoxel();
     //renderThrustAtVoxel(_voxelThrust);
@@ -3118,6 +3123,13 @@ void Application::displaySide(Camera& whichCamera) {
             _myAvatar.getHead().setLookAtPosition(_myCamera.getPosition());
         }
         _myAvatar.render(_lookingInMirror->isChecked(), _renderAvatarBalls->isChecked());
+        
+        _glowEffect.bind();
+            _myAvatar.render(_lookingInMirror->isChecked(), _renderAvatarBalls->isChecked());
+        _glowEffect.release();
+        
+        _myAvatar.render(_lookingInMirror->isChecked(), _renderAvatarBalls->isChecked());
+        
         _myAvatar.setDisplayingLookatVectors(_renderLookatOn->isChecked());
 
         if (_renderLookatIndicatorOn->isChecked() && _isLookingAtOtherAvatar) {
