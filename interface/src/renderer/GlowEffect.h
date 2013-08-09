@@ -18,15 +18,17 @@ public:
     
     void prepare();
     
-    void bind();
-    void release();
+    void begin(float amount = 1.0f);
+    void end();
     
     void render();
 
 private:
     
     ProgramObject* _horizontalBlurProgram;
-    ProgramObject* _verticalBlurProgram;    
+    ProgramObject* _verticalBlurProgram;
+    
+    bool _isEmpty;
 };
 
 #endif /* defined(__interface__GlowEffect__) */

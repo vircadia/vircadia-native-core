@@ -22,6 +22,9 @@
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/vector_angle.hpp>
 
+// include this before QGLWidget, which includes an earlier version of OpenGL
+#include "InterfaceConfig.h"
+
 #include <QActionGroup>
 #include <QBoxLayout>
 #include <QColorDialog>
@@ -59,7 +62,6 @@
 #include <VoxelSceneStats.h>
 
 #include "Application.h"
-#include "InterfaceConfig.h"
 #include "LogDisplay.h"
 #include "LeapManager.h"
 #include "OculusManager.h"
@@ -92,6 +94,10 @@ const int STARTUP_JITTER_SAMPLES = PACKET_LENGTH_SAMPLES_PER_CHANNEL / 2;
 
 // customized canvas that simply forwards requests/events to the singleton application
 class GLCanvas : public QGLWidget {
+public:
+    
+    GLCanvas();
+    
 protected:
     
     virtual void initializeGL();
@@ -109,6 +115,9 @@ protected:
     
     virtual void wheelEvent(QWheelEvent* event);
 };
+
+GLCanvas::GLCanvas() : QGLWidget(QGLFormat(QGL::AlphaChannel)) {
+}
 
 void GLCanvas::initializeGL() {
     Application::getInstance()->initializeGL();
@@ -2199,8 +2208,8 @@ void Application::runTests() {
 
 void Application::initDisplay() {
     glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glShadeModel (GL_SMOOTH);
+    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
+    glShadeModel(GL_SMOOTH);
     glEnable(GL_LIGHTING);
     glEnable(GL_LIGHT0);
     glEnable(GL_DEPTH_TEST);
@@ -3001,6 +3010,9 @@ void Application::displaySide(Camera& whichCamera) {
     //  Setup 3D lights (after the camera transform, so that they are positioned in world space)
     setupWorldLight(whichCamera);
     
+    // prepare the glow effect
+    _glowEffect.prepare();
+    
     if (_renderStarsOn->isChecked()) {
         if (!_stars.getFileLoaded()) {
             _stars.readInput(STAR_FILE, STAR_CACHE_FILE, 0);
@@ -3032,9 +3044,6 @@ void Application::displaySide(Camera& whichCamera) {
     
     glEnable(GL_LIGHTING);
     glEnable(GL_DEPTH_TEST);
-    
-    // prepare the glow effect
-    _glowEffect.prepare();
     
     //  Enable to show line from me to the voxel I am touching
     //renderLineToTouchedVoxel();
@@ -3131,13 +3140,9 @@ void Application::displaySide(Camera& whichCamera) {
         if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
             _myAvatar.getHead().setLookAtPosition(_myCamera.getPosition());
         }
+        _glowEffect.begin();
         _myAvatar.render(_lookingInMirror->isChecked(), _renderAvatarBalls->isChecked());
-        
-        _glowEffect.bind();
-            _myAvatar.render(_lookingInMirror->isChecked(), _renderAvatarBalls->isChecked());
-        _glowEffect.release();
-        
-        _myAvatar.render(_lookingInMirror->isChecked(), _renderAvatarBalls->isChecked());
+        _glowEffect.end();
         
         _myAvatar.setDisplayingLookatVectors(_renderLookatOn->isChecked());
 

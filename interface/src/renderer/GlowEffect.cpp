@@ -5,11 +5,13 @@
 //  Created by Andrzej Kapolka on 8/7/13.
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 
+// include this before QGLWidget, which includes an earlier version of OpenGL
+#include "InterfaceConfig.h"
+
 #include <QOpenGLFramebufferObject>
 
 #include "Application.h"
 #include "GlowEffect.h"
-#include "InterfaceConfig.h"
 #include "ProgramObject.h"
 
 static ProgramObject* createBlurProgram(const QString& direction) {
@@ -31,17 +33,16 @@ void GlowEffect::init() {
 }
 
 void GlowEffect::prepare() {
-    bind();
-    glClear(GL_COLOR_BUFFER_BIT);
-    release();
+    _isEmpty = true;
 }
 
-void GlowEffect::bind() {
-    Application::getInstance()->getTextureCache()->getPrimaryFramebufferObject()->bind();
+void GlowEffect::begin(float amount) {
+    glBlendColor(0.0f, 0.0f, 0.0f, amount);
+    _isEmpty = false;
 }
 
-void GlowEffect::release() {
-    Application::getInstance()->getTextureCache()->getPrimaryFramebufferObject()->release();
+void GlowEffect::end() {
+    glBlendColor(0.0f, 0.0f, 0.0f, 0.0f);
 }
 
 static void renderFullscreenQuad() {
@@ -58,10 +59,15 @@ static void renderFullscreenQuad() {
 }
 
 void GlowEffect::render() {
-    glEnable(GL_TEXTURE_2D);
-    glBindTexture(GL_TEXTURE_2D, Application::getInstance()->getTextureCache()->getPrimaryFramebufferObject()->texture());
-    glDisable(GL_LIGHTING);
-    
+    if (_isEmpty) {
+        return; // nothing glowing
+    }
+    QOpenGLFramebufferObject* primaryFBO = Application::getInstance()->getTextureCache()->getPrimaryFramebufferObject();
+    glBindTexture(GL_TEXTURE_2D, primaryFBO->texture());
+
+    QSize size = primaryFBO->size();
+    glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, size.width(), size.height());
+
     glPushMatrix();
     glLoadIdentity();
     
@@ -85,7 +91,7 @@ void GlowEffect::render() {
     glBindTexture(GL_TEXTURE_2D, secondaryFBO->texture());
     
     glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE, GL_CONSTANT_ALPHA, GL_ONE);
     
     _verticalBlurProgram->bind();      
     renderFullscreenQuad();
@@ -98,8 +104,5 @@ void GlowEffect::render() {
     
     glBindTexture(GL_TEXTURE_2D, 0);
     
-    glDisable(GL_TEXTURE_2D);
-    glEnable(GL_LIGHTING);
-    
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
 }
