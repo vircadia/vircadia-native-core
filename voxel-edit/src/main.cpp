@@ -101,7 +101,7 @@ int main(int argc, const char * argv[])
             // jurisdiction of the server
             // This hack assumes the end nodes for demo dinner since it only guarantees
             // nodes in the 8 child voxels of the main root voxel 
-            const float verySmall = verySmall;
+            const float verySmall = 0.015625;
             endNodeTree.createVoxel(0.0, 0.0, 0.0, verySmall, 1, 1, 1, true);
             endNodeTree.createVoxel(1.0, 0.0, 0.0, verySmall, 1, 1, 1, true);
             endNodeTree.createVoxel(0.0, 1.0, 0.0, verySmall, 1, 1, 1, true);
