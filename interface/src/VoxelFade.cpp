@@ -13,11 +13,11 @@
 #include "VoxelFade.h"
 
 const float VoxelFade::FADE_OUT_START =  0.5f;
-const float VoxelFade::FADE_OUT_END   =  0.0f;
-const float VoxelFade::FADE_OUT_STEP  = -0.005f;
-const float VoxelFade::FADE_IN_START  =  0.0f;
+const float VoxelFade::FADE_OUT_END   =  0.05f;
+const float VoxelFade::FADE_OUT_STEP  =  0.9f;
+const float VoxelFade::FADE_IN_START  =  0.05f;
 const float VoxelFade::FADE_IN_END    =  0.5f;
-const float VoxelFade::FADE_IN_STEP   =  0.005f;
+const float VoxelFade::FADE_IN_STEP   =  1.1f;
 const float VoxelFade::DEFAULT_RED    =  0.5f;
 const float VoxelFade::DEFAULT_GREEN  =  0.5f;
 const float VoxelFade::DEFAULT_BLUE   =  0.5f;
@@ -45,7 +45,7 @@ void VoxelFade::render() {
     glPopMatrix();
     glEnable(GL_LIGHTING);
     
-    opacity += (direction == FADE_OUT) ? FADE_OUT_STEP : FADE_IN_STEP;
+    opacity *= (direction == FADE_OUT) ? FADE_OUT_STEP : FADE_IN_STEP;
 }
 
 bool VoxelFade::isDone() const {
