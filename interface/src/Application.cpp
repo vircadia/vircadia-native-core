@@ -1506,8 +1506,8 @@ void Application::doTreeStats() {
     _voxels.collectStatsForTreesAndVBOs();
 }
 
-void Application::setWantsLowResMoving(bool wantsLowResMoving) {
-    _myAvatar.setWantLowResMoving(wantsLowResMoving);
+void Application::disableLowResMoving(bool disableLowResMoving) {
+    _myAvatar.setWantLowResMoving(!disableLowResMoving);
 }
 
 void Application::setWantsMonochrome(bool wantsMonochrome) {
@@ -2102,7 +2102,7 @@ void Application::initMenu() {
     (_shouldLowPassFilter = debugMenu->addAction("Test: LowPass filter"))->setCheckable(true);
 
     debugMenu->addAction("Wants Monochrome", this, SLOT(setWantsMonochrome(bool)))->setCheckable(true);
-    debugMenu->addAction("Use Lower Resolution While Moving", this, SLOT(setWantsLowResMoving(bool)))->setCheckable(true);
+    debugMenu->addAction("Disable Lower Resolution While Moving", this, SLOT(disableLowResMoving(bool)))->setCheckable(true);
     debugMenu->addAction("Disable Delta Sending", this, SLOT(disableDeltaSending(bool)))->setCheckable(true);
     (_occlusionCulling = debugMenu->addAction("Disable Occlusion Culling", this, SLOT(disableOcclusionCulling(bool)),
                          Qt::SHIFT | Qt::Key_C))->setCheckable(true);
