@@ -216,6 +216,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _audio(&_audioScope, STARTUP_JITTER_SAMPLES),
 #endif
         _stopNetworkReceiveThread(false),  
+        _stopProcessVoxelsThread(false),  
         _packetCount(0),
         _packetsPerSecond(0),
         _bytesPerSecond(0),
@@ -240,7 +241,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     NodeList::getInstance()->addHook(this);
 
     
-    _enableNetworkThread = !cmdOptionExists(argc, constArgv, "--nonblocking");
+    // network receive thread and voxel parsing thread are both controlled by the --nonblocking command line
+    _enableProcessVoxelsThread = _enableNetworkThread = !cmdOptionExists(argc, constArgv, "--nonblocking");
     if (!_enableNetworkThread) {
         NodeList::getInstance()->getNodeSocket()->setBlocking(false);
     }
@@ -363,6 +365,12 @@ void Application::initializeGL() {
     if (_enableNetworkThread) {
         pthread_create(&_networkReceiveThread, NULL, networkReceive, NULL);
         qDebug("Network receive thread created.\n"); 
+    }
+
+    // create thread for parsing of voxel data independent of the main network and rendering threads
+    if (_enableProcessVoxelsThread) {
+        pthread_create(&_processVoxelsThread, NULL, processVoxels, NULL);
+        qDebug("Voxel parsing thread created.\n"); 
     }
     
     // call terminate before exiting
@@ -1169,6 +1177,11 @@ void Application::terminate() {
         _stopNetworkReceiveThread = true;
         pthread_join(_networkReceiveThread, NULL); 
     }
+
+    if (_enableProcessVoxelsThread) {
+        _stopProcessVoxelsThread = true;
+        pthread_join(_processVoxelsThread, NULL); 
+    }
 }
 
 void Application::sendAvatarVoxelURLMessage(const QUrl& url) {
@@ -1493,8 +1506,8 @@ void Application::doTreeStats() {
     _voxels.collectStatsForTreesAndVBOs();
 }
 
-void Application::setWantsLowResMoving(bool wantsLowResMoving) {
-    _myAvatar.setWantLowResMoving(wantsLowResMoving);
+void Application::disableLowResMoving(bool disableLowResMoving) {
+    _myAvatar.setWantLowResMoving(!disableLowResMoving);
 }
 
 void Application::setWantsMonochrome(bool wantsMonochrome) {
@@ -2073,7 +2086,8 @@ void Application::initMenu() {
     debugMenu->addAction("Calculate Tree Stats", this, SLOT(doTreeStats()), Qt::SHIFT | Qt::Key_S);
 
     QMenu* renderDebugMenu = debugMenu->addMenu("Render Debugging Tools");
-    renderDebugMenu->addAction("Show Render Pipeline Warnings", this, SLOT(setRenderWarnings(bool)))->setCheckable(true);
+    (_renderPipelineWarnings = renderDebugMenu->addAction("Show Render Pipeline Warnings",
+                                                       this, SLOT(setRenderWarnings(bool))))->setCheckable(true);
     renderDebugMenu->addAction("Kill Local Voxels", this, SLOT(doKillLocalVoxels()), Qt::CTRL | Qt::Key_K);
     renderDebugMenu->addAction("Randomize Voxel TRUE Colors", this, SLOT(doRandomizeVoxelColors()), Qt::CTRL | Qt::Key_R);
     renderDebugMenu->addAction("FALSE Color Voxels Randomly", this, SLOT(doFalseRandomizeVoxelColors()));
@@ -2088,7 +2102,7 @@ void Application::initMenu() {
     (_shouldLowPassFilter = debugMenu->addAction("Test: LowPass filter"))->setCheckable(true);
 
     debugMenu->addAction("Wants Monochrome", this, SLOT(setWantsMonochrome(bool)))->setCheckable(true);
-    debugMenu->addAction("Use Lower Resolution While Moving", this, SLOT(setWantsLowResMoving(bool)))->setCheckable(true);
+    debugMenu->addAction("Disable Lower Resolution While Moving", this, SLOT(disableLowResMoving(bool)))->setCheckable(true);
     debugMenu->addAction("Disable Delta Sending", this, SLOT(disableDeltaSending(bool)))->setCheckable(true);
     (_occlusionCulling = debugMenu->addAction("Disable Occlusion Culling", this, SLOT(disableOcclusionCulling(bool)),
                          Qt::SHIFT | Qt::Key_C))->setCheckable(true);
@@ -2562,6 +2576,11 @@ void Application::update(float deltaTime) {
     // read incoming packets from network
     if (!_enableNetworkThread) {
         networkReceive(0);
+    }
+
+    // parse voxel packets
+    if (!_enableProcessVoxelsThread) {
+        processVoxels(0);
     }
     
     //loop through all the other avatars and simulate them...
@@ -4016,6 +4035,75 @@ int Application::parseVoxelStats(unsigned char* messageData, ssize_t messageLeng
 }
 
 //  Receive packets from other nodes/servers and decide what to do with them!
+void* Application::processVoxels(void* args) {
+    Application* app = Application::getInstance();
+    while (!app->_stopProcessVoxelsThread) {
+
+        // check to see if the UI thread asked us to kill the voxel tree. since we're the only thread allowed to do that
+        if (app->_wantToKillLocalVoxels) {
+            app->_voxels.killLocalVoxels();
+            app->_wantToKillLocalVoxels = false;
+        }
+        
+        while (app->_voxelPackets.size() > 0) {
+            NetworkPacket& packet = app->_voxelPackets.front();
+            app->processVoxelPacket(packet.getSenderAddress(), packet.getData(), packet.getLength());
+            app->_voxelPackets.erase(app->_voxelPackets.begin());
+        }
+    
+        if (!app->_enableProcessVoxelsThread) {
+            break;
+        }
+    }
+    
+    if (app->_enableProcessVoxelsThread) {
+        pthread_exit(0); 
+    }
+    return NULL; 
+}
+
+void Application::queueVoxelPacket(sockaddr& senderAddress, unsigned char* packetData, ssize_t packetLength) {
+    _voxelPackets.push_back(NetworkPacket(senderAddress, packetData, packetLength));
+}
+
+void Application::processVoxelPacket(sockaddr& senderAddress, unsigned char* packetData, ssize_t packetLength) {
+    PerformanceWarning warn(_renderPipelineWarnings->isChecked(),"processVoxelPacket()");
+    ssize_t messageLength = packetLength;
+
+    // note: PACKET_TYPE_VOXEL_STATS can have PACKET_TYPE_VOXEL_DATA or PACKET_TYPE_VOXEL_DATA_MONOCHROME
+    // immediately following them inside the same packet. So, we process the PACKET_TYPE_VOXEL_STATS first
+    // then process any remaining bytes as if it was another packet
+    if (packetData[0] == PACKET_TYPE_VOXEL_STATS) {
+    
+        int statsMessageLength = parseVoxelStats(packetData, messageLength, senderAddress);
+        if (messageLength > statsMessageLength) {
+            packetData += statsMessageLength;
+            messageLength -= statsMessageLength;
+            if (!packetVersionMatch(packetData)) {
+                return; // bail since piggyback data doesn't match our versioning
+            }
+        } else {
+            return; // bail since no piggyback data
+        }
+    } // fall through to piggyback message
+
+    if (_renderVoxels->isChecked()) {
+        Node* voxelServer = NodeList::getInstance()->nodeWithAddress(&senderAddress);
+        if (voxelServer && socketMatch(voxelServer->getActiveSocket(), &senderAddress)) {
+            voxelServer->lock();
+            if (packetData[0] == PACKET_TYPE_ENVIRONMENT_DATA) {
+                _environment.parseData(&senderAddress, packetData, messageLength);
+            } else {
+                _voxels.setDataSourceID(voxelServer->getNodeID());
+                _voxels.parseData(packetData, messageLength);
+                _voxels.setDataSourceID(UNKNOWN_NODE_ID);
+            }
+            voxelServer->unlock();
+        }
+    }
+}
+
+//  Receive packets from other nodes/servers and decide what to do with them!
 void* Application::networkReceive(void* args) {
     sockaddr senderAddress;
     ssize_t bytesReceived;
@@ -4050,41 +4138,8 @@ void* Application::networkReceive(void* args) {
                     case PACKET_TYPE_ERASE_VOXEL:
                     case PACKET_TYPE_VOXEL_STATS:
                     case PACKET_TYPE_ENVIRONMENT_DATA: {
-                    
-                        unsigned char* messageData = app->_incomingPacket;
-                        ssize_t messageLength = bytesReceived;
-
-                        // note: PACKET_TYPE_VOXEL_STATS can have PACKET_TYPE_VOXEL_DATA or PACKET_TYPE_VOXEL_DATA_MONOCHROME
-                        // immediately following them inside the same packet. So, we process the PACKET_TYPE_VOXEL_STATS first
-                        // then process any remaining bytes as if it was another packet
-                        if (messageData[0] == PACKET_TYPE_VOXEL_STATS) {
-                            
-                            int statsMessageLength = app->parseVoxelStats(messageData, messageLength, senderAddress);
-                            if (messageLength > statsMessageLength) {
-                                messageData += statsMessageLength;
-                                messageLength -= statsMessageLength;
-                                if (!packetVersionMatch(messageData)) {
-                                    break; // bail since piggyback data doesn't match our versioning
-                                }
-                            } else {
-                                break; // bail since no piggyback data
-                            }
-                        } // fall through to piggyback message
-                        
-                        if (app->_renderVoxels->isChecked()) {
-                            Node* voxelServer = NodeList::getInstance()->nodeWithAddress(&senderAddress);
-                            if (voxelServer && socketMatch(voxelServer->getActiveSocket(), &senderAddress)) {
-                                voxelServer->lock();
-                                if (messageData[0] == PACKET_TYPE_ENVIRONMENT_DATA) {
-                                    app->_environment.parseData(&senderAddress, messageData, messageLength);
-                                } else {
-                                    app->_voxels.setDataSourceID(voxelServer->getNodeID());
-                                    app->_voxels.parseData(messageData, messageLength);
-                                    app->_voxels.setDataSourceID(UNKNOWN_NODE_ID);
-                                }
-                                voxelServer->unlock();
-                            }
-                        }
+                        // add this packet to our list of voxel packets and process them on the voxel processing
+                        app->queueVoxelPacket(senderAddress, app->_incomingPacket, bytesReceived);
                         break;
                     }
                     case PACKET_TYPE_BULK_AVATAR_DATA:
