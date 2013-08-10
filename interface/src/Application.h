@@ -19,6 +19,7 @@
 #include <QTouchEvent>
 #include <QList>
 
+#include <NetworkPacket.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
 
@@ -67,8 +68,6 @@ static const float NODE_ADDED_BLUE  = 0.0f;
 static const float NODE_KILLED_RED   = 1.0f;
 static const float NODE_KILLED_GREEN = 0.0f;
 static const float NODE_KILLED_BLUE  = 0.0f;
-
-
 
 class Application : public QApplication, public NodeListHook {
     Q_OBJECT
@@ -262,7 +261,11 @@ private:
     QAction* checkedVoxelModeAction() const;
     
     static void attachNewHeadToNode(Node *newNode);
-    static void* networkReceive(void* args);
+    static void* networkReceive(void* args); // network receive thread
+
+    static void* processVoxels(void* args); // voxel parsing thread
+    void processVoxelPacket(sockaddr& senderAddress, unsigned char*  packetData, ssize_t packetLength);
+    void queueVoxelPacket(sockaddr& senderAddress, unsigned char*  packetData, ssize_t packetLength);
     
     // methodes handling menu settings
     typedef void(*settingsAction)(QSettings*, QAction*);
@@ -315,6 +318,7 @@ private:
     QAction* _noise;
     QAction* _occlusionCulling;
     QAction* _wantCollisionsOn;
+    QAction* _renderPipelineWarnings;
 
     QAction* _renderCoverageMapV2;
     QAction* _renderCoverageMap;
@@ -451,6 +455,12 @@ private:
     bool _enableNetworkThread;
     pthread_t _networkReceiveThread;
     bool _stopNetworkReceiveThread;
+    
+    bool _enableProcessVoxelsThread;
+    pthread_t _processVoxelsThread;
+    bool _stopProcessVoxelsThread;
+    std::vector<NetworkPacket> _voxelPackets;
+    
     
     unsigned char _incomingPacket[MAX_PACKET_SIZE];
     int _packetCount;
