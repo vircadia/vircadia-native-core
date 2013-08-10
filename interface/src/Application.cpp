@@ -181,6 +181,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _justStarted(true),
         _particleSystemInitialized(false),     
         _coolDemoParticleEmitter(-1),
+        _voxelImporter(_window),
         _wantToKillLocalVoxels(false),
         _frustumDrawingMode(FRUSTUM_DRAW_MODE_ALL),
         _viewFrustumOffsetYaw(-135.0),
@@ -2033,7 +2034,7 @@ void Application::initMenu() {
     (_destructiveAddVoxel = voxelMenu->addAction("Create Voxel is Destructive"))->setCheckable(true);
     
     voxelMenu->addAction("Export Voxels", this, SLOT(exportVoxels()), Qt::CTRL | Qt::Key_E);
-    voxelMenu->addAction("Import Voxels", this, SLOT(importVoxels()), Qt::CTRL | Qt::Key_I);
+    voxelMenu->addAction("Import Voxels", &_voxelImporter, SLOT(exec()), Qt::CTRL | Qt::Key_I);
     voxelMenu->addAction("Import Voxels to Clipboard", this, SLOT(importVoxelsToClipboard()), Qt::SHIFT | Qt::CTRL | Qt::Key_I);
     voxelMenu->addAction("Cut Voxels",    this, SLOT(cutVoxels()),    Qt::CTRL | Qt::Key_X);
     voxelMenu->addAction("Copy Voxels",   this, SLOT(copyVoxels()),   Qt::CTRL | Qt::Key_C);

@@ -38,6 +38,7 @@
 #include "ToolsPalette.h"
 #include "ViewFrustum.h"
 #include "VoxelSystem.h"
+#include "VoxelImporter.h"
 #include "Webcam.h"
 #include "PieMenu.h"
 #include "avatar/Avatar.h"
@@ -326,8 +327,9 @@ private:
 
     Stars _stars;
     
-    VoxelSystem _voxels;
-    VoxelTree _clipboardTree; // if I copy/paste
+    VoxelSystem   _voxels;
+    VoxelTree     _clipboardTree; // if I copy/paste
+    VoxelImporter _voxelImporter;
 
     QByteArray _voxelsFilename;
     bool _wantToKillLocalVoxels;
