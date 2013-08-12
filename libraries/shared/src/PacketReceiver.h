@@ -29,6 +29,4 @@ private:
     std::vector<NetworkPacket> _packets;
 };
 
-extern "C" void* PacketReceiverThreadEntry(void* arg);
-
 #endif // __shared__PacketReceiver__

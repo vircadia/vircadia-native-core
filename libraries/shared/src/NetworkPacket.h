@@ -19,20 +19,19 @@
 
 class NetworkPacket {
 public:
-    NetworkPacket(sockaddr& senderAddress, unsigned char*  packetData, ssize_t packetLength);
+    NetworkPacket(sockaddr& address, unsigned char*  packetData, ssize_t packetLength);
     NetworkPacket(const NetworkPacket& packet);
     NetworkPacket();
-    //~NetworkPacket();
     
-    sockaddr&      getSenderAddress() { return _senderAddress; };
+    sockaddr&      getAddress()       { return _address; };
     ssize_t        getLength() const  { return _packetLength;  };
     unsigned char* getData()          { return &_packetData[0]; };
 
-    const sockaddr&      getSenderAddress() const { return _senderAddress; };
-    const unsigned char* getData() const { return &_packetData[0]; };
+    const sockaddr&      getAddress() const { return _address; };
+    const unsigned char* getData() const    { return &_packetData[0]; };
 
 private:
-    sockaddr        _senderAddress;
+    sockaddr        _address;
     ssize_t         _packetLength;
     unsigned char   _packetData[MAX_PACKET_SIZE];
 };

@@ -17,13 +17,13 @@ NetworkPacket::NetworkPacket()  : _packetLength(0) {
 }
 
 NetworkPacket::NetworkPacket(const NetworkPacket& packet) {
-    memcpy(&_senderAddress, &packet.getSenderAddress(), sizeof(_senderAddress));
+    memcpy(&_address, &packet.getAddress(), sizeof(_address));
     _packetLength = packet.getLength();
     memcpy(&_packetData[0], packet.getData(), _packetLength);
 }
 
-NetworkPacket::NetworkPacket(sockaddr& senderAddress, unsigned char*  packetData, ssize_t packetLength) {
-    memcpy(&_senderAddress, &senderAddress, sizeof(_senderAddress));
+NetworkPacket::NetworkPacket(sockaddr& address, unsigned char*  packetData, ssize_t packetLength) {
+    memcpy(&_address, &address, sizeof(_address));
     _packetLength = packetLength;
     memcpy(&_packetData[0], packetData, packetLength);
 };
