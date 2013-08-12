@@ -2577,7 +2577,7 @@ void Application::update(float deltaTime) {
 
     // parse voxel packets
     if (!_enableProcessVoxelsThread) {
-        _voxelReceiver.threadRoutine();
+        _voxelReceiver.process();
     }
     
     //loop through all the other avatars and simulate them...

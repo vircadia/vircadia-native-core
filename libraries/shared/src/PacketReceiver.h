@@ -11,32 +11,21 @@
 #ifndef __shared__PacketReceiver__
 #define __shared__PacketReceiver__
 
+#include "GenericThread.h"
 #include "NetworkPacket.h"
 
-class PacketReceiver {
+class PacketReceiver : public GenericThread {
 public:
-    PacketReceiver();
-    virtual ~PacketReceiver();
 
     // Call this when your network receive gets a packet
     void queuePacket(sockaddr& senderAddress, unsigned char*  packetData, ssize_t packetLength);
     
     // implement this to process the incoming packets
-    virtual void processPacket(sockaddr& senderAddress, unsigned char*  packetData, ssize_t packetLength);
+    virtual void processPacket(sockaddr& senderAddress, unsigned char*  packetData, ssize_t packetLength) = 0;
 
-    // Call to start the thread
-    void initialize(bool isThreaded);
-
-    // Call when you're ready to stop the thread
-    void terminate();
-    
-    // If you're running in non-threaded mode, you must call this regularly
-    void* threadRoutine();
+    virtual bool process();
     
 private:
-    bool        _stopThread;
-    bool        _isThreaded;
-    pthread_t   _thread;
     std::vector<NetworkPacket> _packets;
 };
 
