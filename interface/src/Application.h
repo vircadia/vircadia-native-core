@@ -218,7 +218,6 @@ private:
     static void controlledBroadcastToNodes(unsigned char* broadcastData, size_t dataBytes, 
                                            const char* nodeTypes, int numNodeTypes);
 
-    static void sendVoxelServerAddScene();
     static bool sendVoxelsOperation(VoxelNode* node, void* extraData);
     static void sendVoxelEditMessage(PACKET_TYPE type, VoxelDetail& detail);
     static void sendAvatarVoxelURLMessage(const QUrl& url);
@@ -249,8 +248,6 @@ private:
    
     void checkBandwidthMeterClick();
      
-    void setupPaintingVoxel();
-    void shiftPaintingColor();
     bool maybeEditVoxelUnderCursor();
     void deleteVoxelUnderCursor();
     void eyedropperVoxelUnderCursor();
@@ -422,10 +419,6 @@ private:
     bool _isLookingAtOtherAvatar;
     glm::vec3 _lookatOtherPosition;
     float _lookatIndicatorScale;
-    
-    bool _paintOn;                // Whether to paint voxels as you fly around
-    unsigned char _dominantColor; // The dominant color of the voxel we're painting
-    VoxelDetail _paintingVoxel;   // The voxel we're painting if we're painting 
     
     bool _perfStatsOn; //  Do we want to display perfStats? 
     

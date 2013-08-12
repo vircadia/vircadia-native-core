@@ -205,8 +205,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _justEditedVoxel(false),
         _isLookingAtOtherAvatar(false),
         _lookatIndicatorScale(1.0f),
-        _paintOn(false),
-        _dominantColor(0),
         _perfStatsOn(false),
         _chatEntryOn(false),
         _oculusTextureID(0),
@@ -540,25 +538,18 @@ void Application::controlledBroadcastToNodes(unsigned char* broadcastData, size_
         // Feed number of bytes to corresponding channel of the bandwidth meter, if any (done otherwise)
         BandwidthMeter::ChannelIndex channel;
         switch (nodeTypes[i]) {
-        case NODE_TYPE_AGENT:
-        case NODE_TYPE_AVATAR_MIXER:
-            channel = BandwidthMeter::AVATARS;
-            break;
-        case NODE_TYPE_VOXEL_SERVER:
-            channel = BandwidthMeter::VOXELS;
-            break;
-        default:
-            continue;
+            case NODE_TYPE_AGENT:
+            case NODE_TYPE_AVATAR_MIXER:
+                channel = BandwidthMeter::AVATARS;
+                break;
+            case NODE_TYPE_VOXEL_SERVER:
+                channel = BandwidthMeter::VOXELS;
+                break;
+            default:
+                continue;
         }
         self->_bandwidthMeter.outputStream(channel).updateValue(nReceivingNodes * dataBytes); 
     }
-}
-
-void Application::sendVoxelServerAddScene() {
-    char message[100];
-    sprintf(message,"%c%s",'Z',"add scene");
-    int messageSize = strlen(message) + 1;
-    controlledBroadcastToNodes((unsigned char*)message, messageSize, & NODE_TYPE_VOXEL_SERVER, 1);
 }
 
 void Application::keyPressEvent(QKeyEvent* event) {
@@ -624,19 +615,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 
             case Qt::Key_Period:
                 _viewFrustumOffsetUp += 0.05;
-                break;
-                
-            case Qt::Key_Ampersand:
-                _paintOn = !_paintOn;
-                setupPaintingVoxel();
-                break;
-                
-            case Qt::Key_AsciiCircum:
-                shiftPaintingColor();
-                break;
-                
-            case Qt::Key_Percent:
-                sendVoxelServerAddScene();
                 break;
                 
             case Qt::Key_Semicolon:
@@ -2761,26 +2739,6 @@ void Application::updateAvatar(float deltaTime) {
             sendAvatarVoxelURLMessage(_myAvatar.getVoxels()->getVoxelURL());
         }
     }
-
-    // If I'm in paint mode, send a voxel out to VOXEL server nodes.
-    if (_paintOn) {
-
-        glm::vec3 avatarPos = _myAvatar.getPosition();
-
-        // For some reason, we don't want to flip X and Z here.
-        _paintingVoxel.x = avatarPos.x / 10.0;
-        _paintingVoxel.y = avatarPos.y / 10.0;
-        _paintingVoxel.z = avatarPos.z / 10.0;
-        
-        if (_paintingVoxel.x >= 0.0 && _paintingVoxel.x <= 1.0 &&
-            _paintingVoxel.y >= 0.0 && _paintingVoxel.y <= 1.0 &&
-            _paintingVoxel.z >= 0.0 && _paintingVoxel.z <= 1.0) {
-            
-            PACKET_TYPE message = (_destructiveAddVoxel->isChecked() ?
-                PACKET_TYPE_SET_VOXEL_DESTRUCTIVE : PACKET_TYPE_SET_VOXEL);
-            sendVoxelEditMessage(message, _paintingVoxel);
-        }
-    }
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -3268,15 +3226,6 @@ void Application::displayOverlay() {
     sprintf(nodes, "Servers: %d, Avatars: %d\n", totalServers, totalAvatars);
     drawtext(_glWidget->width() - 150, 20, 0.10, 0, 1.0, 0, nodes, 1, 0, 0);
     
-    if (_paintOn) {
-    
-        char paintMessage[100];
-        sprintf(paintMessage,"Painting (%.3f,%.3f,%.3f/%.3f/%d,%d,%d)",
-            _paintingVoxel.x, _paintingVoxel.y, _paintingVoxel.z, _paintingVoxel.s,
-            (unsigned int)_paintingVoxel.red, (unsigned int)_paintingVoxel.green, (unsigned int)_paintingVoxel.blue);
-        drawtext(_glWidget->width() - 350, 50, 0.10, 0, 1.0, 0, paintMessage, 1, 1, 0);
-    }
-    
     // render the webcam input frame
     _webcam.renderPreview(_glWidget->width(), _glWidget->height());
 
@@ -3733,26 +3682,6 @@ void Application::renderViewFrustum(ViewFrustum& viewFrustum) {
         }
     }
 }
-
-void Application::setupPaintingVoxel() {
-    glm::vec3 avatarPos = _myAvatar.getPosition();
-
-    _paintingVoxel.x = avatarPos.z/-10.0;    // voxel space x is negative z head space
-    _paintingVoxel.y = avatarPos.y/-10.0;  // voxel space y is negative y head space
-    _paintingVoxel.z = avatarPos.x/-10.0;  // voxel space z is negative x head space
-    _paintingVoxel.s = 1.0/256;
-    
-    shiftPaintingColor();
-}
-
-void Application::shiftPaintingColor() {
-    // About the color of the paintbrush... first determine the dominant color
-    _dominantColor = (_dominantColor + 1) % 3; // 0=red,1=green,2=blue
-    _paintingVoxel.red   = (_dominantColor == 0) ? randIntInRange(200, 255) : randIntInRange(40, 100);
-    _paintingVoxel.green = (_dominantColor == 1) ? randIntInRange(200, 255) : randIntInRange(40, 100);
-    _paintingVoxel.blue  = (_dominantColor == 2) ? randIntInRange(200, 255) : randIntInRange(40, 100);
-}
-
 
 void Application::injectVoxelAddedSoundEffect() {
     AudioInjector* voxelInjector = AudioInjectionManager::injectorWithCapacity(11025);
