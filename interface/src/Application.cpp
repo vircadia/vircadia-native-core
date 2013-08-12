@@ -1948,11 +1948,11 @@ void Application::initMenu() {
     QMenu* fileMenu = menuBar->addMenu("File");
     QAction* quitAction = fileMenu->addAction("Quit", this, SLOT(quit()), Qt::CTRL | Qt::Key_Q);
     quitAction->setMenuRole(QAction::QuitRole);
-
+    
     QMenu* editMenu = menuBar->addMenu("Edit");
     QAction* preferencesAction = editMenu->addAction("Preferences...", this, SLOT(editPreferences()), Qt::CTRL | Qt::Key_Comma);
     preferencesAction->setMenuRole(QAction::PreferencesRole);
-
+    
     QMenu* pairMenu = menuBar->addMenu("Pair");
     pairMenu->addAction("Pair", this, SLOT(pair()));
     
@@ -2011,13 +2011,13 @@ void Application::initMenu() {
     _renderLookatIndicatorOn->setChecked(true);
     (_renderParticleSystemOn = renderMenu->addAction("Particle System"))->setCheckable(true);
     (_manualFirstPerson = renderMenu->addAction(
-        "First Person", this, SLOT(setRenderFirstPerson(bool)), Qt::Key_P))->setCheckable(true);
+                                                "First Person", this, SLOT(setRenderFirstPerson(bool)), Qt::Key_P))->setCheckable(true);
     (_manualThirdPerson = renderMenu->addAction(
-        "Third Person", this, SLOT(setRenderThirdPerson(bool))))->setCheckable(true);
+                                                "Third Person", this, SLOT(setRenderThirdPerson(bool))))->setCheckable(true);
     renderMenu->addAction("Increase Avatar Size", this, SLOT(increaseAvatarSize()), Qt::Key_Plus);
     renderMenu->addAction("Decrease Avatar Size", this, SLOT(decreaseAvatarSize()), Qt::Key_Minus);
     renderMenu->addAction("Reset Avatar Size", this, SLOT(resetAvatarSize()));
-
+    
     
     QMenu* toolsMenu = menuBar->addMenu("Tools");
     (_renderStatsOn = toolsMenu->addAction("Stats"))->setCheckable(true);
@@ -2031,36 +2031,36 @@ void Application::initMenu() {
     _bandwidthDisplayOn->setChecked(true);
     toolsMenu->addAction("Bandwidth Details", this, SLOT(bandwidthDetails()));
     toolsMenu->addAction("Voxel Stats Details", this, SLOT(voxelStatsDetails()));
-
- 
+    
+    
     QMenu* voxelMenu = menuBar->addMenu("Voxels");
     _voxelModeActions = new QActionGroup(this);
     _voxelModeActions->setExclusive(false); // exclusivity implies one is always checked
-
+    
     (_addVoxelMode = voxelMenu->addAction(
-        "Add Voxel Mode", this, SLOT(updateVoxelModeActions()),    Qt::Key_V))->setCheckable(true);
+                                          "Add Voxel Mode", this, SLOT(updateVoxelModeActions()),    Qt::Key_V))->setCheckable(true);
     _voxelModeActions->addAction(_addVoxelMode);
     (_deleteVoxelMode = voxelMenu->addAction(
-        "Delete Voxel Mode", this, SLOT(updateVoxelModeActions()), Qt::Key_R))->setCheckable(true);
+                                             "Delete Voxel Mode", this, SLOT(updateVoxelModeActions()), Qt::Key_R))->setCheckable(true);
     _voxelModeActions->addAction(_deleteVoxelMode);
     (_colorVoxelMode = voxelMenu->addAction(
-        "Color Voxel Mode", this, SLOT(updateVoxelModeActions()),  Qt::Key_B))->setCheckable(true);
+                                            "Color Voxel Mode", this, SLOT(updateVoxelModeActions()),  Qt::Key_B))->setCheckable(true);
     _voxelModeActions->addAction(_colorVoxelMode);
     (_selectVoxelMode = voxelMenu->addAction(
-        "Select Voxel Mode", this, SLOT(updateVoxelModeActions()), Qt::Key_O))->setCheckable(true);
+                                             "Select Voxel Mode", this, SLOT(updateVoxelModeActions()), Qt::Key_O))->setCheckable(true);
     _voxelModeActions->addAction(_selectVoxelMode);
     (_eyedropperMode = voxelMenu->addAction(
-        "Get Color Mode", this, SLOT(updateVoxelModeActions()),   Qt::Key_G))->setCheckable(true);
+                                            "Get Color Mode", this, SLOT(updateVoxelModeActions()),   Qt::Key_G))->setCheckable(true);
     _voxelModeActions->addAction(_eyedropperMode);
-
+    
     voxelMenu->addAction("Decrease Voxel Size", this, SLOT(decreaseVoxelSize()), QKeySequence::ZoomOut);
     voxelMenu->addAction("Increase Voxel Size", this, SLOT(increaseVoxelSize()), QKeySequence::ZoomIn);
     voxelMenu->addAction("Reset Swatch Colors", this, SLOT(resetSwatchColors()));
-
-    _voxelPaintColor = voxelMenu->addAction("Voxel Paint Color", this, 
-                                                      SLOT(chooseVoxelPaintColor()),   Qt::META | Qt::Key_C);
+    
+    _voxelPaintColor = voxelMenu->addAction("Voxel Paint Color", this,
+                                            SLOT(chooseVoxelPaintColor()),   Qt::META | Qt::Key_C);
     _swatch.setAction(_voxelPaintColor);
-
+    
     QColor paintColor(128, 128, 128);
     _voxelPaintColor->setData(paintColor);
     _voxelPaintColor->setIcon(createSwatchIcon(paintColor));
@@ -2074,20 +2074,20 @@ void Application::initMenu() {
     voxelMenu->addAction("Paste Voxels",  this, SLOT(pasteVoxels()),  Qt::CTRL | Qt::Key_V);
     
     QMenu* debugMenu = menuBar->addMenu("Debug");
-
+    
     QMenu* frustumMenu = debugMenu->addMenu("View Frustum Debugging Tools");
-    (_frustumOn = frustumMenu->addAction("Display Frustum"))->setCheckable(true); 
+    (_frustumOn = frustumMenu->addAction("Display Frustum"))->setCheckable(true);
     _frustumOn->setShortcut(Qt::SHIFT | Qt::Key_F);
     _frustumRenderModeAction = frustumMenu->addAction(
-        "Render Mode", this, SLOT(cycleFrustumRenderMode()), Qt::SHIFT | Qt::Key_R);
+                                                      "Render Mode", this, SLOT(cycleFrustumRenderMode()), Qt::SHIFT | Qt::Key_R);
     updateFrustumRenderModeAction();
     
     debugMenu->addAction("Run Timing Tests", this, SLOT(runTests()));
     debugMenu->addAction("Calculate Tree Stats", this, SLOT(doTreeStats()), Qt::SHIFT | Qt::Key_S);
-
+    
     QMenu* renderDebugMenu = debugMenu->addMenu("Render Debugging Tools");
     (_renderPipelineWarnings = renderDebugMenu->addAction("Show Render Pipeline Warnings",
-                                                       this, SLOT(setRenderWarnings(bool))))->setCheckable(true);
+                                                          this, SLOT(setRenderWarnings(bool))))->setCheckable(true);
     renderDebugMenu->addAction("Kill Local Voxels", this, SLOT(doKillLocalVoxels()), Qt::CTRL | Qt::Key_K);
     renderDebugMenu->addAction("Randomize Voxel TRUE Colors", this, SLOT(doRandomizeVoxelColors()), Qt::CTRL | Qt::Key_R);
     renderDebugMenu->addAction("FALSE Color Voxels Randomly", this, SLOT(doFalseRandomizeVoxelColors()));
@@ -2098,28 +2098,28 @@ void Application::initMenu() {
     renderDebugMenu->addAction("FALSE Color Occluded V2 Voxels", this, SLOT(doFalseColorizeOccludedV2()), Qt::CTRL | Qt::Key_P);
     renderDebugMenu->addAction("FALSE Color By Source", this, SLOT(doFalseColorizeBySource()), Qt::CTRL | Qt::SHIFT | Qt::Key_S);
     renderDebugMenu->addAction("Show TRUE Colors", this, SLOT(doTrueVoxelColors()), Qt::CTRL | Qt::Key_T);
-
+    
     (_shouldLowPassFilter = debugMenu->addAction("Test: LowPass filter"))->setCheckable(true);
-
+    
     debugMenu->addAction("Wants Monochrome", this, SLOT(setWantsMonochrome(bool)))->setCheckable(true);
     debugMenu->addAction("Disable Lower Resolution While Moving", this, SLOT(disableLowResMoving(bool)))->setCheckable(true);
     debugMenu->addAction("Disable Delta Sending", this, SLOT(disableDeltaSending(bool)))->setCheckable(true);
     (_occlusionCulling = debugMenu->addAction("Disable Occlusion Culling", this, SLOT(disableOcclusionCulling(bool)),
-                         Qt::SHIFT | Qt::Key_C))->setCheckable(true);
-
+                                              Qt::SHIFT | Qt::Key_C))->setCheckable(true);
+    
     (_renderCoverageMap = debugMenu->addAction("Render Coverage Map"))->setCheckable(true);
     _renderCoverageMap->setShortcut(Qt::SHIFT | Qt::CTRL | Qt::Key_O);
     (_renderCoverageMapV2 = debugMenu->addAction("Render Coverage Map V2"))->setCheckable(true);
     _renderCoverageMapV2->setShortcut(Qt::SHIFT | Qt::CTRL | Qt::Key_P);
-
+    
     (_simulateLeapHand = debugMenu->addAction("Simulate Leap Hand"))->setCheckable(true);
     (_testRaveGlove = debugMenu->addAction("Test RaveGlove"))->setCheckable(true);
-
+    
     QMenu* audioDebugMenu = debugMenu->addMenu("Audio Debugging Tools");
     audioDebugMenu->addAction("Listen Mode Normal", this, SLOT(setListenModeNormal()), Qt::CTRL | Qt::Key_1);
     audioDebugMenu->addAction("Listen Mode Point/Radius", this, SLOT(setListenModePoint()), Qt::CTRL | Qt::Key_2);
     audioDebugMenu->addAction("Listen Mode Single Source", this, SLOT(setListenModeSingleSource()), Qt::CTRL | Qt::Key_3);
-
+    
     QMenu* settingsMenu = menuBar->addMenu("Settings");
     (_settingsAutosave = settingsMenu->addAction("Autosave"))->setCheckable(true);
     _settingsAutosave->setChecked(true);
