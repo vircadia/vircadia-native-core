@@ -215,6 +215,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
 #endif
         _stopNetworkReceiveThread(false),  
         _voxelReceiver(this),
+        _voxelEditSender(this),
         _packetCount(0),
         _packetsPerSecond(0),
         _bytesPerSecond(0),
@@ -367,6 +368,7 @@ void Application::initializeGL() {
 
     // create thread for parsing of voxel data independent of the main network and rendering threads
     _voxelReceiver.initialize(_enableProcessVoxelsThread);
+    _voxelEditSender.initialize(_enableProcessVoxelsThread);
     if (_enableProcessVoxelsThread) {
         qDebug("Voxel parsing thread created.\n");
     }
@@ -1157,6 +1159,7 @@ void Application::terminate() {
     }
 
     _voxelReceiver.terminate();
+    _voxelEditSender.terminate();
 }
 
 void Application::sendAvatarVoxelURLMessage(const QUrl& url) {
@@ -1506,16 +1509,6 @@ void Application::updateVoxelModeActions() {
     } 
 }
 
-void Application::sendVoxelEditMessage(PACKET_TYPE type, VoxelDetail& detail) {
-    unsigned char* bufferOut;
-    int sizeOut;
-
-    if (createVoxelEditMessage(type, 0, 1, &detail, bufferOut, sizeOut)){
-        Application::controlledBroadcastToNodes(bufferOut, sizeOut, & NODE_TYPE_VOXEL_SERVER, 1);
-        delete[] bufferOut;
-    }
-}
-
 const glm::vec3 Application::getMouseVoxelWorldCoordinates(const VoxelDetail _mouseVoxel) {
     return glm::vec3((_mouseVoxel.x + _mouseVoxel.s / 2.f) * TREE_SCALE,
                      (_mouseVoxel.y + _mouseVoxel.s / 2.f) * TREE_SCALE,
@@ -1553,12 +1546,8 @@ void Application::chooseVoxelPaintColor() {
 
 const int MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE = 1500;
 struct SendVoxelsOperationArgs {
-    unsigned char* newBaseOctCode;
-    unsigned char messageBuffer[MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE];
-    int bufferInUse;
-    uint64_t lastSendTime;
-    int packetsSent;
-    uint64_t bytesSent;
+    unsigned char*  newBaseOctCode;
+    Application*    app;
 };
 
 bool Application::sendVoxelsOperation(VoxelNode* node, void* extraData) {
@@ -1590,37 +1579,9 @@ bool Application::sendVoxelsOperation(VoxelNode* node, void* extraData) {
         codeColorBuffer[bytesInCode + GREEN_INDEX] = node->getColor()[GREEN_INDEX];
         codeColorBuffer[bytesInCode + BLUE_INDEX ] = node->getColor()[BLUE_INDEX ];
         
-        // if we have room don't have room in the buffer, then send the previously generated message first
-        if (args->bufferInUse + codeAndColorLength > MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE) {
-
-            args->packetsSent++;
-            args->bytesSent += args->bufferInUse;
-
-            controlledBroadcastToNodes(args->messageBuffer, args->bufferInUse, & NODE_TYPE_VOXEL_SERVER, 1);
-            args->bufferInUse = numBytesForPacketHeader((unsigned char*) &PACKET_TYPE_SET_VOXEL_DESTRUCTIVE)
-                + sizeof(unsigned short int); // reset
-                
-            uint64_t now = usecTimestampNow();
-            // dynamically sleep until we need to fire off the next set of voxels
-            uint64_t elapsed = now - args->lastSendTime;
-            int usecToSleep =  CLIENT_TO_SERVER_VOXEL_SEND_INTERVAL_USECS - elapsed;
-            if (usecToSleep > 0) {
-                //qDebug("sendVoxelsOperation: packet: %d bytes:%lld elapsed %lld usecs, sleeping for %d usecs!\n",
-                //       args->packetsSent, (long long int)args->bytesSent, (long long int)elapsed, usecToSleep);
-
-                Application::getInstance()->timer();
-
-                usleep(usecToSleep);
-            } else {
-                //qDebug("sendVoxelsOperation: packet: %d bytes:%lld elapsed %lld usecs, no need to sleep!\n",
-                //       args->packetsSent, (long long int)args->bytesSent, (long long int)elapsed);
-            }
-            args->lastSendTime = now;
-        }
+        args->app->_voxelEditSender.queueVoxelEditMessage(PACKET_TYPE_SET_VOXEL_DESTRUCTIVE, codeColorBuffer, codeAndColorLength);
         
-        // copy this node's code color details into our buffer.
-        memcpy(&args->messageBuffer[args->bufferInUse], codeColorBuffer, codeAndColorLength);
-        args->bufferInUse += codeAndColorLength;
+        delete[] codeColorBuffer;
     }
     return true; // keep going
 }
@@ -1802,15 +1763,7 @@ void Application::importVoxels() {
         // the server as an set voxel message, this will also rebase the voxels to the new location
         unsigned char* calculatedOctCode = NULL;
         SendVoxelsOperationArgs args;
-        args.lastSendTime = usecTimestampNow();
-        args.packetsSent = 0;
-        args.bytesSent = 0;
-    
-        int numBytesPacketHeader = populateTypeAndVersion(args.messageBuffer, PACKET_TYPE_SET_VOXEL_DESTRUCTIVE);
-    
-        unsigned short int* sequenceAt = (unsigned short int*)&args.messageBuffer[numBytesPacketHeader];
-        *sequenceAt = 0;
-        args.bufferInUse = numBytesPacketHeader + sizeof(unsigned short int); // set to command + sequence
+        args.app = this;
 
         // we only need the selected voxel to get the newBaseOctCode, which we can actually calculate from the
         // voxel size/position details.
@@ -1824,31 +1777,8 @@ void Application::importVoxels() {
         
         // send the insert/paste of these voxels
         importVoxels.recurseTreeWithOperation(sendVoxelsOperation, &args);
+        _voxelEditSender.flushQueue();
     
-        // If we have voxels left in the packet, then send the packet
-        if (args.bufferInUse > (numBytesPacketHeader + sizeof(unsigned short int))) {
-            controlledBroadcastToNodes(args.messageBuffer, args.bufferInUse, & NODE_TYPE_VOXEL_SERVER, 1);
-
-
-            args.packetsSent++;
-            args.bytesSent += args.bufferInUse;
-
-            uint64_t now = usecTimestampNow();
-            // dynamically sleep until we need to fire off the next set of voxels
-            uint64_t elapsed = now - args.lastSendTime;
-            int usecToSleep =  CLIENT_TO_SERVER_VOXEL_SEND_INTERVAL_USECS - elapsed;
-
-            if (usecToSleep > 0) {
-                //qDebug("after sendVoxelsOperation: packet: %d bytes:%lld elapsed %lld usecs, sleeping for %d usecs!\n",
-                //       args.packetsSent, (long long int)args.bytesSent, (long long int)elapsed, usecToSleep);
-                usleep(usecToSleep);
-            } else {
-                //qDebug("after sendVoxelsOperation: packet: %d bytes:%lld elapsed %lld usecs, no need to sleep!\n",
-                //       args.packetsSent, (long long int)args.bytesSent, (long long int)elapsed);
-            }
-            args.lastSendTime = now;
-        }
-        
         if (calculatedOctCode) {
             delete[] calculatedOctCode;
         }
@@ -1882,15 +1812,7 @@ void Application::pasteVoxels() {
     // Recurse the clipboard tree, where everything is root relative, and send all the colored voxels to 
     // the server as an set voxel message, this will also rebase the voxels to the new location
     SendVoxelsOperationArgs args;
-    args.lastSendTime = usecTimestampNow();
-    args.packetsSent = 0;
-    args.bytesSent = 0;
-    
-    int numBytesPacketHeader = populateTypeAndVersion(args.messageBuffer, PACKET_TYPE_SET_VOXEL_DESTRUCTIVE);
-    
-    unsigned short int* sequenceAt = (unsigned short int*)&args.messageBuffer[numBytesPacketHeader];
-    *sequenceAt = 0;
-    args.bufferInUse = numBytesPacketHeader + sizeof(unsigned short int); // set to command + sequence
+    args.app = this;
 
     // we only need the selected voxel to get the newBaseOctCode, which we can actually calculate from the
     // voxel size/position details. If we don't have an actual selectedNode then use the mouseVoxel to create a 
@@ -1902,14 +1824,7 @@ void Application::pasteVoxels() {
     }
 
     _clipboardTree.recurseTreeWithOperation(sendVoxelsOperation, &args);
-    
-    // If we have voxels left in the packet, then send the packet
-    if (args.bufferInUse > (numBytesPacketHeader + sizeof(unsigned short int))) {
-        controlledBroadcastToNodes(args.messageBuffer, args.bufferInUse, & NODE_TYPE_VOXEL_SERVER, 1);
-        qDebug("sending packet: %d\n", ++args.packetsSent);
-        args.bytesSent += args.bufferInUse;
-        qDebug("total bytes sent: %lld\n", (long long int)args.bytesSent);
-    }
+    _voxelEditSender.flushQueue();
     
     if (calculatedOctCode) {
         delete[] calculatedOctCode;
@@ -2556,6 +2471,7 @@ void Application::update(float deltaTime) {
     // parse voxel packets
     if (!_enableProcessVoxelsThread) {
         _voxelReceiver.process();
+        _voxelEditSender.process();
     }
     
     //loop through all the other avatars and simulate them...
@@ -3744,7 +3660,7 @@ bool Application::maybeEditVoxelUnderCursor() {
         if (_mouseVoxel.s != 0) {
             PACKET_TYPE message = (_destructiveAddVoxel->isChecked() ?
                 PACKET_TYPE_SET_VOXEL_DESTRUCTIVE : PACKET_TYPE_SET_VOXEL);
-            sendVoxelEditMessage(message, _mouseVoxel);
+            _voxelEditSender.sendVoxelEditMessage(message, _mouseVoxel);
             
             // create the voxel locally so it appears immediately
             _voxels.createVoxel(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s,
@@ -3790,7 +3706,7 @@ bool Application::maybeEditVoxelUnderCursor() {
 void Application::deleteVoxelUnderCursor() {
     if (_mouseVoxel.s != 0) {
         // sending delete to the server is sufficient, server will send new version so we see updates soon enough
-        sendVoxelEditMessage(PACKET_TYPE_ERASE_VOXEL, _mouseVoxel);
+        _voxelEditSender.sendVoxelEditMessage(PACKET_TYPE_ERASE_VOXEL, _mouseVoxel);
         AudioInjector* voxelInjector = AudioInjectionManager::injectorWithCapacity(5000);
         
         if (voxelInjector) {

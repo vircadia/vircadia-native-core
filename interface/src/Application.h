@@ -38,6 +38,7 @@
 #include "ToolsPalette.h"
 #include "ViewFrustum.h"
 #include "VoxelFade.h"
+#include "VoxelEditPacketSender.h"
 #include "VoxelPacketReceiver.h"
 #include "VoxelSystem.h"
 #include "Webcam.h"
@@ -74,6 +75,7 @@ class Application : public QApplication, public NodeListHook {
     Q_OBJECT
 
     friend class VoxelPacketReceiver;
+    friend class VoxelEditPacketSender;
 
 public:
     static Application* getInstance() { return static_cast<Application*>(QCoreApplication::instance()); }
@@ -219,7 +221,6 @@ private:
                                            const char* nodeTypes, int numNodeTypes);
 
     static bool sendVoxelsOperation(VoxelNode* node, void* extraData);
-    static void sendVoxelEditMessage(PACKET_TYPE type, VoxelDetail& detail);
     static void sendAvatarVoxelURLMessage(const QUrl& url);
     static void processAvatarVoxelURLMessage(unsigned char* packetData, size_t dataBytes);
     static void processAvatarFaceVideoMessage(unsigned char* packetData, size_t dataBytes);
@@ -449,7 +450,8 @@ private:
     bool _stopNetworkReceiveThread;
     
     bool _enableProcessVoxelsThread;
-    VoxelPacketReceiver _voxelReceiver;
+    VoxelPacketReceiver     _voxelReceiver;
+    VoxelEditPacketSender   _voxelEditSender;
     
     
     unsigned char _incomingPacket[MAX_PACKET_SIZE];

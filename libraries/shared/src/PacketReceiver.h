@@ -16,7 +16,6 @@
 
 class PacketReceiver : public GenericThread {
 public:
-
     // Call this when your network receive gets a packet
     void queuePacket(sockaddr& senderAddress, unsigned char*  packetData, ssize_t packetLength);
     
@@ -26,6 +25,7 @@ public:
     virtual bool process();
     
 private:
+
     std::vector<NetworkPacket> _packets;
 };
 

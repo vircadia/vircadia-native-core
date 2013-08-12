@@ -14,10 +14,12 @@ GenericThread::GenericThread() :
     _stopThread(false),
     _isThreaded(false) // assume non-threaded, must call initialize()
 {
+    pthread_mutex_init(&_mutex, 0);
 }
 
 GenericThread::~GenericThread() {
     terminate();
+    pthread_mutex_destroy(&_mutex);
 }
 
 void GenericThread::initialize(bool isThreaded) {

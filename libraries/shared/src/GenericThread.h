@@ -29,8 +29,14 @@ public:
     
     // If you're running in non-threaded mode, you must call this regularly
     void* threadRoutine();
+
+protected:
+    void lock() { pthread_mutex_lock(&_mutex); }
+    void unlock() { pthread_mutex_unlock(&_mutex); }
     
 private:
+    pthread_mutex_t _mutex;
+
     bool        _stopThread;
     bool        _isThreaded;
     pthread_t   _thread;

@@ -19,10 +19,15 @@
 
 class NetworkPacket {
 public:
-    NetworkPacket(sockaddr& address, unsigned char*  packetData, ssize_t packetLength);
-    NetworkPacket(const NetworkPacket& packet);
     NetworkPacket();
-    
+    NetworkPacket(const NetworkPacket& packet); // copy constructor
+    NetworkPacket(NetworkPacket && packet); // move?? // same as copy, but other packet won't be used further
+    ~NetworkPacket(); // destructor
+    NetworkPacket& operator= (NetworkPacket const &other);    // copy assignment
+    NetworkPacket& operator= (NetworkPacket&& other);         // move assignment
+
+    NetworkPacket(sockaddr& address, unsigned char*  packetData, ssize_t packetLength);
+
     sockaddr&      getAddress()       { return _address; };
     ssize_t        getLength() const  { return _packetLength;  };
     unsigned char* getData()          { return &_packetData[0]; };
@@ -31,6 +36,8 @@ public:
     const unsigned char* getData() const    { return &_packetData[0]; };
 
 private:
+    void copyContents(const sockaddr& address, const unsigned char*  packetData, ssize_t packetLength);
+    
     sockaddr        _address;
     ssize_t         _packetLength;
     unsigned char   _packetData[MAX_PACKET_SIZE];
