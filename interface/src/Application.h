@@ -38,6 +38,7 @@
 #include "ToolsPalette.h"
 #include "ViewFrustum.h"
 #include "VoxelFade.h"
+#include "VoxelPacketReceiver.h"
 #include "VoxelSystem.h"
 #include "Webcam.h"
 #include "PieMenu.h"
@@ -71,6 +72,8 @@ static const float NODE_KILLED_BLUE  = 0.0f;
 
 class Application : public QApplication, public NodeListHook {
     Q_OBJECT
+
+    friend class VoxelPacketReceiver;
 
 public:
     static Application* getInstance() { return static_cast<Application*>(QCoreApplication::instance()); }
@@ -263,10 +266,6 @@ private:
     static void attachNewHeadToNode(Node *newNode);
     static void* networkReceive(void* args); // network receive thread
 
-    static void* processVoxels(void* args); // voxel parsing thread
-    void processVoxelPacket(sockaddr& senderAddress, unsigned char*  packetData, ssize_t packetLength);
-    void queueVoxelPacket(sockaddr& senderAddress, unsigned char*  packetData, ssize_t packetLength);
-    
     // methodes handling menu settings
     typedef void(*settingsAction)(QSettings*, QAction*);
     static void loadAction(QSettings* set, QAction* action);
@@ -457,9 +456,7 @@ private:
     bool _stopNetworkReceiveThread;
     
     bool _enableProcessVoxelsThread;
-    pthread_t _processVoxelsThread;
-    bool _stopProcessVoxelsThread;
-    std::vector<NetworkPacket> _voxelPackets;
+    VoxelPacketReceiver _voxelReceiver;
     
     
     unsigned char _incomingPacket[MAX_PACKET_SIZE];
