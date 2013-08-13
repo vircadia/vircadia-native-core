@@ -29,8 +29,12 @@ VoxelSceneStats::~VoxelSceneStats() {
     if (_jurisdictionRoot) {
         delete[] _jurisdictionRoot;
     }
+    for (int i=0; i < _jurisdictionEndNodes.size(); i++) {
+        if (_jurisdictionEndNodes[i]) {
+            delete[] _jurisdictionEndNodes[i];
+        }
+    }
 }
-
 
 void VoxelSceneStats::sceneStarted(bool isFullScene, bool isMoving, VoxelNode* root, JurisdictionMap* jurisdictionMap) {
     reset(); // resets packet and voxel stats
@@ -53,6 +57,16 @@ void VoxelSceneStats::sceneStarted(bool isFullScene, bool isMoving, VoxelNode* r
             int bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(jurisdictionRoot));
             _jurisdictionRoot = new unsigned char[bytes];
             memcpy(_jurisdictionRoot, jurisdictionRoot, bytes);
+        }
+
+        for (int i=0; i < jurisdictionMap->getEndNodeCount(); i++) {
+            unsigned char* endNodeCode = jurisdictionMap->getEndNodeOctalCode(i);
+            if (endNodeCode) {
+                int bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(endNodeCode));
+                unsigned char* endNodeCodeCopy = new unsigned char[bytes];
+                memcpy(endNodeCodeCopy, endNodeCode, bytes);
+                _jurisdictionEndNodes.push_back(endNodeCodeCopy);
+            }
         }
     }
 }
