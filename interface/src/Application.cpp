@@ -4045,11 +4045,13 @@ void* Application::processVoxels(void* args) {
             app->_wantToKillLocalVoxels = false;
         }
         
+        app->_voxelPacketMutex.lock();    
         while (app->_voxelPackets.size() > 0) {
             NetworkPacket& packet = app->_voxelPackets.front();
             app->processVoxelPacket(packet.getSenderAddress(), packet.getData(), packet.getLength());
             app->_voxelPackets.erase(app->_voxelPackets.begin());
         }
+        app->_voxelPacketMutex.unlock();
     
         if (!app->_enableProcessVoxelsThread) {
             break;
@@ -4063,7 +4065,9 @@ void* Application::processVoxels(void* args) {
 }
 
 void Application::queueVoxelPacket(sockaddr& senderAddress, unsigned char* packetData, ssize_t packetLength) {
+    _voxelPacketMutex.lock();
     _voxelPackets.push_back(NetworkPacket(senderAddress, packetData, packetLength));
+    _voxelPacketMutex.unlock();
 }
 
 void Application::processVoxelPacket(sockaddr& senderAddress, unsigned char* packetData, ssize_t packetLength) {
