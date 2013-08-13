@@ -2334,13 +2334,21 @@ void Application::renderLookatIndicator(glm::vec3 pointOfInterest, Camera& which
     renderCircle(haloOrigin, INDICATOR_RADIUS, IDENTITY_UP, NUM_SEGMENTS);
 }
 
+void maybeBeginFollowIndicator(bool& began) {
+    if (!began) {
+        Application::getInstance()->getGlowEffect()->begin();
+        glLineWidth(5);
+        glBegin(GL_LINES);
+        began = true;
+    }
+}
+
 void Application::renderFollowIndicator() {
     NodeList* nodeList = NodeList::getInstance();
 
-    _glowEffect.begin();
+    // initialize lazily so that we don't enable the glow effect unnecessarily
+    bool began = false;
 
-    glLineWidth(5);
-    glBegin(GL_LINES);
     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); ++node) {
         if (node->getLinkedData() != NULL && node->getType() == NODE_TYPE_AGENT) {
             Avatar* avatar = (Avatar *) node->getLinkedData();
@@ -2359,6 +2367,7 @@ void Application::renderFollowIndicator() {
                 }
 
                 if (leader != NULL) {
+                    maybeBeginFollowIndicator(began);
                     glColor3f(1.f, 0.f, 0.f);
                     glVertex3f((avatar->getHead().getPosition().x + avatar->getPosition().x) / 2.f,
                                (avatar->getHead().getPosition().y + avatar->getPosition().y) / 2.f,
@@ -2373,6 +2382,7 @@ void Application::renderFollowIndicator() {
     }
 
     if (_myAvatar.getLeadingAvatar() != NULL) {
+        maybeBeginFollowIndicator(began);
         glColor3f(1.f, 0.f, 0.f);
         glVertex3f((_myAvatar.getHead().getPosition().x + _myAvatar.getPosition().x) / 2.f,
                    (_myAvatar.getHead().getPosition().y + _myAvatar.getPosition().y) / 2.f,
@@ -2383,9 +2393,10 @@ void Application::renderFollowIndicator() {
                    (_myAvatar.getLeadingAvatar()->getHead().getPosition().z + _myAvatar.getLeadingAvatar()->getPosition().z) / 2.f);
     }
 
-    glEnd();
-    
-    _glowEffect.end();
+    if (began) {
+        glEnd();
+        _glowEffect.end();
+    }
 }
 
 void Application::update(float deltaTime) {

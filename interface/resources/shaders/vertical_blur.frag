@@ -32,5 +32,5 @@ void main(void) {
         texture2D(horizontallyBlurredTexture, gl_TexCoord[0].st + vec2(0.0, dt * 11.5)) +
         texture2D(horizontallyBlurredTexture, gl_TexCoord[0].st + vec2(0.0, dt * 13.5)) +
         texture2D(horizontallyBlurredTexture, gl_TexCoord[0].st + vec2(0.0, dt * 15.5))) / 16.0;
-    gl_FragColor = blurred * blurred.a + texture2D(originalTexture, gl_TexCoord[0].st);
+    gl_FragColor = blurred * blurred.a + texture2D(originalTexture, gl_TexCoord[0].st) * (1.0 + blurred.a * 0.5);
 }

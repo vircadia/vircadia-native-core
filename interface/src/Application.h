@@ -119,6 +119,7 @@ public:
     QNetworkAccessManager* getNetworkAccessManager() { return _networkAccessManager; }
     GeometryCache* getGeometryCache() { return &_geometryCache; }
     TextureCache* getTextureCache() { return &_textureCache; }
+    GlowEffect* getGlowEffect() { return &_glowEffect; }
     
     void resetSongMixMenuItem();
     void setupWorldLight(Camera& whichCamera);
