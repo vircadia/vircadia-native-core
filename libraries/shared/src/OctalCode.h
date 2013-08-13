@@ -10,6 +10,7 @@
 #define __hifi__OctalCode__
 
 #include <string.h>
+#include <QString>
 
 const int BITS_IN_BYTE  = 8;
 const int BITS_IN_OCTAL = 3;
@@ -49,4 +50,8 @@ typedef enum {
 } OctalCodeComparison;
 
 OctalCodeComparison compareOctalCodes(unsigned char* code1, unsigned char* code2);
+
+QString octalCodeToHexString(unsigned char* octalCode);
+unsigned char* hexStringToOctalCode(const QString& input);
+
 #endif /* defined(__hifi__OctalCode__) */

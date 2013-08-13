@@ -3872,8 +3872,13 @@ int Application::parseVoxelStats(unsigned char* messageData, ssize_t messageLeng
             _voxelFades.push_back(fade);
         }
         // store jurisdiction details for later use
-        _voxelServerJurisdictions[nodeID] = JurisdictionMap(_voxelSceneStats.getJurisdictionRoot(), 
-                                                            _voxelSceneStats.getJurisdictionEndNodes());
+        
+        // This is bit of fiddling is because JurisdictionMap assumes it is the owner of the values used to construct it
+        // but VoxelSceneStats thinks it's just returning a reference to it's contents. So we need to make a copy of the
+        // details from the VoxelSceneStats to construct the JurisdictionMap
+        JurisdictionMap jurisdictionMap;
+        jurisdictionMap.copyContents(_voxelSceneStats.getJurisdictionRoot(), _voxelSceneStats.getJurisdictionEndNodes());
+        _voxelServerJurisdictions[nodeID] = jurisdictionMap;
     }
     return statsMessageLength;
 }

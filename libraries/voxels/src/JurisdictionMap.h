@@ -43,14 +43,13 @@ public:
     unsigned char* getRootOctalCode() const { return _rootOctalCode; }
     unsigned char* getEndNodeOctalCode(int index) const { return _endNodes[index]; }
     int getEndNodeCount() const { return _endNodes.size(); }
+
+    void copyContents(unsigned char* rootCodeIn, const std::vector<unsigned char*> endNodesIn);
     
 private:
-    void copyContents(const JurisdictionMap& other);
+    void copyContents(const JurisdictionMap& other); // use assignment instead
     void clear();
     void init(unsigned char* rootOctalCode, const std::vector<unsigned char*>& endNodes);
-
-    unsigned char*  hexStringToOctalCode(const QString& input) const;
-    QString         octalCodeToHexString(unsigned char* octalCode) const;
 
     unsigned char* _rootOctalCode;
     std::vector<unsigned char*> _endNodes;

@@ -319,3 +319,48 @@ bool isAncestorOf(unsigned char* possibleAncestor, unsigned char* possibleDescen
     // they all match, so we are an ancestor
     return true;
 }
+
+unsigned char* hexStringToOctalCode(const QString& input) {
+    const int HEX_NUMBER_BASE = 16;
+    const int HEX_BYTE_SIZE = 2;
+    int stringIndex = 0;
+    int byteArrayIndex = 0;
+
+    // allocate byte array based on half of string length
+    unsigned char* bytes = new unsigned char[(input.length()) / HEX_BYTE_SIZE];
+    
+    // loop through the string - 2 bytes at a time converting
+    //  it to decimal equivalent and store in byte array
+    bool ok;
+    while (stringIndex < input.length()) {
+        uint value = input.mid(stringIndex, HEX_BYTE_SIZE).toUInt(&ok, HEX_NUMBER_BASE);
+        if (!ok) {
+            break;
+        }
+        bytes[byteArrayIndex] = (unsigned char)value;
+        stringIndex += HEX_BYTE_SIZE;
+        byteArrayIndex++;
+    }
+    
+    // something went wrong
+    if (!ok) {
+        delete[] bytes;
+        return NULL;
+    }
+    return bytes;
+}
+
+QString octalCodeToHexString(unsigned char* octalCode) {
+    const int HEX_NUMBER_BASE = 16;
+    const int HEX_BYTE_SIZE = 2;
+    QString output;
+    if (!octalCode) {
+        output = "00";
+    } else {
+        for (int i = 0; i < bytesRequiredForCodeLength(*octalCode); i++) {
+            output.append(QString("%1").arg(octalCode[i], HEX_BYTE_SIZE, HEX_NUMBER_BASE, QChar('0')).toUpper());
+        }
+    }
+    return output;
+}
+
