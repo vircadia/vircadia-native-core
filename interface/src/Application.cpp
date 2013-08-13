@@ -116,7 +116,7 @@ protected:
     virtual void wheelEvent(QWheelEvent* event);
 };
 
-GLCanvas::GLCanvas() : QGLWidget(QGLFormat(QGL::AlphaChannel)) {
+GLCanvas::GLCanvas() : QGLWidget(QGLFormat(QGL::NoDepthBuffer, QGL::NoStencilBuffer)) {
 }
 
 void GLCanvas::initializeGL() {
@@ -418,8 +418,7 @@ void Application::paintGL() {
     PerfStat("display");
 
     glEnable(GL_LINE_SMOOTH);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        
+       
     if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         _myCamera.setTightness     (100.0f); 
         _myCamera.setTargetPosition(_myAvatar.getUprightHeadPosition());

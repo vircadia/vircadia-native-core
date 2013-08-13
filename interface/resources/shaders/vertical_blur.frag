@@ -8,25 +8,29 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
-// the texture containing the color to blur
-uniform sampler2D colorTexture;
+// the texture containing the original color
+uniform sampler2D originalTexture;
+
+// the texture containing the horizontally blurred color
+uniform sampler2D horizontallyBlurredTexture;
 
 void main(void) {
     float dt = dFdy(gl_TexCoord[0].t);
-    gl_FragColor = (texture2D(colorTexture, gl_TexCoord[0].st + vec2(0.0, dt * -15.5)) +
-        texture2D(colorTexture, gl_TexCoord[0].st + vec2(0.0, dt * -13.5)) +
-        texture2D(colorTexture, gl_TexCoord[0].st + vec2(0.0, dt * -11.5)) +
-        texture2D(colorTexture, gl_TexCoord[0].st + vec2(0.0, dt * -9.5)) +
-        texture2D(colorTexture, gl_TexCoord[0].st + vec2(0.0, dt * -7.5)) +
-        texture2D(colorTexture, gl_TexCoord[0].st + vec2(0.0, dt * -4.5)) +
-        texture2D(colorTexture, gl_TexCoord[0].st + vec2(0.0, dt * -3.5)) +
-        texture2D(colorTexture, gl_TexCoord[0].st + vec2(0.0, dt * -1.5)) +
-        texture2D(colorTexture, gl_TexCoord[0].st + vec2(0.0, dt * 1.5)) +
-        texture2D(colorTexture, gl_TexCoord[0].st + vec2(0.0, dt * 3.5)) +
-        texture2D(colorTexture, gl_TexCoord[0].st + vec2(0.0, dt * 5.5)) +
-        texture2D(colorTexture, gl_TexCoord[0].st + vec2(0.0, dt * 7.5)) +
-        texture2D(colorTexture, gl_TexCoord[0].st + vec2(0.0, dt * 9.5)) +
-        texture2D(colorTexture, gl_TexCoord[0].st + vec2(0.0, dt * 11.5)) +
-        texture2D(colorTexture, gl_TexCoord[0].st + vec2(0.0, dt * 13.5)) +
-        texture2D(colorTexture, gl_TexCoord[0].st + vec2(0.0, dt * 15.5))) / 16.0;
+    vec4 blurred = (texture2D(horizontallyBlurredTexture, gl_TexCoord[0].st + vec2(0.0, dt * -15.5)) +
+        texture2D(horizontallyBlurredTexture, gl_TexCoord[0].st + vec2(0.0, dt * -13.5)) +
+        texture2D(horizontallyBlurredTexture, gl_TexCoord[0].st + vec2(0.0, dt * -11.5)) +
+        texture2D(horizontallyBlurredTexture, gl_TexCoord[0].st + vec2(0.0, dt * -9.5)) +
+        texture2D(horizontallyBlurredTexture, gl_TexCoord[0].st + vec2(0.0, dt * -7.5)) +
+        texture2D(horizontallyBlurredTexture, gl_TexCoord[0].st + vec2(0.0, dt * -4.5)) +
+        texture2D(horizontallyBlurredTexture, gl_TexCoord[0].st + vec2(0.0, dt * -3.5)) +
+        texture2D(horizontallyBlurredTexture, gl_TexCoord[0].st + vec2(0.0, dt * -1.5)) +
+        texture2D(horizontallyBlurredTexture, gl_TexCoord[0].st + vec2(0.0, dt * 1.5)) +
+        texture2D(horizontallyBlurredTexture, gl_TexCoord[0].st + vec2(0.0, dt * 3.5)) +
+        texture2D(horizontallyBlurredTexture, gl_TexCoord[0].st + vec2(0.0, dt * 5.5)) +
+        texture2D(horizontallyBlurredTexture, gl_TexCoord[0].st + vec2(0.0, dt * 7.5)) +
+        texture2D(horizontallyBlurredTexture, gl_TexCoord[0].st + vec2(0.0, dt * 9.5)) +
+        texture2D(horizontallyBlurredTexture, gl_TexCoord[0].st + vec2(0.0, dt * 11.5)) +
+        texture2D(horizontallyBlurredTexture, gl_TexCoord[0].st + vec2(0.0, dt * 13.5)) +
+        texture2D(horizontallyBlurredTexture, gl_TexCoord[0].st + vec2(0.0, dt * 15.5))) / 16.0;
+    gl_FragColor = blurred * blurred.a + texture2D(originalTexture, gl_TexCoord[0].st);
 }

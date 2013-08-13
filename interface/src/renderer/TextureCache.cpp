@@ -57,7 +57,8 @@ GLuint TextureCache::getPermutationNormalTextureID() {
 
 QOpenGLFramebufferObject* TextureCache::getPrimaryFramebufferObject() {
     if (_primaryFramebufferObject == NULL) {
-        _primaryFramebufferObject = new QOpenGLFramebufferObject(Application::getInstance()->getGLWidget()->size());
+        _primaryFramebufferObject = new QOpenGLFramebufferObject(Application::getInstance()->getGLWidget()->size(),
+            QOpenGLFramebufferObject::Depth);
         Application::getInstance()->getGLWidget()->installEventFilter(this);
     }
     return _primaryFramebufferObject;

@@ -20,7 +20,7 @@ static ProgramObject* createBlurProgram(const QString& direction) {
     program->link();
     
     program->bind();
-    program->setUniformValue("colorTexture", 0);
+    program->setUniformValue("originalTexture", 0);
     program->release();
     
     return program;
@@ -30,9 +30,16 @@ void GlowEffect::init() {
     switchToResourcesParentIfRequired();
     _horizontalBlurProgram = createBlurProgram("horizontal");
     _verticalBlurProgram = createBlurProgram("vertical");
+    
+    _verticalBlurProgram->bind();
+    _verticalBlurProgram->setUniformValue("horizontallyBlurredTexture", 1);
+    _verticalBlurProgram->release();
 }
 
 void GlowEffect::prepare() {
+    Application::getInstance()->getTextureCache()->getPrimaryFramebufferObject()->bind();
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    
     _isEmpty = true;
 }
 
@@ -59,14 +66,9 @@ static void renderFullscreenQuad() {
 }
 
 void GlowEffect::render() {
-    if (_isEmpty) {
-        return; // nothing glowing
-    }
     QOpenGLFramebufferObject* primaryFBO = Application::getInstance()->getTextureCache()->getPrimaryFramebufferObject();
+    primaryFBO->release();
     glBindTexture(GL_TEXTURE_2D, primaryFBO->texture());
-
-    QSize size = primaryFBO->size();
-    glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, size.width(), size.height());
 
     glPushMatrix();
     glLoadIdentity();
@@ -76,33 +78,51 @@ void GlowEffect::render() {
     glLoadIdentity();
     
     glDisable(GL_BLEND);
+    glDisable(GL_DEPTH_TEST);
     
-    // render the primary to the secondary with the horizontal blur
-    QOpenGLFramebufferObject* secondaryFBO = Application::getInstance()->getTextureCache()->getSecondaryFramebufferObject();
-    secondaryFBO->bind();
- 
-    _horizontalBlurProgram->bind();
-    renderFullscreenQuad();
-    _horizontalBlurProgram->release();
- 
-    secondaryFBO->release();
-    
-    // render the secondary to the screen with the vertical blur
-    glBindTexture(GL_TEXTURE_2D, secondaryFBO->texture());
-    
-    glEnable(GL_BLEND);
-    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE, GL_CONSTANT_ALPHA, GL_ONE);
-    
-    _verticalBlurProgram->bind();      
-    renderFullscreenQuad();
-    _verticalBlurProgram->release();
+    if (_isEmpty) {
+        // copy the primary to the screen
+        if (QOpenGLFramebufferObject::hasOpenGLFramebufferBlit()) {
+            QOpenGLFramebufferObject::blitFramebuffer(NULL, primaryFBO);
+                
+        } else {
+            glEnable(GL_TEXTURE_2D);
+            glDisable(GL_LIGHTING);
+            glColor3f(1.0f, 1.0f, 1.0f);
+            renderFullscreenQuad();    
+            glDisable(GL_TEXTURE_2D);
+            glEnable(GL_LIGHTING);
+        }
+    } else {
+        // render the primary to the secondary with the horizontal blur
+        QOpenGLFramebufferObject* secondaryFBO =
+            Application::getInstance()->getTextureCache()->getSecondaryFramebufferObject();
+        secondaryFBO->bind();
+     
+        _horizontalBlurProgram->bind();
+        renderFullscreenQuad();
+        _horizontalBlurProgram->release();
+     
+        secondaryFBO->release();
+        
+        // render the secondary to the screen with the vertical blur
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, secondaryFBO->texture());
+        
+        _verticalBlurProgram->bind();      
+        renderFullscreenQuad();
+        _verticalBlurProgram->release();
+        
+        glBindTexture(GL_TEXTURE_2D, 0);
+        glActiveTexture(GL_TEXTURE0);
+    }
     
     glPopMatrix();
     
     glMatrixMode(GL_MODELVIEW);
     glPopMatrix();
-    
+       
+    glEnable(GL_BLEND);
+    glEnable(GL_DEPTH_TEST);
     glBindTexture(GL_TEXTURE_2D, 0);
-    
-    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
 }
