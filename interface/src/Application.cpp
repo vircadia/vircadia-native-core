@@ -2337,6 +2337,8 @@ void Application::renderLookatIndicator(glm::vec3 pointOfInterest, Camera& which
 void Application::renderFollowIndicator() {
     NodeList* nodeList = NodeList::getInstance();
 
+    _glowEffect.begin();
+
     glLineWidth(5);
     glBegin(GL_LINES);
     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); ++node) {
@@ -2382,6 +2384,8 @@ void Application::renderFollowIndicator() {
     }
 
     glEnd();
+    
+    _glowEffect.end();
 }
 
 void Application::update(float deltaTime) {
@@ -3158,9 +3162,7 @@ void Application::displaySide(Camera& whichCamera) {
         if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
             _myAvatar.getHead().setLookAtPosition(_myCamera.getPosition());
         }
-        _glowEffect.begin();
         _myAvatar.render(_lookingInMirror->isChecked(), _renderAvatarBalls->isChecked());
-        _glowEffect.end();
         
         _myAvatar.setDisplayingLookatVectors(_renderLookatOn->isChecked());
 
