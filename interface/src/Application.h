@@ -464,7 +464,7 @@ private:
     pthread_t _processVoxelsThread;
     bool _stopProcessVoxelsThread;
     std::vector<NetworkPacket> _voxelPackets;
-    
+    QMutex _voxelPacketMutex;
     
     unsigned char _incomingPacket[MAX_PACKET_SIZE];
     int _packetCount;
