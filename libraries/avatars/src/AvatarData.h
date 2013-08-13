@@ -17,6 +17,7 @@
 #include <glm/gtc/quaternion.hpp>
 
 #include <QtCore/QObject>
+#include <QtCore/QVariantMap>
 
 #include <NodeData.h>
 #include "HeadData.h"
@@ -41,7 +42,14 @@ enum KeyState
 class JointData;
 
 class AvatarData : public NodeData {
-  Q_OBJECT
+    Q_OBJECT
+    
+    Q_PROPERTY(QVariantMap position READ getPositionVariantMap WRITE setPositionFromVariantMap)
+    Q_PROPERTY(QVariantMap handPosition READ getHandPositionVariantMap WRITE setHandPositionFromVariantMap)
+    Q_PROPERTY(float bodyYaw READ getBodyYaw WRITE setBodyYaw)
+    Q_PROPERTY(float bodyPitch READ getBodyPitch WRITE setBodyPitch)
+    Q_PROPERTY(float bodyRoll READ getBodyRoll WRITE setBodyRoll)
+    Q_PROPERTY(QString chatMessage READ getQStringChatMessage WRITE setChatMessage)
 public:
     AvatarData(Node* owningNode = NULL);
     ~AvatarData();
@@ -51,15 +59,23 @@ public:
     void setPosition      (const glm::vec3 position      ) { _position       = position;       }
     void setHandPosition  (const glm::vec3 handPosition  ) { _handPosition   = handPosition;   }
     
+    void setPositionFromVariantMap(QVariantMap positionMap);
+    QVariantMap getPositionVariantMap();
+    
+    void setHandPositionFromVariantMap(QVariantMap handPositionMap);
+    QVariantMap getHandPositionVariantMap();
+    
     int getBroadcastData(unsigned char* destinationBuffer);
     int parseData(unsigned char* sourceBuffer, int numBytes);
     
     //  Body Rotation
     float getBodyYaw() const { return _bodyYaw; }
+    void setBodyYaw(float bodyYaw) { _bodyYaw = bodyYaw; }
     float getBodyPitch() const { return _bodyPitch; }
     void setBodyPitch(float bodyPitch) { _bodyPitch = bodyPitch; }
     float getBodyRoll() const {return _bodyRoll; }
     void setBodyRoll(float bodyRoll) { _bodyRoll = bodyRoll; }
+
     
     //  Hand State
     void setHandState(char s) { _handState = s; };
@@ -89,13 +105,16 @@ public:
     
     // chat message
     void setChatMessage(const std::string& msg) { _chatMessage = msg; }
-    const std::string& chatMessage () const { return _chatMessage; }
+    void setChatMessage(const QString& string) { _chatMessage = string.toLocal8Bit().constData(); }
+    const std::string& setChatMessage() const { return _chatMessage; }
+    QString getQStringChatMessage() { return QString(_chatMessage.data()); }
 
     // related to Voxel Sending strategies
-    bool getWantColor() const            { return _wantColor; }
-    bool getWantDelta() const            { return _wantDelta; }
-    bool getWantLowResMoving() const     { return _wantLowResMoving; }
+    bool getWantColor()            const { return _wantColor; }
+    bool getWantDelta()            const { return _wantDelta; }
+    bool getWantLowResMoving()     const { return _wantLowResMoving; }
     bool getWantOcclusionCulling() const { return _wantOcclusionCulling; }
+    uint16_t getLeaderID()         const { return _leaderID; }
 
     void setWantColor(bool wantColor)                       { _wantColor = wantColor; }
     void setWantDelta(bool wantDelta)                       { _wantDelta = wantDelta; }
@@ -106,8 +125,6 @@ public:
     void setHandData(HandData* handData) { _handData = handData; }
     
 public slots:
-    void setPosition(float x, float y, float z) { _position = glm::vec3(x, y, z); }
-    void setBodyYaw(float bodyYaw) { _bodyYaw = bodyYaw; }
     void sendData();
     
 protected:
@@ -118,7 +135,12 @@ protected:
     float _bodyYaw;
     float _bodyPitch;
     float _bodyRoll;
+
+    // Body scale
     float _newScale;
+
+    // Following mode infos
+    uint16_t _leaderID;
 
     //  Hand state (are we grabbing something or not)
     char _handState;

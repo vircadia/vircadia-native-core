@@ -704,7 +704,7 @@ void Audio::addProceduralSounds(int16_t* inputBuffer,
     float speed = glm::length(_lastVelocity);
     float volume = VOLUME_BASELINE * (1.f - speed / MAX_AUDIBLE_VELOCITY);
     
-    int sample;
+    float sample;
     
     //
     // Travelling noise
@@ -724,13 +724,16 @@ void Audio::addProceduralSounds(int16_t* inputBuffer,
     if (_collisionSoundMagnitude > COLLISION_SOUND_CUTOFF_LEVEL) {
         for (int i = 0; i < numSamples; i++) {
             t = (float) _proceduralEffectSample + (float) i;
+            
             sample = sinf(t * _collisionSoundFrequency) +
                      sinf(t * _collisionSoundFrequency / DOWN_TWO_OCTAVES) +
                      sinf(t * _collisionSoundFrequency / DOWN_FOUR_OCTAVES * UP_MAJOR_FIFTH);
             sample *= _collisionSoundMagnitude * COLLISION_SOUND_MAX_VOLUME;
-            inputBuffer[i] += sample;
-            outputLeft[i] += sample;
-            outputRight[i] += sample;
+             
+            
+            inputBuffer[i] += (int) sample;
+            outputLeft[i] += (int) sample;
+            outputRight[i] += (int) sample;
             _collisionSoundMagnitude *= _collisionSoundDuration;
         }
     }

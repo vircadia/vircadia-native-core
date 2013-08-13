@@ -36,6 +36,11 @@ bool isAncestorOf(unsigned char* possibleAncestor, unsigned char* possibleDescen
 float * firstVertexForCode(unsigned char * octalCode);
 void copyFirstVertexForCode(unsigned char * octalCode, float* output);
 
+struct VoxelPositionSize {
+    float x, y, z, s;
+};
+void voxelDetailsForCode(unsigned char * octalCode, VoxelPositionSize& voxelPositionSize);
+
 typedef enum {
     ILLEGAL_CODE = -2,
     LESS_THAN = -1,

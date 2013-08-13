@@ -51,6 +51,7 @@ public:
     void lowPassFilter(int16_t* inputBuffer);
     
     void startCollisionSound(float magnitude, float frequency, float noise, float duration);
+    
     float getCollisionSoundMagnitude() { return _collisionSoundMagnitude; };
     
     int getSongFileBytes() { return _songFileBytes; }

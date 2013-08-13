@@ -10,7 +10,7 @@
 #define __hifi__JurisdictionMap__
 
 #include <vector>
-#include <QString>
+#include <QtCore/QString>
 
 class JurisdictionMap {
 public:
@@ -30,6 +30,10 @@ public:
 
     bool writeToFile(const char* filename);
     bool readFromFile(const char* filename);
+
+    unsigned char* getRootOctalCode() const { return _rootOctalCode; }
+    unsigned char* getEndNodeOctalCode(int index) const { return _endNodes[index]; }
+    int getEndNodeCount() const { return _endNodes.size(); }
     
 private:
     void clear();

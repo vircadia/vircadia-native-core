@@ -41,7 +41,7 @@ public:
     
     void init();
     void reset();
-    void simulate(float deltaTime, bool isMine);
+    void simulate(float deltaTime, bool isMine, float gyroCameraSensitivity);
     void render(float alpha);
     void renderMohawk();
 
@@ -57,6 +57,9 @@ public:
     
     void setCameraFollowsHead(bool cameraFollowsHead) { _cameraFollowsHead = cameraFollowsHead; }
     
+    float getMousePitch()                 { return _mousePitch; }
+    void  setMousePitch(float mousePitch) { _mousePitch = mousePitch; }
+
     glm::quat getOrientation() const;
     glm::quat getCameraOrientation () const;
     
@@ -112,7 +115,7 @@ private:
     float       _returnSpringScale; //strength of return springs
     glm::vec3   _bodyRotation;
     bool        _renderLookatVectors;
-    BendyLine    _hairTuft[NUM_HAIR_TUFTS];
+    BendyLine   _hairTuft[NUM_HAIR_TUFTS];
     glm::vec3*  _mohawkTriangleFan;
     glm::vec3*  _mohawkColors;
     glm::vec3   _saccade;
@@ -123,6 +126,7 @@ private:
     float       _rightEyeBlinkVelocity;
     float       _timeWithoutTalking;
     float       _cameraPitch;                   //  Used to position the camera differently from the head
+    float       _mousePitch;
     float       _cameraYaw;
     bool        _isCameraMoving;
     bool        _cameraFollowsHead;

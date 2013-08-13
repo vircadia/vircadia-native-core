@@ -30,10 +30,12 @@ const float MINIMUM_EYE_ROTATION_DOT =  0.5f; // based on a dot product: 1.0 is 
 const float EYEBALL_RADIUS           =  0.017;
 const float EYELID_RADIUS            =  0.019; 
 const float EYEBALL_COLOR[3]         =  { 0.9f, 0.9f, 0.8f };
-const float HAIR_SPRING_FORCE        =  7.0f;
-const float HAIR_TORQUE_FORCE        =  0.1f;
-const float HAIR_GRAVITY_FORCE       =  0.02f;
+
+const float HAIR_SPRING_FORCE        =  15.0f;
+const float HAIR_TORQUE_FORCE        =  0.2f;
+const float HAIR_GRAVITY_FORCE       =  0.001f;
 const float HAIR_DRAG                =  10.0f;
+
 const float HAIR_LENGTH              =  0.09f;
 const float HAIR_THICKNESS           =  0.03f;
 const float NOSE_LENGTH              =  0.025;
@@ -75,7 +77,7 @@ Head::Head(Avatar* owningAvatar) :
     _bodyRotation(0.0f, 0.0f, 0.0f),
     _renderLookatVectors(false),
     _mohawkTriangleFan(NULL),
-     _mohawkColors(NULL),
+    _mohawkColors(NULL),
     _saccade(0.0f, 0.0f, 0.0f),
     _saccadeTarget(0.0f, 0.0f, 0.0f),
     _leftEyeBlink(0.0f),
@@ -84,6 +86,7 @@ Head::Head(Avatar* owningAvatar) :
     _rightEyeBlinkVelocity(0.0f),
     _timeWithoutTalking(0.0f),
     _cameraPitch(_pitch),
+    _mousePitch(0.f),
     _cameraYaw(_yaw),
     _isCameraMoving(false),
     _cameraFollowsHead(false),
@@ -128,7 +131,6 @@ void Head::reset() {
 }
 
 void Head::resetHairPhysics() {
-    //glm::vec3 up = getUpDirection();
     for (int t = 0; t < NUM_HAIR_TUFTS; t ++) {
         for (int t = 0; t < NUM_HAIR_TUFTS; t ++) {
 
@@ -145,7 +147,7 @@ void Head::resetHairPhysics() {
 }
 
 
-void Head::simulate(float deltaTime, bool isMine) {
+void Head::simulate(float deltaTime, bool isMine, float gyroCameraSensitivity) {
     
     // Update eye saccades
     const float AVERAGE_MICROSACCADE_INTERVAL = 0.50f;
@@ -227,15 +229,22 @@ void Head::simulate(float deltaTime, bool isMine) {
     }
     
     // Update camera pitch and yaw independently from motion of head (for gyro-based interface)
-    if (isMine && _cameraFollowsHead) {
+    if (isMine && _cameraFollowsHead && (gyroCameraSensitivity > 0.f)) {
         //  If we are using gyros and using gyroLook, have the camera follow head but with a null region
         //  to create stable rendering view with small head movements.
-        const float CAMERA_FOLLOW_HEAD_RATE_START = 0.01f;
-        const float CAMERA_FOLLOW_HEAD_RATE_MAX = 0.5f;
+        const float CAMERA_FOLLOW_HEAD_RATE_START = 0.1f;
+        const float CAMERA_FOLLOW_HEAD_RATE_MAX = 1.0f;
         const float CAMERA_FOLLOW_HEAD_RATE_RAMP_RATE = 1.05f;
         const float CAMERA_STOP_TOLERANCE_DEGREES = 0.5f;
-        const float CAMERA_PITCH_START_TOLERANCE_DEGREES = 20.0f;       
-        const float CAMERA_YAW_START_TOLERANCE_DEGREES = 10.0f;
+        const float PITCH_START_RANGE = 20.f;
+        const float YAW_START_RANGE = 10.f;
+        float pitchStartTolerance = PITCH_START_RANGE
+                                    * (1.f - gyroCameraSensitivity)
+                                    + (2.f * CAMERA_STOP_TOLERANCE_DEGREES);
+        float yawStartTolerance = YAW_START_RANGE
+                                    * (1.f - gyroCameraSensitivity)
+                                    + (2.f * CAMERA_STOP_TOLERANCE_DEGREES);
+
         float cameraHeadAngleDifference = glm::length(glm::vec2(_pitch - _cameraPitch, _yaw - _cameraYaw));
         if (_isCameraMoving) {
             _cameraFollowHeadRate = glm::clamp(_cameraFollowHeadRate * CAMERA_FOLLOW_HEAD_RATE_RAMP_RATE,
@@ -248,17 +257,13 @@ void Head::simulate(float deltaTime, bool isMine) {
                 _isCameraMoving = false;
             }
         } else {
-            if ((fabs(_pitch - _cameraPitch) > CAMERA_PITCH_START_TOLERANCE_DEGREES) ||
-                (fabs(_yaw - _cameraYaw) > CAMERA_YAW_START_TOLERANCE_DEGREES)) {
+            if ((fabs(_pitch - _cameraPitch) > pitchStartTolerance) ||
+                (fabs(_yaw - _cameraYaw) > yawStartTolerance)) {
                 _isCameraMoving = true;
                 _cameraFollowHeadRate = CAMERA_FOLLOW_HEAD_RATE_START;
             }
         }
-    } else {
-        //  Camera always locked to head 
-        _cameraPitch = _pitch;
-        _cameraYaw = _yaw;
-    }
+    } 
 }
 
 void Head::calculateGeometry() {
@@ -333,12 +338,19 @@ void Head::setScale (float scale) {
     delete[] _mohawkTriangleFan;
     delete[] _mohawkColors;
     createMohawk();
+
+    if (USING_PHYSICAL_MOHAWK) {
+        for (int t = 0; t < NUM_HAIR_TUFTS; t ++) {
     
-    resetHairPhysics();
+            _hairTuft[t].setLength   (_scale * HAIR_LENGTH   );
+            _hairTuft[t].setThickness(_scale * HAIR_THICKNESS);
+        }
+    }
 }
 
+
 void Head::createMohawk() {
-    uint16_t nodeId = 0;
+    uint16_t nodeId = UNKNOWN_NODE_ID;
     if (_owningAvatar->getOwningNode()) {
         nodeId = _owningAvatar->getOwningNode()->getNodeID();
     } else {
@@ -428,7 +440,7 @@ glm::quat Head::getOrientation() const {
 glm::quat Head::getCameraOrientation () const {
     Avatar* owningAvatar = static_cast<Avatar*>(_owningAvatar);
     return owningAvatar->getWorldAlignedOrientation()
-            * glm::quat(glm::radians(glm::vec3(_cameraPitch, _cameraYaw, 0.0f)));
+            * glm::quat(glm::radians(glm::vec3(_cameraPitch + _mousePitch, _cameraYaw, 0.0f)));
 }
 
 void Head::renderHeadSphere() {
@@ -724,19 +736,21 @@ void Head::renderEyeBalls() {
 
 void Head::renderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosition, glm::vec3 lookatPosition) {
 
-    glColor3f(0.0f, 0.0f, 0.0f);
     glLineWidth(2.0);
-    glBegin(GL_LINE_STRIP);
+    glBegin(GL_LINES);
+    glColor4f(0.2f, 0.2f, 0.2f, 1.f);
     glVertex3f(leftEyePosition.x, leftEyePosition.y, leftEyePosition.z);
+    glColor4f(1.0f, 1.0f, 1.0f, 0.f);
     glVertex3f(lookatPosition.x, lookatPosition.y, lookatPosition.z);
-    glEnd();
-    glBegin(GL_LINE_STRIP);
+    glColor4f(0.2f, 0.2f, 0.2f, 1.f);
     glVertex3f(rightEyePosition.x, rightEyePosition.y, rightEyePosition.z);
+    glColor4f(1.0f, 1.0f, 1.0f, 0.f);
     glVertex3f(lookatPosition.x, lookatPosition.y, lookatPosition.z);
     glEnd();
 }
 
 void Head::updateHairPhysics(float deltaTime) {
+
     glm::quat orientation = getOrientation();
     glm::vec3 up    = orientation * IDENTITY_UP;
     glm::vec3 front = orientation * IDENTITY_FRONT;

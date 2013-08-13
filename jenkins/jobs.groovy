@@ -42,7 +42,7 @@ def hifiJob(String targetName, Boolean deploy) {
         if (deploy) {
             publishers {            
                 publishScp("${ARTIFACT_DESTINATION}") {
-                    entry("**/build/${targetName}", "deploy/${targetName}")
+                    entry("**/build/${targetName}/${targetName}", "deploy/${targetName}")
                 }
             }
         }
@@ -100,6 +100,7 @@ static Closure cmakeBuild(srcDir, instCommand) {
 
 def targets = [
     'animation-server':true,
+    'assignment-server':true,
     'audio-mixer':true,
     'avatar-mixer':true,
     'domain-server':true,

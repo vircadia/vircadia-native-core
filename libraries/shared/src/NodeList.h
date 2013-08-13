@@ -28,7 +28,7 @@ const int MAX_NUM_NODES = 10000;
 const int NODES_PER_BUCKET = 100;
 
 const int MAX_PACKET_SIZE = 1500;
-const unsigned int NODE_SOCKET_LISTEN_PORT = 40103;
+const unsigned short int NODE_SOCKET_LISTEN_PORT = 40103;
 
 const int NODE_SILENCE_THRESHOLD_USECS = 2 * 1000000;
 const int DOMAIN_SERVER_CHECK_IN_USECS = 1 * 1000000;
@@ -45,9 +45,17 @@ const int UNKNOWN_NODE_ID = -1;
 
 class NodeListIterator;
 
+// Callers who want to hook add/kill callbacks should implement this class
+class NodeListHook {
+public:
+    virtual void nodeAdded(Node* node) = 0;
+    virtual void nodeKilled(Node* node) = 0;
+};
+
+
 class NodeList {
 public:
-    static NodeList* createInstance(char ownerType, unsigned int socketListenPort = NODE_SOCKET_LISTEN_PORT);
+    static NodeList* createInstance(char ownerType, unsigned short int socketListenPort = NODE_SOCKET_LISTEN_PORT);
     static NodeList* getInstance();
     
     typedef NodeListIterator iterator;
@@ -66,14 +74,14 @@ public:
     void setDomainIPToLocalhost();
         
     uint16_t getLastNodeID() const { return _lastNodeID; }
-    void increaseNodeID() { ++_lastNodeID; }
+    void increaseNodeID() { (++_lastNodeID == UNKNOWN_NODE_ID) ? ++_lastNodeID : _lastNodeID; }
     
     uint16_t getOwnerID() const { return _ownerID; }
     void setOwnerID(uint16_t ownerID) { _ownerID = ownerID; }
     
     UDPSocket* getNodeSocket() { return &_nodeSocket; }
     
-    unsigned int getSocketListenPort() const { return _nodeSocket.getListeningPort(); };
+    unsigned short int getSocketListenPort() const { return _nodeSocket.getListeningPort(); };
     
     void(*linkedDataCreateCallback)(Node *);
     
@@ -111,10 +119,16 @@ public:
     void saveData(QSettings* settings);
     
     friend class NodeListIterator;
+    
+    void addHook(NodeListHook* hook);
+    void removeHook(NodeListHook* hook);
+    void notifyHooksOfAddedNode(Node* node);
+    void notifyHooksOfKilledNode(Node* node);
+    
 private:
     static NodeList* _sharedInstance;
     
-    NodeList(char ownerType, unsigned int socketListenPort);
+    NodeList(char ownerType, unsigned short int socketListenPort);
     ~NodeList();
     NodeList(NodeList const&); // Don't implement, needed to avoid copies of singleton
     void operator=(NodeList const&); // Don't implement, needed to avoid copies of singleton
@@ -128,7 +142,6 @@ private:
     UDPSocket _nodeSocket;
     char _ownerType;
     char* _nodeTypesOfInterest;
-    unsigned int _socketListenPort;
     uint16_t _ownerID;
     uint16_t _lastNodeID;
     pthread_t removeSilentNodesThread;
@@ -136,6 +149,8 @@ private:
     
     void handlePingReply(sockaddr *nodeAddress);
     void timePingReply(sockaddr *nodeAddress, unsigned char *packetData);
+    
+    std::vector<NodeListHook*> _hooks;
 };
 
 class NodeListIterator : public std::iterator<std::input_iterator_tag, Node> {

@@ -79,6 +79,11 @@ int main(int argc, const char* argv[]) {
         printf("Local Domain MODE!\n");
         nodeList->setDomainIPToLocalhost();
     }    
+
+    const char* domainIP = getCmdOption(argc, argv, "--domain");
+    if (domainIP) {
+        NodeList::getInstance()->setDomainHostname(domainIP);
+    }
     
     ssize_t receivedBytes = 0;
     

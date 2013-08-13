@@ -112,6 +112,7 @@ public:
 public slots:
 
     void cycleVideoSendMode();
+    void setDepthOnly(bool depthOnly);
     void reset();
     void shutdown();
     void grabFrame();
@@ -126,6 +127,7 @@ private:
 
     bool _initialized;
     VideoSendMode _videoSendMode;
+    bool _depthOnly;
     CvCapture* _capture;
     cv::CascadeClassifier _faceCascade;
     cv::Mat _hsvFrame;

@@ -17,8 +17,6 @@
 #include <fstream> // to load voxels from file
 #include <pthread.h>
 
-#include <glm/gtc/random.hpp>
-
 #include <OctalCode.h>
 #include <PacketHeaders.h>
 #include <PerfStat.h>
@@ -65,6 +63,7 @@ VoxelSystem::VoxelSystem(float treeScale, int maxVoxels) :
     _abandonedVBOSlots = 0;
     _falseColorizeBySource = false;
     _dataSourceID = UNKNOWN_NODE_ID;
+    _voxelServerCount = 0;
 }
 
 void VoxelSystem::nodeDeleted(VoxelNode* node) {
@@ -391,13 +390,28 @@ int VoxelSystem::newTreeToArrays(VoxelNode* node) {
     bool  shouldRender    = false; // assume we don't need to render it
     // if it's colored, we might need to render it!
     shouldRender = node->calculateShouldRender(Application::getInstance()->getViewFrustum());
+    
     node->setShouldRender(shouldRender);
     // let children figure out their renderness
     if (!node->isLeaf()) {
+    
+        // As we check our children, see if any of them went from shouldRender to NOT shouldRender
+        // then we probably dropped LOD and if we don't have color, we want to average our children 
+        // for a new color.
+        int childrenGotHiddenCount = 0;
         for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
-            if (node->getChildAtIndex(i)) {
-                voxelsUpdated += newTreeToArrays(node->getChildAtIndex(i));
+            VoxelNode* childNode = node->getChildAtIndex(i);
+            if (childNode) {
+                bool wasShouldRender = childNode->getShouldRender();
+                voxelsUpdated += newTreeToArrays(childNode);
+                bool isShouldRender = childNode->getShouldRender();
+                if (wasShouldRender && !isShouldRender) {
+                    childrenGotHiddenCount++;
+                }
             }
+        }
+        if (childrenGotHiddenCount > 0) {
+            node->setColorFromAverageOfChildren();
         }
     }
     if (_writeRenderFullVBO) {
@@ -493,7 +507,6 @@ glm::vec3 VoxelSystem::computeVoxelVertex(const glm::vec3& startVertex, float vo
 }
 
 ProgramObject* VoxelSystem::_perlinModulateProgram = 0;
-GLuint VoxelSystem::_permutationNormalTextureID = 0;
 
 void VoxelSystem::init() {
 
@@ -585,29 +598,9 @@ void VoxelSystem::init() {
     _perlinModulateProgram->addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/perlin_modulate.frag");
     _perlinModulateProgram->link();
     
+    _perlinModulateProgram->bind();
     _perlinModulateProgram->setUniformValue("permutationNormalTexture", 0);
-    
-    // create the permutation/normal texture
-    glGenTextures(1, &_permutationNormalTextureID);
-    glBindTexture(GL_TEXTURE_2D, _permutationNormalTextureID);
-    
-    // the first line consists of random permutation offsets
-    unsigned char data[256 * 2 * 3];
-    for (int i = 0; i < 256 * 3; i++) {
-        data[i] = rand() % 256;
-    }
-    // the next, random unit normals
-    for (int i = 256 * 3; i < 256 * 3 * 2; i += 3) {
-        glm::vec3 randvec = glm::sphericalRand(1.0f);
-        data[i] = ((randvec.x + 1.0f) / 2.0f) * 255.0f;
-        data[i + 1] = ((randvec.y + 1.0f) / 2.0f) * 255.0f;
-        data[i + 2] = ((randvec.z + 1.0f) / 2.0f) * 255.0f;
-    }
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 256, 2, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    
-    glBindTexture(GL_TEXTURE_2D, 0);
+    _perlinModulateProgram->release();
 }
 
 void VoxelSystem::updateFullVBOs() {
@@ -734,7 +727,7 @@ void VoxelSystem::applyScaleAndBindProgram(bool texture) {
 
     if (texture) {
         _perlinModulateProgram->bind();
-        glBindTexture(GL_TEXTURE_2D, _permutationNormalTextureID);
+        glBindTexture(GL_TEXTURE_2D, Application::getInstance()->getTextureCache()->getPermutationNormalTextureID());
     }
 }
 
@@ -1553,10 +1546,49 @@ void VoxelSystem::falseColorizeOccludedV2() {
         VoxelProjectedPolygon::intersects_calls
     );
     //myCoverageMapV2.erase();
-
-
     _tree->setDirtyBit();
     setupNewVoxelsForDrawing();
+}
+
+void VoxelSystem::nodeAdded(Node* node) {
+    if (node->getType() == NODE_TYPE_VOXEL_SERVER) {
+        uint16_t nodeID = node->getNodeID();
+        printf("VoxelSystem... voxel server %u added...\n", nodeID);
+        _voxelServerCount++;
+    }
+}
+
+bool VoxelSystem::killSourceVoxelsOperation(VoxelNode* node, void* extraData) {
+    uint16_t killedNodeID = *(uint16_t*)extraData;
+    for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
+        VoxelNode* childNode = node->getChildAtIndex(i);
+        if (childNode) {
+            uint16_t childNodeID = childNode->getSourceID();
+            if (childNodeID == killedNodeID) {
+                node->safeDeepDeleteChildAtIndex(i);
+            }
+        }
+    }
+    return true;
+}
+
+void VoxelSystem::nodeKilled(Node* node) {
+    if (node->getType() == NODE_TYPE_VOXEL_SERVER) {
+        _voxelServerCount--;
+        uint16_t nodeID = node->getNodeID();
+        printf("VoxelSystem... voxel server %u removed...\n", nodeID);
+        
+        if (_voxelServerCount > 0) {
+            // Kill any voxels from the local tree that match this nodeID
+            _tree->recurseTreeWithOperation(killSourceVoxelsOperation, &nodeID);
+            _tree->setDirtyBit();
+        } else {
+            // Last server, take the easy way and kill all the local voxels!
+            _tree->eraseAllVoxels();
+            _voxelsInWriteArrays = _voxelsInReadArrays = 0; // better way to do this??
+        }
+        setupNewVoxelsForDrawing();
+    }
 }
 
 

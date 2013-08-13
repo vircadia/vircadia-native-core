@@ -7,7 +7,7 @@
 
 #include <algorithm>
 
-#include <QDebug>
+#include <QtCore/QDebug>
 
 #include "GeometryUtil.h"
 #include "SharedUtil.h"

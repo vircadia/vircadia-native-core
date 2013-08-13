@@ -19,6 +19,7 @@
 #include <QTouchEvent>
 #include <QList>
 
+#include <NetworkPacket.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
 
@@ -31,18 +32,20 @@
 #include "Environment.h"
 #include "PacketHeaders.h"
 #include "ParticleSystem.h"
-#include "renderer/GeometryCache.h"
 #include "SerialInterface.h"
 #include "Stars.h"
 #include "Swatch.h"
 #include "ToolsPalette.h"
 #include "ViewFrustum.h"
+#include "VoxelFade.h"
 #include "VoxelSystem.h"
 #include "VoxelImporter.h"
 #include "Webcam.h"
 #include "PieMenu.h"
 #include "avatar/Avatar.h"
 #include "avatar/HandControl.h"
+#include "renderer/GeometryCache.h"
+#include "renderer/TextureCache.h"
 #include "ui/BandwidthDialog.h"
 #include "ui/ChatEntry.h"
 #include "ui/VoxelStatsDialog.h"
@@ -60,13 +63,21 @@ class QWheelEvent;
 class Node;
 class ProgramObject;
 
-class Application : public QApplication {
+static const float NODE_ADDED_RED   = 0.0f;
+static const float NODE_ADDED_GREEN = 1.0f;
+static const float NODE_ADDED_BLUE  = 0.0f;
+static const float NODE_KILLED_RED   = 1.0f;
+static const float NODE_KILLED_GREEN = 0.0f;
+static const float NODE_KILLED_BLUE  = 0.0f;
+
+class Application : public QApplication, public NodeListHook {
     Q_OBJECT
 
 public:
     static Application* getInstance() { return static_cast<Application*>(QCoreApplication::instance()); }
 
     Application(int& argc, char** argv, timeval &startup_time);
+    ~Application();
 
     void initializeGL();
     void paintGL();
@@ -106,8 +117,13 @@ public:
     
     QNetworkAccessManager* getNetworkAccessManager() { return _networkAccessManager; }
     GeometryCache* getGeometryCache() { return &_geometryCache; }
+    TextureCache* getTextureCache() { return &_textureCache; }
     
     void resetSongMixMenuItem();
+    void setupWorldLight(Camera& whichCamera);
+
+    virtual void nodeAdded(Node* node);
+    virtual void nodeKilled(Node* node);
 
 public slots:
     void sendAvatarFaceVideoMessage(int frameCount, const QByteArray& data);    
@@ -157,7 +173,7 @@ private slots:
     void doTrueVoxelColors();
     void doTreeStats();
     void setWantsMonochrome(bool wantsMonochrome);
-    void setWantsLowResMoving(bool wantsLowResMoving);
+    void disableLowResMoving(bool disableLowResMoving);
     void disableDeltaSending(bool disableDeltaSending);
     void disableOcclusionCulling(bool disableOcclusionCulling);
     void updateVoxelModeActions();
@@ -180,6 +196,7 @@ private slots:
     void setListenModePoint();
     void setListenModeSingleSource();
     void toggleMixedSong();
+    void toggleWantCollisionsOn();
 
 
     void renderCoverageMap();
@@ -194,6 +211,7 @@ private slots:
     void toggleFollowMode();
 
 private:
+    void resetCamerasOnResizeGL(Camera& camera, int width, int height);
 
     static void controlledBroadcastToNodes(unsigned char* broadcastData, size_t dataBytes, 
                                            const char* nodeTypes, int numNodeTypes);
@@ -217,6 +235,7 @@ private:
     bool isLookingAtMyAvatar(Avatar* avatar);
                                 
     void renderLookatIndicator(glm::vec3 pointOfInterest, Camera& whichCamera);
+    void renderFollowIndicator();
     void updateAvatar(float deltaTime);
     void loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum);
     
@@ -234,6 +253,7 @@ private:
     void deleteVoxelUnderCursor();
     void eyedropperVoxelUnderCursor();
     void resetSensors();
+    void injectVoxelAddedSoundEffect();
             
     void setMenuShortcutsEnabled(bool enabled);
     
@@ -242,7 +262,11 @@ private:
     QAction* checkedVoxelModeAction() const;
     
     static void attachNewHeadToNode(Node *newNode);
-    static void* networkReceive(void* args);
+    static void* networkReceive(void* args); // network receive thread
+
+    static void* processVoxels(void* args); // voxel parsing thread
+    void processVoxelPacket(sockaddr& senderAddress, unsigned char*  packetData, ssize_t packetLength);
+    void queueVoxelPacket(sockaddr& senderAddress, unsigned char*  packetData, ssize_t packetLength);
     
     // methodes handling menu settings
     typedef void(*settingsAction)(QSettings*, QAction*);
@@ -288,13 +312,14 @@ private:
     QAction* _voxelPaintColor;       // The color with which to paint voxels
     QAction* _destructiveAddVoxel;   // when doing voxel editing do we want them to be destructive
     QAction* _frustumOn;             // Whether or not to display the debug view frustum 
-    QAction* _viewFrustumFromOffset; // Whether or not to offset the view of the frustum
     QAction* _fullScreenMode;        // whether we are in full screen mode
     QAction* _frustumRenderModeAction;
     QAction* _settingsAutosave;      // Whether settings are saved automatically
     QAction* _rawAudioMicrophoneMix; // Mixing of a RAW audio file with microphone stream for rave gloves
     QAction* _noise;
     QAction* _occlusionCulling;
+    QAction* _wantCollisionsOn;
+    QAction* _renderPipelineWarnings;
 
     QAction* _renderCoverageMapV2;
     QAction* _renderCoverageMap;
@@ -360,11 +385,11 @@ private:
     Environment _environment;
     
     int _headMouseX, _headMouseY;
-    float _headCameraPitchYawScale;
+    float _gyroCameraSensitivity;
     
     int _audioJitterBufferSamples;     // Number of extra samples to wait before starting audio playback
     
-    float _horizontalFieldOfView;      // In Degrees, doesn't apply to HMD like Oculus
+    float _fieldOfView;      // In Degrees, doesn't apply to HMD like Oculus
     
     HandControl _handControl;
     
@@ -421,6 +446,7 @@ private:
     int _hmdWarpParamLocation;
     
     GeometryCache _geometryCache;
+    TextureCache _textureCache;
     
     ParticleSystem _particleSystem;
     
@@ -431,6 +457,12 @@ private:
     bool _enableNetworkThread;
     pthread_t _networkReceiveThread;
     bool _stopNetworkReceiveThread;
+    
+    bool _enableProcessVoxelsThread;
+    pthread_t _processVoxelsThread;
+    bool _stopProcessVoxelsThread;
+    std::vector<NetworkPacket> _voxelPackets;
+    
     
     unsigned char _incomingPacket[MAX_PACKET_SIZE];
     int _packetCount;
@@ -447,6 +479,11 @@ private:
     PieMenu _pieMenu;
     
     VoxelSceneStats _voxelSceneStats;
+    int parseVoxelStats(unsigned char* messageData, ssize_t messageLength, sockaddr senderAddress);
+    
+    std::map<uint16_t,VoxelPositionSize> _voxelServerJurisdictions;
+    
+    std::vector<VoxelFade> _voxelFades;
 };
 
 #endif /* defined(__interface__Application__) */

@@ -28,6 +28,7 @@ AvatarData::AvatarData(Node* owningNode) :
     _bodyPitch(0.0),
     _bodyRoll(0.0),
     _newScale(1.0f),
+    _leaderID(UNKNOWN_NODE_ID),
     _handState(0),
     _cameraPosition(0,0,0),
     _cameraOrientation(),
@@ -38,7 +39,7 @@ AvatarData::AvatarData(Node* owningNode) :
     _keyState(NO_KEY_DOWN),
     _wantColor(true),
     _wantDelta(true),
-    _wantLowResMoving(false),
+    _wantLowResMoving(true),
     _wantOcclusionCulling(true),
     _headData(NULL),
     _handData(NULL)
@@ -49,6 +50,38 @@ AvatarData::AvatarData(Node* owningNode) :
 AvatarData::~AvatarData() {
     delete _headData;
     delete _handData;
+}
+
+void AvatarData::setPositionFromVariantMap(QVariantMap positionMap) {
+    _position = glm::vec3(positionMap.value("x").toFloat(), 
+                          positionMap.value("y").toFloat(),
+                          positionMap.value("z").toFloat());
+}
+
+QVariantMap AvatarData::getPositionVariantMap() {
+    QVariantMap positionMap;
+    
+    positionMap.insert("x", _position.x);
+    positionMap.insert("y", _position.y);
+    positionMap.insert("z", _position.z);
+    
+    return positionMap;
+}
+
+void AvatarData::setHandPositionFromVariantMap(QVariantMap handPositionMap) {
+    _handPosition = glm::vec3(handPositionMap.value("x").toFloat(),
+                              handPositionMap.value("y").toFloat(),
+                              handPositionMap.value("z").toFloat());
+}
+
+QVariantMap AvatarData::getHandPositionVariantMap() {
+    QVariantMap positionMap;
+    
+    positionMap.insert("x", _handPosition.x);
+    positionMap.insert("y", _handPosition.y);
+    positionMap.insert("z", _handPosition.z);
+    
+    return positionMap;
 }
 
 void AvatarData::sendData() {
@@ -91,8 +124,14 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _bodyYaw);
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _bodyPitch);
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _bodyRoll);
+
+    // Body scale
     destinationBuffer += packFloatRatioToTwoByte(destinationBuffer, _newScale);
     
+    // Follow mode info
+    memcpy(destinationBuffer, &_leaderID, sizeof(uint16_t));
+    destinationBuffer += sizeof(uint16_t);
+
     // Head rotation (NOTE: This needs to become a quaternion to save two bytes)
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->_yaw);
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->_pitch);
@@ -188,7 +227,13 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &_bodyYaw);
     sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &_bodyPitch);
     sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &_bodyRoll);
+
+    // Body scale
     sourceBuffer += unpackFloatRatioFromTwoByte(            sourceBuffer,  _newScale);
+
+    // Follow mode info
+    memcpy(&_leaderID, sourceBuffer, sizeof(uint16_t));
+    sourceBuffer += sizeof(uint16_t);
 
     // Head rotation (NOTE: This needs to become a quaternion to save two bytes)
     float headYaw, headPitch, headRoll;

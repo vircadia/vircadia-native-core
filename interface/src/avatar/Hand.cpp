@@ -42,6 +42,9 @@ void Hand::init() {
     else {
         _ballColor = glm::vec3(0.0, 0.0, 0.4);
     }
+    
+    _raveGloveEffectsMode = RAVE_GLOVE_EFFECTS_MODE_FIRE;
+    _raveGloveEffectsModeChanged = false;
 }
 
 void Hand::reset() {
@@ -51,15 +54,20 @@ void Hand::reset() {
 void Hand::simulate(float deltaTime, bool isMine) {
 
     if (_isRaveGloveActive) {
+        if (_raveGloveEffectsModeChanged && _raveGloveInitialized) {
+            activateNewRaveGloveMode();
+            _raveGloveEffectsModeChanged = false;
+        }
+        
         updateRaveGloveParticles(deltaTime);
     }
 }
 
 void Hand::calculateGeometry() {
-    glm::vec3 offset(0.2, -0.2, -0.3);  // place the hand in front of the face where we can see it
+    const glm::vec3 leapHandsOffsetFromFace(0.0, -0.2, -0.3);  // place the hand in front of the face where we can see it
     
     Head& head = _owningAvatar->getHead();
-    _basePosition = head.getPosition() + head.getOrientation() * offset;
+    _basePosition = head.getPosition() + head.getOrientation() * leapHandsOffsetFromFace;
     _baseOrientation = head.getOrientation();
 
     // generate finger tip balls....
@@ -70,7 +78,7 @@ void Hand::calculateGeometry() {
             for (size_t f = 0; f < palm.getNumFingers(); ++f) {
                 FingerData& finger = palm.getFingers()[f];
                 if (finger.isActive()) {
-                    const float standardBallRadius = 0.01f;
+                    const float standardBallRadius = 0.005f;
                     _leapFingerTipBalls.resize(_leapFingerTipBalls.size() + 1);
                     HandBall& ball = _leapFingerTipBalls.back();
                     ball.rotation = _baseOrientation;
@@ -91,7 +99,7 @@ void Hand::calculateGeometry() {
             for (size_t f = 0; f < palm.getNumFingers(); ++f) {
                 FingerData& finger = palm.getFingers()[f];
                 if (finger.isActive()) {
-                    const float standardBallRadius = 0.01f;
+                    const float standardBallRadius = 0.005f;
                     _leapFingerRootBalls.resize(_leapFingerRootBalls.size() + 1);
                     HandBall& ball = _leapFingerRootBalls.back();
                     ball.rotation = _baseOrientation;
@@ -106,18 +114,21 @@ void Hand::calculateGeometry() {
 }
 
 void Hand::setRaveGloveEffectsMode(QKeyEvent* event) {
+
+    _raveGloveEffectsModeChanged = true;
+    
     switch (event->key()) {
     
-        case Qt::Key_0: setRaveGloveMode(RAVE_GLOVE_EFFECTS_MODE_THROBBING_COLOR); break;
-        case Qt::Key_1: setRaveGloveMode(RAVE_GLOVE_EFFECTS_MODE_TRAILS         ); break;
-        case Qt::Key_2: setRaveGloveMode(RAVE_GLOVE_EFFECTS_MODE_FIRE           ); break;
-        case Qt::Key_3: setRaveGloveMode(RAVE_GLOVE_EFFECTS_MODE_WATER          ); break;
-        case Qt::Key_4: setRaveGloveMode(RAVE_GLOVE_EFFECTS_MODE_FLASHY         ); break;
-        case Qt::Key_5: setRaveGloveMode(RAVE_GLOVE_EFFECTS_MODE_BOZO_SPARKLER  ); break;
-        case Qt::Key_6: setRaveGloveMode(RAVE_GLOVE_EFFECTS_MODE_LONG_SPARKLER  ); break;
-        case Qt::Key_7: setRaveGloveMode(RAVE_GLOVE_EFFECTS_MODE_SNAKE          ); break;
-        case Qt::Key_8: setRaveGloveMode(RAVE_GLOVE_EFFECTS_MODE_PULSE          ); break;
-        case Qt::Key_9: setRaveGloveMode(RAVE_GLOVE_EFFECTS_MODE_THROB          ); break;
+        case Qt::Key_0: _raveGloveEffectsMode = RAVE_GLOVE_EFFECTS_MODE_THROBBING_COLOR; break;
+        case Qt::Key_1: _raveGloveEffectsMode = RAVE_GLOVE_EFFECTS_MODE_TRAILS;          break;
+        case Qt::Key_2: _raveGloveEffectsMode = RAVE_GLOVE_EFFECTS_MODE_FIRE;            break;
+        case Qt::Key_3: _raveGloveEffectsMode = RAVE_GLOVE_EFFECTS_MODE_WATER;           break;
+        case Qt::Key_4: _raveGloveEffectsMode = RAVE_GLOVE_EFFECTS_MODE_FLASHY;          break;
+        case Qt::Key_5: _raveGloveEffectsMode = RAVE_GLOVE_EFFECTS_MODE_BOZO_SPARKLER;   break;
+        case Qt::Key_6: _raveGloveEffectsMode = RAVE_GLOVE_EFFECTS_MODE_LONG_SPARKLER;   break;
+        case Qt::Key_7: _raveGloveEffectsMode = RAVE_GLOVE_EFFECTS_MODE_SNAKE;           break;
+        case Qt::Key_8: _raveGloveEffectsMode = RAVE_GLOVE_EFFECTS_MODE_PULSE;           break;
+        case Qt::Key_9: _raveGloveEffectsMode = RAVE_GLOVE_EFFECTS_MODE_THROB;           break;
      };        
 }
 
@@ -128,11 +139,23 @@ void Hand::render(bool lookingInMirror) {
     
     calculateGeometry();
 
-    if (_isRaveGloveActive) {
-        renderRaveGloveStage();
+    if ( SHOW_LEAP_HAND ) {
+        if (!isRaveGloveActive()) {
+            renderLeapFingerTrails();
+        }
+        if (isRaveGloveActive()) {
+            // Use mood lighting for the hand itself
+            setRaveLights(RAVE_LIGHTS_AVATAR);
+        }
+        renderLeapHands();
+    }
 
+    if (_isRaveGloveActive) {
         if (_raveGloveInitialized) {
             updateRaveGloveEmitters(); // do this after calculateGeometry
+            
+            // Use normal lighting for the particles
+            setRaveLights(RAVE_LIGHTS_PARTICLES);
             _raveGloveParticleSystem.render();
         }
     }
@@ -140,82 +163,80 @@ void Hand::render(bool lookingInMirror) {
     glEnable(GL_DEPTH_TEST);
     glEnable(GL_RESCALE_NORMAL);
     
-    if ( SHOW_LEAP_HAND ) {
-        //renderLeapHands();
-        renderLeapFingerTrails();
-        renderLeapHandSpheres();
+}
+
+void Hand::setRaveLights(RaveLightsSetting setting) {
+    if (setting == RAVE_LIGHTS_AVATAR) {
+        // Set some mood lighting
+        GLfloat ambient_color[] = { 0.0, 0.0, 0.0 };
+        glLightfv(GL_LIGHT0, GL_AMBIENT, ambient_color);
+        GLfloat diffuse_color[] = { 0.4, 0.0, 0.0 };
+        glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse_color);
+        GLfloat specular_color[] = { 0.0, 0.0, 0.0, 0.0};
+        glLightfv(GL_LIGHT0, GL_SPECULAR, specular_color);
+        glMaterialfv(GL_FRONT, GL_SPECULAR, specular_color);
+        glMateriali(GL_FRONT, GL_SHININESS, 0);
+    }
+    else if (setting == RAVE_LIGHTS_PARTICLES) {
+        // particles use a brighter light setting
+        GLfloat ambient_color[] = { 0.7, 0.7, 0.8 };
+        glLightfv(GL_LIGHT0, GL_AMBIENT, ambient_color);
+        GLfloat diffuse_color[] = { 0.8, 0.7, 0.7 };
+        glLightfv(GL_LIGHT0, GL_DIFFUSE, diffuse_color);
+        GLfloat specular_color[] = { 1.0, 1.0, 1.0, 1.0};
+        glLightfv(GL_LIGHT0, GL_SPECULAR, specular_color);
+        glMaterialfv(GL_FRONT, GL_SPECULAR, specular_color);
+        glMateriali(GL_FRONT, GL_SHININESS, 96);
     }
 }
 
 void Hand::renderRaveGloveStage() {
-    if (_owningAvatar && _owningAvatar->isMyAvatar()) {
-        Head& head = _owningAvatar->getHead();
-        glm::quat headOrientation = head.getOrientation();
-        glm::vec3 headPosition = head.getPosition();
-        float scale = 100.0f;
-        glm::vec3 vc = headOrientation * glm::vec3( 0.0f,  0.0f, -30.0f) + headPosition;
-        glm::vec3 v0 = headOrientation * (glm::vec3(-1.0f, -1.0f, 0.0f) * scale) + vc;
-        glm::vec3 v1 = headOrientation * (glm::vec3( 1.0f, -1.0f, 0.0f) * scale) + vc;
-        glm::vec3 v2 = headOrientation * (glm::vec3( 1.0f,  1.0f, 0.0f) * scale) + vc;
-        glm::vec3 v3 = headOrientation * (glm::vec3(-1.0f,  1.0f, 0.0f) * scale) + vc;
 
-        glDisable(GL_DEPTH_TEST);
-        glEnable(GL_BLEND);
-        glBegin(GL_TRIANGLE_FAN);
-        glColor4f(0.0f, 0.0f, 0.0f, 1.0f);
-        glVertex3fv((float*)&vc);
-        glColor4f(0.0f, 0.0f, 0.0f, 0.5f);
-        glVertex3fv((float*)&v0);
-        glVertex3fv((float*)&v1);
-        glVertex3fv((float*)&v2);
-        glVertex3fv((float*)&v3);
-        glVertex3fv((float*)&v0);
-        glEnd();
-        glEnable(GL_DEPTH_TEST);
-    }
-}
-
-
-void Hand::renderLeapHands() {
-    for (size_t i = 0; i < getNumPalms(); ++i) {
-        PalmData& hand = getPalms()[i];
-        if (hand.isActive()) {
-            renderLeapHand(hand);
-        }
-    }
-}
-
-void Hand::renderLeapHand(PalmData& hand) {
-
+    // Draw a simple fullscreen triangle fan, darkest in the center.
+    glMatrixMode(GL_PROJECTION);
     glPushMatrix();
-        const float palmThickness = 0.002f;
-        glColor4f(0.5f, 0.5f, 0.5f, 1.0);
-        glm::vec3 tip = hand.getPosition();
-        glm::vec3 root = hand.getPosition() + hand.getNormal() * palmThickness;
-        Avatar::renderJointConnectingCone(root, tip, 0.05, 0.03);
-        
-        for (size_t f = 0; f < hand.getNumFingers(); ++f) {
-            FingerData& finger = hand.getFingers()[f];
-            if (finger.isActive()) {
-                glColor4f(_ballColor.r, _ballColor.g, _ballColor.b, 0.5);
-                glm::vec3 tip = finger.getTipPosition();
-                glm::vec3 root = finger.getRootPosition();
-                Avatar::renderJointConnectingCone(root, tip, 0.001, 0.003);
-            }
-        }
-         
+    glLoadIdentity();
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+
+    glDisable(GL_DEPTH_TEST);
+    glDepthMask(GL_FALSE);
+    glEnable(GL_BLEND);
+    glBegin(GL_TRIANGLE_FAN);
+    // Dark center vertex
+    glColor4f(0.0f, 0.0f, 0.0f, 1.0f);
+    glVertex3f(0.0f, 0.0f, 0.0f);
+    // Lighter outer vertices
+    glColor4f(0.0f, 0.0f, 0.0f, 0.5f);
+    glVertex3f(-1.0f,-1.0f, 0.0f);
+    glVertex3f( 1.0f,-1.0f, 0.0f);
+    glVertex3f( 1.0f, 1.0f, 0.0f);
+    glVertex3f(-1.0f, 1.0f, 0.0f);
+    glVertex3f(-1.0f,-1.0f, 0.0f);
+    glEnd();
+    glDepthMask(GL_TRUE);
+    glEnable(GL_DEPTH_TEST);
+
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    glMatrixMode(GL_MODELVIEW);
     glPopMatrix();
 }
 
+void Hand::renderLeapHands() {
 
-void Hand::renderLeapHandSpheres() {
+    const float alpha = 1.0f;
+    //const glm::vec3 handColor = _ballColor;
+    const glm::vec3 handColor(1.0, 0.84, 0.66); // use the skin color
+    
+    glDisable(GL_DEPTH_TEST);
+    glDepthMask(GL_FALSE);
     glPushMatrix();
     // Draw the leap balls
     for (size_t i = 0; i < _leapFingerTipBalls.size(); i++) {
-        float alpha = 1.0f;
-        
         if (alpha > 0.0f) {
-            glColor4f(_ballColor.r, _ballColor.g, _ballColor.b, alpha);
+            glColor4f(handColor.r, handColor.g, handColor.b, alpha);
             
             glPushMatrix();
             glTranslatef(_leapFingerTipBalls[i].position.x, _leapFingerTipBalls[i].position.y, _leapFingerTipBalls[i].position.z);
@@ -231,7 +252,7 @@ void Hand::renderLeapHandSpheres() {
             for (size_t f = 0; f < palm.getNumFingers(); ++f) {
                 FingerData& finger = palm.getFingers()[f];
                 if (finger.isActive()) {
-                    glColor4f(_ballColor.r, _ballColor.g, _ballColor.b, 0.5);
+                    glColor4f(handColor.r, handColor.g, handColor.b, 0.5);
                     glm::vec3 tip = finger.getTipPosition();
                     glm::vec3 root = finger.getRootPosition();
                     Avatar::renderJointConnectingCone(root, tip, 0.001, 0.003);
@@ -245,35 +266,39 @@ void Hand::renderLeapHandSpheres() {
         PalmData& palm = getPalms()[i];
         if (palm.isActive()) {
             const float palmThickness = 0.002f;
-            glColor4f(_ballColor.r, _ballColor.g, _ballColor.b, 0.25);
+            glColor4f(handColor.r, handColor.g, handColor.b, 0.25);
             glm::vec3 tip = palm.getPosition();
             glm::vec3 root = palm.getPosition() + palm.getNormal() * palmThickness;
             Avatar::renderJointConnectingCone(root, tip, 0.05, 0.03);
         }
     }
+    glDepthMask(GL_TRUE);
+    glEnable(GL_DEPTH_TEST);
 
     glPopMatrix();
 }
 
 void Hand::renderLeapFingerTrails() {
     // Draw the finger root cones
+    glDisable(GL_LIGHTING);
     for (size_t i = 0; i < getNumPalms(); ++i) {
         PalmData& palm = getPalms()[i];
         if (palm.isActive()) {
             for (size_t f = 0; f < palm.getNumFingers(); ++f) {
                 FingerData& finger = palm.getFingers()[f];
-                int numPositions = finger.getTrailNumPositions();
+                int numPositions = finger.getTrailNumPositions() - 1;
                 if (numPositions > 0) {
                     glBegin(GL_TRIANGLE_STRIP);
                     for (int t = 0; t < numPositions; ++t)
                     {
                         const glm::vec3& center = finger.getTrailPosition(t);
-                        const float halfWidth = 0.001f;
+                        const float halfWidth = 0.004f;
                         const glm::vec3 edgeDirection(1.0f, 0.0f, 0.0f);
                         glm::vec3 edge0 = center + edgeDirection * halfWidth;
                         glm::vec3 edge1 = center - edgeDirection * halfWidth;
                         float alpha = 1.0f - ((float)t / (float)(numPositions - 1));
-                        glColor4f(1.0f, 0.0f, 0.0f, alpha);
+                        alpha *= 0.25f;
+                        glColor4f(1.0f, 1.0f, 1.0f, alpha);
                         glVertex3fv((float*)&edge0);
                         glVertex3fv((float*)&edge1);
                     }
@@ -282,6 +307,7 @@ void Hand::renderLeapFingerTrails() {
             }
         }
     }
+    glEnable(GL_LIGHTING);
 }
 
 
@@ -303,25 +329,35 @@ void Hand::setLeapHands(const std::vector<glm::vec3>& handPositions,
 
 // call this soon after the geometry of the leap hands are set
 void Hand::updateRaveGloveEmitters() {
+    int emitterIndex = 0;
 
     for (size_t i = 0; i < NUM_FINGERS; i++) {
         _raveGloveParticleSystem.setEmitterActive(_raveGloveEmitter[i], false);
     }
 
-    for (size_t i = 0; i < _leapFingerTipBalls.size(); i++) {
-        if (i < NUM_FINGERS) {
-            glm::vec3 fingerDirection = _leapFingerTipBalls[i].position - _leapFingerRootBalls[i].position;
-            float fingerLength = glm::length(fingerDirection);
-            
-            if (fingerLength > 0.0f) {
-                fingerDirection /= fingerLength;
-            } else {
-                fingerDirection = IDENTITY_UP;
+    for (size_t palmIndex = 0; palmIndex < getNumPalms(); ++palmIndex) {
+        PalmData& palm = getPalms()[palmIndex];
+        if (palm.isActive()) {
+            for (size_t f = 0; f < palm.getNumFingers(); ++f) {
+                FingerData& finger = palm.getFingers()[f];
+                if (finger.isActive()) {
+                    if (emitterIndex < NUM_FINGERS) {   // safety, stop at the array size
+                        glm::vec3 fingerDirection = finger.getTipPosition() - finger.getRootPosition();
+                        float fingerLength = glm::length(fingerDirection);
+                        
+                        if (fingerLength > 0.0f) {
+                            fingerDirection /= fingerLength;
+                        } else {
+                            fingerDirection = IDENTITY_UP;
+                        }
+                        
+                        _raveGloveParticleSystem.setEmitterActive   (_raveGloveEmitter[emitterIndex], true);
+                        _raveGloveParticleSystem.setEmitterPosition (_raveGloveEmitter[emitterIndex], finger.getTipPosition());
+                        _raveGloveParticleSystem.setEmitterDirection(_raveGloveEmitter[emitterIndex], fingerDirection);
+                    }
+                }
+                emitterIndex++;
             }
-
-            _raveGloveParticleSystem.setEmitterActive   (_raveGloveEmitter[i], true);
-            _raveGloveParticleSystem.setEmitterPosition (_raveGloveEmitter[i], _leapFingerTipBalls[i].position);
-            _raveGloveParticleSystem.setEmitterDirection(_raveGloveEmitter[i], fingerDirection);
         }
     }
 }
@@ -340,6 +376,7 @@ void Hand::updateRaveGloveParticles(float deltaTime) {
         }
                                                     
         setRaveGloveMode(RAVE_GLOVE_EFFECTS_MODE_FIRE);
+        activateNewRaveGloveMode();
         _raveGloveParticleSystem.setUpDirection(glm::vec3(0.0f, 1.0f, 0.0f));
         _raveGloveInitialized = true;         
     } else {        
@@ -347,12 +384,14 @@ void Hand::updateRaveGloveParticles(float deltaTime) {
     }
 }
 
+// The rave glove mode has changed, so activate the effects.
+void Hand::activateNewRaveGloveMode() {
 
-
-void Hand::setRaveGloveMode(int mode) {
-
-    _raveGloveMode = mode;
-
+    if (!_raveGloveInitialized) {
+        return;
+    }
+    
+    int mode = _raveGloveEffectsMode;
     _raveGloveParticleSystem.killAllParticles();
 
     for ( int f = 0; f< NUM_FINGERS; f ++ ) {
