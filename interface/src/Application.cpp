@@ -3826,15 +3826,16 @@ void Application::nodeKilled(Node* node) {
         uint16_t nodeID = node->getNodeID();
         // see if this is the first we've heard of this node...
         if (_voxelServerJurisdictions.find(nodeID) != _voxelServerJurisdictions.end()) {
-            VoxelPositionSize jurisditionDetails;
-            jurisditionDetails = _voxelServerJurisdictions[nodeID];
+            unsigned char* rootCode = _voxelServerJurisdictions[nodeID].getRootOctalCode();
+            VoxelPositionSize rootDetails;
+            voxelDetailsForCode(rootCode, rootDetails);
 
             printf("voxel server going away...... v[%f, %f, %f, %f]\n",
-                jurisditionDetails.x, jurisditionDetails.y, jurisditionDetails.z, jurisditionDetails.s);
+                rootDetails.x, rootDetails.y, rootDetails.z, rootDetails.s);
                 
             // Add the jurisditionDetails object to the list of "fade outs"
             VoxelFade fade(VoxelFade::FADE_OUT, NODE_KILLED_RED, NODE_KILLED_GREEN, NODE_KILLED_BLUE);
-            fade.voxelDetails = jurisditionDetails;
+            fade.voxelDetails = rootDetails;
             const float slightly_smaller = 0.99;
             fade.voxelDetails.s = fade.voxelDetails.s * slightly_smaller;
             _voxelFades.push_back(fade);
@@ -3855,23 +3856,24 @@ int Application::parseVoxelStats(unsigned char* messageData, ssize_t messageLeng
     if (voxelServer) {
         uint16_t nodeID = voxelServer->getNodeID();
 
-        VoxelPositionSize jurisditionDetails;
-        voxelDetailsForCode(_voxelSceneStats.getJurisdictionRoot(), jurisditionDetails);
+        VoxelPositionSize rootDetails;
+        voxelDetailsForCode(_voxelSceneStats.getJurisdictionRoot(), rootDetails);
         
         // see if this is the first we've heard of this node...
         if (_voxelServerJurisdictions.find(nodeID) == _voxelServerJurisdictions.end()) {
             printf("stats from new voxel server... v[%f, %f, %f, %f]\n",
-                jurisditionDetails.x, jurisditionDetails.y, jurisditionDetails.z, jurisditionDetails.s);
+                rootDetails.x, rootDetails.y, rootDetails.z, rootDetails.s);
 
             // Add the jurisditionDetails object to the list of "fade outs"
             VoxelFade fade(VoxelFade::FADE_OUT, NODE_ADDED_RED, NODE_ADDED_GREEN, NODE_ADDED_BLUE);
-            fade.voxelDetails = jurisditionDetails;
+            fade.voxelDetails = rootDetails;
             const float slightly_smaller = 0.99;
             fade.voxelDetails.s = fade.voxelDetails.s * slightly_smaller;
             _voxelFades.push_back(fade);
         }
         // store jurisdiction details for later use
-        _voxelServerJurisdictions[nodeID] = jurisditionDetails;
+        _voxelServerJurisdictions[nodeID] = JurisdictionMap(_voxelSceneStats.getJurisdictionRoot(), 
+                                                            _voxelSceneStats.getJurisdictionEndNodes());
     }
     return statsMessageLength;
 }

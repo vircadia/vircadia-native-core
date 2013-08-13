@@ -13,8 +13,64 @@
 #include "JurisdictionMap.h"
 #include "VoxelNode.h"
 
+
+// standard assignment
+// copy assignment 
+JurisdictionMap& JurisdictionMap::operator=(const JurisdictionMap& other) {
+    copyContents(other);
+    printf("JurisdictionMap& JurisdictionMap::operator=(JurisdictionMap const& other) COPY ASSIGNMENT %p from %p\n", this, &other);
+    return *this;
+}
+
+// move assignment
+JurisdictionMap& JurisdictionMap::operator=(JurisdictionMap&& other) {
+    init(other._rootOctalCode, other._endNodes);
+    other._rootOctalCode = NULL;
+    other._endNodes.clear();
+    printf("JurisdictionMap& JurisdictionMap::operator=(JurisdictionMap&& other) MOVE ASSIGNMENT %p from %p\n", this, &other);
+    return *this;
+}
+
+// Move constructor
+JurisdictionMap::JurisdictionMap(JurisdictionMap&& other) : _rootOctalCode(NULL) {
+    init(other._rootOctalCode, other._endNodes);
+    other._rootOctalCode = NULL;
+    other._endNodes.clear();
+    printf("JurisdictionMap::JurisdictionMap(JurisdictionMap&& other) MOVE CONSTRUCTOR %p from %p\n", this, &other);
+}
+
+// Copy constructor
+JurisdictionMap::JurisdictionMap(const JurisdictionMap& other) : _rootOctalCode(NULL) {
+    copyContents(other);
+    printf("JurisdictionMap::JurisdictionMap(const JurisdictionMap& other) COPY CONSTRUCTOR %p from %p\n", this, &other);
+}
+
+void JurisdictionMap::copyContents(const JurisdictionMap& other) {
+    unsigned char* rootCode;
+    std::vector<unsigned char*> endNodes;
+    if (other._rootOctalCode) {
+        int bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(other._rootOctalCode));
+        rootCode = new unsigned char[bytes];
+        memcpy(rootCode, other._rootOctalCode, bytes);
+    } else {
+        rootCode = new unsigned char[1];
+        *rootCode = 0;
+    }
+    
+    for (int i = 0; i < other._endNodes.size(); i++) {
+        if (other._endNodes[i]) {
+            int bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(other._endNodes[i]));
+            unsigned char* endNodeCode = new unsigned char[bytes];
+            memcpy(endNodeCode, other._endNodes[i], bytes);
+            endNodes.push_back(endNodeCode);
+        }
+    }
+    init(rootCode, endNodes);
+}
+
 JurisdictionMap::~JurisdictionMap() {
     clear();
+    printf("JurisdictionMap::~JurisdictionMap() DESTRUCTOR %p\n",this);
 }
 
 void JurisdictionMap::clear() {
@@ -37,16 +93,19 @@ JurisdictionMap::JurisdictionMap() : _rootOctalCode(NULL) {
     
     std::vector<unsigned char*> emptyEndNodes;
     init(rootCode, emptyEndNodes);
+    printf("JurisdictionMap::~JurisdictionMap() DEFAULT CONSTRUCTOR %p\n",this);
 }
 
 JurisdictionMap::JurisdictionMap(const char* filename) : _rootOctalCode(NULL) {
     clear(); // clean up our own memory
     readFromFile(filename);
+    printf("JurisdictionMap::~JurisdictionMap() INI FILE CONSTRUCTOR %p\n",this);
 }
 
 JurisdictionMap::JurisdictionMap(unsigned char* rootOctalCode, const std::vector<unsigned char*>& endNodes)  
     : _rootOctalCode(NULL) {
     init(rootOctalCode, endNodes);
+    printf("JurisdictionMap::~JurisdictionMap() OCTCODE CONSTRUCTOR %p\n",this);
 }
 
 JurisdictionMap::JurisdictionMap(const char* rootHexCode, const char* endNodesHexCodes) {
@@ -63,6 +122,7 @@ JurisdictionMap::JurisdictionMap(const char* rootHexCode, const char* endNodesHe
         //printOctalCode(endNodeOctcode);
         _endNodes.push_back(endNodeOctcode);
     }    
+    printf("JurisdictionMap::~JurisdictionMap() HEX STRING CONSTRUCTOR %p\n",this);
 }
 
 

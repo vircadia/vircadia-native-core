@@ -20,7 +20,16 @@ public:
         BELOW
     };
     
-    JurisdictionMap();
+    // standard constructors
+    JurisdictionMap(); // default constructor
+    JurisdictionMap(const JurisdictionMap& other); // copy constructor
+    JurisdictionMap(JurisdictionMap&& other); // move constructor
+
+    // standard assignment
+    JurisdictionMap& operator= (JurisdictionMap const &other);    // copy assignment
+    JurisdictionMap& operator= (JurisdictionMap&& other);         // move assignment
+    
+    // application constructors    
     JurisdictionMap(const char* filename);
     JurisdictionMap(unsigned char* rootOctalCode, const std::vector<unsigned char*>& endNodes);
     JurisdictionMap(const char* rootHextString, const char* endNodesHextString);
@@ -36,6 +45,7 @@ public:
     int getEndNodeCount() const { return _endNodes.size(); }
     
 private:
+    void copyContents(const JurisdictionMap& other);
     void clear();
     void init(unsigned char* rootOctalCode, const std::vector<unsigned char*>& endNodes);
 

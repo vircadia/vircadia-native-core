@@ -44,9 +44,12 @@ void VoxelEditPacketSender::actuallySendMessage(unsigned char* bufferOut, ssize_
     qDebug("VoxelEditPacketSender::actuallySendMessage() sizeOut=%lu\n", sizeOut);
     NodeList* nodeList = NodeList::getInstance();
     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
-        // only send to the NodeTypes we are asked to send to.
+        // only send to the NodeTypes that are NODE_TYPE_VOXEL_SERVER
         if (node->getActiveSocket() != NULL && node->getType() == NODE_TYPE_VOXEL_SERVER) {
-            // we know which socket is good for this node, send there
+        
+            // We want to filter out edit messages for voxel servers based on the server's Jurisdiction
+            // But we can't really do that with a packed message, since each edit message could be destined 
+            // for a different voxel server...
             sockaddr* nodeAddress = node->getActiveSocket();
             queuePacket(*nodeAddress, bufferOut, sizeOut);
         }
@@ -54,6 +57,34 @@ void VoxelEditPacketSender::actuallySendMessage(unsigned char* bufferOut, ssize_
 }
 
 void VoxelEditPacketSender::queueVoxelEditMessage(PACKET_TYPE type, unsigned char* codeColorBuffer, ssize_t length) {
+/****
+    // We want to filter out edit messages for voxel servers based on the server's Jurisdiction
+    // But we can't really do that with a packed message, since each edit message could be destined 
+    // for a different voxel server... So we need to actually manage multiple queued packets... one
+    // for each voxel server
+    for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+        // only send to the NodeTypes that are NODE_TYPE_VOXEL_SERVER
+        if (node->getActiveSocket() != NULL && node->getType() == NODE_TYPE_VOXEL_SERVER) {
+        
+            // we need to get the jurisdiction for this 
+            // here we need to get the "pending packet" for this server
+
+            // If we're switching type, then we send the last one and start over
+            if ((type != _currentType && _currentSize > 0) || (_currentSize + length >= MAX_PACKET_SIZE)) {
+                flushQueue();
+                initializePacket(type);
+            }
+
+            // If the buffer is empty and not correctly initialized for our type...
+            if (type != _currentType && _currentSize == 0) {
+                initializePacket(type);
+            }
+
+            memcpy(&_currentBuffer[_currentSize], codeColorBuffer, length);
+            _currentSize += length;
+        }
+    }
+****/
     // If we're switching type, then we send the last one and start over
     if ((type != _currentType && _currentSize > 0) || (_currentSize + length >= MAX_PACKET_SIZE)) {
         flushQueue();

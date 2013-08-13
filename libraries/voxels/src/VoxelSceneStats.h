@@ -81,7 +81,7 @@ public:
     char* getItemValue(int item);
     
     unsigned char* getJurisdictionRoot() const { return _jurisdictionRoot; }
-
+    const std::vector<unsigned char*>& getJurisdictionEndNodes() const { return _jurisdictionEndNodes; }
     
 private:
     bool _isReadyToSend;
@@ -171,7 +171,8 @@ private:
     static int const MAX_ITEM_VALUE_LENGTH = 128;
     char _itemValueBuffer[MAX_ITEM_VALUE_LENGTH];
     
-    unsigned char* _jurisdictionRoot;
+    unsigned char*              _jurisdictionRoot;
+    std::vector<unsigned char*> _jurisdictionEndNodes;
 };
 
 #endif /* defined(__hifi__VoxelSceneStats__) */
