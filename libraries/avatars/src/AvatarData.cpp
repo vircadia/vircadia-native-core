@@ -39,7 +39,7 @@ AvatarData::AvatarData(Node* owningNode) :
     _keyState(NO_KEY_DOWN),
     _wantColor(true),
     _wantDelta(true),
-    _wantLowResMoving(false),
+    _wantLowResMoving(true),
     _wantOcclusionCulling(true),
     _headData(NULL),
     _handData(NULL)
