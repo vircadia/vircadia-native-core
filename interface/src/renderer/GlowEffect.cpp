@@ -14,7 +14,7 @@
 #include "GlowEffect.h"
 #include "ProgramObject.h"
 
-GlowEffect::GlowEffect() : _renderMode(DIFFUSE_ADD_MODE) {
+GlowEffect::GlowEffect() : _renderMode(BLUR_ADD_MODE) {
 }
 
 static ProgramObject* createProgram(const QString& name) {
