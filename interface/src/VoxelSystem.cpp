@@ -695,8 +695,7 @@ void VoxelSystem::render(bool texture) {
 
     applyScaleAndBindProgram(texture);
     
-    // for performance, disable blending and enable backface culling
-    glDisable(GL_BLEND);
+    // for performance, enable backface culling
     glEnable(GL_CULL_FACE);
 
     // draw the number of voxels we have
@@ -704,7 +703,6 @@ void VoxelSystem::render(bool texture) {
     glDrawRangeElementsEXT(GL_TRIANGLES, 0, VERTICES_PER_VOXEL * _voxelsInReadArrays - 1,
         36 * _voxelsInReadArrays, GL_UNSIGNED_INT, 0);
 
-    glEnable(GL_BLEND);
     glDisable(GL_CULL_FACE);
 
     removeScaleAndReleaseProgram(texture);

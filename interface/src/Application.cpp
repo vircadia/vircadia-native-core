@@ -22,6 +22,9 @@
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/vector_angle.hpp>
 
+// include this before QGLWidget, which includes an earlier version of OpenGL
+#include "InterfaceConfig.h"
+
 #include <QActionGroup>
 #include <QBoxLayout>
 #include <QColorDialog>
@@ -59,7 +62,6 @@
 #include <VoxelSceneStats.h>
 
 #include "Application.h"
-#include "InterfaceConfig.h"
 #include "LogDisplay.h"
 #include "LeapManager.h"
 #include "OculusManager.h"
@@ -92,6 +94,10 @@ const int STARTUP_JITTER_SAMPLES = PACKET_LENGTH_SAMPLES_PER_CHANNEL / 2;
 
 // customized canvas that simply forwards requests/events to the singleton application
 class GLCanvas : public QGLWidget {
+public:
+    
+    GLCanvas();
+    
 protected:
     
     virtual void initializeGL();
@@ -109,6 +115,9 @@ protected:
     
     virtual void wheelEvent(QWheelEvent* event);
 };
+
+GLCanvas::GLCanvas() : QGLWidget(QGLFormat(QGL::NoDepthBuffer, QGL::NoStencilBuffer)) {
+}
 
 void GLCanvas::initializeGL() {
     Application::getInstance()->initializeGL();
@@ -409,8 +418,7 @@ void Application::paintGL() {
     PerfStat("display");
 
     glEnable(GL_LINE_SMOOTH);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        
+       
     if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         _myCamera.setTightness     (100.0f); 
         _myCamera.setTargetPosition(_myAvatar.getUprightHeadPosition());
@@ -2213,8 +2221,8 @@ void Application::runTests() {
 
 void Application::initDisplay() {
     glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glShadeModel (GL_SMOOTH);
+    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
+    glShadeModel(GL_SMOOTH);
     glEnable(GL_LIGHTING);
     glEnable(GL_LIGHT0);
     glEnable(GL_DEPTH_TEST);
@@ -2224,6 +2232,8 @@ void Application::init() {
     _voxels.init();
     
     _environment.init();
+    
+    _glowEffect.init();
     
     _handControl.setScreenDimensions(_glWidget->width(), _glWidget->height());
 
@@ -2324,11 +2334,21 @@ void Application::renderLookatIndicator(glm::vec3 pointOfInterest, Camera& which
     renderCircle(haloOrigin, INDICATOR_RADIUS, IDENTITY_UP, NUM_SEGMENTS);
 }
 
+void maybeBeginFollowIndicator(bool& began) {
+    if (!began) {
+        Application::getInstance()->getGlowEffect()->begin();
+        glLineWidth(5);
+        glBegin(GL_LINES);
+        began = true;
+    }
+}
+
 void Application::renderFollowIndicator() {
     NodeList* nodeList = NodeList::getInstance();
 
-    glLineWidth(5);
-    glBegin(GL_LINES);
+    // initialize lazily so that we don't enable the glow effect unnecessarily
+    bool began = false;
+
     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); ++node) {
         if (node->getLinkedData() != NULL && node->getType() == NODE_TYPE_AGENT) {
             Avatar* avatar = (Avatar *) node->getLinkedData();
@@ -2347,6 +2367,7 @@ void Application::renderFollowIndicator() {
                 }
 
                 if (leader != NULL) {
+                    maybeBeginFollowIndicator(began);
                     glColor3f(1.f, 0.f, 0.f);
                     glVertex3f((avatar->getHead().getPosition().x + avatar->getPosition().x) / 2.f,
                                (avatar->getHead().getPosition().y + avatar->getPosition().y) / 2.f,
@@ -2361,6 +2382,7 @@ void Application::renderFollowIndicator() {
     }
 
     if (_myAvatar.getLeadingAvatar() != NULL) {
+        maybeBeginFollowIndicator(began);
         glColor3f(1.f, 0.f, 0.f);
         glVertex3f((_myAvatar.getHead().getPosition().x + _myAvatar.getPosition().x) / 2.f,
                    (_myAvatar.getHead().getPosition().y + _myAvatar.getPosition().y) / 2.f,
@@ -2371,7 +2393,10 @@ void Application::renderFollowIndicator() {
                    (_myAvatar.getLeadingAvatar()->getHead().getPosition().z + _myAvatar.getLeadingAvatar()->getPosition().z) / 2.f);
     }
 
-    glEnd();
+    if (began) {
+        glEnd();
+        _glowEffect.end();
+    }
 }
 
 void Application::update(float deltaTime) {
@@ -3018,6 +3043,9 @@ void Application::displaySide(Camera& whichCamera) {
     //  Setup 3D lights (after the camera transform, so that they are positioned in world space)
     setupWorldLight(whichCamera);
     
+    // prepare the glow effect
+    _glowEffect.prepare();
+    
     if (_renderStarsOn->isChecked()) {
         if (!_stars.getFileLoaded()) {
             _stars.readInput(STAR_FILE, STAR_CACHE_FILE, 0);
@@ -3146,6 +3174,7 @@ void Application::displaySide(Camera& whichCamera) {
             _myAvatar.getHead().setLookAtPosition(_myCamera.getPosition());
         }
         _myAvatar.render(_lookingInMirror->isChecked(), _renderAvatarBalls->isChecked());
+        
         _myAvatar.setDisplayingLookatVectors(_renderLookatOn->isChecked());
 
         if (_renderLookatIndicatorOn->isChecked() && _isLookingAtOtherAvatar) {
@@ -3180,6 +3209,9 @@ void Application::displaySide(Camera& whichCamera) {
     }
         
     renderFollowIndicator();
+    
+    // render the glow effect
+    _glowEffect.render();
 }
 
 void Application::displayOverlay() {

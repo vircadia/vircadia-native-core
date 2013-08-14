@@ -44,6 +44,7 @@
 #include "avatar/Avatar.h"
 #include "avatar/HandControl.h"
 #include "renderer/GeometryCache.h"
+#include "renderer/GlowEffect.h"
 #include "renderer/TextureCache.h"
 #include "ui/BandwidthDialog.h"
 #include "ui/ChatEntry.h"
@@ -99,6 +100,7 @@ public:
     
     void updateParticleSystem(float deltaTime);
     
+    QGLWidget* getGLWidget() { return _glWidget; }
     Avatar* getAvatar() { return &_myAvatar; }
     Audio* getAudio() { return &_audio; }
     Camera* getCamera() { return &_myCamera; }
@@ -117,6 +119,7 @@ public:
     QNetworkAccessManager* getNetworkAccessManager() { return _networkAccessManager; }
     GeometryCache* getGeometryCache() { return &_geometryCache; }
     TextureCache* getTextureCache() { return &_textureCache; }
+    GlowEffect* getGlowEffect() { return &_glowEffect; }
     
     void resetSongMixMenuItem();
     void setupWorldLight(Camera& whichCamera);
@@ -447,6 +450,7 @@ private:
     TextureCache _textureCache;
     
     ParticleSystem _particleSystem;
+    GlowEffect _glowEffect;
     
     #ifndef _WIN32
     Audio _audio;

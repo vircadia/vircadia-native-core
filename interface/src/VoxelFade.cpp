@@ -10,6 +10,7 @@
 
 #include <VoxelConstants.h>
 
+#include "Application.h"
 #include "VoxelFade.h"
 
 const float VoxelFade::FADE_OUT_START =  0.5f;
@@ -32,6 +33,8 @@ VoxelFade::VoxelFade(FadeDirection direction, float red, float green, float blue
 }
 
 void VoxelFade::render() {
+    Application::getInstance()->getGlowEffect()->begin();
+
     glDisable(GL_LIGHTING);
     glPushMatrix();
     glScalef(TREE_SCALE, TREE_SCALE, TREE_SCALE);
@@ -44,6 +47,9 @@ void VoxelFade::render() {
     glLineWidth(1.0f);
     glPopMatrix();
     glEnable(GL_LIGHTING);
+    
+    
+    Application::getInstance()->getGlowEffect()->end();
     
     opacity *= (direction == FADE_OUT) ? FADE_OUT_STEP : FADE_IN_STEP;
 }
