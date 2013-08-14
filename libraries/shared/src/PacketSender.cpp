@@ -8,8 +8,6 @@
 //  Threaded or non-threaded packet sender.
 //
 
-#include <QDebug.h>
-
 const uint64_t SEND_INTERVAL_USECS = 1000 * 5; // no more than 200pps... should be settable
 
 #include "NodeList.h"
@@ -35,8 +33,6 @@ bool PacketSender::process() {
         // send the packet through the NodeList...
         UDPSocket* nodeSocket = NodeList::getInstance()->getNodeSocket();
 
-        //qDebug("PacketSender::process()... nodeSocket->send() length=%lu\n", packet.getLength());
-
         nodeSocket->send(&packet.getAddress(), packet.getData(), packet.getLength());
 
         lock();
@@ -49,7 +45,6 @@ bool PacketSender::process() {
         int usecToSleep =  SEND_INTERVAL_USECS - elapsed;
         _lastSendTime = now;
         if (usecToSleep > 0) {
-            //qDebug("PacketSender::process()... sleeping for %d useconds\n", usecToSleep);
             usleep(usecToSleep);
         }
 
