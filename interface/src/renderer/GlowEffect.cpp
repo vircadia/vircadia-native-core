@@ -59,8 +59,8 @@ void GlowEffect::prepare() {
     _isEmpty = true;
 }
 
-void GlowEffect::begin(float amount) {
-    glBlendColor(0.0f, 0.0f, 0.0f, amount);
+void GlowEffect::begin(float intensity) {
+    glBlendColor(0.0f, 0.0f, 0.0f, intensity);
     _isEmpty = false;
 }
 

@@ -13,6 +13,7 @@
 
 class ProgramObject;
 
+/// A generic full screen glow effect.
 class GlowEffect : public QObject {
     Q_OBJECT
     
@@ -22,11 +23,17 @@ public:
     
     void init();
     
+    /// Prepares the glow effect for rendering the current frame.  To be called before rendering the scene.
     void prepare();
     
-    void begin(float amount = 1.0f);
+    /// Starts using the glow effect.
+    /// \param float intensity the desired glow intensity, from zero to one
+    void begin(float intensity = 1.0f);
+    
+    /// Stops using the glow effect.
     void end();
     
+    /// Renders the glow effect.  To be called after rendering the scene.
     void render();
 
 public slots:
@@ -45,8 +52,8 @@ private:
     ProgramObject* _addSeparateProgram;
     ProgramObject* _diffuseProgram;
     
-    bool _isEmpty;
-    bool _isOddFrame;
+    bool _isEmpty; ///< set when nothing in the scene is currently glowing
+    bool _isOddFrame; ///< controls the alternation between texture targets in diffuse add mode
 };
 
 #endif /* defined(__interface__GlowEffect__) */
