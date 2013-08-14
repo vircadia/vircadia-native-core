@@ -14,9 +14,12 @@
 #include "GlowEffect.h"
 #include "ProgramObject.h"
 
-static ProgramObject* createBlurProgram(const QString& direction) {
+GlowEffect::GlowEffect() : _renderMode(BLUR_ADD_MODE) {
+}
+
+static ProgramObject* createProgram(const QString& name) {
     ProgramObject* program = new ProgramObject();
-    program->addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/" + direction + "_blur.frag");
+    program->addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/" + name + ".frag");
     program->link();
     
     program->bind();
@@ -28,12 +31,20 @@ static ProgramObject* createBlurProgram(const QString& direction) {
 
 void GlowEffect::init() {
     switchToResourcesParentIfRequired();
-    _horizontalBlurProgram = createBlurProgram("horizontal");
-    _verticalBlurProgram = createBlurProgram("vertical");
     
-    _verticalBlurProgram->bind();
-    _verticalBlurProgram->setUniformValue("horizontallyBlurredTexture", 1);
-    _verticalBlurProgram->release();
+    _addProgram = createProgram("glow_add");
+    _horizontalBlurProgram = createProgram("horizontal_blur");
+    _verticalBlurAddProgram = createProgram("vertical_blur_add");
+    _verticalBlurProgram = createProgram("vertical_blur");
+    _addSeparateProgram = createProgram("glow_add_separate");
+    
+    _verticalBlurAddProgram->bind();
+    _verticalBlurAddProgram->setUniformValue("horizontallyBlurredTexture", 1);
+    _verticalBlurAddProgram->release();
+    
+    _addSeparateProgram->bind();
+    _addSeparateProgram->setUniformValue("blurredTexture", 1);
+    _addSeparateProgram->release();
 }
 
 void GlowEffect::prepare() {
@@ -93,7 +104,12 @@ void GlowEffect::render() {
             glDisable(GL_TEXTURE_2D);
             glEnable(GL_LIGHTING);
         }
-    } else {
+    } else if (_renderMode == ADD_MODE) {
+        _addProgram->bind();
+        renderFullscreenQuad();
+        _addProgram->release();
+        
+    } else { // _renderMode == BLUR_ADD_MODE || _renderMode == BLUR_PERSIST_ADD_MODE
         // render the primary to the secondary with the horizontal blur
         QOpenGLFramebufferObject* secondaryFBO =
             Application::getInstance()->getTextureCache()->getSecondaryFramebufferObject();
@@ -105,13 +121,48 @@ void GlowEffect::render() {
      
         secondaryFBO->release();
         
-        // render the secondary to the screen with the vertical blur
-        glActiveTexture(GL_TEXTURE1);
-        glBindTexture(GL_TEXTURE_2D, secondaryFBO->texture());
+        if (_renderMode == BLUR_ADD_MODE) {
+            // render the secondary to the screen with the vertical blur
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_2D, secondaryFBO->texture());
+            
+            _verticalBlurAddProgram->bind();      
+            renderFullscreenQuad();
+            _verticalBlurAddProgram->release();
+            
+        } else { // _renderMode == BLUR_PERSIST_ADD_MODE
+            // render the secondary to the tertiary with horizontal blur and persistence
+            QOpenGLFramebufferObject* tertiaryFBO =
+                Application::getInstance()->getTextureCache()->getTertiaryFramebufferObject();
+            tertiaryFBO->bind();
+            
+            glEnable(GL_BLEND);
+            glBlendFunc(GL_ONE_MINUS_CONSTANT_ALPHA, GL_CONSTANT_ALPHA);
+            const float PERSISTENCE_SMOOTHING = 0.9f;
+            glBlendColor(0.0f, 0.0f, 0.0f, PERSISTENCE_SMOOTHING);
+            
+            glBindTexture(GL_TEXTURE_2D, secondaryFBO->texture());
+            
+            _verticalBlurProgram->bind();      
+            renderFullscreenQuad();
+            _verticalBlurProgram->release();
         
-        _verticalBlurProgram->bind();      
-        renderFullscreenQuad();
-        _verticalBlurProgram->release();
+            glBlendColor(0.0f, 0.0f, 0.0f, 0.0f);
+            glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
+            glDisable(GL_BLEND);
+        
+            // now add the tertiary to the primary buffer
+            tertiaryFBO->release();
+            
+            glBindTexture(GL_TEXTURE_2D, primaryFBO->texture());
+            
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_2D, tertiaryFBO->texture());
+            
+            _addSeparateProgram->bind();      
+            renderFullscreenQuad();
+            _addSeparateProgram->release();
+        }
         
         glBindTexture(GL_TEXTURE_2D, 0);
         glActiveTexture(GL_TEXTURE0);
@@ -125,4 +176,8 @@ void GlowEffect::render() {
     glEnable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);
     glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+void GlowEffect::cycleRenderMode() {
+    _renderMode = (RenderMode)((_renderMode + 1) % RENDER_MODE_COUNT);
 }
