@@ -39,7 +39,6 @@ void VoxelEditPacketSender::sendVoxelEditMessage(PACKET_TYPE type, VoxelDetail& 
 }
 
 void VoxelEditPacketSender::actuallySendMessage(uint16_t nodeID, unsigned char* bufferOut, ssize_t sizeOut) {
-    qDebug("VoxelEditPacketSender::actuallySendMessage() sizeOut=%lu target NodeID=%d\n", sizeOut, nodeID);
     NodeList* nodeList = NodeList::getInstance();
     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
         // only send to the NodeTypes that are NODE_TYPE_VOXEL_SERVER
@@ -65,13 +64,7 @@ void VoxelEditPacketSender::queueVoxelEditMessage(PACKET_TYPE type, unsigned cha
             // here we need to get the "pending packet" for this server
             uint16_t nodeID = node->getNodeID();
             const JurisdictionMap& map = _app->_voxelServerJurisdictions[nodeID];
-            
             if (map.isMyJurisdiction(codeColorBuffer, CHECK_NODE_ONLY) == JurisdictionMap::WITHIN) {
-
-                // do I need this???            
-                //if (_pendingEditPackets.find(nodeID) == _pendingEditPackets.end()) {
-                //    _pendingEditPackets[nodeID] = 
-                //}
                 EditPacketBuffer& packetBuffer = _pendingEditPackets[nodeID];
                 packetBuffer._nodeID = nodeID;
             

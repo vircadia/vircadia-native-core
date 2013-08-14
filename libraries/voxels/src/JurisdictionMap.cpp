@@ -138,7 +138,7 @@ void JurisdictionMap::init(unsigned char* rootOctalCode, const std::vector<unsig
 
 JurisdictionMap::Area JurisdictionMap::isMyJurisdiction(unsigned char* nodeOctalCode, int childIndex) const {
     // to be in our jurisdiction, we must be under the root...
-    
+
     // if the node is an ancestor of my root, then we return ABOVE
     if (isAncestorOf(nodeOctalCode, _rootOctalCode)) {
         return ABOVE;
@@ -146,12 +146,6 @@ JurisdictionMap::Area JurisdictionMap::isMyJurisdiction(unsigned char* nodeOctal
     
     // otherwise...
     bool isInJurisdiction = isAncestorOf(_rootOctalCode, nodeOctalCode, childIndex);
-
-    //printf("isInJurisdiction=%s rootOctalCode=",debug::valueOf(isInJurisdiction));
-    //printOctalCode(_rootOctalCode);
-    //printf("nodeOctalCode=");
-    //printOctalCode(nodeOctalCode);
-    
     // if we're under the root, then we can't be under any of the endpoints
     if (isInJurisdiction) {
         for (int i = 0; i < _endNodes.size(); i++) {
@@ -162,7 +156,6 @@ JurisdictionMap::Area JurisdictionMap::isMyJurisdiction(unsigned char* nodeOctal
             }
         }
     }
-
     return isInJurisdiction ? WITHIN : BELOW;
 }
 

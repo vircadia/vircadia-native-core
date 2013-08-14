@@ -439,16 +439,16 @@ int VoxelSceneStats::unpackFromMessage(unsigned char* sourceBuffer, int availabl
 
     if (bytes == 0) {
         _jurisdictionRoot = NULL;
+        _jurisdictionEndNodes.clear();
     } else {
         _jurisdictionRoot = new unsigned char[bytes];
         memcpy(_jurisdictionRoot, sourceBuffer, bytes);
         sourceBuffer += bytes;
-
         // if and only if there's a root jurisdiction, also include the end nodes
+        _jurisdictionEndNodes.clear();
         int endNodeCount = 0;
         memcpy(&endNodeCount, sourceBuffer, sizeof(endNodeCount));
         sourceBuffer += sizeof(endNodeCount);
-
         for (int i=0; i < endNodeCount; i++) {
             int bytes = 0;
             memcpy(&bytes, sourceBuffer, sizeof(bytes));
