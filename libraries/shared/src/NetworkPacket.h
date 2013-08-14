@@ -21,10 +21,13 @@ class NetworkPacket {
 public:
     NetworkPacket();
     NetworkPacket(const NetworkPacket& packet); // copy constructor
-    NetworkPacket(NetworkPacket&& packet); // move?? // same as copy, but other packet won't be used further
     ~NetworkPacket(); // destructor
     NetworkPacket& operator= (const NetworkPacket& other);    // copy assignment
+
+#ifdef HAS_MOVE_SEMANTICS
+    NetworkPacket(NetworkPacket&& packet); // move?? // same as copy, but other packet won't be used further
     NetworkPacket& operator= (NetworkPacket&& other);         // move assignment
+#endif
 
     NetworkPacket(sockaddr& address, unsigned char*  packetData, ssize_t packetLength);
 

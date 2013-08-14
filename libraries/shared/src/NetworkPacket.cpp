@@ -37,12 +37,6 @@ NetworkPacket::NetworkPacket(const NetworkPacket& packet) {
     copyContents(packet.getAddress(), packet.getData(), packet.getLength());
 }
 
-// move?? // same as copy, but other packet won't be used further
-NetworkPacket::NetworkPacket(NetworkPacket && packet) {
-    copyContents(packet.getAddress(), packet.getData(), packet.getLength());
-}
-
-
 NetworkPacket::NetworkPacket(sockaddr& address, unsigned char*  packetData, ssize_t packetLength) {
     copyContents(address, packetData, packetLength);
 };
@@ -53,9 +47,16 @@ NetworkPacket& NetworkPacket::operator=(NetworkPacket const& other) {
     return *this;
 }
 
+#ifdef HAS_MOVE_SEMANTICS
+// move, same as copy, but other packet won't be used further
+NetworkPacket::NetworkPacket(NetworkPacket && packet) {
+    copyContents(packet.getAddress(), packet.getData(), packet.getLength());
+}
+
 // move assignment
 NetworkPacket& NetworkPacket::operator=(NetworkPacket&& other) {
     _packetLength = 0;
     copyContents(other.getAddress(), other.getData(), other.getLength());
     return *this;
 }
+#endif

@@ -35,7 +35,7 @@ bool PacketSender::process() {
         // send the packet through the NodeList...
         UDPSocket* nodeSocket = NodeList::getInstance()->getNodeSocket();
 
-        qDebug("PacketSender::process()... nodeSocket->send() length=%lu\n", packet.getLength());
+        //qDebug("PacketSender::process()... nodeSocket->send() length=%lu\n", packet.getLength());
 
         nodeSocket->send(&packet.getAddress(), packet.getData(), packet.getLength());
 

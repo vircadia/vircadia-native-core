@@ -23,11 +23,15 @@ public:
     // standard constructors
     JurisdictionMap(); // default constructor
     JurisdictionMap(const JurisdictionMap& other); // copy constructor
-    JurisdictionMap(JurisdictionMap&& other); // move constructor
 
     // standard assignment
     JurisdictionMap& operator= (JurisdictionMap const &other);    // copy assignment
+
+#ifdef HAS_MOVE_SEMANTICS
+    // move constructor and assignment
+    JurisdictionMap(JurisdictionMap&& other); // move constructor
     JurisdictionMap& operator= (JurisdictionMap&& other);         // move assignment
+#endif
     
     // application constructors    
     JurisdictionMap(const char* filename);
