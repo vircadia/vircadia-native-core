@@ -21,9 +21,9 @@ class NetworkPacket {
 public:
     NetworkPacket();
     NetworkPacket(const NetworkPacket& packet); // copy constructor
-    NetworkPacket(NetworkPacket && packet); // move?? // same as copy, but other packet won't be used further
+    NetworkPacket(NetworkPacket&& packet); // move?? // same as copy, but other packet won't be used further
     ~NetworkPacket(); // destructor
-    NetworkPacket& operator= (NetworkPacket const &other);    // copy assignment
+    NetworkPacket& operator= (const NetworkPacket& other);    // copy assignment
     NetworkPacket& operator= (NetworkPacket&& other);         // move assignment
 
     NetworkPacket(sockaddr& address, unsigned char*  packetData, ssize_t packetLength);
