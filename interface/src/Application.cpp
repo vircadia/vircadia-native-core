@@ -416,7 +416,7 @@ void Application::paintGL() {
     PerfStat("display");
 
     glEnable(GL_LINE_SMOOTH);
-        
+
     if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         _myCamera.setTightness     (100.0f); 
         _myCamera.setTargetPosition(_myAvatar.getUprightHeadPosition());
