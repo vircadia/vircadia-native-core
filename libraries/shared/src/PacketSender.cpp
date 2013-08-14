@@ -8,6 +8,8 @@
 //  Threaded or non-threaded packet sender.
 //
 
+#include <stdint.h>
+
 const uint64_t SEND_INTERVAL_USECS = 1000 * 5; // no more than 200pps... should be settable
 
 #include "NodeList.h"
