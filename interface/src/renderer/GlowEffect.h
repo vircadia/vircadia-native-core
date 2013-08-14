@@ -35,7 +35,7 @@ public slots:
     
 private:
     
-    enum RenderMode { ADD_MODE, BLUR_ADD_MODE, BLUR_PERSIST_ADD_MODE, RENDER_MODE_COUNT };
+    enum RenderMode { ADD_MODE, BLUR_ADD_MODE, BLUR_PERSIST_ADD_MODE, DIFFUSE_ADD_MODE, RENDER_MODE_COUNT };
     
     RenderMode _renderMode;
     ProgramObject* _addProgram;
@@ -43,8 +43,10 @@ private:
     ProgramObject* _verticalBlurAddProgram;
     ProgramObject* _verticalBlurProgram;
     ProgramObject* _addSeparateProgram;
+    ProgramObject* _diffuseProgram;
     
     bool _isEmpty;
+    bool _isOddFrame;
 };
 
 #endif /* defined(__interface__GlowEffect__) */

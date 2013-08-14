@@ -14,7 +14,7 @@
 #include "GlowEffect.h"
 #include "ProgramObject.h"
 
-GlowEffect::GlowEffect() : _renderMode(BLUR_ADD_MODE) {
+GlowEffect::GlowEffect() : _renderMode(DIFFUSE_ADD_MODE) {
 }
 
 static ProgramObject* createProgram(const QString& name) {
@@ -37,6 +37,7 @@ void GlowEffect::init() {
     _verticalBlurAddProgram = createProgram("vertical_blur_add");
     _verticalBlurProgram = createProgram("vertical_blur");
     _addSeparateProgram = createProgram("glow_add_separate");
+    _diffuseProgram = createProgram("diffuse");
     
     _verticalBlurAddProgram->bind();
     _verticalBlurAddProgram->setUniformValue("horizontallyBlurredTexture", 1);
@@ -45,6 +46,10 @@ void GlowEffect::init() {
     _addSeparateProgram->bind();
     _addSeparateProgram->setUniformValue("blurredTexture", 1);
     _addSeparateProgram->release();
+    
+    _diffuseProgram->bind();
+    _diffuseProgram->setUniformValue("diffusedTexture", 1);
+    _diffuseProgram->release();
 }
 
 void GlowEffect::prepare() {
@@ -108,6 +113,36 @@ void GlowEffect::render() {
         _addProgram->bind();
         renderFullscreenQuad();
         _addProgram->release();
+    
+    } else if (_renderMode == DIFFUSE_ADD_MODE) {
+        // diffuse into the secondary/tertiary (alternating between frames)
+        QOpenGLFramebufferObject* oldDiffusedFBO =
+            Application::getInstance()->getTextureCache()->getSecondaryFramebufferObject();
+        QOpenGLFramebufferObject* newDiffusedFBO =
+            Application::getInstance()->getTextureCache()->getTertiaryFramebufferObject();
+        if ((_isOddFrame = !_isOddFrame)) {
+            qSwap(oldDiffusedFBO, newDiffusedFBO);
+        }
+        newDiffusedFBO->bind();
+        
+        glActiveTexture(GL_TEXTURE1);
+        glBindTexture(GL_TEXTURE_2D, oldDiffusedFBO->texture());
+            
+        _diffuseProgram->bind();
+        renderFullscreenQuad();
+        _diffuseProgram->release();
+        
+        newDiffusedFBO->release();
+        
+        // add diffused texture to the primary
+        glBindTexture(GL_TEXTURE_2D, newDiffusedFBO->texture());
+        
+        _addSeparateProgram->bind();      
+        renderFullscreenQuad();
+        _addSeparateProgram->release();
+        
+        glBindTexture(GL_TEXTURE_2D, 0);
+        glActiveTexture(GL_TEXTURE0);
         
     } else { // _renderMode == BLUR_ADD_MODE || _renderMode == BLUR_PERSIST_ADD_MODE
         // render the primary to the secondary with the horizontal blur
