@@ -2914,6 +2914,9 @@ void Application::displaySide(Camera& whichCamera) {
     //  Setup 3D lights (after the camera transform, so that they are positioned in world space)
     setupWorldLight(whichCamera);
     
+    // prepare the glow effect
+    _glowEffect.prepare();
+    
     if (_renderStarsOn->isChecked()) {
         if (!_stars.getFileLoaded()) {
             _stars.readInput(STAR_FILE, STAR_CACHE_FILE, 0);
@@ -3042,6 +3045,7 @@ void Application::displaySide(Camera& whichCamera) {
             _myAvatar.getHead().setLookAtPosition(_myCamera.getPosition());
         }
         _myAvatar.render(_lookingInMirror->isChecked(), _renderAvatarBalls->isChecked());
+        
         _myAvatar.setDisplayingLookatVectors(_renderLookatOn->isChecked());
 
         if (_renderLookatIndicatorOn->isChecked() && _isLookingAtOtherAvatar) {
@@ -3076,6 +3080,9 @@ void Application::displaySide(Camera& whichCamera) {
     }
         
     renderFollowIndicator();
+    
+    // render the glow effect
+    _glowEffect.render();
 }
 
 void Application::displayOverlay() {
