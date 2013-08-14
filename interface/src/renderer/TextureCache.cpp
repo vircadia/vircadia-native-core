@@ -5,16 +5,27 @@
 //  Created by Andrzej Kapolka on 8/6/13.
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 
+#include <QGLWidget>
+#include <QOpenGLFramebufferObject>
+
 #include <glm/gtc/random.hpp>
 
+#include "Application.h"
 #include "TextureCache.h"
 
-TextureCache::TextureCache() : _permutationNormalTextureID(0) {
+TextureCache::TextureCache() : _permutationNormalTextureID(0),
+    _primaryFramebufferObject(NULL), _secondaryFramebufferObject(NULL) {
 }
 
 TextureCache::~TextureCache() {
     if (_permutationNormalTextureID != 0) {
         glDeleteTextures(1, &_permutationNormalTextureID);
+    }
+    if (_primaryFramebufferObject != NULL) {
+        delete _primaryFramebufferObject;
+    }
+    if (_secondaryFramebufferObject != NULL) {
+        delete _secondaryFramebufferObject;
     }
 }
 
@@ -42,4 +53,36 @@ GLuint TextureCache::getPermutationNormalTextureID() {
         glBindTexture(GL_TEXTURE_2D, 0);
     }
     return _permutationNormalTextureID;
+}
+
+QOpenGLFramebufferObject* TextureCache::getPrimaryFramebufferObject() {
+    if (_primaryFramebufferObject == NULL) {
+        _primaryFramebufferObject = new QOpenGLFramebufferObject(Application::getInstance()->getGLWidget()->size(),
+            QOpenGLFramebufferObject::Depth);
+        Application::getInstance()->getGLWidget()->installEventFilter(this);
+    }
+    return _primaryFramebufferObject;
+}
+
+QOpenGLFramebufferObject* TextureCache::getSecondaryFramebufferObject() {
+    if (_secondaryFramebufferObject == NULL) {
+        _secondaryFramebufferObject = new QOpenGLFramebufferObject(Application::getInstance()->getGLWidget()->size());
+        Application::getInstance()->getGLWidget()->installEventFilter(this);
+    }
+    return _secondaryFramebufferObject;
+}
+
+bool TextureCache::eventFilter(QObject* watched, QEvent* event) {
+    if (event->type() == QEvent::Resize) {
+        QSize size = static_cast<QResizeEvent*>(event)->size();
+        if (_primaryFramebufferObject != NULL && _primaryFramebufferObject->size() != size) {
+            delete _primaryFramebufferObject;
+            _primaryFramebufferObject = NULL;
+        }
+        if (_secondaryFramebufferObject != NULL && _secondaryFramebufferObject->size() != size) {
+            delete _secondaryFramebufferObject;
+            _secondaryFramebufferObject = NULL;
+        }
+    }
+    return false;
 }

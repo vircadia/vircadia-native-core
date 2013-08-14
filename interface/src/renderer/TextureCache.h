@@ -9,9 +9,13 @@
 #ifndef __interface__TextureCache__
 #define __interface__TextureCache__
 
+#include <QObject>
+
 #include "InterfaceConfig.h"
 
-class TextureCache {
+class QOpenGLFramebufferObject;
+
+class TextureCache : public QObject {
 public:
     
     TextureCache();
@@ -19,9 +23,17 @@ public:
     
     GLuint getPermutationNormalTextureID();
 
+    QOpenGLFramebufferObject* getPrimaryFramebufferObject();
+    QOpenGLFramebufferObject* getSecondaryFramebufferObject();
+
+    virtual bool eventFilter(QObject* watched, QEvent* event);
+
 private:
     
     GLuint _permutationNormalTextureID;
+    
+    QOpenGLFramebufferObject* _primaryFramebufferObject;
+    QOpenGLFramebufferObject* _secondaryFramebufferObject;
 };
 
 #endif /* defined(__interface__TextureCache__) */
