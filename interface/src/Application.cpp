@@ -1116,62 +1116,58 @@ void Application::setRenderVoxels(bool voxelRender) {
 void Application::doKillLocalVoxels() {
     _wantToKillLocalVoxels = true;
 }
-
-void Application::doRandomizeVoxelColors() {
-    _voxels.randomizeVoxelColors();
-}
-
-void Application::doFalseRandomizeVoxelColors() {
-    _voxels.falseColorizeRandom();
-}
-
-void Application::doFalseRandomizeEveryOtherVoxelColors() {
-    _voxels.falseColorizeRandomEveryOther();
-}
-
-void Application::doFalseColorizeByDistance() {
-    loadViewFrustum(_myCamera, _viewFrustum);
-    _voxels.falseColorizeDistanceFromView(&_viewFrustum);
-}
-
-void Application::doFalseColorizeInView() {
-    loadViewFrustum(_myCamera, _viewFrustum);
-    // we probably want to make sure the viewFrustum is initialized first
-    _voxels.falseColorizeInView(&_viewFrustum);
-}
-
-void Application::doFalseColorizeOccluded() {
-    CoverageMap::wantDebugging = true;
-    _voxels.falseColorizeOccluded();
-}
-
-void Application::doFalseColorizeOccludedV2() {
-    _voxels.falseColorizeOccludedV2();
-}
-
-void Application::doFalseColorizeBySource() {
-    _voxels.falseColorizeBySource();
-}
-
-void Application::doTrueVoxelColors() {
-    _voxels.trueColorize();
-}
-
-void Application::disableLowResMoving(bool disableLowResMoving) {
-    _myAvatar.setWantLowResMoving(!disableLowResMoving);
-}
-
-void Application::setWantsMonochrome(bool wantsMonochrome) {
-    _myAvatar.setWantColor(!wantsMonochrome);
-}
-
-void Application::disableDeltaSending(bool disableDeltaSending) {
-    _myAvatar.setWantDelta(!disableDeltaSending);
-}
-
-void Application::disableOcclusionCulling(bool disableOcclusionCulling) {
-    _myAvatar.setWantOcclusionCulling(!disableOcclusionCulling);
-}
+//
+//void Application::doFalseRandomizeVoxelColors() {
+//    _voxels.falseColorizeRandom();
+//}
+//
+//void Application::doFalseRandomizeEveryOtherVoxelColors() {
+//    _voxels.falseColorizeRandomEveryOther();
+//}
+//
+//void Application::doFalseColorizeByDistance() {
+//    loadViewFrustum(_myCamera, _viewFrustum);
+//    _voxels.falseColorizeDistanceFromView(&_viewFrustum);
+//}
+//
+//void Application::doFalseColorizeInView() {
+//    loadViewFrustum(_myCamera, _viewFrustum);
+//    // we probably want to make sure the viewFrustum is initialized first
+//    _voxels.falseColorizeInView(&_viewFrustum);
+//}
+//
+//void Application::doFalseColorizeOccluded() {
+//    CoverageMap::wantDebugging = true;
+//    _voxels.falseColorizeOccluded();
+//}
+//
+//void Application::doFalseColorizeOccludedV2() {
+//    _voxels.falseColorizeOccludedV2();
+//}
+//
+//void Application::doFalseColorizeBySource() {
+//    _voxels.falseColorizeBySource();
+//}
+//
+//void Application::doTrueVoxelColors() {
+//    _voxels.trueColorize();
+//}
+//
+//void Application::disableLowResMoving(bool disableLowResMoving) {
+//    _myAvatar.setWantLowResMoving(!disableLowResMoving);
+//}
+//
+//void Application::setWantsMonochrome(bool wantsMonochrome) {
+//    _myAvatar.setWantColor(!wantsMonochrome);
+//}
+//
+//void Application::disableDeltaSending(bool disableDeltaSending) {
+//    _myAvatar.setWantDelta(!disableDeltaSending);
+//}
+//
+//void Application::disableOcclusionCulling(bool disableOcclusionCulling) {
+//    _myAvatar.setWantOcclusionCulling(!disableOcclusionCulling);
+//}
 
 const glm::vec3 Application::getMouseVoxelWorldCoordinates(const VoxelDetail _mouseVoxel) {
     return glm::vec3((_mouseVoxel.x + _mouseVoxel.s / 2.f) * TREE_SCALE,

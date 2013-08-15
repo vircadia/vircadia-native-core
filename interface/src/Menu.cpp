@@ -269,17 +269,23 @@ Menu::Menu() :
                                   Qt::CTRL | Qt::Key_K,
                                   appInstance, SLOT(doKillLocalVoxels()));
     
-    addActionToQMenuAndActionHash(renderDebugMenu, MenuOption::RandomizeVoxelColors, Qt::CTRL | Qt::Key_R);
+    addActionToQMenuAndActionHash(renderDebugMenu,
+                                  MenuOption::RandomizeVoxelColors,
+                                  Qt::CTRL | Qt::Key_R,
+                                  appInstance->getVoxels(),
+                                  SLOT(randomizeVoxelColors()));
     
-    //        renderDebugMenu->addAction("Randomize Voxel TRUE Colors", this, SLOT(doRandomizeVoxelColors()), Qt::CTRL | Qt::Key_R);
+    addActionToQMenuAndActionHash(renderDebugMenu,
+                                  MenuOption::FalseColorRandomly,
+                                  0,
+                                  appInstance->getVoxels(),
+                                  SLOT(falseColorizeRandom()));
     
-    addActionToQMenuAndActionHash(renderDebugMenu, MenuOption::FalseColorRandomly, NULL, NULL);
-    
-    //        renderDebugMenu->addAction("FALSE Color Voxels Randomly", this, SLOT(doFalseRandomizeVoxelColors()));
-    
-    addActionToQMenuAndActionHash(renderDebugMenu, MenuOption::FalseColorEveryOtherVoxel, NULL, NULL);
-    
-    //        renderDebugMenu->addAction("FALSE Color Voxel Every Other Randomly", this, SLOT(doFalseRandomizeEveryOtherVoxelColors()));
+    addActionToQMenuAndActionHash(renderDebugMenu,
+                                  MenuOption::FalseColorEveryOtherVoxel,
+                                  0,
+                                  appInstance->getVoxels(),
+                                  SLOT(falseColorizeRandomEveryOther()));
     
     addActionToQMenuAndActionHash(renderDebugMenu, MenuOption::FalseColorByDistance, NULL, NULL);
     

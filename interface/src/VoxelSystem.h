@@ -57,17 +57,6 @@ public:
     float getVoxelsColoredPerSecondAverage();
     float getVoxelsBytesReadPerSecondAverage();
 
-    // Methods that recurse tree
-    void randomizeVoxelColors();
-    void falseColorizeRandom();
-    void trueColorize();
-    void falseColorizeInView(ViewFrustum* viewFrustum);
-    void falseColorizeDistanceFromView(ViewFrustum* viewFrustum);
-    void falseColorizeRandomEveryOther();
-    void falseColorizeOccluded();
-    void falseColorizeOccludedV2();
-    void falseColorizeBySource();
-    
     void killLocalVoxels();
 
     virtual void removeOutOfView();
@@ -100,6 +89,17 @@ public:
     
 public slots:
     void collectStatsForTreesAndVBOs();
+    
+    // Methods that recurse tree
+    void randomizeVoxelColors();
+    void falseColorizeRandom();
+    void trueColorize();
+    void falseColorizeInView(ViewFrustum* viewFrustum);
+    void falseColorizeDistanceFromView(ViewFrustum* viewFrustum);
+    void falseColorizeRandomEveryOther();
+    void falseColorizeOccluded();
+    void falseColorizeOccludedV2();
+    void falseColorizeBySource();
         
 protected:
     float _treeScale; 

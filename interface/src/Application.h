@@ -119,6 +119,7 @@ public:
     Swatch*  getSwatch() { return &_swatch; }
     QMainWindow* getWindow() { return _window; }
     VoxelSceneStats* getVoxelSceneStats() { return &_voxelSceneStats; }
+    ViewFrustum* getViewFrustum() { return &loadViewFrustum(_myCamera, _myFrustum); }
     
     QNetworkAccessManager* getNetworkAccessManager() { return _networkAccessManager; }
     GeometryCache* getGeometryCache() { return &_geometryCache; }
@@ -158,19 +159,6 @@ private slots:
     
     void setRenderVoxels(bool renderVoxels);
     void doKillLocalVoxels();
-    void doRandomizeVoxelColors();
-    void doFalseRandomizeVoxelColors();
-    void doFalseRandomizeEveryOtherVoxelColors();
-    void doFalseColorizeByDistance();
-    void doFalseColorizeOccluded();
-    void doFalseColorizeOccludedV2();
-    void doFalseColorizeBySource();
-    void doFalseColorizeInView();
-    void doTrueVoxelColors();
-    void setWantsMonochrome(bool wantsMonochrome);
-    void disableLowResMoving(bool disableLowResMoving);
-    void disableDeltaSending(bool disableDeltaSending);
-    void disableOcclusionCulling(bool disableOcclusionCulling);
     void decreaseVoxelSize();
     void increaseVoxelSize();
     void setListenModeNormal();
