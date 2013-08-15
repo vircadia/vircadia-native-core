@@ -743,7 +743,7 @@ void Menu::chooseVoxelPaintColor() {
     
     // restore the main window's active state
     appInstance->getWindow()->activateWindow();
-}g
+}
 
 void Menu::runTests() {
     runTimingTests();
