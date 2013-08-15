@@ -121,7 +121,6 @@ namespace MenuOption {
     const QString DecreaseVoxelSize = "Decrease Voxel Size";
     const QString DestructiveAddVoxel = "Create Voxel is Destructive";
     const QString DeltaSending = "Delta Sending";
-    const QString DisableOcclusionCulling = "Disable Occlusion Culling";
     const QString DisplayFrustum = "Display Frustum";
     const QString EchoAudio = "Echo Audio";
     const QString ExportVoxels = "Export Voxels";
@@ -155,6 +154,7 @@ namespace MenuOption {
     const QString LookAtVectors = "Look-at Vectors";
     const QString LowRes = "Lower Resolution While Moving";
     const QString Mirror = "Mirror";
+    const QString OcclusionCulling = "Occlusion Culling";
     const QString Oscilloscope = "Audio Oscilloscope";
     const QString Pair = "Pair";
     const QString PasteVoxels = "Paste Voxels";

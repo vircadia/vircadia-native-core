@@ -518,7 +518,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 
             case Qt::Key_C:
                 if (isShifted)  {
-                    Menu::getInstance()->triggerOption(MenuOption::DisableOcclusionCulling);
+                    Menu::getInstance()->triggerOption(MenuOption::OcclusionCulling);
                 } else {
                     _myAvatar.setDriveKeys(DOWN, 1);
                 }

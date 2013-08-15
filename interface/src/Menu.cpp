@@ -344,9 +344,12 @@ Menu::Menu() :
                                            appInstance->getAvatar(),
                                            SLOT(setWantDelta(bool)));
     
-    addCheckableActionToQMenuAndActionHash(debugMenu, MenuOption::DisableOcclusionCulling, Qt::SHIFT | Qt::Key_C);
-    //        (_occlusionCulling = debugMenu->addAction("Disable Occlusion Culling", this, SLOT(disableOcclusionCulling(bool)),
-    //                                                  Qt::SHIFT | Qt::Key_C))->setCheckable(true);
+    addCheckableActionToQMenuAndActionHash(debugMenu,
+                                           MenuOption::OcclusionCulling,
+                                           Qt::SHIFT | Qt::Key_C,
+                                           true,
+                                           appInstance->getAvatar(),
+                                           SLOT(setWantOcclusionCulling(bool)));
     
     addCheckableActionToQMenuAndActionHash(debugMenu, MenuOption::CoverageMap, Qt::SHIFT | Qt::CTRL | Qt::Key_O);
     addCheckableActionToQMenuAndActionHash(debugMenu, MenuOption::CoverageMapV2, Qt::SHIFT | Qt::CTRL | Qt::Key_P);

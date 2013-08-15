@@ -115,8 +115,6 @@ public:
     bool getWantLowResMoving()     const { return _wantLowResMoving; }
     bool getWantOcclusionCulling() const { return _wantOcclusionCulling; }
     uint16_t getLeaderID()         const { return _leaderID; }
-
-    void setWantOcclusionCulling(bool wantOcclusionCulling) { _wantOcclusionCulling = wantOcclusionCulling; }
     
     void setHeadData(HeadData* headData) { _headData = headData; }
     void setHandData(HandData* handData) { _handData = handData; }
@@ -126,6 +124,7 @@ public slots:
     void setWantLowResMoving(bool wantLowResMoving) { _wantLowResMoving = wantLowResMoving; }
     void setWantColor(bool wantColor) { _wantColor = wantColor; }
     void setWantDelta(bool wantDelta) { _wantDelta = wantDelta; }
+    void setWantOcclusionCulling(bool wantOcclusionCulling) { _wantOcclusionCulling = wantOcclusionCulling; }
     
 protected:
     glm::vec3 _position;
