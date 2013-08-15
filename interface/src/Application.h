@@ -32,6 +32,7 @@
 #include "Environment.h"
 #include "PacketHeaders.h"
 #include "ParticleSystem.h"
+#include "PieMenu.h"
 #include "SerialInterface.h"
 #include "Stars.h"
 #include "Swatch.h"
@@ -40,13 +41,9 @@
 #include "VoxelFade.h"
 #include "VoxelSystem.h"
 #include "Webcam.h"
-<<<<<<< HEAD
-#include "renderer/AmbientOcclusionEffect.h"
-=======
-#include "PieMenu.h"
 #include "avatar/Avatar.h"
 #include "avatar/HandControl.h"
->>>>>>> 8238d0d380944c07a14c5fd42efa1a5d3eb468ed
+#include "renderer/AmbientOcclusionEffect.h"
 #include "renderer/GeometryCache.h"
 #include "renderer/GlowEffect.h"
 #include "renderer/TextureCache.h"
