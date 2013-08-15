@@ -168,7 +168,6 @@ private slots:
     void doFalseColorizeBySource();
     void doFalseColorizeInView();
     void doTrueVoxelColors();
-    void doTreeStats();
     void setWantsMonochrome(bool wantsMonochrome);
     void disableLowResMoving(bool disableLowResMoving);
     void disableDeltaSending(bool disableDeltaSending);

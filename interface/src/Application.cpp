@@ -530,7 +530,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 
             case Qt::Key_S:
                 if (isShifted)  {
-                    doTreeStats();
+                    _voxels.collectStatsForTreesAndVBOs();
                 } else {
                     _myAvatar.setDriveKeys(BACK, 1);
                 }
@@ -1159,10 +1159,6 @@ void Application::doFalseColorizeBySource() {
 
 void Application::doTrueVoxelColors() {
     _voxels.trueColorize();
-}
-
-void Application::doTreeStats() {
-    _voxels.collectStatsForTreesAndVBOs();
 }
 
 void Application::disableLowResMoving(bool disableLowResMoving) {

@@ -255,7 +255,11 @@ Menu::Menu() :
     updateFrustumRenderModeAction();
     
     addActionToQMenuAndActionHash(debugMenu, MenuOption::RunTimingTests, 0, this, SLOT(runTests()));
-    addActionToQMenuAndActionHash(debugMenu, MenuOption::TreeStats, Qt::SHIFT | Qt::Key_S);
+    addActionToQMenuAndActionHash(debugMenu,
+                                  MenuOption::TreeStats,
+                                  Qt::SHIFT | Qt::Key_S,
+                                  appInstance->getVoxels(),
+                                  SLOT(collectStatsForTreesAndVBOs()));
     
     //        debugMenu->addAction("Calculate Tree Stats", this, SLOT(doTreeStats()), Qt::SHIFT | Qt::Key_S);
     
