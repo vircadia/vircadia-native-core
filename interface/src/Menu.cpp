@@ -311,9 +311,12 @@ Menu::Menu() :
                                   appInstance->getVoxels(),
                                   SLOT(falseColorizeOccludedV2()));
     
-    addActionToQMenuAndActionHash(renderDebugMenu, MenuOption::FalseColorBySource, Qt::CTRL | Qt::SHIFT | Qt::Key_S);
+    addActionToQMenuAndActionHash(renderDebugMenu,
+                                  MenuOption::FalseColorBySource,
+                                  0,
+                                  appInstance->getVoxels(),
+                                  SLOT(falseColorizeBySource()));
     
-    //        renderDebugMenu->addAction("FALSE Color By Source", this, SLOT(doFalseColorizeBySource()), Qt::CTRL | Qt::SHIFT | Qt::Key_S);
     
     addActionToQMenuAndActionHash(renderDebugMenu, MenuOption::ShowTrueColors, Qt::CTRL | Qt::Key_T);
     
