@@ -1654,6 +1654,11 @@ void Avatar::renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2,
     glEnd();
 }
 
+void Avatar::goHome() {
+    qDebug("Going Home!\n");
+    setPosition(START_LOCATION);
+}
+
 void Avatar::setNewScale(const float scale) {
     _newScale = scale;
 }

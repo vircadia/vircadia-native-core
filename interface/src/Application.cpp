@@ -72,11 +72,6 @@ static char STAR_CACHE_FILE[] = "cachedStars.txt";
 
 static const int BANDWIDTH_METER_CLICK_MAX_DRAG_LENGTH = 6; // farther dragged clicks are ignored 
 
-// Where one's own Avatar begins in the world (will be overwritten if avatar data file is found)
-// this is basically in the center of the ground plane. Slightly adjusted. This was asked for by
-// Grayson as he's building a street around here for demo dinner 2
-const glm::vec3 START_LOCATION(0.485f * TREE_SCALE, 0.f, 0.5f * TREE_SCALE);   
-
 const int IDLE_SIMULATE_MSECS = 16;              //  How often should call simulate and other stuff
                                                  //  in the idle loop?  (60 FPS is default)
 static QTimer* idleTimer = NULL;
@@ -3364,12 +3359,6 @@ void Application::eyedropperVoxelUnderCursor() {
         }
     }
 }
-
-void Application::goHome() {
-    qDebug("Going Home!\n");
-    _myAvatar.setPosition(START_LOCATION);
-}
-
 
 void Application::toggleFollowMode() {
     glm::vec3 mouseRayOrigin, mouseRayDirection;

@@ -58,8 +58,7 @@ const float BODY_BALL_RADIUS_RIGHT_KNEE       = 0.025;
 const float BODY_BALL_RADIUS_RIGHT_HEEL       = 0.025;
 const float BODY_BALL_RADIUS_RIGHT_TOES       = 0.025;
 
-enum AvatarBodyBallID
-{
+enum AvatarBodyBallID {
 	BODY_BALL_NULL = -1,
 	BODY_BALL_PELVIS,	
 	BODY_BALL_TORSO,	
@@ -91,8 +90,7 @@ enum AvatarBodyBallID
 	NUM_AVATAR_BODY_BALLS
 };
 
-enum DriveKeys
-{
+enum DriveKeys {
     FWD = 0,
     BACK,
     LEFT, 
@@ -104,22 +102,25 @@ enum DriveKeys
     MAX_DRIVE_KEYS
 };
 
-enum AvatarMode
-{
+enum AvatarMode {
     AVATAR_MODE_STANDING = 0,
     AVATAR_MODE_WALKING,
     AVATAR_MODE_INTERACTING,
     NUM_AVATAR_MODES
 };
 
-enum ScreenTintLayer
-{
+enum ScreenTintLayer {
     SCREEN_TINT_BEFORE_LANDSCAPE = 0,
     SCREEN_TINT_BEFORE_AVATARS,
     SCREEN_TINT_BEFORE_MY_AVATAR,
     SCREEN_TINT_AFTER_AVATARS,
     NUM_SCREEN_TINT_LAYERS
 };
+
+// Where one's own Avatar begins in the world (will be overwritten if avatar data file is found)
+// this is basically in the center of the ground plane. Slightly adjusted. This was asked for by
+// Grayson as he's building a street around here for demo dinner 2
+const glm::vec3 START_LOCATION(0.485f * TREE_SCALE, 0.f, 0.5f * TREE_SCALE);
 
 class Avatar : public AvatarData {
     Q_OBJECT
@@ -213,6 +214,7 @@ public:
     
 public slots:
     void setWantCollisionsOn(bool wantCollisionsOn) { _isCollisionsOn = wantCollisionsOn; }
+    void goHome();
 
 private:
     // privatize copy constructor and assignment operator to avoid copying

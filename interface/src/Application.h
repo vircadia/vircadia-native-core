@@ -187,7 +187,6 @@ private slots:
     void renderCoverageMapsV2Recursively(CoverageMapV2* map);
 
     glm::vec2 getScaledScreenPoint(glm::vec2 projectedPoint);
-    void goHome();
 
     void toggleFollowMode();
 

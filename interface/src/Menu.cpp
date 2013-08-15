@@ -110,7 +110,11 @@ Menu::Menu() :
                                            appInstance->getWebcam()->getGrabber(),
                                            SLOT(setDepthOnly(bool)));
     
-    addActionToQMenuAndActionHash(optionsMenu, MenuOption::GoHome, Qt::CTRL | Qt::Key_G, appInstance, SLOT(goHome()));
+    addActionToQMenuAndActionHash(optionsMenu,
+                                  MenuOption::GoHome,
+                                  Qt::CTRL | Qt::Key_G,
+                                  appInstance->getAvatar(),
+                                  SLOT(goHome()));
     
     QMenu* audioMenu = addMenu("Audio");
     addCheckableActionToQMenuAndActionHash(audioMenu, MenuOption::EchoAudio);
