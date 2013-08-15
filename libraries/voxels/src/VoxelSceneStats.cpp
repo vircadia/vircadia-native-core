@@ -17,20 +17,17 @@
 const int samples = 100;
 VoxelSceneStats::VoxelSceneStats() : 
     _elapsedAverage(samples), 
-    _bitsPerVoxelAverage(samples) 
+    _bitsPerVoxelAverage(samples),
+    _jurisdictionRoot(NULL)
 {
     reset();
     _isReadyToSend = false;
     _isStarted = false;
-    _jurisdictionRoot = NULL;
 }
 
 VoxelSceneStats::~VoxelSceneStats() {
-    if (_jurisdictionRoot) {
-        delete[] _jurisdictionRoot;
-    }
+    reset();
 }
-
 
 void VoxelSceneStats::sceneStarted(bool isFullScene, bool isMoving, VoxelNode* root, JurisdictionMap* jurisdictionMap) {
     reset(); // resets packet and voxel stats
@@ -53,6 +50,16 @@ void VoxelSceneStats::sceneStarted(bool isFullScene, bool isMoving, VoxelNode* r
             int bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(jurisdictionRoot));
             _jurisdictionRoot = new unsigned char[bytes];
             memcpy(_jurisdictionRoot, jurisdictionRoot, bytes);
+        }
+
+        for (int i=0; i < jurisdictionMap->getEndNodeCount(); i++) {
+            unsigned char* endNodeCode = jurisdictionMap->getEndNodeOctalCode(i);
+            if (endNodeCode) {
+                int bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(endNodeCode));
+                unsigned char* endNodeCodeCopy = new unsigned char[bytes];
+                memcpy(endNodeCodeCopy, endNodeCode, bytes);
+                _jurisdictionEndNodes.push_back(endNodeCodeCopy);
+            }
         }
     }
 }
@@ -125,6 +132,17 @@ void VoxelSceneStats::reset() {
     _existsBitsWritten = 0;
     _existsInPacketBitsWritten = 0;
     _treesRemoved = 0;
+
+    if (_jurisdictionRoot) {
+        delete[] _jurisdictionRoot;
+        _jurisdictionRoot = NULL;
+    }
+    for (int i=0; i < _jurisdictionEndNodes.size(); i++) {
+        if (_jurisdictionEndNodes[i]) {
+            delete[] _jurisdictionEndNodes[i];
+        }
+    }
+    _jurisdictionEndNodes.clear();
 }
 
 void VoxelSceneStats::packetSent(int bytes) {
@@ -303,6 +321,21 @@ int VoxelSceneStats::packIntoMessage(unsigned char* destinationBuffer, int avail
         destinationBuffer += sizeof(bytes);
         memcpy(destinationBuffer, _jurisdictionRoot, bytes);
         destinationBuffer += bytes;
+        
+        // if and only if there's a root jurisdiction, also include the end nodes
+        int endNodeCount = _jurisdictionEndNodes.size(); 
+
+        memcpy(destinationBuffer, &endNodeCount, sizeof(endNodeCount));
+        destinationBuffer += sizeof(endNodeCount);
+
+        for (int i=0; i < endNodeCount; i++) {
+            unsigned char* endNodeCode = _jurisdictionEndNodes[i];
+            int bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(endNodeCode));
+            memcpy(destinationBuffer, &bytes, sizeof(bytes));
+            destinationBuffer += sizeof(bytes);
+            memcpy(destinationBuffer, endNodeCode, bytes);
+            destinationBuffer += bytes;
+        }
     } else {
         int bytes = 0;
         memcpy(destinationBuffer, &bytes, sizeof(bytes));
@@ -406,10 +439,25 @@ int VoxelSceneStats::unpackFromMessage(unsigned char* sourceBuffer, int availabl
 
     if (bytes == 0) {
         _jurisdictionRoot = NULL;
+        _jurisdictionEndNodes.clear();
     } else {
         _jurisdictionRoot = new unsigned char[bytes];
         memcpy(_jurisdictionRoot, sourceBuffer, bytes);
         sourceBuffer += bytes;
+        // if and only if there's a root jurisdiction, also include the end nodes
+        _jurisdictionEndNodes.clear();
+        int endNodeCount = 0;
+        memcpy(&endNodeCount, sourceBuffer, sizeof(endNodeCount));
+        sourceBuffer += sizeof(endNodeCount);
+        for (int i=0; i < endNodeCount; i++) {
+            int bytes = 0;
+            memcpy(&bytes, sourceBuffer, sizeof(bytes));
+            sourceBuffer += sizeof(bytes);
+            unsigned char* endNodeCode = new unsigned char[bytes];
+            memcpy(endNodeCode, sourceBuffer, bytes);
+            sourceBuffer += bytes;
+            _jurisdictionEndNodes.push_back(endNodeCode);
+        }
     }
     
     // running averages
