@@ -17,24 +17,34 @@
 
 #include "NodeList.h" // for MAX_PACKET_SIZE
 
+/// Storage of not-yet processed inbound, or not yet sent outbound generic UDP network packet
 class NetworkPacket {
 public:
-    NetworkPacket(sockaddr& senderAddress, unsigned char*  packetData, ssize_t packetLength);
-    NetworkPacket(const NetworkPacket& packet);
     NetworkPacket();
-    //~NetworkPacket();
-    
-    sockaddr&      getSenderAddress() { return _senderAddress; };
-    ssize_t        getLength() const  { return _packetLength;  };
-    unsigned char* getData()          { return &_packetData[0]; };
+    NetworkPacket(const NetworkPacket& packet); // copy constructor
+    ~NetworkPacket(); // destructor
+    NetworkPacket& operator= (const NetworkPacket& other);    // copy assignment
 
-    const sockaddr&      getSenderAddress() const { return _senderAddress; };
+#ifdef HAS_MOVE_SEMANTICS
+    NetworkPacket(NetworkPacket&& packet); // move?? // same as copy, but other packet won't be used further
+    NetworkPacket& operator= (NetworkPacket&& other);         // move assignment
+#endif
+
+    NetworkPacket(sockaddr& address, unsigned char*  packetData, ssize_t packetLength);
+
+    sockaddr& getAddress() { return _address; };
+    ssize_t getLength() const { return _packetLength;  };
+    unsigned char* getData() { return &_packetData[0]; };
+
+    const sockaddr& getAddress() const { return _address; };
     const unsigned char* getData() const { return &_packetData[0]; };
 
 private:
-    sockaddr        _senderAddress;
-    ssize_t         _packetLength;
-    unsigned char   _packetData[MAX_PACKET_SIZE];
+    void copyContents(const sockaddr& address, const unsigned char*  packetData, ssize_t packetLength);
+    
+    sockaddr _address;
+    ssize_t _packetLength;
+    unsigned char _packetData[MAX_PACKET_SIZE];
 };
 
 #endif /* defined(__shared_NetworkPacket__) */

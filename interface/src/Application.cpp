@@ -22,6 +22,9 @@
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/vector_angle.hpp>
 
+// include this before QGLWidget, which includes an earlier version of OpenGL
+#include "InterfaceConfig.h"
+
 #include <QActionGroup>
 #include <QBoxLayout>
 #include <QColorDialog>
@@ -59,7 +62,6 @@
 #include <VoxelSceneStats.h>
 
 #include "Application.h"
-#include "InterfaceConfig.h"
 #include "LogDisplay.h"
 #include "LeapManager.h"
 #include "OculusManager.h"
@@ -92,6 +94,8 @@ const int STARTUP_JITTER_SAMPLES = PACKET_LENGTH_SAMPLES_PER_CHANNEL / 2;
 
 // customized canvas that simply forwards requests/events to the singleton application
 class GLCanvas : public QGLWidget {
+public:
+    GLCanvas();
 protected:
     
     virtual void initializeGL();
@@ -109,6 +113,9 @@ protected:
     
     virtual void wheelEvent(QWheelEvent* event);
 };
+
+GLCanvas::GLCanvas() : QGLWidget(QGLFormat(QGL::NoDepthBuffer, QGL::NoStencilBuffer)) {
+}
 
 void GLCanvas::initializeGL() {
     Application::getInstance()->initializeGL();
@@ -206,8 +213,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _justEditedVoxel(false),
         _isLookingAtOtherAvatar(false),
         _lookatIndicatorScale(1.0f),
-        _paintOn(false),
-        _dominantColor(0),
         _perfStatsOn(false),
         _chatEntryOn(false),
         _oculusTextureID(0),
@@ -217,7 +222,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _audio(&_audioScope, STARTUP_JITTER_SAMPLES),
 #endif
         _stopNetworkReceiveThread(false),  
-        _stopProcessVoxelsThread(false),  
+        _voxelProcessor(this),
+        _voxelEditSender(this),
         _packetCount(0),
         _packetsPerSecond(0),
         _bytesPerSecond(0),
@@ -369,9 +375,10 @@ void Application::initializeGL() {
     }
 
     // create thread for parsing of voxel data independent of the main network and rendering threads
+    _voxelProcessor.initialize(_enableProcessVoxelsThread);
+    _voxelEditSender.initialize(_enableProcessVoxelsThread);
     if (_enableProcessVoxelsThread) {
-        pthread_create(&_processVoxelsThread, NULL, processVoxels, NULL);
-        qDebug("Voxel parsing thread created.\n"); 
+        qDebug("Voxel parsing thread created.\n");
     }
     
     // call terminate before exiting
@@ -410,8 +417,7 @@ void Application::paintGL() {
     PerfStat("display");
 
     glEnable(GL_LINE_SMOOTH);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        
+
     if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         _myCamera.setTightness     (100.0f); 
         _myCamera.setTargetPosition(_myAvatar.getUprightHeadPosition());
@@ -541,25 +547,18 @@ void Application::controlledBroadcastToNodes(unsigned char* broadcastData, size_
         // Feed number of bytes to corresponding channel of the bandwidth meter, if any (done otherwise)
         BandwidthMeter::ChannelIndex channel;
         switch (nodeTypes[i]) {
-        case NODE_TYPE_AGENT:
-        case NODE_TYPE_AVATAR_MIXER:
-            channel = BandwidthMeter::AVATARS;
-            break;
-        case NODE_TYPE_VOXEL_SERVER:
-            channel = BandwidthMeter::VOXELS;
-            break;
-        default:
-            continue;
+            case NODE_TYPE_AGENT:
+            case NODE_TYPE_AVATAR_MIXER:
+                channel = BandwidthMeter::AVATARS;
+                break;
+            case NODE_TYPE_VOXEL_SERVER:
+                channel = BandwidthMeter::VOXELS;
+                break;
+            default:
+                continue;
         }
         self->_bandwidthMeter.outputStream(channel).updateValue(nReceivingNodes * dataBytes); 
     }
-}
-
-void Application::sendVoxelServerAddScene() {
-    char message[100];
-    sprintf(message,"%c%s",'Z',"add scene");
-    int messageSize = strlen(message) + 1;
-    controlledBroadcastToNodes((unsigned char*)message, messageSize, & NODE_TYPE_VOXEL_SERVER, 1);
 }
 
 void Application::keyPressEvent(QKeyEvent* event) {
@@ -625,19 +624,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 
             case Qt::Key_Period:
                 _viewFrustumOffsetUp += 0.05;
-                break;
-                
-            case Qt::Key_Ampersand:
-                _paintOn = !_paintOn;
-                setupPaintingVoxel();
-                break;
-                
-            case Qt::Key_AsciiCircum:
-                shiftPaintingColor();
-                break;
-                
-            case Qt::Key_Percent:
-                sendVoxelServerAddScene();
                 break;
                 
             case Qt::Key_Semicolon:
@@ -1179,10 +1165,8 @@ void Application::terminate() {
         pthread_join(_networkReceiveThread, NULL); 
     }
 
-    if (_enableProcessVoxelsThread) {
-        _stopProcessVoxelsThread = true;
-        pthread_join(_processVoxelsThread, NULL); 
-    }
+    _voxelProcessor.terminate();
+    _voxelEditSender.terminate();
 }
 
 void Application::sendAvatarVoxelURLMessage(const QUrl& url) {
@@ -1532,16 +1516,6 @@ void Application::updateVoxelModeActions() {
     } 
 }
 
-void Application::sendVoxelEditMessage(PACKET_TYPE type, VoxelDetail& detail) {
-    unsigned char* bufferOut;
-    int sizeOut;
-
-    if (createVoxelEditMessage(type, 0, 1, &detail, bufferOut, sizeOut)){
-        Application::controlledBroadcastToNodes(bufferOut, sizeOut, & NODE_TYPE_VOXEL_SERVER, 1);
-        delete[] bufferOut;
-    }
-}
-
 const glm::vec3 Application::getMouseVoxelWorldCoordinates(const VoxelDetail _mouseVoxel) {
     return glm::vec3((_mouseVoxel.x + _mouseVoxel.s / 2.f) * TREE_SCALE,
                      (_mouseVoxel.y + _mouseVoxel.s / 2.f) * TREE_SCALE,
@@ -1579,12 +1553,7 @@ void Application::chooseVoxelPaintColor() {
 
 const int MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE = 1500;
 struct SendVoxelsOperationArgs {
-    unsigned char* newBaseOctCode;
-    unsigned char messageBuffer[MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE];
-    int bufferInUse;
-    uint64_t lastSendTime;
-    int packetsSent;
-    uint64_t bytesSent;
+    unsigned char*  newBaseOctCode;
 };
 
 bool Application::sendVoxelsOperation(VoxelNode* node, void* extraData) {
@@ -1615,38 +1584,11 @@ bool Application::sendVoxelsOperation(VoxelNode* node, void* extraData) {
         codeColorBuffer[bytesInCode + RED_INDEX  ] = node->getColor()[RED_INDEX  ];
         codeColorBuffer[bytesInCode + GREEN_INDEX] = node->getColor()[GREEN_INDEX];
         codeColorBuffer[bytesInCode + BLUE_INDEX ] = node->getColor()[BLUE_INDEX ];
+
+        getInstance()->_voxelEditSender.queueVoxelEditMessage(PACKET_TYPE_SET_VOXEL_DESTRUCTIVE, 
+                codeColorBuffer, codeAndColorLength);
         
-        // if we have room don't have room in the buffer, then send the previously generated message first
-        if (args->bufferInUse + codeAndColorLength > MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE) {
-
-            args->packetsSent++;
-            args->bytesSent += args->bufferInUse;
-
-            controlledBroadcastToNodes(args->messageBuffer, args->bufferInUse, & NODE_TYPE_VOXEL_SERVER, 1);
-            args->bufferInUse = numBytesForPacketHeader((unsigned char*) &PACKET_TYPE_SET_VOXEL_DESTRUCTIVE)
-                + sizeof(unsigned short int); // reset
-                
-            uint64_t now = usecTimestampNow();
-            // dynamically sleep until we need to fire off the next set of voxels
-            uint64_t elapsed = now - args->lastSendTime;
-            int usecToSleep =  CLIENT_TO_SERVER_VOXEL_SEND_INTERVAL_USECS - elapsed;
-            if (usecToSleep > 0) {
-                //qDebug("sendVoxelsOperation: packet: %d bytes:%lld elapsed %lld usecs, sleeping for %d usecs!\n",
-                //       args->packetsSent, (long long int)args->bytesSent, (long long int)elapsed, usecToSleep);
-
-                Application::getInstance()->timer();
-
-                usleep(usecToSleep);
-            } else {
-                //qDebug("sendVoxelsOperation: packet: %d bytes:%lld elapsed %lld usecs, no need to sleep!\n",
-                //       args->packetsSent, (long long int)args->bytesSent, (long long int)elapsed);
-            }
-            args->lastSendTime = now;
-        }
-        
-        // copy this node's code color details into our buffer.
-        memcpy(&args->messageBuffer[args->bufferInUse], codeColorBuffer, codeAndColorLength);
-        args->bufferInUse += codeAndColorLength;
+        delete[] codeColorBuffer;
     }
     return true; // keep going
 }
@@ -1828,15 +1770,6 @@ void Application::importVoxels() {
         // the server as an set voxel message, this will also rebase the voxels to the new location
         unsigned char* calculatedOctCode = NULL;
         SendVoxelsOperationArgs args;
-        args.lastSendTime = usecTimestampNow();
-        args.packetsSent = 0;
-        args.bytesSent = 0;
-    
-        int numBytesPacketHeader = populateTypeAndVersion(args.messageBuffer, PACKET_TYPE_SET_VOXEL_DESTRUCTIVE);
-    
-        unsigned short int* sequenceAt = (unsigned short int*)&args.messageBuffer[numBytesPacketHeader];
-        *sequenceAt = 0;
-        args.bufferInUse = numBytesPacketHeader + sizeof(unsigned short int); // set to command + sequence
 
         // we only need the selected voxel to get the newBaseOctCode, which we can actually calculate from the
         // voxel size/position details.
@@ -1850,31 +1783,8 @@ void Application::importVoxels() {
         
         // send the insert/paste of these voxels
         importVoxels.recurseTreeWithOperation(sendVoxelsOperation, &args);
+        _voxelEditSender.flushQueue();
     
-        // If we have voxels left in the packet, then send the packet
-        if (args.bufferInUse > (numBytesPacketHeader + sizeof(unsigned short int))) {
-            controlledBroadcastToNodes(args.messageBuffer, args.bufferInUse, & NODE_TYPE_VOXEL_SERVER, 1);
-
-
-            args.packetsSent++;
-            args.bytesSent += args.bufferInUse;
-
-            uint64_t now = usecTimestampNow();
-            // dynamically sleep until we need to fire off the next set of voxels
-            uint64_t elapsed = now - args.lastSendTime;
-            int usecToSleep =  CLIENT_TO_SERVER_VOXEL_SEND_INTERVAL_USECS - elapsed;
-
-            if (usecToSleep > 0) {
-                //qDebug("after sendVoxelsOperation: packet: %d bytes:%lld elapsed %lld usecs, sleeping for %d usecs!\n",
-                //       args.packetsSent, (long long int)args.bytesSent, (long long int)elapsed, usecToSleep);
-                usleep(usecToSleep);
-            } else {
-                //qDebug("after sendVoxelsOperation: packet: %d bytes:%lld elapsed %lld usecs, no need to sleep!\n",
-                //       args.packetsSent, (long long int)args.bytesSent, (long long int)elapsed);
-            }
-            args.lastSendTime = now;
-        }
-        
         if (calculatedOctCode) {
             delete[] calculatedOctCode;
         }
@@ -1908,15 +1818,6 @@ void Application::pasteVoxels() {
     // Recurse the clipboard tree, where everything is root relative, and send all the colored voxels to 
     // the server as an set voxel message, this will also rebase the voxels to the new location
     SendVoxelsOperationArgs args;
-    args.lastSendTime = usecTimestampNow();
-    args.packetsSent = 0;
-    args.bytesSent = 0;
-    
-    int numBytesPacketHeader = populateTypeAndVersion(args.messageBuffer, PACKET_TYPE_SET_VOXEL_DESTRUCTIVE);
-    
-    unsigned short int* sequenceAt = (unsigned short int*)&args.messageBuffer[numBytesPacketHeader];
-    *sequenceAt = 0;
-    args.bufferInUse = numBytesPacketHeader + sizeof(unsigned short int); // set to command + sequence
 
     // we only need the selected voxel to get the newBaseOctCode, which we can actually calculate from the
     // voxel size/position details. If we don't have an actual selectedNode then use the mouseVoxel to create a 
@@ -1928,14 +1829,7 @@ void Application::pasteVoxels() {
     }
 
     _clipboardTree.recurseTreeWithOperation(sendVoxelsOperation, &args);
-    
-    // If we have voxels left in the packet, then send the packet
-    if (args.bufferInUse > (numBytesPacketHeader + sizeof(unsigned short int))) {
-        controlledBroadcastToNodes(args.messageBuffer, args.bufferInUse, & NODE_TYPE_VOXEL_SERVER, 1);
-        qDebug("sending packet: %d\n", ++args.packetsSent);
-        args.bytesSent += args.bufferInUse;
-        qDebug("total bytes sent: %lld\n", (long long int)args.bytesSent);
-    }
+    _voxelEditSender.flushQueue();
     
     if (calculatedOctCode) {
         delete[] calculatedOctCode;
@@ -2004,6 +1898,7 @@ void Application::initMenu() {
     _renderAvatarBalls->setChecked(false);
     renderMenu->addAction("Cycle Voxel Mode", _myAvatar.getVoxels(), SLOT(cycleMode()));
     renderMenu->addAction("Cycle Face Mode", &_myAvatar.getHead().getFace(), SLOT(cycleRenderMode()));
+    renderMenu->addAction("Cycle Glow Mode", &_glowEffect, SLOT(cycleRenderMode()));
     (_renderFrameTimerOn = renderMenu->addAction("Show Timer"))->setCheckable(true);
     _renderFrameTimerOn->setChecked(false);
     (_renderLookatOn = renderMenu->addAction("Lookat Vectors"))->setCheckable(true);
@@ -2214,8 +2109,8 @@ void Application::runTests() {
 
 void Application::initDisplay() {
     glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glShadeModel (GL_SMOOTH);
+    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
+    glShadeModel(GL_SMOOTH);
     glEnable(GL_LIGHTING);
     glEnable(GL_LIGHT0);
     glEnable(GL_DEPTH_TEST);
@@ -2225,6 +2120,8 @@ void Application::init() {
     _voxels.init();
     
     _environment.init();
+
+    _glowEffect.init();
     
     _handControl.setScreenDimensions(_glWidget->width(), _glWidget->height());
 
@@ -2325,11 +2222,21 @@ void Application::renderLookatIndicator(glm::vec3 pointOfInterest, Camera& which
     renderCircle(haloOrigin, INDICATOR_RADIUS, IDENTITY_UP, NUM_SEGMENTS);
 }
 
+void maybeBeginFollowIndicator(bool& began) {
+    if (!began) {
+        Application::getInstance()->getGlowEffect()->begin();
+        glLineWidth(5);
+        glBegin(GL_LINES);
+        began = true;
+    }
+}
+
 void Application::renderFollowIndicator() {
     NodeList* nodeList = NodeList::getInstance();
 
-    glLineWidth(5);
-    glBegin(GL_LINES);
+    // initialize lazily so that we don't enable the glow effect unnecessarily
+    bool began = false;
+
     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); ++node) {
         if (node->getLinkedData() != NULL && node->getType() == NODE_TYPE_AGENT) {
             Avatar* avatar = (Avatar *) node->getLinkedData();
@@ -2348,6 +2255,7 @@ void Application::renderFollowIndicator() {
                 }
 
                 if (leader != NULL) {
+                    maybeBeginFollowIndicator(began);
                     glColor3f(1.f, 0.f, 0.f);
                     glVertex3f((avatar->getHead().getPosition().x + avatar->getPosition().x) / 2.f,
                                (avatar->getHead().getPosition().y + avatar->getPosition().y) / 2.f,
@@ -2362,6 +2270,7 @@ void Application::renderFollowIndicator() {
     }
 
     if (_myAvatar.getLeadingAvatar() != NULL) {
+        maybeBeginFollowIndicator(began);
         glColor3f(1.f, 0.f, 0.f);
         glVertex3f((_myAvatar.getHead().getPosition().x + _myAvatar.getPosition().x) / 2.f,
                    (_myAvatar.getHead().getPosition().y + _myAvatar.getPosition().y) / 2.f,
@@ -2372,7 +2281,10 @@ void Application::renderFollowIndicator() {
                    (_myAvatar.getLeadingAvatar()->getHead().getPosition().z + _myAvatar.getLeadingAvatar()->getPosition().z) / 2.f);
     }
 
-    glEnd();
+    if (began) {
+        glEnd();
+        _glowEffect.end();
+    }
 }
 
 void Application::update(float deltaTime) {
@@ -2581,7 +2493,8 @@ void Application::update(float deltaTime) {
 
     // parse voxel packets
     if (!_enableProcessVoxelsThread) {
-        processVoxels(0);
+        _voxelProcessor.threadRoutine();
+        _voxelEditSender.threadRoutine();
     }
     
     //loop through all the other avatars and simulate them...
@@ -2763,26 +2676,6 @@ void Application::updateAvatar(float deltaTime) {
         const float AVATAR_VOXEL_URL_SEND_INTERVAL = 1.0f; // seconds
         if (shouldDo(AVATAR_VOXEL_URL_SEND_INTERVAL, deltaTime)) {
             sendAvatarVoxelURLMessage(_myAvatar.getVoxels()->getVoxelURL());
-        }
-    }
-
-    // If I'm in paint mode, send a voxel out to VOXEL server nodes.
-    if (_paintOn) {
-
-        glm::vec3 avatarPos = _myAvatar.getPosition();
-
-        // For some reason, we don't want to flip X and Z here.
-        _paintingVoxel.x = avatarPos.x / 10.0;
-        _paintingVoxel.y = avatarPos.y / 10.0;
-        _paintingVoxel.z = avatarPos.z / 10.0;
-        
-        if (_paintingVoxel.x >= 0.0 && _paintingVoxel.x <= 1.0 &&
-            _paintingVoxel.y >= 0.0 && _paintingVoxel.y <= 1.0 &&
-            _paintingVoxel.z >= 0.0 && _paintingVoxel.z <= 1.0) {
-            
-            PACKET_TYPE message = (_destructiveAddVoxel->isChecked() ?
-                PACKET_TYPE_SET_VOXEL_DESTRUCTIVE : PACKET_TYPE_SET_VOXEL);
-            sendVoxelEditMessage(message, _paintingVoxel);
         }
     }
 }
@@ -3019,6 +2912,9 @@ void Application::displaySide(Camera& whichCamera) {
     //  Setup 3D lights (after the camera transform, so that they are positioned in world space)
     setupWorldLight(whichCamera);
     
+    // prepare the glow effect
+    _glowEffect.prepare();
+    
     if (_renderStarsOn->isChecked()) {
         if (!_stars.getFileLoaded()) {
             _stars.readInput(STAR_FILE, STAR_CACHE_FILE, 0);
@@ -3147,6 +3043,7 @@ void Application::displaySide(Camera& whichCamera) {
             _myAvatar.getHead().setLookAtPosition(_myCamera.getPosition());
         }
         _myAvatar.render(_lookingInMirror->isChecked(), _renderAvatarBalls->isChecked());
+        
         _myAvatar.setDisplayingLookatVectors(_renderLookatOn->isChecked());
 
         if (_renderLookatIndicatorOn->isChecked() && _isLookingAtOtherAvatar) {
@@ -3181,6 +3078,9 @@ void Application::displaySide(Camera& whichCamera) {
     }
         
     renderFollowIndicator();
+    
+    // render the glow effect
+    _glowEffect.render();
 }
 
 void Application::displayOverlay() {
@@ -3271,15 +3171,6 @@ void Application::displayOverlay() {
     
     sprintf(nodes, "Servers: %d, Avatars: %d\n", totalServers, totalAvatars);
     drawtext(_glWidget->width() - 150, 20, 0.10, 0, 1.0, 0, nodes, 1, 0, 0);
-    
-    if (_paintOn) {
-    
-        char paintMessage[100];
-        sprintf(paintMessage,"Painting (%.3f,%.3f,%.3f/%.3f/%d,%d,%d)",
-            _paintingVoxel.x, _paintingVoxel.y, _paintingVoxel.z, _paintingVoxel.s,
-            (unsigned int)_paintingVoxel.red, (unsigned int)_paintingVoxel.green, (unsigned int)_paintingVoxel.blue);
-        drawtext(_glWidget->width() - 350, 50, 0.10, 0, 1.0, 0, paintMessage, 1, 1, 0);
-    }
     
     // render the webcam input frame
     _webcam.renderPreview(_glWidget->width(), _glWidget->height());
@@ -3738,26 +3629,6 @@ void Application::renderViewFrustum(ViewFrustum& viewFrustum) {
     }
 }
 
-void Application::setupPaintingVoxel() {
-    glm::vec3 avatarPos = _myAvatar.getPosition();
-
-    _paintingVoxel.x = avatarPos.z/-10.0;    // voxel space x is negative z head space
-    _paintingVoxel.y = avatarPos.y/-10.0;  // voxel space y is negative y head space
-    _paintingVoxel.z = avatarPos.x/-10.0;  // voxel space z is negative x head space
-    _paintingVoxel.s = 1.0/256;
-    
-    shiftPaintingColor();
-}
-
-void Application::shiftPaintingColor() {
-    // About the color of the paintbrush... first determine the dominant color
-    _dominantColor = (_dominantColor + 1) % 3; // 0=red,1=green,2=blue
-    _paintingVoxel.red   = (_dominantColor == 0) ? randIntInRange(200, 255) : randIntInRange(40, 100);
-    _paintingVoxel.green = (_dominantColor == 1) ? randIntInRange(200, 255) : randIntInRange(40, 100);
-    _paintingVoxel.blue  = (_dominantColor == 2) ? randIntInRange(200, 255) : randIntInRange(40, 100);
-}
-
-
 void Application::injectVoxelAddedSoundEffect() {
     AudioInjector* voxelInjector = AudioInjectionManager::injectorWithCapacity(11025);
     
@@ -3819,7 +3690,7 @@ bool Application::maybeEditVoxelUnderCursor() {
         if (_mouseVoxel.s != 0) {
             PACKET_TYPE message = (_destructiveAddVoxel->isChecked() ?
                 PACKET_TYPE_SET_VOXEL_DESTRUCTIVE : PACKET_TYPE_SET_VOXEL);
-            sendVoxelEditMessage(message, _mouseVoxel);
+            _voxelEditSender.sendVoxelEditMessage(message, _mouseVoxel);
             
             // create the voxel locally so it appears immediately
             _voxels.createVoxel(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s,
@@ -3865,7 +3736,7 @@ bool Application::maybeEditVoxelUnderCursor() {
 void Application::deleteVoxelUnderCursor() {
     if (_mouseVoxel.s != 0) {
         // sending delete to the server is sufficient, server will send new version so we see updates soon enough
-        sendVoxelEditMessage(PACKET_TYPE_ERASE_VOXEL, _mouseVoxel);
+        _voxelEditSender.sendVoxelEditMessage(PACKET_TYPE_ERASE_VOXEL, _mouseVoxel);
         AudioInjector* voxelInjector = AudioInjectionManager::injectorWithCapacity(5000);
         
         if (voxelInjector) {
@@ -3985,15 +3856,16 @@ void Application::nodeKilled(Node* node) {
         uint16_t nodeID = node->getNodeID();
         // see if this is the first we've heard of this node...
         if (_voxelServerJurisdictions.find(nodeID) != _voxelServerJurisdictions.end()) {
-            VoxelPositionSize jurisditionDetails;
-            jurisditionDetails = _voxelServerJurisdictions[nodeID];
+            unsigned char* rootCode = _voxelServerJurisdictions[nodeID].getRootOctalCode();
+            VoxelPositionSize rootDetails;
+            voxelDetailsForCode(rootCode, rootDetails);
 
             printf("voxel server going away...... v[%f, %f, %f, %f]\n",
-                jurisditionDetails.x, jurisditionDetails.y, jurisditionDetails.z, jurisditionDetails.s);
+                rootDetails.x, rootDetails.y, rootDetails.z, rootDetails.s);
                 
             // Add the jurisditionDetails object to the list of "fade outs"
             VoxelFade fade(VoxelFade::FADE_OUT, NODE_KILLED_RED, NODE_KILLED_GREEN, NODE_KILLED_BLUE);
-            fade.voxelDetails = jurisditionDetails;
+            fade.voxelDetails = rootDetails;
             const float slightly_smaller = 0.99;
             fade.voxelDetails.s = fade.voxelDetails.s * slightly_smaller;
             _voxelFades.push_back(fade);
@@ -4014,94 +3886,30 @@ int Application::parseVoxelStats(unsigned char* messageData, ssize_t messageLeng
     if (voxelServer) {
         uint16_t nodeID = voxelServer->getNodeID();
 
-        VoxelPositionSize jurisditionDetails;
-        voxelDetailsForCode(_voxelSceneStats.getJurisdictionRoot(), jurisditionDetails);
+        VoxelPositionSize rootDetails;
+        voxelDetailsForCode(_voxelSceneStats.getJurisdictionRoot(), rootDetails);
         
         // see if this is the first we've heard of this node...
         if (_voxelServerJurisdictions.find(nodeID) == _voxelServerJurisdictions.end()) {
             printf("stats from new voxel server... v[%f, %f, %f, %f]\n",
-                jurisditionDetails.x, jurisditionDetails.y, jurisditionDetails.z, jurisditionDetails.s);
+                rootDetails.x, rootDetails.y, rootDetails.z, rootDetails.s);
 
             // Add the jurisditionDetails object to the list of "fade outs"
             VoxelFade fade(VoxelFade::FADE_OUT, NODE_ADDED_RED, NODE_ADDED_GREEN, NODE_ADDED_BLUE);
-            fade.voxelDetails = jurisditionDetails;
+            fade.voxelDetails = rootDetails;
             const float slightly_smaller = 0.99;
             fade.voxelDetails.s = fade.voxelDetails.s * slightly_smaller;
             _voxelFades.push_back(fade);
         }
         // store jurisdiction details for later use
-        _voxelServerJurisdictions[nodeID] = jurisditionDetails;
+        // This is bit of fiddling is because JurisdictionMap assumes it is the owner of the values used to construct it
+        // but VoxelSceneStats thinks it's just returning a reference to it's contents. So we need to make a copy of the
+        // details from the VoxelSceneStats to construct the JurisdictionMap
+        JurisdictionMap jurisdictionMap;
+        jurisdictionMap.copyContents(_voxelSceneStats.getJurisdictionRoot(), _voxelSceneStats.getJurisdictionEndNodes());
+        _voxelServerJurisdictions[nodeID] = jurisdictionMap;
     }
     return statsMessageLength;
-}
-
-//  Receive packets from other nodes/servers and decide what to do with them!
-void* Application::processVoxels(void* args) {
-    Application* app = Application::getInstance();
-    while (!app->_stopProcessVoxelsThread) {
-
-        // check to see if the UI thread asked us to kill the voxel tree. since we're the only thread allowed to do that
-        if (app->_wantToKillLocalVoxels) {
-            app->_voxels.killLocalVoxels();
-            app->_wantToKillLocalVoxels = false;
-        }
-        
-        while (app->_voxelPackets.size() > 0) {
-            NetworkPacket& packet = app->_voxelPackets.front();
-            app->processVoxelPacket(packet.getSenderAddress(), packet.getData(), packet.getLength());
-            app->_voxelPackets.erase(app->_voxelPackets.begin());
-        }
-    
-        if (!app->_enableProcessVoxelsThread) {
-            break;
-        }
-    }
-    
-    if (app->_enableProcessVoxelsThread) {
-        pthread_exit(0); 
-    }
-    return NULL; 
-}
-
-void Application::queueVoxelPacket(sockaddr& senderAddress, unsigned char* packetData, ssize_t packetLength) {
-    _voxelPackets.push_back(NetworkPacket(senderAddress, packetData, packetLength));
-}
-
-void Application::processVoxelPacket(sockaddr& senderAddress, unsigned char* packetData, ssize_t packetLength) {
-    PerformanceWarning warn(_renderPipelineWarnings->isChecked(),"processVoxelPacket()");
-    ssize_t messageLength = packetLength;
-
-    // note: PACKET_TYPE_VOXEL_STATS can have PACKET_TYPE_VOXEL_DATA or PACKET_TYPE_VOXEL_DATA_MONOCHROME
-    // immediately following them inside the same packet. So, we process the PACKET_TYPE_VOXEL_STATS first
-    // then process any remaining bytes as if it was another packet
-    if (packetData[0] == PACKET_TYPE_VOXEL_STATS) {
-    
-        int statsMessageLength = parseVoxelStats(packetData, messageLength, senderAddress);
-        if (messageLength > statsMessageLength) {
-            packetData += statsMessageLength;
-            messageLength -= statsMessageLength;
-            if (!packetVersionMatch(packetData)) {
-                return; // bail since piggyback data doesn't match our versioning
-            }
-        } else {
-            return; // bail since no piggyback data
-        }
-    } // fall through to piggyback message
-
-    if (_renderVoxels->isChecked()) {
-        Node* voxelServer = NodeList::getInstance()->nodeWithAddress(&senderAddress);
-        if (voxelServer && socketMatch(voxelServer->getActiveSocket(), &senderAddress)) {
-            voxelServer->lock();
-            if (packetData[0] == PACKET_TYPE_ENVIRONMENT_DATA) {
-                _environment.parseData(&senderAddress, packetData, messageLength);
-            } else {
-                _voxels.setDataSourceID(voxelServer->getNodeID());
-                _voxels.parseData(packetData, messageLength);
-                _voxels.setDataSourceID(UNKNOWN_NODE_ID);
-            }
-            voxelServer->unlock();
-        }
-    }
 }
 
 //  Receive packets from other nodes/servers and decide what to do with them!
@@ -4111,12 +3919,6 @@ void* Application::networkReceive(void* args) {
     
     Application* app = Application::getInstance();
     while (!app->_stopNetworkReceiveThread) {
-        // check to see if the UI thread asked us to kill the voxel tree. since we're the only thread allowed to do that
-        if (app->_wantToKillLocalVoxels) {
-            app->_voxels.killLocalVoxels();
-            app->_wantToKillLocalVoxels = false;
-        }       
-    
         if (NodeList::getInstance()->getNodeSocket()->receive(&senderAddress, app->_incomingPacket, &bytesReceived)) {
         
             app->_packetCount++;
@@ -4140,7 +3942,7 @@ void* Application::networkReceive(void* args) {
                     case PACKET_TYPE_VOXEL_STATS:
                     case PACKET_TYPE_ENVIRONMENT_DATA: {
                         // add this packet to our list of voxel packets and process them on the voxel processing
-                        app->queueVoxelPacket(senderAddress, app->_incomingPacket, bytesReceived);
+                        app->_voxelProcessor.queuePacket(senderAddress, app->_incomingPacket, bytesReceived);
                         break;
                     }
                     case PACKET_TYPE_BULK_AVATAR_DATA:

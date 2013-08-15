@@ -13,6 +13,63 @@
 #include "JurisdictionMap.h"
 #include "VoxelNode.h"
 
+
+// standard assignment
+// copy assignment 
+JurisdictionMap& JurisdictionMap::operator=(const JurisdictionMap& other) {
+    copyContents(other);
+    return *this;
+}
+
+#ifdef HAS_MOVE_SEMANTICS
+// Move constructor
+JurisdictionMap::JurisdictionMap(JurisdictionMap&& other) : _rootOctalCode(NULL) {
+    init(other._rootOctalCode, other._endNodes);
+    other._rootOctalCode = NULL;
+    other._endNodes.clear();
+}
+
+// move assignment
+JurisdictionMap& JurisdictionMap::operator=(JurisdictionMap&& other) {
+    init(other._rootOctalCode, other._endNodes);
+    other._rootOctalCode = NULL;
+    other._endNodes.clear();
+    return *this;
+}
+#endif
+
+// Copy constructor
+JurisdictionMap::JurisdictionMap(const JurisdictionMap& other) : _rootOctalCode(NULL) {
+    copyContents(other);
+}
+
+void JurisdictionMap::copyContents(unsigned char* rootCodeIn, const std::vector<unsigned char*>& endNodesIn) {
+    unsigned char* rootCode;
+    std::vector<unsigned char*> endNodes;
+    if (rootCodeIn) {
+        int bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(rootCodeIn));
+        rootCode = new unsigned char[bytes];
+        memcpy(rootCode, rootCodeIn, bytes);
+    } else {
+        rootCode = new unsigned char[1];
+        *rootCode = 0;
+    }
+    
+    for (int i = 0; i < endNodesIn.size(); i++) {
+        if (endNodesIn[i]) {
+            int bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(endNodesIn[i]));
+            unsigned char* endNodeCode = new unsigned char[bytes];
+            memcpy(endNodeCode, endNodesIn[i], bytes);
+            endNodes.push_back(endNodeCode);
+        }
+    }
+    init(rootCode, endNodes);
+}
+
+void JurisdictionMap::copyContents(const JurisdictionMap& other) {
+    copyContents(other._rootOctalCode, other._endNodes);
+}
+
 JurisdictionMap::~JurisdictionMap() {
     clear();
 }
@@ -74,7 +131,7 @@ void JurisdictionMap::init(unsigned char* rootOctalCode, const std::vector<unsig
 
 JurisdictionMap::Area JurisdictionMap::isMyJurisdiction(unsigned char* nodeOctalCode, int childIndex) const {
     // to be in our jurisdiction, we must be under the root...
-    
+
     // if the node is an ancestor of my root, then we return ABOVE
     if (isAncestorOf(nodeOctalCode, _rootOctalCode)) {
         return ABOVE;
@@ -82,12 +139,6 @@ JurisdictionMap::Area JurisdictionMap::isMyJurisdiction(unsigned char* nodeOctal
     
     // otherwise...
     bool isInJurisdiction = isAncestorOf(_rootOctalCode, nodeOctalCode, childIndex);
-
-    //printf("isInJurisdiction=%s rootOctalCode=",debug::valueOf(isInJurisdiction));
-    //printOctalCode(_rootOctalCode);
-    //printf("nodeOctalCode=");
-    //printOctalCode(nodeOctalCode);
-    
     // if we're under the root, then we can't be under any of the endpoints
     if (isInJurisdiction) {
         for (int i = 0; i < _endNodes.size(); i++) {
@@ -98,7 +149,6 @@ JurisdictionMap::Area JurisdictionMap::isMyJurisdiction(unsigned char* nodeOctal
             }
         }
     }
-
     return isInJurisdiction ? WITHIN : BELOW;
 }
 
@@ -146,49 +196,4 @@ bool JurisdictionMap::writeToFile(const char* filename) {
     }
     settings.endGroup();
     return true;
-}
-
-
-unsigned char* JurisdictionMap::hexStringToOctalCode(const QString& input) const {
-    const int HEX_NUMBER_BASE = 16;
-    const int HEX_BYTE_SIZE = 2;
-    int stringIndex = 0;
-    int byteArrayIndex = 0;
-
-    // allocate byte array based on half of string length
-    unsigned char* bytes = new unsigned char[(input.length()) / HEX_BYTE_SIZE];
-    
-    // loop through the string - 2 bytes at a time converting
-    //  it to decimal equivalent and store in byte array
-    bool ok;
-    while (stringIndex < input.length()) {
-        uint value = input.mid(stringIndex, HEX_BYTE_SIZE).toUInt(&ok, HEX_NUMBER_BASE);
-        if (!ok) {
-            break;
-        }
-        bytes[byteArrayIndex] = (unsigned char)value;
-        stringIndex += HEX_BYTE_SIZE;
-        byteArrayIndex++;
-    }
-    
-    // something went wrong
-    if (!ok) {
-        delete[] bytes;
-        return NULL;
-    }
-    return bytes;
-}
-
-QString JurisdictionMap::octalCodeToHexString(unsigned char* octalCode) const {
-    const int HEX_NUMBER_BASE = 16;
-    const int HEX_BYTE_SIZE = 2;
-    QString output;
-    if (!octalCode) {
-        output = "00";
-    } else {
-        for (int i = 0; i < bytesRequiredForCodeLength(*octalCode); i++) {
-            output.append(QString("%1").arg(octalCode[i], HEX_BYTE_SIZE, HEX_NUMBER_BASE, QChar('0')).toUpper());
-        }
-    }
-    return output;
 }

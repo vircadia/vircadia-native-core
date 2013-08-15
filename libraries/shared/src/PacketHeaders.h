@@ -13,6 +13,7 @@
 #define hifi_PacketHeaders_h
 
 typedef char PACKET_TYPE;
+const PACKET_TYPE PACKET_TYPE_UNKNOWN = 0;
 const PACKET_TYPE PACKET_TYPE_DOMAIN = 'D';
 const PACKET_TYPE PACKET_TYPE_PING = 'P';
 const PACKET_TYPE PACKET_TYPE_PING_REPLY = 'R';
