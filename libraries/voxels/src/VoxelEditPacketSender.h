@@ -1,6 +1,6 @@
 //
 //  VoxelEditPacketSender.h
-//  interface
+//  shared
 //
 //  Created by Brad Hefta-Gaub on 8/12/13.
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
@@ -13,7 +13,7 @@
 
 #include <PacketSender.h>
 #include <SharedUtil.h> // for VoxelDetail
-#include <JurisdictionMap.h>
+#include "JurisdictionMap.h"
 
 /// Used for construction of edit voxel packets
 class EditPacketBuffer {
