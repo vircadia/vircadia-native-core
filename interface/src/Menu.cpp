@@ -98,11 +98,17 @@ Menu::Menu() :
                                            appInstance->getAvatar(),
                                            SLOT(setWantCollisionsOn(bool)));
     
-    addActionToQMenuAndActionHash(optionsMenu, MenuOption::WebcamMode);
-    addCheckableActionToQMenuAndActionHash(optionsMenu, MenuOption::WebcamTexture);
-    
-    //        optionsMenu->addAction("Cycle Webcam Send Mode", _webcam.getGrabber(), SLOT(cycleVideoSendMode()));
-    //        optionsMenu->addAction("Webcam Texture", _webcam.getGrabber(), SLOT(setDepthOnly(bool)))->setCheckable(true);
+    addActionToQMenuAndActionHash(optionsMenu,
+                                  MenuOption::WebcamMode,
+                                  0,
+                                  appInstance->getWebcam()->getGrabber(),
+                                  SLOT(cycleVideoSendMode()));
+    addCheckableActionToQMenuAndActionHash(optionsMenu,
+                                           MenuOption::WebcamTexture,
+                                           0,
+                                           false,
+                                           appInstance->getWebcam()->getGrabber(),
+                                           SLOT(setDepthOnly(bool)));
     
     addActionToQMenuAndActionHash(optionsMenu, MenuOption::GoHome, Qt::CTRL | Qt::Key_G, appInstance, SLOT(goHome()));
     
