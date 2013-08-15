@@ -13,24 +13,28 @@
 
 #include <pthread.h>
 
+/// A basic generic "thread" class. Handles a single thread of control within the application. Can operate in non-threaded
+/// mode but caller must regularly call threadRoutine() method.
 class GenericThread {
 public:
     GenericThread();
     virtual ~GenericThread();
 
-    // Call to start the thread
-    void initialize(bool isThreaded);
+    /// Call to start the thread. 
+    /// \param bool isThreaded true by default. false for non-threaded mode and caller must call threadRoutine() regularly.
+    void initialize(bool isThreaded = true);
 
-    // override this function to do whatever your class actually does, return false to exit thread early
-    virtual bool process() = 0;
-
-    // Call when you're ready to stop the thread
+    /// Call to stop the thread
     void terminate();
     
-    // If you're running in non-threaded mode, you must call this regularly
+    /// If you're running in non-threaded mode, you must call this regularly
     void* threadRoutine();
 
 protected:
+    /// Override this function to do whatever your class actually does, return false to exit thread early.
+    virtual bool process() = 0;
+
+    /// Locks all the resources of the thread.
     void lock() { pthread_mutex_lock(&_mutex); }
     void unlock() { pthread_mutex_unlock(&_mutex); }
     

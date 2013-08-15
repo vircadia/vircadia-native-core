@@ -221,7 +221,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _audio(&_audioScope, STARTUP_JITTER_SAMPLES),
 #endif
         _stopNetworkReceiveThread(false),  
-        _voxelReceiver(this),
+        _voxelProcessor(this),
         _voxelEditSender(this),
         _packetCount(0),
         _packetsPerSecond(0),
@@ -374,7 +374,7 @@ void Application::initializeGL() {
     }
 
     // create thread for parsing of voxel data independent of the main network and rendering threads
-    _voxelReceiver.initialize(_enableProcessVoxelsThread);
+    _voxelProcessor.initialize(_enableProcessVoxelsThread);
     _voxelEditSender.initialize(_enableProcessVoxelsThread);
     if (_enableProcessVoxelsThread) {
         qDebug("Voxel parsing thread created.\n");
@@ -1164,7 +1164,7 @@ void Application::terminate() {
         pthread_join(_networkReceiveThread, NULL); 
     }
 
-    _voxelReceiver.terminate();
+    _voxelProcessor.terminate();
     _voxelEditSender.terminate();
 }
 
@@ -2493,8 +2493,8 @@ void Application::update(float deltaTime) {
 
     // parse voxel packets
     if (!_enableProcessVoxelsThread) {
-        _voxelReceiver.process();
-        _voxelEditSender.process();
+        _voxelProcessor.threadRoutine();
+        _voxelEditSender.threadRoutine();
     }
     
     //loop through all the other avatars and simulate them...
@@ -3942,7 +3942,7 @@ void* Application::networkReceive(void* args) {
                     case PACKET_TYPE_VOXEL_STATS:
                     case PACKET_TYPE_ENVIRONMENT_DATA: {
                         // add this packet to our list of voxel packets and process them on the voxel processing
-                        app->_voxelReceiver.queuePacket(senderAddress, app->_incomingPacket, bytesReceived);
+                        app->_voxelProcessor.queuePacket(senderAddress, app->_incomingPacket, bytesReceived);
                         break;
                     }
                     case PACKET_TYPE_BULK_AVATAR_DATA:

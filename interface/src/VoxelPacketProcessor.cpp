@@ -1,5 +1,5 @@
 //
-//  VoxelPacketReceiver.cpp
+//  VoxelPacketProcessor.cpp
 //  interface
 //
 //  Created by Brad Hefta-Gaub on 8/12/13.
@@ -11,14 +11,14 @@
 #include <PerfStat.h>
 
 #include "Application.h"
-#include "VoxelPacketReceiver.h"
+#include "VoxelPacketProcessor.h"
 
-VoxelPacketReceiver::VoxelPacketReceiver(Application* app) :
+VoxelPacketProcessor::VoxelPacketProcessor(Application* app) :
     _app(app) {
 }
 
-void VoxelPacketReceiver::processPacket(sockaddr& senderAddress, unsigned char* packetData, ssize_t packetLength) {
-    PerformanceWarning warn(_app->_renderPipelineWarnings->isChecked(),"processVoxelPacket()");
+void VoxelPacketProcessor::processPacket(sockaddr& senderAddress, unsigned char* packetData, ssize_t packetLength) {
+    PerformanceWarning warn(_app->_renderPipelineWarnings->isChecked(),"VoxelPacketProcessor::processPacket()");
     ssize_t messageLength = packetLength;
 
     // check to see if the UI thread asked us to kill the voxel tree. since we're the only thread allowed to do that

@@ -17,6 +17,7 @@
 
 #include "NodeList.h" // for MAX_PACKET_SIZE
 
+/// Storage of not-yet processed inbound, or not yet sent outbound generic UDP network packet
 class NetworkPacket {
 public:
     NetworkPacket();

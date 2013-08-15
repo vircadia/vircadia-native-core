@@ -39,7 +39,7 @@
 #include "ViewFrustum.h"
 #include "VoxelFade.h"
 #include "VoxelEditPacketSender.h"
-#include "VoxelPacketReceiver.h"
+#include "VoxelPacketProcessor.h"
 #include "VoxelSystem.h"
 #include "Webcam.h"
 #include "PieMenu.h"
@@ -75,7 +75,7 @@ static const float NODE_KILLED_BLUE  = 0.0f;
 class Application : public QApplication, public NodeListHook {
     Q_OBJECT
 
-    friend class VoxelPacketReceiver;
+    friend class VoxelPacketProcessor;
     friend class VoxelEditPacketSender;
 
 public:
@@ -454,7 +454,7 @@ private:
     bool _stopNetworkReceiveThread;
     
     bool _enableProcessVoxelsThread;
-    VoxelPacketReceiver     _voxelReceiver;
+    VoxelPacketProcessor     _voxelProcessor;
     VoxelEditPacketSender   _voxelEditSender;
     
     unsigned char _incomingPacket[MAX_PACKET_SIZE];

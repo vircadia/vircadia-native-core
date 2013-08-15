@@ -1,5 +1,5 @@
 //
-//  VoxelPacketReceiver.h
+//  VoxelPacketProcessor.h
 //  interface
 //
 //  Created by Brad Hefta-Gaub on 8/12/13.
@@ -8,19 +8,19 @@
 //  Voxel Packet Receiver
 //
 
-#ifndef __shared__VoxelPacketReceiver__
-#define __shared__VoxelPacketReceiver__
+#ifndef __shared__VoxelPacketProcessor__
+#define __shared__VoxelPacketProcessor__
 
-#include <PacketReceiver.h>
+#include <ReceivedPacketProcessor.h>
 
 class Application;
 
-class VoxelPacketReceiver : public PacketReceiver {
+class VoxelPacketProcessor : public ReceivedPacketProcessor {
 public:
-    VoxelPacketReceiver(Application* app);
+    VoxelPacketProcessor(Application* app);
     virtual void processPacket(sockaddr& senderAddress, unsigned char*  packetData, ssize_t packetLength);
 
 private:
     Application* _app;
 };
-#endif // __shared__VoxelPacketReceiver__
+#endif // __shared__VoxelPacketProcessor__
