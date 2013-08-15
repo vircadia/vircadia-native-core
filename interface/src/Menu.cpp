@@ -230,12 +230,16 @@ Menu::Menu() :
     
     addCheckableActionToQMenuAndActionHash(voxelMenu, MenuOption::DestructiveAddVoxel);
     
-    addActionToQMenuAndActionHash(voxelMenu, MenuOption::ExportVoxels, Qt::CTRL | Qt::Key_E);
-    addActionToQMenuAndActionHash(voxelMenu, MenuOption::ImportVoxels, Qt::CTRL | Qt::Key_I);
-    addActionToQMenuAndActionHash(voxelMenu, MenuOption::ImportVoxelsClipboard, Qt::SHIFT | Qt::CTRL | Qt::Key_I);
-    addActionToQMenuAndActionHash(voxelMenu, MenuOption::CutVoxels, Qt::CTRL | Qt::Key_X);
-    addActionToQMenuAndActionHash(voxelMenu, MenuOption::CopyVoxels, Qt::CTRL | Qt::Key_C);
-    addActionToQMenuAndActionHash(voxelMenu, MenuOption::PasteVoxels, Qt::CTRL | Qt::Key_V);
+    addActionToQMenuAndActionHash(voxelMenu, MenuOption::ExportVoxels, Qt::CTRL | Qt::Key_E, appInstance, SLOT(exportVoxels()));
+    addActionToQMenuAndActionHash(voxelMenu, MenuOption::ImportVoxels, Qt::CTRL | Qt::Key_I, appInstance, SLOT(importVoxels()));
+    addActionToQMenuAndActionHash(voxelMenu,
+                                  MenuOption::ImportVoxelsClipboard,
+                                  Qt::SHIFT | Qt::CTRL | Qt::Key_I,
+                                  appInstance,
+                                  SLOT(importVoxelsToClipboard()));
+    addActionToQMenuAndActionHash(voxelMenu, MenuOption::CutVoxels, Qt::CTRL | Qt::Key_X, appInstance, SLOT(cutVoxels()));
+    addActionToQMenuAndActionHash(voxelMenu, MenuOption::CopyVoxels, Qt::CTRL | Qt::Key_C, appInstance, SLOT(copyVoxels()));
+    addActionToQMenuAndActionHash(voxelMenu, MenuOption::PasteVoxels, Qt::CTRL | Qt::Key_V, appInstance, SLOT(pasteVoxels()));
     
     QMenu* debugMenu = addMenu("Debug");
 

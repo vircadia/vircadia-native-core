@@ -134,7 +134,14 @@ public:
     virtual void nodeKilled(Node* node);
 
 public slots:
-    void sendAvatarFaceVideoMessage(int frameCount, const QByteArray& data);    
+    void sendAvatarFaceVideoMessage(int frameCount, const QByteArray& data);
+    void resetSwatchColors();
+    void exportVoxels();
+    void importVoxels();
+    void importVoxelsToClipboard();
+    void cutVoxels();
+    void copyVoxels();
+    void pasteVoxels();
     
 private slots:
     
@@ -168,13 +175,6 @@ private slots:
     void disableOcclusionCulling(bool disableOcclusionCulling);
     void decreaseVoxelSize();
     void increaseVoxelSize();
-    void resetSwatchColors();
-    void exportVoxels();
-    void importVoxels();
-    void importVoxelsToClipboard();
-    void cutVoxels();
-    void copyVoxels();
-    void pasteVoxels();
     void runTests();
     void setListenModeNormal();
     void setListenModePoint();
