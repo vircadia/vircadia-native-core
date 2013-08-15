@@ -1118,29 +1118,6 @@ void Application::doKillLocalVoxels() {
 }
 
 //
-//void Application::doFalseColorizeInView() {
-//    loadViewFrustum(_myCamera, _viewFrustum);
-//    // we probably want to make sure the viewFrustum is initialized first
-//    _voxels.falseColorizeInView(&_viewFrustum);
-//}
-//
-//void Application::doFalseColorizeOccluded() {
-//    CoverageMap::wantDebugging = true;
-//    _voxels.falseColorizeOccluded();
-//}
-//
-//void Application::doFalseColorizeOccludedV2() {
-//    _voxels.falseColorizeOccludedV2();
-//}
-//
-//void Application::doFalseColorizeBySource() {
-//    _voxels.falseColorizeBySource();
-//}
-//
-//void Application::doTrueVoxelColors() {
-//    _voxels.trueColorize();
-//}
-//
 //void Application::disableLowResMoving(bool disableLowResMoving) {
 //    _myAvatar.setWantLowResMoving(!disableLowResMoving);
 //}

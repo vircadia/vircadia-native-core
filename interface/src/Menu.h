@@ -154,9 +154,7 @@ namespace MenuOption {
     const QString Log = "Log";
     const QString LookAtIndicator = "Look-at Indicator";
     const QString LookAtVectors = "Look-at Vectors";
-    const QString LowPassFilter = "Low-pass Filter";
     const QString Mirror = "Mirror";
-    const QString Monochrome = "Monochrome";
     const QString Oscilloscope = "Audio Oscilloscope";
     const QString Pair = "Pair";
     const QString PasteVoxels = "Paste Voxels";
@@ -166,6 +164,7 @@ namespace MenuOption {
     const QString ResetAvatarSize = "Reset Avatar Size";
     const QString ResetSwatchColors = "Reset Swatch Colors";
     const QString RunTimingTests = "Run Timing Tests";
+    const QString SendVoxelColors = "Colored Voxels";
     const QString SettingsAutosave = "Autosave";
     const QString SettingsLoad = "Load Settings";
     const QString SettingsSave = "Save Settings";

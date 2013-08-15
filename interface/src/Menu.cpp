@@ -323,12 +323,12 @@ Menu::Menu() :
                                   appInstance->getVoxels(),
                                   SLOT(trueColorize()));
     
-    
-    addCheckableActionToQMenuAndActionHash(debugMenu, MenuOption::LowPassFilter);
-    
-    addCheckableActionToQMenuAndActionHash(debugMenu, MenuOption::Monochrome, NULL, NULL);
-    
-    //        debugMenu->addAction("Wants Monochrome", this, SLOT(setWantsMonochrome(bool)))->setCheckable(true);
+    addCheckableActionToQMenuAndActionHash(debugMenu,
+                                           MenuOption::SendVoxelColors,
+                                           0,
+                                           true,
+                                           appInstance->getAvatar(),
+                                           SLOT(setWantColor(bool)));
     
     addCheckableActionToQMenuAndActionHash(debugMenu, MenuOption::DisableLowRes, NULL, NULL);
     

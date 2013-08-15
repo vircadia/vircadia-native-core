@@ -116,9 +116,8 @@ public:
     bool getWantOcclusionCulling() const { return _wantOcclusionCulling; }
     uint16_t getLeaderID()         const { return _leaderID; }
 
-    void setWantColor(bool wantColor)                       { _wantColor = wantColor; }
     void setWantDelta(bool wantDelta)                       { _wantDelta = wantDelta; }
-    void setWantLowResMoving(bool wantLowResMoving)         { _wantLowResMoving = wantLowResMoving; }
+    
     void setWantOcclusionCulling(bool wantOcclusionCulling) { _wantOcclusionCulling = wantOcclusionCulling; }
     
     void setHeadData(HeadData* headData) { _headData = headData; }
@@ -126,6 +125,8 @@ public:
     
 public slots:
     void sendData();
+    void setWantLowResMoving(bool wantLowResMoving) { _wantLowResMoving = wantLowResMoving; }
+    void setWantColor(bool wantColor) { _wantColor = wantColor; }
     
 protected:
     glm::vec3 _position;
