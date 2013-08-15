@@ -16,15 +16,7 @@ class ProgramObject;
 class AmbientOcclusionEffect {
 public:
     
-    AmbientOcclusionEffect();
-    
-    void render(int screenWidth, int screenHeight);
-
-private:
-    
-    GLuint _depthTextureID;
-    
-    static ProgramObject* _program;
+    void render();
 };
 
 #endif /* defined(__interface__AmbientOcclusionEffect__) */
