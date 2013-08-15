@@ -94,7 +94,7 @@ public slots:
     void randomizeVoxelColors();
     void falseColorizeRandom();
     void trueColorize();
-    void falseColorizeInView(ViewFrustum* viewFrustum);
+    void falseColorizeInView();
     void falseColorizeDistanceFromView();
     void falseColorizeRandomEveryOther();
     void falseColorizeOccluded();

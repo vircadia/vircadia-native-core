@@ -1116,19 +1116,7 @@ void Application::setRenderVoxels(bool voxelRender) {
 void Application::doKillLocalVoxels() {
     _wantToKillLocalVoxels = true;
 }
-//
-//void Application::doFalseRandomizeVoxelColors() {
-//    _voxels.falseColorizeRandom();
-//}
-//
-//void Application::doFalseRandomizeEveryOtherVoxelColors() {
-//    _voxels.falseColorizeRandomEveryOther();
-//}
-//
-//void Application::doFalseColorizeByDistance() {
-//    loadViewFrustum(_myCamera, _viewFrustum);
-//    _voxels.falseColorizeDistanceFromView(&_viewFrustum);
-//}
+
 //
 //void Application::doFalseColorizeInView() {
 //    loadViewFrustum(_myCamera, _viewFrustum);

@@ -812,7 +812,9 @@ bool VoxelSystem::falseColorizeInViewOperation(VoxelNode* node, void* extraData)
     return true; // keep going!
 }
 
-void VoxelSystem::falseColorizeInView(ViewFrustum* viewFrustum) {
+void VoxelSystem::falseColorizeInView() {
+    ViewFrustum* viewFrustum = Application::getInstance()->getViewFrustum();
+    
     _nodeCount = 0;
     _tree->recurseTreeWithOperation(falseColorizeInViewOperation,(void*)viewFrustum);
     qDebug("setting in view false color for %d nodes\n", _nodeCount);

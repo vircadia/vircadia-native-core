@@ -293,13 +293,17 @@ Menu::Menu() :
                                   appInstance->getVoxels(),
                                   SLOT(falseColorizeDistanceFromView()));
     
-    addActionToQMenuAndActionHash(renderDebugMenu, MenuOption::FalseColorOutOfView, NULL, NULL);
+    addActionToQMenuAndActionHash(renderDebugMenu,
+                                  MenuOption::FalseColorOutOfView,
+                                  0,
+                                  appInstance->getVoxels(),
+                                  SLOT(falseColorizeInView()));
     
-    //        renderDebugMenu->addAction("FALSE Color Voxel Out of View", this, SLOT(doFalseColorizeInView()));
-    
-    addActionToQMenuAndActionHash(renderDebugMenu, MenuOption::FalseColorOccluded, Qt::CTRL | Qt::Key_O);
-    
-    //        renderDebugMenu->addAction("FALSE Color Occluded Voxels", this, SLOT(doFalseColorizeOccluded()), Qt::CTRL | Qt::Key_O);
+    addActionToQMenuAndActionHash(renderDebugMenu,
+                                  MenuOption::FalseColorOccluded,
+                                  0,
+                                  appInstance->getVoxels(),
+                                  SLOT(falseColorizeOccluded()));
     
     addActionToQMenuAndActionHash(renderDebugMenu, MenuOption::FalseColorOccludedV2, Qt::CTRL | Qt::Key_P);
     
