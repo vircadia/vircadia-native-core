@@ -63,6 +63,28 @@ bool usingBigSphereCollisionTest = true;
 float chatMessageScale = 0.0015;
 float chatMessageHeight = 0.20;
 
+void Avatar::sendAvatarVoxelURLMessage(const QUrl& url) {
+    uint16_t ownerID = NodeList::getInstance()->getOwnerID();
+    
+    if (ownerID == UNKNOWN_NODE_ID) {
+        return; // we don't yet know who we are
+    }
+    
+    QByteArray message;
+    
+    char packetHeader[MAX_PACKET_HEADER_BYTES];
+    int numBytesPacketHeader = populateTypeAndVersion((unsigned char*) packetHeader, PACKET_TYPE_AVATAR_VOXEL_URL);
+    
+    message.append(packetHeader, numBytesPacketHeader);
+    message.append((const char*)&ownerID, sizeof(ownerID));
+    message.append(url.toEncoded());
+    
+    Application::controlledBroadcastToNodes((unsigned char*)message.data(),
+                                            message.size(),
+                                            &NODE_TYPE_AVATAR_MIXER,
+                                            1);
+}
+
 Avatar::Avatar(Node* owningNode) :
     AvatarData(owningNode),
     _initialized(false),

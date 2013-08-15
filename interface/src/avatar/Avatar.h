@@ -123,6 +123,8 @@ enum ScreenTintLayer
 
 class Avatar : public AvatarData {
 public:
+    static void sendAvatarVoxelURLMessage(const QUrl& url);
+    
     Avatar(Node* owningNode = NULL);
     ~Avatar();
     

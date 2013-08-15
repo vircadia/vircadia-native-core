@@ -384,6 +384,12 @@ void Head::renderMohawk() {
     
     if (!_mohawkTriangleFan) {
         createMohawk();
+        
+        // if we get here and still don't have a mohawk then we don't know who we are
+        // so return out since we can't render it yet
+        if (!_mohawkTriangleFan) {
+            return;
+        }
     }
     
     if (USING_PHYSICAL_MOHAWK) {
