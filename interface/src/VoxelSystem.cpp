@@ -939,14 +939,16 @@ bool VoxelSystem::getDistanceFromViewRangeOperation(VoxelNode* node, void* extra
     return true; // keep going!
 }
 
-void VoxelSystem::falseColorizeDistanceFromView(ViewFrustum* viewFrustum) {
+void VoxelSystem::falseColorizeDistanceFromView() {
+    ViewFrustum* viewFrustum = Application::getInstance()->getViewFrustum();
+    
     _nodeCount = 0;
     _maxDistance = 0.0;
     _minDistance = FLT_MAX;
-    _tree->recurseTreeWithOperation(getDistanceFromViewRangeOperation,(void*)viewFrustum);
+    _tree->recurseTreeWithOperation(getDistanceFromViewRangeOperation, (void*) viewFrustum);
     qDebug("determining distance range for %d nodes\n", _nodeCount);
     _nodeCount = 0;
-    _tree->recurseTreeWithOperation(falseColorizeDistanceFromViewOperation,(void*)viewFrustum);
+    _tree->recurseTreeWithOperation(falseColorizeDistanceFromViewOperation, (void*) viewFrustum);
     qDebug("setting in distance false color for %d nodes\n", _nodeCount);
     _tree->setDirtyBit();
     setupNewVoxelsForDrawing();

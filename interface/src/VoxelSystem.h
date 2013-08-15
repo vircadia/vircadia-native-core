@@ -95,7 +95,7 @@ public slots:
     void falseColorizeRandom();
     void trueColorize();
     void falseColorizeInView(ViewFrustum* viewFrustum);
-    void falseColorizeDistanceFromView(ViewFrustum* viewFrustum);
+    void falseColorizeDistanceFromView();
     void falseColorizeRandomEveryOther();
     void falseColorizeOccluded();
     void falseColorizeOccludedV2();

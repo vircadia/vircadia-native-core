@@ -119,7 +119,6 @@ public:
     Swatch*  getSwatch() { return &_swatch; }
     QMainWindow* getWindow() { return _window; }
     VoxelSceneStats* getVoxelSceneStats() { return &_voxelSceneStats; }
-    ViewFrustum* getViewFrustum() { return &loadViewFrustum(_myCamera, _myFrustum); }
     
     QNetworkAccessManager* getNetworkAccessManager() { return _networkAccessManager; }
     GeometryCache* getGeometryCache() { return &_geometryCache; }

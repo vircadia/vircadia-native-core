@@ -287,9 +287,11 @@ Menu::Menu() :
                                   appInstance->getVoxels(),
                                   SLOT(falseColorizeRandomEveryOther()));
     
-    addActionToQMenuAndActionHash(renderDebugMenu, MenuOption::FalseColorByDistance, NULL, NULL);
-    
-    //        renderDebugMenu->addAction("FALSE Color Voxels by Distance", this, SLOT(doFalseColorizeByDistance()));
+    addActionToQMenuAndActionHash(renderDebugMenu,
+                                  MenuOption::FalseColorByDistance,
+                                  0,
+                                  appInstance->getVoxels(),
+                                  SLOT(falseColorizeDistanceFromView()));
     
     addActionToQMenuAndActionHash(renderDebugMenu, MenuOption::FalseColorOutOfView, NULL, NULL);
     
