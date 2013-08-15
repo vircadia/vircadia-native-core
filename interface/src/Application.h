@@ -142,10 +142,6 @@ private slots:
     
     void setFullscreen(bool fullscreen);
     
-    void increaseAvatarSize();
-    void decreaseAvatarSize();
-    void resetAvatarSize();
-    
     void renderThrustAtVoxel(const glm::vec3& thrust);
     void renderLineToTouchedVoxel();
     

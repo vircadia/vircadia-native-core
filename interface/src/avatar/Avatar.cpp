@@ -1659,6 +1659,25 @@ void Avatar::goHome() {
     setPosition(START_LOCATION);
 }
 
+void Avatar::increaseSize() {
+    if ((1.f + SCALING_RATIO) * _newScale < MAX_SCALE) {
+        _newScale *= (1.f + SCALING_RATIO);
+        qDebug("Changed scale to %f\n", _newScale);
+    }
+}
+
+void Avatar::decreaseSize() {
+    if (MIN_SCALE < (1.f - SCALING_RATIO) * _newScale) {
+        _newScale *= (1.f - SCALING_RATIO);
+        qDebug("Changed scale to %f\n", _newScale);
+    }
+}
+
+void Avatar::resetSize() {
+    _newScale = 1.0f;
+    qDebug("Reseted scale to %f\n", _newScale);
+}
+
 void Avatar::setNewScale(const float scale) {
     _newScale = scale;
 }

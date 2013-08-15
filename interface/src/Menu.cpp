@@ -151,13 +151,21 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(renderMenu, MenuOption::ParticleSystem);
     addCheckableActionToQMenuAndActionHash(renderMenu, MenuOption::FirstPerson, Qt::Key_P, true);
     
-    addActionToQMenuAndActionHash(renderMenu, MenuOption::IncreaseAvatarSize);
-    addActionToQMenuAndActionHash(renderMenu, MenuOption::DecreaseAvatarSize);
-    addActionToQMenuAndActionHash(renderMenu, MenuOption::ResetAvatarSize);
-    
-    //    renderMenu->addAction("Increase Avatar Size", this, SLOT(increaseAvatarSize()), Qt::Key_Plus);
-    //        renderMenu->addAction("Decrease Avatar Size", this, SLOT(decreaseAvatarSize()), Qt::Key_Minus);
-    //        renderMenu->addAction("Reset Avatar Size", this, SLOT(resetAvatarSize()));
+    addActionToQMenuAndActionHash(renderMenu,
+                                  MenuOption::IncreaseAvatarSize,
+                                  Qt::Key_Plus,
+                                  appInstance->getAvatar(),
+                                  SLOT(increaseSize()));
+    addActionToQMenuAndActionHash(renderMenu,
+                                  MenuOption::DecreaseAvatarSize,
+                                  Qt::Key_Minus,
+                                  appInstance->getAvatar(),
+                                  SLOT(decreaseSize()));
+    addActionToQMenuAndActionHash(renderMenu,
+                                  MenuOption::ResetAvatarSize,
+                                  0,
+                                  appInstance->getAvatar(),
+                                  SLOT(resetSize()));
     
     QMenu* toolsMenu = addMenu("Tools");
     addCheckableActionToQMenuAndActionHash(toolsMenu, MenuOption::Stats, Qt::Key_Slash);

@@ -710,10 +710,10 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 }
                 break;
             case Qt::Key_Plus:
-                increaseAvatarSize();
+                _myAvatar.increaseSize();
                 break;
             case Qt::Key_Minus:
-                decreaseAvatarSize();
+                _myAvatar.decreaseSize();
                 break;
 
             case Qt::Key_1:
@@ -1140,25 +1140,6 @@ void Application::setFullscreen(bool fullscreen) {
     _window->setWindowState(fullscreen ? (_window->windowState() | Qt::WindowFullScreen) :
         (_window->windowState() & ~Qt::WindowFullScreen));
     updateCursor();
-}
-
-void Application::increaseAvatarSize() {
-    if ((1.f + SCALING_RATIO) * _myAvatar.getNewScale() < MAX_SCALE) {
-        _myAvatar.setNewScale((1.f + SCALING_RATIO) * _myAvatar.getNewScale());
-        qDebug("Changed scale to %f\n", _myAvatar.getNewScale());
-    }
-}
-
-void Application::decreaseAvatarSize() {
-    if (MIN_SCALE < (1.f - SCALING_RATIO) * _myAvatar.getNewScale()) {
-        _myAvatar.setNewScale((1.f - SCALING_RATIO) * _myAvatar.getNewScale());
-        qDebug("Changed scale to %f\n", _myAvatar.getNewScale());
-    }
-}
-
-void Application::resetAvatarSize() {
-    _myAvatar.setNewScale(1.f);
-    qDebug("Reseted scale to %f\n", _myAvatar.getNewScale());
 }
 
 void Application::setFrustumOffset(bool frustumOffset) {

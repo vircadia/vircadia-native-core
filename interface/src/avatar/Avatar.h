@@ -215,6 +215,9 @@ public:
 public slots:
     void setWantCollisionsOn(bool wantCollisionsOn) { _isCollisionsOn = wantCollisionsOn; }
     void goHome();
+    void increaseSize();
+    void decreaseSize();
+    void resetSize();
 
 private:
     // privatize copy constructor and assignment operator to avoid copying
