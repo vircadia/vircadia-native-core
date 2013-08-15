@@ -15,11 +15,14 @@
 
 class Application;
 
+/// Handles processing of incoming voxel packets for the interface application.
 class VoxelPacketProcessor : public ReceivedPacketProcessor {
 public:
     VoxelPacketProcessor(Application* app);
-    virtual void processPacket(sockaddr& senderAddress, unsigned char*  packetData, ssize_t packetLength);
 
+protected:
+    virtual void processPacket(sockaddr& senderAddress, unsigned char*  packetData, ssize_t packetLength);
+    
 private:
     Application* _app;
 };

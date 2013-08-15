@@ -36,6 +36,8 @@ protected:
 
     /// Locks all the resources of the thread.
     void lock() { pthread_mutex_lock(&_mutex); }
+
+    /// Unlocks all the resources of the thread.
     void unlock() { pthread_mutex_unlock(&_mutex); }
     
 private:

@@ -14,7 +14,7 @@
 #include "GenericThread.h"
 #include "NetworkPacket.h"
 
-/// Generalized threaded processor for handler received inbound packets. 
+/// Generalized threaded processor for handling received inbound packets. 
 class ReceivedPacketProcessor : public GenericThread {
 public:
 
@@ -25,6 +25,7 @@ public:
     /// \thread network receive thread
     void queuePacket(sockaddr& senderAddress, unsigned char*  packetData, ssize_t packetLength);
     
+protected:
     /// Callback for processing of recieved packets. Implement this to process the incoming packets.
     /// \param sockaddr& senderAddress the address of the sender
     /// \param packetData pointer to received data
@@ -32,7 +33,6 @@ public:
     /// \thread "this" individual processing thread
     virtual void processPacket(sockaddr& senderAddress, unsigned char*  packetData, ssize_t packetLength) = 0;
 
-protected:
     /// Implements generic processing behavior for this thread.
     virtual bool process();
 private:

@@ -14,16 +14,22 @@
 #include "GenericThread.h"
 #include "NetworkPacket.h"
 
+/// Generalized threaded processor for queueing and sending of outbound packets. 
 class PacketSender : public GenericThread {
 public:
 
     PacketSender();
-    // Call this when you have a packet you'd like sent...
+
+    /// Add packet to outbound queue.
+    /// \param sockaddr& address the destination address
+    /// \param packetData pointer to data
+    /// \param ssize_t packetLength size of data
+    /// \thread any thread, typically the application thread
     void queuePacket(sockaddr& address, unsigned char*  packetData, ssize_t packetLength);
     
-    virtual bool process();
-    
 private:
+    virtual bool process();
+
     std::vector<NetworkPacket> _packets;
     uint64_t _lastSendTime;
     
