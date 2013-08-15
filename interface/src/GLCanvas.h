@@ -13,6 +13,8 @@
 
 /// customized canvas that simply forwards requests/events to the singleton application
 class GLCanvas : public QGLWidget {
+public:
+    GLCanvas();
 protected:
     
     virtual void initializeGL();

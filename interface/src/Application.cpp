@@ -2467,6 +2467,9 @@ void Application::displaySide(Camera& whichCamera) {
     //  Setup 3D lights (after the camera transform, so that they are positioned in world space)
     setupWorldLight(whichCamera);
     
+    // prepare the glow effect
+    _glowEffect.prepare();
+    
     if (Menu::getInstance()->isOptionChecked(MenuOption::Stars)) {
         if (!_stars.getFileLoaded()) {
             _stars.readInput(STAR_FILE, STAR_CACHE_FILE, 0);

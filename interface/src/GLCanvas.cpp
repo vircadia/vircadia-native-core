@@ -10,6 +10,9 @@
 
 #include "GLCanvas.h"
 
+GLCanvas::GLCanvas() : QGLWidget(QGLFormat(QGL::NoDepthBuffer, QGL::NoStencilBuffer)) {
+}
+
 void GLCanvas::initializeGL() {
     Application::getInstance()->initializeGL();
     setAttribute(Qt::WA_AcceptTouchEvents);

@@ -110,7 +110,6 @@ public:
     Environment* getEnvironment() { return &_environment; }
     SerialInterface* getSerialHeadSensor() { return &_serialHeadSensor; }
     Webcam* getWebcam() { return &_webcam; }
-    QGLWidget* getGLWidget() { return _glWidget; }
     BandwidthMeter* getBandwidthMeter() { return &_bandwidthMeter; }
     QSettings* getSettings() { return _settings; }
     Swatch*  getSwatch() { return &_swatch; }
