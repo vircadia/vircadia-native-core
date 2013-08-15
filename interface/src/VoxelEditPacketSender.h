@@ -20,10 +20,10 @@ class Application;
 class EditPacketBuffer {
 public:
     EditPacketBuffer() { _currentSize = 0; _currentType = PACKET_TYPE_UNKNOWN; _nodeID = UNKNOWN_NODE_ID; }
-    uint16_t        _nodeID;
-    PACKET_TYPE     _currentType;
-    unsigned char   _currentBuffer[MAX_PACKET_SIZE];
-    ssize_t         _currentSize;
+    uint16_t _nodeID;
+    PACKET_TYPE _currentType;
+    unsigned char _currentBuffer[MAX_PACKET_SIZE];
+    ssize_t _currentSize;
 };
 
 /// Threaded processor for queueing and sending of outbound edit voxel packets. 
