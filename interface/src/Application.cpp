@@ -1897,6 +1897,7 @@ void Application::initMenu() {
     _renderAvatarBalls->setChecked(false);
     renderMenu->addAction("Cycle Voxel Mode", _myAvatar.getVoxels(), SLOT(cycleMode()));
     renderMenu->addAction("Cycle Face Mode", &_myAvatar.getHead().getFace(), SLOT(cycleRenderMode()));
+    renderMenu->addAction("Cycle Glow Mode", &_glowEffect, SLOT(cycleRenderMode()));
     (_renderFrameTimerOn = renderMenu->addAction("Show Timer"))->setCheckable(true);
     _renderFrameTimerOn->setChecked(false);
     (_renderLookatOn = renderMenu->addAction("Lookat Vectors"))->setCheckable(true);
