@@ -10,6 +10,8 @@
 #include <QtCore/QString>
 #include <QtCore/QStringList>
 
+#include <PacketHeaders.h>
+
 #include "JurisdictionMap.h"
 #include "VoxelNode.h"
 
@@ -205,4 +207,77 @@ bool JurisdictionMap::writeToFile(const char* filename) {
     }
     settings.endGroup();
     return true;
+}
+
+int JurisdictionMap::packIntoMessage(unsigned char* destinationBuffer, int availableBytes) {
+    unsigned char* bufferStart = destinationBuffer;
+    
+    int headerLength = populateTypeAndVersion(destinationBuffer, PACKET_TYPE_VOXEL_JURISDICTION);
+    destinationBuffer += headerLength;
+
+    // add the root jurisdiction
+    if (_rootOctalCode) {
+        // copy the 
+        int bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(_rootOctalCode));
+        memcpy(destinationBuffer, &bytes, sizeof(bytes));
+        destinationBuffer += sizeof(bytes);
+        memcpy(destinationBuffer, _rootOctalCode, bytes);
+        destinationBuffer += bytes;
+        
+        // if and only if there's a root jurisdiction, also include the end nodes
+        int endNodeCount = _endNodes.size(); 
+
+        memcpy(destinationBuffer, &endNodeCount, sizeof(endNodeCount));
+        destinationBuffer += sizeof(endNodeCount);
+
+        for (int i=0; i < endNodeCount; i++) {
+            unsigned char* endNodeCode = _endNodes[i];
+            int bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(endNodeCode));
+            memcpy(destinationBuffer, &bytes, sizeof(bytes));
+            destinationBuffer += sizeof(bytes);
+            memcpy(destinationBuffer, endNodeCode, bytes);
+            destinationBuffer += bytes;
+        }
+    } else {
+        int bytes = 0;
+        memcpy(destinationBuffer, &bytes, sizeof(bytes));
+        destinationBuffer += sizeof(bytes);
+    }
+    
+    return destinationBuffer - bufferStart; // includes header!
+}
+
+int JurisdictionMap::unpackFromMessage(unsigned char* sourceBuffer, int availableBytes) {
+    clear();
+    unsigned char* startPosition = sourceBuffer;
+
+    // increment to push past the packet header
+    int numBytesPacketHeader = numBytesForPacketHeader(sourceBuffer);
+    sourceBuffer += numBytesPacketHeader;
+    
+    // read the root jurisdiction
+    int bytes = 0;
+    memcpy(&bytes, sourceBuffer, sizeof(bytes));
+    sourceBuffer += sizeof(bytes);
+
+    if (bytes > 0) {
+        _rootOctalCode = new unsigned char[bytes];
+        memcpy(_rootOctalCode, sourceBuffer, bytes);
+        sourceBuffer += bytes;
+        // if and only if there's a root jurisdiction, also include the end nodes
+        int endNodeCount = 0;
+        memcpy(&endNodeCount, sourceBuffer, sizeof(endNodeCount));
+        sourceBuffer += sizeof(endNodeCount);
+        for (int i=0; i < endNodeCount; i++) {
+            int bytes = 0;
+            memcpy(&bytes, sourceBuffer, sizeof(bytes));
+            sourceBuffer += sizeof(bytes);
+            unsigned char* endNodeCode = new unsigned char[bytes];
+            memcpy(endNodeCode, sourceBuffer, bytes);
+            sourceBuffer += bytes;
+            _endNodes.push_back(endNodeCode);
+        }
+    }
+    
+    return sourceBuffer - startPosition; // includes header!
 }

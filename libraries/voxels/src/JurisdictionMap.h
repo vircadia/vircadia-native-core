@@ -49,6 +49,9 @@ public:
     int getEndNodeCount() const { return _endNodes.size(); }
 
     void copyContents(unsigned char* rootCodeIn, const std::vector<unsigned char*> endNodesIn);
+
+    int unpackFromMessage(unsigned char* sourceBuffer, int availableBytes);
+    int packIntoMessage(unsigned char* destinationBuffer, int availableBytes);
     
 private:
     void copyContents(const JurisdictionMap& other); // use assignment instead
