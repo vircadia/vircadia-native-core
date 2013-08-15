@@ -219,6 +219,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     // call Menu getInstance static method to set up the menur
     Menu::getInstance();
     
+    _networkAccessManager = new QNetworkAccessManager(this);
+    
     QRect available = desktop()->availableGeometry();
     _window->resize(available.size());
     _window->setVisible(true);

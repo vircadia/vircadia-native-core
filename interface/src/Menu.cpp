@@ -375,12 +375,10 @@ Menu::Menu() :
     
     QMenu* settingsMenu = addMenu("Settings");
     addCheckableActionToQMenuAndActionHash(settingsMenu, MenuOption::SettingsAutosave, 0, true);
-    addActionToQMenuAndActionHash(settingsMenu, MenuOption::SettingsLoad, NULL, NULL);
-    addActionToQMenuAndActionHash(settingsMenu, MenuOption::SettingsSave, NULL, NULL);
-    addActionToQMenuAndActionHash(settingsMenu, MenuOption::SettingsImport, NULL, NULL);
-    addActionToQMenuAndActionHash(settingsMenu, MenuOption::SettingsExport, NULL, NULL);
-    
-    //        _networkAccessManager = new QNetworkAccessManager(this);
+    addActionToQMenuAndActionHash(settingsMenu, MenuOption::SettingsLoad, 0, this, SLOT(loadSettings()));
+    addActionToQMenuAndActionHash(settingsMenu, MenuOption::SettingsSave, 0, this, SLOT(saveSettings()));
+    addActionToQMenuAndActionHash(settingsMenu, MenuOption::SettingsImport, 0, this, SLOT(importSettings()));
+    addActionToQMenuAndActionHash(settingsMenu, MenuOption::SettingsExport, 0, this, SLOT(exportSettings()));
 }
 
 void Menu::loadSettings(QSettings* settings) {
