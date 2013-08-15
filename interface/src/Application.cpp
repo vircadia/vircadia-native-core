@@ -3163,9 +3163,7 @@ void Application::displaySide(Camera& whichCamera) {
                 if (isLookingAtMyAvatar(avatar)) {
                     avatar->getHead().setLookAtPosition(_myCamera.getPosition());
                 }
-                _glowEffect.begin();
                 avatar->render(false, _renderAvatarBalls->isChecked());
-                _glowEffect.end();
                 avatar->setDisplayingLookatVectors(_renderLookatOn->isChecked());
             }
             
@@ -3176,9 +3174,7 @@ void Application::displaySide(Camera& whichCamera) {
         if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
             _myAvatar.getHead().setLookAtPosition(_myCamera.getPosition());
         }
-        _glowEffect.begin();
         _myAvatar.render(_lookingInMirror->isChecked(), _renderAvatarBalls->isChecked());
-        _glowEffect.end();
         
         _myAvatar.setDisplayingLookatVectors(_renderLookatOn->isChecked());
 
