@@ -305,9 +305,11 @@ Menu::Menu() :
                                   appInstance->getVoxels(),
                                   SLOT(falseColorizeOccluded()));
     
-    addActionToQMenuAndActionHash(renderDebugMenu, MenuOption::FalseColorOccludedV2, Qt::CTRL | Qt::Key_P);
-    
-    //        renderDebugMenu->addAction("FALSE Color Occluded V2 Voxels", this, SLOT(doFalseColorizeOccludedV2()), Qt::CTRL | Qt::Key_P);
+    addActionToQMenuAndActionHash(renderDebugMenu,
+                                  MenuOption::FalseColorOccludedV2,
+                                  0,
+                                  appInstance->getVoxels(),
+                                  SLOT(falseColorizeOccludedV2()));
     
     addActionToQMenuAndActionHash(renderDebugMenu, MenuOption::FalseColorBySource, Qt::CTRL | Qt::SHIFT | Qt::Key_S);
     
