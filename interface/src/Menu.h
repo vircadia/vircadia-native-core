@@ -47,6 +47,7 @@ public:
     BandwidthDialog* getBandwidthDialog() const { return _bandwidthDialog; }
     FrustumDrawMode getFrustumDrawMode() const { return _frustumDrawMode; }
     ViewFrustumOffset getViewFrustumOffset() const { return _viewFrustumOffset; }
+    VoxelStatsDialog* getVoxelStatsDialog() const { return _voxelStatsDialog; }
     
     void loadSettings(QSettings* settings = NULL);
     void saveSettings(QSettings* settings = NULL);
@@ -57,10 +58,12 @@ public:
     
 public slots:
     void bandwidthDetails();
+    void voxelStatsDetails();
     
 private slots:
     void editPreferences();
     void bandwidthDetailsClosed();
+    void voxelStatsDetailsClosed();
     void cycleFrustumRenderMode();
     void chooseVoxelPaintColor();
     
@@ -97,6 +100,7 @@ private:
     float _gyroCameraSensitivity;
     ViewFrustumOffset _viewFrustumOffset;
     QActionGroup* _voxelModeActionsGroup;
+    VoxelStatsDialog* _voxelStatsDialog;
 };
 
 namespace MenuOption {

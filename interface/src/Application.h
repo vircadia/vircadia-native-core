@@ -119,6 +119,7 @@ public:
     QSettings* getSettings() { return _settings; }
     Swatch*  getSwatch() { return &_swatch; }
     QMainWindow* getWindow() { return _window; }
+    VoxelSceneStats* getVoxelSceneStats() { return &_voxelSceneStats; }
     
     QNetworkAccessManager* getNetworkAccessManager() { return _networkAccessManager; }
     GeometryCache* getGeometryCache() { return &_geometryCache; }
@@ -141,9 +142,6 @@ private slots:
     void timer();
     void idle();
     void terminate();
-
-    void voxelStatsDetails();
-    void voxelStatsDetailsClosed();
     
     void setFullscreen(bool fullscreen);
     
@@ -242,7 +240,6 @@ private:
     QAction* _followMode;
     
     BandwidthMeter _bandwidthMeter;
-    VoxelStatsDialog* _voxelStatsDialog;
 
     SerialInterface _serialHeadSensor;
     QNetworkAccessManager* _networkAccessManager;

@@ -38,9 +38,14 @@ Menu* Menu::getInstance() {
 const ViewFrustumOffset DEFAULT_FRUSTUM_OFFSET = {-135.0f, 0.0f, 0.0f, 25.0f, 0.0f};
 
 Menu::Menu() :
+    _actionHash(),
+    _audioJitterBufferSamples(0),
     _bandwidthDialog(NULL),
+    _fieldOfView(DEFAULT_FIELD_OF_VIEW_DEGREES),
     _frustumDrawMode(FRUSTUM_DRAW_MODE_ALL),
-    _viewFrustumOffset(DEFAULT_FRUSTUM_OFFSET)
+    _viewFrustumOffset(DEFAULT_FRUSTUM_OFFSET),
+    _voxelModeActionsGroup(NULL),
+    _voxelStatsDialog(NULL)
 {
     Application *appInstance = Application::getInstance();
     
@@ -173,11 +178,8 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(toolsMenu, MenuOption::Oscilloscope, 0, true);
     addCheckableActionToQMenuAndActionHash(toolsMenu, MenuOption::Bandwidth, 0, true);
     addActionToQMenuAndActionHash(toolsMenu, MenuOption::BandwidthDetails, 0, this, SLOT(bandwidthDetails()));
+    addActionToQMenuAndActionHash(toolsMenu, MenuOption::VoxelStats, 0, this, SLOT(voxelStatsDetails()));
     
-    
-    addActionToQMenuAndActionHash(toolsMenu, MenuOption::VoxelStats);
-    
-    //        toolsMenu->addAction("Voxel Stats Details", this, SLOT(voxelStatsDetails()));
     
     QMenu* voxelMenu = addMenu("Voxels");
     _voxelModeActionsGroup = new QActionGroup(this);
@@ -653,6 +655,21 @@ void Menu::bandwidthDetails() {
 void Menu::bandwidthDetailsClosed() {
     delete _bandwidthDialog;
     _bandwidthDialog = NULL;
+}
+
+void Menu::voxelStatsDetails() {
+    if (!_voxelStatsDialog) {
+        _voxelStatsDialog = new VoxelStatsDialog(Application::getInstance()->getGLWidget(),
+                                                 Application::getInstance()->getVoxelSceneStats());
+        connect(_voxelStatsDialog, SIGNAL(closed()), SLOT(voxelStatsDetailsClosed()));
+        _voxelStatsDialog->show();
+    }
+    _voxelStatsDialog->raise();
+}
+
+void Menu::voxelStatsDetailsClosed() {
+    delete _voxelStatsDialog;
+    _voxelStatsDialog = NULL;
 }
 
 void Menu::cycleFrustumRenderMode() {

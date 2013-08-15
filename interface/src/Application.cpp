@@ -91,7 +91,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         QApplication(argc, argv),
         _window(new QMainWindow(desktop())),
         _glWidget(new GLCanvas()),
-        _voxelStatsDialog(NULL),
         _displayLevels(false),
         _frameCount(0),
         _fps(120.0f),
@@ -1099,21 +1098,6 @@ void Application::checkBandwidthMeterClick() {
     }
 }
 
-void Application::voxelStatsDetails() {
-    if (!_voxelStatsDialog) {
-        _voxelStatsDialog = new VoxelStatsDialog(_glWidget, &_voxelSceneStats);
-        connect(_voxelStatsDialog, SIGNAL(closed()), SLOT(voxelStatsDetailsClosed()));
-        _voxelStatsDialog->show();
-    } 
-    _voxelStatsDialog->raise();
-}
-
-void Application::voxelStatsDetailsClosed() {
-    QDialog* dlg = _voxelStatsDialog;
-    _voxelStatsDialog = NULL;
-    delete dlg;
-}
-
 void Application::setFullscreen(bool fullscreen) {
     _window->setWindowState(fullscreen ? (_window->windowState() | Qt::WindowFullScreen) :
         (_window->windowState() & ~Qt::WindowFullScreen));
@@ -1970,8 +1954,10 @@ void Application::update(float deltaTime) {
     if (bandwidthDialog) {
         bandwidthDialog->update();
     }
-    if (_voxelStatsDialog) {
-        _voxelStatsDialog->update();
+    
+    VoxelStatsDialog* voxelStatsDialog = Menu::getInstance()->getVoxelStatsDialog();
+    if (voxelStatsDialog) {
+        voxelStatsDialog->update();
     }
 
     //  Update audio stats for procedural sounds
