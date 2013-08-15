@@ -133,13 +133,17 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(renderMenu, MenuOption::Avatars, 0, true);
     addCheckableActionToQMenuAndActionHash(renderMenu, MenuOption::AvatarAsBalls);
     
-    addActionToQMenuAndActionHash(renderMenu, MenuOption::VoxelMode);
+    addActionToQMenuAndActionHash(renderMenu,
+                                  MenuOption::VoxelMode,
+                                  0,
+                                  appInstance->getAvatar()->getVoxels(),
+                                  SLOT(cycleMode()));
     
-    //        renderMenu->addAction("Cycle Voxel Mode", _myAvatar.getVoxels(), SLOT(cycleMode()));
-    
-    addActionToQMenuAndActionHash(renderMenu, MenuOption::FaceMode);
-    
-    //        renderMenu->addAction("Cycle Face Mode", &_myAvatar.getHead().getFace(), SLOT(cycleRenderMode()));
+    addActionToQMenuAndActionHash(renderMenu,
+                                  MenuOption::FaceMode,
+                                  0,
+                                  &appInstance->getAvatar()->getHead().getFace(),
+                                  SLOT(cycleRenderMode()));
     
     addCheckableActionToQMenuAndActionHash(renderMenu, MenuOption::FrameTimer);
     addCheckableActionToQMenuAndActionHash(renderMenu, MenuOption::LookAtVectors);
