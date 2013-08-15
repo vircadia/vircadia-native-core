@@ -143,6 +143,14 @@ public slots:
     void copyVoxels();
     void pasteVoxels();
     
+    void setRenderVoxels(bool renderVoxels);
+    void doKillLocalVoxels();
+    void decreaseVoxelSize();
+    void increaseVoxelSize();
+    void setListenModeNormal();
+    void setListenModePoint();
+    void setListenModeSingleSource();
+    
 private slots:
     
     void timer();
@@ -155,14 +163,6 @@ private slots:
     void renderLineToTouchedVoxel();
     
     void setFrustumOffset(bool frustumOffset);
-    
-    void setRenderVoxels(bool renderVoxels);
-    void doKillLocalVoxels();
-    void decreaseVoxelSize();
-    void increaseVoxelSize();
-    void setListenModeNormal();
-    void setListenModePoint();
-    void setListenModeSingleSource();
 
     void renderCoverageMap();
     void renderCoverageMapsRecursively(CoverageMap* map);

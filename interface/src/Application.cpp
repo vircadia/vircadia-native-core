@@ -1117,23 +1117,6 @@ void Application::doKillLocalVoxels() {
     _wantToKillLocalVoxels = true;
 }
 
-//
-//void Application::disableLowResMoving(bool disableLowResMoving) {
-//    _myAvatar.setWantLowResMoving(!disableLowResMoving);
-//}
-//
-//void Application::setWantsMonochrome(bool wantsMonochrome) {
-//    _myAvatar.setWantColor(!wantsMonochrome);
-//}
-//
-//void Application::disableDeltaSending(bool disableDeltaSending) {
-//    _myAvatar.setWantDelta(!disableDeltaSending);
-//}
-//
-//void Application::disableOcclusionCulling(bool disableOcclusionCulling) {
-//    _myAvatar.setWantOcclusionCulling(!disableOcclusionCulling);
-//}
-
 const glm::vec3 Application::getMouseVoxelWorldCoordinates(const VoxelDetail _mouseVoxel) {
     return glm::vec3((_mouseVoxel.x + _mouseVoxel.s / 2.f) * TREE_SCALE,
                      (_mouseVoxel.y + _mouseVoxel.s / 2.f) * TREE_SCALE,

@@ -357,11 +357,21 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(debugMenu, MenuOption::TestRaveGlove);
     
     QMenu* audioDebugMenu = debugMenu->addMenu("Audio Debugging Tools");
-    addActionToQMenuAndActionHash(audioDebugMenu, MenuOption::ListenModeNormal, Qt::CTRL | Qt::Key_1);
-    addActionToQMenuAndActionHash(audioDebugMenu, MenuOption::ListenModePoint, Qt::CTRL | Qt::Key_2);
-    addActionToQMenuAndActionHash(audioDebugMenu, MenuOption::ListenModeSingleSource, Qt::CTRL | Qt::Key_3);
-    
-    // audioDebugMenu->addAction("Listen Mode Single Source", this, SLOT(setListenModeSingleSource()), Qt::CTRL | Qt::Key_3);
+    addActionToQMenuAndActionHash(audioDebugMenu,
+                                  MenuOption::ListenModeNormal,
+                                  Qt::CTRL | Qt::Key_1,
+                                  appInstance,
+                                  SLOT(setListenModeNormal()));
+    addActionToQMenuAndActionHash(audioDebugMenu,
+                                  MenuOption::ListenModePoint,
+                                  Qt::CTRL | Qt::Key_2,
+                                  appInstance,
+                                  SLOT(setListenModePoint()));
+    addActionToQMenuAndActionHash(audioDebugMenu,
+                                  MenuOption::ListenModeSingleSource,
+                                  Qt::CTRL | Qt::Key_3,
+                                  appInstance,
+                                  SLOT(setListenModeSingleSource()));
     
     QMenu* settingsMenu = addMenu("Settings");
     addCheckableActionToQMenuAndActionHash(settingsMenu, MenuOption::SettingsAutosave, 0, true);
