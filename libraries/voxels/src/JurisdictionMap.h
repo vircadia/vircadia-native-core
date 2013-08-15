@@ -25,7 +25,7 @@ public:
     JurisdictionMap(const JurisdictionMap& other); // copy constructor
 
     // standard assignment
-    JurisdictionMap& operator= (JurisdictionMap const &other);    // copy assignment
+    JurisdictionMap& operator=(const JurisdictionMap& other);    // copy assignment
 
 #ifdef HAS_MOVE_SEMANTICS
     // move constructor and assignment
@@ -48,7 +48,7 @@ public:
     unsigned char* getEndNodeOctalCode(int index) const { return _endNodes[index]; }
     int getEndNodeCount() const { return _endNodes.size(); }
 
-    void copyContents(unsigned char* rootCodeIn, const std::vector<unsigned char*> endNodesIn);
+    void copyContents(unsigned char* rootCodeIn, const std::vector<unsigned char*>& endNodesIn);
 
     int unpackFromMessage(unsigned char* sourceBuffer, int availableBytes);
     int packIntoMessage(unsigned char* destinationBuffer, int availableBytes);

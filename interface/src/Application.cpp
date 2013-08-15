@@ -1553,7 +1553,6 @@ void Application::chooseVoxelPaintColor() {
 const int MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE = 1500;
 struct SendVoxelsOperationArgs {
     unsigned char*  newBaseOctCode;
-    Application*    app;
 };
 
 bool Application::sendVoxelsOperation(VoxelNode* node, void* extraData) {
@@ -1585,7 +1584,8 @@ bool Application::sendVoxelsOperation(VoxelNode* node, void* extraData) {
         codeColorBuffer[bytesInCode + GREEN_INDEX] = node->getColor()[GREEN_INDEX];
         codeColorBuffer[bytesInCode + BLUE_INDEX ] = node->getColor()[BLUE_INDEX ];
 
-        args->app->_voxelEditSender.queueVoxelEditMessage(PACKET_TYPE_SET_VOXEL_DESTRUCTIVE, codeColorBuffer, codeAndColorLength);
+        getInstance()->_voxelEditSender.queueVoxelEditMessage(PACKET_TYPE_SET_VOXEL_DESTRUCTIVE, 
+                codeColorBuffer, codeAndColorLength);
         
         delete[] codeColorBuffer;
     }
@@ -1769,7 +1769,6 @@ void Application::importVoxels() {
         // the server as an set voxel message, this will also rebase the voxels to the new location
         unsigned char* calculatedOctCode = NULL;
         SendVoxelsOperationArgs args;
-        args.app = this;
 
         // we only need the selected voxel to get the newBaseOctCode, which we can actually calculate from the
         // voxel size/position details.
@@ -1818,7 +1817,6 @@ void Application::pasteVoxels() {
     // Recurse the clipboard tree, where everything is root relative, and send all the colored voxels to 
     // the server as an set voxel message, this will also rebase the voxels to the new location
     SendVoxelsOperationArgs args;
-    args.app = this;
 
     // we only need the selected voxel to get the newBaseOctCode, which we can actually calculate from the
     // voxel size/position details. If we don't have an actual selectedNode then use the mouseVoxel to create a 
@@ -1899,6 +1897,7 @@ void Application::initMenu() {
     _renderAvatarBalls->setChecked(false);
     renderMenu->addAction("Cycle Voxel Mode", _myAvatar.getVoxels(), SLOT(cycleMode()));
     renderMenu->addAction("Cycle Face Mode", &_myAvatar.getHead().getFace(), SLOT(cycleRenderMode()));
+    renderMenu->addAction("Cycle Glow Mode", &_glowEffect, SLOT(cycleRenderMode()));
     (_renderFrameTimerOn = renderMenu->addAction("Show Timer"))->setCheckable(true);
     _renderFrameTimerOn->setChecked(false);
     (_renderLookatOn = renderMenu->addAction("Lookat Vectors"))->setCheckable(true);

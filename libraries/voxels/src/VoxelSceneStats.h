@@ -171,7 +171,7 @@ private:
     static int const MAX_ITEM_VALUE_LENGTH = 128;
     char _itemValueBuffer[MAX_ITEM_VALUE_LENGTH];
     
-    unsigned char*              _jurisdictionRoot;
+    unsigned char* _jurisdictionRoot;
     std::vector<unsigned char*> _jurisdictionEndNodes;
 };
 
