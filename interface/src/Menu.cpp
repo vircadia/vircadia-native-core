@@ -317,10 +317,12 @@ Menu::Menu() :
                                   appInstance->getVoxels(),
                                   SLOT(falseColorizeBySource()));
     
+    addActionToQMenuAndActionHash(renderDebugMenu,
+                                  MenuOption::ShowTrueColors,
+                                  Qt::CTRL | Qt::Key_T,
+                                  appInstance->getVoxels(),
+                                  SLOT(trueColorize()));
     
-    addActionToQMenuAndActionHash(renderDebugMenu, MenuOption::ShowTrueColors, Qt::CTRL | Qt::Key_T);
-    
-    //        renderDebugMenu->addAction("Show TRUE Colors", this, SLOT(doTrueVoxelColors()), Qt::CTRL | Qt::Key_T);
     
     addCheckableActionToQMenuAndActionHash(debugMenu, MenuOption::LowPassFilter);
     
