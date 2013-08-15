@@ -16,7 +16,7 @@ const uint64_t SEND_INTERVAL_USECS = 1000 * 5; // no more than 200pps... should 
 #include "PacketSender.h"
 #include "SharedUtil.h"
 
-PacketSender::PacketSender() {
+PacketSender::PacketSender(PacketSenderNotify* notify) : _notify(notify) {
     _lastSendTime = usecTimestampNow();
 }
 
@@ -40,6 +40,9 @@ bool PacketSender::process() {
         UDPSocket* nodeSocket = NodeList::getInstance()->getNodeSocket();
 
         nodeSocket->send(&packet.getAddress(), packet.getData(), packet.getLength());
+        if (_notify) {
+            _notify->packetSentNotification(packet.getLength());
+        }
 
         lock();
         _packets.erase(_packets.begin());

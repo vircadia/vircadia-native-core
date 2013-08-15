@@ -10,29 +10,30 @@
 
 #include <PerfStat.h>
 
-#include "Application.h"
+#include <OctalCode.h>
+#include <PacketHeaders.h>
 #include "VoxelEditPacketSender.h"
 
+
+VoxelEditPacketSender::VoxelEditPacketSender(PacketSenderNotify* notify) : 
+    PacketSender(notify), 
+    _shouldSend(true),
+    _voxelServerJurisdictions(NULL) {
+}
+
 void VoxelEditPacketSender::sendVoxelEditMessage(PACKET_TYPE type, VoxelDetail& detail) {
-
-    Application* app = Application::getInstance();
-
-    // if the app has Voxels disabled, we don't do any of this...
-    if (!app->_renderVoxels->isChecked()) {
+    // allows app to disable sending if for example voxels have been disabled
+    if (!_shouldSend) {
         return; // bail early
     }
 
     unsigned char* bufferOut;
     int sizeOut;
-    int totalBytesSent = 0;
 
     if (createVoxelEditMessage(type, 0, 1, &detail, bufferOut, sizeOut)){
         actuallySendMessage(UNKNOWN_NODE_ID, bufferOut, sizeOut); // sends to all servers... not ideal!
         delete[] bufferOut;
     }
-
-    // Tell the application's bandwidth meters about what we've sent
-    app->_bandwidthMeter.outputStream(BandwidthMeter::VOXELS).updateValue(totalBytesSent); 
 }
 
 void VoxelEditPacketSender::actuallySendMessage(uint16_t nodeID, unsigned char* bufferOut, ssize_t sizeOut) {
@@ -48,7 +49,10 @@ void VoxelEditPacketSender::actuallySendMessage(uint16_t nodeID, unsigned char* 
 }
 
 void VoxelEditPacketSender::queueVoxelEditMessage(PACKET_TYPE type, unsigned char* codeColorBuffer, ssize_t length) {
-    Application* app = Application::getInstance();
+
+    if (!_shouldSend) {
+        return; // bail early
+    }
 
     // We want to filter out edit messages for voxel servers based on the server's Jurisdiction
     // But we can't really do that with a packed message, since each edit message could be destined 
@@ -58,12 +62,16 @@ void VoxelEditPacketSender::queueVoxelEditMessage(PACKET_TYPE type, unsigned cha
     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
         // only send to the NodeTypes that are NODE_TYPE_VOXEL_SERVER
         if (node->getActiveSocket() != NULL && node->getType() == NODE_TYPE_VOXEL_SERVER) {
-        
-            // we need to get the jurisdiction for this 
-            // here we need to get the "pending packet" for this server
             uint16_t nodeID = node->getNodeID();
-            const JurisdictionMap& map = app->_voxelServerJurisdictions[nodeID];
-            if (map.isMyJurisdiction(codeColorBuffer, CHECK_NODE_ONLY) == JurisdictionMap::WITHIN) {
+            bool isMyJurisdiction = true;
+
+            if (_voxelServerJurisdictions) {
+                // we need to get the jurisdiction for this 
+                // here we need to get the "pending packet" for this server
+                const JurisdictionMap& map = (*_voxelServerJurisdictions)[nodeID];
+                isMyJurisdiction = (map.isMyJurisdiction(codeColorBuffer, CHECK_NODE_ONLY) == JurisdictionMap::WITHIN);
+            }
+            if (isMyJurisdiction) {
                 EditPacketBuffer& packetBuffer = _pendingEditPackets[nodeID];
                 packetBuffer._nodeID = nodeID;
             

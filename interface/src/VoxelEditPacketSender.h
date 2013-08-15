@@ -13,6 +13,7 @@
 
 #include <PacketSender.h>
 #include <SharedUtil.h> // for VoxelDetail
+#include <JurisdictionMap.h>
 
 /// Used for construction of edit voxel packets
 class EditPacketBuffer {
@@ -27,6 +28,8 @@ public:
 /// Threaded processor for queueing and sending of outbound edit voxel packets. 
 class VoxelEditPacketSender : public PacketSender {
 public:
+    VoxelEditPacketSender(PacketSenderNotify* notify = NULL);
+    
     /// Send voxel edit message immediately
     void sendVoxelEditMessage(PACKET_TYPE type, VoxelDetail& detail);
 
@@ -37,11 +40,21 @@ public:
     /// flushes all queued packets for all nodes
     void flushQueue();
 
+    bool getShouldSend() const { return _shouldSend; }
+    void setShouldSend(bool shouldSend) { _shouldSend = shouldSend; }
+
+    void setVoxelServerJurisdictions(std::map<uint16_t, JurisdictionMap>* voxelServerJurisdictions) { 
+            _voxelServerJurisdictions = voxelServerJurisdictions;
+    }
+
 private:
+    bool _shouldSend;
     void actuallySendMessage(uint16_t nodeID, unsigned char* bufferOut, ssize_t sizeOut);
     void initializePacket(EditPacketBuffer& packetBuffer, PACKET_TYPE type);
     void flushQueue(EditPacketBuffer& packetBuffer); // flushes specific queued packet
 
     std::map<uint16_t,EditPacketBuffer> _pendingEditPackets;
+
+    std::map<uint16_t, JurisdictionMap>* _voxelServerJurisdictions;
 };
 #endif // __shared__VoxelEditPacketSender__

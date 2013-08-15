@@ -14,11 +14,18 @@
 #include "GenericThread.h"
 #include "NetworkPacket.h"
 
+/// Notification Hook for packets being sent by a PacketSender
+class PacketSenderNotify {
+public:
+    virtual void packetSentNotification(ssize_t length) = 0;
+};
+
+
 /// Generalized threaded processor for queueing and sending of outbound packets. 
 class PacketSender : public GenericThread {
 public:
 
-    PacketSender();
+    PacketSender(PacketSenderNotify* notify = NULL);
 
     /// Add packet to outbound queue.
     /// \param sockaddr& address the destination address
@@ -32,6 +39,8 @@ private:
 
     std::vector<NetworkPacket> _packets;
     uint64_t _lastSendTime;
+    
+    PacketSenderNotify* _notify;
     
 };
 

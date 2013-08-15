@@ -222,7 +222,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
 #endif
         _stopNetworkReceiveThread(false),  
         _voxelProcessor(),
-        _voxelEditSender(),
+        _voxelEditSender(this),
         _packetCount(0),
         _packetsPerSecond(0),
         _bytesPerSecond(0),
@@ -329,6 +329,9 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     _glWidget->setMouseTracking(true);
     
     // initialization continues in initializeGL when OpenGL context is ready
+    
+    // Tell our voxel edit sender about our known jurisdictions
+    _voxelEditSender.setVoxelServerJurisdictions(&_voxelServerJurisdictions);
 }
 
 Application::~Application() {
@@ -1437,6 +1440,7 @@ void Application::setRenderWarnings(bool renderWarnings) {
 }
 
 void Application::setRenderVoxels(bool voxelRender) {
+    _voxelEditSender.setShouldSend(voxelRender);
     if (!voxelRender) {
         doKillLocalVoxels();
     }
@@ -4156,5 +4160,6 @@ void Application::updateParticleSystem(float deltaTime) {
     }
 }
 
-
-
+void Application::packetSentNotification(ssize_t length) {
+    _bandwidthMeter.outputStream(BandwidthMeter::VOXELS).updateValue(length); 
+}
