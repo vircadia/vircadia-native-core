@@ -27,7 +27,7 @@ public:
     void prepare();
     
     /// Starts using the glow effect.
-    /// \param float intensity the desired glow intensity, from zero to one
+    /// \param intensity the desired glow intensity, from zero to one
     void begin(float intensity = 1.0f);
     
     /// Stops using the glow effect.
