@@ -42,7 +42,7 @@ Menu::Menu() :
     _frustumDrawMode(FRUSTUM_DRAW_MODE_ALL),
     _viewFrustumOffset(DEFAULT_FRUSTUM_OFFSET)
 {
-    QApplication *appInstance = Application::getInstance();
+    Application *appInstance = Application::getInstance();
     
     QMenu* fileMenu = addMenu("File");
     (addActionToQMenuAndActionHash(fileMenu,
@@ -69,13 +69,21 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(optionsMenu, MenuOption::TransmitterDrive, 0, true);
     addCheckableActionToQMenuAndActionHash(optionsMenu, MenuOption::Gravity, Qt::SHIFT | Qt::Key_G, true);
     addCheckableActionToQMenuAndActionHash(optionsMenu, MenuOption::TestPing, 0, true);
+    
     addCheckableActionToQMenuAndActionHash(optionsMenu,
                                            MenuOption::Fullscreen,
                                            Qt::Key_F,
                                            false,
                                            appInstance,
                                            SLOT(setFullscreen(bool)));
-    addCheckableActionToQMenuAndActionHash(optionsMenu, MenuOption::Webcam);
+    
+    addCheckableActionToQMenuAndActionHash(optionsMenu,
+                                           MenuOption::Webcam,
+                                           0,
+                                           false,
+                                           appInstance->getWebcam(),
+                                           SLOT(setEnabled(bool)));
+    
     addCheckableActionToQMenuAndActionHash(optionsMenu, MenuOption::SkeletonTracking);
     //        optionsMenu->addAction("Webcam", &_webcam, SLOT(setEnabled(bool)))->setCheckable(true);
     //        optionsMenu->addAction("Skeleton Tracking", &_webcam, SLOT(setSkeletonTrackingOn(bool)))->setCheckable(true);
