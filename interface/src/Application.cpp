@@ -160,7 +160,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     }
     
     // setup QSettings    
-#ifdef Q_WS_MAC
+#ifdef Q_OS_MAC
     QString resourcesPath = QCoreApplication::applicationDirPath() + "/../Resources";
 #else
     QString resourcesPath = QCoreApplication::applicationDirPath() + "/resources";
@@ -217,13 +217,14 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     
     _window->setCentralWidget(_glWidget);
     
-#if defined(Q_WS_MAC) && defined(QT_NO_DEBUG)
+#if defined(Q_OS_MAC) && defined(QT_NO_DEBUG)
     // if this is a release OS X build use fervor to check for an update    
     FvUpdater::sharedUpdater()->SetFeedURL("https://s3-us-west-1.amazonaws.com/highfidelity/appcast.xml");
     FvUpdater::sharedUpdater()->CheckForUpdatesSilent();
 #endif
 
-    initMenu();
+    // call Menu getInstance static method to set up the menur
+    Menu::getInstance();
     
     QRect available = desktop()->availableGeometry();
     _window->resize(available.size());
@@ -1634,10 +1635,6 @@ void Application::pasteVoxels() {
     if (calculatedOctCode) {
         delete[] calculatedOctCode;
     }
-}
-
-void Application::initMenu() {
-    
 }
 
 void Application::setListenModeNormal() {

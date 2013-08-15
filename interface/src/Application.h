@@ -201,7 +201,6 @@ private:
     static void processAvatarFaceVideoMessage(unsigned char* packetData, size_t dataBytes);
     static void sendPingPackets();
     
-    void initMenu();
     void updateFrustumRenderModeAction();
     void initDisplay();
     void init();
