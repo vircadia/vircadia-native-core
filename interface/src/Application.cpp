@@ -1107,10 +1107,6 @@ void Application::setFrustumOffset(bool frustumOffset) {
     resizeGL(_glWidget->width(), _glWidget->height());
 }
 
-void Application::setRenderWarnings(bool renderWarnings) {
-    _voxels.setRenderPipelineWarnings(renderWarnings);
-}
-
 void Application::setRenderVoxels(bool voxelRender) {
     if (!voxelRender) {
         doKillLocalVoxels();

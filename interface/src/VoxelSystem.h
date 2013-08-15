@@ -68,10 +68,7 @@ public:
     void falseColorizeOccludedV2();
     void falseColorizeBySource();
     
-
     void killLocalVoxels();
-    void setRenderPipelineWarnings(bool on) { _renderWarningsOn = on; };
-    bool getRenderPipelineWarnings() const { return _renderWarningsOn; };
 
     virtual void removeOutOfView();
     bool hasViewChanged();
@@ -128,7 +125,6 @@ private:
     int  _callsToTreesToArrays;
     VoxelNodeBag _removedVoxels;
 
-    bool _renderWarningsOn;
     // Operation functions for tree recursion methods
     static int _nodeCount;
     static bool randomColorOperation(VoxelNode* node, void* extraData);

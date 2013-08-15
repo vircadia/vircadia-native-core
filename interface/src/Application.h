@@ -156,7 +156,6 @@ private slots:
     
     void setFrustumOffset(bool frustumOffset);
     
-    void setRenderWarnings(bool renderWarnings);
     void setRenderVoxels(bool renderVoxels);
     void doKillLocalVoxels();
     void doRandomizeVoxelColors();

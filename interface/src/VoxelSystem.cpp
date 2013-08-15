@@ -28,6 +28,7 @@
 #include "CoverageMap.h"
 #include "CoverageMapV2.h"
 #include "InterfaceConfig.h"
+#include "Menu.h"
 #include "renderer/ProgramObject.h"
 #include "VoxelConstants.h"
 #include "VoxelSystem.h"
@@ -173,14 +174,16 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
 
     switch(command) {
         case PACKET_TYPE_VOXEL_DATA: {
-            PerformanceWarning warn(_renderWarningsOn, "readBitstreamToTree()");
+            PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
+                                    "readBitstreamToTree()");
             // ask the VoxelTree to read the bitstream into the tree
             ReadBitstreamToTreeParams args(WANT_COLOR, WANT_EXISTS_BITS, NULL, getDataSourceID());
             _tree->readBitstreamToTree(voxelData, numBytes - numBytesPacketHeader, args);
         }
             break;
         case PACKET_TYPE_VOXEL_DATA_MONOCHROME: {
-            PerformanceWarning warn(_renderWarningsOn, "readBitstreamToTree()");
+            PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
+                                    "readBitstreamToTree()");
             // ask the VoxelTree to read the MONOCHROME bitstream into the tree
             ReadBitstreamToTreeParams args(NO_COLOR, WANT_EXISTS_BITS, NULL, getDataSourceID());
             _tree->readBitstreamToTree(voxelData, numBytes - numBytesPacketHeader, args);
@@ -222,7 +225,8 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
 }
 
 void VoxelSystem::setupNewVoxelsForDrawing() {
-    PerformanceWarning warn(_renderWarningsOn, "setupNewVoxelsForDrawing()"); // would like to include _voxelsInArrays, _voxelsUpdated
+    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
+                            "setupNewVoxelsForDrawing()"); // would like to include _voxelsInArrays, _voxelsUpdated
     uint64_t start = usecTimestampNow();
     uint64_t sinceLastTime = (start - _setupNewVoxelsForDrawingLastFinished) / 1000;
     
@@ -257,10 +261,10 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
     bool didWriteFullVBO = _writeRenderFullVBO;
     if (_tree->isDirty()) {
         static char buffer[64] = { 0 };
-        if (_renderWarningsOn) { 
+        if (Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings)) {
             sprintf(buffer, "newTreeToArrays() _writeRenderFullVBO=%s", debug::valueOf(_writeRenderFullVBO)); 
         };
-        PerformanceWarning warn(_renderWarningsOn, buffer);
+        PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), buffer);
         _callsToTreesToArrays++;
         if (_writeRenderFullVBO) {
             _voxelsInWriteArrays = 0; // reset our VBO
@@ -299,7 +303,7 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
 }
 
 void VoxelSystem::cleanupRemovedVoxels() {
-    PerformanceWarning warn(_renderWarningsOn, "cleanupRemovedVoxels()");
+    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "cleanupRemovedVoxels()");
     // This handles cleanup of voxels that were culled as part of our regular out of view culling operation
     if (!_removedVoxels.isEmpty()) {
         while (!_removedVoxels.isEmpty()) {
@@ -375,7 +379,8 @@ void VoxelSystem::copyWrittenDataSegmentToReadArrays(glBufferIndex segmentStart,
 }
 
 void VoxelSystem::copyWrittenDataToReadArrays(bool fullVBOs) {
-    PerformanceWarning warn(_renderWarningsOn, "copyWrittenDataToReadArrays()");
+    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
+                            "copyWrittenDataToReadArrays()");
     if (_voxelsDirty && _voxelsUpdated) {
         if (fullVBOs) {
             copyWrittenDataToReadArraysFullVBOs();
@@ -509,8 +514,6 @@ glm::vec3 VoxelSystem::computeVoxelVertex(const glm::vec3& startVertex, float vo
 ProgramObject* VoxelSystem::_perlinModulateProgram = 0;
 
 void VoxelSystem::init() {
-
-    _renderWarningsOn = false;
     _callsToTreesToArrays = 0;
     _setupNewVoxelsForDrawingLastFinished = 0;
     _setupNewVoxelsForDrawingLastElapsed = 0;
@@ -641,10 +644,11 @@ void VoxelSystem::updatePartialVBOs() {
 
 void VoxelSystem::updateVBOs() {
     static char buffer[40] = { 0 };
-    if (_renderWarningsOn) { 
+    if (Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings)) {
         sprintf(buffer, "updateVBOs() _readRenderFullVBO=%s", debug::valueOf(_readRenderFullVBO));
     };
-    PerformanceWarning warn(_renderWarningsOn, buffer); // would like to include _callsToTreesToArrays
+    // would like to include _callsToTreesToArrays
+    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), buffer);
     if (_voxelsDirty) {
         if (_readRenderFullVBO) {
             updateFullVBOs();
@@ -672,7 +676,7 @@ void VoxelSystem::updateVBOSegment(glBufferIndex segmentStart, glBufferIndex seg
 }
 
 void VoxelSystem::render(bool texture) {
-    PerformanceWarning warn(_renderWarningsOn, "render()");
+    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "render()");
     
     // get the lock so that the update thread won't change anything
     pthread_mutex_lock(&_bufferWriteLock);
@@ -1047,7 +1051,7 @@ bool VoxelSystem::hasViewChanged() {
 }
 
 void VoxelSystem::removeOutOfView() {
-    PerformanceWarning warn(_renderWarningsOn, "removeOutOfView()");
+    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "removeOutOfView()");
     removeOutOfViewArgs args(this);
     _tree->recurseTreeWithOperation(removeOutOfViewOperation,(void*)&args);
 

@@ -261,17 +261,13 @@ Menu::Menu() :
                                   appInstance->getVoxels(),
                                   SLOT(collectStatsForTreesAndVBOs()));
     
-    //        debugMenu->addAction("Calculate Tree Stats", this, SLOT(doTreeStats()), Qt::SHIFT | Qt::Key_S);
-    
     QMenu* renderDebugMenu = debugMenu->addMenu("Render Debugging Tools");
-    addCheckableActionToQMenuAndActionHash(renderDebugMenu, MenuOption::PipelineWarnings, NULL, NULL);
+    addCheckableActionToQMenuAndActionHash(renderDebugMenu, MenuOption::PipelineWarnings);
     
-    //        (_renderPipelineWarnings = renderDebugMenu->addAction("Show Render Pipeline Warnings",
-    //                                                              this, SLOT(setRenderWarnings(bool))))->setCheckable(true);
-    
-    addActionToQMenuAndActionHash(renderDebugMenu, MenuOption::KillLocalVoxels, Qt::CTRL | Qt::Key_K);
-    
-    //        renderDebugMenu->addAction("Kill Local Voxels", this, SLOT(doKillLocalVoxels()), Qt::CTRL | Qt::Key_K);
+    addActionToQMenuAndActionHash(renderDebugMenu,
+                                  MenuOption::KillLocalVoxels,
+                                  Qt::CTRL | Qt::Key_K,
+                                  appInstance, SLOT(doKillLocalVoxels()));
     
     addActionToQMenuAndActionHash(renderDebugMenu, MenuOption::RandomizeVoxelColors, Qt::CTRL | Qt::Key_R);
     
