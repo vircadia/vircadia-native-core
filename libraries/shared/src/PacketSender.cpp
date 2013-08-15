@@ -29,6 +29,10 @@ void PacketSender::queuePacket(sockaddr& address, unsigned char* packetData, ssi
 }
 
 bool PacketSender::process() {
+    if (_packets.size() == 0) {
+        const uint64_t SEND_THREAD_SLEEP_INTERVAL = (1000 * 1000)/60; // check at 60fps
+        usleep(SEND_THREAD_SLEEP_INTERVAL);
+    }
     while (_packets.size() > 0) {
         NetworkPacket& packet = _packets.front();
         

@@ -18,6 +18,10 @@ void ReceivedPacketProcessor::queuePacket(sockaddr& address, unsigned char* pack
 }
 
 bool ReceivedPacketProcessor::process() {
+    if (_packets.size() == 0) {
+        const uint64_t RECEIVED_THREAD_SLEEP_INTERVAL = (1000 * 1000)/60; // check at 60fps
+        usleep(RECEIVED_THREAD_SLEEP_INTERVAL);
+    }
     while (_packets.size() > 0) {
         NetworkPacket& packet = _packets.front();
         processPacket(packet.getAddress(), packet.getData(), packet.getLength());
