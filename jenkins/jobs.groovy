@@ -42,7 +42,7 @@ def hifiJob(String targetName, Boolean deploy) {
         if (deploy) {
             publishers {            
                 publishScp("${ARTIFACT_DESTINATION}") {
-                    entry("**/build/${targetName}", "deploy/${targetName}")
+                    entry("**/build/${targetName}/${targetName}", "deploy/${targetName}")
                 }
             }
         }
@@ -81,16 +81,16 @@ def hifiJob(String targetName, Boolean deploy) {
 static Closure cmakeBuild(srcDir, instCommand) {
     return { project ->
         project / 'builders' / 'hudson.plugins.cmake.CmakeBuilder' {
-            sourceDir srcDir
+            sourceDir '.'
             buildDir 'build'
             installDir ''
             buildType 'RelWithDebInfo'
             generator 'Unix Makefiles'
-            makeCommand 'make'
+            makeCommand "make ${srcDir}"
             installCommand instCommand
             preloadScript ''
             cmakeArgs ''
-            projectCmakePath '/usr/bin/cmake'
+            projectCmakePath '/usr/local/bin/cmake'
             cleanBuild 'false'
             cleanInstallDir 'false'
             builderImpl ''
@@ -100,6 +100,7 @@ static Closure cmakeBuild(srcDir, instCommand) {
 
 def targets = [
     'animation-server':true,
+    'assignment-server':true,
     'audio-mixer':true,
     'avatar-mixer':true,
     'domain-server':true,

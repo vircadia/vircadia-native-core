@@ -47,6 +47,11 @@ void Environment::init() {
     _data[getZeroAddress()][0];
 }
 
+void Environment::resetToDefault() {
+    _data.clear();
+    _data[getZeroAddress()][0];
+}
+
 void Environment::renderAtmospheres(Camera& camera) {    
     // get the lock for the duration of the call
     QMutexLocker locker(&_mutex);

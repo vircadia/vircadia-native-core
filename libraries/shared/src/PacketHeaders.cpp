@@ -8,14 +8,27 @@
 
 #include <stdio.h>
 
+#include <QtCore/QDebug>
+
 #include "PacketHeaders.h"
-#include "Log.h"
 
 PACKET_VERSION versionForPacketType(PACKET_TYPE type) {
     switch (type) {
+
+        case PACKET_TYPE_MICROPHONE_AUDIO_NO_ECHO:
+        case PACKET_TYPE_MICROPHONE_AUDIO_WITH_ECHO:
+            return 1;
+
+        case PACKET_TYPE_HEAD_DATA:
+            return 4;
+        
+        case PACKET_TYPE_AVATAR_FACE_VIDEO:
+            return 1;
+
+        case PACKET_TYPE_VOXEL_STATS:
+            return 1;            
         default:
             return 0;
-            break;
     }
 }
 
@@ -25,7 +38,7 @@ bool packetVersionMatch(unsigned char* packetHeader) {
     if (packetHeader[1] == versionForPacketType(packetHeader[0])) {
         return true;
     } else {
-        printLog("There is a packet version mismatch for packet with header %c\n", packetHeader[0]);
+        qDebug("There is a packet version mismatch for packet with header %c\n", packetHeader[0]);
         return false;
     }
 }

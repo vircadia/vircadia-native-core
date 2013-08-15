@@ -3,23 +3,22 @@
 //  hifi
 //
 //  Created by Brad Hefta-Gaub on 04/11/13.
+//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
 //  Simple view frustum class.
-//
 //
 
 #include <algorithm>
 
 #include <glm/gtx/transform.hpp>
 
-#include "SharedUtil.h"
-#include "Log.h"
+#include <QtCore/QDebug>
 
 #include "CoverageMap.h"
 #include "GeometryUtil.h"
+#include "SharedUtil.h"
 #include "ViewFrustum.h"
 #include "VoxelConstants.h"
-
 
 using namespace std;
 
@@ -323,40 +322,40 @@ bool ViewFrustum::matches(const ViewFrustum& compareTo, bool debug) const {
            testMatches(compareTo._eyeOffsetOrientation, _eyeOffsetOrientation);
 
     if (!result && debug) {
-        printLog("ViewFrustum::matches()... result=%s\n", debug::valueOf(result));
-        printLog("%s -- compareTo._position=%f,%f,%f _position=%f,%f,%f\n", 
+        qDebug("ViewFrustum::matches()... result=%s\n", debug::valueOf(result));
+        qDebug("%s -- compareTo._position=%f,%f,%f _position=%f,%f,%f\n", 
             (testMatches(compareTo._position,_position) ? "MATCHES " : "NO MATCH"),
             compareTo._position.x, compareTo._position.y, compareTo._position.z,
             _position.x, _position.y, _position.z );
-        printLog("%s -- compareTo._direction=%f,%f,%f _direction=%f,%f,%f\n", 
+        qDebug("%s -- compareTo._direction=%f,%f,%f _direction=%f,%f,%f\n", 
             (testMatches(compareTo._direction, _direction) ? "MATCHES " : "NO MATCH"),
             compareTo._direction.x, compareTo._direction.y, compareTo._direction.z,
             _direction.x, _direction.y, _direction.z );
-        printLog("%s -- compareTo._up=%f,%f,%f _up=%f,%f,%f\n", 
+        qDebug("%s -- compareTo._up=%f,%f,%f _up=%f,%f,%f\n", 
             (testMatches(compareTo._up, _up) ? "MATCHES " : "NO MATCH"),
             compareTo._up.x, compareTo._up.y, compareTo._up.z,
             _up.x, _up.y, _up.z );
-        printLog("%s -- compareTo._right=%f,%f,%f _right=%f,%f,%f\n", 
+        qDebug("%s -- compareTo._right=%f,%f,%f _right=%f,%f,%f\n", 
             (testMatches(compareTo._right, _right) ? "MATCHES " : "NO MATCH"),
             compareTo._right.x, compareTo._right.y, compareTo._right.z,
             _right.x, _right.y, _right.z );
-        printLog("%s -- compareTo._fieldOfView=%f _fieldOfView=%f\n", 
+        qDebug("%s -- compareTo._fieldOfView=%f _fieldOfView=%f\n", 
             (testMatches(compareTo._fieldOfView, _fieldOfView) ? "MATCHES " : "NO MATCH"),
             compareTo._fieldOfView, _fieldOfView);
-        printLog("%s -- compareTo._aspectRatio=%f _aspectRatio=%f\n", 
+        qDebug("%s -- compareTo._aspectRatio=%f _aspectRatio=%f\n", 
             (testMatches(compareTo._aspectRatio, _aspectRatio) ? "MATCHES " : "NO MATCH"),
             compareTo._aspectRatio, _aspectRatio);
-        printLog("%s -- compareTo._nearClip=%f _nearClip=%f\n", 
+        qDebug("%s -- compareTo._nearClip=%f _nearClip=%f\n", 
             (testMatches(compareTo._nearClip, _nearClip) ? "MATCHES " : "NO MATCH"),
             compareTo._nearClip, _nearClip);
-        printLog("%s -- compareTo._farClip=%f _farClip=%f\n", 
+        qDebug("%s -- compareTo._farClip=%f _farClip=%f\n", 
             (testMatches(compareTo._farClip, _farClip) ? "MATCHES " : "NO MATCH"),
             compareTo._farClip, _farClip);
-        printLog("%s -- compareTo._eyeOffsetPosition=%f,%f,%f _eyeOffsetPosition=%f,%f,%f\n", 
+        qDebug("%s -- compareTo._eyeOffsetPosition=%f,%f,%f _eyeOffsetPosition=%f,%f,%f\n", 
             (testMatches(compareTo._eyeOffsetPosition, _eyeOffsetPosition) ? "MATCHES " : "NO MATCH"),
             compareTo._eyeOffsetPosition.x, compareTo._eyeOffsetPosition.y, compareTo._eyeOffsetPosition.z,
             _eyeOffsetPosition.x, _eyeOffsetPosition.y, _eyeOffsetPosition.z);
-        printLog("%s -- compareTo._eyeOffsetOrientation=%f,%f,%f,%f _eyeOffsetOrientation=%f,%f,%f,%f\n", 
+        qDebug("%s -- compareTo._eyeOffsetOrientation=%f,%f,%f,%f _eyeOffsetOrientation=%f,%f,%f,%f\n", 
             (testMatches(compareTo._eyeOffsetOrientation, _eyeOffsetOrientation) ? "MATCHES " : "NO MATCH"),
             compareTo._eyeOffsetOrientation.x, compareTo._eyeOffsetOrientation.y,
                 compareTo._eyeOffsetOrientation.z, compareTo._eyeOffsetOrientation.w,
@@ -364,8 +363,6 @@ bool ViewFrustum::matches(const ViewFrustum& compareTo, bool debug) const {
     }
     return result;
 }
-
-
 
 void ViewFrustum::computePickRay(float x, float y, glm::vec3& origin, glm::vec3& direction) const {
     origin = _nearTopLeft + x*(_nearTopRight - _nearTopLeft) + y*(_nearBottomLeft - _nearTopLeft);
@@ -419,17 +416,17 @@ void ViewFrustum::computeOffAxisFrustum(float& left, float& right, float& bottom
 }
 
 void ViewFrustum::printDebugDetails() const {
-    printLog("ViewFrustum::printDebugDetails()... \n");
-    printLog("_position=%f,%f,%f\n",  _position.x, _position.y, _position.z );
-    printLog("_direction=%f,%f,%f\n", _direction.x, _direction.y, _direction.z );
-    printLog("_up=%f,%f,%f\n", _up.x, _up.y, _up.z );
-    printLog("_right=%f,%f,%f\n", _right.x, _right.y, _right.z );
-    printLog("_fieldOfView=%f\n", _fieldOfView);
-    printLog("_aspectRatio=%f\n", _aspectRatio);
-    printLog("_nearClip=%f\n", _nearClip);
-    printLog("_farClip=%f\n", _farClip);
-    printLog("_eyeOffsetPosition=%f,%f,%f\n",  _eyeOffsetPosition.x, _eyeOffsetPosition.y, _eyeOffsetPosition.z );
-    printLog("_eyeOffsetOrientation=%f,%f,%f,%f\n",  _eyeOffsetOrientation.x, _eyeOffsetOrientation.y, _eyeOffsetOrientation.z,
+    qDebug("ViewFrustum::printDebugDetails()... \n");
+    qDebug("_position=%f,%f,%f\n",  _position.x, _position.y, _position.z );
+    qDebug("_direction=%f,%f,%f\n", _direction.x, _direction.y, _direction.z );
+    qDebug("_up=%f,%f,%f\n", _up.x, _up.y, _up.z );
+    qDebug("_right=%f,%f,%f\n", _right.x, _right.y, _right.z );
+    qDebug("_fieldOfView=%f\n", _fieldOfView);
+    qDebug("_aspectRatio=%f\n", _aspectRatio);
+    qDebug("_nearClip=%f\n", _nearClip);
+    qDebug("_farClip=%f\n", _farClip);
+    qDebug("_eyeOffsetPosition=%f,%f,%f\n",  _eyeOffsetPosition.x, _eyeOffsetPosition.y, _eyeOffsetPosition.z );
+    qDebug("_eyeOffsetOrientation=%f,%f,%f,%f\n",  _eyeOffsetOrientation.x, _eyeOffsetOrientation.y, _eyeOffsetOrientation.z,
         _eyeOffsetOrientation.w );
 }
 
@@ -530,16 +527,14 @@ const int hullVertexLookup[MAX_POSSIBLE_COMBINATIONS][MAX_PROJECTED_POLYGON_VERT
 };
 
 VoxelProjectedPolygon ViewFrustum::getProjectedPolygon(const AABox& box) const {
-    glm::vec3 bottomNearRight = box.getCorner();
-    glm::vec3 topFarLeft      = box.getCorner() + box.getSize();
+    const glm::vec3& bottomNearRight = box.getCorner();
+    const glm::vec3& topFarLeft      = box.getTopFarLeft();
     int lookUp = ((_position.x < bottomNearRight.x)     )   //  1 = right      |   compute 6-bit
                + ((_position.x > topFarLeft.x     ) << 1)   //  2 = left       |         code to
                + ((_position.y < bottomNearRight.y) << 2)   //  4 = bottom     | classify camera
                + ((_position.y > topFarLeft.y     ) << 3)   //  8 = top        | with respect to
                + ((_position.z < bottomNearRight.z) << 4)   // 16 = front/near |  the 6 defining
                + ((_position.z > topFarLeft.z     ) << 5);  // 32 = back/far   |          planes
-
-    //printLog(">>>>>>>>> ViewFrustum::getProjectedPolygon() lookup=%d\n",lookUp);
 
     int vertexCount = hullVertexLookup[lookUp][0];  //look up number of vertices
     
@@ -592,4 +587,41 @@ VoxelProjectedPolygon ViewFrustum::getProjectedPolygon(const AABox& box) const {
     projectedPolygon.setAllInView(allPointsInView);
     projectedPolygon.setProjectionType(lookUp); // remember the projection type
     return projectedPolygon;
+}
+
+
+// Similar strategy to getProjectedPolygon() we use the knowledge of camera position relative to the
+// axis-aligned voxels to determine which of the voxels vertices must be the furthest. No need for
+// squares and square-roots. Just compares.
+glm::vec3 ViewFrustum::getFurthestPointFromCamera(const AABox& box) const {
+    const glm::vec3& center          = box.getCenter();
+    const glm::vec3& bottomNearRight = box.getCorner();
+    const glm::vec3& topFarLeft      = box.getTopFarLeft();
+
+    glm::vec3 furthestPoint;
+    if (_position.x < center.x) {
+        // we are to the right of the center, so the left edge is furthest
+        furthestPoint.x = topFarLeft.x; 
+    } else {
+        // we are to the left of the center, so the right edge is furthest (at center ok too)
+        furthestPoint.x = bottomNearRight.x; 
+    }
+
+    if (_position.y < center.y) {
+        // we are below of the center, so the top edge is furthest
+        furthestPoint.y = topFarLeft.y; 
+    } else {
+        // we are above the center, so the lower edge is furthest (at center ok too)
+        furthestPoint.y = bottomNearRight.y; 
+    }
+
+    if (_position.z < center.z) {
+        // we are to the near side of the center, so the far side edge is furthest
+        furthestPoint.z = topFarLeft.z; 
+    } else {
+        // we are to the far side of the center, so the near side edge is furthest (at center ok too)
+        furthestPoint.z = bottomNearRight.z; 
+    }
+
+    return furthestPoint;
 }

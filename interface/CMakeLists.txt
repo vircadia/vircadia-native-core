@@ -9,6 +9,7 @@ project(${TARGET_NAME})
 # setup for find modules
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../cmake/modules/")
 set(LIBOVR_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/LibOVR)
+set(LIBVPX_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/LibVPX)
 set(LEAP_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/Leap)
 set(MOTIONDRIVER_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/MotionDriver)
 set(PORTAUDIO_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/PortAudio)
@@ -36,7 +37,7 @@ configure_file(InterfaceConfig.h.in ${PROJECT_BINARY_DIR}/includes/InterfaceConf
 
 # grab the implementation and header files from src dirs
 file(GLOB INTERFACE_SRCS src/*.cpp src/*.h)
-foreach(SUBDIR ui renderer)
+foreach(SUBDIR avatar ui renderer)
   file(GLOB SUBDIR_SRCS src/${SUBDIR}/*.cpp src/${SUBDIR}/*.h)
   set(INTERFACE_SRCS ${INTERFACE_SRCS} ${SUBDIR_SRCS})
 endforeach(SUBDIR)
@@ -66,16 +67,15 @@ if (APPLE)
   
 endif (APPLE)
 
-find_package(Qt4 REQUIRED QtCore QtGui QtNetwork QtOpenGL QtWebKit QtSvg)
-include(${QT_USE_FILE})
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${QT_QTGUI_INCLUDE_DIR}")
+find_package(Qt5Core REQUIRED)
+find_package(Qt5Gui REQUIRED)
+find_package(Qt5Network REQUIRED)
+find_package(Qt5OpenGL REQUIRED)
+find_package(Qt5Svg REQUIRED)
 
 set(QUAZIP_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/quazip)
 add_subdirectory(external/fervor/)
 include_directories(external/fervor/)
-
-# run qt moc on qt-enabled headers
-qt4_wrap_cpp(INTERFACE_SRCS src/Application.h src/AvatarVoxelSystem.h src/Webcam.h src/ui/BandwidthDialog.h)
 
 # create the executable, make it a bundle on OS X
 add_executable(${TARGET_NAME} MACOSX_BUNDLE ${INTERFACE_SRCS})
@@ -92,6 +92,7 @@ link_hifi_library(audio ${TARGET_NAME} ${ROOT_DIR})
 # find required libraries
 find_package(GLM REQUIRED)
 find_package(LibOVR)
+find_package(LibVPX)
 find_package(Leap)
 find_package(MotionDriver)
 find_package(OpenCV)
@@ -107,6 +108,8 @@ if (OPENNI_FOUND)
     target_link_libraries(${TARGET_NAME} ${OPENNI_LIBRARIES})
 endif (OPENNI_FOUND)
 
+qt5_use_modules(${TARGET_NAME} Core Gui Network OpenGL Svg)
+
 # include headers for interface and InterfaceConfig.
 include_directories(
     ${PROJECT_SOURCE_DIR}/src
@@ -119,6 +122,7 @@ include_directories(
   SYSTEM
   ${GLM_INCLUDE_DIRS} 
   ${LIBOVR_INCLUDE_DIRS}
+  ${LIBVPX_INCLUDE_DIRS}
   ${LEAP_INCLUDE_DIRS}
   ${MOTIONDRIVER_INCLUDE_DIRS}
   ${OPENCV_INCLUDE_DIRS}
@@ -126,8 +130,8 @@ include_directories(
 
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${OPENCV_INCLUDE_DIRS}")
 target_link_libraries(
-  ${TARGET_NAME} 
-  ${QT_LIBRARIES}
+  ${TARGET_NAME}
+  ${LIBVPX_LIBRARIES}
   ${MOTIONDRIVER_LIBRARIES}
   ${OPENCV_LIBRARIES} 
   ${ZLIB_LIBRARIES}

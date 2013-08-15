@@ -7,7 +7,8 @@
 
 #include <cstring>
 
-#include <Log.h>
+#include <QtCore/QDebug>
+
 #include <SharedUtil.h>
 
 #include "GeometryUtil.h"

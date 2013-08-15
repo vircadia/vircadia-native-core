@@ -7,7 +7,7 @@ set(TARGET_NAME space-server)
 
 include(${MACRO_DIR}/SetupHifiProject.cmake)
 
-setup_hifi_project(${TARGET_NAME})
+setup_hifi_project(${TARGET_NAME} TRUE)
 
 include(${MACRO_DIR}/LinkHifiLibrary.cmake)
 link_hifi_library(shared ${TARGET_NAME} ${ROOT_DIR})

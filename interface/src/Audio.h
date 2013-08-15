@@ -9,12 +9,17 @@
 #ifndef __interface__Audio__
 #define __interface__Audio__
 
+#include <fstream>
+#include <vector>
+
+#include <QObject>
+
 #include <portaudio.h>
+
 #include <AudioRingBuffer.h>
 #include <StdDev.h>
 
 #include "Oscilloscope.h"
-#include "Avatar.h"
 
 static const int NUM_AUDIO_CHANNELS = 2;
 
@@ -23,7 +28,8 @@ static const int PACKET_LENGTH_BYTES_PER_CHANNEL = PACKET_LENGTH_BYTES / 2;
 static const int PACKET_LENGTH_SAMPLES = PACKET_LENGTH_BYTES / sizeof(int16_t);
 static const int PACKET_LENGTH_SAMPLES_PER_CHANNEL = PACKET_LENGTH_SAMPLES / 2;
 
-class Audio {
+class Audio : public QObject {
+    Q_OBJECT
 public:
     // initializes audio I/O
     Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples);
@@ -43,7 +49,13 @@ public:
     int getJitterBufferSamples() { return _jitterBufferSamples; };
     
     void lowPassFilter(int16_t* inputBuffer);
-
+    
+    void startCollisionSound(float magnitude, float frequency, float noise, float duration);
+    
+    float getCollisionSoundMagnitude() { return _collisionSoundMagnitude; };
+    
+    int getSongFileBytes() { return _songFileBytes; }
+    
     void ping();
 
     // Call periodically to eventually perform round trip time analysis,
@@ -51,8 +63,18 @@ public:
     // The results of the analysis are written to the log.
     bool eventuallyAnalyzePing();
 
+    void setListenMode(AudioRingBuffer::ListenMode mode) { _listenMode = mode; };
+    void setListenRadius(float radius) { _listenRadius = radius; };
+    void addListenSource(int sourceID);
+    void removeListenSource(int sourceID);
+    void clearListenSources();
+    
+    void importSongToMixWithMicrophone(const char* filename);
+    
+public slots:
+    void stopMixingSongWithMicrophone();
 
-private:    
+private:
     PaStream* _stream;
     AudioRingBuffer _ringBuffer;
     Oscilloscope* _scope;
@@ -81,7 +103,19 @@ private:
     float _flangeIntensity;
     float _flangeRate;
     float _flangeWeight;
+    float _collisionSoundMagnitude;
+    float _collisionSoundFrequency;
+    float _collisionSoundNoise;
+    float _collisionSoundDuration;
+    int _proceduralEffectSample;
+    float _heartbeatMagnitude;
+    std::ifstream* _songFileStream;
+    int _songFileBytes;
 
+    AudioRingBuffer::ListenMode _listenMode;
+    float                       _listenRadius;
+    std::vector<int>            _listenSources;
+    
     // Audio callback in class context.
     inline void performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* outputRight);
 
@@ -93,7 +127,7 @@ private:
     inline void analyzePing();
 
     // Add sounds that we want the user to not hear themselves, by adding on top of mic input signal
-    void addProceduralSounds(int16_t* inputBuffer, int numSamples);
+    void addProceduralSounds(int16_t* inputBuffer, int16_t* outputLeft, int16_t* outputRight, int numSamples);
 
 
     // Audio callback called by portaudio. Calls 'performIO'.

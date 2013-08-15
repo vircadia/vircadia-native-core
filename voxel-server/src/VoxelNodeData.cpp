@@ -7,6 +7,7 @@
 //
 
 #include "PacketHeaders.h"
+#include "SharedUtil.h"
 #include "VoxelNodeData.h"
 #include <cstring>
 #include <cstdio>
@@ -19,11 +20,11 @@ VoxelNodeData::VoxelNodeData(Node* owningNode) :
     _maxLevelReachedInLastSearch(1),
     _lastTimeBagEmpty(0),
     _viewFrustumChanging(false),
+    _viewFrustumJustStoppedChanging(true),
     _currentPacketIsColor(true)
 {
     _voxelPacket = new unsigned char[MAX_VOXEL_PACKET_SIZE];
     _voxelPacketAt = _voxelPacket;
-    
     resetVoxelPacket();
 }
 
@@ -69,9 +70,24 @@ bool VoxelNodeData::updateCurrentViewFrustum() {
         _currentViewFrustum.calculate();
         currentViewFrustumChanged = true;
     }
+    
+    // When we first detect that the view stopped changing, we record this.
+    // but we don't change it back to false until we've completely sent this
+    // scene.
+    if (_viewFrustumChanging && !currentViewFrustumChanged) {
+        _viewFrustumJustStoppedChanging = true;
+    }
     _viewFrustumChanging = currentViewFrustumChanged;
     return currentViewFrustumChanged;
 }
+
+void VoxelNodeData::setViewSent(bool viewSent) { 
+    _viewSent = viewSent; 
+    if (viewSent) {
+        _viewFrustumJustStoppedChanging = false;
+    }
+}
+
 
 void VoxelNodeData::updateLastKnownViewFrustum() {
     bool frustumChanges = !_lastKnownViewFrustum.matches(_currentViewFrustum);
@@ -80,5 +96,9 @@ void VoxelNodeData::updateLastKnownViewFrustum() {
         // save our currentViewFrustum into our lastKnownViewFrustum
         _lastKnownViewFrustum = _currentViewFrustum;
     }
+    
+    // save that we know the view has been sent.
+    uint64_t now = usecTimestampNow();
+    setLastTimeBagEmpty(now); // is this what we want? poor names
 }
 

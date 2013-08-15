@@ -9,7 +9,6 @@
 #include "BandwidthMeter.h"
 #include "InterfaceConfig.h"
 
-#include "Log.h"
 #include "Util.h"
 
 namespace { // .cpp-local

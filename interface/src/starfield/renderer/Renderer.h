@@ -509,6 +509,8 @@ namespace starfield {
             _program.release();
             glDisable(GL_VERTEX_PROGRAM_POINT_SIZE);
             glDisable(GL_POINT_SMOOTH);
+            glDisableClientState(GL_VERTEX_ARRAY);
+            glDisableClientState(GL_COLOR_ARRAY);
 
             glPopMatrix();
         }

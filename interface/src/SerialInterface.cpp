@@ -36,6 +36,28 @@ const int LONG_TERM_RATE_SAMPLES = 1000;
 
 const bool USING_INVENSENSE_MPU9150 = 1;
 
+SerialInterface::SerialInterface() :
+    _active(false),
+    _gravity(0, 0, 0),
+    _averageRotationRates(0, 0, 0),
+    _averageAcceleration(0, 0, 0),
+    _estimatedRotation(0, 0, 0),
+    _estimatedPosition(0, 0, 0),
+    _estimatedVelocity(0, 0, 0),
+    _lastAcceleration(0, 0, 0),
+    _lastRotationRates(0, 0, 0),
+    _compassMinima(-211, -132, -186),
+    _compassMaxima(89, 95, 98),
+    _angularVelocityToLinearAccel(0.003f, -0.001f, -0.006f,
+                                  -0.005f, -0.001f, -0.006f,
+                                  0.010f, 0.004f, 0.007f),
+    _angularAccelToLinearAccel(0.0f, 0.0f, 0.002f,
+                               0.0f, 0.0f, 0.001f,
+                               -0.002f, -0.002f, 0.0f)
+{
+
+}
+
 void SerialInterface::pair() {
     
 #ifndef _WIN32
@@ -75,10 +97,10 @@ void SerialInterface::initializePort(char* portname) {
 #ifndef _WIN32
     _serialDescriptor = open(portname, O_RDWR | O_NOCTTY | O_NDELAY);
     
-    printLog("Opening SerialUSB %s: ", portname);
+    qDebug("Opening SerialUSB %s: ", portname);
     
     if (_serialDescriptor == -1) {
-        printLog("Failed.\n");
+        qDebug("Failed.\n");
         return;
     }
     
@@ -112,7 +134,7 @@ void SerialInterface::initializePort(char* portname) {
         mpu_set_sensors(INV_XYZ_GYRO | INV_XYZ_ACCEL | INV_XYZ_COMPASS);
     }
     
-    printLog("Connected.\n");
+    qDebug("Connected.\n");
     resetSerial();
     
     _active = true;
@@ -203,7 +225,12 @@ void SerialInterface::readData(float deltaTime) {
 
         // ask the invensense for raw gyro data
         short accelData[3];
-        mpu_get_accel_reg(accelData, 0);
+        if (mpu_get_accel_reg(accelData, 0)) {
+            close(_serialDescriptor);
+            qDebug("Disconnected SerialUSB.\n");
+            _active = false;
+            return; // disconnected
+        }
         
         const float LSB_TO_METERS_PER_SECOND2 = 1.f / 16384.f * GRAVITY_EARTH;
                                                                 //  From MPU-9150 register map, with setting on
@@ -351,7 +378,7 @@ void SerialInterface::readData(float deltaTime) {
         gettimeofday(&now, NULL);
         
         if (diffclock(&lastGoodRead, &now) > NO_READ_MAXIMUM_MSECS) {
-            printLog("No data - Shutting down SerialInterface.\n");
+            qDebug("No data - Shutting down SerialInterface.\n");
             resetSerial();
         }
     } else {

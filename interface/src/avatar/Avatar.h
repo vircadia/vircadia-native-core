@@ -10,19 +10,53 @@
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
-#include <AvatarData.h>
+
 #include <QSettings>
-#include "world.h"
+
+#include <AvatarData.h>
+
 #include "AvatarTouch.h"
 #include "AvatarVoxelSystem.h"
-#include "InterfaceConfig.h"
-#include "SerialInterface.h"
 #include "Balls.h"
 #include "Hand.h"
 #include "Head.h"
+#include "InterfaceConfig.h"
 #include "Skeleton.h"
+#include "SerialInterface.h"
 #include "Transmitter.h"
+#include "world.h"
 
+
+static const float MAX_SCALE           = 1000.f;
+static const float MIN_SCALE           = .005f;
+static const float SCALING_RATIO       = .05f;
+static const float SMOOTHING_RATIO     = .05f; // 0 < ratio < 1
+static const float RESCALING_TOLERANCE = .02f;
+
+const float BODY_BALL_RADIUS_PELVIS           = 0.07;
+const float BODY_BALL_RADIUS_TORSO            = 0.065;
+const float BODY_BALL_RADIUS_CHEST            = 0.08;
+const float BODY_BALL_RADIUS_NECK_BASE        = 0.03;
+const float BODY_BALL_RADIUS_HEAD_BASE        = 0.07;
+const float BODY_BALL_RADIUS_LEFT_COLLAR      = 0.04;
+const float BODY_BALL_RADIUS_LEFT_SHOULDER    = 0.03;
+const float BODY_BALL_RADIUS_LEFT_ELBOW       = 0.02;
+const float BODY_BALL_RADIUS_LEFT_WRIST       = 0.02;
+const float BODY_BALL_RADIUS_LEFT_FINGERTIPS  = 0.01;
+const float BODY_BALL_RADIUS_RIGHT_COLLAR     = 0.04;
+const float BODY_BALL_RADIUS_RIGHT_SHOULDER   = 0.03;
+const float BODY_BALL_RADIUS_RIGHT_ELBOW      = 0.02;
+const float BODY_BALL_RADIUS_RIGHT_WRIST      = 0.02;
+const float BODY_BALL_RADIUS_RIGHT_FINGERTIPS = 0.01;
+const float BODY_BALL_RADIUS_LEFT_HIP         = 0.04;
+const float BODY_BALL_RADIUS_LEFT_MID_THIGH   = 0.03;
+const float BODY_BALL_RADIUS_LEFT_KNEE        = 0.025;
+const float BODY_BALL_RADIUS_LEFT_HEEL        = 0.025;
+const float BODY_BALL_RADIUS_LEFT_TOES        = 0.025;
+const float BODY_BALL_RADIUS_RIGHT_HIP        = 0.04;
+const float BODY_BALL_RADIUS_RIGHT_KNEE       = 0.025;
+const float BODY_BALL_RADIUS_RIGHT_HEEL       = 0.025;
+const float BODY_BALL_RADIUS_RIGHT_TOES       = 0.025;
 
 enum AvatarBodyBallID
 {
@@ -78,6 +112,15 @@ enum AvatarMode
     NUM_AVATAR_MODES
 };
 
+enum ScreenTintLayer
+{
+    SCREEN_TINT_BEFORE_LANDSCAPE = 0,
+    SCREEN_TINT_BEFORE_AVATARS,
+    SCREEN_TINT_BEFORE_MY_AVATAR,
+    SCREEN_TINT_AFTER_AVATARS,
+    NUM_SCREEN_TINT_LAYERS
+};
+
 class Avatar : public AvatarData {
 public:
     Avatar(Node* owningNode = NULL);
@@ -85,14 +128,15 @@ public:
     
     void init();
     void reset();
-    void simulate(float deltaTime, Transmitter* transmitter);
+    void simulate(float deltaTime, Transmitter* transmitter, float gyroCameraSensitivity);
     void updateThrust(float deltaTime, Transmitter * transmitter);
+    void follow(Avatar* leadingAvatar);
     void updateFromGyrosAndOrWebcam(bool gyroLook,
-                                    const glm::vec3& amplifyAngle,
-                                    float yawFromTouch,
                                     float pitchFromTouch);
-    void addBodyYaw(float y) {_bodyYaw += y;};
+    void addBodyYaw(float bodyYaw) {_bodyYaw += bodyYaw;};
+    void addBodyYawDelta(float bodyYawDelta) {_bodyYawDelta += bodyYawDelta;}
     void render(bool lookingInMirror, bool renderAvatarBalls);
+    void renderScreenTint(ScreenTintLayer layer, Camera& whichCamera);
 
     //setters
     void setMousePressed           (bool      mousePressed           ) { _mousePressed    = mousePressed;} 
@@ -105,6 +149,8 @@ public:
     void setGravity                (glm::vec3 gravity);
     void setMouseRay               (const glm::vec3 &origin, const glm::vec3 &direction);
     void setOrientation            (const glm::quat& orientation);
+    void setNewScale               (const float scale);
+    void setWantCollisionsOn       (bool wantCollisionsOn            ) { _isCollisionsOn = wantCollisionsOn; }
 
     //getters
     bool             isInitialized             ()                const { return _initialized;}
@@ -118,6 +164,8 @@ public:
     glm::vec3        getBodyRightDirection     ()                const { return getOrientation() * IDENTITY_RIGHT; }
     glm::vec3        getBodyUpDirection        ()                const { return getOrientation() * IDENTITY_UP; }
     glm::vec3        getBodyFrontDirection     ()                const { return getOrientation() * IDENTITY_FRONT; }
+    float            getScale                  ()                const { return _scale;}
+    float            getNewScale               ()                const { return _newScale;}
     const glm::vec3& getVelocity               ()                const { return _velocity;}
     float            getSpeed                  ()                const { return _speed;}
     float            getHeight                 ()                const { return _height;}
@@ -126,14 +174,21 @@ public:
     float            getElapsedTimeStopped     ()                const { return _elapsedTimeStopped;}
     float            getElapsedTimeMoving      ()                const { return _elapsedTimeMoving;}
     float            getElapsedTimeSinceCollision()              const { return _elapsedTimeSinceCollision;}
-    float            getAbsoluteHeadYaw        () const;
-    float            getAbsoluteHeadPitch      () const;
-    Head&            getHead                   () {return _head; }
-    Hand&            getHand                   () {return _hand; }
-    glm::quat        getOrientation            () const;
-    glm::quat        getWorldAlignedOrientation() const;
+    const glm::vec3& getLastCollisionPosition  ()                const { return _lastCollisionPosition;}
+    float            getAbsoluteHeadYaw        ()                const;
+    float            getAbsoluteHeadPitch      ()                const;
+    Head&            getHead                   ()                      {return _head; }
+    Hand&            getHand                   ()                      {return _hand; }
+    glm::quat        getOrientation            ()                const;
+    glm::quat        getWorldAlignedOrientation()                const;
+    const glm::vec3& getMouseRayOrigin         ()                const { return _mouseRayOrigin;    }
+    const glm::vec3& getMouseRayDirection      ()                const { return _mouseRayDirection; }
+    Avatar*          getLeadingAvatar          ()                const { return _leadingAvatar; }
+    glm::vec3        getGravity                ()                const { return _gravity; }
     
     glm::vec3 getUprightHeadPosition() const;
+    glm::vec3 getUprightEyeLevelPosition() const;
+    glm::vec3 getEyePosition();
     
     AvatarVoxelSystem* getVoxels() { return &_voxels; }
     
@@ -200,6 +255,7 @@ private:
     float       _pelvisStandingHeight;
     float       _pelvisFloatingHeight;
     float       _pelvisToHeadLength;
+    float       _scale;
     float       _height;
     Balls*      _balls;
     AvatarTouch _avatarTouch;
@@ -213,9 +269,15 @@ private:
     float       _elapsedTimeMoving;             //  Timers to drive camera transitions when moving
     float       _elapsedTimeStopped;
     float       _elapsedTimeSinceCollision;
+    glm::vec3   _lastCollisionPosition;
     bool        _speedBrakes;
     bool        _isThrustOn;
-    
+    bool        _isCollisionsOn;
+    float       _collisionRadius;
+
+    Avatar*     _leadingAvatar;
+    float       _stringLength;
+
     AvatarVoxelSystem _voxels;
     
     // private methods...
@@ -232,11 +294,13 @@ private:
     void updateAvatarCollisions(float deltaTime);
     void updateArmIKAndConstraints( float deltaTime );
     void updateCollisionWithSphere( glm::vec3 position, float radius, float deltaTime );
-    void updateCollisionWithEnvironment();
-    void updateCollisionWithVoxels();
+    void updateCollisionWithEnvironment(float deltaTime);
+    void updateCollisionWithVoxels(float deltaTime);
     void applyHardCollision(const glm::vec3& penetration, float elasticity, float damping);
+    void updateCollisionSound(const glm::vec3& penetration, float deltaTime, float frequency);
     void applyCollisionWithOtherAvatar( Avatar * other, float deltaTime );
     void checkForMouseRayTouching();
+    void setScale (const float scale);
 };
 
 #endif

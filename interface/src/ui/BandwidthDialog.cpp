@@ -7,8 +7,6 @@
 #include <QPalette>
 #include <QColor>
 
-#include "Log.h"
-
 BandwidthDialog::BandwidthDialog(QWidget* parent, BandwidthMeter* model) :
     QDialog(parent, Qt::Window | Qt::WindowCloseButtonHint | Qt::WindowStaysOnTopHint),
     _model(model) {

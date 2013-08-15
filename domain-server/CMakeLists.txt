@@ -6,7 +6,7 @@ set(MACRO_DIR ${ROOT_DIR}/cmake/macros)
 set(TARGET_NAME domain-server)
 
 include(${MACRO_DIR}/SetupHifiProject.cmake)
-setup_hifi_project(${TARGET_NAME})
+setup_hifi_project(${TARGET_NAME} TRUE)
 
 # link the shared hifi library
 include(${MACRO_DIR}/LinkHifiLibrary.cmake)

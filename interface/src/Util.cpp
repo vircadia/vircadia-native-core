@@ -6,7 +6,6 @@
 //  Copyright (c) 2012 High Fidelity, Inc. All rights reserved.
 //
 
-#include "InterfaceConfig.h"
 #include <iostream>
 #include <cstring>
 #include <time.h>
@@ -15,16 +14,16 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/noise.hpp>
 #include <glm/gtx/quaternion.hpp>
+
 #include <AvatarData.h>
 #include <SharedUtil.h>
 
-#include "Log.h"
+#include "InterfaceConfig.h"
 #include "ui/TextRenderer.h"
-#include "world.h"
-#include "Util.h"
-
-
 #include "VoxelConstants.h"
+#include "world.h"
+
+#include "Util.h"
 
 using namespace std;
 
@@ -224,39 +223,54 @@ void noiseTest(int w, int h) {
     glEnd();
 }
     
-void render_world_box() {
-    //  Show edge of world 
+void renderWorldBox() {
+    //  Show edge of world
+    float red[] = {1, 0, 0};
+    float green[] = {0, 1, 0};
+    float blue[] = {0, 0, 1};
+    float gray[] = {0.5, 0.5, 0.5};
+    
     glDisable(GL_LIGHTING);
-    glColor4f(1.0, 1.0, 1.0, 1.0);
     glLineWidth(1.0);
     glBegin(GL_LINES);
-    glColor3f(1, 0, 0);
+    glColor3fv(red);
     glVertex3f(0, 0, 0);
-    glVertex3f(WORLD_SIZE, 0, 0);
-    glColor3f(0, 1, 0);
+    glVertex3f(TREE_SCALE, 0, 0);
+    glColor3fv(green);
     glVertex3f(0, 0, 0);
-    glVertex3f(0, WORLD_SIZE, 0);
-    glColor3f(0, 0, 1);
+    glVertex3f(0, TREE_SCALE, 0);
+    glColor3fv(blue);
     glVertex3f(0, 0, 0);
-    glVertex3f(0, 0, WORLD_SIZE);
+    glVertex3f(0, 0, TREE_SCALE);
+    glColor3fv(gray);
+    glVertex3f(0, 0, TREE_SCALE);
+    glVertex3f(TREE_SCALE, 0, TREE_SCALE);
+    glVertex3f(TREE_SCALE, 0, TREE_SCALE);
+    glVertex3f(TREE_SCALE, 0, 0);
     glEnd();
-    //  Draw little marker dots along the axis
+    //  Draw marker dots at very end
     glEnable(GL_LIGHTING);
     glPushMatrix();
-    glTranslatef(WORLD_SIZE, 0, 0);
-    glColor3f(1, 0, 0);
+    glTranslatef(TREE_SCALE, 0, 0);
+    glColor3fv(red);
     glutSolidSphere(0.125, 10, 10);
     glPopMatrix();
     glPushMatrix();
-    glTranslatef(0, WORLD_SIZE, 0);
-    glColor3f(0, 1, 0);
+    glTranslatef(0, TREE_SCALE, 0);
+    glColor3fv(green);
     glutSolidSphere(0.125, 10, 10);
     glPopMatrix();
     glPushMatrix();
-    glTranslatef(0, 0, WORLD_SIZE);
-    glColor3f(0, 0, 1);
+    glTranslatef(0, 0, TREE_SCALE);
+    glColor3fv(blue);
     glutSolidSphere(0.125, 10, 10);
     glPopMatrix();
+    glPushMatrix();
+    glColor3fv(gray);
+    glTranslatef(TREE_SCALE, 0, TREE_SCALE);
+    glutSolidSphere(0.125, 10, 10);
+    glPopMatrix();
+
 }
 
 double diffclock(timeval *clock1,timeval *clock2)
@@ -326,22 +340,44 @@ void drawvec3(int x, int y, float scale, float rotate, float thick, int mono, gl
     glPopMatrix();
 } 
 
+void renderCollisionOverlay(int width, int height, float magnitude) {
+    const float MIN_VISIBLE_COLLISION = 0.01f;
+    if (magnitude > MIN_VISIBLE_COLLISION) {
+        glColor4f(0, 0, 0, magnitude);
+        glBegin(GL_QUADS);
+        glVertex2f(0, 0);
+        glVertex2d(width, 0);
+        glVertex2d(width, height);
+        glVertex2d(0, height);
+        glEnd();
+    }
+}
 
-void drawGroundPlaneGrid(float size) {
-	glColor3f(0.4f, 0.5f, 0.3f); 
+void renderGroundPlaneGrid(float size, float impact) {
+    float IMPACT_SOUND_MAGNITUDE_FOR_RECOLOR = 1.f;
 	glLineWidth(2.0);
-		
+    glm::vec4 impactColor(1, 0, 0, 1);
+    glm::vec3 lineColor(0.4, 0.5, 0.3);
+    glm::vec4 surfaceColor(0.5, 0.5, 0.5, 0.4);
+    
+    glColor3fv(&lineColor.x);
     for (float x = 0; x <= size; x++) {
 		glBegin(GL_LINES);
-		glVertex3f(x, 0.0f, 0);
-		glVertex3f(x, 0.0f, size);
-        glVertex3f(0, 0.0f, x);
-		glVertex3f(size, 0.0f, x);
+		glVertex3f(x, 0, 0);
+		glVertex3f(x, 0, size);
+        glVertex3f(0, 0, x);
+		glVertex3f(size, 0, x);
         glEnd();
     }
         
-    // Draw a translucent quad just underneath the grid.
-    glColor4f(0.5, 0.5, 0.5, 0.4);
+    // Draw the floor, colored for recent impact
+    glm::vec4 floorColor;
+    if (impact > IMPACT_SOUND_MAGNITUDE_FOR_RECOLOR) {
+        floorColor = impact * impactColor + (1.f - impact) * surfaceColor;
+    } else {
+        floorColor = surfaceColor;        
+    }
+    glColor4fv(&floorColor.x);
     glBegin(GL_QUADS);
     glVertex3f(0, 0, 0);
     glVertex3f(size, 0, 0);
@@ -350,7 +386,33 @@ void drawGroundPlaneGrid(float size) {
     glEnd();
 }
 
+void renderMouseVoxelGrid(const float& mouseVoxelX, const float& mouseVoxelY, const float& mouseVoxelZ, const float& mouseVoxelS) {
+    glm::vec3 origin = glm::vec3(mouseVoxelX, mouseVoxelY, mouseVoxelZ);
 
+    glLineWidth(3.0);
+    
+    const int HALF_GRID_DIMENSIONS = 4;
+    glBegin(GL_LINES);
+
+    glm::vec3 xColor(0.0, 0.6, 0.0);
+    glColor3fv(&xColor.x);
+
+    glVertex3f(origin.x + HALF_GRID_DIMENSIONS * mouseVoxelS, 0, origin.z);
+    glVertex3f(origin.x - HALF_GRID_DIMENSIONS * mouseVoxelS, 0, origin.z);
+
+    glm::vec3 zColor(0.0, 0.0, 0.6);
+    glColor3fv(&zColor.x);
+
+    glVertex3f(origin.x, 0, origin.z + HALF_GRID_DIMENSIONS * mouseVoxelS);
+    glVertex3f(origin.x, 0, origin.z - HALF_GRID_DIMENSIONS * mouseVoxelS);
+
+    glm::vec3 yColor(0.6, 0.0, 0.0);
+    glColor3fv(&yColor.x);
+
+    glVertex3f(origin.x, 0, origin.z);
+    glVertex3f(origin.x, origin.y, origin.z);
+    glEnd();
+}
 
 void renderDiskShadow(glm::vec3 position, glm::vec3 upDirection, float radius, float darkness) {
 
@@ -452,7 +514,7 @@ void renderOrientationDirections(glm::vec3 position, const glm::quat& orientatio
 
 bool closeEnoughForGovernmentWork(float a, float b) {
     float distance = std::abs(a-b);
-    //printLog("closeEnoughForGovernmentWork() a=%1.10f b=%1.10f distance=%1.10f\n",a,b,distance);
+    //qDebug("closeEnoughForGovernmentWork() a=%1.10f b=%1.10f distance=%1.10f\n",a,b,distance);
     return (distance < 0.00001f);
 }
 
@@ -470,7 +532,7 @@ void runTimingTests() {
         gettimeofday(&endTime, NULL);
     }
     elapsedMsecs = diffclock(&startTime, &endTime);
-    printLog("gettimeofday() usecs: %f\n", 1000.0f * elapsedMsecs / (float) numTests);
+    qDebug("gettimeofday() usecs: %f\n", 1000.0f * elapsedMsecs / (float) numTests);
     
     // Random number generation
     gettimeofday(&startTime, NULL);
@@ -479,7 +541,7 @@ void runTimingTests() {
     }
     gettimeofday(&endTime, NULL);
     elapsedMsecs = diffclock(&startTime, &endTime);
-    printLog("rand() stored in array usecs: %f\n", 1000.0f * elapsedMsecs / (float) numTests);
+    qDebug("rand() stored in array usecs: %f\n", 1000.0f * elapsedMsecs / (float) numTests);
 
     // Random number generation using randFloat()
     gettimeofday(&startTime, NULL);
@@ -488,7 +550,7 @@ void runTimingTests() {
     }
     gettimeofday(&endTime, NULL);
     elapsedMsecs = diffclock(&startTime, &endTime);
-    printLog("randFloat() stored in array usecs: %f\n", 1000.0f * elapsedMsecs / (float) numTests);
+    qDebug("randFloat() stored in array usecs: %f\n", 1000.0f * elapsedMsecs / (float) numTests);
 
     //  PowF function
     fTest = 1145323.2342f;
@@ -498,7 +560,7 @@ void runTimingTests() {
     }
     gettimeofday(&endTime, NULL);
     elapsedMsecs = diffclock(&startTime, &endTime);
-    printLog("powf(f, 0.5) usecs: %f\n", 1000.0f * elapsedMsecs / (float) numTests);
+    qDebug("powf(f, 0.5) usecs: %f\n", 1000.0f * elapsedMsecs / (float) numTests);
 
     //  Vector Math
     float distance;
@@ -511,7 +573,7 @@ void runTimingTests() {
     }
     gettimeofday(&endTime, NULL);
     elapsedMsecs = diffclock(&startTime, &endTime);
-    printLog("vector math usecs: %f [%f msecs total for %d tests]\n", 
+    qDebug("vector math usecs: %f [%f msecs total for %d tests]\n", 
              1000.0f * elapsedMsecs / (float) numTests, elapsedMsecs, numTests);
     
     //  Vec3 test
@@ -525,9 +587,7 @@ void runTimingTests() {
     }
     gettimeofday(&endTime, NULL);
     elapsedMsecs = diffclock(&startTime, &endTime);
-    printLog("vec3 assign and dot() usecs: %f\n", 1000.0f * elapsedMsecs / (float) numTests);
-
-    
+    qDebug("vec3 assign and dot() usecs: %f\n", 1000.0f * elapsedMsecs / (float) numTests);
 }
 
 float loadSetting(QSettings* settings, const char* name, float defaultValue) {
@@ -543,6 +603,15 @@ bool rayIntersectsSphere(glm::vec3& rayStarting, glm::vec3& rayNormalizedDirecti
     double projection = glm::dot(vecFromRayToSphereCenter, rayNormalizedDirection);
     double shortestDistance = sqrt(glm::dot(vecFromRayToSphereCenter, vecFromRayToSphereCenter) - projection * projection);
     if (shortestDistance <= sphereRadius) {
+        return true;
+    }
+    return false;
+}
+
+bool pointInSphere(glm::vec3& point, glm::vec3& sphereCenter, double sphereRadius) {
+    glm::vec3 diff = point - sphereCenter;
+    double mag = sqrt(glm::dot(diff, diff));
+    if (mag <= sphereRadius) {
         return true;
     }
     return false;

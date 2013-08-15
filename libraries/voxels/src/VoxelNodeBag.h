@@ -16,14 +16,10 @@
 
 #include "VoxelNode.h"
 
-class VoxelNodeBag {
+class VoxelNodeBag : public VoxelNodeDeleteHook {
 
 public:
-    VoxelNodeBag() : 
-        _bagElements(NULL),
-        _elementsInUse(0),
-        _sizeOfElementsArray(0) {};
-        
+    VoxelNodeBag();
     ~VoxelNodeBag();
     
     void insert(VoxelNode* node); // put a node into the bag
@@ -36,11 +32,16 @@ public:
 
     void deleteAll();
 
+    static void voxelNodeDeleteHook(VoxelNode* node, void* extraData);
+
+    virtual void nodeDeleted(VoxelNode* node);
+
 private:
     
     VoxelNode** _bagElements;
     int         _elementsInUse;
     int         _sizeOfElementsArray;
+    int         _hookID;
 };
 
 #endif /* defined(__hifi__VoxelNodeBag__) */

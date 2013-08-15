@@ -1,18 +1,17 @@
 //
-//  Tags.h
+//  Tags.cpp
 //  hifi
 //
 //  Created by Clement Brisset on 7/3/13.
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
-#include "Tags.h"
-#include <Log.h>
-
-#include <zlib.h>
-#include <zconf.h>
-
 #include <iostream>
+
+#include <zconf.h>
+#include <zlib.h>
+
+#include "Tags.h"
 
 Tag::Tag(int tagId, std::stringstream &ss) : _tagId(tagId) {
     int size = ss.get() << 8 | ss.get();

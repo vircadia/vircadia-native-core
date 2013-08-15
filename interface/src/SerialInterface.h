@@ -1,16 +1,13 @@
 //
 //  SerialInterface.h
-//  
-
+//  hifi
+//
+//  Created by Stephen Birarda on 2/15/13.
+//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//
 
 #ifndef __interface__SerialInterface__
 #define __interface__SerialInterface__
-
-#include <glm/glm.hpp>
-#include "Util.h"
-#include "world.h"
-#include "InterfaceConfig.h"
-#include "Log.h"
 
 // These includes are for serial port reading/writing
 #ifndef _WIN32
@@ -20,30 +17,16 @@
 #include <dirent.h>
 #endif
 
+#include <glm/glm.hpp>
+
+#include "InterfaceConfig.h"
+#include "Util.h"
+
 extern const bool USING_INVENSENSE_MPU9150;
 
 class SerialInterface {
 public:
-    SerialInterface() : _active(false),
-                        _gravity(0, 0, 0),
-                        _averageRotationRates(0, 0, 0),
-                        _averageAcceleration(0, 0, 0),
-                        _estimatedRotation(0, 0, 0),
-                        _estimatedPosition(0, 0, 0),
-                        _estimatedVelocity(0, 0, 0),
-                        _lastAcceleration(0, 0, 0),
-                        _lastRotationRates(0, 0, 0),
-                        _compassMinima(-211, -132, -186),
-                        _compassMaxima(89, 95, 98),
-                        _angularVelocityToLinearAccel(
-                            0.003f, -0.001f, -0.006f, 
-                            -0.005f, -0.001f, -0.006f,
-                            0.010f, 0.004f, 0.007f),
-                        _angularAccelToLinearAccel(
-                            0.0f, 0.0f, 0.002f,
-                            0.0f, 0.0f, 0.001f,
-                            -0.002f, -0.002f, 0.0f)
-                    {}
+    SerialInterface();
     
     void pair();
     void readData(float deltaTime);

@@ -77,3 +77,12 @@ void ToolsPalette::render(int screenWidth, int screenHeight) {
 
     glPopMatrix();
 }
+
+bool ToolsPalette::isActive() {
+    for (unsigned int i = 0; i < _tools.size(); ++i) {
+        if (_tools[i]->isActive()) {
+            return true;
+        }
+    }
+    return false;
+}

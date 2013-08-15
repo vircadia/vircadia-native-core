@@ -5,9 +5,10 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 
 #include <glm/gtx/quaternion.hpp>
+
 #include <SharedUtil.h>
 #include <VoxelConstants.h>
-#include "Log.h"
+
 #include "Camera.h"
 #include "Util.h"
 
@@ -36,7 +37,8 @@ Camera::Camera() {
     _linearModeShift   = 0.0f;
     _mode              = CAMERA_MODE_THIRD_PERSON;
     _tightness         = 10.0f; // default
-    _fieldOfView       = HORIZONTAL_FIELD_OF_VIEW_DEGREES; 
+    _fieldOfView       = DEFAULT_FIELD_OF_VIEW_DEGREES; 
+    _aspectRatio       = 16.f/9.f;
     _nearClip          = 0.08f; // default
     _farClip           = 50.0f * TREE_SCALE; // default
     _upShift           = 0.0f;
@@ -50,6 +52,7 @@ Camera::Camera() {
     _targetPosition    = glm::vec3(0.0f, 0.0f, 0.0f);
     _position          = glm::vec3(0.0f, 0.0f, 0.0f);
     _idealPosition     = glm::vec3(0.0f, 0.0f, 0.0f);
+    _scale             = 1.0f;
 }
 
 void Camera::update(float deltaTime)  {
@@ -91,16 +94,22 @@ void Camera::updateFollowMode(float deltaTime) {
     
     if (_needsToInitialize || (_tightness == 0.0f)) {
         _rotation = _targetRotation;
-        _idealPosition = _targetPosition + _rotation * glm::vec3(0.0f, _upShift, _distance);
+        _idealPosition = _targetPosition + _scale * (_rotation * glm::vec3(0.0f, _upShift, _distance));
         _position = _idealPosition;
         _needsToInitialize = false;
 
     } else {
         // pull rotation towards ideal
         _rotation = safeMix(_rotation, _targetRotation, t);
-        _idealPosition = _targetPosition + _rotation * glm::vec3(0.0f, _upShift, _distance);
+        _idealPosition = _targetPosition + _scale * (_rotation * glm::vec3(0.0f, _upShift, _distance));
         _position += (_idealPosition - _position) * t;
     }
+}
+
+float Camera::getFarClip() const {
+    return (_scale * _farClip < std::numeric_limits<int16_t>::max())
+            ? _scale * _farClip
+            : std::numeric_limits<int16_t>::max() - 1;
 }
 
 void Camera::setModeShiftRate ( float rate ) {
@@ -174,13 +183,19 @@ void Camera::setEyeOffsetOrientation  (const glm::quat& o) {
     _frustumNeedsReshape = true;
 }
 
+void Camera::setScale(float s) {
+    _scale = s;
+    _needsToInitialize = true;
+    _frustumNeedsReshape = true;
+}
+
 void Camera::initialize() {
     _needsToInitialize = true;
     _modeShift = 0.0;
 }
 
 // call to find out if the view frustum needs to be reshaped
-bool Camera::getFrustumNeedsReshape() {
+bool Camera::getFrustumNeedsReshape() const {
     return _frustumNeedsReshape;
 }
 

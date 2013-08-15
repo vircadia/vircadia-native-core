@@ -24,6 +24,7 @@ class Environment {
 public:
 
     void init();
+    void resetToDefault();
     void renderAtmospheres(Camera& camera);
     
     glm::vec3 getGravity (const glm::vec3& position);

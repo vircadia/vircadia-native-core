@@ -21,7 +21,6 @@ const int BLUE_INDEX  = 2;
 
 void printOctalCode(unsigned char * octalCode);
 int bytesRequiredForCodeLength(unsigned char threeBitCodes);
-bool isDirectParentOfChild(unsigned char *parentOctalCode, unsigned char * childOctalCode);
 int branchIndexWithDescendant(unsigned char * ancestorOctalCode, unsigned char * descendantOctalCode);
 unsigned char * childOctalCode(unsigned char * parentOctalCode, char childNumber);
 int numberOfThreeBitSectionsInCode(unsigned char * octalCode);
@@ -29,10 +28,18 @@ unsigned char* chopOctalCode(unsigned char* originalOctalCode, int chopLevels);
 unsigned char* rebaseOctalCode(unsigned char* originalOctalCode, unsigned char* newParentOctalCode, 
                                bool includeColorSpace = false);
 
+const int CHECK_NODE_ONLY = -1;
+bool isAncestorOf(unsigned char* possibleAncestor, unsigned char* possibleDescendent, int descendentsChild = CHECK_NODE_ONLY);
+
 // Note: copyFirstVertexForCode() is preferred because it doesn't allocate memory for the return
 // but other than that these do the same thing.
 float * firstVertexForCode(unsigned char * octalCode);
 void copyFirstVertexForCode(unsigned char * octalCode, float* output);
+
+struct VoxelPositionSize {
+    float x, y, z, s;
+};
+void voxelDetailsForCode(unsigned char * octalCode, VoxelPositionSize& voxelPositionSize);
 
 typedef enum {
     ILLEGAL_CODE = -2,

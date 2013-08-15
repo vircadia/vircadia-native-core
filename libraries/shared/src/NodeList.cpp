@@ -11,11 +11,12 @@
 #include <cstdlib>
 #include <cstdio>
 
+#include <QtCore/QDebug>
+
 #include "NodeList.h"
 #include "NodeTypes.h"
 #include "PacketHeaders.h"
 #include "SharedUtil.h"
-#include "Log.h"
 
 #ifdef _WIN32
 #include "Syssocket.h"
@@ -23,26 +24,25 @@
 #include <arpa/inet.h>
 #endif
 
-const char SOLO_NODE_TYPES[3] = {
+const char SOLO_NODE_TYPES[2] = {
     NODE_TYPE_AVATAR_MIXER,
-    NODE_TYPE_AUDIO_MIXER,
-    NODE_TYPE_VOXEL_SERVER
+    NODE_TYPE_AUDIO_MIXER
 };
 
-char DOMAIN_HOSTNAME[] = "highfidelity.below92.com";
-char DOMAIN_IP[100] = "";    //  IP Address will be re-set by lookup on startup
-const int DOMAINSERVER_PORT = 40102;
+const char DEFAULT_DOMAIN_HOSTNAME[MAX_HOSTNAME_BYTES] = "root.highfidelity.io";
+const char DEFAULT_DOMAIN_IP[INET_ADDRSTRLEN] = "";    //  IP Address will be re-set by lookup on startup
+const int DEFAULT_DOMAINSERVER_PORT = 40102;
 
 bool silentNodeThreadStopFlag = false;
 bool pingUnknownNodeThreadStopFlag = false;
 
 NodeList* NodeList::_sharedInstance = NULL;
 
-NodeList* NodeList::createInstance(char ownerType, unsigned int socketListenPort) {
+NodeList* NodeList::createInstance(char ownerType, unsigned short int socketListenPort) {
     if (!_sharedInstance) {
         _sharedInstance = new NodeList(ownerType, socketListenPort);
     } else {
-        printLog("NodeList createInstance called with existing instance.\n");
+        qDebug("NodeList createInstance called with existing instance.\n");
     }
     
     return _sharedInstance;
@@ -50,30 +50,50 @@ NodeList* NodeList::createInstance(char ownerType, unsigned int socketListenPort
 
 NodeList* NodeList::getInstance() {
     if (!_sharedInstance) {
-        printLog("NodeList getInstance called before call to createInstance. Returning NULL pointer.\n");
+        qDebug("NodeList getInstance called before call to createInstance. Returning NULL pointer.\n");
     }
     
     return _sharedInstance;
 }
 
-NodeList::NodeList(char newOwnerType, unsigned int newSocketListenPort) :
+NodeList::NodeList(char newOwnerType, unsigned short int newSocketListenPort) :
     _nodeBuckets(),
     _numNodes(0),
     _nodeSocket(newSocketListenPort),
     _ownerType(newOwnerType),
     _nodeTypesOfInterest(NULL),
     _ownerID(UNKNOWN_NODE_ID),
-    _lastNodeID(0) {
-    pthread_mutex_init(&mutex, 0);
+    _lastNodeID(0)
+{
+    memcpy(_domainHostname, DEFAULT_DOMAIN_HOSTNAME, sizeof(DEFAULT_DOMAIN_HOSTNAME));
+    memcpy(_domainIP, DEFAULT_DOMAIN_IP, sizeof(DEFAULT_DOMAIN_IP));
 }
 
 NodeList::~NodeList() {
     delete _nodeTypesOfInterest;
     
+    clear();
+    
     // stop the spawned threads, if they were started
     stopSilentNodeRemovalThread();
+}
+
+void NodeList::setDomainHostname(const char* domainHostname) {    
+    memset(_domainHostname, 0, sizeof(_domainHostname));
+    memcpy(_domainHostname, domainHostname, strlen(domainHostname));
     
-    pthread_mutex_destroy(&mutex);
+    // reset the domain IP so the hostname is checked again
+    setDomainIP("");
+}
+
+void NodeList::setDomainIP(const char* domainIP) {
+    memset(_domainIP, 0, sizeof(_domainIP));
+    memcpy(_domainIP, domainIP, strlen(domainIP));
+}
+
+void NodeList::setDomainIPToLocalhost() {
+    int ip = getLocalAddress();
+    sprintf(_domainIP, "%d.%d.%d.%d", (ip & 0xFF), ((ip >> 8) & 0xFF),((ip >> 16) & 0xFF), ((ip >> 24) & 0xFF));
 }
 
 void NodeList::timePingReply(sockaddr *nodeAddress, unsigned char *packetData) {
@@ -92,7 +112,14 @@ void NodeList::timePingReply(sockaddr *nodeAddress, unsigned char *packetData) {
 void NodeList::processNodeData(sockaddr* senderAddress, unsigned char* packetData, size_t dataBytes) {
     switch (packetData[0]) {
         case PACKET_TYPE_DOMAIN: {
-            processDomainServerList(packetData, dataBytes);
+            // only process the DS if this is our current domain server
+            sockaddr_in domainServerSocket = *(sockaddr_in*) senderAddress;
+            const char* domainSenderIP = inet_ntoa(domainServerSocket.sin_addr);
+            
+            if (memcmp(domainSenderIP, _domainIP, strlen(domainSenderIP)) == 0) {
+                processDomainServerList(packetData, dataBytes);
+            }
+            
             break;
         }
         case PACKET_TYPE_PING: {
@@ -110,7 +137,6 @@ void NodeList::processNodeData(sockaddr* senderAddress, unsigned char* packetDat
 }
 
 void NodeList::processBulkNodeData(sockaddr *senderAddress, unsigned char *packetData, int numTotalBytes) {
-    lock();
     
     // find the avatar mixer in our node list and update the lastRecvTime from it
     Node* bulkSendNode = nodeWithAddress(senderAddress);
@@ -118,38 +144,37 @@ void NodeList::processBulkNodeData(sockaddr *senderAddress, unsigned char *packe
     if (bulkSendNode) {
         bulkSendNode->setLastHeardMicrostamp(usecTimestampNow());
         bulkSendNode->recordBytesReceived(numTotalBytes);
-    }
-    
-    int numBytesPacketHeader = numBytesForPacketHeader(packetData);
-    
-    unsigned char *startPosition = packetData;
-    unsigned char *currentPosition = startPosition + numBytesPacketHeader;
-    unsigned char packetHolder[numTotalBytes];
-    
-    // we've already verified packet version for the bulk packet, so all head data in the packet is also up to date
-    populateTypeAndVersion(packetHolder, PACKET_TYPE_HEAD_DATA);
-    
-    uint16_t nodeID = -1;
-    
-    while ((currentPosition - startPosition) < numTotalBytes) {
-        unpackNodeId(currentPosition, &nodeID);
-        memcpy(packetHolder + numBytesPacketHeader,
-               currentPosition,
-               numTotalBytes - (currentPosition - startPosition));
         
-        Node* matchingNode = nodeWithID(nodeID);
+        int numBytesPacketHeader = numBytesForPacketHeader(packetData);
         
-        if (!matchingNode) {
-            // we're missing this node, we need to add it to the list
-            matchingNode = addOrUpdateNode(NULL, NULL, NODE_TYPE_AGENT, nodeID);
+        unsigned char* startPosition = packetData;
+        unsigned char* currentPosition = startPosition + numBytesPacketHeader;
+        unsigned char packetHolder[numTotalBytes];
+        
+        // we've already verified packet version for the bulk packet, so all head data in the packet is also up to date
+        populateTypeAndVersion(packetHolder, PACKET_TYPE_HEAD_DATA);
+        
+        uint16_t nodeID = -1;
+        
+        while ((currentPosition - startPosition) < numTotalBytes) {
+            unpackNodeId(currentPosition, &nodeID);
+            memcpy(packetHolder + numBytesPacketHeader,
+                   currentPosition,
+                   numTotalBytes - (currentPosition - startPosition));
+            
+            Node* matchingNode = nodeWithID(nodeID);
+            
+            if (!matchingNode) {
+                // we're missing this node, we need to add it to the list
+                matchingNode = addOrUpdateNode(NULL, NULL, NODE_TYPE_AGENT, nodeID);
+            }
+            
+            currentPosition += updateNodeWithData(matchingNode,
+                                                  packetHolder,
+                                                  numTotalBytes - (currentPosition - startPosition));
+            
         }
-        
-        currentPosition += updateNodeWithData(matchingNode,
-                                              packetHolder,
-                                              numTotalBytes - (currentPosition - startPosition));
-    }
-    
-    unlock();
+    }    
 }
 
 int NodeList::updateNodeWithData(sockaddr *senderAddress, unsigned char *packetData, size_t dataBytes) {
@@ -164,6 +189,8 @@ int NodeList::updateNodeWithData(sockaddr *senderAddress, unsigned char *packetD
 }
 
 int NodeList::updateNodeWithData(Node *node, unsigned char *packetData, int dataBytes) {
+    node->lock();
+    
     node->setLastHeardMicrostamp(usecTimestampNow());
     
     if (node->getActiveSocket()) {
@@ -174,7 +201,11 @@ int NodeList::updateNodeWithData(Node *node, unsigned char *packetData, int data
         linkedDataCreateCallback(node);
     }
     
-    return node->getLinkedData()->parseData(packetData, dataBytes);
+    int numParsedBytes = node->getLinkedData()->parseData(packetData, dataBytes);
+    
+    node->unlock();
+    
+    return numParsedBytes;
 }
 
 Node* NodeList::nodeWithAddress(sockaddr *senderAddress) {
@@ -209,6 +240,21 @@ int NodeList::getNumAliveNodes() const {
     return numAliveNodes;
 }
 
+void NodeList::clear() {
+    // delete all of the nodes in the list, set the pointers back to NULL and the number of nodes to 0
+    for (int i = 0; i < _numNodes; i++) {
+        Node** nodeBucket = _nodeBuckets[i / NODES_PER_BUCKET];
+        Node* node = nodeBucket[i % NODES_PER_BUCKET];
+        
+        node->lock();
+        delete node;
+        
+        node = NULL;
+    }
+    
+    _numNodes = 0;
+}
+
 void NodeList::setNodeTypesOfInterest(const char* nodeTypesOfInterest, int numNodeTypesOfInterest) {
     delete _nodeTypesOfInterest;
     
@@ -221,18 +267,20 @@ void NodeList::sendDomainServerCheckIn() {
     static bool printedDomainServerIP = false;
     
     //  Lookup the IP address of the domain server if we need to
-    if (atoi(DOMAIN_IP) == 0) {
+    if (atoi(_domainIP) == 0) {
+        printf("Looking up %s\n", _domainHostname);
         struct hostent* pHostInfo;
-        if ((pHostInfo = gethostbyname(DOMAIN_HOSTNAME)) != NULL) {
+        if ((pHostInfo = gethostbyname(_domainHostname)) != NULL) {
             sockaddr_in tempAddress;
             memcpy(&tempAddress.sin_addr, pHostInfo->h_addr_list[0], pHostInfo->h_length);
-            strcpy(DOMAIN_IP, inet_ntoa(tempAddress.sin_addr));
-            printLog("Domain Server: %s \n", DOMAIN_HOSTNAME);
+            strcpy(_domainIP, inet_ntoa(tempAddress.sin_addr));
+
+            qDebug("Domain Server: %s\n", _domainHostname);
         } else {
-            printLog("Failed domain server lookup\n");
+            qDebug("Failed domain server lookup\n");
         }
     } else if (!printedDomainServerIP) {
-        printLog("Domain Server IP: %s\n", DOMAIN_IP);
+        qDebug("Domain Server IP: %s\n", _domainIP);
         printedDomainServerIP = true;
     }
     
@@ -279,7 +327,7 @@ void NodeList::sendDomainServerCheckIn() {
         checkInPacketSize = packetPosition - checkInPacket;
     }
     
-    _nodeSocket.send(DOMAIN_IP, DOMAINSERVER_PORT, checkInPacket, checkInPacketSize);
+    _nodeSocket.send(_domainIP, DEFAULT_DOMAINSERVER_PORT, checkInPacket, checkInPacketSize);
 }
 
 int NodeList::processDomainServerList(unsigned char* packetData, size_t dataBytes) {
@@ -303,6 +351,12 @@ int NodeList::processDomainServerList(unsigned char* packetData, size_t dataByte
         readPtr += unpackSocket(readPtr, (sockaddr*) &nodePublicSocket);
         readPtr += unpackSocket(readPtr, (sockaddr*) &nodeLocalSocket);
         
+        // if the public socket address is 0 then it's reachable at the same IP
+        // as the domain server
+        if (nodePublicSocket.sin_addr.s_addr == 0) {
+            inet_aton(_domainIP, &nodePublicSocket.sin_addr);
+        }
+        
         addOrUpdateNode((sockaddr*) &nodePublicSocket, (sockaddr*) &nodeLocalSocket, nodeType, nodeId);
     }
     
@@ -310,6 +364,15 @@ int NodeList::processDomainServerList(unsigned char* packetData, size_t dataByte
     unpackNodeId(readPtr, &_ownerID);
 
     return readNodes;
+}
+
+void NodeList::sendAssignmentRequest() {
+    const char ASSIGNMENT_SERVER_HOSTNAME[] = "assignment.highfidelity.io";
+    
+    static sockaddr_in assignmentServerSocket = socketForHostname(ASSIGNMENT_SERVER_HOSTNAME);
+    assignmentServerSocket.sin_port = htons(ASSIGNMENT_SERVER_PORT);
+    
+    _nodeSocket.send((sockaddr*) &assignmentServerSocket, &PACKET_TYPE_REQUEST_ASSIGNMENT, 1);
 }
 
 Node* NodeList::addOrUpdateNode(sockaddr* publicSocket, sockaddr* localSocket, char nodeType, uint16_t nodeId) {
@@ -371,8 +434,9 @@ void NodeList::addNodeToList(Node* newNode) {
     
     ++_numNodes;
     
-    printLog("Added ");
-    Node::printLog(*newNode);
+    qDebug() << "Added" << *newNode << "\n";
+    
+    notifyHooksOfAddedNode(newNode);
 }
 
 unsigned NodeList::broadcastToNodes(unsigned char *broadcastData, size_t dataBytes, const char* nodeTypes, int numNodeTypes) {
@@ -414,7 +478,7 @@ Node* NodeList::soloNodeOfType(char nodeType) {
     return NULL;
 }
 
-void *removeSilentNodes(void *args) {
+void* removeSilentNodes(void *args) {
     NodeList* nodeList = (NodeList*) args;
     uint64_t checkTimeUSecs;
     int sleepTime;
@@ -424,11 +488,11 @@ void *removeSilentNodes(void *args) {
         
         for(NodeList::iterator node = nodeList->begin(); node != nodeList->end(); ++node) {
             
-            if ((checkTimeUSecs - node->getLastHeardMicrostamp()) > NODE_SILENCE_THRESHOLD_USECS
-            	&& node->getType() != NODE_TYPE_VOXEL_SERVER) {
+            if ((checkTimeUSecs - node->getLastHeardMicrostamp()) > NODE_SILENCE_THRESHOLD_USECS) {
             
-                printLog("Killed ");
-                Node::printLog(*node);
+                qDebug() << "Killed" << *node << "\n";
+                
+                nodeList->notifyHooksOfKilledNode(&*node);
                 
                 node->setAlive(false);
             }
@@ -453,6 +517,37 @@ void NodeList::startSilentNodeRemovalThread() {
 void NodeList::stopSilentNodeRemovalThread() {
     silentNodeThreadStopFlag = true;
     pthread_join(removeSilentNodesThread, NULL);
+    
+}
+
+const QString QSETTINGS_GROUP_NAME = "NodeList";
+const QString DOMAIN_SERVER_SETTING_KEY = "domainServerHostname";
+
+void NodeList::loadData(QSettings *settings) {
+    settings->beginGroup(DOMAIN_SERVER_SETTING_KEY);
+    
+    QString domainServerHostname = settings->value(DOMAIN_SERVER_SETTING_KEY).toString();
+    
+    if (domainServerHostname.size() > 0) {
+        memset(_domainHostname, 0, MAX_HOSTNAME_BYTES);
+        memcpy(_domainHostname, domainServerHostname.toLocal8Bit().constData(), domainServerHostname.size());
+    }
+    
+    settings->endGroup();
+}
+
+void NodeList::saveData(QSettings* settings) {
+    settings->beginGroup(DOMAIN_SERVER_SETTING_KEY);
+    
+    if (memcmp(_domainHostname, DEFAULT_DOMAIN_HOSTNAME, strlen(DEFAULT_DOMAIN_HOSTNAME)) != 0) {
+        // the user is using a different hostname, store it
+        settings->setValue(DOMAIN_SERVER_SETTING_KEY, QVariant(_domainHostname));
+    } else {
+        // the user has switched back to default, remove the current setting
+        settings->remove(DOMAIN_SERVER_SETTING_KEY);
+    }
+    
+    settings->endGroup();
 }
 
 NodeList::iterator NodeList::begin() const {
@@ -526,5 +621,32 @@ void NodeListIterator::skipDeadAndStopIncrement() {
             // skip over the dead nodes
             break;
         }
+    }
+}
+
+void NodeList::addHook(NodeListHook* hook) {
+    _hooks.push_back(hook);
+}
+
+void NodeList::removeHook(NodeListHook* hook) {
+    for (int i = 0; i < _hooks.size(); i++) {
+        if (_hooks[i] == hook) {
+            _hooks.erase(_hooks.begin() + i);
+            return;
+        }
+    }
+}
+
+void NodeList::notifyHooksOfAddedNode(Node* node) {
+    for (int i = 0; i < _hooks.size(); i++) {
+        //printf("NodeList::notifyHooksOfAddedNode() i=%d\n", i);
+        _hooks[i]->nodeAdded(node);
+    }
+}
+
+void NodeList::notifyHooksOfKilledNode(Node* node) {
+    for (int i = 0; i < _hooks.size(); i++) {
+        //printf("NodeList::notifyHooksOfKilledNode() i=%d\n", i);
+        _hooks[i]->nodeKilled(node);
     }
 }

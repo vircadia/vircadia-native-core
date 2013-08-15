@@ -61,6 +61,8 @@ void* AudioInjectionManager::injectAudioViaThread(void* args) {
         Node* audioMixer = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_AUDIO_MIXER);
         if (audioMixer) {
             _destinationSocket = *audioMixer->getActiveSocket();
+        } else {
+            pthread_exit(0);
         }
     }
     

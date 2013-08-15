@@ -36,6 +36,7 @@ bool includeBorderTracer = true;
 bool includeMovingBug = true;
 bool includeBlinkingVoxel = false;
 bool includeDanceFloor = true;
+bool buildStreet = false;
 
 
 const int ANIMATION_LISTEN_PORT = 40107;
@@ -85,8 +86,8 @@ const float BUG_VOXEL_SIZE = 0.0625f / TREE_SCALE;
 glm::vec3 bugPosition  = glm::vec3(BUG_VOXEL_SIZE * 20.0, BUG_VOXEL_SIZE * 30.0, BUG_VOXEL_SIZE * 20.0);
 glm::vec3 bugDirection = glm::vec3(0, 0, 1);
 const int VOXELS_PER_BUG = 18;
-glm::vec3 bugPathCenter = glm::vec3(BUG_VOXEL_SIZE * 150.0, BUG_VOXEL_SIZE * 30.0, BUG_VOXEL_SIZE * 150.0);
-float bugPathRadius = BUG_VOXEL_SIZE * 140.0;
+glm::vec3 bugPathCenter = glm::vec3(0.25f,0.15f,0.25f); // glm::vec3(BUG_VOXEL_SIZE * 150.0, BUG_VOXEL_SIZE * 30.0, BUG_VOXEL_SIZE * 150.0);
+float bugPathRadius = 0.2f; //BUG_VOXEL_SIZE * 140.0;
 float bugPathTheta = 0.0 * PI_OVER_180;
 float bugRotation = 0.0 * PI_OVER_180;
 float bugAngleDelta = 0.2 * PI_OVER_180;
@@ -434,7 +435,7 @@ void sendDanceFloor() {
         for (int i = 0; i < DANCE_FLOOR_WIDTH; i++) {
             for (int j = 0; j < DANCE_FLOOR_LENGTH; j++) {
 
-                int randomColorIndex = randIntInRange( -(DANCE_FLOOR_COLORS), (DANCE_FLOOR_COLORS + 1));
+                int randomColorIndex = randIntInRange(-DANCE_FLOOR_COLORS, DANCE_FLOOR_COLORS);
                 ::danceFloorColors[i][j] = randomColorIndex;
                 ::danceFloorLights[i][j] = ::danceFloorPosition + 
                                          glm::vec3(i * DANCE_FLOOR_LIGHT_SIZE, 0, j * DANCE_FLOOR_LIGHT_SIZE);
@@ -616,6 +617,61 @@ static void sendBillboard() {
     }
 }
 
+bool roadInitialized = false;
+const int ROAD_WIDTH_METERS  = 3.0f;
+const int BRICKS_ACROSS_ROAD = 32;
+const float ROAD_BRICK_SIZE = 0.125f/TREE_SCALE; //(ROAD_WIDTH_METERS / TREE_SCALE) / BRICKS_ACROSS_ROAD; // in voxel units
+const int ROAD_LENGTH = 1.0f / ROAD_BRICK_SIZE; // in bricks
+const int ROAD_WIDTH  = BRICKS_ACROSS_ROAD; // in bricks
+glm::vec3 roadPosition(0.5f - (ROAD_BRICK_SIZE * BRICKS_ACROSS_ROAD), 0.0f, 0.0f);
+const int BRICKS_PER_PACKET = 32; // guessing
+const int PACKETS_PER_ROAD = VOXELS_PER_PACKET / (ROAD_LENGTH * ROAD_WIDTH);
+
+void doBuildStreet() {
+    if (roadInitialized) {
+        return;
+    }
+
+    PACKET_TYPE message = PACKET_TYPE_SET_VOXEL_DESTRUCTIVE; // we're a bully!
+    static VoxelDetail details[BRICKS_PER_PACKET];
+    unsigned char* bufferOut;
+    int sizeOut;
+
+    for (int z = 0; z < ROAD_LENGTH; z++) {
+        for (int x = 0; x < ROAD_WIDTH; x++) {
+
+            int nthVoxel = ((z * ROAD_WIDTH) + x);
+            int item = nthVoxel % BRICKS_PER_PACKET;
+            
+            glm::vec3 brick = roadPosition + glm::vec3(x * ROAD_BRICK_SIZE, 0, z * ROAD_BRICK_SIZE);
+
+            details[item].s = ROAD_BRICK_SIZE;
+            details[item].x = brick.x;
+            details[item].y = brick.y;
+            details[item].z = brick.z;
+
+            unsigned char randomTone = randIntInRange(118,138);
+            details[item].red   = randomTone;
+            details[item].green = randomTone;
+            details[item].blue  = randomTone;
+            
+            if (item == BRICKS_PER_PACKET - 1) {
+                if (createVoxelEditMessage(message, 0, BRICKS_PER_PACKET, (VoxelDetail*)&details, bufferOut, sizeOut)){
+                    ::packetsSent++;
+                    ::bytesSent += sizeOut;
+                    if (true || ::shouldShowPacketsPerSecond) {
+                        printf("building road sending packet of size=%d\n", sizeOut);
+                    }
+                    NodeList::getInstance()->broadcastToNodes(bufferOut, sizeOut, &NODE_TYPE_VOXEL_SERVER, 1);
+                    delete[] bufferOut;
+                }
+            }
+        }
+    }
+    roadInitialized = true;
+}
+
+
 double start = 0;
 
 
@@ -643,6 +699,10 @@ void* animateVoxels(void* args) {
         }
         if (::includeDanceFloor) {
             sendDanceFloor();
+        }
+        
+        if (::buildStreet) {
+            doBuildStreet();
         }
         
         uint64_t end = usecTimestampNow();
@@ -688,6 +748,9 @@ int main(int argc, const char * argv[])
     const char* NO_DANCE_FLOOR = "--NoDanceFloor";
     ::includeDanceFloor = !cmdOptionExists(argc, argv, NO_DANCE_FLOOR);
 
+    const char* BUILD_STREET = "--BuildStreet";
+    ::buildStreet = cmdOptionExists(argc, argv, BUILD_STREET);
+
     // Handle Local Domain testing with the --local command line
     const char* showPPS = "--showPPS";
     ::shouldShowPacketsPerSecond = cmdOptionExists(argc, argv, showPPS);
@@ -697,8 +760,12 @@ int main(int argc, const char * argv[])
     ::wantLocalDomain = cmdOptionExists(argc, argv,local);
     if (::wantLocalDomain) {
         printf("Local Domain MODE!\n");
-        int ip = getLocalAddress();
-        sprintf(DOMAIN_IP,"%d.%d.%d.%d", (ip & 0xFF), ((ip >> 8) & 0xFF),((ip >> 16) & 0xFF), ((ip >> 24) & 0xFF));
+        nodeList->setDomainIPToLocalhost();
+    }
+
+    const char* domainIP = getCmdOption(argc, argv, "--domain");
+    if (domainIP) {
+        NodeList::getInstance()->setDomainIP(domainIP);
     }
 
     nodeList->linkedDataCreateCallback = NULL; // do we need a callback?

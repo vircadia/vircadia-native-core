@@ -11,10 +11,39 @@
 const float BODY_SPRING_DEFAULT_TIGHTNESS = 1000.0f;
 const float FLOATING_HEIGHT               = 0.13f;
 
-Skeleton::Skeleton() {
+const glm::vec3 AVATAR_JOINT_POSITION_PELVIS           = glm::vec3(0.0,    0.0,   0.0 );
+const glm::vec3 AVATAR_JOINT_POSITION_TORSO            = glm::vec3( 0.0,   0.09, -0.01);
+const glm::vec3 AVATAR_JOINT_POSITION_CHEST            = glm::vec3( 0.0,   0.09, -0.01);
+const glm::vec3 AVATAR_JOINT_POSITION_NECK_BASE        = glm::vec3( 0.0,   0.14,  0.01);
+const glm::vec3 AVATAR_JOINT_POSITION_HEAD_BASE        = glm::vec3( 0.0,   0.04,  0.00);
+const glm::vec3 AVATAR_JOINT_POSITION_HEAD_TOP         = glm::vec3( 0.0,   0.04,  0.00);
+
+const glm::vec3 AVATAR_JOINT_POSITION_LEFT_COLLAR      = glm::vec3(-0.06,  0.04,  0.01);
+const glm::vec3 AVATAR_JOINT_POSITION_LEFT_SHOULDER    = glm::vec3(-0.05,  0.0 ,  0.01);
+const glm::vec3 AVATAR_JOINT_POSITION_LEFT_ELBOW       = glm::vec3(-0.16,  0.0 ,  0.0 );
+const glm::vec3 AVATAR_JOINT_POSITION_LEFT_WRIST       = glm::vec3(-0.12,  0.0 ,  0.0 );
+const glm::vec3 AVATAR_JOINT_POSITION_LEFT_FINGERTIPS  = glm::vec3(-0.1,   0.0 ,  0.0 );
+
+const glm::vec3 AVATAR_JOINT_POSITION_RIGHT_COLLAR     = glm::vec3( 0.06,  0.04,  0.01);
+const glm::vec3 AVATAR_JOINT_POSITION_RIGHT_SHOULDER   = glm::vec3( 0.05,  0.0 ,  0.01);
+const glm::vec3 AVATAR_JOINT_POSITION_RIGHT_ELBOW      = glm::vec3( 0.16,  0.0 ,  0.0 );
+const glm::vec3 AVATAR_JOINT_POSITION_RIGHT_WRIST      = glm::vec3( 0.12,  0.0 ,  0.0 );
+const glm::vec3 AVATAR_JOINT_POSITION_RIGHT_FINGERTIPS = glm::vec3( 0.1,   0.0 ,  0.0 );
+
+const glm::vec3 AVATAR_JOINT_POSITION_LEFT_HIP         = glm::vec3(-0.05,  0.0 ,  0.02);
+const glm::vec3 AVATAR_JOINT_POSITION_LEFT_KNEE        = glm::vec3( 0.00, -0.25,  0.00);
+const glm::vec3 AVATAR_JOINT_POSITION_LEFT_HEEL        = glm::vec3( 0.00, -0.23,  0.00);
+const glm::vec3 AVATAR_JOINT_POSITION_LEFT_TOES        = glm::vec3( 0.00,  0.00, -0.06);
+
+const glm::vec3 AVATAR_JOINT_POSITION_RIGHT_HIP        = glm::vec3( 0.05,  0.0 ,  0.02);
+const glm::vec3 AVATAR_JOINT_POSITION_RIGHT_KNEE       = glm::vec3( 0.00, -0.25,  0.00);
+const glm::vec3 AVATAR_JOINT_POSITION_RIGHT_HEEL       = glm::vec3( 0.00, -0.23,  0.00);
+const glm::vec3 AVATAR_JOINT_POSITION_RIGHT_TOES       = glm::vec3( 0.00,  0.00, -0.06);
+
+Skeleton::Skeleton() : _floatingHeight(FLOATING_HEIGHT){
 }
 
-void Skeleton::initialize() {    
+void Skeleton::initialize() {
     
     for (int b = 0; b < NUM_AVATAR_JOINTS; b++) {
         joint[b].parent              = AVATAR_JOINT_NULL;
@@ -60,35 +89,39 @@ void Skeleton::initialize() {
     joint[ AVATAR_JOINT_RIGHT_HEEL		  ].parent = AVATAR_JOINT_RIGHT_KNEE;
     joint[ AVATAR_JOINT_RIGHT_TOES		  ].parent = AVATAR_JOINT_RIGHT_HEEL;
     
+    setScale(1.0f);
+}
+
+void Skeleton::setScale(float scale) {
     // specify the bind pose position
-    joint[ AVATAR_JOINT_PELVIS           ].bindPosePosition = glm::vec3(  0.0,   0.0,    0.0  );
-    joint[ AVATAR_JOINT_TORSO            ].bindPosePosition = glm::vec3(  0.0,   0.09,  -0.01 );
-    joint[ AVATAR_JOINT_CHEST            ].bindPosePosition = glm::vec3(  0.0,   0.09,  -0.01 );
-    joint[ AVATAR_JOINT_NECK_BASE        ].bindPosePosition = glm::vec3(  0.0,   0.14,   0.01 );
-    joint[ AVATAR_JOINT_HEAD_BASE        ].bindPosePosition = glm::vec3(  0.0,   0.04,   0.00 );
-    joint[ AVATAR_JOINT_HEAD_TOP         ].bindPosePosition = glm::vec3(  0.0,   0.04,   0.00 );
+    joint[ AVATAR_JOINT_PELVIS           ].bindPosePosition = scale * AVATAR_JOINT_POSITION_PELVIS;
+    joint[ AVATAR_JOINT_TORSO            ].bindPosePosition = scale * AVATAR_JOINT_POSITION_TORSO;
+    joint[ AVATAR_JOINT_CHEST            ].bindPosePosition = scale * AVATAR_JOINT_POSITION_CHEST;
+    joint[ AVATAR_JOINT_NECK_BASE        ].bindPosePosition = scale * AVATAR_JOINT_POSITION_NECK_BASE;
+    joint[ AVATAR_JOINT_HEAD_BASE        ].bindPosePosition = scale * AVATAR_JOINT_POSITION_HEAD_BASE;
+    joint[ AVATAR_JOINT_HEAD_TOP         ].bindPosePosition = scale * AVATAR_JOINT_POSITION_HEAD_TOP;
     
-    joint[ AVATAR_JOINT_LEFT_COLLAR      ].bindPosePosition = glm::vec3( -0.06,  0.04,   0.01 );
-    joint[ AVATAR_JOINT_LEFT_SHOULDER    ].bindPosePosition = glm::vec3( -0.05,  0.0,    0.01 );
-    joint[ AVATAR_JOINT_LEFT_ELBOW       ].bindPosePosition = glm::vec3( -0.16,  0.0,    0.0  );
-    joint[ AVATAR_JOINT_LEFT_WRIST       ].bindPosePosition = glm::vec3( -0.12,  0.0,    0.0  );
-    joint[ AVATAR_JOINT_LEFT_FINGERTIPS  ].bindPosePosition = glm::vec3( -0.1,   0.0,    0.0  );
+    joint[ AVATAR_JOINT_LEFT_COLLAR      ].bindPosePosition = scale * AVATAR_JOINT_POSITION_LEFT_COLLAR;
+    joint[ AVATAR_JOINT_LEFT_SHOULDER    ].bindPosePosition = scale * AVATAR_JOINT_POSITION_LEFT_SHOULDER;
+    joint[ AVATAR_JOINT_LEFT_ELBOW       ].bindPosePosition = scale * AVATAR_JOINT_POSITION_LEFT_ELBOW;
+    joint[ AVATAR_JOINT_LEFT_WRIST       ].bindPosePosition = scale * AVATAR_JOINT_POSITION_LEFT_WRIST;
+    joint[ AVATAR_JOINT_LEFT_FINGERTIPS  ].bindPosePosition = scale * AVATAR_JOINT_POSITION_LEFT_FINGERTIPS;
     
-    joint[ AVATAR_JOINT_RIGHT_COLLAR     ].bindPosePosition = glm::vec3(  0.06,  0.04,   0.01 );
-    joint[ AVATAR_JOINT_RIGHT_SHOULDER   ].bindPosePosition = glm::vec3(  0.05,  0.0,    0.01 );
-    joint[ AVATAR_JOINT_RIGHT_ELBOW      ].bindPosePosition = glm::vec3(  0.16,  0.0,    0.0  );
-    joint[ AVATAR_JOINT_RIGHT_WRIST      ].bindPosePosition = glm::vec3(  0.12,  0.0,    0.0  );
-    joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].bindPosePosition = glm::vec3(  0.1,   0.0,    0.0  );
+    joint[ AVATAR_JOINT_RIGHT_COLLAR     ].bindPosePosition = scale * AVATAR_JOINT_POSITION_RIGHT_COLLAR;
+    joint[ AVATAR_JOINT_RIGHT_SHOULDER   ].bindPosePosition = scale * AVATAR_JOINT_POSITION_RIGHT_SHOULDER;
+    joint[ AVATAR_JOINT_RIGHT_ELBOW      ].bindPosePosition = scale * AVATAR_JOINT_POSITION_RIGHT_ELBOW;
+    joint[ AVATAR_JOINT_RIGHT_WRIST      ].bindPosePosition = scale * AVATAR_JOINT_POSITION_RIGHT_WRIST;
+    joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].bindPosePosition = scale * AVATAR_JOINT_POSITION_RIGHT_FINGERTIPS;
     
-    joint[ AVATAR_JOINT_LEFT_HIP         ].bindPosePosition = glm::vec3( -0.05,  0.0,    0.02 );
-    joint[ AVATAR_JOINT_LEFT_KNEE        ].bindPosePosition = glm::vec3(  0.00, -0.25,   0.00 );
-    joint[ AVATAR_JOINT_LEFT_HEEL        ].bindPosePosition = glm::vec3(  0.00, -0.23,   0.00 );
-    joint[ AVATAR_JOINT_LEFT_TOES        ].bindPosePosition = glm::vec3(  0.00,  0.00,  -0.06 );
+    joint[ AVATAR_JOINT_LEFT_HIP         ].bindPosePosition = scale * AVATAR_JOINT_POSITION_LEFT_HIP;
+    joint[ AVATAR_JOINT_LEFT_KNEE        ].bindPosePosition = scale * AVATAR_JOINT_POSITION_LEFT_KNEE;
+    joint[ AVATAR_JOINT_LEFT_HEEL        ].bindPosePosition = scale * AVATAR_JOINT_POSITION_LEFT_HEEL;
+    joint[ AVATAR_JOINT_LEFT_TOES        ].bindPosePosition = scale * AVATAR_JOINT_POSITION_LEFT_TOES;
     
-    joint[ AVATAR_JOINT_RIGHT_HIP        ].bindPosePosition = glm::vec3(  0.05,  0.0,    0.02 );
-    joint[ AVATAR_JOINT_RIGHT_KNEE       ].bindPosePosition = glm::vec3(  0.00, -0.25,   0.00 );
-    joint[ AVATAR_JOINT_RIGHT_HEEL       ].bindPosePosition = glm::vec3(  0.00, -0.23,   0.00 );
-    joint[ AVATAR_JOINT_RIGHT_TOES       ].bindPosePosition = glm::vec3(  0.00,  0.00,  -0.06 );
+    joint[ AVATAR_JOINT_RIGHT_HIP        ].bindPosePosition = scale * AVATAR_JOINT_POSITION_RIGHT_HIP;
+    joint[ AVATAR_JOINT_RIGHT_KNEE       ].bindPosePosition = scale * AVATAR_JOINT_POSITION_RIGHT_KNEE;
+    joint[ AVATAR_JOINT_RIGHT_HEEL       ].bindPosePosition = scale * AVATAR_JOINT_POSITION_RIGHT_HEEL;
+    joint[ AVATAR_JOINT_RIGHT_TOES       ].bindPosePosition = scale * AVATAR_JOINT_POSITION_RIGHT_TOES;
     
     // calculate bone length, absolute bind positions/rotations
     for (int b = 0; b < NUM_AVATAR_JOINTS; b++) {
@@ -99,12 +132,14 @@ void Skeleton::initialize() {
             joint[b].absoluteBindPoseRotation = glm::quat();
         } else {
             joint[b].absoluteBindPosePosition = joint[ joint[b].parent ].absoluteBindPosePosition +
-                joint[b].bindPosePosition;
+            joint[b].bindPosePosition;
             glm::vec3 parentDirection = joint[ joint[b].parent ].absoluteBindPoseRotation * JOINT_DIRECTION;
             joint[b].absoluteBindPoseRotation = rotationBetween(parentDirection, joint[b].bindPosePosition) *
-                joint[ joint[b].parent ].absoluteBindPoseRotation; 
+            joint[ joint[b].parent ].absoluteBindPoseRotation;
         }
     }
+    
+    _floatingHeight = scale * FLOATING_HEIGHT;
 }
 
 // calculate positions and rotations of all bones by traversing the skeleton tree:
@@ -151,7 +186,7 @@ float Skeleton::getPelvisStandingHeight() {
 float Skeleton::getPelvisFloatingHeight() {
     return joint[ AVATAR_JOINT_LEFT_HEEL ].length +
            joint[ AVATAR_JOINT_LEFT_KNEE ].length +
-           FLOATING_HEIGHT;
+           _floatingHeight;
 }
 
 float Skeleton::getPelvisToHeadLength() {

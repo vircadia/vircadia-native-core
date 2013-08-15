@@ -14,7 +14,7 @@ include_glm(${TARGET_NAME} ${ROOT_DIR})
 
 include(${MACRO_DIR}/SetupHifiProject.cmake)
 
-setup_hifi_project(${TARGET_NAME})
+setup_hifi_project(${TARGET_NAME} TRUE)
 
 # link in the shared library
 include(${MACRO_DIR}/LinkHifiLibrary.cmake)

@@ -39,7 +39,6 @@
 
 #include "InterfaceConfig.h"
 #include "renderer/ProgramObject.h"
-#include "Log.h"
 
 #include <cstddef>
 #include <cfloat>

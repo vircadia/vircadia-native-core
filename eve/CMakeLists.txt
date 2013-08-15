@@ -9,7 +9,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../cmake
 set(TARGET_NAME eve)
 
 include(${MACRO_DIR}/SetupHifiProject.cmake)
-setup_hifi_project(${TARGET_NAME})
+setup_hifi_project(${TARGET_NAME} TRUE)
 
 include(${MACRO_DIR}/IncludeGLM.cmake)
 include_glm(${TARGET_NAME} ${ROOT_DIR})

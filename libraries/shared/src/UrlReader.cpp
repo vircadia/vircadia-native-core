@@ -6,20 +6,17 @@
 // Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
-#include "UrlReader.h"
-
 #include <new>
 
 #include <sys/types.h>
 #include <sys/stat.h>
-
-#include "Log.h"
 
 #ifndef _WIN32
 // (Windows port is incomplete and the build files do not support CURL, yet)
 
 #include <curl/curl.h>
 
+#include "UrlReader.h"
 
 //
 // ATTENTION: A certain part of the implementation lives in inlined code

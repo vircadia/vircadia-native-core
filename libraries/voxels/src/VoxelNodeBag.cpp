@@ -9,7 +9,15 @@
 #include "VoxelNodeBag.h"
 #include <OctalCode.h>
 
+VoxelNodeBag::VoxelNodeBag() : 
+    _bagElements(NULL),
+    _elementsInUse(0),
+    _sizeOfElementsArray(0) {
+    VoxelNode::addDeleteHook(this);
+};
+
 VoxelNodeBag::~VoxelNodeBag() {
+    VoxelNode::removeDeleteHook(this);
     deleteAll();
 }
 
@@ -117,4 +125,10 @@ void VoxelNodeBag::remove(VoxelNode* node) {
         _elementsInUse--;
     }
 }
+
+
+void VoxelNodeBag::nodeDeleted(VoxelNode* node) {
+    remove(node); // note: remove can safely handle nodes that aren't in it, so we don't need to check contains()
+}
+
 

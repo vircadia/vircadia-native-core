@@ -9,32 +9,38 @@
 #ifndef __hifi__VoxelTree__
 #define __hifi__VoxelTree__
 
-#include "SimpleMovingAverage.h"
+#include <PointerStack.h>
+#include <SimpleMovingAverage.h>
+
+#include "CoverageMap.h"
+#include "JurisdictionMap.h"
 #include "ViewFrustum.h"
 #include "VoxelNode.h"
 #include "VoxelNodeBag.h"
-#include "CoverageMap.h"
-#include "PointerStack.h"
+#include "VoxelSceneStats.h"
 
 // Callback function, for recuseTreeWithOperation
 typedef bool (*RecurseVoxelTreeOperation)(VoxelNode* node, void* extraData);
 typedef enum {GRADIENT, RANDOM, NATURAL} creationMode;
 
-#define NO_EXISTS_BITS         false
-#define WANT_EXISTS_BITS       true
-#define NO_COLOR               false
-#define WANT_COLOR             true
-#define IGNORE_VIEW_FRUSTUM    NULL
-#define JUST_STAGE_DELETION    true
-#define ACTUALLY_DELETE        false
-#define COLLAPSE_EMPTY_TREE    true
-#define DONT_COLLAPSE          false
-#define NO_OCCLUSION_CULLING   false
-#define WANT_OCCLUSION_CULLING true
-#define IGNORE_COVERAGE_MAP    NULL
-#define DONT_CHOP              0
-#define NO_BOUNDARY_ADJUST     0
-#define LOW_RES_MOVING_ADJUST  1
+const bool NO_EXISTS_BITS         = false;
+const bool WANT_EXISTS_BITS       = true;
+const bool NO_COLOR               = false;
+const bool WANT_COLOR             = true;
+const bool COLLAPSE_EMPTY_TREE    = true;
+const bool DONT_COLLAPSE          = false;
+const bool NO_OCCLUSION_CULLING   = false;
+const bool WANT_OCCLUSION_CULLING = true;
+
+const int DONT_CHOP              = 0;
+const int NO_BOUNDARY_ADJUST     = 0;
+const int LOW_RES_MOVING_ADJUST  = 1;
+const uint64_t IGNORE_LAST_SENT  = 0;
+
+#define IGNORE_SCENE_STATS       NULL
+#define IGNORE_VIEW_FRUSTUM      NULL
+#define IGNORE_COVERAGE_MAP      NULL
+#define IGNORE_JURISDICTION_MAP  NULL
 
 class EncodeBitstreamParams {
 public:
@@ -47,10 +53,12 @@ public:
     bool                deltaViewFrustum;
     const ViewFrustum*  lastViewFrustum;
     bool                wantOcclusionCulling;
-    long                childWasInViewDiscarded;
     int                 boundaryLevelAdjust;
-
+    uint64_t            lastViewFrustumSent;
+    bool                forceSendScene;
+    VoxelSceneStats*    stats;
     CoverageMap*        map;
+    JurisdictionMap*    jurisdictionMap;
     
     EncodeBitstreamParams(
         int                 maxEncodeLevel      = INT_MAX, 
@@ -62,7 +70,11 @@ public:
         const ViewFrustum*  lastViewFrustum     = IGNORE_VIEW_FRUSTUM,
         bool                wantOcclusionCulling= NO_OCCLUSION_CULLING,
         CoverageMap*        map                 = IGNORE_COVERAGE_MAP,
-        int                 boundaryLevelAdjust = NO_BOUNDARY_ADJUST) :
+        int                 boundaryLevelAdjust = NO_BOUNDARY_ADJUST,
+        uint64_t            lastViewFrustumSent = IGNORE_LAST_SENT,
+        bool                forceSendScene      = true,
+        VoxelSceneStats*    stats               = IGNORE_SCENE_STATS,
+        JurisdictionMap*    jurisdictionMap     = IGNORE_JURISDICTION_MAP) :
             maxEncodeLevel          (maxEncodeLevel),
             maxLevelReached         (0),
             viewFrustum             (viewFrustum),
@@ -72,9 +84,31 @@ public:
             deltaViewFrustum        (deltaViewFrustum),
             lastViewFrustum         (lastViewFrustum),
             wantOcclusionCulling    (wantOcclusionCulling),
-            childWasInViewDiscarded (0),
             boundaryLevelAdjust     (boundaryLevelAdjust),
-            map                     (map)
+            lastViewFrustumSent     (lastViewFrustumSent),
+            forceSendScene          (forceSendScene),
+            stats                   (stats),
+            map                     (map),
+            jurisdictionMap         (jurisdictionMap)
+    {}
+};
+
+class ReadBitstreamToTreeParams {
+public:
+    bool                includeColor;
+    bool                includeExistsBits;
+    VoxelNode*          destinationNode;
+    uint16_t            sourceID;
+    
+    ReadBitstreamToTreeParams(
+        bool                includeColor        = WANT_COLOR, 
+        bool                includeExistsBits   = WANT_EXISTS_BITS,
+        VoxelNode*          destinationNode     = NULL,
+        uint16_t            sourceID            = UNKNOWN_NODE_ID) :
+            includeColor            (includeColor),
+            includeExistsBits       (includeExistsBits),
+            destinationNode         (destinationNode),
+            sourceID                (sourceID)
     {}
 };
 
@@ -99,16 +133,13 @@ public:
     void eraseAllVoxels();
 
     void processRemoveVoxelBitstream(unsigned char* bitstream, int bufferSizeBytes);
-    void readBitstreamToTree(unsigned char* bitstream,  unsigned long int bufferSizeBytes, 
-                             bool includeColor = WANT_COLOR, bool includeExistsBits = WANT_EXISTS_BITS, 
-                             VoxelNode* destinationNode = NULL);
+    void readBitstreamToTree(unsigned char* bitstream,  unsigned long int bufferSizeBytes, ReadBitstreamToTreeParams& args);
     void readCodeColorBufferToTree(unsigned char* codeColorBuffer, bool destructive = false);
-    void deleteVoxelCodeFromTree(unsigned char* codeBuffer, bool stage = ACTUALLY_DELETE, 
-                                 bool collapseEmptyTrees = DONT_COLLAPSE);
+    void deleteVoxelCodeFromTree(unsigned char* codeBuffer, bool collapseEmptyTrees = DONT_COLLAPSE);
     void printTreeForDebugging(VoxelNode* startNode);
     void reaverageVoxelColors(VoxelNode* startNode);
 
-    void deleteVoxelAt(float x, float y, float z, float s, bool stage = false);
+    void deleteVoxelAt(float x, float y, float z, float s);
     VoxelNode* getVoxelAt(float x, float y, float z, float s) const;
     void createVoxel(float x, float y, float z, float s, 
                      unsigned char red, unsigned char green, unsigned char blue, bool destructive = false);
@@ -122,9 +153,6 @@ public:
 
     int encodeTreeBitstream(VoxelNode* node, unsigned char* outputBuffer, int availableBytes, VoxelNodeBag& bag, 
                             EncodeBitstreamParams& params) const;
-
-    int searchForColoredNodes(int maxSearchLevel, VoxelNode* node, const ViewFrustum& viewFrustum, VoxelNodeBag& bag, 
-            bool deltaViewFrustum = false, const ViewFrustum* lastViewFrustum = NULL);
 
     bool isDirty() const { return _isDirty; };
     void clearDirtyBit() { _isDirty = false; };
@@ -163,7 +191,8 @@ public:
     void recurseTreeWithOperationDistanceSortedTimed(PointerStack* stackOfNodes, long allowedTime,
                                                             RecurseVoxelTreeOperation operation, 
                                                             const glm::vec3& point, void* extraData);
-    
+
+
 private:
     void deleteVoxelCodeFromTreeRecursion(VoxelNode* node, void* extraData);
     void readCodeColorBufferToTreeRecursion(VoxelNode* node, void* extraData);
@@ -171,16 +200,11 @@ private:
     int encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outputBuffer, int availableBytes, VoxelNodeBag& bag, 
                                      EncodeBitstreamParams& params, int& currentEncodeLevel) const;
 
-    int searchForColoredNodesRecursion(int maxSearchLevel, int& currentSearchLevel, 
-                                       VoxelNode* node, const ViewFrustum& viewFrustum, VoxelNodeBag& bag,
-                                       bool deltaViewFrustum, const ViewFrustum* lastViewFrustum);
-
     static bool countVoxelsOperation(VoxelNode* node, void* extraData);
 
     VoxelNode* nodeForOctalCode(VoxelNode* ancestorNode, unsigned char* needleCode, VoxelNode** parentOfFoundNode) const;
     VoxelNode* createMissingNode(VoxelNode* lastParentNode, unsigned char* deepestCodeToCreate);
-    int readNodeData(VoxelNode *destinationNode, unsigned char* nodeData, int bufferSizeBytes, 
-                     bool includeColor = WANT_COLOR, bool includeExistsBits = WANT_EXISTS_BITS);
+    int readNodeData(VoxelNode *destinationNode, unsigned char* nodeData, int bufferSizeBytes, ReadBitstreamToTreeParams& args);
     
     bool _isDirty;
     unsigned long int _nodesChangedFromBitstream;
