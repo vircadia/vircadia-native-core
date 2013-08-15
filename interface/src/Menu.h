@@ -49,16 +49,15 @@ public:
     ViewFrustumOffset getViewFrustumOffset() const { return _viewFrustumOffset; }
     VoxelStatsDialog* getVoxelStatsDialog() const { return _voxelStatsDialog; }
     
-    void loadSettings(QSettings* settings = NULL);
-    void saveSettings(QSettings* settings = NULL);
-    void importSettings();
-    void exportSettings();
-    
     void handleViewFrustumOffsetKeyModifier(int key);
     
 public slots:
     void bandwidthDetails();
     void voxelStatsDetails();
+    void loadSettings(QSettings* settings = NULL);
+    void saveSettings(QSettings* settings = NULL);
+    void importSettings();
+    void exportSettings();
     
 private slots:
     void editPreferences();
@@ -67,7 +66,7 @@ private slots:
     void cycleFrustumRenderMode();
     void updateVoxelModeActions();
     void chooseVoxelPaintColor();
-    void runTests();    
+    void runTests();
     
 private:
     static Menu* _instance;
