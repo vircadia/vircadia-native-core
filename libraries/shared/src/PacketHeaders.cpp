@@ -26,7 +26,7 @@ PACKET_VERSION versionForPacketType(PACKET_TYPE type) {
             return 1;
 
         case PACKET_TYPE_VOXEL_STATS:
-            return 1;            
+            return 2;            
         default:
             return 0;
     }

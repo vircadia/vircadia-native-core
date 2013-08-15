@@ -439,7 +439,7 @@ void NodeList::addNodeToList(Node* newNode) {
     notifyHooksOfAddedNode(newNode);
 }
 
-unsigned NodeList::broadcastToNodes(unsigned char *broadcastData, size_t dataBytes, const char* nodeTypes, int numNodeTypes) {
+unsigned NodeList::broadcastToNodes(unsigned char* broadcastData, size_t dataBytes, const char* nodeTypes, int numNodeTypes) {
     unsigned n = 0;
     for(NodeList::iterator node = begin(); node != end(); node++) {
         // only send to the NodeTypes we are asked to send to.
