@@ -1507,10 +1507,6 @@ void Application::setListenModeSingleSource() {
     }
 }
 
-void Application::runTests() {
-    runTimingTests();
-}
-
 void Application::initDisplay() {
     glEnable(GL_BLEND);
     glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);

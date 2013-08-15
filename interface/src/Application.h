@@ -175,7 +175,6 @@ private slots:
     void disableOcclusionCulling(bool disableOcclusionCulling);
     void decreaseVoxelSize();
     void increaseVoxelSize();
-    void runTests();
     void setListenModeNormal();
     void setListenModePoint();
     void setListenModeSingleSource();

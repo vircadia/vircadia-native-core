@@ -22,6 +22,7 @@
 #include "Application.h"
 #include "PairingHandler.h"
 #include "Menu.h"
+#include "Util.h"
 
 Menu* Menu::_instance = NULL;
 
@@ -253,10 +254,7 @@ Menu::Menu() :
                                   SLOT(cycleFrustumRenderMode()));
     updateFrustumRenderModeAction();
     
-    addActionToQMenuAndActionHash(debugMenu, MenuOption::RunTimingTests, NULL, NULL);
-    
-    //        debugMenu->addAction("Run Timing Tests", this, SLOT(runTests()));
-    
+    addActionToQMenuAndActionHash(debugMenu, MenuOption::RunTimingTests, 0, this, SLOT(runTests()));
     addActionToQMenuAndActionHash(debugMenu, MenuOption::TreeStats, Qt::SHIFT | Qt::Key_S);
     
     //        debugMenu->addAction("Calculate Tree Stats", this, SLOT(doTreeStats()), Qt::SHIFT | Qt::Key_S);
@@ -709,6 +707,10 @@ void Menu::chooseVoxelPaintColor() {
     
     // restore the main window's active state
     appInstance->getWindow()->activateWindow();
+}
+
+void Menu::runTests() {
+    runTimingTests();
 }
 
 void Menu::updateFrustumRenderModeAction() {

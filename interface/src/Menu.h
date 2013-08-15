@@ -67,7 +67,7 @@ private slots:
     void cycleFrustumRenderMode();
     void updateVoxelModeActions();
     void chooseVoxelPaintColor();
-    
+    void runTests();    
     
 private:
     static Menu* _instance;
