@@ -64,7 +64,6 @@ Menu::Menu() :
     QMenu* optionsMenu = addMenu("Options");
     
     addCheckableActionToQMenuAndActionHash(optionsMenu, MenuOption::Mirror, Qt::Key_H);
-    addCheckableActionToQMenuAndActionHash(optionsMenu, MenuOption::Noise, Qt::Key_N);
     addCheckableActionToQMenuAndActionHash(optionsMenu, MenuOption::GyroLook, 0, true);
     addCheckableActionToQMenuAndActionHash(optionsMenu, MenuOption::HeadMouse);
     addCheckableActionToQMenuAndActionHash(optionsMenu, MenuOption::TransmitterDrive, 0, true);

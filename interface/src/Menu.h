@@ -151,7 +151,6 @@ namespace MenuOption {
     const QString LowPassFilter = "Low-pass Filter";
     const QString Mirror = "Mirror";
     const QString Monochrome = "Monochrome";
-    const QString Noise = "Noise";
     const QString Oscilloscope = "Audio Oscilloscope";
     const QString Pair = "Pair";
     const QString ParticleSystem = "Particle System";

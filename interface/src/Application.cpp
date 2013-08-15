@@ -670,9 +670,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 }
                 resizeGL(_glWidget->width(), _glWidget->height());
                 break;
-            case Qt::Key_N:
-                Menu::getInstance()->triggerOption(MenuOption::Noise);
-                break;
             case Qt::Key_H:
                 Menu::getInstance()->triggerOption(MenuOption::Mirror);
                 break;

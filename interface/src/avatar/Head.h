@@ -45,19 +45,18 @@ public:
     void render(float alpha);
     void renderMohawk();
 
-    void setScale          (float     scale             );
-    void setPosition       (glm::vec3 position          ) { _position           = position;           }
-    void setBodyRotation   (glm::vec3 bodyRotation      ) { _bodyRotation       = bodyRotation;       }
-    void setGravity        (glm::vec3 gravity           ) { _gravity            = gravity;            }
-    void setSkinColor      (glm::vec3 skinColor         ) { _skinColor          = skinColor;          }
-    void setSpringScale    (float     returnSpringScale ) { _returnSpringScale  = returnSpringScale;  }
-    void setAverageLoudness(float     averageLoudness   ) { _averageLoudness    = averageLoudness;    }
-    void setReturnToCenter (bool      returnHeadToCenter) { _returnHeadToCenter = returnHeadToCenter; }
-    void setRenderLookatVectors(bool onOff ) { _renderLookatVectors = onOff; }
-    
+    void setScale(float scale);
+    void setPosition(glm::vec3 position) { _position = position; }
+    void setBodyRotation(glm::vec3 bodyRotation) { _bodyRotation = bodyRotation; }
+    void setGravity(glm::vec3 gravity) { _gravity = gravity; }
+    void setSkinColor(glm::vec3 skinColor) { _skinColor = skinColor; }
+    void setSpringScale(float returnSpringScale) { _returnSpringScale = returnSpringScale; }
+    void setAverageLoudness(float averageLoudness) { _averageLoudness = averageLoudness; }
+    void setReturnToCenter (bool returnHeadToCenter) { _returnHeadToCenter = returnHeadToCenter; }
+    void setRenderLookatVectors(bool onOff) { _renderLookatVectors = onOff; }
     void setCameraFollowsHead(bool cameraFollowsHead) { _cameraFollowsHead = cameraFollowsHead; }
     
-    float getMousePitch()                 { return _mousePitch; }
+    float getMousePitch() const { return _mousePitch; }
     void  setMousePitch(float mousePitch) { _mousePitch = mousePitch; }
 
     glm::quat getOrientation() const;
@@ -77,7 +76,6 @@ public:
     glm::vec3 calculateAverageEyePosition() { return _leftEyePosition + (_rightEyePosition - _leftEyePosition ) * ONE_HALF; }
     
     float yawRate;
-    float noise;
 
 private:
     // disallow copies of the Head, copy of owning Avatar is disallowed too
