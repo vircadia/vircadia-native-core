@@ -180,8 +180,8 @@ public:
     const glm::vec3& getLastCollisionPosition() const { return _lastCollisionPosition;}
     float getAbsoluteHeadYaw() const;
     float getAbsoluteHeadPitch() const;
-    Head& getHead() const {return _head; }
-    Hand& getHand() const {return _hand; }
+    Head& getHead() {return _head; }
+    Hand& getHand() {return _hand; }
     glm::quat getOrientation() const;
     glm::quat getWorldAlignedOrientation() const;
     const glm::vec3& getMouseRayOrigin() const { return _mouseRayOrigin;    }
