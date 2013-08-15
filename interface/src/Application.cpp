@@ -502,19 +502,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_Period:
                 Menu::getInstance()->handleViewFrustumOffsetKeyModifier(event->key());
                 break;
-            case Qt::Key_Ampersand:
-                _paintOn = !_paintOn;
-                setupPaintingVoxel();
-                break;
-                
-            case Qt::Key_AsciiCircum:
-                shiftPaintingColor();
-                break;
-                
-            case Qt::Key_Percent:
-                sendVoxelServerAddScene();
-                break;
-                
             case Qt::Key_Semicolon:
                 _audio.ping();
                 break;
@@ -1210,16 +1197,6 @@ void Application::disableDeltaSending(bool disableDeltaSending) {
 
 void Application::disableOcclusionCulling(bool disableOcclusionCulling) {
     _myAvatar.setWantOcclusionCulling(!disableOcclusionCulling);
-}
-
-void Application::sendVoxelEditMessage(PACKET_TYPE type, VoxelDetail& detail) {
-    unsigned char* bufferOut;
-    int sizeOut;
-
-    if (createVoxelEditMessage(type, 0, 1, &detail, bufferOut, sizeOut)){
-        Application::controlledBroadcastToNodes(bufferOut, sizeOut, & NODE_TYPE_VOXEL_SERVER, 1);
-        delete[] bufferOut;
-    }
 }
 
 const glm::vec3 Application::getMouseVoxelWorldCoordinates(const VoxelDetail _mouseVoxel) {
@@ -2104,26 +2081,6 @@ void Application::updateAvatar(float deltaTime) {
         const float AVATAR_VOXEL_URL_SEND_INTERVAL = 1.0f; // seconds
         if (shouldDo(AVATAR_VOXEL_URL_SEND_INTERVAL, deltaTime)) {
             Avatar::sendAvatarVoxelURLMessage(_myAvatar.getVoxels()->getVoxelURL());
-        }
-    }
-
-    // If I'm in paint mode, send a voxel out to VOXEL server nodes.
-    if (_paintOn) {
-
-        glm::vec3 avatarPos = _myAvatar.getPosition();
-
-        // For some reason, we don't want to flip X and Z here.
-        _paintingVoxel.x = avatarPos.x / 10.0;
-        _paintingVoxel.y = avatarPos.y / 10.0;
-        _paintingVoxel.z = avatarPos.z / 10.0;
-        
-        if (_paintingVoxel.x >= 0.0 && _paintingVoxel.x <= 1.0 &&
-            _paintingVoxel.y >= 0.0 && _paintingVoxel.y <= 1.0 &&
-            _paintingVoxel.z >= 0.0 && _paintingVoxel.z <= 1.0) {
-            
-            PACKET_TYPE message = (Menu::getInstance()->isOptionChecked(MenuOption::DestructiveAddVoxel) ?
-                PACKET_TYPE_SET_VOXEL_DESTRUCTIVE : PACKET_TYPE_SET_VOXEL);
-            sendVoxelEditMessage(message, _paintingVoxel);
         }
     }
 }
@@ -3165,7 +3122,7 @@ bool Application::maybeEditVoxelUnderCursor() {
             PACKET_TYPE message = Menu::getInstance()->isOptionChecked(MenuOption::DestructiveAddVoxel)
                 ? PACKET_TYPE_SET_VOXEL_DESTRUCTIVE
                 : PACKET_TYPE_SET_VOXEL;
-            sendVoxelEditMessage(message, _mouseVoxel);
+            _voxelEditSender.sendVoxelEditMessage(message, _mouseVoxel);
             
             // create the voxel locally so it appears immediately
             _voxels.createVoxel(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s,
@@ -3370,79 +3327,6 @@ int Application::parseVoxelStats(unsigned char* messageData, ssize_t messageLeng
         _voxelServerJurisdictions[nodeID] = jurisdictionMap;
     }
     return statsMessageLength;
-}
-
-//  Receive packets from other nodes/servers and decide what to do with them!
-void* Application::processVoxels(void* args) {
-    Application* app = Application::getInstance();
-    while (!app->_stopProcessVoxelsThread) {
-
-        // check to see if the UI thread asked us to kill the voxel tree. since we're the only thread allowed to do that
-        if (app->_wantToKillLocalVoxels) {
-            app->_voxels.killLocalVoxels();
-            app->_wantToKillLocalVoxels = false;
-        }
-        
-        app->_voxelPacketMutex.lock();    
-        while (app->_voxelPackets.size() > 0) {
-            NetworkPacket& packet = app->_voxelPackets.front();
-            app->processVoxelPacket(packet.getSenderAddress(), packet.getData(), packet.getLength());
-            app->_voxelPackets.erase(app->_voxelPackets.begin());
-        }
-        app->_voxelPacketMutex.unlock();
-    
-        if (!app->_enableProcessVoxelsThread) {
-            break;
-        }
-    }
-    
-    if (app->_enableProcessVoxelsThread) {
-        pthread_exit(0); 
-    }
-    return NULL; 
-}
-
-void Application::queueVoxelPacket(sockaddr& senderAddress, unsigned char* packetData, ssize_t packetLength) {
-    _voxelPacketMutex.lock();
-    _voxelPackets.push_back(NetworkPacket(senderAddress, packetData, packetLength));
-    _voxelPacketMutex.unlock();
-}
-
-void Application::processVoxelPacket(sockaddr& senderAddress, unsigned char* packetData, ssize_t packetLength) {
-    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "processVoxelPacket()");
-    ssize_t messageLength = packetLength;
-
-    // note: PACKET_TYPE_VOXEL_STATS can have PACKET_TYPE_VOXEL_DATA or PACKET_TYPE_VOXEL_DATA_MONOCHROME
-    // immediately following them inside the same packet. So, we process the PACKET_TYPE_VOXEL_STATS first
-    // then process any remaining bytes as if it was another packet
-    if (packetData[0] == PACKET_TYPE_VOXEL_STATS) {
-    
-        int statsMessageLength = parseVoxelStats(packetData, messageLength, senderAddress);
-        if (messageLength > statsMessageLength) {
-            packetData += statsMessageLength;
-            messageLength -= statsMessageLength;
-            if (!packetVersionMatch(packetData)) {
-                return; // bail since piggyback data doesn't match our versioning
-            }
-        } else {
-            return; // bail since no piggyback data
-        }
-    } // fall through to piggyback message
-
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
-        Node* voxelServer = NodeList::getInstance()->nodeWithAddress(&senderAddress);
-        if (voxelServer && socketMatch(voxelServer->getActiveSocket(), &senderAddress)) {
-            voxelServer->lock();
-            if (packetData[0] == PACKET_TYPE_ENVIRONMENT_DATA) {
-                _environment.parseData(&senderAddress, packetData, messageLength);
-            } else {
-                _voxels.setDataSourceID(voxelServer->getNodeID());
-                _voxels.parseData(packetData, messageLength);
-                _voxels.setDataSourceID(UNKNOWN_NODE_ID);
-            }
-            voxelServer->unlock();
-        }
-    }
 }
 
 //  Receive packets from other nodes/servers and decide what to do with them!

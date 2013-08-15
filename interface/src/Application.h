@@ -196,9 +196,7 @@ private slots:
 private:
     void resetCamerasOnResizeGL(Camera& camera, int width, int height);
 
-    static void sendVoxelServerAddScene();
     static bool sendVoxelsOperation(VoxelNode* node, void* extraData);
-    static void sendVoxelEditMessage(PACKET_TYPE type, VoxelDetail& detail);
     static void processAvatarVoxelURLMessage(unsigned char* packetData, size_t dataBytes);
     static void processAvatarFaceVideoMessage(unsigned char* packetData, size_t dataBytes);
     static void sendPingPackets();
@@ -236,12 +234,7 @@ private:
     void updateCursor();
     
     static void attachNewHeadToNode(Node *newNode);
-    static void* networkReceive(void* args); // network receive thread
-
-    static void* processVoxels(void* args); // voxel parsing thread
-    void processVoxelPacket(sockaddr& senderAddress, unsigned char*  packetData, ssize_t packetLength);
-    void queueVoxelPacket(sockaddr& senderAddress, unsigned char*  packetData, ssize_t packetLength);
-    
+    static void* networkReceive(void* args); // network receive thread    
 
     QMainWindow* _window;
     QGLWidget* _glWidget;

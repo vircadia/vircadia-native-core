@@ -11,6 +11,7 @@
 #include <PerfStat.h>
 
 #include "Application.h"
+#include "Menu.h"
 #include "VoxelEditPacketSender.h"
 
 VoxelEditPacketSender::VoxelEditPacketSender(Application* app) :
@@ -21,7 +22,7 @@ VoxelEditPacketSender::VoxelEditPacketSender(Application* app) :
 void VoxelEditPacketSender::sendVoxelEditMessage(PACKET_TYPE type, VoxelDetail& detail) {
 
     // if the app has Voxels disabled, we don't do any of this...
-    if (!_app->_renderVoxels->isChecked()) {
+    if (!Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
         return; // bail early
     }
 
