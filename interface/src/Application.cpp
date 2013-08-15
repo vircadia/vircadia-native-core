@@ -782,7 +782,7 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
             if (event->buttons().testFlag(Qt::LeftButton)) {
                 maybeEditVoxelUnderCursor();
                 
-            } else if (event->buttons().testFlag(Qt::RightButton) && !Menu::getInstance()->isVoxelModeActionChecked()) {
+            } else if (event->buttons().testFlag(Qt::RightButton) && Menu::getInstance()->isVoxelModeActionChecked()) {
                 deleteVoxelUnderCursor();
             }
         }
@@ -830,7 +830,7 @@ void Application::mousePressEvent(QMouseEvent* event) {
                 _isHoverVoxelSounding = true;
             }
             
-        } else if (event->button() == Qt::RightButton && !Menu::getInstance()->isVoxelModeActionChecked()) {
+        } else if (event->button() == Qt::RightButton && Menu::getInstance()->isVoxelModeActionChecked()) {
             deleteVoxelUnderCursor();
         }
     }
@@ -889,7 +889,7 @@ const bool USE_MOUSEWHEEL = false;
 void Application::wheelEvent(QWheelEvent* event) {
     //  Wheel Events disabled for now because they are also activated by touch look pitch up/down.  
     if (USE_MOUSEWHEEL && (activeWindow() == _window)) {
-        if (Menu::getInstance()->isVoxelModeActionChecked()) {
+        if (!Menu::getInstance()->isVoxelModeActionChecked()) {
             event->ignore();
             return;
         }
