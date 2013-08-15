@@ -1796,7 +1796,7 @@ void Application::update(float deltaTime) {
     }
     
     _mouseVoxel.s = 0.0f;
-    if (!Menu::getInstance()->isVoxelModeActionChecked() &&
+    if (Menu::getInstance()->isVoxelModeActionChecked() &&
         (fabs(_myAvatar.getVelocity().x) +
          fabs(_myAvatar.getVelocity().y) +
          fabs(_myAvatar.getVelocity().z)) / 3 < MAX_AVATAR_EDIT_VELOCITY) {

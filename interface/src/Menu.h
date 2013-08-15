@@ -65,7 +65,9 @@ private slots:
     void bandwidthDetailsClosed();
     void voxelStatsDetailsClosed();
     void cycleFrustumRenderMode();
+    void updateVoxelModeActions();
     void chooseVoxelPaintColor();
+    
     
 private:
     static Menu* _instance;

@@ -183,6 +183,7 @@ Menu::Menu() :
     
     QMenu* voxelMenu = addMenu("Voxels");
     _voxelModeActionsGroup = new QActionGroup(this);
+    _voxelModeActionsGroup->setExclusive(false);
     
     QAction* addVoxelMode = addCheckableActionToQMenuAndActionHash(voxelMenu, MenuOption::VoxelAddMode, Qt::Key_V);
     _voxelModeActionsGroup->addAction(addVoxelMode);
@@ -199,6 +200,11 @@ Menu::Menu() :
     QAction* getColorMode = addCheckableActionToQMenuAndActionHash(voxelMenu, MenuOption::VoxelGetColorMode, Qt::Key_G);
     _voxelModeActionsGroup->addAction(getColorMode);
     
+    // connect each of the voxel mode actions to the updateVoxelModeActionsSlot
+    foreach (QAction* action, _voxelModeActionsGroup->actions()) {
+        connect(action, SIGNAL(triggered()), this, SLOT(updateVoxelModeActions()));
+    }
+
     QAction* voxelPaintColor = addActionToQMenuAndActionHash(voxelMenu,
                                                              MenuOption::VoxelPaintColor,
                                                              Qt::META | Qt::Key_C,
@@ -677,6 +683,15 @@ void Menu::cycleFrustumRenderMode() {
     updateFrustumRenderModeAction();
 }
 
+void Menu::updateVoxelModeActions() {
+    // only the sender can be checked
+    foreach (QAction* action, _voxelModeActionsGroup->actions()) {
+        if (action->isChecked() && action != sender()) {
+            action->setChecked(false);
+        }
+    }
+}
+
 void Menu::chooseVoxelPaintColor() {
     Application* appInstance = Application::getInstance();
     QAction* paintColor = _actionHash.value(MenuOption::VoxelPaintColor);
@@ -690,7 +705,7 @@ void Menu::chooseVoxelPaintColor() {
     }
     
     // restore the main window's active state
-//    _window->activateWindow();
+    appInstance->getWindow()->activateWindow();
 }
 
 void Menu::updateFrustumRenderModeAction() {
