@@ -120,8 +120,7 @@ namespace MenuOption {
     const QString DecreaseAvatarSize = "Decrease Avatar Size";
     const QString DecreaseVoxelSize = "Decrease Voxel Size";
     const QString DestructiveAddVoxel = "Create Voxel is Destructive";
-    const QString DisableDeltaSending = "Disable Delta Sending";
-    const QString DisableLowRes = "Disable Lower Resolution While Moving";
+    const QString DeltaSending = "Delta Sending";
     const QString DisableOcclusionCulling = "Disable Occlusion Culling";
     const QString DisplayFrustum = "Display Frustum";
     const QString EchoAudio = "Echo Audio";
@@ -154,6 +153,7 @@ namespace MenuOption {
     const QString Log = "Log";
     const QString LookAtIndicator = "Look-at Indicator";
     const QString LookAtVectors = "Look-at Vectors";
+    const QString LowRes = "Lower Resolution While Moving";
     const QString Mirror = "Mirror";
     const QString Oscilloscope = "Audio Oscilloscope";
     const QString Pair = "Pair";

@@ -330,13 +330,19 @@ Menu::Menu() :
                                            appInstance->getAvatar(),
                                            SLOT(setWantColor(bool)));
     
-    addCheckableActionToQMenuAndActionHash(debugMenu, MenuOption::DisableLowRes, NULL, NULL);
+    addCheckableActionToQMenuAndActionHash(debugMenu,
+                                           MenuOption::LowRes,
+                                           0,
+                                           true,
+                                           appInstance->getAvatar(),
+                                           SLOT(setWantLowResMoving(bool)));
     
-    //        debugMenu->addAction("Disable Lower Resolution While Moving", this, SLOT(disableLowResMoving(bool)))->setCheckable(true);
-    
-    addCheckableActionToQMenuAndActionHash(debugMenu, MenuOption::DisableDeltaSending, NULL, NULL);
-    
-    //        debugMenu->addAction("Disable Delta Sending", this, SLOT(disableDeltaSending(bool)))->setCheckable(true);
+    addCheckableActionToQMenuAndActionHash(debugMenu,
+                                           MenuOption::DeltaSending,
+                                           0,
+                                           true,
+                                           appInstance->getAvatar(),
+                                           SLOT(setWantDelta(bool)));
     
     addCheckableActionToQMenuAndActionHash(debugMenu, MenuOption::DisableOcclusionCulling, Qt::SHIFT | Qt::Key_C);
     //        (_occlusionCulling = debugMenu->addAction("Disable Occlusion Culling", this, SLOT(disableOcclusionCulling(bool)),
