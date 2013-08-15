@@ -25,7 +25,8 @@ public:
 
     QOpenGLFramebufferObject* getPrimaryFramebufferObject();
     QOpenGLFramebufferObject* getSecondaryFramebufferObject();
-
+    QOpenGLFramebufferObject* getTertiaryFramebufferObject();
+    
     virtual bool eventFilter(QObject* watched, QEvent* event);
 
 private:
@@ -34,6 +35,7 @@ private:
     
     QOpenGLFramebufferObject* _primaryFramebufferObject;
     QOpenGLFramebufferObject* _secondaryFramebufferObject;
+    QOpenGLFramebufferObject* _tertiaryFramebufferObject;
 };
 
 #endif /* defined(__interface__TextureCache__) */

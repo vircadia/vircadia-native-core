@@ -39,6 +39,8 @@
 #include "ToolsPalette.h"
 #include "ViewFrustum.h"
 #include "VoxelFade.h"
+#include "VoxelEditPacketSender.h"
+#include "VoxelPacketProcessor.h"
 #include "VoxelSystem.h"
 #include "Webcam.h"
 #include "avatar/Avatar.h"
@@ -73,6 +75,9 @@ static const float NODE_KILLED_BLUE  = 0.0f;
 
 class Application : public QApplication, public NodeListHook {
     Q_OBJECT
+
+    friend class VoxelPacketProcessor;
+    friend class VoxelEditPacketSender;
 
 public:
     static Application* getInstance() { return static_cast<Application*>(QCoreApplication::instance()); }
@@ -219,9 +224,7 @@ private:
     static void controlledBroadcastToNodes(unsigned char* broadcastData, size_t dataBytes, 
                                            const char* nodeTypes, int numNodeTypes);
 
-    static void sendVoxelServerAddScene();
     static bool sendVoxelsOperation(VoxelNode* node, void* extraData);
-    static void sendVoxelEditMessage(PACKET_TYPE type, VoxelDetail& detail);
     static void sendAvatarVoxelURLMessage(const QUrl& url);
     static void processAvatarVoxelURLMessage(unsigned char* packetData, size_t dataBytes);
     static void processAvatarFaceVideoMessage(unsigned char* packetData, size_t dataBytes);
@@ -250,8 +253,6 @@ private:
    
     void checkBandwidthMeterClick();
      
-    void setupPaintingVoxel();
-    void shiftPaintingColor();
     bool maybeEditVoxelUnderCursor();
     void deleteVoxelUnderCursor();
     void eyedropperVoxelUnderCursor();
@@ -267,10 +268,6 @@ private:
     static void attachNewHeadToNode(Node *newNode);
     static void* networkReceive(void* args); // network receive thread
 
-    static void* processVoxels(void* args); // voxel parsing thread
-    void processVoxelPacket(sockaddr& senderAddress, unsigned char*  packetData, ssize_t packetLength);
-    void queueVoxelPacket(sockaddr& senderAddress, unsigned char*  packetData, ssize_t packetLength);
-    
     // methodes handling menu settings
     typedef void(*settingsAction)(QSettings*, QAction*);
     static void loadAction(QSettings* set, QAction* action);
@@ -428,10 +425,6 @@ private:
     glm::vec3 _lookatOtherPosition;
     float _lookatIndicatorScale;
     
-    bool _paintOn;                // Whether to paint voxels as you fly around
-    unsigned char _dominantColor; // The dominant color of the voxel we're painting
-    VoxelDetail _paintingVoxel;   // The voxel we're painting if we're painting 
-    
     bool _perfStatsOn; //  Do we want to display perfStats? 
     
     ChatEntry _chatEntry; // chat entry field 
@@ -463,10 +456,8 @@ private:
     bool _stopNetworkReceiveThread;
     
     bool _enableProcessVoxelsThread;
-    pthread_t _processVoxelsThread;
-    bool _stopProcessVoxelsThread;
-    std::vector<NetworkPacket> _voxelPackets;
-    QMutex _voxelPacketMutex;
+    VoxelPacketProcessor     _voxelProcessor;
+    VoxelEditPacketSender   _voxelEditSender;
     
     unsigned char _incomingPacket[MAX_PACKET_SIZE];
     int _packetCount;
@@ -485,7 +476,7 @@ private:
     VoxelSceneStats _voxelSceneStats;
     int parseVoxelStats(unsigned char* messageData, ssize_t messageLength, sockaddr senderAddress);
     
-    std::map<uint16_t,VoxelPositionSize> _voxelServerJurisdictions;
+    std::map<uint16_t, JurisdictionMap> _voxelServerJurisdictions;
     
     std::vector<VoxelFade> _voxelFades;
 };
