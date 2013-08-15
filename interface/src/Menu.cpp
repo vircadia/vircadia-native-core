@@ -172,9 +172,8 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(toolsMenu, MenuOption::Log, Qt::CTRL | Qt::Key_L);
     addCheckableActionToQMenuAndActionHash(toolsMenu, MenuOption::Oscilloscope, 0, true);
     addCheckableActionToQMenuAndActionHash(toolsMenu, MenuOption::Bandwidth, 0, true);
-    addActionToQMenuAndActionHash(toolsMenu, MenuOption::BandwidthDetails);
+    addActionToQMenuAndActionHash(toolsMenu, MenuOption::BandwidthDetails, 0, this, SLOT(bandwidthDetails()));
     
-    //        toolsMenu->addAction("Bandwidth Details", this, SLOT(bandwidthDetails()));
     
     addActionToQMenuAndActionHash(toolsMenu, MenuOption::VoxelStats);
     
