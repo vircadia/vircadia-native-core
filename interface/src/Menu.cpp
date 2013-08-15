@@ -153,7 +153,6 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(renderMenu, MenuOption::FrameTimer);
     addCheckableActionToQMenuAndActionHash(renderMenu, MenuOption::LookAtVectors);
     addCheckableActionToQMenuAndActionHash(renderMenu, MenuOption::LookAtIndicator, 0, true);
-    addCheckableActionToQMenuAndActionHash(renderMenu, MenuOption::ParticleSystem);
     addCheckableActionToQMenuAndActionHash(renderMenu, MenuOption::FirstPerson, Qt::Key_P, true);
     
     addActionToQMenuAndActionHash(renderMenu,

@@ -159,7 +159,6 @@ namespace MenuOption {
     const QString Monochrome = "Monochrome";
     const QString Oscilloscope = "Audio Oscilloscope";
     const QString Pair = "Pair";
-    const QString ParticleSystem = "Particle System";
     const QString PasteVoxels = "Paste Voxels";
     const QString PipelineWarnings = "Show Render Pipeline Warnings";
     const QString Preferences = "Preferences...";

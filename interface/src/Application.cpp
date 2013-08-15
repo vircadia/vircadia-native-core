@@ -95,8 +95,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _frameCount(0),
         _fps(120.0f),
         _justStarted(true),
-        _particleSystemInitialized(false),     
-        _coolDemoParticleEmitter(-1),
         _wantToKillLocalVoxels(false),
         _audioScope(256, 200, true),
         _mouseX(0),
@@ -1971,10 +1969,6 @@ void Application::update(float deltaTime) {
     _audio.setLastVelocity(_myAvatar.getVelocity());
     _audio.eventuallyAnalyzePing();
     #endif
-    
-    if (Menu::getInstance()->isOptionChecked(MenuOption::ParticleSystem)) {
-        updateParticleSystem(deltaTime);
-    }      
 }
 
 void Application::updateAvatar(float deltaTime) {
@@ -2448,12 +2442,6 @@ void Application::displaySide(Camera& whichCamera) {
     }
 
     _myAvatar.renderScreenTint(SCREEN_TINT_AFTER_AVATARS, whichCamera);
-
-    if (Menu::getInstance()->isOptionChecked(MenuOption::ParticleSystem)) {
-        if (_particleSystemInitialized) {
-            _particleSystem.render();    
-        }
-    }
 
     //  Render the world box
         if (!Menu::getInstance()->isOptionChecked(MenuOption::Mirror) && Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
@@ -3380,79 +3368,3 @@ void* Application::networkReceive(void* args) {
     }
     return NULL; 
 }
-
-void Application::updateParticleSystem(float deltaTime) {
-
-    if (!_particleSystemInitialized) {
-    
-        const int   LIFESPAN_IN_SECONDS  = 100000.0f;
-        const float EMIT_RATE_IN_SECONDS = 10000.0;
-        // create a stable test emitter and spit out a bunch of particles
-        _coolDemoParticleEmitter = _particleSystem.addEmitter();
-                
-        if (_coolDemoParticleEmitter != -1) {
-                
-            _particleSystem.setShowingEmitter(_coolDemoParticleEmitter, true);
-            glm::vec3 particleEmitterPosition = glm::vec3(5.0f, 1.0f, 5.0f);   
-            
-            _particleSystem.setEmitterPosition        (_coolDemoParticleEmitter, particleEmitterPosition);
-            _particleSystem.setEmitterParticleLifespan(_coolDemoParticleEmitter, LIFESPAN_IN_SECONDS);
-            _particleSystem.setEmitterThrust          (_coolDemoParticleEmitter, 0.0f);
-            _particleSystem.setEmitterRate            (_coolDemoParticleEmitter, EMIT_RATE_IN_SECONDS); // to emit a pile o particles now
-        }
-        
-        // signal that the particle system has been initialized 
-        _particleSystemInitialized = true;         
-    } else {
-        // update the particle system
-         
-        static bool emitting = true;
-        static float effectsTimer = 0.0f;
-        effectsTimer += deltaTime;
-        
-        if (_coolDemoParticleEmitter != -1) {
-                       
-            _particleSystem.setEmitterDirection(_coolDemoParticleEmitter, glm::vec3(0.0f, 1.0f, 0.0f));
-            
-            ParticleSystem::ParticleAttributes attributes;
-
-            attributes.radius                  = 0.01f;
-            attributes.color                   = glm::vec4( 1.0f, 1.0f, 1.0f, 1.0f);
-            attributes.gravity                 = 0.0f   + 0.05f  * sinf( effectsTimer * 0.52f );
-            attributes.airFriction             = 2.5    + 2.0f   * sinf( effectsTimer * 0.32f );
-            attributes.jitter                  = 0.05f  + 0.05f  * sinf( effectsTimer * 0.42f );
-            attributes.emitterAttraction       = 0.015f + 0.015f * cosf( effectsTimer * 0.6f  );
-            attributes.tornadoForce            = 0.0f   + 0.03f  * sinf( effectsTimer * 0.7f  );
-            attributes.neighborAttraction      = 0.1f   + 0.1f   * cosf( effectsTimer * 0.8f  );
-            attributes.neighborRepulsion       = 0.2f   + 0.2f   * sinf( effectsTimer * 0.4f  );
-            attributes.bounce                  = 1.0f;
-            attributes.usingCollisionSphere    = true;
-            attributes.collisionSpherePosition = glm::vec3( 5.0f, 0.5f, 5.0f );
-            attributes.collisionSphereRadius   = 0.5f;
-            attributes.usingCollisionPlane     = true;
-            attributes.collisionPlanePosition  = glm::vec3( 5.0f, 0.0f, 5.0f );
-            attributes.collisionPlaneNormal    = glm::vec3( 0.0f, 1.0f, 0.0f );
-            
-            if (attributes.gravity < 0.0f) {
-                attributes.gravity = 0.0f;
-            }
-            
-            _particleSystem.setParticleAttributes(_coolDemoParticleEmitter, attributes);            
-        }
-        
-        _particleSystem.setUpDirection(glm::vec3(0.0f, 1.0f, 0.0f));  
-        _particleSystem.simulate(deltaTime); 
-        
-        const float EMIT_RATE_IN_SECONDS = 0.0;
-
-        if (_coolDemoParticleEmitter != -1) {
-            if (emitting) {
-                _particleSystem.setEmitterRate(_coolDemoParticleEmitter, EMIT_RATE_IN_SECONDS); // stop emitter
-                emitting = false;
-            }
-        }
-    }
-}
-
-
-

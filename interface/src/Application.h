@@ -32,7 +32,6 @@
 #include "Environment.h"
 #include "GLCanvas.h"
 #include "PacketHeaders.h"
-#include "ParticleSystem.h"
 #include "SerialInterface.h"
 #include "Stars.h"
 #include "Swatch.h"
@@ -255,8 +254,6 @@ private:
     timeval _timerStart, _timerEnd;
     timeval _lastTimeUpdated;
     bool _justStarted;
-    bool _particleSystemInitialized;
-    int  _coolDemoParticleEmitter;
 
     Stars _stars;
     
@@ -336,7 +333,6 @@ private:
     GeometryCache _geometryCache;
     TextureCache _textureCache;
     
-    ParticleSystem _particleSystem;
     GlowEffect _glowEffect;
     
     #ifndef _WIN32
