@@ -77,15 +77,15 @@ private:
     
     QAction* addActionToQMenuAndActionHash(QMenu* destinationMenu,
                                            const QString actionName,
+                                           const QKeySequence& shortcut = 0,
                                            const QObject* receiver = NULL,
-                                           const char* member = NULL,
-                                           const QKeySequence& shortcut = 0);
+                                           const char* member = NULL);
     QAction* addCheckableActionToQMenuAndActionHash(QMenu* destinationMenu,
                                                     const QString actionName,
-                                                    const QObject* receiver = NULL,
-                                                    const char* member = NULL,
                                                     const QKeySequence& shortcut = 0,
-                                                    const bool checked = false);
+                                                    const bool checked = false,
+                                                    const QObject* receiver = NULL,
+                                                    const char* member = NULL);
     
     void updateFrustumRenderModeAction();
     

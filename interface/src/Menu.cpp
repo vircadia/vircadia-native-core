@@ -46,47 +46,48 @@ Menu::Menu() :
     
     QMenu* fileMenu = addMenu("File");
     (addActionToQMenuAndActionHash(fileMenu,
-                                  MenuOption::Quit,
+                                   MenuOption::Quit,
+                                   Qt::CTRL | Qt::Key_Q,
                                    appInstance,
-                                   SLOT(quit()),
-                                   Qt::CTRL | Qt::Key_Q))->setMenuRole(QAction::QuitRole);
+                                   SLOT(quit())))->setMenuRole(QAction::QuitRole);
     
     (addActionToQMenuAndActionHash(fileMenu,
                                    MenuOption::Preferences,
+                                   Qt::CTRL | Qt::Key_Comma,
                                    this,
-                                   SLOT(editPreferences()),
-                                   Qt::CTRL | Qt::Key_Comma))->setMenuRole(QAction::PreferencesRole);
+                                   SLOT(editPreferences())))->setMenuRole(QAction::PreferencesRole);
     
     QMenu* pairMenu = addMenu("Pair");
-    addActionToQMenuAndActionHash(pairMenu, MenuOption::Pair, PairingHandler::getInstance(), SLOT(sendPairRequest()));
+    addActionToQMenuAndActionHash(pairMenu, MenuOption::Pair, 0, PairingHandler::getInstance(), SLOT(sendPairRequest()));
     
     
     QMenu* optionsMenu = addMenu("Options");
     
-    addCheckableActionToQMenuAndActionHash(optionsMenu, MenuOption::Mirror, NULL, NULL, Qt::Key_H, false);
-    addCheckableActionToQMenuAndActionHash(optionsMenu, MenuOption::Noise, NULL, NULL, Qt::Key_N, false);
-    addCheckableActionToQMenuAndActionHash(optionsMenu, MenuOption::GyroLook, NULL, NULL, 0, true);
-    addCheckableActionToQMenuAndActionHash(optionsMenu, MenuOption::HeadMouse, NULL, NULL, 0);
-    addCheckableActionToQMenuAndActionHash(optionsMenu, MenuOption::TransmitterDrive, NULL, NULL, 0, true);
-    addCheckableActionToQMenuAndActionHash(optionsMenu, MenuOption::Gravity, NULL, NULL, Qt::SHIFT | Qt::Key_G, true);
-    addCheckableActionToQMenuAndActionHash(optionsMenu, MenuOption::TestPing, NULL, NULL, 0, true);
+    addCheckableActionToQMenuAndActionHash(optionsMenu, MenuOption::Mirror, Qt::Key_H);
+    addCheckableActionToQMenuAndActionHash(optionsMenu, MenuOption::Noise, Qt::Key_N);
+    addCheckableActionToQMenuAndActionHash(optionsMenu, MenuOption::GyroLook, 0, true);
+    addCheckableActionToQMenuAndActionHash(optionsMenu, MenuOption::HeadMouse);
+    addCheckableActionToQMenuAndActionHash(optionsMenu, MenuOption::TransmitterDrive, 0, true);
+    addCheckableActionToQMenuAndActionHash(optionsMenu, MenuOption::Gravity, Qt::SHIFT | Qt::Key_G, true);
+    addCheckableActionToQMenuAndActionHash(optionsMenu, MenuOption::TestPing, 0, true);
     addCheckableActionToQMenuAndActionHash(optionsMenu,
                                            MenuOption::Fullscreen,
+                                           Qt::Key_F,
+                                           false,
                                            appInstance,
-                                           SLOT(setFullscreen(bool)),
-                                           Qt::Key_F);
+                                           SLOT(setFullscreen(bool)));
     addCheckableActionToQMenuAndActionHash(optionsMenu, MenuOption::Webcam);
     addCheckableActionToQMenuAndActionHash(optionsMenu, MenuOption::SkeletonTracking);
     //        optionsMenu->addAction("Webcam", &_webcam, SLOT(setEnabled(bool)))->setCheckable(true);
     //        optionsMenu->addAction("Skeleton Tracking", &_webcam, SLOT(setSkeletonTrackingOn(bool)))->setCheckable(true);
-    addCheckableActionToQMenuAndActionHash(optionsMenu, MenuOption::Collisions, NULL, NULL, 0, true);
+    addCheckableActionToQMenuAndActionHash(optionsMenu, MenuOption::Collisions, 0, true);
     addActionToQMenuAndActionHash(optionsMenu, MenuOption::WebcamMode);
     addCheckableActionToQMenuAndActionHash(optionsMenu, MenuOption::WebcamTexture);
     
     //        optionsMenu->addAction("Cycle Webcam Send Mode", _webcam.getGrabber(), SLOT(cycleVideoSendMode()));
     //        optionsMenu->addAction("Webcam Texture", _webcam.getGrabber(), SLOT(setDepthOnly(bool)))->setCheckable(true);
     
-    addActionToQMenuAndActionHash(optionsMenu, MenuOption::GoHome, appInstance, SLOT(goHome()), Qt::CTRL | Qt::Key_G);
+    addActionToQMenuAndActionHash(optionsMenu, MenuOption::GoHome, Qt::CTRL | Qt::Key_G, appInstance, SLOT(goHome()));
     
     QMenu* audioMenu = addMenu("Audio");
     addCheckableActionToQMenuAndActionHash(audioMenu, MenuOption::EchoAudio);
@@ -94,15 +95,15 @@ Menu::Menu() :
     QMenu* renderMenu = addMenu("Render");
     addCheckableActionToQMenuAndActionHash(renderMenu,
                                            MenuOption::Voxels,
-                                           appInstance,
-                                           SLOT(setRenderVoxels(bool)),
                                            Qt::SHIFT | Qt::Key_V,
-                                           true);
+                                           true,
+                                           appInstance,
+                                           SLOT(setRenderVoxels(bool)));
     addCheckableActionToQMenuAndActionHash(renderMenu, MenuOption::VoxelTextures);
-    addCheckableActionToQMenuAndActionHash(renderMenu, MenuOption::Stars, NULL, NULL, 0, true);
-    addCheckableActionToQMenuAndActionHash(renderMenu, MenuOption::Atmosphere, NULL, NULL, Qt::SHIFT | Qt::Key_A, true);
-    addCheckableActionToQMenuAndActionHash(renderMenu, MenuOption::GroundPlane, NULL, NULL, 0, true);
-    addCheckableActionToQMenuAndActionHash(renderMenu, MenuOption::Avatars, NULL, NULL, 0, true);
+    addCheckableActionToQMenuAndActionHash(renderMenu, MenuOption::Stars, 0, true);
+    addCheckableActionToQMenuAndActionHash(renderMenu, MenuOption::Atmosphere, Qt::SHIFT | Qt::Key_A, true);
+    addCheckableActionToQMenuAndActionHash(renderMenu, MenuOption::GroundPlane, 0, true);
+    addCheckableActionToQMenuAndActionHash(renderMenu, MenuOption::Avatars, 0, true);
     addCheckableActionToQMenuAndActionHash(renderMenu, MenuOption::AvatarAsBalls);
     
     addActionToQMenuAndActionHash(renderMenu, MenuOption::VoxelMode);
@@ -115,9 +116,9 @@ Menu::Menu() :
     
     addCheckableActionToQMenuAndActionHash(renderMenu, MenuOption::FrameTimer);
     addCheckableActionToQMenuAndActionHash(renderMenu, MenuOption::LookAtVectors);
-    addCheckableActionToQMenuAndActionHash(renderMenu, MenuOption::LookAtIndicator, NULL, NULL, 0, true);
+    addCheckableActionToQMenuAndActionHash(renderMenu, MenuOption::LookAtIndicator, 0, true);
     addCheckableActionToQMenuAndActionHash(renderMenu, MenuOption::ParticleSystem);
-    addCheckableActionToQMenuAndActionHash(renderMenu, MenuOption::FirstPerson, NULL, NULL, Qt::Key_P, true);
+    addCheckableActionToQMenuAndActionHash(renderMenu, MenuOption::FirstPerson, Qt::Key_P, true);
     
     addActionToQMenuAndActionHash(renderMenu, MenuOption::IncreaseAvatarSize);
     addActionToQMenuAndActionHash(renderMenu, MenuOption::DecreaseAvatarSize);
@@ -128,10 +129,10 @@ Menu::Menu() :
     //        renderMenu->addAction("Reset Avatar Size", this, SLOT(resetAvatarSize()));
     
     QMenu* toolsMenu = addMenu("Tools");
-    addCheckableActionToQMenuAndActionHash(toolsMenu, MenuOption::Stats, NULL, NULL, Qt::Key_Slash);
-    addCheckableActionToQMenuAndActionHash(toolsMenu, MenuOption::Log, NULL, NULL, Qt::CTRL | Qt::Key_L);
-    addCheckableActionToQMenuAndActionHash(toolsMenu, MenuOption::Oscilloscope, NULL, NULL, 0, true);
-    addCheckableActionToQMenuAndActionHash(toolsMenu, MenuOption::Bandwidth, NULL, NULL, 0, true);
+    addCheckableActionToQMenuAndActionHash(toolsMenu, MenuOption::Stats, Qt::Key_Slash);
+    addCheckableActionToQMenuAndActionHash(toolsMenu, MenuOption::Log, Qt::CTRL | Qt::Key_L);
+    addCheckableActionToQMenuAndActionHash(toolsMenu, MenuOption::Oscilloscope, 0, true);
+    addCheckableActionToQMenuAndActionHash(toolsMenu, MenuOption::Bandwidth, 0, true);
     addActionToQMenuAndActionHash(toolsMenu, MenuOption::BandwidthDetails);
     
     //        toolsMenu->addAction("Bandwidth Details", this, SLOT(bandwidthDetails()));
@@ -143,42 +144,26 @@ Menu::Menu() :
     QMenu* voxelMenu = addMenu("Voxels");
     _voxelModeActionsGroup = new QActionGroup(this);
     
-    QAction* addVoxelMode = addCheckableActionToQMenuAndActionHash(voxelMenu, MenuOption::VoxelAddMode, NULL, NULL, Qt::Key_V);
+    QAction* addVoxelMode = addCheckableActionToQMenuAndActionHash(voxelMenu, MenuOption::VoxelAddMode, Qt::Key_V);
     _voxelModeActionsGroup->addAction(addVoxelMode);
     
-    QAction* deleteVoxelMode = addCheckableActionToQMenuAndActionHash(voxelMenu,
-                                                                      MenuOption::VoxelDeleteMode,
-                                                                      NULL,
-                                                                      NULL,
-                                                                      Qt::Key_R);
+    QAction* deleteVoxelMode = addCheckableActionToQMenuAndActionHash(voxelMenu, MenuOption::VoxelDeleteMode, Qt::Key_R);
     _voxelModeActionsGroup->addAction(deleteVoxelMode);
     
-    QAction* colorVoxelMode = addCheckableActionToQMenuAndActionHash(voxelMenu,
-                                                                     MenuOption::VoxelColorMode,
-                                                                     NULL,
-                                                                     NULL,
-                                                                     Qt::Key_B);
+    QAction* colorVoxelMode = addCheckableActionToQMenuAndActionHash(voxelMenu, MenuOption::VoxelColorMode, Qt::Key_B);
     _voxelModeActionsGroup->addAction(colorVoxelMode);
     
-    QAction* selectVoxelMode = addCheckableActionToQMenuAndActionHash(voxelMenu,
-                                                                      MenuOption::VoxelSelectMode,
-                                                                      NULL,
-                                                                      NULL,
-                                                                      Qt::Key_O);
+    QAction* selectVoxelMode = addCheckableActionToQMenuAndActionHash(voxelMenu, MenuOption::VoxelSelectMode, Qt::Key_O);
     _voxelModeActionsGroup->addAction(selectVoxelMode);
     
-    QAction* getColorMode = addCheckableActionToQMenuAndActionHash(voxelMenu,
-                                                                   MenuOption::VoxelGetColorMode,
-                                                                   NULL,
-                                                                   NULL,
-                                                                   Qt::Key_G);
+    QAction* getColorMode = addCheckableActionToQMenuAndActionHash(voxelMenu, MenuOption::VoxelGetColorMode, Qt::Key_G);
     _voxelModeActionsGroup->addAction(getColorMode);
     
     QAction* voxelPaintColor = addActionToQMenuAndActionHash(voxelMenu,
                                                              MenuOption::VoxelPaintColor,
+                                                             Qt::META | Qt::Key_C,
                                                              this,
-                                                             SLOT(chooseVoxelPaintColor()),
-                                                             Qt::META | Qt::Key_C);
+                                                             SLOT(chooseVoxelPaintColor()));
     
     Application::getInstance()->getSwatch()->setAction(voxelPaintColor);
     
@@ -188,42 +173,42 @@ Menu::Menu() :
     
     addActionToQMenuAndActionHash(voxelMenu,
                                   MenuOption::DecreaseVoxelSize,
+                                  QKeySequence::ZoomOut,
                                   appInstance,
-                                  SLOT(decreaseVoxelSize()),
-                                  QKeySequence::ZoomOut);
+                                  SLOT(decreaseVoxelSize()));
     addActionToQMenuAndActionHash(voxelMenu,
                                   MenuOption::IncreaseVoxelSize,
+                                  QKeySequence::ZoomIn,
                                   appInstance,
-                                  SLOT(increaseVoxelSize()),
-                                  QKeySequence::ZoomIn);
-    addActionToQMenuAndActionHash(voxelMenu, MenuOption::ResetSwatchColors, appInstance, SLOT(resetSwatchColors()));
+                                  SLOT(increaseVoxelSize()));
+    addActionToQMenuAndActionHash(voxelMenu, MenuOption::ResetSwatchColors, 0, appInstance, SLOT(resetSwatchColors()));
     
     addCheckableActionToQMenuAndActionHash(voxelMenu, MenuOption::DestructiveAddVoxel);
     
-    addActionToQMenuAndActionHash(voxelMenu, MenuOption::ExportVoxels, NULL, NULL, Qt::CTRL | Qt::Key_E);
-    addActionToQMenuAndActionHash(voxelMenu, MenuOption::ImportVoxels, NULL, NULL, Qt::CTRL | Qt::Key_I);
-    addActionToQMenuAndActionHash(voxelMenu, MenuOption::ImportVoxelsClipboard, NULL, NULL, Qt::SHIFT | Qt::CTRL | Qt::Key_I);
-    addActionToQMenuAndActionHash(voxelMenu, MenuOption::CutVoxels, NULL, NULL, Qt::CTRL | Qt::Key_X);
-    addActionToQMenuAndActionHash(voxelMenu, MenuOption::CopyVoxels, NULL, NULL, Qt::CTRL | Qt::Key_C);
-    addActionToQMenuAndActionHash(voxelMenu, MenuOption::PasteVoxels, NULL, NULL, Qt::CTRL | Qt::Key_V);
+    addActionToQMenuAndActionHash(voxelMenu, MenuOption::ExportVoxels, Qt::CTRL | Qt::Key_E);
+    addActionToQMenuAndActionHash(voxelMenu, MenuOption::ImportVoxels, Qt::CTRL | Qt::Key_I);
+    addActionToQMenuAndActionHash(voxelMenu, MenuOption::ImportVoxelsClipboard, Qt::SHIFT | Qt::CTRL | Qt::Key_I);
+    addActionToQMenuAndActionHash(voxelMenu, MenuOption::CutVoxels, Qt::CTRL | Qt::Key_X);
+    addActionToQMenuAndActionHash(voxelMenu, MenuOption::CopyVoxels, Qt::CTRL | Qt::Key_C);
+    addActionToQMenuAndActionHash(voxelMenu, MenuOption::PasteVoxels, Qt::CTRL | Qt::Key_V);
     
     QMenu* debugMenu = addMenu("Debug");
 
     QMenu* frustumMenu = debugMenu->addMenu("View Frustum Debugging Tools");
-    addCheckableActionToQMenuAndActionHash(frustumMenu, MenuOption::DisplayFrustum, NULL, NULL, Qt::SHIFT | Qt::Key_F);
+    addCheckableActionToQMenuAndActionHash(frustumMenu, MenuOption::DisplayFrustum, Qt::SHIFT | Qt::Key_F);
     
     addActionToQMenuAndActionHash(frustumMenu,
                                   MenuOption::FrustumRenderMode,
+                                  Qt::SHIFT | Qt::Key_R,
                                   this,
-                                  SLOT(cycleFrustumRenderMode()),
-                                  Qt::SHIFT | Qt::Key_R);
+                                  SLOT(cycleFrustumRenderMode()));
     updateFrustumRenderModeAction();
     
     addActionToQMenuAndActionHash(debugMenu, MenuOption::RunTimingTests, NULL, NULL);
     
     //        debugMenu->addAction("Run Timing Tests", this, SLOT(runTests()));
     
-    addActionToQMenuAndActionHash(debugMenu, MenuOption::TreeStats, NULL, NULL, Qt::SHIFT | Qt::Key_S);
+    addActionToQMenuAndActionHash(debugMenu, MenuOption::TreeStats, Qt::SHIFT | Qt::Key_S);
     
     //        debugMenu->addAction("Calculate Tree Stats", this, SLOT(doTreeStats()), Qt::SHIFT | Qt::Key_S);
     
@@ -233,11 +218,11 @@ Menu::Menu() :
     //        (_renderPipelineWarnings = renderDebugMenu->addAction("Show Render Pipeline Warnings",
     //                                                              this, SLOT(setRenderWarnings(bool))))->setCheckable(true);
     
-    addActionToQMenuAndActionHash(renderDebugMenu, MenuOption::KillLocalVoxels, NULL, NULL, Qt::CTRL | Qt::Key_K);
+    addActionToQMenuAndActionHash(renderDebugMenu, MenuOption::KillLocalVoxels, Qt::CTRL | Qt::Key_K);
     
     //        renderDebugMenu->addAction("Kill Local Voxels", this, SLOT(doKillLocalVoxels()), Qt::CTRL | Qt::Key_K);
     
-    addActionToQMenuAndActionHash(renderDebugMenu, MenuOption::RandomizeVoxelColors, NULL, NULL, Qt::CTRL | Qt::Key_R);
+    addActionToQMenuAndActionHash(renderDebugMenu, MenuOption::RandomizeVoxelColors, Qt::CTRL | Qt::Key_R);
     
     //        renderDebugMenu->addAction("Randomize Voxel TRUE Colors", this, SLOT(doRandomizeVoxelColors()), Qt::CTRL | Qt::Key_R);
     
@@ -257,19 +242,19 @@ Menu::Menu() :
     
     //        renderDebugMenu->addAction("FALSE Color Voxel Out of View", this, SLOT(doFalseColorizeInView()));
     
-    addActionToQMenuAndActionHash(renderDebugMenu, MenuOption::FalseColorOccluded, NULL, NULL, Qt::CTRL | Qt::Key_O);
+    addActionToQMenuAndActionHash(renderDebugMenu, MenuOption::FalseColorOccluded, Qt::CTRL | Qt::Key_O);
     
     //        renderDebugMenu->addAction("FALSE Color Occluded Voxels", this, SLOT(doFalseColorizeOccluded()), Qt::CTRL | Qt::Key_O);
     
-    addActionToQMenuAndActionHash(renderDebugMenu, MenuOption::FalseColorOccludedV2, NULL, NULL, Qt::CTRL | Qt::Key_P);
+    addActionToQMenuAndActionHash(renderDebugMenu, MenuOption::FalseColorOccludedV2, Qt::CTRL | Qt::Key_P);
     
     //        renderDebugMenu->addAction("FALSE Color Occluded V2 Voxels", this, SLOT(doFalseColorizeOccludedV2()), Qt::CTRL | Qt::Key_P);
     
-    addActionToQMenuAndActionHash(renderDebugMenu, MenuOption::FalseColorBySource, NULL, NULL, Qt::CTRL | Qt::SHIFT | Qt::Key_S);
+    addActionToQMenuAndActionHash(renderDebugMenu, MenuOption::FalseColorBySource, Qt::CTRL | Qt::SHIFT | Qt::Key_S);
     
     //        renderDebugMenu->addAction("FALSE Color By Source", this, SLOT(doFalseColorizeBySource()), Qt::CTRL | Qt::SHIFT | Qt::Key_S);
     
-    addActionToQMenuAndActionHash(renderDebugMenu, MenuOption::ShowTrueColors, NULL, NULL, Qt::CTRL | Qt::Key_T);
+    addActionToQMenuAndActionHash(renderDebugMenu, MenuOption::ShowTrueColors, Qt::CTRL | Qt::Key_T);
     
     //        renderDebugMenu->addAction("Show TRUE Colors", this, SLOT(doTrueVoxelColors()), Qt::CTRL | Qt::Key_T);
     
@@ -287,24 +272,24 @@ Menu::Menu() :
     
     //        debugMenu->addAction("Disable Delta Sending", this, SLOT(disableDeltaSending(bool)))->setCheckable(true);
     
-    addCheckableActionToQMenuAndActionHash(debugMenu, MenuOption::DisableOcclusionCulling, NULL, NULL, Qt::SHIFT | Qt::Key_C);
+    addCheckableActionToQMenuAndActionHash(debugMenu, MenuOption::DisableOcclusionCulling, Qt::SHIFT | Qt::Key_C);
     //        (_occlusionCulling = debugMenu->addAction("Disable Occlusion Culling", this, SLOT(disableOcclusionCulling(bool)),
     //                                                  Qt::SHIFT | Qt::Key_C))->setCheckable(true);
     
-    addCheckableActionToQMenuAndActionHash(debugMenu, MenuOption::CoverageMap, NULL, NULL, Qt::SHIFT | Qt::CTRL | Qt::Key_O);
-    addCheckableActionToQMenuAndActionHash(debugMenu, MenuOption::CoverageMapV2, NULL, NULL, Qt::SHIFT | Qt::CTRL | Qt::Key_P);
+    addCheckableActionToQMenuAndActionHash(debugMenu, MenuOption::CoverageMap, Qt::SHIFT | Qt::CTRL | Qt::Key_O);
+    addCheckableActionToQMenuAndActionHash(debugMenu, MenuOption::CoverageMapV2, Qt::SHIFT | Qt::CTRL | Qt::Key_P);
     addCheckableActionToQMenuAndActionHash(debugMenu, MenuOption::SimulateLeapHand);
     addCheckableActionToQMenuAndActionHash(debugMenu, MenuOption::TestRaveGlove);
     
     QMenu* audioDebugMenu = debugMenu->addMenu("Audio Debugging Tools");
-    addActionToQMenuAndActionHash(audioDebugMenu, MenuOption::ListenModeNormal, NULL, NULL, Qt::CTRL | Qt::Key_1);
-    addActionToQMenuAndActionHash(audioDebugMenu, MenuOption::ListenModePoint, NULL, NULL, Qt::CTRL | Qt::Key_2);
-    addActionToQMenuAndActionHash(audioDebugMenu, MenuOption::ListenModeSingleSource, NULL, NULL, Qt::CTRL | Qt::Key_3);
+    addActionToQMenuAndActionHash(audioDebugMenu, MenuOption::ListenModeNormal, Qt::CTRL | Qt::Key_1);
+    addActionToQMenuAndActionHash(audioDebugMenu, MenuOption::ListenModePoint, Qt::CTRL | Qt::Key_2);
+    addActionToQMenuAndActionHash(audioDebugMenu, MenuOption::ListenModeSingleSource, Qt::CTRL | Qt::Key_3);
     
     // audioDebugMenu->addAction("Listen Mode Single Source", this, SLOT(setListenModeSingleSource()), Qt::CTRL | Qt::Key_3);
     
     QMenu* settingsMenu = addMenu("Settings");
-    addCheckableActionToQMenuAndActionHash(settingsMenu, MenuOption::SettingsAutosave, NULL, NULL, 0, true);
+    addCheckableActionToQMenuAndActionHash(settingsMenu, MenuOption::SettingsAutosave, 0, true);
     addActionToQMenuAndActionHash(settingsMenu, MenuOption::SettingsLoad, NULL, NULL);
     addActionToQMenuAndActionHash(settingsMenu, MenuOption::SettingsSave, NULL, NULL);
     addActionToQMenuAndActionHash(settingsMenu, MenuOption::SettingsImport, NULL, NULL);
@@ -471,9 +456,9 @@ void Menu::handleViewFrustumOffsetKeyModifier(int key) {
 
 QAction* Menu::addActionToQMenuAndActionHash(QMenu* destinationMenu,
                                              const QString actionName,
+                                             const QKeySequence& shortcut,
                                              const QObject* receiver,
-                                             const char* member,
-                                             const QKeySequence& shortcut) {
+                                             const char* member) {
     QAction* action;
     
     if (receiver && member) {
@@ -490,11 +475,11 @@ QAction* Menu::addActionToQMenuAndActionHash(QMenu* destinationMenu,
 
 QAction* Menu::addCheckableActionToQMenuAndActionHash(QMenu* destinationMenu,
                                                       const QString actionName,
-                                                      const QObject* receiver,
-                                                      const char* member,
                                                       const QKeySequence& shortcut,
-                                                      const bool checked) {
-    QAction* action = addActionToQMenuAndActionHash(destinationMenu, actionName, receiver, member, shortcut);
+                                                      const bool checked,
+                                                      const QObject* receiver,
+                                                      const char* member) {
+    QAction* action = addActionToQMenuAndActionHash(destinationMenu, actionName, shortcut, receiver, member);
     action->setCheckable(true);
     action->setChecked(checked);
     
