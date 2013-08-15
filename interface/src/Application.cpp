@@ -1850,6 +1850,11 @@ void Application::update(float deltaTime) {
             // yellow indicates deletion
             _mouseVoxel.red = _mouseVoxel.green = 255;
             _mouseVoxel.blue = 0;
+        } else { // _addVoxelMode->isChecked() || _colorVoxelMode->isChecked()
+            QColor paintColor = Menu::getInstance()->getActionForOption(MenuOption::VoxelPaintColor)->data().value<QColor>();
+            _mouseVoxel.red = paintColor.red();
+            _mouseVoxel.green = paintColor.green();
+            _mouseVoxel.blue = paintColor.blue();
         }
         
         // if we just edited, use the currently selected voxel as the "last" for drag detection
