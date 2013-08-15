@@ -1128,10 +1128,6 @@ void Application::increaseVoxelSize() {
     _mouseVoxelScale *= 2;
 }
 
-void Application::resetSwatchColors() {
-    _swatch.reset();
-}
-
 const int MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE = 1500;
 struct SendVoxelsOperationArgs {
     unsigned char*  newBaseOctCode;

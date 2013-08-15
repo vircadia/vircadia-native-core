@@ -135,7 +135,6 @@ public:
 
 public slots:
     void sendAvatarFaceVideoMessage(int frameCount, const QByteArray& data);
-    void resetSwatchColors();
     void exportVoxels();
     void importVoxels();
     void importVoxelsToClipboard();

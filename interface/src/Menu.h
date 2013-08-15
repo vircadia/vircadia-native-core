@@ -67,6 +67,7 @@ private slots:
     void updateVoxelModeActions();
     void chooseVoxelPaintColor();
     void runTests();
+    void resetSwatchColors();
     
 private:
     static Menu* _instance;

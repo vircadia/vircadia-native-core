@@ -227,7 +227,7 @@ Menu::Menu() :
                                   QKeySequence::ZoomIn,
                                   appInstance,
                                   SLOT(increaseVoxelSize()));
-    addActionToQMenuAndActionHash(voxelMenu, MenuOption::ResetSwatchColors, 0, appInstance, SLOT(resetSwatchColors()));
+    addActionToQMenuAndActionHash(voxelMenu, MenuOption::ResetSwatchColors, 0, this, SLOT(resetSwatchColors()));
     
     addCheckableActionToQMenuAndActionHash(voxelMenu, MenuOption::DestructiveAddVoxel);
     
@@ -743,10 +743,14 @@ void Menu::chooseVoxelPaintColor() {
     
     // restore the main window's active state
     appInstance->getWindow()->activateWindow();
-}
+}g
 
 void Menu::runTests() {
     runTimingTests();
+}
+
+void Menu::resetSwatchColors() {
+    Application::getInstance()->getSwatch()->reset();
 }
 
 void Menu::updateFrustumRenderModeAction() {
