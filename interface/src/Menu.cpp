@@ -84,10 +84,20 @@ Menu::Menu() :
                                            appInstance->getWebcam(),
                                            SLOT(setEnabled(bool)));
     
-    addCheckableActionToQMenuAndActionHash(optionsMenu, MenuOption::SkeletonTracking);
-    //        optionsMenu->addAction("Webcam", &_webcam, SLOT(setEnabled(bool)))->setCheckable(true);
-    //        optionsMenu->addAction("Skeleton Tracking", &_webcam, SLOT(setSkeletonTrackingOn(bool)))->setCheckable(true);
-    addCheckableActionToQMenuAndActionHash(optionsMenu, MenuOption::Collisions, 0, true);
+    addCheckableActionToQMenuAndActionHash(optionsMenu,
+                                           MenuOption::SkeletonTracking,
+                                           0,
+                                           false,
+                                           appInstance->getWebcam(),
+                                           SLOT(setSkeletonTrackingOn(bool)));
+    
+    addCheckableActionToQMenuAndActionHash(optionsMenu,
+                                           MenuOption::Collisions,
+                                           0,
+                                           true,
+                                           appInstance->getAvatar(),
+                                           SLOT(setWantCollisionsOn(bool)));
+    
     addActionToQMenuAndActionHash(optionsMenu, MenuOption::WebcamMode);
     addCheckableActionToQMenuAndActionHash(optionsMenu, MenuOption::WebcamTexture);
     

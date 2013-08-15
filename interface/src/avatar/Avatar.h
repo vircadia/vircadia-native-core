@@ -122,6 +122,7 @@ enum ScreenTintLayer
 };
 
 class Avatar : public AvatarData {
+    Q_OBJECT
 public:
     static void sendAvatarVoxelURLMessage(const QUrl& url);
     
@@ -151,7 +152,6 @@ public:
     void setMouseRay               (const glm::vec3 &origin, const glm::vec3 &direction);
     void setOrientation            (const glm::quat& orientation);
     void setNewScale               (const float scale);
-    void setWantCollisionsOn       (bool wantCollisionsOn            ) { _isCollisionsOn = wantCollisionsOn; }
 
     //getters
     bool             isInitialized             ()                const { return _initialized;}
@@ -210,6 +210,9 @@ public:
     void getBodyBallTransform(AvatarJointID jointID, glm::vec3& position, glm::quat& rotation) const;
 
     static void renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2, float radius1, float radius2);
+    
+public slots:
+    void setWantCollisionsOn(bool wantCollisionsOn) { _isCollisionsOn = wantCollisionsOn; }
 
 private:
     // privatize copy constructor and assignment operator to avoid copying
