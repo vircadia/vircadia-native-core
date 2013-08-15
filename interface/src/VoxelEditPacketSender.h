@@ -14,8 +14,6 @@
 #include <PacketSender.h>
 #include <SharedUtil.h> // for VoxelDetail
 
-class Application;
-
 /// Used for construction of edit voxel packets
 class EditPacketBuffer {
 public:
@@ -29,8 +27,6 @@ public:
 /// Threaded processor for queueing and sending of outbound edit voxel packets. 
 class VoxelEditPacketSender : public PacketSender {
 public:
-    VoxelEditPacketSender(Application* app);
-    
     /// Send voxel edit message immediately
     void sendVoxelEditMessage(PACKET_TYPE type, VoxelDetail& detail);
 
@@ -46,7 +42,6 @@ private:
     void initializePacket(EditPacketBuffer& packetBuffer, PACKET_TYPE type);
     void flushQueue(EditPacketBuffer& packetBuffer); // flushes specific queued packet
 
-    Application*    _app;
     std::map<uint16_t,EditPacketBuffer> _pendingEditPackets;
 };
 #endif // __shared__VoxelEditPacketSender__

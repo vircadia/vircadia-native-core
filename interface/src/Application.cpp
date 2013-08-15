@@ -221,8 +221,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _audio(&_audioScope, STARTUP_JITTER_SAMPLES),
 #endif
         _stopNetworkReceiveThread(false),  
-        _voxelProcessor(this),
-        _voxelEditSender(this),
+        _voxelProcessor(),
+        _voxelEditSender(),
         _packetCount(0),
         _packetsPerSecond(0),
         _bytesPerSecond(0),
