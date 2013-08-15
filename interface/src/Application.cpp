@@ -1104,11 +1104,6 @@ void Application::setFullscreen(bool fullscreen) {
     updateCursor();
 }
 
-void Application::setFrustumOffset(bool frustumOffset) {
-    // reshape so that OpenGL will get the right lens details for the camera of choice  
-    resizeGL(_glWidget->width(), _glWidget->height());
-}
-
 void Application::setRenderVoxels(bool voxelRender) {
     if (!voxelRender) {
         doKillLocalVoxels();

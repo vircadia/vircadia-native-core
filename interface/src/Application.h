@@ -162,8 +162,6 @@ private slots:
     void renderThrustAtVoxel(const glm::vec3& thrust);
     void renderLineToTouchedVoxel();
     
-    void setFrustumOffset(bool frustumOffset);
-
     void renderCoverageMap();
     void renderCoverageMapsRecursively(CoverageMap* map);
 
@@ -182,7 +180,6 @@ private:
     static void processAvatarFaceVideoMessage(unsigned char* packetData, size_t dataBytes);
     static void sendPingPackets();
     
-    void updateFrustumRenderModeAction();
     void initDisplay();
     void init();
     
