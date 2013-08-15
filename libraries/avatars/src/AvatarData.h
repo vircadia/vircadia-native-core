@@ -56,8 +56,8 @@ public:
     
     const glm::vec3& getPosition() const { return _position; }
     
-    void setPosition      (const glm::vec3 position      ) { _position       = position;       }
-    void setHandPosition  (const glm::vec3 handPosition  ) { _handPosition   = handPosition;   }
+    void setPosition(const glm::vec3 position) { _position = position; }
+    void setHandPosition(const glm::vec3 handPosition) { _handPosition = handPosition; }
     
     void setPositionFromVariantMap(QVariantMap positionMap);
     QVariantMap getPositionVariantMap();
@@ -82,22 +82,22 @@ public:
     char getHandState() const {return _handState; };
     
     // getters for camera details
-    const glm::vec3& getCameraPosition()    const { return _cameraPosition; };
+    const glm::vec3& getCameraPosition() const { return _cameraPosition; };
     const glm::quat& getCameraOrientation() const { return _cameraOrientation; }
-    float getCameraFov()                    const { return _cameraFov; }
-    float getCameraAspectRatio()            const { return _cameraAspectRatio; }
-    float getCameraNearClip()               const { return _cameraNearClip; }
-    float getCameraFarClip()                const { return _cameraFarClip; }
+    float getCameraFov() const { return _cameraFov; }
+    float getCameraAspectRatio() const { return _cameraAspectRatio; }
+    float getCameraNearClip() const { return _cameraNearClip; }
+    float getCameraFarClip() const { return _cameraFarClip; }
 
     glm::vec3 calculateCameraDirection() const;
 
     // setters for camera details    
-    void setCameraPosition(const glm::vec3& position)       { _cameraPosition    = position;    }
+    void setCameraPosition(const glm::vec3& position) { _cameraPosition = position; }
     void setCameraOrientation(const glm::quat& orientation) { _cameraOrientation = orientation; }
-    void setCameraFov(float fov)                            { _cameraFov         = fov;         }
-    void setCameraAspectRatio(float aspectRatio)            { _cameraAspectRatio = aspectRatio; }
-    void setCameraNearClip(float nearClip)                  { _cameraNearClip    = nearClip;    }
-    void setCameraFarClip(float farClip)                    { _cameraFarClip     = farClip;     }
+    void setCameraFov(float fov) { _cameraFov = fov; }
+    void setCameraAspectRatio(float aspectRatio) { _cameraAspectRatio = aspectRatio; }
+    void setCameraNearClip(float nearClip) { _cameraNearClip = nearClip; }
+    void setCameraFarClip(float farClip) { _cameraFarClip = farClip; }
     
     // key state
     void setKeyState(KeyState s) { _keyState = s; }
@@ -110,11 +110,11 @@ public:
     QString getQStringChatMessage() { return QString(_chatMessage.data()); }
 
     // related to Voxel Sending strategies
-    bool getWantColor()            const { return _wantColor; }
-    bool getWantDelta()            const { return _wantDelta; }
-    bool getWantLowResMoving()     const { return _wantLowResMoving; }
+    bool getWantColor() const { return _wantColor; }
+    bool getWantDelta() const { return _wantDelta; }
+    bool getWantLowResMoving() const { return _wantLowResMoving; }
     bool getWantOcclusionCulling() const { return _wantOcclusionCulling; }
-    uint16_t getLeaderID()         const { return _leaderID; }
+    uint16_t getLeaderID() const { return _leaderID; }
     
     void setHeadData(HeadData* headData) { _headData = headData; }
     void setHandData(HandData* handData) { _handData = handData; }
