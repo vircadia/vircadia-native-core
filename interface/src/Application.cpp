@@ -22,6 +22,9 @@
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/vector_angle.hpp>
 
+// include this before QGLWidget, which includes an earlier version of OpenGL
+#include "InterfaceConfig.h"
+
 #include <QActionGroup>
 #include <QColorDialog>
 #include <QDesktopWidget>
@@ -53,7 +56,6 @@
 #include <VoxelSceneStats.h>
 
 #include "Application.h"
-#include "InterfaceConfig.h"
 #include "LogDisplay.h"
 #include "LeapManager.h"
 #include "Menu.h"
@@ -317,8 +319,7 @@ void Application::paintGL() {
     PerfStat("display");
 
     glEnable(GL_LINE_SMOOTH);
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-        
+       
     if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         _myCamera.setTightness     (100.0f); 
         _myCamera.setTargetPosition(_myAvatar.getUprightHeadPosition());
@@ -1661,8 +1662,8 @@ void Application::runTests() {
 
 void Application::initDisplay() {
     glEnable(GL_BLEND);
-    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-    glShadeModel (GL_SMOOTH);
+    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
+    glShadeModel(GL_SMOOTH);
     glEnable(GL_LIGHTING);
     glEnable(GL_LIGHT0);
     glEnable(GL_DEPTH_TEST);
@@ -1672,6 +1673,8 @@ void Application::init() {
     _voxels.init();
     
     _environment.init();
+    
+    _glowEffect.init();
     
     _handControl.setScreenDimensions(_glWidget->width(), _glWidget->height());
 
@@ -1774,11 +1777,21 @@ void Application::renderLookatIndicator(glm::vec3 pointOfInterest, Camera& which
     renderCircle(haloOrigin, INDICATOR_RADIUS, IDENTITY_UP, NUM_SEGMENTS);
 }
 
+void maybeBeginFollowIndicator(bool& began) {
+    if (!began) {
+        Application::getInstance()->getGlowEffect()->begin();
+        glLineWidth(5);
+        glBegin(GL_LINES);
+        began = true;
+    }
+}
+
 void Application::renderFollowIndicator() {
     NodeList* nodeList = NodeList::getInstance();
 
-    glLineWidth(5);
-    glBegin(GL_LINES);
+    // initialize lazily so that we don't enable the glow effect unnecessarily
+    bool began = false;
+
     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); ++node) {
         if (node->getLinkedData() != NULL && node->getType() == NODE_TYPE_AGENT) {
             Avatar* avatar = (Avatar *) node->getLinkedData();
@@ -1797,6 +1810,7 @@ void Application::renderFollowIndicator() {
                 }
 
                 if (leader != NULL) {
+                    maybeBeginFollowIndicator(began);
                     glColor3f(1.f, 0.f, 0.f);
                     glVertex3f((avatar->getHead().getPosition().x + avatar->getPosition().x) / 2.f,
                                (avatar->getHead().getPosition().y + avatar->getPosition().y) / 2.f,
@@ -1811,6 +1825,7 @@ void Application::renderFollowIndicator() {
     }
 
     if (_myAvatar.getLeadingAvatar() != NULL) {
+        maybeBeginFollowIndicator(began);
         glColor3f(1.f, 0.f, 0.f);
         glVertex3f((_myAvatar.getHead().getPosition().x + _myAvatar.getPosition().x) / 2.f,
                    (_myAvatar.getHead().getPosition().y + _myAvatar.getPosition().y) / 2.f,
@@ -1821,7 +1836,10 @@ void Application::renderFollowIndicator() {
                    (_myAvatar.getLeadingAvatar()->getHead().getPosition().z + _myAvatar.getLeadingAvatar()->getPosition().z) / 2.f);
     }
 
-    glEnd();
+    if (began) {
+        glEnd();
+        _glowEffect.end();
+    }
 }
 
 void Application::update(float deltaTime) {
@@ -2616,6 +2634,9 @@ void Application::displaySide(Camera& whichCamera) {
     }
         
     renderFollowIndicator();
+    
+    // render the glow effect
+    _glowEffect.render();
 }
 
 void Application::displayOverlay() {
@@ -3489,11 +3510,13 @@ void* Application::processVoxels(void* args) {
             app->_wantToKillLocalVoxels = false;
         }
         
+        app->_voxelPacketMutex.lock();    
         while (app->_voxelPackets.size() > 0) {
             NetworkPacket& packet = app->_voxelPackets.front();
             app->processVoxelPacket(packet.getSenderAddress(), packet.getData(), packet.getLength());
             app->_voxelPackets.erase(app->_voxelPackets.begin());
         }
+        app->_voxelPacketMutex.unlock();
     
         if (!app->_enableProcessVoxelsThread) {
             break;
@@ -3507,7 +3530,9 @@ void* Application::processVoxels(void* args) {
 }
 
 void Application::queueVoxelPacket(sockaddr& senderAddress, unsigned char* packetData, ssize_t packetLength) {
+    _voxelPacketMutex.lock();
     _voxelPackets.push_back(NetworkPacket(senderAddress, packetData, packetLength));
+    _voxelPacketMutex.unlock();
 }
 
 void Application::processVoxelPacket(sockaddr& senderAddress, unsigned char* packetData, ssize_t packetLength) {
