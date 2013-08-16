@@ -9,14 +9,23 @@
 #ifndef __interface__AmbientOcclusionEffect__
 #define __interface__AmbientOcclusionEffect__
 
-#include "InterfaceConfig.h"
-
 class ProgramObject;
 
+/// A screen space ambient occlusion effect.
 class AmbientOcclusionEffect {
 public:
     
+    void init();
+    
     void render();
+    
+private:
+
+    ProgramObject* _program;
+    int _nearLocation;
+    int _farLocation;
+    int _leftBottomLocation;
+    int _rightTopLocation;
 };
 
 #endif /* defined(__interface__AmbientOcclusionEffect__) */

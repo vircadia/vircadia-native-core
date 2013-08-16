@@ -30,6 +30,13 @@ vec3 texCoordToViewSpace(vec2 texCoord) {
 }
 
 void main(void) {
-    float depth = texture2D(depthTexture, gl_TexCoord[0].st).r;
-    gl_FragColor = vec4(depth, depth, depth, 1.0);
+    float ds = dFdx(gl_TexCoord[0].s);
+    float dt = dFdy(gl_TexCoord[0].t);
+    vec3 center = texCoordToViewSpace(gl_TexCoord[0].st);
+    vec3 left = texCoordToViewSpace(gl_TexCoord[0].st - vec2(-ds, 0.0)) - center;
+    vec3 right = texCoordToViewSpace(gl_TexCoord[0].st - vec2(ds, 0.0)) - center;
+    vec3 up = texCoordToViewSpace(gl_TexCoord[0].st - vec2(0.0, dt)) - center;
+    vec3 down = texCoordToViewSpace(gl_TexCoord[0].st - vec2(0.0, -dt)) - center;
+    float occlusion = 0.5 - (left.z / length(left) + right.z / length(right) + up.z / length(up) + down.z / length(down)) / 8.0;
+    gl_FragColor = vec4(occlusion, occlusion, occlusion, 0.0);
 }

@@ -2121,6 +2121,7 @@ void Application::init() {
     _environment.init();
 
     _glowEffect.init();
+    _ambientOcclusionEffect.init();
     
     _handControl.setScreenDimensions(_glWidget->width(), _glWidget->height());
 
