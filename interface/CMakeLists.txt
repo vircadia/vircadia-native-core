@@ -45,6 +45,12 @@ endforeach(SUBDIR)
 # project subdirectories
 add_subdirectory(src/starfield)
 
+find_package(Qt5Core REQUIRED)
+find_package(Qt5Gui REQUIRED)
+find_package(Qt5Network REQUIRED)
+find_package(Qt5OpenGL REQUIRED)
+find_package(Qt5Svg REQUIRED)
+
 if (APPLE)
   # set how the icon shows up in the Info.plist file
   SET(MACOSX_BUNDLE_ICON_FILE interface.icns) 
@@ -64,14 +70,7 @@ if (APPLE)
       SET(INTERFACE_SRCS ${INTERFACE_SRCS} ${DIR_CONTENTS})
     endif()    
   endforeach()  
-  
 endif (APPLE)
-
-find_package(Qt5Core REQUIRED)
-find_package(Qt5Gui REQUIRED)
-find_package(Qt5Network REQUIRED)
-find_package(Qt5OpenGL REQUIRED)
-find_package(Qt5Svg REQUIRED)
 
 set(QUAZIP_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/quazip)
 add_subdirectory(external/fervor/)
