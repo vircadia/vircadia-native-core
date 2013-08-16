@@ -151,3 +151,5 @@ doxygenJob.with {
         }
     }
 }
+
+queue doxygenJob
