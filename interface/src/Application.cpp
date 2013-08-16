@@ -1928,17 +1928,20 @@ void Application::updateAvatar(float deltaTime) {
         _headMouseY = min(_headMouseY, _glWidget->height());
 
         const float MIDPOINT_OF_SCREEN = 0.5;
-
-        // Set lookAtPosition if an avatar is at the center of the screen
-        glm::vec3 screenCenterRayOrigin, screenCenterRayDirection;
-        _viewFrustum.computePickRay(MIDPOINT_OF_SCREEN, MIDPOINT_OF_SCREEN, screenCenterRayOrigin, screenCenterRayDirection);
-
-        glm::vec3 eyePosition;
         
-        _isLookingAtOtherAvatar = isLookingAtOtherAvatar(screenCenterRayOrigin, screenCenterRayDirection, eyePosition);
-        if (_isLookingAtOtherAvatar) {
-            glm::vec3 myLookAtFromMouse(eyePosition);
-            _myAvatar.getHead().setLookAtPosition(myLookAtFromMouse);
+        // Only use gyro to set lookAt if mouse hasn't selected an avatar
+        if (!_isLookingAtOtherAvatar) {
+
+            // Set lookAtPosition if an avatar is at the center of the screen
+            glm::vec3 screenCenterRayOrigin, screenCenterRayDirection;
+            _viewFrustum.computePickRay(MIDPOINT_OF_SCREEN, MIDPOINT_OF_SCREEN, screenCenterRayOrigin, screenCenterRayDirection);
+
+            glm::vec3 eyePosition;
+            _isLookingAtOtherAvatar = isLookingAtOtherAvatar(screenCenterRayOrigin, screenCenterRayDirection, eyePosition);
+            if (_isLookingAtOtherAvatar) {
+                glm::vec3 myLookAtFromMouse(eyePosition);
+                _myAvatar.getHead().setLookAtPosition(myLookAtFromMouse);
+            }
         }
 
     }
@@ -2343,6 +2346,7 @@ void Application::displaySide(Camera& whichCamera) {
                 if (!avatar->isInitialized()) {
                     avatar->init();
                 }
+                // Set lookAt to myCamera on client side if other avatars are looking at client
                 if (isLookingAtMyAvatar(avatar)) {
                     avatar->getHead().setLookAtPosition(_myCamera.getPosition());
                 }

@@ -18,12 +18,19 @@
 #include "Application.h"
 
 #include <QDebug>
+#include <QDir>
 
 int main(int argc, const char * argv[]) {
     timeval startup_time;
     gettimeofday(&startup_time, NULL);
     
+    #if defined(Q_OS_MAC)
+    const QString QT_RELEASE_PLUGIN_PATH = "/usr/local/lib/qt5/plugins"; 
+    QCoreApplication::addLibraryPath(QT_RELEASE_PLUGIN_PATH);
+    #endif
+
     Application app(argc, const_cast<char**>(argv), startup_time);
+    
     qDebug( "Created QT Application.\n" );
     int exitCode = app.exec();
     qDebug("Normal exit.\n");

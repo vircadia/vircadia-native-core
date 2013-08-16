@@ -14,7 +14,7 @@
 #include "TextureCache.h"
 
 TextureCache::TextureCache() : _permutationNormalTextureID(0),
-    _primaryFramebufferObject(NULL), _secondaryFramebufferObject(NULL) {
+    _primaryFramebufferObject(NULL), _secondaryFramebufferObject(NULL), _tertiaryFramebufferObject(NULL) {
 }
 
 TextureCache::~TextureCache() {
@@ -26,6 +26,9 @@ TextureCache::~TextureCache() {
     }
     if (_secondaryFramebufferObject != NULL) {
         delete _secondaryFramebufferObject;
+    }
+    if (_tertiaryFramebufferObject != NULL) {
+        delete _tertiaryFramebufferObject;
     }
 }
 
@@ -72,6 +75,14 @@ QOpenGLFramebufferObject* TextureCache::getSecondaryFramebufferObject() {
     return _secondaryFramebufferObject;
 }
 
+QOpenGLFramebufferObject* TextureCache::getTertiaryFramebufferObject() {
+    if (_tertiaryFramebufferObject == NULL) {
+        _tertiaryFramebufferObject = new QOpenGLFramebufferObject(Application::getInstance()->getGLWidget()->size());
+        Application::getInstance()->getGLWidget()->installEventFilter(this);
+    }
+    return _tertiaryFramebufferObject;
+}
+
 bool TextureCache::eventFilter(QObject* watched, QEvent* event) {
     if (event->type() == QEvent::Resize) {
         QSize size = static_cast<QResizeEvent*>(event)->size();
@@ -82,6 +93,10 @@ bool TextureCache::eventFilter(QObject* watched, QEvent* event) {
         if (_secondaryFramebufferObject != NULL && _secondaryFramebufferObject->size() != size) {
             delete _secondaryFramebufferObject;
             _secondaryFramebufferObject = NULL;
+        }
+        if (_tertiaryFramebufferObject != NULL && _tertiaryFramebufferObject->size() != size) {
+            delete _tertiaryFramebufferObject;
+            _tertiaryFramebufferObject = NULL;
         }
     }
     return false;
