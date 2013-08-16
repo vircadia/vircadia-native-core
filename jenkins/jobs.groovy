@@ -141,16 +141,16 @@ parameterizedJob.with {
     }
 }
 
-doxygenJob = hifiJob('docs', false)
+/*doxygenJob = hifiJob('docs', false)
 doxygenJob.with {
     configure { project ->
         (project / builders).setValue('')
         project / publishers / 'hudson.plugins.doxygen.DoxygenArchiver' {
             doxyfilePath 'Doxyfile'
             keepAll false
-            folderWhereYouRunDoxygen ''
+            folderWhereYouRunDoxygen ' '
         }
     }
 }
 
-queue doxygenJob
+queue doxygenJob*/
