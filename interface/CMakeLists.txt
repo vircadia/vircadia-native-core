@@ -100,12 +100,12 @@ find_package(UVCCameraControl)
 find_package(ZLIB)
 
 # let the source know that we have OpenNI/NITE for Kinect
-if (OPENNI_FOUND)
+if (OPENNI_FOUND AND NOT DISABLE_OPENNI)
     add_definitions(-DHAVE_OPENNI)
     include_directories(SYSTEM ${OPENNI_INCLUDE_DIRS})
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${OPENNI_INCLUDE_DIRS}")
     target_link_libraries(${TARGET_NAME} ${OPENNI_LIBRARIES})
-endif (OPENNI_FOUND)
+endif (OPENNI_FOUND AND NOT DISABLE_OPENNI)
 
 qt5_use_modules(${TARGET_NAME} Core Gui Network OpenGL Svg)
 
