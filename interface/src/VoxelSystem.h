@@ -42,12 +42,16 @@ public:
     void simulate(float deltaTime) { };
     void render(bool texture);
 
-    unsigned long  getVoxelsUpdated() const {return _voxelsUpdated;};
+
+    VoxelTree*     getVoxelTree     () const {return _tree;}
+    unsigned long  getVoxelsUpdated () const {return _voxelsUpdated;};
     unsigned long  getVoxelsRendered() const {return _voxelsInReadArrays;};
 
     void loadVoxelsFile(const char* fileName,bool wantColorRandomizer);
     void writeToSVOFile(const char* filename, VoxelNode* node) const;
     bool readFromSVOFile(const char* filename);
+    bool readFromSquareARGB32Pixels(const char* filename);
+    bool readFromSchematicFile(const char* filename);
 
     long int getVoxelsCreated();
     long int getVoxelsColored();

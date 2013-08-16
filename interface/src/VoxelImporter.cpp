@@ -6,71 +6,85 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
-#include "VoxelImporter.h"
+#include <VoxelImporter.h>
 
-#include <QObject>
-#include <QStandardPaths>
-#include <QGridLayout>
+#include <QFileInfo>
+#include <QThreadPool>
 
-const QString WINDOW_NAME                     = QObject::tr("Import Voxels");
-const QString PREVIEW_CHECKBOX_STRING         = QObject::tr("Load preview");
-const QString IMPORT_BUTTON_NAME              = QObject::tr("Import");
-const QString IMPORT_TO_CLIPBOARD_BUTTON_NAME = QObject::tr("Import into clipboard");
-const QString IMPORT_FILE_TYPES               = QObject::tr("Sparse Voxel Octree Files, "
-                                                            "Square PNG, "
-                                                            "Schematic Files "
-                                                            "(*.svo *.png *.schematic)");
+class LocalVoxelSystem : public VoxelSystem {
+public:
+    LocalVoxelSystem() : VoxelSystem(1) {};
 
-const QString DESKTOP_LOCATION = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
+    virtual void removeOutOfView() {};
+};
 
 VoxelImporter::VoxelImporter(QWidget* parent)
-    : QFileDialog(parent, WINDOW_NAME, DESKTOP_LOCATION, IMPORT_FILE_TYPES),
-      _importButton         (IMPORT_BUTTON_NAME             , this),
-      _clipboardImportButton(IMPORT_TO_CLIPBOARD_BUTTON_NAME, this),
-      _previewBox           (PREVIEW_CHECKBOX_STRING        , this),
-      _previewBar           (this),
-      _glPreview            (this) {
+    : QObject(parent),
+      _voxelSystem(new LocalVoxelSystem()),
+      _importDialog(parent, _voxelSystem),
+      _currentTask(NULL),
+      _nextTask(NULL) {
 
-    setOption(QFileDialog::DontUseNativeDialog, true);
-    setFileMode(QFileDialog::ExistingFile);
-    setViewMode(QFileDialog::Detail);
-    _previewBar.setVisible(false);
-    _glPreview.setVisible(false);
-
-    QGridLayout* gridLayout = (QGridLayout*) layout();
-    gridLayout->addWidget(&_importButton         , 2, 2);
-    gridLayout->addWidget(&_clipboardImportButton, 2, 3);
-    gridLayout->addWidget(&_previewBox           , 3, 3);
-    gridLayout->addWidget(&_previewBar           , 0, 3);
-    gridLayout->addWidget(&_glPreview            , 1, 3);
-
-
-    connect(&_importButton         , SIGNAL(pressed()), this, SLOT(importVoxels()));
-    connect(&_clipboardImportButton, SIGNAL(pressed()), this, SLOT(importVoxelsToClipboard()));
-    connect(&_previewBox, SIGNAL(toggled(bool)), &_previewBar, SLOT(setVisible(bool)));
-    connect(&_previewBox, SIGNAL(toggled(bool)), &_glPreview , SLOT(setVisible(bool)));
+    connect(&_importDialog, SIGNAL(previewActivated(QString)), SLOT(preImport(QString)));
+    connect(&_importDialog, SIGNAL(currentChanged(QString))  , SLOT(preImport(QString)));
 }
 
-int VoxelImporter::exec() {
-    _previewBox.setChecked(false);
-    _previewBar.setVisible(false);
-    _glPreview.setVisible(false);
+void VoxelImporter::import(const QString &filename) {
+    _importDialog.reset();
+    _filename = filename;
+    _currentTask = NULL;
+    _nextTask = NULL;
 
-    return exec();
-}
+    if (_filename == "") {
+        _importDialog.exec();
+    }
 
-
-void VoxelImporter::importVoxels() {
-    accept();
-    qDebug("Congratulation, you imported a file.\n");
-}
-
-void VoxelImporter::importVoxelsToClipboard() {
-    accept();
-    qDebug("Congratulation, you imported a file to the clipboard.\n");
 
 }
 
-void VoxelImporter::preview(bool) {
+void VoxelImporter::preImport(const QString &filename) {
+    if (_importDialog.getWantPreview() && QFileInfo(filename).isFile()) {
+        _filename = filename;
 
+        _nextTask = new ImportTask(_voxelSystem, _filename);
+        connect(_nextTask, SIGNAL(destroyed()), SLOT(launchTask()));
+
+        _importDialog.reset();
+
+        if (_currentTask != NULL) {
+            _voxelSystem->getVoxelTree()->cancelImport();
+        } else {
+            launchTask();
+        }
+    }
+}
+
+void VoxelImporter::launchTask() {
+    if (_nextTask != NULL) {
+        _voxelSystem->killLocalVoxels();
+        _currentTask = _nextTask;
+        _nextTask = NULL;
+        QThreadPool::globalInstance()->start(_currentTask);
+    } else {
+        _currentTask = NULL;
+    }
+}
+
+ImportTask::ImportTask(VoxelSystem* voxelSystem, const QString &filename)
+    : _voxelSystem(voxelSystem),
+      _filename(filename) {
+
+}
+
+void ImportTask::run() {
+    if (_filename.endsWith(".png", Qt::CaseInsensitive)) {
+        _voxelSystem->readFromSquareARGB32Pixels(_filename.toLocal8Bit().data());
+    } else if (_filename.endsWith(".svo", Qt::CaseInsensitive)) {
+        _voxelSystem->readFromSVOFile(_filename.toLocal8Bit().data());
+    } else if (_filename.endsWith(".schematic", Qt::CaseInsensitive)) {
+        qDebug("[DEBUG] %d.\n",
+               _voxelSystem->readFromSchematicFile(_filename.toLocal8Bit().data()));
+    } else {
+        qDebug("[ERROR] Invalid file extension.\n");
+    }
 }

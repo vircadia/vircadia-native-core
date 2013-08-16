@@ -19,6 +19,8 @@
 #include "VoxelNodeBag.h"
 #include "VoxelSceneStats.h"
 
+#include <QObject>
+
 // Callback function, for recuseTreeWithOperation
 typedef bool (*RecurseVoxelTreeOperation)(VoxelNode* node, void* extraData);
 typedef enum {GRADIENT, RANDOM, NATURAL} creationMode;
@@ -112,7 +114,8 @@ public:
     {}
 };
 
-class VoxelTree {
+class VoxelTree : public QObject {
+    Q_OBJECT
 public:
     // when a voxel is created in the tree (object new'd)
     long voxelsCreated;
@@ -172,9 +175,8 @@ public:
     void writeToSVOFile(const char* filename, VoxelNode* node = NULL) const;
     bool readFromSVOFile(const char* filename);
     // reads voxels from square image with alpha as a Y-axis
-    bool readFromSquareARGB32Pixels(const uint32_t* pixels, int dimension);
+    bool readFromSquareARGB32Pixels(const char *filename);
     bool readFromSchematicFile(const char* filename);
-    void computeBlockColor(int id, int data, int& r, int& g, int& b, int& create);
 
     unsigned long getVoxelCount();
 
@@ -191,6 +193,13 @@ public:
     void recurseTreeWithOperationDistanceSortedTimed(PointerStack* stackOfNodes, long allowedTime,
                                                             RecurseVoxelTreeOperation operation, 
                                                             const glm::vec3& point, void* extraData);
+
+signals:
+    void importSize(float x, float y, float z);
+    void importProgress(int progress); // emit an int between 0 and 100 reflecting the progress of the import
+
+public slots:
+    void cancelImport();
 
 
 private:
@@ -209,6 +218,7 @@ private:
     bool _isDirty;
     unsigned long int _nodesChangedFromBitstream;
     bool _shouldReaverage;
+    bool _stopImport;
 };
 
 float boundaryDistanceForRenderLevel(unsigned int renderLevel);

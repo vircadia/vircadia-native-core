@@ -139,6 +139,22 @@ bool VoxelSystem::readFromSVOFile(const char* filename) {
     return result;
 }
 
+bool VoxelSystem::readFromSquareARGB32Pixels(const char *filename) {
+    bool result = _tree->readFromSquareARGB32Pixels(filename);
+    if (result) {
+        setupNewVoxelsForDrawing();
+    }
+    return result;
+}
+
+bool VoxelSystem::readFromSchematicFile(const char* filename) {
+    bool result = _tree->readFromSchematicFile(filename);
+    if (result) {
+        setupNewVoxelsForDrawing();
+    }
+    return result;
+}
+
 long int VoxelSystem::getVoxelsCreated() {
     return _tree->voxelsCreated;
 }

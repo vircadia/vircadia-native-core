@@ -1623,20 +1623,7 @@ void Application::importVoxelsToClipboard() {
     
     _clipboardTree.eraseAllVoxels();
     if (fileNameString.endsWith(".png", Qt::CaseInsensitive)) {
-        QImage pngImage = QImage(fileName);
-        if (pngImage.height() != pngImage.width()) {
-            qDebug("ERROR: Bad PNG size: height != width.\n");
-            return;
-        }
-        
-        const uint32_t* pixels;
-        if (pngImage.format() == QImage::Format_ARGB32) {
-            pixels = reinterpret_cast<const uint32_t*>(pngImage.constBits());
-        } else {
-            QImage tmp = pngImage.convertToFormat(QImage::Format_ARGB32);
-            pixels = reinterpret_cast<const uint32_t*>(tmp.constBits());
-        }
-        _clipboardTree.readFromSquareARGB32Pixels(pixels, pngImage.height());
+        _clipboardTree.readFromSquareARGB32Pixels(fileName);
     } else if (fileNameString.endsWith(".svo", Qt::CaseInsensitive)) {
         _clipboardTree.readFromSVOFile(fileName);
     } else if (fileNameString.endsWith(".schematic", Qt::CaseInsensitive)) {
@@ -1696,7 +1683,7 @@ void Application::importVoxels() {
                 pixels = reinterpret_cast<const uint32_t*>(tmp.constBits());
             }
         
-            importVoxels.readFromSquareARGB32Pixels(pixels, pngImage.height());        
+            importVoxels.readFromSquareARGB32Pixels(fileName);
         } else if (fileNameString.endsWith(".svo", Qt::CaseInsensitive)) {
             extension = QString(".svo");
             importVoxels.readFromSVOFile(fileName);
@@ -1963,8 +1950,7 @@ void Application::initMenu() {
     (_destructiveAddVoxel = voxelMenu->addAction("Create Voxel is Destructive"))->setCheckable(true);
     
     voxelMenu->addAction("Export Voxels", this, SLOT(exportVoxels()), Qt::CTRL | Qt::Key_E);
-    voxelMenu->addAction("Import Voxels", &_voxelImporter, SLOT(exec()), Qt::CTRL | Qt::Key_I);
-    voxelMenu->addAction("Import Voxels to Clipboard", this, SLOT(importVoxelsToClipboard()), Qt::SHIFT | Qt::CTRL | Qt::Key_I);
+    voxelMenu->addAction("Import Voxels", &_voxelImporter, SLOT(import()), Qt::CTRL | Qt::Key_I);
     voxelMenu->addAction("Cut Voxels",    this, SLOT(cutVoxels()),    Qt::CTRL | Qt::Key_X);
     voxelMenu->addAction("Copy Voxels",   this, SLOT(copyVoxels()),   Qt::CTRL | Qt::Key_C);
     voxelMenu->addAction("Paste Voxels",  this, SLOT(pasteVoxels()),  Qt::CTRL | Qt::Key_V);

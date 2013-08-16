@@ -9,29 +9,45 @@
 #ifndef __hifi__VoxelImporter__
 #define __hifi__VoxelImporter__
 
-#include <QFileDialog>
-#include <QPushButton>
-#include <QCheckBox>
-#include <QProgressBar>
-#include <QGLWidget>
+#include <VoxelSystem.h>
+#include <ImportDialog.h>
 
-class VoxelImporter : public QFileDialog {
+#include <QThread>
+#include <QRunnable>
+
+class ImportTask : public QObject, public QRunnable {
+    Q_OBJECT
+public:
+    ImportTask(VoxelSystem* voxelSystem, const QString &filename);
+    void run();
+
+private:
+    VoxelSystem*  _voxelSystem;
+    QString       _filename;
+};
+
+class VoxelImporter : public QObject {
     Q_OBJECT
 public:
     VoxelImporter(QWidget* parent = NULL);
 
+    void init();
+
 public slots:
-    int exec();
-    void importVoxels();
-    void importVoxelsToClipboard();
-    void preview(bool);
+    void import(const QString &filename = "");
+    void preImport(const QString &filename);
+
+private slots:
+    void launchTask();
 
 private:
-    QPushButton  _importButton;
-    QPushButton  _clipboardImportButton;
-    QCheckBox    _previewBox;
-    QProgressBar _previewBar;
-    QGLWidget    _glPreview;
+    VoxelSystem* _voxelSystem;
+    ImportDialog _importDialog;
+
+    QString      _filename;
+
+    ImportTask* _currentTask;
+    ImportTask* _nextTask;
 };
 
 #endif /* defined(__hifi__VoxelImporter__) */
