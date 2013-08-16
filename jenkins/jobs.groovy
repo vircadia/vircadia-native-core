@@ -148,6 +148,7 @@ doxygenJob.with {
         project / publishers / 'hudson.plugins.doxygen.DoxygenArchiver' {
             doxyfilePath 'Doxyfile'
             keepAll false
+            folderWhereYouRunDoxygen ''
         }
     }
 }
