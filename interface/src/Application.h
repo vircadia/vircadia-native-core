@@ -30,8 +30,8 @@
 #include "BandwidthMeter.h"
 #include "Camera.h"
 #include "Environment.h"
+#include "GLCanvas.h"
 #include "PacketHeaders.h"
-#include "ParticleSystem.h"
 #include "SerialInterface.h"
 #include "Stars.h"
 #include "Swatch.h"
@@ -111,101 +111,56 @@ public:
     Camera* getCamera() { return &_myCamera; }
     ViewFrustum* getViewFrustum() { return &_viewFrustum; }
     VoxelSystem* getVoxels() { return &_voxels; }
-    QSettings* getSettings() { return _settings; }
     Environment* getEnvironment() { return &_environment; }
     SerialInterface* getSerialHeadSensor() { return &_serialHeadSensor; }
     Webcam* getWebcam() { return &_webcam; }
     BandwidthMeter* getBandwidthMeter() { return &_bandwidthMeter; }
-    bool shouldEchoAudio() { return _echoAudioMode->isChecked(); }
-    bool shouldLowPassFilter() { return _shouldLowPassFilter->isChecked(); }
-    
-    bool shouldDynamicallySetJitterBuffer() { return _audioJitterBufferSamples == 0; }
+    QSettings* getSettings() { return _settings; }
+    Swatch*  getSwatch() { return &_swatch; }
+    QMainWindow* getWindow() { return _window; }
+    VoxelSceneStats* getVoxelSceneStats() { return &_voxelSceneStats; }
     
     QNetworkAccessManager* getNetworkAccessManager() { return _networkAccessManager; }
     GeometryCache* getGeometryCache() { return &_geometryCache; }
     TextureCache* getTextureCache() { return &_textureCache; }
     GlowEffect* getGlowEffect() { return &_glowEffect; }
     
-    void resetSongMixMenuItem();
+    static void controlledBroadcastToNodes(unsigned char* broadcastData, size_t dataBytes,
+                                           const char* nodeTypes, int numNodeTypes);
+    
     void setupWorldLight(Camera& whichCamera);
 
     virtual void nodeAdded(Node* node);
     virtual void nodeKilled(Node* node);
 
 public slots:
-    void sendAvatarFaceVideoMessage(int frameCount, const QByteArray& data);    
-    
-private slots:
-    
-    void timer();
-    void idle();
-    void terminate();
-
-    void bandwidthDetails();
-    void editPreferences();
-    void bandwidthDetailsClosed();
-
-    void voxelStatsDetails();
-    void voxelStatsDetailsClosed();
-    
-    void pair();
-    
-    void setRenderMirrored(bool mirrored);
-    void setNoise(bool noise);
-    void setFullscreen(bool fullscreen);
-    
-    void setRenderFirstPerson(bool firstPerson);
-    void setRenderThirdPerson(bool thirdPerson);
-    void increaseAvatarSize();
-    void decreaseAvatarSize();
-    void resetAvatarSize();
-    
-    void renderThrustAtVoxel(const glm::vec3& thrust);
-    void renderLineToTouchedVoxel();
-    
-    void setFrustumOffset(bool frustumOffset);
-    void cycleFrustumRenderMode();
-    
-    void setRenderWarnings(bool renderWarnings);
-    void setRenderVoxels(bool renderVoxels);
-    void doKillLocalVoxels();
-    void doRandomizeVoxelColors();
-    void doFalseRandomizeVoxelColors();
-    void doFalseRandomizeEveryOtherVoxelColors();
-    void doFalseColorizeByDistance();
-    void doFalseColorizeOccluded();
-    void doFalseColorizeOccludedV2();
-    void doFalseColorizeBySource();
-    void doFalseColorizeInView();
-    void doTrueVoxelColors();
-    void doTreeStats();
-    void setWantsMonochrome(bool wantsMonochrome);
-    void disableLowResMoving(bool disableLowResMoving);
-    void disableDeltaSending(bool disableDeltaSending);
-    void disableOcclusionCulling(bool disableOcclusionCulling);
-    void updateVoxelModeActions();
-    void decreaseVoxelSize();
-    void increaseVoxelSize();
-    void resetSwatchColors();
-    void chooseVoxelPaintColor();
-    void loadSettings(QSettings* set = NULL);
-    void saveSettings(QSettings* set = NULL);
-    void importSettings();
-    void exportSettings();
+    void sendAvatarFaceVideoMessage(int frameCount, const QByteArray& data);
     void exportVoxels();
     void importVoxels();
     void importVoxelsToClipboard();
     void cutVoxels();
     void copyVoxels();
     void pasteVoxels();
-    void runTests();
+    
+    void setRenderVoxels(bool renderVoxels);
+    void doKillLocalVoxels();
+    void decreaseVoxelSize();
+    void increaseVoxelSize();
     void setListenModeNormal();
     void setListenModePoint();
     void setListenModeSingleSource();
-    void toggleMixedSong();
-    void toggleWantCollisionsOn();
-
-
+    
+private slots:
+    
+    void timer();
+    void idle();
+    void terminate();
+    
+    void setFullscreen(bool fullscreen);
+    
+    void renderThrustAtVoxel(const glm::vec3& thrust);
+    void renderLineToTouchedVoxel();
+    
     void renderCoverageMap();
     void renderCoverageMapsRecursively(CoverageMap* map);
 
@@ -213,24 +168,17 @@ private slots:
     void renderCoverageMapsV2Recursively(CoverageMapV2* map);
 
     glm::vec2 getScaledScreenPoint(glm::vec2 projectedPoint);
-    void goHome();
 
     void toggleFollowMode();
 
 private:
     void resetCamerasOnResizeGL(Camera& camera, int width, int height);
 
-    static void controlledBroadcastToNodes(unsigned char* broadcastData, size_t dataBytes, 
-                                           const char* nodeTypes, int numNodeTypes);
-
     static bool sendVoxelsOperation(VoxelNode* node, void* extraData);
-    static void sendAvatarVoxelURLMessage(const QUrl& url);
     static void processAvatarVoxelURLMessage(unsigned char* packetData, size_t dataBytes);
     static void processAvatarFaceVideoMessage(unsigned char* packetData, size_t dataBytes);
     static void sendPingPackets();
     
-    void initMenu();
-    void updateFrustumRenderModeAction();
     void initDisplay();
     void init();
     
@@ -262,75 +210,15 @@ private:
     
     void updateCursor();
     
-    QAction* checkedVoxelModeAction() const;
-    
     static void attachNewHeadToNode(Node *newNode);
-    static void* networkReceive(void* args); // network receive thread
-
-    // methodes handling menu settings
-    typedef void(*settingsAction)(QSettings*, QAction*);
-    static void loadAction(QSettings* set, QAction* action);
-    static void saveAction(QSettings* set, QAction* action);
-    void scanMenuBar(settingsAction modifySetting, QSettings* set);
-    void scanMenu(QMenu* menu, settingsAction modifySetting, QSettings* set);
+    static void* networkReceive(void* args); // network receive thread    
 
     QMainWindow* _window;
     QGLWidget* _glWidget;
     
-    QAction* _lookingInMirror;       // Are we currently rendering one's own head as if in mirror?
-    QAction* _echoAudioMode;         // Are we asking the mixer to echo back our audio?
-    QAction* _shouldLowPassFilter;   // Use test lowpass filter
-    QAction* _gyroLook;              // Whether to allow the gyro data from head to move your view
-    QAction* _renderAvatarBalls;     // Switch between voxels and joints/balls for avatar render
-    QAction* _showHeadMouse;         // Whether the have the mouse near edge of screen move your view
-    QAction* _transmitterDrives;     // Whether to have Transmitter data move/steer the Avatar
-    QAction* _gravityUse;            // Whether gravity is on or not
-    QAction* _testPing;              // Whether to display ping or not
-    QAction* _renderVoxels;          // Whether to render voxels
-    QAction* _renderVoxelTextures;   // Whether to render noise textures on voxels
-    QAction* _renderStarsOn;         // Whether to display the stars 
-    QAction* _renderAtmosphereOn;    // Whether to display the atmosphere
-    QAction* _renderGroundPlaneOn;   // Whether to display the ground plane
-    QAction* _renderAvatarsOn;       // Whether to render avatars
-    QAction* _renderStatsOn;         // Whether to show onscreen text overlay with stats
-    QAction* _renderFrameTimerOn;    // Whether to show onscreen text overlay with stats
-    QAction* _renderLookatOn;        // Whether to show lookat vectors from avatar eyes if looking at something
-    QAction* _renderLookatIndicatorOn;
-    QAction* _renderParticleSystemOn;
-    QAction* _manualFirstPerson;     // Whether to force first-person mode
-    QAction* _manualThirdPerson;     // Whether to force third-person mode
-    QAction* _logOn;                 // Whether to show on-screen log
-    QAction* _oscilloscopeOn;        // Whether to show the oscilloscope
-    QAction* _bandwidthDisplayOn;    // Whether to show on-screen bandwidth bars
-    QActionGroup* _voxelModeActions; // The group of voxel edit mode actions
-    QAction* _addVoxelMode;          // Whether add voxel mode is enabled
-    QAction* _deleteVoxelMode;       // Whether delete voxel mode is enabled
-    QAction* _colorVoxelMode;        // Whether color voxel mode is enabled
-    QAction* _selectVoxelMode;       // Whether select voxel mode is enabled
-    QAction* _eyedropperMode;        // Whether voxel color eyedropper mode is enabled
-    QAction* _voxelPaintColor;       // The color with which to paint voxels
-    QAction* _destructiveAddVoxel;   // when doing voxel editing do we want them to be destructive
-    QAction* _frustumOn;             // Whether or not to display the debug view frustum 
-    QAction* _fullScreenMode;        // whether we are in full screen mode
-    QAction* _frustumRenderModeAction;
-    QAction* _settingsAutosave;      // Whether settings are saved automatically
-    QAction* _rawAudioMicrophoneMix; // Mixing of a RAW audio file with microphone stream for rave gloves
-    QAction* _noise;
-    QAction* _occlusionCulling;
-    QAction* _wantCollisionsOn;
-    QAction* _renderPipelineWarnings;
-
-    QAction* _renderCoverageMapV2;
-    QAction* _renderCoverageMap;
-
-    QAction* _simulateLeapHand;      // When there's no Leap, use this to pretend there is one and feed fake hand data
-    QAction* _testRaveGlove;         // Test fancy sparkle-rave-glove mode
-
     QAction* _followMode;
     
     BandwidthMeter _bandwidthMeter;
-    BandwidthDialog* _bandwidthDialog;
-    VoxelStatsDialog* _voxelStatsDialog;
 
     SerialInterface _serialHeadSensor;
     QNetworkAccessManager* _networkAccessManager;
@@ -346,8 +234,6 @@ private:
     timeval _timerStart, _timerEnd;
     timeval _lastTimeUpdated;
     bool _justStarted;
-    bool _particleSystemInitialized;
-    int  _coolDemoParticleEmitter;
 
     Stars _stars;
     
@@ -358,16 +244,6 @@ private:
     bool _wantToKillLocalVoxels;
     
     ViewFrustum _viewFrustum;  // current state of view frustum, perspective, orientation, etc.
-    
-    enum FrustumDrawMode { FRUSTUM_DRAW_MODE_ALL, FRUSTUM_DRAW_MODE_VECTORS, FRUSTUM_DRAW_MODE_PLANES,
-        FRUSTUM_DRAW_MODE_NEAR_PLANE, FRUSTUM_DRAW_MODE_FAR_PLANE, FRUSTUM_DRAW_MODE_KEYHOLE, FRUSTUM_DRAW_MODE_COUNT };
-    FrustumDrawMode _frustumDrawingMode;
-    
-    float _viewFrustumOffsetYaw;      // the following variables control yaw, pitch, roll and distance form regular
-    float _viewFrustumOffsetPitch;    // camera to the offset camera
-    float _viewFrustumOffsetRoll;
-    float _viewFrustumOffsetDistance;
-    float _viewFrustumOffsetUp;
 
     Oscilloscope _audioScope;
     
@@ -383,11 +259,6 @@ private:
     Environment _environment;
     
     int _headMouseX, _headMouseY;
-    float _gyroCameraSensitivity;
-    
-    int _audioJitterBufferSamples;     // Number of extra samples to wait before starting audio playback
-    
-    float _fieldOfView;      // In Degrees, doesn't apply to HMD like Oculus
     
     HandControl _handControl;
     
@@ -442,7 +313,6 @@ private:
     GeometryCache _geometryCache;
     TextureCache _textureCache;
     
-    ParticleSystem _particleSystem;
     GlowEffect _glowEffect;
     
     #ifndef _WIN32
