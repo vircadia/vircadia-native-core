@@ -140,3 +140,16 @@ parameterizedJob.with {
             tasks / 'hudson.plugins.postbuildtask.TaskProperties' / script).setValue(curlCommand)
     }
 }
+
+doxygenJob = hifiJob('docs', false)
+doxygenJob.with {
+    configure { project ->
+        (project / builders).setValue('')
+        project / publishers / 'hudson.plugins.doxygen.DoxygenArchiver' {
+            doxyfilePath 'Doxyfile'
+            keepAll false
+        }
+    }
+}
+
+queue doxygenJob
