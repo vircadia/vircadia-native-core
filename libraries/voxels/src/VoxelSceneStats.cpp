@@ -543,7 +543,7 @@ VoxelSceneStats::ItemInfo VoxelSceneStats::_ITEMS[] = {
     { "Mode"                 , greenish  },
 };
 
-char* VoxelSceneStats::getItemValue(int item) {
+char* VoxelSceneStats::getItemValue(Item item) {
     const uint64_t USECS_PER_SECOND = 1000 * 1000;
     int calcFPS, calcAverageFPS, calculatedKBPS;
     switch(item) {
