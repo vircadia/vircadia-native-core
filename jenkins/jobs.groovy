@@ -149,11 +149,10 @@ doxygenJob.with {
     
     configure { project ->
         (project / builders).setValue('')
-        project / publishers / 'hudson.plugins.doxygen.DoxygenArchiver' {
-            doxyfilePath 'Doxyfile'
-            keepAll false
-            folderWhereYouRunDoxygen ''
-        }
+    }
+    
+    steps {
+        shell('doxygen')
     }
 }
 
