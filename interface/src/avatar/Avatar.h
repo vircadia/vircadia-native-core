@@ -58,8 +58,7 @@ const float BODY_BALL_RADIUS_RIGHT_KNEE       = 0.025;
 const float BODY_BALL_RADIUS_RIGHT_HEEL       = 0.025;
 const float BODY_BALL_RADIUS_RIGHT_TOES       = 0.025;
 
-enum AvatarBodyBallID
-{
+enum AvatarBodyBallID {
 	BODY_BALL_NULL = -1,
 	BODY_BALL_PELVIS,	
 	BODY_BALL_TORSO,	
@@ -91,8 +90,7 @@ enum AvatarBodyBallID
 	NUM_AVATAR_BODY_BALLS
 };
 
-enum DriveKeys
-{
+enum DriveKeys {
     FWD = 0,
     BACK,
     LEFT, 
@@ -104,16 +102,14 @@ enum DriveKeys
     MAX_DRIVE_KEYS
 };
 
-enum AvatarMode
-{
+enum AvatarMode {
     AVATAR_MODE_STANDING = 0,
     AVATAR_MODE_WALKING,
     AVATAR_MODE_INTERACTING,
     NUM_AVATAR_MODES
 };
 
-enum ScreenTintLayer
-{
+enum ScreenTintLayer {
     SCREEN_TINT_BEFORE_LANDSCAPE = 0,
     SCREEN_TINT_BEFORE_AVATARS,
     SCREEN_TINT_BEFORE_MY_AVATAR,
@@ -121,8 +117,16 @@ enum ScreenTintLayer
     NUM_SCREEN_TINT_LAYERS
 };
 
+// Where one's own Avatar begins in the world (will be overwritten if avatar data file is found)
+// this is basically in the center of the ground plane. Slightly adjusted. This was asked for by
+// Grayson as he's building a street around here for demo dinner 2
+const glm::vec3 START_LOCATION(0.485f * TREE_SCALE, 0.f, 0.5f * TREE_SCALE);
+
 class Avatar : public AvatarData {
+    Q_OBJECT
 public:
+    static void sendAvatarVoxelURLMessage(const QUrl& url);
+    
     Avatar(Node* owningNode = NULL);
     ~Avatar();
     
@@ -139,52 +143,51 @@ public:
     void renderScreenTint(ScreenTintLayer layer, Camera& whichCamera);
 
     //setters
-    void setMousePressed           (bool      mousePressed           ) { _mousePressed    = mousePressed;} 
-    void setNoise                  (float     mag                    ) { _head.noise      = mag;}
-    void setMovedHandOffset        (glm::vec3 movedHandOffset        ) { _movedHandOffset = movedHandOffset;}
-    void setThrust                 (glm::vec3 newThrust              ) { _thrust          = newThrust; };
-    void setDisplayingLookatVectors(bool      displayingLookatVectors) { _head.setRenderLookatVectors(displayingLookatVectors);}
-    void setVelocity               (const glm::vec3 velocity         ) { _velocity = velocity; };
-    void setLeanScale              (float     scale                  ) { _leanScale = scale;}
-    void setGravity                (glm::vec3 gravity);
-    void setMouseRay               (const glm::vec3 &origin, const glm::vec3 &direction);
-    void setOrientation            (const glm::quat& orientation);
-    void setNewScale               (const float scale);
-    void setWantCollisionsOn       (bool wantCollisionsOn            ) { _isCollisionsOn = wantCollisionsOn; }
+    void setMousePressed(bool mousePressed) { _mousePressed    = mousePressed; }
+    void setMovedHandOffset(glm::vec3 movedHandOffset) { _movedHandOffset = movedHandOffset;}
+    void setThrust(glm::vec3 newThrust) { _thrust = newThrust; }
+    void setDisplayingLookatVectors(bool displayingLookatVectors) { _head.setRenderLookatVectors(displayingLookatVectors); }
+    void setVelocity(const glm::vec3 velocity) { _velocity = velocity; };
+    void setLeanScale(float scale) { _leanScale = scale;}
+    
+    void setGravity(glm::vec3 gravity);
+    void setMouseRay(const glm::vec3 &origin, const glm::vec3 &direction);
+    void setOrientation(const glm::quat& orientation);
+    void setNewScale(const float scale);
 
     //getters
-    bool             isInitialized             ()                const { return _initialized;}
-    bool             isMyAvatar                ()                const { return _owningNode == NULL; }
-    const Skeleton&  getSkeleton               ()                const { return _skeleton;}
-    float            getHeadYawRate            ()                const { return _head.yawRate;}
-    float            getBodyYaw                ()                const { return _bodyYaw;}    
-    bool             getIsNearInteractingOther ()                const { return _avatarTouch.getAbleToReachOtherAvatar();}
-    const glm::vec3& getHeadJointPosition      ()                const { return _skeleton.joint[ AVATAR_JOINT_HEAD_BASE ].position;}
-    const glm::vec3& getBallPosition           (AvatarJointID j) const { return _bodyBall[j].position;}
-    glm::vec3        getBodyRightDirection     ()                const { return getOrientation() * IDENTITY_RIGHT; }
-    glm::vec3        getBodyUpDirection        ()                const { return getOrientation() * IDENTITY_UP; }
-    glm::vec3        getBodyFrontDirection     ()                const { return getOrientation() * IDENTITY_FRONT; }
-    float            getScale                  ()                const { return _scale;}
-    float            getNewScale               ()                const { return _newScale;}
-    const glm::vec3& getVelocity               ()                const { return _velocity;}
-    float            getSpeed                  ()                const { return _speed;}
-    float            getHeight                 ()                const { return _height;}
-    AvatarMode       getMode                   ()                const { return _mode;}
-    float            getLeanScale              ()                const { return _leanScale;}
-    float            getElapsedTimeStopped     ()                const { return _elapsedTimeStopped;}
-    float            getElapsedTimeMoving      ()                const { return _elapsedTimeMoving;}
-    float            getElapsedTimeSinceCollision()              const { return _elapsedTimeSinceCollision;}
-    const glm::vec3& getLastCollisionPosition  ()                const { return _lastCollisionPosition;}
-    float            getAbsoluteHeadYaw        ()                const;
-    float            getAbsoluteHeadPitch      ()                const;
-    Head&            getHead                   ()                      {return _head; }
-    Hand&            getHand                   ()                      {return _hand; }
-    glm::quat        getOrientation            ()                const;
-    glm::quat        getWorldAlignedOrientation()                const;
-    const glm::vec3& getMouseRayOrigin         ()                const { return _mouseRayOrigin;    }
-    const glm::vec3& getMouseRayDirection      ()                const { return _mouseRayDirection; }
-    Avatar*          getLeadingAvatar          ()                const { return _leadingAvatar; }
-    glm::vec3        getGravity                ()                const { return _gravity; }
+    bool isInitialized() const { return _initialized;}
+    bool isMyAvatar() const { return _owningNode == NULL; }
+    const Skeleton& getSkeleton() const { return _skeleton;}
+    float getHeadYawRate() const { return _head.yawRate;}
+    float getBodyYaw() const { return _bodyYaw;}
+    bool getIsNearInteractingOther() const { return _avatarTouch.getAbleToReachOtherAvatar();}
+    const glm::vec3& getHeadJointPosition() const { return _skeleton.joint[ AVATAR_JOINT_HEAD_BASE ].position;}
+    const glm::vec3& getBallPosition(AvatarJointID j) const { return _bodyBall[j].position;}
+    glm::vec3 getBodyRightDirection() const { return getOrientation() * IDENTITY_RIGHT; }
+    glm::vec3 getBodyUpDirection() const { return getOrientation() * IDENTITY_UP; }
+    glm::vec3 getBodyFrontDirection() const { return getOrientation() * IDENTITY_FRONT; }
+    float getScale() const { return _scale;}
+    float getNewScale() const { return _newScale;}
+    const glm::vec3& getVelocity() const { return _velocity;}
+    float getSpeed() const { return _speed;}
+    float getHeight() const { return _height;}
+    AvatarMode getMode() const { return _mode;}
+    float getLeanScale() const { return _leanScale;}
+    float getElapsedTimeStopped() const { return _elapsedTimeStopped;}
+    float getElapsedTimeMoving() const { return _elapsedTimeMoving;}
+    float getElapsedTimeSinceCollision() const { return _elapsedTimeSinceCollision;}
+    const glm::vec3& getLastCollisionPosition() const { return _lastCollisionPosition;}
+    float getAbsoluteHeadYaw() const;
+    float getAbsoluteHeadPitch() const;
+    Head& getHead() {return _head; }
+    Hand& getHand() {return _hand; }
+    glm::quat getOrientation() const;
+    glm::quat getWorldAlignedOrientation() const;
+    const glm::vec3& getMouseRayOrigin() const { return _mouseRayOrigin;    }
+    const glm::vec3& getMouseRayDirection() const { return _mouseRayDirection; }
+    Avatar* getLeadingAvatar() const { return _leadingAvatar; }
+    glm::vec3 getGravity() const { return _gravity; }
     
     glm::vec3 getUprightHeadPosition() const;
     glm::vec3 getUprightEyeLevelPosition() const;
@@ -209,14 +212,20 @@ public:
     void getBodyBallTransform(AvatarJointID jointID, glm::vec3& position, glm::quat& rotation) const;
 
     static void renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2, float radius1, float radius2);
+    
+public slots:
+    void setWantCollisionsOn(bool wantCollisionsOn) { _isCollisionsOn = wantCollisionsOn; }
+    void goHome();
+    void increaseSize();
+    void decreaseSize();
+    void resetSize();
 
 private:
     // privatize copy constructor and assignment operator to avoid copying
     Avatar(const Avatar&);
     Avatar& operator= (const Avatar&);
     
-    struct AvatarBall
-    {
+    struct AvatarBall {
         AvatarJointID    parentJoint;    // the skeletal joint that serves as a reference for determining the position
         glm::vec3        parentOffset;   // a 3D vector in the frame of reference of the parent skeletal joint
         AvatarBodyBallID parentBall;     // the ball to which this ball is constrained for spring forces 

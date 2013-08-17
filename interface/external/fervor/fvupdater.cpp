@@ -9,7 +9,7 @@
 #include "quazip.h"
 #include "quazipfile.h"
 
-#ifdef Q_WS_MAC
+#ifdef Q_OS_MAC
 #include "CoreFoundation/CoreFoundation.h"
 #endif
 
@@ -228,7 +228,7 @@ void FvUpdater::httpUpdateDownloadFinished()
 		{
 			if (reply->isReadable())
 			{
-#ifdef Q_WS_MAC
+#ifdef Q_OS_MAC
                 CFURLRef appURLRef = CFBundleCopyBundleURL(CFBundleGetMainBundle());
                 char path[PATH_MAX];
                 if (!CFURLGetFileSystemRepresentation(appURLRef, TRUE, (UInt8 *)path, PATH_MAX)) {

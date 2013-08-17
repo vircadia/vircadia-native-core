@@ -23,6 +23,7 @@
 
 #include "Application.h"
 #include "Audio.h"
+#include "Menu.h"
 #include "Util.h"
 
 //  Uncomment the following definition to test audio device latency by copying output to input
@@ -112,7 +113,7 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
             // + 12 for 3 floats for position + float for bearing + 1 attenuation byte
             unsigned char dataPacket[MAX_PACKET_SIZE];
             
-            PACKET_TYPE packetType = (Application::getInstance()->shouldEchoAudio())
+            PACKET_TYPE packetType = Menu::getInstance()->isOptionChecked(MenuOption::EchoAudio)
                 ? PACKET_TYPE_MICROPHONE_AUDIO_WITH_ECHO
                 : PACKET_TYPE_MICROPHONE_AUDIO_NO_ECHO;
             
@@ -152,38 +153,6 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
             // memcpy our orientation
             memcpy(currentPacketPtr, &headOrientation, sizeof(headOrientation));
             currentPacketPtr += sizeof(headOrientation);
-            
-            // check if we have a song to add to our audio
-            if (_songFileBytes > 0 && _songFileStream->tellg() != -1) {
-                // iterate over BUFFER_LENGTH_SAMPLES_PER_CHANNEL from the song file and add that to our audio
-                for (int i = 0; i < BUFFER_LENGTH_SAMPLES_PER_CHANNEL; i++) {
-                    int16_t songSample = 0;
-                    
-                    _songFileStream->read((char*) &songSample, sizeof(songSample));
-                    
-                    // attenuate the song samples since they will be loud
-                    const float SONG_SAMPLE_ATTENUATION = 0.25;
-                    songSample *= SONG_SAMPLE_ATTENUATION;
-                    
-                    // add the song sample to the output and input buffersg
-                    inputLeft[i] = inputLeft[i] + songSample;
-                    outputLeft[i] = outputLeft[i] + songSample;
-                    outputRight[i] =  outputLeft[i] + songSample;
-                }
-            } else if (_songFileStream) {
-                // close the stream
-                _songFileStream->close();
-                
-                // delete the _songFileStream
-                delete _songFileStream;
-                _songFileStream = NULL;
-                
-                // reset the _songFileBytes back to zero
-                _songFileBytes = 0;
-                
-                // call Application stopMixingSong method to fix menu item
-                Application::getInstance()->resetSongMixMenuItem();
-            }
             
             // copy the audio data to the last BUFFER_LENGTH_BYTES bytes of the data packet
             memcpy(currentPacketPtr, inputLeft, BUFFER_LENGTH_BYTES_PER_CHANNEL);
@@ -415,8 +384,6 @@ Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples) :
     _collisionSoundDuration(0.0f),
     _proceduralEffectSample(0),
     _heartbeatMagnitude(0.0f),
-    _songFileStream(NULL),
-    _songFileBytes(0),
     _listenMode(AudioRingBuffer::NORMAL),
     _listenRadius(0.0f)
 {
@@ -489,24 +456,6 @@ Audio::~Audio() {
     delete[] _echoSamplesLeft;
 }
 
-
-void Audio::importSongToMixWithMicrophone(const char* filename) {    
-    _songFileStream = new std::ifstream(filename);
-    
-    long begin = _songFileStream->tellg();
-    _songFileStream->seekg(0, std::ios::end);
-    long end = _songFileStream->tellg();
-    
-    // go back to the beginning
-    _songFileStream->seekg(0);
-    
-    _songFileBytes = end - begin;
-}
-
-void Audio::stopMixingSongWithMicrophone() {
-    _songFileBytes = 0;
-}
-
 void Audio::addReceivedAudioToBuffer(unsigned char* receivedData, int receivedBytes) {
     const int NUM_INITIAL_PACKETS_DISCARD = 3;
     const int STANDARD_DEVIATION_SAMPLE_COUNT = 500;
@@ -528,7 +477,7 @@ void Audio::addReceivedAudioToBuffer(unsigned char* receivedData, int receivedBy
         //  Set jitter buffer to be a multiple of the measured standard deviation
         const int MAX_JITTER_BUFFER_SAMPLES = RING_BUFFER_LENGTH_SAMPLES / 2;
         const float NUM_STANDARD_DEVIATIONS = 3.f;
-        if (Application::getInstance()->shouldDynamicallySetJitterBuffer()) {
+        if (Menu::getInstance()->getAudioJitterBufferSamples() == 0) {
             float newJitterBufferSamples = (NUM_STANDARD_DEVIATIONS * _measuredJitter)
                                             / 1000.f
                                             * SAMPLE_RATE;
@@ -646,7 +595,7 @@ void Audio::render(int screenWidth, int screenHeight) {
         sprintf(out, "%.0f\n", getJitterBufferSamples() / SAMPLE_RATE * 1000.f);
         drawtext(startX + jitterBufferPels - 5, topY - 9, 0.10, 0, 1, 0, out, 1, 0, 0);
         sprintf(out, "j %.1f\n", _measuredJitter);
-        if (Application::getInstance()->shouldDynamicallySetJitterBuffer()) {
+        if (Menu::getInstance()->getAudioJitterBufferSamples() == 0) {
             drawtext(startX + jitterBufferPels - 5, bottomY + 12, 0.10, 0, 1, 0, out, 1, 0, 0);
         } else {
             drawtext(startX, bottomY + 12, 0.10, 0, 1, 0, out, 1, 0, 0);

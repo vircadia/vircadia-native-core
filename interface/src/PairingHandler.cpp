@@ -17,6 +17,16 @@
 const char PAIRING_SERVER_HOSTNAME[] = "pairing.highfidelity.io";
 const int PAIRING_SERVER_PORT = 7247;
 
+PairingHandler* PairingHandler::getInstance() {
+    static PairingHandler* instance = NULL;
+    
+    if (!instance) {
+        instance = new PairingHandler();
+    }
+    
+    return instance;
+}
+
 void PairingHandler::sendPairRequest() {    
     // grab the node socket from the NodeList singleton
     UDPSocket *nodeSocket = NodeList::getInstance()->getNodeSocket();

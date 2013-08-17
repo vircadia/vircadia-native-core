@@ -41,7 +41,7 @@ extern const char DEFAULT_DOMAIN_HOSTNAME[MAX_HOSTNAME_BYTES];
 extern const char DEFAULT_DOMAIN_IP[INET_ADDRSTRLEN];    //  IP Address will be re-set by lookup on startup
 extern const int DEFAULT_DOMAINSERVER_PORT;
 
-const int UNKNOWN_NODE_ID = -1;
+const int UNKNOWN_NODE_ID = 0;
 
 class NodeListIterator;
 

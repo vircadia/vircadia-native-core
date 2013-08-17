@@ -1,13 +1,13 @@
 //
-//  Cube.h
+//  VoxelSystem.h
 //  interface
 //
 //  Created by Philip on 12/31/12.
 //  Copyright (c) 2012 High Fidelity, Inc. All rights reserved.
 //
 
-#ifndef __interface__Cube__
-#define __interface__Cube__
+#ifndef __interface__VoxelSystem__
+#define __interface__VoxelSystem__
 
 #include "InterfaceConfig.h"
 #include <glm/glm.hpp>
@@ -29,6 +29,7 @@ class ProgramObject;
 const int NUM_CHILDREN = 8;
 
 class VoxelSystem : public NodeData, public VoxelNodeDeleteHook, public NodeListHook {
+    Q_OBJECT
 public:
     VoxelSystem(float treeScale = TREE_SCALE, int maxVoxels = MAX_VOXELS_PER_SYSTEM);
     ~VoxelSystem();
@@ -60,21 +61,7 @@ public:
     float getVoxelsColoredPerSecondAverage();
     float getVoxelsBytesReadPerSecondAverage();
 
-    // Methods that recurse tree
-    void randomizeVoxelColors();
-    void falseColorizeRandom();
-    void trueColorize();
-    void falseColorizeInView(ViewFrustum* viewFrustum);
-    void falseColorizeDistanceFromView(ViewFrustum* viewFrustum);
-    void falseColorizeRandomEveryOther();
-    void falseColorizeOccluded();
-    void falseColorizeOccludedV2();
-    void falseColorizeBySource();
-    
-
     void killLocalVoxels();
-    void setRenderPipelineWarnings(bool on) { _renderWarningsOn = on; };
-    bool getRenderPipelineWarnings() const { return _renderWarningsOn; };
 
     virtual void removeOutOfView();
     bool hasViewChanged();
@@ -85,8 +72,6 @@ public:
     
     bool findSpherePenetration(const glm::vec3& center, float radius, glm::vec3& penetration);
     bool findCapsulePenetration(const glm::vec3& start, const glm::vec3& end, float radius, glm::vec3& penetration);
-    
-    void collectStatsForTreesAndVBOs();
 
     void deleteVoxelAt(float x, float y, float z, float s);
     VoxelNode* getVoxelAt(float x, float y, float z, float s) const;
@@ -105,6 +90,20 @@ public:
     virtual void nodeDeleted(VoxelNode* node);
     virtual void nodeAdded(Node* node);
     virtual void nodeKilled(Node* node);
+    
+public slots:
+    void collectStatsForTreesAndVBOs();
+    
+    // Methods that recurse tree
+    void randomizeVoxelColors();
+    void falseColorizeRandom();
+    void trueColorize();
+    void falseColorizeInView();
+    void falseColorizeDistanceFromView();
+    void falseColorizeRandomEveryOther();
+    void falseColorizeOccluded();
+    void falseColorizeOccludedV2();
+    void falseColorizeBySource();
         
 protected:
     float _treeScale; 
@@ -130,7 +129,6 @@ private:
     int  _callsToTreesToArrays;
     VoxelNodeBag _removedVoxels;
 
-    bool _renderWarningsOn;
     // Operation functions for tree recursion methods
     static int _nodeCount;
     static bool randomColorOperation(VoxelNode* node, void* extraData);
