@@ -323,6 +323,7 @@ void Avatar::updateFromGyrosAndOrWebcam(bool gyroLook,
     Webcam* webcam = Application::getInstance()->getWebcam();
     glm::vec3 estimatedPosition, estimatedRotation;
     if (gyros->isActive()) {
+        estimatedPosition = gyros->getEstimatedPosition();
         estimatedRotation = gyros->getEstimatedRotation();
     
     } else if (webcam->isActive()) {
