@@ -45,7 +45,12 @@ void AmbientOcclusionEffect::init() {
     const int SAMPLE_KERNEL_SIZE = 16;
     QVector3D sampleKernel[SAMPLE_KERNEL_SIZE];
     for (int i = 0; i < SAMPLE_KERNEL_SIZE; i++) {
-        glm::vec3 vector = glm::ballRand(1.0f);
+        // square the length in order to increase density towards the center
+        glm::vec3 vector = glm::sphericalRand(1.0f);
+        float scale = randFloat();
+        const float MIN_VECTOR_LENGTH = 0.01f;
+        const float MAX_VECTOR_LENGTH = 1.0f;
+        vector *= glm::mix(MIN_VECTOR_LENGTH, MAX_VECTOR_LENGTH, scale * scale);
         sampleKernel[i] = QVector3D(vector.x, vector.y, vector.z);
     }
     
