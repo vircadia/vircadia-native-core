@@ -151,6 +151,12 @@ Menu::Menu() :
                                   &appInstance->getAvatar()->getHead().getFace(),
                                   SLOT(cycleRenderMode()));
     
+    addActionToQMenuAndActionHash(renderMenu,
+                                  MenuOption::GlowMode,
+                                  0,
+                                  appInstance->getGlowEffect(),
+                                  SLOT(cycleRenderMode()));
+    
     addCheckableActionToQMenuAndActionHash(renderMenu, MenuOption::FrameTimer);
     addCheckableActionToQMenuAndActionHash(renderMenu, MenuOption::LookAtVectors);
     addCheckableActionToQMenuAndActionHash(renderMenu, MenuOption::LookAtIndicator, 0, true);
