@@ -20,6 +20,7 @@
 #include <QStandardPaths>
 
 #include "Application.h"
+#include "fvupdater.h"
 #include "PairingHandler.h"
 #include "Menu.h"
 #include "Util.h"
@@ -459,6 +460,12 @@ void Menu::exportSettings() {
     }
 }
 
+void Menu::checkForUpdates() {
+    qDebug() << "Checking if there are available updates.\n";
+    // if this is a release OS X build use fervor to check for an update
+    FvUpdater::sharedUpdater()->SetFeedURL("https://s3-us-west-1.amazonaws.com/highfidelity/appcast.xml");
+    FvUpdater::sharedUpdater()->CheckForUpdatesSilent();
+}
 
 void Menu::loadAction(QSettings* set, QAction* action) {
     if (action->isChecked() != set->value(action->text(), action->isChecked()).toBool()) {

@@ -58,6 +58,7 @@ public slots:
     void saveSettings(QSettings* settings = NULL);
     void importSettings();
     void exportSettings();
+    void checkForUpdates();
     
 private slots:
     void editPreferences();

@@ -64,7 +64,6 @@
 #include "renderer/ProgramObject.h"
 #include "ui/TextRenderer.h"
 #include "Swatch.h"
-#include "fvupdater.h"
 
 using namespace std;
 
@@ -209,15 +208,13 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     NodeList::getInstance()->startSilentNodeRemovalThread();
     
     _window->setCentralWidget(_glWidget);
-    
-#if defined(Q_OS_MAC) && defined(QT_NO_DEBUG)
-    // if this is a release OS X build use fervor to check for an update    
-    FvUpdater::sharedUpdater()->SetFeedURL("https://s3-us-west-1.amazonaws.com/highfidelity/appcast.xml");
-    FvUpdater::sharedUpdater()->CheckForUpdatesSilent();
-#endif
 
     // call Menu getInstance static method to set up the menu
     _window->setMenuBar(Menu::getInstance());
+    
+#if defined(Q_OS_MAC) && defined(QT_NO_DEBUG)
+    Menu::getInstance()->checkForUpdates();
+#endif
     
     _networkAccessManager = new QNetworkAccessManager(this);
     
