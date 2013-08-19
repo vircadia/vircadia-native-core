@@ -108,13 +108,33 @@ def targets = [
     'pairing-server':true,
     'space-server':true,
     'voxel-server':true,
-    'interface':false,
 ]
 
 /* setup all of the target jobs to use the above template */
 for (target in targets) {
-    queue hifiJob(target.key, target.value)
+    queue hifiJob(target.key, target.value) 
 }
+
+/* setup the UNIX and OS X interface builds */
+interfaceUnixJob = hifiJob('interface', false)
+interfaceUnixJob.with {
+    name 'hifi-interface-unix'
+}
+
+queue interfaceUnixJob
+
+interfaceAppleJob = hifiJob('interface', false)
+interfaceAppleJob.with {
+    name 'hifi-interface-osx'
+    configure { project ->
+        project << {
+            assignedNode 'interface-mini'
+            canRoam false
+        } 
+    }
+}
+
+queue interfaceAppleJob
 
 /* setup the parametrized build job for builds from jenkins */
 parameterizedJob = hifiJob('$TARGET', true)
