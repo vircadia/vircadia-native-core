@@ -9,11 +9,14 @@
 #ifndef __hifi__PairingHandler__
 #define __hifi__PairingHandler__
 
-#include <iostream>
+#include <QtCore/QObject>
 
-class PairingHandler {
+class PairingHandler : public QObject {
+    Q_OBJECT
 public:
-    static void sendPairRequest();
+    static PairingHandler* getInstance();
+public slots:
+    void sendPairRequest();
 };
 
 #endif /* defined(__hifi__PairingHandler__) */

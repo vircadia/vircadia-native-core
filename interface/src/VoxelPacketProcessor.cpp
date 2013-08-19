@@ -11,14 +11,16 @@
 #include <PerfStat.h>
 
 #include "Application.h"
+#include "Menu.h"
 #include "VoxelPacketProcessor.h"
 
 void VoxelPacketProcessor::processPacket(sockaddr& senderAddress, unsigned char* packetData, ssize_t packetLength) {
-    Application* app = Application::getInstance();
-
-    PerformanceWarning warn(app->_renderPipelineWarnings->isChecked(),"VoxelPacketProcessor::processPacket()");
+    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
+                            "VoxelPacketProcessor::processPacket()");
     ssize_t messageLength = packetLength;
 
+    Application* app = Application::getInstance();
+    
     // check to see if the UI thread asked us to kill the voxel tree. since we're the only thread allowed to do that
     if (app->_wantToKillLocalVoxels) {
         app->_voxels.killLocalVoxels();
@@ -42,7 +44,7 @@ void VoxelPacketProcessor::processPacket(sockaddr& senderAddress, unsigned char*
         }
     } // fall through to piggyback message
 
-    if (app->_renderVoxels->isChecked()) {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
         Node* voxelServer = NodeList::getInstance()->nodeWithAddress(&senderAddress);
         if (voxelServer && socketMatch(voxelServer->getActiveSocket(), &senderAddress)) {
             voxelServer->lock();

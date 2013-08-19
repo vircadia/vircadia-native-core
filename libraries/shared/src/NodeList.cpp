@@ -63,7 +63,7 @@ NodeList::NodeList(char newOwnerType, unsigned short int newSocketListenPort) :
     _ownerType(newOwnerType),
     _nodeTypesOfInterest(NULL),
     _ownerID(UNKNOWN_NODE_ID),
-    _lastNodeID(0)
+    _lastNodeID(UNKNOWN_NODE_ID + 1)
 {
     memcpy(_domainHostname, DEFAULT_DOMAIN_HOSTNAME, sizeof(DEFAULT_DOMAIN_HOSTNAME));
     memcpy(_domainIP, DEFAULT_DOMAIN_IP, sizeof(DEFAULT_DOMAIN_IP));
