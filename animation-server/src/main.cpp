@@ -735,21 +735,27 @@ int main(int argc, const char * argv[])
     // Handle Local Domain testing with the --local command line
     const char* NO_BILLBOARD = "--NoBillboard";
     ::includeBillboard = !cmdOptionExists(argc, argv, NO_BILLBOARD);
+    printf("includeBillboard=%s\n",debug::valueOf(::includeBillboard));
 
     const char* NO_BORDER_TRACER = "--NoBorderTracer";
     ::includeBorderTracer = !cmdOptionExists(argc, argv, NO_BORDER_TRACER);
+    printf("includeBorderTracer=%s\n",debug::valueOf(::includeBorderTracer));
 
     const char* NO_MOVING_BUG = "--NoMovingBug";
     ::includeMovingBug = !cmdOptionExists(argc, argv, NO_MOVING_BUG);
+    printf("includeMovingBug=%s\n",debug::valueOf(::includeMovingBug));
 
     const char* INCLUDE_BLINKING_VOXEL = "--includeBlinkingVoxel";
     ::includeBlinkingVoxel = cmdOptionExists(argc, argv, INCLUDE_BLINKING_VOXEL);
+    printf("includeBlinkingVoxel=%s\n",debug::valueOf(::includeBlinkingVoxel));
 
     const char* NO_DANCE_FLOOR = "--NoDanceFloor";
     ::includeDanceFloor = !cmdOptionExists(argc, argv, NO_DANCE_FLOOR);
+    printf("includeDanceFloor=%s\n",debug::valueOf(::includeDanceFloor));
 
     const char* BUILD_STREET = "--BuildStreet";
     ::buildStreet = cmdOptionExists(argc, argv, BUILD_STREET);
+    printf("buildStreet=%s\n",debug::valueOf(::buildStreet));
 
     // Handle Local Domain testing with the --local command line
     const char* showPPS = "--showPPS";

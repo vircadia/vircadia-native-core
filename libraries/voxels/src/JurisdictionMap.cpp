@@ -217,13 +217,15 @@ int JurisdictionMap::packIntoMessage(unsigned char* destinationBuffer, int avail
         
         // if and only if there's a root jurisdiction, also include the end nodes
         int endNodeCount = _endNodes.size(); 
-
         memcpy(destinationBuffer, &endNodeCount, sizeof(endNodeCount));
         destinationBuffer += sizeof(endNodeCount);
 
         for (int i=0; i < endNodeCount; i++) {
             unsigned char* endNodeCode = _endNodes[i];
-            int bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(endNodeCode));
+            int bytes = 0;
+            if (endNodeCode) {
+                bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(endNodeCode));
+            }
             memcpy(destinationBuffer, &bytes, sizeof(bytes));
             destinationBuffer += sizeof(bytes);
             memcpy(destinationBuffer, endNodeCode, bytes);
@@ -266,7 +268,11 @@ int JurisdictionMap::unpackFromMessage(unsigned char* sourceBuffer, int availabl
             unsigned char* endNodeCode = new unsigned char[bytes];
             memcpy(endNodeCode, sourceBuffer, bytes);
             sourceBuffer += bytes;
-            _endNodes.push_back(endNodeCode);
+            
+            // if the endNodeCode was 0 length then don't add it
+            if (bytes > 0) {
+                _endNodes.push_back(endNodeCode);
+            }
         }
     }
     

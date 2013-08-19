@@ -30,9 +30,10 @@ public:
     /// If you're running in non-threaded mode, you must call this regularly
     void* threadRoutine();
 
-protected:
     /// Override this function to do whatever your class actually does, return false to exit thread early.
     virtual bool process() = 0;
+
+protected:
 
     /// Locks all the resources of the thread.
     void lock() { pthread_mutex_lock(&_mutex); }

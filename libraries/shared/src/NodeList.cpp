@@ -411,6 +411,7 @@ Node* NodeList::addOrUpdateNode(sockaddr* publicSocket, sockaddr* localSocket, c
     } else {
         
         if (node->getType() == NODE_TYPE_AUDIO_MIXER ||
+            //node->getType() == NODE_TYPE_ANIMATION_SERVER ||
             node->getType() == NODE_TYPE_VOXEL_SERVER) {
             // until the Audio class also uses our nodeList, we need to update
             // the lastRecvTimeUsecs for the audio mixer so it doesn't get killed and re-added continously

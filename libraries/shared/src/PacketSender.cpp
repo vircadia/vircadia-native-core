@@ -10,14 +10,19 @@
 
 #include <stdint.h>
 
-const uint64_t SEND_INTERVAL_USECS = 1000 * 5; // no more than 200pps... should be settable
-
 #include "NodeList.h"
 #include "PacketSender.h"
 #include "SharedUtil.h"
 
-PacketSender::PacketSender(PacketSenderNotify* notify) : _notify(notify) {
-    _lastSendTime = usecTimestampNow();
+const int PacketSender::DEFAULT_PACKETS_PER_SECOND = 200;
+const int PacketSender::MINIMUM_PACKETS_PER_SECOND = 1;
+
+
+PacketSender::PacketSender(PacketSenderNotify* notify, int packetsPerSecond) : 
+    _packetsPerSecond(packetsPerSecond),
+    _lastSendTime(usecTimestampNow()),
+    _notify(notify)
+{
 }
 
 
@@ -29,9 +34,14 @@ void PacketSender::queuePacket(sockaddr& address, unsigned char* packetData, ssi
 }
 
 bool PacketSender::process() {
+//printf("PacketSender::process() packets pending=%ld _packetsPerSecond=%d\n",_packets.size(),_packetsPerSecond);
+
+    
+    uint64_t USECS_PER_SECOND = 1000 * 1000;
+    uint64_t SEND_INTERVAL_USECS = (_packetsPerSecond == 0) ? USECS_PER_SECOND : (USECS_PER_SECOND / _packetsPerSecond);
+    
     if (_packets.size() == 0) {
-        const uint64_t SEND_THREAD_SLEEP_INTERVAL = (1000 * 1000)/60; // check at 60fps
-        usleep(SEND_THREAD_SLEEP_INTERVAL);
+        usleep(SEND_INTERVAL_USECS);
     }
     while (_packets.size() > 0) {
         NetworkPacket& packet = _packets.front();
@@ -39,7 +49,9 @@ bool PacketSender::process() {
         // send the packet through the NodeList...
         UDPSocket* nodeSocket = NodeList::getInstance()->getNodeSocket();
 
+//printf("sending a packet... length=%lu\n",packet.getLength());
         nodeSocket->send(&packet.getAddress(), packet.getData(), packet.getLength());
+        
         if (_notify) {
             _notify->packetSentNotification(packet.getLength());
         }
