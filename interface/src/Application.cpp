@@ -2378,7 +2378,10 @@ void Application::displaySide(Camera& whichCamera) {
         renderWorldBox();
     }
     
-    _ambientOcclusionEffect.render();
+    // render the ambient occlusion effect if enabled
+    if (Menu::getInstance()->isOptionChecked(MenuOption::AmbientOcclusion)) {
+        _ambientOcclusionEffect.render();
+    }
     
     // brad's frustum for debugging
     if (Menu::getInstance()->isOptionChecked(MenuOption::DisplayFrustum)) {

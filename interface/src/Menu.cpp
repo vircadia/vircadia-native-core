@@ -157,6 +157,7 @@ Menu::Menu() :
                                   appInstance->getGlowEffect(),
                                   SLOT(cycleRenderMode()));
     
+    addCheckableActionToQMenuAndActionHash(renderMenu, MenuOption::AmbientOcclusion);
     addCheckableActionToQMenuAndActionHash(renderMenu, MenuOption::FrameTimer);
     addCheckableActionToQMenuAndActionHash(renderMenu, MenuOption::LookAtVectors);
     addCheckableActionToQMenuAndActionHash(renderMenu, MenuOption::LookAtIndicator, 0, true);
