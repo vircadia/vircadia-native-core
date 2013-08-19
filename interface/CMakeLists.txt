@@ -50,6 +50,8 @@ find_package(Qt5Gui REQUIRED)
 find_package(Qt5Network REQUIRED)
 find_package(Qt5OpenGL REQUIRED)
 find_package(Qt5Svg REQUIRED)
+find_package(Qt5WebKit REQUIRED)
+find_package(Qt5Widgets REQUIRED)
 
 if (APPLE)
   # set how the icon shows up in the Info.plist file
