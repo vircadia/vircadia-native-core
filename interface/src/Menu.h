@@ -137,6 +137,7 @@ namespace MenuOption {
     const QString FrameTimer = "Show Timer";
     const QString FrustumRenderMode = "Render Mode";
     const QString Fullscreen = "Fullscreen";
+    const QString GlowMode = "Cycle Glow Mode";
     const QString ImportVoxels = "Import Voxels";
     const QString ImportVoxelsClipboard = "Import Voxels to Clipboard";
     const QString IncreaseAvatarSize = "Increase Avatar Size";
