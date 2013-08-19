@@ -127,14 +127,6 @@ int main(int argc, const char * argv[])
             unsigned char* nodeTypesOfInterest = packetData + numBytesSenderHeader + sizeof(NODE_TYPE)
                 + numBytesSocket + sizeof(unsigned char);
             int numInterestTypes = *(nodeTypesOfInterest - 1);
-
-/*
-printf("line 131 newNode=%d type=%c numInterestTypes=%d\n", newNode->getNodeID(), newNode->getType(), numInterestTypes);
-for (int t = 0; t < numInterestTypes; t++) {
-    printf("line 133 t=%d type=%c\n", t, nodeTypesOfInterest[t]);
-    
-}
-*/
             
             if (numInterestTypes > 0) {
                 // if the node has sent no types of interest, assume they want nothing but their own ID back
@@ -145,18 +137,14 @@ for (int t = 0; t < numInterestTypes; t++) {
                         // and this is an node of a type in the passed node types of interest
                         // or the node did not pass us any specific types they are interested in
 
-//printf("line 140 node=%d type=%c\n", node->getNodeID(), node->getType());                    
                         if (memchr(SOLO_NODE_TYPES, node->getType(), sizeof(SOLO_NODE_TYPES)) == NULL) {
                             // this is an node of which there can be multiple, just add them to the packet
                             // don't send avatar nodes to other avatars, that will come from avatar mixer
-//printf("line 144 node=%d type=%c\n", node->getNodeID(), node->getType());                    
                             if (nodeType != NODE_TYPE_AGENT || node->getType() != NODE_TYPE_AGENT) {
-//printf("line 146 node=%d type=%c\n", node->getNodeID(), node->getType());                    
                                 currentBufferPos = addNodeToBroadcastPacket(currentBufferPos, &(*node));
                             }
                         
                         } else {
-//printf("line 151 node=%d type=%c\n", node->getNodeID(), node->getType());                    
                             // solo node, we need to only send newest
                             if (newestSoloNodes[node->getType()] == NULL ||
                                 newestSoloNodes[node->getType()]->getWakeMicrostamp() < node->getWakeMicrostamp()) {
