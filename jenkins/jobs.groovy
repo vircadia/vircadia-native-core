@@ -138,7 +138,7 @@ interfaceOSXJob.with {
     }
 }
 
-queue interfaceAppleJob
+queue interfaceOSXJob
 
 /* setup the parametrized build job for builds from jenkins */
 parameterizedJob = hifiJob('$TARGET', true)
