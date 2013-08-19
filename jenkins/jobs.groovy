@@ -117,8 +117,8 @@ for (target in targets) {
 }
 
 /* setup the OS X interface builds */
-interfaceAppleJob = hifiJob('interface', false)
-interfaceAppleJob.with {
+interfaceOSXJob = hifiJob('interface', false)
+interfaceOSXJob.with {
     name 'hifi-interface-osx'
     
     scm {
@@ -152,7 +152,11 @@ parameterizedJob.with {
     }   
     scm {
         git('git@github.com:/$GITHUB_USER/hifi.git', '$GIT_BRANCH') { node ->
-            node / 'wipeOutWorkspace' << true
+            node << {
+                wipeOutWorkspace true
+                useShallowClone true
+            } 
+            
         }
     } 
     configure { project ->
@@ -168,7 +172,11 @@ parameterizedJob.with {
 doxygenJob = hifiJob('docs', false)
 doxygenJob.with {
     scm {
-        git(GIT_REPO_URL, 'master') {}
+        git(GIT_REPO_URL, 'master') { node ->
+            node << {
+                useShallowClone true
+            }
+        }
     }
     
     configure { project ->
