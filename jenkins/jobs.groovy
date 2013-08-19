@@ -10,9 +10,10 @@ def hifiJob(String targetName, Boolean deploy) {
         
         scm {
             git(GIT_REPO_URL, 'master') { node ->
-                 node / includedRegions << "${targetName}/.*\nlibraries/.*"
-                 node / 'userRemoteConfigs' / 'hudson.plugins.git.UserRemoteConfig' / 'name' << ''
-                 node / 'userRemoteConfigs' / 'hudson.plugins.git.UserRemoteConfig' / 'refspec' << ''
+                node << {
+                    includedRegions "${targetName}/.*\nlibraries/.*"
+                    useShallowClone true
+                }
             }
         }
        
@@ -112,20 +113,23 @@ def targets = [
 
 /* setup all of the target jobs to use the above template */
 for (target in targets) {
-    queue hifiJob(target.key, target.value) 
+    queue hifiJob(target.key, target.value)
 }
 
-/* setup the UNIX and OS X interface builds */
-interfaceUnixJob = hifiJob('interface', false)
-interfaceUnixJob.with {
-    name 'hifi-interface-unix'
-}
-
-queue interfaceUnixJob
-
+/* setup the OS X interface builds */
 interfaceAppleJob = hifiJob('interface', false)
 interfaceAppleJob.with {
     name 'hifi-interface-osx'
+    
+    scm {
+        git(GIT_REPO_URL, 'stable') { node ->
+            node << {
+                includedRegions "interface/.*\nlibraries/.*"
+                useShallowClone true
+            }
+        }
+    }
+    
     configure { project ->
         project << {
             assignedNode 'interface-mini'
