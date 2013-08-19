@@ -239,7 +239,7 @@ private:
     Stars _stars;
     
     VoxelSystem   _voxels;
-    VoxelTree     _clipboardTree; // if I copy/paste
+    VoxelSystem   _clipboard; // if I copy/paste
     VoxelImporter _voxelImporter;
 
     QByteArray _voxelsFilename;

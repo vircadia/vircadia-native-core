@@ -43,8 +43,6 @@ public:
     void simulate(float deltaTime) { };
     void render(bool texture);
 
-
-    VoxelTree*     getVoxelTree     () const {return _tree;}
     unsigned long  getVoxelsUpdated () const {return _voxelsUpdated;};
     unsigned long  getVoxelsRendered() const {return _voxelsInReadArrays;};
 
@@ -91,6 +89,10 @@ public:
     virtual void nodeAdded(Node* node);
     virtual void nodeKilled(Node* node);
     
+signals:
+    void importSize(float x, float y, float z);
+    void importProgress(int progress);
+
 public slots:
     void collectStatsForTreesAndVBOs();
     
@@ -104,6 +106,8 @@ public slots:
     void falseColorizeOccluded();
     void falseColorizeOccludedV2();
     void falseColorizeBySource();
+
+    void cancelImport();
         
 protected:
     float _treeScale; 

@@ -196,7 +196,7 @@ public:
 
 signals:
     void importSize(float x, float y, float z);
-    void importProgress(int progress); // emit an int between 0 and 100 reflecting the progress of the import
+    void importProgress(int progress);
 
 public slots:
     void cancelImport();

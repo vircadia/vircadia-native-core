@@ -361,6 +361,8 @@ void VoxelTree::readBitstreamToTree(unsigned char * bitstream, unsigned long int
         // skip bitstream to new startPoint
         bitstreamAt += theseBytesRead;
         bytesRead +=  theseBytesRead;
+
+        emit importProgress((100 * (bitstreamAt - bitstream)) / bufferSizeBytes);
     }
 
     this->voxelsBytesRead += bufferSizeBytes;
@@ -1559,6 +1561,10 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
 bool VoxelTree::readFromSVOFile(const char* fileName) {
     std::ifstream file(fileName, std::ios::in|std::ios::binary|std::ios::ate);
     if(file.is_open()) {
+
+        emit importSize(1.0f, 1.0f, 1.0f);
+        emit importProgress(0);
+
         qDebug("loading file %s...\n", fileName);
 
         // get file length....
@@ -1571,6 +1577,8 @@ bool VoxelTree::readFromSVOFile(const char* fileName) {
         ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS);
         readBitstreamToTree(entireFile, fileLength, args);
         delete[] entireFile;
+
+        emit importProgress(100);
 
         file.close();
         return true;
@@ -1585,6 +1593,9 @@ bool VoxelTree::readFromSquareARGB32Pixels(const char* filename) {
         return false;
     }
 
+    emit importSize(1.0f, 1.0f, 1.0f);
+    emit importProgress(0);
+
     const uint32_t* pixels;
     if (pngImage.format() == QImage::Format_ARGB32) {
         pixels = reinterpret_cast<const uint32_t*>(pngImage.constBits());
@@ -1595,6 +1606,8 @@ bool VoxelTree::readFromSquareARGB32Pixels(const char* filename) {
 
     SquarePixelMap pixelMap = SquarePixelMap(pixels, pngImage.height());
     pixelMap.addVoxelsToVoxelTree(this);
+
+    emit importProgress(100);
     return true;
 }
 
@@ -1629,6 +1642,7 @@ bool VoxelTree::readFromSchematicFile(const char *fileName) {
     emit importSize(size * schematics.getWidth(),
                     size * schematics.getHeight(),
                     size * schematics.getLength());
+    emit importProgress(0);
 
     for (int y = 0; y < schematics.getHeight(); ++y) {
         for (int z = 0; z < schematics.getLength(); ++z) {

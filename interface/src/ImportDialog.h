@@ -18,20 +18,30 @@
 #include <QGLWidget>
 #include <QTimer>
 
+class GLWidget;
+
 class ImportDialog : public QFileDialog {
     Q_OBJECT
 public:
     ImportDialog(QWidget* parent = NULL, VoxelSystem* voxelSystem = NULL);
+    ~ImportDialog();
 
     bool getWantPreview() const { return _previewBox.isChecked(); }
+    QString getCurrentFile() const { return _currentFile; }
+    bool getImportIntoClipboard() const { return _clipboardImportBox.isChecked(); }
+
     void reset();
 
 signals:
-    void previewActivated(QString);
+    void previewToggled(bool);
+    void accepted();
 
 public slots:
     int  exec();
     void setGLCamera(float x, float y, float z);
+    void import();
+    void accept();
+    void reject();
 
 private slots:
     void preview(bool preview);
@@ -40,10 +50,11 @@ private slots:
 
 private:
     QString      _currentFile;
+    QPushButton  _importButton;
     QCheckBox    _clipboardImportBox;
     QCheckBox    _previewBox;
     QProgressBar _previewBar;
-    QGLWidget*   _glPreview;
+    GLWidget*    _glPreview;
     QTimer       _glTimer;
 };
 

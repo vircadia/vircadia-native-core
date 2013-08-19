@@ -15,33 +15,30 @@
 #include <QThread>
 #include <QRunnable>
 
-class ImportTask : public QObject, public QRunnable {
-    Q_OBJECT
-public:
-    ImportTask(VoxelSystem* voxelSystem, const QString &filename);
-    void run();
-
-private:
-    VoxelSystem*  _voxelSystem;
-    QString       _filename;
-};
+class ImportTask;
+class LocalVoxelSystem;
 
 class VoxelImporter : public QObject {
     Q_OBJECT
 public:
     VoxelImporter(QWidget* parent = NULL);
+    ~VoxelImporter();
+    void reset();
 
-    void init();
+    VoxelSystem* getVoxelSystem() const { return _voxelSystem; }
+    bool getimportIntoClipboard() const { return _importDialog.getImportIntoClipboard(); }
 
 public slots:
-    void import(const QString &filename = "");
-    void preImport(const QString &filename);
+    int exec();
+    int preImport();
+    int import();
 
 private slots:
     void launchTask();
 
 private:
     VoxelSystem* _voxelSystem;
+
     ImportDialog _importDialog;
 
     QString      _filename;

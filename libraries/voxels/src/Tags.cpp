@@ -159,19 +159,17 @@ int retrieveData(std::string filename, std::stringstream &ss) {
 
     int type = file.peek();
     if (type == 0x0A) {
-        std::cerr << "[DEBUG] Unzipped\n";
         ss.flush();
         ss << file;
         return 0;
     }
 
     if (type == 0x1F) {
-        std::cerr << "[DEBUG] Zipped\n";
         int ret = ungzip(file, ss);
         return ret;
     }
 
-    std::cerr << "[DEBUG] Neither\n";
+    std::cerr << "[DEBUG] Schematic compression type not recognize : " << type << std::endl;
     return 1;
 }
 

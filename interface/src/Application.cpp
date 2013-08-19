@@ -1199,13 +1199,13 @@ void Application::importVoxelsToClipboard() {
     QByteArray fileNameAscii = fileNameString.toLocal8Bit();
     const char* fileName = fileNameAscii.data();
     
-    _clipboardTree.eraseAllVoxels();
+    _clipboard.killLocalVoxels();
     if (fileNameString.endsWith(".png", Qt::CaseInsensitive)) {
-        _clipboardTree.readFromSquareARGB32Pixels(fileName);
+        _clipboard.readFromSquareARGB32Pixels(fileName);
     } else if (fileNameString.endsWith(".svo", Qt::CaseInsensitive)) {
-        _clipboardTree.readFromSVOFile(fileName);
+        _clipboard.readFromSVOFile(fileName);
     } else if (fileNameString.endsWith(".schematic", Qt::CaseInsensitive)) {
-        _clipboardTree.readFromSchematicFile(fileName);
+        _clipboard.readFromSchematicFile(fileName);
     }
 
     // restore the main window's active state
@@ -1213,6 +1213,16 @@ void Application::importVoxelsToClipboard() {
 }
 
 void Application::importVoxels() {
+    if (_voxelImporter.exec()) {
+        qDebug("[DEBUG] Import succedded.\n");
+
+
+    } else {
+        qDebug("[DEBUG] Import failed.\n");
+    }
+
+    return;
+
     QString desktopLocation = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
 
     QStringList fileNameStringList = QFileDialog::getOpenFileNames(_glWidget, tr("Import Voxels"), desktopLocation, 
@@ -1369,10 +1379,10 @@ void Application::copyVoxels() {
     VoxelNode* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
     if (selectedNode) {
         // clear the clipboard first...
-        _clipboardTree.eraseAllVoxels();
+        _clipboard.killLocalVoxels();
 
         // then copy onto it
-        _voxels.copySubTreeIntoNewTree(selectedNode, &_clipboardTree, true);
+        //_voxels.copySubTreeIntoNewTree(selectedNode, _clipboard, true);
     }
 }
 
@@ -1393,7 +1403,7 @@ void Application::pasteVoxels() {
         args.newBaseOctCode = calculatedOctCode = pointToVoxel(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
     }
 
-    _clipboardTree.recurseTreeWithOperation(sendVoxelsOperation, &args);
+    //_clipboard.recurseTreeWithOperation(sendVoxelsOperation, &args);
     _voxelEditSender.flushQueue();
     
     if (calculatedOctCode) {

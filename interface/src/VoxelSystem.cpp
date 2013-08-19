@@ -65,6 +65,9 @@ VoxelSystem::VoxelSystem(float treeScale, int maxVoxels) :
     _falseColorizeBySource = false;
     _dataSourceID = UNKNOWN_NODE_ID;
     _voxelServerCount = 0;
+
+    connect(_tree, SIGNAL(importSize(float,float,float)), SIGNAL(importSize(float,float,float)));
+    connect(_tree, SIGNAL(importProgress(int)), SIGNAL(importProgress(int)));
 }
 
 void VoxelSystem::nodeDeleted(VoxelNode* node) {
@@ -993,6 +996,10 @@ public:
         nodesOutside(0)
     { }
 };
+
+void VoxelSystem::cancelImport() {
+    _tree->cancelImport();
+}
 
 // "Remove" voxels from the tree that are not in view. We don't actually delete them,
 // we remove them from the tree and place them into a holding area for later deletion
