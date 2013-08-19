@@ -217,8 +217,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     FvUpdater::sharedUpdater()->CheckForUpdatesSilent();
 #endif
 
-    // call Menu getInstance static method to set up the menur
-    Menu::getInstance();
+    // call Menu getInstance static method to set up the menu
+    _window->setMenuBar(Menu::getInstance());
     
     _networkAccessManager = new QNetworkAccessManager(this);
     
