@@ -5,7 +5,7 @@
 //  Created by Andrzej Kapolka on 8/7/13.
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 
-// include this before QGLWidget, which includes an earlier version of OpenGL
+// include this before QOpenGLFramebufferObject, which includes an earlier version of OpenGL
 #include "InterfaceConfig.h"
 
 #include <QOpenGLFramebufferObject>
@@ -13,6 +13,7 @@
 #include "Application.h"
 #include "GlowEffect.h"
 #include "ProgramObject.h"
+#include "RenderUtil.h"
 
 GlowEffect::GlowEffect() : _renderMode(BLUR_ADD_MODE) {
 }
@@ -68,19 +69,6 @@ void GlowEffect::end() {
     glBlendColor(0.0f, 0.0f, 0.0f, 0.0f);
 }
 
-static void renderFullscreenQuad() {
-    glBegin(GL_QUADS);
-        glTexCoord2f(0.0f, 0.0f);
-        glVertex2f(-1.0f, -1.0f);
-        glTexCoord2f(1.0f, 0.0f);
-        glVertex2f(1.0f, -1.0f);
-        glTexCoord2f(1.0f, 1.0f);
-        glVertex2f(1.0f, 1.0f);
-        glTexCoord2f(0.0f, 1.0f);
-        glVertex2f(-1.0f, 1.0f);
-    glEnd();
-}
-
 void GlowEffect::render() {
     QOpenGLFramebufferObject* primaryFBO = Application::getInstance()->getTextureCache()->getPrimaryFramebufferObject();
     primaryFBO->release();
@@ -95,6 +83,7 @@ void GlowEffect::render() {
     
     glDisable(GL_BLEND);
     glDisable(GL_DEPTH_TEST);
+    glDepthMask(GL_FALSE);
     
     if (_isEmpty) {
         // copy the primary to the screen
@@ -210,6 +199,7 @@ void GlowEffect::render() {
        
     glEnable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);
+    glDepthMask(GL_TRUE);
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 

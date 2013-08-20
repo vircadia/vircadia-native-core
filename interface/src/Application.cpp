@@ -64,7 +64,6 @@
 #include "renderer/ProgramObject.h"
 #include "ui/TextRenderer.h"
 #include "Swatch.h"
-#include "fvupdater.h"
 
 using namespace std;
 
@@ -209,12 +208,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     NodeList::getInstance()->startSilentNodeRemovalThread();
     
     _window->setCentralWidget(_glWidget);
-    
-#if defined(Q_OS_MAC) && defined(QT_NO_DEBUG)
-    // if this is a release OS X build use fervor to check for an update    
-    FvUpdater::sharedUpdater()->SetFeedURL("https://s3-us-west-1.amazonaws.com/highfidelity/appcast.xml");
-    FvUpdater::sharedUpdater()->CheckForUpdatesSilent();
-#endif
 
     // call Menu getInstance static method to set up the menu
     _window->setMenuBar(Menu::getInstance());
@@ -315,6 +308,11 @@ void Application::initializeGL() {
     
     // update before the first render
     update(0.0f);
+    
+    // now that things are drawn - if this is an OS X release build we can check for an update
+#if defined(Q_OS_MAC) && defined(QT_NO_DEBUG)
+    Menu::getInstance()->checkForUpdates();
+#endif
 }
 
 void Application::paintGL() {
@@ -1455,6 +1453,7 @@ void Application::init() {
     _environment.init();
 
     _glowEffect.init();
+    _ambientOcclusionEffect.init();
     
     _handControl.setScreenDimensions(_glWidget->width(), _glWidget->height());
 
@@ -2379,6 +2378,11 @@ void Application::displaySide(Camera& whichCamera) {
     //  Render the world box
         if (!Menu::getInstance()->isOptionChecked(MenuOption::Mirror) && Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
         renderWorldBox();
+    }
+    
+    // render the ambient occlusion effect if enabled
+    if (Menu::getInstance()->isOptionChecked(MenuOption::AmbientOcclusion)) {
+        _ambientOcclusionEffect.render();
     }
     
     // brad's frustum for debugging

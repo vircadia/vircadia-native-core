@@ -32,6 +32,7 @@
 #include "Environment.h"
 #include "GLCanvas.h"
 #include "PacketHeaders.h"
+#include "PieMenu.h"
 #include "SerialInterface.h"
 #include "Stars.h"
 #include "Swatch.h"
@@ -42,9 +43,9 @@
 #include "VoxelPacketProcessor.h"
 #include "VoxelSystem.h"
 #include "Webcam.h"
-#include "PieMenu.h"
 #include "avatar/Avatar.h"
 #include "avatar/HandControl.h"
+#include "renderer/AmbientOcclusionEffect.h"
 #include "renderer/GeometryCache.h"
 #include "renderer/GlowEffect.h"
 #include "renderer/TextureCache.h"
@@ -313,6 +314,7 @@ private:
     TextureCache _textureCache;
     
     GlowEffect _glowEffect;
+    AmbientOcclusionEffect _ambientOcclusionEffect;
     
     #ifndef _WIN32
     Audio _audio;

@@ -10,9 +10,10 @@ def hifiJob(String targetName, Boolean deploy) {
         
         scm {
             git(GIT_REPO_URL, 'master') { node ->
-                 node / includedRegions << "${targetName}/.*\nlibraries/.*"
-                 node / 'userRemoteConfigs' / 'hudson.plugins.git.UserRemoteConfig' / 'name' << ''
-                 node / 'userRemoteConfigs' / 'hudson.plugins.git.UserRemoteConfig' / 'refspec' << ''
+                node << {
+                    includedRegions "${targetName}/.*\nlibraries/.*"
+                    useShallowClone true
+                }
             }
         }
        
@@ -108,13 +109,36 @@ def targets = [
     'pairing-server':true,
     'space-server':true,
     'voxel-server':true,
-    'interface':false,
 ]
 
 /* setup all of the target jobs to use the above template */
 for (target in targets) {
     queue hifiJob(target.key, target.value)
 }
+
+/* setup the OS X interface builds */
+interfaceOSXJob = hifiJob('interface', false)
+interfaceOSXJob.with {
+    name 'hifi-interface-osx'
+    
+    scm {
+        git(GIT_REPO_URL, 'stable') { node ->
+            node << {
+                includedRegions "interface/.*\nlibraries/.*"
+                useShallowClone true
+            }
+        }
+    }
+    
+    configure { project ->
+        project << {
+            assignedNode 'interface-mini'
+            canRoam false
+        } 
+    }
+}
+
+queue interfaceOSXJob
 
 /* setup the parametrized build job for builds from jenkins */
 parameterizedJob = hifiJob('$TARGET', true)
@@ -128,7 +152,11 @@ parameterizedJob.with {
     }   
     scm {
         git('git@github.com:/$GITHUB_USER/hifi.git', '$GIT_BRANCH') { node ->
-            node / 'wipeOutWorkspace' << true
+            node << {
+                wipeOutWorkspace true
+                useShallowClone true
+            } 
+            
         }
     } 
     configure { project ->
@@ -144,7 +172,11 @@ parameterizedJob.with {
 doxygenJob = hifiJob('docs', false)
 doxygenJob.with {
     scm {
-        git(GIT_REPO_URL, 'master') {}
+        git(GIT_REPO_URL, 'master') { node ->
+            node << {
+                useShallowClone true
+            }
+        }
     }
     
     configure { project ->
