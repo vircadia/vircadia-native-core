@@ -64,6 +64,11 @@ Menu::Menu() :
                                    this,
                                    SLOT(editPreferences())))->setMenuRole(QAction::PreferencesRole);
     
+#if defined(Q_OS_MAC) && defined(QT_NO_DEBUG)
+    // show "Check for Updates" in the menu
+    (addActionToQMenuAndActionHash(fileMenu, MenuOption::CheckForUpdates, 0, this, SLOT(checkForUpdates())))->setMenuRole(QAction::ApplicationSpecificRole);
+#endif
+    
     QMenu* pairMenu = addMenu("Pair");
     addActionToQMenuAndActionHash(pairMenu, MenuOption::Pair, 0, PairingHandler::getInstance(), SLOT(sendPairRequest()));
     
@@ -463,7 +468,7 @@ void Menu::exportSettings() {
 void Menu::checkForUpdates() {
     qDebug() << "Checking if there are available updates.\n";
     // if this is a release OS X build use fervor to check for an update
-    FvUpdater::sharedUpdater()->SetFeedURL("https://s3-us-west-1.amazonaws.com/highfidelity/appcast.xml");
+    FvUpdater::sharedUpdater()->SetFeedURL("file://localhost/Users/birarda/Desktop/appcast.xml");
     FvUpdater::sharedUpdater()->CheckForUpdatesSilent();
 }
 

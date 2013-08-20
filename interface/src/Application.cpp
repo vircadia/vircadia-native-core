@@ -212,10 +212,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     // call Menu getInstance static method to set up the menu
     _window->setMenuBar(Menu::getInstance());
     
-#if defined(Q_OS_MAC) && defined(QT_NO_DEBUG)
-    Menu::getInstance()->checkForUpdates();
-#endif
-    
     _networkAccessManager = new QNetworkAccessManager(this);
     
     QRect available = desktop()->availableGeometry();
@@ -309,6 +305,11 @@ void Application::initializeGL() {
     
     // update before the first render
     update(0.0f);
+    
+    // now that things are drawn - if this is an OS X release build we can check for an update
+#if defined(Q_OS_MAC) && defined(QT_NO_DEBUG)
+    Menu::getInstance()->checkForUpdates();
+#endif
 }
 
 void Application::paintGL() {
