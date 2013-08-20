@@ -95,9 +95,9 @@ void AmbientOcclusionEffect::render() {
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, _rotationTextureID);
     
-    // render with the occlusion shader to the secondary buffer
-    QOpenGLFramebufferObject* secondaryFBO = Application::getInstance()->getTextureCache()->getSecondaryFramebufferObject();
-    secondaryFBO->bind();
+    // render with the occlusion shader to the secondary/tertiary buffer
+    QOpenGLFramebufferObject* freeFBO = Application::getInstance()->getGlowEffect()->getFreeFramebufferObject();
+    freeFBO->bind();
     
     float left, right, bottom, top, nearVal, farVal;
     glm::vec4 nearClipPlane, farClipPlane;
@@ -117,7 +117,7 @@ void AmbientOcclusionEffect::render() {
     
     _occlusionProgram->release();
     
-    secondaryFBO->release();
+    freeFBO->release();
     
     glBindTexture(GL_TEXTURE_2D, 0);
     glActiveTexture(GL_TEXTURE0);
@@ -128,7 +128,7 @@ void AmbientOcclusionEffect::render() {
     glEnable(GL_BLEND);
     glBlendFuncSeparate(GL_ZERO, GL_SRC_COLOR, GL_ZERO, GL_ONE);
     
-    glBindTexture(GL_TEXTURE_2D, secondaryFBO->texture());
+    glBindTexture(GL_TEXTURE_2D, freeFBO->texture());
     
     _blurProgram->bind();
     

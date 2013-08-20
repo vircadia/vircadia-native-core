@@ -11,6 +11,8 @@
 
 #include <QObject>
 
+class QOpenGLFramebufferObject;
+
 class ProgramObject;
 
 /// A generic full screen glow effect.
@@ -20,6 +22,10 @@ class GlowEffect : public QObject {
 public:
     
     GlowEffect();
+    
+    /// Returns a pointer to the framebuffer object that the glow effect is *not* using for persistent state
+    /// (either the secondary or the tertiary).
+    QOpenGLFramebufferObject* getFreeFramebufferObject() const;
     
     void init();
     

@@ -15,7 +15,13 @@
 #include "ProgramObject.h"
 #include "RenderUtil.h"
 
-GlowEffect::GlowEffect() : _renderMode(BLUR_ADD_MODE) {
+GlowEffect::GlowEffect() : _renderMode(DIFFUSE_ADD_MODE) {
+}
+
+QOpenGLFramebufferObject* GlowEffect::getFreeFramebufferObject() const {
+    return (_renderMode == DIFFUSE_ADD_MODE && _isOddFrame) ?
+        Application::getInstance()->getTextureCache()->getTertiaryFramebufferObject() :
+        Application::getInstance()->getTextureCache()->getSecondaryFramebufferObject();
 }
 
 static ProgramObject* createProgram(const QString& name) {
@@ -58,6 +64,7 @@ void GlowEffect::prepare() {
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
     _isEmpty = true;
+    _isOddFrame = !_isOddFrame;
 }
 
 void GlowEffect::begin(float intensity) {
@@ -109,7 +116,7 @@ void GlowEffect::render() {
             Application::getInstance()->getTextureCache()->getSecondaryFramebufferObject();
         QOpenGLFramebufferObject* newDiffusedFBO =
             Application::getInstance()->getTextureCache()->getTertiaryFramebufferObject();
-        if ((_isOddFrame = !_isOddFrame)) {
+        if (_isOddFrame) {
             qSwap(oldDiffusedFBO, newDiffusedFBO);
         }
         newDiffusedFBO->bind();
@@ -204,5 +211,21 @@ void GlowEffect::render() {
 }
 
 void GlowEffect::cycleRenderMode() {
-    _renderMode = (RenderMode)((_renderMode + 1) % RENDER_MODE_COUNT);
+    switch(_renderMode = (RenderMode)((_renderMode + 1) % RENDER_MODE_COUNT)) {
+        case ADD_MODE:
+            qDebug() << "Glow mode: Add\n";
+            break;
+            
+        case BLUR_ADD_MODE:
+            qDebug() << "Glow mode: Blur/add\n";
+            break;
+            
+        case BLUR_PERSIST_ADD_MODE:
+            qDebug() << "Glow mode: Blur/persist/add\n";
+            break;
+            
+        case DIFFUSE_ADD_MODE:
+            qDebug() << "Glow mode: Diffuse/add\n";
+            break;
+    }
 }
