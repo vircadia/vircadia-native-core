@@ -746,12 +746,9 @@ int main(int argc, const char * argv[]) {
                     atByte += voxelDataSize;
                 }
 
-                //printf("PACKET_TYPE_SET_VOXEL ...\n");
-                
                 // Make sure our Node and NodeList knows we've heard from this node.
                 Node* node = NodeList::getInstance()->nodeWithAddress(&nodePublicAddress);
                 if (node) {
-                    //printf("PACKET_TYPE_SET_VOXEL node->setLastHeardMicrostamp(usecTimestampNow());\n");
                     node->setLastHeardMicrostamp(usecTimestampNow());
                 }
 
@@ -765,10 +762,8 @@ int main(int argc, const char * argv[]) {
                 // Make sure our Node and NodeList knows we've heard from this node.
                 Node* node = NodeList::getInstance()->nodeWithAddress(&nodePublicAddress);
                 if (node) {
-                    //printf("PACKET_TYPE_ERASE_VOXEL node->setLastHeardMicrostamp(usecTimestampNow());\n");
                     node->setLastHeardMicrostamp(usecTimestampNow());
                 }
-
             } else if (packetData[0] == PACKET_TYPE_Z_COMMAND) {
 
                 // the Z command is a special command that allows the sender to send the voxel server high level semantic
@@ -806,10 +801,8 @@ int main(int argc, const char * argv[]) {
                 // Make sure our Node and NodeList knows we've heard from this node.
                 Node* node = NodeList::getInstance()->nodeWithAddress(&nodePublicAddress);
                 if (node) {
-                    printf("PACKET_TYPE_Z_COMMAND node->setLastHeardMicrostamp(usecTimestampNow());\n");
                     node->setLastHeardMicrostamp(usecTimestampNow());
                 }
-
             } else if (packetData[0] == PACKET_TYPE_HEAD_DATA) {
                 // If we got a PACKET_TYPE_HEAD_DATA, then we're talking to an NODE_TYPE_AVATAR, and we
                 // need to make sure we have it in our nodeList.
@@ -826,7 +819,6 @@ int main(int argc, const char * argv[]) {
                 // If the packet is a ping, let processNodeData handle it.
                 nodeList->processNodeData(&nodePublicAddress, packetData, receivedBytes);
             } else if (packetData[0] == PACKET_TYPE_DOMAIN) {
-                //printf("PACKET_TYPE_DOMAIN packet\n");
                 nodeList->processNodeData(&nodePublicAddress, packetData, receivedBytes);
             } else if (packetData[0] == PACKET_TYPE_VOXEL_JURISDICTION_REQUEST) {
                 if (::jurisdictionSender) {
