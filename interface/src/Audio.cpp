@@ -407,7 +407,7 @@ Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples) :
         return;
     }
 
-    inputParameters.channelCount = 2;                    //  Stereo input
+    inputParameters.channelCount = 1;                    //  Stereo input
     inputParameters.sampleFormat = (paInt16 | paNonInterleaved);
     inputParameters.suggestedLatency = Pa_GetDeviceInfo(inputParameters.device)->defaultLowInputLatency;
     inputParameters.hostApiSpecificStreamInfo = NULL;
