@@ -43,6 +43,8 @@ public:
     void simulate(float deltaTime) { };
     void render(bool texture);
 
+    ViewFrustum* getViewFrustum() const {return _viewFrustum;}
+    void setViewFrustum(ViewFrustum* viewFrustum) {_viewFrustum = viewFrustum;}
     unsigned long  getVoxelsUpdated() const {return _voxelsUpdated;};
     unsigned long  getVoxelsRendered() const {return _voxelsInReadArrays;};
 
@@ -182,6 +184,7 @@ private:
 
     ViewFrustum _lastKnowViewFrustum;
     ViewFrustum _lastStableViewFrustum;
+    ViewFrustum* _viewFrustum;
 
     int newTreeToArrays(VoxelNode *currentNode);
     void cleanupRemovedVoxels();
