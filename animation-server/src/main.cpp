@@ -20,6 +20,7 @@
 #include <JurisdictionListener.h>
 #include <SceneUtils.h>
 #include <SharedUtil.h>
+#include <VoxelEditPacketSender.h>
 #include <VoxelTree.h>
 
 #ifdef _WIN32
@@ -52,25 +53,8 @@ unsigned long bytesSent = 0;
 
 
 JurisdictionListener* jurisdictionListener = NULL;
+VoxelEditPacketSender* voxelEditPacketSender = NULL;
 
-
-static void sendVoxelEditMessage(PACKET_TYPE type, VoxelDetail& detail) {
-    unsigned char* bufferOut;
-    int sizeOut;
-    
-    if (createVoxelEditMessage(type, 0, 1, &detail, bufferOut, sizeOut)){
-
-        ::packetsSent++;
-        ::bytesSent += sizeOut;
-
-        if (::shouldShowPacketsPerSecond) {
-            printf("sending packet of size=%d\n",sizeOut);
-        }
-
-        NodeList::getInstance()->broadcastToNodes(bufferOut, sizeOut, &NODE_TYPE_VOXEL_SERVER, 1);
-        delete[] bufferOut;
-    }
-}
 
 glm::vec3 rotatePoint(glm::vec3 point, float angle) {
     //  First, create the quaternion based on this angle of rotation
@@ -146,8 +130,6 @@ const BugPart bugParts[VOXELS_PER_BUG] = {
 
 static void renderMovingBug() {
     VoxelDetail details[VOXELS_PER_BUG];
-    unsigned char* bufferOut;
-    int sizeOut;
     
     // Generate voxels for where bug used to be
     for (int i = 0; i < VOXELS_PER_BUG; i++) {
@@ -168,17 +150,7 @@ static void renderMovingBug() {
     
     // send the "erase message" first...
     PACKET_TYPE message = PACKET_TYPE_ERASE_VOXEL;
-    if (createVoxelEditMessage(message, 0, VOXELS_PER_BUG, (VoxelDetail*)&details, bufferOut, sizeOut)){
-
-        ::packetsSent++;
-        ::bytesSent += sizeOut;
-
-        if (::shouldShowPacketsPerSecond) {
-            printf("sending packet of size=%d\n", sizeOut);
-        }
-        NodeList::getInstance()->broadcastToNodes(bufferOut, sizeOut, &NODE_TYPE_VOXEL_SERVER, 1);
-        delete[] bufferOut;
-    }
+    ::voxelEditPacketSender->queueVoxelEditMessages(message, VOXELS_PER_BUG, (VoxelDetail*)&details);
 
     // Move the bug...
     if (moveBugInLine) {
@@ -238,17 +210,7 @@ static void renderMovingBug() {
     
     // send the "create message" ...
     message = PACKET_TYPE_SET_VOXEL_DESTRUCTIVE;
-    if (createVoxelEditMessage(message, 0, VOXELS_PER_BUG, (VoxelDetail*)&details, bufferOut, sizeOut)){
-
-        ::packetsSent++;
-        ::bytesSent += sizeOut;
-
-        if (::shouldShowPacketsPerSecond) {
-            printf("sending packet of size=%d\n", sizeOut);
-        }
-        NodeList::getInstance()->broadcastToNodes(bufferOut, sizeOut, &NODE_TYPE_VOXEL_SERVER, 1);
-        delete[] bufferOut;
-    }
+    ::voxelEditPacketSender->queueVoxelEditMessages(message, VOXELS_PER_BUG, (VoxelDetail*)&details);
 }
 
 
@@ -284,7 +246,7 @@ static void sendVoxelBlinkMessage() {
     
     PACKET_TYPE message = PACKET_TYPE_SET_VOXEL_DESTRUCTIVE;
 
-    sendVoxelEditMessage(message, detail);
+    ::voxelEditPacketSender->sendVoxelEditMessage(message, detail);
 }
 
 bool stringOfLightsInitialized = false;
@@ -302,8 +264,6 @@ static void sendBlinkingStringOfLights() {
     PACKET_TYPE message = PACKET_TYPE_SET_VOXEL_DESTRUCTIVE; // we're a bully!
     float lightScale = STRING_OF_LIGHTS_SIZE;
     static VoxelDetail details[LIGHTS_PER_SEGMENT];
-    unsigned char* bufferOut;
-    int sizeOut;
 
     // first initialized the string of lights if needed...
     if (!stringOfLightsInitialized) {
@@ -343,19 +303,7 @@ static void sendBlinkingStringOfLights() {
                 details[indexInSegment].blue  = offColor[2];
             }
 
-            // send entire segment at once
-            if (createVoxelEditMessage(message, 0, LIGHTS_PER_SEGMENT, (VoxelDetail*)&details, bufferOut, sizeOut)){
-
-                ::packetsSent++;
-                ::bytesSent += sizeOut;
-
-                if (::shouldShowPacketsPerSecond) {
-                    printf("sending packet of size=%d\n",sizeOut);
-                }
-                NodeList::getInstance()->broadcastToNodes(bufferOut, sizeOut, &NODE_TYPE_VOXEL_SERVER, 1);
-                delete[] bufferOut;
-            }
-
+            ::voxelEditPacketSender->queueVoxelEditMessages(message, LIGHTS_PER_SEGMENT, (VoxelDetail*)&details);
         }
         stringOfLightsInitialized = true;
     } else {
@@ -386,17 +334,7 @@ static void sendBlinkingStringOfLights() {
         details[1].blue  = onColor[2];
 
         // send both changes in same message
-        if (createVoxelEditMessage(message, 0, 2, (VoxelDetail*)&details, bufferOut, sizeOut)){
-
-            ::packetsSent++;
-            ::bytesSent += sizeOut;
-
-            if (::shouldShowPacketsPerSecond) {
-                printf("sending packet of size=%d\n",sizeOut);
-            }
-            NodeList::getInstance()->broadcastToNodes(bufferOut, sizeOut, &NODE_TYPE_VOXEL_SERVER, 1);
-            delete[] bufferOut;
-        }
+        ::voxelEditPacketSender->queueVoxelEditMessages(message, 2, (VoxelDetail*)&details);
     }
 }
 
@@ -432,8 +370,6 @@ void sendDanceFloor() {
     PACKET_TYPE message = PACKET_TYPE_SET_VOXEL_DESTRUCTIVE; // we're a bully!
     float lightScale = DANCE_FLOOR_LIGHT_SIZE;
     static VoxelDetail details[DANCE_FLOOR_VOXELS_PER_PACKET];
-    unsigned char* bufferOut;
-    int sizeOut;
 
     // first initialized the billboard of lights if needed...
     if (!::danceFloorInitialized) {
@@ -510,16 +446,7 @@ void sendDanceFloor() {
             }
             
             if (item == DANCE_FLOOR_VOXELS_PER_PACKET - 1) {
-                if (createVoxelEditMessage(message, 0, DANCE_FLOOR_VOXELS_PER_PACKET, 
-                                            (VoxelDetail*)&details, bufferOut, sizeOut)){
-                    ::packetsSent++;
-                    ::bytesSent += sizeOut;
-                    if (::shouldShowPacketsPerSecond) {
-                        printf("sending packet of size=%d\n", sizeOut);
-                    }
-                    NodeList::getInstance()->broadcastToNodes(bufferOut, sizeOut, &NODE_TYPE_VOXEL_SERVER, 1);
-                    delete[] bufferOut;
-                }
+                ::voxelEditPacketSender->queueVoxelEditMessages(message, DANCE_FLOOR_VOXELS_PER_PACKET, (VoxelDetail*)&details);
             }
         }
     }
@@ -559,8 +486,6 @@ static void sendBillboard() {
     PACKET_TYPE message = PACKET_TYPE_SET_VOXEL_DESTRUCTIVE; // we're a bully!
     float lightScale = BILLBOARD_LIGHT_SIZE;
     static VoxelDetail details[VOXELS_PER_PACKET];
-    unsigned char* bufferOut;
-    int sizeOut;
 
     // first initialized the billboard of lights if needed...
     if (!billboardInitialized) {
@@ -608,15 +533,7 @@ static void sendBillboard() {
             }
             
             if (item == VOXELS_PER_PACKET - 1) {
-                if (createVoxelEditMessage(message, 0, VOXELS_PER_PACKET, (VoxelDetail*)&details, bufferOut, sizeOut)){
-                    ::packetsSent++;
-                    ::bytesSent += sizeOut;
-                    if (::shouldShowPacketsPerSecond) {
-                        printf("sending packet of size=%d\n", sizeOut);
-                    }
-                    NodeList::getInstance()->broadcastToNodes(bufferOut, sizeOut, &NODE_TYPE_VOXEL_SERVER, 1);
-                    delete[] bufferOut;
-                }
+                ::voxelEditPacketSender->queueVoxelEditMessages(message, VOXELS_PER_PACKET, (VoxelDetail*)&details);
             }
         }
     }
@@ -639,8 +556,6 @@ void doBuildStreet() {
 
     PACKET_TYPE message = PACKET_TYPE_SET_VOXEL_DESTRUCTIVE; // we're a bully!
     static VoxelDetail details[BRICKS_PER_PACKET];
-    unsigned char* bufferOut;
-    int sizeOut;
 
     for (int z = 0; z < ROAD_LENGTH; z++) {
         for (int x = 0; x < ROAD_WIDTH; x++) {
@@ -661,15 +576,7 @@ void doBuildStreet() {
             details[item].blue  = randomTone;
             
             if (item == BRICKS_PER_PACKET - 1) {
-                if (createVoxelEditMessage(message, 0, BRICKS_PER_PACKET, (VoxelDetail*)&details, bufferOut, sizeOut)){
-                    ::packetsSent++;
-                    ::bytesSent += sizeOut;
-                    if (true || ::shouldShowPacketsPerSecond) {
-                        printf("building road sending packet of size=%d\n", sizeOut);
-                    }
-                    NodeList::getInstance()->broadcastToNodes(bufferOut, sizeOut, &NODE_TYPE_VOXEL_SERVER, 1);
-                    delete[] bufferOut;
-                }
+                ::voxelEditPacketSender->queueVoxelEditMessages(message, BRICKS_PER_PACKET, (VoxelDetail*)&details);
             }
         }
     }
@@ -708,6 +615,10 @@ void* animateVoxels(void* args) {
         
         if (::buildStreet) {
             doBuildStreet();
+        }
+        
+        if (::voxelEditPacketSender) {
+            ::voxelEditPacketSender->flushQueue();
         }
         
         uint64_t end = usecTimestampNow();
@@ -788,6 +699,15 @@ int main(int argc, const char * argv[])
         ::jurisdictionListener->initialize(true);
     }
     
+    // Create out VoxelEditPacketSender
+    ::voxelEditPacketSender = new VoxelEditPacketSender;
+    if (::voxelEditPacketSender) {
+        ::voxelEditPacketSender->initialize(true);
+        if (::jurisdictionListener) {
+            ::voxelEditPacketSender->setVoxelServerJurisdictions(::jurisdictionListener->getJurisdictions());
+        }
+    }
+    
     srand((unsigned)time(0));
 
     pthread_t animateVoxelThread;
@@ -827,6 +747,11 @@ int main(int argc, const char * argv[])
     if (::jurisdictionListener) {
         ::jurisdictionListener->terminate();
         delete ::jurisdictionListener;
+    }
+
+    if (::voxelEditPacketSender) {
+        ::voxelEditPacketSender->terminate();
+        delete ::voxelEditPacketSender;
     }
 
     return 0;

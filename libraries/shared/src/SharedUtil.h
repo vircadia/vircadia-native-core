@@ -81,8 +81,14 @@ struct VoxelDetail {
 };
 
 unsigned char* pointToVoxel(float x, float y, float z, float s, unsigned char r = 0, unsigned char g = 0, unsigned char b = 0);
+
+// Creates a full Voxel edit message, including command header, sequence, and details
 bool createVoxelEditMessage(unsigned char command, short int sequence, 
         int voxelCount, VoxelDetail* voxelDetails, unsigned char*& bufferOut, int& sizeOut);
+
+/// encodes the voxel details portion of a voxel edit message
+bool encodeVoxelEditMessageDetails(unsigned char command, int voxelCount, VoxelDetail* voxelDetails, 
+        unsigned char* bufferOut, int sizeIn, int& sizeOut);
 
 #ifdef _WIN32
 void usleep(int waitTime);

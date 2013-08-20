@@ -9,6 +9,7 @@
 #include <QtCore/QSettings>
 #include <QtCore/QString>
 #include <QtCore/QStringList>
+#include <QDebug>
 
 #include <PacketHeaders.h>
 
@@ -180,6 +181,18 @@ bool JurisdictionMap::readFromFile(const char* filename) {
     settings.endGroup();
     return true;
 }
+
+void JurisdictionMap::displayDebugDetails() {
+    QString rootNodeValue = octalCodeToHexString(_rootOctalCode);
+
+    qDebug() << "root:" << rootNodeValue << "\n";
+    
+    for (int i = 0; i < _endNodes.size(); i++) {
+        QString value = octalCodeToHexString(_endNodes[i]);
+        qDebug() << "End node[" << i << "]: " << rootNodeValue << "\n";
+    }
+}
+
 
 bool JurisdictionMap::writeToFile(const char* filename) {
     QString     settingsFile(filename);

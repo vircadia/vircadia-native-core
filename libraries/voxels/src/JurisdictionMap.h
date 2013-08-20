@@ -53,6 +53,8 @@ public:
 
     int unpackFromMessage(unsigned char* sourceBuffer, int availableBytes);
     int packIntoMessage(unsigned char* destinationBuffer, int availableBytes);
+
+    void displayDebugDetails();
     
 private:
     void copyContents(const JurisdictionMap& other); // use assignment instead

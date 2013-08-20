@@ -48,13 +48,19 @@ bool JurisdictionListener::queueJurisdictionRequest() {
 }
 
 void JurisdictionListener::processPacket(sockaddr& senderAddress, unsigned char*  packetData, ssize_t packetLength) {
+printf("processPacket()\n");
     if (packetData[0] == PACKET_TYPE_VOXEL_JURISDICTION) {
+printf("processPacket()... PACKET_TYPE_VOXEL_JURISDICTION\n");
+
         Node* node = NodeList::getInstance()->nodeWithAddress(&senderAddress);
         if (node) {
             uint16_t nodeID = node->getNodeID();
             JurisdictionMap map;
             map.unpackFromMessage(packetData, packetLength);
             _jurisdictions[nodeID] = map;
+            
+            qDebug() << "Got a new map...\n";
+            map.displayDebugDetails();
         }
     }
 }

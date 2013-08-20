@@ -27,7 +27,7 @@ public:
     JurisdictionListener(PacketSenderNotify* notify = NULL);
     virtual bool process();
 
-    const NodeToJurisdictionMap& getJurisdictions() const { return _jurisdictions; };
+    NodeToJurisdictionMap* getJurisdictions() { return &_jurisdictions; };
 
 protected:
     /// Callback for processing of received packets. Will process any queued PACKET_TYPE_VOXEL_JURISDICTION and update the

@@ -37,6 +37,10 @@ public:
     /// node or nodes the packet should be sent to.
     void queueVoxelEditMessage(PACKET_TYPE type, unsigned char* codeColorBuffer, ssize_t length);
 
+    /// Queues an array of several voxel edit messages. Will potentially send a pending multi-command packet. Determines 
+    /// which voxel-server node or nodes the packet should be sent to.
+    void queueVoxelEditMessages(PACKET_TYPE type, int numberOfDetails, VoxelDetail* details);
+
     /// flushes all queued packets for all nodes
     void flushQueue();
 

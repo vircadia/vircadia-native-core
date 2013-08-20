@@ -48,6 +48,21 @@ void VoxelEditPacketSender::actuallySendMessage(uint16_t nodeID, unsigned char* 
     }
 }
 
+void VoxelEditPacketSender::queueVoxelEditMessages(PACKET_TYPE type, int numberOfDetails, VoxelDetail* details) {
+    if (!_shouldSend) {
+        return; // bail early
+    }
+
+    for (int i = 0; i < numberOfDetails; i++) {
+        static unsigned char bufferOut[MAX_PACKET_SIZE];
+        int sizeOut = 0;
+        
+        if (encodeVoxelEditMessageDetails(type, 1, &details[i], &bufferOut[0], MAX_PACKET_SIZE, sizeOut)) {
+            queueVoxelEditMessage(type, bufferOut, sizeOut);
+        }
+    }    
+}
+
 void VoxelEditPacketSender::queueVoxelEditMessage(PACKET_TYPE type, unsigned char* codeColorBuffer, ssize_t length) {
 
     if (!_shouldSend) {
