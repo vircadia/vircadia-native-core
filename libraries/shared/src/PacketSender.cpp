@@ -66,5 +66,5 @@ bool PacketSender::process() {
         }
 
     }
-    return true;  // keep running till they terminate us
+    return isStillRunning();  // keep running till they terminate us
 }

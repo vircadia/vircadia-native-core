@@ -46,35 +46,34 @@ bool JurisdictionSender::process() {
 
     if (continueProcessing) {
         // add our packet to our own queue, then let the PacketSender class do the rest of the work.
+        static unsigned char buffer[MAX_PACKET_SIZE];
+        unsigned char* bufferOut = &buffer[0];
+        ssize_t sizeOut = 0;
+
         if (_jurisdictionMap) {
-            unsigned char buffer[MAX_PACKET_SIZE];
-            unsigned char* bufferOut = &buffer[0];
-            ssize_t sizeOut = _jurisdictionMap->packIntoMessage(bufferOut, MAX_PACKET_SIZE);
-            int nodeCount = 0;
-
-            for (std::set<uint16_t>::iterator nodeIterator = _nodesRequestingJurisdictions.begin(); 
-                nodeIterator != _nodesRequestingJurisdictions.end(); nodeIterator++) {
-
-                uint16_t nodeID = *nodeIterator;
-                Node* node = NodeList::getInstance()->nodeWithID(nodeID);
-
-                if (node->getActiveSocket() != NULL) {
-                    sockaddr* nodeAddress = node->getActiveSocket();
-
-printf("JurisdictionSender::process()... queuePacketForSending(PACKET_TYPE_VOXEL_JURISDICTION)\n");
-
-                    queuePacketForSending(*nodeAddress, bufferOut, sizeOut);
-                    nodeCount++;
-                    // remove it from the set
-                    _nodesRequestingJurisdictions.erase(nodeIterator);
-                }
-            }
-
-            // set our packets per second to be the number of nodes
-            setPacketsPerSecond(nodeCount);
+            sizeOut = _jurisdictionMap->packIntoMessage(bufferOut, MAX_PACKET_SIZE);
         } else {
-printf("JurisdictionSender::process()... no jurisdiction!!!\n");
+            sizeOut = JurisdictionMap::packEmptyJurisdictionIntoMessage(bufferOut, MAX_PACKET_SIZE);
         }
+        int nodeCount = 0;
+
+        for (std::set<uint16_t>::iterator nodeIterator = _nodesRequestingJurisdictions.begin(); 
+            nodeIterator != _nodesRequestingJurisdictions.end(); nodeIterator++) {
+
+            uint16_t nodeID = *nodeIterator;
+            Node* node = NodeList::getInstance()->nodeWithID(nodeID);
+
+            if (node->getActiveSocket() != NULL) {
+                sockaddr* nodeAddress = node->getActiveSocket();
+                queuePacketForSending(*nodeAddress, bufferOut, sizeOut);
+                nodeCount++;
+                // remove it from the set
+                _nodesRequestingJurisdictions.erase(nodeIterator);
+            }
+        }
+
+        // set our packets per second to be the number of nodes
+        setPacketsPerSecond(nodeCount);
 
         continueProcessing = PacketSender::process();
     }

@@ -213,6 +213,20 @@ bool JurisdictionMap::writeToFile(const char* filename) {
     return true;
 }
 
+int JurisdictionMap::packEmptyJurisdictionIntoMessage(unsigned char* destinationBuffer, int availableBytes) {
+    unsigned char* bufferStart = destinationBuffer;
+    
+    int headerLength = populateTypeAndVersion(destinationBuffer, PACKET_TYPE_VOXEL_JURISDICTION);
+    destinationBuffer += headerLength;
+
+    // No root or end node details to pack!
+    int bytes = 0;
+    memcpy(destinationBuffer, &bytes, sizeof(bytes));
+    destinationBuffer += sizeof(bytes);
+    
+    return destinationBuffer - bufferStart; // includes header!
+}
+
 int JurisdictionMap::packIntoMessage(unsigned char* destinationBuffer, int availableBytes) {
     unsigned char* bufferStart = destinationBuffer;
     

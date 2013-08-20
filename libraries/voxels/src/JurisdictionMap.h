@@ -53,6 +53,9 @@ public:
 
     int unpackFromMessage(unsigned char* sourceBuffer, int availableBytes);
     int packIntoMessage(unsigned char* destinationBuffer, int availableBytes);
+    
+    /// Available to pack an empty or unknown jurisdiction into a network packet, used when no JurisdictionMap is available
+    static int packEmptyJurisdictionIntoMessage(unsigned char* destinationBuffer, int availableBytes);
 
     void displayDebugDetails();
     
