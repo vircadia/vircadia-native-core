@@ -2360,8 +2360,10 @@ void Application::displaySide(Camera& whichCamera) {
         if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
             _myAvatar.getHead().setLookAtPosition(_myCamera.getPosition());
         }
+        _glowEffect.begin();
         _myAvatar.render(Menu::getInstance()->isOptionChecked(MenuOption::Mirror),
                          Menu::getInstance()->isOptionChecked(MenuOption::AvatarAsBalls));
+        _glowEffect.end();
         _myAvatar.setDisplayingLookatVectors(Menu::getInstance()->isOptionChecked(MenuOption::LookAtVectors));
 
         if (Menu::getInstance()->isOptionChecked(MenuOption::LookAtIndicator) && _isLookingAtOtherAvatar) {

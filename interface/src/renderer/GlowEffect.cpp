@@ -15,11 +15,11 @@
 #include "ProgramObject.h"
 #include "RenderUtil.h"
 
-GlowEffect::GlowEffect() : _renderMode(DIFFUSE_ADD_MODE) {
+GlowEffect::GlowEffect() : _renderMode(DIFFUSE_ADD_MODE), _isOddFrame(false) {
 }
 
 QOpenGLFramebufferObject* GlowEffect::getFreeFramebufferObject() const {
-    return (_renderMode == DIFFUSE_ADD_MODE && _isOddFrame) ?
+    return (_renderMode == DIFFUSE_ADD_MODE && !_isOddFrame) ?
         Application::getInstance()->getTextureCache()->getTertiaryFramebufferObject() :
         Application::getInstance()->getTextureCache()->getSecondaryFramebufferObject();
 }
