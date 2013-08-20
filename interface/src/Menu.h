@@ -58,6 +58,7 @@ public slots:
     void saveSettings(QSettings* settings = NULL);
     void importSettings();
     void exportSettings();
+    void checkForUpdates();
     
 private slots:
     void editPreferences();
@@ -112,6 +113,7 @@ namespace MenuOption {
     const QString Atmosphere = "Atmosphere";
     const QString Bandwidth = "Bandwidth Display";
     const QString BandwidthDetails = "Bandwidth Details";
+    const QString CheckForUpdates = "Check for Updates...";
     const QString Collisions = "Collisions";
     const QString CopyVoxels = "Copy Voxels";
     const QString CoverageMap = "Render Coverage Map";

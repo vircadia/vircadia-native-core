@@ -20,6 +20,7 @@
 #include <QStandardPaths>
 
 #include "Application.h"
+#include "fvupdater.h"
 #include "PairingHandler.h"
 #include "Menu.h"
 #include "Util.h"
@@ -62,6 +63,11 @@ Menu::Menu() :
                                    Qt::CTRL | Qt::Key_Comma,
                                    this,
                                    SLOT(editPreferences())))->setMenuRole(QAction::PreferencesRole);
+    
+#if defined(Q_OS_MAC) && defined(QT_NO_DEBUG)
+    // show "Check for Updates" in the menu
+    (addActionToQMenuAndActionHash(fileMenu, MenuOption::CheckForUpdates, 0, this, SLOT(checkForUpdates())))->setMenuRole(QAction::ApplicationSpecificRole);
+#endif
     
     QMenu* pairMenu = addMenu("Pair");
     addActionToQMenuAndActionHash(pairMenu, MenuOption::Pair, 0, PairingHandler::getInstance(), SLOT(sendPairRequest()));
@@ -459,6 +465,12 @@ void Menu::exportSettings() {
     }
 }
 
+void Menu::checkForUpdates() {
+    qDebug() << "Checking if there are available updates.\n";
+    // if this is a release OS X build use fervor to check for an update
+    FvUpdater::sharedUpdater()->SetFeedURL("http://s3.highfidelity.io/appcast.xml");
+    FvUpdater::sharedUpdater()->CheckForUpdatesSilent();
+}
 
 void Menu::loadAction(QSettings* set, QAction* action) {
     if (action->isChecked() != set->value(action->text(), action->isChecked()).toBool()) {
