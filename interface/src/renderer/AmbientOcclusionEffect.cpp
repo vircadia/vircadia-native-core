@@ -112,8 +112,8 @@ void AmbientOcclusionEffect::render() {
     _occlusionProgram->setUniformValue(_leftBottomLocation, left, bottom);
     _occlusionProgram->setUniformValue(_rightTopLocation, right, top);
     QSize size = Application::getInstance()->getGLWidget()->size();
-    QVector2D noiseScale(size.width() / (float)ROTATION_WIDTH, size.height() / (float)ROTATION_HEIGHT);
-    _occlusionProgram->setUniformValue(_noiseScaleLocation, noiseScale);
+    _occlusionProgram->setUniformValue(_noiseScaleLocation, size.width() / (float)ROTATION_WIDTH,
+        size.height() / (float)ROTATION_HEIGHT);
     
     renderFullscreenQuad();
     
@@ -141,7 +141,6 @@ void AmbientOcclusionEffect::render() {
     
     glBindTexture(GL_TEXTURE_2D, 0);
     
-    //glEnable(GL_BLEND);
     glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
     glEnable(GL_DEPTH_TEST);
     glDepthMask(GL_TRUE);
