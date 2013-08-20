@@ -30,7 +30,7 @@ VoxelStatsDialog::VoxelStatsDialog(QWidget* parent, VoxelSceneStats* model) :
     this->QDialog::setLayout(form);
 
     // Setup labels
-        for (VoxelSceneStats::Item i = VoxelSceneStats::ITEM_ELAPSED; i < VoxelSceneStats::ITEM_COUNT; ++i) {
+    for (VoxelSceneStats::Item i = VoxelSceneStats::ITEM_ELAPSED; i < VoxelSceneStats::ITEM_COUNT; ++i) {
         VoxelSceneStats::ItemInfo& itemInfo = _model->getItemInfo(i);
         QLabel* label = _labels[i] = new QLabel();  
         label->setAlignment(Qt::AlignRight);
