@@ -32,15 +32,6 @@ void AmbientOcclusionEffect::init() {
     _occlusionProgram->addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/ambient_occlusion.frag");
     _occlusionProgram->link();
     
-    _blurProgram = new ProgramObject();
-    _blurProgram->addShaderFromSourceFile(QGLShader::Vertex, "resources/shaders/ambient_occlusion.vert");
-    _blurProgram->addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/occlusion_blur.frag");
-    _blurProgram->link();
-    
-    _blurProgram->bind();
-    _blurProgram->setUniformValue("originalTexture", 0);
-    _blurProgram->release();
-    
     // create the sample kernel: an array of spherically distributed offset vectors
     const int SAMPLE_KERNEL_SIZE = 16;
     QVector3D sampleKernel[SAMPLE_KERNEL_SIZE];
@@ -83,6 +74,17 @@ void AmbientOcclusionEffect::init() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glBindTexture(GL_TEXTURE_2D, 0);
+    
+    _blurProgram = new ProgramObject();
+    _blurProgram->addShaderFromSourceFile(QGLShader::Vertex, "resources/shaders/ambient_occlusion.vert");
+    _blurProgram->addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/occlusion_blur.frag");
+    _blurProgram->link();
+    
+    _blurProgram->bind();
+    _blurProgram->setUniformValue("originalTexture", 0);
+    _blurProgram->release();
+    
+    _blurScaleLocation = _blurProgram->uniformLocation("blurScale");
 }
 
 void AmbientOcclusionEffect::render() {
@@ -131,6 +133,7 @@ void AmbientOcclusionEffect::render() {
     glBindTexture(GL_TEXTURE_2D, freeFBO->texture());
     
     _blurProgram->bind();
+    _blurProgram->setUniformValue(_blurScaleLocation, 1.0f / size.width(), 1.0f / size.height());
     
     renderFullscreenQuad();
     
@@ -138,7 +141,6 @@ void AmbientOcclusionEffect::render() {
     
     glBindTexture(GL_TEXTURE_2D, 0);
     
-    //glEnable(GL_BLEND);
     glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
     glEnable(GL_DEPTH_TEST);
     glDepthMask(GL_TRUE);

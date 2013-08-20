@@ -46,6 +46,8 @@ public:
 
 private:
     
+    QOpenGLFramebufferObject* createFramebufferObject();
+    
     GLuint _permutationNormalTextureID;
     
     QOpenGLFramebufferObject* _primaryFramebufferObject;
