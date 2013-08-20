@@ -22,7 +22,7 @@ public:
 
 
 /// Generalized threaded processor for queueing and sending of outbound packets. 
-class PacketSender : public GenericThread {
+class PacketSender : public virtual GenericThread {
 public:
     static const int DEFAULT_PACKETS_PER_SECOND;
     static const int MINIMUM_PACKETS_PER_SECOND;
@@ -34,7 +34,7 @@ public:
     /// \param packetData pointer to data
     /// \param ssize_t packetLength size of data
     /// \thread any thread, typically the application thread
-    void queuePacket(sockaddr& address, unsigned char*  packetData, ssize_t packetLength);
+    void queuePacketForSending(sockaddr& address, unsigned char*  packetData, ssize_t packetLength);
     
     void setPacketsPerSecond(int packetsPerSecond) { _packetsPerSecond = std::min(MINIMUM_PACKETS_PER_SECOND, packetsPerSecond); }
     int getPacketsPerSecond() const { return _packetsPerSecond; }
@@ -46,6 +46,9 @@ public:
 
 protected:
     int _packetsPerSecond;
+    
+    bool hasPacketsToSend() const { return _packets.size() > 0; }
+    int packetsToSendCount() const { return _packets.size(); }
 
 private:
     std::vector<NetworkPacket> _packets;

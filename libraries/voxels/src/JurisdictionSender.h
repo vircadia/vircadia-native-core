@@ -11,11 +11,16 @@
 #ifndef __shared__JurisdictionSender__
 #define __shared__JurisdictionSender__
 
+#include <set>
+
 #include <PacketSender.h>
+#include <ReceivedPacketProcessor.h>
 #include "JurisdictionMap.h"
 
-/// Threaded processor for queueing and sending of outbound edit voxel packets. 
-class JurisdictionSender : public PacketSender {
+/// Will process PACKET_TYPE_VOXEL_JURISDICTION_REQUEST packets and send out PACKET_TYPE_VOXEL_JURISDICTION packets
+/// to requesting parties. As with other ReceivedPacketProcessor classes the user is responsible for reading inbound packets
+/// and adding them to the processing queue by calling queueReceivedPacket()
+class JurisdictionSender : public PacketSender, public ReceivedPacketProcessor {
 public:
     static const int DEFAULT_PACKETS_PER_SECOND = 1;
 
@@ -25,7 +30,11 @@ public:
 
     virtual bool process();
 
+protected:
+    virtual void processPacket(sockaddr& senderAddress, unsigned char*  packetData, ssize_t packetLength);
+
 private:
     JurisdictionMap* _jurisdictionMap;
+    std::set<uint16_t> _nodesRequestingJurisdictions;
 };
 #endif // __shared__JurisdictionSender__

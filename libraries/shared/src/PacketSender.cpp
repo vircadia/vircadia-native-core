@@ -26,7 +26,7 @@ PacketSender::PacketSender(PacketSenderNotify* notify, int packetsPerSecond) :
 }
 
 
-void PacketSender::queuePacket(sockaddr& address, unsigned char* packetData, ssize_t packetLength) {
+void PacketSender::queuePacketForSending(sockaddr& address, unsigned char* packetData, ssize_t packetLength) {
     NetworkPacket packet(address, packetData, packetLength);
     lock();
     _packets.push_back(packet);
@@ -34,9 +34,6 @@ void PacketSender::queuePacket(sockaddr& address, unsigned char* packetData, ssi
 }
 
 bool PacketSender::process() {
-//printf("PacketSender::process() packets pending=%ld _packetsPerSecond=%d\n",_packets.size(),_packetsPerSecond);
-
-    
     uint64_t USECS_PER_SECOND = 1000 * 1000;
     uint64_t SEND_INTERVAL_USECS = (_packetsPerSecond == 0) ? USECS_PER_SECOND : (USECS_PER_SECOND / _packetsPerSecond);
     
@@ -49,7 +46,6 @@ bool PacketSender::process() {
         // send the packet through the NodeList...
         UDPSocket* nodeSocket = NodeList::getInstance()->getNodeSocket();
 
-//printf("sending a packet... length=%lu\n",packet.getLength());
         nodeSocket->send(&packet.getAddress(), packet.getData(), packet.getLength());
         
         if (_notify) {

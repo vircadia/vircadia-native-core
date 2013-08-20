@@ -10,6 +10,7 @@
 #define __hifi__JurisdictionMap__
 
 #include <vector>
+#include <map>
 #include <QtCore/QString>
 
 class JurisdictionMap {
@@ -61,6 +62,11 @@ private:
     unsigned char* _rootOctalCode;
     std::vector<unsigned char*> _endNodes;
 };
+
+/// Map between node IDs and their reported JurisdictionMap. Typically used by classes that need to know which nodes are 
+/// managing which jurisdictions.
+typedef std::map<uint16_t, JurisdictionMap> NodeToJurisdictionMap;
+
 
 #endif /* defined(__hifi__JurisdictionMap__) */
 

@@ -43,7 +43,7 @@ void VoxelEditPacketSender::actuallySendMessage(uint16_t nodeID, unsigned char* 
         if (node->getActiveSocket() != NULL && node->getType() == NODE_TYPE_VOXEL_SERVER && 
             ((node->getNodeID() == nodeID) || (nodeID == (uint16_t)UNKNOWN_NODE_ID))  ) {
             sockaddr* nodeAddress = node->getActiveSocket();
-            queuePacket(*nodeAddress, bufferOut, sizeOut);
+            queuePacketForSending(*nodeAddress, bufferOut, sizeOut);
         }
     }
 }

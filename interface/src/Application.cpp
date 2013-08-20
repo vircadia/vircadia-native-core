@@ -3271,7 +3271,7 @@ void* Application::networkReceive(void* args) {
                     case PACKET_TYPE_VOXEL_STATS:
                     case PACKET_TYPE_ENVIRONMENT_DATA: {
                         // add this packet to our list of voxel packets and process them on the voxel processing
-                        app->_voxelProcessor.queuePacket(senderAddress, app->_incomingPacket, bytesReceived);
+                        app->_voxelProcessor.queueReceivedPacket(senderAddress, app->_incomingPacket, bytesReceived);
                         break;
                     }
                     case PACKET_TYPE_BULK_AVATAR_DATA:

@@ -343,7 +343,7 @@ private:
     VoxelSceneStats _voxelSceneStats;
     int parseVoxelStats(unsigned char* messageData, ssize_t messageLength, sockaddr senderAddress);
     
-    std::map<uint16_t, JurisdictionMap> _voxelServerJurisdictions;
+    NodeToJurisdictionMap _voxelServerJurisdictions;
     
     std::vector<VoxelFade> _voxelFades;
 };

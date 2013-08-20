@@ -662,7 +662,9 @@ int main(int argc, const char * argv[]) {
 
     // set up our jurisdiction broadcaster...
     ::jurisdictionSender = new JurisdictionSender(::jurisdiction);
-    jurisdictionSender->initialize(true);
+    if (::jurisdictionSender) {
+        ::jurisdictionSender->initialize(true);
+    }
 
     // loop to send to nodes requesting data
     while (true) {
@@ -826,6 +828,10 @@ int main(int argc, const char * argv[]) {
             } else if (packetData[0] == PACKET_TYPE_DOMAIN) {
                 //printf("PACKET_TYPE_DOMAIN packet\n");
                 nodeList->processNodeData(&nodePublicAddress, packetData, receivedBytes);
+            } else if (packetData[0] == PACKET_TYPE_VOXEL_JURISDICTION_REQUEST) {
+                if (::jurisdictionSender) {
+                    jurisdictionSender->queueReceivedPacket(nodePublicAddress, packetData, receivedBytes);
+                }
             } else {
                 printf("unknown packet ignored... packetData[0]=%c\n", packetData[0]);
             }

@@ -17,6 +17,7 @@
 #include <NodeTypes.h>
 #include <OctalCode.h>
 #include <PacketHeaders.h>
+#include <JurisdictionListener.h>
 #include <SceneUtils.h>
 #include <SharedUtil.h>
 #include <VoxelTree.h>
@@ -48,6 +49,10 @@ bool wantLocalDomain = false;
 
 unsigned long packetsSent = 0;
 unsigned long bytesSent = 0;
+
+
+JurisdictionListener* jurisdictionListener = NULL;
+
 
 static void sendVoxelEditMessage(PACKET_TYPE type, VoxelDetail& detail) {
     unsigned char* bufferOut;
@@ -777,6 +782,12 @@ int main(int argc, const char * argv[])
     nodeList->linkedDataCreateCallback = NULL; // do we need a callback?
     nodeList->startSilentNodeRemovalThread();
     
+    // Create our JurisdictionListener so we'll know where to send edit packets
+    ::jurisdictionListener = new JurisdictionListener();
+    if (::jurisdictionListener) {
+        ::jurisdictionListener->initialize(true);
+    }
+    
     srand((unsigned)time(0));
 
     pthread_t animateVoxelThread;
@@ -801,11 +812,22 @@ int main(int argc, const char * argv[])
         // Nodes sending messages to us...
         if (nodeList->getNodeSocket()->receive(&nodePublicAddress, packetData, &receivedBytes) &&
             packetVersionMatch(packetData)) {
+            
+            if (packetData[0] == PACKET_TYPE_VOXEL_JURISDICTION) {
+                if (::jurisdictionListener) {
+                    ::jurisdictionListener->queueReceivedPacket(nodePublicAddress, packetData, receivedBytes);
+                }
+            }
             NodeList::getInstance()->processNodeData(&nodePublicAddress, packetData, receivedBytes);
         }
     }
     
     pthread_join(animateVoxelThread, NULL);
+    
+    if (::jurisdictionListener) {
+        ::jurisdictionListener->terminate();
+        delete ::jurisdictionListener;
+    }
 
     return 0;
 }

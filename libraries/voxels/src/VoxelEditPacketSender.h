@@ -43,7 +43,7 @@ public:
     bool getShouldSend() const { return _shouldSend; }
     void setShouldSend(bool shouldSend) { _shouldSend = shouldSend; }
 
-    void setVoxelServerJurisdictions(std::map<uint16_t, JurisdictionMap>* voxelServerJurisdictions) { 
+    void setVoxelServerJurisdictions(NodeToJurisdictionMap* voxelServerJurisdictions) { 
             _voxelServerJurisdictions = voxelServerJurisdictions;
     }
 
@@ -55,6 +55,6 @@ private:
 
     std::map<uint16_t,EditPacketBuffer> _pendingEditPackets;
 
-    std::map<uint16_t, JurisdictionMap>* _voxelServerJurisdictions;
+    NodeToJurisdictionMap* _voxelServerJurisdictions;
 };
 #endif // __shared__VoxelEditPacketSender__

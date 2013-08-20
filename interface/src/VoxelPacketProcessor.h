@@ -13,7 +13,8 @@
 
 #include <ReceivedPacketProcessor.h>
 
-/// Handles processing of incoming voxel packets for the interface application.
+/// Handles processing of incoming voxel packets for the interface application. As with other ReceivedPacketProcessor classes 
+/// the user is responsible for reading inbound packets and adding them to the processing queue by calling queueReceivedPacket()
 class VoxelPacketProcessor : public ReceivedPacketProcessor {
 protected:
     virtual void processPacket(sockaddr& senderAddress, unsigned char*  packetData, ssize_t packetLength);

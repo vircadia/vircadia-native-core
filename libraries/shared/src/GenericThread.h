@@ -41,6 +41,8 @@ protected:
     /// Unlocks all the resources of the thread.
     void unlock() { pthread_mutex_unlock(&_mutex); }
     
+    bool isStillRunning() const { return !_stopThread; }
+    
 private:
     pthread_mutex_t _mutex;
 
