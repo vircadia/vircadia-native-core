@@ -467,10 +467,12 @@ void Menu::exportSettings() {
 }
 
 void Menu::checkForUpdates() {
+#if defined(Q_OS_MAC) && defined(QT_NO_DEBUG)
     qDebug() << "Checking if there are available updates.\n";
     // if this is a release OS X build use fervor to check for an update
     FvUpdater::sharedUpdater()->SetFeedURL("http://s3.highfidelity.io/appcast.xml");
     FvUpdater::sharedUpdater()->CheckForUpdatesSilent();
+#endif
 }
 
 void Menu::loadAction(QSettings* set, QAction* action) {
