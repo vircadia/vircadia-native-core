@@ -468,7 +468,7 @@ void Menu::exportSettings() {
 void Menu::checkForUpdates() {
     qDebug() << "Checking if there are available updates.\n";
     // if this is a release OS X build use fervor to check for an update
-    FvUpdater::sharedUpdater()->SetFeedURL("file://localhost/Users/birarda/Desktop/appcast.xml");
+    FvUpdater::sharedUpdater()->SetFeedURL("http://s3.highfidelity.io/appcast.xml");
     FvUpdater::sharedUpdater()->CheckForUpdatesSilent();
 }
 
