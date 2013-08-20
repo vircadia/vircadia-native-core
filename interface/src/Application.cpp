@@ -1449,6 +1449,7 @@ void Application::init() {
     _environment.init();
 
     _glowEffect.init();
+    _ambientOcclusionEffect.init();
     
     _handControl.setScreenDimensions(_glWidget->width(), _glWidget->height());
 
@@ -2373,6 +2374,11 @@ void Application::displaySide(Camera& whichCamera) {
     //  Render the world box
         if (!Menu::getInstance()->isOptionChecked(MenuOption::Mirror) && Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
         renderWorldBox();
+    }
+    
+    // render the ambient occlusion effect if enabled
+    if (Menu::getInstance()->isOptionChecked(MenuOption::AmbientOcclusion)) {
+        _ambientOcclusionEffect.render();
     }
     
     // brad's frustum for debugging

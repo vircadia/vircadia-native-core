@@ -108,6 +108,7 @@ private:
 
 namespace MenuOption {
     
+    const QString AmbientOcclusion = "Ambient Occlusion";
     const QString Avatars = "Avatars";
     const QString AvatarAsBalls = "Avatar as Balls";
     const QString Atmosphere = "Atmosphere";
