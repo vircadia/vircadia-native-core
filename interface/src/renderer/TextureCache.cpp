@@ -64,12 +64,11 @@ GLuint TextureCache::getPermutationNormalTextureID() {
 
 QOpenGLFramebufferObject* TextureCache::getPrimaryFramebufferObject() {
     if (_primaryFramebufferObject == NULL) {
-        QSize size = Application::getInstance()->getGLWidget()->size();
-        _primaryFramebufferObject = new QOpenGLFramebufferObject(size);
-        Application::getInstance()->getGLWidget()->installEventFilter(this);
-    
+        _primaryFramebufferObject = createFramebufferObject();
+        
         glGenTextures(1, &_primaryDepthTextureID);
         glBindTexture(GL_TEXTURE_2D, _primaryDepthTextureID);
+        QSize size = Application::getInstance()->getGLWidget()->size();
         glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, size.width(), size.height(),
             0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, 0);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -91,16 +90,14 @@ GLuint TextureCache::getPrimaryDepthTextureID() {
 
 QOpenGLFramebufferObject* TextureCache::getSecondaryFramebufferObject() {
     if (_secondaryFramebufferObject == NULL) {
-        _secondaryFramebufferObject = new QOpenGLFramebufferObject(Application::getInstance()->getGLWidget()->size());
-        Application::getInstance()->getGLWidget()->installEventFilter(this);
+        _secondaryFramebufferObject = createFramebufferObject();
     }
     return _secondaryFramebufferObject;
 }
 
 QOpenGLFramebufferObject* TextureCache::getTertiaryFramebufferObject() {
     if (_tertiaryFramebufferObject == NULL) {
-        _tertiaryFramebufferObject = new QOpenGLFramebufferObject(Application::getInstance()->getGLWidget()->size());
-        Application::getInstance()->getGLWidget()->installEventFilter(this);
+        _tertiaryFramebufferObject = createFramebufferObject();
     }
     return _tertiaryFramebufferObject;
 }
@@ -123,4 +120,16 @@ bool TextureCache::eventFilter(QObject* watched, QEvent* event) {
         }
     }
     return false;
+}
+
+QOpenGLFramebufferObject* TextureCache::createFramebufferObject() {
+    QOpenGLFramebufferObject* fbo = new QOpenGLFramebufferObject(Application::getInstance()->getGLWidget()->size());
+    Application::getInstance()->getGLWidget()->installEventFilter(this);
+    
+    glBindTexture(GL_TEXTURE_2D, fbo->texture());
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    
+    return fbo;
 }
