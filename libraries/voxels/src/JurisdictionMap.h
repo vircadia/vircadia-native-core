@@ -9,8 +9,9 @@
 #ifndef __hifi__JurisdictionMap__
 #define __hifi__JurisdictionMap__
 
-#include <vector>
 #include <map>
+#include <stdint.h>
+#include <vector>
 #include <QtCore/QString>
 
 class JurisdictionMap {
