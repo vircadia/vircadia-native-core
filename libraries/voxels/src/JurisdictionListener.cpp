@@ -19,6 +19,21 @@
 JurisdictionListener::JurisdictionListener(PacketSenderNotify* notify) : 
     PacketSender(notify, JurisdictionListener::DEFAULT_PACKETS_PER_SECOND)
 {
+    NodeList* nodeList = NodeList::getInstance();
+    nodeList->addHook(this);
+}
+
+JurisdictionListener::~JurisdictionListener() {
+    NodeList* nodeList = NodeList::getInstance();
+    nodeList->removeHook(this);
+}
+
+void JurisdictionListener::nodeAdded(Node* node) {
+    // nothing to do. But need to implement it.
+}
+
+void JurisdictionListener::nodeKilled(Node* node) {
+    _jurisdictions.erase(_jurisdictions.find(node->getNodeID()));
 }
 
 bool JurisdictionListener::queueJurisdictionRequest() {

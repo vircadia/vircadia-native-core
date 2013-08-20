@@ -11,6 +11,7 @@
 #ifndef __shared__JurisdictionListener__
 #define __shared__JurisdictionListener__
 
+#include <NodeList.h>
 #include <PacketSender.h>
 #include <ReceivedPacketProcessor.h>
 
@@ -20,14 +21,21 @@
 /// the PACKET_TYPE_VOXEL_JURISDICTION packets it receives in order to maintain an accurate state of all jurisidictions
 /// within the domain. As with other ReceivedPacketProcessor classes the user is responsible for reading inbound packets
 /// and adding them to the processing queue by calling queueReceivedPacket()
-class JurisdictionListener : public PacketSender, public ReceivedPacketProcessor {
+class JurisdictionListener : public NodeListHook, public PacketSender, public ReceivedPacketProcessor {
 public:
     static const int DEFAULT_PACKETS_PER_SECOND = 1;
 
     JurisdictionListener(PacketSenderNotify* notify = NULL);
+    ~JurisdictionListener();
+    
     virtual bool process();
 
     NodeToJurisdictionMap* getJurisdictions() { return &_jurisdictions; };
+
+    /// Called by NodeList to inform us that a node has been added.
+    void nodeAdded(Node* node);
+    /// Called by NodeList to inform us that a node has been killed.
+    void nodeKilled(Node* node);
 
 protected:
     /// Callback for processing of received packets. Will process any queued PACKET_TYPE_VOXEL_JURISDICTION and update the
