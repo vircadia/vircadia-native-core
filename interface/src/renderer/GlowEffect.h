@@ -57,6 +57,7 @@ private:
     ProgramObject* _verticalBlurProgram;
     ProgramObject* _addSeparateProgram;
     ProgramObject* _diffuseProgram;
+    int _diffusionScaleLocation;
     
     bool _isEmpty; ///< set when nothing in the scene is currently glowing
     bool _isOddFrame; ///< controls the alternation between texture targets in diffuse add mode

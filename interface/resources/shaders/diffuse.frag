@@ -14,15 +14,14 @@ uniform sampler2D originalTexture;
 // the texture containing the diffused color
 uniform sampler2D diffusedTexture;
 
+// the scale of diffusion
+uniform vec2 diffusionScale;
+
 void main(void) {
-    float ds = dFdx(gl_TexCoord[0].s);
-    float dt = dFdy(gl_TexCoord[0].t);
-    gl_FragColor = (texture2D(diffusedTexture, gl_TexCoord[0].st + vec2(-ds, -dt)) +
-        texture2D(diffusedTexture, gl_TexCoord[0].st + vec2(0.0, -dt)) +
-        texture2D(diffusedTexture, gl_TexCoord[0].st + vec2(ds, -dt)) +
-        texture2D(diffusedTexture, gl_TexCoord[0].st + vec2(ds, 0.0)) +
-        texture2D(diffusedTexture, gl_TexCoord[0].st + vec2(ds, dt)) +
-        texture2D(diffusedTexture, gl_TexCoord[0].st + vec2(0.0, dt)) +
-        texture2D(diffusedTexture, gl_TexCoord[0].st + vec2(-ds, dt)) +
-        texture2D(diffusedTexture, gl_TexCoord[0].st + vec2(-ds, 0.0))) / 8.5 + texture2D(originalTexture, gl_TexCoord[0].st) * 0.1;
+    vec2 minExtents = gl_TexCoord[0].st + diffusionScale * vec2(-1.5, -1.5);
+    vec2 maxExtents = gl_TexCoord[0].st + diffusionScale * vec2(1.5, 1.5);
+    gl_FragColor = (texture2D(diffusedTexture, minExtents) +
+        texture2D(diffusedTexture, vec2(maxExtents.s, minExtents.t)) + 
+        texture2D(diffusedTexture, vec2(minExtents.s, maxExtents.t)) +
+        texture2D(diffusedTexture, maxExtents)) / 4.25 + texture2D(originalTexture, gl_TexCoord[0].st) * 0.1;
 }

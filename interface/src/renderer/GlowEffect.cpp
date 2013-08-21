@@ -57,6 +57,8 @@ void GlowEffect::init() {
     _diffuseProgram->bind();
     _diffuseProgram->setUniformValue("diffusedTexture", 1);
     _diffuseProgram->release();
+    
+    _diffusionScaleLocation = _diffuseProgram->uniformLocation("diffusionScale");
 }
 
 void GlowEffect::prepare() {
@@ -125,7 +127,11 @@ void GlowEffect::render() {
         glBindTexture(GL_TEXTURE_2D, oldDiffusedFBO->texture());
             
         _diffuseProgram->bind();
+        QSize size = Application::getInstance()->getGLWidget()->size();
+        _diffuseProgram->setUniformValue(_diffusionScaleLocation, 1.0f / size.width(), 1.0f / size.height());
+        
         renderFullscreenQuad();
+        
         _diffuseProgram->release();
         
         newDiffusedFBO->release();
