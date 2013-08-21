@@ -1,7 +1,7 @@
 //  VoxelServer.h
 //  voxel-server
 //
-//  Created by Stephen Birarda on 3/13/13.
+//  Created by Brad Hefta-Gaub on 8/21/13
 //
 //
 
