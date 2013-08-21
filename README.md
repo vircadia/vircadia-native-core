@@ -65,7 +65,7 @@ and space-server are architectural components that will allow you to run the ful
 the virtual world should you choose to.
 
 
-I'm ready, I want to run my own virtual world!
+I want to run my own virtual world!
 ========
 
 In the voxel-server/src directory you will find a README that explains 
