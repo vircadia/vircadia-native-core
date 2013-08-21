@@ -50,6 +50,10 @@ VoxelTree::VoxelTree(bool shouldReaverage) :
     _isDirty(true),
     _shouldReaverage(shouldReaverage) {
     rootNode = new VoxelNode();
+    
+    pthread_mutex_init(&_encodeSetLock, NULL);
+    pthread_mutex_init(&_deleteSetLock, NULL);
+    pthread_mutex_init(&_deletePendingSetLock, NULL);
 }
 
 VoxelTree::~VoxelTree() {
@@ -58,6 +62,10 @@ VoxelTree::~VoxelTree() {
     for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
         delete rootNode->getChildAtIndex(i);
     }
+
+    pthread_mutex_destroy(&_encodeSetLock);
+    pthread_mutex_destroy(&_deleteSetLock);
+    pthread_mutex_destroy(&_deletePendingSetLock);
 }
 
 
@@ -393,7 +401,16 @@ void VoxelTree::deleteVoxelCodeFromTree(unsigned char* codeBuffer, bool collapse
     args.pathChanged        = false;
 
     VoxelNode* node = rootNode;
-    deleteVoxelCodeFromTreeRecursion(node, &args);
+    
+    // We can't encode and delete nodes at the same time, so we guard against deleting any node that is actively
+    // being encoded. And we stick that code on our pendingDelete list.
+    if (isEncoding(codeBuffer)) {
+        queueForLaterDelete(codeBuffer);
+    } else {
+        startDeleting(codeBuffer);
+        deleteVoxelCodeFromTreeRecursion(node, &args);
+        doneDeleting(codeBuffer);
+    }
 }
 
 void VoxelTree::deleteVoxelCodeFromTreeRecursion(VoxelNode* node, void* extraData) {
@@ -998,15 +1015,16 @@ bool VoxelTree::findCapsulePenetration(const glm::vec3& start, const glm::vec3& 
     return args.found;
 }
 
-
 int VoxelTree::encodeTreeBitstream(VoxelNode* node, unsigned char* outputBuffer, int availableBytes, VoxelNodeBag& bag,
-                                   EncodeBitstreamParams& params) const {
+                                   EncodeBitstreamParams& params) {
 
+    startEncoding(node);
     // How many bytes have we written so far at this level;
     int bytesWritten = 0;
     
     // If we're at a node that is out of view, then we can return, because no nodes below us will be in view!
     if (params.viewFrustum && !node->isInView(*params.viewFrustum)) {
+        doneEncoding(node);
         return bytesWritten;
     }
     
@@ -1057,6 +1075,8 @@ int VoxelTree::encodeTreeBitstream(VoxelNode* node, unsigned char* outputBuffer,
         // otherwise... if we didn't write any child bytes, then pretend like we also didn't write our octal code
         bytesWritten = 0;
     }
+    
+    doneEncoding(node);
     return bytesWritten;
 }
 
@@ -1661,7 +1681,7 @@ bool VoxelTree::readFromSchematicFile(const char *fileName) {
     return true;
 }
 
-void VoxelTree::writeToSVOFile(const char* fileName, VoxelNode* node) const {
+void VoxelTree::writeToSVOFile(const char* fileName, VoxelNode* node) {
 
     std::ofstream file(fileName, std::ios::out|std::ios::binary);
 
@@ -1899,3 +1919,51 @@ void VoxelTree::computeBlockColor(int id, int data, int& red, int& green, int& b
             break;
     }
 }
+
+void dumpSetContents(const char* name, std::set<unsigned char*> set) {
+    printf("set %s has %ld elements\n", name, set.size());
+    /*
+    for (std::set<unsigned char*>::iterator i = set.begin(); i != set.end(); ++i) {
+        printOctalCode(*i);
+    }
+    */
+}
+
+void VoxelTree::startEncoding(VoxelNode* node) {
+    pthread_mutex_lock(&_encodeSetLock);
+    _codesBeingEncoded.insert(node->getOctalCode());
+    pthread_mutex_unlock(&_encodeSetLock);
+}
+
+void VoxelTree::doneEncoding(VoxelNode* node) {
+    pthread_mutex_lock(&_encodeSetLock);
+    _codesBeingEncoded.erase(node->getOctalCode());
+    pthread_mutex_unlock(&_encodeSetLock);
+}
+
+void VoxelTree::startDeleting(unsigned char* code) {
+    pthread_mutex_lock(&_deleteSetLock);
+    _codesBeingDeleted.insert(code);
+    pthread_mutex_unlock(&_deleteSetLock);
+}
+
+void VoxelTree::doneDeleting(unsigned char* code) {
+    pthread_mutex_lock(&_deleteSetLock);
+    _codesBeingDeleted.erase(code);
+    pthread_mutex_unlock(&_deleteSetLock);
+}
+
+bool VoxelTree::isEncoding(unsigned char* codeBuffer) {
+    pthread_mutex_lock(&_encodeSetLock);
+    bool isEncoding = (_codesBeingEncoded.find(codeBuffer) != _codesBeingEncoded.end());
+    pthread_mutex_unlock(&_encodeSetLock);
+    return isEncoding;
+}
+
+void VoxelTree::queueForLaterDelete(unsigned char* codeBuffer) {
+    pthread_mutex_lock(&_deletePendingSetLock);
+    _codesPendingDelete.insert(codeBuffer);
+    pthread_mutex_unlock(&_deletePendingSetLock);
+}
+
+

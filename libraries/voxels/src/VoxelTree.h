@@ -9,6 +9,7 @@
 #ifndef __hifi__VoxelTree__
 #define __hifi__VoxelTree__
 
+#include <set>
 #include <PointerStack.h>
 #include <SimpleMovingAverage.h>
 
@@ -152,7 +153,7 @@ public:
                                                 const glm::vec3& point, void* extraData=NULL);
 
     int encodeTreeBitstream(VoxelNode* node, unsigned char* outputBuffer, int availableBytes, VoxelNodeBag& bag, 
-                            EncodeBitstreamParams& params) const;
+                            EncodeBitstreamParams& params) ;
 
     bool isDirty() const { return _isDirty; };
     void clearDirtyBit() { _isDirty = false; };
@@ -169,7 +170,7 @@ public:
     void loadVoxelsFile(const char* fileName, bool wantColorRandomizer);
 
     // these will read/write files that match the wireformat, excluding the 'V' leading
-    void writeToSVOFile(const char* filename, VoxelNode* node = NULL) const;
+    void writeToSVOFile(const char* filename, VoxelNode* node = NULL);
     bool readFromSVOFile(const char* filename);
     // reads voxels from square image with alpha as a Y-axis
     bool readFromSquareARGB32Pixels(const uint32_t* pixels, int dimension);
@@ -209,6 +210,39 @@ private:
     bool _isDirty;
     unsigned long int _nodesChangedFromBitstream;
     bool _shouldReaverage;
+
+    /// Octal Codes of any subtrees currently being encoded. While any of these codes is being encoded, ancestors and 
+    /// descendants of them can not be deleted.
+    std::set<unsigned char*>  _codesBeingEncoded;
+    /// mutex lock to protect the encoding set
+    pthread_mutex_t _encodeSetLock;
+
+    /// Called to indicate that a VoxelNode is in the process of being encoded.
+    void startEncoding(VoxelNode* node);
+    /// Called to indicate that a VoxelNode is done being encoded.
+    void doneEncoding(VoxelNode* node);
+    /// Is the Octal Code currently being deleted?
+    bool isEncoding(unsigned char* codeBuffer);
+
+    /// Octal Codes of any subtrees currently being deleted. While any of these codes is being deleted, ancestors and 
+    /// descendants of them can not be encoded.
+    std::set<unsigned char*>  _codesBeingDeleted;
+    /// mutex lock to protect the deleting set
+    pthread_mutex_t _deleteSetLock;
+
+    /// Called to indicate that an octal code is in the process of being deleted.
+    void startDeleting(unsigned char* code);
+    /// Called to indicate that an octal code is done being deleted.
+    void doneDeleting(unsigned char* code);
+    /// Octal Codes that were attempted to be deleted but couldn't be because they were actively being encoded, and were
+    /// instead queued for later delete
+    std::set<unsigned char*>  _codesPendingDelete;
+    /// mutex lock to protect the deleting set
+    pthread_mutex_t _deletePendingSetLock;
+
+    /// Adds an Octal Code to the set of codes that needs to be deleted
+    void queueForLaterDelete(unsigned char* codeBuffer);
+    
 };
 
 float boundaryDistanceForRenderLevel(unsigned int renderLevel);
