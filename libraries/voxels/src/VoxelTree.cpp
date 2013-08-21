@@ -26,7 +26,6 @@
 #include "OctalCode.h"
 #include "PacketHeaders.h"
 #include "SharedUtil.h"
-#include "SquarePixelMap.h"
 #include "Tags.h"
 #include "ViewFrustum.h"
 #include "VoxelConstants.h"
@@ -1591,7 +1590,7 @@ bool VoxelTree::readFromSquareARGB32Pixels(const char* filename) {
     emit importSize(1.0f, 1.0f, 1.0f);
     emit importProgress(0);
 
-    int minAlpha = 256;
+    int minAlpha = INT_MAX;
 
     QImage pngImage = QImage(filename);
 
