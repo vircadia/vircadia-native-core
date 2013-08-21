@@ -81,6 +81,8 @@ const int STARTUP_JITTER_SAMPLES = PACKET_LENGTH_SAMPLES_PER_CHANNEL / 2;
                                                  //  Startup optimistically with small jitter buffer that 
                                                  //  will start playback on the second received audio packet.
 
+static const float CLIPBOARD_TREE_SCALE = 1.0f;
+
 void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString &message) {
     fprintf(stdout, "%s", message.toLocal8Bit().constData());
     LogDisplay::instance.addMessage(message.toLocal8Bit().constData());
@@ -94,6 +96,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _frameCount(0),
         _fps(120.0f),
         _justStarted(true),
+        _clipboard(CLIPBOARD_TREE_SCALE),
+        _voxelImporter(_window),
         _wantToKillLocalVoxels(false),
         _audioScope(256, 200, true),
         _mouseX(0),
@@ -125,7 +129,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _packetsPerSecond(0),
         _bytesPerSecond(0),
         _bytesCount(0),
-        _swatch(NULL)
+        _swatch(NULL),
+        _pasteMode(false)
 {
     _applicationStartupTime = startup_time;
     _window->setWindowTitle("Interface");
@@ -810,6 +815,10 @@ void Application::mousePressEvent(QMouseEvent* event) {
                 _pieMenu.mousePressEvent(_mouseX, _mouseY);
             }
 
+            if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelSelectMode) && _pasteMode) {
+                pasteVoxels();
+            }
+
             if (MAKE_SOUND_ON_VOXEL_CLICK && _isHoverVoxel && !_isHoverVoxelSounding) {
                 _hoverVoxelOriginalColor[0] = _hoverVoxel.red;
                 _hoverVoxelOriginalColor[1] = _hoverVoxel.green;
@@ -1187,185 +1196,27 @@ void Application::exportVoxels() {
     _window->activateWindow();
 }
 
-const char* IMPORT_FILE_TYPES = "Sparse Voxel Octree Files, Square PNG, Schematic Files (*.svo *.png *.schematic)";
-void Application::importVoxelsToClipboard() {
-    QString desktopLocation = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
-    QString fileNameString = QFileDialog::getOpenFileName(_glWidget, tr("Import Voxels to Clipboard"), desktopLocation,
-                                                          tr(IMPORT_FILE_TYPES));
-
-    QByteArray fileNameAscii = fileNameString.toLocal8Bit();
-    const char* fileName = fileNameAscii.data();
-    
-    _clipboardTree.eraseAllVoxels();
-    if (fileNameString.endsWith(".png", Qt::CaseInsensitive)) {
-        QImage pngImage = QImage(fileName);
-        if (pngImage.height() != pngImage.width()) {
-            qDebug("ERROR: Bad PNG size: height != width.\n");
-            return;
-        }
-        
-        const uint32_t* pixels;
-        if (pngImage.format() == QImage::Format_ARGB32) {
-            pixels = reinterpret_cast<const uint32_t*>(pngImage.constBits());
-        } else {
-            QImage tmp = pngImage.convertToFormat(QImage::Format_ARGB32);
-            pixels = reinterpret_cast<const uint32_t*>(tmp.constBits());
-        }
-        _clipboardTree.readFromSquareARGB32Pixels(pixels, pngImage.height());
-    } else if (fileNameString.endsWith(".svo", Qt::CaseInsensitive)) {
-        _clipboardTree.readFromSVOFile(fileName);
-    } else if (fileNameString.endsWith(".schematic", Qt::CaseInsensitive)) {
-        _clipboardTree.readFromSchematicFile(fileName);
-    }
-
-    // restore the main window's active state
-    _window->activateWindow();
-}
-
 void Application::importVoxels() {
-    QString desktopLocation = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
+    _pasteMode = false;
 
-    QStringList fileNameStringList = QFileDialog::getOpenFileNames(_glWidget, tr("Import Voxels"), desktopLocation, 
-                                                          tr(IMPORT_FILE_TYPES));
+    if (_voxelImporter.exec()) {
+        qDebug("[DEBUG] Import succedded.\n");
 
-
-    // remember the "selected" voxel point before we do any importing...
-    float originalX = _mouseVoxel.x;
-    float originalZ = _mouseVoxel.z;
-
-    const int PNG_TYPE_NAME_LENGTH = 4;
-    const int SVO_TYPE_NAME_LENGTH = 4;
-    const int SCH_TYPE_NAME_LENGTH = 10;
-
-    // assume this is where we'll place it if filename doesn't have tiling
-    int unspecifiedColumnNum = 1; 
-    int unspecifiedRowNum = 1;
-    
-    // if they select multiple files, but they don't specify the tiling, we
-    // will tile them to this size
-    int unspecifiedSquare = (sqrt(fileNameStringList.size()) + 0.5);
-    qDebug("unspecifiedSquare: %d\n", unspecifiedSquare);
-    
-    for (int i = 0; i < fileNameStringList.size(); i++) {
-        QString fileNameString = fileNameStringList.at(i);
-        QString extension;
-        QByteArray fileNameAscii = fileNameString.toLocal8Bit();
-        const char* fileName = fileNameAscii.data();
-    
-        int fileTypeNameLength = 0;
-        VoxelTree importVoxels;
-        if (fileNameString.endsWith(".png", Qt::CaseInsensitive)) {
-            extension = QString(".png");
-            QImage pngImage = QImage(fileName);
-            fileTypeNameLength = PNG_TYPE_NAME_LENGTH;
-            if (pngImage.height() != pngImage.width()) {
-                qDebug("ERROR: Bad PNG size: height != width.\n");
-                return;
-            }
-        
-            const uint32_t* pixels;
-            if (pngImage.format() == QImage::Format_ARGB32) {
-                pixels = reinterpret_cast<const uint32_t*>(pngImage.constBits());
-            } else {
-                QImage tmp = pngImage.convertToFormat(QImage::Format_ARGB32);
-                pixels = reinterpret_cast<const uint32_t*>(tmp.constBits());
-            }
-        
-            importVoxels.readFromSquareARGB32Pixels(pixels, pngImage.height());        
-        } else if (fileNameString.endsWith(".svo", Qt::CaseInsensitive)) {
-            extension = QString(".svo");
-            importVoxels.readFromSVOFile(fileName);
-            fileTypeNameLength = SVO_TYPE_NAME_LENGTH;
-        } else if (fileNameString.endsWith(".schematic", Qt::CaseInsensitive)) {
-            extension = QString(".schematic");
-            importVoxels.readFromSchematicFile(fileName);
-            fileTypeNameLength = SCH_TYPE_NAME_LENGTH;
-        }
-
-        // Where we plan to place this
-        int columnNum = 1; 
-        int rowNum = 1;
-        bool isTileLocationUnspecified = false;
-        
-        // If we're in multi-file mode, then look for tiling specification in the file name
-        if (fileNameStringList.size() > 1) {
-            int indexOfFirstPeriod = fileNameString.indexOf('.');
-
-            //qDebug("indexOfFirstPeriod: %d\n", indexOfFirstPeriod);
-
-            // If the first period, is the extension, then this is not a grid name;
-            if (fileNameString.mid(indexOfFirstPeriod, fileNameString.length() - indexOfFirstPeriod) == extension) {
-                    qDebug("not a valid grid name... treat like tile Location Unspecified\n");
-                isTileLocationUnspecified = true;
-            } else {
-                QString fileCoord = fileNameString.mid(indexOfFirstPeriod + 1, 
-                                                       fileNameString.length() - indexOfFirstPeriod - fileTypeNameLength - 1);
-
-                //qDebug() << "fileCoord: " << fileCoord << "\n";
-                indexOfFirstPeriod = fileCoord.indexOf('.');
-
-                //qDebug("indexOfFirstPeriod: %d\n", indexOfFirstPeriod);
-
-                QString columnNumString = fileCoord.right(fileCoord.length() - indexOfFirstPeriod - 1);
-                QString rowNumString = fileCoord.left(indexOfFirstPeriod);
-
-                //qDebug() << "columnNumString: " << columnNumString << "\n";
-                //qDebug() << "rowNumString: " << rowNumString << "\n";
-
-                columnNum = columnNumString.toFloat();
-                rowNum = rowNumString.toFloat();
-            
-                // If there are no "grid sections" in the filename, then we're going to get
-                if (columnNum < 1 || rowNum < 1) {
-                    qDebug("not a valid grid name... treat like tile Location Unspecified\n");
-                    isTileLocationUnspecified = true;
-                }
-            }
-        }
-
-        if (isTileLocationUnspecified) {
-            qDebug("tile Location is Unspecified... \n");
-            columnNum = unspecifiedColumnNum; 
-            rowNum = unspecifiedRowNum;
-        
-            unspecifiedColumnNum++;
-            if (unspecifiedColumnNum > unspecifiedSquare) {
-                unspecifiedColumnNum = 1;
-                unspecifiedRowNum++;
-            }
-        }        
-        qDebug("columnNum: %d\t rowNum: %d\n", columnNum, rowNum);
-
-        _mouseVoxel.x = originalX + (columnNum - 1) * _mouseVoxel.s;
-        _mouseVoxel.z = originalZ + (rowNum    - 1) * _mouseVoxel.s;
-        
-        VoxelNode* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
-    
-        // Recurse the Import Voxels tree, where everything is root relative, and send all the colored voxels to 
-        // the server as an set voxel message, this will also rebase the voxels to the new location
-        unsigned char* calculatedOctCode = NULL;
-        SendVoxelsOperationArgs args;
-
-        // we only need the selected voxel to get the newBaseOctCode, which we can actually calculate from the
-        // voxel size/position details.
-        if (selectedNode) {
-            args.newBaseOctCode = selectedNode->getOctalCode();
+        if (_voxelImporter.getimportIntoClipboard()) {
+            _clipboard.killLocalVoxels();
+            _voxelImporter.getVoxelSystem()->copySubTreeIntoNewTree(
+                        _voxelImporter.getVoxelSystem()->getVoxelAt(0, 0, 0, 1),
+                        &_clipboard,
+                        true);
         } else {
-            args.newBaseOctCode = calculatedOctCode = pointToVoxel(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
-        }
-    
-        qDebug("column:%d, row:%d, voxel:%f,%f,%f,%f\n", columnNum, rowNum, _mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s );
-        
-        // send the insert/paste of these voxels
-        importVoxels.recurseTreeWithOperation(sendVoxelsOperation, &args);
-        _voxelEditSender.flushQueue();
-    
-        if (calculatedOctCode) {
-            delete[] calculatedOctCode;
+            _pasteMode = true;
         }
 
+
+    } else {
+        qDebug("[DEBUG] Import failed.\n");
     }
-    
+
     // restore the main window's active state
     _window->activateWindow();
 }
@@ -1379,11 +1230,17 @@ void Application::copyVoxels() {
     VoxelNode* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
     if (selectedNode) {
         // clear the clipboard first...
-        _clipboardTree.eraseAllVoxels();
+        _clipboard.killLocalVoxels();
 
         // then copy onto it
-        _voxels.copySubTreeIntoNewTree(selectedNode, &_clipboardTree, true);
+        _voxels.copySubTreeIntoNewTree(selectedNode, &_clipboard, true);
     }
+
+    _pasteMode = false;
+}
+
+void Application::togglePasteMode() {
+    _pasteMode = !_pasteMode;
 }
 
 void Application::pasteVoxels() {
@@ -1403,7 +1260,12 @@ void Application::pasteVoxels() {
         args.newBaseOctCode = calculatedOctCode = pointToVoxel(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
     }
 
-    _clipboardTree.recurseTreeWithOperation(sendVoxelsOperation, &args);
+    if (_voxelImporter.getImportWaiting()) {
+        _voxelImporter.getVoxelSystem()->recurseTreeWithOperation(sendVoxelsOperation, &args);
+        _voxelImporter.reset();
+    } else {
+        _clipboard.recurseTreeWithOperation(sendVoxelsOperation, &args);
+    }
     _voxelEditSender.flushQueue();
     
     if (calculatedOctCode) {
@@ -1445,6 +1307,10 @@ void Application::initDisplay() {
 
 void Application::init() {
     _voxels.init();
+    _clipboard.init();
+    _clipboardViewFrustum.setKeyholeRadius(1000.0f);
+    _clipboardViewFrustum.calculate();
+    _clipboard.setViewFrustum(&_clipboardViewFrustum);
     
     _environment.init();
 
@@ -2331,6 +2197,23 @@ void Application::displaySide(Camera& whichCamera) {
         glEnable(GL_LIGHTING);
     }
     
+    if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelSelectMode) && _pasteMode) {
+        glPushMatrix();
+        glTranslatef(_mouseVoxel.x * TREE_SCALE,
+                     _mouseVoxel.y * TREE_SCALE,
+                     _mouseVoxel.z * TREE_SCALE);
+        glScalef(_mouseVoxel.s * TREE_SCALE,
+                 _mouseVoxel.s * TREE_SCALE,
+                 _mouseVoxel.s * TREE_SCALE);
+
+        if (_voxelImporter.getImportWaiting()) {
+            _voxelImporter.getVoxelSystem()->render(true);
+        } else {
+            _clipboard.render(true);
+        }
+        glPopMatrix();
+    }
+
     _myAvatar.renderScreenTint(SCREEN_TINT_BEFORE_AVATARS, whichCamera);
     
     if (Menu::getInstance()->isOptionChecked(MenuOption::Avatars)) {
@@ -2399,7 +2282,7 @@ void Application::displaySide(Camera& whichCamera) {
     }
         
     renderFollowIndicator();
-    
+
     // render the glow effect
     _glowEffect.render();
 }
