@@ -54,8 +54,6 @@ public:
     
     float getCollisionSoundMagnitude() { return _collisionSoundMagnitude; };
     
-    int getSongFileBytes() { return _songFileBytes; }
-    
     void ping();
 
     // Call periodically to eventually perform round trip time analysis,
@@ -68,11 +66,6 @@ public:
     void addListenSource(int sourceID);
     void removeListenSource(int sourceID);
     void clearListenSources();
-    
-    void importSongToMixWithMicrophone(const char* filename);
-    
-public slots:
-    void stopMixingSongWithMicrophone();
 
 private:
     PaStream* _stream;
@@ -109,9 +102,7 @@ private:
     float _collisionSoundDuration;
     int _proceduralEffectSample;
     float _heartbeatMagnitude;
-    std::ifstream* _songFileStream;
-    int _songFileBytes;
-
+    
     AudioRingBuffer::ListenMode _listenMode;
     float                       _listenRadius;
     std::vector<int>            _listenSources;

@@ -30,9 +30,10 @@ VoxelStatsDialog::VoxelStatsDialog(QWidget* parent, VoxelSceneStats* model) :
     this->QDialog::setLayout(form);
 
     // Setup labels
-    for (int i = 0; i < VoxelSceneStats::ITEM_COUNT; ++i) {
-        VoxelSceneStats::ItemInfo& itemInfo = _model->getItemInfo(i);
-        QLabel* label = _labels[i] = new QLabel();  
+    for (int i = 0; i < (int)VoxelSceneStats::ITEM_COUNT; i++) {
+        VoxelSceneStats::Item item = (VoxelSceneStats::Item)(i);
+        VoxelSceneStats::ItemInfo& itemInfo = _model->getItemInfo(item);
+        QLabel* label = _labels[item] = new QLabel();  
         label->setAlignment(Qt::AlignRight);
 
         // Set foreground color to 62.5% brightness of the meter (otherwise will be hard to read on the bright background)
@@ -56,9 +57,10 @@ void VoxelStatsDialog::paintEvent(QPaintEvent* event) {
 
     // Update labels
     char strBuf[256];
-    for (int i = 0; i < VoxelSceneStats::ITEM_COUNT; ++i) {
-        QLabel* label = _labels[i];
-        snprintf(strBuf, sizeof(strBuf), "%s", _model->getItemValue(i));
+    for (int i = 0; i < (int)VoxelSceneStats::ITEM_COUNT; i++) {
+        VoxelSceneStats::Item item = (VoxelSceneStats::Item)(i);
+        QLabel* label = _labels[item];
+        snprintf(strBuf, sizeof(strBuf), "%s", _model->getItemValue(item));
         label->setText(strBuf);
     }
 

@@ -16,42 +16,83 @@
 
 class VoxelNode;
 
+/// Collects statistics for calculating and sending a scene from a voxel server to an interface client
 class VoxelSceneStats {
 public:
     VoxelSceneStats();
     ~VoxelSceneStats();
     void reset();
+    
+    /// Call when beginning the computation of a scene. Initializes internal structures
     void sceneStarted(bool fullScene, bool moving, VoxelNode* root, JurisdictionMap* jurisdictionMap);
+
+    /// Call when the computation of a scene is completed. Finalizes internal structures
     void sceneCompleted();
 
     void printDebugDetails();
+    
+    /// Track that a packet was sent as part of the scene.
     void packetSent(int bytes);
 
+    /// Tracks the beginning of an encode pass during scene calculation.
     void encodeStarted();
+
+    /// Tracks the ending of an encode pass during scene calculation.
     void encodeStopped();
     
+    /// Track that a node was traversed as part of computation of a scene.
     void traversed(const VoxelNode* node);
+
+    /// Track that a node was skipped as part of computation of a scene due to being beyond the LOD distance.
     void skippedDistance(const VoxelNode* node);
+
+    /// Track that a node was skipped as part of computation of a scene due to being out of view.
     void skippedOutOfView(const VoxelNode* node);
+
+    /// Track that a node was skipped as part of computation of a scene due to previously being in view while in delta sending
     void skippedWasInView(const VoxelNode* node);
+
+    /// Track that a node was skipped as part of computation of a scene due to not having changed since last full scene sent
     void skippedNoChange(const VoxelNode* node);
+
+    /// Track that a node was skipped as part of computation of a scene due to being occluded
     void skippedOccluded(const VoxelNode* node);
+
+    /// Track that a node's color was was sent as part of computation of a scene
     void colorSent(const VoxelNode* node);
+
+    /// Track that a node was due to be sent, but didn't fit in the packet and was moved to next packet
     void didntFit(const VoxelNode* node);
+
+    /// Track that the color bitmask was was sent as part of computation of a scene
     void colorBitsWritten();
+
+    /// Track that the exists in tree bitmask was was sent as part of computation of a scene
     void existsBitsWritten();
+
+    /// Track that the exists in packet bitmask was was sent as part of computation of a scene
     void existsInPacketBitsWritten();
+
+    /// Fix up tracking statistics in case where bitmasks were removed for some reason
     void childBitsRemoved(bool includesExistsBits, bool includesColors);
 
+    /// Pack the details of the statistics into a buffer for sending as a network packet
     int packIntoMessage(unsigned char* destinationBuffer, int availableBytes);
+
+    /// Unpack the details of the statistics from a buffer typically received as a network packet
     int unpackFromMessage(unsigned char* sourceBuffer, int availableBytes);
 
+    /// Indicates that a scene has been completed and the statistics are ready to be sent
     bool isReadyToSend() const { return _isReadyToSend; }
+
+    /// Mark that the scene statistics have been sent
     void markAsSent() { _isReadyToSend = false; }
+
     unsigned char* getStatsMessage() { return &_statsMessage[0]; }
     int getStatsMessageLength() const { return _statsMessageLength; }
 
-    enum {
+    /// List of various items tracked by VoxelSceneStats which can be accessed via getItemInfo() and getItemValue()
+    enum Item {
         ITEM_ELAPSED,
         ITEM_ENCODE,
         ITEM_PACKETS,
@@ -71,16 +112,24 @@ public:
         ITEM_COUNT
     };
 
-    // Meta information about each stats item
+    /// Meta information about each stats item
     struct ItemInfo {
         char const* const   caption;
         unsigned            colorRGBA;
     };
     
-    ItemInfo& getItemInfo(int item) { return _ITEMS[item]; };
-    char* getItemValue(int item);
+    /// Returns details about items tracked by VoxelSceneStats
+    /// \param Item item The item from the stats you're interested in.
+    ItemInfo& getItemInfo(Item item) { return _ITEMS[item]; };
+
+    /// Returns a UI formatted value of an item tracked by VoxelSceneStats
+    /// \param Item item The item from the stats you're interested in.
+    char* getItemValue(Item item);
     
+    /// Returns OctCode for root node of the jurisdiction of this particular voxel server
     unsigned char* getJurisdictionRoot() const { return _jurisdictionRoot; }
+
+    /// Returns list of OctCodes for end nodes of the jurisdiction of this particular voxel server
     const std::vector<unsigned char*>& getJurisdictionEndNodes() const { return _jurisdictionEndNodes; }
     
 private:

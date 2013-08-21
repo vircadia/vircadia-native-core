@@ -21,6 +21,8 @@
 #include <SceneUtils.h>
 #include <PerfStat.h>
 
+#include <JurisdictionSender.h>
+
 #ifdef _WIN32
 #include "Syssocket.h"
 #include "Systime.h"
@@ -73,6 +75,7 @@ EnvironmentData environmentData[3];
 
 int receivedPacketCount = 0;
 JurisdictionMap* jurisdiction = NULL;
+JurisdictionSender* jurisdictionSender = NULL;
 
 void randomlyFillVoxelTree(int levelsToGo, VoxelNode *currentRootNode) {
     // randomly generate children for this node
@@ -400,7 +403,7 @@ void persistVoxelsWhenDirty() {
     }
 }
 
-void *distributeVoxelsToListeners(void *args) {
+void* distributeVoxelsToListeners(void* args) {
     
     NodeList* nodeList = NodeList::getInstance();
     timeval lastSendTime;
@@ -408,7 +411,6 @@ void *distributeVoxelsToListeners(void *args) {
     while (true) {
         gettimeofday(&lastSendTime, NULL);
         
-        // enumerate the nodes to send 3 packets to each
         for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
             VoxelNodeData* nodeData = (VoxelNodeData*) node->getLinkedData();
 
@@ -482,10 +484,9 @@ int main(int argc, const char * argv[]) {
         }
 
         if (jurisdictionRoot || jurisdictionEndNodes) {
-            jurisdiction = new JurisdictionMap(jurisdictionRoot, jurisdictionEndNodes);
+            ::jurisdiction = new JurisdictionMap(jurisdictionRoot, jurisdictionEndNodes);
         }
     }
-    
     
     // should we send environments? Default is yes, but this command line suppresses sending
     const char* DUMP_VOXELS_ON_MOVE = "--dumpVoxelsOnMove";
@@ -509,6 +510,9 @@ int main(int argc, const char * argv[]) {
     NodeList* nodeList = NodeList::createInstance(NODE_TYPE_VOXEL_SERVER, listenPort);
     setvbuf(stdout, NULL, _IOLBF, 0);
 
+    const NODE_TYPE nodeTypes[] = { NODE_TYPE_AGENT, NODE_TYPE_ANIMATION_SERVER };
+    NodeList::getInstance()->setNodeTypesOfInterest(&nodeTypes[0], sizeof(nodeTypes));
+    
     // Handle Local Domain testing with the --local command line
     const char* local = "--local";
     ::wantLocalDomain = cmdOptionExists(argc, argv,local);
@@ -655,8 +659,13 @@ int main(int argc, const char * argv[]) {
     
     timeval lastDomainServerCheckIn = {};
 
+    // set up our jurisdiction broadcaster...
+    ::jurisdictionSender = new JurisdictionSender(::jurisdiction);
+    if (::jurisdictionSender) {
+        ::jurisdictionSender->initialize(true);
+    }
+
     // loop to send to nodes requesting data
-    
     while (true) {
 
         // send a check in packet to the domain server if DOMAIN_SERVER_CHECK_IN_USECS has elapsed
@@ -735,12 +744,25 @@ int main(int argc, const char * argv[]) {
                     voxelData += voxelDataSize;
                     atByte += voxelDataSize;
                 }
+
+                // Make sure our Node and NodeList knows we've heard from this node.
+                Node* node = NodeList::getInstance()->nodeWithAddress(&nodePublicAddress);
+                if (node) {
+                    node->setLastHeardMicrostamp(usecTimestampNow());
+                }
+
             } else if (packetData[0] == PACKET_TYPE_ERASE_VOXEL) {
 
                 // Send these bits off to the VoxelTree class to process them
                 pthread_mutex_lock(&::treeLock);
                 serverTree.processRemoveVoxelBitstream((unsigned char*)packetData, receivedBytes);
                 pthread_mutex_unlock(&::treeLock);
+
+                // Make sure our Node and NodeList knows we've heard from this node.
+                Node* node = NodeList::getInstance()->nodeWithAddress(&nodePublicAddress);
+                if (node) {
+                    node->setLastHeardMicrostamp(usecTimestampNow());
+                }
             } else if (packetData[0] == PACKET_TYPE_Z_COMMAND) {
 
                 // the Z command is a special command that allows the sender to send the voxel server high level semantic
@@ -774,6 +796,12 @@ int main(int argc, const char * argv[]) {
                     printf("rebroadcasting Z message to connected nodes... nodeList.broadcastToNodes()\n");
                     nodeList->broadcastToNodes(packetData, receivedBytes, &NODE_TYPE_AGENT, 1);
                 }
+
+                // Make sure our Node and NodeList knows we've heard from this node.
+                Node* node = NodeList::getInstance()->nodeWithAddress(&nodePublicAddress);
+                if (node) {
+                    node->setLastHeardMicrostamp(usecTimestampNow());
+                }
             } else if (packetData[0] == PACKET_TYPE_HEAD_DATA) {
                 // If we got a PACKET_TYPE_HEAD_DATA, then we're talking to an NODE_TYPE_AVATAR, and we
                 // need to make sure we have it in our nodeList.
@@ -789,6 +817,14 @@ int main(int argc, const char * argv[]) {
             } else if (packetData[0] == PACKET_TYPE_PING) {
                 // If the packet is a ping, let processNodeData handle it.
                 nodeList->processNodeData(&nodePublicAddress, packetData, receivedBytes);
+            } else if (packetData[0] == PACKET_TYPE_DOMAIN) {
+                nodeList->processNodeData(&nodePublicAddress, packetData, receivedBytes);
+            } else if (packetData[0] == PACKET_TYPE_VOXEL_JURISDICTION_REQUEST) {
+                if (::jurisdictionSender) {
+                    jurisdictionSender->queueReceivedPacket(nodePublicAddress, packetData, receivedBytes);
+                }
+            } else {
+                printf("unknown packet ignored... packetData[0]=%c\n", packetData[0]);
             }
         }
     }
@@ -796,8 +832,13 @@ int main(int argc, const char * argv[]) {
     pthread_join(sendVoxelThread, NULL);
     pthread_mutex_destroy(&::treeLock);
     
-    if (jurisdiction) {
-        delete jurisdiction;
+    if (::jurisdiction) {
+        delete ::jurisdiction;
+    }
+    
+    if (::jurisdictionSender) {
+        jurisdictionSender->terminate();
+        delete ::jurisdictionSender;
     }
 
     return 0;

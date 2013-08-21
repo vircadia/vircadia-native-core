@@ -29,8 +29,9 @@
 #define TAG_Compound  10
 #define TAG_Int_Array 11
 
-int retrieveData(std::string filename, std::stringstream &ss);
-int ungzip(std::ifstream &file, std::stringstream &ss);
+int  retrieveData(std::string filename, std::stringstream &ss);
+int  ungzip(std::ifstream &file, std::stringstream &ss);
+void computeBlockColor(int id, int data, int& r, int& g, int& b, int& create);
 
 class Tag {
 public:

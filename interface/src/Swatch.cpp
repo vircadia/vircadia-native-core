@@ -1,5 +1,19 @@
+//
+//  Swatch.h
+//  interface
+//
+//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//
+
 #include "Swatch.h"
 #include <iostream>
+
+QIcon Swatch::createIcon(const QColor& color) {
+    QPixmap map(16, 16);
+    map.fill(color);
+    return QIcon(map);
+}
+
 
 Swatch::Swatch(QAction* action) :
     Tool(action, 0, -1, -1),
