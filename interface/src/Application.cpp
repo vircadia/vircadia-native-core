@@ -64,7 +64,6 @@
 #include "renderer/ProgramObject.h"
 #include "ui/TextRenderer.h"
 #include "Swatch.h"
-#include "fvupdater.h"
 
 using namespace std;
 
@@ -95,6 +94,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _frameCount(0),
         _fps(120.0f),
         _justStarted(true),
+        _clipboard(1),
         _voxelImporter(_window),
         _wantToKillLocalVoxels(false),
         _audioScope(256, 200, true),
@@ -127,7 +127,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _packetsPerSecond(0),
         _bytesPerSecond(0),
         _bytesCount(0),
-        _swatch(NULL)
+        _swatch(NULL),
+        _pasteMode(false)
 {
     _applicationStartupTime = startup_time;
     _window->setWindowTitle("Interface");
@@ -210,12 +211,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     NodeList::getInstance()->startSilentNodeRemovalThread();
     
     _window->setCentralWidget(_glWidget);
-    
-#if defined(Q_OS_MAC) && defined(QT_NO_DEBUG)
-    // if this is a release OS X build use fervor to check for an update    
-    FvUpdater::sharedUpdater()->SetFeedURL("https://s3-us-west-1.amazonaws.com/highfidelity/appcast.xml");
-    FvUpdater::sharedUpdater()->CheckForUpdatesSilent();
-#endif
 
     // call Menu getInstance static method to set up the menu
     _window->setMenuBar(Menu::getInstance());
@@ -313,6 +308,11 @@ void Application::initializeGL() {
     
     // update before the first render
     update(0.0f);
+    
+    // now that things are drawn - if this is an OS X release build we can check for an update
+#if defined(Q_OS_MAC) && defined(QT_NO_DEBUG)
+    Menu::getInstance()->checkForUpdates();
+#endif
 }
 
 void Application::paintGL() {
@@ -813,6 +813,10 @@ void Application::mousePressEvent(QMouseEvent* event) {
                 _pieMenu.mousePressEvent(_mouseX, _mouseY);
             }
 
+            if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelSelectMode) && _pasteMode) {
+                pasteVoxels();
+            }
+
             if (MAKE_SOUND_ON_VOXEL_CLICK && _isHoverVoxel && !_isHoverVoxelSounding) {
                 _hoverVoxelOriginalColor[0] = _hoverVoxel.red;
                 _hoverVoxelOriginalColor[1] = _hoverVoxel.green;
@@ -1213,10 +1217,11 @@ void Application::importVoxelsToClipboard() {
 }
 
 void Application::importVoxels() {
+    _pasteMode = false;
+
     if (_voxelImporter.exec()) {
         qDebug("[DEBUG] Import succedded.\n");
-
-
+        _pasteMode = true;
     } else {
         qDebug("[DEBUG] Import failed.\n");
     }
@@ -1382,8 +1387,14 @@ void Application::copyVoxels() {
         _clipboard.killLocalVoxels();
 
         // then copy onto it
-        //_voxels.copySubTreeIntoNewTree(selectedNode, _clipboard, true);
+        _voxels.copySubTreeIntoNewTree(selectedNode, &_clipboard, true);
     }
+
+    _pasteMode = false;
+}
+
+void Application::togglePasteMode() {
+    _pasteMode = !_pasteMode;
 }
 
 void Application::pasteVoxels() {
@@ -1403,7 +1414,12 @@ void Application::pasteVoxels() {
         args.newBaseOctCode = calculatedOctCode = pointToVoxel(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
     }
 
-    //_clipboard.recurseTreeWithOperation(sendVoxelsOperation, &args);
+    if (_voxelImporter.getImportWaiting()) {
+        _voxelImporter.getVoxelSystem()->recurseTreeWithOperation(sendVoxelsOperation, &args);
+        _voxelImporter.reset();
+    } else {
+        _clipboard.recurseTreeWithOperation(sendVoxelsOperation, &args);
+    }
     _voxelEditSender.flushQueue();
     
     if (calculatedOctCode) {
@@ -1445,10 +1461,15 @@ void Application::initDisplay() {
 
 void Application::init() {
     _voxels.init();
+    _clipboard.init();
+    _clipboardViewFrustum.setKeyholeRadius(1000.0f);
+    _clipboardViewFrustum.calculate();
+    _clipboard.setViewFrustum(&_clipboardViewFrustum);
     
     _environment.init();
 
     _glowEffect.init();
+    _ambientOcclusionEffect.init();
     
     _handControl.setScreenDimensions(_glWidget->width(), _glWidget->height());
 
@@ -2330,6 +2351,23 @@ void Application::displaySide(Camera& whichCamera) {
         glEnable(GL_LIGHTING);
     }
     
+    if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelSelectMode) && _pasteMode) {
+        glPushMatrix();
+        glTranslatef(_mouseVoxel.x * TREE_SCALE,
+                     _mouseVoxel.y * TREE_SCALE,
+                     _mouseVoxel.z * TREE_SCALE);
+        glScalef(_mouseVoxel.s * TREE_SCALE,
+                 _mouseVoxel.s * TREE_SCALE,
+                 _mouseVoxel.s * TREE_SCALE);
+
+        if (_voxelImporter.getImportWaiting()) {
+            _voxelImporter.getVoxelSystem()->render(true);
+        } else {
+            _clipboard.render(true);
+        }
+        glPopMatrix();
+    }
+
     _myAvatar.renderScreenTint(SCREEN_TINT_BEFORE_AVATARS, whichCamera);
     
     if (Menu::getInstance()->isOptionChecked(MenuOption::Avatars)) {
@@ -2375,6 +2413,11 @@ void Application::displaySide(Camera& whichCamera) {
         renderWorldBox();
     }
     
+    // render the ambient occlusion effect if enabled
+    if (Menu::getInstance()->isOptionChecked(MenuOption::AmbientOcclusion)) {
+        _ambientOcclusionEffect.render();
+    }
+    
     // brad's frustum for debugging
     if (Menu::getInstance()->isOptionChecked(MenuOption::DisplayFrustum)) {
         renderViewFrustum(_viewFrustum);
@@ -2393,7 +2436,7 @@ void Application::displaySide(Camera& whichCamera) {
     }
         
     renderFollowIndicator();
-    
+
     // render the glow effect
     _glowEffect.render();
 }

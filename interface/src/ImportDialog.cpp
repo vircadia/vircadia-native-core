@@ -6,6 +6,7 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 #include "ImportDialog.h"
+#include "Application.h"
 
 #include <QStandardPaths>
 #include <QGridLayout>
@@ -23,7 +24,7 @@ const QString IMPORT_FILE_TYPES                   = QObject::tr("Sparse Voxel Oc
 const QString DESKTOP_LOCATION = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
 
 
-const glm::vec3 UP = glm::vec3(0, 1, 0);
+const glm::vec3 UP_VECT = glm::vec3(0, 1, 0);
 const float ANGULAR_RATE = 0.02f;
 const float VERTICAL_ANGLE = M_PI_4 / 2.0f;
 const float RETURN_RATE = 0.02f;
@@ -61,7 +62,7 @@ private:
 };
 
 GLWidget::GLWidget(QWidget *parent, VoxelSystem *voxelSystem)
-    : QGLWidget(parent),
+    : QGLWidget(parent, Application::getInstance()->getGLWidget()),
       _voxelSystem(voxelSystem),
       _draw(false),
       _a(0.0f),
@@ -77,11 +78,6 @@ void GLWidget::initializeGL() {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glShadeModel (GL_SMOOTH);
     glEnable(GL_DEPTH_TEST);
-
-    if(_voxelSystem) {
-        _voxelSystem->init();
-    }
-
 }
 
 void GLWidget::resizeGL(int width, int height) {
@@ -111,7 +107,7 @@ void GLWidget::paintGL() {
               _targetCenter.y + (glm::length(_targetCenter) + NEAR_CLIP) * sin(_h),
               _targetCenter.z + (glm::length(_targetCenter) + NEAR_CLIP) * sin(_a),
               _targetCenter.x, _targetCenter.y, _targetCenter.z,
-              UP.x, UP.y, UP.z);
+              UP_VECT.x, UP_VECT.y, UP_VECT.z);
 
 
     if (_draw && _voxelSystem) {
@@ -138,7 +134,7 @@ void GLWidget::paintGL() {
         glVertex3d(2 * _targetCenter.x, 2 * _targetCenter.y, 0                  );
         glEnd();
 
-        _voxelSystem->render(false);
+        _voxelSystem->render(true);
     }
 }
 
@@ -221,11 +217,7 @@ void ImportDialog::reject() {
 }
 
 int ImportDialog::exec() {
-    reset();
-    int ret = QFileDialog::exec();
-    preview(false);
-
-    return ret;
+    return QFileDialog::exec();
 }
 
 void ImportDialog::setGLCamera(float x, float y, float z) {

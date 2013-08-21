@@ -11,6 +11,8 @@
 #include <QFileInfo>
 #include <QThreadPool>
 
+static const int MAX_VOXELS_PER_IMPORT = 2000000;
+
 class ImportTask : public QObject, public QRunnable {
 public:
     ImportTask(VoxelSystem* voxelSystem, const QString &filename);
@@ -21,16 +23,11 @@ private:
     QString       _filename;
 };
 
-class LocalVoxelSystem : public VoxelSystem {
-public:
-    LocalVoxelSystem() : VoxelSystem(1, 2000000) {}
-
-    virtual void removeOutOfView() {}
-};
-
 VoxelImporter::VoxelImporter(QWidget* parent)
     : QObject(parent),
-      _voxelSystem(new LocalVoxelSystem()),
+      _voxelSystem(new VoxelSystem(1, MAX_VOXELS_PER_IMPORT)),
+      _initialized(false),
+      _importWaiting(false),
       _importDialog(parent, _voxelSystem),
       _currentTask(NULL),
       _nextTask(NULL) {
@@ -60,24 +57,35 @@ void VoxelImporter::reset() {
     _voxelSystem->killLocalVoxels();
     _importDialog.reset();
     _filename = "";
-    _currentTask = NULL;
-    _nextTask = NULL;
+    _importWaiting = false;
+
+    if (_nextTask) {
+        delete _nextTask;
+        _nextTask = NULL;
+    }
+
+    if (_currentTask) {
+        _voxelSystem->cancelImport();
+    }
 }
 
 int VoxelImporter::exec() {
-    reset();
+    if (!_initialized) {
+        _voxelSystem->init();
+        _importViewFrustum.setKeyholeRadius(100000.0f);
+        _importViewFrustum.calculate();
+        _voxelSystem->setViewFrustum(&_importViewFrustum);
+        _initialized = true;
+    }
 
+    reset();
     int ret = _importDialog.exec();
 
     if (!ret) {
-        if (_nextTask) {
-            delete _nextTask;
-            _nextTask = NULL;
-        }
-
-        if (_currentTask) {
-            _voxelSystem->cancelImport();
-        }
+        reset();
+    } else {
+        _importDialog.reset();
+        _importWaiting = true;
     }
 
     return ret;
@@ -92,6 +100,10 @@ int VoxelImporter::preImport() {
 
     if (_importDialog.getWantPreview()) {
         _filename = filename;
+
+        if (_nextTask) {
+            delete _nextTask;
+        }
 
         _nextTask = new ImportTask(_voxelSystem, _filename);
         connect(_nextTask, SIGNAL(destroyed()), SLOT(launchTask()));
@@ -124,6 +136,10 @@ int VoxelImporter::import() {
     }
 
     _filename = filename;
+
+    if (_nextTask) {
+        delete _nextTask;
+    }
 
     _nextTask = new ImportTask(_voxelSystem, _filename);
     connect(_nextTask, SIGNAL(destroyed()), SLOT(launchTask()));

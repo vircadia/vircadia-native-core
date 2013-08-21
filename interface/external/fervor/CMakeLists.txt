@@ -3,8 +3,8 @@ project(Fervor)
 
 find_package(Qt5Core REQUIRED)
 find_package(Qt5Network REQUIRED)
-find_package(Qt5WebKit REQUIRED)
 find_package(Qt5Widgets REQUIRED)
+find_package(Qt5WebKitWidgets REQUIRED)
 
 add_definitions(-DFV_GUI)
 
@@ -32,4 +32,4 @@ include_directories(
 add_library(fervor ${FERVOR_SOURCES} ${FERVOR_HEADERS} ${FERVOR_MOC_SOURCES} ${FERVOR_WRAPPED_UI})
 target_link_libraries(fervor ${QUAZIP_LIBRARIES})
 
-qt5_use_modules(fervor Core Network Widgets WebKit)
+qt5_use_modules(fervor Core Network Widgets WebKitWidgets)

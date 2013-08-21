@@ -16,7 +16,6 @@
 #include <QRunnable>
 
 class ImportTask;
-class LocalVoxelSystem;
 
 class VoxelImporter : public QObject {
     Q_OBJECT
@@ -25,6 +24,7 @@ public:
     ~VoxelImporter();
     void reset();
 
+    bool getImportWaiting() const { return _importWaiting; }
     VoxelSystem* getVoxelSystem() const { return _voxelSystem; }
     bool getimportIntoClipboard() const { return _importDialog.getImportIntoClipboard(); }
 
@@ -38,6 +38,9 @@ private slots:
 
 private:
     VoxelSystem* _voxelSystem;
+    ViewFrustum  _importViewFrustum;
+    bool         _initialized;
+    bool         _importWaiting;
 
     ImportDialog _importDialog;
 

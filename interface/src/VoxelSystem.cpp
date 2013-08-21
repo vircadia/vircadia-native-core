@@ -66,6 +66,8 @@ VoxelSystem::VoxelSystem(float treeScale, int maxVoxels) :
     _dataSourceID = UNKNOWN_NODE_ID;
     _voxelServerCount = 0;
 
+    _viewFrustum = Application::getInstance()->getViewFrustum();
+
     connect(_tree, SIGNAL(importSize(float,float,float)), SIGNAL(importSize(float,float,float)));
     connect(_tree, SIGNAL(importProgress(int)), SIGNAL(importProgress(int)));
 }
@@ -413,7 +415,7 @@ int VoxelSystem::newTreeToArrays(VoxelNode* node) {
     int   voxelsUpdated   = 0;
     bool  shouldRender    = false; // assume we don't need to render it
     // if it's colored, we might need to render it!
-    shouldRender = node->calculateShouldRender(Application::getInstance()->getViewFrustum());
+    shouldRender = node->calculateShouldRender(_viewFrustum);
     
     node->setShouldRender(shouldRender);
     // let children figure out their renderness
@@ -655,7 +657,7 @@ void VoxelSystem::updatePartialVBOs() {
     }
     
     // if we got to the end of the array, and we're in an active dirty segment...
-    if (inSegment) {    
+    if (inSegment) {
         updateVBOSegment(segmentStart, _voxelsInReadArrays - 1);
         inSegment = false;
     }
@@ -832,10 +834,8 @@ bool VoxelSystem::falseColorizeInViewOperation(VoxelNode* node, void* extraData)
 }
 
 void VoxelSystem::falseColorizeInView() {
-    ViewFrustum* viewFrustum = Application::getInstance()->getViewFrustum();
-    
     _nodeCount = 0;
-    _tree->recurseTreeWithOperation(falseColorizeInViewOperation,(void*)viewFrustum);
+    _tree->recurseTreeWithOperation(falseColorizeInViewOperation,(void*)_viewFrustum);
     qDebug("setting in view false color for %d nodes\n", _nodeCount);
     _tree->setDirtyBit();
     setupNewVoxelsForDrawing();
@@ -961,15 +961,13 @@ bool VoxelSystem::getDistanceFromViewRangeOperation(VoxelNode* node, void* extra
 }
 
 void VoxelSystem::falseColorizeDistanceFromView() {
-    ViewFrustum* viewFrustum = Application::getInstance()->getViewFrustum();
-    
     _nodeCount = 0;
     _maxDistance = 0.0;
     _minDistance = FLT_MAX;
-    _tree->recurseTreeWithOperation(getDistanceFromViewRangeOperation, (void*) viewFrustum);
+    _tree->recurseTreeWithOperation(getDistanceFromViewRangeOperation, (void*) _viewFrustum);
     qDebug("determining distance range for %d nodes\n", _nodeCount);
     _nodeCount = 0;
-    _tree->recurseTreeWithOperation(falseColorizeDistanceFromViewOperation, (void*) viewFrustum);
+    _tree->recurseTreeWithOperation(falseColorizeDistanceFromViewOperation, (void*) _viewFrustum);
     qDebug("setting in distance false color for %d nodes\n", _nodeCount);
     _tree->setDirtyBit();
     setupNewVoxelsForDrawing();
@@ -979,6 +977,7 @@ void VoxelSystem::falseColorizeDistanceFromView() {
 class removeOutOfViewArgs {
 public:
     VoxelSystem*    thisVoxelSystem;
+    ViewFrustum*    thisViewFrustum;
     VoxelNodeBag    dontRecurseBag;
     unsigned long   nodesScanned;
     unsigned long   nodesRemoved;
@@ -988,6 +987,7 @@ public:
     
     removeOutOfViewArgs(VoxelSystem* voxelSystem) :
         thisVoxelSystem(voxelSystem),
+        thisViewFrustum(voxelSystem->getViewFrustum()),
         dontRecurseBag(),
         nodesScanned(0),
         nodesRemoved(0),
@@ -1020,7 +1020,7 @@ bool VoxelSystem::removeOutOfViewOperation(VoxelNode* node, void* extraData) {
     for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
         VoxelNode* childNode = node->getChildAtIndex(i);
         if (childNode) {
-            ViewFrustum::location inFrustum = childNode->inFrustum(*Application::getInstance()->getViewFrustum());
+            ViewFrustum::location inFrustum = childNode->inFrustum(*args->thisViewFrustum);
             switch (inFrustum) {
                 case ViewFrustum::OUTSIDE: {
                     args->nodesOutside++;
@@ -1054,9 +1054,9 @@ bool VoxelSystem::isViewChanging() {
     bool result = false; // assume the best
 
     // If our viewFrustum has changed since our _lastKnowViewFrustum
-    if (!_lastKnowViewFrustum.matches(Application::getInstance()->getViewFrustum())) {
+    if (!_lastKnowViewFrustum.matches(_viewFrustum)) {
         result = true;
-        _lastKnowViewFrustum = *Application::getInstance()->getViewFrustum(); // save last known
+        _lastKnowViewFrustum = *_viewFrustum; // save last known
     }
     return result;
 }
@@ -1070,9 +1070,9 @@ bool VoxelSystem::hasViewChanged() {
     }
     
     // If our viewFrustum has changed since our _lastKnowViewFrustum
-    if (!_lastStableViewFrustum.matches(Application::getInstance()->getViewFrustum())) {
+    if (!_lastStableViewFrustum.matches(_viewFrustum)) {
         result = true;
-        _lastStableViewFrustum = *Application::getInstance()->getViewFrustum(); // save last stable
+        _lastStableViewFrustum = *_viewFrustum; // save last stable
     }
     return result;
 }
@@ -1312,12 +1312,20 @@ void VoxelSystem::createSphere(float r,float xc, float yc, float zc, float s, bo
     setupNewVoxelsForDrawing(); 
 };
 
+void VoxelSystem::copySubTreeIntoNewTree(VoxelNode* startNode, VoxelSystem* destinationTree, bool rebaseToRoot) {
+    _tree->copySubTreeIntoNewTree(startNode, destinationTree->_tree, rebaseToRoot);
+}
+
 void VoxelSystem::copySubTreeIntoNewTree(VoxelNode* startNode, VoxelTree* destinationTree, bool rebaseToRoot) {
     _tree->copySubTreeIntoNewTree(startNode, destinationTree, rebaseToRoot);
 }
 
 void VoxelSystem::copyFromTreeIntoSubTree(VoxelTree* sourceTree, VoxelNode* destinationNode) {
     _tree->copyFromTreeIntoSubTree(sourceTree, destinationNode);
+}
+
+void VoxelSystem::recurseTreeWithOperation(RecurseVoxelTreeOperation operation, void* extraData) {
+    _tree->recurseTreeWithOperation(operation, extraData);
 }
 
 struct FalseColorizeOccludedArgs {
@@ -1426,7 +1434,7 @@ void VoxelSystem::falseColorizeOccluded() {
     myCoverageMap.erase();
     
     FalseColorizeOccludedArgs args;
-    args.viewFrustum = Application::getInstance()->getViewFrustum();
+    args.viewFrustum = _viewFrustum;
     args.map = &myCoverageMap; 
     args.totalVoxels = 0;
     args.coloredVoxels = 0;
@@ -1548,7 +1556,7 @@ void VoxelSystem::falseColorizeOccludedV2() {
     VoxelProjectedPolygon::intersects_calls = 0;
     
     FalseColorizeOccludedArgs args;
-    args.viewFrustum = Application::getInstance()->getViewFrustum();
+    args.viewFrustum = _viewFrustum;
     args.mapV2 = &myCoverageMapV2; 
     args.totalVoxels = 0;
     args.coloredVoxels = 0;

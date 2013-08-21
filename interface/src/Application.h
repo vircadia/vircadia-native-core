@@ -32,6 +32,7 @@
 #include "Environment.h"
 #include "GLCanvas.h"
 #include "PacketHeaders.h"
+#include "PieMenu.h"
 #include "SerialInterface.h"
 #include "Stars.h"
 #include "Swatch.h"
@@ -43,9 +44,9 @@
 #include "VoxelSystem.h"
 #include "VoxelImporter.h"
 #include "Webcam.h"
-#include "PieMenu.h"
 #include "avatar/Avatar.h"
 #include "avatar/HandControl.h"
+#include "renderer/AmbientOcclusionEffect.h"
 #include "renderer/GeometryCache.h"
 #include "renderer/GlowEffect.h"
 #include "renderer/TextureCache.h"
@@ -141,6 +142,7 @@ public slots:
     void importVoxelsToClipboard();
     void cutVoxels();
     void copyVoxels();
+    void togglePasteMode();
     void pasteVoxels();
     
     void setRenderVoxels(bool renderVoxels);
@@ -240,6 +242,7 @@ private:
     
     VoxelSystem   _voxels;
     VoxelSystem   _clipboard; // if I copy/paste
+    ViewFrustum   _clipboardViewFrustum;
     VoxelImporter _voxelImporter;
 
     QByteArray _voxelsFilename;
@@ -316,6 +319,7 @@ private:
     TextureCache _textureCache;
     
     GlowEffect _glowEffect;
+    AmbientOcclusionEffect _ambientOcclusionEffect;
     
     #ifndef _WIN32
     Audio _audio;
@@ -340,6 +344,8 @@ private:
 
     ToolsPalette _palette;
     Swatch _swatch;
+
+    bool _pasteMode;
 
     PieMenu _pieMenu;
     

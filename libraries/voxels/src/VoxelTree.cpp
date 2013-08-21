@@ -1612,6 +1612,9 @@ bool VoxelTree::readFromSquareARGB32Pixels(const char* filename) {
 }
 
 bool VoxelTree::readFromSchematicFile(const char *fileName) {
+    _stopImport = false;
+    emit importProgress(0);
+
     std::stringstream ss;
     int err = retrieveData(std::string(fileName), ss);
     if (err && ss.get() != TAG_Compound) {
