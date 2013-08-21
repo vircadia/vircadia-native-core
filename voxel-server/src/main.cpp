@@ -44,7 +44,6 @@ int PACKETS_PER_CLIENT_PER_INTERVAL = 10;
 VoxelTree serverTree(true); // this IS a reaveraging tree 
 bool wantVoxelPersist = true;
 bool wantLocalDomain = false;
-bool wantColorRandomizer = false;
 bool debugVoxelSending = false;
 bool shouldShowAnimationDebug = false;
 bool displayVoxelStats = false;
@@ -474,10 +473,6 @@ int main(int argc, const char * argv[]) {
     const char* WANT_ANIMATION_DEBUG = "--shouldShowAnimationDebug";
     ::shouldShowAnimationDebug = cmdOptionExists(argc, argv, WANT_ANIMATION_DEBUG);
     printf("shouldShowAnimationDebug=%s\n", debug::valueOf(::shouldShowAnimationDebug));
-
-    const char* WANT_COLOR_RANDOMIZER = "--wantColorRandomizer";
-    ::wantColorRandomizer = cmdOptionExists(argc, argv, WANT_COLOR_RANDOMIZER);
-    printf("wantColorRandomizer=%s\n", debug::valueOf(::wantColorRandomizer));
 
     // By default we will voxel persist, if you want to disable this, then pass in this parameter
     const char* NO_VOXEL_PERSIST = "--NoVoxelPersist";

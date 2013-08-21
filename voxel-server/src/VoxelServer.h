@@ -38,7 +38,6 @@ extern int PACKETS_PER_CLIENT_PER_INTERVAL;
 extern VoxelTree serverTree; // this IS a reaveraging tree 
 extern bool wantVoxelPersist;
 extern bool wantLocalDomain;
-extern bool wantColorRandomizer;
 extern bool debugVoxelSending;
 extern bool shouldShowAnimationDebug;
 extern bool displayVoxelStats;

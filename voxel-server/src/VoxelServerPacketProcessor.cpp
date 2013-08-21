@@ -47,28 +47,13 @@ void VoxelServerPacketProcessor::processPacket(sockaddr& senderAddress, unsigned
             int voxelDataSize = bytesRequiredForCodeLength(octets) + COLOR_SIZE_IN_BYTES;
             int voxelCodeSize = bytesRequiredForCodeLength(octets);
 
-            // color randomization on insert
-            int colorRandomizer = ::wantColorRandomizer ? randIntInRange (-50, 50) : 0;
-            int red   = voxelData[voxelCodeSize + 0];
-            int green = voxelData[voxelCodeSize + 1];
-            int blue  = voxelData[voxelCodeSize + 2];
-
             if (::shouldShowAnimationDebug) {
-                printf("insert voxels - wantColorRandomizer=%s old r=%d,g=%d,b=%d \n",
-                    (::wantColorRandomizer?"yes":"no"),red,green,blue);
-            }
-        
-            red   = std::max(0, std::min(255, red   + colorRandomizer));
-            green = std::max(0, std::min(255, green + colorRandomizer));
-            blue  = std::max(0, std::min(255, blue  + colorRandomizer));
+                int red   = voxelData[voxelCodeSize + 0];
+                int green = voxelData[voxelCodeSize + 1];
+                int blue  = voxelData[voxelCodeSize + 2];
 
-            if (::shouldShowAnimationDebug) {
-                printf("insert voxels - wantColorRandomizer=%s NEW r=%d,g=%d,b=%d \n",
-                    (::wantColorRandomizer?"yes":"no"),red,green,blue);
+                printf("insert voxels - r=%d,g=%d,b=%d \n", red, green, blue);
             }
-            voxelData[voxelCodeSize + 0] = red;
-            voxelData[voxelCodeSize + 1] = green;
-            voxelData[voxelCodeSize + 2] = blue;
 
             if (::shouldShowAnimationDebug) {
                 float* vertices = firstVertexForCode(voxelData);
