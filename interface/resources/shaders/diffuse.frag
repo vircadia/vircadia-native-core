@@ -23,5 +23,5 @@ void main(void) {
     gl_FragColor = (texture2D(diffusedTexture, minExtents) +
         texture2D(diffusedTexture, vec2(maxExtents.s, minExtents.t)) + 
         texture2D(diffusedTexture, vec2(minExtents.s, maxExtents.t)) +
-        texture2D(diffusedTexture, maxExtents)) / 4.25 + texture2D(originalTexture, gl_TexCoord[0].st) * 0.1;
+        texture2D(diffusedTexture, maxExtents)) * 0.235 + texture2D(originalTexture, gl_TexCoord[0].st) * 0.1;
 }
