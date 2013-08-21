@@ -252,6 +252,8 @@ private:
 
     /// Adds an Octal Code to the set of codes that needs to be deleted
     void queueForLaterDelete(unsigned char* codeBuffer);
+    /// flushes out any Octal Codes that had to be queued
+    void emptyDeleteQueue();
 };
 
 float boundaryDistanceForRenderLevel(unsigned int renderLevel);

@@ -1832,6 +1832,9 @@ void VoxelTree::doneEncoding(VoxelNode* node) {
     pthread_mutex_lock(&_encodeSetLock);
     _codesBeingEncoded.erase(node->getOctalCode());
     pthread_mutex_unlock(&_encodeSetLock);
+    
+    // if we have any pending delete codes, then delete them now.
+    emptyDeleteQueue();
 }
 
 void VoxelTree::startDeleting(unsigned char* code) {
@@ -1856,6 +1859,16 @@ bool VoxelTree::isEncoding(unsigned char* codeBuffer) {
 void VoxelTree::queueForLaterDelete(unsigned char* codeBuffer) {
     pthread_mutex_lock(&_deletePendingSetLock);
     _codesPendingDelete.insert(codeBuffer);
+    pthread_mutex_unlock(&_deletePendingSetLock);
+}
+
+void VoxelTree::emptyDeleteQueue() {
+    pthread_mutex_lock(&_deletePendingSetLock);
+    for (std::set<unsigned char*>::iterator i = _codesPendingDelete.begin(); i != _codesPendingDelete.end(); ++i) {
+        unsigned char* codeToDelete = *i;
+        _codesBeingDeleted.erase(codeToDelete);
+        deleteVoxelCodeFromTree(codeToDelete, COLLAPSE_EMPTY_TREE);
+    }
     pthread_mutex_unlock(&_deletePendingSetLock);
 }
 
