@@ -134,7 +134,7 @@ void GLWidget::paintGL() {
         glVertex3d(2 * _targetCenter.x, 2 * _targetCenter.y, 0                  );
         glEnd();
 
-        _voxelSystem->render(true);
+        _voxelSystem->render(false);
     }
 }
 

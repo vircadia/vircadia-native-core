@@ -1629,8 +1629,6 @@ bool VoxelTree::readFromSchematicFile(const char *fileName) {
         return false;
     }
 
-    _stopImport = false;
-
     int max = (schematics.getWidth() > schematics.getLength()) ? schematics.getWidth() : schematics.getLength();
     max = (max > schematics.getHeight()) ? max : schematics.getHeight();
 

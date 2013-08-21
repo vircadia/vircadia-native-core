@@ -1194,183 +1194,27 @@ void Application::exportVoxels() {
     _window->activateWindow();
 }
 
-const char* IMPORT_FILE_TYPES = "Sparse Voxel Octree Files, Square PNG, Schematic Files (*.svo *.png *.schematic)";
-void Application::importVoxelsToClipboard() {
-    QString desktopLocation = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
-    QString fileNameString = QFileDialog::getOpenFileName(_glWidget, tr("Import Voxels to Clipboard"), desktopLocation,
-                                                          tr(IMPORT_FILE_TYPES));
-
-    QByteArray fileNameAscii = fileNameString.toLocal8Bit();
-    const char* fileName = fileNameAscii.data();
-    
-    _clipboard.killLocalVoxels();
-    if (fileNameString.endsWith(".png", Qt::CaseInsensitive)) {
-        _clipboard.readFromSquareARGB32Pixels(fileName);
-    } else if (fileNameString.endsWith(".svo", Qt::CaseInsensitive)) {
-        _clipboard.readFromSVOFile(fileName);
-    } else if (fileNameString.endsWith(".schematic", Qt::CaseInsensitive)) {
-        _clipboard.readFromSchematicFile(fileName);
-    }
-
-    // restore the main window's active state
-    _window->activateWindow();
-}
-
 void Application::importVoxels() {
     _pasteMode = false;
 
     if (_voxelImporter.exec()) {
         qDebug("[DEBUG] Import succedded.\n");
-        _pasteMode = true;
+
+        if (_voxelImporter.getimportIntoClipboard()) {
+            _clipboard.killLocalVoxels();
+            _voxelImporter.getVoxelSystem()->copySubTreeIntoNewTree(
+                        _voxelImporter.getVoxelSystem()->getVoxelAt(0, 0, 0, 1),
+                        &_clipboard,
+                        true);
+        } else {
+            _pasteMode = true;
+        }
+
+
     } else {
         qDebug("[DEBUG] Import failed.\n");
     }
 
-    return;
-
-    QString desktopLocation = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
-
-    QStringList fileNameStringList = QFileDialog::getOpenFileNames(_glWidget, tr("Import Voxels"), desktopLocation, 
-                                                          tr(IMPORT_FILE_TYPES));
-
-
-    // remember the "selected" voxel point before we do any importing...
-    float originalX = _mouseVoxel.x;
-    float originalZ = _mouseVoxel.z;
-
-    const int PNG_TYPE_NAME_LENGTH = 4;
-    const int SVO_TYPE_NAME_LENGTH = 4;
-    const int SCH_TYPE_NAME_LENGTH = 10;
-
-    // assume this is where we'll place it if filename doesn't have tiling
-    int unspecifiedColumnNum = 1; 
-    int unspecifiedRowNum = 1;
-    
-    // if they select multiple files, but they don't specify the tiling, we
-    // will tile them to this size
-    int unspecifiedSquare = (sqrt(fileNameStringList.size()) + 0.5);
-    qDebug("unspecifiedSquare: %d\n", unspecifiedSquare);
-    
-    for (int i = 0; i < fileNameStringList.size(); i++) {
-        QString fileNameString = fileNameStringList.at(i);
-        QString extension;
-        QByteArray fileNameAscii = fileNameString.toLocal8Bit();
-        const char* fileName = fileNameAscii.data();
-    
-        int fileTypeNameLength = 0;
-        VoxelTree importVoxels;
-        if (fileNameString.endsWith(".png", Qt::CaseInsensitive)) {
-            extension = QString(".png");
-            QImage pngImage = QImage(fileName);
-            fileTypeNameLength = PNG_TYPE_NAME_LENGTH;
-            if (pngImage.height() != pngImage.width()) {
-                qDebug("ERROR: Bad PNG size: height != width.\n");
-                return;
-            }
-        
-            const uint32_t* pixels;
-            if (pngImage.format() == QImage::Format_ARGB32) {
-                pixels = reinterpret_cast<const uint32_t*>(pngImage.constBits());
-            } else {
-                QImage tmp = pngImage.convertToFormat(QImage::Format_ARGB32);
-                pixels = reinterpret_cast<const uint32_t*>(tmp.constBits());
-            }
-        
-            importVoxels.readFromSquareARGB32Pixels(fileName);
-        } else if (fileNameString.endsWith(".svo", Qt::CaseInsensitive)) {
-            extension = QString(".svo");
-            importVoxels.readFromSVOFile(fileName);
-            fileTypeNameLength = SVO_TYPE_NAME_LENGTH;
-        } else if (fileNameString.endsWith(".schematic", Qt::CaseInsensitive)) {
-            extension = QString(".schematic");
-            importVoxels.readFromSchematicFile(fileName);
-            fileTypeNameLength = SCH_TYPE_NAME_LENGTH;
-        }
-
-        // Where we plan to place this
-        int columnNum = 1; 
-        int rowNum = 1;
-        bool isTileLocationUnspecified = false;
-        
-        // If we're in multi-file mode, then look for tiling specification in the file name
-        if (fileNameStringList.size() > 1) {
-            int indexOfFirstPeriod = fileNameString.indexOf('.');
-
-            //qDebug("indexOfFirstPeriod: %d\n", indexOfFirstPeriod);
-
-            // If the first period, is the extension, then this is not a grid name;
-            if (fileNameString.mid(indexOfFirstPeriod, fileNameString.length() - indexOfFirstPeriod) == extension) {
-                    qDebug("not a valid grid name... treat like tile Location Unspecified\n");
-                isTileLocationUnspecified = true;
-            } else {
-                QString fileCoord = fileNameString.mid(indexOfFirstPeriod + 1, 
-                                                       fileNameString.length() - indexOfFirstPeriod - fileTypeNameLength - 1);
-
-                //qDebug() << "fileCoord: " << fileCoord << "\n";
-                indexOfFirstPeriod = fileCoord.indexOf('.');
-
-                //qDebug("indexOfFirstPeriod: %d\n", indexOfFirstPeriod);
-
-                QString columnNumString = fileCoord.right(fileCoord.length() - indexOfFirstPeriod - 1);
-                QString rowNumString = fileCoord.left(indexOfFirstPeriod);
-
-                //qDebug() << "columnNumString: " << columnNumString << "\n";
-                //qDebug() << "rowNumString: " << rowNumString << "\n";
-
-                columnNum = columnNumString.toFloat();
-                rowNum = rowNumString.toFloat();
-            
-                // If there are no "grid sections" in the filename, then we're going to get
-                if (columnNum < 1 || rowNum < 1) {
-                    qDebug("not a valid grid name... treat like tile Location Unspecified\n");
-                    isTileLocationUnspecified = true;
-                }
-            }
-        }
-
-        if (isTileLocationUnspecified) {
-            qDebug("tile Location is Unspecified... \n");
-            columnNum = unspecifiedColumnNum; 
-            rowNum = unspecifiedRowNum;
-        
-            unspecifiedColumnNum++;
-            if (unspecifiedColumnNum > unspecifiedSquare) {
-                unspecifiedColumnNum = 1;
-                unspecifiedRowNum++;
-            }
-        }        
-        qDebug("columnNum: %d\t rowNum: %d\n", columnNum, rowNum);
-
-        _mouseVoxel.x = originalX + (columnNum - 1) * _mouseVoxel.s;
-        _mouseVoxel.z = originalZ + (rowNum    - 1) * _mouseVoxel.s;
-        
-        VoxelNode* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
-    
-        // Recurse the Import Voxels tree, where everything is root relative, and send all the colored voxels to 
-        // the server as an set voxel message, this will also rebase the voxels to the new location
-        unsigned char* calculatedOctCode = NULL;
-        SendVoxelsOperationArgs args;
-
-        // we only need the selected voxel to get the newBaseOctCode, which we can actually calculate from the
-        // voxel size/position details.
-        if (selectedNode) {
-            args.newBaseOctCode = selectedNode->getOctalCode();
-        } else {
-            args.newBaseOctCode = calculatedOctCode = pointToVoxel(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
-        }
-    
-        qDebug("column:%d, row:%d, voxel:%f,%f,%f,%f\n", columnNum, rowNum, _mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s );
-        
-        // send the insert/paste of these voxels
-        importVoxels.recurseTreeWithOperation(sendVoxelsOperation, &args);
-        _voxelEditSender.flushQueue();
-    
-        if (calculatedOctCode) {
-            delete[] calculatedOctCode;
-        }
-
-    }
-    
     // restore the main window's active state
     _window->activateWindow();
 }

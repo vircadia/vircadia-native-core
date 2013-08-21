@@ -48,7 +48,7 @@ VoxelImporter::~VoxelImporter() {
         connect(_currentTask, SIGNAL(destroyed()), _voxelSystem, SLOT(deleteLater()));
         _voxelSystem->cancelImport();
         _currentTask = NULL;
-    } else {
+    } else if (_initialized) {
         delete _voxelSystem;
     }
 }
@@ -70,15 +70,14 @@ void VoxelImporter::reset() {
 }
 
 int VoxelImporter::exec() {
-    reset();
-
-    if (_initialized) {
+    if (!_initialized) {
         _voxelSystem->init();
         _importViewFrustum.setKeyholeRadius(100000.0f);
         _importViewFrustum.calculate();
         _voxelSystem->setViewFrustum(&_importViewFrustum);
         _initialized = true;
     }
+    reset();
 
     int ret = _importDialog.exec();
 
