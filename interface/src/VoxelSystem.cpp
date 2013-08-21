@@ -1312,13 +1312,13 @@ void VoxelSystem::createSphere(float r,float xc, float yc, float zc, float s, bo
     setupNewVoxelsForDrawing(); 
 };
 
-void VoxelSystem::copySubTreeIntoNewTree(VoxelNode* startNode, VoxelSystem* destinationTree, bool rebaseToRoot) {
-    _tree->copySubTreeIntoNewTree(startNode, destinationTree->_tree, rebaseToRoot);
-    destinationTree->setupNewVoxelsForDrawing();
+void VoxelSystem::copySubTreeIntoNewTree(VoxelNode* startNode, VoxelSystem* destination, bool rebaseToRoot) {
+    _tree->copySubTreeIntoNewTree(startNode, destination->_tree, rebaseToRoot);
+    destination->setupNewVoxelsForDrawing();
 }
 
-void VoxelSystem::copySubTreeIntoNewTree(VoxelNode* startNode, VoxelTree* destinationTree, bool rebaseToRoot) {
-    _tree->copySubTreeIntoNewTree(startNode, destinationTree, rebaseToRoot);
+void VoxelSystem::copySubTreeIntoNewTree(VoxelNode* startNode, VoxelTree* destination, bool rebaseToRoot) {
+    _tree->copySubTreeIntoNewTree(startNode, destination, rebaseToRoot);
 }
 
 void VoxelSystem::copyFromTreeIntoSubTree(VoxelTree* sourceTree, VoxelNode* destinationNode) {
