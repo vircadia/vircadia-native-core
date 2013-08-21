@@ -74,7 +74,7 @@ static const float NODE_KILLED_RED   = 1.0f;
 static const float NODE_KILLED_GREEN = 0.0f;
 static const float NODE_KILLED_BLUE  = 0.0f;
 
-class Application : public QApplication, public NodeListHook {
+class Application : public QApplication, public NodeListHook, public PacketSenderNotify {
     Q_OBJECT
 
     friend class VoxelPacketProcessor;
@@ -105,8 +105,6 @@ public:
     
     const glm::vec3 getMouseVoxelWorldCoordinates(const VoxelDetail _mouseVoxel);
     
-    void updateParticleSystem(float deltaTime);
-    
     QGLWidget* getGLWidget() { return _glWidget; }
     Avatar* getAvatar() { return &_myAvatar; }
     Audio* getAudio() { return &_audio; }
@@ -134,6 +132,7 @@ public:
 
     virtual void nodeAdded(Node* node);
     virtual void nodeKilled(Node* node);
+    virtual void packetSentNotification(ssize_t length);
 
 public slots:
     void sendAvatarFaceVideoMessage(int frameCount, const QByteArray& data);
@@ -351,7 +350,7 @@ private:
     VoxelSceneStats _voxelSceneStats;
     int parseVoxelStats(unsigned char* messageData, ssize_t messageLength, sockaddr senderAddress);
     
-    std::map<uint16_t, JurisdictionMap> _voxelServerJurisdictions;
+    NodeToJurisdictionMap _voxelServerJurisdictions;
     
     std::vector<VoxelFade> _voxelFades;
 };

@@ -123,7 +123,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _audio(&_audioScope, STARTUP_JITTER_SAMPLES),
 #endif
         _stopNetworkReceiveThread(false),  
-        _voxelProcessor(this),
+        _voxelProcessor(),
         _voxelEditSender(this),
         _packetCount(0),
         _packetsPerSecond(0),
@@ -229,6 +229,9 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     _glWidget->setMouseTracking(true);
     
     // initialization continues in initializeGL when OpenGL context is ready
+    
+    // Tell our voxel edit sender about our known jurisdictions
+    _voxelEditSender.setVoxelServerJurisdictions(&_voxelServerJurisdictions);
 }
 
 Application::~Application() {
@@ -1112,6 +1115,7 @@ void Application::setFullscreen(bool fullscreen) {
 }
 
 void Application::setRenderVoxels(bool voxelRender) {
+    _voxelEditSender.setShouldSend(voxelRender);
     if (!voxelRender) {
         doKillLocalVoxels();
     }
@@ -3154,7 +3158,7 @@ void* Application::networkReceive(void* args) {
                     case PACKET_TYPE_VOXEL_STATS:
                     case PACKET_TYPE_ENVIRONMENT_DATA: {
                         // add this packet to our list of voxel packets and process them on the voxel processing
-                        app->_voxelProcessor.queuePacket(senderAddress, app->_incomingPacket, bytesReceived);
+                        app->_voxelProcessor.queueReceivedPacket(senderAddress, app->_incomingPacket, bytesReceived);
                         break;
                     }
                     case PACKET_TYPE_BULK_AVATAR_DATA:
@@ -3183,4 +3187,8 @@ void* Application::networkReceive(void* args) {
         pthread_exit(0); 
     }
     return NULL; 
+}
+
+void Application::packetSentNotification(ssize_t length) {
+    _bandwidthMeter.outputStream(BandwidthMeter::VOXELS).updateValue(length); 
 }

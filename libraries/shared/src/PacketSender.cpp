@@ -10,18 +10,23 @@
 
 #include <stdint.h>
 
-const uint64_t SEND_INTERVAL_USECS = 1000 * 5; // no more than 200pps... should be settable
-
 #include "NodeList.h"
 #include "PacketSender.h"
 #include "SharedUtil.h"
 
-PacketSender::PacketSender() {
-    _lastSendTime = usecTimestampNow();
+const int PacketSender::DEFAULT_PACKETS_PER_SECOND = 200;
+const int PacketSender::MINIMUM_PACKETS_PER_SECOND = 1;
+
+
+PacketSender::PacketSender(PacketSenderNotify* notify, int packetsPerSecond) : 
+    _packetsPerSecond(packetsPerSecond),
+    _lastSendTime(usecTimestampNow()),
+    _notify(notify)
+{
 }
 
 
-void PacketSender::queuePacket(sockaddr& address, unsigned char* packetData, ssize_t packetLength) {
+void PacketSender::queuePacketForSending(sockaddr& address, unsigned char* packetData, ssize_t packetLength) {
     NetworkPacket packet(address, packetData, packetLength);
     lock();
     _packets.push_back(packet);
@@ -29,9 +34,11 @@ void PacketSender::queuePacket(sockaddr& address, unsigned char* packetData, ssi
 }
 
 bool PacketSender::process() {
+    uint64_t USECS_PER_SECOND = 1000 * 1000;
+    uint64_t SEND_INTERVAL_USECS = (_packetsPerSecond == 0) ? USECS_PER_SECOND : (USECS_PER_SECOND / _packetsPerSecond);
+    
     if (_packets.size() == 0) {
-        const uint64_t SEND_THREAD_SLEEP_INTERVAL = (1000 * 1000)/60; // check at 60fps
-        usleep(SEND_THREAD_SLEEP_INTERVAL);
+        usleep(SEND_INTERVAL_USECS);
     }
     while (_packets.size() > 0) {
         NetworkPacket& packet = _packets.front();
@@ -40,6 +47,10 @@ bool PacketSender::process() {
         UDPSocket* nodeSocket = NodeList::getInstance()->getNodeSocket();
 
         nodeSocket->send(&packet.getAddress(), packet.getData(), packet.getLength());
+        
+        if (_notify) {
+            _notify->packetSentNotification(packet.getLength());
+        }
 
         lock();
         _packets.erase(_packets.begin());
@@ -55,5 +66,5 @@ bool PacketSender::process() {
         }
 
     }
-    return true;  // keep running till they terminate us
+    return isStillRunning();  // keep running till they terminate us
 }
