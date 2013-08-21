@@ -510,9 +510,8 @@ int main(int argc, const char * argv[]) {
     NodeList* nodeList = NodeList::createInstance(NODE_TYPE_VOXEL_SERVER, listenPort);
     setvbuf(stdout, NULL, _IOLBF, 0);
 
-    const int numNodeTypes = 2; 
-    const NODE_TYPE nodeTypes[numNodeTypes] = { NODE_TYPE_AGENT, NODE_TYPE_ANIMATION_SERVER };
-    NodeList::getInstance()->setNodeTypesOfInterest(&nodeTypes[0], numNodeTypes);
+    const NODE_TYPE nodeTypes[] = { NODE_TYPE_AGENT, NODE_TYPE_ANIMATION_SERVER };
+    NodeList::getInstance()->setNodeTypesOfInterest(&nodeTypes[0], sizeof(nodeTypes));
     
     // Handle Local Domain testing with the --local command line
     const char* local = "--local";

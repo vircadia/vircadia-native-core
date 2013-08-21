@@ -235,7 +235,6 @@ int JurisdictionMap::packIntoMessage(unsigned char* destinationBuffer, int avail
 
     // add the root jurisdiction
     if (_rootOctalCode) {
-        // copy the 
         int bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(_rootOctalCode));
         memcpy(destinationBuffer, &bytes, sizeof(bytes));
         destinationBuffer += sizeof(bytes);
