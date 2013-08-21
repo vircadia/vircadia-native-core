@@ -1314,6 +1314,7 @@ void VoxelSystem::createSphere(float r,float xc, float yc, float zc, float s, bo
 
 void VoxelSystem::copySubTreeIntoNewTree(VoxelNode* startNode, VoxelSystem* destinationTree, bool rebaseToRoot) {
     _tree->copySubTreeIntoNewTree(startNode, destinationTree->_tree, rebaseToRoot);
+    destinationTree->setupNewVoxelsForDrawing();
 }
 
 void VoxelSystem::copySubTreeIntoNewTree(VoxelNode* startNode, VoxelTree* destinationTree, bool rebaseToRoot) {

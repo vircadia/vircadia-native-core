@@ -70,7 +70,9 @@ void VoxelImporter::reset() {
 }
 
 int VoxelImporter::exec() {
-    if (!_initialized) {
+    reset();
+
+    if (_initialized) {
         _voxelSystem->init();
         _importViewFrustum.setKeyholeRadius(100000.0f);
         _importViewFrustum.calculate();
@@ -78,7 +80,6 @@ int VoxelImporter::exec() {
         _initialized = true;
     }
 
-    reset();
     int ret = _importDialog.exec();
 
     if (!ret) {
