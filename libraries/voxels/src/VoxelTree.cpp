@@ -18,6 +18,7 @@
 #include <glm/gtc/noise.hpp>
 
 #include <QtCore/QDebug>
+#include <QImage>
 
 #include "CoverageMap.h"
 #include "GeometryUtil.h"
@@ -48,7 +49,8 @@ VoxelTree::VoxelTree(bool shouldReaverage) :
     voxelsColoredStats(100),
     voxelsBytesReadStats(100),
     _isDirty(true),
-    _shouldReaverage(shouldReaverage) {
+    _shouldReaverage(shouldReaverage),
+    _stopImport(false) {
     rootNode = new VoxelNode();
     
     pthread_mutex_init(&_encodeSetLock, NULL);
@@ -367,6 +369,8 @@ void VoxelTree::readBitstreamToTree(unsigned char * bitstream, unsigned long int
         // skip bitstream to new startPoint
         bitstreamAt += theseBytesRead;
         bytesRead +=  theseBytesRead;
+
+        emit importProgress((100 * (bitstreamAt - bitstream)) / bufferSizeBytes);
     }
 
     this->voxelsBytesRead += bufferSizeBytes;
@@ -1577,6 +1581,10 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
 bool VoxelTree::readFromSVOFile(const char* fileName) {
     std::ifstream file(fileName, std::ios::in|std::ios::binary|std::ios::ate);
     if(file.is_open()) {
+
+        emit importSize(1.0f, 1.0f, 1.0f);
+        emit importProgress(0);
+
         qDebug("loading file %s...\n", fileName);
 
         // get file length....
@@ -1590,21 +1598,45 @@ bool VoxelTree::readFromSVOFile(const char* fileName) {
         readBitstreamToTree(entireFile, fileLength, args);
         delete[] entireFile;
 
+        emit importProgress(100);
+
         file.close();
         return true;
     }
     return false;
 }
 
-bool VoxelTree::readFromSquareARGB32Pixels(const uint32_t* pixels, int dimension) {
-    SquarePixelMap pixelMap = SquarePixelMap(pixels, dimension);
+bool VoxelTree::readFromSquareARGB32Pixels(const char* filename) {
+    QImage pngImage = QImage(filename);
+    if (pngImage.height() != pngImage.width()) {
+        qDebug("ERROR: Bad PNG size: height != width.\n");
+        return false;
+    }
+
+    emit importSize(1.0f, 1.0f, 1.0f);
+    emit importProgress(0);
+
+    const uint32_t* pixels;
+    if (pngImage.format() == QImage::Format_ARGB32) {
+        pixels = reinterpret_cast<const uint32_t*>(pngImage.constBits());
+    } else {
+        QImage tmp = pngImage.convertToFormat(QImage::Format_ARGB32);
+        pixels = reinterpret_cast<const uint32_t*>(tmp.constBits());
+    }
+
+    SquarePixelMap pixelMap = SquarePixelMap(pixels, pngImage.height());
     pixelMap.addVoxelsToVoxelTree(this);
+
+    emit importProgress(100);
     return true;
 }
 
 bool VoxelTree::readFromSchematicFile(const char *fileName) {
+    _stopImport = false;
+    emit importProgress(0);
+
     std::stringstream ss;
-    int err = retrieveData(fileName, ss);
+    int err = retrieveData(std::string(fileName), ss);
     if (err && ss.get() != TAG_Compound) {
         qDebug("[ERROR] Invalid schematic file.\n");
         return false;
@@ -1613,7 +1645,7 @@ bool VoxelTree::readFromSchematicFile(const char *fileName) {
     ss.get();
     TagCompound schematics(ss);
     if (!schematics.getBlocksId() || !schematics.getBlocksData()) {
-        qDebug("[ERROR] Invalid schematic file.\n");
+        qDebug("[ERROR] Invalid schematic data.\n");
         return false;
     }
 
@@ -1628,9 +1660,22 @@ bool VoxelTree::readFromSchematicFile(const char *fileName) {
     int red = 128, green = 128, blue = 128;
     int count = 0;
 
+    emit importSize(size * schematics.getWidth(),
+                    size * schematics.getHeight(),
+                    size * schematics.getLength());
+    emit importProgress(0);
+
     for (int y = 0; y < schematics.getHeight(); ++y) {
         for (int z = 0; z < schematics.getLength(); ++z) {
+            emit importProgress((int) 100 * (y * schematics.getLength() + z) / (schematics.getHeight() * schematics.getLength()));
+
             for (int x = 0; x < schematics.getWidth(); ++x) {
+                if (_stopImport) {
+                    qDebug("[DEBUG] Canceled import at %d voxels.\n", count);
+                    _stopImport = false;
+                    return true;
+                }
+
                 int pos  = ((y * schematics.getLength()) + z) * schematics.getWidth() + x;
                 int id   = schematics.getBlocksId()[pos];
                 int data = schematics.getBlocksData()[pos];
@@ -1676,6 +1721,7 @@ bool VoxelTree::readFromSchematicFile(const char *fileName) {
         }
     }
 
+    emit importProgress(100);
     qDebug("Created %d voxels from minecraft import.\n", count);
 
     return true;
@@ -1767,159 +1813,6 @@ void VoxelTree::copyFromTreeIntoSubTree(VoxelTree* sourceTree, VoxelNode* destin
     }
 }
 
-void VoxelTree::computeBlockColor(int id, int data, int& red, int& green, int& blue, int& create) {
-
-    switch (id) {
-        case   1:
-        case  14:
-        case  15:
-        case  16:
-        case  21:
-        case  56:
-        case  73:
-        case  74:
-        case  97:
-        case 129: red = 128; green = 128; blue = 128; break;
-        case   2: red =  77; green = 117; blue =  66; break;
-        case   3:
-        case  60: red = 116; green =  83; blue =  56; break;
-        case   4: red =  71; green =  71; blue =  71; break;
-        case   5:
-        case 125: red = 133; green =  94; blue =  62; break;
-        case   7: red =  35; green =  35; blue =  35; break;
-        case   8:
-        case   9: red = 100; green = 109; blue = 185; break;
-        case  10:
-        case  11: red = 192; green =  64; blue =   8; break;
-        case  12: red = 209; green = 199; blue = 155; break;
-        case  13: red =  96; green =  94; blue =  93; break;
-        case  17: red =  71; green =  56; blue =  35; break;
-        case  18: red =  76; green = 104; blue =  64; break;
-        case  19: red = 119; green = 119; blue =  37; break;
-        case  22: red =  22; green =  44; blue =  86; break;
-        case  23:
-        case  29:
-        case  33:
-        case  61:
-        case  62:
-        case 158: red =  61; green =  61; blue =  61; break;
-        case  24: red = 209; green = 202; blue = 156; break;
-        case  25:
-        case  58:
-        case  84:
-        case 137: red =  57; green =  38; blue =  25; break;
-        case  35:
-            switch (data) {
-                case  0: red = 234; green = 234; blue = 234; break;
-                case  1: red = 224; green = 140; blue =  84; break;
-                case  2: red = 185; green =  90; blue = 194; break;
-                case  3: red = 124; green = 152; blue = 208; break;
-                case  4: red = 165; green = 154; blue =  35; break;
-                case  5: red =  70; green = 187; blue =  61; break;
-                case  6: red = 206; green = 124; blue = 145; break;
-                case  7: red =  66; green =  66; blue =  66; break;
-                case  8: red = 170; green = 176; blue = 176; break;
-                case  9: red =  45; green = 108; blue =  35; break;
-                case 10: red = 130; green =  62; blue =   8; break;
-                case 11: red =  43; green =  51; blue =  29; break;
-                case 12: red =  73; green =  47; blue =  29; break;
-                case 13: red =  57; green =  76; blue =  36; break;
-                case 14: red = 165; green =  58; blue =  53; break;
-                case 15: red =  24; green =  24; blue =  24; break;
-                default:
-                    create = 0;
-                    break;
-            }
-            break;
-        case  41: red = 239; green = 238; blue = 105; break;
-        case  42: red = 146; green = 146; blue = 146; break;
-        case  43:
-        case  98: red = 161; green = 161; blue = 161; break;
-        case  44:
-            create = 3;
-
-            switch (data) {
-                case 0: red = 161; green = 161; blue = 161; break;
-                case 1: red = 209; green = 202; blue = 156; break;
-                case 2: red = 133; green =  94; blue =  62; break;
-                case 3: red =  71; green =  71; blue =  71; break;
-                case 4: red = 121; green =  67; blue =  53; break;
-                case 5: red = 161; green = 161; blue = 161; break;
-                case 6: red =  45; green =  22; blue =  26; break;
-                case 7: red = 195; green = 192; blue = 185; break;
-                default:
-                    create = 0;
-                    break;
-            }
-            break;
-        case  45: red = 121; green =  67; blue =  53; break;
-        case  46: red = 118; green =  36; blue =  13; break;
-        case  47: red = 155; green = 127; blue =  76; break;
-        case  48: red =  61; green =  79; blue =  61; break;
-        case  49: red =  52; green =  41; blue =  74; break;
-        case  52: red =  12; green =  66; blue =  71; break;
-        case  53:
-        case  67:
-        case 108:
-        case 109:
-        case 114:
-        case 128:
-        case 134:
-        case 135:
-        case 136:
-        case 156:
-            create = 2;
-
-            switch (id) {
-                case  53:
-                case 134:
-                case 135:
-                case 136: red = 133; green =  94; blue =  62; break;
-                case  67: red =  71; green =  71; blue =  71; break;
-                case 108: red = 121; green =  67; blue =  53; break;
-                case 109: red = 161; green = 161; blue = 161; break;
-                case 114: red =  45; green =  22; blue =  26; break;
-                case 128: red = 209; green = 202; blue = 156; break;
-                case 156: red = 195; green = 192; blue = 185; break;
-                default:
-                    create = 0;
-                    break;
-            }
-            break;
-        case  54:
-        case  95:
-        case 146: red = 155; green = 105; blue =  32; break;
-        case  57: red = 145; green = 219; blue = 215; break;
-        case  79: red = 142; green = 162; blue = 195; break;
-        case  80: red = 255; green = 255; blue = 255; break;
-        case  81: red =   8; green =  64; blue =  15; break;
-        case  82: red = 150; green = 155; blue = 166; break;
-        case  86:
-        case  91: red = 179; green = 108; blue =  17; break;
-        case  87:
-        case 153: red =  91; green =  31; blue =  30; break;
-        case  88: red =  68; green =  49; blue =  38; break;
-        case  89: red = 180; green = 134; blue =  65; break;
-        case 103: red = 141; green = 143; blue =  36; break;
-        case 110: red = 103; green =  92; blue =  95; break;
-        case 112: red =  45; green =  22; blue =  26; break;
-        case 121: red = 183; green = 178; blue = 129; break;
-        case 123: red = 101; green =  59; blue =  31; break;
-        case 124: red = 213; green = 178; blue = 123; break;
-        case 130: red =  38; green =  54; blue =  56; break;
-        case 133: red =  53; green =  84; blue =  85; break;
-        case 152: red = 131; green =  22; blue =   7; break;
-        case 155: red = 195; green = 192; blue = 185; break;
-        case 159: red = 195; green = 165; blue = 150; break;
-        case 170: red = 168; green = 139; blue =  15; break;
-        case 172: red = 140; green =  86; blue =  61; break;
-        case 173: red =   9; green =   9; blue =   9; break;
-        default:
-            create = 0;
-            break;
-    }
-}
-
 void dumpSetContents(const char* name, std::set<unsigned char*> set) {
     printf("set %s has %ld elements\n", name, set.size());
     /*
@@ -1966,4 +1859,6 @@ void VoxelTree::queueForLaterDelete(unsigned char* codeBuffer) {
     pthread_mutex_unlock(&_deletePendingSetLock);
 }
 
-
+void VoxelTree::cancelImport() {
+    _stopImport = true;
+}

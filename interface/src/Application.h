@@ -42,6 +42,7 @@
 #include "VoxelEditPacketSender.h"
 #include "VoxelPacketProcessor.h"
 #include "VoxelSystem.h"
+#include "VoxelImporter.h"
 #include "Webcam.h"
 #include "avatar/Avatar.h"
 #include "avatar/HandControl.h"
@@ -137,7 +138,6 @@ public slots:
     void sendAvatarFaceVideoMessage(int frameCount, const QByteArray& data);
     void exportVoxels();
     void importVoxels();
-    void importVoxelsToClipboard();
     void cutVoxels();
     void copyVoxels();
     void pasteVoxels();
@@ -237,8 +237,10 @@ private:
 
     Stars _stars;
     
-    VoxelSystem _voxels;
-    VoxelTree _clipboardTree; // if I copy/paste
+    VoxelSystem   _voxels;
+    VoxelSystem   _clipboard; // if I copy/paste
+    ViewFrustum   _clipboardViewFrustum;
+    VoxelImporter _voxelImporter;
 
     QByteArray _voxelsFilename;
     bool _wantToKillLocalVoxels;
@@ -339,6 +341,8 @@ private:
 
     ToolsPalette _palette;
     Swatch _swatch;
+
+    bool _pasteMode;
 
     PieMenu _pieMenu;
     

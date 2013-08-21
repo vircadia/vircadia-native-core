@@ -20,6 +20,8 @@
 #include "VoxelNodeBag.h"
 #include "VoxelSceneStats.h"
 
+#include <QObject>
+
 // Callback function, for recuseTreeWithOperation
 typedef bool (*RecurseVoxelTreeOperation)(VoxelNode* node, void* extraData);
 typedef enum {GRADIENT, RANDOM, NATURAL} creationMode;
@@ -113,7 +115,8 @@ public:
     {}
 };
 
-class VoxelTree {
+class VoxelTree : public QObject {
+    Q_OBJECT
 public:
     // when a voxel is created in the tree (object new'd)
     long voxelsCreated;
@@ -173,9 +176,8 @@ public:
     void writeToSVOFile(const char* filename, VoxelNode* node = NULL);
     bool readFromSVOFile(const char* filename);
     // reads voxels from square image with alpha as a Y-axis
-    bool readFromSquareARGB32Pixels(const uint32_t* pixels, int dimension);
+    bool readFromSquareARGB32Pixels(const char *filename);
     bool readFromSchematicFile(const char* filename);
-    void computeBlockColor(int id, int data, int& r, int& g, int& b, int& create);
 
     unsigned long getVoxelCount();
 
@@ -192,6 +194,13 @@ public:
     void recurseTreeWithOperationDistanceSortedTimed(PointerStack* stackOfNodes, long allowedTime,
                                                             RecurseVoxelTreeOperation operation, 
                                                             const glm::vec3& point, void* extraData);
+
+signals:
+    void importSize(float x, float y, float z);
+    void importProgress(int progress);
+
+public slots:
+    void cancelImport();
 
 
 private:
@@ -210,6 +219,7 @@ private:
     bool _isDirty;
     unsigned long int _nodesChangedFromBitstream;
     bool _shouldReaverage;
+    bool _stopImport;
 
     /// Octal Codes of any subtrees currently being encoded. While any of these codes is being encoded, ancestors and 
     /// descendants of them can not be deleted.
@@ -242,7 +252,6 @@ private:
 
     /// Adds an Octal Code to the set of codes that needs to be deleted
     void queueForLaterDelete(unsigned char* codeBuffer);
-    
 };
 
 float boundaryDistanceForRenderLevel(unsigned int renderLevel);

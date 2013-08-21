@@ -39,11 +39,7 @@ bool JurisdictionSender::process() {
     bool continueProcessing = isStillRunning();
 
     // call our ReceivedPacketProcessor base class process so we'll get any pending packets
-    if (continueProcessing) {
-        continueProcessing = ReceivedPacketProcessor::process();
-    }
-
-    if (continueProcessing) {
+    if (continueProcessing && (continueProcessing = ReceivedPacketProcessor::process())) {
         // add our packet to our own queue, then let the PacketSender class do the rest of the work.
         static unsigned char buffer[MAX_PACKET_SIZE];
         unsigned char* bufferOut = &buffer[0];

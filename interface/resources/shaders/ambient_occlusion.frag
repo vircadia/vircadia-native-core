@@ -59,7 +59,7 @@ void main(void) {
         vec3 offset = center + rotation * (radius * sampleKernel[i]);
         vec4 projected = gl_ProjectionMatrix * vec4(offset, 1.0);
         float depth = texCoordToViewSpaceZ(projected.xy * 0.5 / projected.w + vec2(0.5, 0.5));
-        occlusion += 1.0 - step(offset.z, depth); //  * step(abs(center.z - depth), radius);
+        occlusion += 1.0 - step(offset.z, depth);
     }
     
     gl_FragColor = vec4(occlusion, occlusion, occlusion, 0.0) / 16.0;
