@@ -1,8 +1,8 @@
 //
 //  VoxelPersistThread.h
-//  shared
+//  voxel-server
 //
-//  Created by Brad Hefta-Gaub on 8/12/13.
+//  Created by Brad Hefta-Gaub on 8/21/13
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 //  Threaded or non-threaded received packet processor.

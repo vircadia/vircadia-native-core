@@ -2,6 +2,7 @@
 //  voxel-server
 //
 //  Created by Brad Hefta-Gaub on 8/21/13
+//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 //
 
