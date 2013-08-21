@@ -140,7 +140,6 @@ public slots:
     void importVoxels();
     void cutVoxels();
     void copyVoxels();
-    void togglePasteMode();
     void pasteVoxels();
     
     void setRenderVoxels(bool renderVoxels);
