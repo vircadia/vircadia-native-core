@@ -5,11 +5,11 @@
 //  Created by Brad Hefta-Gaub on 8/21/13
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
-//  Threaded or non-threaded received packet processor.
+//  Threaded or non-threaded voxel persistance
 //
 
-#ifndef __shared__VoxelPersistThread__
-#define __shared__VoxelPersistThread__
+#ifndef __voxel_server__VoxelPersistThread__
+#define __voxel_server__VoxelPersistThread__
 
 #include <GenericThread.h>
 #include <NetworkPacket.h>
@@ -30,4 +30,4 @@ private:
     int _persistInterval;
 };
 
-#endif // __shared__PacketReceiver__
+#endif // __voxel_server__VoxelPersistThread__
