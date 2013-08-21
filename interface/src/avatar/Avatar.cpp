@@ -27,39 +27,37 @@
 
 using namespace std;
 
-const bool  BALLS_ON                      = false;
-const bool  USING_AVATAR_GRAVITY          = true;
-const glm::vec3 DEFAULT_UP_DIRECTION        (0.0f, 1.0f, 0.0f);
-const float YAW_MAG                       = 500.0;
-const float MY_HAND_HOLDING_PULL          = 0.2;
-const float YOUR_HAND_HOLDING_PULL        = 1.0;
+const bool BALLS_ON = false;
+const bool USING_AVATAR_GRAVITY = true;
+const glm::vec3 DEFAULT_UP_DIRECTION(0.0f, 1.0f, 0.0f);
+const float YAW_MAG = 500.0;
+const float MY_HAND_HOLDING_PULL = 0.2;
+const float YOUR_HAND_HOLDING_PULL = 1.0;
 const float BODY_SPRING_DEFAULT_TIGHTNESS = 1000.0f;
-const float BODY_SPRING_FORCE             = 300.0f;
-const float BODY_SPRING_DECAY             = 16.0f;
-const float COLLISION_RADIUS_SCALAR       = 1.2;   //pertains to avatar-to-avatar collisions
-const float COLLISION_BALL_FORCE          = 200.0; //pertains to avatar-to-avatar collisions
-const float COLLISION_BODY_FORCE          = 30.0;  //pertains to avatar-to-avatar collisions
-const float HEAD_ROTATION_SCALE           = 0.70;
-const float HEAD_ROLL_SCALE               = 0.40;
-const float HEAD_MAX_PITCH                = 45;
-const float HEAD_MIN_PITCH                = -45;
-const float HEAD_MAX_YAW                  = 85;
-const float HEAD_MIN_YAW                  = -85;
-const float PERIPERSONAL_RADIUS           = 1.0f;
-const float AVATAR_BRAKING_STRENGTH       = 40.0f;
-const float MOUSE_RAY_TOUCH_RANGE         = 0.01f;
-const float FLOATING_HEIGHT               = 0.13f;
-const bool  USING_HEAD_LEAN               = false;
-const float LEAN_SENSITIVITY              = 0.15;
-const float LEAN_MAX                      = 0.45;
-const float LEAN_AVERAGING                = 10.0;
-const float HEAD_RATE_MAX                 = 50.f;
-const float SKIN_COLOR[]                  = {1.0, 0.84, 0.66};
-const float DARK_SKIN_COLOR[]             = {0.9, 0.78, 0.63};
-const int   NUM_BODY_CONE_SIDES           = 9;
-
+const float BODY_SPRING_FORCE = 300.0f;
+const float BODY_SPRING_DECAY = 16.0f;
+const float COLLISION_RADIUS_SCALAR = 1.2; // pertains to avatar-to-avatar collisions
+const float COLLISION_BALL_FORCE = 200.0; // pertains to avatar-to-avatar collisions
+const float COLLISION_BODY_FORCE = 30.0; // pertains to avatar-to-avatar collisions
+const float HEAD_ROTATION_SCALE = 0.70;
+const float HEAD_ROLL_SCALE = 0.40;
+const float HEAD_MAX_PITCH = 45;
+const float HEAD_MIN_PITCH = -45;
+const float HEAD_MAX_YAW = 85;
+const float HEAD_MIN_YAW = -85;
+const float PERIPERSONAL_RADIUS = 1.0f;
+const float AVATAR_BRAKING_STRENGTH = 40.0f;
+const float MOUSE_RAY_TOUCH_RANGE = 0.01f;
+const float FLOATING_HEIGHT = 0.13f;
+const bool  USING_HEAD_LEAN = false;
+const float LEAN_SENSITIVITY = 0.15;
+const float LEAN_MAX = 0.45;
+const float LEAN_AVERAGING = 10.0;
+const float HEAD_RATE_MAX = 50.f;
+const float SKIN_COLOR[] = {1.0, 0.84, 0.66};
+const float DARK_SKIN_COLOR[] = {0.9, 0.78, 0.63};
+const int   NUM_BODY_CONE_SIDES = 9;
 const bool usingBigSphereCollisionTest = true;
-
 const float chatMessageScale = 0.0015;
 const float chatMessageHeight = 0.20;
 
@@ -79,10 +77,7 @@ void Avatar::sendAvatarVoxelURLMessage(const QUrl& url) {
     message.append((const char*)&ownerID, sizeof(ownerID));
     message.append(url.toEncoded());
     
-    Application::controlledBroadcastToNodes((unsigned char*)message.data(),
-                                            message.size(),
-                                            &NODE_TYPE_AVATAR_MIXER,
-                                            1);
+    Application::controlledBroadcastToNodes((unsigned char*)message.data(), message.size(), &NODE_TYPE_AVATAR_MIXER, 1);
 }
 
 Avatar::Avatar(Node* owningNode) :
@@ -120,12 +115,12 @@ Avatar::Avatar(Node* owningNode) :
     
     initializeBodyBalls();
         
-    _height               = _skeleton.getHeight() + _bodyBall[ BODY_BALL_LEFT_HEEL ].radius + _bodyBall[ BODY_BALL_HEAD_BASE ].radius;
+    _height = _skeleton.getHeight() + _bodyBall[BODY_BALL_LEFT_HEEL].radius + _bodyBall[BODY_BALL_HEAD_BASE].radius;
 
-    _maxArmLength         = _skeleton.getArmLength();
-    _pelvisStandingHeight = _skeleton.getPelvisStandingHeight() + _bodyBall[ BODY_BALL_LEFT_HEEL ].radius;
-    _pelvisFloatingHeight = _skeleton.getPelvisFloatingHeight() + _bodyBall[ BODY_BALL_LEFT_HEEL ].radius;
-    _pelvisToHeadLength   = _skeleton.getPelvisToHeadLength();
+    _maxArmLength = _skeleton.getArmLength();
+    _pelvisStandingHeight = _skeleton.getPelvisStandingHeight() + _bodyBall[BODY_BALL_LEFT_HEEL].radius;
+    _pelvisFloatingHeight = _skeleton.getPelvisFloatingHeight() + _bodyBall[BODY_BALL_LEFT_HEEL].radius;
+    _pelvisToHeadLength = _skeleton.getPelvisToHeadLength();
     
     _avatarTouch.setReachableRadius(PERIPERSONAL_RADIUS);
     
@@ -142,140 +137,119 @@ void Avatar::initializeBodyBalls() {
     _ballSpringsInitialized = false; //this gets set to true on the first update pass...
     
     for (int b = 0; b < NUM_AVATAR_BODY_BALLS; b++) {
-        _bodyBall[b].parentJoint    = AVATAR_JOINT_NULL;
-        _bodyBall[b].parentOffset   = glm::vec3(0.0, 0.0, 0.0);
-        _bodyBall[b].position       = glm::vec3(0.0, 0.0, 0.0);
-        _bodyBall[b].velocity       = glm::vec3(0.0, 0.0, 0.0);
-        _bodyBall[b].radius         = 0.0;
-        _bodyBall[b].touchForce     = 0.0;
-        _bodyBall[b].isCollidable   = true;
+        _bodyBall[b].parentJoint = AVATAR_JOINT_NULL;
+        _bodyBall[b].parentOffset = glm::vec3(0.0, 0.0, 0.0);
+        _bodyBall[b].position = glm::vec3(0.0, 0.0, 0.0);
+        _bodyBall[b].velocity = glm::vec3(0.0, 0.0, 0.0);
+        _bodyBall[b].radius = 0.0;
+        _bodyBall[b].touchForce = 0.0;
+        _bodyBall[b].isCollidable = true;
         _bodyBall[b].jointTightness = BODY_SPRING_DEFAULT_TIGHTNESS;
     }
     
     // specify the radius of each ball
-    _bodyBall[ BODY_BALL_PELVIS           ].radius = BODY_BALL_RADIUS_PELVIS;
-    _bodyBall[ BODY_BALL_TORSO            ].radius = BODY_BALL_RADIUS_TORSO;
-    _bodyBall[ BODY_BALL_CHEST            ].radius = BODY_BALL_RADIUS_CHEST;
-    _bodyBall[ BODY_BALL_NECK_BASE        ].radius = BODY_BALL_RADIUS_NECK_BASE;
-    _bodyBall[ BODY_BALL_HEAD_BASE        ].radius = BODY_BALL_RADIUS_HEAD_BASE;
-    _bodyBall[ BODY_BALL_LEFT_COLLAR      ].radius = BODY_BALL_RADIUS_LEFT_COLLAR;
-    _bodyBall[ BODY_BALL_LEFT_SHOULDER    ].radius = BODY_BALL_RADIUS_LEFT_SHOULDER;
-    _bodyBall[ BODY_BALL_LEFT_ELBOW       ].radius = BODY_BALL_RADIUS_LEFT_ELBOW;
-    _bodyBall[ BODY_BALL_LEFT_WRIST       ].radius = BODY_BALL_RADIUS_LEFT_WRIST;
-    _bodyBall[ BODY_BALL_LEFT_FINGERTIPS  ].radius = BODY_BALL_RADIUS_LEFT_FINGERTIPS;
-    _bodyBall[ BODY_BALL_RIGHT_COLLAR     ].radius = BODY_BALL_RADIUS_RIGHT_COLLAR;
-    _bodyBall[ BODY_BALL_RIGHT_SHOULDER   ].radius = BODY_BALL_RADIUS_RIGHT_SHOULDER;
-    _bodyBall[ BODY_BALL_RIGHT_ELBOW      ].radius = BODY_BALL_RADIUS_RIGHT_ELBOW;
-    _bodyBall[ BODY_BALL_RIGHT_WRIST      ].radius = BODY_BALL_RADIUS_RIGHT_WRIST;
-    _bodyBall[ BODY_BALL_RIGHT_FINGERTIPS ].radius = BODY_BALL_RADIUS_RIGHT_FINGERTIPS;
-    _bodyBall[ BODY_BALL_LEFT_HIP         ].radius = BODY_BALL_RADIUS_LEFT_HIP;
-    
-    //_bodyBall[ BODY_BALL_LEFT_MID_THIGH ].radius = BODY_BALL_RADIUS_LEFT_MID_THIGH;
-    
-    _bodyBall[ BODY_BALL_LEFT_KNEE        ].radius = BODY_BALL_RADIUS_LEFT_KNEE;
-    _bodyBall[ BODY_BALL_LEFT_HEEL        ].radius = BODY_BALL_RADIUS_LEFT_HEEL;
-    _bodyBall[ BODY_BALL_LEFT_TOES        ].radius = BODY_BALL_RADIUS_LEFT_TOES;
-    _bodyBall[ BODY_BALL_RIGHT_HIP        ].radius = BODY_BALL_RADIUS_RIGHT_HIP;
-    _bodyBall[ BODY_BALL_RIGHT_KNEE       ].radius = BODY_BALL_RADIUS_RIGHT_KNEE;
-    _bodyBall[ BODY_BALL_RIGHT_HEEL       ].radius = BODY_BALL_RADIUS_RIGHT_HEEL;
-    _bodyBall[ BODY_BALL_RIGHT_TOES       ].radius = BODY_BALL_RADIUS_RIGHT_TOES;
+    _bodyBall[BODY_BALL_PELVIS].radius = BODY_BALL_RADIUS_PELVIS;
+    _bodyBall[BODY_BALL_TORSO].radius = BODY_BALL_RADIUS_TORSO;
+    _bodyBall[BODY_BALL_CHEST].radius = BODY_BALL_RADIUS_CHEST;
+    _bodyBall[BODY_BALL_NECK_BASE].radius = BODY_BALL_RADIUS_NECK_BASE;
+    _bodyBall[BODY_BALL_HEAD_BASE].radius = BODY_BALL_RADIUS_HEAD_BASE;
+    _bodyBall[BODY_BALL_LEFT_COLLAR].radius = BODY_BALL_RADIUS_LEFT_COLLAR;
+    _bodyBall[BODY_BALL_LEFT_SHOULDER].radius = BODY_BALL_RADIUS_LEFT_SHOULDER;
+    _bodyBall[BODY_BALL_LEFT_ELBOW].radius = BODY_BALL_RADIUS_LEFT_ELBOW;
+    _bodyBall[BODY_BALL_LEFT_WRIST].radius = BODY_BALL_RADIUS_LEFT_WRIST;
+    _bodyBall[BODY_BALL_LEFT_FINGERTIPS].radius = BODY_BALL_RADIUS_LEFT_FINGERTIPS;
+    _bodyBall[BODY_BALL_RIGHT_COLLAR].radius = BODY_BALL_RADIUS_RIGHT_COLLAR;
+    _bodyBall[BODY_BALL_RIGHT_SHOULDER].radius = BODY_BALL_RADIUS_RIGHT_SHOULDER;
+    _bodyBall[BODY_BALL_RIGHT_ELBOW].radius = BODY_BALL_RADIUS_RIGHT_ELBOW;
+    _bodyBall[BODY_BALL_RIGHT_WRIST].radius = BODY_BALL_RADIUS_RIGHT_WRIST;
+    _bodyBall[BODY_BALL_RIGHT_FINGERTIPS].radius = BODY_BALL_RADIUS_RIGHT_FINGERTIPS;
+    _bodyBall[BODY_BALL_LEFT_HIP].radius = BODY_BALL_RADIUS_LEFT_HIP;
+    _bodyBall[BODY_BALL_LEFT_KNEE].radius = BODY_BALL_RADIUS_LEFT_KNEE;
+    _bodyBall[BODY_BALL_LEFT_HEEL].radius = BODY_BALL_RADIUS_LEFT_HEEL;
+    _bodyBall[BODY_BALL_LEFT_TOES].radius = BODY_BALL_RADIUS_LEFT_TOES;
+    _bodyBall[BODY_BALL_RIGHT_HIP].radius = BODY_BALL_RADIUS_RIGHT_HIP;
+    _bodyBall[BODY_BALL_RIGHT_KNEE].radius = BODY_BALL_RADIUS_RIGHT_KNEE;
+    _bodyBall[BODY_BALL_RIGHT_HEEL].radius = BODY_BALL_RADIUS_RIGHT_HEEL;
+    _bodyBall[BODY_BALL_RIGHT_TOES].radius = BODY_BALL_RADIUS_RIGHT_TOES;
     
     
     // specify the parent joint for each ball
-    _bodyBall[ BODY_BALL_PELVIS           ].parentJoint = AVATAR_JOINT_PELVIS;
-    _bodyBall[ BODY_BALL_TORSO            ].parentJoint = AVATAR_JOINT_TORSO;
-    _bodyBall[ BODY_BALL_CHEST            ].parentJoint = AVATAR_JOINT_CHEST;
-    _bodyBall[ BODY_BALL_NECK_BASE        ].parentJoint = AVATAR_JOINT_NECK_BASE;
-    _bodyBall[ BODY_BALL_HEAD_BASE        ].parentJoint = AVATAR_JOINT_HEAD_BASE;
-    _bodyBall[ BODY_BALL_HEAD_TOP         ].parentJoint = AVATAR_JOINT_HEAD_TOP;
-    _bodyBall[ BODY_BALL_LEFT_COLLAR      ].parentJoint = AVATAR_JOINT_LEFT_COLLAR;
-    _bodyBall[ BODY_BALL_LEFT_SHOULDER    ].parentJoint = AVATAR_JOINT_LEFT_SHOULDER;
-    _bodyBall[ BODY_BALL_LEFT_ELBOW       ].parentJoint = AVATAR_JOINT_LEFT_ELBOW;
-    _bodyBall[ BODY_BALL_LEFT_WRIST       ].parentJoint = AVATAR_JOINT_LEFT_WRIST;
-    _bodyBall[ BODY_BALL_LEFT_FINGERTIPS  ].parentJoint = AVATAR_JOINT_LEFT_FINGERTIPS;
-    _bodyBall[ BODY_BALL_RIGHT_COLLAR     ].parentJoint = AVATAR_JOINT_RIGHT_COLLAR;
-    _bodyBall[ BODY_BALL_RIGHT_SHOULDER   ].parentJoint = AVATAR_JOINT_RIGHT_SHOULDER;
-    _bodyBall[ BODY_BALL_RIGHT_ELBOW      ].parentJoint = AVATAR_JOINT_RIGHT_ELBOW;
-    _bodyBall[ BODY_BALL_RIGHT_WRIST      ].parentJoint = AVATAR_JOINT_RIGHT_WRIST;
-    _bodyBall[ BODY_BALL_RIGHT_FINGERTIPS ].parentJoint = AVATAR_JOINT_RIGHT_FINGERTIPS;
-    _bodyBall[ BODY_BALL_LEFT_HIP         ].parentJoint = AVATAR_JOINT_LEFT_HIP;
-    _bodyBall[ BODY_BALL_LEFT_KNEE        ].parentJoint = AVATAR_JOINT_LEFT_KNEE;
-    _bodyBall[ BODY_BALL_LEFT_HEEL        ].parentJoint = AVATAR_JOINT_LEFT_HEEL;
-    _bodyBall[ BODY_BALL_LEFT_TOES        ].parentJoint = AVATAR_JOINT_LEFT_TOES;
-    _bodyBall[ BODY_BALL_RIGHT_HIP        ].parentJoint = AVATAR_JOINT_RIGHT_HIP;
-    _bodyBall[ BODY_BALL_RIGHT_KNEE       ].parentJoint = AVATAR_JOINT_RIGHT_KNEE;
-    _bodyBall[ BODY_BALL_RIGHT_HEEL       ].parentJoint = AVATAR_JOINT_RIGHT_HEEL;
-    _bodyBall[ BODY_BALL_RIGHT_TOES       ].parentJoint = AVATAR_JOINT_RIGHT_TOES;
-    
-    //_bodyBall[ BODY_BALL_LEFT_MID_THIGH   ].parentJoint = AVATAR_JOINT_LEFT_HIP;
-    
+    _bodyBall[BODY_BALL_PELVIS].parentJoint = AVATAR_JOINT_PELVIS;
+    _bodyBall[BODY_BALL_TORSO].parentJoint = AVATAR_JOINT_TORSO;
+    _bodyBall[BODY_BALL_CHEST].parentJoint = AVATAR_JOINT_CHEST;
+    _bodyBall[BODY_BALL_NECK_BASE].parentJoint = AVATAR_JOINT_NECK_BASE;
+    _bodyBall[BODY_BALL_HEAD_BASE].parentJoint = AVATAR_JOINT_HEAD_BASE;
+    _bodyBall[BODY_BALL_HEAD_TOP].parentJoint = AVATAR_JOINT_HEAD_TOP;
+    _bodyBall[BODY_BALL_LEFT_COLLAR].parentJoint = AVATAR_JOINT_LEFT_COLLAR;
+    _bodyBall[BODY_BALL_LEFT_SHOULDER].parentJoint = AVATAR_JOINT_LEFT_SHOULDER;
+    _bodyBall[BODY_BALL_LEFT_ELBOW].parentJoint = AVATAR_JOINT_LEFT_ELBOW;
+    _bodyBall[BODY_BALL_LEFT_WRIST].parentJoint = AVATAR_JOINT_LEFT_WRIST;
+    _bodyBall[BODY_BALL_LEFT_FINGERTIPS].parentJoint = AVATAR_JOINT_LEFT_FINGERTIPS;
+    _bodyBall[BODY_BALL_RIGHT_COLLAR].parentJoint = AVATAR_JOINT_RIGHT_COLLAR;
+    _bodyBall[BODY_BALL_RIGHT_SHOULDER].parentJoint = AVATAR_JOINT_RIGHT_SHOULDER;
+    _bodyBall[BODY_BALL_RIGHT_ELBOW].parentJoint = AVATAR_JOINT_RIGHT_ELBOW;
+    _bodyBall[BODY_BALL_RIGHT_WRIST].parentJoint = AVATAR_JOINT_RIGHT_WRIST;
+    _bodyBall[BODY_BALL_RIGHT_FINGERTIPS].parentJoint = AVATAR_JOINT_RIGHT_FINGERTIPS;
+    _bodyBall[BODY_BALL_LEFT_HIP].parentJoint = AVATAR_JOINT_LEFT_HIP;
+    _bodyBall[BODY_BALL_LEFT_KNEE].parentJoint = AVATAR_JOINT_LEFT_KNEE;
+    _bodyBall[BODY_BALL_LEFT_HEEL].parentJoint = AVATAR_JOINT_LEFT_HEEL;
+    _bodyBall[BODY_BALL_LEFT_TOES].parentJoint = AVATAR_JOINT_LEFT_TOES;
+    _bodyBall[BODY_BALL_RIGHT_HIP].parentJoint = AVATAR_JOINT_RIGHT_HIP;
+    _bodyBall[BODY_BALL_RIGHT_KNEE].parentJoint = AVATAR_JOINT_RIGHT_KNEE;
+    _bodyBall[BODY_BALL_RIGHT_HEEL].parentJoint = AVATAR_JOINT_RIGHT_HEEL;
+    _bodyBall[BODY_BALL_RIGHT_TOES].parentJoint = AVATAR_JOINT_RIGHT_TOES;
+
     // specify the parent offset for each ball
-    _bodyBall[ BODY_BALL_PELVIS           ].parentOffset   = glm::vec3(0.0, 0.0, 0.0);
-    _bodyBall[ BODY_BALL_TORSO            ].parentOffset   = glm::vec3(0.0, 0.0, 0.0);
-    _bodyBall[ BODY_BALL_CHEST            ].parentOffset   = glm::vec3(0.0, 0.0, 0.0);
-    _bodyBall[ BODY_BALL_NECK_BASE        ].parentOffset   = glm::vec3(0.0, 0.0, 0.0);
-    _bodyBall[ BODY_BALL_HEAD_BASE        ].parentOffset   = glm::vec3(0.0, 0.0, 0.0);
-    _bodyBall[ BODY_BALL_HEAD_TOP         ].parentOffset   = glm::vec3(0.0, 0.0, 0.0);
-    _bodyBall[ BODY_BALL_LEFT_COLLAR      ].parentOffset   = glm::vec3(0.0, 0.0, 0.0);
-    _bodyBall[ BODY_BALL_LEFT_SHOULDER    ].parentOffset   = glm::vec3(0.0, 0.0, 0.0);
-    _bodyBall[ BODY_BALL_LEFT_ELBOW       ].parentOffset   = glm::vec3(0.0, 0.0, 0.0);
-    _bodyBall[ BODY_BALL_LEFT_WRIST       ].parentOffset   = glm::vec3(0.0, 0.0, 0.0);
-    _bodyBall[ BODY_BALL_LEFT_FINGERTIPS  ].parentOffset   = glm::vec3(0.0, 0.0, 0.0);
-    _bodyBall[ BODY_BALL_RIGHT_COLLAR     ].parentOffset   = glm::vec3(0.0, 0.0, 0.0);
-    _bodyBall[ BODY_BALL_RIGHT_SHOULDER   ].parentOffset   = glm::vec3(0.0, 0.0, 0.0);
-    _bodyBall[ BODY_BALL_RIGHT_ELBOW      ].parentOffset   = glm::vec3(0.0, 0.0, 0.0);
-    _bodyBall[ BODY_BALL_RIGHT_WRIST      ].parentOffset   = glm::vec3(0.0, 0.0, 0.0);
-    _bodyBall[ BODY_BALL_RIGHT_FINGERTIPS ].parentOffset   = glm::vec3(0.0, 0.0, 0.0);
-    _bodyBall[ BODY_BALL_LEFT_HIP         ].parentOffset   = glm::vec3(0.0, 0.0, 0.0);
-    _bodyBall[ BODY_BALL_LEFT_KNEE        ].parentOffset   = glm::vec3(0.0, 0.0, 0.0);
-    _bodyBall[ BODY_BALL_LEFT_HEEL        ].parentOffset   = glm::vec3(0.0, 0.0, 0.0);
-    _bodyBall[ BODY_BALL_LEFT_TOES        ].parentOffset   = glm::vec3(0.0, 0.0, 0.0);
-    _bodyBall[ BODY_BALL_RIGHT_HIP        ].parentOffset   = glm::vec3(0.0, 0.0, 0.0);
-    _bodyBall[ BODY_BALL_RIGHT_KNEE       ].parentOffset   = glm::vec3(0.0, 0.0, 0.0);
-    _bodyBall[ BODY_BALL_RIGHT_HEEL       ].parentOffset   = glm::vec3(0.0, 0.0, 0.0);
-    _bodyBall[ BODY_BALL_RIGHT_TOES       ].parentOffset   = glm::vec3(0.0, 0.0, 0.0);
-    
-    
-    //_bodyBall[ BODY_BALL_LEFT_MID_THIGH   ].parentOffset = glm::vec3(-0.1, -0.1, 0.0);
-    
-    
+    _bodyBall[BODY_BALL_PELVIS].parentOffset = glm::vec3(0.0, 0.0, 0.0);
+    _bodyBall[BODY_BALL_TORSO].parentOffset = glm::vec3(0.0, 0.0, 0.0);
+    _bodyBall[BODY_BALL_CHEST].parentOffset = glm::vec3(0.0, 0.0, 0.0);
+    _bodyBall[BODY_BALL_NECK_BASE].parentOffset = glm::vec3(0.0, 0.0, 0.0);
+    _bodyBall[BODY_BALL_HEAD_BASE].parentOffset = glm::vec3(0.0, 0.0, 0.0);
+    _bodyBall[BODY_BALL_HEAD_TOP].parentOffset = glm::vec3(0.0, 0.0, 0.0);
+    _bodyBall[BODY_BALL_LEFT_COLLAR].parentOffset = glm::vec3(0.0, 0.0, 0.0);
+    _bodyBall[BODY_BALL_LEFT_SHOULDER].parentOffset = glm::vec3(0.0, 0.0, 0.0);
+    _bodyBall[BODY_BALL_LEFT_ELBOW].parentOffset = glm::vec3(0.0, 0.0, 0.0);
+    _bodyBall[BODY_BALL_LEFT_WRIST].parentOffset = glm::vec3(0.0, 0.0, 0.0);
+    _bodyBall[BODY_BALL_LEFT_FINGERTIPS].parentOffset = glm::vec3(0.0, 0.0, 0.0);
+    _bodyBall[BODY_BALL_RIGHT_COLLAR].parentOffset = glm::vec3(0.0, 0.0, 0.0);
+    _bodyBall[BODY_BALL_RIGHT_SHOULDER].parentOffset = glm::vec3(0.0, 0.0, 0.0);
+    _bodyBall[BODY_BALL_RIGHT_ELBOW].parentOffset = glm::vec3(0.0, 0.0, 0.0);
+    _bodyBall[BODY_BALL_RIGHT_WRIST].parentOffset = glm::vec3(0.0, 0.0, 0.0);
+    _bodyBall[BODY_BALL_RIGHT_FINGERTIPS].parentOffset  = glm::vec3(0.0, 0.0, 0.0);
+    _bodyBall[BODY_BALL_LEFT_HIP].parentOffset = glm::vec3(0.0, 0.0, 0.0);
+    _bodyBall[BODY_BALL_LEFT_KNEE].parentOffset = glm::vec3(0.0, 0.0, 0.0);
+    _bodyBall[BODY_BALL_LEFT_HEEL].parentOffset = glm::vec3(0.0, 0.0, 0.0);
+    _bodyBall[BODY_BALL_LEFT_TOES].parentOffset = glm::vec3(0.0, 0.0, 0.0);
+    _bodyBall[BODY_BALL_RIGHT_HIP].parentOffset = glm::vec3(0.0, 0.0, 0.0);
+    _bodyBall[BODY_BALL_RIGHT_KNEE].parentOffset = glm::vec3(0.0, 0.0, 0.0);
+    _bodyBall[BODY_BALL_RIGHT_HEEL].parentOffset = glm::vec3(0.0, 0.0, 0.0);
+    _bodyBall[BODY_BALL_RIGHT_TOES].parentOffset = glm::vec3(0.0, 0.0, 0.0);
+
     // specify the parent BALL for each ball
-    _bodyBall[ BODY_BALL_PELVIS           ].parentBall = BODY_BALL_NULL;
-    _bodyBall[ BODY_BALL_TORSO            ].parentBall = BODY_BALL_PELVIS;
-    _bodyBall[ BODY_BALL_CHEST            ].parentBall = BODY_BALL_TORSO;
-    _bodyBall[ BODY_BALL_NECK_BASE        ].parentBall = BODY_BALL_CHEST;
-    _bodyBall[ BODY_BALL_HEAD_BASE        ].parentBall = BODY_BALL_NECK_BASE;
-    _bodyBall[ BODY_BALL_HEAD_TOP         ].parentBall = BODY_BALL_HEAD_BASE;
-    _bodyBall[ BODY_BALL_LEFT_COLLAR      ].parentBall = BODY_BALL_CHEST;
-    _bodyBall[ BODY_BALL_LEFT_SHOULDER    ].parentBall = BODY_BALL_LEFT_COLLAR;
-    _bodyBall[ BODY_BALL_LEFT_ELBOW       ].parentBall = BODY_BALL_LEFT_SHOULDER;
-    _bodyBall[ BODY_BALL_LEFT_WRIST       ].parentBall = BODY_BALL_LEFT_ELBOW;
-    _bodyBall[ BODY_BALL_LEFT_FINGERTIPS  ].parentBall = BODY_BALL_LEFT_WRIST;
-    _bodyBall[ BODY_BALL_RIGHT_COLLAR     ].parentBall = BODY_BALL_CHEST;
-    _bodyBall[ BODY_BALL_RIGHT_SHOULDER   ].parentBall = BODY_BALL_RIGHT_COLLAR;
-    _bodyBall[ BODY_BALL_RIGHT_ELBOW      ].parentBall = BODY_BALL_RIGHT_SHOULDER;
-    _bodyBall[ BODY_BALL_RIGHT_WRIST      ].parentBall = BODY_BALL_RIGHT_ELBOW;
-    _bodyBall[ BODY_BALL_RIGHT_FINGERTIPS ].parentBall = BODY_BALL_RIGHT_WRIST;
-    _bodyBall[ BODY_BALL_LEFT_HIP         ].parentBall = BODY_BALL_PELVIS;
-    
-    //_bodyBall[ BODY_BALL_LEFT_MID_THIGH   ].parentBall = BODY_BALL_LEFT_HIP;
-    
-    //_bodyBall[ BODY_BALL_LEFT_KNEE        ].parentBall = BODY_BALL_LEFT_MID_THIGH;
-    _bodyBall[ BODY_BALL_LEFT_KNEE        ].parentBall = BODY_BALL_LEFT_HIP;
-    
-    _bodyBall[ BODY_BALL_LEFT_HEEL        ].parentBall = BODY_BALL_LEFT_KNEE;
-    _bodyBall[ BODY_BALL_LEFT_TOES        ].parentBall = BODY_BALL_LEFT_HEEL;
-    _bodyBall[ BODY_BALL_RIGHT_HIP        ].parentBall = BODY_BALL_PELVIS;
-    _bodyBall[ BODY_BALL_RIGHT_KNEE       ].parentBall = BODY_BALL_RIGHT_HIP;
-    _bodyBall[ BODY_BALL_RIGHT_HEEL       ].parentBall = BODY_BALL_RIGHT_KNEE;
-    _bodyBall[ BODY_BALL_RIGHT_TOES       ].parentBall = BODY_BALL_RIGHT_HEEL;
-    
-    /*
-     // to aid in hand-shaking and hand-holding, the right hand is not collidable
-     _bodyBall[ BODY_BALL_RIGHT_ELBOW      ].isCollidable = false;
-     _bodyBall[ BODY_BALL_RIGHT_WRIST      ].isCollidable = false;
-     _bodyBall[ BODY_BALL_RIGHT_FINGERTIPS ].isCollidable = false;
-     */
+    _bodyBall[BODY_BALL_PELVIS].parentBall = BODY_BALL_NULL;
+    _bodyBall[BODY_BALL_TORSO].parentBall = BODY_BALL_PELVIS;
+    _bodyBall[BODY_BALL_CHEST].parentBall = BODY_BALL_TORSO;
+    _bodyBall[BODY_BALL_NECK_BASE].parentBall = BODY_BALL_CHEST;
+    _bodyBall[BODY_BALL_HEAD_BASE].parentBall = BODY_BALL_NECK_BASE;
+    _bodyBall[BODY_BALL_HEAD_TOP].parentBall = BODY_BALL_HEAD_BASE;
+    _bodyBall[BODY_BALL_LEFT_COLLAR].parentBall = BODY_BALL_CHEST;
+    _bodyBall[BODY_BALL_LEFT_SHOULDER].parentBall = BODY_BALL_LEFT_COLLAR;
+    _bodyBall[BODY_BALL_LEFT_ELBOW].parentBall = BODY_BALL_LEFT_SHOULDER;
+    _bodyBall[BODY_BALL_LEFT_WRIST].parentBall = BODY_BALL_LEFT_ELBOW;
+    _bodyBall[BODY_BALL_LEFT_FINGERTIPS].parentBall = BODY_BALL_LEFT_WRIST;
+    _bodyBall[BODY_BALL_RIGHT_COLLAR].parentBall = BODY_BALL_CHEST;
+    _bodyBall[BODY_BALL_RIGHT_SHOULDER].parentBall = BODY_BALL_RIGHT_COLLAR;
+    _bodyBall[BODY_BALL_RIGHT_ELBOW].parentBall = BODY_BALL_RIGHT_SHOULDER;
+    _bodyBall[BODY_BALL_RIGHT_WRIST].parentBall = BODY_BALL_RIGHT_ELBOW;
+    _bodyBall[BODY_BALL_RIGHT_FINGERTIPS].parentBall = BODY_BALL_RIGHT_WRIST;
+    _bodyBall[BODY_BALL_LEFT_HIP].parentBall = BODY_BALL_PELVIS;
+    _bodyBall[BODY_BALL_LEFT_KNEE].parentBall = BODY_BALL_LEFT_HIP;
+    _bodyBall[BODY_BALL_LEFT_HEEL].parentBall = BODY_BALL_LEFT_KNEE;
+    _bodyBall[BODY_BALL_LEFT_TOES].parentBall = BODY_BALL_LEFT_HEEL;
+    _bodyBall[BODY_BALL_RIGHT_HIP].parentBall = BODY_BALL_PELVIS;
+    _bodyBall[BODY_BALL_RIGHT_KNEE].parentBall = BODY_BALL_RIGHT_HIP;
+    _bodyBall[BODY_BALL_RIGHT_HEEL].parentBall = BODY_BALL_RIGHT_KNEE;
+    _bodyBall[BODY_BALL_RIGHT_TOES].parentBall = BODY_BALL_RIGHT_HEEL;
 }
 
 Avatar::~Avatar() {
@@ -364,12 +338,12 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter, float gyroCamer
         for (int b = 0; b < NUM_AVATAR_BODY_BALLS; b++) {
             
             glm::vec3 targetPosition
-            = _skeleton.joint[_bodyBall[b].parentJoint].position
-            + _skeleton.joint[_bodyBall[b].parentJoint].rotation * _bodyBall[b].parentOffset;
+                = _skeleton.joint[_bodyBall[b].parentJoint].position
+                + _skeleton.joint[_bodyBall[b].parentJoint].rotation * _bodyBall[b].parentOffset;
             
             glm::vec3 parentTargetPosition
-            = _skeleton.joint[_bodyBall[b].parentJoint].position
-            + _skeleton.joint[_bodyBall[b].parentJoint].rotation * _bodyBall[b].parentOffset;
+                = _skeleton.joint[_bodyBall[b].parentJoint].position
+                + _skeleton.joint[_bodyBall[b].parentJoint].rotation * _bodyBall[b].parentOffset;
             
             _bodyBall[b].springLength = glm::length(targetPosition - parentTargetPosition);
         }
@@ -400,26 +374,26 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter, float gyroCamer
             right * _head.getLeanSideways() +
             front * _head.getLeanForward();
             
-            _bodyBall[ BODY_BALL_TORSO            ].position += headLean * 0.1f;
-            _bodyBall[ BODY_BALL_CHEST            ].position += headLean * 0.4f;
-            _bodyBall[ BODY_BALL_NECK_BASE        ].position += headLean * 0.7f;
-            _bodyBall[ BODY_BALL_HEAD_BASE        ].position += headLean * 1.0f;
+            _bodyBall[BODY_BALL_TORSO].position += headLean * 0.1f;
+            _bodyBall[BODY_BALL_CHEST].position += headLean * 0.4f;
+            _bodyBall[BODY_BALL_NECK_BASE].position += headLean * 0.7f;
+            _bodyBall[BODY_BALL_HEAD_BASE].position += headLean * 1.0f;
             
-            _bodyBall[ BODY_BALL_LEFT_COLLAR      ].position += headLean * 0.6f;
-            _bodyBall[ BODY_BALL_LEFT_SHOULDER    ].position += headLean * 0.6f;
-            _bodyBall[ BODY_BALL_LEFT_ELBOW       ].position += headLean * 0.2f;
-            _bodyBall[ BODY_BALL_LEFT_WRIST       ].position += headLean * 0.1f;
-            _bodyBall[ BODY_BALL_LEFT_FINGERTIPS  ].position += headLean * 0.0f;
+            _bodyBall[BODY_BALL_LEFT_COLLAR].position += headLean * 0.6f;
+            _bodyBall[BODY_BALL_LEFT_SHOULDER].position += headLean * 0.6f;
+            _bodyBall[BODY_BALL_LEFT_ELBOW].position += headLean * 0.2f;
+            _bodyBall[BODY_BALL_LEFT_WRIST].position += headLean * 0.1f;
+            _bodyBall[BODY_BALL_LEFT_FINGERTIPS].position += headLean * 0.0f;
             
-            _bodyBall[ BODY_BALL_RIGHT_COLLAR     ].position += headLean * 0.6f;
-            _bodyBall[ BODY_BALL_RIGHT_SHOULDER   ].position += headLean * 0.6f;
-            _bodyBall[ BODY_BALL_RIGHT_ELBOW      ].position += headLean * 0.2f;
-            _bodyBall[ BODY_BALL_RIGHT_WRIST      ].position += headLean * 0.1f;
-            _bodyBall[ BODY_BALL_RIGHT_FINGERTIPS ].position += headLean * 0.0f;
+            _bodyBall[BODY_BALL_RIGHT_COLLAR].position += headLean * 0.6f;
+            _bodyBall[BODY_BALL_RIGHT_SHOULDER].position += headLean * 0.6f;
+            _bodyBall[BODY_BALL_RIGHT_ELBOW].position += headLean * 0.2f;
+            _bodyBall[BODY_BALL_RIGHT_WRIST].position += headLean * 0.1f;
+            _bodyBall[BODY_BALL_RIGHT_FINGERTIPS].position += headLean * 0.0f;
         }
     }
     
-    _head.setBodyRotation   (glm::vec3(_bodyPitch, _bodyYaw, _bodyRoll));
+    _head.setBodyRotation(glm::vec3(_bodyPitch, _bodyYaw, _bodyRoll));
     _head.setPosition(_bodyBall[ BODY_BALL_HEAD_BASE ].position);
     _head.setScale(_scale);
     _head.setSkinColor(glm::vec3(SKIN_COLOR[0], SKIN_COLOR[1], SKIN_COLOR[2]));
@@ -441,7 +415,7 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter, float gyroCamer
 
 }
 
-void Avatar::setMouseRay(const glm::vec3 &origin, const glm::vec3 &direction ) {
+void Avatar::setMouseRay(const glm::vec3 &origin, const glm::vec3 &direction) {
     _mouseRayOrigin = origin;
     _mouseRayDirection = direction;
 }
@@ -452,16 +426,16 @@ void Avatar::updateHandMovementAndTouching(float deltaTime, bool enableHandMovem
     
     // reset hand and arm positions according to hand movement
     glm::vec3 right = orientation * IDENTITY_RIGHT;
-    glm::vec3 up    = orientation * IDENTITY_UP;
+    glm::vec3 up = orientation * IDENTITY_UP;
     glm::vec3 front = orientation * IDENTITY_FRONT;
     
     if (enableHandMovement) {
         glm::vec3 transformedHandMovement =
-            right *  _movedHandOffset.x * 2.0f +
-            up    * -_movedHandOffset.y * 2.0f +
+            right * _movedHandOffset.x * 2.0f +
+            up * -_movedHandOffset.y * 2.0f +
             front * -_movedHandOffset.y * 2.0f;
     
-        _skeleton.joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position += transformedHandMovement;
+        _skeleton.joint[AVATAR_JOINT_RIGHT_FINGERTIPS].position += transformedHandMovement;
     }
     
     //constrain right arm length and re-adjust elbow position as it bends
@@ -517,7 +491,7 @@ void Avatar::render(bool lookingInMirror, bool renderAvatarBalls) {
     // render sphere when far away
     const float MAX_ANGLE = 10.f;
     glm::vec3 toTarget = _position - Application::getInstance()->getAvatar()->getPosition();
-    glm::vec3 delta    = _height * (_head.getCameraOrientation() * IDENTITY_UP) / 2.f;
+    glm::vec3 delta = _height * (_head.getCameraOrientation() * IDENTITY_UP) / 2.f;
     float angle = abs(angleBetween(toTarget + delta, toTarget - delta));
 
     if (angle < MAX_ANGLE) {
@@ -629,8 +603,8 @@ void Avatar::updateBodyBalls(float deltaTime) {
         
         // apply tightness force - (causing ball position to be close to skeleton joint position)
         glm::vec3 targetPosition
-        = _skeleton.joint[_bodyBall[b].parentJoint].position
-        + _skeleton.joint[_bodyBall[b].parentJoint].rotation * _bodyBall[b].parentOffset;
+            = _skeleton.joint[_bodyBall[b].parentJoint].position
+            + _skeleton.joint[_bodyBall[b].parentJoint].rotation * _bodyBall[b].parentOffset;
         
         _bodyBall[b].velocity += (targetPosition - _bodyBall[b].position) * _bodyBall[b].jointTightness * deltaTime;
         
@@ -641,13 +615,6 @@ void Avatar::updateBodyBalls(float deltaTime) {
         } else {
             _bodyBall[b].velocity = glm::vec3(0.0f, 0.0f, 0.0f);
         }
-        
-        /*
-         // apply forces from touch...
-         if (_bodyBall[b].touchForce > 0.0) {
-         _bodyBall[b].velocity += _mouseRayDirection * _bodyBall[b].touchForce * 0.7f;
-         }
-         */
         
         // update position by velocity...
         _bodyBall[b].position += _bodyBall[b].velocity * deltaTime;
@@ -768,27 +735,23 @@ void Avatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
                 
                 //  Render the cone connecting this ball to its parent
                 if (_bodyBall[b].parentBall != BODY_BALL_NULL) {
-                    if ((b != BODY_BALL_HEAD_TOP      )
-                        &&  (b != BODY_BALL_HEAD_BASE     )
-                        &&  (b != BODY_BALL_PELVIS        )
-                        &&  (b != BODY_BALL_TORSO         )
-                        &&  (b != BODY_BALL_CHEST         )
-                        &&  (b != BODY_BALL_LEFT_COLLAR   )
-                        &&  (b != BODY_BALL_LEFT_SHOULDER )
-                        &&  (b != BODY_BALL_RIGHT_COLLAR  )
-                        &&  (b != BODY_BALL_RIGHT_SHOULDER)) {
+                    if ((b != BODY_BALL_HEAD_TOP)
+                        && (b != BODY_BALL_HEAD_BASE)
+                        && (b != BODY_BALL_PELVIS)
+                        && (b != BODY_BALL_TORSO)
+                        && (b != BODY_BALL_CHEST)
+                        && (b != BODY_BALL_LEFT_COLLAR)
+                        && (b != BODY_BALL_LEFT_SHOULDER)
+                        && (b != BODY_BALL_RIGHT_COLLAR)
+                        && (b != BODY_BALL_RIGHT_SHOULDER)) {
                         glColor3fv(DARK_SKIN_COLOR);
                         
-                        float r1 = _bodyBall[_bodyBall[b].parentBall ].radius * 0.8;
+                        float r1 = _bodyBall[_bodyBall[b].parentBall].radius * 0.8;
                         float r2 = _bodyBall[b].radius * 0.8;
                         if (b == BODY_BALL_HEAD_BASE) {
                             r1 *= 0.5f;
                         }
-                        renderJointConnectingCone
-                        (
-                         _bodyBall[_bodyBall[b].parentBall].position,
-                         _bodyBall[b].position, r2, r2
-                         );
+                        renderJointConnectingCone(_bodyBall[_bodyBall[b].parentBall].position, _bodyBall[b].position, r2, r2);
                     }
                 }
             }
@@ -808,9 +771,9 @@ void Avatar::loadData(QSettings* settings) {
     settings->beginGroup("Avatar");
 
     // in case settings is corrupt or missing loadSetting() will check for NaN
-    _bodyYaw    = loadSetting(settings, "bodyYaw"  , 0.0f);
-    _bodyPitch  = loadSetting(settings, "bodyPitch", 0.0f);
-    _bodyRoll   = loadSetting(settings, "bodyRoll" , 0.0f);
+    _bodyYaw = loadSetting(settings, "bodyYaw", 0.0f);
+    _bodyPitch = loadSetting(settings, "bodyPitch", 0.0f);
+    _bodyRoll = loadSetting(settings, "bodyRoll", 0.0f);
     _position.x = loadSetting(settings, "position_x", 0.0f);
     _position.y = loadSetting(settings, "position_y", 0.0f);
     _position.z = loadSetting(settings, "position_z", 0.0f);
@@ -834,9 +797,9 @@ void Avatar::getBodyBallTransform(AvatarJointID jointID, glm::vec3& position, gl
 void Avatar::saveData(QSettings* set) {
     set->beginGroup("Avatar");
     
-    set->setValue("bodyYaw",  _bodyYaw);
+    set->setValue("bodyYaw", _bodyYaw);
     set->setValue("bodyPitch", _bodyPitch);
-    set->setValue("bodyRoll",  _bodyRoll);
+    set->setValue("bodyRoll", _bodyRoll);
     
     set->setValue("position_x", _position.x);
     set->setValue("position_y", _position.y);
@@ -933,39 +896,36 @@ void Avatar::setScale(const float scale) {
     _skeleton.setScale(_scale);
     
     // specify the new radius of each ball
-    _bodyBall[ BODY_BALL_PELVIS           ].radius = _scale * BODY_BALL_RADIUS_PELVIS;
-    _bodyBall[ BODY_BALL_TORSO            ].radius = _scale * BODY_BALL_RADIUS_TORSO;
-    _bodyBall[ BODY_BALL_CHEST            ].radius = _scale * BODY_BALL_RADIUS_CHEST;
-    _bodyBall[ BODY_BALL_NECK_BASE        ].radius = _scale * BODY_BALL_RADIUS_NECK_BASE;
-    _bodyBall[ BODY_BALL_HEAD_BASE        ].radius = _scale * BODY_BALL_RADIUS_HEAD_BASE;
-    _bodyBall[ BODY_BALL_LEFT_COLLAR      ].radius = _scale * BODY_BALL_RADIUS_LEFT_COLLAR;
-    _bodyBall[ BODY_BALL_LEFT_SHOULDER    ].radius = _scale * BODY_BALL_RADIUS_LEFT_SHOULDER;
-    _bodyBall[ BODY_BALL_LEFT_ELBOW       ].radius = _scale * BODY_BALL_RADIUS_LEFT_ELBOW;
-    _bodyBall[ BODY_BALL_LEFT_WRIST       ].radius = _scale * BODY_BALL_RADIUS_LEFT_WRIST;
-    _bodyBall[ BODY_BALL_LEFT_FINGERTIPS  ].radius = _scale * BODY_BALL_RADIUS_LEFT_FINGERTIPS;
-    _bodyBall[ BODY_BALL_RIGHT_COLLAR     ].radius = _scale * BODY_BALL_RADIUS_RIGHT_COLLAR;
-    _bodyBall[ BODY_BALL_RIGHT_SHOULDER   ].radius = _scale * BODY_BALL_RADIUS_RIGHT_SHOULDER;
-    _bodyBall[ BODY_BALL_RIGHT_ELBOW      ].radius = _scale * BODY_BALL_RADIUS_RIGHT_ELBOW;
-    _bodyBall[ BODY_BALL_RIGHT_WRIST      ].radius = _scale * BODY_BALL_RADIUS_RIGHT_WRIST;
-    _bodyBall[ BODY_BALL_RIGHT_FINGERTIPS ].radius = _scale * BODY_BALL_RADIUS_RIGHT_FINGERTIPS;
-    _bodyBall[ BODY_BALL_LEFT_HIP         ].radius = _scale * BODY_BALL_RADIUS_LEFT_HIP;
+    _bodyBall[BODY_BALL_PELVIS].radius = _scale * BODY_BALL_RADIUS_PELVIS;
+    _bodyBall[BODY_BALL_TORSO].radius = _scale * BODY_BALL_RADIUS_TORSO;
+    _bodyBall[BODY_BALL_CHEST].radius = _scale * BODY_BALL_RADIUS_CHEST;
+    _bodyBall[BODY_BALL_NECK_BASE].radius = _scale * BODY_BALL_RADIUS_NECK_BASE;
+    _bodyBall[BODY_BALL_HEAD_BASE].radius = _scale * BODY_BALL_RADIUS_HEAD_BASE;
+    _bodyBall[BODY_BALL_LEFT_COLLAR].radius = _scale * BODY_BALL_RADIUS_LEFT_COLLAR;
+    _bodyBall[BODY_BALL_LEFT_SHOULDER].radius = _scale * BODY_BALL_RADIUS_LEFT_SHOULDER;
+    _bodyBall[BODY_BALL_LEFT_ELBOW].radius = _scale * BODY_BALL_RADIUS_LEFT_ELBOW;
+    _bodyBall[BODY_BALL_LEFT_WRIST].radius = _scale * BODY_BALL_RADIUS_LEFT_WRIST;
+    _bodyBall[BODY_BALL_LEFT_FINGERTIPS].radius = _scale * BODY_BALL_RADIUS_LEFT_FINGERTIPS;
+    _bodyBall[BODY_BALL_RIGHT_COLLAR].radius = _scale * BODY_BALL_RADIUS_RIGHT_COLLAR;
+    _bodyBall[BODY_BALL_RIGHT_SHOULDER].radius = _scale * BODY_BALL_RADIUS_RIGHT_SHOULDER;
+    _bodyBall[BODY_BALL_RIGHT_ELBOW].radius = _scale * BODY_BALL_RADIUS_RIGHT_ELBOW;
+    _bodyBall[BODY_BALL_RIGHT_WRIST].radius = _scale * BODY_BALL_RADIUS_RIGHT_WRIST;
+    _bodyBall[BODY_BALL_RIGHT_FINGERTIPS].radius = _scale * BODY_BALL_RADIUS_RIGHT_FINGERTIPS;
+    _bodyBall[BODY_BALL_LEFT_HIP].radius = _scale * BODY_BALL_RADIUS_LEFT_HIP;
+    _bodyBall[BODY_BALL_LEFT_KNEE].radius = _scale * BODY_BALL_RADIUS_LEFT_KNEE;
+    _bodyBall[BODY_BALL_LEFT_HEEL].radius = _scale * BODY_BALL_RADIUS_LEFT_HEEL;
+    _bodyBall[BODY_BALL_LEFT_TOES].radius = _scale * BODY_BALL_RADIUS_LEFT_TOES;
+    _bodyBall[BODY_BALL_RIGHT_HIP].radius = _scale * BODY_BALL_RADIUS_RIGHT_HIP;
+    _bodyBall[BODY_BALL_RIGHT_KNEE].radius = _scale * BODY_BALL_RADIUS_RIGHT_KNEE;
+    _bodyBall[BODY_BALL_RIGHT_HEEL].radius = _scale * BODY_BALL_RADIUS_RIGHT_HEEL;
+    _bodyBall[BODY_BALL_RIGHT_TOES].radius = _scale * BODY_BALL_RADIUS_RIGHT_TOES;
     
-    //_bodyBall[ BODY_BALL_LEFT_MID_THIGH ].radius = _scale * BODY_BALL_RADIUS_LEFT_MID_THIGH;
+    _height = _skeleton.getHeight() + _bodyBall[BODY_BALL_LEFT_HEEL].radius + _bodyBall[BODY_BALL_HEAD_BASE].radius;
     
-    _bodyBall[ BODY_BALL_LEFT_KNEE        ].radius = _scale * BODY_BALL_RADIUS_LEFT_KNEE;
-    _bodyBall[ BODY_BALL_LEFT_HEEL        ].radius = _scale * BODY_BALL_RADIUS_LEFT_HEEL;
-    _bodyBall[ BODY_BALL_LEFT_TOES        ].radius = _scale * BODY_BALL_RADIUS_LEFT_TOES;
-    _bodyBall[ BODY_BALL_RIGHT_HIP        ].radius = _scale * BODY_BALL_RADIUS_RIGHT_HIP;
-    _bodyBall[ BODY_BALL_RIGHT_KNEE       ].radius = _scale * BODY_BALL_RADIUS_RIGHT_KNEE;
-    _bodyBall[ BODY_BALL_RIGHT_HEEL       ].radius = _scale * BODY_BALL_RADIUS_RIGHT_HEEL;
-    _bodyBall[ BODY_BALL_RIGHT_TOES       ].radius = _scale * BODY_BALL_RADIUS_RIGHT_TOES;
-    
-    _height               = _skeleton.getHeight() + _bodyBall[ BODY_BALL_LEFT_HEEL ].radius + _bodyBall[ BODY_BALL_HEAD_BASE ].radius;
-    
-    _maxArmLength         = _skeleton.getArmLength();
-    _pelvisStandingHeight = _skeleton.getPelvisStandingHeight() + _bodyBall[ BODY_BALL_LEFT_HEEL ].radius;
-    _pelvisFloatingHeight = _skeleton.getPelvisFloatingHeight() + _bodyBall[ BODY_BALL_LEFT_HEEL ].radius;
-    _pelvisToHeadLength   = _skeleton.getPelvisToHeadLength();
+    _maxArmLength = _skeleton.getArmLength();
+    _pelvisStandingHeight = _skeleton.getPelvisStandingHeight() + _bodyBall[BODY_BALL_LEFT_HEEL].radius;
+    _pelvisFloatingHeight = _skeleton.getPelvisFloatingHeight() + _bodyBall[BODY_BALL_LEFT_HEEL].radius;
+    _pelvisToHeadLength = _skeleton.getPelvisToHeadLength();
     _avatarTouch.setReachableRadius(_scale * PERIPERSONAL_RADIUS);
 }
 
