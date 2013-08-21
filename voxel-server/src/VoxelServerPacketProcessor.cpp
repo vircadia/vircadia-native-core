@@ -52,13 +52,9 @@ void VoxelServerPacketProcessor::processPacket(sockaddr& senderAddress, unsigned
                 int green = voxelData[voxelCodeSize + 1];
                 int blue  = voxelData[voxelCodeSize + 2];
 
-                printf("insert voxels - r=%d,g=%d,b=%d \n", red, green, blue);
-            }
-
-            if (::shouldShowAnimationDebug) {
                 float* vertices = firstVertexForCode(voxelData);
-                printf("inserting voxel at: %f,%f,%f\n", vertices[0], vertices[1], vertices[2]);
-                delete []vertices;
+                printf("inserting voxel: %f,%f,%f r=%d,g=%d,b=%d\n", vertices[0], vertices[1], vertices[2], red, green, blue);
+                delete[] vertices;
             }
         
             serverTree.readCodeColorBufferToTree(voxelData, destructive);

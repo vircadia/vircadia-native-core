@@ -60,20 +60,6 @@ VoxelPersistThread* voxelPersistThread = NULL;
 pthread_mutex_t treeLock;
 
 
-void eraseVoxelTreeAndCleanupNodeVisitData() {
-
-    // As our tree to erase all it's voxels
-    ::serverTree.eraseAllVoxels();
-    // enumerate the nodes clean up their marker nodes
-    for (NodeList::iterator node = NodeList::getInstance()->begin(); node != NodeList::getInstance()->end(); node++) {
-        VoxelNodeData* nodeData = (VoxelNodeData*) node->getLinkedData();
-        if (nodeData) {
-            // clean up the node visit data
-            nodeData->nodeBag.deleteAll();
-        }
-    }
-}
-
 void handlePacketSend(NodeList* nodeList, 
                       NodeList::iterator& node,
                       VoxelNodeData* nodeData, 
@@ -111,13 +97,11 @@ void handlePacketSend(NodeList* nodeList,
     nodeData->resetVoxelPacket();
 }
 
-
 // Version of voxel distributor that sends the deepest LOD level at once
 void deepestLevelVoxelDistributor(NodeList* nodeList, 
                                   NodeList::iterator& node,
                                   VoxelNodeData* nodeData,
                                   bool viewFrustumChanged) {
-
 
     pthread_mutex_lock(&::treeLock);
 
