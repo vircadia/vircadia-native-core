@@ -58,6 +58,11 @@ const float BODY_BALL_RADIUS_RIGHT_KNEE       = 0.025;
 const float BODY_BALL_RADIUS_RIGHT_HEEL       = 0.025;
 const float BODY_BALL_RADIUS_RIGHT_TOES       = 0.025;
 
+extern const bool usingBigSphereCollisionTest;
+
+extern const float chatMessageScale;
+extern const float chatMessageHeight;
+
 enum AvatarBodyBallID
 {
 	BODY_BALL_NULL = -1,
@@ -121,85 +126,35 @@ enum ScreenTintLayer
     NUM_SCREEN_TINT_LAYERS
 };
 
+class MyAvatar;
+
 class Avatar : public AvatarData {
 public:
     Avatar(Node* owningNode = NULL);
     ~Avatar();
     
     void init();
-    void reset();
     void simulate(float deltaTime, Transmitter* transmitter, float gyroCameraSensitivity);
-    void updateThrust(float deltaTime, Transmitter * transmitter);
     void follow(Avatar* leadingAvatar);
-    void updateFromGyrosAndOrWebcam(bool gyroLook,
-                                    float pitchFromTouch);
-    void addBodyYaw(float bodyYaw) {_bodyYaw += bodyYaw;};
-    void addBodyYawDelta(float bodyYawDelta) {_bodyYawDelta += bodyYawDelta;}
     void render(bool lookingInMirror, bool renderAvatarBalls);
-    void renderScreenTint(ScreenTintLayer layer, Camera& whichCamera);
 
     //setters
-    void setMousePressed           (bool      mousePressed           ) { _mousePressed    = mousePressed;} 
-    void setNoise                  (float     mag                    ) { _head.noise      = mag;}
-    void setMovedHandOffset        (glm::vec3 movedHandOffset        ) { _movedHandOffset = movedHandOffset;}
-    void setThrust                 (glm::vec3 newThrust              ) { _thrust          = newThrust; };
     void setDisplayingLookatVectors(bool      displayingLookatVectors) { _head.setRenderLookatVectors(displayingLookatVectors);}
-    void setVelocity               (const glm::vec3 velocity         ) { _velocity = velocity; };
-    void setLeanScale              (float     scale                  ) { _leanScale = scale;}
-    void setGravity                (glm::vec3 gravity);
     void setMouseRay               (const glm::vec3 &origin, const glm::vec3 &direction);
-    void setOrientation            (const glm::quat& orientation);
-    void setNewScale               (const float scale);
-    void setWantCollisionsOn       (bool wantCollisionsOn            ) { _isCollisionsOn = wantCollisionsOn; }
 
     //getters
     bool             isInitialized             ()                const { return _initialized;}
-    bool             isMyAvatar                ()                const { return _owningNode == NULL; }
     const Skeleton&  getSkeleton               ()                const { return _skeleton;}
     float            getHeadYawRate            ()                const { return _head.yawRate;}
-    float            getBodyYaw                ()                const { return _bodyYaw;}    
-    bool             getIsNearInteractingOther ()                const { return _avatarTouch.getAbleToReachOtherAvatar();}
     const glm::vec3& getHeadJointPosition      ()                const { return _skeleton.joint[ AVATAR_JOINT_HEAD_BASE ].position;}
-    const glm::vec3& getBallPosition           (AvatarJointID j) const { return _bodyBall[j].position;}
-    glm::vec3        getBodyRightDirection     ()                const { return getOrientation() * IDENTITY_RIGHT; }
-    glm::vec3        getBodyUpDirection        ()                const { return getOrientation() * IDENTITY_UP; }
-    glm::vec3        getBodyFrontDirection     ()                const { return getOrientation() * IDENTITY_FRONT; }
     float            getScale                  ()                const { return _scale;}
-    float            getNewScale               ()                const { return _newScale;}
     const glm::vec3& getVelocity               ()                const { return _velocity;}
-    float            getSpeed                  ()                const { return _speed;}
-    float            getHeight                 ()                const { return _height;}
-    AvatarMode       getMode                   ()                const { return _mode;}
-    float            getLeanScale              ()                const { return _leanScale;}
-    float            getElapsedTimeStopped     ()                const { return _elapsedTimeStopped;}
-    float            getElapsedTimeMoving      ()                const { return _elapsedTimeMoving;}
-    float            getElapsedTimeSinceCollision()              const { return _elapsedTimeSinceCollision;}
-    const glm::vec3& getLastCollisionPosition  ()                const { return _lastCollisionPosition;}
-    float            getAbsoluteHeadYaw        ()                const;
-    float            getAbsoluteHeadPitch      ()                const;
     Head&            getHead                   ()                      {return _head; }
     Hand&            getHand                   ()                      {return _hand; }
     glm::quat        getOrientation            ()                const;
     glm::quat        getWorldAlignedOrientation()                const;
-    const glm::vec3& getMouseRayOrigin         ()                const { return _mouseRayOrigin;    }
-    const glm::vec3& getMouseRayDirection      ()                const { return _mouseRayDirection; }
-    Avatar*          getLeadingAvatar          ()                const { return _leadingAvatar; }
-    glm::vec3        getGravity                ()                const { return _gravity; }
-    
-    glm::vec3 getUprightHeadPosition() const;
-    glm::vec3 getUprightEyeLevelPosition() const;
-    glm::vec3 getEyePosition();
-    
-    AvatarVoxelSystem* getVoxels() { return &_voxels; }
-    
-    //  Set what driving keys are being pressed to control thrust levels
-    void setDriveKeys(int key, bool val) { _driveKeys[key] = val; };
-    bool getDriveKeys(int key) { return _driveKeys[key]; };
-    void jump() { _shouldJump = true; };
 
-    //  Set/Get update the thrust that will move the avatar around
-    void addThrust(glm::vec3 newThrust) { _thrust += newThrust; };
-    glm::vec3 getThrust() { return _thrust; };
+    AvatarVoxelSystem* getVoxels() { return &_voxels; }
     
     // get/set avatar data
     void saveData(QSettings* set);
@@ -210,11 +165,9 @@ public:
 
     static void renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2, float radius1, float radius2);
 
-private:
-    // privatize copy constructor and assignment operator to avoid copying
-    Avatar(const Avatar&);
-    Avatar& operator= (const Avatar&);
-    
+    friend class MyAvatar;
+
+protected:
     struct AvatarBall
     {
         AvatarJointID    parentJoint;    // the skeletal joint that serves as a reference for determining the position
@@ -230,77 +183,62 @@ private:
         float            touchForce;     // a scalar determining the amount that the cursor (or hand) is penetrating the ball
     };
 
-    bool        _initialized;
     Head        _head;
     Hand        _hand;
     Skeleton    _skeleton;
     bool        _ballSpringsInitialized;
     float       _TEST_bigSphereRadius;
     glm::vec3   _TEST_bigSpherePosition;
-    bool        _mousePressed;
-    float       _bodyPitchDelta;
     float       _bodyYawDelta;
-    float       _bodyRollDelta;
     glm::vec3   _movedHandOffset;
-    AvatarBall	_bodyBall[ NUM_AVATAR_BODY_BALLS ];
+    AvatarBall  _bodyBall[ NUM_AVATAR_BODY_BALLS ];
     AvatarMode  _mode;
-    glm::vec3   _handHoldingPosition;
     glm::vec3   _velocity;
     glm::vec3   _thrust;
-    bool        _shouldJump;
     float       _speed;
-    float       _maxArmLength;
     float       _leanScale;
-    int         _driveKeys[MAX_DRIVE_KEYS];
-    float       _pelvisStandingHeight;
     float       _pelvisFloatingHeight;
     float       _pelvisToHeadLength;
     float       _scale;
     float       _height;
     Balls*      _balls;
     AvatarTouch _avatarTouch;
-    float       _distanceToNearestAvatar;       //  How close is the nearest avatar?
-    glm::vec3   _gravity;
     glm::vec3   _worldUpDirection;
     glm::vec3   _mouseRayOrigin;
     glm::vec3   _mouseRayDirection;
-    Avatar*     _interactingOther;
-    bool        _isMouseTurningRight;
-    float       _elapsedTimeMoving;             //  Timers to drive camera transitions when moving
-    float       _elapsedTimeStopped;
-    float       _elapsedTimeSinceCollision;
-    glm::vec3   _lastCollisionPosition;
-    bool        _speedBrakes;
-    bool        _isThrustOn;
     bool        _isCollisionsOn;
-    float       _collisionRadius;
-
     Avatar*     _leadingAvatar;
     float       _stringLength;
 
     AvatarVoxelSystem _voxels;
+
+    // protected methods...
+    glm::vec3        getBodyRightDirection     ()                const { return getOrientation() * IDENTITY_RIGHT; }
+    glm::vec3        getBodyUpDirection        ()                const { return getOrientation() * IDENTITY_UP; }
+    glm::vec3        getBodyFrontDirection     ()                const { return getOrientation() * IDENTITY_FRONT; }
+    glm::quat computeRotationFromBodyToWorldUp(float proportion = 1.0f) const;
+    void updateCollisionWithSphere( glm::vec3 position, float radius, float deltaTime );
+    void updateBodyBalls( float deltaTime );
+    void updateArmIKAndConstraints( float deltaTime );
+    void setScale (const float scale);
+
+private:
+    // privatize copy constructor and assignment operator to avoid copying
+    Avatar(const Avatar&);
+    Avatar& operator= (const Avatar&);
+    
+    bool        _initialized;
+    glm::vec3   _handHoldingPosition;
+    float       _maxArmLength;
+    float       _pelvisStandingHeight;
     
     // private methods...
     glm::vec3 calculateAverageEyePosition() { return _head.calculateAverageEyePosition(); } // get the position smack-dab between the eyes (for lookat)
-    glm::quat computeRotationFromBodyToWorldUp(float proportion = 1.0f) const;
     float getBallRenderAlpha(int ball, bool lookingInMirror) const;
     void renderBody(bool lookingInMirror, bool renderAvatarBalls);
     void initializeBodyBalls();
     void resetBodyBalls();
-    void updateBodyBalls( float deltaTime );
-    void calculateBoneLengths();
-    void readSensors();
     void updateHandMovementAndTouching(float deltaTime, bool enableHandMovement);
-    void updateAvatarCollisions(float deltaTime);
-    void updateArmIKAndConstraints( float deltaTime );
-    void updateCollisionWithSphere( glm::vec3 position, float radius, float deltaTime );
-    void updateCollisionWithEnvironment(float deltaTime);
-    void updateCollisionWithVoxels(float deltaTime);
-    void applyHardCollision(const glm::vec3& penetration, float elasticity, float damping);
-    void updateCollisionSound(const glm::vec3& penetration, float deltaTime, float frequency);
-    void applyCollisionWithOtherAvatar( Avatar * other, float deltaTime );
-    void checkForMouseRayTouching();
-    void setScale (const float scale);
 };
 
 #endif
