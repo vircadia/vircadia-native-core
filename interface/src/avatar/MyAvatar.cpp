@@ -310,8 +310,9 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter, float gyroCam
     _head.simulate(deltaTime, true, gyroCameraSensitivity);
     _hand.simulate(deltaTime, true);
 
+    const float WALKING_SPEED_THRESHOLD = 0.2f;
     // use speed and angular velocity to determine walking vs. standing
-    if (_speed + fabs(_bodyYawDelta) > 0.2) {
+    if (_speed + fabs(_bodyYawDelta) > WALKING_SPEED_THRESHOLD) {
         _mode = AVATAR_MODE_WALKING;
     } else {
         _mode = AVATAR_MODE_INTERACTING;
