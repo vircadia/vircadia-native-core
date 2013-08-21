@@ -255,6 +255,38 @@ bool createVoxelEditMessage(unsigned char command, short int sequence,
     return success;
 }
 
+/// encodes the voxel details portion of a voxel edit message
+bool encodeVoxelEditMessageDetails(unsigned char command, int voxelCount, VoxelDetail* voxelDetails, 
+        unsigned char* bufferOut, int sizeIn, int& sizeOut) {
+
+    bool success = true; // assume the best
+    unsigned char* copyAt = bufferOut;
+    sizeOut = 0;
+
+    for (int i = 0; i < voxelCount && success; i++) {
+        // get the coded voxel
+        unsigned char* voxelData = pointToVoxel(voxelDetails[i].x,voxelDetails[i].y,voxelDetails[i].z,
+            voxelDetails[i].s,voxelDetails[i].red,voxelDetails[i].green,voxelDetails[i].blue);
+            
+        int lengthOfVoxelData = bytesRequiredForCodeLength(*voxelData)+SIZE_OF_COLOR_DATA;
+        
+        // make sure we have room to copy this voxel
+        if (sizeOut + lengthOfVoxelData > sizeIn) {
+            success = false;
+        } else {
+            // add it to our message
+            memcpy(copyAt, voxelData, lengthOfVoxelData);
+            copyAt += lengthOfVoxelData;
+            sizeOut += lengthOfVoxelData;
+        }
+        // cleanup
+        delete[] voxelData;
+    }
+
+    return success;
+}
+
+
 //////////////////////////////////////////////////////////////////////////////////////////
 // Function:    pointToVoxel()
 // Description: Given a universal point with location x,y,z this will return the voxel

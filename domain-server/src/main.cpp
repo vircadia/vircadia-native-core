@@ -136,7 +136,7 @@ int main(int argc, const char * argv[])
                         // this is not the node themselves
                         // and this is an node of a type in the passed node types of interest
                         // or the node did not pass us any specific types they are interested in
-                    
+
                         if (memchr(SOLO_NODE_TYPES, node->getType(), sizeof(SOLO_NODE_TYPES)) == NULL) {
                             // this is an node of which there can be multiple, just add them to the packet
                             // don't send avatar nodes to other avatars, that will come from avatar mixer

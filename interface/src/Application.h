@@ -42,6 +42,7 @@
 #include "VoxelEditPacketSender.h"
 #include "VoxelPacketProcessor.h"
 #include "VoxelSystem.h"
+#include "VoxelImporter.h"
 #include "Webcam.h"
 #include "avatar/Avatar.h"
 #include "avatar/HandControl.h"
@@ -73,7 +74,7 @@ static const float NODE_KILLED_RED   = 1.0f;
 static const float NODE_KILLED_GREEN = 0.0f;
 static const float NODE_KILLED_BLUE  = 0.0f;
 
-class Application : public QApplication, public NodeListHook {
+class Application : public QApplication, public NodeListHook, public PacketSenderNotify {
     Q_OBJECT
 
     friend class VoxelPacketProcessor;
@@ -104,8 +105,6 @@ public:
     
     const glm::vec3 getMouseVoxelWorldCoordinates(const VoxelDetail _mouseVoxel);
     
-    void updateParticleSystem(float deltaTime);
-    
     QGLWidget* getGLWidget() { return _glWidget; }
     Avatar* getAvatar() { return &_myAvatar; }
     Audio* getAudio() { return &_audio; }
@@ -133,12 +132,12 @@ public:
 
     virtual void nodeAdded(Node* node);
     virtual void nodeKilled(Node* node);
+    virtual void packetSentNotification(ssize_t length);
 
 public slots:
     void sendAvatarFaceVideoMessage(int frameCount, const QByteArray& data);
     void exportVoxels();
     void importVoxels();
-    void importVoxelsToClipboard();
     void cutVoxels();
     void copyVoxels();
     void pasteVoxels();
@@ -238,8 +237,10 @@ private:
 
     Stars _stars;
     
-    VoxelSystem _voxels;
-    VoxelTree _clipboardTree; // if I copy/paste
+    VoxelSystem   _voxels;
+    VoxelSystem   _clipboard; // if I copy/paste
+    ViewFrustum   _clipboardViewFrustum;
+    VoxelImporter _voxelImporter;
 
     QByteArray _voxelsFilename;
     bool _wantToKillLocalVoxels;
@@ -340,12 +341,14 @@ private:
     ToolsPalette _palette;
     Swatch _swatch;
 
+    bool _pasteMode;
+
     PieMenu _pieMenu;
     
     VoxelSceneStats _voxelSceneStats;
     int parseVoxelStats(unsigned char* messageData, ssize_t messageLength, sockaddr senderAddress);
     
-    std::map<uint16_t, JurisdictionMap> _voxelServerJurisdictions;
+    NodeToJurisdictionMap _voxelServerJurisdictions;
     
     std::vector<VoxelFade> _voxelFades;
 };

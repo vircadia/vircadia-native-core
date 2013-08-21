@@ -67,6 +67,9 @@ VoxelSystem::VoxelSystem(float treeScale, int maxVoxels) :
     _voxelServerCount = 0;
 
     _viewFrustum = Application::getInstance()->getViewFrustum();
+
+    connect(_tree, SIGNAL(importSize(float,float,float)), SIGNAL(importSize(float,float,float)));
+    connect(_tree, SIGNAL(importProgress(int)), SIGNAL(importProgress(int)));
 }
 
 void VoxelSystem::nodeDeleted(VoxelNode* node) {
@@ -136,6 +139,22 @@ void VoxelSystem::writeToSVOFile(const char* filename, VoxelNode* node) const {
 
 bool VoxelSystem::readFromSVOFile(const char* filename) {
     bool result = _tree->readFromSVOFile(filename);
+    if (result) {
+        setupNewVoxelsForDrawing();
+    }
+    return result;
+}
+
+bool VoxelSystem::readFromSquareARGB32Pixels(const char *filename) {
+    bool result = _tree->readFromSquareARGB32Pixels(filename);
+    if (result) {
+        setupNewVoxelsForDrawing();
+    }
+    return result;
+}
+
+bool VoxelSystem::readFromSchematicFile(const char* filename) {
+    bool result = _tree->readFromSchematicFile(filename);
     if (result) {
         setupNewVoxelsForDrawing();
     }
@@ -638,7 +657,7 @@ void VoxelSystem::updatePartialVBOs() {
     }
     
     // if we got to the end of the array, and we're in an active dirty segment...
-    if (inSegment) {    
+    if (inSegment) {
         updateVBOSegment(segmentStart, _voxelsInReadArrays - 1);
         inSegment = false;
     }
@@ -978,6 +997,10 @@ public:
     { }
 };
 
+void VoxelSystem::cancelImport() {
+    _tree->cancelImport();
+}
+
 // "Remove" voxels from the tree that are not in view. We don't actually delete them,
 // we remove them from the tree and place them into a holding area for later deletion
 bool VoxelSystem::removeOutOfViewOperation(VoxelNode* node, void* extraData) {
@@ -1289,12 +1312,21 @@ void VoxelSystem::createSphere(float r,float xc, float yc, float zc, float s, bo
     setupNewVoxelsForDrawing(); 
 };
 
-void VoxelSystem::copySubTreeIntoNewTree(VoxelNode* startNode, VoxelTree* destinationTree, bool rebaseToRoot) {
-    _tree->copySubTreeIntoNewTree(startNode, destinationTree, rebaseToRoot);
+void VoxelSystem::copySubTreeIntoNewTree(VoxelNode* startNode, VoxelSystem* destination, bool rebaseToRoot) {
+    _tree->copySubTreeIntoNewTree(startNode, destination->_tree, rebaseToRoot);
+    destination->setupNewVoxelsForDrawing();
+}
+
+void VoxelSystem::copySubTreeIntoNewTree(VoxelNode* startNode, VoxelTree* destination, bool rebaseToRoot) {
+    _tree->copySubTreeIntoNewTree(startNode, destination, rebaseToRoot);
 }
 
 void VoxelSystem::copyFromTreeIntoSubTree(VoxelTree* sourceTree, VoxelNode* destinationNode) {
     _tree->copyFromTreeIntoSubTree(sourceTree, destinationNode);
+}
+
+void VoxelSystem::recurseTreeWithOperation(RecurseVoxelTreeOperation operation, void* extraData) {
+    _tree->recurseTreeWithOperation(operation, extraData);
 }
 
 struct FalseColorizeOccludedArgs {
