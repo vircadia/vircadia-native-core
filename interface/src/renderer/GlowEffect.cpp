@@ -229,7 +229,8 @@ void GlowEffect::cycleRenderMode() {
         case BLUR_PERSIST_ADD_MODE:
             qDebug() << "Glow mode: Blur/persist/add\n";
             break;
-            
+        
+        default:    
         case DIFFUSE_ADD_MODE:
             qDebug() << "Glow mode: Diffuse/add\n";
             break;
