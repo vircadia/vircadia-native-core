@@ -492,6 +492,11 @@ void Application::keyPressEvent(QKeyEvent* event) {
 
         bool isShifted = event->modifiers().testFlag(Qt::ShiftModifier);
         switch (event->key()) {
+            case Qt::Key_Shift:
+                if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelSelectMode)) {
+                    _pasteMode = true;
+                }
+                break;
             case Qt::Key_BracketLeft:
             case Qt::Key_BracketRight:
             case Qt::Key_BraceLeft:
@@ -723,6 +728,9 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
         }
         
         switch (event->key()) {
+            case Qt::Key_Shift:
+                _pasteMode = false;
+                break;
             case Qt::Key_E:
                 _myAvatar.setDriveKeys(UP, 0);
                 break;
@@ -1197,22 +1205,17 @@ void Application::exportVoxels() {
 }
 
 void Application::importVoxels() {
-    _pasteMode = false;
-
     if (_voxelImporter.exec()) {
         qDebug("[DEBUG] Import succedded.\n");
 
-        if (_voxelImporter.getimportIntoClipboard()) {
+        if (_voxelImporter.getImportIntoClipboard()) {
             _clipboard.killLocalVoxels();
             _voxelImporter.getVoxelSystem()->copySubTreeIntoNewTree(
                         _voxelImporter.getVoxelSystem()->getVoxelAt(0, 0, 0, 1),
                         &_clipboard,
                         true);
-        } else {
-            _pasteMode = true;
+            _voxelImporter.reset();
         }
-
-
     } else {
         qDebug("[DEBUG] Import failed.\n");
     }
@@ -1235,12 +1238,6 @@ void Application::copyVoxels() {
         // then copy onto it
         _voxels.copySubTreeIntoNewTree(selectedNode, &_clipboard, true);
     }
-
-    _pasteMode = false;
-}
-
-void Application::togglePasteMode() {
-    _pasteMode = !_pasteMode;
 }
 
 void Application::pasteVoxels() {

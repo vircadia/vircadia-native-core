@@ -26,7 +26,7 @@ public:
 
     bool getImportWaiting() const { return _importWaiting; }
     VoxelSystem* getVoxelSystem() { return &_voxelSystem; }
-    bool getimportIntoClipboard() const { return _importDialog.getImportIntoClipboard(); }
+    bool getImportIntoClipboard() const { return _importDialog.getImportIntoClipboard(); }
 
 public slots:
     int exec();
