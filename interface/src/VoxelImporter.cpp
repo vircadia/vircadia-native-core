@@ -11,6 +11,7 @@
 #include <QFileInfo>
 #include <QThreadPool>
 
+static const int IMPORT_SYSTEM_SCALE = 1.0f;
 static const int MAX_VOXELS_PER_IMPORT = 2000000;
 
 class ImportTask : public QObject, public QRunnable {
@@ -25,10 +26,10 @@ private:
 
 VoxelImporter::VoxelImporter(QWidget* parent)
     : QObject(parent),
-      _voxelSystem(new VoxelSystem(1, MAX_VOXELS_PER_IMPORT)),
+      _voxelSystem(IMPORT_SYSTEM_SCALE, MAX_VOXELS_PER_IMPORT),
       _initialized(false),
       _importWaiting(false),
-      _importDialog(parent, _voxelSystem),
+      _importDialog(parent, &_voxelSystem),
       _currentTask(NULL),
       _nextTask(NULL) {
 
@@ -45,16 +46,13 @@ VoxelImporter::~VoxelImporter() {
 
     if (_currentTask) {
         disconnect(_currentTask, 0, 0, 0);
-        connect(_currentTask, SIGNAL(destroyed()), _voxelSystem, SLOT(deleteLater()));
-        _voxelSystem->cancelImport();
+        _voxelSystem.cancelImport();
         _currentTask = NULL;
-    } else if (_initialized) {
-        delete _voxelSystem;
     }
 }
 
 void VoxelImporter::reset() {
-    _voxelSystem->killLocalVoxels();
+    _voxelSystem.killLocalVoxels();
     _importDialog.reset();
     _filename = "";
     _importWaiting = false;
@@ -65,16 +63,15 @@ void VoxelImporter::reset() {
     }
 
     if (_currentTask) {
-        _voxelSystem->cancelImport();
+        _voxelSystem.cancelImport();
     }
 }
 
 int VoxelImporter::exec() {
     if (!_initialized) {
-        _voxelSystem->init();
-        _importViewFrustum.setKeyholeRadius(100000.0f);
+        _voxelSystem.init();
         _importViewFrustum.calculate();
-        _voxelSystem->setViewFrustum(&_importViewFrustum);
+        _voxelSystem.setViewFrustum(&_importViewFrustum);
         _initialized = true;
     }
     reset();
@@ -105,11 +102,11 @@ int VoxelImporter::preImport() {
             delete _nextTask;
         }
 
-        _nextTask = new ImportTask(_voxelSystem, _filename);
+        _nextTask = new ImportTask(&_voxelSystem, _filename);
         connect(_nextTask, SIGNAL(destroyed()), SLOT(launchTask()));
 
         if (_currentTask != NULL) {
-            _voxelSystem->cancelImport();
+            _voxelSystem.cancelImport();
         } else {
             launchTask();
         }
@@ -141,12 +138,12 @@ int VoxelImporter::import() {
         delete _nextTask;
     }
 
-    _nextTask = new ImportTask(_voxelSystem, _filename);
+    _nextTask = new ImportTask(&_voxelSystem, _filename);
     connect(_nextTask, SIGNAL(destroyed()), SLOT(launchTask()));
     connect(_nextTask, SIGNAL(destroyed()), &_importDialog, SLOT(accept()));
 
     if (_currentTask != NULL) {
-        _voxelSystem->cancelImport();
+        _voxelSystem.cancelImport();
     } else {
         launchTask();
     }
@@ -156,7 +153,7 @@ int VoxelImporter::import() {
 
 void VoxelImporter::launchTask() {
     if (_nextTask != NULL) {
-        _voxelSystem->killLocalVoxels();
+        _voxelSystem.killLocalVoxels();
         _currentTask = _nextTask;
         _nextTask = NULL;
         QThreadPool::globalInstance()->start(_currentTask);

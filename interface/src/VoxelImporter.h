@@ -25,7 +25,7 @@ public:
     void reset();
 
     bool getImportWaiting() const { return _importWaiting; }
-    VoxelSystem* getVoxelSystem() const { return _voxelSystem; }
+    VoxelSystem* getVoxelSystem() { return &_voxelSystem; }
     bool getimportIntoClipboard() const { return _importDialog.getImportIntoClipboard(); }
 
 public slots:
@@ -37,7 +37,7 @@ private slots:
     void launchTask();
 
 private:
-    VoxelSystem* _voxelSystem;
+    VoxelSystem  _voxelSystem;
     ViewFrustum  _importViewFrustum;
     bool         _initialized;
     bool         _importWaiting;
