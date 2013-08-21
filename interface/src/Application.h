@@ -301,7 +301,6 @@ private:
     ChatEntry _chatEntry; // chat entry field 
     bool _chatEntryOn;    // Whether to show the chat entry 
     
-    GLuint _oculusTextureID;        // The texture to which we render for Oculus distortion
     ProgramObject* _oculusProgram;  // The GLSL program containing the distortion shader 
     float _oculusDistortionScale;   // Controls the Oculus field of view
     int _textureLocation;
