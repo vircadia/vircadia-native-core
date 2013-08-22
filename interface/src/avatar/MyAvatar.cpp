@@ -172,7 +172,7 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter, float gyroCam
     if (_isCollisionsOn) {
         Camera* myCamera = Application::getInstance()->getCamera();
 
-        if (myCamera->getMode() == CAMERA_MODE_FIRST_PERSON) {
+        if (myCamera->getMode() == CAMERA_MODE_FIRST_PERSON && !OculusManager::isConnected()) {
             _collisionRadius = myCamera->getAspectRatio() * (myCamera->getNearClip() / cos(myCamera->getFieldOfView() / 2.f));
             _collisionRadius *= COLLISION_RADIUS_SCALAR;
         } else {
