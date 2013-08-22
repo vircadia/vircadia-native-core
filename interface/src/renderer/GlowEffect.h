@@ -10,6 +10,7 @@
 #define __interface__GlowEffect__
 
 #include <QObject>
+#include <QStack>
 
 class QOpenGLFramebufferObject;
 
@@ -63,6 +64,9 @@ private:
     
     bool _isEmpty; ///< set when nothing in the scene is currently glowing
     bool _isOddFrame; ///< controls the alternation between texture targets in diffuse add mode
+    
+    float _intensity;
+    QStack<float> _intensityStack;
 };
 
 #endif /* defined(__interface__GlowEffect__) */

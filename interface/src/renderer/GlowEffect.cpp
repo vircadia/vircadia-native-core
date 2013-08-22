@@ -15,7 +15,7 @@
 #include "ProgramObject.h"
 #include "RenderUtil.h"
 
-GlowEffect::GlowEffect() : _renderMode(DIFFUSE_ADD_MODE), _isOddFrame(false) {
+GlowEffect::GlowEffect() : _renderMode(DIFFUSE_ADD_MODE), _isOddFrame(false), _intensity(0.0f) {
 }
 
 QOpenGLFramebufferObject* GlowEffect::getFreeFramebufferObject() const {
@@ -70,12 +70,14 @@ void GlowEffect::prepare() {
 }
 
 void GlowEffect::begin(float intensity) {
-    glBlendColor(0.0f, 0.0f, 0.0f, intensity);
+    // store the current intensity and add the new amount
+    _intensityStack.push(_intensity);
+    glBlendColor(0.0f, 0.0f, 0.0f, _intensity += intensity);
     _isEmpty = false;
 }
 
 void GlowEffect::end() {
-    glBlendColor(0.0f, 0.0f, 0.0f, 0.0f);
+    glBlendColor(0.0f, 0.0f, 0.0f, _intensity = _intensityStack.pop());
 }
 
 static void maybeBind(QOpenGLFramebufferObject* fbo) {

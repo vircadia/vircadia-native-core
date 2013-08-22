@@ -1477,7 +1477,17 @@ void Avatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
 
     if (isMyAvatar() && Application::getInstance()->getCamera()->getMode() == CAMERA_MODE_FIRST_PERSON) {
         // Dont display body
-    } else if (_head.getFace().isFullFrame()) {
+        return;
+    }
+    
+    // glow when moving
+    const float MIN_GLOW_SPEED = 0.01f;
+    bool glowing = _speed > MIN_GLOW_SPEED;
+    if (glowing) {
+        Application::getInstance()->getGlowEffect()->begin();
+    }
+    
+    if (_head.getFace().isFullFrame()) {
         //  Render the full-frame video
         float alpha = getBallRenderAlpha(BODY_BALL_HEAD_BASE, lookingInMirror);
         if (alpha > 0.0f) {
@@ -1558,6 +1568,10 @@ void Avatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
         }
     }
     _hand.render(lookingInMirror);
+    
+    if (glowing) {
+        Application::getInstance()->getGlowEffect()->end();
+    }
 }
 
 
