@@ -10,6 +10,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <cstdio>
+
 #include <OctalCode.h>
 #include <NodeList.h>
 #include <NodeTypes.h>
@@ -20,7 +21,6 @@
 #include <PacketHeaders.h>
 #include <SceneUtils.h>
 #include <PerfStat.h>
-
 #include <JurisdictionSender.h>
 
 #include "VoxelPersistThread.h"
@@ -421,9 +421,6 @@ int main(int argc, const char * argv[]) {
     NodeList* nodeList = NodeList::createInstance(NODE_TYPE_VOXEL_SERVER, listenPort);
     setvbuf(stdout, NULL, _IOLBF, 0);
 
-    const NODE_TYPE nodeTypes[] = { NODE_TYPE_AGENT, NODE_TYPE_ANIMATION_SERVER };
-    NodeList::getInstance()->setNodeTypesOfInterest(&nodeTypes[0], sizeof(nodeTypes));
-    
     // Handle Local Domain testing with the --local command line
     const char* local = "--local";
     ::wantLocalDomain = cmdOptionExists(argc, argv,local);
@@ -575,14 +572,13 @@ int main(int argc, const char * argv[]) {
             if (packetData[0] == PACKET_TYPE_HEAD_DATA) {
                 // If we got a PACKET_TYPE_HEAD_DATA, then we're talking to an NODE_TYPE_AVATAR, and we
                 // need to make sure we have it in our nodeList.
-        
                 uint16_t nodeID = 0;
                 unpackNodeId(packetData + numBytesPacketHeader, &nodeID);
                 Node* node = NodeList::getInstance()->addOrUpdateNode(&senderAddress,
                                                        &senderAddress,
                                                        NODE_TYPE_AGENT,
                                                        nodeID);
-        
+
                 NodeList::getInstance()->updateNodeWithData(node, packetData, packetLength);
             } else if (packetData[0] == PACKET_TYPE_PING) {
                 // If the packet is a ping, let processNodeData handle it.
