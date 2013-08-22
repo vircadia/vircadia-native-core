@@ -90,6 +90,7 @@ int main(int argc, const char * argv[])
         if (!nodeList->soloNodeOfType(NODE_TYPE_AUDIO_MIXER)) {
             // we don't have an audio mixer, and we know we need one
             // so tell that to the assignment server
+    
             Assignment mixerAssignment(Assignment::AudioMixer);
             nodeList->sendAssignment(mixerAssignment);
         }

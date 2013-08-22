@@ -45,7 +45,10 @@ int main(int argc, const char* argv[]) {
                     // send the assignment
                 }
             } else if (senderData[0] == PACKET_TYPE_SEND_ASSIGNMENT && packetVersionMatch(senderData)) {
-                Assignment newAssignment((Assignment::Type) *(senderData + numBytesForPacketHeader(senderData)));
+                // assignment server is on a public server
+                // assume that the address we now have for the sender is the public address/port
+                // and store that with the assignment so it can be given to the requestor later
+                Assignment newAssignment((Assignment::Type) *(senderData + numBytesForPacketHeader(senderData)), senderSocket);
                 
                 qDebug() << "Received assignment of type " << newAssignment.getType() << "\n";
             

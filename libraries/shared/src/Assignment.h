@@ -19,10 +19,13 @@ public:
     };
     
     Assignment(Assignment::Type type);
+    Assignment(Assignment::Type type, sockaddr_in& senderSocket);
     
     Assignment::Type getType() const { return _type; }
+    
 private:
     Assignment::Type _type;
+    sockaddr_in _senderSocket;
 };
 
 
