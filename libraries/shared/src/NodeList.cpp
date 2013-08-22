@@ -371,7 +371,7 @@ const char ASSIGNMENT_SERVER_HOSTNAME[] = "localhost";
 const sockaddr_in assignmentServerSocket = socketForHostnameAndHostOrderPort(ASSIGNMENT_SERVER_HOSTNAME,
                                                                              ASSIGNMENT_SERVER_PORT);
 
-void NodeList::requestAssignment() {    
+void NodeList::requestAssignment() {
     _nodeSocket.send((sockaddr*) &assignmentServerSocket, &PACKET_TYPE_REQUEST_ASSIGNMENT, 1);
 }
 

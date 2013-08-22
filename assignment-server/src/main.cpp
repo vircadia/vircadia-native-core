@@ -42,7 +42,11 @@ int main(int argc, const char* argv[]) {
                     Assignment firstAssignment = assignmentQueue.front();
                     assignmentQueue.pop();
                     
+                    *(assignmentPacket + numSendHeaderBytes) = firstAssignment.getType();
+                    
+                    
                     // send the assignment
+                    serverSocket.send((sockaddr*) &senderSocket, assignmentPacket, numSendHeaderBytes + sizeof(unsigned char));
                 }
             } else if (senderData[0] == PACKET_TYPE_SEND_ASSIGNMENT && packetVersionMatch(senderData)) {
                 // assignment server is on a public server
