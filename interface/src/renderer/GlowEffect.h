@@ -40,7 +40,9 @@ public:
     void end();
     
     /// Renders the glow effect.  To be called after rendering the scene.
-    void render();
+    /// \param toTexture whether to render to a texture, rather than to the frame buffer
+    /// \return the framebuffer object to which we rendered, or NULL if to the frame buffer
+    QOpenGLFramebufferObject* render(bool toTexture = false);
 
 public slots:
     

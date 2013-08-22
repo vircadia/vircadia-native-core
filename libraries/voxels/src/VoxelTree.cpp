@@ -19,13 +19,13 @@
 
 #include <QtCore/QDebug>
 #include <QImage>
+#include <QRgb>
 
 #include "CoverageMap.h"
 #include "GeometryUtil.h"
 #include "OctalCode.h"
 #include "PacketHeaders.h"
 #include "SharedUtil.h"
-#include "SquarePixelMap.h"
 #include "Tags.h"
 #include "ViewFrustum.h"
 #include "VoxelConstants.h"
@@ -1607,25 +1607,61 @@ bool VoxelTree::readFromSVOFile(const char* fileName) {
 }
 
 bool VoxelTree::readFromSquareARGB32Pixels(const char* filename) {
-    QImage pngImage = QImage(filename);
-    if (pngImage.height() != pngImage.width()) {
-        qDebug("ERROR: Bad PNG size: height != width.\n");
-        return false;
-    }
-
     emit importSize(1.0f, 1.0f, 1.0f);
     emit importProgress(0);
 
-    const uint32_t* pixels;
-    if (pngImage.format() == QImage::Format_ARGB32) {
-        pixels = reinterpret_cast<const uint32_t*>(pngImage.constBits());
-    } else {
-        QImage tmp = pngImage.convertToFormat(QImage::Format_ARGB32);
-        pixels = reinterpret_cast<const uint32_t*>(tmp.constBits());
+    int minAlpha = INT_MAX;
+
+    QImage pngImage = QImage(filename);
+
+    for (int x = 0; x < pngImage.width() * pngImage.height(); ++x) {
+        minAlpha = std::min(qAlpha(pngImage.color(x)) , minAlpha);
     }
 
-    SquarePixelMap pixelMap = SquarePixelMap(pixels, pngImage.height());
-    pixelMap.addVoxelsToVoxelTree(this);
+    int maxSize = std::max(pngImage.width(), pngImage.height());
+
+    int scale = 1;
+    while (maxSize > scale) {scale *= 2;}
+    float size = 1.0f / scale;
+
+    QRgb pixel;
+    int minNeighborhoodAlpha;
+
+    for (int i = 0; i < pngImage.width(); ++i) {
+        for (int j = 0; j < pngImage.height(); ++j) {
+            emit importProgress((100 * (i * pngImage.height() + j)) /
+                                (pngImage.width() * pngImage.height()));
+
+            pixel = pngImage.pixel(i, j);
+            minNeighborhoodAlpha = qAlpha(pixel) - 1;
+
+            if (i != 0) {
+                minNeighborhoodAlpha = std::min(minNeighborhoodAlpha, qAlpha(pngImage.pixel(i - 1, j)));
+            }
+            if (j != 0) {
+                minNeighborhoodAlpha = std::min(minNeighborhoodAlpha, qAlpha(pngImage.pixel(i, j - 1)));
+            }
+            if (i < pngImage.width() - 1) {
+                minNeighborhoodAlpha = std::min(minNeighborhoodAlpha, qAlpha(pngImage.pixel(i + 1, j)));
+            }
+            if (j < pngImage.height() - 1) {
+                minNeighborhoodAlpha = std::min(minNeighborhoodAlpha, qAlpha(pngImage.pixel(i, j + 1)));
+            }
+
+            while (qAlpha(pixel) > minNeighborhoodAlpha) {
+                ++minNeighborhoodAlpha;
+                createVoxel(i * size,
+                            (minNeighborhoodAlpha - minAlpha) * size,
+                            j * size,
+                            size,
+                            qRed(pixel),
+                            qGreen(pixel),
+                            qBlue(pixel),
+                            true);
+            }
+
+        }
+    }
 
     emit importProgress(100);
     return true;

@@ -78,7 +78,19 @@ void GlowEffect::end() {
     glBlendColor(0.0f, 0.0f, 0.0f, 0.0f);
 }
 
-void GlowEffect::render() {
+static void maybeBind(QOpenGLFramebufferObject* fbo) {
+    if (fbo != NULL) {
+        fbo->bind();
+    }
+}
+
+static void maybeRelease(QOpenGLFramebufferObject* fbo) {
+    if (fbo != NULL) {
+        fbo->release();
+    }
+}
+
+QOpenGLFramebufferObject* GlowEffect::render(bool toTexture) {
     QOpenGLFramebufferObject* primaryFBO = Application::getInstance()->getTextureCache()->getPrimaryFramebufferObject();
     primaryFBO->release();
     glBindTexture(GL_TEXTURE_2D, primaryFBO->texture());
@@ -94,23 +106,29 @@ void GlowEffect::render() {
     glDisable(GL_DEPTH_TEST);
     glDepthMask(GL_FALSE);
     
+    QOpenGLFramebufferObject* destFBO = toTexture ?
+        Application::getInstance()->getTextureCache()->getSecondaryFramebufferObject() : NULL;
     if (_isEmpty) {
         // copy the primary to the screen
         if (QOpenGLFramebufferObject::hasOpenGLFramebufferBlit()) {
-            QOpenGLFramebufferObject::blitFramebuffer(NULL, primaryFBO);
+            QOpenGLFramebufferObject::blitFramebuffer(destFBO, primaryFBO);
                 
         } else {
+            maybeBind(destFBO);
             glEnable(GL_TEXTURE_2D);
             glDisable(GL_LIGHTING);
             glColor3f(1.0f, 1.0f, 1.0f);
             renderFullscreenQuad();    
             glDisable(GL_TEXTURE_2D);
             glEnable(GL_LIGHTING);
+            maybeRelease(destFBO);
         }
     } else if (_renderMode == ADD_MODE) {
+        maybeBind(destFBO);
         _addProgram->bind();
         renderFullscreenQuad();
         _addProgram->release();
+        maybeRelease(destFBO);
     
     } else if (_renderMode == DIFFUSE_ADD_MODE) {
         // diffuse into the secondary/tertiary (alternating between frames)
@@ -139,9 +157,14 @@ void GlowEffect::render() {
         // add diffused texture to the primary
         glBindTexture(GL_TEXTURE_2D, newDiffusedFBO->texture());
         
+        if (toTexture) {
+            destFBO = oldDiffusedFBO;
+        }
+        maybeBind(destFBO);
         _addSeparateProgram->bind();      
         renderFullscreenQuad();
         _addSeparateProgram->release();
+        maybeRelease(destFBO);
         
         glBindTexture(GL_TEXTURE_2D, 0);
         glActiveTexture(GL_TEXTURE0);
@@ -163,9 +186,14 @@ void GlowEffect::render() {
             glActiveTexture(GL_TEXTURE1);
             glBindTexture(GL_TEXTURE_2D, secondaryFBO->texture());
             
+            if (toTexture) {
+                destFBO = Application::getInstance()->getTextureCache()->getTertiaryFramebufferObject();
+            }
+            maybeBind(destFBO);
             _verticalBlurAddProgram->bind();      
             renderFullscreenQuad();
             _verticalBlurAddProgram->release();
+            maybeRelease(destFBO);
             
         } else { // _renderMode == BLUR_PERSIST_ADD_MODE
             // render the secondary to the tertiary with horizontal blur and persistence
@@ -196,9 +224,11 @@ void GlowEffect::render() {
             glActiveTexture(GL_TEXTURE1);
             glBindTexture(GL_TEXTURE_2D, tertiaryFBO->texture());
             
+            maybeBind(destFBO);
             _addSeparateProgram->bind();      
             renderFullscreenQuad();
             _addSeparateProgram->release();
+            maybeRelease(destFBO);
         }
         
         glBindTexture(GL_TEXTURE_2D, 0);
@@ -214,6 +244,8 @@ void GlowEffect::render() {
     glEnable(GL_DEPTH_TEST);
     glDepthMask(GL_TRUE);
     glBindTexture(GL_TEXTURE_2D, 0);
+    
+    return destFBO;
 }
 
 void GlowEffect::cycleRenderMode() {

@@ -35,6 +35,7 @@
 #include <QMenuBar>
 #include <QMouseEvent>
 #include <QNetworkAccessManager>
+#include <QOpenGLFramebufferObject>
 #include <QWheelEvent>
 #include <QSettings>
 #include <QShortcut>
@@ -116,7 +117,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _lookatIndicatorScale(1.0f),
         _perfStatsOn(false),
         _chatEntryOn(false),
-        _oculusTextureID(0),
         _oculusProgram(0),
         _oculusDistortionScale(1.25),
 #ifndef _WIN32
@@ -378,12 +378,17 @@ void Application::paintGL() {
 
     if (OculusManager::isConnected()) {
         displayOculus(whichCamera);
+        
     } else {
+        _glowEffect.prepare(); 
+        
         glMatrixMode(GL_MODELVIEW);
         glPushMatrix();
         glLoadIdentity();
         displaySide(whichCamera);
         glPopMatrix();
+        
+        _glowEffect.render();
         
         displayOverlay();
     }
@@ -407,13 +412,6 @@ void Application::resetCamerasOnResizeGL(Camera& camera, int width, int height) 
 void Application::resizeGL(int width, int height) {
     resetCamerasOnResizeGL(_viewFrustumOffsetCamera, width, height);
     resetCamerasOnResizeGL(_myCamera, width, height);
-
-    // resize the render texture
-    if (OculusManager::isConnected() && _oculusTextureID != 0) {
-        glBindTexture(GL_TEXTURE_2D, _oculusTextureID);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
-        glBindTexture(GL_TEXTURE_2D, 0);
-    }
 
     // Tell our viewFrustum about this change, using the application camera
     loadViewFrustum(_myCamera, _viewFrustum);
@@ -1923,6 +1921,8 @@ static const char* DISTORTION_FRAGMENT_SHADER =
     "}";
     
 void Application::displayOculus(Camera& whichCamera) {
+    _glowEffect.prepare();
+
     // magic numbers ahoy! in order to avoid pulling in the Oculus utility library that calculates
     // the rendering parameters from the hardware stats, i just folded their calculations into
     // constants using the stats for the current-model hardware as contained in the SDK file
@@ -1965,12 +1965,10 @@ void Application::displayOculus(Camera& whichCamera) {
     // restore our normal viewport
     glViewport(0, 0, _glWidget->width(), _glWidget->height());
 
-    if (_oculusTextureID == 0) {
-        glGenTextures(1, &_oculusTextureID);
-        glBindTexture(GL_TEXTURE_2D, _oculusTextureID);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, _glWidget->width(), _glWidget->height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);   
-        
+    QOpenGLFramebufferObject* fbo = _glowEffect.render(true);
+    glBindTexture(GL_TEXTURE_2D, fbo->texture());
+
+    if (_oculusProgram == 0) {
         _oculusProgram = new ProgramObject();
         _oculusProgram->addShaderFromSourceCode(QGLShader::Fragment, DISTORTION_FRAGMENT_SHADER);
         _oculusProgram->link();
@@ -1980,18 +1978,13 @@ void Application::displayOculus(Camera& whichCamera) {
         _screenCenterLocation = _oculusProgram->uniformLocation("screenCenter");
         _scaleLocation = _oculusProgram->uniformLocation("scale");
         _scaleInLocation = _oculusProgram->uniformLocation("scaleIn");
-        _hmdWarpParamLocation = _oculusProgram->uniformLocation("hmdWarpParam");
-        
-    } else {
-        glBindTexture(GL_TEXTURE_2D, _oculusTextureID);
+        _hmdWarpParamLocation = _oculusProgram->uniformLocation("hmdWarpParam");        
     }
-    glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, _glWidget->width(), _glWidget->height());
-
+    
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     gluOrtho2D(0, _glWidget->width(), 0, _glWidget->height());           
     glDisable(GL_DEPTH_TEST);
-    glDisable(GL_LIGHTING);
     
     // for reference on setting these values, see SDK file Samples/OculusRoomTiny/RenderTiny_Device.cpp
     
@@ -1999,7 +1992,6 @@ void Application::displayOculus(Camera& whichCamera) {
     float aspectRatio = (_glWidget->width() * 0.5) / _glWidget->height();
     
     glDisable(GL_BLEND);
-    glEnable(GL_TEXTURE_2D);
     _oculusProgram->bind();
     _oculusProgram->setUniformValue(_textureLocation, 0);
     _oculusProgram->setUniformValue(_lensCenterLocation, 0.287994, 0.5); // see SDK docs, p. 29
@@ -2035,7 +2027,6 @@ void Application::displayOculus(Camera& whichCamera) {
     glEnd();
     
     glEnable(GL_BLEND);           
-    glDisable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, 0);
     _oculusProgram->release();
     
@@ -2095,9 +2086,6 @@ void Application::displaySide(Camera& whichCamera) {
 
     //  Setup 3D lights (after the camera transform, so that they are positioned in world space)
     setupWorldLight(whichCamera);
-    
-    // prepare the glow effect
-    _glowEffect.prepare();
     
     if (Menu::getInstance()->isOptionChecked(MenuOption::Stars)) {
         if (!_stars.getFileLoaded()) {
@@ -2256,7 +2244,7 @@ void Application::displaySide(Camera& whichCamera) {
     _myAvatar.renderScreenTint(SCREEN_TINT_AFTER_AVATARS, whichCamera);
 
     //  Render the world box
-        if (!Menu::getInstance()->isOptionChecked(MenuOption::Mirror) && Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
+    if (!Menu::getInstance()->isOptionChecked(MenuOption::Mirror) && Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
         renderWorldBox();
     }
     
@@ -2283,9 +2271,6 @@ void Application::displaySide(Camera& whichCamera) {
     }
         
     renderFollowIndicator();
-
-    // render the glow effect
-    _glowEffect.render();
 }
 
 void Application::displayOverlay() {
