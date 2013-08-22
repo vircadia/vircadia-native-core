@@ -801,9 +801,10 @@ void Avatar::getBodyBallTransform(AvatarJointID jointID, glm::vec3& position, gl
 int Avatar::parseData(unsigned char* sourceBuffer, int numBytes) {
     // change in position implies movement
     glm::vec3 oldPosition = _position;
-    AvatarData::parseData(sourceBuffer, numBytes);
+    int bytesRead = AvatarData::parseData(sourceBuffer, numBytes);
     const float MOVE_DISTANCE_THRESHOLD = 0.001f;
     _moving = glm::distance(oldPosition, _position) > MOVE_DISTANCE_THRESHOLD;
+    return bytesRead;
 }
 
 void Avatar::saveData(QSettings* set) {
