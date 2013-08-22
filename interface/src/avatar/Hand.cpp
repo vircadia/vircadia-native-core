@@ -36,7 +36,7 @@ Hand::Hand(Avatar* owningAvatar) :
 
 void Hand::init() {
     // Different colors for my hand and others' hands
-    if (_owningAvatar && _owningAvatar->isMyAvatar()) {
+    if (_owningAvatar && _owningAvatar->getOwningNode() == NULL) {
         _ballColor = glm::vec3(0.0, 0.4, 0.0);
     }
     else {
