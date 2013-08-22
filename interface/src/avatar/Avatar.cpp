@@ -105,7 +105,8 @@ Avatar::Avatar(Node* owningNode) :
     _initialized(false),
     _handHoldingPosition(0.0f, 0.0f, 0.0f),
     _maxArmLength(0.0f),
-    _pelvisStandingHeight(0.0f)
+    _pelvisStandingHeight(0.0f),
+    _moving(false)
 {
     // give the pointer to our head to inherited _headData variable from AvatarData
     _headData = &_head;
@@ -696,6 +697,9 @@ float Avatar::getBallRenderAlpha(int ball, bool lookingInMirror) const {
 
 void Avatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
 
+    // glow when moving
+    Glower glower(_moving ? 1.0f : 0.0f);
+    
     if (_head.getFace().isFullFrame()) {
         //  Render the full-frame video
         float alpha = getBallRenderAlpha(BODY_BALL_HEAD_BASE, lookingInMirror);
@@ -792,6 +796,14 @@ void Avatar::loadData(QSettings* settings) {
 void Avatar::getBodyBallTransform(AvatarJointID jointID, glm::vec3& position, glm::quat& rotation) const {
     position = _bodyBall[jointID].position;
     rotation = _bodyBall[jointID].rotation;
+}
+
+int Avatar::parseData(unsigned char* sourceBuffer, int numBytes) {
+    // change in position implies movement
+    glm::vec3 oldPosition = _position;
+    AvatarData::parseData(sourceBuffer, numBytes);
+    const float MOVE_DISTANCE_THRESHOLD = 0.001f;
+    _moving = glm::distance(oldPosition, _position) > MOVE_DISTANCE_THRESHOLD;
 }
 
 void Avatar::saveData(QSettings* set) {
