@@ -115,6 +115,10 @@ void VoxelSystem::clearFreeBufferIndexes() {
 }
 
 VoxelSystem::~VoxelSystem() {
+    glDeleteBuffers(1, &_vboVerticesID);
+    glDeleteBuffers(1, &_vboNormalsID);
+    glDeleteBuffers(1, &_vboColorsID);
+    glDeleteBuffers(1, &_vboIndicesID);
     delete[] _readVerticesArray;
     delete[] _writeVerticesArray;
     delete[] _readColorsArray;
