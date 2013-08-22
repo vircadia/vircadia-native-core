@@ -13,6 +13,7 @@
 
 class Assignment {
 public:
+    
     enum Type {
         AudioMixer
     };

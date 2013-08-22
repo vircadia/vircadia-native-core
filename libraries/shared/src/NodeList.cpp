@@ -13,6 +13,7 @@
 
 #include <QtCore/QDebug>
 
+#include "Assignment.h"
 #include "NodeList.h"
 #include "NodeTypes.h"
 #include "PacketHeaders.h"
@@ -377,10 +378,9 @@ void NodeList::requestAssignment() {
 void NodeList::sendAssignment(Assignment& assignment) {
     unsigned char assignmentPacket[MAX_PACKET_SIZE];
     int numHeaderBytes = populateTypeAndVersion(assignmentPacket, PACKET_TYPE_SEND_ASSIGNMENT);
-    
-    qDebug() << "The socket IP is " << inet_ntoa(assignmentServerSocket.sin_addr);
+    *(assignmentPacket + numHeaderBytes) = assignment.getType();
 
-    _nodeSocket.send((sockaddr*) &assignmentServerSocket, assignmentPacket, numHeaderBytes);
+    _nodeSocket.send((sockaddr*) &assignmentServerSocket, assignmentPacket, numHeaderBytes + sizeof(unsigned char));
 }
 
 Node* NodeList::addOrUpdateNode(sockaddr* publicSocket, sockaddr* localSocket, char nodeType, uint16_t nodeId) {
