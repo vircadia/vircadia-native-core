@@ -45,8 +45,10 @@ int main(int argc, const char* argv[]) {
                     // send the assignment
                 }
             } else if (senderData[0] == PACKET_TYPE_SEND_ASSIGNMENT && packetVersionMatch(senderData)) {
-                Assignment newAssignment(*(senderData + numBytesForPacketHeader(senderData));            
-                                
+                Assignment newAssignment((Assignment::Type) *(senderData + numBytesForPacketHeader(senderData)));
+                
+                qDebug() << "Received assignment of type " << newAssignment.getType() << "\n";
+            
                 // add this assignment to the queue
                 assignmentQueue.push(newAssignment);
             }

@@ -43,6 +43,7 @@ extern const int DEFAULT_DOMAINSERVER_PORT;
 
 const int UNKNOWN_NODE_ID = 0;
 
+class Assignment;
 class NodeListIterator;
 
 // Callers who want to hook add/kill callbacks should implement this class
@@ -95,7 +96,8 @@ public:
     void sendDomainServerCheckIn();
     int processDomainServerList(unsigned char *packetData, size_t dataBytes);
     
-    void sendAssignmentRequest();
+    void requestAssignment();
+    void sendAssignment(Assignment& assignment);
     
     Node* nodeWithAddress(sockaddr *senderAddress);
     Node* nodeWithID(uint16_t nodeID);

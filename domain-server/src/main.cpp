@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "Assignment.h"
 #include "NodeList.h"
 #include "NodeTypes.h"
 #include "Logstash.h"
@@ -85,6 +86,15 @@ int main(int argc, const char * argv[])
     timeval lastStatSendTime = {};
     
     while (true) {
+        
+        if (!nodeList->soloNodeOfType(NODE_TYPE_AUDIO_MIXER)) {
+            // we don't have an audio mixer, and we know we need one
+            // so tell that to the assignment server
+            Assignment mixerAssignment(Assignment::AudioMixer);
+            nodeList->sendAssignment(mixerAssignment);
+        }
+        
+        
         if (nodeList->getNodeSocket()->receive((sockaddr *)&nodePublicAddress, packetData, &receivedBytes) &&
             (packetData[0] == PACKET_TYPE_DOMAIN_REPORT_FOR_DUTY || packetData[0] == PACKET_TYPE_DOMAIN_LIST_REQUEST) &&
             packetVersionMatch(packetData)) {

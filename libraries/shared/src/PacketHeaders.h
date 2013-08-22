@@ -57,6 +57,6 @@ const int MAX_PACKET_HEADER_BYTES = sizeof(PACKET_TYPE) + sizeof(PACKET_VERSION)
 #define ADD_SCENE_COMMAND "add scene"
 #define TEST_COMMAND      "a message"
 
-const int ASSIGNMENT_SERVER_PORT = 7007;
+const unsigned short ASSIGNMENT_SERVER_PORT = 7007;
 
 #endif

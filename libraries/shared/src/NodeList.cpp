@@ -366,13 +366,21 @@ int NodeList::processDomainServerList(unsigned char* packetData, size_t dataByte
     return readNodes;
 }
 
-void NodeList::sendAssignmentRequest() {
-    const char ASSIGNMENT_SERVER_HOSTNAME[] = "assignment.highfidelity.io";
-    
-    static sockaddr_in assignmentServerSocket = socketForHostname(ASSIGNMENT_SERVER_HOSTNAME);
-    assignmentServerSocket.sin_port = htons(ASSIGNMENT_SERVER_PORT);
-    
+const char ASSIGNMENT_SERVER_HOSTNAME[] = "localhost";
+const sockaddr_in assignmentServerSocket = socketForHostnameAndHostOrderPort(ASSIGNMENT_SERVER_HOSTNAME,
+                                                                             ASSIGNMENT_SERVER_PORT);
+
+void NodeList::requestAssignment() {    
     _nodeSocket.send((sockaddr*) &assignmentServerSocket, &PACKET_TYPE_REQUEST_ASSIGNMENT, 1);
+}
+
+void NodeList::sendAssignment(Assignment& assignment) {
+    unsigned char assignmentPacket[MAX_PACKET_SIZE];
+    int numHeaderBytes = populateTypeAndVersion(assignmentPacket, PACKET_TYPE_SEND_ASSIGNMENT);
+    
+    qDebug() << "The socket IP is " << inet_ntoa(assignmentServerSocket.sin_addr);
+
+    _nodeSocket.send((sockaddr*) &assignmentServerSocket, assignmentPacket, numHeaderBytes);
 }
 
 Node* NodeList::addOrUpdateNode(sockaddr* publicSocket, sockaddr* localSocket, char nodeType, uint16_t nodeId) {

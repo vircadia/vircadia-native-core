@@ -18,6 +18,8 @@ public:
     };
     
     Assignment(Assignment::Type type);
+    
+    Assignment::Type getType() const { return _type; }
 private:
     Assignment::Type _type;
 };

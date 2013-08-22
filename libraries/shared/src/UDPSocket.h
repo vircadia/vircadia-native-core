@@ -42,6 +42,6 @@ int packSocket(unsigned char* packStore, sockaddr* socketToPack);
 int unpackSocket(unsigned char* packedData, sockaddr* unpackDestSocket);
 int getLocalAddress();
 unsigned short loadBufferWithSocketInfo(char* addressBuffer, sockaddr* socket);
-sockaddr_in socketForHostname(const char* hostname);
+sockaddr_in socketForHostnameAndHostOrderPort(const char* hostname, unsigned short port = 0);
 
 #endif /* defined(__interface__UDPSocket__) */

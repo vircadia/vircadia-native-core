@@ -6,6 +6,7 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
+#include <arpa/inet.h>
 #include <cstdio>
 #include <errno.h>
 #include <fcntl.h>
@@ -118,12 +119,16 @@ unsigned short loadBufferWithSocketInfo(char* addressBuffer, sockaddr* socket) {
     }
 }
 
-sockaddr_in socketForHostname(const char* hostname) {
+sockaddr_in socketForHostnameAndHostOrderPort(const char* hostname, unsigned short port) {
     struct hostent* pHostInfo;
-    sockaddr_in newSocket;
+    sockaddr_in newSocket = {};
 
     if ((pHostInfo = gethostbyname(hostname))) {
         memcpy(&newSocket.sin_addr, pHostInfo->h_addr_list[0], pHostInfo->h_length);
+    }
+    
+    if (port != 0) {
+        newSocket.sin_port = htons(port);
     }
     
     return newSocket;
