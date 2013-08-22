@@ -164,6 +164,8 @@ public:
     // Get the position/rotation of a single body ball
     void getBodyBallTransform(AvatarJointID jointID, glm::vec3& position, glm::quat& rotation) const;
 
+    virtual int parseData(unsigned char* sourceBuffer, int numBytes);
+
     static void renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2, float radius1, float radius2);
     
 public slots:
@@ -218,6 +220,8 @@ protected:
     Avatar* _leadingAvatar;
     float _stringLength;
     AvatarVoxelSystem _voxels;
+
+    bool _moving; ///< set when position is changing
 
     // protected methods...
     glm::vec3 getBodyRightDirection() const { return getOrientation() * IDENTITY_RIGHT; }

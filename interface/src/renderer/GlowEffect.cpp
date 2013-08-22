@@ -73,10 +73,11 @@ void GlowEffect::begin(float intensity) {
     // store the current intensity and add the new amount
     _intensityStack.push(_intensity);
     glBlendColor(0.0f, 0.0f, 0.0f, _intensity += intensity);
-    _isEmpty = false;
+    _isEmpty &= (_intensity == 0.0f);
 }
 
 void GlowEffect::end() {
+    // restore the saved intensity
     glBlendColor(0.0f, 0.0f, 0.0f, _intensity = _intensityStack.pop());
 }
 
@@ -270,3 +271,12 @@ void GlowEffect::cycleRenderMode() {
             break;
     }
 }
+
+Glower::Glower(float amount) {
+    Application::getInstance()->getGlowEffect()->begin(amount);
+}
+
+Glower::~Glower() {
+    Application::getInstance()->getGlowEffect()->end();
+}
+

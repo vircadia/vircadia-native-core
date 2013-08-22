@@ -69,4 +69,12 @@ private:
     QStack<float> _intensityStack;
 };
 
+/// RAII-style glow handler.  Applies glow when in scope.
+class Glower {
+public:
+    
+    Glower(float amount = 1.0f);
+    ~Glower();
+};
+
 #endif /* defined(__interface__GlowEffect__) */
