@@ -9,6 +9,7 @@
 #include <sys/time.h>
 
 #include <Assignment.h>
+#include <AudioMixer.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
@@ -40,6 +41,8 @@ int main(int argc, const char* argv[]) {
                 Assignment::Type assignmentType = (Assignment::Type) *(packetData + numBytesForPacketHeader(packetData));
                 
                 qDebug() << "Received an assignment of type" << assignmentType << "\n";
+                
+                AudioMixer::run();
                 
                 // reset our NodeList by switching back to unassigned and clearing the list
                 nodeList->setOwnerType(NODE_TYPE_UNASSIGNED);

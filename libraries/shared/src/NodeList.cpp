@@ -31,7 +31,7 @@ const char SOLO_NODE_TYPES[2] = {
 };
 
 const char DEFAULT_DOMAIN_HOSTNAME[MAX_HOSTNAME_BYTES] = "root.highfidelity.io";
-const char DEFAULT_DOMAIN_IP[INET_ADDRSTRLEN] = "";    //  IP Address will be re-set by lookup on startup
+const char DEFAULT_DOMAIN_IP[INET_ADDRSTRLEN] = "10.0.0.20";    //  IP Address will be re-set by lookup on startup
 const int DEFAULT_DOMAINSERVER_PORT = 40102;
 
 bool silentNodeThreadStopFlag = false;
