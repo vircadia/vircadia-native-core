@@ -43,12 +43,16 @@ public:
     void simulate(float deltaTime) { };
     void render(bool texture);
 
+    ViewFrustum* getViewFrustum() const {return _viewFrustum;}
+    void setViewFrustum(ViewFrustum* viewFrustum) {_viewFrustum = viewFrustum;}
     unsigned long  getVoxelsUpdated() const {return _voxelsUpdated;};
     unsigned long  getVoxelsRendered() const {return _voxelsInReadArrays;};
 
     void loadVoxelsFile(const char* fileName,bool wantColorRandomizer);
     void writeToSVOFile(const char* filename, VoxelNode* node) const;
     bool readFromSVOFile(const char* filename);
+    bool readFromSquareARGB32Pixels(const char* filename);
+    bool readFromSchematicFile(const char* filename);
 
     long int getVoxelsCreated();
     long int getVoxelsColored();
@@ -77,8 +81,11 @@ public:
     void createSphere(float r,float xc, float yc, float zc, float s, bool solid, 
                       creationMode mode, bool destructive = false, bool debug = false);
 
+    void copySubTreeIntoNewTree(VoxelNode* startNode, VoxelSystem* destinationTree, bool rebaseToRoot);
     void copySubTreeIntoNewTree(VoxelNode* startNode, VoxelTree* destinationTree, bool rebaseToRoot);
     void copyFromTreeIntoSubTree(VoxelTree* sourceTree, VoxelNode* destinationNode);
+
+    void recurseTreeWithOperation(RecurseVoxelTreeOperation operation, void* extraData=NULL);
 
     CoverageMapV2 myCoverageMapV2;
     CoverageMap   myCoverageMap;
@@ -87,6 +94,10 @@ public:
     virtual void nodeAdded(Node* node);
     virtual void nodeKilled(Node* node);
     
+signals:
+    void importSize(float x, float y, float z);
+    void importProgress(int progress);
+
 public slots:
     void collectStatsForTreesAndVBOs();
     
@@ -100,6 +111,8 @@ public slots:
     void falseColorizeOccluded();
     void falseColorizeOccludedV2();
     void falseColorizeBySource();
+
+    void cancelImport();
         
 protected:
     float _treeScale; 
@@ -182,6 +195,7 @@ private:
 
     ViewFrustum _lastKnowViewFrustum;
     ViewFrustum _lastStableViewFrustum;
+    ViewFrustum* _viewFrustum;
 
     int newTreeToArrays(VoxelNode *currentNode);
     void cleanupRemovedVoxels();

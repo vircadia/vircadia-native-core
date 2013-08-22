@@ -44,7 +44,8 @@ float texCoordToViewSpaceZ(vec2 texCoord) {
 // given a texture coordinate, returns the 3D view space coordinate
 vec3 texCoordToViewSpace(vec2 texCoord) {
     float z = texCoordToViewSpaceZ(texCoord);
-    return vec3(((texCoord * 2.0 - vec2(1.0, 1.0)) * (rightTop - leftBottom) + rightTop + leftBottom) * z / (-2.0 * near), z);
+    return vec3(((texCoord * 2.0 - vec2(1.0 - gl_ProjectionMatrix[2][0], 1.0)) *
+        (rightTop - leftBottom) + rightTop + leftBottom) * z / (-2.0 * near), z);
 }
 
 void main(void) {
@@ -59,7 +60,7 @@ void main(void) {
         vec3 offset = center + rotation * (radius * sampleKernel[i]);
         vec4 projected = gl_ProjectionMatrix * vec4(offset, 1.0);
         float depth = texCoordToViewSpaceZ(projected.xy * 0.5 / projected.w + vec2(0.5, 0.5));
-        occlusion += 1.0 - step(offset.z, depth); //  * step(abs(center.z - depth), radius);
+        occlusion += 1.0 - step(offset.z, depth);
     }
     
     gl_FragColor = vec4(occlusion, occlusion, occlusion, 0.0) / 16.0;

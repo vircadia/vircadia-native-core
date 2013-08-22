@@ -165,7 +165,7 @@ Menu::Menu() :
     
     addCheckableActionToQMenuAndActionHash(renderMenu, MenuOption::AmbientOcclusion);
     addCheckableActionToQMenuAndActionHash(renderMenu, MenuOption::FrameTimer);
-    addCheckableActionToQMenuAndActionHash(renderMenu, MenuOption::LookAtVectors);
+    addCheckableActionToQMenuAndActionHash(renderMenu, MenuOption::LookAtVectors, 0, true);
     addCheckableActionToQMenuAndActionHash(renderMenu, MenuOption::LookAtIndicator, 0, true);
     addCheckableActionToQMenuAndActionHash(renderMenu, MenuOption::FirstPerson, Qt::Key_P, true);
     
@@ -246,11 +246,6 @@ Menu::Menu() :
     
     addActionToQMenuAndActionHash(voxelMenu, MenuOption::ExportVoxels, Qt::CTRL | Qt::Key_E, appInstance, SLOT(exportVoxels()));
     addActionToQMenuAndActionHash(voxelMenu, MenuOption::ImportVoxels, Qt::CTRL | Qt::Key_I, appInstance, SLOT(importVoxels()));
-    addActionToQMenuAndActionHash(voxelMenu,
-                                  MenuOption::ImportVoxelsClipboard,
-                                  Qt::SHIFT | Qt::CTRL | Qt::Key_I,
-                                  appInstance,
-                                  SLOT(importVoxelsToClipboard()));
     addActionToQMenuAndActionHash(voxelMenu, MenuOption::CutVoxels, Qt::CTRL | Qt::Key_X, appInstance, SLOT(cutVoxels()));
     addActionToQMenuAndActionHash(voxelMenu, MenuOption::CopyVoxels, Qt::CTRL | Qt::Key_C, appInstance, SLOT(copyVoxels()));
     addActionToQMenuAndActionHash(voxelMenu, MenuOption::PasteVoxels, Qt::CTRL | Qt::Key_V, appInstance, SLOT(pasteVoxels()));

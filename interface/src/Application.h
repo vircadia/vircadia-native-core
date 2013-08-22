@@ -42,8 +42,10 @@
 #include "VoxelEditPacketSender.h"
 #include "VoxelPacketProcessor.h"
 #include "VoxelSystem.h"
+#include "VoxelImporter.h"
 #include "Webcam.h"
 #include "avatar/Avatar.h"
+#include "avatar/MyAvatar.h"
 #include "avatar/HandControl.h"
 #include "renderer/AmbientOcclusionEffect.h"
 #include "renderer/GeometryCache.h"
@@ -73,7 +75,7 @@ static const float NODE_KILLED_RED   = 1.0f;
 static const float NODE_KILLED_GREEN = 0.0f;
 static const float NODE_KILLED_BLUE  = 0.0f;
 
-class Application : public QApplication, public NodeListHook {
+class Application : public QApplication, public NodeListHook, public PacketSenderNotify {
     Q_OBJECT
 
     friend class VoxelPacketProcessor;
@@ -104,10 +106,8 @@ public:
     
     const glm::vec3 getMouseVoxelWorldCoordinates(const VoxelDetail _mouseVoxel);
     
-    void updateParticleSystem(float deltaTime);
-    
     QGLWidget* getGLWidget() { return _glWidget; }
-    Avatar* getAvatar() { return &_myAvatar; }
+    MyAvatar* getAvatar() { return &_myAvatar; }
     Audio* getAudio() { return &_audio; }
     Camera* getCamera() { return &_myCamera; }
     ViewFrustum* getViewFrustum() { return &_viewFrustum; }
@@ -133,12 +133,12 @@ public:
 
     virtual void nodeAdded(Node* node);
     virtual void nodeKilled(Node* node);
+    virtual void packetSentNotification(ssize_t length);
 
 public slots:
     void sendAvatarFaceVideoMessage(int frameCount, const QByteArray& data);
     void exportVoxels();
     void importVoxels();
-    void importVoxelsToClipboard();
     void cutVoxels();
     void copyVoxels();
     void pasteVoxels();
@@ -238,8 +238,10 @@ private:
 
     Stars _stars;
     
-    VoxelSystem _voxels;
-    VoxelTree _clipboardTree; // if I copy/paste
+    VoxelSystem   _voxels;
+    VoxelSystem   _clipboard; // if I copy/paste
+    ViewFrustum   _clipboardViewFrustum;
+    VoxelImporter _voxelImporter;
 
     QByteArray _voxelsFilename;
     bool _wantToKillLocalVoxels;
@@ -248,7 +250,7 @@ private:
 
     Oscilloscope _audioScope;
     
-    Avatar _myAvatar;                  // The rendered avatar of oneself
+    MyAvatar _myAvatar;                  // The rendered avatar of oneself
     
     Transmitter _myTransmitter;        // Gets UDP data from transmitter app used to animate the avatar
     
@@ -301,7 +303,6 @@ private:
     ChatEntry _chatEntry; // chat entry field 
     bool _chatEntryOn;    // Whether to show the chat entry 
     
-    GLuint _oculusTextureID;        // The texture to which we render for Oculus distortion
     ProgramObject* _oculusProgram;  // The GLSL program containing the distortion shader 
     float _oculusDistortionScale;   // Controls the Oculus field of view
     int _textureLocation;
@@ -341,12 +342,14 @@ private:
     ToolsPalette _palette;
     Swatch _swatch;
 
+    bool _pasteMode;
+
     PieMenu _pieMenu;
     
     VoxelSceneStats _voxelSceneStats;
     int parseVoxelStats(unsigned char* messageData, ssize_t messageLength, sockaddr senderAddress);
     
-    std::map<uint16_t, JurisdictionMap> _voxelServerJurisdictions;
+    NodeToJurisdictionMap _voxelServerJurisdictions;
     
     std::vector<VoxelFade> _voxelFades;
 };

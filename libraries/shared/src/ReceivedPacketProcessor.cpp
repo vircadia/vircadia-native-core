@@ -8,9 +8,17 @@
 //  Threaded or non-threaded packet receiver.
 //
 
+#include "NodeList.h"
 #include "ReceivedPacketProcessor.h"
+#include "SharedUtil.h"
 
-void ReceivedPacketProcessor::queuePacket(sockaddr& address, unsigned char* packetData, ssize_t packetLength) {
+void ReceivedPacketProcessor::queueReceivedPacket(sockaddr& address, unsigned char* packetData, ssize_t packetLength) {
+    // Make sure our Node and NodeList knows we've heard from this node.
+    Node* node = NodeList::getInstance()->nodeWithAddress(&address);
+    if (node) {
+        node->setLastHeardMicrostamp(usecTimestampNow());
+    }
+
     NetworkPacket packet(address, packetData, packetLength);
     lock();
     _packets.push_back(packet);
@@ -30,5 +38,5 @@ bool ReceivedPacketProcessor::process() {
         _packets.erase(_packets.begin());
         unlock();
     }
-    return true;  // keep running till they terminate us
+    return isStillRunning();  // keep running till they terminate us
 }

@@ -32,15 +32,6 @@ void AmbientOcclusionEffect::init() {
     _occlusionProgram->addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/ambient_occlusion.frag");
     _occlusionProgram->link();
     
-    _blurProgram = new ProgramObject();
-    _blurProgram->addShaderFromSourceFile(QGLShader::Vertex, "resources/shaders/ambient_occlusion.vert");
-    _blurProgram->addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/occlusion_blur.frag");
-    _blurProgram->link();
-    
-    _blurProgram->bind();
-    _blurProgram->setUniformValue("originalTexture", 0);
-    _blurProgram->release();
-    
     // create the sample kernel: an array of spherically distributed offset vectors
     const int SAMPLE_KERNEL_SIZE = 16;
     QVector3D sampleKernel[SAMPLE_KERNEL_SIZE];
@@ -83,6 +74,17 @@ void AmbientOcclusionEffect::init() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glBindTexture(GL_TEXTURE_2D, 0);
+    
+    _blurProgram = new ProgramObject();
+    _blurProgram->addShaderFromSourceFile(QGLShader::Vertex, "resources/shaders/ambient_occlusion.vert");
+    _blurProgram->addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/occlusion_blur.frag");
+    _blurProgram->link();
+    
+    _blurProgram->bind();
+    _blurProgram->setUniformValue("originalTexture", 0);
+    _blurProgram->release();
+    
+    _blurScaleLocation = _blurProgram->uniformLocation("blurScale");
 }
 
 void AmbientOcclusionEffect::render() {
@@ -95,9 +97,9 @@ void AmbientOcclusionEffect::render() {
     glActiveTexture(GL_TEXTURE1);
     glBindTexture(GL_TEXTURE_2D, _rotationTextureID);
     
-    // render with the occlusion shader to the secondary buffer
-    QOpenGLFramebufferObject* secondaryFBO = Application::getInstance()->getTextureCache()->getSecondaryFramebufferObject();
-    secondaryFBO->bind();
+    // render with the occlusion shader to the secondary/tertiary buffer
+    QOpenGLFramebufferObject* freeFBO = Application::getInstance()->getGlowEffect()->getFreeFramebufferObject();
+    freeFBO->bind();
     
     float left, right, bottom, top, nearVal, farVal;
     glm::vec4 nearClipPlane, farClipPlane;
@@ -109,15 +111,21 @@ void AmbientOcclusionEffect::render() {
     _occlusionProgram->setUniformValue(_farLocation, farVal);
     _occlusionProgram->setUniformValue(_leftBottomLocation, left, bottom);
     _occlusionProgram->setUniformValue(_rightTopLocation, right, top);
-    QSize size = Application::getInstance()->getGLWidget()->size();
-    _occlusionProgram->setUniformValue(_noiseScaleLocation, size.width() / (float)ROTATION_WIDTH,
-        size.height() / (float)ROTATION_HEIGHT);
+    QSize widgetSize = Application::getInstance()->getGLWidget()->size();
+    _occlusionProgram->setUniformValue(_noiseScaleLocation, widgetSize.width() / (float)ROTATION_WIDTH,
+        widgetSize.height() / (float)ROTATION_HEIGHT);
     
-    renderFullscreenQuad();
+    int viewport[4];
+    glGetIntegerv(GL_VIEWPORT, viewport);
+    const int VIEWPORT_X_INDEX = 0;
+    const int VIEWPORT_WIDTH_INDEX = 2;
+    float sMin = viewport[VIEWPORT_X_INDEX] / (float)widgetSize.width();
+    float sMax = (viewport[VIEWPORT_X_INDEX] + viewport[VIEWPORT_WIDTH_INDEX]) / (float)widgetSize.width(); 
+    renderFullscreenQuad(sMin, sMax);
     
     _occlusionProgram->release();
     
-    secondaryFBO->release();
+    freeFBO->release();
     
     glBindTexture(GL_TEXTURE_2D, 0);
     glActiveTexture(GL_TEXTURE0);
@@ -128,17 +136,17 @@ void AmbientOcclusionEffect::render() {
     glEnable(GL_BLEND);
     glBlendFuncSeparate(GL_ZERO, GL_SRC_COLOR, GL_ZERO, GL_ONE);
     
-    glBindTexture(GL_TEXTURE_2D, secondaryFBO->texture());
+    glBindTexture(GL_TEXTURE_2D, freeFBO->texture());
     
     _blurProgram->bind();
+    _blurProgram->setUniformValue(_blurScaleLocation, 1.0f / widgetSize.width(), 1.0f / widgetSize.height());
     
-    renderFullscreenQuad();
+    renderFullscreenQuad(sMin, sMax);
     
     _blurProgram->release();
     
     glBindTexture(GL_TEXTURE_2D, 0);
     
-    //glEnable(GL_BLEND);
     glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
     glEnable(GL_DEPTH_TEST);
     glDepthMask(GL_TRUE);

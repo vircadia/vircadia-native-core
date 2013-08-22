@@ -742,6 +742,8 @@ void Head::renderEyeBalls() {
 
 void Head::renderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosition, glm::vec3 lookatPosition) {
 
+    Application::getInstance()->getGlowEffect()->begin();
+    
     glLineWidth(2.0);
     glBegin(GL_LINES);
     glColor4f(0.2f, 0.2f, 0.2f, 1.f);
@@ -753,6 +755,8 @@ void Head::renderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosi
     glColor4f(1.0f, 1.0f, 1.0f, 0.f);
     glVertex3f(lookatPosition.x, lookatPosition.y, lookatPosition.z);
     glEnd();
+    
+    Application::getInstance()->getGlowEffect()->end();
 }
 
 void Head::updateHairPhysics(float deltaTime) {

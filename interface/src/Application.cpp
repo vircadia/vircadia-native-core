@@ -35,6 +35,7 @@
 #include <QMenuBar>
 #include <QMouseEvent>
 #include <QNetworkAccessManager>
+#include <QOpenGLFramebufferObject>
 #include <QWheelEvent>
 #include <QSettings>
 #include <QShortcut>
@@ -81,6 +82,8 @@ const int STARTUP_JITTER_SAMPLES = PACKET_LENGTH_SAMPLES_PER_CHANNEL / 2;
                                                  //  Startup optimistically with small jitter buffer that 
                                                  //  will start playback on the second received audio packet.
 
+static const float CLIPBOARD_TREE_SCALE = 1.0f;
+
 void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString &message) {
     fprintf(stdout, "%s", message.toLocal8Bit().constData());
     LogDisplay::instance.addMessage(message.toLocal8Bit().constData());
@@ -94,6 +97,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _frameCount(0),
         _fps(120.0f),
         _justStarted(true),
+        _clipboard(CLIPBOARD_TREE_SCALE),
+        _voxelImporter(_window),
         _wantToKillLocalVoxels(false),
         _audioScope(256, 200, true),
         _mouseX(0),
@@ -112,20 +117,20 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _lookatIndicatorScale(1.0f),
         _perfStatsOn(false),
         _chatEntryOn(false),
-        _oculusTextureID(0),
         _oculusProgram(0),
         _oculusDistortionScale(1.25),
 #ifndef _WIN32
         _audio(&_audioScope, STARTUP_JITTER_SAMPLES),
 #endif
         _stopNetworkReceiveThread(false),  
-        _voxelProcessor(this),
+        _voxelProcessor(),
         _voxelEditSender(this),
         _packetCount(0),
         _packetsPerSecond(0),
         _bytesPerSecond(0),
         _bytesCount(0),
-        _swatch(NULL)
+        _swatch(NULL),
+        _pasteMode(false)
 {
     _applicationStartupTime = startup_time;
     _window->setWindowTitle("Interface");
@@ -224,6 +229,9 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     _glWidget->setMouseTracking(true);
     
     // initialization continues in initializeGL when OpenGL context is ready
+    
+    // Tell our voxel edit sender about our known jurisdictions
+    _voxelEditSender.setVoxelServerJurisdictions(&_voxelServerJurisdictions);
 }
 
 Application::~Application() {
@@ -370,12 +378,17 @@ void Application::paintGL() {
 
     if (OculusManager::isConnected()) {
         displayOculus(whichCamera);
+        
     } else {
+        _glowEffect.prepare(); 
+        
         glMatrixMode(GL_MODELVIEW);
         glPushMatrix();
         glLoadIdentity();
         displaySide(whichCamera);
         glPopMatrix();
+        
+        _glowEffect.render();
         
         displayOverlay();
     }
@@ -399,13 +412,6 @@ void Application::resetCamerasOnResizeGL(Camera& camera, int width, int height) 
 void Application::resizeGL(int width, int height) {
     resetCamerasOnResizeGL(_viewFrustumOffsetCamera, width, height);
     resetCamerasOnResizeGL(_myCamera, width, height);
-
-    // resize the render texture
-    if (OculusManager::isConnected() && _oculusTextureID != 0) {
-        glBindTexture(GL_TEXTURE_2D, _oculusTextureID);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
-        glBindTexture(GL_TEXTURE_2D, 0);
-    }
 
     // Tell our viewFrustum about this change, using the application camera
     loadViewFrustum(_myCamera, _viewFrustum);
@@ -487,6 +493,11 @@ void Application::keyPressEvent(QKeyEvent* event) {
 
         bool isShifted = event->modifiers().testFlag(Qt::ShiftModifier);
         switch (event->key()) {
+            case Qt::Key_Shift:
+                if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelSelectMode)) {
+                    _pasteMode = true;
+                }
+                break;
             case Qt::Key_BracketLeft:
             case Qt::Key_BracketRight:
             case Qt::Key_BraceLeft:
@@ -718,6 +729,9 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
         }
         
         switch (event->key()) {
+            case Qt::Key_Shift:
+                _pasteMode = false;
+                break;
             case Qt::Key_E:
                 _myAvatar.setDriveKeys(UP, 0);
                 break;
@@ -808,6 +822,10 @@ void Application::mousePressEvent(QMouseEvent* event) {
 
             if (!_palette.isActive() && (!_isHoverVoxel || _isLookingAtOtherAvatar)) {
                 _pieMenu.mousePressEvent(_mouseX, _mouseY);
+            }
+
+            if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelSelectMode) && _pasteMode) {
+                pasteVoxels();
             }
 
             if (MAKE_SOUND_ON_VOXEL_CLICK && _isHoverVoxel && !_isHoverVoxelSounding) {
@@ -1103,6 +1121,7 @@ void Application::setFullscreen(bool fullscreen) {
 }
 
 void Application::setRenderVoxels(bool voxelRender) {
+    _voxelEditSender.setShouldSend(voxelRender);
     if (!voxelRender) {
         doKillLocalVoxels();
     }
@@ -1187,185 +1206,22 @@ void Application::exportVoxels() {
     _window->activateWindow();
 }
 
-const char* IMPORT_FILE_TYPES = "Sparse Voxel Octree Files, Square PNG, Schematic Files (*.svo *.png *.schematic)";
-void Application::importVoxelsToClipboard() {
-    QString desktopLocation = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
-    QString fileNameString = QFileDialog::getOpenFileName(_glWidget, tr("Import Voxels to Clipboard"), desktopLocation,
-                                                          tr(IMPORT_FILE_TYPES));
-
-    QByteArray fileNameAscii = fileNameString.toLocal8Bit();
-    const char* fileName = fileNameAscii.data();
-    
-    _clipboardTree.eraseAllVoxels();
-    if (fileNameString.endsWith(".png", Qt::CaseInsensitive)) {
-        QImage pngImage = QImage(fileName);
-        if (pngImage.height() != pngImage.width()) {
-            qDebug("ERROR: Bad PNG size: height != width.\n");
-            return;
-        }
-        
-        const uint32_t* pixels;
-        if (pngImage.format() == QImage::Format_ARGB32) {
-            pixels = reinterpret_cast<const uint32_t*>(pngImage.constBits());
-        } else {
-            QImage tmp = pngImage.convertToFormat(QImage::Format_ARGB32);
-            pixels = reinterpret_cast<const uint32_t*>(tmp.constBits());
-        }
-        _clipboardTree.readFromSquareARGB32Pixels(pixels, pngImage.height());
-    } else if (fileNameString.endsWith(".svo", Qt::CaseInsensitive)) {
-        _clipboardTree.readFromSVOFile(fileName);
-    } else if (fileNameString.endsWith(".schematic", Qt::CaseInsensitive)) {
-        _clipboardTree.readFromSchematicFile(fileName);
-    }
-
-    // restore the main window's active state
-    _window->activateWindow();
-}
-
 void Application::importVoxels() {
-    QString desktopLocation = QStandardPaths::writableLocation(QStandardPaths::DesktopLocation);
+    if (_voxelImporter.exec()) {
+        qDebug("[DEBUG] Import succedded.\n");
 
-    QStringList fileNameStringList = QFileDialog::getOpenFileNames(_glWidget, tr("Import Voxels"), desktopLocation, 
-                                                          tr(IMPORT_FILE_TYPES));
-
-
-    // remember the "selected" voxel point before we do any importing...
-    float originalX = _mouseVoxel.x;
-    float originalZ = _mouseVoxel.z;
-
-    const int PNG_TYPE_NAME_LENGTH = 4;
-    const int SVO_TYPE_NAME_LENGTH = 4;
-    const int SCH_TYPE_NAME_LENGTH = 10;
-
-    // assume this is where we'll place it if filename doesn't have tiling
-    int unspecifiedColumnNum = 1; 
-    int unspecifiedRowNum = 1;
-    
-    // if they select multiple files, but they don't specify the tiling, we
-    // will tile them to this size
-    int unspecifiedSquare = (sqrt(fileNameStringList.size()) + 0.5);
-    qDebug("unspecifiedSquare: %d\n", unspecifiedSquare);
-    
-    for (int i = 0; i < fileNameStringList.size(); i++) {
-        QString fileNameString = fileNameStringList.at(i);
-        QString extension;
-        QByteArray fileNameAscii = fileNameString.toLocal8Bit();
-        const char* fileName = fileNameAscii.data();
-    
-        int fileTypeNameLength = 0;
-        VoxelTree importVoxels;
-        if (fileNameString.endsWith(".png", Qt::CaseInsensitive)) {
-            extension = QString(".png");
-            QImage pngImage = QImage(fileName);
-            fileTypeNameLength = PNG_TYPE_NAME_LENGTH;
-            if (pngImage.height() != pngImage.width()) {
-                qDebug("ERROR: Bad PNG size: height != width.\n");
-                return;
-            }
-        
-            const uint32_t* pixels;
-            if (pngImage.format() == QImage::Format_ARGB32) {
-                pixels = reinterpret_cast<const uint32_t*>(pngImage.constBits());
-            } else {
-                QImage tmp = pngImage.convertToFormat(QImage::Format_ARGB32);
-                pixels = reinterpret_cast<const uint32_t*>(tmp.constBits());
-            }
-        
-            importVoxels.readFromSquareARGB32Pixels(pixels, pngImage.height());        
-        } else if (fileNameString.endsWith(".svo", Qt::CaseInsensitive)) {
-            extension = QString(".svo");
-            importVoxels.readFromSVOFile(fileName);
-            fileTypeNameLength = SVO_TYPE_NAME_LENGTH;
-        } else if (fileNameString.endsWith(".schematic", Qt::CaseInsensitive)) {
-            extension = QString(".schematic");
-            importVoxels.readFromSchematicFile(fileName);
-            fileTypeNameLength = SCH_TYPE_NAME_LENGTH;
+        if (_voxelImporter.getImportIntoClipboard()) {
+            _clipboard.killLocalVoxels();
+            _voxelImporter.getVoxelSystem()->copySubTreeIntoNewTree(
+                        _voxelImporter.getVoxelSystem()->getVoxelAt(0, 0, 0, 1),
+                        &_clipboard,
+                        true);
+            _voxelImporter.reset();
         }
-
-        // Where we plan to place this
-        int columnNum = 1; 
-        int rowNum = 1;
-        bool isTileLocationUnspecified = false;
-        
-        // If we're in multi-file mode, then look for tiling specification in the file name
-        if (fileNameStringList.size() > 1) {
-            int indexOfFirstPeriod = fileNameString.indexOf('.');
-
-            //qDebug("indexOfFirstPeriod: %d\n", indexOfFirstPeriod);
-
-            // If the first period, is the extension, then this is not a grid name;
-            if (fileNameString.mid(indexOfFirstPeriod, fileNameString.length() - indexOfFirstPeriod) == extension) {
-                    qDebug("not a valid grid name... treat like tile Location Unspecified\n");
-                isTileLocationUnspecified = true;
-            } else {
-                QString fileCoord = fileNameString.mid(indexOfFirstPeriod + 1, 
-                                                       fileNameString.length() - indexOfFirstPeriod - fileTypeNameLength - 1);
-
-                //qDebug() << "fileCoord: " << fileCoord << "\n";
-                indexOfFirstPeriod = fileCoord.indexOf('.');
-
-                //qDebug("indexOfFirstPeriod: %d\n", indexOfFirstPeriod);
-
-                QString columnNumString = fileCoord.right(fileCoord.length() - indexOfFirstPeriod - 1);
-                QString rowNumString = fileCoord.left(indexOfFirstPeriod);
-
-                //qDebug() << "columnNumString: " << columnNumString << "\n";
-                //qDebug() << "rowNumString: " << rowNumString << "\n";
-
-                columnNum = columnNumString.toFloat();
-                rowNum = rowNumString.toFloat();
-            
-                // If there are no "grid sections" in the filename, then we're going to get
-                if (columnNum < 1 || rowNum < 1) {
-                    qDebug("not a valid grid name... treat like tile Location Unspecified\n");
-                    isTileLocationUnspecified = true;
-                }
-            }
-        }
-
-        if (isTileLocationUnspecified) {
-            qDebug("tile Location is Unspecified... \n");
-            columnNum = unspecifiedColumnNum; 
-            rowNum = unspecifiedRowNum;
-        
-            unspecifiedColumnNum++;
-            if (unspecifiedColumnNum > unspecifiedSquare) {
-                unspecifiedColumnNum = 1;
-                unspecifiedRowNum++;
-            }
-        }        
-        qDebug("columnNum: %d\t rowNum: %d\n", columnNum, rowNum);
-
-        _mouseVoxel.x = originalX + (columnNum - 1) * _mouseVoxel.s;
-        _mouseVoxel.z = originalZ + (rowNum    - 1) * _mouseVoxel.s;
-        
-        VoxelNode* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
-    
-        // Recurse the Import Voxels tree, where everything is root relative, and send all the colored voxels to 
-        // the server as an set voxel message, this will also rebase the voxels to the new location
-        unsigned char* calculatedOctCode = NULL;
-        SendVoxelsOperationArgs args;
-
-        // we only need the selected voxel to get the newBaseOctCode, which we can actually calculate from the
-        // voxel size/position details.
-        if (selectedNode) {
-            args.newBaseOctCode = selectedNode->getOctalCode();
-        } else {
-            args.newBaseOctCode = calculatedOctCode = pointToVoxel(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
-        }
-    
-        qDebug("column:%d, row:%d, voxel:%f,%f,%f,%f\n", columnNum, rowNum, _mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s );
-        
-        // send the insert/paste of these voxels
-        importVoxels.recurseTreeWithOperation(sendVoxelsOperation, &args);
-        _voxelEditSender.flushQueue();
-    
-        if (calculatedOctCode) {
-            delete[] calculatedOctCode;
-        }
-
+    } else {
+        qDebug("[DEBUG] Import failed.\n");
     }
-    
+
     // restore the main window's active state
     _window->activateWindow();
 }
@@ -1379,10 +1235,10 @@ void Application::copyVoxels() {
     VoxelNode* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
     if (selectedNode) {
         // clear the clipboard first...
-        _clipboardTree.eraseAllVoxels();
+        _clipboard.killLocalVoxels();
 
         // then copy onto it
-        _voxels.copySubTreeIntoNewTree(selectedNode, &_clipboardTree, true);
+        _voxels.copySubTreeIntoNewTree(selectedNode, &_clipboard, true);
     }
 }
 
@@ -1403,7 +1259,12 @@ void Application::pasteVoxels() {
         args.newBaseOctCode = calculatedOctCode = pointToVoxel(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
     }
 
-    _clipboardTree.recurseTreeWithOperation(sendVoxelsOperation, &args);
+    if (_voxelImporter.getImportWaiting()) {
+        _voxelImporter.getVoxelSystem()->recurseTreeWithOperation(sendVoxelsOperation, &args);
+        _voxelImporter.reset();
+    } else {
+        _clipboard.recurseTreeWithOperation(sendVoxelsOperation, &args);
+    }
     _voxelEditSender.flushQueue();
     
     if (calculatedOctCode) {
@@ -1445,6 +1306,10 @@ void Application::initDisplay() {
 
 void Application::init() {
     _voxels.init();
+    _clipboard.init();
+    _clipboardViewFrustum.setKeyholeRadius(1000.0f);
+    _clipboardViewFrustum.calculate();
+    _clipboard.setViewFrustum(&_clipboardViewFrustum);
     
     _environment.init();
 
@@ -2056,6 +1921,8 @@ static const char* DISTORTION_FRAGMENT_SHADER =
     "}";
     
 void Application::displayOculus(Camera& whichCamera) {
+    _glowEffect.prepare();
+
     // magic numbers ahoy! in order to avoid pulling in the Oculus utility library that calculates
     // the rendering parameters from the hardware stats, i just folded their calculations into
     // constants using the stats for the current-model hardware as contained in the SDK file
@@ -2098,12 +1965,10 @@ void Application::displayOculus(Camera& whichCamera) {
     // restore our normal viewport
     glViewport(0, 0, _glWidget->width(), _glWidget->height());
 
-    if (_oculusTextureID == 0) {
-        glGenTextures(1, &_oculusTextureID);
-        glBindTexture(GL_TEXTURE_2D, _oculusTextureID);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, _glWidget->width(), _glWidget->height(), 0, GL_RGBA, GL_UNSIGNED_BYTE, 0);
-        glTexParameterf(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);   
-        
+    QOpenGLFramebufferObject* fbo = _glowEffect.render(true);
+    glBindTexture(GL_TEXTURE_2D, fbo->texture());
+
+    if (_oculusProgram == 0) {
         _oculusProgram = new ProgramObject();
         _oculusProgram->addShaderFromSourceCode(QGLShader::Fragment, DISTORTION_FRAGMENT_SHADER);
         _oculusProgram->link();
@@ -2113,18 +1978,13 @@ void Application::displayOculus(Camera& whichCamera) {
         _screenCenterLocation = _oculusProgram->uniformLocation("screenCenter");
         _scaleLocation = _oculusProgram->uniformLocation("scale");
         _scaleInLocation = _oculusProgram->uniformLocation("scaleIn");
-        _hmdWarpParamLocation = _oculusProgram->uniformLocation("hmdWarpParam");
-        
-    } else {
-        glBindTexture(GL_TEXTURE_2D, _oculusTextureID);
+        _hmdWarpParamLocation = _oculusProgram->uniformLocation("hmdWarpParam");        
     }
-    glCopyTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, 0, 0, _glWidget->width(), _glWidget->height());
-
+    
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     gluOrtho2D(0, _glWidget->width(), 0, _glWidget->height());           
     glDisable(GL_DEPTH_TEST);
-    glDisable(GL_LIGHTING);
     
     // for reference on setting these values, see SDK file Samples/OculusRoomTiny/RenderTiny_Device.cpp
     
@@ -2132,7 +1992,6 @@ void Application::displayOculus(Camera& whichCamera) {
     float aspectRatio = (_glWidget->width() * 0.5) / _glWidget->height();
     
     glDisable(GL_BLEND);
-    glEnable(GL_TEXTURE_2D);
     _oculusProgram->bind();
     _oculusProgram->setUniformValue(_textureLocation, 0);
     _oculusProgram->setUniformValue(_lensCenterLocation, 0.287994, 0.5); // see SDK docs, p. 29
@@ -2168,7 +2027,6 @@ void Application::displayOculus(Camera& whichCamera) {
     glEnd();
     
     glEnable(GL_BLEND);           
-    glDisable(GL_TEXTURE_2D);
     glBindTexture(GL_TEXTURE_2D, 0);
     _oculusProgram->release();
     
@@ -2228,9 +2086,6 @@ void Application::displaySide(Camera& whichCamera) {
 
     //  Setup 3D lights (after the camera transform, so that they are positioned in world space)
     setupWorldLight(whichCamera);
-    
-    // prepare the glow effect
-    _glowEffect.prepare();
     
     if (Menu::getInstance()->isOptionChecked(MenuOption::Stars)) {
         if (!_stars.getFileLoaded()) {
@@ -2331,6 +2186,23 @@ void Application::displaySide(Camera& whichCamera) {
         glEnable(GL_LIGHTING);
     }
     
+    if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelSelectMode) && _pasteMode) {
+        glPushMatrix();
+        glTranslatef(_mouseVoxel.x * TREE_SCALE,
+                     _mouseVoxel.y * TREE_SCALE,
+                     _mouseVoxel.z * TREE_SCALE);
+        glScalef(_mouseVoxel.s * TREE_SCALE,
+                 _mouseVoxel.s * TREE_SCALE,
+                 _mouseVoxel.s * TREE_SCALE);
+
+        if (_voxelImporter.getImportWaiting()) {
+            _voxelImporter.getVoxelSystem()->render(true);
+        } else {
+            _clipboard.render(true);
+        }
+        glPopMatrix();
+    }
+
     _myAvatar.renderScreenTint(SCREEN_TINT_BEFORE_AVATARS, whichCamera);
     
     if (Menu::getInstance()->isOptionChecked(MenuOption::Avatars)) {
@@ -2372,7 +2244,7 @@ void Application::displaySide(Camera& whichCamera) {
     _myAvatar.renderScreenTint(SCREEN_TINT_AFTER_AVATARS, whichCamera);
 
     //  Render the world box
-        if (!Menu::getInstance()->isOptionChecked(MenuOption::Mirror) && Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
+    if (!Menu::getInstance()->isOptionChecked(MenuOption::Mirror) && Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
         renderWorldBox();
     }
     
@@ -2399,9 +2271,6 @@ void Application::displaySide(Camera& whichCamera) {
     }
         
     renderFollowIndicator();
-    
-    // render the glow effect
-    _glowEffect.render();
 }
 
 void Application::displayOverlay() {
@@ -3271,7 +3140,7 @@ void* Application::networkReceive(void* args) {
                     case PACKET_TYPE_VOXEL_STATS:
                     case PACKET_TYPE_ENVIRONMENT_DATA: {
                         // add this packet to our list of voxel packets and process them on the voxel processing
-                        app->_voxelProcessor.queuePacket(senderAddress, app->_incomingPacket, bytesReceived);
+                        app->_voxelProcessor.queueReceivedPacket(senderAddress, app->_incomingPacket, bytesReceived);
                         break;
                     }
                     case PACKET_TYPE_BULK_AVATAR_DATA:
@@ -3300,4 +3169,8 @@ void* Application::networkReceive(void* args) {
         pthread_exit(0); 
     }
     return NULL; 
+}
+
+void Application::packetSentNotification(ssize_t length) {
+    _bandwidthMeter.outputStream(BandwidthMeter::VOXELS).updateValue(length); 
 }

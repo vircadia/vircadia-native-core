@@ -9,6 +9,8 @@
 #ifndef __hifi__JurisdictionMap__
 #define __hifi__JurisdictionMap__
 
+#include <map>
+#include <stdint.h>
 #include <vector>
 #include <QtCore/QString>
 
@@ -49,6 +51,14 @@ public:
     int getEndNodeCount() const { return _endNodes.size(); }
 
     void copyContents(unsigned char* rootCodeIn, const std::vector<unsigned char*>& endNodesIn);
+
+    int unpackFromMessage(unsigned char* sourceBuffer, int availableBytes);
+    int packIntoMessage(unsigned char* destinationBuffer, int availableBytes);
+    
+    /// Available to pack an empty or unknown jurisdiction into a network packet, used when no JurisdictionMap is available
+    static int packEmptyJurisdictionIntoMessage(unsigned char* destinationBuffer, int availableBytes);
+
+    void displayDebugDetails();
     
 private:
     void copyContents(const JurisdictionMap& other); // use assignment instead
@@ -58,6 +68,11 @@ private:
     unsigned char* _rootOctalCode;
     std::vector<unsigned char*> _endNodes;
 };
+
+/// Map between node IDs and their reported JurisdictionMap. Typically used by classes that need to know which nodes are 
+/// managing which jurisdictions.
+typedef std::map<uint16_t, JurisdictionMap> NodeToJurisdictionMap;
+
 
 #endif /* defined(__hifi__JurisdictionMap__) */
 

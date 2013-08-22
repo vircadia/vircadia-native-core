@@ -32,6 +32,7 @@ private:
     int _noiseScaleLocation;
     
     ProgramObject* _blurProgram;
+    int _blurScaleLocation;
     
     GLuint _rotationTextureID;
 };
