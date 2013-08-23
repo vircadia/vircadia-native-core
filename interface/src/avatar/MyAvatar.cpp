@@ -318,6 +318,10 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter, float gyroCam
         _mode = AVATAR_MODE_INTERACTING;
     }
     
+    // update moving flag based on speed
+    const float MOVING_SPEED_THRESHOLD = 0.01f;
+    _moving = _speed > MOVING_SPEED_THRESHOLD;
+    
     // update position by velocity, and subtract the change added earlier for gravity 
     _position += _velocity * deltaTime;
     
@@ -511,7 +515,13 @@ void MyAvatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
 
     if (Application::getInstance()->getCamera()->getMode() == CAMERA_MODE_FIRST_PERSON) {
         // Dont display body
-    } else if (_head.getFace().isFullFrame()) {
+        return;
+    }
+    
+    // glow when moving
+    Glower glower(_moving ? 1.0f : 0.0f);
+    
+    if (_head.getFace().isFullFrame()) {
         //  Render the full-frame video
         float alpha = getBallRenderAlpha(BODY_BALL_HEAD_BASE, lookingInMirror);
         if (alpha > 0.0f) {
