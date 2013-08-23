@@ -2311,7 +2311,7 @@ void Application::displaySide(Camera& whichCamera) {
     // render transmitter pick ray, if non-empty
     if (_transmitterPickStart != _transmitterPickEnd) {
         Glower glower;
-        float TRANSMITTER_PICK_COLOR[] = { 1.0f, 1.0f, 0.0f };
+        const float TRANSMITTER_PICK_COLOR[] = { 1.0f, 1.0f, 0.0f };
         glColor3fv(TRANSMITTER_PICK_COLOR);
         glLineWidth(3.0f);
         glBegin(GL_LINES);
@@ -2323,7 +2323,7 @@ void Application::displaySide(Camera& whichCamera) {
         glPushMatrix();
         glTranslatef(_transmitterPickEnd.x, _transmitterPickEnd.y, _transmitterPickEnd.z);
         
-        float PICK_END_RADIUS = 0.025f;
+        const float PICK_END_RADIUS = 0.025f;
         glutSolidSphere(PICK_END_RADIUS, 8, 8);
         
         glPopMatrix();
