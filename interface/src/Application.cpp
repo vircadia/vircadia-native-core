@@ -1041,10 +1041,8 @@ void Application::terminate() {
     
     LeapManager::terminate();
     
-    if (Menu::getInstance()->isOptionChecked(MenuOption::SettingsAutosave)) {
-        Menu::getInstance()->saveSettings();
-        _settings->sync();
-    }
+    Menu::getInstance()->saveSettings();
+    _settings->sync();
 
     if (_enableNetworkThread) {
         _stopNetworkReceiveThread = true;
