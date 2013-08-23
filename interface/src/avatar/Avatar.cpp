@@ -800,6 +800,21 @@ void Avatar::getBodyBallTransform(AvatarJointID jointID, glm::vec3& position, gl
     rotation = _bodyBall[jointID].rotation;
 }
 
+bool Avatar::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const {
+    float minDistance = FLT_MAX;
+    for (int i = 0; i < NUM_AVATAR_BODY_BALLS; i++) {
+        float distance;
+        if (rayIntersectsSphere(origin, direction, _bodyBall[i].position, _bodyBall[i].radius, distance)) {
+            minDistance = min(minDistance, distance);
+        }
+    }
+    if (minDistance == FLT_MAX) {
+        return false;
+    }
+    distance = minDistance;
+    return true;
+}
+
 int Avatar::parseData(unsigned char* sourceBuffer, int numBytes) {
     // change in position implies movement
     glm::vec3 oldPosition = _position;
