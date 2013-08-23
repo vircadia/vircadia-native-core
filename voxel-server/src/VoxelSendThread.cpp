@@ -15,31 +15,34 @@
 #include "VoxelSendThread.h"
 #include "VoxelServer.h"
 
-VoxelSendThread::VoxelSendThread() {
+VoxelSendThread::VoxelSendThread(uint16_t nodeID) :
+    _nodeID(nodeID) {
+}
+
+VoxelSendThread::~VoxelSendThread() {
 }
 
 bool VoxelSendThread::process() {
-
-    NodeList* nodeList = NodeList::getInstance();
-    timeval lastSendTime;
+    uint64_t  lastSendTime = usecTimestampNow();
     
-    gettimeofday(&lastSendTime, NULL);
+    Node* node = NodeList::getInstance()->nodeWithID(_nodeID);
+    VoxelNodeData* nodeData = NULL;
     
-    for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
-        VoxelNodeData* nodeData = (VoxelNodeData*) node->getLinkedData();
+    if (node) {
+        nodeData = (VoxelNodeData*) node->getLinkedData();
+    }
 
-        // Sometimes the node data has not yet been linked, in which case we can't really do anything
-        if (nodeData) {
-            bool viewFrustumChanged = nodeData->updateCurrentViewFrustum();
-            if (::debugVoxelSending) {
-                printf("nodeData->updateCurrentViewFrustum() changed=%s\n", debug::valueOf(viewFrustumChanged));
-            }
-            deepestLevelVoxelDistributor(nodeList, node, nodeData, viewFrustumChanged);
+    // Sometimes the node data has not yet been linked, in which case we can't really do anything
+    if (nodeData) {
+        bool viewFrustumChanged = nodeData->updateCurrentViewFrustum();
+        if (::debugVoxelSending) {
+            printf("nodeData->updateCurrentViewFrustum() changed=%s\n", debug::valueOf(viewFrustumChanged));
         }
+        deepestLevelVoxelDistributor(node, nodeData, viewFrustumChanged);
     }
     
     // dynamically sleep until we need to fire off the next set of voxels
-    int usecToSleep =  VOXEL_SEND_INTERVAL_USECS - (usecTimestampNow() - usecTimestamp(&lastSendTime));
+    int usecToSleep =  VOXEL_SEND_INTERVAL_USECS - (usecTimestampNow() - lastSendTime);
     
     if (usecToSleep > 0) {
         usleep(usecToSleep);
@@ -53,10 +56,8 @@ bool VoxelSendThread::process() {
 }
 
 
-void VoxelSendThread::handlePacketSend(NodeList* nodeList, 
-                      NodeList::iterator& node,
-                      VoxelNodeData* nodeData, 
-                      int& trueBytesSent, int& truePacketsSent) {
+void VoxelSendThread::handlePacketSend(Node* node, VoxelNodeData* nodeData, int& trueBytesSent, int& truePacketsSent) {
+
     // If we've got a stats message ready to send, then see if we can piggyback them together
     if (nodeData->stats.isReadyToSend()) {
         // Send the stats message to the client
@@ -71,16 +72,16 @@ void VoxelSendThread::handlePacketSend(NodeList* nodeList,
             statsMessageLength += nodeData->getPacketLength();
 
             // actually send it
-            nodeList->getNodeSocket()->send(node->getActiveSocket(), statsMessage, statsMessageLength);
+            NodeList::getInstance()->getNodeSocket()->send(node->getActiveSocket(), statsMessage, statsMessageLength);
         } else {
             // not enough room in the packet, send two packets
-            nodeList->getNodeSocket()->send(node->getActiveSocket(), statsMessage, statsMessageLength);
-            nodeList->getNodeSocket()->send(node->getActiveSocket(),
+            NodeList::getInstance()->getNodeSocket()->send(node->getActiveSocket(), statsMessage, statsMessageLength);
+            NodeList::getInstance()->getNodeSocket()->send(node->getActiveSocket(),
                                             nodeData->getPacket(), nodeData->getPacketLength());
         }
     } else {
         // just send the voxel packet
-        nodeList->getNodeSocket()->send(node->getActiveSocket(),
+        NodeList::getInstance()->getNodeSocket()->send(node->getActiveSocket(),
                                         nodeData->getPacket(), nodeData->getPacketLength());
     }
     // remember to track our stats
@@ -91,10 +92,7 @@ void VoxelSendThread::handlePacketSend(NodeList* nodeList,
 }
 
 /// Version of voxel distributor that sends the deepest LOD level at once
-void VoxelSendThread::deepestLevelVoxelDistributor(NodeList* nodeList, 
-                                  NodeList::iterator& node,
-                                  VoxelNodeData* nodeData,
-                                  bool viewFrustumChanged) {
+void VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nodeData, bool viewFrustumChanged) {
 
     pthread_mutex_lock(&::treeLock);
 
@@ -120,7 +118,7 @@ void VoxelSendThread::deepestLevelVoxelDistributor(NodeList* nodeList,
                        debug::valueOf(wantColor), debug::valueOf(nodeData->getCurrentPacketIsColor()));
             }
 
-            handlePacketSend(nodeList, node, nodeData, trueBytesSent, truePacketsSent);
+            handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
 
         } else {
             if (::debugVoxelSending) {
@@ -247,14 +245,14 @@ void VoxelSendThread::deepestLevelVoxelDistributor(NodeList* nodeList,
                 if (nodeData->getAvailable() >= bytesWritten) {
                     nodeData->writeToPacket(&tempOutputBuffer[0], bytesWritten);
                 } else {
-                    handlePacketSend(nodeList, node, nodeData, trueBytesSent, truePacketsSent);
+                    handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
                     packetsSentThisInterval++;
                     nodeData->resetVoxelPacket();
                     nodeData->writeToPacket(&tempOutputBuffer[0], bytesWritten);
                 }
             } else {
                 if (nodeData->isPacketWaiting()) {
-                    handlePacketSend(nodeList, node, nodeData, trueBytesSent, truePacketsSent);
+                    handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
                     nodeData->resetVoxelPacket();
                 }
                 packetsSentThisInterval = PACKETS_PER_CLIENT_PER_INTERVAL; // done for now, no nodes left
@@ -270,7 +268,7 @@ void VoxelSendThread::deepestLevelVoxelDistributor(NodeList* nodeList,
                 envPacketLength += environmentData[i].getBroadcastData(tempOutputBuffer + envPacketLength);
             }
             
-            nodeList->getNodeSocket()->send(node->getActiveSocket(), tempOutputBuffer, envPacketLength);
+            NodeList::getInstance()->getNodeSocket()->send(node->getActiveSocket(), tempOutputBuffer, envPacketLength);
             trueBytesSent += envPacketLength;
             truePacketsSent++;
         }

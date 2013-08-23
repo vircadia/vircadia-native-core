@@ -11,6 +11,7 @@
 #include "VoxelNodeData.h"
 #include <cstring>
 #include <cstdio>
+#include "VoxelSendThread.h"
 
 VoxelNodeData::VoxelNodeData(Node* owningNode) :
     AvatarData(owningNode),
@@ -21,11 +22,19 @@ VoxelNodeData::VoxelNodeData(Node* owningNode) :
     _lastTimeBagEmpty(0),
     _viewFrustumChanging(false),
     _viewFrustumJustStoppedChanging(true),
-    _currentPacketIsColor(true)
+    _currentPacketIsColor(true),
+    _voxelSendThread(NULL)
 {
     _voxelPacket = new unsigned char[MAX_VOXEL_PACKET_SIZE];
     _voxelPacketAt = _voxelPacket;
     resetVoxelPacket();
+    
+    // Create voxel sending thread...
+    uint16_t nodeID = getOwningNode()->getNodeID();
+    _voxelSendThread = new VoxelSendThread(nodeID);
+    if (_voxelSendThread) {
+        _voxelSendThread->initialize(true);
+    }
 }
 
 
@@ -49,6 +58,11 @@ void VoxelNodeData::writeToPacket(unsigned char* buffer, int bytes) {
 
 VoxelNodeData::~VoxelNodeData() {
     delete[] _voxelPacket;
+
+    if (_voxelSendThread) {
+        _voxelSendThread->terminate();
+        delete _voxelSendThread;
+    }
 }
 
 bool VoxelNodeData::updateCurrentViewFrustum() {

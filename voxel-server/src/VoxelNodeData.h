@@ -18,6 +18,8 @@
 #include <VoxelNodeBag.h>
 #include <VoxelSceneStats.h>
 
+class VoxelSendThread; // forward declare
+
 class VoxelNodeData : public AvatarData {
 public:
     VoxelNodeData(Node* owningNode);
@@ -80,6 +82,8 @@ private:
     bool _viewFrustumChanging;
     bool _viewFrustumJustStoppedChanging;
     bool _currentPacketIsColor;
+
+    VoxelSendThread* _voxelSendThread;
 };
 
 #endif /* defined(__hifi__VoxelNodeData__) */

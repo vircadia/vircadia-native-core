@@ -23,6 +23,7 @@
 #include <PerfStat.h>
 #include <JurisdictionSender.h>
 
+#include "NodeWatcher.h"
 #include "VoxelPersistThread.h"
 #include "VoxelSendThread.h"
 #include "VoxelServerPacketProcessor.h"
@@ -58,9 +59,8 @@ JurisdictionMap* jurisdiction = NULL;
 JurisdictionSender* jurisdictionSender = NULL;
 VoxelServerPacketProcessor* voxelServerPacketProcessor = NULL;
 VoxelPersistThread* voxelPersistThread = NULL;
-VoxelSendThread* voxelSendThread = NULL;
 pthread_mutex_t treeLock;
-
+NodeWatcher nodeWatcher; // used to cleanup AGENT data when agents are killed
 
 void attachVoxelNodeDataToNode(Node* newNode) {
     if (newNode->getLinkedData() == NULL) {
@@ -132,6 +132,9 @@ int main(int argc, const char * argv[]) {
     
     NodeList* nodeList = NodeList::createInstance(NODE_TYPE_VOXEL_SERVER, listenPort);
     setvbuf(stdout, NULL, _IOLBF, 0);
+    
+    // tell our NodeList about our desire to get notifications
+    nodeList->addHook(&nodeWatcher);
 
     // Handle Local Domain testing with the --local command line
     const char* local = "--local";
@@ -245,12 +248,6 @@ int main(int argc, const char * argv[]) {
     environmentData[2].setAtmosphereOuterRadius(0.1875f * TREE_SCALE * 1.05f);
     environmentData[2].setScatteringWavelengths(glm::vec3(0.475f, 0.570f, 0.650f)); // swaps red and blue
 
-    // Create voxel sending thread...
-    ::voxelSendThread = new VoxelSendThread();
-    if (::voxelSendThread) {
-        ::voxelSendThread->initialize(true);
-    }
-
     sockaddr senderAddress;
     
     unsigned char *packetData = new unsigned char[MAX_PACKET_SIZE];
@@ -331,11 +328,9 @@ int main(int argc, const char * argv[]) {
         delete ::voxelPersistThread;
     }
     
-    if (::voxelSendThread) {
-        ::voxelSendThread->terminate();
-        delete ::voxelSendThread;
-    }
-
+    // tell our NodeList we're done with notifications
+    nodeList->removeHook(&nodeWatcher);
+    
     pthread_mutex_destroy(&::treeLock);
 
     return 0;

@@ -20,19 +20,17 @@
 /// Threaded processor for sending voxel packets to a single client
 class VoxelSendThread : public virtual GenericThread {
 public:
-    VoxelSendThread();
+    VoxelSendThread(uint16_t nodeID);
+    ~VoxelSendThread();
 protected:
     /// Implements generic processing behavior for this thread.
     virtual bool process();
 
 private:
+    uint16_t _nodeID;
 
-    void handlePacketSend(NodeList* nodeList, NodeList::iterator& node, VoxelNodeData* nodeData, 
-        int& trueBytesSent, int& truePacketsSent);
-
-    void deepestLevelVoxelDistributor(NodeList* nodeList, NodeList::iterator& node, VoxelNodeData* nodeData,
-        bool viewFrustumChanged);
-
+    void handlePacketSend(Node* node, VoxelNodeData* nodeData, int& trueBytesSent, int& truePacketsSent);
+    void deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nodeData, bool viewFrustumChanged);
 };
 
 #endif // __voxel_server__VoxelSendThread__
