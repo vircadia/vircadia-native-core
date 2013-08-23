@@ -595,10 +595,11 @@ void MyAvatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
             }
         }
     } else {
-        //  Render the body's voxels
+        //  Render the body's voxels and head
         float alpha = getBallRenderAlpha(BODY_BALL_HEAD_BASE, lookingInMirror);
         if (alpha > 0.0f) {
             _voxels.render(false);
+            _head.render(alpha);
         }
     }
     _hand.render(lookingInMirror);
