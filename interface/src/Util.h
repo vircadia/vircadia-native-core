@@ -74,7 +74,8 @@ void runTimingTests();
 
 float loadSetting(QSettings* settings, const char* name, float defaultValue);
 
-bool rayIntersectsSphere(glm::vec3& rayStarting, glm::vec3& rayNormalizedDirection, glm::vec3& sphereCenter, double sphereRadius);
+bool rayIntersectsSphere(const glm::vec3& rayStarting, const glm::vec3& rayNormalizedDirection,
+    const glm::vec3& sphereCenter, float sphereRadius, float& distance);
 
 bool pointInSphere(glm::vec3& point, glm::vec3& sphereCenter, double sphereRadius);
 

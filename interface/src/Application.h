@@ -298,6 +298,9 @@ private:
     glm::vec3 _lookatOtherPosition;
     float _lookatIndicatorScale;
     
+    glm::vec3 _transmitterPickStart;
+    glm::vec3 _transmitterPickEnd;
+    
     bool _perfStatsOn; //  Do we want to display perfStats? 
     
     ChatEntry _chatEntry; // chat entry field 
