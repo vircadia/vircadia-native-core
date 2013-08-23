@@ -196,7 +196,6 @@ void VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* no
 
     // If we have something in our nodeBag, then turn them into packets and send them out...
     if (!nodeData->nodeBag.isEmpty()) {
-        static unsigned char tempOutputBuffer[MAX_VOXEL_PACKET_SIZE - 1]; // save on allocs by making this static
         int bytesWritten = 0;
         int packetsSentThisInterval = 0;
         uint64_t start = usecTimestampNow();
@@ -235,17 +234,17 @@ void VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* no
                                              isFullScene, &nodeData->stats, ::jurisdiction);
                       
                 nodeData->stats.encodeStarted();
-                bytesWritten = serverTree.encodeTreeBitstream(subTree, &tempOutputBuffer[0], MAX_VOXEL_PACKET_SIZE - 1,
+                bytesWritten = serverTree.encodeTreeBitstream(subTree, _tempOutputBuffer, MAX_VOXEL_PACKET_SIZE - 1,
                                                               nodeData->nodeBag, params);
                 nodeData->stats.encodeStopped();
 
                 if (nodeData->getAvailable() >= bytesWritten) {
-                    nodeData->writeToPacket(&tempOutputBuffer[0], bytesWritten);
+                    nodeData->writeToPacket(_tempOutputBuffer, bytesWritten);
                 } else {
                     handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
                     packetsSentThisInterval++;
                     nodeData->resetVoxelPacket();
-                    nodeData->writeToPacket(&tempOutputBuffer[0], bytesWritten);
+                    nodeData->writeToPacket(_tempOutputBuffer, bytesWritten);
                 }
             } else {
                 if (nodeData->isPacketWaiting()) {
@@ -257,15 +256,15 @@ void VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* no
         }
         // send the environment packet
         if (shouldSendEnvironments) {
-            int numBytesPacketHeader = populateTypeAndVersion(tempOutputBuffer, PACKET_TYPE_ENVIRONMENT_DATA);
+            int numBytesPacketHeader = populateTypeAndVersion(_tempOutputBuffer, PACKET_TYPE_ENVIRONMENT_DATA);
             int envPacketLength = numBytesPacketHeader;
             int environmentsToSend = ::sendMinimalEnvironment ? 1 : sizeof(environmentData) / sizeof(EnvironmentData);
             
             for (int i = 0; i < environmentsToSend; i++) {
-                envPacketLength += environmentData[i].getBroadcastData(tempOutputBuffer + envPacketLength);
+                envPacketLength += environmentData[i].getBroadcastData(_tempOutputBuffer + envPacketLength);
             }
             
-            NodeList::getInstance()->getNodeSocket()->send(node->getActiveSocket(), tempOutputBuffer, envPacketLength);
+            NodeList::getInstance()->getNodeSocket()->send(node->getActiveSocket(), _tempOutputBuffer, envPacketLength);
             trueBytesSent += envPacketLength;
             truePacketsSent++;
         }
