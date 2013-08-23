@@ -598,13 +598,35 @@ float loadSetting(QSettings* settings, const char* name, float defaultValue) {
     return value;
 }
 
-bool rayIntersectsSphere(glm::vec3& rayStarting, glm::vec3& rayNormalizedDirection, glm::vec3& sphereCenter, double sphereRadius) {
-    glm::vec3 vecFromRayToSphereCenter = sphereCenter - rayStarting;
-    double projection = glm::dot(vecFromRayToSphereCenter, rayNormalizedDirection);
-    double shortestDistance = sqrt(glm::dot(vecFromRayToSphereCenter, vecFromRayToSphereCenter) - projection * projection);
-    if (shortestDistance <= sphereRadius) {
-        return true;
+bool rayIntersectsSphere(const glm::vec3& rayStarting, const glm::vec3& rayNormalizedDirection,
+        const glm::vec3& sphereCenter, float sphereRadius, float& distance) {
+    glm::vec3 relativeOrigin = rayStarting - sphereCenter;
+    
+    // compute the b, c terms of the quadratic equation (a is dot(direction, direction), which is one)
+    float b = 2.0f * glm::dot(rayNormalizedDirection, relativeOrigin);
+    float c = glm::dot(relativeOrigin, relativeOrigin) - sphereRadius * sphereRadius;
+    
+    // compute the radicand of the quadratic.  if less than zero, there's no intersection
+    float radicand = b * b - 4.0f * c;
+    if (radicand < 0.0f) {
+        return false;
     }
+    
+    // compute the first solution of the quadratic
+    float root = sqrtf(radicand);
+    float firstSolution = -b - root;
+    if (firstSolution > 0.0f) {
+        distance = firstSolution / 2.0f; 
+        return true; // origin is outside the sphere
+    }
+    
+    // now try the second solution
+    float secondSolution = -b + root;
+    if (secondSolution > 0.0f) {
+        distance = 0.0f;
+        return true; // origin is inside the sphere
+    }
+    
     return false;
 }
 

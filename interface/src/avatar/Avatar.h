@@ -164,6 +164,13 @@ public:
     // Get the position/rotation of a single body ball
     void getBodyBallTransform(AvatarJointID jointID, glm::vec3& position, glm::quat& rotation) const;
 
+    /// Checks for an intersection between the described ray and any of the avatar's body balls.
+    /// \param origin the origin of the ray
+    /// \param direction the unit direction vector
+    /// \param[out] distance the variable in which to store the distance to intersection
+    /// \return whether or not the ray intersected
+    bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const;
+
     virtual int parseData(unsigned char* sourceBuffer, int numBytes);
 
     static void renderJointConnectingCone(glm::vec3 position1, glm::vec3 position2, float radius1, float radius2);

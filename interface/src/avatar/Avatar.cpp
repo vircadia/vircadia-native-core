@@ -486,22 +486,27 @@ void Avatar::render(bool lookingInMirror, bool renderAvatarBalls) {
     // render a simple round on the ground projected down from the avatar's position
     renderDiskShadow(_position, glm::vec3(0.0f, 1.0f, 0.0f), _scale * 0.1f, 0.2f);
     
-    // render body
-    renderBody(lookingInMirror, renderAvatarBalls);
+    {
+        // glow when moving
+        Glower glower(_moving ? 1.0f : 0.0f);
+        
+        // render body
+        renderBody(lookingInMirror, renderAvatarBalls);
     
-    // render sphere when far away
-    const float MAX_ANGLE = 10.f;
-    glm::vec3 toTarget = _position - Application::getInstance()->getAvatar()->getPosition();
-    glm::vec3 delta = _height * (_head.getCameraOrientation() * IDENTITY_UP) / 2.f;
-    float angle = abs(angleBetween(toTarget + delta, toTarget - delta));
+        // render sphere when far away
+        const float MAX_ANGLE = 10.f;
+        glm::vec3 toTarget = _position - Application::getInstance()->getAvatar()->getPosition();
+        glm::vec3 delta = _height * (_head.getCameraOrientation() * IDENTITY_UP) / 2.f;
+        float angle = abs(angleBetween(toTarget + delta, toTarget - delta));
 
-    if (angle < MAX_ANGLE) {
-        glColor4f(0.5f, 0.8f, 0.8f, 1.f - angle / MAX_ANGLE);
-        glPushMatrix();
-        glTranslatef(_position.x, _position.y, _position.z);
-        glScalef(_height / 2.f, _height / 2.f, _height / 2.f);
-        glutSolidSphere(1.2f + _head.getAverageLoudness() * .0005f, 20, 20);
-        glPopMatrix();
+        if (angle < MAX_ANGLE) {
+            glColor4f(0.5f, 0.8f, 0.8f, 1.f - angle / MAX_ANGLE);
+            glPushMatrix();
+            glTranslatef(_position.x, _position.y, _position.z);
+            glScalef(_height / 2.f, _height / 2.f, _height / 2.f);
+            glutSolidSphere(1.2f + _head.getAverageLoudness() * .0005f, 20, 20);
+            glPopMatrix();
+        }
     }
     
     //  Render the balls
@@ -697,9 +702,6 @@ float Avatar::getBallRenderAlpha(int ball, bool lookingInMirror) const {
 
 void Avatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
 
-    // glow when moving
-    Glower glower(_moving ? 1.0f : 0.0f);
-    
     if (_head.getFace().isFullFrame()) {
         //  Render the full-frame video
         float alpha = getBallRenderAlpha(BODY_BALL_HEAD_BASE, lookingInMirror);
@@ -796,6 +798,21 @@ void Avatar::loadData(QSettings* settings) {
 void Avatar::getBodyBallTransform(AvatarJointID jointID, glm::vec3& position, glm::quat& rotation) const {
     position = _bodyBall[jointID].position;
     rotation = _bodyBall[jointID].rotation;
+}
+
+bool Avatar::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction, float& distance) const {
+    float minDistance = FLT_MAX;
+    for (int i = 0; i < NUM_AVATAR_BODY_BALLS; i++) {
+        float distance;
+        if (rayIntersectsSphere(origin, direction, _bodyBall[i].position, _bodyBall[i].radius, distance)) {
+            minDistance = min(minDistance, distance);
+        }
+    }
+    if (minDistance == FLT_MAX) {
+        return false;
+    }
+    distance = minDistance;
+    return true;
 }
 
 int Avatar::parseData(unsigned char* sourceBuffer, int numBytes) {

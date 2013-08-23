@@ -1384,7 +1384,9 @@ Avatar* Application::isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3
         if (node->getLinkedData() != NULL && node->getType() == NODE_TYPE_AGENT) {
             Avatar* avatar = (Avatar *) node->getLinkedData();
             glm::vec3 headPosition = avatar->getHead().getPosition();
-            if (rayIntersectsSphere(mouseRayOrigin, mouseRayDirection, headPosition, HEAD_SPHERE_RADIUS * avatar->getScale())) {
+            float distance;
+            if (rayIntersectsSphere(mouseRayOrigin, mouseRayDirection, headPosition,
+                    HEAD_SPHERE_RADIUS * avatar->getScale(), distance)) {
                 eyePosition = avatar->getHead().getEyePosition();
                 _lookatIndicatorScale = avatar->getScale();
                 _lookatOtherPosition = headPosition;
@@ -1720,6 +1722,40 @@ void Application::update(float deltaTime) {
         _myAvatar.simulate(deltaTime, &_myTransmitter, Menu::getInstance()->getGyroCameraSensitivity());
     } else {
         _myAvatar.simulate(deltaTime, NULL, Menu::getInstance()->getGyroCameraSensitivity());
+    }
+    
+    // no transmitter drive implies transmitter pick
+    if (!Menu::getInstance()->isOptionChecked(MenuOption::TransmitterDrive) && _myTransmitter.isConnected()) {
+        _transmitterPickStart = _myAvatar.getSkeleton().joint[AVATAR_JOINT_CHEST].position;
+        glm::vec3 direction = _myAvatar.getOrientation() *
+            glm::quat(glm::radians(_myTransmitter.getEstimatedRotation())) * IDENTITY_FRONT;
+        
+        // check against voxels, avatars
+        const float MAX_PICK_DISTANCE = 100.0f;
+        float minDistance = MAX_PICK_DISTANCE;
+        VoxelDetail detail;
+        float distance;
+        BoxFace face;
+        if (_voxels.findRayIntersection(_transmitterPickStart, direction, detail, distance, face)) {
+            minDistance = min(minDistance, distance);
+        }
+        for(NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+            node->lock();
+            if (node->getLinkedData() != NULL) {
+                Avatar *avatar = (Avatar*)node->getLinkedData();
+                if (!avatar->isInitialized()) {
+                    avatar->init();
+                }
+                if (avatar->findRayIntersection(_transmitterPickStart, direction, distance)) {
+                    minDistance = min(minDistance, distance);
+                }
+            }
+            node->unlock();
+        }
+        _transmitterPickEnd = _transmitterPickStart + direction * minDistance;
+        
+    } else {
+        _transmitterPickStart = _transmitterPickEnd = glm::vec3();
     }
     
     if (!OculusManager::isConnected()) {        
@@ -2271,6 +2307,27 @@ void Application::displaySide(Camera& whichCamera) {
     }
         
     renderFollowIndicator();
+    
+    // render transmitter pick ray, if non-empty
+    if (_transmitterPickStart != _transmitterPickEnd) {
+        Glower glower;
+        const float TRANSMITTER_PICK_COLOR[] = { 1.0f, 1.0f, 0.0f };
+        glColor3fv(TRANSMITTER_PICK_COLOR);
+        glLineWidth(3.0f);
+        glBegin(GL_LINES);
+        glVertex3f(_transmitterPickStart.x, _transmitterPickStart.y, _transmitterPickStart.z);
+        glVertex3f(_transmitterPickEnd.x, _transmitterPickEnd.y, _transmitterPickEnd.z);
+        glEnd();
+        glLineWidth(1.0f);
+        
+        glPushMatrix();
+        glTranslatef(_transmitterPickEnd.x, _transmitterPickEnd.y, _transmitterPickEnd.z);
+        
+        const float PICK_END_RADIUS = 0.025f;
+        glutSolidSphere(PICK_END_RADIUS, 8, 8);
+        
+        glPopMatrix();
+    }
 }
 
 void Application::displayOverlay() {
