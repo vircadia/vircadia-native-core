@@ -5,7 +5,7 @@
 //  Created by Brad Hefta-Gaub on 8/21/13
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
-//  Threaded or non-threaded object for sending voxels to a client
+//  Node List Hook that watches for Node's being killed in order to clean up node specific memory and threads
 //
 
 #include <NodeList.h>

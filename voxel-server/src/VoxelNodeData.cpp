@@ -32,9 +32,7 @@ VoxelNodeData::VoxelNodeData(Node* owningNode) :
     // Create voxel sending thread...
     uint16_t nodeID = getOwningNode()->getNodeID();
     _voxelSendThread = new VoxelSendThread(nodeID);
-    if (_voxelSendThread) {
-        _voxelSendThread->initialize(true);
-    }
+    _voxelSendThread->initialize(true);
 }
 
 
@@ -59,10 +57,8 @@ void VoxelNodeData::writeToPacket(unsigned char* buffer, int bytes) {
 VoxelNodeData::~VoxelNodeData() {
     delete[] _voxelPacket;
 
-    if (_voxelSendThread) {
-        _voxelSendThread->terminate();
-        delete _voxelSendThread;
-    }
+    _voxelSendThread->terminate();
+    delete _voxelSendThread;
 }
 
 bool VoxelNodeData::updateCurrentViewFrustum() {

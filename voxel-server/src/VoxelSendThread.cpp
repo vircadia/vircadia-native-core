@@ -5,7 +5,7 @@
 //  Created by Brad Hefta-Gaub on 8/21/13
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
-//  Threaded or non-threaded voxel persistance
+//  Threaded or non-threaded voxel packet sender
 //
 
 #include <NodeList.h>
@@ -17,9 +17,6 @@
 
 VoxelSendThread::VoxelSendThread(uint16_t nodeID) :
     _nodeID(nodeID) {
-}
-
-VoxelSendThread::~VoxelSendThread() {
 }
 
 bool VoxelSendThread::process() {

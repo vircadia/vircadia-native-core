@@ -177,7 +177,7 @@ int main(int argc, const char * argv[]) {
     }
     printf("wantVoxelPersist=%s\n", debug::valueOf(::wantVoxelPersist));
 
-    // if we want Voxel Persistance, load the local file now...
+    // if we want Voxel Persistence, load the local file now...
     bool persistantFileRead = false;
     if (::wantVoxelPersist) {
 

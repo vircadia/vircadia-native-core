@@ -21,7 +21,6 @@
 class VoxelSendThread : public virtual GenericThread {
 public:
     VoxelSendThread(uint16_t nodeID);
-    ~VoxelSendThread();
 protected:
     /// Implements generic processing behavior for this thread.
     virtual bool process();

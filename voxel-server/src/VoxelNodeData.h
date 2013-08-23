@@ -18,7 +18,7 @@
 #include <VoxelNodeBag.h>
 #include <VoxelSceneStats.h>
 
-class VoxelSendThread; // forward declare
+class VoxelSendThread;
 
 class VoxelNodeData : public AvatarData {
 public:
