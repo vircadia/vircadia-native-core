@@ -81,6 +81,8 @@ private:
     void scanMenuBar(settingsAction modifySetting, QSettings* set);
     void scanMenu(QMenu* menu, settingsAction modifySetting, QSettings* set);
     
+    /// helper method to have separators with labels that are also compatible with OS X
+    void addDisabledActionAndSeparator(QMenu* destinationMenu, const QString& actionName);
     QAction* addActionToQMenuAndActionHash(QMenu* destinationMenu,
                                            const QString actionName,
                                            const QKeySequence& shortcut = 0,
@@ -116,10 +118,10 @@ namespace MenuOption {
     const QString BandwidthDetails = "Bandwidth Details";
     const QString CheckForUpdates = "Check for Updates...";
     const QString Collisions = "Collisions";
-    const QString CopyVoxels = "Copy Voxels";
+    const QString CopyVoxels = "Copy";
     const QString CoverageMap = "Render Coverage Map";
     const QString CoverageMapV2 = "Render Coverage Map V2";
-    const QString CutVoxels = "Cut Voxels";
+    const QString CutVoxels = "Cut";
     const QString DecreaseAvatarSize = "Decrease Avatar Size";
     const QString DecreaseVoxelSize = "Decrease Voxel Size";
     const QString DestructiveAddVoxel = "Create Voxel is Destructive";
@@ -161,7 +163,7 @@ namespace MenuOption {
     const QString OcclusionCulling = "Occlusion Culling";
     const QString Oscilloscope = "Audio Oscilloscope";
     const QString Pair = "Pair";
-    const QString PasteVoxels = "Paste Voxels";
+    const QString PasteVoxels = "Paste";
     const QString PipelineWarnings = "Show Render Pipeline Warnings";
     const QString Preferences = "Preferences...";
     const QString RandomizeVoxelColors = "Randomize Voxel TRUE Colors";
@@ -169,9 +171,6 @@ namespace MenuOption {
     const QString ResetSwatchColors = "Reset Swatch Colors";
     const QString RunTimingTests = "Run Timing Tests";
     const QString SendVoxelColors = "Colored Voxels";
-    const QString SettingsAutosave = "Autosave";
-    const QString SettingsLoad = "Load Settings";
-    const QString SettingsSave = "Save Settings";
     const QString SettingsImport = "Import Settings";
     const QString SettingsExport = "Export Settings";
     const QString ShowTrueColors = "Show TRUE Colors";
