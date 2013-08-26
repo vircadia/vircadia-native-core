@@ -680,11 +680,11 @@ void Menu::editPreferences() {
     dialog.connect(buttons, SIGNAL(rejected()), SLOT(reject()));
     layout->addWidget(buttons);
     
-    if (dialog.exec() != QDialog::Accepted) {
-        // restore the main window's active state
-        applicationInstance->getWindow()->activateWindow();
-        return;
-    }
+    int ret = dialog.exec();
+    applicationInstance->getWindow()->activateWindow();
+    if (ret != QDialog::Accepted) {
+         return;
+     }
     
     QByteArray newHostname;
     
@@ -727,9 +727,6 @@ void Menu::editPreferences() {
     
     _fieldOfView = fieldOfView->value();
     applicationInstance->resizeGL(applicationInstance->getGLWidget()->width(), applicationInstance->getGLWidget()->height());
-
-    // restore the main window's active state
-    applicationInstance->getWindow()->activateWindow();
 }
 
 void Menu::goToDomain() {
@@ -753,11 +750,11 @@ void Menu::goToDomain() {
     dialog.connect(buttons, SIGNAL(rejected()), SLOT(reject()));
     layout->addWidget(buttons);
     
-    if (dialog.exec() != QDialog::Accepted) {
-        // restore the main window's active state
-        applicationInstance->getWindow()->activateWindow();
-        return;
-    }
+    int ret = dialog.exec();
+    applicationInstance->getWindow()->activateWindow();
+    if (ret != QDialog::Accepted) {
+         return;
+     }
     
     QByteArray newHostname;
     
@@ -783,8 +780,6 @@ void Menu::goToDomain() {
         // set the new hostname
         NodeList::getInstance()->setDomainHostname(newHostname.constData());
     }
-    // restore the main window's active state
-    applicationInstance->getWindow()->activateWindow();
 }
 
 void Menu::goToLocation() {
@@ -814,11 +809,11 @@ void Menu::goToLocation() {
     dialog.connect(buttons, SIGNAL(rejected()), SLOT(reject()));
     layout->addWidget(buttons);
     
-    if (dialog.exec() != QDialog::Accepted) {
-        // restore the main window's active state
-        appInstance->getWindow()->activateWindow();
-        return;
-    }
+    int ret = dialog.exec();
+    applicationInstance->getWindow()->activateWindow();
+    if (ret != QDialog::Accepted) {
+         return;
+     }
     
     QByteArray newCoordinates;
     
@@ -844,8 +839,6 @@ void Menu::goToLocation() {
             }
         }
     }
-    // restore the main window's active state
-    appInstance->getWindow()->activateWindow();
 }
 
 
