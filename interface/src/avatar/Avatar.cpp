@@ -102,10 +102,10 @@ Avatar::Avatar(Node* owningNode) :
     _isCollisionsOn(true),
     _leadingAvatar(NULL),
     _voxels(this),
+    _moving(false),
     _initialized(false),
     _handHoldingPosition(0.0f, 0.0f, 0.0f),
     _maxArmLength(0.0f),
-    _moving(false),
     _pelvisStandingHeight(0.0f)
 {
     // give the pointer to our head to inherited _headData variable from AvatarData
