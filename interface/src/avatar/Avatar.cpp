@@ -105,8 +105,8 @@ Avatar::Avatar(Node* owningNode) :
     _initialized(false),
     _handHoldingPosition(0.0f, 0.0f, 0.0f),
     _maxArmLength(0.0f),
-    _pelvisStandingHeight(0.0f),
-    _moving(false)
+    _moving(false),
+    _pelvisStandingHeight(0.0f)
 {
     // give the pointer to our head to inherited _headData variable from AvatarData
     _headData = &_head;
