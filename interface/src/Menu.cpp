@@ -78,6 +78,17 @@ Menu::Menu() :
                                   Qt::CTRL | Qt::Key_G,
                                   appInstance->getAvatar(),
                                   SLOT(goHome()));
+    addActionToQMenuAndActionHash(fileMenu,
+                                  MenuOption::GoToDomain,
+                                  Qt::CTRL | Qt::Key_D,
+                                   this,
+                                   SLOT(goToDomain()));
+    addActionToQMenuAndActionHash(fileMenu,
+                                  MenuOption::GoToLocation,
+                                  Qt::CTRL | Qt::SHIFT | Qt::Key_L,
+                                   this,
+                                   SLOT(goToLocation()));
+
     
     addDisabledActionAndSeparator(fileMenu, "Settings");
     addActionToQMenuAndActionHash(fileMenu, MenuOption::SettingsImport, 0, this, SLOT(importSettings()));
@@ -625,7 +636,7 @@ bool Menu::isVoxelModeActionChecked() {
 }
 
 void Menu::editPreferences() {
-    Application *applicationInstance = Application::getInstance();
+    Application* applicationInstance = Application::getInstance();
     QDialog dialog(applicationInstance->getGLWidget());
     dialog.setWindowTitle("Interface Preferences");
     QBoxLayout* layout = new QBoxLayout(QBoxLayout::TopToBottom);
@@ -670,6 +681,8 @@ void Menu::editPreferences() {
     layout->addWidget(buttons);
     
     if (dialog.exec() != QDialog::Accepted) {
+        // restore the main window's active state
+        applicationInstance->getWindow()->activateWindow();
         return;
     }
     
@@ -714,6 +727,125 @@ void Menu::editPreferences() {
     
     _fieldOfView = fieldOfView->value();
     applicationInstance->resizeGL(applicationInstance->getGLWidget()->width(), applicationInstance->getGLWidget()->height());
+
+    // restore the main window's active state
+    applicationInstance->getWindow()->activateWindow();
+}
+
+void Menu::goToDomain() {
+    Application* applicationInstance = Application::getInstance();
+    QDialog dialog(applicationInstance->getGLWidget());
+    dialog.setWindowTitle("Go To Domain");
+    QBoxLayout* layout = new QBoxLayout(QBoxLayout::TopToBottom);
+    dialog.setLayout(layout);
+    
+    QFormLayout* form = new QFormLayout();
+    layout->addLayout(form, 1);
+    
+    const int QLINE_MINIMUM_WIDTH = 400;
+    
+    QLineEdit* domainServerHostname = new QLineEdit(QString(NodeList::getInstance()->getDomainHostname()));
+    domainServerHostname->setMinimumWidth(QLINE_MINIMUM_WIDTH);
+    form->addRow("Domain server:", domainServerHostname);
+    
+    QDialogButtonBox* buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
+    dialog.connect(buttons, SIGNAL(accepted()), SLOT(accept()));
+    dialog.connect(buttons, SIGNAL(rejected()), SLOT(reject()));
+    layout->addWidget(buttons);
+    
+    if (dialog.exec() != QDialog::Accepted) {
+        // restore the main window's active state
+        applicationInstance->getWindow()->activateWindow();
+        return;
+    }
+    
+    QByteArray newHostname;
+    
+    if (domainServerHostname->text().size() > 0) {
+        // the user input a new hostname, use that
+        newHostname = domainServerHostname->text().toLocal8Bit();
+    } else {
+        // the user left the field blank, use the default hostname
+        newHostname = QByteArray(DEFAULT_DOMAIN_HOSTNAME);
+    }
+    
+    // check if the domain server hostname is new
+    if (memcmp(NodeList::getInstance()->getDomainHostname(), newHostname.constData(), newHostname.size()) != 0) {
+        
+        NodeList::getInstance()->clear();
+        
+        // kill the local voxels
+        applicationInstance->getVoxels()->killLocalVoxels();
+        
+        // reset the environment to default
+        applicationInstance->getEnvironment()->resetToDefault();
+        
+        // set the new hostname
+        NodeList::getInstance()->setDomainHostname(newHostname.constData());
+    }
+    // restore the main window's active state
+    applicationInstance->getWindow()->activateWindow();
+}
+
+void Menu::goToLocation() {
+    Application* applicationInstance = Application::getInstance();
+    QDialog dialog(applicationInstance->getGLWidget());
+    dialog.setWindowTitle("Go To Location");
+    QBoxLayout* layout = new QBoxLayout(QBoxLayout::TopToBottom);
+    dialog.setLayout(layout);
+    
+    QFormLayout* form = new QFormLayout();
+    layout->addLayout(form, 1);
+    
+    const int QLINE_MINIMUM_WIDTH = 300;
+
+    Application* appInstance = Application::getInstance();
+    MyAvatar* myAvatar = appInstance->getAvatar();
+    glm::vec3 avatarPos = myAvatar->getPosition();
+    QString currentLocation = QString("%1, %2, %3").arg(QString::number(avatarPos.x), 
+                QString::number(avatarPos.y), QString::number(avatarPos.z));
+
+    QLineEdit* coordinates = new QLineEdit(currentLocation);
+    coordinates->setMinimumWidth(QLINE_MINIMUM_WIDTH);
+    form->addRow("Coordinates as x,y,z:", coordinates);
+    
+    QDialogButtonBox* buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
+    dialog.connect(buttons, SIGNAL(accepted()), SLOT(accept()));
+    dialog.connect(buttons, SIGNAL(rejected()), SLOT(reject()));
+    layout->addWidget(buttons);
+    
+    if (dialog.exec() != QDialog::Accepted) {
+        // restore the main window's active state
+        appInstance->getWindow()->activateWindow();
+        return;
+    }
+    
+    QByteArray newCoordinates;
+    
+    if (coordinates->text().size() > 0) {
+        // the user input a new hostname, use that
+
+        QString delimiterPattern(",");
+        QStringList coordinateItems = coordinates->text().split(delimiterPattern);
+
+        const int NUMBER_OF_COORDINATE_ITEMS = 3;
+        const int X_ITEM = 0;
+        const int Y_ITEM = 1;
+        const int Z_ITEM = 2;
+        if (coordinateItems.size() == NUMBER_OF_COORDINATE_ITEMS) {
+            double x = coordinateItems[X_ITEM].toDouble();
+            double y = coordinateItems[Y_ITEM].toDouble();
+            double z = coordinateItems[Z_ITEM].toDouble();
+            glm::vec3 newAvatarPos(x, y, z);
+            
+            if (newAvatarPos != avatarPos) {
+                qDebug("Going To Location: %f, %f, %f...\n", x, y, z);
+                myAvatar->setPosition(newAvatarPos);
+            }
+        }
+    }
+    // restore the main window's active state
+    appInstance->getWindow()->activateWindow();
 }
 
 
