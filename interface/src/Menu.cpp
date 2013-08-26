@@ -193,6 +193,13 @@ Menu::Menu() :
                                            appInstance->getWebcam(),
                                            SLOT(setSkeletonTrackingOn(bool)));
     
+    addCheckableActionToQMenuAndActionHash(viewMenu,
+                                           MenuOption::LEDTracking,
+                                           0,
+                                           false,
+                                           appInstance->getWebcam()->getGrabber(),
+                                           SLOT(setLEDTrackingOn(bool)));
+                                           
     addDisabledActionAndSeparator(viewMenu, "Stats");
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Stats, Qt::Key_Slash);
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Log, Qt::CTRL | Qt::Key_L);

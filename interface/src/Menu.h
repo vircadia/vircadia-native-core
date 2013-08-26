@@ -176,6 +176,7 @@ namespace MenuOption {
     const QString ShowTrueColors = "Show TRUE Colors";
     const QString SimulateLeapHand = "Simulate Leap Hand";
     const QString SkeletonTracking = "Skeleton Tracking";
+    const QString LEDTracking = "LED Tracking";
     const QString Stars = "Stars";
     const QString Stats = "Stats";
     const QString TestPing = "Test Ping";

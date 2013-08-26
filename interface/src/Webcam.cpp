@@ -285,8 +285,9 @@ void Webcam::setFrame(const Mat& color, int format, const Mat& depth, float midF
     QTimer::singleShot(qMax((int)remaining / 1000, 0), _grabber, SLOT(grabFrame()));
 }
 
-FrameGrabber::FrameGrabber() : _initialized(false), _videoSendMode(FULL_FRAME_VIDEO), _depthOnly(false), _capture(0),
-    _searchWindow(0, 0, 0, 0), _smoothedMidFaceDepth(UNINITIALIZED_FACE_DEPTH), _colorCodec(), _depthCodec(), _frameCount(0) {
+FrameGrabber::FrameGrabber() : _initialized(false), _videoSendMode(FULL_FRAME_VIDEO),
+    _depthOnly(false), _ledTrackingOn(false), _capture(0), _searchWindow(0, 0, 0, 0),
+    _smoothedMidFaceDepth(UNINITIALIZED_FACE_DEPTH), _colorCodec(), _depthCodec(), _frameCount(0) {
 }
 
 FrameGrabber::~FrameGrabber() {

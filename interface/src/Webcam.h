@@ -113,6 +113,7 @@ public slots:
 
     void cycleVideoSendMode();
     void setDepthOnly(bool depthOnly);
+    void setLEDTrackingOn(bool ledTrackingOn) { _ledTrackingOn = ledTrackingOn; }
     void reset();
     void shutdown();
     void grabFrame();
@@ -128,6 +129,7 @@ private:
     bool _initialized;
     VideoSendMode _videoSendMode;
     bool _depthOnly;
+    bool _ledTrackingOn;
     CvCapture* _capture;
     cv::CascadeClassifier _faceCascade;
     cv::Mat _hsvFrame;
