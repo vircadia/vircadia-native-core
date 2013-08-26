@@ -35,6 +35,7 @@ class FrameGrabber;
 class Joint;
 
 typedef QVector<Joint> JointVector;
+typedef std::vector<cv::KeyPoint> KeyPointVector;
 
 class Webcam : public QObject {
     Q_OBJECT
@@ -68,8 +69,8 @@ public:
 public slots:
 
     void setEnabled(bool enabled);
-    void setFrame(const cv::Mat& color, int format, const cv::Mat& depth, float midFaceDepth,
-        float aspectRatio, const cv::RotatedRect& faceRect, bool sending, const JointVector& joints);
+    void setFrame(const cv::Mat& color, int format, const cv::Mat& depth, float midFaceDepth, float aspectRatio,
+        const cv::RotatedRect& faceRect, bool sending, const JointVector& joints, const KeyPointVector& keyPoints);
     void setSkeletonTrackingOn(bool toggle) { _skeletonTrackingOn = toggle; };
 
 private:
@@ -88,6 +89,7 @@ private:
     cv::RotatedRect _initialFaceRect;
     float _initialFaceDepth;
     JointVector _joints;
+    KeyPointVector _keyPoints;
 
     uint64_t _startTimestamp;
     int _frameCount;
@@ -113,7 +115,7 @@ public slots:
 
     void cycleVideoSendMode();
     void setDepthOnly(bool depthOnly);
-    void setLEDTrackingOn(bool ledTrackingOn) { _ledTrackingOn = ledTrackingOn; }
+    void setLEDTrackingOn(bool ledTrackingOn);
     void reset();
     void shutdown();
     void grabFrame();
@@ -125,6 +127,7 @@ private:
     bool init();
     void updateHSVFrame(const cv::Mat& frame, int format);
     void destroyCodecs();
+    void configureCapture();
 
     bool _initialized;
     VideoSendMode _videoSendMode;
@@ -148,6 +151,8 @@ private:
     cv::Mat _smoothedFaceDepth;
     QByteArray _encodedFace;
     cv::RotatedRect _smoothedFaceRect;
+
+    cv::SimpleBlobDetector _blobDetector;
 
 #ifdef HAVE_OPENNI
     xn::Context _xnContext;
@@ -173,6 +178,7 @@ public:
 };
 
 Q_DECLARE_METATYPE(JointVector)
+Q_DECLARE_METATYPE(KeyPointVector)
 Q_DECLARE_METATYPE(cv::Mat)
 Q_DECLARE_METATYPE(cv::RotatedRect)
 

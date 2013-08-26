@@ -30,6 +30,7 @@ using namespace xn;
 
 // register types with Qt metatype system
 int jointVectorMetaType = qRegisterMetaType<JointVector>("JointVector");
+int keyPointVectorMetaType = qRegisterMetaType<KeyPointVector>("KeyPointVector");
 int matMetaType = qRegisterMetaType<Mat>("cv::Mat");
 int rotatedRectMetaType = qRegisterMetaType<RotatedRect>("cv::RotatedRect");
 
@@ -140,6 +141,12 @@ void Webcam::renderPreview(int screenWidth, int screenHeight) {
             glVertex2f(left + facePoints[3].x * xScale, top + facePoints[3].y * yScale);
         glEnd();
 
+        glColor3f(1.0f, 0.0f, 0.0f);
+        for (KeyPointVector::iterator it = _keyPoints.begin(); it != _keyPoints.end(); it++) {
+            renderCircle(glm::vec3(left + it->pt.x * xScale, top + it->pt.y * yScale, 0.0f),
+                it->size * 0.5f, glm::vec3(0.0f, 0.0f, 1.0f), 8);
+        }
+
         const int MAX_FPS_CHARACTERS = 30;
         char fps[MAX_FPS_CHARACTERS];
         sprintf(fps, "FPS: %d", (int)(roundf(_frameCount * 1000000.0f / (usecTimestampNow() - _startTimestamp))));
@@ -157,8 +164,8 @@ Webcam::~Webcam() {
 
 const float METERS_PER_MM = 1.0f / 1000.0f;
 
-void Webcam::setFrame(const Mat& color, int format, const Mat& depth, float midFaceDepth,
-        float aspectRatio, const RotatedRect& faceRect, bool sending, const JointVector& joints) {
+void Webcam::setFrame(const Mat& color, int format, const Mat& depth, float midFaceDepth, float aspectRatio,
+        const RotatedRect& faceRect, bool sending, const JointVector& joints, const KeyPointVector& keyPoints) {
     if (!_enabled) {
         return; // was queued before we shut down; ignore
     }
@@ -210,6 +217,7 @@ void Webcam::setFrame(const Mat& color, int format, const Mat& depth, float midF
     _faceRect = faceRect;
     _sending = sending;
     _joints = _skeletonTrackingOn ? joints : JointVector();
+    _keyPoints = keyPoints;
     _frameCount++;
 
     const int MAX_FPS = 60;
@@ -285,9 +293,21 @@ void Webcam::setFrame(const Mat& color, int format, const Mat& depth, float midF
     QTimer::singleShot(qMax((int)remaining / 1000, 0), _grabber, SLOT(grabFrame()));
 }
 
-FrameGrabber::FrameGrabber() : _initialized(false), _videoSendMode(FULL_FRAME_VIDEO),
-    _depthOnly(false), _ledTrackingOn(false), _capture(0), _searchWindow(0, 0, 0, 0),
-    _smoothedMidFaceDepth(UNINITIALIZED_FACE_DEPTH), _colorCodec(), _depthCodec(), _frameCount(0) {
+static SimpleBlobDetector::Params createBlobDetectorParams() {
+    SimpleBlobDetector::Params params;
+    params.blobColor = 255;
+    params.filterByArea = true;
+    params.minArea = 5;
+    params.maxArea = 5000;
+    params.filterByCircularity = true;
+    params.filterByInertia = false;
+    params.filterByConvexity = true;
+    return params;
+}
+
+FrameGrabber::FrameGrabber() : _initialized(false), _videoSendMode(FULL_FRAME_VIDEO), _depthOnly(false), _ledTrackingOn(false),
+    _capture(0), _searchWindow(0, 0, 0, 0), _smoothedMidFaceDepth(UNINITIALIZED_FACE_DEPTH), _colorCodec(), _depthCodec(),
+    _frameCount(0), _blobDetector(createBlobDetectorParams()) {
 }
 
 FrameGrabber::~FrameGrabber() {
@@ -390,6 +410,11 @@ void FrameGrabber::cycleVideoSendMode() {
 void FrameGrabber::setDepthOnly(bool depthOnly) {
     _depthOnly = depthOnly;
     destroyCodecs();
+}
+
+void FrameGrabber::setLEDTrackingOn(bool ledTrackingOn) {
+    _ledTrackingOn = ledTrackingOn;
+    configureCapture();
 }
 
 void FrameGrabber::reset() {
@@ -495,7 +520,7 @@ void FrameGrabber::grabFrame() {
     float depthBitrateMultiplier = 1.0f;
     Mat faceTransform;
     float aspectRatio;
-    if (_videoSendMode == FULL_FRAME_VIDEO) {
+    if (_ledTrackingOn || _videoSendMode == FULL_FRAME_VIDEO) {
         // no need to find the face if we're sending full frame video
         _smoothedFaceRect = RotatedRect(Point2f(color.cols / 2.0f, color.rows / 2.0f), Size2f(color.cols, color.rows), 0.0f);
         encodedWidth = color.cols;
@@ -569,6 +594,11 @@ void FrameGrabber::grabFrame() {
         aspectRatio = _smoothedFaceRect.size.width / _smoothedFaceRect.size.height;
     }
 
+    KeyPointVector keyPoints;
+    if (_ledTrackingOn) {
+        _blobDetector.detect(color, keyPoints);
+    }
+
     const ushort ELEVEN_BIT_MINIMUM = 0;
     const uchar EIGHT_BIT_MIDPOINT = 128;
     double depthOffset;
@@ -617,7 +647,7 @@ void FrameGrabber::grabFrame() {
     _frameCount++;
     
     QByteArray payload;    
-    if (_videoSendMode != NO_VIDEO) {
+    if (!_ledTrackingOn && _videoSendMode != NO_VIDEO) {
         // start the payload off with the aspect ratio (zero for full frame)
         payload.append((const char*)&aspectRatio, sizeof(float));
    
@@ -791,7 +821,7 @@ void FrameGrabber::grabFrame() {
     QMetaObject::invokeMethod(Application::getInstance()->getWebcam(), "setFrame",
         Q_ARG(cv::Mat, color), Q_ARG(int, format), Q_ARG(cv::Mat, _grayDepthFrame), Q_ARG(float, _smoothedMidFaceDepth),
         Q_ARG(float, aspectRatio), Q_ARG(cv::RotatedRect, _smoothedFaceRect), Q_ARG(bool, !payload.isEmpty()),
-        Q_ARG(JointVector, joints));
+        Q_ARG(JointVector, joints), Q_ARG(KeyPointVector, keyPoints));
 }
 
 bool FrameGrabber::init() {
@@ -841,18 +871,28 @@ bool FrameGrabber::init() {
     cvSetCaptureProperty(_capture, CV_CAP_PROP_FRAME_WIDTH, IDEAL_FRAME_WIDTH);
     cvSetCaptureProperty(_capture, CV_CAP_PROP_FRAME_HEIGHT, IDEAL_FRAME_HEIGHT);
 
+    configureCapture();
+
+    return true;
+}
+
+void FrameGrabber::configureCapture() {
+#ifdef HAVE_OPENNI
+    if (_depthGenerator.IsValid()) {
+        return; // don't bother handling LED tracking with depth camera
+    }    
+#endif
+    
 #ifdef __APPLE__
     configureCamera(0x5ac, 0x8510, false, 0.975, 0.5, 1.0, 0.5, true, 0.5);
 #else
     cvSetCaptureProperty(_capture, CV_CAP_PROP_EXPOSURE, 0.5);
-    cvSetCaptureProperty(_capture, CV_CAP_PROP_CONTRAST, 0.5);
+    cvSetCaptureProperty(_capture, CV_CAP_PROP_CONTRAST, _ledTrackingOn ? 0.99 : 0.5);
     cvSetCaptureProperty(_capture, CV_CAP_PROP_SATURATION, 0.5);
-    cvSetCaptureProperty(_capture, CV_CAP_PROP_BRIGHTNESS, 0.5);
+    cvSetCaptureProperty(_capture, CV_CAP_PROP_BRIGHTNESS, _ledTrackingOn ? 0.99 : 0.5);
     cvSetCaptureProperty(_capture, CV_CAP_PROP_HUE, 0.5);
     cvSetCaptureProperty(_capture, CV_CAP_PROP_GAIN, 0.5);
 #endif
-
-    return true;
 }
 
 void FrameGrabber::updateHSVFrame(const Mat& frame, int format) {
