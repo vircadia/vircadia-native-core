@@ -162,6 +162,61 @@ Webcam::~Webcam() {
     delete _grabber;
 }
 
+static glm::vec3 createVec3(const Point2f& pt) {
+    return glm::vec3(pt.x, pt.y, 0.0f);
+} 
+
+/// Computes the 3D transform of the LED assembly from the image space location of the key points representing the LEDs.
+/// See T.D. Alter's "3D Pose from 3 Corresponding Points under Weak-Perspective Projection"
+/// (http://dspace.mit.edu/bitstream/handle/1721.1/6611/AIM-1378.pdf) and the source code to Freetrack
+/// (https://camil.dyndns.org/svn/freetrack/tags/V2.2/Freetrack/Pose.pas), which uses the same algorithm.
+static void computeTransformFromKeyPoints(
+        const KeyPointVector& keyPoints, glm::vec3& estimatedRotation, glm::vec3& estimatedPosition) {
+    // make sure we have at least three points
+    if (keyPoints.size() < 3) {
+        return;
+    }
+    
+    // bubblesort the first three points from top to bottom
+    glm::vec3 i0 = createVec3(keyPoints[0].pt), i1 = createVec3(keyPoints[1].pt), i2 = createVec3(keyPoints[2].pt);
+    if (i2.y < i1.y) {
+        swap(i1, i2);
+    }
+    if (i1.y < i0.y) {
+        swap(i0, i1);
+    }
+    
+    // model space LED locations and the distances between them
+    const glm::vec3 M0(0.0f, 0.0f, 0.0f), M1(0.0f, 0.0f, 0.0f), M2(0.0f, 0.0f, 0.0f);
+    const float R01 = glm::distance(M0, M1), R02 = glm::distance(M0, M2), R12 = glm::distance(M1, M2);
+    
+    // compute the distances between the image points
+    float d01 = glm::distance(i0, i1), d02 = glm::distance(i0, i2), d12 = glm::distance(i1, i2);
+    
+    // compute the terms of the quadratic
+    float a = (R01 + R02 + R12) * (-R01 + R02 + R12) * (R01 - R02 + R12) * (R01 + R02 - R12);
+    float b = d01 * d01 * (-R01 * R01 + R02 * R02 + R12 * R12) + d02 * d02 * (R01 * R01 - R02 * R02 + R12 * R12) +
+        d12 * d12 * (R01 * R01 + R02 * R02 - R12 * R12);
+    float c = (d01 + d02 + d12) * (-d01 + d02 + d12) * (d01 - d02 + d12) * (d01 + d02 - d12);
+    
+    // compute the scale
+    float s = sqrtf((b + sqrtf(b * b - a * c)) / a);
+    
+    float sigma = (d01 * d01 + d02 * d02 - d12 * d12 <= s * s * (R01 * R01 + R02 * R02 - R12 * R12)) ? 1.0f : -1.0f;
+    
+    float h1 = sqrtf(s * s * R01 * R01 - d01 * d01);
+    float h2 = sigma * sqrtf(s * s * R02 * R02 - d02 * d02);
+    
+    // now we can compute the 3D locations of the model points in camera-centered coordinates
+    glm::vec3 m0 = glm::vec3(i0.x, i0.y, 0.0f) / s;
+    glm::vec3 m1 = glm::vec3(i1.x, i1.y, h1) / s;
+    glm::vec3 m2 = glm::vec3(i2.x, i2.y, h2) / s;
+    
+    // from those and the model space locations, we can compute the transform
+    
+    
+}
+
 const float METERS_PER_MM = 1.0f / 1000.0f;
 
 void Webcam::setFrame(const Mat& color, int format, const Mat& depth, float midFaceDepth, float aspectRatio,
@@ -256,6 +311,9 @@ void Webcam::setFrame(const Mat& color, int format, const Mat& depth, float midF
         _estimatedRotation = safeEulerAngles(_estimatedJoints[AVATAR_JOINT_HEAD_BASE].rotation);
         _estimatedPosition = _estimatedJoints[AVATAR_JOINT_HEAD_BASE].position;
 
+    } else if (!keyPoints.empty()) {
+        computeTransformFromKeyPoints(keyPoints, _estimatedRotation, _estimatedPosition);
+        
     } else {
         // roll is just the angle of the face rect
         const float ROTATION_SMOOTHING = 0.95f;
@@ -596,6 +654,7 @@ void FrameGrabber::grabFrame() {
 
     KeyPointVector keyPoints;
     if (_ledTrackingOn) {
+        // find the locations of the LEDs, which should show up as blobs
         _blobDetector.detect(color, keyPoints);
     }
 
