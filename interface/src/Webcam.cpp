@@ -141,7 +141,7 @@ void Webcam::renderPreview(int screenWidth, int screenHeight) {
             glVertex2f(left + facePoints[3].x * xScale, top + facePoints[3].y * yScale);
         glEnd();
 
-        glColor3f(1.0f, 0.0f, 0.0f);
+        glColor3f(0.0f, 1.0f, 0.0f);
         for (KeyPointVector::iterator it = _keyPoints.begin(); it != _keyPoints.end(); it++) {
             renderCircle(glm::vec3(left + it->pt.x * xScale, top + it->pt.y * yScale, 0.0f),
                 it->size * 0.5f, glm::vec3(0.0f, 0.0f, 1.0f), 8);
