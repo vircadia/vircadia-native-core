@@ -62,6 +62,8 @@ public slots:
     
 private slots:
     void editPreferences();
+    void goToDomain();
+    void goToLocation();
     void bandwidthDetailsClosed();
     void voxelStatsDetailsClosed();
     void cycleFrustumRenderMode();
@@ -143,6 +145,8 @@ namespace MenuOption {
     const QString FrustumRenderMode = "Render Mode";
     const QString Fullscreen = "Fullscreen";
     const QString GlowMode = "Cycle Glow Mode";
+    const QString GoToDomain = "Go To Domain...";
+    const QString GoToLocation = "Go To Location...";
     const QString ImportVoxels = "Import Voxels";
     const QString ImportVoxelsClipboard = "Import Voxels to Clipboard";
     const QString IncreaseAvatarSize = "Increase Avatar Size";
