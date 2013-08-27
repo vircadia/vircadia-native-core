@@ -163,15 +163,21 @@ Webcam::~Webcam() {
 }
 
 static glm::vec3 createVec3(const Point2f& pt) {
-    return glm::vec3(pt.x, pt.y, 0.0f);
+    return glm::vec3(pt.x, -pt.y, 0.0f);
 } 
+
+static glm::mat3 createMat3(const glm::vec3& p0, const glm::vec3& p1, const glm::vec3& p2) {
+    glm::vec3 u = glm::normalize(p1 - p0);
+    glm::vec3 p02 = p2 - p0;
+    glm::vec3 v = glm::normalize(p02 - u * glm::dot(p02, u));
+    return glm::mat3(u, v, glm::cross(u, v));
+}
 
 /// Computes the 3D transform of the LED assembly from the image space location of the key points representing the LEDs.
 /// See T.D. Alter's "3D Pose from 3 Corresponding Points under Weak-Perspective Projection"
 /// (http://dspace.mit.edu/bitstream/handle/1721.1/6611/AIM-1378.pdf) and the source code to Freetrack
 /// (https://camil.dyndns.org/svn/freetrack/tags/V2.2/Freetrack/Pose.pas), which uses the same algorithm.
-static void computeTransformFromKeyPoints(
-        const KeyPointVector& keyPoints, glm::vec3& estimatedRotation, glm::vec3& estimatedPosition) {
+static void computeTransformFromKeyPoints(const KeyPointVector& keyPoints, glm::vec3& rotation, glm::vec3& position) {
     // make sure we have at least three points
     if (keyPoints.size() < 3) {
         return;
@@ -187,7 +193,7 @@ static void computeTransformFromKeyPoints(
     }
     
     // model space LED locations and the distances between them
-    const glm::vec3 M0(0.0f, 0.0f, 0.0f), M1(0.0f, 0.0f, 0.0f), M2(0.0f, 0.0f, 0.0f);
+    const glm::vec3 M0(2.0f, 0.0f, 0.0f), M1(0.0f, 0.0f, 0.0f), M2(0.0f, -4.0f, 0.0f);
     const float R01 = glm::distance(M0, M1), R02 = glm::distance(M0, M2), R12 = glm::distance(M1, M2);
     
     // compute the distances between the image points
@@ -213,8 +219,12 @@ static void computeTransformFromKeyPoints(
     glm::vec3 m2 = glm::vec3(i2.x, i2.y, h2) / s;
     
     // from those and the model space locations, we can compute the transform
+    glm::mat3 r1 = createMat3(M0, M1, M2);
+    glm::mat3 r2 = createMat3(m0, m1, m2);
+    glm::mat3 r = r2 * glm::transpose(r1);
     
-    
+    position = m0 - r * M0;
+    rotation = safeEulerAngles(glm::quat_cast(r));
 }
 
 const float METERS_PER_MM = 1.0f / 1000.0f;
