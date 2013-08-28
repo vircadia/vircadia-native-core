@@ -369,7 +369,7 @@ static SimpleBlobDetector::Params createBlobDetectorParams() {
     params.filterByArea = true;
     params.minArea = 5;
     params.maxArea = 5000;
-    params.filterByCircularity = true;
+    params.filterByCircularity = false;
     params.filterByInertia = false;
     params.filterByConvexity = true;
     return params;
@@ -955,12 +955,12 @@ void FrameGrabber::configureCapture() {
 #endif
     
 #ifdef __APPLE__
-    configureCamera(0x5ac, 0x8510, false, 0.975, 0.5, 1.0, 0.5, true, 0.5);
+    configureCamera(0x5ac, 0x8510, false, _ledTrackingOn ? 1.0 : 0.975, 0.5, 1.0, 0.5, true, 0.5);
 #else
     cvSetCaptureProperty(_capture, CV_CAP_PROP_EXPOSURE, 0.5);
-    cvSetCaptureProperty(_capture, CV_CAP_PROP_CONTRAST, _ledTrackingOn ? 0.99 : 0.5);
+    cvSetCaptureProperty(_capture, CV_CAP_PROP_CONTRAST, _ledTrackingOn ? 1.0 : 0.5);
     cvSetCaptureProperty(_capture, CV_CAP_PROP_SATURATION, 0.5);
-    cvSetCaptureProperty(_capture, CV_CAP_PROP_BRIGHTNESS, _ledTrackingOn ? 0.99 : 0.5);
+    cvSetCaptureProperty(_capture, CV_CAP_PROP_BRIGHTNESS, _ledTrackingOn ? 0.0 : 0.5);
     cvSetCaptureProperty(_capture, CV_CAP_PROP_HUE, 0.5);
     cvSetCaptureProperty(_capture, CV_CAP_PROP_GAIN, 0.5);
 #endif
