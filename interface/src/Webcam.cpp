@@ -5,6 +5,7 @@
 //  Created by Andrzej Kapolka on 6/17/13.
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 
+#include <QMediaPlayer>
 #include <QTimer>
 #include <QtDebug>
 
@@ -64,6 +65,7 @@ const float UNINITIALIZED_FACE_DEPTH = 0.0f;
 void Webcam::reset() {
     _initialFaceRect = RotatedRect();
     _initialFaceDepth = UNINITIALIZED_FACE_DEPTH;
+    _initialLEDPosition = glm::vec3();
 
     if (_enabled) {
         // send a message to the grabber
@@ -179,18 +181,21 @@ static glm::mat3 createMat3(const glm::vec3& p0, const glm::vec3& p1, const glm:
 /// See T.D. Alter's "3D Pose from 3 Corresponding Points under Weak-Perspective Projection"
 /// (http://dspace.mit.edu/bitstream/handle/1721.1/6611/AIM-1378.pdf) and the source code to Freetrack
 /// (https://camil.dyndns.org/svn/freetrack/tags/V2.2/Freetrack/Pose.pas), which uses the same algorithm.
-static void computeTransformFromKeyPoints(const KeyPointVector& keyPoints, glm::vec3& rotation, glm::vec3& position) {
+static float computeTransformFromKeyPoints(const KeyPointVector& keyPoints, glm::quat& rotation, glm::vec3& position) {
     // make sure we have at least three points
     if (keyPoints.size() < 3) {
-        return;
+        return 0.0f;
     }
     
-    // bubblesort the first three points from top to bottom
+    // bubblesort the first three points from top (greatest) to bottom (least)
     glm::vec3 i0 = createVec3(keyPoints[0].pt), i1 = createVec3(keyPoints[1].pt), i2 = createVec3(keyPoints[2].pt);
-    if (i2.y < i1.y) {
+    if (i1.y > i0.y) {
+        swap(i0, i1);
+    }
+    if (i2.y > i1.y) {
         swap(i1, i2);
     }
-    if (i1.y < i0.y) {
+    if (i1.y > i0.y) {
         swap(i0, i1);
     }
     
@@ -226,7 +231,9 @@ static void computeTransformFromKeyPoints(const KeyPointVector& keyPoints, glm::
     glm::mat3 r = r2 * glm::transpose(r1);
     
     position = m0 - r * M0;
-    rotation = safeEulerAngles(glm::quat_cast(r));
+    rotation = glm::quat_cast(r);
+    
+    return s;
 }
 
 const float METERS_PER_MM = 1.0f / 1000.0f;
@@ -324,8 +331,27 @@ void Webcam::setFrame(const Mat& color, int format, const Mat& depth, float midF
         _estimatedPosition = _estimatedJoints[AVATAR_JOINT_HEAD_BASE].position;
 
     } else if (!keyPoints.empty()) {
-        computeTransformFromKeyPoints(keyPoints, _estimatedRotation, _estimatedPosition);
-        
+        glm::quat rotation;
+        glm::vec3 position;
+        float scale = computeTransformFromKeyPoints(keyPoints, rotation, position);
+        if (scale > 0.0f) {
+            if (_initialLEDPosition == glm::vec3()) {
+                _initialLEDPosition = position;
+                _estimatedPosition = glm::vec3();
+                _initialLEDRotation = rotation;
+                _estimatedRotation = glm::vec3();
+                _initialLEDScale = scale;
+            
+            } else {
+                position.z += (_initialLEDScale / scale - 1.0f) * 5.0f;
+            
+                const float POSITION_SMOOTHING = 0.5f;
+                _estimatedPosition = glm::mix(position - _initialLEDPosition, _estimatedPosition, POSITION_SMOOTHING);
+                const float ROTATION_SMOOTHING = 0.5f;
+                _estimatedRotation = glm::mix(safeEulerAngles(rotation * glm::inverse(_initialLEDRotation)),
+                    _estimatedRotation, ROTATION_SMOOTHING);
+            }
+        }
     } else {
         // roll is just the angle of the face rect
         const float ROTATION_SMOOTHING = 0.95f;
@@ -384,6 +410,17 @@ FrameGrabber::~FrameGrabber() {
     if (_initialized) {
         shutdown();
     }
+}
+
+QList<QVideoFrame::PixelFormat> FrameGrabber::supportedPixelFormats(QAbstractVideoBuffer::HandleType type) const {
+    QList<QVideoFrame::PixelFormat> formats;
+    formats.append(QVideoFrame::Format_RGB24);
+    return formats;
+}
+
+bool FrameGrabber::present(const QVideoFrame& frame) {
+    _videoFrame = frame;
+    return true;
 }
 
 #ifdef HAVE_OPENNI
@@ -567,6 +604,7 @@ void FrameGrabber::grabFrame() {
 #endif
 
     if (color.empty()) {
+        /*
         IplImage* image = cvQueryFrame(_capture);
         if (image == 0) {
             // try again later
@@ -580,6 +618,17 @@ void FrameGrabber::grabFrame() {
             return;
         }
         color = image;
+        */
+        if (!_videoFrame.isValid()) {
+            // try again later
+            QMetaObject::invokeMethod(this, "grabFrame", Qt::QueuedConnection);
+            return;
+        }
+        _videoColor.create(_videoFrame.height(), _videoFrame.width(), CV_8UC3);
+        _videoFrame.map(QAbstractVideoBuffer::ReadOnly);
+        memcpy(_videoColor.ptr(), _videoFrame.bits(), _videoFrame.mappedBytes());
+        _videoFrame.unmap();
+        color = _videoColor;
     }
 
     const int ENCODED_FACE_WIDTH = 128;
@@ -943,6 +992,11 @@ bool FrameGrabber::init() {
     cvSetCaptureProperty(_capture, CV_CAP_PROP_FRAME_HEIGHT, IDEAL_FRAME_HEIGHT);
 
     configureCapture();
+
+    QMediaPlayer* player = new QMediaPlayer(this);
+    player->setMedia(QUrl::fromLocalFile("/export/hifi/interface/demo.avi"));
+    player->setVideoOutput(this);
+    player->play();
 
     return true;
 }

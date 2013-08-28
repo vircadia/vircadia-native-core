@@ -9,8 +9,8 @@
 #ifndef __interface__Webcam__
 #define __interface__Webcam__
 
+#include <QAbstractVideoSurface>
 #include <QMetaType>
-#include <QObject>
 #include <QThread>
 #include <QVector>
 
@@ -37,6 +37,7 @@ class Joint;
 typedef QVector<Joint> JointVector;
 typedef std::vector<cv::KeyPoint> KeyPointVector;
 
+/// Handles interaction with the webcam (including depth cameras such as the Kinect).
 class Webcam : public QObject {
     Q_OBJECT
 
@@ -90,6 +91,10 @@ private:
     float _initialFaceDepth;
     JointVector _joints;
     KeyPointVector _keyPoints;
+    
+    glm::quat _initialLEDRotation;
+    glm::vec3 _initialLEDPosition;
+    float _initialLEDScale;
 
     uint64_t _startTimestamp;
     int _frameCount;
@@ -103,13 +108,17 @@ private:
     bool _skeletonTrackingOn;
 };
 
-class FrameGrabber : public QObject {
+/// Acquires and processes video frames in a dedicated thread.
+class FrameGrabber : public QAbstractVideoSurface {
     Q_OBJECT
 
 public:
 
     FrameGrabber();
     virtual ~FrameGrabber();
+
+    virtual QList<QVideoFrame::PixelFormat> supportedPixelFormats(QAbstractVideoBuffer::HandleType type) const;
+    virtual bool present(const QVideoFrame& frame);
 
 public slots:
 
@@ -153,6 +162,8 @@ private:
     cv::RotatedRect _smoothedFaceRect;
 
     cv::SimpleBlobDetector _blobDetector;
+    QVideoFrame _videoFrame;
+    cv::Mat _videoColor;
 
 #ifdef HAVE_OPENNI
     xn::Context _xnContext;
@@ -165,6 +176,7 @@ private:
 #endif
 };
 
+/// Contains the 3D transform and 2D projected position of a tracked joint.
 class Joint {
 public:
 
