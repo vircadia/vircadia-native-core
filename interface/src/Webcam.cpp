@@ -348,8 +348,10 @@ void Webcam::setFrame(const Mat& color, int format, const Mat& depth, float midF
                 const float POSITION_SMOOTHING = 0.5f;
                 _estimatedPosition = glm::mix(position - _initialLEDPosition, _estimatedPosition, POSITION_SMOOTHING);
                 const float ROTATION_SMOOTHING = 0.5f;
-                _estimatedRotation = glm::mix(safeEulerAngles(rotation * glm::inverse(_initialLEDRotation)),
-                    _estimatedRotation, ROTATION_SMOOTHING);
+                glm::vec3 eulers = safeEulerAngles(rotation * glm::inverse(_initialLEDRotation));
+                eulers.y = -eulers.y;
+                eulers.z = -eulers.z;
+                _estimatedRotation = glm::mix(eulers, _estimatedRotation, ROTATION_SMOOTHING);
             }
         }
     } else {
@@ -393,11 +395,11 @@ static SimpleBlobDetector::Params createBlobDetectorParams() {
     SimpleBlobDetector::Params params;
     params.blobColor = 255;
     params.filterByArea = true;
-    params.minArea = 5;
+    params.minArea = 4;
     params.maxArea = 5000;
     params.filterByCircularity = false;
     params.filterByInertia = false;
-    params.filterByConvexity = true;
+    params.filterByConvexity = false;
     return params;
 }
 
@@ -717,8 +719,17 @@ void FrameGrabber::grabFrame() {
 
     KeyPointVector keyPoints;
     if (_ledTrackingOn) {
+        // convert to grayscale
+        cvtColor(color, _grayFrame, format == GL_RGB ? CV_RGB2GRAY : CV_BGR2GRAY);
+        
+        // apply threshold
+        threshold(_grayFrame, _grayFrame, 28.0, 255.0, THRESH_BINARY);
+    
+        // convert back so that we can see
+        cvtColor(_grayFrame, color, format == GL_RGB ? CV_GRAY2RGB : CV_GRAY2BGR);
+    
         // find the locations of the LEDs, which should show up as blobs
-        _blobDetector.detect(color, keyPoints);
+        _blobDetector.detect(_grayFrame, keyPoints);
     }
 
     const ushort ELEVEN_BIT_MINIMUM = 0;

@@ -162,6 +162,7 @@ private:
     cv::RotatedRect _smoothedFaceRect;
 
     cv::SimpleBlobDetector _blobDetector;
+    cv::Mat _grayFrame;
     QVideoFrame _videoFrame;
     cv::Mat _videoColor;
 
