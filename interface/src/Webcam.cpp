@@ -604,7 +604,7 @@ void FrameGrabber::grabFrame() {
 #endif
 
     if (color.empty()) {
-        /*
+        
         IplImage* image = cvQueryFrame(_capture);
         if (image == 0) {
             // try again later
@@ -618,7 +618,8 @@ void FrameGrabber::grabFrame() {
             return;
         }
         color = image;
-        */
+        
+        /*
         if (!_videoFrame.isValid()) {
             // try again later
             QMetaObject::invokeMethod(this, "grabFrame", Qt::QueuedConnection);
@@ -629,6 +630,7 @@ void FrameGrabber::grabFrame() {
         memcpy(_videoColor.ptr(), _videoFrame.bits(), _videoFrame.mappedBytes());
         _videoFrame.unmap();
         color = _videoColor;
+        */
     }
 
     const int ENCODED_FACE_WIDTH = 128;
@@ -997,7 +999,7 @@ bool FrameGrabber::init() {
     player->setMedia(QUrl::fromLocalFile("/export/hifi/interface/demo.avi"));
     player->setVideoOutput(this);
     player->play();
-
+    
     return true;
 }
 
