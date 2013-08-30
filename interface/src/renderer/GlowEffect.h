@@ -10,6 +10,7 @@
 #define __interface__GlowEffect__
 
 #include <QObject>
+#include <QStack>
 
 class QOpenGLFramebufferObject;
 
@@ -40,7 +41,9 @@ public:
     void end();
     
     /// Renders the glow effect.  To be called after rendering the scene.
-    void render();
+    /// \param toTexture whether to render to a texture, rather than to the frame buffer
+    /// \return the framebuffer object to which we rendered, or NULL if to the frame buffer
+    QOpenGLFramebufferObject* render(bool toTexture = false);
 
 public slots:
     
@@ -61,6 +64,17 @@ private:
     
     bool _isEmpty; ///< set when nothing in the scene is currently glowing
     bool _isOddFrame; ///< controls the alternation between texture targets in diffuse add mode
+    
+    float _intensity;
+    QStack<float> _intensityStack;
+};
+
+/// RAII-style glow handler.  Applies glow when in scope.
+class Glower {
+public:
+    
+    Glower(float amount = 1.0f);
+    ~Glower();
 };
 
 #endif /* defined(__interface__GlowEffect__) */

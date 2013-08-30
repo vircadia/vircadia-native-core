@@ -45,6 +45,7 @@
 #include "VoxelImporter.h"
 #include "Webcam.h"
 #include "avatar/Avatar.h"
+#include "avatar/MyAvatar.h"
 #include "avatar/HandControl.h"
 #include "renderer/AmbientOcclusionEffect.h"
 #include "renderer/GeometryCache.h"
@@ -106,7 +107,7 @@ public:
     const glm::vec3 getMouseVoxelWorldCoordinates(const VoxelDetail _mouseVoxel);
     
     QGLWidget* getGLWidget() { return _glWidget; }
-    Avatar* getAvatar() { return &_myAvatar; }
+    MyAvatar* getAvatar() { return &_myAvatar; }
     Audio* getAudio() { return &_audio; }
     Camera* getCamera() { return &_myCamera; }
     ViewFrustum* getViewFrustum() { return &_viewFrustum; }
@@ -249,7 +250,7 @@ private:
 
     Oscilloscope _audioScope;
     
-    Avatar _myAvatar;                  // The rendered avatar of oneself
+    MyAvatar _myAvatar;                  // The rendered avatar of oneself
     
     Transmitter _myTransmitter;        // Gets UDP data from transmitter app used to animate the avatar
     
@@ -297,12 +298,14 @@ private:
     glm::vec3 _lookatOtherPosition;
     float _lookatIndicatorScale;
     
+    glm::vec3 _transmitterPickStart;
+    glm::vec3 _transmitterPickEnd;
+    
     bool _perfStatsOn; //  Do we want to display perfStats? 
     
     ChatEntry _chatEntry; // chat entry field 
     bool _chatEntryOn;    // Whether to show the chat entry 
     
-    GLuint _oculusTextureID;        // The texture to which we render for Oculus distortion
     ProgramObject* _oculusProgram;  // The GLSL program containing the distortion shader 
     float _oculusDistortionScale;   // Controls the Oculus field of view
     int _textureLocation;
