@@ -342,7 +342,8 @@ void Webcam::setFrame(const Mat& color, int format, const Mat& depth, float midF
                 _initialLEDScale = scale;
             
             } else {
-                position.z += (_initialLEDScale / scale - 1.0f) * 5.0f;
+                const float Z_SCALE = 5.0f;
+                position.z += (_initialLEDScale / scale - 1.0f) * Z_SCALE;
             
                 const float POSITION_SMOOTHING = 0.5f;
                 _estimatedPosition = glm::mix(position - _initialLEDPosition, _estimatedPosition, POSITION_SMOOTHING);
