@@ -235,6 +235,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
 Application::~Application() {
     NodeList::getInstance()->removeHook(&_voxels);
     NodeList::getInstance()->removeHook(this);
+
+    _sharedVoxelSystem.changeTree(new VoxelTree);
 }
 
 void Application::initializeGL() {
