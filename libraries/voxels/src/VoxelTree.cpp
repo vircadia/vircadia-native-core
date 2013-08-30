@@ -1581,7 +1581,6 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
 bool VoxelTree::readFromSVOFile(const char* fileName) {
     std::ifstream file(fileName, std::ios::in|std::ios::binary|std::ios::ate);
     if(file.is_open()) {
-
         emit importSize(1.0f, 1.0f, 1.0f);
         emit importProgress(0);
 
@@ -1607,9 +1606,7 @@ bool VoxelTree::readFromSVOFile(const char* fileName) {
 }
 
 bool VoxelTree::readFromSquareARGB32Pixels(const char* filename) {
-    emit importSize(1.0f, 1.0f, 1.0f);
     emit importProgress(0);
-
     int minAlpha = INT_MAX;
 
     QImage pngImage = QImage(filename);
@@ -1623,6 +1620,8 @@ bool VoxelTree::readFromSquareARGB32Pixels(const char* filename) {
     int scale = 1;
     while (maxSize > scale) {scale *= 2;}
     float size = 1.0f / scale;
+
+    emit importSize(size * pngImage.width(), 1.0f, size * pngImage.height());
 
     QRgb pixel;
     int minNeighborhoodAlpha;
@@ -1692,14 +1691,13 @@ bool VoxelTree::readFromSchematicFile(const char *fileName) {
     while (max > scale) {scale *= 2;}
     float size = 1.0f / scale;
 
-    int create = 1;
-    int red = 128, green = 128, blue = 128;
-    int count = 0;
-
     emit importSize(size * schematics.getWidth(),
                     size * schematics.getHeight(),
                     size * schematics.getLength());
-    emit importProgress(0);
+
+    int create = 1;
+    int red = 128, green = 128, blue = 128;
+    int count = 0;
 
     for (int y = 0; y < schematics.getHeight(); ++y) {
         for (int z = 0; z < schematics.getLength(); ++z) {

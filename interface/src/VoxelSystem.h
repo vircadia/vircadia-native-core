@@ -43,6 +43,8 @@ public:
     void simulate(float deltaTime) { };
     void render(bool texture);
 
+    void changeTree(VoxelTree* newTree);
+    VoxelTree* getTree() const {return _tree;}
     ViewFrustum* getViewFrustum() const {return _viewFrustum;}
     void setViewFrustum(ViewFrustum* viewFrustum) {_viewFrustum = viewFrustum;}
     unsigned long  getVoxelsUpdated() const {return _voxelsUpdated;};
@@ -93,6 +95,7 @@ public:
     virtual void nodeDeleted(VoxelNode* node);
     virtual void nodeAdded(Node* node);
     virtual void nodeKilled(Node* node);
+    void setupNewVoxelsForDrawing();
     
 signals:
     void importSize(float x, float y, float z);
@@ -120,8 +123,7 @@ protected:
     VoxelTree* _tree;
     
     glm::vec3 computeVoxelVertex(const glm::vec3& startVertex, float voxelScale, int index) const;
-    
-    void setupNewVoxelsForDrawing();
+
     
     virtual void updateNodeInArrays(glBufferIndex nodeIndex, const glm::vec3& startVertex,
                                     float voxelScale, const nodeColor& color);

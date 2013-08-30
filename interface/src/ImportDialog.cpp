@@ -34,9 +34,9 @@ const float FIELD_OF_VIEW = 60.0f;
 
 class GLWidget : public QGLWidget {
 public:
-    GLWidget(QWidget* parent = NULL, VoxelSystem* voxelSystem = NULL);
+    GLWidget(QWidget* parent = NULL);
     void setDraw(bool draw) {_draw = draw;}
-    void setTargetCenter(glm::vec3 targetCenter) {_targetCenter = targetCenter;}
+    void setTargetCenter(glm::vec3 targetCenter) { _targetCenter = targetCenter; }
 
 protected:
     virtual void initializeGL();
@@ -61,9 +61,8 @@ private:
     int _mouseY;
 };
 
-GLWidget::GLWidget(QWidget *parent, VoxelSystem *voxelSystem)
+GLWidget::GLWidget(QWidget *parent)
     : QGLWidget(parent, Application::getInstance()->getGLWidget()),
-      _voxelSystem(voxelSystem),
       _draw(false),
       _a(0.0f),
       _h(VERTICAL_ANGLE),
@@ -71,6 +70,7 @@ GLWidget::GLWidget(QWidget *parent, VoxelSystem *voxelSystem)
       _pressed(false),
       _mouseX(0),
       _mouseY(0) {
+    _voxelSystem = Application::getInstance()->getSharedVoxelSystem();
 }
 
 void GLWidget::initializeGL() {
@@ -110,7 +110,7 @@ void GLWidget::paintGL() {
               UP_VECT.x, UP_VECT.y, UP_VECT.z);
 
 
-    if (_draw && _voxelSystem) {
+    if (_draw) {
         glBegin(GL_LINES);
         glColor3d(1, 1 ,1);
         glVertex3d(0, 0, 0);
@@ -134,10 +134,108 @@ void GLWidget::paintGL() {
         glVertex3d(2 * _targetCenter.x, 2 * _targetCenter.y, 0                  );
         glEnd();
 
+        glScalef(1.0f / TREE_SCALE, 1.0f / TREE_SCALE, 1.0f / TREE_SCALE);
+
         _voxelSystem->render(false);
+
+
+        ViewFrustum& viewFrustum = *Application::getInstance()->getSharedVoxelSystem()->getViewFrustum();
+        glm::vec3 position  = viewFrustum.getOffsetPosition();
+        glm::vec3 direction = viewFrustum.getOffsetDirection();
+        glm::vec3 up        = viewFrustum.getOffsetUp();
+        glm::vec3 right     = viewFrustum.getOffsetRight();
+
+        // Calculate the origin direction vectors
+        glm::vec3 lookingAt      = position + (direction * 0.2f);
+        glm::vec3 lookingAtUp    = position + (up * 0.2f);
+        glm::vec3 lookingAtRight = position + (right * 0.2f);
+
+        glBegin(GL_LINES);
+        // Looking At = white
+        glColor3d(1.0f, 1.0f, 1.0f);
+        glVertex3d(position.x, position.y, position.z);
+        glVertex3d(lookingAt.x, lookingAt.y, lookingAt.z);
+
+        // Looking At Up = purple
+        glColor3d(1.0f, 0.0f, 1.0f);
+        glVertex3d(position.x, position.y, position.z);
+        glVertex3d(lookingAtUp.x, lookingAtUp.y, lookingAtUp.z);
+
+        // Looking At Right = cyan
+        glColor3d(0.0f, 1.0f, 1.0f);
+        glVertex3d(position.x, position.y, position.z);
+        glVertex3d(lookingAtRight.x, lookingAtRight.y, lookingAtRight.z);
+
+
+        // Drawing the bounds of the frustum
+        // viewFrustum.getNear plane - bottom edge
+        glColor3d(1.0f, 0.0f, 0.0f);
+        glVertex3d(viewFrustum.getNearBottomLeft().x, viewFrustum.getNearBottomLeft().y, viewFrustum.getNearBottomLeft().z);
+        glVertex3d(viewFrustum.getNearBottomRight().x, viewFrustum.getNearBottomRight().y, viewFrustum.getNearBottomRight().z);
+
+        // viewFrustum.getNear plane - top edge
+        glVertex3d(viewFrustum.getNearTopLeft().x, viewFrustum.getNearTopLeft().y, viewFrustum.getNearTopLeft().z);
+        glVertex3d(viewFrustum.getNearTopRight().x, viewFrustum.getNearTopRight().y, viewFrustum.getNearTopRight().z);
+
+        // viewFrustum.getNear plane - right edge
+        glVertex3d(viewFrustum.getNearBottomRight().x, viewFrustum.getNearBottomRight().y, viewFrustum.getNearBottomRight().z);
+        glVertex3d(viewFrustum.getNearTopRight().x, viewFrustum.getNearTopRight().y, viewFrustum.getNearTopRight().z);
+
+        // viewFrustum.getNear plane - left edge
+        glVertex3d(viewFrustum.getNearBottomLeft().x, viewFrustum.getNearBottomLeft().y, viewFrustum.getNearBottomLeft().z);
+        glVertex3d(viewFrustum.getNearTopLeft().x, viewFrustum.getNearTopLeft().y, viewFrustum.getNearTopLeft().z);
+
+
+        // viewFrustum.getFar plane - bottom edge
+        glColor3d(0.0f, 1.0f, 0.0f); // GREEN!!!
+        glVertex3d(viewFrustum.getFarBottomLeft().x, viewFrustum.getFarBottomLeft().y, viewFrustum.getFarBottomLeft().z);
+        glVertex3d(viewFrustum.getFarBottomRight().x, viewFrustum.getFarBottomRight().y, viewFrustum.getFarBottomRight().z);
+
+        // viewFrustum.getFar plane - top edge
+        glVertex3d(viewFrustum.getFarTopLeft().x, viewFrustum.getFarTopLeft().y, viewFrustum.getFarTopLeft().z);
+        glVertex3d(viewFrustum.getFarTopRight().x, viewFrustum.getFarTopRight().y, viewFrustum.getFarTopRight().z);
+
+        // viewFrustum.getFar plane - right edge
+        glVertex3d(viewFrustum.getFarBottomRight().x, viewFrustum.getFarBottomRight().y, viewFrustum.getFarBottomRight().z);
+        glVertex3d(viewFrustum.getFarTopRight().x, viewFrustum.getFarTopRight().y, viewFrustum.getFarTopRight().z);
+
+        // viewFrustum.getFar plane - left edge
+        glVertex3d(viewFrustum.getFarBottomLeft().x, viewFrustum.getFarBottomLeft().y, viewFrustum.getFarBottomLeft().z);
+        glVertex3d(viewFrustum.getFarTopLeft().x, viewFrustum.getFarTopLeft().y, viewFrustum.getFarTopLeft().z);
+
+        // RIGHT PLANE IS CYAN
+        // right plane - bottom edge - viewFrustum.getNear to distant
+        glColor3d(0.0f, 1.0f, 1.0f);
+        glVertex3d(viewFrustum.getNearBottomRight().x, viewFrustum.getNearBottomRight().y, viewFrustum.getNearBottomRight().z);
+        glVertex3d(viewFrustum.getFarBottomRight().x, viewFrustum.getFarBottomRight().y, viewFrustum.getFarBottomRight().z);
+
+        // right plane - top edge - viewFrustum.getNear to distant
+        glVertex3d(viewFrustum.getNearTopRight().x, viewFrustum.getNearTopRight().y, viewFrustum.getNearTopRight().z);
+        glVertex3d(viewFrustum.getFarTopRight().x, viewFrustum.getFarTopRight().y, viewFrustum.getFarTopRight().z);
+
+        // LEFT PLANE IS BLUE
+        // left plane - bottom edge - viewFrustum.getNear to distant
+        glColor3d(0.0f, 0.0f, 1.0f);
+        glVertex3d(viewFrustum.getNearBottomLeft().x, viewFrustum.getNearBottomLeft().y, viewFrustum.getNearBottomLeft().z);
+        glVertex3d(viewFrustum.getFarBottomLeft().x, viewFrustum.getFarBottomLeft().y, viewFrustum.getFarBottomLeft().z);
+
+        // left plane - top edge - viewFrustum.getNear to distant
+        glVertex3d(viewFrustum.getNearTopLeft().x, viewFrustum.getNearTopLeft().y, viewFrustum.getNearTopLeft().z);
+        glVertex3d(viewFrustum.getFarTopLeft().x, viewFrustum.getFarTopLeft().y, viewFrustum.getFarTopLeft().z);
+        glEnd();
+
+        // Draw the keyhole
+        float keyholeRadius = viewFrustum.getKeyholeRadius();
+        if (keyholeRadius > 0.0f) {
+            glPushMatrix();
+            glColor3d(1.0f, 1.0f, 0.0f);
+            glTranslatef(position.x, position.y, position.z); // where we actually want it!
+            glutWireSphere(keyholeRadius, 20, 20);
+            glPopMatrix();
+        }
+
     }
 }
-
 
 void GLWidget::mousePressEvent(QMouseEvent* event) {
     _pressed = true;
@@ -158,14 +256,13 @@ void GLWidget::mouseReleaseEvent(QMouseEvent* event) {
     _pressed = false;
 }
 
-ImportDialog::ImportDialog(QWidget *parent, VoxelSystem* voxelSystem)
+ImportDialog::ImportDialog(QWidget *parent)
     : QFileDialog(parent, WINDOW_NAME, DESKTOP_LOCATION, IMPORT_FILE_TYPES),
       _importButton      (IMPORT_BUTTON_NAME, this),
       _clipboardImportBox(IMPORT_TO_CLIPBOARD_CHECKBOX_STRING, this),
       _previewBox        (PREVIEW_CHECKBOX_STRING, this),
       _previewBar        (this),
-      _glPreview         (new GLWidget(this, voxelSystem)) {
-
+      _glPreview         (new GLWidget(this)) {
     setOption(QFileDialog::DontUseNativeDialog, true);
     setFileMode(QFileDialog::ExistingFile);
     setViewMode(QFileDialog::Detail);
@@ -188,13 +285,16 @@ ImportDialog::ImportDialog(QWidget *parent, VoxelSystem* voxelSystem)
 
     connect(this, SIGNAL(currentChanged(QString)), SLOT(saveCurrentFile(QString)));
     connect(&_glTimer, SIGNAL(timeout()), SLOT(timer()));
-
-    connect(voxelSystem, SIGNAL(importSize(float,float,float)), SLOT(setGLCamera(float, float, float)));
-    connect(voxelSystem, SIGNAL(importProgress(int)), &_previewBar, SLOT(setValue(int)));
 }
 
 ImportDialog::~ImportDialog() {
     delete _glPreview;
+}
+
+void ImportDialog::init() {
+    VoxelSystem* voxelSystem = Application::getInstance()->getSharedVoxelSystem();
+    connect(voxelSystem, SIGNAL(importSize(float,float,float)), SLOT(setGLCamera(float, float, float)));
+    connect(voxelSystem, SIGNAL(importProgress(int)), &_previewBar, SLOT(setValue(int)));
 }
 
 void ImportDialog::import() {
