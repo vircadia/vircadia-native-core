@@ -95,7 +95,6 @@ public:
     virtual void nodeDeleted(VoxelNode* node);
     virtual void nodeAdded(Node* node);
     virtual void nodeKilled(Node* node);
-    void setupNewVoxelsForDrawing();
     
 signals:
     void importSize(float x, float y, float z);
@@ -121,6 +120,8 @@ protected:
     float _treeScale; 
     int _maxVoxels;      
     VoxelTree* _tree;
+
+    void setupNewVoxelsForDrawing();
     
     glm::vec3 computeVoxelVertex(const glm::vec3& startVertex, float voxelScale, int index) const;
 
