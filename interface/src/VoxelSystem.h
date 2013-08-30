@@ -60,6 +60,7 @@ public:
     float getVoxelsCreatedPerSecondAverage();
     float getVoxelsColoredPerSecondAverage();
     float getVoxelsBytesReadPerSecondAverage();
+    VoxelTree* getVoxelTree() {return _tree;}
 
     void killLocalVoxels();
 

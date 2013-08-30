@@ -1543,6 +1543,9 @@ void Application::update(float deltaTime) {
                 hoveredNode->setColor(_hoverVoxelOriginalColor);
                 _isHoverVoxelSounding = false;
             }
+            glm::vec3 nudgeVec(1, 1, 1);
+            _voxels.getVoxelTree()->nudgeSubTree(hoveredNode, nudgeVec);
+            // qDebug("nudge called!\n");
         } else {
             //  Voxel is not found, clear all
             _isHoverVoxelSounding = false;

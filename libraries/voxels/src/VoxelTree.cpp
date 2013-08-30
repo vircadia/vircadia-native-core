@@ -206,7 +206,7 @@ VoxelNode* VoxelTree::nodeForOctalCode(VoxelNode* ancestorNode,
                 return childNode;
             } else {
                 // we need to go deeper
-                return nodeForOctalCode(childNode, needleCode,parentOfFoundNode);
+                return nodeForOctalCode(childNode, needleCode, parentOfFoundNode);
             }
         }
     }
@@ -452,10 +452,10 @@ void VoxelTree::deleteVoxelCodeFromTreeRecursion(VoxelNode* node, void* extraDat
                     }
                 }
             }
-            int lengthOfancestorNode = numberOfThreeBitSectionsInCode(ancestorNode->getOctalCode());
+            int lengthOfAncestorNode = numberOfThreeBitSectionsInCode(ancestorNode->getOctalCode());
 
             // If we've reached the parent of the target, then stop breaking up children
-            if (lengthOfancestorNode == (args->lengthOfCode - 1)) {
+            if (lengthOfAncestorNode == (args->lengthOfCode - 1)) {
                 break;
             }
             ancestorNode->addChildAtIndex(index);
@@ -1910,4 +1910,91 @@ void VoxelTree::emptyDeleteQueue() {
 
 void VoxelTree::cancelImport() {
     _stopImport = true;
+}
+
+class NodeChunkArgs {
+public:
+    VoxelTree* thisVoxelTree;
+    float newSize;
+    glm::vec3 nudgeVec;
+};
+
+bool VoxelTree::nudgeCheck(VoxelNode* node, void* extraData) {
+    if (node->isLeaf()) {
+        // we have reached the deepest level of nodes/voxels
+        // now there are two scenarios
+        // 1) this node's size is <= the minNudgeAmount
+        //      in which case we will simply call nudgeLeaf on this leaf
+        // 2) this node's size is still not <= the minNudgeAmount
+        //      in which case we need to break this leaf down until the leaf sizes are <= minNudgeAmount
+
+        NodeChunkArgs* args = (NodeChunkArgs*)extraData;
+
+        // get octal code of this node
+        unsigned char* octalCode = node->getOctalCode();
+
+        // get voxel position/size
+        VoxelPositionSize unNudgedDetails;
+        voxelDetailsForCode(octalCode, unNudgedDetails);
+
+        // check to see if this unNudged node can be nudged
+        if (unNudgedDetails.s <= args->newSize) {
+            args->thisVoxelTree->nudgeLeaf(node, extraData);
+            return false;
+        } else {
+            // break the current leaf into smaller chunks
+            args->thisVoxelTree->chunkifyLeaf(node);
+        }
+    }
+    return true;
+}
+
+void VoxelTree::chunkifyLeaf(VoxelNode* node) {
+    // because this function will continue being called recursively
+    // we only need to worry about breaking this specific leaf down
+    for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
+        node->addChildAtIndex(i);
+        if (node->isColored()) {
+            node->getChildAtIndex(i)->setColor(node->getColor());
+        }
+    }
+}
+
+// This function is called to nudge the leaves of a tree, given that the
+// nudge amount is >= to the leaf scale.
+void VoxelTree::nudgeLeaf(VoxelNode* node, void* extraData) {
+    NodeChunkArgs* args = (NodeChunkArgs*)extraData;
+
+    // get octal code of this node
+    unsigned char* octalCode = node->getOctalCode();
+
+    // get voxel position/size
+    VoxelPositionSize unNudgedDetails;
+    voxelDetailsForCode(octalCode, unNudgedDetails);
+
+    // delete the old node
+    deleteVoxelAt(unNudgedDetails.x, unNudgedDetails.y, unNudgedDetails.z, unNudgedDetails.s);
+    qDebug("unNudged voxel deleted!\n");
+
+    // create a new voxel in its stead
+    glm::vec3 nudge = args->nudgeVec;
+    qDebug("nudged by %f, %f, %f\n", nudge.x, nudge.y, nudge.z);
+    // createVoxel(unNudgedDetails.x + nudge.x, unNudgedDetails.y + nudge.y, unNudgedDetails.z + nudge.z, unNudgedDetails.s,
+    //             node->getColor()[0], node->getColor()[1], node->getColor()[2], true);
+    createVoxel(unNudgedDetails.x + nudge.x, unNudgedDetails.y + nudge.y, unNudgedDetails.z + nudge.z, unNudgedDetails.s,
+                0, 0, 0, true);
+    qDebug("nudged voxel created!\n");
+}
+
+void VoxelTree::nudgeSubTree(VoxelNode* nodeToNudge, const glm::vec3& nudgeAmount) {
+    // calculate minNudgeAmount to check if breaking the tree into smaller chunks is necessary
+    float minNudgeAmount = fmin(nudgeAmount.x, nudgeAmount.y);
+    minNudgeAmount = fmin(minNudgeAmount, nudgeAmount.z);
+
+    NodeChunkArgs args;
+    args.thisVoxelTree = this;
+    args.newSize = minNudgeAmount;
+    args.nudgeVec = nudgeAmount;
+
+    recurseNodeWithOperation(nodeToNudge, nudgeCheck, &args);
 }
