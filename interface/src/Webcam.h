@@ -9,7 +9,6 @@
 #ifndef __interface__Webcam__
 #define __interface__Webcam__
 
-#include <QAbstractVideoSurface>
 #include <QMetaType>
 #include <QThread>
 #include <QVector>
@@ -109,16 +108,13 @@ private:
 };
 
 /// Acquires and processes video frames in a dedicated thread.
-class FrameGrabber : public QAbstractVideoSurface {
+class FrameGrabber : public QObject {
     Q_OBJECT
 
 public:
 
     FrameGrabber();
     virtual ~FrameGrabber();
-
-    virtual QList<QVideoFrame::PixelFormat> supportedPixelFormats(QAbstractVideoBuffer::HandleType type) const;
-    virtual bool present(const QVideoFrame& frame);
 
 public slots:
 
@@ -163,8 +159,6 @@ private:
 
     cv::SimpleBlobDetector _blobDetector;
     cv::Mat _grayFrame;
-    QVideoFrame _videoFrame;
-    cv::Mat _videoColor;
 
 #ifdef HAVE_OPENNI
     xn::Context _xnContext;

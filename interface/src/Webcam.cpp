@@ -5,7 +5,6 @@
 //  Created by Andrzej Kapolka on 6/17/13.
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 
-#include <QMediaPlayer>
 #include <QTimer>
 #include <QtDebug>
 
@@ -414,17 +413,6 @@ FrameGrabber::~FrameGrabber() {
     }
 }
 
-QList<QVideoFrame::PixelFormat> FrameGrabber::supportedPixelFormats(QAbstractVideoBuffer::HandleType type) const {
-    QList<QVideoFrame::PixelFormat> formats;
-    formats.append(QVideoFrame::Format_RGB24);
-    return formats;
-}
-
-bool FrameGrabber::present(const QVideoFrame& frame) {
-    _videoFrame = frame;
-    return true;
-}
-
 #ifdef HAVE_OPENNI
 static AvatarJointID xnToAvatarJoint(XnSkeletonJoint joint) {
     switch (joint) {
@@ -606,7 +594,6 @@ void FrameGrabber::grabFrame() {
 #endif
 
     if (color.empty()) {
-        
         IplImage* image = cvQueryFrame(_capture);
         if (image == 0) {
             // try again later
@@ -620,19 +607,6 @@ void FrameGrabber::grabFrame() {
             return;
         }
         color = image;
-        
-        /*
-        if (!_videoFrame.isValid()) {
-            // try again later
-            QMetaObject::invokeMethod(this, "grabFrame", Qt::QueuedConnection);
-            return;
-        }
-        _videoColor.create(_videoFrame.height(), _videoFrame.width(), CV_8UC3);
-        _videoFrame.map(QAbstractVideoBuffer::ReadOnly);
-        memcpy(_videoColor.ptr(), _videoFrame.bits(), _videoFrame.mappedBytes());
-        _videoFrame.unmap();
-        color = _videoColor;
-        */
     }
 
     const int ENCODED_FACE_WIDTH = 128;
@@ -1006,11 +980,6 @@ bool FrameGrabber::init() {
 
     configureCapture();
 
-    QMediaPlayer* player = new QMediaPlayer(this);
-    player->setMedia(QUrl::fromLocalFile("/export/hifi/interface/demo.avi"));
-    player->setVideoOutput(this);
-    player->play();
-    
     return true;
 }
 
