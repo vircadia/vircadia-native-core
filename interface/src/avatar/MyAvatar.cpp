@@ -514,7 +514,9 @@ float MyAvatar::getBallRenderAlpha(int ball, bool lookingInMirror) const {
 void MyAvatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
 
     if (Application::getInstance()->getCamera()->getMode() == CAMERA_MODE_FIRST_PERSON) {
-        // Dont display body
+        // Dont display body, only the hand        
+        _hand.render(lookingInMirror);
+        
         return;
     }
     
