@@ -22,9 +22,10 @@
 
 using namespace cv;
 
-ProgramObject* Face::_videoProgram = 0;
+bool Face::_initialized = false;
+ProgramObject Face::_videoProgram;
 Face::Locations Face::_videoProgramLocations;
-ProgramObject* Face::_texturedProgram = 0;
+ProgramObject Face::_texturedProgram;
 Face::Locations Face::_texturedProgramLocations;
 GLuint Face::_vboID;
 GLuint Face::_iboID;
@@ -53,6 +54,9 @@ Face::~Face() {
             glDeleteTextures(1, &_depthTextureID);
         }
     }
+
+    glDeleteBuffers(1, &_vboID);
+    glDeleteBuffers(1, &_iboID);
 }
 
 void Face::setFrameFromWebcam() {
@@ -293,9 +297,9 @@ bool Face::render(float alpha) {
         const int INDICES_PER_TRIANGLE = 3;
         const int INDEX_COUNT = QUAD_COUNT * TRIANGLES_PER_QUAD * INDICES_PER_TRIANGLE;
         
-        if (_videoProgram == 0) {
-            _videoProgram = loadProgram(QString(), "colorTexture", _videoProgramLocations);
-            _texturedProgram = loadProgram("_textured", "permutationNormalTexture", _texturedProgramLocations);
+        if (!_initialized) {
+            loadProgram(_videoProgram, QString(), "colorTexture", _videoProgramLocations);
+            loadProgram(_texturedProgram, "_textured", "permutationNormalTexture", _texturedProgramLocations);
             
             glGenBuffers(1, &_vboID);
             glBindBuffer(GL_ARRAY_BUFFER, _vboID);
@@ -327,7 +331,8 @@ bool Face::render(float alpha) {
             }
             glBufferData(GL_ELEMENT_ARRAY_BUFFER, INDEX_COUNT * sizeof(int), indices, GL_STATIC_DRAW);
             delete[] indices;
-            
+
+            _initialized = true;
         } else {
             glBindBuffer(GL_ARRAY_BUFFER, _vboID);
             glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _iboID);
@@ -336,14 +341,14 @@ bool Face::render(float alpha) {
         
         glActiveTexture(GL_TEXTURE1);
         
-        ProgramObject* program = _videoProgram;
+        ProgramObject* program = &_videoProgram;
         Locations* locations = &_videoProgramLocations;
         if (_colorTextureID != 0) {
             glBindTexture(GL_TEXTURE_2D, _colorTextureID);        
         
         } else {
             glBindTexture(GL_TEXTURE_2D, Application::getInstance()->getTextureCache()->getPermutationNormalTextureID());
-            program = _texturedProgram;
+            program = &_texturedProgram;
             locations = &_texturedProgramLocations;
         }
         program->bind();
@@ -467,20 +472,17 @@ void Face::destroyCodecs() {
     }
 }
 
-ProgramObject* Face::loadProgram(const QString& suffix, const char* secondTextureUniform, Locations& locations) {
-    ProgramObject* program = new ProgramObject();
-    program->addShaderFromSourceFile(QGLShader::Vertex, "resources/shaders/face" + suffix + ".vert");
-    program->addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/face" + suffix + ".frag");
-    program->link();
+void Face::loadProgram(ProgramObject& program, const QString& suffix, const char* secondTextureUniform, Locations& locations) {
+    program.addShaderFromSourceFile(QGLShader::Vertex, "resources/shaders/face" + suffix + ".vert");
+    program.addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/face" + suffix + ".frag");
+    program.link();
     
-    program->bind();
-    program->setUniformValue("depthTexture", 0);
-    program->setUniformValue(secondTextureUniform, 1);
-    program->release();
+    program.bind();
+    program.setUniformValue("depthTexture", 0);
+    program.setUniformValue(secondTextureUniform, 1);
+    program.release();
     
-    locations.texCoordCorner = program->uniformLocation("texCoordCorner");
-    locations.texCoordRight = program->uniformLocation("texCoordRight");
-    locations.texCoordUp = program->uniformLocation("texCoordUp");
-    
-    return program;
+    locations.texCoordCorner = program.uniformLocation("texCoordCorner");
+    locations.texCoordRight = program.uniformLocation("texCoordRight");
+    locations.texCoordUp = program.uniformLocation("texCoordUp");
 }

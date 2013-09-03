@@ -29,6 +29,7 @@ enum eyeContactTargets {
     MOUTH
 };
 
+const int MOHAWK_TRIANGLES = 50;
 const int NUM_HAIR_TUFTS = 4;
 
 class Avatar;
@@ -71,7 +72,7 @@ public:
     Face& getFace() { return _face; }
     
     const bool getReturnToCenter() const { return _returnHeadToCenter; } // Do you want head to try to return to center (depends on interface detected)
-    float getAverageLoudness() {return _averageLoudness;};
+    float getAverageLoudness() {return _averageLoudness;}
     glm::vec3 calculateAverageEyePosition() { return _leftEyePosition + (_rightEyePosition - _leftEyePosition ) * ONE_HALF; }
     
     float yawRate;
@@ -87,7 +88,7 @@ private:
         glm::vec3 right;
         glm::vec3 front;
     };
-    
+
     float _renderAlpha;
     bool _returnHeadToCenter;
     glm::vec3 _skinColor;
@@ -112,8 +113,9 @@ private:
     glm::vec3 _bodyRotation;
     bool _renderLookatVectors;
     BendyLine _hairTuft[NUM_HAIR_TUFTS];
-    glm::vec3* _mohawkTriangleFan;
-    glm::vec3* _mohawkColors;
+    bool _mohawkInitialized;
+    glm::vec3 _mohawkTriangleFan[MOHAWK_TRIANGLES];
+    glm::vec3 _mohawkColors[MOHAWK_TRIANGLES];
     glm::vec3 _saccade;
     glm::vec3 _saccadeTarget;
     float _leftEyeBlink;
@@ -129,7 +131,8 @@ private:
     float _cameraFollowHeadRate;
     Face _face;
     
-    static ProgramObject* _irisProgram;
+    static bool _irisProgramInitialized;
+    static ProgramObject _irisProgram;
     static GLuint _irisTextureID;
     static int _eyePositionLocation;
     

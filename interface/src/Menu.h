@@ -31,6 +31,9 @@ struct ViewFrustumOffset {
     float up;
 };
 
+class BandwidthDialog;
+class VoxelStatsDialog;
+
 class Menu : public QMenuBar {
     Q_OBJECT
 public:
