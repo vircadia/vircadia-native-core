@@ -11,8 +11,11 @@
 #include "Faceshift.h"
 
 using namespace fs;
+using namespace std;
 
-Faceshift::Faceshift() : _enabled(false) {
+Faceshift::Faceshift() : _enabled(false), _eyeGazeLeftPitch(0.0f), _eyeGazeLeftYaw(0.0f),
+        _eyeGazeRightPitch(0.0f), _eyeGazeRightYaw(0.0f), _leftBlink(0.0f), _rightBlink(0.0f),
+        _leftBlinkIndex(-1), _rightBlinkIndex(-1) {
     connect(&_socket, SIGNAL(connected()), SLOT(noteConnected()));
     connect(&_socket, SIGNAL(error(QAbstractSocket::SocketError)), SLOT(noteError(QAbstractSocket::SocketError)));
     connect(&_socket, SIGNAL(readyRead()), SLOT(readFromSocket()));
@@ -38,6 +41,11 @@ void Faceshift::connectSocket() {
 
 void Faceshift::noteConnected() {
     qDebug("Faceshift: Connected.\n");
+    
+    // request the list of blendshape names
+    string message;
+    fsBinaryStream::encode_message(message, fsMsgSendBlendshapeNames());
+    send(message);
 }
 
 void Faceshift::noteError(QAbstractSocket::SocketError error) {
@@ -55,15 +63,42 @@ void Faceshift::readFromSocket() {
     fsMsgPtr msg;
     for (fsMsgPtr msg; msg = _stream.get_message(); ) {
         switch (msg->id()) {
-            case fsMsg::MSG_OUT_TRACKING_STATE:
+            case fsMsg::MSG_OUT_TRACKING_STATE: {
                 const fsTrackingData& data = static_cast<fsMsgTrackingState*>(msg.get())->tracking_data();
                 if (data.m_trackingSuccessful) {
                     _headRotation = glm::quat(data.m_headRotation.w, data.m_headRotation.x,
                         data.m_headRotation.y, data.m_headRotation.z);
                     _headTranslation = glm::vec3(data.m_headTranslation.x, data.m_headTranslation.y, data.m_headTranslation.z);
+                    _eyeGazeLeftPitch = data.m_eyeGazeLeftPitch;
+                    _eyeGazeLeftYaw = data.m_eyeGazeLeftYaw;
+                    _eyeGazeRightPitch = data.m_eyeGazeRightPitch;
+                    _eyeGazeRightYaw = data.m_eyeGazeRightYaw;
+                    
+                    if (_leftBlinkIndex != -1) {
+                        _leftBlink = data.m_coeffs[_leftBlinkIndex];
+                    }
+                    if (_rightBlinkIndex != -1) {
+                        _rightBlink = data.m_coeffs[_rightBlinkIndex];
+                    }
                 }
                 break;
+            }
+            case fsMsg::MSG_OUT_BLENDSHAPE_NAMES: {
+                const vector<string>& names = static_cast<fsMsgBlendshapeNames*>(msg.get())->blendshape_names();
+                for (int i = 0; i < names.size(); i++) {
+                    if (names[i] == "EyeBlink_L") {
+                        _leftBlinkIndex = i;
+                    
+                    } else if (names[i] == "EyeBlink_R") {
+                        _rightBlinkIndex = i;
+                    }
+                }
+                break;
+            }
         }
     }
 }
 
+void Faceshift::send(const std::string& message) {
+    _socket.write(message.data(), message.size());
+}

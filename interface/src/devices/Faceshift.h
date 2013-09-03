@@ -29,6 +29,15 @@ public:
     const glm::quat& getHeadRotation() const { return _headRotation; }
     const glm::vec3& getHeadTranslation() const { return _headTranslation; }
 
+    float getEyeGazeLeftPitch() const { return _eyeGazeLeftPitch; }
+    float getEyeGazeLeftYaw() const { return _eyeGazeLeftYaw; }
+    
+    float getEyeGazeRightPitch() const { return _eyeGazeRightPitch; }
+    float getEyeGazeRightYaw() const { return _eyeGazeRightYaw; }
+
+    float getLeftBlink() const { return _leftBlink; }
+    float getRightBlink() const { return _rightBlink; }
+
 public slots:
     
     void setEnabled(bool enabled);
@@ -42,12 +51,26 @@ private slots:
     
 private:
     
+    void send(const std::string& message);
+    
     QTcpSocket _socket;
     fs::fsBinaryStream _stream;
     bool _enabled;
     
     glm::quat _headRotation;
     glm::vec3 _headTranslation;
+    
+    float _eyeGazeLeftPitch;
+    float _eyeGazeLeftYaw;
+    
+    float _eyeGazeRightPitch;
+    float _eyeGazeRightYaw;
+    
+    float _leftBlink;
+    float _rightBlink;
+    
+    int _leftBlinkIndex;
+    int _rightBlinkIndex;
 };
 
 #endif /* defined(__interface__Faceshift__) */
