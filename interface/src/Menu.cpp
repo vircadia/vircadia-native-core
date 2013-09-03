@@ -360,6 +360,13 @@ Menu::Menu() :
                                            appInstance->getWebcam()->getGrabber(),
                                            SLOT(setDepthOnly(bool)));
     
+    addCheckableActionToQMenuAndActionHash(developerMenu,
+                                           MenuOption::Faceshift,
+                                           0,
+                                           false,
+                                           appInstance->getFaceshift(),
+                                           SLOT(setEnabled(bool)));
+                                           
     QMenu* audioDebugMenu = developerMenu->addMenu("Audio Debugging Tools");
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::EchoAudio);
     addActionToQMenuAndActionHash(audioDebugMenu,

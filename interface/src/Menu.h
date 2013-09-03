@@ -133,6 +133,7 @@ namespace MenuOption {
     const QString ExportVoxels = "Export Voxels";
     const QString HeadMouse = "Head Mouse";
     const QString FaceMode = "Cycle Face Mode";
+    const QString Faceshift = "Faceshift";
     const QString FalseColorByDistance = "FALSE Color By Distance";
     const QString FalseColorBySource = "FALSE Color By Source";
     const QString FalseColorEveryOtherVoxel = "FALSE Color Every Other Randomly";
