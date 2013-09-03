@@ -115,6 +115,10 @@ void VoxelSystem::clearFreeBufferIndexes() {
 }
 
 VoxelSystem::~VoxelSystem() {
+    glDeleteBuffers(1, &_vboVerticesID);
+    glDeleteBuffers(1, &_vboNormalsID);
+    glDeleteBuffers(1, &_vboColorsID);
+    glDeleteBuffers(1, &_vboIndicesID);
     delete[] _readVerticesArray;
     delete[] _writeVerticesArray;
     delete[] _readColorsArray;
@@ -416,7 +420,7 @@ int VoxelSystem::newTreeToArrays(VoxelNode* node) {
     bool  shouldRender    = false; // assume we don't need to render it
     // if it's colored, we might need to render it!
     shouldRender = node->calculateShouldRender(_viewFrustum);
-    
+
     node->setShouldRender(shouldRender);
     // let children figure out their renderness
     if (!node->isLeaf()) {
@@ -625,6 +629,18 @@ void VoxelSystem::init() {
     _perlinModulateProgram->bind();
     _perlinModulateProgram->setUniformValue("permutationNormalTexture", 0);
     _perlinModulateProgram->release();
+}
+
+void VoxelSystem::changeTree(VoxelTree* newTree) {
+    disconnect(_tree, 0, this, 0);
+
+    _tree = newTree;
+    _tree->setDirtyBit();
+
+    connect(_tree, SIGNAL(importSize(float,float,float)), SIGNAL(importSize(float,float,float)));
+    connect(_tree, SIGNAL(importProgress(int)), SIGNAL(importProgress(int)));
+
+    setupNewVoxelsForDrawing();
 }
 
 void VoxelSystem::updateFullVBOs() {

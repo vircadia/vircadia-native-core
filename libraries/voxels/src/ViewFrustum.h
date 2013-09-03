@@ -24,50 +24,50 @@ const float DEFAULT_KEYHOLE_RADIUS = 3.0f;
 class ViewFrustum {
 public:
     // setters for camera attributes
-    void setPosition        (const glm::vec3& p) { _position = p; };
-    void setOrientation     (const glm::quat& orientationAsQuaternion);
+    void setPosition(const glm::vec3& p) { _position = p; }
+    void setOrientation(const glm::quat& orientationAsQuaternion);
 
     // getters for camera attributes
-    const glm::vec3& getPosition()    const { return _position;    };
-    const glm::quat& getOrientation() const { return _orientation; };
-    const glm::vec3& getDirection()   const { return _direction;   };
-    const glm::vec3& getUp()          const { return _up;          };
-    const glm::vec3& getRight()       const { return _right;       };
+    const glm::vec3& getPosition() const { return _position; }
+    const glm::quat& getOrientation() const { return _orientation; }
+    const glm::vec3& getDirection() const { return _direction; }
+    const glm::vec3& getUp() const { return _up; }
+    const glm::vec3& getRight() const { return _right; }
 
     // setters for lens attributes
-    void setFieldOfView          ( float f )          { _fieldOfView          = f; };
-    void setAspectRatio          ( float a )          { _aspectRatio          = a; };
-    void setNearClip             ( float n )          { _nearClip             = n; };
-    void setFarClip              ( float f )          { _farClip              = f; };
-    void setEyeOffsetPosition    (const glm::vec3& p) { _eyeOffsetPosition    = p; };
-    void setEyeOffsetOrientation (const glm::quat& o) { _eyeOffsetOrientation = o; };
+    void setFieldOfView(float f) { _fieldOfView = f; }
+    void setAspectRatio(float a) { _aspectRatio = a; }
+    void setNearClip(float n) { _nearClip = n; }
+    void setFarClip(float f) { _farClip = f; }
+    void setEyeOffsetPosition(const glm::vec3& p) { _eyeOffsetPosition    = p; }
+    void setEyeOffsetOrientation(const glm::quat& o) { _eyeOffsetOrientation = o; }
 
     // getters for lens attributes
-    float getFieldOfView()                     const { return _fieldOfView;         };
-    float getAspectRatio()                     const { return _aspectRatio;         };
-    float getNearClip()                        const { return _nearClip;            };
-    float getFarClip()                         const { return _farClip;             };
-    const glm::vec3& getEyeOffsetPosition()    const { return _eyeOffsetPosition;   };
-    const glm::quat& getEyeOffsetOrientation() const { return _eyeOffsetOrientation;};
+    float getFieldOfView() const { return _fieldOfView; }
+    float getAspectRatio() const { return _aspectRatio; }
+    float getNearClip() const { return _nearClip; }
+    float getFarClip() const { return _farClip; }
+    const glm::vec3& getEyeOffsetPosition() const { return _eyeOffsetPosition; }
+    const glm::quat& getEyeOffsetOrientation() const { return _eyeOffsetOrientation; }
 
-    const glm::vec3& getOffsetPosition()    const { return _offsetPosition; };
-    const glm::vec3& getOffsetDirection()   const { return _offsetDirection;};
-    const glm::vec3& getOffsetUp()          const { return _offsetUp;       };
-    const glm::vec3& getOffsetRight()       const { return _offsetRight;    };
+    const glm::vec3& getOffsetPosition() const { return _offsetPosition; }
+    const glm::vec3& getOffsetDirection() const { return _offsetDirection; }
+    const glm::vec3& getOffsetUp() const { return _offsetUp; }
+    const glm::vec3& getOffsetRight() const { return _offsetRight; }
 
-    const glm::vec3& getFarTopLeft()        const { return _farTopLeft;     };  
-    const glm::vec3& getFarTopRight()       const { return _farTopRight;    };
-    const glm::vec3& getFarBottomLeft()     const { return _farBottomLeft;  };
-    const glm::vec3& getFarBottomRight()    const { return _farBottomRight; };
+    const glm::vec3& getFarTopLeft() const { return _farTopLeft; }
+    const glm::vec3& getFarTopRight() const { return _farTopRight; }
+    const glm::vec3& getFarBottomLeft() const { return _farBottomLeft; }
+    const glm::vec3& getFarBottomRight() const { return _farBottomRight; }
 
-    const glm::vec3& getNearTopLeft()       const { return _nearTopLeft;    };  
-    const glm::vec3& getNearTopRight()      const { return _nearTopRight;   };
-    const glm::vec3& getNearBottomLeft()    const { return _nearBottomLeft; };
-    const glm::vec3& getNearBottomRight()   const { return _nearBottomRight;};
+    const glm::vec3& getNearTopLeft() const { return _nearTopLeft; }
+    const glm::vec3& getNearTopRight() const { return _nearTopRight; }
+    const glm::vec3& getNearBottomLeft() const { return _nearBottomLeft; }
+    const glm::vec3& getNearBottomRight() const { return _nearBottomRight; }
 
     // get/set for keyhole attribute
-    void  setKeyholeRadius(float keyholdRadius)       { _keyholeRadius = keyholdRadius; };
-    float getKeyholeRadius()                    const { return _keyholeRadius;          };
+    void  setKeyholeRadius(float keyholdRadius) { _keyholeRadius = keyholdRadius; }
+    float getKeyholeRadius() const { return _keyholeRadius; }
 
     void calculate();
 
@@ -81,7 +81,7 @@ public:
     
     // some frustum comparisons
     bool matches(const ViewFrustum& compareTo, bool debug = false) const;
-    bool matches(const ViewFrustum* compareTo, bool debug = false) const { return matches(*compareTo, debug); };
+    bool matches(const ViewFrustum* compareTo, bool debug = false) const { return matches(*compareTo, debug); }
 
     void computePickRay(float x, float y, glm::vec3& origin, glm::vec3& direction) const;
 
