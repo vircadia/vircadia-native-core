@@ -36,6 +36,8 @@ public slots:
 private slots:
 
     void connectSocket();
+    void noteConnected();
+    void noteError(QAbstractSocket::SocketError error);
     void readFromSocket();        
     
 private:

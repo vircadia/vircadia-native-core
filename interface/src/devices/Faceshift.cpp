@@ -6,13 +6,16 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
+#include <QTimer>
+
 #include "Faceshift.h"
 
 using namespace fs;
 
 Faceshift::Faceshift() : _enabled(false) {
+    connect(&_socket, SIGNAL(connected()), SLOT(noteConnected()));
+    connect(&_socket, SIGNAL(error(QAbstractSocket::SocketError)), SLOT(noteError(QAbstractSocket::SocketError)));
     connect(&_socket, SIGNAL(readyRead()), SLOT(readFromSocket()));
-    connect(&_socket, SIGNAL(error(QAbstractSocket::SocketError)), SLOT(connectSocket()));
 }
 
 void Faceshift::setEnabled(bool enabled) {
@@ -26,8 +29,23 @@ void Faceshift::setEnabled(bool enabled) {
 
 void Faceshift::connectSocket() {
     if (_enabled) {
+        qDebug("Faceshift: Connecting...\n");
+    
         const quint16 FACESHIFT_PORT = 33433;
         _socket.connectToHost("localhost", FACESHIFT_PORT);
+    }
+}
+
+void Faceshift::noteConnected() {
+    qDebug("Faceshift: Connected.\n");
+}
+
+void Faceshift::noteError(QAbstractSocket::SocketError error) {
+    qDebug() << "Faceshift: " << _socket.errorString() << "\n";
+    
+    // reconnect after a delay
+    if (_enabled) {
+        QTimer::singleShot(1000, this, SLOT(connectSocket()));
     }
 }
 
