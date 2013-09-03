@@ -8,6 +8,7 @@ project(${TARGET_NAME})
 
 # setup for find modules
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../cmake/modules/")
+set(FACESHIFT_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/faceshift)
 set(LIBOVR_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/LibOVR)
 set(LIBVPX_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/LibVPX)
 set(LEAP_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/Leap)
@@ -90,6 +91,7 @@ link_hifi_library(avatars ${TARGET_NAME} ${ROOT_DIR})
 link_hifi_library(audio ${TARGET_NAME} ${ROOT_DIR})
 
 # find required libraries
+find_package(Faceshift)
 find_package(GLM REQUIRED)
 find_package(LibOVR)
 find_package(LibVPX)
@@ -120,6 +122,7 @@ include_directories(
 # use system flag so warnings are supressed
 include_directories(
   SYSTEM
+  ${FACESHIFT_INCLUDE_DIRS} 
   ${GLM_INCLUDE_DIRS} 
   ${LIBOVR_INCLUDE_DIRS}
   ${LIBVPX_INCLUDE_DIRS}
@@ -131,6 +134,7 @@ include_directories(
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${OPENCV_INCLUDE_DIRS}")
 target_link_libraries(
   ${TARGET_NAME}
+  ${FACESHIFT_LIBRARIES}
   ${LIBVPX_LIBRARIES}
   ${MOTIONDRIVER_LIBRARIES}
   ${OPENCV_LIBRARIES} 
