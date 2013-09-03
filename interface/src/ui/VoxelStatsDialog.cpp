@@ -53,6 +53,12 @@ VoxelStatsDialog::VoxelStatsDialog(QWidget* parent, VoxelSceneStats* model) :
     }
 }
 
+VoxelStatsDialog::~VoxelStatsDialog() {
+    for (int i = 0; i <(int)VoxelSceneStats::ITEM_COUNT; ++i) {
+        delete _labels[i];
+    }
+}
+
 void VoxelStatsDialog::paintEvent(QPaintEvent* event) {
 
     // Update labels

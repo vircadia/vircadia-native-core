@@ -51,8 +51,12 @@ GLubyte identityIndices[] = { 0,2,1,    0,3,2,    // Z-
                               10,11,15, 10,15,14, // Y+
                               4,5,6,    4,6,7 };  // Z+
 
-VoxelSystem::VoxelSystem(float treeScale, int maxVoxels) :
-        NodeData(NULL), _treeScale(treeScale), _maxVoxels(maxVoxels) {
+VoxelSystem::VoxelSystem(float treeScale, int maxVoxels)
+    : NodeData(NULL),
+      _treeScale(treeScale),
+      _maxVoxels(maxVoxels),
+      _initialized(false) {
+
     _voxelsInReadArrays = _voxelsInWriteArrays = _voxelsUpdated = 0;
     _writeRenderFullVBO = true;
     _readRenderFullVBO = true;
@@ -115,21 +119,24 @@ void VoxelSystem::clearFreeBufferIndexes() {
 }
 
 VoxelSystem::~VoxelSystem() {
-    delete[] _readVerticesArray;
-    delete[] _writeVerticesArray;
-    delete[] _readColorsArray;
-    delete[] _writeColorsArray;
-    delete[] _writeVoxelDirtyArray;
-    delete[] _readVoxelDirtyArray;
+    if (_initialized) {
+        // Destroy  glBuffers
+        glDeleteBuffers(1, &_vboVerticesID);
+        glDeleteBuffers(1, &_vboNormalsID);
+        glDeleteBuffers(1, &_vboColorsID);
+        glDeleteBuffers(1, &_vboIndicesID);
+
+        delete[] _readVerticesArray;
+        delete[] _writeVerticesArray;
+        delete[] _readColorsArray;
+        delete[] _writeColorsArray;
+        delete[] _writeVoxelDirtyArray;
+        delete[] _readVoxelDirtyArray;
+    }
+
     delete _tree;
     pthread_mutex_destroy(&_bufferWriteLock);
     pthread_mutex_destroy(&_treeLock);
-
-    // Destroy  glBuffers
-    glDeleteBuffers(1, &_vboVerticesID);
-    glDeleteBuffers(1, &_vboNormalsID);
-    glDeleteBuffers(1, &_vboColorsID);
-    glDeleteBuffers(1, &_vboIndicesID);
 
     VoxelNode::removeDeleteHook(this);
 }
@@ -639,6 +646,7 @@ void VoxelSystem::init() {
 
         _perlinModulateProgramInitialized = true;
     }
+    _initialized = true;
 }
 
 void VoxelSystem::updateFullVBOs() {

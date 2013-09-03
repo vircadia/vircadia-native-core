@@ -38,6 +38,12 @@ BandwidthDialog::BandwidthDialog(QWidget* parent, BandwidthMeter* model) :
     }
 }
 
+BandwidthDialog::~BandwidthDialog() {
+    for (int i = 0; i < BandwidthMeter::N_STREAMS; ++i) {
+        delete _labels[i];
+    }
+}
+
 void BandwidthDialog::paintEvent(QPaintEvent* event) {
 
     // Update labels
