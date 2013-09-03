@@ -1611,8 +1611,10 @@ bool VoxelTree::readFromSquareARGB32Pixels(const char* filename) {
 
     QImage pngImage = QImage(filename);
 
-    for (int x = 0; x < pngImage.width() * pngImage.height(); ++x) {
-        minAlpha = std::min(qAlpha(pngImage.color(x)) , minAlpha);
+    for (int i = 0; i < pngImage.width(); ++i) {
+        for (int j = 0; j < pngImage.height(); ++j) {
+            minAlpha = std::min(qAlpha(pngImage.pixel(i, j)) , minAlpha);
+        }
     }
 
     int maxSize = std::max(pngImage.width(), pngImage.height());
