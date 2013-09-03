@@ -97,6 +97,10 @@ Head::Head(Avatar* owningAvatar) :
     }
 }
 
+Head::~Head() {
+    glDeleteTextures(1, &_irisTextureID);
+}
+
 void Head::init() {
     if (!_irisProgramInitialized) {
         switchToResourcesParentIfRequired();

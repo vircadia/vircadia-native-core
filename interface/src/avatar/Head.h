@@ -38,6 +38,7 @@ class ProgramObject;
 class Head : public HeadData {
 public:
     Head(Avatar* owningAvatar);
+    ~Head();
     
     void init();
     void reset();
