@@ -333,16 +333,25 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter, float gyroCam
 //  Update avatar head rotation with sensor data
 void MyAvatar::updateFromGyrosAndOrWebcam(bool gyroLook,
                                           float pitchFromTouch) {
+    Faceshift* faceshift = Application::getInstance()->getFaceshift();
     SerialInterface* gyros = Application::getInstance()->getSerialHeadSensor();
     Webcam* webcam = Application::getInstance()->getWebcam();
     glm::vec3 estimatedPosition, estimatedRotation;
-    if (gyros->isActive()) {
+    
+    if (faceshift->isActive()) {
+        estimatedPosition = faceshift->getHeadTranslation();
+        estimatedRotation = safeEulerAngles(faceshift->getHeadRotation());
+    
+    } else if (gyros->isActive()) {
         estimatedRotation = gyros->getEstimatedRotation();
+    
     } else if (webcam->isActive()) {
         estimatedRotation = webcam->getEstimatedRotation();
+    
     } else if (_leadingAvatar) {
         _head.getFace().clearFrame();
         return;
+    
     } else {
         _head.setMousePitch(pitchFromTouch);
         _head.setPitch(pitchFromTouch);
