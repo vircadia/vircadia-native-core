@@ -195,7 +195,7 @@ ImportDialog::~ImportDialog() {
 
 void ImportDialog::init() {
     VoxelSystem* voxelSystem = Application::getInstance()->getSharedVoxelSystem();
-    connect(voxelSystem, SIGNAL(importSize(float,float,float)), SLOT(setGLCamera(float, float, float)));
+    connect(voxelSystem, SIGNAL(importSize(float,float,float)), SLOT(setGLCamera(float,float,float)));
     connect(voxelSystem, SIGNAL(importProgress(int)), &_previewBar, SLOT(setValue(int)));
 }
 

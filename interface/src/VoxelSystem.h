@@ -44,11 +44,11 @@ public:
     void render(bool texture);
 
     void changeTree(VoxelTree* newTree);
-    VoxelTree* getTree() const {return _tree;}
-    ViewFrustum* getViewFrustum() const {return _viewFrustum;}
-    void setViewFrustum(ViewFrustum* viewFrustum) {_viewFrustum = viewFrustum;}
-    unsigned long  getVoxelsUpdated() const {return _voxelsUpdated;};
-    unsigned long  getVoxelsRendered() const {return _voxelsInReadArrays;};
+    VoxelTree* getTree() const { return _tree; }
+    ViewFrustum* getViewFrustum() const { return _viewFrustum; }
+    void setViewFrustum(ViewFrustum* viewFrustum) { _viewFrustum = viewFrustum; }
+    unsigned long  getVoxelsUpdated() const { return _voxelsUpdated; }
+    unsigned long  getVoxelsRendered() const { return _voxelsInReadArrays; }
 
     void loadVoxelsFile(const char* fileName,bool wantColorRandomizer);
     void writeToSVOFile(const char* filename, VoxelNode* node) const;
