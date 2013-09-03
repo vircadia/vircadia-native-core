@@ -34,13 +34,13 @@ public:
     VoxelSystem(float treeScale = TREE_SCALE, int maxVoxels = MAX_VOXELS_PER_SYSTEM);
     ~VoxelSystem();
 
-    void setDataSourceID(int dataSourceID) { _dataSourceID = dataSourceID; };
-    int  getDataSourceID() const { return _dataSourceID; };
+    void setDataSourceID(int dataSourceID) { _dataSourceID = dataSourceID; }
+    int  getDataSourceID() const { return _dataSourceID; }
     
     int parseData(unsigned char* sourceBuffer, int numBytes);
     
     virtual void init();
-    void simulate(float deltaTime) { };
+    void simulate(float deltaTime) { }
     void render(bool texture);
 
     void changeTree(VoxelTree* newTree);

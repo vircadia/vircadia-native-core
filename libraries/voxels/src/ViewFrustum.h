@@ -81,7 +81,7 @@ public:
     
     // some frustum comparisons
     bool matches(const ViewFrustum& compareTo, bool debug = false) const;
-    bool matches(const ViewFrustum* compareTo, bool debug = false) const { return matches(*compareTo, debug); };
+    bool matches(const ViewFrustum* compareTo, bool debug = false) const { return matches(*compareTo, debug); }
 
     void computePickRay(float x, float y, glm::vec3& origin, glm::vec3& direction) const;
 
