@@ -423,6 +423,7 @@ void ViewFrustum::printDebugDetails() const {
     qDebug("_right=%f,%f,%f\n", _right.x, _right.y, _right.z );
     qDebug("_fieldOfView=%f\n", _fieldOfView);
     qDebug("_aspectRatio=%f\n", _aspectRatio);
+    qDebug("_keyHoleRadius=%f\n", _keyholeRadius);
     qDebug("_nearClip=%f\n", _nearClip);
     qDebug("_farClip=%f\n", _farClip);
     qDebug("_eyeOffsetPosition=%f,%f,%f\n",  _eyeOffsetPosition.x, _eyeOffsetPosition.y, _eyeOffsetPosition.z );

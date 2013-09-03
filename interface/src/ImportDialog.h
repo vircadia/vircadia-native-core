@@ -23,14 +23,15 @@ class GLWidget;
 class ImportDialog : public QFileDialog {
     Q_OBJECT
 public:
-    ImportDialog(QWidget* parent = NULL, VoxelSystem* voxelSystem = NULL);
+    ImportDialog(QWidget* parent = NULL);
     ~ImportDialog();
+
+    void init();
+    void reset();
 
     bool getWantPreview() const { return _previewBox.isChecked(); }
     QString getCurrentFile() const { return _currentFile; }
     bool getImportIntoClipboard() const { return _clipboardImportBox.isChecked(); }
-
-    void reset();
 
 signals:
     void previewToggled(bool);

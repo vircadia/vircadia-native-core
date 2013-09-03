@@ -112,6 +112,8 @@ public:
     Camera* getCamera() { return &_myCamera; }
     ViewFrustum* getViewFrustum() { return &_viewFrustum; }
     VoxelSystem* getVoxels() { return &_voxels; }
+    VoxelSystem* getSharedVoxelSystem() { return &_sharedVoxelSystem; }
+    VoxelTree* getClipboard() { return &_clipboard; }
     Environment* getEnvironment() { return &_environment; }
     SerialInterface* getSerialHeadSensor() { return &_serialHeadSensor; }
     Webcam* getWebcam() { return &_webcam; }
@@ -238,10 +240,11 @@ private:
 
     Stars _stars;
     
-    VoxelSystem   _voxels;
-    VoxelSystem   _clipboard; // if I copy/paste
-    ViewFrustum   _clipboardViewFrustum;
+    VoxelSystem _voxels;
+    VoxelTree _clipboard; // if I copy/paste
     VoxelImporter _voxelImporter;
+    VoxelSystem _sharedVoxelSystem;
+    ViewFrustum _sharedVoxelSystemViewFrustum;
 
     QByteArray _voxelsFilename;
     bool _wantToKillLocalVoxels;
