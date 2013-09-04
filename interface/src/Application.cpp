@@ -1518,7 +1518,17 @@ void Application::update(float deltaTime) {
     // Set where I am looking based on my mouse ray (so that other people can see)
     glm::vec3 lookAtSpot;
 
-    _isLookingAtOtherAvatar = isLookingAtOtherAvatar(mouseRayOrigin, mouseRayDirection, lookAtSpot);
+    // if we have faceshift, use that to compute the lookat direction
+    glm::vec3 lookAtRayOrigin = mouseRayOrigin, lookAtRayDirection = mouseRayDirection;
+    if (_faceshift.isActive()) {
+        lookAtRayOrigin = _myAvatar.getHead().calculateAverageEyePosition();
+        float averagePitch = (_faceshift.getEyeGazeLeftPitch() + _faceshift.getEyeGazeRightPitch()) / 2.0f;
+        float averageYaw = (_faceshift.getEyeGazeLeftYaw() + _faceshift.getEyeGazeRightYaw()) / 2.0f;
+        lookAtRayDirection = _myAvatar.getHead().getOrientation() *
+            glm::quat(glm::vec3(averagePitch, averageYaw, 0.0f)) * glm::vec3(0.0f, 0.0f, -1.0f);
+    }
+
+    _isLookingAtOtherAvatar = isLookingAtOtherAvatar(lookAtRayOrigin, lookAtRayDirection, lookAtSpot);
     if (_isLookingAtOtherAvatar) {
         // If the mouse is over another avatar's head...
          _myAvatar.getHead().setLookAtPosition(lookAtSpot);
