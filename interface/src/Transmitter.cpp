@@ -29,6 +29,12 @@ Transmitter::Transmitter() :
     
 }
 
+Transmitter::~Transmitter() {
+    if (_lastReceivedPacket) {
+        delete _lastReceivedPacket;
+    }
+}
+
 void Transmitter::checkForLostTransmitter() {
     //  If we are in motion, check for loss of transmitter packets
     if (glm::length(_estimatedRotation) > 0.f) {

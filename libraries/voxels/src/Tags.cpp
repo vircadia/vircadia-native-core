@@ -108,6 +108,10 @@ TagList::TagList(std::stringstream &ss) :
     }
 }
 
+TagList::~TagList() {
+    _data.clear();
+}
+
 TagCompound::TagCompound(std::stringstream &ss) :
     Tag(TAG_Compound, ss),
     _size(0),
@@ -143,6 +147,10 @@ TagCompound::TagCompound(std::stringstream &ss) :
             }
         }
     }
+}
+
+TagCompound::~TagCompound() {
+    _data.clear();
 }
 
 TagIntArray::TagIntArray(std::stringstream &ss) : Tag(TAG_Int_Array, ss) {

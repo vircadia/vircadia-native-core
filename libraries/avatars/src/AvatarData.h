@@ -78,11 +78,11 @@ public:
 
     
     //  Hand State
-    void setHandState(char s) { _handState = s; };
-    char getHandState() const {return _handState; };
+    void setHandState(char s) { _handState = s; }
+    char getHandState() const {return _handState; }
     
     // getters for camera details
-    const glm::vec3& getCameraPosition() const { return _cameraPosition; };
+    const glm::vec3& getCameraPosition() const { return _cameraPosition; }
     const glm::quat& getCameraOrientation() const { return _cameraOrientation; }
     float getCameraFov() const { return _cameraFov; }
     float getCameraAspectRatio() const { return _cameraAspectRatio; }

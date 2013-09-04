@@ -79,6 +79,7 @@ private:
     static Menu* _instance;
     
     Menu();
+    ~Menu();
     
     typedef void(*settingsAction)(QSettings*, QAction*);
     static void loadAction(QSettings* set, QAction* action);

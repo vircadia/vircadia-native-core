@@ -18,7 +18,7 @@ public:
     PointerStack() : 
         _elements(NULL),
         _elementsInUse(0),
-        _sizeOfElementsArray(0) {};
+        _sizeOfElementsArray(0) {}
         
     ~PointerStack();
     
@@ -28,7 +28,7 @@ public:
         }
         _elements[_elementsInUse] = element;
         _elementsInUse++;
-    };
+    }
  
     void* pop() {
         if (_elementsInUse) {
@@ -39,14 +39,14 @@ public:
             return element;
         }
         return NULL;
-    };
+    }
 
 
     void* top() const { return (_elementsInUse) ? _elements[_elementsInUse - 1] : NULL; }    
-    bool isEmpty() const { return (_elementsInUse == 0); };
-    bool empty() const { return (_elementsInUse == 0); };
-    int count() const { return _elementsInUse; };
-    int size() const { return _elementsInUse; };
+    bool isEmpty() const { return (_elementsInUse == 0); }
+    bool empty() const { return (_elementsInUse == 0); }
+    int count() const { return _elementsInUse; }
+    int size() const { return _elementsInUse; }
 
 private:
     void growAndPush(void* element);

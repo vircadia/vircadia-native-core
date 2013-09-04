@@ -158,10 +158,10 @@ public:
     int encodeTreeBitstream(VoxelNode* node, unsigned char* outputBuffer, int availableBytes, VoxelNodeBag& bag, 
                             EncodeBitstreamParams& params) ;
 
-    bool isDirty() const { return _isDirty; };
-    void clearDirtyBit() { _isDirty = false; };
-    void setDirtyBit() { _isDirty = true; };
-    unsigned long int getNodesChangedFromBitstream() const { return _nodesChangedFromBitstream; };
+    bool isDirty() const { return _isDirty; }
+    void clearDirtyBit() { _isDirty = false; }
+    void setDirtyBit() { _isDirty = true; }
+    unsigned long int getNodesChangedFromBitstream() const { return _nodesChangedFromBitstream; }
 
     bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                              VoxelNode*& node, float& distance, BoxFace& face);

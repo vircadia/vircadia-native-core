@@ -27,8 +27,8 @@ public:
     bool contains(VoxelNode* node); // is this node in the bag?
     void remove(VoxelNode* node); // remove a specific item from the bag
     
-    bool isEmpty() const { return (_elementsInUse == 0); };
-    int count() const { return _elementsInUse; };
+    bool isEmpty() const { return (_elementsInUse == 0); }
+    int count() const { return _elementsInUse; }
 
     void deleteAll();
 

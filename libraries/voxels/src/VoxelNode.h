@@ -34,8 +34,8 @@ public:
     VoxelNode(unsigned char * octalCode); // regular constructor
     ~VoxelNode();
     
-    unsigned char* getOctalCode() const { return _octalCode; };
-    VoxelNode* getChildAtIndex(int childIndex) const { return _children[childIndex]; };
+    unsigned char* getOctalCode() const { return _octalCode; }
+    VoxelNode* getChildAtIndex(int childIndex) const { return _children[childIndex]; }
     void deleteChildAtIndex(int childIndex);
     VoxelNode* removeChildAtIndex(int childIndex);
     VoxelNode* addChildAtIndex(int childIndex);
@@ -45,15 +45,15 @@ public:
     void setRandomColor(int minimumBrightness);
     bool collapseIdenticalLeaves();
 
-    const AABox& getAABox() const { return _box; };
-    const glm::vec3& getCenter() const { return _box.getCenter(); };
-    const glm::vec3& getCorner() const { return _box.getCorner(); };
-    float getScale() const { return _box.getSize().x;  /* voxelScale = (1 / powf(2, *node->getOctalCode())); */ };
-    int getLevel() const { return *_octalCode + 1; /* one based or zero based? this doesn't correctly handle 2 byte case */ };
+    const AABox& getAABox() const { return _box; }
+    const glm::vec3& getCenter() const { return _box.getCenter(); }
+    const glm::vec3& getCorner() const { return _box.getCorner(); }
+    float getScale() const { return _box.getSize().x; } // voxelScale = (1 / powf(2, *node->getOctalCode())); }
+    int getLevel() const { return *_octalCode + 1; } // one based or zero based? this doesn't correctly handle 2 byte case
     
     float getEnclosingRadius() const;
     
-    bool isColored() const { return (_trueColor[3]==1); }; 
+    bool isColored() const { return (_trueColor[3]==1); }
     bool isInView(const ViewFrustum& viewFrustum) const; 
     ViewFrustum::location inFrustum(const ViewFrustum& viewFrustum) const;
     float distanceToCamera(const ViewFrustum& viewFrustum) const; 
@@ -68,18 +68,18 @@ public:
     bool isLeaf() const { return _childCount == 0; }
     int getChildCount() const { return _childCount; }
     void printDebugDetails(const char* label) const;
-    bool isDirty() const { return _isDirty; };
-    void clearDirtyBit() { _isDirty = false; };
-    bool hasChangedSince(uint64_t time) const { return (_lastChanged > time);  };
-    void markWithChangedTime() { _lastChanged = usecTimestampNow();  };
-    uint64_t getLastChanged() const { return _lastChanged; };
+    bool isDirty() const { return _isDirty; }
+    void clearDirtyBit() { _isDirty = false; }
+    bool hasChangedSince(uint64_t time) const { return (_lastChanged > time);  }
+    void markWithChangedTime() { _lastChanged = usecTimestampNow();  }
+    uint64_t getLastChanged() const { return _lastChanged; }
     void handleSubtreeChanged(VoxelTree* myTree);
     
-    glBufferIndex getBufferIndex() const { return _glBufferIndex; };
-    bool isKnownBufferIndex() const { return (_glBufferIndex != GLBUFFER_INDEX_UNKNOWN); };
-    void setBufferIndex(glBufferIndex index) { _glBufferIndex = index; };
-    VoxelSystem* getVoxelSystem() const { return _voxelSystem; };
-    void setVoxelSystem(VoxelSystem* voxelSystem) { _voxelSystem = voxelSystem; };
+    glBufferIndex getBufferIndex() const { return _glBufferIndex; }
+    bool isKnownBufferIndex() const { return (_glBufferIndex != GLBUFFER_INDEX_UNKNOWN); }
+    void setBufferIndex(glBufferIndex index) { _glBufferIndex = index; }
+    VoxelSystem* getVoxelSystem() const { return _voxelSystem; }
+    void setVoxelSystem(VoxelSystem* voxelSystem) { _voxelSystem = voxelSystem; }
     
 
     // Used by VoxelSystem for rendering in/out of view and LOD
@@ -89,10 +89,10 @@ public:
 #ifndef NO_FALSE_COLOR // !NO_FALSE_COLOR means, does have false color
     void setFalseColor(colorPart red, colorPart green, colorPart blue);
     void setFalseColored(bool isFalseColored);
-    bool getFalseColored() { return _falseColored; };
+    bool getFalseColored() { return _falseColored; }
     void setColor(const nodeColor& color);
-    const nodeColor& getTrueColor() const { return _trueColor; };
-    const nodeColor& getColor() const { return _currentColor; };
+    const nodeColor& getTrueColor() const { return _trueColor; }
+    const nodeColor& getColor() const { return _currentColor; }
 #else
     void setFalseColor(colorPart red, colorPart green, colorPart blue) { /* no op */ };
     void setFalseColored(bool isFalseColored) { /* no op */ };
@@ -103,18 +103,18 @@ public:
     const nodeColor& getColor() const { return _trueColor; };
 #endif
 
-    void     setDensity(float density)            { _density = density;   };
-    float    getDensity()                   const { return _density;      };
-    void     setSourceID(uint16_t sourceID)       { _sourceID = sourceID; };
-    uint16_t getSourceID()                  const { return _sourceID;     };
+    void     setDensity(float density)            { _density = density;   }
+    float    getDensity()                   const { return _density;      }
+    void     setSourceID(uint16_t sourceID)       { _sourceID = sourceID; }
+    uint16_t getSourceID()                  const { return _sourceID;     }
 
     static void addDeleteHook(VoxelNodeDeleteHook* hook);
     static void removeDeleteHook(VoxelNodeDeleteHook* hook);
     
     void recalculateSubTreeNodeCount();
-    unsigned long getSubTreeNodeCount()         const { return _subtreeNodeCount; };
-    unsigned long getSubTreeInternalNodeCount() const { return _subtreeNodeCount - _subtreeLeafNodeCount; };
-    unsigned long getSubTreeLeafNodeCount()     const { return _subtreeLeafNodeCount; };
+    unsigned long getSubTreeNodeCount()         const { return _subtreeNodeCount; }
+    unsigned long getSubTreeInternalNodeCount() const { return _subtreeNodeCount - _subtreeLeafNodeCount; }
+    unsigned long getSubTreeLeafNodeCount()     const { return _subtreeLeafNodeCount; }
 
 private:
     void calculateAABox();
