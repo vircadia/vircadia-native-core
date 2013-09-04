@@ -35,20 +35,28 @@ int main(int argc, const char* argv[]) {
     while (true) {
         if (serverSocket.receive((sockaddr*) &senderSocket, &senderData, &receivedBytes)) {
             if (senderData[0] == PACKET_TYPE_REQUEST_ASSIGNMENT) {
-                qDebug() << "Assignment request received.\n";
+                // construct the requested assignment from the packet data
+                int numHeaderBytes = numBytesForPacketHeader(senderData);
+                Assignment requestAssignment(senderData + numHeaderBytes, receivedBytes - numHeaderBytes);
+                
                 
                 // grab the first assignment in the queue, if it exists
                 if (assignmentQueue.size() > 0) {
                     Assignment firstAssignment = assignmentQueue.front();
-                    assignmentQueue.pop();
                     
-                    int numAssignmentBytes = firstAssignment.packToBuffer(assignmentPacket + numSendHeaderBytes);
-                    
-                    // send the assignment
-                    serverSocket.send((sockaddr*) &senderSocket, assignmentPacket, numSendHeaderBytes + numAssignmentBytes);
+                    // make sure there is a pool match for the created and requested assignment
+                    if (firstAssignment.getPool() && requestAssignment.getPool()
+                        && strcmp(firstAssignment.getPool(), requestAssignment.getPool())) {
+                        assignmentQueue.pop();
+                        
+                        int numAssignmentBytes = firstAssignment.packToBuffer(assignmentPacket + numSendHeaderBytes);
+                        
+                        // send the assignment
+                        serverSocket.send((sockaddr*) &senderSocket, assignmentPacket, numSendHeaderBytes + numAssignmentBytes);
+                    }
                 }
             } else if (senderData[0] == PACKET_TYPE_CREATE_ASSIGNMENT && packetVersionMatch(senderData)) {
-                // memcpy the sent assignment
+                // construct the create assignment from the packet data
                 int numHeaderBytes = numBytesForPacketHeader(senderData);
                 Assignment createdAssignment(senderData + numHeaderBytes, receivedBytes - numHeaderBytes);
                 
