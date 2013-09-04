@@ -33,7 +33,8 @@ class Audio : public QObject {
 public:
     // initializes audio I/O
     Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples);
-    ~Audio();
+    
+    void shutdown();
 
     void reset(); 
     void render(int screenWidth, int screenHeight);
