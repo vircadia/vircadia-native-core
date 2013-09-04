@@ -13,7 +13,6 @@
 
 #include <NodeList.h>
 #include <NodeTypes.h>
-#include <OculusManager.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
 
@@ -23,6 +22,7 @@
 #include "Head.h"
 #include "Physics.h"
 #include "world.h"
+#include "devices/OculusManager.h"
 #include "ui/TextRenderer.h"
 
 using namespace std;

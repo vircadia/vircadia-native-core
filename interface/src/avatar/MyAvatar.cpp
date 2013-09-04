@@ -6,20 +6,19 @@
 //  Copyright (c) 2012 High Fidelity, Inc. All rights reserved.
 //
 
-#include "MyAvatar.h"
-
 #include <vector>
 
 #include <glm/gtx/vector_angle.hpp>
 
 #include <NodeList.h>
 #include <NodeTypes.h>
-#include <OculusManager.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
 
 #include "Application.h"
+#include "MyAvatar.h"
 #include "Physics.h"
+#include "devices/OculusManager.h"
 #include "ui/TextRenderer.h"
 
 using namespace std;

@@ -58,13 +58,13 @@
 
 #include "Application.h"
 #include "LogDisplay.h"
-#include "LeapManager.h"
 #include "Menu.h"
-#include "OculusManager.h"
+#include "Swatch.h"
 #include "Util.h"
+#include "devices/LeapManager.h"
+#include "devices/OculusManager.h"
 #include "renderer/ProgramObject.h"
 #include "ui/TextRenderer.h"
-#include "Swatch.h"
 
 using namespace std;
 

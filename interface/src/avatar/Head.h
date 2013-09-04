@@ -17,11 +17,11 @@
 
 #include <VoxelConstants.h>
 
-#include "Face.h"
 #include "BendyLine.h"
+#include "Face.h"
 #include "InterfaceConfig.h"
-#include "SerialInterface.h"
 #include "world.h"
+#include "devices/SerialInterface.h"
 
 enum eyeContactTargets {
     LEFT_EYE, 
