@@ -87,7 +87,7 @@ int main(int argc, char* const argv[])
     
     // loop the parameters to see if we were passed a pool for assignment
     int parameter = -1;
-    const char ALLOWED_PARAMETERS[] = "p::";
+    const char ALLOWED_PARAMETERS[] = "p::-local::";
     const char POOL_PARAMETER_CHAR = 'p';
     
     char* assignmentPool = NULL;
@@ -97,7 +97,7 @@ int main(int argc, char* const argv[])
             // copy the passed assignment pool
             int poolLength = strlen(optarg);
             assignmentPool = new char[poolLength + sizeof(char)];
-            memcpy(assignmentPool, optarg, poolLength + sizeof(char));
+            strcpy(assignmentPool, optarg);
         }
     }
     

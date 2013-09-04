@@ -50,7 +50,7 @@ int main(int argc, const char* argv[]) {
                 }
             } else if (senderData[0] == PACKET_TYPE_CREATE_ASSIGNMENT && packetVersionMatch(senderData)) {
                 // memcpy the sent assignment
-                Assignment createdAssignment(senderData + numBytesForPacketHeader(PACKET_TYPE_CREATE_ASSIGNMENT));
+                Assignment createdAssignment(senderData + numBytesForPacketHeader(senderData));
                 
                 qDebug() << "Received an assignment:" << createdAssignment;
                 

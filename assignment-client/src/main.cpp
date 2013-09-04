@@ -39,7 +39,7 @@ int main(int argc, char* const argv[]) {
             // copy the passed assignment pool
             int poolLength = strlen(optarg);
             assignmentPool = new char[poolLength + sizeof(char)];
-            memcpy(assignmentPool, optarg, poolLength + sizeof(char));
+            strcpy(assignmentPool, optarg);
         }
     }
     

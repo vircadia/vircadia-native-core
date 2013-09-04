@@ -31,7 +31,7 @@ public:
     Assignment::Type getType() const { return _type; }
     const char* getPool() const { return _pool; }
     
-    int packAssignmentToBuffer(unsigned char* buffer);
+    int packToBuffer(unsigned char* buffer);
     
 private:
     Assignment::Direction _direction;

@@ -18,7 +18,7 @@ Assignment::Assignment(Assignment::Direction direction, Assignment::Type type, c
         
         // create the char array and make it large enough for string and null termination
         _pool = new char[poolLength + sizeof(char)];
-        memcpy(_pool, pool, poolLength + 1);
+        strcpy(_pool, pool);
     }
 }
 
@@ -33,25 +33,25 @@ Assignment::Assignment(const unsigned char* dataBuffer) {
     
     int poolLength = strlen((const char*) dataBuffer + numBytesRead);
     _pool = new char[poolLength + sizeof(char)];
-    memcpy(_pool, dataBuffer + numBytesRead, poolLength + sizeof(char));
+    strcpy(_pool, (char*) dataBuffer + numBytesRead);
 }
 
-int Assignment::packAssignmentToBuffer(unsigned char* buffer) {
+int Assignment::packToBuffer(unsigned char* buffer) {
     int numPackedBytes = 0;
     
     memcpy(buffer, &_direction, sizeof(_direction));
     numPackedBytes += sizeof(_direction);
     
-    memcpy(buffer, &_type, sizeof(_type));
+    memcpy(buffer + numPackedBytes, &_type, sizeof(_type));
     numPackedBytes += sizeof(_type);
     
-    strcpy((char *)buffer, _pool);
+    strcpy((char*) buffer + numPackedBytes, _pool);
     numPackedBytes += strlen(_pool) + sizeof(char);
     
     return numPackedBytes;
 }
 
 QDebug operator<<(QDebug debug, const Assignment &assignment) {
-    debug << "T:" << assignment.getType() << "P" << assignment.getPool();
+    debug << "T:" << assignment.getType() << "P:" << assignment.getPool();
     return debug.nospace();
 }

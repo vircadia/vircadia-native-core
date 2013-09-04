@@ -379,9 +379,9 @@ void NodeList::sendAssignment(Assignment& assignment) {
         : PACKET_TYPE_REQUEST_ASSIGNMENT;
     
     int numHeaderBytes = populateTypeAndVersion(assignmentPacket, assignmentPacketType);
-    *(assignmentPacket + numHeaderBytes) = assignment.getType();
+    int numAssignmentBytes = assignment.packToBuffer(assignmentPacket + numHeaderBytes);
 
-    _nodeSocket.send((sockaddr*) &assignmentServerSocket, assignmentPacket, numHeaderBytes + sizeof(unsigned char));
+    _nodeSocket.send((sockaddr*) &assignmentServerSocket, assignmentPacket, numHeaderBytes + numAssignmentBytes);
 }
 
 Node* NodeList::addOrUpdateNode(sockaddr* publicSocket, sockaddr* localSocket, char nodeType, uint16_t nodeId) {
