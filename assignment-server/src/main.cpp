@@ -38,7 +38,6 @@ int main(int argc, const char* argv[]) {
                 // construct the requested assignment from the packet data
                 Assignment requestAssignment(senderData, receivedBytes);
                 
-                
                 // grab the first assignment in the queue, if it exists
                 if (assignmentQueue.size() > 0) {
                     Assignment firstAssignment = assignmentQueue.front();

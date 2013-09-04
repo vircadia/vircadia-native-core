@@ -28,7 +28,6 @@ const int MAX_NUM_NODES = 10000;
 const int NODES_PER_BUCKET = 100;
 
 const int MAX_PACKET_SIZE = 1500;
-const unsigned short int NODE_SOCKET_LISTEN_PORT = 40103;
 
 const int NODE_SILENCE_THRESHOLD_USECS = 2 * 1000000;
 const int DOMAIN_SERVER_CHECK_IN_USECS = 1 * 1000000;
@@ -56,7 +55,7 @@ public:
 
 class NodeList {
 public:
-    static NodeList* createInstance(char ownerType, unsigned short int socketListenPort = NODE_SOCKET_LISTEN_PORT);
+    static NodeList* createInstance(char ownerType, unsigned short int socketListenPort = 0);
     static NodeList* getInstance();
     
     typedef NodeListIterator iterator;
