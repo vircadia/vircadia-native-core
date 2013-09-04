@@ -91,7 +91,7 @@ int main(int argc, const char * argv[])
             // we don't have an audio mixer, and we know we need one
             // so tell that to the assignment server
     
-            Assignment mixerAssignment(Assignment::AudioMixer);
+            Assignment mixerAssignment(Assignment::Create, Assignment::AudioMixer);
             nodeList->sendAssignment(mixerAssignment);
         }
         

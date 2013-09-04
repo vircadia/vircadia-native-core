@@ -30,7 +30,7 @@ int main(int argc, const char* argv[]) {
     UDPSocket serverSocket(ASSIGNMENT_SERVER_PORT);
     
     unsigned char assignmentPacket[MAX_PACKET_SIZE_BYTES];
-    int numSendHeaderBytes = populateTypeAndVersion(assignmentPacket, PACKET_TYPE_SEND_ASSIGNMENT);
+    int numSendHeaderBytes = populateTypeAndVersion(assignmentPacket, PACKET_TYPE_CREATE_ASSIGNMENT);
     
     while (true) {
         if (serverSocket.receive((sockaddr*) &senderSocket, &senderData, &receivedBytes)) {
@@ -48,16 +48,16 @@ int main(int argc, const char* argv[]) {
                     // send the assignment
                     serverSocket.send((sockaddr*) &senderSocket, assignmentPacket, numSendHeaderBytes + sizeof(unsigned char));
                 }
-            } else if (senderData[0] == PACKET_TYPE_SEND_ASSIGNMENT && packetVersionMatch(senderData)) {
+            } else if (senderData[0] == PACKET_TYPE_CREATE_ASSIGNMENT && packetVersionMatch(senderData)) {
                 // assignment server is on a public server
                 // assume that the address we now have for the sender is the public address/port
                 // and store that with the assignment so it can be given to the requestor later
-                Assignment newAssignment((Assignment::Type) *(senderData + numBytesForPacketHeader(senderData)), senderSocket);
+//                Assignment newAssignment((Assignment::Type) *(senderData + numBytesForPacketHeader(senderData)), senderSocket);
                 
-                qDebug() << "Received assignment of type " << newAssignment.getType() << "\n";
+//                qDebug() << "Received assignment of type " << newAssignment.getType() << "\n";
                 
                 // add this assignment to the queue
-                assignmentQueue.push(newAssignment);
+//                assignmentQueue.push(newAssignment);
             }
         }
     }    

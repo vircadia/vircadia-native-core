@@ -15,17 +15,25 @@ class Assignment {
 public:
     
     enum Type {
-        AudioMixer
+        AudioMixer,
+        All
     };
     
-    Assignment(Assignment::Type type);
-    Assignment(Assignment::Type type, sockaddr_in& senderSocket);
+    enum Direction {
+        Create,
+        Request
+    };
     
+    Assignment(Assignment::Direction direction, Assignment::Type type, const char* pool = NULL);
+    
+    Assignment::Direction getDirection() const { return _direction; }
     Assignment::Type getType() const { return _type; }
+    const char* getPool() const { return _pool; }
     
 private:
+    Assignment::Direction _direction;
     Assignment::Type _type;
-    sockaddr_in _senderSocket;
+    const char* _pool;
 };
 
 

@@ -16,7 +16,7 @@
 
 const int ASSIGNMENT_REQUEST_INTERVAL_USECS = 1 * 1000 * 1000;
 
-int main(int argc, const char* argv[]) {
+int main(int argc, const char* argv[]) { 
     
     // create a NodeList as an unassigned client
     NodeList* nodeList = NodeList::createInstance(NODE_TYPE_UNASSIGNED);
@@ -27,17 +27,19 @@ int main(int argc, const char* argv[]) {
     unsigned char packetData[MAX_PACKET_SIZE];
     ssize_t receivedBytes = 0;
     
+    Assignment requestAssignment(Assignment::Request, Assignment::All);
+    
     while (true) {
         if (usecTimestampNow() - usecTimestamp(&lastRequest) >= ASSIGNMENT_REQUEST_INTERVAL_USECS) {
             gettimeofday(&lastRequest, NULL);
             
             // send an assignment request to the Nodelist
             qDebug("Sending assignment request.\n");
-            nodeList->requestAssignment();
+            nodeList->sendAssignment(requestAssignment);
         }        
         
         while (nodeList->getNodeSocket()->receive(packetData, &receivedBytes)) {
-            if (packetData[0] == PACKET_TYPE_SEND_ASSIGNMENT && packetVersionMatch(packetData)) {
+            if (packetData[0] == PACKET_TYPE_CREATE_ASSIGNMENT && packetVersionMatch(packetData)) {
                 Assignment::Type assignmentType = (Assignment::Type) *(packetData + numBytesForPacketHeader(packetData));
                 
                 qDebug() << "Received an assignment of type" << assignmentType << "\n";

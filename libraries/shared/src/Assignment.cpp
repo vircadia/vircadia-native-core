@@ -8,12 +8,10 @@
 
 #include "Assignment.h"
 
-Assignment::Assignment(Assignment::Type type) : _type(type) {
-    
-}
-
-Assignment::Assignment(Assignment::Type type, sockaddr_in& senderSocket) :
+Assignment::Assignment(Assignment::Direction direction, Assignment::Type type, const char* pool) :
+    _direction(direction),
     _type(type),
-    _senderSocket(senderSocket) {
+    _pool(pool)
+{
     
 }

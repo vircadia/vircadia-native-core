@@ -96,7 +96,6 @@ public:
     void sendDomainServerCheckIn();
     int processDomainServerList(unsigned char *packetData, size_t dataBytes);
     
-    void requestAssignment();
     void sendAssignment(Assignment& assignment);
     
     Node* nodeWithAddress(sockaddr *senderAddress);

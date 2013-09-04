@@ -371,13 +371,14 @@ const char ASSIGNMENT_SERVER_HOSTNAME[] = "localhost";
 const sockaddr_in assignmentServerSocket = socketForHostnameAndHostOrderPort(ASSIGNMENT_SERVER_HOSTNAME,
                                                                              ASSIGNMENT_SERVER_PORT);
 
-void NodeList::requestAssignment() {
-    _nodeSocket.send((sockaddr*) &assignmentServerSocket, &PACKET_TYPE_REQUEST_ASSIGNMENT, 1);
-}
-
 void NodeList::sendAssignment(Assignment& assignment) {
     unsigned char assignmentPacket[MAX_PACKET_SIZE];
-    int numHeaderBytes = populateTypeAndVersion(assignmentPacket, PACKET_TYPE_SEND_ASSIGNMENT);
+    
+    PACKET_TYPE assignmentPacketType = assignment.getDirection() == Assignment::Create
+        ? PACKET_TYPE_CREATE_ASSIGNMENT
+        : PACKET_TYPE_REQUEST_ASSIGNMENT;
+    
+    int numHeaderBytes = populateTypeAndVersion(assignmentPacket, assignmentPacketType);
     *(assignmentPacket + numHeaderBytes) = assignment.getType();
 
     _nodeSocket.send((sockaddr*) &assignmentServerSocket, assignmentPacket, numHeaderBytes + sizeof(unsigned char));
