@@ -68,7 +68,7 @@ void Faceshift::readFromSocket() {
                 if (data.m_trackingSuccessful) {
                     _headRotation = glm::quat(data.m_headRotation.w, -data.m_headRotation.x,
                         data.m_headRotation.y, -data.m_headRotation.z);
-                    const float TRANSLATION_SCALE = 0.1f;
+                    const float TRANSLATION_SCALE = 0.02f;
                     _headTranslation = glm::vec3(data.m_headTranslation.x, data.m_headTranslation.y,
                         -data.m_headTranslation.z) * TRANSLATION_SCALE;
                     _eyeGazeLeftPitch = data.m_eyeGazeLeftPitch;
