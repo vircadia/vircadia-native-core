@@ -38,6 +38,10 @@ public:
     float getLeftBlink() const { return _leftBlink; }
     float getRightBlink() const { return _rightBlink; }
 
+    float getBrowHeight() const { return _browHeight; }
+    
+    float getMouthSize() const { return _mouthSize; }
+
 public slots:
     
     void setEnabled(bool enabled);
@@ -71,6 +75,14 @@ private:
     
     int _leftBlinkIndex;
     int _rightBlinkIndex;
+    
+    float _browHeight;
+    
+    int _browUpCenterIndex;
+    
+    float _mouthSize;
+    
+    int _jawOpenIndex;
 };
 
 #endif /* defined(__interface__Faceshift__) */

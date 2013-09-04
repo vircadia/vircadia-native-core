@@ -2276,7 +2276,7 @@ void Application::displaySide(Camera& whichCamera) {
         }
         
         // Render my own Avatar
-        if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
+        if (_myCamera.getMode() == CAMERA_MODE_MIRROR && !_faceshift.isActive()) {
             _myAvatar.getHead().setLookAtPosition(_myCamera.getPosition());
         }
         _myAvatar.render(Menu::getInstance()->isOptionChecked(MenuOption::Mirror),
