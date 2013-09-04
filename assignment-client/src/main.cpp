@@ -59,7 +59,7 @@ int main(int argc, char* const argv[]) {
             if (packetData[0] == PACKET_TYPE_CREATE_ASSIGNMENT && packetVersionMatch(packetData)) {
                 Assignment::Type assignmentType = (Assignment::Type) *(packetData + numBytesForPacketHeader(packetData));
                 
-                qDebug() << "Received an assignment of type" << assignmentType << "\n";
+                qDebug() << "Received an assignment - " << assignmentType << "\n";
                 
                 AudioMixer::run();
                 
