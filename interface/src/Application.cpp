@@ -82,7 +82,6 @@ const int STARTUP_JITTER_SAMPLES = PACKET_LENGTH_SAMPLES_PER_CHANNEL / 2;
                                                  //  Startup optimistically with small jitter buffer that 
                                                  //  will start playback on the second received audio packet.
 
-static const float CLIPBOARD_TREE_SCALE = 1.0f;
 
 void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString &message) {
     fprintf(stdout, "%s", message.toLocal8Bit().constData());
@@ -97,7 +96,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _frameCount(0),
         _fps(120.0f),
         _justStarted(true),
-        _clipboard(CLIPBOARD_TREE_SCALE),
         _voxelImporter(_window),
         _wantToKillLocalVoxels(false),
         _audioScope(256, 200, true),
@@ -237,6 +235,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
 Application::~Application() {
     NodeList::getInstance()->removeHook(&_voxels);
     NodeList::getInstance()->removeHook(this);
+
+    _sharedVoxelSystem.changeTree(new VoxelTree);
 }
 
 void Application::initializeGL() {
@@ -1041,10 +1041,8 @@ void Application::terminate() {
     
     LeapManager::terminate();
     
-    if (Menu::getInstance()->isOptionChecked(MenuOption::SettingsAutosave)) {
-        Menu::getInstance()->saveSettings();
-        _settings->sync();
-    }
+    Menu::getInstance()->saveSettings();
+    _settings->sync();
 
     if (_enableNetworkThread) {
         _stopNetworkReceiveThread = true;
@@ -1209,15 +1207,6 @@ void Application::exportVoxels() {
 void Application::importVoxels() {
     if (_voxelImporter.exec()) {
         qDebug("[DEBUG] Import succedded.\n");
-
-        if (_voxelImporter.getImportIntoClipboard()) {
-            _clipboard.killLocalVoxels();
-            _voxelImporter.getVoxelSystem()->copySubTreeIntoNewTree(
-                        _voxelImporter.getVoxelSystem()->getVoxelAt(0, 0, 0, 1),
-                        &_clipboard,
-                        true);
-            _voxelImporter.reset();
-        }
     } else {
         qDebug("[DEBUG] Import failed.\n");
     }
@@ -1232,13 +1221,17 @@ void Application::cutVoxels() {
 }
 
 void Application::copyVoxels() {
+    // switch to and clear the clipboard first...
+    _sharedVoxelSystem.killLocalVoxels();
+    if (_sharedVoxelSystem.getTree() != &_clipboard) {
+        _clipboard.eraseAllVoxels();
+        _sharedVoxelSystem.changeTree(&_clipboard);
+    }
+
+    // then copy onto it if there is something to copy
     VoxelNode* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
     if (selectedNode) {
-        // clear the clipboard first...
-        _clipboard.killLocalVoxels();
-
-        // then copy onto it
-        _voxels.copySubTreeIntoNewTree(selectedNode, &_clipboard, true);
+        _voxels.copySubTreeIntoNewTree(selectedNode, &_sharedVoxelSystem, true);
     }
 }
 
@@ -1259,12 +1252,13 @@ void Application::pasteVoxels() {
         args.newBaseOctCode = calculatedOctCode = pointToVoxel(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
     }
 
-    if (_voxelImporter.getImportWaiting()) {
-        _voxelImporter.getVoxelSystem()->recurseTreeWithOperation(sendVoxelsOperation, &args);
-        _voxelImporter.reset();
-    } else {
-        _clipboard.recurseTreeWithOperation(sendVoxelsOperation, &args);
+    _sharedVoxelSystem.getTree()->recurseTreeWithOperation(sendVoxelsOperation, &args);
+
+    if (_sharedVoxelSystem.getTree() != &_clipboard) {
+        _sharedVoxelSystem.killLocalVoxels();
+        _sharedVoxelSystem.changeTree(&_clipboard);
     }
+
     _voxelEditSender.flushQueue();
     
     if (calculatedOctCode) {
@@ -1306,10 +1300,21 @@ void Application::initDisplay() {
 
 void Application::init() {
     _voxels.init();
-    _clipboard.init();
-    _clipboardViewFrustum.setKeyholeRadius(1000.0f);
-    _clipboardViewFrustum.calculate();
-    _clipboard.setViewFrustum(&_clipboardViewFrustum);
+    _sharedVoxelSystemViewFrustum.setPosition(glm::vec3(TREE_SCALE / 2.0f,
+                                                        TREE_SCALE / 2.0f,
+                                                        3.0f * TREE_SCALE / 2.0f));
+    _sharedVoxelSystemViewFrustum.setNearClip(TREE_SCALE / 2.0f);
+    _sharedVoxelSystemViewFrustum.setFarClip(3.0f * TREE_SCALE / 2.0f);
+    _sharedVoxelSystemViewFrustum.setFieldOfView(90);
+    _sharedVoxelSystemViewFrustum.setOrientation(glm::quat());
+    _sharedVoxelSystemViewFrustum.calculate();
+    _sharedVoxelSystem.setViewFrustum(&_sharedVoxelSystemViewFrustum);
+    _sharedVoxelSystem.init();
+    VoxelTree* tmpTree = _sharedVoxelSystem.getTree();
+    _sharedVoxelSystem.changeTree(&_clipboard);
+    delete tmpTree;
+
+    _voxelImporter.init();
     
     _environment.init();
 
@@ -1320,6 +1325,7 @@ void Application::init() {
 
     _headMouseX = _mouseX = _glWidget->width() / 2;
     _headMouseY = _mouseY = _glWidget->height() / 2;
+    QCursor::setPos(_headMouseX, _headMouseY);
 
     _myAvatar.init();
     _myAvatar.setPosition(START_LOCATION);
@@ -1327,7 +1333,6 @@ void Application::init() {
     _myCamera.setModeShiftRate(1.0f);
     _myAvatar.setDisplayingLookatVectors(false);  
     
-    QCursor::setPos(_headMouseX, _headMouseY);
     
     OculusManager::connect();
     if (OculusManager::isConnected()) {
@@ -1384,7 +1389,9 @@ Avatar* Application::isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3
         if (node->getLinkedData() != NULL && node->getType() == NODE_TYPE_AGENT) {
             Avatar* avatar = (Avatar *) node->getLinkedData();
             glm::vec3 headPosition = avatar->getHead().getPosition();
-            if (rayIntersectsSphere(mouseRayOrigin, mouseRayDirection, headPosition, HEAD_SPHERE_RADIUS * avatar->getScale())) {
+            float distance;
+            if (rayIntersectsSphere(mouseRayOrigin, mouseRayDirection, headPosition,
+                    HEAD_SPHERE_RADIUS * avatar->getScale(), distance)) {
                 eyePosition = avatar->getHead().getEyePosition();
                 _lookatIndicatorScale = avatar->getScale();
                 _lookatOtherPosition = headPosition;
@@ -1720,6 +1727,40 @@ void Application::update(float deltaTime) {
         _myAvatar.simulate(deltaTime, &_myTransmitter, Menu::getInstance()->getGyroCameraSensitivity());
     } else {
         _myAvatar.simulate(deltaTime, NULL, Menu::getInstance()->getGyroCameraSensitivity());
+    }
+    
+    // no transmitter drive implies transmitter pick
+    if (!Menu::getInstance()->isOptionChecked(MenuOption::TransmitterDrive) && _myTransmitter.isConnected()) {
+        _transmitterPickStart = _myAvatar.getSkeleton().joint[AVATAR_JOINT_CHEST].position;
+        glm::vec3 direction = _myAvatar.getOrientation() *
+            glm::quat(glm::radians(_myTransmitter.getEstimatedRotation())) * IDENTITY_FRONT;
+        
+        // check against voxels, avatars
+        const float MAX_PICK_DISTANCE = 100.0f;
+        float minDistance = MAX_PICK_DISTANCE;
+        VoxelDetail detail;
+        float distance;
+        BoxFace face;
+        if (_voxels.findRayIntersection(_transmitterPickStart, direction, detail, distance, face)) {
+            minDistance = min(minDistance, distance);
+        }
+        for(NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+            node->lock();
+            if (node->getLinkedData() != NULL) {
+                Avatar *avatar = (Avatar*)node->getLinkedData();
+                if (!avatar->isInitialized()) {
+                    avatar->init();
+                }
+                if (avatar->findRayIntersection(_transmitterPickStart, direction, distance)) {
+                    minDistance = min(minDistance, distance);
+                }
+            }
+            node->unlock();
+        }
+        _transmitterPickEnd = _transmitterPickStart + direction * minDistance;
+        
+    } else {
+        _transmitterPickStart = _transmitterPickEnd = glm::vec3();
     }
     
     if (!OculusManager::isConnected()) {        
@@ -2191,15 +2232,11 @@ void Application::displaySide(Camera& whichCamera) {
         glTranslatef(_mouseVoxel.x * TREE_SCALE,
                      _mouseVoxel.y * TREE_SCALE,
                      _mouseVoxel.z * TREE_SCALE);
-        glScalef(_mouseVoxel.s * TREE_SCALE,
-                 _mouseVoxel.s * TREE_SCALE,
-                 _mouseVoxel.s * TREE_SCALE);
+        glScalef(_mouseVoxel.s,
+                 _mouseVoxel.s,
+                 _mouseVoxel.s);
 
-        if (_voxelImporter.getImportWaiting()) {
-            _voxelImporter.getVoxelSystem()->render(true);
-        } else {
-            _clipboard.render(true);
-        }
+        _sharedVoxelSystem.render(true);
         glPopMatrix();
     }
 
@@ -2271,6 +2308,27 @@ void Application::displaySide(Camera& whichCamera) {
     }
         
     renderFollowIndicator();
+    
+    // render transmitter pick ray, if non-empty
+    if (_transmitterPickStart != _transmitterPickEnd) {
+        Glower glower;
+        const float TRANSMITTER_PICK_COLOR[] = { 1.0f, 1.0f, 0.0f };
+        glColor3fv(TRANSMITTER_PICK_COLOR);
+        glLineWidth(3.0f);
+        glBegin(GL_LINES);
+        glVertex3f(_transmitterPickStart.x, _transmitterPickStart.y, _transmitterPickStart.z);
+        glVertex3f(_transmitterPickEnd.x, _transmitterPickEnd.y, _transmitterPickEnd.z);
+        glEnd();
+        glLineWidth(1.0f);
+        
+        glPushMatrix();
+        glTranslatef(_transmitterPickEnd.x, _transmitterPickEnd.y, _transmitterPickEnd.z);
+        
+        const float PICK_END_RADIUS = 0.025f;
+        glutSolidSphere(PICK_END_RADIUS, 8, 8);
+        
+        glPopMatrix();
+    }
 }
 
 void Application::displayOverlay() {

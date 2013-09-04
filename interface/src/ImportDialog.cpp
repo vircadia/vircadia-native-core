@@ -34,9 +34,9 @@ const float FIELD_OF_VIEW = 60.0f;
 
 class GLWidget : public QGLWidget {
 public:
-    GLWidget(QWidget* parent = NULL, VoxelSystem* voxelSystem = NULL);
+    GLWidget(QWidget* parent = NULL);
     void setDraw(bool draw) {_draw = draw;}
-    void setTargetCenter(glm::vec3 targetCenter) {_targetCenter = targetCenter;}
+    void setTargetCenter(glm::vec3 targetCenter) { _targetCenter = targetCenter; }
 
 protected:
     virtual void initializeGL();
@@ -61,9 +61,8 @@ private:
     int _mouseY;
 };
 
-GLWidget::GLWidget(QWidget *parent, VoxelSystem *voxelSystem)
+GLWidget::GLWidget(QWidget *parent)
     : QGLWidget(parent, Application::getInstance()->getGLWidget()),
-      _voxelSystem(voxelSystem),
       _draw(false),
       _a(0.0f),
       _h(VERTICAL_ANGLE),
@@ -71,6 +70,7 @@ GLWidget::GLWidget(QWidget *parent, VoxelSystem *voxelSystem)
       _pressed(false),
       _mouseX(0),
       _mouseY(0) {
+    _voxelSystem = Application::getInstance()->getSharedVoxelSystem();
 }
 
 void GLWidget::initializeGL() {
@@ -110,7 +110,7 @@ void GLWidget::paintGL() {
               UP_VECT.x, UP_VECT.y, UP_VECT.z);
 
 
-    if (_draw && _voxelSystem) {
+    if (_draw) {
         glBegin(GL_LINES);
         glColor3d(1, 1 ,1);
         glVertex3d(0, 0, 0);
@@ -134,10 +134,10 @@ void GLWidget::paintGL() {
         glVertex3d(2 * _targetCenter.x, 2 * _targetCenter.y, 0                  );
         glEnd();
 
+        glScalef(1.0f / TREE_SCALE, 1.0f / TREE_SCALE, 1.0f / TREE_SCALE);
         _voxelSystem->render(false);
     }
 }
-
 
 void GLWidget::mousePressEvent(QMouseEvent* event) {
     _pressed = true;
@@ -158,14 +158,13 @@ void GLWidget::mouseReleaseEvent(QMouseEvent* event) {
     _pressed = false;
 }
 
-ImportDialog::ImportDialog(QWidget *parent, VoxelSystem* voxelSystem)
+ImportDialog::ImportDialog(QWidget *parent)
     : QFileDialog(parent, WINDOW_NAME, DESKTOP_LOCATION, IMPORT_FILE_TYPES),
       _importButton      (IMPORT_BUTTON_NAME, this),
       _clipboardImportBox(IMPORT_TO_CLIPBOARD_CHECKBOX_STRING, this),
       _previewBox        (PREVIEW_CHECKBOX_STRING, this),
       _previewBar        (this),
-      _glPreview         (new GLWidget(this, voxelSystem)) {
-
+      _glPreview         (new GLWidget(this)) {
     setOption(QFileDialog::DontUseNativeDialog, true);
     setFileMode(QFileDialog::ExistingFile);
     setViewMode(QFileDialog::Detail);
@@ -188,13 +187,16 @@ ImportDialog::ImportDialog(QWidget *parent, VoxelSystem* voxelSystem)
 
     connect(this, SIGNAL(currentChanged(QString)), SLOT(saveCurrentFile(QString)));
     connect(&_glTimer, SIGNAL(timeout()), SLOT(timer()));
-
-    connect(voxelSystem, SIGNAL(importSize(float,float,float)), SLOT(setGLCamera(float, float, float)));
-    connect(voxelSystem, SIGNAL(importProgress(int)), &_previewBar, SLOT(setValue(int)));
 }
 
 ImportDialog::~ImportDialog() {
     delete _glPreview;
+}
+
+void ImportDialog::init() {
+    VoxelSystem* voxelSystem = Application::getInstance()->getSharedVoxelSystem();
+    connect(voxelSystem, SIGNAL(importSize(float,float,float)), SLOT(setGLCamera(float,float,float)));
+    connect(voxelSystem, SIGNAL(importProgress(int)), &_previewBar, SLOT(setValue(int)));
 }
 
 void ImportDialog::import() {

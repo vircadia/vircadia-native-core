@@ -125,9 +125,15 @@ void SerialInterface::initializePort(char* portname) {
         tcflush(_serialDescriptor, TCIOFLUSH);
         
         // this disables streaming so there's no garbage data on reads
-        write(_serialDescriptor, "SD\n", 3);
+        if (write(_serialDescriptor, "SD\n", 3) != 3) {
+            qDebug("Failed.\n");
+            return;
+        }
         char result[4];
-        read(_serialDescriptor, result, 4);
+        if (read(_serialDescriptor, result, 4) != 4) {
+            qDebug("Failed.\n");
+            return;
+        }
         
         tty_set_file_descriptor(_serialDescriptor);
         mpu_init(0);

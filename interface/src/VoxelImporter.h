@@ -22,11 +22,11 @@ class VoxelImporter : public QObject {
 public:
     VoxelImporter(QWidget* parent = NULL);
     ~VoxelImporter();
+
+    void init();
     void reset();
 
-    bool getImportWaiting() const { return _importWaiting; }
-    VoxelSystem* getVoxelSystem() { return &_voxelSystem; }
-    bool getImportIntoClipboard() const { return _importDialog.getImportIntoClipboard(); }
+    VoxelTree* getVoxelTree() { return &_voxelTree; }
 
 public slots:
     int exec();
@@ -37,14 +37,10 @@ private slots:
     void launchTask();
 
 private:
-    VoxelSystem  _voxelSystem;
-    ViewFrustum  _importViewFrustum;
-    bool         _initialized;
-    bool         _importWaiting;
-
+    VoxelTree _voxelTree;
     ImportDialog _importDialog;
 
-    QString      _filename;
+    QString _filename;
 
     ImportTask* _currentTask;
     ImportTask* _nextTask;

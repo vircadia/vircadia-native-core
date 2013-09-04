@@ -7,35 +7,34 @@
 //
 
 #include <VoxelImporter.h>
+#include <Application.h>
 
 #include <QFileInfo>
 #include <QThreadPool>
 
-static const int IMPORT_SYSTEM_SCALE = 1.0f;
-static const int MAX_VOXELS_PER_IMPORT = 2000000;
-
 class ImportTask : public QObject, public QRunnable {
 public:
-    ImportTask(VoxelSystem* voxelSystem, const QString &filename);
+    ImportTask(const QString &filename);
     void run();
 
 private:
-    VoxelSystem*  _voxelSystem;
-    QString       _filename;
+    QString _filename;
 };
 
 VoxelImporter::VoxelImporter(QWidget* parent)
     : QObject(parent),
-      _voxelSystem(IMPORT_SYSTEM_SCALE, MAX_VOXELS_PER_IMPORT),
-      _initialized(false),
-      _importWaiting(false),
-      _importDialog(parent, &_voxelSystem),
+      _voxelTree(true),
+      _importDialog(parent),
       _currentTask(NULL),
       _nextTask(NULL) {
 
     connect(&_importDialog, SIGNAL(previewToggled(bool)), SLOT(preImport()));
     connect(&_importDialog, SIGNAL(currentChanged(QString)), SLOT(preImport()));
     connect(&_importDialog, SIGNAL(accepted()), SLOT(import()));
+}
+
+void VoxelImporter::init() {
+    _importDialog.init();
 }
 
 VoxelImporter::~VoxelImporter() {
@@ -46,16 +45,15 @@ VoxelImporter::~VoxelImporter() {
 
     if (_currentTask) {
         disconnect(_currentTask, 0, 0, 0);
-        _voxelSystem.cancelImport();
+        _voxelTree.cancelImport();
         _currentTask = NULL;
     }
 }
 
 void VoxelImporter::reset() {
-    _voxelSystem.killLocalVoxels();
+    _voxelTree.eraseAllVoxels();
     _importDialog.reset();
     _filename = "";
-    _importWaiting = false;
 
     if (_nextTask) {
         delete _nextTask;
@@ -63,17 +61,11 @@ void VoxelImporter::reset() {
     }
 
     if (_currentTask) {
-        _voxelSystem.cancelImport();
+        _voxelTree.cancelImport();
     }
 }
 
 int VoxelImporter::exec() {
-    if (!_initialized) {
-        _voxelSystem.init();
-        _importViewFrustum.calculate();
-        _voxelSystem.setViewFrustum(&_importViewFrustum);
-        _initialized = true;
-    }
     reset();
 
     int ret = _importDialog.exec();
@@ -82,7 +74,15 @@ int VoxelImporter::exec() {
         reset();
     } else {
         _importDialog.reset();
-        _importWaiting = true;
+
+        if (_importDialog.getImportIntoClipboard()) {
+            VoxelSystem* voxelSystem = Application::getInstance()->getSharedVoxelSystem();
+
+            voxelSystem->copySubTreeIntoNewTree(voxelSystem->getTree()->rootNode,
+                                                Application::getInstance()->getClipboard(),
+                                                true);
+            voxelSystem->changeTree(Application::getInstance()->getClipboard());
+        }
     }
 
     return ret;
@@ -102,11 +102,11 @@ int VoxelImporter::preImport() {
             delete _nextTask;
         }
 
-        _nextTask = new ImportTask(&_voxelSystem, _filename);
+        _nextTask = new ImportTask(_filename);
         connect(_nextTask, SIGNAL(destroyed()), SLOT(launchTask()));
 
         if (_currentTask != NULL) {
-            _voxelSystem.cancelImport();
+            _voxelTree.cancelImport();
         } else {
             launchTask();
         }
@@ -138,12 +138,12 @@ int VoxelImporter::import() {
         delete _nextTask;
     }
 
-    _nextTask = new ImportTask(&_voxelSystem, _filename);
+    _nextTask = new ImportTask(_filename);
     connect(_nextTask, SIGNAL(destroyed()), SLOT(launchTask()));
     connect(_nextTask, SIGNAL(destroyed()), &_importDialog, SLOT(accept()));
 
     if (_currentTask != NULL) {
-        _voxelSystem.cancelImport();
+        _voxelTree.cancelImport();
     } else {
         launchTask();
     }
@@ -153,28 +153,36 @@ int VoxelImporter::import() {
 
 void VoxelImporter::launchTask() {
     if (_nextTask != NULL) {
-        _voxelSystem.killLocalVoxels();
         _currentTask = _nextTask;
         _nextTask = NULL;
+
+        if (Application::getInstance()->getSharedVoxelSystem()->getTree() != &_voxelTree) {
+            Application::getInstance()->getSharedVoxelSystem()->changeTree(&_voxelTree);
+        }
+
         QThreadPool::globalInstance()->start(_currentTask);
     } else {
         _currentTask = NULL;
     }
 }
 
-ImportTask::ImportTask(VoxelSystem* voxelSystem, const QString &filename)
-    : _voxelSystem(voxelSystem),
-      _filename(filename) {
+ImportTask::ImportTask(const QString &filename)
+    : _filename(filename) {
 }
 
 void ImportTask::run() {
+    VoxelSystem* voxelSystem = Application::getInstance()->getSharedVoxelSystem();
+    voxelSystem->killLocalVoxels();
+
     if (_filename.endsWith(".png", Qt::CaseInsensitive)) {
-        _voxelSystem->readFromSquareARGB32Pixels(_filename.toLocal8Bit().data());
+        voxelSystem->readFromSquareARGB32Pixels(_filename.toLocal8Bit().data());
     } else if (_filename.endsWith(".svo", Qt::CaseInsensitive)) {
-        _voxelSystem->readFromSVOFile(_filename.toLocal8Bit().data());
+        voxelSystem->readFromSVOFile(_filename.toLocal8Bit().data());
     } else if (_filename.endsWith(".schematic", Qt::CaseInsensitive)) {
-        _voxelSystem->readFromSchematicFile(_filename.toLocal8Bit().data());
+        voxelSystem->readFromSchematicFile(_filename.toLocal8Bit().data());
     } else {
         qDebug("[ERROR] Invalid file extension.\n");
     }
+
+    voxelSystem->getTree()->reaverageVoxelColors(voxelSystem->getTree()->rootNode);
 }

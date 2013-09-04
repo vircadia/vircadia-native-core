@@ -34,19 +34,21 @@ public:
     VoxelSystem(float treeScale = TREE_SCALE, int maxVoxels = MAX_VOXELS_PER_SYSTEM);
     ~VoxelSystem();
 
-    void setDataSourceID(int dataSourceID) { _dataSourceID = dataSourceID; };
-    int  getDataSourceID() const { return _dataSourceID; };
+    void setDataSourceID(int dataSourceID) { _dataSourceID = dataSourceID; }
+    int  getDataSourceID() const { return _dataSourceID; }
     
     int parseData(unsigned char* sourceBuffer, int numBytes);
     
     virtual void init();
-    void simulate(float deltaTime) { };
+    void simulate(float deltaTime) { }
     void render(bool texture);
 
-    ViewFrustum* getViewFrustum() const {return _viewFrustum;}
-    void setViewFrustum(ViewFrustum* viewFrustum) {_viewFrustum = viewFrustum;}
-    unsigned long  getVoxelsUpdated() const {return _voxelsUpdated;};
-    unsigned long  getVoxelsRendered() const {return _voxelsInReadArrays;};
+    void changeTree(VoxelTree* newTree);
+    VoxelTree* getTree() const { return _tree; }
+    ViewFrustum* getViewFrustum() const { return _viewFrustum; }
+    void setViewFrustum(ViewFrustum* viewFrustum) { _viewFrustum = viewFrustum; }
+    unsigned long  getVoxelsUpdated() const { return _voxelsUpdated; }
+    unsigned long  getVoxelsRendered() const { return _voxelsInReadArrays; }
 
     void loadVoxelsFile(const char* fileName,bool wantColorRandomizer);
     void writeToSVOFile(const char* filename, VoxelNode* node) const;
@@ -118,10 +120,11 @@ protected:
     float _treeScale; 
     int _maxVoxels;      
     VoxelTree* _tree;
+
+    void setupNewVoxelsForDrawing();
     
     glm::vec3 computeVoxelVertex(const glm::vec3& startVertex, float voxelScale, int index) const;
-    
-    void setupNewVoxelsForDrawing();
+
     
     virtual void updateNodeInArrays(glBufferIndex nodeIndex, const glm::vec3& startVertex,
                                     float voxelScale, const nodeColor& color);
