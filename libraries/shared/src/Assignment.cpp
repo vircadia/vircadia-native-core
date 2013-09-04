@@ -11,6 +11,7 @@
 Assignment::Assignment(Assignment::Direction direction, Assignment::Type type, const char* pool) :
     _direction(direction),
     _type(type),
+    _pool(NULL),
     _domainSocket(NULL)
 {
     // copy the pool, if we got one
@@ -24,6 +25,7 @@ Assignment::Assignment(Assignment::Direction direction, Assignment::Type type, c
 }
 
 Assignment::Assignment(const unsigned char* dataBuffer, int numBytes) :
+    _pool(NULL),
     _domainSocket(NULL)
 {
     int numBytesRead = 0;
@@ -35,9 +37,15 @@ Assignment::Assignment(const unsigned char* dataBuffer, int numBytes) :
     numBytesRead += sizeof(Assignment::Type);
     
     int poolLength = strlen((const char*) dataBuffer + numBytesRead);
-    _pool = new char[poolLength + sizeof(char)];
-    strcpy(_pool, (char*) dataBuffer + numBytesRead);
-    numBytesRead += poolLength + sizeof(char);
+    
+    if (poolLength) {
+        _pool = new char[poolLength + sizeof(char)];
+        strcpy(_pool, (char*) dataBuffer + numBytesRead);
+        numBytesRead += poolLength + sizeof(char);
+    } else {
+        numBytesRead += sizeof(char);
+    }
+    
     
     if (numBytes > numBytesRead) {
         memcpy(_domainSocket, dataBuffer + numBytesRead, sizeof(sockaddr));
@@ -53,8 +61,15 @@ int Assignment::packToBuffer(unsigned char* buffer) {
     memcpy(buffer + numPackedBytes, &_type, sizeof(_type));
     numPackedBytes += sizeof(_type);
     
-    strcpy((char*) buffer + numPackedBytes, _pool);
-    numPackedBytes += strlen(_pool) + sizeof(char);
+    if (_pool) {
+        int poolLength = strlen(_pool);
+        strcpy((char*) buffer + numPackedBytes, _pool);
+        
+        numPackedBytes += poolLength + sizeof(char);
+    } else {
+        buffer[numPackedBytes] = '\0';
+        numPackedBytes += sizeof(char);
+    }
     
     if (_domainSocket) {
         memcpy(buffer + numPackedBytes, _domainSocket, sizeof(sockaddr));
