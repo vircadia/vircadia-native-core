@@ -1525,21 +1525,21 @@ void Application::update(float deltaTime) {
         float averagePitch = (_faceshift.getEyeGazeLeftPitch() + _faceshift.getEyeGazeRightPitch()) / 2.0f;
         float averageYaw = (_faceshift.getEyeGazeLeftYaw() + _faceshift.getEyeGazeRightYaw()) / 2.0f;
         lookAtRayDirection = _myAvatar.getHead().getOrientation() *
-            glm::quat(glm::vec3(averagePitch, averageYaw, 0.0f)) * glm::vec3(0.0f, 0.0f, -1.0f);
+            glm::quat(glm::radians(glm::vec3(averagePitch, averageYaw, 0.0f))) * glm::vec3(0.0f, 0.0f, -1.0f);
     }
 
     _isLookingAtOtherAvatar = isLookingAtOtherAvatar(lookAtRayOrigin, lookAtRayDirection, lookAtSpot);
     if (_isLookingAtOtherAvatar) {
         // If the mouse is over another avatar's head...
          _myAvatar.getHead().setLookAtPosition(lookAtSpot);
-    } else if (_isHoverVoxel) {
+    } else if (_isHoverVoxel && !_faceshift.isActive()) {
         //  Look at the hovered voxel
         lookAtSpot = getMouseVoxelWorldCoordinates(_hoverVoxel);
         _myAvatar.getHead().setLookAtPosition(lookAtSpot);
     } else {
         //  Just look in direction of the mouse ray
         const float FAR_AWAY_STARE = TREE_SCALE;
-        lookAtSpot = mouseRayOrigin + mouseRayDirection * FAR_AWAY_STARE;
+        lookAtSpot = lookAtRayOrigin + lookAtRayDirection * FAR_AWAY_STARE;
         _myAvatar.getHead().setLookAtPosition(lookAtSpot);
     }
     
