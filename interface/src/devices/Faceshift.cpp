@@ -22,7 +22,7 @@ Faceshift::Faceshift() : _enabled(false), _eyeGazeLeftPitch(0.0f), _eyeGazeLeftY
 }
 
 void Faceshift::setEnabled(bool enabled) {
-    if (_enabled = enabled) {
+    if ((_enabled = enabled)) {
         connectSocket();
     
     } else {
@@ -61,7 +61,7 @@ void Faceshift::readFromSocket() {
     QByteArray buffer = _socket.readAll();
     _stream.received(buffer.size(), buffer.constData());
     fsMsgPtr msg;
-    for (fsMsgPtr msg; msg = _stream.get_message(); ) {
+    for (fsMsgPtr msg; (msg = _stream.get_message()); ) {
         switch (msg->id()) {
             case fsMsg::MSG_OUT_TRACKING_STATE: {
                 const fsTrackingData& data = static_cast<fsMsgTrackingState*>(msg.get())->tracking_data();
@@ -95,6 +95,8 @@ void Faceshift::readFromSocket() {
                 }
                 break;
             }
+            default:
+                break;
         }
     }
 }
