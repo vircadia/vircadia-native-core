@@ -237,6 +237,12 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
 Application::~Application() {
     NodeList::getInstance()->removeHook(&_voxels);
     NodeList::getInstance()->removeHook(this);
+
+    delete _oculusProgram;
+    delete _settings;
+    delete _networkAccessManager;
+    delete _followMode;
+    delete _glWidget;
 }
 
 void Application::initializeGL() {
