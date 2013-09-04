@@ -21,6 +21,7 @@ public:
     
     enum Direction {
         Create,
+        Deploy,
         Request
     };
     

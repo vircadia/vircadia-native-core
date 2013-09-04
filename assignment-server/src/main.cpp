@@ -36,17 +36,19 @@ int main(int argc, const char* argv[]) {
         if (serverSocket.receive((sockaddr*) &senderSocket, &senderData, &receivedBytes)) {
             if (senderData[0] == PACKET_TYPE_REQUEST_ASSIGNMENT) {
                 // construct the requested assignment from the packet data
-                int numHeaderBytes = numBytesForPacketHeader(senderData);
-                Assignment requestAssignment(senderData + numHeaderBytes, receivedBytes - numHeaderBytes);
+                Assignment requestAssignment(senderData, receivedBytes);
                 
                 
                 // grab the first assignment in the queue, if it exists
                 if (assignmentQueue.size() > 0) {
                     Assignment firstAssignment = assignmentQueue.front();
                     
+                    bool eitherHasPool = (firstAssignment.getPool() || requestAssignment.getPool());
+                    
                     // make sure there is a pool match for the created and requested assignment
-                    if (firstAssignment.getPool() && requestAssignment.getPool()
-                        && strcmp(firstAssignment.getPool(), requestAssignment.getPool())) {
+                    // or that neither has a designated pool
+                    if ((eitherHasPool && strcmp(firstAssignment.getPool(), requestAssignment.getPool()))
+                        || !eitherHasPool) {
                         assignmentQueue.pop();
                         
                         int numAssignmentBytes = firstAssignment.packToBuffer(assignmentPacket + numSendHeaderBytes);
@@ -57,8 +59,7 @@ int main(int argc, const char* argv[]) {
                 }
             } else if (senderData[0] == PACKET_TYPE_CREATE_ASSIGNMENT && packetVersionMatch(senderData)) {
                 // construct the create assignment from the packet data
-                int numHeaderBytes = numBytesForPacketHeader(senderData);
-                Assignment createdAssignment(senderData + numHeaderBytes, receivedBytes - numHeaderBytes);
+                Assignment createdAssignment(senderData, receivedBytes);
                 
                 qDebug() << "Received an assignment:" << createdAssignment;
                 

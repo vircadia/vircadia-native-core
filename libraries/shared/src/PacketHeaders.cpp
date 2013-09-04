@@ -67,7 +67,7 @@ int numBytesForPacketVersion(const unsigned char* packetVersion) {
     }
 }
 
-int numBytesForPacketHeader(unsigned char* packetHeader) {
+int numBytesForPacketHeader(const unsigned char* packetHeader) {
     // int numBytesType = numBytesForPacketType(packetHeader);
     // return numBytesType + numBytesForPacketVersion(packetHeader + numBytesType);
     

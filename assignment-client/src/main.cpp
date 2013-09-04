@@ -6,6 +6,7 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
+#include <arpa/inet.h>
 #include <sys/time.h>
 
 #include <Assignment.h>
@@ -56,14 +57,23 @@ int main(int argc, char* const argv[]) {
         }        
         
         while (nodeList->getNodeSocket()->receive(packetData, &receivedBytes)) {
-            if (packetData[0] == PACKET_TYPE_CREATE_ASSIGNMENT && packetVersionMatch(packetData)) {
-                Assignment::Type assignmentType = (Assignment::Type) *(packetData + numBytesForPacketHeader(packetData));
+            if (packetData[0] == PACKET_TYPE_DEPLOY_ASSIGNMENT && packetVersionMatch(packetData)) {
                 
-                qDebug() << "Received an assignment - " << assignmentType << "\n";
+                // construct the deployed assignment from the packet data
+                Assignment deployedAssignment(packetData, receivedBytes);
                 
-                // pull the creator sockaddr_in from the assignment and change our domain IP to that
+                qDebug() << "Received an assignment - " << deployedAssignment << "\n";
                 
-//                AudioMixer::run();
+                // switch our nodelist DOMAIN_IP to the ip receieved in the assignment
+                if (deployedAssignment.getDomainSocket()->sa_family == AF_INET) {
+                    in_addr domainSocketAddr = ((sockaddr_in*) deployedAssignment.getDomainSocket())->sin_addr;
+                    nodeList->setDomainIP(inet_ntoa(domainSocketAddr));
+                    
+                    qDebug() << "Changed domain IP to " << inet_ntoa(domainSocketAddr);
+                }
+                
+                // run the AudioMixer, it's the only possible assignment for now
+                AudioMixer::run();
                 
                 // reset our NodeList by switching back to unassigned and clearing the list
                 nodeList->setOwnerType(NODE_TYPE_UNASSIGNED);

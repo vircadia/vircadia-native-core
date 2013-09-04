@@ -6,6 +6,8 @@
 //  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
 
+#include "PacketHeaders.h"
+
 #include "Assignment.h"
 
 Assignment::Assignment(Assignment::Direction direction, Assignment::Type type, const char* pool) :
@@ -30,15 +32,21 @@ Assignment::Assignment(const unsigned char* dataBuffer, int numBytes) :
 {
     int numBytesRead = 0;
     
-    memcpy(&_direction, dataBuffer, sizeof(Assignment::Direction));
-    numBytesRead += sizeof(Assignment::Direction);
+    if (dataBuffer[0] == PACKET_TYPE_REQUEST_ASSIGNMENT) {
+        _direction = Assignment::Request;
+    } else if (dataBuffer[0] == PACKET_TYPE_CREATE_ASSIGNMENT) {
+        _direction = Assignment::Create;
+    } else if (dataBuffer[0] == PACKET_TYPE_DEPLOY_ASSIGNMENT) {
+        _direction = Assignment::Deploy;
+    }
+    
+    numBytesRead += numBytesForPacketHeader(dataBuffer);
     
     memcpy(&_type, dataBuffer + numBytesRead, sizeof(Assignment::Type));
     numBytesRead += sizeof(Assignment::Type);
     
-    int poolLength = strlen((const char*) dataBuffer + numBytesRead);
-    
-    if (poolLength) {
+    if (dataBuffer[numBytesRead] != 0) {
+        int poolLength = strlen((const char*) dataBuffer + numBytesRead);
         _pool = new char[poolLength + sizeof(char)];
         strcpy(_pool, (char*) dataBuffer + numBytesRead);
         numBytesRead += poolLength + sizeof(char);
@@ -46,17 +54,23 @@ Assignment::Assignment(const unsigned char* dataBuffer, int numBytes) :
         numBytesRead += sizeof(char);
     }
     
-    
     if (numBytes > numBytesRead) {
-        memcpy(_domainSocket, dataBuffer + numBytesRead, sizeof(sockaddr));
+        if (dataBuffer[numBytesRead++] == 4) {
+            // IPv4 address
+            sockaddr_in destinationSocket = {};
+            memcpy(&destinationSocket, dataBuffer + numBytesRead, sizeof(sockaddr_in));
+            setDomainSocket((sockaddr*) &destinationSocket);
+        } else {
+            // IPv6 address
+            sockaddr_in6 destinationSocket = {};
+            memcpy(&destinationSocket, dataBuffer + numBytesRead, sizeof(sockaddr_in6));
+            setDomainSocket((sockaddr*) &destinationSocket);
+        }
     }
 }
 
 int Assignment::packToBuffer(unsigned char* buffer) {
     int numPackedBytes = 0;
-    
-    memcpy(buffer, &_direction, sizeof(_direction));
-    numPackedBytes += sizeof(_direction);
     
     memcpy(buffer + numPackedBytes, &_type, sizeof(_type));
     numPackedBytes += sizeof(_type);
@@ -72,8 +86,12 @@ int Assignment::packToBuffer(unsigned char* buffer) {
     }
     
     if (_domainSocket) {
-        memcpy(buffer + numPackedBytes, _domainSocket, sizeof(sockaddr));
-        numPackedBytes += sizeof(sockaddr);
+        buffer[numPackedBytes++] = (_domainSocket->sa_family == AF_INET) ? 4 : 6;
+        
+        int numSocketBytes = (_domainSocket->sa_family == AF_INET) ? sizeof(sockaddr_in) : sizeof(sockaddr_in6);
+        
+        memcpy(buffer + numPackedBytes, _domainSocket, numSocketBytes);
+        numPackedBytes += numSocketBytes;
     }
     
     return numPackedBytes;
@@ -87,17 +105,15 @@ void Assignment::setDomainSocket(const sockaddr* domainSocket) {
         _domainSocket = NULL;
     }
     
-    if (!_domainSocket) {
-        // create a new sockaddr or sockaddr_in depending on what type of address this is
-        if (domainSocket->sa_family == AF_INET) {
-            sockaddr_in* newSocket = new sockaddr_in;
-            memcpy(newSocket, domainSocket, sizeof(sockaddr_in));
-            _domainSocket = (sockaddr*) newSocket;
-        } else {
-            sockaddr_in6* newSocket = new sockaddr_in6;
-            memcpy(newSocket, domainSocket, sizeof(sockaddr_in6));
-            _domainSocket = (sockaddr*) newSocket;
-        }
+    // create a new sockaddr or sockaddr_in depending on what type of address this is
+    if (domainSocket->sa_family == AF_INET) {
+        sockaddr_in* newSocket = new sockaddr_in;
+        memcpy(newSocket, domainSocket, sizeof(sockaddr_in));
+        _domainSocket = (sockaddr*) newSocket;
+    } else {
+        sockaddr_in6* newSocket = new sockaddr_in6;
+        memcpy(newSocket, domainSocket, sizeof(sockaddr_in6));
+        _domainSocket = (sockaddr*) newSocket;
     }
 }
 
