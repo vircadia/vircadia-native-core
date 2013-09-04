@@ -106,7 +106,7 @@ int removeFromSortedArrays(void* value, void** valueArray, float* keyArray, int*
 // Helper Class for debugging
 class debug {
 public:                           
-    static const char* valueOf(bool checkValue) { return checkValue ? "yes" : "no"; };
+    static const char* valueOf(bool checkValue) { return checkValue ? "yes" : "no"; }
 };
 
 #endif /* defined(__hifi__SharedUtil__) */

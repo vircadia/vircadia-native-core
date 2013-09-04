@@ -427,6 +427,11 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::DestructiveAddVoxel);
 }
 
+Menu::~Menu() {
+    bandwidthDetailsClosed();
+    voxelStatsDetailsClosed();
+}
+
 void Menu::loadSettings(QSettings* settings) {
     if (!settings) {
         settings = Application::getInstance()->getSettings();
@@ -869,8 +874,10 @@ void Menu::bandwidthDetails() {
 }
 
 void Menu::bandwidthDetailsClosed() {
-    delete _bandwidthDialog;
-    _bandwidthDialog = NULL;
+    if (_bandwidthDialog) {
+        delete _bandwidthDialog;
+        _bandwidthDialog = NULL;
+    }
 }
 
 void Menu::voxelStatsDetails() {
@@ -884,8 +891,10 @@ void Menu::voxelStatsDetails() {
 }
 
 void Menu::voxelStatsDetailsClosed() {
-    delete _voxelStatsDialog;
-    _voxelStatsDialog = NULL;
+    if (_voxelStatsDialog) {
+        delete _voxelStatsDialog;
+        _voxelStatsDialog = NULL;
+    }
 }
 
 void Menu::cycleFrustumRenderMode() {

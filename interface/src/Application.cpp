@@ -237,6 +237,14 @@ Application::~Application() {
     NodeList::getInstance()->removeHook(this);
 
     _sharedVoxelSystem.changeTree(new VoxelTree);
+
+    delete Menu::getInstance();
+
+    delete _oculusProgram;
+    delete _settings;
+    delete _networkAccessManager;
+    delete _followMode;
+    delete _glWidget;
 }
 
 void Application::initializeGL() {

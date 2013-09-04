@@ -70,6 +70,10 @@ namespace starfield {
             _renderer(0l) {
         }
 
+        ~Controller() {
+            delete _renderer;
+        }
+
 #if !STARFIELD_MULTITHREADING
         #define lock
         #define _(x)

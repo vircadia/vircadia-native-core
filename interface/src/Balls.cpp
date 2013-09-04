@@ -38,6 +38,10 @@ Balls::Balls(int numberOfBalls) {
     _origin = glm::vec3(0, 0, 0);
 }
 
+Balls::~Balls() {
+    delete[] _balls;
+}
+
 void Balls::moveOrigin(const glm::vec3& newOrigin) {
     glm::vec3 delta = newOrigin - _origin;
     if (glm::length(delta) > EPSILON) {

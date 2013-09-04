@@ -77,12 +77,14 @@ private:
         int texCoordUp;
     };
 
-    static ProgramObject* loadProgram(const QString& suffix, const char* secondTextureUniform, Locations& locations);
+    static void loadProgram(ProgramObject& progam, const QString& suffix, const char* secondTextureUniform, Locations& locations);
     
-    static ProgramObject* _videoProgram;
+    static bool _initialized;
+
+    static ProgramObject _videoProgram;
     static Locations _videoProgramLocations;
     
-    static ProgramObject* _texturedProgram;
+    static ProgramObject _texturedProgram;
     static Locations _texturedProgramLocations;
     
     static GLuint _vboID;
