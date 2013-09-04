@@ -16,7 +16,7 @@
 
 const int ASSIGNMENT_REQUEST_INTERVAL_USECS = 1 * 1000 * 1000;
 
-int main(int argc, const char* argv[]) { 
+int main(int argc, char* const argv[]) {
     
     // create a NodeList as an unassigned client
     NodeList* nodeList = NodeList::createInstance(NODE_TYPE_UNASSIGNED);
@@ -27,7 +27,23 @@ int main(int argc, const char* argv[]) {
     unsigned char packetData[MAX_PACKET_SIZE];
     ssize_t receivedBytes = 0;
     
-    Assignment requestAssignment(Assignment::Request, Assignment::All);
+    // loop the parameters to see if we were passed a pool
+    int parameter = -1;
+    const char ALLOWED_PARAMETERS[] = "p::";
+    const char POOL_PARAMETER_CHAR = 'p';
+    
+    char* poolParam = NULL;
+    
+    while ((parameter = getopt(argc, argv, ALLOWED_PARAMETERS)) != -1) {
+        // while we only have one allowed param there is no need to check if this was 'p'
+        if (parameter == POOL_PARAMETER_CHAR) {
+            int poolLength = strlen(optarg);
+            poolParam = new char[poolLength];
+            memcpy(poolParam, optarg, poolLength);
+        }
+    }
+    
+    Assignment requestAssignment(Assignment::Request, Assignment::All, poolParam);
     
     while (true) {
         if (usecTimestampNow() - usecTimestamp(&lastRequest) >= ASSIGNMENT_REQUEST_INTERVAL_USECS) {
