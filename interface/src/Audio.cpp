@@ -448,7 +448,7 @@ Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples) :
     gettimeofday(&_lastReceiveTime, NULL);
 }
 
-Audio::~Audio() {    
+void Audio::shutdown() {
     if (_stream) {
         outputPortAudioError(Pa_CloseStream(_stream));
         outputPortAudioError(Pa_Terminate());

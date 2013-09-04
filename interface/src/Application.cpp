@@ -238,8 +238,10 @@ Application::~Application() {
 
     _sharedVoxelSystem.changeTree(new VoxelTree);
 
-    delete Menu::getInstance();
+    _audio.shutdown();
 
+    delete Menu::getInstance();
+    
     delete _oculusProgram;
     delete _settings;
     delete _networkAccessManager;
