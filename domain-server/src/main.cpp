@@ -96,8 +96,8 @@ int main(int argc, char* const argv[])
         if (parameter == POOL_PARAMETER_CHAR) {
             // copy the passed assignment pool
             int poolLength = strlen(optarg);
-            assignmentPool = new char[poolLength];
-            memcpy(assignmentPool, optarg, poolLength);
+            assignmentPool = new char[poolLength + sizeof(char)];
+            memcpy(assignmentPool, optarg, poolLength + sizeof(char));
         }
     }
     

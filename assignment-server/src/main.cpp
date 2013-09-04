@@ -49,12 +49,16 @@ int main(int argc, const char* argv[]) {
                     serverSocket.send((sockaddr*) &senderSocket, assignmentPacket, numSendHeaderBytes + sizeof(unsigned char));
                 }
             } else if (senderData[0] == PACKET_TYPE_CREATE_ASSIGNMENT && packetVersionMatch(senderData)) {
+                // memcpy the sent assignment
+                Assignment createdAssignment(senderData + numBytesForPacketHeader(PACKET_TYPE_CREATE_ASSIGNMENT));
+                
+                qDebug() << "Received an assignment:" << createdAssignment;
+                
                 // assignment server is on a public server
                 // assume that the address we now have for the sender is the public address/port
                 // and store that with the assignment so it can be given to the requestor later
-//                Assignment newAssignment((Assignment::Type) *(senderData + numBytesForPacketHeader(senderData)), senderSocket);
                 
-//                qDebug() << "Received assignment of type " << newAssignment.getType() << "\n";
+                
                 
                 // add this assignment to the queue
 //                assignmentQueue.push(newAssignment);

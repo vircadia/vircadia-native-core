@@ -25,17 +25,20 @@ public:
     };
     
     Assignment(Assignment::Direction direction, Assignment::Type type, const char* pool = NULL);
+    Assignment(const unsigned char* dataBuffer);
     
     Assignment::Direction getDirection() const { return _direction; }
     Assignment::Type getType() const { return _type; }
     const char* getPool() const { return _pool; }
     
+    int packAssignmentToBuffer(unsigned char* buffer);
+    
 private:
     Assignment::Direction _direction;
     Assignment::Type _type;
-    const char* _pool;
+    char* _pool;
 };
 
-
+QDebug operator<<(QDebug debug, const Assignment &assignment);
 
 #endif /* defined(__hifi__Assignment__) */
