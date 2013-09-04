@@ -238,6 +238,8 @@ Application::~Application() {
     NodeList::getInstance()->removeHook(&_voxels);
     NodeList::getInstance()->removeHook(this);
 
+    delete Menu::getInstance();
+
     delete _oculusProgram;
     delete _settings;
     delete _networkAccessManager;

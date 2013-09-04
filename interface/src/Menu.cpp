@@ -414,7 +414,6 @@ Menu::Menu() :
 }
 
 Menu::~Menu() {
-    qDebug("[DEBUG] Menu destructor.\n]");
     bandwidthDetailsClosed();
     voxelStatsDetailsClosed();
     delete _voxelModeActionsGroup;

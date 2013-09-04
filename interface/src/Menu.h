@@ -38,6 +38,7 @@ class Menu : public QMenuBar {
     Q_OBJECT
 public:
     static Menu* getInstance();
+    ~Menu();
     
     bool isOptionChecked(const QString& menuOption);
     void triggerOption(const QString& menuOption);
@@ -79,7 +80,6 @@ private:
     static Menu* _instance;
     
     Menu();
-    ~Menu();
     
     typedef void(*settingsAction)(QSettings*, QAction*);
     static void loadAction(QSettings* set, QAction* action);
