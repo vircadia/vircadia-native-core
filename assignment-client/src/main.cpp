@@ -32,18 +32,19 @@ int main(int argc, char* const argv[]) {
     const char ALLOWED_PARAMETERS[] = "p::";
     const char POOL_PARAMETER_CHAR = 'p';
     
-    char* poolParam = NULL;
+    char* assignmentPool = NULL;
     
     while ((parameter = getopt(argc, argv, ALLOWED_PARAMETERS)) != -1) {
-        // while we only have one allowed param there is no need to check if this was 'p'
         if (parameter == POOL_PARAMETER_CHAR) {
+            // copy the passed assignment pool
             int poolLength = strlen(optarg);
-            poolParam = new char[poolLength];
-            memcpy(poolParam, optarg, poolLength);
+            assignmentPool = new char[poolLength];
+            memcpy(assignmentPool, optarg, poolLength);
         }
     }
     
-    Assignment requestAssignment(Assignment::Request, Assignment::All, poolParam);
+    // create a request assignment, accept all assignments, pass the desired pool (if it exists)
+    Assignment requestAssignment(Assignment::Request, Assignment::All, assignmentPool);
     
     while (true) {
         if (usecTimestampNow() - usecTimestamp(&lastRequest) >= ASSIGNMENT_REQUEST_INTERVAL_USECS) {

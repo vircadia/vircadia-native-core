@@ -47,14 +47,14 @@ unsigned char* addNodeToBroadcastPacket(unsigned char* currentPosition, Node* no
     return currentPosition;
 }
 
-int main(int argc, const char * argv[])
+int main(int argc, char* const argv[])
 {
     NodeList* nodeList = NodeList::createInstance(NODE_TYPE_DOMAIN, DOMAIN_LISTEN_PORT);
 	// If user asks to run in "local" mode then we do NOT replace the IP
 	// with the EC2 IP. Otherwise, we will replace the IP like we used to
 	// this allows developers to run a local domain without recompiling the
 	// domain server
-	bool isLocalMode = cmdOptionExists(argc, argv, "--local");
+	bool isLocalMode = cmdOptionExists(argc, (const char**) argv, "--local");
 	if (isLocalMode) {
 		printf("NOTE: Running in local mode!\n");
 	} else {
@@ -85,13 +85,27 @@ int main(int argc, const char * argv[])
     
     timeval lastStatSendTime = {};
     
+    // loop the parameters to see if we were passed a pool for assignment
+    int parameter = -1;
+    const char ALLOWED_PARAMETERS[] = "p::";
+    const char POOL_PARAMETER_CHAR = 'p';
+    
+    char* assignmentPool = NULL;
+    
+    while ((parameter = getopt(argc, argv, ALLOWED_PARAMETERS)) != -1) {
+        if (parameter == POOL_PARAMETER_CHAR) {
+            // copy the passed assignment pool
+            int poolLength = strlen(optarg);
+            assignmentPool = new char[poolLength];
+            memcpy(assignmentPool, optarg, poolLength);
+        }
+    }
+    
     while (true) {
         
         if (!nodeList->soloNodeOfType(NODE_TYPE_AUDIO_MIXER)) {
-            // we don't have an audio mixer, and we know we need one
-            // so tell that to the assignment server
-    
-            Assignment mixerAssignment(Assignment::Create, Assignment::AudioMixer);
+            // create an assignment to send, ask for an audio mixer, pass the assignment pool if it exists
+            Assignment mixerAssignment(Assignment::Create, Assignment::AudioMixer, assignmentPool);
             nodeList->sendAssignment(mixerAssignment);
         }
         
