@@ -30,7 +30,7 @@ VoxelStatsDialog::VoxelStatsDialog(QWidget* parent, VoxelSceneStats* model) :
     this->QDialog::setLayout(form);
 
     // Setup labels
-    for (int i = 0; i < (int)VoxelSceneStats::ITEM_COUNT; i++) {
+    for (int i = 0; i < VoxelSceneStats::ITEM_COUNT; i++) {
         VoxelSceneStats::Item item = (VoxelSceneStats::Item)(i);
         VoxelSceneStats::ItemInfo& itemInfo = _model->getItemInfo(item);
         QLabel* label = _labels[item] = new QLabel();  
@@ -54,7 +54,7 @@ VoxelStatsDialog::VoxelStatsDialog(QWidget* parent, VoxelSceneStats* model) :
 }
 
 VoxelStatsDialog::~VoxelStatsDialog() {
-    for (int i = 0; i <(int)VoxelSceneStats::ITEM_COUNT; ++i) {
+    for (int i = 0; i < VoxelSceneStats::ITEM_COUNT; ++i) {
         delete _labels[i];
     }
 }
@@ -63,7 +63,7 @@ void VoxelStatsDialog::paintEvent(QPaintEvent* event) {
 
     // Update labels
     char strBuf[256];
-    for (int i = 0; i < (int)VoxelSceneStats::ITEM_COUNT; i++) {
+    for (int i = 0; i < VoxelSceneStats::ITEM_COUNT; i++) {
         VoxelSceneStats::Item item = (VoxelSceneStats::Item)(i);
         QLabel* label = _labels[item];
         snprintf(strBuf, sizeof(strBuf), "%s", _model->getItemValue(item));

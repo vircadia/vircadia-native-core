@@ -38,7 +38,6 @@ class ProgramObject;
 class Head : public HeadData {
 public:
     Head(Avatar* owningAvatar);
-    ~Head();
     
     void init();
     void reset();
@@ -73,7 +72,7 @@ public:
     Face& getFace() { return _face; }
     
     const bool getReturnToCenter() const { return _returnHeadToCenter; } // Do you want head to try to return to center (depends on interface detected)
-    float getAverageLoudness() {return _averageLoudness;}
+    float getAverageLoudness() const { return _averageLoudness; }
     glm::vec3 calculateAverageEyePosition() { return _leftEyePosition + (_rightEyePosition - _leftEyePosition ) * ONE_HALF; }
     
     float yawRate;
@@ -131,8 +130,7 @@ private:
     bool _cameraFollowsHead;
     float _cameraFollowHeadRate;
     Face _face;
-    
-    static bool _irisProgramInitialized;
+
     static ProgramObject _irisProgram;
     static GLuint _irisTextureID;
     static int _eyePositionLocation;

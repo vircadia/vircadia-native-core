@@ -34,8 +34,8 @@ public:
     VoxelSystem(float treeScale = TREE_SCALE, int maxVoxels = MAX_VOXELS_PER_SYSTEM);
     ~VoxelSystem();
 
-    void setDataSourceID(int dataSourceID) { _dataSourceID = dataSourceID; };
-    int  getDataSourceID() const { return _dataSourceID; };
+    void setDataSourceID(int dataSourceID) { _dataSourceID = dataSourceID; }
+    int  getDataSourceID() const { return _dataSourceID; }
     
     int parseData(unsigned char* sourceBuffer, int numBytes);
     
@@ -45,8 +45,8 @@ public:
 
     ViewFrustum* getViewFrustum() const {return _viewFrustum;}
     void setViewFrustum(ViewFrustum* viewFrustum) {_viewFrustum = viewFrustum;}
-    unsigned long  getVoxelsUpdated() const {return _voxelsUpdated;};
-    unsigned long  getVoxelsRendered() const {return _voxelsInReadArrays;};
+    unsigned long  getVoxelsUpdated() const {return _voxelsUpdated;}
+    unsigned long  getVoxelsRendered() const {return _voxelsInReadArrays;}
 
     void loadVoxelsFile(const char* fileName,bool wantColorRandomizer);
     void writeToSVOFile(const char* filename, VoxelNode* node) const;
@@ -207,8 +207,7 @@ private:
     void updatePartialVBOs(); // multiple segments, only dirty voxels
 
     bool _voxelsDirty;
-    
-    static bool _perlinModulateProgramInitialized;
+
     static ProgramObject _perlinModulateProgram;
     
     int _hookID;

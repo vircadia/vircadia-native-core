@@ -54,9 +54,6 @@ Face::~Face() {
             glDeleteTextures(1, &_depthTextureID);
         }
     }
-
-    glDeleteBuffers(1, &_vboID);
-    glDeleteBuffers(1, &_iboID);
 }
 
 void Face::setFrameFromWebcam() {

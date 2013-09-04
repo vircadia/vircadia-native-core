@@ -545,7 +545,6 @@ glm::vec3 VoxelSystem::computeVoxelVertex(const glm::vec3& startVertex, float vo
     return startVertex + glm::vec3(identityVertex[0], identityVertex[1], identityVertex[2]) * voxelScale;
 }
 
-bool VoxelSystem::_perlinModulateProgramInitialized = false;
 ProgramObject VoxelSystem::_perlinModulateProgram;
 
 void VoxelSystem::init() {
@@ -634,7 +633,7 @@ void VoxelSystem::init() {
 
 
     // create our simple fragment shader if we're the first system to init
-    if (!_perlinModulateProgramInitialized) {
+    if (!_perlinModulateProgram.isLinked()) {
         switchToResourcesParentIfRequired();
         _perlinModulateProgram.addShaderFromSourceFile(QGLShader::Vertex, "resources/shaders/perlin_modulate.vert");
         _perlinModulateProgram.addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/perlin_modulate.frag");
@@ -643,8 +642,6 @@ void VoxelSystem::init() {
         _perlinModulateProgram.bind();
         _perlinModulateProgram.setUniformValue("permutationNormalTexture", 0);
         _perlinModulateProgram.release();
-
-        _perlinModulateProgramInitialized = true;
     }
     _initialized = true;
 }

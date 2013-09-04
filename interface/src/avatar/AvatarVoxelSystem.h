@@ -74,8 +74,7 @@ private:
     GLuint _vboBoneWeightsID;
     
     QNetworkReply* _voxelReply;
-    
-    static bool _skinProgramInitialized;
+
     static ProgramObject _skinProgram;
     static int _boneMatricesLocation;
     static int _boneIndicesLocation;

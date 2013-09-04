@@ -43,7 +43,6 @@ AvatarVoxelSystem::~AvatarVoxelSystem() {
     }
 }
 
-bool AvatarVoxelSystem::_skinProgramInitialized = false;
 ProgramObject AvatarVoxelSystem::_skinProgram;
 int AvatarVoxelSystem::_boneMatricesLocation;
 int AvatarVoxelSystem::_boneIndicesLocation;
@@ -75,10 +74,9 @@ void AvatarVoxelSystem::init() {
     glBufferData(GL_ARRAY_BUFFER, BONE_ELEMENTS_PER_VOXEL * sizeof(GLfloat) * _maxVoxels, NULL, GL_DYNAMIC_DRAW);
     
     // load our skin program if this is the first avatar system to initialize
-    if (!_skinProgramInitialized) {
+    if (!_skinProgram.isLinked()) {
         _skinProgram.addShaderFromSourceFile(QGLShader::Vertex, "resources/shaders/skin_voxels.vert");
         _skinProgram.link();
-        _skinProgramInitialized = true;
     }
     
     _boneMatricesLocation = _skinProgram.uniformLocation("boneMatrices");

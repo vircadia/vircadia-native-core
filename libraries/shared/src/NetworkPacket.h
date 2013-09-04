@@ -33,7 +33,7 @@ public:
     NetworkPacket(sockaddr& address, unsigned char*  packetData, ssize_t packetLength);
 
     sockaddr& getAddress() { return _address; }
-    ssize_t getLength() const { return _packetLength;  }
+    ssize_t getLength() const { return _packetLength; }
     unsigned char* getData() { return &_packetData[0]; }
 
     const sockaddr& getAddress() const { return _address; }

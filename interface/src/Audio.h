@@ -42,8 +42,8 @@ public:
 
     float getLastInputLoudness() const { return _lastInputLoudness; }
     
-    void setLastAcceleration(glm::vec3 lastAcceleration) { _lastAcceleration = lastAcceleration; }
-    void setLastVelocity(glm::vec3 lastVelocity) { _lastVelocity = lastVelocity; }
+    void setLastAcceleration(const glm::vec3 lastAcceleration) { _lastAcceleration = lastAcceleration; }
+    void setLastVelocity(const glm::vec3 lastVelocity) { _lastVelocity = lastVelocity; }
     
     void setJitterBufferSamples(int samples) { _jitterBufferSamples = samples; }
     int getJitterBufferSamples() { return _jitterBufferSamples; }

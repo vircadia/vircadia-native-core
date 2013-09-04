@@ -10,7 +10,6 @@
 #define __hifi__VoxelTree__
 
 #include <set>
-#include <PointerStack.h>
 #include <SimpleMovingAverage.h>
 
 #include "CoverageMap.h"
@@ -189,12 +188,6 @@ public:
     void recurseNodeWithOperation(VoxelNode* node, RecurseVoxelTreeOperation operation, void* extraData);
     void recurseNodeWithOperationDistanceSorted(VoxelNode* node, RecurseVoxelTreeOperation operation, 
                 const glm::vec3& point, void* extraData);
-
-
-    void recurseTreeWithOperationDistanceSortedTimed(PointerStack* stackOfNodes, long allowedTime,
-                                                            RecurseVoxelTreeOperation operation, 
-                                                            const glm::vec3& point, void* extraData);
-
 signals:
     void importSize(float x, float y, float z);
     void importProgress(int progress);

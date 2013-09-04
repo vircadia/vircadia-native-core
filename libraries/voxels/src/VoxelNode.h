@@ -53,7 +53,7 @@ public:
     
     float getEnclosingRadius() const;
     
-    bool isColored() const { return (_trueColor[3]==1); }
+    bool isColored() const { return _trueColor[3] == 1; }
     bool isInView(const ViewFrustum& viewFrustum) const; 
     ViewFrustum::location inFrustum(const ViewFrustum& viewFrustum) const;
     float distanceToCamera(const ViewFrustum& viewFrustum) const; 
@@ -70,8 +70,8 @@ public:
     void printDebugDetails(const char* label) const;
     bool isDirty() const { return _isDirty; }
     void clearDirtyBit() { _isDirty = false; }
-    bool hasChangedSince(uint64_t time) const { return (_lastChanged > time);  }
-    void markWithChangedTime() { _lastChanged = usecTimestampNow();  }
+    bool hasChangedSince(uint64_t time) const { return (_lastChanged > time); }
+    void markWithChangedTime() { _lastChanged = usecTimestampNow(); }
     uint64_t getLastChanged() const { return _lastChanged; }
     void handleSubtreeChanged(VoxelTree* myTree);
     
@@ -103,18 +103,18 @@ public:
     const nodeColor& getColor() const { return _trueColor; };
 #endif
 
-    void     setDensity(float density)            { _density = density;   }
-    float    getDensity()                   const { return _density;      }
-    void     setSourceID(uint16_t sourceID)       { _sourceID = sourceID; }
-    uint16_t getSourceID()                  const { return _sourceID;     }
+    void setDensity(float density) { _density = density; }
+    float getDensity() const { return _density; }
+    void setSourceID(uint16_t sourceID) { _sourceID = sourceID; }
+    uint16_t getSourceID() const { return _sourceID; }
 
     static void addDeleteHook(VoxelNodeDeleteHook* hook);
     static void removeDeleteHook(VoxelNodeDeleteHook* hook);
     
     void recalculateSubTreeNodeCount();
-    unsigned long getSubTreeNodeCount()         const { return _subtreeNodeCount; }
+    unsigned long getSubTreeNodeCount() const { return _subtreeNodeCount; }
     unsigned long getSubTreeInternalNodeCount() const { return _subtreeNodeCount - _subtreeLeafNodeCount; }
-    unsigned long getSubTreeLeafNodeCount()     const { return _subtreeLeafNodeCount; }
+    unsigned long getSubTreeLeafNodeCount() const { return _subtreeLeafNodeCount; }
 
 private:
     void calculateAABox();

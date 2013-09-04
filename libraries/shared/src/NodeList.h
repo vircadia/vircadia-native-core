@@ -156,7 +156,6 @@ private:
 class NodeListIterator : public std::iterator<std::input_iterator_tag, Node> {
 public:
     NodeListIterator(const NodeList* nodeList, int nodeIndex);
-    ~NodeListIterator() {}
     
     int getNodeIndex() { return _nodeIndex; }
     

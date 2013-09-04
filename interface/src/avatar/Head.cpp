@@ -46,7 +46,6 @@ const float IRIS_RADIUS              =  0.007;
 const float IRIS_PROTRUSION          =  0.0145f;
 const char  IRIS_TEXTURE_FILENAME[]  =  "resources/images/iris.png";
 
-bool Head::_irisProgramInitialized = false;
 ProgramObject Head::_irisProgram;
 GLuint Head::_irisTextureID;
 int Head::_eyePositionLocation;
@@ -97,12 +96,8 @@ Head::Head(Avatar* owningAvatar) :
     }
 }
 
-Head::~Head() {
-    glDeleteTextures(1, &_irisTextureID);
-}
-
 void Head::init() {
-    if (!_irisProgramInitialized) {
+    if (!_irisProgram.isLinked()) {
         switchToResourcesParentIfRequired();
         _irisProgram.addShaderFromSourceFile(QGLShader::Vertex, "resources/shaders/iris.vert");
         _irisProgram.addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/iris.frag");
@@ -120,8 +115,6 @@ void Head::init() {
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
         glBindTexture(GL_TEXTURE_2D, 0);
-
-        _irisProgramInitialized = true;
     }
 }
 

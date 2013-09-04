@@ -109,7 +109,10 @@ TagList::TagList(std::stringstream &ss) :
 }
 
 TagList::~TagList() {
-    _data.clear();
+    while (!_data.empty()) {
+        delete _data.back();
+        _data.pop_back();
+    }
 }
 
 TagCompound::TagCompound(std::stringstream &ss) :
@@ -150,7 +153,10 @@ TagCompound::TagCompound(std::stringstream &ss) :
 }
 
 TagCompound::~TagCompound() {
-    _data.clear();
+    while (!_data.empty()) {
+        delete _data.back();
+        _data.pop_back();
+    }
 }
 
 TagIntArray::TagIntArray(std::stringstream &ss) : Tag(TAG_Int_Array, ss) {

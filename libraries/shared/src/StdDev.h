@@ -16,7 +16,7 @@ class StDev {
         void addValue(float v);
         float getAverage();
         float getStDev();
-        int getSamples() {return sampleCount;}
+        int getSamples() const { return sampleCount; }
     private:
         float * data;
         int sampleCount;
