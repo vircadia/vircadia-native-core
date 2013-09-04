@@ -66,9 +66,11 @@ void Faceshift::readFromSocket() {
             case fsMsg::MSG_OUT_TRACKING_STATE: {
                 const fsTrackingData& data = static_cast<fsMsgTrackingState*>(msg.get())->tracking_data();
                 if (data.m_trackingSuccessful) {
-                    _headRotation = glm::quat(data.m_headRotation.w, data.m_headRotation.x,
-                        data.m_headRotation.y, data.m_headRotation.z);
-                    _headTranslation = glm::vec3(data.m_headTranslation.x, data.m_headTranslation.y, data.m_headTranslation.z);
+                    _headRotation = glm::quat(data.m_headRotation.w, -data.m_headRotation.x,
+                        data.m_headRotation.y, -data.m_headRotation.z);
+                    const float TRANSLATION_SCALE = 0.1f;
+                    _headTranslation = glm::vec3(data.m_headTranslation.x, data.m_headTranslation.y,
+                        -data.m_headTranslation.z) * TRANSLATION_SCALE;
                     _eyeGazeLeftPitch = data.m_eyeGazeLeftPitch;
                     _eyeGazeLeftYaw = data.m_eyeGazeLeftYaw;
                     _eyeGazeRightPitch = data.m_eyeGazeRightPitch;
