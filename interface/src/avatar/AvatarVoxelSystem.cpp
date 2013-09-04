@@ -121,7 +121,7 @@ void AvatarVoxelSystem::setVoxelURL(const QUrl& url) {
     // handle "file://" urls...
     if (url.isLocalFile()) {
         QString pathString = url.path();
-        QByteArray pathAsAscii = pathString.toAscii();
+        QByteArray pathAsAscii = pathString.toLocal8Bit();
         const char* path = pathAsAscii.data();
         readFromSVOFile(path);
         return;        
@@ -250,12 +250,13 @@ void AvatarVoxelSystem::handleVoxelDownloadProgress(qint64 bytesReceived, qint64
     _voxelReply->deleteLater();
     _voxelReply = 0;
     
-    _tree->readBitstreamToTree((unsigned char*)entirety.data(), entirety.size(), WANT_COLOR, NO_EXISTS_BITS);
+    ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS);
+    _tree->readBitstreamToTree((unsigned char*)entirety.data(), entirety.size(), args);
     setupNewVoxelsForDrawing();
 }
 
 void AvatarVoxelSystem::handleVoxelReplyError() {
-    qDebug("%s\n", _voxelReply->errorString().toAscii().constData());
+    qDebug("%s\n", _voxelReply->errorString().toLocal8Bit().constData());
     
     _voxelReply->disconnect(this);
     _voxelReply->deleteLater();

@@ -20,7 +20,7 @@
 #include <unistd.h>
 #endif
 
-#include <QDebug>
+#include <QtCore/QDebug>
 
 #include "UDPSocket.h"
 
@@ -118,7 +118,21 @@ unsigned short loadBufferWithSocketInfo(char* addressBuffer, sockaddr* socket) {
     }
 }
 
-UDPSocket::UDPSocket(int listeningPort) : listeningPort(listeningPort), blocking(true) {
+sockaddr_in socketForHostname(const char* hostname) {
+    struct hostent* pHostInfo;
+    sockaddr_in newSocket;
+
+    if ((pHostInfo = gethostbyname(hostname))) {
+        memcpy(&newSocket.sin_addr, pHostInfo->h_addr_list[0], pHostInfo->h_length);
+    }
+    
+    return newSocket;
+}
+
+UDPSocket::UDPSocket(unsigned short int listeningPort) :
+    _listeningPort(listeningPort),
+    blocking(true)
+{
     init();
     // create the socket
     handle = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
@@ -134,10 +148,10 @@ UDPSocket::UDPSocket(int listeningPort) : listeningPort(listeningPort), blocking
     sockaddr_in bind_address;
     bind_address.sin_family = AF_INET;
     bind_address.sin_addr.s_addr = INADDR_ANY;
-    bind_address.sin_port = htons((uint16_t) listeningPort);
+    bind_address.sin_port = htons((uint16_t) _listeningPort);
     
     if (bind(handle, (const sockaddr*) &bind_address, sizeof(sockaddr_in)) < 0) {
-        qDebug("Failed to bind socket to port %d.\n", listeningPort);
+        qDebug("Failed to bind socket to port %hu.\n", _listeningPort);
         return;
     }
     
@@ -145,7 +159,7 @@ UDPSocket::UDPSocket(int listeningPort) : listeningPort(listeningPort), blocking
     if (listeningPort == 0) {
         socklen_t addressLength = sizeof(sockaddr_in);
         getsockname(handle, (sockaddr*) &bind_address, &addressLength);
-        listeningPort = ntohs(bind_address.sin_port);
+        _listeningPort = ntohs(bind_address.sin_port);
     }
     
     // set timeout on socket recieve to 0.5 seconds
@@ -154,7 +168,7 @@ UDPSocket::UDPSocket(int listeningPort) : listeningPort(listeningPort), blocking
     tv.tv_usec = 500000;
     setsockopt(handle, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv, sizeof tv);
     
-    qDebug("Created UDP socket listening on port %d.\n", listeningPort);
+    qDebug("Created UDP socket listening on port %hu.\n", _listeningPort);
 }
 
 UDPSocket::~UDPSocket() {

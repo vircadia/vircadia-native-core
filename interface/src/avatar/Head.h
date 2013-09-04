@@ -18,18 +18,18 @@
 #include <VoxelConstants.h>
 
 #include "Face.h"
+#include "BendyLine.h"
 #include "InterfaceConfig.h"
 #include "SerialInterface.h"
 #include "world.h"
 
-enum eyeContactTargets 
-{
+enum eyeContactTargets {
     LEFT_EYE, 
     RIGHT_EYE, 
     MOUTH
 };
 
-const int NUM_HAIR_TUFTS    = 4;
+const int NUM_HAIR_TUFTS = 4;
 
 class Avatar;
 class ProgramObject;
@@ -40,30 +40,32 @@ public:
     
     void init();
     void reset();
-    void simulate(float deltaTime, bool isMine);
+    void simulate(float deltaTime, bool isMine, float gyroCameraSensitivity);
     void render(float alpha);
     void renderMohawk();
 
-    void setScale          (float     scale             );
-    void setPosition       (glm::vec3 position          ) { _position           = position;           }
-    void setBodyRotation   (glm::vec3 bodyRotation      ) { _bodyRotation       = bodyRotation;       }
-    void setGravity        (glm::vec3 gravity           ) { _gravity            = gravity;            }
-    void setSkinColor      (glm::vec3 skinColor         ) { _skinColor          = skinColor;          }
-    void setSpringScale    (float     returnSpringScale ) { _returnSpringScale  = returnSpringScale;  }
-    void setAverageLoudness(float     averageLoudness   ) { _averageLoudness    = averageLoudness;    }
-    void setReturnToCenter (bool      returnHeadToCenter) { _returnHeadToCenter = returnHeadToCenter; }
-    void setRenderLookatVectors(bool onOff ) { _renderLookatVectors = onOff; }
-    
+    void setScale(float scale);
+    void setPosition(glm::vec3 position) { _position = position; }
+    void setBodyRotation(glm::vec3 bodyRotation) { _bodyRotation = bodyRotation; }
+    void setGravity(glm::vec3 gravity) { _gravity = gravity; }
+    void setSkinColor(glm::vec3 skinColor) { _skinColor = skinColor; }
+    void setSpringScale(float returnSpringScale) { _returnSpringScale = returnSpringScale; }
+    void setAverageLoudness(float averageLoudness) { _averageLoudness = averageLoudness; }
+    void setReturnToCenter (bool returnHeadToCenter) { _returnHeadToCenter = returnHeadToCenter; }
+    void setRenderLookatVectors(bool onOff) { _renderLookatVectors = onOff; }
     void setCameraFollowsHead(bool cameraFollowsHead) { _cameraFollowsHead = cameraFollowsHead; }
     
+    float getMousePitch() const { return _mousePitch; }
+    void  setMousePitch(float mousePitch) { _mousePitch = mousePitch; }
+
     glm::quat getOrientation() const;
     glm::quat getCameraOrientation () const;
     
     float getScale() const { return _scale; }
     glm::vec3 getPosition() const { return _position; }
-    const glm::vec3& getEyeLevelPosition() const { return _eyeLevelPosition; }
+    const glm::vec3& getEyePosition() const { return _eyePosition; }
     glm::vec3 getRightDirection() const { return getOrientation() * IDENTITY_RIGHT; }
-    glm::vec3 getUpDirection   () const { return getOrientation() * IDENTITY_UP;    }
+    glm::vec3 getUpDirection() const { return getOrientation() * IDENTITY_UP; }
     glm::vec3 getFrontDirection() const { return getOrientation() * IDENTITY_FRONT; }
     
     Face& getFace() { return _face; }
@@ -73,63 +75,59 @@ public:
     glm::vec3 calculateAverageEyePosition() { return _leftEyePosition + (_rightEyePosition - _leftEyePosition ) * ONE_HALF; }
     
     float yawRate;
-    float noise;
 
 private:
     // disallow copies of the Head, copy of owning Avatar is disallowed too
     Head(const Head&);
     Head& operator= (const Head&);
 
-    struct HairTuft
-    {
-        float length;
-        float thickness;
-        
-        glm::vec3 basePosition;				
-        glm::vec3 midPosition;          
-        glm::vec3 endPosition;          
-        glm::vec3 midVelocity;          
-        glm::vec3 endVelocity;  
+    struct Nose {
+        glm::vec3 top;
+        glm::vec3 left;
+        glm::vec3 right;
+        glm::vec3 front;
     };
-
-    float       _renderAlpha;
-    bool        _returnHeadToCenter;
-    glm::vec3   _skinColor;
-    glm::vec3   _position;
-    glm::vec3   _rotation;
-    glm::vec3   _leftEyePosition;
-    glm::vec3   _rightEyePosition;
-    glm::vec3   _eyeLevelPosition; 
-    glm::vec3   _leftEyeBrowPosition;
-    glm::vec3   _rightEyeBrowPosition; 
-    glm::vec3   _leftEarPosition;
-    glm::vec3   _rightEarPosition; 
-    glm::vec3   _mouthPosition; 
-    float       _scale;
-    float       _browAudioLift;
-    glm::vec3   _gravity;
-    float       _lastLoudness;
-    float       _averageLoudness;
-    float       _audioAttack;
-    float       _returnSpringScale; //strength of return springs
-    glm::vec3   _bodyRotation;
-    bool        _renderLookatVectors;
-    HairTuft    _hairTuft[NUM_HAIR_TUFTS];
-    glm::vec3*  _mohawkTriangleFan;
-    glm::vec3*  _mohawkColors;
-    glm::vec3   _saccade;
-    glm::vec3   _saccadeTarget;
-    float       _leftEyeBlink;
-    float       _rightEyeBlink;
-    float       _leftEyeBlinkVelocity;
-    float       _rightEyeBlinkVelocity;
-    float       _timeWithoutTalking;
-    float       _cameraPitch;                   //  Used to position the camera differently from the head
-    float       _cameraYaw;
-    bool        _isCameraMoving;
-    bool        _cameraFollowsHead;
-    float       _cameraFollowHeadRate;
-    Face        _face;
+    
+    float _renderAlpha;
+    bool _returnHeadToCenter;
+    glm::vec3 _skinColor;
+    glm::vec3 _position;
+    glm::vec3 _rotation;
+    glm::vec3 _leftEyePosition;
+    glm::vec3 _rightEyePosition;
+    glm::vec3 _eyePosition;
+    glm::vec3 _leftEyeBrowPosition;
+    glm::vec3 _rightEyeBrowPosition;
+    glm::vec3 _leftEarPosition;
+    glm::vec3 _rightEarPosition;
+    glm::vec3 _mouthPosition;
+    Nose _nose;
+    float _scale;
+    float _browAudioLift;
+    glm::vec3 _gravity;
+    float _lastLoudness;
+    float _averageLoudness;
+    float _audioAttack;
+    float _returnSpringScale; //strength of return springs
+    glm::vec3 _bodyRotation;
+    bool _renderLookatVectors;
+    BendyLine _hairTuft[NUM_HAIR_TUFTS];
+    glm::vec3* _mohawkTriangleFan;
+    glm::vec3* _mohawkColors;
+    glm::vec3 _saccade;
+    glm::vec3 _saccadeTarget;
+    float _leftEyeBlink;
+    float _rightEyeBlink;
+    float _leftEyeBlinkVelocity;
+    float _rightEyeBlinkVelocity;
+    float _timeWithoutTalking;
+    float _cameraPitch; //  Used to position the camera differently from the head
+    float _mousePitch;
+    float _cameraYaw;
+    bool _isCameraMoving;
+    bool _cameraFollowsHead;
+    float _cameraFollowHeadRate;
+    Face _face;
     
     static ProgramObject* _irisProgram;
     static GLuint _irisTextureID;
@@ -141,6 +139,7 @@ private:
     void renderEyeBalls();
     void renderEyeBrows();
     void renderEars();
+    void renderNose();
     void renderMouth();
     void renderLookatVectors(glm::vec3 leftEyePosition, glm::vec3 rightEyePosition, glm::vec3 lookatPosition);
     void calculateGeometry();

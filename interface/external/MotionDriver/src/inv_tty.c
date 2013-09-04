@@ -26,51 +26,74 @@ static unsigned char from_hex_digit(char digit) {
     return (digit < 'A') ? digit - '0' : (digit - 'A') + 10;
 }
 
-static void write_byte(unsigned char value) {
+static int write_byte(unsigned char value) {
     char chars[] = { to_hex_digit(value / 16), to_hex_digit(value % 16) };
-    write(ttyFileDescriptor, chars, 2);
+    return write(ttyFileDescriptor, chars, 2) != 2;
 }
 
-static unsigned char read_byte() {
+static int read_byte(unsigned char* value) {
     char chars[2];
-    read(ttyFileDescriptor, chars, 2);
-    return from_hex_digit(chars[0]) * 16 + from_hex_digit(chars[1]);
+    if (read(ttyFileDescriptor, chars, 2) != 2) {
+        return 1;
+    }
+    *value = from_hex_digit(chars[0]) * 16 + from_hex_digit(chars[1]);
+    return 0;
 }
 
 int tty_i2c_write(unsigned char slave_addr, unsigned char reg_addr, unsigned char length, unsigned char const *data) {
-    write(ttyFileDescriptor, "WR", 2);
-    write_byte(slave_addr);
-    write_byte(reg_addr);
+    if (write(ttyFileDescriptor, "WR", 2) != 2) {
+        return 1;
+    }
+    if (write_byte(slave_addr)) {
+        return 1;
+    }
+    if (write_byte(reg_addr)) {
+        return 1;
+    }
     int i;
     for (i = 0; i < length; i++) {
-        write_byte(data[i]);
+        if (write_byte(data[i])) {
+            return 1;
+        }
     }
-    write(ttyFileDescriptor, "\n", 1);
+    if (write(ttyFileDescriptor, "\n", 1) != 1) {
+        return 1;
+    }
     
     char response[8];
-    read(ttyFileDescriptor, response, 8);
-    
-    return 0;
+    return read(ttyFileDescriptor, response, 8) != 8;
 }
 
 int tty_i2c_read(unsigned char slave_addr, unsigned char reg_addr, unsigned char length, unsigned char *data) {
-    write(ttyFileDescriptor, "RD", 2);
-    write_byte(slave_addr);
-    write_byte(reg_addr);
-    write_byte(length);
-    write(ttyFileDescriptor, "\n", 1);
+    if (write(ttyFileDescriptor, "RD", 2) != 2) {
+        return 1;
+    }
+    if (write_byte(slave_addr)) {
+        return 1;
+    }
+    if (write_byte(reg_addr)) {
+        return 1;
+    }
+    if (write_byte(length)) {
+        return 1;
+    }
+    if (write(ttyFileDescriptor, "\n", 1) != 1) {
+        return 1;
+    }
     
     char prefix[6];
-    read(ttyFileDescriptor, prefix, 6);
+    if (read(ttyFileDescriptor, prefix, 6) != 6) {
+        return 1;
+    }
     int i;
     for (i = 0; i < length; i++) {
-        data[i] = read_byte();
+        if (read_byte(data + i)) {
+            return 1;
+        }
     }
     
     char suffix[2];
-    read(ttyFileDescriptor, suffix, 2);
-    
-    return 0;
+    return read(ttyFileDescriptor, suffix, 2) != 2;
 }
 
 void tty_delay_ms(unsigned long num_ms) {

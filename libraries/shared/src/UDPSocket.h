@@ -20,10 +20,10 @@
 
 class UDPSocket {    
 public:
-    UDPSocket(int listening_port);
+    UDPSocket(unsigned short int listeningPort);
     ~UDPSocket();
     bool init();
-    int getListeningPort() const { return listeningPort; }
+    unsigned short int getListeningPort() const { return _listeningPort; }
     void setBlocking(bool blocking);
     bool isBlocking() const { return blocking; }
     int send(sockaddr* destAddress, const void* data, size_t byteLength) const;
@@ -32,7 +32,7 @@ public:
     bool receive(sockaddr* recvAddress, void* receivedData, ssize_t* receivedBytes) const;
 private:
     int handle;
-    int listeningPort;
+    unsigned short int _listeningPort;
     bool blocking;
 };
 
@@ -42,5 +42,6 @@ int packSocket(unsigned char* packStore, sockaddr* socketToPack);
 int unpackSocket(unsigned char* packedData, sockaddr* unpackDestSocket);
 int getLocalAddress();
 unsigned short loadBufferWithSocketInfo(char* addressBuffer, sockaddr* socket);
+sockaddr_in socketForHostname(const char* hostname);
 
 #endif /* defined(__interface__UDPSocket__) */

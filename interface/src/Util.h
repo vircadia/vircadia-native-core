@@ -33,7 +33,7 @@ float angle_to(glm::vec3 head_pos, glm::vec3 source_pos, float render_yaw, float
 float randFloat();
 const glm::vec3 randVector();
 
-void render_world_box();
+void renderWorldBox();
 int widthText(float scale, int mono, char const* string);
 float widthChar(float scale, int mono, char ch);
 void drawtext(int x, int y, float scale, float rotate, float thick, int mono, 
@@ -59,8 +59,9 @@ double diffclock(timeval *clock1,timeval *clock2);
 
 void renderGroundPlaneGrid(float size, float impact);
 
-void renderCollisionOverlay(int width, int height, float magnitude);
+void renderMouseVoxelGrid(const float& mouseVoxelX, const float& mouseVoxelY, const float& mouseVoxelZ, const float& mouseVoxelS);
 
+void renderCollisionOverlay(int width, int height, float magnitude);
 
 void renderDiskShadow(glm::vec3 position, glm::vec3 upDirection, float radius, float darkness);
 
@@ -73,6 +74,9 @@ void runTimingTests();
 
 float loadSetting(QSettings* settings, const char* name, float defaultValue);
 
-bool rayIntersectsSphere(glm::vec3& rayStarting, glm::vec3& rayNormalizedDirection, glm::vec3& sphereCenter, double sphereRadius);
+bool rayIntersectsSphere(const glm::vec3& rayStarting, const glm::vec3& rayNormalizedDirection,
+    const glm::vec3& sphereCenter, float sphereRadius, float& distance);
+
+bool pointInSphere(glm::vec3& point, glm::vec3& sphereCenter, double sphereRadius);
 
 #endif

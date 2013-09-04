@@ -1,0 +1,153 @@
+//
+//  AmbientOcclusionEffect.cpp
+//  interface
+//
+//  Created by Andrzej Kapolka on 7/14/13.
+//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
+//
+
+// include this before QOpenGLFramebufferObject, which includes an earlier version of OpenGL
+#include "InterfaceConfig.h"
+
+#include <QOpenGLFramebufferObject>
+
+#include <glm/gtc/random.hpp>
+
+#include <SharedUtil.h>
+
+#include "AmbientOcclusionEffect.h"
+#include "Application.h"
+#include "InterfaceConfig.h"
+#include "ProgramObject.h"
+#include "RenderUtil.h"
+
+const int ROTATION_WIDTH = 4;
+const int ROTATION_HEIGHT = 4;
+    
+void AmbientOcclusionEffect::init() {
+    switchToResourcesParentIfRequired();
+    
+    _occlusionProgram = new ProgramObject();
+    _occlusionProgram->addShaderFromSourceFile(QGLShader::Vertex, "resources/shaders/ambient_occlusion.vert");
+    _occlusionProgram->addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/ambient_occlusion.frag");
+    _occlusionProgram->link();
+    
+    // create the sample kernel: an array of spherically distributed offset vectors
+    const int SAMPLE_KERNEL_SIZE = 16;
+    QVector3D sampleKernel[SAMPLE_KERNEL_SIZE];
+    for (int i = 0; i < SAMPLE_KERNEL_SIZE; i++) {
+        // square the length in order to increase density towards the center
+        glm::vec3 vector = glm::sphericalRand(1.0f);
+        float scale = randFloat();
+        const float MIN_VECTOR_LENGTH = 0.01f;
+        const float MAX_VECTOR_LENGTH = 1.0f;
+        vector *= glm::mix(MIN_VECTOR_LENGTH, MAX_VECTOR_LENGTH, scale * scale);
+        sampleKernel[i] = QVector3D(vector.x, vector.y, vector.z);
+    }
+    
+    _occlusionProgram->bind();
+    _occlusionProgram->setUniformValue("depthTexture", 0);
+    _occlusionProgram->setUniformValue("rotationTexture", 1);
+    _occlusionProgram->setUniformValueArray("sampleKernel", sampleKernel, SAMPLE_KERNEL_SIZE);
+    _occlusionProgram->setUniformValue("radius", 0.1f);
+    _occlusionProgram->release();
+    
+    _nearLocation = _occlusionProgram->uniformLocation("near");
+    _farLocation = _occlusionProgram->uniformLocation("far");
+    _leftBottomLocation = _occlusionProgram->uniformLocation("leftBottom");
+    _rightTopLocation = _occlusionProgram->uniformLocation("rightTop");
+    _noiseScaleLocation = _occlusionProgram->uniformLocation("noiseScale");
+    
+    // generate the random rotation texture
+    glGenTextures(1, &_rotationTextureID);
+    glBindTexture(GL_TEXTURE_2D, _rotationTextureID);
+    const int ELEMENTS_PER_PIXEL = 3;
+    unsigned char rotationData[ROTATION_WIDTH * ROTATION_HEIGHT * ELEMENTS_PER_PIXEL];
+    unsigned char* rotation = rotationData;
+    for (int i = 0; i < ROTATION_WIDTH * ROTATION_HEIGHT; i++) {
+        glm::vec3 randvec = glm::sphericalRand(1.0f);
+        *rotation++ = ((randvec.x + 1.0f) / 2.0f) * 255.0f;
+        *rotation++ = ((randvec.y + 1.0f) / 2.0f) * 255.0f;
+        *rotation++ = ((randvec.z + 1.0f) / 2.0f) * 255.0f;
+    }
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, ROTATION_WIDTH, ROTATION_HEIGHT, 0, GL_RGB, GL_UNSIGNED_BYTE, rotationData);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    
+    _blurProgram = new ProgramObject();
+    _blurProgram->addShaderFromSourceFile(QGLShader::Vertex, "resources/shaders/ambient_occlusion.vert");
+    _blurProgram->addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/occlusion_blur.frag");
+    _blurProgram->link();
+    
+    _blurProgram->bind();
+    _blurProgram->setUniformValue("originalTexture", 0);
+    _blurProgram->release();
+    
+    _blurScaleLocation = _blurProgram->uniformLocation("blurScale");
+}
+
+void AmbientOcclusionEffect::render() {
+    glDisable(GL_BLEND);
+    glDisable(GL_DEPTH_TEST);
+    glDepthMask(GL_FALSE);
+    
+    glBindTexture(GL_TEXTURE_2D, Application::getInstance()->getTextureCache()->getPrimaryDepthTextureID());
+    
+    glActiveTexture(GL_TEXTURE1);
+    glBindTexture(GL_TEXTURE_2D, _rotationTextureID);
+    
+    // render with the occlusion shader to the secondary/tertiary buffer
+    QOpenGLFramebufferObject* freeFBO = Application::getInstance()->getGlowEffect()->getFreeFramebufferObject();
+    freeFBO->bind();
+    
+    float left, right, bottom, top, nearVal, farVal;
+    glm::vec4 nearClipPlane, farClipPlane;
+    Application::getInstance()->getViewFrustum()->computeOffAxisFrustum(
+        left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
+    
+    _occlusionProgram->bind();
+    _occlusionProgram->setUniformValue(_nearLocation, nearVal);
+    _occlusionProgram->setUniformValue(_farLocation, farVal);
+    _occlusionProgram->setUniformValue(_leftBottomLocation, left, bottom);
+    _occlusionProgram->setUniformValue(_rightTopLocation, right, top);
+    QSize widgetSize = Application::getInstance()->getGLWidget()->size();
+    _occlusionProgram->setUniformValue(_noiseScaleLocation, widgetSize.width() / (float)ROTATION_WIDTH,
+        widgetSize.height() / (float)ROTATION_HEIGHT);
+    
+    int viewport[4];
+    glGetIntegerv(GL_VIEWPORT, viewport);
+    const int VIEWPORT_X_INDEX = 0;
+    const int VIEWPORT_WIDTH_INDEX = 2;
+    float sMin = viewport[VIEWPORT_X_INDEX] / (float)widgetSize.width();
+    float sMax = (viewport[VIEWPORT_X_INDEX] + viewport[VIEWPORT_WIDTH_INDEX]) / (float)widgetSize.width(); 
+    renderFullscreenQuad(sMin, sMax);
+    
+    _occlusionProgram->release();
+    
+    freeFBO->release();
+    
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glActiveTexture(GL_TEXTURE0);
+    
+    // now render secondary to primary with 4x4 blur
+    Application::getInstance()->getTextureCache()->getPrimaryFramebufferObject()->bind();
+    
+    glEnable(GL_BLEND);
+    glBlendFuncSeparate(GL_ZERO, GL_SRC_COLOR, GL_ZERO, GL_ONE);
+    
+    glBindTexture(GL_TEXTURE_2D, freeFBO->texture());
+    
+    _blurProgram->bind();
+    _blurProgram->setUniformValue(_blurScaleLocation, 1.0f / widgetSize.width(), 1.0f / widgetSize.height());
+    
+    renderFullscreenQuad(sMin, sMax);
+    
+    _blurProgram->release();
+    
+    glBindTexture(GL_TEXTURE_2D, 0);
+    
+    glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
+    glEnable(GL_DEPTH_TEST);
+    glDepthMask(GL_TRUE);
+}

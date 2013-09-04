@@ -125,9 +125,15 @@ void SerialInterface::initializePort(char* portname) {
         tcflush(_serialDescriptor, TCIOFLUSH);
         
         // this disables streaming so there's no garbage data on reads
-        write(_serialDescriptor, "SD\n", 3);
+        if (write(_serialDescriptor, "SD\n", 3) != 3) {
+            qDebug("Failed.\n");
+            return;
+        }
         char result[4];
-        read(_serialDescriptor, result, 4);
+        if (read(_serialDescriptor, result, 4) != 4) {
+            qDebug("Failed.\n");
+            return;
+        }
         
         tty_set_file_descriptor(_serialDescriptor);
         mpu_init(0);
@@ -225,7 +231,12 @@ void SerialInterface::readData(float deltaTime) {
 
         // ask the invensense for raw gyro data
         short accelData[3];
-        mpu_get_accel_reg(accelData, 0);
+        if (mpu_get_accel_reg(accelData, 0)) {
+            close(_serialDescriptor);
+            qDebug("Disconnected SerialUSB.\n");
+            _active = false;
+            return; // disconnected
+        }
         
         const float LSB_TO_METERS_PER_SECOND2 = 1.f / 16384.f * GRAVITY_EARTH;
                                                                 //  From MPU-9150 register map, with setting on

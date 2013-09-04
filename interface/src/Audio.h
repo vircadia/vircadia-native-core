@@ -9,8 +9,13 @@
 #ifndef __interface__Audio__
 #define __interface__Audio__
 
+#include <fstream>
 #include <vector>
+
+#include <QObject>
+
 #include <portaudio.h>
+
 #include <AudioRingBuffer.h>
 #include <StdDev.h>
 
@@ -23,7 +28,8 @@ static const int PACKET_LENGTH_BYTES_PER_CHANNEL = PACKET_LENGTH_BYTES / 2;
 static const int PACKET_LENGTH_SAMPLES = PACKET_LENGTH_BYTES / sizeof(int16_t);
 static const int PACKET_LENGTH_SAMPLES_PER_CHANNEL = PACKET_LENGTH_SAMPLES / 2;
 
-class Audio {
+class Audio : public QObject {
+    Q_OBJECT
 public:
     // initializes audio I/O
     Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples);
@@ -45,8 +51,8 @@ public:
     void lowPassFilter(int16_t* inputBuffer);
     
     void startCollisionSound(float magnitude, float frequency, float noise, float duration);
-    float getCollisionSoundMagnitude() { return _collisionSoundMagnitude; };
     
+    float getCollisionSoundMagnitude() { return _collisionSoundMagnitude; };
     
     void ping();
 
@@ -61,7 +67,7 @@ public:
     void removeListenSource(int sourceID);
     void clearListenSources();
 
-private:    
+private:
     PaStream* _stream;
     AudioRingBuffer _ringBuffer;
     Oscilloscope* _scope;
@@ -96,7 +102,7 @@ private:
     float _collisionSoundDuration;
     int _proceduralEffectSample;
     float _heartbeatMagnitude;
-
+    
     AudioRingBuffer::ListenMode _listenMode;
     float                       _listenRadius;
     std::vector<int>            _listenSources;

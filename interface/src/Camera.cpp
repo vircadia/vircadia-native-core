@@ -37,7 +37,8 @@ Camera::Camera() {
     _linearModeShift   = 0.0f;
     _mode              = CAMERA_MODE_THIRD_PERSON;
     _tightness         = 10.0f; // default
-    _fieldOfView       = HORIZONTAL_FIELD_OF_VIEW_DEGREES; 
+    _fieldOfView       = DEFAULT_FIELD_OF_VIEW_DEGREES; 
+    _aspectRatio       = 16.f/9.f;
     _nearClip          = 0.08f; // default
     _farClip           = 50.0f * TREE_SCALE; // default
     _upShift           = 0.0f;
@@ -103,6 +104,12 @@ void Camera::updateFollowMode(float deltaTime) {
         _idealPosition = _targetPosition + _scale * (_rotation * glm::vec3(0.0f, _upShift, _distance));
         _position += (_idealPosition - _position) * t;
     }
+}
+
+float Camera::getFarClip() const {
+    return (_scale * _farClip < std::numeric_limits<int16_t>::max())
+            ? _scale * _farClip
+            : std::numeric_limits<int16_t>::max() - 1;
 }
 
 void Camera::setModeShiftRate ( float rate ) {
@@ -188,7 +195,7 @@ void Camera::initialize() {
 }
 
 // call to find out if the view frustum needs to be reshaped
-bool Camera::getFrustumNeedsReshape() {
+bool Camera::getFrustumNeedsReshape() const {
     return _frustumNeedsReshape;
 }
 

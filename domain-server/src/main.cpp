@@ -55,10 +55,10 @@ int main(int argc, const char * argv[])
 	// domain server
 	bool isLocalMode = cmdOptionExists(argc, argv, "--local");
 	if (isLocalMode) {
-		printf("NOTE: Running in Local Mode!\n");
+		printf("NOTE: Running in local mode!\n");
 	} else {
 		printf("--------------------------------------------------\n");
-		printf("NOTE: Running in EC2 Mode. \n");
+		printf("NOTE: Not running in local mode. \n");
 		printf("If you're a developer testing a local system, you\n");
 		printf("probably want to include --local on command line.\n");
 		printf("--------------------------------------------------\n");
@@ -104,9 +104,10 @@ int main(int argc, const char * argv[])
             // so hardcode the EC2 public address for now
             if (nodePublicAddress.sin_addr.s_addr == serverLocalAddress) {
             	// If we're not running "local" then we do replace the IP
-            	// with the EC2 IP. Otherwise, we use our normal public IP
+            	// with 0. This designates to clients that the server is reachable
+                // at the same IP address 
             	if (!isLocalMode) {
-	                nodePublicAddress.sin_addr.s_addr = 895283510; // local IP in this format...
+	                nodePublicAddress.sin_addr.s_addr = 0;
                     destinationSocket = (sockaddr*) &nodeLocalAddress;
 	            }
             }
@@ -135,7 +136,7 @@ int main(int argc, const char * argv[])
                         // this is not the node themselves
                         // and this is an node of a type in the passed node types of interest
                         // or the node did not pass us any specific types they are interested in
-                    
+
                         if (memchr(SOLO_NODE_TYPES, node->getType(), sizeof(SOLO_NODE_TYPES)) == NULL) {
                             // this is an node of which there can be multiple, just add them to the packet
                             // don't send avatar nodes to other avatars, that will come from avatar mixer

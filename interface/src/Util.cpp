@@ -223,39 +223,54 @@ void noiseTest(int w, int h) {
     glEnd();
 }
     
-void render_world_box() {
-    //  Show edge of world 
+void renderWorldBox() {
+    //  Show edge of world
+    float red[] = {1, 0, 0};
+    float green[] = {0, 1, 0};
+    float blue[] = {0, 0, 1};
+    float gray[] = {0.5, 0.5, 0.5};
+    
     glDisable(GL_LIGHTING);
-    glColor4f(1.0, 1.0, 1.0, 1.0);
     glLineWidth(1.0);
     glBegin(GL_LINES);
-    glColor3f(1, 0, 0);
+    glColor3fv(red);
     glVertex3f(0, 0, 0);
-    glVertex3f(WORLD_SIZE, 0, 0);
-    glColor3f(0, 1, 0);
+    glVertex3f(TREE_SCALE, 0, 0);
+    glColor3fv(green);
     glVertex3f(0, 0, 0);
-    glVertex3f(0, WORLD_SIZE, 0);
-    glColor3f(0, 0, 1);
+    glVertex3f(0, TREE_SCALE, 0);
+    glColor3fv(blue);
     glVertex3f(0, 0, 0);
-    glVertex3f(0, 0, WORLD_SIZE);
+    glVertex3f(0, 0, TREE_SCALE);
+    glColor3fv(gray);
+    glVertex3f(0, 0, TREE_SCALE);
+    glVertex3f(TREE_SCALE, 0, TREE_SCALE);
+    glVertex3f(TREE_SCALE, 0, TREE_SCALE);
+    glVertex3f(TREE_SCALE, 0, 0);
     glEnd();
-    //  Draw little marker dots along the axis
+    //  Draw marker dots at very end
     glEnable(GL_LIGHTING);
     glPushMatrix();
-    glTranslatef(WORLD_SIZE, 0, 0);
-    glColor3f(1, 0, 0);
+    glTranslatef(TREE_SCALE, 0, 0);
+    glColor3fv(red);
     glutSolidSphere(0.125, 10, 10);
     glPopMatrix();
     glPushMatrix();
-    glTranslatef(0, WORLD_SIZE, 0);
-    glColor3f(0, 1, 0);
+    glTranslatef(0, TREE_SCALE, 0);
+    glColor3fv(green);
     glutSolidSphere(0.125, 10, 10);
     glPopMatrix();
     glPushMatrix();
-    glTranslatef(0, 0, WORLD_SIZE);
-    glColor3f(0, 0, 1);
+    glTranslatef(0, 0, TREE_SCALE);
+    glColor3fv(blue);
     glutSolidSphere(0.125, 10, 10);
     glPopMatrix();
+    glPushMatrix();
+    glColor3fv(gray);
+    glTranslatef(TREE_SCALE, 0, TREE_SCALE);
+    glutSolidSphere(0.125, 10, 10);
+    glPopMatrix();
+
 }
 
 double diffclock(timeval *clock1,timeval *clock2)
@@ -339,6 +354,7 @@ void renderCollisionOverlay(int width, int height, float magnitude) {
 }
 
 void renderGroundPlaneGrid(float size, float impact) {
+    float IMPACT_SOUND_MAGNITUDE_FOR_RECOLOR = 1.f;
 	glLineWidth(2.0);
     glm::vec4 impactColor(1, 0, 0, 1);
     glm::vec3 lineColor(0.4, 0.5, 0.3);
@@ -355,7 +371,12 @@ void renderGroundPlaneGrid(float size, float impact) {
     }
         
     // Draw the floor, colored for recent impact
-    glm::vec4 floorColor = impact * impactColor + (1.f - impact) * surfaceColor;
+    glm::vec4 floorColor;
+    if (impact > IMPACT_SOUND_MAGNITUDE_FOR_RECOLOR) {
+        floorColor = impact * impactColor + (1.f - impact) * surfaceColor;
+    } else {
+        floorColor = surfaceColor;        
+    }
     glColor4fv(&floorColor.x);
     glBegin(GL_QUADS);
     glVertex3f(0, 0, 0);
@@ -365,7 +386,33 @@ void renderGroundPlaneGrid(float size, float impact) {
     glEnd();
 }
 
+void renderMouseVoxelGrid(const float& mouseVoxelX, const float& mouseVoxelY, const float& mouseVoxelZ, const float& mouseVoxelS) {
+    glm::vec3 origin = glm::vec3(mouseVoxelX, mouseVoxelY, mouseVoxelZ);
 
+    glLineWidth(3.0);
+    
+    const int HALF_GRID_DIMENSIONS = 4;
+    glBegin(GL_LINES);
+
+    glm::vec3 xColor(0.0, 0.6, 0.0);
+    glColor3fv(&xColor.x);
+
+    glVertex3f(origin.x + HALF_GRID_DIMENSIONS * mouseVoxelS, 0, origin.z);
+    glVertex3f(origin.x - HALF_GRID_DIMENSIONS * mouseVoxelS, 0, origin.z);
+
+    glm::vec3 zColor(0.0, 0.0, 0.6);
+    glColor3fv(&zColor.x);
+
+    glVertex3f(origin.x, 0, origin.z + HALF_GRID_DIMENSIONS * mouseVoxelS);
+    glVertex3f(origin.x, 0, origin.z - HALF_GRID_DIMENSIONS * mouseVoxelS);
+
+    glm::vec3 yColor(0.6, 0.0, 0.0);
+    glColor3fv(&yColor.x);
+
+    glVertex3f(origin.x, 0, origin.z);
+    glVertex3f(origin.x, origin.y, origin.z);
+    glEnd();
+}
 
 void renderDiskShadow(glm::vec3 position, glm::vec3 upDirection, float radius, float darkness) {
 
@@ -551,11 +598,42 @@ float loadSetting(QSettings* settings, const char* name, float defaultValue) {
     return value;
 }
 
-bool rayIntersectsSphere(glm::vec3& rayStarting, glm::vec3& rayNormalizedDirection, glm::vec3& sphereCenter, double sphereRadius) {
-    glm::vec3 vecFromRayToSphereCenter = sphereCenter - rayStarting;
-    double projection = glm::dot(vecFromRayToSphereCenter, rayNormalizedDirection);
-    double shortestDistance = sqrt(glm::dot(vecFromRayToSphereCenter, vecFromRayToSphereCenter) - projection * projection);
-    if (shortestDistance <= sphereRadius) {
+bool rayIntersectsSphere(const glm::vec3& rayStarting, const glm::vec3& rayNormalizedDirection,
+        const glm::vec3& sphereCenter, float sphereRadius, float& distance) {
+    glm::vec3 relativeOrigin = rayStarting - sphereCenter;
+    
+    // compute the b, c terms of the quadratic equation (a is dot(direction, direction), which is one)
+    float b = 2.0f * glm::dot(rayNormalizedDirection, relativeOrigin);
+    float c = glm::dot(relativeOrigin, relativeOrigin) - sphereRadius * sphereRadius;
+    
+    // compute the radicand of the quadratic.  if less than zero, there's no intersection
+    float radicand = b * b - 4.0f * c;
+    if (radicand < 0.0f) {
+        return false;
+    }
+    
+    // compute the first solution of the quadratic
+    float root = sqrtf(radicand);
+    float firstSolution = -b - root;
+    if (firstSolution > 0.0f) {
+        distance = firstSolution / 2.0f; 
+        return true; // origin is outside the sphere
+    }
+    
+    // now try the second solution
+    float secondSolution = -b + root;
+    if (secondSolution > 0.0f) {
+        distance = 0.0f;
+        return true; // origin is inside the sphere
+    }
+    
+    return false;
+}
+
+bool pointInSphere(glm::vec3& point, glm::vec3& sphereCenter, double sphereRadius) {
+    glm::vec3 diff = point - sphereCenter;
+    double mag = sqrt(glm::dot(diff, diff));
+    if (mag <= sphereRadius) {
         return true;
     }
     return false;

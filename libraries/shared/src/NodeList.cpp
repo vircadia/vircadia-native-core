@@ -11,7 +11,7 @@
 #include <cstdlib>
 #include <cstdio>
 
-#include <QDebug>
+#include <QtCore/QDebug>
 
 #include "NodeList.h"
 #include "NodeTypes.h"
@@ -24,10 +24,9 @@
 #include <arpa/inet.h>
 #endif
 
-const char SOLO_NODE_TYPES[3] = {
+const char SOLO_NODE_TYPES[2] = {
     NODE_TYPE_AVATAR_MIXER,
-    NODE_TYPE_AUDIO_MIXER,
-    NODE_TYPE_VOXEL_SERVER
+    NODE_TYPE_AUDIO_MIXER
 };
 
 const char DEFAULT_DOMAIN_HOSTNAME[MAX_HOSTNAME_BYTES] = "root.highfidelity.io";
@@ -39,7 +38,7 @@ bool pingUnknownNodeThreadStopFlag = false;
 
 NodeList* NodeList::_sharedInstance = NULL;
 
-NodeList* NodeList::createInstance(char ownerType, unsigned int socketListenPort) {
+NodeList* NodeList::createInstance(char ownerType, unsigned short int socketListenPort) {
     if (!_sharedInstance) {
         _sharedInstance = new NodeList(ownerType, socketListenPort);
     } else {
@@ -57,14 +56,14 @@ NodeList* NodeList::getInstance() {
     return _sharedInstance;
 }
 
-NodeList::NodeList(char newOwnerType, unsigned int newSocketListenPort) :
+NodeList::NodeList(char newOwnerType, unsigned short int newSocketListenPort) :
     _nodeBuckets(),
     _numNodes(0),
     _nodeSocket(newSocketListenPort),
     _ownerType(newOwnerType),
     _nodeTypesOfInterest(NULL),
     _ownerID(UNKNOWN_NODE_ID),
-    _lastNodeID(0)
+    _lastNodeID(UNKNOWN_NODE_ID + 1)
 {
     memcpy(_domainHostname, DEFAULT_DOMAIN_HOSTNAME, sizeof(DEFAULT_DOMAIN_HOSTNAME));
     memcpy(_domainIP, DEFAULT_DOMAIN_IP, sizeof(DEFAULT_DOMAIN_IP));
@@ -352,6 +351,12 @@ int NodeList::processDomainServerList(unsigned char* packetData, size_t dataByte
         readPtr += unpackSocket(readPtr, (sockaddr*) &nodePublicSocket);
         readPtr += unpackSocket(readPtr, (sockaddr*) &nodeLocalSocket);
         
+        // if the public socket address is 0 then it's reachable at the same IP
+        // as the domain server
+        if (nodePublicSocket.sin_addr.s_addr == 0) {
+            inet_aton(_domainIP, &nodePublicSocket.sin_addr);
+        }
+        
         addOrUpdateNode((sockaddr*) &nodePublicSocket, (sockaddr*) &nodeLocalSocket, nodeType, nodeId);
     }
     
@@ -359,6 +364,15 @@ int NodeList::processDomainServerList(unsigned char* packetData, size_t dataByte
     unpackNodeId(readPtr, &_ownerID);
 
     return readNodes;
+}
+
+void NodeList::sendAssignmentRequest() {
+    const char ASSIGNMENT_SERVER_HOSTNAME[] = "assignment.highfidelity.io";
+    
+    static sockaddr_in assignmentServerSocket = socketForHostname(ASSIGNMENT_SERVER_HOSTNAME);
+    assignmentServerSocket.sin_port = htons(ASSIGNMENT_SERVER_PORT);
+    
+    _nodeSocket.send((sockaddr*) &assignmentServerSocket, &PACKET_TYPE_REQUEST_ASSIGNMENT, 1);
 }
 
 Node* NodeList::addOrUpdateNode(sockaddr* publicSocket, sockaddr* localSocket, char nodeType, uint16_t nodeId) {
@@ -421,9 +435,11 @@ void NodeList::addNodeToList(Node* newNode) {
     ++_numNodes;
     
     qDebug() << "Added" << *newNode << "\n";
+    
+    notifyHooksOfAddedNode(newNode);
 }
 
-unsigned NodeList::broadcastToNodes(unsigned char *broadcastData, size_t dataBytes, const char* nodeTypes, int numNodeTypes) {
+unsigned NodeList::broadcastToNodes(unsigned char* broadcastData, size_t dataBytes, const char* nodeTypes, int numNodeTypes) {
     unsigned n = 0;
     for(NodeList::iterator node = begin(); node != end(); node++) {
         // only send to the NodeTypes we are asked to send to.
@@ -462,7 +478,7 @@ Node* NodeList::soloNodeOfType(char nodeType) {
     return NULL;
 }
 
-void *removeSilentNodes(void *args) {
+void* removeSilentNodes(void *args) {
     NodeList* nodeList = (NodeList*) args;
     uint64_t checkTimeUSecs;
     int sleepTime;
@@ -475,6 +491,8 @@ void *removeSilentNodes(void *args) {
             if ((checkTimeUSecs - node->getLastHeardMicrostamp()) > NODE_SILENCE_THRESHOLD_USECS) {
             
                 qDebug() << "Killed" << *node << "\n";
+                
+                nodeList->notifyHooksOfKilledNode(&*node);
                 
                 node->setAlive(false);
             }
@@ -512,7 +530,7 @@ void NodeList::loadData(QSettings *settings) {
     
     if (domainServerHostname.size() > 0) {
         memset(_domainHostname, 0, MAX_HOSTNAME_BYTES);
-        memcpy(_domainHostname, domainServerHostname.toAscii().constData(), domainServerHostname.size());
+        memcpy(_domainHostname, domainServerHostname.toLocal8Bit().constData(), domainServerHostname.size());
     }
     
     settings->endGroup();
@@ -603,5 +621,32 @@ void NodeListIterator::skipDeadAndStopIncrement() {
             // skip over the dead nodes
             break;
         }
+    }
+}
+
+void NodeList::addHook(NodeListHook* hook) {
+    _hooks.push_back(hook);
+}
+
+void NodeList::removeHook(NodeListHook* hook) {
+    for (int i = 0; i < _hooks.size(); i++) {
+        if (_hooks[i] == hook) {
+            _hooks.erase(_hooks.begin() + i);
+            return;
+        }
+    }
+}
+
+void NodeList::notifyHooksOfAddedNode(Node* node) {
+    for (int i = 0; i < _hooks.size(); i++) {
+        //printf("NodeList::notifyHooksOfAddedNode() i=%d\n", i);
+        _hooks[i]->nodeAdded(node);
+    }
+}
+
+void NodeList::notifyHooksOfKilledNode(Node* node) {
+    for (int i = 0; i < _hooks.size(); i++) {
+        //printf("NodeList::notifyHooksOfKilledNode() i=%d\n", i);
+        _hooks[i]->nodeKilled(node);
     }
 }

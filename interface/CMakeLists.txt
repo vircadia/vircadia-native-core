@@ -45,6 +45,12 @@ endforeach(SUBDIR)
 # project subdirectories
 add_subdirectory(src/starfield)
 
+find_package(Qt5Core REQUIRED)
+find_package(Qt5Gui REQUIRED)
+find_package(Qt5Network REQUIRED)
+find_package(Qt5OpenGL REQUIRED)
+find_package(Qt5Svg REQUIRED)
+
 if (APPLE)
   # set how the icon shows up in the Info.plist file
   SET(MACOSX_BUNDLE_ICON_FILE interface.icns) 
@@ -64,20 +70,11 @@ if (APPLE)
       SET(INTERFACE_SRCS ${INTERFACE_SRCS} ${DIR_CONTENTS})
     endif()    
   endforeach()  
-  
 endif (APPLE)
-
-find_package(Qt4 REQUIRED QtCore QtGui QtNetwork QtOpenGL QtWebKit QtSvg)
-include(${QT_USE_FILE})
-SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${QT_QTGUI_INCLUDE_DIR}")
 
 set(QUAZIP_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/quazip)
 add_subdirectory(external/fervor/)
 include_directories(external/fervor/)
-
-# run qt moc on qt-enabled headers
-qt4_wrap_cpp(INTERFACE_SRCS src/Application.h src/Webcam.h src/avatar/AvatarVoxelSystem.h
-    src/avatar/Face.h src/ui/BandwidthDialog.h  src/ui/VoxelStatsDialog.h)
 
 # create the executable, make it a bundle on OS X
 add_executable(${TARGET_NAME} MACOSX_BUNDLE ${INTERFACE_SRCS})
@@ -103,12 +100,14 @@ find_package(UVCCameraControl)
 find_package(ZLIB)
 
 # let the source know that we have OpenNI/NITE for Kinect
-if (OPENNI_FOUND)
+if (OPENNI_FOUND AND NOT DISABLE_OPENNI)
     add_definitions(-DHAVE_OPENNI)
     include_directories(SYSTEM ${OPENNI_INCLUDE_DIRS})
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${OPENNI_INCLUDE_DIRS}")
     target_link_libraries(${TARGET_NAME} ${OPENNI_LIBRARIES})
-endif (OPENNI_FOUND)
+endif (OPENNI_FOUND AND NOT DISABLE_OPENNI)
+
+qt5_use_modules(${TARGET_NAME} Core Gui Network OpenGL Svg)
 
 # include headers for interface and InterfaceConfig.
 include_directories(
@@ -130,8 +129,7 @@ include_directories(
 
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${OPENCV_INCLUDE_DIRS}")
 target_link_libraries(
-  ${TARGET_NAME} 
-  ${QT_LIBRARIES}
+  ${TARGET_NAME}
   ${LIBVPX_LIBRARIES}
   ${MOTIONDRIVER_LIBRARIES}
   ${OPENCV_LIBRARIES} 

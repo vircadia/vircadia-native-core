@@ -14,6 +14,7 @@
 
 #include <limits.h>
 #include <OctalCode.h>
+#include <glm/glm.hpp>
 
 // this is where the coordinate system is represented
 const glm::vec3 IDENTITY_RIGHT = glm::vec3( 1.0f, 0.0f, 0.0f);
@@ -40,5 +41,7 @@ const glBufferIndex GLBUFFER_INDEX_UNKNOWN = ULONG_MAX;
 
 const float SIXTY_FPS_IN_MILLISECONDS = 1000.0f / 60.0f;
 const float VIEW_CULLING_RATE_IN_MILLISECONDS = 1000.0f; // once a second is fine
+
+const uint64_t CLIENT_TO_SERVER_VOXEL_SEND_INTERVAL_USECS = 1000 * 5; // 1 packet every 50 milliseconds
 
 #endif

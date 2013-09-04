@@ -21,7 +21,7 @@
 #include "SharedUtil.h"
 #include "UDPSocket.h"
 
-#include <QDebug>
+#include <QtCore/QDebug>
 
 int unpackNodeId(unsigned char* packedData, uint16_t* nodeId) {
     memcpy(nodeId, packedData, sizeof(uint16_t));
@@ -75,6 +75,7 @@ const char* NODE_TYPE_NAME_AUDIO_MIXER = "Audio Mixer";
 const char* NODE_TYPE_NAME_AVATAR_MIXER = "Avatar Mixer";
 const char* NODE_TYPE_NAME_AUDIO_INJECTOR = "Audio Injector";
 const char* NODE_TYPE_NAME_ANIMATION_SERVER = "Animation Server";
+const char* NODE_TYPE_NAME_UNASSIGNED = "Unassigned";
 const char* NODE_TYPE_NAME_UNKNOWN = "Unknown";
 
 const char* Node::getTypeName() const {
@@ -93,6 +94,8 @@ const char* Node::getTypeName() const {
             return NODE_TYPE_NAME_AUDIO_INJECTOR;
         case NODE_TYPE_ANIMATION_SERVER:
             return NODE_TYPE_NAME_ANIMATION_SERVER;
+        case NODE_TYPE_UNASSIGNED:
+            return NODE_TYPE_NAME_UNASSIGNED;
         default:
             return NODE_TYPE_NAME_UNKNOWN;
 	}

@@ -23,6 +23,8 @@ static const int colorBase[8][3] = {{237, 175, 0},
 
 class Swatch : public Tool {
 public:
+    static QIcon createIcon(const QColor& color);
+    
     Swatch(QAction* action);
 
     QColor getColor();

@@ -9,14 +9,18 @@
 #ifndef __hifi__VoxelTree__
 #define __hifi__VoxelTree__
 
+#include <set>
 #include <PointerStack.h>
 #include <SimpleMovingAverage.h>
 
 #include "CoverageMap.h"
+#include "JurisdictionMap.h"
 #include "ViewFrustum.h"
 #include "VoxelNode.h"
 #include "VoxelNodeBag.h"
 #include "VoxelSceneStats.h"
+
+#include <QObject>
 
 // Callback function, for recuseTreeWithOperation
 typedef bool (*RecurseVoxelTreeOperation)(VoxelNode* node, void* extraData);
@@ -36,9 +40,10 @@ const int NO_BOUNDARY_ADJUST     = 0;
 const int LOW_RES_MOVING_ADJUST  = 1;
 const uint64_t IGNORE_LAST_SENT  = 0;
 
-#define IGNORE_SCENE_STATS     NULL
-#define IGNORE_VIEW_FRUSTUM    NULL
-#define IGNORE_COVERAGE_MAP    NULL
+#define IGNORE_SCENE_STATS       NULL
+#define IGNORE_VIEW_FRUSTUM      NULL
+#define IGNORE_COVERAGE_MAP      NULL
+#define IGNORE_JURISDICTION_MAP  NULL
 
 class EncodeBitstreamParams {
 public:
@@ -56,6 +61,7 @@ public:
     bool                forceSendScene;
     VoxelSceneStats*    stats;
     CoverageMap*        map;
+    JurisdictionMap*    jurisdictionMap;
     
     EncodeBitstreamParams(
         int                 maxEncodeLevel      = INT_MAX, 
@@ -70,7 +76,8 @@ public:
         int                 boundaryLevelAdjust = NO_BOUNDARY_ADJUST,
         uint64_t            lastViewFrustumSent = IGNORE_LAST_SENT,
         bool                forceSendScene      = true,
-        VoxelSceneStats*    stats               = IGNORE_SCENE_STATS) :
+        VoxelSceneStats*    stats               = IGNORE_SCENE_STATS,
+        JurisdictionMap*    jurisdictionMap     = IGNORE_JURISDICTION_MAP) :
             maxEncodeLevel          (maxEncodeLevel),
             maxLevelReached         (0),
             viewFrustum             (viewFrustum),
@@ -84,11 +91,32 @@ public:
             lastViewFrustumSent     (lastViewFrustumSent),
             forceSendScene          (forceSendScene),
             stats                   (stats),
-            map                     (map)
+            map                     (map),
+            jurisdictionMap         (jurisdictionMap)
     {}
 };
 
-class VoxelTree {
+class ReadBitstreamToTreeParams {
+public:
+    bool                includeColor;
+    bool                includeExistsBits;
+    VoxelNode*          destinationNode;
+    uint16_t            sourceID;
+    
+    ReadBitstreamToTreeParams(
+        bool                includeColor        = WANT_COLOR, 
+        bool                includeExistsBits   = WANT_EXISTS_BITS,
+        VoxelNode*          destinationNode     = NULL,
+        uint16_t            sourceID            = UNKNOWN_NODE_ID) :
+            includeColor            (includeColor),
+            includeExistsBits       (includeExistsBits),
+            destinationNode         (destinationNode),
+            sourceID                (sourceID)
+    {}
+};
+
+class VoxelTree : public QObject {
+    Q_OBJECT
 public:
     // when a voxel is created in the tree (object new'd)
     long voxelsCreated;
@@ -109,9 +137,7 @@ public:
     void eraseAllVoxels();
 
     void processRemoveVoxelBitstream(unsigned char* bitstream, int bufferSizeBytes);
-    void readBitstreamToTree(unsigned char* bitstream,  unsigned long int bufferSizeBytes, 
-                             bool includeColor = WANT_COLOR, bool includeExistsBits = WANT_EXISTS_BITS, 
-                             VoxelNode* destinationNode = NULL);
+    void readBitstreamToTree(unsigned char* bitstream,  unsigned long int bufferSizeBytes, ReadBitstreamToTreeParams& args);
     void readCodeColorBufferToTree(unsigned char* codeColorBuffer, bool destructive = false);
     void deleteVoxelCodeFromTree(unsigned char* codeBuffer, bool collapseEmptyTrees = DONT_COLLAPSE);
     void printTreeForDebugging(VoxelNode* startNode);
@@ -130,7 +156,7 @@ public:
                                                 const glm::vec3& point, void* extraData=NULL);
 
     int encodeTreeBitstream(VoxelNode* node, unsigned char* outputBuffer, int availableBytes, VoxelNodeBag& bag, 
-                            EncodeBitstreamParams& params) const;
+                            EncodeBitstreamParams& params) ;
 
     bool isDirty() const { return _isDirty; };
     void clearDirtyBit() { _isDirty = false; };
@@ -147,12 +173,11 @@ public:
     void loadVoxelsFile(const char* fileName, bool wantColorRandomizer);
 
     // these will read/write files that match the wireformat, excluding the 'V' leading
-    void writeToSVOFile(const char* filename, VoxelNode* node = NULL) const;
+    void writeToSVOFile(const char* filename, VoxelNode* node = NULL);
     bool readFromSVOFile(const char* filename);
     // reads voxels from square image with alpha as a Y-axis
-    bool readFromSquareARGB32Pixels(const uint32_t* pixels, int dimension);
+    bool readFromSquareARGB32Pixels(const char *filename);
     bool readFromSchematicFile(const char* filename);
-    void computeBlockColor(int id, int data, int& r, int& g, int& b, int& create);
 
     unsigned long getVoxelCount();
 
@@ -169,7 +194,15 @@ public:
     void recurseTreeWithOperationDistanceSortedTimed(PointerStack* stackOfNodes, long allowedTime,
                                                             RecurseVoxelTreeOperation operation, 
                                                             const glm::vec3& point, void* extraData);
-    
+
+signals:
+    void importSize(float x, float y, float z);
+    void importProgress(int progress);
+
+public slots:
+    void cancelImport();
+
+
 private:
     void deleteVoxelCodeFromTreeRecursion(VoxelNode* node, void* extraData);
     void readCodeColorBufferToTreeRecursion(VoxelNode* node, void* extraData);
@@ -181,12 +214,46 @@ private:
 
     VoxelNode* nodeForOctalCode(VoxelNode* ancestorNode, unsigned char* needleCode, VoxelNode** parentOfFoundNode) const;
     VoxelNode* createMissingNode(VoxelNode* lastParentNode, unsigned char* deepestCodeToCreate);
-    int readNodeData(VoxelNode *destinationNode, unsigned char* nodeData, int bufferSizeBytes, 
-                     bool includeColor = WANT_COLOR, bool includeExistsBits = WANT_EXISTS_BITS);
+    int readNodeData(VoxelNode *destinationNode, unsigned char* nodeData, int bufferSizeBytes, ReadBitstreamToTreeParams& args);
     
     bool _isDirty;
     unsigned long int _nodesChangedFromBitstream;
     bool _shouldReaverage;
+    bool _stopImport;
+
+    /// Octal Codes of any subtrees currently being encoded. While any of these codes is being encoded, ancestors and 
+    /// descendants of them can not be deleted.
+    std::set<unsigned char*>  _codesBeingEncoded;
+    /// mutex lock to protect the encoding set
+    pthread_mutex_t _encodeSetLock;
+
+    /// Called to indicate that a VoxelNode is in the process of being encoded.
+    void startEncoding(VoxelNode* node);
+    /// Called to indicate that a VoxelNode is done being encoded.
+    void doneEncoding(VoxelNode* node);
+    /// Is the Octal Code currently being deleted?
+    bool isEncoding(unsigned char* codeBuffer);
+
+    /// Octal Codes of any subtrees currently being deleted. While any of these codes is being deleted, ancestors and 
+    /// descendants of them can not be encoded.
+    std::set<unsigned char*>  _codesBeingDeleted;
+    /// mutex lock to protect the deleting set
+    pthread_mutex_t _deleteSetLock;
+
+    /// Called to indicate that an octal code is in the process of being deleted.
+    void startDeleting(unsigned char* code);
+    /// Called to indicate that an octal code is done being deleted.
+    void doneDeleting(unsigned char* code);
+    /// Octal Codes that were attempted to be deleted but couldn't be because they were actively being encoded, and were
+    /// instead queued for later delete
+    std::set<unsigned char*>  _codesPendingDelete;
+    /// mutex lock to protect the deleting set
+    pthread_mutex_t _deletePendingSetLock;
+
+    /// Adds an Octal Code to the set of codes that needs to be deleted
+    void queueForLaterDelete(unsigned char* codeBuffer);
+    /// flushes out any Octal Codes that had to be queued
+    void emptyDeleteQueue();
 };
 
 float boundaryDistanceForRenderLevel(unsigned int renderLevel);

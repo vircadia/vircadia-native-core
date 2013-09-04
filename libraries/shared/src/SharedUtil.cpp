@@ -20,7 +20,7 @@
 #include <CoreFoundation/CoreFoundation.h>
 #endif
 
-#include <QDebug>
+#include <QtCore/QDebug>
 
 #include "OctalCode.h"
 #include "PacketHeaders.h"
@@ -188,8 +188,8 @@ bool cmdOptionExists(int argc, const char * argv[],const char* option) {
     return false;
 }
 
-void sharedMessageHandler(QtMsgType type, const char* message) {
-    fprintf(stdout, "%s", message);
+void sharedMessageHandler(QtMsgType type, const QMessageLogContext& context, const QString &message) {
+    fprintf(stdout, "%s", message.toLocal8Bit().constData());
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////
@@ -215,7 +215,6 @@ bool createVoxelEditMessage(unsigned char command, short int sequence,
         
     bool success = true; // assume the best
     int messageSize = MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE; // just a guess for now
-    int actualMessageSize = 3;
     unsigned char* messageBuffer = new unsigned char[messageSize];
     
     int numBytesPacketHeader = populateTypeAndVersion(messageBuffer, command);
@@ -223,6 +222,7 @@ bool createVoxelEditMessage(unsigned char command, short int sequence,
   
     *sequenceAt = sequence;
     unsigned char* copyAt = &messageBuffer[numBytesPacketHeader + sizeof(sequence)];
+    int actualMessageSize = numBytesPacketHeader + sizeof(sequence);
 
     for (int i = 0; i < voxelCount && success; i++) {
         // get the coded voxel
@@ -232,7 +232,7 @@ bool createVoxelEditMessage(unsigned char command, short int sequence,
         int lengthOfVoxelData = bytesRequiredForCodeLength(*voxelData)+SIZE_OF_COLOR_DATA;
         
         // make sure we have room to copy this voxel
-        if (actualMessageSize+lengthOfVoxelData > MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE) {
+        if (actualMessageSize + lengthOfVoxelData > MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE) {
             success = false;
         } else {
             // add it to our message
@@ -254,6 +254,38 @@ bool createVoxelEditMessage(unsigned char command, short int sequence,
     delete[] messageBuffer; // clean up our temporary buffer
     return success;
 }
+
+/// encodes the voxel details portion of a voxel edit message
+bool encodeVoxelEditMessageDetails(unsigned char command, int voxelCount, VoxelDetail* voxelDetails, 
+        unsigned char* bufferOut, int sizeIn, int& sizeOut) {
+
+    bool success = true; // assume the best
+    unsigned char* copyAt = bufferOut;
+    sizeOut = 0;
+
+    for (int i = 0; i < voxelCount && success; i++) {
+        // get the coded voxel
+        unsigned char* voxelData = pointToVoxel(voxelDetails[i].x,voxelDetails[i].y,voxelDetails[i].z,
+            voxelDetails[i].s,voxelDetails[i].red,voxelDetails[i].green,voxelDetails[i].blue);
+            
+        int lengthOfVoxelData = bytesRequiredForCodeLength(*voxelData)+SIZE_OF_COLOR_DATA;
+        
+        // make sure we have room to copy this voxel
+        if (sizeOut + lengthOfVoxelData > sizeIn) {
+            success = false;
+        } else {
+            // add it to our message
+            memcpy(copyAt, voxelData, lengthOfVoxelData);
+            copyAt += lengthOfVoxelData;
+            sizeOut += lengthOfVoxelData;
+        }
+        // cleanup
+        delete[] voxelData;
+    }
+
+    return success;
+}
+
 
 //////////////////////////////////////////////////////////////////////////////////////////
 // Function:    pointToVoxel()

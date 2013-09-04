@@ -10,7 +10,9 @@
 #include <cstring>
 #include <stdio.h>
 
-#include <QDebug>
+#include <QtCore/QDebug>
+
+#include <NodeList.h>
 
 #include "AABox.h"
 #include "OctalCode.h"
@@ -51,6 +53,7 @@ void VoxelNode::init(unsigned char * octalCode) {
     _voxelSystem = NULL;
     _isDirty = true;
     _shouldRender = false;
+    _sourceID = UNKNOWN_NODE_ID;
     markWithChangedTime();
     calculateAABox();
 }

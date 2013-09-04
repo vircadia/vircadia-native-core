@@ -8,7 +8,7 @@
 
 #include <stdio.h>
 
-#include <QDebug>
+#include <QtCore/QDebug>
 
 #include "PacketHeaders.h"
 
@@ -18,14 +18,17 @@ PACKET_VERSION versionForPacketType(PACKET_TYPE type) {
         case PACKET_TYPE_MICROPHONE_AUDIO_NO_ECHO:
         case PACKET_TYPE_MICROPHONE_AUDIO_WITH_ECHO:
             return 1;
-            break;
 
         case PACKET_TYPE_HEAD_DATA:
-            return 2;
-            break;
+            return 4;
+        
+        case PACKET_TYPE_AVATAR_FACE_VIDEO:
+            return 1;
+
+        case PACKET_TYPE_VOXEL_STATS:
+            return 2;            
         default:
             return 0;
-            break;
     }
 }
 

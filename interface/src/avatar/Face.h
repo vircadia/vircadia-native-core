@@ -20,6 +20,8 @@
 class Head;
 class ProgramObject;
 
+const float FULL_FRAME_ASPECT = 0.0f;
+
 class Face : public QObject {
     Q_OBJECT
     
@@ -28,10 +30,11 @@ public:
     Face(Head* owningHead);
     ~Face();
 
-    void setColorTextureID(GLuint colorTextureID) { _colorTextureID = colorTextureID; }
-    void setDepthTextureID(GLuint depthTextureID) { _depthTextureID = depthTextureID; }
-    void setTextureSize(const cv::Size2f& textureSize) { _textureSize = textureSize; }
-    void setTextureRect(const cv::RotatedRect& textureRect);
+    bool isActive() const { return _colorTextureID != 0 || _depthTextureID != 0; }
+    bool isFullFrame() const { return isActive() && _aspectRatio == FULL_FRAME_ASPECT; }
+
+    void setFrameFromWebcam();
+    void clearFrame();
     
     int processVideoMessage(unsigned char* packetData, size_t dataBytes);
     
@@ -49,6 +52,8 @@ private:
 
     enum RenderMode { MESH, POINTS, RENDER_MODE_COUNT };
 
+    void destroyCodecs();
+
     Head* _owningHead;
     RenderMode _renderMode;
     GLuint _colorTextureID;
@@ -56,18 +61,30 @@ private:
     cv::Size2f _textureSize;
     cv::RotatedRect _textureRect;
     float _aspectRatio;
-    
-    vpx_codec_ctx_t _codec;
+
+    vpx_codec_ctx_t _colorCodec;
+    vpx_codec_ctx_t _depthCodec;
+    bool _lastFullFrame;
+    bool _lastDepthOnly;
     
     QByteArray _arrivingFrame;
     int _frameCount;
     int _frameBytesRemaining;
     
-    static ProgramObject* _program;
-    static int _texCoordCornerLocation;
-    static int _texCoordRightLocation;
-    static int _texCoordUpLocation;
-    static int _aspectRatioLocation;
+    struct Locations {
+        int texCoordCorner;
+        int texCoordRight;
+        int texCoordUp;
+    };
+
+    static ProgramObject* loadProgram(const QString& suffix, const char* secondTextureUniform, Locations& locations);
+    
+    static ProgramObject* _videoProgram;
+    static Locations _videoProgramLocations;
+    
+    static ProgramObject* _texturedProgram;
+    static Locations _texturedProgramLocations;
+    
     static GLuint _vboID;
     static GLuint _iboID;
 };

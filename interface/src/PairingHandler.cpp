@@ -17,6 +17,16 @@
 const char PAIRING_SERVER_HOSTNAME[] = "pairing.highfidelity.io";
 const int PAIRING_SERVER_PORT = 7247;
 
+PairingHandler* PairingHandler::getInstance() {
+    static PairingHandler* instance = NULL;
+    
+    if (!instance) {
+        instance = new PairingHandler();
+    }
+    
+    return instance;
+}
+
 void PairingHandler::sendPairRequest() {    
     // grab the node socket from the NodeList singleton
     UDPSocket *nodeSocket = NodeList::getInstance()->getNodeSocket();
@@ -27,12 +37,14 @@ void PairingHandler::sendPairRequest() {
     int localAddress = getLocalAddress();
     
     char pairPacket[24] = {};
-    sprintf(pairPacket, "Find %d.%d.%d.%d:%d",
+    sprintf(pairPacket, "Find %d.%d.%d.%d:%hu",
             localAddress & 0xFF,
             (localAddress >> 8) & 0xFF,
             (localAddress >> 16) & 0xFF,
             (localAddress >> 24) & 0xFF,
-            NODE_SOCKET_LISTEN_PORT);
+            NodeList::getInstance()->getSocketListenPort());
+    
+    qDebug("Sending pair packet: %s\n", pairPacket);
     
     sockaddr_in pairingServerSocket;
     

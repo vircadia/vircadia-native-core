@@ -8,12 +8,10 @@
 #ifndef _WIN32
 
 #include <cstring>
-#include <fstream>
 
 #include <iostream>
 #include <pthread.h>
 #include <sys/stat.h>
-
 
 #include <AngleUtil.h>
 #include <NodeList.h>
@@ -25,6 +23,7 @@
 
 #include "Application.h"
 #include "Audio.h"
+#include "Menu.h"
 #include "Util.h"
 
 //  Uncomment the following definition to test audio device latency by copying output to input
@@ -114,7 +113,7 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
             // + 12 for 3 floats for position + float for bearing + 1 attenuation byte
             unsigned char dataPacket[MAX_PACKET_SIZE];
             
-            PACKET_TYPE packetType = (Application::getInstance()->shouldEchoAudio())
+            PACKET_TYPE packetType = Menu::getInstance()->isOptionChecked(MenuOption::EchoAudio)
                 ? PACKET_TYPE_MICROPHONE_AUDIO_WITH_ECHO
                 : PACKET_TYPE_MICROPHONE_AUDIO_NO_ECHO;
             
@@ -157,6 +156,7 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
             
             // copy the audio data to the last BUFFER_LENGTH_BYTES bytes of the data packet
             memcpy(currentPacketPtr, inputLeft, BUFFER_LENGTH_BYTES_PER_CHANNEL);
+            
             nodeList->getNodeSocket()->send((sockaddr*) &audioSocket,
                                             dataPacket,
                                             BUFFER_LENGTH_BYTES_PER_CHANNEL + leadingBytes);
@@ -407,7 +407,7 @@ Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples) :
         return;
     }
 
-    inputParameters.channelCount = 2;                    //  Stereo input
+    inputParameters.channelCount = 1;                    //  Stereo input
     inputParameters.sampleFormat = (paInt16 | paNonInterleaved);
     inputParameters.suggestedLatency = Pa_GetDeviceInfo(inputParameters.device)->defaultLowInputLatency;
     inputParameters.hostApiSpecificStreamInfo = NULL;
@@ -477,7 +477,7 @@ void Audio::addReceivedAudioToBuffer(unsigned char* receivedData, int receivedBy
         //  Set jitter buffer to be a multiple of the measured standard deviation
         const int MAX_JITTER_BUFFER_SAMPLES = RING_BUFFER_LENGTH_SAMPLES / 2;
         const float NUM_STANDARD_DEVIATIONS = 3.f;
-        if (Application::getInstance()->shouldDynamicallySetJitterBuffer()) {
+        if (Menu::getInstance()->getAudioJitterBufferSamples() == 0) {
             float newJitterBufferSamples = (NUM_STANDARD_DEVIATIONS * _measuredJitter)
                                             / 1000.f
                                             * SAMPLE_RATE;
@@ -595,7 +595,7 @@ void Audio::render(int screenWidth, int screenHeight) {
         sprintf(out, "%.0f\n", getJitterBufferSamples() / SAMPLE_RATE * 1000.f);
         drawtext(startX + jitterBufferPels - 5, topY - 9, 0.10, 0, 1, 0, out, 1, 0, 0);
         sprintf(out, "j %.1f\n", _measuredJitter);
-        if (Application::getInstance()->shouldDynamicallySetJitterBuffer()) {
+        if (Menu::getInstance()->getAudioJitterBufferSamples() == 0) {
             drawtext(startX + jitterBufferPels - 5, bottomY + 12, 0.10, 0, 1, 0, out, 1, 0, 0);
         } else {
             drawtext(startX, bottomY + 12, 0.10, 0, 1, 0, out, 1, 0, 0);
@@ -653,7 +653,7 @@ void Audio::addProceduralSounds(int16_t* inputBuffer,
     float speed = glm::length(_lastVelocity);
     float volume = VOLUME_BASELINE * (1.f - speed / MAX_AUDIBLE_VELOCITY);
     
-    int sample;
+    float sample;
     
     //
     // Travelling noise
@@ -673,13 +673,16 @@ void Audio::addProceduralSounds(int16_t* inputBuffer,
     if (_collisionSoundMagnitude > COLLISION_SOUND_CUTOFF_LEVEL) {
         for (int i = 0; i < numSamples; i++) {
             t = (float) _proceduralEffectSample + (float) i;
+            
             sample = sinf(t * _collisionSoundFrequency) +
                      sinf(t * _collisionSoundFrequency / DOWN_TWO_OCTAVES) +
                      sinf(t * _collisionSoundFrequency / DOWN_FOUR_OCTAVES * UP_MAJOR_FIFTH);
             sample *= _collisionSoundMagnitude * COLLISION_SOUND_MAX_VOLUME;
-            inputBuffer[i] += sample;
-            outputLeft[i] += sample;
-            outputRight[i] += sample;
+             
+            
+            inputBuffer[i] += (int) sample;
+            outputLeft[i] += (int) sample;
+            outputRight[i] += (int) sample;
             _collisionSoundMagnitude *= _collisionSoundDuration;
         }
     }
