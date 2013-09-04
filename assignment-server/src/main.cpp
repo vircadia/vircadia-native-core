@@ -44,10 +44,11 @@ int main(int argc, const char* argv[]) {
                     Assignment firstAssignment = assignmentQueue.front();
                     
                     bool eitherHasPool = (firstAssignment.getPool() || requestAssignment.getPool());
+                    bool bothHavePool = (firstAssignment.getPool() && requestAssignment.getPool());
                     
                     // make sure there is a pool match for the created and requested assignment
                     // or that neither has a designated pool
-                    if ((eitherHasPool && strcmp(firstAssignment.getPool(), requestAssignment.getPool()))
+                    if ((eitherHasPool && bothHavePool && strcmp(firstAssignment.getPool(), requestAssignment.getPool()) == 0)
                         || !eitherHasPool) {
                         assignmentQueue.pop();
                         
