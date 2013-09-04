@@ -18,7 +18,6 @@
 
 using namespace std;
 
-const int   MOHAWK_TRIANGLES         =  50;
 const bool  USING_PHYSICAL_MOHAWK    =  true;
 const float EYE_RIGHT_OFFSET         =  0.27f;
 const float EYE_UP_OFFSET            =  0.36f;
@@ -47,7 +46,7 @@ const float IRIS_RADIUS              =  0.007;
 const float IRIS_PROTRUSION          =  0.0145f;
 const char  IRIS_TEXTURE_FILENAME[]  =  "resources/images/iris.png";
 
-ProgramObject* Head::_irisProgram = 0;
+ProgramObject Head::_irisProgram;
 GLuint Head::_irisTextureID;
 int Head::_eyePositionLocation;
 
@@ -76,8 +75,7 @@ Head::Head(Avatar* owningAvatar) :
     _returnSpringScale(1.0f),
     _bodyRotation(0.0f, 0.0f, 0.0f),
     _renderLookatVectors(false),
-    _mohawkTriangleFan(NULL),
-    _mohawkColors(NULL),
+    _mohawkInitialized(false),
     _saccade(0.0f, 0.0f, 0.0f),
     _saccadeTarget(0.0f, 0.0f, 0.0f),
     _leftEyeBlink(0.0f),
@@ -99,16 +97,15 @@ Head::Head(Avatar* owningAvatar) :
 }
 
 void Head::init() {
-    if (_irisProgram == 0) {
+    if (!_irisProgram.isLinked()) {
         switchToResourcesParentIfRequired();
-        _irisProgram = new ProgramObject();
-        _irisProgram->addShaderFromSourceFile(QGLShader::Vertex, "resources/shaders/iris.vert");
-        _irisProgram->addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/iris.frag");
-        _irisProgram->link();
-    
-        _irisProgram->setUniformValue("texture", 0);
-        _eyePositionLocation = _irisProgram->uniformLocation("eyePosition");
-                        
+        _irisProgram.addShaderFromSourceFile(QGLShader::Vertex, "resources/shaders/iris.vert");
+        _irisProgram.addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/iris.frag");
+        _irisProgram.link();
+
+        _irisProgram.setUniformValue("texture", 0);
+        _eyePositionLocation = _irisProgram.uniformLocation("eyePosition");
+
         QImage image = QImage(IRIS_TEXTURE_FILENAME).convertToFormat(QImage::Format_ARGB32);
         
         glGenTextures(1, &_irisTextureID);
@@ -334,9 +331,7 @@ void Head::render(float alpha) {
 
 void Head::setScale (float scale) {
     _scale = scale;
-    
-    delete[] _mohawkTriangleFan;
-    delete[] _mohawkColors;
+
     createMohawk();
 
     if (USING_PHYSICAL_MOHAWK) {
@@ -363,8 +358,6 @@ void Head::createMohawk() {
     float height = _scale * (0.08f + randFloat() * 0.05f);
     float variance = 0.03 + randFloat() * 0.03f;
     const float RAD_PER_TRIANGLE = (2.3f + randFloat() * 0.2f) / (float)MOHAWK_TRIANGLES;
-    _mohawkTriangleFan = new glm::vec3[MOHAWK_TRIANGLES];
-    _mohawkColors = new glm::vec3[MOHAWK_TRIANGLES];
     _mohawkTriangleFan[0] = glm::vec3(0, 0, 0);
     glm::vec3 basicColor(randFloat(), randFloat(), randFloat());
     _mohawkColors[0] = basicColor;
@@ -382,14 +375,9 @@ void Head::createMohawk() {
 
 void Head::renderMohawk() {
     
-    if (!_mohawkTriangleFan) {
+    if (!_mohawkInitialized) {
         createMohawk();
-        
-        // if we get here and still don't have a mohawk then we don't know who we are
-        // so return out since we can't render it yet
-        if (!_mohawkTriangleFan) {
-            return;
-        }
+        _mohawkInitialized = true;
     }
     
     if (USING_PHYSICAL_MOHAWK) {
@@ -649,7 +637,7 @@ void Head::renderEyeBalls() {
         glutSolidSphere(_scale * EYEBALL_RADIUS, 30, 30);
     glPopMatrix();
 
-    _irisProgram->bind();
+    _irisProgram.bind();
     glBindTexture(GL_TEXTURE_2D, _irisTextureID);
     glEnable(GL_TEXTURE_2D);
     
@@ -671,7 +659,7 @@ void Head::renderEyeBalls() {
                  _scale * IRIS_RADIUS); // flatten the iris
         
         // this ugliness is simply to invert the model transform and get the eye position in model space
-        _irisProgram->setUniform(_eyePositionLocation, (glm::inverse(rotation) *
+        _irisProgram.setUniform(_eyePositionLocation, (glm::inverse(rotation) *
             (Application::getInstance()->getCamera()->getPosition() - _leftEyePosition) +
                 glm::vec3(0.0f, 0.0f, _scale * IRIS_PROTRUSION)) * glm::vec3(1.0f / (_scale * IRIS_RADIUS * 2.0f),
                     1.0f / (_scale * IRIS_RADIUS * 2.0f), 1.0f / (_scale * IRIS_RADIUS)));
@@ -695,7 +683,7 @@ void Head::renderEyeBalls() {
                  _scale * IRIS_RADIUS); // flatten the iris
         
         // this ugliness is simply to invert the model transform and get the eye position in model space
-        _irisProgram->setUniform(_eyePositionLocation, (glm::inverse(rotation) *
+        _irisProgram.setUniform(_eyePositionLocation, (glm::inverse(rotation) *
             (Application::getInstance()->getCamera()->getPosition() - _rightEyePosition) +
                 glm::vec3(0.0f, 0.0f, _scale * IRIS_PROTRUSION)) * glm::vec3(1.0f / (_scale * IRIS_RADIUS * 2.0f),
                     1.0f / (_scale * IRIS_RADIUS * 2.0f), 1.0f / (_scale * IRIS_RADIUS)));
@@ -704,7 +692,7 @@ void Head::renderEyeBalls() {
     }
     glPopMatrix();
     
-    _irisProgram->release();
+    _irisProgram.release();
     glBindTexture(GL_TEXTURE_2D, 0);
     glDisable(GL_TEXTURE_2D);
     

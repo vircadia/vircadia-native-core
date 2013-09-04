@@ -31,10 +31,14 @@ struct ViewFrustumOffset {
     float up;
 };
 
+class BandwidthDialog;
+class VoxelStatsDialog;
+
 class Menu : public QMenuBar {
     Q_OBJECT
 public:
     static Menu* getInstance();
+    ~Menu();
     
     bool isOptionChecked(const QString& menuOption);
     void triggerOption(const QString& menuOption);

@@ -19,6 +19,7 @@ class VoxelStatsDialog : public QDialog {
 public:
     // Sets up the UI
     VoxelStatsDialog(QWidget* parent, VoxelSceneStats* model);
+    ~VoxelStatsDialog();
 
 signals:
     void closed();

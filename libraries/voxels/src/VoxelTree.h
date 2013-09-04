@@ -10,7 +10,6 @@
 #define __hifi__VoxelTree__
 
 #include <set>
-#include <PointerStack.h>
 #include <SimpleMovingAverage.h>
 
 #include "CoverageMap.h"
@@ -158,10 +157,10 @@ public:
     int encodeTreeBitstream(VoxelNode* node, unsigned char* outputBuffer, int availableBytes, VoxelNodeBag& bag, 
                             EncodeBitstreamParams& params) ;
 
-    bool isDirty() const { return _isDirty; };
-    void clearDirtyBit() { _isDirty = false; };
-    void setDirtyBit() { _isDirty = true; };
-    unsigned long int getNodesChangedFromBitstream() const { return _nodesChangedFromBitstream; };
+    bool isDirty() const { return _isDirty; }
+    void clearDirtyBit() { _isDirty = false; }
+    void setDirtyBit() { _isDirty = true; }
+    unsigned long int getNodesChangedFromBitstream() const { return _nodesChangedFromBitstream; }
 
     bool findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                              VoxelNode*& node, float& distance, BoxFace& face);
@@ -189,12 +188,6 @@ public:
     void recurseNodeWithOperation(VoxelNode* node, RecurseVoxelTreeOperation operation, void* extraData);
     void recurseNodeWithOperationDistanceSorted(VoxelNode* node, RecurseVoxelTreeOperation operation, 
                 const glm::vec3& point, void* extraData);
-
-
-    void recurseTreeWithOperationDistanceSortedTimed(PointerStack* stackOfNodes, long allowedTime,
-                                                            RecurseVoxelTreeOperation operation, 
-                                                            const glm::vec3& point, void* extraData);
-
 signals:
     void importSize(float x, float y, float z);
     void importProgress(int progress);

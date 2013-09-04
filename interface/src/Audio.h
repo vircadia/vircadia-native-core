@@ -40,19 +40,19 @@ public:
     
     void addReceivedAudioToBuffer(unsigned char* receivedData, int receivedBytes);
 
-    float getLastInputLoudness() const { return _lastInputLoudness; };
+    float getLastInputLoudness() const { return _lastInputLoudness; }
     
-    void setLastAcceleration(glm::vec3 lastAcceleration) { _lastAcceleration = lastAcceleration; };
-    void setLastVelocity(glm::vec3 lastVelocity) { _lastVelocity = lastVelocity; };
+    void setLastAcceleration(const glm::vec3 lastAcceleration) { _lastAcceleration = lastAcceleration; }
+    void setLastVelocity(const glm::vec3 lastVelocity) { _lastVelocity = lastVelocity; }
     
-    void setJitterBufferSamples(int samples) { _jitterBufferSamples = samples; };
-    int getJitterBufferSamples() { return _jitterBufferSamples; };
+    void setJitterBufferSamples(int samples) { _jitterBufferSamples = samples; }
+    int getJitterBufferSamples() { return _jitterBufferSamples; }
     
     void lowPassFilter(int16_t* inputBuffer);
     
     void startCollisionSound(float magnitude, float frequency, float noise, float duration);
     
-    float getCollisionSoundMagnitude() { return _collisionSoundMagnitude; };
+    float getCollisionSoundMagnitude() { return _collisionSoundMagnitude; }
     
     void ping();
 
@@ -61,8 +61,8 @@ public:
     // The results of the analysis are written to the log.
     bool eventuallyAnalyzePing();
 
-    void setListenMode(AudioRingBuffer::ListenMode mode) { _listenMode = mode; };
-    void setListenRadius(float radius) { _listenRadius = radius; };
+    void setListenMode(AudioRingBuffer::ListenMode mode) { _listenMode = mode; }
+    void setListenRadius(float radius) { _listenRadius = radius; }
     void addListenSource(int sourceID);
     void removeListenSource(int sourceID);
     void clearListenSources();
