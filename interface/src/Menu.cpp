@@ -416,6 +416,8 @@ Menu::Menu() :
 Menu::~Menu() {
     bandwidthDetailsClosed();
     voxelStatsDetailsClosed();
+    
+    qDebug() << "menu deleted\n";
 }
 
 void Menu::loadSettings(QSettings* settings) {
