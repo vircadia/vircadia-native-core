@@ -21,6 +21,14 @@ Faceshift::Faceshift() : _enabled(false), _eyeGazeLeftPitch(0.0f), _eyeGazeLeftY
     connect(&_socket, SIGNAL(readyRead()), SLOT(readFromSocket()));
 }
 
+void Faceshift::reset() {
+    if (isActive()) {
+        string message;
+        fsBinaryStream::encode_message(message, fsMsgCalibrateNeutral());
+        send(message);
+    }
+}
+
 void Faceshift::setEnabled(bool enabled) {
     if ((_enabled = enabled)) {
         connectSocket();

@@ -42,6 +42,8 @@ public:
     
     float getMouthSize() const { return _mouthSize; }
 
+    void reset();
+
 public slots:
     
     void setEnabled(bool enabled);

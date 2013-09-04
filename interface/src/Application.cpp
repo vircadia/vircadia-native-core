@@ -3077,6 +3077,7 @@ void Application::resetSensors() {
         _serialHeadSensor.resetAverages();
     }
     _webcam.reset();
+    _faceshift.reset();
     QCursor::setPos(_headMouseX, _headMouseY);
     _myAvatar.reset();
     _myTransmitter.resetLevels();

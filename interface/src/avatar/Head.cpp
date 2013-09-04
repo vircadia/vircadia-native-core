@@ -170,8 +170,10 @@ void Head::simulate(float deltaTime, bool isMine, float gyroCameraSensitivity) {
         
         // set these values based on how they'll be used.  if we use faceshift in the long term, we'll want a complete
         // mapping between their blendshape coefficients and our avatar features
-        _averageLoudness = faceshift->getMouthSize();
-        _browAudioLift = faceshift->getBrowHeight();
+        const float MOUTH_SIZE_SCALE = 2500.0f;
+        _averageLoudness = faceshift->getMouthSize() * faceshift->getMouthSize() * MOUTH_SIZE_SCALE;
+        const float BROW_HEIGHT_SCALE = 0.005f;
+        _browAudioLift = faceshift->getBrowHeight() * BROW_HEIGHT_SCALE;
         
     } else {
         const float AUDIO_AVERAGING_SECS = 0.05;
