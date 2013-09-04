@@ -25,11 +25,14 @@ public:
     };
     
     Assignment(Assignment::Direction direction, Assignment::Type type, const char* pool = NULL);
-    Assignment(const unsigned char* dataBuffer);
+    Assignment(const unsigned char* dataBuffer, int numBytes);
     
     Assignment::Direction getDirection() const { return _direction; }
     Assignment::Type getType() const { return _type; }
     const char* getPool() const { return _pool; }
+    
+    const sockaddr* getDomainSocket() { return _domainSocket; }
+    void setDomainSocket(const sockaddr* domainSocket);
     
     int packToBuffer(unsigned char* buffer);
     
@@ -37,6 +40,7 @@ private:
     Assignment::Direction _direction;
     Assignment::Type _type;
     char* _pool;
+    sockaddr* _domainSocket;
 };
 
 QDebug operator<<(QDebug debug, const Assignment &assignment);

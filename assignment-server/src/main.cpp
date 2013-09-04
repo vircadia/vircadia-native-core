@@ -30,7 +30,7 @@ int main(int argc, const char* argv[]) {
     UDPSocket serverSocket(ASSIGNMENT_SERVER_PORT);
     
     unsigned char assignmentPacket[MAX_PACKET_SIZE_BYTES];
-    int numSendHeaderBytes = populateTypeAndVersion(assignmentPacket, PACKET_TYPE_CREATE_ASSIGNMENT);
+    int numSendHeaderBytes = populateTypeAndVersion(assignmentPacket, PACKET_TYPE_DEPLOY_ASSIGNMENT);
     
     while (true) {
         if (serverSocket.receive((sockaddr*) &senderSocket, &senderData, &receivedBytes)) {
@@ -42,26 +42,30 @@ int main(int argc, const char* argv[]) {
                     Assignment firstAssignment = assignmentQueue.front();
                     assignmentQueue.pop();
                     
-                    *(assignmentPacket + numSendHeaderBytes) = firstAssignment.getType();
-                    
+                    int numAssignmentBytes = firstAssignment.packToBuffer(assignmentPacket + numSendHeaderBytes);
                     
                     // send the assignment
-                    serverSocket.send((sockaddr*) &senderSocket, assignmentPacket, numSendHeaderBytes + sizeof(unsigned char));
+                    serverSocket.send((sockaddr*) &senderSocket, assignmentPacket, numSendHeaderBytes + numAssignmentBytes);
                 }
             } else if (senderData[0] == PACKET_TYPE_CREATE_ASSIGNMENT && packetVersionMatch(senderData)) {
                 // memcpy the sent assignment
-                Assignment createdAssignment(senderData + numBytesForPacketHeader(senderData));
+                int numHeaderBytes = numBytesForPacketHeader(senderData);
+                Assignment createdAssignment(senderData + numHeaderBytes, receivedBytes - numHeaderBytes);
                 
                 qDebug() << "Received an assignment:" << createdAssignment;
                 
                 // assignment server is on a public server
                 // assume that the address we now have for the sender is the public address/port
                 // and store that with the assignment so it can be given to the requestor later
+                createdAssignment.setDomainSocket((sockaddr*) &senderSocket);
                 
-                
+                // until we have a GUID setup just keep the latest assignment
+                if (assignmentQueue.size() > 0) {
+                    assignmentQueue.pop();
+                }
                 
                 // add this assignment to the queue
-//                assignmentQueue.push(newAssignment);
+                assignmentQueue.push(createdAssignment);
             }
         }
     }    

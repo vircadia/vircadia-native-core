@@ -61,7 +61,9 @@ int main(int argc, char* const argv[]) {
                 
                 qDebug() << "Received an assignment - " << assignmentType << "\n";
                 
-                AudioMixer::run();
+                // pull the creator sockaddr_in from the assignment and change our domain IP to that
+                
+//                AudioMixer::run();
                 
                 // reset our NodeList by switching back to unassigned and clearing the list
                 nodeList->setOwnerType(NODE_TYPE_UNASSIGNED);
