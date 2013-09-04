@@ -55,11 +55,6 @@ int main(int argc, const char* argv[]) {
                 Assignment newAssignment((Assignment::Type) *(senderData + numBytesForPacketHeader(senderData)), senderSocket);
                 
                 qDebug() << "Received assignment of type " << newAssignment.getType() << "\n";
-            
-                // for the puroposes of debugging before implementing a GUID system - only keep latest
-                if (assignmentQueue.size() > 0) {
-                    assignmentQueue.pop();
-                }
                 
                 // add this assignment to the queue
                 assignmentQueue.push(newAssignment);
