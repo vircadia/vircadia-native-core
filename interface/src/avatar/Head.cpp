@@ -192,36 +192,43 @@ void Head::simulate(float deltaTime, bool isMine, float gyroCameraSensitivity) {
     _browAudioLift *= 0.7f;      
 
     // update eyelid blinking
-    const float BLINK_SPEED = 10.0f;
-    const float FULLY_OPEN = 0.0f;
-    const float FULLY_CLOSED = 1.0f;
-    if (_leftEyeBlinkVelocity == 0.0f && _rightEyeBlinkVelocity == 0.0f) {
-        // no blinking when brows are raised; blink less with increasing loudness
-        const float BASE_BLINK_RATE = 15.0f / 60.0f;
-        const float ROOT_LOUDNESS_TO_BLINK_INTERVAL = 0.25f;
-        if (forceBlink || (_browAudioLift < EPSILON && shouldDo(glm::max(1.0f, sqrt(_averageLoudness) *
-                ROOT_LOUDNESS_TO_BLINK_INTERVAL) / BASE_BLINK_RATE, deltaTime))) {
-            _leftEyeBlinkVelocity = BLINK_SPEED;
-            _rightEyeBlinkVelocity = BLINK_SPEED;
-        }
+    Faceshift* faceshift = Application::getInstance()->getFaceshift();
+    if (isMine && faceshift->isActive()) {
+        _leftEyeBlink = faceshift->getLeftBlink();
+        _rightEyeBlink = faceshift->getRightBlink();
+    
     } else {
-        _leftEyeBlink = glm::clamp(_leftEyeBlink + _leftEyeBlinkVelocity * deltaTime, FULLY_OPEN, FULLY_CLOSED);
-        _rightEyeBlink = glm::clamp(_rightEyeBlink + _rightEyeBlinkVelocity * deltaTime, FULLY_OPEN, FULLY_CLOSED);
-        
-        if (_leftEyeBlink == FULLY_CLOSED) {
-            _leftEyeBlinkVelocity = -BLINK_SPEED;
-        
-        } else if (_leftEyeBlink == FULLY_OPEN) {
-            _leftEyeBlinkVelocity = 0.0f;
-        }
-        if (_rightEyeBlink == FULLY_CLOSED) {
-            _rightEyeBlinkVelocity = -BLINK_SPEED;
-        
-        } else if (_rightEyeBlink == FULLY_OPEN) {
-            _rightEyeBlinkVelocity = 0.0f;
+        const float BLINK_SPEED = 10.0f;
+        const float FULLY_OPEN = 0.0f;
+        const float FULLY_CLOSED = 1.0f;
+        if (_leftEyeBlinkVelocity == 0.0f && _rightEyeBlinkVelocity == 0.0f) {
+            // no blinking when brows are raised; blink less with increasing loudness
+            const float BASE_BLINK_RATE = 15.0f / 60.0f;
+            const float ROOT_LOUDNESS_TO_BLINK_INTERVAL = 0.25f;
+            if (forceBlink || (_browAudioLift < EPSILON && shouldDo(glm::max(1.0f, sqrt(_averageLoudness) *
+                    ROOT_LOUDNESS_TO_BLINK_INTERVAL) / BASE_BLINK_RATE, deltaTime))) {
+                _leftEyeBlinkVelocity = BLINK_SPEED;
+                _rightEyeBlinkVelocity = BLINK_SPEED;
+            }
+        } else {
+            _leftEyeBlink = glm::clamp(_leftEyeBlink + _leftEyeBlinkVelocity * deltaTime, FULLY_OPEN, FULLY_CLOSED);
+            _rightEyeBlink = glm::clamp(_rightEyeBlink + _rightEyeBlinkVelocity * deltaTime, FULLY_OPEN, FULLY_CLOSED);
+            
+            if (_leftEyeBlink == FULLY_CLOSED) {
+                _leftEyeBlinkVelocity = -BLINK_SPEED;
+            
+            } else if (_leftEyeBlink == FULLY_OPEN) {
+                _leftEyeBlinkVelocity = 0.0f;
+            }
+            if (_rightEyeBlink == FULLY_CLOSED) {
+                _rightEyeBlinkVelocity = -BLINK_SPEED;
+            
+            } else if (_rightEyeBlink == FULLY_OPEN) {
+                _rightEyeBlinkVelocity = 0.0f;
+            }
         }
     }
-
+    
     // based on the nature of the lookat position, determine if the eyes can look / are looking at it.      
     if (USING_PHYSICAL_MOHAWK) {
         updateHairPhysics(deltaTime);

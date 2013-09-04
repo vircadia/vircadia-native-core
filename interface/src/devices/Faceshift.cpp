@@ -71,9 +71,9 @@ void Faceshift::readFromSocket() {
                     const float TRANSLATION_SCALE = 0.02f;
                     _headTranslation = glm::vec3(data.m_headTranslation.x, data.m_headTranslation.y,
                         -data.m_headTranslation.z) * TRANSLATION_SCALE;
-                    _eyeGazeLeftPitch = data.m_eyeGazeLeftPitch;
+                    _eyeGazeLeftPitch = -data.m_eyeGazeLeftPitch;
                     _eyeGazeLeftYaw = data.m_eyeGazeLeftYaw;
-                    _eyeGazeRightPitch = data.m_eyeGazeRightPitch;
+                    _eyeGazeRightPitch = -data.m_eyeGazeRightPitch;
                     _eyeGazeRightYaw = data.m_eyeGazeRightYaw;
                     
                     if (_leftBlinkIndex != -1) {
