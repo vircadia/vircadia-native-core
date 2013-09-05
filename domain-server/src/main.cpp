@@ -25,8 +25,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#import "mongoose.h"
-
 #include "Assignment.h"
 #include "NodeList.h"
 #include "NodeTypes.h"
@@ -48,37 +46,6 @@ unsigned char* addNodeToBroadcastPacket(unsigned char* currentPosition, Node* no
     
     // return the new unsigned char * for broadcast packet
     return currentPosition;
-}
-
-// This function will be called by mongoose on every new request.
-static int begin_request_handler(struct mg_connection *conn) {
-    NodeList* nodeList = NodeList::getInstance();
-    
-    char agentDescriptions[NodeList::getInstance()->getNumAliveNodes() * 100];
-    
-    int content_length = 0;
-    
-    for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
-        content_length += snprintf(agentDescriptions + content_length,
-                                   sizeof(agentDescriptions) - content_length,
-                                   "%s on %s:%d\n",
-                                   node->getTypeName(),
-                                   inet_ntoa(((sockaddr_in*) node->getActiveSocket())->sin_addr),
-                                   ntohs(((sockaddr_in*) node->getActiveSocket())->sin_port));
-    }
-    
-    // Send HTTP reply to the client
-    mg_printf(conn,
-              "HTTP/1.1 200 OK\r\n"
-              "Content-Type: text/plain\r\n"
-              "Content-Length: %d\r\n"        // Always set Content-Length
-              "\r\n"
-              "%s",
-              content_length, agentDescriptions);
-    
-    // Returning non-zero tells mongoose that our function has replied to
-    // the client, and mongoose should not send client any more data.
-    return 1;
 }
 
 int main(int argc, char* const argv[]) {
@@ -133,20 +100,6 @@ int main(int argc, char* const argv[]) {
             strcpy(assignmentPool, optarg);
         }
     }
-    
-    // start a mongoose server to publish information about the domain-server
-    struct mg_context *ctx;
-    struct mg_callbacks callbacks;
-    
-    // List of options. Last element must be NULL.
-    const char *options[] = {"listening_ports", "8080", NULL};
-    
-    // Prepare callbacks structure. We have only one callback, the rest are NULL.
-    memset(&callbacks, 0, sizeof(callbacks));
-    callbacks.begin_request = begin_request_handler;
-    
-    // Start the web server.
-    ctx = mg_start(&callbacks, NULL, options);
     
     while (true) {
         
@@ -268,9 +221,6 @@ int main(int argc, char* const argv[]) {
             }
         }
     }
-    
-    // Stop the server.
-    mg_stop(ctx);
 
     return 0;
 }
