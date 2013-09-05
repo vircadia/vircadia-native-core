@@ -1314,6 +1314,8 @@ void Application::nudgeVoxels() {
 
         // _clipboard.recurseTreeWithOperation(sendVoxelsOperation, &args);
         // _voxelEditSender.flushQueue();
+    } else {
+        qDebug("selectedNode is NULL\n");
     }
 }
 

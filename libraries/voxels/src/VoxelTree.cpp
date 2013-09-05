@@ -2005,9 +2005,10 @@ void VoxelTree::nudgeLeaf(VoxelNode* node, void* extraData) {
     qDebug("UnNudged xyz: %f, %f, %f\n", unNudgedDetails.x, unNudgedDetails.y, unNudgedDetails.z);
 
     // delete the old node
-    args->voxelEditSenderPtr->sendVoxelEditMessage(PACKET_TYPE_ERASE_VOXEL, voxelDetails);
+    //      creating a voxel is inherently destructive
+    // args->voxelEditSenderPtr->sendVoxelEditMessage(PACKET_TYPE_ERASE_VOXEL, voxelDetails);
     // deleteVoxelAt(unNudgedDetails.x, unNudgedDetails.y, unNudgedDetails.z, unNudgedDetails.s);
-    qDebug("unNudged voxel deleted!\n");
+    // qDebug("unNudged voxel deleted!\n");
 
     // create a new voxel in its stead
     glm::vec3 nudge = args->nudgeVec;
