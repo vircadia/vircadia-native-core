@@ -54,6 +54,7 @@ find_package(Qt5OpenGL REQUIRED)
 find_package(Qt5Svg REQUIRED)
 
 if (APPLE)
+  set(MACOSX_BUNDLE_BUNDLE_NAME Interface)
   # set how the icon shows up in the Info.plist file
   SET(MACOSX_BUNDLE_ICON_FILE interface.icns) 
   
