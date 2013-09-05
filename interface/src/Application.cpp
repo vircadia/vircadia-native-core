@@ -1803,10 +1803,13 @@ void Application::update(float deltaTime) {
         
         if (Menu::getInstance()->isOptionChecked(MenuOption::OffAxisProjection)) {
             if (_faceshift.isActive()) {
-                _myCamera.setEyeOffsetPosition(_faceshift.getHeadTranslation());    
+                const float EYE_OFFSET_SCALE = 0.1f;
+                glm::vec3 position = _faceshift.getHeadTranslation() * EYE_OFFSET_SCALE;
+                _myCamera.setEyeOffsetPosition(glm::vec3(-position.x, position.y, position.z));    
                 
             } else if (_webcam.isActive()) {
-                _myCamera.setEyeOffsetPosition(_webcam.getEstimatedPosition());
+                const float EYE_OFFSET_SCALE = 5.0f;
+                _myCamera.setEyeOffsetPosition(_webcam.getEstimatedPosition() * EYE_OFFSET_SCALE);
             }
         }
     }
