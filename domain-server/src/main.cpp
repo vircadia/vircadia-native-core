@@ -17,12 +17,15 @@
 //  M - Audio Mixer
 //
 
+#include <arpa/inet.h>
 #include <fcntl.h>
 #include <map>
 #include <math.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+
+#import "mongoose.h"
 
 #include "Assignment.h"
 #include "NodeList.h"
@@ -31,7 +34,7 @@
 #include "PacketHeaders.h"
 #include "SharedUtil.h"
 
-const int DOMAIN_LISTEN_PORT = 40102;
+const int DOMAIN_LISTEN_PORT = 39999;
 unsigned char packetData[MAX_PACKET_SIZE];
 
 const int NODE_COUNT_STAT_INTERVAL_MSECS = 5000;
@@ -47,8 +50,38 @@ unsigned char* addNodeToBroadcastPacket(unsigned char* currentPosition, Node* no
     return currentPosition;
 }
 
-int main(int argc, char* const argv[])
-{
+// This function will be called by mongoose on every new request.
+static int begin_request_handler(struct mg_connection *conn) {
+    NodeList* nodeList = NodeList::getInstance();
+    
+    char agentDescriptions[NodeList::getInstance()->getNumAliveNodes() * 100];
+    
+    int content_length = 0;
+    
+    for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+        content_length += snprintf(agentDescriptions + content_length,
+                                   sizeof(agentDescriptions) - content_length,
+                                   "%s on %s:%d\n",
+                                   node->getTypeName(),
+                                   inet_ntoa(((sockaddr_in*) node->getActiveSocket())->sin_addr),
+                                   ntohs(((sockaddr_in*) node->getActiveSocket())->sin_port));
+    }
+    
+    // Send HTTP reply to the client
+    mg_printf(conn,
+              "HTTP/1.1 200 OK\r\n"
+              "Content-Type: text/plain\r\n"
+              "Content-Length: %d\r\n"        // Always set Content-Length
+              "\r\n"
+              "%s",
+              content_length, agentDescriptions);
+    
+    // Returning non-zero tells mongoose that our function has replied to
+    // the client, and mongoose should not send client any more data.
+    return 1;
+}
+
+int main(int argc, char* const argv[]) {
     NodeList* nodeList = NodeList::createInstance(NODE_TYPE_DOMAIN, DOMAIN_LISTEN_PORT);
 	// If user asks to run in "local" mode then we do NOT replace the IP
 	// with the EC2 IP. Otherwise, we will replace the IP like we used to
@@ -100,6 +133,20 @@ int main(int argc, char* const argv[])
             strcpy(assignmentPool, optarg);
         }
     }
+    
+    // start a mongoose server to publish information about the domain-server
+    struct mg_context *ctx;
+    struct mg_callbacks callbacks;
+    
+    // List of options. Last element must be NULL.
+    const char *options[] = {"listening_ports", "8080", NULL};
+    
+    // Prepare callbacks structure. We have only one callback, the rest are NULL.
+    memset(&callbacks, 0, sizeof(callbacks));
+    callbacks.begin_request = begin_request_handler;
+    
+    // Start the web server.
+    ctx = mg_start(&callbacks, NULL, options);
     
     while (true) {
         
@@ -221,6 +268,9 @@ int main(int argc, char* const argv[])
             }
         }
     }
+    
+    // Stop the server.
+    mg_stop(ctx);
 
     return 0;
 }
