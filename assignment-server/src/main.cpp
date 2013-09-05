@@ -21,7 +21,7 @@ const int MAX_PACKET_SIZE_BYTES = 1400;
 
 int main(int argc, const char* argv[]) {
     
-    std::queue<Assignment> assignmentQueue;
+    std::deque<Assignment> assignmentQueue;
     
     sockaddr_in senderSocket;
     unsigned char senderData[MAX_PACKET_SIZE_BYTES] = {};
@@ -38,43 +38,48 @@ int main(int argc, const char* argv[]) {
                 // construct the requested assignment from the packet data
                 Assignment requestAssignment(senderData, receivedBytes);
                 
-                // grab the first assignment in the queue, if it exists
+                qDebug() << "Received request for assignment:" << requestAssignment;
+                
+                // make sure there are assignments in the queue at all
                 if (assignmentQueue.size() > 0) {
-                    Assignment firstAssignment = assignmentQueue.front();
                     
-                    bool eitherHasPool = (firstAssignment.getPool() || requestAssignment.getPool());
-                    bool bothHavePool = (firstAssignment.getPool() && requestAssignment.getPool());
-                    
-                    // make sure there is a pool match for the created and requested assignment
-                    // or that neither has a designated pool
-                    if ((eitherHasPool && bothHavePool && strcmp(firstAssignment.getPool(), requestAssignment.getPool()) == 0)
-                        || !eitherHasPool) {
-                        assignmentQueue.pop();
+                    // enumerate assignments until we find one to give this client (if possible)
+                    for (std::deque<Assignment>::iterator assignment = assignmentQueue.begin();
+                         assignment != assignmentQueue.end();
+                         assignment++) {
                         
-                        int numAssignmentBytes = firstAssignment.packToBuffer(assignmentPacket + numSendHeaderBytes);
+                        bool eitherHasPool = (assignment->getPool() || requestAssignment.getPool());
+                        bool bothHavePool = (assignment->getPool() && requestAssignment.getPool());
                         
-                        // send the assignment
-                        serverSocket.send((sockaddr*) &senderSocket, assignmentPacket, numSendHeaderBytes + numAssignmentBytes);
+                        // make sure there is a pool match for the created and requested assignment
+                        // or that neither has a designated pool
+                        if ((eitherHasPool && bothHavePool
+                             && strcmp(assignment->getPool(), requestAssignment.getPool()) == 0)
+                            || !eitherHasPool) {
+                            assignmentQueue.erase(assignment);
+                            
+                            int numAssignmentBytes = assignment->packToBuffer(assignmentPacket + numSendHeaderBytes);
+                            
+                            // send the assignment
+                            serverSocket.send((sockaddr*) &senderSocket,
+                                              assignmentPacket,
+                                              numSendHeaderBytes + numAssignmentBytes);
+                        }
                     }
                 }
             } else if (senderData[0] == PACKET_TYPE_CREATE_ASSIGNMENT && packetVersionMatch(senderData)) {
                 // construct the create assignment from the packet data
                 Assignment createdAssignment(senderData, receivedBytes);
                 
-                qDebug() << "Received an assignment:" << createdAssignment;
+                qDebug() << "Received a created assignment:" << createdAssignment;
                 
                 // assignment server is on a public server
                 // assume that the address we now have for the sender is the public address/port
                 // and store that with the assignment so it can be given to the requestor later
                 createdAssignment.setDomainSocket((sockaddr*) &senderSocket);
                 
-                // until we have a GUID setup just keep the latest assignment
-                if (assignmentQueue.size() > 0) {
-                    assignmentQueue.pop();
-                }
-                
                 // add this assignment to the queue
-                assignmentQueue.push(createdAssignment);
+                assignmentQueue.push_back(createdAssignment);
             }
         }
     }    
