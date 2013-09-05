@@ -189,15 +189,18 @@ void Head::simulate(float deltaTime, bool isMine, float gyroCameraSensitivity) {
         }
                                  
         //  Update audio attack data for facial animation (eyebrows and mouth)
-        _audioAttack = 0.9 * _audioAttack + 0.1 * fabs(_audioLoudness - _lastLoudness);
+        _audioAttack = 0.9f * _audioAttack + 0.1f * fabs(_audioLoudness - _lastLoudness);
         _lastLoudness = _audioLoudness;
         
-        const float BROW_LIFT_THRESHOLD = 100;
-        if (_audioAttack > BROW_LIFT_THRESHOLD)
-            _browAudioLift += sqrt(_audioAttack) * 0.00005;
-            
-            float clamp = 0.01;
-            if (_browAudioLift > clamp) { _browAudioLift = clamp; }
+        const float BROW_LIFT_THRESHOLD = 100.0f;
+        if (_audioAttack > BROW_LIFT_THRESHOLD) {
+            _browAudioLift += sqrtf(_audioAttack) * 0.00005f;
+        }
+        
+        const float CLAMP = 0.01f;
+        if (_browAudioLift > CLAMP) {
+            _browAudioLift = CLAMP;
+        }
         
         _browAudioLift *= 0.7f;      
 

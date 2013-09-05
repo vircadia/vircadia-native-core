@@ -13,9 +13,21 @@
 using namespace fs;
 using namespace std;
 
-Faceshift::Faceshift() : _enabled(false), _eyeGazeLeftPitch(0.0f), _eyeGazeLeftYaw(0.0f), _eyeGazeRightPitch(0.0f),
-       _eyeGazeRightYaw(0.0f), _leftBlink(0.0f), _rightBlink(0.0f), _leftBlinkIndex(-1), _rightBlinkIndex(-1),
-       _browHeight(0.0f), _browUpCenterIndex(-1), _mouthSize(0.0f), _jawOpenIndex(-1) {
+Faceshift::Faceshift() :
+    _enabled(false),
+    _eyeGazeLeftPitch(0.0f),
+    _eyeGazeLeftYaw(0.0f),
+    _eyeGazeRightPitch(0.0f),
+    _eyeGazeRightYaw(0.0f),
+    _leftBlink(0.0f),
+    _rightBlink(0.0f),
+    _leftBlinkIndex(-1),
+    _rightBlinkIndex(-1),
+    _browHeight(0.0f),
+    _browUpCenterIndex(-1),
+    _mouthSize(0.0f),
+    _jawOpenIndex(-1)
+{
     connect(&_socket, SIGNAL(connected()), SLOT(noteConnected()));
     connect(&_socket, SIGNAL(error(QAbstractSocket::SocketError)), SLOT(noteError(QAbstractSocket::SocketError)));
     connect(&_socket, SIGNAL(readyRead()), SLOT(readFromSocket()));
