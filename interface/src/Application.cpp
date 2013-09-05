@@ -1800,6 +1800,15 @@ void Application::update(float deltaTime) {
                 _myCamera.setModeShiftRate(1.0f);
             }
         }
+        
+        if (Menu::getInstance()->isOptionChecked(MenuOption::OffAxisProjection)) {
+            if (_faceshift.isActive()) {
+                _myCamera.setEyeOffsetPosition(_faceshift.getHeadTranslation());    
+                
+            } else if (_webcam.isActive()) {
+                _myCamera.setEyeOffsetPosition(_webcam.getEstimatedPosition());
+            }
+        }
     }
    
     // Update bandwidth dialog, if any

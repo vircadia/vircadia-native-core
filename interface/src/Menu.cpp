@@ -210,6 +210,11 @@ Menu::Menu() :
                                            false,
                                            appInstance->getWebcam()->getGrabber(),
                                            SLOT(setLEDTrackingOn(bool)));
+    
+    addCheckableActionToQMenuAndActionHash(viewMenu,
+                                           MenuOption::OffAxisProjection,
+                                           0,
+                                           false);
                                            
     addDisabledActionAndSeparator(viewMenu, "Stats");
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Stats, Qt::Key_Slash);
