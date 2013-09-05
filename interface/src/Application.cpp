@@ -428,10 +428,14 @@ void Application::resizeGL(int width, int height) {
 
     glViewport(0, 0, width, height); // shouldn't this account for the menu???
 
+    updateProjectionMatrix();
+    glLoadIdentity();
+}
+
+void Application::updateProjectionMatrix() {
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     
-    // On window reshape, we need to tell OpenGL about our new setting
     float left, right, bottom, top, nearVal, farVal;
     glm::vec4 nearClipPlane, farClipPlane;
     _viewFrustum.computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
@@ -445,7 +449,6 @@ void Application::resizeGL(int width, int height) {
     glFrustum(left, right, bottom, top, nearVal, farVal);
     
     glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
 }
 
 void Application::controlledBroadcastToNodes(unsigned char* broadcastData, size_t dataBytes, 
@@ -613,7 +616,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 } else {
                     _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0, 0.001, 0));
                 }
-                resizeGL(_glWidget->width(), _glWidget->height());
+                updateProjectionMatrix();
                 break;
                 
             case Qt::Key_K:
@@ -623,7 +626,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 } else {
                     _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0, -0.001, 0));
                 }
-                resizeGL(_glWidget->width(), _glWidget->height());
+                updateProjectionMatrix();
                 break;
                 
             case Qt::Key_J:
@@ -633,7 +636,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 } else {
                     _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(-0.001, 0, 0));
                 }
-                resizeGL(_glWidget->width(), _glWidget->height());
+                updateProjectionMatrix();
                 break;
                 
             case Qt::Key_M:
@@ -643,7 +646,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 } else {
                     _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0.001, 0, 0));
                 }
-                resizeGL(_glWidget->width(), _glWidget->height());
+                updateProjectionMatrix();
                 break;
                 
             case Qt::Key_U:
@@ -653,7 +656,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 } else {
                     _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0, 0, -0.001));
                 }
-                resizeGL(_glWidget->width(), _glWidget->height());
+                updateProjectionMatrix();
                 break;
                 
             case Qt::Key_Y:
@@ -663,7 +666,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 } else {
                     _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0, 0, 0.001));
                 }
-                resizeGL(_glWidget->width(), _glWidget->height());
+                updateProjectionMatrix();
                 break;
             case Qt::Key_H:
                 Menu::getInstance()->triggerOption(MenuOption::Mirror);
@@ -1806,12 +1809,12 @@ void Application::update(float deltaTime) {
                 const float EYE_OFFSET_SCALE = 0.005f;
                 glm::vec3 position = _faceshift.getHeadTranslation() * EYE_OFFSET_SCALE;
                 _myCamera.setEyeOffsetPosition(glm::vec3(-position.x, position.y, position.z));    
-                resizeGL(_glWidget->width(), _glWidget->height());
+                updateProjectionMatrix();
                 
             } else if (_webcam.isActive()) {
                 const float EYE_OFFSET_SCALE = 5.0f;
                 _myCamera.setEyeOffsetPosition(_webcam.getEstimatedPosition() * EYE_OFFSET_SCALE);
-                resizeGL(_glWidget->width(), _glWidget->height());
+                updateProjectionMatrix();
             }
         }
     }
