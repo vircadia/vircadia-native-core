@@ -204,6 +204,13 @@ Menu::Menu() :
                                            appInstance->getWebcam(),
                                            SLOT(setSkeletonTrackingOn(bool)));
     
+    addCheckableActionToQMenuAndActionHash(viewMenu,
+                                           MenuOption::LEDTracking,
+                                           0,
+                                           false,
+                                           appInstance->getWebcam()->getGrabber(),
+                                           SLOT(setLEDTrackingOn(bool)));
+                                           
     addDisabledActionAndSeparator(viewMenu, "Stats");
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Stats, Qt::Key_Slash);
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Log, Qt::CTRL | Qt::Key_L);
@@ -353,6 +360,13 @@ Menu::Menu() :
                                            appInstance->getWebcam()->getGrabber(),
                                            SLOT(setDepthOnly(bool)));
     
+    addCheckableActionToQMenuAndActionHash(developerMenu,
+                                           MenuOption::Faceshift,
+                                           0,
+                                           false,
+                                           appInstance->getFaceshift(),
+                                           SLOT(setEnabled(bool)));
+                                           
     QMenu* audioDebugMenu = developerMenu->addMenu("Audio Debugging Tools");
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::EchoAudio);
     addActionToQMenuAndActionHash(audioDebugMenu,

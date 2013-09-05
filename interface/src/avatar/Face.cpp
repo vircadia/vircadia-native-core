@@ -17,7 +17,6 @@
 #include "Avatar.h"
 #include "Head.h"
 #include "Face.h"
-#include "Webcam.h"
 #include "renderer/ProgramObject.h"
 
 using namespace cv;

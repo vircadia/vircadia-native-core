@@ -8,17 +8,22 @@
 #ifndef hifi_Hand_h
 #define hifi_Hand_h
 
+#include <vector>
+
 #include <QAction>
+
 #include <glm/glm.hpp>
+
+#include <SharedUtil.h>
+
 #include <AvatarData.h>
 #include <HandData.h>
+
 #include "Balls.h"
-#include "world.h"
 #include "InterfaceConfig.h"
-#include "SerialInterface.h"
 #include "ParticleSystem.h"
-#include <SharedUtil.h>
-#include <vector>
+#include "world.h"
+#include "devices/SerialInterface.h"
 
 enum RaveLightsSetting {
     RAVE_LIGHTS_AVATAR = 0,

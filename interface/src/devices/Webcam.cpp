@@ -30,6 +30,7 @@ using namespace xn;
 
 // register types with Qt metatype system
 int jointVectorMetaType = qRegisterMetaType<JointVector>("JointVector");
+int keyPointVectorMetaType = qRegisterMetaType<KeyPointVector>("KeyPointVector");
 int matMetaType = qRegisterMetaType<Mat>("cv::Mat");
 int rotatedRectMetaType = qRegisterMetaType<RotatedRect>("cv::RotatedRect");
 
@@ -63,6 +64,7 @@ const float UNINITIALIZED_FACE_DEPTH = 0.0f;
 void Webcam::reset() {
     _initialFaceRect = RotatedRect();
     _initialFaceDepth = UNINITIALIZED_FACE_DEPTH;
+    _initialLEDPosition = glm::vec3();
 
     if (_enabled) {
         // send a message to the grabber
@@ -140,6 +142,14 @@ void Webcam::renderPreview(int screenWidth, int screenHeight) {
             glVertex2f(left + facePoints[3].x * xScale, top + facePoints[3].y * yScale);
         glEnd();
 
+        glColor3f(0.0f, 1.0f, 0.0f);
+        glLineWidth(3.0f);
+        for (KeyPointVector::iterator it = _keyPoints.begin(); it != _keyPoints.end(); it++) {
+            renderCircle(glm::vec3(left + it->pt.x * xScale, top + it->pt.y * yScale, 0.0f),
+                it->size * 0.5f, glm::vec3(0.0f, 0.0f, 1.0f), 8);
+        }
+        glLineWidth(1.0f);
+
         const int MAX_FPS_CHARACTERS = 30;
         char fps[MAX_FPS_CHARACTERS];
         sprintf(fps, "FPS: %d", (int)(roundf(_frameCount * 1000000.0f / (usecTimestampNow() - _startTimestamp))));
@@ -155,10 +165,80 @@ Webcam::~Webcam() {
     delete _grabber;
 }
 
+static glm::vec3 createVec3(const Point2f& pt) {
+    return glm::vec3(pt.x, -pt.y, 0.0f);
+} 
+
+static glm::mat3 createMat3(const glm::vec3& p0, const glm::vec3& p1, const glm::vec3& p2) {
+    glm::vec3 u = glm::normalize(p1 - p0);
+    glm::vec3 p02 = p2 - p0;
+    glm::vec3 v = glm::normalize(p02 - u * glm::dot(p02, u));
+    return glm::mat3(u, v, glm::cross(u, v));
+}
+
+/// Computes the 3D transform of the LED assembly from the image space location of the key points representing the LEDs.
+/// See T.D. Alter's "3D Pose from 3 Corresponding Points under Weak-Perspective Projection"
+/// (http://dspace.mit.edu/bitstream/handle/1721.1/6611/AIM-1378.pdf) and the source code to Freetrack
+/// (https://camil.dyndns.org/svn/freetrack/tags/V2.2/Freetrack/Pose.pas), which uses the same algorithm.
+static float computeTransformFromKeyPoints(const KeyPointVector& keyPoints, glm::quat& rotation, glm::vec3& position) {
+    // make sure we have at least three points
+    if (keyPoints.size() < 3) {
+        return 0.0f;
+    }
+    
+    // bubblesort the first three points from top (greatest) to bottom (least)
+    glm::vec3 i0 = createVec3(keyPoints[0].pt), i1 = createVec3(keyPoints[1].pt), i2 = createVec3(keyPoints[2].pt);
+    if (i1.y > i0.y) {
+        swap(i0, i1);
+    }
+    if (i2.y > i1.y) {
+        swap(i1, i2);
+    }
+    if (i1.y > i0.y) {
+        swap(i0, i1);
+    }
+    
+    // model space LED locations and the distances between them
+    const glm::vec3 M0(2.0f, 0.0f, 0.0f), M1(0.0f, 0.0f, 0.0f), M2(0.0f, -4.0f, 0.0f);
+    const float R01 = glm::distance(M0, M1), R02 = glm::distance(M0, M2), R12 = glm::distance(M1, M2);
+    
+    // compute the distances between the image points
+    float d01 = glm::distance(i0, i1), d02 = glm::distance(i0, i2), d12 = glm::distance(i1, i2);
+    
+    // compute the terms of the quadratic
+    float a = (R01 + R02 + R12) * (-R01 + R02 + R12) * (R01 - R02 + R12) * (R01 + R02 - R12);
+    float b = d01 * d01 * (-R01 * R01 + R02 * R02 + R12 * R12) + d02 * d02 * (R01 * R01 - R02 * R02 + R12 * R12) +
+        d12 * d12 * (R01 * R01 + R02 * R02 - R12 * R12);
+    float c = (d01 + d02 + d12) * (-d01 + d02 + d12) * (d01 - d02 + d12) * (d01 + d02 - d12);
+    
+    // compute the scale
+    float s = sqrtf((b + sqrtf(b * b - a * c)) / a);
+    
+    float sigma = (d01 * d01 + d02 * d02 - d12 * d12 <= s * s * (R01 * R01 + R02 * R02 - R12 * R12)) ? 1.0f : -1.0f;
+    
+    float h1 = sqrtf(s * s * R01 * R01 - d01 * d01);
+    float h2 = sigma * sqrtf(s * s * R02 * R02 - d02 * d02);
+    
+    // now we can compute the 3D locations of the model points in camera-centered coordinates
+    glm::vec3 m0 = glm::vec3(i0.x, i0.y, 0.0f) / s;
+    glm::vec3 m1 = glm::vec3(i1.x, i1.y, h1) / s;
+    glm::vec3 m2 = glm::vec3(i2.x, i2.y, h2) / s;
+    
+    // from those and the model space locations, we can compute the transform
+    glm::mat3 r1 = createMat3(M0, M1, M2);
+    glm::mat3 r2 = createMat3(m0, m1, m2);
+    glm::mat3 r = r2 * glm::transpose(r1);
+    
+    position = m0 - r * M0;
+    rotation = glm::quat_cast(r);
+    
+    return s;
+}
+
 const float METERS_PER_MM = 1.0f / 1000.0f;
 
-void Webcam::setFrame(const Mat& color, int format, const Mat& depth, float midFaceDepth,
-        float aspectRatio, const RotatedRect& faceRect, bool sending, const JointVector& joints) {
+void Webcam::setFrame(const Mat& color, int format, const Mat& depth, float midFaceDepth, float aspectRatio,
+        const RotatedRect& faceRect, bool sending, const JointVector& joints, const KeyPointVector& keyPoints) {
     if (!_enabled) {
         return; // was queued before we shut down; ignore
     }
@@ -210,6 +290,7 @@ void Webcam::setFrame(const Mat& color, int format, const Mat& depth, float midF
     _faceRect = faceRect;
     _sending = sending;
     _joints = _skeletonTrackingOn ? joints : JointVector();
+    _keyPoints = keyPoints;
     _frameCount++;
 
     const int MAX_FPS = 60;
@@ -248,6 +329,31 @@ void Webcam::setFrame(const Mat& color, int format, const Mat& depth, float midF
         _estimatedRotation = safeEulerAngles(_estimatedJoints[AVATAR_JOINT_HEAD_BASE].rotation);
         _estimatedPosition = _estimatedJoints[AVATAR_JOINT_HEAD_BASE].position;
 
+    } else if (!keyPoints.empty()) {
+        glm::quat rotation;
+        glm::vec3 position;
+        float scale = computeTransformFromKeyPoints(keyPoints, rotation, position);
+        if (scale > 0.0f) {
+            if (_initialLEDPosition == glm::vec3()) {
+                _initialLEDPosition = position;
+                _estimatedPosition = glm::vec3();
+                _initialLEDRotation = rotation;
+                _estimatedRotation = glm::vec3();
+                _initialLEDScale = scale;
+            
+            } else {
+                const float Z_SCALE = 5.0f;
+                position.z += (_initialLEDScale / scale - 1.0f) * Z_SCALE;
+            
+                const float POSITION_SMOOTHING = 0.5f;
+                _estimatedPosition = glm::mix(position - _initialLEDPosition, _estimatedPosition, POSITION_SMOOTHING);
+                const float ROTATION_SMOOTHING = 0.5f;
+                glm::vec3 eulers = safeEulerAngles(rotation * glm::inverse(_initialLEDRotation));
+                eulers.y = -eulers.y;
+                eulers.z = -eulers.z;
+                _estimatedRotation = glm::mix(eulers, _estimatedRotation, ROTATION_SMOOTHING);
+            }
+        }
     } else {
         // roll is just the angle of the face rect
         const float ROTATION_SMOOTHING = 0.95f;
@@ -285,8 +391,21 @@ void Webcam::setFrame(const Mat& color, int format, const Mat& depth, float midF
     QTimer::singleShot(qMax((int)remaining / 1000, 0), _grabber, SLOT(grabFrame()));
 }
 
-FrameGrabber::FrameGrabber() : _initialized(false), _videoSendMode(FULL_FRAME_VIDEO), _depthOnly(false), _capture(0),
-    _searchWindow(0, 0, 0, 0), _smoothedMidFaceDepth(UNINITIALIZED_FACE_DEPTH), _colorCodec(), _depthCodec(), _frameCount(0) {
+static SimpleBlobDetector::Params createBlobDetectorParams() {
+    SimpleBlobDetector::Params params;
+    params.blobColor = 255;
+    params.filterByArea = true;
+    params.minArea = 4;
+    params.maxArea = 5000;
+    params.filterByCircularity = false;
+    params.filterByInertia = false;
+    params.filterByConvexity = false;
+    return params;
+}
+
+FrameGrabber::FrameGrabber() : _initialized(false), _videoSendMode(FULL_FRAME_VIDEO), _depthOnly(false), _ledTrackingOn(false),
+    _capture(0), _searchWindow(0, 0, 0, 0), _smoothedMidFaceDepth(UNINITIALIZED_FACE_DEPTH), _colorCodec(), _depthCodec(),
+    _frameCount(0), _blobDetector(createBlobDetectorParams()) {
 }
 
 FrameGrabber::~FrameGrabber() {
@@ -389,6 +508,11 @@ void FrameGrabber::cycleVideoSendMode() {
 void FrameGrabber::setDepthOnly(bool depthOnly) {
     _depthOnly = depthOnly;
     destroyCodecs();
+}
+
+void FrameGrabber::setLEDTrackingOn(bool ledTrackingOn) {
+    _ledTrackingOn = ledTrackingOn;
+    configureCapture();
 }
 
 void FrameGrabber::reset() {
@@ -494,7 +618,7 @@ void FrameGrabber::grabFrame() {
     float depthBitrateMultiplier = 1.0f;
     Mat faceTransform;
     float aspectRatio;
-    if (_videoSendMode == FULL_FRAME_VIDEO) {
+    if (_ledTrackingOn || _videoSendMode == FULL_FRAME_VIDEO) {
         // no need to find the face if we're sending full frame video
         _smoothedFaceRect = RotatedRect(Point2f(color.cols / 2.0f, color.rows / 2.0f), Size2f(color.cols, color.rows), 0.0f);
         encodedWidth = color.cols;
@@ -568,6 +692,21 @@ void FrameGrabber::grabFrame() {
         aspectRatio = _smoothedFaceRect.size.width / _smoothedFaceRect.size.height;
     }
 
+    KeyPointVector keyPoints;
+    if (_ledTrackingOn) {
+        // convert to grayscale
+        cvtColor(color, _grayFrame, format == GL_RGB ? CV_RGB2GRAY : CV_BGR2GRAY);
+        
+        // apply threshold
+        threshold(_grayFrame, _grayFrame, 28.0, 255.0, THRESH_BINARY);
+    
+        // convert back so that we can see
+        cvtColor(_grayFrame, color, format == GL_RGB ? CV_GRAY2RGB : CV_GRAY2BGR);
+    
+        // find the locations of the LEDs, which should show up as blobs
+        _blobDetector.detect(_grayFrame, keyPoints);
+    }
+
     const ushort ELEVEN_BIT_MINIMUM = 0;
     const uchar EIGHT_BIT_MIDPOINT = 128;
     double depthOffset;
@@ -616,7 +755,7 @@ void FrameGrabber::grabFrame() {
     _frameCount++;
     
     QByteArray payload;    
-    if (_videoSendMode != NO_VIDEO) {
+    if (!_ledTrackingOn && _videoSendMode != NO_VIDEO) {
         // start the payload off with the aspect ratio (zero for full frame)
         payload.append((const char*)&aspectRatio, sizeof(float));
    
@@ -790,7 +929,7 @@ void FrameGrabber::grabFrame() {
     QMetaObject::invokeMethod(Application::getInstance()->getWebcam(), "setFrame",
         Q_ARG(cv::Mat, color), Q_ARG(int, format), Q_ARG(cv::Mat, _grayDepthFrame), Q_ARG(float, _smoothedMidFaceDepth),
         Q_ARG(float, aspectRatio), Q_ARG(cv::RotatedRect, _smoothedFaceRect), Q_ARG(bool, !payload.isEmpty()),
-        Q_ARG(JointVector, joints));
+        Q_ARG(JointVector, joints), Q_ARG(KeyPointVector, keyPoints));
 }
 
 bool FrameGrabber::init() {
@@ -840,18 +979,28 @@ bool FrameGrabber::init() {
     cvSetCaptureProperty(_capture, CV_CAP_PROP_FRAME_WIDTH, IDEAL_FRAME_WIDTH);
     cvSetCaptureProperty(_capture, CV_CAP_PROP_FRAME_HEIGHT, IDEAL_FRAME_HEIGHT);
 
+    configureCapture();
+
+    return true;
+}
+
+void FrameGrabber::configureCapture() {
+#ifdef HAVE_OPENNI
+    if (_depthGenerator.IsValid()) {
+        return; // don't bother handling LED tracking with depth camera
+    }    
+#endif
+    
 #ifdef __APPLE__
-    configureCamera(0x5ac, 0x8510, false, 0.975, 0.5, 1.0, 0.5, true, 0.5);
+    configureCamera(0x5ac, 0x8510, false, _ledTrackingOn ? 1.0 : 0.975, 0.5, 1.0, 0.5, true, 0.5);
 #else
     cvSetCaptureProperty(_capture, CV_CAP_PROP_EXPOSURE, 0.5);
-    cvSetCaptureProperty(_capture, CV_CAP_PROP_CONTRAST, 0.5);
+    cvSetCaptureProperty(_capture, CV_CAP_PROP_CONTRAST, _ledTrackingOn ? 1.0 : 0.5);
     cvSetCaptureProperty(_capture, CV_CAP_PROP_SATURATION, 0.5);
-    cvSetCaptureProperty(_capture, CV_CAP_PROP_BRIGHTNESS, 0.5);
+    cvSetCaptureProperty(_capture, CV_CAP_PROP_BRIGHTNESS, _ledTrackingOn ? 0.0 : 0.5);
     cvSetCaptureProperty(_capture, CV_CAP_PROP_HUE, 0.5);
     cvSetCaptureProperty(_capture, CV_CAP_PROP_GAIN, 0.5);
 #endif
-
-    return true;
 }
 
 void FrameGrabber::updateHSVFrame(const Mat& frame, int format) {

@@ -137,6 +137,7 @@ namespace MenuOption {
     const QString ExportVoxels = "Export Voxels";
     const QString HeadMouse = "Head Mouse";
     const QString FaceMode = "Cycle Face Mode";
+    const QString Faceshift = "Faceshift";
     const QString FalseColorByDistance = "FALSE Color By Distance";
     const QString FalseColorBySource = "FALSE Color By Source";
     const QString FalseColorEveryOtherVoxel = "FALSE Color Every Other Randomly";
@@ -184,6 +185,7 @@ namespace MenuOption {
     const QString ShowTrueColors = "Show TRUE Colors";
     const QString SimulateLeapHand = "Simulate Leap Hand";
     const QString SkeletonTracking = "Skeleton Tracking";
+    const QString LEDTracking = "LED Tracking";
     const QString Stars = "Stars";
     const QString Stats = "Stats";
     const QString TestPing = "Test Ping";
