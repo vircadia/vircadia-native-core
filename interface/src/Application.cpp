@@ -1806,10 +1806,12 @@ void Application::update(float deltaTime) {
                 const float EYE_OFFSET_SCALE = 0.1f;
                 glm::vec3 position = _faceshift.getHeadTranslation() * EYE_OFFSET_SCALE;
                 _myCamera.setEyeOffsetPosition(glm::vec3(-position.x, position.y, position.z));    
+                resizeGL(_glWidget->width(), _glWidget->height());
                 
             } else if (_webcam.isActive()) {
                 const float EYE_OFFSET_SCALE = 5.0f;
                 _myCamera.setEyeOffsetPosition(_webcam.getEstimatedPosition() * EYE_OFFSET_SCALE);
+                resizeGL(_glWidget->width(), _glWidget->height());
             }
         }
     }
