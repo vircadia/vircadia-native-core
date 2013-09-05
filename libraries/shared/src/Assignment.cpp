@@ -59,6 +59,7 @@ Assignment::Assignment(const unsigned char* dataBuffer, int numBytes) :
             // IPv4 address
             sockaddr_in destinationSocket = {};
             memcpy(&destinationSocket, dataBuffer + numBytesRead, sizeof(sockaddr_in));
+            destinationSocket.sin_family = AF_INET;
             setDomainSocket((sockaddr*) &destinationSocket);
         } else {
             // IPv6 address
