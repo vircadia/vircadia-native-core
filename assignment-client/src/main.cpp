@@ -70,7 +70,7 @@ int main(int argc, char* const argv[]) {
                 // switch our nodelist DOMAIN_IP to the ip receieved in the assignment
                 if (deployedAssignment.getDomainSocket()->sa_family == AF_INET) {
                     in_addr domainSocketAddr = ((sockaddr_in*) deployedAssignment.getDomainSocket())->sin_addr;
-                    nodeList->setDomainIP("10.0.0.20");
+                    nodeList->setDomainIP(inet_ntoa(domainSocketAddr));
                     
                     qDebug() << "Changed domain IP to " << inet_ntoa(domainSocketAddr);
                 }
