@@ -1803,7 +1803,7 @@ void Application::update(float deltaTime) {
         
         if (Menu::getInstance()->isOptionChecked(MenuOption::OffAxisProjection)) {
             if (_faceshift.isActive()) {
-                const float EYE_OFFSET_SCALE = 0.1f;
+                const float EYE_OFFSET_SCALE = 0.005f;
                 glm::vec3 position = _faceshift.getHeadTranslation() * EYE_OFFSET_SCALE;
                 _myCamera.setEyeOffsetPosition(glm::vec3(-position.x, position.y, position.z));    
                 resizeGL(_glWidget->width(), _glWidget->height());
@@ -1912,6 +1912,7 @@ void Application::updateAvatar(float deltaTime) {
     _myAvatar.setCameraAspectRatio(_viewFrustum.getAspectRatio());
     _myAvatar.setCameraNearClip(_viewFrustum.getNearClip());
     _myAvatar.setCameraFarClip(_viewFrustum.getFarClip());
+    _myAvatar.setCameraEyeOffsetPosition(_viewFrustum.getEyeOffsetPosition());
     
     NodeList* nodeList = NodeList::getInstance();
     if (nodeList->getOwnerID() != UNKNOWN_NODE_ID) {
