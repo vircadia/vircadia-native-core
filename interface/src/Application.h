@@ -178,6 +178,7 @@ private slots:
 
 private:
     void resetCamerasOnResizeGL(Camera& camera, int width, int height);
+    void updateProjectionMatrix();
 
     static bool sendVoxelsOperation(VoxelNode* node, void* extraData);
     static void processAvatarVoxelURLMessage(unsigned char* packetData, size_t dataBytes);

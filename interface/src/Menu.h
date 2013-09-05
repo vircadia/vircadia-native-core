@@ -170,6 +170,7 @@ namespace MenuOption {
     const QString LowRes = "Lower Resolution While Moving";
     const QString Mirror = "Mirror";
     const QString OcclusionCulling = "Occlusion Culling";
+    const QString OffAxisProjection = "Off-Axis Projection";
     const QString Oscilloscope = "Audio Oscilloscope";
     const QString Pair = "Pair";
     const QString PasteVoxels = "Paste";

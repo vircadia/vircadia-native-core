@@ -73,6 +73,7 @@ bool VoxelNodeData::updateCurrentViewFrustum() {
     newestViewFrustum.setAspectRatio(getCameraAspectRatio());
     newestViewFrustum.setNearClip(getCameraNearClip());
     newestViewFrustum.setFarClip(getCameraFarClip());
+    newestViewFrustum.setEyeOffsetPosition(getCameraEyeOffsetPosition());
     
     // if there has been a change, then recalculate
     if (!newestViewFrustum.matches(_currentViewFrustum)) {
