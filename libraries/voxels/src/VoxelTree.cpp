@@ -31,6 +31,7 @@
 #include "VoxelConstants.h"
 #include "VoxelNodeBag.h"
 #include "VoxelTree.h"
+#include <PacketHeaders.h>
 
 float boundaryDistanceForRenderLevel(unsigned int renderLevel) {
     return ::VOXEL_SIZE_SCALE / powf(2, renderLevel);
@@ -1912,11 +1913,20 @@ void VoxelTree::cancelImport() {
     _stopImport = true;
 }
 
+typedef unsigned char nodeColor[4];
+
+const nodeColor red = {255, 0, 0, 0};
+const nodeColor green = {0, 255, 0, 0};
+const nodeColor blue = {0, 0, 255, 0};
+
 class NodeChunkArgs {
 public:
     VoxelTree* thisVoxelTree;
     float newSize;
     glm::vec3 nudgeVec;
+    VoxelEditPacketSender* voxelEditSenderPtr;
+
+    int colorIndex;
 };
 
 bool VoxelTree::nudgeCheck(VoxelNode* node, void* extraData) {
@@ -1943,20 +1953,31 @@ bool VoxelTree::nudgeCheck(VoxelNode* node, void* extraData) {
             return false;
         } else {
             // break the current leaf into smaller chunks
-            args->thisVoxelTree->chunkifyLeaf(node);
+            args->thisVoxelTree->chunkifyLeaf(node, extraData);
         }
     }
     return true;
 }
 
-void VoxelTree::chunkifyLeaf(VoxelNode* node) {
+void VoxelTree::chunkifyLeaf(VoxelNode* node, void* extraData) {
     // because this function will continue being called recursively
     // we only need to worry about breaking this specific leaf down
+    if (!node->isColored()) {
+        return;
+    }
+    NodeChunkArgs* args = (NodeChunkArgs*)extraData;
     for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
         node->addChildAtIndex(i);
-        if (node->isColored()) {
-            node->getChildAtIndex(i)->setColor(node->getColor());
+        if (args->colorIndex == 0) {
+            node->getChildAtIndex(i)->setColor(red);
+        } else if (args->colorIndex == 1) {
+            node->getChildAtIndex(i)->setColor(green);
+        } else if (args->colorIndex == 2) {
+            node->getChildAtIndex(i)->setColor(blue);
         }
+        args->colorIndex++;
+        args->colorIndex = args->colorIndex % 3;
+        // node->getChildAtIndex(i)->setColor(node->getColor());
     }
 }
 
@@ -1971,9 +1992,21 @@ void VoxelTree::nudgeLeaf(VoxelNode* node, void* extraData) {
     // get voxel position/size
     VoxelPositionSize unNudgedDetails;
     voxelDetailsForCode(octalCode, unNudgedDetails);
+    VoxelDetail voxelDetails;
+    voxelDetails.x = unNudgedDetails.x;
+    voxelDetails.y = unNudgedDetails.y;
+    voxelDetails.z = unNudgedDetails.z;
+    voxelDetails.s = unNudgedDetails.s;
+    voxelDetails.red = node->getColor()[0];
+    qDebug("rgb: %u, %u, %u\n", node->getColor()[0], node->getColor()[1], node->getColor()[2]);
+    voxelDetails.green = node->getColor()[1];
+    voxelDetails.blue = node->getColor()[2];
+
+    qDebug("UnNudged xyz: %f, %f, %f\n", unNudgedDetails.x, unNudgedDetails.y, unNudgedDetails.z);
 
     // delete the old node
-    deleteVoxelAt(unNudgedDetails.x, unNudgedDetails.y, unNudgedDetails.z, unNudgedDetails.s);
+    args->voxelEditSenderPtr->sendVoxelEditMessage(PACKET_TYPE_ERASE_VOXEL, voxelDetails);
+    // deleteVoxelAt(unNudgedDetails.x, unNudgedDetails.y, unNudgedDetails.z, unNudgedDetails.s);
     qDebug("unNudged voxel deleted!\n");
 
     // create a new voxel in its stead
@@ -1981,12 +2014,20 @@ void VoxelTree::nudgeLeaf(VoxelNode* node, void* extraData) {
     qDebug("nudged by %f, %f, %f\n", nudge.x, nudge.y, nudge.z);
     // createVoxel(unNudgedDetails.x + nudge.x, unNudgedDetails.y + nudge.y, unNudgedDetails.z + nudge.z, unNudgedDetails.s,
     //             node->getColor()[0], node->getColor()[1], node->getColor()[2], true);
-    createVoxel(unNudgedDetails.x + nudge.x, unNudgedDetails.y + nudge.y, unNudgedDetails.z + nudge.z, unNudgedDetails.s,
-                0, 0, 0, true);
-    qDebug("nudged voxel created!\n");
+    voxelDetails.x = unNudgedDetails.x + nudge.x;
+    voxelDetails.y = unNudgedDetails.y + nudge.y;
+    voxelDetails.z = unNudgedDetails.z + nudge.z;
+    qDebug("Nudged xyz: %f, %f, %f\n", voxelDetails.x, voxelDetails.y, voxelDetails.z);
+    args->voxelEditSenderPtr->sendVoxelEditMessage(PACKET_TYPE_SET_VOXEL, voxelDetails);
+    // unsigned char* newOctalCode = pointToVoxel(unNudgedDetails.x + nudge.x, unNudgedDetails.y + nudge.y, unNudgedDetails.z + nudge.z, 
+    //     unNudgedDetails.s, node->getColor()[0], node->getColor()[1], node->getColor()[2]);
+
+    // // node = new VoxelNode(newOctalCode);
+    // node = NULL;
+    qDebug("nudged node created!\n");
 }
 
-void VoxelTree::nudgeSubTree(VoxelNode* nodeToNudge, const glm::vec3& nudgeAmount) {
+void VoxelTree::nudgeSubTree(VoxelNode* nodeToNudge, const glm::vec3& nudgeAmount, VoxelEditPacketSender& voxelEditSender) {
     // calculate minNudgeAmount to check if breaking the tree into smaller chunks is necessary
     float minNudgeAmount = fmin(nudgeAmount.x, nudgeAmount.y);
     minNudgeAmount = fmin(minNudgeAmount, nudgeAmount.z);
@@ -1995,6 +2036,8 @@ void VoxelTree::nudgeSubTree(VoxelNode* nodeToNudge, const glm::vec3& nudgeAmoun
     args.thisVoxelTree = this;
     args.newSize = minNudgeAmount;
     args.nudgeVec = nudgeAmount;
+    args.voxelEditSenderPtr = &voxelEditSender;
+    args.colorIndex = 0;
 
     recurseNodeWithOperation(nodeToNudge, nudgeCheck, &args);
 }

@@ -158,6 +158,7 @@ namespace MenuOption {
     const QString LookAtVectors = "Look-at Vectors";
     const QString LowRes = "Lower Resolution While Moving";
     const QString Mirror = "Mirror";
+    const QString NudgeVoxels = "Nudge Voxels";
     const QString OcclusionCulling = "Occlusion Culling";
     const QString Oscilloscope = "Audio Oscilloscope";
     const QString Pair = "Pair";

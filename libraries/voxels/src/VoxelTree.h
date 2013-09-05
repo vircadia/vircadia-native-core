@@ -19,6 +19,7 @@
 #include "VoxelNode.h"
 #include "VoxelNodeBag.h"
 #include "VoxelSceneStats.h"
+#include "VoxelEditPacketSender.h"
 
 #include <QObject>
 
@@ -195,7 +196,7 @@ public:
                                                             RecurseVoxelTreeOperation operation, 
                                                             const glm::vec3& point, void* extraData);
 
-    void nudgeSubTree(VoxelNode* nodeToNudge, const glm::vec3& nudgeAmount);
+    void nudgeSubTree(VoxelNode* nodeToNudge, const glm::vec3& nudgeAmount, VoxelEditPacketSender& voxelEditSender);
 
 signals:
     void importSize(float x, float y, float z);
@@ -260,7 +261,7 @@ private:
     // helper functions for nudgeSubTree
     static bool nudgeCheck(VoxelNode* node, void* extraData);
     void nudgeLeaf(VoxelNode* node, void* extraData);
-    void chunkifyLeaf(VoxelNode* node);
+    void chunkifyLeaf(VoxelNode* node, void* extraData);
 };
 
 float boundaryDistanceForRenderLevel(unsigned int renderLevel);

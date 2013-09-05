@@ -130,7 +130,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _bytesPerSecond(0),
         _bytesCount(0),
         _swatch(NULL),
-        _pasteMode(false)
+        _pasteMode(false),
+        _nudgeCount(0)
 {
     _applicationStartupTime = startup_time;
     _window->setWindowTitle("Interface");
@@ -1272,6 +1273,50 @@ void Application::pasteVoxels() {
     }
 }
 
+void Application::nudgeVoxels() {
+    VoxelNode* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+
+    if (selectedNode) {
+        qDebug("UnNudged xyz: %f, %f, %f\n", _mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z);
+        // // clear the clipboard first...
+        // _clipboard.killLocalVoxels();
+
+        // nudge the node
+        glm::vec3 nudgeVec(0.5 * _mouseVoxel.s, 0.5 * _mouseVoxel.s, 0.5 * _mouseVoxel.s);
+        // glm::vec3 nudgeVec(_mouseVoxel.s, _mouseVoxel.s, _mouseVoxel.s);
+        // _voxelEditSender.sendVoxelEditMessage(PACKET_TYPE_ERASE_VOXEL, _mouseVoxel);
+        _voxels.getVoxelTree()->nudgeSubTree(selectedNode, nudgeVec, _voxelEditSender);
+
+        // if (!selectedNode) {
+        //     qDebug("new node is null\n");
+        // } else {
+        //     // get octal code of this node
+        //     unsigned char* octalCode = selectedNode->getOctalCode();
+
+        //     // get voxel position/size
+        //     VoxelPositionSize nudgedDetails;
+        //     voxelDetailsForCode(octalCode, nudgedDetails);
+        //     qDebug("Nudged xyz: %f, %f, %f\n", nudgedDetails.x, nudgedDetails.y, nudgedDetails.z);
+        // }
+
+        // // then copy onto it
+        // _voxels.copySubTreeIntoNewTree(selectedNode, &_clipboard, true);
+        // // deleteVoxelUnderCursor();
+
+        // // Recurse the clipboard tree, where everything is root relative, and send all the colored voxels to 
+        // // the server as an set voxel message, this will also rebase the voxels to the new location
+        // SendVoxelsOperationArgs args;
+
+        // // we only need the selected voxel to get the newBaseOctCode, which we can actually calculate from the
+        // // voxel size/position details. If we don't have an actual selectedNode then use the mouseVoxel to create a 
+        // // target octalCode for where the user is pointing.
+        // args.newBaseOctCode = selectedNode->getOctalCode();
+
+        // _clipboard.recurseTreeWithOperation(sendVoxelsOperation, &args);
+        // _voxelEditSender.flushQueue();
+    }
+}
+
 void Application::setListenModeNormal() {
     _audio.setListenMode(AudioRingBuffer::NORMAL);
 }
@@ -1543,9 +1588,11 @@ void Application::update(float deltaTime) {
                 hoveredNode->setColor(_hoverVoxelOriginalColor);
                 _isHoverVoxelSounding = false;
             }
-            glm::vec3 nudgeVec(1, 1, 1);
-            _voxels.getVoxelTree()->nudgeSubTree(hoveredNode, nudgeVec);
-            // qDebug("nudge called!\n");
+            // if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelSelectMode)) {
+            //     nudgeVoxels();
+            //     _nudgeCount++;
+            //     qDebug("nudgeCount = %d\n", _nudgeCount);
+            // }
         } else {
             //  Voxel is not found, clear all
             _isHoverVoxelSounding = false;
@@ -1637,7 +1684,7 @@ void Application::update(float deltaTime) {
             _mouseVoxel.red = 255;
             _mouseVoxel.green = _mouseVoxel.blue = 0;
         } else if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelSelectMode)) {
-            // yellow indicates deletion
+            // yellow indicates selection
             _mouseVoxel.red = _mouseVoxel.green = 255;
             _mouseVoxel.blue = 0;
         } else { // _addVoxelMode->isChecked() || _colorVoxelMode->isChecked()

@@ -142,6 +142,7 @@ public slots:
     void cutVoxels();
     void copyVoxels();
     void pasteVoxels();
+    void nudgeVoxels();
     
     void setRenderVoxels(bool renderVoxels);
     void doKillLocalVoxels();
@@ -352,6 +353,8 @@ private:
     NodeToJurisdictionMap _voxelServerJurisdictions;
     
     std::vector<VoxelFade> _voxelFades;
+
+    int _nudgeCount;
 };
 
 #endif /* defined(__interface__Application__) */
