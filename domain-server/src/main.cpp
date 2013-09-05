@@ -107,6 +107,10 @@ int main(int argc, char* const argv[])
             // create an assignment to send, ask for an audio mixer, pass the assignment pool if it exists
             Assignment mixerAssignment(Assignment::Create, Assignment::AudioMixer, assignmentPool);
             nodeList->sendAssignment(mixerAssignment);
+        } else if (!nodeList->soloNodeOfType(NODE_TYPE_AVATAR_MIXER)) {
+            // create an assignment to send, ask for an avatar mixer, pass the assignment pool if it exists
+            Assignment avatarAssignment(Assignment::Create, Assignment::AvatarMixer, assignmentPool);
+            nodeList->sendAssignment(avatarAssignment);
         }
         
         

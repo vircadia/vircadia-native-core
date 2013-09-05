@@ -11,6 +11,7 @@
 
 #include <Assignment.h>
 #include <AudioMixer.h>
+#include <AvatarMixer.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
@@ -18,6 +19,8 @@
 const int ASSIGNMENT_REQUEST_INTERVAL_USECS = 1 * 1000 * 1000;
 
 int main(int argc, char* const argv[]) {
+    
+    setvbuf(stdout, NULL, _IOLBF, 0);
     
     // create a NodeList as an unassigned client
     NodeList* nodeList = NodeList::createInstance(NODE_TYPE_UNASSIGNED);
@@ -72,8 +75,11 @@ int main(int argc, char* const argv[]) {
                     qDebug() << "Changed domain IP to " << inet_ntoa(domainSocketAddr);
                 }
                 
-                // run the AudioMixer, it's the only possible assignment for now
-                AudioMixer::run();
+                if (deployedAssignment.getType() == Assignment::AudioMixer) {
+                    AudioMixer::run();
+                } else {
+                    AvatarMixer::run();
+                }
                 
                 // reset our NodeList by switching back to unassigned and clearing the list
                 nodeList->setOwnerType(NODE_TYPE_UNASSIGNED);

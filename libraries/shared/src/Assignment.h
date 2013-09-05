@@ -16,6 +16,7 @@ public:
     
     enum Type {
         AudioMixer,
+        AvatarMixer,
         All
     };
     
