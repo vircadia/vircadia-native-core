@@ -101,16 +101,37 @@ int main(int argc, char* const argv[]) {
         }
     }
     
+    // use a map to keep track of iterations of silence for assignment creation requests
+    const int ASSIGNMENT_SILENCE_MAX_ITERATIONS = 5;
+    std::map<Assignment*, int> assignmentSilenceCount;
+    
+    // as a domain-server we will always want an audio mixer and avatar mixer
+    // setup the create assignments for those
+    Assignment audioAssignment(Assignment::Create, Assignment::AudioMixer, assignmentPool);
+    Assignment avatarAssignment(Assignment::Create, Assignment::AvatarMixer, assignmentPool);
+    
     while (true) {
         
         if (!nodeList->soloNodeOfType(NODE_TYPE_AUDIO_MIXER)) {
-            // create an assignment to send, ask for an audio mixer, pass the assignment pool if it exists
-            Assignment mixerAssignment(Assignment::Create, Assignment::AudioMixer, assignmentPool);
-            nodeList->sendAssignment(mixerAssignment);
-        } else if (!nodeList->soloNodeOfType(NODE_TYPE_AVATAR_MIXER)) {
-            // create an assignment to send, ask for an avatar mixer, pass the assignment pool if it exists
-            Assignment avatarAssignment(Assignment::Create, Assignment::AvatarMixer, assignmentPool);
-            nodeList->sendAssignment(avatarAssignment);
+            if (assignmentSilenceCount[&audioAssignment] == ASSIGNMENT_SILENCE_MAX_ITERATIONS) {
+                nodeList->sendAssignment(audioAssignment);
+                assignmentSilenceCount[&audioAssignment] = 0;
+            } else {
+                assignmentSilenceCount[&audioAssignment]++;
+            }
+        } else {
+            assignmentSilenceCount[&audioAssignment] = 0;
+        }
+        
+        if (!nodeList->soloNodeOfType(NODE_TYPE_AVATAR_MIXER)) {
+            if (assignmentSilenceCount[&avatarAssignment] == ASSIGNMENT_SILENCE_MAX_ITERATIONS) {
+                nodeList->sendAssignment(avatarAssignment);
+                assignmentSilenceCount[&avatarAssignment] = 0;
+            } else {
+                assignmentSilenceCount[&avatarAssignment]++;
+            }
+        } else {
+            assignmentSilenceCount[&avatarAssignment] = 0;
         }
         
         
