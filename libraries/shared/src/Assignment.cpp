@@ -12,6 +12,9 @@
 
 #include "Assignment.h"
 
+const char IPv4_ADDRESS_DESIGNATOR = 4;
+const char IPv6_ADDRESS_DESIGNATOR = 6;
+
 Assignment::Assignment(Assignment::Direction direction, Assignment::Type type, const char* pool) :
     _direction(direction),
     _type(type),
@@ -63,7 +66,7 @@ Assignment::Assignment(const unsigned char* dataBuffer, int numBytes) :
     }
     
     if (numBytes > numBytesRead) {
-        if (dataBuffer[numBytesRead++] == 4) {
+        if (dataBuffer[numBytesRead++] == IPv4_ADDRESS_DESIGNATOR) {
             // IPv4 address
             sockaddr_in destinationSocket = {};
             memcpy(&destinationSocket, dataBuffer + numBytesRead, sizeof(sockaddr_in));
@@ -100,7 +103,7 @@ int Assignment::packToBuffer(unsigned char* buffer) {
     }
     
     if (_domainSocket) {
-        buffer[numPackedBytes++] = (_domainSocket->sa_family == AF_INET) ? 4 : 6;
+        buffer[numPackedBytes++] = (_domainSocket->sa_family == AF_INET) ? IPv4_ADDRESS_DESIGNATOR : IPv6_ADDRESS_DESIGNATOR;
         
         int numSocketBytes = (_domainSocket->sa_family == AF_INET) ? sizeof(sockaddr_in) : sizeof(sockaddr_in6);
         

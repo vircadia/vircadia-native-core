@@ -32,7 +32,7 @@
 #include "PacketHeaders.h"
 #include "SharedUtil.h"
 
-const int DOMAIN_LISTEN_PORT = 39999;
+const int DOMAIN_LISTEN_PORT = 40102;
 unsigned char packetData[MAX_PACKET_SIZE];
 
 const int NODE_COUNT_STAT_INTERVAL_MSECS = 5000;
