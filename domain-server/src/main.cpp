@@ -92,39 +92,41 @@ int main(int argc, const char* argv[]) {
     nodeList->setAssignmentServerHostname(getCmdOption(argc, argv, "-a"));
     
     // use a map to keep track of iterations of silence for assignment creation requests
-    const int ASSIGNMENT_SILENCE_MAX_ITERATIONS = 5;
-    std::map<Assignment*, int> assignmentSilenceCount;
+    const long long ASSIGNMENT_SILENCE_MAX_USECS = 5 * 1000 * 1000;
     
     // as a domain-server we will always want an audio mixer and avatar mixer
-    // setup the create assignments for those
-    Assignment audioAssignment(Assignment::Create, Assignment::AudioMixer, assignmentPool);
-    Assignment avatarAssignment(Assignment::Create, Assignment::AvatarMixer, assignmentPool);
+    // setup the create assignment pointers for those
+    Assignment *audioAssignment = NULL;
+    Assignment *avatarAssignment = NULL;
     
     while (true) {
         if (!nodeList->soloNodeOfType(NODE_TYPE_AUDIO_MIXER)) {
-            std::map<Assignment*, int>::iterator countIt = assignmentSilenceCount.find(&audioAssignment);
-            if (countIt == assignmentSilenceCount.end() || countIt->second == ASSIGNMENT_SILENCE_MAX_ITERATIONS) {
-                nodeList->sendAssignment(audioAssignment);
-                assignmentSilenceCount[&audioAssignment] = 0;
-            } else {
-                assignmentSilenceCount[&audioAssignment]++;
+            if (!audioAssignment
+                || usecTimestampNow() - usecTimestamp(&audioAssignment->getTime()) >= ASSIGNMENT_SILENCE_MAX_USECS) {
+                
+                if (!audioAssignment) {
+                    audioAssignment = new Assignment(Assignment::Create, Assignment::AudioMixer, assignmentPool);
+                }
+                
+                nodeList->sendAssignment(*audioAssignment);
+                audioAssignment->setCreateTimeToNow();
             }
-        } else {
-            assignmentSilenceCount[&audioAssignment] = 0;
         }
         
         if (!nodeList->soloNodeOfType(NODE_TYPE_AVATAR_MIXER)) {
-            std::map<Assignment*, int>::iterator countIt = assignmentSilenceCount.find(&avatarAssignment);
-            if (countIt == assignmentSilenceCount.end() || countIt->second == ASSIGNMENT_SILENCE_MAX_ITERATIONS) {
-                nodeList->sendAssignment(avatarAssignment);
-                assignmentSilenceCount[&avatarAssignment] = 0;
-            } else {
-                assignmentSilenceCount[&avatarAssignment]++;
+            if (!avatarAssignment
+                || usecTimestampNow() - usecTimestamp(&avatarAssignment->getTime()) >= ASSIGNMENT_SILENCE_MAX_USECS) {
+                if (!avatarAssignment) {
+                    avatarAssignment = new Assignment(Assignment::Create, Assignment::AvatarMixer, assignmentPool);
+                }
+                
+                nodeList->sendAssignment(*avatarAssignment);
+                
+                // reset the create time on the assignment so re-request is in ASSIGNMENT_SILENCE_MAX_USECS
+                avatarAssignment->setCreateTimeToNow();
             }
-        } else {
-            assignmentSilenceCount[&avatarAssignment] = 0;
+            
         }
-        
         
         if (nodeList->getNodeSocket()->receive((sockaddr *)&nodePublicAddress, packetData, &receivedBytes) &&
             (packetData[0] == PACKET_TYPE_DOMAIN_REPORT_FOR_DUTY || packetData[0] == PACKET_TYPE_DOMAIN_LIST_REQUEST) &&
@@ -236,6 +238,9 @@ int main(int argc, const char* argv[]) {
             }
         }
     }
+    
+    delete audioAssignment;
+    delete avatarAssignment;
 
     return 0;
 }
