@@ -9,7 +9,7 @@
 #ifndef __hifi__InjectedAudioRingBuffer__
 #define __hifi__InjectedAudioRingBuffer__
 
-#include <AudioInjector.h>
+#include "AudioInjector.h"
 
 #include "PositionalAudioRingBuffer.h"
 

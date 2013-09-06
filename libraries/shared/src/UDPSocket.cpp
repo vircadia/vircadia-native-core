@@ -6,6 +6,7 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
+#include <arpa/inet.h>
 #include <cstdio>
 #include <errno.h>
 #include <fcntl.h>
@@ -118,12 +119,16 @@ unsigned short loadBufferWithSocketInfo(char* addressBuffer, sockaddr* socket) {
     }
 }
 
-sockaddr_in socketForHostname(const char* hostname) {
+sockaddr_in socketForHostnameAndHostOrderPort(const char* hostname, unsigned short port) {
     struct hostent* pHostInfo;
-    sockaddr_in newSocket;
+    sockaddr_in newSocket = {};
 
     if ((pHostInfo = gethostbyname(hostname))) {
         memcpy(&newSocket.sin_addr, pHostInfo->h_addr_list[0], pHostInfo->h_length);
+    }
+    
+    if (port != 0) {
+        newSocket.sin_port = htons(port);
     }
     
     return newSocket;
@@ -162,11 +167,8 @@ UDPSocket::UDPSocket(unsigned short int listeningPort) :
         _listeningPort = ntohs(bind_address.sin_port);
     }
     
-    // set timeout on socket recieve to 0.5 seconds
-    struct timeval tv;
-    tv.tv_sec = 0;
-    tv.tv_usec = 500000;
-    setsockopt(handle, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv, sizeof tv);
+    const int DEFAULT_BLOCKING_SOCKET_TIMEOUT_USECS = 0.5 * 1000000;
+    setBlockingReceiveTimeoutInUsecs(DEFAULT_BLOCKING_SOCKET_TIMEOUT_USECS);
     
     qDebug("Created UDP socket listening on port %hu.\n", _listeningPort);
 }
@@ -221,6 +223,11 @@ void UDPSocket::setBlocking(bool blocking) {
     int flags = fcntl(handle, F_GETFL, 0);
     fcntl(handle, F_SETFL, blocking ? (flags & ~O_NONBLOCK) : (flags | O_NONBLOCK));
 #endif
+}
+
+void UDPSocket::setBlockingReceiveTimeoutInUsecs(int timeoutUsecs) {
+    struct timeval tv = {timeoutUsecs / 1000000, timeoutUsecs % 1000000};
+    setsockopt(handle, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv, sizeof(tv));
 }
 
 //  Receive data on this socket with retrieving address of sender
