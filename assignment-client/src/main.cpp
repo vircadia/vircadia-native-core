@@ -81,6 +81,8 @@ int main(int argc, char* const argv[]) {
                     AvatarMixer::run();
                 }
                 
+                qDebug() << "Assignment finished or never started - waiting for new assignment";
+                
                 // reset our NodeList by switching back to unassigned and clearing the list
                 nodeList->setOwnerType(NODE_TYPE_UNASSIGNED);
                 nodeList->clear();

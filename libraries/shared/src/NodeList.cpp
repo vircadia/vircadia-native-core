@@ -64,7 +64,8 @@ NodeList::NodeList(char newOwnerType, unsigned short int newSocketListenPort) :
     _ownerType(newOwnerType),
     _nodeTypesOfInterest(NULL),
     _ownerID(UNKNOWN_NODE_ID),
-    _lastNodeID(UNKNOWN_NODE_ID + 1)
+    _lastNodeID(UNKNOWN_NODE_ID + 1),
+    _numNoReplyDomainCheckIns(0)
 {
     memcpy(_domainHostname, DEFAULT_DOMAIN_HOSTNAME, sizeof(DEFAULT_DOMAIN_HOSTNAME));
     memcpy(_domainIP, DEFAULT_DOMAIN_IP, sizeof(DEFAULT_DOMAIN_IP));
@@ -329,9 +330,15 @@ void NodeList::sendDomainServerCheckIn() {
     }
     
     _nodeSocket.send(_domainIP, DEFAULT_DOMAINSERVER_PORT, checkInPacket, checkInPacketSize);
+    
+    // increment the count of un-replied check-ins
+    _numNoReplyDomainCheckIns++;
 }
 
 int NodeList::processDomainServerList(unsigned char* packetData, size_t dataBytes) {
+    // this is a packet from the domain server, reset the count of un-replied check-ins
+    _numNoReplyDomainCheckIns = 0;
+    
     int readNodes = 0;
 
     char nodeType;
@@ -367,7 +374,7 @@ int NodeList::processDomainServerList(unsigned char* packetData, size_t dataByte
     return readNodes;
 }
 
-const char ASSIGNMENT_SERVER_HOSTNAME[] = "assignment.highfidelity.io";
+const char ASSIGNMENT_SERVER_HOSTNAME[] = "localhost";
 const sockaddr_in assignmentServerSocket = socketForHostnameAndHostOrderPort(ASSIGNMENT_SERVER_HOSTNAME,
                                                                              ASSIGNMENT_SERVER_PORT);
 

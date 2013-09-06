@@ -42,6 +42,8 @@ extern const int DEFAULT_DOMAINSERVER_PORT;
 
 const int UNKNOWN_NODE_ID = 0;
 
+const int MAX_SILENT_DOMAIN_SERVER_CHECK_INS = 5;
+
 class Assignment;
 class NodeListIterator;
 
@@ -87,6 +89,8 @@ public:
     
     int size() { return _numNodes; }
     int getNumAliveNodes() const;
+    
+    int getNumNoReplyDomainCheckIns() const { return _numNoReplyDomainCheckIns; }
     
     void clear();
     
@@ -146,6 +150,7 @@ private:
     uint16_t _lastNodeID;
     pthread_t removeSilentNodesThread;
     pthread_t checkInWithDomainServerThread;
+    int _numNoReplyDomainCheckIns;
     
     void handlePingReply(sockaddr *nodeAddress);
     void timePingReply(sockaddr *nodeAddress, unsigned char *packetData);

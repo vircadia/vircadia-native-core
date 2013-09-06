@@ -110,6 +110,10 @@ void AudioMixer::run() {
     }
     
     while (true) {
+        if (NodeList::getInstance()->getNumNoReplyDomainCheckIns() == MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
+            break;
+        }
+        
         if (Logstash::shouldSendStats()) {
             gettimeofday(&beginSendTime, NULL);
         }
