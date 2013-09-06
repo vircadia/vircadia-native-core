@@ -6,8 +6,6 @@
 //  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
 
-#include <sys/time.h>
-
 #include "PacketHeaders.h"
 
 #include "Assignment.h"
@@ -86,6 +84,24 @@ Assignment::~Assignment() {
     delete _pool;
 }
 
+void Assignment::setDomainSocket(const sockaddr* domainSocket) {
+    
+    if (_domainSocket) {
+        // delete the old _domainSocket if it exists
+        delete _domainSocket;
+        _domainSocket = NULL;
+    }
+    
+    // create a new sockaddr or sockaddr_in depending on what type of address this is
+    if (domainSocket->sa_family == AF_INET) {
+        _domainSocket = (sockaddr*) new sockaddr_in;
+        memcpy(_domainSocket, domainSocket, sizeof(sockaddr_in));
+    } else {
+        _domainSocket = (sockaddr*) new sockaddr_in6;
+        memcpy(_domainSocket, domainSocket, sizeof(sockaddr_in6));
+    }
+}
+
 int Assignment::packToBuffer(unsigned char* buffer) {
     int numPackedBytes = 0;
     
@@ -112,24 +128,6 @@ int Assignment::packToBuffer(unsigned char* buffer) {
     }
     
     return numPackedBytes;
-}
-
-void Assignment::setDomainSocket(const sockaddr* domainSocket) {
-    
-    if (_domainSocket) {
-        // delete the old _domainSocket if it exists
-        delete _domainSocket;
-        _domainSocket = NULL;
-    }
-    
-    // create a new sockaddr or sockaddr_in depending on what type of address this is
-    if (domainSocket->sa_family == AF_INET) {
-        _domainSocket = (sockaddr*) new sockaddr_in;
-        memcpy(_domainSocket, domainSocket, sizeof(sockaddr_in));
-    } else {
-        _domainSocket = (sockaddr*) new sockaddr_in6;
-        memcpy(_domainSocket, domainSocket, sizeof(sockaddr_in6));
-    }
 }
 
 QDebug operator<<(QDebug debug, const Assignment &assignment) {
