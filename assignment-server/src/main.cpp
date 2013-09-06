@@ -69,7 +69,10 @@ int main(int argc, const char* argv[]) {
                             // delete this assignment now that it has been sent out
                             delete *assignment;
                             // remove it from the deque and make the iterator the next assignment
-                            assignment = assignmentQueue.erase(assignment);
+                            assignmentQueue.erase(assignment);
+                            
+                            // stop looping - we've handed out an assignment
+                            break;
                         } else {
                             // push forward the iterator
                             assignment++;
