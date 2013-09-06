@@ -39,6 +39,7 @@ int main(int argc, const char* argv[]) {
                 Assignment requestAssignment(senderData, receivedBytes);
                 
                 qDebug() << "Received request for assignment:" << requestAssignment;
+                qDebug() << "Current queue size is" << assignmentQueue.size();
                 
                 // make sure there are assignments in the queue at all
                 if (assignmentQueue.size() > 0) {
@@ -72,6 +73,7 @@ int main(int argc, const char* argv[]) {
                 Assignment createdAssignment(senderData, receivedBytes);
                 
                 qDebug() << "Received a created assignment:" << createdAssignment;
+                qDebug() << "Current queue size is" << assignmentQueue.size();
                 
                 // assignment server is on a public server
                 // assume that the address we now have for the sender is the public address/port
