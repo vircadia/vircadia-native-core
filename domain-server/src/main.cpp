@@ -17,6 +17,7 @@
 //  M - Audio Mixer
 //
 
+#include <arpa/inet.h>
 #include <fcntl.h>
 #include <map>
 #include <math.h>
@@ -24,6 +25,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include "Assignment.h"
 #include "NodeList.h"
 #include "NodeTypes.h"
 #include "Logstash.h"
@@ -46,14 +48,13 @@ unsigned char* addNodeToBroadcastPacket(unsigned char* currentPosition, Node* no
     return currentPosition;
 }
 
-int main(int argc, const char * argv[])
-{
+int main(int argc, char* const argv[]) {
     NodeList* nodeList = NodeList::createInstance(NODE_TYPE_DOMAIN, DOMAIN_LISTEN_PORT);
 	// If user asks to run in "local" mode then we do NOT replace the IP
 	// with the EC2 IP. Otherwise, we will replace the IP like we used to
 	// this allows developers to run a local domain without recompiling the
 	// domain server
-	bool isLocalMode = cmdOptionExists(argc, argv, "--local");
+	bool isLocalMode = cmdOptionExists(argc, (const char**) argv, "--local");
 	if (isLocalMode) {
 		printf("NOTE: Running in local mode!\n");
 	} else {
@@ -84,7 +85,56 @@ int main(int argc, const char * argv[])
     
     timeval lastStatSendTime = {};
     
+    // loop the parameters to see if we were passed a pool for assignment
+    int parameter = -1;
+    const char ALLOWED_PARAMETERS[] = "p::-local::";
+    const char POOL_PARAMETER_CHAR = 'p';
+    
+    char* assignmentPool = NULL;
+    
+    while ((parameter = getopt(argc, argv, ALLOWED_PARAMETERS)) != -1) {
+        if (parameter == POOL_PARAMETER_CHAR) {
+            // copy the passed assignment pool
+            int poolLength = strlen(optarg);
+            assignmentPool = new char[poolLength + sizeof(char)];
+            strcpy(assignmentPool, optarg);
+        }
+    }
+    
+    // use a map to keep track of iterations of silence for assignment creation requests
+    const int ASSIGNMENT_SILENCE_MAX_ITERATIONS = 5;
+    std::map<Assignment*, int> assignmentSilenceCount;
+    
+    // as a domain-server we will always want an audio mixer and avatar mixer
+    // setup the create assignments for those
+    Assignment audioAssignment(Assignment::Create, Assignment::AudioMixer, assignmentPool);
+    Assignment avatarAssignment(Assignment::Create, Assignment::AvatarMixer, assignmentPool);
+    
     while (true) {
+        
+        if (!nodeList->soloNodeOfType(NODE_TYPE_AUDIO_MIXER)) {
+            if (assignmentSilenceCount[&audioAssignment] == ASSIGNMENT_SILENCE_MAX_ITERATIONS) {
+                nodeList->sendAssignment(audioAssignment);
+                assignmentSilenceCount[&audioAssignment] = 0;
+            } else {
+                assignmentSilenceCount[&audioAssignment]++;
+            }
+        } else {
+            assignmentSilenceCount[&audioAssignment] = 0;
+        }
+        
+        if (!nodeList->soloNodeOfType(NODE_TYPE_AVATAR_MIXER)) {
+            if (assignmentSilenceCount[&avatarAssignment] == ASSIGNMENT_SILENCE_MAX_ITERATIONS) {
+                nodeList->sendAssignment(avatarAssignment);
+                assignmentSilenceCount[&avatarAssignment] = 0;
+            } else {
+                assignmentSilenceCount[&avatarAssignment]++;
+            }
+        } else {
+            assignmentSilenceCount[&avatarAssignment] = 0;
+        }
+        
+        
         if (nodeList->getNodeSocket()->receive((sockaddr *)&nodePublicAddress, packetData, &receivedBytes) &&
             (packetData[0] == PACKET_TYPE_DOMAIN_REPORT_FOR_DUTY || packetData[0] == PACKET_TYPE_DOMAIN_LIST_REQUEST) &&
             packetVersionMatch(packetData)) {
@@ -117,68 +167,71 @@ int main(int argc, const char * argv[])
                                                       nodeType,
                                                       nodeList->getLastNodeID());
             
-            if (newNode->getNodeID() == nodeList->getLastNodeID()) {
-                nodeList->increaseNodeID();
-            }
-            
-            currentBufferPos = broadcastPacket + numHeaderBytes;
-            startPointer = currentBufferPos;
-            
-            unsigned char* nodeTypesOfInterest = packetData + numBytesSenderHeader + sizeof(NODE_TYPE)
+            // if addOrUpdateNode returns NULL this was a solo node we already have, don't talk back to it
+            if (newNode) {
+                if (newNode->getNodeID() == nodeList->getLastNodeID()) {
+                    nodeList->increaseNodeID();
+                }
+                
+                currentBufferPos = broadcastPacket + numHeaderBytes;
+                startPointer = currentBufferPos;
+                
+                unsigned char* nodeTypesOfInterest = packetData + numBytesSenderHeader + sizeof(NODE_TYPE)
                 + numBytesSocket + sizeof(unsigned char);
-            int numInterestTypes = *(nodeTypesOfInterest - 1);
-            
-            if (numInterestTypes > 0) {
-                // if the node has sent no types of interest, assume they want nothing but their own ID back
-                for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
-                    if (!node->matches((sockaddr*) &nodePublicAddress, (sockaddr*) &nodeLocalAddress, nodeType) &&
+                int numInterestTypes = *(nodeTypesOfInterest - 1);
+                
+                if (numInterestTypes > 0) {
+                    // if the node has sent no types of interest, assume they want nothing but their own ID back
+                    for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+                        if (!node->matches((sockaddr*) &nodePublicAddress, (sockaddr*) &nodeLocalAddress, nodeType) &&
                             memchr(nodeTypesOfInterest, node->getType(), numInterestTypes)) {
-                        // this is not the node themselves
-                        // and this is an node of a type in the passed node types of interest
-                        // or the node did not pass us any specific types they are interested in
-
-                        if (memchr(SOLO_NODE_TYPES, node->getType(), sizeof(SOLO_NODE_TYPES)) == NULL) {
-                            // this is an node of which there can be multiple, just add them to the packet
-                            // don't send avatar nodes to other avatars, that will come from avatar mixer
-                            if (nodeType != NODE_TYPE_AGENT || node->getType() != NODE_TYPE_AGENT) {
-                                currentBufferPos = addNodeToBroadcastPacket(currentBufferPos, &(*node));
-                            }
-                        
-                        } else {
-                            // solo node, we need to only send newest
-                            if (newestSoloNodes[node->getType()] == NULL ||
-                                newestSoloNodes[node->getType()]->getWakeMicrostamp() < node->getWakeMicrostamp()) {
-                                // we have to set the newer solo node to add it to the broadcast later
-                                newestSoloNodes[node->getType()] = &(*node);
+                            // this is not the node themselves
+                            // and this is an node of a type in the passed node types of interest
+                            // or the node did not pass us any specific types they are interested in
+                            
+                            if (memchr(SOLO_NODE_TYPES, node->getType(), sizeof(SOLO_NODE_TYPES)) == NULL) {
+                                // this is an node of which there can be multiple, just add them to the packet
+                                // don't send avatar nodes to other avatars, that will come from avatar mixer
+                                if (nodeType != NODE_TYPE_AGENT || node->getType() != NODE_TYPE_AGENT) {
+                                    currentBufferPos = addNodeToBroadcastPacket(currentBufferPos, &(*node));
+                                }
+                                
+                            } else {
+                                // solo node, we need to only send newest
+                                if (newestSoloNodes[node->getType()] == NULL ||
+                                    newestSoloNodes[node->getType()]->getWakeMicrostamp() < node->getWakeMicrostamp()) {
+                                    // we have to set the newer solo node to add it to the broadcast later
+                                    newestSoloNodes[node->getType()] = &(*node);
+                                }
                             }
                         }
                     }
+                    
+                    for (std::map<char, Node *>::iterator soloNode = newestSoloNodes.begin();
+                         soloNode != newestSoloNodes.end();
+                         soloNode++) {
+                        // this is the newest alive solo node, add them to the packet
+                        currentBufferPos = addNodeToBroadcastPacket(currentBufferPos, soloNode->second);
+                    }
                 }
                 
-                for (std::map<char, Node *>::iterator soloNode = newestSoloNodes.begin();
-                     soloNode != newestSoloNodes.end();
-                     soloNode++) {
-                    // this is the newest alive solo node, add them to the packet
-                    currentBufferPos = addNodeToBroadcastPacket(currentBufferPos, soloNode->second);
+                // update last receive to now
+                uint64_t timeNow = usecTimestampNow();
+                newNode->setLastHeardMicrostamp(timeNow);
+                
+                if (packetData[0] == PACKET_TYPE_DOMAIN_REPORT_FOR_DUTY
+                    && memchr(SOLO_NODE_TYPES, nodeType, sizeof(SOLO_NODE_TYPES))) {
+                    newNode->setWakeMicrostamp(timeNow);
                 }
+                
+                // add the node ID to the end of the pointer
+                currentBufferPos += packNodeId(currentBufferPos, newNode->getNodeID());
+                
+                // send the constructed list back to this node
+                nodeList->getNodeSocket()->send(destinationSocket,
+                                                broadcastPacket,
+                                                (currentBufferPos - startPointer) + numHeaderBytes);
             }
-                        
-            // update last receive to now
-            uint64_t timeNow = usecTimestampNow();
-            newNode->setLastHeardMicrostamp(timeNow);
-            
-            if (packetData[0] == PACKET_TYPE_DOMAIN_REPORT_FOR_DUTY
-                && memchr(SOLO_NODE_TYPES, nodeType, sizeof(SOLO_NODE_TYPES))) {
-                newNode->setWakeMicrostamp(timeNow);
-            }
-            
-            // add the node ID to the end of the pointer
-            currentBufferPos += packNodeId(currentBufferPos, newNode->getNodeID());
-            
-            // send the constructed list back to this node
-            nodeList->getNodeSocket()->send(destinationSocket,
-                                            broadcastPacket,
-                                            (currentBufferPos - startPointer) + numHeaderBytes);
         }
         
         if (Logstash::shouldSendStats()) {

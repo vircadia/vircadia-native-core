@@ -8,6 +8,7 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../../cm
 
 set(TARGET_NAME audio)
 
+# set up the external glm library
 include(${MACRO_DIR}/SetupHifiLibrary.cmake)
 setup_hifi_library(${TARGET_NAME})
 
@@ -16,3 +17,9 @@ include_glm(${TARGET_NAME} ${ROOT_DIR})
 
 include(${MACRO_DIR}/LinkHifiLibrary.cmake)
 link_hifi_library(shared ${TARGET_NAME} ${ROOT_DIR})
+
+# link the stk library
+set(STK_ROOT_DIR ${ROOT_DIR}/externals/stk)
+find_package(STK REQUIRED)
+target_link_libraries(${TARGET_NAME} ${STK_LIBRARIES})
+include_directories(${STK_INCLUDE_DIRS})

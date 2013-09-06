@@ -36,7 +36,8 @@ const PACKET_TYPE PACKET_TYPE_ENVIRONMENT_DATA = 'e';
 const PACKET_TYPE PACKET_TYPE_DOMAIN_LIST_REQUEST = 'L';
 const PACKET_TYPE PACKET_TYPE_DOMAIN_REPORT_FOR_DUTY = 'C';
 const PACKET_TYPE PACKET_TYPE_REQUEST_ASSIGNMENT = 'r';
-const PACKET_TYPE PACKET_TYPE_SEND_ASSIGNMENT = 's';
+const PACKET_TYPE PACKET_TYPE_CREATE_ASSIGNMENT = 's';
+const PACKET_TYPE PACKET_TYPE_DEPLOY_ASSIGNMENT = 'd';
 const PACKET_TYPE PACKET_TYPE_VOXEL_STATS = '#';
 const PACKET_TYPE PACKET_TYPE_VOXEL_JURISDICTION = 'J';
 const PACKET_TYPE PACKET_TYPE_VOXEL_JURISDICTION_REQUEST = 'j';
@@ -48,7 +49,7 @@ PACKET_VERSION versionForPacketType(PACKET_TYPE type);
 bool packetVersionMatch(unsigned char* packetHeader);
 
 int populateTypeAndVersion(unsigned char* destinationHeader, PACKET_TYPE type);
-int numBytesForPacketHeader(unsigned char* packetHeader);
+int numBytesForPacketHeader(const unsigned char* packetHeader);
 
 const int MAX_PACKET_HEADER_BYTES = sizeof(PACKET_TYPE) + sizeof(PACKET_VERSION);
 
@@ -57,6 +58,6 @@ const int MAX_PACKET_HEADER_BYTES = sizeof(PACKET_TYPE) + sizeof(PACKET_VERSION)
 #define ADD_SCENE_COMMAND "add scene"
 #define TEST_COMMAND      "a message"
 
-const int ASSIGNMENT_SERVER_PORT = 7007;
+const unsigned short ASSIGNMENT_SERVER_PORT = 7007;
 
 #endif
