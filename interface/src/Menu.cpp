@@ -108,6 +108,7 @@ Menu::Menu() :
     addActionToQMenuAndActionHash(editMenu, MenuOption::CutVoxels, Qt::CTRL | Qt::Key_X, appInstance, SLOT(cutVoxels()));
     addActionToQMenuAndActionHash(editMenu, MenuOption::CopyVoxels, Qt::CTRL | Qt::Key_C, appInstance, SLOT(copyVoxels()));
     addActionToQMenuAndActionHash(editMenu, MenuOption::PasteVoxels, Qt::CTRL | Qt::Key_V, appInstance, SLOT(pasteVoxels()));
+    addActionToQMenuAndActionHash(editMenu, MenuOption::NudgeVoxels, Qt::CTRL | Qt::Key_N, appInstance, SLOT(nudgeVoxels()));
     
     addDisabledActionAndSeparator(editMenu, "Physics");
     addCheckableActionToQMenuAndActionHash(editMenu, MenuOption::Gravity, Qt::SHIFT | Qt::Key_G, true);
@@ -132,7 +133,7 @@ Menu::Menu() :
     QAction* colorVoxelMode = addCheckableActionToQMenuAndActionHash(toolsMenu, MenuOption::VoxelColorMode, Qt::Key_B);
     _voxelModeActionsGroup->addAction(colorVoxelMode);
 
-    QAction* nudgeVoxelMode = addCheckableActionToQMenuAndActionHash(voxelMenu, MenuOption::VoxelNudgeMode, Qt::Key_N);
+    QAction* nudgeVoxelMode = addCheckableActionToQMenuAndActionHash(toolsMenu, MenuOption::VoxelNudgeMode, Qt::Key_N);
     _voxelModeActionsGroup->addAction(nudgeVoxelMode);
     
     QAction* selectVoxelMode = addCheckableActionToQMenuAndActionHash(toolsMenu, MenuOption::VoxelSelectMode, Qt::Key_O);
@@ -180,12 +181,6 @@ Menu::Menu() :
                                            appInstance,
                                            SLOT(setFullscreen(bool)));
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::FirstPerson, Qt::Key_P, true);
-    addActionToQMenuAndActionHash(voxelMenu, MenuOption::ExportVoxels, Qt::CTRL | Qt::Key_E, appInstance, SLOT(exportVoxels()));
-    addActionToQMenuAndActionHash(voxelMenu, MenuOption::ImportVoxels, Qt::CTRL | Qt::Key_I, appInstance, SLOT(importVoxels()));
-    addActionToQMenuAndActionHash(voxelMenu, MenuOption::CutVoxels, Qt::CTRL | Qt::Key_X, appInstance, SLOT(cutVoxels()));
-    addActionToQMenuAndActionHash(voxelMenu, MenuOption::CopyVoxels, Qt::CTRL | Qt::Key_C, appInstance, SLOT(copyVoxels()));
-    addActionToQMenuAndActionHash(voxelMenu, MenuOption::PasteVoxels, Qt::CTRL | Qt::Key_V, appInstance, SLOT(pasteVoxels()));
-    addActionToQMenuAndActionHash(voxelMenu, MenuOption::NudgeVoxels, Qt::CTRL | Qt::Key_N, appInstance, SLOT(nudgeVoxels()));
     
     addActionToQMenuAndActionHash(viewMenu,
                                   MenuOption::IncreaseAvatarSize,

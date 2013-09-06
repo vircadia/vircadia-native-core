@@ -190,10 +190,6 @@ public:
     void recurseNodeWithOperationDistanceSorted(VoxelNode* node, RecurseVoxelTreeOperation operation, 
                 const glm::vec3& point, void* extraData);
 
-    void recurseTreeWithOperationDistanceSortedTimed(PointerStack* stackOfNodes, long allowedTime,
-                                                            RecurseVoxelTreeOperation operation, 
-                                                            const glm::vec3& point, void* extraData);
-
     void nudgeSubTree(VoxelNode* nodeToNudge, const glm::vec3& nudgeAmount, VoxelEditPacketSender& voxelEditSender);
 
 signals:

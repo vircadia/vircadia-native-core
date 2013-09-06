@@ -1287,22 +1287,52 @@ void Application::pasteVoxels() {
 
 void Application::nudgeVoxels() {
     if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelNudgeMode)) {
+        cutVoxels();
+        unsigned char* calculatedOctCode = NULL;
         VoxelNode* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
 
-        if (selectedNode) {
-            // glPushMatrix();
-            // glScalef(TREE_SCALE, TREE_SCALE, TREE_SCALE);
-            // renderNudgeGrid(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
-            // glPopMatrix();
-            qDebug("UnNudged xyz: %f, %f, %f\n", _mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z);
+        // Recurse the clipboard tree, where everything is root relative, and send all the colored voxels to 
+        // the server as an set voxel message, this will also rebase the voxels to the new location
+        SendVoxelsOperationArgs args;
 
-            // nudge the node
-            // glm::vec3 nudgeVec(_mouseVoxel.s, _mouseVoxel.s, _mouseVoxel.s);
-            // glm::vec3 nudgeVec(0.5 * _mouseVoxel.s, 0.5 * _mouseVoxel.s, 0.5 * _mouseVoxel.s);
-            glm::vec3 nudgeVec(0.25 * _mouseVoxel.s, 0.25 * _mouseVoxel.s, 0.25 * _mouseVoxel.s);
-            _voxels.getVoxelTree()->nudgeSubTree(selectedNode, nudgeVec, _voxelEditSender);
+        // we only need the selected voxel to get the newBaseOctCode, which we can actually calculate from the
+        // voxel size/position details. If we don't have an actual selectedNode then use the mouseVoxel to create a 
+        // target octalCode for where the user is pointing.
+        if (selectedNode) {
+            args.newBaseOctCode = selectedNode->getOctalCode();
+        } else {
+            args.newBaseOctCode = calculatedOctCode = pointToVoxel(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+        }
+
+        _sharedVoxelSystem.getTree()->recurseTreeWithOperation(sendVoxelsOperation, &args);
+        glm::vec3 nudgeVec(0.25 * _mouseVoxel.s, 0.25 * _mouseVoxel.s, 0.25 * _mouseVoxel.s);
+        _voxels.getVoxelTree()->nudgeSubTree(selectedNode, nudgeVec, _voxelEditSender);
+
+        if (_sharedVoxelSystem.getTree() != &_clipboard) {
+            _sharedVoxelSystem.killLocalVoxels();
+            _sharedVoxelSystem.changeTree(&_clipboard);
+        }
+
+        _voxelEditSender.flushQueue();
+        
+        if (calculatedOctCode) {
+            delete[] calculatedOctCode;
         }
     }
+
+
+
+        // VoxelNode* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+
+        // if (selectedNode) {
+        //     qDebug("UnNudged xyz: %f, %f, %f\n", _mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z);
+
+        //     // nudge the node
+        //     // glm::vec3 nudgeVec(_mouseVoxel.s, _mouseVoxel.s, _mouseVoxel.s);
+        //     // glm::vec3 nudgeVec(0.5 * _mouseVoxel.s, 0.5 * _mouseVoxel.s, 0.5 * _mouseVoxel.s);
+        //     glm::vec3 nudgeVec(0.25 * _mouseVoxel.s, 0.25 * _mouseVoxel.s, 0.25 * _mouseVoxel.s);
+        //     _voxels.getVoxelTree()->nudgeSubTree(selectedNode, nudgeVec, _voxelEditSender);
+        // }
 }
 
 void Application::setListenModeNormal() {
@@ -2278,10 +2308,10 @@ void Application::displaySide(Camera& whichCamera) {
         glPushMatrix();
         glScalef(TREE_SCALE, TREE_SCALE, TREE_SCALE);
         if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelNudgeMode)) {
-            VoxelNode* selectedNode = _voxels.getVoxelAt(_nudgeVoxel.x, _nudgeVoxel.y, _nudgeVoxel.z, _nudgeVoxel.s);
-            if (selectedNode) {
-                renderNudgeGrid(_nudgeVoxel.x, _nudgeVoxel.y, _nudgeVoxel.z, _nudgeVoxel.s);
-            }
+            // VoxelNode* selectedNode = _voxels.getVoxelAt(_nudgeVoxel.x, _nudgeVoxel.y, _nudgeVoxel.z, _nudgeVoxel.s);
+            // if (selectedNode) {
+            renderNudgeGrid(_nudgeVoxel.x, _nudgeVoxel.y, _nudgeVoxel.z, _nudgeVoxel.s);
+            // }
         } else {
             renderMouseVoxelGrid(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
         }
