@@ -423,9 +423,6 @@ void Application::resizeGL(int width, int height) {
     resetCamerasOnResizeGL(_viewFrustumOffsetCamera, width, height);
     resetCamerasOnResizeGL(_myCamera, width, height);
 
-    // Tell our viewFrustum about this change, using the application camera
-    loadViewFrustum(_myCamera, _viewFrustum);
-
     glViewport(0, 0, width, height); // shouldn't this account for the menu???
 
     updateProjectionMatrix();
@@ -435,6 +432,9 @@ void Application::resizeGL(int width, int height) {
 void Application::updateProjectionMatrix() {
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
+    
+    // Tell our viewFrustum about this change, using the application camera
+    loadViewFrustum(_myCamera, _viewFrustum);
     
     float left, right, bottom, top, nearVal, farVal;
     glm::vec4 nearClipPlane, farClipPlane;
