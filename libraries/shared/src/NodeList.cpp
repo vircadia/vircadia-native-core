@@ -374,7 +374,7 @@ int NodeList::processDomainServerList(unsigned char* packetData, size_t dataByte
     return readNodes;
 }
 
-const char ASSIGNMENT_SERVER_HOSTNAME[] = "localhost";
+const char ASSIGNMENT_SERVER_HOSTNAME[] = "assignment.highfidelity.io";
 const sockaddr_in assignmentServerSocket = socketForHostnameAndHostOrderPort(ASSIGNMENT_SERVER_HOSTNAME,
                                                                              ASSIGNMENT_SERVER_PORT);
 
