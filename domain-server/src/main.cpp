@@ -101,9 +101,9 @@ int main(int argc, const char* argv[]) {
     Assignment avatarAssignment(Assignment::Create, Assignment::AvatarMixer, assignmentPool);
     
     while (true) {
-        
         if (!nodeList->soloNodeOfType(NODE_TYPE_AUDIO_MIXER)) {
-            if (assignmentSilenceCount[&audioAssignment] == ASSIGNMENT_SILENCE_MAX_ITERATIONS) {
+            std::map<Assignment*, int>::iterator countIt = assignmentSilenceCount.find(&audioAssignment);
+            if (countIt == assignmentSilenceCount.end() || countIt->second == ASSIGNMENT_SILENCE_MAX_ITERATIONS) {
                 nodeList->sendAssignment(audioAssignment);
                 assignmentSilenceCount[&audioAssignment] = 0;
             } else {
@@ -114,7 +114,8 @@ int main(int argc, const char* argv[]) {
         }
         
         if (!nodeList->soloNodeOfType(NODE_TYPE_AVATAR_MIXER)) {
-            if (assignmentSilenceCount[&avatarAssignment] == ASSIGNMENT_SILENCE_MAX_ITERATIONS) {
+            std::map<Assignment*, int>::iterator countIt = assignmentSilenceCount.find(&avatarAssignment);
+            if (countIt == assignmentSilenceCount.end() || countIt->second == ASSIGNMENT_SILENCE_MAX_ITERATIONS) {
                 nodeList->sendAssignment(avatarAssignment);
                 assignmentSilenceCount[&avatarAssignment] = 0;
             } else {
