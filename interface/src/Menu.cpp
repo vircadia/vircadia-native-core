@@ -206,6 +206,9 @@ Menu::Menu() :
     
     QAction* colorVoxelMode = addCheckableActionToQMenuAndActionHash(voxelMenu, MenuOption::VoxelColorMode, Qt::Key_B);
     _voxelModeActionsGroup->addAction(colorVoxelMode);
+
+    QAction* nudgeVoxelMode = addCheckableActionToQMenuAndActionHash(voxelMenu, MenuOption::VoxelNudgeMode, Qt::Key_N);
+    _voxelModeActionsGroup->addAction(nudgeVoxelMode);
     
     QAction* selectVoxelMode = addCheckableActionToQMenuAndActionHash(voxelMenu, MenuOption::VoxelSelectMode, Qt::Key_O);
     _voxelModeActionsGroup->addAction(selectVoxelMode);

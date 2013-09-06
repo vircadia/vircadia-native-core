@@ -261,7 +261,7 @@ private:
     // helper functions for nudgeSubTree
     static bool nudgeCheck(VoxelNode* node, void* extraData);
     void nudgeLeaf(VoxelNode* node, void* extraData);
-    void chunkifyLeaf(VoxelNode* node, void* extraData);
+    void chunkifyLeaf(VoxelNode* node);
 };
 
 float boundaryDistanceForRenderLevel(unsigned int renderLevel);

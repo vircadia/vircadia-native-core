@@ -295,6 +295,8 @@ private:
     glm::vec3 _lastMouseVoxelPos; // the position of the last mouse voxel edit
     bool _justEditedVoxel;        // set when we've just added/deleted/colored a voxel
 
+    VoxelDetail _nudgeVoxel; // details of the voxel to be nudged
+
     bool _isLookingAtOtherAvatar;
     glm::vec3 _lookatOtherPosition;
     float _lookatIndicatorScale;
@@ -353,8 +355,6 @@ private:
     NodeToJurisdictionMap _voxelServerJurisdictions;
     
     std::vector<VoxelFade> _voxelFades;
-
-    int _nudgeCount;
 };
 
 #endif /* defined(__interface__Application__) */
