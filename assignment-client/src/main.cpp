@@ -36,6 +36,9 @@ int main(int argc, const char* argv[]) {
     // grab the assignment pool from argv, if it was passed
     const char* assignmentPool = getCmdOption(argc, argv, "-p");
     
+    // set the overriden assignment-server hostname from argv, if it exists
+    nodeList->setAssignmentServerHostname(getCmdOption(argc, argv, "-a"));
+
     // create a request assignment, accept all assignments, pass the desired pool (if it exists)
     Assignment requestAssignment(Assignment::Request, Assignment::All, assignmentPool);
     

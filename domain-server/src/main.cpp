@@ -89,7 +89,7 @@ int main(int argc, const char* argv[]) {
     const char* assignmentPool = getCmdOption(argc, argv, "-p");
     
     // grab the overriden assignment-server hostname from argv, if it exists
-    const char* assignmentServer = getCmdOption(argc, argv, "-a");
+    nodeList->setAssignmentServerHostname(getCmdOption(argc, argv, "-a"));
     
     // use a map to keep track of iterations of silence for assignment creation requests
     const int ASSIGNMENT_SILENCE_MAX_ITERATIONS = 5;

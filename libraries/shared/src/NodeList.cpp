@@ -375,9 +375,7 @@ int NodeList::processDomainServerList(unsigned char* packetData, size_t dataByte
     return readNodes;
 }
 
-const char ASSIGNMENT_SERVER_HOSTNAME[] = "localhost";
-const sockaddr_in assignmentServerSocket = socketForHostnameAndHostOrderPort(ASSIGNMENT_SERVER_HOSTNAME,
-                                                                             ASSIGNMENT_SERVER_PORT);
+const char GLOBAL_ASSIGNMENT_SERVER_HOSTNAME[] = "assignment.highfidelity.io";
 
 void NodeList::sendAssignment(Assignment& assignment) {
     unsigned char assignmentPacket[MAX_PACKET_SIZE];
@@ -388,6 +386,12 @@ void NodeList::sendAssignment(Assignment& assignment) {
     
     int numHeaderBytes = populateTypeAndVersion(assignmentPacket, assignmentPacketType);
     int numAssignmentBytes = assignment.packToBuffer(assignmentPacket + numHeaderBytes);
+    
+    // setup the assignmentServerSocket once, use a custom assignmentServerHostname if it is present
+    static sockaddr_in assignmentServerSocket = socketForHostnameAndHostOrderPort((_assignmentServerHostname != NULL
+                                                                                  ? (const char*) _assignmentServerHostname
+                                                                                  : GLOBAL_ASSIGNMENT_SERVER_HOSTNAME),
+                                                                                  ASSIGNMENT_SERVER_PORT);
 
     _nodeSocket.send((sockaddr*) &assignmentServerSocket, assignmentPacket, numHeaderBytes + numAssignmentBytes);
 }
