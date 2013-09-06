@@ -638,8 +638,8 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 
             case Qt::Key_J:
                 if (isShifted) {
-                    _myCamera.setEyeOffsetOrientation(glm::normalize(
-                                                                     glm::quat(glm::vec3(0, 0.002f, 0)) * _myCamera.getEyeOffsetOrientation()));
+                    _viewFrustum.setFocalLength(_viewFrustum.getFocalLength() - 0.1f);
+                
                 } else {
                     _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(-0.001, 0, 0));
                 }
@@ -648,8 +648,8 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 
             case Qt::Key_M:
                 if (isShifted) {
-                    _myCamera.setEyeOffsetOrientation(glm::normalize(
-                                                                     glm::quat(glm::vec3(0, -0.002f, 0)) * _myCamera.getEyeOffsetOrientation()));
+                    _viewFrustum.setFocalLength(_viewFrustum.getFocalLength() + 0.1f);
+                
                 } else {
                     _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0.001, 0, 0));
                 }
@@ -2934,6 +2934,30 @@ void Application::renderViewFrustum(ViewFrustum& viewFrustum) {
         // left plane - top edge - viewFrustum.getNear to distant
         glVertex3f(viewFrustum.getNearTopLeft().x, viewFrustum.getNearTopLeft().y, viewFrustum.getNearTopLeft().z);
         glVertex3f(viewFrustum.getFarTopLeft().x, viewFrustum.getFarTopLeft().y, viewFrustum.getFarTopLeft().z);
+    
+        // focal plane - bottom edge
+        glColor3f(1.0f, 0.0f, 1.0f);
+        float focalProportion = (viewFrustum.getFocalLength() - viewFrustum.getNearClip()) /
+            (viewFrustum.getFarClip() - viewFrustum.getNearClip());
+        glm::vec3 focalBottomLeft = glm::mix(viewFrustum.getNearBottomLeft(), viewFrustum.getFarBottomLeft(), focalProportion);
+        glm::vec3 focalBottomRight = glm::mix(viewFrustum.getNearBottomRight(),
+            viewFrustum.getFarBottomRight(), focalProportion);
+        glVertex3f(focalBottomLeft.x, focalBottomLeft.y, focalBottomLeft.z);
+        glVertex3f(focalBottomRight.x, focalBottomRight.y, focalBottomRight.z);
+
+        // focal plane - top edge
+        glm::vec3 focalTopLeft = glm::mix(viewFrustum.getNearTopLeft(), viewFrustum.getFarTopLeft(), focalProportion);
+        glm::vec3 focalTopRight = glm::mix(viewFrustum.getNearTopRight(), viewFrustum.getFarTopRight(), focalProportion);
+        glVertex3f(focalTopLeft.x, focalTopLeft.y, focalTopLeft.z);
+        glVertex3f(focalTopRight.x, focalTopRight.y, focalTopRight.z);
+
+        // focal plane - left edge
+        glVertex3f(focalBottomLeft.x, focalBottomLeft.y, focalBottomLeft.z);
+        glVertex3f(focalTopLeft.x, focalTopLeft.y, focalTopLeft.z);
+
+        // focal plane - right edge
+        glVertex3f(focalBottomRight.x, focalBottomRight.y, focalBottomRight.z);
+        glVertex3f(focalTopRight.x, focalTopRight.y, focalTopRight.z);
     }
     glEnd();
     glEnable(GL_LIGHTING);
