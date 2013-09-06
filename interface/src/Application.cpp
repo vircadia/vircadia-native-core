@@ -2155,8 +2155,9 @@ void Application::displaySide(Camera& whichCamera) {
     // transform by eye offset
 
     // flip x if in mirror mode (also requires reversing winding order for backface culling)
+    float eyeOffsetSign = 1.0f;
     if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-        glScalef(-1.0f, 1.0f, 1.0f);
+        glScalef(eyeOffsetSign = -1.0f, 1.0f, 1.0f);
         glFrontFace(GL_CW);
     
     } else {
@@ -2167,7 +2168,7 @@ void Application::displaySide(Camera& whichCamera) {
     glm::quat eyeOffsetOrient = whichCamera.getEyeOffsetOrientation();
     glm::vec3 eyeOffsetAxis = glm::axis(eyeOffsetOrient);
     glRotatef(-glm::angle(eyeOffsetOrient), eyeOffsetAxis.x, eyeOffsetAxis.y, eyeOffsetAxis.z);
-    glTranslatef(-eyeOffsetPos.x, -eyeOffsetPos.y, -eyeOffsetPos.z);
+    glTranslatef(-eyeOffsetPos.x * eyeOffsetSign, -eyeOffsetPos.y, -eyeOffsetPos.z);
 
     // transform view according to whichCamera
     // could be myCamera (if in normal mode)
