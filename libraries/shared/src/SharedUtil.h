@@ -38,7 +38,7 @@ static const float DECIMETER        = 0.1f;
 static const float CENTIMETER       = 0.01f;
 static const float MILLIIMETER      = 0.001f;
 
-uint64_t usecTimestamp(timeval *time);
+uint64_t usecTimestamp(const timeval *time);
 uint64_t usecTimestampNow();
 
 float randFloat();
