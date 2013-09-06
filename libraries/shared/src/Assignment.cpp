@@ -70,6 +70,11 @@ Assignment::Assignment(const unsigned char* dataBuffer, int numBytes) :
     }
 }
 
+Assignment::~Assignment() {
+    delete _domainSocket;
+    delete _pool;
+}
+
 int Assignment::packToBuffer(unsigned char* buffer) {
     int numPackedBytes = 0;
     
