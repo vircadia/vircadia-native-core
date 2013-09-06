@@ -70,30 +70,6 @@ Assignment::Assignment(const unsigned char* dataBuffer, int numBytes) :
     }
 }
 
-Assignment::Assignment(const Assignment& assignment) :
-    _pool(NULL),
-    _domainSocket(NULL)
-{
-    _direction = assignment._direction;
-    _type = assignment._type;
-    
-    if (assignment._pool) {
-        _pool = new char[strlen(assignment._pool)];
-        strcpy(_pool, assignment._pool);
-    }
-    
-    if (assignment._domainSocket) {
-        if (assignment._domainSocket->sa_family == AF_INET) {
-            _domainSocket = (sockaddr*) new sockaddr_in;
-            memcpy(_domainSocket, assignment._domainSocket, sizeof(sockaddr_in));
-        } else {
-            _domainSocket = (sockaddr*) new sockaddr_in6;
-            memcpy(_domainSocket, assignment._domainSocket, sizeof(sockaddr_in6));
-        }
-    }
-    
-}
-
 Assignment::~Assignment() {
     delete _domainSocket;
     delete _pool;
@@ -137,13 +113,11 @@ void Assignment::setDomainSocket(const sockaddr* domainSocket) {
     
     // create a new sockaddr or sockaddr_in depending on what type of address this is
     if (domainSocket->sa_family == AF_INET) {
-        sockaddr_in* newSocket = new sockaddr_in;
-        memcpy(newSocket, domainSocket, sizeof(sockaddr_in));
-        _domainSocket = (sockaddr*) newSocket;
+        _domainSocket = (sockaddr*) new sockaddr_in;
+        memcpy(_domainSocket, domainSocket, sizeof(sockaddr_in));
     } else {
-        sockaddr_in6* newSocket = new sockaddr_in6;
-        memcpy(newSocket, domainSocket, sizeof(sockaddr_in6));
-        _domainSocket = (sockaddr*) newSocket;
+        _domainSocket = (sockaddr*) new sockaddr_in6;
+        memcpy(_domainSocket, domainSocket, sizeof(sockaddr_in6));
     }
 }
 

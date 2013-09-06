@@ -21,7 +21,7 @@ const int MAX_PACKET_SIZE_BYTES = 1400;
 
 int main(int argc, const char* argv[]) {
     
-    std::deque<Assignment> assignmentQueue;
+    std::deque<Assignment*> assignmentQueue;
     
     sockaddr_in senderSocket;
     unsigned char senderData[MAX_PACKET_SIZE_BYTES] = {};
@@ -44,33 +44,41 @@ int main(int argc, const char* argv[]) {
                 // make sure there are assignments in the queue at all
                 if (assignmentQueue.size() > 0) {
                     
+                    std::deque<Assignment*>::iterator assignment = assignmentQueue.begin();
+                    
                     // enumerate assignments until we find one to give this client (if possible)
-                    for (std::deque<Assignment>::iterator assignment = assignmentQueue.begin();
-                         assignment != assignmentQueue.end();
-                         assignment++) {
+                    while (assignment != assignmentQueue.end()) {
                         
-                        bool eitherHasPool = (assignment->getPool() || requestAssignment.getPool());
-                        bool bothHavePool = (assignment->getPool() && requestAssignment.getPool());
+                        bool eitherHasPool = ((*assignment)->getPool() || requestAssignment.getPool());
+                        bool bothHavePool = ((*assignment)->getPool() && requestAssignment.getPool());
                         
                         // make sure there is a pool match for the created and requested assignment
                         // or that neither has a designated pool
                         if ((eitherHasPool && bothHavePool
-                             && strcmp(assignment->getPool(), requestAssignment.getPool()) == 0)
+                             && strcmp((*assignment)->getPool(), requestAssignment.getPool()) == 0)
                             || !eitherHasPool) {
-                            assignmentQueue.erase(assignment);
                             
-                            int numAssignmentBytes = assignment->packToBuffer(assignmentPacket + numSendHeaderBytes);
+                            int numAssignmentBytes = (*assignment)->packToBuffer(assignmentPacket + numSendHeaderBytes);
                             
                             // send the assignment
                             serverSocket.send((sockaddr*) &senderSocket,
                                               assignmentPacket,
                                               numSendHeaderBytes + numAssignmentBytes);
+                            
+                            
+                            // delete this assignment now that it has been sent out
+                            delete *assignment;
+                            // remove it from the deque and make the iterator the next assignment
+                            assignment = assignmentQueue.erase(assignment);
+                        } else {
+                            // push forward the iterator
+                            assignment++;
                         }
                     }
                 }
             } else if (senderData[0] == PACKET_TYPE_CREATE_ASSIGNMENT && packetVersionMatch(senderData)) {
                 // construct the create assignment from the packet data
-                Assignment createdAssignment(senderData, receivedBytes);
+                Assignment* createdAssignment = new Assignment(senderData, receivedBytes);
                 
                 qDebug() << "Received a created assignment:" << createdAssignment;
                 qDebug() << "Current queue size is" << assignmentQueue.size();
@@ -78,7 +86,7 @@ int main(int argc, const char* argv[]) {
                 // assignment server is on a public server
                 // assume that the address we now have for the sender is the public address/port
                 // and store that with the assignment so it can be given to the requestor later
-                createdAssignment.setDomainSocket((sockaddr*) &senderSocket);
+                createdAssignment->setDomainSocket((sockaddr*) &senderSocket);
                 
                 // add this assignment to the queue
                 assignmentQueue.push_back(createdAssignment);

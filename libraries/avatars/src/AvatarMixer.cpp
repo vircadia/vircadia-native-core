@@ -139,9 +139,6 @@ void AvatarMixer::run() {
                         }
                     }
                     break;
-                case PACKET_TYPE_DOMAIN:
-                    // ignore the DS packet, for now nodes are added only when they communicate directly with us
-                    break;
                 default:
                     // hand this off to the NodeList
                     nodeList->processNodeData(nodeAddress, packetData, receivedBytes);

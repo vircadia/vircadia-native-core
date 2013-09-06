@@ -28,7 +28,7 @@ public:
     
     Assignment(Assignment::Direction direction, Assignment::Type type, const char* pool = NULL);
     Assignment(const unsigned char* dataBuffer, int numBytes);
-    Assignment(const Assignment& assignment);
+    
     ~Assignment();
     
     Assignment::Direction getDirection() const { return _direction; }
