@@ -169,6 +169,7 @@ namespace MenuOption {
     const QString LookAtVectors = "Look-at Vectors";
     const QString LowRes = "Lower Resolution While Moving";
     const QString Mirror = "Mirror";
+    const QString NudgeVoxels = "Nudge Voxels";
     const QString OcclusionCulling = "Occlusion Culling";
     const QString OffAxisProjection = "Off-Axis Projection";
     const QString Oscilloscope = "Audio Oscilloscope";
@@ -204,6 +205,7 @@ namespace MenuOption {
     const QString VoxelGetColorMode = "Get Color Mode";
     const QString VoxelMode = "Cycle Voxel Mode";
     const QString VoxelPaintColor = "Voxel Paint Color";
+    const QString VoxelNudgeMode = "Nudge Voxel Mode";
     const QString VoxelSelectMode = "Select Voxel Mode";
     const QString VoxelStats = "Voxel Stats";
     const QString VoxelTextures = "Voxel Textures";

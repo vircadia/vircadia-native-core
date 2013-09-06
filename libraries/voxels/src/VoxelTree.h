@@ -18,6 +18,7 @@
 #include "VoxelNode.h"
 #include "VoxelNodeBag.h"
 #include "VoxelSceneStats.h"
+#include "VoxelEditPacketSender.h"
 
 #include <QObject>
 
@@ -188,6 +189,13 @@ public:
     void recurseNodeWithOperation(VoxelNode* node, RecurseVoxelTreeOperation operation, void* extraData);
     void recurseNodeWithOperationDistanceSorted(VoxelNode* node, RecurseVoxelTreeOperation operation, 
                 const glm::vec3& point, void* extraData);
+
+    void recurseTreeWithOperationDistanceSortedTimed(PointerStack* stackOfNodes, long allowedTime,
+                                                            RecurseVoxelTreeOperation operation, 
+                                                            const glm::vec3& point, void* extraData);
+
+    void nudgeSubTree(VoxelNode* nodeToNudge, const glm::vec3& nudgeAmount, VoxelEditPacketSender& voxelEditSender);
+
 signals:
     void importSize(float x, float y, float z);
     void importProgress(int progress);
@@ -247,6 +255,11 @@ private:
     void queueForLaterDelete(unsigned char* codeBuffer);
     /// flushes out any Octal Codes that had to be queued
     void emptyDeleteQueue();
+
+    // helper functions for nudgeSubTree
+    static bool nudgeCheck(VoxelNode* node, void* extraData);
+    void nudgeLeaf(VoxelNode* node, void* extraData);
+    void chunkifyLeaf(VoxelNode* node);
 };
 
 float boundaryDistanceForRenderLevel(unsigned int renderLevel);

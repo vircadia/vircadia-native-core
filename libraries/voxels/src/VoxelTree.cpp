@@ -31,6 +31,7 @@
 #include "VoxelConstants.h"
 #include "VoxelNodeBag.h"
 #include "VoxelTree.h"
+#include <PacketHeaders.h>
 
 float boundaryDistanceForRenderLevel(unsigned int renderLevel) {
     return ::VOXEL_SIZE_SCALE / powf(2, renderLevel);
@@ -151,7 +152,7 @@ VoxelNode* VoxelTree::nodeForOctalCode(VoxelNode* ancestorNode,
                 return childNode;
             } else {
                 // we need to go deeper
-                return nodeForOctalCode(childNode, needleCode,parentOfFoundNode);
+                return nodeForOctalCode(childNode, needleCode, parentOfFoundNode);
             }
         }
     }
@@ -397,10 +398,10 @@ void VoxelTree::deleteVoxelCodeFromTreeRecursion(VoxelNode* node, void* extraDat
                     }
                 }
             }
-            int lengthOfancestorNode = numberOfThreeBitSectionsInCode(ancestorNode->getOctalCode());
+            int lengthOfAncestorNode = numberOfThreeBitSectionsInCode(ancestorNode->getOctalCode());
 
             // If we've reached the parent of the target, then stop breaking up children
-            if (lengthOfancestorNode == (args->lengthOfCode - 1)) {
+            if (lengthOfAncestorNode == (args->lengthOfCode - 1)) {
                 break;
             }
             ancestorNode->addChildAtIndex(index);
@@ -1855,4 +1856,129 @@ void VoxelTree::emptyDeleteQueue() {
 
 void VoxelTree::cancelImport() {
     _stopImport = true;
+}
+
+typedef unsigned char nodeColor[4];
+
+const nodeColor red = {255, 0, 0, 0};
+const nodeColor green = {0, 255, 0, 0};
+const nodeColor blue = {0, 0, 255, 0};
+
+class NodeChunkArgs {
+public:
+    VoxelTree* thisVoxelTree;
+    float ancestorSize;
+    float newSize;
+    glm::vec3 nudgeVec;
+    VoxelEditPacketSender* voxelEditSenderPtr;
+
+    int colorIndex;
+};
+
+bool VoxelTree::nudgeCheck(VoxelNode* node, void* extraData) {
+    if (node->isLeaf()) {
+        // we have reached the deepest level of nodes/voxels
+        // now there are two scenarios
+        // 1) this node's size is <= the minNudgeAmount
+        //      in which case we will simply call nudgeLeaf on this leaf
+        // 2) this node's size is still not <= the minNudgeAmount
+        //      in which case we need to break this leaf down until the leaf sizes are <= minNudgeAmount
+
+        NodeChunkArgs* args = (NodeChunkArgs*)extraData;
+
+        // get octal code of this node
+        unsigned char* octalCode = node->getOctalCode();
+
+        // get voxel position/size
+        VoxelPositionSize unNudgedDetails;
+        voxelDetailsForCode(octalCode, unNudgedDetails);
+
+        // check to see if this unNudged node can be nudged
+        if (unNudgedDetails.s <= args->newSize) {
+            args->thisVoxelTree->nudgeLeaf(node, extraData);
+            return false;
+        } else {
+            // break the current leaf into smaller chunks
+            args->thisVoxelTree->chunkifyLeaf(node);
+        }
+    }
+    return true;
+}
+
+void VoxelTree::chunkifyLeaf(VoxelNode* node) {
+    // because this function will continue being called recursively
+    // we only need to worry about breaking this specific leaf down
+    if (!node->isColored()) {
+        return;
+    }
+    for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
+        node->addChildAtIndex(i);
+        node->getChildAtIndex(i)->setColor(node->getColor());
+    }
+}
+
+// This function is called to nudge the leaves of a tree, given that the
+// nudge amount is >= to the leaf scale.
+void VoxelTree::nudgeLeaf(VoxelNode* node, void* extraData) {
+    NodeChunkArgs* args = (NodeChunkArgs*)extraData;
+
+    // get octal code of this node
+    unsigned char* octalCode = node->getOctalCode();
+
+    // get voxel position/size
+    VoxelPositionSize unNudgedDetails;
+    voxelDetailsForCode(octalCode, unNudgedDetails);
+
+    qDebug("UnNudged xyz: %f, %f, %f\n", unNudgedDetails.x, unNudgedDetails.y, unNudgedDetails.z);
+    
+    VoxelDetail voxelDetails;
+    voxelDetails.x = unNudgedDetails.x;
+    voxelDetails.y = unNudgedDetails.y;
+    voxelDetails.z = unNudgedDetails.z;
+    voxelDetails.s = unNudgedDetails.s;
+    voxelDetails.red = node->getColor()[0];
+    voxelDetails.green = node->getColor()[1];
+    voxelDetails.blue = node->getColor()[2];
+    glm::vec3 nudge = args->nudgeVec;
+
+    // delete the old node
+    if (nudge.x >= args->ancestorSize && nudge.y >= args->ancestorSize && nudge.z >= args->ancestorSize) {
+        args->voxelEditSenderPtr->sendVoxelEditMessage(PACKET_TYPE_ERASE_VOXEL, voxelDetails);
+        qDebug("unNudged voxel deleted!\n");
+    }
+
+    // nudge the old node
+    qDebug("nudged by %f, %f, %f\n", nudge.x, nudge.y, nudge.z);
+
+    voxelDetails.x = unNudgedDetails.x + nudge.x;
+    voxelDetails.y = unNudgedDetails.y + nudge.y;
+    voxelDetails.z = unNudgedDetails.z + nudge.z;
+
+    // create a new voxel in its stead
+    args->voxelEditSenderPtr->sendVoxelEditMessage(PACKET_TYPE_SET_VOXEL, voxelDetails);
+    qDebug("Nudged xyz: %f, %f, %f\n", voxelDetails.x, voxelDetails.y, voxelDetails.z);
+    qDebug("nudged node created!\n");
+}
+
+void VoxelTree::nudgeSubTree(VoxelNode* nodeToNudge, const glm::vec3& nudgeAmount, VoxelEditPacketSender& voxelEditSender) {
+    // calculate minNudgeAmount to check if breaking the tree into smaller chunks is necessary
+    float minNudgeAmount = fmin(nudgeAmount.x, nudgeAmount.y);
+    minNudgeAmount = fmin(minNudgeAmount, nudgeAmount.z);
+
+    // get octal code of this node
+    unsigned char* octalCode = nodeToNudge->getOctalCode();
+
+    // get voxel position/size
+    VoxelPositionSize ancestorDetails;
+    voxelDetailsForCode(octalCode, ancestorDetails);
+
+    NodeChunkArgs args;
+    args.thisVoxelTree = this;
+    args.ancestorSize = ancestorDetails.s;
+    args.newSize = minNudgeAmount;
+    args.nudgeVec = nudgeAmount;
+    args.voxelEditSenderPtr = &voxelEditSender;
+    args.colorIndex = 0;
+
+    recurseNodeWithOperation(nodeToNudge, nudgeCheck, &args);
 }

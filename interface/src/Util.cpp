@@ -414,6 +414,32 @@ void renderMouseVoxelGrid(const float& mouseVoxelX, const float& mouseVoxelY, co
     glEnd();
 }
 
+void renderNudgeGrid(const float& mouseVoxelX, const float& mouseVoxelY, const float& mouseVoxelZ, const float& mouseVoxelS) {
+    glm::vec3 origin = glm::vec3(mouseVoxelX, mouseVoxelY, mouseVoxelZ);
+
+    glLineWidth(1.0);
+    
+    const int GRID_DIMENSIONS = 4;
+    glBegin(GL_LINES);
+
+    for (int i = 0; i <= GRID_DIMENSIONS; i++) {
+        for (int j = -GRID_DIMENSIONS / 2; j <= GRID_DIMENSIONS / 2; j++) {
+            glm::vec3 xColor(0.0, 0.6, 0.0);
+            glColor3fv(&xColor.x);
+
+            glVertex3f(origin.x + GRID_DIMENSIONS * mouseVoxelS, i * mouseVoxelS, origin.z + j * mouseVoxelS);
+            glVertex3f(origin.x - GRID_DIMENSIONS * mouseVoxelS, i * mouseVoxelS, origin.z + j * mouseVoxelS);
+
+            glm::vec3 zColor(0.0, 0.0, 0.6);
+            glColor3fv(&zColor.x);
+
+            glVertex3f(origin.x + j * mouseVoxelS, i * mouseVoxelS, origin.z + GRID_DIMENSIONS * mouseVoxelS);
+            glVertex3f(origin.x + j * mouseVoxelS, i * mouseVoxelS, origin.z - GRID_DIMENSIONS * mouseVoxelS);
+        }
+    }
+    glEnd();
+}
+
 void renderDiskShadow(glm::vec3 position, glm::vec3 upDirection, float radius, float darkness) {
 
     glColor4f(0.0f, 0.0f, 0.0f, darkness);

@@ -146,6 +146,7 @@ public slots:
     void cutVoxels();
     void copyVoxels();
     void pasteVoxels();
+    void nudgeVoxels();
     
     void setRenderVoxels(bool renderVoxels);
     void doKillLocalVoxels();
@@ -301,6 +302,8 @@ private:
     float _mouseVoxelScale;       // the scale for adding/removing voxels
     glm::vec3 _lastMouseVoxelPos; // the position of the last mouse voxel edit
     bool _justEditedVoxel;        // set when we've just added/deleted/colored a voxel
+
+    VoxelDetail _nudgeVoxel; // details of the voxel to be nudged
 
     bool _isLookingAtOtherAvatar;
     glm::vec3 _lookatOtherPosition;
