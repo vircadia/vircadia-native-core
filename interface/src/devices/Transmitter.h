@@ -25,6 +25,7 @@ class Transmitter
 {
 public:
     Transmitter();
+    ~Transmitter();
     void render();
     void checkForLostTransmitter();
     void resetLevels();

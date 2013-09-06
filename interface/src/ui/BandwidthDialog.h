@@ -18,9 +18,9 @@
 class BandwidthDialog : public QDialog {
     Q_OBJECT
 public:
-
     // Sets up the UI based on the configuration of the BandwidthMeter
     BandwidthDialog(QWidget* parent, BandwidthMeter* model);
+    ~BandwidthDialog();
 
 signals:
 

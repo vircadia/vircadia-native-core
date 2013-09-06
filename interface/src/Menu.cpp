@@ -204,6 +204,18 @@ Menu::Menu() :
                                            appInstance->getWebcam(),
                                            SLOT(setSkeletonTrackingOn(bool)));
     
+    addCheckableActionToQMenuAndActionHash(viewMenu,
+                                           MenuOption::LEDTracking,
+                                           0,
+                                           false,
+                                           appInstance->getWebcam()->getGrabber(),
+                                           SLOT(setLEDTrackingOn(bool)));
+    
+    addCheckableActionToQMenuAndActionHash(viewMenu,
+                                           MenuOption::OffAxisProjection,
+                                           0,
+                                           false);
+                                           
     addDisabledActionAndSeparator(viewMenu, "Stats");
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Stats, Qt::Key_Slash);
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Log, Qt::CTRL | Qt::Key_L);
@@ -353,6 +365,13 @@ Menu::Menu() :
                                            appInstance->getWebcam()->getGrabber(),
                                            SLOT(setDepthOnly(bool)));
     
+    addCheckableActionToQMenuAndActionHash(developerMenu,
+                                           MenuOption::Faceshift,
+                                           0,
+                                           false,
+                                           appInstance->getFaceshift(),
+                                           SLOT(setEnabled(bool)));
+                                           
     QMenu* audioDebugMenu = developerMenu->addMenu("Audio Debugging Tools");
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::EchoAudio);
     addActionToQMenuAndActionHash(audioDebugMenu,
@@ -411,6 +430,11 @@ Menu::Menu() :
     
     addDisabledActionAndSeparator(developerMenu, "Voxels");
     addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::DestructiveAddVoxel);
+}
+
+Menu::~Menu() {
+    bandwidthDetailsClosed();
+    voxelStatsDetailsClosed();
 }
 
 void Menu::loadSettings(QSettings* settings) {
@@ -855,8 +879,10 @@ void Menu::bandwidthDetails() {
 }
 
 void Menu::bandwidthDetailsClosed() {
-    delete _bandwidthDialog;
-    _bandwidthDialog = NULL;
+    if (_bandwidthDialog) {
+        delete _bandwidthDialog;
+        _bandwidthDialog = NULL;
+    }
 }
 
 void Menu::voxelStatsDetails() {
@@ -870,8 +896,10 @@ void Menu::voxelStatsDetails() {
 }
 
 void Menu::voxelStatsDetailsClosed() {
-    delete _voxelStatsDialog;
-    _voxelStatsDialog = NULL;
+    if (_voxelStatsDialog) {
+        delete _voxelStatsDialog;
+        _voxelStatsDialog = NULL;
+    }
 }
 
 void Menu::cycleFrustumRenderMode() {

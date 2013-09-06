@@ -58,6 +58,7 @@ private:
     
     void computeBoneIndicesAndWeights(const glm::vec3& vertex, BoneIndices& indices, glm::vec4& weights) const;
     
+    bool _initialized;
     int _mode;
     
     Avatar* _avatar;
@@ -73,8 +74,8 @@ private:
     GLuint _vboBoneWeightsID;
     
     QNetworkReply* _voxelReply;
-    
-    static ProgramObject* _skinProgram;
+
+    static ProgramObject _skinProgram;
     static int _boneMatricesLocation;
     static int _boneIndicesLocation;
     static int _boneWeightsLocation;

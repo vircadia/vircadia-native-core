@@ -69,7 +69,7 @@ public:
     NODE_TYPE getOwnerType() const { return _ownerType; }
     void setOwnerType(NODE_TYPE ownerType) { _ownerType = ownerType; }
 
-    const char* getDomainHostname() const { return _domainHostname; };
+    const char* getDomainHostname() const { return _domainHostname; }
     void setDomainHostname(const char* domainHostname);
     
     void setDomainIP(const char* domainIP);
@@ -83,7 +83,7 @@ public:
     
     UDPSocket* getNodeSocket() { return &_nodeSocket; }
     
-    unsigned short int getSocketListenPort() const { return _nodeSocket.getListeningPort(); };
+    unsigned short int getSocketListenPort() const { return _nodeSocket.getListeningPort(); }
     
     void(*linkedDataCreateCallback)(Node *);
     
@@ -161,9 +161,8 @@ private:
 class NodeListIterator : public std::iterator<std::input_iterator_tag, Node> {
 public:
     NodeListIterator(const NodeList* nodeList, int nodeIndex);
-    ~NodeListIterator() {};
     
-    int getNodeIndex() { return _nodeIndex; };
+    int getNodeIndex() { return _nodeIndex; }
     
 	NodeListIterator& operator=(const NodeListIterator& otherValue);
     

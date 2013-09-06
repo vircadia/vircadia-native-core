@@ -35,9 +35,9 @@ private:
 public:
 	std::string group;
 	
-	PerfStatHistory(): count(0), totalTime(0.0) {};
+    PerfStatHistory(): count(0), totalTime(0.0) {}
 	PerfStatHistory(std::string myGroup, double initialTime, long int initialCount) :
-        count(initialCount), totalTime(initialTime), group(myGroup) {};
+        count(initialCount), totalTime(initialTime), group(myGroup) {}
     
 	void recordTime(double thisTime) { 
 		totalTime+=thisTime; 
@@ -94,7 +94,7 @@ public:
         _start(usecTimestampNow()),
         _message(message),
         _renderWarningsOn(renderWarnings),
-        _alwaysDisplay(alwaysDisplay) { };
+        _alwaysDisplay(alwaysDisplay) { }
     
     ~PerformanceWarning();
 };

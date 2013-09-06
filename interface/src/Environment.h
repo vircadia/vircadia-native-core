@@ -22,6 +22,8 @@ class ProgramObject;
 
 class Environment {
 public:
+    Environment();
+    ~Environment();
 
     void init();
     void resetToDefault();
@@ -40,6 +42,7 @@ private:
 
     void renderAtmosphere(Camera& camera, const EnvironmentData& data);
 
+    bool _initialized;
     ProgramObject* _skyFromAtmosphereProgram;
     ProgramObject* _skyFromSpaceProgram;
     

@@ -10,7 +10,6 @@
 #define __interface__Webcam__
 
 #include <QMetaType>
-#include <QObject>
 #include <QThread>
 #include <QVector>
 
@@ -35,7 +34,9 @@ class FrameGrabber;
 class Joint;
 
 typedef QVector<Joint> JointVector;
+typedef std::vector<cv::KeyPoint> KeyPointVector;
 
+/// Handles interaction with the webcam (including depth cameras such as the Kinect).
 class Webcam : public QObject {
     Q_OBJECT
 
@@ -68,8 +69,8 @@ public:
 public slots:
 
     void setEnabled(bool enabled);
-    void setFrame(const cv::Mat& color, int format, const cv::Mat& depth, float midFaceDepth,
-        float aspectRatio, const cv::RotatedRect& faceRect, bool sending, const JointVector& joints);
+    void setFrame(const cv::Mat& color, int format, const cv::Mat& depth, float midFaceDepth, float aspectRatio,
+        const cv::RotatedRect& faceRect, bool sending, const JointVector& joints, const KeyPointVector& keyPoints);
     void setSkeletonTrackingOn(bool toggle) { _skeletonTrackingOn = toggle; };
 
 private:
@@ -88,6 +89,11 @@ private:
     cv::RotatedRect _initialFaceRect;
     float _initialFaceDepth;
     JointVector _joints;
+    KeyPointVector _keyPoints;
+    
+    glm::quat _initialLEDRotation;
+    glm::vec3 _initialLEDPosition;
+    float _initialLEDScale;
 
     uint64_t _startTimestamp;
     int _frameCount;
@@ -101,6 +107,7 @@ private:
     bool _skeletonTrackingOn;
 };
 
+/// Acquires and processes video frames in a dedicated thread.
 class FrameGrabber : public QObject {
     Q_OBJECT
 
@@ -113,6 +120,7 @@ public slots:
 
     void cycleVideoSendMode();
     void setDepthOnly(bool depthOnly);
+    void setLEDTrackingOn(bool ledTrackingOn);
     void reset();
     void shutdown();
     void grabFrame();
@@ -124,10 +132,12 @@ private:
     bool init();
     void updateHSVFrame(const cv::Mat& frame, int format);
     void destroyCodecs();
+    void configureCapture();
 
     bool _initialized;
     VideoSendMode _videoSendMode;
     bool _depthOnly;
+    bool _ledTrackingOn;
     CvCapture* _capture;
     cv::CascadeClassifier _faceCascade;
     cv::Mat _hsvFrame;
@@ -147,6 +157,9 @@ private:
     QByteArray _encodedFace;
     cv::RotatedRect _smoothedFaceRect;
 
+    cv::SimpleBlobDetector _blobDetector;
+    cv::Mat _grayFrame;
+
 #ifdef HAVE_OPENNI
     xn::Context _xnContext;
     xn::DepthGenerator _depthGenerator;
@@ -158,6 +171,7 @@ private:
 #endif
 };
 
+/// Contains the 3D transform and 2D projected position of a tracked joint.
 class Joint {
 public:
 
@@ -171,6 +185,7 @@ public:
 };
 
 Q_DECLARE_METATYPE(JointVector)
+Q_DECLARE_METATYPE(KeyPointVector)
 Q_DECLARE_METATYPE(cv::Mat)
 Q_DECLARE_METATYPE(cv::RotatedRect)
 
