@@ -48,7 +48,7 @@ unsigned char* addNodeToBroadcastPacket(unsigned char* currentPosition, Node* no
     return currentPosition;
 }
 
-int main(int argc, char* const argv[]) {
+int main(int argc, const char* argv[]) {
     NodeList* nodeList = NodeList::createInstance(NODE_TYPE_DOMAIN, DOMAIN_LISTEN_PORT);
 	// If user asks to run in "local" mode then we do NOT replace the IP
 	// with the EC2 IP. Otherwise, we will replace the IP like we used to
@@ -85,21 +85,11 @@ int main(int argc, char* const argv[]) {
     
     timeval lastStatSendTime = {};
     
-    // loop the parameters to see if we were passed a pool for assignment
-    int parameter = -1;
-    const char ALLOWED_PARAMETERS[] = "p::-local::";
-    const char POOL_PARAMETER_CHAR = 'p';
+    // set our assignment pool from argv, if it exists
+    const char* assignmentPool = getCmdOption(argc, argv, "-p");
     
-    char* assignmentPool = NULL;
-    
-    while ((parameter = getopt(argc, argv, ALLOWED_PARAMETERS)) != -1) {
-        if (parameter == POOL_PARAMETER_CHAR) {
-            // copy the passed assignment pool
-            int poolLength = strlen(optarg);
-            assignmentPool = new char[poolLength + sizeof(char)];
-            strcpy(assignmentPool, optarg);
-        }
-    }
+    // grab the overriden assignment-server hostname from argv, if it exists
+    const char* assignmentServer = getCmdOption(argc, argv, "-a");
     
     // use a map to keep track of iterations of silence for assignment creation requests
     const int ASSIGNMENT_SILENCE_MAX_ITERATIONS = 5;

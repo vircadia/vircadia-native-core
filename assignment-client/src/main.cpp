@@ -18,7 +18,7 @@
 
 const long long ASSIGNMENT_REQUEST_INTERVAL_USECS = 1 * 1000 * 1000;
 
-int main(int argc, char* const argv[]) {
+int main(int argc, const char* argv[]) {
     
     setvbuf(stdout, NULL, _IOLBF, 0);
     
@@ -33,21 +33,8 @@ int main(int argc, char* const argv[]) {
     unsigned char packetData[MAX_PACKET_SIZE];
     ssize_t receivedBytes = 0;
     
-    // loop the parameters to see if we were passed a pool
-    int parameter = -1;
-    const char ALLOWED_PARAMETERS[] = "p::";
-    const char POOL_PARAMETER_CHAR = 'p';
-    
-    char* assignmentPool = NULL;
-    
-    while ((parameter = getopt(argc, argv, ALLOWED_PARAMETERS)) != -1) {
-        if (parameter == POOL_PARAMETER_CHAR) {
-            // copy the passed assignment pool
-            int poolLength = strlen(optarg);
-            assignmentPool = new char[poolLength + sizeof(char)];
-            strcpy(assignmentPool, optarg);
-        }
-    }
+    // grab the assignment pool from argv, if it was passed
+    const char* assignmentPool = getCmdOption(argc, argv, "-p");
     
     // create a request assignment, accept all assignments, pass the desired pool (if it exists)
     Assignment requestAssignment(Assignment::Request, Assignment::All, assignmentPool);
