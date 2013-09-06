@@ -255,6 +255,7 @@ void NodeList::clear() {
     }
     
     _numNodes = 0;
+    _numNoReplyDomainCheckIns = 0;
 }
 
 void NodeList::setNodeTypesOfInterest(const char* nodeTypesOfInterest, int numNodeTypesOfInterest) {
