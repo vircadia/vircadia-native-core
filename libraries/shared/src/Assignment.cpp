@@ -70,6 +70,30 @@ Assignment::Assignment(const unsigned char* dataBuffer, int numBytes) :
     }
 }
 
+Assignment::Assignment(const Assignment& assignment) :
+    _pool(NULL),
+    _domainSocket(NULL)
+{
+    _direction = assignment._direction;
+    _type = assignment._type;
+    
+    if (assignment._pool) {
+        _pool = new char[strlen(assignment._pool)];
+        strcpy(_pool, assignment._pool);
+    }
+    
+    if (assignment._domainSocket) {
+        if (assignment._domainSocket->sa_family == AF_INET) {
+            _domainSocket = (sockaddr*) new sockaddr_in;
+            memcpy(_domainSocket, assignment._domainSocket, sizeof(sockaddr_in));
+        } else {
+            _domainSocket = (sockaddr*) new sockaddr_in6;
+            memcpy(_domainSocket, assignment._domainSocket, sizeof(sockaddr_in6));
+        }
+    }
+    
+}
+
 Assignment::~Assignment() {
     delete _domainSocket;
     delete _pool;
