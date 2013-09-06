@@ -6,6 +6,8 @@
 //  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
 
+#include <sys/time.h>
+
 #include "PacketHeaders.h"
 
 #include "Assignment.h"
@@ -16,6 +18,9 @@ Assignment::Assignment(Assignment::Direction direction, Assignment::Type type, c
     _pool(NULL),
     _domainSocket(NULL)
 {
+    // set the create time on this assignment
+    gettimeofday(&_time, NULL);
+    
     // copy the pool, if we got one
     if (pool) {
         int poolLength = strlen(pool);
@@ -30,6 +35,9 @@ Assignment::Assignment(const unsigned char* dataBuffer, int numBytes) :
     _pool(NULL),
     _domainSocket(NULL)
 {
+    // set the create time on this assignment
+    gettimeofday(&_time, NULL);
+    
     int numBytesRead = 0;
     
     if (dataBuffer[0] == PACKET_TYPE_REQUEST_ASSIGNMENT) {

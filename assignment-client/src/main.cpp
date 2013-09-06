@@ -24,9 +24,9 @@ int main(int argc, char* const argv[]) {
     
     // create a NodeList as an unassigned client
     NodeList* nodeList = NodeList::createInstance(NODE_TYPE_UNASSIGNED);
-    nodeList->getNodeSocket()->setBlocking(false);
     
-    timeval lastRequest = {};
+    // change the timeout on the nodelist socket to be as often as we want to re-request
+    nodeList->getNodeSocket()->setBlockingReceiveTimeoutInUsecs(ASSIGNMENT_REQUEST_INTERVAL_USECS);
     
     unsigned char packetData[MAX_PACKET_SIZE];
     ssize_t receivedBytes = 0;
@@ -51,13 +51,9 @@ int main(int argc, char* const argv[]) {
     Assignment requestAssignment(Assignment::Request, Assignment::All, assignmentPool);
     
     while (true) {
-        if (usecTimestampNow() - usecTimestamp(&lastRequest) >= ASSIGNMENT_REQUEST_INTERVAL_USECS) {
-            gettimeofday(&lastRequest, NULL);
-            
-            // send an assignment request to the Nodelist
-            qDebug("Sending assignment request.\n");
-            nodeList->sendAssignment(requestAssignment);
-        }        
+        // if we're here we have no assignment, so send a request
+        qDebug() << "Sending an assignment request -" << requestAssignment;
+        nodeList->sendAssignment(requestAssignment);
         
         while (nodeList->getNodeSocket()->receive(packetData, &receivedBytes)) {
             if (packetData[0] == PACKET_TYPE_DEPLOY_ASSIGNMENT && packetVersionMatch(packetData)) {

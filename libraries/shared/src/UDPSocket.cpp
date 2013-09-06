@@ -167,11 +167,8 @@ UDPSocket::UDPSocket(unsigned short int listeningPort) :
         _listeningPort = ntohs(bind_address.sin_port);
     }
     
-    // set timeout on socket recieve to 0.5 seconds
-    struct timeval tv;
-    tv.tv_sec = 0;
-    tv.tv_usec = 500000;
-    setsockopt(handle, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv, sizeof tv);
+    const int DEFAULT_BLOCKING_SOCKET_TIMEOUT_USECS = 0.5 * 1000000;
+    setBlockingReceiveTimeoutInUsecs(DEFAULT_BLOCKING_SOCKET_TIMEOUT_USECS);
     
     qDebug("Created UDP socket listening on port %hu.\n", _listeningPort);
 }
@@ -226,6 +223,11 @@ void UDPSocket::setBlocking(bool blocking) {
     int flags = fcntl(handle, F_GETFL, 0);
     fcntl(handle, F_SETFL, blocking ? (flags & ~O_NONBLOCK) : (flags | O_NONBLOCK));
 #endif
+}
+
+void UDPSocket::setBlockingReceiveTimeoutInUsecs(int timeoutUsecs) {
+    struct timeval tv = {timeoutUsecs / 1000000, timeoutUsecs % 1000000};
+    setsockopt(handle, SOL_SOCKET, SO_RCVTIMEO, (char *)&tv, sizeof(tv));
 }
 
 //  Receive data on this socket with retrieving address of sender

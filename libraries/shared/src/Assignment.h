@@ -34,6 +34,7 @@ public:
     Assignment::Direction getDirection() const { return _direction; }
     Assignment::Type getType() const { return _type; }
     const char* getPool() const { return _pool; }
+    const timeval& getTime() const { return _time; }
     
     const sockaddr* getDomainSocket() { return _domainSocket; }
     void setDomainSocket(const sockaddr* domainSocket);
@@ -44,7 +45,8 @@ private:
     Assignment::Direction _direction;
     Assignment::Type _type;
     char* _pool;
-    sockaddr* _domainSocket;
+    sockaddr* _domainSocket; 
+    timeval _time;
 };
 
 QDebug operator<<(QDebug debug, const Assignment &assignment);

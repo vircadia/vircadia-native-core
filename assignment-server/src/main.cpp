@@ -18,6 +18,7 @@
 #include <UDPSocket.h>
 
 const int MAX_PACKET_SIZE_BYTES = 1400;
+const long long NUM_DEFAULT_ASSIGNMENT_STALENESS_USECS = 10 * 1000 * 1000;
 
 int main(int argc, const char* argv[]) {
     
@@ -48,6 +49,15 @@ int main(int argc, const char* argv[]) {
                     
                     // enumerate assignments until we find one to give this client (if possible)
                     while (assignment != assignmentQueue.end()) {
+                        
+                        // if this assignment is stale then get rid of it and check the next one
+                        if (usecTimestampNow() - usecTimestamp(&((*assignment)->getTime()))
+                            >= NUM_DEFAULT_ASSIGNMENT_STALENESS_USECS) {
+                            delete *assignment;
+                            assignment = assignmentQueue.erase(assignment);
+                            
+                            continue;
+                        }
                         
                         bool eitherHasPool = ((*assignment)->getPool() || requestAssignment.getPool());
                         bool bothHavePool = ((*assignment)->getPool() && requestAssignment.getPool());
@@ -83,7 +93,7 @@ int main(int argc, const char* argv[]) {
                 // construct the create assignment from the packet data
                 Assignment* createdAssignment = new Assignment(senderData, receivedBytes);
                 
-                qDebug() << "Received a created assignment:" << createdAssignment;
+                qDebug() << "Received a created assignment:" << *createdAssignment;
                 qDebug() << "Current queue size is" << assignmentQueue.size();
                 
                 // assignment server is on a public server
