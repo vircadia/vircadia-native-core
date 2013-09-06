@@ -446,6 +446,13 @@ void Application::updateProjectionMatrix() {
         nearVal = _viewFrustumOffsetCamera.getNearClip();
         farVal = _viewFrustumOffsetCamera.getFarClip();
     }
+    
+    // when mirrored, we must flip left and right
+    if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
+        float tmp = left;
+        left = -right;
+        right = -tmp;
+    }
     glFrustum(left, right, bottom, top, nearVal, farVal);
     
     glMatrixMode(GL_MODELVIEW);
@@ -1812,8 +1819,9 @@ void Application::update(float deltaTime) {
                 updateProjectionMatrix();
                 
             } else if (_webcam.isActive()) {
-                const float EYE_OFFSET_SCALE = 5.0f;
-                _myCamera.setEyeOffsetPosition(_webcam.getEstimatedPosition() * EYE_OFFSET_SCALE);
+                const float EYE_OFFSET_SCALE = 0.1f;
+                glm::vec3 position = _webcam.getEstimatedPosition() * EYE_OFFSET_SCALE;
+                _myCamera.setEyeOffsetPosition(glm::vec3(-position.x, -position.y, position.z));
                 updateProjectionMatrix();
             }
         }
@@ -1966,7 +1974,15 @@ void Application::loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum) {
     viewFrustum.setFieldOfView(fov);
     viewFrustum.setNearClip(nearClip);
     viewFrustum.setFarClip(farClip);
-    viewFrustum.setEyeOffsetPosition(camera.getEyeOffsetPosition());
+    
+    // when mirrored, we must flip the eye offset in x to get the correct frustum
+    if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
+        glm::vec3 position = camera.getEyeOffsetPosition();
+        viewFrustum.setEyeOffsetPosition(glm::vec3(-position.x, position.y, position.z));
+        
+    } else {
+        viewFrustum.setEyeOffsetPosition(camera.getEyeOffsetPosition());
+    }
     viewFrustum.setEyeOffsetOrientation(camera.getEyeOffsetOrientation());
 
     // Ask the ViewFrustum class to calculate our corners
