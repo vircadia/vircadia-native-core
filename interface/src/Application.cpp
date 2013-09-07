@@ -1812,16 +1812,17 @@ void Application::update(float deltaTime) {
         }
         
         if (Menu::getInstance()->isOptionChecked(MenuOption::OffAxisProjection)) {
+            float xSign = Menu::getInstance()->isOptionChecked(MenuOption::Mirror) ? 1.0f : -1.0f;
             if (_faceshift.isActive()) {
                 const float EYE_OFFSET_SCALE = 0.025f;
                 glm::vec3 position = _faceshift.getHeadTranslation() * EYE_OFFSET_SCALE;
-                _myCamera.setEyeOffsetPosition(glm::vec3(-position.x, position.y, position.z));    
+                _myCamera.setEyeOffsetPosition(glm::vec3(position.x * xSign, position.y, position.z));    
                 updateProjectionMatrix();
                 
             } else if (_webcam.isActive()) {
-                const float EYE_OFFSET_SCALE = 0.1f;
+                const float EYE_OFFSET_SCALE = 0.5f;
                 glm::vec3 position = _webcam.getEstimatedPosition() * EYE_OFFSET_SCALE;
-                _myCamera.setEyeOffsetPosition(glm::vec3(-position.x, -position.y, position.z));
+                _myCamera.setEyeOffsetPosition(glm::vec3(position.x * xSign, -position.y, position.z));
                 updateProjectionMatrix();
             }
         }
@@ -1974,15 +1975,7 @@ void Application::loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum) {
     viewFrustum.setFieldOfView(fov);
     viewFrustum.setNearClip(nearClip);
     viewFrustum.setFarClip(farClip);
-    
-    // when mirrored, we must flip the eye offset in x to get the correct frustum
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-        glm::vec3 position = camera.getEyeOffsetPosition();
-        viewFrustum.setEyeOffsetPosition(glm::vec3(-position.x, position.y, position.z));
-        
-    } else {
-        viewFrustum.setEyeOffsetPosition(camera.getEyeOffsetPosition());
-    }
+    viewFrustum.setEyeOffsetPosition(camera.getEyeOffsetPosition());
     viewFrustum.setEyeOffsetOrientation(camera.getEyeOffsetOrientation());
 
     // Ask the ViewFrustum class to calculate our corners
@@ -2155,9 +2148,8 @@ void Application::displaySide(Camera& whichCamera) {
     // transform by eye offset
 
     // flip x if in mirror mode (also requires reversing winding order for backface culling)
-    float eyeOffsetSign = 1.0f;
     if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-        glScalef(eyeOffsetSign = -1.0f, 1.0f, 1.0f);
+        glScalef(-1.0f, 1.0f, 1.0f);
         glFrontFace(GL_CW);
     
     } else {
@@ -2168,7 +2160,7 @@ void Application::displaySide(Camera& whichCamera) {
     glm::quat eyeOffsetOrient = whichCamera.getEyeOffsetOrientation();
     glm::vec3 eyeOffsetAxis = glm::axis(eyeOffsetOrient);
     glRotatef(-glm::angle(eyeOffsetOrient), eyeOffsetAxis.x, eyeOffsetAxis.y, eyeOffsetAxis.z);
-    glTranslatef(-eyeOffsetPos.x * eyeOffsetSign, -eyeOffsetPos.y, -eyeOffsetPos.z);
+    glTranslatef(-eyeOffsetPos.x, -eyeOffsetPos.y, -eyeOffsetPos.z);
 
     // transform view according to whichCamera
     // could be myCamera (if in normal mode)
