@@ -15,13 +15,28 @@
 #include "ProgramObject.h"
 #include "RenderUtil.h"
 
-GlowEffect::GlowEffect() : _renderMode(DIFFUSE_ADD_MODE), _isOddFrame(false), _intensity(0.0f) {
+GlowEffect::GlowEffect()
+    : _initialized(false),
+      _renderMode(DIFFUSE_ADD_MODE),
+      _isOddFrame(false),
+      _intensity(0.0f) {
+}
+
+GlowEffect::~GlowEffect() {
+    if (_initialized) {
+        delete _addProgram;
+        delete _horizontalBlurProgram;
+        delete _verticalBlurAddProgram;
+        delete _verticalBlurProgram;
+        delete _addSeparateProgram;
+        delete _diffuseProgram;
+    }
 }
 
 QOpenGLFramebufferObject* GlowEffect::getFreeFramebufferObject() const {
     return (_renderMode == DIFFUSE_ADD_MODE && !_isOddFrame) ?
-        Application::getInstance()->getTextureCache()->getTertiaryFramebufferObject() :
-        Application::getInstance()->getTextureCache()->getSecondaryFramebufferObject();
+                Application::getInstance()->getTextureCache()->getTertiaryFramebufferObject() :
+                Application::getInstance()->getTextureCache()->getSecondaryFramebufferObject();
 }
 
 static ProgramObject* createProgram(const QString& name) {
@@ -37,6 +52,11 @@ static ProgramObject* createProgram(const QString& name) {
 }
 
 void GlowEffect::init() {
+    if (_initialized) {
+        qDebug("[ERROR] GlowEffeect is already initialized.\n");
+        return;
+    }
+
     switchToResourcesParentIfRequired();
     
     _addProgram = createProgram("glow_add");
@@ -59,6 +79,8 @@ void GlowEffect::init() {
     _diffuseProgram->release();
     
     _diffusionScaleLocation = _diffuseProgram->uniformLocation("diffusionScale");
+
+    _initialized = true;
 }
 
 void GlowEffect::prepare() {

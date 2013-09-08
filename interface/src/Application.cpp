@@ -58,13 +58,13 @@
 
 #include "Application.h"
 #include "LogDisplay.h"
-#include "LeapManager.h"
 #include "Menu.h"
-#include "OculusManager.h"
+#include "Swatch.h"
 #include "Util.h"
+#include "devices/LeapManager.h"
+#include "devices/OculusManager.h"
 #include "renderer/ProgramObject.h"
 #include "ui/TextRenderer.h"
-#include "Swatch.h"
 
 using namespace std;
 
@@ -237,6 +237,16 @@ Application::~Application() {
     NodeList::getInstance()->removeHook(this);
 
     _sharedVoxelSystem.changeTree(new VoxelTree);
+
+    _audio.shutdown();
+
+    delete Menu::getInstance();
+    
+    delete _oculusProgram;
+    delete _settings;
+    delete _networkAccessManager;
+    delete _followMode;
+    delete _glWidget;
 }
 
 void Application::initializeGL() {
@@ -418,10 +428,14 @@ void Application::resizeGL(int width, int height) {
 
     glViewport(0, 0, width, height); // shouldn't this account for the menu???
 
+    updateProjectionMatrix();
+    glLoadIdentity();
+}
+
+void Application::updateProjectionMatrix() {
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     
-    // On window reshape, we need to tell OpenGL about our new setting
     float left, right, bottom, top, nearVal, farVal;
     glm::vec4 nearClipPlane, farClipPlane;
     _viewFrustum.computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
@@ -435,7 +449,6 @@ void Application::resizeGL(int width, int height) {
     glFrustum(left, right, bottom, top, nearVal, farVal);
     
     glMatrixMode(GL_MODELVIEW);
-    glLoadIdentity();
 }
 
 void Application::controlledBroadcastToNodes(unsigned char* broadcastData, size_t dataBytes, 
@@ -603,7 +616,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 } else {
                     _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0, 0.001, 0));
                 }
-                resizeGL(_glWidget->width(), _glWidget->height());
+                updateProjectionMatrix();
                 break;
                 
             case Qt::Key_K:
@@ -613,7 +626,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 } else {
                     _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0, -0.001, 0));
                 }
-                resizeGL(_glWidget->width(), _glWidget->height());
+                updateProjectionMatrix();
                 break;
                 
             case Qt::Key_J:
@@ -623,7 +636,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 } else {
                     _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(-0.001, 0, 0));
                 }
-                resizeGL(_glWidget->width(), _glWidget->height());
+                updateProjectionMatrix();
                 break;
                 
             case Qt::Key_M:
@@ -633,7 +646,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 } else {
                     _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0.001, 0, 0));
                 }
-                resizeGL(_glWidget->width(), _glWidget->height());
+                updateProjectionMatrix();
                 break;
                 
             case Qt::Key_U:
@@ -643,7 +656,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 } else {
                     _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0, 0, -0.001));
                 }
-                resizeGL(_glWidget->width(), _glWidget->height());
+                updateProjectionMatrix();
                 break;
                 
             case Qt::Key_Y:
@@ -653,7 +666,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 } else {
                     _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0, 0, 0.001));
                 }
-                resizeGL(_glWidget->width(), _glWidget->height());
+                updateProjectionMatrix();
                 break;
             case Qt::Key_H:
                 Menu::getInstance()->triggerOption(MenuOption::Mirror);
@@ -1518,18 +1531,28 @@ void Application::update(float deltaTime) {
     // Set where I am looking based on my mouse ray (so that other people can see)
     glm::vec3 lookAtSpot;
 
-    _isLookingAtOtherAvatar = isLookingAtOtherAvatar(mouseRayOrigin, mouseRayDirection, lookAtSpot);
+    // if we have faceshift, use that to compute the lookat direction
+    glm::vec3 lookAtRayOrigin = mouseRayOrigin, lookAtRayDirection = mouseRayDirection;
+    if (_faceshift.isActive()) {
+        lookAtRayOrigin = _myAvatar.getHead().calculateAverageEyePosition();
+        float averagePitch = (_faceshift.getEyeGazeLeftPitch() + _faceshift.getEyeGazeRightPitch()) / 2.0f;
+        float averageYaw = (_faceshift.getEyeGazeLeftYaw() + _faceshift.getEyeGazeRightYaw()) / 2.0f;
+        lookAtRayDirection = _myAvatar.getHead().getOrientation() *
+            glm::quat(glm::radians(glm::vec3(averagePitch, averageYaw, 0.0f))) * glm::vec3(0.0f, 0.0f, -1.0f);
+    }
+
+    _isLookingAtOtherAvatar = isLookingAtOtherAvatar(lookAtRayOrigin, lookAtRayDirection, lookAtSpot);
     if (_isLookingAtOtherAvatar) {
         // If the mouse is over another avatar's head...
          _myAvatar.getHead().setLookAtPosition(lookAtSpot);
-    } else if (_isHoverVoxel) {
+    } else if (_isHoverVoxel && !_faceshift.isActive()) {
         //  Look at the hovered voxel
         lookAtSpot = getMouseVoxelWorldCoordinates(_hoverVoxel);
         _myAvatar.getHead().setLookAtPosition(lookAtSpot);
     } else {
         //  Just look in direction of the mouse ray
         const float FAR_AWAY_STARE = TREE_SCALE;
-        lookAtSpot = mouseRayOrigin + mouseRayDirection * FAR_AWAY_STARE;
+        lookAtSpot = lookAtRayOrigin + lookAtRayDirection * FAR_AWAY_STARE;
         _myAvatar.getHead().setLookAtPosition(lookAtSpot);
     }
     
@@ -1780,6 +1803,20 @@ void Application::update(float deltaTime) {
                 _myCamera.setModeShiftRate(1.0f);
             }
         }
+        
+        if (Menu::getInstance()->isOptionChecked(MenuOption::OffAxisProjection)) {
+            if (_faceshift.isActive()) {
+                const float EYE_OFFSET_SCALE = 0.005f;
+                glm::vec3 position = _faceshift.getHeadTranslation() * EYE_OFFSET_SCALE;
+                _myCamera.setEyeOffsetPosition(glm::vec3(-position.x, position.y, position.z));    
+                updateProjectionMatrix();
+                
+            } else if (_webcam.isActive()) {
+                const float EYE_OFFSET_SCALE = 5.0f;
+                _myCamera.setEyeOffsetPosition(_webcam.getEstimatedPosition() * EYE_OFFSET_SCALE);
+                updateProjectionMatrix();
+            }
+        }
     }
    
     // Update bandwidth dialog, if any
@@ -1878,6 +1915,7 @@ void Application::updateAvatar(float deltaTime) {
     _myAvatar.setCameraAspectRatio(_viewFrustum.getAspectRatio());
     _myAvatar.setCameraNearClip(_viewFrustum.getNearClip());
     _myAvatar.setCameraFarClip(_viewFrustum.getFarClip());
+    _myAvatar.setCameraEyeOffsetPosition(_viewFrustum.getEyeOffsetPosition());
     
     NodeList* nodeList = NodeList::getInstance();
     if (nodeList->getOwnerID() != UNKNOWN_NODE_ID) {
@@ -2266,7 +2304,7 @@ void Application::displaySide(Camera& whichCamera) {
         }
         
         // Render my own Avatar
-        if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
+        if (_myCamera.getMode() == CAMERA_MODE_MIRROR && !_faceshift.isActive()) {
             _myAvatar.getHead().setLookAtPosition(_myCamera.getPosition());
         }
         _myAvatar.render(Menu::getInstance()->isOptionChecked(MenuOption::Mirror),
@@ -3067,6 +3105,7 @@ void Application::resetSensors() {
         _serialHeadSensor.resetAverages();
     }
     _webcam.reset();
+    _faceshift.reset();
     QCursor::setPos(_headMouseX, _headMouseY);
     _myAvatar.reset();
     _myTransmitter.resetLevels();

@@ -124,6 +124,7 @@ private:
 class TagList : public Tag {
 public:
     TagList(std::stringstream &ss);
+    ~TagList();
 
     int             getTagId() const {return _tagId;}
     int             getSize () const {return _size; }
@@ -138,6 +139,7 @@ private:
 class TagCompound : public Tag {
 public:
     TagCompound(std::stringstream &ss);
+    ~TagCompound();
 
     int             getSize      () const {return _size;      }
     std::list<Tag*> getData      () const {return _data;      }

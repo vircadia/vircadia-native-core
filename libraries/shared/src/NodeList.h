@@ -28,7 +28,6 @@ const int MAX_NUM_NODES = 10000;
 const int NODES_PER_BUCKET = 100;
 
 const int MAX_PACKET_SIZE = 1500;
-const unsigned short int NODE_SOCKET_LISTEN_PORT = 40103;
 
 const int NODE_SILENCE_THRESHOLD_USECS = 2 * 1000000;
 const int DOMAIN_SERVER_CHECK_IN_USECS = 1 * 1000000;
@@ -43,6 +42,9 @@ extern const int DEFAULT_DOMAINSERVER_PORT;
 
 const int UNKNOWN_NODE_ID = 0;
 
+const int MAX_SILENT_DOMAIN_SERVER_CHECK_INS = 5;
+
+class Assignment;
 class NodeListIterator;
 
 // Callers who want to hook add/kill callbacks should implement this class
@@ -55,7 +57,7 @@ public:
 
 class NodeList {
 public:
-    static NodeList* createInstance(char ownerType, unsigned short int socketListenPort = NODE_SOCKET_LISTEN_PORT);
+    static NodeList* createInstance(char ownerType, unsigned short int socketListenPort = 0);
     static NodeList* getInstance();
     
     typedef NodeListIterator iterator;
@@ -67,7 +69,7 @@ public:
     NODE_TYPE getOwnerType() const { return _ownerType; }
     void setOwnerType(NODE_TYPE ownerType) { _ownerType = ownerType; }
 
-    const char* getDomainHostname() const { return _domainHostname; };
+    const char* getDomainHostname() const { return _domainHostname; }
     void setDomainHostname(const char* domainHostname);
     
     void setDomainIP(const char* domainIP);
@@ -81,12 +83,14 @@ public:
     
     UDPSocket* getNodeSocket() { return &_nodeSocket; }
     
-    unsigned short int getSocketListenPort() const { return _nodeSocket.getListeningPort(); };
+    unsigned short int getSocketListenPort() const { return _nodeSocket.getListeningPort(); }
     
     void(*linkedDataCreateCallback)(Node *);
     
     int size() { return _numNodes; }
     int getNumAliveNodes() const;
+    
+    int getNumNoReplyDomainCheckIns() const { return _numNoReplyDomainCheckIns; }
     
     void clear();
     
@@ -95,7 +99,7 @@ public:
     void sendDomainServerCheckIn();
     int processDomainServerList(unsigned char *packetData, size_t dataBytes);
     
-    void sendAssignmentRequest();
+    void sendAssignment(Assignment& assignment);
     
     Node* nodeWithAddress(sockaddr *senderAddress);
     Node* nodeWithID(uint16_t nodeID);
@@ -146,6 +150,7 @@ private:
     uint16_t _lastNodeID;
     pthread_t removeSilentNodesThread;
     pthread_t checkInWithDomainServerThread;
+    int _numNoReplyDomainCheckIns;
     
     void handlePingReply(sockaddr *nodeAddress);
     void timePingReply(sockaddr *nodeAddress, unsigned char *packetData);
@@ -156,9 +161,8 @@ private:
 class NodeListIterator : public std::iterator<std::input_iterator_tag, Node> {
 public:
     NodeListIterator(const NodeList* nodeList, int nodeIndex);
-    ~NodeListIterator() {};
     
-    int getNodeIndex() { return _nodeIndex; };
+    int getNodeIndex() { return _nodeIndex; }
     
 	NodeListIterator& operator=(const NodeListIterator& otherValue);
     

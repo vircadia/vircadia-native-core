@@ -165,6 +165,8 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     destinationBuffer += packFloatRatioToTwoByte(destinationBuffer, _cameraAspectRatio);
     destinationBuffer += packClipValueToTwoByte(destinationBuffer, _cameraNearClip);
     destinationBuffer += packClipValueToTwoByte(destinationBuffer, _cameraFarClip);
+    memcpy(destinationBuffer, &_cameraEyeOffsetPosition, sizeof(_cameraEyeOffsetPosition));
+    destinationBuffer += sizeof(_cameraEyeOffsetPosition);
 
     // chat message
     *destinationBuffer++ = _chatMessage.size();
@@ -274,6 +276,8 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     sourceBuffer += unpackFloatRatioFromTwoByte(sourceBuffer,_cameraAspectRatio);
     sourceBuffer += unpackClipValueFromTwoByte(sourceBuffer,_cameraNearClip);
     sourceBuffer += unpackClipValueFromTwoByte(sourceBuffer,_cameraFarClip);
+    memcpy(&_cameraEyeOffsetPosition, sourceBuffer, sizeof(_cameraEyeOffsetPosition));
+    sourceBuffer += sizeof(_cameraEyeOffsetPosition);
 
     // the rest is a chat message
     int chatMessageSize = *sourceBuffer++;

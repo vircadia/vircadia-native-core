@@ -58,15 +58,15 @@ public:
     NodeData* getLinkedData() const { return _linkedData; }
     void setLinkedData(NodeData* linkedData) { _linkedData = linkedData; }
     
-    bool isAlive() const { return _isAlive; };
-    void setAlive(bool isAlive) { _isAlive = isAlive; };
+    bool isAlive() const { return _isAlive; }
+    void setAlive(bool isAlive) { _isAlive = isAlive; }
     
     void  recordBytesReceived(int bytesReceived);
     float getAverageKilobitsPerSecond();
     float getAveragePacketsPerSecond();
 
-    int getPingMs() const { return _pingMs; };
-    void setPingMs(int pingMs) { _pingMs = pingMs; };
+    int getPingMs() const { return _pingMs; }
+    void setPingMs(int pingMs) { _pingMs = pingMs; }
     
     void lock() { pthread_mutex_lock(&_mutex); }
     void unlock() { pthread_mutex_unlock(&_mutex); }

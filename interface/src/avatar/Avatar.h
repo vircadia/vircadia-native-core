@@ -22,10 +22,9 @@
 #include "Head.h"
 #include "InterfaceConfig.h"
 #include "Skeleton.h"
-#include "SerialInterface.h"
-#include "Transmitter.h"
 #include "world.h"
-
+#include "devices/SerialInterface.h"
+#include "devices/Transmitter.h"
 
 static const float MAX_SCALE = 1000.f;
 static const float MIN_SCALE = .005f;

@@ -18,7 +18,6 @@
 
 using namespace std;
 
-const int   MOHAWK_TRIANGLES         =  50;
 const bool  USING_PHYSICAL_MOHAWK    =  true;
 const float EYE_RIGHT_OFFSET         =  0.27f;
 const float EYE_UP_OFFSET            =  0.36f;
@@ -47,7 +46,7 @@ const float IRIS_RADIUS              =  0.007;
 const float IRIS_PROTRUSION          =  0.0145f;
 const char  IRIS_TEXTURE_FILENAME[]  =  "resources/images/iris.png";
 
-ProgramObject* Head::_irisProgram = 0;
+ProgramObject Head::_irisProgram;
 GLuint Head::_irisTextureID;
 int Head::_eyePositionLocation;
 
@@ -76,8 +75,7 @@ Head::Head(Avatar* owningAvatar) :
     _returnSpringScale(1.0f),
     _bodyRotation(0.0f, 0.0f, 0.0f),
     _renderLookatVectors(false),
-    _mohawkTriangleFan(NULL),
-    _mohawkColors(NULL),
+    _mohawkInitialized(false),
     _saccade(0.0f, 0.0f, 0.0f),
     _saccadeTarget(0.0f, 0.0f, 0.0f),
     _leftEyeBlink(0.0f),
@@ -99,16 +97,15 @@ Head::Head(Avatar* owningAvatar) :
 }
 
 void Head::init() {
-    if (_irisProgram == 0) {
+    if (!_irisProgram.isLinked()) {
         switchToResourcesParentIfRequired();
-        _irisProgram = new ProgramObject();
-        _irisProgram->addShaderFromSourceFile(QGLShader::Vertex, "resources/shaders/iris.vert");
-        _irisProgram->addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/iris.frag");
-        _irisProgram->link();
-    
-        _irisProgram->setUniformValue("texture", 0);
-        _eyePositionLocation = _irisProgram->uniformLocation("eyePosition");
-                        
+        _irisProgram.addShaderFromSourceFile(QGLShader::Vertex, "resources/shaders/iris.vert");
+        _irisProgram.addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/iris.frag");
+        _irisProgram.link();
+
+        _irisProgram.setUniformValue("texture", 0);
+        _eyePositionLocation = _irisProgram.uniformLocation("eyePosition");
+
         QImage image = QImage(IRIS_TEXTURE_FILENAME).convertToFormat(QImage::Format_ARGB32);
         
         glGenTextures(1, &_irisTextureID);
@@ -163,65 +160,81 @@ void Head::simulate(float deltaTime, bool isMine, float gyroCameraSensitivity) {
     _saccade += (_saccadeTarget - _saccade) * 0.50f;
     
     //  Update audio trailing average for rendering facial animations
-    const float AUDIO_AVERAGING_SECS = 0.05;
-    _averageLoudness = (1.f - deltaTime / AUDIO_AVERAGING_SECS) * _averageLoudness +
-                             (deltaTime / AUDIO_AVERAGING_SECS) * _audioLoudness;
-    
-    //  Detect transition from talking to not; force blink after that and a delay
-    bool forceBlink = false;
-    const float TALKING_LOUDNESS = 100.0f;
-    const float BLINK_AFTER_TALKING = 0.25f;
-    if (_averageLoudness > TALKING_LOUDNESS) {
-        _timeWithoutTalking = 0.0f;
-    
-    } else if (_timeWithoutTalking < BLINK_AFTER_TALKING && (_timeWithoutTalking += deltaTime) >= BLINK_AFTER_TALKING) {
-        forceBlink = true;
-    }
-                             
-    //  Update audio attack data for facial animation (eyebrows and mouth)
-    _audioAttack = 0.9 * _audioAttack + 0.1 * fabs(_audioLoudness - _lastLoudness);
-    _lastLoudness = _audioLoudness;
-    
-    const float BROW_LIFT_THRESHOLD = 100;
-    if (_audioAttack > BROW_LIFT_THRESHOLD)
-        _browAudioLift += sqrt(_audioAttack) * 0.00005;
+    Faceshift* faceshift = Application::getInstance()->getFaceshift();
+    if (isMine && faceshift->isActive()) {
+        _leftEyeBlink = faceshift->getLeftBlink();
+        _rightEyeBlink = faceshift->getRightBlink();
         
-        float clamp = 0.01;
-        if (_browAudioLift > clamp) { _browAudioLift = clamp; }
-    
-    _browAudioLift *= 0.7f;      
-
-    // update eyelid blinking
-    const float BLINK_SPEED = 10.0f;
-    const float FULLY_OPEN = 0.0f;
-    const float FULLY_CLOSED = 1.0f;
-    if (_leftEyeBlinkVelocity == 0.0f && _rightEyeBlinkVelocity == 0.0f) {
-        // no blinking when brows are raised; blink less with increasing loudness
-        const float BASE_BLINK_RATE = 15.0f / 60.0f;
-        const float ROOT_LOUDNESS_TO_BLINK_INTERVAL = 0.25f;
-        if (forceBlink || (_browAudioLift < EPSILON && shouldDo(glm::max(1.0f, sqrt(_averageLoudness) *
-                ROOT_LOUDNESS_TO_BLINK_INTERVAL) / BASE_BLINK_RATE, deltaTime))) {
-            _leftEyeBlinkVelocity = BLINK_SPEED;
-            _rightEyeBlinkVelocity = BLINK_SPEED;
-        }
+        // set these values based on how they'll be used.  if we use faceshift in the long term, we'll want a complete
+        // mapping between their blendshape coefficients and our avatar features
+        const float MOUTH_SIZE_SCALE = 2500.0f;
+        _averageLoudness = faceshift->getMouthSize() * faceshift->getMouthSize() * MOUTH_SIZE_SCALE;
+        const float BROW_HEIGHT_SCALE = 0.005f;
+        _browAudioLift = faceshift->getBrowHeight() * BROW_HEIGHT_SCALE;
+        
     } else {
-        _leftEyeBlink = glm::clamp(_leftEyeBlink + _leftEyeBlinkVelocity * deltaTime, FULLY_OPEN, FULLY_CLOSED);
-        _rightEyeBlink = glm::clamp(_rightEyeBlink + _rightEyeBlinkVelocity * deltaTime, FULLY_OPEN, FULLY_CLOSED);
+        const float AUDIO_AVERAGING_SECS = 0.05;
+        _averageLoudness = (1.f - deltaTime / AUDIO_AVERAGING_SECS) * _averageLoudness +
+                                 (deltaTime / AUDIO_AVERAGING_SECS) * _audioLoudness;
         
-        if (_leftEyeBlink == FULLY_CLOSED) {
-            _leftEyeBlinkVelocity = -BLINK_SPEED;
+        //  Detect transition from talking to not; force blink after that and a delay
+        bool forceBlink = false;
+        const float TALKING_LOUDNESS = 100.0f;
+        const float BLINK_AFTER_TALKING = 0.25f;
+        if (_averageLoudness > TALKING_LOUDNESS) {
+            _timeWithoutTalking = 0.0f;
         
-        } else if (_leftEyeBlink == FULLY_OPEN) {
-            _leftEyeBlinkVelocity = 0.0f;
+        } else if (_timeWithoutTalking < BLINK_AFTER_TALKING && (_timeWithoutTalking += deltaTime) >= BLINK_AFTER_TALKING) {
+            forceBlink = true;
         }
-        if (_rightEyeBlink == FULLY_CLOSED) {
-            _rightEyeBlinkVelocity = -BLINK_SPEED;
+                                 
+        //  Update audio attack data for facial animation (eyebrows and mouth)
+        _audioAttack = 0.9f * _audioAttack + 0.1f * fabs(_audioLoudness - _lastLoudness);
+        _lastLoudness = _audioLoudness;
         
-        } else if (_rightEyeBlink == FULLY_OPEN) {
-            _rightEyeBlinkVelocity = 0.0f;
+        const float BROW_LIFT_THRESHOLD = 100.0f;
+        if (_audioAttack > BROW_LIFT_THRESHOLD) {
+            _browAudioLift += sqrtf(_audioAttack) * 0.00005f;
+        }
+        
+        const float CLAMP = 0.01f;
+        if (_browAudioLift > CLAMP) {
+            _browAudioLift = CLAMP;
+        }
+        
+        _browAudioLift *= 0.7f;      
+
+        const float BLINK_SPEED = 10.0f;
+        const float FULLY_OPEN = 0.0f;
+        const float FULLY_CLOSED = 1.0f;
+        if (_leftEyeBlinkVelocity == 0.0f && _rightEyeBlinkVelocity == 0.0f) {
+            // no blinking when brows are raised; blink less with increasing loudness
+            const float BASE_BLINK_RATE = 15.0f / 60.0f;
+            const float ROOT_LOUDNESS_TO_BLINK_INTERVAL = 0.25f;
+            if (forceBlink || (_browAudioLift < EPSILON && shouldDo(glm::max(1.0f, sqrt(_averageLoudness) *
+                    ROOT_LOUDNESS_TO_BLINK_INTERVAL) / BASE_BLINK_RATE, deltaTime))) {
+                _leftEyeBlinkVelocity = BLINK_SPEED;
+                _rightEyeBlinkVelocity = BLINK_SPEED;
+            }
+        } else {
+            _leftEyeBlink = glm::clamp(_leftEyeBlink + _leftEyeBlinkVelocity * deltaTime, FULLY_OPEN, FULLY_CLOSED);
+            _rightEyeBlink = glm::clamp(_rightEyeBlink + _rightEyeBlinkVelocity * deltaTime, FULLY_OPEN, FULLY_CLOSED);
+            
+            if (_leftEyeBlink == FULLY_CLOSED) {
+                _leftEyeBlinkVelocity = -BLINK_SPEED;
+            
+            } else if (_leftEyeBlink == FULLY_OPEN) {
+                _leftEyeBlinkVelocity = 0.0f;
+            }
+            if (_rightEyeBlink == FULLY_CLOSED) {
+                _rightEyeBlinkVelocity = -BLINK_SPEED;
+            
+            } else if (_rightEyeBlink == FULLY_OPEN) {
+                _rightEyeBlinkVelocity = 0.0f;
+            }
         }
     }
-
+    
     // based on the nature of the lookat position, determine if the eyes can look / are looking at it.      
     if (USING_PHYSICAL_MOHAWK) {
         updateHairPhysics(deltaTime);
@@ -334,9 +347,7 @@ void Head::render(float alpha) {
 
 void Head::setScale (float scale) {
     _scale = scale;
-    
-    delete[] _mohawkTriangleFan;
-    delete[] _mohawkColors;
+
     createMohawk();
 
     if (USING_PHYSICAL_MOHAWK) {
@@ -363,8 +374,6 @@ void Head::createMohawk() {
     float height = _scale * (0.08f + randFloat() * 0.05f);
     float variance = 0.03 + randFloat() * 0.03f;
     const float RAD_PER_TRIANGLE = (2.3f + randFloat() * 0.2f) / (float)MOHAWK_TRIANGLES;
-    _mohawkTriangleFan = new glm::vec3[MOHAWK_TRIANGLES];
-    _mohawkColors = new glm::vec3[MOHAWK_TRIANGLES];
     _mohawkTriangleFan[0] = glm::vec3(0, 0, 0);
     glm::vec3 basicColor(randFloat(), randFloat(), randFloat());
     _mohawkColors[0] = basicColor;
@@ -382,14 +391,9 @@ void Head::createMohawk() {
 
 void Head::renderMohawk() {
     
-    if (!_mohawkTriangleFan) {
+    if (!_mohawkInitialized) {
         createMohawk();
-        
-        // if we get here and still don't have a mohawk then we don't know who we are
-        // so return out since we can't render it yet
-        if (!_mohawkTriangleFan) {
-            return;
-        }
+        _mohawkInitialized = true;
     }
     
     if (USING_PHYSICAL_MOHAWK) {
@@ -649,7 +653,7 @@ void Head::renderEyeBalls() {
         glutSolidSphere(_scale * EYEBALL_RADIUS, 30, 30);
     glPopMatrix();
 
-    _irisProgram->bind();
+    _irisProgram.bind();
     glBindTexture(GL_TEXTURE_2D, _irisTextureID);
     glEnable(GL_TEXTURE_2D);
     
@@ -671,7 +675,7 @@ void Head::renderEyeBalls() {
                  _scale * IRIS_RADIUS); // flatten the iris
         
         // this ugliness is simply to invert the model transform and get the eye position in model space
-        _irisProgram->setUniform(_eyePositionLocation, (glm::inverse(rotation) *
+        _irisProgram.setUniform(_eyePositionLocation, (glm::inverse(rotation) *
             (Application::getInstance()->getCamera()->getPosition() - _leftEyePosition) +
                 glm::vec3(0.0f, 0.0f, _scale * IRIS_PROTRUSION)) * glm::vec3(1.0f / (_scale * IRIS_RADIUS * 2.0f),
                     1.0f / (_scale * IRIS_RADIUS * 2.0f), 1.0f / (_scale * IRIS_RADIUS)));
@@ -695,7 +699,7 @@ void Head::renderEyeBalls() {
                  _scale * IRIS_RADIUS); // flatten the iris
         
         // this ugliness is simply to invert the model transform and get the eye position in model space
-        _irisProgram->setUniform(_eyePositionLocation, (glm::inverse(rotation) *
+        _irisProgram.setUniform(_eyePositionLocation, (glm::inverse(rotation) *
             (Application::getInstance()->getCamera()->getPosition() - _rightEyePosition) +
                 glm::vec3(0.0f, 0.0f, _scale * IRIS_PROTRUSION)) * glm::vec3(1.0f / (_scale * IRIS_RADIUS * 2.0f),
                     1.0f / (_scale * IRIS_RADIUS * 2.0f), 1.0f / (_scale * IRIS_RADIUS)));
@@ -704,7 +708,7 @@ void Head::renderEyeBalls() {
     }
     glPopMatrix();
     
-    _irisProgram->release();
+    _irisProgram.release();
     glBindTexture(GL_TEXTURE_2D, 0);
     glDisable(GL_TEXTURE_2D);
     

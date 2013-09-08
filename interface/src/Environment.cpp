@@ -38,13 +38,31 @@ static sockaddr getZeroAddress() {
     return addr;
 }
 
+Environment::Environment()
+    : _initialized(false) {
+}
+
+Environment::~Environment() {
+    if (_initialized) {
+        delete _skyFromAtmosphereProgram;
+        delete _skyFromSpaceProgram;
+    }
+}
+
 void Environment::init() {
+    if (_initialized) {
+        qDebug("[ERROR] Environment is already initialized.\n");
+        return;
+    }
+
     switchToResourcesParentIfRequired();
     _skyFromAtmosphereProgram = createSkyProgram("Atmosphere", _skyFromAtmosphereUniformLocations);
     _skyFromSpaceProgram = createSkyProgram("Space", _skyFromSpaceUniformLocations);
     
     // start off with a default-constructed environment data
     _data[getZeroAddress()][0];
+
+    _initialized = true;
 }
 
 void Environment::resetToDefault() {

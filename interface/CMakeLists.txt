@@ -8,6 +8,7 @@ project(${TARGET_NAME})
 
 # setup for find modules
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../cmake/modules/")
+set(FACESHIFT_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/faceshift)
 set(LIBOVR_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/LibOVR)
 set(LIBVPX_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/LibVPX)
 set(LEAP_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/Leap)
@@ -37,7 +38,7 @@ configure_file(InterfaceConfig.h.in ${PROJECT_BINARY_DIR}/includes/InterfaceConf
 
 # grab the implementation and header files from src dirs
 file(GLOB INTERFACE_SRCS src/*.cpp src/*.h)
-foreach(SUBDIR avatar ui renderer)
+foreach(SUBDIR avatar devices renderer ui)
   file(GLOB SUBDIR_SRCS src/${SUBDIR}/*.cpp src/${SUBDIR}/*.h)
   set(INTERFACE_SRCS ${INTERFACE_SRCS} ${SUBDIR_SRCS})
 endforeach(SUBDIR)
@@ -47,11 +48,13 @@ add_subdirectory(src/starfield)
 
 find_package(Qt5Core REQUIRED)
 find_package(Qt5Gui REQUIRED)
+find_package(Qt5Multimedia REQUIRED)
 find_package(Qt5Network REQUIRED)
 find_package(Qt5OpenGL REQUIRED)
 find_package(Qt5Svg REQUIRED)
 
 if (APPLE)
+  set(MACOSX_BUNDLE_BUNDLE_NAME Interface)
   # set how the icon shows up in the Info.plist file
   SET(MACOSX_BUNDLE_ICON_FILE interface.icns) 
   
@@ -89,6 +92,7 @@ link_hifi_library(avatars ${TARGET_NAME} ${ROOT_DIR})
 link_hifi_library(audio ${TARGET_NAME} ${ROOT_DIR})
 
 # find required libraries
+find_package(Faceshift)
 find_package(GLM REQUIRED)
 find_package(LibOVR)
 find_package(LibVPX)
@@ -107,7 +111,7 @@ if (OPENNI_FOUND AND NOT DISABLE_OPENNI)
     target_link_libraries(${TARGET_NAME} ${OPENNI_LIBRARIES})
 endif (OPENNI_FOUND AND NOT DISABLE_OPENNI)
 
-qt5_use_modules(${TARGET_NAME} Core Gui Network OpenGL Svg)
+qt5_use_modules(${TARGET_NAME} Core Gui Multimedia Network OpenGL Svg)
 
 # include headers for interface and InterfaceConfig.
 include_directories(
@@ -119,6 +123,7 @@ include_directories(
 # use system flag so warnings are supressed
 include_directories(
   SYSTEM
+  ${FACESHIFT_INCLUDE_DIRS} 
   ${GLM_INCLUDE_DIRS} 
   ${LIBOVR_INCLUDE_DIRS}
   ${LIBVPX_INCLUDE_DIRS}
@@ -130,6 +135,7 @@ include_directories(
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${OPENCV_INCLUDE_DIRS}")
 target_link_libraries(
   ${TARGET_NAME}
+  ${FACESHIFT_LIBRARIES}
   ${LIBVPX_LIBRARIES}
   ${MOTIONDRIVER_LIBRARIES}
   ${OPENCV_LIBRARIES} 

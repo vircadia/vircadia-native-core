@@ -2,7 +2,7 @@ MACRO(SETUP_HIFI_PROJECT TARGET INCLUDE_QT)
     project(${TARGET})
     
     # grab the implemenation and header files
-    file(GLOB TARGET_SRCS src/*.cpp src/*.h)
+    file(GLOB TARGET_SRCS src/*.cpp src/*.h src/*.c)
     
     # add the executable
     add_executable(${TARGET} ${TARGET_SRCS})

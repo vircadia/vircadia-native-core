@@ -1,44 +1,26 @@
 //
-//  main.cpp
-//  Avatar Mixer
+//  AvatarMixer.cpp
+//  hifi
 //
-//  Created by Leonardo Murillo on 03/25/13.
-//  Copyright (c) 2013 High Fidelity, Inc. All rights reserved
+//  Created by Stephen Birarda on 9/5/13.
+//  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
+//
+//  Original avatar-mixer main created by Leonardo Murillo on 03/25/13.
 //
 //  The avatar mixer receives head, hand and positional data from all connected
 //  nodes, and broadcasts that data back to them, every BROADCAST_INTERVAL ms.
-//
-//
-
-#include <iostream>
-#include <math.h>
-#include <string.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <fcntl.h>
-#include <pthread.h>
-#include <errno.h>
-#include <fstream>
-#include <limits>
-#include <sys/time.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
 
 #include <NodeList.h>
-#include <SharedUtil.h>
 #include <PacketHeaders.h>
-#include <NodeTypes.h>
-#include <StdDev.h>
-#include <UDPSocket.h>
+#include <SharedUtil.h>
 
 #include "AvatarData.h"
 
-const int AVATAR_LISTEN_PORT = 55444;
+#include "AvatarMixer.h"
 
 unsigned char* addNodeToBroadcastPacket(unsigned char *currentPosition, Node *nodeToAdd) {
     currentPosition += packNodeId(currentPosition, nodeToAdd->getNodeID());
-
+    
     AvatarData *nodeData = (AvatarData *)nodeToAdd->getLinkedData();
     currentPosition += nodeData->getBroadcastData(currentPosition);
     
@@ -55,7 +37,7 @@ void attachAvatarDataToNode(Node* newNode) {
 //    1) use the view frustum to cull those avatars that are out of view. Since avatar data doesn't need to be present
 //       if the avatar is not in view or in the keyhole.
 //    2) after culling for view frustum, sort order the avatars by distance, send the closest ones first.
-//    3) if we need to rate limit the amount of data we send, we can use a distance weighted "semi-random" function to 
+//    3) if we need to rate limit the amount of data we send, we can use a distance weighted "semi-random" function to
 //       determine which avatars are included in the packet stream
 //    4) we should optimize the avatar data format to be more compact (100 bytes is pretty wasteful).
 void broadcastAvatarData(NodeList* nodeList, sockaddr* nodeAddress) {
@@ -66,13 +48,13 @@ void broadcastAvatarData(NodeList* nodeList, sockaddr* nodeAddress) {
     unsigned char* currentBufferPosition = broadcastPacket + numHeaderBytes;
     int packetLength = currentBufferPosition - broadcastPacket;
     int packetsSent = 0;
-
+    
     // send back a packet with other active node data to this node
     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
         if (node->getLinkedData() && !socketMatch(nodeAddress, node->getActiveSocket())) {
             unsigned char* avatarDataEndpoint = addNodeToBroadcastPacket((unsigned char*)&avatarDataBuffer[0], &*node);
             int avatarDataLength = avatarDataEndpoint - (unsigned char*)&avatarDataBuffer;
-
+            
             if (avatarDataLength + packetLength <= MAX_PACKET_SIZE) {
                 memcpy(currentBufferPosition, &avatarDataBuffer[0], avatarDataLength);
                 packetLength += avatarDataLength;
@@ -98,17 +80,9 @@ void broadcastAvatarData(NodeList* nodeList, sockaddr* nodeAddress) {
     nodeList->getNodeSocket()->send(nodeAddress, broadcastPacket, currentBufferPosition - broadcastPacket);
 }
 
-int main(int argc, const char* argv[]) {
-
-    NodeList* nodeList = NodeList::createInstance(NODE_TYPE_AVATAR_MIXER, AVATAR_LISTEN_PORT);
-    setvbuf(stdout, NULL, _IOLBF, 0);
-    
-    // Handle Local Domain testing with the --local command line
-    const char* local = "--local";
-    if (cmdOptionExists(argc, argv, local)) {
-        printf("Local Domain MODE!\n");
-        nodeList->setDomainIPToLocalhost();
-    }
+void AvatarMixer::run() {
+    NodeList* nodeList = NodeList::getInstance();
+    nodeList->setOwnerType(NODE_TYPE_AVATAR_MIXER);
     
     nodeList->linkedDataCreateCallback = attachAvatarDataToNode;
     
@@ -119,15 +93,18 @@ int main(int argc, const char* argv[]) {
     
     unsigned char* packetData = new unsigned char[MAX_PACKET_SIZE];
     
-    
     uint16_t nodeID = 0;
     Node* avatarNode = NULL;
     
     timeval lastDomainServerCheckIn = {};
     // we only need to hear back about avatar nodes from the DS
-    NodeList::getInstance()->setNodeTypesOfInterest(&NODE_TYPE_AGENT, 1);
+    nodeList->setNodeTypesOfInterest(&NODE_TYPE_AGENT, 1);
     
     while (true) {
+        
+        if (NodeList::getInstance()->getNumNoReplyDomainCheckIns() == MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
+            break;
+        }
         
         // send a check in packet to the domain server if DOMAIN_SERVER_CHECK_IN_USECS has elapsed
         if (usecTimestampNow() - usecTimestamp(&lastDomainServerCheckIn) >= DOMAIN_SERVER_CHECK_IN_USECS) {
@@ -162,9 +139,6 @@ int main(int argc, const char* argv[]) {
                         }
                     }
                     break;
-                case PACKET_TYPE_DOMAIN:
-                    // ignore the DS packet, for now nodes are added only when they communicate directly with us
-                    break;
                 default:
                     // hand this off to the NodeList
                     nodeList->processNodeData(nodeAddress, packetData, receivedBytes);
@@ -174,6 +148,4 @@ int main(int argc, const char* argv[]) {
     }
     
     nodeList->stopSilentNodeRemovalThread();
-    
-    return 0;
 }

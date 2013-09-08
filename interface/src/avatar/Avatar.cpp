@@ -13,7 +13,6 @@
 
 #include <NodeList.h>
 #include <NodeTypes.h>
-#include <OculusManager.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
 
@@ -23,6 +22,7 @@
 #include "Head.h"
 #include "Physics.h"
 #include "world.h"
+#include "devices/OculusManager.h"
 #include "ui/TextRenderer.h"
 
 using namespace std;
@@ -102,11 +102,11 @@ Avatar::Avatar(Node* owningNode) :
     _isCollisionsOn(true),
     _leadingAvatar(NULL),
     _voxels(this),
+    _moving(false),
     _initialized(false),
     _handHoldingPosition(0.0f, 0.0f, 0.0f),
     _maxArmLength(0.0f),
-    _pelvisStandingHeight(0.0f),
-    _moving(false)
+    _pelvisStandingHeight(0.0f)
 {
     // give the pointer to our head to inherited _headData variable from AvatarData
     _headData = &_head;

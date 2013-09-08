@@ -14,6 +14,7 @@ const int NUMBER_SPRINGS = 4;
 class Balls {
 public:
     Balls(int numberOfBalls);
+    ~Balls();
     
     void simulate(float deltaTime);
     void render();
