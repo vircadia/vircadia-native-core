@@ -65,6 +65,7 @@
 #include "devices/OculusManager.h"
 #include "renderer/ProgramObject.h"
 #include "ui/TextRenderer.h"
+#include "InfoView.h"
 
 using namespace std;
 
@@ -328,6 +329,8 @@ void Application::initializeGL() {
 #if defined(Q_OS_MAC) && defined(QT_NO_DEBUG)
     Menu::getInstance()->checkForUpdates();
 #endif
+
+    InfoView::showFirstTime();
 }
 
 void Application::paintGL() {
