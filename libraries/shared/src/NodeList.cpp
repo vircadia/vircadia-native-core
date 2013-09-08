@@ -13,6 +13,7 @@
 
 #include <QtCore/QDebug>
 
+#include "Assignment.h"
 #include "NodeList.h"
 #include "NodeTypes.h"
 #include "PacketHeaders.h"
@@ -63,7 +64,8 @@ NodeList::NodeList(char newOwnerType, unsigned short int newSocketListenPort) :
     _ownerType(newOwnerType),
     _nodeTypesOfInterest(NULL),
     _ownerID(UNKNOWN_NODE_ID),
-    _lastNodeID(UNKNOWN_NODE_ID + 1)
+    _lastNodeID(UNKNOWN_NODE_ID + 1),
+    _numNoReplyDomainCheckIns(0)
 {
     memcpy(_domainHostname, DEFAULT_DOMAIN_HOSTNAME, sizeof(DEFAULT_DOMAIN_HOSTNAME));
     memcpy(_domainIP, DEFAULT_DOMAIN_IP, sizeof(DEFAULT_DOMAIN_IP));
@@ -328,9 +330,15 @@ void NodeList::sendDomainServerCheckIn() {
     }
     
     _nodeSocket.send(_domainIP, DEFAULT_DOMAINSERVER_PORT, checkInPacket, checkInPacketSize);
+    
+    // increment the count of un-replied check-ins
+    _numNoReplyDomainCheckIns++;
 }
 
 int NodeList::processDomainServerList(unsigned char* packetData, size_t dataBytes) {
+    // this is a packet from the domain server, reset the count of un-replied check-ins
+    _numNoReplyDomainCheckIns = 0;
+    
     int readNodes = 0;
 
     char nodeType;
@@ -366,13 +374,21 @@ int NodeList::processDomainServerList(unsigned char* packetData, size_t dataByte
     return readNodes;
 }
 
-void NodeList::sendAssignmentRequest() {
-    const char ASSIGNMENT_SERVER_HOSTNAME[] = "assignment.highfidelity.io";
+const char ASSIGNMENT_SERVER_HOSTNAME[] = "assignment.highfidelity.io";
+const sockaddr_in assignmentServerSocket = socketForHostnameAndHostOrderPort(ASSIGNMENT_SERVER_HOSTNAME,
+                                                                             ASSIGNMENT_SERVER_PORT);
+
+void NodeList::sendAssignment(Assignment& assignment) {
+    unsigned char assignmentPacket[MAX_PACKET_SIZE];
     
-    static sockaddr_in assignmentServerSocket = socketForHostname(ASSIGNMENT_SERVER_HOSTNAME);
-    assignmentServerSocket.sin_port = htons(ASSIGNMENT_SERVER_PORT);
+    PACKET_TYPE assignmentPacketType = assignment.getDirection() == Assignment::Create
+        ? PACKET_TYPE_CREATE_ASSIGNMENT
+        : PACKET_TYPE_REQUEST_ASSIGNMENT;
     
-    _nodeSocket.send((sockaddr*) &assignmentServerSocket, &PACKET_TYPE_REQUEST_ASSIGNMENT, 1);
+    int numHeaderBytes = populateTypeAndVersion(assignmentPacket, assignmentPacketType);
+    int numAssignmentBytes = assignment.packToBuffer(assignmentPacket + numHeaderBytes);
+
+    _nodeSocket.send((sockaddr*) &assignmentServerSocket, assignmentPacket, numHeaderBytes + numAssignmentBytes);
 }
 
 Node* NodeList::addOrUpdateNode(sockaddr* publicSocket, sockaddr* localSocket, char nodeType, uint16_t nodeId) {
@@ -385,9 +401,14 @@ Node* NodeList::addOrUpdateNode(sockaddr* publicSocket, sockaddr* localSocket, c
                 break;
             }
         }
-    } 
+    }
     
     if (node == end()) {
+        // if we already had this node AND it's a solo type then bust out of here
+        if (soloNodeOfType(nodeType)) {
+            return NULL;
+        }
+        
         // we didn't have this node, so add them
         Node* newNode = new Node(publicSocket, localSocket, nodeType, nodeId);
         

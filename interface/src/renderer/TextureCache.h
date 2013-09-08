@@ -49,9 +49,9 @@ private:
     QOpenGLFramebufferObject* createFramebufferObject();
     
     GLuint _permutationNormalTextureID;
-    
-    QOpenGLFramebufferObject* _primaryFramebufferObject;
+
     GLuint _primaryDepthTextureID;
+    QOpenGLFramebufferObject* _primaryFramebufferObject;
     QOpenGLFramebufferObject* _secondaryFramebufferObject;
     QOpenGLFramebufferObject* _tertiaryFramebufferObject;
 };

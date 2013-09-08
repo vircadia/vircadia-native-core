@@ -19,19 +19,19 @@ class BoundingBox {
 public:
     enum { BOTTOM_LEFT, BOTTOM_RIGHT, TOP_RIGHT, TOP_LEFT, VERTEX_COUNT };
 
-    BoundingBox(glm::vec2 corner, glm::vec2 size) : corner(corner), size(size), _set(true) {};
-    BoundingBox() : _set(false) {};
+    BoundingBox(const glm::vec2 corner, const glm::vec2 size) : corner(corner), size(size), _set(true) {}
+    BoundingBox() : _set(false) {}
     glm::vec2 corner;
     glm::vec2 size;
     bool contains(const BoundingBox& box) const;
     bool contains(const glm::vec2& point) const;
-    bool pointInside(const glm::vec2& point) const { return contains(point); };
-    
+    bool pointInside(const glm::vec2& point) const { return contains(point); }
+
     void explandToInclude(const BoundingBox& box);
 
-    float area() const { return size.x * size.y; };
+    float area() const { return size.x * size.y; }
 
-    int getVertexCount() const { return VERTEX_COUNT; };
+    int getVertexCount() const { return VERTEX_COUNT; }
     glm::vec2 getVertex(int vertexNumber) const;
 
     BoundingBox topHalf() const;
@@ -66,23 +66,23 @@ public:
         _vertexCount(vertexCount), 
         _maxX(-FLT_MAX), _maxY(-FLT_MAX), _minX(FLT_MAX), _minY(FLT_MAX),
         _distance(0)
-        { };
+        { }
         
-    ~VoxelProjectedPolygon() { };
-    const ProjectedVertices& getVertices() const { return _vertices; };
-    const glm::vec2& getVertex(int i) const { return _vertices[i]; };
+    ~VoxelProjectedPolygon() { }
+    const ProjectedVertices& getVertices() const { return _vertices; }
+    const glm::vec2& getVertex(int i) const { return _vertices[i]; }
     void setVertex(int vertex, const glm::vec2& point);
 
-    int getVertexCount() const                 { return _vertexCount; };
-    void setVertexCount(int vertexCount)       { _vertexCount = vertexCount; };
-    float getDistance() const                  { return _distance; }
-    void  setDistance(float distance)          { _distance = distance; }
-    bool getAnyInView() const                  { return _anyInView; };
-    void setAnyInView(bool anyInView)          { _anyInView = anyInView; };
-    bool getAllInView() const                  { return _allInView; };
-    void setAllInView(bool allInView)          { _allInView = allInView; };
-    void setProjectionType(unsigned char type) { _projectionType = type; };
-    unsigned char getProjectionType() const    { return _projectionType; };
+    int getVertexCount() const { return _vertexCount; }
+    float getDistance() const { return _distance; }
+    bool getAnyInView() const { return _anyInView; }
+    bool getAllInView() const { return _allInView; }
+    unsigned char getProjectionType() const { return _projectionType; }
+    void setVertexCount(int vertexCount) { _vertexCount = vertexCount; }
+    void setDistance(float distance) { _distance = distance; }
+    void setAnyInView(bool anyInView) { _anyInView = anyInView; }
+    void setAllInView(bool allInView) { _allInView = allInView; }
+    void setProjectionType(unsigned char type) { _projectionType = type; }
 
 
     bool pointInside(const glm::vec2& point, bool* matchesVertex = NULL) const;

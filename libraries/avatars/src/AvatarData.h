@@ -73,21 +73,22 @@ public:
     void setBodyYaw(float bodyYaw) { _bodyYaw = bodyYaw; }
     float getBodyPitch() const { return _bodyPitch; }
     void setBodyPitch(float bodyPitch) { _bodyPitch = bodyPitch; }
-    float getBodyRoll() const {return _bodyRoll; }
+    float getBodyRoll() const { return _bodyRoll; }
     void setBodyRoll(float bodyRoll) { _bodyRoll = bodyRoll; }
 
     
     //  Hand State
-    void setHandState(char s) { _handState = s; };
-    char getHandState() const {return _handState; };
+    void setHandState(char s) { _handState = s; }
+    char getHandState() const { return _handState; }
     
     // getters for camera details
-    const glm::vec3& getCameraPosition() const { return _cameraPosition; };
+    const glm::vec3& getCameraPosition() const { return _cameraPosition; }
     const glm::quat& getCameraOrientation() const { return _cameraOrientation; }
     float getCameraFov() const { return _cameraFov; }
     float getCameraAspectRatio() const { return _cameraAspectRatio; }
     float getCameraNearClip() const { return _cameraNearClip; }
     float getCameraFarClip() const { return _cameraFarClip; }
+    const glm::vec3& getCameraEyeOffsetPosition() const { return _cameraEyeOffsetPosition; }
 
     glm::vec3 calculateCameraDirection() const;
 
@@ -98,6 +99,7 @@ public:
     void setCameraAspectRatio(float aspectRatio) { _cameraAspectRatio = aspectRatio; }
     void setCameraNearClip(float nearClip) { _cameraNearClip = nearClip; }
     void setCameraFarClip(float farClip) { _cameraFarClip = farClip; }
+    void setCameraEyeOffsetPosition(const glm::vec3& eyeOffsetPosition) { _cameraEyeOffsetPosition = eyeOffsetPosition; }
     
     // key state
     void setKeyState(KeyState s) { _keyState = s; }
@@ -151,6 +153,7 @@ protected:
     float _cameraAspectRatio;
     float _cameraNearClip;
     float _cameraFarClip;
+    glm::vec3 _cameraEyeOffsetPosition;
     
     // key state
     KeyState _keyState;

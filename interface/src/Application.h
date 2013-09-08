@@ -33,7 +33,6 @@
 #include "GLCanvas.h"
 #include "PacketHeaders.h"
 #include "PieMenu.h"
-#include "SerialInterface.h"
 #include "Stars.h"
 #include "Swatch.h"
 #include "ToolsPalette.h"
@@ -43,10 +42,12 @@
 #include "VoxelPacketProcessor.h"
 #include "VoxelSystem.h"
 #include "VoxelImporter.h"
-#include "Webcam.h"
 #include "avatar/Avatar.h"
 #include "avatar/MyAvatar.h"
 #include "avatar/HandControl.h"
+#include "devices/Faceshift.h"
+#include "devices/SerialInterface.h"
+#include "devices/Webcam.h"
 #include "renderer/AmbientOcclusionEffect.h"
 #include "renderer/GeometryCache.h"
 #include "renderer/GlowEffect.h"
@@ -117,6 +118,7 @@ public:
     Environment* getEnvironment() { return &_environment; }
     SerialInterface* getSerialHeadSensor() { return &_serialHeadSensor; }
     Webcam* getWebcam() { return &_webcam; }
+    Faceshift* getFaceshift() { return &_faceshift; }
     BandwidthMeter* getBandwidthMeter() { return &_bandwidthMeter; }
     QSettings* getSettings() { return _settings; }
     Swatch*  getSwatch() { return &_swatch; }
@@ -176,6 +178,7 @@ private slots:
 
 private:
     void resetCamerasOnResizeGL(Camera& camera, int width, int height);
+    void updateProjectionMatrix();
 
     static bool sendVoxelsOperation(VoxelNode* node, void* extraData);
     static void processAvatarVoxelURLMessage(unsigned char* packetData, size_t dataBytes);
@@ -258,6 +261,8 @@ private:
     Transmitter _myTransmitter;        // Gets UDP data from transmitter app used to animate the avatar
     
     Webcam _webcam;                    // The webcam interface
+    
+    Faceshift _faceshift;
     
     Camera _myCamera;                  // My view onto the world
     Camera _viewFrustumOffsetCamera;   // The camera we use to sometimes show the view frustum from an offset mode

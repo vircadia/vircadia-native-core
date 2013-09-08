@@ -12,19 +12,17 @@
 
 #include <QtCore/QString>
 
+#include <Assignment.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
 #include <UDPSocket.h>
 
 const int MAX_PACKET_SIZE_BYTES = 1400;
-
-struct Assignment {
-    QString scriptFilename;
-};
+const long long NUM_DEFAULT_ASSIGNMENT_STALENESS_USECS = 10 * 1000 * 1000;
 
 int main(int argc, const char* argv[]) {
     
-    std::queue<Assignment> assignmentQueue;
+    std::deque<Assignment*> assignmentQueue;
     
     sockaddr_in senderSocket;
     unsigned char senderData[MAX_PACKET_SIZE_BYTES] = {};
@@ -33,46 +31,78 @@ int main(int argc, const char* argv[]) {
     UDPSocket serverSocket(ASSIGNMENT_SERVER_PORT);
     
     unsigned char assignmentPacket[MAX_PACKET_SIZE_BYTES];
-    int numSendHeaderBytes = populateTypeAndVersion(assignmentPacket, PACKET_TYPE_SEND_ASSIGNMENT);
+    int numSendHeaderBytes = populateTypeAndVersion(assignmentPacket, PACKET_TYPE_DEPLOY_ASSIGNMENT);
     
     while (true) {
         if (serverSocket.receive((sockaddr*) &senderSocket, &senderData, &receivedBytes)) {
-            
-            int numHeaderBytes = numBytesForPacketHeader(senderData);
-            
-            if (senderData[0] == PACKET_TYPE_REQUEST_ASSIGNMENT) {       
-                qDebug() << "Assignment request received.\n";
-                // grab the FI assignment in the queue, if it exists
+            if (senderData[0] == PACKET_TYPE_REQUEST_ASSIGNMENT) {
+                // construct the requested assignment from the packet data
+                Assignment requestAssignment(senderData, receivedBytes);
+                
+                qDebug() << "Received request for assignment:" << requestAssignment;
+                qDebug() << "Current queue size is" << assignmentQueue.size();
+                
+                // make sure there are assignments in the queue at all
                 if (assignmentQueue.size() > 0) {
-                    Assignment firstAssignment = assignmentQueue.front();
-                    assignmentQueue.pop();
                     
-                    QString scriptURL = QString("http://base8-compute.s3.amazonaws.com/%1").arg(firstAssignment.scriptFilename);
+                    std::deque<Assignment*>::iterator assignment = assignmentQueue.begin();
                     
-                    qDebug() << "Sending assignment with URL" << scriptURL << "\n";
-                    
-                    int scriptURLBytes = scriptURL.size();
-                    memcpy(assignmentPacket + numSendHeaderBytes, scriptURL.toLocal8Bit().constData(), scriptURLBytes);
-
-                    // send the assignment
-                    serverSocket.send((sockaddr*) &senderSocket, assignmentPacket, numHeaderBytes + scriptURLBytes);
+                    // enumerate assignments until we find one to give this client (if possible)
+                    while (assignment != assignmentQueue.end()) {
+                        
+                        // if this assignment is stale then get rid of it and check the next one
+                        if (usecTimestampNow() - usecTimestamp(&((*assignment)->getTime()))
+                            >= NUM_DEFAULT_ASSIGNMENT_STALENESS_USECS) {
+                            delete *assignment;
+                            assignment = assignmentQueue.erase(assignment);
+                            
+                            continue;
+                        }
+                        
+                        bool eitherHasPool = ((*assignment)->getPool() || requestAssignment.getPool());
+                        bool bothHavePool = ((*assignment)->getPool() && requestAssignment.getPool());
+                        
+                        // make sure there is a pool match for the created and requested assignment
+                        // or that neither has a designated pool
+                        if ((eitherHasPool && bothHavePool
+                             && strcmp((*assignment)->getPool(), requestAssignment.getPool()) == 0)
+                            || !eitherHasPool) {
+                            
+                            int numAssignmentBytes = (*assignment)->packToBuffer(assignmentPacket + numSendHeaderBytes);
+                            
+                            // send the assignment
+                            serverSocket.send((sockaddr*) &senderSocket,
+                                              assignmentPacket,
+                                              numSendHeaderBytes + numAssignmentBytes);
+                            
+                            
+                            // delete this assignment now that it has been sent out
+                            delete *assignment;
+                            // remove it from the deque and make the iterator the next assignment
+                            assignmentQueue.erase(assignment);
+                            
+                            // stop looping - we've handed out an assignment
+                            break;
+                        } else {
+                            // push forward the iterator
+                            assignment++;
+                        }
+                    }
                 }
-            } else if (senderData[0] == PACKET_TYPE_SEND_ASSIGNMENT) {
-                Assignment newAssignment;
+            } else if (senderData[0] == PACKET_TYPE_CREATE_ASSIGNMENT && packetVersionMatch(senderData)) {
+                // construct the create assignment from the packet data
+                Assignment* createdAssignment = new Assignment(senderData, receivedBytes);
                 
-                senderData[receivedBytes] = '\0';
-                newAssignment.scriptFilename = QString((const char*)senderData + numHeaderBytes);
+                qDebug() << "Received a created assignment:" << *createdAssignment;
+                qDebug() << "Current queue size is" << assignmentQueue.size();
                 
-                qDebug() << "Added an assignment with script with filename" << newAssignment.scriptFilename << "\n";
-                                
+                // assignment server is on a public server
+                // assume that the address we now have for the sender is the public address/port
+                // and store that with the assignment so it can be given to the requestor later
+                createdAssignment->setDomainSocket((sockaddr*) &senderSocket);
+                
                 // add this assignment to the queue
-                
-                // we're not a queue right now, only keep one assignment
-                if (assignmentQueue.size() > 0) {
-                    assignmentQueue.pop();
-                }
-                
-                assignmentQueue.push(newAssignment);
+                assignmentQueue.push_back(createdAssignment);
             }
         }
     }    

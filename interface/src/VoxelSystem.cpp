@@ -51,8 +51,12 @@ GLubyte identityIndices[] = { 0,2,1,    0,3,2,    // Z-
                               10,11,15, 10,15,14, // Y+
                               4,5,6,    4,6,7 };  // Z+
 
-VoxelSystem::VoxelSystem(float treeScale, int maxVoxels) :
-        NodeData(NULL), _treeScale(treeScale), _maxVoxels(maxVoxels) {
+VoxelSystem::VoxelSystem(float treeScale, int maxVoxels)
+    : NodeData(NULL),
+      _treeScale(treeScale),
+      _maxVoxels(maxVoxels),
+      _initialized(false) {
+
     _voxelsInReadArrays = _voxelsInWriteArrays = _voxelsUpdated = 0;
     _writeRenderFullVBO = true;
     _readRenderFullVBO = true;
@@ -115,16 +119,21 @@ void VoxelSystem::clearFreeBufferIndexes() {
 }
 
 VoxelSystem::~VoxelSystem() {
-    glDeleteBuffers(1, &_vboVerticesID);
-    glDeleteBuffers(1, &_vboNormalsID);
-    glDeleteBuffers(1, &_vboColorsID);
-    glDeleteBuffers(1, &_vboIndicesID);
-    delete[] _readVerticesArray;
-    delete[] _writeVerticesArray;
-    delete[] _readColorsArray;
-    delete[] _writeColorsArray;
-    delete[] _writeVoxelDirtyArray;
-    delete[] _readVoxelDirtyArray;
+    if (_initialized) {
+        // Destroy  glBuffers
+        glDeleteBuffers(1, &_vboVerticesID);
+        glDeleteBuffers(1, &_vboNormalsID);
+        glDeleteBuffers(1, &_vboColorsID);
+        glDeleteBuffers(1, &_vboIndicesID);
+
+        delete[] _readVerticesArray;
+        delete[] _writeVerticesArray;
+        delete[] _readColorsArray;
+        delete[] _writeColorsArray;
+        delete[] _writeVoxelDirtyArray;
+        delete[] _readVoxelDirtyArray;
+    }
+
     delete _tree;
     pthread_mutex_destroy(&_bufferWriteLock);
     pthread_mutex_destroy(&_treeLock);
@@ -536,9 +545,14 @@ glm::vec3 VoxelSystem::computeVoxelVertex(const glm::vec3& startVertex, float vo
     return startVertex + glm::vec3(identityVertex[0], identityVertex[1], identityVertex[2]) * voxelScale;
 }
 
-ProgramObject* VoxelSystem::_perlinModulateProgram = 0;
+ProgramObject VoxelSystem::_perlinModulateProgram;
 
 void VoxelSystem::init() {
+    if (_initialized) {
+        qDebug("[ERROR] VoxelSystem is already initialized.\n");
+        return;
+    }
+
     _callsToTreesToArrays = 0;
     _setupNewVoxelsForDrawingLastFinished = 0;
     _setupNewVoxelsForDrawingLastElapsed = 0;
@@ -548,19 +562,6 @@ void VoxelSystem::init() {
     _voxelsDirty = false;
     _voxelsInWriteArrays = 0;
     _voxelsInReadArrays = 0;
-
-    // we will track individual dirty sections with these arrays of bools
-    _writeVoxelDirtyArray = new bool[_maxVoxels];
-    memset(_writeVoxelDirtyArray, false, _maxVoxels * sizeof(bool));
-    _readVoxelDirtyArray = new bool[_maxVoxels];
-    memset(_readVoxelDirtyArray, false, _maxVoxels * sizeof(bool));
-
-    // prep the data structures for incoming voxel data
-    _writeVerticesArray = new GLfloat[VERTEX_POINTS_PER_VOXEL * _maxVoxels];
-    _readVerticesArray = new GLfloat[VERTEX_POINTS_PER_VOXEL * _maxVoxels];
-
-    _writeColorsArray = new GLubyte[VERTEX_POINTS_PER_VOXEL * _maxVoxels];
-    _readColorsArray = new GLubyte[VERTEX_POINTS_PER_VOXEL * _maxVoxels];
 
     GLuint* indicesArray = new GLuint[INDICES_PER_VOXEL * _maxVoxels];
 
@@ -615,20 +616,34 @@ void VoxelSystem::init() {
     // delete the indices and normals arrays that are no longer needed
     delete[] indicesArray;
     delete[] normalsArray;
-    
+
+
+    // we will track individual dirty sections with these arrays of bools
+    _writeVoxelDirtyArray = new bool[_maxVoxels];
+    memset(_writeVoxelDirtyArray, false, _maxVoxels * sizeof(bool));
+    _readVoxelDirtyArray = new bool[_maxVoxels];
+    memset(_readVoxelDirtyArray, false, _maxVoxels * sizeof(bool));
+
+    // prep the data structures for incoming voxel data
+    _writeVerticesArray = new GLfloat[VERTEX_POINTS_PER_VOXEL * _maxVoxels];
+    _readVerticesArray = new GLfloat[VERTEX_POINTS_PER_VOXEL * _maxVoxels];
+
+    _writeColorsArray = new GLubyte[VERTEX_POINTS_PER_VOXEL * _maxVoxels];
+    _readColorsArray = new GLubyte[VERTEX_POINTS_PER_VOXEL * _maxVoxels];
+
+
     // create our simple fragment shader if we're the first system to init
-    if (_perlinModulateProgram != 0) {
-        return;
+    if (!_perlinModulateProgram.isLinked()) {
+        switchToResourcesParentIfRequired();
+        _perlinModulateProgram.addShaderFromSourceFile(QGLShader::Vertex, "resources/shaders/perlin_modulate.vert");
+        _perlinModulateProgram.addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/perlin_modulate.frag");
+        _perlinModulateProgram.link();
+
+        _perlinModulateProgram.bind();
+        _perlinModulateProgram.setUniformValue("permutationNormalTexture", 0);
+        _perlinModulateProgram.release();
     }
-    switchToResourcesParentIfRequired();
-    _perlinModulateProgram = new ProgramObject();
-    _perlinModulateProgram->addShaderFromSourceFile(QGLShader::Vertex, "resources/shaders/perlin_modulate.vert");
-    _perlinModulateProgram->addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/perlin_modulate.frag");
-    _perlinModulateProgram->link();
-    
-    _perlinModulateProgram->bind();
-    _perlinModulateProgram->setUniformValue("permutationNormalTexture", 0);
-    _perlinModulateProgram->release();
+    _initialized = true;
 }
 
 void VoxelSystem::changeTree(VoxelTree* newTree) {
@@ -765,7 +780,7 @@ void VoxelSystem::applyScaleAndBindProgram(bool texture) {
     glScalef(_treeScale, _treeScale, _treeScale);
 
     if (texture) {
-        _perlinModulateProgram->bind();
+        _perlinModulateProgram.bind();
         glBindTexture(GL_TEXTURE_2D, Application::getInstance()->getTextureCache()->getPermutationNormalTextureID());
     }
 }
@@ -775,7 +790,7 @@ void VoxelSystem::removeScaleAndReleaseProgram(bool texture) {
     glPopMatrix();
     
     if (texture) {
-        _perlinModulateProgram->release();
+        _perlinModulateProgram.release();
         glBindTexture(GL_TEXTURE_2D, 0);
     }
 }

@@ -22,25 +22,38 @@ const int BONE_ELEMENTS_PER_VOXEL = BONE_ELEMENTS_PER_VERTEX * VERTICES_PER_VOXE
 
 AvatarVoxelSystem::AvatarVoxelSystem(Avatar* avatar) :
     VoxelSystem(AVATAR_TREE_SCALE, MAX_VOXELS_PER_AVATAR),
-    _mode(0), _avatar(avatar), _voxelReply(0) {
+    _initialized(false),
+    _mode(0),
+    _avatar(avatar),
+    _voxelReply(0) {
 
     // we may have been created in the network thread, but we live in the main thread
     moveToThread(Application::getInstance()->thread());
 }
 
-AvatarVoxelSystem::~AvatarVoxelSystem() {   
-    delete[] _readBoneIndicesArray;
-    delete[] _readBoneWeightsArray;
-    delete[] _writeBoneIndicesArray;
-    delete[] _writeBoneWeightsArray;
+AvatarVoxelSystem::~AvatarVoxelSystem() {
+    if (_initialized) {
+        delete[] _readBoneIndicesArray;
+        delete[] _readBoneWeightsArray;
+        delete[] _writeBoneIndicesArray;
+        delete[] _writeBoneWeightsArray;
+
+        glDeleteBuffers(1, &_vboBoneIndicesID);
+        glDeleteBuffers(1, &_vboBoneWeightsID);
+    }
 }
 
-ProgramObject* AvatarVoxelSystem::_skinProgram = 0;
+ProgramObject AvatarVoxelSystem::_skinProgram;
 int AvatarVoxelSystem::_boneMatricesLocation;
 int AvatarVoxelSystem::_boneIndicesLocation;
 int AvatarVoxelSystem::_boneWeightsLocation;
 
 void AvatarVoxelSystem::init() {
+    if (_initialized) {
+        qDebug("[ERROR] AvatarVoxelSystem is already initialized.\n");
+        return;
+    }
+
     VoxelSystem::init();
     
     // prep the data structures for incoming voxel data
@@ -61,16 +74,16 @@ void AvatarVoxelSystem::init() {
     glBufferData(GL_ARRAY_BUFFER, BONE_ELEMENTS_PER_VOXEL * sizeof(GLfloat) * _maxVoxels, NULL, GL_DYNAMIC_DRAW);
     
     // load our skin program if this is the first avatar system to initialize
-    if (_skinProgram != 0) {
-        return;
+    if (!_skinProgram.isLinked()) {
+        _skinProgram.addShaderFromSourceFile(QGLShader::Vertex, "resources/shaders/skin_voxels.vert");
+        _skinProgram.link();
     }
-    _skinProgram = new ProgramObject();
-    _skinProgram->addShaderFromSourceFile(QGLShader::Vertex, "resources/shaders/skin_voxels.vert");
-    _skinProgram->link();
     
-    _boneMatricesLocation = _skinProgram->uniformLocation("boneMatrices");
-    _boneIndicesLocation = _skinProgram->attributeLocation("boneIndices");
-    _boneWeightsLocation = _skinProgram->attributeLocation("boneWeights");
+    _boneMatricesLocation = _skinProgram.uniformLocation("boneMatrices");
+    _boneIndicesLocation = _skinProgram.attributeLocation("boneIndices");
+    _boneWeightsLocation = _skinProgram.attributeLocation("boneWeights");
+
+    _initialized = true;
 }
 
 void AvatarVoxelSystem::removeOutOfView() {
@@ -202,7 +215,7 @@ void AvatarVoxelSystem::updateVBOSegment(glBufferIndex segmentStart, glBufferInd
 }
 
 void AvatarVoxelSystem::applyScaleAndBindProgram(bool texture) {
-    _skinProgram->bind();
+    _skinProgram.bind();
     
     // the base matrix includes centering and scale
     QMatrix4x4 baseMatrix;
@@ -222,21 +235,21 @@ void AvatarVoxelSystem::applyScaleAndBindProgram(bool texture) {
         boneMatrices[i].translate(-bindPosition.x, -bindPosition.y, -bindPosition.z);
         boneMatrices[i] *= baseMatrix;
     } 
-    _skinProgram->setUniformValueArray(_boneMatricesLocation, boneMatrices, NUM_AVATAR_JOINTS);
+    _skinProgram.setUniformValueArray(_boneMatricesLocation, boneMatrices, NUM_AVATAR_JOINTS);
     
     glBindBuffer(GL_ARRAY_BUFFER, _vboBoneIndicesID);
     glVertexAttribPointer(_boneIndicesLocation, BONE_ELEMENTS_PER_VERTEX, GL_UNSIGNED_BYTE, false, 0, 0);
-    _skinProgram->enableAttributeArray(_boneIndicesLocation);
+    _skinProgram.enableAttributeArray(_boneIndicesLocation);
     
     glBindBuffer(GL_ARRAY_BUFFER, _vboBoneWeightsID);
-    _skinProgram->setAttributeBuffer(_boneWeightsLocation, GL_FLOAT, 0, BONE_ELEMENTS_PER_VERTEX);
-    _skinProgram->enableAttributeArray(_boneWeightsLocation);
+    _skinProgram.setAttributeBuffer(_boneWeightsLocation, GL_FLOAT, 0, BONE_ELEMENTS_PER_VERTEX);
+    _skinProgram.enableAttributeArray(_boneWeightsLocation);
 }
 
 void AvatarVoxelSystem::removeScaleAndReleaseProgram(bool texture) {
-    _skinProgram->release();
-    _skinProgram->disableAttributeArray(_boneIndicesLocation);
-    _skinProgram->disableAttributeArray(_boneWeightsLocation);
+    _skinProgram.release();
+    _skinProgram.disableAttributeArray(_boneIndicesLocation);
+    _skinProgram.disableAttributeArray(_boneWeightsLocation);
 }
 
 void AvatarVoxelSystem::handleVoxelDownloadProgress(qint64 bytesReceived, qint64 bytesTotal) {

@@ -38,7 +38,7 @@ static const float DECIMETER        = 0.1f;
 static const float CENTIMETER       = 0.01f;
 static const float MILLIIMETER      = 0.001f;
 
-uint64_t usecTimestamp(timeval *time);
+uint64_t usecTimestamp(const timeval *time);
 uint64_t usecTimestampNow();
 
 float randFloat();
@@ -106,7 +106,7 @@ int removeFromSortedArrays(void* value, void** valueArray, float* keyArray, int*
 // Helper Class for debugging
 class debug {
 public:                           
-    static const char* valueOf(bool checkValue) { return checkValue ? "yes" : "no"; };
+    static const char* valueOf(bool checkValue) { return checkValue ? "yes" : "no"; }
 };
 
 #endif /* defined(__hifi__SharedUtil__) */

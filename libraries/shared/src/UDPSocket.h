@@ -22,12 +22,17 @@ class UDPSocket {
 public:
     UDPSocket(unsigned short int listeningPort);
     ~UDPSocket();
+    
     bool init();
     unsigned short int getListeningPort() const { return _listeningPort; }
+    
     void setBlocking(bool blocking);
     bool isBlocking() const { return blocking; }
+    void setBlockingReceiveTimeoutInUsecs(int timeoutUsecs);
+    
     int send(sockaddr* destAddress, const void* data, size_t byteLength) const;
     int send(char* destAddress, int destPort, const void* data, size_t byteLength) const;
+    
     bool receive(void* receivedData, ssize_t* receivedBytes) const;
     bool receive(sockaddr* recvAddress, void* receivedData, ssize_t* receivedBytes) const;
 private:
@@ -42,6 +47,6 @@ int packSocket(unsigned char* packStore, sockaddr* socketToPack);
 int unpackSocket(unsigned char* packedData, sockaddr* unpackDestSocket);
 int getLocalAddress();
 unsigned short loadBufferWithSocketInfo(char* addressBuffer, sockaddr* socket);
-sockaddr_in socketForHostname(const char* hostname);
+sockaddr_in socketForHostnameAndHostOrderPort(const char* hostname, unsigned short port = 0);
 
 #endif /* defined(__interface__UDPSocket__) */

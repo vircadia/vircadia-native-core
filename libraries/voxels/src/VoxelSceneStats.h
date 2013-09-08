@@ -120,7 +120,7 @@ public:
     
     /// Returns details about items tracked by VoxelSceneStats
     /// \param Item item The item from the stats you're interested in.
-    ItemInfo& getItemInfo(Item item) { return _ITEMS[item]; };
+    ItemInfo& getItemInfo(Item item) { return _ITEMS[item]; }
 
     /// Returns a UI formatted value of an item tracked by VoxelSceneStats
     /// \param Item item The item from the stats you're interested in.

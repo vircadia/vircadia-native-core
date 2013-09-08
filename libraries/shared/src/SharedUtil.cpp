@@ -26,7 +26,7 @@
 #include "PacketHeaders.h"
 #include "SharedUtil.h"
 
-uint64_t usecTimestamp(timeval *time) {
+uint64_t usecTimestamp(const timeval *time) {
     return (time->tv_sec * 1000000 + time->tv_usec);
 }
 

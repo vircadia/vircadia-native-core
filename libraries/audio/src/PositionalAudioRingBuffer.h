@@ -12,7 +12,7 @@
 #include <vector>
 #include <glm/gtx/quaternion.hpp>
 
-#include <AudioRingBuffer.h>
+#include "AudioRingBuffer.h"
 
 class PositionalAudioRingBuffer : public AudioRingBuffer {
 public:

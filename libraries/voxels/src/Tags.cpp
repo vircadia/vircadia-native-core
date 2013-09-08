@@ -108,6 +108,13 @@ TagList::TagList(std::stringstream &ss) :
     }
 }
 
+TagList::~TagList() {
+    while (!_data.empty()) {
+        delete _data.back();
+        _data.pop_back();
+    }
+}
+
 TagCompound::TagCompound(std::stringstream &ss) :
     Tag(TAG_Compound, ss),
     _size(0),
@@ -142,6 +149,13 @@ TagCompound::TagCompound(std::stringstream &ss) :
                 _blocksData = ((TagByteArray*) _data.back())->getData();
             }
         }
+    }
+}
+
+TagCompound::~TagCompound() {
+    while (!_data.empty()) {
+        delete _data.back();
+        _data.pop_back();
     }
 }
 

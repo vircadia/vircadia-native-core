@@ -21,8 +21,8 @@ class GlowEffect : public QObject {
     Q_OBJECT
     
 public:
-    
     GlowEffect();
+    ~GlowEffect();
     
     /// Returns a pointer to the framebuffer object that the glow effect is *not* using for persistent state
     /// (either the secondary or the tertiary).
@@ -53,6 +53,8 @@ private:
     
     enum RenderMode { ADD_MODE, BLUR_ADD_MODE, BLUR_PERSIST_ADD_MODE, DIFFUSE_ADD_MODE, RENDER_MODE_COUNT };
     
+    bool _initialized;
+
     RenderMode _renderMode;
     ProgramObject* _addProgram;
     ProgramObject* _horizontalBlurProgram;

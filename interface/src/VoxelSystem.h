@@ -138,6 +138,7 @@ private:
     VoxelSystem(const VoxelSystem&);
     VoxelSystem& operator= (const VoxelSystem&);
     
+    bool _initialized;
     int  _callsToTreesToArrays;
     VoxelNodeBag _removedVoxels;
 
@@ -209,8 +210,8 @@ private:
     void updatePartialVBOs(); // multiple segments, only dirty voxels
 
     bool _voxelsDirty;
-    
-    static ProgramObject* _perlinModulateProgram;
+
+    static ProgramObject _perlinModulateProgram;
     
     int _hookID;
     std::vector<glBufferIndex> _freeIndexes;
