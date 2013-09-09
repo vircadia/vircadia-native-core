@@ -11,8 +11,10 @@
 
 #include <iostream>
 
+/// Handles assignments of type AvatarMixer - distribution of avatar data to various clients
 class AvatarMixer {
 public:
+    /// runs the avatar mixer
     static void run();
 };
 

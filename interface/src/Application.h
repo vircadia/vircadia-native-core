@@ -135,6 +135,10 @@ public:
     
     void setupWorldLight(Camera& whichCamera);
 
+    /// Computes the off-axis frustum parameters for the view frustum, taking mirroring into account.
+    void computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& near,
+        float& far, glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const;
+
     virtual void nodeAdded(Node* node);
     virtual void nodeKilled(Node* node);
     virtual void packetSentNotification(ssize_t length);

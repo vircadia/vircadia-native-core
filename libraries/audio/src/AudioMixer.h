@@ -9,8 +9,10 @@
 #ifndef __hifi__AudioMixer__
 #define __hifi__AudioMixer__
 
+/// Handles assignments of type AudioMixer - mixing streams of audio and re-distributing to various clients.
 class AudioMixer {
 public:
+    /// runs the audio mixer
     static void run();
 };
 

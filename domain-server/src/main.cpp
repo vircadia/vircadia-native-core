@@ -28,7 +28,7 @@
 #include "Assignment.h"
 #include "NodeList.h"
 #include "NodeTypes.h"
-#include "Logstash.h"
+#include "Logging.h"
 #include "PacketHeaders.h"
 #include "SharedUtil.h"
 
@@ -48,7 +48,7 @@ unsigned char* addNodeToBroadcastPacket(unsigned char* currentPosition, Node* no
     return currentPosition;
 }
 
-int main(int argc, char* const argv[]) {
+int main(int argc, const char* argv[]) {
     NodeList* nodeList = NodeList::createInstance(NODE_TYPE_DOMAIN, DOMAIN_LISTEN_PORT);
 	// If user asks to run in "local" mode then we do NOT replace the IP
 	// with the EC2 IP. Otherwise, we will replace the IP like we used to
@@ -85,55 +85,55 @@ int main(int argc, char* const argv[]) {
     
     timeval lastStatSendTime = {};
     
-    // loop the parameters to see if we were passed a pool for assignment
-    int parameter = -1;
-    const char ALLOWED_PARAMETERS[] = "p::-local::";
-    const char POOL_PARAMETER_CHAR = 'p';
+    const char ASSIGNMENT_POOL_OPTION[] = "-p";
+    const char ASSIGNMENT_SERVER_OPTION[] = "-a";
     
-    char* assignmentPool = NULL;
+    // set our assignment pool from argv, if it exists
+    const char* assignmentPool = getCmdOption(argc, argv, ASSIGNMENT_POOL_OPTION);
     
-    while ((parameter = getopt(argc, argv, ALLOWED_PARAMETERS)) != -1) {
-        if (parameter == POOL_PARAMETER_CHAR) {
-            // copy the passed assignment pool
-            int poolLength = strlen(optarg);
-            assignmentPool = new char[poolLength + sizeof(char)];
-            strcpy(assignmentPool, optarg);
-        }
+    // grab the overriden assignment-server hostname from argv, if it exists
+    const char* customAssignmentServer = getCmdOption(argc, argv, ASSIGNMENT_SERVER_OPTION);
+    if (customAssignmentServer) {
+        sockaddr_in customAssignmentSocket = socketForHostnameAndHostOrderPort(customAssignmentServer, ASSIGNMENT_SERVER_PORT);
+        nodeList->setAssignmentServerSocket((sockaddr*) &customAssignmentSocket);
     }
     
     // use a map to keep track of iterations of silence for assignment creation requests
-    const int ASSIGNMENT_SILENCE_MAX_ITERATIONS = 5;
-    std::map<Assignment*, int> assignmentSilenceCount;
+    const long long ASSIGNMENT_SILENCE_MAX_USECS = 5 * 1000 * 1000;
     
     // as a domain-server we will always want an audio mixer and avatar mixer
-    // setup the create assignments for those
-    Assignment audioAssignment(Assignment::Create, Assignment::AudioMixer, assignmentPool);
-    Assignment avatarAssignment(Assignment::Create, Assignment::AvatarMixer, assignmentPool);
+    // setup the create assignment pointers for those
+    Assignment* audioAssignment = NULL;
+    Assignment* avatarAssignment = NULL;
     
     while (true) {
-        
         if (!nodeList->soloNodeOfType(NODE_TYPE_AUDIO_MIXER)) {
-            if (assignmentSilenceCount[&audioAssignment] == ASSIGNMENT_SILENCE_MAX_ITERATIONS) {
-                nodeList->sendAssignment(audioAssignment);
-                assignmentSilenceCount[&audioAssignment] = 0;
-            } else {
-                assignmentSilenceCount[&audioAssignment]++;
+            if (!audioAssignment
+                || usecTimestampNow() - usecTimestamp(&audioAssignment->getTime()) >= ASSIGNMENT_SILENCE_MAX_USECS) {
+                
+                if (!audioAssignment) {
+                    audioAssignment = new Assignment(Assignment::Create, Assignment::AudioMixer, assignmentPool);
+                }
+                
+                nodeList->sendAssignment(*audioAssignment);
+                audioAssignment->setCreateTimeToNow();
             }
-        } else {
-            assignmentSilenceCount[&audioAssignment] = 0;
         }
         
         if (!nodeList->soloNodeOfType(NODE_TYPE_AVATAR_MIXER)) {
-            if (assignmentSilenceCount[&avatarAssignment] == ASSIGNMENT_SILENCE_MAX_ITERATIONS) {
-                nodeList->sendAssignment(avatarAssignment);
-                assignmentSilenceCount[&avatarAssignment] = 0;
-            } else {
-                assignmentSilenceCount[&avatarAssignment]++;
+            if (!avatarAssignment
+                || usecTimestampNow() - usecTimestamp(&avatarAssignment->getTime()) >= ASSIGNMENT_SILENCE_MAX_USECS) {
+                if (!avatarAssignment) {
+                    avatarAssignment = new Assignment(Assignment::Create, Assignment::AvatarMixer, assignmentPool);
+                }
+                
+                nodeList->sendAssignment(*avatarAssignment);
+                
+                // reset the create time on the assignment so re-request is in ASSIGNMENT_SILENCE_MAX_USECS
+                avatarAssignment->setCreateTimeToNow();
             }
-        } else {
-            assignmentSilenceCount[&avatarAssignment] = 0;
+            
         }
-        
         
         if (nodeList->getNodeSocket()->receive((sockaddr *)&nodePublicAddress, packetData, &receivedBytes) &&
             (packetData[0] == PACKET_TYPE_DOMAIN_REPORT_FOR_DUTY || packetData[0] == PACKET_TYPE_DOMAIN_LIST_REQUEST) &&
@@ -234,17 +234,20 @@ int main(int argc, char* const argv[]) {
             }
         }
         
-        if (Logstash::shouldSendStats()) {
+        if (Logging::shouldSendStats()) {
             if (usecTimestampNow() - usecTimestamp(&lastStatSendTime) >= (NODE_COUNT_STAT_INTERVAL_MSECS * 1000)) {
                 // time to send our count of nodes and servers to logstash
                 const char NODE_COUNT_LOGSTASH_KEY[] = "ds-node-count";
                 
-                Logstash::stashValue(STAT_TYPE_TIMER, NODE_COUNT_LOGSTASH_KEY, nodeList->getNumAliveNodes());
+                Logging::stashValue(STAT_TYPE_TIMER, NODE_COUNT_LOGSTASH_KEY, nodeList->getNumAliveNodes());
                 
                 gettimeofday(&lastStatSendTime, NULL);
             }
         }
     }
+    
+    delete audioAssignment;
+    delete avatarAssignment;
 
     return 0;
 }
