@@ -26,11 +26,7 @@ Faceshift::Faceshift() :
     _browHeight(0.0f),
     _browUpCenterIndex(-1),
     _mouthSize(0.0f),
-    _jawOpenIndex(-1),
-    _leftEyeUpIndex(-1),
-    _leftEyeInIndex(-1),
-    _rightEyeUpIndex(-1),
-    _rightEyeInIndex(-1)
+    _jawOpenIndex(-1)
 {
     connect(&_socket, SIGNAL(connected()), SLOT(noteConnected()));
     connect(&_socket, SIGNAL(error(QAbstractSocket::SocketError)), SLOT(noteError(QAbstractSocket::SocketError)));
@@ -112,21 +108,6 @@ void Faceshift::readFromSocket() {
                     if (_jawOpenIndex != -1) {
                         _mouthSize = data.m_coeffs[_jawOpenIndex];
                     }
-                    const float PITCH_SCALE = 45.0f;
-                    if (_leftEyeUpIndex != -1) {
-                        _eyeGazeLeftPitch = PITCH_SCALE * (data.m_coeffs[_leftEyeUpIndex] - data.m_coeffs[_leftEyeDownIndex]);
-                    }
-                    const float YAW_SCALE = 45.0f;
-                    if (_leftEyeInIndex != -1) {
-                        _eyeGazeLeftYaw = YAW_SCALE * (data.m_coeffs[_leftEyeOutIndex] - data.m_coeffs[_leftEyeInIndex]);
-                    }
-                    if (_rightEyeUpIndex != -1) {
-                        _eyeGazeRightPitch = PITCH_SCALE * (data.m_coeffs[_rightEyeUpIndex] -
-                            data.m_coeffs[_rightEyeDownIndex]);
-                    }
-                    if (_rightEyeInIndex != -1) {
-                        _eyeGazeRightYaw = YAW_SCALE * (data.m_coeffs[_rightEyeInIndex] - data.m_coeffs[_rightEyeOutIndex]);
-                    }
                 }
                 break;
             }
@@ -144,30 +125,6 @@ void Faceshift::readFromSocket() {
                         
                     } else if (names[i] == "JawOpen") {
                         _jawOpenIndex = i;
-                        
-                    } else if (names[i] == "EyeUp_L") {
-                        _leftEyeUpIndex = i;
-                        
-                    } else if (names[i] == "EyeDown_L") {
-                        _leftEyeDownIndex = i;
-                        
-                    } else if (names[i] == "EyeIn_L") {
-                        _leftEyeInIndex = i;
-                        
-                    } else if (names[i] == "EyeOut_L") {
-                        _leftEyeOutIndex = i;
-                    
-                    } else if (names[i] == "EyeUp_R") {
-                        _rightEyeUpIndex = i;
-                        
-                    } else if (names[i] == "EyeDown_R") {
-                        _rightEyeDownIndex = i;
-                        
-                    } else if (names[i] == "EyeIn_R") {
-                        _rightEyeInIndex = i;
-                        
-                    } else if (names[i] == "EyeOut_R") {
-                        _rightEyeOutIndex = i;
                     }
                 }
                 break;
