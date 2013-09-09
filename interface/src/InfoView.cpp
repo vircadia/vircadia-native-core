@@ -64,7 +64,8 @@ void InfoView::loaded(bool ok)
         int cw = (w/2) - (mw/2);
         int ch = (h/2) - (mh/2);
         this->move(cw, ch);
-
+        
+        this->setWindowModality(Qt::WindowModal);
         this->setWindowTitle(this->title());
         this->show();
     }
