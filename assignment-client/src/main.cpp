@@ -18,12 +18,46 @@
 
 const long long ASSIGNMENT_REQUEST_INTERVAL_USECS = 1 * 1000 * 1000;
 
+
 int main(int argc, const char* argv[]) {
     
     setvbuf(stdout, NULL, _IOLBF, 0);
     
+    sockaddr_in customAssignmentSocket = {};
+    
+    // grab the overriden assignment-server hostname from argv, if it exists
+    const char* customAssignmentServer = getCmdOption(argc, argv, "-a");
+    if (customAssignmentServer) {
+        customAssignmentSocket = socketForHostnameAndHostOrderPort(customAssignmentServer, ASSIGNMENT_SERVER_PORT);
+    }
+    
+    const char* NUM_FORKS_PARAMETER = "-n";
+    const char* numForksIncludingParentString = getCmdOption(argc, argv, NUM_FORKS_PARAMETER);
+    
+    if (numForksIncludingParentString) {
+        int numForksIncludingParent = atoi(numForksIncludingParentString);
+        qDebug() << "Starting" << numForksIncludingParent << "assignment clients.";
+        
+        int processID = 0;
+        
+        // fire off as many children as we need (this is one less than the parent since the parent will run as well)
+        for (int i = 0; i < numForksIncludingParent - 1; i++) {
+            processID = fork();
+            
+            if (processID == 0) {
+                // this is one of the children, break so we don't start a fork bomb
+                break;
+            }
+        }
+    }
+    
     // create a NodeList as an unassigned client
     NodeList* nodeList = NodeList::createInstance(NODE_TYPE_UNASSIGNED);
+    
+    // set the custom assignment socket if we have it
+    if (customAssignmentSocket.sin_addr.s_addr != 0) {
+        nodeList->setAssignmentServerSocket((sockaddr*) &customAssignmentSocket);
+    }
     
     // change the timeout on the nodelist socket to be as often as we want to re-request
     nodeList->getNodeSocket()->setBlockingReceiveTimeoutInUsecs(ASSIGNMENT_REQUEST_INTERVAL_USECS);
@@ -34,10 +68,8 @@ int main(int argc, const char* argv[]) {
     ssize_t receivedBytes = 0;
     
     // grab the assignment pool from argv, if it was passed
-    const char* assignmentPool = getCmdOption(argc, argv, "-p");
-    
-    // set the overriden assignment-server hostname from argv, if it exists
-    nodeList->setAssignmentServerHostname(getCmdOption(argc, argv, "-a"));
+    const char* ASSIGNMENT_POOL_PARAMETER = "-p";
+    const char* assignmentPool = getCmdOption(argc, argv, ASSIGNMENT_POOL_PARAMETER);
 
     // create a request assignment, accept all assignments, pass the desired pool (if it exists)
     Assignment requestAssignment(Assignment::Request, Assignment::All, assignmentPool);
@@ -46,7 +78,6 @@ int main(int argc, const char* argv[]) {
         if (usecTimestampNow() - usecTimestamp(&lastRequest) >= ASSIGNMENT_REQUEST_INTERVAL_USECS) {
             gettimeofday(&lastRequest, NULL);
             // if we're here we have no assignment, so send a request
-            qDebug() << "Sending an assignment request -" << requestAssignment;
             nodeList->sendAssignment(requestAssignment);
         }
         
@@ -69,7 +100,6 @@ int main(int argc, const char* argv[]) {
             if (deployedAssignment.getType() == Assignment::AudioMixer) {
                 AudioMixer::run();
             } else {
-                qDebug() << "Running as an avatar mixer!";
                 AvatarMixer::run();
             }
             

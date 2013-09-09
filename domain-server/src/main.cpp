@@ -89,7 +89,11 @@ int main(int argc, const char* argv[]) {
     const char* assignmentPool = getCmdOption(argc, argv, "-p");
     
     // grab the overriden assignment-server hostname from argv, if it exists
-    nodeList->setAssignmentServerHostname(getCmdOption(argc, argv, "-a"));
+    const char* customAssignmentServer = getCmdOption(argc, argv, "-a");
+    if (customAssignmentServer) {
+        sockaddr_in customAssignmentSocket = socketForHostnameAndHostOrderPort(customAssignmentServer, ASSIGNMENT_SERVER_PORT);
+        nodeList->setAssignmentServerSocket((sockaddr*) &customAssignmentSocket);
+    }
     
     // use a map to keep track of iterations of silence for assignment creation requests
     const long long ASSIGNMENT_SILENCE_MAX_USECS = 5 * 1000 * 1000;
