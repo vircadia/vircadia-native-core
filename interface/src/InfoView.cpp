@@ -10,6 +10,9 @@
 #include <QApplication>
 #include "Application.h"
 
+#include <QtWebKitWidgets/QWebFrame>
+#include <QtWebKit/QWebElement>
+
 #define VIEW_FIXED_WIDTH 808
 #define SETTINGS_KEY_VERSION "info-version"
 
