@@ -85,6 +85,16 @@ private:
     float _mouthSize;
     
     int _jawOpenIndex;
+    
+    int _leftEyeUpIndex;
+    int _leftEyeDownIndex;
+    int _leftEyeInIndex;
+    int _leftEyeOutIndex;
+    
+    int _rightEyeUpIndex;
+    int _rightEyeDownIndex;
+    int _rightEyeInIndex;
+    int _rightEyeOutIndex;
 };
 
 #endif /* defined(__interface__Faceshift__) */
