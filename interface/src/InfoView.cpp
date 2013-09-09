@@ -19,7 +19,7 @@
 
 InfoView::InfoView()
 {
-    this->settings()->setAttribute(QWebSettings::LocalContentCanAccessFileUrls, true);
+    settings()->setAttribute(QWebSettings::LocalContentCanAccessFileUrls, true);
 
 #ifdef Q_OS_MAC
     QString resourcesPath = QCoreApplication::applicationDirPath() + "/../Resources";
@@ -28,7 +28,7 @@ InfoView::InfoView()
 #endif
 
     QUrl url = QUrl::fromLocalFile(resourcesPath + "/html/interface-welcome-allsvg.html");
-    this->load(url);
+    load(url);
     connect(this, SIGNAL(loadFinished(bool)), this, SLOT(loaded(bool)));
 }
 
@@ -44,7 +44,7 @@ void InfoView::loaded(bool ok)
     QString lastVersion = settings->value(SETTINGS_KEY_VERSION).toString();
     
     
-    QWebFrame* mainFrame = this->page()->mainFrame();
+    QWebFrame* mainFrame = page()->mainFrame();
     QWebElement versionTag = mainFrame->findFirstElement("#version");
     QString version = versionTag.attribute("value");
     
@@ -54,19 +54,11 @@ void InfoView::loaded(bool ok)
         }
         
         QDesktopWidget* desktop = Application::getInstance()->desktop();
-        
         int h = desktop->height();
-        this->resize(VIEW_FIXED_WIDTH, h * 0.8);
-        
-        int w = desktop->width();
-        int mw = this->size().width();
-        int mh = this->size().height();
-        int cw = (w/2) - (mw/2);
-        int ch = (h/2) - (mh/2);
-        this->move(cw, ch);
-        
-        this->setWindowModality(Qt::WindowModal);
-        this->setWindowTitle(this->title());
-        this->show();
+        resize(VIEW_FIXED_WIDTH, h * 0.8);
+        move(desktop->screen()->rect().center() - rect().center());
+        setWindowModality(Qt::WindowModal);
+        setWindowTitle(title());
+        show();
     }
 }
