@@ -16,6 +16,7 @@
 #include "Logging.h"
 
 sockaddr_in Logging::logstashSocket = {};
+char* Logging::targetName = NULL;
 
 sockaddr* Logging::socket() {
     
@@ -73,10 +74,19 @@ const QString& stringForLogType(Logging::Type logType) {
     }
 }
 
+void Logging::setTargetName(const char* targetName) {
+    // remove the old target name, if it exists
+    delete Logging::targetName;
+    
+    // copy over the new target name
+    Logging::targetName = new char[strlen(targetName)];
+    strcpy(Logging::targetName, targetName);
+}
+
 // the following will produce 2000-10-02 13:55:36 -0700
 const char DATE_STRING_FORMAT[] = "%F %H:%M:%S %z";
 
-void Logging::standardizedLog(const QString &output, const char* targetName, Logging::Type logType) {
+void Logging::standardizedLog(const QString &output, Logging::Type logType) {
     time_t rawTime;
     time(&rawTime);
     struct tm* localTime = localtime(&rawTime);
@@ -84,23 +94,25 @@ void Logging::standardizedLog(const QString &output, const char* targetName, Log
     // log prefix is in the following format
     // [DEBUG] [TIMESTAMP] [PID:PARENT_PID] [TARGET] logged string
     
-    QString prefixString = QString("[%1] ").arg(stringForLogType(logType));
+    QString prefixString = QString("[%1]").arg(stringForLogType(logType));
     
     char dateString[100];
     strftime(dateString, sizeof(dateString), DATE_STRING_FORMAT, localTime);
     
-    prefixString.append(QString("[%1] ").arg(dateString));
+    prefixString.append(QString(" [%1]").arg(dateString));
     
-    prefixString.append(QString("[%1").arg(getpid()));
+    prefixString.append(QString(" [%1").arg(getpid()));
     
     pid_t parentProcessID = getppid();
     if (parentProcessID != 0) {
-        prefixString.append(QString(":%1] ").arg(parentProcessID));
+        prefixString.append(QString(":%1]").arg(parentProcessID));
     } else {
         prefixString.append("]");
     }
     
-    prefixString.append(QString("[%1]").arg(targetName));
+    if (Logging::targetName) {
+        prefixString.append(QString(" [%1]").arg(Logging::targetName));
+    }
     
     qDebug("%s %s", prefixString.toStdString().c_str(), output.toStdString().c_str());
 }

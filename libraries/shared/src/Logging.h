@@ -32,9 +32,11 @@ public:
     static sockaddr* socket();
     static bool shouldSendStats();
     static void stashValue(char statType, const char* key, float value);
-    static void standardizedLog(const QString& output, const char* targetName, Logging::Type logType = Logging::Debug);
+    static void setTargetName(const char* targetName);
+    static void standardizedLog(const QString& output, Logging::Type logType = Logging::Debug);
 private:
     static sockaddr_in logstashSocket;
+    static char* targetName;
 };
 
 #endif /* defined(__hifi__Logstash__) */

@@ -61,18 +61,20 @@ void childClient() {
         if (nodeList->getNodeSocket()->receive(packetData, &receivedBytes) &&
             packetData[0] == PACKET_TYPE_DEPLOY_ASSIGNMENT && packetVersionMatch(packetData)) {
             
+            // reset the logging target to the the CHILD_TARGET_NAME
+            Logging::setTargetName(CHILD_TARGET_NAME);
+            
             // construct the deployed assignment from the packet data
             Assignment deployedAssignment(packetData, receivedBytes);
             
-            Logging::standardizedLog(QString("Received an assignment - %1").arg(deployedAssignment.toString()),
-                                     CHILD_TARGET_NAME);
+            Logging::standardizedLog(QString("Received an assignment - %1").arg(deployedAssignment.toString()));
             
             // switch our nodelist DOMAIN_IP to the ip receieved in the assignment
             if (deployedAssignment.getDomainSocket()->sa_family == AF_INET) {
                 in_addr domainSocketAddr = ((sockaddr_in*) deployedAssignment.getDomainSocket())->sin_addr;
                 nodeList->setDomainIP(inet_ntoa(domainSocketAddr));
                 
-                Logging::standardizedLog(QString("Changed Domain IP to %1").arg(inet_ntoa(domainSocketAddr)), CHILD_TARGET_NAME);
+                Logging::standardizedLog(QString("Changed Domain IP to %1").arg(inet_ntoa(domainSocketAddr)));
             }
             
             if (deployedAssignment.getType() == Assignment::AudioMixer) {
@@ -81,8 +83,7 @@ void childClient() {
                 AvatarMixer::run();
             }
             
-            Logging::standardizedLog(QString("Assignment finished or never started - waiting for new assignment"),
-                                     CHILD_TARGET_NAME);
+            Logging::standardizedLog(QString("Assignment finished or never started - waiting for new assignment"));
             
             // reset our NodeList by switching back to unassigned and clearing the list
             nodeList->setOwnerType(NODE_TYPE_UNASSIGNED);
@@ -118,8 +119,7 @@ void sigchldHandler(int sig) {
                     // this is the parent, replace the dead process with the new one
                     ::childForks[i] = newForkProcessID;
                    
-                    Logging::standardizedLog(QString("Repleaced dead %1 with new fork %2").arg(processID).arg(newForkProcessID),
-                                             PARENT_TARGET_NAME);
+                    Logging::standardizedLog(QString("Replaced dead %1 with new fork %2").arg(processID).arg(newForkProcessID));
                     
                     break;
                 }
@@ -154,6 +154,9 @@ int main(int argc, const char* argv[]) {
     
     setvbuf(stdout, NULL, _IOLBF, 0);
     
+    // start the Logging class with the parent's target name
+    Logging::setTargetName(PARENT_TARGET_NAME);
+    
     // grab the overriden assignment-server hostname from argv, if it exists
     const char* customAssignmentServer = getCmdOption(argc, argv, "-a");
     if (customAssignmentServer) {
@@ -171,7 +174,7 @@ int main(int argc, const char* argv[]) {
     
     if (numForksString) {
         ::numForks = atoi(numForksString);
-        Logging::standardizedLog(QString("Starting %1 assignment clients").arg(numForks), PARENT_TARGET_NAME);
+        Logging::standardizedLog(QString("Starting %1 assignment clients").arg(numForks));
         
         ::childForks = new pid_t[numForks];
         
