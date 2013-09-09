@@ -9,6 +9,8 @@
 #ifndef __hifi__Assignment__
 #define __hifi__Assignment__
 
+#include <sys/time.h>
+
 #include "NodeList.h"
 
 /// Holds information used for request, creation, and deployment of assignments
@@ -48,6 +50,9 @@ public:
     /// \param buffer the buffer in which to pack the assignment
     /// \return number of bytes packed into buffer
     int packToBuffer(unsigned char* buffer);
+    
+    /// Sets _time to the current time given by gettimeofday
+    void setCreateTimeToNow() { gettimeofday(&_time, NULL); }
     
 private:
     Assignment::Direction _direction; /// the direction of the assignment (Create, Deploy, Request)

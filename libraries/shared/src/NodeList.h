@@ -99,6 +99,7 @@ public:
     void sendDomainServerCheckIn();
     int processDomainServerList(unsigned char *packetData, size_t dataBytes);
     
+    void setAssignmentServerSocket(sockaddr* serverSocket) { _assignmentServerSocket = serverSocket; }
     void sendAssignment(Assignment& assignment);
     
     Node* nodeWithAddress(sockaddr *senderAddress);
@@ -151,6 +152,7 @@ private:
     pthread_t removeSilentNodesThread;
     pthread_t checkInWithDomainServerThread;
     int _numNoReplyDomainCheckIns;
+    sockaddr* _assignmentServerSocket;
     
     void handlePingReply(sockaddr *nodeAddress);
     void timePingReply(sockaddr *nodeAddress, unsigned char *packetData);
