@@ -103,7 +103,7 @@ void AmbientOcclusionEffect::render() {
     
     float left, right, bottom, top, nearVal, farVal;
     glm::vec4 nearClipPlane, farClipPlane;
-    Application::getInstance()->getViewFrustum()->computeOffAxisFrustum(
+    Application::getInstance()->computeOffAxisFrustum(
         left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
     
     _occlusionProgram->bind();

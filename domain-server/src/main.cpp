@@ -85,19 +85,26 @@ int main(int argc, const char* argv[]) {
     
     timeval lastStatSendTime = {};
     
+    const char ASSIGNMENT_POOL_OPTION[] = "-p";
+    const char ASSIGNMENT_SERVER_OPTION[] = "-a";
+    
     // set our assignment pool from argv, if it exists
-    const char* assignmentPool = getCmdOption(argc, argv, "-p");
+    const char* assignmentPool = getCmdOption(argc, argv, ASSIGNMENT_POOL_OPTION);
     
     // grab the overriden assignment-server hostname from argv, if it exists
-    nodeList->setAssignmentServerHostname(getCmdOption(argc, argv, "-a"));
+    const char* customAssignmentServer = getCmdOption(argc, argv, ASSIGNMENT_SERVER_OPTION);
+    if (customAssignmentServer) {
+        sockaddr_in customAssignmentSocket = socketForHostnameAndHostOrderPort(customAssignmentServer, ASSIGNMENT_SERVER_PORT);
+        nodeList->setAssignmentServerSocket((sockaddr*) &customAssignmentSocket);
+    }
     
     // use a map to keep track of iterations of silence for assignment creation requests
     const long long ASSIGNMENT_SILENCE_MAX_USECS = 5 * 1000 * 1000;
     
     // as a domain-server we will always want an audio mixer and avatar mixer
     // setup the create assignment pointers for those
-    Assignment *audioAssignment = NULL;
-    Assignment *avatarAssignment = NULL;
+    Assignment* audioAssignment = NULL;
+    Assignment* avatarAssignment = NULL;
     
     while (true) {
         if (!nodeList->soloNodeOfType(NODE_TYPE_AUDIO_MIXER)) {
