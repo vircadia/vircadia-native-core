@@ -64,25 +64,25 @@ void childClient() {
         if (nodeList->getNodeSocket()->receive(packetData, &receivedBytes) &&
             packetData[0] == PACKET_TYPE_DEPLOY_ASSIGNMENT && packetVersionMatch(packetData)) {
             
-            
-            
             // construct the deployed assignment from the packet data
             Assignment deployedAssignment(packetData, receivedBytes);
             
             qDebug() << "Received an assignment -" << deployedAssignment << "\n";
             
             // switch our nodelist DOMAIN_IP to the ip receieved in the assignment
-            if (deployedAssignment.getDomainSocket()->sa_family == AF_INET) {
-                in_addr domainSocketAddr = ((sockaddr_in*) deployedAssignment.getDomainSocket())->sin_addr;
+            if (deployedAssignment.getDestinationSocket()->sa_family == AF_INET) {
+                in_addr domainSocketAddr = ((sockaddr_in*) deployedAssignment.getDestinationSocket())->sin_addr;
                 nodeList->setDomainIP(inet_ntoa(domainSocketAddr));
                 
-                qDebug("Changed Domain IP to %s\n", inet_ntoa(domainSocketAddr));
-            }
-            
-            if (deployedAssignment.getType() == Assignment::AudioMixer) {
-                AudioMixer::run();
+                qDebug("Destination IP for assignment is %s\n", inet_ntoa(domainSocketAddr));
+                
+                if (deployedAssignment.getType() == Assignment::AudioMixer) {
+                    AudioMixer::run();
+                } else {
+                    AvatarMixer::run();
+                }
             } else {
-                AvatarMixer::run();
+                qDebug("Received a bad destination socket for assignment.\n");
             }
             
             qDebug("Assignment finished or never started - waiting for new assignment\n");
