@@ -438,20 +438,13 @@ void Application::updateProjectionMatrix() {
     
     float left, right, bottom, top, nearVal, farVal;
     glm::vec4 nearClipPlane, farClipPlane;
-    _viewFrustum.computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
+    computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
     
     // If we're in Display Frustum mode, then we want to use the slightly adjust near/far clip values of the
     // _viewFrustumOffsetCamera, so that we can see more of the application content in the application's frustum
     if (Menu::getInstance()->isOptionChecked(MenuOption::DisplayFrustum)) {
         nearVal = _viewFrustumOffsetCamera.getNearClip();
         farVal = _viewFrustumOffsetCamera.getFarClip();
-    }
-    
-    // when mirrored, we must flip left and right
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-        float tmp = left;
-        left = -right;
-        right = -tmp;
     }
     glFrustum(left, right, bottom, top, nearVal, farVal);
     
@@ -2142,6 +2135,19 @@ void Application::setupWorldLight(Camera& whichCamera) {
     glLightfv(GL_LIGHT0, GL_SPECULAR, WHITE_SPECULAR_COLOR);    
     glMaterialfv(GL_FRONT, GL_SPECULAR, WHITE_SPECULAR_COLOR);
     glMateriali(GL_FRONT, GL_SHININESS, 96);
+}
+
+void Application::computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& near,
+    float& far, glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const {
+    
+    _viewFrustum.computeOffAxisFrustum(left, right, bottom, top, near, far, nearClipPlane, farClipPlane);
+    
+    // when mirrored, we must flip left and right
+    if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
+        float tmp = left;
+        left = -right;
+        right = -tmp;
+    }
 }
 
 void Application::displaySide(Camera& whichCamera) {
