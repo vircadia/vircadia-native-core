@@ -57,8 +57,8 @@ void InfoView::loaded(bool ok)
         int h = desktop->height();
         resize(VIEW_FIXED_WIDTH, h * 0.8);
         move(desktop->screen()->rect().center() - rect().center());
-        setWindowModality(Qt::WindowModal);
         setWindowTitle(title());
         show();
+        setWindowModality(Qt::WindowModal);
     }
 }
