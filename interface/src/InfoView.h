@@ -9,7 +9,7 @@
 #ifndef __hifi__InfoView__
 #define __hifi__InfoView__
 
-#include <QWebView>
+#include <QtWebKitWidgets>
 
 class InfoView : public QWebView
 {

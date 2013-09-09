@@ -9,8 +9,6 @@
 #include "InfoView.h"
 #include <QApplication>
 #include "Application.h"
-#include <QWebFrame>
-#include <QWebElement>
 
 #define VIEW_FIXED_WIDTH 808
 #define SETTINGS_KEY_VERSION "info-version"
