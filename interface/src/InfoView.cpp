@@ -12,6 +12,7 @@
 
 #include <QtWebKitWidgets/QWebFrame>
 #include <QtWebKit/QWebElement>
+#include <QDesktopWidget>
 
 #define VIEW_FIXED_WIDTH 808
 #define SETTINGS_KEY_VERSION "info-version"
@@ -52,8 +53,18 @@ void InfoView::loaded(bool ok)
             settings->setValue(SETTINGS_KEY_VERSION, version);
         }
         
-        this->setWindowModality(Qt::WindowModal);
-        this->setFixedSize(VIEW_FIXED_WIDTH, this->height());
+        QDesktopWidget* desktop = Application::getInstance()->desktop();
+        
+        int h = desktop->height();
+        this->resize(VIEW_FIXED_WIDTH, h * 0.8);
+        
+        int w = desktop->width();
+        int mw = this->size().width();
+        int mh = this->size().height();
+        int cw = (w/2) - (mw/2);
+        int ch = (h/2) - (mh/2);
+        this->move(cw, ch);
+
         this->setWindowTitle(this->title());
         this->show();
     }
