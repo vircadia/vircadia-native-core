@@ -10,6 +10,7 @@
 #include <errno.h>
 #include <signal.h>
 #include <sys/time.h>
+#include <sys/wait.h>
 
 #include <Assignment.h>
 #include <AudioMixer.h>
