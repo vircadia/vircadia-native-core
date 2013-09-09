@@ -32,6 +32,7 @@ ViewFrustum::ViewFrustum() :
     _aspectRatio(1.0),
     _nearClip(0.1),
     _farClip(500.0),
+    _focalLength(0.25f),
     _keyholeRadius(DEFAULT_KEYHOLE_RADIUS),
     _farTopLeft(0,0,0),
     _farTopRight(0,0,0),
@@ -310,15 +311,16 @@ bool testMatches(float lhs, float rhs) {
 
 bool ViewFrustum::matches(const ViewFrustum& compareTo, bool debug) const {
     bool result = 
-           testMatches(compareTo._position,             _position            ) &&
-           testMatches(compareTo._direction,            _direction           ) &&
-           testMatches(compareTo._up,                   _up                  ) &&
-           testMatches(compareTo._right,                _right               ) &&
-           testMatches(compareTo._fieldOfView,          _fieldOfView         ) &&
-           testMatches(compareTo._aspectRatio,          _aspectRatio         ) &&
-           testMatches(compareTo._nearClip,             _nearClip            ) &&
-           testMatches(compareTo._farClip,              _farClip             ) &&
-           testMatches(compareTo._eyeOffsetPosition,    _eyeOffsetPosition   ) &&
+           testMatches(compareTo._position, _position) &&
+           testMatches(compareTo._direction, _direction) &&
+           testMatches(compareTo._up, _up) &&
+           testMatches(compareTo._right, _right) &&
+           testMatches(compareTo._fieldOfView, _fieldOfView) &&
+           testMatches(compareTo._aspectRatio, _aspectRatio) &&
+           testMatches(compareTo._nearClip, _nearClip) &&
+           testMatches(compareTo._farClip, _farClip) &&
+           testMatches(compareTo._focalLength, _focalLength) &&
+           testMatches(compareTo._eyeOffsetPosition, _eyeOffsetPosition) &&
            testMatches(compareTo._eyeOffsetOrientation, _eyeOffsetOrientation);
 
     if (!result && debug) {
@@ -351,6 +353,9 @@ bool ViewFrustum::matches(const ViewFrustum& compareTo, bool debug) const {
         qDebug("%s -- compareTo._farClip=%f _farClip=%f\n", 
             (testMatches(compareTo._farClip, _farClip) ? "MATCHES " : "NO MATCH"),
             compareTo._farClip, _farClip);
+        qDebug("%s -- compareTo._focalLength=%f _focalLength=%f\n", 
+            (testMatches(compareTo._focalLength, _focalLength) ? "MATCHES " : "NO MATCH"),
+            compareTo._focalLength, _focalLength);
         qDebug("%s -- compareTo._eyeOffsetPosition=%f,%f,%f _eyeOffsetPosition=%f,%f,%f\n", 
             (testMatches(compareTo._eyeOffsetPosition, _eyeOffsetPosition) ? "MATCHES " : "NO MATCH"),
             compareTo._eyeOffsetPosition.x, compareTo._eyeOffsetPosition.y, compareTo._eyeOffsetPosition.z,
@@ -401,13 +406,17 @@ void ViewFrustum::computeOffAxisFrustum(float& left, float& right, float& bottom
     nearClipPlane = glm::vec4(-normal.x, -normal.y, -normal.z, glm::dot(normal, corners[0]));
     farClipPlane = glm::vec4(normal.x, normal.y, normal.z, -glm::dot(normal, corners[4]));
     
+    // compute the focal proportion (zero is near clip, one is far clip) 
+    float focalProportion = (_focalLength - _nearClip) / (_farClip - _nearClip);
+    
     // get the extents at Z = -near
     left = FLT_MAX;
     right = -FLT_MAX;
     bottom = FLT_MAX;
     top = -FLT_MAX;
     for (int i = 0; i < 4; i++) {
-        glm::vec4 intersection = corners[i] * (-near / corners[i].z);
+        glm::vec4 corner = glm::mix(corners[i], corners[i + 4], focalProportion);
+        glm::vec4 intersection = corner * (-near / corner.z);
         left = min(left, intersection.x);
         right = max(right, intersection.x);
         bottom = min(bottom, intersection.y);
@@ -426,6 +435,7 @@ void ViewFrustum::printDebugDetails() const {
     qDebug("_keyHoleRadius=%f\n", _keyholeRadius);
     qDebug("_nearClip=%f\n", _nearClip);
     qDebug("_farClip=%f\n", _farClip);
+    qDebug("_focalLength=%f\n", _focalLength);
     qDebug("_eyeOffsetPosition=%f,%f,%f\n",  _eyeOffsetPosition.x, _eyeOffsetPosition.y, _eyeOffsetPosition.z );
     qDebug("_eyeOffsetOrientation=%f,%f,%f,%f\n",  _eyeOffsetOrientation.x, _eyeOffsetOrientation.y, _eyeOffsetOrientation.z,
         _eyeOffsetOrientation.w );
