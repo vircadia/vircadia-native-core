@@ -128,7 +128,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _bytesPerSecond(0),
         _bytesCount(0),
         _swatch(NULL),
-        _pasteMode(false)
+        _pasteMode(false),
+        _finishedNudge(true)
 {
     _applicationStartupTime = startup_time;
     _window->setWindowTitle("Interface");
@@ -844,10 +845,15 @@ void Application::mousePressEvent(QMouseEvent* event) {
                 pasteVoxels();
             }
 
-            if (MAKE_SOUND_ON_VOXEL_CLICK && _isHoverVoxel && !_isHoverVoxelSounding) {
-                if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelNudgeMode)) {
-                    _nudgeVoxel = _hoverVoxel;
+            if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelNudgeMode)) {
+                VoxelNode* clickedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+                if (clickedNode) {
+                    _nudgeVoxel = _mouseVoxel;
+                    _finishedNudge = false;
                 }
+            }
+
+            if (MAKE_SOUND_ON_VOXEL_CLICK && _isHoverVoxel && !_isHoverVoxelSounding) {
                 _hoverVoxelOriginalColor[0] = _hoverVoxel.red;
                 _hoverVoxelOriginalColor[1] = _hoverVoxel.green;
                 _hoverVoxelOriginalColor[2] = _hoverVoxel.blue;
@@ -1287,52 +1293,16 @@ void Application::pasteVoxels() {
 
 void Application::nudgeVoxels() {
     if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelNudgeMode)) {
-        cutVoxels();
-        unsigned char* calculatedOctCode = NULL;
-        VoxelNode* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+        // calculate nudgeVec
+        glm::vec3 nudgeVec(_mouseVoxel.x - _nudgeVoxel.x, _mouseVoxel.y - _nudgeVoxel.y, _mouseVoxel.z - _nudgeVoxel.z);
 
-        // Recurse the clipboard tree, where everything is root relative, and send all the colored voxels to 
-        // the server as an set voxel message, this will also rebase the voxels to the new location
-        SendVoxelsOperationArgs args;
+        VoxelNode* nodeToNudge = _voxels.getVoxelAt(_nudgeVoxel.x, _nudgeVoxel.y, _nudgeVoxel.z, _nudgeVoxel.s);
 
-        // we only need the selected voxel to get the newBaseOctCode, which we can actually calculate from the
-        // voxel size/position details. If we don't have an actual selectedNode then use the mouseVoxel to create a 
-        // target octalCode for where the user is pointing.
-        if (selectedNode) {
-            args.newBaseOctCode = selectedNode->getOctalCode();
-        } else {
-            args.newBaseOctCode = calculatedOctCode = pointToVoxel(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
-        }
-
-        _sharedVoxelSystem.getTree()->recurseTreeWithOperation(sendVoxelsOperation, &args);
-        glm::vec3 nudgeVec(0.25 * _mouseVoxel.s, 0.25 * _mouseVoxel.s, 0.25 * _mouseVoxel.s);
-        _voxels.getVoxelTree()->nudgeSubTree(selectedNode, nudgeVec, _voxelEditSender);
-
-        if (_sharedVoxelSystem.getTree() != &_clipboard) {
-            _sharedVoxelSystem.killLocalVoxels();
-            _sharedVoxelSystem.changeTree(&_clipboard);
-        }
-
-        _voxelEditSender.flushQueue();
-        
-        if (calculatedOctCode) {
-            delete[] calculatedOctCode;
+        if (nodeToNudge) {
+            _voxels.getVoxelTree()->nudgeSubTree(nodeToNudge, nudgeVec, _voxelEditSender);
+            _finishedNudge = true;
         }
     }
-
-
-
-        // VoxelNode* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
-
-        // if (selectedNode) {
-        //     qDebug("UnNudged xyz: %f, %f, %f\n", _mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z);
-
-        //     // nudge the node
-        //     // glm::vec3 nudgeVec(_mouseVoxel.s, _mouseVoxel.s, _mouseVoxel.s);
-        //     // glm::vec3 nudgeVec(0.5 * _mouseVoxel.s, 0.5 * _mouseVoxel.s, 0.5 * _mouseVoxel.s);
-        //     glm::vec3 nudgeVec(0.25 * _mouseVoxel.s, 0.25 * _mouseVoxel.s, 0.25 * _mouseVoxel.s);
-        //     _voxels.getVoxelTree()->nudgeSubTree(selectedNode, nudgeVec, _voxelEditSender);
-        // }
 }
 
 void Application::setListenModeNormal() {
@@ -1612,7 +1582,7 @@ void Application::update(float deltaTime) {
         lookAtSpot = lookAtRayOrigin + lookAtRayDirection * FAR_AWAY_STARE;
         _myAvatar.getHead().setLookAtPosition(lookAtSpot);
     }
-    
+
     //  Find the voxel we are hovering over, and respond if clicked
     float distance;
     BoxFace face;
@@ -1702,11 +1672,13 @@ void Application::update(float deltaTime) {
                         _mouseVoxel.z += faceVector.z * _mouseVoxel.s;
                     }
                 }
+                _nudgeVoxel.s = _mouseVoxel.s;
             } else {
                 _mouseVoxel.s = 0.0f;
             }
         } else if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelAddMode)
-                   || Menu::getInstance()->isOptionChecked(MenuOption::VoxelSelectMode)) {
+                   || Menu::getInstance()->isOptionChecked(MenuOption::VoxelSelectMode)
+                   || Menu::getInstance()->isOptionChecked(MenuOption::VoxelNudgeMode)) {
             // place the voxel a fixed distance away
             float worldMouseVoxelScale = _mouseVoxelScale * TREE_SCALE;
             glm::vec3 pt = mouseRayOrigin + mouseRayDirection * (2.0f + worldMouseVoxelScale * 0.5f);
@@ -2308,13 +2280,22 @@ void Application::displaySide(Camera& whichCamera) {
         glPushMatrix();
         glScalef(TREE_SCALE, TREE_SCALE, TREE_SCALE);
         if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelNudgeMode)) {
-            // VoxelNode* selectedNode = _voxels.getVoxelAt(_nudgeVoxel.x, _nudgeVoxel.y, _nudgeVoxel.z, _nudgeVoxel.s);
-            // if (selectedNode) {
-            renderNudgeGrid(_nudgeVoxel.x, _nudgeVoxel.y, _nudgeVoxel.z, _nudgeVoxel.s);
-            // }
+            if (!_finishedNudge) {
+                renderNudgeGuide(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _nudgeVoxel.s);
+                renderNudgeGrid(_nudgeVoxel.x, _nudgeVoxel.y, _nudgeVoxel.z, _nudgeVoxel.s, _mouseVoxel.s);
+                glPushMatrix();
+                glTranslatef(_nudgeVoxel.x + _nudgeVoxel.s * 0.5f,
+                    _nudgeVoxel.y + _nudgeVoxel.s * 0.5f,
+                    _nudgeVoxel.z + _nudgeVoxel.s * 0.5f);
+                glColor3ub(255, 255, 255);
+                glLineWidth(4.0f);
+                glutWireCube(_nudgeVoxel.s);
+                glPopMatrix();
+            }
         } else {
             renderMouseVoxelGrid(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
         }
+
         if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelAddMode)) {
             // use a contrasting color so that we can see what we're doing
             glColor3ub(_mouseVoxel.red + 128, _mouseVoxel.green + 128, _mouseVoxel.blue + 128);
@@ -2325,7 +2306,11 @@ void Application::displaySide(Camera& whichCamera) {
                      _mouseVoxel.y + _mouseVoxel.s*0.5f,
                      _mouseVoxel.z + _mouseVoxel.s*0.5f);
         glLineWidth(4.0f);
-        glutWireCube(_mouseVoxel.s);
+        if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelNudgeMode)) {
+            glutWireCube(_nudgeVoxel.s);
+        } else {
+            glutWireCube(_mouseVoxel.s);
+        }
         glLineWidth(1.0f);
         glPopMatrix();
         glEnable(GL_LIGHTING);

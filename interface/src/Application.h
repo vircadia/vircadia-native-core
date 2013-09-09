@@ -357,6 +357,7 @@ private:
     Swatch _swatch;
 
     bool _pasteMode;
+    bool _finishedNudge;
 
     PieMenu _pieMenu;
     

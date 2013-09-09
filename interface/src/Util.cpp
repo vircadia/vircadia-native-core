@@ -414,27 +414,54 @@ void renderMouseVoxelGrid(const float& mouseVoxelX, const float& mouseVoxelY, co
     glEnd();
 }
 
-void renderNudgeGrid(const float& voxelX, const float& voxelY, const float& voxelZ, const float& voxelS) {
+void renderNudgeGrid(const float& voxelX, const float& voxelY, const float& voxelZ, const float& voxelS, const float& voxelPrecision) {
     glm::vec3 origin = glm::vec3(voxelX, voxelY, voxelZ);
 
     glLineWidth(1.0);
     
     const int GRID_DIMENSIONS = 4;
+    const int GRID_SCALER = voxelS / voxelPrecision;
+    const int GRID_SEGMENTS = GRID_DIMENSIONS * GRID_SCALER;
     glBegin(GL_LINES);
 
-    for (int xz = - (GRID_DIMENSIONS / 2); xz <= GRID_DIMENSIONS / 2 + 1; xz++) {
+    for (int xz = - (GRID_SEGMENTS / 2); xz <= GRID_SEGMENTS / 2 + GRID_SCALER; xz++) {
         glm::vec3 xColor(0.0, 0.6, 0.0);
         glColor3fv(&xColor.x);
 
-        glVertex3f(origin.x + GRID_DIMENSIONS * voxelS, 0, origin.z + xz * voxelS);
-        glVertex3f(origin.x - (GRID_DIMENSIONS - 1) * voxelS, 0, origin.z + xz * voxelS);
+        glVertex3f(origin.x + GRID_DIMENSIONS * voxelS, 0, origin.z + xz * voxelPrecision);
+        glVertex3f(origin.x - (GRID_DIMENSIONS - 1) * voxelS, 0, origin.z + xz * voxelPrecision);
 
         glm::vec3 zColor(0.0, 0.0, 0.6);
         glColor3fv(&zColor.x);
 
-        glVertex3f(origin.x + xz * voxelS, 0, origin.z + GRID_DIMENSIONS * voxelS);
-        glVertex3f(origin.x + xz * voxelS, 0, origin.z - (GRID_DIMENSIONS - 1) * voxelS);
+        glVertex3f(origin.x + xz * voxelPrecision, 0, origin.z + GRID_DIMENSIONS * voxelS);
+        glVertex3f(origin.x + xz * voxelPrecision, 0, origin.z - (GRID_DIMENSIONS - 1) * voxelS);
     }
+    glEnd();
+}
+
+void renderNudgeGuide(const float& voxelX, const float& voxelY, const float& voxelZ, const float& voxelS) {
+    glm::vec3 origin = glm::vec3(voxelX, voxelY, voxelZ);
+
+    glLineWidth(3.0);
+    
+    glBegin(GL_LINES);
+
+    glm::vec3 guideColor(1.0, 1.0, 1.0);
+    glColor3fv(&guideColor.x);
+
+    glVertex3f(origin.x + voxelS, 0, origin.z);
+    glVertex3f(origin.x, 0, origin.z);
+
+    glVertex3f(origin.x, 0, origin.z);
+    glVertex3f(origin.x, 0, origin.z + voxelS);
+
+    glVertex3f(origin.x + voxelS, 0, origin.z);
+    glVertex3f(origin.x + voxelS, 0, origin.z + voxelS);
+
+    glVertex3f(origin.x, 0, origin.z + voxelS);
+    glVertex3f(origin.x + voxelS, 0, origin.z + voxelS);
+
     glEnd();
 }
 
