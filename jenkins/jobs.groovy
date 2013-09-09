@@ -102,8 +102,6 @@ static Closure cmakeBuild(srcDir, instCommand) {
 def targets = [
     'animation-server':true,
     'assignment-server':true,
-    'audio-mixer':true,
-    'avatar-mixer':true,
     'domain-server':true,
     'eve':true,
     'pairing-server':true,
