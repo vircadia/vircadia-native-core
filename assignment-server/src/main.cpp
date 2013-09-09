@@ -99,7 +99,7 @@ int main(int argc, const char* argv[]) {
                 // assignment server is on a public server
                 // assume that the address we now have for the sender is the public address/port
                 // and store that with the assignment so it can be given to the requestor later
-                createdAssignment->setDomainSocket((sockaddr*) &senderSocket);
+                createdAssignment->setDestinationSocket((sockaddr*) &senderSocket);
                 
                 // add this assignment to the queue
                 assignmentQueue.push_back(createdAssignment);

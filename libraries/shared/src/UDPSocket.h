@@ -44,7 +44,7 @@ private:
 bool socketMatch(const sockaddr* first, const sockaddr* second);
 int packSocket(unsigned char* packStore, in_addr_t inAddress, in_port_t networkOrderPort);
 int packSocket(unsigned char* packStore, sockaddr* socketToPack);
-int unpackSocket(unsigned char* packedData, sockaddr* unpackDestSocket);
+int unpackSocket(const unsigned char* packedData, sockaddr* unpackDestSocket);
 int getLocalAddress();
 unsigned short loadBufferWithSocketInfo(char* addressBuffer, sockaddr* socket);
 sockaddr_in socketForHostnameAndHostOrderPort(const char* hostname, unsigned short port = 0);

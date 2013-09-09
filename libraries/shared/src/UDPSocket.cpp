@@ -68,7 +68,7 @@ int packSocket(unsigned char* packStore, sockaddr* socketToPack) {
     return packSocket(packStore, ((sockaddr_in*) socketToPack)->sin_addr.s_addr, ((sockaddr_in*) socketToPack)->sin_port);
 }
 
-int unpackSocket(unsigned char* packedData, sockaddr* unpackDestSocket) {
+int unpackSocket(const unsigned char* packedData, sockaddr* unpackDestSocket) {
     sockaddr_in* destinationSocket = (sockaddr_in*) unpackDestSocket;
     destinationSocket->sin_addr.s_addr = (packedData[0] << 24) + (packedData[1] << 16) + (packedData[2] << 8) + packedData[3];
     destinationSocket->sin_port = (packedData[4] << 8) + packedData[5];
