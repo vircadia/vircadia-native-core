@@ -171,7 +171,7 @@ UDPSocket::UDPSocket(unsigned short int listeningPort) :
     const int DEFAULT_BLOCKING_SOCKET_TIMEOUT_USECS = 0.5 * 1000000;
     setBlockingReceiveTimeoutInUsecs(DEFAULT_BLOCKING_SOCKET_TIMEOUT_USECS);
     
-    Logging::standardizedLog(QString("Created UDP Socket listening on %1").arg(_listeningPort));
+    qDebug("Created UDP Socket listening on %hd\n", _listeningPort);
 }
 
 UDPSocket::~UDPSocket() {

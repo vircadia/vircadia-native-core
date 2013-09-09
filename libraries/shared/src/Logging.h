@@ -22,19 +22,11 @@ const char STAT_TYPE_GAUGE = 'g';
 
 class Logging {
 public:
-    
-    enum Type {
-        Error,
-        Warn,
-        Debug
-    };
-    
     static sockaddr* socket();
     static bool shouldSendStats();
     static void stashValue(char statType, const char* key, float value);
     static void setTargetName(const char* targetName);
-    static void standardizedLog(const char* output, Logging::Type logType = Logging::Debug);
-    static void standardizedLog(const QString& output, Logging::Type logType = Logging::Debug);
+    static void verboseMessageHandler(QtMsgType type, const QMessageLogContext& context, const QString &message);
 private:
     static sockaddr_in logstashSocket;
     static char* targetName;

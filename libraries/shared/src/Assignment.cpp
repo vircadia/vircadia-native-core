@@ -130,11 +130,7 @@ int Assignment::packToBuffer(unsigned char* buffer) {
     return numPackedBytes;
 }
 
-QString Assignment::toString() const {
-    return QString("T:%1 P:%2").arg(_type).arg(_pool);
-}
-
 QDebug operator<<(QDebug debug, const Assignment &assignment) {
-    debug << assignment.toString().toStdString().c_str();
+    debug << "T:" << assignment.getType() << "P:" << assignment.getPool();
     return debug.nospace();
 }

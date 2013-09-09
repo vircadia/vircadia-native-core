@@ -69,14 +69,14 @@ void childClient() {
             // construct the deployed assignment from the packet data
             Assignment deployedAssignment(packetData, receivedBytes);
             
-            Logging::standardizedLog(QString("Received an assignment - %1").arg(deployedAssignment.toString()));
+            qDebug() << "Received an assignment -" << deployedAssignment << "\n";
             
             // switch our nodelist DOMAIN_IP to the ip receieved in the assignment
             if (deployedAssignment.getDomainSocket()->sa_family == AF_INET) {
                 in_addr domainSocketAddr = ((sockaddr_in*) deployedAssignment.getDomainSocket())->sin_addr;
                 nodeList->setDomainIP(inet_ntoa(domainSocketAddr));
                 
-                Logging::standardizedLog(QString("Changed Domain IP to %1").arg(inet_ntoa(domainSocketAddr)));
+                qDebug("Changed Domain IP to %s\n", inet_ntoa(domainSocketAddr));
             }
             
             if (deployedAssignment.getType() == Assignment::AudioMixer) {
@@ -85,7 +85,7 @@ void childClient() {
                 AvatarMixer::run();
             }
             
-            Logging::standardizedLog(QString("Assignment finished or never started - waiting for new assignment"));
+            qDebug("Assignment finished or never started - waiting for new assignment\n");
             
             // reset our NodeList by switching back to unassigned and clearing the list
             nodeList->setOwnerType(NODE_TYPE_UNASSIGNED);
@@ -124,7 +124,7 @@ void sigchldHandler(int sig) {
                     // this is the parent, replace the dead process with the new one
                     ::childForks[i] = newForkProcessID;
                    
-                    Logging::standardizedLog(QString("Replaced dead %1 with new fork %2").arg(processID).arg(newForkProcessID));
+                    qDebug("Replaced dead %d with new fork %d\n", processID, newForkProcessID);
                     
                     break;
                 }
@@ -159,6 +159,9 @@ int main(int argc, const char* argv[]) {
     
     setvbuf(stdout, NULL, _IOLBF, 0);
     
+    // use the verbose message handler in Logging
+    qInstallMessageHandler(Logging::verboseMessageHandler);
+    
     // start the Logging class with the parent's target name
     Logging::setTargetName(PARENT_TARGET_NAME);
     
@@ -179,12 +182,12 @@ int main(int argc, const char* argv[]) {
     
     if (numForksString) {
         ::numForks = atoi(numForksString);
-        Logging::standardizedLog(QString("Starting %1 assignment clients").arg(numForks));
+        qDebug("Starting %d assignment clients\n", ::numForks);
         
-        ::childForks = new pid_t[numForks];
+        ::childForks = new pid_t[::numForks];
         
         // fire off as many children as we need (this is one less than the parent since the parent will run as well)
-        for (int i = 0; i < numForks; i++) {
+        for (int i = 0; i < ::numForks; i++) {
             processID = fork();
             
             if (processID == 0) {
@@ -197,7 +200,7 @@ int main(int argc, const char* argv[]) {
         }
     }
     
-    if (processID == 0 || numForks == 0) {
+    if (processID == 0 || ::numForks == 0) {
         childClient();
     } else {
         parentMonitor();

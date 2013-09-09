@@ -8,6 +8,7 @@
 
 #include <cstring>
 #include <cstdio>
+#include <iostream>
 #include <netdb.h>
 
 #include "SharedUtil.h"
@@ -60,20 +61,6 @@ void Logging::stashValue(char statType, const char* key, float value) {
     }
 }
 
-const QString DEBUG_STRING = "DEBUG";
-const QString WARN_STRING = "WARN";
-const QString ERROR_STRING = "ERROR";
-
-const QString& stringForLogType(Logging::Type logType) {
-    if (logType == Logging::Debug) {
-        return DEBUG_STRING;
-    } else if (logType == Logging::Warn) {
-        return WARN_STRING;
-    } else {
-        return ERROR_STRING;
-    }
-}
-
 void Logging::setTargetName(const char* targetName) {
     // remove the old target name, if it exists
     delete Logging::targetName;
@@ -83,22 +70,31 @@ void Logging::setTargetName(const char* targetName) {
     strcpy(Logging::targetName, targetName);
 }
 
+const char* stringForLogType(QtMsgType msgType) {
+    switch (msgType) {
+        case QtDebugMsg:
+            return "DEBUG";
+        case QtCriticalMsg:
+            return "CRITICAL";
+        case QtFatalMsg:
+            return "FATAL";
+        case QtWarningMsg:
+            return "WARNING";
+    }
+}
+
 // the following will produce 2000-10-02 13:55:36 -0700
 const char DATE_STRING_FORMAT[] = "%F %H:%M:%S %z";
 
-void Logging::standardizedLog(const char *output, Logging::Type logType) {
-    standardizedLog(QString(output), logType);
-}
-
-void Logging::standardizedLog(const QString &output, Logging::Type logType) {
-    time_t rawTime;
-    time(&rawTime);
-    struct tm* localTime = localtime(&rawTime);
-    
+void Logging::verboseMessageHandler(QtMsgType type, const QMessageLogContext& context, const QString& message) {
     // log prefix is in the following format
     // [DEBUG] [TIMESTAMP] [PID:PARENT_PID] [TARGET] logged string
     
-    QString prefixString = QString("[%1]").arg(stringForLogType(logType));
+    QString prefixString = QString("[%1]").arg(stringForLogType(type));
+    
+    time_t rawTime;
+    time(&rawTime);
+    struct tm* localTime = localtime(&rawTime);
     
     char dateString[100];
     strftime(dateString, sizeof(dateString), DATE_STRING_FORMAT, localTime);
@@ -118,5 +114,5 @@ void Logging::standardizedLog(const QString &output, Logging::Type logType) {
         prefixString.append(QString(" [%1]").arg(Logging::targetName));
     }
     
-    qDebug("%s %s", prefixString.toStdString().c_str(), output.toStdString().c_str());
+    fprintf(stdout, "%s %s", prefixString.toLocal8Bit().constData(), message.toLocal8Bit().constData());
 }

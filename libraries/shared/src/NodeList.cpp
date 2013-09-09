@@ -44,7 +44,7 @@ NodeList* NodeList::createInstance(char ownerType, unsigned short int socketList
     if (!_sharedInstance) {
         _sharedInstance = new NodeList(ownerType, socketListenPort);
     } else {
-        Logging::standardizedLog("NodeList createInstance called with existing instance.");
+        qDebug("NodeList createInstance called with existing instance.");
     }
     
     return _sharedInstance;
@@ -52,7 +52,7 @@ NodeList* NodeList::createInstance(char ownerType, unsigned short int socketList
 
 NodeList* NodeList::getInstance() {
     if (!_sharedInstance) {
-        Logging::standardizedLog("NodeList getInstance called before call to createInstance. Returning NULL pointer.");
+        qDebug("NodeList getInstance called before call to createInstance. Returning NULL pointer.");
     }
     
     return _sharedInstance;
@@ -279,12 +279,12 @@ void NodeList::sendDomainServerCheckIn() {
             sockaddr_in tempAddress;
             memcpy(&tempAddress.sin_addr, pHostInfo->h_addr_list[0], pHostInfo->h_length);
             strcpy(_domainIP, inet_ntoa(tempAddress.sin_addr));
-            Logging::standardizedLog(QString("Domain Server: %1").arg(_domainHostname));
+            qDebug("Domain Server: %s", _domainHostname);
         } else {
-            Logging::standardizedLog("Failed domain server lookup", Logging::Warn);
+            qDebug("Failed domain server lookup");
         }
     } else if (!printedDomainServerIP) {
-        Logging::standardizedLog(QString("Domain Server IP: %1").arg(_domainIP));
+        qDebug("Domain Server IP: %s", _domainIP);
         printedDomainServerIP = true;
     }
     
@@ -460,7 +460,7 @@ void NodeList::addNodeToList(Node* newNode) {
     
     ++_numNodes;
     
-    Logging::standardizedLog(QString("Added %1").arg(newNode->toString()));
+    qDebug() << "Added" << *newNode << "\n";
     
     notifyHooksOfAddedNode(newNode);
 }
@@ -516,7 +516,7 @@ void* removeSilentNodes(void *args) {
             
             if ((checkTimeUSecs - node->getLastHeardMicrostamp()) > NODE_SILENCE_THRESHOLD_USECS) {
             
-                Logging::standardizedLog(QString("Killed %1").arg(node->toString()));
+                qDebug() << "Killed " << *node << "\n";
                 
                 nodeList->notifyHooksOfKilledNode(&*node);
                 
