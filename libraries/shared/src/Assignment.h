@@ -54,6 +54,8 @@ public:
     /// Sets _time to the current time given by gettimeofday
     void setCreateTimeToNow() { gettimeofday(&_time, NULL); }
     
+    QString toString() const;
+    
 private:
     Assignment::Direction _direction; /// the direction of the assignment (Create, Deploy, Request)
     Assignment::Type _type; /// the type of the assignment, defines what the assignee will do

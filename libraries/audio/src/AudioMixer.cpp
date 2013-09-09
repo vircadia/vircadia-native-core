@@ -32,7 +32,7 @@
 #include <glm/gtx/norm.hpp>
 #include <glm/gtx/vector_angle.hpp>
 
-#include <Logstash.h>
+#include <Logging.h>
 #include <NodeList.h>
 #include <Node.h>
 #include <NodeTypes.h>
@@ -105,8 +105,8 @@ void AudioMixer::run() {
     stk::StkFrames stkFrameBuffer(BUFFER_LENGTH_SAMPLES_PER_CHANNEL, 1);
     
     // if we'll be sending stats, call the Logstash::socket() method to make it load the logstash IP outside the loop
-    if (Logstash::shouldSendStats()) {
-        Logstash::socket();
+    if (Logging::shouldSendStats()) {
+        Logging::socket();
     }
     
     while (true) {
@@ -114,7 +114,7 @@ void AudioMixer::run() {
             break;
         }
         
-        if (Logstash::shouldSendStats()) {
+        if (Logging::shouldSendStats()) {
             gettimeofday(&beginSendTime, NULL);
         }
         
@@ -123,12 +123,12 @@ void AudioMixer::run() {
             gettimeofday(&lastDomainServerCheckIn, NULL);
             NodeList::getInstance()->sendDomainServerCheckIn();
             
-            if (Logstash::shouldSendStats() && numStatCollections > 0) {
+            if (Logging::shouldSendStats() && numStatCollections > 0) {
                 // if we should be sending stats to Logstash send the appropriate average now
                 const char MIXER_LOGSTASH_METRIC_NAME[] = "audio-mixer-frame-time-usage";
                 
                 float averageFrameTimePercentage = sumFrameTimePercentages / numStatCollections;
-                Logstash::stashValue(STAT_TYPE_TIMER, MIXER_LOGSTASH_METRIC_NAME, averageFrameTimePercentage);
+                Logging::stashValue(STAT_TYPE_TIMER, MIXER_LOGSTASH_METRIC_NAME, averageFrameTimePercentage);
                 
                 sumFrameTimePercentages = 0.0f;
                 numStatCollections = 0;
@@ -398,7 +398,7 @@ void AudioMixer::run() {
             }
         }
         
-        if (Logstash::shouldSendStats()) {
+        if (Logging::shouldSendStats()) {
             // send a packet to our logstash instance
             
             // calculate the percentage value for time elapsed for this send (of the max allowable time)

@@ -15,11 +15,14 @@
 #include <Assignment.h>
 #include <AudioMixer.h>
 #include <AvatarMixer.h>
+#include <Logging.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
 
 const long long ASSIGNMENT_REQUEST_INTERVAL_USECS = 1 * 1000 * 1000;
+const char PARENT_TARGET_NAME[] = "assignment-client-monitor";
+const char CHILD_TARGET_NAME[] = "assignment-client";
 
 pid_t* childForks = NULL;
 sockaddr_in customAssignmentSocket = {};
@@ -61,14 +64,15 @@ void childClient() {
             // construct the deployed assignment from the packet data
             Assignment deployedAssignment(packetData, receivedBytes);
             
-            qDebug() << "Received an assignment - " << deployedAssignment << "\n";
+            Logging::standardizedLog(QString("Received an assignment - %1").arg(deployedAssignment.toString()),
+                                     CHILD_TARGET_NAME);
             
             // switch our nodelist DOMAIN_IP to the ip receieved in the assignment
             if (deployedAssignment.getDomainSocket()->sa_family == AF_INET) {
                 in_addr domainSocketAddr = ((sockaddr_in*) deployedAssignment.getDomainSocket())->sin_addr;
                 nodeList->setDomainIP(inet_ntoa(domainSocketAddr));
                 
-                qDebug() << "Changed domain IP to " << inet_ntoa(domainSocketAddr);
+                Logging::standardizedLog(QString("Changed Domain IP to %1").arg(inet_ntoa(domainSocketAddr)), CHILD_TARGET_NAME);
             }
             
             if (deployedAssignment.getType() == Assignment::AudioMixer) {
@@ -77,7 +81,8 @@ void childClient() {
                 AvatarMixer::run();
             }
             
-            qDebug() << "Assignment finished or never started - waiting for new assignment";
+            Logging::standardizedLog(QString("Assignment finished or never started - waiting for new assignment"),
+                                     CHILD_TARGET_NAME);
             
             // reset our NodeList by switching back to unassigned and clearing the list
             nodeList->setOwnerType(NODE_TYPE_UNASSIGNED);
@@ -96,14 +101,11 @@ void sigchldHandler(int sig) {
             break;
         }
         
-        qDebug() << "Handling death of" << processID;
-        
         int newForkProcessID = 0;
         
         // find the dead process in the array of child forks
         for (int i = 0; i < ::numForks; i++) {
             if (::childForks[i] == processID) {
-                qDebug() << "Matched" << ::childForks[i] << "with" << processID;
                 
                 newForkProcessID = fork();
                 if (newForkProcessID == 0) {
@@ -115,6 +117,10 @@ void sigchldHandler(int sig) {
                 } else {
                     // this is the parent, replace the dead process with the new one
                     ::childForks[i] = newForkProcessID;
+                   
+                    Logging::standardizedLog(QString("Repleaced dead %1 with new fork %2").arg(processID).arg(newForkProcessID),
+                                             PARENT_TARGET_NAME);
+                    
                     break;
                 }
             }
@@ -165,7 +171,7 @@ int main(int argc, const char* argv[]) {
     
     if (numForksString) {
         ::numForks = atoi(numForksString);
-        qDebug() << "Starting" << numForks << "assignment clients.";
+        Logging::standardizedLog(QString("Starting %1 assignment clients").arg(numForks), PARENT_TARGET_NAME);
         
         ::childForks = new pid_t[numForks];
         
