@@ -54,8 +54,7 @@ void InfoView::loaded(bool ok)
         }
         
         QDesktopWidget* desktop = Application::getInstance()->desktop();
-        int h = desktop->height();
-        resize(VIEW_FIXED_WIDTH, h * 0.8);
+        resize(VIEW_FIXED_WIDTH, desktop->height() * 0.8);
         move(desktop->screen()->rect().center() - rect().center());
         setWindowTitle(title());
         show();
