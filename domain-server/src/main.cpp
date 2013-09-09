@@ -86,7 +86,7 @@ int main(int argc, const char* argv[]) {
     timeval lastStatSendTime = {};
     
     const char ASSIGNMENT_POOL_OPTION[] = "-p";
-    const char ASSIGNMENT_SERVER_OPTION[]g = "-a";
+    const char ASSIGNMENT_SERVER_OPTION[] = "-a";
     
     // set our assignment pool from argv, if it exists
     const char* assignmentPool = getCmdOption(argc, argv, ASSIGNMENT_POOL_OPTION);
