@@ -42,7 +42,6 @@ void InfoView::loaded(bool ok)
     
     QString lastVersion = settings->value(SETTINGS_VERSION_KEY).toString();
     
-    
     QWebFrame* mainFrame = page()->mainFrame();
     QWebElement versionTag = mainFrame->findFirstElement("#version");
     QString version = versionTag.attribute("value");
