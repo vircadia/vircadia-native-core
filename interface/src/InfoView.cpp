@@ -14,8 +14,7 @@
 #include <QtWebKit/QWebElement>
 #include <QDesktopWidget>
 
-#define VIEW_FIXED_WIDTH 808
-#define SETTINGS_KEY_VERSION "info-version"
+#define SETTINGS_VERSION_KEY "info-version"
 
 InfoView::InfoView()
 {
@@ -41,7 +40,7 @@ void InfoView::loaded(bool ok)
 {
     QSettings* settings = Application::getInstance()->getSettings();
     
-    QString lastVersion = settings->value(SETTINGS_KEY_VERSION).toString();
+    QString lastVersion = settings->value(SETTINGS_VERSION_KEY).toString();
     
     
     QWebFrame* mainFrame = page()->mainFrame();
@@ -50,11 +49,15 @@ void InfoView::loaded(bool ok)
     
     if (lastVersion == QString::null || version == QString::null || lastVersion != version) {
         if (version != QString::null) {
-            settings->setValue(SETTINGS_KEY_VERSION, version);
+            settings->setValue(SETTINGS_VERSION_KEY, version);
         }
         
         QDesktopWidget* desktop = Application::getInstance()->desktop();
-        resize(VIEW_FIXED_WIDTH, desktop->height() * 0.8);
+        int height = mainFrame->contentsSize().height() > desktop->height() ?
+            desktop->height() * 0.9 :
+            mainFrame->contentsSize().height();
+        
+        resize(mainFrame->contentsSize().width(), height);
         move(desktop->screen()->rect().center() - rect().center());
         setWindowTitle(title());
         show();
