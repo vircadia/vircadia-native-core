@@ -48,7 +48,7 @@
 #include <NodeTypes.h>
 #include <AudioInjectionManager.h>
 #include <AudioInjector.h>
-#include <Logstash.h>
+#include <Logging.h>
 #include <OctalCode.h>
 #include <PacketHeaders.h>
 #include <PairingHandler.h>
@@ -318,7 +318,7 @@ void Application::initializeGL() {
         const char LOGSTASH_INTERFACE_START_TIME_KEY[] = "interface-start-time";
         
         // ask the Logstash class to record the startup time
-        Logstash::stashValue(STAT_TYPE_TIMER, LOGSTASH_INTERFACE_START_TIME_KEY, startupTime);
+        Logging::stashValue(STAT_TYPE_TIMER, LOGSTASH_INTERFACE_START_TIME_KEY, startupTime);
     }
     
     // update before the first render

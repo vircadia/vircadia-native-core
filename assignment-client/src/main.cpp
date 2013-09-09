@@ -15,11 +15,14 @@
 #include <Assignment.h>
 #include <AudioMixer.h>
 #include <AvatarMixer.h>
+#include <Logging.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
 
 const long long ASSIGNMENT_REQUEST_INTERVAL_USECS = 1 * 1000 * 1000;
+const char PARENT_TARGET_NAME[] = "assignment-client-monitor";
+const char CHILD_TARGET_NAME[] = "assignment-client";
 
 pid_t* childForks = NULL;
 sockaddr_in customAssignmentSocket = {};
@@ -28,6 +31,9 @@ int numForks = 0;
 
 void childClient() {
     // this is one of the child forks or there is a single assignment client, continue assignment-client execution
+    
+    // set the logging target to the the CHILD_TARGET_NAME
+    Logging::setTargetName(CHILD_TARGET_NAME);
     
     // create a NodeList as an unassigned client
     NodeList* nodeList = NodeList::createInstance(NODE_TYPE_UNASSIGNED);
@@ -58,17 +64,19 @@ void childClient() {
         if (nodeList->getNodeSocket()->receive(packetData, &receivedBytes) &&
             packetData[0] == PACKET_TYPE_DEPLOY_ASSIGNMENT && packetVersionMatch(packetData)) {
             
+            
+            
             // construct the deployed assignment from the packet data
             Assignment deployedAssignment(packetData, receivedBytes);
             
-            qDebug() << "Received an assignment - " << deployedAssignment << "\n";
+            qDebug() << "Received an assignment -" << deployedAssignment << "\n";
             
             // switch our nodelist DOMAIN_IP to the ip receieved in the assignment
             if (deployedAssignment.getDomainSocket()->sa_family == AF_INET) {
                 in_addr domainSocketAddr = ((sockaddr_in*) deployedAssignment.getDomainSocket())->sin_addr;
                 nodeList->setDomainIP(inet_ntoa(domainSocketAddr));
                 
-                qDebug() << "Changed domain IP to " << inet_ntoa(domainSocketAddr);
+                qDebug("Changed Domain IP to %s\n", inet_ntoa(domainSocketAddr));
             }
             
             if (deployedAssignment.getType() == Assignment::AudioMixer) {
@@ -77,11 +85,14 @@ void childClient() {
                 AvatarMixer::run();
             }
             
-            qDebug() << "Assignment finished or never started - waiting for new assignment";
+            qDebug("Assignment finished or never started - waiting for new assignment\n");
             
             // reset our NodeList by switching back to unassigned and clearing the list
             nodeList->setOwnerType(NODE_TYPE_UNASSIGNED);
             nodeList->clear();
+            
+            // reset the logging target to the the CHILD_TARGET_NAME
+            Logging::setTargetName(CHILD_TARGET_NAME);
         }
     }
 }
@@ -96,14 +107,11 @@ void sigchldHandler(int sig) {
             break;
         }
         
-        qDebug() << "Handling death of" << processID;
-        
         int newForkProcessID = 0;
         
         // find the dead process in the array of child forks
         for (int i = 0; i < ::numForks; i++) {
             if (::childForks[i] == processID) {
-                qDebug() << "Matched" << ::childForks[i] << "with" << processID;
                 
                 newForkProcessID = fork();
                 if (newForkProcessID == 0) {
@@ -115,6 +123,9 @@ void sigchldHandler(int sig) {
                 } else {
                     // this is the parent, replace the dead process with the new one
                     ::childForks[i] = newForkProcessID;
+                   
+                    qDebug("Replaced dead %d with new fork %d\n", processID, newForkProcessID);
+                    
                     break;
                 }
             }
@@ -148,6 +159,12 @@ int main(int argc, const char* argv[]) {
     
     setvbuf(stdout, NULL, _IOLBF, 0);
     
+    // use the verbose message handler in Logging
+    qInstallMessageHandler(Logging::verboseMessageHandler);
+    
+    // start the Logging class with the parent's target name
+    Logging::setTargetName(PARENT_TARGET_NAME);
+    
     // grab the overriden assignment-server hostname from argv, if it exists
     const char* customAssignmentServer = getCmdOption(argc, argv, "-a");
     if (customAssignmentServer) {
@@ -165,12 +182,12 @@ int main(int argc, const char* argv[]) {
     
     if (numForksString) {
         ::numForks = atoi(numForksString);
-        qDebug() << "Starting" << numForks << "assignment clients.";
+        qDebug("Starting %d assignment clients\n", ::numForks);
         
-        ::childForks = new pid_t[numForks];
+        ::childForks = new pid_t[::numForks];
         
         // fire off as many children as we need (this is one less than the parent since the parent will run as well)
-        for (int i = 0; i < numForks; i++) {
+        for (int i = 0; i < ::numForks; i++) {
             processID = fork();
             
             if (processID == 0) {
@@ -183,7 +200,7 @@ int main(int argc, const char* argv[]) {
         }
     }
     
-    if (processID == 0 || numForks == 0) {
+    if (processID == 0 || ::numForks == 0) {
         childClient();
     } else {
         parentMonitor();

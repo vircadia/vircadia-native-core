@@ -28,7 +28,7 @@
 #include "Assignment.h"
 #include "NodeList.h"
 #include "NodeTypes.h"
-#include "Logstash.h"
+#include "Logging.h"
 #include "PacketHeaders.h"
 #include "SharedUtil.h"
 
@@ -234,12 +234,12 @@ int main(int argc, const char* argv[]) {
             }
         }
         
-        if (Logstash::shouldSendStats()) {
+        if (Logging::shouldSendStats()) {
             if (usecTimestampNow() - usecTimestamp(&lastStatSendTime) >= (NODE_COUNT_STAT_INTERVAL_MSECS * 1000)) {
                 // time to send our count of nodes and servers to logstash
                 const char NODE_COUNT_LOGSTASH_KEY[] = "ds-node-count";
                 
-                Logstash::stashValue(STAT_TYPE_TIMER, NODE_COUNT_LOGSTASH_KEY, nodeList->getNumAliveNodes());
+                Logging::stashValue(STAT_TYPE_TIMER, NODE_COUNT_LOGSTASH_KEY, nodeList->getNumAliveNodes());
                 
                 gettimeofday(&lastStatSendTime, NULL);
             }

@@ -10,6 +10,7 @@
 //  The avatar mixer receives head, hand and positional data from all connected
 //  nodes, and broadcasts that data back to them, every BROADCAST_INTERVAL ms.
 
+#include <Logging.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
@@ -17,6 +18,8 @@
 #include "AvatarData.h"
 
 #include "AvatarMixer.h"
+
+const char AVATAR_MIXER_LOGGING_NAME[] = "avatar-mixer";
 
 unsigned char* addNodeToBroadcastPacket(unsigned char *currentPosition, Node *nodeToAdd) {
     currentPosition += packNodeId(currentPosition, nodeToAdd->getNodeID());
@@ -81,6 +84,9 @@ void broadcastAvatarData(NodeList* nodeList, sockaddr* nodeAddress) {
 }
 
 void AvatarMixer::run() {
+    // change the logging target name while AvatarMixer is running
+    Logging::setTargetName(AVATAR_MIXER_LOGGING_NAME);
+    
     NodeList* nodeList = NodeList::getInstance();
     nodeList->setOwnerType(NODE_TYPE_AVATAR_MIXER);
     
