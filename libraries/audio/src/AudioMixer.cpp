@@ -57,6 +57,8 @@ const unsigned int BUFFER_SEND_INTERVAL_USECS = floorf((BUFFER_LENGTH_SAMPLES_PE
 const int MAX_SAMPLE_VALUE = std::numeric_limits<int16_t>::max();
 const int MIN_SAMPLE_VALUE = std::numeric_limits<int16_t>::min();
 
+const char AUDIO_MIXER_LOGGING_TARGET_NAME[] = "audio-mixer";
+
 void attachNewBufferToNode(Node *newNode) {
     if (!newNode->getLinkedData()) {
         if (newNode->getType() == NODE_TYPE_AGENT) {
@@ -68,6 +70,8 @@ void attachNewBufferToNode(Node *newNode) {
 }
 
 void AudioMixer::run() {
+    // change the logging target name while this is running
+    Logging::setTargetName(AUDIO_MIXER_LOGGING_TARGET_NAME);
     
     NodeList *nodeList = NodeList::getInstance();
     nodeList->setOwnerType(NODE_TYPE_AUDIO_MIXER);

@@ -144,14 +144,16 @@ float Node::getAverageKilobitsPerSecond() {
     }
 }
 
-QDebug operator<<(QDebug debug, const Node &node) {
+QString Node::toString() const {
     char publicAddressBuffer[16] = {'\0'};
-    unsigned short publicAddressPort = loadBufferWithSocketInfo(publicAddressBuffer, node.getPublicSocket());
+    unsigned short publicAddressPort = loadBufferWithSocketInfo(publicAddressBuffer, _publicSocket);
     
     //char localAddressBuffer[16] = {'\0'};
     //unsigned short localAddressPort = loadBufferWithSocketInfo(localAddressBuffer, node.localSocket);
     
-    debug << "#" << node.getNodeID() << node.getTypeName() << node.getType();
-    debug.nospace() << publicAddressBuffer << ":" << publicAddressPort;
-    return debug.nospace();
+    return QString("# %1 %2 %3 %4:%5").arg(_nodeID).arg(getTypeName()).arg(_type).arg(publicAddressBuffer).arg(publicAddressPort);
+}
+
+QDebug operator<<(QDebug debug, const Node &node) {
+    return debug << node.toString();
 }

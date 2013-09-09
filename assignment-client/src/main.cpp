@@ -32,6 +32,9 @@ int numForks = 0;
 void childClient() {
     // this is one of the child forks or there is a single assignment client, continue assignment-client execution
     
+    // set the logging target to the the CHILD_TARGET_NAME
+    Logging::setTargetName(CHILD_TARGET_NAME);
+    
     // create a NodeList as an unassigned client
     NodeList* nodeList = NodeList::createInstance(NODE_TYPE_UNASSIGNED);
     
@@ -61,8 +64,7 @@ void childClient() {
         if (nodeList->getNodeSocket()->receive(packetData, &receivedBytes) &&
             packetData[0] == PACKET_TYPE_DEPLOY_ASSIGNMENT && packetVersionMatch(packetData)) {
             
-            // reset the logging target to the the CHILD_TARGET_NAME
-            Logging::setTargetName(CHILD_TARGET_NAME);
+            
             
             // construct the deployed assignment from the packet data
             Assignment deployedAssignment(packetData, receivedBytes);
@@ -88,6 +90,9 @@ void childClient() {
             // reset our NodeList by switching back to unassigned and clearing the list
             nodeList->setOwnerType(NODE_TYPE_UNASSIGNED);
             nodeList->clear();
+            
+            // reset the logging target to the the CHILD_TARGET_NAME
+            Logging::setTargetName(CHILD_TARGET_NAME);
         }
     }
 }

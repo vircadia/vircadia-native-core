@@ -23,6 +23,7 @@
 
 #include <QtCore/QDebug>
 
+#include "Logging.h"
 #include "UDPSocket.h"
 
 sockaddr_in destSockaddr, senderAddress;
@@ -170,7 +171,7 @@ UDPSocket::UDPSocket(unsigned short int listeningPort) :
     const int DEFAULT_BLOCKING_SOCKET_TIMEOUT_USECS = 0.5 * 1000000;
     setBlockingReceiveTimeoutInUsecs(DEFAULT_BLOCKING_SOCKET_TIMEOUT_USECS);
     
-    qDebug("Created UDP socket listening on port %hu.\n", _listeningPort);
+    Logging::standardizedLog(QString("Created UDP Socket listening on %1").arg(_listeningPort));
 }
 
 UDPSocket::~UDPSocket() {

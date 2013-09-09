@@ -14,6 +14,7 @@
 #include <QtCore/QDebug>
 
 #include "Assignment.h"
+#include "Logging.h"
 #include "NodeList.h"
 #include "NodeTypes.h"
 #include "PacketHeaders.h"
@@ -43,7 +44,7 @@ NodeList* NodeList::createInstance(char ownerType, unsigned short int socketList
     if (!_sharedInstance) {
         _sharedInstance = new NodeList(ownerType, socketListenPort);
     } else {
-        qDebug("NodeList createInstance called with existing instance.\n");
+        Logging::standardizedLog("NodeList createInstance called with existing instance.");
     }
     
     return _sharedInstance;
@@ -51,7 +52,7 @@ NodeList* NodeList::createInstance(char ownerType, unsigned short int socketList
 
 NodeList* NodeList::getInstance() {
     if (!_sharedInstance) {
-        qDebug("NodeList getInstance called before call to createInstance. Returning NULL pointer.\n");
+        Logging::standardizedLog("NodeList getInstance called before call to createInstance. Returning NULL pointer.");
     }
     
     return _sharedInstance;
@@ -278,13 +279,12 @@ void NodeList::sendDomainServerCheckIn() {
             sockaddr_in tempAddress;
             memcpy(&tempAddress.sin_addr, pHostInfo->h_addr_list[0], pHostInfo->h_length);
             strcpy(_domainIP, inet_ntoa(tempAddress.sin_addr));
-
-            qDebug("Domain Server: %s\n", _domainHostname);
+            Logging::standardizedLog(QString("Domain Server: %1").arg(_domainHostname));
         } else {
-            qDebug("Failed domain server lookup\n");
+            Logging::standardizedLog("Failed domain server lookup", Logging::Warn);
         }
     } else if (!printedDomainServerIP) {
-        qDebug("Domain Server IP: %s\n", _domainIP);
+        Logging::standardizedLog(QString("Domain Server IP: %1").arg(_domainIP));
         printedDomainServerIP = true;
     }
     
@@ -460,7 +460,7 @@ void NodeList::addNodeToList(Node* newNode) {
     
     ++_numNodes;
     
-    qDebug() << "Added" << *newNode << "\n";
+    Logging::standardizedLog(QString("Added %1").arg(newNode->toString()));
     
     notifyHooksOfAddedNode(newNode);
 }
@@ -516,7 +516,7 @@ void* removeSilentNodes(void *args) {
             
             if ((checkTimeUSecs - node->getLastHeardMicrostamp()) > NODE_SILENCE_THRESHOLD_USECS) {
             
-                qDebug() << "Killed" << *node << "\n";
+                Logging::standardizedLog(QString("Killed %1").arg(node->toString()));
                 
                 nodeList->notifyHooksOfKilledNode(&*node);
                 

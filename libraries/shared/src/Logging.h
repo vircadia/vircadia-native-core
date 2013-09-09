@@ -33,6 +33,7 @@ public:
     static bool shouldSendStats();
     static void stashValue(char statType, const char* key, float value);
     static void setTargetName(const char* targetName);
+    static void standardizedLog(const char* output, Logging::Type logType = Logging::Debug);
     static void standardizedLog(const QString& output, Logging::Type logType = Logging::Debug);
 private:
     static sockaddr_in logstashSocket;

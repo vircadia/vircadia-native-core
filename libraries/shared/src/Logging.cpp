@@ -86,6 +86,10 @@ void Logging::setTargetName(const char* targetName) {
 // the following will produce 2000-10-02 13:55:36 -0700
 const char DATE_STRING_FORMAT[] = "%F %H:%M:%S %z";
 
+void Logging::standardizedLog(const char *output, Logging::Type logType) {
+    standardizedLog(QString(output), logType);
+}
+
 void Logging::standardizedLog(const QString &output, Logging::Type logType) {
     time_t rawTime;
     time(&rawTime);

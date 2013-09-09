@@ -72,6 +72,8 @@ public:
     void unlock() { pthread_mutex_unlock(&_mutex); }
 
     static void printLog(Node const&);
+    
+    QString toString() const;
 private:
     // privatize copy and assignment operator to disallow Node copying
     Node(const Node &otherNode);
