@@ -10,6 +10,7 @@
 #define __interface__Faceshift__
 
 #include <QTcpSocket>
+#include <QUdpSocket>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -24,7 +25,7 @@ public:
 
     Faceshift();
 
-    bool isActive() const { return _socket.state() == QAbstractSocket::ConnectedState && _tracking; }
+    bool isActive() const;
 
     const glm::quat& getHeadRotation() const { return _headRotation; }
     const glm::vec3& getHeadTranslation() const { return _headTranslation; }
@@ -63,10 +64,12 @@ private:
     
     void send(const std::string& message);
     
-    QTcpSocket _socket;
+    QTcpSocket _tcpSocket;
+    QUdpSocket _udpSocket;
     fs::fsBinaryStream _stream;
     bool _enabled;
     bool _tracking;
+    uint64_t _lastMessageReceived;
     
     glm::quat _headRotation;
     glm::vec3 _headTranslation;

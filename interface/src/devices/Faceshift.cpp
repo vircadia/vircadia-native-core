@@ -8,13 +8,18 @@
 
 #include <QTimer>
 
+#include <SharedUtil.h>
+
 #include "Faceshift.h"
 
 using namespace fs;
 using namespace std;
 
+const quint16 FACESHIFT_PORT = 33433;
+
 Faceshift::Faceshift() :
     _enabled(false),
+    _lastMessageReceived(0),
     _eyeGazeLeftPitch(0.0f),
     _eyeGazeLeftYaw(0.0f),
     _eyeGazeRightPitch(0.0f),
@@ -32,9 +37,19 @@ Faceshift::Faceshift() :
     _estimatedEyePitch(0.0f),
     _estimatedEyeYaw(0.0f)
 {
-    connect(&_socket, SIGNAL(connected()), SLOT(noteConnected()));
-    connect(&_socket, SIGNAL(error(QAbstractSocket::SocketError)), SLOT(noteError(QAbstractSocket::SocketError)));
-    connect(&_socket, SIGNAL(readyRead()), SLOT(readFromSocket()));
+    connect(&_tcpSocket, SIGNAL(connected()), SLOT(noteConnected()));
+    connect(&_tcpSocket, SIGNAL(error(QAbstractSocket::SocketError)), SLOT(noteError(QAbstractSocket::SocketError)));
+    connect(&_tcpSocket, SIGNAL(readyRead()), SLOT(readFromSocket()));
+    
+    connect(&_udpSocket, SIGNAL(readyRead()), SLOT(readFromSocket()));
+    
+    _udpSocket.bind(FACESHIFT_PORT);
+}
+
+bool Faceshift::isActive() const {
+    const uint64_t ACTIVE_TIMEOUT_USECS = 1000000;
+    return (_tcpSocket.state() == QAbstractSocket::ConnectedState ||
+        (usecTimestampNow() - _lastMessageReceived) < ACTIVE_TIMEOUT_USECS) && _tracking;
 }
 
 void Faceshift::update() {
@@ -51,7 +66,7 @@ void Faceshift::update() {
 }
 
 void Faceshift::reset() {
-    if (isActive()) {
+    if (_tcpSocket.state() == QAbstractSocket::ConnectedState) {
         string message;
         fsBinaryStream::encode_message(message, fsMsgCalibrateNeutral());
         send(message);
@@ -63,7 +78,7 @@ void Faceshift::setEnabled(bool enabled) {
         connectSocket();
     
     } else {
-        _socket.disconnectFromHost();
+        _tcpSocket.disconnectFromHost();
     }
 }
 
@@ -71,8 +86,7 @@ void Faceshift::connectSocket() {
     if (_enabled) {
         qDebug("Faceshift: Connecting...\n");
     
-        const quint16 FACESHIFT_PORT = 33433;
-        _socket.connectToHost("localhost", FACESHIFT_PORT);
+        _tcpSocket.connectToHost("localhost", FACESHIFT_PORT);
         _tracking = false;
     }
 }
@@ -87,7 +101,7 @@ void Faceshift::noteConnected() {
 }
 
 void Faceshift::noteError(QAbstractSocket::SocketError error) {
-    qDebug() << "Faceshift: " << _socket.errorString() << "\n";
+    qDebug() << "Faceshift: " << _tcpSocket.errorString() << "\n";
     
     // reconnect after a delay
     if (_enabled) {
@@ -96,7 +110,7 @@ void Faceshift::noteError(QAbstractSocket::SocketError error) {
 }
 
 void Faceshift::readFromSocket() {
-    QByteArray buffer = _socket.readAll();
+    QByteArray buffer = static_cast<QIODevice*>(sender())->readAll();
     _stream.received(buffer.size(), buffer.constData());
     fsMsgPtr msg;
     for (fsMsgPtr msg; (msg = _stream.get_message()); ) {
@@ -151,8 +165,9 @@ void Faceshift::readFromSocket() {
                 break;
         }
     }
+    _lastMessageReceived = usecTimestampNow();
 }
 
 void Faceshift::send(const std::string& message) {
-    _socket.write(message.data(), message.size());
+    _tcpSocket.write(message.data(), message.size());
 }
