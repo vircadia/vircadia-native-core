@@ -723,9 +723,10 @@ void Head::renderEyeBalls() {
         glm::vec3 rotationAxis = glm::axis(leftIrisRotation);
         glRotatef(glm::angle(leftIrisRotation), rotationAxis.x, rotationAxis.y, rotationAxis.z);
         glScalef(_scale * EYELID_RADIUS, _scale * EYELID_RADIUS, _scale * EYELID_RADIUS);
-        glRotatef(-70 - 50 * _leftEyeBlink, 1, 0, 0);
+        float angle = -67.5f - 50.0f * _leftEyeBlink;
+        glRotatef(angle, 1, 0, 0);
         Application::getInstance()->getGeometryCache()->renderHemisphere(15, 10);
-        glRotatef(180 * _leftEyeBlink, 1, 0, 0);
+        glRotatef(glm::mix(-angle, 180.0f, _leftEyeBlink), 1, 0, 0);
         Application::getInstance()->getGeometryCache()->renderHemisphere(15, 10);
     }
     glPopMatrix();
@@ -736,9 +737,10 @@ void Head::renderEyeBalls() {
         glm::vec3 rotationAxis = glm::axis(rightIrisRotation);
         glRotatef(glm::angle(rightIrisRotation), rotationAxis.x, rotationAxis.y, rotationAxis.z);
         glScalef(_scale * EYELID_RADIUS, _scale * EYELID_RADIUS, _scale * EYELID_RADIUS);
-        glRotatef(-70 - 50 * _rightEyeBlink, 1, 0, 0);
+        float angle = -67.5f - 50.0f * _rightEyeBlink; 
+        glRotatef(angle, 1, 0, 0);
         Application::getInstance()->getGeometryCache()->renderHemisphere(15, 10);
-        glRotatef(180 * _rightEyeBlink, 1, 0, 0);
+        glRotatef(glm::mix(-angle, 180.0f, _rightEyeBlink), 1, 0, 0);
         Application::getInstance()->getGeometryCache()->renderHemisphere(15, 10);
     }
     glPopMatrix();
