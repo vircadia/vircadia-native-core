@@ -106,6 +106,12 @@ int main(int argc, const char* argv[]) {
     Assignment* audioAssignment = NULL;
     Assignment* avatarAssignment = NULL;
     
+    // construct a local socket to send with our created assignments
+    sockaddr_in localSocket = {};
+    localSocket.sin_family = AF_INET;
+    localSocket.sin_port = htons(nodeList->getInstance()->getNodeSocket()->getListeningPort());
+    localSocket.sin_addr.s_addr = serverLocalAddress;
+    
     while (true) {
         if (!nodeList->soloNodeOfType(NODE_TYPE_AUDIO_MIXER)) {
             if (!audioAssignment
@@ -113,6 +119,7 @@ int main(int argc, const char* argv[]) {
                 
                 if (!audioAssignment) {
                     audioAssignment = new Assignment(Assignment::Create, Assignment::AudioMixer, assignmentPool);
+                    audioAssignment->setAttachedLocalSocket((sockaddr*) &localSocket);
                 }
                 
                 nodeList->sendAssignment(*audioAssignment);
@@ -125,6 +132,7 @@ int main(int argc, const char* argv[]) {
                 || usecTimestampNow() - usecTimestamp(&avatarAssignment->getTime()) >= ASSIGNMENT_SILENCE_MAX_USECS) {
                 if (!avatarAssignment) {
                     avatarAssignment = new Assignment(Assignment::Create, Assignment::AvatarMixer, assignmentPool);
+                    avatarAssignment->setAttachedLocalSocket((sockaddr*) &localSocket);
                 }
                 
                 nodeList->sendAssignment(*avatarAssignment);

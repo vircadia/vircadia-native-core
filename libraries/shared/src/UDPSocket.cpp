@@ -70,19 +70,20 @@ int packSocket(unsigned char* packStore, sockaddr* socketToPack) {
 
 int unpackSocket(const unsigned char* packedData, sockaddr* unpackDestSocket) {
     sockaddr_in* destinationSocket = (sockaddr_in*) unpackDestSocket;
+    destinationSocket->sin_family = AF_INET;
     destinationSocket->sin_addr.s_addr = (packedData[0] << 24) + (packedData[1] << 16) + (packedData[2] << 8) + packedData[3];
     destinationSocket->sin_port = (packedData[4] << 8) + packedData[5];
     return 6; // this could be more if we ever need IPv6
 }
 
-void copySocketToEmptySocketPointer(sockaddr* destination, const sockaddr* source) {
+void copySocketToEmptySocketPointer(sockaddr** destination, const sockaddr* source) {
     // create a new sockaddr or sockaddr_in depending on what type of address this is
     if (source->sa_family == AF_INET) {
-        destination = (sockaddr*) new sockaddr_in;
-        memcpy(destination, source, sizeof(sockaddr_in));
+        *destination = (sockaddr*) new sockaddr_in;
+        memcpy(*destination, source, sizeof(sockaddr_in));
     } else {
-        destination = (sockaddr*) new sockaddr_in6;
-        memcpy(destination, source, sizeof(sockaddr_in6));
+        *destination = (sockaddr*) new sockaddr_in6;
+        memcpy(*destination, source, sizeof(sockaddr_in6));
     }
 }
 

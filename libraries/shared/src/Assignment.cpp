@@ -67,18 +67,23 @@ Assignment::Assignment(const unsigned char* dataBuffer, int numBytes) :
     
     if (numBytes > numBytesRead) {
         
-        sockaddr* socketDestination = (_direction == Assignment::Create)
-            ? _attachedLocalSocket
-            : _attachedPublicSocket;
+        sockaddr* newSocket = NULL;
         
         if (dataBuffer[numBytesRead++] == IPv4_ADDRESS_DESIGNATOR) {
             // IPv4 address
-            delete socketDestination;
-            socketDestination = (sockaddr*) new sockaddr_in;
-            unpackSocket(dataBuffer + numBytesRead, socketDestination);
+            newSocket = (sockaddr*) new sockaddr_in;
+            unpackSocket(dataBuffer + numBytesRead, newSocket);
         } else {
             // IPv6 address, or bad designator
             qDebug("Received a socket that cannot be unpacked!\n");
+        }
+        
+        if (_direction == Assignment::Create) {
+            delete _attachedLocalSocket;
+            _attachedLocalSocket = newSocket;
+        } else {
+            delete _attachedPublicSocket;
+            _attachedPublicSocket = newSocket;
         }
     }
 }
@@ -90,14 +95,15 @@ Assignment::~Assignment() {
 }
 
 void Assignment::setAttachedPublicSocket(const sockaddr* attachedPublicSocket) {
-    
     if (_attachedPublicSocket) {
         // delete the old socket if it exists
         delete _attachedPublicSocket;
         _attachedPublicSocket = NULL;
     }
     
-    copySocketToEmptySocketPointer(_attachedPublicSocket, attachedPublicSocket);
+    if (attachedPublicSocket) {
+        copySocketToEmptySocketPointer(&_attachedPublicSocket, attachedPublicSocket);
+    }
 }
 
 void Assignment::setAttachedLocalSocket(const sockaddr* attachedLocalSocket) {
@@ -107,7 +113,9 @@ void Assignment::setAttachedLocalSocket(const sockaddr* attachedLocalSocket) {
         _attachedLocalSocket = NULL;
     }
     
-    copySocketToEmptySocketPointer(_attachedLocalSocket, attachedLocalSocket);
+    if (attachedLocalSocket) {
+        copySocketToEmptySocketPointer(&_attachedLocalSocket, attachedLocalSocket);
+    }
 }
 
 int Assignment::packToBuffer(unsigned char* buffer) {
