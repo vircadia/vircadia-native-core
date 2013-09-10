@@ -152,8 +152,14 @@ void PerlinFace::update() {
                  GL_DYNAMIC_DRAW);
 }
 
+const GLfloat NO_SPECULAR_COLOR[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+
 void PerlinFace::render() {
     glPushMatrix();
+
+    // disable specular lighting for ground and voxels
+    glMaterialfv(GL_FRONT, GL_SPECULAR, NO_SPECULAR_COLOR);
+
     update();
 
     glm::quat orientation = _owningHead->getOrientation();
@@ -226,6 +232,8 @@ void PerlinFace::updatePositions() {
         _browsU_R = faceshift->getBrowUpRight();
     }
 
+
+    // Update left brow
     _vertices[BROW_LEFT].y = VERTICES[FLOAT_PER_VERTEX * BROW_LEFT + 1]
             + _browsU_L * BROWS_UP_MAX - _browsD_L * BROWS_DOWN_MAX
             - _browsU_C * BROWS_UP_CENTER_MAX;
@@ -240,6 +248,7 @@ void PerlinFace::updatePositions() {
             + _browsU_L * BROWS_UP_MAX - _browsD_L * BROWS_DOWN_MAX
             + _browsU_C * BROWS_UP_CENTER_MAX;
 
+    // Update right brow
     _vertices[NUM_VERTICES + BROW_LEFT].y = VERTICES[FLOAT_PER_VERTEX * (NUM_VERTICES + BROW_LEFT) + 1]
             + _browsU_R * BROWS_UP_MAX - _browsD_R * BROWS_DOWN_MAX
             - _browsU_C * BROWS_UP_CENTER_MAX;
@@ -254,6 +263,24 @@ void PerlinFace::updatePositions() {
             + _browsU_R * BROWS_UP_MAX - _browsD_R * BROWS_DOWN_MAX
             + _browsU_C * BROWS_UP_CENTER_MAX;
 
+
+    _vertices[MOUTH_BOTTOM_IN].y = VERTICES[FLOAT_PER_VERTEX * MOUTH_BOTTOM_IN + 1]
+            + 6.2;
+    _vertices[MOUTH_BOTTOM_OUT].y = VERTICES[FLOAT_PER_VERTEX * MOUTH_BOTTOM_OUT + 1]
+            + 6;
+    _vertices[MOUTH_MID_IN].y = VERTICES[FLOAT_PER_VERTEX * MOUTH_MID_IN + 1]
+            + 3;
+    _vertices[MOUTH_MID_OUT].y = VERTICES[FLOAT_PER_VERTEX * MOUTH_MID_OUT + 1]
+            + 3;
+
+    _vertices[NUM_VERTICES + MOUTH_BOTTOM_IN].y = VERTICES[FLOAT_PER_VERTEX * (NUM_VERTICES + MOUTH_BOTTOM_IN) + 1]
+            + 6.2;
+    _vertices[NUM_VERTICES + MOUTH_BOTTOM_OUT].y = VERTICES[FLOAT_PER_VERTEX * (NUM_VERTICES + MOUTH_BOTTOM_OUT) + 1]
+            + 6;
+    _vertices[NUM_VERTICES + MOUTH_MID_IN].y = VERTICES[FLOAT_PER_VERTEX * (NUM_VERTICES + MOUTH_MID_IN) + 1]
+            + 3;
+    _vertices[NUM_VERTICES + MOUTH_MID_OUT].y = VERTICES[FLOAT_PER_VERTEX * (NUM_VERTICES + MOUTH_MID_OUT) + 1]
+            + 3;
 
 }
 
