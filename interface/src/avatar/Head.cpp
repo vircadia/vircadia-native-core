@@ -158,7 +158,7 @@ void Head::simulate(float deltaTime, bool isMine, float gyroCameraSensitivity) {
         const float MOUTH_SIZE_SCALE = 2500.0f;
         _averageLoudness = faceshift->getMouthSize() * faceshift->getMouthSize() * MOUTH_SIZE_SCALE;
         const float BROW_HEIGHT_SCALE = 0.005f;
-        _browAudioLift = faceshift->getBrowHeight() * BROW_HEIGHT_SCALE;
+        _browAudioLift = faceshift->getBrowUpCenter() * BROW_HEIGHT_SCALE;
         
     } else {
         // Update eye saccades

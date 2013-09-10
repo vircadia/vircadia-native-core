@@ -87,7 +87,10 @@ PerlinFace::PerlinFace(Head *owningHead)
       _browsD_R(0),
       _browsU_C(0),
       _browsU_L(0),
-      _browsU_R(0) {
+      _browsU_R(0),
+      _mouthSize(0),
+      _leftBlink(0),
+      _rightBlink(0) {
 }
 
 PerlinFace::~PerlinFace() {
@@ -189,6 +192,30 @@ void PerlinFace::render() {
 
     glDrawArrays(GL_TRIANGLES, 0, VERTEX_PER_TRIANGLE * _trianglesCount);
 
+    // Draw eyes
+    glColor3d(0, 0, 0);
+    glBegin(GL_LINE_LOOP);
+    glVertex3d(_vertices[EYE_LEFT].x, _vertices[EYE_LEFT].y, _vertices[EYE_LEFT].z);
+    glVertex3d(_vertices[EYE_MID_TOP].x, _vertices[EYE_MID_TOP].y, _vertices[EYE_MID_TOP].z);
+    glVertex3d(_vertices[EYE_RIGHT].x, _vertices[EYE_RIGHT].y, _vertices[EYE_RIGHT].z);
+    glVertex3d(_vertices[EYE_MID_BOTTOM].x, _vertices[EYE_MID_BOTTOM].y, _vertices[EYE_MID_BOTTOM].z);
+    glEnd();
+
+    glBegin(GL_LINE_LOOP);
+    glVertex3d(_vertices[NUM_VERTICES + EYE_LEFT].x,
+               _vertices[NUM_VERTICES + EYE_LEFT].y,
+               _vertices[NUM_VERTICES + EYE_LEFT].z);
+    glVertex3d(_vertices[NUM_VERTICES + EYE_MID_TOP].x,
+               _vertices[NUM_VERTICES + EYE_MID_TOP].y,
+               _vertices[NUM_VERTICES + EYE_MID_TOP].z);
+    glVertex3d(_vertices[NUM_VERTICES + EYE_RIGHT].x,
+               _vertices[NUM_VERTICES + EYE_RIGHT].y,
+               _vertices[NUM_VERTICES + EYE_RIGHT].z);
+    glVertex3d(_vertices[NUM_VERTICES + EYE_MID_BOTTOM].x,
+               _vertices[NUM_VERTICES + EYE_MID_BOTTOM].y,
+               _vertices[NUM_VERTICES + EYE_MID_BOTTOM].z);
+    glEnd();
+
 
     /*/
     // Draw points for debug.
@@ -223,13 +250,16 @@ void PerlinFace::updatePositions() {
     const float BROWS_DOWN_MAX = 1;
     const float BROWS_UP_CENTER_MAX = 1;
 
-    Faceshift* faceshift = Application::getFaceshift();
+    Faceshift* faceshift = Application::getInstance()->getFaceshift();
     if (faceshift->isActive()) {
         _browsD_L = faceshift->getBrowDownLeft();
         _browsD_R = faceshift->getBrowDownRight();
-        _browsU_C = faceshift->getBrowHeight();
+        _browsU_C = faceshift->getBrowUpCenter();
         _browsU_L = faceshift->getBrowUpLeft();
         _browsU_R = faceshift->getBrowUpRight();
+        _mouthSize = faceshift->getMouthSize();
+        _leftBlink = faceshift->getLeftBlink();
+        _rightBlink = faceshift->getRightBlink();
     }
 
 
@@ -265,22 +295,31 @@ void PerlinFace::updatePositions() {
 
 
     _vertices[MOUTH_BOTTOM_IN].y = VERTICES[FLOAT_PER_VERTEX * MOUTH_BOTTOM_IN + 1]
-            + 6.2;
+            + (1.0 - _mouthSize) * 6.2;
     _vertices[MOUTH_BOTTOM_OUT].y = VERTICES[FLOAT_PER_VERTEX * MOUTH_BOTTOM_OUT + 1]
-            + 6;
+            + (1.0 - _mouthSize) * 6;
     _vertices[MOUTH_MID_IN].y = VERTICES[FLOAT_PER_VERTEX * MOUTH_MID_IN + 1]
-            + 3;
+            + (1.0 - _mouthSize) * 3;
     _vertices[MOUTH_MID_OUT].y = VERTICES[FLOAT_PER_VERTEX * MOUTH_MID_OUT + 1]
-            + 3;
+            + (1.0 - _mouthSize) * 3;
 
     _vertices[NUM_VERTICES + MOUTH_BOTTOM_IN].y = VERTICES[FLOAT_PER_VERTEX * (NUM_VERTICES + MOUTH_BOTTOM_IN) + 1]
-            + 6.2;
+            + (1.0 - _mouthSize) * 6.2;
     _vertices[NUM_VERTICES + MOUTH_BOTTOM_OUT].y = VERTICES[FLOAT_PER_VERTEX * (NUM_VERTICES + MOUTH_BOTTOM_OUT) + 1]
-            + 6;
+            + (1.0 - _mouthSize) * 6;
     _vertices[NUM_VERTICES + MOUTH_MID_IN].y = VERTICES[FLOAT_PER_VERTEX * (NUM_VERTICES + MOUTH_MID_IN) + 1]
-            + 3;
+            + (1.0 - _mouthSize) * 3;
     _vertices[NUM_VERTICES + MOUTH_MID_OUT].y = VERTICES[FLOAT_PER_VERTEX * (NUM_VERTICES + MOUTH_MID_OUT) + 1]
-            + 3;
+            + (1.0 - _mouthSize) * 3;
+
+    // Eyelid
+    _vertices[EYE_MID_TOP] = (1.0f - _leftBlink) * _vertices[EYE_MID_TOP] + _leftBlink * (_vertices[EYE_MID_TOP] + _vertices[EYE_MID_BOTTOM]) / 2.0f;
+    _vertices[EYE_MID_BOTTOM] = (1.0f - _leftBlink) * _vertices[EYE_MID_BOTTOM] + _leftBlink * (_vertices[EYE_MID_TOP] + _vertices[EYE_MID_BOTTOM]) / 2.0f;
+
+    _vertices[NUM_VERTICES + EYE_MID_TOP] = (1.0f - _leftBlink) * _vertices[NUM_VERTICES + EYE_MID_TOP]
+            + _leftBlink * (_vertices[NUM_VERTICES + EYE_MID_TOP] + _vertices[NUM_VERTICES + EYE_MID_BOTTOM]) / 2.0f;
+    _vertices[NUM_VERTICES + EYE_MID_BOTTOM] = (1.0f - _leftBlink) * _vertices[NUM_VERTICES + EYE_MID_BOTTOM]
+            + _leftBlink * (_vertices[NUM_VERTICES + EYE_MID_TOP] + _vertices[NUM_VERTICES + EYE_MID_BOTTOM]) / 2.0f;
 
 }
 

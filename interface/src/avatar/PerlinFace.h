@@ -61,6 +61,11 @@ private:
     float _browsU_C;
     float _browsU_L;
     float _browsU_R;
+
+    float _mouthSize;
+
+    float _leftBlink;
+    float _rightBlink;
 };
 
 #endif /* defined(__interface__Face__) */

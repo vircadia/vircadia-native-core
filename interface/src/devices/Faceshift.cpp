@@ -25,7 +25,7 @@ Faceshift::Faceshift() :
     _rightBlinkIndex(-1),
     _browDownLeft(0.0f),
     _browDownRight(0.0f),
-    _browHeight(0.0f),
+    _browUpCenter(0.0f),
     _browUpLeft(0.0f),
     _browUpRight(0.0f),
     _browDownLeftIndex(-1),
@@ -135,7 +135,7 @@ void Faceshift::readFromSocket() {
                         _browDownRight = data.m_coeffs[_browDownRightIndex];
                     }
                     if (_browUpCenterIndex != -1) {
-                        _browHeight = data.m_coeffs[_browUpCenterIndex];
+                        _browUpCenter = data.m_coeffs[_browUpCenterIndex];
                     }
                     if (_browUpLeftIndex != -1) {
                         _browUpLeft = data.m_coeffs[_browUpLeftIndex];
