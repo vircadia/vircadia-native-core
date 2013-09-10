@@ -61,6 +61,10 @@ void renderGroundPlaneGrid(float size, float impact);
 
 void renderMouseVoxelGrid(const float& mouseVoxelX, const float& mouseVoxelY, const float& mouseVoxelZ, const float& mouseVoxelS);
 
+void renderNudgeGrid(float voxelX, float voxelY, float voxelZ, float voxelS, float voxelPrecision);
+
+void renderNudgeGuide(float voxelX, float voxelY, float voxelZ, float voxelS);
+
 void renderCollisionOverlay(int width, int height, float magnitude);
 
 void renderDiskShadow(glm::vec3 position, glm::vec3 upDirection, float radius, float darkness);

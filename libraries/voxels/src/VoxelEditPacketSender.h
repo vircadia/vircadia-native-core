@@ -12,6 +12,7 @@
 #define __shared__VoxelEditPacketSender__
 
 #include <PacketSender.h>
+#include <PacketHeaders.h>
 #include <SharedUtil.h> // for VoxelDetail
 #include "JurisdictionMap.h"
 

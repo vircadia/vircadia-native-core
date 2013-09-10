@@ -414,6 +414,66 @@ void renderMouseVoxelGrid(const float& mouseVoxelX, const float& mouseVoxelY, co
     glEnd();
 }
 
+void renderNudgeGrid(float voxelX, float voxelY, float voxelZ, float voxelS, float voxelPrecision) {
+    glm::vec3 origin = glm::vec3(voxelX, voxelY, voxelZ);
+
+    glLineWidth(1.0);
+    
+    const int GRID_DIMENSIONS = 4;
+    const int GRID_SCALER = voxelS / voxelPrecision;
+    const int GRID_SEGMENTS = GRID_DIMENSIONS * GRID_SCALER;
+    glBegin(GL_LINES);
+
+    for (int xz = - (GRID_SEGMENTS / 2); xz <= GRID_SEGMENTS / 2 + GRID_SCALER; xz++) {
+        glm::vec3 xColor(0.0, 0.6, 0.0);
+        glColor3fv(&xColor.x);
+
+        glVertex3f(origin.x + GRID_DIMENSIONS * voxelS, 0, origin.z + xz * voxelPrecision);
+        glVertex3f(origin.x - (GRID_DIMENSIONS - 1) * voxelS, 0, origin.z + xz * voxelPrecision);
+
+        glm::vec3 zColor(0.0, 0.0, 0.6);
+        glColor3fv(&zColor.x);
+
+        glVertex3f(origin.x + xz * voxelPrecision, 0, origin.z + GRID_DIMENSIONS * voxelS);
+        glVertex3f(origin.x + xz * voxelPrecision, 0, origin.z - (GRID_DIMENSIONS - 1) * voxelS);
+    }
+    glEnd();
+
+    glColor3f(1.0f,1.0f,1.0f);
+    
+    glBegin(GL_POLYGON);//begin drawing of square
+      glVertex3f(voxelX, 0.0f, voxelZ);//first vertex
+      glVertex3f(voxelX + voxelS, 0.0f, voxelZ);//second vertex
+      glVertex3f(voxelX + voxelS, 0.0f, voxelZ + voxelS);//third vertex
+      glVertex3f(voxelX, 0.0f, voxelZ + voxelS);//fourth vertex
+    glEnd();//end drawing of polygon
+}
+
+void renderNudgeGuide(float voxelX, float voxelY, float voxelZ, float voxelS) {
+    glm::vec3 origin = glm::vec3(voxelX, voxelY, voxelZ);
+
+    glLineWidth(3.0);
+    
+    glBegin(GL_LINES);
+
+    glm::vec3 guideColor(1.0, 1.0, 1.0);
+    glColor3fv(&guideColor.x);
+
+    glVertex3f(origin.x + voxelS, 0, origin.z);
+    glVertex3f(origin.x, 0, origin.z);
+
+    glVertex3f(origin.x, 0, origin.z);
+    glVertex3f(origin.x, 0, origin.z + voxelS);
+
+    glVertex3f(origin.x + voxelS, 0, origin.z);
+    glVertex3f(origin.x + voxelS, 0, origin.z + voxelS);
+
+    glVertex3f(origin.x, 0, origin.z + voxelS);
+    glVertex3f(origin.x + voxelS, 0, origin.z + voxelS);
+
+    glEnd();
+}
+
 void renderDiskShadow(glm::vec3 position, glm::vec3 upDirection, float radius, float darkness) {
 
     glColor4f(0.0f, 0.0f, 0.0f, darkness);

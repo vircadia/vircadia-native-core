@@ -31,6 +31,7 @@
 #include "VoxelConstants.h"
 #include "VoxelNodeBag.h"
 #include "VoxelTree.h"
+#include <PacketHeaders.h>
 
 float boundaryDistanceForRenderLevel(unsigned int renderLevel) {
     return ::VOXEL_SIZE_SCALE / powf(2, renderLevel);
@@ -151,7 +152,7 @@ VoxelNode* VoxelTree::nodeForOctalCode(VoxelNode* ancestorNode,
                 return childNode;
             } else {
                 // we need to go deeper
-                return nodeForOctalCode(childNode, needleCode,parentOfFoundNode);
+                return nodeForOctalCode(childNode, needleCode, parentOfFoundNode);
             }
         }
     }
@@ -397,10 +398,10 @@ void VoxelTree::deleteVoxelCodeFromTreeRecursion(VoxelNode* node, void* extraDat
                     }
                 }
             }
-            int lengthOfancestorNode = numberOfThreeBitSectionsInCode(ancestorNode->getOctalCode());
+            int lengthOfAncestorNode = numberOfThreeBitSectionsInCode(ancestorNode->getOctalCode());
 
             // If we've reached the parent of the target, then stop breaking up children
-            if (lengthOfancestorNode == (args->lengthOfCode - 1)) {
+            if (lengthOfAncestorNode == (args->lengthOfCode - 1)) {
                 break;
             }
             ancestorNode->addChildAtIndex(index);
@@ -1855,4 +1856,134 @@ void VoxelTree::emptyDeleteQueue() {
 
 void VoxelTree::cancelImport() {
     _stopImport = true;
+}
+
+class NodeChunkArgs {
+public:
+    VoxelTree* thisVoxelTree;
+    float ancestorSize;
+    glm::vec3 nudgeVec;
+    VoxelEditPacketSender* voxelEditSenderPtr;
+};
+
+float findNewLeafSize(const glm::vec3& nudgeAmount, float leafSize) {
+    // we want the smallest non-zero and non-negative new leafSize
+    float newLeafSizeX = fabs(fmod(nudgeAmount.x, leafSize));
+    float newLeafSizeY = fabs(fmod(nudgeAmount.y, leafSize));
+    float newLeafSizeZ = fabs(fmod(nudgeAmount.z, leafSize));
+
+    float newLeafSize = leafSize;
+    if (newLeafSizeX) {
+        newLeafSize = fmin(newLeafSize, newLeafSizeX);
+    }
+    if (newLeafSizeY) {
+        newLeafSize = fmin(newLeafSize, newLeafSizeY);
+    }
+    if (newLeafSizeZ) {
+        newLeafSize = fmin(newLeafSize, newLeafSizeZ);
+    }
+    return newLeafSize;
+}
+
+bool VoxelTree::nudgeCheck(VoxelNode* node, void* extraData) {
+    if (node->isLeaf()) {
+        // we have reached the deepest level of nodes/voxels
+        // now there are two scenarios
+        // 1) this node's size is <= the minNudgeAmount
+        //      in which case we will simply call nudgeLeaf on this leaf
+        // 2) this node's size is still not <= the minNudgeAmount
+        //      in which case we need to break this leaf down until the leaf sizes are <= minNudgeAmount
+
+        NodeChunkArgs* args = (NodeChunkArgs*)extraData;
+
+        // get octal code of this node
+        unsigned char* octalCode = node->getOctalCode();
+
+        // get voxel position/size
+        VoxelPositionSize unNudgedDetails;
+        voxelDetailsForCode(octalCode, unNudgedDetails);
+
+        // find necessary leaf size
+        float newLeafSize = findNewLeafSize(args->nudgeVec, unNudgedDetails.s);
+
+        // check to see if this unNudged node can be nudged
+        if (unNudgedDetails.s <= newLeafSize) {
+            args->thisVoxelTree->nudgeLeaf(node, extraData);
+            return false;
+        } else {
+            // break the current leaf into smaller chunks
+            args->thisVoxelTree->chunkifyLeaf(node);
+        }
+    }
+    return true;
+}
+
+void VoxelTree::chunkifyLeaf(VoxelNode* node) {
+    // because this function will continue being called recursively
+    // we only need to worry about breaking this specific leaf down
+    if (!node->isColored()) {
+        return;
+    }
+    for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
+        node->addChildAtIndex(i);
+        node->getChildAtIndex(i)->setColor(node->getColor());
+    }
+}
+
+// This function is called to nudge the leaves of a tree, given that the
+// nudge amount is >= to the leaf scale.
+void VoxelTree::nudgeLeaf(VoxelNode* node, void* extraData) {
+    NodeChunkArgs* args = (NodeChunkArgs*)extraData;
+
+    // get octal code of this node
+    unsigned char* octalCode = node->getOctalCode();
+
+    // get voxel position/size
+    VoxelPositionSize unNudgedDetails;
+    voxelDetailsForCode(octalCode, unNudgedDetails);
+    
+    VoxelDetail voxelDetails;
+    voxelDetails.x = unNudgedDetails.x;
+    voxelDetails.y = unNudgedDetails.y;
+    voxelDetails.z = unNudgedDetails.z;
+    voxelDetails.s = unNudgedDetails.s;
+    voxelDetails.red = node->getColor()[RED_INDEX];
+    voxelDetails.green = node->getColor()[GREEN_INDEX];
+    voxelDetails.blue = node->getColor()[BLUE_INDEX];
+    glm::vec3 nudge = args->nudgeVec;
+
+    // delete the old node
+    // if the nudge replaces the node in an area outside of the ancestor node
+    if (fabs(nudge.x) >= args->ancestorSize || fabs(nudge.y) >= args->ancestorSize || fabs(nudge.z) >= args->ancestorSize) {
+        args->voxelEditSenderPtr->sendVoxelEditMessage(PACKET_TYPE_ERASE_VOXEL, voxelDetails);
+    }
+
+    // nudge the old node
+    voxelDetails.x = unNudgedDetails.x + nudge.x;
+    voxelDetails.y = unNudgedDetails.y + nudge.y;
+    voxelDetails.z = unNudgedDetails.z + nudge.z;
+
+    // create a new voxel in its stead
+    args->voxelEditSenderPtr->sendVoxelEditMessage(PACKET_TYPE_SET_VOXEL_DESTRUCTIVE, voxelDetails);
+}
+
+void VoxelTree::nudgeSubTree(VoxelNode* nodeToNudge, const glm::vec3& nudgeAmount, VoxelEditPacketSender& voxelEditSender) {
+    if (nudgeAmount == glm::vec3(0, 0, 0)) {
+        return;
+    }
+
+    // get octal code of this node
+    unsigned char* octalCode = nodeToNudge->getOctalCode();
+
+    // get voxel position/size
+    VoxelPositionSize ancestorDetails;
+    voxelDetailsForCode(octalCode, ancestorDetails);
+
+    NodeChunkArgs args;
+    args.thisVoxelTree = this;
+    args.ancestorSize = ancestorDetails.s;
+    args.nudgeVec = nudgeAmount;
+    args.voxelEditSenderPtr = &voxelEditSender;
+
+    recurseNodeWithOperation(nodeToNudge, nudgeCheck, &args);
 }
