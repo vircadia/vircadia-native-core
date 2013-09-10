@@ -89,7 +89,8 @@ Head::Head(Avatar* owningAvatar) :
     _isCameraMoving(false),
     _cameraFollowsHead(false),
     _cameraFollowHeadRate(0.0f),
-    _face(this)
+    _face(this),
+    _perlinFace(this)
 {
     if (USING_PHYSICAL_MOHAWK) {    
         resetHairPhysics();
@@ -276,7 +277,7 @@ void Head::simulate(float deltaTime, bool isMine, float gyroCameraSensitivity) {
                 _cameraFollowHeadRate = CAMERA_FOLLOW_HEAD_RATE_START;
             }
         }
-    } 
+    }
 }
 
 void Head::calculateGeometry() {
@@ -322,6 +323,8 @@ void Head::calculateGeometry() {
 }
 
 void Head::render(float alpha) {
+    _perlinFace.render();
+    return;
 
     _renderAlpha = alpha;
 

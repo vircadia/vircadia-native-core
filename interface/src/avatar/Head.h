@@ -9,7 +9,7 @@
 #define hifi_Head_h
 
 #include <glm/glm.hpp>
-#include <glm/gtc/quaternion.hpp>
+#include <glm/gtx/quaternion.hpp>
 
 #include <SharedUtil.h>
 
@@ -19,6 +19,7 @@
 
 #include "BendyLine.h"
 #include "Face.h"
+#include "PerlinFace.h"
 #include "InterfaceConfig.h"
 #include "world.h"
 #include "devices/SerialInterface.h"
@@ -130,6 +131,7 @@ private:
     bool _cameraFollowsHead;
     float _cameraFollowHeadRate;
     Face _face;
+    PerlinFace _perlinFace;
 
     static ProgramObject _irisProgram;
     static GLuint _irisTextureID;

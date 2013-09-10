@@ -41,8 +41,12 @@ public:
     float getLeftBlink() const { return _leftBlink; }
     float getRightBlink() const { return _rightBlink; }
 
+    float getBrowDownLeft() const { return _browDownLeft; }
+    float getBrowDownRight() const { return _browDownRight; }
     float getBrowHeight() const { return _browHeight; }
-    
+    float getBrowUpLeft() const { return _browUpLeft; }
+    float getBrowUpRight() const { return _browUpRight; }
+
     float getMouthSize() const { return _mouthSize; }
 
     void update();
@@ -83,9 +87,17 @@ private:
     int _leftBlinkIndex;
     int _rightBlinkIndex;
     
+    float _browDownLeft;
+    float _browDownRight;
     float _browHeight;
-    
+    float _browUpLeft;
+    float _browUpRight;
+
+    int _browDownLeftIndex;
+    int _browDownRightIndex;
     int _browUpCenterIndex;
+    int _browUpLeftIndex;
+    int _browUpRightIndex;
     
     float _mouthSize;
     

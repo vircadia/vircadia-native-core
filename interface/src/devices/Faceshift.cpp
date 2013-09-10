@@ -23,8 +23,16 @@ Faceshift::Faceshift() :
     _rightBlink(0.0f),
     _leftBlinkIndex(-1),
     _rightBlinkIndex(-1),
+    _browDownLeft(0.0f),
+    _browDownRight(0.0f),
     _browHeight(0.0f),
+    _browUpLeft(0.0f),
+    _browUpRight(0.0f),
+    _browDownLeftIndex(-1),
+    _browDownRightIndex(-1),
     _browUpCenterIndex(-1),
+    _browUpLeftIndex(-1),
+    _browUpRightIndex(-1),
     _mouthSize(0.0f),
     _jawOpenIndex(-1),
     _longTermAverageEyePitch(0.0f),
@@ -120,8 +128,20 @@ void Faceshift::readFromSocket() {
                     if (_rightBlinkIndex != -1) {
                         _rightBlink = data.m_coeffs[_rightBlinkIndex];
                     }
+                    if (_browDownLeftIndex != -1) {
+                        _browDownLeft = data.m_coeffs[_browDownLeftIndex];
+                    }
+                    if (_browDownRightIndex != -1) {
+                        _browDownRight = data.m_coeffs[_browDownRightIndex];
+                    }
                     if (_browUpCenterIndex != -1) {
                         _browHeight = data.m_coeffs[_browUpCenterIndex];
+                    }
+                    if (_browUpLeftIndex != -1) {
+                        _browUpLeft = data.m_coeffs[_browUpLeftIndex];
+                    }
+                    if (_browUpRightIndex != -1) {
+                        _browUpRight = data.m_coeffs[_browUpRightIndex];
                     }
                     if (_jawOpenIndex != -1) {
                         _mouthSize = data.m_coeffs[_jawOpenIndex];
@@ -138,9 +158,21 @@ void Faceshift::readFromSocket() {
                     } else if (names[i] == "EyeBlink_R") {
                         _rightBlinkIndex = i;
                         
+                    } else if (names[i] == "BrowsD_L") {
+                        _browDownLeftIndex = i;
+
+                    } else if (names[i] == "BrowsD_R") {
+                        _browDownRightIndex = i;
+
                     } else if (names[i] == "BrowsU_C") {
-                        _browUpCenterIndex = i;    
-                        
+                        _browUpCenterIndex = i;
+
+                    } else if (names[i] == "BrowsU_L") {
+                        _browUpLeftIndex = i;
+
+                    } else if (names[i] == "BrowsU_R") {
+                        _browUpRightIndex = i;
+
                     } else if (names[i] == "JawOpen") {
                         _jawOpenIndex = i;
                     }
