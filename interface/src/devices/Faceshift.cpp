@@ -26,12 +26,12 @@ Faceshift::Faceshift() :
     _eyeGazeRightYaw(0.0f),
     _leftBlink(0.0f),
     _rightBlink(0.0f),
-    _leftBlinkIndex(-1),
-    _rightBlinkIndex(-1),
+    _leftBlinkIndex(0), // see http://support.faceshift.com/support/articles/35129-export-of-blendshapes
+    _rightBlinkIndex(1),
     _browHeight(0.0f),
-    _browUpCenterIndex(-1),
+    _browUpCenterIndex(16),
     _mouthSize(0.0f),
-    _jawOpenIndex(-1),
+    _jawOpenIndex(21),
     _longTermAverageEyePitch(0.0f),
     _longTermAverageEyeYaw(0.0f),
     _estimatedEyePitch(0.0f),
@@ -41,7 +41,7 @@ Faceshift::Faceshift() :
     connect(&_tcpSocket, SIGNAL(error(QAbstractSocket::SocketError)), SLOT(noteError(QAbstractSocket::SocketError)));
     connect(&_tcpSocket, SIGNAL(readyRead()), SLOT(readFromSocket()));
     
-    connect(&_udpSocket, SIGNAL(readyRead()), SLOT(readFromSocket()));
+    connect(&_udpSocket, SIGNAL(readyRead()), SLOT(readPendingDatagrams()));
     
     _udpSocket.bind(FACESHIFT_PORT);
 }
@@ -109,8 +109,24 @@ void Faceshift::noteError(QAbstractSocket::SocketError error) {
     }
 }
 
+void Faceshift::readPendingDatagrams() {
+    QByteArray buffer;
+    while (_udpSocket.hasPendingDatagrams()) {
+        buffer.resize(_udpSocket.pendingDatagramSize());
+        _udpSocket.readDatagram(buffer.data(), buffer.size());
+        receive(buffer);
+    }
+}
+
 void Faceshift::readFromSocket() {
-    QByteArray buffer = static_cast<QIODevice*>(sender())->readAll();
+    receive(_tcpSocket.readAll());
+}
+
+void Faceshift::send(const std::string& message) {
+    _tcpSocket.write(message.data(), message.size());
+}
+
+void Faceshift::receive(const QByteArray& buffer) {
     _stream.received(buffer.size(), buffer.constData());
     fsMsgPtr msg;
     for (fsMsgPtr msg; (msg = _stream.get_message()); ) {
@@ -166,8 +182,4 @@ void Faceshift::readFromSocket() {
         }
     }
     _lastMessageReceived = usecTimestampNow();
-}
-
-void Faceshift::send(const std::string& message) {
-    _tcpSocket.write(message.data(), message.size());
 }

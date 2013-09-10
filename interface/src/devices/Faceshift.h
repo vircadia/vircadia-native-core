@@ -58,11 +58,13 @@ private slots:
     void connectSocket();
     void noteConnected();
     void noteError(QAbstractSocket::SocketError error);
+    void readPendingDatagrams();
     void readFromSocket();        
     
 private:
     
     void send(const std::string& message);
+    void receive(const QByteArray& buffer);
     
     QTcpSocket _tcpSocket;
     QUdpSocket _udpSocket;
