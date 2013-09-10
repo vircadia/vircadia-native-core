@@ -76,7 +76,7 @@ static const float NODE_KILLED_RED   = 1.0f;
 static const float NODE_KILLED_GREEN = 0.0f;
 static const float NODE_KILLED_BLUE  = 0.0f;
 
-class Application : public QApplication, public NodeListHook, public PacketSenderNotify {
+class Application : public QApplication, public NodeListHook, public PacketSenderNotify, public DomainChangeListener {
     Q_OBJECT
 
     friend class VoxelPacketProcessor;
@@ -142,6 +142,8 @@ public:
     virtual void nodeAdded(Node* node);
     virtual void nodeKilled(Node* node);
     virtual void packetSentNotification(ssize_t length);
+    
+    virtual void domainChanged(QString domain);
 
 public slots:
     void sendAvatarFaceVideoMessage(int frameCount, const QByteArray& data);

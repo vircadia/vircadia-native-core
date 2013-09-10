@@ -54,6 +54,10 @@ public:
     virtual void nodeKilled(Node* node) = 0;
 };
 
+class DomainChangeListener {
+public:
+    virtual void domainChanged(QString domain) = 0;
+};
 
 class NodeList {
 public:
@@ -130,6 +134,9 @@ public:
     void notifyHooksOfAddedNode(Node* node);
     void notifyHooksOfKilledNode(Node* node);
     
+    void addDomainListener(DomainChangeListener* listener);
+    void removeDomainListener(DomainChangeListener* listener);
+    
 private:
     static NodeList* _sharedInstance;
     
@@ -158,6 +165,11 @@ private:
     void timePingReply(sockaddr *nodeAddress, unsigned char *packetData);
     
     std::vector<NodeListHook*> _hooks;
+    std::vector<DomainChangeListener*> _domainListeners;
+    
+    void resetDomainData(char domainField[], const char* domainData);
+    void notifyDomainChanged();
+    void domainLookup();
 };
 
 class NodeListIterator : public std::iterator<std::input_iterator_tag, Node> {

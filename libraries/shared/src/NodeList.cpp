@@ -82,22 +82,20 @@ NodeList::~NodeList() {
     stopSilentNodeRemovalThread();
 }
 
-void NodeList::setDomainHostname(const char* domainHostname) {    
-    memset(_domainHostname, 0, sizeof(_domainHostname));
-    memcpy(_domainHostname, domainHostname, strlen(domainHostname));
-    
+void NodeList::setDomainHostname(const char* domainHostname) {
     // reset the domain IP so the hostname is checked again
-    setDomainIP("");
+    resetDomainData(_domainHostname, domainHostname);
 }
 
 void NodeList::setDomainIP(const char* domainIP) {
-    memset(_domainIP, 0, sizeof(_domainIP));
-    memcpy(_domainIP, domainIP, strlen(domainIP));
+    resetDomainData(_domainIP, domainIP);
 }
 
 void NodeList::setDomainIPToLocalhost() {
     int ip = getLocalAddress();
-    sprintf(_domainIP, "%d.%d.%d.%d", (ip & 0xFF), ((ip >> 8) & 0xFF),((ip >> 16) & 0xFF), ((ip >> 24) & 0xFF));
+    char _localIP[INET_ADDRSTRLEN];
+    sprintf(_localIP, "%d.%d.%d.%d", (ip & 0xFF), ((ip >> 8) & 0xFF),((ip >> 16) & 0xFF), ((ip >> 24) & 0xFF));
+    setDomainIP(_localIP);
 }
 
 void NodeList::timePingReply(sockaddr *nodeAddress, unsigned char *packetData) {
@@ -269,25 +267,8 @@ void NodeList::setNodeTypesOfInterest(const char* nodeTypesOfInterest, int numNo
 }
 
 void NodeList::sendDomainServerCheckIn() {
-    static bool printedDomainServerIP = false;
     
-    //  Lookup the IP address of the domain server if we need to
-    if (atoi(_domainIP) == 0) {
-        printf("Looking up %s\n", _domainHostname);
-        struct hostent* pHostInfo;
-        if ((pHostInfo = gethostbyname(_domainHostname)) != NULL) {
-            sockaddr_in tempAddress;
-            memcpy(&tempAddress.sin_addr, pHostInfo->h_addr_list[0], pHostInfo->h_length);
-            strcpy(_domainIP, inet_ntoa(tempAddress.sin_addr));
-            qDebug("Domain Server: %s\n", _domainHostname);
-        } else {
-            qDebug("Failed domain server lookup\n");
-        }
-    } else if (!printedDomainServerIP) {
-        qDebug("Domain Server IP: %s\n", _domainIP);
-        printedDomainServerIP = true;
-    }
-    
+    domainLookup();
     static unsigned char* checkInPacket = NULL;
     static int checkInPacketSize = 0;
     
@@ -650,6 +631,21 @@ void NodeListIterator::skipDeadAndStopIncrement() {
     }
 }
 
+void NodeList::addDomainListener(DomainChangeListener* listener) {
+    _domainListeners.push_back(listener);
+    QString domain = (strlen(_domainHostname) > 0) ? _domainHostname : _domainIP;
+    listener->domainChanged(domain);
+}
+
+void NodeList::removeDomainListener(DomainChangeListener* listener) {
+    for (int i = 0; i < _domainListeners.size(); i++) {
+        if (_domainListeners[i] == listener) {
+            _domainListeners.erase(_domainListeners.begin() + i);
+            return;
+        }
+    }
+}
+
 void NodeList::addHook(NodeListHook* hook) {
     _hooks.push_back(hook);
 }
@@ -674,5 +670,49 @@ void NodeList::notifyHooksOfKilledNode(Node* node) {
     for (int i = 0; i < _hooks.size(); i++) {
         //printf("NodeList::notifyHooksOfKilledNode() i=%d\n", i);
         _hooks[i]->nodeKilled(node);
+    }
+}
+
+void NodeList::notifyDomainChanged() {
+    QString domain = (strlen(_domainHostname) > 0) ? _domainHostname : _domainIP;
+    for (int i = 0; i < _domainListeners.size(); i++) {
+        _domainListeners[i]->domainChanged(domain);
+    }
+}
+
+void NodeList::resetDomainData(char domainField[], const char* domainValue) {
+    memset(_domainHostname, 0, sizeof(_domainHostname));
+    memcpy(_domainHostname, "", strlen(""));
+
+    memset(_domainIP, 0, sizeof(_domainIP));
+    memcpy(_domainIP, "", strlen(""));
+
+    memset(domainField, 0, sizeof(&domainField));
+    memcpy(domainField, domainValue, strlen(domainValue));
+    
+    domainLookup();
+    notifyDomainChanged();
+}
+
+void NodeList::domainLookup() {
+    static bool printedDomainServerIP = false;
+    
+    //  Lookup the IP address of the domain server if we need to
+    if (atoi(_domainIP) == 0) {
+        printf("Looking up %s\n", _domainHostname);
+        struct hostent* pHostInfo;
+        if ((pHostInfo = gethostbyname(_domainHostname)) != NULL) {
+            sockaddr_in tempAddress;
+            memcpy(&tempAddress.sin_addr, pHostInfo->h_addr_list[0], pHostInfo->h_length);
+            strcpy(_domainIP, inet_ntoa(tempAddress.sin_addr));
+            
+            qDebug("Domain Server: %s\n", _domainHostname);
+        } else {
+            qDebug("Failed domain server lookup\n");
+        }
+    } else if (!printedDomainServerIP) {
+        notifyDomainChanged();
+        qDebug("Domain Server IP: %s\n", _domainIP);
+        printedDomainServerIP = true;
     }
 }

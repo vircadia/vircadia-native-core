@@ -147,6 +147,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     
     NodeList::getInstance()->addHook(&_voxels);
     NodeList::getInstance()->addHook(this);
+    NodeList::getInstance()->addDomainListener(this);
 
     
     // network receive thread and voxel parsing thread are both controlled by the --nonblocking command line
@@ -236,6 +237,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
 Application::~Application() {
     NodeList::getInstance()->removeHook(&_voxels);
     NodeList::getInstance()->removeHook(this);
+    NodeList::getInstance()->removeDomainListener(this);
 
     _sharedVoxelSystem.changeTree(new VoxelTree);
 
@@ -314,8 +316,6 @@ void Application::initializeGL() {
         char title[50];
         sprintf(title, "Interface: %4.2f seconds\n", startupTime);
         qDebug("%s", title);
-        _window->setWindowTitle(title);
-        
         const char LOGSTASH_INTERFACE_START_TIME_KEY[] = "interface-start-time";
         
         // ask the Logstash class to record the startup time
@@ -3233,6 +3233,10 @@ void Application::attachNewHeadToNode(Node* newNode) {
     if (newNode->getLinkedData() == NULL) {
         newNode->setLinkedData(new Avatar(newNode));
     }
+}
+
+void Application::domainChanged(QString domain) {
+    _window->setWindowTitle(domain);
 }
 
 void Application::nodeAdded(Node* node) {
