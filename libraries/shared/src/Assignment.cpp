@@ -6,8 +6,6 @@
 //  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
 
-#include <sys/time.h>
-
 #include "PacketHeaders.h"
 
 #include "Assignment.h"
@@ -19,7 +17,8 @@ Assignment::Assignment(Assignment::Direction direction, Assignment::Type type, c
     _direction(direction),
     _type(type),
     _pool(NULL),
-    _domainSocket(NULL)
+    _attachedPublicSocket(NULL),
+    _attachedLocalSocket(NULL)
 {
     // set the create time on this assignment
     gettimeofday(&_time, NULL);
@@ -36,7 +35,8 @@ Assignment::Assignment(Assignment::Direction direction, Assignment::Type type, c
 
 Assignment::Assignment(const unsigned char* dataBuffer, int numBytes) :
     _pool(NULL),
-    _domainSocket(NULL)
+    _attachedPublicSocket(NULL),
+    _attachedLocalSocket(NULL)
 {
     // set the create time on this assignment
     gettimeofday(&_time, NULL);
@@ -66,24 +66,56 @@ Assignment::Assignment(const unsigned char* dataBuffer, int numBytes) :
     }
     
     if (numBytes > numBytesRead) {
+        
+        sockaddr* newSocket = NULL;
+        
         if (dataBuffer[numBytesRead++] == IPv4_ADDRESS_DESIGNATOR) {
             // IPv4 address
-            sockaddr_in destinationSocket = {};
-            memcpy(&destinationSocket, dataBuffer + numBytesRead, sizeof(sockaddr_in));
-            destinationSocket.sin_family = AF_INET;
-            setDomainSocket((sockaddr*) &destinationSocket);
+            newSocket = (sockaddr*) new sockaddr_in;
+            unpackSocket(dataBuffer + numBytesRead, newSocket);
         } else {
-            // IPv6 address
-            sockaddr_in6 destinationSocket = {};
-            memcpy(&destinationSocket, dataBuffer + numBytesRead, sizeof(sockaddr_in6));
-            setDomainSocket((sockaddr*) &destinationSocket);
+            // IPv6 address, or bad designator
+            qDebug("Received a socket that cannot be unpacked!\n");
+        }
+        
+        if (_direction == Assignment::Create) {
+            delete _attachedLocalSocket;
+            _attachedLocalSocket = newSocket;
+        } else {
+            delete _attachedPublicSocket;
+            _attachedPublicSocket = newSocket;
         }
     }
 }
 
 Assignment::~Assignment() {
-    delete _domainSocket;
+    delete _attachedPublicSocket;
+    delete _attachedLocalSocket;
     delete _pool;
+}
+
+void Assignment::setAttachedPublicSocket(const sockaddr* attachedPublicSocket) {
+    if (_attachedPublicSocket) {
+        // delete the old socket if it exists
+        delete _attachedPublicSocket;
+        _attachedPublicSocket = NULL;
+    }
+    
+    if (attachedPublicSocket) {
+        copySocketToEmptySocketPointer(&_attachedPublicSocket, attachedPublicSocket);
+    }
+}
+
+void Assignment::setAttachedLocalSocket(const sockaddr* attachedLocalSocket) {
+    if (_attachedLocalSocket) {
+        // delete the old socket if it exists
+        delete _attachedLocalSocket;
+        _attachedLocalSocket = NULL;
+    }
+    
+    if (attachedLocalSocket) {
+        copySocketToEmptySocketPointer(&_attachedLocalSocket, attachedLocalSocket);
+    }
 }
 
 int Assignment::packToBuffer(unsigned char* buffer) {
@@ -102,34 +134,17 @@ int Assignment::packToBuffer(unsigned char* buffer) {
         numPackedBytes += sizeof(char);
     }
     
-    if (_domainSocket) {
-        buffer[numPackedBytes++] = (_domainSocket->sa_family == AF_INET) ? IPv4_ADDRESS_DESIGNATOR : IPv6_ADDRESS_DESIGNATOR;
+    if (_attachedPublicSocket || _attachedLocalSocket) {
+        sockaddr* socketToPack = (_attachedPublicSocket) ? _attachedPublicSocket : _attachedLocalSocket;
         
-        int numSocketBytes = (_domainSocket->sa_family == AF_INET) ? sizeof(sockaddr_in) : sizeof(sockaddr_in6);
+        // we have a socket to pack, add the designator
+        buffer[numPackedBytes++] = (socketToPack->sa_family == AF_INET)
+            ? IPv4_ADDRESS_DESIGNATOR : IPv6_ADDRESS_DESIGNATOR;
         
-        memcpy(buffer + numPackedBytes, _domainSocket, numSocketBytes);
-        numPackedBytes += numSocketBytes;
+        numPackedBytes += packSocket(buffer + numPackedBytes, socketToPack);
     }
     
     return numPackedBytes;
-}
-
-void Assignment::setDomainSocket(const sockaddr* domainSocket) {
-    
-    if (_domainSocket) {
-        // delete the old _domainSocket if it exists
-        delete _domainSocket;
-        _domainSocket = NULL;
-    }
-    
-    // create a new sockaddr or sockaddr_in depending on what type of address this is
-    if (domainSocket->sa_family == AF_INET) {
-        _domainSocket = (sockaddr*) new sockaddr_in;
-        memcpy(_domainSocket, domainSocket, sizeof(sockaddr_in));
-    } else {
-        _domainSocket = (sockaddr*) new sockaddr_in6;
-        memcpy(_domainSocket, domainSocket, sizeof(sockaddr_in6));
-    }
 }
 
 QDebug operator<<(QDebug debug, const Assignment &assignment) {

@@ -14,6 +14,7 @@
 #include <QtCore/QDebug>
 
 #include "Assignment.h"
+#include "Logging.h"
 #include "NodeList.h"
 #include "NodeTypes.h"
 #include "PacketHeaders.h"
@@ -43,7 +44,7 @@ NodeList* NodeList::createInstance(char ownerType, unsigned short int socketList
     if (!_sharedInstance) {
         _sharedInstance = new NodeList(ownerType, socketListenPort);
     } else {
-        qDebug("NodeList createInstance called with existing instance.\n");
+        qDebug("NodeList createInstance called with existing instance.");
     }
     
     return _sharedInstance;
@@ -51,7 +52,7 @@ NodeList* NodeList::createInstance(char ownerType, unsigned short int socketList
 
 NodeList* NodeList::getInstance() {
     if (!_sharedInstance) {
-        qDebug("NodeList getInstance called before call to createInstance. Returning NULL pointer.\n");
+        qDebug("NodeList getInstance called before call to createInstance. Returning NULL pointer.");
     }
     
     return _sharedInstance;
@@ -65,7 +66,8 @@ NodeList::NodeList(char newOwnerType, unsigned short int newSocketListenPort) :
     _nodeTypesOfInterest(NULL),
     _ownerID(UNKNOWN_NODE_ID),
     _lastNodeID(UNKNOWN_NODE_ID + 1),
-    _numNoReplyDomainCheckIns(0)
+    _numNoReplyDomainCheckIns(0),
+    _assignmentServerSocket(NULL)
 {
     memcpy(_domainHostname, DEFAULT_DOMAIN_HOSTNAME, sizeof(DEFAULT_DOMAIN_HOSTNAME));
     memcpy(_domainIP, DEFAULT_DOMAIN_IP, sizeof(DEFAULT_DOMAIN_IP));
@@ -255,6 +257,7 @@ void NodeList::clear() {
     }
     
     _numNodes = 0;
+    _numNoReplyDomainCheckIns = 0;
 }
 
 void NodeList::setNodeTypesOfInterest(const char* nodeTypesOfInterest, int numNodeTypesOfInterest) {
@@ -276,7 +279,6 @@ void NodeList::sendDomainServerCheckIn() {
             sockaddr_in tempAddress;
             memcpy(&tempAddress.sin_addr, pHostInfo->h_addr_list[0], pHostInfo->h_length);
             strcpy(_domainIP, inet_ntoa(tempAddress.sin_addr));
-
             qDebug("Domain Server: %s\n", _domainHostname);
         } else {
             qDebug("Failed domain server lookup\n");
@@ -374,10 +376,9 @@ int NodeList::processDomainServerList(unsigned char* packetData, size_t dataByte
     return readNodes;
 }
 
-const char ASSIGNMENT_SERVER_HOSTNAME[] = "assignment.highfidelity.io";
-const sockaddr_in assignmentServerSocket = socketForHostnameAndHostOrderPort(ASSIGNMENT_SERVER_HOSTNAME,
-                                                                             ASSIGNMENT_SERVER_PORT);
-
+const char GLOBAL_ASSIGNMENT_SERVER_HOSTNAME[] = "assignment.highfidelity.io";
+const sockaddr_in GLOBAL_ASSIGNMENT_SOCKET = socketForHostnameAndHostOrderPort(GLOBAL_ASSIGNMENT_SERVER_HOSTNAME,
+                                                                               ASSIGNMENT_SERVER_PORT);
 void NodeList::sendAssignment(Assignment& assignment) {
     unsigned char assignmentPacket[MAX_PACKET_SIZE];
     
@@ -387,8 +388,12 @@ void NodeList::sendAssignment(Assignment& assignment) {
     
     int numHeaderBytes = populateTypeAndVersion(assignmentPacket, assignmentPacketType);
     int numAssignmentBytes = assignment.packToBuffer(assignmentPacket + numHeaderBytes);
-
-    _nodeSocket.send((sockaddr*) &assignmentServerSocket, assignmentPacket, numHeaderBytes + numAssignmentBytes);
+    
+    sockaddr* assignmentServerSocket = (_assignmentServerSocket == NULL)
+        ? (sockaddr*) &GLOBAL_ASSIGNMENT_SOCKET
+        : _assignmentServerSocket;
+    
+    _nodeSocket.send((sockaddr*) assignmentServerSocket, assignmentPacket, numHeaderBytes + numAssignmentBytes);
 }
 
 Node* NodeList::addOrUpdateNode(sockaddr* publicSocket, sockaddr* localSocket, char nodeType, uint16_t nodeId) {
@@ -511,7 +516,7 @@ void* removeSilentNodes(void *args) {
             
             if ((checkTimeUSecs - node->getLastHeardMicrostamp()) > NODE_SILENCE_THRESHOLD_USECS) {
             
-                qDebug() << "Killed" << *node << "\n";
+                qDebug() << "Killed " << *node << "\n";
                 
                 nodeList->notifyHooksOfKilledNode(&*node);
                 
