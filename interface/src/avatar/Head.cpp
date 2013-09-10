@@ -146,19 +146,6 @@ void Head::resetHairPhysics() {
 
 void Head::simulate(float deltaTime, bool isMine, float gyroCameraSensitivity) {
     
-    // Update eye saccades
-    const float AVERAGE_MICROSACCADE_INTERVAL = 0.50f;
-    const float AVERAGE_SACCADE_INTERVAL = 4.0f;
-    const float MICROSACCADE_MAGNITUDE = 0.002f;
-    const float SACCADE_MAGNITUDE = 0.04;
-    
-    if (randFloat() < deltaTime / AVERAGE_MICROSACCADE_INTERVAL) {
-        _saccadeTarget = MICROSACCADE_MAGNITUDE * randVector();
-    } else if (randFloat() < deltaTime / AVERAGE_SACCADE_INTERVAL) {
-        _saccadeTarget = SACCADE_MAGNITUDE * randVector();
-    }
-    _saccade += (_saccadeTarget - _saccade) * 0.50f;
-    
     //  Update audio trailing average for rendering facial animations
     Faceshift* faceshift = Application::getInstance()->getFaceshift();
     if (isMine && faceshift->isActive()) {
@@ -173,6 +160,19 @@ void Head::simulate(float deltaTime, bool isMine, float gyroCameraSensitivity) {
         _browAudioLift = faceshift->getBrowHeight() * BROW_HEIGHT_SCALE;
         
     } else {
+        // Update eye saccades
+        const float AVERAGE_MICROSACCADE_INTERVAL = 0.50f;
+        const float AVERAGE_SACCADE_INTERVAL = 4.0f;
+        const float MICROSACCADE_MAGNITUDE = 0.002f;
+        const float SACCADE_MAGNITUDE = 0.04f;
+        
+        if (randFloat() < deltaTime / AVERAGE_MICROSACCADE_INTERVAL) {
+            _saccadeTarget = MICROSACCADE_MAGNITUDE * randVector();
+        } else if (randFloat() < deltaTime / AVERAGE_SACCADE_INTERVAL) {
+            _saccadeTarget = SACCADE_MAGNITUDE * randVector();
+        }
+        _saccade += (_saccadeTarget - _saccade) * 0.50f;
+    
         const float AUDIO_AVERAGING_SECS = 0.05;
         _averageLoudness = (1.f - deltaTime / AUDIO_AVERAGING_SECS) * _averageLoudness +
                                  (deltaTime / AUDIO_AVERAGING_SECS) * _audioLoudness;
