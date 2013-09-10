@@ -26,11 +26,28 @@ Faceshift::Faceshift() :
     _browHeight(0.0f),
     _browUpCenterIndex(-1),
     _mouthSize(0.0f),
-    _jawOpenIndex(-1)
+    _jawOpenIndex(-1),
+    _longTermAverageEyePitch(0.0f),
+    _longTermAverageEyeYaw(0.0f),
+    _estimatedEyePitch(0.0f),
+    _estimatedEyeYaw(0.0f)
 {
     connect(&_socket, SIGNAL(connected()), SLOT(noteConnected()));
     connect(&_socket, SIGNAL(error(QAbstractSocket::SocketError)), SLOT(noteError(QAbstractSocket::SocketError)));
     connect(&_socket, SIGNAL(readyRead()), SLOT(readFromSocket()));
+}
+
+void Faceshift::update() {
+    if (!isActive()) {
+        return;
+    }
+    float averageEyePitch = (_eyeGazeLeftPitch + _eyeGazeRightPitch) / 2.0f;
+    float averageEyeYaw = (_eyeGazeLeftYaw + _eyeGazeRightYaw) / 2.0f;
+    const float LONG_TERM_AVERAGE_SMOOTHING = 0.999f;
+    _longTermAverageEyePitch = glm::mix(averageEyePitch, _longTermAverageEyePitch, LONG_TERM_AVERAGE_SMOOTHING);
+    _longTermAverageEyeYaw = glm::mix(averageEyeYaw, _longTermAverageEyeYaw, LONG_TERM_AVERAGE_SMOOTHING);
+    _estimatedEyePitch = averageEyePitch - _longTermAverageEyePitch;
+    _estimatedEyeYaw = averageEyeYaw - _longTermAverageEyeYaw;
 }
 
 void Faceshift::reset() {
