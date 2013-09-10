@@ -70,8 +70,8 @@ void childClient() {
             qDebug() << "Received an assignment -" << deployedAssignment << "\n";
             
             // switch our nodelist DOMAIN_IP to the ip receieved in the assignment
-            if (deployedAssignment.getDestinationSocket()->sa_family == AF_INET) {
-                in_addr domainSocketAddr = ((sockaddr_in*) deployedAssignment.getDestinationSocket())->sin_addr;
+            if (deployedAssignment.getAttachedPublicSocket()->sa_family == AF_INET) {
+                in_addr domainSocketAddr = ((sockaddr_in*) deployedAssignment.getAttachedPublicSocket())->sin_addr;
                 nodeList->setDomainIP(inet_ntoa(domainSocketAddr));
                 
                 qDebug("Destination IP for assignment is %s\n", inet_ntoa(domainSocketAddr));

@@ -96,10 +96,10 @@ int main(int argc, const char* argv[]) {
                 qDebug() << "Received a created assignment:" << *createdAssignment;
                 qDebug() << "Current queue size is" << assignmentQueue.size();
                 
-                // assignment server is on a public server
+                // assignment server is likely on a public server
                 // assume that the address we now have for the sender is the public address/port
-                // and store that with the assignment so it can be given to the requestor later
-                createdAssignment->setDestinationSocket((sockaddr*) &senderSocket);
+                // and store that with the assignment so it can be given to the requestor later if necessary
+                createdAssignment->setAttachedPublicSocket((sockaddr*) &senderSocket);
                 
                 // add this assignment to the queue
                 assignmentQueue.push_back(createdAssignment);

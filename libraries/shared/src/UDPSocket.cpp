@@ -75,6 +75,17 @@ int unpackSocket(const unsigned char* packedData, sockaddr* unpackDestSocket) {
     return 6; // this could be more if we ever need IPv6
 }
 
+void copySocketToEmptySocketPointer(sockaddr* destination, const sockaddr* source) {
+    // create a new sockaddr or sockaddr_in depending on what type of address this is
+    if (source->sa_family == AF_INET) {
+        destination = (sockaddr*) new sockaddr_in;
+        memcpy(destination, source, sizeof(sockaddr_in));
+    } else {
+        destination = (sockaddr*) new sockaddr_in6;
+        memcpy(destination, source, sizeof(sockaddr_in6));
+    }
+}
+
 int getLocalAddress() {
     // get this node's local address so we can pass that to DS
     struct ifaddrs* ifAddrStruct = NULL;

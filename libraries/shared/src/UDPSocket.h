@@ -45,6 +45,7 @@ bool socketMatch(const sockaddr* first, const sockaddr* second);
 int packSocket(unsigned char* packStore, in_addr_t inAddress, in_port_t networkOrderPort);
 int packSocket(unsigned char* packStore, sockaddr* socketToPack);
 int unpackSocket(const unsigned char* packedData, sockaddr* unpackDestSocket);
+void copySocketToEmptySocketPointer(sockaddr* destination, const sockaddr* source);
 int getLocalAddress();
 unsigned short loadBufferWithSocketInfo(char* addressBuffer, sockaddr* socket);
 sockaddr_in socketForHostnameAndHostOrderPort(const char* hostname, unsigned short port = 0);

@@ -43,8 +43,11 @@ public:
     const char* getPool() const { return _pool; }
     const timeval& getTime() const { return _time; }
     
-    const sockaddr* getDestinationSocket() { return _destinationSocket; }
-    void setDestinationSocket(const sockaddr* destinationSocket);
+    const sockaddr* getAttachedPublicSocket() { return _attachedPublicSocket; }
+    void setAttachedPublicSocket(const sockaddr* attachedPublicSocket);
+    
+    const sockaddr* getAttachedLocalSocket() { return _attachedLocalSocket; }
+    void setAttachedLocalSocket(const sockaddr* attachedLocalSocket);
     
     /// Packs the assignment to the passed buffer
     /// \param buffer the buffer in which to pack the assignment
@@ -58,7 +61,8 @@ private:
     Assignment::Direction _direction; /// the direction of the assignment (Create, Deploy, Request)
     Assignment::Type _type; /// the type of the assignment, defines what the assignee will do
     char* _pool; /// the pool this assignment is for/from
-    sockaddr*  _destinationSocket; /// pointer to destination socket for assignment
+    sockaddr*  _attachedPublicSocket; /// pointer to a public socket that relates to assignment, depends on direction
+    sockaddr* _attachedLocalSocket; /// pointer to a local socket that relates to assignment, depends on direction
     timeval _time; /// time the assignment was created (set in constructor)
 };
 

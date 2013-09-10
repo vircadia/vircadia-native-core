@@ -17,7 +17,8 @@ Assignment::Assignment(Assignment::Direction direction, Assignment::Type type, c
     _direction(direction),
     _type(type),
     _pool(NULL),
-    _destinationSocket(NULL)
+    _attachedPublicSocket(NULL),
+    _attachedLocalSocket(NULL)
 {
     // set the create time on this assignment
     gettimeofday(&_time, NULL);
@@ -34,7 +35,8 @@ Assignment::Assignment(Assignment::Direction direction, Assignment::Type type, c
 
 Assignment::Assignment(const unsigned char* dataBuffer, int numBytes) :
     _pool(NULL),
-    _destinationSocket(NULL)
+    _attachedPublicSocket(NULL),
+    _attachedLocalSocket(NULL)
 {
     // set the create time on this assignment
     gettimeofday(&_time, NULL);
@@ -65,11 +67,15 @@ Assignment::Assignment(const unsigned char* dataBuffer, int numBytes) :
     
     if (numBytes > numBytesRead) {
         
+        sockaddr* socketDestination = (_direction == Assignment::Create)
+            ? _attachedLocalSocket
+            : _attachedPublicSocket;
+        
         if (dataBuffer[numBytesRead++] == IPv4_ADDRESS_DESIGNATOR) {
             // IPv4 address
-            delete _destinationSocket;
-            _destinationSocket = (sockaddr*) new sockaddr_in;
-            unpackSocket(dataBuffer + numBytesRead, _destinationSocket);
+            delete socketDestination;
+            socketDestination = (sockaddr*) new sockaddr_in;
+            unpackSocket(dataBuffer + numBytesRead, socketDestination);
         } else {
             // IPv6 address, or bad designator
             qDebug("Received a socket that cannot be unpacked!\n");
@@ -78,26 +84,30 @@ Assignment::Assignment(const unsigned char* dataBuffer, int numBytes) :
 }
 
 Assignment::~Assignment() {
-    delete _destinationSocket;
+    delete _attachedPublicSocket;
+    delete _attachedLocalSocket;
     delete _pool;
 }
 
-void Assignment::setDestinationSocket(const sockaddr* destinationSocket) {
+void Assignment::setAttachedPublicSocket(const sockaddr* attachedPublicSocket) {
     
-    if (_destinationSocket) {
-        // delete the old _domainSocket if it exists
-        delete _destinationSocket;
-        _destinationSocket = NULL;
+    if (_attachedPublicSocket) {
+        // delete the old socket if it exists
+        delete _attachedPublicSocket;
+        _attachedPublicSocket = NULL;
     }
     
-    // create a new sockaddr or sockaddr_in depending on what type of address this is
-    if (destinationSocket->sa_family == AF_INET) {
-        _destinationSocket = (sockaddr*) new sockaddr_in;
-        memcpy(_destinationSocket, destinationSocket, sizeof(sockaddr_in));
-    } else {
-        _destinationSocket = (sockaddr*) new sockaddr_in6;
-        memcpy(_destinationSocket, destinationSocket, sizeof(sockaddr_in6));
+    copySocketToEmptySocketPointer(_attachedPublicSocket, attachedPublicSocket);
+}
+
+void Assignment::setAttachedLocalSocket(const sockaddr* attachedLocalSocket) {
+    if (_attachedLocalSocket) {
+        // delete the old socket if it exists
+        delete _attachedLocalSocket;
+        _attachedLocalSocket = NULL;
     }
+    
+    copySocketToEmptySocketPointer(_attachedLocalSocket, attachedLocalSocket);
 }
 
 int Assignment::packToBuffer(unsigned char* buffer) {
@@ -116,11 +126,14 @@ int Assignment::packToBuffer(unsigned char* buffer) {
         numPackedBytes += sizeof(char);
     }
     
-    if (_destinationSocket) {
-        buffer[numPackedBytes++] = (_destinationSocket->sa_family == AF_INET)
+    if (_attachedPublicSocket || _attachedLocalSocket) {
+        sockaddr* socketToPack = (_attachedPublicSocket) ? _attachedPublicSocket : _attachedLocalSocket;
+        
+        // we have a socket to pack, add the designator
+        buffer[numPackedBytes++] = (socketToPack->sa_family == AF_INET)
             ? IPv4_ADDRESS_DESIGNATOR : IPv6_ADDRESS_DESIGNATOR;
         
-        numPackedBytes += packSocket(buffer + numPackedBytes, _destinationSocket);
+        numPackedBytes += packSocket(buffer + numPackedBytes, socketToPack);
     }
     
     return numPackedBytes;
