@@ -128,7 +128,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _bytesPerSecond(0),
         _bytesCount(0),
         _swatch(NULL),
-        _pasteMode(false)
+        _pasteMode(false),
+        _finishedNudge(true)
 {
     _applicationStartupTime = startup_time;
     _window->setWindowTitle("Interface");
@@ -701,6 +702,9 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_O:
                 Menu::getInstance()->triggerOption(MenuOption::VoxelSelectMode);
                 break;
+            case Qt::Key_N:
+                Menu::getInstance()->triggerOption(MenuOption::VoxelNudgeMode);
+                break;
             case Qt::Key_Slash:
                 Menu::getInstance()->triggerOption(MenuOption::Stats);
                 break;
@@ -839,6 +843,14 @@ void Application::mousePressEvent(QMouseEvent* event) {
 
             if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelSelectMode) && _pasteMode) {
                 pasteVoxels();
+            }
+
+            if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelNudgeMode)) {
+                VoxelNode* clickedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+                if (clickedNode) {
+                    _nudgeVoxel = _mouseVoxel;
+                    _finishedNudge = false;
+                }
             }
 
             if (MAKE_SOUND_ON_VOXEL_CLICK && _isHoverVoxel && !_isHoverVoxelSounding) {
@@ -1279,6 +1291,20 @@ void Application::pasteVoxels() {
     }
 }
 
+void Application::nudgeVoxels() {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelNudgeMode)) {
+        // calculate nudgeVec
+        glm::vec3 nudgeVec(_mouseVoxel.x - _nudgeVoxel.x, _mouseVoxel.y - _nudgeVoxel.y, _mouseVoxel.z - _nudgeVoxel.z);
+
+        VoxelNode* nodeToNudge = _voxels.getVoxelAt(_nudgeVoxel.x, _nudgeVoxel.y, _nudgeVoxel.z, _nudgeVoxel.s);
+
+        if (nodeToNudge) {
+            _voxels.getTree()->nudgeSubTree(nodeToNudge, nudgeVec, _voxelEditSender);
+            _finishedNudge = true;
+        }
+    }
+}
+
 void Application::setListenModeNormal() {
     _audio.setListenMode(AudioRingBuffer::NORMAL);
 }
@@ -1375,6 +1401,7 @@ void Application::init() {
     _palette.addAction(Menu::getInstance()->getActionForOption(MenuOption::VoxelColorMode), 0, 2);
     _palette.addAction(Menu::getInstance()->getActionForOption(MenuOption::VoxelGetColorMode), 0, 3);
     _palette.addAction(Menu::getInstance()->getActionForOption(MenuOption::VoxelSelectMode), 0, 4);
+    _palette.addAction(Menu::getInstance()->getActionForOption(MenuOption::VoxelNudgeMode), 0, 5);
 
     _pieMenu.init("./resources/images/hifi-interface-tools-v2-pie.svg",
                   _glWidget->width(),
@@ -1556,7 +1583,7 @@ void Application::update(float deltaTime) {
         lookAtSpot = lookAtRayOrigin + lookAtRayDirection * FAR_AWAY_STARE;
         _myAvatar.getHead().setLookAtPosition(lookAtSpot);
     }
-    
+
     //  Find the voxel we are hovering over, and respond if clicked
     float distance;
     BoxFace face;
@@ -1650,7 +1677,8 @@ void Application::update(float deltaTime) {
                 _mouseVoxel.s = 0.0f;
             }
         } else if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelAddMode)
-                   || Menu::getInstance()->isOptionChecked(MenuOption::VoxelSelectMode)) {
+                   || Menu::getInstance()->isOptionChecked(MenuOption::VoxelSelectMode)
+                   || Menu::getInstance()->isOptionChecked(MenuOption::VoxelNudgeMode)) {
             // place the voxel a fixed distance away
             float worldMouseVoxelScale = _mouseVoxelScale * TREE_SCALE;
             glm::vec3 pt = mouseRayOrigin + mouseRayDirection * (2.0f + worldMouseVoxelScale * 0.5f);
@@ -1665,9 +1693,11 @@ void Application::update(float deltaTime) {
             _mouseVoxel.red = 255;
             _mouseVoxel.green = _mouseVoxel.blue = 0;
         } else if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelSelectMode)) {
-            // yellow indicates deletion
+            // yellow indicates selection
             _mouseVoxel.red = _mouseVoxel.green = 255;
             _mouseVoxel.blue = 0;
+        } else if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelNudgeMode)) {
+            _mouseVoxel.red = _mouseVoxel.green = _mouseVoxel.blue = 255;
         } else { // _addVoxelMode->isChecked() || _colorVoxelMode->isChecked()
             QColor paintColor = Menu::getInstance()->getActionForOption(MenuOption::VoxelPaintColor)->data().value<QColor>();
             _mouseVoxel.red = paintColor.red();
@@ -2262,7 +2292,23 @@ void Application::displaySide(Camera& whichCamera) {
         glDisable(GL_LIGHTING);
         glPushMatrix();
         glScalef(TREE_SCALE, TREE_SCALE, TREE_SCALE);
-        renderMouseVoxelGrid(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+        if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelNudgeMode)) {
+            if (!_finishedNudge) {
+                renderNudgeGuide(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _nudgeVoxel.s);
+                renderNudgeGrid(_nudgeVoxel.x, _nudgeVoxel.y, _nudgeVoxel.z, _nudgeVoxel.s, _mouseVoxel.s);
+                glPushMatrix();
+                glTranslatef(_nudgeVoxel.x + _nudgeVoxel.s * 0.5f,
+                    _nudgeVoxel.y + _nudgeVoxel.s * 0.5f,
+                    _nudgeVoxel.z + _nudgeVoxel.s * 0.5f);
+                glColor3ub(255, 255, 255);
+                glLineWidth(4.0f);
+                glutWireCube(_nudgeVoxel.s);
+                glPopMatrix();
+            }
+        } else {
+            renderMouseVoxelGrid(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+        }
+
         if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelAddMode)) {
             // use a contrasting color so that we can see what we're doing
             glColor3ub(_mouseVoxel.red + 128, _mouseVoxel.green + 128, _mouseVoxel.blue + 128);
@@ -2273,7 +2319,15 @@ void Application::displaySide(Camera& whichCamera) {
                      _mouseVoxel.y + _mouseVoxel.s*0.5f,
                      _mouseVoxel.z + _mouseVoxel.s*0.5f);
         glLineWidth(4.0f);
-        glutWireCube(_mouseVoxel.s);
+        if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelNudgeMode)) {
+            if (_nudgeVoxel.s) {
+                glutWireCube(_nudgeVoxel.s);
+            } else {
+                glutWireCube(_mouseVoxel.s);
+            } 
+        } else {
+            glutWireCube(_mouseVoxel.s);
+        }
         glLineWidth(1.0f);
         glPopMatrix();
         glEnable(GL_LIGHTING);
