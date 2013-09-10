@@ -61,9 +61,9 @@ void renderGroundPlaneGrid(float size, float impact);
 
 void renderMouseVoxelGrid(const float& mouseVoxelX, const float& mouseVoxelY, const float& mouseVoxelZ, const float& mouseVoxelS);
 
-void renderNudgeGrid(const float& voxelX, const float& voxelY, const float& voxelZ, const float& voxelS, const float& voxelPrecision);
+void renderNudgeGrid(float voxelX, float voxelY, float voxelZ, float voxelS, float voxelPrecision);
 
-void renderNudgeGuide(const float& voxelX, const float& voxelY, const float& voxelZ, const float& voxelS);
+void renderNudgeGuide(float voxelX, float voxelY, float voxelZ, float voxelS);
 
 void renderCollisionOverlay(int width, int height, float magnitude);
 

@@ -1299,7 +1299,7 @@ void Application::nudgeVoxels() {
         VoxelNode* nodeToNudge = _voxels.getVoxelAt(_nudgeVoxel.x, _nudgeVoxel.y, _nudgeVoxel.z, _nudgeVoxel.s);
 
         if (nodeToNudge) {
-            _voxels.getVoxelTree()->nudgeSubTree(nodeToNudge, nudgeVec, _voxelEditSender);
+            _voxels.getTree()->nudgeSubTree(nodeToNudge, nudgeVec, _voxelEditSender);
             _finishedNudge = true;
         }
     }

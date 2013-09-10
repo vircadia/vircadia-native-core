@@ -414,7 +414,7 @@ void renderMouseVoxelGrid(const float& mouseVoxelX, const float& mouseVoxelY, co
     glEnd();
 }
 
-void renderNudgeGrid(const float& voxelX, const float& voxelY, const float& voxelZ, const float& voxelS, const float& voxelPrecision) {
+void renderNudgeGrid(float voxelX, float voxelY, float voxelZ, float voxelS, float voxelPrecision) {
     glm::vec3 origin = glm::vec3(voxelX, voxelY, voxelZ);
 
     glLineWidth(1.0);
@@ -438,7 +438,7 @@ void renderNudgeGrid(const float& voxelX, const float& voxelY, const float& voxe
         glVertex3f(origin.x + xz * voxelPrecision, 0, origin.z - (GRID_DIMENSIONS - 1) * voxelS);
     }
     glEnd();
-    
+
     glColor3f(1.0f,1.0f,1.0f);
     
     glBegin(GL_POLYGON);//begin drawing of square
@@ -449,7 +449,7 @@ void renderNudgeGrid(const float& voxelX, const float& voxelY, const float& voxe
     glEnd();//end drawing of polygon
 }
 
-void renderNudgeGuide(const float& voxelX, const float& voxelY, const float& voxelZ, const float& voxelS) {
+void renderNudgeGuide(float voxelX, float voxelY, float voxelZ, float voxelS) {
     glm::vec3 origin = glm::vec3(voxelX, voxelY, voxelZ);
 
     glLineWidth(3.0);

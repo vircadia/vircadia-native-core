@@ -1864,8 +1864,6 @@ public:
     float ancestorSize;
     glm::vec3 nudgeVec;
     VoxelEditPacketSender* voxelEditSenderPtr;
-
-    int colorIndex;
 };
 
 float findNewLeafSize(const glm::vec3& nudgeAmount, float leafSize) {
@@ -1949,14 +1947,14 @@ void VoxelTree::nudgeLeaf(VoxelNode* node, void* extraData) {
     voxelDetails.y = unNudgedDetails.y;
     voxelDetails.z = unNudgedDetails.z;
     voxelDetails.s = unNudgedDetails.s;
-    voxelDetails.red = node->getColor()[0];
-    voxelDetails.green = node->getColor()[1];
-    voxelDetails.blue = node->getColor()[2];
+    voxelDetails.red = node->getColor()[RED_INDEX];
+    voxelDetails.green = node->getColor()[GREEN_INDEX];
+    voxelDetails.blue = node->getColor()[BLUE_INDEX];
     glm::vec3 nudge = args->nudgeVec;
 
     // delete the old node
     // if the nudge replaces the node in an area outside of the ancestor node
-    if ((fabs(nudge.x) >= args->ancestorSize || fabs(nudge.y) >= args->ancestorSize || fabs(nudge.z) >= args->ancestorSize)) {
+    if (fabs(nudge.x) >= args->ancestorSize || fabs(nudge.y) >= args->ancestorSize || fabs(nudge.z) >= args->ancestorSize) {
         args->voxelEditSenderPtr->sendVoxelEditMessage(PACKET_TYPE_ERASE_VOXEL, voxelDetails);
     }
 
@@ -1986,7 +1984,6 @@ void VoxelTree::nudgeSubTree(VoxelNode* nodeToNudge, const glm::vec3& nudgeAmoun
     args.ancestorSize = ancestorDetails.s;
     args.nudgeVec = nudgeAmount;
     args.voxelEditSenderPtr = &voxelEditSender;
-    args.colorIndex = 0;
 
     recurseNodeWithOperation(nodeToNudge, nudgeCheck, &args);
 }
