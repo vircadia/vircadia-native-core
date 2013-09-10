@@ -73,6 +73,7 @@ void Faceshift::connectSocket() {
     
         const quint16 FACESHIFT_PORT = 33433;
         _socket.connectToHost("localhost", FACESHIFT_PORT);
+        _tracking = false;
     }
 }
 
@@ -102,7 +103,7 @@ void Faceshift::readFromSocket() {
         switch (msg->id()) {
             case fsMsg::MSG_OUT_TRACKING_STATE: {
                 const fsTrackingData& data = static_cast<fsMsgTrackingState*>(msg.get())->tracking_data();
-                if (data.m_trackingSuccessful) {
+                if ((_tracking = data.m_trackingSuccessful)) {
                     _headRotation = glm::quat(data.m_headRotation.w, -data.m_headRotation.x,
                         data.m_headRotation.y, -data.m_headRotation.z);
                     const float TRANSLATION_SCALE = 0.02f;

@@ -24,7 +24,7 @@ public:
 
     Faceshift();
 
-    bool isActive() const { return _socket.state() == QAbstractSocket::ConnectedState; }
+    bool isActive() const { return _socket.state() == QAbstractSocket::ConnectedState && _tracking; }
 
     const glm::quat& getHeadRotation() const { return _headRotation; }
     const glm::vec3& getHeadTranslation() const { return _headTranslation; }
@@ -66,6 +66,7 @@ private:
     QTcpSocket _socket;
     fs::fsBinaryStream _stream;
     bool _enabled;
+    bool _tracking;
     
     glm::quat _headRotation;
     glm::vec3 _headTranslation;
