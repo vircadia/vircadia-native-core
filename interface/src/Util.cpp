@@ -438,6 +438,15 @@ void renderNudgeGrid(const float& voxelX, const float& voxelY, const float& voxe
         glVertex3f(origin.x + xz * voxelPrecision, 0, origin.z - (GRID_DIMENSIONS - 1) * voxelS);
     }
     glEnd();
+    
+    glColor3f(1.0f,1.0f,1.0f);
+    
+    glBegin(GL_POLYGON);//begin drawing of square
+      glVertex3f(voxelX, 0.0f, voxelZ);//first vertex
+      glVertex3f(voxelX + voxelS, 0.0f, voxelZ);//second vertex
+      glVertex3f(voxelX + voxelS, 0.0f, voxelZ + voxelS);//third vertex
+      glVertex3f(voxelX, 0.0f, voxelZ + voxelS);//fourth vertex
+    glEnd();//end drawing of polygon
 }
 
 void renderNudgeGuide(const float& voxelX, const float& voxelY, const float& voxelZ, const float& voxelS) {

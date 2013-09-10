@@ -1907,7 +1907,6 @@ bool VoxelTree::nudgeCheck(VoxelNode* node, void* extraData) {
 
         // find necessary leaf size
         float newLeafSize = findNewLeafSize(args->nudgeVec, unNudgedDetails.s);
-        args->ancestorSize = unNudgedDetails.s;
 
         // check to see if this unNudged node can be nudged
         if (unNudgedDetails.s <= newLeafSize) {
@@ -1957,7 +1956,7 @@ void VoxelTree::nudgeLeaf(VoxelNode* node, void* extraData) {
 
     // delete the old node
     // if the nudge replaces the node in an area outside of the ancestor node
-    if (fabs(nudge.x) >= args->ancestorSize || fabs(nudge.y) >= args->ancestorSize || fabs(nudge.z) >= args->ancestorSize) {
+    if ((fabs(nudge.x) >= args->ancestorSize || fabs(nudge.y) >= args->ancestorSize || fabs(nudge.z) >= args->ancestorSize)) {
         args->voxelEditSenderPtr->sendVoxelEditMessage(PACKET_TYPE_ERASE_VOXEL, voxelDetails);
     }
 

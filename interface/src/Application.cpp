@@ -1672,7 +1672,6 @@ void Application::update(float deltaTime) {
                         _mouseVoxel.z += faceVector.z * _mouseVoxel.s;
                     }
                 }
-                _nudgeVoxel.s = _mouseVoxel.s;
             } else {
                 _mouseVoxel.s = 0.0f;
             }
@@ -2322,7 +2321,11 @@ void Application::displaySide(Camera& whichCamera) {
                      _mouseVoxel.z + _mouseVoxel.s*0.5f);
         glLineWidth(4.0f);
         if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelNudgeMode)) {
-            glutWireCube(_nudgeVoxel.s);
+            if (_nudgeVoxel.s) {
+                glutWireCube(_nudgeVoxel.s);
+            } else {
+                glutWireCube(_mouseVoxel.s);
+            } 
         } else {
             glutWireCube(_mouseVoxel.s);
         }
