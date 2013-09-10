@@ -68,6 +68,15 @@ int main(int argc, const char* argv[]) {
                              && strcmp((*assignment)->getPool(), requestAssignment.getPool()) == 0)
                             || !eitherHasPool) {
                             
+                            // check if the requestor is on the same network as the destination for the assignment
+                            if (senderSocket.sin_addr.s_addr ==
+                                ((sockaddr_in*) (*assignment)->getAttachedPublicSocket())->sin_addr.s_addr) {
+                                // if this is the case we remove the public socket on the assignment by setting it to NULL
+                                // this ensures the local IP and port sent to the requestor is the local address of destination
+                                (*assignment)->setAttachedPublicSocket(NULL);
+                            }
+                            
+                            
                             int numAssignmentBytes = (*assignment)->packToBuffer(assignmentPacket + numSendHeaderBytes);
                             
                             // send the assignment
@@ -96,10 +105,10 @@ int main(int argc, const char* argv[]) {
                 qDebug() << "Received a created assignment:" << *createdAssignment;
                 qDebug() << "Current queue size is" << assignmentQueue.size();
                 
-                // assignment server is on a public server
+                // assignment server is likely on a public server
                 // assume that the address we now have for the sender is the public address/port
-                // and store that with the assignment so it can be given to the requestor later
-                createdAssignment->setDomainSocket((sockaddr*) &senderSocket);
+                // and store that with the assignment so it can be given to the requestor later if necessary
+                createdAssignment->setAttachedPublicSocket((sockaddr*) &senderSocket);
                 
                 // add this assignment to the queue
                 assignmentQueue.push_back(createdAssignment);
