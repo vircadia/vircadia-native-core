@@ -61,7 +61,7 @@ private:
     Assignment::Direction _direction; /// the direction of the assignment (Create, Deploy, Request)
     Assignment::Type _type; /// the type of the assignment, defines what the assignee will do
     char* _pool; /// the pool this assignment is for/from
-    sockaddr*  _attachedPublicSocket; /// pointer to a public socket that relates to assignment, depends on direction
+    sockaddr* _attachedPublicSocket; /// pointer to a public socket that relates to assignment, depends on direction
     sockaddr* _attachedLocalSocket; /// pointer to a local socket that relates to assignment, depends on direction
     timeval _time; /// time the assignment was created (set in constructor)
 };
