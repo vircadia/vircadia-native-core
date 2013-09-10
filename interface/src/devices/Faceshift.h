@@ -35,6 +35,9 @@ public:
     float getEyeGazeRightPitch() const { return _eyeGazeRightPitch; }
     float getEyeGazeRightYaw() const { return _eyeGazeRightYaw; }
 
+    float getEstimatedEyePitch() const { return _estimatedEyePitch; }
+    float getEstimatedEyeYaw() const { return _estimatedEyeYaw; }
+
     float getLeftBlink() const { return _leftBlink; }
     float getRightBlink() const { return _rightBlink; }
 
@@ -42,6 +45,7 @@ public:
     
     float getMouthSize() const { return _mouthSize; }
 
+    void update();
     void reset();
 
 public slots:
@@ -85,6 +89,12 @@ private:
     float _mouthSize;
     
     int _jawOpenIndex;
+    
+    float _longTermAverageEyePitch;
+    float _longTermAverageEyeYaw;
+    
+    float _estimatedEyePitch;
+    float _estimatedEyeYaw;
 };
 
 #endif /* defined(__interface__Faceshift__) */

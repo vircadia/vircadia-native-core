@@ -44,8 +44,7 @@ float texCoordToViewSpaceZ(vec2 texCoord) {
 // given a texture coordinate, returns the 3D view space coordinate
 vec3 texCoordToViewSpace(vec2 texCoord) {
     float z = texCoordToViewSpaceZ(texCoord);
-    return vec3(((texCoord * 2.0 - vec2(1.0 - gl_ProjectionMatrix[2][0], 1.0)) *
-        (rightTop - leftBottom) + rightTop + leftBottom) * z / (-2.0 * near), z);
+    return vec3((leftBottom + texCoord * (rightTop - leftBottom)) * (-z / near), z);
 }
 
 void main(void) {

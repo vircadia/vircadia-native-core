@@ -48,7 +48,7 @@
 #include <NodeTypes.h>
 #include <AudioInjectionManager.h>
 #include <AudioInjector.h>
-#include <Logstash.h>
+#include <Logging.h>
 #include <OctalCode.h>
 #include <PacketHeaders.h>
 #include <PairingHandler.h>
@@ -129,7 +129,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _bytesPerSecond(0),
         _bytesCount(0),
         _swatch(NULL),
-        _pasteMode(false)
+        _pasteMode(false),
+        _finishedNudge(true)
 {
     _applicationStartupTime = startup_time;
     _window->setWindowTitle("Interface");
@@ -319,7 +320,7 @@ void Application::initializeGL() {
         const char LOGSTASH_INTERFACE_START_TIME_KEY[] = "interface-start-time";
         
         // ask the Logstash class to record the startup time
-        Logstash::stashValue(STAT_TYPE_TIMER, LOGSTASH_INTERFACE_START_TIME_KEY, startupTime);
+        Logging::stashValue(STAT_TYPE_TIMER, LOGSTASH_INTERFACE_START_TIME_KEY, startupTime);
     }
     
     // update before the first render
@@ -426,9 +427,6 @@ void Application::resizeGL(int width, int height) {
     resetCamerasOnResizeGL(_viewFrustumOffsetCamera, width, height);
     resetCamerasOnResizeGL(_myCamera, width, height);
 
-    // Tell our viewFrustum about this change, using the application camera
-    loadViewFrustum(_myCamera, _viewFrustum);
-
     glViewport(0, 0, width, height); // shouldn't this account for the menu???
 
     updateProjectionMatrix();
@@ -439,9 +437,12 @@ void Application::updateProjectionMatrix() {
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     
+    // Tell our viewFrustum about this change, using the application camera
+    loadViewFrustum(_myCamera, _viewFrustum);
+    
     float left, right, bottom, top, nearVal, farVal;
     glm::vec4 nearClipPlane, farClipPlane;
-    _viewFrustum.computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
+    computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
     
     // If we're in Display Frustum mode, then we want to use the slightly adjust near/far clip values of the
     // _viewFrustumOffsetCamera, so that we can see more of the application content in the application's frustum
@@ -634,8 +635,8 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 
             case Qt::Key_J:
                 if (isShifted) {
-                    _myCamera.setEyeOffsetOrientation(glm::normalize(
-                                                                     glm::quat(glm::vec3(0, 0.002f, 0)) * _myCamera.getEyeOffsetOrientation()));
+                    _viewFrustum.setFocalLength(_viewFrustum.getFocalLength() - 0.1f);
+                
                 } else {
                     _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(-0.001, 0, 0));
                 }
@@ -644,8 +645,8 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 
             case Qt::Key_M:
                 if (isShifted) {
-                    _myCamera.setEyeOffsetOrientation(glm::normalize(
-                                                                     glm::quat(glm::vec3(0, -0.002f, 0)) * _myCamera.getEyeOffsetOrientation()));
+                    _viewFrustum.setFocalLength(_viewFrustum.getFocalLength() + 0.1f);
+                
                 } else {
                     _myCamera.setEyeOffsetPosition(_myCamera.getEyeOffsetPosition() + glm::vec3(0.001, 0, 0));
                 }
@@ -703,6 +704,9 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
             case Qt::Key_O:
                 Menu::getInstance()->triggerOption(MenuOption::VoxelSelectMode);
+                break;
+            case Qt::Key_N:
+                Menu::getInstance()->triggerOption(MenuOption::VoxelNudgeMode);
                 break;
             case Qt::Key_Slash:
                 Menu::getInstance()->triggerOption(MenuOption::Stats);
@@ -842,6 +846,14 @@ void Application::mousePressEvent(QMouseEvent* event) {
 
             if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelSelectMode) && _pasteMode) {
                 pasteVoxels();
+            }
+
+            if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelNudgeMode)) {
+                VoxelNode* clickedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+                if (clickedNode) {
+                    _nudgeVoxel = _mouseVoxel;
+                    _finishedNudge = false;
+                }
             }
 
             if (MAKE_SOUND_ON_VOXEL_CLICK && _isHoverVoxel && !_isHoverVoxelSounding) {
@@ -1282,6 +1294,20 @@ void Application::pasteVoxels() {
     }
 }
 
+void Application::nudgeVoxels() {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelNudgeMode)) {
+        // calculate nudgeVec
+        glm::vec3 nudgeVec(_mouseVoxel.x - _nudgeVoxel.x, _mouseVoxel.y - _nudgeVoxel.y, _mouseVoxel.z - _nudgeVoxel.z);
+
+        VoxelNode* nodeToNudge = _voxels.getVoxelAt(_nudgeVoxel.x, _nudgeVoxel.y, _nudgeVoxel.z, _nudgeVoxel.s);
+
+        if (nodeToNudge) {
+            _voxels.getTree()->nudgeSubTree(nodeToNudge, nudgeVec, _voxelEditSender);
+            _finishedNudge = true;
+        }
+    }
+}
+
 void Application::setListenModeNormal() {
     _audio.setListenMode(AudioRingBuffer::NORMAL);
 }
@@ -1378,6 +1404,7 @@ void Application::init() {
     _palette.addAction(Menu::getInstance()->getActionForOption(MenuOption::VoxelColorMode), 0, 2);
     _palette.addAction(Menu::getInstance()->getActionForOption(MenuOption::VoxelGetColorMode), 0, 3);
     _palette.addAction(Menu::getInstance()->getActionForOption(MenuOption::VoxelSelectMode), 0, 4);
+    _palette.addAction(Menu::getInstance()->getActionForOption(MenuOption::VoxelNudgeMode), 0, 5);
 
     _pieMenu.init("./resources/images/hifi-interface-tools-v2-pie.svg",
                   _glWidget->width(),
@@ -1534,14 +1561,15 @@ void Application::update(float deltaTime) {
     // Set where I am looking based on my mouse ray (so that other people can see)
     glm::vec3 lookAtSpot;
 
+    //  Update faceshift
+    _faceshift.update();
+
     // if we have faceshift, use that to compute the lookat direction
     glm::vec3 lookAtRayOrigin = mouseRayOrigin, lookAtRayDirection = mouseRayDirection;
     if (_faceshift.isActive()) {
         lookAtRayOrigin = _myAvatar.getHead().calculateAverageEyePosition();
-        float averagePitch = (_faceshift.getEyeGazeLeftPitch() + _faceshift.getEyeGazeRightPitch()) / 2.0f;
-        float averageYaw = (_faceshift.getEyeGazeLeftYaw() + _faceshift.getEyeGazeRightYaw()) / 2.0f;
-        lookAtRayDirection = _myAvatar.getHead().getOrientation() *
-            glm::quat(glm::radians(glm::vec3(averagePitch, averageYaw, 0.0f))) * glm::vec3(0.0f, 0.0f, -1.0f);
+        lookAtRayDirection = _myAvatar.getHead().getOrientation() * glm::quat(glm::radians(glm::vec3(
+            _faceshift.getEstimatedEyePitch(), _faceshift.getEstimatedEyeYaw(), 0.0f))) * glm::vec3(0.0f, 0.0f, -1.0f);
     }
 
     _isLookingAtOtherAvatar = isLookingAtOtherAvatar(lookAtRayOrigin, lookAtRayDirection, lookAtSpot);
@@ -1558,7 +1586,7 @@ void Application::update(float deltaTime) {
         lookAtSpot = lookAtRayOrigin + lookAtRayDirection * FAR_AWAY_STARE;
         _myAvatar.getHead().setLookAtPosition(lookAtSpot);
     }
-    
+
     //  Find the voxel we are hovering over, and respond if clicked
     float distance;
     BoxFace face;
@@ -1652,7 +1680,8 @@ void Application::update(float deltaTime) {
                 _mouseVoxel.s = 0.0f;
             }
         } else if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelAddMode)
-                   || Menu::getInstance()->isOptionChecked(MenuOption::VoxelSelectMode)) {
+                   || Menu::getInstance()->isOptionChecked(MenuOption::VoxelSelectMode)
+                   || Menu::getInstance()->isOptionChecked(MenuOption::VoxelNudgeMode)) {
             // place the voxel a fixed distance away
             float worldMouseVoxelScale = _mouseVoxelScale * TREE_SCALE;
             glm::vec3 pt = mouseRayOrigin + mouseRayDirection * (2.0f + worldMouseVoxelScale * 0.5f);
@@ -1667,9 +1696,11 @@ void Application::update(float deltaTime) {
             _mouseVoxel.red = 255;
             _mouseVoxel.green = _mouseVoxel.blue = 0;
         } else if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelSelectMode)) {
-            // yellow indicates deletion
+            // yellow indicates selection
             _mouseVoxel.red = _mouseVoxel.green = 255;
             _mouseVoxel.blue = 0;
+        } else if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelNudgeMode)) {
+            _mouseVoxel.red = _mouseVoxel.green = _mouseVoxel.blue = 255;
         } else { // _addVoxelMode->isChecked() || _colorVoxelMode->isChecked()
             QColor paintColor = Menu::getInstance()->getActionForOption(MenuOption::VoxelPaintColor)->data().value<QColor>();
             _mouseVoxel.red = paintColor.red();
@@ -1709,8 +1740,6 @@ void Application::update(float deltaTime) {
     if (_serialHeadSensor.isActive()) {
         _serialHeadSensor.readData(deltaTime);
     }
-    
-    //  Update transmitter
     
     //  Sample hardware, update view frustum if needed, and send avatar data to mixer/nodes
     updateAvatar(deltaTime);
@@ -1808,15 +1837,17 @@ void Application::update(float deltaTime) {
         }
         
         if (Menu::getInstance()->isOptionChecked(MenuOption::OffAxisProjection)) {
+            float xSign = Menu::getInstance()->isOptionChecked(MenuOption::Mirror) ? 1.0f : -1.0f;
             if (_faceshift.isActive()) {
-                const float EYE_OFFSET_SCALE = 0.005f;
+                const float EYE_OFFSET_SCALE = 0.025f;
                 glm::vec3 position = _faceshift.getHeadTranslation() * EYE_OFFSET_SCALE;
-                _myCamera.setEyeOffsetPosition(glm::vec3(-position.x, position.y, position.z));    
+                _myCamera.setEyeOffsetPosition(glm::vec3(position.x * xSign, position.y, position.z));    
                 updateProjectionMatrix();
                 
             } else if (_webcam.isActive()) {
-                const float EYE_OFFSET_SCALE = 5.0f;
-                _myCamera.setEyeOffsetPosition(_webcam.getEstimatedPosition() * EYE_OFFSET_SCALE);
+                const float EYE_OFFSET_SCALE = 0.5f;
+                glm::vec3 position = _webcam.getEstimatedPosition() * EYE_OFFSET_SCALE;
+                _myCamera.setEyeOffsetPosition(glm::vec3(position.x * xSign, -position.y, position.z));
                 updateProjectionMatrix();
             }
         }
@@ -2138,6 +2169,19 @@ void Application::setupWorldLight(Camera& whichCamera) {
     glMateriali(GL_FRONT, GL_SHININESS, 96);
 }
 
+void Application::computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& near,
+    float& far, glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const {
+    
+    _viewFrustum.computeOffAxisFrustum(left, right, bottom, top, near, far, nearClipPlane, farClipPlane);
+    
+    // when mirrored, we must flip left and right
+    if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
+        float tmp = left;
+        left = -right;
+        right = -tmp;
+    }
+}
+
 void Application::displaySide(Camera& whichCamera) {
     // transform by eye offset
 
@@ -2251,7 +2295,23 @@ void Application::displaySide(Camera& whichCamera) {
         glDisable(GL_LIGHTING);
         glPushMatrix();
         glScalef(TREE_SCALE, TREE_SCALE, TREE_SCALE);
-        renderMouseVoxelGrid(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+        if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelNudgeMode)) {
+            if (!_finishedNudge) {
+                renderNudgeGuide(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _nudgeVoxel.s);
+                renderNudgeGrid(_nudgeVoxel.x, _nudgeVoxel.y, _nudgeVoxel.z, _nudgeVoxel.s, _mouseVoxel.s);
+                glPushMatrix();
+                glTranslatef(_nudgeVoxel.x + _nudgeVoxel.s * 0.5f,
+                    _nudgeVoxel.y + _nudgeVoxel.s * 0.5f,
+                    _nudgeVoxel.z + _nudgeVoxel.s * 0.5f);
+                glColor3ub(255, 255, 255);
+                glLineWidth(4.0f);
+                glutWireCube(_nudgeVoxel.s);
+                glPopMatrix();
+            }
+        } else {
+            renderMouseVoxelGrid(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+        }
+
         if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelAddMode)) {
             // use a contrasting color so that we can see what we're doing
             glColor3ub(_mouseVoxel.red + 128, _mouseVoxel.green + 128, _mouseVoxel.blue + 128);
@@ -2262,7 +2322,15 @@ void Application::displaySide(Camera& whichCamera) {
                      _mouseVoxel.y + _mouseVoxel.s*0.5f,
                      _mouseVoxel.z + _mouseVoxel.s*0.5f);
         glLineWidth(4.0f);
-        glutWireCube(_mouseVoxel.s);
+        if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelNudgeMode)) {
+            if (_nudgeVoxel.s) {
+                glutWireCube(_nudgeVoxel.s);
+            } else {
+                glutWireCube(_mouseVoxel.s);
+            } 
+        } else {
+            glutWireCube(_mouseVoxel.s);
+        }
         glLineWidth(1.0f);
         glPopMatrix();
         glEnable(GL_LIGHTING);
@@ -2921,6 +2989,30 @@ void Application::renderViewFrustum(ViewFrustum& viewFrustum) {
         // left plane - top edge - viewFrustum.getNear to distant
         glVertex3f(viewFrustum.getNearTopLeft().x, viewFrustum.getNearTopLeft().y, viewFrustum.getNearTopLeft().z);
         glVertex3f(viewFrustum.getFarTopLeft().x, viewFrustum.getFarTopLeft().y, viewFrustum.getFarTopLeft().z);
+    
+        // focal plane - bottom edge
+        glColor3f(1.0f, 0.0f, 1.0f);
+        float focalProportion = (viewFrustum.getFocalLength() - viewFrustum.getNearClip()) /
+            (viewFrustum.getFarClip() - viewFrustum.getNearClip());
+        glm::vec3 focalBottomLeft = glm::mix(viewFrustum.getNearBottomLeft(), viewFrustum.getFarBottomLeft(), focalProportion);
+        glm::vec3 focalBottomRight = glm::mix(viewFrustum.getNearBottomRight(),
+            viewFrustum.getFarBottomRight(), focalProportion);
+        glVertex3f(focalBottomLeft.x, focalBottomLeft.y, focalBottomLeft.z);
+        glVertex3f(focalBottomRight.x, focalBottomRight.y, focalBottomRight.z);
+
+        // focal plane - top edge
+        glm::vec3 focalTopLeft = glm::mix(viewFrustum.getNearTopLeft(), viewFrustum.getFarTopLeft(), focalProportion);
+        glm::vec3 focalTopRight = glm::mix(viewFrustum.getNearTopRight(), viewFrustum.getFarTopRight(), focalProportion);
+        glVertex3f(focalTopLeft.x, focalTopLeft.y, focalTopLeft.z);
+        glVertex3f(focalTopRight.x, focalTopRight.y, focalTopRight.z);
+
+        // focal plane - left edge
+        glVertex3f(focalBottomLeft.x, focalBottomLeft.y, focalBottomLeft.z);
+        glVertex3f(focalTopLeft.x, focalTopLeft.y, focalTopLeft.z);
+
+        // focal plane - right edge
+        glVertex3f(focalBottomRight.x, focalBottomRight.y, focalBottomRight.z);
+        glVertex3f(focalTopRight.x, focalTopRight.y, focalTopRight.z);
     }
     glEnd();
     glEnable(GL_LIGHTING);

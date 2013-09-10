@@ -135,6 +135,10 @@ public:
     
     void setupWorldLight(Camera& whichCamera);
 
+    /// Computes the off-axis frustum parameters for the view frustum, taking mirroring into account.
+    void computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& near,
+        float& far, glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const;
+
     virtual void nodeAdded(Node* node);
     virtual void nodeKilled(Node* node);
     virtual void packetSentNotification(ssize_t length);
@@ -146,6 +150,7 @@ public slots:
     void cutVoxels();
     void copyVoxels();
     void pasteVoxels();
+    void nudgeVoxels();
     
     void setRenderVoxels(bool renderVoxels);
     void doKillLocalVoxels();
@@ -302,6 +307,8 @@ private:
     glm::vec3 _lastMouseVoxelPos; // the position of the last mouse voxel edit
     bool _justEditedVoxel;        // set when we've just added/deleted/colored a voxel
 
+    VoxelDetail _nudgeVoxel; // details of the voxel to be nudged
+
     bool _isLookingAtOtherAvatar;
     glm::vec3 _lookatOtherPosition;
     float _lookatIndicatorScale;
@@ -354,6 +361,7 @@ private:
     Swatch _swatch;
 
     bool _pasteMode;
+    bool _finishedNudge;
 
     PieMenu _pieMenu;
     

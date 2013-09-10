@@ -39,6 +39,7 @@ public:
     void setAspectRatio(float a) { _aspectRatio = a; }
     void setNearClip(float n) { _nearClip = n; }
     void setFarClip(float f) { _farClip = f; }
+    void setFocalLength(float length) { _focalLength = length; }
     void setEyeOffsetPosition(const glm::vec3& p) { _eyeOffsetPosition    = p; }
     void setEyeOffsetOrientation(const glm::quat& o) { _eyeOffsetOrientation = o; }
 
@@ -47,6 +48,7 @@ public:
     float getAspectRatio() const { return _aspectRatio; }
     float getNearClip() const { return _nearClip; }
     float getFarClip() const { return _farClip; }
+    float getFocalLength() const { return _focalLength; }
     const glm::vec3& getEyeOffsetPosition() const { return _eyeOffsetPosition; }
     const glm::quat& getEyeOffsetOrientation() const { return _eyeOffsetOrientation; }
 
@@ -111,12 +113,13 @@ private:
     glm::vec3   _right;
     
     // Lens attributes
-    float       _fieldOfView;
-    float       _aspectRatio;
-    float       _nearClip;
-    float       _farClip;
-    glm::vec3   _eyeOffsetPosition;
-    glm::quat   _eyeOffsetOrientation;
+    float _fieldOfView;
+    float _aspectRatio;
+    float _nearClip;
+    float _farClip;
+    float _focalLength;
+    glm::vec3 _eyeOffsetPosition;
+    glm::quat _eyeOffsetOrientation;
     
     // keyhole attributes
     float       _keyholeRadius;
