@@ -53,7 +53,7 @@ void childClient() {
     sockaddr_in senderSocket = {};
     
     // create a request assignment, accept all assignments, pass the desired pool (if it exists)
-    Assignment requestAssignment(Assignment::RequestDirection, Assignment::AllTypes);
+    Assignment requestAssignment(Assignment::RequestCommand, Assignment::AllTypes);
     
     while (true) {
         if (usecTimestampNow() - usecTimestamp(&lastRequest) >= ASSIGNMENT_REQUEST_INTERVAL_USECS) {
