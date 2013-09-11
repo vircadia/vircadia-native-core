@@ -107,7 +107,8 @@ int main(int argc, const char* argv[]) {
     // as a domain-server we will always want an audio mixer and avatar mixer
     // setup the create assignments for those
     Assignment audioMixerAssignment(Assignment::CreateDirection,
-                                    Assignment::AudioMixerType);
+                                    Assignment::AudioMixerType,
+                                    Assignment::LocalLocationg);
     
     Assignment avatarMixerAssignment(Assignment::CreateDirection,
                                      Assignment::AvatarMixerType,
