@@ -26,7 +26,6 @@ const char CHILD_TARGET_NAME[] = "assignment-client";
 
 pid_t* childForks = NULL;
 sockaddr_in customAssignmentSocket = {};
-const char* assignmentPool = NULL;
 int numForks = 0;
 
 void childClient() {
@@ -51,8 +50,10 @@ void childClient() {
     unsigned char packetData[MAX_PACKET_SIZE];
     ssize_t receivedBytes = 0;
     
+    sockaddr_in senderSocket = {};
+    
     // create a request assignment, accept all assignments, pass the desired pool (if it exists)
-    Assignment requestAssignment(Assignment::Request, Assignment::All, assignmentPool);
+    Assignment requestAssignment(Assignment::RequestCommand, Assignment::AllTypes);
     
     while (true) {
         if (usecTimestampNow() - usecTimestamp(&lastRequest) >= ASSIGNMENT_REQUEST_INTERVAL_USECS) {
@@ -61,22 +62,34 @@ void childClient() {
             nodeList->sendAssignment(requestAssignment);
         }
         
-        if (nodeList->getNodeSocket()->receive(packetData, &receivedBytes) &&
-            packetData[0] == PACKET_TYPE_DEPLOY_ASSIGNMENT && packetVersionMatch(packetData)) {
+        if (nodeList->getNodeSocket()->receive((sockaddr*) &senderSocket, packetData, &receivedBytes) &&
+            (packetData[0] == PACKET_TYPE_DEPLOY_ASSIGNMENT || packetData[0] == PACKET_TYPE_CREATE_ASSIGNMENT)
+            && packetVersionMatch(packetData)) {
             
             // construct the deployed assignment from the packet data
             Assignment deployedAssignment(packetData, receivedBytes);
             
             qDebug() << "Received an assignment -" << deployedAssignment << "\n";
             
-            // switch our nodelist DOMAIN_IP to the ip receieved in the assignment
-            if (deployedAssignment.getAttachedPublicSocket()->sa_family == AF_INET) {
-                in_addr domainSocketAddr = ((sockaddr_in*) deployedAssignment.getAttachedPublicSocket())->sin_addr;
+            // switch our nodelist DOMAIN_IP
+            if (packetData[0] == PACKET_TYPE_CREATE_ASSIGNMENT ||
+                deployedAssignment.getAttachedPublicSocket()->sa_family == AF_INET) {
+                
+                in_addr domainSocketAddr = {};
+                
+                if (packetData[0] == PACKET_TYPE_CREATE_ASSIGNMENT) {
+                    // the domain server IP address is the address we got this packet from
+                    domainSocketAddr = senderSocket.sin_addr;
+                } else {
+                    // grab the domain server IP address from the packet from the AS
+                    domainSocketAddr = ((sockaddr_in*) deployedAssignment.getAttachedPublicSocket())->sin_addr;
+                }
+                
                 nodeList->setDomainIP(inet_ntoa(domainSocketAddr));
                 
                 qDebug("Destination IP for assignment is %s\n", inet_ntoa(domainSocketAddr));
                 
-                if (deployedAssignment.getType() == Assignment::AudioMixer) {
+                if (deployedAssignment.getType() == Assignment::AudioMixerType) {
                     AudioMixer::run();
                 } else {
                     AvatarMixer::run();
@@ -165,18 +178,22 @@ int main(int argc, const char* argv[]) {
     // start the Logging class with the parent's target name
     Logging::setTargetName(PARENT_TARGET_NAME);
     
+    const char CUSTOM_ASSIGNMENT_SERVER_HOSTNAME_OPTION[] = "-a";
+    const char CUSTOM_ASSIGNMENT_SERVER_PORT_OPTION[] = "-p";
+    
     // grab the overriden assignment-server hostname from argv, if it exists
-    const char* customAssignmentServer = getCmdOption(argc, argv, "-a");
-    if (customAssignmentServer) {
-        ::customAssignmentSocket = socketForHostnameAndHostOrderPort(customAssignmentServer, ASSIGNMENT_SERVER_PORT);
+    const char* customAssignmentServerHostname = getCmdOption(argc, argv, CUSTOM_ASSIGNMENT_SERVER_HOSTNAME_OPTION);
+    
+    if (customAssignmentServerHostname) {
+        const char* customAssignmentServerPortString = getCmdOption(argc, argv, CUSTOM_ASSIGNMENT_SERVER_PORT_OPTION);
+        unsigned short assignmentServerPort = customAssignmentServerPortString
+            ? atoi(customAssignmentServerPortString) : ASSIGNMENT_SERVER_PORT;
+        
+        ::customAssignmentSocket = socketForHostnameAndHostOrderPort(customAssignmentServerHostname, assignmentServerPort);
     }
     
     const char* NUM_FORKS_PARAMETER = "-n";
     const char* numForksString = getCmdOption(argc, argv, NUM_FORKS_PARAMETER);
-    
-    // grab the assignment pool from argv, if it was passed
-    const char* ASSIGNMENT_POOL_PARAMETER = "-p";
-    ::assignmentPool = getCmdOption(argc, argv, ASSIGNMENT_POOL_PARAMETER);
     
     int processID = 0;
     
