@@ -146,7 +146,7 @@ void Faceshift::receive(const QByteArray& buffer) {
                     _eyeGazeRightPitch = -data.m_eyeGazeRightPitch;
                     _eyeGazeRightYaw = data.m_eyeGazeRightYaw;
                     
-                    const float EYE_OPEN_SCALE = 0.25f;
+                    const float EYE_OPEN_SCALE = 0.5f;
                     if (_leftBlinkIndex != -1) {
                         _leftBlink = data.m_coeffs[_leftBlinkIndex] - data.m_coeffs[_leftEyeOpenIndex] * EYE_OPEN_SCALE;
                     }
