@@ -8,7 +8,7 @@
 
 #include <arpa/inet.h>
 #include <fstream>
-#include <queue>
+#include <dequeg>
 
 #include <QtCore/QString>
 
