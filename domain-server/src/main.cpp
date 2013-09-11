@@ -33,6 +33,8 @@
 #include "PacketHeaders.h"
 #include "SharedUtil.h"
 
+#include "mongoose.h"
+
 const int DOMAIN_LISTEN_PORT = 40102;
 unsigned char packetData[MAX_PACKET_SIZE];
 
@@ -119,6 +121,17 @@ int main(int argc, const char* argv[]) {
     localSocket.sin_family = AF_INET;
     localSocket.sin_port = htons(nodeList->getInstance()->getNodeSocket()->getListeningPort());
     localSocket.sin_addr.s_addr = serverLocalAddress;
+    
+    // setup the mongoose web server
+    struct mg_context *ctx;
+    struct mg_callbacks callbacks = {};
+    
+    // list of options. Last element must be NULL.
+    const char *options[] = {"listening_ports", "8080",
+        "document_root", "./web", NULL};
+    
+    // Start the web server.
+    ctx = mg_start(&callbacks, NULL, options);
     
     while (true) {
         
