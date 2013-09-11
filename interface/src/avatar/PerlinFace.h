@@ -43,6 +43,8 @@ private:
     int _trianglesCount;
 
     glm::vec3* _vertices;
+    glm::vec3* _oldNormals;
+    glm::vec3* _newNormals;
 
     GLfloat* _triangles;
     GLfloat* _normals;

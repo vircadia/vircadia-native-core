@@ -74,6 +74,8 @@ PerlinFace::PerlinFace(Head *owningHead)
       _vertexNumber(0),
       _trianglesCount(0),
       _vertices(NULL),
+      _oldNormals(NULL),
+      _newNormals(NULL),
       _triangles(NULL),
       _normals(NULL),
       _colors(NULL),
@@ -101,6 +103,8 @@ PerlinFace::~PerlinFace() {
         glDeleteBuffers(1, &_nboID);
         glDeleteBuffers(1, &_cboID);
         delete _vertices;
+        delete _oldNormals;
+        delete _newNormals;
         delete _triangles;
         delete _normals;
         delete _colors;
@@ -116,12 +120,15 @@ void PerlinFace::init() {
     glGenBuffers(1, &_cboID);
 
     _vertexNumber = sizeof(VERTICES) / (FLOAT_PER_VERTEX * sizeof(float));
+
     _vertices = new glm::vec3[_vertexNumber];
     for (int i = 0; i < _vertexNumber; ++i) {
         _vertices[i] = glm::vec3(VERTICES[VERTEX_PER_TRIANGLE * i],
                                  VERTICES[VERTEX_PER_TRIANGLE * i + 1],
                                  -VERTICES[VERTEX_PER_TRIANGLE * i + 2]);  // Inverse Z axis to face the right direction
     }
+    _oldNormals = new glm::vec3[_vertexNumber];
+    _newNormals = new glm::vec3[_vertexNumber];
 
     _trianglesPos = _triangles = new GLfloat[FLOAT_PER_VERTEX * VERTEX_PER_TRIANGLE * TRIANGLES_NUMBER];
     _normalsPos = _normals = new GLfloat[FLOAT_PER_VERTEX * VERTEX_PER_TRIANGLE  * TRIANGLES_NUMBER];
@@ -355,6 +362,10 @@ void PerlinFace::updateVertices() {
     _normalsPos = _normals;
     _colorsPos = _colors;
 
+    glm::vec3* temp = _oldNormals;
+    _oldNormals = _newNormals;
+    _newNormals = temp;
+
     // Brows
     addTriangles(BROW_LEFT, BROW_MID_TOP, BROW_MID_BOTTOM, 0, 0, 0);
     addTriangles(BROW_MID_BOTTOM, BROW_MID_TOP, BROW_RIGHT_TOP, 0, 0, 0);
@@ -486,6 +497,10 @@ void PerlinFace::updateVertices() {
     addJunction(HAIR_7, HAIR_8, HAIR_COLOR[0], HAIR_COLOR[1], HAIR_COLOR[2]);
     addJunction(HAIR_8, HAIR_9, HAIR_COLOR[0], HAIR_COLOR[1], HAIR_COLOR[2]);
     addJunction(HAIR_9, JAW_BOTTOM, HAIR_COLOR[0], HAIR_COLOR[1], HAIR_COLOR[2]);
+
+    for (int i = 0; i < _vertexNumber; ++i) {
+        _newNormals[i] = glm::normalize(_newNormals[i]);
+    }
 }
 
 void PerlinFace::addTriangles(int vertexID1, int vertexID2, int vertexID3, GLubyte r, GLubyte g, GLubyte b) {
@@ -533,9 +548,13 @@ void PerlinFace::addVertex(GLubyte r, GLubyte g, GLubyte b, int vertexID, glm::v
     *_trianglesPos++ = _vertices[vertexID].y;
     *_trianglesPos++ = _vertices[vertexID].z;
 
-    *_normalsPos++ = normal.x;
-    *_normalsPos++ = normal.y;
-    *_normalsPos++ = normal.z;
+    *_normalsPos++ = _oldNormals[vertexID].x;
+    *_normalsPos++ = _oldNormals[vertexID].y;
+    *_normalsPos++ = _oldNormals[vertexID].z;
+
+    _newNormals[vertexID].x += normal.x;
+    _newNormals[vertexID].y += normal.y;
+    _newNormals[vertexID].z += normal.z;
 
     *_colorsPos++ = r;
     *_colorsPos++ = g;
