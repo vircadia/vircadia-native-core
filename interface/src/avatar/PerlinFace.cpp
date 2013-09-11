@@ -287,69 +287,85 @@ void PerlinFace::updatePositions() {
 
 
     // Update left brow
-    _vertices[BROW_LEFT].y = VERTICES[FLOAT_PER_VERTEX * BROW_LEFT + 1]
-            + _browsU_L * BROWS_UP_MAX - _browsD_L * BROWS_DOWN_MAX
+    _vertices[BROW_LEFT].y = getVec3(BROW_LEFT).y
+            + _browsU_L * BROWS_UP_MAX
+            - _browsD_L * BROWS_DOWN_MAX
             - _browsU_C * BROWS_UP_CENTER_MAX;
-    _vertices[BROW_MID_TOP].y = VERTICES[FLOAT_PER_VERTEX * BROW_MID_TOP + 1]
-            + _browsU_L * BROWS_UP_MAX - _browsD_L * BROWS_DOWN_MAX;
-    _vertices[BROW_MID_BOTTOM].y = VERTICES[FLOAT_PER_VERTEX * BROW_MID_BOTTOM + 1]
-            + _browsU_L * BROWS_UP_MAX - _browsD_L * BROWS_DOWN_MAX;
-    _vertices[BROW_RIGHT_TOP].y = VERTICES[FLOAT_PER_VERTEX * BROW_RIGHT_TOP + 1]
-            + _browsU_L * BROWS_UP_MAX - _browsD_L * BROWS_DOWN_MAX
+    _vertices[BROW_MID_TOP].y = getVec3(BROW_MID_TOP).y
+            + _browsU_L * BROWS_UP_MAX
+            - _browsD_L * BROWS_DOWN_MAX;
+    _vertices[BROW_MID_BOTTOM].y = getVec3(BROW_MID_BOTTOM).y
+            + _browsU_L * BROWS_UP_MAX
+            - _browsD_L * BROWS_DOWN_MAX;
+    _vertices[BROW_RIGHT_TOP].y = getVec3(BROW_RIGHT_TOP).y
+            + _browsU_L * BROWS_UP_MAX
+            - _browsD_L * BROWS_DOWN_MAX
             + _browsU_C * BROWS_UP_CENTER_MAX;
-    _vertices[BROW_RIGHT_BOTTOM].y = VERTICES[FLOAT_PER_VERTEX * BROW_RIGHT_BOTTOM + 1]
-            + _browsU_L * BROWS_UP_MAX - _browsD_L * BROWS_DOWN_MAX
+    _vertices[BROW_RIGHT_BOTTOM].y = getVec3(BROW_RIGHT_BOTTOM).y
+            + _browsU_L * BROWS_UP_MAX
+            - _browsD_L * BROWS_DOWN_MAX
             + _browsU_C * BROWS_UP_CENTER_MAX;
 
     // Update right brow
-    _vertices[NUM_VERTICES + BROW_LEFT].y = VERTICES[FLOAT_PER_VERTEX * (NUM_VERTICES + BROW_LEFT) + 1]
-            + _browsU_R * BROWS_UP_MAX - _browsD_R * BROWS_DOWN_MAX
+    _vertices[NUM_VERTICES + BROW_LEFT].y = getVec3(NUM_VERTICES + BROW_LEFT).y
+            + _browsU_R * BROWS_UP_MAX
+            - _browsD_R * BROWS_DOWN_MAX
             - _browsU_C * BROWS_UP_CENTER_MAX;
-    _vertices[NUM_VERTICES + BROW_MID_TOP].y = VERTICES[FLOAT_PER_VERTEX * (NUM_VERTICES + BROW_MID_TOP) + 1]
-            + _browsU_R * BROWS_UP_MAX - _browsD_R * BROWS_DOWN_MAX;
-    _vertices[NUM_VERTICES + BROW_MID_BOTTOM].y = VERTICES[FLOAT_PER_VERTEX * (NUM_VERTICES + BROW_MID_BOTTOM) + 1]
-            + _browsU_R * BROWS_UP_MAX - _browsD_R * BROWS_DOWN_MAX;
-    _vertices[NUM_VERTICES + BROW_RIGHT_TOP].y = VERTICES[FLOAT_PER_VERTEX * (NUM_VERTICES + BROW_RIGHT_TOP) + 1]
-            + _browsU_R * BROWS_UP_MAX - _browsD_R * BROWS_DOWN_MAX
+    _vertices[NUM_VERTICES + BROW_MID_TOP].y = getVec3(NUM_VERTICES + BROW_MID_TOP).y
+            + _browsU_R * BROWS_UP_MAX
+            - _browsD_R * BROWS_DOWN_MAX;
+    _vertices[NUM_VERTICES + BROW_MID_BOTTOM].y = getVec3(NUM_VERTICES + BROW_MID_BOTTOM).y
+            + _browsU_R * BROWS_UP_MAX
+            - _browsD_R * BROWS_DOWN_MAX;
+    _vertices[NUM_VERTICES + BROW_RIGHT_TOP].y = getVec3(NUM_VERTICES + BROW_RIGHT_TOP).y
+            + _browsU_R * BROWS_UP_MAX
+            - _browsD_R * BROWS_DOWN_MAX
             + _browsU_C * BROWS_UP_CENTER_MAX;
-    _vertices[NUM_VERTICES + BROW_RIGHT_BOTTOM].y = VERTICES[FLOAT_PER_VERTEX * (NUM_VERTICES + BROW_RIGHT_BOTTOM) + 1]
-            + _browsU_R * BROWS_UP_MAX - _browsD_R * BROWS_DOWN_MAX
+    _vertices[NUM_VERTICES + BROW_RIGHT_BOTTOM].y = getVec3(NUM_VERTICES + BROW_RIGHT_BOTTOM).y
+            + _browsU_R * BROWS_UP_MAX
+            - _browsD_R * BROWS_DOWN_MAX
             + _browsU_C * BROWS_UP_CENTER_MAX;
 
 
     // Mouth
-    _vertices[MOUTH_BOTTOM_IN].y = VERTICES[FLOAT_PER_VERTEX * MOUTH_BOTTOM_IN + 1]
+    _vertices[MOUTH_BOTTOM_IN].y = getVec3(MOUTH_BOTTOM_IN).y
             + (1.0 - _mouthSize) * 6.5;
-    _vertices[MOUTH_BOTTOM_OUT].y = VERTICES[FLOAT_PER_VERTEX * MOUTH_BOTTOM_OUT + 1]
+    _vertices[MOUTH_BOTTOM_OUT].y = getVec3(MOUTH_BOTTOM_OUT).y
             + (1.0 - _mouthSize) * 6.5;
-    _vertices[MOUTH_MID_IN].y = VERTICES[FLOAT_PER_VERTEX * MOUTH_MID_IN + 1]
-            + (1.0 - _mouthSize) * 4 + _mouthSmileLeft * 2;
-    _vertices[MOUTH_MID_OUT].y = VERTICES[FLOAT_PER_VERTEX * MOUTH_MID_OUT + 1]
-            + (1.0 - _mouthSize) * 4 + _mouthSmileLeft * 2;
+    _vertices[MOUTH_MID_IN] = (1.0f - (_mouthSmileLeft / 3.0f)) * (getVec3(MOUTH_MID_IN)
+                                                                   + glm::vec3(0, (1.0 - _mouthSize) * 4, 0))
+            + (_mouthSmileLeft / 3.0f) * getVec3(CHICK_MID);
+    _vertices[MOUTH_MID_OUT] = (1.0f - (_mouthSmileLeft / 3.0f)) * (getVec3(MOUTH_MID_OUT)
+                                                                    + glm::vec3(0, (1.0 - _mouthSize) * 4, 0))
+            + (_mouthSmileLeft / 3.0f) * getVec3(CHICK_MID);
 
-    _vertices[NUM_VERTICES + MOUTH_BOTTOM_IN].y = VERTICES[FLOAT_PER_VERTEX * (NUM_VERTICES + MOUTH_BOTTOM_IN) + 1]
+
+    _vertices[NUM_VERTICES + MOUTH_BOTTOM_IN].y = getVec3(NUM_VERTICES + MOUTH_BOTTOM_IN).y
             + (1.0 - _mouthSize) * 6.5;
-    _vertices[NUM_VERTICES + MOUTH_BOTTOM_OUT].y = VERTICES[FLOAT_PER_VERTEX * (NUM_VERTICES + MOUTH_BOTTOM_OUT) + 1]
+    _vertices[NUM_VERTICES + MOUTH_BOTTOM_OUT].y = getVec3(NUM_VERTICES + MOUTH_BOTTOM_OUT).y
             + (1.0 - _mouthSize) * 6.5;
-    _vertices[NUM_VERTICES + MOUTH_MID_IN].y = VERTICES[FLOAT_PER_VERTEX * (NUM_VERTICES + MOUTH_MID_IN) + 1]
-            + (1.0 - _mouthSize) * 4 + _mouthSmileRight * 2;
-    _vertices[NUM_VERTICES + MOUTH_MID_OUT].y = VERTICES[FLOAT_PER_VERTEX * (NUM_VERTICES + MOUTH_MID_OUT) + 1]
-            + (1.0 - _mouthSize) * 4 + _mouthSmileRight * 2;
-    
+    _vertices[NUM_VERTICES + MOUTH_MID_IN] = (1.0f - (_mouthSmileLeft / 3.0f)) * (getVec3(NUM_VERTICES + MOUTH_MID_IN)
+                                                                   + glm::vec3(0, (1.0 - _mouthSize) * 4, 0))
+            + (_mouthSmileLeft / 3.0f) * getVec3(NUM_VERTICES + CHICK_MID);
+    _vertices[NUM_VERTICES + MOUTH_MID_OUT] = (1.0f - (_mouthSmileLeft / 3.0f)) * (getVec3(NUM_VERTICES + MOUTH_MID_OUT)
+                                                                    + glm::vec3(0, (1.0 - _mouthSize) * 4, 0))
+            + (_mouthSmileLeft / 3.0f) * getVec3(NUM_VERTICES + CHICK_MID);
+
+
     
     // Jaw
-    _vertices[CHIN_IN].y = VERTICES[FLOAT_PER_VERTEX * CHIN_IN + 1]
+    _vertices[CHIN_IN].y = getVec3(CHIN_IN).y
             + (1.0 - _mouthSize) * 4;
-    _vertices[CHIN_TIP].y = VERTICES[FLOAT_PER_VERTEX * CHIN_TIP + 1]
+    _vertices[CHIN_TIP].y = getVec3(CHIN_TIP).y
             + (1.0 - _mouthSize) * 4;
-    _vertices[CHIN_BOTTOM].y = VERTICES[FLOAT_PER_VERTEX * CHIN_BOTTOM + 1]
+    _vertices[CHIN_BOTTOM].y = getVec3(CHIN_BOTTOM).y
             + (1.0 - _mouthSize) * 4;
 
-    _vertices[NUM_VERTICES +CHIN_IN].y = VERTICES[FLOAT_PER_VERTEX * (NUM_VERTICES + CHIN_IN) + 1]
+    _vertices[NUM_VERTICES +CHIN_IN].y = getVec3(NUM_VERTICES + CHIN_IN).y
             + (1.0 - _mouthSize) * 4;
-    _vertices[NUM_VERTICES +CHIN_TIP].y = VERTICES[FLOAT_PER_VERTEX * (NUM_VERTICES + CHIN_TIP) + 1]
+    _vertices[NUM_VERTICES +CHIN_TIP].y = getVec3(NUM_VERTICES + CHIN_TIP).y
             + (1.0 - _mouthSize) * 4;
-    _vertices[NUM_VERTICES +CHIN_BOTTOM].y = VERTICES[FLOAT_PER_VERTEX * (NUM_VERTICES + CHIN_BOTTOM) + 1]
+    _vertices[NUM_VERTICES +CHIN_BOTTOM].y = getVec3(NUM_VERTICES + CHIN_BOTTOM).y
             + (1.0 - _mouthSize) * 4;
 
 
