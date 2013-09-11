@@ -108,7 +108,7 @@ int main(int argc, const char* argv[]) {
     // setup the create assignments for those
     Assignment audioMixerAssignment(Assignment::CreateDirection,
                                     Assignment::AudioMixerType,
-                                    Assignment::LocalLocationg);
+                                    Assignment::LocalLocation);
     
     Assignment avatarMixerAssignment(Assignment::CreateDirection,
                                      Assignment::AvatarMixerType,
