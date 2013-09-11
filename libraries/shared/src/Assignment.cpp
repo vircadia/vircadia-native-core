@@ -13,8 +13,8 @@
 const char IPv4_ADDRESS_DESIGNATOR = 4;
 const char IPv6_ADDRESS_DESIGNATOR = 6;
 
-Assignment::Assignment(Assignment::Direction direction, Assignment::Type type, Assignment::Location location) :
-    _direction(direction),
+Assignment::Assignment(Assignment::Command command, Assignment::Type type, Assignment::Location location) :
+    _command(command),
     _type(type),
     _location(location),
     _attachedPublicSocket(NULL),
@@ -35,11 +35,11 @@ Assignment::Assignment(const unsigned char* dataBuffer, int numBytes) :
     int numBytesRead = 0;
     
     if (dataBuffer[0] == PACKET_TYPE_REQUEST_ASSIGNMENT) {
-        _direction = Assignment::RequestDirection;
+        _command = Assignment::RequestCommand;
     } else if (dataBuffer[0] == PACKET_TYPE_CREATE_ASSIGNMENT) {
-        _direction = Assignment::CreateDirection;
+        _command = Assignment::CreateCommand;
     } else if (dataBuffer[0] == PACKET_TYPE_DEPLOY_ASSIGNMENT) {
-        _direction = Assignment::DeployDirection;
+        _command = Assignment::DeployCommand;
     }
     
     numBytesRead += numBytesForPacketHeader(dataBuffer);
@@ -60,7 +60,7 @@ Assignment::Assignment(const unsigned char* dataBuffer, int numBytes) :
             qDebug("Received a socket that cannot be unpacked!\n");
         }
         
-        if (_direction == Assignment::CreateDirection) {
+        if (_command == Assignment::CreateCommand) {
             delete _attachedLocalSocket;
             _attachedLocalSocket = newSocket;
         } else {
