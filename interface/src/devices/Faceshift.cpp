@@ -28,6 +28,8 @@ Faceshift::Faceshift() :
     _rightBlink(0.0f),
     _leftBlinkIndex(0), // see http://support.faceshift.com/support/articles/35129-export-of-blendshapes
     _rightBlinkIndex(1),
+    _leftEyeOpenIndex(8),
+    _rightEyeOpenIndex(9),
     _browHeight(0.0f),
     _browUpCenterIndex(16),
     _mouthSize(0.0f),
@@ -144,11 +146,12 @@ void Faceshift::receive(const QByteArray& buffer) {
                     _eyeGazeRightPitch = -data.m_eyeGazeRightPitch;
                     _eyeGazeRightYaw = data.m_eyeGazeRightYaw;
                     
+                    const float EYE_OPEN_SCALE = 0.25f;
                     if (_leftBlinkIndex != -1) {
-                        _leftBlink = data.m_coeffs[_leftBlinkIndex];
+                        _leftBlink = data.m_coeffs[_leftBlinkIndex] - data.m_coeffs[_leftEyeOpenIndex] * EYE_OPEN_SCALE;
                     }
                     if (_rightBlinkIndex != -1) {
-                        _rightBlink = data.m_coeffs[_rightBlinkIndex];
+                        _rightBlink = data.m_coeffs[_rightBlinkIndex] - data.m_coeffs[_rightEyeOpenIndex] * EYE_OPEN_SCALE;
                     }
                     if (_browUpCenterIndex != -1) {
                         _browHeight = data.m_coeffs[_browUpCenterIndex];
@@ -167,7 +170,13 @@ void Faceshift::receive(const QByteArray& buffer) {
                     
                     } else if (names[i] == "EyeBlink_R") {
                         _rightBlinkIndex = i;
-                        
+                    
+                    } else if (names[i] == "EyeOpen_L") {
+                        _leftEyeOpenIndex = i;
+                    
+                    } else if (names[i] == "EyeOpen_R") {
+                        _rightEyeOpenIndex = i;
+                    
                     } else if (names[i] == "BrowsU_C") {
                         _browUpCenterIndex = i;    
                         

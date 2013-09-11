@@ -88,6 +88,9 @@ private:
     int _leftBlinkIndex;
     int _rightBlinkIndex;
     
+    int _leftEyeOpenIndex;
+    int _rightEyeOpenIndex;
+    
     float _browHeight;
     
     int _browUpCenterIndex;
