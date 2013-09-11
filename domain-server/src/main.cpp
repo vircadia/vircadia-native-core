@@ -19,7 +19,7 @@
 
 #include <arpa/inet.h>
 #include <fcntl.h>
-#include <queue.h>
+#include <deque>
 #include <map>
 #include <math.h>
 #include <string.h>
