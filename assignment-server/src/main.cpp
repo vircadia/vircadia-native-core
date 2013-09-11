@@ -42,8 +42,8 @@ int main(int argc, const char* argv[]) {
                 // construct the requested assignment from the packet data
                 Assignment requestAssignment(senderData, receivedBytes);
                 
-                qDebug() << "Received request for assignment:" << requestAssignment;
-                qDebug() << "Current queue size is" << assignmentQueue.size();
+                qDebug() << "Received request for assignment:" << requestAssignment << "\n";
+                qDebug() << "Current queue size is" << assignmentQueue.size() << "\n";
                 
                 // make sure there are assignments in the queue at all
                 if (assignmentQueue.size() > 0) {
@@ -92,8 +92,8 @@ int main(int argc, const char* argv[]) {
                 // construct the create assignment from the packet data
                 Assignment* createdAssignment = new Assignment(senderData, receivedBytes);
                 
-                qDebug() << "Received a created assignment:" << *createdAssignment;
-                qDebug() << "Current queue size is" << assignmentQueue.size();
+                qDebug() << "Received a created assignment:" << *createdAssignment << "\n";
+                qDebug() << "Current queue size is" << assignmentQueue.size() << "\n";
                 
                 // assignment server is likely on a public server
                 // assume that the address we now have for the sender is the public address/port
