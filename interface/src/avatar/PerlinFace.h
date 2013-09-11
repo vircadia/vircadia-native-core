@@ -35,6 +35,8 @@ private:
     void addJunction(int vertexID1, int vertexID2, GLubyte r, GLubyte g, GLubyte b);
     void addVertex(GLubyte r, GLubyte g, GLubyte b, int vertexID, glm::vec3 normal);
 
+    glm::vec3 getVec3(int vertexID);
+
     Head* _owningHead;
 
     bool _initialized;
@@ -42,13 +44,13 @@ private:
     int _vertexNumber;
     int _trianglesCount;
 
-    glm::vec3* _vertices;
+    static glm::vec3* _vertices;
     glm::vec3* _oldNormals;
     glm::vec3* _newNormals;
 
-    GLfloat* _triangles;
-    GLfloat* _normals;
-    GLubyte* _colors;
+    static GLfloat* _triangles;
+    static GLfloat* _normals;
+    static GLubyte* _colors;
 
     GLfloat* _trianglesPos;
     GLfloat* _normalsPos;
@@ -68,8 +70,12 @@ private:
     float _mouthSmileLeft;
     float _mouthSmileRight;
 
-    float _leftBlink;
-    float _rightBlink;
+    float _eyeBlink_L;
+    float _eyeBlink_R;
+    float _eyeOpen_L;
+    float _eyeOpen_R;
+
+    friend void staticCleanup();
 };
 
 #endif /* defined(__interface__Face__) */

@@ -68,17 +68,20 @@ const int TRIANGLES_NUMBER = 202;
 const int VERTEX_PER_TRIANGLE = 3;
 const int FLOAT_PER_VERTEX = 3;
 
+const GLfloat NO_SPECULAR_COLOR[] = { 0.0f, 0.0f, 0.0f, 1.0f };
+
+glm::vec3* PerlinFace::_vertices = NULL;
+GLfloat* PerlinFace::_triangles = NULL;
+GLfloat* PerlinFace::_normals = NULL;
+GLubyte* PerlinFace::_colors = NULL;
+
 PerlinFace::PerlinFace(Head *owningHead)
     : _owningHead(owningHead),
       _initialized(false),
       _vertexNumber(0),
       _trianglesCount(0),
-      _vertices(NULL),
       _oldNormals(NULL),
       _newNormals(NULL),
-      _triangles(NULL),
-      _normals(NULL),
-      _colors(NULL),
       _trianglesPos(NULL),
       _normalsPos(NULL),
       _colorsPos(NULL),
@@ -93,8 +96,10 @@ PerlinFace::PerlinFace(Head *owningHead)
       _mouthSize(0),
       _mouthSmileLeft(0),
       _mouthSmileRight(0),
-      _leftBlink(0),
-      _rightBlink(0) {
+      _eyeBlink_L(0),
+      _eyeBlink_R(0),
+      _eyeOpen_L(0),
+      _eyeOpen_R(0) {
 }
 
 PerlinFace::~PerlinFace() {
@@ -102,13 +107,16 @@ PerlinFace::~PerlinFace() {
         glDeleteBuffers(1, &_vboID);
         glDeleteBuffers(1, &_nboID);
         glDeleteBuffers(1, &_cboID);
-        delete _vertices;
-        delete _oldNormals;
-        delete _newNormals;
-        delete _triangles;
-        delete _normals;
-        delete _colors;
+        delete[] _oldNormals;
+        delete[] _newNormals;
     }
+}
+
+void staticCleanup() {
+    delete[] PerlinFace::_vertices;
+    delete[] PerlinFace::_triangles;
+    delete[] PerlinFace::_normals;
+    delete[] PerlinFace::_colors;
 }
 
 void PerlinFace::init() {
@@ -121,18 +129,21 @@ void PerlinFace::init() {
 
     _vertexNumber = sizeof(VERTICES) / (FLOAT_PER_VERTEX * sizeof(float));
 
-    _vertices = new glm::vec3[_vertexNumber];
-    for (int i = 0; i < _vertexNumber; ++i) {
-        _vertices[i] = glm::vec3(VERTICES[VERTEX_PER_TRIANGLE * i],
-                                 VERTICES[VERTEX_PER_TRIANGLE * i + 1],
-                                 -VERTICES[VERTEX_PER_TRIANGLE * i + 2]);  // Inverse Z axis to face the right direction
-    }
     _oldNormals = new glm::vec3[_vertexNumber];
     _newNormals = new glm::vec3[_vertexNumber];
 
-    _trianglesPos = _triangles = new GLfloat[FLOAT_PER_VERTEX * VERTEX_PER_TRIANGLE * TRIANGLES_NUMBER];
-    _normalsPos = _normals = new GLfloat[FLOAT_PER_VERTEX * VERTEX_PER_TRIANGLE  * TRIANGLES_NUMBER];
-    _colorsPos = _colors = new GLubyte[FLOAT_PER_VERTEX * VERTEX_PER_TRIANGLE  * TRIANGLES_NUMBER];
+    if (_vertices == NULL) {
+        _vertices = new glm::vec3[_vertexNumber];
+        for (int i = 0; i < _vertexNumber; ++i) {
+            _vertices[i] = getVec3(i);
+        }
+
+        _trianglesPos = _triangles = new GLfloat[FLOAT_PER_VERTEX * VERTEX_PER_TRIANGLE * TRIANGLES_NUMBER];
+        _normalsPos = _normals = new GLfloat[FLOAT_PER_VERTEX * VERTEX_PER_TRIANGLE  * TRIANGLES_NUMBER];
+        _colorsPos = _colors = new GLubyte[FLOAT_PER_VERTEX * VERTEX_PER_TRIANGLE  * TRIANGLES_NUMBER];
+
+        atexit(staticCleanup);
+    }
 
     _initialized = true;
 }
@@ -164,8 +175,6 @@ void PerlinFace::update() {
                  GL_DYNAMIC_DRAW);
 }
 
-const GLfloat NO_SPECULAR_COLOR[] = { 0.0f, 0.0f, 0.0f, 1.0f };
-
 void PerlinFace::render() {
     glPushMatrix();
 
@@ -174,6 +183,7 @@ void PerlinFace::render() {
 
     update();
 
+    // Jump to head position, orientation and scale
     glm::quat orientation = _owningHead->getOrientation();
     glm::vec3 axis = glm::axis(orientation);
     glTranslatef(_owningHead->getPosition().x, _owningHead->getPosition().y, _owningHead->getPosition().z);
@@ -269,8 +279,10 @@ void PerlinFace::updatePositions() {
         _mouthSize = faceshift->getMouthSize();
         _mouthSmileLeft = faceshift->getMouthSmileLeft();
         _mouthSmileRight = faceshift->getMouthSmileRight();
-        _leftBlink = faceshift->getLeftBlink();
-        _rightBlink = faceshift->getRightBlink();
+        _eyeBlink_L = faceshift->getLeftBlink();
+        _eyeBlink_R = faceshift->getRightBlink();
+        _eyeOpen_L = faceshift->getLeftEyeOpen();
+        _eyeOpen_R = faceshift->getRightEyeOpen();
     }
 
 
@@ -342,28 +354,20 @@ void PerlinFace::updatePositions() {
 
 
     // Eyelids
-    glm::vec3 topLeftEyelid = glm::vec3(VERTICES[FLOAT_PER_VERTEX * EYE_MID_TOP],
-                                        VERTICES[FLOAT_PER_VERTEX * EYE_MID_TOP + 1],
-                                        -VERTICES[FLOAT_PER_VERTEX * EYE_MID_TOP + 2]);
-    glm::vec3 bottomLeftEyelid = glm::vec3(VERTICES[FLOAT_PER_VERTEX * EYE_MID_BOTTOM],
-                                        VERTICES[FLOAT_PER_VERTEX * EYE_MID_BOTTOM + 1],
-                                        -VERTICES[FLOAT_PER_VERTEX * EYE_MID_BOTTOM + 2]);
-    glm::vec3 topRightEyelid = glm::vec3(VERTICES[FLOAT_PER_VERTEX * (NUM_VERTICES + EYE_MID_TOP)],
-                                        VERTICES[FLOAT_PER_VERTEX * (NUM_VERTICES + EYE_MID_TOP) + 1],
-                                        -VERTICES[FLOAT_PER_VERTEX * (NUM_VERTICES + EYE_MID_TOP) + 2]);
-    glm::vec3 bottomRightEyelid = glm::vec3(VERTICES[FLOAT_PER_VERTEX * (NUM_VERTICES + EYE_MID_BOTTOM)],
-                                        VERTICES[FLOAT_PER_VERTEX * (NUM_VERTICES + EYE_MID_BOTTOM) + 1],
-                                        -VERTICES[FLOAT_PER_VERTEX * (NUM_VERTICES + EYE_MID_BOTTOM) + 2]);
+    glm::vec3 topLeftEyelid = getVec3(EYE_MID_TOP);
+    glm::vec3 bottomLeftEyelid = getVec3(EYE_MID_BOTTOM);
+    glm::vec3 topRightEyelid = getVec3(NUM_VERTICES + EYE_MID_TOP);
+    glm::vec3 bottomRightEyelid = getVec3(NUM_VERTICES + EYE_MID_BOTTOM);
     
-    _vertices[EYE_MID_TOP] = (1.0f - _leftBlink) * topLeftEyelid
-    + _leftBlink * (topLeftEyelid + bottomLeftEyelid) / 2.0f;
-    _vertices[EYE_MID_BOTTOM] = (1.0f - _leftBlink) * bottomLeftEyelid
-    + _leftBlink * (topLeftEyelid + bottomLeftEyelid) / 2.0f;
+    _vertices[EYE_MID_TOP] = (1.0f - (_eyeBlink_L + _eyeOpen_L / 2.0f)) * topLeftEyelid
+    + (_eyeBlink_L + _eyeOpen_L / 2.0f) * (topLeftEyelid + bottomLeftEyelid) / 2.0f;
+    _vertices[EYE_MID_BOTTOM] = (1.0f - (_eyeBlink_L + _eyeOpen_L / 2.0f)) * bottomLeftEyelid
+    + (_eyeBlink_L + _eyeOpen_L / 2.0f) * (topLeftEyelid + bottomLeftEyelid) / 2.0f;
     
-    _vertices[NUM_VERTICES + EYE_MID_TOP] = (1.0f - _rightBlink) * topRightEyelid
-    + _rightBlink * (topRightEyelid + bottomRightEyelid) / 2.0f;
-    _vertices[NUM_VERTICES + EYE_MID_BOTTOM] = (1.0f - _rightBlink) * bottomRightEyelid
-    + _rightBlink * (topRightEyelid + bottomRightEyelid) / 2.0f;
+    _vertices[NUM_VERTICES + EYE_MID_TOP] = (1.0f - (_eyeBlink_R + _eyeOpen_R / 2.0f)) * topRightEyelid
+    + (_eyeBlink_R + _eyeOpen_R / 2.0f) * (topRightEyelid + bottomRightEyelid) / 2.0f;
+    _vertices[NUM_VERTICES + EYE_MID_BOTTOM] = (1.0f - (_eyeBlink_R + _eyeOpen_R / 2.0f)) * bottomRightEyelid
+    + (_eyeBlink_R + _eyeOpen_R / 2.0f) * (topRightEyelid + bottomRightEyelid) / 2.0f;
 }
 
 void PerlinFace::updateVertices() {
@@ -376,9 +380,7 @@ void PerlinFace::updateVertices() {
     _normalsPos = _normals;
     _colorsPos = _colors;
 
-    glm::vec3* temp = _oldNormals;
-    _oldNormals = _newNormals;
-    _newNormals = temp;
+    std::swap(_oldNormals, _newNormals);
 
     // Brows
     addTriangles(BROW_LEFT, BROW_MID_TOP, BROW_MID_BOTTOM, 0, 0, 0);
@@ -512,6 +514,7 @@ void PerlinFace::updateVertices() {
     addJunction(HAIR_8, HAIR_9, HAIR_COLOR[0], HAIR_COLOR[1], HAIR_COLOR[2]);
     addJunction(HAIR_9, JAW_BOTTOM, HAIR_COLOR[0], HAIR_COLOR[1], HAIR_COLOR[2]);
 
+    // Now that we have summed up the normals for each point, let's normalize them.
     for (int i = 0; i < _vertexNumber; ++i) {
         _newNormals[i] = glm::normalize(_newNormals[i]);
     }
@@ -562,10 +565,12 @@ void PerlinFace::addVertex(GLubyte r, GLubyte g, GLubyte b, int vertexID, glm::v
     *_trianglesPos++ = _vertices[vertexID].y;
     *_trianglesPos++ = _vertices[vertexID].z;
 
+    // use the normals of the previous frame for lighting
     *_normalsPos++ = _oldNormals[vertexID].x;
     *_normalsPos++ = _oldNormals[vertexID].y;
     *_normalsPos++ = _oldNormals[vertexID].z;
 
+    // store all the normals associated to each point for next frame
     _newNormals[vertexID].x += normal.x;
     _newNormals[vertexID].y += normal.y;
     _newNormals[vertexID].z += normal.z;
@@ -573,4 +578,10 @@ void PerlinFace::addVertex(GLubyte r, GLubyte g, GLubyte b, int vertexID, glm::v
     *_colorsPos++ = r;
     *_colorsPos++ = g;
     *_colorsPos++ = b;
+}
+
+glm::vec3 PerlinFace::getVec3(int vertexID) {
+    return glm::vec3(VERTICES[FLOAT_PER_VERTEX * vertexID],
+                     VERTICES[FLOAT_PER_VERTEX * vertexID + 1],
+                     -VERTICES[FLOAT_PER_VERTEX * vertexID + 2]);   // Inverse Z axis to face the right direction
 }

@@ -21,8 +21,12 @@ Faceshift::Faceshift() :
     _eyeGazeRightYaw(0.0f),
     _leftBlink(0.0f),
     _rightBlink(0.0f),
+    _leftEyeOpen(0.0f),
+    _rightEyeOpen(0.0f),
     _leftBlinkIndex(-1),
     _rightBlinkIndex(-1),
+    _leftEyeOpenIndex(-1),
+    _rightEyeOpenIndex(-1),
     _browDownLeft(0.0f),
     _browDownRight(0.0f),
     _browUpCenter(0.0f),
@@ -132,6 +136,12 @@ void Faceshift::readFromSocket() {
                     if (_rightBlinkIndex != -1) {
                         _rightBlink = data.m_coeffs[_rightBlinkIndex];
                     }
+                    if (_leftEyeOpenIndex != -1) {
+                        _leftEyeOpen = data.m_coeffs[_leftEyeOpenIndex];
+                    }
+                    if (_rightEyeOpenIndex != -1) {
+                        _rightEyeOpen = data.m_coeffs[_rightEyeOpenIndex];
+                    }
                     if (_browDownLeftIndex != -1) {
                         _browDownLeft = data.m_coeffs[_browDownLeftIndex];
                     }
@@ -167,7 +177,13 @@ void Faceshift::readFromSocket() {
                     
                     } else if (names[i] == "EyeBlink_R") {
                         _rightBlinkIndex = i;
-                        
+
+                    }else if (names[i] == "EyeOpen_L") {
+                        _leftEyeOpenIndex = i;
+
+                    }else if (names[i] == "EyeOpen_R") {
+                        _rightEyeOpenIndex = i;
+
                     } else if (names[i] == "BrowsD_L") {
                         _browDownLeftIndex = i;
 
