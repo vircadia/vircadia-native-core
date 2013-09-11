@@ -19,7 +19,7 @@
 
 #include <arpa/inet.h>
 #include <fcntl.h>
-#include <queue>
+#include <queue.h>
 #include <map>
 #include <math.h>
 #include <string.h>
@@ -108,11 +108,11 @@ int main(int argc, const char* argv[]) {
     
     // as a domain-server we will always want an audio mixer and avatar mixer
     // setup the create assignments for those
-    Assignment audioMixerAssignment(Assignment::CreateDirection,
+    Assignment audioMixerAssignment(Assignment::CreateCommand,
                                     Assignment::AudioMixerType,
                                     Assignment::LocalLocation);
     
-    Assignment avatarMixerAssignment(Assignment::CreateDirection,
+    Assignment avatarMixerAssignment(Assignment::CreateCommand,
                                      Assignment::AvatarMixerType,
                                      Assignment::LocalLocation);
     

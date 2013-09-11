@@ -23,10 +23,10 @@ public:
         AllTypes
     };
     
-    enum Direction {
-        CreateDirection,
-        DeployDirection,
-        RequestDirection
+    enum Command {
+        CreateCommand,
+        DeployCommand,
+        RequestCommand
     };
     
     enum Location {
@@ -34,7 +34,7 @@ public:
         LocalLocation
     };
     
-    Assignment(Assignment::Direction direction,
+    Assignment(Assignment::Command command,
                Assignment::Type type,
                Assignment::Location location = Assignment::GlobalLocation);
     
@@ -45,7 +45,7 @@ public:
     
     ~Assignment();
     
-    Assignment::Direction getDirection() const { return _direction; }
+    Assignment::Command getCommand() const { return _command; }
     Assignment::Type getType() const { return _type; }
     Assignment::Location getLocation() const { return _location; }
     const timeval& getTime() const { return _time; }
@@ -65,7 +65,7 @@ public:
     void setCreateTimeToNow() { gettimeofday(&_time, NULL); }
     
 private:
-    Assignment::Direction _direction; /// the direction of the assignment (Create, Deploy, Request)
+    Assignment::Command _command; /// the command for this assignment (Create, Deploy, Request)
     Assignment::Type _type; /// the type of the assignment, defines what the assignee will do
     Assignment::Location _location; /// the location of the assignment, allows a domain to preferentially use local ACs
     sockaddr* _attachedPublicSocket; /// pointer to a public socket that relates to assignment, depends on direction
