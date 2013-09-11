@@ -63,6 +63,8 @@ private:
     float _browsU_R;
 
     float _mouthSize;
+    float _mouthSmileLeft;
+    float _mouthSmileRight;
 
     float _leftBlink;
     float _rightBlink;

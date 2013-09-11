@@ -89,6 +89,8 @@ PerlinFace::PerlinFace(Head *owningHead)
       _browsU_L(0),
       _browsU_R(0),
       _mouthSize(0),
+      _mouthSmileLeft(0),
+      _mouthSmileRight(0),
       _leftBlink(0),
       _rightBlink(0) {
 }
@@ -258,6 +260,8 @@ void PerlinFace::updatePositions() {
         _browsU_L = faceshift->getBrowUpLeft();
         _browsU_R = faceshift->getBrowUpRight();
         _mouthSize = faceshift->getMouthSize();
+        _mouthSmileLeft = faceshift->getMouthSmileLeft();
+        _mouthSmileRight = faceshift->getMouthSmileRight();
         _leftBlink = faceshift->getLeftBlink();
         _rightBlink = faceshift->getRightBlink();
     }
@@ -294,33 +298,51 @@ void PerlinFace::updatePositions() {
             + _browsU_C * BROWS_UP_CENTER_MAX;
 
 
+    // Mouth
     _vertices[MOUTH_BOTTOM_IN].y = VERTICES[FLOAT_PER_VERTEX * MOUTH_BOTTOM_IN + 1]
-            + (1.0 - _mouthSize) * 6.2;
+            + (1.0 - _mouthSize) * 6.5;
     _vertices[MOUTH_BOTTOM_OUT].y = VERTICES[FLOAT_PER_VERTEX * MOUTH_BOTTOM_OUT + 1]
-            + (1.0 - _mouthSize) * 6;
+            + (1.0 - _mouthSize) * 6.5;
     _vertices[MOUTH_MID_IN].y = VERTICES[FLOAT_PER_VERTEX * MOUTH_MID_IN + 1]
-            + (1.0 - _mouthSize) * 3;
+            + (1.0 - _mouthSize) * 4 + _mouthSmileLeft * 2;
     _vertices[MOUTH_MID_OUT].y = VERTICES[FLOAT_PER_VERTEX * MOUTH_MID_OUT + 1]
-            + (1.0 - _mouthSize) * 3;
+            + (1.0 - _mouthSize) * 4 + _mouthSmileLeft * 2;
 
     _vertices[NUM_VERTICES + MOUTH_BOTTOM_IN].y = VERTICES[FLOAT_PER_VERTEX * (NUM_VERTICES + MOUTH_BOTTOM_IN) + 1]
-            + (1.0 - _mouthSize) * 6.2;
+            + (1.0 - _mouthSize) * 6.5;
     _vertices[NUM_VERTICES + MOUTH_BOTTOM_OUT].y = VERTICES[FLOAT_PER_VERTEX * (NUM_VERTICES + MOUTH_BOTTOM_OUT) + 1]
-            + (1.0 - _mouthSize) * 6;
+            + (1.0 - _mouthSize) * 6.5;
     _vertices[NUM_VERTICES + MOUTH_MID_IN].y = VERTICES[FLOAT_PER_VERTEX * (NUM_VERTICES + MOUTH_MID_IN) + 1]
-            + (1.0 - _mouthSize) * 3;
+            + (1.0 - _mouthSize) * 4 + _mouthSmileRight * 2;
     _vertices[NUM_VERTICES + MOUTH_MID_OUT].y = VERTICES[FLOAT_PER_VERTEX * (NUM_VERTICES + MOUTH_MID_OUT) + 1]
-            + (1.0 - _mouthSize) * 3;
-
-    // Eyelid
-    _vertices[EYE_MID_TOP] = (1.0f - _leftBlink) * _vertices[EYE_MID_TOP] + _leftBlink * (_vertices[EYE_MID_TOP] + _vertices[EYE_MID_BOTTOM]) / 2.0f;
-    _vertices[EYE_MID_BOTTOM] = (1.0f - _leftBlink) * _vertices[EYE_MID_BOTTOM] + _leftBlink * (_vertices[EYE_MID_TOP] + _vertices[EYE_MID_BOTTOM]) / 2.0f;
-
-    _vertices[NUM_VERTICES + EYE_MID_TOP] = (1.0f - _leftBlink) * _vertices[NUM_VERTICES + EYE_MID_TOP]
-            + _leftBlink * (_vertices[NUM_VERTICES + EYE_MID_TOP] + _vertices[NUM_VERTICES + EYE_MID_BOTTOM]) / 2.0f;
-    _vertices[NUM_VERTICES + EYE_MID_BOTTOM] = (1.0f - _leftBlink) * _vertices[NUM_VERTICES + EYE_MID_BOTTOM]
-            + _leftBlink * (_vertices[NUM_VERTICES + EYE_MID_TOP] + _vertices[NUM_VERTICES + EYE_MID_BOTTOM]) / 2.0f;
-
+            + (1.0 - _mouthSize) * 4 + _mouthSmileRight * 2;
+    
+    qDebug("[DEBUG] %f : %f\n", _mouthSmileLeft, _mouthSmileRight);
+    
+    
+    // Eyelids
+    glm::vec3 topLeftEyelid = glm::vec3(VERTICES[FLOAT_PER_VERTEX * EYE_MID_TOP],
+                                        VERTICES[FLOAT_PER_VERTEX * EYE_MID_TOP + 1],
+                                        -VERTICES[FLOAT_PER_VERTEX * EYE_MID_TOP + 2]);
+    glm::vec3 bottomLeftEyelid = glm::vec3(VERTICES[FLOAT_PER_VERTEX * EYE_MID_BOTTOM],
+                                        VERTICES[FLOAT_PER_VERTEX * EYE_MID_BOTTOM + 1],
+                                        -VERTICES[FLOAT_PER_VERTEX * EYE_MID_BOTTOM + 2]);
+    glm::vec3 topRightEyelid = glm::vec3(VERTICES[FLOAT_PER_VERTEX * (NUM_VERTICES + EYE_MID_TOP)],
+                                        VERTICES[FLOAT_PER_VERTEX * (NUM_VERTICES + EYE_MID_TOP) + 1],
+                                        -VERTICES[FLOAT_PER_VERTEX * (NUM_VERTICES + EYE_MID_TOP) + 2]);
+    glm::vec3 bottomRightEyelid = glm::vec3(VERTICES[FLOAT_PER_VERTEX * (NUM_VERTICES + EYE_MID_BOTTOM)],
+                                        VERTICES[FLOAT_PER_VERTEX * (NUM_VERTICES + EYE_MID_BOTTOM) + 1],
+                                        -VERTICES[FLOAT_PER_VERTEX * (NUM_VERTICES + EYE_MID_BOTTOM) + 2]);
+    
+    _vertices[EYE_MID_TOP] = (1.0f - _leftBlink) * topLeftEyelid
+    + _leftBlink * (topLeftEyelid + bottomLeftEyelid) / 2.0f;
+    _vertices[EYE_MID_BOTTOM] = (1.0f - _leftBlink) * bottomLeftEyelid
+    + _leftBlink * (topLeftEyelid + bottomLeftEyelid) / 2.0f;
+    
+    _vertices[NUM_VERTICES + EYE_MID_TOP] = (1.0f - _leftBlink) * topRightEyelid
+    + _leftBlink * (topRightEyelid + bottomRightEyelid) / 2.0f;
+    _vertices[NUM_VERTICES + EYE_MID_BOTTOM] = (1.0f - _leftBlink) * bottomRightEyelid
+    + _leftBlink * (topRightEyelid + bottomRightEyelid) / 2.0f;
 }
 
 void PerlinFace::updateVertices() {

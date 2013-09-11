@@ -48,6 +48,8 @@ public:
     float getBrowUpRight() const { return _browUpRight; }
 
     float getMouthSize() const { return _mouthSize; }
+    float getMouthSmileLeft() const { return _mouthSmileLeft; }
+    float getMouthSmileRight() const { return _mouthSmileRight; }
 
     void update();
     void reset();
@@ -102,6 +104,12 @@ private:
     int _browUpRightIndex;
     
     float _mouthSize;
+    
+    float _mouthSmileLeft;
+    float _mouthSmileRight;
+    
+    int _mouthSmileLeftIndex;
+    int _mouthSmileRightIndex;
     
     int _jawOpenIndex;
     

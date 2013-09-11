@@ -34,6 +34,10 @@ Faceshift::Faceshift() :
     _browUpLeftIndex(-1),
     _browUpRightIndex(-1),
     _mouthSize(0.0f),
+    _mouthSmileLeft(0),
+    _mouthSmileRight(0),
+    _mouthSmileLeftIndex(-1),
+    _mouthSmileRightIndex(0),
     _jawOpenIndex(-1),
     _longTermAverageEyePitch(0.0f),
     _longTermAverageEyeYaw(0.0f),
@@ -146,6 +150,12 @@ void Faceshift::readFromSocket() {
                     if (_jawOpenIndex != -1) {
                         _mouthSize = data.m_coeffs[_jawOpenIndex];
                     }
+                    if (_mouthSmileLeftIndex != -1) {
+                        _mouthSmileLeft = data.m_coeffs[_mouthSmileLeftIndex];
+                    }
+                    if (_mouthSmileRightIndex != -1) {
+                        _mouthSmileRight = data.m_coeffs[_mouthSmileRightIndex];
+                    }
                 }
                 break;
             }
@@ -175,6 +185,13 @@ void Faceshift::readFromSocket() {
 
                     } else if (names[i] == "JawOpen") {
                         _jawOpenIndex = i;
+                        
+                    } else if (names[i] == "MouthSmile_L") {
+                        _mouthSmileLeftIndex = i;
+                        
+                    } else if (names[i] == "MouthSmile_R") {
+                        _mouthSmileRightIndex = i;
+                        
                     }
                 }
                 break;
