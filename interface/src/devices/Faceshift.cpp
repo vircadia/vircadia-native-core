@@ -18,7 +18,7 @@ using namespace std;
 const quint16 FACESHIFT_PORT = 33433;
 
 Faceshift::Faceshift() :
-    _enabled(false),
+    _tcpEnabled(false),
     _lastMessageReceived(0),
     _eyeGazeLeftPitch(0.0f),
     _eyeGazeLeftYaw(0.0f),
@@ -75,8 +75,8 @@ void Faceshift::reset() {
     }
 }
 
-void Faceshift::setEnabled(bool enabled) {
-    if ((_enabled = enabled)) {
+void Faceshift::setTCPEnabled(bool enabled) {
+    if ((_tcpEnabled = enabled)) {
         connectSocket();
     
     } else {
@@ -85,7 +85,7 @@ void Faceshift::setEnabled(bool enabled) {
 }
 
 void Faceshift::connectSocket() {
-    if (_enabled) {
+    if (_tcpEnabled) {
         qDebug("Faceshift: Connecting...\n");
     
         _tcpSocket.connectToHost("localhost", FACESHIFT_PORT);
@@ -106,7 +106,7 @@ void Faceshift::noteError(QAbstractSocket::SocketError error) {
     qDebug() << "Faceshift: " << _tcpSocket.errorString() << "\n";
     
     // reconnect after a delay
-    if (_enabled) {
+    if (_tcpEnabled) {
         QTimer::singleShot(1000, this, SLOT(connectSocket()));
     }
 }

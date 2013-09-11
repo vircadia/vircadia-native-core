@@ -726,7 +726,7 @@ void Head::renderEyeBalls() {
         float angle = -67.5f - 50.0f * _leftEyeBlink;
         glRotatef(angle, 1, 0, 0);
         Application::getInstance()->getGeometryCache()->renderHemisphere(15, 10);
-        glRotatef(glm::mix(-angle, 180.0f, _leftEyeBlink), 1, 0, 0);
+        glRotatef(glm::mix(-angle, 180.0f, max(0.0f, _leftEyeBlink)), 1, 0, 0);
         Application::getInstance()->getGeometryCache()->renderHemisphere(15, 10);
     }
     glPopMatrix();
@@ -740,7 +740,7 @@ void Head::renderEyeBalls() {
         float angle = -67.5f - 50.0f * _rightEyeBlink; 
         glRotatef(angle, 1, 0, 0);
         Application::getInstance()->getGeometryCache()->renderHemisphere(15, 10);
-        glRotatef(glm::mix(-angle, 180.0f, _rightEyeBlink), 1, 0, 0);
+        glRotatef(glm::mix(-angle, 180.0f, max(0.0f, _rightEyeBlink)), 1, 0, 0);
         Application::getInstance()->getGeometryCache()->renderHemisphere(15, 10);
     }
     glPopMatrix();

@@ -51,7 +51,7 @@ public:
 
 public slots:
     
-    void setEnabled(bool enabled);
+    void setTCPEnabled(bool enabled);
 
 private slots:
 
@@ -69,7 +69,7 @@ private:
     QTcpSocket _tcpSocket;
     QUdpSocket _udpSocket;
     fs::fsBinaryStream _stream;
-    bool _enabled;
+    bool _tcpEnabled;
     bool _tracking;
     uint64_t _lastMessageReceived;
     
