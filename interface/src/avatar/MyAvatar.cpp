@@ -347,14 +347,19 @@ void MyAvatar::updateFromGyrosAndOrWebcam(bool gyroLook,
     } else if (webcam->isActive()) {
         estimatedRotation = webcam->getEstimatedRotation();
     
-    } else if (_leadingAvatar) {
-        _head.getFace().clearFrame();
-        return;
-    
     } else {
-        _head.setMousePitch(pitchFromTouch);
-        _head.setPitch(pitchFromTouch);
+        if (!_leadingAvatar) {
+            _head.setMousePitch(pitchFromTouch);
+            _head.setPitch(pitchFromTouch);
+        }
         _head.getFace().clearFrame();
+        
+        // restore rotation, lean to neutral positions
+        const float RESTORE_RATE = 0.05f;
+        _head.setYaw(glm::mix(_head.getYaw(), 0.0f, RESTORE_RATE));
+        _head.setRoll(glm::mix(_head.getRoll(), 0.0f, RESTORE_RATE));
+        _head.setLeanSideways(glm::mix(_head.getLeanSideways(), 0.0f, RESTORE_RATE));
+        _head.setLeanForward(glm::mix(_head.getLeanForward(), 0.0f, RESTORE_RATE));
         return;
     }
     _head.setMousePitch(pitchFromTouch);

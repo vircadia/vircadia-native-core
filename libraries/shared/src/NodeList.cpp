@@ -382,7 +382,7 @@ const sockaddr_in GLOBAL_ASSIGNMENT_SOCKET = socketForHostnameAndHostOrderPort(G
 void NodeList::sendAssignment(Assignment& assignment) {
     unsigned char assignmentPacket[MAX_PACKET_SIZE];
     
-    PACKET_TYPE assignmentPacketType = assignment.getDirection() == Assignment::Create
+    PACKET_TYPE assignmentPacketType = assignment.getDirection() == Assignment::CreateDirection
         ? PACKET_TYPE_CREATE_ASSIGNMENT
         : PACKET_TYPE_REQUEST_ASSIGNMENT;
     

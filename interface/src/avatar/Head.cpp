@@ -661,21 +661,22 @@ void Head::renderEyeBalls() {
     glm::vec3 front = orientation * IDENTITY_FRONT;
     
     // render left iris
+    glm::quat leftIrisRotation;
     glPushMatrix(); {
         glTranslatef(_leftEyePosition.x, _leftEyePosition.y, _leftEyePosition.z); //translate to eyeball position
         
         //rotate the eyeball to aim towards the lookat position
         glm::vec3 targetLookatVector = _lookAtPosition + _saccade - _leftEyePosition;
-        glm::quat rotation = rotationBetween(front, targetLookatVector) * orientation;
-        glm::vec3 rotationAxis = glm::axis(rotation);           
-        glRotatef(glm::angle(rotation), rotationAxis.x, rotationAxis.y, rotationAxis.z);
+        leftIrisRotation = rotationBetween(front, targetLookatVector) * orientation;
+        glm::vec3 rotationAxis = glm::axis(leftIrisRotation);           
+        glRotatef(glm::angle(leftIrisRotation), rotationAxis.x, rotationAxis.y, rotationAxis.z);
         glTranslatef(0.0f, 0.0f, -_scale * IRIS_PROTRUSION);
         glScalef(_scale * IRIS_RADIUS * 2.0f,
                  _scale * IRIS_RADIUS * 2.0f,
                  _scale * IRIS_RADIUS); // flatten the iris
         
         // this ugliness is simply to invert the model transform and get the eye position in model space
-        _irisProgram.setUniform(_eyePositionLocation, (glm::inverse(rotation) *
+        _irisProgram.setUniform(_eyePositionLocation, (glm::inverse(leftIrisRotation) *
             (Application::getInstance()->getCamera()->getPosition() - _leftEyePosition) +
                 glm::vec3(0.0f, 0.0f, _scale * IRIS_PROTRUSION)) * glm::vec3(1.0f / (_scale * IRIS_RADIUS * 2.0f),
                     1.0f / (_scale * IRIS_RADIUS * 2.0f), 1.0f / (_scale * IRIS_RADIUS)));
@@ -685,21 +686,22 @@ void Head::renderEyeBalls() {
     glPopMatrix();
 
     // render right iris
+    glm::quat rightIrisRotation;
     glPushMatrix(); {
         glTranslatef(_rightEyePosition.x, _rightEyePosition.y, _rightEyePosition.z);  //translate to eyeball position       
         
         //rotate the eyeball to aim towards the lookat position
         glm::vec3 targetLookatVector = _lookAtPosition + _saccade - _rightEyePosition;
-        glm::quat rotation = rotationBetween(front, targetLookatVector) * orientation;
-        glm::vec3 rotationAxis = glm::axis(rotation);        
-        glRotatef(glm::angle(rotation), rotationAxis.x, rotationAxis.y, rotationAxis.z);
+        rightIrisRotation = rotationBetween(front, targetLookatVector) * orientation;
+        glm::vec3 rotationAxis = glm::axis(rightIrisRotation);        
+        glRotatef(glm::angle(rightIrisRotation), rotationAxis.x, rotationAxis.y, rotationAxis.z);
         glTranslatef(0.0f, 0.0f, -_scale * IRIS_PROTRUSION);
         glScalef(_scale * IRIS_RADIUS * 2.0f,
                  _scale * IRIS_RADIUS * 2.0f,
                  _scale * IRIS_RADIUS); // flatten the iris
         
         // this ugliness is simply to invert the model transform and get the eye position in model space
-        _irisProgram.setUniform(_eyePositionLocation, (glm::inverse(rotation) *
+        _irisProgram.setUniform(_eyePositionLocation, (glm::inverse(rightIrisRotation) *
             (Application::getInstance()->getCamera()->getPosition() - _rightEyePosition) +
                 glm::vec3(0.0f, 0.0f, _scale * IRIS_PROTRUSION)) * glm::vec3(1.0f / (_scale * IRIS_RADIUS * 2.0f),
                     1.0f / (_scale * IRIS_RADIUS * 2.0f), 1.0f / (_scale * IRIS_RADIUS)));
@@ -718,12 +720,13 @@ void Head::renderEyeBalls() {
     // left eyelid
     glPushMatrix(); {
         glTranslatef(_leftEyePosition.x, _leftEyePosition.y, _leftEyePosition.z);  //translate to eyeball position
-        glm::vec3 rotationAxis = glm::axis(orientation);
-        glRotatef(glm::angle(orientation), rotationAxis.x, rotationAxis.y, rotationAxis.z);
+        glm::vec3 rotationAxis = glm::axis(leftIrisRotation);
+        glRotatef(glm::angle(leftIrisRotation), rotationAxis.x, rotationAxis.y, rotationAxis.z);
         glScalef(_scale * EYELID_RADIUS, _scale * EYELID_RADIUS, _scale * EYELID_RADIUS);
-        glRotatef(-40 - 50 * _leftEyeBlink, 1, 0, 0);
+        float angle = -67.5f - 50.0f * _leftEyeBlink;
+        glRotatef(angle, 1, 0, 0);
         Application::getInstance()->getGeometryCache()->renderHemisphere(15, 10);
-        glRotatef(180 * _leftEyeBlink, 1, 0, 0);
+        glRotatef(glm::mix(-angle, 180.0f, max(0.0f, _leftEyeBlink)), 1, 0, 0);
         Application::getInstance()->getGeometryCache()->renderHemisphere(15, 10);
     }
     glPopMatrix();
@@ -731,12 +734,13 @@ void Head::renderEyeBalls() {
     // right eyelid
     glPushMatrix(); {
         glTranslatef(_rightEyePosition.x, _rightEyePosition.y, _rightEyePosition.z);  //translate to eyeball position
-        glm::vec3 rotationAxis = glm::axis(orientation);
-        glRotatef(glm::angle(orientation), rotationAxis.x, rotationAxis.y, rotationAxis.z);
+        glm::vec3 rotationAxis = glm::axis(rightIrisRotation);
+        glRotatef(glm::angle(rightIrisRotation), rotationAxis.x, rotationAxis.y, rotationAxis.z);
         glScalef(_scale * EYELID_RADIUS, _scale * EYELID_RADIUS, _scale * EYELID_RADIUS);
-        glRotatef(-40 - 50 * _rightEyeBlink, 1, 0, 0);
+        float angle = -67.5f - 50.0f * _rightEyeBlink; 
+        glRotatef(angle, 1, 0, 0);
         Application::getInstance()->getGeometryCache()->renderHemisphere(15, 10);
-        glRotatef(180 * _rightEyeBlink, 1, 0, 0);
+        glRotatef(glm::mix(-angle, 180.0f, max(0.0f, _rightEyeBlink)), 1, 0, 0);
         Application::getInstance()->getGeometryCache()->renderHemisphere(15, 10);
     }
     glPopMatrix();
