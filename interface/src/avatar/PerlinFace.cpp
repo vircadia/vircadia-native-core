@@ -360,10 +360,10 @@ void PerlinFace::updatePositions() {
     _vertices[EYE_MID_BOTTOM] = (1.0f - _leftBlink) * bottomLeftEyelid
     + _leftBlink * (topLeftEyelid + bottomLeftEyelid) / 2.0f;
     
-    _vertices[NUM_VERTICES + EYE_MID_TOP] = (1.0f - _leftBlink) * topRightEyelid
-    + _leftBlink * (topRightEyelid + bottomRightEyelid) / 2.0f;
-    _vertices[NUM_VERTICES + EYE_MID_BOTTOM] = (1.0f - _leftBlink) * bottomRightEyelid
-    + _leftBlink * (topRightEyelid + bottomRightEyelid) / 2.0f;
+    _vertices[NUM_VERTICES + EYE_MID_TOP] = (1.0f - _rightBlink) * topRightEyelid
+    + _rightBlink * (topRightEyelid + bottomRightEyelid) / 2.0f;
+    _vertices[NUM_VERTICES + EYE_MID_BOTTOM] = (1.0f - _rightBlink) * bottomRightEyelid
+    + _rightBlink * (topRightEyelid + bottomRightEyelid) / 2.0f;
 }
 
 void PerlinFace::updateVertices() {
