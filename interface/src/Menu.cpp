@@ -24,6 +24,7 @@
 #include "PairingHandler.h"
 #include "Menu.h"
 #include "Util.h"
+#include "InfoView.h"
 
 Menu* Menu::_instance = NULL;
 
@@ -52,7 +53,13 @@ Menu::Menu() :
     Application *appInstance = Application::getInstance();
     
     QMenu* fileMenu = addMenu("File");
-   
+    
+    (addActionToQMenuAndActionHash(fileMenu,
+                                   MenuOption::AboutApp,
+                                   0,
+                                   this,
+                                   SLOT(aboutApp())))->setMenuRole(QAction::AboutRole);
+ 
     (addActionToQMenuAndActionHash(fileMenu,
                                    MenuOption::Preferences,
                                    Qt::CTRL | Qt::Key_Comma,
@@ -661,6 +668,10 @@ bool Menu::isVoxelModeActionChecked() {
         }
     }
     return false;
+}
+
+void Menu::aboutApp() {
+    InfoView::forcedShow();
 }
 
 void Menu::editPreferences() {

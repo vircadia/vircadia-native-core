@@ -16,9 +16,12 @@ class InfoView : public QWebView
     Q_OBJECT
 public:
     static void showFirstTime();
+    static void forcedShow();
     
 private:
-    InfoView();
+    InfoView(bool forced);
+    bool _forced;
+    bool shouldShow();
     
 private slots:
     void loaded(bool ok);

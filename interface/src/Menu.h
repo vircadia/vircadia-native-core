@@ -65,6 +65,7 @@ public slots:
     void checkForUpdates();
     
 private slots:
+    void aboutApp();
     void editPreferences();
     void goToDomain();
     void goToLocation();
@@ -116,6 +117,7 @@ private:
 
 namespace MenuOption {
     
+    const QString AboutApp = "About Interface";
     const QString AmbientOcclusion = "Ambient Occlusion";
     const QString Avatars = "Avatars";
     const QString AvatarAsBalls = "Avatar as Balls";

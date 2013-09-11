@@ -16,8 +16,9 @@
 
 #define SETTINGS_VERSION_KEY "info-version"
 
-InfoView::InfoView()
+InfoView::InfoView(bool forced)
 {
+    _forced = forced;
     settings()->setAttribute(QWebSettings::LocalContentCanAccessFileUrls, true);
 
 #ifdef Q_OS_MAC
@@ -33,11 +34,20 @@ InfoView::InfoView()
 
 void InfoView::showFirstTime()
 {
-    new InfoView();
+    new InfoView(false);
 }
 
-void InfoView::loaded(bool ok)
+void InfoView::forcedShow()
 {
+    new InfoView(true);
+}
+
+bool InfoView::shouldShow()
+{
+    if (_forced) {
+        return true;
+    }
+    
     QSettings* settings = Application::getInstance()->getSettings();
     
     QString lastVersion = settings->value(SETTINGS_VERSION_KEY).toString();
@@ -50,16 +60,27 @@ void InfoView::loaded(bool ok)
         if (version != QString::null) {
             settings->setValue(SETTINGS_VERSION_KEY, version);
         }
-        
-        QDesktopWidget* desktop = Application::getInstance()->desktop();
-        int height = mainFrame->contentsSize().height() > desktop->height() ?
-            desktop->height() * 0.9 :
-            mainFrame->contentsSize().height();
-        
-        resize(mainFrame->contentsSize().width(), height);
-        move(desktop->screen()->rect().center() - rect().center());
-        setWindowTitle(title());
-        show();
-        setWindowModality(Qt::WindowModal);
+        return true;
     }
+    
+    return false;
+}
+
+void InfoView::loaded(bool ok)
+{
+    if (!shouldShow()) {
+        return;
+    }
+    
+    QDesktopWidget* desktop = Application::getInstance()->desktop();
+    QWebFrame* mainFrame = page()->mainFrame();
+    
+    int height = mainFrame->contentsSize().height() > desktop->height() ?
+    desktop->height() * 0.9 :
+    mainFrame->contentsSize().height();
+    
+    resize(mainFrame->contentsSize().width(), height);
+    move(desktop->screen()->rect().center() - rect().center());
+    setWindowTitle(title());
+    show();
 }
