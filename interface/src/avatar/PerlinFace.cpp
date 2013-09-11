@@ -324,9 +324,23 @@ void PerlinFace::updatePositions() {
     _vertices[NUM_VERTICES + MOUTH_MID_OUT].y = VERTICES[FLOAT_PER_VERTEX * (NUM_VERTICES + MOUTH_MID_OUT) + 1]
             + (1.0 - _mouthSize) * 4 + _mouthSmileRight * 2;
     
-    qDebug("[DEBUG] %f : %f\n", _mouthSmileLeft, _mouthSmileRight);
     
-    
+    // Jaw
+    _vertices[CHIN_IN].y = VERTICES[FLOAT_PER_VERTEX * CHIN_IN + 1]
+            + (1.0 - _mouthSize) * 4;
+    _vertices[CHIN_TIP].y = VERTICES[FLOAT_PER_VERTEX * CHIN_TIP + 1]
+            + (1.0 - _mouthSize) * 4;
+    _vertices[CHIN_BOTTOM].y = VERTICES[FLOAT_PER_VERTEX * CHIN_BOTTOM + 1]
+            + (1.0 - _mouthSize) * 4;
+
+    _vertices[NUM_VERTICES +CHIN_IN].y = VERTICES[FLOAT_PER_VERTEX * (NUM_VERTICES + CHIN_IN) + 1]
+            + (1.0 - _mouthSize) * 4;
+    _vertices[NUM_VERTICES +CHIN_TIP].y = VERTICES[FLOAT_PER_VERTEX * (NUM_VERTICES + CHIN_TIP) + 1]
+            + (1.0 - _mouthSize) * 4;
+    _vertices[NUM_VERTICES +CHIN_BOTTOM].y = VERTICES[FLOAT_PER_VERTEX * (NUM_VERTICES + CHIN_BOTTOM) + 1]
+            + (1.0 - _mouthSize) * 4;
+
+
     // Eyelids
     glm::vec3 topLeftEyelid = glm::vec3(VERTICES[FLOAT_PER_VERTEX * EYE_MID_TOP],
                                         VERTICES[FLOAT_PER_VERTEX * EYE_MID_TOP + 1],
