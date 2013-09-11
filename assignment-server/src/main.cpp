@@ -13,6 +13,7 @@
 #include <QtCore/QString>
 
 #include <Assignment.h>
+#include <Logging.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
 #include <UDPSocket.h>
@@ -21,6 +22,8 @@ const int MAX_PACKET_SIZE_BYTES = 1400;
 const long long NUM_DEFAULT_ASSIGNMENT_STALENESS_USECS = 10 * 1000 * 1000;
 
 int main(int argc, const char* argv[]) {
+    
+    qInstallMessageHandler(Logging::verboseMessageHandler);
     
     std::deque<Assignment*> assignmentQueue;
     
