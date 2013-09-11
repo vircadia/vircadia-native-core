@@ -50,6 +50,9 @@ unsigned char* addNodeToBroadcastPacket(unsigned char* currentPosition, Node* no
 }
 
 int main(int argc, const char* argv[]) {
+    
+    qInstallMessageHandler(Logging::verboseMessageHandler);
+    
     NodeList* nodeList = NodeList::createInstance(NODE_TYPE_DOMAIN, DOMAIN_LISTEN_PORT);
 
 	// If user asks to run in "local" mode then we do NOT replace the IP
