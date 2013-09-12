@@ -190,7 +190,10 @@ int main(int argc, const char* argv[]) {
                 if (nodePublicAddress.sin_addr.s_addr == serverLocalAddress ||
                     nodePublicAddress.sin_addr.s_addr == htonl(INADDR_LOOPBACK)) {
                     nodePublicAddress.sin_addr.s_addr = 0;
-                    destinationSocket = (sockaddr*) &nodeLocalAddress;
+                    
+                    if (nodePublicAddress.sin_addr.s_addr != htonl(INADDR_LOOPBACK)) {
+                        destinationSocket = (sockaddr*) &nodeLocalAddress;
+                    }
                 }
                 
                 Node* newNode = nodeList->addOrUpdateNode((sockaddr*) &nodePublicAddress,

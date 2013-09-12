@@ -120,7 +120,9 @@ void NodeList::processNodeData(sockaddr* senderAddress, unsigned char* packetDat
             sockaddr_in domainServerSocket = *(sockaddr_in*) senderAddress;
             const char* domainSenderIP = inet_ntoa(domainServerSocket.sin_addr);
             
-            if (memcmp(domainSenderIP, _domainIP, strlen(domainSenderIP)) == 0) {
+            if (memcmp(domainSenderIP, _domainIP, strlen(domainSenderIP)) == 0
+                || (inet_addr(_domainIP) == htonl(INADDR_LOOPBACK)
+                    && domainServerSocket.sin_addr.s_addr == getLocalAddress())) {
                 processDomainServerList(packetData, dataBytes);
             }
             
