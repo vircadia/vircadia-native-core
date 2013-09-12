@@ -90,21 +90,6 @@ int main(int argc, const char* argv[]) {
     
     NodeList* nodeList = NodeList::createInstance(NODE_TYPE_DOMAIN, DOMAIN_LISTEN_PORT);
 
-	// If user asks to run in "local" mode then we do NOT replace the IP
-	// with the EC2 IP. Otherwise, we will replace the IP like we used to
-	// this allows developers to run a local domain without recompiling the
-	// domain server
-	bool isLocalMode = cmdOptionExists(argc, (const char**) argv, "--local");
-	if (isLocalMode) {
-		printf("NOTE: Running in local mode!\n");
-	} else {
-		printf("--------------------------------------------------\n");
-		printf("NOTE: Not running in local mode. \n");
-		printf("If you're a developer testing a local system, you\n");
-		printf("probably want to include --local on command line.\n");
-		printf("--------------------------------------------------\n");
-	}
-
     setvbuf(stdout, NULL, _IOLBF, 0);
     
     ssize_t receivedBytes = 0;
@@ -200,16 +185,12 @@ int main(int argc, const char* argv[]) {
                 sockaddr* destinationSocket = (sockaddr*) &nodePublicAddress;
                 
                 // check the node public address
-                // if it matches our local address we're on the same box
-                // so hardcode the EC2 public address for now
-                if (nodePublicAddress.sin_addr.s_addr == serverLocalAddress) {
-                    // If we're not running "local" then we do replace the IP
-                    // with 0. This designates to clients that the server is reachable
-                    // at the same IP address
-                    if (!isLocalMode) {
-                        nodePublicAddress.sin_addr.s_addr = 0;
-                        destinationSocket = (sockaddr*) &nodeLocalAddress;
-                    }
+                // if it matches our local address
+                // or if it's the loopback address we're on the same box
+                if (nodePublicAddress.sin_addr.s_addr == serverLocalAddress ||
+                    nodePublicAddress.sin_addr.s_addr == htonl(INADDR_LOOPBACK)) {
+                    nodePublicAddress.sin_addr.s_addr = 0;
+                    destinationSocket = (sockaddr*) &nodeLocalAddress;
                 }
                 
                 Node* newNode = nodeList->addOrUpdateNode((sockaddr*) &nodePublicAddress,
