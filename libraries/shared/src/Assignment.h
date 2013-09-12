@@ -11,6 +11,8 @@
 
 #include <sys/time.h>
 
+#include <QtCore/QUuid>
+
 #include "NodeList.h"
 
 /// Holds information used for request, creation, and deployment of assignments
@@ -20,6 +22,7 @@ public:
     enum Type {
         AudioMixerType,
         AvatarMixerType,
+        AgentType,
         AllTypes
     };
     
@@ -45,6 +48,7 @@ public:
     
     ~Assignment();
     
+    const QUuid& getGUID() const { return _uuid; }
     Assignment::Command getCommand() const { return _command; }
     Assignment::Type getType() const { return _type; }
     Assignment::Location getLocation() const { return _location; }
@@ -65,6 +69,7 @@ public:
     void setCreateTimeToNow() { gettimeofday(&_time, NULL); }
     
 private:
+    QUuid _uuid; /// the 16 byte UUID for this assignment
     Assignment::Command _command; /// the command for this assignment (Create, Deploy, Request)
     Assignment::Type _type; /// the type of the assignment, defines what the assignee will do
     Assignment::Location _location; /// the location of the assignment, allows a domain to preferentially use local ACs

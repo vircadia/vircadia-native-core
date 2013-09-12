@@ -51,6 +51,39 @@ unsigned char* addNodeToBroadcastPacket(unsigned char* currentPosition, Node* no
     return currentPosition;
 }
 
+static int mongooseRequestHandler(struct mg_connection *conn) {
+    const struct mg_request_info *ri = mg_get_request_info(conn);
+    
+    if (strcmp(ri->uri, "/assignment") == 0 && strcmp(ri->request_method, "POST") == 0) {
+        // return a 200
+        mg_printf(conn, "%s", "HTTP/1.0 200 OK\r\n\r\n");
+        // upload the file
+        mg_upload(conn, "/tmp");
+        
+        return 1;
+    } else {
+        // have mongoose process this request from the document_root
+        return 0;
+    }
+}
+
+const char ASSIGNMENT_SCRIPT_HOST_LOCATION[] = "web/assignment";
+
+static void mongooseUploadHandler(struct mg_connection *conn, const char *path) {
+    // create an assignment for this saved script
+    Assignment scriptAssignment(Assignment::CreateCommand, Assignment::AgentType);
+    
+    QString newPath(ASSIGNMENT_SCRIPT_HOST_LOCATION);
+    newPath += "/";
+    // append the UUID for this script as the new filename, remove the curly braces
+    newPath += scriptAssignment.getGUID().toString().mid(1, scriptAssignment.getGUID().toString().length() - 2);
+    
+    // rename the saved script to the GUID of the assignment and move it to the script host locaiton
+    rename(path, newPath.toStdString().c_str());
+
+    qDebug("Saved a script for assignment at %s\n", newPath.toStdString().c_str());
+}
+
 int main(int argc, const char* argv[]) {
     
     qInstallMessageHandler(Logging::verboseMessageHandler);
@@ -128,7 +161,10 @@ int main(int argc, const char* argv[]) {
     
     // list of options. Last element must be NULL.
     const char *options[] = {"listening_ports", "8080",
-        "document_root", "./web", NULL};
+                             "document_root", "./web", NULL};
+    
+    callbacks.begin_request = mongooseRequestHandler;
+    callbacks.upload = mongooseUploadHandler;
     
     // Start the web server.
     ctx = mg_start(&callbacks, NULL, options);
