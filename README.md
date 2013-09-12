@@ -114,27 +114,16 @@ If after this step you're seeing something like the following
 
 you likely had Cmake generate Xcode project files and have not run `cmake ..` in a clean build directory. 
 
-Then, launch the static components - a domain-server and a voxel-server.
+Then, launch the static components - a domain-server and a voxel-server. All of the targets will run in the foreground, so you'll either want to background it yourself or open a seperate terminal window per target.
 
-    (cd domain-server && ./domain-server --local > /tmp/domain-server.log 2>&1 &)
+    cd domain-server && ./domain-server --local
     ./voxel-server/voxel-server --local > /tmp/voxel-server.log 2>&1 &
 
-Then we run as assignment-client with 2 forks to fulfill the avatar-mixer and audio-mixer assignments. It uses localhost as its assignment-server and talks to it on port 40102 (the default domain-server port).
+Then, run an assignment-client with 2 forks to fulfill the avatar-mixer and audio-mixer assignments. It uses localhost as its assignment-server and talks to it on port 40102 (the default domain-server port).
 
-    ./assignment-client/assignment-client -n 2 -a localhost -p 40102 > /tmp/assignment-client.log 2>&1 & 
+    ./assignment-client/assignment-client -n 2 -a localhost -p 40102
 
-To confirm that the components are running you can type the following command:
-
-    ps ax | grep -w "domain-server\|voxel-server\|assignment-client"
-
-You should see something like this:
-
-    7523 s000  SN     0:00.03 ./domain-server --local
-    7537 s000  SN     0:00.08 ./voxel-server/voxel-server --local
-    7667 s000  SN     0:00.04 ./assignment-client/assignment-client -n 2 -a localhost -p 40102
-    7676 s000  SN     0:00.03 ./assignment-client/assignment-client -n 2 -a localhost -p 40102
-    7677 s000  SN     0:00.00 ./assignment-client/assignment-client -n 2 -a localhost -p 40102
-    7735 s001  R+     0:00.00 grep -w domain-server\|voxel-server\|assignment-client
+Any target can be terminated with CTRL-C (SIGINT) in the associated terminal window.
 
 Determine the IP address of the machine you're running these servers on. Here's 
 a handy resource that explains how to do this for different operating systems. 
@@ -154,8 +143,14 @@ may now use this IP address to access your domain. If you are running a local
 DNS or other name service you should be able to access this IP address by name 
 as well.
 
+To test things out you'll want to run the Interface client. You can make that target with the following command:
+
+    make interface
+
+Then run the executable it builds, or open interface.app if you're on OS X. 
+
 To access your local domain in Interface, open the Preferences dialog box, from 
-the Interface menu, and enter the IP address of the local DNS name for the 
+the Interface menu on OS X or the File menu on Linux, and enter the IP address of the local DNS name for the 
 server computer in the "Domain" edit control.
 
 In the voxel-server/src directory you will find a README that explains in 
