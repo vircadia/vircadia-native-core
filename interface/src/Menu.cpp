@@ -54,12 +54,14 @@ Menu::Menu() :
     
     QMenu* fileMenu = addMenu("File");
     
+#ifdef Q_OS_MAC
     (addActionToQMenuAndActionHash(fileMenu,
                                    MenuOption::AboutApp,
                                    0,
                                    this,
                                    SLOT(aboutApp())))->setMenuRole(QAction::AboutRole);
- 
+#endif
+    
     (addActionToQMenuAndActionHash(fileMenu,
                                    MenuOption::Preferences,
                                    Qt::CTRL | Qt::Key_Comma,
@@ -441,6 +443,13 @@ Menu::Menu() :
     
     addDisabledActionAndSeparator(developerMenu, "Voxels");
     addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::DestructiveAddVoxel);
+
+#ifndef Q_OS_MAC
+    QMenu* helpMenu = addMenu("Help");
+    QAction* helpAction = helpMenu->addAction(MenuOption::AboutApp);
+    connect(helpAction, SIGNAL(triggered()), this, SLOT(aboutApp()));
+#endif
+    
 }
 
 Menu::~Menu() {
