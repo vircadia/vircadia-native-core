@@ -96,12 +96,23 @@ In order to set up your own virtual world, you need to set up and run your own
 local "domain". At a minimum, you must run a domain-server, voxel-server, 
 audio-mixer, and avatar-mixer to have a working virtual world. The audio-mixer and avatar-mixer are assignments given from the domain-server to any assignment-client that reports directly to it.
 
-Complete the steps above to build the system components, using the default Cmake Unix Makefiles generator. Then from the terminal
-window, change directory into the build directory, make the needed components and then launch them.
+Complete the steps above to build the system components, using the default Cmake Unix Makefiles generator. Start with an empty build directory.
 
-First we make the targets we'll need. From the build directory:
+    cmake ..
 
+Then from the terminal
+window, change directory into the build directory, make the needed components, and then launch them.
+
+First we make the targets we'll need.
+
+    cd build
     make domain-server voxel-server assignment-client
+
+If after this step you're seeing something like the following
+
+    make: Nothing to be done for `domain-server'.
+
+you likely had Cmake generate Xcode project files and have not run `cmake ..` in a clean build directory. 
 
 Then, launch the static components - a domain-server and a voxel-server.
 
