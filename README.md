@@ -36,8 +36,10 @@ build).
     cmake .. -G Xcode
 
 Those are the commands used on OS X to run CMake from the build folder 
-and generate Xcode project files. If you are building on a *nix system, 
-you'll run something like "cmake .." (this will depend on your exact needs)
+and generate Xcode project files. 
+
+If you are building on a *nix system, 
+you'll run something like "cmake ..", which uses the default Cmake generator for Unix Makefiles.
 
 Building in XCode
 -----
@@ -92,29 +94,36 @@ I want to run my own virtual world!
 
 In order to set up your own virtual world, you need to set up and run your own 
 local "domain". At a minimum, you must run a domain-server, voxel-server, 
-audio-mixer, and avatar-mixer to have a working virtual world. 
+audio-mixer, and avatar-mixer to have a working virtual world. The audio-mixer and avatar-mixer are assignments given from the domain-server to any assignment-client that reports directly to it.
 
-Complete the steps above to build the system components. Then from the terminal
-window, change directory into the build direction, then launch the following 
-components.
+Complete the steps above to build the system components, using the default Cmake Unix Makefiles generator. Then from the terminal
+window, change directory into the build directory, make the needed components and then launch them.
 
-    ./domain-server/Debug/domain-server --local &
-    ./voxel-server/Debug/voxel-server --local &
-    ./avatar-mixer/Debug/avatar-mixer --local &
-    ./audio-mixer/Debug/audio-mixer --local &
+First we make the targets we'll need. From the build directory:
+
+    make domain-server voxel-server assignment-client
+
+Then, launch the static components - a domain-server and a voxel-server.
+
+    (cd domain-server && ./domain-server --local > /tmp/domain-server.log 2>&1 &)
+    ./voxel-server/voxel-server --local > /tmp/voxel-server.log 2>&1 &
+
+Then we run as assignment-client with 2 forks to fulfill the avatar-mixer and audio-mixer assignments. It uses localhost as its assignment-server and talks to it on port 40102 (the default domain-server port).
+
+    ./assignment-client/assignment-client -n 2 -a localhost -p 40102 > /tmp/assignment-client.log 2>&1 & 
 
 To confirm that the components are running you can type the following command:
 
-    ps ax | grep -w "domain-server\|voxel-server\|audio-mixer\|avatar-mixer"
+    ps ax | grep -w "domain-server\|voxel-server\|assignment-client"
 
 You should see something like this:
 
-    70488 s001  S      0:00.04 ./domain-server/Debug/domain-server --local
-    70489 s001  S      0:00.23 ./voxel-server/Debug/voxel-server --local
-    70490 s001  S      0:00.03 ./avatar-mixer/Debug/avatar-mixer --local
-    70491 s001  S      0:00.48 ./audio-mixer/Debug/audio-mixer --local
-    70511 s001  S+     0:00.00 grep -w domain-server\|voxel-server\|audio-mixer\
-                              |avatar-mixer
+    7523 s000  SN     0:00.03 ./domain-server --local
+    7537 s000  SN     0:00.08 ./voxel-server/voxel-server --local
+    7667 s000  SN     0:00.04 ./assignment-client/assignment-client -n 2 -a localhost -p 40102
+    7676 s000  SN     0:00.03 ./assignment-client/assignment-client -n 2 -a localhost -p 40102
+    7677 s000  SN     0:00.00 ./assignment-client/assignment-client -n 2 -a localhost -p 40102
+    7735 s001  R+     0:00.00 grep -w domain-server\|voxel-server\|assignment-client
 
 Determine the IP address of the machine you're running these servers on. Here's 
 a handy resource that explains how to do this for different operating systems. 
