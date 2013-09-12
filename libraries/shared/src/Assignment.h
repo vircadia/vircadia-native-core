@@ -18,18 +18,25 @@ class Assignment {
 public:
     
     enum Type {
-        AudioMixer,
-        AvatarMixer,
-        All
+        AudioMixerType,
+        AvatarMixerType,
+        AllTypes
     };
     
-    enum Direction {
-        Create,
-        Deploy,
-        Request
+    enum Command {
+        CreateCommand,
+        DeployCommand,
+        RequestCommand
     };
     
-    Assignment(Assignment::Direction direction, Assignment::Type type, const char* pool = NULL);
+    enum Location {
+        GlobalLocation,
+        LocalLocation
+    };
+    
+    Assignment(Assignment::Command command,
+               Assignment::Type type,
+               Assignment::Location location = Assignment::GlobalLocation);
     
     /// Constructs an Assignment from the data in the buffer
     /// \param dataBuffer the source buffer to un-pack the assignment from
@@ -38,9 +45,9 @@ public:
     
     ~Assignment();
     
-    Assignment::Direction getDirection() const { return _direction; }
+    Assignment::Command getCommand() const { return _command; }
     Assignment::Type getType() const { return _type; }
-    const char* getPool() const { return _pool; }
+    Assignment::Location getLocation() const { return _location; }
     const timeval& getTime() const { return _time; }
     
     const sockaddr* getAttachedPublicSocket() { return _attachedPublicSocket; }
@@ -58,9 +65,9 @@ public:
     void setCreateTimeToNow() { gettimeofday(&_time, NULL); }
     
 private:
-    Assignment::Direction _direction; /// the direction of the assignment (Create, Deploy, Request)
+    Assignment::Command _command; /// the command for this assignment (Create, Deploy, Request)
     Assignment::Type _type; /// the type of the assignment, defines what the assignee will do
-    char* _pool; /// the pool this assignment is for/from
+    Assignment::Location _location; /// the location of the assignment, allows a domain to preferentially use local ACs
     sockaddr* _attachedPublicSocket; /// pointer to a public socket that relates to assignment, depends on direction
     sockaddr* _attachedLocalSocket; /// pointer to a local socket that relates to assignment, depends on direction
     timeval _time; /// time the assignment was created (set in constructor)
