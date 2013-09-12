@@ -36,8 +36,10 @@ build).
     cmake .. -G Xcode
 
 Those are the commands used on OS X to run CMake from the build folder 
-and generate Xcode project files. If you are building on a *nix system, 
-you'll run something like "cmake .." (this will depend on your exact needs)
+and generate Xcode project files. 
+
+If you are building on a *nix system, 
+you'll run something like "cmake ..", which uses the default Cmake generator for Unix Makefiles.
 
 Building in XCode
 -----
@@ -92,29 +94,36 @@ I want to run my own virtual world!
 
 In order to set up your own virtual world, you need to set up and run your own 
 local "domain". At a minimum, you must run a domain-server, voxel-server, 
-audio-mixer, and avatar-mixer to have a working virtual world. 
+audio-mixer, and avatar-mixer to have a working virtual world. The audio-mixer and avatar-mixer are assignments given from the domain-server to any assignment-client that reports directly to it.
 
-Complete the steps above to build the system components. Then from the terminal
-window, change directory into the build direction, then launch the following 
-components.
+Complete the steps above to build the system components, using the default Cmake Unix Makefiles generator. Start with an empty build directory.
 
-    ./domain-server/Debug/domain-server --local &
-    ./voxel-server/Debug/voxel-server --local &
-    ./avatar-mixer/Debug/avatar-mixer --local &
-    ./audio-mixer/Debug/audio-mixer --local &
+    cmake ..
 
-To confirm that the components are running you can type the following command:
+Then from the terminal
+window, change directory into the build directory, make the needed components, and then launch them.
 
-    ps ax | grep -w "domain-server\|voxel-server\|audio-mixer\|avatar-mixer"
+First we make the targets we'll need.
 
-You should see something like this:
+    cd build
+    make domain-server voxel-server assignment-client
 
-    70488 s001  S      0:00.04 ./domain-server/Debug/domain-server --local
-    70489 s001  S      0:00.23 ./voxel-server/Debug/voxel-server --local
-    70490 s001  S      0:00.03 ./avatar-mixer/Debug/avatar-mixer --local
-    70491 s001  S      0:00.48 ./audio-mixer/Debug/audio-mixer --local
-    70511 s001  S+     0:00.00 grep -w domain-server\|voxel-server\|audio-mixer\
-                              |avatar-mixer
+If after this step you're seeing something like the following
+
+    make: Nothing to be done for `domain-server'.
+
+you likely had Cmake generate Xcode project files and have not run `cmake ..` in a clean build directory. 
+
+Then, launch the static components - a domain-server and a voxel-server. All of the targets will run in the foreground, so you'll either want to background it yourself or open a seperate terminal window per target.
+
+    cd domain-server && ./domain-server --local
+    ./voxel-server/voxel-server --local > /tmp/voxel-server.log 2>&1 &
+
+Then, run an assignment-client with 2 forks to fulfill the avatar-mixer and audio-mixer assignments. It uses localhost as its assignment-server and talks to it on port 40102 (the default domain-server port).
+
+    ./assignment-client/assignment-client -n 2 -a localhost -p 40102
+
+Any target can be terminated with CTRL-C (SIGINT) in the associated terminal window.
 
 Determine the IP address of the machine you're running these servers on. Here's 
 a handy resource that explains how to do this for different operating systems. 
@@ -134,8 +143,14 @@ may now use this IP address to access your domain. If you are running a local
 DNS or other name service you should be able to access this IP address by name 
 as well.
 
+To test things out you'll want to run the Interface client. You can make that target with the following command:
+
+    make interface
+
+Then run the executable it builds, or open interface.app if you're on OS X. 
+
 To access your local domain in Interface, open the Preferences dialog box, from 
-the Interface menu, and enter the IP address of the local DNS name for the 
+the Interface menu on OS X or the File menu on Linux, and enter the IP address of the local DNS name for the 
 server computer in the "Domain" edit control.
 
 In the voxel-server/src directory you will find a README that explains in 
