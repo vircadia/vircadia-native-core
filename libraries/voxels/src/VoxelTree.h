@@ -253,6 +253,7 @@ private:
     void emptyDeleteQueue();
 
     // helper functions for nudgeSubTree
+    void recurseNodeForNudge(VoxelNode* node, RecurseVoxelTreeOperation operation, void* extraData);
     static bool nudgeCheck(VoxelNode* node, void* extraData);
     void nudgeLeaf(VoxelNode* node, void* extraData);
     void chunkifyLeaf(VoxelNode* node);

@@ -1160,8 +1160,16 @@ const glm::vec3 Application::getMouseVoxelWorldCoordinates(const VoxelDetail _mo
                      (_mouseVoxel.z + _mouseVoxel.s / 2.f) * TREE_SCALE);
 }
 
+const float NUDGE_PRECISION_LIMIT = 1 / pow(2.0, 12.0);
+
 void Application::decreaseVoxelSize() {
-    _mouseVoxelScale /= 2;
+    if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelNudgeMode)) {
+        if (_mouseVoxelScale >= NUDGE_PRECISION_LIMIT) {
+            _mouseVoxelScale /= 2;
+        }
+    } else {
+        _mouseVoxelScale /= 2;
+    }
 }
 
 void Application::increaseVoxelSize() {
@@ -2315,17 +2323,18 @@ void Application::displaySide(Camera& whichCamera) {
         } else {
             glColor3ub(_mouseVoxel.red, _mouseVoxel.green, _mouseVoxel.blue);
         }
-        glTranslatef(_mouseVoxel.x + _mouseVoxel.s*0.5f,
-                     _mouseVoxel.y + _mouseVoxel.s*0.5f,
-                     _mouseVoxel.z + _mouseVoxel.s*0.5f);
-        glLineWidth(4.0f);
+        
         if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelNudgeMode)) {
-            if (_nudgeVoxel.s) {
-                glutWireCube(_nudgeVoxel.s);
-            } else {
-                glutWireCube(_mouseVoxel.s);
-            } 
+            glTranslatef(_mouseVoxel.x + _nudgeVoxel.s*0.5f,
+                _mouseVoxel.y + _nudgeVoxel.s*0.5f,
+                _mouseVoxel.z + _nudgeVoxel.s*0.5f);
+            glLineWidth(4.0f);
+            glutWireCube(_nudgeVoxel.s);
         } else {
+            glTranslatef(_mouseVoxel.x + _mouseVoxel.s*0.5f,
+                _mouseVoxel.y + _mouseVoxel.s*0.5f,
+                _mouseVoxel.z + _mouseVoxel.s*0.5f);
+            glLineWidth(4.0f);
             glutWireCube(_mouseVoxel.s);
         }
         glLineWidth(1.0f);

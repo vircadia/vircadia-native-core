@@ -370,11 +370,11 @@ Menu::Menu() :
                                            SLOT(setDepthOnly(bool)));
     
     addCheckableActionToQMenuAndActionHash(developerMenu,
-                                           MenuOption::Faceshift,
+                                           MenuOption::FaceshiftTCP,
                                            0,
                                            false,
                                            appInstance->getFaceshift(),
-                                           SLOT(setEnabled(bool)));
+                                           SLOT(setTCPEnabled(bool)));
                                            
     QMenu* audioDebugMenu = developerMenu->addMenu("Audio Debugging Tools");
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::EchoAudio);
