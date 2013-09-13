@@ -15,35 +15,29 @@
 #include <QDesktopWidget>
 
 #define SETTINGS_VERSION_KEY "info-version"
+#define MAX_DIALOG_HEIGHT_RATIO 0.9
 
-InfoView::InfoView(bool forced)
-{
+InfoView::InfoView(bool forced) {
     _forced = forced;
     settings()->setAttribute(QWebSettings::LocalContentCanAccessFileUrls, true);
-
-#ifdef Q_OS_MAC
-    QString resourcesPath = QCoreApplication::applicationDirPath() + "/../Resources";
-#else
-    QString resourcesPath = QCoreApplication::applicationDirPath() + "/resources";
-#endif
-
-    QUrl url = QUrl::fromLocalFile(resourcesPath + "/html/interface-welcome-allsvg.html");
+    
+    switchToResourcesParentIfRequired();
+    QString absPath = QFileInfo("resources/html/interface-welcome-allsvg.html").absoluteFilePath();
+    QUrl url = QUrl::fromLocalFile(absPath);
+    
     load(url);
     connect(this, SIGNAL(loadFinished(bool)), this, SLOT(loaded(bool)));
 }
 
-void InfoView::showFirstTime()
-{
+void InfoView::showFirstTime() {
     new InfoView(false);
 }
 
-void InfoView::forcedShow()
-{
+void InfoView::forcedShow() {
     new InfoView(true);
 }
 
-bool InfoView::shouldShow()
-{
+bool InfoView::shouldShow() {
     if (_forced) {
         return true;
     }
@@ -66,9 +60,8 @@ bool InfoView::shouldShow()
     return false;
 }
 
-void InfoView::loaded(bool ok)
-{
-    if (!shouldShow()) {
+void InfoView::loaded(bool ok) {
+    if (!ok || !shouldShow()) {
         return;
     }
     
@@ -76,8 +69,8 @@ void InfoView::loaded(bool ok)
     QWebFrame* mainFrame = page()->mainFrame();
     
     int height = mainFrame->contentsSize().height() > desktop->height() ?
-    desktop->height() * 0.9 :
-    mainFrame->contentsSize().height();
+        desktop->height() * MAX_DIALOG_HEIGHT_RATIO :
+        mainFrame->contentsSize().height();
     
     resize(mainFrame->contentsSize().width(), height);
     move(desktop->screen()->rect().center() - rect().center());
