@@ -375,15 +375,15 @@ void PerlinFace::updatePositions() {
     glm::vec3 topRightEyelid = getVec3(NUM_VERTICES + EYE_MID_TOP);
     glm::vec3 bottomRightEyelid = getVec3(NUM_VERTICES + EYE_MID_BOTTOM);
     
-    _vertices[EYE_MID_TOP] = (1.0f - (_eyeBlink_L + _eyeOpen_L / 2.0f)) * topLeftEyelid
-    + (_eyeBlink_L + _eyeOpen_L / 2.0f) * (topLeftEyelid + bottomLeftEyelid) / 2.0f;
-    _vertices[EYE_MID_BOTTOM] = (1.0f - (_eyeBlink_L + _eyeOpen_L / 2.0f)) * bottomLeftEyelid
-    + (_eyeBlink_L + _eyeOpen_L / 2.0f) * (topLeftEyelid + bottomLeftEyelid) / 2.0f;
+    _vertices[EYE_MID_TOP] = (1.0f - (_eyeBlink_L - _eyeOpen_L / 2.0f)) * topLeftEyelid
+    + (_eyeBlink_L - _eyeOpen_L / 2.0f) * (topLeftEyelid + bottomLeftEyelid) / 2.0f;
+    _vertices[EYE_MID_BOTTOM] = (1.0f - (_eyeBlink_L - _eyeOpen_L / 2.0f)) * bottomLeftEyelid
+    + (_eyeBlink_L - _eyeOpen_L / 2.0f) * (topLeftEyelid + bottomLeftEyelid) / 2.0f;
     
-    _vertices[NUM_VERTICES + EYE_MID_TOP] = (1.0f - (_eyeBlink_R + _eyeOpen_R / 2.0f)) * topRightEyelid
-    + (_eyeBlink_R + _eyeOpen_R / 2.0f) * (topRightEyelid + bottomRightEyelid) / 2.0f;
-    _vertices[NUM_VERTICES + EYE_MID_BOTTOM] = (1.0f - (_eyeBlink_R + _eyeOpen_R / 2.0f)) * bottomRightEyelid
-    + (_eyeBlink_R + _eyeOpen_R / 2.0f) * (topRightEyelid + bottomRightEyelid) / 2.0f;
+    _vertices[NUM_VERTICES + EYE_MID_TOP] = (1.0f - (_eyeBlink_R - _eyeOpen_R / 2.0f)) * topRightEyelid
+    + (_eyeBlink_R - _eyeOpen_R / 2.0f) * (topRightEyelid + bottomRightEyelid) / 2.0f;
+    _vertices[NUM_VERTICES + EYE_MID_BOTTOM] = (1.0f - (_eyeBlink_R - _eyeOpen_R / 2.0f)) * bottomRightEyelid
+    + (_eyeBlink_R - _eyeOpen_R / 2.0f) * (topRightEyelid + bottomRightEyelid) / 2.0f;
 }
 
 void PerlinFace::updateVertices() {
