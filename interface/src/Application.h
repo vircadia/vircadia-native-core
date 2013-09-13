@@ -151,6 +151,7 @@ public slots:
     void copyVoxels();
     void pasteVoxels();
     void nudgeVoxels();
+    void deleteVoxels();
     
     void setRenderVoxels(bool renderVoxels);
     void doKillLocalVoxels();
@@ -308,6 +309,7 @@ private:
     bool _justEditedVoxel;        // set when we've just added/deleted/colored a voxel
 
     VoxelDetail _nudgeVoxel; // details of the voxel to be nudged
+    bool _nudgeStarted;
 
     bool _isLookingAtOtherAvatar;
     glm::vec3 _lookatOtherPosition;
@@ -361,7 +363,6 @@ private:
     Swatch _swatch;
 
     bool _pasteMode;
-    bool _finishedNudge;
 
     PieMenu _pieMenu;
     

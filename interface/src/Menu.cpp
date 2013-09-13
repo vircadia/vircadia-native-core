@@ -110,6 +110,12 @@ Menu::Menu() :
     addActionToQMenuAndActionHash(editMenu, MenuOption::PasteVoxels, Qt::CTRL | Qt::Key_V, appInstance, SLOT(pasteVoxels()));
     addActionToQMenuAndActionHash(editMenu, MenuOption::NudgeVoxels, Qt::CTRL | Qt::Key_N, appInstance, SLOT(nudgeVoxels()));
     
+    #ifdef __APPLE__
+        addActionToQMenuAndActionHash(editMenu, MenuOption::DeleteVoxels, Qt::Key_Backspace, appInstance, SLOT(deleteVoxels()));
+    #else
+        addActionToQMenuAndActionHash(editMenu, MenuOption::DeleteVoxels, Qt::Key_Delete, appInstance, SLOT(deleteVoxels()));
+    #endif
+    
     addDisabledActionAndSeparator(editMenu, "Physics");
     addCheckableActionToQMenuAndActionHash(editMenu, MenuOption::Gravity, Qt::SHIFT | Qt::Key_G, true);
     addCheckableActionToQMenuAndActionHash(editMenu,
@@ -132,9 +138,6 @@ Menu::Menu() :
     
     QAction* colorVoxelMode = addCheckableActionToQMenuAndActionHash(toolsMenu, MenuOption::VoxelColorMode, Qt::Key_B);
     _voxelModeActionsGroup->addAction(colorVoxelMode);
-
-    QAction* nudgeVoxelMode = addCheckableActionToQMenuAndActionHash(toolsMenu, MenuOption::VoxelNudgeMode, Qt::Key_N);
-    _voxelModeActionsGroup->addAction(nudgeVoxelMode);
     
     QAction* selectVoxelMode = addCheckableActionToQMenuAndActionHash(toolsMenu, MenuOption::VoxelSelectMode, Qt::Key_O);
     _voxelModeActionsGroup->addAction(selectVoxelMode);
