@@ -618,6 +618,7 @@ void VoxelTree::printTreeForDebugging(VoxelNode *startNode) {
 void VoxelTree::reaverageVoxelColors(VoxelNode *startNode) {
     // if our tree is a reaveraging tree, then we do this, otherwise we don't do anything
     if (_shouldReaverage) {
+        qDebug("Trying to dechunkify\n");
         bool hasChildren = false;
 
         for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
@@ -635,6 +636,12 @@ void VoxelTree::reaverageVoxelColors(VoxelNode *startNode) {
         
         // this is also a good time to recalculateSubTreeNodeCount()
         startNode->recalculateSubTreeNodeCount();
+
+        if (startNode->isLeaf()) {
+            qDebug("dechunkified\n");
+        } else {
+            qDebug("not dechunkified\n");
+        }
     }
 }
 
@@ -1772,6 +1779,14 @@ void VoxelTree::copySubTreeIntoNewTree(VoxelNode* startNode, VoxelTree* destinat
         ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS);
         destinationTree->readBitstreamToTree(&outputBuffer[0], bytesWritten, args);
     }
+
+    VoxelNode* destinationStartNode;
+    if (rebaseToRoot) {
+        destinationStartNode = destinationTree->rootNode;
+    } else {
+        destinationStartNode = nodeForOctalCode(destinationTree->rootNode, startNode->getOctalCode(), NULL);
+    }
+    destinationStartNode->setColor(startNode->getColor());
 }
 
 void VoxelTree::copyFromTreeIntoSubTree(VoxelTree* sourceTree, VoxelNode* destinationNode) {
@@ -2040,13 +2055,6 @@ void VoxelTree::nudgeSubTree(VoxelNode* nodeToNudge, const glm::vec3& nudgeAmoun
     if (nudgeAmount == glm::vec3(0, 0, 0)) {
         return;
     }
-
-    // get octal code of this node
-    unsigned char* octalCode = nodeToNudge->getOctalCode();
-
-    // get voxel position/size
-    VoxelPositionSize ancestorDetails;
-    voxelDetailsForCode(octalCode, ancestorDetails);
 
     NodeChunkArgs args;
     args.thisVoxelTree = this;
