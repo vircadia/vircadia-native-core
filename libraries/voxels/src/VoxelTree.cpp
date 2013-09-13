@@ -618,7 +618,6 @@ void VoxelTree::printTreeForDebugging(VoxelNode *startNode) {
 void VoxelTree::reaverageVoxelColors(VoxelNode *startNode) {
     // if our tree is a reaveraging tree, then we do this, otherwise we don't do anything
     if (_shouldReaverage) {
-        qDebug("Trying to dechunkify\n");
         bool hasChildren = false;
 
         for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
@@ -636,12 +635,6 @@ void VoxelTree::reaverageVoxelColors(VoxelNode *startNode) {
         
         // this is also a good time to recalculateSubTreeNodeCount()
         startNode->recalculateSubTreeNodeCount();
-
-        if (startNode->isLeaf()) {
-            qDebug("dechunkified\n");
-        } else {
-            qDebug("not dechunkified\n");
-        }
     }
 }
 
