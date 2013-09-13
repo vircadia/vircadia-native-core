@@ -1154,11 +1154,11 @@ const glm::vec3 Application::getMouseVoxelWorldCoordinates(const VoxelDetail _mo
                      (_mouseVoxel.z + _mouseVoxel.s / 2.f) * TREE_SCALE);
 }
 
-const float NUDGE_PRECISION_LIMIT = 1 / pow(2.0, 12.0);
+const float NUDGE_PRECISION_MIN = 1 / pow(2.0, 12.0);
 
 void Application::decreaseVoxelSize() {
     if (_nudgeStarted) {
-        if (_mouseVoxelScale >= NUDGE_PRECISION_LIMIT) {
+        if (_mouseVoxelScale >= NUDGE_PRECISION_MIN) {
             _mouseVoxelScale /= 2;
         }
     } else {
@@ -1167,7 +1167,13 @@ void Application::decreaseVoxelSize() {
 }
 
 void Application::increaseVoxelSize() {
-    _mouseVoxelScale *= 2;
+    if (_nudgeStarted) {
+        if (_mouseVoxelScale < _nudgeVoxel.s) {
+            _mouseVoxelScale *= 2;
+        }
+    } else {
+        _mouseVoxelScale *= 2;
+    }
 }
 
 const int MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE = 1500;
