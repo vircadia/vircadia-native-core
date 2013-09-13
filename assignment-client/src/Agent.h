@@ -9,9 +9,6 @@
 #ifndef __hifi__Agent__
 #define __hifi__Agent__
 
-#include <glm/glm.hpp>
-#include <glm/gtc/quaternion.hpp>
-
 #include "SharedUtil.h"
 
 #include <QtCore/QObject>

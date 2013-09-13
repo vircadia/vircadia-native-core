@@ -12,6 +12,9 @@
 #include <sys/time.h>
 #include <sys/wait.h>
 
+#include <QtCore/QCoreApplication>
+
+#include "Agent.h"
 #include <Assignment.h>
 #include <AudioMixer.h>
 #include <AvatarMixer.h>
@@ -92,8 +95,18 @@ void childClient() {
                 
                 if (deployedAssignment.getType() == Assignment::AudioMixerType) {
                     AudioMixer::run();
-                } else {
+                } else if (deployedAssignment.getType() == Assignment::AvatarMixerType) {
                     AvatarMixer::run();
+                } else {
+                    // figure out the URL for the script for this agent assignment
+                    QString scriptURLString("http://%1:8080/assignment/%2");
+                    scriptURLString = scriptURLString.arg(inet_ntoa(domainSocketAddr),
+                                                          deployedAssignment.getUUIDStringWithoutCurlyBraces());
+                    
+                    qDebug() << "Starting an Agent assignment-client with script at" << scriptURLString << "\n";
+                    
+                    Agent scriptAgent;
+                    scriptAgent.run(QUrl(scriptURLString));
                 }
             } else {
                 qDebug("Received a bad destination socket for assignment.\n");
@@ -170,6 +183,8 @@ void parentMonitor() {
 }
 
 int main(int argc, const char* argv[]) {
+    
+    QCoreApplication app(argc, (char**) argv);
     
     setvbuf(stdout, NULL, _IOLBF, 0);
     

@@ -49,6 +49,7 @@ public:
     ~Assignment();
     
     const QUuid& getUUID() const { return _uuid; }
+    QString getUUIDStringWithoutCurlyBraces() const;
     Assignment::Command getCommand() const { return _command; }
     Assignment::Type getType() const { return _type; }
     Assignment::Location getLocation() const { return _location; }

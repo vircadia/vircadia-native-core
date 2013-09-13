@@ -1927,7 +1927,7 @@ void reorderChildrenForNudge(void* extraData) {
         for (int i = 0; i < NUMBER_OF_CHILDREN / 2; i++) {
             lastToNudgeVote[POSITIVE_Z_ORDERING[i]]++;
         }
-    } else if (nudgeVec.z > 0) {
+    } else if (nudgeVec.z < 0) {
         for (int i = 0; i < NUMBER_OF_CHILDREN / 2; i++) {
             lastToNudgeVote[NEGATIVE_Z_ORDERING[i]]++;
         }

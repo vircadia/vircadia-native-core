@@ -26,6 +26,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <QtCore/QMutex>
+
 #include "Assignment.h"
 #include "NodeList.h"
 #include "NodeTypes.h"
@@ -39,6 +41,9 @@ const int DOMAIN_LISTEN_PORT = 40102;
 unsigned char packetData[MAX_PACKET_SIZE];
 
 const int NODE_COUNT_STAT_INTERVAL_MSECS = 5000;
+
+QMutex assignmentQueueMutex;
+std::deque<Assignment*> assignmentQueue;
 
 unsigned char* addNodeToBroadcastPacket(unsigned char* currentPosition, Node* nodeToAdd) {
     *currentPosition++ = nodeToAdd->getType();
@@ -67,21 +72,28 @@ static int mongooseRequestHandler(struct mg_connection *conn) {
     }
 }
 
-const char ASSIGNMENT_SCRIPT_HOST_LOCATION[] = "web/assignment";
+const char ASSIGNMENT_SCRIPT_HOST_LOCATION[] = "resources/web/assignment";
 
 static void mongooseUploadHandler(struct mg_connection *conn, const char *path) {
-    // create an assignment for this saved script
-    Assignment scriptAssignment(Assignment::CreateCommand, Assignment::AgentType);
+    // create an assignment for this saved script, for now make it local only
+    Assignment *scriptAssignment = new Assignment(Assignment::CreateCommand, Assignment::AgentType, Assignment::LocalLocation);
     
     QString newPath(ASSIGNMENT_SCRIPT_HOST_LOCATION);
     newPath += "/";
     // append the UUID for this script as the new filename, remove the curly braces
-    newPath += scriptAssignment.getUUID().toString().mid(1, scriptAssignment.getUUID().toString().length() - 2);
+    newPath += scriptAssignment->getUUIDStringWithoutCurlyBraces();
     
     // rename the saved script to the GUID of the assignment and move it to the script host locaiton
     rename(path, newPath.toStdString().c_str());
 
     qDebug("Saved a script for assignment at %s\n", newPath.toStdString().c_str());
+    
+    // add the script assigment to the assignment queue
+    // lock the assignment queue mutex since we're operating on a different thread than DS main
+    ::assignmentQueueMutex.lock();
+    ::assignmentQueue.push_back(scriptAssignment);
+    ::assignmentQueueMutex.unlock();
+
 }
 
 int main(int argc, const char* argv[]) {
@@ -121,9 +133,6 @@ int main(int argc, const char* argv[]) {
     const long long GLOBAL_ASSIGNMENT_REQUEST_INTERVAL_USECS = 1 * 1000 * 1000;
     timeval lastGlobalAssignmentRequest = {};
     
-    // setup the assignment queue
-    std::deque<Assignment*> assignmentQueue;
-    
     // as a domain-server we will always want an audio mixer and avatar mixer
     // setup the create assignments for those
     Assignment audioMixerAssignment(Assignment::CreateCommand,
@@ -146,7 +155,7 @@ int main(int argc, const char* argv[]) {
     
     // list of options. Last element must be NULL.
     const char *options[] = {"listening_ports", "8080",
-                             "document_root", "./web", NULL};
+                             "document_root", "./resources/web", NULL};
     
     callbacks.begin_request = mongooseRequestHandler;
     callbacks.upload = mongooseUploadHandler;
@@ -156,19 +165,21 @@ int main(int argc, const char* argv[]) {
     
     while (true) {
         
+        ::assignmentQueueMutex.lock();
         // check if our audio-mixer or avatar-mixer are dead and we don't have existing assignments in the queue
         // so we can add those assignments back to the front of the queue since they are high-priority
         if (!nodeList->soloNodeOfType(NODE_TYPE_AVATAR_MIXER) &&
-            std::find(assignmentQueue.begin(), assignmentQueue.end(), &avatarMixerAssignment) == assignmentQueue.end()) {
+            std::find(::assignmentQueue.begin(), assignmentQueue.end(), &avatarMixerAssignment) == ::assignmentQueue.end()) {
             qDebug("Missing an avatar mixer and assignment not in queue. Adding.\n");
-            assignmentQueue.push_front(&avatarMixerAssignment);
+            ::assignmentQueue.push_front(&avatarMixerAssignment);
         }
         
         if (!nodeList->soloNodeOfType(NODE_TYPE_AUDIO_MIXER) &&
-            std::find(assignmentQueue.begin(), assignmentQueue.end(), &audioMixerAssignment) == assignmentQueue.end()) {
+            std::find(::assignmentQueue.begin(), ::assignmentQueue.end(), &audioMixerAssignment) == ::assignmentQueue.end()) {
             qDebug("Missing an audio mixer and assignment not in queue. Adding.\n");
-            assignmentQueue.push_front(&audioMixerAssignment);
+            ::assignmentQueue.push_front(&audioMixerAssignment);
         }
+        ::assignmentQueueMutex.unlock();
         
         while (nodeList->getNodeSocket()->receive((sockaddr *)&nodePublicAddress, packetData, &receivedBytes) &&
                packetVersionMatch(packetData)) {
@@ -269,11 +280,13 @@ int main(int argc, const char* argv[]) {
                 
                 qDebug("Received a request for assignment.\n");
                 
+                ::assignmentQueueMutex.lock();
+                
                 // this is an unassigned client talking to us directly for an assignment
                 // go through our queue and see if there are any assignments to give out
-                std::deque<Assignment*>::iterator assignment = assignmentQueue.begin();
+                std::deque<Assignment*>::iterator assignment = ::assignmentQueue.begin();
                 
-                while (assignment != assignmentQueue.end()) {
+                while (assignment != ::assignmentQueue.end()) {
                     
                     // give this assignment out, no conditions stop us from giving it to the local assignment client
                     int numHeaderBytes = populateTypeAndVersion(broadcastPacket, PACKET_TYPE_CREATE_ASSIGNMENT);
@@ -284,11 +297,18 @@ int main(int argc, const char* argv[]) {
                                                     numHeaderBytes + numAssignmentBytes);
                     
                     // remove the assignment from the queue
-                    assignmentQueue.erase(assignment);
+                    ::assignmentQueue.erase(assignment);
+                    
+                    if ((*assignment)->getType() == Assignment::AgentType) {
+                        // if this is a script assignment we need to delete it to avoid a memory leak
+                        delete *assignment;
+                    }
                     
                     // stop looping, we've handed out an assignment
                     break;
                 }
+                
+                ::assignmentQueueMutex.unlock();
             }
         }
         
@@ -296,8 +316,10 @@ int main(int argc, const char* argv[]) {
         if (usecTimestampNow() - usecTimestamp(&lastGlobalAssignmentRequest) >= GLOBAL_ASSIGNMENT_REQUEST_INTERVAL_USECS) {
             gettimeofday(&lastGlobalAssignmentRequest, NULL);
             
+            ::assignmentQueueMutex.lock();
+            
             // go through our queue and see if there are any assignments to send to the global assignment server
-            std::deque<Assignment*>::iterator assignment = assignmentQueue.begin();
+            std::deque<Assignment*>::iterator assignment = ::assignmentQueue.begin();
             
             while (assignment != assignmentQueue.end()) {
                 
@@ -308,7 +330,12 @@ int main(int argc, const char* argv[]) {
                     nodeList->sendAssignment(*(*assignment));
                     
                     // remove the assignment from the queue
-                    assignmentQueue.erase(assignment);
+                    ::assignmentQueue.erase(assignment);
+                    
+                    if ((*assignment)->getType() == Assignment::AgentType) {
+                        // if this is a script assignment we need to delete it to avoid a memory leak
+                        delete *assignment;
+                    }
                     
                     // stop looping, we've handed out an assignment
                     break;
@@ -318,6 +345,7 @@ int main(int argc, const char* argv[]) {
                 }
             }
             
+            ::assignmentQueueMutex.unlock();
         }
         
         if (Logging::shouldSendStats()) {

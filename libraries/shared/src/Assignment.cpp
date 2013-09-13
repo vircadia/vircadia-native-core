@@ -89,6 +89,10 @@ Assignment::~Assignment() {
     delete _attachedLocalSocket;
 }
 
+QString Assignment::getUUIDStringWithoutCurlyBraces() const {
+    return _uuid.toString().mid(1, _uuid.toString().length() - 2);
+}
+
 void Assignment::setAttachedPublicSocket(const sockaddr* attachedPublicSocket) {
     if (_attachedPublicSocket) {
         // delete the old socket if it exists
