@@ -186,7 +186,7 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     setSemiNibbleAt(bitItems,HAND_STATE_START_BIT,_handState);
     *destinationBuffer++ = bitItems;
 
-    unsigned char bitItems = 0;
+    bitItems = 0;
     if (_headData->_isFaceshiftConnected) { setAtBit(bitItems, IS_FACESHIFT_CONNECTED); }
 
     *destinationBuffer++ = bitItems;
