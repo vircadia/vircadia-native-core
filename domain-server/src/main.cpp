@@ -72,7 +72,7 @@ static int mongooseRequestHandler(struct mg_connection *conn) {
     }
 }
 
-const char ASSIGNMENT_SCRIPT_HOST_LOCATION[] = "web/assignment";
+const char ASSIGNMENT_SCRIPT_HOST_LOCATION[] = "resources/web/assignment";
 
 static void mongooseUploadHandler(struct mg_connection *conn, const char *path) {
     // create an assignment for this saved script, for now make it local only
