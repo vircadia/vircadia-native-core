@@ -155,7 +155,7 @@ int main(int argc, const char* argv[]) {
     
     // list of options. Last element must be NULL.
     const char *options[] = {"listening_ports", "8080",
-                             "document_root", "./web", NULL};
+                             "document_root", "./resources/web", NULL};
     
     callbacks.begin_request = mongooseRequestHandler;
     callbacks.upload = mongooseUploadHandler;
