@@ -6,9 +6,6 @@ $(document).ready(function(){
   editor.getSession().setMode("ace/mode/javascript");
   editor.getSession().setTabSize(2);
   
-  // setup the Ink filepicker
-  filepicker.setKey("ARhz9KegMS0ioo5o9bPOcz");
-  
   $('#deploy-button').click(function(){
     script = editor.getValue();
     

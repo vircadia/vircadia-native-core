@@ -6,8 +6,7 @@
   </head>
   <body>
     <pre id='editor' style='font-size: 14px;'><!--#include "placeholder.js"--></pre>
-    <script src='//ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js'></script>
-    <script src='//api.filepicker.io/v1/filepicker.js'></script>
+    <script src='js/jquery-2.0.3.min.js'></script>
     <script src='js/ace/ace.js' type='text/javascript'></script>
     <script src='js/assignment.js' type='text/javascript'></script>
     <div class='big-button' id='deploy-button'>
