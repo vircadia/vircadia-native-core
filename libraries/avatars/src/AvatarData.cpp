@@ -157,6 +157,24 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     memcpy(destinationBuffer, &_headData->_audioLoudness, sizeof(float));
     destinationBuffer += sizeof(float); 
 
+    memcpy(destinationBuffer, &_headData->_isFaceshiftConnected, sizeof(_headData->_isFaceshiftConnected));
+    destinationBuffer += sizeof(_headData->_isFaceshiftConnected);
+
+    // If it is connected, pack up the data
+    if (_headData->_isFaceshiftConnected) {
+        memcpy(destinationBuffer, &_headData->_leftEyeBlink, sizeof(float));
+        destinationBuffer += sizeof(float);
+
+        memcpy(destinationBuffer, &_headData->_rightEyeBlink, sizeof(float));
+        destinationBuffer += sizeof(float);
+
+        memcpy(destinationBuffer, &_headData->_averageLoudness, sizeof(float));
+        destinationBuffer += sizeof(float);
+
+        memcpy(destinationBuffer, &_headData->_browAudioLift, sizeof(float));
+        destinationBuffer += sizeof(float);
+    }
+
     // camera details
     memcpy(destinationBuffer, &_cameraPosition, sizeof(_cameraPosition));
     destinationBuffer += sizeof(_cameraPosition);
@@ -268,6 +286,24 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     memcpy(&_headData->_audioLoudness, sourceBuffer, sizeof(float));
     sourceBuffer += sizeof(float);
     
+    memcpy(&_headData->_isFaceshiftConnected, sourceBuffer, sizeof(_headData->_isFaceshiftConnected));
+    sourceBuffer += sizeof(_headData->_isFaceshiftConnected);
+
+    // If it is connected, pack up the data
+    if (_headData->_isFaceshiftConnected) {
+        memcpy(&_headData->_leftEyeBlink, sourceBuffer, sizeof(float));
+        sourceBuffer += sizeof(float);
+
+        memcpy(&_headData->_rightEyeBlink, sourceBuffer, sizeof(float));
+        sourceBuffer += sizeof(float);
+
+        memcpy(&_headData->_averageLoudness, sourceBuffer, sizeof(float));
+        sourceBuffer += sizeof(float);
+
+        memcpy(&_headData->_browAudioLift, sourceBuffer, sizeof(float));
+        sourceBuffer += sizeof(float);
+    }
+
     // camera details
     memcpy(&_cameraPosition, sourceBuffer, sizeof(_cameraPosition));
     sourceBuffer += sizeof(_cameraPosition);

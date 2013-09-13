@@ -104,10 +104,8 @@ private:
     glm::vec3 _mouthPosition;
     Nose _nose;
     float _scale;
-    float _browAudioLift;
     glm::vec3 _gravity;
     float _lastLoudness;
-    float _averageLoudness;
     float _audioAttack;
     float _returnSpringScale; //strength of return springs
     glm::vec3 _bodyRotation;
@@ -118,8 +116,6 @@ private:
     glm::vec3 _mohawkColors[MOHAWK_TRIANGLES];
     glm::vec3 _saccade;
     glm::vec3 _saccadeTarget;
-    float _leftEyeBlink;
-    float _rightEyeBlink;
     float _leftEyeBlinkVelocity;
     float _rightEyeBlinkVelocity;
     float _timeWithoutTalking;
