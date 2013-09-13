@@ -51,26 +51,44 @@ unsigned char* addNodeToBroadcastPacket(unsigned char* currentPosition, Node* no
     return currentPosition;
 }
 
+static int mongooseRequestHandler(struct mg_connection *conn) {
+    const struct mg_request_info *ri = mg_get_request_info(conn);
+    
+    if (strcmp(ri->uri, "/assignment") == 0 && strcmp(ri->request_method, "POST") == 0) {
+        // return a 200
+        mg_printf(conn, "%s", "HTTP/1.0 200 OK\r\n\r\n");
+        // upload the file
+        mg_upload(conn, "/tmp");
+        
+        return 1;
+    } else {
+        // have mongoose process this request from the document_root
+        return 0;
+    }
+}
+
+const char ASSIGNMENT_SCRIPT_HOST_LOCATION[] = "web/assignment";
+
+static void mongooseUploadHandler(struct mg_connection *conn, const char *path) {
+    // create an assignment for this saved script
+    Assignment scriptAssignment(Assignment::CreateCommand, Assignment::AgentType);
+    
+    QString newPath(ASSIGNMENT_SCRIPT_HOST_LOCATION);
+    newPath += "/";
+    // append the UUID for this script as the new filename, remove the curly braces
+    newPath += scriptAssignment.getUUID().toString().mid(1, scriptAssignment.getUUID().toString().length() - 2);
+    
+    // rename the saved script to the GUID of the assignment and move it to the script host locaiton
+    rename(path, newPath.toStdString().c_str());
+
+    qDebug("Saved a script for assignment at %s\n", newPath.toStdString().c_str());
+}
+
 int main(int argc, const char* argv[]) {
     
     qInstallMessageHandler(Logging::verboseMessageHandler);
     
     NodeList* nodeList = NodeList::createInstance(NODE_TYPE_DOMAIN, DOMAIN_LISTEN_PORT);
-
-	// If user asks to run in "local" mode then we do NOT replace the IP
-	// with the EC2 IP. Otherwise, we will replace the IP like we used to
-	// this allows developers to run a local domain without recompiling the
-	// domain server
-	bool isLocalMode = cmdOptionExists(argc, (const char**) argv, "--local");
-	if (isLocalMode) {
-		printf("NOTE: Running in local mode!\n");
-	} else {
-		printf("--------------------------------------------------\n");
-		printf("NOTE: Not running in local mode. \n");
-		printf("If you're a developer testing a local system, you\n");
-		printf("probably want to include --local on command line.\n");
-		printf("--------------------------------------------------\n");
-	}
 
     setvbuf(stdout, NULL, _IOLBF, 0);
     
@@ -82,7 +100,7 @@ int main(int argc, const char* argv[]) {
     unsigned char* currentBufferPos;
     unsigned char* startPointer;
     
-    sockaddr_in nodePublicAddress, nodeLocalAddress;
+    sockaddr_in nodePublicAddress, nodeLocalAddress, replyDestinationSocket;
     nodeLocalAddress.sin_family = AF_INET;
     
     in_addr_t serverLocalAddress = getLocalAddress();
@@ -128,7 +146,10 @@ int main(int argc, const char* argv[]) {
     
     // list of options. Last element must be NULL.
     const char *options[] = {"listening_ports", "8080",
-        "document_root", "./web", NULL};
+                             "document_root", "./web", NULL};
+    
+    callbacks.begin_request = mongooseRequestHandler;
+    callbacks.upload = mongooseUploadHandler;
     
     // Start the web server.
     ctx = mg_start(&callbacks, NULL, options);
@@ -161,19 +182,15 @@ int main(int argc, const char* argv[]) {
                 int numBytesSocket = unpackSocket(packetData + numBytesSenderHeader + sizeof(NODE_TYPE),
                                                   (sockaddr*) &nodeLocalAddress);
                 
-                sockaddr* destinationSocket = (sockaddr*) &nodePublicAddress;
+                replyDestinationSocket = nodePublicAddress;
                 
                 // check the node public address
-                // if it matches our local address we're on the same box
-                // so hardcode the EC2 public address for now
-                if (nodePublicAddress.sin_addr.s_addr == serverLocalAddress) {
-                    // If we're not running "local" then we do replace the IP
-                    // with 0. This designates to clients that the server is reachable
-                    // at the same IP address
-                    if (!isLocalMode) {
-                        nodePublicAddress.sin_addr.s_addr = 0;
-                        destinationSocket = (sockaddr*) &nodeLocalAddress;
-                    }
+                // if it matches our local address
+                // or if it's the loopback address we're on the same box
+                if (nodePublicAddress.sin_addr.s_addr == serverLocalAddress ||
+                    nodePublicAddress.sin_addr.s_addr == htonl(INADDR_LOOPBACK)) {
+                    
+                    nodePublicAddress.sin_addr.s_addr = 0;
                 }
                 
                 Node* newNode = nodeList->addOrUpdateNode((sockaddr*) &nodePublicAddress,
@@ -244,7 +261,7 @@ int main(int argc, const char* argv[]) {
                     currentBufferPos += packNodeId(currentBufferPos, newNode->getNodeID());
                     
                     // send the constructed list back to this node
-                    nodeList->getNodeSocket()->send(destinationSocket,
+                    nodeList->getNodeSocket()->send((sockaddr*)&replyDestinationSocket,
                                                     broadcastPacket,
                                                     (currentBufferPos - startPointer) + numHeaderBytes);
                 }

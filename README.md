@@ -116,7 +116,7 @@ you likely had Cmake generate Xcode project files and have not run `cmake ..` in
 
 Then, launch the static components - a domain-server and a voxel-server. All of the targets will run in the foreground, so you'll either want to background it yourself or open a seperate terminal window per target.
 
-    cd domain-server && ./domain-server --local
+    cd domain-server && ./domain-server
     ./voxel-server/voxel-server --local > /tmp/voxel-server.log 2>&1 &
 
 Then, run an assignment-client with 2 forks to fulfill the avatar-mixer and audio-mixer assignments. It uses localhost as its assignment-server and talks to it on port 40102 (the default domain-server port).

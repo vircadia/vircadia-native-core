@@ -12,20 +12,28 @@ $(document).ready(function(){
   $('#deploy-button').click(function(){
     script = editor.getValue();
     
-    // store the script on S3 using filepicker
-    filepicker.store(script, {mimetype: 'application/javascript'}, function(blob){
-      console.log(JSON.stringify(blob));
-      
-      s3_filename = blob["key"];
-      
-      $.post('/assignment', {s3_filename: s3_filename}, function(response){
-        // the response is the assignment ID, if successful
-        console.log(response);
-      }, function(error) {
-        console.log(error);
-      });
-    }, function(FPError){
-      console.log(FPError);
+    // setup our boundary - this is "highfidelity" in hex
+    var boundary = "----68696768666964656c697479";
+    var body = '--' + boundary + '\r\n'
+      // parameter name is "file" and local filename is "temp.txt"
+      + 'Content-Disposition:form-data; name="file"; '
+      + 'filename="script.js"\r\n'
+      // add the javascript mime-type
+      + 'Content-type: application/javascript\r\n\r\n'
+      // add the script
+      + script + '\r\n'
+      + '--' + boundary + '--';
+            
+    // post form to assignment in order to create an assignment
+    $.ajax({
+        contentType: "multipart/form-data; boundary=" + boundary,
+        data: body,
+        type: "POST",
+        url: "/assignment",
+        success: function (data, status) {
+          console.log(data);
+          console.log(status);
+        }
     });
   });
 });
