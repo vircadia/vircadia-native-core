@@ -393,7 +393,7 @@ void NodeList::sendAssignment(Assignment& assignment) {
         ? (sockaddr*) &GLOBAL_ASSIGNMENT_SOCKET
         : _assignmentServerSocket;
     
-    _nodeSocket.send((sockaddr*) assignmentServerSocket, assignmentPacket, numHeaderBytes + numAssignmentBytes);
+    _nodeSocket.send(assignmentServerSocket, assignmentPacket, numHeaderBytes + numAssignmentBytes);
 }
 
 Node* NodeList::addOrUpdateNode(sockaddr* publicSocket, sockaddr* localSocket, char nodeType, uint16_t nodeId) {
