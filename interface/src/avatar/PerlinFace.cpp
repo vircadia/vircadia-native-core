@@ -9,6 +9,7 @@
 #include "PerlinFace.h"
 #include "Head.h"
 #include "Avatar.h"
+#include "Application.h"
 
 // The following points only reference the left part of the face.
 enum {
@@ -32,7 +33,7 @@ enum {
 static const float VERTICES[]
 = { -5,70,44,  -12,72,42,  -22,68,35,  -12,70,42,  -5,68,44.5,   // left brow
     -6,60,43.7,  -12,62,44,  -19,60,38,  -12,58,43,              // left eye
-    -12,60,37,  -14.1,62.1,37,  -13.15,61.15,37,                 // left eyeball
+    -12,60,37,  -14.1,62.1,37,  -13.15,61.25,32,                 // left eyeball
     -2,45,52,  -5,44,47,  -1,42.5,49,  -4,47,48,  -2,48.5,52.5,  // left part nose
     -4,38,50,  -8,30.2,46,  -3,23.5,46,                          // left out mouse
     -2.1,35,48,  -5,31,47,  -1.5,29,47,                          // left in mouse
@@ -47,7 +48,7 @@ static const float VERTICES[]
 
     5,70,44,  12,72,42,  22,68,35,  12,70,42,  5,68,44.5,   //  0-4  right brow
     6,60,43.7,  12,62,44,  19,60,38,  12,58,43,             //  5-8  right eye
-    12,60,37,  14.1,62.1,37,  13.15,61.15,37,               //  9-11 right eyeball
+    12,60,37,  14.1,62.1,37,  13.15,61.15,32,               //  9-11 right eyeball
     2,45,52,  5,44,47,  1,42.5,49,  4,47,48,  2,48.5,52.5,  // 12-16 right part nose
     4,38,50,  8,30.2,46,  3,23.5,46,                        // 17-19 right out mouse
     2.1,35,48,  5,31,47,  1.5,29,47,                        // 20-22 right in mouse
@@ -64,7 +65,7 @@ static const float VERTICES[]
     7,34,44,  7,29.2,42,          // teeth
     16,36,33,  16,16,0,  40,7,0,  40,0,0,  20,-40,-23}; // shoulders, back, misc
 
-const int TRIANGLES_NUMBER = 202;
+const int TRIANGLES_NUMBER = 206;
 const int VERTEX_PER_TRIANGLE = 3;
 const int FLOAT_PER_VERTEX = 3;
 
@@ -175,11 +176,10 @@ void PerlinFace::update() {
                  GL_DYNAMIC_DRAW);
 }
 
+#include <renderer/ProgramObject.h>
+
 void PerlinFace::render() {
     glPushMatrix();
-
-    // disable specular lighting for ground and voxels
-    glMaterialfv(GL_FRONT, GL_SPECULAR, NO_SPECULAR_COLOR);
 
     update();
 
@@ -190,6 +190,8 @@ void PerlinFace::render() {
     glScalef(_owningHead->getScale(), _owningHead->getScale(), _owningHead->getScale());
     glRotatef(glm::angle(orientation), axis.x, axis.y, axis.z);
 
+
+    glPushMatrix();
     // Correct head scale and offset from hard coded points coordinates.
     glScalef(2.0f * BODY_BALL_RADIUS_HEAD_BASE / (_vertices[HAIR_2].y - _vertices[JAW_BOTTOM].y),
              2.0f * BODY_BALL_RADIUS_HEAD_BASE / (_vertices[HAIR_2].y - _vertices[JAW_BOTTOM].y),
@@ -234,11 +236,99 @@ void PerlinFace::render() {
                _vertices[NUM_VERTICES + EYE_MID_BOTTOM].y,
                _vertices[NUM_VERTICES + EYE_MID_BOTTOM].z);
     glEnd();
+    glPopMatrix();
+
+    const float EYEBALL_RADIUS           =  0.008f;
+    const float EYEBALL_COLOR[4]         =  { 0.9f, 0.9f, 0.8f, 1.0f };
+    const float IRIS_RADIUS              =  0.0035;
+    const float IRIS_PROTRUSION          =  0.0065f;
+    // render white ball of left eyeball
+
+    glm::vec3 eyePos = glm::vec3(0.024f, 0.0f, -0.032f);
+
+
+    Head::_irisProgram.bind();
+    glBindTexture(GL_TEXTURE_2D, Head::_irisTextureID);
+    glEnable(GL_TEXTURE_2D);
+
+    orientation = _owningHead->getOrientation();
+    glm::vec3 front = orientation * IDENTITY_FRONT;
+
+    // render left iris
+    glm::quat leftIrisRotation;
+    glPushMatrix(); {
+        glTranslatef(eyePos.x, eyePos.y, eyePos.z); //translate to eyeball position
+
+        //rotate the eyeball to aim towards the lookat position
+        glm::vec3 targetLookatVector = _owningHead->_lookAtPosition - eyePos;
+        leftIrisRotation = rotationBetween(front, targetLookatVector) * orientation;
+        glm::vec3 rotationAxis = glm::axis(leftIrisRotation);
+        glRotatef(glm::angle(leftIrisRotation), rotationAxis.x, rotationAxis.y, rotationAxis.z);
+        glTranslatef(0.0f, 0.0f, IRIS_PROTRUSION);
+        glScalef(IRIS_RADIUS * 2.0f,
+                 IRIS_RADIUS * 2.0f,
+                 IRIS_RADIUS); // flatten the iris
+
+        // this ugliness is simply to invert the model transform and get the eye position in model space
+        Head::_irisProgram.setUniform(Head::_eyePositionLocation, (glm::inverse(leftIrisRotation) *
+            (Application::getInstance()->getCamera()->getPosition() - eyePos) +
+                glm::vec3(0.0f, 0.0f, IRIS_PROTRUSION)) * glm::vec3(1.0f / (IRIS_RADIUS * 2.0f),
+                    1.0f / (IRIS_RADIUS * 2.0f), 1.0f / IRIS_RADIUS));
+
+        glutSolidSphere(0.5f, 15, 15);
+    }
+    glPopMatrix();
+
+    eyePos.x = - eyePos.x;
+
+    // render right iris
+    glm::quat rightIrisRotation;
+    glPushMatrix(); {
+        glTranslatef(eyePos.x, eyePos.y, eyePos.z); //translate to eyeball position
+
+        //rotate the eyeball to aim towards the lookat position
+        glm::vec3 targetLookatVector = _owningHead->_lookAtPosition - eyePos;
+        rightIrisRotation = rotationBetween(front, targetLookatVector) * orientation;
+        glm::vec3 rotationAxis = glm::axis(rightIrisRotation);
+        glRotatef(glm::angle(rightIrisRotation), rotationAxis.x, rotationAxis.y, rotationAxis.z);
+        glTranslatef(0.0f, 0.0f, IRIS_PROTRUSION);
+        glScalef(IRIS_RADIUS * 2.0f,
+                 IRIS_RADIUS * 2.0f,
+                 IRIS_RADIUS); // flatten the iris
+
+        // this ugliness is simply to invert the model transform and get the eye position in model space
+        Head::_irisProgram.setUniform(Head::_eyePositionLocation, (glm::inverse(rightIrisRotation) *
+            (Application::getInstance()->getCamera()->getPosition() - eyePos) +
+                glm::vec3(0.0f, 0.0f, IRIS_PROTRUSION)) * glm::vec3(1.0f / (IRIS_RADIUS * 2.0f),
+                    1.0f / (IRIS_RADIUS * 2.0f), 1.0f / IRIS_RADIUS));
+
+        glutSolidSphere(0.5f, 15, 15);
+    }
+    glPopMatrix();
+
+    Head::_irisProgram.release();
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glDisable(GL_TEXTURE_2D);
+
+
+
+
+    glPushMatrix();
+        glColor4fv(EYEBALL_COLOR);
+        glTranslatef(eyePos.x, eyePos.y, eyePos.z);
+        glutSolidSphere(EYEBALL_RADIUS, 30, 30);
+    glPopMatrix();
+
+    //render white ball of right eyeball
+    glPushMatrix();
+        glColor4fv(EYEBALL_COLOR);
+        glTranslatef(-eyePos.x, eyePos.y, eyePos.z);
+        glutSolidSphere(EYEBALL_RADIUS, 30, 30);
+    glPopMatrix();
 
 
     /*/
     // Draw points for debug.
-
     glColor3d(0.0f, 1.0f, 0.0f);
     glPointSize(4);
     glBegin(GL_POINTS);
@@ -253,10 +343,7 @@ void PerlinFace::render() {
         break;
         glVertex3d(VERTICES[3 * i], VERTICES[(3 * i) + 1], VERTICES[(3 * i) + 2]);
         glVertex3d(-VERTICES[3 * i], VERTICES[(3 * i) + 1], VERTICES[(3 * i) + 2]);
-
-        glColor3d(1.0f, 0.0f, 0.0f);
     }
-    glVertex3d(13, 50, 0);
     glEnd();
     /**/
     glPopMatrix();
@@ -418,8 +505,10 @@ void PerlinFace::updateVertices() {
     addJunction(BROW_RIGHT_BOTTOM, EYE_RIGHT, SKIN_COLOR[0], SKIN_COLOR[1], SKIN_COLOR[2]);
 
     // Temp eye draw
-    addTriangles(EYE_LEFT, EYE_MID_TOP, EYE_RIGHT, 255, 255, 255);
-    addTriangles(EYE_RIGHT, EYE_MID_BOTTOM, EYE_LEFT, 255, 255, 255);
+    addTriangles(EYE_LEFT, EYE_MID_TOP, EYEBALL_MID, 255, 255, 255);
+    addTriangles(EYE_MID_TOP, EYE_RIGHT, EYEBALL_MID, 255, 255, 255);
+    addTriangles(EYE_RIGHT, EYE_MID_BOTTOM, EYEBALL_MID, 255, 255, 255);
+    addTriangles(EYE_MID_BOTTOM, EYE_LEFT, EYEBALL_MID, 255, 255, 255);
 
     // Chick
     addTriangles(EAR_CENTER, FOREHEAD_LEFT, BROW_LEFT, SKIN_COLOR[0], SKIN_COLOR[1], SKIN_COLOR[2]);

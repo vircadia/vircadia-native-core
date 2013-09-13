@@ -149,6 +149,8 @@ private:
     void calculateGeometry();
     void resetHairPhysics();
     void updateHairPhysics(float deltaTime);
+
+    friend class PerlinFace;
 };
 
 #endif

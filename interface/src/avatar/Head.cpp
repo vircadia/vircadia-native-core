@@ -323,9 +323,6 @@ void Head::calculateGeometry() {
 }
 
 void Head::render(float alpha) {
-    _perlinFace.render();
-    return;
-
     _renderAlpha = alpha;
 
     if (!_face.render(alpha)) {
@@ -333,14 +330,18 @@ void Head::render(float alpha) {
 
         glEnable(GL_DEPTH_TEST);
         glEnable(GL_RESCALE_NORMAL);
-    
-        renderMohawk();
-        renderHeadSphere();
-        renderEyeBalls();    
-        renderEars();
-        renderMouth();   
-        renderNose();
-        renderEyeBrows();
+
+        if (true) {
+            _perlinFace.render();
+        } else  {
+            renderMohawk();
+            renderHeadSphere();
+            renderEyeBalls();
+            renderEars();
+            renderMouth();
+            renderNose();
+            renderEyeBrows();
+        }
     }
         
     if (_renderLookatVectors) {
