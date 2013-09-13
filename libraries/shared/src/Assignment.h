@@ -48,7 +48,7 @@ public:
     
     ~Assignment();
     
-    const QUuid& getGUID() const { return _uuid; }
+    const QUuid& getUUID() const { return _uuid; }
     Assignment::Command getCommand() const { return _command; }
     Assignment::Type getType() const { return _type; }
     Assignment::Location getLocation() const { return _location; }

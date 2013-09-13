@@ -76,7 +76,7 @@ static void mongooseUploadHandler(struct mg_connection *conn, const char *path) 
     QString newPath(ASSIGNMENT_SCRIPT_HOST_LOCATION);
     newPath += "/";
     // append the UUID for this script as the new filename, remove the curly braces
-    newPath += scriptAssignment.getGUID().toString().mid(1, scriptAssignment.getGUID().toString().length() - 2);
+    newPath += scriptAssignment.getUUID().toString().mid(1, scriptAssignment.getUUID().toString().length() - 2);
     
     // rename the saved script to the GUID of the assignment and move it to the script host locaiton
     rename(path, newPath.toStdString().c_str());
