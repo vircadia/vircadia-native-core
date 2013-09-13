@@ -111,6 +111,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _isHoverVoxelSounding(false),
         _mouseVoxelScale(1.0f / 1024.0f),
         _justEditedVoxel(false),
+        _nudgeStarted(false),
         _isLookingAtOtherAvatar(false),
         _lookatIndicatorScale(1.0f),
         _perfStatsOn(false),
@@ -128,8 +129,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _bytesPerSecond(0),
         _bytesCount(0),
         _swatch(NULL),
-        _pasteMode(false),
-        _finishedNudge(true)
+        _pasteMode(false)
 {
     _applicationStartupTime = startup_time;
     _window->setWindowTitle("Interface");
@@ -684,6 +684,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
                     Menu::getInstance()->triggerOption(MenuOption::Voxels);
                 } else {
                     Menu::getInstance()->triggerOption(MenuOption::VoxelAddMode);
+                    _nudgeStarted = false;
                 }
                 break;
             case Qt::Key_P:
@@ -694,23 +695,24 @@ void Application::keyPressEvent(QKeyEvent* event) {
                     Menu::getInstance()->triggerOption(MenuOption::FrustumRenderMode);
                 } else {
                     Menu::getInstance()->triggerOption(MenuOption::VoxelDeleteMode);
+                    _nudgeStarted = false;
                 }
                 break;
             case Qt::Key_B:
                 Menu::getInstance()->triggerOption(MenuOption::VoxelColorMode);
+                _nudgeStarted = false;
                 break;
             case Qt::Key_O:
                 Menu::getInstance()->triggerOption(MenuOption::VoxelSelectMode);
-                break;
-            case Qt::Key_N:
-                Menu::getInstance()->triggerOption(MenuOption::VoxelNudgeMode);
+                _nudgeStarted = false;
                 break;
             case Qt::Key_Slash:
                 Menu::getInstance()->triggerOption(MenuOption::Stats);
                 break;
             case Qt::Key_Backspace:
             case Qt::Key_Delete:
-                if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelDeleteMode)) {
+                if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelDeleteMode) ||
+                    Menu::getInstance()->isOptionChecked(MenuOption::VoxelSelectMode)) {
                     deleteVoxelUnderCursor();
                 }
                 break;
@@ -843,14 +845,6 @@ void Application::mousePressEvent(QMouseEvent* event) {
 
             if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelSelectMode) && _pasteMode) {
                 pasteVoxels();
-            }
-
-            if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelNudgeMode)) {
-                VoxelNode* clickedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
-                if (clickedNode) {
-                    _nudgeVoxel = _mouseVoxel;
-                    _finishedNudge = false;
-                }
             }
 
             if (MAKE_SOUND_ON_VOXEL_CLICK && _isHoverVoxel && !_isHoverVoxelSounding) {
@@ -1163,7 +1157,7 @@ const glm::vec3 Application::getMouseVoxelWorldCoordinates(const VoxelDetail _mo
 const float NUDGE_PRECISION_LIMIT = 1 / pow(2.0, 12.0);
 
 void Application::decreaseVoxelSize() {
-    if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelNudgeMode)) {
+    if (_nudgeStarted) {
         if (_mouseVoxelScale >= NUDGE_PRECISION_LIMIT) {
             _mouseVoxelScale /= 2;
         }
@@ -1300,17 +1294,26 @@ void Application::pasteVoxels() {
 }
 
 void Application::nudgeVoxels() {
-    if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelNudgeMode)) {
-        // calculate nudgeVec
-        glm::vec3 nudgeVec(_mouseVoxel.x - _nudgeVoxel.x, _mouseVoxel.y - _nudgeVoxel.y, _mouseVoxel.z - _nudgeVoxel.z);
+    if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelSelectMode)) {
+        if (!_nudgeStarted) {
+            _nudgeVoxel = _mouseVoxel;
+            _nudgeStarted = true;
+        } else {
+            // calculate nudgeVec
+            glm::vec3 nudgeVec(_mouseVoxel.x - _nudgeVoxel.x, _mouseVoxel.y - _nudgeVoxel.y, _mouseVoxel.z - _nudgeVoxel.z);
 
-        VoxelNode* nodeToNudge = _voxels.getVoxelAt(_nudgeVoxel.x, _nudgeVoxel.y, _nudgeVoxel.z, _nudgeVoxel.s);
+            VoxelNode* nodeToNudge = _voxels.getVoxelAt(_nudgeVoxel.x, _nudgeVoxel.y, _nudgeVoxel.z, _nudgeVoxel.s);
 
-        if (nodeToNudge) {
-            _voxels.getTree()->nudgeSubTree(nodeToNudge, nudgeVec, _voxelEditSender);
-            _finishedNudge = true;
+            if (nodeToNudge) {
+                _voxels.getTree()->nudgeSubTree(nodeToNudge, nudgeVec, _voxelEditSender);
+                _nudgeStarted = false;
+            }
         }
     }
+}
+
+void Application::deleteVoxels() {
+    deleteVoxelUnderCursor();
 }
 
 void Application::setListenModeNormal() {
@@ -1409,7 +1412,6 @@ void Application::init() {
     _palette.addAction(Menu::getInstance()->getActionForOption(MenuOption::VoxelColorMode), 0, 2);
     _palette.addAction(Menu::getInstance()->getActionForOption(MenuOption::VoxelGetColorMode), 0, 3);
     _palette.addAction(Menu::getInstance()->getActionForOption(MenuOption::VoxelSelectMode), 0, 4);
-    _palette.addAction(Menu::getInstance()->getActionForOption(MenuOption::VoxelNudgeMode), 0, 5);
 
     _pieMenu.init("./resources/images/hifi-interface-tools-v2-pie.svg",
                   _glWidget->width(),
@@ -1685,8 +1687,7 @@ void Application::update(float deltaTime) {
                 _mouseVoxel.s = 0.0f;
             }
         } else if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelAddMode)
-                   || Menu::getInstance()->isOptionChecked(MenuOption::VoxelSelectMode)
-                   || Menu::getInstance()->isOptionChecked(MenuOption::VoxelNudgeMode)) {
+                   || Menu::getInstance()->isOptionChecked(MenuOption::VoxelSelectMode)) {
             // place the voxel a fixed distance away
             float worldMouseVoxelScale = _mouseVoxelScale * TREE_SCALE;
             glm::vec3 pt = mouseRayOrigin + mouseRayDirection * (2.0f + worldMouseVoxelScale * 0.5f);
@@ -1701,11 +1702,13 @@ void Application::update(float deltaTime) {
             _mouseVoxel.red = 255;
             _mouseVoxel.green = _mouseVoxel.blue = 0;
         } else if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelSelectMode)) {
-            // yellow indicates selection
-            _mouseVoxel.red = _mouseVoxel.green = 255;
-            _mouseVoxel.blue = 0;
-        } else if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelNudgeMode)) {
-            _mouseVoxel.red = _mouseVoxel.green = _mouseVoxel.blue = 255;
+            if (_nudgeStarted) {
+                _mouseVoxel.red = _mouseVoxel.green = _mouseVoxel.blue = 255;
+            } else {
+                // yellow indicates selection
+                _mouseVoxel.red = _mouseVoxel.green = 255;
+                _mouseVoxel.blue = 0;
+            }
         } else { // _addVoxelMode->isChecked() || _colorVoxelMode->isChecked()
             QColor paintColor = Menu::getInstance()->getActionForOption(MenuOption::VoxelPaintColor)->data().value<QColor>();
             _mouseVoxel.red = paintColor.red();
@@ -2300,19 +2303,17 @@ void Application::displaySide(Camera& whichCamera) {
         glDisable(GL_LIGHTING);
         glPushMatrix();
         glScalef(TREE_SCALE, TREE_SCALE, TREE_SCALE);
-        if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelNudgeMode)) {
-            if (!_finishedNudge) {
-                renderNudgeGuide(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _nudgeVoxel.s);
-                renderNudgeGrid(_nudgeVoxel.x, _nudgeVoxel.y, _nudgeVoxel.z, _nudgeVoxel.s, _mouseVoxel.s);
-                glPushMatrix();
-                glTranslatef(_nudgeVoxel.x + _nudgeVoxel.s * 0.5f,
-                    _nudgeVoxel.y + _nudgeVoxel.s * 0.5f,
-                    _nudgeVoxel.z + _nudgeVoxel.s * 0.5f);
-                glColor3ub(255, 255, 255);
-                glLineWidth(4.0f);
-                glutWireCube(_nudgeVoxel.s);
-                glPopMatrix();
-            }
+        if (_nudgeStarted) {
+            renderNudgeGuide(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _nudgeVoxel.s);
+            renderNudgeGrid(_nudgeVoxel.x, _nudgeVoxel.y, _nudgeVoxel.z, _nudgeVoxel.s, _mouseVoxel.s);
+            glPushMatrix();
+            glTranslatef(_nudgeVoxel.x + _nudgeVoxel.s * 0.5f,
+                _nudgeVoxel.y + _nudgeVoxel.s * 0.5f,
+                _nudgeVoxel.z + _nudgeVoxel.s * 0.5f);
+            glColor3ub(255, 255, 255);
+            glLineWidth(4.0f);
+            glutWireCube(_nudgeVoxel.s);
+            glPopMatrix();
         } else {
             renderMouseVoxelGrid(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
         }
@@ -2324,7 +2325,7 @@ void Application::displaySide(Camera& whichCamera) {
             glColor3ub(_mouseVoxel.red, _mouseVoxel.green, _mouseVoxel.blue);
         }
         
-        if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelNudgeMode)) {
+        if (_nudgeStarted) {
             glTranslatef(_mouseVoxel.x + _nudgeVoxel.s*0.5f,
                 _mouseVoxel.y + _nudgeVoxel.s*0.5f,
                 _mouseVoxel.z + _nudgeVoxel.s*0.5f);
