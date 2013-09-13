@@ -100,7 +100,7 @@ int main(int argc, const char* argv[]) {
     unsigned char* currentBufferPos;
     unsigned char* startPointer;
     
-    sockaddr_in nodePublicAddress, nodeLocalAddress;
+    sockaddr_in nodePublicAddress, nodeLocalAddress, replyDestinationSocket;
     nodeLocalAddress.sin_family = AF_INET;
     
     in_addr_t serverLocalAddress = getLocalAddress();
@@ -182,18 +182,15 @@ int main(int argc, const char* argv[]) {
                 int numBytesSocket = unpackSocket(packetData + numBytesSenderHeader + sizeof(NODE_TYPE),
                                                   (sockaddr*) &nodeLocalAddress);
                 
-                sockaddr* destinationSocket = (sockaddr*) &nodePublicAddress;
+                replyDestinationSocket = nodePublicAddress;
                 
                 // check the node public address
                 // if it matches our local address
                 // or if it's the loopback address we're on the same box
                 if (nodePublicAddress.sin_addr.s_addr == serverLocalAddress ||
                     nodePublicAddress.sin_addr.s_addr == htonl(INADDR_LOOPBACK)) {
-                    nodePublicAddress.sin_addr.s_addr = 0;
                     
-                    if (nodePublicAddress.sin_addr.s_addr != htonl(INADDR_LOOPBACK)) {
-                        destinationSocket = (sockaddr*) &nodeLocalAddress;
-                    }
+                    nodePublicAddress.sin_addr.s_addr = 0;
                 }
                 
                 Node* newNode = nodeList->addOrUpdateNode((sockaddr*) &nodePublicAddress,
@@ -264,7 +261,7 @@ int main(int argc, const char* argv[]) {
                     currentBufferPos += packNodeId(currentBufferPos, newNode->getNodeID());
                     
                     // send the constructed list back to this node
-                    nodeList->getNodeSocket()->send(destinationSocket,
+                    nodeList->getNodeSocket()->send((sockaddr*)&replyDestinationSocket,
                                                     broadcastPacket,
                                                     (currentBufferPos - startPointer) + numHeaderBytes);
                 }
