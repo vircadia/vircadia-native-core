@@ -59,6 +59,7 @@ void childClient() {
         if (usecTimestampNow() - usecTimestamp(&lastRequest) >= ASSIGNMENT_REQUEST_INTERVAL_USECS) {
             gettimeofday(&lastRequest, NULL);
             // if we're here we have no assignment, so send a request
+            qDebug() << "Sending an assignment request -" << requestAssignment << "\n";
             nodeList->sendAssignment(requestAssignment);
         }
         
