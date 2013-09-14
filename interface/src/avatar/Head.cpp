@@ -11,6 +11,7 @@
 #include <NodeList.h>
 
 #include "Application.h"
+#include "Menu.h"
 #include "Avatar.h"
 #include "Head.h"
 #include "Util.h"
@@ -85,7 +86,8 @@ Head::Head(Avatar* owningAvatar) :
     _isCameraMoving(false),
     _cameraFollowsHead(false),
     _cameraFollowHeadRate(0.0f),
-    _face(this)
+    _face(this),
+    _perlinFace(this)
 {
     if (USING_PHYSICAL_MOHAWK) {    
         resetHairPhysics();
@@ -147,15 +149,16 @@ void Head::simulate(float deltaTime, bool isMine, float gyroCameraSensitivity) {
     _isFaceshiftConnected = faceshift != NULL;
 
     if (isMine && faceshift->isActive()) {
-        _leftEyeBlink = faceshift->getLeftBlink();
-        _rightEyeBlink = faceshift->getRightBlink();
+        const float EYE_OPEN_SCALE = 0.5f;
+        _leftEyeBlink = faceshift->getLeftBlink() - EYE_OPEN_SCALE * faceshift->getLeftEyeOpen();
+        _rightEyeBlink = faceshift->getRightBlink() - EYE_OPEN_SCALE * faceshift->getRightEyeOpen();
         
         // set these values based on how they'll be used.  if we use faceshift in the long term, we'll want a complete
         // mapping between their blendshape coefficients and our avatar features
         const float MOUTH_SIZE_SCALE = 2500.0f;
         _averageLoudness = faceshift->getMouthSize() * faceshift->getMouthSize() * MOUTH_SIZE_SCALE;
         const float BROW_HEIGHT_SCALE = 0.005f;
-        _browAudioLift = faceshift->getBrowHeight() * BROW_HEIGHT_SCALE;
+        _browAudioLift = faceshift->getBrowUpCenter() * BROW_HEIGHT_SCALE;
         
     } else  if (!_isFaceshiftConnected) {
         // Update eye saccades
@@ -274,7 +277,7 @@ void Head::simulate(float deltaTime, bool isMine, float gyroCameraSensitivity) {
                 _cameraFollowHeadRate = CAMERA_FOLLOW_HEAD_RATE_START;
             }
         }
-    } 
+    }
 }
 
 void Head::calculateGeometry() {
@@ -320,7 +323,6 @@ void Head::calculateGeometry() {
 }
 
 void Head::render(float alpha) {
-
     _renderAlpha = alpha;
 
     if (!_face.render(alpha)) {
@@ -328,14 +330,18 @@ void Head::render(float alpha) {
 
         glEnable(GL_DEPTH_TEST);
         glEnable(GL_RESCALE_NORMAL);
-    
-        renderMohawk();
-        renderHeadSphere();
-        renderEyeBalls();    
-        renderEars();
-        renderMouth();   
-        renderNose();
-        renderEyeBrows();
+
+        if (Menu::getInstance()->isOptionChecked(MenuOption::UsePerlinFace)) {
+            _perlinFace.render();
+        } else  {
+            renderMohawk();
+            renderHeadSphere();
+            renderEyeBalls();
+            renderEars();
+            renderMouth();
+            renderNose();
+            renderEyeBrows();
+        }
     }
         
     if (_renderLookatVectors) {

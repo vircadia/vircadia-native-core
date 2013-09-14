@@ -41,10 +41,18 @@ public:
 
     float getLeftBlink() const { return _leftBlink; }
     float getRightBlink() const { return _rightBlink; }
+    float getLeftEyeOpen() const { return _leftEyeOpen; }
+    float getRightEyeOpen() const { return _rightEyeOpen; }
 
-    float getBrowHeight() const { return _browHeight; }
-    
+    float getBrowDownLeft() const { return _browDownLeft; }
+    float getBrowDownRight() const { return _browDownRight; }
+    float getBrowUpCenter() const { return _browUpCenter; }
+    float getBrowUpLeft() const { return _browUpLeft; }
+    float getBrowUpRight() const { return _browUpRight; }
+
     float getMouthSize() const { return _mouthSize; }
+    float getMouthSmileLeft() const { return _mouthSmileLeft; }
+    float getMouthSmileRight() const { return _mouthSmileRight; }
 
     void update();
     void reset();
@@ -84,18 +92,35 @@ private:
     
     float _leftBlink;
     float _rightBlink;
-    
+    float _leftEyeOpen;
+    float _rightEyeOpen;
+
     int _leftBlinkIndex;
     int _rightBlinkIndex;
-    
     int _leftEyeOpenIndex;
     int _rightEyeOpenIndex;
-    
-    float _browHeight;
-    
+
+    // Brows
+    float _browDownLeft;
+    float _browDownRight;
+    float _browUpCenter;
+    float _browUpLeft;
+    float _browUpRight;
+
+    int _browDownLeftIndex;
+    int _browDownRightIndex;
+
     int _browUpCenterIndex;
+    int _browUpLeftIndex;
+    int _browUpRightIndex;
     
     float _mouthSize;
+    
+    float _mouthSmileLeft;
+    float _mouthSmileRight;
+    
+    int _mouthSmileLeftIndex;
+    int _mouthSmileRightIndex;
     
     int _jawOpenIndex;
     

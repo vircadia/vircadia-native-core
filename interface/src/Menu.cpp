@@ -276,6 +276,7 @@ Menu::Menu() :
                                   SLOT(cycleRenderMode()));
     
     
+    addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::UsePerlinFace, 0, false);
     addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::LookAtVectors, 0, true);
     addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::LookAtIndicator, 0, true);
     addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::FrameTimer);

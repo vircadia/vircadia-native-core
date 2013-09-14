@@ -26,13 +26,27 @@ Faceshift::Faceshift() :
     _eyeGazeRightYaw(0.0f),
     _leftBlink(0.0f),
     _rightBlink(0.0f),
+    _leftEyeOpen(0.0f),
+    _rightEyeOpen(0.0f),
+    _browDownLeft(0.0f),
+    _browDownRight(0.0f),
+    _browUpCenter(0.0f),
+    _browUpLeft(0.0f),
+    _browUpRight(0.0f),
+    _browDownLeftIndex(-1),
+    _browDownRightIndex(-1),
+    _browUpLeftIndex(-1),
+    _browUpRightIndex(-1),
+    _mouthSize(0.0f),
+    _mouthSmileLeft(0),
+    _mouthSmileRight(0),
+    _mouthSmileLeftIndex(-1),
+    _mouthSmileRightIndex(0),
     _leftBlinkIndex(0), // see http://support.faceshift.com/support/articles/35129-export-of-blendshapes
     _rightBlinkIndex(1),
     _leftEyeOpenIndex(8),
     _rightEyeOpenIndex(9),
-    _browHeight(0.0f),
     _browUpCenterIndex(16),
-    _mouthSize(0.0f),
     _jawOpenIndex(21),
     _longTermAverageEyePitch(0.0f),
     _longTermAverageEyeYaw(0.0f),
@@ -145,19 +159,42 @@ void Faceshift::receive(const QByteArray& buffer) {
                     _eyeGazeLeftYaw = data.m_eyeGazeLeftYaw;
                     _eyeGazeRightPitch = -data.m_eyeGazeRightPitch;
                     _eyeGazeRightYaw = data.m_eyeGazeRightYaw;
-                    
-                    const float EYE_OPEN_SCALE = 0.5f;
+
                     if (_leftBlinkIndex != -1) {
-                        _leftBlink = data.m_coeffs[_leftBlinkIndex] - data.m_coeffs[_leftEyeOpenIndex] * EYE_OPEN_SCALE;
+                        _leftBlink = data.m_coeffs[_leftBlinkIndex];
                     }
                     if (_rightBlinkIndex != -1) {
-                        _rightBlink = data.m_coeffs[_rightBlinkIndex] - data.m_coeffs[_rightEyeOpenIndex] * EYE_OPEN_SCALE;
+                        _rightBlink = data.m_coeffs[_rightBlinkIndex];
+                    }
+                    if (_leftEyeOpenIndex != -1) {
+                        _leftEyeOpen = data.m_coeffs[_leftEyeOpenIndex];
+                    }
+                    if (_rightEyeOpenIndex != -1) {
+                        _rightEyeOpen = data.m_coeffs[_rightEyeOpenIndex];
+                    }
+                    if (_browDownLeftIndex != -1) {
+                        _browDownLeft = data.m_coeffs[_browDownLeftIndex];
+                    }
+                    if (_browDownRightIndex != -1) {
+                        _browDownRight = data.m_coeffs[_browDownRightIndex];
                     }
                     if (_browUpCenterIndex != -1) {
-                        _browHeight = data.m_coeffs[_browUpCenterIndex];
+                        _browUpCenter = data.m_coeffs[_browUpCenterIndex];
+                    }
+                    if (_browUpLeftIndex != -1) {
+                        _browUpLeft = data.m_coeffs[_browUpLeftIndex];
+                    }
+                    if (_browUpRightIndex != -1) {
+                        _browUpRight = data.m_coeffs[_browUpRightIndex];
                     }
                     if (_jawOpenIndex != -1) {
                         _mouthSize = data.m_coeffs[_jawOpenIndex];
+                    }
+                    if (_mouthSmileLeftIndex != -1) {
+                        _mouthSmileLeft = data.m_coeffs[_mouthSmileLeftIndex];
+                    }
+                    if (_mouthSmileRightIndex != -1) {
+                        _mouthSmileRight = data.m_coeffs[_mouthSmileRightIndex];
                     }
                 }
                 break;
@@ -170,18 +207,37 @@ void Faceshift::receive(const QByteArray& buffer) {
                     
                     } else if (names[i] == "EyeBlink_R") {
                         _rightBlinkIndex = i;
-                    
-                    } else if (names[i] == "EyeOpen_L") {
+
+                    }else if (names[i] == "EyeOpen_L") {
                         _leftEyeOpenIndex = i;
-                    
-                    } else if (names[i] == "EyeOpen_R") {
+
+                    }else if (names[i] == "EyeOpen_R") {
                         _rightEyeOpenIndex = i;
-                    
+
+                    } else if (names[i] == "BrowsD_L") {
+                        _browDownLeftIndex = i;
+
+                    } else if (names[i] == "BrowsD_R") {
+                        _browDownRightIndex = i;
+
                     } else if (names[i] == "BrowsU_C") {
-                        _browUpCenterIndex = i;    
-                        
+                        _browUpCenterIndex = i;
+
+                    } else if (names[i] == "BrowsU_L") {
+                        _browUpLeftIndex = i;
+
+                    } else if (names[i] == "BrowsU_R") {
+                        _browUpRightIndex = i;
+
                     } else if (names[i] == "JawOpen") {
                         _jawOpenIndex = i;
+                        
+                    } else if (names[i] == "MouthSmile_L") {
+                        _mouthSmileLeftIndex = i;
+                        
+                    } else if (names[i] == "MouthSmile_R") {
+                        _mouthSmileRightIndex = i;
+                        
                     }
                 }
                 break;
