@@ -60,6 +60,11 @@ protected:
     float _leanSideways;
     float _leanForward;
     float _audioLoudness;
+    bool _isFaceshiftConnected;
+    float _leftEyeBlink;
+    float _rightEyeBlink;
+    float _averageLoudness;
+    float _browAudioLift;
     AvatarData* _owningAvatar;
 private:
     // privatize copy ctor and assignment operator so copies of this object cannot be made

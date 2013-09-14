@@ -67,10 +67,8 @@ Head::Head(Avatar* owningAvatar) :
     _rightEarPosition(0.0f, 0.0f, 0.0f),
     _mouthPosition(0.0f, 0.0f, 0.0f),
     _scale(1.0f),
-    _browAudioLift(0.0f),
     _gravity(0.0f, -1.0f, 0.0f),
     _lastLoudness(0.0f),
-    _averageLoudness(0.0f),
     _audioAttack(0.0f),
     _returnSpringScale(1.0f),
     _bodyRotation(0.0f, 0.0f, 0.0f),
@@ -78,8 +76,6 @@ Head::Head(Avatar* owningAvatar) :
     _mohawkInitialized(false),
     _saccade(0.0f, 0.0f, 0.0f),
     _saccadeTarget(0.0f, 0.0f, 0.0f),
-    _leftEyeBlink(0.0f),
-    _rightEyeBlink(0.0f),
     _leftEyeBlinkVelocity(0.0f),
     _rightEyeBlinkVelocity(0.0f),
     _timeWithoutTalking(0.0f),
@@ -148,6 +144,8 @@ void Head::simulate(float deltaTime, bool isMine, float gyroCameraSensitivity) {
     
     //  Update audio trailing average for rendering facial animations
     Faceshift* faceshift = Application::getInstance()->getFaceshift();
+    _isFaceshiftConnected = faceshift != NULL;
+
     if (isMine && faceshift->isActive()) {
         _leftEyeBlink = faceshift->getLeftBlink();
         _rightEyeBlink = faceshift->getRightBlink();
@@ -159,7 +157,7 @@ void Head::simulate(float deltaTime, bool isMine, float gyroCameraSensitivity) {
         const float BROW_HEIGHT_SCALE = 0.005f;
         _browAudioLift = faceshift->getBrowHeight() * BROW_HEIGHT_SCALE;
         
-    } else {
+    } else  if (!_isFaceshiftConnected) {
         // Update eye saccades
         const float AVERAGE_MICROSACCADE_INTERVAL = 0.50f;
         const float AVERAGE_SACCADE_INTERVAL = 4.0f;
