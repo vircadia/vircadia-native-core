@@ -667,19 +667,87 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
                 
             case Qt::Key_Up:
-                _myAvatar.setDriveKeys(isShifted ? UP : FWD, 1);
+                if (_nudgeStarted && !isShifted) {
+                    if (_lookingAlongX) {
+                        if (_lookingAwayFromOrigin) {
+                            _nudgeGuidePosition.x += _mouseVoxel.s;
+                        } else {
+                            _nudgeGuidePosition.x -= _mouseVoxel.s;
+                        }
+                    } else {
+                        if (_lookingAwayFromOrigin) {
+                            _nudgeGuidePosition.z += _mouseVoxel.s;
+                        } else {
+                            _nudgeGuidePosition.z -= _mouseVoxel.s;
+                        }
+                    }
+                } else if (_nudgeStarted && isShifted) {
+                    _nudgeGuidePosition.y += _mouseVoxel.s;
+                } else {
+                    _myAvatar.setDriveKeys(isShifted ? UP : FWD, 1);
+                }
                 break;
                 
             case Qt::Key_Down:
-                _myAvatar.setDriveKeys(isShifted ? DOWN : BACK, 1);
+                if (_nudgeStarted && !isShifted) {
+                    if (_lookingAlongX) {
+                        if (_lookingAwayFromOrigin) {
+                            _nudgeGuidePosition.x -= _mouseVoxel.s;
+                        } else {
+                            _nudgeGuidePosition.x += _mouseVoxel.s;
+                        }
+                    } else {
+                        if (_lookingAwayFromOrigin) {
+                            _nudgeGuidePosition.z -= _mouseVoxel.s;
+                        } else {
+                            _nudgeGuidePosition.z += _mouseVoxel.s;
+                        }
+                    }
+                } else if (_nudgeStarted && isShifted) {
+                    _nudgeGuidePosition.y -= _mouseVoxel.s;
+                } else {
+                    _myAvatar.setDriveKeys(isShifted ? DOWN : BACK, 1);
+                }
                 break;
                 
             case Qt::Key_Left:
-                _myAvatar.setDriveKeys(isShifted ? LEFT : ROT_LEFT, 1);
+                if (_nudgeStarted) {
+                    if (_lookingAlongX) {
+                        if (_lookingAwayFromOrigin) {
+                            _nudgeGuidePosition.z -= _mouseVoxel.s;
+                        } else {
+                            _nudgeGuidePosition.z += _mouseVoxel.s;
+                        }
+                    } else {
+                        if (_lookingAwayFromOrigin) {
+                            _nudgeGuidePosition.x += _mouseVoxel.s;
+                        } else {
+                            _nudgeGuidePosition.x -= _mouseVoxel.s;
+                        }
+                    }
+                } else {
+                    _myAvatar.setDriveKeys(isShifted ? LEFT : ROT_LEFT, 1);
+                }
                 break;
                 
             case Qt::Key_Right:
-                _myAvatar.setDriveKeys(isShifted ? RIGHT : ROT_RIGHT, 1);
+                if (_nudgeStarted) {
+                    if (_lookingAlongX) {
+                        if (_lookingAwayFromOrigin) {
+                            _nudgeGuidePosition.z += _mouseVoxel.s;
+                        } else {
+                            _nudgeGuidePosition.z -= _mouseVoxel.s;
+                        }
+                    } else {
+                        if (_lookingAwayFromOrigin) {
+                            _nudgeGuidePosition.x -= _mouseVoxel.s;
+                        } else {
+                            _nudgeGuidePosition.x += _mouseVoxel.s;
+                        }
+                    }
+                } else {
+                    _myAvatar.setDriveKeys(isShifted ? RIGHT : ROT_RIGHT, 1);
+                }
                 break;
                 
             case Qt::Key_I:
@@ -1400,7 +1468,7 @@ void Application::nudgeVoxels() {
         _nudgeVoxel = _mouseVoxel;
         _nudgeStarted = true;
         _nudgeGuidePosition = glm::vec3(_nudgeVoxel.x, _nudgeVoxel.y, _nudgeVoxel.z);
-        // findAxisAlignment();
+        findAxisAlignment();
     } else {
         // calculate nudgeVec
         glm::vec3 nudgeVec(_nudgeGuidePosition.x - _nudgeVoxel.x, _nudgeGuidePosition.y - _nudgeVoxel.y, _nudgeGuidePosition.z - _nudgeVoxel.z);
@@ -2406,7 +2474,6 @@ void Application::displaySide(Camera& whichCamera) {
         glPushMatrix();
         glScalef(TREE_SCALE, TREE_SCALE, TREE_SCALE);
         if (_nudgeStarted) {
-            findAxisAlignment();
             renderNudgeGuide(_nudgeGuidePosition.x, _nudgeGuidePosition.y, _nudgeGuidePosition.z, _nudgeVoxel.s);
             renderNudgeGrid(_nudgeVoxel.x, _nudgeVoxel.y, _nudgeVoxel.z, _nudgeVoxel.s, _mouseVoxel.s);
             glPushMatrix();
