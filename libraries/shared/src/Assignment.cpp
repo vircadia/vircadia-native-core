@@ -7,34 +7,33 @@
 //
 
 #include "PacketHeaders.h"
+#include "SharedUtil.h"
 
 #include "Assignment.h"
 
 const char IPv4_ADDRESS_DESIGNATOR = 4;
 const char IPv6_ADDRESS_DESIGNATOR = 6;
 
-Assignment::Assignment(Assignment::Direction direction, Assignment::Type type, const char* pool) :
-    _direction(direction),
+const int NUM_BYTES_RFC4122_UUID = 16;
+
+Assignment::Assignment(Assignment::Command command, Assignment::Type type, Assignment::Location location) :
+    _command(command),
     _type(type),
-    _pool(NULL),
+    _location(location),
     _attachedPublicSocket(NULL),
     _attachedLocalSocket(NULL)
 {
     // set the create time on this assignment
     gettimeofday(&_time, NULL);
     
-    // copy the pool, if we got one
-    if (pool) {
-        int poolLength = strlen(pool);
-        
-        // create the char array and make it large enough for string and null termination
-        _pool = new char[poolLength + sizeof(char)];
-        strcpy(_pool, pool);
+    if (_command == Assignment::CreateCommand) {
+        // this is a newly created assignment, generate a random UUID
+        _uuid = QUuid::createUuid();
     }
 }
 
 Assignment::Assignment(const unsigned char* dataBuffer, int numBytes) :
-    _pool(NULL),
+    _location(GlobalLocation),
     _attachedPublicSocket(NULL),
     _attachedLocalSocket(NULL)
 {
@@ -44,26 +43,23 @@ Assignment::Assignment(const unsigned char* dataBuffer, int numBytes) :
     int numBytesRead = 0;
     
     if (dataBuffer[0] == PACKET_TYPE_REQUEST_ASSIGNMENT) {
-        _direction = Assignment::Request;
+        _command = Assignment::RequestCommand;
     } else if (dataBuffer[0] == PACKET_TYPE_CREATE_ASSIGNMENT) {
-        _direction = Assignment::Create;
+        _command = Assignment::CreateCommand;
     } else if (dataBuffer[0] == PACKET_TYPE_DEPLOY_ASSIGNMENT) {
-        _direction = Assignment::Deploy;
+        _command = Assignment::DeployCommand;
     }
     
     numBytesRead += numBytesForPacketHeader(dataBuffer);
     
+    if (dataBuffer[0] != PACKET_TYPE_REQUEST_ASSIGNMENT) {
+        // read the GUID for this assignment
+        _uuid = QUuid::fromRfc4122(QByteArray((const char*) dataBuffer + numBytesRead, NUM_BYTES_RFC4122_UUID));
+        numBytesRead += NUM_BYTES_RFC4122_UUID;
+    }
+    
     memcpy(&_type, dataBuffer + numBytesRead, sizeof(Assignment::Type));
     numBytesRead += sizeof(Assignment::Type);
-    
-    if (dataBuffer[numBytesRead] != 0) {
-        int poolLength = strlen((const char*) dataBuffer + numBytesRead);
-        _pool = new char[poolLength + sizeof(char)];
-        strcpy(_pool, (char*) dataBuffer + numBytesRead);
-        numBytesRead += poolLength + sizeof(char);
-    } else {
-        numBytesRead += sizeof(char);
-    }
     
     if (numBytes > numBytesRead) {
         
@@ -78,7 +74,7 @@ Assignment::Assignment(const unsigned char* dataBuffer, int numBytes) :
             qDebug("Received a socket that cannot be unpacked!\n");
         }
         
-        if (_direction == Assignment::Create) {
+        if (_command == Assignment::CreateCommand) {
             delete _attachedLocalSocket;
             _attachedLocalSocket = newSocket;
         } else {
@@ -91,7 +87,10 @@ Assignment::Assignment(const unsigned char* dataBuffer, int numBytes) :
 Assignment::~Assignment() {
     delete _attachedPublicSocket;
     delete _attachedLocalSocket;
-    delete _pool;
+}
+
+QString Assignment::getUUIDStringWithoutCurlyBraces() const {
+    return _uuid.toString().mid(1, _uuid.toString().length() - 2);
 }
 
 void Assignment::setAttachedPublicSocket(const sockaddr* attachedPublicSocket) {
@@ -121,18 +120,14 @@ void Assignment::setAttachedLocalSocket(const sockaddr* attachedLocalSocket) {
 int Assignment::packToBuffer(unsigned char* buffer) {
     int numPackedBytes = 0;
     
+    // pack the UUID for this assignment, if this is an assignment create or deploy
+    if (_command != Assignment::RequestCommand) {
+        memcpy(buffer, _uuid.toRfc4122().constData(), NUM_BYTES_RFC4122_UUID);
+        numPackedBytes += NUM_BYTES_RFC4122_UUID;
+    }
+    
     memcpy(buffer + numPackedBytes, &_type, sizeof(_type));
     numPackedBytes += sizeof(_type);
-    
-    if (_pool) {
-        int poolLength = strlen(_pool);
-        strcpy((char*) buffer + numPackedBytes, _pool);
-        
-        numPackedBytes += poolLength + sizeof(char);
-    } else {
-        buffer[numPackedBytes] = '\0';
-        numPackedBytes += sizeof(char);
-    }
     
     if (_attachedPublicSocket || _attachedLocalSocket) {
         sockaddr* socketToPack = (_attachedPublicSocket) ? _attachedPublicSocket : _attachedLocalSocket;
@@ -148,6 +143,6 @@ int Assignment::packToBuffer(unsigned char* buffer) {
 }
 
 QDebug operator<<(QDebug debug, const Assignment &assignment) {
-    debug << "T:" << assignment.getType() << "P:" << assignment.getPool();
+    debug << "T:" << assignment.getType();
     return debug.nospace();
 }

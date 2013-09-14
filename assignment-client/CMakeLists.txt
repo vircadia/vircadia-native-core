@@ -8,8 +8,16 @@ set(MACRO_DIR ${ROOT_DIR}/cmake/macros)
 # setup for find modules
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../cmake/modules/")
 
+find_package(Qt5Network REQUIRED)
+
 include(${MACRO_DIR}/SetupHifiProject.cmake)
 setup_hifi_project(${TARGET_NAME} TRUE)
+
+qt5_use_modules(${TARGET_NAME} Network)
+
+# include glm
+include(${MACRO_DIR}/IncludeGLM.cmake)
+include_glm(${TARGET_NAME} ${ROOT_DIR})
 
 # link in the shared library
 include(${MACRO_DIR}/LinkHifiLibrary.cmake)

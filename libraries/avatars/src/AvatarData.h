@@ -23,12 +23,16 @@
 #include "HeadData.h"
 #include "HandData.h"
 
+// First bitset
 const int WANT_LOW_RES_MOVING_BIT = 0;
 const int WANT_COLOR_AT_BIT = 1;
 const int WANT_DELTA_AT_BIT = 2;
 const int KEY_STATE_START_BIT = 3;  // 4th and 5th bits
 const int HAND_STATE_START_BIT = 5; // 6th and 7th bits
 const int WANT_OCCLUSION_CULLING_BIT = 7; // 8th bit
+
+// Second bitset
+const int IS_FACESHIFT_CONNECTED = 0;
 
 const float MAX_AUDIO_LOUDNESS = 1000.0; // close enough for mouth animation
 

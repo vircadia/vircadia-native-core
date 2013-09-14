@@ -11,6 +11,7 @@
 #include <NodeList.h>
 
 #include "Application.h"
+#include "Menu.h"
 #include "Avatar.h"
 #include "Head.h"
 #include "Util.h"
@@ -67,10 +68,8 @@ Head::Head(Avatar* owningAvatar) :
     _rightEarPosition(0.0f, 0.0f, 0.0f),
     _mouthPosition(0.0f, 0.0f, 0.0f),
     _scale(1.0f),
-    _browAudioLift(0.0f),
     _gravity(0.0f, -1.0f, 0.0f),
     _lastLoudness(0.0f),
-    _averageLoudness(0.0f),
     _audioAttack(0.0f),
     _returnSpringScale(1.0f),
     _bodyRotation(0.0f, 0.0f, 0.0f),
@@ -78,8 +77,6 @@ Head::Head(Avatar* owningAvatar) :
     _mohawkInitialized(false),
     _saccade(0.0f, 0.0f, 0.0f),
     _saccadeTarget(0.0f, 0.0f, 0.0f),
-    _leftEyeBlink(0.0f),
-    _rightEyeBlink(0.0f),
     _leftEyeBlinkVelocity(0.0f),
     _rightEyeBlinkVelocity(0.0f),
     _timeWithoutTalking(0.0f),
@@ -149,6 +146,8 @@ void Head::simulate(float deltaTime, bool isMine, float gyroCameraSensitivity) {
     
     //  Update audio trailing average for rendering facial animations
     Faceshift* faceshift = Application::getInstance()->getFaceshift();
+    _isFaceshiftConnected = faceshift != NULL;
+
     if (isMine && faceshift->isActive()) {
         const float EYE_OPEN_SCALE = 0.5f;
         _leftEyeBlink = faceshift->getLeftBlink() - EYE_OPEN_SCALE * faceshift->getLeftEyeOpen();
@@ -161,7 +160,7 @@ void Head::simulate(float deltaTime, bool isMine, float gyroCameraSensitivity) {
         const float BROW_HEIGHT_SCALE = 0.005f;
         _browAudioLift = faceshift->getBrowUpCenter() * BROW_HEIGHT_SCALE;
         
-    } else {
+    } else  if (!_isFaceshiftConnected) {
         // Update eye saccades
         const float AVERAGE_MICROSACCADE_INTERVAL = 0.50f;
         const float AVERAGE_SACCADE_INTERVAL = 4.0f;
@@ -332,7 +331,7 @@ void Head::render(float alpha) {
         glEnable(GL_DEPTH_TEST);
         glEnable(GL_RESCALE_NORMAL);
 
-        if (true) {
+        if (Menu::getInstance()->isOptionChecked(MenuOption::UsePerlinFace)) {
             _perlinFace.render();
         } else  {
             renderMohawk();

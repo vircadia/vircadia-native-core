@@ -52,6 +52,7 @@ find_package(Qt5Multimedia REQUIRED)
 find_package(Qt5Network REQUIRED)
 find_package(Qt5OpenGL REQUIRED)
 find_package(Qt5Svg REQUIRED)
+find_package(Qt5WebKitWidgets REQUIRED)
 
 if (APPLE)
   set(MACOSX_BUNDLE_BUNDLE_NAME Interface)

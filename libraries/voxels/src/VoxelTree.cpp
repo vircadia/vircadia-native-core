@@ -1772,6 +1772,14 @@ void VoxelTree::copySubTreeIntoNewTree(VoxelNode* startNode, VoxelTree* destinat
         ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS);
         destinationTree->readBitstreamToTree(&outputBuffer[0], bytesWritten, args);
     }
+
+    VoxelNode* destinationStartNode;
+    if (rebaseToRoot) {
+        destinationStartNode = destinationTree->rootNode;
+    } else {
+        destinationStartNode = nodeForOctalCode(destinationTree->rootNode, startNode->getOctalCode(), NULL);
+    }
+    destinationStartNode->setColor(startNode->getColor());
 }
 
 void VoxelTree::copyFromTreeIntoSubTree(VoxelTree* sourceTree, VoxelNode* destinationNode) {
@@ -1861,9 +1869,9 @@ void VoxelTree::cancelImport() {
 class NodeChunkArgs {
 public:
     VoxelTree* thisVoxelTree;
-    float ancestorSize;
     glm::vec3 nudgeVec;
     VoxelEditPacketSender* voxelEditSenderPtr;
+    int childOrder[NUMBER_OF_CHILDREN];
 };
 
 float findNewLeafSize(const glm::vec3& nudgeAmount, float leafSize) {
@@ -1883,6 +1891,65 @@ float findNewLeafSize(const glm::vec3& nudgeAmount, float leafSize) {
         newLeafSize = fmin(newLeafSize, newLeafSizeZ);
     }
     return newLeafSize;
+}
+
+void reorderChildrenForNudge(void* extraData) {
+    NodeChunkArgs* args = (NodeChunkArgs*)extraData;
+    glm::vec3 nudgeVec = args->nudgeVec;
+    int lastToNudgeVote[NUMBER_OF_CHILDREN] = { 0 };
+
+    const int POSITIVE_X_ORDERING[4] = {0, 1, 2, 3};
+    const int NEGATIVE_X_ORDERING[4] = {4, 5, 6, 7};
+    const int POSITIVE_Y_ORDERING[4] = {0, 1, 4, 5};
+    const int NEGATIVE_Y_ORDERING[4] = {2, 3, 6, 7};
+    const int POSITIVE_Z_ORDERING[4] = {0, 2, 4, 6};
+    const int NEGATIVE_Z_ORDERING[4] = {1, 3, 5, 7};
+
+    if (nudgeVec.x > 0) {
+        for (int i = 0; i < NUMBER_OF_CHILDREN / 2; i++) {
+            lastToNudgeVote[POSITIVE_X_ORDERING[i]]++;
+        }
+    } else if (nudgeVec.x < 0) {
+        for (int i = 0; i < NUMBER_OF_CHILDREN / 2; i++) {
+            lastToNudgeVote[NEGATIVE_X_ORDERING[i]]++;
+        }
+    }
+    if (nudgeVec.y > 0) {
+        for (int i = 0; i < NUMBER_OF_CHILDREN / 2; i++) {
+            lastToNudgeVote[POSITIVE_Y_ORDERING[i]]++;
+        }
+    } else if (nudgeVec.y < 0) {
+        for (int i = 0; i < NUMBER_OF_CHILDREN / 2; i++) {
+            lastToNudgeVote[NEGATIVE_Y_ORDERING[i]]++;
+        }
+    }
+    if (nudgeVec.z > 0) {
+        for (int i = 0; i < NUMBER_OF_CHILDREN / 2; i++) {
+            lastToNudgeVote[POSITIVE_Z_ORDERING[i]]++;
+        }
+    } else if (nudgeVec.z < 0) {
+        for (int i = 0; i < NUMBER_OF_CHILDREN / 2; i++) {
+            lastToNudgeVote[NEGATIVE_Z_ORDERING[i]]++;
+        }
+    }
+
+    int nUncountedVotes = NUMBER_OF_CHILDREN;
+
+    while (nUncountedVotes > 0) {
+        int maxNumVotes = 0;
+        int maxVoteIndex = -1;
+        for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
+            if (lastToNudgeVote[i] > maxNumVotes) {
+                maxNumVotes = lastToNudgeVote[i];
+                maxVoteIndex = i;
+            } else if (lastToNudgeVote[i] == maxNumVotes && maxVoteIndex == -1) {
+                maxVoteIndex = i;
+            }
+        }
+        lastToNudgeVote[maxVoteIndex] = -1;
+        args->childOrder[nUncountedVotes - 1] = maxVoteIndex;
+        nUncountedVotes--;
+    }
 }
 
 bool VoxelTree::nudgeCheck(VoxelNode* node, void* extraData) {
@@ -1953,18 +2020,28 @@ void VoxelTree::nudgeLeaf(VoxelNode* node, void* extraData) {
     glm::vec3 nudge = args->nudgeVec;
 
     // delete the old node
-    // if the nudge replaces the node in an area outside of the ancestor node
-    if (fabs(nudge.x) >= args->ancestorSize || fabs(nudge.y) >= args->ancestorSize || fabs(nudge.z) >= args->ancestorSize) {
-        args->voxelEditSenderPtr->sendVoxelEditMessage(PACKET_TYPE_ERASE_VOXEL, voxelDetails);
-    }
+    args->voxelEditSenderPtr->sendVoxelEditMessage(PACKET_TYPE_ERASE_VOXEL, voxelDetails);
 
     // nudge the old node
-    voxelDetails.x = unNudgedDetails.x + nudge.x;
-    voxelDetails.y = unNudgedDetails.y + nudge.y;
-    voxelDetails.z = unNudgedDetails.z + nudge.z;
+    voxelDetails.x += nudge.x;
+    voxelDetails.y += nudge.y;
+    voxelDetails.z += nudge.z;
 
     // create a new voxel in its stead
     args->voxelEditSenderPtr->sendVoxelEditMessage(PACKET_TYPE_SET_VOXEL_DESTRUCTIVE, voxelDetails);
+}
+
+// Recurses voxel node with an operation function
+void VoxelTree::recurseNodeForNudge(VoxelNode* node, RecurseVoxelTreeOperation operation, void* extraData) {
+    NodeChunkArgs* args = (NodeChunkArgs*)extraData;
+    if (operation(node, extraData)) {
+        for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
+            VoxelNode* child = node->getChildAtIndex(args->childOrder[i]);
+            if (child) {
+                recurseNodeForNudge(child, operation, extraData);
+            }
+        }
+    }
 }
 
 void VoxelTree::nudgeSubTree(VoxelNode* nodeToNudge, const glm::vec3& nudgeAmount, VoxelEditPacketSender& voxelEditSender) {
@@ -1972,18 +2049,11 @@ void VoxelTree::nudgeSubTree(VoxelNode* nodeToNudge, const glm::vec3& nudgeAmoun
         return;
     }
 
-    // get octal code of this node
-    unsigned char* octalCode = nodeToNudge->getOctalCode();
-
-    // get voxel position/size
-    VoxelPositionSize ancestorDetails;
-    voxelDetailsForCode(octalCode, ancestorDetails);
-
     NodeChunkArgs args;
     args.thisVoxelTree = this;
-    args.ancestorSize = ancestorDetails.s;
     args.nudgeVec = nudgeAmount;
     args.voxelEditSenderPtr = &voxelEditSender;
+    reorderChildrenForNudge(&args);
 
-    recurseNodeWithOperation(nodeToNudge, nudgeCheck, &args);
+    recurseNodeForNudge(nodeToNudge, nudgeCheck, &args);
 }

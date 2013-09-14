@@ -25,11 +25,11 @@ void Agent::run(QUrl scriptURL) {
     NodeList::getInstance()->setOwnerType(NODE_TYPE_AGENT);
     NodeList::getInstance()->setNodeTypesOfInterest(&NODE_TYPE_AVATAR_MIXER, 1);
     
-    QNetworkAccessManager* manager = new QNetworkAccessManager();
+    QNetworkAccessManager manager;
     
-    qDebug() << "Attemping download of " << scriptURL;
+    qDebug() << "Attemping download of " << scriptURL << "\n";
     
-    QNetworkReply* reply = manager->get(QNetworkRequest(scriptURL));
+    QNetworkReply* reply = manager.get(QNetworkRequest(scriptURL));
     
     QEventLoop loop;
     QObject::connect(reply, SIGNAL(finished()), &loop, SLOT(quit()));
@@ -47,15 +47,14 @@ void Agent::run(QUrl scriptURL) {
     QScriptValue agentValue = engine.newQObject(this);
     engine.globalObject().setProperty("Agent", agentValue);
     
-    qDebug() << "Downloaded script:" << scriptString;
-    
-    qDebug() << "Evaluated script:" << engine.evaluate(scriptString).toString();
+    qDebug() << "Downloaded script:" << scriptString << "\n";
+    qDebug() << "Evaluated script:" << engine.evaluate(scriptString).toString() << "\n";
     
     timeval thisSend;
     timeval lastDomainServerCheckIn = {};
     int numMicrosecondsSleep = 0;
     
-    const float DATA_SEND_INTERVAL_USECS = (1 / 60.0f) * 1000 * 1000;
+    const long long DATA_SEND_INTERVAL_USECS = (1 / 60.0f) * 1000 * 1000;
     
     sockaddr_in senderAddress;
     unsigned char receivedData[MAX_PACKET_SIZE];
@@ -64,6 +63,11 @@ void Agent::run(QUrl scriptURL) {
     while (!_shouldStop) {
         // update the thisSend timeval to the current time
         gettimeofday(&thisSend, NULL);
+        
+        // if we're not hearing from the domain-server we should stop running
+        if (NodeList::getInstance()->getNumNoReplyDomainCheckIns() == MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
+            break;
+        }
         
         // send a check in packet to the domain server if DOMAIN_SERVER_CHECK_IN_USECS has elapsed
         if (usecTimestampNow() - usecTimestamp(&lastDomainServerCheckIn) >= DOMAIN_SERVER_CHECK_IN_USECS) {

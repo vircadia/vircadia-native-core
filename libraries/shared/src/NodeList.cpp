@@ -382,7 +382,7 @@ const sockaddr_in GLOBAL_ASSIGNMENT_SOCKET = socketForHostnameAndHostOrderPort(G
 void NodeList::sendAssignment(Assignment& assignment) {
     unsigned char assignmentPacket[MAX_PACKET_SIZE];
     
-    PACKET_TYPE assignmentPacketType = assignment.getDirection() == Assignment::Create
+    PACKET_TYPE assignmentPacketType = assignment.getCommand() == Assignment::CreateCommand
         ? PACKET_TYPE_CREATE_ASSIGNMENT
         : PACKET_TYPE_REQUEST_ASSIGNMENT;
     
@@ -393,7 +393,7 @@ void NodeList::sendAssignment(Assignment& assignment) {
         ? (sockaddr*) &GLOBAL_ASSIGNMENT_SOCKET
         : _assignmentServerSocket;
     
-    _nodeSocket.send((sockaddr*) assignmentServerSocket, assignmentPacket, numHeaderBytes + numAssignmentBytes);
+    _nodeSocket.send(assignmentServerSocket, assignmentPacket, numHeaderBytes + numAssignmentBytes);
 }
 
 Node* NodeList::addOrUpdateNode(sockaddr* publicSocket, sockaddr* localSocket, char nodeType, uint16_t nodeId) {

@@ -191,52 +191,52 @@ void PerlinFace::render() {
     glRotatef(glm::angle(orientation), axis.x, axis.y, axis.z);
 
 
-    glPushMatrix();
-    // Correct head scale and offset from hard coded points coordinates.
-    glScalef(2.0f * BODY_BALL_RADIUS_HEAD_BASE / (_vertices[HAIR_2].y - _vertices[JAW_BOTTOM].y),
-             2.0f * BODY_BALL_RADIUS_HEAD_BASE / (_vertices[HAIR_2].y - _vertices[JAW_BOTTOM].y),
-             2.0f * BODY_BALL_RADIUS_HEAD_BASE / (_vertices[HAIR_2].y - _vertices[JAW_BOTTOM].y));
-    glTranslatef(0, -60.0f, 20.0f);
+    glPushMatrix(); { // This block use the coordinates system of perlin's face points.
+        // Correct head scale and offset from hard coded points coordinates.
+        glScalef(2.0f * BODY_BALL_RADIUS_HEAD_BASE / (_vertices[HAIR_2].y - _vertices[JAW_BOTTOM].y),
+                 2.0f * BODY_BALL_RADIUS_HEAD_BASE / (_vertices[HAIR_2].y - _vertices[JAW_BOTTOM].y),
+                 2.0f * BODY_BALL_RADIUS_HEAD_BASE / (_vertices[HAIR_2].y - _vertices[JAW_BOTTOM].y));
+        glTranslatef(0, -60.0f, 20.0f);
 
-    /**/
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glBindBuffer(GL_ARRAY_BUFFER, _vboID);
-    glVertexPointer(FLOAT_PER_VERTEX, GL_FLOAT, 0, 0);
+        /**/
+        glEnableClientState(GL_VERTEX_ARRAY);
+        glBindBuffer(GL_ARRAY_BUFFER, _vboID);
+        glVertexPointer(FLOAT_PER_VERTEX, GL_FLOAT, 0, 0);
 
-    glEnableClientState(GL_NORMAL_ARRAY);
-    glBindBuffer(GL_ARRAY_BUFFER, _nboID);
-    glNormalPointer(GL_FLOAT, 0, 0);
+        glEnableClientState(GL_NORMAL_ARRAY);
+        glBindBuffer(GL_ARRAY_BUFFER, _nboID);
+        glNormalPointer(GL_FLOAT, 0, 0);
 
-    glEnableClientState(GL_COLOR_ARRAY);
-    glBindBuffer(GL_ARRAY_BUFFER, _cboID);
-    glColorPointer(3, GL_UNSIGNED_BYTE, 0, 0);
+        glEnableClientState(GL_COLOR_ARRAY);
+        glBindBuffer(GL_ARRAY_BUFFER, _cboID);
+        glColorPointer(3, GL_UNSIGNED_BYTE, 0, 0);
 
-    glDrawArrays(GL_TRIANGLES, 0, VERTEX_PER_TRIANGLE * _trianglesCount);
+        glDrawArrays(GL_TRIANGLES, 0, VERTEX_PER_TRIANGLE * _trianglesCount);
 
-    // Draw eyes
-    glColor3d(0, 0, 0);
-    glBegin(GL_LINE_LOOP);
-    glVertex3d(_vertices[EYE_LEFT].x, _vertices[EYE_LEFT].y, _vertices[EYE_LEFT].z);
-    glVertex3d(_vertices[EYE_MID_TOP].x, _vertices[EYE_MID_TOP].y, _vertices[EYE_MID_TOP].z);
-    glVertex3d(_vertices[EYE_RIGHT].x, _vertices[EYE_RIGHT].y, _vertices[EYE_RIGHT].z);
-    glVertex3d(_vertices[EYE_MID_BOTTOM].x, _vertices[EYE_MID_BOTTOM].y, _vertices[EYE_MID_BOTTOM].z);
-    glEnd();
+        // Draw eyes
+        glColor3d(0, 0, 0);
+        glBegin(GL_LINE_LOOP);
+        glVertex3d(_vertices[EYE_LEFT].x, _vertices[EYE_LEFT].y, _vertices[EYE_LEFT].z);
+        glVertex3d(_vertices[EYE_MID_TOP].x, _vertices[EYE_MID_TOP].y, _vertices[EYE_MID_TOP].z);
+        glVertex3d(_vertices[EYE_RIGHT].x, _vertices[EYE_RIGHT].y, _vertices[EYE_RIGHT].z);
+        glVertex3d(_vertices[EYE_MID_BOTTOM].x, _vertices[EYE_MID_BOTTOM].y, _vertices[EYE_MID_BOTTOM].z);
+        glEnd();
 
-    glBegin(GL_LINE_LOOP);
-    glVertex3d(_vertices[NUM_VERTICES + EYE_LEFT].x,
-               _vertices[NUM_VERTICES + EYE_LEFT].y,
-               _vertices[NUM_VERTICES + EYE_LEFT].z);
-    glVertex3d(_vertices[NUM_VERTICES + EYE_MID_TOP].x,
-               _vertices[NUM_VERTICES + EYE_MID_TOP].y,
-               _vertices[NUM_VERTICES + EYE_MID_TOP].z);
-    glVertex3d(_vertices[NUM_VERTICES + EYE_RIGHT].x,
-               _vertices[NUM_VERTICES + EYE_RIGHT].y,
-               _vertices[NUM_VERTICES + EYE_RIGHT].z);
-    glVertex3d(_vertices[NUM_VERTICES + EYE_MID_BOTTOM].x,
-               _vertices[NUM_VERTICES + EYE_MID_BOTTOM].y,
-               _vertices[NUM_VERTICES + EYE_MID_BOTTOM].z);
-    glEnd();
-    glPopMatrix();
+        glBegin(GL_LINE_LOOP);
+        glVertex3d(_vertices[NUM_VERTICES + EYE_LEFT].x,
+                   _vertices[NUM_VERTICES + EYE_LEFT].y,
+                   _vertices[NUM_VERTICES + EYE_LEFT].z);
+        glVertex3d(_vertices[NUM_VERTICES + EYE_MID_TOP].x,
+                   _vertices[NUM_VERTICES + EYE_MID_TOP].y,
+                   _vertices[NUM_VERTICES + EYE_MID_TOP].z);
+        glVertex3d(_vertices[NUM_VERTICES + EYE_RIGHT].x,
+                   _vertices[NUM_VERTICES + EYE_RIGHT].y,
+                   _vertices[NUM_VERTICES + EYE_RIGHT].z);
+        glVertex3d(_vertices[NUM_VERTICES + EYE_MID_BOTTOM].x,
+                   _vertices[NUM_VERTICES + EYE_MID_BOTTOM].y,
+                   _vertices[NUM_VERTICES + EYE_MID_BOTTOM].z);
+        glEnd();
+    } glPopMatrix();
 
     const float EYEBALL_RADIUS           =  0.008f;
     const float EYEBALL_COLOR[4]         =  { 0.9f, 0.9f, 0.8f, 1.0f };
@@ -327,25 +327,6 @@ void PerlinFace::render() {
     glPopMatrix();
 
 
-    /*/
-    // Draw points for debug.
-    glColor3d(0.0f, 1.0f, 0.0f);
-    glPointSize(4);
-    glBegin(GL_POINTS);
-    for (int i = 0; i < 2 * NUM_VERTICES; ++i) {
-        if (i == NUM_VERTICES) {
-            glColor3d(1.0f, 0.0f, 0.0f);
-        }
-        glVertex3d(VERTICES[3 * i], VERTICES[(3 * i) + 1], VERTICES[(3 * i) + 2]);
-    }
-    glColor3d(0.0f, 0.0f, 1.0f);
-    for (int i = 2 * NUM_VERTICES; i < _vertexNumber; ++i) {
-        break;
-        glVertex3d(VERTICES[3 * i], VERTICES[(3 * i) + 1], VERTICES[(3 * i) + 2]);
-        glVertex3d(-VERTICES[3 * i], VERTICES[(3 * i) + 1], VERTICES[(3 * i) + 2]);
-    }
-    glEnd();
-    /**/
     glPopMatrix();
 }
 
@@ -413,47 +394,50 @@ void PerlinFace::updatePositions() {
             - _browsD_R * BROWS_DOWN_MAX
             + _browsU_C * BROWS_UP_CENTER_MAX;
 
+    const float MOUTH_UP_MAX = 6.5f;
+    const float MOUTH_SIDE_UP_MAX = 4.0f;
+    const float SMILE_FACTOR = 1.0f / 3.0f;  // 0 = No smile, 1 = The Jocker.
 
     // Mouth
     _vertices[MOUTH_BOTTOM_IN].y = getVec3(MOUTH_BOTTOM_IN).y
-            + (1.0 - _mouthSize) * 6.5;
+            + (1.0 - _mouthSize) * MOUTH_UP_MAX;
     _vertices[MOUTH_BOTTOM_OUT].y = getVec3(MOUTH_BOTTOM_OUT).y
-            + (1.0 - _mouthSize) * 6.5;
-    _vertices[MOUTH_MID_IN] = (1.0f - (_mouthSmileLeft / 3.0f)) * (getVec3(MOUTH_MID_IN)
-                                                                   + glm::vec3(0, (1.0 - _mouthSize) * 4, 0))
-            + (_mouthSmileLeft / 3.0f) * getVec3(CHICK_MID);
-    _vertices[MOUTH_MID_OUT] = (1.0f - (_mouthSmileLeft / 3.0f)) * (getVec3(MOUTH_MID_OUT)
-                                                                    + glm::vec3(0, (1.0 - _mouthSize) * 4, 0))
-            + (_mouthSmileLeft / 3.0f) * getVec3(CHICK_MID);
+            + (1.0 - _mouthSize) * MOUTH_UP_MAX;
+    _vertices[MOUTH_MID_IN] = (1.0f - (_mouthSmileLeft * SMILE_FACTOR)) * (getVec3(MOUTH_MID_IN)
+                                                                   + glm::vec3(0, (1.0 - _mouthSize) * MOUTH_SIDE_UP_MAX, 0))
+            + (_mouthSmileLeft * SMILE_FACTOR) * getVec3(CHICK_MID);
+    _vertices[MOUTH_MID_OUT] = (1.0f - (_mouthSmileLeft * SMILE_FACTOR)) * (getVec3(MOUTH_MID_OUT)
+                                                                    + glm::vec3(0, (1.0 - _mouthSize) * MOUTH_SIDE_UP_MAX, 0))
+            + (_mouthSmileLeft * SMILE_FACTOR) * getVec3(CHICK_MID);
 
 
     _vertices[NUM_VERTICES + MOUTH_BOTTOM_IN].y = getVec3(NUM_VERTICES + MOUTH_BOTTOM_IN).y
-            + (1.0 - _mouthSize) * 6.5;
+            + (1.0 - _mouthSize) * MOUTH_UP_MAX;
     _vertices[NUM_VERTICES + MOUTH_BOTTOM_OUT].y = getVec3(NUM_VERTICES + MOUTH_BOTTOM_OUT).y
-            + (1.0 - _mouthSize) * 6.5;
-    _vertices[NUM_VERTICES + MOUTH_MID_IN] = (1.0f - (_mouthSmileLeft / 3.0f)) * (getVec3(NUM_VERTICES + MOUTH_MID_IN)
-                                                                   + glm::vec3(0, (1.0 - _mouthSize) * 4, 0))
-            + (_mouthSmileLeft / 3.0f) * getVec3(NUM_VERTICES + CHICK_MID);
-    _vertices[NUM_VERTICES + MOUTH_MID_OUT] = (1.0f - (_mouthSmileLeft / 3.0f)) * (getVec3(NUM_VERTICES + MOUTH_MID_OUT)
-                                                                    + glm::vec3(0, (1.0 - _mouthSize) * 4, 0))
-            + (_mouthSmileLeft / 3.0f) * getVec3(NUM_VERTICES + CHICK_MID);
+            + (1.0 - _mouthSize) * MOUTH_UP_MAX;
+    _vertices[NUM_VERTICES + MOUTH_MID_IN] = (1.0f - (_mouthSmileLeft * SMILE_FACTOR)) * (getVec3(NUM_VERTICES + MOUTH_MID_IN)
+                                                                   + glm::vec3(0, (1.0 - _mouthSize) * MOUTH_SIDE_UP_MAX, 0))
+            + (_mouthSmileLeft * SMILE_FACTOR) * getVec3(NUM_VERTICES + CHICK_MID);
+    _vertices[NUM_VERTICES + MOUTH_MID_OUT] = (1.0f - (_mouthSmileLeft * SMILE_FACTOR)) * (getVec3(NUM_VERTICES + MOUTH_MID_OUT)
+                                                                    + glm::vec3(0, (1.0 - _mouthSize) * MOUTH_SIDE_UP_MAX, 0))
+            + (_mouthSmileLeft * SMILE_FACTOR) * getVec3(NUM_VERTICES + CHICK_MID);
 
 
     
     // Jaw
     _vertices[CHIN_IN].y = getVec3(CHIN_IN).y
-            + (1.0 - _mouthSize) * 4;
+            + (1.0 - _mouthSize) * MOUTH_UP_MAX;
     _vertices[CHIN_TIP].y = getVec3(CHIN_TIP).y
-            + (1.0 - _mouthSize) * 4;
+            + (1.0 - _mouthSize) * MOUTH_UP_MAX;
     _vertices[CHIN_BOTTOM].y = getVec3(CHIN_BOTTOM).y
-            + (1.0 - _mouthSize) * 4;
+            + (1.0 - _mouthSize) * MOUTH_UP_MAX;
 
     _vertices[NUM_VERTICES +CHIN_IN].y = getVec3(NUM_VERTICES + CHIN_IN).y
-            + (1.0 - _mouthSize) * 4;
+            + (1.0 - _mouthSize) * MOUTH_UP_MAX;
     _vertices[NUM_VERTICES +CHIN_TIP].y = getVec3(NUM_VERTICES + CHIN_TIP).y
-            + (1.0 - _mouthSize) * 4;
+            + (1.0 - _mouthSize) * MOUTH_UP_MAX;
     _vertices[NUM_VERTICES +CHIN_BOTTOM].y = getVec3(NUM_VERTICES + CHIN_BOTTOM).y
-            + (1.0 - _mouthSize) * 4;
+            + (1.0 - _mouthSize) * MOUTH_UP_MAX;
 
 
     // Eyelids

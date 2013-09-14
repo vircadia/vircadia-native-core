@@ -65,6 +65,7 @@ public slots:
     void checkForUpdates();
     
 private slots:
+    void aboutApp();
     void editPreferences();
     void goToDomain();
     void goToLocation();
@@ -116,6 +117,7 @@ private:
 
 namespace MenuOption {
     
+    const QString AboutApp = "About Interface";
     const QString AmbientOcclusion = "Ambient Occlusion";
     const QString Avatars = "Avatars";
     const QString AvatarAsBalls = "Avatar as Balls";
@@ -130,6 +132,7 @@ namespace MenuOption {
     const QString CutVoxels = "Cut";
     const QString DecreaseAvatarSize = "Decrease Avatar Size";
     const QString DecreaseVoxelSize = "Decrease Voxel Size";
+    const QString DeleteVoxels = "Delete";
     const QString DestructiveAddVoxel = "Create Voxel is Destructive";
     const QString DeltaSending = "Delta Sending";
     const QString DisplayFrustum = "Display Frustum";
@@ -137,7 +140,7 @@ namespace MenuOption {
     const QString ExportVoxels = "Export Voxels";
     const QString HeadMouse = "Head Mouse";
     const QString FaceMode = "Cycle Face Mode";
-    const QString Faceshift = "Faceshift";
+    const QString FaceshiftTCP = "Faceshift (TCP)";
     const QString FalseColorByDistance = "FALSE Color By Distance";
     const QString FalseColorBySource = "FALSE Color By Source";
     const QString FalseColorEveryOtherVoxel = "FALSE Color Every Other Randomly";
@@ -169,7 +172,7 @@ namespace MenuOption {
     const QString LookAtVectors = "Look-at Vectors";
     const QString LowRes = "Lower Resolution While Moving";
     const QString Mirror = "Mirror";
-    const QString NudgeVoxels = "Nudge Voxels";
+    const QString NudgeVoxels = "Nudge";
     const QString OcclusionCulling = "Occlusion Culling";
     const QString OffAxisProjection = "Off-Axis Projection";
     const QString Oscilloscope = "Audio Oscilloscope";
@@ -194,6 +197,7 @@ namespace MenuOption {
     const QString TestRaveGlove = "Test Rave Glove";
     const QString TreeStats = "Calculate Tree Stats";
     const QString TransmitterDrive = "Transmitter Drive";
+    const QString UsePerlinFace = "Use Perlin's Face";
     const QString Quit =  "Quit";
     const QString Webcam = "Webcam";
     const QString WebcamMode = "Cycle Webcam Send Mode";
@@ -205,7 +209,6 @@ namespace MenuOption {
     const QString VoxelGetColorMode = "Get Color Mode";
     const QString VoxelMode = "Cycle Voxel Mode";
     const QString VoxelPaintColor = "Voxel Paint Color";
-    const QString VoxelNudgeMode = "Nudge Voxel Mode";
     const QString VoxelSelectMode = "Select Voxel Mode";
     const QString VoxelStats = "Voxel Stats";
     const QString VoxelTextures = "Voxel Textures";
