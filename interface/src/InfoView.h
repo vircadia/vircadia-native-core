@@ -11,8 +11,7 @@
 
 #include <QtWebKitWidgets/QWebView>
 
-class InfoView : public QWebView
-{
+class InfoView : public QWebView {
     Q_OBJECT
 public:
     static void showFirstTime();
