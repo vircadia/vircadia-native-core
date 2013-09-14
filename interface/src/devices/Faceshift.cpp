@@ -8,13 +8,18 @@
 
 #include <QTimer>
 
+#include <SharedUtil.h>
+
 #include "Faceshift.h"
 
 using namespace fs;
 using namespace std;
 
+const quint16 FACESHIFT_PORT = 33433;
+
 Faceshift::Faceshift() :
-    _enabled(false),
+    _tcpEnabled(false),
+    _lastMessageReceived(0),
     _eyeGazeLeftPitch(0.0f),
     _eyeGazeLeftYaw(0.0f),
     _eyeGazeRightPitch(0.0f),
@@ -23,10 +28,6 @@ Faceshift::Faceshift() :
     _rightBlink(0.0f),
     _leftEyeOpen(0.0f),
     _rightEyeOpen(0.0f),
-    _leftBlinkIndex(-1),
-    _rightBlinkIndex(-1),
-    _leftEyeOpenIndex(-1),
-    _rightEyeOpenIndex(-1),
     _browDownLeft(0.0f),
     _browDownRight(0.0f),
     _browUpCenter(0.0f),
@@ -34,7 +35,6 @@ Faceshift::Faceshift() :
     _browUpRight(0.0f),
     _browDownLeftIndex(-1),
     _browDownRightIndex(-1),
-    _browUpCenterIndex(-1),
     _browUpLeftIndex(-1),
     _browUpRightIndex(-1),
     _mouthSize(0.0f),
@@ -42,15 +42,30 @@ Faceshift::Faceshift() :
     _mouthSmileRight(0),
     _mouthSmileLeftIndex(-1),
     _mouthSmileRightIndex(0),
-    _jawOpenIndex(-1),
+    _leftBlinkIndex(0), // see http://support.faceshift.com/support/articles/35129-export-of-blendshapes
+    _rightBlinkIndex(1),
+    _leftEyeOpenIndex(8),
+    _rightEyeOpenIndex(9),
+    _browUpCenterIndex(16),
+    _jawOpenIndex(21),
     _longTermAverageEyePitch(0.0f),
     _longTermAverageEyeYaw(0.0f),
     _estimatedEyePitch(0.0f),
     _estimatedEyeYaw(0.0f)
 {
-    connect(&_socket, SIGNAL(connected()), SLOT(noteConnected()));
-    connect(&_socket, SIGNAL(error(QAbstractSocket::SocketError)), SLOT(noteError(QAbstractSocket::SocketError)));
-    connect(&_socket, SIGNAL(readyRead()), SLOT(readFromSocket()));
+    connect(&_tcpSocket, SIGNAL(connected()), SLOT(noteConnected()));
+    connect(&_tcpSocket, SIGNAL(error(QAbstractSocket::SocketError)), SLOT(noteError(QAbstractSocket::SocketError)));
+    connect(&_tcpSocket, SIGNAL(readyRead()), SLOT(readFromSocket()));
+    
+    connect(&_udpSocket, SIGNAL(readyRead()), SLOT(readPendingDatagrams()));
+    
+    _udpSocket.bind(FACESHIFT_PORT);
+}
+
+bool Faceshift::isActive() const {
+    const uint64_t ACTIVE_TIMEOUT_USECS = 1000000;
+    return (_tcpSocket.state() == QAbstractSocket::ConnectedState ||
+        (usecTimestampNow() - _lastMessageReceived) < ACTIVE_TIMEOUT_USECS) && _tracking;
 }
 
 void Faceshift::update() {
@@ -67,28 +82,27 @@ void Faceshift::update() {
 }
 
 void Faceshift::reset() {
-    if (isActive()) {
+    if (_tcpSocket.state() == QAbstractSocket::ConnectedState) {
         string message;
         fsBinaryStream::encode_message(message, fsMsgCalibrateNeutral());
         send(message);
     }
 }
 
-void Faceshift::setEnabled(bool enabled) {
-    if ((_enabled = enabled)) {
+void Faceshift::setTCPEnabled(bool enabled) {
+    if ((_tcpEnabled = enabled)) {
         connectSocket();
     
     } else {
-        _socket.disconnectFromHost();
+        _tcpSocket.disconnectFromHost();
     }
 }
 
 void Faceshift::connectSocket() {
-    if (_enabled) {
+    if (_tcpEnabled) {
         qDebug("Faceshift: Connecting...\n");
     
-        const quint16 FACESHIFT_PORT = 33433;
-        _socket.connectToHost("localhost", FACESHIFT_PORT);
+        _tcpSocket.connectToHost("localhost", FACESHIFT_PORT);
         _tracking = false;
     }
 }
@@ -103,16 +117,32 @@ void Faceshift::noteConnected() {
 }
 
 void Faceshift::noteError(QAbstractSocket::SocketError error) {
-    qDebug() << "Faceshift: " << _socket.errorString() << "\n";
+    qDebug() << "Faceshift: " << _tcpSocket.errorString() << "\n";
     
     // reconnect after a delay
-    if (_enabled) {
+    if (_tcpEnabled) {
         QTimer::singleShot(1000, this, SLOT(connectSocket()));
     }
 }
 
+void Faceshift::readPendingDatagrams() {
+    QByteArray buffer;
+    while (_udpSocket.hasPendingDatagrams()) {
+        buffer.resize(_udpSocket.pendingDatagramSize());
+        _udpSocket.readDatagram(buffer.data(), buffer.size());
+        receive(buffer);
+    }
+}
+
 void Faceshift::readFromSocket() {
-    QByteArray buffer = _socket.readAll();
+    receive(_tcpSocket.readAll());
+}
+
+void Faceshift::send(const std::string& message) {
+    _tcpSocket.write(message.data(), message.size());
+}
+
+void Faceshift::receive(const QByteArray& buffer) {
     _stream.received(buffer.size(), buffer.constData());
     fsMsgPtr msg;
     for (fsMsgPtr msg; (msg = _stream.get_message()); ) {
@@ -129,7 +159,7 @@ void Faceshift::readFromSocket() {
                     _eyeGazeLeftYaw = data.m_eyeGazeLeftYaw;
                     _eyeGazeRightPitch = -data.m_eyeGazeRightPitch;
                     _eyeGazeRightYaw = data.m_eyeGazeRightYaw;
-                    
+
                     if (_leftBlinkIndex != -1) {
                         _leftBlink = data.m_coeffs[_leftBlinkIndex];
                     }
@@ -216,8 +246,5 @@ void Faceshift::readFromSocket() {
                 break;
         }
     }
-}
-
-void Faceshift::send(const std::string& message) {
-    _socket.write(message.data(), message.size());
+    _lastMessageReceived = usecTimestampNow();
 }

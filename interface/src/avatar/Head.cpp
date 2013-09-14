@@ -150,8 +150,9 @@ void Head::simulate(float deltaTime, bool isMine, float gyroCameraSensitivity) {
     //  Update audio trailing average for rendering facial animations
     Faceshift* faceshift = Application::getInstance()->getFaceshift();
     if (isMine && faceshift->isActive()) {
-        _leftEyeBlink = faceshift->getLeftBlink();
-        _rightEyeBlink = faceshift->getRightBlink();
+        const float EYE_OPEN_SCALE = 0.5f;
+        _leftEyeBlink = faceshift->getLeftBlink() - EYE_OPEN_SCALE * faceshift->getLeftEyeOpen();
+        _rightEyeBlink = faceshift->getRightBlink() - EYE_OPEN_SCALE * faceshift->getRightEyeOpen();
         
         // set these values based on how they'll be used.  if we use faceshift in the long term, we'll want a complete
         // mapping between their blendshape coefficients and our avatar features
@@ -730,7 +731,7 @@ void Head::renderEyeBalls() {
         float angle = -67.5f - 50.0f * _leftEyeBlink;
         glRotatef(angle, 1, 0, 0);
         Application::getInstance()->getGeometryCache()->renderHemisphere(15, 10);
-        glRotatef(glm::mix(-angle, 180.0f, _leftEyeBlink), 1, 0, 0);
+        glRotatef(glm::mix(-angle, 180.0f, max(0.0f, _leftEyeBlink)), 1, 0, 0);
         Application::getInstance()->getGeometryCache()->renderHemisphere(15, 10);
     }
     glPopMatrix();
@@ -744,7 +745,7 @@ void Head::renderEyeBalls() {
         float angle = -67.5f - 50.0f * _rightEyeBlink; 
         glRotatef(angle, 1, 0, 0);
         Application::getInstance()->getGeometryCache()->renderHemisphere(15, 10);
-        glRotatef(glm::mix(-angle, 180.0f, _rightEyeBlink), 1, 0, 0);
+        glRotatef(glm::mix(-angle, 180.0f, max(0.0f, _rightEyeBlink)), 1, 0, 0);
         Application::getInstance()->getGeometryCache()->renderHemisphere(15, 10);
     }
     glPopMatrix();
