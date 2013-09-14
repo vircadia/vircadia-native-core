@@ -112,6 +112,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _mouseVoxelScale(1.0f / 1024.0f),
         _justEditedVoxel(false),
         _nudgeStarted(false),
+        _lookingAlongX(false),
+        _lookingAwayFromOrigin(true),
         _isLookingAtOtherAvatar(false),
         _lookatIndicatorScale(1.0f),
         _perfStatsOn(false),
@@ -535,27 +537,63 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
                 
             case Qt::Key_E:
-                if (!_myAvatar.getDriveKeys(UP)) {
-                    _myAvatar.jump();
+                if (_nudgeStarted) {
+                    _nudgeGuidePosition.y += _mouseVoxel.s;
+                } else {
+                   if (!_myAvatar.getDriveKeys(UP)) {
+                        _myAvatar.jump();
+                    }
+                    _myAvatar.setDriveKeys(UP, 1); 
                 }
-                _myAvatar.setDriveKeys(UP, 1);
                 break;
                 
             case Qt::Key_C:
                 if (isShifted)  {
                     Menu::getInstance()->triggerOption(MenuOption::OcclusionCulling);
+                } else if (_nudgeStarted) {
+                    _nudgeGuidePosition.y -= _mouseVoxel.s;
                 } else {
                     _myAvatar.setDriveKeys(DOWN, 1);
                 }
                 break;
                 
             case Qt::Key_W:
-                _myAvatar.setDriveKeys(FWD, 1);
+                if (_nudgeStarted) {
+                    if (_lookingAlongX) {
+                        if (_lookingAwayFromOrigin) {
+                            _nudgeGuidePosition.x += _mouseVoxel.s;
+                        } else {
+                            _nudgeGuidePosition.x -= _mouseVoxel.s;
+                        }
+                    } else {
+                        if (_lookingAwayFromOrigin) {
+                            _nudgeGuidePosition.z += _mouseVoxel.s;
+                        } else {
+                            _nudgeGuidePosition.z -= _mouseVoxel.s;
+                        }
+                    }
+                } else {
+                    _myAvatar.setDriveKeys(FWD, 1);
+                }
                 break;
                 
             case Qt::Key_S:
                 if (isShifted)  {
                     _voxels.collectStatsForTreesAndVBOs();
+                } else if (_nudgeStarted) {
+                    if (_lookingAlongX) {
+                        if (_lookingAwayFromOrigin) {
+                            _nudgeGuidePosition.x -= _mouseVoxel.s;
+                        } else {
+                            _nudgeGuidePosition.x += _mouseVoxel.s;
+                        }
+                    } else {
+                        if (_lookingAwayFromOrigin) {
+                            _nudgeGuidePosition.z -= _mouseVoxel.s;
+                        } else {
+                            _nudgeGuidePosition.z += _mouseVoxel.s;
+                        }
+                    }
                 } else {
                     _myAvatar.setDriveKeys(BACK, 1);
                 }
@@ -577,37 +615,139 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_A:
                 if (isShifted) {
                     Menu::getInstance()->triggerOption(MenuOption::Atmosphere);
+                } else if (_nudgeStarted) {
+                    if (_lookingAlongX) {
+                        if (_lookingAwayFromOrigin) {
+                            _nudgeGuidePosition.z -= _mouseVoxel.s;
+                        } else {
+                            _nudgeGuidePosition.z += _mouseVoxel.s;
+                        }
+                    } else {
+                        if (_lookingAwayFromOrigin) {
+                            _nudgeGuidePosition.x += _mouseVoxel.s;
+                        } else {
+                            _nudgeGuidePosition.x -= _mouseVoxel.s;
+                        }
+                    }
                 } else {
                     _myAvatar.setDriveKeys(ROT_LEFT, 1);
                 }
                 break;
                 
             case Qt::Key_D:
-                _myAvatar.setDriveKeys(ROT_RIGHT, 1);
+                if (_nudgeStarted) {
+                    if (_lookingAlongX) {
+                        if (_lookingAwayFromOrigin) {
+                            _nudgeGuidePosition.z += _mouseVoxel.s;
+                        } else {
+                            _nudgeGuidePosition.z -= _mouseVoxel.s;
+                        }
+                    } else {
+                        if (_lookingAwayFromOrigin) {
+                            _nudgeGuidePosition.x -= _mouseVoxel.s;
+                        } else {
+                            _nudgeGuidePosition.x += _mouseVoxel.s;
+                        }
+                    }
+                } else {
+                    _myAvatar.setDriveKeys(ROT_RIGHT, 1);
+                }
                 break;
                 
             case Qt::Key_Return:
             case Qt::Key_Enter:
-                _chatEntryOn = true;
-                _myAvatar.setKeyState(NO_KEY_DOWN);
-                _myAvatar.setChatMessage(string());
-                setMenuShortcutsEnabled(false);
+                if (_nudgeStarted) {
+                    nudgeVoxels();
+                } else {
+                    _chatEntryOn = true;
+                    _myAvatar.setKeyState(NO_KEY_DOWN);
+                    _myAvatar.setChatMessage(string());
+                    setMenuShortcutsEnabled(false);
+                }
                 break;
                 
             case Qt::Key_Up:
-                _myAvatar.setDriveKeys(isShifted ? UP : FWD, 1);
+                if (_nudgeStarted && !isShifted) {
+                    if (_lookingAlongX) {
+                        if (_lookingAwayFromOrigin) {
+                            _nudgeGuidePosition.x += _mouseVoxel.s;
+                        } else {
+                            _nudgeGuidePosition.x -= _mouseVoxel.s;
+                        }
+                    } else {
+                        if (_lookingAwayFromOrigin) {
+                            _nudgeGuidePosition.z += _mouseVoxel.s;
+                        } else {
+                            _nudgeGuidePosition.z -= _mouseVoxel.s;
+                        }
+                    }
+                } else if (_nudgeStarted && isShifted) {
+                    _nudgeGuidePosition.y += _mouseVoxel.s;
+                } else {
+                    _myAvatar.setDriveKeys(isShifted ? UP : FWD, 1);
+                }
                 break;
                 
             case Qt::Key_Down:
-                _myAvatar.setDriveKeys(isShifted ? DOWN : BACK, 1);
+                if (_nudgeStarted && !isShifted) {
+                    if (_lookingAlongX) {
+                        if (_lookingAwayFromOrigin) {
+                            _nudgeGuidePosition.x -= _mouseVoxel.s;
+                        } else {
+                            _nudgeGuidePosition.x += _mouseVoxel.s;
+                        }
+                    } else {
+                        if (_lookingAwayFromOrigin) {
+                            _nudgeGuidePosition.z -= _mouseVoxel.s;
+                        } else {
+                            _nudgeGuidePosition.z += _mouseVoxel.s;
+                        }
+                    }
+                } else if (_nudgeStarted && isShifted) {
+                    _nudgeGuidePosition.y -= _mouseVoxel.s;
+                } else {
+                    _myAvatar.setDriveKeys(isShifted ? DOWN : BACK, 1);
+                }
                 break;
                 
             case Qt::Key_Left:
-                _myAvatar.setDriveKeys(isShifted ? LEFT : ROT_LEFT, 1);
+                if (_nudgeStarted) {
+                    if (_lookingAlongX) {
+                        if (_lookingAwayFromOrigin) {
+                            _nudgeGuidePosition.z -= _mouseVoxel.s;
+                        } else {
+                            _nudgeGuidePosition.z += _mouseVoxel.s;
+                        }
+                    } else {
+                        if (_lookingAwayFromOrigin) {
+                            _nudgeGuidePosition.x += _mouseVoxel.s;
+                        } else {
+                            _nudgeGuidePosition.x -= _mouseVoxel.s;
+                        }
+                    }
+                } else {
+                    _myAvatar.setDriveKeys(isShifted ? LEFT : ROT_LEFT, 1);
+                }
                 break;
                 
             case Qt::Key_Right:
-                _myAvatar.setDriveKeys(isShifted ? RIGHT : ROT_RIGHT, 1);
+                if (_nudgeStarted) {
+                    if (_lookingAlongX) {
+                        if (_lookingAwayFromOrigin) {
+                            _nudgeGuidePosition.z += _mouseVoxel.s;
+                        } else {
+                            _nudgeGuidePosition.z -= _mouseVoxel.s;
+                        }
+                    } else {
+                        if (_lookingAwayFromOrigin) {
+                            _nudgeGuidePosition.x -= _mouseVoxel.s;
+                        } else {
+                            _nudgeGuidePosition.x += _mouseVoxel.s;
+                        }
+                    }
+                } else {
+                    _myAvatar.setDriveKeys(isShifted ? RIGHT : ROT_RIGHT, 1);
+                }
                 break;
                 
             case Qt::Key_I:
@@ -1299,21 +1439,45 @@ void Application::pasteVoxels() {
     }
 }
 
-void Application::nudgeVoxels() {
-    if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelSelectMode)) {
-        if (!_nudgeStarted) {
-            _nudgeVoxel = _mouseVoxel;
-            _nudgeStarted = true;
+void Application::findAxisAlignment() {
+    glm::vec3 direction = _myAvatar.getMouseRayDirection();
+    if (fabs(direction.z) > fabs(direction.x)) {
+        _lookingAlongX = false;
+        if (direction.z < 0) {
+            _lookingAwayFromOrigin = false;
         } else {
-            // calculate nudgeVec
-            glm::vec3 nudgeVec(_mouseVoxel.x - _nudgeVoxel.x, _mouseVoxel.y - _nudgeVoxel.y, _mouseVoxel.z - _nudgeVoxel.z);
+            _lookingAwayFromOrigin = true;
+        }
+    } else {
+        _lookingAlongX = true;
+        if (direction.x < 0) {
+            _lookingAwayFromOrigin = false;
+        } else {
+            _lookingAwayFromOrigin = true;
+        }
+    }
+}
 
-            VoxelNode* nodeToNudge = _voxels.getVoxelAt(_nudgeVoxel.x, _nudgeVoxel.y, _nudgeVoxel.z, _nudgeVoxel.s);
+void Application::nudgeVoxels() {
+    VoxelNode* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+    if (!Menu::getInstance()->isOptionChecked(MenuOption::VoxelSelectMode) && selectedNode) {
+        Menu::getInstance()->triggerOption(MenuOption::VoxelSelectMode);
+    }
+    
+    if (!_nudgeStarted && selectedNode) {
+        _nudgeVoxel = _mouseVoxel;
+        _nudgeStarted = true;
+        _nudgeGuidePosition = glm::vec3(_nudgeVoxel.x, _nudgeVoxel.y, _nudgeVoxel.z);
+        findAxisAlignment();
+    } else {
+        // calculate nudgeVec
+        glm::vec3 nudgeVec(_nudgeGuidePosition.x - _nudgeVoxel.x, _nudgeGuidePosition.y - _nudgeVoxel.y, _nudgeGuidePosition.z - _nudgeVoxel.z);
 
-            if (nodeToNudge) {
-                _voxels.getTree()->nudgeSubTree(nodeToNudge, nudgeVec, _voxelEditSender);
-                _nudgeStarted = false;
-            }
+        VoxelNode* nodeToNudge = _voxels.getVoxelAt(_nudgeVoxel.x, _nudgeVoxel.y, _nudgeVoxel.z, _nudgeVoxel.s);
+
+        if (nodeToNudge) {
+            _voxels.getTree()->nudgeSubTree(nodeToNudge, nudgeVec, _voxelEditSender);
+            _nudgeStarted = false;
         }
     }
 }
@@ -2310,7 +2474,7 @@ void Application::displaySide(Camera& whichCamera) {
         glPushMatrix();
         glScalef(TREE_SCALE, TREE_SCALE, TREE_SCALE);
         if (_nudgeStarted) {
-            renderNudgeGuide(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _nudgeVoxel.s);
+            renderNudgeGuide(_nudgeGuidePosition.x, _nudgeGuidePosition.y, _nudgeGuidePosition.z, _nudgeVoxel.s);
             renderNudgeGrid(_nudgeVoxel.x, _nudgeVoxel.y, _nudgeVoxel.z, _nudgeVoxel.s, _mouseVoxel.s);
             glPushMatrix();
             glTranslatef(_nudgeVoxel.x + _nudgeVoxel.s * 0.5f,
@@ -2332,9 +2496,10 @@ void Application::displaySide(Camera& whichCamera) {
         }
         
         if (_nudgeStarted) {
-            glTranslatef(_mouseVoxel.x + _nudgeVoxel.s*0.5f,
-                _mouseVoxel.y + _nudgeVoxel.s*0.5f,
-                _mouseVoxel.z + _nudgeVoxel.s*0.5f);
+            // render nudge guide cube
+            glTranslatef(_nudgeGuidePosition.x + _nudgeVoxel.s*0.5f,
+                _nudgeGuidePosition.y + _nudgeVoxel.s*0.5f,
+                _nudgeGuidePosition.z + _nudgeVoxel.s*0.5f);
             glLineWidth(4.0f);
             glutWireCube(_nudgeVoxel.s);
         } else {

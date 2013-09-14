@@ -223,7 +223,9 @@ private:
     void updateCursor();
     
     static void attachNewHeadToNode(Node *newNode);
-    static void* networkReceive(void* args); // network receive thread    
+    static void* networkReceive(void* args); // network receive thread
+
+    void findAxisAlignment();   
 
     QMainWindow* _window;
     QGLWidget* _glWidget;
@@ -310,6 +312,9 @@ private:
 
     VoxelDetail _nudgeVoxel; // details of the voxel to be nudged
     bool _nudgeStarted;
+    bool _lookingAlongX;
+    bool _lookingAwayFromOrigin;
+    glm::vec3 _nudgeGuidePosition;
 
     bool _isLookingAtOtherAvatar;
     glm::vec3 _lookatOtherPosition;
