@@ -28,14 +28,14 @@
 
 #include <QtCore/QMutex>
 
+#include <civetweb.h>
+
 #include "Assignment.h"
 #include "NodeList.h"
 #include "NodeTypes.h"
 #include "Logging.h"
 #include "PacketHeaders.h"
 #include "SharedUtil.h"
-
-#include "mongoose.h"
 
 const int DOMAIN_LISTEN_PORT = 40102;
 unsigned char packetData[MAX_PACKET_SIZE];
