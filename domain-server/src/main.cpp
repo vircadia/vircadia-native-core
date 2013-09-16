@@ -26,6 +26,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <QtCore/QCoreApplication>
 #include <QtCore/QMutex>
 
 #include <civetweb.h>
@@ -98,6 +99,8 @@ static void mongooseUploadHandler(struct mg_connection *conn, const char *path) 
 
 int main(int argc, const char* argv[]) {
     
+    QCoreApplication domainServer(argc, (char**) argv);
+    
     qInstallMessageHandler(Logging::verboseMessageHandler);
     
     NodeList* nodeList = NodeList::createInstance(NODE_TYPE_DOMAIN, DOMAIN_LISTEN_PORT);
@@ -153,9 +156,13 @@ int main(int argc, const char* argv[]) {
     struct mg_context *ctx;
     struct mg_callbacks callbacks = {};
     
+    QString documentRoot = QString("%1/resources/web").arg(QCoreApplication::applicationDirPath());
+    
+    qDebug() << documentRoot << "\n";
+    
     // list of options. Last element must be NULL.
     const char *options[] = {"listening_ports", "8080",
-                             "document_root", "./resources/web", NULL};
+                             "document_root", documentRoot.toStdString().c_str(), NULL};
     
     callbacks.begin_request = mongooseRequestHandler;
     callbacks.upload = mongooseUploadHandler;
