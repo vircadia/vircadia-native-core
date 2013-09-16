@@ -25,3 +25,13 @@ link_hifi_library(shared ${TARGET_NAME} ${ROOT_DIR})
 find_package(ZLIB)
 include_directories(${ZLIB_INCLUDE_DIRS})
 target_link_libraries(${TARGET_NAME} ${ZLIB_LIBRARIES})
+
+# link in the shared library
+include(${MACRO_DIR}/LinkHifiLibrary.cmake)
+link_hifi_library(shared ${TARGET_NAME} ${ROOT_DIR})
+
+# link in the hifi voxels library
+link_hifi_library(voxels ${TARGET_NAME} ${ROOT_DIR})
+
+# link in the hifi avatars library
+link_hifi_library(avatars ${TARGET_NAME} ${ROOT_DIR})
