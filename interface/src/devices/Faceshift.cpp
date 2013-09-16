@@ -11,6 +11,7 @@
 #include <SharedUtil.h>
 
 #include "Faceshift.h"
+#include "Menu.h"
 
 using namespace fs;
 using namespace std;
@@ -98,6 +99,17 @@ void Faceshift::setTCPEnabled(bool enabled) {
     }
 }
 
+void Faceshift::setUsingRig(bool usingRig) {
+    if (usingRig && _tcpSocket.state() == QAbstractSocket::ConnectedState) {
+        string message;
+        fsBinaryStream::encode_message(message, fsMsgSendRig());
+        send(message);
+    
+    } else {
+        emit rigReceived(fsMsgRig());
+    }
+}
+
 void Faceshift::connectSocket() {
     if (_tcpEnabled) {
         qDebug("Faceshift: Connecting...\n");
@@ -114,6 +126,11 @@ void Faceshift::noteConnected() {
     string message;
     fsBinaryStream::encode_message(message, fsMsgSendBlendshapeNames());
     send(message);
+    
+    // if using faceshift rig, request it
+    if (Menu::getInstance()->isOptionChecked(MenuOption::UseFaceshiftRig)) {
+        setUsingRig(true);
+    }
 }
 
 void Faceshift::noteError(QAbstractSocket::SocketError error) {
@@ -208,10 +225,10 @@ void Faceshift::receive(const QByteArray& buffer) {
                     } else if (names[i] == "EyeBlink_R") {
                         _rightBlinkIndex = i;
 
-                    }else if (names[i] == "EyeOpen_L") {
+                    } else if (names[i] == "EyeOpen_L") {
                         _leftEyeOpenIndex = i;
 
-                    }else if (names[i] == "EyeOpen_R") {
+                    } else if (names[i] == "EyeOpen_R") {
                         _rightEyeOpenIndex = i;
 
                     } else if (names[i] == "BrowsD_L") {
@@ -237,9 +254,13 @@ void Faceshift::receive(const QByteArray& buffer) {
                         
                     } else if (names[i] == "MouthSmile_R") {
                         _mouthSmileRightIndex = i;
-                        
                     }
                 }
+                break;
+            }
+            case fsMsg::MSG_OUT_RIG: {
+                fsMsgRig* rig = static_cast<fsMsgRig*>(msg.get());
+                emit rigReceived(*rig);
                 break;
             }
             default:

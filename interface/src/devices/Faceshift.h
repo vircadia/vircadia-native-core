@@ -57,10 +57,15 @@ public:
     void update();
     void reset();
 
+signals:
+
+    void rigReceived(const fs::fsMsgRig& rig);
+    
 public slots:
     
     void setTCPEnabled(bool enabled);
-
+    void setUsingRig(bool usingRig);
+    
 private slots:
 
     void connectSocket();

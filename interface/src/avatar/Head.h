@@ -18,9 +18,10 @@
 #include <VoxelConstants.h>
 
 #include "BendyLine.h"
+#include "BlendFace.h"
 #include "Face.h"
-#include "PerlinFace.h"
 #include "InterfaceConfig.h"
+#include "PerlinFace.h"
 #include "world.h"
 #include "devices/SerialInterface.h"
 
@@ -71,6 +72,7 @@ public:
     glm::vec3 getFrontDirection() const { return getOrientation() * IDENTITY_FRONT; }
     
     Face& getFace() { return _face; }
+    BlendFace& getBlendFace() { return _blendFace; }
     
     const bool getReturnToCenter() const { return _returnHeadToCenter; } // Do you want head to try to return to center (depends on interface detected)
     float getAverageLoudness() const { return _averageLoudness; }
@@ -128,6 +130,7 @@ private:
     float _cameraFollowHeadRate;
     Face _face;
     PerlinFace _perlinFace;
+    BlendFace _blendFace;
 
     static ProgramObject _irisProgram;
     static GLuint _irisTextureID;

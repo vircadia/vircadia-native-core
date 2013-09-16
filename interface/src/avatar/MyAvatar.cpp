@@ -56,7 +56,15 @@ MyAvatar::MyAvatar(Node* owningNode) :
         _driveKeys[i] = false;
     }
 
-    _collisionRadius = _height * COLLISION_RADIUS_SCALE;
+    _collisionRadius = _height * COLLISION_RADIUS_SCALE;   
+}
+
+void MyAvatar::init() {
+    Avatar::init();
+
+    // when we receive a Faceshift rig, apply it to our own blend face
+    _head.getBlendFace().connect(Application::getInstance()->getFaceshift(), SIGNAL(rigReceived(fs::fsMsgRig)),
+        SLOT(setRig(fs::fsMsgRig)));
 }
 
 void MyAvatar::reset() {

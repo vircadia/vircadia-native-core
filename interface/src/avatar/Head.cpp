@@ -87,7 +87,8 @@ Head::Head(Avatar* owningAvatar) :
     _cameraFollowsHead(false),
     _cameraFollowHeadRate(0.0f),
     _face(this),
-    _perlinFace(this)
+    _perlinFace(this),
+    _blendFace(this)
 {
     if (USING_PHYSICAL_MOHAWK) {    
         resetHairPhysics();
