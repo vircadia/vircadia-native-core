@@ -142,16 +142,17 @@ void VoxelServer::run() {
     
     NodeList* nodeList = NodeList::createInstance(NODE_TYPE_VOXEL_SERVER, listenPort);
     setvbuf(stdout, NULL, _IOLBF, 0);
-    
+
     // tell our NodeList about our desire to get notifications
     nodeList->addHook(&nodeWatcher);
+    nodeList->linkedDataCreateCallback = &attachVoxelNodeDataToNode;
 
     // Handle Local Domain testing with the --local command line
     const char* local = "--local";
-    ::wantLocalDomain =  getCmdOption(_argc, _argv,local);
+    ::wantLocalDomain = cmdOptionExists(_argc, _argv, local);
     if (::wantLocalDomain) {
         printf("Local Domain MODE!\n");
-        nodeList->setDomainIPToLocalhost();
+        NodeList::getInstance()->setDomainIPToLocalhost();
     } else {
         const char* domainIP = getCmdOption(_argc, _argv, "--domain");
         if (domainIP) {
@@ -159,9 +160,7 @@ void VoxelServer::run() {
         }
     }
 
-    nodeList->linkedDataCreateCallback = &attachVoxelNodeDataToNode;
     nodeList->startSilentNodeRemovalThread();
-    
     srand((unsigned)time(0));
     
     const char* DISPLAY_VOXEL_STATS = "--displayVoxelStats";
