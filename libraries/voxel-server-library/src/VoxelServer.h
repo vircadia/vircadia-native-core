@@ -53,6 +53,20 @@ extern JurisdictionSender* jurisdictionSender;
 extern VoxelServerPacketProcessor* voxelServerPacketProcessor;
 extern pthread_mutex_t treeLock;
 
+/// Handles assignments of type VoxelServer - sending voxels to various clients.
+class VoxelServer {
+public:
+    /// runs the voxel server assignment
+    static void run();
+    
+    /// allows setting of run arguments
+    static void setArguments(int argc, char** argv);
+    
+private:
+    static int _argc;
+    static char**  _argv;
+};
+
 
 
 #endif // __voxel_server__VoxelServer__
