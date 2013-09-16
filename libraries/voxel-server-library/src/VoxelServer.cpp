@@ -63,7 +63,7 @@ pthread_mutex_t treeLock;
 NodeWatcher nodeWatcher; // used to cleanup AGENT data when agents are killed
 
 int VoxelServer::_argc = 0;
-char** VoxelServer::_argv = NULL;
+const char** VoxelServer::_argv = NULL;
 
 void attachVoxelNodeDataToNode(Node* newNode) {
     if (newNode->getLinkedData() == NULL) {
@@ -73,7 +73,7 @@ void attachVoxelNodeDataToNode(Node* newNode) {
 
 void VoxelServer::setArguments(int argc, char** argv) {
     _argc = argc;
-    _argv = argv;
+    _argv = const_cast<const char**>(argv);
 }
 
 
@@ -86,7 +86,7 @@ void VoxelServer::run() {
     int listenPort = VOXEL_LISTEN_PORT;
     // Check to see if the user passed in a command line option for setting listen port
     const char* PORT_PARAMETER = "--port";
-    const char* portParameter = getCmdOption(_argc, (const char*[])_argv, PORT_PARAMETER);
+    const char* portParameter = getCmdOption(_argc, _argv, PORT_PARAMETER);
     if (portParameter) {
         listenPort = atoi(portParameter);
         if (listenPort < 1) {

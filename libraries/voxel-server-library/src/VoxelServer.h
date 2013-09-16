@@ -64,7 +64,7 @@ public:
     
 private:
     static int _argc;
-    static char**  _argv;
+    static const char** _argv;
 };
 
 

@@ -9,7 +9,7 @@
 #include <VoxelServer.h>
 
 int main(int argc, const char * argv[]) {
-    VoxelServer::setArguments(argc, argv[]);
+    VoxelServer::setArguments(argc, const_cast<char**>(argv));
     VoxelServer::run();
 }
 
