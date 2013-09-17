@@ -20,6 +20,11 @@ $(document).ready(function(){
       // add the script
       + script + '\r\n'
       + '--' + boundary + '--';
+      
+    var headers = {};
+    if ($('#instance-field input').val()) {
+      headers['ASSIGNMENT-INSTANCES'] = $('#instance-field input').val();
+    }
             
     // post form to assignment in order to create an assignment
     $.ajax({
@@ -27,6 +32,7 @@ $(document).ready(function(){
         data: body,
         type: "POST",
         url: "/assignment",
+        headers: headers,
         success: function (data, status) {
           console.log(data);
           console.log(status);

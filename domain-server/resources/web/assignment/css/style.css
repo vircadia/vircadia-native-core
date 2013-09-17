@@ -36,11 +36,22 @@ body {
 }
 #deploy-button {
   background-color: #0DFFBB;
-  right: 0px;
+  right: 85px;
 }
 #deploy-button:hover {
   background-color: #28FF57;
 }
+
+#instance-field {
+  position: absolute;
+  right: 20px;
+  top: 40px;
+}
+
+#instance-field input {
+  width: 80px;
+}
+
 #stop-button {
   background-color: #CC1F00;
   right: 0px;
