@@ -25,25 +25,13 @@ Faceshift::Faceshift() :
     _eyeGazeLeftYaw(0.0f),
     _eyeGazeRightPitch(0.0f),
     _eyeGazeRightYaw(0.0f),
-    _leftBlink(0.0f),
-    _rightBlink(0.0f),
-    _leftEyeOpen(0.0f),
-    _rightEyeOpen(0.0f),
-    _browDownLeft(0.0f),
-    _browDownRight(0.0f),
-    _browUpCenter(0.0f),
-    _browUpLeft(0.0f),
-    _browUpRight(0.0f),
-    _browDownLeftIndex(-1),
-    _browDownRightIndex(-1),
-    _browUpLeftIndex(-1),
-    _browUpRightIndex(-1),
-    _mouthSize(0.0f),
-    _mouthSmileLeft(0),
-    _mouthSmileRight(0),
-    _mouthSmileLeftIndex(-1),
-    _mouthSmileRightIndex(0),
-    _leftBlinkIndex(0), // see http://support.faceshift.com/support/articles/35129-export-of-blendshapes
+    _browDownLeftIndex(14), // see http://support.faceshift.com/support/articles/35129-export-of-blendshapes
+    _browDownRightIndex(15),
+    _browUpLeftIndex(17),
+    _browUpRightIndex(18),
+    _mouthSmileLeftIndex(28),
+    _mouthSmileRightIndex(29),
+    _leftBlinkIndex(0), 
     _rightBlinkIndex(1),
     _leftEyeOpenIndex(8),
     _rightEyeOpenIndex(9),
@@ -155,6 +143,10 @@ void Faceshift::readFromSocket() {
     receive(_tcpSocket.readAll());
 }
 
+float Faceshift::getBlendshapeCoefficient(int index) const {
+    return (index >= 0 && index < _blendshapeCoefficients.size()) ? _blendshapeCoefficients[index] : 0.0f;
+}
+
 void Faceshift::send(const std::string& message) {
     _tcpSocket.write(message.data(), message.size());
 }
@@ -176,43 +168,7 @@ void Faceshift::receive(const QByteArray& buffer) {
                     _eyeGazeLeftYaw = data.m_eyeGazeLeftYaw;
                     _eyeGazeRightPitch = -data.m_eyeGazeRightPitch;
                     _eyeGazeRightYaw = data.m_eyeGazeRightYaw;
-
-                    if (_leftBlinkIndex != -1) {
-                        _leftBlink = data.m_coeffs[_leftBlinkIndex];
-                    }
-                    if (_rightBlinkIndex != -1) {
-                        _rightBlink = data.m_coeffs[_rightBlinkIndex];
-                    }
-                    if (_leftEyeOpenIndex != -1) {
-                        _leftEyeOpen = data.m_coeffs[_leftEyeOpenIndex];
-                    }
-                    if (_rightEyeOpenIndex != -1) {
-                        _rightEyeOpen = data.m_coeffs[_rightEyeOpenIndex];
-                    }
-                    if (_browDownLeftIndex != -1) {
-                        _browDownLeft = data.m_coeffs[_browDownLeftIndex];
-                    }
-                    if (_browDownRightIndex != -1) {
-                        _browDownRight = data.m_coeffs[_browDownRightIndex];
-                    }
-                    if (_browUpCenterIndex != -1) {
-                        _browUpCenter = data.m_coeffs[_browUpCenterIndex];
-                    }
-                    if (_browUpLeftIndex != -1) {
-                        _browUpLeft = data.m_coeffs[_browUpLeftIndex];
-                    }
-                    if (_browUpRightIndex != -1) {
-                        _browUpRight = data.m_coeffs[_browUpRightIndex];
-                    }
-                    if (_jawOpenIndex != -1) {
-                        _mouthSize = data.m_coeffs[_jawOpenIndex];
-                    }
-                    if (_mouthSmileLeftIndex != -1) {
-                        _mouthSmileLeft = data.m_coeffs[_mouthSmileLeftIndex];
-                    }
-                    if (_mouthSmileRightIndex != -1) {
-                        _mouthSmileRight = data.m_coeffs[_mouthSmileRightIndex];
-                    }
+                    _blendshapeCoefficients = data.m_coeffs;
                 }
                 break;
             }

@@ -10,6 +10,7 @@
 #define __hifi__HeadData__
 
 #include <iostream>
+#include <vector>
 
 #include <glm/glm.hpp>
 
@@ -52,6 +53,7 @@ public:
     void setLookAtPosition(const glm::vec3& lookAtPosition) { _lookAtPosition = lookAtPosition; }
     
     friend class AvatarData;
+    
 protected:
     float _yaw;
     float _pitch;
@@ -65,7 +67,9 @@ protected:
     float _rightEyeBlink;
     float _averageLoudness;
     float _browAudioLift;
+    std::vector<float> _blendshapeCoefficients;
     AvatarData* _owningAvatar;
+    
 private:
     // privatize copy ctor and assignment operator so copies of this object cannot be made
     HeadData(const HeadData&);
