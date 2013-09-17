@@ -76,8 +76,19 @@ static int mongooseRequestHandler(struct mg_connection *conn) {
 const char ASSIGNMENT_SCRIPT_HOST_LOCATION[] = "resources/web/assignment";
 
 static void mongooseUploadHandler(struct mg_connection *conn, const char *path) {
+    
     // create an assignment for this saved script, for now make it local only
     Assignment *scriptAssignment = new Assignment(Assignment::CreateCommand, Assignment::AgentType, Assignment::LocalLocation);
+    
+    // check how many instances of this assignment the user wants by checking the ASSIGNMENT-INSTANCES header
+    const char ASSIGNMENT_INSTANCES_HTTP_HEADER[] = "ASSIGNMENT-INSTANCES";
+    const char *requestInstancesHeader = mg_get_header(conn, ASSIGNMENT_INSTANCES_HTTP_HEADER);
+    
+    if (requestInstancesHeader) {
+        // the user has requested a number of instances greater than 1
+        // so set that on the created assignment
+        scriptAssignment->setNumberOfInstances(atoi(requestInstancesHeader));
+    }
     
     QString newPath(ASSIGNMENT_SCRIPT_HOST_LOCATION);
     newPath += "/";
@@ -94,7 +105,6 @@ static void mongooseUploadHandler(struct mg_connection *conn, const char *path) 
     ::assignmentQueueMutex.lock();
     ::assignmentQueue.push_back(scriptAssignment);
     ::assignmentQueueMutex.unlock();
-
 }
 
 int main(int argc, const char* argv[]) {
@@ -320,25 +330,39 @@ int main(int argc, const char* argv[]) {
                 std::deque<Assignment*>::iterator assignment = ::assignmentQueue.begin();
                 
                 while (assignment != ::assignmentQueue.end()) {
+                    // construct the requested assignment from the packet data
+                    Assignment requestAssignment(packetData, receivedBytes);
                     
-                    // give this assignment out, no conditions stop us from giving it to the local assignment client
-                    int numHeaderBytes = populateTypeAndVersion(broadcastPacket, PACKET_TYPE_CREATE_ASSIGNMENT);
-                    int numAssignmentBytes = (*assignment)->packToBuffer(broadcastPacket + numHeaderBytes);
-                    
-                    nodeList->getNodeSocket()->send((sockaddr*) &nodePublicAddress,
-                                                    broadcastPacket,
-                                                    numHeaderBytes + numAssignmentBytes);
-                    
-                    // remove the assignment from the queue
-                    ::assignmentQueue.erase(assignment);
-                    
-                    if ((*assignment)->getType() == Assignment::AgentType) {
-                        // if this is a script assignment we need to delete it to avoid a memory leak
-                        delete *assignment;
+                    if (requestAssignment.getType() == Assignment::AllTypes ||
+                        (*assignment)->getType() == requestAssignment.getType()) {
+                        // give this assignment out, either the type matches or the requestor said they will take any
+                        int numHeaderBytes = populateTypeAndVersion(broadcastPacket, PACKET_TYPE_CREATE_ASSIGNMENT);
+                        int numAssignmentBytes = (*assignment)->packToBuffer(broadcastPacket + numHeaderBytes);
+                        
+                        nodeList->getNodeSocket()->send((sockaddr*) &nodePublicAddress,
+                                                        broadcastPacket,
+                                                        numHeaderBytes + numAssignmentBytes);
+                        
+                        if ((*assignment)->getType() == Assignment::AgentType) {
+                            // if this is a script assignment we need to delete it to avoid a memory leak
+                            // or if there is more than one instance to send out, simpy decrease the number of instances
+                            if ((*assignment)->getNumberOfInstances() > 1) {
+                                (*assignment)->decrementNumberOfInstances();
+                            } else {
+                                ::assignmentQueue.erase(assignment);
+                                delete *assignment;
+                            }
+                        } else {
+                            // remove the assignment from the queue
+                            ::assignmentQueue.erase(assignment);
+                        }
+                        
+                        // stop looping, we've handed out an assignment
+                        break;
+                    } else {
+                        // push forward the iterator to check the next assignment
+                        assignment++;
                     }
-                    
-                    // stop looping, we've handed out an assignment
-                    break;
                 }
                 
                 ::assignmentQueueMutex.unlock();
@@ -362,12 +386,18 @@ int main(int argc, const char* argv[]) {
                     
                     nodeList->sendAssignment(*(*assignment));
                     
-                    // remove the assignment from the queue
-                    ::assignmentQueue.erase(assignment);
-                    
                     if ((*assignment)->getType() == Assignment::AgentType) {
                         // if this is a script assignment we need to delete it to avoid a memory leak
-                        delete *assignment;
+                        // or if there is more than one instance to send out, simpy decrease the number of instances
+                        if ((*assignment)->getNumberOfInstances() > 1) {
+                            (*assignment)->decrementNumberOfInstances();
+                        } else {
+                            ::assignmentQueue.erase(assignment);
+                            delete *assignment;
+                        }
+                    } else {
+                        // remove the assignment from the queue
+                        ::assignmentQueue.erase(assignment);
                     }
                     
                     // stop looping, we've handed out an assignment

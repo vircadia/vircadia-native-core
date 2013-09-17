@@ -56,6 +56,10 @@ public:
     Assignment::Location getLocation() const { return _location; }
     const timeval& getTime() const { return _time; }
     
+    int getNumberOfInstances() const { return _numberOfInstances; }
+    void setNumberOfInstances(int numberOfInstances) { _numberOfInstances = numberOfInstances; }
+    void decrementNumberOfInstances() { --_numberOfInstances; }
+    
     const sockaddr* getAttachedPublicSocket() { return _attachedPublicSocket; }
     void setAttachedPublicSocket(const sockaddr* attachedPublicSocket);
     
@@ -78,6 +82,7 @@ private:
     sockaddr* _attachedPublicSocket; /// pointer to a public socket that relates to assignment, depends on direction
     sockaddr* _attachedLocalSocket; /// pointer to a local socket that relates to assignment, depends on direction
     timeval _time; /// time the assignment was created (set in constructor)
+    int _numberOfInstances; /// the number of instances of this assignment
 };
 
 QDebug operator<<(QDebug debug, const Assignment &assignment);
