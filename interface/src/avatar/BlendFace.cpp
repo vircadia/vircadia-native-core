@@ -34,7 +34,9 @@ bool BlendFace::render(float alpha) {
     glm::quat orientation = _owningHead->getOrientation();
     glm::vec3 axis = glm::axis(orientation);
     glRotatef(glm::angle(orientation), axis.x, axis.y, axis.z);
-    glScalef(_owningHead->getScale(), _owningHead->getScale(), _owningHead->getScale());
+    const float MODEL_SCALE = 0.005f;
+    glScalef(_owningHead->getScale() * MODEL_SCALE, _owningHead->getScale() * MODEL_SCALE,
+        _owningHead->getScale() * MODEL_SCALE);
 
     glColor4f(1.0f, 1.0f, 1.0f, alpha);
 
@@ -49,7 +51,9 @@ bool BlendFace::render(float alpha) {
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _iboID);
-    glDrawRangeElementsEXT(GL_TRIANGLES, 0, _baseVertices.size() - 1, _indexCount, GL_UNSIGNED_INT, 0);
+    glDrawRangeElementsEXT(GL_QUADS, 0, _baseVertices.size() - 1, _quadIndexCount, GL_UNSIGNED_INT, 0);
+    glDrawRangeElementsEXT(GL_TRIANGLES, 0, _baseVertices.size() - 1, _triangleIndexCount, GL_UNSIGNED_INT,
+        (void*)(_quadIndexCount * sizeof(int)));
 
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     
@@ -80,15 +84,19 @@ void BlendFace::setRig(const fsMsgRig& rig) {
         glGenBuffers(1, &_vboID);
     }
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _iboID);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, rig.mesh().m_tris.size() * sizeof(fsVector3i),
-        rig.mesh().m_tris.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, rig.mesh().m_quads.size() * sizeof(fsVector4i) +
+        rig.mesh().m_tris.size() * sizeof(fsVector3i), NULL, GL_STATIC_DRAW);
+    glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, rig.mesh().m_quads.size() * sizeof(fsVector4i), rig.mesh().m_quads.data());
+    glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, rig.mesh().m_quads.size() * sizeof(fsVector4i),
+        rig.mesh().m_tris.size() * sizeof(fsVector3i), rig.mesh().m_tris.data());
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     
     glBindBuffer(GL_ARRAY_BUFFER, _vboID);
     glBufferData(GL_ARRAY_BUFFER, rig.mesh().m_vertex_data.m_vertices.size() * sizeof(fsVector3f), NULL, GL_DYNAMIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     
-    _indexCount = rig.mesh().m_tris.size() * 3;
+    _quadIndexCount = rig.mesh().m_quads.size() * 4;
+    _triangleIndexCount = rig.mesh().m_tris.size() * 3;
     _baseVertices = rig.mesh().m_vertex_data.m_vertices;
     _blendshapes = rig.blendshapes();
 }

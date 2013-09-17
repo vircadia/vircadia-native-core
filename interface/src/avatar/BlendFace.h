@@ -39,7 +39,8 @@ private:
     GLuint _iboID;
     GLuint _vboID;
     
-    GLsizei _indexCount;
+    GLsizei _quadIndexCount;
+    GLsizei _triangleIndexCount;
     std::vector<fs::fsVector3f> _baseVertices;
     std::vector<fs::fsVertexData> _blendshapes;
 };
