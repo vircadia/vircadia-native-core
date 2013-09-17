@@ -158,8 +158,6 @@ int main(int argc, const char* argv[]) {
     
     QString documentRoot = QString("%1/resources/web").arg(QCoreApplication::applicationDirPath());
     
-    qDebug() << documentRoot << "\n";
-    
     // list of options. Last element must be NULL.
     const char *options[] = {"listening_ports", "8080",
                              "document_root", documentRoot.toStdString().c_str(), NULL};
