@@ -65,6 +65,7 @@ NodeWatcher nodeWatcher; // used to cleanup AGENT data when agents are killed
 
 int VoxelServer::_argc = 0;
 const char** VoxelServer::_argv = NULL;
+bool VoxelServer::_dontKillOnMissingDomain = false;
 
 void attachVoxelNodeDataToNode(Node* newNode) {
     if (newNode->getLinkedData() == NULL) {
@@ -91,6 +92,9 @@ void VoxelServer::setupDomainAndPort(const char* domain, int port) {
             NodeList::getInstance()->setDomainHostname(domain);
         }
     }
+    
+    // If we're running in standalone mode, we don't want to kill ourselves when we haven't heard from a domain
+    _dontKillOnMissingDomain = true;
 }
 
 //int main(int argc, const char * argv[]) {
@@ -273,7 +277,8 @@ void VoxelServer::run() {
     // loop to send to nodes requesting data
     while (true) {
     
-        if (NodeList::getInstance()->getNumNoReplyDomainCheckIns() == MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
+        if (!_dontKillOnMissingDomain &&
+            NodeList::getInstance()->getNumNoReplyDomainCheckIns() == MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
             break;
         }
         

@@ -28,6 +28,7 @@ public:
 private:
     static int _argc;
     static const char** _argv;
+    static bool _dontKillOnMissingDomain;
 };
 
 
