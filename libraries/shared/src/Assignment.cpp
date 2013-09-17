@@ -22,7 +22,9 @@ Assignment::Assignment(Assignment::Command command, Assignment::Type type, Assig
     _location(location),
     _attachedPublicSocket(NULL),
     _attachedLocalSocket(NULL),
-    _numberOfInstances(1)
+    _numberOfInstances(1),
+    _payload(NULL),
+    _numPayloadBytes(0)
 {
     // set the create time on this assignment
     gettimeofday(&_time, NULL);
@@ -37,7 +39,9 @@ Assignment::Assignment(const unsigned char* dataBuffer, int numBytes) :
     _location(GlobalLocation),
     _attachedPublicSocket(NULL),
     _attachedLocalSocket(NULL),
-    _numberOfInstances(1)
+    _numberOfInstances(1),
+    _payload(NULL),
+    _numPayloadBytes(0)
 {
     // set the create time on this assignment
     gettimeofday(&_time, NULL);
@@ -63,32 +67,55 @@ Assignment::Assignment(const unsigned char* dataBuffer, int numBytes) :
     memcpy(&_type, dataBuffer + numBytesRead, sizeof(Assignment::Type));
     numBytesRead += sizeof(Assignment::Type);
     
-    if (numBytes > numBytesRead) {
-        
+    if (_command != Assignment::RequestCommand) {
         sockaddr* newSocket = NULL;
         
         if (dataBuffer[numBytesRead++] == IPv4_ADDRESS_DESIGNATOR) {
             // IPv4 address
             newSocket = (sockaddr*) new sockaddr_in;
-            unpackSocket(dataBuffer + numBytesRead, newSocket);
+            numBytesRead += unpackSocket(dataBuffer + numBytesRead, newSocket);
+            
+            if (_command == Assignment::CreateCommand) {
+                delete _attachedLocalSocket;
+                _attachedLocalSocket = newSocket;
+            } else {
+                delete _attachedPublicSocket;
+                _attachedPublicSocket = newSocket;
+            }
         } else {
             // IPv6 address, or bad designator
             qDebug("Received a socket that cannot be unpacked!\n");
         }
-        
-        if (_command == Assignment::CreateCommand) {
-            delete _attachedLocalSocket;
-            _attachedLocalSocket = newSocket;
-        } else {
-            delete _attachedPublicSocket;
-            _attachedPublicSocket = newSocket;
-        }
+    }
+    
+    if (numBytes > numBytesRead) {
+        _numPayloadBytes = numBytes - numBytesRead;
+        memcpy(_payload, dataBuffer + numBytesRead, numBytes - numBytesRead);
     }
 }
 
 Assignment::~Assignment() {
     delete _attachedPublicSocket;
     delete _attachedLocalSocket;
+    delete _payload;
+    _numPayloadBytes = 0;
+}
+
+const int MAX_PAYLOAD_BYTES = 1024;
+
+void Assignment::setPayload(uchar* payload, int numBytes) {
+    _payload = payload;
+    
+    if (numBytes > MAX_PAYLOAD_BYTES) {
+        qDebug("Set payload called with number of bytes greater than maximum (%d). Will only transfer %d bytes.\n",
+               MAX_PAYLOAD_BYTES,
+               MAX_PAYLOAD_BYTES);
+        
+        _numPayloadBytes = 1024;
+    } else {
+        _numPayloadBytes = numBytes;
+    }
+    
 }
 
 QString Assignment::getUUIDStringWithoutCurlyBraces() const {
@@ -139,6 +166,11 @@ int Assignment::packToBuffer(unsigned char* buffer) {
             ? IPv4_ADDRESS_DESIGNATOR : IPv6_ADDRESS_DESIGNATOR;
         
         numPackedBytes += packSocket(buffer + numPackedBytes, socketToPack);
+    }
+    
+    if (_numPayloadBytes) {
+        memcpy(buffer + numPackedBytes, _payload, _numPayloadBytes);
+        numPackedBytes += _numPayloadBytes;
     }
     
     return numPackedBytes;
