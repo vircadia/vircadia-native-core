@@ -57,6 +57,7 @@ public:
     const timeval& getTime() const { return _time; }
     
     uchar* getPayload() { return _payload; }
+    int getNumPayloadBytes() const { return _numPayloadBytes; }
     void setPayload(uchar *payload, int numBytes);
     
     int getNumberOfInstances() const { return _numberOfInstances; }
