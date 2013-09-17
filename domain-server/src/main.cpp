@@ -346,6 +346,9 @@ int main(int argc, const char* argv[]) {
                     
                     if (requestAssignment.getType() == Assignment::AllTypes ||
                         (*assignment)->getType() == requestAssignment.getType()) {
+                        // attach our local socket to the assignment
+                        (*assignment)->setAttachedLocalSocket((sockaddr*) &localSocket);
+                        
                         // give this assignment out, either the type matches or the requestor said they will take any
                         int numHeaderBytes = populateTypeAndVersion(broadcastPacket, PACKET_TYPE_CREATE_ASSIGNMENT);
                         int numAssignmentBytes = (*assignment)->packToBuffer(broadcastPacket + numHeaderBytes);

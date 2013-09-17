@@ -43,9 +43,9 @@ void attachVoxelNodeDataToNode(Node* newNode) {
     }
 }
 
-VoxelServer::VoxelServer() :
-    _serverTree(true) 
-{
+VoxelServer::VoxelServer(Assignment::Command command, Assignment::Location location) :
+    Assignment(command, Assignment::VoxelServerType, location),
+    _serverTree(true) {
     _argc = 0;
     _argv = NULL;
     _dontKillOnMissingDomain = false;
@@ -64,8 +64,10 @@ VoxelServer::VoxelServer() :
     _jurisdictionSender = NULL;
     _voxelServerPacketProcessor = NULL;
     _voxelPersistThread = NULL;
+    
+}
 
-
+VoxelServer::VoxelServer(const unsigned char* dataBuffer, int numBytes) : Assignment(dataBuffer, numBytes) {
 }
 
 void VoxelServer::setArguments(int argc, char** argv) {
@@ -93,7 +95,7 @@ void VoxelServer::setupStandAlone(const char* domain, int port) {
 }
 
 //int main(int argc, const char * argv[]) {
-void VoxelServer::run(const char* configuration) {
+void VoxelServer::run() {
     pthread_mutex_init(&_treeLock, NULL);
     
     qInstallMessageHandler(sharedMessageHandler);

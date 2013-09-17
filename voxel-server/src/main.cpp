@@ -30,7 +30,7 @@ int main(int argc, const char * argv[]) {
         printf("portParameter=%s listenPort=%d\n", portParameter, listenPort);
     }
     
-    VoxelServer ourVoxelServer;
+    VoxelServer ourVoxelServer(Assignment::CreateCommand);
 
     if (wantLocalDomain) {
         ourVoxelServer.setupStandAlone(local, listenPort);

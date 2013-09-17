@@ -1,3 +1,4 @@
+//
 //  VoxelServer.h
 //  voxel-server
 //
@@ -9,6 +10,7 @@
 #ifndef __voxel_server__VoxelServer__
 #define __voxel_server__VoxelServer__
 
+#include <Assignment.h>
 #include <EnvironmentData.h>
 
 #include "NodeWatcher.h"
@@ -18,12 +20,15 @@
 #include "VoxelServerPacketProcessor.h"
 
 /// Handles assignments of type VoxelServer - sending voxels to various clients.
-class VoxelServer {
+class VoxelServer : public Assignment {
 public:
-    VoxelServer();
+    VoxelServer(Assignment::Command command,
+                Assignment::Location location = Assignment::GlobalLocation);
+                
+    VoxelServer(const unsigned char* dataBuffer, int numBytes);
     
     /// runs the voxel server assignment
-    void run(const char* configuration = NULL);
+    void run();
     
     /// allows setting of run arguments
     void setArguments(int argc, char** argv);
@@ -80,7 +85,5 @@ private:
     NodeWatcher _nodeWatcher; // used to cleanup AGENT data when agents are killed
     
 };
-
-
 
 #endif // __voxel_server__VoxelServer__

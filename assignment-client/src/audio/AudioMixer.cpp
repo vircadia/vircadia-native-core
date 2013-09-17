@@ -69,6 +69,10 @@ void attachNewBufferToNode(Node *newNode) {
     }
 }
 
+AudioMixer::AudioMixer(const unsigned char* dataBuffer, int numBytes) : Assignment(dataBuffer, numBytes) {
+    
+}
+
 void AudioMixer::run() {
     // change the logging target name while this is running
     Logging::setTargetName(AUDIO_MIXER_LOGGING_TARGET_NAME);
