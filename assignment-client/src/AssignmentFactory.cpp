@@ -11,22 +11,25 @@
 #include "Agent.h"
 #include "audio/AudioMixer.h"
 #include "avatars/AvatarMixer.h"
+#include <VoxelServer.h>
 
 #include "AssignmentFactory.h"
 
 Assignment* AssignmentFactory::unpackAssignment(const unsigned char* dataBuffer, int numBytes) {
     int headerBytes = numBytesForPacketHeader(dataBuffer);
     
-    Assignment::Type type;
-    memcpy(&type, dataBuffer + headerBytes, sizeof(type));
+    Assignment::Type assignmentType = Assignment::AllTypes;
+    memcpy(&assignmentType, dataBuffer + headerBytes, sizeof(Assignment::Type));
     
-    switch (type) {
+    switch (assignmentType) {
         case Assignment::AudioMixerType:
             return new AudioMixer(dataBuffer, numBytes);
         case Assignment::AvatarMixerType:
             return new AvatarMixer(dataBuffer, numBytes);
         case Assignment::AgentType:
             return new Agent(dataBuffer, numBytes);
+        case Assignment::VoxelServerType:
+            return new VoxelServer(dataBuffer, numBytes);
         default:
             return new Assignment(dataBuffer, numBytes);
     }

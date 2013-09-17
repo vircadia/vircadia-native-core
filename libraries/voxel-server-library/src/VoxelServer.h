@@ -15,6 +15,8 @@
 /// Handles assignments of type VoxelServer - sending voxels to various clients.
 class VoxelServer : public Assignment {
 public:
+    VoxelServer(const unsigned char* dataBuffer, int numBytes);
+    
     /// runs the voxel server assignment
     void run();
     

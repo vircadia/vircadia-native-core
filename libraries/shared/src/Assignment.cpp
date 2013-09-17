@@ -154,7 +154,7 @@ int Assignment::packToBuffer(unsigned char* buffer) {
     
     // pack the UUID for this assignment, if this is an assignment create or deploy
     if (_command != Assignment::RequestCommand) {
-        memcpy(buffer, _uuid.toRfc4122().constData(), NUM_BYTES_RFC4122_UUID);
+        memcpy(buffer + numPackedBytes, _uuid.toRfc4122().constData(), NUM_BYTES_RFC4122_UUID);
         numPackedBytes += NUM_BYTES_RFC4122_UUID;
     }
     
