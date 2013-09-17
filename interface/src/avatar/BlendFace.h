@@ -28,7 +28,7 @@ public:
     
     bool render(float alpha);
     
-private slots:
+public slots:
     
     void setRig(const fs::fsMsgRig& rig);
     
@@ -43,6 +43,7 @@ private:
     GLsizei _triangleIndexCount;
     std::vector<fs::fsVector3f> _baseVertices;
     std::vector<fs::fsVertexData> _blendshapes;
+    std::vector<fs::fsVector3f> _blendedVertices;
 };
 
 #endif /* defined(__interface__BlendFace__) */

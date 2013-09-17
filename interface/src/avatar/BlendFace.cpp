@@ -6,10 +6,13 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
+#include <numeric>
+
 #include "BlendFace.h"
 #include "Head.h"
 
 using namespace fs;
+using namespace std;
 
 BlendFace::BlendFace(Head* owningHead) :
     _owningHead(owningHead),
@@ -34,15 +37,54 @@ bool BlendFace::render(float alpha) {
     glm::quat orientation = _owningHead->getOrientation();
     glm::vec3 axis = glm::axis(orientation);
     glRotatef(glm::angle(orientation), axis.x, axis.y, axis.z);
-    const float MODEL_SCALE = 0.005f;
+    glTranslatef(0.0f, -0.025f, -0.025f);
+    const float MODEL_SCALE = 0.0006f;
     glScalef(_owningHead->getScale() * MODEL_SCALE, _owningHead->getScale() * MODEL_SCALE,
-        _owningHead->getScale() * MODEL_SCALE);
+        -_owningHead->getScale() * MODEL_SCALE);
 
     glColor4f(1.0f, 1.0f, 1.0f, alpha);
 
+    // find the coefficient total and scale
+    const vector<float>& coefficients = _owningHead->getBlendshapeCoefficients();
+    float total = accumulate(coefficients.begin(), coefficients.end(), 0.0f);
+    float scale = 1.0f / (total < 1.0f ? 1.0f : total);
+    
+    // start with the base
+    int vertexCount = _baseVertices.size();
+    _blendedVertices.resize(vertexCount);
+    const fsVector3f* source = _baseVertices.data();
+    fsVector3f* dest = _blendedVertices.data();
+    float baseCoefficient = (total < 1.0f) ? (1.0f - total) : 0.0f;
+    for (int i = 0; i < vertexCount; i++) {
+        dest->x += source->x * baseCoefficient;
+        dest->y += source->y * baseCoefficient;
+        dest->z += source->z * baseCoefficient;
+        
+        source++;
+        dest++;
+    }
+    
+    // blend in each coefficient
+    for (int i = 0; i < coefficients.size(); i++) {
+        float coefficient = coefficients[i] * scale;
+        if (coefficient == 0.0f || i >= _blendshapes.size()) {
+            continue;
+        }
+        const fsVector3f* source = _blendshapes[i].m_vertices.data();
+        fsVector3f* dest = _blendedVertices.data();
+        for (int j = 0; j < vertexCount; j++) {
+            dest->x += source->x * coefficient;
+            dest->y += source->y * coefficient;
+            dest->z += source->z * coefficient;
+            
+            source++;
+            dest++;
+        }
+    }
+    
     // update the blended vertices
     glBindBuffer(GL_ARRAY_BUFFER, _vboID);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, _baseVertices.size() * sizeof(fsVector3f), _baseVertices.data());
+    glBufferSubData(GL_ARRAY_BUFFER, 0, _blendedVertices.size() * sizeof(fsVector3f), _blendedVertices.data());
     
     // tell OpenGL where to find vertex information
     glEnableClientState(GL_VERTEX_ARRAY);

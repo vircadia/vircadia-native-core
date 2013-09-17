@@ -44,6 +44,8 @@ public:
     
     void setAudioLoudness(float audioLoudness) { _audioLoudness = audioLoudness; }
     
+    const std::vector<float>& getBlendshapeCoefficients() const { return _blendshapeCoefficients; }
+    
     void addYaw(float yaw);
     void addPitch(float pitch);
     void addRoll(float roll);
