@@ -9,19 +9,19 @@
 #ifndef __hifi__Agent__
 #define __hifi__Agent__
 
-#include "SharedUtil.h"
-
 #include <QtCore/QObject>
 #include <QtCore/QUrl>
 
-class Agent : public QObject {
+#include <Assignment.h>
+
+class Agent : public Assignment {
     Q_OBJECT
 public:
-    Agent();
+    Agent(const unsigned char* dataBuffer, int numBytes);
     
     bool volatile _shouldStop;
     
-    void run(QUrl scriptUrl);
+    void run();
 signals:
     void preSendCallback();
 };

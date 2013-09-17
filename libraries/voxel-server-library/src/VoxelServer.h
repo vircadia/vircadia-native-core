@@ -1,3 +1,4 @@
+//
 //  VoxelServer.h
 //  voxel-server
 //
@@ -9,11 +10,17 @@
 #ifndef __voxel_server__VoxelServer__
 #define __voxel_server__VoxelServer__
 
+#include <Assignment.h>
+
 /// Handles assignments of type VoxelServer - sending voxels to various clients.
-class VoxelServer {
+class VoxelServer : public Assignment {
 public:
+    VoxelServer(Assignment::Command command,
+                Assignment::Location location = Assignment::GlobalLocation);
+    VoxelServer(const unsigned char* dataBuffer, int numBytes);
+    
     /// runs the voxel server assignment
-    static void run();
+    void run();
     
     /// allows setting of run arguments
     static void setArguments(int argc, char** argv);

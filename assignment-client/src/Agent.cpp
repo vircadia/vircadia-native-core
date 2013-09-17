@@ -15,17 +15,21 @@
 #include "Agent.h"
 #include "voxels/VoxelScriptingInterface.h"
 
-Agent::Agent() :
-    _shouldStop(false)
-{
+Agent::Agent(const unsigned char* dataBuffer, int numBytes) : Assignment(dataBuffer, numBytes) {
     
 }
 
-void Agent::run(QUrl scriptURL) {
+void Agent::run() {
     NodeList::getInstance()->setOwnerType(NODE_TYPE_AGENT);
     NodeList::getInstance()->setNodeTypesOfInterest(&NODE_TYPE_VOXEL_SERVER, 1);
     
     QNetworkAccessManager manager;
+    
+    // figure out the URL for the script for this agent assignment
+    QString scriptURLString("http://%1:8080/assignment/%2");
+    scriptURLString = scriptURLString.arg(NodeList::getInstance()->getDomainIP(),
+                                         this->getUUIDStringWithoutCurlyBraces());
+    QUrl scriptURL(scriptURLString);
     
     qDebug() << "Attemping download of " << scriptURL << "\n";
     

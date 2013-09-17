@@ -83,6 +83,10 @@ void broadcastAvatarData(NodeList* nodeList, sockaddr* nodeAddress) {
     nodeList->getNodeSocket()->send(nodeAddress, broadcastPacket, currentBufferPosition - broadcastPacket);
 }
 
+AvatarMixer::AvatarMixer(const unsigned char* dataBuffer, int numBytes) : Assignment(dataBuffer, numBytes) {
+    
+}
+
 void AvatarMixer::run() {
     // change the logging target name while AvatarMixer is running
     Logging::setTargetName(AVATAR_MIXER_LOGGING_NAME);

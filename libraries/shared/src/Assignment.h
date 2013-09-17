@@ -16,7 +16,8 @@
 #include "NodeList.h"
 
 /// Holds information used for request, creation, and deployment of assignments
-class Assignment {
+class Assignment : public QObject {
+    Q_OBJECT
 public:
     
     enum Type {
@@ -77,6 +78,9 @@ public:
     
     /// Sets _time to the current time given by gettimeofday
     void setCreateTimeToNow() { gettimeofday(&_time, NULL); }
+    
+    /// blocking run of the assignment
+    virtual void run();
     
 private:
     QUuid _uuid; /// the 16 byte UUID for this assignment

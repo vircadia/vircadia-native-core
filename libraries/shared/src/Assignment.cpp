@@ -58,14 +58,14 @@ Assignment::Assignment(const unsigned char* dataBuffer, int numBytes) :
     
     numBytesRead += numBytesForPacketHeader(dataBuffer);
     
+    memcpy(&_type, dataBuffer + numBytesRead, sizeof(Assignment::Type));
+    numBytesRead += sizeof(Assignment::Type);
+    
     if (dataBuffer[0] != PACKET_TYPE_REQUEST_ASSIGNMENT) {
         // read the GUID for this assignment
         _uuid = QUuid::fromRfc4122(QByteArray((const char*) dataBuffer + numBytesRead, NUM_BYTES_RFC4122_UUID));
         numBytesRead += NUM_BYTES_RFC4122_UUID;
     }
-    
-    memcpy(&_type, dataBuffer + numBytesRead, sizeof(Assignment::Type));
-    numBytesRead += sizeof(Assignment::Type);
     
     if (_command != Assignment::RequestCommand) {
         sockaddr* newSocket = NULL;
@@ -149,14 +149,14 @@ void Assignment::setAttachedLocalSocket(const sockaddr* attachedLocalSocket) {
 int Assignment::packToBuffer(unsigned char* buffer) {
     int numPackedBytes = 0;
     
-    // pack the UUID for this assignment, if this is an assignment create or deploy
-    if (_command != Assignment::RequestCommand) {
-        memcpy(buffer, _uuid.toRfc4122().constData(), NUM_BYTES_RFC4122_UUID);
-        numPackedBytes += NUM_BYTES_RFC4122_UUID;
-    }
-    
     memcpy(buffer + numPackedBytes, &_type, sizeof(_type));
     numPackedBytes += sizeof(_type);
+    
+    // pack the UUID for this assignment, if this is an assignment create or deploy
+    if (_command != Assignment::RequestCommand) {
+        memcpy(buffer + numPackedBytes, _uuid.toRfc4122().constData(), NUM_BYTES_RFC4122_UUID);
+        numPackedBytes += NUM_BYTES_RFC4122_UUID;
+    }
     
     if (_attachedPublicSocket || _attachedLocalSocket) {
         sockaddr* socketToPack = (_attachedPublicSocket) ? _attachedPublicSocket : _attachedLocalSocket;
@@ -174,6 +174,10 @@ int Assignment::packToBuffer(unsigned char* buffer) {
     }
     
     return numPackedBytes;
+}
+
+void Assignment::run() {
+    // run method ovveridden by subclasses
 }
 
 QDebug operator<<(QDebug debug, const Assignment &assignment) {

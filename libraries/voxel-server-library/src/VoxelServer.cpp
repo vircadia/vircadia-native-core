@@ -73,6 +73,15 @@ void attachVoxelNodeDataToNode(Node* newNode) {
     }
 }
 
+VoxelServer::VoxelServer(Assignment::Command command, Assignment::Location location) :
+    Assignment(command, Assignment::VoxelServerType, location) {
+    
+}
+
+VoxelServer::VoxelServer(const unsigned char* dataBuffer, int numBytes) : Assignment(dataBuffer, numBytes) {
+    
+}
+
 void VoxelServer::setArguments(int argc, char** argv) {
     _argc = argc;
     _argv = const_cast<const char**>(argv);
