@@ -56,6 +56,10 @@ public:
     Assignment::Location getLocation() const { return _location; }
     const timeval& getTime() const { return _time; }
     
+    uchar* getPayload() { return _payload; }
+    int getNumPayloadBytes() const { return _numPayloadBytes; }
+    void setPayload(uchar *payload, int numBytes);
+    
     int getNumberOfInstances() const { return _numberOfInstances; }
     void setNumberOfInstances(int numberOfInstances) { _numberOfInstances = numberOfInstances; }
     void decrementNumberOfInstances() { --_numberOfInstances; }
@@ -83,6 +87,8 @@ private:
     sockaddr* _attachedLocalSocket; /// pointer to a local socket that relates to assignment, depends on direction
     timeval _time; /// time the assignment was created (set in constructor)
     int _numberOfInstances; /// the number of instances of this assignment
+    uchar *_payload; /// an optional payload attached to this assignment, a maximum for 1024 bytes will be packed
+    int _numPayloadBytes; /// number of bytes in the payload, up to a maximum of 1024
 };
 
 QDebug operator<<(QDebug debug, const Assignment &assignment);
