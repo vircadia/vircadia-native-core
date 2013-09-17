@@ -67,34 +67,30 @@ Assignment::Assignment(const unsigned char* dataBuffer, int numBytes) :
     memcpy(&_type, dataBuffer + numBytesRead, sizeof(Assignment::Type));
     numBytesRead += sizeof(Assignment::Type);
     
-    if (numBytes > numBytesRead) {
+    if (_command != Assignment::RequestCommand) {
+        sockaddr* newSocket = NULL;
         
-        if (_command != Assignment::RequestCommand) {
-            sockaddr* newSocket = NULL;
+        if (dataBuffer[numBytesRead++] == IPv4_ADDRESS_DESIGNATOR) {
+            // IPv4 address
+            newSocket = (sockaddr*) new sockaddr_in;
+            numBytesRead += unpackSocket(dataBuffer + numBytesRead, newSocket);
             
-            if (dataBuffer[numBytesRead++] == IPv4_ADDRESS_DESIGNATOR) {
-                // IPv4 address
-                newSocket = (sockaddr*) new sockaddr_in;
-                numBytesRead += unpackSocket(dataBuffer + numBytesRead, newSocket);
-                
-                if (_command == Assignment::CreateCommand) {
-                    delete _attachedLocalSocket;
-                    _attachedLocalSocket = newSocket;
-                } else {
-                    delete _attachedPublicSocket;
-                    _attachedPublicSocket = newSocket;
-                }
+            if (_command == Assignment::CreateCommand) {
+                delete _attachedLocalSocket;
+                _attachedLocalSocket = newSocket;
             } else {
-                // IPv6 address, or bad designator
-                qDebug("Received a socket that cannot be unpacked!\n");
+                delete _attachedPublicSocket;
+                _attachedPublicSocket = newSocket;
             }
+        } else {
+            // IPv6 address, or bad designator
+            qDebug("Received a socket that cannot be unpacked!\n");
         }
-        
+    }
+    
+    if (numBytes > numBytesRead) {
         _numPayloadBytes = numBytes - numBytesRead;
-        
-        if (_numPayloadBytes > 0) {
-            memcpy(_payload, dataBuffer + numBytesRead, numBytes - numBytesRead);
-        }
+        memcpy(_payload, dataBuffer + numBytesRead, numBytes - numBytesRead);
     }
 }
 
