@@ -322,7 +322,7 @@ void Head::calculateGeometry() {
                            + up    * _scale * NOSE_UPTURN;  
 }
 
-void Head::render(float alpha) {
+void Head::render(float alpha, bool isMine) {
     _renderAlpha = alpha;
 
     if (!_face.render(alpha)) {
@@ -331,7 +331,7 @@ void Head::render(float alpha) {
         glEnable(GL_DEPTH_TEST);
         glEnable(GL_RESCALE_NORMAL);
 
-        if (Menu::getInstance()->isOptionChecked(MenuOption::UsePerlinFace)) {
+        if (Menu::getInstance()->isOptionChecked(MenuOption::UsePerlinFace) && isMine) {
             _perlinFace.render();
         } else  {
             renderMohawk();
