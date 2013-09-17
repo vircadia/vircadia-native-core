@@ -76,7 +76,7 @@ void childClient() {
             && packetVersionMatch(packetData)) {
             
             // construct the deployed assignment from the packet data
-            Assignment *deployedAssignment = AssignmentFactory::unpackAssignment(packetData, receivedBytes);
+            Assignment* deployedAssignment = AssignmentFactory::unpackAssignment(packetData, receivedBytes);
             
             qDebug() << "Received an assignment -" << deployedAssignment << "\n";
             
