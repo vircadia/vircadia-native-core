@@ -330,31 +330,39 @@ int main(int argc, const char* argv[]) {
                 std::deque<Assignment*>::iterator assignment = ::assignmentQueue.begin();
                 
                 while (assignment != ::assignmentQueue.end()) {
+                    // construct the requested assignment from the packet data
+                    Assignment requestAssignment(packetData, receivedBytes);
                     
-                    // give this assignment out, no conditions stop us from giving it to the local assignment client
-                    int numHeaderBytes = populateTypeAndVersion(broadcastPacket, PACKET_TYPE_CREATE_ASSIGNMENT);
-                    int numAssignmentBytes = (*assignment)->packToBuffer(broadcastPacket + numHeaderBytes);
-                    
-                    nodeList->getNodeSocket()->send((sockaddr*) &nodePublicAddress,
-                                                    broadcastPacket,
-                                                    numHeaderBytes + numAssignmentBytes);
-                    
-                    if ((*assignment)->getType() == Assignment::AgentType) {
-                        // if this is a script assignment we need to delete it to avoid a memory leak
-                        // or if there is more than one instance to send out, simpy decrease the number of instances
-                        if ((*assignment)->getNumberOfInstances() > 1) {
-                            (*assignment)->decrementNumberOfInstances();
+                    if (requestAssignment.getType() == Assignment::AllTypes ||
+                        (*assignment)->getType() == requestAssignment.getType()) {
+                        // give this assignment out, either the type matches or the requestor said they will take any
+                        int numHeaderBytes = populateTypeAndVersion(broadcastPacket, PACKET_TYPE_CREATE_ASSIGNMENT);
+                        int numAssignmentBytes = (*assignment)->packToBuffer(broadcastPacket + numHeaderBytes);
+                        
+                        nodeList->getNodeSocket()->send((sockaddr*) &nodePublicAddress,
+                                                        broadcastPacket,
+                                                        numHeaderBytes + numAssignmentBytes);
+                        
+                        if ((*assignment)->getType() == Assignment::AgentType) {
+                            // if this is a script assignment we need to delete it to avoid a memory leak
+                            // or if there is more than one instance to send out, simpy decrease the number of instances
+                            if ((*assignment)->getNumberOfInstances() > 1) {
+                                (*assignment)->decrementNumberOfInstances();
+                            } else {
+                                ::assignmentQueue.erase(assignment);
+                                delete *assignment;
+                            }
                         } else {
+                            // remove the assignment from the queue
                             ::assignmentQueue.erase(assignment);
-                            delete *assignment;
                         }
+                        
+                        // stop looping, we've handed out an assignment
+                        break;
                     } else {
-                        // remove the assignment from the queue
-                        ::assignmentQueue.erase(assignment);
+                        // push forward the iterator to check the next assignment
+                        assignment++;
                     }
-                    
-                    // stop looping, we've handed out an assignment
-                    break;
                 }
                 
                 ::assignmentQueueMutex.unlock();

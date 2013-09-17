@@ -62,30 +62,39 @@ int main(int argc, const char* argv[]) {
                             continue;
                         }
                         
-                        // check if the requestor is on the same network as the destination for the assignment
-                        if (senderSocket.sin_addr.s_addr ==
-                            ((sockaddr_in*) (*assignment)->getAttachedPublicSocket())->sin_addr.s_addr) {
-                            // if this is the case we remove the public socket on the assignment by setting it to NULL
-                            // this ensures the local IP and port sent to the requestor is the local address of destination
-                            (*assignment)->setAttachedPublicSocket(NULL);
+                        if (requestAssignment.getType() == Assignment::AllTypes ||
+                            (*assignment)->getType() == requestAssignment.getType()) {
+                            // give this assignment out, either we have a type match or the requestor has said they will
+                            // take all types
+                            
+                            // check if the requestor is on the same network as the destination for the assignment
+                            if (senderSocket.sin_addr.s_addr ==
+                                ((sockaddr_in*) (*assignment)->getAttachedPublicSocket())->sin_addr.s_addr) {
+                                // if this is the case we remove the public socket on the assignment by setting it to NULL
+                                // this ensures the local IP and port sent to the requestor is the local address of destination
+                                (*assignment)->setAttachedPublicSocket(NULL);
+                            }
+                            
+                            
+                            int numAssignmentBytes = (*assignment)->packToBuffer(assignmentPacket + numSendHeaderBytes);
+                            
+                            // send the assignment
+                            serverSocket.send((sockaddr*) &senderSocket,
+                                              assignmentPacket,
+                                              numSendHeaderBytes + numAssignmentBytes);
+                            
+                            
+                            // delete this assignment now that it has been sent out
+                            delete *assignment;
+                            // remove it from the deque and make the iterator the next assignment
+                            assignmentQueue.erase(assignment);
+                            
+                            // stop looping - we've handed out an assignment
+                            break;
+                        } else {
+                            // push forward the iterator to check the next assignment
+                            assignment++;
                         }
-                        
-                        
-                        int numAssignmentBytes = (*assignment)->packToBuffer(assignmentPacket + numSendHeaderBytes);
-                        
-                        // send the assignment
-                        serverSocket.send((sockaddr*) &senderSocket,
-                                          assignmentPacket,
-                                          numSendHeaderBytes + numAssignmentBytes);
-                        
-                        
-                        // delete this assignment now that it has been sent out
-                        delete *assignment;
-                        // remove it from the deque and make the iterator the next assignment
-                        assignmentQueue.erase(assignment);
-                        
-                        // stop looping - we've handed out an assignment
-                        break;
                     }
                 }
             } else if (senderData[0] == PACKET_TYPE_CREATE_ASSIGNMENT && packetVersionMatch(senderData)) {

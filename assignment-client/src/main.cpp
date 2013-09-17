@@ -31,6 +31,7 @@ const char CHILD_TARGET_NAME[] = "assignment-client";
 pid_t* childForks = NULL;
 sockaddr_in customAssignmentSocket = {};
 int numForks = 0;
+Assignment::Type overiddenAssignmentType = Assignment::AllTypes;
 
 void childClient() {
     // this is one of the child forks or there is a single assignment client, continue assignment-client execution
@@ -56,8 +57,8 @@ void childClient() {
     
     sockaddr_in senderSocket = {};
     
-    // create a request assignment, accept all assignments, pass the desired pool (if it exists)
-    Assignment requestAssignment(Assignment::RequestCommand, Assignment::AllTypes);
+    // create a request assignment, accept assignments defined by the overidden type
+    Assignment requestAssignment(Assignment::RequestCommand, ::overiddenAssignmentType);
     
     while (true) {
         if (usecTimestampNow() - usecTimestamp(&lastRequest) >= ASSIGNMENT_REQUEST_INTERVAL_USECS) {
@@ -211,6 +212,15 @@ int main(int argc, const char* argv[]) {
         ::customAssignmentSocket = socketForHostnameAndHostOrderPort(customAssignmentServerHostname, assignmentServerPort);
     }
     
+    const char ASSIGNMENT_TYPE_OVVERIDE_OPTION[] = "-t";
+    const char* assignmentTypeString = getCmdOption(argc, argv, ASSIGNMENT_TYPE_OVVERIDE_OPTION);
+    
+    if (assignmentTypeString) {
+        // the user is asking to only be assigned to a particular type of assignment
+        // so set that as the ::overridenAssignmentType to be used in requests
+        ::overiddenAssignmentType = (Assignment::Type) atoi(assignmentTypeString);
+    }
+
     const char* NUM_FORKS_PARAMETER = "-n";
     const char* numForksString = getCmdOption(argc, argv, NUM_FORKS_PARAMETER);
     
