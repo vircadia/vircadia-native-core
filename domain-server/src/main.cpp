@@ -76,8 +76,19 @@ static int mongooseRequestHandler(struct mg_connection *conn) {
 const char ASSIGNMENT_SCRIPT_HOST_LOCATION[] = "resources/web/assignment";
 
 static void mongooseUploadHandler(struct mg_connection *conn, const char *path) {
+    
     // create an assignment for this saved script, for now make it local only
     Assignment *scriptAssignment = new Assignment(Assignment::CreateCommand, Assignment::AgentType, Assignment::LocalLocation);
+    
+    // check how many instances of this assignment the user wants by checking the ASSIGNMENT-INSTANCES header
+    const char ASSIGNMENT_INSTANCES_HTTP_HEADER[] = "ASSIGNMENT-INSTANCES";
+    const char *requestInstancesHeader = mg_get_header(conn, ASSIGNMENT_INSTANCES_HTTP_HEADER);
+    
+    if (requestInstancesHeader) {
+        // the user has requested a number of instances greater than 1
+        // so set that on the created assignment
+        scriptAssignment->setNumberOfInstances(atoi(requestInstancesHeader));
+    }
     
     QString newPath(ASSIGNMENT_SCRIPT_HOST_LOCATION);
     newPath += "/";
@@ -94,7 +105,6 @@ static void mongooseUploadHandler(struct mg_connection *conn, const char *path) 
     ::assignmentQueueMutex.lock();
     ::assignmentQueue.push_back(scriptAssignment);
     ::assignmentQueueMutex.unlock();
-
 }
 
 int main(int argc, const char* argv[]) {
@@ -172,21 +182,21 @@ int main(int argc, const char* argv[]) {
     
     while (true) {
         
-//        ::assignmentQueueMutex.lock();
-//        // check if our audio-mixer or avatar-mixer are dead and we don't have existing assignments in the queue
-//        // so we can add those assignments back to the front of the queue since they are high-priority
-//        if (!nodeList->soloNodeOfType(NODE_TYPE_AVATAR_MIXER) &&
-//            std::find(::assignmentQueue.begin(), assignmentQueue.end(), &avatarMixerAssignment) == ::assignmentQueue.end()) {
-//            qDebug("Missing an avatar mixer and assignment not in queue. Adding.\n");
-//            ::assignmentQueue.push_front(&avatarMixerAssignment);
-//        }
-//        
-//        if (!nodeList->soloNodeOfType(NODE_TYPE_AUDIO_MIXER) &&
-//            std::find(::assignmentQueue.begin(), ::assignmentQueue.end(), &audioMixerAssignment) == ::assignmentQueue.end()) {
-//            qDebug("Missing an audio mixer and assignment not in queue. Adding.\n");
-//            ::assignmentQueue.push_front(&audioMixerAssignment);
-//        }
-//        ::assignmentQueueMutex.unlock();
+        ::assignmentQueueMutex.lock();
+        // check if our audio-mixer or avatar-mixer are dead and we don't have existing assignments in the queue
+        // so we can add those assignments back to the front of the queue since they are high-priority
+        if (!nodeList->soloNodeOfType(NODE_TYPE_AVATAR_MIXER) &&
+            std::find(::assignmentQueue.begin(), assignmentQueue.end(), &avatarMixerAssignment) == ::assignmentQueue.end()) {
+            qDebug("Missing an avatar mixer and assignment not in queue. Adding.\n");
+            ::assignmentQueue.push_front(&avatarMixerAssignment);
+        }
+        
+        if (!nodeList->soloNodeOfType(NODE_TYPE_AUDIO_MIXER) &&
+            std::find(::assignmentQueue.begin(), ::assignmentQueue.end(), &audioMixerAssignment) == ::assignmentQueue.end()) {
+            qDebug("Missing an audio mixer and assignment not in queue. Adding.\n");
+            ::assignmentQueue.push_front(&audioMixerAssignment);
+        }
+        ::assignmentQueueMutex.unlock();
         
         while (nodeList->getNodeSocket()->receive((sockaddr *)&nodePublicAddress, packetData, &receivedBytes) &&
                packetVersionMatch(packetData)) {
@@ -308,7 +318,12 @@ int main(int argc, const char* argv[]) {
                     
                     if ((*assignment)->getType() == Assignment::AgentType) {
                         // if this is a script assignment we need to delete it to avoid a memory leak
-                        delete *assignment;
+                        // or if there is more than one instance to send out, simpy decrease the number of instances
+                        if ((*assignment)->getNumberOfInstances() > 1) {
+                            (*assignment)->decrementNumberOfInstances();
+                        } else {
+                            delete *assignment;
+                        }
                     }
                     
                     // stop looping, we've handed out an assignment
