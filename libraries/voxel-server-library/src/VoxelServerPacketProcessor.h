@@ -12,11 +12,20 @@
 #define __voxel_server__VoxelServerPacketProcessor__
 
 #include <ReceivedPacketProcessor.h>
+class VoxelServer;
 
 /// Handles processing of incoming network packets for the voxel-server. As with other ReceivedPacketProcessor classes 
 /// the user is responsible for reading inbound packets and adding them to the processing queue by calling queueReceivedPacket()
 class VoxelServerPacketProcessor : public ReceivedPacketProcessor {
+
+public:
+    VoxelServerPacketProcessor(VoxelServer* myServer);
+
 protected:
     virtual void processPacket(sockaddr& senderAddress, unsigned char*  packetData, ssize_t packetLength);
+
+private:
+    VoxelServer* _myServer;
+    int _receivedPacketCount;
 };
 #endif // __voxel_server__VoxelServerPacketProcessor__

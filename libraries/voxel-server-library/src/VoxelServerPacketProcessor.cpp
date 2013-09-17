@@ -12,8 +12,14 @@
 #include <PerfStat.h>
 
 #include "VoxelServer.h"
-#include "VoxelServerState.h"
+#include "VoxelServerConsts.h"
 #include "VoxelServerPacketProcessor.h"
+
+
+VoxelServerPacketProcessor::VoxelServerPacketProcessor(VoxelServer* myServer) :
+    _myServer(myServer),
+    _receivedPacketCount(0) {
+}
 
 
 void VoxelServerPacketProcessor::processPacket(sockaddr& senderAddress, unsigned char* packetData, ssize_t packetLength) {
@@ -22,23 +28,23 @@ void VoxelServerPacketProcessor::processPacket(sockaddr& senderAddress, unsigned
     
     if (packetData[0] == PACKET_TYPE_SET_VOXEL || packetData[0] == PACKET_TYPE_SET_VOXEL_DESTRUCTIVE) {
         bool destructive = (packetData[0] == PACKET_TYPE_SET_VOXEL_DESTRUCTIVE);
-        PerformanceWarning warn(::shouldShowAnimationDebug,
+        PerformanceWarning warn(_myServer->wantShowAnimationDebug(),
                                 destructive ? "PACKET_TYPE_SET_VOXEL_DESTRUCTIVE" : "PACKET_TYPE_SET_VOXEL",
-                                ::shouldShowAnimationDebug);
+                                _myServer->wantShowAnimationDebug());
         
-        ::receivedPacketCount++;
+        _receivedPacketCount++;
         
         unsigned short int itemNumber = (*((unsigned short int*)(packetData + numBytesPacketHeader)));
-        if (::shouldShowAnimationDebug) {
+        if (_myServer->wantShowAnimationDebug()) {
             printf("got %s - command from client receivedBytes=%ld itemNumber=%d\n",
                 destructive ? "PACKET_TYPE_SET_VOXEL_DESTRUCTIVE" : "PACKET_TYPE_SET_VOXEL",
                 packetLength, itemNumber);
         }
         
-        if (::debugVoxelReceiving) {
+        if (_myServer->wantsDebugVoxelReceiving()) {
             printf("got %s - %d command from client receivedBytes=%ld itemNumber=%d\n",
                 destructive ? "PACKET_TYPE_SET_VOXEL_DESTRUCTIVE" : "PACKET_TYPE_SET_VOXEL",
-                ::receivedPacketCount, packetLength, itemNumber);
+                _receivedPacketCount, packetLength, itemNumber);
         }
         int atByte = numBytesPacketHeader + sizeof(itemNumber);
         unsigned char* voxelData = (unsigned char*)&packetData[atByte];
@@ -48,7 +54,7 @@ void VoxelServerPacketProcessor::processPacket(sockaddr& senderAddress, unsigned
             int voxelDataSize = bytesRequiredForCodeLength(octets) + COLOR_SIZE_IN_BYTES;
             int voxelCodeSize = bytesRequiredForCodeLength(octets);
 
-            if (::shouldShowAnimationDebug) {
+            if (_myServer->wantShowAnimationDebug()) {
                 int red   = voxelData[voxelCodeSize + 0];
                 int green = voxelData[voxelCodeSize + 1];
                 int blue  = voxelData[voxelCodeSize + 2];
@@ -58,7 +64,7 @@ void VoxelServerPacketProcessor::processPacket(sockaddr& senderAddress, unsigned
                 delete[] vertices;
             }
         
-            serverTree.readCodeColorBufferToTree(voxelData, destructive);
+            _myServer->getServerTree().readCodeColorBufferToTree(voxelData, destructive);
             // skip to next
             voxelData += voxelDataSize;
             atByte += voxelDataSize;
@@ -73,9 +79,9 @@ void VoxelServerPacketProcessor::processPacket(sockaddr& senderAddress, unsigned
     } else if (packetData[0] == PACKET_TYPE_ERASE_VOXEL) {
 
         // Send these bits off to the VoxelTree class to process them
-        pthread_mutex_lock(&::treeLock);
-        ::serverTree.processRemoveVoxelBitstream((unsigned char*)packetData, packetLength);
-        pthread_mutex_unlock(&::treeLock);
+        _myServer->lockTree();
+        _myServer->getServerTree().processRemoveVoxelBitstream((unsigned char*)packetData, packetLength);
+        _myServer->unlockTree();
 
         // Make sure our Node and NodeList knows we've heard from this node.
         Node* node = NodeList::getInstance()->nodeWithAddress(&senderAddress);

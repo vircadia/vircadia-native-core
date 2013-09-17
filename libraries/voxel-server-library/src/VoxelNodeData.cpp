@@ -28,12 +28,15 @@ VoxelNodeData::VoxelNodeData(Node* owningNode) :
     _voxelPacket = new unsigned char[MAX_VOXEL_PACKET_SIZE];
     _voxelPacketAt = _voxelPacket;
     resetVoxelPacket();
-    
+}
+
+void VoxelNodeData::initializeVoxelSendThread(VoxelServer* voxelServer) {
     // Create voxel sending thread...
     uint16_t nodeID = getOwningNode()->getNodeID();
-    _voxelSendThread = new VoxelSendThread(nodeID);
+    _voxelSendThread = new VoxelSendThread(nodeID, voxelServer);
     _voxelSendThread->initialize(true);
 }
+
 
 
 void VoxelNodeData::resetVoxelPacket() {
@@ -57,8 +60,10 @@ void VoxelNodeData::writeToPacket(unsigned char* buffer, int bytes) {
 VoxelNodeData::~VoxelNodeData() {
     delete[] _voxelPacket;
 
-    _voxelSendThread->terminate();
-    delete _voxelSendThread;
+    if (_voxelSendThread) {
+        _voxelSendThread->terminate();
+        delete _voxelSendThread;
+    }
 }
 
 bool VoxelNodeData::updateCurrentViewFrustum() {

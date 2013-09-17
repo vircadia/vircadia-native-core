@@ -16,17 +16,19 @@
 #include <VoxelTree.h>
 #include <VoxelNodeBag.h>
 #include "VoxelNodeData.h"
+#include "VoxelServer.h"
 
 /// Threaded processor for sending voxel packets to a single client
 class VoxelSendThread : public virtual GenericThread {
 public:
-    VoxelSendThread(uint16_t nodeID);
+    VoxelSendThread(uint16_t nodeID, VoxelServer* myServer);
 protected:
     /// Implements generic processing behavior for this thread.
     virtual bool process();
 
 private:
     uint16_t _nodeID;
+    VoxelServer* _myServer;
 
     void handlePacketSend(Node* node, VoxelNodeData* nodeData, int& trueBytesSent, int& truePacketsSent);
     void deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nodeData, bool viewFrustumChanged);
