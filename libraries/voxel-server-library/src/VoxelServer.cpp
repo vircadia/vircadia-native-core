@@ -64,7 +64,6 @@ VoxelServer::VoxelServer(Assignment::Command command, Assignment::Location locat
     _jurisdictionSender = NULL;
     _voxelServerPacketProcessor = NULL;
     _voxelPersistThread = NULL;
-    
 }
 
 VoxelServer::VoxelServer(const unsigned char* dataBuffer, int numBytes) : Assignment(dataBuffer, numBytes) {
@@ -301,6 +300,12 @@ void VoxelServer::run() {
                                                        nodeID);
 
                 NodeList::getInstance()->updateNodeWithData(node, packetData, packetLength);
+                
+                VoxelNodeData* nodeData = (VoxelNodeData*) node->getLinkedData();
+                if (nodeData && !nodeData->isVoxelSendThreadInitalized()) {
+                    nodeData->initializeVoxelSendThread(this);
+                }
+                
             } else if (packetData[0] == PACKET_TYPE_PING) {
                 // If the packet is a ping, let processNodeData handle it.
                 NodeList::getInstance()->processNodeData(&senderAddress, packetData, packetLength);
