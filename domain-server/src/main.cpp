@@ -145,6 +145,10 @@ int main(int argc, const char* argv[]) {
     Assignment avatarMixerAssignment(Assignment::CreateCommand,
                                      Assignment::AvatarMixerType,
                                      Assignment::LocalLocation);
+
+    Assignment voxelServerAssignment(Assignment::CreateCommand,
+                                     Assignment::VoxelServerType,
+                                     Assignment::LocalLocation);
     
     // construct a local socket to send with our created assignments to the global AS
     sockaddr_in localSocket = {};
@@ -158,8 +162,6 @@ int main(int argc, const char* argv[]) {
     
     QString documentRoot = QString("%1/resources/web").arg(QCoreApplication::applicationDirPath());
     
-    qDebug() << documentRoot << "\n";
-    
     // list of options. Last element must be NULL.
     const char *options[] = {"listening_ports", "8080",
                              "document_root", documentRoot.toStdString().c_str(), NULL};
@@ -169,6 +171,9 @@ int main(int argc, const char* argv[]) {
     
     // Start the web server.
     ctx = mg_start(&callbacks, NULL, options);
+    
+    // wait to check on voxel-servers till we've given our NodeList a chance to get a good list
+    int checkForVoxelServerAttempt = 0;
     
     while (true) {
         
@@ -186,6 +191,27 @@ int main(int argc, const char* argv[]) {
             qDebug("Missing an audio mixer and assignment not in queue. Adding.\n");
             ::assignmentQueue.push_front(&audioMixerAssignment);
         }
+
+        // Now handle voxel servers. Couple of things are special about voxel servers. 
+        // 1) They can run standalone, and so we want to wait to ask for an assignment until we've given them sufficient
+        //    time to check in with us. So we will look for them, but we want actually add assignments unless we haven't 
+        //    seen one after a few tries.
+        // 2) They aren't soloNodeOfType() so we have to count them.
+        int voxelServerCount = 0;
+        for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+            if (node->getType() == NODE_TYPE_VOXEL_SERVER) {
+                voxelServerCount++;
+            }
+        }
+        const int MIN_VOXEL_SERVER_CHECKS = 10;
+        if (checkForVoxelServerAttempt > MIN_VOXEL_SERVER_CHECKS &&
+            voxelServerCount == 0 &&
+            std::find(::assignmentQueue.begin(), ::assignmentQueue.end(), &voxelServerAssignment) == ::assignmentQueue.end()) {
+            qDebug("Missing a Voxel Server and assignment not in queue. Adding.\n");
+            ::assignmentQueue.push_front(&voxelServerAssignment);
+        }
+        checkForVoxelServerAttempt++;
+
         ::assignmentQueueMutex.unlock();
         
         while (nodeList->getNodeSocket()->receive((sockaddr *)&nodePublicAddress, packetData, &receivedBytes) &&

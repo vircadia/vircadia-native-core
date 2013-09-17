@@ -565,7 +565,7 @@ void MyAvatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
             // Always render other people, and render myself when beyond threshold distance
             if (b == BODY_BALL_HEAD_BASE) { // the head is rendered as a special
                 if (alpha > 0.0f) {
-                    _head.render(alpha);
+                    _head.render(alpha, true);
                 }
             } else if (alpha > 0.0f) {
                 // Render the body ball sphere
@@ -622,7 +622,7 @@ void MyAvatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
         float alpha = getBallRenderAlpha(BODY_BALL_HEAD_BASE, lookingInMirror);
         if (alpha > 0.0f) {
             _voxels.render(false);
-            _head.render(alpha);
+            _head.render(alpha, true);
         }
     }
     _hand.render(lookingInMirror);
