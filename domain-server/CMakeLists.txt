@@ -26,3 +26,8 @@ add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
 # link the shared hifi library
 include(${MACRO_DIR}/LinkHifiLibrary.cmake)
 link_hifi_library(shared ${TARGET_NAME} ${ROOT_DIR})
+
+# link dl library on UNIX for civetweb
+if (UNIX AND NOT APPLE)
+  target_link_libraries(${TARGET_NAME} ${CMAKE_DL_LIBS})
+endif (UNIX AND NOT APPLE)
