@@ -72,6 +72,7 @@ public:
     const char* getDomainHostname() const { return _domainHostname; }
     void setDomainHostname(const char* domainHostname);
     
+    const char* getDomainIP() const { return _domainIP; }
     void setDomainIP(const char* domainIP);
     void setDomainIPToLocalhost();
         

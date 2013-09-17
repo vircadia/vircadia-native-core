@@ -9,11 +9,15 @@
 #ifndef __hifi__AudioMixer__
 #define __hifi__AudioMixer__
 
+#include <Assignment.h>
+
 /// Handles assignments of type AudioMixer - mixing streams of audio and re-distributing to various clients.
-class AudioMixer {
+class AudioMixer : public Assignment {
 public:
+    AudioMixer(const unsigned char* dataBuffer, int numBytes);
+    
     /// runs the audio mixer
-    static void run();
+    void run();
 };
 
 #endif /* defined(__hifi__AudioMixer__) */

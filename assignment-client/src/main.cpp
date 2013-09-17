@@ -14,15 +14,18 @@
 
 #include <QtCore/QCoreApplication>
 
-#include "Agent.h"
-#include <Assignment.h>
-#include "audio/AudioMixer.h"
-#include "avatars/AvatarMixer.h"
+
 #include <Logging.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
 #include <VoxelServer.h>
+
+#include "Agent.h"
+#include "Assignment.h"
+#include "AssignmentFactory.h"
+#include "audio/AudioMixer.h"
+#include "avatars/AvatarMixer.h"
 
 const long long ASSIGNMENT_REQUEST_INTERVAL_USECS = 1 * 1000 * 1000;
 const char PARENT_TARGET_NAME[] = "assignment-client-monitor";
@@ -73,13 +76,13 @@ void childClient() {
             && packetVersionMatch(packetData)) {
             
             // construct the deployed assignment from the packet data
-            Assignment deployedAssignment(packetData, receivedBytes);
+            Assignment *deployedAssignment = AssignmentFactory::unpackAssignment(packetData, receivedBytes);
             
             qDebug() << "Received an assignment -" << deployedAssignment << "\n";
             
             // switch our nodelist DOMAIN_IP
             if (packetData[0] == PACKET_TYPE_CREATE_ASSIGNMENT ||
-                deployedAssignment.getAttachedPublicSocket()->sa_family == AF_INET) {
+                deployedAssignment->getAttachedPublicSocket()->sa_family == AF_INET) {
                 
                 in_addr domainSocketAddr = {};
                 
@@ -88,35 +91,24 @@ void childClient() {
                     domainSocketAddr = senderSocket.sin_addr;
                 } else {
                     // grab the domain server IP address from the packet from the AS
-                    domainSocketAddr = ((sockaddr_in*) deployedAssignment.getAttachedPublicSocket())->sin_addr;
+                    domainSocketAddr = ((sockaddr_in*) deployedAssignment->getAttachedPublicSocket())->sin_addr;
                 }
                 
                 nodeList->setDomainIP(inet_ntoa(domainSocketAddr));
                 
                 qDebug("Destination IP for assignment is %s\n", inet_ntoa(domainSocketAddr));
                 
-                if (deployedAssignment.getType() == Assignment::AudioMixerType) {
-                    AudioMixer::run();
-                } else if (deployedAssignment.getType() == Assignment::AvatarMixerType) {
-                    AvatarMixer::run();
-                } else if (deployedAssignment.getType() == Assignment::VoxelServerType) {
-                    VoxelServer::run();
-                } else {
-                    // figure out the URL for the script for this agent assignment
-                    QString scriptURLString("http://%1:8080/assignment/%2");
-                    scriptURLString = scriptURLString.arg(inet_ntoa(domainSocketAddr),
-                                                          deployedAssignment.getUUIDStringWithoutCurlyBraces());
-                    
-                    qDebug() << "Starting an Agent assignment-client with script at" << scriptURLString << "\n";
-                    
-                    Agent scriptAgent;
-                    scriptAgent.run(QUrl(scriptURLString));
-                }
+                // run the deployed assignment
+                deployedAssignment->run();
+                
             } else {
                 qDebug("Received a bad destination socket for assignment.\n");
             }
             
             qDebug("Assignment finished or never started - waiting for new assignment\n");
+            
+            // delete the deployedAssignment
+            delete deployedAssignment;
             
             // reset our NodeList by switching back to unassigned and clearing the list
             nodeList->setOwnerType(NODE_TYPE_UNASSIGNED);
