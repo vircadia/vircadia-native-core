@@ -11,5 +11,5 @@
 void VoxelScriptingInterface::queueVoxelAdd(float x, float y, float z, float scale, uchar red, uchar green, uchar blue) {
     // setup a VoxelDetail struct with the data
     VoxelDetail addVoxelDetail = {x, y, z, scale, red, green, blue};
-    _voxelPacketSender.queueVoxelEditMessages(PACKET_TYPE_SET_VOXEL, 1, &addVoxelDetail);
+    _voxelPacketSender.sendVoxelEditMessage(PACKET_TYPE_SET_VOXEL, addVoxelDetail);
 }

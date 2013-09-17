@@ -172,21 +172,21 @@ int main(int argc, const char* argv[]) {
     
     while (true) {
         
-        ::assignmentQueueMutex.lock();
-        // check if our audio-mixer or avatar-mixer are dead and we don't have existing assignments in the queue
-        // so we can add those assignments back to the front of the queue since they are high-priority
-        if (!nodeList->soloNodeOfType(NODE_TYPE_AVATAR_MIXER) &&
-            std::find(::assignmentQueue.begin(), assignmentQueue.end(), &avatarMixerAssignment) == ::assignmentQueue.end()) {
-            qDebug("Missing an avatar mixer and assignment not in queue. Adding.\n");
-            ::assignmentQueue.push_front(&avatarMixerAssignment);
-        }
-        
-        if (!nodeList->soloNodeOfType(NODE_TYPE_AUDIO_MIXER) &&
-            std::find(::assignmentQueue.begin(), ::assignmentQueue.end(), &audioMixerAssignment) == ::assignmentQueue.end()) {
-            qDebug("Missing an audio mixer and assignment not in queue. Adding.\n");
-            ::assignmentQueue.push_front(&audioMixerAssignment);
-        }
-        ::assignmentQueueMutex.unlock();
+//        ::assignmentQueueMutex.lock();
+//        // check if our audio-mixer or avatar-mixer are dead and we don't have existing assignments in the queue
+//        // so we can add those assignments back to the front of the queue since they are high-priority
+//        if (!nodeList->soloNodeOfType(NODE_TYPE_AVATAR_MIXER) &&
+//            std::find(::assignmentQueue.begin(), assignmentQueue.end(), &avatarMixerAssignment) == ::assignmentQueue.end()) {
+//            qDebug("Missing an avatar mixer and assignment not in queue. Adding.\n");
+//            ::assignmentQueue.push_front(&avatarMixerAssignment);
+//        }
+//        
+//        if (!nodeList->soloNodeOfType(NODE_TYPE_AUDIO_MIXER) &&
+//            std::find(::assignmentQueue.begin(), ::assignmentQueue.end(), &audioMixerAssignment) == ::assignmentQueue.end()) {
+//            qDebug("Missing an audio mixer and assignment not in queue. Adding.\n");
+//            ::assignmentQueue.push_front(&audioMixerAssignment);
+//        }
+//        ::assignmentQueueMutex.unlock();
         
         while (nodeList->getNodeSocket()->receive((sockaddr *)&nodePublicAddress, packetData, &receivedBytes) &&
                packetVersionMatch(packetData)) {

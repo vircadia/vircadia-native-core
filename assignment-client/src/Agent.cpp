@@ -23,7 +23,7 @@ Agent::Agent() :
 
 void Agent::run(QUrl scriptURL) {
     NodeList::getInstance()->setOwnerType(NODE_TYPE_AGENT);
-    NodeList::getInstance()->setNodeTypesOfInterest(&NODE_TYPE_AVATAR_MIXER, 1);
+    NodeList::getInstance()->setNodeTypesOfInterest(&NODE_TYPE_VOXEL_SERVER, 1);
     
     QNetworkAccessManager manager;
     
@@ -77,7 +77,7 @@ void Agent::run(QUrl scriptURL) {
         // allow the scripter's call back to setup visual data
         emit preSendCallback();
         // flush the voxel packet queue
-        voxelScripter.getVoxelPacketSender()->flushQueue();
+        voxelScripter.getVoxelPacketSender()->process();
         
         if (NodeList::getInstance()->getNodeSocket()->receive((sockaddr*) &senderAddress, receivedData, &receivedBytes)) {
             NodeList::getInstance()->processNodeData((sockaddr*) &senderAddress, receivedData, receivedBytes);
