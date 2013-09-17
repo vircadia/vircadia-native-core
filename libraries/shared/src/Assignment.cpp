@@ -140,7 +140,7 @@ int Assignment::packToBuffer(unsigned char* buffer) {
         
         numPackedBytes += packSocket(buffer + numPackedBytes, socketToPack);
     }
-    
+
     return numPackedBytes;
 }
 
