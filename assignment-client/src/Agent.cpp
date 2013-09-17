@@ -9,11 +9,11 @@
 #include <QtScript/QScriptEngine>
 #include <QtNetwork/QtNetwork>
 
+#include <AvatarData.h>
 #include <NodeList.h>
 
-#include "AvatarData.h"
-
 #include "Agent.h"
+#include "VoxelScriptingInterface.h"
 
 Agent::Agent() :
     _shouldStop(false)
@@ -39,13 +39,12 @@ void Agent::run(QUrl scriptURL) {
     
     QScriptEngine engine;
     
-    AvatarData *testAvatarData = new AvatarData;
-    
-    QScriptValue avatarDataValue = engine.newQObject(testAvatarData);
-    engine.globalObject().setProperty("Avatar", avatarDataValue);
-    
     QScriptValue agentValue = engine.newQObject(this);
     engine.globalObject().setProperty("Agent", agentValue);
+    
+    VoxelScriptingInterface voxelScripter;
+    QScriptValue voxelScripterValue =  engine.newQObject(&voxelScripter);
+    engine.globalObject().setProperty("Voxels", voxelScripterValue);
     
     qDebug() << "Downloaded script:" << scriptString << "\n";
     qDebug() << "Evaluated script:" << engine.evaluate(scriptString).toString() << "\n";
@@ -75,9 +74,10 @@ void Agent::run(QUrl scriptURL) {
             NodeList::getInstance()->sendDomainServerCheckIn();
         }
         
+        // allow the scripter's call back to setup visual data
         emit preSendCallback();
-        
-        testAvatarData->sendData();
+        // flush the voxel packet queue
+        voxelScripter.getVoxelPacketSender()->flushQueue();
         
         if (NodeList::getInstance()->getNodeSocket()->receive((sockaddr*) &senderAddress, receivedData, &receivedBytes)) {
             NodeList::getInstance()->processNodeData((sockaddr*) &senderAddress, receivedData, receivedBytes);
