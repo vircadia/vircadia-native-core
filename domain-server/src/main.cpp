@@ -48,7 +48,6 @@ const int NODE_COUNT_STAT_INTERVAL_MSECS = 5000;
 
 QMutex assignmentQueueMutex;
 std::deque<Assignment*> assignmentQueue;
-QMap<QString, QString> configMap;
 
 unsigned char* addNodeToBroadcastPacket(unsigned char* currentPosition, Node* nodeToAdd) {
     *currentPosition++ = nodeToAdd->getType();
@@ -69,37 +68,6 @@ static int mongooseRequestHandler(struct mg_connection *conn) {
         mg_printf(conn, "%s", "HTTP/1.0 200 OK\r\n\r\n");
         // upload the file
         mg_upload(conn, "/tmp");
-        
-        return 1;
-    } else if (strncmp(ri->uri, "/config", strlen("/config")) == 0 && strcmp(ri->request_method, "GET") == 0) {
-    
-        // Let's split up the URL into it's pieces so we can service it
-        QString uri(ri->uri);
-        QString delimiterPattern("/");
-        QStringList uriParts = uri.split(delimiterPattern);
-
-        QString configGuid = uriParts[2];
-
-        // first part should be empty        
-        // second part should be "config"
-        // third part should be a guid, and therefore should not be empty
-        if (!uriParts[0].isEmpty() || uriParts[1] != "config" || configGuid.isEmpty()) {
-            mg_printf(conn, "%s", "HTTP/1.0 400 Bad Request\r\nContent-Type: text/plain\r\n\r\nInvalid parameters.");
-            return 1;
-        }
-        
-        // assuming the request format was valid, look up the guid in our configs
-        if (!::configMap.contains(configGuid)) {
-            mg_printf(conn, "%s", "HTTP/1.0 404 Not Found\r\nContent-Type: text/plain\r\n\r\nInvalid config GUID.");
-            return 1;
-        }
-        
-        const char * configPayload = configMap[configGuid].toLocal8Bit().data();
-
-        // return a 200
-        mg_printf(conn, "%s", "HTTP/1.0 200 OK\r\n\r\n");
-        // return the configuration "payload"
-        mg_printf(conn, "%s", configPayload);
         
         return 1;
     } else {
@@ -166,7 +134,7 @@ int main(int argc, const char* argv[]) {
     in_addr_t serverLocalAddress = getLocalAddress();
     
     nodeList->startSilentNodeRemovalThread();
-    
+
     timeval lastStatSendTime = {};
     const char ASSIGNMENT_SERVER_OPTION[] = "-a";
     
@@ -194,6 +162,15 @@ int main(int argc, const char* argv[]) {
     Assignment voxelServerAssignment(Assignment::CreateCommand,
                                      Assignment::VoxelServerType,
                                      Assignment::LocalLocation);
+
+    // Handle Domain/Voxel Server configuration command line arguments
+    const char VOXEL_CONFIG_OPTION[] = "--voxelServerConfig";
+    const char* voxelServerConfig = getCmdOption(argc, argv, VOXEL_CONFIG_OPTION);
+    if (voxelServerConfig) {
+        qDebug("Reading Voxel Server Configuration.\n");
+        qDebug() << "   config: " << voxelServerConfig << "\n";
+        voxelServerAssignment.setDataPayload((unsigned char*)voxelServerConfig, strlen(voxelServerConfig) + 1);
+    }
     
     // construct a local socket to send with our created assignments to the global AS
     sockaddr_in localSocket = {};
@@ -249,10 +226,9 @@ int main(int argc, const char* argv[]) {
             }
         }
         const int MIN_VOXEL_SERVER_CHECKS = 10;
-        if (checkForVoxelServerAttempt > MIN_VOXEL_SERVER_CHECKS &&
-            voxelServerCount == 0 &&
+        if (checkForVoxelServerAttempt > MIN_VOXEL_SERVER_CHECKS && voxelServerCount == 0 &&
             std::find(::assignmentQueue.begin(), ::assignmentQueue.end(), &voxelServerAssignment) == ::assignmentQueue.end()) {
-            qDebug("Missing a Voxel Server and assignment not in queue. Adding.\n");
+            qDebug("Missing a voxel server and assignment not in queue. Adding.\n");
             ::assignmentQueue.push_front(&voxelServerAssignment);
         }
         checkForVoxelServerAttempt++;

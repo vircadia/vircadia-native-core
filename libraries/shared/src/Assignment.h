@@ -15,6 +15,8 @@
 
 #include "NodeList.h"
 
+const int MAX_PAYLOAD_SIZE = 1024;
+
 /// Holds information used for request, creation, and deployment of assignments
 class Assignment {
 public:
@@ -65,6 +67,10 @@ public:
     
     const sockaddr* getAttachedLocalSocket() { return _attachedLocalSocket; }
     void setAttachedLocalSocket(const sockaddr* attachedLocalSocket);
+
+    unsigned char* getDataPayload() { return _dataPayload; }
+    int getDataPayloadSize() { return _dataPayloadSize; }
+    void setDataPayload(unsigned char* data, int length) { memcpy(_dataPayload, data, length); _dataPayloadSize = length; }
     
     /// Packs the assignment to the passed buffer
     /// \param buffer the buffer in which to pack the assignment
@@ -83,6 +89,8 @@ private:
     sockaddr* _attachedLocalSocket; /// pointer to a local socket that relates to assignment, depends on direction
     timeval _time; /// time the assignment was created (set in constructor)
     int _numberOfInstances; /// the number of instances of this assignment
+    unsigned char _dataPayload[MAX_PAYLOAD_SIZE];
+    int _dataPayloadSize;
 };
 
 QDebug operator<<(QDebug debug, const Assignment &assignment);
