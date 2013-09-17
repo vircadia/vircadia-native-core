@@ -16,8 +16,8 @@
 
 #include "Agent.h"
 #include <Assignment.h>
-#include <AudioMixer.h>
-#include <AvatarMixer.h>
+#include "audio/AudioMixer.h"
+#include "avatars/AvatarMixer.h"
 #include <Logging.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>

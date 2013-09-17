@@ -13,7 +13,7 @@
 #include <NodeList.h>
 
 #include "Agent.h"
-#include "VoxelScriptingInterface.h"
+#include "voxels/VoxelScriptingInterface.h"
 
 Agent::Agent() :
     _shouldStop(false)
