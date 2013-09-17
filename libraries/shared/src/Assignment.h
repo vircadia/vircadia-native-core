@@ -23,6 +23,7 @@ public:
         AudioMixerType,
         AvatarMixerType,
         AgentType,
+        VoxelServerType,
         AllTypes
     };
     

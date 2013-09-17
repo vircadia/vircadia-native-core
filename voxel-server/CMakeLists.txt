@@ -26,3 +26,5 @@ link_hifi_library(voxels ${TARGET_NAME} ${ROOT_DIR})
 # link in the hifi avatars library
 link_hifi_library(avatars ${TARGET_NAME} ${ROOT_DIR})
 
+# link in the hifi voxel-server-library
+link_hifi_library(voxel-server-library ${TARGET_NAME} ${ROOT_DIR})

@@ -6,12 +6,11 @@
 //
 //
 
-#ifndef __voxel_server__VoxelServer__
-#define __voxel_server__VoxelServer__
+#ifndef __voxel_server__VoxelServerState__
+#define __voxel_server__VoxelServerState__
 
 #include <SharedUtil.h>
 #include <NodeList.h> // for MAX_PACKET_SIZE
-#include <EnvironmentData.h>
 #include <JurisdictionSender.h>
 #include <VoxelTree.h>
 
@@ -19,7 +18,6 @@
 
 
 const int MAX_FILENAME_LENGTH = 1024;
-const int VOXEL_LISTEN_PORT = 40106;
 const int VOXEL_SIZE_BYTES = 3 + (3 * sizeof(float));
 const int VOXELS_PER_PACKET = (MAX_PACKET_SIZE - 1) / VOXEL_SIZE_BYTES;
 const int MIN_BRIGHTNESS = 64;
@@ -46,13 +44,10 @@ extern bool debugVoxelReceiving;
 extern bool sendEnvironments;
 extern bool sendMinimalEnvironment;
 extern bool dumpVoxelsOnMove;
-extern EnvironmentData environmentData[3];
 extern int receivedPacketCount;
 extern JurisdictionMap* jurisdiction;
 extern JurisdictionSender* jurisdictionSender;
 extern VoxelServerPacketProcessor* voxelServerPacketProcessor;
 extern pthread_mutex_t treeLock;
 
-
-
-#endif // __voxel_server__VoxelServer__
+#endif // __voxel_server__VoxelServerState__

@@ -11,9 +11,12 @@
 #include <NodeList.h>
 #include <SharedUtil.h>
 #include <PacketHeaders.h>
+#include <EnvironmentData.h>
+extern EnvironmentData environmentData[3];
 
 #include "VoxelSendThread.h"
 #include "VoxelServer.h"
+#include "VoxelServerState.h"
 
 VoxelSendThread::VoxelSendThread(uint16_t nodeID) :
     _nodeID(nodeID) {
