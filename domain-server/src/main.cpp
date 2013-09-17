@@ -313,17 +313,18 @@ int main(int argc, const char* argv[]) {
                                                     broadcastPacket,
                                                     numHeaderBytes + numAssignmentBytes);
                     
-                    // remove the assignment from the queue
-                    ::assignmentQueue.erase(assignment);
-                    
                     if ((*assignment)->getType() == Assignment::AgentType) {
                         // if this is a script assignment we need to delete it to avoid a memory leak
                         // or if there is more than one instance to send out, simpy decrease the number of instances
                         if ((*assignment)->getNumberOfInstances() > 1) {
                             (*assignment)->decrementNumberOfInstances();
                         } else {
+                            ::assignmentQueue.erase(assignment);
                             delete *assignment;
                         }
+                    } else {
+                        // remove the assignment from the queue
+                        ::assignmentQueue.erase(assignment);
                     }
                     
                     // stop looping, we've handed out an assignment
@@ -351,12 +352,18 @@ int main(int argc, const char* argv[]) {
                     
                     nodeList->sendAssignment(*(*assignment));
                     
-                    // remove the assignment from the queue
-                    ::assignmentQueue.erase(assignment);
-                    
                     if ((*assignment)->getType() == Assignment::AgentType) {
                         // if this is a script assignment we need to delete it to avoid a memory leak
-                        delete *assignment;
+                        // or if there is more than one instance to send out, simpy decrease the number of instances
+                        if ((*assignment)->getNumberOfInstances() > 1) {
+                            (*assignment)->decrementNumberOfInstances();
+                        } else {
+                            ::assignmentQueue.erase(assignment);
+                            delete *assignment;
+                        }
+                    } else {
+                        // remove the assignment from the queue
+                        ::assignmentQueue.erase(assignment);
                     }
                     
                     // stop looping, we've handed out an assignment

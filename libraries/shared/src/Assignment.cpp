@@ -21,7 +21,8 @@ Assignment::Assignment(Assignment::Command command, Assignment::Type type, Assig
     _type(type),
     _location(location),
     _attachedPublicSocket(NULL),
-    _attachedLocalSocket(NULL)
+    _attachedLocalSocket(NULL),
+    _numberOfInstances(1)
 {
     // set the create time on this assignment
     gettimeofday(&_time, NULL);
@@ -35,7 +36,8 @@ Assignment::Assignment(Assignment::Command command, Assignment::Type type, Assig
 Assignment::Assignment(const unsigned char* dataBuffer, int numBytes) :
     _location(GlobalLocation),
     _attachedPublicSocket(NULL),
-    _attachedLocalSocket(NULL)
+    _attachedLocalSocket(NULL),
+    _numberOfInstances(1)
 {
     // set the create time on this assignment
     gettimeofday(&_time, NULL);
