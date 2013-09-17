@@ -22,6 +22,7 @@
 #include <NodeList.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
+#include <VoxelServer.h>
 
 const long long ASSIGNMENT_REQUEST_INTERVAL_USECS = 1 * 1000 * 1000;
 const char PARENT_TARGET_NAME[] = "assignment-client-monitor";
@@ -97,6 +98,8 @@ void childClient() {
                     AudioMixer::run();
                 } else if (deployedAssignment.getType() == Assignment::AvatarMixerType) {
                     AvatarMixer::run();
+                } else if (deployedAssignment.getType() == Assignment::VoxelServerType) {
+                    VoxelServer::run();
                 } else {
                     // figure out the URL for the script for this agent assignment
                     QString scriptURLString("http://%1:8080/assignment/%2");
