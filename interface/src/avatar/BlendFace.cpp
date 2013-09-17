@@ -44,29 +44,15 @@ bool BlendFace::render(float alpha) {
 
     glColor4f(1.0f, 1.0f, 1.0f, alpha);
 
-    // find the coefficient total and scale
-    const vector<float>& coefficients = _owningHead->getBlendshapeCoefficients();
-    float total = accumulate(coefficients.begin(), coefficients.end(), 0.0f);
-    float scale = 1.0f / (total < 1.0f ? 1.0f : total);
-    
     // start with the base
     int vertexCount = _baseVertices.size();
     _blendedVertices.resize(vertexCount);
-    const fsVector3f* source = _baseVertices.data();
-    fsVector3f* dest = _blendedVertices.data();
-    float baseCoefficient = (total < 1.0f) ? (1.0f - total) : 0.0f;
-    for (int i = 0; i < vertexCount; i++) {
-        dest->x += source->x * baseCoefficient;
-        dest->y += source->y * baseCoefficient;
-        dest->z += source->z * baseCoefficient;
-        
-        source++;
-        dest++;
-    }
+    memcpy(_blendedVertices.data(), _baseVertices.data(), vertexCount * sizeof(fsVector3f));
     
     // blend in each coefficient
+    const vector<float>& coefficients = _owningHead->getBlendshapeCoefficients();
     for (int i = 0; i < coefficients.size(); i++) {
-        float coefficient = coefficients[i] * scale;
+        float coefficient = coefficients[i];
         if (coefficient == 0.0f || i >= _blendshapes.size()) {
             continue;
         }
