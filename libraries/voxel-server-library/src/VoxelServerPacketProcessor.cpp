@@ -12,6 +12,7 @@
 #include <PerfStat.h>
 
 #include "VoxelServer.h"
+#include "VoxelServerState.h"
 #include "VoxelServerPacketProcessor.h"
 
 

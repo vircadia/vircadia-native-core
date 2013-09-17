@@ -38,6 +38,7 @@
 #endif
 
 #include "VoxelServer.h"
+#include "VoxelServerState.h"
 
 const char* LOCAL_VOXELS_PERSIST_FILE = "resources/voxels.svo";
 const char* VOXELS_PERSIST_FILE = "/etc/highfidelity/voxel-server/resources/voxels.svo";
@@ -76,6 +77,21 @@ void VoxelServer::setArguments(int argc, char** argv) {
     _argv = const_cast<const char**>(argv);
 }
 
+void VoxelServer::setupDomainAndPort(const char* domain, int port) {
+    NodeList::createInstance(NODE_TYPE_VOXEL_SERVER, port);
+
+    // Handle Local Domain testing with the --local command line
+    const char* local = "--local";
+    ::wantLocalDomain = strcmp(domain, local) == 0;
+    if (::wantLocalDomain) {
+        printf("Local Domain MODE!\n");
+        NodeList::getInstance()->setDomainIPToLocalhost();
+    } else {
+        if (domain) {
+            NodeList::getInstance()->setDomainHostname(domain);
+        }
+    }
+}
 
 //int main(int argc, const char * argv[]) {
 void VoxelServer::run() {
@@ -83,18 +99,6 @@ void VoxelServer::run() {
     
     qInstallMessageHandler(sharedMessageHandler);
     
-    int listenPort = VOXEL_LISTEN_PORT;
-    // Check to see if the user passed in a command line option for setting listen port
-    const char* PORT_PARAMETER = "--port";
-    const char* portParameter = getCmdOption(_argc, _argv, PORT_PARAMETER);
-    if (portParameter) {
-        listenPort = atoi(portParameter);
-        if (listenPort < 1) {
-            listenPort = VOXEL_LISTEN_PORT;
-        }
-        printf("portParameter=%s listenPort=%d\n", portParameter, listenPort);
-    }
-
     const char* JURISDICTION_FILE = "--jurisdictionFile";
     const char* jurisdictionFile = getCmdOption(_argc, _argv, JURISDICTION_FILE);
     if (jurisdictionFile) {
@@ -140,25 +144,14 @@ void VoxelServer::run() {
     }
     printf("Sending environments=%s\n", debug::valueOf(::sendEnvironments));
     
-    NodeList* nodeList = NodeList::createInstance(NODE_TYPE_VOXEL_SERVER, listenPort);
+    NodeList* nodeList = NodeList::getInstance();
+    nodeList->setOwnerType(NODE_TYPE_VOXEL_SERVER);
+    
     setvbuf(stdout, NULL, _IOLBF, 0);
 
     // tell our NodeList about our desire to get notifications
     nodeList->addHook(&nodeWatcher);
     nodeList->linkedDataCreateCallback = &attachVoxelNodeDataToNode;
-
-    // Handle Local Domain testing with the --local command line
-    const char* local = "--local";
-    ::wantLocalDomain = cmdOptionExists(_argc, _argv, local);
-    if (::wantLocalDomain) {
-        printf("Local Domain MODE!\n");
-        NodeList::getInstance()->setDomainIPToLocalhost();
-    } else {
-        const char* domainIP = getCmdOption(_argc, _argv, "--domain");
-        if (domainIP) {
-            NodeList::getInstance()->setDomainHostname(domainIP);
-        }
-    }
 
     nodeList->startSilentNodeRemovalThread();
     srand((unsigned)time(0));
@@ -196,7 +189,8 @@ void VoxelServer::run() {
         if (voxelsPersistFilenameParameter) {
             strcpy(voxelPersistFilename, voxelsPersistFilenameParameter);
         } else {
-            strcpy(voxelPersistFilename, ::wantLocalDomain ? LOCAL_VOXELS_PERSIST_FILE : VOXELS_PERSIST_FILE);
+            //strcpy(voxelPersistFilename, ::wantLocalDomain ? LOCAL_VOXELS_PERSIST_FILE : VOXELS_PERSIST_FILE);
+            strcpy(voxelPersistFilename, LOCAL_VOXELS_PERSIST_FILE);
         }
 
         printf("loading voxels from file: %s...\n", voxelPersistFilename);
@@ -278,7 +272,11 @@ void VoxelServer::run() {
 
     // loop to send to nodes requesting data
     while (true) {
-
+    
+        if (NodeList::getInstance()->getNumNoReplyDomainCheckIns() == MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
+            break;
+        }
+        
         // send a check in packet to the domain server if DOMAIN_SERVER_CHECK_IN_USECS has elapsed
         if (usecTimestampNow() - usecTimestamp(&lastDomainServerCheckIn) >= DOMAIN_SERVER_CHECK_IN_USECS) {
             gettimeofday(&lastDomainServerCheckIn, NULL);

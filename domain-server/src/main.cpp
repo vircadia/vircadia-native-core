@@ -142,6 +142,10 @@ int main(int argc, const char* argv[]) {
     Assignment avatarMixerAssignment(Assignment::CreateCommand,
                                      Assignment::AvatarMixerType,
                                      Assignment::LocalLocation);
+
+    Assignment voxelServerAssignment(Assignment::CreateCommand,
+                                     Assignment::VoxelServerType,
+                                     Assignment::LocalLocation);
     
     // construct a local socket to send with our created assignments to the global AS
     sockaddr_in localSocket = {};
@@ -179,6 +183,22 @@ int main(int argc, const char* argv[]) {
             qDebug("Missing an audio mixer and assignment not in queue. Adding.\n");
             ::assignmentQueue.push_front(&audioMixerAssignment);
         }
+
+        // Now handle voxel servers, since there could be more than one, we look for any of them
+        int voxelServerCount = 0;
+        for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+            if (node->getType() == NODE_TYPE_VOXEL_SERVER) {
+                voxelServerCount++;
+            }
+        }
+        
+        if (voxelServerCount == 0 &&
+            std::find(::assignmentQueue.begin(), ::assignmentQueue.end(), &voxelServerAssignment) == ::assignmentQueue.end()) {
+            qDebug("Missing an Voxel Server and assignment not in queue. Adding.\n");
+            ::assignmentQueue.push_front(&voxelServerAssignment);
+        }
+
+
         ::assignmentQueueMutex.unlock();
         
         while (nodeList->getNodeSocket()->receive((sockaddr *)&nodePublicAddress, packetData, &receivedBytes) &&
