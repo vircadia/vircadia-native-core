@@ -29,17 +29,19 @@ int main(int argc, const char * argv[]) {
         }
         printf("portParameter=%s listenPort=%d\n", portParameter, listenPort);
     }
+    
+    VoxelServer ourVoxelServer;
 
     if (wantLocalDomain) {
-        VoxelServer::setupDomainAndPort(local, listenPort);
+        ourVoxelServer.setupStandAlone(local, listenPort);
     } else {
         if (domainIP) {
-            VoxelServer::setupDomainAndPort(domainIP, listenPort);
+            ourVoxelServer.setupStandAlone(domainIP, listenPort);
         }
     }
 
-    VoxelServer::setArguments(argc, const_cast<char**>(argv));
-    VoxelServer::run();
+    ourVoxelServer.setArguments(argc, const_cast<char**>(argv));
+    ourVoxelServer.run();
 }
 
 

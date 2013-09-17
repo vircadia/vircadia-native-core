@@ -32,6 +32,7 @@ pid_t* childForks = NULL;
 sockaddr_in customAssignmentSocket = {};
 int numForks = 0;
 Assignment::Type overiddenAssignmentType = Assignment::AllTypes;
+std::vector<VoxelServer*> voxelServers;
 
 void childClient() {
     // this is one of the child forks or there is a single assignment client, continue assignment-client execution
@@ -100,7 +101,9 @@ void childClient() {
                 } else if (deployedAssignment.getType() == Assignment::AvatarMixerType) {
                     AvatarMixer::run();
                 } else if (deployedAssignment.getType() == Assignment::VoxelServerType) {
-                    VoxelServer::run();
+                    VoxelServer* voxelServer = new VoxelServer();
+                    ::voxelServers.push_back(voxelServer);
+                    voxelServer->run((const char*)deployedAssignment.getPayload());
                 } else {
                     // figure out the URL for the script for this agent assignment
                     QString scriptURLString("http://%1:8080/assignment/%2");
@@ -162,6 +165,13 @@ void sigchldHandler(int sig) {
             }
         }
     }
+    
+    // cleanup voxelServers
+    for (int i = 0; i < ::voxelServers.size(); i++) {
+        VoxelServer* voxelServer = ::voxelServers[i];
+        delete voxelServer;
+    }
+    
 }
 
 void parentMonitor() {

@@ -63,14 +63,16 @@ VoxelPersistThread* voxelPersistThread = NULL;
 pthread_mutex_t treeLock;
 NodeWatcher nodeWatcher; // used to cleanup AGENT data when agents are killed
 
-int VoxelServer::_argc = 0;
-const char** VoxelServer::_argv = NULL;
-bool VoxelServer::_dontKillOnMissingDomain = false;
-
 void attachVoxelNodeDataToNode(Node* newNode) {
     if (newNode->getLinkedData() == NULL) {
         newNode->setLinkedData(new VoxelNodeData(newNode));
     }
+}
+
+VoxelServer::VoxelServer() {
+    _argc = 0;
+    _argv = NULL;
+    _dontKillOnMissingDomain = false;
 }
 
 void VoxelServer::setArguments(int argc, char** argv) {
@@ -78,7 +80,7 @@ void VoxelServer::setArguments(int argc, char** argv) {
     _argv = const_cast<const char**>(argv);
 }
 
-void VoxelServer::setupDomainAndPort(const char* domain, int port) {
+void VoxelServer::setupStandAlone(const char* domain, int port) {
     NodeList::createInstance(NODE_TYPE_VOXEL_SERVER, port);
 
     // Handle Local Domain testing with the --local command line
@@ -98,7 +100,7 @@ void VoxelServer::setupDomainAndPort(const char* domain, int port) {
 }
 
 //int main(int argc, const char * argv[]) {
-void VoxelServer::run() {
+void VoxelServer::run(const char* configuration) {
     pthread_mutex_init(&::treeLock, NULL);
     
     qInstallMessageHandler(sharedMessageHandler);
