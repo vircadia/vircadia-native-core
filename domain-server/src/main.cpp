@@ -155,7 +155,7 @@ int main(int argc, const char* argv[]) {
     Assignment avatarMixerAssignment(Assignment::CreateCommand,
                                      Assignment::AvatarMixerType,
                                      Assignment::LocalLocation);
-
+    
     Assignment voxelServerAssignment(Assignment::CreateCommand,
                                      Assignment::VoxelServerType,
                                      Assignment::LocalLocation);
@@ -247,77 +247,107 @@ int main(int argc, const char* argv[]) {
                     nodePublicAddress.sin_addr.s_addr = 0;
                 }
                 
-                Node* newNode = nodeList->addOrUpdateNode((sockaddr*) &nodePublicAddress,
-                                                          (sockaddr*) &nodeLocalAddress,
-                                                          nodeType,
-                                                          nodeList->getLastNodeID());
+                bool matchedUUID = true;
                 
-                // if addOrUpdateNode returns NULL this was a solo node we already have, don't talk back to it
-                if (newNode) {
-                    if (newNode->getNodeID() == nodeList->getLastNodeID()) {
-                        nodeList->increaseNodeID();
+                if ((nodeType == NODE_TYPE_AVATAR_MIXER || nodeType == NODE_TYPE_AUDIO_MIXER) &&
+                    !nodeList->soloNodeOfType(nodeType)) {
+                    // if this is an audio-mixer or an avatar-mixer and we don't have one yet
+                    // we need to check the GUID of the assignment in the queue
+                    // (if it exists) to make sure there is a match
+                    
+                    // reset matchedUUID to false so there is no match by default
+                    matchedUUID = false;
+                    
+                    // pull the UUID passed with the check in
+                    QUuid checkInUUID = QUuid::fromRfc4122(QByteArray((const char*) packetData + numBytesSenderHeader +
+                                                                      sizeof(NODE_TYPE),
+                                                                      NUM_BYTES_RFC4122_UUID));
+                    
+                    // lock the assignment queue
+                    ::assignmentQueueMutex.lock();
+                    
+                    std::deque<Assignment*>::iterator assignment = ::assignmentQueue.begin();
+                    
+                    Assignment::Type matchType = nodeType == NODE_TYPE_AUDIO_MIXER
+                        ? Assignment::AudioMixerType : Assignment::AvatarMixerType;
+                    
+                    
+                    // enumerate the assignments and see if there is a type and UUID match
+                    while (assignment != ::assignmentQueue.end()) {
+                        
+                        if ((*assignment)->getType() == matchType
+                            && (*assignment)->getUUID() == checkInUUID) {
+                            // type and UUID match
+                            matchedUUID = true;
+                            
+                            // remove this assignment from the queue
+                            ::assignmentQueue.erase(assignment);
+                            
+                            break;
+                        } else {
+                            // no match, keep looking
+                            assignment++;
+                        }
                     }
                     
-                    int numHeaderBytes = populateTypeAndVersion(broadcastPacket, PACKET_TYPE_DOMAIN);
+                    // unlock the assignment queue
+                    ::assignmentQueueMutex.unlock();
+                }
+                
+                if (matchedUUID) {
+                    Node* newNode = nodeList->addOrUpdateNode((sockaddr*) &nodePublicAddress,
+                                                              (sockaddr*) &nodeLocalAddress,
+                                                              nodeType,
+                                                              nodeList->getLastNodeID());
                     
-                    currentBufferPos = broadcastPacket + numHeaderBytes;
-                    startPointer = currentBufferPos;
-                    
-                    unsigned char* nodeTypesOfInterest = packetData + numBytesSenderHeader + sizeof(NODE_TYPE)
-                    + numBytesSocket + sizeof(unsigned char);
-                    int numInterestTypes = *(nodeTypesOfInterest - 1);
-                    
-                    if (numInterestTypes > 0) {
-                        // if the node has sent no types of interest, assume they want nothing but their own ID back
-                        for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
-                            if (!node->matches((sockaddr*) &nodePublicAddress, (sockaddr*) &nodeLocalAddress, nodeType) &&
-                                memchr(nodeTypesOfInterest, node->getType(), numInterestTypes)) {
-                                // this is not the node themselves
-                                // and this is an node of a type in the passed node types of interest
-                                // or the node did not pass us any specific types they are interested in
-                                
-                                if (memchr(SOLO_NODE_TYPES, node->getType(), sizeof(SOLO_NODE_TYPES)) == NULL) {
-                                    // this is an node of which there can be multiple, just add them to the packet
+                    // if addOrUpdateNode returns NULL this was a solo node we already have, don't talk back to it
+                    if (newNode) {
+                        if (newNode->getNodeID() == nodeList->getLastNodeID()) {
+                            nodeList->increaseNodeID();
+                        }
+                        
+                        int numHeaderBytes = populateTypeAndVersion(broadcastPacket, PACKET_TYPE_DOMAIN);
+                        
+                        currentBufferPos = broadcastPacket + numHeaderBytes;
+                        startPointer = currentBufferPos;
+                        
+                        int numBytesUUID = (nodeType == NODE_TYPE_AUDIO_MIXER || nodeType == NODE_TYPE_AVATAR_MIXER)
+                            ? NUM_BYTES_RFC4122_UUID
+                            : 0;
+                        
+                        unsigned char* nodeTypesOfInterest = packetData + numBytesSenderHeader + numBytesUUID +
+                            sizeof(NODE_TYPE) + numBytesSocket + sizeof(unsigned char);
+                        int numInterestTypes = *(nodeTypesOfInterest - 1);
+                        
+                        if (numInterestTypes > 0) {
+                            // if the node has sent no types of interest, assume they want nothing but their own ID back
+                            for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+                                if (!node->matches((sockaddr*) &nodePublicAddress, (sockaddr*) &nodeLocalAddress, nodeType) &&
+                                    memchr(nodeTypesOfInterest, node->getType(), numInterestTypes)) {
+                
                                     // don't send avatar nodes to other avatars, that will come from avatar mixer
                                     if (nodeType != NODE_TYPE_AGENT || node->getType() != NODE_TYPE_AGENT) {
                                         currentBufferPos = addNodeToBroadcastPacket(currentBufferPos, &(*node));
                                     }
                                     
-                                } else {
-                                    // solo node, we need to only send newest
-                                    if (newestSoloNodes[node->getType()] == NULL ||
-                                        newestSoloNodes[node->getType()]->getWakeMicrostamp() < node->getWakeMicrostamp()) {
-                                        // we have to set the newer solo node to add it to the broadcast later
-                                        newestSoloNodes[node->getType()] = &(*node);
-                                    }
                                 }
                             }
+                            
+                            
                         }
                         
-                        for (std::map<char, Node *>::iterator soloNode = newestSoloNodes.begin();
-                             soloNode != newestSoloNodes.end();
-                             soloNode++) {
-                            // this is the newest alive solo node, add them to the packet
-                            currentBufferPos = addNodeToBroadcastPacket(currentBufferPos, soloNode->second);
-                        }
+                        // update last receive to now
+                        uint64_t timeNow = usecTimestampNow();
+                        newNode->setLastHeardMicrostamp(timeNow);
+                        
+                        // add the node ID to the end of the pointer
+                        currentBufferPos += packNodeId(currentBufferPos, newNode->getNodeID());
+                        
+                        // send the constructed list back to this node
+                        nodeList->getNodeSocket()->send((sockaddr*)&replyDestinationSocket,
+                                                        broadcastPacket,
+                                                        (currentBufferPos - startPointer) + numHeaderBytes);
                     }
-                    
-                    // update last receive to now
-                    uint64_t timeNow = usecTimestampNow();
-                    newNode->setLastHeardMicrostamp(timeNow);
-                    
-                    if (packetData[0] == PACKET_TYPE_DOMAIN_REPORT_FOR_DUTY
-                        && memchr(SOLO_NODE_TYPES, nodeType, sizeof(SOLO_NODE_TYPES))) {
-                        newNode->setWakeMicrostamp(timeNow);
-                    }
-                    
-                    // add the node ID to the end of the pointer
-                    currentBufferPos += packNodeId(currentBufferPos, newNode->getNodeID());
-                    
-                    // send the constructed list back to this node
-                    nodeList->getNodeSocket()->send((sockaddr*)&replyDestinationSocket,
-                                                    broadcastPacket,
-                                                    (currentBufferPos - startPointer) + numHeaderBytes);
                 }
             } else if (packetData[0] == PACKET_TYPE_REQUEST_ASSIGNMENT) {
                 
@@ -358,6 +388,13 @@ int main(int argc, const char* argv[]) {
                         } else {
                             // remove the assignment from the queue
                             ::assignmentQueue.erase(assignment);
+                            
+                            if ((*assignment)->getType() != Assignment::VoxelServerType) {
+                                // keep audio-mixer and avatar-mixer assignments in the queue
+                                // until we get a check-in from that GUID
+                                // but stick it at the back so the others have a chance to go out
+                                ::assignmentQueue.push_back(*assignment);
+                            }
                         }
                         
                         // stop looping, we've handed out an assignment
@@ -398,7 +435,8 @@ int main(int argc, const char* argv[]) {
                             ::assignmentQueue.erase(assignment);
                             delete *assignment;
                         }
-                    } else {
+                    } else if ((*assignment)->getType() == Assignment::VoxelServerType) {
+                        // this is a voxel server assignment
                         // remove the assignment from the queue
                         ::assignmentQueue.erase(assignment);
                     }

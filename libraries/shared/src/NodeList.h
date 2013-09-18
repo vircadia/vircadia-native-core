@@ -97,7 +97,7 @@ public:
     
     void setNodeTypesOfInterest(const char* nodeTypesOfInterest, int numNodeTypesOfInterest);
     
-    void sendDomainServerCheckIn();
+    void sendDomainServerCheckIn(const char* assignmentUUID = NULL);
     int processDomainServerList(unsigned char *packetData, size_t dataBytes);
     
     void setAssignmentServerSocket(sockaddr* serverSocket) { _assignmentServerSocket = serverSocket; }
