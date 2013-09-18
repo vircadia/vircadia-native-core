@@ -100,7 +100,6 @@ void childClient() {
                 
                 // run the deployed assignment
                 deployedAssignment->run();
-                
             } else {
                 qDebug("Received a bad destination socket for assignment.\n");
             }
@@ -154,6 +153,7 @@ void sigchldHandler(int sig) {
             }
         }
     }
+    
 }
 
 void parentMonitor() {

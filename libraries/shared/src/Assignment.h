@@ -72,7 +72,7 @@ public:
     
     const sockaddr* getAttachedLocalSocket() { return _attachedLocalSocket; }
     void setAttachedLocalSocket(const sockaddr* attachedLocalSocket);
-    
+
     /// Packs the assignment to the passed buffer
     /// \param buffer the buffer in which to pack the assignment
     /// \return number of bytes packed into buffer

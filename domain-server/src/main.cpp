@@ -27,6 +27,7 @@
 #include <stdlib.h>
 
 #include <QtCore/QCoreApplication>
+#include <QtCore/QMap>
 #include <QtCore/QMutex>
 
 #include <civetweb.h>
@@ -58,7 +59,7 @@ unsigned char* addNodeToBroadcastPacket(unsigned char* currentPosition, Node* no
 }
 
 static int mongooseRequestHandler(struct mg_connection *conn) {
-    const struct mg_request_info *ri = mg_get_request_info(conn);
+    const struct mg_request_info* ri = mg_get_request_info(conn);
     
     if (strcmp(ri->uri, "/assignment") == 0 && strcmp(ri->request_method, "POST") == 0) {
         // return a 200
@@ -131,7 +132,7 @@ int main(int argc, const char* argv[]) {
     in_addr_t serverLocalAddress = getLocalAddress();
     
     nodeList->startSilentNodeRemovalThread();
-    
+
     timeval lastStatSendTime = {};
     const char ASSIGNMENT_SERVER_OPTION[] = "-a";
     
@@ -159,6 +160,15 @@ int main(int argc, const char* argv[]) {
     Assignment voxelServerAssignment(Assignment::CreateCommand,
                                      Assignment::VoxelServerType,
                                      Assignment::LocalLocation);
+
+    // Handle Domain/Voxel Server configuration command line arguments
+    const char VOXEL_CONFIG_OPTION[] = "--voxelServerConfig";
+    const char* voxelServerConfig = getCmdOption(argc, argv, VOXEL_CONFIG_OPTION);
+    if (voxelServerConfig) {
+        qDebug("Reading Voxel Server Configuration.\n");
+        qDebug() << "   config: " << voxelServerConfig << "\n";
+        voxelServerAssignment.setPayload((uchar*)voxelServerConfig, strlen(voxelServerConfig) + 1);
+    }
     
     // construct a local socket to send with our created assignments to the global AS
     sockaddr_in localSocket = {};
@@ -167,13 +177,13 @@ int main(int argc, const char* argv[]) {
     localSocket.sin_addr.s_addr = serverLocalAddress;
     
     // setup the mongoose web server
-    struct mg_context *ctx;
+    struct mg_context* ctx;
     struct mg_callbacks callbacks = {};
     
     QString documentRoot = QString("%1/resources/web").arg(QCoreApplication::applicationDirPath());
     
     // list of options. Last element must be NULL.
-    const char *options[] = {"listening_ports", "8080",
+    const char* options[] = {"listening_ports", "8080",
                              "document_root", documentRoot.toStdString().c_str(), NULL};
     
     callbacks.begin_request = mongooseRequestHandler;
@@ -214,10 +224,9 @@ int main(int argc, const char* argv[]) {
             }
         }
         const int MIN_VOXEL_SERVER_CHECKS = 10;
-        if (checkForVoxelServerAttempt > MIN_VOXEL_SERVER_CHECKS &&
-            voxelServerCount == 0 &&
+        if (checkForVoxelServerAttempt > MIN_VOXEL_SERVER_CHECKS && voxelServerCount == 0 &&
             std::find(::assignmentQueue.begin(), ::assignmentQueue.end(), &voxelServerAssignment) == ::assignmentQueue.end()) {
-            qDebug("Missing a Voxel Server and assignment not in queue. Adding.\n");
+            qDebug("Missing a voxel server and assignment not in queue. Adding.\n");
             ::assignmentQueue.push_front(&voxelServerAssignment);
         }
         checkForVoxelServerAttempt++;

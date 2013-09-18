@@ -165,12 +165,10 @@ int Assignment::packToBuffer(unsigned char* buffer) {
         
         numPackedBytes += packSocket(buffer + numPackedBytes, socketToPack);
     }
-    
     if (_numPayloadBytes) {
         memcpy(buffer + numPackedBytes, _payload, _numPayloadBytes);
         numPackedBytes += _numPayloadBytes;
     }
-    
     return numPackedBytes;
 }
 

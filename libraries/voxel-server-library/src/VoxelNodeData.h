@@ -19,6 +19,7 @@
 #include <VoxelSceneStats.h>
 
 class VoxelSendThread;
+class VoxelServer;
 
 class VoxelNodeData : public AvatarData {
 public:
@@ -64,6 +65,9 @@ public:
     bool getCurrentPacketIsColor() const { return _currentPacketIsColor; };
     
     VoxelSceneStats stats;
+    
+    void initializeVoxelSendThread(VoxelServer* voxelServer);
+    bool isVoxelSendThreadInitalized() { return _voxelSendThread; }
     
 private:
     VoxelNodeData(const VoxelNodeData &);
