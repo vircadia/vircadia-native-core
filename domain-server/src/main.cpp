@@ -29,8 +29,6 @@
 #include <QtCore/QCoreApplication>
 #include <QtCore/QMap>
 #include <QtCore/QMutex>
-#include <QtCore/QString>
-#include <QtCore/QStringList>
 
 #include <civetweb.h>
 
