@@ -12,13 +12,20 @@
 #include <sys/time.h>
 #include <sys/wait.h>
 
-#include <Assignment.h>
-#include <AudioMixer.h>
-#include <AvatarMixer.h>
+#include <QtCore/QCoreApplication>
+
+
 #include <Logging.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
+#include <VoxelServer.h>
+
+#include "Agent.h"
+#include "Assignment.h"
+#include "AssignmentFactory.h"
+#include "audio/AudioMixer.h"
+#include "avatars/AvatarMixer.h"
 
 const long long ASSIGNMENT_REQUEST_INTERVAL_USECS = 1 * 1000 * 1000;
 const char PARENT_TARGET_NAME[] = "assignment-client-monitor";
@@ -27,6 +34,7 @@ const char CHILD_TARGET_NAME[] = "assignment-client";
 pid_t* childForks = NULL;
 sockaddr_in customAssignmentSocket = {};
 int numForks = 0;
+Assignment::Type overiddenAssignmentType = Assignment::AllTypes;
 
 void childClient() {
     // this is one of the child forks or there is a single assignment client, continue assignment-client execution
@@ -52,13 +60,14 @@ void childClient() {
     
     sockaddr_in senderSocket = {};
     
-    // create a request assignment, accept all assignments, pass the desired pool (if it exists)
-    Assignment requestAssignment(Assignment::RequestCommand, Assignment::AllTypes);
+    // create a request assignment, accept assignments defined by the overidden type
+    Assignment requestAssignment(Assignment::RequestCommand, ::overiddenAssignmentType);
     
     while (true) {
         if (usecTimestampNow() - usecTimestamp(&lastRequest) >= ASSIGNMENT_REQUEST_INTERVAL_USECS) {
             gettimeofday(&lastRequest, NULL);
             // if we're here we have no assignment, so send a request
+            qDebug() << "Sending an assignment request -" << requestAssignment << "\n";
             nodeList->sendAssignment(requestAssignment);
         }
         
@@ -67,13 +76,13 @@ void childClient() {
             && packetVersionMatch(packetData)) {
             
             // construct the deployed assignment from the packet data
-            Assignment deployedAssignment(packetData, receivedBytes);
+            Assignment* deployedAssignment = AssignmentFactory::unpackAssignment(packetData, receivedBytes);
             
             qDebug() << "Received an assignment -" << deployedAssignment << "\n";
             
             // switch our nodelist DOMAIN_IP
             if (packetData[0] == PACKET_TYPE_CREATE_ASSIGNMENT ||
-                deployedAssignment.getAttachedPublicSocket()->sa_family == AF_INET) {
+                deployedAssignment->getAttachedPublicSocket()->sa_family == AF_INET) {
                 
                 in_addr domainSocketAddr = {};
                 
@@ -82,23 +91,23 @@ void childClient() {
                     domainSocketAddr = senderSocket.sin_addr;
                 } else {
                     // grab the domain server IP address from the packet from the AS
-                    domainSocketAddr = ((sockaddr_in*) deployedAssignment.getAttachedPublicSocket())->sin_addr;
+                    domainSocketAddr = ((sockaddr_in*) deployedAssignment->getAttachedPublicSocket())->sin_addr;
                 }
                 
                 nodeList->setDomainIP(inet_ntoa(domainSocketAddr));
                 
                 qDebug("Destination IP for assignment is %s\n", inet_ntoa(domainSocketAddr));
                 
-                if (deployedAssignment.getType() == Assignment::AudioMixerType) {
-                    AudioMixer::run();
-                } else {
-                    AvatarMixer::run();
-                }
+                // run the deployed assignment
+                deployedAssignment->run();
             } else {
                 qDebug("Received a bad destination socket for assignment.\n");
             }
             
             qDebug("Assignment finished or never started - waiting for new assignment\n");
+            
+            // delete the deployedAssignment
+            delete deployedAssignment;
             
             // reset our NodeList by switching back to unassigned and clearing the list
             nodeList->setOwnerType(NODE_TYPE_UNASSIGNED);
@@ -144,6 +153,7 @@ void sigchldHandler(int sig) {
             }
         }
     }
+    
 }
 
 void parentMonitor() {
@@ -170,6 +180,8 @@ void parentMonitor() {
 
 int main(int argc, const char* argv[]) {
     
+    QCoreApplication app(argc, (char**) argv);
+    
     setvbuf(stdout, NULL, _IOLBF, 0);
     
     // use the verbose message handler in Logging
@@ -192,6 +204,15 @@ int main(int argc, const char* argv[]) {
         ::customAssignmentSocket = socketForHostnameAndHostOrderPort(customAssignmentServerHostname, assignmentServerPort);
     }
     
+    const char ASSIGNMENT_TYPE_OVVERIDE_OPTION[] = "-t";
+    const char* assignmentTypeString = getCmdOption(argc, argv, ASSIGNMENT_TYPE_OVVERIDE_OPTION);
+    
+    if (assignmentTypeString) {
+        // the user is asking to only be assigned to a particular type of assignment
+        // so set that as the ::overridenAssignmentType to be used in requests
+        ::overiddenAssignmentType = (Assignment::Type) atoi(assignmentTypeString);
+    }
+
     const char* NUM_FORKS_PARAMETER = "-n";
     const char* numForksString = getCmdOption(argc, argv, NUM_FORKS_PARAMETER);
     

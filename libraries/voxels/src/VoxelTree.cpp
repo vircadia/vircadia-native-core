@@ -1772,6 +1772,14 @@ void VoxelTree::copySubTreeIntoNewTree(VoxelNode* startNode, VoxelTree* destinat
         ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS);
         destinationTree->readBitstreamToTree(&outputBuffer[0], bytesWritten, args);
     }
+
+    VoxelNode* destinationStartNode;
+    if (rebaseToRoot) {
+        destinationStartNode = destinationTree->rootNode;
+    } else {
+        destinationStartNode = nodeForOctalCode(destinationTree->rootNode, startNode->getOctalCode(), NULL);
+    }
+    destinationStartNode->setColor(startNode->getColor());
 }
 
 void VoxelTree::copyFromTreeIntoSubTree(VoxelTree* sourceTree, VoxelNode* destinationNode) {
@@ -1919,7 +1927,7 @@ void reorderChildrenForNudge(void* extraData) {
         for (int i = 0; i < NUMBER_OF_CHILDREN / 2; i++) {
             lastToNudgeVote[POSITIVE_Z_ORDERING[i]]++;
         }
-    } else if (nudgeVec.z > 0) {
+    } else if (nudgeVec.z < 0) {
         for (int i = 0; i < NUMBER_OF_CHILDREN / 2; i++) {
             lastToNudgeVote[NEGATIVE_Z_ORDERING[i]]++;
         }
@@ -2040,13 +2048,6 @@ void VoxelTree::nudgeSubTree(VoxelNode* nodeToNudge, const glm::vec3& nudgeAmoun
     if (nudgeAmount == glm::vec3(0, 0, 0)) {
         return;
     }
-
-    // get octal code of this node
-    unsigned char* octalCode = nodeToNudge->getOctalCode();
-
-    // get voxel position/size
-    VoxelPositionSize ancestorDetails;
-    voxelDetailsForCode(octalCode, ancestorDetails);
 
     NodeChunkArgs args;
     args.thisVoxelTree = this;

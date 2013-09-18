@@ -72,6 +72,7 @@ public:
     const char* getDomainHostname() const { return _domainHostname; }
     void setDomainHostname(const char* domainHostname);
     
+    const char* getDomainIP() const { return _domainIP; }
     void setDomainIP(const char* domainIP);
     void setDomainIPToLocalhost();
         
@@ -96,7 +97,7 @@ public:
     
     void setNodeTypesOfInterest(const char* nodeTypesOfInterest, int numNodeTypesOfInterest);
     
-    void sendDomainServerCheckIn();
+    void sendDomainServerCheckIn(const char* assignmentUUID = NULL);
     int processDomainServerList(unsigned char *packetData, size_t dataBytes);
     
     void setAssignmentServerSocket(sockaddr* serverSocket) { _assignmentServerSocket = serverSocket; }

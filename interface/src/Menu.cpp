@@ -24,6 +24,7 @@
 #include "PairingHandler.h"
 #include "Menu.h"
 #include "Util.h"
+#include "InfoView.h"
 
 Menu* Menu::_instance = NULL;
 
@@ -52,7 +53,15 @@ Menu::Menu() :
     Application *appInstance = Application::getInstance();
     
     QMenu* fileMenu = addMenu("File");
-   
+    
+#ifdef Q_OS_MAC
+    (addActionToQMenuAndActionHash(fileMenu,
+                                   MenuOption::AboutApp,
+                                   0,
+                                   this,
+                                   SLOT(aboutApp())))->setMenuRole(QAction::AboutRole);
+#endif
+    
     (addActionToQMenuAndActionHash(fileMenu,
                                    MenuOption::Preferences,
                                    Qt::CTRL | Qt::Key_Comma,
@@ -110,6 +119,12 @@ Menu::Menu() :
     addActionToQMenuAndActionHash(editMenu, MenuOption::PasteVoxels, Qt::CTRL | Qt::Key_V, appInstance, SLOT(pasteVoxels()));
     addActionToQMenuAndActionHash(editMenu, MenuOption::NudgeVoxels, Qt::CTRL | Qt::Key_N, appInstance, SLOT(nudgeVoxels()));
     
+    #ifdef __APPLE__
+        addActionToQMenuAndActionHash(editMenu, MenuOption::DeleteVoxels, Qt::Key_Backspace, appInstance, SLOT(deleteVoxels()));
+    #else
+        addActionToQMenuAndActionHash(editMenu, MenuOption::DeleteVoxels, Qt::Key_Delete, appInstance, SLOT(deleteVoxels()));
+    #endif
+    
     addDisabledActionAndSeparator(editMenu, "Physics");
     addCheckableActionToQMenuAndActionHash(editMenu, MenuOption::Gravity, Qt::SHIFT | Qt::Key_G, true);
     addCheckableActionToQMenuAndActionHash(editMenu,
@@ -132,9 +147,6 @@ Menu::Menu() :
     
     QAction* colorVoxelMode = addCheckableActionToQMenuAndActionHash(toolsMenu, MenuOption::VoxelColorMode, Qt::Key_B);
     _voxelModeActionsGroup->addAction(colorVoxelMode);
-
-    QAction* nudgeVoxelMode = addCheckableActionToQMenuAndActionHash(toolsMenu, MenuOption::VoxelNudgeMode, Qt::Key_N);
-    _voxelModeActionsGroup->addAction(nudgeVoxelMode);
     
     QAction* selectVoxelMode = addCheckableActionToQMenuAndActionHash(toolsMenu, MenuOption::VoxelSelectMode, Qt::Key_O);
     _voxelModeActionsGroup->addAction(selectVoxelMode);
@@ -264,6 +276,7 @@ Menu::Menu() :
                                   SLOT(cycleRenderMode()));
     
     
+    addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::UsePerlinFace, 0, false);
     addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::LookAtVectors, 0, true);
     addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::LookAtIndicator, 0, true);
     addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::FrameTimer);
@@ -434,6 +447,13 @@ Menu::Menu() :
     
     addDisabledActionAndSeparator(developerMenu, "Voxels");
     addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::DestructiveAddVoxel);
+
+#ifndef Q_OS_MAC
+    QMenu* helpMenu = addMenu("Help");
+    QAction* helpAction = helpMenu->addAction(MenuOption::AboutApp);
+    connect(helpAction, SIGNAL(triggered()), this, SLOT(aboutApp()));
+#endif
+    
 }
 
 Menu::~Menu() {
@@ -661,6 +681,10 @@ bool Menu::isVoxelModeActionChecked() {
         }
     }
     return false;
+}
+
+void Menu::aboutApp() {
+    InfoView::forcedShow();
 }
 
 void Menu::editPreferences() {

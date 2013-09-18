@@ -877,10 +877,10 @@ class groupColor {
 public:
     unsigned char red, green, blue;
     groupColor(unsigned char red, unsigned char green, unsigned char blue) :
-        red(red), green(green), blue(blue) { };
+        red(red), green(green), blue(blue) { }
 
     groupColor() :
-        red(0), green(0), blue(0) { };
+        red(0), green(0), blue(0) { }
 };
 
 class colorizeBySourceArgs {

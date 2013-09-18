@@ -9,7 +9,7 @@
 #define hifi_Head_h
 
 #include <glm/glm.hpp>
-#include <glm/gtc/quaternion.hpp>
+#include <glm/gtx/quaternion.hpp>
 
 #include <SharedUtil.h>
 
@@ -19,6 +19,7 @@
 
 #include "BendyLine.h"
 #include "Face.h"
+#include "PerlinFace.h"
 #include "InterfaceConfig.h"
 #include "world.h"
 #include "devices/SerialInterface.h"
@@ -42,7 +43,7 @@ public:
     void init();
     void reset();
     void simulate(float deltaTime, bool isMine, float gyroCameraSensitivity);
-    void render(float alpha);
+    void render(float alpha, bool isMine);
     void renderMohawk();
 
     void setScale(float scale);
@@ -104,10 +105,8 @@ private:
     glm::vec3 _mouthPosition;
     Nose _nose;
     float _scale;
-    float _browAudioLift;
     glm::vec3 _gravity;
     float _lastLoudness;
-    float _averageLoudness;
     float _audioAttack;
     float _returnSpringScale; //strength of return springs
     glm::vec3 _bodyRotation;
@@ -118,8 +117,6 @@ private:
     glm::vec3 _mohawkColors[MOHAWK_TRIANGLES];
     glm::vec3 _saccade;
     glm::vec3 _saccadeTarget;
-    float _leftEyeBlink;
-    float _rightEyeBlink;
     float _leftEyeBlinkVelocity;
     float _rightEyeBlinkVelocity;
     float _timeWithoutTalking;
@@ -130,6 +127,7 @@ private:
     bool _cameraFollowsHead;
     float _cameraFollowHeadRate;
     Face _face;
+    PerlinFace _perlinFace;
 
     static ProgramObject _irisProgram;
     static GLuint _irisTextureID;
@@ -147,6 +145,8 @@ private:
     void calculateGeometry();
     void resetHairPhysics();
     void updateHairPhysics(float deltaTime);
+
+    friend class PerlinFace;
 };
 
 #endif

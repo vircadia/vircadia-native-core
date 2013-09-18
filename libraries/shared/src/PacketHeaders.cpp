@@ -20,13 +20,13 @@ PACKET_VERSION versionForPacketType(PACKET_TYPE type) {
             return 1;
 
         case PACKET_TYPE_HEAD_DATA:
-            return 5;
+            return 6;
         
         case PACKET_TYPE_AVATAR_FACE_VIDEO:
             return 1;
 
         case PACKET_TYPE_VOXEL_STATS:
-            return 2;            
+            return 2;
         default:
             return 0;
     }

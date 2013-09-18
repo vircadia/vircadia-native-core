@@ -268,7 +268,7 @@ void NodeList::setNodeTypesOfInterest(const char* nodeTypesOfInterest, int numNo
     _nodeTypesOfInterest[numNodeTypesOfInterest] = '\0';
 }
 
-void NodeList::sendDomainServerCheckIn() {
+void NodeList::sendDomainServerCheckIn(const char* assignmentUUID) {
     static bool printedDomainServerIP = false;
     
     //  Lookup the IP address of the domain server if we need to
@@ -297,9 +297,9 @@ void NodeList::sendDomainServerCheckIn() {
         
         const int IP_ADDRESS_BYTES = 4;
         
-        // check in packet has header, node type, port, IP, node types of interest, null termination
-        int numPacketBytes = sizeof(PACKET_TYPE) + sizeof(PACKET_VERSION) + sizeof(NODE_TYPE) + sizeof(uint16_t) +
-            IP_ADDRESS_BYTES + numBytesNodesOfInterest + sizeof(unsigned char);
+        // check in packet has header, optional UUID, node type, port, IP, node types of interest, null termination
+        int numPacketBytes = sizeof(PACKET_TYPE) + sizeof(PACKET_VERSION) + sizeof(NODE_TYPE) +
+            NUM_BYTES_RFC4122_UUID + sizeof(uint16_t) + IP_ADDRESS_BYTES + numBytesNodesOfInterest + sizeof(unsigned char);
         
         checkInPacket = new unsigned char[numPacketBytes];
         unsigned char* packetPosition = checkInPacket;
@@ -313,7 +313,13 @@ void NodeList::sendDomainServerCheckIn() {
         
         *(packetPosition++) = _ownerType;
         
-        packetPosition += packSocket(checkInPacket + numHeaderBytes + sizeof(NODE_TYPE),
+        if (assignmentUUID) {
+            // if we've got an assignment UUID to send add that here
+            memcpy(packetPosition, assignmentUUID, NUM_BYTES_RFC4122_UUID);
+            packetPosition += NUM_BYTES_RFC4122_UUID;
+        }
+        
+        packetPosition += packSocket(checkInPacket + (packetPosition - checkInPacket),
                                      getLocalAddress(),
                                      htons(_nodeSocket.getListeningPort()));
         
@@ -393,7 +399,7 @@ void NodeList::sendAssignment(Assignment& assignment) {
         ? (sockaddr*) &GLOBAL_ASSIGNMENT_SOCKET
         : _assignmentServerSocket;
     
-    _nodeSocket.send((sockaddr*) assignmentServerSocket, assignmentPacket, numHeaderBytes + numAssignmentBytes);
+    _nodeSocket.send(assignmentServerSocket, assignmentPacket, numHeaderBytes + numAssignmentBytes);
 }
 
 Node* NodeList::addOrUpdateNode(sockaddr* publicSocket, sockaddr* localSocket, char nodeType, uint16_t nodeId) {
