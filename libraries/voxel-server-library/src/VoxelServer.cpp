@@ -153,12 +153,12 @@ void VoxelServer::parsePayload() {
 
         _parsedArgV = new char*[argCount];
         const char* dummy = "config-from-payload";
-        _parsedArgV[0] = new char[strlen(dummy)+1];
+        _parsedArgV[0] = new char[strlen(dummy) + sizeof(char)];
         strcpy(_parsedArgV[0], dummy);
 
         for (int i = 1; i < argCount; i++) {
             QString configItem = configList.at(i-1);
-            _parsedArgV[i] = new char[configItem.length() + 1];
+            _parsedArgV[i] = new char[configItem.length() + sizeof(char)];
             strcpy(_parsedArgV[i], configItem.toLocal8Bit().constData());
             qDebug("VoxelServer::parsePayload()... _parsedArgV[%d]=%s\n", i, _parsedArgV[i]);
         }
