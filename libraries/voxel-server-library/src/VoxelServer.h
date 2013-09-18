@@ -53,7 +53,7 @@ public:
     void lockTree() {  pthread_mutex_lock(&_treeLock); }
     void unlockTree() {  pthread_mutex_unlock(&_treeLock); }
     
-    int getPacketsPerClientPerInterval() const { return _PACKETS_PER_CLIENT_PER_INTERVAL; }
+    int getPacketsPerClientPerInterval() const { return _packetsPerClientPerInterval; }
     bool getSendMinimalEnvironment() const { return _sendMinimalEnvironment; }
     EnvironmentData* getEnvironmentData(int i) { return &_environmentData[i]; }
     int getEnvironmentDataCount() const { return sizeof(_environmentData)/sizeof(EnvironmentData); }
@@ -64,7 +64,7 @@ private:
     bool _dontKillOnMissingDomain;
 
     char _voxelPersistFilename[MAX_FILENAME_LENGTH];
-    int _PACKETS_PER_CLIENT_PER_INTERVAL;
+    int _packetsPerClientPerInterval;
     VoxelTree _serverTree; // this IS a reaveraging tree 
     bool _wantVoxelPersist;
     bool _wantLocalDomain;

@@ -50,7 +50,7 @@ VoxelServer::VoxelServer(Assignment::Command command, Assignment::Location locat
     _argv = NULL;
     _dontKillOnMissingDomain = false;
 
-    _PACKETS_PER_CLIENT_PER_INTERVAL = 10;
+    _packetsPerClientPerInterval = 10;
     _wantVoxelPersist = true;
     _wantLocalDomain = false;
     _debugVoxelSending = false;
@@ -72,7 +72,7 @@ VoxelServer::VoxelServer(const unsigned char* dataBuffer, int numBytes) : Assign
     _argv = NULL;
     _dontKillOnMissingDomain = false;
 
-    _PACKETS_PER_CLIENT_PER_INTERVAL = 10;
+    _packetsPerClientPerInterval = 10;
     _wantVoxelPersist = true;
     _wantLocalDomain = false;
     _debugVoxelSending = false;
@@ -250,11 +250,11 @@ void VoxelServer::run() {
     const char* PACKETS_PER_SECOND = "--packetsPerSecond";
     const char* packetsPerSecond = getCmdOption(_argc, _argv, PACKETS_PER_SECOND);
     if (packetsPerSecond) {
-        _PACKETS_PER_CLIENT_PER_INTERVAL = atoi(packetsPerSecond)/INTERVALS_PER_SECOND;
-        if (_PACKETS_PER_CLIENT_PER_INTERVAL < 1) {
-            _PACKETS_PER_CLIENT_PER_INTERVAL = 1;
+        _packetsPerClientPerInterval = atoi(packetsPerSecond) / INTERVALS_PER_SECOND;
+        if (_packetsPerClientPerInterval < 1) {
+            _packetsPerClientPerInterval = 1;
         }
-        printf("packetsPerSecond=%s PACKETS_PER_CLIENT_PER_INTERVAL=%d\n", packetsPerSecond, _PACKETS_PER_CLIENT_PER_INTERVAL);
+        printf("packetsPerSecond=%s PACKETS_PER_CLIENT_PER_INTERVAL=%d\n", packetsPerSecond, _packetsPerClientPerInterval);
     }
     
     // for now, initialize the environments with fixed values
@@ -342,9 +342,7 @@ void VoxelServer::run() {
         }
     }
     
-    if (_jurisdiction) {
-        delete _jurisdiction;
-    }
+    delete _jurisdiction;
     
     if (_jurisdictionSender) {
         _jurisdictionSender->terminate();
