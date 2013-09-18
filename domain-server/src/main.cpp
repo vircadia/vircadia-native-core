@@ -415,6 +415,18 @@ int main(int argc, const char* argv[]) {
                 }
                 
                 ::assignmentQueueMutex.unlock();
+            } else if (packetData[0] == PACKET_TYPE_CREATE_ASSIGNMENT) {
+                // this is a create assignment likely recieved from a server needed more clients to help with load
+                
+                // unpack it
+                Assignment* createAssignment = new Assignment(packetData, receivedBytes);
+                
+                qDebug() << "Received a create assignment -" << createAssignment << "\n";
+                
+                // add the assignment at the back of the queue
+                ::assignmentQueueMutex.lock();
+                ::assignmentQueue.push_back(createAssignment);
+                ::assignmentQueueMutex.unlock();
             }
         }
         
