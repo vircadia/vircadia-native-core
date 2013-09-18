@@ -134,18 +134,6 @@ int main(int argc, const char* argv[]) {
     nodeList->startSilentNodeRemovalThread();
 
     timeval lastStatSendTime = {};
-    const char ASSIGNMENT_SERVER_OPTION[] = "-a";
-    
-    // grab the overriden assignment-server hostname from argv, if it exists
-    const char* customAssignmentServer = getCmdOption(argc, argv, ASSIGNMENT_SERVER_OPTION);
-    if (customAssignmentServer) {
-        sockaddr_in customAssignmentSocket = socketForHostnameAndHostOrderPort(customAssignmentServer, ASSIGNMENT_SERVER_PORT);
-        nodeList->setAssignmentServerSocket((sockaddr*) &customAssignmentSocket);
-    }
-    
-    // use a map to keep track of iterations of silence for assignment creation requests
-    const long long GLOBAL_ASSIGNMENT_REQUEST_INTERVAL_USECS = 1 * 1000 * 1000;
-    timeval lastGlobalAssignmentRequest = {};
     
     // as a domain-server we will always want an audio mixer and avatar mixer
     // setup the create assignments for those
@@ -428,49 +416,6 @@ int main(int argc, const char* argv[]) {
                 ::assignmentQueue.push_back(createAssignment);
                 ::assignmentQueueMutex.unlock();
             }
-        }
-        
-        // if ASSIGNMENT_REQUEST_INTERVAL_USECS have passed since last global assignment request then fire off another
-        if (usecTimestampNow() - usecTimestamp(&lastGlobalAssignmentRequest) >= GLOBAL_ASSIGNMENT_REQUEST_INTERVAL_USECS) {
-            gettimeofday(&lastGlobalAssignmentRequest, NULL);
-            
-            ::assignmentQueueMutex.lock();
-            
-            // go through our queue and see if there are any assignments to send to the global assignment server
-            std::deque<Assignment*>::iterator assignment = ::assignmentQueue.begin();
-            
-            while (assignment != assignmentQueue.end()) {
-                
-                if ((*assignment)->getLocation() != Assignment::LocalLocation) {                    
-                    // attach our local socket to the assignment so the assignment-server can optionally hand it out
-                    (*assignment)->setAttachedLocalSocket((sockaddr*) &localSocket);
-                    
-                    nodeList->sendAssignment(*(*assignment));
-                    
-                    if ((*assignment)->getType() == Assignment::AgentType) {
-                        // if this is a script assignment we need to delete it to avoid a memory leak
-                        // or if there is more than one instance to send out, simpy decrease the number of instances
-                        if ((*assignment)->getNumberOfInstances() > 1) {
-                            (*assignment)->decrementNumberOfInstances();
-                        } else {
-                            ::assignmentQueue.erase(assignment);
-                            delete *assignment;
-                        }
-                    } else if ((*assignment)->getType() == Assignment::VoxelServerType) {
-                        // this is a voxel server assignment
-                        // remove the assignment from the queue
-                        ::assignmentQueue.erase(assignment);
-                    }
-                    
-                    // stop looping, we've handed out an assignment
-                    break;
-                } else {
-                    // push forward the iterator to check the next assignment
-                    assignment++;
-                }
-            }
-            
-            ::assignmentQueueMutex.unlock();
         }
         
         if (Logging::shouldSendStats()) {
