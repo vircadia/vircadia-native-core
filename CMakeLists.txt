@@ -14,7 +14,6 @@ set(CMAKE_AUTOMOC ON)
 
 add_subdirectory(animation-server)
 add_subdirectory(assignment-client)
-add_subdirectory(assignment-server)
 add_subdirectory(domain-server)
 add_subdirectory(eve)
 add_subdirectory(interface)
