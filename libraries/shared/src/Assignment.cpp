@@ -88,7 +88,7 @@ Assignment::Assignment(const unsigned char* dataBuffer, int numBytes) :
 
     if (numBytes > numBytesRead) {
         _numPayloadBytes = numBytes - numBytesRead;
-        _payload = new uchar[_numPayloadBytes]; // <<< the code was not allocating _payload
+        _payload =  new uchar[_numPayloadBytes];
         memcpy(_payload, dataBuffer + numBytesRead, _numPayloadBytes);
     }
 }
@@ -96,14 +96,13 @@ Assignment::Assignment(const unsigned char* dataBuffer, int numBytes) :
 Assignment::~Assignment() {
     delete _attachedPublicSocket;
     delete _attachedLocalSocket;
-    delete _payload;  // <<< this probably needs to be delete[]???
+    delete[] _payload;
     _numPayloadBytes = 0;
 }
 
 const int MAX_PAYLOAD_BYTES = 1024;
 
-void Assignment::setPayload(uchar* payload, int numBytes) {
-    _payload = payload;
+void Assignment::setPayload(const uchar* payload, int numBytes) {
     
     if (numBytes > MAX_PAYLOAD_BYTES) {
         qDebug("Set payload called with number of bytes greater than maximum (%d). Will only transfer %d bytes.\n",
@@ -115,6 +114,9 @@ void Assignment::setPayload(uchar* payload, int numBytes) {
         _numPayloadBytes = numBytes;
     }
     
+    delete[] _payload;
+    _payload = new uchar[_numPayloadBytes];
+    memcpy(_payload, payload, _numPayloadBytes);
 }
 
 QString Assignment::getUUIDStringWithoutCurlyBraces() const {

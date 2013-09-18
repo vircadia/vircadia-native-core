@@ -78,7 +78,7 @@ void childClient() {
             // construct the deployed assignment from the packet data
             Assignment* deployedAssignment = AssignmentFactory::unpackAssignment(packetData, receivedBytes);
             
-            qDebug() << "Received an assignment -" << deployedAssignment << "\n";
+            qDebug() << "Received an assignment -" << *deployedAssignment << "\n";
             
             // switch our nodelist DOMAIN_IP
             if (packetData[0] == PACKET_TYPE_CREATE_ASSIGNMENT ||
