@@ -155,7 +155,7 @@ int main(int argc, const char* argv[]) {
     Assignment avatarMixerAssignment(Assignment::CreateCommand,
                                      Assignment::AvatarMixerType,
                                      Assignment::LocalLocation);
-
+    
     Assignment voxelServerAssignment(Assignment::CreateCommand,
                                      Assignment::VoxelServerType,
                                      Assignment::LocalLocation);
@@ -271,8 +271,10 @@ int main(int argc, const char* argv[]) {
                     Assignment::Type matchType = nodeType == NODE_TYPE_AUDIO_MIXER
                         ? Assignment::AudioMixerType : Assignment::AvatarMixerType;
                     
+                    
                     // enumerate the assignments and see if there is a type and UUID match
                     while (assignment != ::assignmentQueue.end()) {
+                        
                         if ((*assignment)->getType() == matchType
                             && (*assignment)->getUUID() == checkInUUID) {
                             // type and UUID match
@@ -383,9 +385,16 @@ int main(int argc, const char* argv[]) {
                                 ::assignmentQueue.erase(assignment);
                                 delete *assignment;
                             }
-                        } else if ((*assignment)->getType() == Assignment::VoxelServerType) {
-                            // this is a voxel-server assignment, remove the assignment from the queue
+                        } else {
+                            // remove the assignment from the queue
                             ::assignmentQueue.erase(assignment);
+                            
+                            if ((*assignment)->getType() != Assignment::VoxelServerType) {
+                                // keep audio-mixer and avatar-mixer assignments in the queue
+                                // until we get a check-in from that GUID
+                                // but stick it at the back so the others have a chance to go out
+                                ::assignmentQueue.push_back(*assignment);
+                            }
                         }
                         
                         // stop looping, we've handed out an assignment
