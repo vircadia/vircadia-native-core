@@ -687,6 +687,30 @@ void Menu::aboutApp() {
     InfoView::forcedShow();
 }
 
+void updateDSHostname(const QString& domainServerHostname) {
+    QString newHostname(DEFAULT_DOMAIN_HOSTNAME);
+    
+    if (domainServerHostname.size() > 0) {
+        // the user input a new hostname, use that
+        newHostname = domainServerHostname;
+    }
+    
+    // check if the domain server hostname is new
+    if (NodeList::getInstance()->getDomainHostname() != newHostname) {
+        
+        NodeList::getInstance()->clear();
+        
+        // kill the local voxels
+        Application::getInstance()->getVoxels()->killLocalVoxels();
+        
+        // reset the environment to default
+        Application::getInstance()->getEnvironment()->resetToDefault();
+        
+        // set the new hostname
+        NodeList::getInstance()->setDomainHostname(newHostname);
+    }
+}
+
 void Menu::editPreferences() {
     Application* applicationInstance = Application::getInstance();
     QDialog dialog(applicationInstance->getGLWidget());
@@ -738,30 +762,7 @@ void Menu::editPreferences() {
          return;
      }
     
-    QByteArray newHostname;
-    
-    if (domainServerHostname->text().size() > 0) {
-        // the user input a new hostname, use that
-        newHostname = domainServerHostname->text().toLocal8Bit();
-    } else {
-        // the user left the field blank, use the default hostname
-        newHostname = QByteArray(DEFAULT_DOMAIN_HOSTNAME);
-    }
-    
-    // check if the domain server hostname is new
-    if (memcmp(NodeList::getInstance()->getDomainHostname(), newHostname.constData(), newHostname.size()) != 0) {
-        
-        NodeList::getInstance()->clear();
-        
-        // kill the local voxels
-        applicationInstance->getVoxels()->killLocalVoxels();
-        
-        // reset the environment to default
-        applicationInstance->getEnvironment()->resetToDefault();
-        
-        // set the new hostname
-        NodeList::getInstance()->setDomainHostname(newHostname.constData());
-    }
+    updateDSHostname(domainServerHostname->text());
     
     QUrl url(avatarURL->text());
     applicationInstance->getAvatar()->getVoxels()->setVoxelURL(url);
@@ -808,30 +809,7 @@ void Menu::goToDomain() {
          return;
      }
     
-    QByteArray newHostname;
-    
-    if (domainServerHostname->text().size() > 0) {
-        // the user input a new hostname, use that
-        newHostname = domainServerHostname->text().toLocal8Bit();
-    } else {
-        // the user left the field blank, use the default hostname
-        newHostname = QByteArray(DEFAULT_DOMAIN_HOSTNAME);
-    }
-    
-    // check if the domain server hostname is new
-    if (memcmp(NodeList::getInstance()->getDomainHostname(), newHostname.constData(), newHostname.size()) != 0) {
-        
-        NodeList::getInstance()->clear();
-        
-        // kill the local voxels
-        applicationInstance->getVoxels()->killLocalVoxels();
-        
-        // reset the environment to default
-        applicationInstance->getEnvironment()->resetToDefault();
-        
-        // set the new hostname
-        NodeList::getInstance()->setDomainHostname(newHostname.constData());
-    }
+    updateDSHostname(domainServerHostname->text());
 }
 
 void Menu::goToLocation() {

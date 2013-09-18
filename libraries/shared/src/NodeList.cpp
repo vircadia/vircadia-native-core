@@ -12,6 +12,7 @@
 #include <cstdio>
 
 #include <QtCore/QDebug>
+#include <QtNetwork/QHostInfo>
 
 #include "Assignment.h"
 #include "Logging.h"
@@ -31,9 +32,8 @@ const char SOLO_NODE_TYPES[2] = {
     NODE_TYPE_AUDIO_MIXER
 };
 
-const char DEFAULT_DOMAIN_HOSTNAME[MAX_HOSTNAME_BYTES] = "root.highfidelity.io";
-const char DEFAULT_DOMAIN_IP[INET_ADDRSTRLEN] = "";    //  IP Address will be re-set by lookup on startup
-const unsigned short DEFAULT_DOMAINSERVER_PORT = 40102;
+const QString DEFAULT_DOMAIN_HOSTNAME = "root.highfidelity.io";
+const unsigned short DEFAULT_DOMAIN_SERVER_PORT = 40102;
 
 bool silentNodeThreadStopFlag = false;
 bool pingUnknownNodeThreadStopFlag = false;
@@ -59,6 +59,9 @@ NodeList* NodeList::getInstance() {
 }
 
 NodeList::NodeList(char newOwnerType, unsigned short int newSocketListenPort) :
+    _domainHostname(DEFAULT_DOMAIN_HOSTNAME),
+    _domainIP(),
+    _domainPort(DEFAULT_DOMAIN_SERVER_PORT),
     _nodeBuckets(),
     _numNodes(0),
     _nodeSocket(newSocketListenPort),
@@ -69,8 +72,7 @@ NodeList::NodeList(char newOwnerType, unsigned short int newSocketListenPort) :
     _numNoReplyDomainCheckIns(0),
     _assignmentServerSocket(NULL)
 {
-    memcpy(_domainHostname, DEFAULT_DOMAIN_HOSTNAME, sizeof(DEFAULT_DOMAIN_HOSTNAME));
-    memcpy(_domainIP, DEFAULT_DOMAIN_IP, sizeof(DEFAULT_DOMAIN_IP));
+    
 }
 
 NodeList::~NodeList() {
@@ -82,22 +84,11 @@ NodeList::~NodeList() {
     stopSilentNodeRemovalThread();
 }
 
-void NodeList::setDomainHostname(const char* domainHostname) {    
-    memset(_domainHostname, 0, sizeof(_domainHostname));
-    memcpy(_domainHostname, domainHostname, strlen(domainHostname));
+void NodeList::setDomainHostname(const QString& domainHostname) {
+    _domainHostname = domainHostname;
     
-    // reset the domain IP so the hostname is checked again
-    setDomainIP("");
-}
-
-void NodeList::setDomainIP(const char* domainIP) {
-    memset(_domainIP, 0, sizeof(_domainIP));
-    memcpy(_domainIP, domainIP, strlen(domainIP));
-}
-
-void NodeList::setDomainIPToLocalhost() {
-    int ip = getLocalAddress();
-    sprintf(_domainIP, "%d.%d.%d.%d", (ip & 0xFF), ((ip >> 8) & 0xFF),((ip >> 16) & 0xFF), ((ip >> 24) & 0xFF));
+    // reset our _domainIP to the null address so that a lookup happens on next check in
+    _domainIP = QHostAddress();
 }
 
 void NodeList::timePingReply(sockaddr *nodeAddress, unsigned char *packetData) {
@@ -117,10 +108,7 @@ void NodeList::processNodeData(sockaddr* senderAddress, unsigned char* packetDat
     switch (packetData[0]) {
         case PACKET_TYPE_DOMAIN: {
             // only process the DS if this is our current domain server
-            sockaddr_in domainServerSocket = *(sockaddr_in*) senderAddress;
-            const char* domainSenderIP = inet_ntoa(domainServerSocket.sin_addr);
-            
-            if (memcmp(domainSenderIP, _domainIP, strlen(domainSenderIP)) == 0) {
+            if (_domainIP == QHostAddress(senderAddress)) {
                 processDomainServerList(packetData, dataBytes);
             }
             
@@ -272,19 +260,23 @@ void NodeList::sendDomainServerCheckIn(const char* assignmentUUID) {
     static bool printedDomainServerIP = false;
     
     //  Lookup the IP address of the domain server if we need to
-    if (atoi(_domainIP) == 0) {
-        printf("Looking up %s\n", _domainHostname);
-        struct hostent* pHostInfo;
-        if ((pHostInfo = gethostbyname(_domainHostname)) != NULL) {
-            sockaddr_in tempAddress;
-            memcpy(&tempAddress.sin_addr, pHostInfo->h_addr_list[0], pHostInfo->h_length);
-            strcpy(_domainIP, inet_ntoa(tempAddress.sin_addr));
-            qDebug("Domain Server: %s\n", _domainHostname);
+    if (_domainIP.isNull()) {
+        qDebug("Looking up DS hostname %s.\n", _domainHostname.toStdString().c_str());
+        
+        QHostInfo domainServerHostInfo = QHostInfo::fromName(_domainHostname);
+        
+        if (!domainServerHostInfo.addresses().isEmpty()) {
+            // set our domainIP to the first IP address
+            _domainIP = domainServerHostInfo.addresses().first();
+            
+            qDebug("DS at %s is at %s\n", _domainHostname.toStdString().c_str(), _domainIP.toString().toStdString().c_str());
+            
+            printedDomainServerIP = true;
         } else {
             qDebug("Failed domain server lookup\n");
         }
     } else if (!printedDomainServerIP) {
-        qDebug("Domain Server IP: %s\n", _domainIP);
+        qDebug("Domain Server IP: %s\n", _domainIP.toString().toStdString().c_str());
         printedDomainServerIP = true;
     }
     
@@ -337,7 +329,7 @@ void NodeList::sendDomainServerCheckIn(const char* assignmentUUID) {
         checkInPacketSize = packetPosition - checkInPacket;
     }
     
-    _nodeSocket.send(_domainIP, DEFAULT_DOMAINSERVER_PORT, checkInPacket, checkInPacketSize);
+    _nodeSocket.send(_domainIP.toString().toStdString().c_str(), _domainPort, checkInPacket, checkInPacketSize);
     
     // increment the count of un-replied check-ins
     _numNoReplyDomainCheckIns++;
@@ -370,7 +362,7 @@ int NodeList::processDomainServerList(unsigned char* packetData, size_t dataByte
         // if the public socket address is 0 then it's reachable at the same IP
         // as the domain server
         if (nodePublicSocket.sin_addr.s_addr == 0) {
-            inet_aton(_domainIP, &nodePublicSocket.sin_addr);
+            nodePublicSocket.sin_addr.s_addr = _domainIP.toIPv4Address();
         }
         
         addOrUpdateNode((sockaddr*) &nodePublicSocket, (sockaddr*) &nodeLocalSocket, nodeType, nodeId);
@@ -384,7 +376,7 @@ int NodeList::processDomainServerList(unsigned char* packetData, size_t dataByte
 
 const char LOCAL_ASSIGNMENT_SERVER_HOSTNAME[] = "localhost";
 const sockaddr_in DEFAULT_LOCAL_ASSIGNMENT_SOCKET = socketForHostnameAndHostOrderPort(LOCAL_ASSIGNMENT_SERVER_HOSTNAME,
-                                                                              DEFAULT_DOMAINSERVER_PORT);
+                                                                                      DEFAULT_DOMAIN_SERVER_PORT);
 void NodeList::sendAssignment(Assignment& assignment) {
     unsigned char assignmentPacket[MAX_PACKET_SIZE];
     
@@ -561,8 +553,7 @@ void NodeList::loadData(QSettings *settings) {
     QString domainServerHostname = settings->value(DOMAIN_SERVER_SETTING_KEY).toString();
     
     if (domainServerHostname.size() > 0) {
-        memset(_domainHostname, 0, MAX_HOSTNAME_BYTES);
-        memcpy(_domainHostname, domainServerHostname.toLocal8Bit().constData(), domainServerHostname.size());
+        _domainHostname = domainServerHostname;
     }
     
     settings->endGroup();
@@ -571,7 +562,7 @@ void NodeList::loadData(QSettings *settings) {
 void NodeList::saveData(QSettings* settings) {
     settings->beginGroup(DOMAIN_SERVER_SETTING_KEY);
     
-    if (memcmp(_domainHostname, DEFAULT_DOMAIN_HOSTNAME, strlen(DEFAULT_DOMAIN_HOSTNAME)) != 0) {
+    if (_domainHostname != DEFAULT_DOMAIN_HOSTNAME) {
         // the user is using a different hostname, store it
         settings->setValue(DOMAIN_SERVER_SETTING_KEY, QVariant(_domainHostname));
     } else {

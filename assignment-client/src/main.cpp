@@ -84,19 +84,20 @@ void childClient() {
             if (packetData[0] == PACKET_TYPE_CREATE_ASSIGNMENT ||
                 deployedAssignment->getAttachedPublicSocket()->sa_family == AF_INET) {
                 
-                in_addr domainSocketAddr = {};
+                
+                sockaddr* domainSocket = NULL;
                 
                 if (packetData[0] == PACKET_TYPE_CREATE_ASSIGNMENT) {
                     // the domain server IP address is the address we got this packet from
-                    domainSocketAddr = senderSocket.sin_addr;
+                    domainSocket = (sockaddr*) &senderSocket;
                 } else {
                     // grab the domain server IP address from the packet from the AS
-                    domainSocketAddr = ((sockaddr_in*) deployedAssignment->getAttachedPublicSocket())->sin_addr;
+                    domainSocket = (sockaddr*) deployedAssignment->getAttachedPublicSocket();
                 }
                 
-                nodeList->setDomainIP(inet_ntoa(domainSocketAddr));
+                nodeList->setDomainIP(QHostAddress(domainSocket));
                 
-                qDebug("Destination IP for assignment is %s\n", inet_ntoa(domainSocketAddr));
+                qDebug("Destination IP for assignment is %s\n", nodeList->getDomainIP().toString().toStdString().c_str());
                 
                 // run the deployed assignment
                 deployedAssignment->run();
@@ -199,7 +200,7 @@ int main(int argc, const char* argv[]) {
     if (customAssignmentServerHostname) {
         const char* customAssignmentServerPortString = getCmdOption(argc, argv, CUSTOM_ASSIGNMENT_SERVER_PORT_OPTION);
         unsigned short assignmentServerPort = customAssignmentServerPortString
-            ? atoi(customAssignmentServerPortString) : DEFAULT_DOMAINSERVER_PORT;
+            ? atoi(customAssignmentServerPortString) : DEFAULT_DOMAIN_SERVER_PORT;
         
         ::customAssignmentSocket = socketForHostnameAndHostOrderPort(customAssignmentServerHostname, assignmentServerPort);
     }

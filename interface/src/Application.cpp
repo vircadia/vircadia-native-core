@@ -183,9 +183,9 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     // --domain or --local options
     NodeList::getInstance()->loadData(_settings);
     
-    const char* domainIP = getCmdOption(argc, constArgv, "--domain");
-    if (domainIP) {
-        NodeList::getInstance()->setDomainIP(domainIP);
+    const char* domainHostname = getCmdOption(argc, constArgv, "--domain");
+    if (domainHostname) {
+        NodeList::getInstance()->setDomainHostname(domainHostname);
     }
     
     // Handle Local Domain testing with the --local command line
