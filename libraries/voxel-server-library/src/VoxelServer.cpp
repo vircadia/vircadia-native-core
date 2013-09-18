@@ -105,6 +105,12 @@ VoxelServer::~VoxelServer() {
 void VoxelServer::setArguments(int argc, char** argv) {
     _argc = argc;
     _argv = const_cast<const char**>(argv);
+
+    printf("VoxelServer::setArguments()\n");
+    for (int i = 0; i < _argc; i++) {
+        printf("_argv[%d]=%s\n", i, _argv[i]);
+    }
+
 }
 
 void VoxelServer::parsePayload() {
@@ -118,30 +124,23 @@ void VoxelServer::parsePayload() {
         QString delimiterPattern(" ");
         QStringList configList = config.split(delimiterPattern);
         
-        int argCount = configList.size() + 2;
+        int argCount = configList.size() + 1;
 
         printf("VoxelServer::parsePayload()... argCount=%d\n",argCount);
 
         _parsedArgV = new char*[argCount];
-        const char* dummy = "dummy";
+        const char* dummy = "config-from-payload";
         _parsedArgV[0] = new char[strlen(dummy)+1];
         strcpy(_parsedArgV[0], dummy);
 
-        for (int i = 1; i < argCount-1; i++) {
+        for (int i = 1; i < argCount; i++) {
             QString configItem = configList.at(i-1);
             _parsedArgV[i] = new char[configItem.length() + 1];
             strcpy(_parsedArgV[i], configItem.toLocal8Bit().constData());
             printf("VoxelServer::parsePayload()... _parsedArgV[%d]=%s\n", i, _parsedArgV[i]);
         }
-        _parsedArgV[argCount - 1] = new char[strlen(dummy)+1];
-        strcpy(_parsedArgV[argCount - 1], dummy);
 
         setArguments(argCount, _parsedArgV);
-
-        for (int i = 0; i < argCount; i++) {
-            printf("_argv[%d]=%s\n", i, _argv[i]);
-        }
-
     }
 }
 
