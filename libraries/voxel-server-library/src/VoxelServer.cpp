@@ -115,14 +115,37 @@ void VoxelServer::setArguments(int argc, char** argv) {
 
 void VoxelServer::parsePayload() {
     
-    //uchar* getPayload() { return _payload; }
-    //int getNumPayloadBytes() const { return _numPayloadBytes; }
-    
     if (getNumPayloadBytes() > 0) {
-        QString config((const char*)getPayload());
+        QString multiConfig((const char*)getPayload());
+        QStringList multiConfigList = multiConfig.split(";");
+        
+        // There there are multiple configs, then this instance will run the first
+        // config, and launch Assignment requests for the additional configs.
+        if (multiConfigList.size() > 1) {
+            printf("VoxelServer::parsePayload()... multiple Configs... config count=%d\n", multiConfigList.size());
 
-        QString delimiterPattern(" ");
-        QStringList configList = config.split(delimiterPattern);
+
+            // skip 0 - that's the one we'll run
+            for (int i = 1; i < multiConfigList.size(); i++) {
+                QString config = multiConfigList.at(i);
+                
+                printf("   config[%d]=%s\n", i, config.toLocal8Bit().constData());
+
+                Assignment voxelServerAssignment(Assignment::CreateCommand,
+                                                 Assignment::VoxelServerType,
+                                                 getLocation()); // use same location as we were created in.
+
+                int payloadLength = config.length() + sizeof(char);
+                voxelServerAssignment.setPayload((uchar*)config.toLocal8Bit().constData(), payloadLength);
+                
+                printf(">>>>> SENDING ASSIGNMENT >>>>>>\n");
+                NodeList::getInstance()->sendAssignment(voxelServerAssignment);
+            }
+        }
+        
+        // Now, parse the first config
+        QString config = multiConfigList.at(0);
+        QStringList configList = config.split(" ");
         
         int argCount = configList.size() + 1;
 
