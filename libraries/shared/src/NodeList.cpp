@@ -380,7 +380,7 @@ int NodeList::processDomainServerList(unsigned char* packetData, size_t dataByte
         // if the public socket address is 0 then it's reachable at the same IP
         // as the domain server
         if (nodePublicSocket.sin_addr.s_addr == 0) {
-            nodePublicSocket.sin_addr.s_addr = _domainIP.toIPv4Address();
+            nodePublicSocket.sin_addr.s_addr = htonl(_domainIP.toIPv4Address());
         }
         
         addOrUpdateNode((sockaddr*) &nodePublicSocket, (sockaddr*) &nodeLocalSocket, nodeType, nodeId);
