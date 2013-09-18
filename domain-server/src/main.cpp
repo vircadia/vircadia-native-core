@@ -155,7 +155,7 @@ int main(int argc, const char* argv[]) {
     if (voxelServerConfig) {
         qDebug("Reading Voxel Server Configuration.\n");
         qDebug() << "   config: " << voxelServerConfig << "\n";
-        voxelServerAssignment.copyPayload((uchar*)voxelServerConfig, strlen(voxelServerConfig) + 1);
+        voxelServerAssignment.setPayload((uchar*)voxelServerConfig, strlen(voxelServerConfig) + 1);
     }
     
     // construct a local socket to send with our created assignments to the global AS

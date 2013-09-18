@@ -102,7 +102,7 @@ Assignment::~Assignment() {
 
 const int MAX_PAYLOAD_BYTES = 1024;
 
-void Assignment::copyPayload(uchar* payload, int numBytes) {
+void Assignment::setPayload(const uchar* payload, int numBytes) {
     
     if (numBytes > MAX_PAYLOAD_BYTES) {
         qDebug("Set payload called with number of bytes greater than maximum (%d). Will only transfer %d bytes.\n",

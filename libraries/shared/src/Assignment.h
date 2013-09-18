@@ -61,7 +61,7 @@ public:
     
     uchar* getPayload() { return _payload; }
     int getNumPayloadBytes() const { return _numPayloadBytes; }
-    void copyPayload(uchar *payload, int numBytes);
+    void setPayload(const uchar *payload, int numBytes);
     
     int getNumberOfInstances() const { return _numberOfInstances; }
     void setNumberOfInstances(int numberOfInstances) { _numberOfInstances = numberOfInstances; }
