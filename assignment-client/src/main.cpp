@@ -199,7 +199,7 @@ int main(int argc, const char* argv[]) {
     if (customAssignmentServerHostname) {
         const char* customAssignmentServerPortString = getCmdOption(argc, argv, CUSTOM_ASSIGNMENT_SERVER_PORT_OPTION);
         unsigned short assignmentServerPort = customAssignmentServerPortString
-            ? atoi(customAssignmentServerPortString) : ASSIGNMENT_SERVER_PORT;
+            ? atoi(customAssignmentServerPortString) : DEFAULT_DOMAINSERVER_PORT;
         
         ::customAssignmentSocket = socketForHostnameAndHostOrderPort(customAssignmentServerHostname, assignmentServerPort);
     }

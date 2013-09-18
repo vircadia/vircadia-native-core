@@ -33,7 +33,7 @@ const char SOLO_NODE_TYPES[2] = {
 
 const char DEFAULT_DOMAIN_HOSTNAME[MAX_HOSTNAME_BYTES] = "root.highfidelity.io";
 const char DEFAULT_DOMAIN_IP[INET_ADDRSTRLEN] = "";    //  IP Address will be re-set by lookup on startup
-const int DEFAULT_DOMAINSERVER_PORT = 40102;
+const unsigned short DEFAULT_DOMAINSERVER_PORT = 40102;
 
 bool silentNodeThreadStopFlag = false;
 bool pingUnknownNodeThreadStopFlag = false;
@@ -382,9 +382,9 @@ int NodeList::processDomainServerList(unsigned char* packetData, size_t dataByte
     return readNodes;
 }
 
-const char GLOBAL_ASSIGNMENT_SERVER_HOSTNAME[] = "assignment.highfidelity.io";
-const sockaddr_in GLOBAL_ASSIGNMENT_SOCKET = socketForHostnameAndHostOrderPort(GLOBAL_ASSIGNMENT_SERVER_HOSTNAME,
-                                                                               ASSIGNMENT_SERVER_PORT);
+const char LOCAL_ASSIGNMENT_SERVER_HOSTNAME[] = "localhost";
+const sockaddr_in DEFAULT_LOCAL_ASSIGNMENT_SOCKET = socketForHostnameAndHostOrderPort(LOCAL_ASSIGNMENT_SERVER_HOSTNAME,
+                                                                              DEFAULT_DOMAINSERVER_PORT);
 void NodeList::sendAssignment(Assignment& assignment) {
     unsigned char assignmentPacket[MAX_PACKET_SIZE];
     
@@ -396,7 +396,7 @@ void NodeList::sendAssignment(Assignment& assignment) {
     int numAssignmentBytes = assignment.packToBuffer(assignmentPacket + numHeaderBytes);
     
     sockaddr* assignmentServerSocket = (_assignmentServerSocket == NULL)
-        ? (sockaddr*) &GLOBAL_ASSIGNMENT_SOCKET
+        ? (sockaddr*) &DEFAULT_LOCAL_ASSIGNMENT_SOCKET
         : _assignmentServerSocket;
     
     _nodeSocket.send(assignmentServerSocket, assignmentPacket, numHeaderBytes + numAssignmentBytes);
