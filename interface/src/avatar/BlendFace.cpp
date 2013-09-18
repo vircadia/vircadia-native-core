@@ -11,6 +11,7 @@
 #include "Application.h"
 #include "BlendFace.h"
 #include "Head.h"
+#include "renderer/FBXReader.h"
 
 using namespace fs;
 using namespace std;
@@ -180,7 +181,12 @@ void BlendFace::handleModelDownloadProgress(qint64 bytesReceived, qint64 bytesTo
     _modelReply->deleteLater();
     _modelReply = 0;
     
-    qDebug("Got %d bytes.\n", entirety.size());
+    try {
+        printNode(parseFBX(entirety));
+    
+    } catch (const QString& error) {
+        qDebug() << error << "\n";
+    }
 }
 
 void BlendFace::handleModelReplyError() {
