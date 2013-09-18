@@ -421,7 +421,7 @@ int main(int argc, const char* argv[]) {
                 // unpack it
                 Assignment* createAssignment = new Assignment(packetData, receivedBytes);
                 
-                qDebug() << "Received a create assignment -" << createAssignment << "\n";
+                qDebug() << "Received a create assignment -" << *createAssignment << "\n";
                 
                 // add the assignment at the back of the queue
                 ::assignmentQueueMutex.lock();
