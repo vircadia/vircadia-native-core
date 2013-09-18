@@ -425,7 +425,7 @@ void AudioMixer::run() {
         if (usecToSleep > 0) {
             usleep(usecToSleep);
         } else {
-            std::cout << "Took too much time, not sleeping!\n";
+            qDebug("Took too much time, not sleeping!\n");
         }
     }
 }
