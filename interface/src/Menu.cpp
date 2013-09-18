@@ -708,6 +708,10 @@ void Menu::editPreferences() {
     avatarURL->setMinimumWidth(QLINE_MINIMUM_WIDTH);
     form->addRow("Avatar URL:", avatarURL);
     
+    QLineEdit* faceURL = new QLineEdit(applicationInstance->getAvatar()->getHead().getBlendFace().getModelURL().toString());
+    faceURL->setMinimumWidth(QLINE_MINIMUM_WIDTH);
+    form->addRow("Face URL:", faceURL);
+    
     QSpinBox* fieldOfView = new QSpinBox();
     fieldOfView->setMaximum(180);
     fieldOfView->setMinimum(1);
@@ -764,9 +768,12 @@ void Menu::editPreferences() {
         NodeList::getInstance()->setDomainHostname(newHostname.constData());
     }
     
-    QUrl url(avatarURL->text());
-    applicationInstance->getAvatar()->getVoxels()->setVoxelURL(url);
-    Avatar::sendAvatarVoxelURLMessage(url);
+    QUrl avatarVoxelURL(avatarURL->text());
+    applicationInstance->getAvatar()->getVoxels()->setVoxelURL(avatarVoxelURL);
+    Avatar::sendAvatarVoxelURLMessage(avatarVoxelURL);
+    
+    QUrl faceModelURL(faceURL->text());
+    applicationInstance->getAvatar()->getHead().getBlendFace().setModelURL(faceModelURL);
     
     _gyroCameraSensitivity = gyroCameraSensitivity->value();
     

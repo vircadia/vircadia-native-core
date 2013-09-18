@@ -10,10 +10,13 @@
 #define __interface__BlendFace__
 
 #include <QObject>
+#include <QUrl>
 
 #include <fsbinarystream.h>
 
 #include "InterfaceConfig.h"
+
+class QNetworkReply;
 
 class Head;
 
@@ -28,14 +31,26 @@ public:
     
     bool render(float alpha);
     
+    Q_INVOKABLE void setModelURL(const QUrl& url);
+    const QUrl& getModelURL() const { return _modelURL; }
+    
 public slots:
     
     void setRig(const fs::fsMsgRig& rig);
+
+private slots:
+    
+    void handleModelDownloadProgress(qint64 bytesReceived, qint64 bytesTotal);
+    void handleModelReplyError();
     
 private:
     
     Head* _owningHead;
     
+    QUrl _modelURL;
+    
+    QNetworkReply* _modelReply;
+
     GLuint _iboID;
     GLuint _vboID;
     

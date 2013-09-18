@@ -6,8 +6,9 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
-#include <numeric>
+#include <QNetworkReply>
 
+#include "Application.h"
 #include "BlendFace.h"
 #include "Head.h"
 
@@ -16,6 +17,7 @@ using namespace std;
 
 BlendFace::BlendFace(Head* owningHead) :
     _owningHead(owningHead),
+    _modelReply(NULL),
     _iboID(0)
 {
 }
@@ -97,6 +99,30 @@ bool BlendFace::render(float alpha) {
     return true;
 }
 
+void BlendFace::setModelURL(const QUrl& url) {
+    // don't restart the download if it's the same URL
+    if (_modelURL == url) {
+        return;
+    }
+
+    // cancel any current download
+    if (_modelReply != 0) {
+        delete _modelReply;
+        _modelReply = 0;
+    }
+    
+    // remember the URL
+    _modelURL = url;
+    
+    // load the URL data asynchronously
+    if (!url.isValid()) {
+        return;
+    }
+    _modelReply = Application::getInstance()->getNetworkAccessManager()->get(QNetworkRequest(url));
+    connect(_modelReply, SIGNAL(downloadProgress(qint64,qint64)), SLOT(handleModelDownloadProgress(qint64,qint64)));
+    connect(_modelReply, SIGNAL(error(QNetworkReply::NetworkError)), SLOT(handleModelReplyError()));
+}
+
 void BlendFace::setRig(const fsMsgRig& rig) {
     if (rig.mesh().m_tris.empty()) {
         // clear any existing geometry
@@ -143,3 +169,25 @@ void BlendFace::setRig(const fsMsgRig& rig) {
         }
     }
 }
+
+void BlendFace::handleModelDownloadProgress(qint64 bytesReceived, qint64 bytesTotal) {
+    if (bytesReceived < bytesTotal) {
+        return;
+    }
+
+    QByteArray entirety = _modelReply->readAll();
+    _modelReply->disconnect(this);
+    _modelReply->deleteLater();
+    _modelReply = 0;
+    
+    qDebug("Got %d bytes.\n", entirety.size());
+}
+
+void BlendFace::handleModelReplyError() {
+    qDebug("%s\n", _modelReply->errorString().toLocal8Bit().constData());
+    
+    _modelReply->disconnect(this);
+    _modelReply->deleteLater();
+    _modelReply = 0;
+}
+
