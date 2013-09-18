@@ -66,7 +66,26 @@ VoxelServer::VoxelServer(Assignment::Command command, Assignment::Location locat
     _voxelPersistThread = NULL;
 }
 
-VoxelServer::VoxelServer(const unsigned char* dataBuffer, int numBytes) : Assignment(dataBuffer, numBytes) {
+VoxelServer::VoxelServer(const unsigned char* dataBuffer, int numBytes) : Assignment(dataBuffer, numBytes),
+    _serverTree(true) {
+    _argc = 0;
+    _argv = NULL;
+    _dontKillOnMissingDomain = false;
+
+    _PACKETS_PER_CLIENT_PER_INTERVAL = 10;
+    _wantVoxelPersist = true;
+    _wantLocalDomain = false;
+    _debugVoxelSending = false;
+    _shouldShowAnimationDebug = false;
+    _displayVoxelStats = false;
+    _debugVoxelReceiving = false;
+    _sendEnvironments = true;
+    _sendMinimalEnvironment = false;
+    _dumpVoxelsOnMove = false;
+    _jurisdiction = NULL;
+    _jurisdictionSender = NULL;
+    _voxelServerPacketProcessor = NULL;
+    _voxelPersistThread = NULL;
 }
 
 void VoxelServer::setArguments(int argc, char** argv) {
@@ -174,7 +193,7 @@ void VoxelServer::run() {
 
     // By default we will voxel persist, if you want to disable this, then pass in this parameter
     const char* NO_VOXEL_PERSIST = "--NoVoxelPersist";
-    if ( getCmdOption(_argc, _argv, NO_VOXEL_PERSIST)) {
+    if (getCmdOption(_argc, _argv, NO_VOXEL_PERSIST)) {
         _wantVoxelPersist = false;
     }
     printf("wantVoxelPersist=%s\n", debug::valueOf(_wantVoxelPersist));
@@ -253,7 +272,7 @@ void VoxelServer::run() {
 
     sockaddr senderAddress;
     
-    unsigned char *packetData = new unsigned char[MAX_PACKET_SIZE];
+    unsigned char* packetData = new unsigned char[MAX_PACKET_SIZE];
     ssize_t packetLength;
     
     timeval lastDomainServerCheckIn = {};
@@ -269,7 +288,7 @@ void VoxelServer::run() {
     if (_voxelServerPacketProcessor) {
         _voxelServerPacketProcessor->initialize(true);
     }
-
+    
     // loop to send to nodes requesting data
     while (true) {
     
