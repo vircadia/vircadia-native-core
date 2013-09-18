@@ -74,6 +74,9 @@ public:
     const QHostAddress& getDomainIP() const { return _domainIP; }
     void setDomainIP(const QHostAddress& domainIP) { _domainIP = domainIP; }
     void setDomainIPToLocalhost() { _domainIP = QHostAddress(INADDR_LOOPBACK); }
+    
+    unsigned short getDomainPort() const { return _domainPort; }
+    void setDomainPort(unsigned short domainPort) { _domainPort = domainPort; }
         
     uint16_t getLastNodeID() const { return _lastNodeID; }
     void increaseNodeID() { (++_lastNodeID == UNKNOWN_NODE_ID) ? ++_lastNodeID : _lastNodeID; }

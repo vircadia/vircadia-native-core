@@ -85,7 +85,25 @@ NodeList::~NodeList() {
 }
 
 void NodeList::setDomainHostname(const QString& domainHostname) {
-    _domainHostname = domainHostname;
+    
+    int colonIndex = domainHostname.indexOf(':');
+    
+    if (colonIndex > 0) {
+        // the user has included a custom DS port with the hostname
+        
+        // the new hostname is everything up to the colon
+        _domainHostname = domainHostname.left(colonIndex);
+        
+        // grab the port by reading the string after the colon
+        _domainPort = atoi(domainHostname.mid(colonIndex + 1, domainHostname.size()).toLocal8Bit().constData());
+        
+        qDebug() << "Updated hostname to" << _domainHostname << "and port to" << _domainPort << "\n";
+        
+    } else {
+        // no port included with the hostname, simply set the member variable and reset the domain server port to default
+        _domainHostname = domainHostname;
+        _domainPort = DEFAULT_DOMAIN_SERVER_PORT;
+    }
     
     // reset our _domainIP to the null address so that a lookup happens on next check in
     _domainIP = QHostAddress();

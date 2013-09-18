@@ -711,6 +711,24 @@ void updateDSHostname(const QString& domainServerHostname) {
     }
 }
 
+const int QLINE_MINIMUM_WIDTH = 400;
+
+
+QLineEdit* lineEditForDomainHostname() {
+    QString currentDomainHostname = NodeList::getInstance()->getDomainHostname();
+    
+    if (NodeList::getInstance()->getDomainPort() != DEFAULT_DOMAIN_SERVER_PORT) {
+        // add the port to the currentDomainHostname string if it is custom
+        currentDomainHostname.append(QString(":%1").arg(NodeList::getInstance()->getDomainPort()));
+    }
+    
+    QLineEdit* domainServerLineEdit = new QLineEdit(currentDomainHostname);
+    domainServerLineEdit->setPlaceholderText(DEFAULT_DOMAIN_HOSTNAME);
+    domainServerLineEdit->setMinimumWidth(QLINE_MINIMUM_WIDTH);
+    
+    return domainServerLineEdit;
+}
+
 void Menu::editPreferences() {
     Application* applicationInstance = Application::getInstance();
     QDialog dialog(applicationInstance->getGLWidget());
@@ -721,11 +739,8 @@ void Menu::editPreferences() {
     QFormLayout* form = new QFormLayout();
     layout->addLayout(form, 1);
     
-    const int QLINE_MINIMUM_WIDTH = 400;
-    
-    QLineEdit* domainServerHostname = new QLineEdit(QString(NodeList::getInstance()->getDomainHostname()));
-    domainServerHostname->setMinimumWidth(QLINE_MINIMUM_WIDTH);
-    form->addRow("Domain server:", domainServerHostname);
+    QLineEdit* domainServerLineEdit = lineEditForDomainHostname();
+    form->addRow("Domain server:", domainServerLineEdit);
     
     QLineEdit* avatarURL = new QLineEdit(applicationInstance->getAvatar()->getVoxels()->getVoxelURL().toString());
     avatarURL->setMinimumWidth(QLINE_MINIMUM_WIDTH);
@@ -762,7 +777,7 @@ void Menu::editPreferences() {
          return;
      }
     
-    updateDSHostname(domainServerHostname->text());
+    updateDSHostname(domainServerLineEdit->text());
     
     QUrl url(avatarURL->text());
     applicationInstance->getAvatar()->getVoxels()->setVoxelURL(url);
@@ -791,12 +806,10 @@ void Menu::goToDomain() {
     
     QFormLayout* form = new QFormLayout();
     layout->addLayout(form, 1);
+
     
-    const int QLINE_MINIMUM_WIDTH = 400;
-    
-    QLineEdit* domainServerHostname = new QLineEdit(QString(NodeList::getInstance()->getDomainHostname()));
-    domainServerHostname->setMinimumWidth(QLINE_MINIMUM_WIDTH);
-    form->addRow("Domain server:", domainServerHostname);
+    QLineEdit* domainServerLineEdit = lineEditForDomainHostname();
+    form->addRow("Domain server:", domainServerLineEdit);
     
     QDialogButtonBox* buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
     dialog.connect(buttons, SIGNAL(accepted()), SLOT(accept()));
@@ -809,7 +822,7 @@ void Menu::goToDomain() {
          return;
      }
     
-    updateDSHostname(domainServerHostname->text());
+    updateDSHostname(domainServerLineEdit->text());
 }
 
 void Menu::goToLocation() {
