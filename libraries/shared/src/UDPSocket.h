@@ -31,7 +31,7 @@ public:
     void setBlockingReceiveTimeoutInUsecs(int timeoutUsecs);
     
     int send(sockaddr* destAddress, const void* data, size_t byteLength) const;
-    int send(char* destAddress, int destPort, const void* data, size_t byteLength) const;
+    int send(const char* destAddress, int destPort, const void* data, size_t byteLength) const;
     
     bool receive(void* receivedData, ssize_t* receivedBytes) const;
     bool receive(sockaddr* recvAddress, void* receivedData, ssize_t* receivedBytes) const;

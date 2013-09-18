@@ -685,9 +685,9 @@ int main(int argc, const char * argv[])
         nodeList->setDomainIPToLocalhost();
     }
 
-    const char* domainIP = getCmdOption(argc, argv, "--domain");
-    if (domainIP) {
-        NodeList::getInstance()->setDomainIP(domainIP);
+    const char* domainHostname = getCmdOption(argc, argv, "--domain");
+    if (domainHostname) {
+        NodeList::getInstance()->setDomainHostname(domainHostname);
     }
 
     nodeList->linkedDataCreateCallback = NULL; // do we need a callback?
