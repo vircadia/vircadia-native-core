@@ -127,4 +127,19 @@ void BlendFace::setRig(const fsMsgRig& rig) {
     _triangleIndexCount = rig.mesh().m_tris.size() * 3;
     _baseVertices = rig.mesh().m_vertex_data.m_vertices;
     _blendshapes = rig.blendshapes();
+    
+    // subtract the neutral locations from the blend shapes; we want the deltas
+    int vertexCount = _baseVertices.size();
+    for (vector<fsVertexData>::iterator it = _blendshapes.begin(); it != _blendshapes.end(); it++) {
+        const fsVector3f* neutral = _baseVertices.data();
+        fsVector3f* offset = it->m_vertices.data();
+        for (int i = 0; i < vertexCount; i++) {
+            offset->x -= neutral->x;
+            offset->y -= neutral->y;
+            offset->z -= neutral->z;
+            
+            neutral++;
+            offset++;
+        }
+    }
 }
