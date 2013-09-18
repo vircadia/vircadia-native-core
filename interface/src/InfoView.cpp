@@ -17,9 +17,8 @@
 #define SETTINGS_VERSION_KEY "info-version"
 #define MAX_DIALOG_HEIGHT_RATIO 0.9
 
-InfoView::InfoView(bool forced) {
-    _forced = forced;
-    settings()->setAttribute(QWebSettings::LocalContentCanAccessFileUrls, true);
+InfoView::InfoView(bool forced) :
+    _forced(forced) {
     
     switchToResourcesParentIfRequired();
     QString absPath = QFileInfo("resources/html/interface-welcome-allsvg.html").absoluteFilePath();
