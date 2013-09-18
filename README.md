@@ -94,7 +94,7 @@ I want to run my own virtual world!
 
 In order to set up your own virtual world, you need to set up and run your own 
 local "domain". At a minimum, you must run a domain-server, voxel-server, 
-audio-mixer, and avatar-mixer to have a working virtual world. The audio-mixer and avatar-mixer are assignments given from the domain-server to any assignment-client that reports directly to it.
+audio-mixer, and avatar-mixer to have a working virtual world. The audio-mixer, avatar-mixer, and voxel-server are assignments given from the domain-server to any assignment-client that reports directly to it.
 
 Complete the steps above to build the system components, using the default Cmake Unix Makefiles generator. Start with an empty build directory.
 
@@ -106,7 +106,7 @@ window, change directory into the build directory, make the needed components, a
 First we make the targets we'll need.
 
     cd build
-    make domain-server voxel-server assignment-client
+    make domain-server assignment-client
 
 If after this step you're seeing something like the following
 
@@ -114,34 +114,15 @@ If after this step you're seeing something like the following
 
 you likely had Cmake generate Xcode project files and have not run `cmake ..` in a clean build directory. 
 
-Then, launch the static components - a domain-server and a voxel-server. All of the targets will run in the foreground, so you'll either want to background it yourself or open a seperate terminal window per target.
+Then, launch the static domain-server. All of the targets will run in the foreground, so you'll either want to background it yourself or open a seperate terminal window per target.
 
     cd domain-server && ./domain-server
-    ./voxel-server/voxel-server --local > /tmp/voxel-server.log 2>&1 &
 
-Then, run an assignment-client with 2 forks to fulfill the avatar-mixer and audio-mixer assignments. It uses localhost as its assignment-server and talks to it on port 40102 (the default domain-server port).
+Then, run an assignment-client with 3 forks to fulfill the avatar-mixer, audio-mixer, and voxel-server assignments. It uses localhost as its assignment-server and talks to it on port 40102 (the default domain-server port).
 
-    ./assignment-client/assignment-client -n 2 -a localhost -p 40102
+    ./assignment-client/assignment-client -n 3
 
 Any target can be terminated with CTRL-C (SIGINT) in the associated terminal window.
-
-Determine the IP address of the machine you're running these servers on. Here's 
-a handy resource that explains how to do this for different operating systems. 
-http://kb.iu.edu/data/aapa.html
-
-On Mac OS X, and many Unix systems you can use the ifconfig command. Typically, 
-the following command will give you the IP address you need to use.
-
-    ifconfig | grep inet | grep broadcast
-
-You should get something like this:
-
-    inet 192.168.1.104 netmask 0xffffff00 broadcast 192.168.1.255
-
-Your IP address is the first set of numbers. In this case "192.168.1.104". You 
-may now use this IP address to access your domain. If you are running a local 
-DNS or other name service you should be able to access this IP address by name 
-as well.
 
 To test things out you'll want to run the Interface client. You can make that target with the following command:
 
@@ -150,9 +131,8 @@ To test things out you'll want to run the Interface client. You can make that ta
 Then run the executable it builds, or open interface.app if you're on OS X. 
 
 To access your local domain in Interface, open the Preferences dialog box, from 
-the Interface menu on OS X or the File menu on Linux, and enter the IP address of the local DNS name for the 
-server computer in the "Domain" edit control.
+the Interface menu on OS X or the File menu on Linux, and enter "localhost" for the 
+server hostname in the "Domain" edit control.
 
 In the voxel-server/src directory you will find a README that explains in 
 further detail how to setup and administer a voxel-server.
-
