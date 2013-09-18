@@ -11,6 +11,9 @@
 #include <cstring>
 #include <cstdio>
 
+#include <QString>
+#include <QStringList>
+
 #include <OctalCode.h>
 #include <NodeList.h>
 #include <NodeTypes.h>
@@ -64,6 +67,7 @@ VoxelServer::VoxelServer(Assignment::Command command, Assignment::Location locat
     _jurisdictionSender = NULL;
     _voxelServerPacketProcessor = NULL;
     _voxelPersistThread = NULL;
+    _parsedArgV = NULL;
 }
 
 VoxelServer::VoxelServer(const unsigned char* dataBuffer, int numBytes) : Assignment(dataBuffer, numBytes),
@@ -86,11 +90,59 @@ VoxelServer::VoxelServer(const unsigned char* dataBuffer, int numBytes) : Assign
     _jurisdictionSender = NULL;
     _voxelServerPacketProcessor = NULL;
     _voxelPersistThread = NULL;
+    _parsedArgV = NULL;
+}
+
+VoxelServer::~VoxelServer() {
+    if (_parsedArgV) {
+        for (int i = 0; i < _argc; i++) {
+            delete[] _parsedArgV[i];
+        }
+        delete[] _parsedArgV;
+    }
 }
 
 void VoxelServer::setArguments(int argc, char** argv) {
     _argc = argc;
     _argv = const_cast<const char**>(argv);
+}
+
+void VoxelServer::parsePayload() {
+    
+    //uchar* getPayload() { return _payload; }
+    //int getNumPayloadBytes() const { return _numPayloadBytes; }
+    
+    if (getNumPayloadBytes() > 0) {
+        QString config((const char*)getPayload());
+
+        QString delimiterPattern(" ");
+        QStringList configList = config.split(delimiterPattern);
+        
+        int argCount = configList.size() + 2;
+
+        printf("VoxelServer::parsePayload()... argCount=%d\n",argCount);
+
+        _parsedArgV = new char*[argCount];
+        const char* dummy = "dummy";
+        _parsedArgV[0] = new char[strlen(dummy)+1];
+        strcpy(_parsedArgV[0], dummy);
+
+        for (int i = 1; i < argCount-1; i++) {
+            QString configItem = configList.at(i-1);
+            _parsedArgV[i] = new char[configItem.length() + 1];
+            strcpy(_parsedArgV[i], configItem.toLocal8Bit().constData());
+            printf("VoxelServer::parsePayload()... _parsedArgV[%d]=%s\n", i, _parsedArgV[i]);
+        }
+        _parsedArgV[argCount - 1] = new char[strlen(dummy)+1];
+        strcpy(_parsedArgV[argCount - 1], dummy);
+
+        setArguments(argCount, _parsedArgV);
+
+        for (int i = 0; i < argCount; i++) {
+            printf("_argv[%d]=%s\n", i, _argv[i]);
+        }
+
+    }
 }
 
 void VoxelServer::setupStandAlone(const char* domain, int port) {
@@ -114,6 +166,12 @@ void VoxelServer::setupStandAlone(const char* domain, int port) {
 
 //int main(int argc, const char * argv[]) {
 void VoxelServer::run() {
+
+    // Now would be a good time to parse our arguments, if we got them as assignment
+    if (getNumPayloadBytes() > 0) {
+        parsePayload();
+    }
+
     pthread_mutex_init(&_treeLock, NULL);
     
     qInstallMessageHandler(sharedMessageHandler);
@@ -143,7 +201,7 @@ void VoxelServer::run() {
             _jurisdiction = new JurisdictionMap(jurisdictionRoot, jurisdictionEndNodes);
         }
     }
-    
+
     // should we send environments? Default is yes, but this command line suppresses sending
     const char* DUMP_VOXELS_ON_MOVE = "--dumpVoxelsOnMove";
     _dumpVoxelsOnMove = cmdOptionExists(_argc, _argv, DUMP_VOXELS_ON_MOVE);

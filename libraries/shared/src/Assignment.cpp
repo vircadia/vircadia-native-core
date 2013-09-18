@@ -85,17 +85,18 @@ Assignment::Assignment(const unsigned char* dataBuffer, int numBytes) :
             qDebug("Received a socket that cannot be unpacked!\n");
         }
     }
-    
+
     if (numBytes > numBytesRead) {
         _numPayloadBytes = numBytes - numBytesRead;
-        memcpy(_payload, dataBuffer + numBytesRead, numBytes - numBytesRead);
+        _payload = new uchar[_numPayloadBytes]; // <<< the code was not allocating _payload
+        memcpy(_payload, dataBuffer + numBytesRead, _numPayloadBytes);
     }
 }
 
 Assignment::~Assignment() {
     delete _attachedPublicSocket;
     delete _attachedLocalSocket;
-    delete _payload;
+    delete _payload;  // <<< this probably needs to be delete[]???
     _numPayloadBytes = 0;
 }
 
