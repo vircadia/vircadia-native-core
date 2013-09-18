@@ -114,7 +114,11 @@ int main(int argc, const char* argv[]) {
     
     qInstallMessageHandler(Logging::verboseMessageHandler);
     
-    NodeList* nodeList = NodeList::createInstance(NODE_TYPE_DOMAIN, DOMAIN_LISTEN_PORT);
+    const char CUSTOM_PORT_OPTION[] = "-p";
+    const char* customPortString = getCmdOption(argc, argv, CUSTOM_PORT_OPTION);
+    unsigned short domainServerPort = customPortString ? atoi(customPortString) : DOMAIN_LISTEN_PORT;
+    
+    NodeList* nodeList = NodeList::createInstance(NODE_TYPE_DOMAIN, domainServerPort);
 
     setvbuf(stdout, NULL, _IOLBF, 0);
     
