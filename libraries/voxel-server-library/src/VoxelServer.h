@@ -27,6 +27,8 @@ public:
                 
     VoxelServer(const unsigned char* dataBuffer, int numBytes);
     
+    ~VoxelServer();
+    
     /// runs the voxel server assignment
     void run();
     
@@ -61,6 +63,7 @@ public:
 private:
     int _argc;
     const char** _argv;
+    char** _parsedArgV;
     bool _dontKillOnMissingDomain;
 
     char _voxelPersistFilename[MAX_FILENAME_LENGTH];
@@ -84,6 +87,7 @@ private:
     
     NodeWatcher _nodeWatcher; // used to cleanup AGENT data when agents are killed
     
+    void parsePayload();
 };
 
 #endif // __voxel_server__VoxelServer__

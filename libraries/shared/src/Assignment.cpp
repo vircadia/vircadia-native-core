@@ -85,7 +85,7 @@ Assignment::Assignment(const unsigned char* dataBuffer, int numBytes) :
             qDebug("Received a socket that cannot be unpacked!\n");
         }
     }
-    
+
     if (numBytes > numBytesRead) {
         _numPayloadBytes = numBytes - numBytesRead;
         _payload =  new uchar[_numPayloadBytes];
