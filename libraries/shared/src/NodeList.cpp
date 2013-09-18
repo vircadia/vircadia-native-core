@@ -106,7 +106,7 @@ void NodeList::setDomainHostname(const QString& domainHostname) {
     }
     
     // reset our _domainIP to the null address so that a lookup happens on next check in
-    _domainIP = QHostAddress();
+    _domainIP.clear();
 }
 
 void NodeList::timePingReply(sockaddr *nodeAddress, unsigned char *packetData) {
@@ -283,15 +283,21 @@ void NodeList::sendDomainServerCheckIn(const char* assignmentUUID) {
         
         QHostInfo domainServerHostInfo = QHostInfo::fromName(_domainHostname);
         
-        if (!domainServerHostInfo.addresses().isEmpty()) {
-            // set our domainIP to the first IP address
-            _domainIP = domainServerHostInfo.addresses().first();
+        for (int i = 0; i < domainServerHostInfo.addresses().size(); i++) {
+            if (domainServerHostInfo.addresses()[i].protocol() == QAbstractSocket::IPv4Protocol) {
+                _domainIP = domainServerHostInfo.addresses()[i];
+                
+                qDebug("DS at %s is at %s\n", _domainHostname.toStdString().c_str(), _domainIP.toString().toStdString().c_str());
+                
+                printedDomainServerIP = true;
+                
+                break;
+            }
             
-            qDebug("DS at %s is at %s\n", _domainHostname.toStdString().c_str(), _domainIP.toString().toStdString().c_str());
-            
-            printedDomainServerIP = true;
-        } else {
-            qDebug("Failed domain server lookup\n");
+            // if we got here without a break out of the for loop then we failed to lookup the address
+            if (i == domainServerHostInfo.addresses().size() - 1) {
+                qDebug("Failed domain server lookup\n");
+            }
         }
     } else if (!printedDomainServerIP) {
         qDebug("Domain Server IP: %s\n", _domainIP.toString().toStdString().c_str());
