@@ -15,6 +15,8 @@
 
 #include "NodeList.h"
 
+const int NUM_BYTES_RFC4122_UUID = 16;
+
 /// Holds information used for request, creation, and deployment of assignments
 class Assignment : public QObject {
     Q_OBJECT

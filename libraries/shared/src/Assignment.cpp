@@ -14,8 +14,6 @@
 const char IPv4_ADDRESS_DESIGNATOR = 4;
 const char IPv6_ADDRESS_DESIGNATOR = 6;
 
-const int NUM_BYTES_RFC4122_UUID = 16;
-
 Assignment::Assignment(Assignment::Command command, Assignment::Type type, Assignment::Location location) :
     _command(command),
     _type(type),
