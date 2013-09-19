@@ -101,7 +101,7 @@ void childClient() {
             
             // reset our NodeList by switching back to unassigned and clearing the list
             nodeList->setOwnerType(NODE_TYPE_UNASSIGNED);
-            nodeList->clear();
+            nodeList->reset();
             
             // reset the logging target to the the CHILD_TARGET_NAME
             Logging::setTargetName(CHILD_TARGET_NAME);

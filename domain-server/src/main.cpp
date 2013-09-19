@@ -193,12 +193,20 @@ int main(int argc, const char* argv[]) {
         if (!nodeList->soloNodeOfType(NODE_TYPE_AVATAR_MIXER) &&
             std::find(::assignmentQueue.begin(), assignmentQueue.end(), &avatarMixerAssignment) == ::assignmentQueue.end()) {
             qDebug("Missing an avatar mixer and assignment not in queue. Adding.\n");
+            
+            // reset the UUID so it is new
+            avatarMixerAssignment.resetUUID();
+            
             ::assignmentQueue.push_front(&avatarMixerAssignment);
         }
         
         if (!nodeList->soloNodeOfType(NODE_TYPE_AUDIO_MIXER) &&
             std::find(::assignmentQueue.begin(), ::assignmentQueue.end(), &audioMixerAssignment) == ::assignmentQueue.end()) {
             qDebug("Missing an audio mixer and assignment not in queue. Adding.\n");
+            
+            // reset the UUID so it is new
+            audioMixerAssignment.resetUUID();
+            
             ::assignmentQueue.push_front(&audioMixerAssignment);
         }
 
@@ -264,7 +272,6 @@ int main(int argc, const char* argv[]) {
                     
                     Assignment::Type matchType = nodeType == NODE_TYPE_AUDIO_MIXER
                         ? Assignment::AudioMixerType : Assignment::AvatarMixerType;
-                    
                     
                     // enumerate the assignments and see if there is a type and UUID match
                     while (assignment != ::assignmentQueue.end()) {
@@ -386,6 +393,7 @@ int main(int argc, const char* argv[]) {
                                 // keep audio-mixer and avatar-mixer assignments in the queue
                                 // until we get a check-in from that GUID
                                 // but stick it at the back so the others have a chance to go out
+                                
                                 ::assignmentQueue.push_back(sentAssignment);
                             }
                         }

@@ -98,6 +98,7 @@ public:
     int getNumNoReplyDomainCheckIns() const { return _numNoReplyDomainCheckIns; }
     
     void clear();
+    void reset();
     
     void setNodeTypesOfInterest(const char* nodeTypesOfInterest, int numNodeTypesOfInterest);
     
@@ -159,6 +160,8 @@ private:
     pthread_t checkInWithDomainServerThread;
     int _numNoReplyDomainCheckIns;
     sockaddr* _assignmentServerSocket;
+    uchar* _checkInPacket;
+    int _numBytesCheckInPacket;
     
     void handlePingReply(sockaddr *nodeAddress);
     void timePingReply(sockaddr *nodeAddress, unsigned char *packetData);
