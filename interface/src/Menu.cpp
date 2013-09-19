@@ -684,7 +684,7 @@ bool Menu::isVoxelModeActionChecked() {
 }
 
 void Menu::aboutApp() {
-    InfoView::forcedShow();
+    InfoView::forcedShow(this);
 }
 
 void updateDSHostname(const QString& domainServerHostname) {
