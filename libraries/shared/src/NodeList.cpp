@@ -398,7 +398,6 @@ int NodeList::processDomainServerList(unsigned char* packetData, size_t dataByte
     return readNodes;
 }
 
-const char LOCAL_ASSIGNMENT_SERVER_HOSTNAME[] = "localhost";
 const sockaddr_in DEFAULT_LOCAL_ASSIGNMENT_SOCKET = socketForHostnameAndHostOrderPort(LOCAL_ASSIGNMENT_SERVER_HOSTNAME,
                                                                                       DEFAULT_DOMAIN_SERVER_PORT);
 void NodeList::sendAssignment(Assignment& assignment) {

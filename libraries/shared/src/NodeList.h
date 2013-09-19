@@ -40,6 +40,8 @@ const int MAX_HOSTNAME_BYTES = 256;
 extern const QString DEFAULT_DOMAIN_HOSTNAME;
 extern const unsigned short DEFAULT_DOMAIN_SERVER_PORT;
 
+const char LOCAL_ASSIGNMENT_SERVER_HOSTNAME[] = "localhost";
+
 const int UNKNOWN_NODE_ID = 0;
 
 const int MAX_SILENT_DOMAIN_SERVER_CHECK_INS = 5;
