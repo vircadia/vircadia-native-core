@@ -14,6 +14,8 @@
 
 #include "FBXReader.h"
 
+using namespace std;
+
 FBXNode parseFBX(const QByteArray& data) {
     QBuffer buffer(const_cast<QByteArray*>(&data));
     buffer.open(QIODevice::ReadOnly);
@@ -154,6 +156,9 @@ FBXNode parseFBX(QIODevice* device) {
     QDataStream in(device);
     in.setByteOrder(QDataStream::LittleEndian);
     
+    // see http://code.blender.org/index.php/2013/08/fbx-binary-file-format-specification/ for an explanation
+    // of the FBX format
+    
     // verify the prolog
     const QByteArray EXPECTED_PROLOG = "Kaydara FBX Binary  ";
     if (device->read(EXPECTED_PROLOG.size()) != EXPECTED_PROLOG) {
@@ -179,6 +184,104 @@ FBXNode parseFBX(QIODevice* device) {
     return top;
 }
 
+QVector<glm::vec3> createVec3Vector(const QVector<double>& doubleVector) {
+    QVector<glm::vec3> values;
+    for (const double* it = doubleVector.constData(), *end = it + doubleVector.size(); it != end; ) {
+        values.append(glm::vec3(*it++, *it++, *it++));
+    }
+    return values;
+}
+
+FBXGeometry extractFBXGeometry(const FBXNode& node) {
+    FBXGeometry geometry;
+    
+    // "Objects"
+    //  "Geometry" QVariant(qlonglong, 5386006736) QVariant(QByteArray, "QVariant(QByteArray, "Mesh")
+    //   "Vertices" QVector<double>
+    //   "PolygonVertexIndex" QVector<int>
+    //   "LayerElementNormal"
+    //    "Normals" QVector<double>
+    //  "Geometry" QVariant(qlonglong, 5470612480) QVariant(QByteArray, "BrowsD_LQVariant(QByteArray, "Shape") 
+    //   "Vertices" QVector<double>
+    //   "Normals" QVector<double>
+    
+    foreach (const FBXNode& child, node.children) {
+        if (child.name == "Objects") {
+            foreach (const FBXNode& object, child.children) {
+                if (object.name == "Geometry") {
+                    if (object.properties.at(2) == "Mesh") {
+                        QVector<glm::vec3> vertices;
+                        QVector<int> polygonIndices;
+                        foreach (const FBXNode& data, object.children) {
+                            if (data.name == "Vertices") {
+                                geometry.vertices = createVec3Vector(data.properties.at(0).value<QVector<double> >());
+                                
+                            } else if (data.name == "PolygonVertexIndex") {
+                                polygonIndices = data.properties.at(0).value<QVector<int> >();
+                            
+                            } else if (data.name == "LayerElementNormal") {
+                                foreach (const FBXNode& subdata, data.children) {
+                                    if (subdata.name == "Normals") {
+                                        geometry.normals = createVec3Vector(
+                                            subdata.properties.at(0).value<QVector<double> >());
+                                    }
+                                }    
+                            }
+                        }
+                        // convert the polygons to quads and triangles
+                        for (const int* beginIndex = polygonIndices.constData(), *end = beginIndex + polygonIndices.size();
+                                beginIndex != end; ) {
+                            const int* endIndex = beginIndex;
+                            while (*endIndex++ >= 0);
+                            
+                            if (endIndex - beginIndex == 4) {
+                                geometry.quadIndices.append(*beginIndex++);
+                                geometry.quadIndices.append(*beginIndex++);
+                                geometry.quadIndices.append(*beginIndex++);
+                                geometry.quadIndices.append(-*beginIndex++ - 1);
+                                
+                            } else {
+                                for (const int* nextIndex = beginIndex + 1;; ) {
+                                    geometry.triangleIndices.append(*beginIndex);
+                                    geometry.triangleIndices.append(*nextIndex++);
+                                    if (*nextIndex >= 0) {
+                                        geometry.triangleIndices.append(*nextIndex);
+                                    } else {
+                                        geometry.triangleIndices.append(-*nextIndex - 1);
+                                        break;
+                                    }
+                                }
+                                beginIndex = endIndex;
+                            }
+                        }
+                        
+                    } else { // object.properties.at(2) == "Shape"
+                        FBXBlendshape blendshape;
+                        foreach (const FBXNode& data, object.children) {
+                            if (data.name == "Indexes") {
+                                blendshape.indices = data.properties.at(0).value<QVector<int> >();
+                                
+                            } else if (data.name == "Vertices") {
+                                blendshape.vertices = createVec3Vector(data.properties.at(0).value<QVector<double> >());
+                                
+                            } else if (data.name == "Normals") {
+                                blendshape.normals = createVec3Vector(data.properties.at(0).value<QVector<double> >());
+                            }
+                        }
+                        
+                        // the name is followed by a null and some type info
+                        QByteArray name = object.properties.at(1).toByteArray();
+                        name = name.left(name.indexOf('\0'));
+                        geometry.blendshapes.append(blendshape);                    
+                    }
+                } 
+            }
+        }
+    }
+    
+    return geometry;
+}
+
 void printNode(const FBXNode& node, int indent) {
     QByteArray spaces(indent, ' ');
     qDebug("%s%s: ", spaces.data(), node.name.data());
@@ -190,3 +293,4 @@ void printNode(const FBXNode& node, int indent) {
         printNode(child, indent + 1);
     }
 }
+

@@ -139,6 +139,7 @@ void AvatarMixer::run() {
                     break;
                 case PACKET_TYPE_AVATAR_VOXEL_URL:
                 case PACKET_TYPE_AVATAR_FACE_VIDEO:
+                case PACKET_TYPE_AVATAR_FACE_URL:
                     // grab the node ID from the packet
                     unpackNodeId(packetData + numBytesForPacketHeader(packetData), &nodeID);
                     

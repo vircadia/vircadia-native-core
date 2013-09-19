@@ -11,7 +11,6 @@
 #include "Application.h"
 #include "BlendFace.h"
 #include "Head.h"
-#include "renderer/FBXReader.h"
 
 using namespace fs;
 using namespace std;
@@ -48,32 +47,27 @@ bool BlendFace::render(float alpha) {
     glColor4f(1.0f, 1.0f, 1.0f, alpha);
 
     // start with the base
-    int vertexCount = _baseVertices.size();
+    int vertexCount = _geometry.vertices.size();
     _blendedVertices.resize(vertexCount);
-    memcpy(_blendedVertices.data(), _baseVertices.data(), vertexCount * sizeof(fsVector3f));
+    memcpy(_blendedVertices.data(), _geometry.vertices.constData(), vertexCount * sizeof(glm::vec3));
     
     // blend in each coefficient
     const vector<float>& coefficients = _owningHead->getBlendshapeCoefficients();
     for (int i = 0; i < coefficients.size(); i++) {
         float coefficient = coefficients[i];
-        if (coefficient == 0.0f || i >= _blendshapes.size()) {
+        if (coefficient == 0.0f || i >= _geometry.blendshapes.size()) {
             continue;
         }
-        const fsVector3f* source = _blendshapes[i].m_vertices.data();
-        fsVector3f* dest = _blendedVertices.data();
-        for (int j = 0; j < vertexCount; j++) {
-            dest->x += source->x * coefficient;
-            dest->y += source->y * coefficient;
-            dest->z += source->z * coefficient;
-            
-            source++;
-            dest++;
+        const glm::vec3* source = _geometry.blendshapes[i].vertices.constData();
+        for (const int* index = _geometry.blendshapes[i].indices.constData(),
+                *end = index + _geometry.blendshapes[i].indices.size(); index != end; index++, source++) {
+            _blendedVertices[*index] += *source * coefficient;
         }
     }
     
     // update the blended vertices
     glBindBuffer(GL_ARRAY_BUFFER, _vboID);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, _blendedVertices.size() * sizeof(fsVector3f), _blendedVertices.data());
+    glBufferSubData(GL_ARRAY_BUFFER, 0, vertexCount * sizeof(glm::vec3), _blendedVertices.constData());
     
     // tell OpenGL where to find vertex information
     glEnableClientState(GL_VERTEX_ARRAY);
@@ -82,9 +76,9 @@ bool BlendFace::render(float alpha) {
     glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
     
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _iboID);
-    glDrawRangeElementsEXT(GL_QUADS, 0, _baseVertices.size() - 1, _quadIndexCount, GL_UNSIGNED_INT, 0);
-    glDrawRangeElementsEXT(GL_TRIANGLES, 0, _baseVertices.size() - 1, _triangleIndexCount, GL_UNSIGNED_INT,
-        (void*)(_quadIndexCount * sizeof(int)));
+    glDrawRangeElementsEXT(GL_QUADS, 0, vertexCount - 1, _geometry.quadIndices.size(), GL_UNSIGNED_INT, 0);
+    glDrawRangeElementsEXT(GL_TRIANGLES, 0, vertexCount - 1, _geometry.triangleIndices.size(), GL_UNSIGNED_INT,
+        (void*)(_geometry.quadIndices.size() * sizeof(int)));
 
     glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
     
@@ -124,51 +118,42 @@ void BlendFace::setModelURL(const QUrl& url) {
     connect(_modelReply, SIGNAL(error(QNetworkReply::NetworkError)), SLOT(handleModelReplyError()));
 }
 
+glm::vec3 createVec3(const fsVector3f& vector) {
+    return glm::vec3(vector.x, vector.y, vector.z);
+}
+
 void BlendFace::setRig(const fsMsgRig& rig) {
-    if (rig.mesh().m_tris.empty()) {
-        // clear any existing geometry
-        if (_iboID != 0) {
-            glDeleteBuffers(1, &_iboID);
-            glDeleteBuffers(1, &_vboID);
-            _iboID = 0;
+    // convert to FBX geometry
+    FBXGeometry geometry;
+    
+    for (vector<fsVector4i>::const_iterator it = rig.mesh().m_quads.begin(), end = rig.mesh().m_quads.end(); it != end; it++) {
+        geometry.quadIndices.append(it->x);
+        geometry.quadIndices.append(it->y);
+        geometry.quadIndices.append(it->z);
+        geometry.quadIndices.append(it->w);
+    }
+    
+    for (vector<fsVector3i>::const_iterator it = rig.mesh().m_tris.begin(), end = rig.mesh().m_tris.end(); it != end; it++) {
+        geometry.triangleIndices.append(it->x);
+        geometry.triangleIndices.append(it->y);
+        geometry.triangleIndices.append(it->z);
+    }
+    
+    for (vector<fsVector3f>::const_iterator it = rig.mesh().m_vertex_data.m_vertices.begin(),
+            end = rig.mesh().m_vertex_data.m_vertices.end(); it != end; it++) {
+        geometry.vertices.append(glm::vec3(it->x, it->y, it->z));
+    }
+    
+    for (vector<fsVertexData>::const_iterator it = rig.blendshapes().begin(), end = rig.blendshapes().end(); it != end; it++) {
+        FBXBlendshape blendshape;
+        for (int i = 0, n = it->m_vertices.size(); i < n; i++) {
+            blendshape.indices.append(i);
+            blendshape.vertices.append(createVec3(it->m_vertices[i]));
         }
-        return;
+        geometry.blendshapes.append(blendshape);
     }
-    if (_iboID == 0) {
-        glGenBuffers(1, &_iboID);
-        glGenBuffers(1, &_vboID);
-    }
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _iboID);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, rig.mesh().m_quads.size() * sizeof(fsVector4i) +
-        rig.mesh().m_tris.size() * sizeof(fsVector3i), NULL, GL_STATIC_DRAW);
-    glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, rig.mesh().m_quads.size() * sizeof(fsVector4i), rig.mesh().m_quads.data());
-    glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, rig.mesh().m_quads.size() * sizeof(fsVector4i),
-        rig.mesh().m_tris.size() * sizeof(fsVector3i), rig.mesh().m_tris.data());
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     
-    glBindBuffer(GL_ARRAY_BUFFER, _vboID);
-    glBufferData(GL_ARRAY_BUFFER, rig.mesh().m_vertex_data.m_vertices.size() * sizeof(fsVector3f), NULL, GL_DYNAMIC_DRAW);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    
-    _quadIndexCount = rig.mesh().m_quads.size() * 4;
-    _triangleIndexCount = rig.mesh().m_tris.size() * 3;
-    _baseVertices = rig.mesh().m_vertex_data.m_vertices;
-    _blendshapes = rig.blendshapes();
-    
-    // subtract the neutral locations from the blend shapes; we want the deltas
-    int vertexCount = _baseVertices.size();
-    for (vector<fsVertexData>::iterator it = _blendshapes.begin(); it != _blendshapes.end(); it++) {
-        const fsVector3f* neutral = _baseVertices.data();
-        fsVector3f* offset = it->m_vertices.data();
-        for (int i = 0; i < vertexCount; i++) {
-            offset->x -= neutral->x;
-            offset->y -= neutral->y;
-            offset->z -= neutral->z;
-            
-            neutral++;
-            offset++;
-        }
-    }
+    setGeometry(geometry);
 }
 
 void BlendFace::handleModelDownloadProgress(qint64 bytesReceived, qint64 bytesTotal) {
@@ -182,10 +167,11 @@ void BlendFace::handleModelDownloadProgress(qint64 bytesReceived, qint64 bytesTo
     _modelReply = 0;
     
     try {
-        printNode(parseFBX(entirety));
+        setGeometry(extractFBXGeometry(parseFBX(entirety)));
     
     } catch (const QString& error) {
         qDebug() << error << "\n";
+        return;
     }
 }
 
@@ -197,3 +183,46 @@ void BlendFace::handleModelReplyError() {
     _modelReply = 0;
 }
 
+void BlendFace::setGeometry(const FBXGeometry& geometry) {
+    if (geometry.vertices.isEmpty()) {
+        // clear any existing geometry
+        if (_iboID != 0) {
+            glDeleteBuffers(1, &_iboID);
+            glDeleteBuffers(1, &_vboID);
+            _iboID = 0;
+        }
+        return;
+    }
+    if (_iboID == 0) {
+        glGenBuffers(1, &_iboID);
+        glGenBuffers(1, &_vboID);
+    }
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _iboID);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, (geometry.quadIndices.size() + geometry.triangleIndices.size()) * sizeof(int),
+        NULL, GL_STATIC_DRAW);
+    glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, geometry.quadIndices.size() * sizeof(int), geometry.quadIndices.constData());
+    glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, geometry.quadIndices.size() * sizeof(int),
+        geometry.triangleIndices.size() * sizeof(int), geometry.triangleIndices.constData());
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    
+    glBindBuffer(GL_ARRAY_BUFFER, _vboID);
+    glBufferData(GL_ARRAY_BUFFER, geometry.vertices.size() * sizeof(glm::vec3), NULL, GL_DYNAMIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, 0);
+    
+    _geometry = geometry;
+    
+    // subtract the neutral locations from the blend shapes; we want the deltas
+    /*
+    int vertexCount = geometry.vertices.size();
+    for (QVector<FBXBlendshape>::iterator it = _geometry.blendshapes.begin(); it != _geometry.blendshapes.end(); it++) {
+        const glm::vec3* neutral = geometry.vertices.constData();
+        glm::vec3* offset = it->vertices.data();
+        for (int i = 0; i < vertexCount; i++) {
+            *offset -= *neutral;
+            
+            neutral++;
+            offset++;
+        }
+    }
+    */
+}

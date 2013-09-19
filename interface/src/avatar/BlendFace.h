@@ -15,6 +15,7 @@
 #include <fsbinarystream.h>
 
 #include "InterfaceConfig.h"
+#include "renderer/FBXReader.h"
 
 class QNetworkReply;
 
@@ -45,6 +46,8 @@ private slots:
     
 private:
     
+    void setGeometry(const FBXGeometry& geometry);
+    
     Head* _owningHead;
     
     QUrl _modelURL;
@@ -54,11 +57,8 @@ private:
     GLuint _iboID;
     GLuint _vboID;
     
-    GLsizei _quadIndexCount;
-    GLsizei _triangleIndexCount;
-    std::vector<fs::fsVector3f> _baseVertices;
-    std::vector<fs::fsVertexData> _blendshapes;
-    std::vector<fs::fsVector3f> _blendedVertices;
+    FBXGeometry _geometry;
+    QVector<glm::vec3> _blendedVertices;
 };
 
 #endif /* defined(__interface__BlendFace__) */
