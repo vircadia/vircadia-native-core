@@ -40,6 +40,8 @@ const int MAX_HOSTNAME_BYTES = 256;
 extern const QString DEFAULT_DOMAIN_HOSTNAME;
 extern const unsigned short DEFAULT_DOMAIN_SERVER_PORT;
 
+const char LOCAL_ASSIGNMENT_SERVER_HOSTNAME[] = "localhost";
+
 const int UNKNOWN_NODE_ID = 0;
 
 const int MAX_SILENT_DOMAIN_SERVER_CHECK_INS = 5;
@@ -96,6 +98,7 @@ public:
     int getNumNoReplyDomainCheckIns() const { return _numNoReplyDomainCheckIns; }
     
     void clear();
+    void reset();
     
     void setNodeTypesOfInterest(const char* nodeTypesOfInterest, int numNodeTypesOfInterest);
     
@@ -157,6 +160,8 @@ private:
     pthread_t checkInWithDomainServerThread;
     int _numNoReplyDomainCheckIns;
     sockaddr* _assignmentServerSocket;
+    uchar* _checkInPacket;
+    int _numBytesCheckInPacket;
     
     void handlePingReply(sockaddr *nodeAddress);
     void timePingReply(sockaddr *nodeAddress, unsigned char *packetData);

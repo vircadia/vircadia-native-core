@@ -321,7 +321,7 @@ void Application::initializeGL() {
     Menu::getInstance()->checkForUpdates();
 #endif
 
-    InfoView::showFirstTime();
+    InfoView::showFirstTime(Menu::getInstance());
 }
 
 void Application::paintGL() {
