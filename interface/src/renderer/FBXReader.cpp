@@ -260,16 +260,6 @@ QHash<QByteArray, int> createBlendshapeMap() {
 FBXGeometry extractFBXGeometry(const FBXNode& node) {
     FBXGeometry geometry;
     
-    // "Objects"
-    //  "Geometry" QVariant(qlonglong, 5386006736) QVariant(QByteArray, "QVariant(QByteArray, "Mesh")
-    //   "Vertices" QVector<double>
-    //   "PolygonVertexIndex" QVector<int>
-    //   "LayerElementNormal"
-    //    "Normals" QVector<double>
-    //  "Geometry" QVariant(qlonglong, 5470612480) QVariant(QByteArray, "BrowsD_LQVariant(QByteArray, "Shape") 
-    //   "Vertices" QVector<double>
-    //   "Normals" QVector<double>
-    
     foreach (const FBXNode& child, node.children) {
         if (child.name == "Objects") {
             foreach (const FBXNode& object, child.children) {
