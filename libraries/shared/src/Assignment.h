@@ -43,7 +43,7 @@ public:
     
     Assignment(Assignment::Command command,
                Assignment::Type type,
-               Assignment::Location location = Assignment::GlobalLocation);
+               Assignment::Location location = Assignment::LocalLocation);
     
     /// Constructs an Assignment from the data in the buffer
     /// \param dataBuffer the source buffer to un-pack the assignment from

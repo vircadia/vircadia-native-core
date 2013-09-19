@@ -386,14 +386,15 @@ int main(int argc, const char* argv[]) {
                                 delete *assignment;
                             }
                         } else {
+                            Assignment *sentAssignment = *assignment;
                             // remove the assignment from the queue
                             ::assignmentQueue.erase(assignment);
                             
-                            if ((*assignment)->getType() != Assignment::VoxelServerType) {
+                            if (sentAssignment->getType() != Assignment::VoxelServerType) {
                                 // keep audio-mixer and avatar-mixer assignments in the queue
                                 // until we get a check-in from that GUID
                                 // but stick it at the back so the others have a chance to go out
-                                ::assignmentQueue.push_back(*assignment);
+                                ::assignmentQueue.push_back(sentAssignment);
                             }
                         }
                         

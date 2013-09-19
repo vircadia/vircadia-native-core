@@ -55,7 +55,7 @@ Assignment::Assignment(const unsigned char* dataBuffer, int numBytes) :
     memcpy(&_type, dataBuffer + numBytesRead, sizeof(Assignment::Type));
     numBytesRead += sizeof(Assignment::Type);
     
-    if (dataBuffer[0] != PACKET_TYPE_REQUEST_ASSIGNMENT) {
+    if (_command != Assignment::RequestCommand) {
         // read the GUID for this assignment
         _uuid = QUuid::fromRfc4122(QByteArray((const char*) dataBuffer + numBytesRead, NUM_BYTES_RFC4122_UUID));
         numBytesRead += NUM_BYTES_RFC4122_UUID;
