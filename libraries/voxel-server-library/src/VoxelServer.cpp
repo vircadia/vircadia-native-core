@@ -11,6 +11,10 @@
 #include <cstring>
 #include <cstdio>
 
+#include <QDebug>
+#include <QString>
+#include <QStringList>
+
 #include <OctalCode.h>
 #include <NodeList.h>
 #include <NodeTypes.h>
@@ -64,6 +68,7 @@ VoxelServer::VoxelServer(Assignment::Command command, Assignment::Location locat
     _jurisdictionSender = NULL;
     _voxelServerPacketProcessor = NULL;
     _voxelPersistThread = NULL;
+    _parsedArgV = NULL;
 }
 
 VoxelServer::VoxelServer(const unsigned char* dataBuffer, int numBytes) : Assignment(dataBuffer, numBytes),
@@ -86,11 +91,80 @@ VoxelServer::VoxelServer(const unsigned char* dataBuffer, int numBytes) : Assign
     _jurisdictionSender = NULL;
     _voxelServerPacketProcessor = NULL;
     _voxelPersistThread = NULL;
+    _parsedArgV = NULL;
+}
+
+VoxelServer::~VoxelServer() {
+    if (_parsedArgV) {
+        for (int i = 0; i < _argc; i++) {
+            delete[] _parsedArgV[i];
+        }
+        delete[] _parsedArgV;
+    }
 }
 
 void VoxelServer::setArguments(int argc, char** argv) {
     _argc = argc;
     _argv = const_cast<const char**>(argv);
+
+    qDebug("VoxelServer::setArguments()\n");
+    for (int i = 0; i < _argc; i++) {
+        qDebug("_argv[%d]=%s\n", i, _argv[i]);
+    }
+
+}
+
+void VoxelServer::parsePayload() {
+    
+    if (getNumPayloadBytes() > 0) {
+        QString multiConfig((const char*)getPayload());
+        QStringList multiConfigList = multiConfig.split(";");
+        
+        // There there are multiple configs, then this instance will run the first
+        // config, and launch Assignment requests for the additional configs.
+        if (multiConfigList.size() > 1) {
+            qDebug("Voxel Server received assignment for multiple Configs... config count=%d\n", multiConfigList.size());
+
+            // skip 0 - that's the one we'll run
+            for (int i = 1; i < multiConfigList.size(); i++) {
+                QString config = multiConfigList.at(i);
+                
+                qDebug("   config[%d]=%s\n", i, config.toLocal8Bit().constData());
+
+                Assignment voxelServerAssignment(Assignment::CreateCommand,
+                                                 Assignment::VoxelServerType,
+                                                 getLocation()); // use same location as we were created in.
+
+                int payloadLength = config.length() + sizeof(char);
+                voxelServerAssignment.setPayload((uchar*)config.toLocal8Bit().constData(), payloadLength);
+                
+                qDebug("Requesting additional Voxel Server assignment to handle config %d\n", i);
+                NodeList::getInstance()->sendAssignment(voxelServerAssignment);
+            }
+        }
+        
+        // Now, parse the first config
+        QString config = multiConfigList.at(0);
+        QStringList configList = config.split(" ");
+        
+        int argCount = configList.size() + 1;
+
+        qDebug("VoxelServer::parsePayload()... argCount=%d\n",argCount);
+
+        _parsedArgV = new char*[argCount];
+        const char* dummy = "config-from-payload";
+        _parsedArgV[0] = new char[strlen(dummy) + sizeof(char)];
+        strcpy(_parsedArgV[0], dummy);
+
+        for (int i = 1; i < argCount; i++) {
+            QString configItem = configList.at(i-1);
+            _parsedArgV[i] = new char[configItem.length() + sizeof(char)];
+            strcpy(_parsedArgV[i], configItem.toLocal8Bit().constData());
+            qDebug("VoxelServer::parsePayload()... _parsedArgV[%d]=%s\n", i, _parsedArgV[i]);
+        }
+
+        setArguments(argCount, _parsedArgV);
+    }
 }
 
 void VoxelServer::setupStandAlone(const char* domain, int port) {
@@ -100,7 +174,7 @@ void VoxelServer::setupStandAlone(const char* domain, int port) {
     const char* local = "--local";
     _wantLocalDomain = strcmp(domain, local) == 0;
     if (_wantLocalDomain) {
-        printf("Local Domain MODE!\n");
+        qDebug("Local Domain MODE!\n");
         NodeList::getInstance()->setDomainIPToLocalhost();
     } else {
         if (domain) {
@@ -114,6 +188,12 @@ void VoxelServer::setupStandAlone(const char* domain, int port) {
 
 //int main(int argc, const char * argv[]) {
 void VoxelServer::run() {
+
+    // Now would be a good time to parse our arguments, if we got them as assignment
+    if (getNumPayloadBytes() > 0) {
+        parsePayload();
+    }
+
     pthread_mutex_init(&_treeLock, NULL);
     
     qInstallMessageHandler(sharedMessageHandler);
@@ -121,47 +201,47 @@ void VoxelServer::run() {
     const char* JURISDICTION_FILE = "--jurisdictionFile";
     const char* jurisdictionFile = getCmdOption(_argc, _argv, JURISDICTION_FILE);
     if (jurisdictionFile) {
-        printf("jurisdictionFile=%s\n", jurisdictionFile);
+        qDebug("jurisdictionFile=%s\n", jurisdictionFile);
 
-        printf("about to readFromFile().... jurisdictionFile=%s\n", jurisdictionFile);
+        qDebug("about to readFromFile().... jurisdictionFile=%s\n", jurisdictionFile);
         _jurisdiction = new JurisdictionMap(jurisdictionFile);
-        printf("after readFromFile().... jurisdictionFile=%s\n", jurisdictionFile);
+        qDebug("after readFromFile().... jurisdictionFile=%s\n", jurisdictionFile);
     } else {
         const char* JURISDICTION_ROOT = "--jurisdictionRoot";
         const char* jurisdictionRoot = getCmdOption(_argc, _argv, JURISDICTION_ROOT);
         if (jurisdictionRoot) {
-            printf("jurisdictionRoot=%s\n", jurisdictionRoot);
+            qDebug("jurisdictionRoot=%s\n", jurisdictionRoot);
         }
 
         const char* JURISDICTION_ENDNODES = "--jurisdictionEndNodes";
         const char* jurisdictionEndNodes = getCmdOption(_argc, _argv, JURISDICTION_ENDNODES);
         if (jurisdictionEndNodes) {
-            printf("jurisdictionEndNodes=%s\n", jurisdictionEndNodes);
+            qDebug("jurisdictionEndNodes=%s\n", jurisdictionEndNodes);
         }
 
         if (jurisdictionRoot || jurisdictionEndNodes) {
             _jurisdiction = new JurisdictionMap(jurisdictionRoot, jurisdictionEndNodes);
         }
     }
-    
+
     // should we send environments? Default is yes, but this command line suppresses sending
     const char* DUMP_VOXELS_ON_MOVE = "--dumpVoxelsOnMove";
     _dumpVoxelsOnMove = cmdOptionExists(_argc, _argv, DUMP_VOXELS_ON_MOVE);
-    printf("dumpVoxelsOnMove=%s\n", debug::valueOf(_dumpVoxelsOnMove));
+    qDebug("dumpVoxelsOnMove=%s\n", debug::valueOf(_dumpVoxelsOnMove));
     
     // should we send environments? Default is yes, but this command line suppresses sending
     const char* DONT_SEND_ENVIRONMENTS = "--dontSendEnvironments";
     bool dontSendEnvironments =  getCmdOption(_argc, _argv, DONT_SEND_ENVIRONMENTS);
     if (dontSendEnvironments) {
-        printf("Sending environments suppressed...\n");
+        qDebug("Sending environments suppressed...\n");
         _sendEnvironments = false;
     } else { 
         // should we send environments? Default is yes, but this command line suppresses sending
         const char* MINIMAL_ENVIRONMENT = "--MinimalEnvironment";
         _sendMinimalEnvironment =  getCmdOption(_argc, _argv, MINIMAL_ENVIRONMENT);
-        printf("Using Minimal Environment=%s\n", debug::valueOf(_sendMinimalEnvironment));
+        qDebug("Using Minimal Environment=%s\n", debug::valueOf(_sendMinimalEnvironment));
     }
-    printf("Sending environments=%s\n", debug::valueOf(_sendEnvironments));
+    qDebug("Sending environments=%s\n", debug::valueOf(_sendEnvironments));
     
     NodeList* nodeList = NodeList::getInstance();
     nodeList->setOwnerType(NODE_TYPE_VOXEL_SERVER);
@@ -177,26 +257,26 @@ void VoxelServer::run() {
     
     const char* DISPLAY_VOXEL_STATS = "--displayVoxelStats";
     _displayVoxelStats =  getCmdOption(_argc, _argv, DISPLAY_VOXEL_STATS);
-    printf("displayVoxelStats=%s\n", debug::valueOf(_displayVoxelStats));
+    qDebug("displayVoxelStats=%s\n", debug::valueOf(_displayVoxelStats));
 
     const char* DEBUG_VOXEL_SENDING = "--debugVoxelSending";
     _debugVoxelSending =  getCmdOption(_argc, _argv, DEBUG_VOXEL_SENDING);
-    printf("debugVoxelSending=%s\n", debug::valueOf(_debugVoxelSending));
+    qDebug("debugVoxelSending=%s\n", debug::valueOf(_debugVoxelSending));
 
     const char* DEBUG_VOXEL_RECEIVING = "--debugVoxelReceiving";
     _debugVoxelReceiving =  getCmdOption(_argc, _argv, DEBUG_VOXEL_RECEIVING);
-    printf("debugVoxelReceiving=%s\n", debug::valueOf(_debugVoxelReceiving));
+    qDebug("debugVoxelReceiving=%s\n", debug::valueOf(_debugVoxelReceiving));
 
     const char* WANT_ANIMATION_DEBUG = "--shouldShowAnimationDebug";
     _shouldShowAnimationDebug =  getCmdOption(_argc, _argv, WANT_ANIMATION_DEBUG);
-    printf("shouldShowAnimationDebug=%s\n", debug::valueOf(_shouldShowAnimationDebug));
+    qDebug("shouldShowAnimationDebug=%s\n", debug::valueOf(_shouldShowAnimationDebug));
 
     // By default we will voxel persist, if you want to disable this, then pass in this parameter
     const char* NO_VOXEL_PERSIST = "--NoVoxelPersist";
     if (getCmdOption(_argc, _argv, NO_VOXEL_PERSIST)) {
         _wantVoxelPersist = false;
     }
-    printf("wantVoxelPersist=%s\n", debug::valueOf(_wantVoxelPersist));
+    qDebug("wantVoxelPersist=%s\n", debug::valueOf(_wantVoxelPersist));
 
     // if we want Voxel Persistence, load the local file now...
     bool persistantFileRead = false;
@@ -212,7 +292,7 @@ void VoxelServer::run() {
             strcpy(_voxelPersistFilename, LOCAL_VOXELS_PERSIST_FILE);
         }
 
-        printf("loading voxels from file: %s...\n", _voxelPersistFilename);
+        qDebug("loading voxels from file: %s...\n", _voxelPersistFilename);
 
         persistantFileRead = _serverTree.readFromSVOFile(_voxelPersistFilename);
         if (persistantFileRead) {
@@ -221,15 +301,15 @@ void VoxelServer::run() {
             
             // after done inserting all these voxels, then reaverage colors
             _serverTree.reaverageVoxelColors(_serverTree.rootNode);
-            printf("Voxels reAveraged\n");
+            qDebug("Voxels reAveraged\n");
         }
         
         _serverTree.clearDirtyBit(); // the tree is clean since we just loaded it
-        printf("DONE loading voxels from file... fileRead=%s\n", debug::valueOf(persistantFileRead));
+        qDebug("DONE loading voxels from file... fileRead=%s\n", debug::valueOf(persistantFileRead));
         unsigned long nodeCount         = _serverTree.rootNode->getSubTreeNodeCount();
         unsigned long internalNodeCount = _serverTree.rootNode->getSubTreeInternalNodeCount();
         unsigned long leafNodeCount     = _serverTree.rootNode->getSubTreeLeafNodeCount();
-        printf("Nodes after loading scene %lu nodes %lu internal %lu leaves\n", nodeCount, internalNodeCount, leafNodeCount);
+        qDebug("Nodes after loading scene %lu nodes %lu internal %lu leaves\n", nodeCount, internalNodeCount, leafNodeCount);
         
         // now set up VoxelPersistThread
         _voxelPersistThread = new VoxelPersistThread(&_serverTree, _voxelPersistFilename);
@@ -254,7 +334,7 @@ void VoxelServer::run() {
         if (_packetsPerClientPerInterval < 1) {
             _packetsPerClientPerInterval = 1;
         }
-        printf("packetsPerSecond=%s PACKETS_PER_CLIENT_PER_INTERVAL=%d\n", packetsPerSecond, _packetsPerClientPerInterval);
+        qDebug("packetsPerSecond=%s PACKETS_PER_CLIENT_PER_INTERVAL=%d\n", packetsPerSecond, _packetsPerClientPerInterval);
     }
     
     // for now, initialize the environments with fixed values
@@ -337,7 +417,7 @@ void VoxelServer::run() {
             } else if (_voxelServerPacketProcessor) {
                 _voxelServerPacketProcessor->queueReceivedPacket(senderAddress, packetData, packetLength);
             } else {
-                printf("unknown packet ignored... packetData[0]=%c\n", packetData[0]);
+                qDebug("unknown packet ignored... packetData[0]=%c\n", packetData[0]);
             }
         }
     }

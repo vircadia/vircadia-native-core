@@ -43,7 +43,7 @@ public:
     
     Assignment(Assignment::Command command,
                Assignment::Type type,
-               Assignment::Location location = Assignment::GlobalLocation);
+               Assignment::Location location = Assignment::LocalLocation);
     
     /// Constructs an Assignment from the data in the buffer
     /// \param dataBuffer the source buffer to un-pack the assignment from
@@ -61,17 +61,11 @@ public:
     
     uchar* getPayload() { return _payload; }
     int getNumPayloadBytes() const { return _numPayloadBytes; }
-    void setPayload(uchar *payload, int numBytes);
+    void setPayload(const uchar *payload, int numBytes);
     
     int getNumberOfInstances() const { return _numberOfInstances; }
     void setNumberOfInstances(int numberOfInstances) { _numberOfInstances = numberOfInstances; }
     void decrementNumberOfInstances() { --_numberOfInstances; }
-    
-    const sockaddr* getAttachedPublicSocket() { return _attachedPublicSocket; }
-    void setAttachedPublicSocket(const sockaddr* attachedPublicSocket);
-    
-    const sockaddr* getAttachedLocalSocket() { return _attachedLocalSocket; }
-    void setAttachedLocalSocket(const sockaddr* attachedLocalSocket);
 
     /// Packs the assignment to the passed buffer
     /// \param buffer the buffer in which to pack the assignment
@@ -89,8 +83,6 @@ private:
     Assignment::Command _command; /// the command for this assignment (Create, Deploy, Request)
     Assignment::Type _type; /// the type of the assignment, defines what the assignee will do
     Assignment::Location _location; /// the location of the assignment, allows a domain to preferentially use local ACs
-    sockaddr* _attachedPublicSocket; /// pointer to a public socket that relates to assignment, depends on direction
-    sockaddr* _attachedLocalSocket; /// pointer to a local socket that relates to assignment, depends on direction
     timeval _time; /// time the assignment was created (set in constructor)
     int _numberOfInstances; /// the number of instances of this assignment
     uchar *_payload; /// an optional payload attached to this assignment, a maximum for 1024 bytes will be packed

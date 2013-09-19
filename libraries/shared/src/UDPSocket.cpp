@@ -275,7 +275,7 @@ int UDPSocket::send(sockaddr* destAddress, const void* data, size_t byteLength) 
     return sent_bytes;
 }
 
-int UDPSocket::send(char* destAddress, int destPort, const void* data, size_t byteLength) const {
+int UDPSocket::send(const char* destAddress, int destPort, const void* data, size_t byteLength) const {
     
     // change address and port on reusable global to passed variables
     destSockaddr.sin_addr.s_addr = inet_addr(destAddress);

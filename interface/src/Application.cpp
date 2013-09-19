@@ -183,18 +183,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     // --domain or --local options
     NodeList::getInstance()->loadData(_settings);
     
-    const char* domainIP = getCmdOption(argc, constArgv, "--domain");
-    if (domainIP) {
-        NodeList::getInstance()->setDomainIP(domainIP);
-    }
-    
-    // Handle Local Domain testing with the --local command line
-    if (cmdOptionExists(argc, constArgv, "--local")) {
-        qDebug("Local Domain MODE!\n");
-        
-        NodeList::getInstance()->setDomainIPToLocalhost();
-    }
-    
     // Check to see if the user passed in a command line option for loading a local
     // Voxel File.
     _voxelsFilename = getCmdOption(argc, constArgv, "-i");
@@ -333,7 +321,7 @@ void Application::initializeGL() {
     Menu::getInstance()->checkForUpdates();
 #endif
 
-    InfoView::showFirstTime();
+    InfoView::showFirstTime(Menu::getInstance());
 }
 
 void Application::paintGL() {

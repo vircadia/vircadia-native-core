@@ -78,25 +78,15 @@ void childClient() {
             // construct the deployed assignment from the packet data
             Assignment* deployedAssignment = AssignmentFactory::unpackAssignment(packetData, receivedBytes);
             
-            qDebug() << "Received an assignment -" << deployedAssignment << "\n";
+            qDebug() << "Received an assignment -" << *deployedAssignment << "\n";
             
-            // switch our nodelist DOMAIN_IP
-            if (packetData[0] == PACKET_TYPE_CREATE_ASSIGNMENT ||
-                deployedAssignment->getAttachedPublicSocket()->sa_family == AF_INET) {
+            // switch our nodelist domain IP and port to whoever sent us the assignment
+            if (packetData[0] == PACKET_TYPE_CREATE_ASSIGNMENT) {
                 
-                in_addr domainSocketAddr = {};
+                nodeList->setDomainIP(QHostAddress((sockaddr*) &senderSocket));
+                nodeList->setDomainPort(ntohs(senderSocket.sin_port));
                 
-                if (packetData[0] == PACKET_TYPE_CREATE_ASSIGNMENT) {
-                    // the domain server IP address is the address we got this packet from
-                    domainSocketAddr = senderSocket.sin_addr;
-                } else {
-                    // grab the domain server IP address from the packet from the AS
-                    domainSocketAddr = ((sockaddr_in*) deployedAssignment->getAttachedPublicSocket())->sin_addr;
-                }
-                
-                nodeList->setDomainIP(inet_ntoa(domainSocketAddr));
-                
-                qDebug("Destination IP for assignment is %s\n", inet_ntoa(domainSocketAddr));
+                qDebug("Destination IP for assignment is %s\n", nodeList->getDomainIP().toString().toStdString().c_str());
                 
                 // run the deployed assignment
                 deployedAssignment->run();
@@ -195,11 +185,18 @@ int main(int argc, const char* argv[]) {
     
     // grab the overriden assignment-server hostname from argv, if it exists
     const char* customAssignmentServerHostname = getCmdOption(argc, argv, CUSTOM_ASSIGNMENT_SERVER_HOSTNAME_OPTION);
+    const char* customAssignmentServerPortString = getCmdOption(argc, argv, CUSTOM_ASSIGNMENT_SERVER_PORT_OPTION);
     
-    if (customAssignmentServerHostname) {
-        const char* customAssignmentServerPortString = getCmdOption(argc, argv, CUSTOM_ASSIGNMENT_SERVER_PORT_OPTION);
+    if (customAssignmentServerHostname || customAssignmentServerPortString) {
+        
+        // set the custom port or default if it wasn't passed
         unsigned short assignmentServerPort = customAssignmentServerPortString
-            ? atoi(customAssignmentServerPortString) : ASSIGNMENT_SERVER_PORT;
+            ? atoi(customAssignmentServerPortString) : DEFAULT_DOMAIN_SERVER_PORT;
+        
+        // set the custom hostname or default if it wasn't passed
+        if (!customAssignmentServerHostname) {
+            customAssignmentServerHostname = LOCAL_ASSIGNMENT_SERVER_HOSTNAME;
+        }
         
         ::customAssignmentSocket = socketForHostnameAndHostOrderPort(customAssignmentServerHostname, assignmentServerPort);
     }

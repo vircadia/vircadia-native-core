@@ -114,7 +114,11 @@ int main(int argc, const char* argv[]) {
     
     qInstallMessageHandler(Logging::verboseMessageHandler);
     
-    NodeList* nodeList = NodeList::createInstance(NODE_TYPE_DOMAIN, DOMAIN_LISTEN_PORT);
+    const char CUSTOM_PORT_OPTION[] = "-p";
+    const char* customPortString = getCmdOption(argc, argv, CUSTOM_PORT_OPTION);
+    unsigned short domainServerPort = customPortString ? atoi(customPortString) : DOMAIN_LISTEN_PORT;
+    
+    NodeList* nodeList = NodeList::createInstance(NODE_TYPE_DOMAIN, domainServerPort);
 
     setvbuf(stdout, NULL, _IOLBF, 0);
     
@@ -134,18 +138,6 @@ int main(int argc, const char* argv[]) {
     nodeList->startSilentNodeRemovalThread();
 
     timeval lastStatSendTime = {};
-    const char ASSIGNMENT_SERVER_OPTION[] = "-a";
-    
-    // grab the overriden assignment-server hostname from argv, if it exists
-    const char* customAssignmentServer = getCmdOption(argc, argv, ASSIGNMENT_SERVER_OPTION);
-    if (customAssignmentServer) {
-        sockaddr_in customAssignmentSocket = socketForHostnameAndHostOrderPort(customAssignmentServer, ASSIGNMENT_SERVER_PORT);
-        nodeList->setAssignmentServerSocket((sockaddr*) &customAssignmentSocket);
-    }
-    
-    // use a map to keep track of iterations of silence for assignment creation requests
-    const long long GLOBAL_ASSIGNMENT_REQUEST_INTERVAL_USECS = 1 * 1000 * 1000;
-    timeval lastGlobalAssignmentRequest = {};
     
     // as a domain-server we will always want an audio mixer and avatar mixer
     // setup the create assignments for those
@@ -167,7 +159,8 @@ int main(int argc, const char* argv[]) {
     if (voxelServerConfig) {
         qDebug("Reading Voxel Server Configuration.\n");
         qDebug() << "   config: " << voxelServerConfig << "\n";
-        voxelServerAssignment.setPayload((uchar*)voxelServerConfig, strlen(voxelServerConfig) + 1);
+        int payloadLength = strlen(voxelServerConfig) + sizeof(char);
+        voxelServerAssignment.setPayload((const uchar*)voxelServerConfig, payloadLength);
     }
     
     // construct a local socket to send with our created assignments to the global AS
@@ -374,8 +367,6 @@ int main(int argc, const char* argv[]) {
                     
                     if (requestAssignment.getType() == Assignment::AllTypes ||
                         (*assignment)->getType() == requestAssignment.getType()) {
-                        // attach our local socket to the assignment
-                        (*assignment)->setAttachedLocalSocket((sockaddr*) &localSocket);
                         
                         // give this assignment out, either the type matches or the requestor said they will take any
                         int numHeaderBytes = populateTypeAndVersion(broadcastPacket, PACKET_TYPE_CREATE_ASSIGNMENT);
@@ -395,14 +386,15 @@ int main(int argc, const char* argv[]) {
                                 delete *assignment;
                             }
                         } else {
+                            Assignment *sentAssignment = *assignment;
                             // remove the assignment from the queue
                             ::assignmentQueue.erase(assignment);
                             
-                            if ((*assignment)->getType() != Assignment::VoxelServerType) {
+                            if (sentAssignment->getType() != Assignment::VoxelServerType) {
                                 // keep audio-mixer and avatar-mixer assignments in the queue
                                 // until we get a check-in from that GUID
                                 // but stick it at the back so the others have a chance to go out
-                                ::assignmentQueue.push_back(*assignment);
+                                ::assignmentQueue.push_back(sentAssignment);
                             }
                         }
                         
@@ -415,50 +407,19 @@ int main(int argc, const char* argv[]) {
                 }
                 
                 ::assignmentQueueMutex.unlock();
-            }
-        }
-        
-        // if ASSIGNMENT_REQUEST_INTERVAL_USECS have passed since last global assignment request then fire off another
-        if (usecTimestampNow() - usecTimestamp(&lastGlobalAssignmentRequest) >= GLOBAL_ASSIGNMENT_REQUEST_INTERVAL_USECS) {
-            gettimeofday(&lastGlobalAssignmentRequest, NULL);
-            
-            ::assignmentQueueMutex.lock();
-            
-            // go through our queue and see if there are any assignments to send to the global assignment server
-            std::deque<Assignment*>::iterator assignment = ::assignmentQueue.begin();
-            
-            while (assignment != assignmentQueue.end()) {
+            } else if (packetData[0] == PACKET_TYPE_CREATE_ASSIGNMENT) {
+                // this is a create assignment likely recieved from a server needed more clients to help with load
                 
-                if ((*assignment)->getLocation() != Assignment::LocalLocation) {                    
-                    // attach our local socket to the assignment so the assignment-server can optionally hand it out
-                    (*assignment)->setAttachedLocalSocket((sockaddr*) &localSocket);
-                    
-                    nodeList->sendAssignment(*(*assignment));
-                    
-                    if ((*assignment)->getType() == Assignment::AgentType) {
-                        // if this is a script assignment we need to delete it to avoid a memory leak
-                        // or if there is more than one instance to send out, simpy decrease the number of instances
-                        if ((*assignment)->getNumberOfInstances() > 1) {
-                            (*assignment)->decrementNumberOfInstances();
-                        } else {
-                            ::assignmentQueue.erase(assignment);
-                            delete *assignment;
-                        }
-                    } else if ((*assignment)->getType() == Assignment::VoxelServerType) {
-                        // this is a voxel server assignment
-                        // remove the assignment from the queue
-                        ::assignmentQueue.erase(assignment);
-                    }
-                    
-                    // stop looping, we've handed out an assignment
-                    break;
-                } else {
-                    // push forward the iterator to check the next assignment
-                    assignment++;
-                }
+                // unpack it
+                Assignment* createAssignment = new Assignment(packetData, receivedBytes);
+                
+                qDebug() << "Received a create assignment -" << *createAssignment << "\n";
+                
+                // add the assignment at the back of the queue
+                ::assignmentQueueMutex.lock();
+                ::assignmentQueue.push_back(createAssignment);
+                ::assignmentQueueMutex.unlock();
             }
-            
-            ::assignmentQueueMutex.unlock();
         }
         
         if (Logging::shouldSendStats()) {

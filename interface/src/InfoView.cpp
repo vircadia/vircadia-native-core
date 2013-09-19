@@ -17,9 +17,9 @@
 #define SETTINGS_VERSION_KEY "info-version"
 #define MAX_DIALOG_HEIGHT_RATIO 0.9
 
-InfoView::InfoView(bool forced) {
-    _forced = forced;
-    settings()->setAttribute(QWebSettings::LocalContentCanAccessFileUrls, true);
+InfoView::InfoView(bool forced, QWidget* parent) :
+    QWebView(parent),
+    _forced(forced) {
     
     switchToResourcesParentIfRequired();
     QString absPath = QFileInfo("resources/html/interface-welcome-allsvg.html").absoluteFilePath();
@@ -29,12 +29,12 @@ InfoView::InfoView(bool forced) {
     connect(this, SIGNAL(loadFinished(bool)), this, SLOT(loaded(bool)));
 }
 
-void InfoView::showFirstTime() {
-    new InfoView(false);
+void InfoView::showFirstTime(QWidget* parent) {
+    new InfoView(false, parent);
 }
 
-void InfoView::forcedShow() {
-    new InfoView(true);
+void InfoView::forcedShow(QWidget* parent) {
+    new InfoView(true, parent);
 }
 
 bool InfoView::shouldShow() {
@@ -46,18 +46,15 @@ bool InfoView::shouldShow() {
     
     QString lastVersion = settings->value(SETTINGS_VERSION_KEY).toString();
     
-    QWebFrame* mainFrame = page()->mainFrame();
-    QWebElement versionTag = mainFrame->findFirstElement("#version");
+    QWebElement versionTag = page()->mainFrame()->findFirstElement("#version");
     QString version = versionTag.attribute("value");
     
-    if (lastVersion == QString::null || version == QString::null || lastVersion != version) {
-        if (version != QString::null) {
-            settings->setValue(SETTINGS_VERSION_KEY, version);
-        }
+    if (version != QString::null && (lastVersion == QString::null || lastVersion != version)) {
+        settings->setValue(SETTINGS_VERSION_KEY, version);
         return true;
-    }
-    
-    return false;
+    } else {
+        return false;
+    }   
 }
 
 void InfoView::loaded(bool ok) {

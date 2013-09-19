@@ -14,11 +14,11 @@
 class InfoView : public QWebView {
     Q_OBJECT
 public:
-    static void showFirstTime();
-    static void forcedShow();
+    static void showFirstTime(QWidget* parent);
+    static void forcedShow(QWidget* parent);
     
 private:
-    InfoView(bool forced);
+    InfoView(bool forced, QWidget* parent);
     bool _forced;
     bool shouldShow();
     
