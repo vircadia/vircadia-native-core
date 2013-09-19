@@ -70,7 +70,9 @@ NodeList::NodeList(char newOwnerType, unsigned short int newSocketListenPort) :
     _ownerID(UNKNOWN_NODE_ID),
     _lastNodeID(UNKNOWN_NODE_ID + 1),
     _numNoReplyDomainCheckIns(0),
-    _assignmentServerSocket(NULL)
+    _assignmentServerSocket(NULL),
+    _checkInPacket(NULL),
+    _numBytesCheckInPacket(0)
 {
     
 }
@@ -263,7 +265,16 @@ void NodeList::clear() {
     }
     
     _numNodes = 0;
+}
+
+void NodeList::reset() {
+    clear();
     _numNoReplyDomainCheckIns = 0;
+    
+    delete[] _checkInPacket;
+    _checkInPacket = NULL;
+    
+    _numBytesCheckInPacket = 0;
 }
 
 void NodeList::setNodeTypesOfInterest(const char* nodeTypesOfInterest, int numNodeTypesOfInterest) {
@@ -304,11 +315,8 @@ void NodeList::sendDomainServerCheckIn(const char* assignmentUUID) {
         printedDomainServerIP = true;
     }
     
-    unsigned char* checkInPacket = NULL;
-    int checkInPacketSize = 0;
-    
     // construct the DS check in packet if we need to    
-    if (!checkInPacket) {
+    if (!_checkInPacket) {
         int numBytesNodesOfInterest = _nodeTypesOfInterest ? strlen((char*) _nodeTypesOfInterest) : 0;
         
         const int IP_ADDRESS_BYTES = 4;
@@ -317,8 +325,8 @@ void NodeList::sendDomainServerCheckIn(const char* assignmentUUID) {
         int numPacketBytes = sizeof(PACKET_TYPE) + sizeof(PACKET_VERSION) + sizeof(NODE_TYPE) +
             NUM_BYTES_RFC4122_UUID + sizeof(uint16_t) + IP_ADDRESS_BYTES + numBytesNodesOfInterest + sizeof(unsigned char);
         
-        checkInPacket = new unsigned char[numPacketBytes];
-        unsigned char* packetPosition = checkInPacket;
+        _checkInPacket = new unsigned char[numPacketBytes];
+        unsigned char* packetPosition = _checkInPacket;
         
         PACKET_TYPE nodePacketType = (memchr(SOLO_NODE_TYPES, _ownerType, sizeof(SOLO_NODE_TYPES)))
             ? PACKET_TYPE_DOMAIN_REPORT_FOR_DUTY
@@ -335,7 +343,7 @@ void NodeList::sendDomainServerCheckIn(const char* assignmentUUID) {
             packetPosition += NUM_BYTES_RFC4122_UUID;
         }
         
-        packetPosition += packSocket(checkInPacket + (packetPosition - checkInPacket),
+        packetPosition += packSocket(_checkInPacket + (packetPosition - _checkInPacket),
                                      getLocalAddress(),
                                      htons(_nodeSocket.getListeningPort()));
         
@@ -350,10 +358,10 @@ void NodeList::sendDomainServerCheckIn(const char* assignmentUUID) {
             packetPosition += numBytesNodesOfInterest;
         }
         
-        checkInPacketSize = packetPosition - checkInPacket;
+        _numBytesCheckInPacket = packetPosition - _checkInPacket;
     }
     
-    _nodeSocket.send(_domainIP.toString().toStdString().c_str(), _domainPort, checkInPacket, checkInPacketSize);
+    _nodeSocket.send(_domainIP.toString().toStdString().c_str(), _domainPort, _checkInPacket, _numBytesCheckInPacket);
     
     // increment the count of un-replied check-ins
     _numNoReplyDomainCheckIns++;

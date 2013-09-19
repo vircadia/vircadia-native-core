@@ -273,7 +273,6 @@ int main(int argc, const char* argv[]) {
                     Assignment::Type matchType = nodeType == NODE_TYPE_AUDIO_MIXER
                         ? Assignment::AudioMixerType : Assignment::AvatarMixerType;
                     
-                    
                     // enumerate the assignments and see if there is a type and UUID match
                     while (assignment != ::assignmentQueue.end()) {
                         
