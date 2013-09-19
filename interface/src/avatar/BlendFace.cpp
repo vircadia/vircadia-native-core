@@ -55,7 +55,7 @@ bool BlendFace::render(float alpha) {
     const vector<float>& coefficients = _owningHead->getBlendshapeCoefficients();
     for (int i = 0; i < coefficients.size(); i++) {
         float coefficient = coefficients[i];
-        if (coefficient == 0.0f || i >= _geometry.blendshapes.size()) {
+        if (coefficient == 0.0f || i >= _geometry.blendshapes.size() || _geometry.blendshapes[i].vertices.isEmpty()) {
             continue;
         }
         const glm::vec3* source = _geometry.blendshapes[i].vertices.constData();
@@ -147,8 +147,9 @@ void BlendFace::setRig(const fsMsgRig& rig) {
     for (vector<fsVertexData>::const_iterator it = rig.blendshapes().begin(), end = rig.blendshapes().end(); it != end; it++) {
         FBXBlendshape blendshape;
         for (int i = 0, n = it->m_vertices.size(); i < n; i++) {
+            // subtract the base vertex position; we want the deltas
+            blendshape.vertices.append(createVec3(it->m_vertices[i]) - geometry.vertices[i]);
             blendshape.indices.append(i);
-            blendshape.vertices.append(createVec3(it->m_vertices[i]));
         }
         geometry.blendshapes.append(blendshape);
     }
@@ -210,12 +211,4 @@ void BlendFace::setGeometry(const FBXGeometry& geometry) {
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     
     _geometry = geometry;
-    
-    // subtract the neutral locations from the blend shapes; we want the deltas
-    for (QVector<FBXBlendshape>::iterator it = _geometry.blendshapes.begin(); it != _geometry.blendshapes.end(); it++) {
-        glm::vec3* offset = it->vertices.data();
-        for (const int* index = it->indices.constData(), *end = index + it->indices.size(); index != end; index++, offset++) {
-            *offset -= geometry.vertices[*index];
-        }
-    }
 }

@@ -192,6 +192,71 @@ QVector<glm::vec3> createVec3Vector(const QVector<double>& doubleVector) {
     return values;
 }
 
+const char* FACESHIFT_BLENDSHAPES[] = {
+    "EyeBlink_L",
+    "EyeBlink_R",
+    "EyeSquint_L",
+    "EyeSquint_R",
+    "EyeDown_L",
+    "EyeDown_R",
+    "EyeIn_L",
+    "EyeIn_R",
+    "EyeOpen_L",
+    "EyeOpen_R",
+    "EyeOut_L",
+    "EyeOut_R",
+    "EyeUp_L",
+    "EyeUp_R",
+    "BrowsD_L",
+    "BrowsD_R",
+    "BrowsU_C",
+    "BrowsU_L",
+    "BrowsU_R",
+    "JawFwd",
+    "JawLeft",
+    "JawOpen",
+    "JawChew",
+    "JawRight",
+    "MouthLeft",
+    "MouthRight",
+    "MouthFrown_L",
+    "MouthFrown_R",
+    "MouthSmile_L",
+    "MouthSmile_R",
+    "MouthDimple_L",
+    "MouthDimple_R",
+    "LipsStretch_L",
+    "LipsStretch_R",
+    "LipsUpperClose",
+    "LipsLowerClose",
+    "LipsUpperUp",
+    "LipsLowerDown",
+    "LipsUpperOpen",
+    "LipsLowerOpen",
+    "LipsFunnel",
+    "LipsPucker",
+    "ChinLowerRaise",
+    "ChinUpperRaise",
+    "Sneer",
+    "Puff",
+    "CheekSquint_L",
+    "CheekSquint_R",
+    ""
+};
+
+QHash<QByteArray, int> createBlendshapeMap() {
+    QHash<QByteArray, int> map;
+    for (int i = 0;; i++) {
+        QByteArray name = FACESHIFT_BLENDSHAPES[i];
+        if (name != "") {
+            map.insert(name, i);       
+               
+        } else {
+            return map;
+        }
+    }
+}
+
 FBXGeometry extractFBXGeometry(const FBXNode& node) {
     FBXGeometry geometry;
     
@@ -271,8 +336,10 @@ FBXGeometry extractFBXGeometry(const FBXNode& node) {
                         
                         // the name is followed by a null and some type info
                         QByteArray name = object.properties.at(1).toByteArray();
-                        name = name.left(name.indexOf('\0'));
-                        geometry.blendshapes.append(blendshape);                    
+                        static QHash<QByteArray, int> blendshapeMap = createBlendshapeMap();
+                        int index = blendshapeMap.value(name.left(name.indexOf('\0')));
+                        geometry.blendshapes.resize(qMax(geometry.blendshapes.size(), index + 1));
+                        geometry.blendshapes[index] = blendshape;
                     }
                 } 
             }
