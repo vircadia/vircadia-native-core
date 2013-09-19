@@ -185,9 +185,6 @@ int main(int argc, const char* argv[]) {
     // Start the web server.
     ctx = mg_start(&callbacks, NULL, options);
     
-    // wait to check on voxel-servers till we've given our NodeList a chance to get a good list
-    int checkForVoxelServerAttempt = 0;
-    
     while (true) {
         
         ::assignmentQueueMutex.lock();
@@ -205,24 +202,19 @@ int main(int argc, const char* argv[]) {
             ::assignmentQueue.push_front(&audioMixerAssignment);
         }
 
-        // Now handle voxel servers. Couple of things are special about voxel servers. 
-        // 1) They can run standalone, and so we want to wait to ask for an assignment until we've given them sufficient
-        //    time to check in with us. So we will look for them, but we want actually add assignments unless we haven't 
-        //    seen one after a few tries.
-        // 2) They aren't soloNodeOfType() so we have to count them.
+        // Now handle voxel servers. Since Voxel Servers aren't soloNodeOfType() we will count them and add an assignment if
+        // there is not at least one of them in the domain.
         int voxelServerCount = 0;
         for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
             if (node->getType() == NODE_TYPE_VOXEL_SERVER) {
                 voxelServerCount++;
             }
         }
-        const int MIN_VOXEL_SERVER_CHECKS = 10;
-        if (checkForVoxelServerAttempt > MIN_VOXEL_SERVER_CHECKS && voxelServerCount == 0 &&
+        if (voxelServerCount == 0 &&
             std::find(::assignmentQueue.begin(), ::assignmentQueue.end(), &voxelServerAssignment) == ::assignmentQueue.end()) {
             qDebug("Missing a voxel server and assignment not in queue. Adding.\n");
             ::assignmentQueue.push_front(&voxelServerAssignment);
         }
-        checkForVoxelServerAttempt++;
 
         ::assignmentQueueMutex.unlock();
         
