@@ -304,8 +304,8 @@ void NodeList::sendDomainServerCheckIn(const char* assignmentUUID) {
         printedDomainServerIP = true;
     }
     
-    static unsigned char* checkInPacket = NULL;
-    static int checkInPacketSize = 0;
+    unsigned char* checkInPacket = NULL;
+    int checkInPacketSize = 0;
     
     // construct the DS check in packet if we need to    
     if (!checkInPacket) {
