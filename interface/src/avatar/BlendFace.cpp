@@ -212,17 +212,10 @@ void BlendFace::setGeometry(const FBXGeometry& geometry) {
     _geometry = geometry;
     
     // subtract the neutral locations from the blend shapes; we want the deltas
-    /*
-    int vertexCount = geometry.vertices.size();
     for (QVector<FBXBlendshape>::iterator it = _geometry.blendshapes.begin(); it != _geometry.blendshapes.end(); it++) {
-        const glm::vec3* neutral = geometry.vertices.constData();
         glm::vec3* offset = it->vertices.data();
-        for (int i = 0; i < vertexCount; i++) {
-            *offset -= *neutral;
-            
-            neutral++;
-            offset++;
+        for (const int* index = it->indices.constData(), *end = index + it->indices.size(); index != end; index++, offset++) {
+            *offset -= geometry.vertices[*index];
         }
     }
-    */
 }
