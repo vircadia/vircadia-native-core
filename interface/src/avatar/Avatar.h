@@ -129,7 +129,7 @@ class Avatar : public AvatarData {
     Q_OBJECT
     
 public:
-    static void sendAvatarVoxelURLMessage(const QUrl& url);
+    static void sendAvatarURLsMessage(const QUrl& voxelURL, const QUrl& faceURL);
     
     Avatar(Node* owningNode = NULL);
     ~Avatar();

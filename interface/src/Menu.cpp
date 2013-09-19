@@ -786,10 +786,11 @@ void Menu::editPreferences() {
     
     QUrl avatarVoxelURL(avatarURL->text());
     applicationInstance->getAvatar()->getVoxels()->setVoxelURL(avatarVoxelURL);
-    Avatar::sendAvatarVoxelURLMessage(avatarVoxelURL);
     
     QUrl faceModelURL(faceURL->text());
     applicationInstance->getAvatar()->getHead().getBlendFace().setModelURL(faceModelURL);
+    
+    Avatar::sendAvatarURLsMessage(avatarVoxelURL, faceModelURL);
     
     _gyroCameraSensitivity = gyroCameraSensitivity->value();
     

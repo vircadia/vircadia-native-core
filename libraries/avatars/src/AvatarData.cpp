@@ -205,12 +205,10 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
         memcpy(destinationBuffer, &_headData->_browAudioLift, sizeof(float));
         destinationBuffer += sizeof(float);
         
-        /*
         *destinationBuffer++ = _headData->_blendshapeCoefficients.size();
         memcpy(destinationBuffer, _headData->_blendshapeCoefficients.data(),
             _headData->_blendshapeCoefficients.size() * sizeof(float));
         destinationBuffer += _headData->_blendshapeCoefficients.size() * sizeof(float);
-        */
     }
     
     // leap hand data
@@ -342,12 +340,10 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
         memcpy(&_headData->_browAudioLift, sourceBuffer, sizeof(float));
         sourceBuffer += sizeof(float);
         
-        /*
         _headData->_blendshapeCoefficients.resize(*sourceBuffer++);
         memcpy(_headData->_blendshapeCoefficients.data(), sourceBuffer,
             _headData->_blendshapeCoefficients.size() * sizeof(float));
         sourceBuffer += _headData->_blendshapeCoefficients.size() * sizeof(float);
-        */
     }
 
     // leap hand data

@@ -61,7 +61,7 @@ const bool usingBigSphereCollisionTest = true;
 const float chatMessageScale = 0.0015;
 const float chatMessageHeight = 0.20;
 
-void Avatar::sendAvatarVoxelURLMessage(const QUrl& url) {
+void Avatar::sendAvatarURLsMessage(const QUrl& voxelURL, const QUrl& faceURL) {
     uint16_t ownerID = NodeList::getInstance()->getOwnerID();
     
     if (ownerID == UNKNOWN_NODE_ID) {
@@ -71,11 +71,14 @@ void Avatar::sendAvatarVoxelURLMessage(const QUrl& url) {
     QByteArray message;
     
     char packetHeader[MAX_PACKET_HEADER_BYTES];
-    int numBytesPacketHeader = populateTypeAndVersion((unsigned char*) packetHeader, PACKET_TYPE_AVATAR_VOXEL_URL);
+    int numBytesPacketHeader = populateTypeAndVersion((unsigned char*) packetHeader, PACKET_TYPE_AVATAR_URLS);
     
     message.append(packetHeader, numBytesPacketHeader);
     message.append((const char*)&ownerID, sizeof(ownerID));
-    message.append(url.toEncoded());
+    
+    QDataStream out(&message, QIODevice::WriteOnly);
+    out << voxelURL;
+    out << faceURL;
     
     Application::controlledBroadcastToNodes((unsigned char*)message.data(), message.size(), &NODE_TYPE_AVATAR_MIXER, 1);
 }
