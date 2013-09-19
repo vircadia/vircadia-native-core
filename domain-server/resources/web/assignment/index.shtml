@@ -14,6 +14,9 @@
         Run
       </a>
     </div>
+    <div class='big-field' id='instance-field'>
+      <input type='text' name='instances' placeholder='# of instances'>
+    </div>
     <!-- %div#stop-button.big-button -->
   </body>
 </html>

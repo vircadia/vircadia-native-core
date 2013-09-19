@@ -9,23 +9,27 @@
 #include <QtScript/QScriptEngine>
 #include <QtNetwork/QtNetwork>
 
+#include <AvatarData.h>
 #include <NodeList.h>
 
-#include "AvatarData.h"
-
 #include "Agent.h"
+#include "voxels/VoxelScriptingInterface.h"
 
-Agent::Agent() :
-    _shouldStop(false)
-{
+Agent::Agent(const unsigned char* dataBuffer, int numBytes) : Assignment(dataBuffer, numBytes) {
     
 }
 
-void Agent::run(QUrl scriptURL) {
+void Agent::run() {
     NodeList::getInstance()->setOwnerType(NODE_TYPE_AGENT);
-    NodeList::getInstance()->setNodeTypesOfInterest(&NODE_TYPE_AVATAR_MIXER, 1);
+    NodeList::getInstance()->setNodeTypesOfInterest(&NODE_TYPE_VOXEL_SERVER, 1);
     
     QNetworkAccessManager manager;
+    
+    // figure out the URL for the script for this agent assignment
+    QString scriptURLString("http://%1:8080/assignment/%2");
+    scriptURLString = scriptURLString.arg(NodeList::getInstance()->getDomainIP().toString(),
+                                         this->getUUIDStringWithoutCurlyBraces());
+    QUrl scriptURL(scriptURLString);
     
     qDebug() << "Attemping download of " << scriptURL << "\n";
     
@@ -39,13 +43,12 @@ void Agent::run(QUrl scriptURL) {
     
     QScriptEngine engine;
     
-    AvatarData *testAvatarData = new AvatarData;
-    
-    QScriptValue avatarDataValue = engine.newQObject(testAvatarData);
-    engine.globalObject().setProperty("Avatar", avatarDataValue);
-    
     QScriptValue agentValue = engine.newQObject(this);
     engine.globalObject().setProperty("Agent", agentValue);
+    
+    VoxelScriptingInterface voxelScripter;
+    QScriptValue voxelScripterValue =  engine.newQObject(&voxelScripter);
+    engine.globalObject().setProperty("Voxels", voxelScripterValue);
     
     qDebug() << "Downloaded script:" << scriptString << "\n";
     qDebug() << "Evaluated script:" << engine.evaluate(scriptString).toString() << "\n";
@@ -75,9 +78,10 @@ void Agent::run(QUrl scriptURL) {
             NodeList::getInstance()->sendDomainServerCheckIn();
         }
         
+        // allow the scripter's call back to setup visual data
         emit preSendCallback();
-        
-        testAvatarData->sendData();
+        // flush the voxel packet queue
+        voxelScripter.getVoxelPacketSender()->process();
         
         if (NodeList::getInstance()->getNodeSocket()->receive((sockaddr*) &senderAddress, receivedData, &receivedBytes)) {
             NodeList::getInstance()->processNodeData((sockaddr*) &senderAddress, receivedData, receivedBytes);

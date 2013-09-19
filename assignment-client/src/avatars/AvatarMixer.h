@@ -9,13 +9,15 @@
 #ifndef __hifi__AvatarMixer__
 #define __hifi__AvatarMixer__
 
-#include <iostream>
+#include <Assignment.h>
 
 /// Handles assignments of type AvatarMixer - distribution of avatar data to various clients
-class AvatarMixer {
+class AvatarMixer : public Assignment {
 public:
+    AvatarMixer(const unsigned char* dataBuffer, int numBytes);
+    
     /// runs the avatar mixer
-    static void run();
+    void run();
 };
 
 #endif /* defined(__hifi__AvatarMixer__) */

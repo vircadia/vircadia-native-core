@@ -69,6 +69,10 @@ void attachNewBufferToNode(Node *newNode) {
     }
 }
 
+AudioMixer::AudioMixer(const unsigned char* dataBuffer, int numBytes) : Assignment(dataBuffer, numBytes) {
+    
+}
+
 void AudioMixer::run() {
     // change the logging target name while this is running
     Logging::setTargetName(AUDIO_MIXER_LOGGING_TARGET_NAME);
@@ -125,7 +129,7 @@ void AudioMixer::run() {
         // send a check in packet to the domain server if DOMAIN_SERVER_CHECK_IN_USECS has elapsed
         if (usecTimestampNow() - usecTimestamp(&lastDomainServerCheckIn) >= DOMAIN_SERVER_CHECK_IN_USECS) {
             gettimeofday(&lastDomainServerCheckIn, NULL);
-            NodeList::getInstance()->sendDomainServerCheckIn();
+            NodeList::getInstance()->sendDomainServerCheckIn(this->getUUID().toRfc4122().constData());
             
             if (Logging::shouldSendStats() && numStatCollections > 0) {
                 // if we should be sending stats to Logstash send the appropriate average now
@@ -421,7 +425,7 @@ void AudioMixer::run() {
         if (usecToSleep > 0) {
             usleep(usecToSleep);
         } else {
-            std::cout << "Took too much time, not sleeping!\n";
+            qDebug("Took too much time, not sleeping!\n");
         }
     }
 }

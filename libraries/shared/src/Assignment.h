@@ -15,8 +15,11 @@
 
 #include "NodeList.h"
 
+const int NUM_BYTES_RFC4122_UUID = 16;
+
 /// Holds information used for request, creation, and deployment of assignments
-class Assignment {
+class Assignment : public QObject {
+    Q_OBJECT
 public:
     
     enum Type {
@@ -56,12 +59,20 @@ public:
     Assignment::Location getLocation() const { return _location; }
     const timeval& getTime() const { return _time; }
     
+    uchar* getPayload() { return _payload; }
+    int getNumPayloadBytes() const { return _numPayloadBytes; }
+    void setPayload(const uchar *payload, int numBytes);
+    
+    int getNumberOfInstances() const { return _numberOfInstances; }
+    void setNumberOfInstances(int numberOfInstances) { _numberOfInstances = numberOfInstances; }
+    void decrementNumberOfInstances() { --_numberOfInstances; }
+    
     const sockaddr* getAttachedPublicSocket() { return _attachedPublicSocket; }
     void setAttachedPublicSocket(const sockaddr* attachedPublicSocket);
     
     const sockaddr* getAttachedLocalSocket() { return _attachedLocalSocket; }
     void setAttachedLocalSocket(const sockaddr* attachedLocalSocket);
-    
+
     /// Packs the assignment to the passed buffer
     /// \param buffer the buffer in which to pack the assignment
     /// \return number of bytes packed into buffer
@@ -69,6 +80,9 @@ public:
     
     /// Sets _time to the current time given by gettimeofday
     void setCreateTimeToNow() { gettimeofday(&_time, NULL); }
+    
+    /// blocking run of the assignment
+    virtual void run();
     
 private:
     QUuid _uuid; /// the 16 byte UUID for this assignment
@@ -78,6 +92,9 @@ private:
     sockaddr* _attachedPublicSocket; /// pointer to a public socket that relates to assignment, depends on direction
     sockaddr* _attachedLocalSocket; /// pointer to a local socket that relates to assignment, depends on direction
     timeval _time; /// time the assignment was created (set in constructor)
+    int _numberOfInstances; /// the number of instances of this assignment
+    uchar *_payload; /// an optional payload attached to this assignment, a maximum for 1024 bytes will be packed
+    int _numPayloadBytes; /// number of bytes in the payload, up to a maximum of 1024
 };
 
 QDebug operator<<(QDebug debug, const Assignment &assignment);

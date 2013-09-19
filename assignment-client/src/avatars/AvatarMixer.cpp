@@ -83,6 +83,10 @@ void broadcastAvatarData(NodeList* nodeList, sockaddr* nodeAddress) {
     nodeList->getNodeSocket()->send(nodeAddress, broadcastPacket, currentBufferPosition - broadcastPacket);
 }
 
+AvatarMixer::AvatarMixer(const unsigned char* dataBuffer, int numBytes) : Assignment(dataBuffer, numBytes) {
+    
+}
+
 void AvatarMixer::run() {
     // change the logging target name while AvatarMixer is running
     Logging::setTargetName(AVATAR_MIXER_LOGGING_NAME);
@@ -115,7 +119,7 @@ void AvatarMixer::run() {
         // send a check in packet to the domain server if DOMAIN_SERVER_CHECK_IN_USECS has elapsed
         if (usecTimestampNow() - usecTimestamp(&lastDomainServerCheckIn) >= DOMAIN_SERVER_CHECK_IN_USECS) {
             gettimeofday(&lastDomainServerCheckIn, NULL);
-            NodeList::getInstance()->sendDomainServerCheckIn();
+            NodeList::getInstance()->sendDomainServerCheckIn(this->getUUID().toRfc4122().constData());
         }
         
         if (nodeList->getNodeSocket()->receive(nodeAddress, packetData, &receivedBytes) &&
