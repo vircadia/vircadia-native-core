@@ -304,8 +304,8 @@ void NodeList::sendDomainServerCheckIn(const char* assignmentUUID) {
         printedDomainServerIP = true;
     }
     
-    static unsigned char* checkInPacket = NULL;
-    static int checkInPacketSize = 0;
+    unsigned char* checkInPacket = NULL;
+    int checkInPacketSize = 0;
     
     // construct the DS check in packet if we need to    
     if (!checkInPacket) {
@@ -398,7 +398,6 @@ int NodeList::processDomainServerList(unsigned char* packetData, size_t dataByte
     return readNodes;
 }
 
-const char LOCAL_ASSIGNMENT_SERVER_HOSTNAME[] = "localhost";
 const sockaddr_in DEFAULT_LOCAL_ASSIGNMENT_SOCKET = socketForHostnameAndHostOrderPort(LOCAL_ASSIGNMENT_SERVER_HOSTNAME,
                                                                                       DEFAULT_DOMAIN_SERVER_PORT);
 void NodeList::sendAssignment(Assignment& assignment) {
