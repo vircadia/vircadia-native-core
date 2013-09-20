@@ -11,6 +11,7 @@
 
 #include <AvatarData.h>
 #include <NodeList.h>
+#include <VoxelConstants.h>
 
 #include "Agent.h"
 #include "voxels/VoxelScriptingInterface.h"
@@ -51,6 +52,9 @@ void Agent::run() {
     VoxelScriptingInterface voxelScripter;
     QScriptValue voxelScripterValue =  engine.newQObject(&voxelScripter);
     engine.globalObject().setProperty("Voxels", voxelScripterValue);
+    
+    QScriptValue treeScaleValue = engine.newVariant(QVariant(TREE_SCALE));
+    engine.globalObject().setProperty("TREE_SCALE", treeScaleValue);
     
     qDebug() << "Downloaded script:" << scriptString << "\n";
     qDebug() << "Evaluated script:" << engine.evaluate(scriptString).toString() << "\n";
