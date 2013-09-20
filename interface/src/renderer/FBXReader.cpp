@@ -258,18 +258,23 @@ QHash<QByteArray, int> createBlendshapeMap() {
 }
 
 FBXGeometry extractFBXGeometry(const FBXNode& node) {
-    FBXGeometry geometry;
+    QVector<FBXBlendshape> blendshapes;
+    QHash<qint64, FBXGeometry> meshMap;
+    qint64 blendshapeId = 0;
+    QHash<qint64, qint64> parentMap;
     
     foreach (const FBXNode& child, node.children) {
         if (child.name == "Objects") {
-            foreach (const FBXNode& object, child.children) {
+            foreach (const FBXNode& object, child.children) {    
                 if (object.name == "Geometry") {
                     if (object.properties.at(2) == "Mesh") {
+                        FBXGeometry mesh;
+                    
                         QVector<glm::vec3> vertices;
                         QVector<int> polygonIndices;
                         foreach (const FBXNode& data, object.children) {
                             if (data.name == "Vertices") {
-                                geometry.vertices = createVec3Vector(data.properties.at(0).value<QVector<double> >());
+                                mesh.vertices = createVec3Vector(data.properties.at(0).value<QVector<double> >());
                                 
                             } else if (data.name == "PolygonVertexIndex") {
                                 polygonIndices = data.properties.at(0).value<QVector<int> >();
@@ -277,7 +282,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node) {
                             } else if (data.name == "LayerElementNormal") {
                                 foreach (const FBXNode& subdata, data.children) {
                                     if (subdata.name == "Normals") {
-                                        geometry.normals = createVec3Vector(
+                                        mesh.normals = createVec3Vector(
                                             subdata.properties.at(0).value<QVector<double> >());
                                     }
                                 }    
@@ -290,25 +295,26 @@ FBXGeometry extractFBXGeometry(const FBXNode& node) {
                             while (*endIndex++ >= 0);
                             
                             if (endIndex - beginIndex == 4) {
-                                geometry.quadIndices.append(*beginIndex++);
-                                geometry.quadIndices.append(*beginIndex++);
-                                geometry.quadIndices.append(*beginIndex++);
-                                geometry.quadIndices.append(-*beginIndex++ - 1);
+                                mesh.quadIndices.append(*beginIndex++);
+                                mesh.quadIndices.append(*beginIndex++);
+                                mesh.quadIndices.append(*beginIndex++);
+                                mesh.quadIndices.append(-*beginIndex++ - 1);
                                 
                             } else {
                                 for (const int* nextIndex = beginIndex + 1;; ) {
-                                    geometry.triangleIndices.append(*beginIndex);
-                                    geometry.triangleIndices.append(*nextIndex++);
+                                    mesh.triangleIndices.append(*beginIndex);
+                                    mesh.triangleIndices.append(*nextIndex++);
                                     if (*nextIndex >= 0) {
-                                        geometry.triangleIndices.append(*nextIndex);
+                                        mesh.triangleIndices.append(*nextIndex);
                                     } else {
-                                        geometry.triangleIndices.append(-*nextIndex - 1);
+                                        mesh.triangleIndices.append(-*nextIndex - 1);
                                         break;
                                     }
                                 }
                                 beginIndex = endIndex;
                             }
                         }
+                        meshMap.insert(object.properties.at(0).value<qint64>(), mesh);
                         
                     } else { // object.properties.at(2) == "Shape"
                         FBXBlendshape blendshape;
@@ -328,13 +334,30 @@ FBXGeometry extractFBXGeometry(const FBXNode& node) {
                         QByteArray name = object.properties.at(1).toByteArray();
                         static QHash<QByteArray, int> blendshapeMap = createBlendshapeMap();
                         int index = blendshapeMap.value(name.left(name.indexOf('\0')));
-                        geometry.blendshapes.resize(qMax(geometry.blendshapes.size(), index + 1));
-                        geometry.blendshapes[index] = blendshape;
+                        blendshapes.resize(qMax(blendshapes.size(), index + 1));
+                        blendshapes[index] = blendshape;
                     }
-                } 
+                } else if (object.name == "Deformer" && object.properties.at(2) == "BlendShape") {
+                    blendshapeId = object.properties.at(0).value<qint64>();
+                }
+            }
+        } else if (child.name == "Connections") {
+            foreach (const FBXNode& connection, child.children) {    
+                if (connection.name == "C") {
+                    parentMap.insert(connection.properties.at(1).value<qint64>(), connection.properties.at(2).value<qint64>());
+                }
             }
         }
     }
+    
+    // get the mesh that owns the blendshape
+    FBXGeometry geometry;
+    if (meshMap.size() == 1) {
+        geometry = *meshMap.begin();
+    } else {
+        geometry = meshMap.take(parentMap.value(blendshapeId));
+    }
+    geometry.blendshapes = blendshapes;
     
     return geometry;
 }
