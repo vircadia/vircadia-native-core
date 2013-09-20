@@ -23,6 +23,8 @@ void Agent::run() {
     NodeList::getInstance()->setOwnerType(NODE_TYPE_AGENT);
     NodeList::getInstance()->setNodeTypesOfInterest(&NODE_TYPE_VOXEL_SERVER, 1);
     
+    NodeList::getInstance()->getNodeSocket()->setBlocking(false);
+    
     QNetworkAccessManager manager;
     
     // figure out the URL for the script for this agent assignment
@@ -83,7 +85,7 @@ void Agent::run() {
         // flush the voxel packet queue
         voxelScripter.getVoxelPacketSender()->process();
         
-        if (NodeList::getInstance()->getNodeSocket()->receive((sockaddr*) &senderAddress, receivedData, &receivedBytes)) {
+        while (NodeList::getInstance()->getNodeSocket()->receive((sockaddr*) &senderAddress, receivedData, &receivedBytes)) {
             NodeList::getInstance()->processNodeData((sockaddr*) &senderAddress, receivedData, receivedBytes);
         }
         
