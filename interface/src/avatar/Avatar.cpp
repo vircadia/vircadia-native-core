@@ -76,7 +76,7 @@ void Avatar::sendAvatarURLsMessage(const QUrl& voxelURL, const QUrl& faceURL) {
     message.append(packetHeader, numBytesPacketHeader);
     message.append((const char*)&ownerID, sizeof(ownerID));
     
-    QDataStream out(&message, QIODevice::WriteOnly);
+    QDataStream out(&message, QIODevice::WriteOnly | QIODevice::Append);
     out << voxelURL;
     out << faceURL;
     
