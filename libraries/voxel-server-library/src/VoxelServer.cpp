@@ -52,7 +52,6 @@ VoxelServer::VoxelServer(Assignment::Command command, Assignment::Location locat
     _serverTree(true) {
     _argc = 0;
     _argv = NULL;
-    _dontKillOnMissingDomain = false;
 
     _packetsPerClientPerInterval = 10;
     _wantVoxelPersist = true;
@@ -75,7 +74,6 @@ VoxelServer::VoxelServer(const unsigned char* dataBuffer, int numBytes) : Assign
     _serverTree(true) {
     _argc = 0;
     _argv = NULL;
-    _dontKillOnMissingDomain = false;
 
     _packetsPerClientPerInterval = 10;
     _wantVoxelPersist = true;
@@ -165,25 +163,6 @@ void VoxelServer::parsePayload() {
 
         setArguments(argCount, _parsedArgV);
     }
-}
-
-void VoxelServer::setupStandAlone(const char* domain, int port) {
-    NodeList::createInstance(NODE_TYPE_VOXEL_SERVER, port);
-
-    // Handle Local Domain testing with the --local command line
-    const char* local = "--local";
-    _wantLocalDomain = strcmp(domain, local) == 0;
-    if (_wantLocalDomain) {
-        qDebug("Local Domain MODE!\n");
-        NodeList::getInstance()->setDomainIPToLocalhost();
-    } else {
-        if (domain) {
-            NodeList::getInstance()->setDomainHostname(domain);
-        }
-    }
-    
-    // If we're running in standalone mode, we don't want to kill ourselves when we haven't heard from a domain
-    _dontKillOnMissingDomain = true;
 }
 
 //int main(int argc, const char * argv[]) {
@@ -372,8 +351,7 @@ void VoxelServer::run() {
     // loop to send to nodes requesting data
     while (true) {
     
-        if (!_dontKillOnMissingDomain &&
-            NodeList::getInstance()->getNumNoReplyDomainCheckIns() == MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
+        if (NodeList::getInstance()->getNumNoReplyDomainCheckIns() == MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
             break;
         }
         
