@@ -15,6 +15,7 @@ class MyAvatar : public Avatar {
 public:
 	MyAvatar(Node* owningNode = NULL);
 
+    void init();
     void reset();
     void simulate(float deltaTime, Transmitter* transmitter, float gyroCameraSensitivity);
     void updateFromGyrosAndOrWebcam(bool gyroLook, float pitchFromTouch);

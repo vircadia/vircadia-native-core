@@ -187,7 +187,7 @@ private:
     void updateProjectionMatrix();
 
     static bool sendVoxelsOperation(VoxelNode* node, void* extraData);
-    static void processAvatarVoxelURLMessage(unsigned char* packetData, size_t dataBytes);
+    static void processAvatarURLsMessage(unsigned char* packetData, size_t dataBytes);
     static void processAvatarFaceVideoMessage(unsigned char* packetData, size_t dataBytes);
     static void sendPingPackets();
     

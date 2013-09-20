@@ -61,7 +61,7 @@ const bool usingBigSphereCollisionTest = true;
 const float chatMessageScale = 0.0015;
 const float chatMessageHeight = 0.20;
 
-void Avatar::sendAvatarVoxelURLMessage(const QUrl& url) {
+void Avatar::sendAvatarURLsMessage(const QUrl& voxelURL, const QUrl& faceURL) {
     uint16_t ownerID = NodeList::getInstance()->getOwnerID();
     
     if (ownerID == UNKNOWN_NODE_ID) {
@@ -71,11 +71,14 @@ void Avatar::sendAvatarVoxelURLMessage(const QUrl& url) {
     QByteArray message;
     
     char packetHeader[MAX_PACKET_HEADER_BYTES];
-    int numBytesPacketHeader = populateTypeAndVersion((unsigned char*) packetHeader, PACKET_TYPE_AVATAR_VOXEL_URL);
+    int numBytesPacketHeader = populateTypeAndVersion((unsigned char*) packetHeader, PACKET_TYPE_AVATAR_URLS);
     
     message.append(packetHeader, numBytesPacketHeader);
     message.append((const char*)&ownerID, sizeof(ownerID));
-    message.append(url.toEncoded());
+    
+    QDataStream out(&message, QIODevice::WriteOnly);
+    out << voxelURL;
+    out << faceURL;
     
     Application::controlledBroadcastToNodes((unsigned char*)message.data(), message.size(), &NODE_TYPE_AVATAR_MIXER, 1);
 }
@@ -786,6 +789,7 @@ void Avatar::loadData(QSettings* settings) {
     _position.z = loadSetting(settings, "position_z", 0.0f);
     
     _voxels.setVoxelURL(settings->value("voxelURL").toUrl());
+    _head.getBlendFace().setModelURL(settings->value("faceModelURL").toUrl());
     
     _leanScale = loadSetting(settings, "leanScale", 0.05f);
 
@@ -837,6 +841,7 @@ void Avatar::saveData(QSettings* set) {
     set->setValue("position_z", _position.z);
     
     set->setValue("voxelURL", _voxels.getVoxelURL());
+    set->setValue("faceModelURL", _head.getBlendFace().getModelURL());
     
     set->setValue("leanScale", _leanScale);
     set->setValue("scale", _newScale);

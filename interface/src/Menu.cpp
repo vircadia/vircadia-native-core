@@ -275,7 +275,8 @@ Menu::Menu() :
                                   appInstance->getGlowEffect(),
                                   SLOT(cycleRenderMode()));
     
-    
+    addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::UseFaceshiftRig, 0, false,
+        appInstance->getFaceshift(), SLOT(setUsingRig(bool)));
     addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::UsePerlinFace, 0, false);
     addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::LookAtVectors, 0, true);
     addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::LookAtIndicator, 0, true);
@@ -746,6 +747,10 @@ void Menu::editPreferences() {
     avatarURL->setMinimumWidth(QLINE_MINIMUM_WIDTH);
     form->addRow("Avatar URL:", avatarURL);
     
+    QLineEdit* faceURL = new QLineEdit(applicationInstance->getAvatar()->getHead().getBlendFace().getModelURL().toString());
+    faceURL->setMinimumWidth(QLINE_MINIMUM_WIDTH);
+    form->addRow("Face URL:", faceURL);
+    
     QSpinBox* fieldOfView = new QSpinBox();
     fieldOfView->setMaximum(180);
     fieldOfView->setMinimum(1);
@@ -779,9 +784,13 @@ void Menu::editPreferences() {
     
     updateDSHostname(domainServerLineEdit->text());
     
-    QUrl url(avatarURL->text());
-    applicationInstance->getAvatar()->getVoxels()->setVoxelURL(url);
-    Avatar::sendAvatarVoxelURLMessage(url);
+    QUrl avatarVoxelURL(avatarURL->text());
+    applicationInstance->getAvatar()->getVoxels()->setVoxelURL(avatarVoxelURL);
+    
+    QUrl faceModelURL(faceURL->text());
+    applicationInstance->getAvatar()->getHead().getBlendFace().setModelURL(faceModelURL);
+    
+    Avatar::sendAvatarURLsMessage(avatarVoxelURL, faceModelURL);
     
     _gyroCameraSensitivity = gyroCameraSensitivity->value();
     
