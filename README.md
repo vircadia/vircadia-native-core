@@ -64,8 +64,8 @@ development.
 Running Interface
 -----
 
-Using finder locate the interface.app Application in build/interface/Debug, 
-double-click the icon, and wait for interface to launch. At this point you will 
+Using Finder, locate the interface.app Application in build/interface/Debug, 
+double-click the icon, and wait for interface to launch. At this point you will automatically 
 connect to our default domain: "root.highfidelity.io".
 
 I'm in-world, what can I do?
@@ -94,13 +94,13 @@ I want to run my own virtual world!
 
 In order to set up your own virtual world, you need to set up and run your own 
 local "domain". At a minimum, you must run a domain-server, voxel-server, 
-audio-mixer, and avatar-mixer to have a working virtual world. The audio-mixer, avatar-mixer, and voxel-server are assignments given from the domain-server to any assignment-client that reports directly to it.
+audio-mixer, and avatar-mixer to have a working virtual world. The domain server gives three different types of assignments to the assignment-client: audio-mixer, avatar-mixer and voxel server.
 
 Complete the steps above to build the system components, using the default Cmake Unix Makefiles generator. Start with an empty build directory.
 
     cmake ..
 
-Then from the terminal
+Then from the Terminal
 window, change directory into the build directory, make the needed components, and then launch them.
 
 First we make the targets we'll need.
@@ -114,15 +114,17 @@ If after this step you're seeing something like the following
 
 you likely had Cmake generate Xcode project files and have not run `cmake ..` in a clean build directory. 
 
-Then, launch the static domain-server. All of the targets will run in the foreground, so you'll either want to background it yourself or open a seperate terminal window per target.
+Then, launch the static domain-server. All of the targets will run in the foreground, so you'll either want to background it yourself or open a separate terminal window per target.
 
     cd domain-server && ./domain-server
 
-Then, run an assignment-client with 3 forks to fulfill the avatar-mixer, audio-mixer, and voxel-server assignments. It uses localhost as its assignment-server and talks to it on port 40102 (the default domain-server port).
+Then, run an assignment-client with all three necessary components: avatar-mixer, audio-mixer, and voxel-server assignments. The assignment-client uses localhost as its assignment-server and talks to it on port 40102 (the default domain-server port).
+
+In a new Terminal window, run:
 
     ./assignment-client/assignment-client -n 3
 
-Any target can be terminated with CTRL-C (SIGINT) in the associated terminal window.
+Any target can be terminated with Ctrl-C (SIGINT) in the associated Terminal window.
 
 To test things out you'll want to run the Interface client. You can make that target with the following command:
 
@@ -130,8 +132,7 @@ To test things out you'll want to run the Interface client. You can make that ta
 
 Then run the executable it builds, or open interface.app if you're on OS X. 
 
-To access your local domain in Interface, open the Preferences dialog box, from 
-the Interface menu on OS X or the File menu on Linux, and enter "localhost" for the 
+To access your local domain in Interface, open your Preferences -- on OS X this is available in the Interface menu, on Linux you'll find it in the File menu. Enter "localhost" for the 
 server hostname in the "Domain" edit control.
 
 In the voxel-server/src directory you will find a README that explains in 
