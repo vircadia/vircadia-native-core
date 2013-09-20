@@ -171,7 +171,7 @@ FBXNode parseFBX(QIODevice* device) {
     
     // parse the top-level node
     FBXNode top;
-    while (device->bytesAvailable() >= 13) {
+    while (device->bytesAvailable()) {
         FBXNode next = parseFBXNode(in);
         if (next.name.isNull()) {
             return top;
