@@ -39,7 +39,7 @@ bool BlendFace::render(float alpha) {
     glm::quat orientation = _owningHead->getOrientation();
     glm::vec3 axis = glm::axis(orientation);
     glRotatef(glm::angle(orientation), axis.x, axis.y, axis.z);
-    glTranslatef(0.0f, -0.025f, -0.025f);
+    glTranslatef(0.0f, -0.025f, -0.025f); // temporary fudge factor until we have a better method of per-model positioning
     const float MODEL_SCALE = 0.0006f;
     glScalef(_owningHead->getScale() * MODEL_SCALE, _owningHead->getScale() * MODEL_SCALE,
         -_owningHead->getScale() * MODEL_SCALE);
