@@ -57,7 +57,6 @@ const float HEAD_RATE_MAX = 50.f;
 const float SKIN_COLOR[] = {1.0, 0.84, 0.66};
 const float DARK_SKIN_COLOR[] = {0.9, 0.78, 0.63};
 const int   NUM_BODY_CONE_SIDES = 9;
-const bool usingBigSphereCollisionTest = true;
 const float chatMessageScale = 0.0015;
 const float chatMessageHeight = 0.20;
 
@@ -88,8 +87,6 @@ Avatar::Avatar(Node* owningNode) :
     _head(this),
     _hand(this),
     _ballSpringsInitialized(false),
-    _TEST_bigSphereRadius(0.5f),
-    _TEST_bigSpherePosition(5.0f, _TEST_bigSphereRadius, 5.0f),
     _bodyYawDelta(0.0f),
     _movedHandOffset(0.0f, 0.0f, 0.0f),
     _mode(AVATAR_MODE_STANDING),
@@ -365,12 +362,6 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter, float gyroCamer
     // update body balls
     updateBodyBalls(deltaTime);
     
-
-    // test for avatar collision response with the big sphere
-    if (usingBigSphereCollisionTest && _isCollisionsOn) {
-        updateCollisionWithSphere(_TEST_bigSpherePosition, _TEST_bigSphereRadius, deltaTime);
-    }
-    
     //apply the head lean values to the ball positions...
     if (USING_HEAD_LEAN) {
         if (fabs(_head.getLeanSideways() + _head.getLeanForward()) > 0.0f) {
@@ -446,32 +437,6 @@ void Avatar::updateHandMovementAndTouching(float deltaTime, bool enableHandMovem
     // NOTE - the following must be called on all avatars - not just _isMine
     if (enableHandMovement) {
         updateArmIKAndConstraints(deltaTime);
-    }
-}
-
-void Avatar::updateCollisionWithSphere(glm::vec3 position, float radius, float deltaTime) {
-    float myBodyApproximateBoundingRadius = 1.0f;
-    glm::vec3 vectorFromMyBodyToBigSphere(_position - position);
-    
-    float distanceToBigSphere = glm::length(vectorFromMyBodyToBigSphere);
-    if (distanceToBigSphere < myBodyApproximateBoundingRadius + radius) {
-        for (int b = 0; b < NUM_AVATAR_BODY_BALLS; b++) {
-            glm::vec3 vectorFromBallToBigSphereCenter(_bodyBall[b].position - position);
-            float distanceToBigSphereCenter = glm::length(vectorFromBallToBigSphereCenter);
-            float combinedRadius = _bodyBall[b].radius + radius;
-            
-            if (distanceToBigSphereCenter < combinedRadius)  {
-                if (distanceToBigSphereCenter > 0.0) {
-                    glm::vec3 directionVector = vectorFromBallToBigSphereCenter / distanceToBigSphereCenter;
-                    
-                    float penetration = 1.0 - (distanceToBigSphereCenter / combinedRadius);
-                    glm::vec3 collisionForce = vectorFromBallToBigSphereCenter * penetration;
-                    
-                    _velocity += collisionForce * 40.0f * deltaTime;
-                    _bodyBall[b].position  = position + directionVector * combinedRadius;
-                }
-            }
-        }
     }
 }
 

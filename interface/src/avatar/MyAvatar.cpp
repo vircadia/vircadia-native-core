@@ -193,11 +193,6 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter, float gyroCam
     
     // update body balls
     updateBodyBalls(deltaTime);
-
-    // test for avatar collision response with the big sphere
-    if (usingBigSphereCollisionTest && _isCollisionsOn) {
-        updateCollisionWithSphere(_TEST_bigSpherePosition, _TEST_bigSphereRadius, deltaTime);
-    }
     
     // add thrust to velocity
     _velocity += _thrust * deltaTime;
@@ -421,16 +416,6 @@ static TextRenderer* textRenderer() {
 }
 
 void MyAvatar::render(bool lookingInMirror, bool renderAvatarBalls) {
-
-    if (usingBigSphereCollisionTest) {
-        // show TEST big sphere
-        glColor4f(0.5f, 0.6f, 0.8f, 0.7);
-        glPushMatrix();
-        glTranslatef(_TEST_bigSpherePosition.x, _TEST_bigSpherePosition.y, _TEST_bigSpherePosition.z);
-        glScalef(_TEST_bigSphereRadius, _TEST_bigSphereRadius, _TEST_bigSphereRadius);
-        glutSolidSphere(1, 20, 20);
-        glPopMatrix();
-    }
     
     if (Application::getInstance()->getAvatar()->getHand().isRaveGloveActive()) {
         _hand.setRaveLights(RAVE_LIGHTS_AVATAR);
