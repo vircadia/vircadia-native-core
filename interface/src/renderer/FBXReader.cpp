@@ -41,6 +41,7 @@ template<class T> QVariant readArray(QDataStream& in) {
         QByteArray uncompressed = qUncompress(compressed);
         QDataStream uncompressedIn(uncompressed);
         uncompressedIn.setByteOrder(QDataStream::LittleEndian);
+        uncompressedIn.setVersion(QDataStream::Qt_4_5); // for single/double precision switch
         for (int i = 0; i < arrayLength; i++) {
             T value;
             uncompressedIn >> value;
@@ -132,7 +133,7 @@ FBXNode parseFBXNode(QDataStream& in) {
     if (endOffset < MIN_VALID_OFFSET || nameLength == 0) {
         // use a null name to indicate a null node
         return node;
-    } 
+    }
     node.name = in.device()->read(nameLength);
     
     for (int i = 0; i < propertyCount; i++) {
@@ -155,6 +156,7 @@ FBXNode parseFBXNode(QDataStream& in) {
 FBXNode parseFBX(QIODevice* device) {
     QDataStream in(device);
     in.setByteOrder(QDataStream::LittleEndian);
+    in.setVersion(QDataStream::Qt_4_5); // for single/double precision switch
     
     // see http://code.blender.org/index.php/2013/08/fbx-binary-file-format-specification/ for an explanation
     // of the FBX format
