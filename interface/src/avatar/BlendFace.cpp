@@ -108,6 +108,9 @@ void BlendFace::setModelURL(const QUrl& url) {
         _modelReply = 0;
     }
     
+    // clear the current geometry, if any
+    setGeometry(FBXGeometry());
+    
     // remember the URL
     _modelURL = url;
     
