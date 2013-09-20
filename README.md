@@ -132,8 +132,9 @@ To test things out you'll want to run the Interface client. You can make that ta
 
 Then run the executable it builds, or open interface.app if you're on OS X. 
 
-To access your local domain in Interface, open your Preferences -- on OS X this is available in the Interface menu, on Linux you'll find it in the File menu. Enter "localhost" for the 
-server hostname in the "Domain" edit control.
+To access your local domain in Interface, open your Preferences -- on OS X this is available in the Interface menu, on Linux you'll find it in the File menu. Enter "localhost" in the "Domain server" field.
+
+If everything worked you should see "Servers: 3" in the upper right. Nice work!
 
 In the voxel-server/src directory you will find a README that explains in 
 further detail how to setup and administer a voxel-server.
