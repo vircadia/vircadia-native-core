@@ -43,6 +43,7 @@ public:
     PacketSenderNotify* getPacketSenderNotify() const { return _notify; }
 
     virtual bool process();
+    virtual void processWithoutSleep();
 
 protected:
     int _packetsPerSecond;

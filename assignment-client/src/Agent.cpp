@@ -82,8 +82,8 @@ void Agent::run() {
         
         // allow the scripter's call back to setup visual data
         emit preSendCallback();
-        // flush the voxel packet queue
-        voxelScripter.getVoxelPacketSender()->process();
+        // flush the voxel packet queue, don't allow it to sleep us
+        voxelScripter.getVoxelPacketSender()->processWithoutSleep();
         
         while (NodeList::getInstance()->getNodeSocket()->receive((sockaddr*) &senderAddress, receivedData, &receivedBytes)) {
             NodeList::getInstance()->processNodeData((sockaddr*) &senderAddress, receivedData, receivedBytes);
