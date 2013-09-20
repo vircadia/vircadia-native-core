@@ -20,6 +20,8 @@ BlendFace::BlendFace(Head* owningHead) :
     _modelReply(NULL),
     _iboID(0)
 {
+    // we may have been created in the network thread, but we live in the main thread
+    moveToThread(Application::getInstance()->thread());
 }
 
 BlendFace::~BlendFace() {
