@@ -30,6 +30,8 @@ public:
     BlendFace(Head* owningHead);
     ~BlendFace();
     
+    bool isActive() const { return _iboID != 0; }
+    
     bool render(float alpha);
     
     Q_INVOKABLE void setModelURL(const QUrl& url);

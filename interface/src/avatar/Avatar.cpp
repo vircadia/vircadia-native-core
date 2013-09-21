@@ -699,6 +699,10 @@ void Avatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
                           SKIN_COLOR[1] - _bodyBall[b].touchForce * 0.2f,
                           SKIN_COLOR[2] - _bodyBall[b].touchForce * 0.1f);
                 
+                if (b == BODY_BALL_NECK_BASE && _head.getBlendFace().isActive()) {
+                    continue; // don't render the neck if we have a face model
+                }
+                
                 if ((b != BODY_BALL_HEAD_TOP  )
                     &&  (b != BODY_BALL_HEAD_BASE )) {
                     glPushMatrix();
