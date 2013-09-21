@@ -321,7 +321,7 @@ void Application::initializeGL() {
     Menu::getInstance()->checkForUpdates();
 #endif
 
-    InfoView::showFirstTime(Menu::getInstance());
+    InfoView::showFirstTime();
 }
 
 void Application::paintGL() {
@@ -1230,15 +1230,19 @@ static Avatar* processAvatarMessageHeader(unsigned char*& packetData, size_t& da
     return avatar->isInitialized() ? avatar : NULL;
 }
 
-void Application::processAvatarVoxelURLMessage(unsigned char* packetData, size_t dataBytes) {
+void Application::processAvatarURLsMessage(unsigned char* packetData, size_t dataBytes) {
     Avatar* avatar = processAvatarMessageHeader(packetData, dataBytes);
     if (!avatar) {
         return;
-    } 
-    QUrl url = QUrl::fromEncoded(QByteArray((char*)packetData, dataBytes));
+    }
+    QDataStream in(QByteArray((char*)packetData, dataBytes));
+    QUrl voxelURL, faceURL;
+    in >> voxelURL;
+    in >> faceURL;
     
-    // invoke the set URL function on the simulate/render thread
-    QMetaObject::invokeMethod(avatar->getVoxels(), "setVoxelURL", Q_ARG(QUrl, url));
+    // invoke the set URL functions on the simulate/render thread
+    QMetaObject::invokeMethod(avatar->getVoxels(), "setVoxelURL", Q_ARG(QUrl, voxelURL));
+    QMetaObject::invokeMethod(&avatar->getHead().getBlendFace(), "setModelURL", Q_ARG(QUrl, faceURL));
 }
 
 void Application::processAvatarFaceVideoMessage(unsigned char* packetData, size_t dataBytes) {
@@ -1564,8 +1568,8 @@ void Application::init() {
     
     qDebug("Loaded settings.\n");
 
-    Avatar::sendAvatarVoxelURLMessage(_myAvatar.getVoxels()->getVoxelURL());
-
+    Avatar::sendAvatarURLsMessage(_myAvatar.getVoxels()->getVoxelURL(), _myAvatar.getHead().getBlendFace().getModelURL());
+   
     _palette.init(_glWidget->width(), _glWidget->height());
     _palette.addAction(Menu::getInstance()->getActionForOption(MenuOption::VoxelAddMode), 0, 0);
     _palette.addAction(Menu::getInstance()->getActionForOption(MenuOption::VoxelDeleteMode), 0, 1);
@@ -2136,10 +2140,11 @@ void Application::updateAvatar(float deltaTime) {
         controlledBroadcastToNodes(broadcastString, endOfBroadcastStringWrite - broadcastString,
                                    nodeTypesOfInterest, sizeof(nodeTypesOfInterest));
         
-        // once in a while, send my voxel url
-        const float AVATAR_VOXEL_URL_SEND_INTERVAL = 1.0f; // seconds
-        if (shouldDo(AVATAR_VOXEL_URL_SEND_INTERVAL, deltaTime)) {
-            Avatar::sendAvatarVoxelURLMessage(_myAvatar.getVoxels()->getVoxelURL());
+        // once in a while, send my urls
+        const float AVATAR_URLS_SEND_INTERVAL = 1.0f; // seconds
+        if (shouldDo(AVATAR_URLS_SEND_INTERVAL, deltaTime)) {
+            Avatar::sendAvatarURLsMessage(_myAvatar.getVoxels()->getVoxelURL(),
+                _myAvatar.getHead().getBlendFace().getModelURL());
         }
     }
 }
@@ -3510,8 +3515,8 @@ void* Application::networkReceive(void* args) {
                                                                      bytesReceived);
                         getInstance()->_bandwidthMeter.inputStream(BandwidthMeter::AVATARS).updateValue(bytesReceived);
                         break;
-                    case PACKET_TYPE_AVATAR_VOXEL_URL:
-                        processAvatarVoxelURLMessage(app->_incomingPacket, bytesReceived);
+                    case PACKET_TYPE_AVATAR_URLS:
+                        processAvatarURLsMessage(app->_incomingPacket, bytesReceived);
                         break;
                     case PACKET_TYPE_AVATAR_FACE_VIDEO:
                         processAvatarFaceVideoMessage(app->_incomingPacket, bytesReceived);

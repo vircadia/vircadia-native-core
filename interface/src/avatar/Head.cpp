@@ -87,7 +87,8 @@ Head::Head(Avatar* owningAvatar) :
     _cameraFollowsHead(false),
     _cameraFollowHeadRate(0.0f),
     _face(this),
-    _perlinFace(this)
+    _perlinFace(this),
+    _blendFace(this)
 {
     if (USING_PHYSICAL_MOHAWK) {    
         resetHairPhysics();
@@ -159,6 +160,7 @@ void Head::simulate(float deltaTime, bool isMine, float gyroCameraSensitivity) {
         _averageLoudness = faceshift->getMouthSize() * faceshift->getMouthSize() * MOUTH_SIZE_SCALE;
         const float BROW_HEIGHT_SCALE = 0.005f;
         _browAudioLift = faceshift->getBrowUpCenter() * BROW_HEIGHT_SCALE;
+        _blendshapeCoefficients = faceshift->getBlendshapeCoefficients();
         
     } else  if (!_isFaceshiftConnected) {
         // Update eye saccades
@@ -325,7 +327,7 @@ void Head::calculateGeometry() {
 void Head::render(float alpha, bool isMine) {
     _renderAlpha = alpha;
 
-    if (!_face.render(alpha)) {
+    if (!(_face.render(alpha) || _blendFace.render(alpha))) {
         calculateGeometry();
 
         glEnable(GL_DEPTH_TEST);
