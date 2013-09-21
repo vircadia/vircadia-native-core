@@ -567,6 +567,10 @@ void MyAvatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
                               alpha);
                 }
                 
+                if (b == BODY_BALL_NECK_BASE && _head.getBlendFace().isActive()) {
+                    continue; // don't render the neck if we have a face model
+                }
+                
                 if ((b != BODY_BALL_HEAD_TOP  )
                     &&  (b != BODY_BALL_HEAD_BASE )) {
                     glPushMatrix();

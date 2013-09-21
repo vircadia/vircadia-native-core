@@ -272,7 +272,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node) {
                     if (object.properties.at(2) == "Mesh") {
                         FBXGeometry mesh;
                     
-                        QVector<glm::vec3> vertices;
+                        QVector<glm::vec3> normals;
                         QVector<int> polygonIndices;
                         foreach (const FBXNode& data, object.children) {
                             if (data.name == "Vertices") {
@@ -284,12 +284,19 @@ FBXGeometry extractFBXGeometry(const FBXNode& node) {
                             } else if (data.name == "LayerElementNormal") {
                                 foreach (const FBXNode& subdata, data.children) {
                                     if (subdata.name == "Normals") {
-                                        mesh.normals = createVec3Vector(
-                                            subdata.properties.at(0).value<QVector<double> >());
+                                        normals = createVec3Vector(subdata.properties.at(0).value<QVector<double> >());
                                     }
                                 }    
                             }
                         }
+                        
+                        // the (base) normals correspond to the polygon indices, for some reason
+                        mesh.normals.resize(mesh.vertices.size());
+                        for (int i = 0, n = polygonIndices.size(); i < n; i++) {
+                            int index = polygonIndices.at(i);
+                            mesh.normals[index < 0 ? (-index - 1) : index] = normals[i];
+                        } 
+                        
                         // convert the polygons to quads and triangles
                         for (const int* beginIndex = polygonIndices.constData(), *end = beginIndex + polygonIndices.size();
                                 beginIndex != end; ) {

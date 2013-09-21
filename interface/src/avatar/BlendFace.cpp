@@ -118,7 +118,9 @@ void BlendFace::setModelURL(const QUrl& url) {
     if (!url.isValid()) {
         return;
     }
-    _modelReply = Application::getInstance()->getNetworkAccessManager()->get(QNetworkRequest(url));
+    QNetworkRequest request(url);
+    request.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache);
+    _modelReply = Application::getInstance()->getNetworkAccessManager()->get(request);
     connect(_modelReply, SIGNAL(downloadProgress(qint64,qint64)), SLOT(handleModelDownloadProgress(qint64,qint64)));
     connect(_modelReply, SIGNAL(error(QNetworkReply::NetworkError)), SLOT(handleModelReplyError()));
 }
@@ -163,7 +165,7 @@ void BlendFace::setRig(const fsMsgRig& rig) {
 }
 
 void BlendFace::handleModelDownloadProgress(qint64 bytesReceived, qint64 bytesTotal) {
-    if (bytesReceived < bytesTotal) {
+    if (bytesReceived < bytesTotal && !_modelReply->isFinished()) {
         return;
     }
 
