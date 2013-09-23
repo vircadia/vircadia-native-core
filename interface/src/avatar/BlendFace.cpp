@@ -140,41 +140,6 @@ glm::vec3 createVec3(const fsVector3f& vector) {
     return glm::vec3(vector.x, vector.y, vector.z);
 }
 
-void BlendFace::setRig(const fsMsgRig& rig) {
-    // convert to FBX geometry
-    FBXGeometry geometry;
-    
-    for (vector<fsVector4i>::const_iterator it = rig.mesh().m_quads.begin(), end = rig.mesh().m_quads.end(); it != end; it++) {
-        geometry.quadIndices.append(it->x);
-        geometry.quadIndices.append(it->y);
-        geometry.quadIndices.append(it->z);
-        geometry.quadIndices.append(it->w);
-    }
-    
-    for (vector<fsVector3i>::const_iterator it = rig.mesh().m_tris.begin(), end = rig.mesh().m_tris.end(); it != end; it++) {
-        geometry.triangleIndices.append(it->x);
-        geometry.triangleIndices.append(it->y);
-        geometry.triangleIndices.append(it->z);
-    }
-    
-    for (vector<fsVector3f>::const_iterator it = rig.mesh().m_vertex_data.m_vertices.begin(),
-            end = rig.mesh().m_vertex_data.m_vertices.end(); it != end; it++) {
-        geometry.vertices.append(glm::vec3(it->x, it->y, it->z));
-    }
-    
-    for (vector<fsVertexData>::const_iterator it = rig.blendshapes().begin(), end = rig.blendshapes().end(); it != end; it++) {
-        FBXBlendshape blendshape;
-        for (int i = 0, n = it->m_vertices.size(); i < n; i++) {
-            // subtract the base vertex position; we want the deltas
-            blendshape.vertices.append(createVec3(it->m_vertices[i]) - geometry.vertices[i]);
-            blendshape.indices.append(i);
-        }
-        geometry.blendshapes.append(blendshape);
-    }
-    
-    setGeometry(geometry);
-}
-
 void BlendFace::handleModelDownloadProgress(qint64 bytesReceived, qint64 bytesTotal) {
     if (bytesReceived < bytesTotal && !_modelReply->isFinished()) {
         return;
