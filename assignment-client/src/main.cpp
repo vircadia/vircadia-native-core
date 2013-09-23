@@ -103,6 +103,9 @@ void childClient() {
             nodeList->setOwnerType(NODE_TYPE_UNASSIGNED);
             nodeList->reset();
             
+            // set the NodeList socket back to blocking
+            nodeList->getNodeSocket()->setBlocking(true);
+            
             // reset the logging target to the the CHILD_TARGET_NAME
             Logging::setTargetName(CHILD_TARGET_NAME);
         }

@@ -23,7 +23,7 @@ public:
     
     void run();
 signals:
-    void preSendCallback();
+    void willSendVisualDataCallback();
 };
 
 #endif /* defined(__hifi__Operative__) */
