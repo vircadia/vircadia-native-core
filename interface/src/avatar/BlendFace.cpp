@@ -50,8 +50,11 @@ bool BlendFace::render(float alpha) {
 
     // start with the base
     int vertexCount = _geometry.vertices.size();
+    int normalCount = _geometry.normals.size();
     _blendedVertices.resize(vertexCount);
+    _blendedNormals.resize(normalCount);
     memcpy(_blendedVertices.data(), _geometry.vertices.constData(), vertexCount * sizeof(glm::vec3));
+    memcpy(_blendedNormals.data(), _geometry.normals.constData(), normalCount * sizeof(glm::vec3));
     
     // blend in each coefficient
     const vector<float>& coefficients = _owningHead->getBlendshapeCoefficients();
@@ -60,31 +63,39 @@ bool BlendFace::render(float alpha) {
         if (coefficient == 0.0f || i >= _geometry.blendshapes.size() || _geometry.blendshapes[i].vertices.isEmpty()) {
             continue;
         }
-        const glm::vec3* source = _geometry.blendshapes[i].vertices.constData();
+        const glm::vec3* vertex = _geometry.blendshapes[i].vertices.constData();
+        const glm::vec3* normal = _geometry.blendshapes[i].normals.constData();
         for (const int* index = _geometry.blendshapes[i].indices.constData(),
-                *end = index + _geometry.blendshapes[i].indices.size(); index != end; index++, source++) {
-            _blendedVertices[*index] += *source * coefficient;
+                *end = index + _geometry.blendshapes[i].indices.size(); index != end; index++, vertex++, normal++) {
+            _blendedVertices[*index] += *vertex * coefficient;
+            _blendedNormals[*index] += *normal * coefficient;
         }
     }
     
     // update the blended vertices
     glBindBuffer(GL_ARRAY_BUFFER, _vboID);
     glBufferSubData(GL_ARRAY_BUFFER, 0, vertexCount * sizeof(glm::vec3), _blendedVertices.constData());
+    glBufferSubData(GL_ARRAY_BUFFER, vertexCount * sizeof(glm::vec3),
+        normalCount * sizeof(glm::vec3), _blendedNormals.constData());
     
     // tell OpenGL where to find vertex information
     glEnableClientState(GL_VERTEX_ARRAY);
     glVertexPointer(3, GL_FLOAT, 0, 0);
+    glEnableClientState(GL_NORMAL_ARRAY);
+    glNormalPointer(GL_FLOAT, 0, (void*)(vertexCount * sizeof(glm::vec3)));
     
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    // enable normalization under the expectation that the GPU can do it faster
+    glEnable(GL_NORMALIZE); 
     
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _iboID);
     glDrawRangeElementsEXT(GL_QUADS, 0, vertexCount - 1, _geometry.quadIndices.size(), GL_UNSIGNED_INT, 0);
     glDrawRangeElementsEXT(GL_TRIANGLES, 0, vertexCount - 1, _geometry.triangleIndices.size(), GL_UNSIGNED_INT,
         (void*)(_geometry.quadIndices.size() * sizeof(int)));
 
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    glDisable(GL_NORMALIZE); 
     
     // deactivate vertex arrays after drawing
+    glDisableClientState(GL_NORMAL_ARRAY);
     glDisableClientState(GL_VERTEX_ARRAY);
     
     // bind with 0 to switch back to normal operation
@@ -214,7 +225,8 @@ void BlendFace::setGeometry(const FBXGeometry& geometry) {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     
     glBindBuffer(GL_ARRAY_BUFFER, _vboID);
-    glBufferData(GL_ARRAY_BUFFER, geometry.vertices.size() * sizeof(glm::vec3), NULL, GL_DYNAMIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, (geometry.vertices.size() + geometry.normals.size()) * sizeof(glm::vec3),
+        NULL, GL_DYNAMIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     
     _geometry = geometry;

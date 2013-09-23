@@ -61,6 +61,7 @@ private:
     
     FBXGeometry _geometry;
     QVector<glm::vec3> _blendedVertices;
+    QVector<glm::vec3> _blendedNormals;
 };
 
 #endif /* defined(__interface__BlendFace__) */
