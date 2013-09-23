@@ -264,6 +264,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node) {
     QHash<qint64, FBXGeometry> meshMap;
     qint64 blendshapeId = 0;
     QHash<qint64, qint64> parentMap;
+    QHash<qint64, QVector<double> > poseMatrices;
     
     foreach (const FBXNode& child, node.children) {
         if (child.name == "Objects") {
@@ -346,6 +347,22 @@ FBXGeometry extractFBXGeometry(const FBXNode& node) {
                         blendshapes.resize(qMax(blendshapes.size(), index + 1));
                         blendshapes[index] = blendshape;
                     }
+                } else if (object.name == "Pose") {
+                    foreach (const FBXNode& subobject, object.children) {
+                        if (subobject.name == "PoseNode") {
+                            qint64 nodeId;
+                            QVector<double> matrix;
+                            foreach (const FBXNode& data, subobject.children) {
+                                if (data.name == "Node") {
+                                    nodeId = data.properties.at(0).value<qint64>();
+                                    
+                                } else if (data.name == "Matrix") {
+                                    matrix = data.properties.at(0).value<QVector<double> >();
+                                }
+                            }
+                            poseMatrices.insert(nodeId, matrix);
+                        }
+                    }
                 } else if (object.name == "Deformer" && object.properties.at(2) == "BlendShape") {
                     blendshapeId = object.properties.at(0).value<qint64>();
                 }
@@ -365,6 +382,19 @@ FBXGeometry extractFBXGeometry(const FBXNode& node) {
         geometry = *meshMap.begin();
     } else {
         geometry = meshMap.take(parentMap.value(blendshapeId));
+        
+        foreach (const FBXGeometry& mesh, meshMap) {
+            int offset = geometry.vertices.size();
+            geometry.vertices += mesh.vertices;
+            geometry.normals += mesh.normals;
+            
+            foreach (int index, mesh.quadIndices) {
+                geometry.quadIndices.append(index + offset);
+            }
+            foreach (int index, mesh.triangleIndices) {
+                geometry.triangleIndices.append(index + offset);
+            }
+        }
     }
     geometry.blendshapes = blendshapes;
     
