@@ -275,8 +275,6 @@ Menu::Menu() :
                                   appInstance->getGlowEffect(),
                                   SLOT(cycleRenderMode()));
     
-    addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::UseFaceshiftRig, 0, false,
-        appInstance->getFaceshift(), SLOT(setUsingRig(bool)));
     addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::UsePerlinFace, 0, false);
     addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::LookAtVectors, 0, true);
     addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::LookAtIndicator, 0, true);

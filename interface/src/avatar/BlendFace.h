@@ -12,8 +12,6 @@
 #include <QObject>
 #include <QUrl>
 
-#include <fsbinarystream.h>
-
 #include "InterfaceConfig.h"
 #include "renderer/FBXReader.h"
 
@@ -36,10 +34,6 @@ public:
     
     Q_INVOKABLE void setModelURL(const QUrl& url);
     const QUrl& getModelURL() const { return _modelURL; }
-    
-public slots:
-    
-    void setRig(const fs::fsMsgRig& rig);
 
 private slots:
     
@@ -61,6 +55,7 @@ private:
     
     FBXGeometry _geometry;
     QVector<glm::vec3> _blendedVertices;
+    QVector<glm::vec3> _blendedNormals;
 };
 
 #endif /* defined(__interface__BlendFace__) */

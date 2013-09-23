@@ -46,12 +46,13 @@ bool BlendFace::render(float alpha) {
     glScalef(_owningHead->getScale() * MODEL_SCALE, _owningHead->getScale() * MODEL_SCALE,
         -_owningHead->getScale() * MODEL_SCALE);
 
-    glColor4f(1.0f, 1.0f, 1.0f, alpha);
-
     // start with the base
     int vertexCount = _geometry.vertices.size();
+    int normalCount = _geometry.normals.size();
     _blendedVertices.resize(vertexCount);
+    _blendedNormals.resize(normalCount);
     memcpy(_blendedVertices.data(), _geometry.vertices.constData(), vertexCount * sizeof(glm::vec3));
+    memcpy(_blendedNormals.data(), _geometry.normals.constData(), normalCount * sizeof(glm::vec3));
     
     // blend in each coefficient
     const vector<float>& coefficients = _owningHead->getBlendshapeCoefficients();
@@ -60,31 +61,44 @@ bool BlendFace::render(float alpha) {
         if (coefficient == 0.0f || i >= _geometry.blendshapes.size() || _geometry.blendshapes[i].vertices.isEmpty()) {
             continue;
         }
-        const glm::vec3* source = _geometry.blendshapes[i].vertices.constData();
+        const float NORMAL_COEFFICIENT_SCALE = 0.01f;
+        float normalCoefficient = coefficient * NORMAL_COEFFICIENT_SCALE;
+        const glm::vec3* vertex = _geometry.blendshapes[i].vertices.constData();
+        const glm::vec3* normal = _geometry.blendshapes[i].normals.constData();
         for (const int* index = _geometry.blendshapes[i].indices.constData(),
-                *end = index + _geometry.blendshapes[i].indices.size(); index != end; index++, source++) {
-            _blendedVertices[*index] += *source * coefficient;
+                *end = index + _geometry.blendshapes[i].indices.size(); index != end; index++, vertex++, normal++) {
+            _blendedVertices[*index] += *vertex * coefficient;
+            _blendedNormals[*index] += *normal * normalCoefficient;
         }
     }
+    
+    // use the head skin color
+    glColor4f(_owningHead->getSkinColor().r, _owningHead->getSkinColor().g, _owningHead->getSkinColor().b, alpha);
     
     // update the blended vertices
     glBindBuffer(GL_ARRAY_BUFFER, _vboID);
     glBufferSubData(GL_ARRAY_BUFFER, 0, vertexCount * sizeof(glm::vec3), _blendedVertices.constData());
+    glBufferSubData(GL_ARRAY_BUFFER, vertexCount * sizeof(glm::vec3),
+        normalCount * sizeof(glm::vec3), _blendedNormals.constData());
     
     // tell OpenGL where to find vertex information
     glEnableClientState(GL_VERTEX_ARRAY);
     glVertexPointer(3, GL_FLOAT, 0, 0);
+    glEnableClientState(GL_NORMAL_ARRAY);
+    glNormalPointer(GL_FLOAT, 0, (void*)(vertexCount * sizeof(glm::vec3)));
     
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+    // enable normalization under the expectation that the GPU can do it faster
+    glEnable(GL_NORMALIZE); 
     
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _iboID);
     glDrawRangeElementsEXT(GL_QUADS, 0, vertexCount - 1, _geometry.quadIndices.size(), GL_UNSIGNED_INT, 0);
     glDrawRangeElementsEXT(GL_TRIANGLES, 0, vertexCount - 1, _geometry.triangleIndices.size(), GL_UNSIGNED_INT,
         (void*)(_geometry.quadIndices.size() * sizeof(int)));
 
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+    glDisable(GL_NORMALIZE); 
     
     // deactivate vertex arrays after drawing
+    glDisableClientState(GL_NORMAL_ARRAY);
     glDisableClientState(GL_VERTEX_ARRAY);
     
     // bind with 0 to switch back to normal operation
@@ -127,41 +141,6 @@ void BlendFace::setModelURL(const QUrl& url) {
 
 glm::vec3 createVec3(const fsVector3f& vector) {
     return glm::vec3(vector.x, vector.y, vector.z);
-}
-
-void BlendFace::setRig(const fsMsgRig& rig) {
-    // convert to FBX geometry
-    FBXGeometry geometry;
-    
-    for (vector<fsVector4i>::const_iterator it = rig.mesh().m_quads.begin(), end = rig.mesh().m_quads.end(); it != end; it++) {
-        geometry.quadIndices.append(it->x);
-        geometry.quadIndices.append(it->y);
-        geometry.quadIndices.append(it->z);
-        geometry.quadIndices.append(it->w);
-    }
-    
-    for (vector<fsVector3i>::const_iterator it = rig.mesh().m_tris.begin(), end = rig.mesh().m_tris.end(); it != end; it++) {
-        geometry.triangleIndices.append(it->x);
-        geometry.triangleIndices.append(it->y);
-        geometry.triangleIndices.append(it->z);
-    }
-    
-    for (vector<fsVector3f>::const_iterator it = rig.mesh().m_vertex_data.m_vertices.begin(),
-            end = rig.mesh().m_vertex_data.m_vertices.end(); it != end; it++) {
-        geometry.vertices.append(glm::vec3(it->x, it->y, it->z));
-    }
-    
-    for (vector<fsVertexData>::const_iterator it = rig.blendshapes().begin(), end = rig.blendshapes().end(); it != end; it++) {
-        FBXBlendshape blendshape;
-        for (int i = 0, n = it->m_vertices.size(); i < n; i++) {
-            // subtract the base vertex position; we want the deltas
-            blendshape.vertices.append(createVec3(it->m_vertices[i]) - geometry.vertices[i]);
-            blendshape.indices.append(i);
-        }
-        geometry.blendshapes.append(blendshape);
-    }
-    
-    setGeometry(geometry);
 }
 
 void BlendFace::handleModelDownloadProgress(qint64 bytesReceived, qint64 bytesTotal) {
@@ -214,7 +193,8 @@ void BlendFace::setGeometry(const FBXGeometry& geometry) {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     
     glBindBuffer(GL_ARRAY_BUFFER, _vboID);
-    glBufferData(GL_ARRAY_BUFFER, geometry.vertices.size() * sizeof(glm::vec3), NULL, GL_DYNAMIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, (geometry.vertices.size() + geometry.normals.size()) * sizeof(glm::vec3),
+        NULL, GL_DYNAMIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     
     _geometry = geometry;
