@@ -68,7 +68,7 @@ bool BlendFace::render(float alpha) {
         for (const int* index = _geometry.blendshapes[i].indices.constData(),
                 *end = index + _geometry.blendshapes[i].indices.size(); index != end; index++, vertex++, normal++) {
             _blendedVertices[*index] += *vertex * coefficient;
-            _blendedNormals[*index] += *normal * coefficient * NORMAL_COEFFICIENT_SCALE;
+            _blendedNormals[*index] += *normal * normalCoefficient;
         }
     }
     
