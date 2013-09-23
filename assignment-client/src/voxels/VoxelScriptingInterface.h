@@ -37,7 +37,7 @@ public slots:
     /// \param red the R value for RGB color of voxel
     /// \param green the G value for RGB color of voxel
     /// \param blue the B value for RGB color of voxel
-    void queueDesctructiveVoxelAdd(float x, float y, float z, float scale, uchar red, uchar green, uchar blue);
+    void queueDestructiveVoxelAdd(float x, float y, float z, float scale, uchar red, uchar green, uchar blue);
 private:
     /// attached VoxelEditPacketSender that handles queuing and sending of packets to VS
     VoxelEditPacketSender _voxelPacketSender;

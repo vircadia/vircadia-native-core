@@ -20,7 +20,7 @@ void VoxelScriptingInterface::queueVoxelAdd(float x, float y, float z, float sca
     queueVoxelAdd(PACKET_TYPE_SET_VOXEL, addVoxelDetail);
 }
 
-void VoxelScriptingInterface::queueDesctructiveVoxelAdd(float x, float y, float z, float scale,
+void VoxelScriptingInterface::queueDestructiveVoxelAdd(float x, float y, float z, float scale,
                                                         uchar red, uchar green, uchar blue) {
     // setup a VoxelDetail struct with the data
     VoxelDetail addVoxelDetail = {x, y, z, scale, red, green, blue};
