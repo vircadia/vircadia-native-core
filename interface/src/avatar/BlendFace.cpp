@@ -46,8 +46,6 @@ bool BlendFace::render(float alpha) {
     glScalef(_owningHead->getScale() * MODEL_SCALE, _owningHead->getScale() * MODEL_SCALE,
         -_owningHead->getScale() * MODEL_SCALE);
 
-    glColor4f(_owningHead->getSkinColor().r, _owningHead->getSkinColor().g, _owningHead->getSkinColor().b, alpha);
-
     // start with the base
     int vertexCount = _geometry.vertices.size();
     int normalCount = _geometry.normals.size();
@@ -71,6 +69,18 @@ bool BlendFace::render(float alpha) {
             _blendedNormals[*index] += *normal * coefficient;
         }
     }
+    
+    glColor3f(1.0f, 0.0f, 0.0f);
+    glBegin(GL_LINES);
+    for (int i = 0; i < vertexCount; i++) {
+        glVertex3f(_blendedVertices.at(i).x, _blendedVertices.at(i).y, _blendedVertices.at(i).z);
+        glm::vec3 end = _blendedVertices.at(i) + glm::normalize(_blendedNormals.at(i)) * 10.0f;
+        glVertex3f(end.x, end.y, end.z);
+    }
+    glEnd();
+
+    // use the head skin color
+    glColor4f(_owningHead->getSkinColor().r, _owningHead->getSkinColor().g, _owningHead->getSkinColor().b, alpha);
     
     // update the blended vertices
     glBindBuffer(GL_ARRAY_BUFFER, _vboID);
