@@ -61,24 +61,17 @@ bool BlendFace::render(float alpha) {
         if (coefficient == 0.0f || i >= _geometry.blendshapes.size() || _geometry.blendshapes[i].vertices.isEmpty()) {
             continue;
         }
+        const float NORMAL_COEFFICIENT_SCALE = 0.01f;
+        float normalCoefficient = coefficient * NORMAL_COEFFICIENT_SCALE;
         const glm::vec3* vertex = _geometry.blendshapes[i].vertices.constData();
         const glm::vec3* normal = _geometry.blendshapes[i].normals.constData();
         for (const int* index = _geometry.blendshapes[i].indices.constData(),
                 *end = index + _geometry.blendshapes[i].indices.size(); index != end; index++, vertex++, normal++) {
             _blendedVertices[*index] += *vertex * coefficient;
-            _blendedNormals[*index] += *normal * coefficient;
+            _blendedNormals[*index] += *normal * coefficient * NORMAL_COEFFICIENT_SCALE;
         }
     }
     
-    glColor3f(1.0f, 0.0f, 0.0f);
-    glBegin(GL_LINES);
-    for (int i = 0; i < vertexCount; i++) {
-        glVertex3f(_blendedVertices.at(i).x, _blendedVertices.at(i).y, _blendedVertices.at(i).z);
-        glm::vec3 end = _blendedVertices.at(i) + glm::normalize(_blendedNormals.at(i)) * 10.0f;
-        glVertex3f(end.x, end.y, end.z);
-    }
-    glEnd();
-
     // use the head skin color
     glColor4f(_owningHead->getSkinColor().r, _owningHead->getSkinColor().g, _owningHead->getSkinColor().b, alpha);
     
