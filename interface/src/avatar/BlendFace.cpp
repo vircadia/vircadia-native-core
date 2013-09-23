@@ -46,7 +46,7 @@ bool BlendFace::render(float alpha) {
     glScalef(_owningHead->getScale() * MODEL_SCALE, _owningHead->getScale() * MODEL_SCALE,
         -_owningHead->getScale() * MODEL_SCALE);
 
-    glColor4f(1.0f, 1.0f, 1.0f, alpha);
+    glColor4f(_owningHead->getSkinColor().r, _owningHead->getSkinColor().g, _owningHead->getSkinColor().b, alpha);
 
     // start with the base
     int vertexCount = _geometry.vertices.size();

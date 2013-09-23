@@ -66,6 +66,7 @@ public:
     
     float getScale() const { return _scale; }
     glm::vec3 getPosition() const { return _position; }
+    const glm::vec3& getSkinColor() const { return _skinColor; }
     const glm::vec3& getEyePosition() const { return _eyePosition; }
     glm::vec3 getRightDirection() const { return getOrientation() * IDENTITY_RIGHT; }
     glm::vec3 getUpDirection() const { return getOrientation() * IDENTITY_UP; }
