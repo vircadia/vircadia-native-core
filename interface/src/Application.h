@@ -51,6 +51,7 @@
 #include "renderer/AmbientOcclusionEffect.h"
 #include "renderer/GeometryCache.h"
 #include "renderer/GlowEffect.h"
+#include "renderer/TestGeometry.h"
 #include "renderer/TextureCache.h"
 #include "ui/BandwidthDialog.h"
 #include "ui/ChatEntry.h"
@@ -342,6 +343,7 @@ private:
     
     GlowEffect _glowEffect;
     AmbientOcclusionEffect _ambientOcclusionEffect;
+    TestGeometry _testGeometry;
     
     #ifndef _WIN32
     Audio _audio;

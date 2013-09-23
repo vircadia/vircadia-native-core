@@ -389,6 +389,7 @@ void Application::paintGL() {
         
     } else {
         _glowEffect.prepare(); 
+
         
         glMatrixMode(GL_MODELVIEW);
         glPushMatrix();
@@ -1539,6 +1540,7 @@ void Application::init() {
 
     _glowEffect.init();
     _ambientOcclusionEffect.init();
+    _testGeometry.init();
     
     _handControl.setScreenDimensions(_glWidget->width(), _glWidget->height());
 
@@ -2579,7 +2581,9 @@ void Application::displaySide(Camera& whichCamera) {
     
     // brad's frustum for debugging
     if (Menu::getInstance()->isOptionChecked(MenuOption::DisplayFrustum)) {
+        _testGeometry.begin();
         renderViewFrustum(_viewFrustum);
+        _testGeometry.end();
     }
     
     // render voxel fades if they exist
