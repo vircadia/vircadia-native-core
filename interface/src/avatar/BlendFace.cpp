@@ -6,8 +6,6 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
-#include <numeric>
-
 #include <QNetworkReply>
 
 #include "Application.h"
@@ -52,35 +50,25 @@ bool BlendFace::render(float alpha) {
 
     // start with the base
     int vertexCount = _geometry.vertices.size();
-    _blendedVertices.resize(vertexCount);
-    memcpy(_blendedVertices.data(), _geometry.vertices.constData(), vertexCount * sizeof(glm::vec3));
-    
-    // find the coefficient total
-    const vector<float>& coefficients = _owningHead->getBlendshapeCoefficients();
-    float coefficientTotal = accumulate(coefficients.begin(), coefficients.end(), 0.0f);
-    
-    // for the normals, only use the base if we have nothing else
     int normalCount = _geometry.normals.size();
+    _blendedVertices.resize(vertexCount);
     _blendedNormals.resize(normalCount);
-    if (coefficientTotal == 0.0f) {
-        memcpy(_blendedNormals.data(), _geometry.normals.constData(), normalCount * sizeof(glm::vec3));
-    } else {
-        memset(_blendedNormals.data(), 0, normalCount * sizeof(glm::vec3));
-    }
+    memcpy(_blendedVertices.data(), _geometry.vertices.constData(), vertexCount * sizeof(glm::vec3));
+    memcpy(_blendedNormals.data(), _geometry.normals.constData(), normalCount * sizeof(glm::vec3));
     
     // blend in each coefficient
+    const vector<float>& coefficients = _owningHead->getBlendshapeCoefficients();
     for (int i = 0; i < coefficients.size(); i++) {
         float coefficient = coefficients[i];
         if (coefficient == 0.0f || i >= _geometry.blendshapes.size() || _geometry.blendshapes[i].vertices.isEmpty()) {
             continue;
         }
-        float normalCoefficient = coefficient / coefficientTotal;
         const glm::vec3* vertex = _geometry.blendshapes[i].vertices.constData();
         const glm::vec3* normal = _geometry.blendshapes[i].normals.constData();
         for (const int* index = _geometry.blendshapes[i].indices.constData(),
                 *end = index + _geometry.blendshapes[i].indices.size(); index != end; index++, vertex++, normal++) {
             _blendedVertices[*index] += *vertex * coefficient;
-            _blendedNormals[*index] += *normal * normalCoefficient;
+            _blendedNormals[*index] += *normal * coefficient;
         }
     }
     
