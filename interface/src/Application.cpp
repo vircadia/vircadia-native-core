@@ -35,6 +35,7 @@
 #include <QMenuBar>
 #include <QMouseEvent>
 #include <QNetworkAccessManager>
+#include <QNetworkDiskCache>
 #include <QOpenGLFramebufferObject>
 #include <QWheelEvent>
 #include <QSettings>
@@ -208,6 +209,9 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     _window->setMenuBar(Menu::getInstance());
     
     _networkAccessManager = new QNetworkAccessManager(this);
+    QNetworkDiskCache* cache = new QNetworkDiskCache(_networkAccessManager);
+    cache->setCacheDirectory("interfaceCache");
+    _networkAccessManager->setCache(cache);
     
     QRect available = desktop()->availableGeometry();
     _window->resize(available.size());
