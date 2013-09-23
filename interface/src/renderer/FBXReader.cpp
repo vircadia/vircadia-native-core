@@ -261,7 +261,7 @@ QHash<QByteArray, int> createBlendshapeMap() {
 
 FBXGeometry extractFBXGeometry(const FBXNode& node) {
     QVector<FBXBlendshape> blendshapes;
-    QHash<qint64, FBXGeometry> meshMap;
+    QHash<qint64, FBXMesh> meshMap;
     qint64 blendshapeId = 0;
     QHash<qint64, qint64> parentMap;
     QHash<qint64, QVector<double> > poseMatrices;
@@ -271,7 +271,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node) {
             foreach (const FBXNode& object, child.children) {    
                 if (object.name == "Geometry") {
                     if (object.properties.at(2) == "Mesh") {
-                        FBXGeometry mesh;
+                        FBXMesh mesh;
                     
                         QVector<glm::vec3> normals;
                         QVector<int> polygonIndices;
@@ -378,25 +378,12 @@ FBXGeometry extractFBXGeometry(const FBXNode& node) {
     
     // get the mesh that owns the blendshape
     FBXGeometry geometry;
-    if (meshMap.size() == 1) {
-        geometry = *meshMap.begin();
-    } else {
-        geometry = meshMap.take(parentMap.value(blendshapeId));
-        
-        foreach (const FBXGeometry& mesh, meshMap) {
-            int offset = geometry.vertices.size();
-            geometry.vertices += mesh.vertices;
-            geometry.normals += mesh.normals;
-            
-            foreach (int index, mesh.quadIndices) {
-                geometry.quadIndices.append(index + offset);
-            }
-            foreach (int index, mesh.triangleIndices) {
-                geometry.triangleIndices.append(index + offset);
-            }
-        }
-    }
+    geometry.blendMesh = meshMap.take(parentMap.value(blendshapeId));
     geometry.blendshapes = blendshapes;
+    
+    foreach (const FBXMesh& mesh, meshMap) {
+        geometry.otherMeshes.append(mesh);
+    }
     
     return geometry;
 }

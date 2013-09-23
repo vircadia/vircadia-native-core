@@ -17,22 +17,18 @@ using namespace std;
 
 BlendFace::BlendFace(Head* owningHead) :
     _owningHead(owningHead),
-    _modelReply(NULL),
-    _iboID(0)
+    _modelReply(NULL)
 {
     // we may have been created in the network thread, but we live in the main thread
     moveToThread(Application::getInstance()->thread());
 }
 
 BlendFace::~BlendFace() {
-    if (_iboID != 0) {
-        glDeleteBuffers(1, &_iboID);
-        glDeleteBuffers(1, &_vboID);
-    }
+    deleteGeometry();
 }
 
 bool BlendFace::render(float alpha) {
-    if (_iboID == 0) {
+    if (_baseMeshIDs.first == 0) {
         return false;
     }
 
@@ -47,12 +43,12 @@ bool BlendFace::render(float alpha) {
         -_owningHead->getScale() * MODEL_SCALE);
 
     // start with the base
-    int vertexCount = _geometry.vertices.size();
-    int normalCount = _geometry.normals.size();
+    int vertexCount = _geometry.blendMesh.vertices.size();
+    int normalCount = _geometry.blendMesh.normals.size();
     _blendedVertices.resize(vertexCount);
     _blendedNormals.resize(normalCount);
-    memcpy(_blendedVertices.data(), _geometry.vertices.constData(), vertexCount * sizeof(glm::vec3));
-    memcpy(_blendedNormals.data(), _geometry.normals.constData(), normalCount * sizeof(glm::vec3));
+    memcpy(_blendedVertices.data(), _geometry.blendMesh.vertices.constData(), vertexCount * sizeof(glm::vec3));
+    memcpy(_blendedNormals.data(), _geometry.blendMesh.normals.constData(), normalCount * sizeof(glm::vec3));
     
     // blend in each coefficient
     const vector<float>& coefficients = _owningHead->getBlendshapeCoefficients();
@@ -76,7 +72,7 @@ bool BlendFace::render(float alpha) {
     glColor4f(_owningHead->getSkinColor().r, _owningHead->getSkinColor().g, _owningHead->getSkinColor().b, alpha);
     
     // update the blended vertices
-    glBindBuffer(GL_ARRAY_BUFFER, _vboID);
+    glBindBuffer(GL_ARRAY_BUFFER, _baseMeshIDs.second);
     glBufferSubData(GL_ARRAY_BUFFER, 0, vertexCount * sizeof(glm::vec3), _blendedVertices.constData());
     glBufferSubData(GL_ARRAY_BUFFER, vertexCount * sizeof(glm::vec3),
         normalCount * sizeof(glm::vec3), _blendedNormals.constData());
@@ -90,12 +86,29 @@ bool BlendFace::render(float alpha) {
     // enable normalization under the expectation that the GPU can do it faster
     glEnable(GL_NORMALIZE); 
     
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _iboID);
-    glDrawRangeElementsEXT(GL_QUADS, 0, vertexCount - 1, _geometry.quadIndices.size(), GL_UNSIGNED_INT, 0);
-    glDrawRangeElementsEXT(GL_TRIANGLES, 0, vertexCount - 1, _geometry.triangleIndices.size(), GL_UNSIGNED_INT,
-        (void*)(_geometry.quadIndices.size() * sizeof(int)));
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _baseMeshIDs.first);
+    glDrawRangeElementsEXT(GL_QUADS, 0, vertexCount - 1, _geometry.blendMesh.quadIndices.size(), GL_UNSIGNED_INT, 0);
+    glDrawRangeElementsEXT(GL_TRIANGLES, 0, vertexCount - 1, _geometry.blendMesh.triangleIndices.size(), GL_UNSIGNED_INT,
+        (void*)(_geometry.blendMesh.quadIndices.size() * sizeof(int)));
 
     glDisable(GL_NORMALIZE); 
+
+    // back to white for the other meshes
+    glColor4f(1.0f, 1.0f, 1.0f, alpha);
+    
+    for (int i = 0; i < _geometry.otherMeshes.size(); i++) {
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _otherMeshIDs.at(i).first);
+        glBindBuffer(GL_ARRAY_BUFFER, _otherMeshIDs.at(i).second);
+        
+        glVertexPointer(3, GL_FLOAT, 0, 0);
+        int vertexCount = _geometry.otherMeshes.at(i).vertices.size();
+        glNormalPointer(GL_FLOAT, 0, (void*)(vertexCount * sizeof(glm::vec3)));
+        
+        glDrawRangeElementsEXT(GL_QUADS, 0, vertexCount - 1, _geometry.otherMeshes.at(i).quadIndices.size(),
+            GL_UNSIGNED_INT, 0);
+        glDrawRangeElementsEXT(GL_TRIANGLES, 0, vertexCount - 1, _geometry.otherMeshes.at(i).triangleIndices.size(),
+            GL_UNSIGNED_INT, (void*)(_geometry.otherMeshes.at(i).quadIndices.size() * sizeof(int)));
+    }
     
     // deactivate vertex arrays after drawing
     glDisableClientState(GL_NORMAL_ARRAY);
@@ -170,32 +183,60 @@ void BlendFace::handleModelReplyError() {
     _modelReply = 0;
 }
 
+void createIndexBuffer(const FBXMesh& mesh, GLuint& iboID) {
+    glGenBuffers(1, &iboID);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, iboID);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, (mesh.quadIndices.size() + mesh.triangleIndices.size()) * sizeof(int),
+        NULL, GL_STATIC_DRAW);
+    glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, mesh.quadIndices.size() * sizeof(int), mesh.quadIndices.constData());
+    glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, mesh.quadIndices.size() * sizeof(int),
+        mesh.triangleIndices.size() * sizeof(int), mesh.triangleIndices.constData());
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+}
+
 void BlendFace::setGeometry(const FBXGeometry& geometry) {
-    if (geometry.vertices.isEmpty()) {
-        // clear any existing geometry
-        if (_iboID != 0) {
-            glDeleteBuffers(1, &_iboID);
-            glDeleteBuffers(1, &_vboID);
-            _iboID = 0;
-        }
+    // clear any existing geometry
+    deleteGeometry();
+    
+    if (geometry.blendMesh.vertices.isEmpty()) {
         return;
     }
-    if (_iboID == 0) {
-        glGenBuffers(1, &_iboID);
-        glGenBuffers(1, &_vboID);
-    }
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _iboID);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, (geometry.quadIndices.size() + geometry.triangleIndices.size()) * sizeof(int),
-        NULL, GL_STATIC_DRAW);
-    glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, geometry.quadIndices.size() * sizeof(int), geometry.quadIndices.constData());
-    glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, geometry.quadIndices.size() * sizeof(int),
-        geometry.triangleIndices.size() * sizeof(int), geometry.triangleIndices.constData());
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    createIndexBuffer(geometry.blendMesh, _baseMeshIDs.first);
     
-    glBindBuffer(GL_ARRAY_BUFFER, _vboID);
-    glBufferData(GL_ARRAY_BUFFER, (geometry.vertices.size() + geometry.normals.size()) * sizeof(glm::vec3),
+    glGenBuffers(1, &_baseMeshIDs.second);
+    glBindBuffer(GL_ARRAY_BUFFER, _baseMeshIDs.second);
+    glBufferData(GL_ARRAY_BUFFER, (geometry.blendMesh.vertices.size() + geometry.blendMesh.normals.size()) * sizeof(glm::vec3),
         NULL, GL_DYNAMIC_DRAW);
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     
+    foreach (const FBXMesh& mesh, geometry.otherMeshes) {
+        VerticesIndices ids;
+        createIndexBuffer(mesh, ids.first);
+        
+        glGenBuffers(1, &ids.second);
+        glBindBuffer(GL_ARRAY_BUFFER, ids.second);
+        glBufferData(GL_ARRAY_BUFFER, (mesh.vertices.size() + mesh.normals.size()) * sizeof(glm::vec3),
+            NULL, GL_STATIC_DRAW);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, mesh.vertices.size() * sizeof(glm::vec3), mesh.vertices.constData());
+        glBufferSubData(GL_ARRAY_BUFFER, mesh.vertices.size() * sizeof(glm::vec3),
+            mesh.normals.size() * sizeof(glm::vec3), mesh.normals.constData());
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        
+        _otherMeshIDs.append(ids);
+    }
+    
     _geometry = geometry;
+}
+
+void BlendFace::deleteGeometry() {
+    if (_baseMeshIDs.first != 0) {
+        glDeleteBuffers(1, &_baseMeshIDs.first);
+        glDeleteBuffers(1, &_baseMeshIDs.second);
+        _baseMeshIDs = VerticesIndices();
+    }
+    foreach (const VerticesIndices& meshIDs, _otherMeshIDs) {
+        glDeleteBuffers(1, &meshIDs.first);
+        glDeleteBuffers(1, &meshIDs.second);
+    }
+    _otherMeshIDs.clear();
 }

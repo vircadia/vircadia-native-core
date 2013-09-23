@@ -29,6 +29,16 @@ public:
     FBXNodeList children;
 };
 
+/// A single mesh extracted from an FBX document.
+class FBXMesh {
+public:
+    
+    QVector<int> quadIndices;
+    QVector<int> triangleIndices;
+    QVector<glm::vec3> vertices;
+    QVector<glm::vec3> normals;
+};
+
 /// A single blendshape extracted from an FBX document.
 class FBXBlendshape {
 public:
@@ -42,12 +52,10 @@ public:
 class FBXGeometry {
 public:
     
-    QVector<int> quadIndices;
-    QVector<int> triangleIndices;
-    QVector<glm::vec3> vertices;
-    QVector<glm::vec3> normals;
-    
+    FBXMesh blendMesh;
     QVector<FBXBlendshape> blendshapes;
+    
+    QVector<FBXMesh> otherMeshes;
 };
 
 /// Parses the input from the supplied data as an FBX file.
