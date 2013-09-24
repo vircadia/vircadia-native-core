@@ -264,7 +264,6 @@ FBXGeometry extractFBXGeometry(const FBXNode& node) {
     QHash<qint64, FBXMesh> meshMap;
     qint64 blendshapeId = 0;
     QHash<qint64, qint64> parentMap;
-    QHash<qint64, QVector<double> > poseMatrices;
     
     foreach (const FBXNode& child, node.children) {
         if (child.name == "Objects") {
@@ -346,22 +345,6 @@ FBXGeometry extractFBXGeometry(const FBXNode& node) {
                         int index = blendshapeMap.value(name.left(name.indexOf('\0')));
                         blendshapes.resize(qMax(blendshapes.size(), index + 1));
                         blendshapes[index] = blendshape;
-                    }
-                } else if (object.name == "Pose") {
-                    foreach (const FBXNode& subobject, object.children) {
-                        if (subobject.name == "PoseNode") {
-                            qint64 nodeId;
-                            QVector<double> matrix;
-                            foreach (const FBXNode& data, subobject.children) {
-                                if (data.name == "Node") {
-                                    nodeId = data.properties.at(0).value<qint64>();
-                                    
-                                } else if (data.name == "Matrix") {
-                                    matrix = data.properties.at(0).value<QVector<double> >();
-                                }
-                            }
-                            poseMatrices.insert(nodeId, matrix);
-                        }
                     }
                 } else if (object.name == "Deformer" && object.properties.at(2) == "BlendShape") {
                     blendshapeId = object.properties.at(0).value<qint64>();
