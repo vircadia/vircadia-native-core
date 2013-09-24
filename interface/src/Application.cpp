@@ -1798,27 +1798,7 @@ void Application::update(float deltaTime) {
             _isHoverVoxelSounding = true;
         }
     }
-    
-    //  If we are dragging on a voxel, add thrust according to the amount the mouse is dragging
-    const float VOXEL_GRAB_THRUST = 0.0f;
-    if (_mousePressed && (_mouseVoxel.s != 0)) {
-        glm::vec2 mouseDrag(_mouseX - _mouseDragStartedX, _mouseY - _mouseDragStartedY);
-        glm::quat orientation = _myAvatar.getOrientation();
-        glm::vec3 front = orientation * IDENTITY_FRONT;
-        glm::vec3 up = orientation * IDENTITY_UP;
-        glm::vec3 towardVoxel = getMouseVoxelWorldCoordinates(_mouseVoxelDragging)
-                                - _myAvatar.getCameraPosition();
-        towardVoxel = front * glm::length(towardVoxel);
-        glm::vec3 lateralToVoxel = glm::cross(up, glm::normalize(towardVoxel)) * glm::length(towardVoxel);
-        _voxelThrust = glm::vec3(0, 0, 0);
-        _voxelThrust += towardVoxel * VOXEL_GRAB_THRUST * deltaTime * mouseDrag.y;
-        _voxelThrust += lateralToVoxel * VOXEL_GRAB_THRUST * deltaTime * mouseDrag.x;
         
-        //  Add thrust from voxel grabbing to the avatar 
-        _myAvatar.addThrust(_voxelThrust);
-
-    }
-    
     _mouseVoxel.s = 0.0f;
     if (Menu::getInstance()->isVoxelModeActionChecked() &&
         (fabs(_myAvatar.getVelocity().x) +

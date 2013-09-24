@@ -297,7 +297,6 @@ private:
     float _pitchFromTouch;
     
     VoxelDetail _mouseVoxelDragging;
-    glm::vec3 _voxelThrust;
     bool _mousePressed; //  true if mouse has been pressed (clear when finished)
 
     VoxelDetail _hoverVoxel;      // Stuff about the voxel I am hovering or clicking
