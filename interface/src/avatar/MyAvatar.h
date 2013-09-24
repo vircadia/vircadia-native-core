@@ -71,6 +71,7 @@ public:
     glm::vec3 _lastCollisionPosition;
     bool _speedBrakes;
     bool _isThrustOn;
+    float _thrustMultiplier;
     float _collisionRadius;
 
 	// private methods
