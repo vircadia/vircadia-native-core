@@ -28,7 +28,7 @@ public:
     BlendFace(Head* owningHead);
     ~BlendFace();
     
-    bool isActive() const { return _baseMeshIDs.first != 0; }
+    bool isActive() const { return !_meshIDs.isEmpty(); }
     
     bool render(float alpha);
     
@@ -52,9 +52,7 @@ private:
     QNetworkReply* _modelReply;
 
     typedef QPair<GLuint, GLuint> VerticesIndices;
-    
-    VerticesIndices _baseMeshIDs;
-    QVector<VerticesIndices> _otherMeshIDs;
+    QVector<VerticesIndices> _meshIDs;
     
     FBXGeometry _geometry;
     QVector<glm::vec3> _blendedVertices;

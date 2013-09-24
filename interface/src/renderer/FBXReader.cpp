@@ -259,10 +259,16 @@ QHash<QByteArray, int> createBlendshapeMap() {
     }
 }
 
+class ExtractedBlendshape {
+public:
+    qint64 id;
+    int index;
+    FBXBlendshape blendshape;
+};
+
 FBXGeometry extractFBXGeometry(const FBXNode& node) {
-    QVector<FBXBlendshape> blendshapes;
-    QHash<qint64, FBXMesh> meshMap;
-    qint64 blendshapeId = 0;
+    QHash<qint64, FBXMesh> meshes;
+    QVector<ExtractedBlendshape> blendshapes;
     QHash<qint64, qint64> parentMap;
     
     foreach (const FBXNode& child, node.children) {
@@ -323,31 +329,32 @@ FBXGeometry extractFBXGeometry(const FBXNode& node) {
                                 beginIndex = endIndex;
                             }
                         }
-                        meshMap.insert(object.properties.at(0).value<qint64>(), mesh);
+                        meshes.insert(object.properties.at(0).value<qint64>(), mesh);
                         
                     } else { // object.properties.at(2) == "Shape"
-                        FBXBlendshape blendshape;
+                        ExtractedBlendshape extracted = { object.properties.at(0).value<qint64>() };
+                        
                         foreach (const FBXNode& data, object.children) {
                             if (data.name == "Indexes") {
-                                blendshape.indices = data.properties.at(0).value<QVector<int> >();
+                                extracted.blendshape.indices = data.properties.at(0).value<QVector<int> >();
                                 
                             } else if (data.name == "Vertices") {
-                                blendshape.vertices = createVec3Vector(data.properties.at(0).value<QVector<double> >());
+                                extracted.blendshape.vertices = createVec3Vector(
+                                    data.properties.at(0).value<QVector<double> >());
                                 
                             } else if (data.name == "Normals") {
-                                blendshape.normals = createVec3Vector(data.properties.at(0).value<QVector<double> >());
+                                extracted.blendshape.normals = createVec3Vector(
+                                    data.properties.at(0).value<QVector<double> >());
                             }
                         }
                         
                         // the name is followed by a null and some type info
                         QByteArray name = object.properties.at(1).toByteArray();
                         static QHash<QByteArray, int> blendshapeMap = createBlendshapeMap();
-                        int index = blendshapeMap.value(name.left(name.indexOf('\0')));
-                        blendshapes.resize(qMax(blendshapes.size(), index + 1));
-                        blendshapes[index] = blendshape;
+                        extracted.index = blendshapeMap.value(name.left(name.indexOf('\0')));
+                        
+                        blendshapes.append(extracted);
                     }
-                } else if (object.name == "Deformer" && object.properties.at(2) == "BlendShape") {
-                    blendshapeId = object.properties.at(0).value<qint64>();
                 }
             }
         } else if (child.name == "Connections") {
@@ -359,13 +366,19 @@ FBXGeometry extractFBXGeometry(const FBXNode& node) {
         }
     }
     
-    // get the mesh that owns the blendshape
-    FBXGeometry geometry;
-    geometry.blendMesh = meshMap.take(parentMap.value(blendshapeId));
-    geometry.blendshapes = blendshapes;
+    // assign the blendshapes to their corresponding meshes
+    foreach (const ExtractedBlendshape& extracted, blendshapes) {
+        qint64 blendshapeChannelID = parentMap.value(extracted.id);
+        qint64 blendshapeID = parentMap.value(blendshapeChannelID);
+        qint64 meshID = parentMap.value(blendshapeID);
+        FBXMesh& mesh = meshes[meshID];
+        mesh.blendshapes.resize(max(mesh.blendshapes.size(), extracted.index + 1));
+        mesh.blendshapes[extracted.index] = extracted.blendshape;
+    }
     
-    foreach (const FBXMesh& mesh, meshMap) {
-        geometry.otherMeshes.append(mesh);
+    FBXGeometry geometry;
+    foreach (const FBXMesh& mesh, meshes) {
+        geometry.meshes.append(mesh);
     }
     
     return geometry;
