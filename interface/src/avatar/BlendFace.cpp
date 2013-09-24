@@ -48,6 +48,8 @@ bool BlendFace::render(float alpha) {
     // enable normalization under the expectation that the GPU can do it faster
     glEnable(GL_NORMALIZE); 
     
+    glColor4f(_owningHead->getSkinColor().r, _owningHead->getSkinColor().g, _owningHead->getSkinColor().b, alpha);
+    
     for (int i = 0; i < _meshIDs.size(); i++) {
         const VerticesIndices& ids = _meshIDs.at(i);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ids.first);
@@ -56,12 +58,12 @@ bool BlendFace::render(float alpha) {
         const FBXMesh& mesh = _geometry.meshes.at(i);    
         int vertexCount = mesh.vertices.size();
         
-        if (mesh.blendshapes.isEmpty()) {
+        // all meshes after the first are white
+        if (i == 1) {
             glColor4f(1.0f, 1.0f, 1.0f, alpha);
-            
-        } else {
-            glColor4f(_owningHead->getSkinColor().r, _owningHead->getSkinColor().g, _owningHead->getSkinColor().b, alpha);
-            
+        }
+        
+        if (!mesh.blendshapes.isEmpty()) {
             _blendedVertices.resize(max(_blendedVertices.size(), vertexCount));
             _blendedNormals.resize(_blendedVertices.size());
             memcpy(_blendedVertices.data(), mesh.vertices.constData(), vertexCount * sizeof(glm::vec3));
