@@ -47,6 +47,8 @@ public:
     QVector<glm::vec3> vertices;
     QVector<glm::vec3> normals;
     
+    glm::vec3 pivot;
+    
     QVector<FBXBlendshape> blendshapes;
 };
 

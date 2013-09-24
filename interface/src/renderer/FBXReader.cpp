@@ -189,7 +189,10 @@ FBXNode parseFBX(QIODevice* device) {
 QVector<glm::vec3> createVec3Vector(const QVector<double>& doubleVector) {
     QVector<glm::vec3> values;
     for (const double* it = doubleVector.constData(), *end = it + doubleVector.size(); it != end; ) {
-        values.append(glm::vec3(*it++, *it++, *it++));
+        float x = *it++;
+        float y = *it++;
+        float z = *it++;
+        values.append(glm::vec3(x, y, z));
     }
     return values;
 }
@@ -270,6 +273,8 @@ FBXGeometry extractFBXGeometry(const FBXNode& node) {
     QHash<qint64, FBXMesh> meshes;
     QVector<ExtractedBlendshape> blendshapes;
     QHash<qint64, qint64> parentMap;
+    QMultiHash<qint64, qint64> childMap;
+    QHash<qint64, glm::vec3> pivots;
     
     foreach (const FBXNode& child, node.children) {
         if (child.name == "Objects") {
@@ -355,12 +360,21 @@ FBXGeometry extractFBXGeometry(const FBXNode& node) {
                         
                         blendshapes.append(extracted);
                     }
+                } else if (object.name == "Deformer" && object.properties.at(2) == "Cluster") {
+                    foreach (const FBXNode& subobject, object.children) {
+                        if (subobject.name == "TransformLink") {
+                            QVector<double> values = subobject.properties.at(0).value<QVector<double> >();
+                            pivots.insert(object.properties.at(0).value<qint64>(),
+                                glm::vec3(values.at(12), values.at(13), values.at(14))); // matrix translation component
+                        }
+                    }
                 }
             }
         } else if (child.name == "Connections") {
             foreach (const FBXNode& connection, child.children) {    
                 if (connection.name == "C") {
                     parentMap.insert(connection.properties.at(1).value<qint64>(), connection.properties.at(2).value<qint64>());
+                    childMap.insert(connection.properties.at(2).value<qint64>(), connection.properties.at(1).value<qint64>());
                 }
             }
         }
@@ -379,7 +393,17 @@ FBXGeometry extractFBXGeometry(const FBXNode& node) {
     // as a temporary hack, put the mesh with the most blendshapes on top; assume it to be the face
     FBXGeometry geometry;
     int mostBlendshapes = 0;
-    foreach (const FBXMesh& mesh, meshes) {
+    for (QHash<qint64, FBXMesh>::iterator it = meshes.begin(); it != meshes.end(); it++) {
+        FBXMesh& mesh = it.value();
+        
+        // look for a limb pivot
+        foreach (qint64 childID, childMap.values(it.key())) {
+            qint64 clusterID = childMap.value(childID);
+            if (pivots.contains(clusterID)) {
+                mesh.pivot = pivots.value(clusterID);
+            }
+        }
+        
         if (mesh.blendshapes.size() > mostBlendshapes) {
             geometry.meshes.prepend(mesh);    
             mostBlendshapes = mesh.blendshapes.size();
