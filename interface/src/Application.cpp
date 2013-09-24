@@ -2820,7 +2820,7 @@ void Application::displayStats() {
     
     char avatarStats[200];
     glm::vec3 avatarPos = _myAvatar.getPosition();
-    sprintf(avatarStats, "Avatar position: %.3f, %.3f, %.3f, yaw = %.2f", avatarPos.x, avatarPos.y, avatarPos.z, _myAvatar.getBodyYaw());
+    sprintf(avatarStats, "Avatar: pos %.3f, %.3f, %.3f, vel %.1f, yaw = %.2f", avatarPos.x, avatarPos.y, avatarPos.z, glm::length(_myAvatar.getVelocity()), _myAvatar.getBodyYaw());
     drawtext(10, statsVerticalOffset + 55, 0.10f, 0, 1.0, 0, avatarStats);
 
  
