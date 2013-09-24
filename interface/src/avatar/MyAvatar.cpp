@@ -640,7 +640,7 @@ void MyAvatar::updateThrust(float deltaTime, Transmitter * transmitter) {
     //  If thrust keys are being held down, slowly increase thrust to allow reaching great speeds
     if (_driveKeys[FWD] || _driveKeys[BACK] || _driveKeys[RIGHT] || _driveKeys[LEFT] || _driveKeys[UP] || _driveKeys[DOWN]) {
         const float THRUST_INCREASE_RATE = 1.0;
-        _thrustMultiplier *= 1.f + deltaTime* THRUST_INCREASE_RATE;
+        _thrustMultiplier *= 1.f + deltaTime * THRUST_INCREASE_RATE;
     } else {
         _thrustMultiplier = 1.f;
     }
