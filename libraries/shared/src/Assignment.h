@@ -16,6 +16,7 @@
 #include "NodeList.h"
 
 const int NUM_BYTES_RFC4122_UUID = 16;
+const int MAX_PAYLOAD_BYTES = 1024;
 
 /// Holds information used for request, creation, and deployment of assignments
 class Assignment : public QObject {
@@ -41,16 +42,19 @@ public:
         LocalLocation
     };
     
+    Assignment();
     Assignment(Assignment::Command command,
                Assignment::Type type,
                Assignment::Location location = Assignment::LocalLocation);
+    Assignment(const Assignment& otherAssignment);
+    Assignment& operator=(const Assignment &rhsAssignment);
+    
+    void swap(Assignment& otherAssignment);
     
     /// Constructs an Assignment from the data in the buffer
     /// \param dataBuffer the source buffer to un-pack the assignment from
     /// \param numBytes the number of bytes left to read in the source buffer
     Assignment(const unsigned char* dataBuffer, int numBytes);
-    
-    ~Assignment();
     
     const QUuid& getUUID() const { return _uuid; }
     QString getUUIDStringWithoutCurlyBraces() const;
@@ -59,7 +63,6 @@ public:
     Assignment::Command getCommand() const { return _command; }
     Assignment::Type getType() const { return _type; }
     Assignment::Location getLocation() const { return _location; }
-    const timeval& getTime() const { return _time; }
     
     uchar* getPayload() { return _payload; }
     int getNumPayloadBytes() const { return _numPayloadBytes; }
@@ -74,23 +77,21 @@ public:
     /// \return number of bytes packed into buffer
     int packToBuffer(unsigned char* buffer);
     
-    /// Sets _time to the current time given by gettimeofday
-    void setCreateTimeToNow() { gettimeofday(&_time, NULL); }
-    
     /// blocking run of the assignment
     virtual void run();
+    
+    friend QDebug operator<<(QDebug debug, const Assignment& assignment);
+    friend QDataStream& operator<<(QDataStream &out, const Assignment& assignment);
+    friend QDataStream& operator>>(QDataStream &in, Assignment& assignment);
     
 private:
     QUuid _uuid; /// the 16 byte UUID for this assignment
     Assignment::Command _command; /// the command for this assignment (Create, Deploy, Request)
     Assignment::Type _type; /// the type of the assignment, defines what the assignee will do
     Assignment::Location _location; /// the location of the assignment, allows a domain to preferentially use local ACs
-    timeval _time; /// time the assignment was created (set in constructor)
     int _numberOfInstances; /// the number of instances of this assignment
-    uchar *_payload; /// an optional payload attached to this assignment, a maximum for 1024 bytes will be packed
+    uchar _payload[MAX_PAYLOAD_BYTES]; /// an optional payload attached to this assignment, a maximum for 1024 bytes will be packed
     int _numPayloadBytes; /// number of bytes in the payload, up to a maximum of 1024
 };
-
-QDebug operator<<(QDebug debug, const Assignment &assignment);
 
 #endif /* defined(__hifi__Assignment__) */

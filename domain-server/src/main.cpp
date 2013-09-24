@@ -27,6 +27,7 @@
 #include <stdlib.h>
 
 #include <QtCore/QCoreApplication>
+#include <QtCore/QFile>
 #include <QtCore/QMap>
 #include <QtCore/QMutex>
 
@@ -139,29 +140,56 @@ int main(int argc, const char* argv[]) {
 
     timeval lastStatSendTime = {};
     
-    // as a domain-server we will always want an audio mixer and avatar mixer
-    // setup the create assignments for those
-    Assignment audioMixerAssignment(Assignment::CreateCommand,
-                                    Assignment::AudioMixerType,
-                                    Assignment::LocalLocation);
+    const QString STATIC_ASSIGNMENT_FILENAME = QString("%1/config.ds").arg(QCoreApplication::applicationDirPath());
     
-    Assignment avatarMixerAssignment(Assignment::CreateCommand,
-                                     Assignment::AvatarMixerType,
-                                     Assignment::LocalLocation);
+    const int MAX_STATIC_ASSIGNMENT_FILE_ASSIGNMENTS = 1000;
     
-    Assignment voxelServerAssignment(Assignment::CreateCommand,
-                                     Assignment::VoxelServerType,
-                                     Assignment::LocalLocation);
-
-    // Handle Domain/Voxel Server configuration command line arguments
-    const char VOXEL_CONFIG_OPTION[] = "--voxelServerConfig";
-    const char* voxelServerConfig = getCmdOption(argc, argv, VOXEL_CONFIG_OPTION);
-    if (voxelServerConfig) {
-        qDebug("Reading Voxel Server Configuration.\n");
-        qDebug() << "   config: " << voxelServerConfig << "\n";
-        int payloadLength = strlen(voxelServerConfig) + sizeof(char);
-        voxelServerAssignment.setPayload((const uchar*)voxelServerConfig, payloadLength);
+    QFile staticAssignmentFile(STATIC_ASSIGNMENT_FILENAME);
+    
+    if (!staticAssignmentFile.exists()) {
+        
+        const uint NUM_FRESH_STATIC_ASSIGNMENTS = 3;
+        
+        // write a fresh static assignment list to file
+        Assignment freshStaticAssignmentList[NUM_FRESH_STATIC_ASSIGNMENTS];
+        
+        // pre-populate the first static assignment list with assignments for root AuM, AvM, VS
+        freshStaticAssignmentList[0] = Assignment(Assignment::CreateCommand,
+                                                 Assignment::AudioMixerType,
+                                                 Assignment::LocalLocation);
+        freshStaticAssignmentList[1] = Assignment(Assignment::CreateCommand,
+                                                 Assignment::AvatarMixerType,
+                                                 Assignment::LocalLocation);
+        
+        Assignment voxelServerAssignment(Assignment::CreateCommand, Assignment::VoxelServerType, Assignment::LocalLocation);
+        
+        // Handle Domain/Voxel Server configuration command line arguments
+        const char VOXEL_CONFIG_OPTION[] = "--voxelServerConfig";
+        const char* voxelServerConfig = getCmdOption(argc, argv, VOXEL_CONFIG_OPTION);
+        if (voxelServerConfig) {
+            qDebug("Reading Voxel Server Configuration.\n");
+            qDebug() << "   config: " << voxelServerConfig << "\n";
+            int payloadLength = strlen(voxelServerConfig) + sizeof(char);
+            voxelServerAssignment.setPayload((const uchar*)voxelServerConfig, payloadLength);
+        }
+        
+        freshStaticAssignmentList[2] = voxelServerAssignment;
+        
+        staticAssignmentFile.open(QIODevice::WriteOnly);
+        
+        staticAssignmentFile.write((char*) &NUM_FRESH_STATIC_ASSIGNMENTS,
+                                        sizeof(uint16_t));
+        staticAssignmentFile.write((char*) &freshStaticAssignmentList, sizeof(freshStaticAssignmentList));
+        staticAssignmentFile.resize(MAX_STATIC_ASSIGNMENT_FILE_ASSIGNMENTS * sizeof(Assignment));
+        staticAssignmentFile.close();
     }
+    
+    staticAssignmentFile.open(QIODevice::ReadWrite);
+    
+    uchar* staticAssignmentFileData = staticAssignmentFile.map(0, staticAssignmentFile.size());
+    
+    uint16_t* numAssignmentsInStaticFile = (uint16_t*) staticAssignmentFileData;
+    Assignment* staticFileAssignments = (Assignment*) (staticAssignmentFileData + sizeof(*numAssignmentsInStaticFile));
     
     // construct a local socket to send with our created assignments to the global AS
     sockaddr_in localSocket = {};
@@ -186,46 +214,6 @@ int main(int argc, const char* argv[]) {
     ctx = mg_start(&callbacks, NULL, options);
     
     while (true) {
-        
-        ::assignmentQueueMutex.lock();
-        // check if our audio-mixer or avatar-mixer are dead and we don't have existing assignments in the queue
-        // so we can add those assignments back to the front of the queue since they are high-priority
-        if (!nodeList->soloNodeOfType(NODE_TYPE_AVATAR_MIXER) &&
-            std::find(::assignmentQueue.begin(), assignmentQueue.end(), &avatarMixerAssignment) == ::assignmentQueue.end()) {
-            qDebug("Missing an avatar mixer and assignment not in queue. Adding.\n");
-            
-            // reset the UUID so it is new
-            avatarMixerAssignment.resetUUID();
-            
-            ::assignmentQueue.push_front(&avatarMixerAssignment);
-        }
-        
-        if (!nodeList->soloNodeOfType(NODE_TYPE_AUDIO_MIXER) &&
-            std::find(::assignmentQueue.begin(), ::assignmentQueue.end(), &audioMixerAssignment) == ::assignmentQueue.end()) {
-            qDebug("Missing an audio mixer and assignment not in queue. Adding.\n");
-            
-            // reset the UUID so it is new
-            audioMixerAssignment.resetUUID();
-            
-            ::assignmentQueue.push_front(&audioMixerAssignment);
-        }
-
-        // Now handle voxel servers. Since Voxel Servers aren't soloNodeOfType() we will count them and add an assignment if
-        // there is not at least one of them in the domain.
-        int voxelServerCount = 0;
-        for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
-            if (node->getType() == NODE_TYPE_VOXEL_SERVER) {
-                voxelServerCount++;
-            }
-        }
-        if (voxelServerCount == 0 &&
-            std::find(::assignmentQueue.begin(), ::assignmentQueue.end(), &voxelServerAssignment) == ::assignmentQueue.end()) {
-            qDebug("Missing a voxel server and assignment not in queue. Adding.\n");
-            ::assignmentQueue.push_front(&voxelServerAssignment);
-        }
-
-        ::assignmentQueueMutex.unlock();
-        
         while (nodeList->getNodeSocket()->receive((sockaddr *)&nodePublicAddress, packetData, &receivedBytes) &&
                packetVersionMatch(packetData)) {
             if (packetData[0] == PACKET_TYPE_DOMAIN_REPORT_FOR_DUTY || packetData[0] == PACKET_TYPE_DOMAIN_LIST_REQUEST) {
