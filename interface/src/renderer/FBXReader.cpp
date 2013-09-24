@@ -379,7 +379,6 @@ FBXGeometry extractFBXGeometry(const FBXNode& node) {
     // as a temporary hack, put the mesh with the most blendshapes on top; assume it to be the face
     FBXGeometry geometry;
     int mostBlendshapes = 0;
-    int mostBlendshapesIndex = 0;
     foreach (const FBXMesh& mesh, meshes) {
         if (mesh.blendshapes.size() > mostBlendshapes) {
             geometry.meshes.prepend(mesh);    
