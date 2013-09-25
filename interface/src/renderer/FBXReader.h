@@ -38,8 +38,8 @@ public:
     QVector<glm::vec3> normals;
 };
 
-/// Base geometry with blendshapes mapped by name.
-class FBXGeometry {
+/// A single mesh (with optional blendshapes) extracted from an FBX document.
+class FBXMesh {
 public:
     
     QVector<int> quadIndices;
@@ -47,7 +47,18 @@ public:
     QVector<glm::vec3> vertices;
     QVector<glm::vec3> normals;
     
+    glm::vec3 pivot;
+    
+    bool isEye;
+    
     QVector<FBXBlendshape> blendshapes;
+};
+
+/// A set of meshes extracted from an FBX document.
+class FBXGeometry {
+public:
+
+    QVector<FBXMesh> meshes;
 };
 
 /// Parses the input from the supplied data as an FBX file.

@@ -28,7 +28,7 @@ public:
     BlendFace(Head* owningHead);
     ~BlendFace();
     
-    bool isActive() const { return _iboID != 0; }
+    bool isActive() const { return !_meshIDs.isEmpty(); }
     
     bool render(float alpha);
     
@@ -43,6 +43,7 @@ private slots:
 private:
     
     void setGeometry(const FBXGeometry& geometry);
+    void deleteGeometry();
     
     Head* _owningHead;
     
@@ -50,8 +51,8 @@ private:
     
     QNetworkReply* _modelReply;
 
-    GLuint _iboID;
-    GLuint _vboID;
+    typedef QPair<GLuint, GLuint> VerticesIndices;
+    QVector<VerticesIndices> _meshIDs;
     
     FBXGeometry _geometry;
     QVector<glm::vec3> _blendedVertices;
