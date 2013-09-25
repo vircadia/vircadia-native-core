@@ -35,6 +35,9 @@ void BlendFace::init() {
     }
 }
 
+const glm::vec3 MODEL_TRANSLATION(0.0f, -0.025f, -0.025f); // temporary fudge factor
+const float MODEL_SCALE = 0.0006f;
+
 bool BlendFace::render(float alpha) {
     if (_meshIDs.isEmpty()) {
         return false;
@@ -44,11 +47,9 @@ bool BlendFace::render(float alpha) {
     glTranslatef(_owningHead->getPosition().x, _owningHead->getPosition().y, _owningHead->getPosition().z);
     glm::quat orientation = _owningHead->getOrientation();
     glm::vec3 axis = glm::axis(orientation);
-    glRotatef(glm::angle(orientation), axis.x, axis.y, axis.z);
-    const glm::vec3 MODEL_TRANSLATION(0.0f, -0.025f, -0.025f); // temporary fudge factor
+    glRotatef(glm::angle(orientation), axis.x, axis.y, axis.z);    
     glTranslatef(MODEL_TRANSLATION.x, MODEL_TRANSLATION.y, MODEL_TRANSLATION.z); 
-    const float MODEL_SCALE = 0.0006f;
-    glm::vec3 scale(_owningHead->getScale() * MODEL_SCALE, _owningHead->getScale() * MODEL_SCALE,
+    glm::vec3 scale(-_owningHead->getScale() * MODEL_SCALE, _owningHead->getScale() * MODEL_SCALE,
         -_owningHead->getScale() * MODEL_SCALE);
     glScalef(scale.x, scale.y, scale.z);
 
@@ -75,7 +76,7 @@ bool BlendFace::render(float alpha) {
             glm::quat rotation = glm::inverse(orientation) * _owningHead->getEyeRotation(orientation *
                 (mesh.pivot * scale + MODEL_TRANSLATION) + _owningHead->getPosition());
             glm::vec3 rotationAxis = glm::axis(rotation);
-            glRotatef(glm::angle(-rotation), rotationAxis.x, rotationAxis.y, rotationAxis.z);
+            glRotatef(glm::angle(rotation), -rotationAxis.x, rotationAxis.y, -rotationAxis.z);
             glTranslatef(-mesh.pivot.x, -mesh.pivot.y, -mesh.pivot.z);
         
             // use texture coordinates only for the eye, for now
@@ -147,6 +148,25 @@ bool BlendFace::render(float alpha) {
     glPopMatrix();
 
     return true;
+}
+
+void BlendFace::getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const {
+    glm::quat orientation = _owningHead->getOrientation();
+    glm::vec3 scale(-_owningHead->getScale() * MODEL_SCALE, _owningHead->getScale() * MODEL_SCALE,
+        -_owningHead->getScale() * MODEL_SCALE);
+    bool foundFirst = false;
+    
+    foreach (const FBXMesh& mesh, _geometry.meshes) {
+        if (mesh.isEye) {
+            glm::vec3 position = orientation * (mesh.pivot * scale + MODEL_TRANSLATION) + _owningHead->getPosition();
+            if (foundFirst) {
+                secondEyePosition = position;
+                return;
+            }
+            firstEyePosition = position;
+            foundFirst = true;
+        }
+    }
 }
 
 void BlendFace::setModelURL(const QUrl& url) {

@@ -36,6 +36,8 @@ public:
     Q_INVOKABLE void setModelURL(const QUrl& url);
     const QUrl& getModelURL() const { return _modelURL; }
 
+    void getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const;
+
 private slots:
     
     void handleModelDownloadProgress(qint64 bytesReceived, qint64 bytesTotal);

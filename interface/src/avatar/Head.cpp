@@ -343,7 +343,13 @@ void Head::render(float alpha, bool isMine) {
     }
         
     if (_renderLookatVectors) {
-        renderLookatVectors(_leftEyePosition, _rightEyePosition, _lookAtPosition);
+        glm::vec3 firstEyePosition = _leftEyePosition;
+        glm::vec3 secondEyePosition = _rightEyePosition;
+        if (_blendFace.isActive()) {
+            // the blend face may have custom eye meshes
+            _blendFace.getEyePositions(firstEyePosition, secondEyePosition);
+        }
+        renderLookatVectors(firstEyePosition, secondEyePosition, _lookAtPosition);
     }
 }
 
