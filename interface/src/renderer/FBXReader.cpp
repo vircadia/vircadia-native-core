@@ -310,7 +310,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node) {
                                         normals = createVec3Vector(subdata.properties.at(0).value<QVector<double> >());
                                     }
                                 }    
-                            } else if (data.name == "LayerElementUV") {
+                            } else if (data.name == "LayerElementUV" && data.properties.at(0).toInt() == 0) {
                                 QVector<glm::vec2> texCoords;
                                 QVector<int> indices;
                                 foreach (const FBXNode& subdata, data.children) {

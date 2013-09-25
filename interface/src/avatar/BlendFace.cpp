@@ -69,6 +69,9 @@ bool BlendFace::render(float alpha) {
             glm::vec3 rotationAxis = glm::axis(rotation);
             glRotatef(glm::angle(rotation), rotationAxis.x, rotationAxis.y, rotationAxis.z);
             glTranslatef(-mesh.pivot.x, -mesh.pivot.y, -mesh.pivot.z);
+        
+            // use texture coordinates only for the eye, for now
+            glEnableClientState(GL_TEXTURE_COORD_ARRAY);
         }
         
         // all meshes after the first are white
@@ -107,11 +110,13 @@ bool BlendFace::render(float alpha) {
         
         glVertexPointer(3, GL_FLOAT, 0, 0);
         glNormalPointer(GL_FLOAT, 0, (void*)(vertexCount * sizeof(glm::vec3)));
+        glTexCoordPointer(2, GL_FLOAT, 0, (void*)(vertexCount * 2 * sizeof(glm::vec3)));
         glDrawRangeElementsEXT(GL_QUADS, 0, vertexCount - 1, mesh.quadIndices.size(), GL_UNSIGNED_INT, 0);
         glDrawRangeElementsEXT(GL_TRIANGLES, 0, vertexCount - 1, mesh.triangleIndices.size(),
             GL_UNSIGNED_INT, (void*)(mesh.quadIndices.size() * sizeof(int)));
             
         if (mesh.isEye) {
+            glDisableClientState(GL_TEXTURE_COORD_ARRAY);
             glPopMatrix();
         }
     }
@@ -213,11 +218,13 @@ void BlendFace::setGeometry(const FBXGeometry& geometry) {
         glBindBuffer(GL_ARRAY_BUFFER, ids.second);
         
         if (mesh.blendshapes.isEmpty()) {
-            glBufferData(GL_ARRAY_BUFFER, (mesh.vertices.size() + mesh.normals.size()) * sizeof(glm::vec3),
-                NULL, GL_STATIC_DRAW);
+            glBufferData(GL_ARRAY_BUFFER, (mesh.vertices.size() + mesh.normals.size()) * sizeof(glm::vec3) +
+                mesh.texCoords.size() * sizeof(glm::vec2), NULL, GL_STATIC_DRAW);
             glBufferSubData(GL_ARRAY_BUFFER, 0, mesh.vertices.size() * sizeof(glm::vec3), mesh.vertices.constData());
             glBufferSubData(GL_ARRAY_BUFFER, mesh.vertices.size() * sizeof(glm::vec3),
                 mesh.normals.size() * sizeof(glm::vec3), mesh.normals.constData());
+            glBufferSubData(GL_ARRAY_BUFFER, (mesh.vertices.size() + mesh.normals.size()) * sizeof(glm::vec3),
+                mesh.texCoords.size() * sizeof(glm::vec2), mesh.texCoords.constData());    
                 
         } else {
             glBufferData(GL_ARRAY_BUFFER, (mesh.vertices.size() + mesh.normals.size()) * sizeof(glm::vec3),
