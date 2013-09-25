@@ -30,6 +30,7 @@ public:
     
     bool isActive() const { return !_meshIDs.isEmpty(); }
     
+    void init();
     bool render(float alpha);
     
     Q_INVOKABLE void setModelURL(const QUrl& url);
@@ -57,6 +58,8 @@ private:
     FBXGeometry _geometry;
     QVector<glm::vec3> _blendedVertices;
     QVector<glm::vec3> _blendedNormals;
+    
+    static GLuint _eyeTextureID;
 };
 
 #endif /* defined(__interface__BlendFace__) */

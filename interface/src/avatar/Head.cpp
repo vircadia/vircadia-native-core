@@ -6,8 +6,6 @@
 
 #include <glm/gtx/quaternion.hpp>
 
-#include <QImage>
-
 #include <NodeList.h>
 
 #include "Application.h"
@@ -105,16 +103,14 @@ void Head::init() {
         _irisProgram.setUniformValue("texture", 0);
         _eyePositionLocation = _irisProgram.uniformLocation("eyePosition");
 
-        QImage image = QImage(IRIS_TEXTURE_FILENAME).convertToFormat(QImage::Format_ARGB32);
-        
-        glGenTextures(1, &_irisTextureID);
+        _irisTextureID = Application::getInstance()->getTextureCache()->getFileTextureID(IRIS_TEXTURE_FILENAME);
+
         glBindTexture(GL_TEXTURE_2D, _irisTextureID);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width(), image.height(), 1, GL_BGRA, GL_UNSIGNED_BYTE, image.constBits());
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
         glBindTexture(GL_TEXTURE_2D, 0);
     }
+    _blendFace.init();
 }
 
 void Head::reset() {

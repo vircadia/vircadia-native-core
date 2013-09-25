@@ -27,6 +27,14 @@ BlendFace::~BlendFace() {
     deleteGeometry();
 }
 
+GLuint BlendFace::_eyeTextureID = 0;
+
+void BlendFace::init() {
+    if (_eyeTextureID == 0) {
+        _eyeTextureID = Application::getInstance()->getTextureCache()->getFileTextureID("resources/images/eye.png");
+    }
+}
+
 bool BlendFace::render(float alpha) {
     if (_meshIDs.isEmpty()) {
         return false;
@@ -67,11 +75,14 @@ bool BlendFace::render(float alpha) {
             glm::quat rotation = glm::inverse(orientation) * _owningHead->getEyeRotation(orientation *
                 (mesh.pivot * scale + MODEL_TRANSLATION) + _owningHead->getPosition());
             glm::vec3 rotationAxis = glm::axis(rotation);
-            glRotatef(glm::angle(rotation), rotationAxis.x, rotationAxis.y, rotationAxis.z);
+            glRotatef(glm::angle(-rotation), rotationAxis.x, rotationAxis.y, rotationAxis.z);
             glTranslatef(-mesh.pivot.x, -mesh.pivot.y, -mesh.pivot.z);
         
             // use texture coordinates only for the eye, for now
             glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+            
+            glBindTexture(GL_TEXTURE_2D, _eyeTextureID);
+            glEnable(GL_TEXTURE_2D);
         }
         
         // all meshes after the first are white
@@ -117,6 +128,8 @@ bool BlendFace::render(float alpha) {
             
         if (mesh.isEye) {
             glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+            glBindTexture(GL_TEXTURE_2D, 0);
+            glDisable(GL_TEXTURE_2D);
             glPopMatrix();
         }
     }

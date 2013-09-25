@@ -9,6 +9,7 @@
 #ifndef __interface__TextureCache__
 #define __interface__TextureCache__
 
+#include <QHash>
 #include <QObject>
 
 #include "InterfaceConfig.h"
@@ -26,6 +27,9 @@ public:
     /// has two lines: the first, a set of random numbers in [0, 255] to be used as permutation offsets, and
     /// the second, a set of random unit vectors to be used as noise gradients.
     GLuint getPermutationNormalTextureID();
+
+    /// Returns the ID of a texture containing the contents of the specified file, loading it if necessary. 
+    GLuint getFileTextureID(const QString& filename);
 
     /// Returns a pointer to the primary framebuffer object.  This render target includes a depth component, and is
     /// used for scene rendering.
@@ -49,6 +53,8 @@ private:
     QOpenGLFramebufferObject* createFramebufferObject();
     
     GLuint _permutationNormalTextureID;
+
+    QHash<QString, GLuint> _fileTextureIDs;
 
     GLuint _primaryDepthTextureID;
     QOpenGLFramebufferObject* _primaryFramebufferObject;
