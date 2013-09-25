@@ -406,6 +406,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node) {
         FBXMesh& mesh = it.value();
         
         // look for a limb pivot
+        mesh.isEye = false;
         foreach (qint64 childID, childMap.values(it.key())) {
             qint64 clusterID = childMap.value(childID);
             if (pivots.contains(clusterID)) {
