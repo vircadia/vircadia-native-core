@@ -85,7 +85,7 @@ private:
     fs::fsBinaryStream _stream;
     bool _tcpEnabled;
     bool _tracking;
-    uint64_t _lastMessageReceived;
+    uint64_t _lastTrackingStateReceived;
     
     glm::quat _headRotation;
     glm::vec3 _headTranslation;
