@@ -197,6 +197,16 @@ QVector<glm::vec3> createVec3Vector(const QVector<double>& doubleVector) {
     return values;
 }
 
+QVector<glm::vec2> createVec2Vector(const QVector<double>& doubleVector) {
+    QVector<glm::vec2> values;
+    for (const double* it = doubleVector.constData(), *end = it + doubleVector.size(); it != end; ) {
+        float s = *it++;
+        float t = *it++;
+        values.append(glm::vec2(s, t));
+    }
+    return values;
+}
+
 const char* FACESHIFT_BLENDSHAPES[] = {
     "EyeBlink_L",
     "EyeBlink_R",
@@ -299,6 +309,20 @@ FBXGeometry extractFBXGeometry(const FBXNode& node) {
                                     if (subdata.name == "Normals") {
                                         normals = createVec3Vector(subdata.properties.at(0).value<QVector<double> >());
                                     }
+                                }    
+                            } else if (data.name == "LayerElementUV") {
+                                QVector<glm::vec2> texCoords;
+                                QVector<int> indices;
+                                foreach (const FBXNode& subdata, data.children) {
+                                    if (subdata.name == "UV") {
+                                        texCoords = createVec2Vector(subdata.properties.at(0).value<QVector<double> >());
+                                    
+                                    } else if (subdata.name == "UVIndex") {
+                                        indices = data.properties.at(0).value<QVector<int> >();
+                                    }
+                                }
+                                foreach (int index, indices) {
+                                    mesh.texCoords.append(texCoords.at(index));
                                 }    
                             }
                         }
