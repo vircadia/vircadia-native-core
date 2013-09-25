@@ -142,8 +142,14 @@ void Faceshift::receive(const QByteArray& buffer) {
             case fsMsg::MSG_OUT_TRACKING_STATE: {
                 const fsTrackingData& data = static_cast<fsMsgTrackingState*>(msg.get())->tracking_data();
                 if ((_tracking = data.m_trackingSuccessful)) {
-                    _headRotation = glm::quat(data.m_headRotation.w, -data.m_headRotation.x,
-                        data.m_headRotation.y, -data.m_headRotation.z);
+                    glm::quat newRotation = glm::quat(data.m_headRotation.w, -data.m_headRotation.x,
+                                                      data.m_headRotation.y, -data.m_headRotation.z);
+                    glm::quat r = newRotation * glm::inverse(_headRotation);
+                    //printf("angle = %.3f\n", 2 * acos(r.w));
+                    _headRotation = newRotation;
+                    
+                    //_headRotation = glm::quat(data.m_headRotation.w, -data.m_headRotation.x,
+                    //    data.m_headRotation.y, -data.m_headRotation.z);
                     const float TRANSLATION_SCALE = 0.02f;
                     _headTranslation = glm::vec3(data.m_headTranslation.x, data.m_headTranslation.y,
                         -data.m_headTranslation.z) * TRANSLATION_SCALE;
