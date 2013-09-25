@@ -459,6 +459,11 @@ glm::quat Head::getCameraOrientation () const {
             * glm::quat(glm::radians(glm::vec3(_cameraPitch + _mousePitch, _cameraYaw, 0.0f)));
 }
 
+glm::quat Head::getEyeRotation(const glm::vec3& eyePosition) const {
+    glm::quat orientation = getOrientation();
+    return rotationBetween(orientation * IDENTITY_FRONT, _lookAtPosition + _saccade - eyePosition) * orientation;
+}
+
 void Head::renderHeadSphere() {
     glPushMatrix();
         glTranslatef(_position.x, _position.y, _position.z); //translate to head position
@@ -663,17 +668,13 @@ void Head::renderEyeBalls() {
     glBindTexture(GL_TEXTURE_2D, _irisTextureID);
     glEnable(GL_TEXTURE_2D);
     
-    glm::quat orientation = getOrientation();
-    glm::vec3 front = orientation * IDENTITY_FRONT;
-    
     // render left iris
     glm::quat leftIrisRotation;
     glPushMatrix(); {
         glTranslatef(_leftEyePosition.x, _leftEyePosition.y, _leftEyePosition.z); //translate to eyeball position
         
         //rotate the eyeball to aim towards the lookat position
-        glm::vec3 targetLookatVector = _lookAtPosition + _saccade - _leftEyePosition;
-        leftIrisRotation = rotationBetween(front, targetLookatVector) * orientation;
+        leftIrisRotation = getEyeRotation(_leftEyePosition);
         glm::vec3 rotationAxis = glm::axis(leftIrisRotation);           
         glRotatef(glm::angle(leftIrisRotation), rotationAxis.x, rotationAxis.y, rotationAxis.z);
         glTranslatef(0.0f, 0.0f, -_scale * IRIS_PROTRUSION);
@@ -697,8 +698,7 @@ void Head::renderEyeBalls() {
         glTranslatef(_rightEyePosition.x, _rightEyePosition.y, _rightEyePosition.z);  //translate to eyeball position       
         
         //rotate the eyeball to aim towards the lookat position
-        glm::vec3 targetLookatVector = _lookAtPosition + _saccade - _rightEyePosition;
-        rightIrisRotation = rotationBetween(front, targetLookatVector) * orientation;
+        rightIrisRotation = getEyeRotation(_rightEyePosition);
         glm::vec3 rotationAxis = glm::axis(rightIrisRotation);        
         glRotatef(glm::angle(rightIrisRotation), rotationAxis.x, rotationAxis.y, rotationAxis.z);
         glTranslatef(0.0f, 0.0f, -_scale * IRIS_PROTRUSION);

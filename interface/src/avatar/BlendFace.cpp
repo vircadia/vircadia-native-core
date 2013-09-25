@@ -37,10 +37,12 @@ bool BlendFace::render(float alpha) {
     glm::quat orientation = _owningHead->getOrientation();
     glm::vec3 axis = glm::axis(orientation);
     glRotatef(glm::angle(orientation), axis.x, axis.y, axis.z);
-    glTranslatef(0.0f, -0.025f, -0.025f); // temporary fudge factor until we have a better method of per-model positioning
+    const glm::vec3 MODEL_TRANSLATION(0.0f, -0.025f, -0.025f); // temporary fudge factor
+    glTranslatef(MODEL_TRANSLATION.x, MODEL_TRANSLATION.y, MODEL_TRANSLATION.z); 
     const float MODEL_SCALE = 0.0006f;
-    glScalef(_owningHead->getScale() * MODEL_SCALE, _owningHead->getScale() * MODEL_SCALE,
+    glm::vec3 scale(_owningHead->getScale() * MODEL_SCALE, _owningHead->getScale() * MODEL_SCALE,
         -_owningHead->getScale() * MODEL_SCALE);
+    glScalef(scale.x, scale.y, scale.z);
 
     glEnableClientState(GL_VERTEX_ARRAY);
     glEnableClientState(GL_NORMAL_ARRAY);
@@ -57,6 +59,17 @@ bool BlendFace::render(float alpha) {
         
         const FBXMesh& mesh = _geometry.meshes.at(i);    
         int vertexCount = mesh.vertices.size();
+        
+        // apply eye rotation if appropriate
+        if (mesh.isEye) {
+            glPushMatrix();
+            glTranslatef(mesh.pivot.x, mesh.pivot.y, mesh.pivot.z);
+            glm::quat rotation = glm::inverse(orientation) * _owningHead->getEyeRotation(orientation *
+                (mesh.pivot * scale + MODEL_TRANSLATION) + _owningHead->getPosition());
+            glm::vec3 rotationAxis = glm::axis(rotation);
+            glRotatef(glm::angle(rotation), rotationAxis.x, rotationAxis.y, rotationAxis.z);
+            glTranslatef(-mesh.pivot.x, -mesh.pivot.y, -mesh.pivot.z);
+        }
         
         // all meshes after the first are white
         if (i == 1) {
@@ -97,6 +110,10 @@ bool BlendFace::render(float alpha) {
         glDrawRangeElementsEXT(GL_QUADS, 0, vertexCount - 1, mesh.quadIndices.size(), GL_UNSIGNED_INT, 0);
         glDrawRangeElementsEXT(GL_TRIANGLES, 0, vertexCount - 1, mesh.triangleIndices.size(),
             GL_UNSIGNED_INT, (void*)(mesh.quadIndices.size() * sizeof(int)));
+            
+        if (mesh.isEye) {
+            glPopMatrix();
+        }
     }
     
     glDisable(GL_NORMALIZE); 

@@ -275,6 +275,8 @@ FBXGeometry extractFBXGeometry(const FBXNode& node) {
     QHash<qint64, qint64> parentMap;
     QMultiHash<qint64, qint64> childMap;
     QHash<qint64, glm::vec3> pivots;
+    qint64 jointEyeLeftID = 0;
+    qint64 jointEyeRightID = 0;
     
     foreach (const FBXNode& child, node.children) {
         if (child.name == "Objects") {
@@ -360,6 +362,13 @@ FBXGeometry extractFBXGeometry(const FBXNode& node) {
                         
                         blendshapes.append(extracted);
                     }
+                } else if (object.name == "Model" && object.properties.at(2) == "LimbNode") {
+                    if (object.properties.at(1).toByteArray().startsWith("jointEyeLeft")) {
+                        jointEyeLeftID = object.properties.at(0).value<qint64>();
+                        
+                    } else if (object.properties.at(1).toByteArray().startsWith("jointEyeRight")) {
+                        jointEyeRightID = object.properties.at(0).value<qint64>();
+                    }
                 } else if (object.name == "Deformer" && object.properties.at(2) == "Cluster") {
                     foreach (const FBXNode& subobject, object.children) {
                         if (subobject.name == "TransformLink") {
@@ -401,6 +410,10 @@ FBXGeometry extractFBXGeometry(const FBXNode& node) {
             qint64 clusterID = childMap.value(childID);
             if (pivots.contains(clusterID)) {
                 mesh.pivot = pivots.value(clusterID);
+                qint64 jointID = childMap.value(clusterID);
+                if (jointID == jointEyeLeftID || jointID == jointEyeRightID) {
+                    mesh.isEye = true;
+                }
             }
         }
         

@@ -49,6 +49,8 @@ public:
     
     glm::vec3 pivot;
     
+    bool isEye;
+    
     QVector<FBXBlendshape> blendshapes;
 };
 

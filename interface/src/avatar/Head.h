@@ -72,6 +72,8 @@ public:
     glm::vec3 getUpDirection() const { return getOrientation() * IDENTITY_UP; }
     glm::vec3 getFrontDirection() const { return getOrientation() * IDENTITY_FRONT; }
     
+    glm::quat getEyeRotation(const glm::vec3& eyePosition) const;
+    
     Face& getFace() { return _face; }
     BlendFace& getBlendFace() { return _blendFace; }
     
