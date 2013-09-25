@@ -27,6 +27,27 @@ BlendFace::~BlendFace() {
     deleteGeometry();
 }
 
+ProgramObject BlendFace::_eyeProgram;
+GLuint BlendFace::_eyeTextureID;
+
+void BlendFace::init() {
+    if (!_eyeProgram.isLinked()) {
+        switchToResourcesParentIfRequired();
+        _eyeProgram.addShaderFromSourceFile(QGLShader::Vertex, "resources/shaders/eye.vert");
+        _eyeProgram.addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/iris.frag");
+        _eyeProgram.link();
+        
+        _eyeProgram.bind();
+        _eyeProgram.setUniformValue("texture", 0);
+        _eyeProgram.release();
+        
+        _eyeTextureID = Application::getInstance()->getTextureCache()->getFileTextureID("resources/images/eye.png");
+    }
+}
+
+const glm::vec3 MODEL_TRANSLATION(0.0f, -0.025f, -0.025f); // temporary fudge factor
+const float MODEL_SCALE = 0.0006f;
+
 bool BlendFace::render(float alpha) {
     if (_meshIDs.isEmpty()) {
         return false;
@@ -36,11 +57,9 @@ bool BlendFace::render(float alpha) {
     glTranslatef(_owningHead->getPosition().x, _owningHead->getPosition().y, _owningHead->getPosition().z);
     glm::quat orientation = _owningHead->getOrientation();
     glm::vec3 axis = glm::axis(orientation);
-    glRotatef(glm::angle(orientation), axis.x, axis.y, axis.z);
-    const glm::vec3 MODEL_TRANSLATION(0.0f, -0.025f, -0.025f); // temporary fudge factor
+    glRotatef(glm::angle(orientation), axis.x, axis.y, axis.z);    
     glTranslatef(MODEL_TRANSLATION.x, MODEL_TRANSLATION.y, MODEL_TRANSLATION.z); 
-    const float MODEL_SCALE = 0.0006f;
-    glm::vec3 scale(_owningHead->getScale() * MODEL_SCALE, _owningHead->getScale() * MODEL_SCALE,
+    glm::vec3 scale(-_owningHead->getScale() * MODEL_SCALE, _owningHead->getScale() * MODEL_SCALE,
         -_owningHead->getScale() * MODEL_SCALE);
     glScalef(scale.x, scale.y, scale.z);
 
@@ -67,8 +86,16 @@ bool BlendFace::render(float alpha) {
             glm::quat rotation = glm::inverse(orientation) * _owningHead->getEyeRotation(orientation *
                 (mesh.pivot * scale + MODEL_TRANSLATION) + _owningHead->getPosition());
             glm::vec3 rotationAxis = glm::axis(rotation);
-            glRotatef(glm::angle(rotation), rotationAxis.x, rotationAxis.y, rotationAxis.z);
+            glRotatef(glm::angle(rotation), -rotationAxis.x, rotationAxis.y, -rotationAxis.z);
             glTranslatef(-mesh.pivot.x, -mesh.pivot.y, -mesh.pivot.z);
+        
+            // use texture coordinates only for the eye, for now
+            glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+            
+            glBindTexture(GL_TEXTURE_2D, _eyeTextureID);
+            glEnable(GL_TEXTURE_2D);
+            
+            _eyeProgram.bind();
         }
         
         // all meshes after the first are white
@@ -107,11 +134,16 @@ bool BlendFace::render(float alpha) {
         
         glVertexPointer(3, GL_FLOAT, 0, 0);
         glNormalPointer(GL_FLOAT, 0, (void*)(vertexCount * sizeof(glm::vec3)));
+        glTexCoordPointer(2, GL_FLOAT, 0, (void*)(vertexCount * 2 * sizeof(glm::vec3)));
         glDrawRangeElementsEXT(GL_QUADS, 0, vertexCount - 1, mesh.quadIndices.size(), GL_UNSIGNED_INT, 0);
         glDrawRangeElementsEXT(GL_TRIANGLES, 0, vertexCount - 1, mesh.triangleIndices.size(),
             GL_UNSIGNED_INT, (void*)(mesh.quadIndices.size() * sizeof(int)));
             
         if (mesh.isEye) {
+            _eyeProgram.release();
+            glBindTexture(GL_TEXTURE_2D, 0);
+            glDisable(GL_TEXTURE_2D);
+            glDisableClientState(GL_TEXTURE_COORD_ARRAY);
             glPopMatrix();
         }
     }
@@ -129,6 +161,25 @@ bool BlendFace::render(float alpha) {
     glPopMatrix();
 
     return true;
+}
+
+void BlendFace::getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const {
+    glm::quat orientation = _owningHead->getOrientation();
+    glm::vec3 scale(-_owningHead->getScale() * MODEL_SCALE, _owningHead->getScale() * MODEL_SCALE,
+        -_owningHead->getScale() * MODEL_SCALE);
+    bool foundFirst = false;
+    
+    foreach (const FBXMesh& mesh, _geometry.meshes) {
+        if (mesh.isEye) {
+            glm::vec3 position = orientation * (mesh.pivot * scale + MODEL_TRANSLATION) + _owningHead->getPosition();
+            if (foundFirst) {
+                secondEyePosition = position;
+                return;
+            }
+            firstEyePosition = position;
+            foundFirst = true;
+        }
+    }
 }
 
 void BlendFace::setModelURL(const QUrl& url) {
@@ -213,11 +264,13 @@ void BlendFace::setGeometry(const FBXGeometry& geometry) {
         glBindBuffer(GL_ARRAY_BUFFER, ids.second);
         
         if (mesh.blendshapes.isEmpty()) {
-            glBufferData(GL_ARRAY_BUFFER, (mesh.vertices.size() + mesh.normals.size()) * sizeof(glm::vec3),
-                NULL, GL_STATIC_DRAW);
+            glBufferData(GL_ARRAY_BUFFER, (mesh.vertices.size() + mesh.normals.size()) * sizeof(glm::vec3) +
+                mesh.texCoords.size() * sizeof(glm::vec2), NULL, GL_STATIC_DRAW);
             glBufferSubData(GL_ARRAY_BUFFER, 0, mesh.vertices.size() * sizeof(glm::vec3), mesh.vertices.constData());
             glBufferSubData(GL_ARRAY_BUFFER, mesh.vertices.size() * sizeof(glm::vec3),
                 mesh.normals.size() * sizeof(glm::vec3), mesh.normals.constData());
+            glBufferSubData(GL_ARRAY_BUFFER, (mesh.vertices.size() + mesh.normals.size()) * sizeof(glm::vec3),
+                mesh.texCoords.size() * sizeof(glm::vec2), mesh.texCoords.constData());    
                 
         } else {
             glBufferData(GL_ARRAY_BUFFER, (mesh.vertices.size() + mesh.normals.size()) * sizeof(glm::vec3),

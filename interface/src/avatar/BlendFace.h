@@ -14,6 +14,7 @@
 
 #include "InterfaceConfig.h"
 #include "renderer/FBXReader.h"
+#include "renderer/ProgramObject.h"
 
 class QNetworkReply;
 
@@ -30,10 +31,13 @@ public:
     
     bool isActive() const { return !_meshIDs.isEmpty(); }
     
+    void init();
     bool render(float alpha);
     
     Q_INVOKABLE void setModelURL(const QUrl& url);
     const QUrl& getModelURL() const { return _modelURL; }
+
+    void getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const;
 
 private slots:
     
@@ -57,6 +61,9 @@ private:
     FBXGeometry _geometry;
     QVector<glm::vec3> _blendedVertices;
     QVector<glm::vec3> _blendedNormals;
+    
+    static ProgramObject _eyeProgram;
+    static GLuint _eyeTextureID;
 };
 
 #endif /* defined(__interface__BlendFace__) */

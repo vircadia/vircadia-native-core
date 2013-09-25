@@ -46,6 +46,7 @@ public:
     QVector<int> triangleIndices;
     QVector<glm::vec3> vertices;
     QVector<glm::vec3> normals;
+    QVector<glm::vec2> texCoords;
     
     glm::vec3 pivot;
     

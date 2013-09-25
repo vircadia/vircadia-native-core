@@ -197,6 +197,16 @@ QVector<glm::vec3> createVec3Vector(const QVector<double>& doubleVector) {
     return values;
 }
 
+QVector<glm::vec2> createVec2Vector(const QVector<double>& doubleVector) {
+    QVector<glm::vec2> values;
+    for (const double* it = doubleVector.constData(), *end = it + doubleVector.size(); it != end; ) {
+        float s = *it++;
+        float t = *it++;
+        values.append(glm::vec2(s, t));
+    }
+    return values;
+}
+
 const char* FACESHIFT_BLENDSHAPES[] = {
     "EyeBlink_L",
     "EyeBlink_R",
@@ -285,8 +295,10 @@ FBXGeometry extractFBXGeometry(const FBXNode& node) {
                     if (object.properties.at(2) == "Mesh") {
                         FBXMesh mesh;
                     
-                        QVector<glm::vec3> normals;
                         QVector<int> polygonIndices;
+                        QVector<glm::vec3> normals;
+                        QVector<glm::vec2> texCoords;
+                        QVector<int> texCoordIndices;
                         foreach (const FBXNode& data, object.children) {
                             if (data.name == "Vertices") {
                                 mesh.vertices = createVec3Vector(data.properties.at(0).value<QVector<double> >());
@@ -300,14 +312,29 @@ FBXGeometry extractFBXGeometry(const FBXNode& node) {
                                         normals = createVec3Vector(subdata.properties.at(0).value<QVector<double> >());
                                     }
                                 }    
+                            } else if (data.name == "LayerElementUV" && data.properties.at(0).toInt() == 0) {
+                                foreach (const FBXNode& subdata, data.children) {
+                                    if (subdata.name == "UV") {
+                                        texCoords = createVec2Vector(subdata.properties.at(0).value<QVector<double> >());
+                                        
+                                    } else if (subdata.name == "UVIndex") {
+                                        texCoordIndices = subdata.properties.at(0).value<QVector<int> >();
+                                    }
+                                }
                             }
                         }
                         
-                        // the (base) normals correspond to the polygon indices, for some reason
+                        // the (base) normals and tex coords correspond to the polygon indices, for some reason
                         mesh.normals.resize(mesh.vertices.size());
+                        mesh.texCoords.resize(mesh.vertices.size());
                         for (int i = 0, n = polygonIndices.size(); i < n; i++) {
                             int index = polygonIndices.at(i);
-                            mesh.normals[index < 0 ? (-index - 1) : index] = normals[i];
+                            index = (index < 0) ? (-index - 1) : index;
+                            mesh.normals[index] = normals.at(i);
+                            int texCoordIndex = texCoordIndices.at(i);
+                            if (texCoordIndex >= 0) {
+                                mesh.texCoords[index] = texCoords.at(texCoordIndex); 
+                            }
                         } 
                         
                         // convert the polygons to quads and triangles

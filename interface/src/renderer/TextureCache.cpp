@@ -24,6 +24,9 @@ TextureCache::~TextureCache() {
     if (_permutationNormalTextureID != 0) {
         glDeleteTextures(1, &_permutationNormalTextureID);
     }
+    foreach (GLuint id, _fileTextureIDs) {
+        glDeleteTextures(1, &id);
+    }
     if (_primaryFramebufferObject != NULL) {
         delete _primaryFramebufferObject;
         glDeleteTextures(1, &_primaryDepthTextureID);
@@ -60,6 +63,24 @@ GLuint TextureCache::getPermutationNormalTextureID() {
         glBindTexture(GL_TEXTURE_2D, 0);
     }
     return _permutationNormalTextureID;
+}
+
+GLuint TextureCache::getFileTextureID(const QString& filename) {
+    GLuint id = _fileTextureIDs.value(filename);
+    if (id == 0) {
+        switchToResourcesParentIfRequired();
+        QImage image = QImage(filename).convertToFormat(QImage::Format_ARGB32);
+    
+        glGenTextures(1, &id);
+        glBindTexture(GL_TEXTURE_2D, id);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width(), image.height(), 1,
+            GL_BGRA, GL_UNSIGNED_BYTE, image.constBits());
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glBindTexture(GL_TEXTURE_2D, 0);
+        
+        _fileTextureIDs.insert(filename, id);
+    }
+    return id;
 }
 
 QOpenGLFramebufferObject* TextureCache::getPrimaryFramebufferObject() {
