@@ -14,6 +14,7 @@
 
 #include "InterfaceConfig.h"
 #include "renderer/FBXReader.h"
+#include "renderer/ProgramObject.h"
 
 class QNetworkReply;
 
@@ -61,6 +62,7 @@ private:
     QVector<glm::vec3> _blendedVertices;
     QVector<glm::vec3> _blendedNormals;
     
+    static ProgramObject _eyeProgram;
     static GLuint _eyeTextureID;
 };
 

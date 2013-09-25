@@ -27,10 +27,20 @@ BlendFace::~BlendFace() {
     deleteGeometry();
 }
 
-GLuint BlendFace::_eyeTextureID = 0;
+ProgramObject BlendFace::_eyeProgram;
+GLuint BlendFace::_eyeTextureID;
 
 void BlendFace::init() {
-    if (_eyeTextureID == 0) {
+    if (!_eyeProgram.isLinked()) {
+        switchToResourcesParentIfRequired();
+        _eyeProgram.addShaderFromSourceFile(QGLShader::Vertex, "resources/shaders/eye.vert");
+        _eyeProgram.addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/iris.frag");
+        _eyeProgram.link();
+        
+        _eyeProgram.bind();
+        _eyeProgram.setUniformValue("texture", 0);
+        _eyeProgram.release();
+        
         _eyeTextureID = Application::getInstance()->getTextureCache()->getFileTextureID("resources/images/eye.png");
     }
 }
@@ -84,6 +94,8 @@ bool BlendFace::render(float alpha) {
             
             glBindTexture(GL_TEXTURE_2D, _eyeTextureID);
             glEnable(GL_TEXTURE_2D);
+            
+            _eyeProgram.bind();
         }
         
         // all meshes after the first are white
@@ -128,9 +140,10 @@ bool BlendFace::render(float alpha) {
             GL_UNSIGNED_INT, (void*)(mesh.quadIndices.size() * sizeof(int)));
             
         if (mesh.isEye) {
-            glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+            _eyeProgram.release();
             glBindTexture(GL_TEXTURE_2D, 0);
             glDisable(GL_TEXTURE_2D);
+            glDisableClientState(GL_TEXTURE_COORD_ARRAY);
             glPopMatrix();
         }
     }
