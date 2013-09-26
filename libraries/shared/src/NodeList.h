@@ -56,7 +56,6 @@ public:
     virtual void nodeKilled(Node* node) = 0;
 };
 
-
 class NodeList {
 public:
     static NodeList* createInstance(char ownerType, unsigned short int socketListenPort = 0);
