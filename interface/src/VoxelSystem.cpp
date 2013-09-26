@@ -714,12 +714,6 @@ void VoxelSystem::updateNodeInArrays(glBufferIndex nodeIndex, const glm::vec3& s
         writeVerticesAt->r = color[RED_INDEX];
         writeVerticesAt->g = color[GREEN_INDEX];
         writeVerticesAt->b = color[BLUE_INDEX];
-        
-        /**
-        printf("updateNodeInArrays() nodeIndex=%lu writeVerticesAt=[%f,%f,%f,%f  (%u,%u,%u)]\n",
-            nodeIndex, writeVerticesAt->x, writeVerticesAt->y, writeVerticesAt->z, writeVerticesAt->s,
-            writeVerticesAt->r, writeVerticesAt->g, writeVerticesAt->b );
-        **/
     } else {
         for (int j = 0; j < VERTEX_POINTS_PER_VOXEL; j++ ) {
             GLfloat* writeVerticesAt = _writeVerticesArray + (nodeIndex * VERTEX_POINTS_PER_VOXEL);
@@ -841,18 +835,11 @@ void VoxelSystem::updateVBOSegment(glBufferIndex segmentStart, glBufferIndex seg
         GLfloat* readVerticesFrom   = _readVerticesArray + (segmentStart * VERTEX_POINTS_PER_VOXEL);
         glBindBuffer(GL_ARRAY_BUFFER, _vboVerticesID);
         glBufferSubData(GL_ARRAY_BUFFER, segmentStartAt, segmentSizeBytes, readVerticesFrom);
-//printf("VoxelSystem::updateVBOSegment() segmentStart=%lu, segmentEnd=%lu, segmentSizeBytes=%lu  \n",
-//    segmentStart, segmentEnd, segmentSizeBytes);
-
-
         segmentStartAt          = segmentStart * VERTEX_POINTS_PER_VOXEL * sizeof(GLubyte);
         segmentSizeBytes        = segmentLength * VERTEX_POINTS_PER_VOXEL * sizeof(GLubyte);
         GLubyte* readColorsFrom = _readColorsArray   + (segmentStart * VERTEX_POINTS_PER_VOXEL);
         glBindBuffer(GL_ARRAY_BUFFER, _vboColorsID);
         glBufferSubData(GL_ARRAY_BUFFER, segmentStartAt, segmentSizeBytes, readColorsFrom);
-
-//printf("VoxelSystem::updateVBOSegment() segmentStart=%lu, segmentEnd=%lu, segmentSizeBytes=%lu  \n",
-//    segmentStart, segmentEnd, segmentSizeBytes);
     }
 }
 
@@ -864,8 +851,6 @@ void VoxelSystem::render(bool texture) {
     
     updateVBOs();
 
-    //printf("render() _voxelsInReadArrays=%lu voxel shader=%s\n", _voxelsInReadArrays, debug::valueOf(_useVoxelShader));
-    
     if (_useVoxelShader) {
     
         Application::getInstance()->getVoxelShader().begin();
@@ -884,15 +869,6 @@ void VoxelSystem::render(bool texture) {
 
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _vboVoxelsIndicesID);
         glDrawElements(GL_POINTS, _voxelsInReadArrays, GL_UNSIGNED_INT, BUFFER_OFFSET(0));   //The starting point of the IBO
-
-        /**
-        for (int i=0; i < _voxelsInReadArrays; i++) {
-            VoxelShaderVBOData* readDataAt = &_readVoxelShaderData[i];
-            printf("render() _voxelsInReadArrays=%lu i=%d readDataAt=[%f,%f,%f,%f  (%u,%u,%u)]\n",
-                 _voxelsInReadArrays, i, readDataAt->x, readDataAt->y, readDataAt->z, readDataAt->s,
-                readDataAt->r, readDataAt->g, readDataAt->b );
-        }  
-        **/
 
         // deactivate vertex and color arrays after drawing
         glDisableClientState(GL_VERTEX_ARRAY);
