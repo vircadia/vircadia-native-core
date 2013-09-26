@@ -24,6 +24,7 @@
 #include "PerlinFace.h"
 #include "world.h"
 #include "devices/SerialInterface.h"
+#include "renderer/TextureCache.h"
 
 enum eyeContactTargets {
     LEFT_EYE, 
@@ -135,8 +136,10 @@ private:
     PerlinFace _perlinFace;
     BlendFace _blendFace;
 
+    QSharedPointer<Texture> _irisTexture;
+
     static ProgramObject _irisProgram;
-    static GLuint _irisTextureID;
+    static DilatedTextureCache _irisTextureCache;
     static int _eyePositionLocation;
     
     // private methods

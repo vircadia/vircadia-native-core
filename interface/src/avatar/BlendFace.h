@@ -15,6 +15,7 @@
 #include "InterfaceConfig.h"
 #include "renderer/FBXReader.h"
 #include "renderer/ProgramObject.h"
+#include "renderer/TextureCache.h"
 
 class QNetworkReply;
 
@@ -62,8 +63,10 @@ private:
     QVector<glm::vec3> _blendedVertices;
     QVector<glm::vec3> _blendedNormals;
     
+    QSharedPointer<Texture> _eyeTexture;
+    
     static ProgramObject _eyeProgram;
-    static GLuint _eyeTextureID;
+    static DilatedTextureCache _eyeTextureCache;
 };
 
 #endif /* defined(__interface__BlendFace__) */
