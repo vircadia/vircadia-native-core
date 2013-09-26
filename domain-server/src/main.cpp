@@ -22,6 +22,7 @@
 #include <deque>
 #include <map>
 #include <math.h>
+#include <signal.h>
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -47,6 +48,9 @@ const int NODE_COUNT_STAT_INTERVAL_MSECS = 5000;
 
 QMutex assignmentQueueMutex;
 std::deque<Assignment*> assignmentQueue;
+
+uchar* staticAssignmentFileData;
+QFile* staticAssignmentFile = NULL;
 
 unsigned char* addNodeToBroadcastPacket(unsigned char* currentPosition, Node* nodeToAdd) {
     *currentPosition++ = nodeToAdd->getType();
@@ -109,11 +113,30 @@ static void mongooseUploadHandler(struct mg_connection *conn, const char *path) 
     ::assignmentQueueMutex.unlock();
 }
 
+void signalHandler(int signal) {
+    qDebug() << "Caught SIGTERM. Unmapping config file and exiting.\n";
+    
+    ::staticAssignmentFile->unmap(::staticAssignmentFileData);
+    ::staticAssignmentFile->close();
+    
+    delete ::staticAssignmentFile;
+    
+    exit(1);
+}
+
 int main(int argc, const char* argv[]) {
     
     QCoreApplication domainServer(argc, (char**) argv);
     
     qInstallMessageHandler(Logging::verboseMessageHandler);
+    
+    struct sigaction sigIntHandler;
+    
+    sigIntHandler.sa_handler = signalHandler;
+    sigemptyset(&sigIntHandler.sa_mask);
+    sigIntHandler.sa_flags = 0;
+    
+    sigaction(SIGINT, &sigIntHandler, NULL);
     
     const char CUSTOM_PORT_OPTION[] = "-p";
     const char* customPortString = getCmdOption(argc, argv, CUSTOM_PORT_OPTION);
@@ -140,13 +163,12 @@ int main(int argc, const char* argv[]) {
 
     timeval lastStatSendTime = {};
     
-    const QString STATIC_ASSIGNMENT_FILENAME = QString("%1/config.ds").arg(QCoreApplication::applicationDirPath());
-    
     const int MAX_STATIC_ASSIGNMENT_FILE_ASSIGNMENTS = 1000;
     
-    QFile staticAssignmentFile(STATIC_ASSIGNMENT_FILENAME);
+    const QString STATIC_ASSIGNMENT_FILENAME = QString("%1/config.ds").arg(QCoreApplication::applicationDirPath());
+    staticAssignmentFile = new QFile(STATIC_ASSIGNMENT_FILENAME);
     
-    if (!staticAssignmentFile.exists()) {
+    if (!::staticAssignmentFile->exists()) {
         
         const uint NUM_FRESH_STATIC_ASSIGNMENTS = 3;
         
@@ -175,21 +197,21 @@ int main(int argc, const char* argv[]) {
         
         freshStaticAssignmentList[2] = voxelServerAssignment;
         
-        staticAssignmentFile.open(QIODevice::WriteOnly);
+        ::staticAssignmentFile->open(QIODevice::WriteOnly);
         
-        staticAssignmentFile.write((char*) &NUM_FRESH_STATIC_ASSIGNMENTS,
+        ::staticAssignmentFile->write((char*) &NUM_FRESH_STATIC_ASSIGNMENTS,
                                         sizeof(uint16_t));
-        staticAssignmentFile.write((char*) &freshStaticAssignmentList, sizeof(freshStaticAssignmentList));
-        staticAssignmentFile.resize(MAX_STATIC_ASSIGNMENT_FILE_ASSIGNMENTS * sizeof(Assignment));
-        staticAssignmentFile.close();
+        ::staticAssignmentFile->write((char*) &freshStaticAssignmentList, sizeof(freshStaticAssignmentList));
+        ::staticAssignmentFile->resize(MAX_STATIC_ASSIGNMENT_FILE_ASSIGNMENTS * sizeof(Assignment));
+        ::staticAssignmentFile->close();
     }
     
-    staticAssignmentFile.open(QIODevice::ReadWrite);
+    ::staticAssignmentFile->open(QIODevice::ReadWrite);
     
-    uchar* staticAssignmentFileData = staticAssignmentFile.map(0, staticAssignmentFile.size());
+    ::staticAssignmentFileData = ::staticAssignmentFile->map(0, ::staticAssignmentFile->size());
     
-    uint16_t* numAssignmentsInStaticFile = (uint16_t*) staticAssignmentFileData;
-    Assignment* staticFileAssignments = (Assignment*) (staticAssignmentFileData + sizeof(*numAssignmentsInStaticFile));
+    uint16_t* numAssignmentsInStaticFile = (uint16_t*) ::staticAssignmentFileData;
+    Assignment* staticFileAssignments = (Assignment*) (::staticAssignmentFileData + sizeof(*numAssignmentsInStaticFile));
     
     // construct a local socket to send with our created assignments to the global AS
     sockaddr_in localSocket = {};
@@ -407,6 +429,9 @@ int main(int argc, const char* argv[]) {
                 ::assignmentQueueMutex.lock();
                 ::assignmentQueue.push_back(createAssignment);
                 ::assignmentQueueMutex.unlock();
+                
+                // also add this assignment to the static map of assignments so it exists next time the DS starts up
+                staticFileAssignments[(*numAssignmentsInStaticFile)++] = *createAssignment;
             }
         }
         
@@ -421,7 +446,8 @@ int main(int argc, const char* argv[]) {
             }
         }
     }
-
+    
+    ::staticAssignmentFile->unmap(::staticAssignmentFileData);
     return 0;
 }
 
