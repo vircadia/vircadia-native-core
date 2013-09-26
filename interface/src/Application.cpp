@@ -116,7 +116,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _nudgeStarted(false),
         _lookingAlongX(false),
         _lookingAwayFromOrigin(true),
-        _isLookingAtOtherAvatar(false),
+        _lookatTargetAvatar(NULL),
         _lookatIndicatorScale(1.0f),
         _perfStatsOn(false),
         _chatEntryOn(false),
@@ -974,7 +974,7 @@ void Application::mousePressEvent(QMouseEvent* event) {
 
             maybeEditVoxelUnderCursor();
 
-            if (!_palette.isActive() && (!_isHoverVoxel || _isLookingAtOtherAvatar)) {
+            if (!_palette.isActive() && (!_isHoverVoxel || _lookatTargetAvatar)) {
                 _pieMenu.mousePressEvent(_mouseX, _mouseY);
             }
 
@@ -1503,7 +1503,7 @@ void Application::setListenModeSingleSource() {
     glm::vec3 eyePositionIgnored;
     uint16_t nodeID;
 
-    if (isLookingAtOtherAvatar(mouseRayOrigin, mouseRayDirection, eyePositionIgnored, nodeID)) {
+    if (findLookatTargetAvatar(mouseRayOrigin, mouseRayDirection, eyePositionIgnored, nodeID)) {
         _audio.addListenSource(nodeID);
     }
 }
@@ -1600,8 +1600,8 @@ const float HEAD_SPHERE_RADIUS = 0.07;
 static uint16_t DEFAULT_NODE_ID_REF = 1;
 
 
-Avatar* Application::isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection,
-                                         glm::vec3& eyePosition, uint16_t& nodeID = DEFAULT_NODE_ID_REF) {
+Avatar* Application::findLookatTargetAvatar(const glm::vec3& mouseRayOrigin, const glm::vec3& mouseRayDirection,
+    glm::vec3& eyePosition, uint16_t& nodeID = DEFAULT_NODE_ID_REF) {
                                          
     NodeList* nodeList = NodeList::getInstance();
     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
@@ -1748,8 +1748,8 @@ void Application::update(float deltaTime) {
             _faceshift.getEstimatedEyePitch(), _faceshift.getEstimatedEyeYaw(), 0.0f))) * glm::vec3(0.0f, 0.0f, -1.0f);
     }
 
-    _isLookingAtOtherAvatar = isLookingAtOtherAvatar(lookAtRayOrigin, lookAtRayDirection, lookAtSpot);
-    if (_isLookingAtOtherAvatar) {
+    _lookatTargetAvatar = findLookatTargetAvatar(lookAtRayOrigin, lookAtRayDirection, lookAtSpot);
+    if (_lookatTargetAvatar) {
         // If the mouse is over another avatar's head...
          _myAvatar.getHead().setLookAtPosition(lookAtSpot);
     } else if (_isHoverVoxel && !_faceshift.isActive()) {
@@ -2063,15 +2063,15 @@ void Application::updateAvatar(float deltaTime) {
         const float MIDPOINT_OF_SCREEN = 0.5;
         
         // Only use gyro to set lookAt if mouse hasn't selected an avatar
-        if (!_isLookingAtOtherAvatar) {
+        if (!_lookatTargetAvatar) {
 
             // Set lookAtPosition if an avatar is at the center of the screen
             glm::vec3 screenCenterRayOrigin, screenCenterRayDirection;
             _viewFrustum.computePickRay(MIDPOINT_OF_SCREEN, MIDPOINT_OF_SCREEN, screenCenterRayOrigin, screenCenterRayDirection);
 
             glm::vec3 eyePosition;
-            _isLookingAtOtherAvatar = isLookingAtOtherAvatar(screenCenterRayOrigin, screenCenterRayDirection, eyePosition);
-            if (_isLookingAtOtherAvatar) {
+            _lookatTargetAvatar = findLookatTargetAvatar(screenCenterRayOrigin, screenCenterRayDirection, eyePosition);
+            if (_lookatTargetAvatar) {
                 glm::vec3 myLookAtFromMouse(eyePosition);
                 _myAvatar.getHead().setLookAtPosition(myLookAtFromMouse);
             }
@@ -2540,7 +2540,7 @@ void Application::displaySide(Camera& whichCamera) {
                          Menu::getInstance()->isOptionChecked(MenuOption::AvatarAsBalls));
         _myAvatar.setDisplayingLookatVectors(Menu::getInstance()->isOptionChecked(MenuOption::LookAtVectors));
 
-        if (Menu::getInstance()->isOptionChecked(MenuOption::LookAtIndicator) && _isLookingAtOtherAvatar) {
+        if (Menu::getInstance()->isOptionChecked(MenuOption::LookAtIndicator) && _lookatTargetAvatar) {
             renderLookatIndicator(_lookatOtherPosition, whichCamera);
         }
     }
@@ -3342,10 +3342,7 @@ void Application::toggleFollowMode() {
                                 mouseRayOrigin, mouseRayDirection);
     glm::vec3 eyePositionIgnored;
     uint16_t  nodeIDIgnored;
-    Avatar* leadingAvatar = isLookingAtOtherAvatar(mouseRayOrigin,
-                                                   mouseRayDirection,
-                                                   eyePositionIgnored,
-                                                   nodeIDIgnored);
+    Avatar* leadingAvatar = findLookatTargetAvatar(mouseRayOrigin, mouseRayDirection, eyePositionIgnored, nodeIDIgnored);
 
     _myAvatar.follow(leadingAvatar);
 }

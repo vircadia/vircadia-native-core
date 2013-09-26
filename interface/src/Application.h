@@ -195,8 +195,8 @@ private:
     void init();
     
     void update(float deltaTime);
-    Avatar* isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection,
-                                glm::vec3& eyePosition, uint16_t& nodeID);
+    Avatar* findLookatTargetAvatar(const glm::vec3& mouseRayOrigin, const glm::vec3& mouseRayDirection,
+        glm::vec3& eyePosition, uint16_t& nodeID);
     bool isLookingAtMyAvatar(Avatar* avatar);
                                 
     void renderLookatIndicator(glm::vec3 pointOfInterest, Camera& whichCamera);
@@ -315,7 +315,7 @@ private:
     bool _lookingAwayFromOrigin;
     glm::vec3 _nudgeGuidePosition;
 
-    bool _isLookingAtOtherAvatar;
+    Avatar* _lookatTargetAvatar;
     glm::vec3 _lookatOtherPosition;
     float _lookatIndicatorScale;
     
