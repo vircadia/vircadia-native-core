@@ -60,15 +60,10 @@ public:
 
     void update();
     void reset();
-
-signals:
-
-    void rigReceived(const fs::fsMsgRig& rig);
     
 public slots:
     
     void setTCPEnabled(bool enabled);
-    void setUsingRig(bool usingRig);
     
 private slots:
 
@@ -90,7 +85,7 @@ private:
     fs::fsBinaryStream _stream;
     bool _tcpEnabled;
     bool _tracking;
-    uint64_t _lastMessageReceived;
+    uint64_t _lastTrackingStateReceived;
     
     glm::quat _headRotation;
     glm::vec3 _headTranslation;

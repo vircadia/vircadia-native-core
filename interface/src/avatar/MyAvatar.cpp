@@ -50,21 +50,14 @@ MyAvatar::MyAvatar(Node* owningNode) :
     _elapsedTimeSinceCollision(0.0f),
     _lastCollisionPosition(0, 0, 0),
     _speedBrakes(false),
-    _isThrustOn(false)
+    _isThrustOn(false),
+    _thrustMultiplier(1.0f)
 {
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
         _driveKeys[i] = false;
     }
 
     _collisionRadius = _height * COLLISION_RADIUS_SCALE;   
-}
-
-void MyAvatar::init() {
-    Avatar::init();
-
-    // when we receive a Faceshift rig, apply it to our own blend face
-    _head.getBlendFace().connect(Application::getInstance()->getFaceshift(), SIGNAL(rigReceived(fs::fsMsgRig)),
-        SLOT(setRig(fs::fsMsgRig)));
 }
 
 void MyAvatar::reset() {
@@ -218,9 +211,10 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter, float gyroCam
     const float STATIC_FRICTION_STRENGTH = _scale * 20.f;
     applyStaticFriction(deltaTime, _velocity, MAX_STATIC_FRICTION_VELOCITY, STATIC_FRICTION_STRENGTH);
     
-    const float LINEAR_DAMPING_STRENGTH = 1.0f;
+    const float LINEAR_DAMPING_STRENGTH = 0.5f;
     const float SPEED_BRAKE_POWER = _scale * 10.0f;
-    const float SQUARED_DAMPING_STRENGTH = 0.2f;
+    // Note: PER changed squared damping strength to zero 
+    const float SQUARED_DAMPING_STRENGTH = 0.0f;
     if (_speedBrakes) {
         applyDamping(deltaTime, _velocity, LINEAR_DAMPING_STRENGTH * SPEED_BRAKE_POWER, SQUARED_DAMPING_STRENGTH * SPEED_BRAKE_POWER);
     } else {
@@ -634,14 +628,22 @@ void MyAvatar::updateThrust(float deltaTime, Transmitter * transmitter) {
     const float THRUST_JUMP = 120.f;
     
     //  Add Thrusts from keyboard
-    if (_driveKeys[FWD]) {_thrust += _scale * THRUST_MAG_FWD * deltaTime * front;}
-    if (_driveKeys[BACK]) {_thrust -= _scale * THRUST_MAG_BACK * deltaTime * front;}
-    if (_driveKeys[RIGHT]) {_thrust += _scale * THRUST_MAG_LATERAL * deltaTime * right;}
-    if (_driveKeys[LEFT]) {_thrust -= _scale * THRUST_MAG_LATERAL * deltaTime * right;}
-    if (_driveKeys[UP]) {_thrust += _scale * THRUST_MAG_UP * deltaTime * up;}
-    if (_driveKeys[DOWN]) {_thrust -= _scale * THRUST_MAG_DOWN * deltaTime * up;}
+    if (_driveKeys[FWD]) {_thrust += _scale * THRUST_MAG_FWD * _thrustMultiplier * deltaTime * front;}
+    if (_driveKeys[BACK]) {_thrust -= _scale * THRUST_MAG_BACK *  _thrustMultiplier * deltaTime * front;}
+    if (_driveKeys[RIGHT]) {_thrust += _scale * THRUST_MAG_LATERAL * _thrustMultiplier * deltaTime * right;}
+    if (_driveKeys[LEFT]) {_thrust -= _scale * THRUST_MAG_LATERAL * _thrustMultiplier * deltaTime * right;}
+    if (_driveKeys[UP]) {_thrust += _scale * THRUST_MAG_UP * _thrustMultiplier * deltaTime * up;}
+    if (_driveKeys[DOWN]) {_thrust -= _scale * THRUST_MAG_DOWN * _thrustMultiplier * deltaTime * up;}
     if (_driveKeys[ROT_RIGHT]) {_bodyYawDelta -= YAW_MAG * deltaTime;}
     if (_driveKeys[ROT_LEFT]) {_bodyYawDelta += YAW_MAG * deltaTime;}
+    
+    //  If thrust keys are being held down, slowly increase thrust to allow reaching great speeds
+    if (_driveKeys[FWD] || _driveKeys[BACK] || _driveKeys[RIGHT] || _driveKeys[LEFT] || _driveKeys[UP] || _driveKeys[DOWN]) {
+        const float THRUST_INCREASE_RATE = 1.0;
+        _thrustMultiplier *= 1.f + deltaTime * THRUST_INCREASE_RATE;
+    } else {
+        _thrustMultiplier = 1.f;
+    }
     
     //  Add one time jumping force if requested
     if (_shouldJump) {

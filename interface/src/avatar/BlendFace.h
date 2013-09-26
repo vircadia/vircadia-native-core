@@ -12,10 +12,9 @@
 #include <QObject>
 #include <QUrl>
 
-#include <fsbinarystream.h>
-
 #include "InterfaceConfig.h"
 #include "renderer/FBXReader.h"
+#include "renderer/ProgramObject.h"
 
 class QNetworkReply;
 
@@ -30,16 +29,15 @@ public:
     BlendFace(Head* owningHead);
     ~BlendFace();
     
-    bool isActive() const { return _iboID != 0; }
+    bool isActive() const { return !_meshIDs.isEmpty(); }
     
+    void init();
     bool render(float alpha);
     
     Q_INVOKABLE void setModelURL(const QUrl& url);
     const QUrl& getModelURL() const { return _modelURL; }
-    
-public slots:
-    
-    void setRig(const fs::fsMsgRig& rig);
+
+    void getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const;
 
 private slots:
     
@@ -49,6 +47,7 @@ private slots:
 private:
     
     void setGeometry(const FBXGeometry& geometry);
+    void deleteGeometry();
     
     Head* _owningHead;
     
@@ -56,11 +55,15 @@ private:
     
     QNetworkReply* _modelReply;
 
-    GLuint _iboID;
-    GLuint _vboID;
+    typedef QPair<GLuint, GLuint> VerticesIndices;
+    QVector<VerticesIndices> _meshIDs;
     
     FBXGeometry _geometry;
     QVector<glm::vec3> _blendedVertices;
+    QVector<glm::vec3> _blendedNormals;
+    
+    static ProgramObject _eyeProgram;
+    static GLuint _eyeTextureID;
 };
 
 #endif /* defined(__interface__BlendFace__) */

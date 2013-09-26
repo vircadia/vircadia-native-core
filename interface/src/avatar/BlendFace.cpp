@@ -17,22 +17,39 @@ using namespace std;
 
 BlendFace::BlendFace(Head* owningHead) :
     _owningHead(owningHead),
-    _modelReply(NULL),
-    _iboID(0)
+    _modelReply(NULL)
 {
     // we may have been created in the network thread, but we live in the main thread
     moveToThread(Application::getInstance()->thread());
 }
 
 BlendFace::~BlendFace() {
-    if (_iboID != 0) {
-        glDeleteBuffers(1, &_iboID);
-        glDeleteBuffers(1, &_vboID);
+    deleteGeometry();
+}
+
+ProgramObject BlendFace::_eyeProgram;
+GLuint BlendFace::_eyeTextureID;
+
+void BlendFace::init() {
+    if (!_eyeProgram.isLinked()) {
+        switchToResourcesParentIfRequired();
+        _eyeProgram.addShaderFromSourceFile(QGLShader::Vertex, "resources/shaders/eye.vert");
+        _eyeProgram.addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/iris.frag");
+        _eyeProgram.link();
+        
+        _eyeProgram.bind();
+        _eyeProgram.setUniformValue("texture", 0);
+        _eyeProgram.release();
+        
+        _eyeTextureID = Application::getInstance()->getTextureCache()->getFileTextureID("resources/images/eye.png");
     }
 }
 
+const glm::vec3 MODEL_TRANSLATION(0.0f, -0.025f, -0.025f); // temporary fudge factor
+const float MODEL_SCALE = 0.0006f;
+
 bool BlendFace::render(float alpha) {
-    if (_iboID == 0) {
+    if (_meshIDs.isEmpty()) {
         return false;
     }
 
@@ -40,51 +57,101 @@ bool BlendFace::render(float alpha) {
     glTranslatef(_owningHead->getPosition().x, _owningHead->getPosition().y, _owningHead->getPosition().z);
     glm::quat orientation = _owningHead->getOrientation();
     glm::vec3 axis = glm::axis(orientation);
-    glRotatef(glm::angle(orientation), axis.x, axis.y, axis.z);
-    glTranslatef(0.0f, -0.025f, -0.025f); // temporary fudge factor until we have a better method of per-model positioning
-    const float MODEL_SCALE = 0.0006f;
-    glScalef(_owningHead->getScale() * MODEL_SCALE, _owningHead->getScale() * MODEL_SCALE,
+    glRotatef(glm::angle(orientation), axis.x, axis.y, axis.z);    
+    glTranslatef(MODEL_TRANSLATION.x, MODEL_TRANSLATION.y, MODEL_TRANSLATION.z); 
+    glm::vec3 scale(-_owningHead->getScale() * MODEL_SCALE, _owningHead->getScale() * MODEL_SCALE,
         -_owningHead->getScale() * MODEL_SCALE);
+    glScalef(scale.x, scale.y, scale.z);
 
-    glColor4f(1.0f, 1.0f, 1.0f, alpha);
-
-    // start with the base
-    int vertexCount = _geometry.vertices.size();
-    _blendedVertices.resize(vertexCount);
-    memcpy(_blendedVertices.data(), _geometry.vertices.constData(), vertexCount * sizeof(glm::vec3));
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glEnableClientState(GL_NORMAL_ARRAY);
     
-    // blend in each coefficient
-    const vector<float>& coefficients = _owningHead->getBlendshapeCoefficients();
-    for (int i = 0; i < coefficients.size(); i++) {
-        float coefficient = coefficients[i];
-        if (coefficient == 0.0f || i >= _geometry.blendshapes.size() || _geometry.blendshapes[i].vertices.isEmpty()) {
-            continue;
+    // enable normalization under the expectation that the GPU can do it faster
+    glEnable(GL_NORMALIZE); 
+    
+    glColor4f(_owningHead->getSkinColor().r, _owningHead->getSkinColor().g, _owningHead->getSkinColor().b, alpha);
+    
+    for (int i = 0; i < _meshIDs.size(); i++) {
+        const VerticesIndices& ids = _meshIDs.at(i);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ids.first);
+        glBindBuffer(GL_ARRAY_BUFFER, ids.second);
+        
+        const FBXMesh& mesh = _geometry.meshes.at(i);    
+        int vertexCount = mesh.vertices.size();
+        
+        // apply eye rotation if appropriate
+        if (mesh.isEye) {
+            glPushMatrix();
+            glTranslatef(mesh.pivot.x, mesh.pivot.y, mesh.pivot.z);
+            glm::quat rotation = glm::inverse(orientation) * _owningHead->getEyeRotation(orientation *
+                (mesh.pivot * scale + MODEL_TRANSLATION) + _owningHead->getPosition());
+            glm::vec3 rotationAxis = glm::axis(rotation);
+            glRotatef(glm::angle(rotation), -rotationAxis.x, rotationAxis.y, -rotationAxis.z);
+            glTranslatef(-mesh.pivot.x, -mesh.pivot.y, -mesh.pivot.z);
+        
+            // use texture coordinates only for the eye, for now
+            glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+            
+            glBindTexture(GL_TEXTURE_2D, _eyeTextureID);
+            glEnable(GL_TEXTURE_2D);
+            
+            _eyeProgram.bind();
         }
-        const glm::vec3* source = _geometry.blendshapes[i].vertices.constData();
-        for (const int* index = _geometry.blendshapes[i].indices.constData(),
-                *end = index + _geometry.blendshapes[i].indices.size(); index != end; index++, source++) {
-            _blendedVertices[*index] += *source * coefficient;
+        
+        // all meshes after the first are white
+        if (i == 1) {
+            glColor4f(1.0f, 1.0f, 1.0f, alpha);
+        }
+        
+        if (!mesh.blendshapes.isEmpty()) {
+            _blendedVertices.resize(max(_blendedVertices.size(), vertexCount));
+            _blendedNormals.resize(_blendedVertices.size());
+            memcpy(_blendedVertices.data(), mesh.vertices.constData(), vertexCount * sizeof(glm::vec3));
+            memcpy(_blendedNormals.data(), mesh.normals.constData(), vertexCount * sizeof(glm::vec3));
+            
+            // blend in each coefficient
+            const vector<float>& coefficients = _owningHead->getBlendshapeCoefficients();
+            for (int i = 0; i < coefficients.size(); i++) {
+                float coefficient = coefficients[i];
+                if (coefficient == 0.0f || i >= mesh.blendshapes.size() || mesh.blendshapes[i].vertices.isEmpty()) {
+                    continue;
+                }
+                const float NORMAL_COEFFICIENT_SCALE = 0.01f;
+                float normalCoefficient = coefficient * NORMAL_COEFFICIENT_SCALE;
+                const glm::vec3* vertex = mesh.blendshapes[i].vertices.constData();
+                const glm::vec3* normal = mesh.blendshapes[i].normals.constData();
+                for (const int* index = mesh.blendshapes[i].indices.constData(),
+                        *end = index + mesh.blendshapes[i].indices.size(); index != end; index++, vertex++, normal++) {
+                    _blendedVertices[*index] += *vertex * coefficient;
+                    _blendedNormals[*index] += *normal * normalCoefficient;
+                }
+            }
+    
+            glBufferSubData(GL_ARRAY_BUFFER, 0, vertexCount * sizeof(glm::vec3), _blendedVertices.constData());
+            glBufferSubData(GL_ARRAY_BUFFER, vertexCount * sizeof(glm::vec3),
+                vertexCount * sizeof(glm::vec3), _blendedNormals.constData());
+        }
+        
+        glVertexPointer(3, GL_FLOAT, 0, 0);
+        glNormalPointer(GL_FLOAT, 0, (void*)(vertexCount * sizeof(glm::vec3)));
+        glTexCoordPointer(2, GL_FLOAT, 0, (void*)(vertexCount * 2 * sizeof(glm::vec3)));
+        glDrawRangeElementsEXT(GL_QUADS, 0, vertexCount - 1, mesh.quadIndices.size(), GL_UNSIGNED_INT, 0);
+        glDrawRangeElementsEXT(GL_TRIANGLES, 0, vertexCount - 1, mesh.triangleIndices.size(),
+            GL_UNSIGNED_INT, (void*)(mesh.quadIndices.size() * sizeof(int)));
+            
+        if (mesh.isEye) {
+            _eyeProgram.release();
+            glBindTexture(GL_TEXTURE_2D, 0);
+            glDisable(GL_TEXTURE_2D);
+            glDisableClientState(GL_TEXTURE_COORD_ARRAY);
+            glPopMatrix();
         }
     }
     
-    // update the blended vertices
-    glBindBuffer(GL_ARRAY_BUFFER, _vboID);
-    glBufferSubData(GL_ARRAY_BUFFER, 0, vertexCount * sizeof(glm::vec3), _blendedVertices.constData());
-    
-    // tell OpenGL where to find vertex information
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glVertexPointer(3, GL_FLOAT, 0, 0);
-    
-    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
-    
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _iboID);
-    glDrawRangeElementsEXT(GL_QUADS, 0, vertexCount - 1, _geometry.quadIndices.size(), GL_UNSIGNED_INT, 0);
-    glDrawRangeElementsEXT(GL_TRIANGLES, 0, vertexCount - 1, _geometry.triangleIndices.size(), GL_UNSIGNED_INT,
-        (void*)(_geometry.quadIndices.size() * sizeof(int)));
+    glDisable(GL_NORMALIZE); 
 
-    glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-    
     // deactivate vertex arrays after drawing
+    glDisableClientState(GL_NORMAL_ARRAY);
     glDisableClientState(GL_VERTEX_ARRAY);
     
     // bind with 0 to switch back to normal operation
@@ -94,6 +161,25 @@ bool BlendFace::render(float alpha) {
     glPopMatrix();
 
     return true;
+}
+
+void BlendFace::getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const {
+    glm::quat orientation = _owningHead->getOrientation();
+    glm::vec3 scale(-_owningHead->getScale() * MODEL_SCALE, _owningHead->getScale() * MODEL_SCALE,
+        -_owningHead->getScale() * MODEL_SCALE);
+    bool foundFirst = false;
+    
+    foreach (const FBXMesh& mesh, _geometry.meshes) {
+        if (mesh.isEye) {
+            glm::vec3 position = orientation * (mesh.pivot * scale + MODEL_TRANSLATION) + _owningHead->getPosition();
+            if (foundFirst) {
+                secondEyePosition = position;
+                return;
+            }
+            firstEyePosition = position;
+            foundFirst = true;
+        }
+    }
 }
 
 void BlendFace::setModelURL(const QUrl& url) {
@@ -129,41 +215,6 @@ glm::vec3 createVec3(const fsVector3f& vector) {
     return glm::vec3(vector.x, vector.y, vector.z);
 }
 
-void BlendFace::setRig(const fsMsgRig& rig) {
-    // convert to FBX geometry
-    FBXGeometry geometry;
-    
-    for (vector<fsVector4i>::const_iterator it = rig.mesh().m_quads.begin(), end = rig.mesh().m_quads.end(); it != end; it++) {
-        geometry.quadIndices.append(it->x);
-        geometry.quadIndices.append(it->y);
-        geometry.quadIndices.append(it->z);
-        geometry.quadIndices.append(it->w);
-    }
-    
-    for (vector<fsVector3i>::const_iterator it = rig.mesh().m_tris.begin(), end = rig.mesh().m_tris.end(); it != end; it++) {
-        geometry.triangleIndices.append(it->x);
-        geometry.triangleIndices.append(it->y);
-        geometry.triangleIndices.append(it->z);
-    }
-    
-    for (vector<fsVector3f>::const_iterator it = rig.mesh().m_vertex_data.m_vertices.begin(),
-            end = rig.mesh().m_vertex_data.m_vertices.end(); it != end; it++) {
-        geometry.vertices.append(glm::vec3(it->x, it->y, it->z));
-    }
-    
-    for (vector<fsVertexData>::const_iterator it = rig.blendshapes().begin(), end = rig.blendshapes().end(); it != end; it++) {
-        FBXBlendshape blendshape;
-        for (int i = 0, n = it->m_vertices.size(); i < n; i++) {
-            // subtract the base vertex position; we want the deltas
-            blendshape.vertices.append(createVec3(it->m_vertices[i]) - geometry.vertices[i]);
-            blendshape.indices.append(i);
-        }
-        geometry.blendshapes.append(blendshape);
-    }
-    
-    setGeometry(geometry);
-}
-
 void BlendFace::handleModelDownloadProgress(qint64 bytesReceived, qint64 bytesTotal) {
     if (bytesReceived < bytesTotal && !_modelReply->isFinished()) {
         return;
@@ -192,30 +243,52 @@ void BlendFace::handleModelReplyError() {
 }
 
 void BlendFace::setGeometry(const FBXGeometry& geometry) {
-    if (geometry.vertices.isEmpty()) {
-        // clear any existing geometry
-        if (_iboID != 0) {
-            glDeleteBuffers(1, &_iboID);
-            glDeleteBuffers(1, &_vboID);
-            _iboID = 0;
-        }
+    // clear any existing geometry
+    deleteGeometry();
+    
+    if (geometry.meshes.isEmpty()) {
         return;
     }
-    if (_iboID == 0) {
-        glGenBuffers(1, &_iboID);
-        glGenBuffers(1, &_vboID);
+    foreach (const FBXMesh& mesh, geometry.meshes) {
+        VerticesIndices ids;
+        glGenBuffers(1, &ids.first);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ids.first);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, (mesh.quadIndices.size() + mesh.triangleIndices.size()) * sizeof(int),
+            NULL, GL_STATIC_DRAW);
+        glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, mesh.quadIndices.size() * sizeof(int), mesh.quadIndices.constData());
+        glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, mesh.quadIndices.size() * sizeof(int),
+            mesh.triangleIndices.size() * sizeof(int), mesh.triangleIndices.constData());
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+        
+        glGenBuffers(1, &ids.second);
+        glBindBuffer(GL_ARRAY_BUFFER, ids.second);
+        
+        if (mesh.blendshapes.isEmpty()) {
+            glBufferData(GL_ARRAY_BUFFER, (mesh.vertices.size() + mesh.normals.size()) * sizeof(glm::vec3) +
+                mesh.texCoords.size() * sizeof(glm::vec2), NULL, GL_STATIC_DRAW);
+            glBufferSubData(GL_ARRAY_BUFFER, 0, mesh.vertices.size() * sizeof(glm::vec3), mesh.vertices.constData());
+            glBufferSubData(GL_ARRAY_BUFFER, mesh.vertices.size() * sizeof(glm::vec3),
+                mesh.normals.size() * sizeof(glm::vec3), mesh.normals.constData());
+            glBufferSubData(GL_ARRAY_BUFFER, (mesh.vertices.size() + mesh.normals.size()) * sizeof(glm::vec3),
+                mesh.texCoords.size() * sizeof(glm::vec2), mesh.texCoords.constData());    
+                
+        } else {
+            glBufferData(GL_ARRAY_BUFFER, (mesh.vertices.size() + mesh.normals.size()) * sizeof(glm::vec3),
+                NULL, GL_DYNAMIC_DRAW);
+        }
+        
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        
+        _meshIDs.append(ids);
     }
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _iboID);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, (geometry.quadIndices.size() + geometry.triangleIndices.size()) * sizeof(int),
-        NULL, GL_STATIC_DRAW);
-    glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, geometry.quadIndices.size() * sizeof(int), geometry.quadIndices.constData());
-    glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, geometry.quadIndices.size() * sizeof(int),
-        geometry.triangleIndices.size() * sizeof(int), geometry.triangleIndices.constData());
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-    
-    glBindBuffer(GL_ARRAY_BUFFER, _vboID);
-    glBufferData(GL_ARRAY_BUFFER, geometry.vertices.size() * sizeof(glm::vec3), NULL, GL_DYNAMIC_DRAW);
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
     
     _geometry = geometry;
+}
+
+void BlendFace::deleteGeometry() {
+    foreach (const VerticesIndices& meshIDs, _meshIDs) {
+        glDeleteBuffers(1, &meshIDs.first);
+        glDeleteBuffers(1, &meshIDs.second);
+    }
+    _meshIDs.clear();
 }

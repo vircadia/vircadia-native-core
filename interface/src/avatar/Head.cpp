@@ -6,8 +6,6 @@
 
 #include <glm/gtx/quaternion.hpp>
 
-#include <QImage>
-
 #include <NodeList.h>
 
 #include "Application.h"
@@ -105,16 +103,14 @@ void Head::init() {
         _irisProgram.setUniformValue("texture", 0);
         _eyePositionLocation = _irisProgram.uniformLocation("eyePosition");
 
-        QImage image = QImage(IRIS_TEXTURE_FILENAME).convertToFormat(QImage::Format_ARGB32);
-        
-        glGenTextures(1, &_irisTextureID);
+        _irisTextureID = Application::getInstance()->getTextureCache()->getFileTextureID(IRIS_TEXTURE_FILENAME);
+
         glBindTexture(GL_TEXTURE_2D, _irisTextureID);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width(), image.height(), 1, GL_BGRA, GL_UNSIGNED_BYTE, image.constBits());
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
         glBindTexture(GL_TEXTURE_2D, 0);
     }
+    _blendFace.init();
 }
 
 void Head::reset() {
@@ -347,7 +343,13 @@ void Head::render(float alpha, bool isMine) {
     }
         
     if (_renderLookatVectors) {
-        renderLookatVectors(_leftEyePosition, _rightEyePosition, _lookAtPosition);
+        glm::vec3 firstEyePosition = _leftEyePosition;
+        glm::vec3 secondEyePosition = _rightEyePosition;
+        if (_blendFace.isActive()) {
+            // the blend face may have custom eye meshes
+            _blendFace.getEyePositions(firstEyePosition, secondEyePosition);
+        }
+        renderLookatVectors(firstEyePosition, secondEyePosition, _lookAtPosition);
     }
 }
 
@@ -457,6 +459,11 @@ glm::quat Head::getCameraOrientation () const {
     Avatar* owningAvatar = static_cast<Avatar*>(_owningAvatar);
     return owningAvatar->getWorldAlignedOrientation()
             * glm::quat(glm::radians(glm::vec3(_cameraPitch + _mousePitch, _cameraYaw, 0.0f)));
+}
+
+glm::quat Head::getEyeRotation(const glm::vec3& eyePosition) const {
+    glm::quat orientation = getOrientation();
+    return rotationBetween(orientation * IDENTITY_FRONT, _lookAtPosition + _saccade - eyePosition) * orientation;
 }
 
 void Head::renderHeadSphere() {
@@ -663,17 +670,13 @@ void Head::renderEyeBalls() {
     glBindTexture(GL_TEXTURE_2D, _irisTextureID);
     glEnable(GL_TEXTURE_2D);
     
-    glm::quat orientation = getOrientation();
-    glm::vec3 front = orientation * IDENTITY_FRONT;
-    
     // render left iris
     glm::quat leftIrisRotation;
     glPushMatrix(); {
         glTranslatef(_leftEyePosition.x, _leftEyePosition.y, _leftEyePosition.z); //translate to eyeball position
         
         //rotate the eyeball to aim towards the lookat position
-        glm::vec3 targetLookatVector = _lookAtPosition + _saccade - _leftEyePosition;
-        leftIrisRotation = rotationBetween(front, targetLookatVector) * orientation;
+        leftIrisRotation = getEyeRotation(_leftEyePosition);
         glm::vec3 rotationAxis = glm::axis(leftIrisRotation);           
         glRotatef(glm::angle(leftIrisRotation), rotationAxis.x, rotationAxis.y, rotationAxis.z);
         glTranslatef(0.0f, 0.0f, -_scale * IRIS_PROTRUSION);
@@ -697,8 +700,7 @@ void Head::renderEyeBalls() {
         glTranslatef(_rightEyePosition.x, _rightEyePosition.y, _rightEyePosition.z);  //translate to eyeball position       
         
         //rotate the eyeball to aim towards the lookat position
-        glm::vec3 targetLookatVector = _lookAtPosition + _saccade - _rightEyePosition;
-        rightIrisRotation = rotationBetween(front, targetLookatVector) * orientation;
+        rightIrisRotation = getEyeRotation(_rightEyePosition);
         glm::vec3 rotationAxis = glm::axis(rightIrisRotation);        
         glRotatef(glm::angle(rightIrisRotation), rotationAxis.x, rotationAxis.y, rotationAxis.z);
         glTranslatef(0.0f, 0.0f, -_scale * IRIS_PROTRUSION);

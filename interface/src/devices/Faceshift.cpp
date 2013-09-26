@@ -20,7 +20,7 @@ const quint16 FACESHIFT_PORT = 33433;
 
 Faceshift::Faceshift() :
     _tcpEnabled(false),
-    _lastMessageReceived(0),
+    _lastTrackingStateReceived(0),
     _eyeGazeLeftPitch(0.0f),
     _eyeGazeLeftYaw(0.0f),
     _eyeGazeRightPitch(0.0f),
@@ -53,8 +53,7 @@ Faceshift::Faceshift() :
 
 bool Faceshift::isActive() const {
     const uint64_t ACTIVE_TIMEOUT_USECS = 1000000;
-    return (_tcpSocket.state() == QAbstractSocket::ConnectedState ||
-        (usecTimestampNow() - _lastMessageReceived) < ACTIVE_TIMEOUT_USECS) && _tracking;
+    return (usecTimestampNow() - _lastTrackingStateReceived) < ACTIVE_TIMEOUT_USECS;
 }
 
 void Faceshift::update() {
@@ -87,17 +86,6 @@ void Faceshift::setTCPEnabled(bool enabled) {
     }
 }
 
-void Faceshift::setUsingRig(bool usingRig) {
-    if (usingRig && _tcpSocket.state() == QAbstractSocket::ConnectedState) {
-        string message;
-        fsBinaryStream::encode_message(message, fsMsgSendRig());
-        send(message);
-    
-    } else {
-        emit rigReceived(fsMsgRig());
-    }
-}
-
 void Faceshift::connectSocket() {
     if (_tcpEnabled) {
         qDebug("Faceshift: Connecting...\n");
@@ -114,11 +102,6 @@ void Faceshift::noteConnected() {
     string message;
     fsBinaryStream::encode_message(message, fsMsgSendBlendshapeNames());
     send(message);
-    
-    // if using faceshift rig, request it
-    if (Menu::getInstance()->isOptionChecked(MenuOption::UseFaceshiftRig)) {
-        setUsingRig(true);
-    }
 }
 
 void Faceshift::noteError(QAbstractSocket::SocketError error) {
@@ -169,6 +152,8 @@ void Faceshift::receive(const QByteArray& buffer) {
                     _eyeGazeRightPitch = -data.m_eyeGazeRightPitch;
                     _eyeGazeRightYaw = data.m_eyeGazeRightYaw;
                     _blendshapeCoefficients = data.m_coeffs;
+                    
+                    _lastTrackingStateReceived = usecTimestampNow();
                 }
                 break;
             }
@@ -214,14 +199,8 @@ void Faceshift::receive(const QByteArray& buffer) {
                 }
                 break;
             }
-            case fsMsg::MSG_OUT_RIG: {
-                fsMsgRig* rig = static_cast<fsMsgRig*>(msg.get());
-                emit rigReceived(*rig);
-                break;
-            }
             default:
                 break;
         }
     }
-    _lastMessageReceived = usecTimestampNow();
 }

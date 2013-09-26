@@ -15,7 +15,6 @@ class MyAvatar : public Avatar {
 public:
 	MyAvatar(Node* owningNode = NULL);
 
-    void init();
     void reset();
     void simulate(float deltaTime, Transmitter* transmitter, float gyroCameraSensitivity);
     void updateFromGyrosAndOrWebcam(bool gyroLook, float pitchFromTouch);
@@ -72,6 +71,7 @@ public:
     glm::vec3 _lastCollisionPosition;
     bool _speedBrakes;
     bool _isThrustOn;
+    float _thrustMultiplier;
     float _collisionRadius;
 
 	// private methods
