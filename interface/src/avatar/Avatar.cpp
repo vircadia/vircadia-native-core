@@ -388,9 +388,20 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter, float gyroCamer
         }
     }
     
+    // head scale grows when avatar is looked at
+    if (Application::getInstance()->getLookatTargetAvatar() == this) {
+        const float BASE_MAX_SCALE = 3.0f;
+        const float GROW_SPEED = 0.1f;
+        _head.setScale(min(BASE_MAX_SCALE * glm::distance(_position, Application::getInstance()->getCamera()->getPosition()),
+            _head.getScale() + deltaTime * GROW_SPEED));        
+        
+    } else {
+        const float SHRINK_SPEED = 100.0f;
+        _head.setScale(max(_scale, _head.getScale() - deltaTime * SHRINK_SPEED));
+    }
+    
     _head.setBodyRotation(glm::vec3(_bodyPitch, _bodyYaw, _bodyRoll));
     _head.setPosition(_bodyBall[ BODY_BALL_HEAD_BASE ].position);
-    _head.setScale(_scale);
     _head.setSkinColor(glm::vec3(SKIN_COLOR[0], SKIN_COLOR[1], SKIN_COLOR[2]));
     _head.simulate(deltaTime, false, gyroCameraSensitivity);
     _hand.simulate(deltaTime, false);
