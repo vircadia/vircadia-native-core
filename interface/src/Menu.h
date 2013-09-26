@@ -54,6 +54,8 @@ public:
     FrustumDrawMode getFrustumDrawMode() const { return _frustumDrawMode; }
     ViewFrustumOffset getViewFrustumOffset() const { return _viewFrustumOffset; }
     VoxelStatsDialog* getVoxelStatsDialog() const { return _voxelStatsDialog; }
+    int getMaxVoxels() const { return _maxVoxels; }
+
     
     void handleViewFrustumOffsetKeyModifier(int key);
     
@@ -78,6 +80,8 @@ private slots:
     void chooseVoxelPaintColor();
     void runTests();
     void resetSwatchColors();
+    void displayGPUMemory();
+    void switchVoxelShader();
     
 private:
     static Menu* _instance;
@@ -115,6 +119,7 @@ private:
     ViewFrustumOffset _viewFrustumOffset;
     QActionGroup* _voxelModeActionsGroup;
     VoxelStatsDialog* _voxelStatsDialog;
+    int _maxVoxels;
 };
 
 namespace MenuOption {

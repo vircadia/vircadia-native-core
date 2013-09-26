@@ -1521,7 +1521,6 @@ void Application::initDisplay() {
 }
 
 void Application::init() {
-    _voxels.init();
     _sharedVoxelSystemViewFrustum.setPosition(glm::vec3(TREE_SCALE / 2.0f,
                                                         TREE_SCALE / 2.0f,
                                                         3.0f * TREE_SCALE / 2.0f));
@@ -1573,8 +1572,12 @@ void Application::init() {
     if (Menu::getInstance()->getAudioJitterBufferSamples() != 0) {
         _audio.setJitterBufferSamples(Menu::getInstance()->getAudioJitterBufferSamples());
     }
-    
     qDebug("Loaded settings.\n");
+
+    // Set up VoxelSystem after loading preferences so we can get the desired max voxel count    
+    _voxels.setMaxVoxels(Menu::getInstance()->getMaxVoxels());
+    _voxels.init();
+    
 
     Avatar::sendAvatarURLsMessage(_myAvatar.getVoxels()->getVoxelURL(), _myAvatar.getHead().getBlendFace().getModelURL());
    
@@ -2915,7 +2918,10 @@ void Application::displayStats() {
  
     std::stringstream voxelStats;
     voxelStats.precision(4);
-    voxelStats << "Voxels Rendered: " << _voxels.getVoxelsRendered() / 1000.f << "K Updated: " << _voxels.getVoxelsUpdated()/1000.f << "K";
+    voxelStats << "Voxels Rendered: " << _voxels.getVoxelsRendered() / 1000.f << "K " <<
+        "Updated: " << _voxels.getVoxelsUpdated()/1000.f << "K " <<
+        "Max: " << _voxels.getMaxVoxels()/1000.f << "K ";
+        
     drawtext(10, statsVerticalOffset + 230, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
     
     voxelStats.str("");

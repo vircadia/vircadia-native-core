@@ -40,7 +40,7 @@ struct VoxelShaderVBOData
 class VoxelSystem : public NodeData, public VoxelNodeDeleteHook, public NodeListHook {
     Q_OBJECT
 public:
-    VoxelSystem(float treeScale = TREE_SCALE, int maxVoxels = MAX_VOXELS_PER_SYSTEM);
+    VoxelSystem(float treeScale = TREE_SCALE, int maxVoxels = DEFAULT_MAX_VOXELS_PER_SYSTEM);
     ~VoxelSystem();
 
     void setDataSourceID(int dataSourceID) { _dataSourceID = dataSourceID; }
@@ -65,6 +65,10 @@ public:
     bool readFromSquareARGB32Pixels(const char* filename);
     bool readFromSchematicFile(const char* filename);
 
+    void setUseVoxelShader(bool useVoxelShader);
+
+    void setMaxVoxels(int maxVoxels);
+    long int getMaxVoxels() const { return _maxVoxels; }
     long int getVoxelsCreated();
     long int getVoxelsColored();
     long int getVoxelsBytesRead();
@@ -200,9 +204,10 @@ private:
     int _lastViewCullingElapsed;
     
     bool getUseVoxelShader();
-    void initVoxelShader();
-    bool _voxelShaderInitialized;
-    bool _initializingVoxelShader;
+    void initVoxelMemory();
+    void cleanupVoxelMemory();
+
+    bool _useVoxelShader;
     GLuint _vboVoxelsID; /// when using voxel shader, we'll use this VBO
     GLuint _vboVoxelsIndicesID;  /// when using voxel shader, we'll use this VBO for our indexes
     VoxelShaderVBOData* _writeVoxelShaderData;

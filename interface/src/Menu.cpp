@@ -48,7 +48,8 @@ Menu::Menu() :
     _frustumDrawMode(FRUSTUM_DRAW_MODE_ALL),
     _viewFrustumOffset(DEFAULT_FRUSTUM_OFFSET),
     _voxelModeActionsGroup(NULL),
-    _voxelStatsDialog(NULL)
+    _voxelStatsDialog(NULL),
+    _maxVoxels(DEFAULT_MAX_VOXELS_PER_SYSTEM)
 {
     Application *appInstance = Application::getInstance();
     
@@ -249,7 +250,8 @@ Menu::Menu() :
                                            SLOT(setRenderVoxels(bool)));
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::VoxelTextures);
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::AmbientOcclusion);
-    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::UseVoxelShader);
+    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::UseVoxelShader, 0, 
+                                           false, this, SLOT(switchVoxelShader()));
     
     QMenu* avatarOptionsMenu = developerMenu->addMenu("Avatar Options");
     
@@ -485,6 +487,7 @@ void Menu::loadSettings(QSettings* settings) {
     _gyroCameraSensitivity = loadSetting(settings, "gyroCameraSensitivity", 0.5f);
     _audioJitterBufferSamples = loadSetting(settings, "audioJitterBufferSamples", 0);
     _fieldOfView = loadSetting(settings, "fieldOfView", DEFAULT_FIELD_OF_VIEW_DEGREES);
+    _maxVoxels = loadSetting(settings, "maxVoxels", DEFAULT_MAX_VOXELS_PER_SYSTEM);
     
     settings->beginGroup("View Frustum Offset Camera");
     // in case settings is corrupt or missing loadSetting() will check for NaN
@@ -508,6 +511,7 @@ void Menu::saveSettings(QSettings* settings) {
     settings->setValue("gyroCameraSensitivity", _gyroCameraSensitivity);
     settings->setValue("audioJitterBufferSamples", _audioJitterBufferSamples);
     settings->setValue("fieldOfView", _fieldOfView);
+    settings->setValue("maxVoxels", _maxVoxels);
     settings->beginGroup("View Frustum Offset Camera");
     settings->setValue("viewFrustumOffsetYaw", _viewFrustumOffset.yaw);
     settings->setValue("viewFrustumOffsetPitch", _viewFrustumOffset.pitch);
@@ -755,9 +759,6 @@ void Menu::editPreferences() {
     QFormLayout* form = new QFormLayout();
     layout->addLayout(form, 1);
     
-    QLineEdit* domainServerLineEdit = lineEditForDomainHostname();
-    form->addRow("Domain server:", domainServerLineEdit);
-    
     QLineEdit* avatarURL = new QLineEdit(applicationInstance->getAvatar()->getVoxels()->getVoxelURL().toString());
     avatarURL->setMinimumWidth(QLINE_MINIMUM_WIDTH);
     form->addRow("Avatar URL:", avatarURL);
@@ -785,6 +786,13 @@ void Menu::editPreferences() {
     audioJitterBufferSamples->setMinimum(-10000);
     audioJitterBufferSamples->setValue(_audioJitterBufferSamples);
     form->addRow("Audio Jitter Buffer Samples (0 for automatic):", audioJitterBufferSamples);
+
+    QSpinBox* maxVoxels = new QSpinBox();
+    maxVoxels->setMaximum(5000000);
+    maxVoxels->setMinimum(0);
+    maxVoxels->setSingleStep(50000);
+    maxVoxels->setValue(_maxVoxels);
+    form->addRow("Maximum Voxels:", maxVoxels);
     
     QDialogButtonBox* buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
     dialog.connect(buttons, SIGNAL(accepted()), SLOT(accept()));
@@ -797,8 +805,6 @@ void Menu::editPreferences() {
          return;
      }
     
-    updateDSHostname(domainServerLineEdit->text());
-    
     QUrl avatarVoxelURL(avatarURL->text());
     applicationInstance->getAvatar()->getVoxels()->setVoxelURL(avatarVoxelURL);
     
@@ -808,6 +814,8 @@ void Menu::editPreferences() {
     Avatar::sendAvatarURLsMessage(avatarVoxelURL, faceModelURL);
     
     _gyroCameraSensitivity = gyroCameraSensitivity->value();
+    _maxVoxels = maxVoxels->value();
+    applicationInstance->getVoxels()->setMaxVoxels(_maxVoxels);
     
     applicationInstance->getAvatar()->setLeanScale(leanScale->value());
     
@@ -1006,4 +1014,33 @@ void Menu::updateFrustumRenderModeAction() {
             frustumRenderModeAction->setText("Render Mode - Keyhole");
             break;
     }
+}
+
+void Menu::switchVoxelShader() {
+    Application::getInstance()->getVoxels()->setUseVoxelShader(isOptionChecked(MenuOption::UseVoxelShader));
+}
+
+void Menu::displayGPUMemory() {
+
+    const int NUM_RESULTS = 4; // see notes, these APIs return up to 4 results
+    GLint results[NUM_RESULTS] = { 0, 0, 0, 0};
+
+    // ATI
+    // http://www.opengl.org/registry/specs/ATI/meminfo.txt
+    //
+    // TEXTURE_FREE_MEMORY_ATI                 0x87FC
+    // RENDERBUFFER_FREE_MEMORY_ATI            0x87FD
+    const GLenum VBO_FREE_MEMORY_ATI = 0x87FB;
+    glGetIntegerv(VBO_FREE_MEMORY_ATI, &results[0]);
+
+    // NVIDIA
+    // http://developer.download.nvidia.com/opengl/specs/GL_NVX_gpu_memory_info.txt
+    //
+    // GPU_MEMORY_INFO_DEDICATED_VIDMEM_NVX          0x9047
+    // GPU_MEMORY_INFO_TOTAL_AVAILABLE_MEMORY_NVX    0x9048
+    // GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX  0x9049
+    // GPU_MEMORY_INFO_EVICTION_COUNT_NVX            0x904A
+    // GPU_MEMORY_INFO_EVICTED_MEMORY_NVX            0x904B
+    
+    
 }
