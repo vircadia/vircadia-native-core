@@ -788,9 +788,12 @@ void Menu::editPreferences() {
     form->addRow("Audio Jitter Buffer Samples (0 for automatic):", audioJitterBufferSamples);
 
     QSpinBox* maxVoxels = new QSpinBox();
-    maxVoxels->setMaximum(5000000);
-    maxVoxels->setMinimum(0);
-    maxVoxels->setSingleStep(50000);
+    const int MAX_MAX_VOXELS = 5000000;
+    const int MIN_MAX_VOXELS = 0;
+    const int STEP_MAX_VOXELS = 50000;
+    maxVoxels->setMaximum(MAX_MAX_VOXELS);
+    maxVoxels->setMinimum(MIN_MAX_VOXELS);
+    maxVoxels->setSingleStep(STEP_MAX_VOXELS);
     maxVoxels->setValue(_maxVoxels);
     form->addRow("Maximum Voxels:", maxVoxels);
     
