@@ -74,6 +74,19 @@ VoxelSystem::VoxelSystem(float treeScale, int maxVoxels)
 
     connect(_tree, SIGNAL(importSize(float,float,float)), SIGNAL(importSize(float,float,float)));
     connect(_tree, SIGNAL(importProgress(int)), SIGNAL(importProgress(int)));
+    
+    _voxelShaderInitialized = false;
+    _initializingVoxelShader = false;
+    _writeVoxelShaderData = NULL;
+    _readVoxelShaderData = NULL;
+
+    _readVerticesArray = NULL;
+    _writeVerticesArray = NULL;
+    _readColorsArray = NULL;
+    _writeColorsArray = NULL;
+    _writeVoxelDirtyArray = NULL;
+    _readVoxelDirtyArray = NULL;
+
 }
 
 void VoxelSystem::nodeDeleted(VoxelNode* node) {
@@ -125,13 +138,20 @@ VoxelSystem::~VoxelSystem() {
         glDeleteBuffers(1, &_vboNormalsID);
         glDeleteBuffers(1, &_vboColorsID);
         glDeleteBuffers(1, &_vboIndicesID);
-
+        
         delete[] _readVerticesArray;
         delete[] _writeVerticesArray;
         delete[] _readColorsArray;
         delete[] _writeColorsArray;
         delete[] _writeVoxelDirtyArray;
         delete[] _readVoxelDirtyArray;
+
+        // these are used when in VoxelShader mode.
+        glDeleteBuffers(1, &_vboVoxelsID);
+        glDeleteBuffers(1, &_vboVoxelsIndicesID);
+
+        delete[] _writeVoxelShaderData;
+        delete[] _readVoxelShaderData;
     }
 
     delete _tree;
@@ -139,6 +159,45 @@ VoxelSystem::~VoxelSystem() {
     pthread_mutex_destroy(&_treeLock);
 
     VoxelNode::removeDeleteHook(this);
+}
+
+bool VoxelSystem::getUseVoxelShader() {
+    bool useVoxelShader = false; //Menu::getInstance()->isOptionChecked(MenuOption::UseVoxelShader);
+    
+    return useVoxelShader;
+}
+
+void VoxelSystem::initVoxelShader() {
+    GLuint* indicesArray = new GLuint[_maxVoxels];
+
+    // populate the indicesArray
+    // this will not change given new voxels, so we can set it all up now
+    for (int n = 0; n < _maxVoxels; n++) {
+        indicesArray[n] = n;
+    }
+
+    // bind the indices VBO to the actual indices array
+    glGenBuffers(1, &_vboVoxelsIndicesID);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _vboVoxelsIndicesID);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, _maxVoxels, indicesArray, GL_STATIC_DRAW);
+    
+
+    glGenBuffers(1, &_vboVoxelsID);
+    glBindBuffer(GL_ARRAY_BUFFER, _vboVoxelsID);
+    glBufferData(GL_ARRAY_BUFFER, _maxVoxels * sizeof(VoxelShaderVBOData), NULL, GL_DYNAMIC_DRAW);
+    
+    // delete the indices and normals arrays that are no longer needed
+    delete[] indicesArray;
+
+    // we will track individual dirty sections with these arrays of bools
+    _writeVoxelDirtyArray = new bool[_maxVoxels];
+    memset(_writeVoxelDirtyArray, false, _maxVoxels * sizeof(bool));
+    _readVoxelDirtyArray = new bool[_maxVoxels];
+    memset(_readVoxelDirtyArray, false, _maxVoxels * sizeof(bool));
+
+    // prep the data structures for incoming voxel data
+    _writeVoxelShaderData = new VoxelShaderVBOData[_maxVoxels];
+    _readVoxelShaderData = new VoxelShaderVBOData[_maxVoxels];
 }
 
 void VoxelSystem::loadVoxelsFile(const char* fileName, bool wantColorRandomizer) {
@@ -398,18 +457,24 @@ void VoxelSystem::copyWrittenDataToReadArraysPartialVBOs() {
 
 void VoxelSystem::copyWrittenDataSegmentToReadArrays(glBufferIndex segmentStart, glBufferIndex segmentEnd) {
     int segmentLength = (segmentEnd - segmentStart) + 1;
+    if (getUseVoxelShader()) {
+        GLsizeiptr segmentSizeBytes = segmentLength * sizeof(VoxelShaderVBOData);
+        void* readDataAt = &_readVoxelShaderData[segmentStart];
+        void* writeDataAt = &_writeVoxelShaderData[segmentStart];
+        memcpy(readDataAt, writeDataAt, segmentSizeBytes);
+    } else {
+        GLintptr   segmentStartAt   = segmentStart * VERTEX_POINTS_PER_VOXEL * sizeof(GLfloat);
+        GLsizeiptr segmentSizeBytes = segmentLength * VERTEX_POINTS_PER_VOXEL * sizeof(GLfloat);
+        GLfloat* readVerticesAt     = _readVerticesArray  + (segmentStart * VERTEX_POINTS_PER_VOXEL);
+        GLfloat* writeVerticesAt    = _writeVerticesArray + (segmentStart * VERTEX_POINTS_PER_VOXEL);
+        memcpy(readVerticesAt, writeVerticesAt, segmentSizeBytes);
 
-    GLintptr   segmentStartAt   = segmentStart * VERTEX_POINTS_PER_VOXEL * sizeof(GLfloat);
-    GLsizeiptr segmentSizeBytes = segmentLength * VERTEX_POINTS_PER_VOXEL * sizeof(GLfloat);
-    GLfloat* readVerticesAt     = _readVerticesArray  + (segmentStart * VERTEX_POINTS_PER_VOXEL);
-    GLfloat* writeVerticesAt    = _writeVerticesArray + (segmentStart * VERTEX_POINTS_PER_VOXEL);
-    memcpy(readVerticesAt, writeVerticesAt, segmentSizeBytes);
-
-    segmentStartAt          = segmentStart * VERTEX_POINTS_PER_VOXEL * sizeof(GLubyte);
-    segmentSizeBytes        = segmentLength * VERTEX_POINTS_PER_VOXEL * sizeof(GLubyte);
-    GLubyte* readColorsAt   = _readColorsArray   + (segmentStart * VERTEX_POINTS_PER_VOXEL);
-    GLubyte* writeColorsAt  = _writeColorsArray  + (segmentStart * VERTEX_POINTS_PER_VOXEL);
-    memcpy(readColorsAt, writeColorsAt, segmentSizeBytes);
+        segmentStartAt          = segmentStart * VERTEX_POINTS_PER_VOXEL * sizeof(GLubyte);
+        segmentSizeBytes        = segmentLength * VERTEX_POINTS_PER_VOXEL * sizeof(GLubyte);
+        GLubyte* readColorsAt   = _readColorsArray   + (segmentStart * VERTEX_POINTS_PER_VOXEL);
+        GLubyte* writeColorsAt  = _writeColorsArray  + (segmentStart * VERTEX_POINTS_PER_VOXEL);
+        memcpy(readColorsAt, writeColorsAt, segmentSizeBytes);
+    }
 }
 
 void VoxelSystem::copyWrittenDataToReadArrays(bool fullVBOs) {
@@ -532,11 +597,29 @@ int VoxelSystem::updateNodeInArraysAsPartialVBO(VoxelNode* node) {
 
 void VoxelSystem::updateNodeInArrays(glBufferIndex nodeIndex, const glm::vec3& startVertex,
                                      float voxelScale, const nodeColor& color) {
-    for (int j = 0; j < VERTEX_POINTS_PER_VOXEL; j++ ) {
-        GLfloat* writeVerticesAt = _writeVerticesArray + (nodeIndex * VERTEX_POINTS_PER_VOXEL);
-        GLubyte* writeColorsAt   = _writeColorsArray   + (nodeIndex * VERTEX_POINTS_PER_VOXEL);
-        *(writeVerticesAt+j) = startVertex[j % 3] + (identityVertices[j] * voxelScale);
-        *(writeColorsAt  +j) = color[j % 3];
+                                     
+    if (getUseVoxelShader()) {
+        VoxelShaderVBOData* writeVerticesAt = &_writeVoxelShaderData[nodeIndex];
+        writeVerticesAt->x = startVertex.x * TREE_SCALE;
+        writeVerticesAt->y = startVertex.y * TREE_SCALE;
+        writeVerticesAt->z = startVertex.z * TREE_SCALE;
+        writeVerticesAt->s = voxelScale * TREE_SCALE;
+        writeVerticesAt->r = color[RED_INDEX];
+        writeVerticesAt->g = color[GREEN_INDEX];
+        writeVerticesAt->b = color[BLUE_INDEX];
+        
+        /**
+        printf("updateNodeInArrays() nodeIndex=%lu writeVerticesAt=[%f,%f,%f,%f  (%u,%u,%u)]\n",
+            nodeIndex, writeVerticesAt->x, writeVerticesAt->y, writeVerticesAt->z, writeVerticesAt->s,
+            writeVerticesAt->r, writeVerticesAt->g, writeVerticesAt->b );
+        **/
+    } else {
+        for (int j = 0; j < VERTEX_POINTS_PER_VOXEL; j++ ) {
+            GLfloat* writeVerticesAt = _writeVerticesArray + (nodeIndex * VERTEX_POINTS_PER_VOXEL);
+            GLubyte* writeColorsAt   = _writeColorsArray   + (nodeIndex * VERTEX_POINTS_PER_VOXEL);
+            *(writeVerticesAt+j) = startVertex[j % 3] + (identityVertices[j] * voxelScale);
+            *(writeColorsAt  +j) = color[j % 3];
+        }
     }
 }
 
@@ -563,85 +646,89 @@ void VoxelSystem::init() {
     _voxelsInWriteArrays = 0;
     _voxelsInReadArrays = 0;
 
-    GLuint* indicesArray = new GLuint[INDICES_PER_VOXEL * _maxVoxels];
-
-    // populate the indicesArray
-    // this will not change given new voxels, so we can set it all up now
-    for (int n = 0; n < _maxVoxels; n++) {
-        // fill the indices array
-        int voxelIndexOffset = n * INDICES_PER_VOXEL;
-        GLuint* currentIndicesPos = indicesArray + voxelIndexOffset;
-        int startIndex = (n * VERTICES_PER_VOXEL);
-
-        for (int i = 0; i < INDICES_PER_VOXEL; i++) {
-            // add indices for this side of the cube
-            currentIndicesPos[i] = startIndex + identityIndices[i];
-        }
-    }
-
-    GLfloat* normalsArray = new GLfloat[VERTEX_POINTS_PER_VOXEL * _maxVoxels];
-    GLfloat* normalsArrayEndPointer = normalsArray;
-
-    // populate the normalsArray
-    for (int n = 0; n < _maxVoxels; n++) {
-        for (int i = 0; i < VERTEX_POINTS_PER_VOXEL; i++) {
-            *(normalsArrayEndPointer++) = identityNormals[i];
-        }
-    }
-
     // VBO for the verticesArray
-    glGenBuffers(1, &_vboVerticesID);
-    glBindBuffer(GL_ARRAY_BUFFER, _vboVerticesID);
-    glBufferData(GL_ARRAY_BUFFER, VERTEX_POINTS_PER_VOXEL * sizeof(GLfloat) * _maxVoxels, NULL, GL_DYNAMIC_DRAW);
+    //initVoxelShader();
 
-    // VBO for the normalsArray
-    glGenBuffers(1, &_vboNormalsID);
-    glBindBuffer(GL_ARRAY_BUFFER, _vboNormalsID);
-    glBufferData(GL_ARRAY_BUFFER,
-                 VERTEX_POINTS_PER_VOXEL * sizeof(GLfloat) * _maxVoxels,
-                 normalsArray, GL_STATIC_DRAW);
+    if (true) {
+        GLuint* indicesArray = new GLuint[INDICES_PER_VOXEL * _maxVoxels];
 
-    // VBO for colorsArray
-    glGenBuffers(1, &_vboColorsID);
-    glBindBuffer(GL_ARRAY_BUFFER, _vboColorsID);
-    glBufferData(GL_ARRAY_BUFFER, VERTEX_POINTS_PER_VOXEL * sizeof(GLubyte) * _maxVoxels, NULL, GL_DYNAMIC_DRAW);
+        // populate the indicesArray
+        // this will not change given new voxels, so we can set it all up now
+        for (int n = 0; n < _maxVoxels; n++) {
+            // fill the indices array
+            int voxelIndexOffset = n * INDICES_PER_VOXEL;
+            GLuint* currentIndicesPos = indicesArray + voxelIndexOffset;
+            int startIndex = (n * VERTICES_PER_VOXEL);
 
-    // VBO for the indicesArray
-    glGenBuffers(1, &_vboIndicesID);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _vboIndicesID);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-                 INDICES_PER_VOXEL * sizeof(GLuint) * _maxVoxels,
-                 indicesArray, GL_STATIC_DRAW);
+            for (int i = 0; i < INDICES_PER_VOXEL; i++) {
+                // add indices for this side of the cube
+                currentIndicesPos[i] = startIndex + identityIndices[i];
+            }
+        }
 
-    // delete the indices and normals arrays that are no longer needed
-    delete[] indicesArray;
-    delete[] normalsArray;
+        GLfloat* normalsArray = new GLfloat[VERTEX_POINTS_PER_VOXEL * _maxVoxels];
+        GLfloat* normalsArrayEndPointer = normalsArray;
+
+        // populate the normalsArray
+        for (int n = 0; n < _maxVoxels; n++) {
+            for (int i = 0; i < VERTEX_POINTS_PER_VOXEL; i++) {
+                *(normalsArrayEndPointer++) = identityNormals[i];
+            }
+        }
+
+        glGenBuffers(1, &_vboVerticesID);
+        glBindBuffer(GL_ARRAY_BUFFER, _vboVerticesID);
+        glBufferData(GL_ARRAY_BUFFER, VERTEX_POINTS_PER_VOXEL * sizeof(GLfloat) * _maxVoxels, NULL, GL_DYNAMIC_DRAW);
+
+        // VBO for the normalsArray
+        glGenBuffers(1, &_vboNormalsID);
+        glBindBuffer(GL_ARRAY_BUFFER, _vboNormalsID);
+        glBufferData(GL_ARRAY_BUFFER,
+                     VERTEX_POINTS_PER_VOXEL * sizeof(GLfloat) * _maxVoxels,
+                     normalsArray, GL_STATIC_DRAW);
+
+        // VBO for colorsArray
+        glGenBuffers(1, &_vboColorsID);
+        glBindBuffer(GL_ARRAY_BUFFER, _vboColorsID);
+        glBufferData(GL_ARRAY_BUFFER, VERTEX_POINTS_PER_VOXEL * sizeof(GLubyte) * _maxVoxels, NULL, GL_DYNAMIC_DRAW);
+
+        // VBO for the indicesArray
+        glGenBuffers(1, &_vboIndicesID);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _vboIndicesID);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+                     INDICES_PER_VOXEL * sizeof(GLuint) * _maxVoxels,
+                     indicesArray, GL_STATIC_DRAW);
+
+        // delete the indices and normals arrays that are no longer needed
+        delete[] indicesArray;
+        delete[] normalsArray;
 
 
-    // we will track individual dirty sections with these arrays of bools
-    _writeVoxelDirtyArray = new bool[_maxVoxels];
-    memset(_writeVoxelDirtyArray, false, _maxVoxels * sizeof(bool));
-    _readVoxelDirtyArray = new bool[_maxVoxels];
-    memset(_readVoxelDirtyArray, false, _maxVoxels * sizeof(bool));
+        // we will track individual dirty sections with these arrays of bools
+        _writeVoxelDirtyArray = new bool[_maxVoxels];
+        memset(_writeVoxelDirtyArray, false, _maxVoxels * sizeof(bool));
+        _readVoxelDirtyArray = new bool[_maxVoxels];
+        memset(_readVoxelDirtyArray, false, _maxVoxels * sizeof(bool));
 
-    // prep the data structures for incoming voxel data
-    _writeVerticesArray = new GLfloat[VERTEX_POINTS_PER_VOXEL * _maxVoxels];
-    _readVerticesArray = new GLfloat[VERTEX_POINTS_PER_VOXEL * _maxVoxels];
+        // prep the data structures for incoming voxel data
+        _writeVerticesArray = new GLfloat[VERTEX_POINTS_PER_VOXEL * _maxVoxels];
+        _readVerticesArray = new GLfloat[VERTEX_POINTS_PER_VOXEL * _maxVoxels];
 
-    _writeColorsArray = new GLubyte[VERTEX_POINTS_PER_VOXEL * _maxVoxels];
-    _readColorsArray = new GLubyte[VERTEX_POINTS_PER_VOXEL * _maxVoxels];
+        _writeColorsArray = new GLubyte[VERTEX_POINTS_PER_VOXEL * _maxVoxels];
+        _readColorsArray = new GLubyte[VERTEX_POINTS_PER_VOXEL * _maxVoxels];
 
 
-    // create our simple fragment shader if we're the first system to init
-    if (!_perlinModulateProgram.isLinked()) {
-        switchToResourcesParentIfRequired();
-        _perlinModulateProgram.addShaderFromSourceFile(QGLShader::Vertex, "resources/shaders/perlin_modulate.vert");
-        _perlinModulateProgram.addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/perlin_modulate.frag");
-        _perlinModulateProgram.link();
+        // create our simple fragment shader if we're the first system to init
+        if (!_perlinModulateProgram.isLinked()) {
+            switchToResourcesParentIfRequired();
+            _perlinModulateProgram.addShaderFromSourceFile(QGLShader::Vertex, "resources/shaders/perlin_modulate.vert");
+            _perlinModulateProgram.addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/perlin_modulate.frag");
+            _perlinModulateProgram.link();
 
-        _perlinModulateProgram.bind();
-        _perlinModulateProgram.setUniformValue("permutationNormalTexture", 0);
-        _perlinModulateProgram.release();
+            _perlinModulateProgram.bind();
+            _perlinModulateProgram.setUniformValue("permutationNormalTexture", 0);
+            _perlinModulateProgram.release();
+        }
     }
     _initialized = true;
 }
@@ -714,17 +801,34 @@ void VoxelSystem::updateVBOs() {
 }
 
 void VoxelSystem::updateVBOSegment(glBufferIndex segmentStart, glBufferIndex segmentEnd) {
-    int segmentLength = (segmentEnd - segmentStart) + 1;
-    GLintptr   segmentStartAt   = segmentStart * VERTEX_POINTS_PER_VOXEL * sizeof(GLfloat);
-    GLsizeiptr segmentSizeBytes = segmentLength * VERTEX_POINTS_PER_VOXEL * sizeof(GLfloat);
-    GLfloat* readVerticesFrom   = _readVerticesArray + (segmentStart * VERTEX_POINTS_PER_VOXEL);
-    glBindBuffer(GL_ARRAY_BUFFER, _vboVerticesID);
-    glBufferSubData(GL_ARRAY_BUFFER, segmentStartAt, segmentSizeBytes, readVerticesFrom);
-    segmentStartAt          = segmentStart * VERTEX_POINTS_PER_VOXEL * sizeof(GLubyte);
-    segmentSizeBytes        = segmentLength * VERTEX_POINTS_PER_VOXEL * sizeof(GLubyte);
-    GLubyte* readColorsFrom = _readColorsArray   + (segmentStart * VERTEX_POINTS_PER_VOXEL);
-    glBindBuffer(GL_ARRAY_BUFFER, _vboColorsID);
-    glBufferSubData(GL_ARRAY_BUFFER, segmentStartAt, segmentSizeBytes, readColorsFrom);
+    if (getUseVoxelShader()) {
+        int segmentLength = (segmentEnd - segmentStart) + 1;
+        GLintptr segmentStartAt = segmentStart * sizeof(VoxelShaderVBOData);
+        GLsizeiptr segmentSizeBytes = segmentLength * sizeof(VoxelShaderVBOData);
+        void* readVerticesFrom = &_readVoxelShaderData[segmentStart];
+
+        glBindBuffer(GL_ARRAY_BUFFER, _vboVoxelsID);
+        glBufferSubData(GL_ARRAY_BUFFER, segmentStartAt, segmentSizeBytes, readVerticesFrom);
+    } else {
+        int segmentLength = (segmentEnd - segmentStart) + 1;
+        GLintptr   segmentStartAt   = segmentStart * VERTEX_POINTS_PER_VOXEL * sizeof(GLfloat);
+        GLsizeiptr segmentSizeBytes = segmentLength * VERTEX_POINTS_PER_VOXEL * sizeof(GLfloat);
+        GLfloat* readVerticesFrom   = _readVerticesArray + (segmentStart * VERTEX_POINTS_PER_VOXEL);
+        glBindBuffer(GL_ARRAY_BUFFER, _vboVerticesID);
+        glBufferSubData(GL_ARRAY_BUFFER, segmentStartAt, segmentSizeBytes, readVerticesFrom);
+//printf("VoxelSystem::updateVBOSegment() segmentStart=%lu, segmentEnd=%lu, segmentSizeBytes=%lu  \n",
+//    segmentStart, segmentEnd, segmentSizeBytes);
+
+
+        segmentStartAt          = segmentStart * VERTEX_POINTS_PER_VOXEL * sizeof(GLubyte);
+        segmentSizeBytes        = segmentLength * VERTEX_POINTS_PER_VOXEL * sizeof(GLubyte);
+        GLubyte* readColorsFrom = _readColorsArray   + (segmentStart * VERTEX_POINTS_PER_VOXEL);
+        glBindBuffer(GL_ARRAY_BUFFER, _vboColorsID);
+        glBufferSubData(GL_ARRAY_BUFFER, segmentStartAt, segmentSizeBytes, readColorsFrom);
+
+//printf("VoxelSystem::updateVBOSegment() segmentStart=%lu, segmentEnd=%lu, segmentSizeBytes=%lu  \n",
+//    segmentStart, segmentEnd, segmentSizeBytes);
+    }
 }
 
 void VoxelSystem::render(bool texture) {
@@ -734,43 +838,85 @@ void VoxelSystem::render(bool texture) {
     pthread_mutex_lock(&_bufferWriteLock);
     
     updateVBOs();
+
+    //printf("render() _voxelsInReadArrays=%lu voxel shader=%s\n", _voxelsInReadArrays, debug::valueOf(getUseVoxelShader()));
     
-    // tell OpenGL where to find vertex and color information
-    glEnableClientState(GL_VERTEX_ARRAY);
-    glEnableClientState(GL_NORMAL_ARRAY);
-    glEnableClientState(GL_COLOR_ARRAY);
-
-    glBindBuffer(GL_ARRAY_BUFFER, _vboVerticesID);
-    glVertexPointer(3, GL_FLOAT, 0, 0);
-
-    glBindBuffer(GL_ARRAY_BUFFER, _vboNormalsID);
-    glNormalPointer(GL_FLOAT, 0, 0);
-
-    glBindBuffer(GL_ARRAY_BUFFER, _vboColorsID);
-    glColorPointer(3, GL_UNSIGNED_BYTE, 0, 0);
-
-    applyScaleAndBindProgram(texture);
+    if (getUseVoxelShader()) {
     
-    // for performance, enable backface culling
-    glEnable(GL_CULL_FACE);
+        Application::getInstance()->getVoxelShader().begin();
 
-    // draw the number of voxels we have
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _vboIndicesID);
-    glDrawRangeElementsEXT(GL_TRIANGLES, 0, VERTICES_PER_VOXEL * _voxelsInReadArrays - 1,
-        36 * _voxelsInReadArrays, GL_UNSIGNED_INT, 0);
+        //Define this somewhere in your header file
+        #define BUFFER_OFFSET(i) ((void*)(i))
 
-    glDisable(GL_CULL_FACE);
+        glBindBuffer(GL_ARRAY_BUFFER, _vboVoxelsID);
+        glEnableClientState(GL_VERTEX_ARRAY);
+        glVertexPointer(3, GL_FLOAT, sizeof(VoxelShaderVBOData), BUFFER_OFFSET(0));   //The starting point of the VBO, for the vertices
+        int loc = Application::getInstance()->getVoxelShader().attributeLocation("voxelSizeIn");
+        glEnableVertexAttribArray(loc);
+        glVertexAttribPointer(loc, 1, GL_FLOAT, false, sizeof(VoxelShaderVBOData), BUFFER_OFFSET(3*sizeof(float)));
+        glEnableClientState(GL_COLOR_ARRAY);
+        glColorPointer(3, GL_UNSIGNED_BYTE, sizeof(VoxelShaderVBOData), BUFFER_OFFSET(4*sizeof(float)));//The starting point of colors
 
-    removeScaleAndReleaseProgram(texture);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _vboVoxelsIndicesID);
+        glDrawElements(GL_POINTS, _voxelsInReadArrays, GL_UNSIGNED_INT, BUFFER_OFFSET(0));   //The starting point of the IBO
+
+        /**
+        for (int i=0; i < _voxelsInReadArrays; i++) {
+            VoxelShaderVBOData* readDataAt = &_readVoxelShaderData[i];
+            printf("render() _voxelsInReadArrays=%lu i=%d readDataAt=[%f,%f,%f,%f  (%u,%u,%u)]\n",
+                 _voxelsInReadArrays, i, readDataAt->x, readDataAt->y, readDataAt->z, readDataAt->s,
+                readDataAt->r, readDataAt->g, readDataAt->b );
+        }  
+        **/
+
+        // deactivate vertex and color arrays after drawing
+        glDisableClientState(GL_VERTEX_ARRAY);
+        glDisableClientState(GL_COLOR_ARRAY);
+
+        // bind with 0 to switch back to normal operation
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+        Application::getInstance()->getVoxelShader().end();
+
+    } else {
+        // tell OpenGL where to find vertex and color information
+        glEnableClientState(GL_VERTEX_ARRAY);
+        glEnableClientState(GL_NORMAL_ARRAY);
+        glEnableClientState(GL_COLOR_ARRAY);
+
+        glBindBuffer(GL_ARRAY_BUFFER, _vboVerticesID);
+        glVertexPointer(3, GL_FLOAT, 0, 0);
+
+        glBindBuffer(GL_ARRAY_BUFFER, _vboNormalsID);
+        glNormalPointer(GL_FLOAT, 0, 0);
+
+        glBindBuffer(GL_ARRAY_BUFFER, _vboColorsID);
+        glColorPointer(3, GL_UNSIGNED_BYTE, 0, 0);
+
+        applyScaleAndBindProgram(texture);
     
-    // deactivate vertex and color arrays after drawing
-    glDisableClientState(GL_VERTEX_ARRAY);
-    glDisableClientState(GL_NORMAL_ARRAY);
-    glDisableClientState(GL_COLOR_ARRAY);
+        // for performance, enable backface culling
+        glEnable(GL_CULL_FACE);
 
-    // bind with 0 to switch back to normal operation
-    glBindBuffer(GL_ARRAY_BUFFER, 0);
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+        // draw the number of voxels we have
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _vboIndicesID);
+        glDrawRangeElementsEXT(GL_TRIANGLES, 0, VERTICES_PER_VOXEL * _voxelsInReadArrays - 1,
+            36 * _voxelsInReadArrays, GL_UNSIGNED_INT, 0);
+
+        glDisable(GL_CULL_FACE);
+
+        removeScaleAndReleaseProgram(texture);
+    
+        // deactivate vertex and color arrays after drawing
+        glDisableClientState(GL_VERTEX_ARRAY);
+        glDisableClientState(GL_NORMAL_ARRAY);
+        glDisableClientState(GL_COLOR_ARRAY);
+
+        // bind with 0 to switch back to normal operation
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    }
     
     pthread_mutex_unlock(&_bufferWriteLock);
 }

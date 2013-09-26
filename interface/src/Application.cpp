@@ -542,6 +542,10 @@ void Application::keyPressEvent(QKeyEvent* event) {
                     _myAvatar.setDriveKeys(UP, 1); 
                 }
                 break;
+
+            case Qt::Key_Asterisk:
+                Menu::getInstance()->triggerOption(MenuOption::Stars);
+                break;
                 
             case Qt::Key_C:
                 if (isShifted)  {
@@ -811,8 +815,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_F:
                 if (isShifted)  {
                     Menu::getInstance()->triggerOption(MenuOption::DisplayFrustum);
-                } else {
-                    Menu::getInstance()->triggerOption(MenuOption::Fullscreen);
                 }
                 break;
             case Qt::Key_V:
@@ -1540,7 +1542,7 @@ void Application::init() {
 
     _glowEffect.init();
     _ambientOcclusionEffect.init();
-    _testGeometry.init();
+    _voxelShader.init();
     
     _handControl.setScreenDimensions(_glWidget->width(), _glWidget->height());
 
@@ -2581,9 +2583,92 @@ void Application::displaySide(Camera& whichCamera) {
     
     // brad's frustum for debugging
     if (Menu::getInstance()->isOptionChecked(MenuOption::DisplayFrustum)) {
-        _testGeometry.begin();
         renderViewFrustum(_viewFrustum);
-        _testGeometry.end();
+    }
+
+    // brad's voxel shader debugging
+    if (false) {
+
+        const float TEST_STRIP_COLOR[] = { 0.0f, 1.0f, 0.0f };
+        glColor3fv(TEST_STRIP_COLOR);
+    
+        _voxelShader.begin();
+        const float VOXEL_COLOR[] = { 1.0f, 0.0f, 0.0f };
+        glColor3fv(VOXEL_COLOR);
+
+        struct VoxelData
+        {
+            float x, y, z;  // position
+            float s;        // size
+            unsigned char r,g,b; // color
+        };
+
+        VoxelData voxels[3];
+
+        //VERTEX 0
+        voxels[0].x = 0.0;
+        voxels[0].y = 0.0;
+        voxels[0].z = 1.0;
+        voxels[0].s = 0.1;
+        voxels[0].r = 255;
+        voxels[0].g = 0;
+        voxels[0].b = 0;
+        
+        //VERTEX 1
+        voxels[1].x = 1.0;
+        voxels[1].y = 0.0;
+        voxels[1].z = 0.0;
+        voxels[1].s = 0.2;
+        voxels[1].r = 0;
+        voxels[1].g = 255;
+        voxels[1].b = 0;
+
+        //VERTEX 2
+        voxels[2].x = 0.0;
+        voxels[2].y = 1.0;
+        voxels[2].z = 0.0;
+        voxels[2].s = 0.3;
+        voxels[2].r = 0;
+        voxels[2].g = 0;
+        voxels[2].b = 255;
+
+        GLuint VertexVBOID;
+        GLuint IndexVBOID;
+
+        glGenBuffers(1, &VertexVBOID);
+        glBindBuffer(GL_ARRAY_BUFFER, VertexVBOID);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(voxels), &voxels[0].x, GL_STATIC_DRAW);
+
+        ushort indices[3];
+        indices[0] = 0;
+        indices[1] = 1;
+        indices[2] = 2;
+
+        glGenBuffers(1, &IndexVBOID);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IndexVBOID);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
+
+        //Define this somewhere in your header file
+        #define BUFFER_OFFSET(i) ((void*)(i))
+
+        glBindBuffer(GL_ARRAY_BUFFER, VertexVBOID);
+        glEnableClientState(GL_VERTEX_ARRAY);
+        glVertexPointer(3, GL_FLOAT, sizeof(VoxelData), BUFFER_OFFSET(0));   //The starting point of the VBO, for the vertices
+        int loc = _voxelShader.attributeLocation("voxelSizeIn");
+        glEnableVertexAttribArray(loc);
+        glVertexAttribPointer(loc, 1, GL_FLOAT, false, sizeof(VoxelData), BUFFER_OFFSET(3*sizeof(float)));
+        
+        glEnableClientState(GL_COLOR_ARRAY);
+        glColorPointer(3, GL_UNSIGNED_BYTE, sizeof(VoxelData), BUFFER_OFFSET(4*sizeof(float)));//The starting point of colors
+
+
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IndexVBOID);
+        glDrawElements(GL_POINTS, 3, GL_UNSIGNED_SHORT, BUFFER_OFFSET(0));   //The starting point of the IBO
+
+        glDeleteBuffers(1, &VertexVBOID);
+        glDeleteBuffers(1, &IndexVBOID);
+
+        _voxelShader.end();
     }
     
     // render voxel fades if they exist

@@ -23,10 +23,19 @@
 #include "Camera.h"
 #include "Util.h"
 #include "world.h"
+#include "renderer/VoxelShader.h"
 
 class ProgramObject;
 
 const int NUM_CHILDREN = 8;
+
+struct VoxelShaderVBOData
+{
+    float x, y, z; // position
+    float s; // size
+    unsigned char r,g,b; // color
+};
+
 
 class VoxelSystem : public NodeData, public VoxelNodeDeleteHook, public NodeListHook {
     Q_OBJECT
@@ -189,6 +198,15 @@ private:
     uint64_t _setupNewVoxelsForDrawingLastFinished;
     uint64_t _lastViewCulling;
     int _lastViewCullingElapsed;
+    
+    bool getUseVoxelShader();
+    void initVoxelShader();
+    bool _voxelShaderInitialized;
+    bool _initializingVoxelShader;
+    GLuint _vboVoxelsID; /// when using voxel shader, we'll use this VBO
+    GLuint _vboVoxelsIndicesID;  /// when using voxel shader, we'll use this VBO for our indexes
+    VoxelShaderVBOData* _writeVoxelShaderData;
+    VoxelShaderVBOData* _readVoxelShaderData;
     
     GLuint _vboVerticesID;
     GLuint _vboNormalsID;

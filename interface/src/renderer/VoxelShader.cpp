@@ -1,5 +1,5 @@
 //
-//  TestGeometry.cpp
+//  VoxelShader.cpp
 //  interface
 //
 //  Created by Brad Hefta-Gaub on 9/22/13.
@@ -11,55 +11,59 @@
 #include <QOpenGLFramebufferObject>
 
 #include "Application.h"
-#include "TestGeometry.h"
+#include "VoxelShader.h"
 #include "ProgramObject.h"
 #include "RenderUtil.h"
 
-TestGeometry::TestGeometry()
+VoxelShader::VoxelShader()
     : _initialized(false)
 {
+    _program = NULL;
 }
 
-TestGeometry::~TestGeometry() {
+VoxelShader::~VoxelShader() {
     if (_initialized) {
-        delete _testProgram;
+        delete _program;
     }
 }
 
-static ProgramObject* createGeometryShaderProgram(const QString& name) {
+ProgramObject* VoxelShader::createGeometryShaderProgram(const QString& name) {
     ProgramObject* program = new ProgramObject();
     program->addShaderFromSourceFile(QGLShader::Vertex, "resources/shaders/passthrough.vert" );
-
-
     program->addShaderFromSourceFile(QGLShader::Geometry, "resources/shaders/" + name + ".geom" );
-
-    program->setGeometryInputType(GL_LINES);
-    program->setGeometryOutputType(GL_LINE_STRIP);
-    program->setGeometryOutputVertexCount(100); // hack?
-
+    program->setGeometryInputType(GL_POINTS);
+    program->setGeometryOutputType(GL_TRIANGLE_STRIP);
+    const int VERTICES_PER_FACE = 4;
+    const int FACES_PER_VOXEL = 6;
+    const int VERTICES_PER_VOXEL = VERTICES_PER_FACE * FACES_PER_VOXEL;
+    program->setGeometryOutputVertexCount(VERTICES_PER_VOXEL);
     program->link();
-    //program->log();
-    
     return program;
 }
 
-void TestGeometry::init() {
+void VoxelShader::init() {
     if (_initialized) {
         qDebug("[ERROR] TestProgram is already initialized.\n");
         return;
     }
-
     switchToResourcesParentIfRequired();
-    
-    _testProgram = createGeometryShaderProgram("passthrough");
+    _program = createGeometryShaderProgram("voxel");
     _initialized = true;
 }
 
-void TestGeometry::begin() {
-    _testProgram->bind();
+void VoxelShader::begin() {
+    _program->bind();
 }
 
-void TestGeometry::end() {
-    _testProgram->release();
+void VoxelShader::end() {
+    _program->release();
+}
+
+int VoxelShader::attributeLocation(const char * name) const {
+    if (_program) {
+        return _program->attributeLocation(name);
+    } else {
+        return -1;
+    }
 }
 
