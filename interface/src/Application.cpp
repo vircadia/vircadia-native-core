@@ -1596,10 +1596,14 @@ const float MAX_AVATAR_EDIT_VELOCITY = 1.0f;
 const float MAX_VOXEL_EDIT_DISTANCE = 20.0f;
 const float HEAD_SPHERE_RADIUS = 0.07;
 
-
 static uint16_t DEFAULT_NODE_ID_REF = 1;
 
-
+void Application::updateLookatTargetAvatar(const glm::vec3& mouseRayOrigin, const glm::vec3& mouseRayDirection,
+    glm::vec3& eyePosition) {
+    
+    _lookatTargetAvatar = findLookatTargetAvatar(mouseRayOrigin, mouseRayDirection, eyePosition, DEFAULT_NODE_ID_REF);
+}
+        
 Avatar* Application::findLookatTargetAvatar(const glm::vec3& mouseRayOrigin, const glm::vec3& mouseRayDirection,
     glm::vec3& eyePosition, uint16_t& nodeID = DEFAULT_NODE_ID_REF) {
                                          
@@ -1748,7 +1752,7 @@ void Application::update(float deltaTime) {
             _faceshift.getEstimatedEyePitch(), _faceshift.getEstimatedEyeYaw(), 0.0f))) * glm::vec3(0.0f, 0.0f, -1.0f);
     }
 
-    _lookatTargetAvatar = findLookatTargetAvatar(lookAtRayOrigin, lookAtRayDirection, lookAtSpot);
+    updateLookatTargetAvatar(lookAtRayOrigin, lookAtRayDirection, lookAtSpot);
     if (_lookatTargetAvatar) {
         // If the mouse is over another avatar's head...
          _myAvatar.getHead().setLookAtPosition(lookAtSpot);
@@ -2070,7 +2074,7 @@ void Application::updateAvatar(float deltaTime) {
             _viewFrustum.computePickRay(MIDPOINT_OF_SCREEN, MIDPOINT_OF_SCREEN, screenCenterRayOrigin, screenCenterRayDirection);
 
             glm::vec3 eyePosition;
-            _lookatTargetAvatar = findLookatTargetAvatar(screenCenterRayOrigin, screenCenterRayDirection, eyePosition);
+            updateLookatTargetAvatar(screenCenterRayOrigin, screenCenterRayDirection, eyePosition);
             if (_lookatTargetAvatar) {
                 glm::vec3 myLookAtFromMouse(eyePosition);
                 _myAvatar.getHead().setLookAtPosition(myLookAtFromMouse);
@@ -3415,6 +3419,8 @@ void Application::nodeKilled(Node* node) {
             fade.voxelDetails.s = fade.voxelDetails.s * slightly_smaller;
             _voxelFades.push_back(fade);
         }
+    } else if (node->getLinkedData() == _lookatTargetAvatar) {
+        _lookatTargetAvatar = NULL;
     }
 }
 

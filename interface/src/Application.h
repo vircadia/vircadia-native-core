@@ -130,6 +130,8 @@ public:
     TextureCache* getTextureCache() { return &_textureCache; }
     GlowEffect* getGlowEffect() { return &_glowEffect; }
     
+    Avatar* getLookatTargetAvatar() const { return _lookatTargetAvatar; }
+    
     static void controlledBroadcastToNodes(unsigned char* broadcastData, size_t dataBytes,
                                            const char* nodeTypes, int numNodeTypes);
     
@@ -195,6 +197,9 @@ private:
     void init();
     
     void update(float deltaTime);
+    
+    void updateLookatTargetAvatar(const glm::vec3& mouseRayOrigin, const glm::vec3& mouseRayDirection,
+        glm::vec3& eyePosition);
     Avatar* findLookatTargetAvatar(const glm::vec3& mouseRayOrigin, const glm::vec3& mouseRayDirection,
         glm::vec3& eyePosition, uint16_t& nodeID);
     bool isLookingAtMyAvatar(Avatar* avatar);
