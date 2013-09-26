@@ -12,16 +12,12 @@
 //        Second dataset (? similar to how voxel avatars pass in bones??)
 //        which is the voxel size
 //
-// Note: In vertex shader DON'T transform. Therefore passing the world coordinate xyz to geometric shader
-// In geometric shader calculate xyz for triangles the same way we currently do triangles outside of OpenGL
-// do transform on these triangles
-//
-//            gl_Position = gl_ModelViewProjectionMatrix * cube_coord;
-//
+// Note: In vertex shader DON'T do projection transform. Therefore passing the 3D coordinates xyz to geometric shader
+// 
 // Output: GL_TRIANGLE_STRIP
 //
 // Issues:
-//          do we need to handle lighting of these colors?? 
+//          how do we need to handle lighting of these colors?? 
 //          how do we handle normals?
 //          check for size=0 and don't output the primitive
 //
