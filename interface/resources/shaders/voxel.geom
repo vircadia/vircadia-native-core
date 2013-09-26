@@ -47,8 +47,7 @@ void faceOfVoxel(vec4 corner, float scale, float[COORD_PER_FACE] facePoints, vec
 }
 
 
-void main()
-{
+void main() {
     //increment variable
     int i;
     vec4 corner;
@@ -61,26 +60,14 @@ void main()
     float frontFace[COORD_PER_FACE]  = float[COORD_PER_FACE]( 1, 0, 0,   0, 0, 0,   1, 1, 0,   0, 1, 0  );
     float backFace[COORD_PER_FACE]   = float[COORD_PER_FACE]( 1, 0, 1,   0, 0, 1,   1, 1, 1,   0, 1, 1  );
 
-    vec4 color,red,green,blue,yellow,cyan,purple;
-
-    green = vec4(0,1.0,0,1.0);
-    red = vec4(1.0,0,0,1.0);
-    blue = vec4(0,0,1.0,1.0);
-    yellow = vec4(1.0,1.0,0,1.0);
-    cyan = vec4(0,1.0,1.0,1.0);
-    purple = vec4(1.0,0,1.0,1.0);
-
     for(i = 0; i < gl_VerticesIn; i++) {
-        gl_FrontColor = gl_FrontColorIn[i]; 
         corner = gl_PositionIn[i];
         scale = voxelSize[i];
-        color = gl_FrontColorIn[i];                
-
-        faceOfVoxel(corner, scale, bottomFace, color);
-        faceOfVoxel(corner, scale, topFace,    color);
-        faceOfVoxel(corner, scale, rightFace,  color);
-        faceOfVoxel(corner, scale, leftFace,   color);
-        faceOfVoxel(corner, scale, frontFace,  color);
-        faceOfVoxel(corner, scale, backFace,   color);
+        faceOfVoxel(corner, scale, bottomFace, gl_FrontColorIn[i]);
+        faceOfVoxel(corner, scale, topFace,    gl_FrontColorIn[i]);
+        faceOfVoxel(corner, scale, rightFace,  gl_FrontColorIn[i]);
+        faceOfVoxel(corner, scale, leftFace,   gl_FrontColorIn[i]);
+        faceOfVoxel(corner, scale, frontFace,  gl_FrontColorIn[i]);
+        faceOfVoxel(corner, scale, backFace,   gl_FrontColorIn[i]);
     }
 }
