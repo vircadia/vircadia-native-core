@@ -42,6 +42,8 @@ public:
         LocalLocation
     };
     
+    static Assignment::Type typeForNodeType(NODE_TYPE nodeType);
+    
     Assignment();
     Assignment(Assignment::Command command,
                Assignment::Type type,

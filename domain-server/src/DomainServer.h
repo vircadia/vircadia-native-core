@@ -42,12 +42,14 @@ private:
     
     static DomainServer* domainServerInstance;
     
-    void cleanup();
     void prepopulateStaticAssignmentFile();
+    int checkInMatchesStaticAssignment(NODE_TYPE nodeType, const uchar* checkInUUID);
+    Assignment* deployableAssignmentForRequest(Assignment& requestAssignment);
+    
+    void cleanup();
+   
     
     unsigned char* addNodeToBroadcastPacket(unsigned char* currentPosition, Node* nodeToAdd);
-    
-    Assignment* deployableAssignmentForRequest(Assignment& requestAssignment);
     
     QMutex _assignmentQueueMutex;
     std::deque<Assignment*> _assignmentQueue;

@@ -16,6 +16,21 @@
 const char IPv4_ADDRESS_DESIGNATOR = 4;
 const char IPv6_ADDRESS_DESIGNATOR = 6;
 
+Assignment::Type Assignment::typeForNodeType(NODE_TYPE nodeType) {
+    switch (nodeType) {
+        case NODE_TYPE_AUDIO_MIXER:
+            return Assignment::AudioMixerType;
+        case NODE_TYPE_AVATAR_MIXER:
+            return Assignment::AvatarMixerType;
+        case NODE_TYPE_AGENT:
+            return Assignment::AgentType;
+        case NODE_TYPE_VOXEL_SERVER:
+            return Assignment::VoxelServerType;
+        default:
+            return Assignment::AllTypes;
+    }
+}
+
 Assignment::Assignment() :
     _uuid(),
     _command(Assignment::RequestCommand),
