@@ -1023,27 +1023,3 @@ void Menu::switchVoxelShader() {
     Application::getInstance()->getVoxels()->setUseVoxelShader(isOptionChecked(MenuOption::UseVoxelShader));
 }
 
-void Menu::displayGPUMemory() {
-
-    const int NUM_RESULTS = 4; // see notes, these APIs return up to 4 results
-    GLint results[NUM_RESULTS] = { 0, 0, 0, 0};
-
-    // ATI
-    // http://www.opengl.org/registry/specs/ATI/meminfo.txt
-    //
-    // TEXTURE_FREE_MEMORY_ATI                 0x87FC
-    // RENDERBUFFER_FREE_MEMORY_ATI            0x87FD
-    const GLenum VBO_FREE_MEMORY_ATI = 0x87FB;
-    glGetIntegerv(VBO_FREE_MEMORY_ATI, &results[0]);
-
-    // NVIDIA
-    // http://developer.download.nvidia.com/opengl/specs/GL_NVX_gpu_memory_info.txt
-    //
-    // GPU_MEMORY_INFO_DEDICATED_VIDMEM_NVX          0x9047
-    // GPU_MEMORY_INFO_TOTAL_AVAILABLE_MEMORY_NVX    0x9048
-    // GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX  0x9049
-    // GPU_MEMORY_INFO_EVICTION_COUNT_NVX            0x904A
-    // GPU_MEMORY_INFO_EVICTED_MEMORY_NVX            0x904B
-    
-    
-}

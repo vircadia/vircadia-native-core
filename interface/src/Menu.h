@@ -80,7 +80,6 @@ private slots:
     void chooseVoxelPaintColor();
     void runTests();
     void resetSwatchColors();
-    void displayGPUMemory();
     void switchVoxelShader();
     
 private:
