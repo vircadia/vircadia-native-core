@@ -38,6 +38,12 @@ const int VERTEX_POINTS_PER_VOXEL = 3 * VERTICES_PER_VOXEL; // xyz for each VERT
 const int INDICES_PER_VOXEL = 3 * 12; // 6 sides * 2 triangles per size * 3 vertices per triangle
 const int COLOR_VALUES_PER_VOXEL = NUMBER_OF_COLORS * VERTICES_PER_VOXEL;
 
+const int VERTICES_PER_FACE = 4; // 6 sides * 4 corners per side
+const int INDICES_PER_FACE = 3 * 2; // 1 side * 2 triangles per size * 3 vertices per triangle
+const int GLOBAL_NORMALS_VERTICES_PER_VOXEL = 8; // no need for 3 copies because they don't include normal
+const int GLOBAL_NORMALS_VERTEX_POINTS_PER_VOXEL = 3 * GLOBAL_NORMALS_VERTICES_PER_VOXEL;
+const int GLOBAL_NORMALS_COLOR_VALUES_PER_VOXEL = NUMBER_OF_COLORS * GLOBAL_NORMALS_VERTICES_PER_VOXEL;
+
 typedef unsigned long int glBufferIndex;
 const glBufferIndex GLBUFFER_INDEX_UNKNOWN = ULONG_MAX;
 
