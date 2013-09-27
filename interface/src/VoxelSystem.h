@@ -135,6 +135,7 @@ public slots:
 
     void cancelImport();
     void setUseByteNormals(bool useByteNormals);
+    void setUseGlobalNormals(bool useGlobalNormals);
         
 protected:
     float _treeScale; 
@@ -218,6 +219,7 @@ private:
     void cleanupVoxelMemory();
 
     bool _useByteNormals;
+    bool _useGlobalNormals;
 
     bool _useVoxelShader;
     GLuint _vboVoxelsID; /// when using voxel shader, we'll use this VBO
@@ -229,12 +231,22 @@ private:
     GLuint _vboNormalsID;
     GLuint _vboColorsID;
     GLuint _vboIndicesID;
+
+    GLuint _vboIndicesTop;
+    GLuint _vboIndicesBottom;
+    GLuint _vboIndicesLeft;
+    GLuint _vboIndicesRight;
+    GLuint _vboIndicesFront;
+    GLuint _vboIndicesBack;
+
     pthread_mutex_t _bufferWriteLock;
     pthread_mutex_t _treeLock;
 
     ViewFrustum _lastKnowViewFrustum;
     ViewFrustum _lastStableViewFrustum;
     ViewFrustum* _viewFrustum;
+
+    void setupFaceIndices(GLuint& faceVBOID, GLubyte faceIdentityIndices[]);
 
     int newTreeToArrays(VoxelNode *currentNode);
     void cleanupRemovedVoxels();
