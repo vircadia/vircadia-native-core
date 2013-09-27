@@ -2827,28 +2827,36 @@ void Application::displayStats() {
     voxelStats << "Voxels Rendered: " << _voxels.getVoxelsRendered() / 1000.f << "K " <<
         "Updated: " << _voxels.getVoxelsUpdated()/1000.f << "K " <<
         "Max: " << _voxels.getMaxVoxels()/1000.f << "K ";
-        
     drawtext(10, statsVerticalOffset + 230, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+
+    voxelStats.str("");
+    voxelStats << "Voxels Memory RAM: " << _voxels.getVoxelMemoryUsageRAM() / 1000000.f << "MB " <<
+        "VBO: " << _voxels.getVoxelMemoryUsageVBO() / 1000000.f << "MB ";
+    if (_voxels.hasVoxelMemoryUsageGPU()) {
+        voxelStats << "GPU: " << _voxels.getVoxelMemoryUsageGPU() / 1000000.f << "MB ";
+    }
+        
+    drawtext(10, statsVerticalOffset + 250, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
     
     voxelStats.str("");
     char* voxelDetails = _voxelSceneStats.getItemValue(VoxelSceneStats::ITEM_VOXELS);
     voxelStats << "Voxels Sent from Server: " << voxelDetails;
-    drawtext(10, statsVerticalOffset + 250, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+    drawtext(10, statsVerticalOffset + 270, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
 
     voxelStats.str("");
     voxelDetails = _voxelSceneStats.getItemValue(VoxelSceneStats::ITEM_ELAPSED);
     voxelStats << "Scene Send Time from Server: " << voxelDetails;
-    drawtext(10, statsVerticalOffset + 270, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+    drawtext(10, statsVerticalOffset + 290, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
 
     voxelStats.str("");
     voxelDetails = _voxelSceneStats.getItemValue(VoxelSceneStats::ITEM_ENCODE);
     voxelStats << "Encode Time on Server: " << voxelDetails;
-    drawtext(10, statsVerticalOffset + 290, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+    drawtext(10, statsVerticalOffset + 310, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
 
     voxelStats.str("");
     voxelDetails = _voxelSceneStats.getItemValue(VoxelSceneStats::ITEM_MODE);
     voxelStats << "Sending Mode: " << voxelDetails;
-    drawtext(10, statsVerticalOffset + 310, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+    drawtext(10, statsVerticalOffset + 330, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
     
     Node *avatarMixer = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_AVATAR_MIXER);
     char avatarMixerStats[200];
@@ -2861,7 +2869,7 @@ void Application::displayStats() {
         sprintf(avatarMixerStats, "No Avatar Mixer");
     }
     
-    drawtext(10, statsVerticalOffset + 330, 0.10f, 0, 1.0, 0, avatarMixerStats);
+    drawtext(10, statsVerticalOffset + 350, 0.10f, 0, 1.0, 0, avatarMixerStats);
     drawtext(10, statsVerticalOffset + 450, 0.10f, 0, 1.0, 0, (char *)LeapManager::statusString().c_str());
     
     if (_perfStatsOn) {
