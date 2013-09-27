@@ -28,7 +28,6 @@
 using namespace std;
 
 const bool BALLS_ON = false;
-const bool USING_AVATAR_GRAVITY = true;
 const glm::vec3 DEFAULT_UP_DIRECTION(0.0f, 1.0f, 0.0f);
 const float YAW_MAG = 500.0;
 const float MY_HAND_HOLDING_PULL = 0.2;

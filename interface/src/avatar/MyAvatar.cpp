@@ -23,7 +23,6 @@
 
 using namespace std;
 
-const bool USING_AVATAR_GRAVITY = true;
 const glm::vec3 DEFAULT_UP_DIRECTION(0.0f, 1.0f, 0.0f);
 const float YAW_MAG = 500.0;
 const float COLLISION_RADIUS_SCALAR = 1.2; // pertains to avatar-to-avatar collisions
@@ -160,13 +159,11 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter) {
     _avatarTouch.simulate(deltaTime);
 
     // apply gravity
-    if (USING_AVATAR_GRAVITY) {
-        // For gravity, always move the avatar by the amount driven by gravity, so that the collision
-        // routines will detect it and collide every frame when pulled by gravity to a surface
-        const float MIN_DISTANCE_AFTER_COLLISION_FOR_GRAVITY = 0.02f;
-        if (glm::length(_position - _lastCollisionPosition) > MIN_DISTANCE_AFTER_COLLISION_FOR_GRAVITY) {
-            _velocity += _scale * _gravity * (GRAVITY_EARTH * deltaTime);
-        }
+    // For gravity, always move the avatar by the amount driven by gravity, so that the collision
+    // routines will detect it and collide every frame when pulled by gravity to a surface
+    const float MIN_DISTANCE_AFTER_COLLISION_FOR_GRAVITY = 0.02f;
+    if (glm::length(_position - _lastCollisionPosition) > MIN_DISTANCE_AFTER_COLLISION_FOR_GRAVITY) {
+        _velocity += _scale * _gravity * (GRAVITY_EARTH * deltaTime);
     }
 
     if (_isCollisionsOn) {
@@ -211,14 +208,20 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter) {
     const float STATIC_FRICTION_STRENGTH = _scale * 20.f;
     applyStaticFriction(deltaTime, _velocity, MAX_STATIC_FRICTION_VELOCITY, STATIC_FRICTION_STRENGTH);
     
+    // Damp avatar velocity
     const float LINEAR_DAMPING_STRENGTH = 0.5f;
     const float SPEED_BRAKE_POWER = _scale * 10.0f;
-    // Note: PER changed squared damping strength to zero 
     const float SQUARED_DAMPING_STRENGTH = 0.0f;
+    
+    float linearDamping = LINEAR_DAMPING_STRENGTH;
+    const float AVATAR_DAMPING_FACTOR = 120.f;
+    if (_distanceToNearestAvatar < _scale * PERIPERSONAL_RADIUS) {
+        linearDamping *= 1.f + AVATAR_DAMPING_FACTOR * (PERIPERSONAL_RADIUS - _distanceToNearestAvatar);
+    }
     if (_speedBrakes) {
-        applyDamping(deltaTime, _velocity, LINEAR_DAMPING_STRENGTH * SPEED_BRAKE_POWER, SQUARED_DAMPING_STRENGTH * SPEED_BRAKE_POWER);
+        applyDamping(deltaTime, _velocity,  linearDamping * SPEED_BRAKE_POWER, SQUARED_DAMPING_STRENGTH * SPEED_BRAKE_POWER);
     } else {
-        applyDamping(deltaTime, _velocity, LINEAR_DAMPING_STRENGTH, SQUARED_DAMPING_STRENGTH);            
+        applyDamping(deltaTime, _velocity, linearDamping, SQUARED_DAMPING_STRENGTH);            
     }
     
     // pitch and roll the body as a function of forward speed and turning delta
@@ -653,7 +656,9 @@ void MyAvatar::updateThrust(float deltaTime, Transmitter * transmitter) {
     
     //  Add one time jumping force if requested
     if (_shouldJump) {
-        _thrust += _scale * THRUST_JUMP * up;
+        if (glm::length(_gravity) > EPSILON) {
+            _thrust += _scale * THRUST_JUMP * up;
+        }
         _shouldJump = false;
     }
 
