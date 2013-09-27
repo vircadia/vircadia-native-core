@@ -16,7 +16,10 @@
 #include "Agent.h"
 #include "voxels/VoxelScriptingInterface.h"
 
-Agent::Agent(const unsigned char* dataBuffer, int numBytes) : Assignment(dataBuffer, numBytes) {
+Agent::Agent(const unsigned char* dataBuffer, int numBytes) :
+    Assignment(dataBuffer, numBytes),
+    _shouldStop(false)
+{
     
 }
 
