@@ -211,7 +211,7 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter) {
     // Damp avatar velocity
     const float LINEAR_DAMPING_STRENGTH = 0.5f;
     const float SPEED_BRAKE_POWER = _scale * 10.0f;
-    const float SQUARED_DAMPING_STRENGTH = 0.0f;
+    const float SQUARED_DAMPING_STRENGTH = 0.007f;
     
     float linearDamping = LINEAR_DAMPING_STRENGTH;
     const float AVATAR_DAMPING_FACTOR = 120.f;
@@ -225,12 +225,15 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter) {
     }
     
     // pitch and roll the body as a function of forward speed and turning delta
-    const float BODY_PITCH_WHILE_WALKING = -20.0;
-    const float BODY_ROLL_WHILE_TURNING = 0.2;
-    float forwardComponentOfVelocity = glm::dot(getBodyFrontDirection(), _velocity);
-    orientation = orientation * glm::quat(glm::radians(glm::vec3(
-        BODY_PITCH_WHILE_WALKING * deltaTime * forwardComponentOfVelocity, 0.0f,
-        BODY_ROLL_WHILE_TURNING * deltaTime * _speed * _bodyYawDelta)));
+    const float HIGH_VELOCITY = 10.f;
+    if (glm::length(_velocity) < HIGH_VELOCITY) {
+        const float BODY_PITCH_WHILE_WALKING = -20.0;
+        const float BODY_ROLL_WHILE_TURNING = 0.2;
+        float forwardComponentOfVelocity = glm::dot(getBodyFrontDirection(), _velocity);
+        orientation = orientation * glm::quat(glm::radians(glm::vec3(
+            BODY_PITCH_WHILE_WALKING * deltaTime * forwardComponentOfVelocity, 0.0f,
+            BODY_ROLL_WHILE_TURNING * deltaTime * _speed * _bodyYawDelta)));
+    }
     
     // these forces keep the body upright...
     const float BODY_UPRIGHT_FORCE = _scale * 10.0;
@@ -648,8 +651,12 @@ void MyAvatar::updateThrust(float deltaTime, Transmitter * transmitter) {
     
     //  If thrust keys are being held down, slowly increase thrust to allow reaching great speeds
     if (_driveKeys[FWD] || _driveKeys[BACK] || _driveKeys[RIGHT] || _driveKeys[LEFT] || _driveKeys[UP] || _driveKeys[DOWN]) {
-        const float THRUST_INCREASE_RATE = 1.0;
-        _thrustMultiplier *= 1.f + deltaTime * THRUST_INCREASE_RATE;
+        const float THRUST_INCREASE_RATE = 1.05;
+        const float MAX_THRUST_MULTIPLIER = 75.0;
+        //printf("m = %.3f\n", _thrustMultiplier);
+        if (_thrustMultiplier < MAX_THRUST_MULTIPLIER) {
+            _thrustMultiplier *= 1.f + deltaTime * THRUST_INCREASE_RATE;
+        }
     } else {
         _thrustMultiplier = 1.f;
     }
