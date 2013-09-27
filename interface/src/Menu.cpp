@@ -256,6 +256,9 @@ Menu::Menu() :
 
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::UseByteNormals, 0, 
                                            false, Application::getInstance()->getVoxels(), SLOT(setUseByteNormals(bool)));
+
+    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::UseGlobalNormals, 0, 
+                                           false, Application::getInstance()->getVoxels(), SLOT(setUseGlobalNormals(bool)));
     
     QMenu* avatarOptionsMenu = developerMenu->addMenu("Avatar Options");
     
