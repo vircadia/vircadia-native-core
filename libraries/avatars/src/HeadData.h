@@ -46,6 +46,9 @@ public:
     
     const std::vector<float>& getBlendshapeCoefficients() const { return _blendshapeCoefficients; }
     
+    float getPupilDilation() const { return _pupilDilation; }
+    void setPupilDilation(float pupilDilation) { _pupilDilation = pupilDilation; }
+    
     void addYaw(float yaw);
     void addPitch(float pitch);
     void addRoll(float roll);
@@ -70,6 +73,7 @@ protected:
     float _averageLoudness;
     float _browAudioLift;
     std::vector<float> _blendshapeCoefficients;
+    float _pupilDilation;
     AvatarData* _owningAvatar;
     
 private:

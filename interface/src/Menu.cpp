@@ -17,6 +17,7 @@
 #include <QFormLayout>
 #include <QLineEdit>
 #include <QMainWindow>
+#include <QSlider>
 #include <QStandardPaths>
 
 #include "Application.h"
@@ -749,6 +750,10 @@ void Menu::editPreferences() {
     faceURL->setMinimumWidth(QLINE_MINIMUM_WIDTH);
     form->addRow("Face URL:", faceURL);
     
+    QSlider* pupilDilation = new QSlider(Qt::Horizontal);
+    pupilDilation->setValue(applicationInstance->getAvatar()->getHead().getPupilDilation() * pupilDilation->maximum());
+    form->addRow("Pupil Dilation:", pupilDilation);
+    
     QSpinBox* fieldOfView = new QSpinBox();
     fieldOfView->setMaximum(180);
     fieldOfView->setMinimum(1);
@@ -789,6 +794,8 @@ void Menu::editPreferences() {
     applicationInstance->getAvatar()->getHead().getBlendFace().setModelURL(faceModelURL);
     
     Avatar::sendAvatarURLsMessage(avatarVoxelURL, faceModelURL);
+    
+    applicationInstance->getAvatar()->getHead().setPupilDilation(pupilDilation->value() / (float)pupilDilation->maximum());
     
     _gyroCameraSensitivity = gyroCameraSensitivity->value();
     

@@ -28,7 +28,7 @@ BlendFace::~BlendFace() {
 }
 
 ProgramObject BlendFace::_eyeProgram;
-GLuint BlendFace::_eyeTextureID;
+DilatedTextureCache BlendFace::_eyeTextureCache("resources/images/eye.png", 50, 210);
 
 void BlendFace::init() {
     if (!_eyeProgram.isLinked()) {
@@ -40,8 +40,6 @@ void BlendFace::init() {
         _eyeProgram.bind();
         _eyeProgram.setUniformValue("texture", 0);
         _eyeProgram.release();
-        
-        _eyeTextureID = Application::getInstance()->getTextureCache()->getFileTextureID("resources/images/eye.png");
     }
 }
 
@@ -92,7 +90,9 @@ bool BlendFace::render(float alpha) {
             // use texture coordinates only for the eye, for now
             glEnableClientState(GL_TEXTURE_COORD_ARRAY);
             
-            glBindTexture(GL_TEXTURE_2D, _eyeTextureID);
+            _eyeTexture = _eyeTextureCache.getTexture(_owningHead->getPupilDilation());
+            glBindTexture(GL_TEXTURE_2D, _eyeTexture->getID());
+            
             glEnable(GL_TEXTURE_2D);
             
             _eyeProgram.bind();

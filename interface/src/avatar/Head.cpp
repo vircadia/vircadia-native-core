@@ -29,7 +29,7 @@ const float EYEBALL_RADIUS           =  0.017;
 const float EYELID_RADIUS            =  0.019; 
 const float EYEBALL_COLOR[3]         =  { 0.9f, 0.9f, 0.8f };
 
-const float HAIR_SPRING_FORCE        =  15.0f;
+const float HAIR_SPRING_FORCE        =  15.0f; 
 const float HAIR_TORQUE_FORCE        =  0.2f;
 const float HAIR_GRAVITY_FORCE       =  0.001f;
 const float HAIR_DRAG                =  10.0f;
@@ -46,7 +46,7 @@ const float IRIS_PROTRUSION          =  0.0145f;
 const char  IRIS_TEXTURE_FILENAME[]  =  "resources/images/iris.png";
 
 ProgramObject Head::_irisProgram;
-GLuint Head::_irisTextureID;
+DilatedTextureCache Head::_irisTextureCache(IRIS_TEXTURE_FILENAME, 53, 127);
 int Head::_eyePositionLocation;
 
 Head::Head(Avatar* owningAvatar) :
@@ -102,13 +102,6 @@ void Head::init() {
 
         _irisProgram.setUniformValue("texture", 0);
         _eyePositionLocation = _irisProgram.uniformLocation("eyePosition");
-
-        _irisTextureID = Application::getInstance()->getTextureCache()->getFileTextureID(IRIS_TEXTURE_FILENAME);
-
-        glBindTexture(GL_TEXTURE_2D, _irisTextureID);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-        glBindTexture(GL_TEXTURE_2D, 0);
     }
     _blendFace.init();
 }
@@ -667,7 +660,12 @@ void Head::renderEyeBalls() {
     glPopMatrix();
 
     _irisProgram.bind();
-    glBindTexture(GL_TEXTURE_2D, _irisTextureID);
+    
+    _irisTexture = _irisTextureCache.getTexture(_pupilDilation);
+    glBindTexture(GL_TEXTURE_2D, _irisTexture->getID());
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    
     glEnable(GL_TEXTURE_2D);
     
     // render left iris

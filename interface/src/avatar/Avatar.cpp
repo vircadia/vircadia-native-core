@@ -770,6 +770,7 @@ void Avatar::loadData(QSettings* settings) {
     
     _voxels.setVoxelURL(settings->value("voxelURL").toUrl());
     _head.getBlendFace().setModelURL(settings->value("faceModelURL").toUrl());
+    _head.setPupilDilation(settings->value("pupilDilation", 0.0f).toFloat());
     
     _leanScale = loadSetting(settings, "leanScale", 0.05f);
 
@@ -822,6 +823,7 @@ void Avatar::saveData(QSettings* set) {
     
     set->setValue("voxelURL", _voxels.getVoxelURL());
     set->setValue("faceModelURL", _head.getBlendFace().getModelURL());
+    set->setValue("pupilDilation", _head.getPupilDilation());
     
     set->setValue("leanScale", _leanScale);
     set->setValue("scale", _newScale);
