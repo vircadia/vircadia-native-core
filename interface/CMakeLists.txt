@@ -76,10 +76,6 @@ if (APPLE)
   endforeach()  
 endif (APPLE)
 
-set(QUAZIP_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/quazip)
-add_subdirectory(external/fervor/)
-include_directories(external/fervor/)
-
 # create the executable, make it a bundle on OS X
 add_executable(${TARGET_NAME} MACOSX_BUNDLE ${INTERFACE_SRCS})
 
