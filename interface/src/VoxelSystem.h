@@ -128,6 +128,7 @@ public slots:
     void falseColorizeBySource();
 
     void cancelImport();
+    void setUseByteNormals(bool useByteNormals);
         
 protected:
     float _treeScale; 
@@ -203,9 +204,10 @@ private:
     uint64_t _lastViewCulling;
     int _lastViewCullingElapsed;
     
-    bool getUseVoxelShader();
     void initVoxelMemory();
     void cleanupVoxelMemory();
+
+    bool _useByteNormals;
 
     bool _useVoxelShader;
     GLuint _vboVoxelsID; /// when using voxel shader, we'll use this VBO

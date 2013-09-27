@@ -206,6 +206,7 @@ namespace MenuOption {
     const QString UsePerlinFace = "Use Perlin's Face";
     const QString Quit =  "Quit";
     const QString UseVoxelShader = "Use Voxel Shader";
+    const QString UseByteNormals = "Use Byte Normals";
     const QString Voxels = "Voxels";
     const QString VoxelAddMode = "Add Voxel Mode";
     const QString VoxelColorMode = "Color Voxel Mode";
