@@ -488,7 +488,6 @@ void Menu::loadSettings(QSettings* settings) {
         settings = Application::getInstance()->getSettings();
     }
     
-    _gyroCameraSensitivity = loadSetting(settings, "gyroCameraSensitivity", 0.5f);
     _audioJitterBufferSamples = loadSetting(settings, "audioJitterBufferSamples", 0);
     _fieldOfView = loadSetting(settings, "fieldOfView", DEFAULT_FIELD_OF_VIEW_DEGREES);
     _maxVoxels = loadSetting(settings, "maxVoxels", DEFAULT_MAX_VOXELS_PER_SYSTEM);
@@ -512,7 +511,6 @@ void Menu::saveSettings(QSettings* settings) {
         settings = Application::getInstance()->getSettings();
     }
     
-    settings->setValue("gyroCameraSensitivity", _gyroCameraSensitivity);
     settings->setValue("audioJitterBufferSamples", _audioJitterBufferSamples);
     settings->setValue("fieldOfView", _fieldOfView);
     settings->setValue("maxVoxels", _maxVoxels);
@@ -781,10 +779,6 @@ void Menu::editPreferences() {
     fieldOfView->setValue(_fieldOfView);
     form->addRow("Vertical Field of View (Degrees):", fieldOfView);
     
-    QDoubleSpinBox* gyroCameraSensitivity = new QDoubleSpinBox();
-    gyroCameraSensitivity->setValue(_gyroCameraSensitivity);
-    form->addRow("Gyro Camera Sensitivity (0 - 1):", gyroCameraSensitivity);
-    
     QDoubleSpinBox* leanScale = new QDoubleSpinBox();
     leanScale->setValue(applicationInstance->getAvatar()->getLeanScale());
     form->addRow("Lean Scale:", leanScale);
@@ -826,7 +820,6 @@ void Menu::editPreferences() {
     
     applicationInstance->getAvatar()->getHead().setPupilDilation(pupilDilation->value() / (float)pupilDilation->maximum());
     
-    _gyroCameraSensitivity = gyroCameraSensitivity->value();
     _maxVoxels = maxVoxels->value();
     applicationInstance->getVoxels()->setMaxVoxels(_maxVoxels);
     

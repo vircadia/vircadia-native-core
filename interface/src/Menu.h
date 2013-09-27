@@ -49,7 +49,6 @@ public:
     
     float getAudioJitterBufferSamples() const { return _audioJitterBufferSamples; }
     float getFieldOfView() const { return _fieldOfView; }
-    float getGyroCameraSensitivity() const { return _gyroCameraSensitivity; }
     BandwidthDialog* getBandwidthDialog() const { return _bandwidthDialog; }
     FrustumDrawMode getFrustumDrawMode() const { return _frustumDrawMode; }
     ViewFrustumOffset getViewFrustumOffset() const { return _viewFrustumOffset; }
@@ -114,7 +113,6 @@ private:
     BandwidthDialog* _bandwidthDialog;
     float _fieldOfView; /// in Degrees, doesn't apply to HMD like Oculus
     FrustumDrawMode _frustumDrawMode;
-    float _gyroCameraSensitivity;
     ViewFrustumOffset _viewFrustumOffset;
     QActionGroup* _voxelModeActionsGroup;
     VoxelStatsDialog* _voxelStatsDialog;

@@ -135,7 +135,7 @@ public:
     ~Avatar();
     
     void init();
-    void simulate(float deltaTime, Transmitter* transmitter, float gyroCameraSensitivity);
+    void simulate(float deltaTime, Transmitter* transmitter);
     void follow(Avatar* leadingAvatar);
     void render(bool lookingInMirror, bool renderAvatarBalls);
 
