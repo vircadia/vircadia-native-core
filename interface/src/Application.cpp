@@ -389,6 +389,7 @@ void Application::paintGL() {
         
     } else {
         _glowEffect.prepare(); 
+
         
         glMatrixMode(GL_MODELVIEW);
         glPushMatrix();
@@ -540,6 +541,10 @@ void Application::keyPressEvent(QKeyEvent* event) {
                     }
                     _myAvatar.setDriveKeys(UP, 1); 
                 }
+                break;
+
+            case Qt::Key_Asterisk:
+                Menu::getInstance()->triggerOption(MenuOption::Stars);
                 break;
                 
             case Qt::Key_C:
@@ -810,8 +815,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_F:
                 if (isShifted)  {
                     Menu::getInstance()->triggerOption(MenuOption::DisplayFrustum);
-                } else {
-                    Menu::getInstance()->triggerOption(MenuOption::Fullscreen);
                 }
                 break;
             case Qt::Key_V:
@@ -1518,7 +1521,6 @@ void Application::initDisplay() {
 }
 
 void Application::init() {
-    _voxels.init();
     _sharedVoxelSystemViewFrustum.setPosition(glm::vec3(TREE_SCALE / 2.0f,
                                                         TREE_SCALE / 2.0f,
                                                         3.0f * TREE_SCALE / 2.0f));
@@ -1539,6 +1541,7 @@ void Application::init() {
 
     _glowEffect.init();
     _ambientOcclusionEffect.init();
+    _voxelShader.init();
     
     _handControl.setScreenDimensions(_glWidget->width(), _glWidget->height());
 
@@ -1569,8 +1572,12 @@ void Application::init() {
     if (Menu::getInstance()->getAudioJitterBufferSamples() != 0) {
         _audio.setJitterBufferSamples(Menu::getInstance()->getAudioJitterBufferSamples());
     }
-    
     qDebug("Loaded settings.\n");
+
+    // Set up VoxelSystem after loading preferences so we can get the desired max voxel count    
+    _voxels.setMaxVoxels(Menu::getInstance()->getMaxVoxels());
+    _voxels.init();
+    
 
     Avatar::sendAvatarURLsMessage(_myAvatar.getVoxels()->getVoxelURL(), _myAvatar.getHead().getBlendFace().getModelURL());
    
@@ -2565,7 +2572,7 @@ void Application::displaySide(Camera& whichCamera) {
     if (Menu::getInstance()->isOptionChecked(MenuOption::DisplayFrustum)) {
         renderViewFrustum(_viewFrustum);
     }
-    
+
     // render voxel fades if they exist
     if (_voxelFades.size() > 0) {
         for(std::vector<VoxelFade>::iterator fade = _voxelFades.begin(); fade != _voxelFades.end();) {
@@ -2810,7 +2817,10 @@ void Application::displayStats() {
  
     std::stringstream voxelStats;
     voxelStats.precision(4);
-    voxelStats << "Voxels Rendered: " << _voxels.getVoxelsRendered() / 1000.f << "K Updated: " << _voxels.getVoxelsUpdated()/1000.f << "K";
+    voxelStats << "Voxels Rendered: " << _voxels.getVoxelsRendered() / 1000.f << "K " <<
+        "Updated: " << _voxels.getVoxelsUpdated()/1000.f << "K " <<
+        "Max: " << _voxels.getMaxVoxels()/1000.f << "K ";
+        
     drawtext(10, statsVerticalOffset + 230, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
     
     voxelStats.str("");
