@@ -8,9 +8,7 @@
 //        GL_POINTS
 //        Assumes vertex shader has not transformed coordinates
 //        Each gl_PositionIn is the corner of voxel
-//
-//        Second dataset (? similar to how voxel avatars pass in bones??)
-//        which is the voxel size
+//        varying voxelSize - which is the voxel size
 //
 // Note: In vertex shader doesn't do any transform. Therefore passing the 3D world coordinates xyz to us
 // 
