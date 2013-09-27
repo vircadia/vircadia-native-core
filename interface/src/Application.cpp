@@ -1576,6 +1576,8 @@ void Application::init() {
 
     // Set up VoxelSystem after loading preferences so we can get the desired max voxel count    
     _voxels.setMaxVoxels(Menu::getInstance()->getMaxVoxels());
+    _voxels.setUseVoxelShader(Menu::getInstance()->isOptionChecked(MenuOption::UseVoxelShader));
+    _voxels.setUseByteNormals(Menu::getInstance()->isOptionChecked(MenuOption::UseByteNormals));
     _voxels.init();
     
 

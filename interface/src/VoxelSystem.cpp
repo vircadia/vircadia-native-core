@@ -37,7 +37,7 @@ float identityVertices[] = { 0,0,0, 1,0,0, 1,1,0, 0,1,0, 0,0,1, 1,0,1, 1,1,1, 0,
                              0,0,0, 1,0,0, 1,1,0, 0,1,0, 0,0,1, 1,0,1, 1,1,1, 0,1,1,
                              0,0,0, 1,0,0, 1,1,0, 0,1,0, 0,0,1, 1,0,1, 1,1,1, 0,1,1 };
 
-GLfloat identityNormals[] = { 0,0,-1, 0,0,-1, 0,0,-1, 0,0,-1,
+GLbyte identityNormals[] = { 0,0,-1, 0,0,-1, 0,0,-1, 0,0,-1,
                               0,0,+1, 0,0,+1, 0,0,+1, 0,0,+1,
                               0,-1,0, 0,-1,0, 0,+1,0, 0,+1,0,
                               0,-1,0, 0,-1,0, 0,+1,0, 0,+1,0,
@@ -75,7 +75,9 @@ VoxelSystem::VoxelSystem(float treeScale, int maxVoxels)
     connect(_tree, SIGNAL(importSize(float,float,float)), SIGNAL(importSize(float,float,float)));
     connect(_tree, SIGNAL(importProgress(int)), SIGNAL(importProgress(int)));
 
-    _useVoxelShader = false; 
+    _useVoxelShader = false;
+    _useByteNormals = false;
+    
     _writeVoxelShaderData = NULL;
     _readVoxelShaderData = NULL;
 
@@ -139,6 +141,20 @@ VoxelSystem::~VoxelSystem() {
     VoxelNode::removeDeleteHook(this);
 }
 
+void VoxelSystem::setUseByteNormals(bool useByteNormals) {
+    pthread_mutex_lock(&_bufferWriteLock);
+    bool wasInitialized = _initialized;
+    if (wasInitialized) {
+        cleanupVoxelMemory();
+    }
+    _useByteNormals = useByteNormals;
+    if (wasInitialized) {
+        init();
+    }
+    pthread_mutex_unlock(&_bufferWriteLock);
+}
+
+
 void VoxelSystem::setMaxVoxels(int maxVoxels) {
     pthread_mutex_lock(&_bufferWriteLock);
     bool wasInitialized = _initialized;
@@ -194,6 +210,7 @@ void VoxelSystem::cleanupVoxelMemory() {
 
 void VoxelSystem::initVoxelMemory() {
     if (_useVoxelShader) {
+        qDebug("Using Voxel Shader...\n");
         GLuint* indicesArray = new GLuint[_maxVoxels];
 
         // populate the indicesArray
@@ -241,26 +258,54 @@ void VoxelSystem::initVoxelMemory() {
             }
         }
 
-        GLfloat* normalsArray = new GLfloat[VERTEX_POINTS_PER_VOXEL * _maxVoxels];
-        GLfloat* normalsArrayEndPointer = normalsArray;
+        if (_useByteNormals) {
+            qDebug("Using Byte Normals...\n");
+            GLbyte* normalsArray = new GLbyte[VERTEX_POINTS_PER_VOXEL * _maxVoxels];
+            GLbyte* normalsArrayEndPointer = normalsArray;
 
-        // populate the normalsArray
-        for (int n = 0; n < _maxVoxels; n++) {
-            for (int i = 0; i < VERTEX_POINTS_PER_VOXEL; i++) {
-                *(normalsArrayEndPointer++) = identityNormals[i];
+            // populate the normalsArray
+            for (int n = 0; n < _maxVoxels; n++) {
+                for (int i = 0; i < VERTEX_POINTS_PER_VOXEL; i++) {
+                    *(normalsArrayEndPointer++) = identityNormals[i];
+                }
             }
+
+            // VBO for the normalsArray
+            glGenBuffers(1, &_vboNormalsID);
+            glBindBuffer(GL_ARRAY_BUFFER, _vboNormalsID);
+            glBufferData(GL_ARRAY_BUFFER,
+                         VERTEX_POINTS_PER_VOXEL * sizeof(GLbyte) * _maxVoxels,
+                         normalsArray, GL_STATIC_DRAW);
+
+            // delete the indices and normals arrays that are no longer needed
+            delete[] normalsArray;
+        } else {
+            qDebug("Using Float Normals...\n");
+            GLfloat* normalsArray = new GLfloat[VERTEX_POINTS_PER_VOXEL * _maxVoxels];
+            GLfloat* normalsArrayEndPointer = normalsArray;
+
+            // populate the normalsArray
+            for (int n = 0; n < _maxVoxels; n++) {
+                for (int i = 0; i < VERTEX_POINTS_PER_VOXEL; i++) {
+                    *(normalsArrayEndPointer++) = identityNormals[i];
+                }
+            }
+            
+            // VBO for the normalsArray
+            glGenBuffers(1, &_vboNormalsID);
+            glBindBuffer(GL_ARRAY_BUFFER, _vboNormalsID);
+            glBufferData(GL_ARRAY_BUFFER,
+                         VERTEX_POINTS_PER_VOXEL * sizeof(GLfloat) * _maxVoxels,
+                         normalsArray, GL_STATIC_DRAW);
+
+            // delete the indices and normals arrays that are no longer needed
+            delete[] normalsArray;
         }
+
 
         glGenBuffers(1, &_vboVerticesID);
         glBindBuffer(GL_ARRAY_BUFFER, _vboVerticesID);
         glBufferData(GL_ARRAY_BUFFER, VERTEX_POINTS_PER_VOXEL * sizeof(GLfloat) * _maxVoxels, NULL, GL_DYNAMIC_DRAW);
-
-        // VBO for the normalsArray
-        glGenBuffers(1, &_vboNormalsID);
-        glBindBuffer(GL_ARRAY_BUFFER, _vboNormalsID);
-        glBufferData(GL_ARRAY_BUFFER,
-                     VERTEX_POINTS_PER_VOXEL * sizeof(GLfloat) * _maxVoxels,
-                     normalsArray, GL_STATIC_DRAW);
 
         // VBO for colorsArray
         glGenBuffers(1, &_vboColorsID);
@@ -276,7 +321,6 @@ void VoxelSystem::initVoxelMemory() {
 
         // delete the indices and normals arrays that are no longer needed
         delete[] indicesArray;
-        delete[] normalsArray;
 
 
         // we will track individual dirty sections with these arrays of bools
@@ -890,7 +934,7 @@ void VoxelSystem::render(bool texture) {
         glVertexPointer(3, GL_FLOAT, 0, 0);
 
         glBindBuffer(GL_ARRAY_BUFFER, _vboNormalsID);
-        glNormalPointer(GL_FLOAT, 0, 0);
+        glNormalPointer((_useByteNormals ? GL_BYTE : GL_FLOAT), 0, 0);
 
         glBindBuffer(GL_ARRAY_BUFFER, _vboColorsID);
         glColorPointer(3, GL_UNSIGNED_BYTE, 0, 0);
@@ -1769,7 +1813,7 @@ void VoxelSystem::falseColorizeOccludedV2() {
 void VoxelSystem::nodeAdded(Node* node) {
     if (node->getType() == NODE_TYPE_VOXEL_SERVER) {
         uint16_t nodeID = node->getNodeID();
-        printf("VoxelSystem... voxel server %u added...\n", nodeID);
+        qDebug("VoxelSystem... voxel server %u added...\n", nodeID);
         _voxelServerCount++;
     }
 }
@@ -1792,7 +1836,7 @@ void VoxelSystem::nodeKilled(Node* node) {
     if (node->getType() == NODE_TYPE_VOXEL_SERVER) {
         _voxelServerCount--;
         uint16_t nodeID = node->getNodeID();
-        printf("VoxelSystem... voxel server %u removed...\n", nodeID);
+        qDebug("VoxelSystem... voxel server %u removed...\n", nodeID);
         
         if (_voxelServerCount > 0) {
             // Kill any voxels from the local tree that match this nodeID
