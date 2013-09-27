@@ -12,7 +12,7 @@
 //        Second dataset (? similar to how voxel avatars pass in bones??)
 //        which is the voxel size
 //
-// Note: In vertex shader DON'T do projection transform. Therefore passing the 3D coordinates xyz to geometric shader
+// Note: In vertex shader doesn't do any transform. Therefore passing the 3D world coordinates xyz to us
 // 
 // Output: GL_TRIANGLE_STRIP
 //
@@ -36,7 +36,7 @@ void faceOfVoxel(vec4 corner, float scale, float[COORD_PER_FACE] facePoints, vec
             vertex[c] += (facePoints[cIndex] * scale);
         }
         gl_FrontColor = color; 
-        gl_Position = gl_ProjectionMatrix * vertex;
+        gl_Position = gl_ModelViewProjectionMatrix * vertex;
         EmitVertex();
     }
     EndPrimitive();
