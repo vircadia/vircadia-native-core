@@ -51,6 +51,7 @@
 #include "renderer/AmbientOcclusionEffect.h"
 #include "renderer/GeometryCache.h"
 #include "renderer/GlowEffect.h"
+#include "renderer/VoxelShader.h"
 #include "renderer/TextureCache.h"
 #include "ui/BandwidthDialog.h"
 #include "ui/ChatEntry.h"
@@ -144,6 +145,8 @@ public:
     virtual void nodeAdded(Node* node);
     virtual void nodeKilled(Node* node);
     virtual void packetSentNotification(ssize_t length);
+    
+    VoxelShader& getVoxelShader() { return _voxelShader; }
 
 public slots:
     void sendAvatarFaceVideoMessage(int frameCount, const QByteArray& data);
@@ -346,6 +349,7 @@ private:
     
     GlowEffect _glowEffect;
     AmbientOcclusionEffect _ambientOcclusionEffect;
+    VoxelShader _voxelShader;
     
     #ifndef _WIN32
     Audio _audio;

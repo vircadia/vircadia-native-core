@@ -32,10 +32,10 @@ const float VOXEL_SIZE_SCALE = TREE_SCALE * 400.0f;
 const int NUMBER_OF_CHILDREN = 8;
 const int MAX_VOXEL_PACKET_SIZE = 1492;
 const int MAX_TREE_SLICE_BYTES = 26;
-const int MAX_VOXELS_PER_SYSTEM = 200000;
-const int VERTICES_PER_VOXEL = 24;
-const int VERTEX_POINTS_PER_VOXEL = 3 * VERTICES_PER_VOXEL;
-const int INDICES_PER_VOXEL = 3 * 12;
+const int DEFAULT_MAX_VOXELS_PER_SYSTEM = 200000;
+const int VERTICES_PER_VOXEL = 24; // 6 sides * 4 corners per side
+const int VERTEX_POINTS_PER_VOXEL = 3 * VERTICES_PER_VOXEL; // xyz for each VERTICE_PER_VOXEL
+const int INDICES_PER_VOXEL = 3 * 12; // 6 sides * 2 triangles per size * 3 vertices per triangle
 const int COLOR_VALUES_PER_VOXEL = NUMBER_OF_COLORS * VERTICES_PER_VOXEL;
 
 typedef unsigned long int glBufferIndex;
