@@ -37,7 +37,7 @@ float identityVertices[] = { 0,0,0, 1,0,0, 1,1,0, 0,1,0, 0,0,1, 1,0,1, 1,1,1, 0,
                              0,0,0, 1,0,0, 1,1,0, 0,1,0, 0,0,1, 1,0,1, 1,1,1, 0,1,1,
                              0,0,0, 1,0,0, 1,1,0, 0,1,0, 0,0,1, 1,0,1, 1,1,1, 0,1,1 };
 
-GLbyte identityNormals[] = { 0,0,-1, 0,0,-1, 0,0,-1, 0,0,-1,
+GLfloat identityNormals[] = { 0,0,-1, 0,0,-1, 0,0,-1, 0,0,-1,
                               0,0,+1, 0,0,+1, 0,0,+1, 0,0,+1,
                               0,-1,0, 0,-1,0, 0,+1,0, 0,+1,0,
                               0,-1,0, 0,-1,0, 0,+1,0, 0,+1,0,
@@ -152,6 +152,10 @@ void VoxelSystem::setUseByteNormals(bool useByteNormals) {
         init();
     }
     pthread_mutex_unlock(&_bufferWriteLock);
+
+    if (wasInitialized) {
+        forceRedrawEntireTree();
+    }
 }
 
 
@@ -166,12 +170,17 @@ void VoxelSystem::setMaxVoxels(int maxVoxels) {
         init();
     }
     pthread_mutex_unlock(&_bufferWriteLock);
+
+    if (wasInitialized) {
+        forceRedrawEntireTree();
+    }
 }
 
 void VoxelSystem::setUseVoxelShader(bool useVoxelShader) {
     pthread_mutex_lock(&_bufferWriteLock);
     bool wasInitialized = _initialized;
     if (wasInitialized) {
+        clearAllNodesBufferIndex();
         cleanupVoxelMemory();
     }
     _useVoxelShader = useVoxelShader;
@@ -179,6 +188,10 @@ void VoxelSystem::setUseVoxelShader(bool useVoxelShader) {
         init();
     }
     pthread_mutex_unlock(&_bufferWriteLock);
+
+    if (wasInitialized) {
+        forceRedrawEntireTree();
+    }
 }
 
 void VoxelSystem::cleanupVoxelMemory() {
@@ -266,7 +279,7 @@ void VoxelSystem::initVoxelMemory() {
             // populate the normalsArray
             for (int n = 0; n < _maxVoxels; n++) {
                 for (int i = 0; i < VERTEX_POINTS_PER_VOXEL; i++) {
-                    *(normalsArrayEndPointer++) = identityNormals[i];
+                    *(normalsArrayEndPointer++) = (identityNormals[i] * CHAR_MAX);
                 }
             }
 
@@ -750,20 +763,24 @@ void VoxelSystem::updateNodeInArrays(glBufferIndex nodeIndex, const glm::vec3& s
                                      float voxelScale, const nodeColor& color) {
                                      
     if (_useVoxelShader) {
-        VoxelShaderVBOData* writeVerticesAt = &_writeVoxelShaderData[nodeIndex];
-        writeVerticesAt->x = startVertex.x * TREE_SCALE;
-        writeVerticesAt->y = startVertex.y * TREE_SCALE;
-        writeVerticesAt->z = startVertex.z * TREE_SCALE;
-        writeVerticesAt->s = voxelScale * TREE_SCALE;
-        writeVerticesAt->r = color[RED_INDEX];
-        writeVerticesAt->g = color[GREEN_INDEX];
-        writeVerticesAt->b = color[BLUE_INDEX];
+        if (_writeVoxelShaderData) {
+            VoxelShaderVBOData* writeVerticesAt = &_writeVoxelShaderData[nodeIndex];
+            writeVerticesAt->x = startVertex.x * TREE_SCALE;
+            writeVerticesAt->y = startVertex.y * TREE_SCALE;
+            writeVerticesAt->z = startVertex.z * TREE_SCALE;
+            writeVerticesAt->s = voxelScale * TREE_SCALE;
+            writeVerticesAt->r = color[RED_INDEX];
+            writeVerticesAt->g = color[GREEN_INDEX];
+            writeVerticesAt->b = color[BLUE_INDEX];
+        }
     } else {
-        for (int j = 0; j < VERTEX_POINTS_PER_VOXEL; j++ ) {
-            GLfloat* writeVerticesAt = _writeVerticesArray + (nodeIndex * VERTEX_POINTS_PER_VOXEL);
-            GLubyte* writeColorsAt   = _writeColorsArray   + (nodeIndex * VERTEX_POINTS_PER_VOXEL);
-            *(writeVerticesAt+j) = startVertex[j % 3] + (identityVertices[j] * voxelScale);
-            *(writeColorsAt  +j) = color[j % 3];
+        if (_writeVerticesArray && _writeColorsArray) {
+            for (int j = 0; j < VERTEX_POINTS_PER_VOXEL; j++ ) {
+                GLfloat* writeVerticesAt = _writeVerticesArray + (nodeIndex * VERTEX_POINTS_PER_VOXEL);
+                GLubyte* writeColorsAt   = _writeColorsArray   + (nodeIndex * VERTEX_POINTS_PER_VOXEL);
+                *(writeVerticesAt+j) = startVertex[j % 3] + (identityVertices[j] * voxelScale);
+                *(writeColorsAt  +j) = color[j % 3];
+            }
         }
     }
 }
@@ -994,6 +1011,34 @@ void VoxelSystem::killLocalVoxels() {
     //setupNewVoxelsForDrawing();
 }
 
+
+bool VoxelSystem::clearAllNodesBufferIndexOperation(VoxelNode* node, void* extraData) {
+    _nodeCount++;
+    node->setBufferIndex(GLBUFFER_INDEX_UNKNOWN);
+    return true;
+}
+
+void VoxelSystem::clearAllNodesBufferIndex() {
+    _nodeCount = 0;
+    _tree->recurseTreeWithOperation(clearAllNodesBufferIndexOperation);
+    qDebug("clearing buffer index of %d nodes\n", _nodeCount);
+    _tree->setDirtyBit();
+    setupNewVoxelsForDrawing();
+}
+
+bool VoxelSystem::forceRedrawEntireTreeOperation(VoxelNode* node, void* extraData) {
+    _nodeCount++;
+    node->setDirtyBit();
+    return true;
+}
+
+void VoxelSystem::forceRedrawEntireTree() {
+    _nodeCount = 0;
+    _tree->recurseTreeWithOperation(forceRedrawEntireTreeOperation);
+    qDebug("forcing redraw of %d nodes\n", _nodeCount);
+    _tree->setDirtyBit();
+    setupNewVoxelsForDrawing();
+}
 
 bool VoxelSystem::randomColorOperation(VoxelNode* node, void* extraData) {
     _nodeCount++;

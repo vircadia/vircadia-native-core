@@ -126,6 +126,8 @@ public slots:
     void falseColorizeOccluded();
     void falseColorizeOccludedV2();
     void falseColorizeBySource();
+    void forceRedrawEntireTree();
+    void clearAllNodesBufferIndex();
 
     void cancelImport();
     void setUseByteNormals(bool useByteNormals);
@@ -172,6 +174,8 @@ private:
     static bool falseColorizeOccludedV2Operation(VoxelNode* node, void* extraData);
     static bool falseColorizeBySourceOperation(VoxelNode* node, void* extraData);
     static bool killSourceVoxelsOperation(VoxelNode* node, void* extraData);
+    static bool forceRedrawEntireTreeOperation(VoxelNode* node, void* extraData);
+    static bool clearAllNodesBufferIndexOperation(VoxelNode* node, void* extraData);
 
     int updateNodeInArraysAsFullVBO(VoxelNode* node);
     int updateNodeInArraysAsPartialVBO(VoxelNode* node);
