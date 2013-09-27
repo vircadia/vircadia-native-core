@@ -1750,6 +1750,11 @@ void Application::update(float deltaTime) {
 
     //  Update faceshift
     _faceshift.update();
+    
+    //  Copy angular velocity if measured by faceshift, to the head
+    if (_faceshift.isActive()) {
+        _myAvatar.getHead().setAngularVelocity(_faceshift.getHeadAngularVelocity());
+    }
 
     // if we have faceshift, use that to compute the lookat direction
     glm::vec3 lookAtRayOrigin = mouseRayOrigin, lookAtRayDirection = mouseRayDirection;
@@ -1932,7 +1937,7 @@ void Application::update(float deltaTime) {
             if (!avatar->isInitialized()) {
                 avatar->init();
             }
-            avatar->simulate(deltaTime, NULL, 0.f);
+            avatar->simulate(deltaTime, NULL);
             avatar->setMouseRay(mouseRayOrigin, mouseRayDirection);
         }
         node->unlock();
@@ -1947,9 +1952,9 @@ void Application::update(float deltaTime) {
     }
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::TransmitterDrive) && _myTransmitter.isConnected()) {
-        _myAvatar.simulate(deltaTime, &_myTransmitter, Menu::getInstance()->getGyroCameraSensitivity());
+        _myAvatar.simulate(deltaTime, &_myTransmitter);
     } else {
-        _myAvatar.simulate(deltaTime, NULL, Menu::getInstance()->getGyroCameraSensitivity());
+        _myAvatar.simulate(deltaTime, NULL);
     }
     
     // no transmitter drive implies transmitter pick

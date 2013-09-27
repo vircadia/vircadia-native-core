@@ -289,7 +289,7 @@ void Avatar::follow(Avatar* leadingAvatar) {
     }
 }
 
-void Avatar::simulate(float deltaTime, Transmitter* transmitter, float gyroCameraSensitivity) {
+void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
 
     glm::quat orientation = getOrientation();
     glm::vec3 front = orientation * IDENTITY_FRONT;
@@ -403,7 +403,7 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter, float gyroCamer
     _head.setBodyRotation(glm::vec3(_bodyPitch, _bodyYaw, _bodyRoll));
     _head.setPosition(_bodyBall[ BODY_BALL_HEAD_BASE ].position);
     _head.setSkinColor(glm::vec3(SKIN_COLOR[0], SKIN_COLOR[1], SKIN_COLOR[2]));
-    _head.simulate(deltaTime, false, gyroCameraSensitivity);
+    _head.simulate(deltaTime, false);
     _hand.simulate(deltaTime, false);
 
     // use speed and angular velocity to determine walking vs. standing

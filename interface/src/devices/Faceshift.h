@@ -30,6 +30,7 @@ public:
     bool isActive() const;
 
     const glm::quat& getHeadRotation() const { return _headRotation; }
+    const glm::vec3& getHeadAngularVelocity() const { return _headAngularVelocity; }
     const glm::vec3& getHeadTranslation() const { return _headTranslation; }
 
     float getEyeGazeLeftPitch() const { return _eyeGazeLeftPitch; }
@@ -88,6 +89,7 @@ private:
     uint64_t _lastTrackingStateReceived;
     
     glm::quat _headRotation;
+    glm::vec3 _headAngularVelocity;
     glm::vec3 _headTranslation;
     
     float _eyeGazeLeftPitch;

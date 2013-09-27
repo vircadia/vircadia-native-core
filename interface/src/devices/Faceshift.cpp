@@ -144,12 +144,18 @@ void Faceshift::receive(const QByteArray& buffer) {
                 if ((_tracking = data.m_trackingSuccessful)) {
                     glm::quat newRotation = glm::quat(data.m_headRotation.w, -data.m_headRotation.x,
                                                       data.m_headRotation.y, -data.m_headRotation.z);
+                    // Compute angular velocity of the head 
                     glm::quat r = newRotation * glm::inverse(_headRotation);
-                    //printf("angle = %.3f\n", 2 * acos(r.w));
+                    float theta = 2 * acos(r.w);
+                    if (theta > EPSILON) {
+                        float rMag = glm::length(glm::vec3(r.x, r.y, r.z));
+                        float AVERAGE_FACESHIFT_FRAME_TIME = 0.033f;
+                        _headAngularVelocity = theta / AVERAGE_FACESHIFT_FRAME_TIME * glm::vec3(r.x, r.y, r.z) / rMag;
+                    } else {
+                        _headAngularVelocity = glm::vec3(0,0,0);
+                    }
                     _headRotation = newRotation;
                     
-                    //_headRotation = glm::quat(data.m_headRotation.w, -data.m_headRotation.x,
-                    //    data.m_headRotation.y, -data.m_headRotation.z);
                     const float TRANSLATION_SCALE = 0.02f;
                     _headTranslation = glm::vec3(data.m_headTranslation.x, data.m_headTranslation.y,
                         -data.m_headTranslation.z) * TRANSLATION_SCALE;

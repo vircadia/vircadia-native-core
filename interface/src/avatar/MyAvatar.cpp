@@ -65,7 +65,7 @@ void MyAvatar::reset() {
     _hand.reset();
 }
 
-void MyAvatar::simulate(float deltaTime, Transmitter* transmitter, float gyroCameraSensitivity) {
+void MyAvatar::simulate(float deltaTime, Transmitter* transmitter) {
 
     glm::quat orientation = getOrientation();
     glm::vec3 front = orientation * IDENTITY_FRONT;
@@ -303,7 +303,7 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter, float gyroCam
     _head.setPosition(_bodyBall[ BODY_BALL_HEAD_BASE ].position);
     _head.setScale(_scale);
     _head.setSkinColor(glm::vec3(SKIN_COLOR[0], SKIN_COLOR[1], SKIN_COLOR[2]));
-    _head.simulate(deltaTime, true, gyroCameraSensitivity);
+    _head.simulate(deltaTime, true);
     _hand.simulate(deltaTime, true);
 
     const float WALKING_SPEED_THRESHOLD = 0.2f;
@@ -337,7 +337,13 @@ void MyAvatar::updateFromGyrosAndOrWebcam(bool gyroLook,
     if (faceshift->isActive()) {
         estimatedPosition = faceshift->getHeadTranslation();
         estimatedRotation = safeEulerAngles(faceshift->getHeadRotation());
-    
+        //  Rotate the body if the head is turned quickly
+        glm::vec3 headAngularVelocity = faceshift->getHeadAngularVelocity();
+        const float FACESHIFT_YAW_VIEW_SENSITIVITY = 20.f;
+        const float FACESHIFT_MIN_YAW_VELOCITY = 1.0f;
+        if (fabs(headAngularVelocity.y) > FACESHIFT_MIN_YAW_VELOCITY) {
+            _bodyYawDelta += headAngularVelocity.y * FACESHIFT_YAW_VIEW_SENSITIVITY;
+        }
     } else if (gyros->isActive()) {
         estimatedRotation = gyros->getEstimatedRotation();
     

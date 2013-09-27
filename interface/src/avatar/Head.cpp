@@ -71,6 +71,7 @@ Head::Head(Avatar* owningAvatar) :
     _audioAttack(0.0f),
     _returnSpringScale(1.0f),
     _bodyRotation(0.0f, 0.0f, 0.0f),
+    _angularVelocity(0,0,0),
     _renderLookatVectors(false),
     _mohawkInitialized(false),
     _saccade(0.0f, 0.0f, 0.0f),
@@ -132,7 +133,7 @@ void Head::resetHairPhysics() {
 }
 
 
-void Head::simulate(float deltaTime, bool isMine, float gyroCameraSensitivity) {
+void Head::simulate(float deltaTime, bool isMine) {
     
     //  Update audio trailing average for rendering facial animations
     Faceshift* faceshift = Application::getInstance()->getFaceshift();
@@ -230,44 +231,6 @@ void Head::simulate(float deltaTime, bool isMine, float gyroCameraSensitivity) {
     // based on the nature of the lookat position, determine if the eyes can look / are looking at it.      
     if (USING_PHYSICAL_MOHAWK) {
         updateHairPhysics(deltaTime);
-        
-    }
-    
-    // Update camera pitch and yaw independently from motion of head (for gyro-based interface)
-    if (isMine && _cameraFollowsHead && (gyroCameraSensitivity > 0.f)) {
-        //  If we are using gyros and using gyroLook, have the camera follow head but with a null region
-        //  to create stable rendering view with small head movements.
-        const float CAMERA_FOLLOW_HEAD_RATE_START = 0.1f;
-        const float CAMERA_FOLLOW_HEAD_RATE_MAX = 1.0f;
-        const float CAMERA_FOLLOW_HEAD_RATE_RAMP_RATE = 1.05f;
-        const float CAMERA_STOP_TOLERANCE_DEGREES = 0.5f;
-        const float PITCH_START_RANGE = 20.f;
-        const float YAW_START_RANGE = 10.f;
-        float pitchStartTolerance = PITCH_START_RANGE
-                                    * (1.f - gyroCameraSensitivity)
-                                    + (2.f * CAMERA_STOP_TOLERANCE_DEGREES);
-        float yawStartTolerance = YAW_START_RANGE
-                                    * (1.f - gyroCameraSensitivity)
-                                    + (2.f * CAMERA_STOP_TOLERANCE_DEGREES);
-
-        float cameraHeadAngleDifference = glm::length(glm::vec2(_pitch - _cameraPitch, _yaw - _cameraYaw));
-        if (_isCameraMoving) {
-            _cameraFollowHeadRate = glm::clamp(_cameraFollowHeadRate * CAMERA_FOLLOW_HEAD_RATE_RAMP_RATE,
-                                               0.f,
-                                               CAMERA_FOLLOW_HEAD_RATE_MAX);
-                                               
-            _cameraPitch += (_pitch - _cameraPitch) * _cameraFollowHeadRate;
-            _cameraYaw += (_yaw - _cameraYaw) * _cameraFollowHeadRate;
-            if (cameraHeadAngleDifference < CAMERA_STOP_TOLERANCE_DEGREES) {
-                _isCameraMoving = false;
-            }
-        } else {
-            if ((fabs(_pitch - _cameraPitch) > pitchStartTolerance) ||
-                (fabs(_yaw - _cameraYaw) > yawStartTolerance)) {
-                _isCameraMoving = true;
-                _cameraFollowHeadRate = CAMERA_FOLLOW_HEAD_RATE_START;
-            }
-        }
     }
 }
 
