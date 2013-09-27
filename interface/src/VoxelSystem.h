@@ -69,6 +69,10 @@ public:
 
     void setMaxVoxels(int maxVoxels);
     long int getMaxVoxels() const { return _maxVoxels; }
+    unsigned long getVoxelMemoryUsageRAM() const { return _memoryUsageRAM; }
+    unsigned long getVoxelMemoryUsageVBO() const { return _memoryUsageVBO; }
+    bool hasVoxelMemoryUsageGPU() const { return _hasMemoryUsageGPU; }
+    unsigned long getVoxelMemoryUsageGPU();
     long int getVoxelsCreated();
     long int getVoxelsColored();
     long int getVoxelsBytesRead();
@@ -185,6 +189,8 @@ private:
 
     void updateVBOs();
 
+    unsigned long getFreeMemoryGPU();
+
     // these are kinda hacks, used by getDistanceFromViewRangeOperation() probably shouldn't be here
     static float _maxDistance;
     static float _minDistance;
@@ -253,6 +259,10 @@ private:
     int  _dataSourceID;
     
     int _voxelServerCount;
+    unsigned long _memoryUsageRAM;
+    unsigned long _memoryUsageVBO;
+    unsigned long _initialMemoryUsageGPU;
+    bool _hasMemoryUsageGPU;
 };
 
 #endif
