@@ -26,14 +26,17 @@ const int VERTICES_PER_FACE = 4;
 const int COORD_PER_VERTEX = 3;
 const int COORD_PER_FACE = COORD_PER_VERTEX * VERTICES_PER_FACE;
 
-void faceOfVoxel(vec4 corner, float scale, float[COORD_PER_FACE] facePoints, vec4 color) {
+void faceOfVoxel(vec4 corner, float scale, float[COORD_PER_FACE] facePoints, vec4 color, vec4 normal) {
     for (int v = 0; v < VERTICES_PER_FACE; v++ ) {
         vec4 vertex = corner;
         for (int c = 0; c < COORD_PER_VERTEX; c++ ) {
             int cIndex = c + (v * COORD_PER_VERTEX);
             vertex[c] += (facePoints[cIndex] * scale);
         }
-        gl_FrontColor = color; 
+        
+        gl_FrontColor = color * (gl_LightModel.ambient + gl_LightSource[0].ambient +
+            gl_LightSource[0].diffuse * max(0.0, dot(normal, gl_LightSource[0].position)));
+
         gl_Position = gl_ModelViewProjectionMatrix * vertex;
         EmitVertex();
     }
@@ -54,14 +57,21 @@ void main() {
     float frontFace[COORD_PER_FACE]  = float[COORD_PER_FACE]( 1, 0, 0,   0, 0, 0,   1, 1, 0,   0, 1, 0  );
     float backFace[COORD_PER_FACE]   = float[COORD_PER_FACE]( 1, 0, 1,   0, 0, 1,   1, 1, 1,   0, 1, 1  );
 
+    vec4 bottomNormal = vec4(0.0,  -1, 0.0, 0.0);
+    vec4 topNormal    = vec4(0.0,   1, 0.0, 0.0);
+    vec4 rightNormal  = vec4( -1, 0.0, 0.0, 0.0);
+    vec4 leftNormal   = vec4(  1, 0.0, 0.0, 0.0);
+    vec4 frontNormal  = vec4(0.0, 0.0,  -1, 0.0);
+    vec4 backNormal   = vec4(0.0, 0.0,   1, 0.0);
+        
     for(i = 0; i < gl_VerticesIn; i++) {
         corner = gl_PositionIn[i];
         scale = voxelSize[i];
-        faceOfVoxel(corner, scale, bottomFace, gl_FrontColorIn[i]);
-        faceOfVoxel(corner, scale, topFace,    gl_FrontColorIn[i]);
-        faceOfVoxel(corner, scale, rightFace,  gl_FrontColorIn[i]);
-        faceOfVoxel(corner, scale, leftFace,   gl_FrontColorIn[i]);
-        faceOfVoxel(corner, scale, frontFace,  gl_FrontColorIn[i]);
-        faceOfVoxel(corner, scale, backFace,   gl_FrontColorIn[i]);
+        faceOfVoxel(corner, scale, bottomFace, gl_FrontColorIn[i], bottomNormal);
+        faceOfVoxel(corner, scale, topFace,    gl_FrontColorIn[i], topNormal   );
+        faceOfVoxel(corner, scale, rightFace,  gl_FrontColorIn[i], rightNormal );
+        faceOfVoxel(corner, scale, leftFace,   gl_FrontColorIn[i], leftNormal  );
+        faceOfVoxel(corner, scale, frontFace,  gl_FrontColorIn[i], frontNormal );
+        faceOfVoxel(corner, scale, backFace,   gl_FrontColorIn[i], backNormal  );
     }
 }
