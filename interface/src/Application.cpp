@@ -1001,6 +1001,17 @@ void Application::mousePressEvent(QMouseEvent* event) {
                 
                 _audio.startCollisionSound(1.0, frequency, 0.0, HOVER_VOXEL_DECAY);
                 _isHoverVoxelSounding = true;
+                
+                const float PERCENTAGE_TO_MOVE_TOWARD = 0.90f;
+                glm::vec3 newTarget = getMouseVoxelWorldCoordinates(_hoverVoxel);
+                glm::vec3 myPosition = _myAvatar.getPosition();
+                
+                // If there is not an action tool set (add, delete, color), move to this voxel
+                if (!(Menu::getInstance()->isOptionChecked(MenuOption::VoxelAddMode) ||
+                     Menu::getInstance()->isOptionChecked(MenuOption::VoxelDeleteMode) ||
+                     Menu::getInstance()->isOptionChecked(MenuOption::VoxelColorMode))) {
+                    _myAvatar.setMoveTarget(myPosition + (newTarget - myPosition) * PERCENTAGE_TO_MOVE_TOWARD);
+                }
             }
             
         } else if (event->button() == Qt::RightButton && Menu::getInstance()->isVoxelModeActionChecked()) {
