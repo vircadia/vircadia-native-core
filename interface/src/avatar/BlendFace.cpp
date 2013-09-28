@@ -77,6 +77,9 @@ bool BlendFace::render(float alpha) {
         const FBXMesh& mesh = _geometry.meshes.at(i);    
         int vertexCount = mesh.vertices.size();
         
+        glPushMatrix();
+        glMultMatrixf((const GLfloat*)&mesh.transform);
+        
         // apply eye rotation if appropriate
         if (mesh.isEye) {
             glPushMatrix();
@@ -144,8 +147,9 @@ bool BlendFace::render(float alpha) {
             glBindTexture(GL_TEXTURE_2D, 0);
             glDisable(GL_TEXTURE_2D);
             glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-            glPopMatrix();
         }
+        
+        glPopMatrix();
     }
     
     glDisable(GL_NORMALIZE); 

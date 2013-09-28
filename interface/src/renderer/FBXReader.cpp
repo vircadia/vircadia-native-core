@@ -12,6 +12,9 @@
 #include <QtDebug>
 #include <QtEndian>
 
+#include <glm/gtc/quaternion.hpp>
+#include <glm/gtx/transform.hpp>
+
 #include "FBXReader.h"
 
 using namespace std;
@@ -282,9 +285,10 @@ public:
 FBXGeometry extractFBXGeometry(const FBXNode& node) {
     QHash<qint64, FBXMesh> meshes;
     QVector<ExtractedBlendshape> blendshapes;
-    QHash<qint64, qint64> parentMap;
+    QMultiHash<qint64, qint64> parentMap;
     QMultiHash<qint64, qint64> childMap;
     QHash<qint64, glm::vec3> pivots;
+    QHash<qint64, glm::mat4> localTransforms;
     qint64 jointEyeLeftID = 0;
     qint64 jointEyeRightID = 0;
     
@@ -403,13 +407,42 @@ FBXGeometry extractFBXGeometry(const FBXNode& node) {
                         
                         blendshapes.append(extracted);
                     }
-                } else if (object.name == "Model" && object.properties.at(2) == "LimbNode") {
+                } else if (object.name == "Model") {
                     if (object.properties.at(1).toByteArray().startsWith("jointEyeLeft")) {
                         jointEyeLeftID = object.properties.at(0).value<qint64>();
                         
                     } else if (object.properties.at(1).toByteArray().startsWith("jointEyeRight")) {
                         jointEyeRightID = object.properties.at(0).value<qint64>();
                     }
+                    glm::vec3 translation;
+                    glm::vec3 rotation;
+                    glm::vec3 scale = glm::vec3(1.0f, 1.0f, 1.0f);
+                    foreach (const FBXNode& subobject, object.children) {
+                        if (subobject.name == "Properties70") {
+                            foreach (const FBXNode& property, subobject.children) {
+                                if (property.name == "P") {
+                                    if (property.properties.at(0) == "Lcl Translation") {
+                                        translation = glm::vec3(property.properties.at(4).value<double>(),
+                                            property.properties.at(5).value<double>(),
+                                            property.properties.at(6).value<double>());
+                                        
+                                    } else if (property.properties.at(0) == "Lcl Rotation") {
+                                        rotation = glm::vec3(property.properties.at(4).value<double>(),
+                                            property.properties.at(5).value<double>(),
+                                            property.properties.at(6).value<double>());
+                                        
+                                    } else if (property.properties.at(0) == "Lcl Scaling") {
+                                        scale = glm::vec3(property.properties.at(4).value<double>(),
+                                            property.properties.at(5).value<double>(),
+                                            property.properties.at(6).value<double>());
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    localTransforms.insert(object.properties.at(0).value<qint64>(),
+                        glm::translate(translation) * glm::mat4_cast(glm::quat(glm::radians(rotation))) * glm::scale(scale));
+                    
                 } else if (object.name == "Deformer" && object.properties.at(2) == "Cluster") {
                     foreach (const FBXNode& subobject, object.children) {
                         if (subobject.name == "TransformLink") {
@@ -445,6 +478,11 @@ FBXGeometry extractFBXGeometry(const FBXNode& node) {
     int mostBlendshapes = 0;
     for (QHash<qint64, FBXMesh>::iterator it = meshes.begin(); it != meshes.end(); it++) {
         FBXMesh& mesh = it.value();
+        
+        // accumulate local transforms
+        for (qint64 parentID = parentMap.value(it.key()); parentID != 0; parentID = parentMap.value(parentID)) {
+            mesh.transform = localTransforms.value(parentID) * mesh.transform;
+        }
         
         // look for a limb pivot
         mesh.isEye = false;

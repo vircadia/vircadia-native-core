@@ -49,6 +49,7 @@ public:
     QVector<glm::vec2> texCoords;
     
     glm::vec3 pivot;
+    glm::mat4 transform;
     
     bool isEye;
     
