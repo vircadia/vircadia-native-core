@@ -3423,6 +3423,7 @@ void Application::attachNewHeadToNode(Node* newNode) {
 }
 
 void Application::domainChanged(QString domain) {
+    qDebug("Application title set to: %s.\n", domain.toStdString().c_str());
     _window->setWindowTitle(domain);
 }
 
