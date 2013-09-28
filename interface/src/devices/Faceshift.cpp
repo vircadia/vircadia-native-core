@@ -11,6 +11,7 @@
 #include <SharedUtil.h>
 
 #include "Faceshift.h"
+#include "Menu.h"
 
 using namespace fs;
 using namespace std;
@@ -19,34 +20,22 @@ const quint16 FACESHIFT_PORT = 33433;
 
 Faceshift::Faceshift() :
     _tcpEnabled(false),
-    _lastMessageReceived(0),
+    _lastTrackingStateReceived(0),
     _eyeGazeLeftPitch(0.0f),
     _eyeGazeLeftYaw(0.0f),
     _eyeGazeRightPitch(0.0f),
     _eyeGazeRightYaw(0.0f),
-    _leftBlink(0.0f),
-    _rightBlink(0.0f),
-    _leftEyeOpen(0.0f),
-    _rightEyeOpen(0.0f),
     _leftBlinkIndex(0), // see http://support.faceshift.com/support/articles/35129-export-of-blendshapes
     _rightBlinkIndex(1),
     _leftEyeOpenIndex(8),
     _rightEyeOpenIndex(9),
-    _browDownLeft(0.0f),
-    _browDownRight(0.0f),
-    _browUpCenter(0.0f),
-    _browUpLeft(0.0f),
-    _browUpRight(0.0f),
-    _browDownLeftIndex(-1),
-    _browDownRightIndex(-1),
+    _browDownLeftIndex(14), 
+    _browDownRightIndex(15),
     _browUpCenterIndex(16),
-    _browUpLeftIndex(-1),
-    _browUpRightIndex(-1),
-    _mouthSize(0.0f),
-    _mouthSmileLeft(0),
-    _mouthSmileRight(0),
-    _mouthSmileLeftIndex(-1),
-    _mouthSmileRightIndex(0),
+    _browUpLeftIndex(17),
+    _browUpRightIndex(18),
+    _mouthSmileLeftIndex(28),
+    _mouthSmileRightIndex(29),
     _jawOpenIndex(21),
     _longTermAverageEyePitch(0.0f),
     _longTermAverageEyeYaw(0.0f),
@@ -64,8 +53,7 @@ Faceshift::Faceshift() :
 
 bool Faceshift::isActive() const {
     const uint64_t ACTIVE_TIMEOUT_USECS = 1000000;
-    return (_tcpSocket.state() == QAbstractSocket::ConnectedState ||
-        (usecTimestampNow() - _lastMessageReceived) < ACTIVE_TIMEOUT_USECS) && _tracking;
+    return (usecTimestampNow() - _lastTrackingStateReceived) < ACTIVE_TIMEOUT_USECS;
 }
 
 void Faceshift::update() {
@@ -138,6 +126,10 @@ void Faceshift::readFromSocket() {
     receive(_tcpSocket.readAll());
 }
 
+float Faceshift::getBlendshapeCoefficient(int index) const {
+    return (index >= 0 && index < _blendshapeCoefficients.size()) ? _blendshapeCoefficients[index] : 0.0f;
+}
+
 void Faceshift::send(const std::string& message) {
     _tcpSocket.write(message.data(), message.size());
 }
@@ -150,8 +142,20 @@ void Faceshift::receive(const QByteArray& buffer) {
             case fsMsg::MSG_OUT_TRACKING_STATE: {
                 const fsTrackingData& data = static_cast<fsMsgTrackingState*>(msg.get())->tracking_data();
                 if ((_tracking = data.m_trackingSuccessful)) {
-                    _headRotation = glm::quat(data.m_headRotation.w, -data.m_headRotation.x,
-                        data.m_headRotation.y, -data.m_headRotation.z);
+                    glm::quat newRotation = glm::quat(data.m_headRotation.w, -data.m_headRotation.x,
+                                                      data.m_headRotation.y, -data.m_headRotation.z);
+                    // Compute angular velocity of the head 
+                    glm::quat r = newRotation * glm::inverse(_headRotation);
+                    float theta = 2 * acos(r.w);
+                    if (theta > EPSILON) {
+                        float rMag = glm::length(glm::vec3(r.x, r.y, r.z));
+                        float AVERAGE_FACESHIFT_FRAME_TIME = 0.033f;
+                        _headAngularVelocity = theta / AVERAGE_FACESHIFT_FRAME_TIME * glm::vec3(r.x, r.y, r.z) / rMag;
+                    } else {
+                        _headAngularVelocity = glm::vec3(0,0,0);
+                    }
+                    _headRotation = newRotation;
+                    
                     const float TRANSLATION_SCALE = 0.02f;
                     _headTranslation = glm::vec3(data.m_headTranslation.x, data.m_headTranslation.y,
                         -data.m_headTranslation.z) * TRANSLATION_SCALE;
@@ -159,43 +163,9 @@ void Faceshift::receive(const QByteArray& buffer) {
                     _eyeGazeLeftYaw = data.m_eyeGazeLeftYaw;
                     _eyeGazeRightPitch = -data.m_eyeGazeRightPitch;
                     _eyeGazeRightYaw = data.m_eyeGazeRightYaw;
-
-                    if (_leftBlinkIndex != -1) {
-                        _leftBlink = data.m_coeffs[_leftBlinkIndex];
-                    }
-                    if (_rightBlinkIndex != -1) {
-                        _rightBlink = data.m_coeffs[_rightBlinkIndex];
-                    }
-                    if (_leftEyeOpenIndex != -1) {
-                        _leftEyeOpen = data.m_coeffs[_leftEyeOpenIndex];
-                    }
-                    if (_rightEyeOpenIndex != -1) {
-                        _rightEyeOpen = data.m_coeffs[_rightEyeOpenIndex];
-                    }
-                    if (_browDownLeftIndex != -1) {
-                        _browDownLeft = data.m_coeffs[_browDownLeftIndex];
-                    }
-                    if (_browDownRightIndex != -1) {
-                        _browDownRight = data.m_coeffs[_browDownRightIndex];
-                    }
-                    if (_browUpCenterIndex != -1) {
-                        _browUpCenter = data.m_coeffs[_browUpCenterIndex];
-                    }
-                    if (_browUpLeftIndex != -1) {
-                        _browUpLeft = data.m_coeffs[_browUpLeftIndex];
-                    }
-                    if (_browUpRightIndex != -1) {
-                        _browUpRight = data.m_coeffs[_browUpRightIndex];
-                    }
-                    if (_jawOpenIndex != -1) {
-                        _mouthSize = data.m_coeffs[_jawOpenIndex];
-                    }
-                    if (_mouthSmileLeftIndex != -1) {
-                        _mouthSmileLeft = data.m_coeffs[_mouthSmileLeftIndex];
-                    }
-                    if (_mouthSmileRightIndex != -1) {
-                        _mouthSmileRight = data.m_coeffs[_mouthSmileRightIndex];
-                    }
+                    _blendshapeCoefficients = data.m_coeffs;
+                    
+                    _lastTrackingStateReceived = usecTimestampNow();
                 }
                 break;
             }
@@ -208,10 +178,10 @@ void Faceshift::receive(const QByteArray& buffer) {
                     } else if (names[i] == "EyeBlink_R") {
                         _rightBlinkIndex = i;
 
-                    }else if (names[i] == "EyeOpen_L") {
+                    } else if (names[i] == "EyeOpen_L") {
                         _leftEyeOpenIndex = i;
 
-                    }else if (names[i] == "EyeOpen_R") {
+                    } else if (names[i] == "EyeOpen_R") {
                         _rightEyeOpenIndex = i;
 
                     } else if (names[i] == "BrowsD_L") {
@@ -237,7 +207,6 @@ void Faceshift::receive(const QByteArray& buffer) {
                         
                     } else if (names[i] == "MouthSmile_R") {
                         _mouthSmileRightIndex = i;
-                        
                     }
                 }
                 break;
@@ -246,5 +215,4 @@ void Faceshift::receive(const QByteArray& buffer) {
                 break;
         }
     }
-    _lastMessageReceived = usecTimestampNow();
 }

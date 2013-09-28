@@ -9,6 +9,8 @@
 #ifndef __interface__Faceshift__
 #define __interface__Faceshift__
 
+#include <vector>
+
 #include <QTcpSocket>
 #include <QUdpSocket>
 
@@ -28,6 +30,7 @@ public:
     bool isActive() const;
 
     const glm::quat& getHeadRotation() const { return _headRotation; }
+    const glm::vec3& getHeadAngularVelocity() const { return _headAngularVelocity; }
     const glm::vec3& getHeadTranslation() const { return _headTranslation; }
 
     float getEyeGazeLeftPitch() const { return _eyeGazeLeftPitch; }
@@ -39,28 +42,30 @@ public:
     float getEstimatedEyePitch() const { return _estimatedEyePitch; }
     float getEstimatedEyeYaw() const { return _estimatedEyeYaw; }
 
-    float getLeftBlink() const { return _leftBlink; }
-    float getRightBlink() const { return _rightBlink; }
-    float getLeftEyeOpen() const { return _leftEyeOpen; }
-    float getRightEyeOpen() const { return _rightEyeOpen; }
+    const std::vector<float>& getBlendshapeCoefficients() const { return _blendshapeCoefficients; }
 
-    float getBrowDownLeft() const { return _browDownLeft; }
-    float getBrowDownRight() const { return _browDownRight; }
-    float getBrowUpCenter() const { return _browUpCenter; }
-    float getBrowUpLeft() const { return _browUpLeft; }
-    float getBrowUpRight() const { return _browUpRight; }
+    float getLeftBlink() const { return getBlendshapeCoefficient(_leftBlinkIndex); }
+    float getRightBlink() const { return getBlendshapeCoefficient(_rightBlinkIndex); }
+    float getLeftEyeOpen() const { return getBlendshapeCoefficient(_leftEyeOpenIndex); }
+    float getRightEyeOpen() const { return getBlendshapeCoefficient(_rightEyeOpenIndex); }
 
-    float getMouthSize() const { return _mouthSize; }
-    float getMouthSmileLeft() const { return _mouthSmileLeft; }
-    float getMouthSmileRight() const { return _mouthSmileRight; }
+    float getBrowDownLeft() const { return getBlendshapeCoefficient(_browDownLeftIndex); }
+    float getBrowDownRight() const { return getBlendshapeCoefficient(_browDownRightIndex); }
+    float getBrowUpCenter() const { return getBlendshapeCoefficient(_browUpCenterIndex); }
+    float getBrowUpLeft() const { return getBlendshapeCoefficient(_browUpLeftIndex); }
+    float getBrowUpRight() const { return getBlendshapeCoefficient(_browUpRightIndex); }
+
+    float getMouthSize() const { return getBlendshapeCoefficient(_jawOpenIndex); }
+    float getMouthSmileLeft() const { return getBlendshapeCoefficient(_mouthSmileLeftIndex); }
+    float getMouthSmileRight() const { return getBlendshapeCoefficient(_mouthSmileRightIndex); }
 
     void update();
     void reset();
-
+    
 public slots:
     
     void setTCPEnabled(bool enabled);
-
+    
 private slots:
 
     void connectSocket();
@@ -71,6 +76,8 @@ private slots:
     
 private:
     
+    float getBlendshapeCoefficient(int index) const;
+    
     void send(const std::string& message);
     void receive(const QByteArray& buffer);
     
@@ -79,9 +86,10 @@ private:
     fs::fsBinaryStream _stream;
     bool _tcpEnabled;
     bool _tracking;
-    uint64_t _lastMessageReceived;
+    uint64_t _lastTrackingStateReceived;
     
     glm::quat _headRotation;
+    glm::vec3 _headAngularVelocity;
     glm::vec3 _headTranslation;
     
     float _eyeGazeLeftPitch;
@@ -90,34 +98,19 @@ private:
     float _eyeGazeRightPitch;
     float _eyeGazeRightYaw;
     
-    float _leftBlink;
-    float _rightBlink;
-    float _leftEyeOpen;
-    float _rightEyeOpen;
-
+    std::vector<float> _blendshapeCoefficients;
+    
     int _leftBlinkIndex;
     int _rightBlinkIndex;
     int _leftEyeOpenIndex;
     int _rightEyeOpenIndex;
 
     // Brows
-    float _browDownLeft;
-    float _browDownRight;
-    float _browUpCenter;
-    float _browUpLeft;
-    float _browUpRight;
-
     int _browDownLeftIndex;
     int _browDownRightIndex;
-
     int _browUpCenterIndex;
     int _browUpLeftIndex;
     int _browUpRightIndex;
-    
-    float _mouthSize;
-    
-    float _mouthSmileLeft;
-    float _mouthSmileRight;
     
     int _mouthSmileLeftIndex;
     int _mouthSmileRightIndex;

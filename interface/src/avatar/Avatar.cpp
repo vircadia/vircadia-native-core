@@ -28,7 +28,6 @@
 using namespace std;
 
 const bool BALLS_ON = false;
-const bool USING_AVATAR_GRAVITY = true;
 const glm::vec3 DEFAULT_UP_DIRECTION(0.0f, 1.0f, 0.0f);
 const float YAW_MAG = 500.0;
 const float MY_HAND_HOLDING_PULL = 0.2;
@@ -57,11 +56,10 @@ const float HEAD_RATE_MAX = 50.f;
 const float SKIN_COLOR[] = {1.0, 0.84, 0.66};
 const float DARK_SKIN_COLOR[] = {0.9, 0.78, 0.63};
 const int   NUM_BODY_CONE_SIDES = 9;
-const bool usingBigSphereCollisionTest = true;
 const float chatMessageScale = 0.0015;
 const float chatMessageHeight = 0.20;
 
-void Avatar::sendAvatarVoxelURLMessage(const QUrl& url) {
+void Avatar::sendAvatarURLsMessage(const QUrl& voxelURL, const QUrl& faceURL) {
     uint16_t ownerID = NodeList::getInstance()->getOwnerID();
     
     if (ownerID == UNKNOWN_NODE_ID) {
@@ -71,11 +69,14 @@ void Avatar::sendAvatarVoxelURLMessage(const QUrl& url) {
     QByteArray message;
     
     char packetHeader[MAX_PACKET_HEADER_BYTES];
-    int numBytesPacketHeader = populateTypeAndVersion((unsigned char*) packetHeader, PACKET_TYPE_AVATAR_VOXEL_URL);
+    int numBytesPacketHeader = populateTypeAndVersion((unsigned char*) packetHeader, PACKET_TYPE_AVATAR_URLS);
     
     message.append(packetHeader, numBytesPacketHeader);
     message.append((const char*)&ownerID, sizeof(ownerID));
-    message.append(url.toEncoded());
+    
+    QDataStream out(&message, QIODevice::WriteOnly | QIODevice::Append);
+    out << voxelURL;
+    out << faceURL;
     
     Application::controlledBroadcastToNodes((unsigned char*)message.data(), message.size(), &NODE_TYPE_AVATAR_MIXER, 1);
 }
@@ -85,8 +86,6 @@ Avatar::Avatar(Node* owningNode) :
     _head(this),
     _hand(this),
     _ballSpringsInitialized(false),
-    _TEST_bigSphereRadius(0.5f),
-    _TEST_bigSpherePosition(5.0f, _TEST_bigSphereRadius, 5.0f),
     _bodyYawDelta(0.0f),
     _movedHandOffset(0.0f, 0.0f, 0.0f),
     _mode(AVATAR_MODE_STANDING),
@@ -289,7 +288,7 @@ void Avatar::follow(Avatar* leadingAvatar) {
     }
 }
 
-void Avatar::simulate(float deltaTime, Transmitter* transmitter, float gyroCameraSensitivity) {
+void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
 
     glm::quat orientation = getOrientation();
     glm::vec3 front = orientation * IDENTITY_FRONT;
@@ -362,12 +361,6 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter, float gyroCamer
     // update body balls
     updateBodyBalls(deltaTime);
     
-
-    // test for avatar collision response with the big sphere
-    if (usingBigSphereCollisionTest && _isCollisionsOn) {
-        updateCollisionWithSphere(_TEST_bigSpherePosition, _TEST_bigSphereRadius, deltaTime);
-    }
-    
     //apply the head lean values to the ball positions...
     if (USING_HEAD_LEAN) {
         if (fabs(_head.getLeanSideways() + _head.getLeanForward()) > 0.0f) {
@@ -394,11 +387,22 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter, float gyroCamer
         }
     }
     
+    // head scale grows when avatar is looked at
+    if (Application::getInstance()->getLookatTargetAvatar() == this) {
+        const float BASE_MAX_SCALE = 3.0f;
+        const float GROW_SPEED = 0.1f;
+        _head.setScale(min(BASE_MAX_SCALE * glm::distance(_position, Application::getInstance()->getCamera()->getPosition()),
+            _head.getScale() + deltaTime * GROW_SPEED));        
+        
+    } else {
+        const float SHRINK_SPEED = 100.0f;
+        _head.setScale(max(_scale, _head.getScale() - deltaTime * SHRINK_SPEED));
+    }
+    
     _head.setBodyRotation(glm::vec3(_bodyPitch, _bodyYaw, _bodyRoll));
     _head.setPosition(_bodyBall[ BODY_BALL_HEAD_BASE ].position);
-    _head.setScale(_scale);
     _head.setSkinColor(glm::vec3(SKIN_COLOR[0], SKIN_COLOR[1], SKIN_COLOR[2]));
-    _head.simulate(deltaTime, false, gyroCameraSensitivity);
+    _head.simulate(deltaTime, false);
     _hand.simulate(deltaTime, false);
 
     // use speed and angular velocity to determine walking vs. standing
@@ -443,32 +447,6 @@ void Avatar::updateHandMovementAndTouching(float deltaTime, bool enableHandMovem
     // NOTE - the following must be called on all avatars - not just _isMine
     if (enableHandMovement) {
         updateArmIKAndConstraints(deltaTime);
-    }
-}
-
-void Avatar::updateCollisionWithSphere(glm::vec3 position, float radius, float deltaTime) {
-    float myBodyApproximateBoundingRadius = 1.0f;
-    glm::vec3 vectorFromMyBodyToBigSphere(_position - position);
-    
-    float distanceToBigSphere = glm::length(vectorFromMyBodyToBigSphere);
-    if (distanceToBigSphere < myBodyApproximateBoundingRadius + radius) {
-        for (int b = 0; b < NUM_AVATAR_BODY_BALLS; b++) {
-            glm::vec3 vectorFromBallToBigSphereCenter(_bodyBall[b].position - position);
-            float distanceToBigSphereCenter = glm::length(vectorFromBallToBigSphereCenter);
-            float combinedRadius = _bodyBall[b].radius + radius;
-            
-            if (distanceToBigSphereCenter < combinedRadius)  {
-                if (distanceToBigSphereCenter > 0.0) {
-                    glm::vec3 directionVector = vectorFromBallToBigSphereCenter / distanceToBigSphereCenter;
-                    
-                    float penetration = 1.0 - (distanceToBigSphereCenter / combinedRadius);
-                    glm::vec3 collisionForce = vectorFromBallToBigSphereCenter * penetration;
-                    
-                    _velocity += collisionForce * 40.0f * deltaTime;
-                    _bodyBall[b].position  = position + directionVector * combinedRadius;
-                }
-            }
-        }
     }
 }
 
@@ -731,6 +709,10 @@ void Avatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
                           SKIN_COLOR[1] - _bodyBall[b].touchForce * 0.2f,
                           SKIN_COLOR[2] - _bodyBall[b].touchForce * 0.1f);
                 
+                if (b == BODY_BALL_NECK_BASE && _head.getBlendFace().isActive()) {
+                    continue; // don't render the neck if we have a face model
+                }
+                
                 if ((b != BODY_BALL_HEAD_TOP  )
                     &&  (b != BODY_BALL_HEAD_BASE )) {
                     glPushMatrix();
@@ -786,6 +768,8 @@ void Avatar::loadData(QSettings* settings) {
     _position.z = loadSetting(settings, "position_z", 0.0f);
     
     _voxels.setVoxelURL(settings->value("voxelURL").toUrl());
+    _head.getBlendFace().setModelURL(settings->value("faceModelURL").toUrl());
+    _head.setPupilDilation(settings->value("pupilDilation", 0.0f).toFloat());
     
     _leanScale = loadSetting(settings, "leanScale", 0.05f);
 
@@ -837,6 +821,8 @@ void Avatar::saveData(QSettings* set) {
     set->setValue("position_z", _position.z);
     
     set->setValue("voxelURL", _voxels.getVoxelURL());
+    set->setValue("faceModelURL", _head.getBlendFace().getModelURL());
+    set->setValue("pupilDilation", _head.getPupilDilation());
     
     set->setValue("leanScale", _leanScale);
     set->setValue("scale", _newScale);

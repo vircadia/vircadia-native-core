@@ -68,3 +68,22 @@ bool PacketSender::process() {
     }
     return isStillRunning();  // keep running till they terminate us
 }
+
+void PacketSender::processWithoutSleep() {
+    while (_packets.size() > 0) {
+        NetworkPacket& packet = _packets.front();
+        
+        // send the packet through the NodeList...
+        UDPSocket* nodeSocket = NodeList::getInstance()->getNodeSocket();
+        
+        nodeSocket->send(&packet.getAddress(), packet.getData(), packet.getLength());
+        
+        if (_notify) {
+            _notify->packetSentNotification(packet.getLength());
+        }
+        
+        lock();
+        _packets.erase(_packets.begin());
+        unlock();
+    }
+}

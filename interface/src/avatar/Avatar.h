@@ -129,13 +129,13 @@ class Avatar : public AvatarData {
     Q_OBJECT
     
 public:
-    static void sendAvatarVoxelURLMessage(const QUrl& url);
+    static void sendAvatarURLsMessage(const QUrl& voxelURL, const QUrl& faceURL);
     
     Avatar(Node* owningNode = NULL);
     ~Avatar();
     
     void init();
-    void simulate(float deltaTime, Transmitter* transmitter, float gyroCameraSensitivity);
+    void simulate(float deltaTime, Transmitter* transmitter);
     void follow(Avatar* leadingAvatar);
     void render(bool lookingInMirror, bool renderAvatarBalls);
 
@@ -203,8 +203,6 @@ protected:
     Hand _hand;
     Skeleton _skeleton;
     bool _ballSpringsInitialized;
-    float _TEST_bigSphereRadius;
-    glm::vec3 _TEST_bigSpherePosition;
     float _bodyYawDelta;
     glm::vec3 _movedHandOffset;
     AvatarBall _bodyBall[ NUM_AVATAR_BODY_BALLS ];
@@ -234,7 +232,6 @@ protected:
     glm::vec3 getBodyUpDirection() const { return getOrientation() * IDENTITY_UP; }
     glm::vec3 getBodyFrontDirection() const { return getOrientation() * IDENTITY_FRONT; }
     glm::quat computeRotationFromBodyToWorldUp(float proportion = 1.0f) const;
-    void updateCollisionWithSphere(glm::vec3 position, float radius, float deltaTime);
     void updateBodyBalls(float deltaTime);
     void updateArmIKAndConstraints(float deltaTime);
     void setScale(const float scale);

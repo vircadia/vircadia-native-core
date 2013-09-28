@@ -35,6 +35,7 @@
 #include <QMenuBar>
 #include <QMouseEvent>
 #include <QNetworkAccessManager>
+#include <QNetworkDiskCache>
 #include <QOpenGLFramebufferObject>
 #include <QWheelEvent>
 #include <QSettings>
@@ -115,7 +116,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _nudgeStarted(false),
         _lookingAlongX(false),
         _lookingAwayFromOrigin(true),
-        _isLookingAtOtherAvatar(false),
+        _lookatTargetAvatar(NULL),
         _lookatIndicatorScale(1.0f),
         _perfStatsOn(false),
         _chatEntryOn(false),
@@ -208,6 +209,9 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     _window->setMenuBar(Menu::getInstance());
     
     _networkAccessManager = new QNetworkAccessManager(this);
+    QNetworkDiskCache* cache = new QNetworkDiskCache(_networkAccessManager);
+    cache->setCacheDirectory("interfaceCache");
+    _networkAccessManager->setCache(cache);
     
     QRect available = desktop()->availableGeometry();
     _window->resize(available.size());
@@ -321,7 +325,7 @@ void Application::initializeGL() {
     Menu::getInstance()->checkForUpdates();
 #endif
 
-    InfoView::showFirstTime(Menu::getInstance());
+    InfoView::showFirstTime();
 }
 
 void Application::paintGL() {
@@ -385,6 +389,7 @@ void Application::paintGL() {
         
     } else {
         _glowEffect.prepare(); 
+
         
         glMatrixMode(GL_MODELVIEW);
         glPushMatrix();
@@ -536,6 +541,10 @@ void Application::keyPressEvent(QKeyEvent* event) {
                     }
                     _myAvatar.setDriveKeys(UP, 1); 
                 }
+                break;
+
+            case Qt::Key_Asterisk:
+                Menu::getInstance()->triggerOption(MenuOption::Stars);
                 break;
                 
             case Qt::Key_C:
@@ -806,8 +815,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_F:
                 if (isShifted)  {
                     Menu::getInstance()->triggerOption(MenuOption::DisplayFrustum);
-                } else {
-                    Menu::getInstance()->triggerOption(MenuOption::Fullscreen);
                 }
                 break;
             case Qt::Key_V:
@@ -970,7 +977,7 @@ void Application::mousePressEvent(QMouseEvent* event) {
 
             maybeEditVoxelUnderCursor();
 
-            if (!_palette.isActive() && (!_isHoverVoxel || _isLookingAtOtherAvatar)) {
+            if (!_palette.isActive() && (!_isHoverVoxel || _lookatTargetAvatar)) {
                 _pieMenu.mousePressEvent(_mouseX, _mouseY);
             }
 
@@ -1230,15 +1237,19 @@ static Avatar* processAvatarMessageHeader(unsigned char*& packetData, size_t& da
     return avatar->isInitialized() ? avatar : NULL;
 }
 
-void Application::processAvatarVoxelURLMessage(unsigned char* packetData, size_t dataBytes) {
+void Application::processAvatarURLsMessage(unsigned char* packetData, size_t dataBytes) {
     Avatar* avatar = processAvatarMessageHeader(packetData, dataBytes);
     if (!avatar) {
         return;
-    } 
-    QUrl url = QUrl::fromEncoded(QByteArray((char*)packetData, dataBytes));
+    }
+    QDataStream in(QByteArray((char*)packetData, dataBytes));
+    QUrl voxelURL, faceURL;
+    in >> voxelURL;
+    in >> faceURL;
     
-    // invoke the set URL function on the simulate/render thread
-    QMetaObject::invokeMethod(avatar->getVoxels(), "setVoxelURL", Q_ARG(QUrl, url));
+    // invoke the set URL functions on the simulate/render thread
+    QMetaObject::invokeMethod(avatar->getVoxels(), "setVoxelURL", Q_ARG(QUrl, voxelURL));
+    QMetaObject::invokeMethod(&avatar->getHead().getBlendFace(), "setModelURL", Q_ARG(QUrl, faceURL));
 }
 
 void Application::processAvatarFaceVideoMessage(unsigned char* packetData, size_t dataBytes) {
@@ -1495,7 +1506,7 @@ void Application::setListenModeSingleSource() {
     glm::vec3 eyePositionIgnored;
     uint16_t nodeID;
 
-    if (isLookingAtOtherAvatar(mouseRayOrigin, mouseRayDirection, eyePositionIgnored, nodeID)) {
+    if (findLookatTargetAvatar(mouseRayOrigin, mouseRayDirection, eyePositionIgnored, nodeID)) {
         _audio.addListenSource(nodeID);
     }
 }
@@ -1510,7 +1521,6 @@ void Application::initDisplay() {
 }
 
 void Application::init() {
-    _voxels.init();
     _sharedVoxelSystemViewFrustum.setPosition(glm::vec3(TREE_SCALE / 2.0f,
                                                         TREE_SCALE / 2.0f,
                                                         3.0f * TREE_SCALE / 2.0f));
@@ -1531,6 +1541,7 @@ void Application::init() {
 
     _glowEffect.init();
     _ambientOcclusionEffect.init();
+    _voxelShader.init();
     
     _handControl.setScreenDimensions(_glWidget->width(), _glWidget->height());
 
@@ -1561,11 +1572,17 @@ void Application::init() {
     if (Menu::getInstance()->getAudioJitterBufferSamples() != 0) {
         _audio.setJitterBufferSamples(Menu::getInstance()->getAudioJitterBufferSamples());
     }
-    
     qDebug("Loaded settings.\n");
 
-    Avatar::sendAvatarVoxelURLMessage(_myAvatar.getVoxels()->getVoxelURL());
+    // Set up VoxelSystem after loading preferences so we can get the desired max voxel count    
+    _voxels.setMaxVoxels(Menu::getInstance()->getMaxVoxels());
+    _voxels.setUseVoxelShader(Menu::getInstance()->isOptionChecked(MenuOption::UseVoxelShader));
+    _voxels.setUseByteNormals(Menu::getInstance()->isOptionChecked(MenuOption::UseByteNormals));
+    _voxels.init();
+    
 
+    Avatar::sendAvatarURLsMessage(_myAvatar.getVoxels()->getVoxelURL(), _myAvatar.getHead().getBlendFace().getModelURL());
+   
     _palette.init(_glWidget->width(), _glWidget->height());
     _palette.addAction(Menu::getInstance()->getActionForOption(MenuOption::VoxelAddMode), 0, 0);
     _palette.addAction(Menu::getInstance()->getActionForOption(MenuOption::VoxelDeleteMode), 0, 1);
@@ -1588,12 +1605,16 @@ const float MAX_AVATAR_EDIT_VELOCITY = 1.0f;
 const float MAX_VOXEL_EDIT_DISTANCE = 20.0f;
 const float HEAD_SPHERE_RADIUS = 0.07;
 
-
 static uint16_t DEFAULT_NODE_ID_REF = 1;
 
-
-Avatar* Application::isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection,
-                                         glm::vec3& eyePosition, uint16_t& nodeID = DEFAULT_NODE_ID_REF) {
+void Application::updateLookatTargetAvatar(const glm::vec3& mouseRayOrigin, const glm::vec3& mouseRayDirection,
+    glm::vec3& eyePosition) {
+    
+    _lookatTargetAvatar = findLookatTargetAvatar(mouseRayOrigin, mouseRayDirection, eyePosition, DEFAULT_NODE_ID_REF);
+}
+        
+Avatar* Application::findLookatTargetAvatar(const glm::vec3& mouseRayOrigin, const glm::vec3& mouseRayDirection,
+    glm::vec3& eyePosition, uint16_t& nodeID = DEFAULT_NODE_ID_REF) {
                                          
     NodeList* nodeList = NodeList::getInstance();
     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
@@ -1731,6 +1752,11 @@ void Application::update(float deltaTime) {
 
     //  Update faceshift
     _faceshift.update();
+    
+    //  Copy angular velocity if measured by faceshift, to the head
+    if (_faceshift.isActive()) {
+        _myAvatar.getHead().setAngularVelocity(_faceshift.getHeadAngularVelocity());
+    }
 
     // if we have faceshift, use that to compute the lookat direction
     glm::vec3 lookAtRayOrigin = mouseRayOrigin, lookAtRayDirection = mouseRayDirection;
@@ -1740,8 +1766,8 @@ void Application::update(float deltaTime) {
             _faceshift.getEstimatedEyePitch(), _faceshift.getEstimatedEyeYaw(), 0.0f))) * glm::vec3(0.0f, 0.0f, -1.0f);
     }
 
-    _isLookingAtOtherAvatar = isLookingAtOtherAvatar(lookAtRayOrigin, lookAtRayDirection, lookAtSpot);
-    if (_isLookingAtOtherAvatar) {
+    updateLookatTargetAvatar(lookAtRayOrigin, lookAtRayDirection, lookAtSpot);
+    if (_lookatTargetAvatar) {
         // If the mouse is over another avatar's head...
          _myAvatar.getHead().setLookAtPosition(lookAtSpot);
     } else if (_isHoverVoxel && !_faceshift.isActive()) {
@@ -1790,27 +1816,7 @@ void Application::update(float deltaTime) {
             _isHoverVoxelSounding = true;
         }
     }
-    
-    //  If we are dragging on a voxel, add thrust according to the amount the mouse is dragging
-    const float VOXEL_GRAB_THRUST = 0.0f;
-    if (_mousePressed && (_mouseVoxel.s != 0)) {
-        glm::vec2 mouseDrag(_mouseX - _mouseDragStartedX, _mouseY - _mouseDragStartedY);
-        glm::quat orientation = _myAvatar.getOrientation();
-        glm::vec3 front = orientation * IDENTITY_FRONT;
-        glm::vec3 up = orientation * IDENTITY_UP;
-        glm::vec3 towardVoxel = getMouseVoxelWorldCoordinates(_mouseVoxelDragging)
-                                - _myAvatar.getCameraPosition();
-        towardVoxel = front * glm::length(towardVoxel);
-        glm::vec3 lateralToVoxel = glm::cross(up, glm::normalize(towardVoxel)) * glm::length(towardVoxel);
-        _voxelThrust = glm::vec3(0, 0, 0);
-        _voxelThrust += towardVoxel * VOXEL_GRAB_THRUST * deltaTime * mouseDrag.y;
-        _voxelThrust += lateralToVoxel * VOXEL_GRAB_THRUST * deltaTime * mouseDrag.x;
         
-        //  Add thrust from voxel grabbing to the avatar 
-        _myAvatar.addThrust(_voxelThrust);
-
-    }
-    
     _mouseVoxel.s = 0.0f;
     if (Menu::getInstance()->isVoxelModeActionChecked() &&
         (fabs(_myAvatar.getVelocity().x) +
@@ -1933,7 +1939,7 @@ void Application::update(float deltaTime) {
             if (!avatar->isInitialized()) {
                 avatar->init();
             }
-            avatar->simulate(deltaTime, NULL, 0.f);
+            avatar->simulate(deltaTime, NULL);
             avatar->setMouseRay(mouseRayOrigin, mouseRayDirection);
         }
         node->unlock();
@@ -1948,9 +1954,9 @@ void Application::update(float deltaTime) {
     }
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::TransmitterDrive) && _myTransmitter.isConnected()) {
-        _myAvatar.simulate(deltaTime, &_myTransmitter, Menu::getInstance()->getGyroCameraSensitivity());
+        _myAvatar.simulate(deltaTime, &_myTransmitter);
     } else {
-        _myAvatar.simulate(deltaTime, NULL, Menu::getInstance()->getGyroCameraSensitivity());
+        _myAvatar.simulate(deltaTime, NULL);
     }
     
     // no transmitter drive implies transmitter pick
@@ -2075,15 +2081,15 @@ void Application::updateAvatar(float deltaTime) {
         const float MIDPOINT_OF_SCREEN = 0.5;
         
         // Only use gyro to set lookAt if mouse hasn't selected an avatar
-        if (!_isLookingAtOtherAvatar) {
+        if (!_lookatTargetAvatar) {
 
             // Set lookAtPosition if an avatar is at the center of the screen
             glm::vec3 screenCenterRayOrigin, screenCenterRayDirection;
             _viewFrustum.computePickRay(MIDPOINT_OF_SCREEN, MIDPOINT_OF_SCREEN, screenCenterRayOrigin, screenCenterRayDirection);
 
             glm::vec3 eyePosition;
-            _isLookingAtOtherAvatar = isLookingAtOtherAvatar(screenCenterRayOrigin, screenCenterRayDirection, eyePosition);
-            if (_isLookingAtOtherAvatar) {
+            updateLookatTargetAvatar(screenCenterRayOrigin, screenCenterRayDirection, eyePosition);
+            if (_lookatTargetAvatar) {
                 glm::vec3 myLookAtFromMouse(eyePosition);
                 _myAvatar.getHead().setLookAtPosition(myLookAtFromMouse);
             }
@@ -2136,10 +2142,11 @@ void Application::updateAvatar(float deltaTime) {
         controlledBroadcastToNodes(broadcastString, endOfBroadcastStringWrite - broadcastString,
                                    nodeTypesOfInterest, sizeof(nodeTypesOfInterest));
         
-        // once in a while, send my voxel url
-        const float AVATAR_VOXEL_URL_SEND_INTERVAL = 1.0f; // seconds
-        if (shouldDo(AVATAR_VOXEL_URL_SEND_INTERVAL, deltaTime)) {
-            Avatar::sendAvatarVoxelURLMessage(_myAvatar.getVoxels()->getVoxelURL());
+        // once in a while, send my urls
+        const float AVATAR_URLS_SEND_INTERVAL = 1.0f; // seconds
+        if (shouldDo(AVATAR_URLS_SEND_INTERVAL, deltaTime)) {
+            Avatar::sendAvatarURLsMessage(_myAvatar.getVoxels()->getVoxelURL(),
+                _myAvatar.getHead().getBlendFace().getModelURL());
         }
     }
 }
@@ -2551,7 +2558,7 @@ void Application::displaySide(Camera& whichCamera) {
                          Menu::getInstance()->isOptionChecked(MenuOption::AvatarAsBalls));
         _myAvatar.setDisplayingLookatVectors(Menu::getInstance()->isOptionChecked(MenuOption::LookAtVectors));
 
-        if (Menu::getInstance()->isOptionChecked(MenuOption::LookAtIndicator) && _isLookingAtOtherAvatar) {
+        if (Menu::getInstance()->isOptionChecked(MenuOption::LookAtIndicator) && _lookatTargetAvatar) {
             renderLookatIndicator(_lookatOtherPosition, whichCamera);
         }
     }
@@ -2572,7 +2579,7 @@ void Application::displaySide(Camera& whichCamera) {
     if (Menu::getInstance()->isOptionChecked(MenuOption::DisplayFrustum)) {
         renderViewFrustum(_viewFrustum);
     }
-    
+
     // render voxel fades if they exist
     if (_voxelFades.size() > 0) {
         for(std::vector<VoxelFade>::iterator fade = _voxelFades.begin(); fade != _voxelFades.end();) {
@@ -2811,34 +2818,45 @@ void Application::displayStats() {
     
     char avatarStats[200];
     glm::vec3 avatarPos = _myAvatar.getPosition();
-    sprintf(avatarStats, "Avatar position: %.3f, %.3f, %.3f, yaw = %.2f", avatarPos.x, avatarPos.y, avatarPos.z, _myAvatar.getBodyYaw());
+    sprintf(avatarStats, "Avatar: pos %.3f, %.3f, %.3f, vel %.1f, yaw = %.2f", avatarPos.x, avatarPos.y, avatarPos.z, glm::length(_myAvatar.getVelocity()), _myAvatar.getBodyYaw());
     drawtext(10, statsVerticalOffset + 55, 0.10f, 0, 1.0, 0, avatarStats);
 
  
     std::stringstream voxelStats;
     voxelStats.precision(4);
-    voxelStats << "Voxels Rendered: " << _voxels.getVoxelsRendered() / 1000.f << "K Updated: " << _voxels.getVoxelsUpdated()/1000.f << "K";
+    voxelStats << "Voxels Rendered: " << _voxels.getVoxelsRendered() / 1000.f << "K " <<
+        "Updated: " << _voxels.getVoxelsUpdated()/1000.f << "K " <<
+        "Max: " << _voxels.getMaxVoxels()/1000.f << "K ";
     drawtext(10, statsVerticalOffset + 230, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+
+    voxelStats.str("");
+    voxelStats << "Voxels Memory RAM: " << _voxels.getVoxelMemoryUsageRAM() / 1000000.f << "MB " <<
+        "VBO: " << _voxels.getVoxelMemoryUsageVBO() / 1000000.f << "MB ";
+    if (_voxels.hasVoxelMemoryUsageGPU()) {
+        voxelStats << "GPU: " << _voxels.getVoxelMemoryUsageGPU() / 1000000.f << "MB ";
+    }
+        
+    drawtext(10, statsVerticalOffset + 250, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
     
     voxelStats.str("");
     char* voxelDetails = _voxelSceneStats.getItemValue(VoxelSceneStats::ITEM_VOXELS);
     voxelStats << "Voxels Sent from Server: " << voxelDetails;
-    drawtext(10, statsVerticalOffset + 250, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+    drawtext(10, statsVerticalOffset + 270, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
 
     voxelStats.str("");
     voxelDetails = _voxelSceneStats.getItemValue(VoxelSceneStats::ITEM_ELAPSED);
     voxelStats << "Scene Send Time from Server: " << voxelDetails;
-    drawtext(10, statsVerticalOffset + 270, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+    drawtext(10, statsVerticalOffset + 290, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
 
     voxelStats.str("");
     voxelDetails = _voxelSceneStats.getItemValue(VoxelSceneStats::ITEM_ENCODE);
     voxelStats << "Encode Time on Server: " << voxelDetails;
-    drawtext(10, statsVerticalOffset + 290, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+    drawtext(10, statsVerticalOffset + 310, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
 
     voxelStats.str("");
     voxelDetails = _voxelSceneStats.getItemValue(VoxelSceneStats::ITEM_MODE);
     voxelStats << "Sending Mode: " << voxelDetails;
-    drawtext(10, statsVerticalOffset + 310, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+    drawtext(10, statsVerticalOffset + 330, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
     
     Node *avatarMixer = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_AVATAR_MIXER);
     char avatarMixerStats[200];
@@ -2851,7 +2869,7 @@ void Application::displayStats() {
         sprintf(avatarMixerStats, "No Avatar Mixer");
     }
     
-    drawtext(10, statsVerticalOffset + 330, 0.10f, 0, 1.0, 0, avatarMixerStats);
+    drawtext(10, statsVerticalOffset + 350, 0.10f, 0, 1.0, 0, avatarMixerStats);
     drawtext(10, statsVerticalOffset + 450, 0.10f, 0, 1.0, 0, (char *)LeapManager::statusString().c_str());
     
     if (_perfStatsOn) {
@@ -3353,10 +3371,7 @@ void Application::toggleFollowMode() {
                                 mouseRayOrigin, mouseRayDirection);
     glm::vec3 eyePositionIgnored;
     uint16_t  nodeIDIgnored;
-    Avatar* leadingAvatar = isLookingAtOtherAvatar(mouseRayOrigin,
-                                                   mouseRayDirection,
-                                                   eyePositionIgnored,
-                                                   nodeIDIgnored);
+    Avatar* leadingAvatar = findLookatTargetAvatar(mouseRayOrigin, mouseRayDirection, eyePositionIgnored, nodeIDIgnored);
 
     _myAvatar.follow(leadingAvatar);
 }
@@ -3429,6 +3444,8 @@ void Application::nodeKilled(Node* node) {
             fade.voxelDetails.s = fade.voxelDetails.s * slightly_smaller;
             _voxelFades.push_back(fade);
         }
+    } else if (node->getLinkedData() == _lookatTargetAvatar) {
+        _lookatTargetAvatar = NULL;
     }
 }
 
@@ -3510,8 +3527,8 @@ void* Application::networkReceive(void* args) {
                                                                      bytesReceived);
                         getInstance()->_bandwidthMeter.inputStream(BandwidthMeter::AVATARS).updateValue(bytesReceived);
                         break;
-                    case PACKET_TYPE_AVATAR_VOXEL_URL:
-                        processAvatarVoxelURLMessage(app->_incomingPacket, bytesReceived);
+                    case PACKET_TYPE_AVATAR_URLS:
+                        processAvatarURLsMessage(app->_incomingPacket, bytesReceived);
                         break;
                     case PACKET_TYPE_AVATAR_FACE_VIDEO:
                         processAvatarFaceVideoMessage(app->_incomingPacket, bytesReceived);

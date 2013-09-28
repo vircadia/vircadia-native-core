@@ -17,8 +17,7 @@
 #define SETTINGS_VERSION_KEY "info-version"
 #define MAX_DIALOG_HEIGHT_RATIO 0.9
 
-InfoView::InfoView(bool forced, QWidget* parent) :
-    QWebView(parent),
+InfoView::InfoView(bool forced) :
     _forced(forced) {
     
     switchToResourcesParentIfRequired();
@@ -29,12 +28,12 @@ InfoView::InfoView(bool forced, QWidget* parent) :
     connect(this, SIGNAL(loadFinished(bool)), this, SLOT(loaded(bool)));
 }
 
-void InfoView::showFirstTime(QWidget* parent) {
-    new InfoView(false, parent);
+void InfoView::showFirstTime() {
+    new InfoView(false);
 }
 
-void InfoView::forcedShow(QWidget* parent) {
-    new InfoView(true, parent);
+void InfoView::forcedShow() {
+    new InfoView(true);
 }
 
 bool InfoView::shouldShow() {
@@ -59,6 +58,7 @@ bool InfoView::shouldShow() {
 
 void InfoView::loaded(bool ok) {
     if (!ok || !shouldShow()) {
+        deleteLater();
         return;
     }
     
@@ -72,5 +72,6 @@ void InfoView::loaded(bool ok) {
     resize(mainFrame->contentsSize().width(), height);
     move(desktop->screen()->rect().center() - rect().center());
     setWindowTitle(title());
+    setAttribute(Qt::WA_DeleteOnClose);
     show();
 }
