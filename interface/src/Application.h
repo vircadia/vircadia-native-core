@@ -51,6 +51,7 @@
 #include "renderer/AmbientOcclusionEffect.h"
 #include "renderer/GeometryCache.h"
 #include "renderer/GlowEffect.h"
+#include "renderer/VoxelShader.h"
 #include "renderer/TextureCache.h"
 #include "ui/BandwidthDialog.h"
 #include "ui/ChatEntry.h"
@@ -76,7 +77,7 @@ static const float NODE_KILLED_RED   = 1.0f;
 static const float NODE_KILLED_GREEN = 0.0f;
 static const float NODE_KILLED_BLUE  = 0.0f;
 
-class Application : public QApplication, public NodeListHook, public PacketSenderNotify, public DomainChangeListener {
+class Application : public QApplication, public NodeListHook, public PacketSenderNotify {
     Q_OBJECT
 
     friend class VoxelPacketProcessor;
@@ -130,6 +131,8 @@ public:
     TextureCache* getTextureCache() { return &_textureCache; }
     GlowEffect* getGlowEffect() { return &_glowEffect; }
     
+    Avatar* getLookatTargetAvatar() const { return _lookatTargetAvatar; }
+    
     static void controlledBroadcastToNodes(unsigned char* broadcastData, size_t dataBytes,
                                            const char* nodeTypes, int numNodeTypes);
     
@@ -143,7 +146,7 @@ public:
     virtual void nodeKilled(Node* node);
     virtual void packetSentNotification(ssize_t length);
     
-    virtual void domainChanged(QString domain);
+    VoxelShader& getVoxelShader() { return _voxelShader; }
 
 public slots:
     void sendAvatarFaceVideoMessage(int frameCount, const QByteArray& data);
@@ -153,6 +156,7 @@ public slots:
     void copyVoxels();
     void pasteVoxels();
     void nudgeVoxels();
+    void deleteVoxels();
     
     void setRenderVoxels(bool renderVoxels);
     void doKillLocalVoxels();
@@ -188,7 +192,7 @@ private:
     void updateProjectionMatrix();
 
     static bool sendVoxelsOperation(VoxelNode* node, void* extraData);
-    static void processAvatarVoxelURLMessage(unsigned char* packetData, size_t dataBytes);
+    static void processAvatarURLsMessage(unsigned char* packetData, size_t dataBytes);
     static void processAvatarFaceVideoMessage(unsigned char* packetData, size_t dataBytes);
     static void sendPingPackets();
     
@@ -196,8 +200,11 @@ private:
     void init();
     
     void update(float deltaTime);
-    Avatar* isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection,
-                                glm::vec3& eyePosition, uint16_t& nodeID);
+    
+    void updateLookatTargetAvatar(const glm::vec3& mouseRayOrigin, const glm::vec3& mouseRayDirection,
+        glm::vec3& eyePosition);
+    Avatar* findLookatTargetAvatar(const glm::vec3& mouseRayOrigin, const glm::vec3& mouseRayDirection,
+        glm::vec3& eyePosition, uint16_t& nodeID);
     bool isLookingAtMyAvatar(Avatar* avatar);
                                 
     void renderLookatIndicator(glm::vec3 pointOfInterest, Camera& whichCamera);
@@ -224,7 +231,9 @@ private:
     void updateCursor();
     
     static void attachNewHeadToNode(Node *newNode);
-    static void* networkReceive(void* args); // network receive thread    
+    static void* networkReceive(void* args); // network receive thread
+
+    void findAxisAlignment();   
 
     QMainWindow* _window;
     QGLWidget* _glWidget;
@@ -296,7 +305,6 @@ private:
     float _pitchFromTouch;
     
     VoxelDetail _mouseVoxelDragging;
-    glm::vec3 _voxelThrust;
     bool _mousePressed; //  true if mouse has been pressed (clear when finished)
 
     VoxelDetail _hoverVoxel;      // Stuff about the voxel I am hovering or clicking
@@ -310,8 +318,12 @@ private:
     bool _justEditedVoxel;        // set when we've just added/deleted/colored a voxel
 
     VoxelDetail _nudgeVoxel; // details of the voxel to be nudged
+    bool _nudgeStarted;
+    bool _lookingAlongX;
+    bool _lookingAwayFromOrigin;
+    glm::vec3 _nudgeGuidePosition;
 
-    bool _isLookingAtOtherAvatar;
+    Avatar* _lookatTargetAvatar;
     glm::vec3 _lookatOtherPosition;
     float _lookatIndicatorScale;
     
@@ -337,6 +349,7 @@ private:
     
     GlowEffect _glowEffect;
     AmbientOcclusionEffect _ambientOcclusionEffect;
+    VoxelShader _voxelShader;
     
     #ifndef _WIN32
     Audio _audio;
@@ -363,7 +376,6 @@ private:
     Swatch _swatch;
 
     bool _pasteMode;
-    bool _finishedNudge;
 
     PieMenu _pieMenu;
     

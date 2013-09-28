@@ -155,7 +155,7 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     // Instantaneous audio loudness (used to drive facial animation)
     //destinationBuffer += packFloatToByte(destinationBuffer, std::min(MAX_AUDIO_LOUDNESS, _audioLoudness), MAX_AUDIO_LOUDNESS);
     memcpy(destinationBuffer, &_headData->_audioLoudness, sizeof(float));
-    destinationBuffer += sizeof(float); 
+    destinationBuffer += sizeof(float);
 
     // camera details
     memcpy(destinationBuffer, &_cameraPosition, sizeof(_cameraPosition));
@@ -185,6 +185,34 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     // hand state
     setSemiNibbleAt(bitItems,HAND_STATE_START_BIT,_handState);
     *destinationBuffer++ = bitItems;
+
+    bitItems = 0;
+    if (_headData->_isFaceshiftConnected) { setAtBit(bitItems, IS_FACESHIFT_CONNECTED); }
+
+    *destinationBuffer++ = bitItems;
+
+    // If it is connected, pack up the data
+    if (_headData->_isFaceshiftConnected) {
+        memcpy(destinationBuffer, &_headData->_leftEyeBlink, sizeof(float));
+        destinationBuffer += sizeof(float);
+
+        memcpy(destinationBuffer, &_headData->_rightEyeBlink, sizeof(float));
+        destinationBuffer += sizeof(float);
+
+        memcpy(destinationBuffer, &_headData->_averageLoudness, sizeof(float));
+        destinationBuffer += sizeof(float);
+
+        memcpy(destinationBuffer, &_headData->_browAudioLift, sizeof(float));
+        destinationBuffer += sizeof(float);
+        
+        *destinationBuffer++ = _headData->_blendshapeCoefficients.size();
+        memcpy(destinationBuffer, _headData->_blendshapeCoefficients.data(),
+            _headData->_blendshapeCoefficients.size() * sizeof(float));
+        destinationBuffer += _headData->_blendshapeCoefficients.size() * sizeof(float);
+    }
+    
+    // pupil dilation
+    destinationBuffer += packFloatToByte(destinationBuffer, _headData->_pupilDilation, 1.0f);
     
     // leap hand data
     destinationBuffer += _handData->encodeRemoteData(destinationBuffer);
@@ -267,7 +295,7 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     //sourceBuffer += unpackFloatFromByte(sourceBuffer, _audioLoudness, MAX_AUDIO_LOUDNESS);
     memcpy(&_headData->_audioLoudness, sourceBuffer, sizeof(float));
     sourceBuffer += sizeof(float);
-    
+
     // camera details
     memcpy(&_cameraPosition, sourceBuffer, sizeof(_cameraPosition));
     sourceBuffer += sizeof(_cameraPosition);
@@ -298,6 +326,32 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     // hand state, stored as a semi-nibble in the bitItems
     _handState = getSemiNibbleAt(bitItems,HAND_STATE_START_BIT);
 
+    bitItems = (unsigned char)*sourceBuffer++;
+    _headData->_isFaceshiftConnected = oneAtBit(bitItems, IS_FACESHIFT_CONNECTED);
+
+    // If it is connected, pack up the data
+    if (_headData->_isFaceshiftConnected) {
+        memcpy(&_headData->_leftEyeBlink, sourceBuffer, sizeof(float));
+        sourceBuffer += sizeof(float);
+
+        memcpy(&_headData->_rightEyeBlink, sourceBuffer, sizeof(float));
+        sourceBuffer += sizeof(float);
+
+        memcpy(&_headData->_averageLoudness, sourceBuffer, sizeof(float));
+        sourceBuffer += sizeof(float);
+
+        memcpy(&_headData->_browAudioLift, sourceBuffer, sizeof(float));
+        sourceBuffer += sizeof(float);
+        
+        _headData->_blendshapeCoefficients.resize(*sourceBuffer++);
+        memcpy(_headData->_blendshapeCoefficients.data(), sourceBuffer,
+            _headData->_blendshapeCoefficients.size() * sizeof(float));
+        sourceBuffer += _headData->_blendshapeCoefficients.size() * sizeof(float);
+    }
+    
+    // pupil dilation
+    sourceBuffer += unpackFloatFromByte(sourceBuffer, _headData->_pupilDilation, 1.0f);
+    
     // leap hand data
     if (sourceBuffer - startPosition < numBytes) {
         // check passed, bytes match

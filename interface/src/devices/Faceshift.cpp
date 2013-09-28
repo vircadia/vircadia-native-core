@@ -8,33 +8,52 @@
 
 #include <QTimer>
 
+#include <SharedUtil.h>
+
 #include "Faceshift.h"
+#include "Menu.h"
 
 using namespace fs;
 using namespace std;
 
+const quint16 FACESHIFT_PORT = 33433;
+
 Faceshift::Faceshift() :
-    _enabled(false),
+    _tcpEnabled(false),
+    _lastTrackingStateReceived(0),
     _eyeGazeLeftPitch(0.0f),
     _eyeGazeLeftYaw(0.0f),
     _eyeGazeRightPitch(0.0f),
     _eyeGazeRightYaw(0.0f),
-    _leftBlink(0.0f),
-    _rightBlink(0.0f),
-    _leftBlinkIndex(-1),
-    _rightBlinkIndex(-1),
-    _browHeight(0.0f),
-    _browUpCenterIndex(-1),
-    _mouthSize(0.0f),
-    _jawOpenIndex(-1),
+    _leftBlinkIndex(0), // see http://support.faceshift.com/support/articles/35129-export-of-blendshapes
+    _rightBlinkIndex(1),
+    _leftEyeOpenIndex(8),
+    _rightEyeOpenIndex(9),
+    _browDownLeftIndex(14), 
+    _browDownRightIndex(15),
+    _browUpCenterIndex(16),
+    _browUpLeftIndex(17),
+    _browUpRightIndex(18),
+    _mouthSmileLeftIndex(28),
+    _mouthSmileRightIndex(29),
+    _jawOpenIndex(21),
     _longTermAverageEyePitch(0.0f),
     _longTermAverageEyeYaw(0.0f),
     _estimatedEyePitch(0.0f),
     _estimatedEyeYaw(0.0f)
 {
-    connect(&_socket, SIGNAL(connected()), SLOT(noteConnected()));
-    connect(&_socket, SIGNAL(error(QAbstractSocket::SocketError)), SLOT(noteError(QAbstractSocket::SocketError)));
-    connect(&_socket, SIGNAL(readyRead()), SLOT(readFromSocket()));
+    connect(&_tcpSocket, SIGNAL(connected()), SLOT(noteConnected()));
+    connect(&_tcpSocket, SIGNAL(error(QAbstractSocket::SocketError)), SLOT(noteError(QAbstractSocket::SocketError)));
+    connect(&_tcpSocket, SIGNAL(readyRead()), SLOT(readFromSocket()));
+    
+    connect(&_udpSocket, SIGNAL(readyRead()), SLOT(readPendingDatagrams()));
+    
+    _udpSocket.bind(FACESHIFT_PORT);
+}
+
+bool Faceshift::isActive() const {
+    const uint64_t ACTIVE_TIMEOUT_USECS = 1000000;
+    return (usecTimestampNow() - _lastTrackingStateReceived) < ACTIVE_TIMEOUT_USECS;
 }
 
 void Faceshift::update() {
@@ -51,28 +70,28 @@ void Faceshift::update() {
 }
 
 void Faceshift::reset() {
-    if (isActive()) {
+    if (_tcpSocket.state() == QAbstractSocket::ConnectedState) {
         string message;
         fsBinaryStream::encode_message(message, fsMsgCalibrateNeutral());
         send(message);
     }
 }
 
-void Faceshift::setEnabled(bool enabled) {
-    if ((_enabled = enabled)) {
+void Faceshift::setTCPEnabled(bool enabled) {
+    if ((_tcpEnabled = enabled)) {
         connectSocket();
     
     } else {
-        _socket.disconnectFromHost();
+        _tcpSocket.disconnectFromHost();
     }
 }
 
 void Faceshift::connectSocket() {
-    if (_enabled) {
+    if (_tcpEnabled) {
         qDebug("Faceshift: Connecting...\n");
     
-        const quint16 FACESHIFT_PORT = 33433;
-        _socket.connectToHost("localhost", FACESHIFT_PORT);
+        _tcpSocket.connectToHost("localhost", FACESHIFT_PORT);
+        _tracking = false;
     }
 }
 
@@ -86,25 +105,57 @@ void Faceshift::noteConnected() {
 }
 
 void Faceshift::noteError(QAbstractSocket::SocketError error) {
-    qDebug() << "Faceshift: " << _socket.errorString() << "\n";
+    qDebug() << "Faceshift: " << _tcpSocket.errorString() << "\n";
     
     // reconnect after a delay
-    if (_enabled) {
+    if (_tcpEnabled) {
         QTimer::singleShot(1000, this, SLOT(connectSocket()));
     }
 }
 
+void Faceshift::readPendingDatagrams() {
+    QByteArray buffer;
+    while (_udpSocket.hasPendingDatagrams()) {
+        buffer.resize(_udpSocket.pendingDatagramSize());
+        _udpSocket.readDatagram(buffer.data(), buffer.size());
+        receive(buffer);
+    }
+}
+
 void Faceshift::readFromSocket() {
-    QByteArray buffer = _socket.readAll();
+    receive(_tcpSocket.readAll());
+}
+
+float Faceshift::getBlendshapeCoefficient(int index) const {
+    return (index >= 0 && index < _blendshapeCoefficients.size()) ? _blendshapeCoefficients[index] : 0.0f;
+}
+
+void Faceshift::send(const std::string& message) {
+    _tcpSocket.write(message.data(), message.size());
+}
+
+void Faceshift::receive(const QByteArray& buffer) {
     _stream.received(buffer.size(), buffer.constData());
     fsMsgPtr msg;
     for (fsMsgPtr msg; (msg = _stream.get_message()); ) {
         switch (msg->id()) {
             case fsMsg::MSG_OUT_TRACKING_STATE: {
                 const fsTrackingData& data = static_cast<fsMsgTrackingState*>(msg.get())->tracking_data();
-                if (data.m_trackingSuccessful) {
-                    _headRotation = glm::quat(data.m_headRotation.w, -data.m_headRotation.x,
-                        data.m_headRotation.y, -data.m_headRotation.z);
+                if ((_tracking = data.m_trackingSuccessful)) {
+                    glm::quat newRotation = glm::quat(data.m_headRotation.w, -data.m_headRotation.x,
+                                                      data.m_headRotation.y, -data.m_headRotation.z);
+                    // Compute angular velocity of the head 
+                    glm::quat r = newRotation * glm::inverse(_headRotation);
+                    float theta = 2 * acos(r.w);
+                    if (theta > EPSILON) {
+                        float rMag = glm::length(glm::vec3(r.x, r.y, r.z));
+                        float AVERAGE_FACESHIFT_FRAME_TIME = 0.033f;
+                        _headAngularVelocity = theta / AVERAGE_FACESHIFT_FRAME_TIME * glm::vec3(r.x, r.y, r.z) / rMag;
+                    } else {
+                        _headAngularVelocity = glm::vec3(0,0,0);
+                    }
+                    _headRotation = newRotation;
+                    
                     const float TRANSLATION_SCALE = 0.02f;
                     _headTranslation = glm::vec3(data.m_headTranslation.x, data.m_headTranslation.y,
                         -data.m_headTranslation.z) * TRANSLATION_SCALE;
@@ -112,19 +163,9 @@ void Faceshift::readFromSocket() {
                     _eyeGazeLeftYaw = data.m_eyeGazeLeftYaw;
                     _eyeGazeRightPitch = -data.m_eyeGazeRightPitch;
                     _eyeGazeRightYaw = data.m_eyeGazeRightYaw;
+                    _blendshapeCoefficients = data.m_coeffs;
                     
-                    if (_leftBlinkIndex != -1) {
-                        _leftBlink = data.m_coeffs[_leftBlinkIndex];
-                    }
-                    if (_rightBlinkIndex != -1) {
-                        _rightBlink = data.m_coeffs[_rightBlinkIndex];
-                    }
-                    if (_browUpCenterIndex != -1) {
-                        _browHeight = data.m_coeffs[_browUpCenterIndex];
-                    }
-                    if (_jawOpenIndex != -1) {
-                        _mouthSize = data.m_coeffs[_jawOpenIndex];
-                    }
+                    _lastTrackingStateReceived = usecTimestampNow();
                 }
                 break;
             }
@@ -136,12 +177,36 @@ void Faceshift::readFromSocket() {
                     
                     } else if (names[i] == "EyeBlink_R") {
                         _rightBlinkIndex = i;
-                        
+
+                    } else if (names[i] == "EyeOpen_L") {
+                        _leftEyeOpenIndex = i;
+
+                    } else if (names[i] == "EyeOpen_R") {
+                        _rightEyeOpenIndex = i;
+
+                    } else if (names[i] == "BrowsD_L") {
+                        _browDownLeftIndex = i;
+
+                    } else if (names[i] == "BrowsD_R") {
+                        _browDownRightIndex = i;
+
                     } else if (names[i] == "BrowsU_C") {
-                        _browUpCenterIndex = i;    
-                        
+                        _browUpCenterIndex = i;
+
+                    } else if (names[i] == "BrowsU_L") {
+                        _browUpLeftIndex = i;
+
+                    } else if (names[i] == "BrowsU_R") {
+                        _browUpRightIndex = i;
+
                     } else if (names[i] == "JawOpen") {
                         _jawOpenIndex = i;
+                        
+                    } else if (names[i] == "MouthSmile_L") {
+                        _mouthSmileLeftIndex = i;
+                        
+                    } else if (names[i] == "MouthSmile_R") {
+                        _mouthSmileRightIndex = i;
                     }
                 }
                 break;
@@ -150,8 +215,4 @@ void Faceshift::readFromSocket() {
                 break;
         }
     }
-}
-
-void Faceshift::send(const std::string& message) {
-    _socket.write(message.data(), message.size());
 }

@@ -6,11 +6,10 @@
 
 #include <glm/gtx/quaternion.hpp>
 
-#include <QImage>
-
 #include <NodeList.h>
 
 #include "Application.h"
+#include "Menu.h"
 #include "Avatar.h"
 #include "Head.h"
 #include "Util.h"
@@ -30,7 +29,7 @@ const float EYEBALL_RADIUS           =  0.017;
 const float EYELID_RADIUS            =  0.019; 
 const float EYEBALL_COLOR[3]         =  { 0.9f, 0.9f, 0.8f };
 
-const float HAIR_SPRING_FORCE        =  15.0f;
+const float HAIR_SPRING_FORCE        =  15.0f; 
 const float HAIR_TORQUE_FORCE        =  0.2f;
 const float HAIR_GRAVITY_FORCE       =  0.001f;
 const float HAIR_DRAG                =  10.0f;
@@ -47,7 +46,7 @@ const float IRIS_PROTRUSION          =  0.0145f;
 const char  IRIS_TEXTURE_FILENAME[]  =  "resources/images/iris.png";
 
 ProgramObject Head::_irisProgram;
-GLuint Head::_irisTextureID;
+DilatedTextureCache Head::_irisTextureCache(IRIS_TEXTURE_FILENAME, 53, 127);
 int Head::_eyePositionLocation;
 
 Head::Head(Avatar* owningAvatar) :
@@ -67,19 +66,16 @@ Head::Head(Avatar* owningAvatar) :
     _rightEarPosition(0.0f, 0.0f, 0.0f),
     _mouthPosition(0.0f, 0.0f, 0.0f),
     _scale(1.0f),
-    _browAudioLift(0.0f),
     _gravity(0.0f, -1.0f, 0.0f),
     _lastLoudness(0.0f),
-    _averageLoudness(0.0f),
     _audioAttack(0.0f),
     _returnSpringScale(1.0f),
     _bodyRotation(0.0f, 0.0f, 0.0f),
+    _angularVelocity(0,0,0),
     _renderLookatVectors(false),
     _mohawkInitialized(false),
     _saccade(0.0f, 0.0f, 0.0f),
     _saccadeTarget(0.0f, 0.0f, 0.0f),
-    _leftEyeBlink(0.0f),
-    _rightEyeBlink(0.0f),
     _leftEyeBlinkVelocity(0.0f),
     _rightEyeBlinkVelocity(0.0f),
     _timeWithoutTalking(0.0f),
@@ -89,7 +85,9 @@ Head::Head(Avatar* owningAvatar) :
     _isCameraMoving(false),
     _cameraFollowsHead(false),
     _cameraFollowHeadRate(0.0f),
-    _face(this)
+    _face(this),
+    _perlinFace(this),
+    _blendFace(this)
 {
     if (USING_PHYSICAL_MOHAWK) {    
         resetHairPhysics();
@@ -105,17 +103,8 @@ void Head::init() {
 
         _irisProgram.setUniformValue("texture", 0);
         _eyePositionLocation = _irisProgram.uniformLocation("eyePosition");
-
-        QImage image = QImage(IRIS_TEXTURE_FILENAME).convertToFormat(QImage::Format_ARGB32);
-        
-        glGenTextures(1, &_irisTextureID);
-        glBindTexture(GL_TEXTURE_2D, _irisTextureID);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width(), image.height(), 1, GL_BGRA, GL_UNSIGNED_BYTE, image.constBits());
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
-        glBindTexture(GL_TEXTURE_2D, 0);
     }
+    _blendFace.init();
 }
 
 void Head::reset() {
@@ -144,22 +133,26 @@ void Head::resetHairPhysics() {
 }
 
 
-void Head::simulate(float deltaTime, bool isMine, float gyroCameraSensitivity) {
+void Head::simulate(float deltaTime, bool isMine) {
     
     //  Update audio trailing average for rendering facial animations
     Faceshift* faceshift = Application::getInstance()->getFaceshift();
+    _isFaceshiftConnected = faceshift != NULL;
+
     if (isMine && faceshift->isActive()) {
-        _leftEyeBlink = faceshift->getLeftBlink();
-        _rightEyeBlink = faceshift->getRightBlink();
+        const float EYE_OPEN_SCALE = 0.5f;
+        _leftEyeBlink = faceshift->getLeftBlink() - EYE_OPEN_SCALE * faceshift->getLeftEyeOpen();
+        _rightEyeBlink = faceshift->getRightBlink() - EYE_OPEN_SCALE * faceshift->getRightEyeOpen();
         
         // set these values based on how they'll be used.  if we use faceshift in the long term, we'll want a complete
         // mapping between their blendshape coefficients and our avatar features
         const float MOUTH_SIZE_SCALE = 2500.0f;
         _averageLoudness = faceshift->getMouthSize() * faceshift->getMouthSize() * MOUTH_SIZE_SCALE;
         const float BROW_HEIGHT_SCALE = 0.005f;
-        _browAudioLift = faceshift->getBrowHeight() * BROW_HEIGHT_SCALE;
+        _browAudioLift = faceshift->getBrowUpCenter() * BROW_HEIGHT_SCALE;
+        _blendshapeCoefficients = faceshift->getBlendshapeCoefficients();
         
-    } else {
+    } else  if (!_isFaceshiftConnected) {
         // Update eye saccades
         const float AVERAGE_MICROSACCADE_INTERVAL = 0.50f;
         const float AVERAGE_SACCADE_INTERVAL = 4.0f;
@@ -238,45 +231,7 @@ void Head::simulate(float deltaTime, bool isMine, float gyroCameraSensitivity) {
     // based on the nature of the lookat position, determine if the eyes can look / are looking at it.      
     if (USING_PHYSICAL_MOHAWK) {
         updateHairPhysics(deltaTime);
-        
     }
-    
-    // Update camera pitch and yaw independently from motion of head (for gyro-based interface)
-    if (isMine && _cameraFollowsHead && (gyroCameraSensitivity > 0.f)) {
-        //  If we are using gyros and using gyroLook, have the camera follow head but with a null region
-        //  to create stable rendering view with small head movements.
-        const float CAMERA_FOLLOW_HEAD_RATE_START = 0.1f;
-        const float CAMERA_FOLLOW_HEAD_RATE_MAX = 1.0f;
-        const float CAMERA_FOLLOW_HEAD_RATE_RAMP_RATE = 1.05f;
-        const float CAMERA_STOP_TOLERANCE_DEGREES = 0.5f;
-        const float PITCH_START_RANGE = 20.f;
-        const float YAW_START_RANGE = 10.f;
-        float pitchStartTolerance = PITCH_START_RANGE
-                                    * (1.f - gyroCameraSensitivity)
-                                    + (2.f * CAMERA_STOP_TOLERANCE_DEGREES);
-        float yawStartTolerance = YAW_START_RANGE
-                                    * (1.f - gyroCameraSensitivity)
-                                    + (2.f * CAMERA_STOP_TOLERANCE_DEGREES);
-
-        float cameraHeadAngleDifference = glm::length(glm::vec2(_pitch - _cameraPitch, _yaw - _cameraYaw));
-        if (_isCameraMoving) {
-            _cameraFollowHeadRate = glm::clamp(_cameraFollowHeadRate * CAMERA_FOLLOW_HEAD_RATE_RAMP_RATE,
-                                               0.f,
-                                               CAMERA_FOLLOW_HEAD_RATE_MAX);
-                                               
-            _cameraPitch += (_pitch - _cameraPitch) * _cameraFollowHeadRate;
-            _cameraYaw += (_yaw - _cameraYaw) * _cameraFollowHeadRate;
-            if (cameraHeadAngleDifference < CAMERA_STOP_TOLERANCE_DEGREES) {
-                _isCameraMoving = false;
-            }
-        } else {
-            if ((fabs(_pitch - _cameraPitch) > pitchStartTolerance) ||
-                (fabs(_yaw - _cameraYaw) > yawStartTolerance)) {
-                _isCameraMoving = true;
-                _cameraFollowHeadRate = CAMERA_FOLLOW_HEAD_RATE_START;
-            }
-        }
-    } 
 }
 
 void Head::calculateGeometry() {
@@ -321,27 +276,36 @@ void Head::calculateGeometry() {
                            + up    * _scale * NOSE_UPTURN;  
 }
 
-void Head::render(float alpha) {
-
+void Head::render(float alpha, bool isMine) {
     _renderAlpha = alpha;
 
-    if (!_face.render(alpha)) {
+    if (!(_face.render(alpha) || _blendFace.render(alpha))) {
         calculateGeometry();
 
         glEnable(GL_DEPTH_TEST);
         glEnable(GL_RESCALE_NORMAL);
-    
-        renderMohawk();
-        renderHeadSphere();
-        renderEyeBalls();    
-        renderEars();
-        renderMouth();   
-        renderNose();
-        renderEyeBrows();
+
+        if (Menu::getInstance()->isOptionChecked(MenuOption::UsePerlinFace) && isMine) {
+            _perlinFace.render();
+        } else  {
+            renderMohawk();
+            renderHeadSphere();
+            renderEyeBalls();
+            renderEars();
+            renderMouth();
+            renderNose();
+            renderEyeBrows();
+        }
     }
         
     if (_renderLookatVectors) {
-        renderLookatVectors(_leftEyePosition, _rightEyePosition, _lookAtPosition);
+        glm::vec3 firstEyePosition = _leftEyePosition;
+        glm::vec3 secondEyePosition = _rightEyePosition;
+        if (_blendFace.isActive()) {
+            // the blend face may have custom eye meshes
+            _blendFace.getEyePositions(firstEyePosition, secondEyePosition);
+        }
+        renderLookatVectors(firstEyePosition, secondEyePosition, _lookAtPosition);
     }
 }
 
@@ -451,6 +415,11 @@ glm::quat Head::getCameraOrientation () const {
     Avatar* owningAvatar = static_cast<Avatar*>(_owningAvatar);
     return owningAvatar->getWorldAlignedOrientation()
             * glm::quat(glm::radians(glm::vec3(_cameraPitch + _mousePitch, _cameraYaw, 0.0f)));
+}
+
+glm::quat Head::getEyeRotation(const glm::vec3& eyePosition) const {
+    glm::quat orientation = getOrientation();
+    return rotationBetween(orientation * IDENTITY_FRONT, _lookAtPosition + _saccade - eyePosition) * orientation;
 }
 
 void Head::renderHeadSphere() {
@@ -654,28 +623,30 @@ void Head::renderEyeBalls() {
     glPopMatrix();
 
     _irisProgram.bind();
-    glBindTexture(GL_TEXTURE_2D, _irisTextureID);
+    
+    _irisTexture = _irisTextureCache.getTexture(_pupilDilation);
+    glBindTexture(GL_TEXTURE_2D, _irisTexture->getID());
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+    
     glEnable(GL_TEXTURE_2D);
     
-    glm::quat orientation = getOrientation();
-    glm::vec3 front = orientation * IDENTITY_FRONT;
-    
     // render left iris
+    glm::quat leftIrisRotation;
     glPushMatrix(); {
         glTranslatef(_leftEyePosition.x, _leftEyePosition.y, _leftEyePosition.z); //translate to eyeball position
         
         //rotate the eyeball to aim towards the lookat position
-        glm::vec3 targetLookatVector = _lookAtPosition + _saccade - _leftEyePosition;
-        glm::quat rotation = rotationBetween(front, targetLookatVector) * orientation;
-        glm::vec3 rotationAxis = glm::axis(rotation);           
-        glRotatef(glm::angle(rotation), rotationAxis.x, rotationAxis.y, rotationAxis.z);
+        leftIrisRotation = getEyeRotation(_leftEyePosition);
+        glm::vec3 rotationAxis = glm::axis(leftIrisRotation);           
+        glRotatef(glm::angle(leftIrisRotation), rotationAxis.x, rotationAxis.y, rotationAxis.z);
         glTranslatef(0.0f, 0.0f, -_scale * IRIS_PROTRUSION);
         glScalef(_scale * IRIS_RADIUS * 2.0f,
                  _scale * IRIS_RADIUS * 2.0f,
                  _scale * IRIS_RADIUS); // flatten the iris
         
         // this ugliness is simply to invert the model transform and get the eye position in model space
-        _irisProgram.setUniform(_eyePositionLocation, (glm::inverse(rotation) *
+        _irisProgram.setUniform(_eyePositionLocation, (glm::inverse(leftIrisRotation) *
             (Application::getInstance()->getCamera()->getPosition() - _leftEyePosition) +
                 glm::vec3(0.0f, 0.0f, _scale * IRIS_PROTRUSION)) * glm::vec3(1.0f / (_scale * IRIS_RADIUS * 2.0f),
                     1.0f / (_scale * IRIS_RADIUS * 2.0f), 1.0f / (_scale * IRIS_RADIUS)));
@@ -685,21 +656,21 @@ void Head::renderEyeBalls() {
     glPopMatrix();
 
     // render right iris
+    glm::quat rightIrisRotation;
     glPushMatrix(); {
         glTranslatef(_rightEyePosition.x, _rightEyePosition.y, _rightEyePosition.z);  //translate to eyeball position       
         
         //rotate the eyeball to aim towards the lookat position
-        glm::vec3 targetLookatVector = _lookAtPosition + _saccade - _rightEyePosition;
-        glm::quat rotation = rotationBetween(front, targetLookatVector) * orientation;
-        glm::vec3 rotationAxis = glm::axis(rotation);        
-        glRotatef(glm::angle(rotation), rotationAxis.x, rotationAxis.y, rotationAxis.z);
+        rightIrisRotation = getEyeRotation(_rightEyePosition);
+        glm::vec3 rotationAxis = glm::axis(rightIrisRotation);        
+        glRotatef(glm::angle(rightIrisRotation), rotationAxis.x, rotationAxis.y, rotationAxis.z);
         glTranslatef(0.0f, 0.0f, -_scale * IRIS_PROTRUSION);
         glScalef(_scale * IRIS_RADIUS * 2.0f,
                  _scale * IRIS_RADIUS * 2.0f,
                  _scale * IRIS_RADIUS); // flatten the iris
         
         // this ugliness is simply to invert the model transform and get the eye position in model space
-        _irisProgram.setUniform(_eyePositionLocation, (glm::inverse(rotation) *
+        _irisProgram.setUniform(_eyePositionLocation, (glm::inverse(rightIrisRotation) *
             (Application::getInstance()->getCamera()->getPosition() - _rightEyePosition) +
                 glm::vec3(0.0f, 0.0f, _scale * IRIS_PROTRUSION)) * glm::vec3(1.0f / (_scale * IRIS_RADIUS * 2.0f),
                     1.0f / (_scale * IRIS_RADIUS * 2.0f), 1.0f / (_scale * IRIS_RADIUS)));
@@ -718,12 +689,13 @@ void Head::renderEyeBalls() {
     // left eyelid
     glPushMatrix(); {
         glTranslatef(_leftEyePosition.x, _leftEyePosition.y, _leftEyePosition.z);  //translate to eyeball position
-        glm::vec3 rotationAxis = glm::axis(orientation);
-        glRotatef(glm::angle(orientation), rotationAxis.x, rotationAxis.y, rotationAxis.z);
+        glm::vec3 rotationAxis = glm::axis(leftIrisRotation);
+        glRotatef(glm::angle(leftIrisRotation), rotationAxis.x, rotationAxis.y, rotationAxis.z);
         glScalef(_scale * EYELID_RADIUS, _scale * EYELID_RADIUS, _scale * EYELID_RADIUS);
-        glRotatef(-40 - 50 * _leftEyeBlink, 1, 0, 0);
+        float angle = -67.5f - 50.0f * _leftEyeBlink;
+        glRotatef(angle, 1, 0, 0);
         Application::getInstance()->getGeometryCache()->renderHemisphere(15, 10);
-        glRotatef(180 * _leftEyeBlink, 1, 0, 0);
+        glRotatef(glm::mix(-angle, 180.0f, max(0.0f, _leftEyeBlink)), 1, 0, 0);
         Application::getInstance()->getGeometryCache()->renderHemisphere(15, 10);
     }
     glPopMatrix();
@@ -731,12 +703,13 @@ void Head::renderEyeBalls() {
     // right eyelid
     glPushMatrix(); {
         glTranslatef(_rightEyePosition.x, _rightEyePosition.y, _rightEyePosition.z);  //translate to eyeball position
-        glm::vec3 rotationAxis = glm::axis(orientation);
-        glRotatef(glm::angle(orientation), rotationAxis.x, rotationAxis.y, rotationAxis.z);
+        glm::vec3 rotationAxis = glm::axis(rightIrisRotation);
+        glRotatef(glm::angle(rightIrisRotation), rotationAxis.x, rotationAxis.y, rotationAxis.z);
         glScalef(_scale * EYELID_RADIUS, _scale * EYELID_RADIUS, _scale * EYELID_RADIUS);
-        glRotatef(-40 - 50 * _rightEyeBlink, 1, 0, 0);
+        float angle = -67.5f - 50.0f * _rightEyeBlink; 
+        glRotatef(angle, 1, 0, 0);
         Application::getInstance()->getGeometryCache()->renderHemisphere(15, 10);
-        glRotatef(180 * _rightEyeBlink, 1, 0, 0);
+        glRotatef(glm::mix(-angle, 180.0f, max(0.0f, _rightEyeBlink)), 1, 0, 0);
         Application::getInstance()->getGeometryCache()->renderHemisphere(15, 10);
     }
     glPopMatrix();

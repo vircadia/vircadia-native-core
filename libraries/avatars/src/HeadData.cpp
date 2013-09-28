@@ -16,6 +16,11 @@ HeadData::HeadData(AvatarData* owningAvatar) :
     _leanSideways(0.0f),
     _leanForward(0.0f),
     _audioLoudness(0.0f),
+    _isFaceshiftConnected(false),
+    _leftEyeBlink(0.0f),
+    _rightEyeBlink(0.0f),
+    _averageLoudness(0.0f),
+    _browAudioLift(0.0f),
     _owningAvatar(owningAvatar)
 {
     

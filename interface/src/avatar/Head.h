@@ -9,7 +9,7 @@
 #define hifi_Head_h
 
 #include <glm/glm.hpp>
-#include <glm/gtc/quaternion.hpp>
+#include <glm/gtx/quaternion.hpp>
 
 #include <SharedUtil.h>
 
@@ -18,10 +18,13 @@
 #include <VoxelConstants.h>
 
 #include "BendyLine.h"
+#include "BlendFace.h"
 #include "Face.h"
 #include "InterfaceConfig.h"
+#include "PerlinFace.h"
 #include "world.h"
 #include "devices/SerialInterface.h"
+#include "renderer/TextureCache.h"
 
 enum eyeContactTargets {
     LEFT_EYE, 
@@ -41,8 +44,8 @@ public:
     
     void init();
     void reset();
-    void simulate(float deltaTime, bool isMine, float gyroCameraSensitivity);
-    void render(float alpha);
+    void simulate(float deltaTime, bool isMine);
+    void render(float alpha, bool isMine);
     void renderMohawk();
 
     void setScale(float scale);
@@ -61,15 +64,21 @@ public:
 
     glm::quat getOrientation() const;
     glm::quat getCameraOrientation () const;
+    const glm::vec3& getAngularVelocity() const { return _angularVelocity; }
+    void setAngularVelocity(glm::vec3 angularVelocity) { _angularVelocity = angularVelocity; }
     
     float getScale() const { return _scale; }
     glm::vec3 getPosition() const { return _position; }
+    const glm::vec3& getSkinColor() const { return _skinColor; }
     const glm::vec3& getEyePosition() const { return _eyePosition; }
     glm::vec3 getRightDirection() const { return getOrientation() * IDENTITY_RIGHT; }
     glm::vec3 getUpDirection() const { return getOrientation() * IDENTITY_UP; }
     glm::vec3 getFrontDirection() const { return getOrientation() * IDENTITY_FRONT; }
     
+    glm::quat getEyeRotation(const glm::vec3& eyePosition) const;
+    
     Face& getFace() { return _face; }
+    BlendFace& getBlendFace() { return _blendFace; }
     
     const bool getReturnToCenter() const { return _returnHeadToCenter; } // Do you want head to try to return to center (depends on interface detected)
     float getAverageLoudness() const { return _averageLoudness; }
@@ -104,13 +113,12 @@ private:
     glm::vec3 _mouthPosition;
     Nose _nose;
     float _scale;
-    float _browAudioLift;
     glm::vec3 _gravity;
     float _lastLoudness;
-    float _averageLoudness;
     float _audioAttack;
     float _returnSpringScale; //strength of return springs
     glm::vec3 _bodyRotation;
+    glm::vec3 _angularVelocity;
     bool _renderLookatVectors;
     BendyLine _hairTuft[NUM_HAIR_TUFTS];
     bool _mohawkInitialized;
@@ -118,8 +126,6 @@ private:
     glm::vec3 _mohawkColors[MOHAWK_TRIANGLES];
     glm::vec3 _saccade;
     glm::vec3 _saccadeTarget;
-    float _leftEyeBlink;
-    float _rightEyeBlink;
     float _leftEyeBlinkVelocity;
     float _rightEyeBlinkVelocity;
     float _timeWithoutTalking;
@@ -130,9 +136,13 @@ private:
     bool _cameraFollowsHead;
     float _cameraFollowHeadRate;
     Face _face;
+    PerlinFace _perlinFace;
+    BlendFace _blendFace;
+
+    QSharedPointer<Texture> _irisTexture;
 
     static ProgramObject _irisProgram;
-    static GLuint _irisTextureID;
+    static DilatedTextureCache _irisTextureCache;
     static int _eyePositionLocation;
     
     // private methods
@@ -147,6 +157,8 @@ private:
     void calculateGeometry();
     void resetHairPhysics();
     void updateHairPhysics(float deltaTime);
+
+    friend class PerlinFace;
 };
 
 #endif

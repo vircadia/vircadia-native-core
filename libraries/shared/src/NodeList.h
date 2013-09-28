@@ -14,6 +14,7 @@
 #include <iterator>
 #include <unistd.h>
 
+#include <QtNetwork/QHostAddress>
 #include <QtCore/QSettings>
 
 #include "Node.h"
@@ -36,9 +37,10 @@ extern const char SOLO_NODE_TYPES[2];
 
 const int MAX_HOSTNAME_BYTES = 256;
 
-extern const char DEFAULT_DOMAIN_HOSTNAME[MAX_HOSTNAME_BYTES];
-extern const char DEFAULT_DOMAIN_IP[INET_ADDRSTRLEN];    //  IP Address will be re-set by lookup on startup
-extern const int DEFAULT_DOMAINSERVER_PORT;
+extern const QString DEFAULT_DOMAIN_HOSTNAME;
+extern const unsigned short DEFAULT_DOMAIN_SERVER_PORT;
+
+const char LOCAL_ASSIGNMENT_SERVER_HOSTNAME[] = "localhost";
 
 const int UNKNOWN_NODE_ID = 0;
 
@@ -69,15 +71,18 @@ public:
     NodeListIterator begin() const;
     NodeListIterator end() const;
     
-    
     NODE_TYPE getOwnerType() const { return _ownerType; }
     void setOwnerType(NODE_TYPE ownerType) { _ownerType = ownerType; }
 
-    const char* getDomainHostname() const { return _domainHostname; }
-    void setDomainHostname(const char* domainHostname);
+    const QString& getDomainHostname() const { return _domainHostname; }
+    void setDomainHostname(const QString& domainHostname);
     
-    void setDomainIP(const char* domainIP);
-    void setDomainIPToLocalhost();
+    const QHostAddress& getDomainIP() const { return _domainIP; }
+    void setDomainIP(const QHostAddress& domainIP) { _domainIP = domainIP; }
+    void setDomainIPToLocalhost() { _domainIP = QHostAddress(INADDR_LOOPBACK); }
+    
+    unsigned short getDomainPort() const { return _domainPort; }
+    void setDomainPort(unsigned short domainPort) { _domainPort = domainPort; }
         
     uint16_t getLastNodeID() const { return _lastNodeID; }
     void increaseNodeID() { (++_lastNodeID == UNKNOWN_NODE_ID) ? ++_lastNodeID : _lastNodeID; }
@@ -97,10 +102,11 @@ public:
     int getNumNoReplyDomainCheckIns() const { return _numNoReplyDomainCheckIns; }
     
     void clear();
+    void reset();
     
     void setNodeTypesOfInterest(const char* nodeTypesOfInterest, int numNodeTypesOfInterest);
     
-    void sendDomainServerCheckIn();
+    void sendDomainServerCheckIn(const char* assignmentUUID = NULL);
     int processDomainServerList(unsigned char *packetData, size_t dataBytes);
     
     void setAssignmentServerSocket(sockaddr* serverSocket) { _assignmentServerSocket = serverSocket; }
@@ -147,8 +153,9 @@ private:
     
     void addNodeToList(Node* newNode);
     
-    char _domainHostname[MAX_HOSTNAME_BYTES];
-    char _domainIP[INET_ADDRSTRLEN];
+    QString _domainHostname;
+    QHostAddress _domainIP;
+    unsigned short _domainPort;
     Node** _nodeBuckets[MAX_NUM_NODES / NODES_PER_BUCKET];
     int _numNodes;
     UDPSocket _nodeSocket;
@@ -160,6 +167,8 @@ private:
     pthread_t checkInWithDomainServerThread;
     int _numNoReplyDomainCheckIns;
     sockaddr* _assignmentServerSocket;
+    uchar* _checkInPacket;
+    int _numBytesCheckInPacket;
     
     void handlePingReply(sockaddr *nodeAddress);
     void timePingReply(sockaddr *nodeAddress, unsigned char *packetData);

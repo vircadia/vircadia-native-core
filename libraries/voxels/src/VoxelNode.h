@@ -70,6 +70,7 @@ public:
     void printDebugDetails(const char* label) const;
     bool isDirty() const { return _isDirty; }
     void clearDirtyBit() { _isDirty = false; }
+    void setDirtyBit() { _isDirty = true; }
     bool hasChangedSince(uint64_t time) const { return (_lastChanged > time); }
     void markWithChangedTime() { _lastChanged = usecTimestampNow(); }
     uint64_t getLastChanged() const { return _lastChanged; }

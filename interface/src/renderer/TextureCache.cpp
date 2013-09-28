@@ -24,6 +24,9 @@ TextureCache::~TextureCache() {
     if (_permutationNormalTextureID != 0) {
         glDeleteTextures(1, &_permutationNormalTextureID);
     }
+    foreach (GLuint id, _fileTextureIDs) {
+        glDeleteTextures(1, &id);
+    }
     if (_primaryFramebufferObject != NULL) {
         delete _primaryFramebufferObject;
         glDeleteTextures(1, &_primaryDepthTextureID);
@@ -60,6 +63,24 @@ GLuint TextureCache::getPermutationNormalTextureID() {
         glBindTexture(GL_TEXTURE_2D, 0);
     }
     return _permutationNormalTextureID;
+}
+
+GLuint TextureCache::getFileTextureID(const QString& filename) {
+    GLuint id = _fileTextureIDs.value(filename);
+    if (id == 0) {
+        switchToResourcesParentIfRequired();
+        QImage image = QImage(filename).convertToFormat(QImage::Format_ARGB32);
+    
+        glGenTextures(1, &id);
+        glBindTexture(GL_TEXTURE_2D, id);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width(), image.height(), 1,
+            GL_BGRA, GL_UNSIGNED_BYTE, image.constBits());
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glBindTexture(GL_TEXTURE_2D, 0);
+        
+        _fileTextureIDs.insert(filename, id);
+    }
+    return id;
 }
 
 QOpenGLFramebufferObject* TextureCache::getPrimaryFramebufferObject() {
@@ -132,4 +153,45 @@ QOpenGLFramebufferObject* TextureCache::createFramebufferObject() {
     glBindTexture(GL_TEXTURE_2D, 0);
     
     return fbo;
+}
+
+Texture::Texture() {
+    glGenTextures(1, &_id);
+}
+
+Texture::~Texture() {
+    glDeleteTextures(1, &_id);
+}
+
+DilatedTextureCache::DilatedTextureCache(const QString& filename, int innerRadius, int outerRadius) :
+    _innerRadius(innerRadius),
+    _outerRadius(outerRadius)
+{
+    switchToResourcesParentIfRequired();
+    _image = QImage(filename).convertToFormat(QImage::Format_ARGB32);
+}
+
+QSharedPointer<Texture> DilatedTextureCache::getTexture(float dilation) {
+    QSharedPointer<Texture> texture = _textures.value(dilation);
+    if (texture.isNull()) {
+        texture = QSharedPointer<Texture>(new Texture());
+        
+        QImage dilatedImage = _image;
+        QPainter painter;
+        painter.begin(&dilatedImage);
+        QPainterPath path;
+        qreal radius = glm::mix(_innerRadius, _outerRadius, dilation);
+        path.addEllipse(QPointF(_image.width() / 2.0, _image.height() / 2.0), radius, radius);
+        painter.fillPath(path, Qt::black);
+        painter.end();
+        
+        glBindTexture(GL_TEXTURE_2D, texture->getID());
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, dilatedImage.width(), dilatedImage.height(), 1,
+            GL_BGRA, GL_UNSIGNED_BYTE, dilatedImage.constBits());
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glBindTexture(GL_TEXTURE_2D, 0);
+        
+        _textures.insert(dilation, texture);
+    }
+    return texture;
 }

@@ -9,7 +9,10 @@
 #ifndef __interface__Faceshift__
 #define __interface__Faceshift__
 
+#include <vector>
+
 #include <QTcpSocket>
+#include <QUdpSocket>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
@@ -24,9 +27,10 @@ public:
 
     Faceshift();
 
-    bool isActive() const { return _socket.state() == QAbstractSocket::ConnectedState; }
+    bool isActive() const;
 
     const glm::quat& getHeadRotation() const { return _headRotation; }
+    const glm::vec3& getHeadAngularVelocity() const { return _headAngularVelocity; }
     const glm::vec3& getHeadTranslation() const { return _headTranslation; }
 
     float getEyeGazeLeftPitch() const { return _eyeGazeLeftPitch; }
@@ -38,36 +42,54 @@ public:
     float getEstimatedEyePitch() const { return _estimatedEyePitch; }
     float getEstimatedEyeYaw() const { return _estimatedEyeYaw; }
 
-    float getLeftBlink() const { return _leftBlink; }
-    float getRightBlink() const { return _rightBlink; }
+    const std::vector<float>& getBlendshapeCoefficients() const { return _blendshapeCoefficients; }
 
-    float getBrowHeight() const { return _browHeight; }
-    
-    float getMouthSize() const { return _mouthSize; }
+    float getLeftBlink() const { return getBlendshapeCoefficient(_leftBlinkIndex); }
+    float getRightBlink() const { return getBlendshapeCoefficient(_rightBlinkIndex); }
+    float getLeftEyeOpen() const { return getBlendshapeCoefficient(_leftEyeOpenIndex); }
+    float getRightEyeOpen() const { return getBlendshapeCoefficient(_rightEyeOpenIndex); }
+
+    float getBrowDownLeft() const { return getBlendshapeCoefficient(_browDownLeftIndex); }
+    float getBrowDownRight() const { return getBlendshapeCoefficient(_browDownRightIndex); }
+    float getBrowUpCenter() const { return getBlendshapeCoefficient(_browUpCenterIndex); }
+    float getBrowUpLeft() const { return getBlendshapeCoefficient(_browUpLeftIndex); }
+    float getBrowUpRight() const { return getBlendshapeCoefficient(_browUpRightIndex); }
+
+    float getMouthSize() const { return getBlendshapeCoefficient(_jawOpenIndex); }
+    float getMouthSmileLeft() const { return getBlendshapeCoefficient(_mouthSmileLeftIndex); }
+    float getMouthSmileRight() const { return getBlendshapeCoefficient(_mouthSmileRightIndex); }
 
     void update();
     void reset();
-
+    
 public slots:
     
-    void setEnabled(bool enabled);
-
+    void setTCPEnabled(bool enabled);
+    
 private slots:
 
     void connectSocket();
     void noteConnected();
     void noteError(QAbstractSocket::SocketError error);
+    void readPendingDatagrams();
     void readFromSocket();        
     
 private:
     
-    void send(const std::string& message);
+    float getBlendshapeCoefficient(int index) const;
     
-    QTcpSocket _socket;
+    void send(const std::string& message);
+    void receive(const QByteArray& buffer);
+    
+    QTcpSocket _tcpSocket;
+    QUdpSocket _udpSocket;
     fs::fsBinaryStream _stream;
-    bool _enabled;
+    bool _tcpEnabled;
+    bool _tracking;
+    uint64_t _lastTrackingStateReceived;
     
     glm::quat _headRotation;
+    glm::vec3 _headAngularVelocity;
     glm::vec3 _headTranslation;
     
     float _eyeGazeLeftPitch;
@@ -76,17 +98,22 @@ private:
     float _eyeGazeRightPitch;
     float _eyeGazeRightYaw;
     
-    float _leftBlink;
-    float _rightBlink;
+    std::vector<float> _blendshapeCoefficients;
     
     int _leftBlinkIndex;
     int _rightBlinkIndex;
-    
-    float _browHeight;
-    
+    int _leftEyeOpenIndex;
+    int _rightEyeOpenIndex;
+
+    // Brows
+    int _browDownLeftIndex;
+    int _browDownRightIndex;
     int _browUpCenterIndex;
+    int _browUpLeftIndex;
+    int _browUpRightIndex;
     
-    float _mouthSize;
+    int _mouthSmileLeftIndex;
+    int _mouthSmileRightIndex;
     
     int _jawOpenIndex;
     

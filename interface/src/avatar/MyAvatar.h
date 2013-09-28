@@ -16,7 +16,7 @@ public:
 	MyAvatar(Node* owningNode = NULL);
 
     void reset();
-    void simulate(float deltaTime, Transmitter* transmitter, float gyroCameraSensitivity);
+    void simulate(float deltaTime, Transmitter* transmitter);
     void updateFromGyrosAndOrWebcam(bool gyroLook, float pitchFromTouch);
     void render(bool lookingInMirror, bool renderAvatarBalls);
     void renderScreenTint(ScreenTintLayer layer, Camera& whichCamera);
@@ -71,6 +71,7 @@ public:
     glm::vec3 _lastCollisionPosition;
     bool _speedBrakes;
     bool _isThrustOn;
+    float _thrustMultiplier;
     float _collisionRadius;
 
 	// private methods

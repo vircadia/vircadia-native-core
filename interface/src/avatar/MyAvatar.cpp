@@ -23,7 +23,6 @@
 
 using namespace std;
 
-const bool USING_AVATAR_GRAVITY = true;
 const glm::vec3 DEFAULT_UP_DIRECTION(0.0f, 1.0f, 0.0f);
 const float YAW_MAG = 500.0;
 const float COLLISION_RADIUS_SCALAR = 1.2; // pertains to avatar-to-avatar collisions
@@ -50,13 +49,14 @@ MyAvatar::MyAvatar(Node* owningNode) :
     _elapsedTimeSinceCollision(0.0f),
     _lastCollisionPosition(0, 0, 0),
     _speedBrakes(false),
-    _isThrustOn(false)
+    _isThrustOn(false),
+    _thrustMultiplier(1.0f)
 {
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
         _driveKeys[i] = false;
     }
 
-    _collisionRadius = _height * COLLISION_RADIUS_SCALE;
+    _collisionRadius = _height * COLLISION_RADIUS_SCALE;   
 }
 
 void MyAvatar::reset() {
@@ -64,7 +64,7 @@ void MyAvatar::reset() {
     _hand.reset();
 }
 
-void MyAvatar::simulate(float deltaTime, Transmitter* transmitter, float gyroCameraSensitivity) {
+void MyAvatar::simulate(float deltaTime, Transmitter* transmitter) {
 
     glm::quat orientation = getOrientation();
     glm::vec3 front = orientation * IDENTITY_FRONT;
@@ -159,13 +159,11 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter, float gyroCam
     _avatarTouch.simulate(deltaTime);
 
     // apply gravity
-    if (USING_AVATAR_GRAVITY) {
-        // For gravity, always move the avatar by the amount driven by gravity, so that the collision
-        // routines will detect it and collide every frame when pulled by gravity to a surface
-        const float MIN_DISTANCE_AFTER_COLLISION_FOR_GRAVITY = 0.02f;
-        if (glm::length(_position - _lastCollisionPosition) > MIN_DISTANCE_AFTER_COLLISION_FOR_GRAVITY) {
-            _velocity += _scale * _gravity * (GRAVITY_EARTH * deltaTime);
-        }
+    // For gravity, always move the avatar by the amount driven by gravity, so that the collision
+    // routines will detect it and collide every frame when pulled by gravity to a surface
+    const float MIN_DISTANCE_AFTER_COLLISION_FOR_GRAVITY = 0.02f;
+    if (glm::length(_position - _lastCollisionPosition) > MIN_DISTANCE_AFTER_COLLISION_FOR_GRAVITY) {
+        _velocity += _scale * _gravity * (GRAVITY_EARTH * deltaTime);
     }
 
     if (_isCollisionsOn) {
@@ -185,11 +183,6 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter, float gyroCam
     
     // update body balls
     updateBodyBalls(deltaTime);
-
-    // test for avatar collision response with the big sphere
-    if (usingBigSphereCollisionTest && _isCollisionsOn) {
-        updateCollisionWithSphere(_TEST_bigSpherePosition, _TEST_bigSphereRadius, deltaTime);
-    }
     
     // add thrust to velocity
     _velocity += _thrust * deltaTime;
@@ -215,22 +208,32 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter, float gyroCam
     const float STATIC_FRICTION_STRENGTH = _scale * 20.f;
     applyStaticFriction(deltaTime, _velocity, MAX_STATIC_FRICTION_VELOCITY, STATIC_FRICTION_STRENGTH);
     
-    const float LINEAR_DAMPING_STRENGTH = 1.0f;
+    // Damp avatar velocity
+    const float LINEAR_DAMPING_STRENGTH = 0.5f;
     const float SPEED_BRAKE_POWER = _scale * 10.0f;
-    const float SQUARED_DAMPING_STRENGTH = 0.2f;
+    const float SQUARED_DAMPING_STRENGTH = 0.007f;
+    
+    float linearDamping = LINEAR_DAMPING_STRENGTH;
+    const float AVATAR_DAMPING_FACTOR = 120.f;
+    if (_distanceToNearestAvatar < _scale * PERIPERSONAL_RADIUS) {
+        linearDamping *= 1.f + AVATAR_DAMPING_FACTOR * (PERIPERSONAL_RADIUS - _distanceToNearestAvatar);
+    }
     if (_speedBrakes) {
-        applyDamping(deltaTime, _velocity, LINEAR_DAMPING_STRENGTH * SPEED_BRAKE_POWER, SQUARED_DAMPING_STRENGTH * SPEED_BRAKE_POWER);
+        applyDamping(deltaTime, _velocity,  linearDamping * SPEED_BRAKE_POWER, SQUARED_DAMPING_STRENGTH * SPEED_BRAKE_POWER);
     } else {
-        applyDamping(deltaTime, _velocity, LINEAR_DAMPING_STRENGTH, SQUARED_DAMPING_STRENGTH);            
+        applyDamping(deltaTime, _velocity, linearDamping, SQUARED_DAMPING_STRENGTH);            
     }
     
     // pitch and roll the body as a function of forward speed and turning delta
-    const float BODY_PITCH_WHILE_WALKING = -20.0;
-    const float BODY_ROLL_WHILE_TURNING = 0.2;
-    float forwardComponentOfVelocity = glm::dot(getBodyFrontDirection(), _velocity);
-    orientation = orientation * glm::quat(glm::radians(glm::vec3(
-        BODY_PITCH_WHILE_WALKING * deltaTime * forwardComponentOfVelocity, 0.0f,
-        BODY_ROLL_WHILE_TURNING * deltaTime * _speed * _bodyYawDelta)));
+    const float HIGH_VELOCITY = 10.f;
+    if (glm::length(_velocity) < HIGH_VELOCITY) {
+        const float BODY_PITCH_WHILE_WALKING = -20.0;
+        const float BODY_ROLL_WHILE_TURNING = 0.2;
+        float forwardComponentOfVelocity = glm::dot(getBodyFrontDirection(), _velocity);
+        orientation = orientation * glm::quat(glm::radians(glm::vec3(
+            BODY_PITCH_WHILE_WALKING * deltaTime * forwardComponentOfVelocity, 0.0f,
+            BODY_ROLL_WHILE_TURNING * deltaTime * _speed * _bodyYawDelta)));
+    }
     
     // these forces keep the body upright...
     const float BODY_UPRIGHT_FORCE = _scale * 10.0;
@@ -306,7 +309,7 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter, float gyroCam
     _head.setPosition(_bodyBall[ BODY_BALL_HEAD_BASE ].position);
     _head.setScale(_scale);
     _head.setSkinColor(glm::vec3(SKIN_COLOR[0], SKIN_COLOR[1], SKIN_COLOR[2]));
-    _head.simulate(deltaTime, true, gyroCameraSensitivity);
+    _head.simulate(deltaTime, true);
     _hand.simulate(deltaTime, true);
 
     const float WALKING_SPEED_THRESHOLD = 0.2f;
@@ -340,21 +343,32 @@ void MyAvatar::updateFromGyrosAndOrWebcam(bool gyroLook,
     if (faceshift->isActive()) {
         estimatedPosition = faceshift->getHeadTranslation();
         estimatedRotation = safeEulerAngles(faceshift->getHeadRotation());
-    
+        //  Rotate the body if the head is turned quickly
+        glm::vec3 headAngularVelocity = faceshift->getHeadAngularVelocity();
+        const float FACESHIFT_YAW_VIEW_SENSITIVITY = 20.f;
+        const float FACESHIFT_MIN_YAW_VELOCITY = 1.0f;
+        if (fabs(headAngularVelocity.y) > FACESHIFT_MIN_YAW_VELOCITY) {
+            _bodyYawDelta += headAngularVelocity.y * FACESHIFT_YAW_VIEW_SENSITIVITY;
+        }
     } else if (gyros->isActive()) {
         estimatedRotation = gyros->getEstimatedRotation();
     
     } else if (webcam->isActive()) {
         estimatedRotation = webcam->getEstimatedRotation();
     
-    } else if (_leadingAvatar) {
-        _head.getFace().clearFrame();
-        return;
-    
     } else {
-        _head.setMousePitch(pitchFromTouch);
-        _head.setPitch(pitchFromTouch);
+        if (!_leadingAvatar) {
+            _head.setMousePitch(pitchFromTouch);
+            _head.setPitch(pitchFromTouch);
+        }
         _head.getFace().clearFrame();
+        
+        // restore rotation, lean to neutral positions
+        const float RESTORE_RATE = 0.05f;
+        _head.setYaw(glm::mix(_head.getYaw(), 0.0f, RESTORE_RATE));
+        _head.setRoll(glm::mix(_head.getRoll(), 0.0f, RESTORE_RATE));
+        _head.setLeanSideways(glm::mix(_head.getLeanSideways(), 0.0f, RESTORE_RATE));
+        _head.setLeanForward(glm::mix(_head.getLeanForward(), 0.0f, RESTORE_RATE));
         return;
     }
     _head.setMousePitch(pitchFromTouch);
@@ -408,16 +422,6 @@ static TextRenderer* textRenderer() {
 }
 
 void MyAvatar::render(bool lookingInMirror, bool renderAvatarBalls) {
-
-    if (usingBigSphereCollisionTest) {
-        // show TEST big sphere
-        glColor4f(0.5f, 0.6f, 0.8f, 0.7);
-        glPushMatrix();
-        glTranslatef(_TEST_bigSpherePosition.x, _TEST_bigSpherePosition.y, _TEST_bigSpherePosition.z);
-        glScalef(_TEST_bigSphereRadius, _TEST_bigSphereRadius, _TEST_bigSphereRadius);
-        glutSolidSphere(1, 20, 20);
-        glPopMatrix();
-    }
     
     if (Application::getInstance()->getAvatar()->getHand().isRaveGloveActive()) {
         _hand.setRaveLights(RAVE_LIGHTS_AVATAR);
@@ -552,7 +556,7 @@ void MyAvatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
             // Always render other people, and render myself when beyond threshold distance
             if (b == BODY_BALL_HEAD_BASE) { // the head is rendered as a special
                 if (alpha > 0.0f) {
-                    _head.render(alpha);
+                    _head.render(alpha, true);
                 }
             } else if (alpha > 0.0f) {
                 // Render the body ball sphere
@@ -567,6 +571,10 @@ void MyAvatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
                               SKIN_COLOR[1] - _bodyBall[b].touchForce * 0.2f,
                               SKIN_COLOR[2] - _bodyBall[b].touchForce * 0.1f,
                               alpha);
+                }
+                
+                if (b == BODY_BALL_NECK_BASE && _head.getBlendFace().isActive()) {
+                    continue; // don't render the neck if we have a face model
                 }
                 
                 if ((b != BODY_BALL_HEAD_TOP  )
@@ -609,7 +617,7 @@ void MyAvatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
         float alpha = getBallRenderAlpha(BODY_BALL_HEAD_BASE, lookingInMirror);
         if (alpha > 0.0f) {
             _voxels.render(false);
-            _head.render(alpha);
+            _head.render(alpha, true);
         }
     }
     _hand.render(lookingInMirror);
@@ -632,18 +640,32 @@ void MyAvatar::updateThrust(float deltaTime, Transmitter * transmitter) {
     const float THRUST_JUMP = 120.f;
     
     //  Add Thrusts from keyboard
-    if (_driveKeys[FWD]) {_thrust += _scale * THRUST_MAG_FWD * deltaTime * front;}
-    if (_driveKeys[BACK]) {_thrust -= _scale * THRUST_MAG_BACK * deltaTime * front;}
-    if (_driveKeys[RIGHT]) {_thrust += _scale * THRUST_MAG_LATERAL * deltaTime * right;}
-    if (_driveKeys[LEFT]) {_thrust -= _scale * THRUST_MAG_LATERAL * deltaTime * right;}
-    if (_driveKeys[UP]) {_thrust += _scale * THRUST_MAG_UP * deltaTime * up;}
-    if (_driveKeys[DOWN]) {_thrust -= _scale * THRUST_MAG_DOWN * deltaTime * up;}
+    if (_driveKeys[FWD]) {_thrust += _scale * THRUST_MAG_FWD * _thrustMultiplier * deltaTime * front;}
+    if (_driveKeys[BACK]) {_thrust -= _scale * THRUST_MAG_BACK *  _thrustMultiplier * deltaTime * front;}
+    if (_driveKeys[RIGHT]) {_thrust += _scale * THRUST_MAG_LATERAL * _thrustMultiplier * deltaTime * right;}
+    if (_driveKeys[LEFT]) {_thrust -= _scale * THRUST_MAG_LATERAL * _thrustMultiplier * deltaTime * right;}
+    if (_driveKeys[UP]) {_thrust += _scale * THRUST_MAG_UP * _thrustMultiplier * deltaTime * up;}
+    if (_driveKeys[DOWN]) {_thrust -= _scale * THRUST_MAG_DOWN * _thrustMultiplier * deltaTime * up;}
     if (_driveKeys[ROT_RIGHT]) {_bodyYawDelta -= YAW_MAG * deltaTime;}
     if (_driveKeys[ROT_LEFT]) {_bodyYawDelta += YAW_MAG * deltaTime;}
     
+    //  If thrust keys are being held down, slowly increase thrust to allow reaching great speeds
+    if (_driveKeys[FWD] || _driveKeys[BACK] || _driveKeys[RIGHT] || _driveKeys[LEFT] || _driveKeys[UP] || _driveKeys[DOWN]) {
+        const float THRUST_INCREASE_RATE = 1.05;
+        const float MAX_THRUST_MULTIPLIER = 75.0;
+        //printf("m = %.3f\n", _thrustMultiplier);
+        if (_thrustMultiplier < MAX_THRUST_MULTIPLIER) {
+            _thrustMultiplier *= 1.f + deltaTime * THRUST_INCREASE_RATE;
+        }
+    } else {
+        _thrustMultiplier = 1.f;
+    }
+    
     //  Add one time jumping force if requested
     if (_shouldJump) {
-        _thrust += _scale * THRUST_JUMP * up;
+        if (glm::length(_gravity) > EPSILON) {
+            _thrust += _scale * THRUST_JUMP * up;
+        }
         _shouldJump = false;
     }
 

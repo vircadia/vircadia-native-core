@@ -2,7 +2,15 @@ MACRO(SETUP_HIFI_PROJECT TARGET INCLUDE_QT)
     project(${TARGET})
     
     # grab the implemenation and header files
-    file(GLOB TARGET_SRCS src/*.cpp src/*.h src/*.c)
+    file(GLOB TARGET_SRCS src/*)
+    
+    file(GLOB SRC_SUBDIRS RELATIVE ${CMAKE_CURRENT_SOURCE_DIR}/src ${CMAKE_CURRENT_SOURCE_DIR}/src/*)
+    foreach(DIR ${SRC_SUBDIRS})
+      if(IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/src/${DIR})
+        FILE(GLOB DIR_CONTENTS src/${DIR}/*)
+        SET(TARGET_SRCS ${TARGET_SRCS} ${DIR_CONTENTS})
+      endif()
+    endforeach()
     
     # add the executable
     add_executable(${TARGET} ${TARGET_SRCS})
