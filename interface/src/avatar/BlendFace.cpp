@@ -61,7 +61,6 @@ bool BlendFace::render(float alpha) {
         -_owningHead->getScale() * MODEL_SCALE);
     glScalef(scale.x, scale.y, scale.z);
 
-    
     glTranslatef(-_geometry.neckPivot.x, -_geometry.neckPivot.y, -_geometry.neckPivot.z);
 
     glEnableClientState(GL_VERTEX_ARRAY);
