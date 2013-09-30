@@ -346,7 +346,13 @@ int DomainServer::run() {
     
     nodeList->startSilentNodeRemovalThread();
     
-    if (!_staticAssignmentFile.exists()) {
+    if (!_staticAssignmentFile.exists() || _voxelServerConfig) {
+        
+        if (_voxelServerConfig) {
+            // we have a new VS config, clear the existing file to start fresh
+            _staticAssignmentFile.remove();
+        }ga 
+        
         prepopulateStaticAssignmentFile();
     }
     
