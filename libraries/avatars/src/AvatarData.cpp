@@ -211,6 +211,9 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
         destinationBuffer += _headData->_blendshapeCoefficients.size() * sizeof(float);
     }
     
+    // pupil dilation
+    destinationBuffer += packFloatToByte(destinationBuffer, _headData->_pupilDilation, 1.0f);
+    
     // leap hand data
     destinationBuffer += _handData->encodeRemoteData(destinationBuffer);
     
@@ -345,7 +348,10 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
             _headData->_blendshapeCoefficients.size() * sizeof(float));
         sourceBuffer += _headData->_blendshapeCoefficients.size() * sizeof(float);
     }
-
+    
+    // pupil dilation
+    sourceBuffer += unpackFloatFromByte(sourceBuffer, _headData->_pupilDilation, 1.0f);
+    
     // leap hand data
     if (sourceBuffer - startPosition < numBytes) {
         // check passed, bytes match

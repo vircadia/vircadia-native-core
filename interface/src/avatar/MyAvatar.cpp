@@ -23,7 +23,6 @@
 
 using namespace std;
 
-const bool USING_AVATAR_GRAVITY = true;
 const glm::vec3 DEFAULT_UP_DIRECTION(0.0f, 1.0f, 0.0f);
 const float YAW_MAG = 500.0;
 const float COLLISION_RADIUS_SCALAR = 1.2; // pertains to avatar-to-avatar collisions
@@ -51,7 +50,9 @@ MyAvatar::MyAvatar(Node* owningNode) :
     _lastCollisionPosition(0, 0, 0),
     _speedBrakes(false),
     _isThrustOn(false),
-    _thrustMultiplier(1.0f)
+    _thrustMultiplier(1.0f),
+    _moveTarget(0,0,0),
+    _moveTargetStepCounter(0)
 {
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
         _driveKeys[i] = false;
@@ -65,7 +66,12 @@ void MyAvatar::reset() {
     _hand.reset();
 }
 
-void MyAvatar::simulate(float deltaTime, Transmitter* transmitter, float gyroCameraSensitivity) {
+void MyAvatar::setMoveTarget(const glm::vec3 moveTarget) {
+    _moveTarget = moveTarget;
+    _moveTargetStepCounter = 0;
+}
+
+void MyAvatar::simulate(float deltaTime, Transmitter* transmitter) {
 
     glm::quat orientation = getOrientation();
     glm::vec3 front = orientation * IDENTITY_FRONT;
@@ -160,16 +166,16 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter, float gyroCam
     _avatarTouch.simulate(deltaTime);
 
     // apply gravity
-    if (USING_AVATAR_GRAVITY) {
-        // For gravity, always move the avatar by the amount driven by gravity, so that the collision
-        // routines will detect it and collide every frame when pulled by gravity to a surface
-        const float MIN_DISTANCE_AFTER_COLLISION_FOR_GRAVITY = 0.02f;
-        if (glm::length(_position - _lastCollisionPosition) > MIN_DISTANCE_AFTER_COLLISION_FOR_GRAVITY) {
-            _velocity += _scale * _gravity * (GRAVITY_EARTH * deltaTime);
-        }
+    // For gravity, always move the avatar by the amount driven by gravity, so that the collision
+    // routines will detect it and collide every frame when pulled by gravity to a surface
+    const float MIN_DISTANCE_AFTER_COLLISION_FOR_GRAVITY = 0.02f;
+    if (glm::length(_position - _lastCollisionPosition) > MIN_DISTANCE_AFTER_COLLISION_FOR_GRAVITY) {
+        _velocity += _scale * _gravity * (GRAVITY_EARTH * deltaTime);
     }
+    
+    // Only collide if we are not moving to a target
+    if (_isCollisionsOn && (glm::length(_moveTarget) < EPSILON)) {
 
-    if (_isCollisionsOn) {
         Camera* myCamera = Application::getInstance()->getCamera();
 
         if (myCamera->getMode() == CAMERA_MODE_FIRST_PERSON && !OculusManager::isConnected()) {
@@ -211,23 +217,32 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter, float gyroCam
     const float STATIC_FRICTION_STRENGTH = _scale * 20.f;
     applyStaticFriction(deltaTime, _velocity, MAX_STATIC_FRICTION_VELOCITY, STATIC_FRICTION_STRENGTH);
     
+    // Damp avatar velocity
     const float LINEAR_DAMPING_STRENGTH = 0.5f;
     const float SPEED_BRAKE_POWER = _scale * 10.0f;
-    // Note: PER changed squared damping strength to zero 
-    const float SQUARED_DAMPING_STRENGTH = 0.0f;
+    const float SQUARED_DAMPING_STRENGTH = 0.007f;
+    
+    float linearDamping = LINEAR_DAMPING_STRENGTH;
+    const float AVATAR_DAMPING_FACTOR = 120.f;
+    if (_distanceToNearestAvatar < _scale * PERIPERSONAL_RADIUS) {
+        linearDamping *= 1.f + AVATAR_DAMPING_FACTOR * (PERIPERSONAL_RADIUS - _distanceToNearestAvatar);
+    }
     if (_speedBrakes) {
-        applyDamping(deltaTime, _velocity, LINEAR_DAMPING_STRENGTH * SPEED_BRAKE_POWER, SQUARED_DAMPING_STRENGTH * SPEED_BRAKE_POWER);
+        applyDamping(deltaTime, _velocity,  linearDamping * SPEED_BRAKE_POWER, SQUARED_DAMPING_STRENGTH * SPEED_BRAKE_POWER);
     } else {
-        applyDamping(deltaTime, _velocity, LINEAR_DAMPING_STRENGTH, SQUARED_DAMPING_STRENGTH);            
+        applyDamping(deltaTime, _velocity, linearDamping, SQUARED_DAMPING_STRENGTH);            
     }
     
     // pitch and roll the body as a function of forward speed and turning delta
-    const float BODY_PITCH_WHILE_WALKING = -20.0;
-    const float BODY_ROLL_WHILE_TURNING = 0.2;
-    float forwardComponentOfVelocity = glm::dot(getBodyFrontDirection(), _velocity);
-    orientation = orientation * glm::quat(glm::radians(glm::vec3(
-        BODY_PITCH_WHILE_WALKING * deltaTime * forwardComponentOfVelocity, 0.0f,
-        BODY_ROLL_WHILE_TURNING * deltaTime * _speed * _bodyYawDelta)));
+    const float HIGH_VELOCITY = 10.f;
+    if (glm::length(_velocity) < HIGH_VELOCITY) {
+        const float BODY_PITCH_WHILE_WALKING = -20.0;
+        const float BODY_ROLL_WHILE_TURNING = 0.2;
+        float forwardComponentOfVelocity = glm::dot(getBodyFrontDirection(), _velocity);
+        orientation = orientation * glm::quat(glm::radians(glm::vec3(
+            BODY_PITCH_WHILE_WALKING * deltaTime * forwardComponentOfVelocity, 0.0f,
+            BODY_ROLL_WHILE_TURNING * deltaTime * _speed * _bodyYawDelta)));
+    }
     
     // these forces keep the body upright...
     const float BODY_UPRIGHT_FORCE = _scale * 10.0;
@@ -303,7 +318,7 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter, float gyroCam
     _head.setPosition(_bodyBall[ BODY_BALL_HEAD_BASE ].position);
     _head.setScale(_scale);
     _head.setSkinColor(glm::vec3(SKIN_COLOR[0], SKIN_COLOR[1], SKIN_COLOR[2]));
-    _head.simulate(deltaTime, true, gyroCameraSensitivity);
+    _head.simulate(deltaTime, true);
     _hand.simulate(deltaTime, true);
 
     const float WALKING_SPEED_THRESHOLD = 0.2f;
@@ -318,7 +333,21 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter, float gyroCam
     const float MOVING_SPEED_THRESHOLD = 0.01f;
     _moving = _speed > MOVING_SPEED_THRESHOLD;
     
-    // update position by velocity, and subtract the change added earlier for gravity 
+    // If a move target is set, update position explicitly
+    const float MOVE_FINISHED_TOLERANCE = 0.1f;
+    const float MOVE_SPEED_FACTOR = 2.f;
+    const int MOVE_TARGET_MAX_STEPS = 250;
+    if ((glm::length(_moveTarget) > EPSILON) && (_moveTargetStepCounter < MOVE_TARGET_MAX_STEPS))  {
+        if (glm::length(_position - _moveTarget) > MOVE_FINISHED_TOLERANCE) {
+            _position += (_moveTarget - _position) * (deltaTime * MOVE_SPEED_FACTOR);
+            _moveTargetStepCounter++;
+        } else {
+            //  Move completed
+            _moveTarget = glm::vec3(0,0,0);
+            _moveTargetStepCounter = 0;
+        }
+    }
+    
     _position += _velocity * deltaTime;
     
     // Zero thrust out now that we've added it to velocity in this frame
@@ -337,7 +366,13 @@ void MyAvatar::updateFromGyrosAndOrWebcam(bool gyroLook,
     if (faceshift->isActive()) {
         estimatedPosition = faceshift->getHeadTranslation();
         estimatedRotation = safeEulerAngles(faceshift->getHeadRotation());
-    
+        //  Rotate the body if the head is turned quickly
+        glm::vec3 headAngularVelocity = faceshift->getHeadAngularVelocity();
+        const float FACESHIFT_YAW_VIEW_SENSITIVITY = 20.f;
+        const float FACESHIFT_MIN_YAW_VELOCITY = 1.0f;
+        if (fabs(headAngularVelocity.y) > FACESHIFT_MIN_YAW_VELOCITY) {
+            _bodyYawDelta += headAngularVelocity.y * FACESHIFT_YAW_VIEW_SENSITIVITY;
+        }
     } else if (gyros->isActive()) {
         estimatedRotation = gyros->getEstimatedRotation();
     
@@ -639,15 +674,21 @@ void MyAvatar::updateThrust(float deltaTime, Transmitter * transmitter) {
     
     //  If thrust keys are being held down, slowly increase thrust to allow reaching great speeds
     if (_driveKeys[FWD] || _driveKeys[BACK] || _driveKeys[RIGHT] || _driveKeys[LEFT] || _driveKeys[UP] || _driveKeys[DOWN]) {
-        const float THRUST_INCREASE_RATE = 1.0;
-        _thrustMultiplier *= 1.f + deltaTime * THRUST_INCREASE_RATE;
+        const float THRUST_INCREASE_RATE = 1.05;
+        const float MAX_THRUST_MULTIPLIER = 75.0;
+        //printf("m = %.3f\n", _thrustMultiplier);
+        if (_thrustMultiplier < MAX_THRUST_MULTIPLIER) {
+            _thrustMultiplier *= 1.f + deltaTime * THRUST_INCREASE_RATE;
+        }
     } else {
         _thrustMultiplier = 1.f;
     }
     
     //  Add one time jumping force if requested
     if (_shouldJump) {
-        _thrust += _scale * THRUST_JUMP * up;
+        if (glm::length(_gravity) > EPSILON) {
+            _thrust += _scale * THRUST_JUMP * up;
+        }
         _shouldJump = false;
     }
 

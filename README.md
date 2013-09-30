@@ -84,7 +84,7 @@ and features are available via menus in the Interface application.
 Other components
 ========
 
-voxel-server, animation-server, audio-mixer, avatar-mixer, domain-server, 
+assignment-client, animation-server, domain-server, 
 pairing-server and space-server are architectural components that will allow 
 you to run the full stack of the virtual world should you choose to.
 

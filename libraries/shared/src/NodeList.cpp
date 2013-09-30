@@ -109,6 +109,7 @@ void NodeList::setDomainHostname(const QString& domainHostname) {
     
     // reset our _domainIP to the null address so that a lookup happens on next check in
     _domainIP.clear();
+    notifyDomainChanged();
 }
 
 void NodeList::timePingReply(sockaddr *nodeAddress, unsigned char *packetData) {
@@ -586,6 +587,7 @@ void NodeList::loadData(QSettings *settings) {
     
     if (domainServerHostname.size() > 0) {
         _domainHostname = domainServerHostname;
+        notifyDomainChanged();
     }
     
     settings->endGroup();
@@ -679,6 +681,21 @@ void NodeListIterator::skipDeadAndStopIncrement() {
     }
 }
 
+void NodeList::addDomainListener(DomainChangeListener* listener) {
+    _domainListeners.push_back(listener);
+    QString domain = _domainHostname.isEmpty() ? _domainIP.toString() : _domainHostname;
+    listener->domainChanged(domain);
+}
+
+void NodeList::removeDomainListener(DomainChangeListener* listener) {
+    for (int i = 0; i < _domainListeners.size(); i++) {
+        if (_domainListeners[i] == listener) {
+            _domainListeners.erase(_domainListeners.begin() + i);
+            return;
+        }
+    }
+}
+
 void NodeList::addHook(NodeListHook* hook) {
     _hooks.push_back(hook);
 }
@@ -703,5 +720,11 @@ void NodeList::notifyHooksOfKilledNode(Node* node) {
     for (int i = 0; i < _hooks.size(); i++) {
         //printf("NodeList::notifyHooksOfKilledNode() i=%d\n", i);
         _hooks[i]->nodeKilled(node);
+    }
+}
+
+void NodeList::notifyDomainChanged() {
+    for (int i = 0; i < _domainListeners.size(); i++) {
+        _domainListeners[i]->domainChanged(_domainHostname);
     }
 }

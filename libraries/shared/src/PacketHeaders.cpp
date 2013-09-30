@@ -20,7 +20,7 @@ PACKET_VERSION versionForPacketType(PACKET_TYPE type) {
             return 1;
 
         case PACKET_TYPE_HEAD_DATA:
-            return 7;
+            return 8;
         
         case PACKET_TYPE_AVATAR_URLS:
             return 1;

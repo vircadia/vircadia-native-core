@@ -51,6 +51,7 @@
 #include "renderer/AmbientOcclusionEffect.h"
 #include "renderer/GeometryCache.h"
 #include "renderer/GlowEffect.h"
+#include "renderer/VoxelShader.h"
 #include "renderer/TextureCache.h"
 #include "ui/BandwidthDialog.h"
 #include "ui/ChatEntry.h"
@@ -76,7 +77,7 @@ static const float NODE_KILLED_RED   = 1.0f;
 static const float NODE_KILLED_GREEN = 0.0f;
 static const float NODE_KILLED_BLUE  = 0.0f;
 
-class Application : public QApplication, public NodeListHook, public PacketSenderNotify {
+class Application : public QApplication, public NodeListHook, public PacketSenderNotify, public DomainChangeListener {
     Q_OBJECT
 
     friend class VoxelPacketProcessor;
@@ -130,6 +131,8 @@ public:
     TextureCache* getTextureCache() { return &_textureCache; }
     GlowEffect* getGlowEffect() { return &_glowEffect; }
     
+    Avatar* getLookatTargetAvatar() const { return _lookatTargetAvatar; }
+    
     static void controlledBroadcastToNodes(unsigned char* broadcastData, size_t dataBytes,
                                            const char* nodeTypes, int numNodeTypes);
     
@@ -142,6 +145,10 @@ public:
     virtual void nodeAdded(Node* node);
     virtual void nodeKilled(Node* node);
     virtual void packetSentNotification(ssize_t length);
+    
+    virtual void domainChanged(QString domain);
+    
+    VoxelShader& getVoxelShader() { return _voxelShader; }
 
 public slots:
     void sendAvatarFaceVideoMessage(int frameCount, const QByteArray& data);
@@ -195,8 +202,11 @@ private:
     void init();
     
     void update(float deltaTime);
-    Avatar* isLookingAtOtherAvatar(glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection,
-                                glm::vec3& eyePosition, uint16_t& nodeID);
+    
+    void updateLookatTargetAvatar(const glm::vec3& mouseRayOrigin, const glm::vec3& mouseRayDirection,
+        glm::vec3& eyePosition);
+    Avatar* findLookatTargetAvatar(const glm::vec3& mouseRayOrigin, const glm::vec3& mouseRayDirection,
+        glm::vec3& eyePosition, uint16_t& nodeID);
     bool isLookingAtMyAvatar(Avatar* avatar);
                                 
     void renderLookatIndicator(glm::vec3 pointOfInterest, Camera& whichCamera);
@@ -315,7 +325,7 @@ private:
     bool _lookingAwayFromOrigin;
     glm::vec3 _nudgeGuidePosition;
 
-    bool _isLookingAtOtherAvatar;
+    Avatar* _lookatTargetAvatar;
     glm::vec3 _lookatOtherPosition;
     float _lookatIndicatorScale;
     
@@ -341,6 +351,7 @@ private:
     
     GlowEffect _glowEffect;
     AmbientOcclusionEffect _ambientOcclusionEffect;
+    VoxelShader _voxelShader;
     
     #ifndef _WIN32
     Audio _audio;

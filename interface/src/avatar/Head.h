@@ -24,6 +24,7 @@
 #include "PerlinFace.h"
 #include "world.h"
 #include "devices/SerialInterface.h"
+#include "renderer/TextureCache.h"
 
 enum eyeContactTargets {
     LEFT_EYE, 
@@ -43,7 +44,7 @@ public:
     
     void init();
     void reset();
-    void simulate(float deltaTime, bool isMine, float gyroCameraSensitivity);
+    void simulate(float deltaTime, bool isMine);
     void render(float alpha, bool isMine);
     void renderMohawk();
 
@@ -63,6 +64,8 @@ public:
 
     glm::quat getOrientation() const;
     glm::quat getCameraOrientation () const;
+    const glm::vec3& getAngularVelocity() const { return _angularVelocity; }
+    void setAngularVelocity(glm::vec3 angularVelocity) { _angularVelocity = angularVelocity; }
     
     float getScale() const { return _scale; }
     glm::vec3 getPosition() const { return _position; }
@@ -115,6 +118,7 @@ private:
     float _audioAttack;
     float _returnSpringScale; //strength of return springs
     glm::vec3 _bodyRotation;
+    glm::vec3 _angularVelocity;
     bool _renderLookatVectors;
     BendyLine _hairTuft[NUM_HAIR_TUFTS];
     bool _mohawkInitialized;
@@ -135,8 +139,10 @@ private:
     PerlinFace _perlinFace;
     BlendFace _blendFace;
 
+    QSharedPointer<Texture> _irisTexture;
+
     static ProgramObject _irisProgram;
-    static GLuint _irisTextureID;
+    static DilatedTextureCache _irisTextureCache;
     static int _eyePositionLocation;
     
     // private methods

@@ -17,6 +17,7 @@
 #include <QFormLayout>
 #include <QLineEdit>
 #include <QMainWindow>
+#include <QSlider>
 #include <QStandardPaths>
 
 #include "Application.h"
@@ -48,7 +49,8 @@ Menu::Menu() :
     _frustumDrawMode(FRUSTUM_DRAW_MODE_ALL),
     _viewFrustumOffset(DEFAULT_FRUSTUM_OFFSET),
     _voxelModeActionsGroup(NULL),
-    _voxelStatsDialog(NULL)
+    _voxelStatsDialog(NULL),
+    _maxVoxels(DEFAULT_MAX_VOXELS_PER_SYSTEM)
 {
     Application *appInstance = Application::getInstance();
     
@@ -188,50 +190,36 @@ Menu::Menu() :
     
     addCheckableActionToQMenuAndActionHash(viewMenu,
                                            MenuOption::Fullscreen,
-                                           Qt::Key_F,
+                                           Qt::CTRL | Qt::META | Qt::Key_F,
                                            false,
                                            appInstance,
                                            SLOT(setFullscreen(bool)));
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::FirstPerson, Qt::Key_P, true);
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Mirror, Qt::Key_H);
     
-    addActionToQMenuAndActionHash(viewMenu,
+    QMenu* avatarSizeMenu = viewMenu->addMenu("Avatar Size");
+    
+    addActionToQMenuAndActionHash(avatarSizeMenu,
                                   MenuOption::IncreaseAvatarSize,
                                   Qt::Key_Plus,
                                   appInstance->getAvatar(),
                                   SLOT(increaseSize()));
-    addActionToQMenuAndActionHash(viewMenu,
+    addActionToQMenuAndActionHash(avatarSizeMenu,
                                   MenuOption::DecreaseAvatarSize,
                                   Qt::Key_Minus,
                                   appInstance->getAvatar(),
                                   SLOT(decreaseSize()));
-    addActionToQMenuAndActionHash(viewMenu,
+    addActionToQMenuAndActionHash(avatarSizeMenu,
                                   MenuOption::ResetAvatarSize,
                                   0,
                                   appInstance->getAvatar(),
                                   SLOT(resetSize()));
-    
-    
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Mirror, Qt::Key_H);
-    
-    addCheckableActionToQMenuAndActionHash(viewMenu,
-                                           MenuOption::SkeletonTracking,
-                                           0,
-                                           false,
-                                           appInstance->getWebcam(),
-                                           SLOT(setSkeletonTrackingOn(bool)));
-    
-    addCheckableActionToQMenuAndActionHash(viewMenu,
-                                           MenuOption::LEDTracking,
-                                           0,
-                                           false,
-                                           appInstance->getWebcam()->getGrabber(),
-                                           SLOT(setLEDTrackingOn(bool)));
-    
+
     addCheckableActionToQMenuAndActionHash(viewMenu,
                                            MenuOption::OffAxisProjection,
                                            0,
                                            false);
-                                           
+    
     addDisabledActionAndSeparator(viewMenu, "Stats");
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Stats, Qt::Key_Slash);
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Log, Qt::CTRL | Qt::Key_L);
@@ -241,50 +229,126 @@ Menu::Menu() :
     addActionToQMenuAndActionHash(viewMenu, MenuOption::VoxelStats, 0, this, SLOT(voxelStatsDetails()));
      
     QMenu* developerMenu = addMenu("Developer");
-    addDisabledActionAndSeparator(developerMenu, "Rendering");
-    
-    addCheckableActionToQMenuAndActionHash(developerMenu,
+
+    QMenu* renderOptionsMenu = developerMenu->addMenu("Rendering Options");
+
+    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Stars, Qt::Key_Asterisk, true);
+    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Atmosphere, Qt::SHIFT | Qt::Key_A, true);
+    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::GroundPlane, 0, true);
+    addActionToQMenuAndActionHash(renderOptionsMenu,
+                                  MenuOption::GlowMode,
+                                  0,
+                                  appInstance->getGlowEffect(),
+                                  SLOT(cycleRenderMode()));
+
+    QMenu* voxelOptionsMenu = developerMenu->addMenu("Voxel Options");
+
+    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu,
                                            MenuOption::Voxels,
                                            Qt::SHIFT | Qt::Key_V,
                                            true,
                                            appInstance,
                                            SLOT(setRenderVoxels(bool)));
-    addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::VoxelTextures);
-    addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::AmbientOcclusion);
-    addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::Stars, 0, true);
-    addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::Atmosphere, Qt::SHIFT | Qt::Key_A, true);
-    addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::GroundPlane, 0, true);
-    addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::Avatars, 0, true);
-    addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::AvatarAsBalls);
+    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::VoxelTextures);
+    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::AmbientOcclusion);
+    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::UseVoxelShader, 0, 
+                                           false, this, SLOT(switchVoxelShader()));
+
+    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::UseByteNormals, 0, 
+                                           false, Application::getInstance()->getVoxels(), SLOT(setUseByteNormals(bool)));
+
+    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::UseGlobalNormals, 0, 
+                                           false, Application::getInstance()->getVoxels(), SLOT(setUseGlobalNormals(bool)));
     
-    addActionToQMenuAndActionHash(developerMenu,
+    QMenu* avatarOptionsMenu = developerMenu->addMenu("Avatar Options");
+    
+    addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::Avatars, 0, true);
+    addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::AvatarAsBalls);
+    
+    addActionToQMenuAndActionHash(avatarOptionsMenu,
                                   MenuOption::VoxelMode,
                                   0,
                                   appInstance->getAvatar()->getVoxels(),
                                   SLOT(cycleMode()));
     
-    addActionToQMenuAndActionHash(developerMenu,
+    addActionToQMenuAndActionHash(avatarOptionsMenu,
                                   MenuOption::FaceMode,
                                   0,
                                   &appInstance->getAvatar()->getHead().getFace(),
                                   SLOT(cycleRenderMode()));
     
-    addActionToQMenuAndActionHash(developerMenu,
-                                  MenuOption::GlowMode,
+    addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::UsePerlinFace, 0, false);
+    addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::LookAtVectors, 0, true);
+    addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::LookAtIndicator, 0, true);
+    addCheckableActionToQMenuAndActionHash(avatarOptionsMenu,
+                                           MenuOption::FaceshiftTCP,
+                                           0,
+                                           false,
+                                           appInstance->getFaceshift(),
+                                           SLOT(setTCPEnabled(bool)));
+
+    QMenu* webcamOptionsMenu = developerMenu->addMenu("Webcam Options");
+
+    addCheckableActionToQMenuAndActionHash(webcamOptionsMenu,
+                                           MenuOption::Webcam,
+                                           0,
+                                           false,
+                                           appInstance->getWebcam(),
+                                           SLOT(setEnabled(bool)));
+
+    addActionToQMenuAndActionHash(webcamOptionsMenu,
+                                  MenuOption::WebcamMode,
                                   0,
-                                  appInstance->getGlowEffect(),
-                                  SLOT(cycleRenderMode()));
+                                  appInstance->getWebcam()->getGrabber(),
+                                  SLOT(cycleVideoSendMode()));
+
+    addCheckableActionToQMenuAndActionHash(webcamOptionsMenu,
+                                           MenuOption::WebcamTexture,
+                                           0,
+                                           false,
+                                           appInstance->getWebcam()->getGrabber(),
+                                           SLOT(setDepthOnly(bool)));
+
+    QMenu* raveGloveOptionsMenu = developerMenu->addMenu("Rave Glove Options");
+
+    addCheckableActionToQMenuAndActionHash(raveGloveOptionsMenu, MenuOption::SimulateLeapHand);
+    addCheckableActionToQMenuAndActionHash(raveGloveOptionsMenu, MenuOption::TestRaveGlove);
+
+
+    QMenu* gyroOptionsMenu = developerMenu->addMenu("Gyro Options");
+    addCheckableActionToQMenuAndActionHash(gyroOptionsMenu, MenuOption::GyroLook, 0, true);
+    addCheckableActionToQMenuAndActionHash(gyroOptionsMenu, MenuOption::HeadMouse);
+
+
+    QMenu* trackingOptionsMenu = developerMenu->addMenu("Tracking Options");
+    addCheckableActionToQMenuAndActionHash(trackingOptionsMenu,
+                                           MenuOption::SkeletonTracking,
+                                           0,
+                                           false,
+                                           appInstance->getWebcam(),
+                                           SLOT(setSkeletonTrackingOn(bool)));
     
-    addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::UsePerlinFace, 0, false);
-    addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::LookAtVectors, 0, true);
-    addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::LookAtIndicator, 0, true);
-    addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::FrameTimer);
+    addCheckableActionToQMenuAndActionHash(trackingOptionsMenu,
+                                           MenuOption::LEDTracking,
+                                           0,
+                                           false,
+                                           appInstance->getWebcam()->getGrabber(),
+                                           SLOT(setLEDTrackingOn(bool)));
     
     addDisabledActionAndSeparator(developerMenu, "Testing");
+
+    QMenu* timingMenu = developerMenu->addMenu("Timing and Statistics Tools");
+    addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::TestPing, 0, true);
+    addCheckableActionToQMenuAndActionHash(timingMenu, MenuOption::FrameTimer);
+    addActionToQMenuAndActionHash(timingMenu, MenuOption::RunTimingTests, 0, this, SLOT(runTests()));
+    addActionToQMenuAndActionHash(timingMenu,
+                                  MenuOption::TreeStats,
+                                  Qt::SHIFT | Qt::Key_S,
+                                  appInstance->getVoxels(),
+                                  SLOT(collectStatsForTreesAndVBOs()));
     
     QMenu* frustumMenu = developerMenu->addMenu("View Frustum Debugging Tools");
     addCheckableActionToQMenuAndActionHash(frustumMenu, MenuOption::DisplayFrustum, Qt::SHIFT | Qt::Key_F);
-    
     addActionToQMenuAndActionHash(frustumMenu,
                                   MenuOption::FrustumRenderMode,
                                   Qt::SHIFT | Qt::Key_R,
@@ -292,12 +356,6 @@ Menu::Menu() :
                                   SLOT(cycleFrustumRenderMode()));
     updateFrustumRenderModeAction();
     
-    addActionToQMenuAndActionHash(developerMenu, MenuOption::RunTimingTests, 0, this, SLOT(runTests()));
-    addActionToQMenuAndActionHash(developerMenu,
-                                  MenuOption::TreeStats,
-                                  Qt::SHIFT | Qt::Key_S,
-                                  appInstance->getVoxels(),
-                                  SLOT(collectStatsForTreesAndVBOs()));
     
     QMenu* renderDebugMenu = developerMenu->addMenu("Render Debugging Tools");
     addCheckableActionToQMenuAndActionHash(renderDebugMenu, MenuOption::PipelineWarnings);
@@ -338,18 +396,6 @@ Menu::Menu() :
                                   SLOT(falseColorizeInView()));
     
     addActionToQMenuAndActionHash(renderDebugMenu,
-                                  MenuOption::FalseColorOccluded,
-                                  0,
-                                  appInstance->getVoxels(),
-                                  SLOT(falseColorizeOccluded()));
-    
-    addActionToQMenuAndActionHash(renderDebugMenu,
-                                  MenuOption::FalseColorOccludedV2,
-                                  0,
-                                  appInstance->getVoxels(),
-                                  SLOT(falseColorizeOccludedV2()));
-    
-    addActionToQMenuAndActionHash(renderDebugMenu,
                                   MenuOption::FalseColorBySource,
                                   0,
                                   appInstance->getVoxels(),
@@ -361,32 +407,21 @@ Menu::Menu() :
                                   appInstance->getVoxels(),
                                   SLOT(trueColorize()));
 
-    
-    addCheckableActionToQMenuAndActionHash(developerMenu,
-                                           MenuOption::Webcam,
-                                           0,
-                                           false,
-                                           appInstance->getWebcam(),
-                                           SLOT(setEnabled(bool)));
-
-    addActionToQMenuAndActionHash(developerMenu,
-                                  MenuOption::WebcamMode,
+    addDisabledActionAndSeparator(renderDebugMenu, "Coverage Maps");
+    addActionToQMenuAndActionHash(renderDebugMenu,
+                                  MenuOption::FalseColorOccluded,
                                   0,
-                                  appInstance->getWebcam()->getGrabber(),
-                                  SLOT(cycleVideoSendMode()));
-    addCheckableActionToQMenuAndActionHash(developerMenu,
-                                           MenuOption::WebcamTexture,
-                                           0,
-                                           false,
-                                           appInstance->getWebcam()->getGrabber(),
-                                           SLOT(setDepthOnly(bool)));
+                                  appInstance->getVoxels(),
+                                  SLOT(falseColorizeOccluded()));
     
-    addCheckableActionToQMenuAndActionHash(developerMenu,
-                                           MenuOption::FaceshiftTCP,
-                                           0,
-                                           false,
-                                           appInstance->getFaceshift(),
-                                           SLOT(setTCPEnabled(bool)));
+    addActionToQMenuAndActionHash(renderDebugMenu,
+                                  MenuOption::FalseColorOccludedV2,
+                                  0,
+                                  appInstance->getVoxels(),
+                                  SLOT(falseColorizeOccludedV2()));
+    
+    addCheckableActionToQMenuAndActionHash(renderDebugMenu, MenuOption::CoverageMap, Qt::SHIFT | Qt::CTRL | Qt::Key_O);
+    addCheckableActionToQMenuAndActionHash(renderDebugMenu, MenuOption::CoverageMapV2, Qt::SHIFT | Qt::CTRL | Qt::Key_P);
                                            
     QMenu* audioDebugMenu = developerMenu->addMenu("Audio Debugging Tools");
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::EchoAudio);
@@ -406,47 +441,38 @@ Menu::Menu() :
                                   appInstance,
                                   SLOT(setListenModeSingleSource()));
     
-    addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::TestPing, 0, true);
+    QMenu* voxelProtoOptionsMenu = developerMenu->addMenu("Voxel Server Protocol Options");
     
-    addCheckableActionToQMenuAndActionHash(developerMenu,
+    addCheckableActionToQMenuAndActionHash(voxelProtoOptionsMenu,
                                            MenuOption::SendVoxelColors,
                                            0,
                                            true,
                                            appInstance->getAvatar(),
                                            SLOT(setWantColor(bool)));
     
-    addCheckableActionToQMenuAndActionHash(developerMenu,
+    addCheckableActionToQMenuAndActionHash(voxelProtoOptionsMenu,
                                            MenuOption::LowRes,
                                            0,
                                            true,
                                            appInstance->getAvatar(),
                                            SLOT(setWantLowResMoving(bool)));
     
-    addCheckableActionToQMenuAndActionHash(developerMenu,
+    addCheckableActionToQMenuAndActionHash(voxelProtoOptionsMenu,
                                            MenuOption::DeltaSending,
                                            0,
                                            true,
                                            appInstance->getAvatar(),
                                            SLOT(setWantDelta(bool)));
     
-    addCheckableActionToQMenuAndActionHash(developerMenu,
+    addCheckableActionToQMenuAndActionHash(voxelProtoOptionsMenu,
                                            MenuOption::OcclusionCulling,
                                            Qt::SHIFT | Qt::Key_C,
                                            true,
                                            appInstance->getAvatar(),
                                            SLOT(setWantOcclusionCulling(bool)));
-    
-    addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::CoverageMap, Qt::SHIFT | Qt::CTRL | Qt::Key_O);
-    addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::CoverageMapV2, Qt::SHIFT | Qt::CTRL | Qt::Key_P);
-    addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::SimulateLeapHand);
-    addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::TestRaveGlove);
-    
-    addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::GyroLook, 0, true);
-    addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::HeadMouse);
-    
-    addDisabledActionAndSeparator(developerMenu, "Voxels");
-    addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::DestructiveAddVoxel);
 
+    addCheckableActionToQMenuAndActionHash(voxelProtoOptionsMenu, MenuOption::DestructiveAddVoxel);
+    
 #ifndef Q_OS_MAC
     QMenu* helpMenu = addMenu("Help");
     QAction* helpAction = helpMenu->addAction(MenuOption::AboutApp);
@@ -465,9 +491,9 @@ void Menu::loadSettings(QSettings* settings) {
         settings = Application::getInstance()->getSettings();
     }
     
-    _gyroCameraSensitivity = loadSetting(settings, "gyroCameraSensitivity", 0.5f);
     _audioJitterBufferSamples = loadSetting(settings, "audioJitterBufferSamples", 0);
     _fieldOfView = loadSetting(settings, "fieldOfView", DEFAULT_FIELD_OF_VIEW_DEGREES);
+    _maxVoxels = loadSetting(settings, "maxVoxels", DEFAULT_MAX_VOXELS_PER_SYSTEM);
     
     settings->beginGroup("View Frustum Offset Camera");
     // in case settings is corrupt or missing loadSetting() will check for NaN
@@ -488,9 +514,9 @@ void Menu::saveSettings(QSettings* settings) {
         settings = Application::getInstance()->getSettings();
     }
     
-    settings->setValue("gyroCameraSensitivity", _gyroCameraSensitivity);
     settings->setValue("audioJitterBufferSamples", _audioJitterBufferSamples);
     settings->setValue("fieldOfView", _fieldOfView);
+    settings->setValue("maxVoxels", _maxVoxels);
     settings->beginGroup("View Frustum Offset Camera");
     settings->setValue("viewFrustumOffsetYaw", _viewFrustumOffset.yaw);
     settings->setValue("viewFrustumOffsetPitch", _viewFrustumOffset.pitch);
@@ -738,9 +764,6 @@ void Menu::editPreferences() {
     QFormLayout* form = new QFormLayout();
     layout->addLayout(form, 1);
     
-    QLineEdit* domainServerLineEdit = lineEditForDomainHostname();
-    form->addRow("Domain server:", domainServerLineEdit);
-    
     QLineEdit* avatarURL = new QLineEdit(applicationInstance->getAvatar()->getVoxels()->getVoxelURL().toString());
     avatarURL->setMinimumWidth(QLINE_MINIMUM_WIDTH);
     form->addRow("Avatar URL:", avatarURL);
@@ -749,15 +772,15 @@ void Menu::editPreferences() {
     faceURL->setMinimumWidth(QLINE_MINIMUM_WIDTH);
     form->addRow("Face URL:", faceURL);
     
+    QSlider* pupilDilation = new QSlider(Qt::Horizontal);
+    pupilDilation->setValue(applicationInstance->getAvatar()->getHead().getPupilDilation() * pupilDilation->maximum());
+    form->addRow("Pupil Dilation:", pupilDilation);
+    
     QSpinBox* fieldOfView = new QSpinBox();
     fieldOfView->setMaximum(180);
     fieldOfView->setMinimum(1);
     fieldOfView->setValue(_fieldOfView);
     form->addRow("Vertical Field of View (Degrees):", fieldOfView);
-    
-    QDoubleSpinBox* gyroCameraSensitivity = new QDoubleSpinBox();
-    gyroCameraSensitivity->setValue(_gyroCameraSensitivity);
-    form->addRow("Gyro Camera Sensitivity (0 - 1):", gyroCameraSensitivity);
     
     QDoubleSpinBox* leanScale = new QDoubleSpinBox();
     leanScale->setValue(applicationInstance->getAvatar()->getLeanScale());
@@ -768,6 +791,16 @@ void Menu::editPreferences() {
     audioJitterBufferSamples->setMinimum(-10000);
     audioJitterBufferSamples->setValue(_audioJitterBufferSamples);
     form->addRow("Audio Jitter Buffer Samples (0 for automatic):", audioJitterBufferSamples);
+
+    QSpinBox* maxVoxels = new QSpinBox();
+    const int MAX_MAX_VOXELS = 5000000;
+    const int MIN_MAX_VOXELS = 0;
+    const int STEP_MAX_VOXELS = 50000;
+    maxVoxels->setMaximum(MAX_MAX_VOXELS);
+    maxVoxels->setMinimum(MIN_MAX_VOXELS);
+    maxVoxels->setSingleStep(STEP_MAX_VOXELS);
+    maxVoxels->setValue(_maxVoxels);
+    form->addRow("Maximum Voxels:", maxVoxels);
     
     QDialogButtonBox* buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
     dialog.connect(buttons, SIGNAL(accepted()), SLOT(accept()));
@@ -780,8 +813,6 @@ void Menu::editPreferences() {
          return;
      }
     
-    updateDSHostname(domainServerLineEdit->text());
-    
     QUrl avatarVoxelURL(avatarURL->text());
     applicationInstance->getAvatar()->getVoxels()->setVoxelURL(avatarVoxelURL);
     
@@ -790,7 +821,10 @@ void Menu::editPreferences() {
     
     Avatar::sendAvatarURLsMessage(avatarVoxelURL, faceModelURL);
     
-    _gyroCameraSensitivity = gyroCameraSensitivity->value();
+    applicationInstance->getAvatar()->getHead().setPupilDilation(pupilDilation->value() / (float)pupilDilation->maximum());
+    
+    _maxVoxels = maxVoxels->value();
+    applicationInstance->getVoxels()->setMaxVoxels(_maxVoxels);
     
     applicationInstance->getAvatar()->setLeanScale(leanScale->value());
     
@@ -990,3 +1024,8 @@ void Menu::updateFrustumRenderModeAction() {
             break;
     }
 }
+
+void Menu::switchVoxelShader() {
+    Application::getInstance()->getVoxels()->setUseVoxelShader(isOptionChecked(MenuOption::UseVoxelShader));
+}
+

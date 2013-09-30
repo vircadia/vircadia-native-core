@@ -49,11 +49,12 @@ public:
     
     float getAudioJitterBufferSamples() const { return _audioJitterBufferSamples; }
     float getFieldOfView() const { return _fieldOfView; }
-    float getGyroCameraSensitivity() const { return _gyroCameraSensitivity; }
     BandwidthDialog* getBandwidthDialog() const { return _bandwidthDialog; }
     FrustumDrawMode getFrustumDrawMode() const { return _frustumDrawMode; }
     ViewFrustumOffset getViewFrustumOffset() const { return _viewFrustumOffset; }
     VoxelStatsDialog* getVoxelStatsDialog() const { return _voxelStatsDialog; }
+    int getMaxVoxels() const { return _maxVoxels; }
+
     
     void handleViewFrustumOffsetKeyModifier(int key);
     
@@ -78,6 +79,7 @@ private slots:
     void chooseVoxelPaintColor();
     void runTests();
     void resetSwatchColors();
+    void switchVoxelShader();
     
 private:
     static Menu* _instance;
@@ -111,10 +113,10 @@ private:
     BandwidthDialog* _bandwidthDialog;
     float _fieldOfView; /// in Degrees, doesn't apply to HMD like Oculus
     FrustumDrawMode _frustumDrawMode;
-    float _gyroCameraSensitivity;
     ViewFrustumOffset _viewFrustumOffset;
     QActionGroup* _voxelModeActionsGroup;
     VoxelStatsDialog* _voxelStatsDialog;
+    int _maxVoxels;
 };
 
 namespace MenuOption {
@@ -201,9 +203,9 @@ namespace MenuOption {
     const QString TransmitterDrive = "Transmitter Drive";
     const QString UsePerlinFace = "Use Perlin's Face";
     const QString Quit =  "Quit";
-    const QString Webcam = "Webcam";
-    const QString WebcamMode = "Cycle Webcam Send Mode";
-    const QString WebcamTexture = "Webcam Texture";
+    const QString UseVoxelShader = "Use Voxel Shader";
+    const QString UseByteNormals = "Use Byte Normals";
+    const QString UseGlobalNormals = "Use Global Normals";
     const QString Voxels = "Voxels";
     const QString VoxelAddMode = "Add Voxel Mode";
     const QString VoxelColorMode = "Color Voxel Mode";
@@ -214,6 +216,9 @@ namespace MenuOption {
     const QString VoxelSelectMode = "Select Voxel Mode";
     const QString VoxelStats = "Voxel Stats";
     const QString VoxelTextures = "Voxel Textures";
+    const QString Webcam = "Webcam";
+    const QString WebcamMode = "Cycle Webcam Send Mode";
+    const QString WebcamTexture = "Webcam Texture";
 }
 
 #endif /* defined(__hifi__Menu__) */
