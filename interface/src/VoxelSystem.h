@@ -134,8 +134,6 @@ public slots:
     void clearAllNodesBufferIndex();
 
     void cancelImport();
-    void setUseByteNormals(bool useByteNormals);
-    void setUseGlobalNormals(bool useGlobalNormals);
         
 protected:
     float _treeScale; 
@@ -218,9 +216,6 @@ private:
     void initVoxelMemory();
     void cleanupVoxelMemory();
 
-    bool _useByteNormals;
-    bool _useGlobalNormals;
-
     bool _useVoxelShader;
     GLuint _vboVoxelsID; /// when using voxel shader, we'll use this VBO
     GLuint _vboVoxelsIndicesID;  /// when using voxel shader, we'll use this VBO for our indexes
@@ -228,9 +223,7 @@ private:
     VoxelShaderVBOData* _readVoxelShaderData;
     
     GLuint _vboVerticesID;
-    GLuint _vboNormalsID;
     GLuint _vboColorsID;
-    GLuint _vboIndicesID;
 
     GLuint _vboIndicesTop;
     GLuint _vboIndicesBottom;
