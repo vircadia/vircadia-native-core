@@ -109,7 +109,7 @@ public:
     CoverageMapV2 myCoverageMapV2;
     CoverageMap   myCoverageMap;
 
-    virtual void nodeDeleted(VoxelNode* node);
+    virtual void voxelDeleted(VoxelNode* node);
     virtual void nodeAdded(Node* node);
     virtual void nodeKilled(Node* node);
     

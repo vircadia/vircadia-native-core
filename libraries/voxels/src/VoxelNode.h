@@ -25,7 +25,7 @@ typedef unsigned char rgbColor[3];
 // Callers who want delete hook callbacks should implement this class
 class VoxelNodeDeleteHook {
 public:
-    virtual void nodeDeleted(VoxelNode* node) = 0;
+    virtual void voxelDeleted(VoxelNode* node) = 0;
 };
 
 class VoxelNode {

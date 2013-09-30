@@ -98,7 +98,7 @@ VoxelSystem::VoxelSystem(float treeScale, int maxVoxels)
 
 }
 
-void VoxelSystem::nodeDeleted(VoxelNode* node) {
+void VoxelSystem::voxelDeleted(VoxelNode* node) {
     if (node->isKnownBufferIndex() && (node->getVoxelSystem() == this)) {
         freeBufferIndex(node->getBufferIndex());
     }

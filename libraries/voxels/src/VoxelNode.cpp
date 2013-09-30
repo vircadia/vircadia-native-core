@@ -420,6 +420,6 @@ void VoxelNode::removeDeleteHook(VoxelNodeDeleteHook* hook) {
 
 void VoxelNode::notifyDeleteHooks() {
     for (int i = 0; i < _hooks.size(); i++) {
-        _hooks[i]->nodeDeleted(this);
+        _hooks[i]->voxelDeleted(this);
     }
 }
