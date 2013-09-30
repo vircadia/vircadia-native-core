@@ -1907,11 +1907,11 @@ void Application::update(float deltaTime) {
        
     //  Update from Touch
     if (_isTouchPressed) {
-        float TOUCH_YAW_SCALE = -50.0f;
-        float TOUCH_PITCH_SCALE = -50.0f;
-        _yawFromTouch += ((_touchAvgX - _lastTouchAvgX) * TOUCH_YAW_SCALE * deltaTime);
-        _pitchFromTouch += ((_touchAvgY - _lastTouchAvgY) * TOUCH_PITCH_SCALE * deltaTime);
-        
+        float TOUCH_YAW_SCALE = -0.25f;
+        float TOUCH_PITCH_SCALE = -12.5f;
+        float FIXED_TOUCH_TIMESTEP = 0.016f;
+        _yawFromTouch += ((_touchAvgX - _lastTouchAvgX) * TOUCH_YAW_SCALE * FIXED_TOUCH_TIMESTEP);
+        _pitchFromTouch += ((_touchAvgY - _lastTouchAvgY) * TOUCH_PITCH_SCALE * FIXED_TOUCH_TIMESTEP);
         _lastTouchAvgX = _touchAvgX;
         _lastTouchAvgY = _touchAvgY;
     }
@@ -2061,7 +2061,7 @@ void Application::updateAvatar(float deltaTime) {
     
     // rotate body yaw for yaw received from multitouch
     _myAvatar.setOrientation(_myAvatar.getOrientation()
-                             * glm::quat(glm::vec3(0, _yawFromTouch * deltaTime, 0)));
+                             * glm::quat(glm::vec3(0, _yawFromTouch, 0)));
     _yawFromTouch = 0.f;
     
     // Update my avatar's state from gyros and/or webcam
