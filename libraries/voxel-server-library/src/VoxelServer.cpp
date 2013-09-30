@@ -15,6 +15,7 @@
 #include <QString>
 #include <QStringList>
 
+#include <Logging.h>
 #include <OctalCode.h>
 #include <NodeList.h>
 #include <NodeTypes.h>
@@ -167,6 +168,11 @@ void VoxelServer::parsePayload() {
 
 //int main(int argc, const char * argv[]) {
 void VoxelServer::run() {
+    
+    const char VOXEL_SERVER_LOGGING_TARGET_NAME[] = "voxel-server";
+    
+    // change the logging target name while this is running
+    Logging::setTargetName(VOXEL_SERVER_LOGGING_TARGET_NAME);
 
     // Now would be a good time to parse our arguments, if we got them as assignment
     if (getNumPayloadBytes() > 0) {
@@ -175,7 +181,7 @@ void VoxelServer::run() {
 
     pthread_mutex_init(&_treeLock, NULL);
     
-    qInstallMessageHandler(sharedMessageHandler);
+    qInstallMessageHandler(Logging::verboseMessageHandler);
     
     const char* JURISDICTION_FILE = "--jurisdictionFile";
     const char* jurisdictionFile = getCmdOption(_argc, _argv, JURISDICTION_FILE);
