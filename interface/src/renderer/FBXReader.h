@@ -49,6 +49,7 @@ public:
     QVector<glm::vec2> texCoords;
     
     glm::vec3 pivot;
+    glm::mat4 transform;
     
     bool isEye;
     
@@ -60,6 +61,8 @@ class FBXGeometry {
 public:
 
     QVector<FBXMesh> meshes;
+    
+    glm::vec3 neckPivot;
 };
 
 /// Parses the input from the supplied data as an FBX file.

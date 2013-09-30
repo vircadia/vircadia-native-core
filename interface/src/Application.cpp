@@ -151,6 +151,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     
     NodeList::getInstance()->addHook(&_voxels);
     NodeList::getInstance()->addHook(this);
+    NodeList::getInstance()->addDomainListener(this);
 
     
     // network receive thread and voxel parsing thread are both controlled by the --nonblocking command line
@@ -231,6 +232,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
 Application::~Application() {
     NodeList::getInstance()->removeHook(&_voxels);
     NodeList::getInstance()->removeHook(this);
+    NodeList::getInstance()->removeDomainListener(this);
 
     _sharedVoxelSystem.changeTree(new VoxelTree);
 
@@ -309,8 +311,6 @@ void Application::initializeGL() {
         char title[50];
         sprintf(title, "Interface: %4.2f seconds\n", startupTime);
         qDebug("%s", title);
-        _window->setWindowTitle(title);
-        
         const char LOGSTASH_INTERFACE_START_TIME_KEY[] = "interface-start-time";
         
         // ask the Logstash class to record the startup time
@@ -1001,6 +1001,17 @@ void Application::mousePressEvent(QMouseEvent* event) {
                 
                 _audio.startCollisionSound(1.0, frequency, 0.0, HOVER_VOXEL_DECAY);
                 _isHoverVoxelSounding = true;
+                
+                const float PERCENTAGE_TO_MOVE_TOWARD = 0.90f;
+                glm::vec3 newTarget = getMouseVoxelWorldCoordinates(_hoverVoxel);
+                glm::vec3 myPosition = _myAvatar.getPosition();
+                
+                // If there is not an action tool set (add, delete, color), move to this voxel
+                if (!(Menu::getInstance()->isOptionChecked(MenuOption::VoxelAddMode) ||
+                     Menu::getInstance()->isOptionChecked(MenuOption::VoxelDeleteMode) ||
+                     Menu::getInstance()->isOptionChecked(MenuOption::VoxelColorMode))) {
+                    _myAvatar.setMoveTarget(myPosition + (newTarget - myPosition) * PERCENTAGE_TO_MOVE_TOWARD);
+                }
             }
             
         } else if (event->button() == Qt::RightButton && Menu::getInstance()->isVoxelModeActionChecked()) {
@@ -1577,7 +1588,6 @@ void Application::init() {
     // Set up VoxelSystem after loading preferences so we can get the desired max voxel count    
     _voxels.setMaxVoxels(Menu::getInstance()->getMaxVoxels());
     _voxels.setUseVoxelShader(Menu::getInstance()->isOptionChecked(MenuOption::UseVoxelShader));
-    _voxels.setUseByteNormals(Menu::getInstance()->isOptionChecked(MenuOption::UseByteNormals));
     _voxels.init();
     
 
@@ -1897,11 +1907,11 @@ void Application::update(float deltaTime) {
        
     //  Update from Touch
     if (_isTouchPressed) {
-        float TOUCH_YAW_SCALE = -50.0f;
-        float TOUCH_PITCH_SCALE = -50.0f;
-        _yawFromTouch += ((_touchAvgX - _lastTouchAvgX) * TOUCH_YAW_SCALE * deltaTime);
-        _pitchFromTouch += ((_touchAvgY - _lastTouchAvgY) * TOUCH_PITCH_SCALE * deltaTime);
-        
+        float TOUCH_YAW_SCALE = -0.25f;
+        float TOUCH_PITCH_SCALE = -12.5f;
+        float FIXED_TOUCH_TIMESTEP = 0.016f;
+        _yawFromTouch += ((_touchAvgX - _lastTouchAvgX) * TOUCH_YAW_SCALE * FIXED_TOUCH_TIMESTEP);
+        _pitchFromTouch += ((_touchAvgY - _lastTouchAvgY) * TOUCH_PITCH_SCALE * FIXED_TOUCH_TIMESTEP);
         _lastTouchAvgX = _touchAvgX;
         _lastTouchAvgY = _touchAvgY;
     }
@@ -2051,7 +2061,7 @@ void Application::updateAvatar(float deltaTime) {
     
     // rotate body yaw for yaw received from multitouch
     _myAvatar.setOrientation(_myAvatar.getOrientation()
-                             * glm::quat(glm::vec3(0, _yawFromTouch * deltaTime, 0)));
+                             * glm::quat(glm::vec3(0, _yawFromTouch, 0)));
     _yawFromTouch = 0.f;
     
     // Update my avatar's state from gyros and/or webcam
@@ -3420,6 +3430,11 @@ void Application::attachNewHeadToNode(Node* newNode) {
     if (newNode->getLinkedData() == NULL) {
         newNode->setLinkedData(new Avatar(newNode));
     }
+}
+
+void Application::domainChanged(QString domain) {
+    qDebug("Application title set to: %s.\n", domain.toStdString().c_str());
+    _window->setWindowTitle(domain);
 }
 
 void Application::nodeAdded(Node* node) {

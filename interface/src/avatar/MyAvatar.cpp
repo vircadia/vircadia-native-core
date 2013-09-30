@@ -50,7 +50,9 @@ MyAvatar::MyAvatar(Node* owningNode) :
     _lastCollisionPosition(0, 0, 0),
     _speedBrakes(false),
     _isThrustOn(false),
-    _thrustMultiplier(1.0f)
+    _thrustMultiplier(1.0f),
+    _moveTarget(0,0,0),
+    _moveTargetStepCounter(0)
 {
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
         _driveKeys[i] = false;
@@ -62,6 +64,11 @@ MyAvatar::MyAvatar(Node* owningNode) :
 void MyAvatar::reset() {
     _head.reset();
     _hand.reset();
+}
+
+void MyAvatar::setMoveTarget(const glm::vec3 moveTarget) {
+    _moveTarget = moveTarget;
+    _moveTargetStepCounter = 0;
 }
 
 void MyAvatar::simulate(float deltaTime, Transmitter* transmitter) {
@@ -165,8 +172,10 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter) {
     if (glm::length(_position - _lastCollisionPosition) > MIN_DISTANCE_AFTER_COLLISION_FOR_GRAVITY) {
         _velocity += _scale * _gravity * (GRAVITY_EARTH * deltaTime);
     }
+    
+    // Only collide if we are not moving to a target
+    if (_isCollisionsOn && (glm::length(_moveTarget) < EPSILON)) {
 
-    if (_isCollisionsOn) {
         Camera* myCamera = Application::getInstance()->getCamera();
 
         if (myCamera->getMode() == CAMERA_MODE_FIRST_PERSON && !OculusManager::isConnected()) {
@@ -324,7 +333,21 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter) {
     const float MOVING_SPEED_THRESHOLD = 0.01f;
     _moving = _speed > MOVING_SPEED_THRESHOLD;
     
-    // update position by velocity, and subtract the change added earlier for gravity 
+    // If a move target is set, update position explicitly
+    const float MOVE_FINISHED_TOLERANCE = 0.1f;
+    const float MOVE_SPEED_FACTOR = 2.f;
+    const int MOVE_TARGET_MAX_STEPS = 250;
+    if ((glm::length(_moveTarget) > EPSILON) && (_moveTargetStepCounter < MOVE_TARGET_MAX_STEPS))  {
+        if (glm::length(_position - _moveTarget) > MOVE_FINISHED_TOLERANCE) {
+            _position += (_moveTarget - _position) * (deltaTime * MOVE_SPEED_FACTOR);
+            _moveTargetStepCounter++;
+        } else {
+            //  Move completed
+            _moveTarget = glm::vec3(0,0,0);
+            _moveTargetStepCounter = 0;
+        }
+    }
+    
     _position += _velocity * deltaTime;
     
     // Zero thrust out now that we've added it to velocity in this frame
