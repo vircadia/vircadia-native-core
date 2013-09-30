@@ -210,6 +210,13 @@ QVector<glm::vec2> createVec2Vector(const QVector<double>& doubleVector) {
     return values;
 }
 
+glm::mat4 createMat4(const QVector<double>& doubleVector) {
+    return glm::mat4(doubleVector.at(0), doubleVector.at(1), doubleVector.at(2), doubleVector.at(3),
+        doubleVector.at(4), doubleVector.at(5), doubleVector.at(6), doubleVector.at(7),
+        doubleVector.at(8), doubleVector.at(9), doubleVector.at(10), doubleVector.at(11),
+        doubleVector.at(12), doubleVector.at(13), doubleVector.at(14), doubleVector.at(15));
+}
+
 const char* FACESHIFT_BLENDSHAPES[] = {
     "EyeBlink_L",
     "EyeBlink_R",
@@ -289,6 +296,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node) {
     QMultiHash<qint64, qint64> childMap;
     QHash<qint64, glm::vec3> pivots;
     QHash<qint64, glm::mat4> localTransforms;
+    QHash<qint64, glm::mat4> transformLinkMatrices;
     qint64 jointEyeLeftID = 0;
     qint64 jointEyeRightID = 0;
     
@@ -404,19 +412,21 @@ FBXGeometry extractFBXGeometry(const FBXNode& node) {
                         QByteArray name = object.properties.at(1).toByteArray();
                         static QHash<QByteArray, int> blendshapeMap = createBlendshapeMap();
                         extracted.index = blendshapeMap.value(name.left(name.indexOf('\0')));
-                        
+ 
                         blendshapes.append(extracted);
                     }
                 } else if (object.name == "Model") {
-                    if (object.properties.at(1).toByteArray().startsWith("jointEyeLeft")) {
+                    QByteArray name = object.properties.at(1).toByteArray();
+                    if (name.startsWith("jointEyeLeft") || name.startsWith("EyeL")) {
                         jointEyeLeftID = object.properties.at(0).value<qint64>();
                         
-                    } else if (object.properties.at(1).toByteArray().startsWith("jointEyeRight")) {
+                    } else if (name.startsWith("jointEyeRight") || name.startsWith("EyeR")) {
                         jointEyeRightID = object.properties.at(0).value<qint64>();
                     }
                     glm::vec3 translation;
-                    glm::vec3 rotation;
+                    glm::vec3 preRotation, rotation, postRotation;
                     glm::vec3 scale = glm::vec3(1.0f, 1.0f, 1.0f);
+                    glm::vec3 scalePivot, rotationPivot;
                     foreach (const FBXNode& subobject, object.children) {
                         if (subobject.name == "Properties70") {
                             foreach (const FBXNode& property, subobject.children) {
@@ -425,12 +435,32 @@ FBXGeometry extractFBXGeometry(const FBXNode& node) {
                                         translation = glm::vec3(property.properties.at(4).value<double>(),
                                             property.properties.at(5).value<double>(),
                                             property.properties.at(6).value<double>());
-                                        
+
+                                    } else if (property.properties.at(0) == "RotationPivot") {
+                                        rotationPivot = glm::vec3(property.properties.at(4).value<double>(),
+                                            property.properties.at(5).value<double>(),
+                                            property.properties.at(6).value<double>());
+                                    
+                                    } else if (property.properties.at(0) == "PreRotation") {
+                                        preRotation = glm::vec3(property.properties.at(4).value<double>(),
+                                            property.properties.at(5).value<double>(),
+                                            property.properties.at(6).value<double>());
+                                            
                                     } else if (property.properties.at(0) == "Lcl Rotation") {
                                         rotation = glm::vec3(property.properties.at(4).value<double>(),
                                             property.properties.at(5).value<double>(),
                                             property.properties.at(6).value<double>());
+                                    
+                                    } else if (property.properties.at(0) == "PostRotation") {
+                                        postRotation = glm::vec3(property.properties.at(4).value<double>(),
+                                            property.properties.at(5).value<double>(),
+                                            property.properties.at(6).value<double>());
                                         
+                                    } else if (property.properties.at(0) == "ScalingPivot") {
+                                        scalePivot = glm::vec3(property.properties.at(4).value<double>(),
+                                            property.properties.at(5).value<double>(),
+                                            property.properties.at(6).value<double>());
+                                            
                                     } else if (property.properties.at(0) == "Lcl Scaling") {
                                         scale = glm::vec3(property.properties.at(4).value<double>(),
                                             property.properties.at(5).value<double>(),
@@ -440,13 +470,19 @@ FBXGeometry extractFBXGeometry(const FBXNode& node) {
                             }
                         }
                     }
+                    // see FBX documentation, http://download.autodesk.com/us/fbx/20112/FBX_SDK_HELP/index.html
                     localTransforms.insert(object.properties.at(0).value<qint64>(),
-                        glm::translate(translation) * glm::mat4_cast(glm::quat(glm::radians(rotation))) * glm::scale(scale));
+                        glm::translate(translation) * glm::translate(rotationPivot) *
+                        glm::mat4_cast(glm::quat(glm::radians(preRotation))) *
+                        glm::mat4_cast(glm::quat(glm::radians(rotation))) *
+                        glm::mat4_cast(glm::quat(glm::radians(postRotation))) * glm::translate(-rotationPivot) *
+                        glm::translate(scalePivot) * glm::scale(scale) * glm::translate(-scalePivot));
                     
                 } else if (object.name == "Deformer" && object.properties.at(2) == "Cluster") {
                     foreach (const FBXNode& subobject, object.children) {
                         if (subobject.name == "TransformLink") {
                             QVector<double> values = subobject.properties.at(0).value<QVector<double> >();
+                            transformLinkMatrices.insert(object.properties.at(0).value<qint64>(), createMat4(values));
                             pivots.insert(object.properties.at(0).value<qint64>(),
                                 glm::vec3(values.at(12), values.at(13), values.at(14))); // matrix translation component
                         }
@@ -488,11 +524,27 @@ FBXGeometry extractFBXGeometry(const FBXNode& node) {
         mesh.isEye = false;
         foreach (qint64 childID, childMap.values(it.key())) {
             qint64 clusterID = childMap.value(childID);
-            if (pivots.contains(clusterID)) {
-                mesh.pivot = pivots.value(clusterID);
-                qint64 jointID = childMap.value(clusterID);
-                if (jointID == jointEyeLeftID || jointID == jointEyeRightID) {
-                    mesh.isEye = true;
+            if (!pivots.contains(clusterID)) {
+                continue;
+            }
+            mesh.pivot = pivots.value(clusterID);
+            qint64 jointID = childMap.value(clusterID);
+            if (jointID == jointEyeLeftID || jointID == jointEyeRightID) {
+                mesh.isEye = true;
+            }
+            
+            mesh.transform = glm::inverse(transformLinkMatrices.value(clusterID)) * mesh.transform;
+            
+            while (jointID != 0) {
+                mesh.transform = localTransforms.value(jointID) * mesh.transform;
+                
+                QList<qint64> parentIDs = parentMap.values(jointID);
+                jointID = 0;
+                foreach (qint64 parentID, parentIDs) {
+                    if (localTransforms.contains(parentID)) {
+                        jointID = parentID;
+                        break;
+                    }
                 }
             }
         }

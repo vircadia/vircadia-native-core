@@ -82,7 +82,6 @@ bool BlendFace::render(float alpha) {
         
         // apply eye rotation if appropriate
         if (mesh.isEye) {
-            glPushMatrix();
             glTranslatef(mesh.pivot.x, mesh.pivot.y, mesh.pivot.z);
             glm::quat rotation = glm::inverse(orientation) * _owningHead->getEyeRotation(orientation *
                 (mesh.pivot * scale + MODEL_TRANSLATION) + _owningHead->getPosition());
