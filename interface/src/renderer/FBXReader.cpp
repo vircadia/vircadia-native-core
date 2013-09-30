@@ -294,7 +294,6 @@ FBXGeometry extractFBXGeometry(const FBXNode& node) {
     QVector<ExtractedBlendshape> blendshapes;
     QMultiHash<qint64, qint64> parentMap;
     QMultiHash<qint64, qint64> childMap;
-    QHash<qint64, glm::vec3> pivots;
     QHash<qint64, glm::mat4> localTransforms;
     QHash<qint64, glm::mat4> transformLinkMatrices;
     qint64 jointEyeLeftID = 0;
@@ -483,8 +482,6 @@ FBXGeometry extractFBXGeometry(const FBXNode& node) {
                         if (subobject.name == "TransformLink") {
                             QVector<double> values = subobject.properties.at(0).value<QVector<double> >();
                             transformLinkMatrices.insert(object.properties.at(0).value<qint64>(), createMat4(values));
-                            pivots.insert(object.properties.at(0).value<qint64>(),
-                                glm::vec3(values.at(12), values.at(13), values.at(14))); // matrix translation component
                         }
                     }
                 }
@@ -524,10 +521,9 @@ FBXGeometry extractFBXGeometry(const FBXNode& node) {
         mesh.isEye = false;
         foreach (qint64 childID, childMap.values(it.key())) {
             qint64 clusterID = childMap.value(childID);
-            if (!pivots.contains(clusterID)) {
+            if (!transformLinkMatrices.contains(clusterID)) {
                 continue;
             }
-            mesh.pivot = pivots.value(clusterID);
             qint64 jointID = childMap.value(clusterID);
             if (jointID == jointEyeLeftID || jointID == jointEyeRightID) {
                 mesh.isEye = true;
@@ -535,8 +531,9 @@ FBXGeometry extractFBXGeometry(const FBXNode& node) {
             
             mesh.transform = glm::inverse(transformLinkMatrices.value(clusterID)) * mesh.transform;
             
+            glm::mat4 jointTransform;
             while (jointID != 0) {
-                mesh.transform = localTransforms.value(jointID) * mesh.transform;
+                jointTransform = localTransforms.value(jointID) * jointTransform;
                 
                 QList<qint64> parentIDs = parentMap.values(jointID);
                 jointID = 0;
@@ -547,6 +544,9 @@ FBXGeometry extractFBXGeometry(const FBXNode& node) {
                     }
                 }
             }
+            
+            mesh.transform = jointTransform * mesh.transform;
+            mesh.pivot = glm::vec3(jointTransform[3][0], jointTransform[3][1], jointTransform[3][2]);
         }
         
         if (mesh.blendshapes.size() > mostBlendshapes) {

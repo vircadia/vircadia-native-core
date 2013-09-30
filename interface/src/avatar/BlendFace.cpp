@@ -78,7 +78,6 @@ bool BlendFace::render(float alpha) {
         int vertexCount = mesh.vertices.size();
         
         glPushMatrix();
-        glMultMatrixf((const GLfloat*)&mesh.transform);
         
         // apply eye rotation if appropriate
         if (mesh.isEye) {
@@ -99,6 +98,8 @@ bool BlendFace::render(float alpha) {
             
             _eyeProgram.bind();
         }
+        
+        glMultMatrixf((const GLfloat*)&mesh.transform);
         
         // all meshes after the first are white
         if (i == 1) {
