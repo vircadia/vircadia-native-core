@@ -43,7 +43,7 @@ void BlendFace::init() {
     }
 }
 
-const glm::vec3 MODEL_TRANSLATION(0.0f, -0.025f, -0.025f); // temporary fudge factor
+const glm::vec3 MODEL_TRANSLATION(0.0f, -0.07f, -0.025f); // temporary fudge factor
 const float MODEL_SCALE = 0.0006f;
 
 bool BlendFace::render(float alpha) {
@@ -61,6 +61,8 @@ bool BlendFace::render(float alpha) {
         -_owningHead->getScale() * MODEL_SCALE);
     glScalef(scale.x, scale.y, scale.z);
 
+    glTranslatef(-_geometry.neckPivot.x, -_geometry.neckPivot.y, -_geometry.neckPivot.z);
+
     glEnableClientState(GL_VERTEX_ARRAY);
     glEnableClientState(GL_NORMAL_ARRAY);
     
@@ -77,9 +79,10 @@ bool BlendFace::render(float alpha) {
         const FBXMesh& mesh = _geometry.meshes.at(i);    
         int vertexCount = mesh.vertices.size();
         
+        glPushMatrix();
+        
         // apply eye rotation if appropriate
         if (mesh.isEye) {
-            glPushMatrix();
             glTranslatef(mesh.pivot.x, mesh.pivot.y, mesh.pivot.z);
             glm::quat rotation = glm::inverse(orientation) * _owningHead->getEyeRotation(orientation *
                 (mesh.pivot * scale + MODEL_TRANSLATION) + _owningHead->getPosition());
@@ -97,6 +100,8 @@ bool BlendFace::render(float alpha) {
             
             _eyeProgram.bind();
         }
+        
+        glMultMatrixf((const GLfloat*)&mesh.transform);
         
         // all meshes after the first are white
         if (i == 1) {
@@ -144,8 +149,9 @@ bool BlendFace::render(float alpha) {
             glBindTexture(GL_TEXTURE_2D, 0);
             glDisable(GL_TEXTURE_2D);
             glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-            glPopMatrix();
         }
+        
+        glPopMatrix();
     }
     
     glDisable(GL_NORMALIZE); 
@@ -171,7 +177,8 @@ void BlendFace::getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEy
     
     foreach (const FBXMesh& mesh, _geometry.meshes) {
         if (mesh.isEye) {
-            glm::vec3 position = orientation * (mesh.pivot * scale + MODEL_TRANSLATION) + _owningHead->getPosition();
+            glm::vec3 position = orientation * ((mesh.pivot - _geometry.neckPivot) * scale + MODEL_TRANSLATION) +
+                _owningHead->getPosition();
             if (foundFirst) {
                 secondEyePosition = position;
                 return;
