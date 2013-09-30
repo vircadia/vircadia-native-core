@@ -83,7 +83,7 @@ void DomainServer::nodeKilled(Node* node) {
     if (node->getLinkedData()) {
         Assignment* nodeAssignment =  (Assignment*) node->getLinkedData();
         
-        qDebug() << "Adding assignment" << *nodeAssignment << "back to queue.\n";
+        qDebug() << "Adding assignment" << *nodeAssignment << " back to queue.\n";
         
         // find this assignment in the static file
         for (int i = 0; i < MAX_STATIC_ASSIGNMENT_FILE_ASSIGNMENTS; i++) {
@@ -494,17 +494,41 @@ int DomainServer::run() {
                 
                 qDebug() << "Received a create assignment -" << *createAssignment << "\n";
                 
-                // add the assignment at the back of the queue
-                _assignmentQueueMutex.lock();
-                _assignmentQueue.push_back(createAssignment);
-                _assignmentQueueMutex.unlock();
+                // check the node public address
+                // if it matches our local address
+                // or if it's the loopback address we're on the same box
+                if (nodePublicAddress.sin_addr.s_addr == serverLocalAddress ||
+                    nodePublicAddress.sin_addr.s_addr == htonl(INADDR_LOOPBACK)) {
+                    
+                    nodePublicAddress.sin_addr.s_addr = 0;
+                }
                 
-                // find the first available spot in the static assignments and put this assignment there
-                for (int i = 0; i < MAX_STATIC_ASSIGNMENT_FILE_ASSIGNMENTS; i++) {
-                    if (_staticAssignments[i].getUUID().isNull()) {
-                        _staticAssignments[i] = *createAssignment;
+                // make sure we have a matching node with the UUID packed with the assignment
+                // if the node has sent no types of interest, assume they want nothing but their own ID back
+                for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+                    if (node->getLinkedData()
+                        && socketMatch((sockaddr*) &nodePublicAddress, node->getPublicSocket())
+                        && ((Assignment*) node->getLinkedData())->getUUID() == createAssignment->getUUID()) {
                         
-                        // we've stuck the assignment in, break out
+                        // give the create assignment a new UUID
+                        createAssignment->resetUUID();
+                        
+                        // add the assignment at the back of the queue
+                        _assignmentQueueMutex.lock();
+                        _assignmentQueue.push_back(createAssignment);
+                        _assignmentQueueMutex.unlock();
+                        
+                        // find the first available spot in the static assignments and put this assignment there
+                        for (int i = 0; i < MAX_STATIC_ASSIGNMENT_FILE_ASSIGNMENTS; i++) {
+                            if (_staticAssignments[i].getUUID().isNull()) {
+                                _staticAssignments[i] = *createAssignment;
+                                
+                                // we've stuck the assignment in, break out
+                                break;
+                            }
+                        }
+                        
+                        // we found the matching node that asked for create assignment, break out
                         break;
                     }
                 }

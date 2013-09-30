@@ -160,6 +160,9 @@ void VoxelServer::parseOtherServerConfigs() {
                                              Assignment::VoxelServerType,
                                              getLocation()); // use same location as we were created in.
             
+            // match this create request with our UUID so the DS knows who the create request is from
+            voxelServerAssignment.setUUID(_uuid);
+            
             int payloadLength = config.length() + sizeof(char);
             voxelServerAssignment.setPayload((uchar*)config.toLocal8Bit().constData(), payloadLength);
             

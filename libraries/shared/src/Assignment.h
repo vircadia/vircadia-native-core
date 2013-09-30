@@ -58,6 +58,7 @@ public:
     /// \param numBytes the number of bytes left to read in the source buffer
     Assignment(const unsigned char* dataBuffer, int numBytes);
     
+    void setUUID(const QUuid& uuid) { _uuid = uuid; }
     const QUuid& getUUID() const { return _uuid; }
     QString getUUIDStringWithoutCurlyBraces() const;
     void resetUUID() { _uuid = QUuid::createUuid(); }
