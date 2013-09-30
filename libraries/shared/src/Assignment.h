@@ -89,7 +89,7 @@ public:
     friend QDataStream& operator<<(QDataStream &out, const Assignment& assignment);
     friend QDataStream& operator>>(QDataStream &in, Assignment& assignment);
     
-private:
+protected:
     QUuid _uuid; /// the 16 byte UUID for this assignment
     Assignment::Command _command; /// the command for this assignment (Create, Deploy, Request)
     Assignment::Type _type; /// the type of the assignment, defines what the assignee will do

@@ -260,13 +260,9 @@ Assignment* DomainServer::deployableAssignmentForRequest(Assignment& requestAssi
                 // remove the assignment from the queue
                 _assignmentQueue.erase(assignment);
                 
-                if (deployableAssignment->getType() != Assignment::VoxelServerType) {
-                    // keep audio-mixer and avatar-mixer assignments in the queue
-                    // until we get a check-in from that GUID
-                    // but stick it at the back so the others have a chance to go out
-                    
-                    _assignmentQueue.push_back(deployableAssignment);
-                }
+                // until we get a check-in from that GUID
+                // put assignment back in queue but stick it at the back so the others have a chance to go out
+                _assignmentQueue.push_back(deployableAssignment);
             }
             
             // stop looping, we've handed out an assignment
