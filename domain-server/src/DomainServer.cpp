@@ -75,7 +75,7 @@ void DomainServer::civetwebUploadHandler(struct mg_connection *connection, const
 }
 
 void DomainServer::nodeAdded(Node* node) {
-    // do nothing - ID is incremented in run()
+    NodeList::getInstance()->increaseNodeID();
 }
 
 void DomainServer::nodeKilled(Node* node) {
@@ -83,7 +83,7 @@ void DomainServer::nodeKilled(Node* node) {
     if (node->getLinkedData()) {
         Assignment* nodeAssignment =  (Assignment*) node->getLinkedData();
         
-        qDebug() << "Adding assignment" << &nodeAssignment << "back to queue.\n";
+        qDebug() << "Adding assignment" << *nodeAssignment << "back to queue.\n";
         
         // find this assignment in the static file
         for (int i = 0; i < MAX_STATIC_ASSIGNMENT_FILE_ASSIGNMENTS; i++) {
@@ -301,6 +301,29 @@ void DomainServer::removeAssignmentFromQueue(Assignment* removableAssignment) {
     _assignmentQueueMutex.unlock();
 }
 
+bool DomainServer::checkInWithUUIDMatchesExistingNode(sockaddr* nodePublicSocket,
+                                                      sockaddr* nodeLocalSocket,
+                                                      const uchar* checkInData) {
+    // pull the UUID passed with the check in
+    QUuid checkInUUID = QUuid::fromRfc4122(QByteArray((const char*) checkInData + numBytesForPacketHeader(checkInData) +
+                                                      sizeof(NODE_TYPE),
+                                                      NUM_BYTES_RFC4122_UUID));
+    
+    NodeList* nodeList = NodeList::getInstance();
+    
+    for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+        if (node->getLinkedData()
+            && socketMatch(node->getPublicSocket(), nodePublicSocket)
+            && socketMatch(node->getLocalSocket(), nodeLocalSocket)
+            && ((Assignment*) node->getLinkedData())->getUUID() == checkInUUID) {
+            // this is a matching existing node if the public socket, local socket, and UUID match
+            return true;
+        }
+    }
+    
+    return false;
+}
+
 void DomainServer::cleanup() {
     _staticAssignmentFile.unmap(_staticAssignmentFileData);
     _staticAssignmentFile.close();
@@ -374,16 +397,18 @@ int DomainServer::run() {
                 Assignment* matchingStaticAssignment = NULL;
                 
                 if (memchr(STATICALLY_ASSIGNED_NODES, nodeType, sizeof(STATICALLY_ASSIGNED_NODES)) == NULL ||
-                    (matchingStaticAssignment = matchingStaticAssignmentForCheckIn(nodeType, packetData))) {
+                    ((matchingStaticAssignment = matchingStaticAssignmentForCheckIn(nodeType, packetData)) ||
+                     checkInWithUUIDMatchesExistingNode((sockaddr*) &nodePublicAddress,
+                                                        (sockaddr*) &nodeLocalAddress,
+                                                        packetData))) {
                     
                     Node* checkInNode = nodeList->addOrUpdateNode((sockaddr*) &nodePublicAddress,
                                                                   (sockaddr*) &nodeLocalAddress,
                                                                   nodeType,
                                                                   nodeList->getLastNodeID());
                     
-                    if (checkInNode->getNodeID() == nodeList->getLastNodeID() && matchingStaticAssignment) {
-                        // this was a newly added node
-                        NodeList::getInstance()->increaseNodeID();
+                    if (matchingStaticAssignment) {
+                        // this was a newly added node with a matching static assignment
                         
                         if (_hasCompletedRestartHold) {
                             // remove the matching assignment from the assignment queue so we don't take the next check in
@@ -393,6 +418,7 @@ int DomainServer::run() {
                         // set the linked data for this node to a copy of the matching assignment
                         // so we can re-queue it should the node die
                         Assignment* nodeCopyOfMatchingAssignment = new Assignment(*matchingStaticAssignment);
+                
                         checkInNode->setLinkedData(nodeCopyOfMatchingAssignment);
                     }
                     
