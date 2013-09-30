@@ -168,36 +168,7 @@ void Assignment::run() {
 }
 
 QDebug operator<<(QDebug debug, const Assignment &assignment) {
-    debug << "T:" << assignment.getType();
+    debug << "UUID:" << assignment.getUUIDStringWithoutCurlyBraces().toStdString().c_str() <<
+        ", Type:" << assignment.getType();
     return debug.nospace();
-}
-
-QDataStream& operator<<(QDataStream& out, const Assignment& assignment) {
-    out << assignment._uuid;
-    out << (uchar) assignment._command;
-    out << (uchar) assignment._type;
-    out << (uchar) assignment._location;
-    out << assignment._numberOfInstances;
-    out << assignment._numPayloadBytes;
-    
-    if (assignment._numPayloadBytes > 0) {
-        out.writeBytes((char*) assignment._payload, assignment._numPayloadBytes);
-    }
-    
-    return out;
-}
-
-QDataStream& operator>>(QDataStream& in, Assignment& assignment) {
-    in >> assignment._uuid;
-    in >> (uchar&) assignment._command;
-    in >> (uchar&) assignment._type;
-    in >> (uchar&) assignment._location;
-    in >> assignment._numberOfInstances;
-    in >> assignment._numPayloadBytes;
-    
-    if (assignment._numPayloadBytes > 0) {
-        in.readRawData((char*) assignment._payload, assignment._numPayloadBytes);
-    }
-    
-    return in;
 }

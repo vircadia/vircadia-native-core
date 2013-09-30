@@ -439,12 +439,7 @@ Node* NodeList::addOrUpdateNode(sockaddr* publicSocket, sockaddr* localSocket, c
         }
     }
     
-    if (node == end()) {
-        // if we already had this node AND it's a solo type then bust out of here
-        if (soloNodeOfType(nodeType)) {
-            return NULL;
-        }
-        
+    if (node == end()) {        
         // we didn't have this node, so add them
         Node* newNode = new Node(publicSocket, localSocket, nodeType, nodeId);
         

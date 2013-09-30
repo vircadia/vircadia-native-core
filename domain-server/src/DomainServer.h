@@ -42,8 +42,9 @@ private:
     static DomainServer* domainServerInstance;
     
     void prepopulateStaticAssignmentFile();
-    int indexForMatchingStaticAssignment(NODE_TYPE nodeType, const uchar* checkInUUID);
+    Assignment* matchingStaticAssignmentForCheckIn(NODE_TYPE nodeType, const uchar* checkInUUID);
     Assignment* deployableAssignmentForRequest(Assignment& requestAssignment);
+    void removeAssignmentFromQueue(Assignment* removableAssignment);
     
     void cleanup();
     
@@ -59,6 +60,8 @@ private:
     Assignment* _staticAssignments;
     
     const char* _voxelServerConfig;
+    
+    bool _hasCompletedRestartHold;
 };
 
 #endif /* defined(__hifi__DomainServer__) */
