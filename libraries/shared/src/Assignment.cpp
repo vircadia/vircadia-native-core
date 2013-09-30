@@ -168,7 +168,7 @@ void Assignment::run() {
 }
 
 QDebug operator<<(QDebug debug, const Assignment &assignment) {
-    debug << "UUID:" << assignment.getUUIDStringWithoutCurlyBraces().toStdString().c_str() <<
-        ", Type:" << assignment.getType();
+    debug.nospace() << "UUID: " << assignment.getUUID().toString().toStdString().c_str() <<
+        ", Type: " << assignment.getType();
     return debug.nospace();
 }
