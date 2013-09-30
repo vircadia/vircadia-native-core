@@ -28,3 +28,11 @@ void VoxelScriptingInterface::queueDestructiveVoxelAdd(float x, float y, float z
     // queue the destructive add
     queueVoxelAdd(PACKET_TYPE_SET_VOXEL_DESTRUCTIVE, addVoxelDetail);
 }
+
+void VoxelScriptingInterface::queueVoxelDelete(float x, float y, float z, float scale) {
+    
+    // setup a VoxelDetail struct with data
+    VoxelDetail deleteVoxelDetail = {x, y, z, scale, 0, 0, 0};
+    
+    _voxelPacketSender.sendVoxelEditMessage(PACKET_TYPE_ERASE_VOXEL, deleteVoxelDetail);
+}
