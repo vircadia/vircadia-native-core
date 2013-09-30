@@ -9,7 +9,6 @@
 #ifndef __hifi__DomainServer__
 #define __hifi__DomainServer__
 
-#include <array>
 #include <deque>
 
 #include <QtCore/QCoreApplication>
@@ -58,7 +57,7 @@ private:
     uchar* _staticAssignmentFileData;
     
     uint16_t* _numAssignmentsInStaticFile;
-    std::array<Assignment, MAX_STATIC_ASSIGNMENT_FILE_ASSIGNMENTS>* _staticFileAssignments;
+    Assignment* _staticFileAssignments;
     
     const char* _voxelServerConfig;
 };

@@ -137,7 +137,6 @@ target_link_libraries(
   ${MOTIONDRIVER_LIBRARIES}
   ${OPENCV_LIBRARIES} 
   ${ZLIB_LIBRARIES}
-  fervor
 )
 
 if (APPLE)

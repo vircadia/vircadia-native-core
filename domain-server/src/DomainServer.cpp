@@ -139,7 +139,7 @@ void DomainServer::prepopulateStaticAssignmentFile() {
     
     // write a fresh static assignment array to file
     
-    std::array<Assignment, MAX_STATIC_ASSIGNMENT_FILE_ASSIGNMENTS> freshStaticAssignments;
+    Assignment freshStaticAssignments[NUM_FRESH_STATIC_ASSIGNMENTS];
     
     // pre-populate the first static assignment list with assignments for root AuM, AvM, VS
     freshStaticAssignments[0] = Assignment(Assignment::CreateCommand,
@@ -177,9 +177,9 @@ int DomainServer::checkInMatchesStaticAssignment(NODE_TYPE nodeType, const uchar
                                                       NUM_BYTES_RFC4122_UUID));
     int staticAssignmentIndex = 0;
     
-    while (staticAssignmentIndex < _staticFileAssignments->size() - 1
-           && !(*_staticFileAssignments)[staticAssignmentIndex].getUUID().isNull()) {
-        Assignment* staticAssignment = &(*_staticFileAssignments)[staticAssignmentIndex];
+    while (staticAssignmentIndex < MAX_STATIC_ASSIGNMENT_FILE_ASSIGNMENTS
+           && !_staticFileAssignments[staticAssignmentIndex].getUUID().isNull()) {
+        Assignment* staticAssignment = &_staticFileAssignments[staticAssignmentIndex];
         
         if (staticAssignment->getType() == Assignment::typeForNodeType(nodeType)
             && staticAssignment->getUUID() == checkInUUID) {
@@ -279,7 +279,7 @@ int DomainServer::run() {
     _staticAssignmentFileData = _staticAssignmentFile.map(0, _staticAssignmentFile.size());
     
     _numAssignmentsInStaticFile = (uint16_t*) _staticAssignmentFileData;
-    _staticFileAssignments = (std::array<Assignment, MAX_STATIC_ASSIGNMENT_FILE_ASSIGNMENTS>*)
+    _staticFileAssignments = (Assignment*)
         (_staticAssignmentFileData + sizeof(*_numAssignmentsInStaticFile));
     
     while (true) {
@@ -397,9 +397,9 @@ int DomainServer::run() {
                 _assignmentQueueMutex.unlock();
                 
                 // find the first available spot in the static assignments and put this assignment there
-                for (int i = 0; i < _staticFileAssignments->size() - 1; i++) {
-                    if ((*_staticFileAssignments)[i].getUUID().isNull()) {
-                        (*_staticFileAssignments)[i] = *createAssignment;
+                for (int i = 0; i < MAX_STATIC_ASSIGNMENT_FILE_ASSIGNMENTS; i++) {
+                    if (_staticFileAssignments[i].getUUID().isNull()) {
+                        _staticFileAssignments[i] = *createAssignment;
                     }
                 }
             }
