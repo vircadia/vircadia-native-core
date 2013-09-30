@@ -43,7 +43,7 @@ void BlendFace::init() {
     }
 }
 
-const glm::vec3 MODEL_TRANSLATION(0.0f, -0.025f, -0.025f); // temporary fudge factor
+const glm::vec3 MODEL_TRANSLATION(0.0f, -0.07f, -0.025f); // temporary fudge factor
 const float MODEL_SCALE = 0.0006f;
 
 bool BlendFace::render(float alpha) {
@@ -60,6 +60,9 @@ bool BlendFace::render(float alpha) {
     glm::vec3 scale(-_owningHead->getScale() * MODEL_SCALE, _owningHead->getScale() * MODEL_SCALE,
         -_owningHead->getScale() * MODEL_SCALE);
     glScalef(scale.x, scale.y, scale.z);
+
+    
+    glTranslatef(-_geometry.neckPivot.x, -_geometry.neckPivot.y, -_geometry.neckPivot.z);
 
     glEnableClientState(GL_VERTEX_ARRAY);
     glEnableClientState(GL_NORMAL_ARRAY);

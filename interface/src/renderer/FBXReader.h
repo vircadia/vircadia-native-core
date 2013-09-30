@@ -61,6 +61,8 @@ class FBXGeometry {
 public:
 
     QVector<FBXMesh> meshes;
+    
+    glm::vec3 neckPivot;
 };
 
 /// Parses the input from the supplied data as an FBX file.
