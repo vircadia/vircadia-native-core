@@ -151,6 +151,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     
     NodeList::getInstance()->addHook(&_voxels);
     NodeList::getInstance()->addHook(this);
+    NodeList::getInstance()->addDomainListener(this);
 
     
     // network receive thread and voxel parsing thread are both controlled by the --nonblocking command line
@@ -231,6 +232,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
 Application::~Application() {
     NodeList::getInstance()->removeHook(&_voxels);
     NodeList::getInstance()->removeHook(this);
+    NodeList::getInstance()->removeDomainListener(this);
 
     _sharedVoxelSystem.changeTree(new VoxelTree);
 
@@ -309,8 +311,6 @@ void Application::initializeGL() {
         char title[50];
         sprintf(title, "Interface: %4.2f seconds\n", startupTime);
         qDebug("%s", title);
-        _window->setWindowTitle(title);
-        
         const char LOGSTASH_INTERFACE_START_TIME_KEY[] = "interface-start-time";
         
         // ask the Logstash class to record the startup time
@@ -1001,6 +1001,17 @@ void Application::mousePressEvent(QMouseEvent* event) {
                 
                 _audio.startCollisionSound(1.0, frequency, 0.0, HOVER_VOXEL_DECAY);
                 _isHoverVoxelSounding = true;
+                
+                const float PERCENTAGE_TO_MOVE_TOWARD = 0.90f;
+                glm::vec3 newTarget = getMouseVoxelWorldCoordinates(_hoverVoxel);
+                glm::vec3 myPosition = _myAvatar.getPosition();
+                
+                // If there is not an action tool set (add, delete, color), move to this voxel
+                if (!(Menu::getInstance()->isOptionChecked(MenuOption::VoxelAddMode) ||
+                     Menu::getInstance()->isOptionChecked(MenuOption::VoxelDeleteMode) ||
+                     Menu::getInstance()->isOptionChecked(MenuOption::VoxelColorMode))) {
+                    _myAvatar.setMoveTarget(myPosition + (newTarget - myPosition) * PERCENTAGE_TO_MOVE_TOWARD);
+                }
             }
             
         } else if (event->button() == Qt::RightButton && Menu::getInstance()->isVoxelModeActionChecked()) {
@@ -1577,7 +1588,6 @@ void Application::init() {
     // Set up VoxelSystem after loading preferences so we can get the desired max voxel count    
     _voxels.setMaxVoxels(Menu::getInstance()->getMaxVoxels());
     _voxels.setUseVoxelShader(Menu::getInstance()->isOptionChecked(MenuOption::UseVoxelShader));
-    _voxels.setUseByteNormals(Menu::getInstance()->isOptionChecked(MenuOption::UseByteNormals));
     _voxels.init();
     
 
@@ -2827,28 +2837,36 @@ void Application::displayStats() {
     voxelStats << "Voxels Rendered: " << _voxels.getVoxelsRendered() / 1000.f << "K " <<
         "Updated: " << _voxels.getVoxelsUpdated()/1000.f << "K " <<
         "Max: " << _voxels.getMaxVoxels()/1000.f << "K ";
-        
     drawtext(10, statsVerticalOffset + 230, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+
+    voxelStats.str("");
+    voxelStats << "Voxels Memory RAM: " << _voxels.getVoxelMemoryUsageRAM() / 1000000.f << "MB " <<
+        "VBO: " << _voxels.getVoxelMemoryUsageVBO() / 1000000.f << "MB ";
+    if (_voxels.hasVoxelMemoryUsageGPU()) {
+        voxelStats << "GPU: " << _voxels.getVoxelMemoryUsageGPU() / 1000000.f << "MB ";
+    }
+        
+    drawtext(10, statsVerticalOffset + 250, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
     
     voxelStats.str("");
     char* voxelDetails = _voxelSceneStats.getItemValue(VoxelSceneStats::ITEM_VOXELS);
     voxelStats << "Voxels Sent from Server: " << voxelDetails;
-    drawtext(10, statsVerticalOffset + 250, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+    drawtext(10, statsVerticalOffset + 270, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
 
     voxelStats.str("");
     voxelDetails = _voxelSceneStats.getItemValue(VoxelSceneStats::ITEM_ELAPSED);
     voxelStats << "Scene Send Time from Server: " << voxelDetails;
-    drawtext(10, statsVerticalOffset + 270, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+    drawtext(10, statsVerticalOffset + 290, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
 
     voxelStats.str("");
     voxelDetails = _voxelSceneStats.getItemValue(VoxelSceneStats::ITEM_ENCODE);
     voxelStats << "Encode Time on Server: " << voxelDetails;
-    drawtext(10, statsVerticalOffset + 290, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+    drawtext(10, statsVerticalOffset + 310, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
 
     voxelStats.str("");
     voxelDetails = _voxelSceneStats.getItemValue(VoxelSceneStats::ITEM_MODE);
     voxelStats << "Sending Mode: " << voxelDetails;
-    drawtext(10, statsVerticalOffset + 310, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+    drawtext(10, statsVerticalOffset + 330, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
     
     Node *avatarMixer = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_AVATAR_MIXER);
     char avatarMixerStats[200];
@@ -2861,7 +2879,7 @@ void Application::displayStats() {
         sprintf(avatarMixerStats, "No Avatar Mixer");
     }
     
-    drawtext(10, statsVerticalOffset + 330, 0.10f, 0, 1.0, 0, avatarMixerStats);
+    drawtext(10, statsVerticalOffset + 350, 0.10f, 0, 1.0, 0, avatarMixerStats);
     drawtext(10, statsVerticalOffset + 450, 0.10f, 0, 1.0, 0, (char *)LeapManager::statusString().c_str());
     
     if (_perfStatsOn) {
@@ -3412,6 +3430,11 @@ void Application::attachNewHeadToNode(Node* newNode) {
     if (newNode->getLinkedData() == NULL) {
         newNode->setLinkedData(new Avatar(newNode));
     }
+}
+
+void Application::domainChanged(QString domain) {
+    qDebug("Application title set to: %s.\n", domain.toStdString().c_str());
+    _window->setWindowTitle(domain);
 }
 
 void Application::nodeAdded(Node* node) {

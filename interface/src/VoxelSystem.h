@@ -69,6 +69,10 @@ public:
 
     void setMaxVoxels(int maxVoxels);
     long int getMaxVoxels() const { return _maxVoxels; }
+    unsigned long getVoxelMemoryUsageRAM() const { return _memoryUsageRAM; }
+    unsigned long getVoxelMemoryUsageVBO() const { return _memoryUsageVBO; }
+    bool hasVoxelMemoryUsageGPU() const { return _hasMemoryUsageGPU; }
+    unsigned long getVoxelMemoryUsageGPU();
     long int getVoxelsCreated();
     long int getVoxelsColored();
     long int getVoxelsBytesRead();
@@ -126,9 +130,10 @@ public slots:
     void falseColorizeOccluded();
     void falseColorizeOccludedV2();
     void falseColorizeBySource();
+    void forceRedrawEntireTree();
+    void clearAllNodesBufferIndex();
 
     void cancelImport();
-    void setUseByteNormals(bool useByteNormals);
         
 protected:
     float _treeScale; 
@@ -172,6 +177,8 @@ private:
     static bool falseColorizeOccludedV2Operation(VoxelNode* node, void* extraData);
     static bool falseColorizeBySourceOperation(VoxelNode* node, void* extraData);
     static bool killSourceVoxelsOperation(VoxelNode* node, void* extraData);
+    static bool forceRedrawEntireTreeOperation(VoxelNode* node, void* extraData);
+    static bool clearAllNodesBufferIndexOperation(VoxelNode* node, void* extraData);
 
     int updateNodeInArraysAsFullVBO(VoxelNode* node);
     int updateNodeInArraysAsPartialVBO(VoxelNode* node);
@@ -180,6 +187,8 @@ private:
     void copyWrittenDataToReadArraysPartialVBOs();
 
     void updateVBOs();
+
+    unsigned long getFreeMemoryGPU();
 
     // these are kinda hacks, used by getDistanceFromViewRangeOperation() probably shouldn't be here
     static float _maxDistance;
@@ -207,8 +216,6 @@ private:
     void initVoxelMemory();
     void cleanupVoxelMemory();
 
-    bool _useByteNormals;
-
     bool _useVoxelShader;
     GLuint _vboVoxelsID; /// when using voxel shader, we'll use this VBO
     GLuint _vboVoxelsIndicesID;  /// when using voxel shader, we'll use this VBO for our indexes
@@ -216,15 +223,23 @@ private:
     VoxelShaderVBOData* _readVoxelShaderData;
     
     GLuint _vboVerticesID;
-    GLuint _vboNormalsID;
     GLuint _vboColorsID;
-    GLuint _vboIndicesID;
+
+    GLuint _vboIndicesTop;
+    GLuint _vboIndicesBottom;
+    GLuint _vboIndicesLeft;
+    GLuint _vboIndicesRight;
+    GLuint _vboIndicesFront;
+    GLuint _vboIndicesBack;
+
     pthread_mutex_t _bufferWriteLock;
     pthread_mutex_t _treeLock;
 
     ViewFrustum _lastKnowViewFrustum;
     ViewFrustum _lastStableViewFrustum;
     ViewFrustum* _viewFrustum;
+
+    void setupFaceIndices(GLuint& faceVBOID, GLubyte faceIdentityIndices[]);
 
     int newTreeToArrays(VoxelNode *currentNode);
     void cleanupRemovedVoxels();
@@ -249,6 +264,10 @@ private:
     int  _dataSourceID;
     
     int _voxelServerCount;
+    unsigned long _memoryUsageRAM;
+    unsigned long _memoryUsageVBO;
+    unsigned long _initialMemoryUsageGPU;
+    bool _hasMemoryUsageGPU;
 };
 
 #endif

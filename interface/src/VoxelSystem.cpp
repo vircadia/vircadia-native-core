@@ -33,11 +33,13 @@
 #include "VoxelConstants.h"
 #include "VoxelSystem.h"
 
-float identityVertices[] = { 0,0,0, 1,0,0, 1,1,0, 0,1,0, 0,0,1, 1,0,1, 1,1,1, 0,1,1,
-                             0,0,0, 1,0,0, 1,1,0, 0,1,0, 0,0,1, 1,0,1, 1,1,1, 0,1,1,
-                             0,0,0, 1,0,0, 1,1,0, 0,1,0, 0,0,1, 1,0,1, 1,1,1, 0,1,1 };
+float identityVerticesGlobalNormals[] = { 0,0,0, 1,0,0, 1,1,0, 0,1,0, 0,0,1, 1,0,1, 1,1,1, 0,1,1 };
 
-GLbyte identityNormals[] = { 0,0,-1, 0,0,-1, 0,0,-1, 0,0,-1,
+float identityVertices[] = { 0,0,0, 1,0,0, 1,1,0, 0,1,0, 0,0,1, 1,0,1, 1,1,1, 0,1,1, //0-7
+                             0,0,0, 1,0,0, 1,1,0, 0,1,0, 0,0,1, 1,0,1, 1,1,1, 0,1,1, //8-15
+                             0,0,0, 1,0,0, 1,1,0, 0,1,0, 0,0,1, 1,0,1, 1,1,1, 0,1,1 }; // 16-23
+
+GLfloat identityNormals[] = { 0,0,-1, 0,0,-1, 0,0,-1, 0,0,-1,
                               0,0,+1, 0,0,+1, 0,0,+1, 0,0,+1,
                               0,-1,0, 0,-1,0, 0,+1,0, 0,+1,0,
                               0,-1,0, 0,-1,0, 0,+1,0, 0,+1,0,
@@ -50,6 +52,13 @@ GLubyte identityIndices[] = { 0,2,1,    0,3,2,    // Z-
                               17,18,22, 17,22,21, // X+
                               10,11,15, 10,15,14, // Y+
                               4,5,6,    4,6,7 };  // Z+
+
+GLubyte identityIndicesTop[]    = {  2, 3, 7,  2, 7, 6 };
+GLubyte identityIndicesBottom[] = {  0, 1, 5,  0, 5, 4 };
+GLubyte identityIndicesLeft[]   = {  0, 7, 3,  0, 4, 7 };
+GLubyte identityIndicesRight[]  = {  1, 2, 6,  1, 6, 5 };
+GLubyte identityIndicesFront[]  = {  0, 2, 1,  0, 3, 2 };
+GLubyte identityIndicesBack[]   = {  4, 5, 6,  4, 6, 7 };
 
 VoxelSystem::VoxelSystem(float treeScale, int maxVoxels)
     : NodeData(NULL),
@@ -76,8 +85,7 @@ VoxelSystem::VoxelSystem(float treeScale, int maxVoxels)
     connect(_tree, SIGNAL(importProgress(int)), SIGNAL(importProgress(int)));
 
     _useVoxelShader = false;
-    _useByteNormals = false;
-    
+
     _writeVoxelShaderData = NULL;
     _readVoxelShaderData = NULL;
 
@@ -141,24 +149,11 @@ VoxelSystem::~VoxelSystem() {
     VoxelNode::removeDeleteHook(this);
 }
 
-void VoxelSystem::setUseByteNormals(bool useByteNormals) {
-    pthread_mutex_lock(&_bufferWriteLock);
-    bool wasInitialized = _initialized;
-    if (wasInitialized) {
-        cleanupVoxelMemory();
-    }
-    _useByteNormals = useByteNormals;
-    if (wasInitialized) {
-        init();
-    }
-    pthread_mutex_unlock(&_bufferWriteLock);
-}
-
-
 void VoxelSystem::setMaxVoxels(int maxVoxels) {
     pthread_mutex_lock(&_bufferWriteLock);
     bool wasInitialized = _initialized;
     if (wasInitialized) {
+        clearAllNodesBufferIndex();
         cleanupVoxelMemory();
     }
     _maxVoxels = maxVoxels;
@@ -166,12 +161,17 @@ void VoxelSystem::setMaxVoxels(int maxVoxels) {
         init();
     }
     pthread_mutex_unlock(&_bufferWriteLock);
+
+    if (wasInitialized) {
+        forceRedrawEntireTree();
+    }
 }
 
 void VoxelSystem::setUseVoxelShader(bool useVoxelShader) {
     pthread_mutex_lock(&_bufferWriteLock);
     bool wasInitialized = _initialized;
     if (wasInitialized) {
+        clearAllNodesBufferIndex();
         cleanupVoxelMemory();
     }
     _useVoxelShader = useVoxelShader;
@@ -179,6 +179,10 @@ void VoxelSystem::setUseVoxelShader(bool useVoxelShader) {
         init();
     }
     pthread_mutex_unlock(&_bufferWriteLock);
+
+    if (wasInitialized) {
+        forceRedrawEntireTree();
+    }
 }
 
 void VoxelSystem::cleanupVoxelMemory() {
@@ -193,22 +197,58 @@ void VoxelSystem::cleanupVoxelMemory() {
         } else {
             // Destroy  glBuffers
             glDeleteBuffers(1, &_vboVerticesID);
-            glDeleteBuffers(1, &_vboNormalsID);
             glDeleteBuffers(1, &_vboColorsID);
-            glDeleteBuffers(1, &_vboIndicesID);
+
+            glDeleteBuffers(1, &_vboIndicesTop);
+            glDeleteBuffers(1, &_vboIndicesBottom);
+            glDeleteBuffers(1, &_vboIndicesLeft);
+            glDeleteBuffers(1, &_vboIndicesRight);
+            glDeleteBuffers(1, &_vboIndicesFront);
+            glDeleteBuffers(1, &_vboIndicesBack);
         
             delete[] _readVerticesArray;
             delete[] _writeVerticesArray;
             delete[] _readColorsArray;
             delete[] _writeColorsArray;
-            delete[] _writeVoxelDirtyArray;
-            delete[] _readVoxelDirtyArray;
         }
+        delete[] _writeVoxelDirtyArray;
+        delete[] _readVoxelDirtyArray;
     }
     _initialized = false; // no longer initialized
 }
 
+void VoxelSystem::setupFaceIndices(GLuint& faceVBOID, GLubyte faceIdentityIndices[]) {
+    GLuint* indicesArray = new GLuint[INDICES_PER_FACE * _maxVoxels];
+
+    // populate the indicesArray
+    // this will not change given new voxels, so we can set it all up now
+    for (int n = 0; n < _maxVoxels; n++) {
+        // fill the indices array
+        int voxelIndexOffset = n * INDICES_PER_FACE;
+        GLuint* currentIndicesPos = indicesArray + voxelIndexOffset;
+        int startIndex = (n * GLOBAL_NORMALS_VERTICES_PER_VOXEL);
+
+        for (int i = 0; i < INDICES_PER_FACE; i++) {
+            // add indices for this side of the cube
+            currentIndicesPos[i] = startIndex + faceIdentityIndices[i];
+        }
+    }
+
+    glGenBuffers(1, &faceVBOID);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, faceVBOID);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER,
+                 INDICES_PER_FACE * sizeof(GLuint) * _maxVoxels,
+                 indicesArray, GL_STATIC_DRAW);
+    _memoryUsageVBO += INDICES_PER_FACE * sizeof(GLuint) * _maxVoxels;
+
+    // delete the indices and normals arrays that are no longer needed
+    delete[] indicesArray;
+}
+
 void VoxelSystem::initVoxelMemory() {
+    _initialMemoryUsageGPU = getFreeMemoryGPU();
+    _memoryUsageRAM = 0;
+    _memoryUsageVBO = 0; // our VBO allocations as we know them
     if (_useVoxelShader) {
         qDebug("Using Voxel Shader...\n");
         GLuint* indicesArray = new GLuint[_maxVoxels];
@@ -222,12 +262,13 @@ void VoxelSystem::initVoxelMemory() {
         // bind the indices VBO to the actual indices array
         glGenBuffers(1, &_vboVoxelsIndicesID);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _vboVoxelsIndicesID);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, _maxVoxels, indicesArray, GL_STATIC_DRAW);
-    
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(GLuint) * _maxVoxels, indicesArray, GL_STATIC_DRAW);
+        _memoryUsageVBO += sizeof(GLuint) * _maxVoxels;
 
         glGenBuffers(1, &_vboVoxelsID);
         glBindBuffer(GL_ARRAY_BUFFER, _vboVoxelsID);
         glBufferData(GL_ARRAY_BUFFER, _maxVoxels * sizeof(VoxelShaderVBOData), NULL, GL_DYNAMIC_DRAW);
+        _memoryUsageVBO += _maxVoxels * sizeof(VoxelShaderVBOData);
     
         // delete the indices and normals arrays that are no longer needed
         delete[] indicesArray;
@@ -235,106 +276,62 @@ void VoxelSystem::initVoxelMemory() {
         // we will track individual dirty sections with these arrays of bools
         _writeVoxelDirtyArray = new bool[_maxVoxels];
         memset(_writeVoxelDirtyArray, false, _maxVoxels * sizeof(bool));
+        _memoryUsageRAM += (_maxVoxels * sizeof(bool));
+
         _readVoxelDirtyArray = new bool[_maxVoxels];
         memset(_readVoxelDirtyArray, false, _maxVoxels * sizeof(bool));
+        _memoryUsageRAM += (_maxVoxels * sizeof(bool));
 
         // prep the data structures for incoming voxel data
         _writeVoxelShaderData = new VoxelShaderVBOData[_maxVoxels];
+        _memoryUsageRAM += (sizeof(VoxelShaderVBOData) * _maxVoxels);
+
         _readVoxelShaderData = new VoxelShaderVBOData[_maxVoxels];
+        _memoryUsageRAM += (sizeof(VoxelShaderVBOData) * _maxVoxels);
     } else {
-        GLuint* indicesArray = new GLuint[INDICES_PER_VOXEL * _maxVoxels];
 
-        // populate the indicesArray
-        // this will not change given new voxels, so we can set it all up now
-        for (int n = 0; n < _maxVoxels; n++) {
-            // fill the indices array
-            int voxelIndexOffset = n * INDICES_PER_VOXEL;
-            GLuint* currentIndicesPos = indicesArray + voxelIndexOffset;
-            int startIndex = (n * VERTICES_PER_VOXEL);
-
-            for (int i = 0; i < INDICES_PER_VOXEL; i++) {
-                // add indices for this side of the cube
-                currentIndicesPos[i] = startIndex + identityIndices[i];
-            }
-        }
-
-        if (_useByteNormals) {
-            qDebug("Using Byte Normals...\n");
-            GLbyte* normalsArray = new GLbyte[VERTEX_POINTS_PER_VOXEL * _maxVoxels];
-            GLbyte* normalsArrayEndPointer = normalsArray;
-
-            // populate the normalsArray
-            for (int n = 0; n < _maxVoxels; n++) {
-                for (int i = 0; i < VERTEX_POINTS_PER_VOXEL; i++) {
-                    *(normalsArrayEndPointer++) = identityNormals[i];
-                }
-            }
-
-            // VBO for the normalsArray
-            glGenBuffers(1, &_vboNormalsID);
-            glBindBuffer(GL_ARRAY_BUFFER, _vboNormalsID);
-            glBufferData(GL_ARRAY_BUFFER,
-                         VERTEX_POINTS_PER_VOXEL * sizeof(GLbyte) * _maxVoxels,
-                         normalsArray, GL_STATIC_DRAW);
-
-            // delete the indices and normals arrays that are no longer needed
-            delete[] normalsArray;
-        } else {
-            qDebug("Using Float Normals...\n");
-            GLfloat* normalsArray = new GLfloat[VERTEX_POINTS_PER_VOXEL * _maxVoxels];
-            GLfloat* normalsArrayEndPointer = normalsArray;
-
-            // populate the normalsArray
-            for (int n = 0; n < _maxVoxels; n++) {
-                for (int i = 0; i < VERTEX_POINTS_PER_VOXEL; i++) {
-                    *(normalsArrayEndPointer++) = identityNormals[i];
-                }
-            }
-            
-            // VBO for the normalsArray
-            glGenBuffers(1, &_vboNormalsID);
-            glBindBuffer(GL_ARRAY_BUFFER, _vboNormalsID);
-            glBufferData(GL_ARRAY_BUFFER,
-                         VERTEX_POINTS_PER_VOXEL * sizeof(GLfloat) * _maxVoxels,
-                         normalsArray, GL_STATIC_DRAW);
-
-            // delete the indices and normals arrays that are no longer needed
-            delete[] normalsArray;
-        }
-
-
+        // Global Normals mode uses a technique of not including normals on any voxel vertices, and instead
+        // rendering the voxel faces in 6 passes that use a global call to glNormal3f()
+        qDebug("Using Global Normals...\n");
+        setupFaceIndices(_vboIndicesTop,    identityIndicesTop);
+        setupFaceIndices(_vboIndicesBottom, identityIndicesBottom);
+        setupFaceIndices(_vboIndicesLeft,   identityIndicesLeft);
+        setupFaceIndices(_vboIndicesRight,  identityIndicesRight);
+        setupFaceIndices(_vboIndicesFront,  identityIndicesFront);
+        setupFaceIndices(_vboIndicesBack,   identityIndicesBack);
+        
+        // Depending on if we're using per vertex normals, we will need more or less vertex points per voxel
+        int vertexPointsPerVoxel = GLOBAL_NORMALS_VERTEX_POINTS_PER_VOXEL;
         glGenBuffers(1, &_vboVerticesID);
         glBindBuffer(GL_ARRAY_BUFFER, _vboVerticesID);
-        glBufferData(GL_ARRAY_BUFFER, VERTEX_POINTS_PER_VOXEL * sizeof(GLfloat) * _maxVoxels, NULL, GL_DYNAMIC_DRAW);
+        glBufferData(GL_ARRAY_BUFFER, vertexPointsPerVoxel * sizeof(GLfloat) * _maxVoxels, NULL, GL_DYNAMIC_DRAW);
+        _memoryUsageVBO += vertexPointsPerVoxel * sizeof(GLfloat) * _maxVoxels;
 
         // VBO for colorsArray
         glGenBuffers(1, &_vboColorsID);
         glBindBuffer(GL_ARRAY_BUFFER, _vboColorsID);
-        glBufferData(GL_ARRAY_BUFFER, VERTEX_POINTS_PER_VOXEL * sizeof(GLubyte) * _maxVoxels, NULL, GL_DYNAMIC_DRAW);
-
-        // VBO for the indicesArray
-        glGenBuffers(1, &_vboIndicesID);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _vboIndicesID);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER,
-                     INDICES_PER_VOXEL * sizeof(GLuint) * _maxVoxels,
-                     indicesArray, GL_STATIC_DRAW);
-
-        // delete the indices and normals arrays that are no longer needed
-        delete[] indicesArray;
-
+        glBufferData(GL_ARRAY_BUFFER, vertexPointsPerVoxel * sizeof(GLubyte) * _maxVoxels, NULL, GL_DYNAMIC_DRAW);
+        _memoryUsageVBO += vertexPointsPerVoxel * sizeof(GLubyte) * _maxVoxels;
 
         // we will track individual dirty sections with these arrays of bools
         _writeVoxelDirtyArray = new bool[_maxVoxels];
         memset(_writeVoxelDirtyArray, false, _maxVoxels * sizeof(bool));
+        _memoryUsageRAM += (sizeof(bool) * _maxVoxels);
+
         _readVoxelDirtyArray = new bool[_maxVoxels];
         memset(_readVoxelDirtyArray, false, _maxVoxels * sizeof(bool));
+        _memoryUsageRAM += (sizeof(bool) * _maxVoxels);
 
         // prep the data structures for incoming voxel data
-        _writeVerticesArray = new GLfloat[VERTEX_POINTS_PER_VOXEL * _maxVoxels];
-        _readVerticesArray = new GLfloat[VERTEX_POINTS_PER_VOXEL * _maxVoxels];
+        _writeVerticesArray = new GLfloat[vertexPointsPerVoxel * _maxVoxels];
+        _memoryUsageRAM += (sizeof(GLfloat) * vertexPointsPerVoxel * _maxVoxels);
+        _readVerticesArray = new GLfloat[vertexPointsPerVoxel * _maxVoxels];
+        _memoryUsageRAM += (sizeof(GLfloat) * vertexPointsPerVoxel * _maxVoxels);
 
-        _writeColorsArray = new GLubyte[VERTEX_POINTS_PER_VOXEL * _maxVoxels];
-        _readColorsArray = new GLubyte[VERTEX_POINTS_PER_VOXEL * _maxVoxels];
+        _writeColorsArray = new GLubyte[vertexPointsPerVoxel * _maxVoxels];
+        _memoryUsageRAM += (sizeof(GLubyte) * vertexPointsPerVoxel * _maxVoxels);
+        _readColorsArray = new GLubyte[vertexPointsPerVoxel * _maxVoxels];
+        _memoryUsageRAM += (sizeof(GLubyte) * vertexPointsPerVoxel * _maxVoxels);
 
 
         // create our simple fragment shader if we're the first system to init
@@ -614,16 +611,19 @@ void VoxelSystem::copyWrittenDataSegmentToReadArrays(glBufferIndex segmentStart,
         void* writeDataAt = &_writeVoxelShaderData[segmentStart];
         memcpy(readDataAt, writeDataAt, segmentSizeBytes);
     } else {
-        GLintptr   segmentStartAt   = segmentStart * VERTEX_POINTS_PER_VOXEL * sizeof(GLfloat);
-        GLsizeiptr segmentSizeBytes = segmentLength * VERTEX_POINTS_PER_VOXEL * sizeof(GLfloat);
-        GLfloat* readVerticesAt     = _readVerticesArray  + (segmentStart * VERTEX_POINTS_PER_VOXEL);
-        GLfloat* writeVerticesAt    = _writeVerticesArray + (segmentStart * VERTEX_POINTS_PER_VOXEL);
+        // Depending on if we're using per vertex normals, we will need more or less vertex points per voxel
+        int vertexPointsPerVoxel = GLOBAL_NORMALS_VERTEX_POINTS_PER_VOXEL;
+
+        GLintptr   segmentStartAt   = segmentStart * vertexPointsPerVoxel * sizeof(GLfloat);
+        GLsizeiptr segmentSizeBytes = segmentLength * vertexPointsPerVoxel * sizeof(GLfloat);
+        GLfloat* readVerticesAt     = _readVerticesArray  + (segmentStart * vertexPointsPerVoxel);
+        GLfloat* writeVerticesAt    = _writeVerticesArray + (segmentStart * vertexPointsPerVoxel);
         memcpy(readVerticesAt, writeVerticesAt, segmentSizeBytes);
 
-        segmentStartAt          = segmentStart * VERTEX_POINTS_PER_VOXEL * sizeof(GLubyte);
-        segmentSizeBytes        = segmentLength * VERTEX_POINTS_PER_VOXEL * sizeof(GLubyte);
-        GLubyte* readColorsAt   = _readColorsArray   + (segmentStart * VERTEX_POINTS_PER_VOXEL);
-        GLubyte* writeColorsAt  = _writeColorsArray  + (segmentStart * VERTEX_POINTS_PER_VOXEL);
+        segmentStartAt          = segmentStart * vertexPointsPerVoxel * sizeof(GLubyte);
+        segmentSizeBytes        = segmentLength * vertexPointsPerVoxel * sizeof(GLubyte);
+        GLubyte* readColorsAt   = _readColorsArray   + (segmentStart * vertexPointsPerVoxel);
+        GLubyte* writeColorsAt  = _writeColorsArray  + (segmentStart * vertexPointsPerVoxel);
         memcpy(readColorsAt, writeColorsAt, segmentSizeBytes);
     }
 }
@@ -750,20 +750,25 @@ void VoxelSystem::updateNodeInArrays(glBufferIndex nodeIndex, const glm::vec3& s
                                      float voxelScale, const nodeColor& color) {
                                      
     if (_useVoxelShader) {
-        VoxelShaderVBOData* writeVerticesAt = &_writeVoxelShaderData[nodeIndex];
-        writeVerticesAt->x = startVertex.x * TREE_SCALE;
-        writeVerticesAt->y = startVertex.y * TREE_SCALE;
-        writeVerticesAt->z = startVertex.z * TREE_SCALE;
-        writeVerticesAt->s = voxelScale * TREE_SCALE;
-        writeVerticesAt->r = color[RED_INDEX];
-        writeVerticesAt->g = color[GREEN_INDEX];
-        writeVerticesAt->b = color[BLUE_INDEX];
+        if (_writeVoxelShaderData) {
+            VoxelShaderVBOData* writeVerticesAt = &_writeVoxelShaderData[nodeIndex];
+            writeVerticesAt->x = startVertex.x * TREE_SCALE;
+            writeVerticesAt->y = startVertex.y * TREE_SCALE;
+            writeVerticesAt->z = startVertex.z * TREE_SCALE;
+            writeVerticesAt->s = voxelScale * TREE_SCALE;
+            writeVerticesAt->r = color[RED_INDEX];
+            writeVerticesAt->g = color[GREEN_INDEX];
+            writeVerticesAt->b = color[BLUE_INDEX];
+        }
     } else {
-        for (int j = 0; j < VERTEX_POINTS_PER_VOXEL; j++ ) {
-            GLfloat* writeVerticesAt = _writeVerticesArray + (nodeIndex * VERTEX_POINTS_PER_VOXEL);
-            GLubyte* writeColorsAt   = _writeColorsArray   + (nodeIndex * VERTEX_POINTS_PER_VOXEL);
-            *(writeVerticesAt+j) = startVertex[j % 3] + (identityVertices[j] * voxelScale);
-            *(writeColorsAt  +j) = color[j % 3];
+        if (_writeVerticesArray && _writeColorsArray) {
+            int vertexPointsPerVoxel = GLOBAL_NORMALS_VERTEX_POINTS_PER_VOXEL;
+            for (int j = 0; j < vertexPointsPerVoxel; j++ ) {
+                GLfloat* writeVerticesAt = _writeVerticesArray + (nodeIndex * vertexPointsPerVoxel);
+                GLubyte* writeColorsAt   = _writeColorsArray   + (nodeIndex * vertexPointsPerVoxel);
+                *(writeVerticesAt+j) = startVertex[j % 3] + (identityVerticesGlobalNormals[j] * voxelScale);
+                *(writeColorsAt  +j) = color[j % 3];
+            }
         }
     }
 }
@@ -873,15 +878,16 @@ void VoxelSystem::updateVBOSegment(glBufferIndex segmentStart, glBufferIndex seg
         glBindBuffer(GL_ARRAY_BUFFER, _vboVoxelsID);
         glBufferSubData(GL_ARRAY_BUFFER, segmentStartAt, segmentSizeBytes, readVerticesFrom);
     } else {
+        int vertexPointsPerVoxel = GLOBAL_NORMALS_VERTEX_POINTS_PER_VOXEL;
         int segmentLength = (segmentEnd - segmentStart) + 1;
-        GLintptr   segmentStartAt   = segmentStart * VERTEX_POINTS_PER_VOXEL * sizeof(GLfloat);
-        GLsizeiptr segmentSizeBytes = segmentLength * VERTEX_POINTS_PER_VOXEL * sizeof(GLfloat);
-        GLfloat* readVerticesFrom   = _readVerticesArray + (segmentStart * VERTEX_POINTS_PER_VOXEL);
+        GLintptr   segmentStartAt   = segmentStart * vertexPointsPerVoxel * sizeof(GLfloat);
+        GLsizeiptr segmentSizeBytes = segmentLength * vertexPointsPerVoxel * sizeof(GLfloat);
+        GLfloat* readVerticesFrom   = _readVerticesArray + (segmentStart * vertexPointsPerVoxel);
         glBindBuffer(GL_ARRAY_BUFFER, _vboVerticesID);
         glBufferSubData(GL_ARRAY_BUFFER, segmentStartAt, segmentSizeBytes, readVerticesFrom);
-        segmentStartAt          = segmentStart * VERTEX_POINTS_PER_VOXEL * sizeof(GLubyte);
-        segmentSizeBytes        = segmentLength * VERTEX_POINTS_PER_VOXEL * sizeof(GLubyte);
-        GLubyte* readColorsFrom = _readColorsArray   + (segmentStart * VERTEX_POINTS_PER_VOXEL);
+        segmentStartAt          = segmentStart * vertexPointsPerVoxel * sizeof(GLubyte);
+        segmentSizeBytes        = segmentLength * vertexPointsPerVoxel * sizeof(GLubyte);
+        GLubyte* readColorsFrom = _readColorsArray   + (segmentStart * vertexPointsPerVoxel);
         glBindBuffer(GL_ARRAY_BUFFER, _vboColorsID);
         glBufferSubData(GL_ARRAY_BUFFER, segmentStartAt, segmentSizeBytes, readColorsFrom);
     }
@@ -927,14 +933,10 @@ void VoxelSystem::render(bool texture) {
     } else {
         // tell OpenGL where to find vertex and color information
         glEnableClientState(GL_VERTEX_ARRAY);
-        glEnableClientState(GL_NORMAL_ARRAY);
         glEnableClientState(GL_COLOR_ARRAY);
 
         glBindBuffer(GL_ARRAY_BUFFER, _vboVerticesID);
         glVertexPointer(3, GL_FLOAT, 0, 0);
-
-        glBindBuffer(GL_ARRAY_BUFFER, _vboNormalsID);
-        glNormalPointer((_useByteNormals ? GL_BYTE : GL_FLOAT), 0, 0);
 
         glBindBuffer(GL_ARRAY_BUFFER, _vboColorsID);
         glColorPointer(3, GL_UNSIGNED_BYTE, 0, 0);
@@ -944,10 +946,38 @@ void VoxelSystem::render(bool texture) {
         // for performance, enable backface culling
         glEnable(GL_CULL_FACE);
 
-        // draw the number of voxels we have
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _vboIndicesID);
-        glDrawRangeElementsEXT(GL_TRIANGLES, 0, VERTICES_PER_VOXEL * _voxelsInReadArrays - 1,
-            36 * _voxelsInReadArrays, GL_UNSIGNED_INT, 0);
+        // draw voxels in 6 passes
+
+        glNormal3f(0,1.0f,0);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _vboIndicesTop);
+        glDrawRangeElementsEXT(GL_TRIANGLES, 0, INDICES_PER_FACE * _voxelsInReadArrays - 1,
+            INDICES_PER_FACE * _voxelsInReadArrays, GL_UNSIGNED_INT, 0);
+
+        glNormal3f(0,-1.0f,0);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _vboIndicesBottom);
+        glDrawRangeElementsEXT(GL_TRIANGLES, 0, INDICES_PER_FACE * _voxelsInReadArrays - 1,
+            INDICES_PER_FACE * _voxelsInReadArrays, GL_UNSIGNED_INT, 0);
+
+        glNormal3f(-1.0f,0,0);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _vboIndicesLeft);
+        glDrawRangeElementsEXT(GL_TRIANGLES, 0, INDICES_PER_FACE * _voxelsInReadArrays - 1,
+            INDICES_PER_FACE * _voxelsInReadArrays, GL_UNSIGNED_INT, 0);
+
+        glNormal3f(1.0f,0,0);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _vboIndicesRight);
+        glDrawRangeElementsEXT(GL_TRIANGLES, 0, INDICES_PER_FACE * _voxelsInReadArrays - 1,
+            INDICES_PER_FACE * _voxelsInReadArrays, GL_UNSIGNED_INT, 0);
+
+        glNormal3f(0,0,-1.0f);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _vboIndicesFront);
+        glDrawRangeElementsEXT(GL_TRIANGLES, 0, INDICES_PER_FACE * _voxelsInReadArrays - 1,
+            INDICES_PER_FACE * _voxelsInReadArrays, GL_UNSIGNED_INT, 0);
+
+        glNormal3f(0,0,1.0f);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _vboIndicesBack);
+        glDrawRangeElementsEXT(GL_TRIANGLES, 0, INDICES_PER_FACE * _voxelsInReadArrays - 1,
+            INDICES_PER_FACE * _voxelsInReadArrays, GL_UNSIGNED_INT, 0);
+
 
         glDisable(GL_CULL_FACE);
 
@@ -955,7 +985,6 @@ void VoxelSystem::render(bool texture) {
     
         // deactivate vertex and color arrays after drawing
         glDisableClientState(GL_VERTEX_ARRAY);
-        glDisableClientState(GL_NORMAL_ARRAY);
         glDisableClientState(GL_COLOR_ARRAY);
 
         // bind with 0 to switch back to normal operation
@@ -994,6 +1023,34 @@ void VoxelSystem::killLocalVoxels() {
     //setupNewVoxelsForDrawing();
 }
 
+
+bool VoxelSystem::clearAllNodesBufferIndexOperation(VoxelNode* node, void* extraData) {
+    _nodeCount++;
+    node->setBufferIndex(GLBUFFER_INDEX_UNKNOWN);
+    return true;
+}
+
+void VoxelSystem::clearAllNodesBufferIndex() {
+    _nodeCount = 0;
+    _tree->recurseTreeWithOperation(clearAllNodesBufferIndexOperation);
+    qDebug("clearing buffer index of %d nodes\n", _nodeCount);
+    _tree->setDirtyBit();
+    setupNewVoxelsForDrawing();
+}
+
+bool VoxelSystem::forceRedrawEntireTreeOperation(VoxelNode* node, void* extraData) {
+    _nodeCount++;
+    node->setDirtyBit();
+    return true;
+}
+
+void VoxelSystem::forceRedrawEntireTree() {
+    _nodeCount = 0;
+    _tree->recurseTreeWithOperation(forceRedrawEntireTreeOperation);
+    qDebug("forcing redraw of %d nodes\n", _nodeCount);
+    _tree->setDirtyBit();
+    setupNewVoxelsForDrawing();
+}
 
 bool VoxelSystem::randomColorOperation(VoxelNode* node, void* extraData) {
     _nodeCount++;
@@ -1850,5 +1907,60 @@ void VoxelSystem::nodeKilled(Node* node) {
         setupNewVoxelsForDrawing();
     }
 }
+
+
+unsigned long VoxelSystem::getFreeMemoryGPU() {
+    // We can't ask all GPUs how much memory they have in use, but we can ask them about how much is free.
+    // So, we can record the free memory before we create our VBOs and the free memory after, and get a basic
+    // idea how how much we're using.
+
+    _hasMemoryUsageGPU = false; // assume the worst
+    unsigned long freeMemory = 0;
+    const int NUM_RESULTS = 4; // see notes, these APIs return up to 4 results
+    GLint results[NUM_RESULTS] = { 0, 0, 0, 0};
+
+    // ATI
+    // http://www.opengl.org/registry/specs/ATI/meminfo.txt
+    //
+    // TEXTURE_FREE_MEMORY_ATI                 0x87FC
+    // RENDERBUFFER_FREE_MEMORY_ATI            0x87FD
+    const GLenum VBO_FREE_MEMORY_ATI = 0x87FB;
+    glGetIntegerv(VBO_FREE_MEMORY_ATI, &results[0]);
+    GLenum errorATI = glGetError();
+    
+    if (errorATI == GL_NO_ERROR) {
+        _hasMemoryUsageGPU = true;
+        freeMemory = results[0];
+    } else {
+
+        // NVIDIA
+        // http://developer.download.nvidia.com/opengl/specs/GL_NVX_gpu_memory_info.txt
+        //
+        //const GLenum GPU_MEMORY_INFO_DEDICATED_VIDMEM_NVX = 0x9047;
+        //const GLenum GPU_MEMORY_INFO_EVICTION_COUNT_NVX = 0x904A;
+        //const GLenum GPU_MEMORY_INFO_EVICTED_MEMORY_NVX = 0x904B;
+        //const GLenum GPU_MEMORY_INFO_TOTAL_AVAILABLE_MEMORY_NVX = 0x9048;
+        
+        const GLenum GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX = 0x9049;
+        results[0] = 0;
+        glGetIntegerv(GPU_MEMORY_INFO_CURRENT_AVAILABLE_VIDMEM_NVX, &results[0]);
+        freeMemory += results[0]; 
+        GLenum errorNVIDIA = glGetError();
+    
+        if (errorNVIDIA == GL_NO_ERROR) {
+            _hasMemoryUsageGPU = true;
+            freeMemory = results[0];
+        }
+    }
+    
+    const unsigned long BYTES_PER_KBYTE = 1024;
+    return freeMemory * BYTES_PER_KBYTE; // API results in KB, we want it in bytes
+}
+
+unsigned long VoxelSystem::getVoxelMemoryUsageGPU() {
+    unsigned long currentFreeMemory = getFreeMemoryGPU();
+    return (_initialMemoryUsageGPU - currentFreeMemory);
+}
+
 
 

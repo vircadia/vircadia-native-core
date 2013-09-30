@@ -31,6 +31,7 @@ public:
     void setOrientation(const glm::quat& orientation);
     void setNewScale(const float scale);
     void setWantCollisionsOn(bool wantCollisionsOn) { _isCollisionsOn = wantCollisionsOn; }
+    void setMoveTarget(const glm::vec3 moveTarget);
 
     // getters
     float getNewScale() const { return _newScale; }
@@ -73,6 +74,8 @@ public:
     bool _isThrustOn;
     float _thrustMultiplier;
     float _collisionRadius;
+    glm::vec3 _moveTarget;
+    int _moveTargetStepCounter;
 
 	// private methods
     float getBallRenderAlpha(int ball, bool lookingInMirror) const;
