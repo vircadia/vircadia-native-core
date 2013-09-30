@@ -150,6 +150,9 @@ VoxelSystem::~VoxelSystem() {
 }
 
 void VoxelSystem::setMaxVoxels(int maxVoxels) {
+    if (maxVoxels == _maxVoxels) {
+        return;
+    }
     pthread_mutex_lock(&_bufferWriteLock);
     bool wasInitialized = _initialized;
     if (wasInitialized) {
@@ -161,13 +164,16 @@ void VoxelSystem::setMaxVoxels(int maxVoxels) {
         init();
     }
     pthread_mutex_unlock(&_bufferWriteLock);
-
     if (wasInitialized) {
         forceRedrawEntireTree();
     }
 }
 
 void VoxelSystem::setUseVoxelShader(bool useVoxelShader) {
+    if (_useVoxelShader == useVoxelShader) {
+        return;
+    }
+
     pthread_mutex_lock(&_bufferWriteLock);
     bool wasInitialized = _initialized;
     if (wasInitialized) {
@@ -896,6 +902,11 @@ void VoxelSystem::updateVBOSegment(glBufferIndex segmentStart, glBufferIndex seg
 void VoxelSystem::render(bool texture) {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "render()");
     
+    // If we got here and we're not initialized then bail!
+    if (!_initialized) {
+        return;
+    }
+    
     // get the lock so that the update thread won't change anything
     pthread_mutex_lock(&_bufferWriteLock);
     
@@ -1034,8 +1045,6 @@ void VoxelSystem::clearAllNodesBufferIndex() {
     _nodeCount = 0;
     _tree->recurseTreeWithOperation(clearAllNodesBufferIndexOperation);
     qDebug("clearing buffer index of %d nodes\n", _nodeCount);
-    _tree->setDirtyBit();
-    setupNewVoxelsForDrawing();
 }
 
 bool VoxelSystem::forceRedrawEntireTreeOperation(VoxelNode* node, void* extraData) {
