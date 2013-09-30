@@ -49,8 +49,7 @@ void attachVoxelNodeDataToNode(Node* newNode) {
 
 VoxelServer::VoxelServer(Assignment::Command command, Assignment::Location location) :
     Assignment(command, Assignment::VoxelServerType, location),
-    _serverTree(true),
-    _multiConfigList() {
+    _serverTree(true) {
     _argc = 0;
     _argv = NULL;
 
@@ -72,8 +71,7 @@ VoxelServer::VoxelServer(Assignment::Command command, Assignment::Location locat
 }
 
 VoxelServer::VoxelServer(const unsigned char* dataBuffer, int numBytes) : Assignment(dataBuffer, numBytes),
-    _serverTree(true),
-    _multiConfigList() {
+    _serverTree(true) {
     _argc = 0;
     _argv = NULL;
 
@@ -117,11 +115,9 @@ void VoxelServer::setArguments(int argc, char** argv) {
 void VoxelServer::parsePayload() {
     
     if (getNumPayloadBytes() > 0) {
-        QString multiConfig((const char*) _payload);
-        _multiConfigList = multiConfig.split(";");
+        QString config((const char*) _payload);
         
-        // Now, parse the first config
-        QString config = _multiConfigList.at(0);
+        // Now, parse the config
         QStringList configList = config.split(" ");
         
         int argCount = configList.size() + 1;
@@ -141,34 +137,6 @@ void VoxelServer::parsePayload() {
         }
 
         setArguments(argCount, _parsedArgV);
-    }
-}
-
-void VoxelServer::parseOtherServerConfigs() {
-    // There there are multiple configs, then this instance will run the first
-    // config, and launch Assignment requests for the additional configs.
-    if (_multiConfigList.size() > 1) {
-        qDebug("Voxel Server received assignment for multiple Configs... config count=%d\n", _multiConfigList.size());
-        
-        // skip 0 - that's the one we'll run
-        for (int i = 1; i < _multiConfigList.size(); i++) {
-            QString config = _multiConfigList.at(i);
-            
-            qDebug("   config[%d]=%s\n", i, config.toLocal8Bit().constData());
-            
-            Assignment voxelServerAssignment(Assignment::CreateCommand,
-                                             Assignment::VoxelServerType,
-                                             getLocation()); // use same location as we were created in.
-            
-            // match this create request with our UUID so the DS knows who the create request is from
-            voxelServerAssignment.setUUID(_uuid);
-            
-            int payloadLength = config.length() + sizeof(char);
-            voxelServerAssignment.setPayload((uchar*)config.toLocal8Bit().constData(), payloadLength);
-            
-            qDebug("Requesting additional Voxel Server assignment to handle config %d\n", i);
-            NodeList::getInstance()->sendAssignment(voxelServerAssignment);
-        }
     }
 }
 
@@ -360,8 +328,6 @@ void VoxelServer::run() {
         _voxelServerPacketProcessor->initialize(true);
     }
     
-    bool isFirstDomainPacket = true;
-    
     // loop to send to nodes requesting data
     while (true) {
     
@@ -401,14 +367,6 @@ void VoxelServer::run() {
                 // If the packet is a ping, let processNodeData handle it.
                 NodeList::getInstance()->processNodeData(&senderAddress, packetData, packetLength);
             } else if (packetData[0] == PACKET_TYPE_DOMAIN) {
-                
-                if (isFirstDomainPacket) {
-                    // this is the first packet we've received from the DS, parse the other server configs
-                    // so we can make the appropriate create assignment requests
-                    parseOtherServerConfigs();
-                    isFirstDomainPacket = false;
-                }
-                
                 NodeList::getInstance()->processNodeData(&senderAddress, packetData, packetLength);
             } else if (packetData[0] == PACKET_TYPE_VOXEL_JURISDICTION_REQUEST) {
                 if (_jurisdictionSender) {

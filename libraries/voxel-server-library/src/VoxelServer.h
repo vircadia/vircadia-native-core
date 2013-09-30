@@ -80,10 +80,8 @@ private:
     EnvironmentData _environmentData[3];
     
     NodeWatcher _nodeWatcher; // used to cleanup AGENT data when agents are killed
-    QStringList _multiConfigList;
     
     void parsePayload();
-    void parseOtherServerConfigs();
 };
 
 #endif // __voxel_server__VoxelServer__

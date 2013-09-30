@@ -57,7 +57,6 @@ private:
     QFile _staticAssignmentFile;
     uchar* _staticAssignmentFileData;
     
-    uint16_t* _numAssignmentsInStaticFile;
     Assignment* _staticAssignments;
     
     const char* _voxelServerConfig;

@@ -8,6 +8,8 @@
 
 #include <signal.h>
 
+#include <QStringList>
+
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
 
@@ -160,36 +162,53 @@ DomainServer::DomainServer(int argc, char* argv[]) :
 }
 
 void DomainServer::prepopulateStaticAssignmentFile() {
-    const uint NUM_FRESH_STATIC_ASSIGNMENTS = 3;
+    int numFreshStaticAssignments = 0;
     
     // write a fresh static assignment array to file
     
-    Assignment freshStaticAssignments[NUM_FRESH_STATIC_ASSIGNMENTS];
+    Assignment freshStaticAssignments[MAX_STATIC_ASSIGNMENT_FILE_ASSIGNMENTS];
     
     // pre-populate the first static assignment list with assignments for root AuM, AvM, VS
-    freshStaticAssignments[0] = Assignment(Assignment::CreateCommand,
+    freshStaticAssignments[numFreshStaticAssignments++] = Assignment(Assignment::CreateCommand,
                                            Assignment::AudioMixerType,
                                            Assignment::LocalLocation);
-    freshStaticAssignments[1] = Assignment(Assignment::CreateCommand,
+    freshStaticAssignments[numFreshStaticAssignments++] = Assignment(Assignment::CreateCommand,
                                            Assignment::AvatarMixerType,
                                            Assignment::LocalLocation);
-    
-    Assignment voxelServerAssignment(Assignment::CreateCommand, Assignment::VoxelServerType, Assignment::LocalLocation);
     
     // Handle Domain/Voxel Server configuration command line arguments
     if (_voxelServerConfig) {
         qDebug("Reading Voxel Server Configuration.\n");
-        qDebug() << "   config: " << _voxelServerConfig << "\n";
-        int payloadLength = strlen(_voxelServerConfig) + sizeof(char);
-        voxelServerAssignment.setPayload((const uchar*)_voxelServerConfig, payloadLength);
+        qDebug() << "config: " << _voxelServerConfig << "\n";
+        
+        QString multiConfig((const char*) _voxelServerConfig);
+        QStringList multiConfigList = multiConfig.split(";");
+        
+        // read each config to a payload for a VS assignment
+        for (int i = 0; i < multiConfigList.size(); i++) {
+            QString config = multiConfigList.at(i);
+            
+            qDebug("config[%d]=%s\n", i, config.toLocal8Bit().constData());
+            
+            Assignment voxelServerAssignment(Assignment::CreateCommand,
+                                             Assignment::VoxelServerType,
+                                             Assignment::LocalLocation); // use same location as we were created in.
+            
+            int payloadLength = config.length() + sizeof(char);
+            voxelServerAssignment.setPayload((uchar*)config.toLocal8Bit().constData(), payloadLength);
+            
+            freshStaticAssignments[numFreshStaticAssignments++] = voxelServerAssignment;
+        }
+    } else {
+        Assignment rootVoxelServerAssignment(Assignment::CreateCommand,
+                                             Assignment::VoxelServerType,
+                                             Assignment::LocalLocation);
+        freshStaticAssignments[numFreshStaticAssignments++] = rootVoxelServerAssignment;
     }
     
-    freshStaticAssignments[2] = voxelServerAssignment;
+    qDebug() << "Adding" << numFreshStaticAssignments << "static assignments to fresh file.\n";
     
     _staticAssignmentFile.open(QIODevice::WriteOnly);
-    
-    _staticAssignmentFile.write((char*) &NUM_FRESH_STATIC_ASSIGNMENTS,
-                                sizeof(uint16_t));
     _staticAssignmentFile.write((char*) &freshStaticAssignments, sizeof(freshStaticAssignments));
     _staticAssignmentFile.resize(MAX_STATIC_ASSIGNMENT_FILE_ASSIGNMENTS * sizeof(Assignment));
     _staticAssignmentFile.close();
@@ -360,9 +379,7 @@ int DomainServer::run() {
     
     _staticAssignmentFileData = _staticAssignmentFile.map(0, _staticAssignmentFile.size());
     
-    _numAssignmentsInStaticFile = (uint16_t*) _staticAssignmentFileData;
-    _staticAssignments = (Assignment*)
-        (_staticAssignmentFileData + sizeof(*_numAssignmentsInStaticFile));
+    _staticAssignments = (Assignment*) _staticAssignmentFileData;
     
     timeval startTime;
     gettimeofday(&startTime, NULL);
