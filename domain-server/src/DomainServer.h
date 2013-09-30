@@ -42,7 +42,7 @@ private:
     static DomainServer* domainServerInstance;
     
     void prepopulateStaticAssignmentFile();
-    int checkInMatchesStaticAssignment(NODE_TYPE nodeType, const uchar* checkInUUID);
+    int indexForMatchingStaticAssignment(NODE_TYPE nodeType, const uchar* checkInUUID);
     Assignment* deployableAssignmentForRequest(Assignment& requestAssignment);
     
     void cleanup();
@@ -56,7 +56,7 @@ private:
     uchar* _staticAssignmentFileData;
     
     uint16_t* _numAssignmentsInStaticFile;
-    Assignment* _staticFileAssignments;
+    Assignment* _staticAssignments;
     
     const char* _voxelServerConfig;
 };

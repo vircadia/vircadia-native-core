@@ -78,6 +78,27 @@ void DomainServer::nodeAdded(Node* node) {
 }
 
 void DomainServer::nodeKilled(Node* node) {
+    // if this node has linked data it was from an assignment
+    if (node->getLinkedData()) {
+        Assignment* nodeAssignment =  (Assignment*) node->getLinkedData();
+        
+        // find this assignment in the static file
+        for (int i = 0; i < MAX_STATIC_ASSIGNMENT_FILE_ASSIGNMENTS; i++) {
+            if (_staticAssignments[i].getUUID() == nodeAssignment->getUUID()) {
+                // reset the UUID on the static assignment
+                _staticAssignments[i].resetUUID();
+                
+                // put this assignment back in the queue so it goes out
+                _assignmentQueueMutex.lock();
+                _assignmentQueue.push_back(&_staticAssignments[i]);
+                _assignmentQueueMutex.unlock();
+                
+            } else if (_staticAssignments[i].getUUID().isNull()) {
+                // we are at the blank part of the static assignments - break out
+                break;
+            }
+        }
+    }
     
 }
 
@@ -170,7 +191,7 @@ void DomainServer::prepopulateStaticAssignmentFile() {
     _staticAssignmentFile.close();
 }
 
-int DomainServer::checkInMatchesStaticAssignment(NODE_TYPE nodeType, const uchar* checkInData) {
+int DomainServer::indexForMatchingStaticAssignment(NODE_TYPE nodeType, const uchar* checkInData) {
     // pull the UUID passed with the check in
     QUuid checkInUUID = QUuid::fromRfc4122(QByteArray((const char*) checkInData + numBytesForPacketHeader(checkInData) +
                                                       sizeof(NODE_TYPE),
@@ -178,8 +199,8 @@ int DomainServer::checkInMatchesStaticAssignment(NODE_TYPE nodeType, const uchar
     int staticAssignmentIndex = 0;
     
     while (staticAssignmentIndex < MAX_STATIC_ASSIGNMENT_FILE_ASSIGNMENTS
-           && !_staticFileAssignments[staticAssignmentIndex].getUUID().isNull()) {
-        Assignment* staticAssignment = &_staticFileAssignments[staticAssignmentIndex];
+           && !_staticAssignments[staticAssignmentIndex].getUUID().isNull()) {
+        Assignment* staticAssignment = &_staticAssignments[staticAssignmentIndex];
         
         if (staticAssignment->getType() == Assignment::typeForNodeType(nodeType)
             && staticAssignment->getUUID() == checkInUUID) {
@@ -279,7 +300,7 @@ int DomainServer::run() {
     _staticAssignmentFileData = _staticAssignmentFile.map(0, _staticAssignmentFile.size());
     
     _numAssignmentsInStaticFile = (uint16_t*) _staticAssignmentFileData;
-    _staticFileAssignments = (Assignment*)
+    _staticAssignments = (Assignment*)
         (_staticAssignmentFileData + sizeof(*_numAssignmentsInStaticFile));
     
     while (true) {
@@ -314,12 +335,18 @@ int DomainServer::run() {
                 int matchingStaticAssignmentIndex = -1;
                 
                 if (memchr(STATICALLY_ASSIGNED_NODES, nodeType, sizeof(STATICALLY_ASSIGNED_NODES)) == NULL ||
-                    (matchingStaticAssignmentIndex = checkInMatchesStaticAssignment(nodeType, packetData)) != -1) {
+                    (matchingStaticAssignmentIndex = indexForMatchingStaticAssignment(nodeType, packetData)) != -1) {
                     
                     Node* checkInNode = nodeList->addOrUpdateNode((sockaddr*) &nodePublicAddress,
-                                                              (sockaddr*) &nodeLocalAddress,
-                                                              nodeType,
-                                                              nodeList->getLastNodeID());
+                                                                  (sockaddr*) &nodeLocalAddress,
+                                                                  nodeType,
+                                                                  nodeList->getLastNodeID());
+                    
+                    if (matchingStaticAssignmentIndex != -1) {
+                        // set the linked data for this node to the matching assignment from the static file
+                        // so we can re-queue it should the node die
+                        checkInNode->setLinkedData(&_staticAssignments[matchingStaticAssignmentIndex]);
+                    }
                     
                     int numHeaderBytes = populateTypeAndVersion(broadcastPacket, PACKET_TYPE_DOMAIN);
                     
@@ -327,8 +354,8 @@ int DomainServer::run() {
                     startPointer = currentBufferPos;
                     
                     int numBytesUUID = (nodeType == NODE_TYPE_AUDIO_MIXER || nodeType == NODE_TYPE_AVATAR_MIXER)
-                    ? NUM_BYTES_RFC4122_UUID
-                    : 0;
+                        ? NUM_BYTES_RFC4122_UUID
+                        : 0;
                     
                     unsigned char* nodeTypesOfInterest = packetData + numBytesSenderHeader + numBytesUUID +
                     sizeof(NODE_TYPE) + numBytesSocket + sizeof(unsigned char);
@@ -398,8 +425,11 @@ int DomainServer::run() {
                 
                 // find the first available spot in the static assignments and put this assignment there
                 for (int i = 0; i < MAX_STATIC_ASSIGNMENT_FILE_ASSIGNMENTS; i++) {
-                    if (_staticFileAssignments[i].getUUID().isNull()) {
-                        _staticFileAssignments[i] = *createAssignment;
+                    if (_staticAssignments[i].getUUID().isNull()) {
+                        _staticAssignments[i] = *createAssignment;
+                        
+                        // we've stuck the assignment in, break out
+                        break;
                     }
                 }
             }

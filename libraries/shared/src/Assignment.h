@@ -19,7 +19,7 @@ const int NUM_BYTES_RFC4122_UUID = 16;
 const int MAX_PAYLOAD_BYTES = 1024;
 
 /// Holds information used for request, creation, and deployment of assignments
-class Assignment : public QObject {
+class Assignment : public NodeData {
     Q_OBJECT
 public:
     
@@ -78,6 +78,9 @@ public:
     /// \param buffer the buffer in which to pack the assignment
     /// \return number of bytes packed into buffer
     int packToBuffer(unsigned char* buffer);
+    
+    // implement parseData to return 0 so we can be a subclass of NodeData
+    int parseData(unsigned char* sourceBuffer, int numBytes) { return 0; }
     
     /// blocking run of the assignment
     virtual void run();
