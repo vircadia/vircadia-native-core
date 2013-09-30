@@ -46,7 +46,6 @@ private:
     Assignment* deployableAssignmentForRequest(Assignment& requestAssignment);
     
     void cleanup();
-   
     
     unsigned char* addNodeToBroadcastPacket(unsigned char* currentPosition, Node* nodeToAdd);
     
