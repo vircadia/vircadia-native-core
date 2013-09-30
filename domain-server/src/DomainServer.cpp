@@ -351,7 +351,7 @@ int DomainServer::run() {
         if (_voxelServerConfig) {
             // we have a new VS config, clear the existing file to start fresh
             _staticAssignmentFile.remove();
-        }ga 
+        }
         
         prepopulateStaticAssignmentFile();
     }
