@@ -52,6 +52,7 @@ find_package(Qt5Multimedia REQUIRED)
 find_package(Qt5Network REQUIRED)
 find_package(Qt5OpenGL REQUIRED)
 find_package(Qt5Svg REQUIRED)
+find_package(Qt5WebKit REQUIRED)
 find_package(Qt5WebKitWidgets REQUIRED)
 
 if (APPLE)
@@ -108,7 +109,7 @@ if (OPENNI_FOUND AND NOT DISABLE_OPENNI)
     target_link_libraries(${TARGET_NAME} ${OPENNI_LIBRARIES})
 endif (OPENNI_FOUND AND NOT DISABLE_OPENNI)
 
-qt5_use_modules(${TARGET_NAME} Core Gui Multimedia Network OpenGL Svg)
+qt5_use_modules(${TARGET_NAME} Core Gui Multimedia Network OpenGL Svg WebKit WebKitWidgets)
 
 # include headers for interface and InterfaceConfig.
 include_directories(
