@@ -24,6 +24,10 @@ Agent::Agent(const unsigned char* dataBuffer, int numBytes) :
     
 }
 
+void Agent::stop() {
+    _shouldStop = true;
+}
+
 static size_t writeScriptDataToString(void *contents, size_t size, size_t nmemb, void *userdata) {
     size_t realSize = size * nmemb;
     
