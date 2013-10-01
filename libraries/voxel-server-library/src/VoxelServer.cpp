@@ -13,8 +13,8 @@
 
 #include <QDebug>
 #include <QString>
-#include <QStringList>
 
+#include <Logging.h>
 #include <OctalCode.h>
 #include <NodeList.h>
 #include <NodeTypes.h>
@@ -115,34 +115,9 @@ void VoxelServer::setArguments(int argc, char** argv) {
 void VoxelServer::parsePayload() {
     
     if (getNumPayloadBytes() > 0) {
-        QString multiConfig((const char*)getPayload());
-        QStringList multiConfigList = multiConfig.split(";");
+        QString config((const char*) _payload);
         
-        // There there are multiple configs, then this instance will run the first
-        // config, and launch Assignment requests for the additional configs.
-        if (multiConfigList.size() > 1) {
-            qDebug("Voxel Server received assignment for multiple Configs... config count=%d\n", multiConfigList.size());
-
-            // skip 0 - that's the one we'll run
-            for (int i = 1; i < multiConfigList.size(); i++) {
-                QString config = multiConfigList.at(i);
-                
-                qDebug("   config[%d]=%s\n", i, config.toLocal8Bit().constData());
-
-                Assignment voxelServerAssignment(Assignment::CreateCommand,
-                                                 Assignment::VoxelServerType,
-                                                 getLocation()); // use same location as we were created in.
-
-                int payloadLength = config.length() + sizeof(char);
-                voxelServerAssignment.setPayload((uchar*)config.toLocal8Bit().constData(), payloadLength);
-                
-                qDebug("Requesting additional Voxel Server assignment to handle config %d\n", i);
-                NodeList::getInstance()->sendAssignment(voxelServerAssignment);
-            }
-        }
-        
-        // Now, parse the first config
-        QString config = multiConfigList.at(0);
+        // Now, parse the config
         QStringList configList = config.split(" ");
         
         int argCount = configList.size() + 1;
@@ -167,6 +142,11 @@ void VoxelServer::parsePayload() {
 
 //int main(int argc, const char * argv[]) {
 void VoxelServer::run() {
+    
+    const char VOXEL_SERVER_LOGGING_TARGET_NAME[] = "voxel-server";
+    
+    // change the logging target name while this is running
+    Logging::setTargetName(VOXEL_SERVER_LOGGING_TARGET_NAME);
 
     // Now would be a good time to parse our arguments, if we got them as assignment
     if (getNumPayloadBytes() > 0) {
@@ -175,7 +155,7 @@ void VoxelServer::run() {
 
     pthread_mutex_init(&_treeLock, NULL);
     
-    qInstallMessageHandler(sharedMessageHandler);
+    qInstallMessageHandler(Logging::verboseMessageHandler);
     
     const char* JURISDICTION_FILE = "--jurisdictionFile";
     const char* jurisdictionFile = getCmdOption(_argc, _argv, JURISDICTION_FILE);
@@ -358,7 +338,7 @@ void VoxelServer::run() {
         // send a check in packet to the domain server if DOMAIN_SERVER_CHECK_IN_USECS has elapsed
         if (usecTimestampNow() - usecTimestamp(&lastDomainServerCheckIn) >= DOMAIN_SERVER_CHECK_IN_USECS) {
             gettimeofday(&lastDomainServerCheckIn, NULL);
-            NodeList::getInstance()->sendDomainServerCheckIn();
+            NodeList::getInstance()->sendDomainServerCheckIn(_uuid.toRfc4122().constData());
         }
         
         if (nodeList->getNodeSocket()->receive(&senderAddress, packetData, &packetLength) &&

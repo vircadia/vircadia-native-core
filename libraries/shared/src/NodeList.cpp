@@ -291,7 +291,7 @@ void NodeList::sendDomainServerCheckIn(const char* assignmentUUID) {
     
     //  Lookup the IP address of the domain server if we need to
     if (_domainIP.isNull()) {
-        qDebug("Looking up DS hostname %s.\n", _domainHostname.toStdString().c_str());
+        qDebug("Looking up DS hostname %s.\n", _domainHostname.toLocal8Bit().constData());
         
         QHostInfo domainServerHostInfo = QHostInfo::fromName(_domainHostname);
         
@@ -299,7 +299,8 @@ void NodeList::sendDomainServerCheckIn(const char* assignmentUUID) {
             if (domainServerHostInfo.addresses()[i].protocol() == QAbstractSocket::IPv4Protocol) {
                 _domainIP = domainServerHostInfo.addresses()[i];
                 
-                qDebug("DS at %s is at %s\n", _domainHostname.toStdString().c_str(), _domainIP.toString().toStdString().c_str());
+                qDebug("DS at %s is at %s\n", _domainHostname.toLocal8Bit().constData(),
+                       _domainIP.toString().toLocal8Bit().constData());
                 
                 printedDomainServerIP = true;
                 
@@ -312,7 +313,7 @@ void NodeList::sendDomainServerCheckIn(const char* assignmentUUID) {
             }
         }
     } else if (!printedDomainServerIP) {
-        qDebug("Domain Server IP: %s\n", _domainIP.toString().toStdString().c_str());
+        qDebug("Domain Server IP: %s\n", _domainIP.toString().toLocal8Bit().constData());
         printedDomainServerIP = true;
     }
     
@@ -362,7 +363,7 @@ void NodeList::sendDomainServerCheckIn(const char* assignmentUUID) {
         _numBytesCheckInPacket = packetPosition - _checkInPacket;
     }
     
-    _nodeSocket.send(_domainIP.toString().toStdString().c_str(), _domainPort, _checkInPacket, _numBytesCheckInPacket);
+    _nodeSocket.send(_domainIP.toString().toLocal8Bit().constData(), _domainPort, _checkInPacket, _numBytesCheckInPacket);
     
     // increment the count of un-replied check-ins
     _numNoReplyDomainCheckIns++;
@@ -438,12 +439,7 @@ Node* NodeList::addOrUpdateNode(sockaddr* publicSocket, sockaddr* localSocket, c
         }
     }
     
-    if (node == end()) {
-        // if we already had this node AND it's a solo type then bust out of here
-        if (soloNodeOfType(nodeType)) {
-            return NULL;
-        }
-        
+    if (node == end()) {        
         // we didn't have this node, so add them
         Node* newNode = new Node(publicSocket, localSocket, nodeType, nodeId);
         

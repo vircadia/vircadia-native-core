@@ -16,7 +16,7 @@ class Node;
 class NodeData : public QObject {
   Q_OBJECT
 public:
-    NodeData(Node* owningNode);
+    NodeData(Node* owningNode = NULL);
     
     virtual ~NodeData() = 0;
     virtual int parseData(unsigned char* sourceBuffer, int numBytes) = 0;
