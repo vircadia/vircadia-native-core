@@ -253,6 +253,9 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::AmbientOcclusion);
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::UseVoxelShader, 0, 
                                            false, this, SLOT(switchVoxelShader()));
+    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::FastVoxelPipeline, 0,
+                                           false, appInstance->getVoxels(), SLOT(setUseFastVoxelPipeline(bool)));
+                                           
 
     QMenu* avatarOptionsMenu = developerMenu->addMenu("Avatar Options");
     

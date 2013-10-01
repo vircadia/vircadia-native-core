@@ -34,7 +34,7 @@ public:
 
     static void voxelNodeDeleteHook(VoxelNode* node, void* extraData);
 
-    virtual void nodeDeleted(VoxelNode* node);
+    virtual void voxelDeleted(VoxelNode* node);
 
 private:
     

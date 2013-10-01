@@ -70,10 +70,12 @@ VoxelSystem::VoxelSystem(float treeScale, int maxVoxels)
     _writeRenderFullVBO = true;
     _readRenderFullVBO = true;
     _tree = new VoxelTree();
+    _tree->rootNode->setVoxelSystem(this);
     pthread_mutex_init(&_bufferWriteLock, NULL);
     pthread_mutex_init(&_treeLock, NULL);
 
     VoxelNode::addDeleteHook(this);
+    VoxelNode::addUpdateHook(this);
     _abandonedVBOSlots = 0;
     _falseColorizeBySource = false;
     _dataSourceID = UNKNOWN_NODE_ID;
@@ -96,11 +98,67 @@ VoxelSystem::VoxelSystem(float treeScale, int maxVoxels)
     _writeVoxelDirtyArray = NULL;
     _readVoxelDirtyArray = NULL;
 
+    _inSetupNewVoxelsForDrawing = false;
+    _useFastVoxelPipeline = false;
 }
 
-void VoxelSystem::nodeDeleted(VoxelNode* node) {
+void VoxelSystem::voxelDeleted(VoxelNode* node) {
     if (node->isKnownBufferIndex() && (node->getVoxelSystem() == this)) {
         freeBufferIndex(node->getBufferIndex());
+    }
+}
+
+void VoxelSystem::setUseFastVoxelPipeline(bool useFastVoxelPipeline) {
+    _useFastVoxelPipeline = useFastVoxelPipeline;
+    printf("setUseFastVoxelPipeline() _useFastVoxelPipeline=%s\n", debug::valueOf(_useFastVoxelPipeline));
+    setupNewVoxelsForDrawing();
+}
+
+void VoxelSystem::voxelUpdated(VoxelNode* node) {
+
+    //printf("VoxelSystem::voxelUpdated() _useFastVoxelPipeline=%s\n", debug::valueOf(_useFastVoxelPipeline));
+
+    // If we're in SetupNewVoxelsForDrawing() or _writeRenderFullVBO then bail..
+    if (!_useFastVoxelPipeline || _inSetupNewVoxelsForDrawing || _writeRenderFullVBO) {
+        return;
+    }
+
+    if (node->getVoxelSystem() == this) {
+        //printf("VoxelSystem::voxelUpdated()... node->getVoxelSystem() == this\n");
+
+        bool  shouldRender    = false; // assume we don't need to render it
+        // if it's colored, we might need to render it!
+        shouldRender = node->calculateShouldRender(_viewFrustum);
+
+        node->setShouldRender(shouldRender);
+        
+        if (!node->isLeaf()) {
+    
+            // As we check our children, see if any of them went from shouldRender to NOT shouldRender
+            // then we probably dropped LOD and if we don't have color, we want to average our children 
+            // for a new color.
+            int childrenGotHiddenCount = 0;
+            for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
+                VoxelNode* childNode = node->getChildAtIndex(i);
+                if (childNode) {
+                    bool wasShouldRender = childNode->getShouldRender();
+                    bool isShouldRender = childNode->calculateShouldRender(_viewFrustum);
+                    if (wasShouldRender && !isShouldRender) {
+                        childrenGotHiddenCount++;
+                    }
+                }
+            }
+            if (childrenGotHiddenCount > 0) {
+                node->setColorFromAverageOfChildren();
+            }
+        }
+
+        updateNodeInArraysAsPartialVBO(node);
+        _voxelsUpdated++;
+
+        node->clearDirtyBit(); // clear the dirty bit, do this before we potentially delete things.
+        
+        setupNewVoxelsForDrawingSingleNode();    
     }
 }
 
@@ -147,6 +205,7 @@ VoxelSystem::~VoxelSystem() {
     pthread_mutex_destroy(&_treeLock);
 
     VoxelNode::removeDeleteHook(this);
+    VoxelNode::removeUpdateHook(this);
 }
 
 void VoxelSystem::setMaxVoxels(int maxVoxels) {
@@ -462,7 +521,10 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
         break;
     }
 
-    setupNewVoxelsForDrawing();
+
+    if (!_useFastVoxelPipeline || _writeRenderFullVBO) {
+        setupNewVoxelsForDrawing();
+    }
     
     pthread_mutex_unlock(&_treeLock);
 
@@ -485,25 +547,9 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
         return; // bail early, it hasn't been long enough since the last time we ran
     }
 
-    uint64_t sinceLastViewCulling = (start - _lastViewCulling) / 1000;
-    // If the view frustum is no longer changing, but has changed, since last time, then remove nodes that are out of view
-    if ((sinceLastViewCulling >= std::max((float) _lastViewCullingElapsed, VIEW_CULLING_RATE_IN_MILLISECONDS))
-            && !isViewChanging()) {
-        _lastViewCulling = start;
+    _inSetupNewVoxelsForDrawing = true;
 
-        // When we call removeOutOfView() voxels, we don't actually remove the voxels from the VBOs, but we do remove
-        // them from tree, this makes our tree caclulations faster, but doesn't require us to fully rebuild the VBOs (which
-        // can be expensive).
-        removeOutOfView();
-        
-        // Once we call cleanupRemovedVoxels() we do need to rebuild our VBOs (if anything was actually removed). So,
-        // we should consider putting this someplace else... as this might be able to occur less frequently, and save us on
-        // VBO reubuilding. Possibly we should do this only if our actual VBO usage crosses some lower boundary.
-        cleanupRemovedVoxels();
-
-        uint64_t endViewCulling = usecTimestampNow();
-        _lastViewCullingElapsed = (endViewCulling - start) / 1000;
-    }    
+    checkForCulling(); // check for out of view and deleted voxels...
     
     bool didWriteFullVBO = _writeRenderFullVBO;
     if (_tree->isDirty()) {
@@ -547,12 +593,80 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
     int elapsedmsec = (end - start) / 1000;
     _setupNewVoxelsForDrawingLastFinished = end;
     _setupNewVoxelsForDrawingLastElapsed = elapsedmsec;
+    _inSetupNewVoxelsForDrawing = false;
+}
+
+void VoxelSystem::setupNewVoxelsForDrawingSingleNode() {
+
+    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
+                            "setupNewVoxelsForDrawingSingleNode()"); // would like to include _voxelsInArrays, _voxelsUpdated
+
+    uint64_t start = usecTimestampNow();
+    uint64_t sinceLastTime = (start - _setupNewVoxelsForDrawingLastFinished) / 1000;
+
+    // clear up the VBOs for any nodes that have been recently deleted.
+    clearFreeBufferIndexes();
+
+    bool iAmDebugging = false;  // if you're debugging set this to true, so you won't get skipped for slow debugging
+    if (!iAmDebugging && sinceLastTime <= std::max((float) _setupNewVoxelsForDrawingLastElapsed, SIXTY_FPS_IN_MILLISECONDS)) {
+        return; // bail early, it hasn't been long enough since the last time we ran
+    }
+
+
+    checkForCulling(); // check for out of view and deleted voxels...
+
+    // lock on the buffer write lock so we can't modify the data when the GPU is reading it
+    pthread_mutex_lock(&_bufferWriteLock);
+
+    _voxelsDirty = true; // if we got this far, then we can assume some voxels are dirty
+
+    // copy the newly written data to the arrays designated for reading, only does something if _voxelsDirty && _voxelsUpdated
+    copyWrittenDataToReadArrays(_writeRenderFullVBO);
+
+    // after...
+    _voxelsUpdated = 0;
+
+    pthread_mutex_unlock(&_bufferWriteLock);
+
+    uint64_t end = usecTimestampNow();
+    int elapsedmsec = (end - start) / 1000;
+    _setupNewVoxelsForDrawingLastFinished = end;
+    _setupNewVoxelsForDrawingLastElapsed = elapsedmsec;
+}
+
+void VoxelSystem::checkForCulling() {
+
+    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "checkForCulling()");
+    uint64_t start = usecTimestampNow();
+    uint64_t sinceLastViewCulling = (start - _lastViewCulling) / 1000;
+    // If the view frustum is no longer changing, but has changed, since last time, then remove nodes that are out of view
+    if ((sinceLastViewCulling >= std::max((float) _lastViewCullingElapsed, VIEW_CULLING_RATE_IN_MILLISECONDS))
+            && !isViewChanging()) {
+
+        _lastViewCulling = start;
+
+        // When we call removeOutOfView() voxels, we don't actually remove the voxels from the VBOs, but we do remove
+        // them from tree, this makes our tree caclulations faster, but doesn't require us to fully rebuild the VBOs (which
+        // can be expensive).
+        removeOutOfView();
+        
+        // Once we call cleanupRemovedVoxels() we do need to rebuild our VBOs (if anything was actually removed). So,
+        // we should consider putting this someplace else... as this might be able to occur less frequently, and save us on
+        // VBO reubuilding. Possibly we should do this only if our actual VBO usage crosses some lower boundary.
+        cleanupRemovedVoxels();
+
+        uint64_t endViewCulling = usecTimestampNow();
+        _lastViewCullingElapsed = (endViewCulling - start) / 1000;
+    }    
 }
 
 void VoxelSystem::cleanupRemovedVoxels() {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "cleanupRemovedVoxels()");
     // This handles cleanup of voxels that were culled as part of our regular out of view culling operation
     if (!_removedVoxels.isEmpty()) {
+        if (Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings)) {
+            qDebug() << "cleanupRemovedVoxels().. _removedVoxels=" << _removedVoxels.count() << "\n";
+        }
         while (!_removedVoxels.isEmpty()) {
             delete _removedVoxels.extract();
         }
@@ -560,8 +674,12 @@ void VoxelSystem::cleanupRemovedVoxels() {
     }
     // we also might have VBO slots that have been abandoned, if too many of our VBO slots
     // are abandonded we want to rerender our full VBOs
-    const float TOO_MANY_ABANDONED_RATIO = 0.25f;
+    const float TOO_MANY_ABANDONED_RATIO = 0.5f;
     if (!_writeRenderFullVBO && (_abandonedVBOSlots > (_voxelsInWriteArrays * TOO_MANY_ABANDONED_RATIO))) {
+        if (Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings)) {
+            qDebug() << "cleanupRemovedVoxels().. _abandonedVBOSlots [" 
+                << _abandonedVBOSlots << "] > TOO_MANY_ABANDONED_RATIO \n";
+        }
         _writeRenderFullVBO = true;
     }
 }
@@ -704,7 +822,6 @@ int VoxelSystem::updateNodeInArraysAsFullVBO(VoxelNode* node) {
         return 1; // rendered
     } else {
         node->setBufferIndex(GLBUFFER_INDEX_UNKNOWN);
-        node->setVoxelSystem(NULL);
     }
     
     return 0; // not-rendered
@@ -805,6 +922,9 @@ void VoxelSystem::init() {
     // VBO for the verticesArray
     initVoxelMemory();
     _initialized = true;
+    
+    // our own _removedVoxels doesn't need to be notified of voxel deletes
+    VoxelNode::removeDeleteHook(&_removedVoxels);
 }
 
 void VoxelSystem::changeTree(VoxelTree* newTree) {
@@ -812,6 +932,7 @@ void VoxelSystem::changeTree(VoxelTree* newTree) {
 
     _tree = newTree;
     _tree->setDirtyBit();
+    _tree->rootNode->setVoxelSystem(this);
 
     connect(_tree, SIGNAL(importSize(float,float,float)), SIGNAL(importSize(float,float,float)));
     connect(_tree, SIGNAL(importProgress(int)), SIGNAL(importProgress(int)));
@@ -1031,7 +1152,7 @@ int VoxelSystem::_nodeCount = 0;
 void VoxelSystem::killLocalVoxels() {
     _tree->eraseAllVoxels();
     _voxelsInWriteArrays = _voxelsInReadArrays = 0; // better way to do this??
-    //setupNewVoxelsForDrawing();
+    setupNewVoxelsForDrawing();
 }
 
 

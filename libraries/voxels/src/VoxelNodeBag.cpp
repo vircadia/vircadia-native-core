@@ -127,7 +127,7 @@ void VoxelNodeBag::remove(VoxelNode* node) {
 }
 
 
-void VoxelNodeBag::nodeDeleted(VoxelNode* node) {
+void VoxelNodeBag::voxelDeleted(VoxelNode* node) {
     remove(node); // note: remove can safely handle nodes that aren't in it, so we don't need to check contains()
 }
 
