@@ -485,6 +485,47 @@ int DomainServer::run() {
                 
                 qDebug("Received a request for assignment.\n");
                 
+                // if the domain-server has just restarted,
+                // check if there are static assignments in the file that we need to
+                // throw into the assignment queue
+                const uint64_t RESTART_HOLD_TIME_USECS = 5 * 1000 * 1000;
+                
+                if (!_hasCompletedRestartHold && usecTimestampNow() - usecTimestamp(&startTime) > RESTART_HOLD_TIME_USECS) {
+                    _hasCompletedRestartHold = true;
+                    
+                    // pull anything in the static assignment file that isn't spoken for and add to the assignment queue
+                    for (int i = 0; i < MAX_STATIC_ASSIGNMENT_FILE_ASSIGNMENTS; i++) {
+                        if (_staticAssignments[i].getUUID().isNull()) {
+                            // reached the end of static assignments, bail
+                            break;
+                        }
+                        
+                        bool foundMatchingAssignment = false;
+                        
+                        // enumerate the nodes and check if there is one with an attached assignment with matching UUID
+                        for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+                            if (node->getLinkedData()) {
+                                Assignment* linkedAssignment = (Assignment*) node->getLinkedData();
+                                if (linkedAssignment->getUUID() == _staticAssignments[i].getUUID()) {
+                                    foundMatchingAssignment = true;
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        if (!foundMatchingAssignment) {
+                            // this assignment has not been fulfilled - reset the UUID and add it to the assignment queue
+                            _staticAssignments[i].resetUUID();
+                            
+                            qDebug() << "Adding static assignment to queue -" << _staticAssignments[i] << "\n";
+                            
+                            _assignmentQueueMutex.lock();
+                            _assignmentQueue.push_back(&_staticAssignments[i]);
+                            _assignmentQueueMutex.unlock();
+                        }
+                    }
+                }
+                
                 if (_assignmentQueue.size() > 0) {
                     // construct the requested assignment from the packet data
                     Assignment requestAssignment(packetData, receivedBytes);
@@ -548,47 +589,6 @@ int DomainServer::run() {
                         // we found the matching node that asked for create assignment, break out
                         break;
                     }
-                }
-            }
-        }
-        
-        const uint64_t RESTART_HOLD_TIME_USECS = 5 * 1000 * 1000;
-        
-        qDebug("%d - %llu\n", _hasCompletedRestartHold, usecTimestampNow() - usecTimestamp(&startTime));
-        
-        if (!_hasCompletedRestartHold && usecTimestampNow() - usecTimestamp(&startTime) > RESTART_HOLD_TIME_USECS) {
-            _hasCompletedRestartHold = true;
-            
-            // pull anything in the static assignment file that isn't spoken for and add to the assignment queue
-            for (int i = 0; i < MAX_STATIC_ASSIGNMENT_FILE_ASSIGNMENTS; i++) {
-                if (_staticAssignments[i].getUUID().isNull()) {
-                    // reached the end of static assignments, bail
-                    qDebug() << "Reached the end of SA file with i at" << i << "\n";
-                    break;
-                }
-                
-                bool foundMatchingAssignment = false;
-                
-                // enumerate the nodes and check if there is one with an attached assignment with matching UUID
-                for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
-                    if (node->getLinkedData()) {
-                        Assignment* linkedAssignment = (Assignment*) node->getLinkedData();
-                        if (linkedAssignment->getUUID() == _staticAssignments[i].getUUID()) {
-                            foundMatchingAssignment = true;
-                            break;
-                        }
-                    }
-                }
-                
-                if (!foundMatchingAssignment) {
-                    // this assignment has not been fulfilled - reset the UUID and add it to the assignment queue
-                    _staticAssignments[i].resetUUID();
-                    
-                    qDebug() << "Adding static assignment to queue -" << _staticAssignments[i] << "\n";
-                    
-                    _assignmentQueueMutex.lock();
-                    _assignmentQueue.push_back(&_staticAssignments[i]);
-                    _assignmentQueueMutex.unlock();
                 }
             }
         }
