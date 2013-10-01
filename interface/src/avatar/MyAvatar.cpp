@@ -468,7 +468,7 @@ void MyAvatar::render(bool lookingInMirror, bool renderAvatarBalls) {
     
     if (!_chatMessage.empty()) {
         int width = 0;
-        int lastWidth;
+        int lastWidth = 0;
         for (string::iterator it = _chatMessage.begin(); it != _chatMessage.end(); it++) {
             width += (lastWidth = textRenderer()->computeWidth(*it));
         }
@@ -621,16 +621,9 @@ void MyAvatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
                         && (b != BODY_BALL_RIGHT_SHOULDER)) {
                         glColor3fv(DARK_SKIN_COLOR);
                         
-                        float r1 = _bodyBall[_bodyBall[b].parentBall].radius * 0.8;
                         float r2 = _bodyBall[b].radius * 0.8;
-                        if (b == BODY_BALL_HEAD_BASE) {
-                            r1 *= 0.5f;
-                        }
-                        renderJointConnectingCone
-                        (
-                         _bodyBall[_bodyBall[b].parentBall].position,
-                         _bodyBall[b].position, r2, r2
-                         );
+                        
+                        renderJointConnectingCone(_bodyBall[_bodyBall[b].parentBall].position, _bodyBall[b].position, r2, r2);
                     }
                 }
             }
