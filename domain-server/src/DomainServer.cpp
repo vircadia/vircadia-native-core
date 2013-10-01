@@ -552,7 +552,7 @@ int DomainServer::run() {
             }
         }
         
-        const long long RESTART_HOLD_TIME_USECS = 5 * 1000 * 1000;
+        const uint64_t RESTART_HOLD_TIME_USECS = 5 * 1000 * 1000;
         
         if (!_hasCompletedRestartHold && usecTimestampNow() - usecTimestamp(&startTime) > RESTART_HOLD_TIME_USECS) {
             _hasCompletedRestartHold = true;
