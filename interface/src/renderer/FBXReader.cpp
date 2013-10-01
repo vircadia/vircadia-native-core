@@ -297,7 +297,7 @@ glm::mat4 getGlobalTransform(const QMultiHash<qint64, qint64>& parentMap, const 
     while (nodeID != 0) {
         const Transform& localTransform = localTransforms.value(nodeID);
         globalTransform = (useScale ? localTransform.withScale : localTransform.withoutScale) * globalTransform;
-        useScale = useScale && localTransform.inheritScale || forceScale;
+        useScale = (useScale && localTransform.inheritScale) || forceScale;
         
         QList<qint64> parentIDs = parentMap.values(nodeID);
         nodeID = 0;
@@ -450,7 +450,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node) {
                     }
                 } else if (object.name == "Model") {
                     QByteArray name = object.properties.at(1).toByteArray();
-                    if (name.startsWith("jointEyeLeft") || name.startsWith("EyeL" || name.startsWith("joint_Leye"))) {
+                    if (name.startsWith("jointEyeLeft") || name.startsWith("EyeL") || name.startsWith("joint_Leye")) {
                         jointEyeLeftID = object.properties.at(0).value<qint64>();
                         
                     } else if (name.startsWith("jointEyeRight") || name.startsWith("EyeR") || name.startsWith("joint_Reye")) {
