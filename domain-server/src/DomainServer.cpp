@@ -554,6 +554,8 @@ int DomainServer::run() {
         
         const uint64_t RESTART_HOLD_TIME_USECS = 5 * 1000 * 1000;
         
+        qDebug("%d - %llu\n", _hasCompletedRestartHold, usecTimestampNow() - usecTimestamp(&startTime));
+        
         if (!_hasCompletedRestartHold && usecTimestampNow() - usecTimestamp(&startTime) > RESTART_HOLD_TIME_USECS) {
             _hasCompletedRestartHold = true;
             
