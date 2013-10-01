@@ -450,13 +450,13 @@ FBXGeometry extractFBXGeometry(const FBXNode& node) {
                     }
                 } else if (object.name == "Model") {
                     QByteArray name = object.properties.at(1).toByteArray();
-                    if (name.startsWith("jointEyeLeft") || name.startsWith("EyeL")) {
+                    if (name.startsWith("jointEyeLeft") || name.startsWith("EyeL" || name.startsWith("joint_Leye"))) {
                         jointEyeLeftID = object.properties.at(0).value<qint64>();
                         
-                    } else if (name.startsWith("jointEyeRight") || name.startsWith("EyeR")) {
+                    } else if (name.startsWith("jointEyeRight") || name.startsWith("EyeR") || name.startsWith("joint_Reye")) {
                         jointEyeRightID = object.properties.at(0).value<qint64>();
                         
-                    } else if (name.startsWith("jointNeck") || name.startsWith("NeckRot")) {
+                    } else if (name.startsWith("jointNeck") || name.startsWith("NeckRot") || name.startsWith("joint_neck")) {
                         jointNeckID = object.properties.at(0).value<qint64>();
                     }
                     glm::vec3 translation;
@@ -605,7 +605,8 @@ FBXGeometry extractFBXGeometry(const FBXNode& node) {
                 mesh.transform = jointTransform * glm::inverse(transformLinkMatrices.value(clusterID)) * modelTransform;
                 
                 // extract translation component for pivot
-                mesh.pivot = glm::vec3(jointTransform[3][0], jointTransform[3][1], jointTransform[3][2]);
+                glm::mat4 jointTransformScaled = getGlobalTransform(parentMap, localTransforms, jointID, true);
+                mesh.pivot = glm::vec3(jointTransformScaled[3][0], jointTransformScaled[3][1], jointTransformScaled[3][2]);
             }
         }
         
