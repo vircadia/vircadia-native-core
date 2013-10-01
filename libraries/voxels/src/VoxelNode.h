@@ -79,7 +79,7 @@ public:
     void clearDirtyBit() { _isDirty = false; }
     void setDirtyBit() { _isDirty = true; }
     bool hasChangedSince(uint64_t time) const { return (_lastChanged > time); }
-    void markWithChangedTime() { _lastChanged = usecTimestampNow(); notifyUpdateHooks(); }
+    void markWithChangedTime();
     uint64_t getLastChanged() const { return _lastChanged; }
     void handleSubtreeChanged(VoxelTree* myTree);
     

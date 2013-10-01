@@ -54,8 +54,8 @@ void VoxelNode::init(unsigned char * octalCode) {
     _isDirty = true;
     _shouldRender = false;
     _sourceID = UNKNOWN_NODE_ID;
-    markWithChangedTime();
     calculateAABox();
+    markWithChangedTime();
 }
 
 VoxelNode::~VoxelNode() {
@@ -71,6 +71,11 @@ VoxelNode::~VoxelNode() {
     }
 }
 
+void VoxelNode::markWithChangedTime() { 
+    _lastChanged = usecTimestampNow(); 
+    notifyUpdateHooks(); // if the node has changed, notify our hooks
+}
+
 // This method is called by VoxelTree when the subtree below this node
 // is known to have changed. It's intended to be used as a place to do
 // bookkeeping that a node may need to do when the subtree below it has
@@ -78,14 +83,13 @@ VoxelNode::~VoxelNode() {
 // localized, because this method will get called for every node in an
 // recursive unwinding case like delete or add voxel
 void VoxelNode::handleSubtreeChanged(VoxelTree* myTree) {
-    markWithChangedTime();
-    
     // here's a good place to do color re-averaging...
     if (myTree->getShouldReaverage()) {
         setColorFromAverageOfChildren();
     }
     
     recalculateSubTreeNodeCount();
+    markWithChangedTime();
 }
 
 void VoxelNode::recalculateSubTreeNodeCount() {
@@ -134,8 +138,8 @@ void VoxelNode::deleteChildAtIndex(int childIndex) {
         delete _children[childIndex];
         _children[childIndex] = NULL;
         _isDirty = true;
-        markWithChangedTime();
         _childCount--;
+        markWithChangedTime();
     }
 }
 
@@ -145,8 +149,8 @@ VoxelNode* VoxelNode::removeChildAtIndex(int childIndex) {
     if (_children[childIndex]) {
         _children[childIndex] = NULL;
         _isDirty = true;
-        markWithChangedTime();
         _childCount--;
+        markWithChangedTime();
     }
     return returnedChild;
 }
@@ -156,8 +160,8 @@ VoxelNode* VoxelNode::addChildAtIndex(int childIndex) {
         _children[childIndex] = new VoxelNode(childOctalCode(_octalCode, childIndex));
         _children[childIndex]->setVoxelSystem(_voxelSystem); // our child is always part of our voxel system NULL ok
         _isDirty = true;
-        markWithChangedTime();
         _childCount++;
+        markWithChangedTime();
     }
     return _children[childIndex];
 }
@@ -243,9 +247,8 @@ void VoxelNode::setFalseColored(bool isFalseColored) {
         }
         _falseColored = isFalseColored; 
         _isDirty = true;
-        markWithChangedTime();
         _density = 1.0f;       //   If color set, assume leaf, re-averaging will update density if needed.
-
+        markWithChangedTime();
     }
 };
 
@@ -257,8 +260,8 @@ void VoxelNode::setColor(const nodeColor& color) {
             memcpy(&_currentColor,&color,sizeof(nodeColor));
         }
         _isDirty = true;
-        markWithChangedTime();
         _density = 1.0f;       //   If color set, assume leaf, re-averaging will update density if needed.
+        markWithChangedTime();
     }
 }
 #endif
