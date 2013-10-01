@@ -18,10 +18,15 @@
 
 #include "InterfaceConfig.h"
 
+class QNetworkReply;
 class QOpenGLFramebufferObject;
 
-/// Stored cached textures, including render-to-texture targets.
+class NetworkTexture;
+
+/// Stores cached textures, including render-to-texture targets.
 class TextureCache : public QObject {
+    Q_OBJECT
+    
 public:
     
     TextureCache();
@@ -34,6 +39,9 @@ public:
 
     /// Returns the ID of a texture containing the contents of the specified file, loading it if necessary. 
     GLuint getFileTextureID(const QString& filename);
+
+    /// Loads a texture from the specified URL.
+    QSharedPointer<NetworkTexture> getTexture(const QUrl& url);
 
     /// Returns a pointer to the primary framebuffer object.  This render target includes a depth component, and is
     /// used for scene rendering.
@@ -60,6 +68,8 @@ private:
 
     QHash<QString, GLuint> _fileTextureIDs;
 
+    QHash<QUrl, QWeakPointer<NetworkTexture> > _networkTextures;
+
     GLuint _primaryDepthTextureID;
     QOpenGLFramebufferObject* _primaryFramebufferObject;
     QOpenGLFramebufferObject* _secondaryFramebufferObject;
@@ -78,6 +88,24 @@ public:
 private:
     
     GLuint _id;
+};
+
+/// A texture loaded from the network.
+class NetworkTexture : public QObject, public Texture {
+    Q_OBJECT
+
+public:
+    
+    NetworkTexture(const QUrl& url);
+
+private slots:
+    
+    void handleDownloadProgress(qint64 bytesReceived, qint64 bytesTotal);
+    void handleReplyError();    
+    
+private:
+    
+    QNetworkReply* _reply;
 };
 
 /// Caches textures according to pupillary dilation.

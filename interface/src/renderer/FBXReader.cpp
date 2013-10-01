@@ -205,7 +205,7 @@ QVector<glm::vec2> createVec2Vector(const QVector<double>& doubleVector) {
     for (const double* it = doubleVector.constData(), *end = it + doubleVector.size(); it != end; ) {
         float s = *it++;
         float t = *it++;
-        values.append(glm::vec2(s, t));
+        values.append(glm::vec2(s, -t));
     }
     return values;
 }
@@ -316,6 +316,9 @@ FBXGeometry extractFBXGeometry(const FBXNode& node) {
     QMultiHash<qint64, qint64> childMap;
     QHash<qint64, glm::mat4> localTransforms;
     QHash<qint64, glm::mat4> transformLinkMatrices;
+    QHash<qint64, QByteArray> textureFilenames;
+    QHash<qint64, qint64> diffuseTextures;
+    QHash<qint64, qint64> bumpTextures;
     qint64 jointEyeLeftID = 0;
     qint64 jointEyeRightID = 0;
     qint64 jointNeckID = 0;
@@ -500,7 +503,14 @@ FBXGeometry extractFBXGeometry(const FBXNode& node) {
                         glm::mat4_cast(glm::quat(glm::radians(rotation))) *
                         glm::mat4_cast(glm::quat(glm::radians(postRotation))) * glm::translate(-rotationPivot) *
                         glm::translate(scalePivot) * glm::scale(scale) * glm::translate(-scalePivot));
-                    
+                
+                } else if (object.name == "Texture") {
+                    foreach (const FBXNode& subobject, object.children) {
+                        if (subobject.name == "RelativeFilename") {
+                            textureFilenames.insert(object.properties.at(0).value<qint64>(),
+                                subobject.properties.at(0).toByteArray());
+                        }
+                    }
                 } else if (object.name == "Deformer" && object.properties.at(2) == "Cluster") {
                     foreach (const FBXNode& subobject, object.children) {
                         if (subobject.name == "TransformLink") {
@@ -513,6 +523,16 @@ FBXGeometry extractFBXGeometry(const FBXNode& node) {
         } else if (child.name == "Connections") {
             foreach (const FBXNode& connection, child.children) {    
                 if (connection.name == "C") {
+                    if (connection.properties.at(0) == "OP") {
+                        if (connection.properties.at(3) == "DiffuseColor") { 
+                            diffuseTextures.insert(connection.properties.at(2).value<qint64>(),
+                                connection.properties.at(1).value<qint64>());
+                                                    
+                        } else if (connection.properties.at(3) == "Bump") {
+                            bumpTextures.insert(connection.properties.at(2).value<qint64>(),
+                                connection.properties.at(1).value<qint64>());
+                        }
+                    }
                     parentMap.insert(connection.properties.at(1).value<qint64>(), connection.properties.at(2).value<qint64>());
                     childMap.insert(connection.properties.at(2).value<qint64>(), connection.properties.at(1).value<qint64>());
                 }
@@ -537,8 +557,22 @@ FBXGeometry extractFBXGeometry(const FBXNode& node) {
         FBXMesh& mesh = it.value();
         
         // accumulate local transforms
+        qint64 modelID = parentMap.value(it.key());
+        
         for (qint64 parentID = parentMap.value(it.key()); parentID != 0; parentID = parentMap.value(parentID)) {
             mesh.transform = localTransforms.value(parentID) * mesh.transform;
+        }
+        
+        // look for textures
+        foreach (qint64 childID, childMap.values(modelID)) {
+            qint64 diffuseTextureID = diffuseTextures.value(childID);
+            if (diffuseTextureID != 0) {
+                mesh.diffuseFilename = textureFilenames.value(diffuseTextureID);
+            }
+            qint64 bumpTextureID = bumpTextures.value(childID);
+            if (bumpTextureID != 0) {
+                mesh.normalFilename = textureFilenames.value(bumpTextureID);
+            }
         }
         
         // look for a limb pivot

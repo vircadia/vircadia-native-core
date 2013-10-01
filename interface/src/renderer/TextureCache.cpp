@@ -9,6 +9,7 @@
 #include "InterfaceConfig.h"
 
 #include <QGLWidget>
+#include <QNetworkReply>
 #include <QOpenGLFramebufferObject>
 
 #include <glm/gtc/random.hpp>
@@ -81,6 +82,15 @@ GLuint TextureCache::getFileTextureID(const QString& filename) {
         _fileTextureIDs.insert(filename, id);
     }
     return id;
+}
+
+QSharedPointer<NetworkTexture> TextureCache::getTexture(const QUrl& url) {
+    QSharedPointer<NetworkTexture> texture = _networkTextures.value(url);
+    if (texture.isNull()) {
+        texture = QSharedPointer<NetworkTexture>(new NetworkTexture(url));
+        _networkTextures.insert(url, texture);
+    }
+    return texture;
 }
 
 QOpenGLFramebufferObject* TextureCache::getPrimaryFramebufferObject() {
@@ -161,6 +171,41 @@ Texture::Texture() {
 
 Texture::~Texture() {
     glDeleteTextures(1, &_id);
+}
+
+NetworkTexture::NetworkTexture(const QUrl& url) {
+    QNetworkRequest request(url);
+    request.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache);
+    _reply = Application::getInstance()->getNetworkAccessManager()->get(request);
+    
+    connect(_reply, SIGNAL(downloadProgress(qint64,qint64)), SLOT(handleDownloadProgress(qint64,qint64)));
+    connect(_reply, SIGNAL(error(QNetworkReply::NetworkError)), SLOT(handleReplyError()));
+}
+
+void NetworkTexture::handleDownloadProgress(qint64 bytesReceived, qint64 bytesTotal) {
+    if (bytesReceived < bytesTotal && !_reply->isFinished()) {
+        return;
+    }
+
+    QByteArray entirety = _reply->readAll();
+    _reply->disconnect(this);
+    _reply->deleteLater();
+    _reply = NULL;
+    
+    QImage image = QImage::fromData(entirety).convertToFormat(QImage::Format_ARGB32);
+    glBindTexture(GL_TEXTURE_2D, getID());
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width(), image.height(), 1,
+        GL_BGRA, GL_UNSIGNED_BYTE, image.constBits());
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+void NetworkTexture::handleReplyError() {
+    qDebug() << _reply->errorString() << "\n";
+    
+    _reply->disconnect(this);
+    _reply->deleteLater();
+    _reply = NULL;
 }
 
 DilatedTextureCache::DilatedTextureCache(const QString& filename, int innerRadius, int outerRadius) :
