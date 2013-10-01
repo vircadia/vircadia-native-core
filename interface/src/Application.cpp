@@ -2071,9 +2071,21 @@ void Application::updateAvatar(float deltaTime) {
     // Update my avatar's state from gyros and/or webcam
     _myAvatar.updateFromGyrosAndOrWebcam(Menu::getInstance()->isOptionChecked(MenuOption::GyroLook),
                                          _pitchFromTouch);
-        
+    
+    // Update head mouse from faceshift if active
+    if (_faceshift.isActive()) {
+        //glm::quat headRotation = _faceshift.getHeadRotation();
+        /*
+        _headMouseX = _glWidget->getWidth() / 2 + _faceshift.getHeadAngularVelocity()
+        _headMouseX = max(_headMouseX, 0);
+        _headMouseX = min(_headMouseX, _glWidget->width());
+        _headMouseY = max(_headMouseY, 0);
+        _headMouseY = min(_headMouseY, _glWidget->height());
+         */
+
+    }
     if (_serialHeadSensor.isActive()) {
-      
+
         //  Grab latest readings from the gyros
         float measuredPitchRate = _serialHeadSensor.getLastPitchRate();
         float measuredYawRate = _serialHeadSensor.getLastYawRate();
