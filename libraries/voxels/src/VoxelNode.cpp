@@ -154,6 +154,7 @@ VoxelNode* VoxelNode::removeChildAtIndex(int childIndex) {
 VoxelNode* VoxelNode::addChildAtIndex(int childIndex) {
     if (!_children[childIndex]) {
         _children[childIndex] = new VoxelNode(childOctalCode(_octalCode, childIndex));
+        _children[childIndex]->setVoxelSystem(_voxelSystem); // our child is always part of our voxel system NULL ok
         _isDirty = true;
         markWithChangedTime();
         _childCount++;
@@ -403,23 +404,44 @@ float VoxelNode::distanceToPoint(const glm::vec3& point) const {
     return distance;
 }
 
-std::vector<VoxelNodeDeleteHook*> VoxelNode::_hooks;
+std::vector<VoxelNodeDeleteHook*> VoxelNode::_deleteHooks;
 
 void VoxelNode::addDeleteHook(VoxelNodeDeleteHook* hook) {
-    _hooks.push_back(hook);
+    _deleteHooks.push_back(hook);
 }
 
 void VoxelNode::removeDeleteHook(VoxelNodeDeleteHook* hook) {
-    for (int i = 0; i < _hooks.size(); i++) {
-        if (_hooks[i] == hook) {
-            _hooks.erase(_hooks.begin() + i);
+    for (int i = 0; i < _deleteHooks.size(); i++) {
+        if (_deleteHooks[i] == hook) {
+            _deleteHooks.erase(_deleteHooks.begin() + i);
             return;
         }
     }
 }
 
 void VoxelNode::notifyDeleteHooks() {
-    for (int i = 0; i < _hooks.size(); i++) {
-        _hooks[i]->voxelDeleted(this);
+    for (int i = 0; i < _deleteHooks.size(); i++) {
+        _deleteHooks[i]->voxelDeleted(this);
+    }
+}
+
+std::vector<VoxelNodeUpdateHook*> VoxelNode::_updateHooks;
+
+void VoxelNode::addUpdateHook(VoxelNodeUpdateHook* hook) {
+    _updateHooks.push_back(hook);
+}
+
+void VoxelNode::removeUpdateHook(VoxelNodeUpdateHook* hook) {
+    for (int i = 0; i < _updateHooks.size(); i++) {
+        if (_updateHooks[i] == hook) {
+            _updateHooks.erase(_updateHooks.begin() + i);
+            return;
+        }
+    }
+}
+
+void VoxelNode::notifyUpdateHooks() {
+    for (int i = 0; i < _updateHooks.size(); i++) {
+        _updateHooks[i]->voxelUpdated(this);
     }
 }

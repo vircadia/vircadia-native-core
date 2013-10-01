@@ -28,6 +28,13 @@ public:
     virtual void voxelDeleted(VoxelNode* node) = 0;
 };
 
+// Callers who want update hook callbacks should implement this class
+class VoxelNodeUpdateHook {
+public:
+    virtual void voxelUpdated(VoxelNode* node) = 0;
+};
+
+
 class VoxelNode {
 public:
     VoxelNode(); // root node constructor
@@ -72,7 +79,7 @@ public:
     void clearDirtyBit() { _isDirty = false; }
     void setDirtyBit() { _isDirty = true; }
     bool hasChangedSince(uint64_t time) const { return (_lastChanged > time); }
-    void markWithChangedTime() { _lastChanged = usecTimestampNow(); }
+    void markWithChangedTime() { _lastChanged = usecTimestampNow(); notifyUpdateHooks(); }
     uint64_t getLastChanged() const { return _lastChanged; }
     void handleSubtreeChanged(VoxelTree* myTree);
     
@@ -111,6 +118,9 @@ public:
 
     static void addDeleteHook(VoxelNodeDeleteHook* hook);
     static void removeDeleteHook(VoxelNodeDeleteHook* hook);
+
+    static void addUpdateHook(VoxelNodeUpdateHook* hook);
+    static void removeUpdateHook(VoxelNodeUpdateHook* hook);
     
     void recalculateSubTreeNodeCount();
     unsigned long getSubTreeNodeCount() const { return _subtreeNodeCount; }
@@ -121,6 +131,7 @@ private:
     void calculateAABox();
     void init(unsigned char * octalCode);
     void notifyDeleteHooks();
+    void notifyUpdateHooks();
 
     nodeColor _trueColor;
 #ifndef NO_FALSE_COLOR // !NO_FALSE_COLOR means, does have false color
@@ -141,7 +152,8 @@ private:
     float           _density;       // If leaf: density = 1, if internal node: 0-1 density of voxels inside
     uint16_t        _sourceID;
 
-    static std::vector<VoxelNodeDeleteHook*> _hooks;
+    static std::vector<VoxelNodeDeleteHook*> _deleteHooks;
+    static std::vector<VoxelNodeUpdateHook*> _updateHooks;
 };
 
 #endif /* defined(__hifi__VoxelNode__) */
