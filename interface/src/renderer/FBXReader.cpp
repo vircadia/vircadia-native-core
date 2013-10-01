@@ -282,12 +282,22 @@ QHash<QByteArray, int> createBlendshapeMap() {
     }
 }
 
-glm::mat4 getGlobalTransform(
-    const QMultiHash<qint64, qint64>& parentMap, const QHash<qint64, glm::mat4>& localTransforms, qint64 nodeID) {
+class Transform {
+public:
+    bool inheritScale;
+    glm::mat4 withScale;
+    glm::mat4 withoutScale;
+};
+
+glm::mat4 getGlobalTransform(const QMultiHash<qint64, qint64>& parentMap, const QHash<qint64, Transform>& localTransforms,
+    qint64 nodeID, bool forceScale = false) {
     
     glm::mat4 globalTransform;
+    bool useScale = true;
     while (nodeID != 0) {
-        globalTransform = localTransforms.value(nodeID) * globalTransform;
+        const Transform& localTransform = localTransforms.value(nodeID);
+        globalTransform = (useScale ? localTransform.withScale : localTransform.withoutScale) * globalTransform;
+        useScale = useScale && localTransform.inheritScale || forceScale;
         
         QList<qint64> parentIDs = parentMap.values(nodeID);
         nodeID = 0;
@@ -314,7 +324,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node) {
     QVector<ExtractedBlendshape> blendshapes;
     QMultiHash<qint64, qint64> parentMap;
     QMultiHash<qint64, qint64> childMap;
-    QHash<qint64, glm::mat4> localTransforms;
+    QHash<qint64, Transform> localTransforms;
     QHash<qint64, glm::mat4> transformLinkMatrices;
     QHash<qint64, QByteArray> textureFilenames;
     QHash<qint64, qint64> diffuseTextures;
@@ -453,6 +463,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node) {
                     glm::vec3 preRotation, rotation, postRotation;
                     glm::vec3 scale = glm::vec3(1.0f, 1.0f, 1.0f);
                     glm::vec3 scalePivot, rotationPivot;
+                    Transform transform = { true };
                     foreach (const FBXNode& subobject, object.children) {
                         if (subobject.name == "Properties70") {
                             foreach (const FBXNode& property, subobject.children) {
@@ -491,18 +502,22 @@ FBXGeometry extractFBXGeometry(const FBXNode& node) {
                                         scale = glm::vec3(property.properties.at(4).value<double>(),
                                             property.properties.at(5).value<double>(),
                                             property.properties.at(6).value<double>());
+                                            
+                                    } else if (property.properties.at(0) == "InheritType") {
+                                        transform.inheritScale = property.properties.at(4) != 2;
                                     }
                                 }
                             }
                         }
                     }
                     // see FBX documentation, http://download.autodesk.com/us/fbx/20112/FBX_SDK_HELP/index.html
-                    localTransforms.insert(object.properties.at(0).value<qint64>(),
-                        glm::translate(translation) * glm::translate(rotationPivot) *
+                    transform.withoutScale = glm::translate(translation) * glm::translate(rotationPivot) *
                         glm::mat4_cast(glm::quat(glm::radians(preRotation))) *
                         glm::mat4_cast(glm::quat(glm::radians(rotation))) *
-                        glm::mat4_cast(glm::quat(glm::radians(postRotation))) * glm::translate(-rotationPivot) *
-                        glm::translate(scalePivot) * glm::scale(scale) * glm::translate(-scalePivot));
+                        glm::mat4_cast(glm::quat(glm::radians(postRotation))) * glm::translate(-rotationPivot);
+                    transform.withScale = transform.withoutScale * glm::translate(scalePivot) * glm::scale(scale) *
+                        glm::translate(-scalePivot);
+                    localTransforms.insert(object.properties.at(0).value<qint64>(), transform);
                 
                 } else if (object.name == "Texture") {
                     foreach (const FBXNode& subobject, object.children) {
@@ -558,10 +573,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node) {
         
         // accumulate local transforms
         qint64 modelID = parentMap.value(it.key());
-        
-        for (qint64 parentID = parentMap.value(it.key()); parentID != 0; parentID = parentMap.value(parentID)) {
-            mesh.transform = localTransforms.value(parentID) * mesh.transform;
-        }
+        glm::mat4 modelTransform = getGlobalTransform(parentMap, localTransforms, modelID);
         
         // look for textures
         foreach (qint64 childID, childMap.values(modelID)) {
@@ -578,22 +590,23 @@ FBXGeometry extractFBXGeometry(const FBXNode& node) {
         // look for a limb pivot
         mesh.isEye = false;
         foreach (qint64 childID, childMap.values(it.key())) {
-            qint64 clusterID = childMap.value(childID);
-            if (!transformLinkMatrices.contains(clusterID)) {
-                continue;
+            foreach (qint64 clusterID, childMap.values(childID)) {
+                if (!transformLinkMatrices.contains(clusterID)) {
+                    continue;
+                }
+                qint64 jointID = childMap.value(clusterID);
+                if (jointID == jointEyeLeftID || jointID == jointEyeRightID) {
+                    mesh.isEye = true;
+                }
+                
+                // see http://stackoverflow.com/questions/13566608/loading-skinning-information-from-fbx for a discussion
+                // of skinning information in FBX
+                glm::mat4 jointTransform = getGlobalTransform(parentMap, localTransforms, jointID);
+                mesh.transform = jointTransform * glm::inverse(transformLinkMatrices.value(clusterID)) * modelTransform;
+                
+                // extract translation component for pivot
+                mesh.pivot = glm::vec3(jointTransform[3][0], jointTransform[3][1], jointTransform[3][2]);
             }
-            qint64 jointID = childMap.value(clusterID);
-            if (jointID == jointEyeLeftID || jointID == jointEyeRightID) {
-                mesh.isEye = true;
-            }
-            
-            // see http://stackoverflow.com/questions/13566608/loading-skinning-information-from-fbx for a discussion
-            // of skinning information in FBX
-            glm::mat4 jointTransform = getGlobalTransform(parentMap, localTransforms, jointID);
-            mesh.transform = jointTransform * glm::inverse(transformLinkMatrices.value(clusterID)) * mesh.transform;
-            
-            // extract translation component for pivot
-            mesh.pivot = glm::vec3(jointTransform[3][0], jointTransform[3][1], jointTransform[3][2]);
         }
         
         if (mesh.blendshapes.size() > mostBlendshapes) {
@@ -606,7 +619,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node) {
     }
     
     // extract translation component for neck pivot
-    glm::mat4 neckTransform = getGlobalTransform(parentMap, localTransforms, jointNeckID);
+    glm::mat4 neckTransform = getGlobalTransform(parentMap, localTransforms, jointNeckID, true);
     geometry.neckPivot = glm::vec3(neckTransform[3][0], neckTransform[3][1], neckTransform[3][2]);
     
     return geometry;

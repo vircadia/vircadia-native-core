@@ -135,7 +135,7 @@ bool BlendFace::render(float alpha) {
             const vector<float>& coefficients = _owningHead->getBlendshapeCoefficients();
             for (int j = 0; j < coefficients.size(); j++) {
                 float coefficient = coefficients[j];
-                if (coefficient == 0.0f || i >= mesh.blendshapes.size() || mesh.blendshapes[j].vertices.isEmpty()) {
+                if (coefficient == 0.0f || j >= mesh.blendshapes.size() || mesh.blendshapes[j].vertices.isEmpty()) {
                     continue;
                 }
                 const float NORMAL_COEFFICIENT_SCALE = 0.01f;
