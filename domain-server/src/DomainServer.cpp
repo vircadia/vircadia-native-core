@@ -569,7 +569,6 @@ int DomainServer::run() {
                 bool foundMatchingAssignment = false;
                 
                 // enumerate the nodes and check if there is one with an attached assignment with matching UUID
-                // if the node has sent no types of interest, assume they want nothing but their own ID back
                 for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
                     if (node->getLinkedData()) {
                         Assignment* linkedAssignment = (Assignment*) node->getLinkedData();
