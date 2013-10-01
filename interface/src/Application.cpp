@@ -320,11 +320,6 @@ void Application::initializeGL() {
     // update before the first render
     update(0.0f);
     
-    // now that things are drawn - if this is an OS X release build we can check for an update
-#if defined(Q_OS_MAC) && defined(QT_NO_DEBUG)
-    Menu::getInstance()->checkForUpdates();
-#endif
-
     InfoView::showFirstTime();
 }
 

@@ -52,6 +52,7 @@ find_package(Qt5Multimedia REQUIRED)
 find_package(Qt5Network REQUIRED)
 find_package(Qt5OpenGL REQUIRED)
 find_package(Qt5Svg REQUIRED)
+find_package(Qt5WebKit REQUIRED)
 find_package(Qt5WebKitWidgets REQUIRED)
 
 if (APPLE)
@@ -75,10 +76,6 @@ if (APPLE)
     endif()    
   endforeach()  
 endif (APPLE)
-
-set(QUAZIP_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/quazip)
-add_subdirectory(external/fervor/)
-include_directories(external/fervor/)
 
 # create the executable, make it a bundle on OS X
 add_executable(${TARGET_NAME} MACOSX_BUNDLE ${INTERFACE_SRCS})
@@ -112,7 +109,7 @@ if (OPENNI_FOUND AND NOT DISABLE_OPENNI)
     target_link_libraries(${TARGET_NAME} ${OPENNI_LIBRARIES})
 endif (OPENNI_FOUND AND NOT DISABLE_OPENNI)
 
-qt5_use_modules(${TARGET_NAME} Core Gui Multimedia Network OpenGL Svg)
+qt5_use_modules(${TARGET_NAME} Core Gui Multimedia Network OpenGL Svg WebKit WebKitWidgets)
 
 # include headers for interface and InterfaceConfig.
 include_directories(
@@ -141,7 +138,6 @@ target_link_libraries(
   ${MOTIONDRIVER_LIBRARIES}
   ${OPENCV_LIBRARIES} 
   ${ZLIB_LIBRARIES}
-  fervor
 )
 
 if (APPLE)
