@@ -36,8 +36,11 @@ sockaddr_in customAssignmentSocket = {};
 int numForks = 0;
 Assignment::Type overiddenAssignmentType = Assignment::AllTypes;
 
+int argc = 0;
+char** argv = NULL;
+
 void childClient() {
-    // this is one of the child forks or there is a single assignment client, continue assignment-client execution
+    QCoreApplication application(::argc, ::argv);
     
     // set the logging target to the the CHILD_TARGET_NAME
     Logging::setTargetName(CHILD_TARGET_NAME);
@@ -171,9 +174,9 @@ void parentMonitor() {
     delete[] ::childForks;
 }
 
-int main(int argc, const char* argv[]) {
-    
-    QCoreApplication app(argc, (char**) argv);
+int main(int argc, char* argv[]) {
+    ::argc = argc;
+    ::argv = argv;
     
     setvbuf(stdout, NULL, _IOLBF, 0);
     
@@ -187,8 +190,8 @@ int main(int argc, const char* argv[]) {
     const char CUSTOM_ASSIGNMENT_SERVER_PORT_OPTION[] = "-p";
     
     // grab the overriden assignment-server hostname from argv, if it exists
-    const char* customAssignmentServerHostname = getCmdOption(argc, argv, CUSTOM_ASSIGNMENT_SERVER_HOSTNAME_OPTION);
-    const char* customAssignmentServerPortString = getCmdOption(argc, argv, CUSTOM_ASSIGNMENT_SERVER_PORT_OPTION);
+    const char* customAssignmentServerHostname = getCmdOption(argc, (const char**)argv, CUSTOM_ASSIGNMENT_SERVER_HOSTNAME_OPTION);
+    const char* customAssignmentServerPortString = getCmdOption(argc,(const char**)argv, CUSTOM_ASSIGNMENT_SERVER_PORT_OPTION);
     
     if (customAssignmentServerHostname || customAssignmentServerPortString) {
         
@@ -205,7 +208,7 @@ int main(int argc, const char* argv[]) {
     }
     
     const char ASSIGNMENT_TYPE_OVVERIDE_OPTION[] = "-t";
-    const char* assignmentTypeString = getCmdOption(argc, argv, ASSIGNMENT_TYPE_OVVERIDE_OPTION);
+    const char* assignmentTypeString = getCmdOption(argc, (const char**)argv, ASSIGNMENT_TYPE_OVVERIDE_OPTION);
     
     if (assignmentTypeString) {
         // the user is asking to only be assigned to a particular type of assignment
@@ -214,7 +217,7 @@ int main(int argc, const char* argv[]) {
     }
 
     const char* NUM_FORKS_PARAMETER = "-n";
-    const char* numForksString = getCmdOption(argc, argv, NUM_FORKS_PARAMETER);
+    const char* numForksString = getCmdOption(argc, (const char**)argv, NUM_FORKS_PARAMETER);
     
     int processID = 0;
     
