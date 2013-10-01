@@ -46,6 +46,7 @@ private:
     Assignment* deployableAssignmentForRequest(Assignment& requestAssignment);
     void removeAssignmentFromQueue(Assignment* removableAssignment);
     bool checkInWithUUIDMatchesExistingNode(sockaddr* nodePublicSocket, sockaddr* nodeLocalSocket, const uchar* checkInData);
+    void possiblyAddStaticAssignmentsBackToQueueAfterRestart(timeval* startTime);
     
     void cleanup();
     
