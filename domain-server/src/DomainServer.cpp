@@ -563,6 +563,7 @@ int DomainServer::run() {
             for (int i = 0; i < MAX_STATIC_ASSIGNMENT_FILE_ASSIGNMENTS; i++) {
                 if (_staticAssignments[i].getUUID().isNull()) {
                     // reached the end of static assignments, bail
+                    qDebug() << "Reached the end of SA file with i at" << i << "\n";
                     break;
                 }
                 
