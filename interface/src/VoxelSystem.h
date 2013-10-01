@@ -145,6 +145,7 @@ protected:
 
     void setupNewVoxelsForDrawing();
     void setupNewVoxelsForDrawingSingleNode();
+    void checkForCulling();
     
     glm::vec3 computeVoxelVertex(const glm::vec3& startVertex, float voxelScale, int index) const;
 
