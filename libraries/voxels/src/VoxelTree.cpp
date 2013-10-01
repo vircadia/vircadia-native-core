@@ -214,10 +214,15 @@ int VoxelTree::readNodeData(VoxelNode* destinationNode, unsigned char* nodeData,
                 memcpy(newColor, nodeData + bytesRead, 3);
                 bytesRead += 3;
             }
-            bool nodeWasDirty = destinationNode->getChildAtIndex(i)->isDirty();
-            destinationNode->getChildAtIndex(i)->setColor(newColor);
-            destinationNode->getChildAtIndex(i)->setSourceID(args.sourceID);
-            bool nodeIsDirty = destinationNode->getChildAtIndex(i)->isDirty();
+            VoxelNode* childNodeAt = destinationNode->getChildAtIndex(i);
+            bool nodeWasDirty = false;
+            bool nodeIsDirty = false;
+            if (childNodeAt) {
+                nodeWasDirty = childNodeAt->isDirty();
+                childNodeAt->setColor(newColor);
+                childNodeAt->setSourceID(args.sourceID);
+                nodeIsDirty = childNodeAt->isDirty();
+            }
             if (nodeIsDirty) {
                 _isDirty = true;
             }
@@ -316,7 +321,9 @@ void VoxelTree::readBitstreamToTree(unsigned char * bitstream, unsigned long int
         bitstreamAt += theseBytesRead;
         bytesRead +=  theseBytesRead;
 
-        emit importProgress((100 * (bitstreamAt - bitstream)) / bufferSizeBytes);
+        if (args.wantImportProgress) {
+            emit importProgress((100 * (bitstreamAt - bitstream)) / bufferSizeBytes);
+        }
     }
 
     this->voxelsBytesRead += bufferSizeBytes;
@@ -1539,7 +1546,8 @@ bool VoxelTree::readFromSVOFile(const char* fileName) {
         // read the entire file into a buffer, WHAT!? Why not.
         unsigned char* entireFile = new unsigned char[fileLength];
         file.read((char*)entireFile, fileLength);
-        ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS);
+        bool wantImportProgress = true;
+        ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS, NULL, UNKNOWN_NODE_ID, wantImportProgress);
         readBitstreamToTree(entireFile, fileLength, args);
         delete[] entireFile;
 
@@ -1798,7 +1806,8 @@ void VoxelTree::copyFromTreeIntoSubTree(VoxelTree* sourceTree, VoxelNode* destin
         bytesWritten = sourceTree->encodeTreeBitstream(subTree, &outputBuffer[0], MAX_VOXEL_PACKET_SIZE - 1, nodeBag, params);
 
         // ask destination tree to read the bitstream
-        ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS, destinationNode);
+        bool wantImportProgress = true;
+        ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS, destinationNode, UNKNOWN_NODE_ID, wantImportProgress);
         readBitstreamToTree(&outputBuffer[0], bytesWritten, args);
     }
 }
