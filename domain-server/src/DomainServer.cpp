@@ -563,13 +563,13 @@ int DomainServer::run() {
             for (int i = 0; i < MAX_STATIC_ASSIGNMENT_FILE_ASSIGNMENTS; i++) {
                 if (_staticAssignments[i].getUUID().isNull()) {
                     // reached the end of static assignments, bail
+                    qDebug() << "Reached the end of SA file with i at" << i << "\n";
                     break;
                 }
                 
                 bool foundMatchingAssignment = false;
                 
                 // enumerate the nodes and check if there is one with an attached assignment with matching UUID
-                // if the node has sent no types of interest, assume they want nothing but their own ID back
                 for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
                     if (node->getLinkedData()) {
                         Assignment* linkedAssignment = (Assignment*) node->getLinkedData();
