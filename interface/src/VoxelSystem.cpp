@@ -111,10 +111,6 @@ void VoxelSystem::voxelDeleted(VoxelNode* node) {
 void VoxelSystem::setUseFastVoxelPipeline(bool useFastVoxelPipeline) {
     _useFastVoxelPipeline = useFastVoxelPipeline;
     printf("setUseFastVoxelPipeline() _useFastVoxelPipeline=%s\n", debug::valueOf(_useFastVoxelPipeline));
-    //forceRedrawEntireTree();
-    if (_voxelsUpdated < 1) {
-        _voxelsUpdated = 1;
-    }
     setupNewVoxelsForDrawing();
 }
 
@@ -826,7 +822,6 @@ int VoxelSystem::updateNodeInArraysAsFullVBO(VoxelNode* node) {
         return 1; // rendered
     } else {
         node->setBufferIndex(GLBUFFER_INDEX_UNKNOWN);
-        //node->setVoxelSystem(NULL);
     }
     
     return 0; // not-rendered
