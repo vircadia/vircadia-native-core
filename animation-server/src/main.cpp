@@ -618,7 +618,7 @@ void* animateVoxels(void* args) {
         }
         
         if (::voxelEditPacketSender) {
-            ::voxelEditPacketSender->flushQueue();
+            ::voxelEditPacketSender->releaseQueuedMessages();
         }
         
         uint64_t end = usecTimestampNow();

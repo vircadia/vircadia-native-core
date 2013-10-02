@@ -1440,7 +1440,7 @@ void Application::pasteVoxels() {
         _sharedVoxelSystem.changeTree(&_clipboard);
     }
 
-    _voxelEditSender.flushQueue();
+    _voxelEditSender.releaseQueuedMessages();
     
     if (calculatedOctCode) {
         delete[] calculatedOctCode;

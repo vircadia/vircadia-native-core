@@ -45,12 +45,15 @@ public:
     virtual bool process();
     virtual void processWithoutSleep();
 
+    /// are there packets waiting in the send queue to be sent
+    bool hasPacketsToSend() const { return _packets.size() > 0; }
+
+    /// how many packets are there in the send queue waiting to be sent
+    int packetsToSendCount() const { return _packets.size(); }
+
 protected:
     int _packetsPerSecond;
     
-    bool hasPacketsToSend() const { return _packets.size() > 0; }
-    int packetsToSendCount() const { return _packets.size(); }
-
 private:
     std::vector<NetworkPacket> _packets;
     uint64_t _lastSendTime;
