@@ -207,7 +207,7 @@ void BlendFace::getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEy
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     foreach (const FBXMesh& mesh, geometry.meshes) {
         if (mesh.isEye) {
-            glm::vec3 position = orientation * ((mesh.pivot - geometry.neckPivot) * scale + MODEL_TRANSLATION) +
+            glm::vec3 position = orientation * ((mesh.pivot + MODEL_TRANSLATION - geometry.neckPivot) * scale) +
                 _owningHead->getPosition();
             if (foundFirst) {
                 secondEyePosition = position;
