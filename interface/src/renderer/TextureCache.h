@@ -97,6 +97,7 @@ class NetworkTexture : public QObject, public Texture {
 public:
     
     NetworkTexture(const QUrl& url);
+    ~NetworkTexture();
 
 private slots:
     

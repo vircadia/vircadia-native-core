@@ -250,7 +250,10 @@ QSharedPointer<NetworkGeometry> GeometryCache::getGeometry(const QUrl& url) {
     return geometry;
 }
 
-NetworkGeometry::NetworkGeometry(const QUrl& url) {
+NetworkGeometry::NetworkGeometry(const QUrl& url) : _reply(NULL) {
+    if (!url.isValid()) {
+        return;
+    }
     QNetworkRequest request(url);
     request.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache);
     _reply = Application::getInstance()->getNetworkAccessManager()->get(request);
@@ -260,6 +263,9 @@ NetworkGeometry::NetworkGeometry(const QUrl& url) {
 }
 
 NetworkGeometry::~NetworkGeometry() {
+    if (_reply != NULL) {
+        delete _reply;
+    }
     foreach (const NetworkMesh& mesh, _meshes) {
         glDeleteBuffers(1, &mesh.indexBufferID);
         glDeleteBuffers(1, &mesh.vertexBufferID);

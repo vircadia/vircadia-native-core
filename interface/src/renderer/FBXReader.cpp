@@ -290,7 +290,7 @@ public:
 };
 
 glm::mat4 getGlobalTransform(const QMultiHash<qint64, qint64>& parentMap, const QHash<qint64, Transform>& localTransforms,
-    qint64 nodeID, bool forceScale = false) {
+    qint64 nodeID, bool forceScale = true) {
     
     glm::mat4 globalTransform;
     bool useScale = true;

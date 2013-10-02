@@ -173,13 +173,22 @@ Texture::~Texture() {
     glDeleteTextures(1, &_id);
 }
 
-NetworkTexture::NetworkTexture(const QUrl& url) {
+NetworkTexture::NetworkTexture(const QUrl& url) : _reply(NULL) {
+    if (!url.isValid()) {
+        return;
+    }
     QNetworkRequest request(url);
     request.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache);
     _reply = Application::getInstance()->getNetworkAccessManager()->get(request);
     
     connect(_reply, SIGNAL(downloadProgress(qint64,qint64)), SLOT(handleDownloadProgress(qint64,qint64)));
     connect(_reply, SIGNAL(error(QNetworkReply::NetworkError)), SLOT(handleReplyError()));
+}
+
+NetworkTexture::~NetworkTexture() {
+    if (_reply != NULL) {
+        delete _reply;
+    }
 }
 
 void NetworkTexture::handleDownloadProgress(qint64 bytesReceived, qint64 bytesTotal) {
