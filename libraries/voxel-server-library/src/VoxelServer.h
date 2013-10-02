@@ -10,6 +10,8 @@
 #ifndef __voxel_server__VoxelServer__
 #define __voxel_server__VoxelServer__
 
+#include <QStringList>
+
 #include <Assignment.h>
 #include <EnvironmentData.h>
 

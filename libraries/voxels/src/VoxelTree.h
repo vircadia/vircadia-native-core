@@ -98,20 +98,23 @@ public:
 
 class ReadBitstreamToTreeParams {
 public:
-    bool                includeColor;
-    bool                includeExistsBits;
-    VoxelNode*          destinationNode;
-    uint16_t            sourceID;
+    bool includeColor;
+    bool includeExistsBits;
+    VoxelNode* destinationNode;
+    uint16_t sourceID;
+    bool wantImportProgress;
     
     ReadBitstreamToTreeParams(
-        bool                includeColor        = WANT_COLOR, 
-        bool                includeExistsBits   = WANT_EXISTS_BITS,
-        VoxelNode*          destinationNode     = NULL,
-        uint16_t            sourceID            = UNKNOWN_NODE_ID) :
-            includeColor            (includeColor),
-            includeExistsBits       (includeExistsBits),
-            destinationNode         (destinationNode),
-            sourceID                (sourceID)
+        bool includeColor = WANT_COLOR, 
+        bool includeExistsBits = WANT_EXISTS_BITS,
+        VoxelNode* destinationNode = NULL,
+        uint16_t sourceID = UNKNOWN_NODE_ID,
+        bool wantImportProgress = false) :
+            includeColor(includeColor),
+            includeExistsBits(includeExistsBits),
+            destinationNode(destinationNode),
+            sourceID(sourceID),
+            wantImportProgress(wantImportProgress)
     {}
 };
 
