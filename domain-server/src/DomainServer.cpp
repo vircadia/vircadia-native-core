@@ -345,7 +345,7 @@ void DomainServer::possiblyAddStaticAssignmentsBackToQueueAfterRestart(timeval* 
     // throw into the assignment queue
     const uint64_t RESTART_HOLD_TIME_USECS = 5 * 1000 * 1000;
     
-    if (usecTimestampNow() - usecTimestamp(startTime) > RESTART_HOLD_TIME_USECS) {
+    if (!_hasCompletedRestartHold && usecTimestampNow() - usecTimestamp(startTime) > RESTART_HOLD_TIME_USECS) {
         _hasCompletedRestartHold = true;
         
         // pull anything in the static assignment file that isn't spoken for and add to the assignment queue
@@ -530,7 +530,7 @@ int DomainServer::run() {
                 
                 qDebug("Received a request for assignment.\n");
                 
-                if (_hasCompletedRestartHold) {
+                if (!_hasCompletedRestartHold) {
                     possiblyAddStaticAssignmentsBackToQueueAfterRestart(&startTime);
                 }
                 
