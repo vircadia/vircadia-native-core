@@ -27,6 +27,7 @@ PacketSender::PacketSender(PacketSenderNotify* notify, int packetsPerSecond) :
 
 
 void PacketSender::queuePacketForSending(sockaddr& address, unsigned char* packetData, ssize_t packetLength) {
+    //printf("PacketSender::queuePacketForSending packetLength=%ld\n",packetLength);
     NetworkPacket packet(address, packetData, packetLength);
     lock();
     _packets.push_back(packet);
@@ -34,6 +35,7 @@ void PacketSender::queuePacketForSending(sockaddr& address, unsigned char* packe
 }
 
 bool PacketSender::process() {
+    printf("PacketSender::process() _packets.size()=%ld\n",_packets.size());
     uint64_t USECS_PER_SECOND = 1000 * 1000;
     uint64_t SEND_INTERVAL_USECS = (_packetsPerSecond == 0) ? USECS_PER_SECOND : (USECS_PER_SECOND / _packetsPerSecond);
     
