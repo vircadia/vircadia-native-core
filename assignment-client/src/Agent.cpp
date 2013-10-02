@@ -150,7 +150,7 @@ void Agent::run() {
                 }
                 
                 // flush the queue of packets and then process them so they are all sent off
-                voxelScripter.getVoxelPacketSender()->flushQueue();
+                voxelScripter.getVoxelPacketSender()->releaseQueuedMessages();
                 voxelScripter.getVoxelPacketSender()->processWithoutSleep();
             }
             
