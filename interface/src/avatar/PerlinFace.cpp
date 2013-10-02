@@ -248,8 +248,8 @@ void PerlinFace::render() {
 
 
     Head::_irisProgram.bind();
-    _owningHead->_irisTexture = Head::_irisTextureCache.getTexture(_owningHead->_pupilDilation);
-    glBindTexture(GL_TEXTURE_2D, _owningHead->_irisTexture->getID());
+    _owningHead->_dilatedIrisTexture = Head::_irisTexture->getDilatedTexture(_owningHead->_pupilDilation);
+    glBindTexture(GL_TEXTURE_2D, _owningHead->_dilatedIrisTexture->getID());
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
     

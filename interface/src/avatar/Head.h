@@ -139,10 +139,10 @@ private:
     PerlinFace _perlinFace;
     BlendFace _blendFace;
 
-    QSharedPointer<Texture> _irisTexture;
+    QSharedPointer<Texture> _dilatedIrisTexture;
 
     static ProgramObject _irisProgram;
-    static DilatedTextureCache _irisTextureCache;
+    static QSharedPointer<DilatableNetworkTexture> _irisTexture;
     static int _eyePositionLocation;
     
     // private methods

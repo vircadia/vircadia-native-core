@@ -329,7 +329,7 @@ void NetworkGeometry::handleDownloadProgress(qint64 bytesReceived, qint64 bytesT
         }
         if (!mesh.diffuseFilename.isEmpty()) {
             url.setPath(basePath + mesh.diffuseFilename);
-            networkMesh.diffuseTexture = Application::getInstance()->getTextureCache()->getTexture(url);
+            networkMesh.diffuseTexture = Application::getInstance()->getTextureCache()->getTexture(url, mesh.isEye);
         }
         if (!mesh.normalFilename.isEmpty()) {
             url.setPath(basePath + mesh.normalFilename);

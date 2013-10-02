@@ -27,7 +27,6 @@ BlendFace::~BlendFace() {
 }
 
 ProgramObject BlendFace::_eyeProgram;
-DilatedTextureCache BlendFace::_eyeTextureCache("resources/images/eye.png", 50, 210);
 
 void BlendFace::init() {
     if (!_eyeProgram.isLinked()) {
@@ -65,6 +64,9 @@ bool BlendFace::render(float alpha) {
             }
             _blendedVertexBufferIDs.append(id);
         }
+        
+        // make sure we have the right number of dilated texture pointers
+        _dilatedTextures.resize(geometry.meshes.size());
     }
 
     glPushMatrix();
@@ -99,6 +101,7 @@ bool BlendFace::render(float alpha) {
         glPushMatrix();
         
         // apply eye rotation if appropriate
+        Texture* texture = networkMesh.diffuseTexture.data();
         if (mesh.isEye) {
             glTranslatef(mesh.pivot.x, mesh.pivot.y, mesh.pivot.z);
             glm::quat rotation = glm::inverse(orientation) * _owningHead->getEyeRotation(orientation *
@@ -108,6 +111,11 @@ bool BlendFace::render(float alpha) {
             glTranslatef(-mesh.pivot.x, -mesh.pivot.y, -mesh.pivot.z);
         
             _eyeProgram.bind();
+            
+            if (texture != NULL) {
+                texture = (_dilatedTextures[i] = static_cast<DilatableNetworkTexture*>(texture)->getDilatedTexture(
+                    _owningHead->getPupilDilation())).data();
+            }
         }
         
         glMultMatrixf((const GLfloat*)&mesh.transform);
@@ -117,7 +125,7 @@ bool BlendFace::render(float alpha) {
             glColor4f(1.0f, 1.0f, 1.0f, alpha);
         }
         
-        glBindTexture(GL_TEXTURE_2D, networkMesh.diffuseTexture ? networkMesh.diffuseTexture->getID() : 0);
+        glBindTexture(GL_TEXTURE_2D, texture == NULL ? 0 : texture->getID());
         
         glBindBuffer(GL_ARRAY_BUFFER, networkMesh.vertexBufferID);
         if (mesh.blendshapes.isEmpty()) {
@@ -218,8 +226,9 @@ void BlendFace::setModelURL(const QUrl& url) {
     }
     _modelURL = url;
 
-    // delete our local geometry
+    // delete our local geometry and custom textures
     deleteGeometry();
+    _dilatedTextures.clear();
     
     _geometry = Application::getInstance()->getGeometryCache()->getGeometry(url);
 }

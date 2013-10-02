@@ -41,7 +41,7 @@ public:
     GLuint getFileTextureID(const QString& filename);
 
     /// Loads a texture from the specified URL.
-    QSharedPointer<NetworkTexture> getTexture(const QUrl& url);
+    QSharedPointer<NetworkTexture> getTexture(const QUrl& url, bool dilatable = false);
 
     /// Returns a pointer to the primary framebuffer object.  This render target includes a depth component, and is
     /// used for scene rendering.
@@ -99,6 +99,10 @@ public:
     NetworkTexture(const QUrl& url);
     ~NetworkTexture();
 
+protected:
+
+    virtual void imageLoaded(const QImage& image);    
+    
 private slots:
     
     void handleDownloadProgress(qint64 bytesReceived, qint64 bytesTotal);
@@ -109,22 +113,28 @@ private:
     QNetworkReply* _reply;
 };
 
-/// Caches textures according to pupillary dilation.
-class DilatedTextureCache {
+/// Caches derived, dilated textures.
+class DilatableNetworkTexture : public NetworkTexture {
+    Q_OBJECT
+    
 public:
-
-    DilatedTextureCache(const QString& filename, int innerRadius, int outerRadius);
-
+    
+    DilatableNetworkTexture(const QUrl& url);
+    
     /// Returns a pointer to a texture with the requested amount of dilation.
-    QSharedPointer<Texture> getTexture(float dilation);
+    QSharedPointer<Texture> getDilatedTexture(float dilation);
+    
+protected:
+
+    virtual void imageLoaded(const QImage& image);
     
 private:
-
+    
     QImage _image;
     int _innerRadius;
     int _outerRadius;
     
-    QMap<float, QWeakPointer<Texture> > _textures;
+    QMap<float, QWeakPointer<Texture> > _dilatedTextures;    
 };
 
 #endif /* defined(__interface__TextureCache__) */

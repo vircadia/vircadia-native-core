@@ -84,10 +84,10 @@ GLuint TextureCache::getFileTextureID(const QString& filename) {
     return id;
 }
 
-QSharedPointer<NetworkTexture> TextureCache::getTexture(const QUrl& url) {
+QSharedPointer<NetworkTexture> TextureCache::getTexture(const QUrl& url, bool dilatable) {
     QSharedPointer<NetworkTexture> texture = _networkTextures.value(url);
     if (texture.isNull()) {
-        texture = QSharedPointer<NetworkTexture>(new NetworkTexture(url));
+        texture = QSharedPointer<NetworkTexture>(dilatable ? new DilatableNetworkTexture(url) : new NetworkTexture(url));
         _networkTextures.insert(url, texture);
     }
     return texture;
@@ -191,6 +191,10 @@ NetworkTexture::~NetworkTexture() {
     }
 }
 
+void NetworkTexture::imageLoaded(const QImage& image) {
+    // nothing by default
+}
+
 void NetworkTexture::handleDownloadProgress(qint64 bytesReceived, qint64 bytesTotal) {
     if (bytesReceived < bytesTotal && !_reply->isFinished()) {
         return;
@@ -202,6 +206,7 @@ void NetworkTexture::handleDownloadProgress(qint64 bytesReceived, qint64 bytesTo
     _reply = NULL;
     
     QImage image = QImage::fromData(entirety).convertToFormat(QImage::Format_ARGB32);
+    imageLoaded(image);
     glBindTexture(GL_TEXTURE_2D, getID());
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width(), image.height(), 1,
         GL_BGRA, GL_UNSIGNED_BYTE, image.constBits());
@@ -217,35 +222,57 @@ void NetworkTexture::handleReplyError() {
     _reply = NULL;
 }
 
-DilatedTextureCache::DilatedTextureCache(const QString& filename, int innerRadius, int outerRadius) :
-    _innerRadius(innerRadius),
-    _outerRadius(outerRadius)
+DilatableNetworkTexture::DilatableNetworkTexture(const QUrl& url) :
+    NetworkTexture(url),
+    _innerRadius(0),
+    _outerRadius(0)
 {
-    switchToResourcesParentIfRequired();
-    _image = QImage(filename).convertToFormat(QImage::Format_ARGB32);
 }
 
-QSharedPointer<Texture> DilatedTextureCache::getTexture(float dilation) {
-    QSharedPointer<Texture> texture = _textures.value(dilation);
+void DilatableNetworkTexture::imageLoaded(const QImage& image) {
+    _image = image;
+    
+    // scan out from the center to find inner and outer radii
+    int halfWidth = image.width() / 2;
+    int halfHeight = image.height() / 2;
+    const int BLACK_THRESHOLD = 32;
+    while (_innerRadius < halfWidth && qGray(image.pixel(halfWidth + _innerRadius, halfHeight)) < BLACK_THRESHOLD) {
+        _innerRadius++;
+    }
+    _outerRadius = _innerRadius;
+    const int TRANSPARENT_THRESHOLD = 32;
+    while (_outerRadius < halfWidth && qAlpha(image.pixel(halfWidth + _outerRadius, halfHeight)) > TRANSPARENT_THRESHOLD) {
+        _outerRadius++;
+    }
+    
+    // clear out any textures we generated before loading
+    _dilatedTextures.clear();
+}
+
+QSharedPointer<Texture> DilatableNetworkTexture::getDilatedTexture(float dilation) {
+    QSharedPointer<Texture> texture = _dilatedTextures.value(dilation);
     if (texture.isNull()) {
         texture = QSharedPointer<Texture>(new Texture());
         
-        QImage dilatedImage = _image;
-        QPainter painter;
-        painter.begin(&dilatedImage);
-        QPainterPath path;
-        qreal radius = glm::mix(_innerRadius, _outerRadius, dilation);
-        path.addEllipse(QPointF(_image.width() / 2.0, _image.height() / 2.0), radius, radius);
-        painter.fillPath(path, Qt::black);
-        painter.end();
+        if (!_image.isNull()) {
+            QImage dilatedImage = _image;
+            QPainter painter;
+            painter.begin(&dilatedImage);
+            QPainterPath path;
+            qreal radius = glm::mix(_innerRadius, _outerRadius, dilation);
+            path.addEllipse(QPointF(_image.width() / 2.0, _image.height() / 2.0), radius, radius);
+            painter.fillPath(path, Qt::black);
+            painter.end();
+            
+            glBindTexture(GL_TEXTURE_2D, texture->getID());
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, dilatedImage.width(), dilatedImage.height(), 1,
+                GL_BGRA, GL_UNSIGNED_BYTE, dilatedImage.constBits());
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glBindTexture(GL_TEXTURE_2D, 0);
+        }
         
-        glBindTexture(GL_TEXTURE_2D, texture->getID());
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, dilatedImage.width(), dilatedImage.height(), 1,
-            GL_BGRA, GL_UNSIGNED_BYTE, dilatedImage.constBits());
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glBindTexture(GL_TEXTURE_2D, 0);
-        
-        _textures.insert(dilation, texture);
+        _dilatedTextures.insert(dilation, texture);
     }
     return texture;
 }
+

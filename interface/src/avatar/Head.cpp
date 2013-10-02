@@ -46,7 +46,7 @@ const float IRIS_PROTRUSION          =  0.0145f;
 const char  IRIS_TEXTURE_FILENAME[]  =  "resources/images/iris.png";
 
 ProgramObject Head::_irisProgram;
-DilatedTextureCache Head::_irisTextureCache(IRIS_TEXTURE_FILENAME, 53, 127);
+QSharedPointer<DilatableNetworkTexture> Head::_irisTexture;
 int Head::_eyePositionLocation;
 
 Head::Head(Avatar* owningAvatar) :
@@ -103,6 +103,9 @@ void Head::init() {
 
         _irisProgram.setUniformValue("texture", 0);
         _eyePositionLocation = _irisProgram.uniformLocation("eyePosition");
+        
+        _irisTexture = Application::getInstance()->getTextureCache()->getTexture(QUrl::fromLocalFile(IRIS_TEXTURE_FILENAME),
+            true).staticCast<DilatableNetworkTexture>();
     }
     _blendFace.init();
 }
@@ -624,8 +627,8 @@ void Head::renderEyeBalls() {
 
     _irisProgram.bind();
     
-    _irisTexture = _irisTextureCache.getTexture(_pupilDilation);
-    glBindTexture(GL_TEXTURE_2D, _irisTexture->getID());
+    _dilatedIrisTexture = _irisTexture->getDilatedTexture(_pupilDilation);
+    glBindTexture(GL_TEXTURE_2D, _dilatedIrisTexture->getID());
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
     

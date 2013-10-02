@@ -51,14 +51,12 @@ private:
     QSharedPointer<NetworkGeometry> _geometry;
     
     QVector<GLuint> _blendedVertexBufferIDs;
+    QVector<QSharedPointer<Texture> > _dilatedTextures;
     
     QVector<glm::vec3> _blendedVertices;
     QVector<glm::vec3> _blendedNormals;
     
-    QSharedPointer<Texture> _eyeTexture;
-    
     static ProgramObject _eyeProgram;
-    static DilatedTextureCache _eyeTextureCache;
 };
 
 #endif /* defined(__interface__BlendFace__) */
