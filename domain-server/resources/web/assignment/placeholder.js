@@ -2,14 +2,14 @@
 
 // The following is an example of Conway's Game of Life (http://en.wikipedia.org/wiki/Conway's_Game_of_Life)
 
-var NUMBER_OF_CELLS_EACH_DIMENSION = 32;
+var NUMBER_OF_CELLS_EACH_DIMENSION = 64;
 var NUMBER_OF_CELLS = NUMBER_OF_CELLS_EACH_DIMENSION * NUMBER_OF_CELLS_EACH_DIMENSION;
 
 var currentCells = [];
 var nextCells = [];
 
 var METER_LENGTH = 1 / TREE_SCALE;
-var cellScale = (8 * METER_LENGTH) / NUMBER_OF_CELLS_EACH_DIMENSION; 
+var cellScale = (NUMBER_OF_CELLS_EACH_DIMENSION * METER_LENGTH) / NUMBER_OF_CELLS_EACH_DIMENSION; 
 
 print("TREE_SCALE = " + TREE_SCALE + "\n");
 
