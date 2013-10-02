@@ -41,7 +41,7 @@ void BlendFace::init() {
     }
 }
 
-const glm::vec3 MODEL_TRANSLATION(0.0f, -0.07f, -0.025f); // temporary fudge factor
+const glm::vec3 MODEL_TRANSLATION(0.0f, -120.0f, 40.0f); // temporary fudge factor
 const float MODEL_SCALE = 0.0006f;
 
 bool BlendFace::render(float alpha) {
@@ -74,12 +74,12 @@ bool BlendFace::render(float alpha) {
     glm::quat orientation = _owningHead->getOrientation();
     glm::vec3 axis = glm::axis(orientation);
     glRotatef(glm::angle(orientation), axis.x, axis.y, axis.z);    
-    glTranslatef(MODEL_TRANSLATION.x, MODEL_TRANSLATION.y, MODEL_TRANSLATION.z); 
     glm::vec3 scale(-_owningHead->getScale() * MODEL_SCALE, _owningHead->getScale() * MODEL_SCALE,
         -_owningHead->getScale() * MODEL_SCALE);
     glScalef(scale.x, scale.y, scale.z);
 
-    glTranslatef(-geometry.neckPivot.x, -geometry.neckPivot.y, -geometry.neckPivot.z);
+    glm::vec3 offset = MODEL_TRANSLATION - geometry.neckPivot;
+    glTranslatef(offset.x, offset.y, offset.z);
 
     glEnableClientState(GL_VERTEX_ARRAY);
     glEnableClientState(GL_NORMAL_ARRAY);
