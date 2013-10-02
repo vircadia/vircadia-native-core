@@ -53,6 +53,9 @@ public:
     
     bool isEye;
     
+    QByteArray diffuseFilename;
+    QByteArray normalFilename;
+    
     QVector<FBXBlendshape> blendshapes;
 };
 
