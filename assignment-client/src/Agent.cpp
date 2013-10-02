@@ -138,7 +138,9 @@ void Agent::run() {
                         hasVoxelServer = true;
                     }
                 }
-            } else {
+            }
+            
+            if (hasVoxelServer) {
                 // allow the scripter's call back to setup visual data
                 emit willSendVisualDataCallback();
                 
@@ -147,6 +149,8 @@ void Agent::run() {
                     qDebug() << "Uncaught exception at line" << line << ":" << engine.uncaughtException().toString() << "\n";
                 }
                 
+                // flush the queue of packets and then process them so they are all sent off
+                voxelScripter.getVoxelPacketSender()->flushQueue();
                 voxelScripter.getVoxelPacketSender()->processWithoutSleep();
             }
             

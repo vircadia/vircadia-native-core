@@ -13,7 +13,7 @@
 #include <QUrl>
 
 #include "InterfaceConfig.h"
-#include "renderer/FBXReader.h"
+#include "renderer/GeometryCache.h"
 #include "renderer/ProgramObject.h"
 #include "renderer/TextureCache.h"
 
@@ -30,7 +30,7 @@ public:
     BlendFace(Head* owningHead);
     ~BlendFace();
     
-    bool isActive() const { return !_meshIDs.isEmpty(); }
+    bool isActive() const { return _geometry && _geometry->isLoaded(); }
     
     void init();
     bool render(float alpha);
@@ -39,34 +39,24 @@ public:
     const QUrl& getModelURL() const { return _modelURL; }
 
     void getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const;
-
-private slots:
-    
-    void handleModelDownloadProgress(qint64 bytesReceived, qint64 bytesTotal);
-    void handleModelReplyError();
     
 private:
     
-    void setGeometry(const FBXGeometry& geometry);
     void deleteGeometry();
     
     Head* _owningHead;
     
     QUrl _modelURL;
     
-    QNetworkReply* _modelReply;
-
-    typedef QPair<GLuint, GLuint> VerticesIndices;
-    QVector<VerticesIndices> _meshIDs;
+    QSharedPointer<NetworkGeometry> _geometry;
     
-    FBXGeometry _geometry;
+    QVector<GLuint> _blendedVertexBufferIDs;
+    QVector<QSharedPointer<Texture> > _dilatedTextures;
+    
     QVector<glm::vec3> _blendedVertices;
     QVector<glm::vec3> _blendedNormals;
     
-    QSharedPointer<Texture> _eyeTexture;
-    
     static ProgramObject _eyeProgram;
-    static DilatedTextureCache _eyeTextureCache;
 };
 
 #endif /* defined(__interface__BlendFace__) */
