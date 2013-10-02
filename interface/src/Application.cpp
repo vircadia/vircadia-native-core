@@ -2114,11 +2114,8 @@ void Application::updateAvatar(float deltaTime) {
     }
     
     //  Constrain head-driven mouse to edges of screen
-    _headMouseX = max(_headMouseX, 0);
-    _headMouseX = min(_headMouseX, _glWidget->width());
-    _headMouseY = max(_headMouseY, 0);
-    _headMouseY = min(_headMouseY, _glWidget->height());
-
+    _headMouseX = glm::clamp(_headMouseX, 0, _glWidget->width());
+    _headMouseY = glm::clamp(_headMouseY, 0, _glWidget->height());
 
     if (OculusManager::isConnected()) {
         float yaw, pitch, roll;
