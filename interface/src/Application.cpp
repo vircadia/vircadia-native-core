@@ -1440,7 +1440,7 @@ void Application::pasteVoxels() {
         _sharedVoxelSystem.changeTree(&_clipboard);
     }
 
-    _voxelEditSender.flushQueue();
+    _voxelEditSender.releaseQueuedMessages();
     
     if (calculatedOctCode) {
         delete[] calculatedOctCode;
@@ -2066,9 +2066,20 @@ void Application::updateAvatar(float deltaTime) {
     // Update my avatar's state from gyros and/or webcam
     _myAvatar.updateFromGyrosAndOrWebcam(Menu::getInstance()->isOptionChecked(MenuOption::GyroLook),
                                          _pitchFromTouch);
+    
+    // Update head mouse from faceshift if active
+    if (_faceshift.isActive()) {
+        glm::vec3 headVelocity = _faceshift.getHeadAngularVelocity();
         
+        // sets how quickly head angular rotation moves the head mouse
+        const float HEADMOUSE_FACESHIFT_YAW_SCALE = 40.f;
+        const float HEADMOUSE_FACESHIFT_PITCH_SCALE = 30.f;
+        _headMouseX -= headVelocity.y * HEADMOUSE_FACESHIFT_YAW_SCALE;
+        _headMouseY -= headVelocity.x * HEADMOUSE_FACESHIFT_PITCH_SCALE;
+    }
+    
     if (_serialHeadSensor.isActive()) {
-      
+
         //  Grab latest readings from the gyros
         float measuredPitchRate = _serialHeadSensor.getLastPitchRate();
         float measuredYawRate = _serialHeadSensor.getLastYawRate();
@@ -2082,10 +2093,6 @@ void Application::updateAvatar(float deltaTime) {
             _headMouseX -= measuredYawRate * HORIZONTAL_PIXELS_PER_DEGREE * deltaTime;
             _headMouseY -= measuredPitchRate * VERTICAL_PIXELS_PER_DEGREE * deltaTime;
         }
-        _headMouseX = max(_headMouseX, 0);
-        _headMouseX = min(_headMouseX, _glWidget->width());
-        _headMouseY = max(_headMouseY, 0);
-        _headMouseY = min(_headMouseY, _glWidget->height());
 
         const float MIDPOINT_OF_SCREEN = 0.5;
         
@@ -2105,6 +2112,10 @@ void Application::updateAvatar(float deltaTime) {
         }
 
     }
+    
+    //  Constrain head-driven mouse to edges of screen
+    _headMouseX = glm::clamp(_headMouseX, 0, _glWidget->width());
+    _headMouseY = glm::clamp(_headMouseY, 0, _glWidget->height());
 
     if (OculusManager::isConnected()) {
         float yaw, pitch, roll;
@@ -2656,15 +2667,20 @@ void Application::displayOverlay() {
             //  Display small target box at center or head mouse target that can also be used to measure LOD
             glColor3f(1.0, 1.0, 1.0);
             glDisable(GL_LINE_SMOOTH);
-            const int PIXEL_BOX = 20;
-            glBegin(GL_LINE_STRIP);
-            glVertex2f(_headMouseX - PIXEL_BOX/2, _headMouseY - PIXEL_BOX/2);
-            glVertex2f(_headMouseX + PIXEL_BOX/2, _headMouseY - PIXEL_BOX/2);
-            glVertex2f(_headMouseX + PIXEL_BOX/2, _headMouseY + PIXEL_BOX/2);
-            glVertex2f(_headMouseX - PIXEL_BOX/2, _headMouseY + PIXEL_BOX/2);
-            glVertex2f(_headMouseX - PIXEL_BOX/2, _headMouseY - PIXEL_BOX/2);
+            const int PIXEL_BOX = 16;
+            glBegin(GL_LINES);
+            glVertex2f(_headMouseX - PIXEL_BOX/2, _headMouseY);
+            glVertex2f(_headMouseX + PIXEL_BOX/2, _headMouseY);
+            glVertex2f(_headMouseX, _headMouseY - PIXEL_BOX/2);
+            glVertex2f(_headMouseX, _headMouseY + PIXEL_BOX/2);
             glEnd();            
             glEnable(GL_LINE_SMOOTH);
+            glColor3f(1.f, 0.f, 0.f);
+            glPointSize(3.0f);
+            glDisable(GL_POINT_SMOOTH);
+            glBegin(GL_POINTS);
+            glVertex2f(_headMouseX - 1, _headMouseY + 1);
+            glEnd();
         }
         
     //  Show detected levels from the serial I/O ADC channel sensors
@@ -3338,6 +3354,10 @@ void Application::deleteVoxelUnderCursor() {
     if (_mouseVoxel.s != 0) {
         // sending delete to the server is sufficient, server will send new version so we see updates soon enough
         _voxelEditSender.sendVoxelEditMessage(PACKET_TYPE_ERASE_VOXEL, _mouseVoxel);
+
+        // delete it locally to see the effect immediately (and in case no voxel server is present)
+        _voxels.deleteVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+
         AudioInjector* voxelInjector = AudioInjectionManager::injectorWithCapacity(5000);
         
         if (voxelInjector) {
