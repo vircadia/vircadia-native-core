@@ -14,6 +14,7 @@
 
 #include <QtCore/QObject>
 
+#include <RegisteredMetaTypes.h>
 #include <UDPSocket.h>
 
 #include "AudioRingBuffer.h"
@@ -23,8 +24,6 @@ const int STREAM_IDENTIFIER_NUM_BYTES = 8;
 const int MAX_INJECTOR_VOLUME = 0xFF;
 
 const int INJECT_INTERVAL_USECS = floorf((BUFFER_LENGTH_SAMPLES_PER_CHANNEL / SAMPLE_RATE) * 1000000);
-
-Q_DECLARE_METATYPE(glm::vec3)
 
 class AudioInjector : public QObject {
     Q_OBJECT

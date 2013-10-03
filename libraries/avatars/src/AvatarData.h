@@ -19,6 +19,8 @@
 #include <QtCore/QObject>
 #include <QtCore/QVariantMap>
 
+#include <RegisteredMetaTypes.h>
+
 #include <NodeData.h>
 #include "HeadData.h"
 #include "HandData.h"
@@ -48,8 +50,8 @@ class JointData;
 class AvatarData : public NodeData {
     Q_OBJECT
     
-    Q_PROPERTY(QVariantMap position READ getPositionVariantMap WRITE setPositionFromVariantMap)
-    Q_PROPERTY(QVariantMap handPosition READ getHandPositionVariantMap WRITE setHandPositionFromVariantMap)
+    Q_PROPERTY(glm::vec3 position READ getPosition WRITE setPosition)
+    Q_PROPERTY(glm::vec3 handPosition READ getHandPosition WRITE setHandPosition)
     Q_PROPERTY(float bodyYaw READ getBodyYaw WRITE setBodyYaw)
     Q_PROPERTY(float bodyPitch READ getBodyPitch WRITE setBodyPitch)
     Q_PROPERTY(float bodyRoll READ getBodyRoll WRITE setBodyRoll)
@@ -59,15 +61,10 @@ public:
     ~AvatarData();
     
     const glm::vec3& getPosition() const { return _position; }
-    
     void setPosition(const glm::vec3 position) { _position = position; }
+    
+    const glm::vec3& getHandPosition() const { return _handPosition; }
     void setHandPosition(const glm::vec3 handPosition) { _handPosition = handPosition; }
-    
-    void setPositionFromVariantMap(QVariantMap positionMap);
-    QVariantMap getPositionVariantMap();
-    
-    void setHandPositionFromVariantMap(QVariantMap handPositionMap);
-    QVariantMap getHandPositionVariantMap();
     
     int getBroadcastData(unsigned char* destinationBuffer);
     int parseData(unsigned char* sourceBuffer, int numBytes);
