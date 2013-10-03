@@ -569,7 +569,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                                 transformLinkMatrices.insert(object.properties.at(0).value<qint64>(), createMat4(values));
                             }
                         }
-                    } else if (object.properties.at(2) == "BlendshapeChannel") {
+                    } else if (object.properties.at(2) == "BlendShapeChannel") {
                         QByteArray name = object.properties.at(1).toByteArray();
                         blendshapeChannelIndices.insert(object.properties.at(0).value<qint64>(),
                             blendshapeIndices.value(name.left(name.indexOf('\0'))));
