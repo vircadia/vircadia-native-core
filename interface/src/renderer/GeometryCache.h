@@ -64,12 +64,14 @@ public:
 
 private slots:
     
-    void handleDownloadProgress(qint64 bytesReceived, qint64 bytesTotal);
-    void handleReplyError();    
+    void handleModelReplyError();    
+    void handleMappingReplyError();
+    void maybeReadModelWithMapping();
     
 private:
     
-    QNetworkReply* _reply;
+    QNetworkReply* _modelReply;
+    QNetworkReply* _mappingReply;
     
     FBXGeometry _geometry;
     QVector<NetworkMesh> _meshes;
