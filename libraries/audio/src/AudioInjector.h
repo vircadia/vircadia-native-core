@@ -29,6 +29,7 @@ class AudioInjector : public QObject {
     Q_OBJECT
     
     Q_PROPERTY(glm::vec3 position READ getPosition WRITE setPosition)
+    Q_PROPERTY(uchar volume READ getVolume WRITE setVolume);
 public:
     AudioInjector(const char* filename);
     AudioInjector(int maxNumSamples);
@@ -54,6 +55,9 @@ public:
     
     void addSample(const int16_t sample);
     void addSamples(int16_t* sampleBuffer, int numSamples);
+public slots:
+    int16_t& sampleAt(const int index);
+    void insertSample(const int index, int16_t sample);
 private:
     unsigned char _streamIdentifier[STREAM_IDENTIFIER_NUM_BYTES];
     int16_t* _audioSampleArray;

@@ -152,3 +152,15 @@ void AudioInjector::addSamples(int16_t* sampleBuffer, int numSamples) {
         _indexOfNextSlot += numSamples;
     }
 }
+
+int16_t& AudioInjector::sampleAt(const int index) {
+    assert(index >= 0 && index < _numTotalSamples);
+    
+    return _audioSampleArray[index];
+}
+
+void AudioInjector::insertSample(const int index, int16_t sample) {
+    assert (index >= 0 && index < _numTotalSamples);
+    
+    _audioSampleArray[index] = sample;
+}
