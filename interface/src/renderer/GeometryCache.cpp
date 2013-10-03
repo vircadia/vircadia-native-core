@@ -363,10 +363,7 @@ void NetworkGeometry::maybeReadModelWithMapping() {
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         
         QString basePath = url.path();
-        int idx = basePath.lastIndexOf('/');
-        if (idx != -1) {
-            basePath = basePath.left(idx);
-        }
+        basePath = basePath.left(basePath.lastIndexOf('/') + 1);
         if (!mesh.diffuseFilename.isEmpty()) {
             url.setPath(basePath + mesh.diffuseFilename);
             networkMesh.diffuseTexture = Application::getInstance()->getTextureCache()->getTexture(url, mesh.isEye);

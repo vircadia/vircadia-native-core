@@ -334,6 +334,18 @@ public:
     FBXBlendshape blendshape;
 };
 
+void printNode(const FBXNode& node, int indent) {
+    QByteArray spaces(indent, ' ');
+    qDebug("%s%s: ", spaces.data(), node.name.data());
+    foreach (const QVariant& property, node.properties) {
+        qDebug() << property;
+    }
+    qDebug() << "\n";
+    foreach (const FBXNode& child, node.children) {
+        printNode(child, indent + 1);
+    }
+}
+
 FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping) {
     QHash<qint64, FBXMesh> meshes;
     QVector<ExtractedBlendshape> blendshapes;
@@ -560,8 +572,10 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                 } else if (object.name == "Texture") {
                     foreach (const FBXNode& subobject, object.children) {
                         if (subobject.name == "RelativeFilename") {
-                            textureFilenames.insert(object.properties.at(0).value<qint64>(),
-                                subobject.properties.at(0).toByteArray());
+                            // trim off any path information
+                            QByteArray filename = subobject.properties.at(0).toByteArray();
+                            filename = filename.mid(qMax(filename.lastIndexOf('\\'), filename.lastIndexOf('/')) + 1);
+                            textureFilenames.insert(object.properties.at(0).value<qint64>(), filename);
                         }
                     }
                 } else if (object.name == "Deformer") {
@@ -676,18 +690,6 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     geometry.neckPivot = glm::vec3(neckTransform[3][0], neckTransform[3][1], neckTransform[3][2]);
     
     return geometry;
-}
-
-void printNode(const FBXNode& node, int indent) {
-    QByteArray spaces(indent, ' ');
-    qDebug("%s%s: ", spaces.data(), node.name.data());
-    foreach (const QVariant& property, node.properties) {
-        qDebug() << property;
-    }
-    qDebug() << "\n";
-    foreach (const FBXNode& child, node.children) {
-        printNode(child, indent + 1);
-    }
 }
 
 FBXGeometry readFBX(const QByteArray& model, const QByteArray& mapping) {
