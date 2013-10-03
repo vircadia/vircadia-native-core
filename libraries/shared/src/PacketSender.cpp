@@ -61,7 +61,7 @@ bool PacketSender::process() {
         uint64_t now = usecTimestampNow();
         // dynamically sleep until we need to fire off the next set of voxels
         uint64_t elapsed = now - _lastSendTime;
-        int usecToSleep =  SEND_INTERVAL_USECS - elapsed;
+        int usecToSleep =  std::max(SEND_INTERVAL_USECS, SEND_INTERVAL_USECS - elapsed);
         _lastSendTime = now;
         if (usecToSleep > 0) {
             usleep(usecToSleep);
