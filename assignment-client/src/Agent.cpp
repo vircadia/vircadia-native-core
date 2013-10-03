@@ -8,8 +8,6 @@
 
 #include <curl/curl.h>
 
-#include <QtScript/QScriptEngine>
-
 #include <AvatarData.h>
 #include <NodeList.h>
 #include <VoxelConstants.h>
@@ -17,11 +15,13 @@
 #include "Agent.h"
 #include "voxels/VoxelScriptingInterface.h"
 
+Agent* Agent::_staticInstance = NULL;
+
 Agent::Agent(const unsigned char* dataBuffer, int numBytes) :
     Assignment(dataBuffer, numBytes),
     _shouldStop(false)
 {
-    
+    setStaticInstance(this);
 }
 
 void Agent::stop() {
@@ -40,10 +40,40 @@ static size_t writeScriptDataToString(void *contents, size_t size, size_t nmemb,
     return realSize;
 }
 
+void Agent::setStaticInstance(Agent* staticInstance) {
+    _staticInstance = staticInstance;
+}
+
+QScriptValue Agent::AudioInjectorConstructor(QScriptContext *context, QScriptEngine *engine) {
+    AudioInjector* injector = new AudioInjector(BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
+    
+    // add this injector to the vector of audio injectors so we know we have to tell it to send its audio during loop
+    _staticInstance->_audioInjectors.push_back(injector);
+    
+    return engine->newQObject(injector, QScriptEngine::ScriptOwnership);
+}
+
+QScriptValue vec3toScriptValue(QScriptEngine *engine, const glm::vec3 &vec3) {
+    QScriptValue obj = engine->newObject();
+    obj.setProperty("x", vec3.x);
+    obj.setProperty("y", vec3.y);
+    obj.setProperty("z", vec3.z);
+    return obj;
+}
+
+void vec3FromScriptValue(const QScriptValue &object, glm::vec3 &vec3) {
+    vec3.x = object.property("x").toVariant().toFloat();
+    vec3.y = object.property("y").toVariant().toFloat();
+    vec3.z = object.property("z").toVariant().toFloat();
+}
+
 void Agent::run() {
     NodeList* nodeList = NodeList::getInstance();
     nodeList->setOwnerType(NODE_TYPE_AGENT);
-    nodeList->setNodeTypesOfInterest(&NODE_TYPE_VOXEL_SERVER, 1);
+    
+    const char AGENT_NODE_TYPES_OF_INTEREST[2] = { NODE_TYPE_VOXEL_SERVER, NODE_TYPE_AUDIO_MIXER };
+    
+    nodeList->setNodeTypesOfInterest(AGENT_NODE_TYPES_OF_INTEREST, sizeof(AGENT_NODE_TYPES_OF_INTEREST));
 
     nodeList->getNodeSocket()->setBlocking(false);
     
@@ -83,6 +113,9 @@ void Agent::run() {
         
         QScriptEngine engine;
         
+        // register meta-type for glm::vec3 conversions
+        qScriptRegisterMetaType(&engine, vec3toScriptValue, vec3FromScriptValue);
+        
         QScriptValue agentValue = engine.newQObject(this);
         engine.globalObject().setProperty("Agent", agentValue);
         
@@ -100,6 +133,11 @@ void Agent::run() {
         
         QScriptValue visualSendIntervalValue = engine.newVariant((QVariant(VISUAL_DATA_SEND_INTERVAL_USECS / 1000)));
         engine.globalObject().setProperty("VISUAL_DATA_SEND_INTERVAL_MS", visualSendIntervalValue);
+        
+        // hook in a constructor for audio injectorss
+        QScriptValue audioInjectorConstructor = engine.newFunction(AudioInjectorConstructor);
+        QScriptValue audioMetaObject = engine.newQMetaObject(&AudioInjector::staticMetaObject, audioInjectorConstructor);
+        engine.globalObject().setProperty("AudioInjector", audioMetaObject);
         
         qDebug() << "Downloaded script:" << scriptContents << "\n";
         QScriptValue result = engine.evaluate(scriptContents);

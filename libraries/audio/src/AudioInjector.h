@@ -12,6 +12,8 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/component_wise.hpp>
 
+#include <QtCore/QObject>
+
 #include <UDPSocket.h>
 
 #include "AudioRingBuffer.h"
@@ -22,7 +24,12 @@ const int MAX_INJECTOR_VOLUME = 0xFF;
 
 const int INJECT_INTERVAL_USECS = floorf((BUFFER_LENGTH_SAMPLES_PER_CHANNEL / SAMPLE_RATE) * 1000000);
 
-class AudioInjector {
+Q_DECLARE_METATYPE(glm::vec3)
+
+class AudioInjector : public QObject {
+    Q_OBJECT
+    
+    Q_PROPERTY(glm::vec3 position READ getPosition WRITE setPosition)
 public:
     AudioInjector(const char* filename);
     AudioInjector(int maxNumSamples);
