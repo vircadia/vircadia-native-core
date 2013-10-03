@@ -24,6 +24,8 @@ EditPacketBuffer::EditPacketBuffer(PACKET_TYPE type, unsigned char* buffer, ssiz
     memcpy(_currentBuffer, buffer, length); 
 };
 
+const int VoxelEditPacketSender::DEFAULT_MAX_PENDING_MESSAGES = PacketSender::DEFAULT_PACKETS_PER_SECOND; 
+
 
 VoxelEditPacketSender::VoxelEditPacketSender(PacketSenderNotify* notify) : 
     PacketSender(notify), 

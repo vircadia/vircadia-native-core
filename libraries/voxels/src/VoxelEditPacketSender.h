@@ -82,7 +82,7 @@ public:
     void setMaxPendingMessages(int maxPendingMessages) { _maxPendingMessages = maxPendingMessages; }
 
     // the default number of pending messages we will store if no voxel servers are available
-    const int DEFAULT_MAX_PENDING_MESSAGES = PacketSender::DEFAULT_PACKETS_PER_SECOND; 
+    static const int DEFAULT_MAX_PENDING_MESSAGES;
 
 private:
     bool _shouldSend;
