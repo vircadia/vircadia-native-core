@@ -144,7 +144,7 @@ protected:
     VoxelTree* _tree;
 
     void setupNewVoxelsForDrawing();
-    const bool DONT_BAIL_EARLY = false; // by default we will bail early, if you want to force not bailing, then use this
+    static const bool DONT_BAIL_EARLY; // by default we will bail early, if you want to force not bailing, then use this
     void setupNewVoxelsForDrawingSingleNode(bool allowBailEarly = true);
     void checkForCulling();
     

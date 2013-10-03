@@ -33,6 +33,9 @@
 #include "VoxelConstants.h"
 #include "VoxelSystem.h"
 
+const bool VoxelSystem::DONT_BAIL_EARLY = false;
+
+
 float identityVerticesGlobalNormals[] = { 0,0,0, 1,0,0, 1,1,0, 0,1,0, 0,0,1, 1,0,1, 1,1,1, 0,1,1 };
 
 float identityVertices[] = { 0,0,0, 1,0,0, 1,1,0, 0,1,0, 0,0,1, 1,0,1, 1,1,1, 0,1,1, //0-7
