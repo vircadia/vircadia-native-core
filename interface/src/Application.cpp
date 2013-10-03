@@ -1440,7 +1440,7 @@ void Application::pasteVoxels() {
         _sharedVoxelSystem.changeTree(&_clipboard);
     }
 
-    _voxelEditSender.flushQueue();
+    _voxelEditSender.releaseQueuedMessages();
     
     if (calculatedOctCode) {
         delete[] calculatedOctCode;
@@ -3354,6 +3354,10 @@ void Application::deleteVoxelUnderCursor() {
     if (_mouseVoxel.s != 0) {
         // sending delete to the server is sufficient, server will send new version so we see updates soon enough
         _voxelEditSender.sendVoxelEditMessage(PACKET_TYPE_ERASE_VOXEL, _mouseVoxel);
+
+        // delete it locally to see the effect immediately (and in case no voxel server is present)
+        _voxels.deleteVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+
         AudioInjector* voxelInjector = AudioInjectionManager::injectorWithCapacity(5000);
         
         if (voxelInjector) {

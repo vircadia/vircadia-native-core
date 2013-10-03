@@ -8,6 +8,7 @@
 //  Threaded or non-threaded packet sender.
 //
 
+#include <math.h>
 #include <stdint.h>
 
 #include "NodeList.h"
@@ -17,9 +18,13 @@
 const int PacketSender::DEFAULT_PACKETS_PER_SECOND = 200;
 const int PacketSender::MINIMUM_PACKETS_PER_SECOND = 1;
 
+const int AVERAGE_CALL_TIME_SAMPLES = 10;
 
 PacketSender::PacketSender(PacketSenderNotify* notify, int packetsPerSecond) : 
     _packetsPerSecond(packetsPerSecond),
+    _usecsPerProcessCallHint(0),
+    _lastProcessCallTime(usecTimestampNow()),
+    _averageProcessCallTime(AVERAGE_CALL_TIME_SAMPLES),
     _lastSendTime(usecTimestampNow()),
     _notify(notify)
 {
@@ -37,16 +42,64 @@ bool PacketSender::process() {
     uint64_t USECS_PER_SECOND = 1000 * 1000;
     uint64_t SEND_INTERVAL_USECS = (_packetsPerSecond == 0) ? USECS_PER_SECOND : (USECS_PER_SECOND / _packetsPerSecond);
     
+    // keep track of our process call times, so we have a reliable account of how often our caller calls us
+    uint64_t now = usecTimestampNow();
+    uint64_t elapsedSinceLastCall = now - _lastProcessCallTime;
+    _lastProcessCallTime = now;
+    _averageProcessCallTime.updateAverage(elapsedSinceLastCall);
+    
     if (_packets.size() == 0) {
-        usleep(SEND_INTERVAL_USECS);
+        if (isThreaded()) {
+            usleep(SEND_INTERVAL_USECS);
+        } else {
+            return isStillRunning();  // in non-threaded mode, if there's nothing to do, just return, keep running till they terminate us
+        }
     }
-    while (_packets.size() > 0) {
+
+    int packetsPerCall = _packets.size(); // in threaded mode, we just empty this!
+    int packetsThisCall = 0;
+    
+    // if we're in non-threaded mode, then we actually need to determine how many packets to send per call to process
+    // based on how often we get called... We do this by keeping a running average of our call times, and we determine
+    // how many packets to send per call
+    if (!isThreaded()) {
+        int averageCallTime;
+        const int TRUST_AVERAGE_AFTER = AVERAGE_CALL_TIME_SAMPLES * 2;
+        if (_usecsPerProcessCallHint == 0 || _averageProcessCallTime.getSampleCount() > TRUST_AVERAGE_AFTER) {
+            averageCallTime = _averageProcessCallTime.getAverage();
+        } else {
+            averageCallTime = _usecsPerProcessCallHint;
+        }
+        
+        // we can determine how many packets we need to send per call to achieve our desired
+        // packets per second send rate.
+        int callsPerSecond = USECS_PER_SECOND / averageCallTime;
+        packetsPerCall = ceil(_packetsPerSecond / callsPerSecond);
+        
+        // send at least one packet per call, if we have it
+        if (packetsPerCall < 1) {
+            packetsPerCall = 1;
+        }
+    }
+    
+    bool keepGoing = _packets.size() > 0;
+    while (keepGoing) {
+    
+        // in threaded mode, we go till we're empty
+        if (isThreaded()) {
+            keepGoing = _packets.size() > 0;
+        } else {
+            // in non-threaded mode, we send as many packets as we need per expected call to process()
+            keepGoing = (packetsThisCall < packetsPerCall) && (_packets.size() > 0);
+        }
+    
         NetworkPacket& packet = _packets.front();
         
         // send the packet through the NodeList...
         UDPSocket* nodeSocket = NodeList::getInstance()->getNodeSocket();
 
         nodeSocket->send(&packet.getAddress(), packet.getData(), packet.getLength());
+        packetsThisCall++;
         
         if (_notify) {
             _notify->packetSentNotification(packet.getLength());
@@ -56,34 +109,18 @@ bool PacketSender::process() {
         _packets.erase(_packets.begin());
         unlock();
 
-        uint64_t now = usecTimestampNow();
-        // dynamically sleep until we need to fire off the next set of voxels
-        uint64_t elapsed = now - _lastSendTime;
-        int usecToSleep =  SEND_INTERVAL_USECS - elapsed;
+        // dynamically sleep until we need to fire off the next set of voxels we only sleep in threaded mode
+        if (isThreaded()) {
+            uint64_t elapsed = now - _lastSendTime;
+            int usecToSleep =  std::max(SEND_INTERVAL_USECS, SEND_INTERVAL_USECS - elapsed);
+        
+            // we only sleep in non-threaded mode
+            if (usecToSleep > 0) {
+                usleep(usecToSleep);
+            }
+        }
         _lastSendTime = now;
-        if (usecToSleep > 0) {
-            usleep(usecToSleep);
-        }
-
     }
+
     return isStillRunning();  // keep running till they terminate us
-}
-
-void PacketSender::processWithoutSleep() {
-    while (_packets.size() > 0) {
-        NetworkPacket& packet = _packets.front();
-        
-        // send the packet through the NodeList...
-        UDPSocket* nodeSocket = NodeList::getInstance()->getNodeSocket();
-        
-        nodeSocket->send(&packet.getAddress(), packet.getData(), packet.getLength());
-        
-        if (_notify) {
-            _notify->packetSentNotification(packet.getLength());
-        }
-        
-        lock();
-        _packets.erase(_packets.begin());
-        unlock();
-    }
 }
