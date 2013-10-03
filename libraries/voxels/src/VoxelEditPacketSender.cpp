@@ -48,8 +48,6 @@ VoxelEditPacketSender::~VoxelEditPacketSender() {
 
 
 void VoxelEditPacketSender::sendVoxelEditMessage(PACKET_TYPE type, VoxelDetail& detail) {
-    //printf("void VoxelEditPacketSender::sendVoxelEditMessage(PACKET_TYPE type, VoxelDetail& detail)\n");
-
     // allows app to disable sending if for example voxels have been disabled
     if (!_shouldSend) {
         return; // bail early
@@ -72,7 +70,6 @@ void VoxelEditPacketSender::sendVoxelEditMessage(PACKET_TYPE type, VoxelDetail& 
                 // if we've saved MORE than out max, then clear out the oldest packet...
                 int allPendingMessages = _preServerSingleMessagePackets.size() + _preServerPackets.size();
                 if (allPendingMessages > _maxPendingMessages) {
-                    printf("Pending messages exceed Max Pending Messages, discarding oldest message.\n");
                     EditPacketBuffer* packet = _preServerSingleMessagePackets.front();
                     delete packet;
                     _preServerSingleMessagePackets.erase(_preServerSingleMessagePackets.begin());
@@ -102,9 +99,6 @@ bool VoxelEditPacketSender::voxelServersExist() const {
 // This method is called when the edit packet layer has determined that it has a fully formed packet destined for
 // a known nodeID. However, we also want to handle the case where the 
 void VoxelEditPacketSender::queuePacketToNode(uint16_t nodeID, unsigned char* bufferOut, ssize_t sizeOut) {
-
-//printf("void VoxelEditPacketSender::queuePacketToNode(nodeID=%d)\n",nodeID);
-
     NodeList* nodeList = NodeList::getInstance();
     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
         // only send to the NodeTypes that are NODE_TYPE_VOXEL_SERVER
@@ -117,9 +111,6 @@ void VoxelEditPacketSender::queuePacketToNode(uint16_t nodeID, unsigned char* bu
 }
 
 void VoxelEditPacketSender::queueVoxelEditMessages(PACKET_TYPE type, int numberOfDetails, VoxelDetail* details) {
-
-//printf("void VoxelEditPacketSender::queueVoxelEditMessages()\n");
-
     if (!_shouldSend) {
         return; // bail early
     }
@@ -135,10 +126,6 @@ void VoxelEditPacketSender::queueVoxelEditMessages(PACKET_TYPE type, int numberO
 }
 
 void VoxelEditPacketSender::processPreServerExistsPackets() {
-
-printf("void VoxelEditPacketSender::processPreServerExistsPackets()\n");
-
-
     assert(voxelServersExist()); // we should only be here if we have jurisdictions
     
     // First send out all the single message packets...
@@ -166,9 +153,6 @@ printf("void VoxelEditPacketSender::processPreServerExistsPackets()\n");
 }
 
 void VoxelEditPacketSender::queueVoxelEditMessageToNodes(unsigned char* codeColorBuffer, ssize_t length) {
-
-printf("void VoxelEditPacketSender::queueVoxelEditMessageToNodes(unsigned char* codeColorBuffer, length=%ld)\n", length);
-
     if (!_shouldSend) {
         return; // bail early
     }
@@ -200,9 +184,6 @@ printf("void VoxelEditPacketSender::queueVoxelEditMessageToNodes(unsigned char* 
 
 
 void VoxelEditPacketSender::queueVoxelEditMessage(PACKET_TYPE type, unsigned char* codeColorBuffer, ssize_t length) {
-
-//printf("void VoxelEditPacketSender::queueVoxelEditMessage(unsigned char* codeColorBuffer, length=%ld)\n", length);
-
     if (!_shouldSend) {
         return; // bail early
     }
@@ -217,7 +198,6 @@ void VoxelEditPacketSender::queueVoxelEditMessage(PACKET_TYPE type, unsigned cha
             // if we've saved MORE than out max, then clear out the oldest packet...
             int allPendingMessages = _preServerSingleMessagePackets.size() + _preServerPackets.size();
             if (allPendingMessages > _maxPendingMessages) {
-                printf("Pending messages exceed Max Pending Messages, discarding oldest message.\n");
                 EditPacketBuffer* packet = _preServerPackets.front();
                 delete packet;
                 _preServerPackets.erase(_preServerPackets.begin());
@@ -267,17 +247,13 @@ void VoxelEditPacketSender::queueVoxelEditMessage(PACKET_TYPE type, unsigned cha
 }
 
 void VoxelEditPacketSender::releaseQueuedMessages() {
-    //printf("void VoxelEditPacketSender::releaseQueuedMessages()\n");
-
     // if we don't yet have jurisdictions then we can't actually release messages yet because we don't 
     // know where to send them to. Instead, just remember this request and when we eventually get jurisdictions
     // call release again at that time.
     if (!voxelServersExist()) {
-        //printf("...no voxel servers... _releaseQueuedMessagesPending=true\n");
         _releaseQueuedMessagesPending = true;
     } else {
         for (std::map<uint16_t,EditPacketBuffer>::iterator i = _pendingEditPackets.begin(); i != _pendingEditPackets.end(); i++) {
-            //printf("...actually calling releaseQueuedPacket()\n");
             releaseQueuedPacket(i->second);
         }
     }
@@ -298,12 +274,9 @@ void VoxelEditPacketSender::initializePacket(EditPacketBuffer& packetBuffer, PAC
 }
 
 bool VoxelEditPacketSender::process() {
-    printf("VoxelEditPacketSender::process()\n");
-
     // if we have server jurisdiction details, and we have pending pre-jurisdiction packets, then process those
     // before doing our normal process step. This processPreJurisdictionPackets()
     if (voxelServersExist() && (!_preServerPackets.empty() || !_preServerSingleMessagePackets.empty() )) {
-        printf("processPreServerExistsPackets()<<<<<<<<<<<<<<<<<<<<<\n");
         processPreServerExistsPackets();
     }
 

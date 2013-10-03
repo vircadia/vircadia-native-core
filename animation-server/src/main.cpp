@@ -6,6 +6,7 @@
 //  Copyright (c) 2012 High Fidelity, Inc. All rights reserved.
 //
 
+#include <algorithm>
 #include <cmath>
 #include <cstdlib>
 #include <cstring>
@@ -39,12 +40,14 @@ bool includeMovingBug = true;
 bool includeBlinkingVoxel = false;
 bool includeDanceFloor = true;
 bool buildStreet = false;
+bool nonThreadedPacketSender = false;
 
 
 const int ANIMATION_LISTEN_PORT = 40107;
 const int ACTUAL_FPS = 60;
 const double OUR_FPS_IN_MILLISECONDS = 1000.0/ACTUAL_FPS; // determines FPS from our desired FPS
-const int ANIMATE_VOXELS_INTERVAL_USECS = OUR_FPS_IN_MILLISECONDS * 1000.0; // converts from milliseconds to usecs
+const int FUDGE_USECS = 10.0; // a little bit of fudge to actually do some processing
+const int ANIMATE_VOXELS_INTERVAL_USECS = (OUR_FPS_IN_MILLISECONDS * 1000.0) - FUDGE_USECS; // converts from milliseconds to usecs
 
 bool wantLocalDomain = false;
 
@@ -619,6 +622,9 @@ void* animateVoxels(void* args) {
         
         if (::voxelEditPacketSender) {
             ::voxelEditPacketSender->releaseQueuedMessages();
+            if (::nonThreadedPacketSender) {
+                ::voxelEditPacketSender->process();
+            }
         }
         
         uint64_t end = usecTimestampNow();
@@ -629,6 +635,9 @@ void* animateVoxels(void* args) {
         }
         // dynamically sleep until we need to fire off the next set of voxels
         uint64_t usecToSleep =  ANIMATE_VOXELS_INTERVAL_USECS - (usecTimestampNow() - usecTimestamp(&lastSendTime));
+        if (usecToSleep > ANIMATE_VOXELS_INTERVAL_USECS) {
+            usecToSleep = ANIMATE_VOXELS_INTERVAL_USECS;
+        }
         
         if (usecToSleep > 0) {
             usleep(usecToSleep);
@@ -647,6 +656,11 @@ int main(int argc, const char * argv[])
 
     NodeList* nodeList = NodeList::createInstance(NODE_TYPE_ANIMATION_SERVER, ANIMATION_LISTEN_PORT);
     setvbuf(stdout, NULL, _IOLBF, 0);
+
+    // Handle Local Domain testing with the --local command line
+    const char* NON_THREADED_PACKETSENDER = "--NonThreadedPacketSender";
+    ::nonThreadedPacketSender = cmdOptionExists(argc, argv, NON_THREADED_PACKETSENDER);
+    printf("nonThreadedPacketSender=%s\n", debug::valueOf(::nonThreadedPacketSender));
 
     // Handle Local Domain testing with the --local command line
     const char* NO_BILLBOARD = "--NoBillboard";
@@ -702,9 +716,12 @@ int main(int argc, const char * argv[])
     // Create out VoxelEditPacketSender
     ::voxelEditPacketSender = new VoxelEditPacketSender;
     if (::voxelEditPacketSender) {
-        ::voxelEditPacketSender->initialize(true);
+        ::voxelEditPacketSender->initialize(!::nonThreadedPacketSender);
         if (::jurisdictionListener) {
             ::voxelEditPacketSender->setVoxelServerJurisdictions(::jurisdictionListener->getJurisdictions());
+        }
+        if (::nonThreadedPacketSender) {
+            ::voxelEditPacketSender->setProcessCallIntervalHint(ANIMATE_VOXELS_INTERVAL_USECS);
         }
     }
     

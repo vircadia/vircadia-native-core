@@ -43,7 +43,6 @@ public:
     PacketSenderNotify* getPacketSenderNotify() const { return _notify; }
 
     virtual bool process();
-    virtual void processWithoutSleep();
 
     /// are there packets waiting in the send queue to be sent
     bool hasPacketsToSend() const { return _packets.size() > 0; }
@@ -51,8 +50,16 @@ public:
     /// how many packets are there in the send queue waiting to be sent
     int packetsToSendCount() const { return _packets.size(); }
 
+    /// If you're running in non-threaded mode, call this to give us a hint as to how frequently you will call process.
+    /// This has no effect in threaded mode. This is only considered a hint in non-threaded mode.
+    /// \param int usecsPerProcessCall expected number of usecs between calls to process in non-threaded mode.
+    void setProcessCallIntervalHint(int usecsPerProcessCall) { _usecsPerProcessCallHint = usecsPerProcessCall; }
+
 protected:
     int _packetsPerSecond;
+    int _usecsPerProcessCallHint;
+    uint64_t _lastProcessCallTime;
+    SimpleMovingAverage _averageProcessCallTime;
     
 private:
     std::vector<NetworkPacket> _packets;

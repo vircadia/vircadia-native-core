@@ -149,9 +149,11 @@ void Agent::run() {
                     qDebug() << "Uncaught exception at line" << line << ":" << engine.uncaughtException().toString() << "\n";
                 }
                 
-                // flush the queue of packets and then process them so they are all sent off
+                // release the queue of edit voxel messages.
                 voxelScripter.getVoxelPacketSender()->releaseQueuedMessages();
-                voxelScripter.getVoxelPacketSender()->processWithoutSleep();
+
+                // since we're in non-threaded mode, call process so that the packets are sent
+                voxelScripter.getVoxelPacketSender()->process();
             }
             
             while (NodeList::getInstance()->getNodeSocket()->receive((sockaddr*) &senderAddress, receivedData, &receivedBytes)) {
