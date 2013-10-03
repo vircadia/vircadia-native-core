@@ -48,8 +48,7 @@ VoxelEditPacketSender::~VoxelEditPacketSender() {
 
 
 void VoxelEditPacketSender::sendVoxelEditMessage(PACKET_TYPE type, VoxelDetail& detail) {
-
-printf("void VoxelEditPacketSender::sendVoxelEditMessage(PACKET_TYPE type, VoxelDetail& detail)\n");
+    //printf("void VoxelEditPacketSender::sendVoxelEditMessage(PACKET_TYPE type, VoxelDetail& detail)\n");
 
     // allows app to disable sending if for example voxels have been disabled
     if (!_shouldSend) {
