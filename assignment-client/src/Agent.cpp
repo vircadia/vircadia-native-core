@@ -94,6 +94,9 @@ void Agent::run() {
         engine.globalObject().setProperty("TREE_SCALE", treeScaleValue);
         
         const long long VISUAL_DATA_SEND_INTERVAL_USECS = (1 / 60.0f) * 1000 * 1000;
+
+        // let the VoxelPacketSender know how frequently we plan to call it
+        voxelScripter.getVoxelPacketSender()->setProcessCallIntervalHint(VISUAL_DATA_SEND_INTERVAL_USECS);
         
         QScriptValue visualSendIntervalValue = engine.newVariant((QVariant(VISUAL_DATA_SEND_INTERVAL_USECS / 1000)));
         engine.globalObject().setProperty("VISUAL_DATA_SEND_INTERVAL_MS", visualSendIntervalValue);
