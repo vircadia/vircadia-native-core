@@ -82,16 +82,9 @@ bool PacketSender::process() {
         }
     }
     
-    bool keepGoing = _packets.size() > 0;
+    int packetsLeft = _packets.size();
+    bool keepGoing = packetsLeft > 0;
     while (keepGoing) {
-    
-        // in threaded mode, we go till we're empty
-        if (isThreaded()) {
-            keepGoing = _packets.size() > 0;
-        } else {
-            // in non-threaded mode, we send as many packets as we need per expected call to process()
-            keepGoing = (packetsThisCall < packetsPerCall) && (_packets.size() > 0);
-        }
     
         NetworkPacket& packet = _packets.front();
         
@@ -109,16 +102,28 @@ bool PacketSender::process() {
         _packets.erase(_packets.begin());
         unlock();
 
-        // dynamically sleep until we need to fire off the next set of voxels we only sleep in threaded mode
+        packetsLeft = _packets.size();
+
+        // in threaded mode, we go till we're empty
         if (isThreaded()) {
-            uint64_t elapsed = now - _lastSendTime;
-            int usecToSleep =  std::max(SEND_INTERVAL_USECS, SEND_INTERVAL_USECS - elapsed);
-        
-            // we only sleep in non-threaded mode
-            if (usecToSleep > 0) {
-                usleep(usecToSleep);
+            keepGoing = packetsLeft > 0;
+
+            // dynamically sleep until we need to fire off the next set of voxels we only sleep in threaded mode
+            if (keepGoing) {
+                uint64_t elapsed = now - _lastSendTime;
+                int usecToSleep =  std::max(SEND_INTERVAL_USECS, SEND_INTERVAL_USECS - elapsed);
+                
+                // we only sleep in non-threaded mode
+                if (usecToSleep > 0) {
+                    usleep(usecToSleep);
+                }
             }
+
+        } else {
+            // in non-threaded mode, we send as many packets as we need per expected call to process()
+            keepGoing = (packetsThisCall < packetsPerCall) && (packetsLeft > 0);
         }
+        
         _lastSendTime = now;
     }
 
