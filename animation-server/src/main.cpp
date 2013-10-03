@@ -46,7 +46,7 @@ bool nonThreadedPacketSender = false;
 const int ANIMATION_LISTEN_PORT = 40107;
 const int ACTUAL_FPS = 60;
 const double OUR_FPS_IN_MILLISECONDS = 1000.0/ACTUAL_FPS; // determines FPS from our desired FPS
-const int FUDGE_USECS = 10.0; // a little bit of fudge to actually do some processing
+const int FUDGE_USECS = 10; // a little bit of fudge to actually do some processing
 const int ANIMATE_VOXELS_INTERVAL_USECS = (OUR_FPS_IN_MILLISECONDS * 1000.0) - FUDGE_USECS; // converts from milliseconds to usecs
 
 bool wantLocalDomain = false;
