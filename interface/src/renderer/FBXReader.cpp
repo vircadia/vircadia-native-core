@@ -210,7 +210,7 @@ QVariantHash parseMapping(QIODevice* device) {
             for (int i = 2; i < sections.size(); i++) {
                 contents.append(sections.at(i).trimmed());
             }
-            heading.insert(sections.at(1).trimmed(), contents);
+            heading.insertMulti(sections.at(1).trimmed(), contents);
             properties.insert(name, heading);
         }
     }
@@ -360,12 +360,15 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         if (blendshapeName.isEmpty()) {
             break;
         }
-        QVariantList blendshapeMapping = blendshapeMappings.value(blendshapeName).toList();
-        if (blendshapeMapping.isEmpty()) {
+        QList<QVariant> mappings = blendshapeMappings.values(blendshapeName);
+        if (mappings.isEmpty()) {
             blendshapeIndices.insert("ExpressionBlendshapes." + blendshapeName, QPair<int, float>(i, 1.0f));
         } else {
-            blendshapeIndices.insert(blendshapeMapping.at(0).toByteArray(),
-                QPair<int, float>(i, blendshapeMapping.at(1).toFloat()));
+            foreach (const QVariant& mapping, mappings) {
+                QVariantList blendshapeMapping = mapping.toList();
+                blendshapeIndices.insert(blendshapeMapping.at(0).toByteArray(),
+                   QPair<int, float>(i, blendshapeMapping.at(1).toFloat()));
+            }
         }
     }
     QHash<qint64, QPair<int, float> > blendshapeChannelIndices;
