@@ -144,7 +144,8 @@ protected:
     VoxelTree* _tree;
 
     void setupNewVoxelsForDrawing();
-    void setupNewVoxelsForDrawingSingleNode();
+    static const bool DONT_BAIL_EARLY; // by default we will bail early, if you want to force not bailing, then use this
+    void setupNewVoxelsForDrawingSingleNode(bool allowBailEarly = true);
     void checkForCulling();
     
     glm::vec3 computeVoxelVertex(const glm::vec3& startVertex, float voxelScale, int index) const;
@@ -187,6 +188,7 @@ private:
 
     int updateNodeInArraysAsFullVBO(VoxelNode* node);
     int updateNodeInArraysAsPartialVBO(VoxelNode* node);
+    int forceRemoveNodeFromArraysAsPartialVBO(VoxelNode* node);
 
     void copyWrittenDataToReadArraysFullVBOs();
     void copyWrittenDataToReadArraysPartialVBOs();

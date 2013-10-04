@@ -86,8 +86,8 @@ public:
 
 private:
     bool _shouldSend;
-    void queuePacketToNode(uint16_t nodeID, unsigned char* bufferOut, ssize_t sizeOut);
-    void queueVoxelEditMessageToNodes(unsigned char* codeColorBuffer, ssize_t length);
+    void queuePacketToNode(uint16_t nodeID, unsigned char* buffer, ssize_t length);
+    void queuePacketToNodes(unsigned char* buffer, ssize_t length);
     void initializePacket(EditPacketBuffer& packetBuffer, PACKET_TYPE type);
     void releaseQueuedPacket(EditPacketBuffer& packetBuffer); // releases specific queued packet
     bool voxelServersExist() const;

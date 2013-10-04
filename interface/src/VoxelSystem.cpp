@@ -33,6 +33,9 @@
 #include "VoxelConstants.h"
 #include "VoxelSystem.h"
 
+const bool VoxelSystem::DONT_BAIL_EARLY = false;
+
+
 float identityVerticesGlobalNormals[] = { 0,0,0, 1,0,0, 1,1,0, 0,1,0, 0,0,1, 1,0,1, 1,1,1, 0,1,1 };
 
 float identityVertices[] = { 0,0,0, 1,0,0, 1,1,0, 0,1,0, 0,0,1, 1,0,1, 1,1,1, 0,1,1, //0-7
@@ -104,7 +107,12 @@ VoxelSystem::VoxelSystem(float treeScale, int maxVoxels)
 
 void VoxelSystem::voxelDeleted(VoxelNode* node) {
     if (node->isKnownBufferIndex() && (node->getVoxelSystem() == this)) {
-        freeBufferIndex(node->getBufferIndex());
+        if (!_useFastVoxelPipeline || _inSetupNewVoxelsForDrawing || _writeRenderFullVBO) {
+            freeBufferIndex(node->getBufferIndex());
+        } else {
+            forceRemoveNodeFromArraysAsPartialVBO(node);
+            freeBufferIndex(node->getBufferIndex());
+        }
     }
 }
 
@@ -115,22 +123,19 @@ void VoxelSystem::setUseFastVoxelPipeline(bool useFastVoxelPipeline) {
 }
 
 void VoxelSystem::voxelUpdated(VoxelNode* node) {
-
-    //printf("VoxelSystem::voxelUpdated() _useFastVoxelPipeline=%s\n", debug::valueOf(_useFastVoxelPipeline));
-
     // If we're in SetupNewVoxelsForDrawing() or _writeRenderFullVBO then bail..
     if (!_useFastVoxelPipeline || _inSetupNewVoxelsForDrawing || _writeRenderFullVBO) {
         return;
     }
 
     if (node->getVoxelSystem() == this) {
-        //printf("VoxelSystem::voxelUpdated()... node->getVoxelSystem() == this\n");
-
         bool  shouldRender    = false; // assume we don't need to render it
         // if it's colored, we might need to render it!
         shouldRender = node->calculateShouldRender(_viewFrustum);
 
-        node->setShouldRender(shouldRender);
+        if (node->getShouldRender() != shouldRender) {
+            node->setShouldRender(shouldRender);
+        }
         
         if (!node->isLeaf()) {
     
@@ -158,7 +163,7 @@ void VoxelSystem::voxelUpdated(VoxelNode* node) {
 
         node->clearDirtyBit(); // clear the dirty bit, do this before we potentially delete things.
         
-        setupNewVoxelsForDrawingSingleNode();    
+        setupNewVoxelsForDrawingSingleNode();
     }
 }
 
@@ -524,6 +529,8 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
 
     if (!_useFastVoxelPipeline || _writeRenderFullVBO) {
         setupNewVoxelsForDrawing();
+    } else {
+        setupNewVoxelsForDrawingSingleNode(DONT_BAIL_EARLY);
     }
     
     pthread_mutex_unlock(&_treeLock);
@@ -596,7 +603,7 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
     _inSetupNewVoxelsForDrawing = false;
 }
 
-void VoxelSystem::setupNewVoxelsForDrawingSingleNode() {
+void VoxelSystem::setupNewVoxelsForDrawingSingleNode(bool allowBailEarly) {
 
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                             "setupNewVoxelsForDrawingSingleNode()"); // would like to include _voxelsInArrays, _voxelsUpdated
@@ -608,10 +615,10 @@ void VoxelSystem::setupNewVoxelsForDrawingSingleNode() {
     clearFreeBufferIndexes();
 
     bool iAmDebugging = false;  // if you're debugging set this to true, so you won't get skipped for slow debugging
-    if (!iAmDebugging && sinceLastTime <= std::max((float) _setupNewVoxelsForDrawingLastElapsed, SIXTY_FPS_IN_MILLISECONDS)) {
+    if (allowBailEarly && !iAmDebugging && 
+        sinceLastTime <= std::max((float) _setupNewVoxelsForDrawingLastElapsed, SIXTY_FPS_IN_MILLISECONDS)) {
         return; // bail early, it hasn't been long enough since the last time we ran
     }
-
 
     checkForCulling(); // check for out of view and deleted voxels...
 
@@ -825,6 +832,36 @@ int VoxelSystem::updateNodeInArraysAsFullVBO(VoxelNode* node) {
     }
     
     return 0; // not-rendered
+}
+
+// called as response to voxelDeleted() in fast pipeline case. The node
+// is being deleted, but it's state is such that it thinks it should render
+// and therefore we can't use the normal render calculations. This method
+// will forcibly remove it from the VBOs because we know better!!!
+int VoxelSystem::forceRemoveNodeFromArraysAsPartialVBO(VoxelNode* node) {
+
+    // if the node is not in the VBOs then we have nothing to do!
+    if (node->isKnownBufferIndex()) {
+
+        // if we shouldn't render then set out location to some infinitely distant location, 
+        // and our scale as infinitely small
+        glm::vec3 startVertex(FLT_MAX, FLT_MAX, FLT_MAX);
+        float voxelScale = 0;
+        _abandonedVBOSlots++;
+
+        // If this node has not yet been written to the array, then add it to the end of the array.
+        glBufferIndex nodeIndex = node->getBufferIndex();
+
+        _writeVoxelDirtyArray[nodeIndex] = true;
+
+        // populate the array with points for the 8 vertices
+        // and RGB color for each added vertex
+        const nodeColor BLACK = { 0,0,0};
+        updateNodeInArrays(nodeIndex, startVertex, voxelScale, BLACK);
+        
+        return 1; // updated!
+    }
+    return 0; // not-updated
 }
 
 int VoxelSystem::updateNodeInArraysAsPartialVBO(VoxelNode* node) {
@@ -1273,10 +1310,6 @@ bool VoxelSystem::falseColorizeBySourceOperation(VoxelNode* node, void* extraDat
     if (node->isColored()) {
         // pick a color based on the source - we want each source to be obviously different
         uint16_t nodeID = node->getSourceID();
-        
-        //printf("false colorizing from source %d, color: %d, %d, %d\n", nodeID, 
-        //        args->colors[nodeID].red, args->colors[nodeID].green,  args->colors[nodeID].blue);
-                
         node->setFalseColor(args->colors[nodeID].red, args->colors[nodeID].green,  args->colors[nodeID].blue);
     }
     return true; // keep going!
@@ -1305,9 +1338,6 @@ void VoxelSystem::falseColorizeBySource() {
             int groupColor = voxelServerCount % NUMBER_OF_COLOR_GROUPS;
             args.colors[nodeID] = groupColors[groupColor];
 
-            //printf("assigning color for source %d, color: %d, %d, %d\n", nodeID,
-            //       args.colors[nodeID].red, args.colors[nodeID].green, args.colors[nodeID].blue);
-            
             if (groupColors[groupColor].red > 0) {
                 groupColors[groupColor].red = ((groupColors[groupColor].red - MIN_COLOR)/2) + MIN_COLOR;
             }
