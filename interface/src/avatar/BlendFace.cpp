@@ -118,8 +118,10 @@ bool BlendFace::render(float alpha) {
         }
         
         // apply material properties
-        glMaterialfv(GL_FRONT, GL_DIFFUSE, (const float*)&mesh.diffuseColor);
-        glMaterialfv(GL_FRONT, GL_SPECULAR, (const float*)&mesh.specularColor);
+        glm::vec4 diffuse = glm::vec4(mesh.diffuseColor, alpha);
+        glm::vec4 specular = glm::vec4(mesh.specularColor, alpha);
+        glMaterialfv(GL_FRONT, GL_DIFFUSE, (const float*)&diffuse);
+        glMaterialfv(GL_FRONT, GL_SPECULAR, (const float*)&specular);
         glMaterialf(GL_FRONT, GL_SHININESS, mesh.shininess);
         
         glMultMatrixf((const GLfloat*)&mesh.transform);

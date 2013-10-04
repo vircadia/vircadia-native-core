@@ -51,9 +51,8 @@ public:
     
     bool isEye;
     
-    glm::vec4 ambientColor;
-    glm::vec4 diffuseColor;
-    glm::vec4 specularColor;
+    glm::vec3 diffuseColor;
+    glm::vec3 specularColor;
     float shininess;
     
     QByteArray diffuseFilename;
