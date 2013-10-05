@@ -1077,6 +1077,8 @@ void VoxelSystem::render(bool texture) {
     updateVBOs();
 
     if (_useVoxelShader) {
+        PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
+            "render().. _useVoxelShader openGL..");
     
         Application::getInstance()->getVoxelShader().begin();
 
@@ -1106,6 +1108,8 @@ void VoxelSystem::render(bool texture) {
         Application::getInstance()->getVoxelShader().end();
 
     } else {
+        PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "render().. openGL...");
+    
         // tell OpenGL where to find vertex and color information
         glEnableClientState(GL_VERTEX_ARRAY);
         glEnableClientState(GL_COLOR_ARRAY);

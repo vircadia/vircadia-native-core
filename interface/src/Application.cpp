@@ -324,6 +324,8 @@ void Application::initializeGL() {
 }
 
 void Application::paintGL() {
+    PerformanceWarning::setSuppressShortTimings(Menu::getInstance()->isOptionChecked(MenuOption::SuppressShortTimings));
+    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "Application::paintGL()");
     PerfStat("display");
 
     glEnable(GL_LINE_SMOOTH);
@@ -1181,6 +1183,7 @@ void Application::idle() {
 
     double timeSinceLastUpdate = diffclock(&_lastTimeUpdated, &check);
     if (timeSinceLastUpdate > IDLE_SIMULATE_MSECS) {
+
         const float BIGGEST_DELTA_TIME_SECS = 0.25f;
         update(glm::clamp((float)timeSinceLastUpdate / 1000.f, 0.f, BIGGEST_DELTA_TIME_SECS));
         _glWidget->updateGL();
@@ -2379,6 +2382,7 @@ void Application::computeOffAxisFrustum(float& left, float& right, float& bottom
 }
 
 void Application::displaySide(Camera& whichCamera) {
+    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "Application::displaySide()");
     // transform by eye offset
 
     // flip x if in mirror mode (also requires reversing winding order for backface culling)
@@ -2410,6 +2414,8 @@ void Application::displaySide(Camera& whichCamera) {
     setupWorldLight(whichCamera);
     
     if (Menu::getInstance()->isOptionChecked(MenuOption::Stars)) {
+        PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
+            "Application::displaySide() ... stars...");
         if (!_stars.getFileLoaded()) {
             _stars.readInput(STAR_FILE, STAR_CACHE_FILE, 0);
         }
@@ -2435,6 +2441,8 @@ void Application::displaySide(Camera& whichCamera) {
 
     // draw the sky dome
     if (Menu::getInstance()->isOptionChecked(MenuOption::Atmosphere)) {
+        PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
+            "Application::displaySide() ... atmosphere...");
         _environment.renderAtmospheres(whichCamera);
     }
     
@@ -2457,6 +2465,9 @@ void Application::displaySide(Camera& whichCamera) {
 
     //draw a grid ground plane....
     if (Menu::getInstance()->isOptionChecked(MenuOption::GroundPlane)) {
+        PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
+            "Application::displaySide() ... ground plane...");
+
         // draw grass plane with fog
         glEnable(GL_FOG);
         glEnable(GL_NORMALIZE);        
@@ -2480,7 +2491,11 @@ void Application::displaySide(Camera& whichCamera) {
     } 
     //  Draw voxels
     if (Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
-        _voxels.render(Menu::getInstance()->isOptionChecked(MenuOption::VoxelTextures));
+        PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
+            "Application::displaySide() ... voxels...");
+        if (!Menu::getInstance()->isOptionChecked(MenuOption::DontRenderVoxels)) {
+            _voxels.render(Menu::getInstance()->isOptionChecked(MenuOption::VoxelTextures));
+        }
     }
     
     // restore default, white specular
@@ -2488,6 +2503,9 @@ void Application::displaySide(Camera& whichCamera) {
     
     // indicate what we'll be adding/removing in mouse mode, if anything
     if (_mouseVoxel.s != 0) {
+        PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
+            "Application::displaySide() ... voxels TOOLS UX...");
+
         glDisable(GL_LIGHTING);
         glPushMatrix();
         glScalef(TREE_SCALE, TREE_SCALE, TREE_SCALE);
@@ -2533,6 +2551,9 @@ void Application::displaySide(Camera& whichCamera) {
     }
     
     if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelSelectMode) && _pasteMode) {
+        PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
+            "Application::displaySide() ... PASTE Preview...");
+
         glPushMatrix();
         glTranslatef(_mouseVoxel.x * TREE_SCALE,
                      _mouseVoxel.y * TREE_SCALE,
@@ -2548,6 +2569,10 @@ void Application::displaySide(Camera& whichCamera) {
     _myAvatar.renderScreenTint(SCREEN_TINT_BEFORE_AVATARS, whichCamera);
     
     if (Menu::getInstance()->isOptionChecked(MenuOption::Avatars)) {
+        PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
+            "Application::displaySide() ... Avatars...");
+
+
         //  Render avatars of other nodes
         NodeList* nodeList = NodeList::getInstance();
         
@@ -2592,16 +2617,22 @@ void Application::displaySide(Camera& whichCamera) {
     
     // render the ambient occlusion effect if enabled
     if (Menu::getInstance()->isOptionChecked(MenuOption::AmbientOcclusion)) {
+        PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
+            "Application::displaySide() ... AmbientOcclusion...");
         _ambientOcclusionEffect.render();
     }
     
     // brad's frustum for debugging
     if (Menu::getInstance()->isOptionChecked(MenuOption::DisplayFrustum)) {
+        PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
+            "Application::displaySide() ... renderViewFrustum...");
         renderViewFrustum(_viewFrustum);
     }
 
     // render voxel fades if they exist
     if (_voxelFades.size() > 0) {
+        PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
+            "Application::displaySide() ... voxel fades...");
         for(std::vector<VoxelFade>::iterator fade = _voxelFades.begin(); fade != _voxelFades.end();) {
             fade->render();
             if(fade->isDone()) {
@@ -2611,11 +2642,18 @@ void Application::displaySide(Camera& whichCamera) {
             }
         }
     }
-        
-    renderFollowIndicator();
+
+    {        
+        PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
+            "Application::displaySide() ... renderFollowIndicator...");
+        renderFollowIndicator();
+    }
     
     // render transmitter pick ray, if non-empty
     if (_transmitterPickStart != _transmitterPickEnd) {
+        PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
+            "Application::displaySide() ... transmitter pick ray...");
+
         Glower glower;
         const float TRANSMITTER_PICK_COLOR[] = { 1.0f, 1.0f, 0.0f };
         glColor3fv(TRANSMITTER_PICK_COLOR);
@@ -2637,6 +2675,8 @@ void Application::displaySide(Camera& whichCamera) {
 }
 
 void Application::displayOverlay() {
+    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "Application::displayOverlay()");
+
     //  Render 2D overlay:  I/O level bar graphs and text  
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
