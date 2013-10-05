@@ -402,6 +402,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                     
                         QVector<int> polygonIndices;
                         QVector<glm::vec3> normals;
+                        QVector<int> normalIndices;
                         QVector<glm::vec2> texCoords;
                         QVector<int> texCoordIndices;
                         foreach (const FBXNode& data, object.children) {
@@ -417,6 +418,9 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                                     if (subdata.name == "Normals") {
                                         normals = createVec3Vector(subdata.properties.at(0).value<QVector<double> >());
                                     
+                                    } else if (subdata.name == "NormalsIndex") {
+                                        normalIndices = subdata.properties.at(0).value<QVector<int> >();
+                                        
                                     } else if (subdata.name == "MappingInformationType" &&
                                             subdata.properties.at(0) == "ByVertice") {
                                         byVertex = true;
@@ -440,10 +444,20 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                         // convert normals from per-index to per-vertex if necessary
                         if (mesh.normals.isEmpty()) {
                             mesh.normals.resize(mesh.vertices.size());
-                            for (int i = 0, n = polygonIndices.size(); i < n; i++) {
-                                int index = polygonIndices.at(i);
-                                mesh.normals[index < 0 ? (-index - 1) : index] = normals.at(i);
-                            } 
+                            if (normalIndices.isEmpty()) {
+                                for (int i = 0, n = polygonIndices.size(); i < n; i++) {
+                                    int index = polygonIndices.at(i);
+                                    mesh.normals[index < 0 ? (-index - 1) : index] = normals.at(i);
+                                } 
+                            } else {
+                                for (int i = 0, n = polygonIndices.size(); i < n; i++) {
+                                    int index = polygonIndices.at(i);
+                                    int normalIndex = normalIndices.at(i);
+                                    if (normalIndex >= 0) {
+                                        mesh.normals[index < 0 ? (-index - 1) : index] = normals.at(normalIndex);
+                                    }
+                                } 
+                            }
                         }
                         
                         // same with the tex coords
