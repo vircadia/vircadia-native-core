@@ -346,6 +346,13 @@ void printNode(const FBXNode& node, int indent) {
     }
 }
 
+class Material {
+public:
+    glm::vec3 diffuse;
+    glm::vec3 specular;
+    float shininess;
+};
+
 FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping) {
     QHash<qint64, FBXMesh> meshes;
     QVector<ExtractedBlendshape> blendshapes;
@@ -354,6 +361,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     QHash<qint64, Transform> localTransforms;
     QHash<qint64, glm::mat4> transformLinkMatrices;
     QHash<qint64, QByteArray> textureFilenames;
+    QHash<qint64, Material> materials;
     QHash<qint64, qint64> diffuseTextures;
     QHash<qint64, qint64> bumpTextures;
     
@@ -578,6 +586,31 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                             textureFilenames.insert(object.properties.at(0).value<qint64>(), filename);
                         }
                     }
+                } else if (object.name == "Material") {
+                    Material material = { glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(1.0f, 1.0f, 1.0f), 96.0f };
+                    foreach (const FBXNode& subobject, object.children) {
+                        if (subobject.name == "Properties70") {        
+                            foreach (const FBXNode& property, subobject.children) {
+                                if (property.name == "P") {
+                                    if (property.properties.at(0) == "DiffuseColor") {
+                                        material.diffuse = glm::vec3(property.properties.at(4).value<double>(),
+                                            property.properties.at(5).value<double>(),
+                                            property.properties.at(6).value<double>());
+                                        
+                                    } else if (property.properties.at(0) == "SpecularColor") {
+                                        material.specular = glm::vec3(property.properties.at(4).value<double>(),
+                                            property.properties.at(5).value<double>(),
+                                            property.properties.at(6).value<double>());
+                                    
+                                    } else if (property.properties.at(0) == "Shininess") {
+                                        material.shininess = property.properties.at(4).value<double>();
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    materials.insert(object.properties.at(0).value<qint64>(), material);
+                    
                 } else if (object.name == "Deformer") {
                     if (object.properties.at(2) == "Cluster") {
                         foreach (const FBXNode& subobject, object.children) {
@@ -641,8 +674,15 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         qint64 modelID = parentMap.value(it.key());
         glm::mat4 modelTransform = getGlobalTransform(parentMap, localTransforms, modelID);
         
-        // look for textures
+        // look for textures, material properties
         foreach (qint64 childID, childMap.values(modelID)) {
+            if (!materials.contains(childID)) {
+                continue;
+            }
+            Material material = materials.value(childID);
+            mesh.diffuseColor = material.diffuse;
+            mesh.specularColor = material.specular;
+            mesh.shininess = material.shininess;
             qint64 diffuseTextureID = diffuseTextures.value(childID);
             if (diffuseTextureID != 0) {
                 mesh.diffuseFilename = textureFilenames.value(diffuseTextureID);
