@@ -239,6 +239,7 @@ Menu::Menu() :
                                            true,
                                            appInstance,
                                            SLOT(setRenderVoxels(bool)));
+    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::DontRenderVoxels);
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::VoxelTextures);
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::AmbientOcclusion);
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::UseVoxelShader, 0, 
@@ -346,6 +347,7 @@ Menu::Menu() :
     
     QMenu* renderDebugMenu = developerMenu->addMenu("Render Debugging Tools");
     addCheckableActionToQMenuAndActionHash(renderDebugMenu, MenuOption::PipelineWarnings);
+    addCheckableActionToQMenuAndActionHash(renderDebugMenu, MenuOption::SuppressShortTimings);
     
     addActionToQMenuAndActionHash(renderDebugMenu,
                                   MenuOption::KillLocalVoxels,
