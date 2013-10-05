@@ -382,6 +382,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         }
         QList<QVariant> mappings = blendshapeMappings.values(blendshapeName);
         if (mappings.isEmpty()) {
+            blendshapeIndices.insert(blendshapeName, QPair<int, float>(i, 1.0f));
             blendshapeIndices.insert("ExpressionBlendshapes." + blendshapeName, QPair<int, float>(i, 1.0f));
         } else {
             foreach (const QVariant& mapping, mappings) {
