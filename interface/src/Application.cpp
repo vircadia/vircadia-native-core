@@ -971,7 +971,12 @@ void Application::mousePressEvent(QMouseEvent* event) {
             _mousePressed = true;
 
             maybeEditVoxelUnderCursor();
-
+            
+            if (_audio.mousePressEvent(_mouseX, _mouseY)) {
+                // stop propagation
+                return;
+            }
+            
             if (!_palette.isActive() && (!_isHoverVoxel || _lookatTargetAvatar)) {
                 _pieMenu.mousePressEvent(_mouseX, _mouseY);
             }
@@ -1607,6 +1612,8 @@ void Application::init() {
     _followMode = new QAction(this);
     connect(_followMode, SIGNAL(triggered()), this, SLOT(toggleFollowMode()));
     _pieMenu.addAction(_followMode);
+
+    _audio.init(_glWidget);
 }
 
 
@@ -2655,7 +2662,7 @@ void Application::displayOverlay() {
         #ifndef _WIN32
         _audio.render(_glWidget->width(), _glWidget->height());
         if (Menu::getInstance()->isOptionChecked(MenuOption::Oscilloscope)) {
-            _audioScope.render(20, _glWidget->height() - 200);
+            _audioScope.render(45, _glWidget->height() - 200);
         }
         #endif
 
