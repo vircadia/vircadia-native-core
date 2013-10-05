@@ -1416,7 +1416,7 @@ void VoxelSystem::falseColorizeDistanceFromView() {
 class removeOutOfViewArgs {
 public:
     VoxelSystem*    thisVoxelSystem;
-    ViewFrustum*    thisViewFrustum;
+    ViewFrustum     thisViewFrustum;
     VoxelNodeBag    dontRecurseBag;
     unsigned long   nodesScanned;
     unsigned long   nodesRemoved;
@@ -1426,14 +1426,20 @@ public:
     
     removeOutOfViewArgs(VoxelSystem* voxelSystem) :
         thisVoxelSystem(voxelSystem),
-        thisViewFrustum(voxelSystem->getViewFrustum()),
+        thisViewFrustum(*voxelSystem->getViewFrustum()),
         dontRecurseBag(),
         nodesScanned(0),
         nodesRemoved(0),
         nodesInside(0),
         nodesIntersect(0),
         nodesOutside(0)
-    { }
+    {
+        // Widen the FOV for trimming
+        float originalFOV = thisViewFrustum.getFieldOfView();
+        float wideFOV = originalFOV + VIEW_FRUSTUM_FOV_OVERSEND;
+        thisViewFrustum.setFieldOfView(wideFOV); // hack
+        thisViewFrustum.calculate();
+    }
 };
 
 void VoxelSystem::cancelImport() {
@@ -1459,7 +1465,7 @@ bool VoxelSystem::removeOutOfViewOperation(VoxelNode* node, void* extraData) {
     for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
         VoxelNode* childNode = node->getChildAtIndex(i);
         if (childNode) {
-            ViewFrustum::location inFrustum = childNode->inFrustum(*args->thisViewFrustum);
+            ViewFrustum::location inFrustum = childNode->inFrustum(args->thisViewFrustum);
             switch (inFrustum) {
                 case ViewFrustum::OUTSIDE: {
                     args->nodesOutside++;
