@@ -1437,7 +1437,7 @@ public:
         // Widen the FOV for trimming
         float originalFOV = thisViewFrustum.getFieldOfView();
         float wideFOV = originalFOV + VIEW_FRUSTUM_FOV_OVERSEND;
-        thisViewFrustum.setFieldOfView(wideFOV); // hack
+        thisViewFrustum.setFieldOfView(wideFOV);
         thisViewFrustum.calculate();
     }
 };
