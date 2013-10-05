@@ -191,6 +191,8 @@ void VoxelSystem::freeBufferIndex(glBufferIndex index) {
 
 // This will run through the list of _freeIndexes and reset their VBO array values to be "invisible".
 void VoxelSystem::clearFreeBufferIndexes() {
+    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "###### clearFreeBufferIndexes()");
+
     for (int i = 0; i < _freeIndexes.size(); i++) {
         glBufferIndex nodeIndex = _freeIndexes[i];
         glm::vec3 startVertex(FLT_MAX, FLT_MAX, FLT_MAX);
@@ -606,7 +608,7 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
 void VoxelSystem::setupNewVoxelsForDrawingSingleNode(bool allowBailEarly) {
 
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                            "setupNewVoxelsForDrawingSingleNode()"); // would like to include _voxelsInArrays, _voxelsUpdated
+                            "setupNewVoxelsForDrawingSingleNode() xxxxx");
 
     uint64_t start = usecTimestampNow();
     uint64_t sinceLastTime = (start - _setupNewVoxelsForDrawingLastFinished) / 1000;
@@ -623,7 +625,11 @@ void VoxelSystem::setupNewVoxelsForDrawingSingleNode(bool allowBailEarly) {
     checkForCulling(); // check for out of view and deleted voxels...
 
     // lock on the buffer write lock so we can't modify the data when the GPU is reading it
-    pthread_mutex_lock(&_bufferWriteLock);
+    {
+        PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
+                            "setupNewVoxelsForDrawingSingleNode()... pthread_mutex_lock(&_bufferWriteLock);");
+        pthread_mutex_lock(&_bufferWriteLock);
+    }
 
     _voxelsDirty = true; // if we got this far, then we can assume some voxels are dirty
 
