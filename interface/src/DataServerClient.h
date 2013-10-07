@@ -9,6 +9,8 @@
 #ifndef __hifi__DataServerClient__
 #define __hifi__DataServerClient__
 
+#include <vector>
+
 #include <QtCore/QUuid>
 
 class DataServerClient {
@@ -23,6 +25,7 @@ public:
     static QUuid& getClientUUID() { return _clientUUID; }
 private:
     static QUuid _clientUUID;
+    static std::vector<unsigned char*> _unconfirmedPackets;
 };
 
 #endif /* defined(__hifi__DataServerClient__) */

@@ -17,7 +17,7 @@ const unsigned short DATA_SERVER_PORT = 3282;
 const sockaddr_in DATA_SERVER_SOCKET = socketForHostnameAndHostOrderPort(DATA_SERVER_HOSTNAME, DATA_SERVER_PORT);
 
 void DataServerClient::putValueForKey(const char* key, const char* value) {
-    unsigned char putPacket[MAX_PACKET_SIZE];
+    unsigned char* putPacket = new unsigned char[MAX_PACKET_SIZE];
     
     // setup the header for this packet
     int numPacketBytes = populateTypeAndVersion(putPacket, PACKET_TYPE_DATA_SERVER_PUT);
@@ -36,6 +36,9 @@ void DataServerClient::putValueForKey(const char* key, const char* value) {
     strcpy((char*) putPacket + numPacketBytes, value);
     numPacketBytes += strlen(value);
     putPacket[numPacketBytes++] = '\0';
+    
+    // add the putPacket to our vector of unconfirmed packets, will be deleted once put is confirmed
+    _unconfirmedPackets.push_back(putPacket);
     
     // send this put request to the data server
     NodeList::getInstance()->getNodeSocket()->send((sockaddr*) &DATA_SERVER_SOCKET, putPacket, numPacketBytes);
@@ -63,6 +66,22 @@ void DataServerClient::getValueForKeyAndUUID(const char* key, QUuid &uuid) {
 
 void DataServerClient::processConfirmFromDataServer(unsigned char* packetData, int numPacketBytes) {
     
+    for  (std::vector<unsigned char*>::iterator unconfirmedPacket = _unconfirmedPackets.begin();
+          unconfirmedPacket != _unconfirmedPackets.end();
+          ++unconfirmedPacket) {
+        if (memcmp(*unconfirmedPacket + sizeof(PACKET_TYPE),
+                   packetData + sizeof(PACKET_TYPE),
+                   numPacketBytes - sizeof(PACKET_TYPE)) == 0) {
+            // this is a match - remove the confirmed packet from the vector so it isn't sent back out
+            _unconfirmedPackets.erase(unconfirmedPacket);
+            
+            // we've matched the packet - bail out
+            break;
+        } else {
+            // no match, just push the iterator
+            unconfirmedPacket++;
+        }
+    }
 }
 
 void DataServerClient::processGetFromDataServer(unsigned char* packetData, int numPacketBytes) {
