@@ -214,8 +214,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     cache->setCacheDirectory("interfaceCache");
     _networkAccessManager->setCache(cache);
     
-    QRect available = desktop()->availableGeometry();
-    _window->resize(available.size());
+    restoreSizeAndPosition();
     _window->setVisible(true);
     _glWidget->setFocusPolicy(Qt::StrongFocus);
     _glWidget->setFocus();
@@ -230,6 +229,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
 }
 
 Application::~Application() {
+    storeSizeAndPosition();
     NodeList::getInstance()->removeHook(&_voxels);
     NodeList::getInstance()->removeHook(this);
     NodeList::getInstance()->removeDomainListener(this);
@@ -245,6 +245,37 @@ Application::~Application() {
     delete _networkAccessManager;
     delete _followMode;
     delete _glWidget;
+}
+
+void Application::restoreSizeAndPosition() {
+    QSettings* settings = new QSettings(this);
+    QRect available = desktop()->availableGeometry();
+    
+    settings->beginGroup("Window");
+    
+    float x = loadSetting(settings, "x", 0);
+    float y = loadSetting(settings, "y", 0);
+    _window->move(x, y);
+    
+    int width = loadSetting(settings, "width", available.width());
+    int height = loadSetting(settings, "height", available.height());
+    _window->resize(width, height);
+    
+    settings->endGroup();
+}
+
+void Application::storeSizeAndPosition() {
+    QSettings* settings = new QSettings(this);
+    
+    settings->beginGroup("Window");
+    
+    settings->setValue("width", _window->rect().width());
+    settings->setValue("height", _window->rect().height());
+    
+    settings->setValue("x", _window->pos().x());
+    settings->setValue("y", _window->pos().y());
+    
+    settings->endGroup();
 }
 
 void Application::initializeGL() {

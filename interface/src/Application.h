@@ -89,6 +89,8 @@ public:
     Application(int& argc, char** argv, timeval &startup_time);
     ~Application();
 
+    void restoreSizeAndPosition();
+    void storeSizeAndPosition();    
     void initializeGL();
     void paintGL();
     void resizeGL(int width, int height);
