@@ -9,6 +9,7 @@
 #include <NodeList.h>
 #include <PacketHeaders.h>
 #include <UDPSocket.h>
+#include <UUID.h>
 
 #include "DataServerClient.h"
 
@@ -26,9 +27,9 @@ void DataServerClient::putValueForKey(const char* key, const char* value) {
     int numPacketBytes = populateTypeAndVersion(putPacket, PACKET_TYPE_DATA_SERVER_PUT);
     
     // pack the client UUID
-    QByteArray rfcUUID = _clientUUID.toRfc4122();
-    memcpy(putPacket + numPacketBytes, rfcUUID.constData(), rfcUUID.size());
-    numPacketBytes += rfcUUID.size();
+    QString uuidString = uuidStringWithoutCurlyBraces(_clientUUID);
+    memcpy(putPacket + numPacketBytes, uuidString.toLocal8Bit().constData(), uuidString.toLocal8Bit().size());
+    numPacketBytes += uuidString.toLocal8Bit().size();
     
     // pack the key, null terminated
     strcpy((char*) putPacket + numPacketBytes, key);
@@ -54,9 +55,9 @@ void DataServerClient::getValueForKeyAndUUID(const char* key, QUuid &uuid) {
     int numPacketBytes = populateTypeAndVersion(getPacket, PACKET_TYPE_DATA_SERVER_GET);
     
     // pack the UUID we're asking for data for
-    QByteArray rfcUUID = uuid.toRfc4122();
-    memcpy(getPacket + numPacketBytes, rfcUUID, rfcUUID.size());
-    numPacketBytes += rfcUUID.size();
+    QString uuidString = uuidStringWithoutCurlyBraces(uuid);
+    memcpy(getPacket + numPacketBytes, uuidString.toLocal8Bit().constData(), uuidString.toLocal8Bit().size());
+    numPacketBytes += uuidString.toLocal8Bit().size();
     
     // pack the key, null terminated
     strcpy((char*) getPacket + numPacketBytes, key);
