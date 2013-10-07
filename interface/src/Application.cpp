@@ -58,6 +58,7 @@
 #include <VoxelSceneStats.h>
 
 #include "Application.h"
+#include "DataServerClient.h"
 #include "LogDisplay.h"
 #include "Menu.h"
 #include "Swatch.h"
@@ -1585,6 +1586,11 @@ void Application::init() {
         _audio.setJitterBufferSamples(Menu::getInstance()->getAudioJitterBufferSamples());
     }
     qDebug("Loaded settings.\n");
+    
+    if (!_myAvatar.getUsername().isEmpty()) {
+        // we have a username for this avatar, ask the data-server for the mesh URL for this avatar
+        DataServerClient::getClientValueForKey(DataServerKey::FaceMeshURL);
+    }
 
     // Set up VoxelSystem after loading preferences so we can get the desired max voxel count    
     _voxels.setMaxVoxels(Menu::getInstance()->getMaxVoxels());

@@ -29,4 +29,8 @@ private:
     static std::vector<unsigned char*> _unconfirmedPackets;
 };
 
+namespace DataServerKey {
+    const char FaceMeshURL[] = "mesh";
+}
+
 #endif /* defined(__hifi__DataServerClient__) */

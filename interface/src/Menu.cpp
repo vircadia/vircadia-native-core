@@ -804,21 +804,27 @@ void Menu::editPreferences() {
          return;
      }
     
+    QUrl faceModelURL(faceURLEdit->text());
+    
     if (avatarUsernameEdit->text() != avatarUsername) {
-        // there has been a UUID change - set the new UUID on the avatar instance
+        // there has been a username change - set the new UUID on the avatar instance
         applicationInstance->getAvatar()->setUsername(avatarUsernameEdit->text());
         
+        if (faceModelURL.toString() == faceURLString) {
+            // if there was no change to the face model URL then ask the data-server for what it is
+            DataServerClient::getClientValueForKey(DataServerKey::FaceMeshURL);
+        }
     }
     
     QUrl avatarVoxelURL(avatarURL->text());
     applicationInstance->getAvatar()->getVoxels()->setVoxelURL(avatarVoxelURL);
     
-    QUrl faceModelURL(faceURLEdit->text());
     if (faceModelURL.toString() != faceURLString) {
         applicationInstance->getAvatar()->getHead().getBlendFace().setModelURL(faceModelURL);
         
         // send the new face mesh URL to the data-server (if we have a client UUID)
-        DataServerClient::putValueForKey("mesh", faceModelURL.toString().toLocal8Bit().constData());
+        DataServerClient::putValueForKey(DataServerKey::FaceMeshURL,
+                                         faceModelURL.toString().toLocal8Bit().constData());
     }
     
     Avatar::sendAvatarURLsMessage(avatarVoxelURL, faceModelURL);
