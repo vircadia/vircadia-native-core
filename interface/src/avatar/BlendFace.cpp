@@ -16,8 +16,7 @@ using namespace fs;
 using namespace std;
 
 BlendFace::BlendFace(Head* owningHead) :
-    _owningHead(owningHead),
-    _modelReply(NULL)
+    _owningHead(owningHead)
 {
     // we may have been created in the network thread, but we live in the main thread
     moveToThread(Application::getInstance()->thread());
@@ -28,7 +27,6 @@ BlendFace::~BlendFace() {
 }
 
 ProgramObject BlendFace::_eyeProgram;
-DilatedTextureCache BlendFace::_eyeTextureCache("resources/images/eye.png", 50, 210);
 
 void BlendFace::init() {
     if (!_eyeProgram.isLinked()) {
@@ -43,12 +41,32 @@ void BlendFace::init() {
     }
 }
 
-const glm::vec3 MODEL_TRANSLATION(0.0f, -0.025f, -0.025f); // temporary fudge factor
+const glm::vec3 MODEL_TRANSLATION(0.0f, -120.0f, 40.0f); // temporary fudge factor
 const float MODEL_SCALE = 0.0006f;
 
 bool BlendFace::render(float alpha) {
-    if (_meshIDs.isEmpty()) {
+    if (!isActive()) {
         return false;
+    }
+
+    // set up blended buffer ids on first render after load
+    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    const QVector<NetworkMesh>& networkMeshes = _geometry->getMeshes();
+    if (_blendedVertexBufferIDs.isEmpty()) {
+        foreach (const FBXMesh& mesh, geometry.meshes) {
+            GLuint id = 0;
+            if (!mesh.blendshapes.isEmpty()) {
+                glGenBuffers(1, &id);
+                glBindBuffer(GL_ARRAY_BUFFER, id);
+                glBufferData(GL_ARRAY_BUFFER, (mesh.vertices.size() + mesh.normals.size()) * sizeof(glm::vec3),
+                    NULL, GL_DYNAMIC_DRAW);
+                glBindBuffer(GL_ARRAY_BUFFER, 0);
+            }
+            _blendedVertexBufferIDs.append(id);
+        }
+        
+        // make sure we have the right number of dilated texture pointers
+        _dilatedTextures.resize(geometry.meshes.size());
     }
 
     glPushMatrix();
@@ -56,30 +74,34 @@ bool BlendFace::render(float alpha) {
     glm::quat orientation = _owningHead->getOrientation();
     glm::vec3 axis = glm::axis(orientation);
     glRotatef(glm::angle(orientation), axis.x, axis.y, axis.z);    
-    glTranslatef(MODEL_TRANSLATION.x, MODEL_TRANSLATION.y, MODEL_TRANSLATION.z); 
     glm::vec3 scale(-_owningHead->getScale() * MODEL_SCALE, _owningHead->getScale() * MODEL_SCALE,
         -_owningHead->getScale() * MODEL_SCALE);
     glScalef(scale.x, scale.y, scale.z);
 
+    glm::vec3 offset = MODEL_TRANSLATION - geometry.neckPivot;
+    glTranslatef(offset.x, offset.y, offset.z);
+
     glEnableClientState(GL_VERTEX_ARRAY);
     glEnableClientState(GL_NORMAL_ARRAY);
+    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
     
     // enable normalization under the expectation that the GPU can do it faster
     glEnable(GL_NORMALIZE); 
+    glEnable(GL_TEXTURE_2D);
+    glDisable(GL_COLOR_MATERIAL);
     
-    glColor4f(_owningHead->getSkinColor().r, _owningHead->getSkinColor().g, _owningHead->getSkinColor().b, alpha);
-    
-    for (int i = 0; i < _meshIDs.size(); i++) {
-        const VerticesIndices& ids = _meshIDs.at(i);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ids.first);
-        glBindBuffer(GL_ARRAY_BUFFER, ids.second);
+    for (int i = 0; i < networkMeshes.size(); i++) {
+        const NetworkMesh& networkMesh = networkMeshes.at(i);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, networkMesh.indexBufferID);
         
-        const FBXMesh& mesh = _geometry.meshes.at(i);    
+        const FBXMesh& mesh = geometry.meshes.at(i);    
         int vertexCount = mesh.vertices.size();
         
+        glPushMatrix();
+        
         // apply eye rotation if appropriate
+        Texture* texture = networkMesh.diffuseTexture.data();
         if (mesh.isEye) {
-            glPushMatrix();
             glTranslatef(mesh.pivot.x, mesh.pivot.y, mesh.pivot.z);
             glm::quat rotation = glm::inverse(orientation) * _owningHead->getEyeRotation(orientation *
                 (mesh.pivot * scale + MODEL_TRANSLATION) + _owningHead->getPosition());
@@ -87,23 +109,33 @@ bool BlendFace::render(float alpha) {
             glRotatef(glm::angle(rotation), -rotationAxis.x, rotationAxis.y, -rotationAxis.z);
             glTranslatef(-mesh.pivot.x, -mesh.pivot.y, -mesh.pivot.z);
         
-            // use texture coordinates only for the eye, for now
-            glEnableClientState(GL_TEXTURE_COORD_ARRAY);
-            
-            _eyeTexture = _eyeTextureCache.getTexture(_owningHead->getPupilDilation());
-            glBindTexture(GL_TEXTURE_2D, _eyeTexture->getID());
-            
-            glEnable(GL_TEXTURE_2D);
-            
             _eyeProgram.bind();
+            
+            if (texture != NULL) {
+                texture = (_dilatedTextures[i] = static_cast<DilatableNetworkTexture*>(texture)->getDilatedTexture(
+                    _owningHead->getPupilDilation())).data();
+            }
         }
         
-        // all meshes after the first are white
-        if (i == 1) {
-            glColor4f(1.0f, 1.0f, 1.0f, alpha);
-        }
+        // apply material properties
+        glm::vec4 diffuse = glm::vec4(mesh.diffuseColor, alpha);
+        glm::vec4 specular = glm::vec4(mesh.specularColor, alpha);
+        glMaterialfv(GL_FRONT, GL_AMBIENT, (const float*)&diffuse);
+        glMaterialfv(GL_FRONT, GL_DIFFUSE, (const float*)&diffuse);
+        glMaterialfv(GL_FRONT, GL_SPECULAR, (const float*)&specular);
+        glMaterialf(GL_FRONT, GL_SHININESS, mesh.shininess);
         
-        if (!mesh.blendshapes.isEmpty()) {
+        glMultMatrixf((const GLfloat*)&mesh.transform);
+        
+        glBindTexture(GL_TEXTURE_2D, texture == NULL ? 0 : texture->getID());
+        
+        glBindBuffer(GL_ARRAY_BUFFER, networkMesh.vertexBufferID);
+        if (mesh.blendshapes.isEmpty()) {
+            glTexCoordPointer(2, GL_FLOAT, 0, (void*)(vertexCount * 2 * sizeof(glm::vec3)));    
+        
+        } else {
+            glTexCoordPointer(2, GL_FLOAT, 0, 0);
+        
             _blendedVertices.resize(max(_blendedVertices.size(), vertexCount));
             _blendedNormals.resize(_blendedVertices.size());
             memcpy(_blendedVertices.data(), mesh.vertices.constData(), vertexCount * sizeof(glm::vec3));
@@ -111,67 +143,77 @@ bool BlendFace::render(float alpha) {
             
             // blend in each coefficient
             const vector<float>& coefficients = _owningHead->getBlendshapeCoefficients();
-            for (int i = 0; i < coefficients.size(); i++) {
-                float coefficient = coefficients[i];
-                if (coefficient == 0.0f || i >= mesh.blendshapes.size() || mesh.blendshapes[i].vertices.isEmpty()) {
+            for (int j = 0; j < coefficients.size(); j++) {
+                float coefficient = coefficients[j];
+                if (coefficient == 0.0f || j >= mesh.blendshapes.size() || mesh.blendshapes[j].vertices.isEmpty()) {
                     continue;
                 }
                 const float NORMAL_COEFFICIENT_SCALE = 0.01f;
                 float normalCoefficient = coefficient * NORMAL_COEFFICIENT_SCALE;
-                const glm::vec3* vertex = mesh.blendshapes[i].vertices.constData();
-                const glm::vec3* normal = mesh.blendshapes[i].normals.constData();
-                for (const int* index = mesh.blendshapes[i].indices.constData(),
-                        *end = index + mesh.blendshapes[i].indices.size(); index != end; index++, vertex++, normal++) {
+                const glm::vec3* vertex = mesh.blendshapes[j].vertices.constData();
+                const glm::vec3* normal = mesh.blendshapes[j].normals.constData();
+                for (const int* index = mesh.blendshapes[j].indices.constData(),
+                        *end = index + mesh.blendshapes[j].indices.size(); index != end; index++, vertex++, normal++) {
                     _blendedVertices[*index] += *vertex * coefficient;
                     _blendedNormals[*index] += *normal * normalCoefficient;
                 }
             }
     
+            glBindBuffer(GL_ARRAY_BUFFER, _blendedVertexBufferIDs.at(i));
             glBufferSubData(GL_ARRAY_BUFFER, 0, vertexCount * sizeof(glm::vec3), _blendedVertices.constData());
             glBufferSubData(GL_ARRAY_BUFFER, vertexCount * sizeof(glm::vec3),
                 vertexCount * sizeof(glm::vec3), _blendedNormals.constData());
         }
-        
         glVertexPointer(3, GL_FLOAT, 0, 0);
         glNormalPointer(GL_FLOAT, 0, (void*)(vertexCount * sizeof(glm::vec3)));
-        glTexCoordPointer(2, GL_FLOAT, 0, (void*)(vertexCount * 2 * sizeof(glm::vec3)));
+        
         glDrawRangeElementsEXT(GL_QUADS, 0, vertexCount - 1, mesh.quadIndices.size(), GL_UNSIGNED_INT, 0);
         glDrawRangeElementsEXT(GL_TRIANGLES, 0, vertexCount - 1, mesh.triangleIndices.size(),
             GL_UNSIGNED_INT, (void*)(mesh.quadIndices.size() * sizeof(int)));
             
         if (mesh.isEye) {
             _eyeProgram.release();
-            glBindTexture(GL_TEXTURE_2D, 0);
-            glDisable(GL_TEXTURE_2D);
-            glDisableClientState(GL_TEXTURE_COORD_ARRAY);
-            glPopMatrix();
         }
+        
+        glPopMatrix();
     }
     
     glDisable(GL_NORMALIZE); 
-
+    glDisable(GL_TEXTURE_2D);
+    
     // deactivate vertex arrays after drawing
     glDisableClientState(GL_NORMAL_ARRAY);
     glDisableClientState(GL_VERTEX_ARRAY);
+    glDisableClientState(GL_TEXTURE_COORD_ARRAY);
     
     // bind with 0 to switch back to normal operation
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-
+    glBindTexture(GL_TEXTURE_2D, 0);
+    
     glPopMatrix();
+
+    // restore all the default material settings
+    Application::getInstance()->setupWorldLight(*Application::getInstance()->getCamera());
 
     return true;
 }
 
 void BlendFace::getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const {
+    if (!isActive()) {
+        return;
+    }
+    
     glm::quat orientation = _owningHead->getOrientation();
     glm::vec3 scale(-_owningHead->getScale() * MODEL_SCALE, _owningHead->getScale() * MODEL_SCALE,
         -_owningHead->getScale() * MODEL_SCALE);
     bool foundFirst = false;
     
-    foreach (const FBXMesh& mesh, _geometry.meshes) {
+    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    foreach (const FBXMesh& mesh, geometry.meshes) {
         if (mesh.isEye) {
-            glm::vec3 position = orientation * (mesh.pivot * scale + MODEL_TRANSLATION) + _owningHead->getPosition();
+            glm::vec3 position = orientation * ((mesh.pivot + MODEL_TRANSLATION - geometry.neckPivot) * scale) +
+                _owningHead->getPosition();
             if (foundFirst) {
                 secondEyePosition = position;
                 return;
@@ -183,112 +225,22 @@ void BlendFace::getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEy
 }
 
 void BlendFace::setModelURL(const QUrl& url) {
-    // don't restart the download if it's the same URL
+    // don't recreate the geometry if it's the same URL
     if (_modelURL == url) {
         return;
     }
-
-    // cancel any current download
-    if (_modelReply != 0) {
-        delete _modelReply;
-        _modelReply = 0;
-    }
-    
-    // clear the current geometry, if any
-    setGeometry(FBXGeometry());
-    
-    // remember the URL
     _modelURL = url;
-    
-    // load the URL data asynchronously
-    if (!url.isValid()) {
-        return;
-    }
-    QNetworkRequest request(url);
-    request.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache);
-    _modelReply = Application::getInstance()->getNetworkAccessManager()->get(request);
-    connect(_modelReply, SIGNAL(downloadProgress(qint64,qint64)), SLOT(handleModelDownloadProgress(qint64,qint64)));
-    connect(_modelReply, SIGNAL(error(QNetworkReply::NetworkError)), SLOT(handleModelReplyError()));
-}
 
-glm::vec3 createVec3(const fsVector3f& vector) {
-    return glm::vec3(vector.x, vector.y, vector.z);
-}
-
-void BlendFace::handleModelDownloadProgress(qint64 bytesReceived, qint64 bytesTotal) {
-    if (bytesReceived < bytesTotal && !_modelReply->isFinished()) {
-        return;
-    }
-
-    QByteArray entirety = _modelReply->readAll();
-    _modelReply->disconnect(this);
-    _modelReply->deleteLater();
-    _modelReply = 0;
-    
-    try {
-        setGeometry(extractFBXGeometry(parseFBX(entirety)));
-    
-    } catch (const QString& error) {
-        qDebug() << error << "\n";
-        return;
-    }
-}
-
-void BlendFace::handleModelReplyError() {
-    qDebug("%s\n", _modelReply->errorString().toLocal8Bit().constData());
-    
-    _modelReply->disconnect(this);
-    _modelReply->deleteLater();
-    _modelReply = 0;
-}
-
-void BlendFace::setGeometry(const FBXGeometry& geometry) {
-    // clear any existing geometry
+    // delete our local geometry and custom textures
     deleteGeometry();
+    _dilatedTextures.clear();
     
-    if (geometry.meshes.isEmpty()) {
-        return;
-    }
-    foreach (const FBXMesh& mesh, geometry.meshes) {
-        VerticesIndices ids;
-        glGenBuffers(1, &ids.first);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ids.first);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, (mesh.quadIndices.size() + mesh.triangleIndices.size()) * sizeof(int),
-            NULL, GL_STATIC_DRAW);
-        glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, mesh.quadIndices.size() * sizeof(int), mesh.quadIndices.constData());
-        glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, mesh.quadIndices.size() * sizeof(int),
-            mesh.triangleIndices.size() * sizeof(int), mesh.triangleIndices.constData());
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-        
-        glGenBuffers(1, &ids.second);
-        glBindBuffer(GL_ARRAY_BUFFER, ids.second);
-        
-        if (mesh.blendshapes.isEmpty()) {
-            glBufferData(GL_ARRAY_BUFFER, (mesh.vertices.size() + mesh.normals.size()) * sizeof(glm::vec3) +
-                mesh.texCoords.size() * sizeof(glm::vec2), NULL, GL_STATIC_DRAW);
-            glBufferSubData(GL_ARRAY_BUFFER, 0, mesh.vertices.size() * sizeof(glm::vec3), mesh.vertices.constData());
-            glBufferSubData(GL_ARRAY_BUFFER, mesh.vertices.size() * sizeof(glm::vec3),
-                mesh.normals.size() * sizeof(glm::vec3), mesh.normals.constData());
-            glBufferSubData(GL_ARRAY_BUFFER, (mesh.vertices.size() + mesh.normals.size()) * sizeof(glm::vec3),
-                mesh.texCoords.size() * sizeof(glm::vec2), mesh.texCoords.constData());    
-                
-        } else {
-            glBufferData(GL_ARRAY_BUFFER, (mesh.vertices.size() + mesh.normals.size()) * sizeof(glm::vec3),
-                NULL, GL_DYNAMIC_DRAW);
-        }
-        
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        
-        _meshIDs.append(ids);
-    }
-    
-    _geometry = geometry;
+    _geometry = Application::getInstance()->getGeometryCache()->getGeometry(url);
 }
 
 void BlendFace::deleteGeometry() {
-    foreach (const VerticesIndices& meshIDs, _meshIDs) {
-        glDeleteBuffers(1, &meshIDs.first);
-        glDeleteBuffers(1, &meshIDs.second);
+    foreach (GLuint id, _blendedVertexBufferIDs) {
+        glDeleteBuffers(1, &id);
     }
-    _meshIDs.clear();
+    _blendedVertexBufferIDs.clear();
 }

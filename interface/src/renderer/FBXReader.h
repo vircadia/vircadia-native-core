@@ -14,8 +14,6 @@
 
 #include <glm/glm.hpp>
 
-class QIODevice;
-
 class FBXNode;
 
 typedef QList<FBXNode> FBXNodeList;
@@ -49,8 +47,16 @@ public:
     QVector<glm::vec2> texCoords;
     
     glm::vec3 pivot;
+    glm::mat4 transform;
     
     bool isEye;
+    
+    glm::vec3 diffuseColor;
+    glm::vec3 specularColor;
+    float shininess;
+    
+    QByteArray diffuseFilename;
+    QByteArray normalFilename;
     
     QVector<FBXBlendshape> blendshapes;
 };
@@ -60,19 +66,12 @@ class FBXGeometry {
 public:
 
     QVector<FBXMesh> meshes;
+    
+    glm::vec3 neckPivot;
 };
 
-/// Parses the input from the supplied data as an FBX file.
+/// Reads FBX geometry from the supplied model and mapping data.
 /// \exception QString if an error occurs in parsing
-FBXNode parseFBX(const QByteArray& data);
-
-/// Parses the input from the supplied device as an FBX file.
-/// \exception QString if an error occurs in parsing
-FBXNode parseFBX(QIODevice* device);
-
-/// Extracts the geometry from a parsed FBX node.
-FBXGeometry extractFBXGeometry(const FBXNode& node);
-
-void printNode(const FBXNode& node, int indent = 0);
+FBXGeometry readFBX(const QByteArray& model, const QByteArray& mapping);
 
 #endif /* defined(__interface__FBXReader__) */

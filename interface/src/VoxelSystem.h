@@ -37,7 +37,7 @@ struct VoxelShaderVBOData
 };
 
 
-class VoxelSystem : public NodeData, public VoxelNodeDeleteHook, public NodeListHook {
+class VoxelSystem : public NodeData, public VoxelNodeDeleteHook, public VoxelNodeUpdateHook, public NodeListHook {
     Q_OBJECT
 public:
     VoxelSystem(float treeScale = TREE_SCALE, int maxVoxels = DEFAULT_MAX_VOXELS_PER_SYSTEM);
@@ -109,7 +109,8 @@ public:
     CoverageMapV2 myCoverageMapV2;
     CoverageMap   myCoverageMap;
 
-    virtual void nodeDeleted(VoxelNode* node);
+    virtual void voxelDeleted(VoxelNode* node);
+    virtual void voxelUpdated(VoxelNode* node);
     virtual void nodeAdded(Node* node);
     virtual void nodeKilled(Node* node);
     
@@ -134,8 +135,8 @@ public slots:
     void clearAllNodesBufferIndex();
 
     void cancelImport();
-    void setUseByteNormals(bool useByteNormals);
-    void setUseGlobalNormals(bool useGlobalNormals);
+    
+    void setUseFastVoxelPipeline(bool useFastVoxelPipeline);
         
 protected:
     float _treeScale; 
@@ -143,6 +144,9 @@ protected:
     VoxelTree* _tree;
 
     void setupNewVoxelsForDrawing();
+    static const bool DONT_BAIL_EARLY; // by default we will bail early, if you want to force not bailing, then use this
+    void setupNewVoxelsForDrawingSingleNode(bool allowBailEarly = true);
+    void checkForCulling();
     
     glm::vec3 computeVoxelVertex(const glm::vec3& startVertex, float voxelScale, int index) const;
 
@@ -184,6 +188,7 @@ private:
 
     int updateNodeInArraysAsFullVBO(VoxelNode* node);
     int updateNodeInArraysAsPartialVBO(VoxelNode* node);
+    int forceRemoveNodeFromArraysAsPartialVBO(VoxelNode* node);
 
     void copyWrittenDataToReadArraysFullVBOs();
     void copyWrittenDataToReadArraysPartialVBOs();
@@ -218,9 +223,6 @@ private:
     void initVoxelMemory();
     void cleanupVoxelMemory();
 
-    bool _useByteNormals;
-    bool _useGlobalNormals;
-
     bool _useVoxelShader;
     GLuint _vboVoxelsID; /// when using voxel shader, we'll use this VBO
     GLuint _vboVoxelsIndicesID;  /// when using voxel shader, we'll use this VBO for our indexes
@@ -228,9 +230,7 @@ private:
     VoxelShaderVBOData* _readVoxelShaderData;
     
     GLuint _vboVerticesID;
-    GLuint _vboNormalsID;
     GLuint _vboColorsID;
-    GLuint _vboIndicesID;
 
     GLuint _vboIndicesTop;
     GLuint _vboIndicesBottom;
@@ -275,6 +275,9 @@ private:
     unsigned long _memoryUsageVBO;
     unsigned long _initialMemoryUsageGPU;
     bool _hasMemoryUsageGPU;
+    
+    bool _inSetupNewVoxelsForDrawing;
+    bool _useFastVoxelPipeline;
 };
 
 #endif

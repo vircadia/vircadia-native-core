@@ -9,7 +9,7 @@
 #include "VoxelScriptingInterface.h"
 
 void VoxelScriptingInterface::queueVoxelAdd(PACKET_TYPE addPacketType, VoxelDetail& addVoxelDetails) {
-    _voxelPacketSender.sendVoxelEditMessage(addPacketType, addVoxelDetails);
+    _voxelPacketSender.queueVoxelEditMessages(addPacketType, 1, &addVoxelDetails);
 }
 
 void VoxelScriptingInterface::queueVoxelAdd(float x, float y, float z, float scale, uchar red, uchar green, uchar blue) {
@@ -27,4 +27,12 @@ void VoxelScriptingInterface::queueDestructiveVoxelAdd(float x, float y, float z
     
     // queue the destructive add
     queueVoxelAdd(PACKET_TYPE_SET_VOXEL_DESTRUCTIVE, addVoxelDetail);
+}
+
+void VoxelScriptingInterface::queueVoxelDelete(float x, float y, float z, float scale) {
+    
+    // setup a VoxelDetail struct with data
+    VoxelDetail deleteVoxelDetail = {x, y, z, scale, 0, 0, 0};
+    
+    _voxelPacketSender.queueVoxelEditMessages(PACKET_TYPE_ERASE_VOXEL, 1, &deleteVoxelDetail);
 }

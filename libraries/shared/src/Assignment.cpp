@@ -9,37 +9,94 @@
 #include "PacketHeaders.h"
 #include "SharedUtil.h"
 
+#include <QtCore/QDataStream>
+
 #include "Assignment.h"
 
 const char IPv4_ADDRESS_DESIGNATOR = 4;
 const char IPv6_ADDRESS_DESIGNATOR = 6;
+
+Assignment::Type Assignment::typeForNodeType(NODE_TYPE nodeType) {
+    switch (nodeType) {
+        case NODE_TYPE_AUDIO_MIXER:
+            return Assignment::AudioMixerType;
+        case NODE_TYPE_AVATAR_MIXER:
+            return Assignment::AvatarMixerType;
+        case NODE_TYPE_AGENT:
+            return Assignment::AgentType;
+        case NODE_TYPE_VOXEL_SERVER:
+            return Assignment::VoxelServerType;
+        default:
+            return Assignment::AllTypes;
+    }
+}
+
+Assignment::Assignment() :
+    _uuid(),
+    _command(Assignment::RequestCommand),
+    _type(Assignment::AllTypes),
+    _location(Assignment::LocalLocation),
+    _numberOfInstances(1),
+    _payload(),
+    _numPayloadBytes(0)
+{
+    
+}
 
 Assignment::Assignment(Assignment::Command command, Assignment::Type type, Assignment::Location location) :
     _command(command),
     _type(type),
     _location(location),
     _numberOfInstances(1),
-    _payload(NULL),
+    _payload(),
     _numPayloadBytes(0)
 {
-    // set the create time on this assignment
-    gettimeofday(&_time, NULL);
-    
     if (_command == Assignment::CreateCommand) {
         // this is a newly created assignment, generate a random UUID
         _uuid = QUuid::createUuid();
     }
 }
 
+Assignment::Assignment(const Assignment& otherAssignment) {
+    
+    _uuid = otherAssignment._uuid;
+    
+    _command = otherAssignment._command;
+    _type = otherAssignment._type;
+    _location = otherAssignment._location;
+    _numberOfInstances = otherAssignment._numberOfInstances;
+    
+    setPayload(otherAssignment._payload, otherAssignment._numPayloadBytes);
+}
+
+Assignment& Assignment::operator=(const Assignment& rhsAssignment) {
+    Assignment temp(rhsAssignment);
+    swap(temp);
+    return *this;
+}
+
+void Assignment::swap(Assignment& otherAssignment) {
+    using std::swap;
+    
+    swap(_uuid, otherAssignment._uuid);
+    swap(_command, otherAssignment._command);
+    swap(_type, otherAssignment._type);
+    swap(_location, otherAssignment._location);
+    swap(_numberOfInstances, otherAssignment._numberOfInstances);
+    
+    for (int i = 0; i < MAX_PAYLOAD_BYTES; i++) {
+        swap(_payload[i], otherAssignment._payload[i]);
+    }
+    
+    swap(_numPayloadBytes, otherAssignment._numPayloadBytes);
+}
+
 Assignment::Assignment(const unsigned char* dataBuffer, int numBytes) :
     _location(GlobalLocation),
     _numberOfInstances(1),
-    _payload(NULL),
+    _payload(),
     _numPayloadBytes(0)
-{
-    // set the create time on this assignment
-    gettimeofday(&_time, NULL);
-    
+{    
     int numBytesRead = 0;
     
     if (dataBuffer[0] == PACKET_TYPE_REQUEST_ASSIGNMENT) {
@@ -62,18 +119,9 @@ Assignment::Assignment(const unsigned char* dataBuffer, int numBytes) :
     }
 
     if (numBytes > numBytesRead) {
-        _numPayloadBytes = numBytes - numBytesRead;
-        _payload =  new uchar[_numPayloadBytes];
-        memcpy(_payload, dataBuffer + numBytesRead, _numPayloadBytes);
+        setPayload(dataBuffer + numBytesRead, numBytes - numBytesRead);
     }
 }
-
-Assignment::~Assignment() {
-    delete[] _payload;
-    _numPayloadBytes = 0;
-}
-
-const int MAX_PAYLOAD_BYTES = 1024;
 
 void Assignment::setPayload(const uchar* payload, int numBytes) {
     
@@ -87,8 +135,7 @@ void Assignment::setPayload(const uchar* payload, int numBytes) {
         _numPayloadBytes = numBytes;
     }
     
-    delete[] _payload;
-    _payload = new uchar[_numPayloadBytes];
+    memset(_payload, 0, MAX_PAYLOAD_BYTES);
     memcpy(_payload, payload, _numPayloadBytes);
 }
 
@@ -121,6 +168,7 @@ void Assignment::run() {
 }
 
 QDebug operator<<(QDebug debug, const Assignment &assignment) {
-    debug << "T:" << assignment.getType();
+    debug.nospace() << "UUID: " << assignment.getUUID().toString().toStdString().c_str() <<
+        ", Type: " << assignment.getType();
     return debug.nospace();
 }

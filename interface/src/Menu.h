@@ -65,7 +65,6 @@ public slots:
     void saveSettings(QSettings* settings = NULL);
     void importSettings();
     void exportSettings();
-    void checkForUpdates();
     
 private slots:
     void aboutApp();
@@ -128,7 +127,6 @@ namespace MenuOption {
     const QString Atmosphere = "Atmosphere";
     const QString Bandwidth = "Bandwidth Display";
     const QString BandwidthDetails = "Bandwidth Details";
-    const QString CheckForUpdates = "Check for Updates...";
     const QString Collisions = "Collisions";
     const QString CopyVoxels = "Copy";
     const QString CoverageMap = "Render Coverage Map";
@@ -140,6 +138,7 @@ namespace MenuOption {
     const QString DestructiveAddVoxel = "Create Voxel is Destructive";
     const QString DeltaSending = "Delta Sending";
     const QString DisplayFrustum = "Display Frustum";
+    const QString DontRenderVoxels = "Don't Render Voxels";
     const QString EchoAudio = "Echo Audio";
     const QString ExportVoxels = "Export Voxels";
     const QString HeadMouse = "Head Mouse";
@@ -152,6 +151,7 @@ namespace MenuOption {
     const QString FalseColorOccludedV2 = "FALSE Color Occluded V2 Voxels";
     const QString FalseColorOutOfView = "FALSE Color Voxel Out of View";
     const QString FalseColorRandomly = "FALSE Color Voxels Randomly";
+    const QString FastVoxelPipeline = "Fast Voxel Pipeline";
     const QString FirstPerson = "First Person";
     const QString FrameTimer = "Show Timer";
     const QString FrustumRenderMode = "Render Mode";
@@ -194,6 +194,7 @@ namespace MenuOption {
     const QString ShowTrueColors = "Show TRUE Colors";
     const QString SimulateLeapHand = "Simulate Leap Hand";
     const QString SkeletonTracking = "Skeleton Tracking";
+    const QString SuppressShortTimings = "Suppress Timings Less than 10ms";
     const QString LEDTracking = "LED Tracking";
     const QString Stars = "Stars";
     const QString Stats = "Stats";

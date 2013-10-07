@@ -320,15 +320,12 @@ void Application::initializeGL() {
     // update before the first render
     update(0.0f);
     
-    // now that things are drawn - if this is an OS X release build we can check for an update
-#if defined(Q_OS_MAC) && defined(QT_NO_DEBUG)
-    Menu::getInstance()->checkForUpdates();
-#endif
-
     InfoView::showFirstTime();
 }
 
 void Application::paintGL() {
+    PerformanceWarning::setSuppressShortTimings(Menu::getInstance()->isOptionChecked(MenuOption::SuppressShortTimings));
+    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "Application::paintGL()");
     PerfStat("display");
 
     glEnable(GL_LINE_SMOOTH);
@@ -1001,6 +998,17 @@ void Application::mousePressEvent(QMouseEvent* event) {
                 
                 _audio.startCollisionSound(1.0, frequency, 0.0, HOVER_VOXEL_DECAY);
                 _isHoverVoxelSounding = true;
+                
+                const float PERCENTAGE_TO_MOVE_TOWARD = 0.90f;
+                glm::vec3 newTarget = getMouseVoxelWorldCoordinates(_hoverVoxel);
+                glm::vec3 myPosition = _myAvatar.getPosition();
+                
+                // If there is not an action tool set (add, delete, color), move to this voxel
+                if (!(Menu::getInstance()->isOptionChecked(MenuOption::VoxelAddMode) ||
+                     Menu::getInstance()->isOptionChecked(MenuOption::VoxelDeleteMode) ||
+                     Menu::getInstance()->isOptionChecked(MenuOption::VoxelColorMode))) {
+                    _myAvatar.setMoveTarget(myPosition + (newTarget - myPosition) * PERCENTAGE_TO_MOVE_TOWARD);
+                }
             }
             
         } else if (event->button() == Qt::RightButton && Menu::getInstance()->isVoxelModeActionChecked()) {
@@ -1175,6 +1183,7 @@ void Application::idle() {
 
     double timeSinceLastUpdate = diffclock(&_lastTimeUpdated, &check);
     if (timeSinceLastUpdate > IDLE_SIMULATE_MSECS) {
+
         const float BIGGEST_DELTA_TIME_SECS = 0.25f;
         update(glm::clamp((float)timeSinceLastUpdate / 1000.f, 0.f, BIGGEST_DELTA_TIME_SECS));
         _glWidget->updateGL();
@@ -1434,7 +1443,7 @@ void Application::pasteVoxels() {
         _sharedVoxelSystem.changeTree(&_clipboard);
     }
 
-    _voxelEditSender.flushQueue();
+    _voxelEditSender.releaseQueuedMessages();
     
     if (calculatedOctCode) {
         delete[] calculatedOctCode;
@@ -1530,6 +1539,9 @@ void Application::init() {
     _sharedVoxelSystemViewFrustum.setOrientation(glm::quat());
     _sharedVoxelSystemViewFrustum.calculate();
     _sharedVoxelSystem.setViewFrustum(&_sharedVoxelSystemViewFrustum);
+
+    VoxelNode::removeUpdateHook(&_sharedVoxelSystem);
+
     _sharedVoxelSystem.init();
     VoxelTree* tmpTree = _sharedVoxelSystem.getTree();
     _sharedVoxelSystem.changeTree(&_clipboard);
@@ -1577,7 +1589,7 @@ void Application::init() {
     // Set up VoxelSystem after loading preferences so we can get the desired max voxel count    
     _voxels.setMaxVoxels(Menu::getInstance()->getMaxVoxels());
     _voxels.setUseVoxelShader(Menu::getInstance()->isOptionChecked(MenuOption::UseVoxelShader));
-    _voxels.setUseByteNormals(Menu::getInstance()->isOptionChecked(MenuOption::UseByteNormals));
+    _voxels.setUseFastVoxelPipeline(Menu::getInstance()->isOptionChecked(MenuOption::FastVoxelPipeline));
     _voxels.init();
     
 
@@ -1897,11 +1909,11 @@ void Application::update(float deltaTime) {
        
     //  Update from Touch
     if (_isTouchPressed) {
-        float TOUCH_YAW_SCALE = -50.0f;
-        float TOUCH_PITCH_SCALE = -50.0f;
-        _yawFromTouch += ((_touchAvgX - _lastTouchAvgX) * TOUCH_YAW_SCALE * deltaTime);
-        _pitchFromTouch += ((_touchAvgY - _lastTouchAvgY) * TOUCH_PITCH_SCALE * deltaTime);
-        
+        float TOUCH_YAW_SCALE = -0.25f;
+        float TOUCH_PITCH_SCALE = -12.5f;
+        float FIXED_TOUCH_TIMESTEP = 0.016f;
+        _yawFromTouch += ((_touchAvgX - _lastTouchAvgX) * TOUCH_YAW_SCALE * FIXED_TOUCH_TIMESTEP);
+        _pitchFromTouch += ((_touchAvgY - _lastTouchAvgY) * TOUCH_PITCH_SCALE * FIXED_TOUCH_TIMESTEP);
         _lastTouchAvgX = _touchAvgX;
         _lastTouchAvgY = _touchAvgY;
     }
@@ -2051,15 +2063,26 @@ void Application::updateAvatar(float deltaTime) {
     
     // rotate body yaw for yaw received from multitouch
     _myAvatar.setOrientation(_myAvatar.getOrientation()
-                             * glm::quat(glm::vec3(0, _yawFromTouch * deltaTime, 0)));
+                             * glm::quat(glm::vec3(0, _yawFromTouch, 0)));
     _yawFromTouch = 0.f;
     
     // Update my avatar's state from gyros and/or webcam
     _myAvatar.updateFromGyrosAndOrWebcam(Menu::getInstance()->isOptionChecked(MenuOption::GyroLook),
                                          _pitchFromTouch);
+    
+    // Update head mouse from faceshift if active
+    if (_faceshift.isActive()) {
+        glm::vec3 headVelocity = _faceshift.getHeadAngularVelocity();
         
+        // sets how quickly head angular rotation moves the head mouse
+        const float HEADMOUSE_FACESHIFT_YAW_SCALE = 40.f;
+        const float HEADMOUSE_FACESHIFT_PITCH_SCALE = 30.f;
+        _headMouseX -= headVelocity.y * HEADMOUSE_FACESHIFT_YAW_SCALE;
+        _headMouseY -= headVelocity.x * HEADMOUSE_FACESHIFT_PITCH_SCALE;
+    }
+    
     if (_serialHeadSensor.isActive()) {
-      
+
         //  Grab latest readings from the gyros
         float measuredPitchRate = _serialHeadSensor.getLastPitchRate();
         float measuredYawRate = _serialHeadSensor.getLastYawRate();
@@ -2073,10 +2096,6 @@ void Application::updateAvatar(float deltaTime) {
             _headMouseX -= measuredYawRate * HORIZONTAL_PIXELS_PER_DEGREE * deltaTime;
             _headMouseY -= measuredPitchRate * VERTICAL_PIXELS_PER_DEGREE * deltaTime;
         }
-        _headMouseX = max(_headMouseX, 0);
-        _headMouseX = min(_headMouseX, _glWidget->width());
-        _headMouseY = max(_headMouseY, 0);
-        _headMouseY = min(_headMouseY, _glWidget->height());
 
         const float MIDPOINT_OF_SCREEN = 0.5;
         
@@ -2096,6 +2115,10 @@ void Application::updateAvatar(float deltaTime) {
         }
 
     }
+    
+    //  Constrain head-driven mouse to edges of screen
+    _headMouseX = glm::clamp(_headMouseX, 0, _glWidget->width());
+    _headMouseY = glm::clamp(_headMouseY, 0, _glWidget->height());
 
     if (OculusManager::isConnected()) {
         float yaw, pitch, roll;
@@ -2359,6 +2382,7 @@ void Application::computeOffAxisFrustum(float& left, float& right, float& bottom
 }
 
 void Application::displaySide(Camera& whichCamera) {
+    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "Application::displaySide()");
     // transform by eye offset
 
     // flip x if in mirror mode (also requires reversing winding order for backface culling)
@@ -2390,6 +2414,8 @@ void Application::displaySide(Camera& whichCamera) {
     setupWorldLight(whichCamera);
     
     if (Menu::getInstance()->isOptionChecked(MenuOption::Stars)) {
+        PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
+            "Application::displaySide() ... stars...");
         if (!_stars.getFileLoaded()) {
             _stars.readInput(STAR_FILE, STAR_CACHE_FILE, 0);
         }
@@ -2415,6 +2441,8 @@ void Application::displaySide(Camera& whichCamera) {
 
     // draw the sky dome
     if (Menu::getInstance()->isOptionChecked(MenuOption::Atmosphere)) {
+        PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
+            "Application::displaySide() ... atmosphere...");
         _environment.renderAtmospheres(whichCamera);
     }
     
@@ -2437,6 +2465,9 @@ void Application::displaySide(Camera& whichCamera) {
 
     //draw a grid ground plane....
     if (Menu::getInstance()->isOptionChecked(MenuOption::GroundPlane)) {
+        PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
+            "Application::displaySide() ... ground plane...");
+
         // draw grass plane with fog
         glEnable(GL_FOG);
         glEnable(GL_NORMALIZE);        
@@ -2460,7 +2491,11 @@ void Application::displaySide(Camera& whichCamera) {
     } 
     //  Draw voxels
     if (Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
-        _voxels.render(Menu::getInstance()->isOptionChecked(MenuOption::VoxelTextures));
+        PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
+            "Application::displaySide() ... voxels...");
+        if (!Menu::getInstance()->isOptionChecked(MenuOption::DontRenderVoxels)) {
+            _voxels.render(Menu::getInstance()->isOptionChecked(MenuOption::VoxelTextures));
+        }
     }
     
     // restore default, white specular
@@ -2468,6 +2503,9 @@ void Application::displaySide(Camera& whichCamera) {
     
     // indicate what we'll be adding/removing in mouse mode, if anything
     if (_mouseVoxel.s != 0) {
+        PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
+            "Application::displaySide() ... voxels TOOLS UX...");
+
         glDisable(GL_LIGHTING);
         glPushMatrix();
         glScalef(TREE_SCALE, TREE_SCALE, TREE_SCALE);
@@ -2513,6 +2551,9 @@ void Application::displaySide(Camera& whichCamera) {
     }
     
     if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelSelectMode) && _pasteMode) {
+        PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
+            "Application::displaySide() ... PASTE Preview...");
+
         glPushMatrix();
         glTranslatef(_mouseVoxel.x * TREE_SCALE,
                      _mouseVoxel.y * TREE_SCALE,
@@ -2528,6 +2569,10 @@ void Application::displaySide(Camera& whichCamera) {
     _myAvatar.renderScreenTint(SCREEN_TINT_BEFORE_AVATARS, whichCamera);
     
     if (Menu::getInstance()->isOptionChecked(MenuOption::Avatars)) {
+        PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
+            "Application::displaySide() ... Avatars...");
+
+
         //  Render avatars of other nodes
         NodeList* nodeList = NodeList::getInstance();
         
@@ -2572,16 +2617,22 @@ void Application::displaySide(Camera& whichCamera) {
     
     // render the ambient occlusion effect if enabled
     if (Menu::getInstance()->isOptionChecked(MenuOption::AmbientOcclusion)) {
+        PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
+            "Application::displaySide() ... AmbientOcclusion...");
         _ambientOcclusionEffect.render();
     }
     
     // brad's frustum for debugging
     if (Menu::getInstance()->isOptionChecked(MenuOption::DisplayFrustum)) {
+        PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
+            "Application::displaySide() ... renderViewFrustum...");
         renderViewFrustum(_viewFrustum);
     }
 
     // render voxel fades if they exist
     if (_voxelFades.size() > 0) {
+        PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
+            "Application::displaySide() ... voxel fades...");
         for(std::vector<VoxelFade>::iterator fade = _voxelFades.begin(); fade != _voxelFades.end();) {
             fade->render();
             if(fade->isDone()) {
@@ -2591,11 +2642,18 @@ void Application::displaySide(Camera& whichCamera) {
             }
         }
     }
-        
-    renderFollowIndicator();
+
+    {        
+        PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
+            "Application::displaySide() ... renderFollowIndicator...");
+        renderFollowIndicator();
+    }
     
     // render transmitter pick ray, if non-empty
     if (_transmitterPickStart != _transmitterPickEnd) {
+        PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
+            "Application::displaySide() ... transmitter pick ray...");
+
         Glower glower;
         const float TRANSMITTER_PICK_COLOR[] = { 1.0f, 1.0f, 0.0f };
         glColor3fv(TRANSMITTER_PICK_COLOR);
@@ -2617,6 +2675,8 @@ void Application::displaySide(Camera& whichCamera) {
 }
 
 void Application::displayOverlay() {
+    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "Application::displayOverlay()");
+
     //  Render 2D overlay:  I/O level bar graphs and text  
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
@@ -2647,15 +2707,20 @@ void Application::displayOverlay() {
             //  Display small target box at center or head mouse target that can also be used to measure LOD
             glColor3f(1.0, 1.0, 1.0);
             glDisable(GL_LINE_SMOOTH);
-            const int PIXEL_BOX = 20;
-            glBegin(GL_LINE_STRIP);
-            glVertex2f(_headMouseX - PIXEL_BOX/2, _headMouseY - PIXEL_BOX/2);
-            glVertex2f(_headMouseX + PIXEL_BOX/2, _headMouseY - PIXEL_BOX/2);
-            glVertex2f(_headMouseX + PIXEL_BOX/2, _headMouseY + PIXEL_BOX/2);
-            glVertex2f(_headMouseX - PIXEL_BOX/2, _headMouseY + PIXEL_BOX/2);
-            glVertex2f(_headMouseX - PIXEL_BOX/2, _headMouseY - PIXEL_BOX/2);
+            const int PIXEL_BOX = 16;
+            glBegin(GL_LINES);
+            glVertex2f(_headMouseX - PIXEL_BOX/2, _headMouseY);
+            glVertex2f(_headMouseX + PIXEL_BOX/2, _headMouseY);
+            glVertex2f(_headMouseX, _headMouseY - PIXEL_BOX/2);
+            glVertex2f(_headMouseX, _headMouseY + PIXEL_BOX/2);
             glEnd();            
             glEnable(GL_LINE_SMOOTH);
+            glColor3f(1.f, 0.f, 0.f);
+            glPointSize(3.0f);
+            glDisable(GL_POINT_SMOOTH);
+            glBegin(GL_POINTS);
+            glVertex2f(_headMouseX - 1, _headMouseY + 1);
+            glEnd();
         }
         
     //  Show detected levels from the serial I/O ADC channel sensors
@@ -3329,6 +3394,10 @@ void Application::deleteVoxelUnderCursor() {
     if (_mouseVoxel.s != 0) {
         // sending delete to the server is sufficient, server will send new version so we see updates soon enough
         _voxelEditSender.sendVoxelEditMessage(PACKET_TYPE_ERASE_VOXEL, _mouseVoxel);
+
+        // delete it locally to see the effect immediately (and in case no voxel server is present)
+        _voxels.deleteVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+
         AudioInjector* voxelInjector = AudioInjectionManager::injectorWithCapacity(5000);
         
         if (voxelInjector) {

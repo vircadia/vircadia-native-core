@@ -7,6 +7,9 @@
 
 #include <cmath>
 
+#include <QNetworkReply>
+
+#include "Application.h"
 #include "GeometryCache.h"
 #include "world.h"
 
@@ -236,4 +239,139 @@ void GeometryCache::renderHalfCylinder(int slices, int stacks) {
     
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+}
+
+QSharedPointer<NetworkGeometry> GeometryCache::getGeometry(const QUrl& url) {
+    QSharedPointer<NetworkGeometry> geometry = _networkGeometry.value(url);
+    if (geometry.isNull()) {
+        geometry = QSharedPointer<NetworkGeometry>(new NetworkGeometry(url));
+        _networkGeometry.insert(url, geometry);
+    }
+    return geometry;
+}
+
+NetworkGeometry::NetworkGeometry(const QUrl& url) :
+    _modelReply(NULL),
+    _mappingReply(NULL)
+{
+    if (!url.isValid()) {
+        return;
+    }
+    QNetworkRequest modelRequest(url);
+    modelRequest.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache);
+    _modelReply = Application::getInstance()->getNetworkAccessManager()->get(modelRequest);
+    
+    connect(_modelReply, SIGNAL(downloadProgress(qint64,qint64)), SLOT(maybeReadModelWithMapping()));
+    connect(_modelReply, SIGNAL(error(QNetworkReply::NetworkError)), SLOT(handleModelReplyError()));
+    
+    QUrl mappingURL = url;
+    QString path = url.path();
+    mappingURL.setPath(path.left(path.lastIndexOf('.')) + ".fst");
+    QNetworkRequest mappingRequest(mappingURL);
+    mappingRequest.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache);
+    _mappingReply = Application::getInstance()->getNetworkAccessManager()->get(mappingRequest);
+    
+    connect(_mappingReply, SIGNAL(downloadProgress(qint64,qint64)), SLOT(maybeReadModelWithMapping()));
+    connect(_mappingReply, SIGNAL(error(QNetworkReply::NetworkError)), SLOT(handleMappingReplyError()));
+}
+
+NetworkGeometry::~NetworkGeometry() {
+    if (_modelReply != NULL) {
+        delete _modelReply;
+    }
+    if (_mappingReply != NULL) {
+        delete _mappingReply;
+    }
+    foreach (const NetworkMesh& mesh, _meshes) {
+        glDeleteBuffers(1, &mesh.indexBufferID);
+        glDeleteBuffers(1, &mesh.vertexBufferID);
+    }    
+}
+
+void NetworkGeometry::handleModelReplyError() {
+    qDebug() << _modelReply->errorString() << "\n";
+    
+    _modelReply->disconnect(this);
+    _modelReply->deleteLater();
+    _modelReply = NULL;
+}
+
+void NetworkGeometry::handleMappingReplyError() {
+    _mappingReply->disconnect(this);
+    _mappingReply->deleteLater();
+    _mappingReply = NULL;
+    
+    maybeReadModelWithMapping();
+}
+
+void NetworkGeometry::maybeReadModelWithMapping() {
+    if (_modelReply == NULL || !_modelReply->isFinished() || (_mappingReply != NULL && !_mappingReply->isFinished())) {
+        return;
+    }
+    
+    QUrl url = _modelReply->url();
+    QByteArray model = _modelReply->readAll();
+    _modelReply->disconnect(this);
+    _modelReply->deleteLater();
+    _modelReply = NULL;
+    
+    QByteArray mapping;
+    if (_mappingReply != NULL) {
+        mapping = _mappingReply->readAll();
+        _mappingReply->disconnect(this);
+        _mappingReply->deleteLater();
+        _mappingReply = NULL;
+    }
+    
+    try {
+        _geometry = readFBX(model, mapping);
+        
+    } catch (const QString& error) {
+        qDebug() << "Error reading " << url << ": " << error << "\n";
+        return;
+    }
+    
+    foreach (const FBXMesh& mesh, _geometry.meshes) {
+        NetworkMesh networkMesh;
+        
+        glGenBuffers(1, &networkMesh.indexBufferID);
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, networkMesh.indexBufferID);
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, (mesh.quadIndices.size() + mesh.triangleIndices.size()) * sizeof(int),
+            NULL, GL_STATIC_DRAW);
+        glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, mesh.quadIndices.size() * sizeof(int), mesh.quadIndices.constData());
+        glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, mesh.quadIndices.size() * sizeof(int),
+            mesh.triangleIndices.size() * sizeof(int), mesh.triangleIndices.constData());
+        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+        
+        glGenBuffers(1, &networkMesh.vertexBufferID);
+        glBindBuffer(GL_ARRAY_BUFFER, networkMesh.vertexBufferID);
+            
+        if (mesh.blendshapes.isEmpty()) {
+            glBufferData(GL_ARRAY_BUFFER, (mesh.vertices.size() + mesh.normals.size()) * sizeof(glm::vec3) +
+                mesh.texCoords.size() * sizeof(glm::vec2), NULL, GL_STATIC_DRAW);
+            glBufferSubData(GL_ARRAY_BUFFER, 0, mesh.vertices.size() * sizeof(glm::vec3), mesh.vertices.constData());
+            glBufferSubData(GL_ARRAY_BUFFER, mesh.vertices.size() * sizeof(glm::vec3),
+                mesh.normals.size() * sizeof(glm::vec3), mesh.normals.constData());
+            glBufferSubData(GL_ARRAY_BUFFER, (mesh.vertices.size() + mesh.normals.size()) * sizeof(glm::vec3),
+                mesh.texCoords.size() * sizeof(glm::vec2), mesh.texCoords.constData());
+            
+        } else {
+            glBufferData(GL_ARRAY_BUFFER, mesh.texCoords.size() * sizeof(glm::vec2),
+                mesh.texCoords.constData(), GL_STATIC_DRAW);
+        }
+        
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        
+        QString basePath = url.path();
+        basePath = basePath.left(basePath.lastIndexOf('/') + 1);
+        if (!mesh.diffuseFilename.isEmpty()) {
+            url.setPath(basePath + mesh.diffuseFilename);
+            networkMesh.diffuseTexture = Application::getInstance()->getTextureCache()->getTexture(url, mesh.isEye);
+        }
+        if (!mesh.normalFilename.isEmpty()) {
+            url.setPath(basePath + mesh.normalFilename);
+            networkMesh.normalTexture = Application::getInstance()->getTextureCache()->getTexture(url);
+        }
+        _meshes.append(networkMesh);
+    }
 }

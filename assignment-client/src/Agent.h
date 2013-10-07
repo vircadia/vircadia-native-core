@@ -19,11 +19,13 @@ class Agent : public Assignment {
 public:
     Agent(const unsigned char* dataBuffer, int numBytes);
     
-    bool volatile _shouldStop;
-    
     void run();
+public slots:
+    void stop();
 signals:
     void willSendVisualDataCallback();
+private:
+    bool volatile _shouldStop;
 };
 
 #endif /* defined(__hifi__Operative__) */

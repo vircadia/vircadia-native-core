@@ -42,13 +42,15 @@ protected:
     void unlock() { pthread_mutex_unlock(&_mutex); }
     
     bool isStillRunning() const { return !_stopThread; }
+
+    bool isThreaded() const { return _isThreaded; }
     
 private:
     pthread_mutex_t _mutex;
 
-    bool        _stopThread;
-    bool        _isThreaded;
-    pthread_t   _thread;
+    bool _stopThread;
+    bool _isThreaded;
+    pthread_t _thread;
 };
 
 extern "C" void* GenericThreadEntry(void* arg);

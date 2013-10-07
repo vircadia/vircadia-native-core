@@ -21,7 +21,6 @@
 #include <QStandardPaths>
 
 #include "Application.h"
-#include "fvupdater.h"
 #include "PairingHandler.h"
 #include "Menu.h"
 #include "Util.h"
@@ -69,16 +68,7 @@ Menu::Menu() :
                                    Qt::CTRL | Qt::Key_Comma,
                                    this,
                                    SLOT(editPreferences())))->setMenuRole(QAction::PreferencesRole);
-    
-#if defined(Q_OS_MAC) && defined(QT_NO_DEBUG)
-    // show "Check for Updates" in the menu
-    (addActionToQMenuAndActionHash(fileMenu,
-                                   MenuOption::CheckForUpdates,
-                                   0,
-                                   this,
-                                   SLOT(checkForUpdates())))->setMenuRole(QAction::ApplicationSpecificRole);
-#endif
-    
+
     addDisabledActionAndSeparator(fileMenu, "Voxels");
     addActionToQMenuAndActionHash(fileMenu, MenuOption::ExportVoxels, Qt::CTRL | Qt::Key_E, appInstance, SLOT(exportVoxels()));
     addActionToQMenuAndActionHash(fileMenu, MenuOption::ImportVoxels, Qt::CTRL | Qt::Key_I, appInstance, SLOT(importVoxels()));
@@ -249,17 +239,15 @@ Menu::Menu() :
                                            true,
                                            appInstance,
                                            SLOT(setRenderVoxels(bool)));
+    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::DontRenderVoxels);
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::VoxelTextures);
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::AmbientOcclusion);
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::UseVoxelShader, 0, 
                                            false, this, SLOT(switchVoxelShader()));
+    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::FastVoxelPipeline, 0,
+                                           false, appInstance->getVoxels(), SLOT(setUseFastVoxelPipeline(bool)));
+                                           
 
-    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::UseByteNormals, 0, 
-                                           false, Application::getInstance()->getVoxels(), SLOT(setUseByteNormals(bool)));
-
-    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::UseGlobalNormals, 0, 
-                                           false, Application::getInstance()->getVoxels(), SLOT(setUseGlobalNormals(bool)));
-    
     QMenu* avatarOptionsMenu = developerMenu->addMenu("Avatar Options");
     
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::Avatars, 0, true);
@@ -359,6 +347,7 @@ Menu::Menu() :
     
     QMenu* renderDebugMenu = developerMenu->addMenu("Render Debugging Tools");
     addCheckableActionToQMenuAndActionHash(renderDebugMenu, MenuOption::PipelineWarnings);
+    addCheckableActionToQMenuAndActionHash(renderDebugMenu, MenuOption::SuppressShortTimings);
     
     addActionToQMenuAndActionHash(renderDebugMenu,
                                   MenuOption::KillLocalVoxels,
@@ -556,15 +545,6 @@ void Menu::exportSettings() {
         saveSettings(&tmp);
         tmp.sync();
     }
-}
-
-void Menu::checkForUpdates() {
-#if defined(Q_OS_MAC) && defined(QT_NO_DEBUG)
-    qDebug() << "Checking if there are available updates.\n";
-    // if this is a release OS X build use fervor to check for an update
-    FvUpdater::sharedUpdater()->SetFeedURL("http://s3.highfidelity.io/appcast.xml");
-    FvUpdater::sharedUpdater()->CheckForUpdatesSilent();
-#endif
 }
 
 void Menu::loadAction(QSettings* set, QAction* action) {
