@@ -12,6 +12,9 @@
 
 #include "DataServerClient.h"
 
+QUuid DataServerClient::_clientUUID;
+std::vector<unsigned char*> DataServerClient::_unconfirmedPackets;
+
 const char DATA_SERVER_HOSTNAME[] = "data.highfidelity.io";
 const unsigned short DATA_SERVER_PORT = 3282;
 const sockaddr_in DATA_SERVER_SOCKET = socketForHostnameAndHostOrderPort(DATA_SERVER_HOSTNAME, DATA_SERVER_PORT);
