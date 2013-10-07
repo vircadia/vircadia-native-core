@@ -34,7 +34,7 @@ public:
     void setNewScale(const float scale);
     void setWantCollisionsOn(bool wantCollisionsOn) { _isCollisionsOn = wantCollisionsOn; }
     void setMoveTarget(const glm::vec3 moveTarget);
-    void setUsername(const QString& username) { _username = username; }
+    void setUsername(const QString& username);
 
     // getters
     float getNewScale() const { return _newScale; }

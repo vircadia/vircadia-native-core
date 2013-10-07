@@ -17,12 +17,12 @@ class DataServerClient {
 public:
     static void putValueForKey(const char* key, const char* value);
     static void getValueForKeyAndUUID(const char* key, QUuid& uuid);
-    static void getValueforKeyAndUserString(const char* key, QString& userString);
+    static void getValueForKeyAndUserString(const char* key, QString& userString);
     static void getClientValueForKey(const char* key) { getValueForKeyAndUserString(key, _clientUsername); }
     static void processConfirmFromDataServer(unsigned char* packetData, int numPacketBytes);
     static void processGetFromDataServer(unsigned char* packetData, int numPacketBytes);
     
-    static void setClientUsername(QString& clientUsername) { _clientUsername = clientUsername; }
+    static void setClientUsername(const QString& clientUsername) { _clientUsername = clientUsername; }
     static QString& setClientUsername() { return _clientUsername; }
 private:
     static QString _clientUsername;

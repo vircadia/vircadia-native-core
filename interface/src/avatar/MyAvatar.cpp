@@ -72,13 +72,10 @@ void MyAvatar::setMoveTarget(const glm::vec3 moveTarget) {
     _moveTargetStepCounter = 0;
 }
 
-void MyAvatar::setUUID(const QUuid& uuid) {
-    _uuid = uuid;
+void MyAvatar::setUsername(const QString& username) {
+    _username = username;
     
-    qDebug() << "giving" << _uuid << "to DSC class.\n";
-    
-    // give this UUID to the DataServerClient class as our client UUID
-    DataServerClient::setClientUUID(_uuid);
+    DataServerClient::setClientUsername(username);
 }
 
 void MyAvatar::simulate(float deltaTime, Transmitter* transmitter) {
@@ -560,7 +557,7 @@ void MyAvatar::saveData(QSettings* settings) {
 void MyAvatar::loadData(QSettings* settings) {
     settings->beginGroup("Avatar");
     
-    setUUID(settings->value("Usernmame").toString();
+    setUsername(settings->value("Username").toString());
     
     // in case settings is corrupt or missing loadSetting() will check for NaN
     _bodyYaw = loadSetting(settings, "bodyYaw", 0.0f);

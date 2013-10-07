@@ -52,11 +52,11 @@ void DataServerClient::putValueForKey(const char* key, const char* value) {
 void DataServerClient::getValueForKeyAndUUID(const char* key, QUuid &uuid) {
     if (!uuid.isNull()) {
         QString uuidString = uuidStringWithoutCurlyBraces(uuid);
-        getValueforKeyAndUserString(key, uuidString);
+        getValueForKeyAndUserString(key, uuidString);
     }
 }
 
-void DataServerClient::getValueforKeyAndUserString(const char* key, QString& userString) {
+void DataServerClient::getValueForKeyAndUserString(const char* key, QString& userString) {
     unsigned char getPacket[MAX_PACKET_SIZE];
     
     // setup the header for this packet
