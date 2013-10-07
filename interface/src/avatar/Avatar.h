@@ -11,7 +11,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/quaternion.hpp>
 
-#include <QSettings>
+#include <QtCore/QUuid>
 
 #include <AvatarData.h>
 
@@ -156,9 +156,8 @@ public:
     glm::quat getWorldAlignedOrientation() const;
     AvatarVoxelSystem* getVoxels() { return &_voxels; }
     
-    // get/set avatar data
-    void saveData(QSettings* set);
-    void loadData(QSettings* set);
+    QUuid& getUUID() { return _uuid; }
+    void setUUID(const QUuid& uuid) { _uuid = uuid; }
 
     // Get the position/rotation of a single body ball
     void getBodyBallTransform(AvatarJointID jointID, glm::vec3& position, glm::quat& rotation) const;
@@ -226,6 +225,7 @@ protected:
     AvatarVoxelSystem _voxels;
 
     bool _moving; ///< set when position is changing
+    QUuid _uuid;
 
     // protected methods...
     glm::vec3 getBodyRightDirection() const { return getOrientation() * IDENTITY_RIGHT; }
@@ -246,6 +246,7 @@ private:
     glm::vec3 _handHoldingPosition;
     float _maxArmLength;
     float _pelvisStandingHeight;
+    
     
     // private methods...
     glm::vec3 calculateAverageEyePosition() { return _head.calculateAverageEyePosition(); } // get the position smack-dab between the eyes (for lookat)

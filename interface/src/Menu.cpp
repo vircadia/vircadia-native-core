@@ -19,8 +19,12 @@
 #include <QMainWindow>
 #include <QSlider>
 #include <QStandardPaths>
+#include <QUuid>
+
+#include <UUID.h>
 
 #include "Application.h"
+#include "DataServerClient.h"
 #include "PairingHandler.h"
 #include "Menu.h"
 #include "Util.h"
@@ -736,6 +740,7 @@ QLineEdit* lineEditForDomainHostname() {
 
 void Menu::editPreferences() {
     Application* applicationInstance = Application::getInstance();
+    
     QDialog dialog(applicationInstance->getGLWidget());
     dialog.setWindowTitle("Interface Preferences");
     QBoxLayout* layout = new QBoxLayout(QBoxLayout::TopToBottom);
@@ -744,13 +749,19 @@ void Menu::editPreferences() {
     QFormLayout* form = new QFormLayout();
     layout->addLayout(form, 1);
     
+    QUuid avatarUUID = applicationInstance->getAvatar()->getUUID();
+    QLineEdit* avatarUUIDLineEdit = new QLineEdit(avatarUUID.isNull() ? QString() : uuidStringWithoutCurlyBraces(avatarUUID));
+    avatarUUIDLineEdit->setMinimumWidth(QLINE_MINIMUM_WIDTH);
+    form->addRow("UUID:", avatarUUIDLineEdit);
+    
     QLineEdit* avatarURL = new QLineEdit(applicationInstance->getAvatar()->getVoxels()->getVoxelURL().toString());
     avatarURL->setMinimumWidth(QLINE_MINIMUM_WIDTH);
     form->addRow("Avatar URL:", avatarURL);
     
-    QLineEdit* faceURL = new QLineEdit(applicationInstance->getAvatar()->getHead().getBlendFace().getModelURL().toString());
-    faceURL->setMinimumWidth(QLINE_MINIMUM_WIDTH);
-    form->addRow("Face URL:", faceURL);
+    QString faceURLString = applicationInstance->getAvatar()->getHead().getBlendFace().getModelURL().toString();
+    QLineEdit* faceURLEdit = new QLineEdit(faceURLString);
+    faceURLEdit->setMinimumWidth(QLINE_MINIMUM_WIDTH);
+    form->addRow("Face URL:", faceURLEdit);
     
     QSlider* pupilDilation = new QSlider(Qt::Horizontal);
     pupilDilation->setValue(applicationInstance->getAvatar()->getHead().getPupilDilation() * pupilDilation->maximum());
@@ -793,11 +804,23 @@ void Menu::editPreferences() {
          return;
      }
     
+    QUuid newUUID(avatarUUIDLineEdit->text());
+    if (newUUID != avatarUUID) {
+        // there has been a UUID change - set the new UUID on the avatar instance
+        applicationInstance->getAvatar()->setUUID(newUUID);
+        
+    }
+    
     QUrl avatarVoxelURL(avatarURL->text());
     applicationInstance->getAvatar()->getVoxels()->setVoxelURL(avatarVoxelURL);
     
-    QUrl faceModelURL(faceURL->text());
-    applicationInstance->getAvatar()->getHead().getBlendFace().setModelURL(faceModelURL);
+    QUrl faceModelURL(faceURLEdit->text());
+    if (faceModelURL.toString() != faceURLString) {
+        applicationInstance->getAvatar()->getHead().getBlendFace().setModelURL(faceModelURL);
+        
+        // send the new face mesh URL to the data-server (if we have a client UUID)
+        DataServerClient::putValueForKey("mesh", faceModelURL.toString().toLocal8Bit().constData());        
+    }
     
     Avatar::sendAvatarURLsMessage(avatarVoxelURL, faceModelURL);
     

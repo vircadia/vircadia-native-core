@@ -9,6 +9,8 @@
 #ifndef __interface__myavatar__
 #define __interface__myavatar__
 
+#include <QSettings>
+
 #include "Avatar.h"
 
 class MyAvatar : public Avatar {
@@ -32,6 +34,7 @@ public:
     void setNewScale(const float scale);
     void setWantCollisionsOn(bool wantCollisionsOn) { _isCollisionsOn = wantCollisionsOn; }
     void setMoveTarget(const glm::vec3 moveTarget);
+    void setUUID(const QUuid& uuid);
 
     // getters
     float getNewScale() const { return _newScale; }
@@ -47,6 +50,10 @@ public:
     glm::vec3 getGravity() const { return _gravity; }
     glm::vec3 getUprightHeadPosition() const;
     glm::vec3 getUprightEyeLevelPosition() const;
+    
+    // get/set avatar data
+    void saveData(QSettings* settings);
+    void loadData(QSettings* settings);
 
     //  Set what driving keys are being pressed to control thrust levels
     void setDriveKeys(int key, bool val) { _driveKeys[key] = val; };
@@ -57,7 +64,7 @@ public:
     void addThrust(glm::vec3 newThrust) { _thrust += newThrust; };
     glm::vec3 getThrust() { return _thrust; };
 
-    private:
+private:
     bool _mousePressed;
     float _bodyPitchDelta;
     float _bodyRollDelta;
