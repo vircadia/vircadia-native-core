@@ -34,7 +34,7 @@ public:
     void setNewScale(const float scale);
     void setWantCollisionsOn(bool wantCollisionsOn) { _isCollisionsOn = wantCollisionsOn; }
     void setMoveTarget(const glm::vec3 moveTarget);
-    void setUUID(const QUuid& uuid);
+    void setUsername(const QString& username) { _username = username; }
 
     // getters
     float getNewScale() const { return _newScale; }
@@ -50,6 +50,7 @@ public:
     glm::vec3 getGravity() const { return _gravity; }
     glm::vec3 getUprightHeadPosition() const;
     glm::vec3 getUprightEyeLevelPosition() const;
+    const QString& getUsername() const { return _username; }
     
     // get/set avatar data
     void saveData(QSettings* settings);
@@ -83,6 +84,7 @@ private:
     float _collisionRadius;
     glm::vec3 _moveTarget;
     int _moveTargetStepCounter;
+    QString _username;
 
 	// private methods
     float getBallRenderAlpha(int ball, bool lookingInMirror) const;

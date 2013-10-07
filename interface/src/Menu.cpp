@@ -749,10 +749,10 @@ void Menu::editPreferences() {
     QFormLayout* form = new QFormLayout();
     layout->addLayout(form, 1);
     
-    QUuid avatarUUID = applicationInstance->getAvatar()->getUUID();
-    QLineEdit* avatarUUIDLineEdit = new QLineEdit(avatarUUID.isNull() ? QString() : uuidStringWithoutCurlyBraces(avatarUUID));
-    avatarUUIDLineEdit->setMinimumWidth(QLINE_MINIMUM_WIDTH);
-    form->addRow("UUID:", avatarUUIDLineEdit);
+    QString avatarUsername = applicationInstance->getAvatar()->getUsername();
+    QLineEdit* avatarUsernameEdit = new QLineEdit(avatarUsername);
+    avatarUsernameEdit->setMinimumWidth(QLINE_MINIMUM_WIDTH);
+    form->addRow("Username:", avatarUsernameEdit);
     
     QLineEdit* avatarURL = new QLineEdit(applicationInstance->getAvatar()->getVoxels()->getVoxelURL().toString());
     avatarURL->setMinimumWidth(QLINE_MINIMUM_WIDTH);
@@ -804,10 +804,9 @@ void Menu::editPreferences() {
          return;
      }
     
-    QUuid newUUID(avatarUUIDLineEdit->text());
-    if (newUUID != avatarUUID) {
+    if (avatarUsernameEdit->text() != avatarUsername) {
         // there has been a UUID change - set the new UUID on the avatar instance
-        applicationInstance->getAvatar()->setUUID(newUUID);
+        applicationInstance->getAvatar()->setUsername(avatarUsernameEdit->text());
         
     }
     
@@ -819,7 +818,7 @@ void Menu::editPreferences() {
         applicationInstance->getAvatar()->getHead().getBlendFace().setModelURL(faceModelURL);
         
         // send the new face mesh URL to the data-server (if we have a client UUID)
-        DataServerClient::putValueForKey("mesh", faceModelURL.toString().toLocal8Bit().constData());        
+        DataServerClient::putValueForKey("mesh", faceModelURL.toString().toLocal8Bit().constData());
     }
     
     Avatar::sendAvatarURLsMessage(avatarVoxelURL, faceModelURL);

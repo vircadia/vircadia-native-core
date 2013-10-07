@@ -537,7 +537,7 @@ void MyAvatar::renderScreenTint(ScreenTintLayer layer, Camera& whichCamera) {
 void MyAvatar::saveData(QSettings* settings) {
     settings->beginGroup("Avatar");
     
-    settings->setValue("UUID", _uuid);
+    settings->setValue("Username", _username);
     
     settings->setValue("bodyYaw", _bodyYaw);
     settings->setValue("bodyPitch", _bodyPitch);
@@ -560,7 +560,7 @@ void MyAvatar::saveData(QSettings* settings) {
 void MyAvatar::loadData(QSettings* settings) {
     settings->beginGroup("Avatar");
     
-    setUUID(settings->value("UUID").toUuid());
+    setUUID(settings->value("Usernmame").toString();
     
     // in case settings is corrupt or missing loadSetting() will check for NaN
     _bodyYaw = loadSetting(settings, "bodyYaw", 0.0f);

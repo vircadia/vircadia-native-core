@@ -13,7 +13,7 @@
 
 #include "DataServerClient.h"
 
-QUuid DataServerClient::_clientUUID;
+QString DataServerClient::_clientUsername;
 std::vector<unsigned char*> DataServerClient::_unconfirmedPackets;
 
 const char DATA_SERVER_HOSTNAME[] = "127.0.0.1";
@@ -21,16 +21,15 @@ const unsigned short DATA_SERVER_PORT = 3282;
 const sockaddr_in DATA_SERVER_SOCKET = socketForHostnameAndHostOrderPort(DATA_SERVER_HOSTNAME, DATA_SERVER_PORT);
 
 void DataServerClient::putValueForKey(const char* key, const char* value) {
-    if (!_clientUUID.isNull()) {
+    if (!_clientUsername.isEmpty()) {
         unsigned char* putPacket = new unsigned char[MAX_PACKET_SIZE];
         
         // setup the header for this packet
         int numPacketBytes = populateTypeAndVersion(putPacket, PACKET_TYPE_DATA_SERVER_PUT);
         
         // pack the client UUID
-        QString uuidString = uuidStringWithoutCurlyBraces(_clientUUID);
-        memcpy(putPacket + numPacketBytes, uuidString.toLocal8Bit().constData(), uuidString.toLocal8Bit().size());
-        numPacketBytes += uuidString.toLocal8Bit().size();
+        memcpy(putPacket + numPacketBytes, _clientUsername.toLocal8Bit().constData(), _clientUsername.toLocal8Bit().size());
+        numPacketBytes += _clientUsername.toLocal8Bit().size();
         
         // pack the key, null terminated
         strcpy((char*) putPacket + numPacketBytes, key);
@@ -52,24 +51,28 @@ void DataServerClient::putValueForKey(const char* key, const char* value) {
 
 void DataServerClient::getValueForKeyAndUUID(const char* key, QUuid &uuid) {
     if (!uuid.isNull()) {
-        unsigned char getPacket[MAX_PACKET_SIZE];
-        
-        // setup the header for this packet
-        int numPacketBytes = populateTypeAndVersion(getPacket, PACKET_TYPE_DATA_SERVER_GET);
-        
-        // pack the UUID we're asking for data for
         QString uuidString = uuidStringWithoutCurlyBraces(uuid);
-        memcpy(getPacket + numPacketBytes, uuidString.toLocal8Bit().constData(), uuidString.toLocal8Bit().size());
-        numPacketBytes += uuidString.toLocal8Bit().size();
-        
-        // pack the key, null terminated
-        strcpy((char*) getPacket + numPacketBytes, key);
-        numPacketBytes += strlen(key);
-        getPacket[numPacketBytes++] = '\0';
-        
-        // send the get to the data server
-        NodeList::getInstance()->getNodeSocket()->send((sockaddr*) &DATA_SERVER_SOCKET, getPacket, numPacketBytes);
+        getValueforKeyAndUserString(key, uuidString);
     }
+}
+
+void DataServerClient::getValueforKeyAndUserString(const char* key, QString& userString) {
+    unsigned char getPacket[MAX_PACKET_SIZE];
+    
+    // setup the header for this packet
+    int numPacketBytes = populateTypeAndVersion(getPacket, PACKET_TYPE_DATA_SERVER_GET);
+    
+    // pack the user string (could be username or UUID string)
+    memcpy(getPacket + numPacketBytes, userString.toLocal8Bit().constData(), userString.toLocal8Bit().size());
+    numPacketBytes += userString.toLocal8Bit().size();
+    
+    // pack the key, null terminated
+    strcpy((char*) getPacket + numPacketBytes, key);
+    numPacketBytes += strlen(key);
+    getPacket[numPacketBytes++] = '\0';
+    
+    // send the get to the data server
+    NodeList::getInstance()->getNodeSocket()->send((sockaddr*) &DATA_SERVER_SOCKET, getPacket, numPacketBytes);
 }
 
 void DataServerClient::processConfirmFromDataServer(unsigned char* packetData, int numPacketBytes) {
