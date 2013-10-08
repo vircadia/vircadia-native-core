@@ -300,6 +300,7 @@ const char* FACESHIFT_BLENDSHAPES[] = {
 
 class Transform {
 public:
+    QByteArray name;
     bool inheritScale;
     glm::mat4 withScale;
     glm::mat4 withoutScale;
@@ -536,7 +537,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                     glm::vec3 preRotation, rotation, postRotation;
                     glm::vec3 scale = glm::vec3(1.0f, 1.0f, 1.0f);
                     glm::vec3 scalePivot, rotationPivot;
-                    Transform transform = { true };
+                    Transform transform = { name, true };
                     foreach (const FBXNode& subobject, object.children) {
                         if (subobject.name == "Properties70") {
                             foreach (const FBXNode& property, subobject.children) {
@@ -679,14 +680,14 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
             mapping.value("ry").toFloat(), mapping.value("rz").toFloat())))) *
         glm::scale(offsetScale, offsetScale, offsetScale);
     
-    // as a temporary hack, put the mesh with the most blendshapes on top; assume it to be the face
     FBXGeometry geometry;
-    int mostBlendshapes = 0;
+    QVariantHash springs = mapping.value("spring").toHash();
     for (QHash<qint64, FBXMesh>::iterator it = meshes.begin(); it != meshes.end(); it++) {
         FBXMesh& mesh = it.value();
         
         // accumulate local transforms
         qint64 modelID = parentMap.value(it.key());
+        mesh.springiness = springs.value(localTransforms.value(modelID).name).toFloat();
         glm::mat4 modelTransform = getGlobalTransform(parentMap, localTransforms, modelID);
         
         // look for textures, material properties
@@ -731,13 +732,47 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
             }
         }
         
-        if (mesh.blendshapes.size() > mostBlendshapes) {
-            geometry.meshes.prepend(mesh);    
-            mostBlendshapes = mesh.blendshapes.size();
+        // extract spring edges, connections if springy
+        if (mesh.springiness > 0.0f) {
+            QSet<QPair<int, int> > edges;
             
-        } else {
-            geometry.meshes.append(mesh);
+            mesh.vertexConnections.resize(mesh.vertices.size());
+            for (int i = 0; i < mesh.quadIndices.size(); i += 4) {
+                int index0 = mesh.quadIndices.at(i);
+                int index1 = mesh.quadIndices.at(i + 1);
+                int index2 = mesh.quadIndices.at(i + 2);
+                int index3 = mesh.quadIndices.at(i + 3);
+                
+                edges.insert(QPair<int, int>(qMin(index0, index1), qMax(index0, index1)));
+                edges.insert(QPair<int, int>(qMin(index1, index2), qMax(index1, index2)));
+                edges.insert(QPair<int, int>(qMin(index2, index3), qMax(index2, index3)));
+                edges.insert(QPair<int, int>(qMin(index3, index0), qMax(index3, index0)));
+           
+                mesh.vertexConnections[index0].append(QPair<int, int>(index3, index1));
+                mesh.vertexConnections[index1].append(QPair<int, int>(index0, index2));
+                mesh.vertexConnections[index2].append(QPair<int, int>(index1, index3));
+                mesh.vertexConnections[index3].append(QPair<int, int>(index2, index0));
+            }
+            for (int i = 0; i < mesh.triangleIndices.size(); i += 3) {
+                int index0 = mesh.triangleIndices.at(i);
+                int index1 = mesh.triangleIndices.at(i + 1);
+                int index2 = mesh.triangleIndices.at(i + 2);
+                
+                edges.insert(QPair<int, int>(qMin(index0, index1), qMax(index0, index1)));
+                edges.insert(QPair<int, int>(qMin(index1, index2), qMax(index1, index2)));
+                edges.insert(QPair<int, int>(qMin(index2, index0), qMax(index2, index0)));
+                
+                mesh.vertexConnections[index0].append(QPair<int, int>(index2, index1));
+                mesh.vertexConnections[index1].append(QPair<int, int>(index0, index2));
+                mesh.vertexConnections[index2].append(QPair<int, int>(index1, index0));
+            }
+            
+            for (QSet<QPair<int, int> >::const_iterator edge = edges.constBegin(); edge != edges.constEnd(); edge++) {
+                mesh.springEdges.append(*edge);
+            }
         }
+        
+        geometry.meshes.append(mesh);
     }
     
     // extract translation component for neck pivot

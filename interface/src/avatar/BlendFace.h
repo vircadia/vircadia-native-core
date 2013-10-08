@@ -33,6 +33,8 @@ public:
     bool isActive() const { return _geometry && _geometry->isLoaded(); }
     
     void init();
+    void reset();
+    void simulate(float deltaTime);
     bool render(float alpha);
     
     Q_INVOKABLE void setModelURL(const QUrl& url);
@@ -50,8 +52,16 @@ private:
     
     QSharedPointer<NetworkGeometry> _geometry;
     
+    class MeshState {
+    public:
+        QVector<glm::vec3> worldSpaceVertices;
+        QVector<glm::vec3> worldSpaceNormals;
+    };
+    
+    QVector<MeshState> _meshStates;
     QVector<GLuint> _blendedVertexBufferIDs;
     QVector<QSharedPointer<Texture> > _dilatedTextures;
+    bool _resetStates;
     
     QVector<glm::vec3> _blendedVertices;
     QVector<glm::vec3> _blendedNormals;

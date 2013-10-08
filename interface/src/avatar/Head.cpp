@@ -235,6 +235,8 @@ void Head::simulate(float deltaTime, bool isMine) {
     if (USING_PHYSICAL_MOHAWK) {
         updateHairPhysics(deltaTime);
     }
+    
+    _blendFace.simulate(deltaTime);
 }
 
 void Head::calculateGeometry() {
