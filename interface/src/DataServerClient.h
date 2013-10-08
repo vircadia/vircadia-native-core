@@ -9,7 +9,7 @@
 #ifndef __hifi__DataServerClient__
 #define __hifi__DataServerClient__
 
-#include <vector>
+#include <map>
 
 #include <QtCore/QUuid>
 
@@ -22,12 +22,13 @@ public:
     static void processConfirmFromDataServer(unsigned char* packetData, int numPacketBytes);
     static void processSendFromDataServer(unsigned char* packetData, int numPacketBytes);
     static void processMessageFromDataServer(unsigned char* packetData, int numPacketBytes);
+    static void resendUnmatchedPackets();
     
     static void setClientUsername(const QString& clientUsername) { _clientUsername = clientUsername; }
     static QString& setClientUsername() { return _clientUsername; }
 private:
     static QString _clientUsername;
-    static std::vector<unsigned char*> _unmatchedPackets;
+    static std::map<unsigned char*, int> _unmatchedPackets;
 };
 
 namespace DataServerKey {

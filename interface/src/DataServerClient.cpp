@@ -17,7 +17,7 @@
 #include "DataServerClient.h"
 
 QString DataServerClient::_clientUsername;
-std::vector<unsigned char*> DataServerClient::_unmatchedPackets;
+std::map<unsigned char*, int> DataServerClient::_unmatchedPackets;
 
 const char DATA_SERVER_HOSTNAME[] = "127.0.0.1";
 const unsigned short DATA_SERVER_PORT = 3282;
@@ -46,7 +46,7 @@ void DataServerClient::putValueForKey(const char* key, const char* value) {
         putPacket[numPacketBytes++] = '\0';
         
         // add the putPacket to our vector of unconfirmed packets, will be deleted once put is confirmed
-        _unmatchedPackets.push_back(putPacket);
+        _unmatchedPackets.insert(std::pair<unsigned char*, int>(putPacket, numPacketBytes));
         
         // send this put request to the data server
         NodeList::getInstance()->getNodeSocket()->send((sockaddr*) &DATA_SERVER_SOCKET, putPacket, numPacketBytes);
@@ -82,20 +82,20 @@ void DataServerClient::getValueForKeyAndUserString(const char* key, QString& use
 
 void DataServerClient::processConfirmFromDataServer(unsigned char* packetData, int numPacketBytes) {
     
-    for  (std::vector<unsigned char*>::iterator unconfirmedPacket = _unmatchedPackets.begin();
-          unconfirmedPacket != _unmatchedPackets.end();
-          ++unconfirmedPacket) {
-        if (memcmp(*unconfirmedPacket + sizeof(PACKET_TYPE),
+    for  (std::map<unsigned char*, int>::iterator mapIterator = _unmatchedPackets.begin();
+          mapIterator != _unmatchedPackets.end();
+          ++mapIterator) {
+        if (memcmp(mapIterator->first + sizeof(PACKET_TYPE),
                    packetData + sizeof(PACKET_TYPE),
                    numPacketBytes - sizeof(PACKET_TYPE)) == 0) {
-            // this is a match - remove the confirmed packet from the vector so it isn't sent back out
-            _unmatchedPackets.erase(unconfirmedPacket);
+            
+            // this is a match - remove the confirmed packet from the vector and delete associated member
+            // so it isn't sent back out
+            delete[] mapIterator->first;
+            _unmatchedPackets.erase(mapIterator);
             
             // we've matched the packet - bail out
             break;
-        } else {
-            // no match, just push the iterator
-            unconfirmedPacket++;
         }
     }
 }
@@ -141,5 +141,16 @@ void DataServerClient::processMessageFromDataServer(unsigned char* packetData, i
             break;
         default:
             break;
+    }
+}
+
+void DataServerClient::resendUnmatchedPackets() {
+    for  (std::map<unsigned char*, int>::iterator mapIterator = _unmatchedPackets.begin();
+          mapIterator != _unmatchedPackets.end();
+          ++mapIterator) {
+        // send the unmatched packet to the data server
+        NodeList::getInstance()->getNodeSocket()->send((sockaddr*) &DATA_SERVER_SOCKET,
+                                                       mapIterator->first,
+                                                       mapIterator->second);
     }
 }
