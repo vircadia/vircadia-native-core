@@ -102,7 +102,6 @@ Avatar::Avatar(Node* owningNode) :
     _leadingAvatar(NULL),
     _voxels(this),
     _moving(false),
-    _uuid(),
     _initialized(false),
     _handHoldingPosition(0.0f, 0.0f, 0.0f),
     _maxArmLength(0.0f),

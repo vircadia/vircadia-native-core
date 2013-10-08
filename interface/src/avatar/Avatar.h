@@ -155,9 +155,6 @@ public:
     glm::quat getOrientation() const;
     glm::quat getWorldAlignedOrientation() const;
     AvatarVoxelSystem* getVoxels() { return &_voxels; }
-    
-    QUuid& getUUID() { return _uuid; }
-    void setUUID(const QUuid& uuid) { _uuid = uuid; }
 
     // Get the position/rotation of a single body ball
     void getBodyBallTransform(AvatarJointID jointID, glm::vec3& position, glm::quat& rotation) const;
@@ -225,7 +222,6 @@ protected:
     AvatarVoxelSystem _voxels;
 
     bool _moving; ///< set when position is changing
-    QUuid _uuid;
 
     // protected methods...
     glm::vec3 getBodyRightDirection() const { return getOrientation() * IDENTITY_RIGHT; }
