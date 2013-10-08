@@ -76,28 +76,17 @@ void DataServerClient::getValueForKeyAndUserString(const char* key, QString& use
     numPacketBytes += strlen(key);
     getPacket[numPacketBytes++] = '\0';
     
+    // add the getPacket to our vector of uncofirmed packets, will be deleted once we get a response from the nameserver
+    _unmatchedPackets.insert(std::pair<unsigned char*, int>(getPacket, numPacketBytes));
+    
     // send the get to the data server
     NodeList::getInstance()->getNodeSocket()->send((sockaddr*) &DATA_SERVER_SOCKET, getPacket, numPacketBytes);
 }
 
+
+
 void DataServerClient::processConfirmFromDataServer(unsigned char* packetData, int numPacketBytes) {
-    
-    for  (std::map<unsigned char*, int>::iterator mapIterator = _unmatchedPackets.begin();
-          mapIterator != _unmatchedPackets.end();
-          ++mapIterator) {
-        if (memcmp(mapIterator->first + sizeof(PACKET_TYPE),
-                   packetData + sizeof(PACKET_TYPE),
-                   numPacketBytes - sizeof(PACKET_TYPE)) == 0) {
-            
-            // this is a match - remove the confirmed packet from the vector and delete associated member
-            // so it isn't sent back out
-            delete[] mapIterator->first;
-            _unmatchedPackets.erase(mapIterator);
-            
-            // we've matched the packet - bail out
-            break;
-        }
-    }
+    removeMatchedPacketFromMap(packetData, numPacketBytes);
 }
 
 void DataServerClient::processSendFromDataServer(unsigned char* packetData, int numPacketBytes) {
@@ -128,7 +117,11 @@ void DataServerClient::processSendFromDataServer(unsigned char* packetData, int 
         }
     } else {
         // user string was UUID, find matching avatar and associate data
+        
     }
+    
+    // remove the matched packet from  our map so it isn't re-sent to the data-server
+    removeMatchedPacketFromMap(packetData, numPacketBytes);
 }
 
 void DataServerClient::processMessageFromDataServer(unsigned char* packetData, int numPacketBytes) {
@@ -141,6 +134,25 @@ void DataServerClient::processMessageFromDataServer(unsigned char* packetData, i
             break;
         default:
             break;
+    }
+}
+
+void DataServerClient::removeMatchedPacketFromMap(unsigned char* packetData, int numPacketBytes) {
+    for  (std::map<unsigned char*, int>::iterator mapIterator = _unmatchedPackets.begin();
+          mapIterator != _unmatchedPackets.end();
+          ++mapIterator) {
+        if (memcmp(mapIterator->first + sizeof(PACKET_TYPE),
+                   packetData + sizeof(PACKET_TYPE),
+                   numPacketBytes - sizeof(PACKET_TYPE)) == 0) {
+            
+            // this is a match - remove the confirmed packet from the vector and delete associated member
+            // so it isn't sent back out
+            delete[] mapIterator->first;
+            _unmatchedPackets.erase(mapIterator);
+            
+            // we've matched the packet - bail out
+            break;
+        }
     }
 }
 

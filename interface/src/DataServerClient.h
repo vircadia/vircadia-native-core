@@ -22,6 +22,7 @@ public:
     static void processConfirmFromDataServer(unsigned char* packetData, int numPacketBytes);
     static void processSendFromDataServer(unsigned char* packetData, int numPacketBytes);
     static void processMessageFromDataServer(unsigned char* packetData, int numPacketBytes);
+    static void removeMatchedPacketFromMap(unsigned char* packetData, int numPacketBytes);
     static void resendUnmatchedPackets();
     
     static void setClientUsername(const QString& clientUsername) { _clientUsername = clientUsername; }
