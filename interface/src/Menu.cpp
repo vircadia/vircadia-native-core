@@ -240,12 +240,18 @@ Menu::Menu() :
                                            appInstance,
                                            SLOT(setRenderVoxels(bool)));
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::DontRenderVoxels);
-    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::VoxelTextures);
-    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::AmbientOcclusion);
-    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::UseVoxelShader, 0, 
-                                           false, this, SLOT(switchVoxelShader()));
+    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::DontCallOpenGLForVoxels);
+
+    _useVoxelShader = addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::UseVoxelShader, 0, 
+                                           false, appInstance->getVoxels(), SLOT(setUseVoxelShader(bool)));
+
+    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::VoxelsAsPoints, 0, 
+                                           false, appInstance->getVoxels(), SLOT(setVoxelsAsPoints(bool)));
+
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::FastVoxelPipeline, 0,
                                            false, appInstance->getVoxels(), SLOT(setUseFastVoxelPipeline(bool)));
+    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::VoxelTextures);
+    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::AmbientOcclusion);
                                            
 
     QMenu* avatarOptionsMenu = developerMenu->addMenu("Avatar Options");
@@ -1005,7 +1011,4 @@ void Menu::updateFrustumRenderModeAction() {
     }
 }
 
-void Menu::switchVoxelShader() {
-    Application::getInstance()->getVoxels()->setUseVoxelShader(isOptionChecked(MenuOption::UseVoxelShader));
-}
 
