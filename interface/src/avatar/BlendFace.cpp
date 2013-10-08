@@ -64,6 +64,7 @@ void BlendFace::simulate(float deltaTime) {
             MeshState state;
             if (mesh.springiness > 0.0f) {
                 state.worldSpaceVertices.resize(mesh.vertices.size());
+                state.vertexVelocities.resize(mesh.vertices.size());
                 state.worldSpaceNormals.resize(mesh.vertices.size());
             }
             _meshStates.append(state);    
@@ -82,6 +83,7 @@ void BlendFace::simulate(float deltaTime) {
             continue;
         }
         glm::vec3* destVertices = state.worldSpaceVertices.data();
+        glm::vec3* destVelocities = state.vertexVelocities.data();
         glm::vec3* destNormals = state.worldSpaceNormals.data();
         const FBXMesh& mesh = geometry.meshes.at(i);
         const glm::vec3* sourceVertices = mesh.vertices.constData();
@@ -108,16 +110,21 @@ void BlendFace::simulate(float deltaTime) {
         if (_resetStates) {
             for (int j = 0; j < vertexCount; j++) {
                 destVertices[j] = glm::vec3(baseTransform * glm::vec4(sourceVertices[j], 1.0f));        
+                destVelocities[j] = glm::vec3();
             }
             _resetStates = false;
         
         } else {
+            const float SPRINGINESS_MULTIPLIER = 20.0f;
+            const float DAMPING = 1.0f;
             for (int j = 0; j < vertexCount; j++) {
-                destVertices[j] = glm::mix(destVertices[j], glm::vec3(baseTransform * glm::vec4(sourceVertices[j], 1.0f)), 0.25f);
+                destVelocities[j] += ((glm::vec3(baseTransform * glm::vec4(sourceVertices[j], 1.0f)) - destVertices[j]) *
+                    mesh.springiness * SPRINGINESS_MULTIPLIER - destVelocities[j] * DAMPING) * deltaTime;
+                destVertices[j] += destVelocities[j] * deltaTime;
             }
         }
         for (int j = 0; j < vertexCount; j++) {
-            destNormals[j] = glm::vec3(0.0f, 0.0f, 0.0f);
+            destNormals[j] = glm::vec3();
             
             const glm::vec3& middle = destVertices[j];
             for (QVarLengthArray<QPair<int, int>, 4>::const_iterator connection = mesh.vertexConnections.at(j).constBegin(); 

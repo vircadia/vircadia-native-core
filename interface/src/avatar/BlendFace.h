@@ -55,6 +55,7 @@ private:
     class MeshState {
     public:
         QVector<glm::vec3> worldSpaceVertices;
+        QVector<glm::vec3> vertexVelocities;
         QVector<glm::vec3> worldSpaceNormals;
     };
     
