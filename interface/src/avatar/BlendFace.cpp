@@ -116,7 +116,7 @@ void BlendFace::simulate(float deltaTime) {
         }
         if (_resetStates) {
             for (int j = 0; j < vertexCount; j++) {
-                destVertices[j] = glm::vec3(baseTransform * glm::vec4(sourceVertices[j], 1.0f));        
+                destVertices[j] = glm::vec3(transform * glm::vec4(sourceVertices[j], 1.0f));        
                 destVelocities[j] = glm::vec3();
             }
             _resetStates = false;
@@ -125,7 +125,7 @@ void BlendFace::simulate(float deltaTime) {
             const float SPRINGINESS_MULTIPLIER = 200.0f;
             const float DAMPING = 5.0f;
             for (int j = 0; j < vertexCount; j++) {
-                destVelocities[j] += ((glm::vec3(baseTransform * glm::vec4(sourceVertices[j], 1.0f)) - destVertices[j]) *
+                destVelocities[j] += ((glm::vec3(transform * glm::vec4(sourceVertices[j], 1.0f)) - destVertices[j]) *
                     mesh.springiness * SPRINGINESS_MULTIPLIER - destVelocities[j] * DAMPING) * deltaTime;
                 destVertices[j] += destVelocities[j] * deltaTime;
             }
