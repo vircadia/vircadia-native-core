@@ -32,7 +32,7 @@ private:
 
 namespace DataServerKey {
     const char FaceMeshURL[] = "mesh";
-    const char UUID[] = "uuid";
+    const char UUID[] = "";
 }
 
 #endif /* defined(__hifi__DataServerClient__) */

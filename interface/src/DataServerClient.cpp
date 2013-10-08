@@ -78,8 +78,12 @@ void DataServerClient::getValueForKeyAndUserString(const char* key, QString& use
     
     // pack the key, null terminated
     strcpy((char*) getPacket + numPacketBytes, key);
-    numPacketBytes += strlen(key);
-    getPacket[numPacketBytes++] = '\0';
+    int numKeyBytes = strlen(key);
+    
+    if (numKeyBytes > 0) {
+        numPacketBytes += numKeyBytes;
+        getPacket[numPacketBytes++] = '\0';
+    }
     
     // add the getPacket to our vector of uncofirmed packets, will be deleted once we get a response from the nameserver
     _unmatchedPackets.insert(std::pair<unsigned char*, int>(getPacket, numPacketBytes));
