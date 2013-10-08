@@ -1595,6 +1595,7 @@ void Application::init() {
     // Set up VoxelSystem after loading preferences so we can get the desired max voxel count    
     _voxels.setMaxVoxels(Menu::getInstance()->getMaxVoxels());
     _voxels.setUseVoxelShader(Menu::getInstance()->isOptionChecked(MenuOption::UseVoxelShader));
+    _voxels.setVoxelsAsPoints(Menu::getInstance()->isOptionChecked(MenuOption::VoxelsAsPoints));
     _voxels.setUseFastVoxelPipeline(Menu::getInstance()->isOptionChecked(MenuOption::FastVoxelPipeline));
     _voxels.init();
     

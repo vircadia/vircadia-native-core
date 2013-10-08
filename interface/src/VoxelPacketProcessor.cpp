@@ -47,11 +47,7 @@ void VoxelPacketProcessor::processPacket(sockaddr& senderAddress, unsigned char*
     if (Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
         Node* voxelServer = NodeList::getInstance()->nodeWithAddress(&senderAddress);
         if (voxelServer && socketMatch(voxelServer->getActiveSocket(), &senderAddress)) {
-
-            voxelServer->lock(); // do we really need to lock this? just to get the ID?
             int nodeID = voxelServer->getNodeID();
-            voxelServer->unlock();
-            
             if (packetData[0] == PACKET_TYPE_ENVIRONMENT_DATA) {
                 app->_environment.parseData(&senderAddress, packetData, messageLength);
             } else {
