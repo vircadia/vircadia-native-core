@@ -27,46 +27,48 @@ const sockaddr_in DATA_SERVER_SOCKET = socketForHostnameAndHostOrderPort(DATA_SE
 
 void DataServerClient::putValueForKey(const char* key, const char* value) {
     Profile* userProfile = Application::getInstance()->getProfile();
-    QString clientString = userProfile->getUUID().isNull() ? userProfile->getUsername() : userProfile->getUUID().toString();
+    QString clientString = userProfile->getUUID().isNull()
+        ? userProfile->getUsername()
+        : uuidStringWithoutCurlyBraces(userProfile->getUUID().toString());
     
-    Application::getInstance();
-    
-    unsigned char* putPacket = new unsigned char[MAX_PACKET_SIZE];
-    
-    // setup the header for this packet
-    int numPacketBytes = populateTypeAndVersion(putPacket, PACKET_TYPE_DATA_SERVER_PUT);
-    
-    // pack the client UUID, null terminated
-    memcpy(putPacket + numPacketBytes, clientString.toLocal8Bit().constData(), clientString.toLocal8Bit().size());
-    numPacketBytes += clientString.toLocal8Bit().size();
-    putPacket[numPacketBytes++] = '\0';
-    
-    // pack the key, null terminated
-    strcpy((char*) putPacket + numPacketBytes, key);
-    numPacketBytes += strlen(key);
-    putPacket[numPacketBytes++] = '\0';
-    
-    // pack the value, null terminated
-    strcpy((char*) putPacket + numPacketBytes, value);
-    numPacketBytes += strlen(value);
-    putPacket[numPacketBytes++] = '\0';
-    
-    // add the putPacket to our vector of unconfirmed packets, will be deleted once put is confirmed
-    _unmatchedPackets.insert(std::pair<unsigned char*, int>(putPacket, numPacketBytes));
-    
-    // send this put request to the data server
-    NodeList::getInstance()->getNodeSocket()->send((sockaddr*) &DATA_SERVER_SOCKET, putPacket, numPacketBytes);
-}
-
-void DataServerClient::getValueForKeyAndUUID(const char* key, QUuid &uuid) {
-    if (!uuid.isNull()) {
-        QString uuidString = uuidStringWithoutCurlyBraces(uuid);
-        getValueForKeyAndUserString(key, uuidString);
+    if (!clientString.isEmpty()) {
+        
+        unsigned char* putPacket = new unsigned char[MAX_PACKET_SIZE];
+        
+        // setup the header for this packet
+        int numPacketBytes = populateTypeAndVersion(putPacket, PACKET_TYPE_DATA_SERVER_PUT);
+        
+        // pack the client UUID, null terminated
+        memcpy(putPacket + numPacketBytes, clientString.toLocal8Bit().constData(), clientString.toLocal8Bit().size());
+        numPacketBytes += clientString.toLocal8Bit().size();
+        putPacket[numPacketBytes++] = '\0';
+        
+        // pack the key, null terminated
+        strcpy((char*) putPacket + numPacketBytes, key);
+        numPacketBytes += strlen(key);
+        putPacket[numPacketBytes++] = '\0';
+        
+        // pack the value, null terminated
+        strcpy((char*) putPacket + numPacketBytes, value);
+        numPacketBytes += strlen(value);
+        putPacket[numPacketBytes++] = '\0';
+        
+        // add the putPacket to our vector of unconfirmed packets, will be deleted once put is confirmed
+        _unmatchedPackets.insert(std::pair<unsigned char*, int>(putPacket, numPacketBytes));
+        
+        // send this put request to the data server
+        NodeList::getInstance()->getNodeSocket()->send((sockaddr*) &DATA_SERVER_SOCKET, putPacket, numPacketBytes);
     }
 }
 
-void DataServerClient::getValueForKeyAndUserString(const char* key, QString& userString) {
-    unsigned char getPacket[MAX_PACKET_SIZE];
+void DataServerClient::getValueForKeyAndUUID(const char* key, const QUuid &uuid) {
+    if (!uuid.isNull()) {
+        getValueForKeyAndUserString(key, uuidStringWithoutCurlyBraces(uuid));
+    }
+}
+
+void DataServerClient::getValueForKeyAndUserString(const char* key, const QString& userString) {
+    unsigned char* getPacket = new unsigned char[MAX_PACKET_SIZE];
     
     // setup the header for this packet
     int numPacketBytes = populateTypeAndVersion(getPacket, PACKET_TYPE_DATA_SERVER_GET);
@@ -103,20 +105,22 @@ void DataServerClient::processConfirmFromDataServer(unsigned char* packetData, i
 void DataServerClient::processSendFromDataServer(unsigned char* packetData, int numPacketBytes) {
     // pull the user string from the packet so we know who to associate this with
     int numHeaderBytes = numBytesForPacketHeader(packetData);
-        
-    QString userString(QByteArray((char*) packetData + numHeaderBytes, strlen((char*) packetData + numHeaderBytes)));
+    
+    char* userStringPosition = (char*) packetData + numHeaderBytes;
+    
+    QString userString(QByteArray(userStringPosition, strlen(userStringPosition)));
     
     QUuid userUUID(userString);
+    
+    char* dataKeyPosition = (char*) packetData + numHeaderBytes + strlen(userStringPosition) + sizeof('\0');
+    char* dataValuePosition =  dataKeyPosition + strlen(dataKeyPosition) + sizeof(char);
+    
+    QString dataValueString(QByteArray(dataValuePosition,
+                                       numPacketBytes - ((unsigned char*) dataValuePosition - packetData)));
     
     if (userUUID.isNull()) {
         // the user string was a username
         // for now assume this means that it is for our avatar
-        
-        char* dataKeyPosition = (char*) packetData + numHeaderBytes + sizeof(userString);
-        char* dataValuePosition =  dataKeyPosition + strlen(dataKeyPosition) + sizeof(char);
-        
-        QString dataValueString(QByteArray(dataValuePosition,
-                                           numPacketBytes - ((unsigned char*) dataValuePosition - packetData)));
         
         if (strcmp(dataKeyPosition, DataServerKey::FaceMeshURL) == 0) {
             // pull the user's face mesh and set it on the Avatar instance
@@ -129,7 +133,20 @@ void DataServerClient::processSendFromDataServer(unsigned char* packetData, int 
         }
     } else {
         // user string was UUID, find matching avatar and associate data
-        
+        if (strcmp(dataKeyPosition, DataServerKey::FaceMeshURL) == 0) {
+            NodeList* nodeList = NodeList::getInstance();
+            for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+                if (node->getLinkedData() != NULL && node->getType() == NODE_TYPE_AGENT) {
+                    Avatar* avatar = (Avatar *) node->getLinkedData();
+                    
+                    if (avatar->getUUID() == userUUID) {
+                        QMetaObject::invokeMethod(&avatar->getHead().getBlendFace(),
+                                                  "setModelURL",
+                                                  Q_ARG(QUrl, QUrl(dataValueString)));
+                    }
+                }
+            }
+        }
     }
     
     // remove the matched packet from  our map so it isn't re-sent to the data-server

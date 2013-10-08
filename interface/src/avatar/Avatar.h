@@ -142,7 +142,6 @@ public:
     //setters
     void setDisplayingLookatVectors(bool displayingLookatVectors) { _head.setRenderLookatVectors(displayingLookatVectors); }
     void setMouseRay(const glm::vec3 &origin, const glm::vec3 &direction);
-    void setUUID(const QUuid& uuid);
 
     //getters
     bool isInitialized() const { return _initialized; }
