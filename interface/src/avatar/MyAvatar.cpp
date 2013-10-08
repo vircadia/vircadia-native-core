@@ -537,7 +537,6 @@ void MyAvatar::saveData(QSettings* settings) {
     settings->setValue("position_z", _position.z);
     
     settings->setValue("voxelURL", _voxels.getVoxelURL());
-    settings->setValue("faceModelURL", _head.getBlendFace().getModelURL());
     settings->setValue("pupilDilation", _head.getPupilDilation());
     
     settings->setValue("leanScale", _leanScale);
@@ -558,7 +557,6 @@ void MyAvatar::loadData(QSettings* settings) {
     _position.z = loadSetting(settings, "position_z", 0.0f);
     
     _voxels.setVoxelURL(settings->value("voxelURL").toUrl());
-    _head.getBlendFace().setModelURL(settings->value("faceModelURL").toUrl());
     _head.setPupilDilation(settings->value("pupilDilation", 0.0f).toFloat());
     
     _leanScale = loadSetting(settings, "leanScale", 0.05f);

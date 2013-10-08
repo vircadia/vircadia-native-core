@@ -766,7 +766,7 @@ void Menu::editPreferences() {
     avatarURL->setMinimumWidth(QLINE_MINIMUM_WIDTH);
     form->addRow("Avatar URL:", avatarURL);
     
-    QString faceURLString = applicationInstance->getAvatar()->getHead().getBlendFace().getModelURL().toString();
+    QString faceURLString = applicationInstance->getProfile()->getFaceModelURL().toString();
     QLineEdit* faceURLEdit = new QLineEdit(faceURLString);
     faceURLEdit->setMinimumWidth(QLINE_MINIMUM_WIDTH);
     form->addRow("Face URL:", faceURLEdit);
@@ -820,14 +820,14 @@ void Menu::editPreferences() {
         applicationInstance->getProfile()->setUsername(avatarUsernameEdit->text());
         
         if (faceModelURL.toString() == faceURLString && !avatarUsernameEdit->text().isEmpty()) {
-            // if there was no change to the face model URL then clear it and ask the data-server for what it is
-            applicationInstance->getAvatar()->getHead().getBlendFace().setModelURL(QUrl());
+            // if there was no change to the face model URL then ask the data-server for what it is
             DataServerClient::getClientValueForKey(DataServerKey::FaceMeshURL);
         }
     }
     
     if (faceModelURL.toString() != faceURLString) {
-        applicationInstance->getAvatar()->getHead().getBlendFace().setModelURL(faceModelURL);
+        // change the faceModelURL in the profile, it will also update this user's BlendFace
+        applicationInstance->getProfile()->setFaceModelURL(faceModelURL);
         
         // send the new face mesh URL to the data-server (if we have a client UUID)
         DataServerClient::putValueForKey(DataServerKey::FaceMeshURL,
@@ -836,8 +836,6 @@ void Menu::editPreferences() {
     
     QUrl avatarVoxelURL(avatarURL->text());
     applicationInstance->getAvatar()->getVoxels()->setVoxelURL(avatarVoxelURL);
-    
-
     
     Avatar::sendAvatarURLsMessage(avatarVoxelURL, faceModelURL);
     

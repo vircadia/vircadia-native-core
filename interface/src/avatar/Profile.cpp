@@ -42,6 +42,14 @@ void Profile::setUUID(const QUuid& uuid) {
     Application::getInstance()->getAvatar()->setUUID(_uuid);
 }
 
+void Profile::setFaceModelURL(const QUrl& faceModelURL) {
+    _faceModelURL = faceModelURL;
+    
+    QMetaObject::invokeMethod(&Application::getInstance()->getAvatar()->getHead().getBlendFace(),
+                              "setModelURL",
+                              Q_ARG(QUrl, _faceModelURL));
+}
+
 void Profile::saveData(QSettings* settings) {
     settings->beginGroup("Profile");
     

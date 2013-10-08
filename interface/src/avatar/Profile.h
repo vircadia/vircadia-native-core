@@ -23,7 +23,7 @@ public:
     void setUUID(const QUuid& uuid);
     QUuid& getUUID() { return _uuid; }
     
-    void setFaceModelURL(const QUrl& faceModelURL) { _faceModelURL = faceModelURL; }
+    void setFaceModelURL(const QUrl& faceModelURL);
     QUrl& getFaceModelURL() { return _faceModelURL; }
     
     void clear();

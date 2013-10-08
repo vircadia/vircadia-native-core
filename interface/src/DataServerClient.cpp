@@ -121,11 +121,8 @@ void DataServerClient::processSendFromDataServer(unsigned char* packetData, int 
         if (strcmp(dataKeyPosition, DataServerKey::FaceMeshURL) == 0) {
             // pull the user's face mesh and set it on the Avatar instance
             
-            
             qDebug("Changing user's face model URL to %s\n", dataValueString.toLocal8Bit().constData());
-            QMetaObject::invokeMethod(&Application::getInstance()->getAvatar()->getHead().getBlendFace(),
-                                      "setModelURL",
-                                      Q_ARG(QUrl, QUrl(dataValueString)));
+            Application::getInstance()->getProfile()->setFaceModelURL(QUrl(dataValueString));
         } else if (strcmp(dataKeyPosition, DataServerKey::UUID) == 0) {
             // this is the user's UUID - set it on the profile
             Application::getInstance()->getProfile()->setUUID(dataValueString);
