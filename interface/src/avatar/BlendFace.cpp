@@ -71,9 +71,11 @@ void BlendFace::simulate(float deltaTime) {
         _resetStates = true;
     }
     
-    glm::mat4 baseTransform = glm::translate(_owningHead->getPosition()) * glm::mat4_cast(_owningHead->getOrientation()) *
-        glm::scale(glm::vec3(-1.0f, 1.0f, -1.0f) * _owningHead->getScale() * MODEL_SCALE) *
-        glm::translate(MODEL_TRANSLATION - _geometry->getFBXGeometry().neckPivot);
+    glm::quat orientation = _owningHead->getOrientation();
+    glm::vec3 scale = glm::vec3(-1.0f, 1.0f, -1.0f) * _owningHead->getScale() * MODEL_SCALE;
+    glm::vec3 offset = MODEL_TRANSLATION - _geometry->getFBXGeometry().neckPivot;
+    glm::mat4 baseTransform = glm::translate(_owningHead->getPosition()) * glm::mat4_cast(orientation) *
+        glm::scale(scale) * glm::translate(offset);
             
     for (int i = 0; i < _meshStates.size(); i++) {
         MeshState& state = _meshStates[i];
@@ -105,6 +107,12 @@ void BlendFace::simulate(float deltaTime) {
             }
             
             sourceVertices = _blendedVertices.constData();
+        }
+        glm::mat4 transform = baseTransform;
+        if (mesh.isEye) {
+            transform = transform * glm::translate(mesh.pivot) * glm::mat4_cast(glm::inverse(orientation) *
+                _owningHead->getEyeRotation(orientation * ((mesh.pivot + offset) * scale) + _owningHead->getPosition())) *
+                glm::translate(-mesh.pivot);
         }
         if (_resetStates) {
             for (int j = 0; j < vertexCount; j++) {

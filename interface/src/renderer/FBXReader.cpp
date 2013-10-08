@@ -686,12 +686,13 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     
     FBXGeometry geometry;
     QVariantHash springs = mapping.value("spring").toHash();
+    QVariant defaultSpring = springs.value("default");
     for (QHash<qint64, FBXMesh>::iterator it = meshes.begin(); it != meshes.end(); it++) {
         FBXMesh& mesh = it.value();
         
         // accumulate local transforms
         qint64 modelID = parentMap.value(it.key());
-        mesh.springiness = springs.value(localTransforms.value(modelID).name).toFloat();
+        mesh.springiness = springs.value(localTransforms.value(modelID).name, defaultSpring).toFloat();
         glm::mat4 modelTransform = getGlobalTransform(parentMap, localTransforms, modelID);
         
         // look for textures, material properties
