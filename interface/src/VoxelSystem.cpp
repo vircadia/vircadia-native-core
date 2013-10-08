@@ -90,6 +90,8 @@ VoxelSystem::VoxelSystem(float treeScale, int maxVoxels)
     connect(_tree, SIGNAL(importProgress(int)), SIGNAL(importProgress(int)));
 
     _useVoxelShader = false;
+    _voxelsAsPoints = false;
+    _voxelShaderModeWhenVoxelsAsPointsEnabled = false;
 
     _writeVoxelShaderData = NULL;
     _readVoxelShaderData = NULL;
@@ -219,7 +221,6 @@ void VoxelSystem::setMaxVoxels(int maxVoxels) {
     if (maxVoxels == _maxVoxels) {
         return;
     }
-    pthread_mutex_lock(&_bufferWriteLock);
     bool wasInitialized = _initialized;
     if (wasInitialized) {
         clearAllNodesBufferIndex();
@@ -227,9 +228,8 @@ void VoxelSystem::setMaxVoxels(int maxVoxels) {
     }
     _maxVoxels = maxVoxels;
     if (wasInitialized) {
-        init();
+        initVoxelMemory();
     }
-    pthread_mutex_unlock(&_bufferWriteLock);
     if (wasInitialized) {
         forceRedrawEntireTree();
     }
@@ -240,7 +240,6 @@ void VoxelSystem::setUseVoxelShader(bool useVoxelShader) {
         return;
     }
 
-    pthread_mutex_lock(&_bufferWriteLock);
     bool wasInitialized = _initialized;
     if (wasInitialized) {
         clearAllNodesBufferIndex();
@@ -248,10 +247,50 @@ void VoxelSystem::setUseVoxelShader(bool useVoxelShader) {
     }
     _useVoxelShader = useVoxelShader;
     if (wasInitialized) {
-        init();
+        initVoxelMemory();
     }
-    pthread_mutex_unlock(&_bufferWriteLock);
 
+    if (wasInitialized) {
+        forceRedrawEntireTree();
+    }
+}
+
+void VoxelSystem::setVoxelsAsPoints(bool voxelsAsPoints) {
+    if (_voxelsAsPoints == voxelsAsPoints) {
+        return;
+    }
+
+    bool wasInitialized = _initialized;
+    
+    // If we're "turning on" Voxels as points, we need to double check that we're in voxel shader mode.
+    // Voxels as points uses the VoxelShader memory model, so if we're not in voxel shader mode,
+    // then set it to voxel shader mode.
+    if (voxelsAsPoints) {
+        Menu::getInstance()->getUseVoxelShader()->setEnabled(false);
+
+        // If enabling this... then do it before checking voxel shader status, that way, if voxel
+        // shader is already enabled, we just start drawing as points.
+        _voxelsAsPoints = true;
+    
+        if (!_useVoxelShader) {
+            setUseVoxelShader(true);
+            _voxelShaderModeWhenVoxelsAsPointsEnabled = false;
+        } else {
+            _voxelShaderModeWhenVoxelsAsPointsEnabled = true;
+        }
+    } else {
+        Menu::getInstance()->getUseVoxelShader()->setEnabled(true);
+        // if we're turning OFF voxels as point mode, then we check what the state of voxel shader was when we enabled
+        // voxels as points, if it was OFF, then we return it to that value.
+        if (_voxelShaderModeWhenVoxelsAsPointsEnabled == false) {
+            setUseVoxelShader(false);
+        }
+        // If disabling this... then do it AFTER checking previous voxel shader status, that way, if voxel
+        // shader is was not enabled, we switch back to normal mode before turning off points.
+        _voxelsAsPoints = false;
+    }
+
+    // Set our voxels as points
     if (wasInitialized) {
         forceRedrawEntireTree();
     }
@@ -259,6 +298,8 @@ void VoxelSystem::setUseVoxelShader(bool useVoxelShader) {
 
 void VoxelSystem::cleanupVoxelMemory() {
     if (_initialized) {
+        pthread_mutex_lock(&_bufferWriteLock);
+        _initialized = false; // no longer initialized
         if (_useVoxelShader) {
             // these are used when in VoxelShader mode.
             glDeleteBuffers(1, &_vboVoxelsID);
@@ -266,6 +307,9 @@ void VoxelSystem::cleanupVoxelMemory() {
 
             delete[] _writeVoxelShaderData;
             delete[] _readVoxelShaderData;
+            
+            _writeVoxelShaderData = _readVoxelShaderData = NULL;
+
         } else {
             // Destroy  glBuffers
             glDeleteBuffers(1, &_vboVerticesID);
@@ -282,11 +326,18 @@ void VoxelSystem::cleanupVoxelMemory() {
             delete[] _writeVerticesArray;
             delete[] _readColorsArray;
             delete[] _writeColorsArray;
+
+            _readVerticesArray = NULL;
+            _writeVerticesArray = NULL;
+            _readColorsArray = NULL;
+            _writeColorsArray = NULL;
+
         }
         delete[] _writeVoxelDirtyArray;
         delete[] _readVoxelDirtyArray;
+        _writeVoxelDirtyArray = _readVoxelDirtyArray = NULL;
+        pthread_mutex_unlock(&_bufferWriteLock);
     }
-    _initialized = false; // no longer initialized
 }
 
 void VoxelSystem::setupFaceIndices(GLuint& faceVBOID, GLubyte faceIdentityIndices[]) {
@@ -318,11 +369,11 @@ void VoxelSystem::setupFaceIndices(GLuint& faceVBOID, GLubyte faceIdentityIndice
 }
 
 void VoxelSystem::initVoxelMemory() {
-    _initialMemoryUsageGPU = getFreeMemoryGPU();
+    pthread_mutex_lock(&_bufferWriteLock);
+
     _memoryUsageRAM = 0;
     _memoryUsageVBO = 0; // our VBO allocations as we know them
     if (_useVoxelShader) {
-        qDebug("Using Voxel Shader...\n");
         GLuint* indicesArray = new GLuint[_maxVoxels];
 
         // populate the indicesArray
@@ -418,6 +469,10 @@ void VoxelSystem::initVoxelMemory() {
             _perlinModulateProgram.release();
         }
     }
+
+    _initialized = true;
+
+    pthread_mutex_unlock(&_bufferWriteLock);
 }
 
 void VoxelSystem::loadVoxelsFile(const char* fileName, bool wantColorRandomizer) {
@@ -483,15 +538,15 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
     int numBytesPacketHeader = numBytesForPacketHeader(sourceBuffer);
     unsigned char* voxelData = sourceBuffer + numBytesPacketHeader;
 
-    pthread_mutex_lock(&_treeLock);
-
     switch(command) {
         case PACKET_TYPE_VOXEL_DATA: {
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                                     "readBitstreamToTree()");
             // ask the VoxelTree to read the bitstream into the tree
             ReadBitstreamToTreeParams args(WANT_COLOR, WANT_EXISTS_BITS, NULL, getDataSourceID());
+            pthread_mutex_lock(&_treeLock);
             _tree->readBitstreamToTree(voxelData, numBytes - numBytesPacketHeader, args);
+            pthread_mutex_unlock(&_treeLock);
         }
             break;
         case PACKET_TYPE_VOXEL_DATA_MONOCHROME: {
@@ -499,7 +554,9 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
                                     "readBitstreamToTree()");
             // ask the VoxelTree to read the MONOCHROME bitstream into the tree
             ReadBitstreamToTreeParams args(NO_COLOR, WANT_EXISTS_BITS, NULL, getDataSourceID());
+            pthread_mutex_lock(&_treeLock);
             _tree->readBitstreamToTree(voxelData, numBytes - numBytesPacketHeader, args);
+            pthread_mutex_unlock(&_treeLock);
         }
             break;
         case PACKET_TYPE_Z_COMMAND:
@@ -517,7 +574,9 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
             while (totalLength <= numBytes) {
                 if (0==strcmp(command,(char*)"erase all")) {
                     qDebug("got Z message == erase all\n");
+                    pthread_mutex_lock(&_treeLock);
                     _tree->eraseAllVoxels();
+                    pthread_mutex_unlock(&_treeLock);
                     _voxelsInReadArrays = _voxelsInWriteArrays = 0; // better way to do this??
                 }
                 if (0==strcmp(command,(char*)"add scene")) {
@@ -535,8 +594,6 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
         setupNewVoxelsForDrawingSingleNode(DONT_BAIL_EARLY);
     }
     
-    pthread_mutex_unlock(&_treeLock);
-
     Application::getInstance()->getBandwidthMeter()->inputStream(BandwidthMeter::VOXELS).updateValue(numBytes);
  
     return numBytes;
@@ -544,7 +601,12 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
 
 void VoxelSystem::setupNewVoxelsForDrawing() {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                            "setupNewVoxelsForDrawing()"); // would like to include _voxelsInArrays, _voxelsUpdated
+                            "setupNewVoxelsForDrawing()");
+
+    if (!_initialized) {
+        return; // bail early if we're not initialized
+    }
+
     uint64_t start = usecTimestampNow();
     uint64_t sinceLastTime = (start - _setupNewVoxelsForDrawingLastFinished) / 1000;
     
@@ -957,14 +1019,13 @@ void VoxelSystem::init() {
     _setupNewVoxelsForDrawingLastElapsed = 0;
     _lastViewCullingElapsed = _lastViewCulling = 0;
 
-    // When we change voxels representations in the arrays, we'll update this
     _voxelsDirty = false;
     _voxelsInWriteArrays = 0;
     _voxelsInReadArrays = 0;
 
     // VBO for the verticesArray
+    _initialMemoryUsageGPU = getFreeMemoryGPU();
     initVoxelMemory();
-    _initialized = true;
     
     // our own _removedVoxels doesn't need to be notified of voxel deletes
     VoxelNode::removeDeleteHook(&_removedVoxels);
@@ -1071,16 +1132,14 @@ void VoxelSystem::render(bool texture) {
         return;
     }
     
-    // get the lock so that the update thread won't change anything
-    pthread_mutex_lock(&_bufferWriteLock);
-    
     updateVBOs();
-
+    
+    bool dontCallOpenGLDraw = Menu::getInstance()->isOptionChecked(MenuOption::DontCallOpenGLForVoxels);
+    // if not don't... then do...
     if (_useVoxelShader) {
         PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
             "render().. _useVoxelShader openGL..");
-    
-        Application::getInstance()->getVoxelShader().begin();
+
 
         //Define this somewhere in your header file
         #define BUFFER_OFFSET(i) ((void*)(i))
@@ -1088,14 +1147,29 @@ void VoxelSystem::render(bool texture) {
         glBindBuffer(GL_ARRAY_BUFFER, _vboVoxelsID);
         glEnableClientState(GL_VERTEX_ARRAY);
         glVertexPointer(3, GL_FLOAT, sizeof(VoxelShaderVBOData), BUFFER_OFFSET(0));   //The starting point of the VBO, for the vertices
-        int loc = Application::getInstance()->getVoxelShader().attributeLocation("voxelSizeIn");
-        glEnableVertexAttribArray(loc);
-        glVertexAttribPointer(loc, 1, GL_FLOAT, false, sizeof(VoxelShaderVBOData), BUFFER_OFFSET(3*sizeof(float)));
+
+        int attributeLocation;
+
+        if (!_voxelsAsPoints) {
+            Application::getInstance()->getVoxelShader().begin();
+            
+            attributeLocation = Application::getInstance()->getVoxelShader().attributeLocation("voxelSizeIn");
+            glEnableVertexAttribArray(attributeLocation);
+            glVertexAttribPointer(attributeLocation, 1, GL_FLOAT, false, sizeof(VoxelShaderVBOData), BUFFER_OFFSET(3*sizeof(float)));
+        } else {
+            const float POINT_SIZE = 4.0;
+            glPointSize(POINT_SIZE);
+        }
+        
+        
         glEnableClientState(GL_COLOR_ARRAY);
         glColorPointer(3, GL_UNSIGNED_BYTE, sizeof(VoxelShaderVBOData), BUFFER_OFFSET(4*sizeof(float)));//The starting point of colors
 
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _vboVoxelsIndicesID);
-        glDrawElements(GL_POINTS, _voxelsInReadArrays, GL_UNSIGNED_INT, BUFFER_OFFSET(0));   //The starting point of the IBO
+
+        if (!dontCallOpenGLDraw) {
+            glDrawElements(GL_POINTS, _voxelsInReadArrays, GL_UNSIGNED_INT, BUFFER_OFFSET(0)); //The starting point of the IBO
+        }
 
         // deactivate vertex and color arrays after drawing
         glDisableClientState(GL_VERTEX_ARRAY);
@@ -1105,11 +1179,13 @@ void VoxelSystem::render(bool texture) {
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
-        Application::getInstance()->getVoxelShader().end();
-
+        if (!_voxelsAsPoints) {
+            Application::getInstance()->getVoxelShader().end();
+            glDisableVertexAttribArray(attributeLocation);
+        }
     } else {
         PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "render().. openGL...");
-    
+
         // tell OpenGL where to find vertex and color information
         glEnableClientState(GL_VERTEX_ARRAY);
         glEnableClientState(GL_COLOR_ARRAY);
@@ -1121,47 +1197,48 @@ void VoxelSystem::render(bool texture) {
         glColorPointer(3, GL_UNSIGNED_BYTE, 0, 0);
 
         applyScaleAndBindProgram(texture);
-    
+
         // for performance, enable backface culling
         glEnable(GL_CULL_FACE);
 
         // draw voxels in 6 passes
 
-        glNormal3f(0,1.0f,0);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _vboIndicesTop);
-        glDrawRangeElementsEXT(GL_TRIANGLES, 0, INDICES_PER_FACE * _voxelsInReadArrays - 1,
-            INDICES_PER_FACE * _voxelsInReadArrays, GL_UNSIGNED_INT, 0);
+        if (!dontCallOpenGLDraw) {
+            glNormal3f(0,1.0f,0);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _vboIndicesTop);
+            glDrawRangeElementsEXT(GL_TRIANGLES, 0, INDICES_PER_FACE * _voxelsInReadArrays - 1,
+                INDICES_PER_FACE * _voxelsInReadArrays, GL_UNSIGNED_INT, 0);
 
-        glNormal3f(0,-1.0f,0);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _vboIndicesBottom);
-        glDrawRangeElementsEXT(GL_TRIANGLES, 0, INDICES_PER_FACE * _voxelsInReadArrays - 1,
-            INDICES_PER_FACE * _voxelsInReadArrays, GL_UNSIGNED_INT, 0);
+            glNormal3f(0,-1.0f,0);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _vboIndicesBottom);
+            glDrawRangeElementsEXT(GL_TRIANGLES, 0, INDICES_PER_FACE * _voxelsInReadArrays - 1,
+                INDICES_PER_FACE * _voxelsInReadArrays, GL_UNSIGNED_INT, 0);
 
-        glNormal3f(-1.0f,0,0);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _vboIndicesLeft);
-        glDrawRangeElementsEXT(GL_TRIANGLES, 0, INDICES_PER_FACE * _voxelsInReadArrays - 1,
-            INDICES_PER_FACE * _voxelsInReadArrays, GL_UNSIGNED_INT, 0);
+            glNormal3f(-1.0f,0,0);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _vboIndicesLeft);
+            glDrawRangeElementsEXT(GL_TRIANGLES, 0, INDICES_PER_FACE * _voxelsInReadArrays - 1,
+                INDICES_PER_FACE * _voxelsInReadArrays, GL_UNSIGNED_INT, 0);
 
-        glNormal3f(1.0f,0,0);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _vboIndicesRight);
-        glDrawRangeElementsEXT(GL_TRIANGLES, 0, INDICES_PER_FACE * _voxelsInReadArrays - 1,
-            INDICES_PER_FACE * _voxelsInReadArrays, GL_UNSIGNED_INT, 0);
+            glNormal3f(1.0f,0,0);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _vboIndicesRight);
+            glDrawRangeElementsEXT(GL_TRIANGLES, 0, INDICES_PER_FACE * _voxelsInReadArrays - 1,
+                INDICES_PER_FACE * _voxelsInReadArrays, GL_UNSIGNED_INT, 0);
 
-        glNormal3f(0,0,-1.0f);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _vboIndicesFront);
-        glDrawRangeElementsEXT(GL_TRIANGLES, 0, INDICES_PER_FACE * _voxelsInReadArrays - 1,
-            INDICES_PER_FACE * _voxelsInReadArrays, GL_UNSIGNED_INT, 0);
+            glNormal3f(0,0,-1.0f);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _vboIndicesFront);
+            glDrawRangeElementsEXT(GL_TRIANGLES, 0, INDICES_PER_FACE * _voxelsInReadArrays - 1,
+                INDICES_PER_FACE * _voxelsInReadArrays, GL_UNSIGNED_INT, 0);
 
-        glNormal3f(0,0,1.0f);
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _vboIndicesBack);
-        glDrawRangeElementsEXT(GL_TRIANGLES, 0, INDICES_PER_FACE * _voxelsInReadArrays - 1,
-            INDICES_PER_FACE * _voxelsInReadArrays, GL_UNSIGNED_INT, 0);
-
+            glNormal3f(0,0,1.0f);
+            glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, _vboIndicesBack);
+            glDrawRangeElementsEXT(GL_TRIANGLES, 0, INDICES_PER_FACE * _voxelsInReadArrays - 1,
+                INDICES_PER_FACE * _voxelsInReadArrays, GL_UNSIGNED_INT, 0);
+        }
 
         glDisable(GL_CULL_FACE);
 
         removeScaleAndReleaseProgram(texture);
-    
+
         // deactivate vertex and color arrays after drawing
         glDisableClientState(GL_VERTEX_ARRAY);
         glDisableClientState(GL_COLOR_ARRAY);
@@ -1170,8 +1247,6 @@ void VoxelSystem::render(bool texture) {
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     }
-    
-    pthread_mutex_unlock(&_bufferWriteLock);
 }
 
 void VoxelSystem::applyScaleAndBindProgram(bool texture) {
@@ -1747,13 +1822,13 @@ VoxelNode* VoxelSystem::getVoxelAt(float x, float y, float z, float s) const {
 
 void VoxelSystem::createVoxel(float x, float y, float z, float s, 
                               unsigned char red, unsigned char green, unsigned char blue, bool destructive) {
-    pthread_mutex_lock(&_treeLock);
     
     //qDebug("VoxelSystem::createVoxel(%f,%f,%f,%f)\n",x,y,z,s);
+    pthread_mutex_lock(&_treeLock);
     _tree->createVoxel(x, y, z, s, red, green, blue, destructive); 
-    setupNewVoxelsForDrawing(); 
-    
     pthread_mutex_unlock(&_treeLock);
+
+    setupNewVoxelsForDrawing(); 
 };
 
 void VoxelSystem::createLine(glm::vec3 point1, glm::vec3 point2, float unitSize, rgbColor color, bool destructive) { 

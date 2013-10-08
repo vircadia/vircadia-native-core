@@ -54,6 +54,7 @@ public:
     ViewFrustumOffset getViewFrustumOffset() const { return _viewFrustumOffset; }
     VoxelStatsDialog* getVoxelStatsDialog() const { return _voxelStatsDialog; }
     int getMaxVoxels() const { return _maxVoxels; }
+    QAction* getUseVoxelShader() const { return _useVoxelShader; }
 
     
     void handleViewFrustumOffsetKeyModifier(int key);
@@ -78,7 +79,6 @@ private slots:
     void chooseVoxelPaintColor();
     void runTests();
     void resetSwatchColors();
-    void switchVoxelShader();
     
 private:
     static Menu* _instance;
@@ -116,6 +116,7 @@ private:
     QActionGroup* _voxelModeActionsGroup;
     VoxelStatsDialog* _voxelStatsDialog;
     int _maxVoxels;
+    QAction* _useVoxelShader;
 };
 
 namespace MenuOption {
@@ -138,7 +139,8 @@ namespace MenuOption {
     const QString DestructiveAddVoxel = "Create Voxel is Destructive";
     const QString DeltaSending = "Delta Sending";
     const QString DisplayFrustum = "Display Frustum";
-    const QString DontRenderVoxels = "Don't Render Voxels";
+    const QString DontRenderVoxels = "Don't call _voxels.render()";
+    const QString DontCallOpenGLForVoxels = "Don't call glDrawElements()/glDrawRangeElementsEXT() for Voxels";
     const QString EchoAudio = "Echo Audio";
     const QString ExportVoxels = "Export Voxels";
     const QString HeadMouse = "Head Mouse";
@@ -205,8 +207,7 @@ namespace MenuOption {
     const QString UsePerlinFace = "Use Perlin's Face";
     const QString Quit =  "Quit";
     const QString UseVoxelShader = "Use Voxel Shader";
-    const QString UseByteNormals = "Use Byte Normals";
-    const QString UseGlobalNormals = "Use Global Normals";
+    const QString VoxelsAsPoints = "Draw Voxels as Points";
     const QString Voxels = "Voxels";
     const QString VoxelAddMode = "Add Voxel Mode";
     const QString VoxelColorMode = "Color Voxel Mode";
