@@ -649,11 +649,7 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
     }
     
     // lock on the buffer write lock so we can't modify the data when the GPU is reading it
-    {
-        PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                            "setupNewVoxelsForDrawing()... pthread_mutex_lock(&_bufferWriteLock)");
-        pthread_mutex_lock(&_bufferWriteLock);
-    }
+    pthread_mutex_lock(&_bufferWriteLock);
     
     if (_voxelsUpdated) {
         _voxelsDirty=true;
