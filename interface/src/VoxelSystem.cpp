@@ -538,15 +538,15 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
     int numBytesPacketHeader = numBytesForPacketHeader(sourceBuffer);
     unsigned char* voxelData = sourceBuffer + numBytesPacketHeader;
 
-    pthread_mutex_lock(&_treeLock);
-
     switch(command) {
         case PACKET_TYPE_VOXEL_DATA: {
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                                     "readBitstreamToTree()");
             // ask the VoxelTree to read the bitstream into the tree
             ReadBitstreamToTreeParams args(WANT_COLOR, WANT_EXISTS_BITS, NULL, getDataSourceID());
+            pthread_mutex_lock(&_treeLock);
             _tree->readBitstreamToTree(voxelData, numBytes - numBytesPacketHeader, args);
+            pthread_mutex_unlock(&_treeLock);
         }
             break;
         case PACKET_TYPE_VOXEL_DATA_MONOCHROME: {
@@ -554,7 +554,9 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
                                     "readBitstreamToTree()");
             // ask the VoxelTree to read the MONOCHROME bitstream into the tree
             ReadBitstreamToTreeParams args(NO_COLOR, WANT_EXISTS_BITS, NULL, getDataSourceID());
+            pthread_mutex_lock(&_treeLock);
             _tree->readBitstreamToTree(voxelData, numBytes - numBytesPacketHeader, args);
+            pthread_mutex_unlock(&_treeLock);
         }
             break;
         case PACKET_TYPE_Z_COMMAND:
@@ -572,7 +574,9 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
             while (totalLength <= numBytes) {
                 if (0==strcmp(command,(char*)"erase all")) {
                     qDebug("got Z message == erase all\n");
+                    pthread_mutex_lock(&_treeLock);
                     _tree->eraseAllVoxels();
+                    pthread_mutex_unlock(&_treeLock);
                     _voxelsInReadArrays = _voxelsInWriteArrays = 0; // better way to do this??
                 }
                 if (0==strcmp(command,(char*)"add scene")) {
@@ -590,8 +594,6 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
         setupNewVoxelsForDrawingSingleNode(DONT_BAIL_EARLY);
     }
     
-    pthread_mutex_unlock(&_treeLock);
-
     Application::getInstance()->getBandwidthMeter()->inputStream(BandwidthMeter::VOXELS).updateValue(numBytes);
  
     return numBytes;
@@ -1824,13 +1826,13 @@ VoxelNode* VoxelSystem::getVoxelAt(float x, float y, float z, float s) const {
 
 void VoxelSystem::createVoxel(float x, float y, float z, float s, 
                               unsigned char red, unsigned char green, unsigned char blue, bool destructive) {
-    pthread_mutex_lock(&_treeLock);
     
     //qDebug("VoxelSystem::createVoxel(%f,%f,%f,%f)\n",x,y,z,s);
+    pthread_mutex_lock(&_treeLock);
     _tree->createVoxel(x, y, z, s, red, green, blue, destructive); 
-    setupNewVoxelsForDrawing(); 
-    
     pthread_mutex_unlock(&_treeLock);
+
+    setupNewVoxelsForDrawing(); 
 };
 
 void VoxelSystem::createLine(glm::vec3 point1, glm::vec3 point2, float unitSize, rgbColor color, bool destructive) { 
