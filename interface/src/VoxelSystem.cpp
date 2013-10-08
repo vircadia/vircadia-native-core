@@ -908,6 +908,10 @@ int VoxelSystem::updateNodeInArraysAsFullVBO(VoxelNode* node) {
 // will forcibly remove it from the VBOs because we know better!!!
 int VoxelSystem::forceRemoveNodeFromArraysAsPartialVBO(VoxelNode* node) {
 
+    if (!_initialized) {
+        return 0;
+    }
+
     // if the node is not in the VBOs then we have nothing to do!
     if (node->isKnownBufferIndex()) {
 
@@ -935,6 +939,10 @@ int VoxelSystem::forceRemoveNodeFromArraysAsPartialVBO(VoxelNode* node) {
 int VoxelSystem::updateNodeInArraysAsPartialVBO(VoxelNode* node) {
     // If we've run out of room, then just bail...
     if (_voxelsInWriteArrays >= _maxVoxels) {
+        return 0;
+    }
+
+    if (!_initialized) {
         return 0;
     }
     
