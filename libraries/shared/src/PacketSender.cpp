@@ -85,7 +85,8 @@ bool PacketSender::process() {
     int packetsLeft = _packets.size();
     bool keepGoing = packetsLeft > 0;
     while (keepGoing) {
-    
+        uint64_t SEND_INTERVAL_USECS = (_packetsPerSecond == 0) ? USECS_PER_SECOND : (USECS_PER_SECOND / _packetsPerSecond);
+
         NetworkPacket& packet = _packets.front();
         
         // send the packet through the NodeList...
@@ -93,7 +94,7 @@ bool PacketSender::process() {
 
         nodeSocket->send(&packet.getAddress(), packet.getData(), packet.getLength());
         packetsThisCall++;
-        
+
         if (_notify) {
             _notify->packetSentNotification(packet.getLength());
         }
@@ -110,11 +111,15 @@ bool PacketSender::process() {
 
             // dynamically sleep until we need to fire off the next set of voxels we only sleep in threaded mode
             if (keepGoing) {
+                now = usecTimestampNow();
                 uint64_t elapsed = now - _lastSendTime;
-                int usecToSleep =  std::max(SEND_INTERVAL_USECS, SEND_INTERVAL_USECS - elapsed);
+                int usecToSleep =  SEND_INTERVAL_USECS - elapsed;
                 
                 // we only sleep in non-threaded mode
                 if (usecToSleep > 0) {
+                    if (usecToSleep > SEND_INTERVAL_USECS) {
+                        usecToSleep = SEND_INTERVAL_USECS;
+                    }
                     usleep(usecToSleep);
                 }
             }
