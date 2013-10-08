@@ -57,7 +57,6 @@ void BlendFace::simulate(float deltaTime) {
     
     // set up world vertices on first simulate after load
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    bool first = false;
     if (_meshStates.isEmpty()) {
         QVector<glm::vec3> vertices;
         foreach (const FBXMesh& mesh, geometry.meshes) {
@@ -115,8 +114,8 @@ void BlendFace::simulate(float deltaTime) {
             _resetStates = false;
         
         } else {
-            const float SPRINGINESS_MULTIPLIER = 20.0f;
-            const float DAMPING = 1.0f;
+            const float SPRINGINESS_MULTIPLIER = 200.0f;
+            const float DAMPING = 5.0f;
             for (int j = 0; j < vertexCount; j++) {
                 destVelocities[j] += ((glm::vec3(baseTransform * glm::vec4(sourceVertices[j], 1.0f)) - destVertices[j]) *
                     mesh.springiness * SPRINGINESS_MULTIPLIER - destVelocities[j] * DAMPING) * deltaTime;
