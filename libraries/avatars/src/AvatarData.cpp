@@ -119,7 +119,7 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     
     // UUID
     QByteArray uuidByteArray = _uuid.toRfc4122();
-    memcpy(destinationBuffer, &uuidByteArray, uuidByteArray.size());
+    memcpy(destinationBuffer, uuidByteArray.constData(), uuidByteArray.size());
     destinationBuffer += uuidByteArray.size();
     
     // Body world position
@@ -270,7 +270,7 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &_bodyRoll);
 
     // Body scale
-    sourceBuffer += unpackFloatRatioFromTwoByte(            sourceBuffer,  _newScale);
+    sourceBuffer += unpackFloatRatioFromTwoByte(sourceBuffer, _newScale);
 
     // Follow mode info
     memcpy(&_leaderID, sourceBuffer, sizeof(uint16_t));

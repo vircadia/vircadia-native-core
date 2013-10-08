@@ -20,7 +20,7 @@ public:
     void setUsername(const QString& username);
     QString& getUsername() { return _username; }
     
-    void setUUID(const QUuid& uuid) { _uuid = uuid; }
+    void setUUID(const QUuid& uuid);
     QUuid& getUUID() { return _uuid; }
     
     void setFaceModelURL(const QUrl& faceModelURL) { _faceModelURL = faceModelURL; }

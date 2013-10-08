@@ -35,6 +35,13 @@ void Profile::setUsername(const QString &username) {
     }
 }
 
+void Profile::setUUID(const QUuid& uuid) {
+    _uuid = uuid;
+    
+    // when the UUID is changed we need set it appropriately on our avatar instance
+    Application::getInstance()->getAvatar()->setUUID(_uuid);
+}
+
 void Profile::saveData(QSettings* settings) {
     settings->beginGroup("Profile");
     
@@ -49,7 +56,7 @@ void Profile::loadData(QSettings* settings) {
     settings->beginGroup("Profile");
     
     _username = settings->value("username").toString();
-    _uuid = settings->value("UUID").toUuid();
+    this->setUUID(settings->value("UUID").toUuid());
     _faceModelURL = settings->value("faceModelURL").toUrl();
     
     settings->endGroup();
