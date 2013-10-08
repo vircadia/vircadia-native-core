@@ -199,7 +199,7 @@ bool BlendFace::render(float alpha) {
         if (mesh.isEye) {
             glTranslatef(mesh.pivot.x, mesh.pivot.y, mesh.pivot.z);
             glm::quat rotation = glm::inverse(orientation) * _owningHead->getEyeRotation(orientation *
-                (mesh.pivot * scale + MODEL_TRANSLATION) + _owningHead->getPosition());
+                ((mesh.pivot + offset) * scale) + _owningHead->getPosition());
             glm::vec3 rotationAxis = glm::axis(rotation);
             glRotatef(glm::angle(rotation), -rotationAxis.x, rotationAxis.y, -rotationAxis.z);
             glTranslatef(-mesh.pivot.x, -mesh.pivot.y, -mesh.pivot.z);
