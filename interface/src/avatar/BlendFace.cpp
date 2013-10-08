@@ -118,9 +118,7 @@ void BlendFace::simulate(float deltaTime) {
             for (int j = 0; j < vertexCount; j++) {
                 destVertices[j] = glm::vec3(transform * glm::vec4(sourceVertices[j], 1.0f));        
                 destVelocities[j] = glm::vec3();
-            }
-            _resetStates = false;
-        
+            }        
         } else {
             const float SPRINGINESS_MULTIPLIER = 200.0f;
             const float DAMPING = 5.0f;
@@ -141,6 +139,7 @@ void BlendFace::simulate(float deltaTime) {
             }
         }
     }
+    _resetStates = false;
 }
 
 bool BlendFace::render(float alpha) {

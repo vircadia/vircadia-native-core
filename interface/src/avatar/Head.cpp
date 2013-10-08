@@ -117,6 +117,8 @@ void Head::reset() {
     if (USING_PHYSICAL_MOHAWK) {
         resetHairPhysics();
     }
+    
+    _blendFace.reset();
 }
 
 void Head::resetHairPhysics() {
