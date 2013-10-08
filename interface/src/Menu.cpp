@@ -819,7 +819,7 @@ void Menu::editPreferences() {
         // there has been a username change - set the new UUID on the avatar instance
         applicationInstance->getProfile()->setUsername(avatarUsernameEdit->text());
         
-        if (faceModelURL.toString() == faceURLString) {
+        if (faceModelURL.toString() == faceURLString && !avatarUsernameEdit->text().isEmpty()) {
             // if there was no change to the face model URL then clear it and ask the data-server for what it is
             applicationInstance->getAvatar()->getHead().getBlendFace().setModelURL(QUrl());
             DataServerClient::getClientValueForKey(DataServerKey::FaceMeshURL);
