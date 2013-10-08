@@ -837,7 +837,7 @@ void Menu::editPreferences() {
     QUrl avatarVoxelURL(avatarURL->text());
     applicationInstance->getAvatar()->getVoxels()->setVoxelURL(avatarVoxelURL);
     
-    Avatar::sendAvatarURLsMessage(avatarVoxelURL, faceModelURL);
+    Avatar::sendAvatarURLsMessage(avatarVoxelURL);
     
     applicationInstance->getAvatar()->getHead().setPupilDilation(pupilDilation->value() / (float)pupilDilation->maximum());
     

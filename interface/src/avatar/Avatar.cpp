@@ -60,7 +60,7 @@ const int   NUM_BODY_CONE_SIDES = 9;
 const float chatMessageScale = 0.0015;
 const float chatMessageHeight = 0.20;
 
-void Avatar::sendAvatarURLsMessage(const QUrl& voxelURL, const QUrl& faceURL) {
+void Avatar::sendAvatarURLsMessage(const QUrl& voxelURL) {
     uint16_t ownerID = NodeList::getInstance()->getOwnerID();
     
     if (ownerID == UNKNOWN_NODE_ID) {
@@ -77,7 +77,6 @@ void Avatar::sendAvatarURLsMessage(const QUrl& voxelURL, const QUrl& faceURL) {
     
     QDataStream out(&message, QIODevice::WriteOnly | QIODevice::Append);
     out << voxelURL;
-    out << faceURL;
     
     Application::controlledBroadcastToNodes((unsigned char*)message.data(), message.size(), &NODE_TYPE_AVATAR_MIXER, 1);
 }
@@ -424,16 +423,6 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
 void Avatar::setMouseRay(const glm::vec3 &origin, const glm::vec3 &direction) {
     _mouseRayOrigin = origin;
     _mouseRayDirection = direction;
-}
-
-void Avatar::setUUID(const QUuid& uuid) {
-    if (uuid != _uuid) {
-        // UUID has changed
-        // ask for the face mesh URL for this avatar, request won't be made if UUID is null
-        DataServerClient::getValueForKeyAndUUID(DataServerKey::FaceMeshURL, _uuid);
-    }
-    
-    _uuid = uuid;
 }
 
 void Avatar::updateHandMovementAndTouching(float deltaTime, bool enableHandMovement) {

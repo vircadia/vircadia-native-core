@@ -1253,13 +1253,14 @@ void Application::processAvatarURLsMessage(unsigned char* packetData, size_t dat
         return;
     }
     QDataStream in(QByteArray((char*)packetData, dataBytes));
-    QUrl voxelURL, faceURL;
+    QUrl voxelURL;
     in >> voxelURL;
-    in >> faceURL;
     
     // invoke the set URL functions on the simulate/render thread
     QMetaObject::invokeMethod(avatar->getVoxels(), "setVoxelURL", Q_ARG(QUrl, voxelURL));
-    QMetaObject::invokeMethod(&avatar->getHead().getBlendFace(), "setModelURL", Q_ARG(QUrl, faceURL));
+    
+    // use this timing to as the data-server for an updated mesh for this avatar (if we have UUID)
+    DataServerClient::getValueForKeyAndUUID(DataServerKey::FaceMeshURL, avatar->getUUID());
 }
 
 void Application::processAvatarFaceVideoMessage(unsigned char* packetData, size_t dataBytes) {
@@ -1600,7 +1601,7 @@ void Application::init() {
     _voxels.init();
     
 
-    Avatar::sendAvatarURLsMessage(_myAvatar.getVoxels()->getVoxelURL(), _myAvatar.getHead().getBlendFace().getModelURL());
+    Avatar::sendAvatarURLsMessage(_myAvatar.getVoxels()->getVoxelURL());
    
     _palette.init(_glWidget->width(), _glWidget->height());
     _palette.addAction(Menu::getInstance()->getActionForOption(MenuOption::VoxelAddMode), 0, 0);
@@ -2175,8 +2176,7 @@ void Application::updateAvatar(float deltaTime) {
         // once in a while, send my urls
         const float AVATAR_URLS_SEND_INTERVAL = 1.0f; // seconds
         if (shouldDo(AVATAR_URLS_SEND_INTERVAL, deltaTime)) {
-            Avatar::sendAvatarURLsMessage(_myAvatar.getVoxels()->getVoxelURL(),
-                _myAvatar.getHead().getBlendFace().getModelURL());
+            Avatar::sendAvatarURLsMessage(_myAvatar.getVoxels()->getVoxelURL());
         }
     }
 }
