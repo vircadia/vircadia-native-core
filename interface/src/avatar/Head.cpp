@@ -313,6 +313,9 @@ void Head::render(float alpha, bool isMine) {
 }
 
 void Head::setScale (float scale) {
+    if (_scale == scale) {
+        return;
+    }
     _scale = scale;
 
     createMohawk();

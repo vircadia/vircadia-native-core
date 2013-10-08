@@ -88,8 +88,7 @@ bool BlendFace::render(float alpha) {
     // enable normalization under the expectation that the GPU can do it faster
     glEnable(GL_NORMALIZE); 
     glEnable(GL_TEXTURE_2D);
-    
-    glColor4f(_owningHead->getSkinColor().r, _owningHead->getSkinColor().g, _owningHead->getSkinColor().b, alpha);
+    glDisable(GL_COLOR_MATERIAL);
     
     for (int i = 0; i < networkMeshes.size(); i++) {
         const NetworkMesh& networkMesh = networkMeshes.at(i);
@@ -118,12 +117,15 @@ bool BlendFace::render(float alpha) {
             }
         }
         
-        glMultMatrixf((const GLfloat*)&mesh.transform);
+        // apply material properties
+        glm::vec4 diffuse = glm::vec4(mesh.diffuseColor, alpha);
+        glm::vec4 specular = glm::vec4(mesh.specularColor, alpha);
+        glMaterialfv(GL_FRONT, GL_AMBIENT, (const float*)&diffuse);
+        glMaterialfv(GL_FRONT, GL_DIFFUSE, (const float*)&diffuse);
+        glMaterialfv(GL_FRONT, GL_SPECULAR, (const float*)&specular);
+        glMaterialf(GL_FRONT, GL_SHININESS, mesh.shininess);
         
-        // all meshes after the first are white
-        if (i == 1) {
-            glColor4f(1.0f, 1.0f, 1.0f, alpha);
-        }
+        glMultMatrixf((const GLfloat*)&mesh.transform);
         
         glBindTexture(GL_TEXTURE_2D, texture == NULL ? 0 : texture->getID());
         
@@ -190,6 +192,9 @@ bool BlendFace::render(float alpha) {
     glBindTexture(GL_TEXTURE_2D, 0);
     
     glPopMatrix();
+
+    // restore all the default material settings
+    Application::getInstance()->setupWorldLight(*Application::getInstance()->getCamera());
 
     return true;
 }

@@ -89,6 +89,7 @@ private:
 	const char* _message;
 	bool _renderWarningsOn;
 	bool _alwaysDisplay;
+	static bool _suppressShortTimings;
 public:
     PerformanceWarning(bool renderWarnings, const char* message, bool alwaysDisplay = false) :
         _start(usecTimestampNow()),
@@ -97,6 +98,8 @@ public:
         _alwaysDisplay(alwaysDisplay) { }
     
     ~PerformanceWarning();
+    
+    static void setSuppressShortTimings(bool suppressShortTimings) { _suppressShortTimings = suppressShortTimings; }
 };
 
 

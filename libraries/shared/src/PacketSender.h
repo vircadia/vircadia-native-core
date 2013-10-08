@@ -36,7 +36,7 @@ public:
     /// \thread any thread, typically the application thread
     void queuePacketForSending(sockaddr& address, unsigned char*  packetData, ssize_t packetLength);
     
-    void setPacketsPerSecond(int packetsPerSecond) { _packetsPerSecond = std::min(MINIMUM_PACKETS_PER_SECOND, packetsPerSecond); }
+    void setPacketsPerSecond(int packetsPerSecond) { _packetsPerSecond = std::max(MINIMUM_PACKETS_PER_SECOND, packetsPerSecond); }
     int getPacketsPerSecond() const { return _packetsPerSecond; }
 
     void setPacketSenderNotify(PacketSenderNotify* notify) { _notify = notify; }
