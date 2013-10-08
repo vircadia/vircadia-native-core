@@ -29,8 +29,10 @@ void Profile::setUsername(const QString &username) {
     this->clear();
     _username = username;
     
-    // we've been given a new username, ask the data-server for our UUID
-    DataServerClient::getClientValueForKey(DataServerKey::UUID);
+    if (!_username.isEmpty()) {
+        // we've been given a new username, ask the data-server for our UUID
+        DataServerClient::getClientValueForKey(DataServerKey::UUID);
+    }
 }
 
 void Profile::saveData(QSettings* settings) {

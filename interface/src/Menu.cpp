@@ -527,6 +527,7 @@ void Menu::saveSettings(QSettings* settings) {
     
     scanMenuBar(&saveAction, settings);
     Application::getInstance()->getAvatar()->saveData(settings);
+    Application::getInstance()->getProfile()->saveData(settings);
     Application::getInstance()->getSwatch()->saveData(settings);
     
     // ask the NodeList to save its data
