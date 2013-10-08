@@ -594,8 +594,12 @@ void* animateVoxels(void* args) {
     
     timeval lastSendTime;
     
+    bool firstTime = true;
+    
     while (true) {
         gettimeofday(&lastSendTime, NULL);
+        
+        int packetsStarting = ::voxelEditPacketSender->packetsToSendCount();
 
         // some animations
         //sendVoxelBlinkMessage();
@@ -619,12 +623,22 @@ void* animateVoxels(void* args) {
         if (::buildStreet) {
             doBuildStreet();
         }
+
+        ::voxelEditPacketSender->releaseQueuedMessages();
+        int packetsEnding = ::voxelEditPacketSender->packetsToSendCount();
         
-        if (::voxelEditPacketSender) {
-            ::voxelEditPacketSender->releaseQueuedMessages();
-            if (::nonThreadedPacketSender) {
-                ::voxelEditPacketSender->process();
-            }
+        if (firstTime) {
+            int packetsPerSecond = (packetsEnding - packetsStarting) * (ACTUAL_FPS);
+
+            std::cout << "Setting PPS to " << packetsPerSecond << "\n";
+
+            ::voxelEditPacketSender->setPacketsPerSecond(packetsPerSecond);
+            firstTime = false;
+        }
+
+
+        if (::nonThreadedPacketSender) {
+            ::voxelEditPacketSender->process();
         }
         
         uint64_t end = usecTimestampNow();
@@ -715,14 +729,13 @@ int main(int argc, const char * argv[])
     
     // Create out VoxelEditPacketSender
     ::voxelEditPacketSender = new VoxelEditPacketSender;
-    if (::voxelEditPacketSender) {
-        ::voxelEditPacketSender->initialize(!::nonThreadedPacketSender);
-        if (::jurisdictionListener) {
-            ::voxelEditPacketSender->setVoxelServerJurisdictions(::jurisdictionListener->getJurisdictions());
-        }
-        if (::nonThreadedPacketSender) {
-            ::voxelEditPacketSender->setProcessCallIntervalHint(ANIMATE_VOXELS_INTERVAL_USECS);
-        }
+    ::voxelEditPacketSender->initialize(!::nonThreadedPacketSender);
+
+    if (::jurisdictionListener) {
+        ::voxelEditPacketSender->setVoxelServerJurisdictions(::jurisdictionListener->getJurisdictions());
+    }
+    if (::nonThreadedPacketSender) {
+        ::voxelEditPacketSender->setProcessCallIntervalHint(ANIMATE_VOXELS_INTERVAL_USECS);
     }
     
     srand((unsigned)time(0));
