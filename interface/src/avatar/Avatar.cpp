@@ -425,6 +425,11 @@ void Avatar::setMouseRay(const glm::vec3 &origin, const glm::vec3 &direction) {
     _mouseRayDirection = direction;
 }
 
+void Avatar::setUUID(const QUuid& uuid) {
+    qDebug() << "Setting UUID for avatar!\n";
+    _uuid = uuid;
+}
+
 void Avatar::updateHandMovementAndTouching(float deltaTime, bool enableHandMovement) {
     
     glm::quat orientation = getOrientation();
