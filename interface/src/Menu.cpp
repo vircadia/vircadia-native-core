@@ -271,7 +271,6 @@ Menu::Menu() :
                                   &appInstance->getAvatar()->getHead().getFace(),
                                   SLOT(cycleRenderMode()));
     
-    addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::UsePerlinFace, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::LookAtVectors, 0, true);
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::LookAtIndicator, 0, true);
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu,

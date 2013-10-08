@@ -204,7 +204,6 @@ namespace MenuOption {
     const QString TestRaveGlove = "Test Rave Glove";
     const QString TreeStats = "Calculate Tree Stats";
     const QString TransmitterDrive = "Transmitter Drive";
-    const QString UsePerlinFace = "Use Perlin's Face";
     const QString Quit =  "Quit";
     const QString UseVoxelShader = "Use Voxel Shader";
     const QString VoxelsAsPoints = "Draw Voxels as Points";

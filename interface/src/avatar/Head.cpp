@@ -86,7 +86,6 @@ Head::Head(Avatar* owningAvatar) :
     _cameraFollowsHead(false),
     _cameraFollowHeadRate(0.0f),
     _face(this),
-    _perlinFace(this),
     _blendFace(this)
 {
     if (USING_PHYSICAL_MOHAWK) {    
@@ -287,20 +286,16 @@ void Head::render(float alpha, bool isMine) {
 
         glEnable(GL_DEPTH_TEST);
         glEnable(GL_RESCALE_NORMAL);
-
-        if (Menu::getInstance()->isOptionChecked(MenuOption::UsePerlinFace) && isMine) {
-            _perlinFace.render();
-        } else  {
-            renderMohawk();
-            renderHeadSphere();
-            renderEyeBalls();
-            renderEars();
-            renderMouth();
-            renderNose();
-            renderEyeBrows();
-        }
-    }
         
+        renderMohawk();
+        renderHeadSphere();
+        renderEyeBalls();
+        renderEars();
+        renderMouth();
+        renderNose();
+        renderEyeBrows();
+    }
+    
     if (_renderLookatVectors) {
         glm::vec3 firstEyePosition = _leftEyePosition;
         glm::vec3 secondEyePosition = _rightEyePosition;

@@ -21,7 +21,6 @@
 #include "BlendFace.h"
 #include "Face.h"
 #include "InterfaceConfig.h"
-#include "PerlinFace.h"
 #include "world.h"
 #include "devices/SerialInterface.h"
 #include "renderer/TextureCache.h"
@@ -136,7 +135,6 @@ private:
     bool _cameraFollowsHead;
     float _cameraFollowHeadRate;
     Face _face;
-    PerlinFace _perlinFace;
     BlendFace _blendFace;
 
     QSharedPointer<Texture> _dilatedIrisTexture;
@@ -158,7 +156,6 @@ private:
     void resetHairPhysics();
     void updateHairPhysics(float deltaTime);
 
-    friend class PerlinFace;
 };
 
 #endif
