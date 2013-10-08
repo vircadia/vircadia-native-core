@@ -383,7 +383,6 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         QList<QVariant> mappings = blendshapeMappings.values(blendshapeName);
         if (mappings.isEmpty()) {
             blendshapeIndices.insert(blendshapeName, QPair<int, float>(i, 1.0f));
-            blendshapeIndices.insert("ExpressionBlendshapes." + blendshapeName, QPair<int, float>(i, 1.0f));
         } else {
             foreach (const QVariant& mapping, mappings) {
                 QVariantList blendshapeMapping = mapping.toList();
@@ -636,8 +635,13 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                         }
                     } else if (object.properties.at(2) == "BlendShapeChannel") {
                         QByteArray name = object.properties.at(1).toByteArray();
+                        name = name.left(name.indexOf('\0'));
+                        if (!blendshapeIndices.contains(name)) {
+                            // try everything after the dot
+                            name = name.mid(name.lastIndexOf('.') + 1);
+                        }
                         blendshapeChannelIndices.insert(object.properties.at(0).value<qint64>(),
-                            blendshapeIndices.value(name.left(name.indexOf('\0'))));
+                            blendshapeIndices.value(name));
                     }
                 }
             }
