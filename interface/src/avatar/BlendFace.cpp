@@ -310,12 +310,16 @@ bool BlendFace::render(float alpha) {
     return true;
 }
 
-void BlendFace::getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const {
+bool BlendFace::getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition, bool upright) const {
     if (!isActive()) {
-        return;
+        return false;
     }
-    
+    glm::vec3 translation = _owningHead->getPosition();
     glm::quat orientation = _owningHead->getOrientation();
+    if (upright) {
+        translation = static_cast<MyAvatar*>(_owningHead->_owningAvatar)->getUprightHeadPosition();
+        orientation = static_cast<Avatar*>(_owningHead->_owningAvatar)->getWorldAlignedOrientation();
+    }
     glm::vec3 scale(-_owningHead->getScale() * MODEL_SCALE, _owningHead->getScale() * MODEL_SCALE,
         -_owningHead->getScale() * MODEL_SCALE);
     bool foundFirst = false;
@@ -323,16 +327,16 @@ void BlendFace::getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEy
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     foreach (const FBXMesh& mesh, geometry.meshes) {
         if (mesh.isEye) {
-            glm::vec3 position = orientation * ((mesh.pivot + MODEL_TRANSLATION - geometry.neckPivot) * scale) +
-                _owningHead->getPosition();
+            glm::vec3 position = orientation * ((mesh.pivot + MODEL_TRANSLATION - geometry.neckPivot) * scale) + translation;
             if (foundFirst) {
                 secondEyePosition = position;
-                return;
+                return true;
             }
             firstEyePosition = position;
             foundFirst = true;
         }
     }
+    return false;
 }
 
 void BlendFace::setModelURL(const QUrl& url) {

@@ -40,7 +40,10 @@ public:
     Q_INVOKABLE void setModelURL(const QUrl& url);
     const QUrl& getModelURL() const { return _modelURL; }
 
-    void getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const;
+    /// Retrieve the positions of up to two eye meshes.
+    /// \param upright if true, retrieve the locations of the eyes in the upright position
+    /// \return whether or not both eye meshes were found
+    bool getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition, bool upright = false) const;
     
 private:
     
