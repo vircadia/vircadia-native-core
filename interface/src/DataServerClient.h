@@ -20,13 +20,14 @@ public:
     static void getValueForKeyAndUserString(const char* key, QString& userString);
     static void getClientValueForKey(const char* key) { getValueForKeyAndUserString(key, _clientUsername); }
     static void processConfirmFromDataServer(unsigned char* packetData, int numPacketBytes);
-    static void processGetFromDataServer(unsigned char* packetData, int numPacketBytes);
+    static void processSendFromDataServer(unsigned char* packetData, int numPacketBytes);
+    static void processMessageFromDataServer(unsigned char* packetData, int numPacketBytes);
     
     static void setClientUsername(const QString& clientUsername) { _clientUsername = clientUsername; }
     static QString& setClientUsername() { return _clientUsername; }
 private:
     static QString _clientUsername;
-    static std::vector<unsigned char*> _unconfirmedPackets;
+    static std::vector<unsigned char*> _unmatchedPackets;
 };
 
 namespace DataServerKey {

@@ -3613,6 +3613,12 @@ void* Application::networkReceive(void* args) {
                     case PACKET_TYPE_AVATAR_FACE_VIDEO:
                         processAvatarFaceVideoMessage(app->_incomingPacket, bytesReceived);
                         break;
+                    case PACKET_TYPE_DATA_SERVER_GET:
+                    case PACKET_TYPE_DATA_SERVER_PUT:
+                    case PACKET_TYPE_DATA_SERVER_SEND:
+                    case PACKET_TYPE_DATA_SERVER_CONFIRM:
+                        DataServerClient::processMessageFromDataServer(app->_incomingPacket, bytesReceived);
+                        break;
                     default:
                         NodeList::getInstance()->processNodeData(&senderAddress, app->_incomingPacket, bytesReceived);
                         break;
