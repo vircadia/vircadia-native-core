@@ -18,6 +18,7 @@
 
 #include "Application.h"
 #include "Avatar.h"
+#include "DataServerClient.h"
 #include "Hand.h"
 #include "Head.h"
 #include "Physics.h"
@@ -426,7 +427,12 @@ void Avatar::setMouseRay(const glm::vec3 &origin, const glm::vec3 &direction) {
 }
 
 void Avatar::setUUID(const QUuid& uuid) {
-    qDebug() << "Setting UUID for avatar!\n";
+    if (uuid != _uuid) {
+        // UUID has changed
+        // ask for the face mesh URL for this avatar, request won't be made if UUID is null
+        DataServerClient::getValueForKeyAndUUID(DataServerKey::FaceMeshURL, _uuid);
+    }
+    
     _uuid = uuid;
 }
 
