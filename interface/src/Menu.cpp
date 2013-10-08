@@ -504,6 +504,7 @@ void Menu::loadSettings(QSettings* settings) {
     settings->endGroup();
     
     scanMenuBar(&loadAction, settings);
+    Application::getInstance()->getProfile()->loadData(settings);
     Application::getInstance()->getAvatar()->loadData(settings);
     Application::getInstance()->getSwatch()->loadData(settings);
 }
@@ -755,7 +756,7 @@ void Menu::editPreferences() {
     QFormLayout* form = new QFormLayout();
     layout->addLayout(form, 1);
     
-    QString avatarUsername = applicationInstance->getAvatar()->getUsername();
+    QString avatarUsername = applicationInstance->getProfile()->getUsername();
     QLineEdit* avatarUsernameEdit = new QLineEdit(avatarUsername);
     avatarUsernameEdit->setMinimumWidth(QLINE_MINIMUM_WIDTH);
     form->addRow("Username:", avatarUsernameEdit);
@@ -815,7 +816,7 @@ void Menu::editPreferences() {
     
     if (avatarUsernameEdit->text() != avatarUsername) {
         // there has been a username change - set the new UUID on the avatar instance
-        applicationInstance->getAvatar()->setUsername(avatarUsernameEdit->text());
+        applicationInstance->getProfile()->setUsername(avatarUsernameEdit->text());
         
         if (faceModelURL.toString() == faceURLString) {
             // if there was no change to the face model URL then clear it and ask the data-server for what it is

@@ -13,27 +13,26 @@
 
 #include <QtCore/QUuid>
 
+#include "Application.h"
+
 class DataServerClient {
 public:
     static void putValueForKey(const char* key, const char* value);
     static void getValueForKeyAndUUID(const char* key, QUuid& uuid);
     static void getValueForKeyAndUserString(const char* key, QString& userString);
-    static void getClientValueForKey(const char* key) { getValueForKeyAndUserString(key, _clientUsername); }
+    static void getClientValueForKey(const char* key);
     static void processConfirmFromDataServer(unsigned char* packetData, int numPacketBytes);
     static void processSendFromDataServer(unsigned char* packetData, int numPacketBytes);
     static void processMessageFromDataServer(unsigned char* packetData, int numPacketBytes);
     static void removeMatchedPacketFromMap(unsigned char* packetData, int numPacketBytes);
     static void resendUnmatchedPackets();
-    
-    static void setClientUsername(const QString& clientUsername) { _clientUsername = clientUsername; }
-    static QString& setClientUsername() { return _clientUsername; }
 private:
-    static QString _clientUsername;
     static std::map<unsigned char*, int> _unmatchedPackets;
 };
 
 namespace DataServerKey {
     const char FaceMeshURL[] = "mesh";
+    const char UUID[] = "uuid";
 }
 
 #endif /* defined(__hifi__DataServerClient__) */

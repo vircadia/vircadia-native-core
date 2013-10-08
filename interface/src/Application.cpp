@@ -1587,7 +1587,7 @@ void Application::init() {
     }
     qDebug("Loaded settings.\n");
     
-    if (!_myAvatar.getUsername().isEmpty()) {
+    if (!_profile.getUsername().isEmpty()) {
         // we have a username for this avatar, ask the data-server for the mesh URL for this avatar
         DataServerClient::getClientValueForKey(DataServerKey::FaceMeshURL);
     }

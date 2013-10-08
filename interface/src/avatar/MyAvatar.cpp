@@ -72,12 +72,6 @@ void MyAvatar::setMoveTarget(const glm::vec3 moveTarget) {
     _moveTargetStepCounter = 0;
 }
 
-void MyAvatar::setUsername(const QString& username) {
-    _username = username;
-    
-    DataServerClient::setClientUsername(username);
-}
-
 void MyAvatar::simulate(float deltaTime, Transmitter* transmitter) {
 
     glm::quat orientation = getOrientation();
@@ -534,8 +528,6 @@ void MyAvatar::renderScreenTint(ScreenTintLayer layer, Camera& whichCamera) {
 void MyAvatar::saveData(QSettings* settings) {
     settings->beginGroup("Avatar");
     
-    settings->setValue("Username", _username);
-    
     settings->setValue("bodyYaw", _bodyYaw);
     settings->setValue("bodyPitch", _bodyPitch);
     settings->setValue("bodyRoll", _bodyRoll);
@@ -556,8 +548,6 @@ void MyAvatar::saveData(QSettings* settings) {
 
 void MyAvatar::loadData(QSettings* settings) {
     settings->beginGroup("Avatar");
-    
-    setUsername(settings->value("Username").toString());
     
     // in case settings is corrupt or missing loadSetting() will check for NaN
     _bodyYaw = loadSetting(settings, "bodyYaw", 0.0f);
