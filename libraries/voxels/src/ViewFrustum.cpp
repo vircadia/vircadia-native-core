@@ -401,6 +401,10 @@ void ViewFrustum::computeOffAxisFrustum(float& left, float& right, float& bottom
         far = max(far, -corners[i].z);
     }
     
+    // make sure the near clip isn't too small to be valid
+    const float MIN_NEAR = 0.01f;
+    near = max(MIN_NEAR, near);
+    
     // get the near/far normal and use it to find the clip planes
     glm::vec4 normal = eyeMatrix * glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);
     nearClipPlane = glm::vec4(-normal.x, -normal.y, -normal.z, glm::dot(normal, corners[0]));
