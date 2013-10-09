@@ -191,6 +191,9 @@ bool BlendFace::render(float alpha) {
     glEnable(GL_TEXTURE_2D);
     glDisable(GL_COLOR_MATERIAL);
     
+    // the eye shader uses the color state even though color material is disabled
+    glColor4f(1.0f, 1.0f, 1.0f, alpha);
+    
     for (int i = 0; i < networkMeshes.size(); i++) {
         const NetworkMesh& networkMesh = networkMeshes.at(i);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, networkMesh.indexBufferID);

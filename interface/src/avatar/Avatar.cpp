@@ -102,6 +102,8 @@ Avatar::Avatar(Node* owningNode) :
     _leadingAvatar(NULL),
     _voxels(this),
     _moving(false),
+    _hoverOnDuration(0.0f),
+    _hoverOffDuration(0.0f),
     _initialized(false),
     _handHoldingPosition(0.0f, 0.0f, 0.0f),
     _maxArmLength(0.0f),
@@ -388,15 +390,27 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     }
     
     // head scale grows when avatar is looked at
+    const float BASE_MAX_SCALE = 3.0f;
+    float maxScale = BASE_MAX_SCALE * glm::distance(_position, Application::getInstance()->getCamera()->getPosition());
     if (Application::getInstance()->getLookatTargetAvatar() == this) {
-        const float BASE_MAX_SCALE = 3.0f;
-        const float GROW_SPEED = 0.1f;
-        _head.setScale(min(BASE_MAX_SCALE * glm::distance(_position, Application::getInstance()->getCamera()->getPosition()),
-            _head.getScale() + deltaTime * GROW_SPEED));        
+        _hoverOnDuration += deltaTime;
+        _hoverOffDuration = 0.0f;
+    
+        const float GROW_DELAY = 1.0f;
+        const float GROW_RATE = 0.25f;
+        if (_hoverOnDuration > GROW_DELAY) {
+            _head.setScale(glm::mix(_head.getScale(), maxScale, GROW_RATE));
+        }
         
     } else {
-        const float SHRINK_SPEED = 100.0f;
-        _head.setScale(max(_scale, _head.getScale() - deltaTime * SHRINK_SPEED));
+        _hoverOnDuration = 0.0f;
+        _hoverOffDuration += deltaTime;
+    
+        const float SHRINK_DELAY = 1.0f;
+        const float SHRINK_RATE = 0.25f;
+        if (_hoverOffDuration > SHRINK_DELAY) {
+            _head.setScale(glm::mix(_head.getScale(), 1.0f, SHRINK_RATE));
+        }
     }
     
     _head.setBodyRotation(glm::vec3(_bodyPitch, _bodyYaw, _bodyRoll));
@@ -465,15 +479,16 @@ void Avatar::render(bool lookingInMirror, bool renderAvatarBalls) {
     renderDiskShadow(_position, glm::vec3(0.0f, 1.0f, 0.0f), _scale * 0.1f, 0.2f);
     
     {
-        // glow when moving
-        Glower glower(_moving ? 1.0f : 0.0f);
+        // glow when moving in the distance
+        glm::vec3 toTarget = _position - Application::getInstance()->getAvatar()->getPosition();
+        const float GLOW_DISTANCE = 5.0f;
+        Glower glower(_moving && glm::length(toTarget) > GLOW_DISTANCE ? 1.0f : 0.0f);
         
         // render body
         renderBody(lookingInMirror, renderAvatarBalls);
     
         // render sphere when far away
         const float MAX_ANGLE = 10.f;
-        glm::vec3 toTarget = _position - Application::getInstance()->getAvatar()->getPosition();
         glm::vec3 delta = _height * (_head.getCameraOrientation() * IDENTITY_UP) / 2.f;
         float angle = abs(angleBetween(toTarget + delta, toTarget - delta));
 

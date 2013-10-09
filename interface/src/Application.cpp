@@ -1651,9 +1651,9 @@ Avatar* Application::findLookatTargetAvatar(const glm::vec3& mouseRayOrigin, con
             glm::vec3 headPosition = avatar->getHead().getPosition();
             float distance;
             if (rayIntersectsSphere(mouseRayOrigin, mouseRayDirection, headPosition,
-                    HEAD_SPHERE_RADIUS * avatar->getScale(), distance)) {
+                    HEAD_SPHERE_RADIUS * avatar->getHead().getScale(), distance)) {
                 eyePosition = avatar->getHead().getEyePosition();
-                _lookatIndicatorScale = avatar->getScale();
+                _lookatIndicatorScale = avatar->getHead().getScale();
                 _lookatOtherPosition = headPosition;
                 nodeID = avatar->getOwningNode()->getNodeID();
                 return avatar;
@@ -1794,8 +1794,8 @@ void Application::update(float deltaTime) {
             _faceshift.getEstimatedEyePitch(), _faceshift.getEstimatedEyeYaw(), 0.0f))) * glm::vec3(0.0f, 0.0f, -1.0f);
     }
 
-    updateLookatTargetAvatar(lookAtRayOrigin, lookAtRayDirection, lookAtSpot);
-    if (_lookatTargetAvatar) {
+    updateLookatTargetAvatar(mouseRayOrigin, mouseRayDirection, lookAtSpot);
+    if (_lookatTargetAvatar && !_faceshift.isActive()) {
         // If the mouse is over another avatar's head...
          _myAvatar.getHead().setLookAtPosition(lookAtSpot);
     } else if (_isHoverVoxel && !_faceshift.isActive()) {
