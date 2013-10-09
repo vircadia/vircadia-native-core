@@ -428,23 +428,19 @@ void NodeList::sendAssignment(Assignment& assignment) {
 }
 
 Node* NodeList::addOrUpdateNode(sockaddr* publicSocket, sockaddr* localSocket, char nodeType, uint16_t nodeId) {
-    qDebug() << "BEGIN:" << publicSocket << "and" << localSocket << "\n";
+
     NodeList::iterator node = end();
     
     if (publicSocket) {
         for (node = begin(); node != end(); node++) {
-            qDebug() << "comparing to node with ID " << node->getNodeID() << "\n";
             if (node->matches(publicSocket, localSocket, nodeType)) {
                 // we already have this node, stop checking
-                qDebug() << "Matched node to existing\n";
                 break;
             }
         }
     }
     
     if (node == end()) {
-        qDebug() << "We're considering this a new node!\n";
-        qDebug() << publicSocket << "and" << localSocket << "\n";
         // we didn't have this node, so add them
         Node* newNode = new Node(publicSocket, localSocket, nodeType, nodeId);
         
