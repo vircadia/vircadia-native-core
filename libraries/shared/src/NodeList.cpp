@@ -543,8 +543,6 @@ void* removeSilentNodes(void *args) {
             
             node->lock();
             
-            qDebug() << "This node's LHMS is" << node->getLastHeardMicrostamp() << "\n";
-            
             if ((checkTimeUSecs - node->getLastHeardMicrostamp()) > NODE_SILENCE_THRESHOLD_USECS) {
             
                 qDebug() << "Killed " << *node << "\n";
