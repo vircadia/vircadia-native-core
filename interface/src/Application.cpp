@@ -58,6 +58,7 @@
 #include <VoxelSceneStats.h>
 
 #include "Application.h"
+#include "DataServerClient.h"
 #include "LogDisplay.h"
 #include "Menu.h"
 #include "Swatch.h"
@@ -1260,13 +1261,14 @@ void Application::processAvatarURLsMessage(unsigned char* packetData, size_t dat
         return;
     }
     QDataStream in(QByteArray((char*)packetData, dataBytes));
-    QUrl voxelURL, faceURL;
+    QUrl voxelURL;
     in >> voxelURL;
-    in >> faceURL;
     
     // invoke the set URL functions on the simulate/render thread
     QMetaObject::invokeMethod(avatar->getVoxels(), "setVoxelURL", Q_ARG(QUrl, voxelURL));
-    QMetaObject::invokeMethod(&avatar->getHead().getBlendFace(), "setModelURL", Q_ARG(QUrl, faceURL));
+    
+    // use this timing to as the data-server for an updated mesh for this avatar (if we have UUID)
+    DataServerClient::getValueForKeyAndUUID(DataServerKey::FaceMeshURL, avatar->getUUID());
 }
 
 void Application::processAvatarFaceVideoMessage(unsigned char* packetData, size_t dataBytes) {
@@ -1593,6 +1595,11 @@ void Application::init() {
         _audio.setJitterBufferSamples(Menu::getInstance()->getAudioJitterBufferSamples());
     }
     qDebug("Loaded settings.\n");
+    
+    if (!_profile.getUsername().isEmpty()) {
+        // we have a username for this avatar, ask the data-server for the mesh URL for this avatar
+        DataServerClient::getClientValueForKey(DataServerKey::FaceMeshURL);
+    }
 
     // Set up VoxelSystem after loading preferences so we can get the desired max voxel count    
     _voxels.setMaxVoxels(Menu::getInstance()->getMaxVoxels());
@@ -1602,7 +1609,7 @@ void Application::init() {
     _voxels.init();
     
 
-    Avatar::sendAvatarURLsMessage(_myAvatar.getVoxels()->getVoxelURL(), _myAvatar.getHead().getBlendFace().getModelURL());
+    Avatar::sendAvatarURLsMessage(_myAvatar.getVoxels()->getVoxelURL());
    
     _palette.init(_glWidget->width(), _glWidget->height());
     _palette.addAction(Menu::getInstance()->getActionForOption(MenuOption::VoxelAddMode), 0, 0);
@@ -2177,8 +2184,7 @@ void Application::updateAvatar(float deltaTime) {
         // once in a while, send my urls
         const float AVATAR_URLS_SEND_INTERVAL = 1.0f; // seconds
         if (shouldDo(AVATAR_URLS_SEND_INTERVAL, deltaTime)) {
-            Avatar::sendAvatarURLsMessage(_myAvatar.getVoxels()->getVoxelURL(),
-                _myAvatar.getHead().getBlendFace().getModelURL());
+            Avatar::sendAvatarURLsMessage(_myAvatar.getVoxels()->getVoxelURL());
         }
     }
 }
@@ -3615,6 +3621,12 @@ void* Application::networkReceive(void* args) {
                         break;
                     case PACKET_TYPE_AVATAR_FACE_VIDEO:
                         processAvatarFaceVideoMessage(app->_incomingPacket, bytesReceived);
+                        break;
+                    case PACKET_TYPE_DATA_SERVER_GET:
+                    case PACKET_TYPE_DATA_SERVER_PUT:
+                    case PACKET_TYPE_DATA_SERVER_SEND:
+                    case PACKET_TYPE_DATA_SERVER_CONFIRM:
+                        DataServerClient::processMessageFromDataServer(app->_incomingPacket, bytesReceived);
                         break;
                     default:
                         NodeList::getInstance()->processNodeData(&senderAddress, app->_incomingPacket, bytesReceived);
