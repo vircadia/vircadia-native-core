@@ -16,6 +16,7 @@
 #include <SharedUtil.h>
 
 #include "Application.h"
+#include "DataServerClient.h"
 #include "MyAvatar.h"
 #include "Physics.h"
 #include "devices/OculusManager.h"
@@ -524,6 +525,50 @@ void MyAvatar::renderScreenTint(ScreenTintLayer layer, Camera& whichCamera) {
     }
 }
 
+void MyAvatar::saveData(QSettings* settings) {
+    settings->beginGroup("Avatar");
+    
+    settings->setValue("bodyYaw", _bodyYaw);
+    settings->setValue("bodyPitch", _bodyPitch);
+    settings->setValue("bodyRoll", _bodyRoll);
+    
+    settings->setValue("position_x", _position.x);
+    settings->setValue("position_y", _position.y);
+    settings->setValue("position_z", _position.z);
+    
+    settings->setValue("voxelURL", _voxels.getVoxelURL());
+    settings->setValue("pupilDilation", _head.getPupilDilation());
+    
+    settings->setValue("leanScale", _leanScale);
+    settings->setValue("scale", _newScale);
+    
+    settings->endGroup();
+}
+
+void MyAvatar::loadData(QSettings* settings) {
+    settings->beginGroup("Avatar");
+    
+    // in case settings is corrupt or missing loadSetting() will check for NaN
+    _bodyYaw = loadSetting(settings, "bodyYaw", 0.0f);
+    _bodyPitch = loadSetting(settings, "bodyPitch", 0.0f);
+    _bodyRoll = loadSetting(settings, "bodyRoll", 0.0f);
+    _position.x = loadSetting(settings, "position_x", 0.0f);
+    _position.y = loadSetting(settings, "position_y", 0.0f);
+    _position.z = loadSetting(settings, "position_z", 0.0f);
+    
+    _voxels.setVoxelURL(settings->value("voxelURL").toUrl());
+    _head.setPupilDilation(settings->value("pupilDilation", 0.0f).toFloat());
+    
+    _leanScale = loadSetting(settings, "leanScale", 0.05f);
+    
+    _newScale = loadSetting(settings, "scale", 1.0f);
+    setScale(_scale);
+    Application::getInstance()->getCamera()->setScale(_scale);
+    
+    settings->endGroup();
+}
+
+
 float MyAvatar::getAbsoluteHeadYaw() const {
     return glm::yaw(_head.getOrientation());
 }
@@ -554,9 +599,6 @@ void MyAvatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
         
         return;
     }
-    
-    // glow when moving
-    Glower glower(_moving ? 1.0f : 0.0f);
     
     if (_head.getFace().isFullFrame()) {
         //  Render the full-frame video

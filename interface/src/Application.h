@@ -44,6 +44,7 @@
 #include "VoxelImporter.h"
 #include "avatar/Avatar.h"
 #include "avatar/MyAvatar.h"
+#include "avatar/Profile.h"
 #include "avatar/HandControl.h"
 #include "devices/Faceshift.h"
 #include "devices/SerialInterface.h"
@@ -110,6 +111,7 @@ public:
     
     QGLWidget* getGLWidget() { return _glWidget; }
     MyAvatar* getAvatar() { return &_myAvatar; }
+    Profile* getProfile() { return &_profile; }
     Audio* getAudio() { return &_audio; }
     Camera* getCamera() { return &_myCamera; }
     ViewFrustum* getViewFrustum() { return &_viewFrustum; }
@@ -275,6 +277,7 @@ private:
     Oscilloscope _audioScope;
     
     MyAvatar _myAvatar;                  // The rendered avatar of oneself
+    Profile _profile;                    // The data-server linked profile for this user
     
     Transmitter _myTransmitter;        // Gets UDP data from transmitter app used to animate the avatar
     

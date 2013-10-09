@@ -428,6 +428,7 @@ void NodeList::sendAssignment(Assignment& assignment) {
 }
 
 Node* NodeList::addOrUpdateNode(sockaddr* publicSocket, sockaddr* localSocket, char nodeType, uint16_t nodeId) {
+
     NodeList::iterator node = end();
     
     if (publicSocket) {
@@ -439,7 +440,7 @@ Node* NodeList::addOrUpdateNode(sockaddr* publicSocket, sockaddr* localSocket, c
         }
     }
     
-    if (node == end()) {        
+    if (node == end()) {
         // we didn't have this node, so add them
         Node* newNode = new Node(publicSocket, localSocket, nodeType, nodeId);
         
@@ -540,6 +541,8 @@ void* removeSilentNodes(void *args) {
         
         for(NodeList::iterator node = nodeList->begin(); node != nodeList->end(); ++node) {
             
+            node->lock();
+            
             if ((checkTimeUSecs - node->getLastHeardMicrostamp()) > NODE_SILENCE_THRESHOLD_USECS) {
             
                 qDebug() << "Killed " << *node << "\n";
@@ -548,6 +551,8 @@ void* removeSilentNodes(void *args) {
                 
                 node->setAlive(false);
             }
+            
+            node->unlock();
         }
         
         sleepTime = NODE_SILENCE_THRESHOLD_USECS - (usecTimestampNow() - checkTimeUSecs);

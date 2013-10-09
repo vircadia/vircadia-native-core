@@ -158,6 +158,7 @@ private:
     void resetHairPhysics();
     void updateHairPhysics(float deltaTime);
 
+    friend class BlendFace;
     friend class PerlinFace;
 };
 
