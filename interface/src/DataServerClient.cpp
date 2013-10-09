@@ -21,7 +21,7 @@
 
 std::map<unsigned char*, int> DataServerClient::_unmatchedPackets;
 
-const char DATA_SERVER_HOSTNAME[] = "127.0.0.1";
+const char DATA_SERVER_HOSTNAME[] = "data.highfidelity.io";
 const unsigned short DATA_SERVER_PORT = 3282;
 const sockaddr_in DATA_SERVER_SOCKET = socketForHostnameAndHostOrderPort(DATA_SERVER_HOSTNAME, DATA_SERVER_PORT);
 
