@@ -14,7 +14,7 @@
 #include <UUID.h>
 
 #include "Application.h"
-#include "Profile.h"
+#include "avatar/Profile.h"
 
 #include "DataServerClient.h"
 
