@@ -26,11 +26,7 @@ const unsigned short DATA_SERVER_PORT = 3282;
 const sockaddr_in DATA_SERVER_SOCKET = socketForHostnameAndHostOrderPort(DATA_SERVER_HOSTNAME, DATA_SERVER_PORT);
 
 void DataServerClient::putValueForKey(const char* key, const char* value) {
-    Profile* userProfile = Application::getInstance()->getProfile();
-    QString clientString = userProfile->getUUID().isNull()
-        ? userProfile->getUsername()
-        : uuidStringWithoutCurlyBraces(userProfile->getUUID().toString());
-    
+    QString clientString = Application::getInstance()->getProfile()->getUserString();
     if (!clientString.isEmpty()) {
         
         unsigned char* putPacket = new unsigned char[MAX_PACKET_SIZE];
@@ -62,40 +58,45 @@ void DataServerClient::putValueForKey(const char* key, const char* value) {
 }
 
 void DataServerClient::getValueForKeyAndUUID(const char* key, const QUuid &uuid) {
+    getValuesForKeysAndUUID(QStringList(QString(key)), uuid);
+}
+
+void DataServerClient::getValuesForKeysAndUUID(const QStringList& keys, const QUuid& uuid) {
     if (!uuid.isNull()) {
-        getValueForKeyAndUserString(key, uuidStringWithoutCurlyBraces(uuid));
+        getValuesForKeysAndUserString(keys, uuidStringWithoutCurlyBraces(uuid));
     }
 }
 
-void DataServerClient::getValueForKeyAndUserString(const char* key, const QString& userString) {
-    unsigned char* getPacket = new unsigned char[MAX_PACKET_SIZE];
-    
-    // setup the header for this packet
-    int numPacketBytes = populateTypeAndVersion(getPacket, PACKET_TYPE_DATA_SERVER_GET);
-    
-    // pack the user string (could be username or UUID string), null-terminate
-    memcpy(getPacket + numPacketBytes, userString.toLocal8Bit().constData(), userString.toLocal8Bit().size());
-    numPacketBytes += userString.toLocal8Bit().size();
-    getPacket[numPacketBytes++] = '\0';
-    
-    // pack the key, null terminated
-    strcpy((char*) getPacket + numPacketBytes, key);
-    int numKeyBytes = strlen(key);
-    
-    if (numKeyBytes > 0) {
-        numPacketBytes += numKeyBytes;
+void DataServerClient::getValuesForKeysAndUserString(const QStringList& keys, const QString& userString) {
+    if (!userString.isEmpty()) {
+        unsigned char* getPacket = new unsigned char[MAX_PACKET_SIZE];
+        
+        // setup the header for this packet
+        int numPacketBytes = populateTypeAndVersion(getPacket, PACKET_TYPE_DATA_SERVER_GET);
+        
+        // pack the user string (could be username or UUID string), null-terminate
+        memcpy(getPacket + numPacketBytes, userString.toLocal8Bit().constData(), userString.toLocal8Bit().size());
+        numPacketBytes += userString.toLocal8Bit().size();
         getPacket[numPacketBytes++] = '\0';
+        
+        for (int i = 0; i < keys.size(); ++i) {
+            // pack the keys, null terminated
+            strcpy((char*) getPacket + numPacketBytes, keys[i].toLocal8Bit().constData());
+            
+            numPacketBytes += keys[i].size();
+            getPacket[numPacketBytes++] = '\0';
+        }
+        
+        // add the getPacket to our vector of uncofirmed packets, will be deleted once we get a response from the nameserver
+        _unmatchedPackets.insert(std::pair<unsigned char*, int>(getPacket, numPacketBytes));
+        
+        // send the get to the data server
+        NodeList::getInstance()->getNodeSocket()->send((sockaddr*) &DATA_SERVER_SOCKET, getPacket, numPacketBytes);
     }
-    
-    // add the getPacket to our vector of uncofirmed packets, will be deleted once we get a response from the nameserver
-    _unmatchedPackets.insert(std::pair<unsigned char*, int>(getPacket, numPacketBytes));
-    
-    // send the get to the data server
-    NodeList::getInstance()->getNodeSocket()->send((sockaddr*) &DATA_SERVER_SOCKET, getPacket, numPacketBytes);
 }
 
 void DataServerClient::getClientValueForKey(const char* key) {
-    getValueForKeyAndUserString(key, Application::getInstance()->getProfile()->getUsername());
+    getValuesForKeysAndUserString(QStringList(QString(key)), Application::getInstance()->getProfile()->getUserString());
 }
 
 void DataServerClient::processConfirmFromDataServer(unsigned char* packetData, int numPacketBytes) {

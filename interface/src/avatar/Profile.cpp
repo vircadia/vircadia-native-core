@@ -8,6 +8,8 @@
 
 #include <QtCore/QSettings>
 
+#include <UUID.h>
+
 #include "Profile.h"
 #include "DataServerClient.h"
 
@@ -21,6 +23,14 @@ Profile::Profile(const QString &username) :
     if (!_username.isEmpty()) {
         // we've been given a new username, ask the data-server for profile
         DataServerClient::getClientValueForKey(DataServerKey::UUID);
+    }
+}
+
+QString Profile::getUserString() const {
+    if (_uuid.isNull()) {
+        return _username;
+    } else {
+        return uuidStringWithoutCurlyBraces(_uuid);
     }
 }
 

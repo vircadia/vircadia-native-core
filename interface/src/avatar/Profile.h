@@ -19,6 +19,8 @@ class Profile {
 public:
     Profile(const QString& username);
     
+    QString getUserString() const;
+    
     const QString& getUsername() const { return _username; }
     
     void setUUID(const QUuid& uuid);

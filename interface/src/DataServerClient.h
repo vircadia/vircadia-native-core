@@ -19,7 +19,7 @@ class DataServerClient {
 public:
     static void putValueForKey(const char* key, const char* value);
     static void getValueForKeyAndUUID(const char* key, const QUuid& uuid);
-    static void getValueForKeyAndUserString(const char* key, const QString& userString);
+    static void getValuesForKeysAndUUID(const QStringList& keys, const QUuid& uuid);
     static void getClientValueForKey(const char* key);
     static void processConfirmFromDataServer(unsigned char* packetData, int numPacketBytes);
     static void processSendFromDataServer(unsigned char* packetData, int numPacketBytes);
@@ -27,6 +27,8 @@ public:
     static void removeMatchedPacketFromMap(unsigned char* packetData, int numPacketBytes);
     static void resendUnmatchedPackets();
 private:
+    static void getValuesForKeysAndUserString(const QStringList& keys, const QString& userString);
+    
     static std::map<unsigned char*, int> _unmatchedPackets;
 };
 
