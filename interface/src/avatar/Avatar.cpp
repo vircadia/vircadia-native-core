@@ -397,9 +397,9 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
         _hoverOffDuration = 0.0f;
     
         const float GROW_DELAY = 1.0f;
-        const float GROW_DURATION = 1.0f;
+        const float GROW_RATE = 0.25f;
         if (_hoverOnDuration > GROW_DELAY) {
-            _head.setScale(glm::mix(_head.getScale(), maxScale, 0.1f));
+            _head.setScale(glm::mix(_head.getScale(), maxScale, GROW_RATE));
         }
         
     } else {
@@ -407,9 +407,9 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
         _hoverOffDuration += deltaTime;
     
         const float SHRINK_DELAY = 1.0f;
-        const float SHRINK_DURATION = 1.0f;
+        const float SHRINK_RATE = 0.25f;
         if (_hoverOffDuration > SHRINK_DELAY) {
-            _head.setScale(glm::mix(_head.getScale(), 1.0f, 0.1f));
+            _head.setScale(glm::mix(_head.getScale(), 1.0f, SHRINK_RATE));
         }
     }
     
