@@ -16,18 +16,17 @@
 class Cloud {
 public:
     Cloud();
-    
     void simulate(float deltaTime);
     void render();
     
 private:
     struct Particle {
         glm::vec3 position, velocity, color;
-       } *particles;
+       }* _particles;
     
-    unsigned int count;
-    glm::vec3 bounds;
-    Field *field;
+    unsigned int _count;
+    glm::vec3 _bounds;
+    Field* _field;
 };
 
 #endif

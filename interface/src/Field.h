@@ -25,7 +25,7 @@ class Field {
             glm::vec3 center;
             glm::vec3 fld;
             float scalar;
-        } field[FIELD_ELEMENTS];
+        } _field[FIELD_ELEMENTS];
             
         Field(float worldSize);
 
@@ -34,9 +34,7 @@ class Field {
         void add(float* add, float *loc);
         void interact(float dt, glm::vec3 * pos, glm::vec3 * vel, glm::vec3 * color, float coupling);
         void simulate(float dt);
-        glm::vec3 hsv2rgb(glm::vec3 in);
     private:
-        void avg_neighbors(int index, glm::vec3 * result);
         float _worldSize;
 };
 
