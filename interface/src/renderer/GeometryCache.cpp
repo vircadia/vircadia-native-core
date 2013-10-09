@@ -346,7 +346,7 @@ void NetworkGeometry::maybeReadModelWithMapping() {
         glGenBuffers(1, &networkMesh.vertexBufferID);
         glBindBuffer(GL_ARRAY_BUFFER, networkMesh.vertexBufferID);
             
-        if (mesh.blendshapes.isEmpty()) {
+        if (mesh.blendshapes.isEmpty() && mesh.springiness == 0.0f) {
             glBufferData(GL_ARRAY_BUFFER, (mesh.vertices.size() + mesh.normals.size()) * sizeof(glm::vec3) +
                 mesh.texCoords.size() * sizeof(glm::vec2), NULL, GL_STATIC_DRAW);
             glBufferSubData(GL_ARRAY_BUFFER, 0, mesh.vertices.size() * sizeof(glm::vec3), mesh.vertices.constData());
