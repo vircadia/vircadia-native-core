@@ -65,8 +65,6 @@ public:
     bool readFromSquareARGB32Pixels(const char* filename);
     bool readFromSchematicFile(const char* filename);
 
-    void setUseVoxelShader(bool useVoxelShader);
-
     void setMaxVoxels(int maxVoxels);
     long int getMaxVoxels() const { return _maxVoxels; }
     unsigned long getVoxelMemoryUsageRAM() const { return _memoryUsageRAM; }
@@ -137,6 +135,8 @@ public slots:
     void cancelImport();
     
     void setUseFastVoxelPipeline(bool useFastVoxelPipeline);
+    void setUseVoxelShader(bool useVoxelShader);
+    void setVoxelsAsPoints(bool voxelsAsPoints);
         
 protected:
     float _treeScale; 
@@ -224,6 +224,9 @@ private:
     void cleanupVoxelMemory();
 
     bool _useVoxelShader;
+    bool _voxelsAsPoints;
+    bool _voxelShaderModeWhenVoxelsAsPointsEnabled;
+
     GLuint _vboVoxelsID; /// when using voxel shader, we'll use this VBO
     GLuint _vboVoxelsIndicesID;  /// when using voxel shader, we'll use this VBO for our indexes
     VoxelShaderVBOData* _writeVoxelShaderData;
