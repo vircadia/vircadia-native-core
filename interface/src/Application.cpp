@@ -332,7 +332,15 @@ void Application::paintGL() {
 
     if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         _myCamera.setTightness     (100.0f); 
-        _myCamera.setTargetPosition(_myAvatar.getUprightHeadPosition());
+        glm::vec3 targetPosition = _myAvatar.getUprightHeadPosition();
+        if (_myAvatar.getHead().getBlendFace().isActive()) {
+            // make sure we're aligned to the blend face eyes
+            glm::vec3 leftEyePosition, rightEyePosition;
+            if (_myAvatar.getHead().getBlendFace().getEyePositions(leftEyePosition, rightEyePosition, true)) {
+                targetPosition = (leftEyePosition + rightEyePosition) * 0.5f;
+            }
+        }
+        _myCamera.setTargetPosition(targetPosition);
         _myCamera.setTargetRotation(_myAvatar.getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PIf, 0.0f)));
         
     } else if (OculusManager::isConnected()) {
