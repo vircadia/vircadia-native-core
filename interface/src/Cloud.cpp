@@ -21,6 +21,7 @@ Cloud::Cloud() {
     //  Create and initialize particles 
     unsigned int i;
     glm::vec3 box = glm::vec3(WORLD_SIZE);
+    bounds = box;
     count = NUM_PARTICLES;
     wrapBounds = false;
     particles = new Particle[count];
@@ -33,10 +34,10 @@ Cloud::Cloud() {
         particles[i].position.x = x;
         particles[i].position.y = y;
         particles[i].position.z = z;
-                
-        particles[i].velocity.x = randFloat() - 0.5f;
-        particles[i].velocity.y = randFloat() - 0.5f;
-        particles[i].velocity.z = randFloat() - 0.5f;
+        
+        const float INIT_VEL_SCALE = 0.10;
+        particles[i].velocity = randVector();
+        particles[i].velocity *= WORLD_SIZE * INIT_VEL_SCALE;
         
         float color_mult = 1 - COLOR_MIN;
         particles[i].color = glm::vec3(x*color_mult/WORLD_SIZE + COLOR_MIN,
@@ -48,11 +49,12 @@ Cloud::Cloud() {
 
 void Cloud::render() {
     
+    field->render();
+    /*
     float particle_attenuation_quadratic[] =  { 0.0f, 0.0f, 2.0f };
-    
+
     glEnable( GL_TEXTURE_2D );
     glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-    
     
     float maxSize = 0.0f;
     glGetFloatv( GL_POINT_SIZE_MAX_ARB, &maxSize );
@@ -65,6 +67,12 @@ void Cloud::render() {
     
     glTexEnvf( GL_POINT_SPRITE_ARB, GL_COORD_REPLACE_ARB, GL_TRUE );
     glEnable( GL_POINT_SPRITE_ARB );
+     */
+    glPointSize(3.0f);
+    glDisable(GL_TEXTURE_2D);
+    
+    glEnable(GL_POINT_SMOOTH);
+
     glBegin( GL_POINTS );
         for (unsigned int i = 0; i < count; i++)
         {
@@ -90,7 +98,7 @@ void Cloud::simulate (float deltaTime) {
         //particles[i].position += particles[i].velocity;
 
         // Decay Velocity (Drag)
-        const float CONSTANT_DAMPING = 0.5;
+        const float CONSTANT_DAMPING = 0.15;
         particles[i].velocity *= (1.f - CONSTANT_DAMPING*deltaTime);
                 
         // Interact with Field

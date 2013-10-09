@@ -9,7 +9,7 @@
 #include "Field.h"
 
 #define FIELD_SCALE 0.00050
-#define FIELD_SCALEf 0.00050f
+#define FIELD_SCALEf 0.1f
 #define COLOR_DRIFT_RATE 0.001f // per-frame drift of particle color towards field element color
 #define COLOR_MIN 0.2f // minimum R/G/B value at 0,0,0 - also needs setting in cloud.cpp
 
@@ -43,9 +43,9 @@ Field::Field()
     float fx, fy, fz;
     for (i = 0; i < FIELD_ELEMENTS; i++)
     {
-        field[i].val.x = (randFloat() - 0.5f)*FIELD_SCALEf;
-        field[i].val.y = (randFloat() - 0.5f)*FIELD_SCALEf;
-        field[i].val.z = (randFloat() - 0.5f)*FIELD_SCALEf;
+        field[i].val.x = (randFloat() - 0.5f)*FIELD_SCALEf * WORLD_SIZE;
+        field[i].val.y = (randFloat() - 0.5f)*FIELD_SCALEf * WORLD_SIZE;
+        field[i].val.z = (randFloat() - 0.5f)*FIELD_SCALEf * WORLD_SIZE;
         field[i].scalar = 0; 
         //  Record center point for this field cell
         fx = static_cast<float>(i % 10);
@@ -182,21 +182,21 @@ void Field::render()
 {
     int i;
     float fx, fy, fz;
-    float scale_view = 0.1f;
+    float scale_view = 0.1f * WORLD_SIZE;
     
     glDisable(GL_LIGHTING);
     glBegin(GL_LINES);
     for (i = 0; i < FIELD_ELEMENTS; i++)
     {
-        fx = field[i].center.x;
-        fy = field[i].center.y;
-        fz = field[i].center.z;
+        fx = field[i].center.x * WORLD_SIZE;
+        fy = field[i].center.y * WORLD_SIZE;
+        fz = field[i].center.z * WORLD_SIZE;
         
         glColor3f(0, 1, 0);
         glVertex3f(fx, fy, fz);
-        glVertex3f(fx + field[i].val.x*scale_view, 
-                   fy + field[i].val.y*scale_view, 
-                   fz + field[i].val.z*scale_view);
+        glVertex3f(fx + field[i].val.x * scale_view,
+                   fy + field[i].val.y * scale_view,
+                   fz + field[i].val.z * scale_view);
         if (USE_SCALAR) {
             glColor3f(1, 0, 0);
             glVertex3f(fx, fy, fz);        
@@ -222,7 +222,7 @@ void Field::render()
         fy = static_cast<float>(i%100 / 10);
         fz = static_cast<float>(i / 100);
         
-        glVertex3f(fx, fy, fz);
+        glVertex3f(fx / 10.f * WORLD_SIZE, fy / 10.f * WORLD_SIZE, fz / 10.f * WORLD_SIZE);
     }
     glEnd();
 }
