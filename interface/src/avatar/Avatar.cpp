@@ -102,6 +102,8 @@ Avatar::Avatar(Node* owningNode) :
     _leadingAvatar(NULL),
     _voxels(this),
     _moving(false),
+    _hoverOnDuration(0.0f),
+    _hoverOffDuration(0.0f),
     _initialized(false),
     _handHoldingPosition(0.0f, 0.0f, 0.0f),
     _maxArmLength(0.0f),
@@ -388,15 +390,27 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     }
     
     // head scale grows when avatar is looked at
+    const float BASE_MAX_SCALE = 3.0f;
+    float maxScale = BASE_MAX_SCALE * glm::distance(_position, Application::getInstance()->getCamera()->getPosition());
     if (Application::getInstance()->getLookatTargetAvatar() == this) {
-        const float BASE_MAX_SCALE = 3.0f;
-        const float GROW_SPEED = 0.1f;
-        _head.setScale(min(BASE_MAX_SCALE * glm::distance(_position, Application::getInstance()->getCamera()->getPosition()),
-            _head.getScale() + deltaTime * GROW_SPEED));        
+        _hoverOnDuration += deltaTime;
+        _hoverOffDuration = 0.0f;
+    
+        const float GROW_DELAY = 1.0f;
+        const float GROW_DURATION = 1.0f;
+        if (_hoverOnDuration > GROW_DELAY) {
+            _head.setScale(glm::mix(_head.getScale(), maxScale, 0.1f));
+        }
         
     } else {
-        const float SHRINK_SPEED = 100.0f;
-        _head.setScale(max(_scale, _head.getScale() - deltaTime * SHRINK_SPEED));
+        _hoverOnDuration = 0.0f;
+        _hoverOffDuration += deltaTime;
+    
+        const float SHRINK_DELAY = 1.0f;
+        const float SHRINK_DURATION = 1.0f;
+        if (_hoverOffDuration > SHRINK_DELAY) {
+            _head.setScale(glm::mix(_head.getScale(), 1.0f, 0.1f));
+        }
     }
     
     _head.setBodyRotation(glm::vec3(_bodyPitch, _bodyYaw, _bodyRoll));
