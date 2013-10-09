@@ -19,8 +19,12 @@
 #include <QMainWindow>
 #include <QSlider>
 #include <QStandardPaths>
+#include <QUuid>
+
+#include <UUID.h>
 
 #include "Application.h"
+#include "DataServerClient.h"
 #include "PairingHandler.h"
 #include "Menu.h"
 #include "Util.h"
@@ -500,6 +504,7 @@ void Menu::loadSettings(QSettings* settings) {
     settings->endGroup();
     
     scanMenuBar(&loadAction, settings);
+    Application::getInstance()->getProfile()->loadData(settings);
     Application::getInstance()->getAvatar()->loadData(settings);
     Application::getInstance()->getSwatch()->loadData(settings);
 }
@@ -522,6 +527,7 @@ void Menu::saveSettings(QSettings* settings) {
     
     scanMenuBar(&saveAction, settings);
     Application::getInstance()->getAvatar()->saveData(settings);
+    Application::getInstance()->getProfile()->saveData(settings);
     Application::getInstance()->getSwatch()->saveData(settings);
     
     // ask the NodeList to save its data
@@ -742,6 +748,7 @@ QLineEdit* lineEditForDomainHostname() {
 
 void Menu::editPreferences() {
     Application* applicationInstance = Application::getInstance();
+    
     QDialog dialog(applicationInstance->getGLWidget());
     dialog.setWindowTitle("Interface Preferences");
     QBoxLayout* layout = new QBoxLayout(QBoxLayout::TopToBottom);
@@ -750,13 +757,19 @@ void Menu::editPreferences() {
     QFormLayout* form = new QFormLayout();
     layout->addLayout(form, 1);
     
+    QString avatarUsername = applicationInstance->getProfile()->getUsername();
+    QLineEdit* avatarUsernameEdit = new QLineEdit(avatarUsername);
+    avatarUsernameEdit->setMinimumWidth(QLINE_MINIMUM_WIDTH);
+    form->addRow("Username:", avatarUsernameEdit);
+    
     QLineEdit* avatarURL = new QLineEdit(applicationInstance->getAvatar()->getVoxels()->getVoxelURL().toString());
     avatarURL->setMinimumWidth(QLINE_MINIMUM_WIDTH);
     form->addRow("Avatar URL:", avatarURL);
     
-    QLineEdit* faceURL = new QLineEdit(applicationInstance->getAvatar()->getHead().getBlendFace().getModelURL().toString());
-    faceURL->setMinimumWidth(QLINE_MINIMUM_WIDTH);
-    form->addRow("Face URL:", faceURL);
+    QString faceURLString = applicationInstance->getProfile()->getFaceModelURL().toString();
+    QLineEdit* faceURLEdit = new QLineEdit(faceURLString);
+    faceURLEdit->setMinimumWidth(QLINE_MINIMUM_WIDTH);
+    form->addRow("Face URL:", faceURLEdit);
     
     QSlider* pupilDilation = new QSlider(Qt::Horizontal);
     pupilDilation->setValue(applicationInstance->getAvatar()->getHead().getPupilDilation() * pupilDilation->maximum());
@@ -799,13 +812,32 @@ void Menu::editPreferences() {
          return;
      }
     
+    QUrl faceModelURL(faceURLEdit->text());
+    
+    
+    if (avatarUsernameEdit->text() != avatarUsername) {
+        // there has been a username change - set the new UUID on the avatar instance
+        applicationInstance->getProfile()->setUsername(avatarUsernameEdit->text());
+        
+        if (faceModelURL.toString() == faceURLString && !avatarUsernameEdit->text().isEmpty()) {
+            // if there was no change to the face model URL then ask the data-server for what it is
+            DataServerClient::getClientValueForKey(DataServerKey::FaceMeshURL);
+        }
+    }
+    
+    if (faceModelURL.toString() != faceURLString) {
+        // change the faceModelURL in the profile, it will also update this user's BlendFace
+        applicationInstance->getProfile()->setFaceModelURL(faceModelURL);
+        
+        // send the new face mesh URL to the data-server (if we have a client UUID)
+        DataServerClient::putValueForKey(DataServerKey::FaceMeshURL,
+                                         faceModelURL.toString().toLocal8Bit().constData());
+    }
+    
     QUrl avatarVoxelURL(avatarURL->text());
     applicationInstance->getAvatar()->getVoxels()->setVoxelURL(avatarVoxelURL);
     
-    QUrl faceModelURL(faceURL->text());
-    applicationInstance->getAvatar()->getHead().getBlendFace().setModelURL(faceModelURL);
-    
-    Avatar::sendAvatarURLsMessage(avatarVoxelURL, faceModelURL);
+    Avatar::sendAvatarURLsMessage(avatarVoxelURL);
     
     applicationInstance->getAvatar()->getHead().setPupilDilation(pupilDilation->value() / (float)pupilDilation->maximum());
     
