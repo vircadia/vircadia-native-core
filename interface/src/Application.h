@@ -111,7 +111,6 @@ public:
     
     QGLWidget* getGLWidget() { return _glWidget; }
     MyAvatar* getAvatar() { return &_myAvatar; }
-    Profile* getProfile() { return &_profile; }
     Audio* getAudio() { return &_audio; }
     Camera* getCamera() { return &_myCamera; }
     ViewFrustum* getViewFrustum() { return &_viewFrustum; }
@@ -134,6 +133,9 @@ public:
     GlowEffect* getGlowEffect() { return &_glowEffect; }
     
     Avatar* getLookatTargetAvatar() const { return _lookatTargetAvatar; }
+    
+    Profile* getProfile() { return &_profile; }
+    void resetProfile(const QString& username);
     
     static void controlledBroadcastToNodes(unsigned char* broadcastData, size_t dataBytes,
                                            const char* nodeTypes, int numNodeTypes);

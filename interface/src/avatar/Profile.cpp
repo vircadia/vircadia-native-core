@@ -11,26 +11,15 @@
 #include "Profile.h"
 #include "DataServerClient.h"
 
-Profile::Profile() :
-    _username(),
+Profile::Profile(const QString &username) :
+    _username(username),
     _uuid(),
-    _faceModelURL()
+    _lastDomain(),
+    _lastPosition(0.0, 0.0, 0.0),
+ 	_faceModelURL()
 {
-    
-}
-
-void Profile::clear() {
-    _username.clear();
-    _uuid = QUuid();
-    _faceModelURL.clear();
-}
-
-void Profile::setUsername(const QString &username) {
-    this->clear();
-    _username = username;
-    
     if (!_username.isEmpty()) {
-        // we've been given a new username, ask the data-server for our UUID
+        // we've been given a new username, ask the data-server for profile
         DataServerClient::getClientValueForKey(DataServerKey::UUID);
     }
 }
@@ -48,6 +37,27 @@ void Profile::setFaceModelURL(const QUrl& faceModelURL) {
     QMetaObject::invokeMethod(&Application::getInstance()->getAvatar()->getHead().getBlendFace(),
                               "setModelURL",
                               Q_ARG(QUrl, _faceModelURL));
+}
+
+void Profile::updatePositionInDomain(const QString& domain, const glm::vec3 position) {
+    if (!_username.isEmpty()) {
+        bool updateRequired =  false;
+        
+        if (_lastDomain != domain) {
+            _lastDomain = domain;
+            updateRequired = true;
+        }
+        
+        if (_lastPosition != position) {
+            _lastPosition = position;
+            updateRequired = true;
+        }
+        
+        if (updateRequired) {
+            // either the domain or position or both have changed, time to send update to data-server
+            
+        }
+    }
 }
 
 void Profile::saveData(QSettings* settings) {

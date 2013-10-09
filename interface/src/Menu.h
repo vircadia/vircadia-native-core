@@ -69,6 +69,7 @@ public slots:
     
 private slots:
     void aboutApp();
+    void login();
     void editPreferences();
     void goToDomain();
     void goToLocation();
@@ -174,6 +175,7 @@ namespace MenuOption {
     const QString ListenModePoint = "Listen Mode Point";
     const QString ListenModeSingleSource = "Listen Mode Single Source";
     const QString Log = "Log";
+    const QString Login = "Login";
     const QString LookAtIndicator = "Look-at Indicator";
     const QString LookAtVectors = "Look-at Vectors";
     const QString LowRes = "Lower Resolution While Moving";

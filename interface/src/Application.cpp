@@ -102,6 +102,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _voxelImporter(_window),
         _wantToKillLocalVoxels(false),
         _audioScope(256, 200, true),
+        _profile(QString()),
         _mouseX(0),
         _mouseY(0),
         _touchAvgX(0.0f),
@@ -454,6 +455,12 @@ void Application::updateProjectionMatrix() {
     glFrustum(left, right, bottom, top, nearVal, farVal);
     
     glMatrixMode(GL_MODELVIEW);
+}
+
+void Application::resetProfile(const QString& username) {
+    // call the destructor on the old profile and construct a new one
+    (&_profile)->~Profile();
+    new (&_profile) Profile(username);
 }
 
 void Application::controlledBroadcastToNodes(unsigned char* broadcastData, size_t dataBytes, 

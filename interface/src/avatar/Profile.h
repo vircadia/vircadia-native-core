@@ -13,26 +13,34 @@
 #include <QtCore/QUrl>
 #include <QtCore/QUuid>
 
+#include <glm/glm.hpp>
+
 class Profile {
 public:
-    Profile();
+    Profile(const QString& username);
     
-    void setUsername(const QString& username);
-    QString& getUsername() { return _username; }
+    const QString& getUsername() const { return _username; }
     
     void setUUID(const QUuid& uuid);
-    QUuid& getUUID() { return _uuid; }
+    const QUuid& getUUID() { return _uuid; }
     
     void setFaceModelURL(const QUrl& faceModelURL);
-    QUrl& getFaceModelURL() { return _faceModelURL; }
+    const QUrl& getFaceModelURL() const { return _faceModelURL; }
     
-    void clear();
+    void updatePositionInDomain(const QString& domain, const glm::vec3 position);
+    
+    QString getLastDomain() const  { return _lastDomain; }
+    const glm::vec3& getLastPosition() const { return _lastPosition; }
+    
+    void updateLastLocation(const glm::vec3 lastLocation);
     
     void saveData(QSettings* settings);
     void loadData(QSettings* settings);
 private:
     QString _username;
     QUuid _uuid;
+    QString _lastDomain;
+    glm::vec3 _lastPosition;
     QUrl _faceModelURL;
 };
 
