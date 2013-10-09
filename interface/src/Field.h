@@ -26,12 +26,7 @@ class Field {
             glm::vec3 fld;
             float scalar;
         } field[FIELD_ELEMENTS];
-        
-        // Pre-calculated RGB values for each field element
-        struct FieldColor {
-            glm::vec3 rgb;
-        } fieldcolors[FIELD_ELEMENTS];
-    
+            
         Field(float worldSize);
 
         int value(float *ret, float *pos);

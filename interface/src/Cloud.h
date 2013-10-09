@@ -11,7 +11,7 @@
 
 #include "Field.h"
 
-#define PARTICLE_WORLD_SIZE 128.0
+#define PARTICLE_WORLD_SIZE 256.0
 
 class Cloud {
 public:
@@ -27,7 +27,6 @@ private:
     
     unsigned int count;
     glm::vec3 bounds;
-    bool wrapBounds;
     Field *field;
 };
 

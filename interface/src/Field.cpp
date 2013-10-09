@@ -8,11 +8,6 @@
 
 #include "Field.h"
 
-#define FIELD_SCALE 0.00050
-#define COLOR_DRIFT_RATE 0.001f // per-frame drift of particle color towards field element color
-#define COLOR_MIN 0.2f // minimum R/G/B value at 0,0,0 - also needs setting in cloud.cpp
-
-
 //  A vector-valued field over an array of elements arranged as a 3D lattice 
 
 int Field::value(float *value, float *pos)
@@ -30,7 +25,9 @@ int Field::value(float *value, float *pos)
         value[2] = field[index].val.z;
         return 1;
     }
-    else return 0;
+    else {
+        return 0;
+    }
 }
 
 Field::Field(float worldSize)
@@ -41,7 +38,7 @@ Field::Field(float worldSize)
     float fx, fy, fz;
     for (i = 0; i < FIELD_ELEMENTS; i++)
     {
-        const float FIELD_INITIAL_MAG = 0.3f;
+        const float FIELD_INITIAL_MAG = 0.0f;
         field[i].val = randVector() * FIELD_INITIAL_MAG * _worldSize;
         field[i].scalar = 0; 
         //  Record center point for this field cell
@@ -53,11 +50,6 @@ Field::Field(float worldSize)
         field[i].center.z = (fz + 0.5f);
         field[i].center *= _worldSize / 10.f;
         
-        // and set up the RGB values for each field element.
-        float color_mult = 1 - COLOR_MIN;
-        fieldcolors[i].rgb = glm::vec3(((i%10)*(color_mult/10.0f)) + COLOR_MIN,
-                                       ((i%100)*(color_mult/100.0f)) + COLOR_MIN,
-                                       (i*(color_mult/1000.0f)) + COLOR_MIN);
     }
 }
 
@@ -76,8 +68,8 @@ void Field::add(float* add, float *pos)
     }
 }
 
-void Field::interact(float dt, glm::vec3 * pos, glm::vec3 * vel, glm::vec3 * color, float coupling) {
-     
+void Field::interact(float dt, glm::vec3* pos, glm::vec3* vel, glm::vec3* color, float coupling) {
+    
     int index = (int)(pos->x/ _worldSize * 10.0) +
     (int)(pos->y/_worldSize*10.0)*10 + 
     (int)(pos->z/_worldSize*10.0)*100;
@@ -85,17 +77,11 @@ void Field::interact(float dt, glm::vec3 * pos, glm::vec3 * vel, glm::vec3 * col
         //  
         //  Vector Coupling with particle velocity
         //
-        *vel += field[index].val*dt;            //  Particle influenced by field
+        *vel += field[index].val * dt;            //  Particle influenced by field
         
-        glm::vec3 temp = *vel*dt;               //  Field influenced by particle
+        glm::vec3 temp = *vel * dt;               //  Field influenced by particle
         temp *= coupling;
         field[index].val += temp;
-        // 
-        //  Scalar coupling:  Damp particle as function of local density  
-        // 
-        
-        // add a fraction of the field color to the particle color
-        //*color = (*color * (1 - COLOR_DRIFT_RATE)) + (fieldcolors[index].rgb * COLOR_DRIFT_RATE);
     }
 }
 

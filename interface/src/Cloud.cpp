@@ -12,10 +12,7 @@
 #include "Util.h"
 #include "Field.h"
 
-
-const int NUM_PARTICLES = 20000;
-
-#define COLOR_MIN 0.2f 
+const int NUM_PARTICLES = 100000;
 
 Cloud::Cloud() {
     //  Create and initialize particles 
@@ -23,57 +20,24 @@ Cloud::Cloud() {
     glm::vec3 box = glm::vec3(PARTICLE_WORLD_SIZE);
     bounds = box;
     count = NUM_PARTICLES;
-    wrapBounds = false;
     particles = new Particle[count];
     field = new Field(PARTICLE_WORLD_SIZE);
     
     for (i = 0; i < count; i++) {
-        float x = randFloat()*box.x;
-        float y = randFloat()*box.y;
-        float z = randFloat()*box.z;
-        particles[i].position.x = x;
-        particles[i].position.y = y;
-        particles[i].position.z = z;
-        
-        const float INIT_VEL_SCALE = 0.10;
-        particles[i].velocity = randVector();
-        particles[i].velocity *= PARTICLE_WORLD_SIZE * INIT_VEL_SCALE;
-        
-        float color_mult = 1 - COLOR_MIN;
-        particles[i].color = glm::vec3(x*color_mult/PARTICLE_WORLD_SIZE + COLOR_MIN,
-                                       y*color_mult/PARTICLE_WORLD_SIZE + COLOR_MIN,
-                                       z*color_mult/PARTICLE_WORLD_SIZE + COLOR_MIN);
-    }
+        particles[i].position = randVector() * box;
+        const float INIT_VEL_SCALE = 0.03f;
+        particles[i].velocity = randVector() * ((float)PARTICLE_WORLD_SIZE * INIT_VEL_SCALE);
+        particles[i].color = randVector();
+     }
 }
 
-
 void Cloud::render() {
+    //field->render();
     
-    field->render();
-    /*
-    float particle_attenuation_quadratic[] =  { 0.0f, 0.0f, 2.0f };
-
-    glEnable( GL_TEXTURE_2D );
-    glTexEnvi(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-    
-    float maxSize = 0.0f;
-    glGetFloatv( GL_POINT_SIZE_MAX_ARB, &maxSize );
-    glPointSize( maxSize );
-
-    
-    glPointParameterfvARB( GL_POINT_DISTANCE_ATTENUATION_ARB, particle_attenuation_quadratic );
-    glPointParameterfARB( GL_POINT_SIZE_MAX_ARB, maxSize );
-    glPointParameterfARB( GL_POINT_SIZE_MIN_ARB, 0.001f );
-    
-    glTexEnvf( GL_POINT_SPRITE_ARB, GL_COORD_REPLACE_ARB, GL_TRUE );
-    glEnable( GL_POINT_SPRITE_ARB );
-     */
     glPointSize(3.0f);
     glDisable(GL_TEXTURE_2D);
-    
     glEnable(GL_POINT_SMOOTH);
-
-    glBegin( GL_POINTS );
+    glBegin(GL_POINTS);
         for (unsigned int i = 0; i < count; i++)
         {
             glColor3f(particles[i].color.x,
@@ -84,8 +48,6 @@ void Cloud::render() {
                        particles[i].position.z);
         }
     glEnd();
-    glDisable( GL_POINT_SPRITE_ARB );
-    glDisable( GL_TEXTURE_2D );
 }
 
 void Cloud::simulate (float deltaTime) {
@@ -94,59 +56,35 @@ void Cloud::simulate (float deltaTime) {
     for (i = 0; i < count; ++i) {
         
         // Update position 
-        particles[i].position += particles[i].velocity*deltaTime;
-        //particles[i].position += particles[i].velocity;
+        particles[i].position += particles[i].velocity * deltaTime;
 
         // Decay Velocity (Drag)
-        const float CONSTANT_DAMPING = 0.15;
-        particles[i].velocity *= (1.f - CONSTANT_DAMPING*deltaTime);
+        const float CONSTANT_DAMPING = 0.15f;
+        particles[i].velocity *= (1.f - CONSTANT_DAMPING * deltaTime);
                 
         // Interact with Field
-        const float FIELD_COUPLE = 0.005f;  //0.0000001;
-        field->interact(deltaTime, &particles[i].position, &particles[i].velocity, &particles[i].color, FIELD_COUPLE);
+        const float FIELD_COUPLE = 0.005f; 
+        field->interact(deltaTime,
+                        &particles[i].position,
+                        &particles[i].velocity,
+                        &particles[i].color,
+                        FIELD_COUPLE);
         
         //  Update color to velocity 
-        particles[i].color = (glm::normalize(particles[i].velocity)*0.5f);
-        particles[i].color += 0.5f;
+        particles[i].color = (glm::normalize(particles[i].velocity) * 0.5f) + 0.5f;
         
-        
-        //  Bounce or Wrap 
-        if (wrapBounds) {
-            // wrap around bounds
-            if (particles[i].position.x > bounds.x)
-                particles[i].position.x -= bounds.x;
-            else if (particles[i].position.x < 0.0f)
-                particles[i].position.x += bounds.x;
-            
-            if (particles[i].position.y > bounds.y)
-                particles[i].position.y -= bounds.y;
-            else if (particles[i].position.y < 0.0f)
-                particles[i].position.y += bounds.y;
-            
-            if (particles[i].position.z > bounds.z)
-                particles[i].position.z -= bounds.z;
-            else if (particles[i].position.z < 0.0f)
-                particles[i].position.z += bounds.z;
-        } else {
-            // Bounce at bounds
-            if (particles[i].position.x > bounds.x 
-                || particles[i].position.x < 0.f) {
-                if (particles[i].position.x > bounds.x) particles[i].position.x = bounds.x;
-                else particles[i].position.x = 0.f;
-                particles[i].velocity.x *= -1;
-            }
-            if (particles[i].position.y > bounds.y 
-                || particles[i].position.y < 0.f) {
-                if (particles[i].position.y > bounds.y) particles[i].position.y = bounds.y;
-                else particles[i].position.y = 0.f;
-                particles[i].velocity.y *= -1;
-            }
-            if (particles[i].position.z > bounds.z 
-                || particles[i].position.z < 0.f) {
-                if (particles[i].position.z > bounds.z) particles[i].position.z = bounds.z;
-                else particles[i].position.z = 0.f;
-                particles[i].velocity.z *= -1;
-            }
+        // Bounce at bounds
+        if ((particles[i].position.x > bounds.x) || (particles[i].position.x < 0.f)) {
+            particles[i].position.x = glm::clamp(particles[i].position.x, 0.f, bounds.x);
+            particles[i].velocity.x *= -1.f;
+        }
+        if ((particles[i].position.y > bounds.y) || (particles[i].position.y < 0.f)) {
+            particles[i].position.y = glm::clamp(particles[i].position.y, 0.f, bounds.y);
+            particles[i].velocity.y *= -1.f;
+        }
+        if ((particles[i].position.z > bounds.z) || (particles[i].position.z < 0.f)) {
+            particles[i].position.z = glm::clamp(particles[i].position.z, 0.f, bounds.z);
+            particles[i].velocity.z *= -1.f;
         }
     }
  }
