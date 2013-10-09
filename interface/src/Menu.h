@@ -169,6 +169,7 @@ namespace MenuOption {
     const QString GoHome = "Go Home";
     const QString Gravity = "Use Gravity";
     const QString GroundPlane = "Ground Plane";
+    const QString ParticleCloud = "Particle Cloud";
     const QString GyroLook = "Smooth Gyro Look";
     const QString ListenModeNormal = "Listen Mode Normal";
     const QString ListenModePoint = "Listen Mode Point";

@@ -1988,7 +1988,9 @@ void Application::update(float deltaTime) {
     }
     
     //  Simulate particle cloud movements
-    _cloud.simulate(deltaTime);
+    if (Menu::getInstance()->isOptionChecked(MenuOption::ParticleCloud)) {
+        _cloud.simulate(deltaTime);
+    }
     
     // no transmitter drive implies transmitter pick
     if (!Menu::getInstance()->isOptionChecked(MenuOption::TransmitterDrive) && _myTransmitter.isConnected()) {
@@ -2508,8 +2510,9 @@ void Application::displaySide(Camera& whichCamera) {
         //renderGroundPlaneGrid(EDGE_SIZE_GROUND_PLANE, _audio.getCollisionSoundMagnitude());
     }
     //  Draw Cloud Particles
-    _cloud.render();
-    
+    if (Menu::getInstance()->isOptionChecked(MenuOption::ParticleCloud)) {
+        _cloud.render();
+    }
     //  Draw voxels
     if (Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
         PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 

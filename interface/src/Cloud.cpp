@@ -20,12 +20,12 @@ const int NUM_PARTICLES = 20000;
 Cloud::Cloud() {
     //  Create and initialize particles 
     unsigned int i;
-    glm::vec3 box = glm::vec3(WORLD_SIZE);
+    glm::vec3 box = glm::vec3(PARTICLE_WORLD_SIZE);
     bounds = box;
     count = NUM_PARTICLES;
     wrapBounds = false;
     particles = new Particle[count];
-    field = new Field();
+    field = new Field(PARTICLE_WORLD_SIZE);
     
     for (i = 0; i < count; i++) {
         float x = randFloat()*box.x;
@@ -37,12 +37,12 @@ Cloud::Cloud() {
         
         const float INIT_VEL_SCALE = 0.10;
         particles[i].velocity = randVector();
-        particles[i].velocity *= WORLD_SIZE * INIT_VEL_SCALE;
+        particles[i].velocity *= PARTICLE_WORLD_SIZE * INIT_VEL_SCALE;
         
         float color_mult = 1 - COLOR_MIN;
-        particles[i].color = glm::vec3(x*color_mult/WORLD_SIZE + COLOR_MIN,
-                                       y*color_mult/WORLD_SIZE + COLOR_MIN,
-                                       z*color_mult/WORLD_SIZE + COLOR_MIN);
+        particles[i].color = glm::vec3(x*color_mult/PARTICLE_WORLD_SIZE + COLOR_MIN,
+                                       y*color_mult/PARTICLE_WORLD_SIZE + COLOR_MIN,
+                                       z*color_mult/PARTICLE_WORLD_SIZE + COLOR_MIN);
     }
 }
 

@@ -15,8 +15,6 @@
 #include "world.h"
 #include "Util.h"
 
-#define WORLD_SIZE 100.0
-
 //  Field is a lattice of vectors uniformly distributed FIELD_ELEMENTS^(1/3) on side 
 const int FIELD_ELEMENTS = 1000;
 
@@ -34,7 +32,8 @@ class Field {
             glm::vec3 rgb;
         } fieldcolors[FIELD_ELEMENTS];
     
-        Field();
+        Field(float worldSize);
+
         int value(float *ret, float *pos);
         void render();
         void add(float* add, float *loc);
@@ -43,6 +42,7 @@ class Field {
         glm::vec3 hsv2rgb(glm::vec3 in);
     private:
         void avg_neighbors(int index, glm::vec3 * result);
+        float _worldSize;
 };
 
 #endif

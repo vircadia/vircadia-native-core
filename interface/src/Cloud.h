@@ -11,6 +11,8 @@
 
 #include "Field.h"
 
+#define PARTICLE_WORLD_SIZE 128.0
+
 class Cloud {
 public:
     Cloud();

@@ -234,6 +234,9 @@ Menu::Menu() :
                                   0,
                                   appInstance->getGlowEffect(),
                                   SLOT(cycleRenderMode()));
+    
+    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::ParticleCloud, 0, false);
+
 
     QMenu* voxelOptionsMenu = developerMenu->addMenu("Voxel Options");
 
