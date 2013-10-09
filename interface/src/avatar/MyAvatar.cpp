@@ -555,9 +555,6 @@ void MyAvatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
         return;
     }
     
-    // glow when moving
-    Glower glower(_moving ? 1.0f : 0.0f);
-    
     if (_head.getFace().isFullFrame()) {
         //  Render the full-frame video
         float alpha = getBallRenderAlpha(BODY_BALL_HEAD_BASE, lookingInMirror);

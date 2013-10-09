@@ -465,15 +465,16 @@ void Avatar::render(bool lookingInMirror, bool renderAvatarBalls) {
     renderDiskShadow(_position, glm::vec3(0.0f, 1.0f, 0.0f), _scale * 0.1f, 0.2f);
     
     {
-        // glow when moving
-        Glower glower(_moving ? 1.0f : 0.0f);
+        // glow when moving in the distance
+        glm::vec3 toTarget = _position - Application::getInstance()->getAvatar()->getPosition();
+        const float GLOW_DISTANCE = 5.0f;
+        Glower glower(_moving && glm::length(toTarget) > GLOW_DISTANCE ? 1.0f : 0.0f);
         
         // render body
         renderBody(lookingInMirror, renderAvatarBalls);
     
         // render sphere when far away
         const float MAX_ANGLE = 10.f;
-        glm::vec3 toTarget = _position - Application::getInstance()->getAvatar()->getPosition();
         glm::vec3 delta = _height * (_head.getCameraOrientation() * IDENTITY_UP) / 2.f;
         float angle = abs(angleBetween(toTarget + delta, toTarget - delta));
 
