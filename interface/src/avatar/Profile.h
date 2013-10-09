@@ -27,12 +27,11 @@ public:
     void setFaceModelURL(const QUrl& faceModelURL);
     const QUrl& getFaceModelURL() const { return _faceModelURL; }
     
-    void updatePositionInDomain(const QString& domain, const glm::vec3 position);
+    void updateDomain(const QString& domain);
+    void updatePosition(const glm::vec3 position);
     
     QString getLastDomain() const  { return _lastDomain; }
     const glm::vec3& getLastPosition() const { return _lastPosition; }
-    
-    void updateLastLocation(const glm::vec3 lastLocation);
     
     void saveData(QSettings* settings);
     void loadData(QSettings* settings);

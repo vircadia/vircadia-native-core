@@ -39,24 +39,39 @@ void Profile::setFaceModelURL(const QUrl& faceModelURL) {
                               Q_ARG(QUrl, _faceModelURL));
 }
 
-void Profile::updatePositionInDomain(const QString& domain, const glm::vec3 position) {
-    if (!_username.isEmpty()) {
-        bool updateRequired =  false;
+void Profile::updateDomain(const QString& domain) {
+    if (_lastDomain != domain) {
+        _lastDomain = domain;
         
-        if (_lastDomain != domain) {
-            _lastDomain = domain;
-            updateRequired = true;
-        }
+        // send the changed domain to the data-server
+        DataServerClient::putValueForKey(DataServerKey::Domain, domain.toLocal8Bit().constData());
+    }
+}
+
+void Profile::updatePosition(const glm::vec3 position) {
+    if (_lastPosition != position) {
         
-        if (_lastPosition != position) {
-            _lastPosition = position;
-            updateRequired = true;
-        }
+        static timeval lastPositionSend = {};
+        const uint64_t DATA_SERVER_POSITION_UPDATE_INTERVAL_USECS = 5 * 1000 * 1000;
+        const float DATA_SERVER_POSITION_CHANGE_THRESHOLD_METERS = 1;
         
-        if (updateRequired) {
-            // either the domain or position or both have changed, time to send update to data-server
-            
-        }
+        if (usecTimestampNow() - usecTimestamp(&lastPositionSend) >= DATA_SERVER_POSITION_UPDATE_INTERVAL_USECS &&
+            (fabsf(_lastPosition.x - position.x) >= DATA_SERVER_POSITION_CHANGE_THRESHOLD_METERS ||
+             fabsf(_lastPosition.y - position.y) >= DATA_SERVER_POSITION_CHANGE_THRESHOLD_METERS ||
+             fabsf(_lastPosition.z - position.z) >= DATA_SERVER_POSITION_CHANGE_THRESHOLD_METERS))  {
+                
+                // if it has been 5 seconds since the last position change and the user has moved >= the threshold
+                // in at least one of the axis then send the position update to the data-server
+                
+                _lastPosition = position;
+                
+                // update the lastPositionSend to now
+                gettimeofday(&lastPositionSend, NULL);
+                
+                // send the changed position to the data-server
+                QString positionString = QString("%1,%2,%3").arg(position.x).arg(position.y).arg(position.z);
+                DataServerClient::putValueForKey(DataServerKey::Position, positionString.toLocal8Bit().constData());
+            }
     }
 }
 

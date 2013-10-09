@@ -31,7 +31,9 @@ private:
 };
 
 namespace DataServerKey {
+    const char Domain[] = "domain";
     const char FaceMeshURL[] = "mesh";
+    const char Position[] = "position";
     const char UUID[] = "uuid";
 }
 

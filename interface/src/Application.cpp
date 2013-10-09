@@ -182,6 +182,9 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     
     _settings = new QSettings(this);
     
+    // load user profile data
+    _profile.loadData(_settings);
+    
     // check if there is a saved domain server hostname
     // this must be done now instead of with the other setting checks to allow manual override with
     // --domain or --local options
@@ -1166,6 +1169,9 @@ void Application::timer() {
     
     // ask the node list to check in with the domain server
     NodeList::getInstance()->sendDomainServerCheckIn();
+    
+    // give the MyAvatar object position to the Profile so it can propagate to the data-server
+    _profile.updatePosition(_myAvatar.getPosition());
 }
 
 static glm::vec3 getFaceVector(BoxFace face) {
@@ -3516,9 +3522,13 @@ void Application::attachNewHeadToNode(Node* newNode) {
 void Application::domainChanged(QString domain) {
     qDebug("Application title set to: %s.\n", domain.toStdString().c_str());
     _window->setWindowTitle(domain);
+    
+    // update the user's last domain in their Profile (which will propagate to data-server)
+    _profile.updateDomain(domain);
 }
 
 void Application::nodeAdded(Node* node) {
+    
 }
 
 void Application::nodeKilled(Node* node) {

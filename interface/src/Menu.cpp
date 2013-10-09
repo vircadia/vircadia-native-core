@@ -510,9 +510,10 @@ void Menu::loadSettings(QSettings* settings) {
     settings->endGroup();
     
     scanMenuBar(&loadAction, settings);
-    Application::getInstance()->getProfile()->loadData(settings);
     Application::getInstance()->getAvatar()->loadData(settings);
     Application::getInstance()->getSwatch()->loadData(settings);
+    
+    // NodeList and profile settings are not loaded here because the Application will load them immediately on start
 }
 
 void Menu::saveSettings(QSettings* settings) {
@@ -533,8 +534,10 @@ void Menu::saveSettings(QSettings* settings) {
     
     scanMenuBar(&saveAction, settings);
     Application::getInstance()->getAvatar()->saveData(settings);
-    Application::getInstance()->getProfile()->saveData(settings);
     Application::getInstance()->getSwatch()->saveData(settings);
+    
+    // save the user profile
+    Application::getInstance()->getProfile()->saveData(settings);
     
     // ask the NodeList to save its data
     NodeList::getInstance()->saveData(settings);
