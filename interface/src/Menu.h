@@ -141,6 +141,7 @@ namespace MenuOption {
     const QString DisplayFrustum = "Display Frustum";
     const QString DontRenderVoxels = "Don't call _voxels.render()";
     const QString DontCallOpenGLForVoxels = "Don't call glDrawElements()/glDrawRangeElementsEXT() for Voxels";
+    const QString DontRemoveOutOfView = "Don't Remove Out of View Voxels";
     const QString EchoAudio = "Echo Audio";
     const QString ExportVoxels = "Export Voxels";
     const QString HeadMouse = "Head Mouse";
@@ -161,6 +162,7 @@ namespace MenuOption {
     const QString GlowMode = "Cycle Glow Mode";
     const QString GoToDomain = "Go To Domain...";
     const QString GoToLocation = "Go To Location...";
+    const QString HideOutOfView = "Hide Out of View Voxels";
     const QString ImportVoxels = "Import Voxels";
     const QString ImportVoxelsClipboard = "Import Voxels to Clipboard";
     const QString IncreaseAvatarSize = "Increase Avatar Size";

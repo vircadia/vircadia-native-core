@@ -81,6 +81,7 @@ public:
     void killLocalVoxels();
 
     virtual void removeOutOfView();
+    virtual void hideOutOfView();
     bool hasViewChanged();
     bool isViewChanging();
     
@@ -151,7 +152,7 @@ protected:
     glm::vec3 computeVoxelVertex(const glm::vec3& startVertex, float voxelScale, int index) const;
 
     
-    virtual void updateNodeInArrays(glBufferIndex nodeIndex, const glm::vec3& startVertex,
+    virtual void updateArraysDetails(glBufferIndex nodeIndex, const glm::vec3& startVertex,
                                     float voxelScale, const nodeColor& color);
     virtual void copyWrittenDataSegmentToReadArrays(glBufferIndex segmentStart, glBufferIndex segmentEnd);
     virtual void updateVBOSegment(glBufferIndex segmentStart, glBufferIndex segmentEnd);
@@ -185,9 +186,10 @@ private:
     static bool killSourceVoxelsOperation(VoxelNode* node, void* extraData);
     static bool forceRedrawEntireTreeOperation(VoxelNode* node, void* extraData);
     static bool clearAllNodesBufferIndexOperation(VoxelNode* node, void* extraData);
+    static bool hideOutOfViewOperation(VoxelNode* node, void* extraData);
 
-    int updateNodeInArraysAsFullVBO(VoxelNode* node);
-    int updateNodeInArraysAsPartialVBO(VoxelNode* node);
+    int updateNodeInArrays(VoxelNode* node, bool reuseIndex, bool forceDraw);
+    
     int forceRemoveNodeFromArraysAsPartialVBO(VoxelNode* node);
 
     void copyWrittenDataToReadArraysFullVBOs();

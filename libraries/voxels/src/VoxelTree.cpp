@@ -221,6 +221,14 @@ int VoxelTree::readNodeData(VoxelNode* destinationNode, unsigned char* nodeData,
                 nodeWasDirty = childNodeAt->isDirty();
                 childNodeAt->setColor(newColor);
                 childNodeAt->setSourceID(args.sourceID);
+                
+                // if we had a local version of the node already, it's possible that we have it in the VBO but
+                // with the same color data, so this won't count as a change. To address this we check the following
+                if (!childNodeAt->isDirty() && !childNodeAt->isKnownBufferIndex() && childNodeAt->getShouldRender()) {
+                    printf("got network packet with node that is in local tree, force dirty...\n");
+                    childNodeAt->setDirtyBit(); // force dirty!
+                }
+                
                 nodeIsDirty = childNodeAt->isDirty();
             }
             if (nodeIsDirty) {
