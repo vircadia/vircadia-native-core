@@ -10,17 +10,19 @@
 #include <InterfaceConfig.h>
 #include "Cloud.h"
 #include "Util.h"
+#include "Field.h"
 
-#define COLOR_MIN 0.2f // minimum R/G/B value at 0,0,0 - also needs setting in field.cpp
 
-Cloud::Cloud(int num, 
-             glm::vec3 box,
-             int wrap) {
+const int NUM_PARTICLES = 20000;
+
+#define COLOR_MIN 0.2f 
+
+Cloud::Cloud() {
     //  Create and initialize particles 
     unsigned int i;
-    bounds = box;
-    count = num;
-    wrapBounds = wrap != 0;
+    glm::vec3 box = glm::vec3(WORLD_SIZE);
+    count = NUM_PARTICLES;
+    wrapBounds = false;
     particles = new Particle[count];
     field = new Field();
     
@@ -80,6 +82,7 @@ void Cloud::render() {
 
 void Cloud::simulate (float deltaTime) {
     unsigned int i;
+    field->simulate(deltaTime);
     for (i = 0; i < count; ++i) {
         
         // Update position 

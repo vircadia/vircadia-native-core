@@ -13,9 +13,7 @@
 
 class Cloud {
 public:
-    Cloud(int num, 
-          glm::vec3 box,
-          int wrap);
+    Cloud();
     
     void simulate(float deltaTime);
     void render();

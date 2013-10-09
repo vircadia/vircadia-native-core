@@ -15,6 +15,8 @@
 
 #define USE_SCALAR 0 
 
+#define WORLD_SIZE 100.0
+
 //  A vector-valued field over an array of elements arranged as a 3D lattice 
 
 int Field::value(float *value, float *pos)

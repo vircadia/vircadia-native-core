@@ -15,6 +15,8 @@
 #include "world.h"
 #include "Util.h"
 
+#define WORLD_SIZE 100.0
+
 //  Field is a lattice of vectors uniformly distributed FIELD_ELEMENTS^(1/3) on side 
 const int FIELD_ELEMENTS = 1000;
 
