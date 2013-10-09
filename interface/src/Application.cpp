@@ -2049,7 +2049,7 @@ void Application::update(float deltaTime) {
             if (_faceshift.isActive()) {
                 const float EYE_OFFSET_SCALE = 0.025f;
                 glm::vec3 position = _faceshift.getHeadTranslation() * EYE_OFFSET_SCALE;
-                _myCamera.setEyeOffsetPosition(glm::vec3(position.x * xSign, position.y, position.z));    
+                _myCamera.setEyeOffsetPosition(glm::vec3(position.x * xSign, position.y, -position.z));    
                 updateProjectionMatrix();
                 
             } else if (_webcam.isActive()) {
