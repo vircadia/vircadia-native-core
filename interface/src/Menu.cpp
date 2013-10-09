@@ -995,6 +995,12 @@ void Menu::goToUser() {
     if (ret != QDialog::Accepted) {
         return;
     }
+    
+    if (!usernameLineEdit->text().isEmpty()) {
+        // there's a username entered by the user, make a request to the data-server
+        DataServerClient::getValuesForKeysAndUserString((QStringList() << DataServerKey::Domain << DataServerKey::Position),
+                                                        usernameLineEdit->text());
+    }
 }
 
 void Menu::bandwidthDetails() {
