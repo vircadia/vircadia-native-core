@@ -182,13 +182,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     
     _settings = new QSettings(this);
     
-    // load user profile data
-    _profile.loadData(_settings);
-    
-    // check if there is a saved domain server hostname
-    // this must be done now instead of with the other setting checks to allow manual override with
-    // --domain or --local options
-    NodeList::getInstance()->loadData(_settings);
+    // call Menu getInstance static method to set up the menu
+    _window->setMenuBar(Menu::getInstance());
     
     // Check to see if the user passed in a command line option for loading a local
     // Voxel File.
@@ -210,9 +205,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     NodeList::getInstance()->startSilentNodeRemovalThread();
     
     _window->setCentralWidget(_glWidget);
-
-    // call Menu getInstance static method to set up the menu
-    _window->setMenuBar(Menu::getInstance());
     
     _networkAccessManager = new QNetworkAccessManager(this);
     QNetworkDiskCache* cache = new QNetworkDiskCache(_networkAccessManager);
