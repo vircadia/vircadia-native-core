@@ -98,7 +98,7 @@ void AvatarMixer::run() {
     
     nodeList->startSilentNodeRemovalThread();
     
-    sockaddr* nodeAddress = new sockaddr;
+    sockaddr nodeAddress = {};
     ssize_t receivedBytes = 0;
     
     unsigned char* packetData = new unsigned char[MAX_PACKET_SIZE];
@@ -107,8 +107,6 @@ void AvatarMixer::run() {
     Node* avatarNode = NULL;
     
     timeval lastDomainServerCheckIn = {};
-    // we only need to hear back about avatar nodes from the DS
-    nodeList->setNodeTypesOfInterest(&NODE_TYPE_AGENT, 1);
     
     while (true) {
         
@@ -122,7 +120,7 @@ void AvatarMixer::run() {
             NodeList::getInstance()->sendDomainServerCheckIn(_uuid.toRfc4122().constData());
         }
         
-        if (nodeList->getNodeSocket()->receive(nodeAddress, packetData, &receivedBytes) &&
+        if (nodeList->getNodeSocket()->receive(&nodeAddress, packetData, &receivedBytes) &&
             packetVersionMatch(packetData)) {
             switch (packetData[0]) {
                 case PACKET_TYPE_HEAD_DATA:
@@ -130,12 +128,12 @@ void AvatarMixer::run() {
                     unpackNodeId(packetData + numBytesForPacketHeader(packetData), &nodeID);
                     
                     // add or update the node in our list
-                    avatarNode = nodeList->addOrUpdateNode(nodeAddress, nodeAddress, NODE_TYPE_AGENT, nodeID);
+                    avatarNode = nodeList->addOrUpdateNode(&nodeAddress, &nodeAddress, NODE_TYPE_AGENT, nodeID);
                     
                     // parse positional data from an node
                     nodeList->updateNodeWithData(avatarNode, packetData, receivedBytes);
                 case PACKET_TYPE_INJECT_AUDIO:
-                    broadcastAvatarData(nodeList, nodeAddress);
+                    broadcastAvatarData(nodeList, &nodeAddress);
                     break;
                 case PACKET_TYPE_AVATAR_URLS:
                 case PACKET_TYPE_AVATAR_FACE_VIDEO:
@@ -151,7 +149,7 @@ void AvatarMixer::run() {
                     break;
                 default:
                     // hand this off to the NodeList
-                    nodeList->processNodeData(nodeAddress, packetData, receivedBytes);
+                    nodeList->processNodeData(&nodeAddress, packetData, receivedBytes);
                     break;
             }
         }
