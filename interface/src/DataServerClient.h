@@ -17,10 +17,10 @@
 
 class DataServerClient {
 public:
-    static void putValueForKey(const char* key, const char* value);
-    static void getValueForKeyAndUUID(const char* key, const QUuid& uuid);
+    static void putValueForKey(const QString& key, const char* value);
+    static void getValueForKeyAndUUID(const QString& key, const QUuid& uuid);
     static void getValuesForKeysAndUUID(const QStringList& keys, const QUuid& uuid);
-    static void getClientValueForKey(const char* key);
+    static void getClientValueForKey(const QString& key);
     static void processConfirmFromDataServer(unsigned char* packetData, int numPacketBytes);
     static void processSendFromDataServer(unsigned char* packetData, int numPacketBytes);
     static void processMessageFromDataServer(unsigned char* packetData, int numPacketBytes);
@@ -33,10 +33,10 @@ private:
 };
 
 namespace DataServerKey {
-    const char Domain[] = "domain";
-    const char FaceMeshURL[] = "mesh";
-    const char Position[] = "position";
-    const char UUID[] = "uuid";
+    const QString Domain = "domain";
+    const QString FaceMeshURL = "mesh";
+    const QString Position = "position";
+    const QString UUID = "uuid";
 }
 
 #endif /* defined(__hifi__DataServerClient__) */

@@ -25,7 +25,7 @@ const char DATA_SERVER_HOSTNAME[] = "data.highfidelity.io";
 const unsigned short DATA_SERVER_PORT = 3282;
 const sockaddr_in DATA_SERVER_SOCKET = socketForHostnameAndHostOrderPort(DATA_SERVER_HOSTNAME, DATA_SERVER_PORT);
 
-void DataServerClient::putValueForKey(const char* key, const char* value) {
+void DataServerClient::putValueForKey(const QString& key, const char* value) {
     QString clientString = Application::getInstance()->getProfile()->getUserString();
     if (!clientString.isEmpty()) {
         
@@ -40,8 +40,8 @@ void DataServerClient::putValueForKey(const char* key, const char* value) {
         putPacket[numPacketBytes++] = '\0';
         
         // pack the key, null terminated
-        strcpy((char*) putPacket + numPacketBytes, key);
-        numPacketBytes += strlen(key);
+        strcpy((char*) putPacket + numPacketBytes, key.toLocal8Bit().constData());
+        numPacketBytes += key.size();
         putPacket[numPacketBytes++] = '\0';
         
         // pack the value, null terminated
@@ -57,8 +57,8 @@ void DataServerClient::putValueForKey(const char* key, const char* value) {
     }
 }
 
-void DataServerClient::getValueForKeyAndUUID(const char* key, const QUuid &uuid) {
-    getValuesForKeysAndUUID(QStringList(QString(key)), uuid);
+void DataServerClient::getValueForKeyAndUUID(const QString& key, const QUuid &uuid) {
+    getValuesForKeysAndUUID(QStringList(key), uuid);
 }
 
 void DataServerClient::getValuesForKeysAndUUID(const QStringList& keys, const QUuid& uuid) {
@@ -95,8 +95,8 @@ void DataServerClient::getValuesForKeysAndUserString(const QStringList& keys, co
     }
 }
 
-void DataServerClient::getClientValueForKey(const char* key) {
-    getValuesForKeysAndUserString(QStringList(QString(key)), Application::getInstance()->getProfile()->getUserString());
+void DataServerClient::getClientValueForKey(const QString& key) {
+    getValuesForKeysAndUserString(QStringList(key), Application::getInstance()->getProfile()->getUserString());
 }
 
 void DataServerClient::processConfirmFromDataServer(unsigned char* packetData, int numPacketBytes) {
@@ -123,18 +123,18 @@ void DataServerClient::processSendFromDataServer(unsigned char* packetData, int 
         // the user string was a username
         // for now assume this means that it is for our avatar
         
-        if (strcmp(dataKeyPosition, DataServerKey::FaceMeshURL) == 0) {
+        if (strcmp(dataKeyPosition, DataServerKey::FaceMeshURL.toLocal8Bit().constData()) == 0) {
             // pull the user's face mesh and set it on the Avatar instance
             
             qDebug("Changing user's face model URL to %s\n", dataValueString.toLocal8Bit().constData());
             Application::getInstance()->getProfile()->setFaceModelURL(QUrl(dataValueString));
-        } else if (strcmp(dataKeyPosition, DataServerKey::UUID) == 0) {
+        } else if (strcmp(dataKeyPosition, DataServerKey::UUID.toLocal8Bit().constData()) == 0) {
             // this is the user's UUID - set it on the profile
             Application::getInstance()->getProfile()->setUUID(dataValueString);
         }
     } else {
         // user string was UUID, find matching avatar and associate data
-        if (strcmp(dataKeyPosition, DataServerKey::FaceMeshURL) == 0) {
+        if (strcmp(dataKeyPosition, DataServerKey::FaceMeshURL.toLocal8Bit().constData()) == 0) {
             NodeList* nodeList = NodeList::getInstance();
             for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
                 if (node->getLinkedData() != NULL && node->getType() == NODE_TYPE_AGENT) {
