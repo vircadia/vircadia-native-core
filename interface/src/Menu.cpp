@@ -99,6 +99,11 @@ Menu::Menu() :
                                   Qt::CTRL | Qt::SHIFT | Qt::Key_L,
                                    this,
                                    SLOT(goToLocation()));
+    addActionToQMenuAndActionHash(fileMenu,
+                                  MenuOption::GoToUser,
+                                  Qt::CTRL | Qt::SHIFT | Qt::Key_U,
+                                  this,
+                                  SLOT(goToUser()));
 
     
     addDisabledActionAndSeparator(fileMenu, "Settings");
@@ -966,6 +971,31 @@ void Menu::goToLocation() {
     }
 }
 
+void Menu::goToUser() {
+    Application* applicationInstance = Application::getInstance();
+    QDialog dialog(applicationInstance->getGLWidget());
+    dialog.setWindowTitle("Go To User");
+    QBoxLayout* layout = new QBoxLayout(QBoxLayout::TopToBottom);
+    dialog.setLayout(layout);
+    
+    QFormLayout* form = new QFormLayout();
+    layout->addLayout(form, 1);
+    
+    QLineEdit* usernameLineEdit = new QLineEdit();
+    usernameLineEdit->setMinimumWidth(QLINE_MINIMUM_WIDTH);
+    form->addRow("", usernameLineEdit);
+    
+    QDialogButtonBox* buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
+    dialog.connect(buttons, SIGNAL(accepted()), SLOT(accept()));
+    dialog.connect(buttons, SIGNAL(rejected()), SLOT(reject()));
+    layout->addWidget(buttons);
+    
+    int ret = dialog.exec();
+    applicationInstance->getWindow()->activateWindow();
+    if (ret != QDialog::Accepted) {
+        return;
+    }
+}
 
 void Menu::bandwidthDetails() {
     
