@@ -703,8 +703,6 @@ void VoxelSystem::setupNewVoxelsForDrawingSingleNode(bool allowBailEarly) {
         return; // bail early, it hasn't been long enough since the last time we ran
     }
 
-    //checkForCulling(); // check for out of view and deleted voxels...
-
     // lock on the buffer write lock so we can't modify the data when the GPU is reading it
     {
         PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
