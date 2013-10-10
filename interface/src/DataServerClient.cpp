@@ -68,7 +68,7 @@ void DataServerClient::getValuesForKeysAndUUID(const QStringList& keys, const QU
 }
 
 void DataServerClient::getValuesForKeysAndUserString(const QStringList& keys, const QString& userString) {
-    if (!userString.isEmpty()) {
+    if (!userString.isEmpty() && keys.size() <= UCHAR_MAX) {
         unsigned char* getPacket = new unsigned char[MAX_PACKET_SIZE];
         
         // setup the header for this packet
@@ -78,6 +78,9 @@ void DataServerClient::getValuesForKeysAndUserString(const QStringList& keys, co
         memcpy(getPacket + numPacketBytes, userString.toLocal8Bit().constData(), userString.toLocal8Bit().size());
         numPacketBytes += userString.toLocal8Bit().size();
         getPacket[numPacketBytes++] = '\0';
+        
+        // pack one byte to designate the number of keys
+        getPacket[numPacketBytes++] = keys.size();
         
         for (int i = 0; i < keys.size(); ++i) {
             // pack the keys, null terminated
