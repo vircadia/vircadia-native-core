@@ -703,6 +703,13 @@ void Avatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
         }
     } else if (renderAvatarBalls || !_voxels.getVoxelURL().isValid()) {
         //  Render the body as balls and cones
+        glm::vec3 skinColor(SKIN_COLOR[0], SKIN_COLOR[1], SKIN_COLOR[2]);
+        glm::vec3 darkSkinColor(DARK_SKIN_COLOR[0], DARK_SKIN_COLOR[1], DARK_SKIN_COLOR[2]);
+        if (_head.getBlendFace().isActive()) {
+            skinColor = glm::vec3(_head.getBlendFace().computeAverageColor());
+            const float SKIN_DARKENING = 0.9f;
+            darkSkinColor = skinColor * SKIN_DARKENING;
+        }
         for (int b = 0; b < NUM_AVATAR_BODY_BALLS; b++) {
             float alpha = getBallRenderAlpha(b, lookingInMirror);
             
@@ -720,9 +727,9 @@ void Avatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
                 }
             } else if (alpha > 0.0f) {
                 //  Render the body ball sphere
-                glColor3f(SKIN_COLOR[0] + _bodyBall[b].touchForce * 0.3f,
-                          SKIN_COLOR[1] - _bodyBall[b].touchForce * 0.2f,
-                          SKIN_COLOR[2] - _bodyBall[b].touchForce * 0.1f);
+                glColor3f(skinColor.r + _bodyBall[b].touchForce * 0.3f,
+                    skinColor.g - _bodyBall[b].touchForce * 0.2f,
+                    skinColor.b - _bodyBall[b].touchForce * 0.1f);
                 
                 if (b == BODY_BALL_NECK_BASE && _head.getBlendFace().isActive()) {
                     continue; // don't render the neck if we have a face model
@@ -747,7 +754,7 @@ void Avatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
                         && (b != BODY_BALL_LEFT_SHOULDER)
                         && (b != BODY_BALL_RIGHT_COLLAR)
                         && (b != BODY_BALL_RIGHT_SHOULDER)) {
-                        glColor3fv(DARK_SKIN_COLOR);
+                        glColor3fv((const GLfloat*)&darkSkinColor);
                         
                         float r2 = _bodyBall[b].radius * 0.8;
                         renderJointConnectingCone(_bodyBall[_bodyBall[b].parentBall].position, _bodyBall[b].position, r2, r2);
