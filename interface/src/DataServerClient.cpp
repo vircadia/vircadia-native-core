@@ -50,7 +50,7 @@ void DataServerClient::putValueForKey(const QString& key, const char* value) {
         putPacket[numPacketBytes++] = '\0';
         
         // add the putPacket to our vector of unconfirmed packets, will be deleted once put is confirmed
-        _unmatchedPackets.insert(std::pair<unsigned char*, int>(putPacket, numPacketBytes));
+        // _unmatchedPackets.insert(std::pair<unsigned char*, int>(putPacket, numPacketBytes));
         
         // send this put request to the data server
         NodeList::getInstance()->getNodeSocket()->send((sockaddr*) &DATA_SERVER_SOCKET, putPacket, numPacketBytes);
@@ -88,7 +88,7 @@ void DataServerClient::getValuesForKeysAndUserString(const QStringList& keys, co
         }
         
         // add the getPacket to our vector of uncofirmed packets, will be deleted once we get a response from the nameserver
-        _unmatchedPackets.insert(std::pair<unsigned char*, int>(getPacket, numPacketBytes));
+        // _unmatchedPackets.insert(std::pair<unsigned char*, int>(getPacket, numPacketBytes));
         
         // send the get to the data server
         NodeList::getInstance()->getNodeSocket()->send((sockaddr*) &DATA_SERVER_SOCKET, getPacket, numPacketBytes);
@@ -151,7 +151,7 @@ void DataServerClient::processSendFromDataServer(unsigned char* packetData, int 
     }
     
     // remove the matched packet from  our map so it isn't re-sent to the data-server
-    removeMatchedPacketFromMap(packetData, numPacketBytes);
+    // removeMatchedPacketFromMap(packetData, numPacketBytes);
 }
 
 void DataServerClient::processMessageFromDataServer(unsigned char* packetData, int numPacketBytes) {
