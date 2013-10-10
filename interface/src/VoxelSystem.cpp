@@ -634,9 +634,6 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
     uint64_t start = usecTimestampNow();
     uint64_t sinceLastTime = (start - _setupNewVoxelsForDrawingLastFinished) / 1000;
     
-    // clear up the VBOs for any nodes that have been recently deleted.
-    //clearFreeBufferIndexes();
-
     bool iAmDebugging = false;  // if you're debugging set this to true, so you won't get skipped for slow debugging
     if (!iAmDebugging && sinceLastTime <= std::max((float) _setupNewVoxelsForDrawingLastElapsed, SIXTY_FPS_IN_MILLISECONDS)) {
         return; // bail early, it hasn't been long enough since the last time we ran
@@ -657,9 +654,7 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
         if (_writeRenderFullVBO) {
             printf("resetting _freeIndexes and _voxelsInWriteArrays\n");
             _voxelsInWriteArrays = 0; // reset our VBO
-            pthread_mutex_lock(&_freeIndexLock);
-            _freeIndexes.clear(); // reset our free indexes
-            pthread_mutex_unlock(&_freeIndexLock);
+            clearFreeBufferIndexes();
         }
         _voxelsUpdated = newTreeToArrays(_tree->rootNode);
         _tree->clearDirtyBit(); // after we pull the trees into the array, we can consider the tree clean
@@ -701,9 +696,6 @@ void VoxelSystem::setupNewVoxelsForDrawingSingleNode(bool allowBailEarly) {
 
     uint64_t start = usecTimestampNow();
     uint64_t sinceLastTime = (start - _setupNewVoxelsForDrawingLastFinished) / 1000;
-
-    // clear up the VBOs for any nodes that have been recently deleted.
-    //clearFreeBufferIndexes();
 
     bool iAmDebugging = false;  // if you're debugging set this to true, so you won't get skipped for slow debugging
     if (allowBailEarly && !iAmDebugging && 
