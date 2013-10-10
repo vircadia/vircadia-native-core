@@ -57,8 +57,8 @@ void Field::add(float* add, float *pos)
 //  At location loc, add vector add to the field values 
 {
     int index = (int)(pos[0] / _worldSize * 10.0) + 
-    (int)(pos[1] / _worldSize * 10.0)*10 +
-    (int)(pos[2] / _worldSize * 10.0)*100;
+    (int)(pos[1] / _worldSize * 10.0) * 10 +
+    (int)(pos[2] / _worldSize * 10.0) * 100;
     
     if ((index >= 0) && (index < FIELD_ELEMENTS))
     {
