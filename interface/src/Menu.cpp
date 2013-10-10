@@ -726,19 +726,7 @@ void updateDSHostname(const QString& domainServerHostname) {
     }
     
     // check if the domain server hostname is new
-    if (NodeList::getInstance()->getDomainHostname() != newHostname) {
-        
-        NodeList::getInstance()->clear();
-        
-        // kill the local voxels
-        Application::getInstance()->getVoxels()->killLocalVoxels();
-        
-        // reset the environment to default
-        Application::getInstance()->getEnvironment()->resetToDefault();
-        
-        // set the new hostname
-        NodeList::getInstance()->setDomainHostname(newHostname);
-    }
+    NodeList::getInstance()->setDomainHostname(newHostname);
 }
 
 const int QLINE_MINIMUM_WIDTH = 400;

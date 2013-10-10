@@ -109,6 +109,9 @@ Avatar::Avatar(Node* owningNode) :
     _maxArmLength(0.0f),
     _pelvisStandingHeight(0.0f)
 {
+    // we may have been created in the network thread, but we live in the main thread
+    moveToThread(Application::getInstance()->thread());
+    
     // give the pointer to our head to inherited _headData variable from AvatarData
     _headData = &_head;
     _handData = &_hand;
