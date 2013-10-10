@@ -79,6 +79,7 @@ void VoxelTree::recurseTreeWithOperation(RecurseVoxelTreeOperation operation, vo
 
 // Recurses voxel node with an operation function
 void VoxelTree::recurseNodeWithOperation(VoxelNode* node, RecurseVoxelTreeOperation operation, void* extraData) {
+        
     if (operation(node, extraData)) {
         for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
             VoxelNode* child = node->getChildAtIndex(i);
@@ -225,7 +226,6 @@ int VoxelTree::readNodeData(VoxelNode* destinationNode, unsigned char* nodeData,
                 // if we had a local version of the node already, it's possible that we have it in the VBO but
                 // with the same color data, so this won't count as a change. To address this we check the following
                 if (!childNodeAt->isDirty() && !childNodeAt->isKnownBufferIndex() && childNodeAt->getShouldRender()) {
-                    printf("got network packet with node that is in local tree, force dirty...\n");
                     childNodeAt->setDirtyBit(); // force dirty!
                 }
                 

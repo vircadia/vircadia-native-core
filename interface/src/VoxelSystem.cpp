@@ -76,6 +76,7 @@ VoxelSystem::VoxelSystem(float treeScale, int maxVoxels)
     _tree->rootNode->setVoxelSystem(this);
     pthread_mutex_init(&_bufferWriteLock, NULL);
     pthread_mutex_init(&_treeLock, NULL);
+    pthread_mutex_init(&_freeIndexLock, NULL);
 
     VoxelNode::addDeleteHook(this);
     VoxelNode::addUpdateHook(this);
@@ -109,15 +110,7 @@ VoxelSystem::VoxelSystem(float treeScale, int maxVoxels)
 
 void VoxelSystem::voxelDeleted(VoxelNode* node) {
     if (node->isKnownBufferIndex() && (node->getVoxelSystem() == this)) {
-        forceRemoveNodeFromArraysAsPartialVBO(node);
-        
-        /***
-        if (!_useFastVoxelPipeline || _inSetupNewVoxelsForDrawing || _writeRenderFullVBO) {
-            freeBufferIndex(node->getBufferIndex());
-        } else {
-            forceRemoveNodeFromArraysAsPartialVBO(node);
-        }
-        ***/
+        forceRemoveNodeFromArrays(node);
     }
 }
 
@@ -181,8 +174,10 @@ glBufferIndex VoxelSystem::getNextBufferIndex() {
     glBufferIndex output = GLBUFFER_INDEX_UNKNOWN;
     // if there's a free index, use it...
     if (_freeIndexes.size() > 0) {
+        pthread_mutex_lock(&_freeIndexLock);
         output = _freeIndexes.back();
         _freeIndexes.pop_back();
+        pthread_mutex_unlock(&_freeIndexLock);
     } else {
         output = _voxelsInWriteArrays;
         _voxelsInWriteArrays++;
@@ -194,14 +189,15 @@ glBufferIndex VoxelSystem::getNextBufferIndex() {
 // will also "clean up" the index data for the buffer/vbo slot, so that if it's in the middle of the draw range, the triangles
 // will be "invisible"
 void VoxelSystem::freeBufferIndex(glBufferIndex index) {
-    assert(_voxelsInWriteArrays > 0);
+    if (_voxelsInWriteArrays == 0) {
+        qDebug() << "freeBufferIndex() called when _voxelsInWriteArrays == 0!!!!\n";
+    }
 
     // if the "freed" index was our max index, then just drop the _voxelsInWriteArrays down one...
-    if (index == (_voxelsInWriteArrays - 1)) {
-        _voxelsInWriteArrays--;
-    } else {
-        bool inList = false;
-        // make sure the index isn't already in the free list...
+    bool inList = false;
+
+    // make sure the index isn't already in the free list..., this is a debugging measure only done if you've enabled audits
+    if (Menu::getInstance()->isOptionChecked(MenuOption::AutomaticallyAuditTree)) {
         for (long i = 0; i < _freeIndexes.size(); i++) {
             if (_freeIndexes[i] == index) {
                 printf("freeBufferIndex(glBufferIndex index)... index=%ld already in free list!\n", index);
@@ -209,25 +205,28 @@ void VoxelSystem::freeBufferIndex(glBufferIndex index) {
                 break;
             }
         }
-        
-        if (!inList) {
-            // make the index available for next node that needs to be drawn
-            _freeIndexes.push_back(index);
-    
-            // make the VBO slot "invisible" in case this slot is not used
-            const glm::vec3 startVertex(FLT_MAX, FLT_MAX, FLT_MAX);
-            const float voxelScale = 0;
-            const nodeColor BLACK = {0, 0, 0, 0};
-            updateArraysDetails(index, startVertex, voxelScale, BLACK);
-        }
+    }    
+    if (!inList) {
+        // make the index available for next node that needs to be drawn
+        pthread_mutex_lock(&_freeIndexLock);
+        _freeIndexes.push_back(index);
+        pthread_mutex_unlock(&_freeIndexLock);
+
+        // make the VBO slot "invisible" in case this slot is not used
+        const glm::vec3 startVertex(FLT_MAX, FLT_MAX, FLT_MAX);
+        const float voxelScale = 0;
+        const nodeColor BLACK = {0, 0, 0, 0};
+        updateArraysDetails(index, startVertex, voxelScale, BLACK);
     }
 }
 
 // This will run through the list of _freeIndexes and reset their VBO array values to be "invisible".
 void VoxelSystem::clearFreeBufferIndexes() {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "###### clearFreeBufferIndexes()");
+    pthread_mutex_lock(&_freeIndexLock);
     _freeIndexes.clear();
     _abandonedVBOSlots = 0;
+    pthread_mutex_unlock(&_freeIndexLock);
 }
 
 VoxelSystem::~VoxelSystem() {
@@ -235,6 +234,7 @@ VoxelSystem::~VoxelSystem() {
     delete _tree;
     pthread_mutex_destroy(&_bufferWriteLock);
     pthread_mutex_destroy(&_treeLock);
+    pthread_mutex_destroy(&_freeIndexLock);
 
     VoxelNode::removeDeleteHook(this);
     VoxelNode::removeUpdateHook(this);
@@ -612,10 +612,8 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
 
 
     if (!_useFastVoxelPipeline || _writeRenderFullVBO) {
-//printf("parseData about to call setupNewVoxelsForDrawing();\n");    
         setupNewVoxelsForDrawing();
     } else {
-printf("parseData about to call checkForCulling() and setupNewVoxelsForDrawingSingleNode(DONT_BAIL_EARLY)\n");    
         checkForCulling();
         setupNewVoxelsForDrawingSingleNode(DONT_BAIL_EARLY);
     }
@@ -659,7 +657,9 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
         if (_writeRenderFullVBO) {
             printf("resetting _freeIndexes and _voxelsInWriteArrays\n");
             _voxelsInWriteArrays = 0; // reset our VBO
+            pthread_mutex_lock(&_freeIndexLock);
             _freeIndexes.clear(); // reset our free indexes
+            pthread_mutex_unlock(&_freeIndexLock);
         }
         _voxelsUpdated = newTreeToArrays(_tree->rootNode);
         _tree->clearDirtyBit(); // after we pull the trees into the array, we can consider the tree clean
@@ -741,9 +741,15 @@ void VoxelSystem::checkForCulling() {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "checkForCulling()");
     uint64_t start = usecTimestampNow();
     uint64_t sinceLastViewCulling = (start - _lastViewCulling) / 1000;
+    
+    bool constantCulling = Menu::getInstance()->isOptionChecked(MenuOption::ConstantCulling);
+    
     // If the view frustum is no longer changing, but has changed, since last time, then remove nodes that are out of view
-    if ((sinceLastViewCulling >= std::max((float) _lastViewCullingElapsed, VIEW_CULLING_RATE_IN_MILLISECONDS))
-            && !isViewChanging()) {
+    if (constantCulling || (
+            (sinceLastViewCulling >= std::max((float) _lastViewCullingElapsed, VIEW_CULLING_RATE_IN_MILLISECONDS))
+            && !isViewChanging()
+        )
+    ) {
 
         _lastViewCulling = start;
 
@@ -764,7 +770,16 @@ void VoxelSystem::checkForCulling() {
 
         uint64_t endViewCulling = usecTimestampNow();
         _lastViewCullingElapsed = (endViewCulling - start) / 1000;
-    }    
+    }
+
+    uint64_t sinceLastAudit = (start - _lastAudit) / 1000;
+    
+    if (Menu::getInstance()->isOptionChecked(MenuOption::AutomaticallyAuditTree)) {
+        if (sinceLastAudit >= std::max((float) _lastViewCullingElapsed, VIEW_CULLING_RATE_IN_MILLISECONDS)) {
+            _lastAudit = start;
+            collectStatsForTreesAndVBOs();
+        }
+    }
 }
 
 void VoxelSystem::cleanupRemovedVoxels() {
@@ -905,12 +920,10 @@ int VoxelSystem::newTreeToArrays(VoxelNode* node) {
     if (_writeRenderFullVBO) {
         const bool DONT_REUSE_INDEX = false;
         const bool FORCE_REDRAW = true;
-//printf("newTreeToArrays() about to call updateNodeInArrays(node, DONT_REUSE_INDEX, FORCE_REDRAW);\n");
         voxelsUpdated += updateNodeInArrays(node, DONT_REUSE_INDEX, FORCE_REDRAW);
     } else {
         const bool REUSE_INDEX = true;
         const bool DONT_FORCE_REDRAW = false;
-//printf("newTreeToArrays() about to call updateNodeInArrays(node, REUSE_INDEX, DONT_FORCE_REDRAW);\n");
         voxelsUpdated += updateNodeInArrays(node, REUSE_INDEX, DONT_FORCE_REDRAW);
     }
     node->clearDirtyBit(); // clear the dirty bit, do this before we potentially delete things.
@@ -922,7 +935,7 @@ int VoxelSystem::newTreeToArrays(VoxelNode* node) {
 // is being deleted, but it's state is such that it thinks it should render
 // and therefore we can't use the normal render calculations. This method
 // will forcibly remove it from the VBOs because we know better!!!
-int VoxelSystem::forceRemoveNodeFromArraysAsPartialVBO(VoxelNode* node) {
+int VoxelSystem::forceRemoveNodeFromArrays(VoxelNode* node) {
 
     if (!_initialized) {
         return 0;
@@ -932,8 +945,8 @@ int VoxelSystem::forceRemoveNodeFromArraysAsPartialVBO(VoxelNode* node) {
     if (node->isKnownBufferIndex()) {
         // If this node has not yet been written to the array, then add it to the end of the array.
         glBufferIndex nodeIndex = node->getBufferIndex();
-        freeBufferIndex(nodeIndex); // NOTE: This is make the node invisible!
         node->setBufferIndex(GLBUFFER_INDEX_UNKNOWN);
+        freeBufferIndex(nodeIndex); // NOTE: This is make the node invisible!
         return 1; // updated!
     }
     return 0; // not-updated
@@ -958,25 +971,15 @@ printf("updateNodeInArrays(VoxelNode* node=[%f, %f, %f] %f, bool reuseIndex=%s, 
     // If we've changed any attributes (our renderness, our color, etc), or we've been told to force a redraw
     // then update the Arrays...
     if (forceDraw || node->isDirty()) {
-        /*
-        printf("updateNodeInArrays(VoxelNode* node=[%f, %f, %f] %f, bool reuseIndex=%s, bool forceDraw=%s)\n",
-            node->getCorner().x,node->getCorner().y,node->getCorner().z, node->getScale(),
-            debug::valueOf(reuseIndex),debug::valueOf(forceDraw));
-        */
-        //printf("....(isDirty() [isDirty()=%s] or forceRedraw=%s_...\n",debug::valueOf(node->isDirty()),debug::valueOf(forceDraw));
-            
         // If we're should render, use our legit location and scale, 
         if (node->getShouldRender()) {
-            //printf("....shouldRender()...\n");
             glm::vec3 startVertex = node->getCorner();
             float voxelScale = node->getScale();
 
             glBufferIndex nodeIndex = GLBUFFER_INDEX_UNKNOWN;
             if (reuseIndex && node->isKnownBufferIndex()) {
-                //printf("....shouldRender() and reuseIndex && node->isKnownBufferIndex() reusing...\n");
                 nodeIndex = node->getBufferIndex();
             } else {
-                //printf("....shouldRender() and NOT(reuseIndex && node->isKnownBufferIndex()) getting new index...\n");
                 nodeIndex = getNextBufferIndex();
                 node->setBufferIndex(nodeIndex);
                 node->setVoxelSystem(this);
@@ -985,16 +988,12 @@ printf("updateNodeInArrays(VoxelNode* node=[%f, %f, %f] %f, bool reuseIndex=%s, 
             updateArraysDetails(nodeIndex, startVertex, voxelScale, node->getColor());
             return 1; // updated!
         } else {
-            //printf("....NOT shouldRender()...\n");
             // If we shouldn't render, but we did have a known index, then we will need to release our index
             if (reuseIndex && node->isKnownBufferIndex()) {
-                //printf("....NOT shouldRender() and reuseIndex && node->isKnownBufferIndex() freeBufferIndex!...\n");
-                freeBufferIndex(node->getBufferIndex()); // this will make the node invisible
+                forceRemoveNodeFromArrays(node);
                 return 1; // updated!
             }
         }
-    } else {
-        //printf("....NOT (dirty [isDirty()=%s] or forceRedraw=%s_...\n",debug::valueOf(node->isDirty()),debug::valueOf(forceDraw));
     }
     return 0; // not-updated
 }
@@ -1046,7 +1045,7 @@ void VoxelSystem::init() {
     _callsToTreesToArrays = 0;
     _setupNewVoxelsForDrawingLastFinished = 0;
     _setupNewVoxelsForDrawingLastElapsed = 0;
-    _lastViewCullingElapsed = _lastViewCulling = 0;
+    _lastViewCullingElapsed = _lastViewCulling = _lastAudit = 0;
 
     _voxelsDirty = false;
     _voxelsInWriteArrays = 0;
@@ -1537,6 +1536,8 @@ public:
     unsigned long   nodesInside;
     unsigned long   nodesIntersect;
     unsigned long   nodesOutside;
+    VoxelNode*      insideRoot;
+    VoxelNode*      outsideRoot;
     
     removeOutOfViewArgs(VoxelSystem* voxelSystem, bool widenViewFrustum = true) :
         thisVoxelSystem(voxelSystem),
@@ -1546,7 +1547,9 @@ public:
         nodesRemoved(0),
         nodesInside(0),
         nodesIntersect(0),
-        nodesOutside(0)
+        nodesOutside(0),
+        insideRoot(NULL),
+        outsideRoot(NULL)
     {
         // Widen the FOV for trimming
         if (widenViewFrustum) {
@@ -1610,81 +1613,6 @@ bool VoxelSystem::removeOutOfViewOperation(VoxelNode* node, void* extraData) {
     return true; // keep going!
 }
 
-// "hide" voxels in the VBOs that are still in the tree that but not in view. 
-// We don't remove them from the tree, we don't delete them, we do remove them
-// from the VBOs and mark them as such in the tree.
-bool VoxelSystem::hideOutOfViewOperation(VoxelNode* node, void* extraData) {
-    removeOutOfViewArgs* args = (removeOutOfViewArgs*)extraData;
-
-    // If our node was previously added to the don't recurse bag, then return false to
-    // stop the further recursion. This means that the whole node and it's children are
-    // known to be in view, so don't recurse them
-    if (args->dontRecurseBag.contains(node)) {
-        args->dontRecurseBag.remove(node);
-        return false; // stop recursion
-    }
-    
-    VoxelSystem* thisVoxelSystem = args->thisVoxelSystem;
-    args->nodesScanned++;
-    // Need to operate on our child nodes, so we can remove them
-    for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
-        VoxelNode* childNode = node->getChildAtIndex(i);
-        if (childNode) {
-            ViewFrustum::location inFrustum = childNode->inFrustum(args->thisViewFrustum);
-            switch (inFrustum) {
-                case ViewFrustum::OUTSIDE: {
-                    args->nodesOutside++;
-                    if (childNode->isKnownBufferIndex()) {
-                        args->nodesRemoved++;
-                        thisVoxelSystem->forceRemoveNodeFromArraysAsPartialVBO(childNode);
-                        thisVoxelSystem->_voxelsUpdated++;
-                        thisVoxelSystem->setupNewVoxelsForDrawingSingleNode();
-                    }
-                    // how to handle recursion???? we probably want to continue
-                } break;
-                case ViewFrustum::INSIDE: {
-
-                    // if the child node is fully INSIDE the view, then there's no need to recurse it
-                    // because we know all it's children will also be in the view, so we want to 
-                    // tell the caller to NOT recurse this child
-                    args->nodesInside++;
-                    
-                    if (childNode->getShouldRender() && !childNode->isKnownBufferIndex()) {
-                        /*
-                        printf("in view, isKnownIndex()=%s isDirty()=%s shouldRender()=%s\n",
-                            debug::valueOf(childNode->isKnownBufferIndex()),
-                            debug::valueOf(childNode->isDirty()),
-                            debug::valueOf(childNode->getShouldRender()));
-                        */  
-                        childNode->setDirtyBit(); // will this make it draw?
-                    }
-                    //args->dontRecurseBag.insert(childNode);
-                } break;
-                case ViewFrustum::INTERSECT: {
-                    // if the child node INTERSECTs the view, then we don't want to remove it because
-                    // it is at least partially in view. But we DO want to recurse the children because
-                    // some of them may not be in view... nothing specifically to do, just keep iterating
-                    // the children
-                    args->nodesIntersect++;
-
-                    if (childNode->getShouldRender() && !childNode->isKnownBufferIndex()) {
-                        /*
-                        printf("intersect view, isKnownIndex()=%s isDirty()=%s shouldRender()=%s\n",
-                            debug::valueOf(childNode->isKnownBufferIndex()),
-                            debug::valueOf(childNode->isDirty()),
-                            debug::valueOf(childNode->getShouldRender()));
-                        */  
-                        childNode->setDirtyBit(); // will this make it draw?
-                    }
-
-                } break;
-            }
-        }
-    }
-    return true; // keep going!
-}
-
-
 bool VoxelSystem::isViewChanging() {
     bool result = false; // assume the best
 
@@ -1729,9 +1657,41 @@ void VoxelSystem::removeOutOfView() {
     }
 }
 
+// combines the removeOutOfView args into a single class
+class hideOutOfViewArgs {
+public:
+    VoxelSystem*    thisVoxelSystem;
+    VoxelTree*      tree;
+    ViewFrustum     thisViewFrustum;
+    unsigned long   nodesScanned;
+    unsigned long   nodesRemoved;
+    unsigned long   nodesInside;
+    unsigned long   nodesIntersect;
+    unsigned long   nodesOutside;
+    
+    hideOutOfViewArgs(VoxelSystem* voxelSystem, VoxelTree* tree, bool widenViewFrustum = true) :
+        thisVoxelSystem(voxelSystem),
+        tree(tree),
+        thisViewFrustum(*voxelSystem->getViewFrustum()),
+        nodesScanned(0),
+        nodesRemoved(0),
+        nodesInside(0),
+        nodesIntersect(0),
+        nodesOutside(0)
+    {
+        // Widen the FOV for trimming
+        if (widenViewFrustum) {
+            float originalFOV = thisViewFrustum.getFieldOfView();
+            float wideFOV = originalFOV + VIEW_FRUSTUM_FOV_OVERSEND;
+            thisViewFrustum.setFieldOfView(wideFOV);
+            thisViewFrustum.calculate();
+        }
+    }
+};
+
 void VoxelSystem::hideOutOfView() {
-    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "hideOutOfView()",true);
-    removeOutOfViewArgs args(this, true); // widen to match server!
+    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "hideOutOfView()");
+    hideOutOfViewArgs args(this, this->_tree, true); // widen to match server!
     _tree->recurseTreeWithOperation(hideOutOfViewOperation,(void*)&args);
 
     if (args.nodesRemoved) {
@@ -1747,8 +1707,86 @@ void VoxelSystem::hideOutOfView() {
                 args.nodesIntersect, args.nodesOutside
             );
     }
+}
+
+bool VoxelSystem::hideAllSubTreeOperation(VoxelNode* node, void* extraData) {
+    hideOutOfViewArgs* args = (hideOutOfViewArgs*)extraData;
+
+    args->nodesOutside++;
+    if (node->isKnownBufferIndex()) {
+        args->nodesRemoved++;
+        VoxelSystem* thisVoxelSystem = args->thisVoxelSystem;
+        thisVoxelSystem->forceRemoveNodeFromArrays(node);
+        thisVoxelSystem->_voxelsUpdated++;
+        thisVoxelSystem->setupNewVoxelsForDrawingSingleNode();
+    }
     
-    collectStatsForTreesAndVBOs();
+    return true;
+}
+
+bool VoxelSystem::showAllSubTreeOperation(VoxelNode* node, void* extraData) {
+    hideOutOfViewArgs* args = (hideOutOfViewArgs*)extraData;
+
+    args->nodesInside++;
+
+    if (node->getShouldRender() && !node->isKnownBufferIndex()) {
+        node->setDirtyBit(); // will this make it draw?
+    }
+
+    return true;
+}
+
+
+
+// "hide" voxels in the VBOs that are still in the tree that but not in view. 
+// We don't remove them from the tree, we don't delete them, we do remove them
+// from the VBOs and mark them as such in the tree.
+bool VoxelSystem::hideOutOfViewOperation(VoxelNode* node, void* extraData) {
+    hideOutOfViewArgs* args = (hideOutOfViewArgs*)extraData;
+
+    // If we're still recursing the tree using this operator, then we don't know if we're inside or outside... 
+    // so before we move forward we need to determine our frustum location
+    ViewFrustum::location inFrustum = node->inFrustum(args->thisViewFrustum);
+        
+    // ok, now do some processing for this node...
+    switch (inFrustum) {
+        case ViewFrustum::OUTSIDE: {
+            // if this node is fully OUTSIDE the view, then we know that ALL of it's children are also fully OUTSIDE
+            // so we can recurse the children and simply mark them as hidden
+            args->tree->recurseNodeWithOperation(node, hideAllSubTreeOperation, args );
+            
+            return false;
+            
+        } break;
+        case ViewFrustum::INSIDE: {
+            // if this node is fully INSIDE the view, then we know that ALL of it's children are also fully INSIDE
+            // so we can recurse the children and simply mark them as visible (as appropriate based on LOD)
+            args->tree->recurseNodeWithOperation(node, showAllSubTreeOperation, args );
+
+            return false;    
+        } break;
+        case ViewFrustum::INTERSECT: {
+            args->nodesScanned++;
+            args->nodesIntersect++;
+
+            // if the child node INTERSECTs the view, then we want to check to see if it thinks it should render
+            // if it should render but is missing it's VBO index, then we want to flip it on, and we can stop recursing from 
+            // here because we know will block any children anyway
+            if (node->getShouldRender() && !node->isKnownBufferIndex()) {
+                node->setDirtyBit(); // will this make it draw?
+                return false;
+            }
+
+            // If it INTERSECTS but shouldn't be displayed, then it's probably a parent and it is at least partially in view.
+            // So we DO want to recurse the children because some of them may not be in view... nothing specifically to do, 
+            // just keep iterating the children
+            return true;            
+
+        } break;
+    } // switch
+    
+
+    return true; // keep going!
 }
 
 

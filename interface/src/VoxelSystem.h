@@ -187,10 +187,12 @@ private:
     static bool forceRedrawEntireTreeOperation(VoxelNode* node, void* extraData);
     static bool clearAllNodesBufferIndexOperation(VoxelNode* node, void* extraData);
     static bool hideOutOfViewOperation(VoxelNode* node, void* extraData);
+    static bool hideOutOfViewUnrollOperation(VoxelNode* node, void* extraData);
+    static bool hideAllSubTreeOperation(VoxelNode* node, void* extraData);
+    static bool showAllSubTreeOperation(VoxelNode* node, void* extraData);
 
     int updateNodeInArrays(VoxelNode* node, bool reuseIndex, bool forceDraw);
-    
-    int forceRemoveNodeFromArraysAsPartialVBO(VoxelNode* node);
+    int forceRemoveNodeFromArrays(VoxelNode* node);
 
     void copyWrittenDataToReadArraysFullVBOs();
     void copyWrittenDataToReadArraysPartialVBOs();
@@ -220,6 +222,7 @@ private:
     int _setupNewVoxelsForDrawingLastElapsed;
     uint64_t _setupNewVoxelsForDrawingLastFinished;
     uint64_t _lastViewCulling;
+    uint64_t _lastAudit;
     int _lastViewCullingElapsed;
     
     void initVoxelMemory();
@@ -267,6 +270,7 @@ private:
     
     int _hookID;
     std::vector<glBufferIndex> _freeIndexes;
+    pthread_mutex_t _freeIndexLock;
 
     void freeBufferIndex(glBufferIndex index);
     void clearFreeBufferIndexes();

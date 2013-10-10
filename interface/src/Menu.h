@@ -126,9 +126,11 @@ namespace MenuOption {
     const QString Avatars = "Avatars";
     const QString AvatarAsBalls = "Avatar as Balls";
     const QString Atmosphere = "Atmosphere";
+    const QString AutomaticallyAuditTree = "Automatically Audit Tree Stats";
     const QString Bandwidth = "Bandwidth Display";
     const QString BandwidthDetails = "Bandwidth Details";
     const QString Collisions = "Collisions";
+    const QString ConstantCulling = "Constant Culling";
     const QString CopyVoxels = "Copy";
     const QString CoverageMap = "Render Coverage Map";
     const QString CoverageMapV2 = "Render Coverage Map V2";
