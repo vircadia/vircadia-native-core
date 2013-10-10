@@ -19,7 +19,7 @@ public:
 
     void reset();
     void simulate(float deltaTime, Transmitter* transmitter);
-    void updateFromGyrosAndOrWebcam(bool gyroLook, float pitchFromTouch);
+    void updateFromGyrosAndOrWebcam(float pitchFromTouch, bool turnWithHead);
     void render(bool lookingInMirror, bool renderAvatarBalls);
     void renderScreenTint(ScreenTintLayer layer, Camera& whichCamera);
 
@@ -48,7 +48,7 @@ public:
     Avatar* getLeadingAvatar() const { return _leadingAvatar; }
     glm::vec3 getGravity() const { return _gravity; }
     glm::vec3 getUprightHeadPosition() const;
-    glm::vec3 getUprightEyeLevelPosition() const;
+    glm::vec3 getEyeLevelPosition() const;
     
     // get/set avatar data
     void saveData(QSettings* settings);

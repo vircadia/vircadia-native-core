@@ -45,6 +45,9 @@ public:
     /// \return whether or not both eye meshes were found
     bool getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition, bool upright = false) const;
     
+    /// Returns the average color of all meshes in the geometry.
+    glm::vec4 computeAverageColor() const;
+    
 private:
     
     void deleteGeometry();

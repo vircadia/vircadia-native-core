@@ -83,8 +83,6 @@ Head::Head(Avatar* owningAvatar) :
     _mousePitch(0.f),
     _cameraYaw(_yaw),
     _isCameraMoving(false),
-    _cameraFollowsHead(false),
-    _cameraFollowHeadRate(0.0f),
     _face(this),
     _perlinFace(this),
     _blendFace(this)
@@ -142,8 +140,10 @@ void Head::simulate(float deltaTime, bool isMine) {
     
     //  Update audio trailing average for rendering facial animations
     Faceshift* faceshift = Application::getInstance()->getFaceshift();
-    _isFaceshiftConnected = faceshift != NULL;
-
+    if (isMine) {
+        _isFaceshiftConnected = faceshift->isActive();
+    }
+    
     if (isMine && faceshift->isActive()) {
         const float EYE_OPEN_SCALE = 0.5f;
         _leftEyeBlink = faceshift->getLeftBlink() - EYE_OPEN_SCALE * faceshift->getLeftEyeOpen();
@@ -157,7 +157,7 @@ void Head::simulate(float deltaTime, bool isMine) {
         _browAudioLift = faceshift->getBrowUpCenter() * BROW_HEIGHT_SCALE;
         _blendshapeCoefficients = faceshift->getBlendshapeCoefficients();
         
-    } else  if (!_isFaceshiftConnected) {
+    } else if (!_isFaceshiftConnected) {
         // Update eye saccades
         const float AVERAGE_MICROSACCADE_INTERVAL = 0.50f;
         const float AVERAGE_SACCADE_INTERVAL = 4.0f;

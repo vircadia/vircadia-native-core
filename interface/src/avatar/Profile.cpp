@@ -8,30 +8,29 @@
 
 #include <QtCore/QSettings>
 
+#include <UUID.h>
+
 #include "Profile.h"
 #include "DataServerClient.h"
 
-Profile::Profile() :
-    _username(),
+Profile::Profile(const QString &username) :
+    _username(username),
     _uuid(),
-    _faceModelURL()
+    _lastDomain(),
+    _lastPosition(0.0, 0.0, 0.0),
+ 	_faceModelURL()
 {
-    
-}
-
-void Profile::clear() {
-    _username.clear();
-    _uuid = QUuid();
-    _faceModelURL.clear();
-}
-
-void Profile::setUsername(const QString &username) {
-    this->clear();
-    _username = username;
-    
     if (!_username.isEmpty()) {
-        // we've been given a new username, ask the data-server for our UUID
+        // we've been given a new username, ask the data-server for profile
         DataServerClient::getClientValueForKey(DataServerKey::UUID);
+    }
+}
+
+QString Profile::getUserString() const {
+    if (_uuid.isNull()) {
+        return _username;
+    } else {
+        return uuidStringWithoutCurlyBraces(_uuid);
     }
 }
 
@@ -48,6 +47,42 @@ void Profile::setFaceModelURL(const QUrl& faceModelURL) {
     QMetaObject::invokeMethod(&Application::getInstance()->getAvatar()->getHead().getBlendFace(),
                               "setModelURL",
                               Q_ARG(QUrl, _faceModelURL));
+}
+
+void Profile::updateDomain(const QString& domain) {
+    if (_lastDomain != domain) {
+        _lastDomain = domain;
+        
+        // send the changed domain to the data-server
+        DataServerClient::putValueForKey(DataServerKey::Domain, domain.toLocal8Bit().constData());
+    }
+}
+
+void Profile::updatePosition(const glm::vec3 position) {
+    if (_lastPosition != position) {
+        
+        static timeval lastPositionSend = {};
+        const uint64_t DATA_SERVER_POSITION_UPDATE_INTERVAL_USECS = 5 * 1000 * 1000;
+        const float DATA_SERVER_POSITION_CHANGE_THRESHOLD_METERS = 1;
+        
+        if (usecTimestampNow() - usecTimestamp(&lastPositionSend) >= DATA_SERVER_POSITION_UPDATE_INTERVAL_USECS &&
+            (fabsf(_lastPosition.x - position.x) >= DATA_SERVER_POSITION_CHANGE_THRESHOLD_METERS ||
+             fabsf(_lastPosition.y - position.y) >= DATA_SERVER_POSITION_CHANGE_THRESHOLD_METERS ||
+             fabsf(_lastPosition.z - position.z) >= DATA_SERVER_POSITION_CHANGE_THRESHOLD_METERS))  {
+                
+                // if it has been 5 seconds since the last position change and the user has moved >= the threshold
+                // in at least one of the axis then send the position update to the data-server
+                
+                _lastPosition = position;
+                
+                // update the lastPositionSend to now
+                gettimeofday(&lastPositionSend, NULL);
+                
+                // send the changed position to the data-server
+                QString positionString = QString("%1,%2,%3").arg(position.x).arg(position.y).arg(position.z);
+                DataServerClient::putValueForKey(DataServerKey::Position, positionString.toLocal8Bit().constData());
+            }
+    }
 }
 
 void Profile::saveData(QSettings* settings) {

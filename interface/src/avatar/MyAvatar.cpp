@@ -357,8 +357,7 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter) {
 }
 
 //  Update avatar head rotation with sensor data
-void MyAvatar::updateFromGyrosAndOrWebcam(bool gyroLook,
-                                          float pitchFromTouch) {
+void MyAvatar::updateFromGyrosAndOrWebcam(float pitchFromTouch, bool turnWithHead) {
     Faceshift* faceshift = Application::getInstance()->getFaceshift();
     SerialInterface* gyros = Application::getInstance()->getSerialHeadSensor();
     Webcam* webcam = Application::getInstance()->getWebcam();
@@ -368,11 +367,13 @@ void MyAvatar::updateFromGyrosAndOrWebcam(bool gyroLook,
         estimatedPosition = faceshift->getHeadTranslation();
         estimatedRotation = safeEulerAngles(faceshift->getHeadRotation());
         //  Rotate the body if the head is turned quickly
-        glm::vec3 headAngularVelocity = faceshift->getHeadAngularVelocity();
-        const float FACESHIFT_YAW_VIEW_SENSITIVITY = 20.f;
-        const float FACESHIFT_MIN_YAW_VELOCITY = 1.0f;
-        if (fabs(headAngularVelocity.y) > FACESHIFT_MIN_YAW_VELOCITY) {
-            _bodyYawDelta += headAngularVelocity.y * FACESHIFT_YAW_VIEW_SENSITIVITY;
+        if (turnWithHead) {
+            glm::vec3 headAngularVelocity = faceshift->getHeadAngularVelocity();
+            const float FACESHIFT_YAW_VIEW_SENSITIVITY = 20.f;
+            const float FACESHIFT_MIN_YAW_VELOCITY = 1.0f;
+            if (fabs(headAngularVelocity.y) > FACESHIFT_MIN_YAW_VELOCITY) {
+                _bodyYawDelta += headAngularVelocity.y * FACESHIFT_YAW_VIEW_SENSITIVITY;
+            }
         }
     } else if (gyros->isActive()) {
         estimatedRotation = gyros->getEstimatedRotation();
@@ -429,7 +430,6 @@ void MyAvatar::updateFromGyrosAndOrWebcam(bool gyroLook,
     _head.setPitch(estimatedRotation.x * AVATAR_HEAD_PITCH_MAGNIFY);
     _head.setYaw(estimatedRotation.y * AVATAR_HEAD_YAW_MAGNIFY);
     _head.setRoll(estimatedRotation.z * AVATAR_HEAD_ROLL_MAGNIFY);
-    _head.setCameraFollowsHead(gyroLook);
         
     //  Update torso lean distance based on accelerometer data
     const float TORSO_LENGTH = _scale * 0.5f;
@@ -577,10 +577,10 @@ glm::vec3 MyAvatar::getUprightHeadPosition() const {
     return _position + getWorldAlignedOrientation() * glm::vec3(0.0f, _pelvisToHeadLength, 0.0f);
 }
 
-glm::vec3 MyAvatar::getUprightEyeLevelPosition() const {
-     const float EYE_UP_OFFSET = 0.36f;
-    glm::vec3 up = getWorldAlignedOrientation() * IDENTITY_UP;
-    return _position + up * _scale * BODY_BALL_RADIUS_HEAD_BASE * EYE_UP_OFFSET + glm::vec3(0.0f, _pelvisToHeadLength, 0.0f);
+glm::vec3 MyAvatar::getEyeLevelPosition() const {
+    const float EYE_UP_OFFSET = 0.36f;
+    return _position + getWorldAlignedOrientation() * _skeleton.joint[AVATAR_JOINT_TORSO].rotation *
+        glm::vec3(0.0f, _pelvisToHeadLength + _scale * BODY_BALL_RADIUS_HEAD_BASE * EYE_UP_OFFSET, 0.0f);
 }
 
 float MyAvatar::getBallRenderAlpha(int ball, bool lookingInMirror) const {
@@ -608,6 +608,13 @@ void MyAvatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
         }
     } else if (renderAvatarBalls || !_voxels.getVoxelURL().isValid()) {
         //  Render the body as balls and cones
+        glm::vec3 skinColor(SKIN_COLOR[0], SKIN_COLOR[1], SKIN_COLOR[2]);
+        glm::vec3 darkSkinColor(DARK_SKIN_COLOR[0], DARK_SKIN_COLOR[1], DARK_SKIN_COLOR[2]);
+        if (_head.getBlendFace().isActive()) {
+            skinColor = glm::vec3(_head.getBlendFace().computeAverageColor());
+            const float SKIN_DARKENING = 0.9f;
+            darkSkinColor = skinColor * SKIN_DARKENING;
+        }
         for (int b = 0; b < NUM_AVATAR_BODY_BALLS; b++) {
             float alpha = getBallRenderAlpha(b, lookingInMirror);
             
@@ -628,14 +635,14 @@ void MyAvatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
                 if (b == BODY_BALL_RIGHT_ELBOW
                     || b == BODY_BALL_RIGHT_WRIST
                     || b == BODY_BALL_RIGHT_FINGERTIPS ) {
-                    glColor3f(SKIN_COLOR[0] + _bodyBall[b].touchForce * 0.3f,
-                              SKIN_COLOR[1] - _bodyBall[b].touchForce * 0.2f,
-                              SKIN_COLOR[2] - _bodyBall[b].touchForce * 0.1f);
+                    glColor3f(skinColor.r + _bodyBall[b].touchForce * 0.3f,
+                        skinColor.g - _bodyBall[b].touchForce * 0.2f,
+                        skinColor.b - _bodyBall[b].touchForce * 0.1f);
                 } else {
-                    glColor4f(SKIN_COLOR[0] + _bodyBall[b].touchForce * 0.3f,
-                              SKIN_COLOR[1] - _bodyBall[b].touchForce * 0.2f,
-                              SKIN_COLOR[2] - _bodyBall[b].touchForce * 0.1f,
-                              alpha);
+                    glColor4f(skinColor.r + _bodyBall[b].touchForce * 0.3f,
+                        skinColor.g - _bodyBall[b].touchForce * 0.2f,
+                        skinColor.b - _bodyBall[b].touchForce * 0.1f,
+                        alpha);
                 }
                 
                 if (b == BODY_BALL_NECK_BASE && _head.getBlendFace().isActive()) {
@@ -661,7 +668,7 @@ void MyAvatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
                         && (b != BODY_BALL_LEFT_SHOULDER)
                         && (b != BODY_BALL_RIGHT_COLLAR)
                         && (b != BODY_BALL_RIGHT_SHOULDER)) {
-                        glColor3fv(DARK_SKIN_COLOR);
+                        glColor3fv((const GLfloat*)&darkSkinColor);
                         
                         float r2 = _bodyBall[b].radius * 0.8;
                         
