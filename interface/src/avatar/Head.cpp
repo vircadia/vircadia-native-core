@@ -83,8 +83,6 @@ Head::Head(Avatar* owningAvatar) :
     _mousePitch(0.f),
     _cameraYaw(_yaw),
     _isCameraMoving(false),
-    _cameraFollowsHead(false),
-    _cameraFollowHeadRate(0.0f),
     _face(this),
     _perlinFace(this),
     _blendFace(this)

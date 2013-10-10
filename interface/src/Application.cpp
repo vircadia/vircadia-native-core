@@ -1987,6 +1987,11 @@ void Application::update(float deltaTime) {
         _myAvatar.simulate(deltaTime, NULL);
     }
     
+    //  Simulate particle cloud movements
+    if (Menu::getInstance()->isOptionChecked(MenuOption::ParticleCloud)) {
+        _cloud.simulate(deltaTime);
+    }
+    
     // no transmitter drive implies transmitter pick
     if (!Menu::getInstance()->isOptionChecked(MenuOption::TransmitterDrive) && _myTransmitter.isConnected()) {
         _transmitterPickStart = _myAvatar.getSkeleton().joint[AVATAR_JOINT_CHEST].position;
@@ -2083,8 +2088,7 @@ void Application::updateAvatar(float deltaTime) {
     _yawFromTouch = 0.f;
     
     // Update my avatar's state from gyros and/or webcam
-    _myAvatar.updateFromGyrosAndOrWebcam(Menu::getInstance()->isOptionChecked(MenuOption::GyroLook),
-                                         _pitchFromTouch);
+    _myAvatar.updateFromGyrosAndOrWebcam(_pitchFromTouch, Menu::getInstance()->isOptionChecked(MenuOption::TurnWithHead));
     
     // Update head mouse from faceshift if active
     if (_faceshift.isActive()) {
@@ -2503,7 +2507,11 @@ void Application::displaySide(Camera& whichCamera) {
         glDisable(GL_NORMALIZE);
         
         //renderGroundPlaneGrid(EDGE_SIZE_GROUND_PLANE, _audio.getCollisionSoundMagnitude());
-    } 
+    }
+    //  Draw Cloud Particles
+    if (Menu::getInstance()->isOptionChecked(MenuOption::ParticleCloud)) {
+        _cloud.render();
+    }
     //  Draw voxels
     if (Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
         PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
@@ -2512,6 +2520,7 @@ void Application::displaySide(Camera& whichCamera) {
             _voxels.render(Menu::getInstance()->isOptionChecked(MenuOption::VoxelTextures));
         }
     }
+    
     
     // restore default, white specular
     glMaterialfv(GL_FRONT, GL_SPECULAR, WHITE_SPECULAR_COLOR);
