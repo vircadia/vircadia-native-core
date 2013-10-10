@@ -17,9 +17,6 @@ const float FIELD_COUPLE = 0.001f;
 const bool RENDER_FIELD = false;
 
 Cloud::Cloud() {
-    //  Create and initialize particles
-
-    
     glm::vec3 box = glm::vec3(PARTICLE_WORLD_SIZE);
     _bounds = box;
     _count = NUM_PARTICLES;

@@ -9,8 +9,7 @@
 
 #include "Field.h"
 
-int Field::value(float *value, float *pos)
-{
+int Field::value(float *value, float *pos) {
     int index = (int)(pos[0] / _worldSize * 10.0) +
     (int)(pos[1] / _worldSize * 10.0) * 10 + 
     (int)(pos[2] / _worldSize * 10.0) * 100;
@@ -27,8 +26,7 @@ int Field::value(float *value, float *pos)
     }
 }
 
-Field::Field(float worldSize, float coupling)
-{
+Field::Field(float worldSize, float coupling) {
     _worldSize = worldSize;
     _coupling = coupling;
     //float fx, fy, fz;
@@ -44,8 +42,7 @@ Field::Field(float worldSize, float coupling)
     }
 }
 
-void Field::add(float* add, float *pos)
-{
+void Field::add(float* add, float *pos) {
     int index = (int)(pos[0] / _worldSize * 10.0) + 
     (int)(pos[1] / _worldSize * 10.0) * 10 +
     (int)(pos[2] / _worldSize * 10.0) * 100;
@@ -79,8 +76,7 @@ void Field::simulate(float deltaTime) {
     }
 }
 
-void Field::render()
-{
+void Field::render() {
     int i;
     float scale_view = 0.05f * _worldSize;
     
