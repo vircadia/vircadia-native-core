@@ -69,9 +69,11 @@ public slots:
     
 private slots:
     void aboutApp();
+    void login();
     void editPreferences();
     void goToDomain();
     void goToLocation();
+    void goToUser();
     void bandwidthDetailsClosed();
     void voxelStatsDetailsClosed();
     void cycleFrustumRenderMode();
@@ -120,7 +122,6 @@ private:
 };
 
 namespace MenuOption {
-    
     const QString AboutApp = "About Interface";
     const QString AmbientOcclusion = "Ambient Occlusion";
     const QString Avatars = "Avatars";
@@ -161,6 +162,7 @@ namespace MenuOption {
     const QString GlowMode = "Cycle Glow Mode";
     const QString GoToDomain = "Go To Domain...";
     const QString GoToLocation = "Go To Location...";
+    const QString GoToUser = "Go To User...";
     const QString ImportVoxels = "Import Voxels";
     const QString ImportVoxelsClipboard = "Import Voxels to Clipboard";
     const QString IncreaseAvatarSize = "Increase Avatar Size";
@@ -174,6 +176,7 @@ namespace MenuOption {
     const QString ListenModePoint = "Listen Mode Point";
     const QString ListenModeSingleSource = "Listen Mode Single Source";
     const QString Log = "Log";
+    const QString Login = "Login";
     const QString LookAtIndicator = "Look-at Indicator";
     const QString LookAtVectors = "Look-at Vectors";
     const QString LowRes = "Lower Resolution While Moving";

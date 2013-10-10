@@ -68,6 +68,12 @@ Menu::Menu() :
 #endif
     
     (addActionToQMenuAndActionHash(fileMenu,
+                                   MenuOption::Login,
+                                   0,
+                                   this,
+                                   SLOT(login())));
+    
+    (addActionToQMenuAndActionHash(fileMenu,
                                    MenuOption::Preferences,
                                    Qt::CTRL | Qt::Key_Comma,
                                    this,
@@ -93,6 +99,11 @@ Menu::Menu() :
                                   Qt::CTRL | Qt::SHIFT | Qt::Key_L,
                                    this,
                                    SLOT(goToLocation()));
+    addActionToQMenuAndActionHash(fileMenu,
+                                  MenuOption::GoToUser,
+                                  Qt::CTRL | Qt::SHIFT | Qt::Key_U,
+                                  this,
+                                  SLOT(goToUser()));
 
     
     addDisabledActionAndSeparator(fileMenu, "Settings");
@@ -507,9 +518,10 @@ void Menu::loadSettings(QSettings* settings) {
     settings->endGroup();
     
     scanMenuBar(&loadAction, settings);
-    Application::getInstance()->getProfile()->loadData(settings);
     Application::getInstance()->getAvatar()->loadData(settings);
     Application::getInstance()->getSwatch()->loadData(settings);
+    Application::getInstance()->getProfile()->loadData(settings);
+    NodeList::getInstance()->loadData(settings);
 }
 
 void Menu::saveSettings(QSettings* settings) {
@@ -530,10 +542,8 @@ void Menu::saveSettings(QSettings* settings) {
     
     scanMenuBar(&saveAction, settings);
     Application::getInstance()->getAvatar()->saveData(settings);
-    Application::getInstance()->getProfile()->saveData(settings);
     Application::getInstance()->getSwatch()->saveData(settings);
-    
-    // ask the NodeList to save its data
+    Application::getInstance()->getProfile()->saveData(settings);
     NodeList::getInstance()->saveData(settings);
 }
 
@@ -749,6 +759,40 @@ QLineEdit* lineEditForDomainHostname() {
     return domainServerLineEdit;
 }
 
+
+void Menu::login() {
+    Application* applicationInstance = Application::getInstance();
+    QDialog dialog(applicationInstance->getGLWidget());
+    dialog.setWindowTitle("Login");
+    QBoxLayout* layout = new QBoxLayout(QBoxLayout::TopToBottom);
+    dialog.setLayout(layout);
+    
+    QFormLayout* form = new QFormLayout();
+    layout->addLayout(form, 1);
+    
+    QString username = applicationInstance->getProfile()->getUsername();
+    QLineEdit* usernameLineEdit = new QLineEdit(username);
+    usernameLineEdit->setMinimumWidth(QLINE_MINIMUM_WIDTH);
+    form->addRow("Username:", usernameLineEdit);
+    
+    QDialogButtonBox* buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
+    dialog.connect(buttons, SIGNAL(accepted()), SLOT(accept()));
+    dialog.connect(buttons, SIGNAL(rejected()), SLOT(reject()));
+    layout->addWidget(buttons);
+    
+    int ret = dialog.exec();
+    applicationInstance->getWindow()->activateWindow();
+    if (ret != QDialog::Accepted) {
+        return;
+    }
+    
+    if (usernameLineEdit->text() != username) {
+        // there has been a username change
+        // ask for a profile reset with the new username
+        applicationInstance->resetProfile(usernameLineEdit->text());
+    }
+}
+
 void Menu::editPreferences() {
     Application* applicationInstance = Application::getInstance();
     
@@ -759,11 +803,6 @@ void Menu::editPreferences() {
     
     QFormLayout* form = new QFormLayout();
     layout->addLayout(form, 1);
-    
-    QString avatarUsername = applicationInstance->getProfile()->getUsername();
-    QLineEdit* avatarUsernameEdit = new QLineEdit(avatarUsername);
-    avatarUsernameEdit->setMinimumWidth(QLINE_MINIMUM_WIDTH);
-    form->addRow("Username:", avatarUsernameEdit);
     
     QLineEdit* avatarURL = new QLineEdit(applicationInstance->getAvatar()->getVoxels()->getVoxelURL().toString());
     avatarURL->setMinimumWidth(QLINE_MINIMUM_WIDTH);
@@ -816,17 +855,6 @@ void Menu::editPreferences() {
      }
     
     QUrl faceModelURL(faceURLEdit->text());
-    
-    
-    if (avatarUsernameEdit->text() != avatarUsername) {
-        // there has been a username change - set the new UUID on the avatar instance
-        applicationInstance->getProfile()->setUsername(avatarUsernameEdit->text());
-        
-        if (faceModelURL.toString() == faceURLString && !avatarUsernameEdit->text().isEmpty()) {
-            // if there was no change to the face model URL then ask the data-server for what it is
-            DataServerClient::getClientValueForKey(DataServerKey::FaceMeshURL);
-        }
-    }
     
     if (faceModelURL.toString() != faceURLString) {
         // change the faceModelURL in the profile, it will also update this user's BlendFace
@@ -946,6 +974,37 @@ void Menu::goToLocation() {
     }
 }
 
+void Menu::goToUser() {
+    Application* applicationInstance = Application::getInstance();
+    QDialog dialog(applicationInstance->getGLWidget());
+    dialog.setWindowTitle("Go To User");
+    QBoxLayout* layout = new QBoxLayout(QBoxLayout::TopToBottom);
+    dialog.setLayout(layout);
+    
+    QFormLayout* form = new QFormLayout();
+    layout->addLayout(form, 1);
+    
+    QLineEdit* usernameLineEdit = new QLineEdit();
+    usernameLineEdit->setMinimumWidth(QLINE_MINIMUM_WIDTH);
+    form->addRow("", usernameLineEdit);
+    
+    QDialogButtonBox* buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
+    dialog.connect(buttons, SIGNAL(accepted()), SLOT(accept()));
+    dialog.connect(buttons, SIGNAL(rejected()), SLOT(reject()));
+    layout->addWidget(buttons);
+    
+    int ret = dialog.exec();
+    applicationInstance->getWindow()->activateWindow();
+    if (ret != QDialog::Accepted) {
+        return;
+    }
+    
+    if (!usernameLineEdit->text().isEmpty()) {
+        // there's a username entered by the user, make a request to the data-server
+        DataServerClient::getValuesForKeysAndUserString((QStringList() << DataServerKey::Domain << DataServerKey::Position),
+                                                        usernameLineEdit->text());
+    }
+}
 
 void Menu::bandwidthDetails() {
     
