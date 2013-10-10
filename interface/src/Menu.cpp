@@ -212,7 +212,13 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(viewMenu,
                                            MenuOption::OffAxisProjection,
                                            0,
-                                           false);
+                                           true);
+    addCheckableActionToQMenuAndActionHash(viewMenu,
+                                           MenuOption::TurnWithHead,
+                                           0,
+                                           true);
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::HeadMouse, 0, false);
+    
     
     addDisabledActionAndSeparator(viewMenu, "Stats");
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Stats, Qt::Key_Slash);
@@ -314,12 +320,6 @@ Menu::Menu() :
 
     addCheckableActionToQMenuAndActionHash(raveGloveOptionsMenu, MenuOption::SimulateLeapHand);
     addCheckableActionToQMenuAndActionHash(raveGloveOptionsMenu, MenuOption::TestRaveGlove);
-
-
-    QMenu* gyroOptionsMenu = developerMenu->addMenu("Gyro Options");
-    addCheckableActionToQMenuAndActionHash(gyroOptionsMenu, MenuOption::GyroLook, 0, true);
-    addCheckableActionToQMenuAndActionHash(gyroOptionsMenu, MenuOption::HeadMouse);
-
 
     QMenu* trackingOptionsMenu = developerMenu->addMenu("Tracking Options");
     addCheckableActionToQMenuAndActionHash(trackingOptionsMenu,

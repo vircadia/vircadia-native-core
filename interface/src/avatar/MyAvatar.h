@@ -19,7 +19,7 @@ public:
 
     void reset();
     void simulate(float deltaTime, Transmitter* transmitter);
-    void updateFromGyrosAndOrWebcam(bool gyroLook, float pitchFromTouch);
+    void updateFromGyrosAndOrWebcam(float pitchFromTouch, bool turnWithHead);
     void render(bool lookingInMirror, bool renderAvatarBalls);
     void renderScreenTint(ScreenTintLayer layer, Camera& whichCamera);
 

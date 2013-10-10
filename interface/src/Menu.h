@@ -170,7 +170,6 @@ namespace MenuOption {
     const QString Gravity = "Use Gravity";
     const QString GroundPlane = "Ground Plane";
     const QString ParticleCloud = "Particle Cloud";
-    const QString GyroLook = "Smooth Gyro Look";
     const QString ListenModeNormal = "Listen Mode Normal";
     const QString ListenModePoint = "Listen Mode Point";
     const QString ListenModeSingleSource = "Listen Mode Single Source";
@@ -182,6 +181,7 @@ namespace MenuOption {
     const QString NudgeVoxels = "Nudge";
     const QString OcclusionCulling = "Occlusion Culling";
     const QString OffAxisProjection = "Off-Axis Projection";
+    const QString TurnWithHead = "Turn using Head";
     const QString Oscilloscope = "Audio Oscilloscope";
     const QString Pair = "Pair";
     const QString PasteVoxels = "Paste";

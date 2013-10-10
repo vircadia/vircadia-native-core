@@ -2088,8 +2088,7 @@ void Application::updateAvatar(float deltaTime) {
     _yawFromTouch = 0.f;
     
     // Update my avatar's state from gyros and/or webcam
-    _myAvatar.updateFromGyrosAndOrWebcam(Menu::getInstance()->isOptionChecked(MenuOption::GyroLook),
-                                         _pitchFromTouch);
+    _myAvatar.updateFromGyrosAndOrWebcam(_pitchFromTouch, Menu::getInstance()->isOptionChecked(MenuOption::TurnWithHead));
     
     // Update head mouse from faceshift if active
     if (_faceshift.isActive()) {
