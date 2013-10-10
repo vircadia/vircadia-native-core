@@ -39,6 +39,9 @@ void DataServerClient::putValueForKey(const QString& key, const char* value) {
         numPacketBytes += clientString.toLocal8Bit().size();
         putPacket[numPacketBytes++] = '\0';
         
+        // pack a 1 to designate that we are putting a single value
+        putPacket[numPacketBytes++] = 1;
+        
         // pack the key, null terminated
         strcpy((char*) putPacket + numPacketBytes, key.toLocal8Bit().constData());
         numPacketBytes += key.size();
