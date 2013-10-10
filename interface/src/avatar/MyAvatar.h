@@ -48,7 +48,7 @@ public:
     Avatar* getLeadingAvatar() const { return _leadingAvatar; }
     glm::vec3 getGravity() const { return _gravity; }
     glm::vec3 getUprightHeadPosition() const;
-    glm::vec3 getUprightEyeLevelPosition() const;
+    glm::vec3 getEyeLevelPosition() const;
     
     // get/set avatar data
     void saveData(QSettings* settings);

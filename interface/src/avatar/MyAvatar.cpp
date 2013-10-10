@@ -577,10 +577,11 @@ glm::vec3 MyAvatar::getUprightHeadPosition() const {
     return _position + getWorldAlignedOrientation() * glm::vec3(0.0f, _pelvisToHeadLength, 0.0f);
 }
 
-glm::vec3 MyAvatar::getUprightEyeLevelPosition() const {
+glm::vec3 MyAvatar::getEyeLevelPosition() const {
      const float EYE_UP_OFFSET = 0.36f;
     glm::vec3 up = getWorldAlignedOrientation() * IDENTITY_UP;
-    return _position + up * _scale * BODY_BALL_RADIUS_HEAD_BASE * EYE_UP_OFFSET + glm::vec3(0.0f, _pelvisToHeadLength, 0.0f);
+    return _position + _skeleton.joint[AVATAR_JOINT_TORSO].rotation *
+        (up * _scale * BODY_BALL_RADIUS_HEAD_BASE * EYE_UP_OFFSET + glm::vec3(0.0f, _pelvisToHeadLength, 0.0f));
 }
 
 float MyAvatar::getBallRenderAlpha(int ball, bool lookingInMirror) const {
