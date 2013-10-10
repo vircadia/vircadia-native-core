@@ -243,7 +243,6 @@ Application::~Application() {
     
     delete _oculusProgram;
     delete _settings;
-    delete _networkAccessManager;
     delete _followMode;
     delete _glWidget;
 }
