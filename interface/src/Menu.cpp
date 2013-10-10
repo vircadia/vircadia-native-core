@@ -274,6 +274,11 @@ Menu::Menu() :
 
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::FastVoxelPipeline, 0,
                                            false, appInstance->getVoxels(), SLOT(setUseFastVoxelPipeline(bool)));
+
+    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::DontRemoveOutOfView);
+    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::HideOutOfView);
+    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::ConstantCulling);
+    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::AutomaticallyAuditTree);
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::VoxelTextures);
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::AmbientOcclusion);
                                            

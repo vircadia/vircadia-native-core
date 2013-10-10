@@ -322,7 +322,6 @@ void Application::initializeGL() {
 void Application::paintGL() {
     PerformanceWarning::setSuppressShortTimings(Menu::getInstance()->isOptionChecked(MenuOption::SuppressShortTimings));
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "Application::paintGL()");
-    PerfStat("display");
 
     glEnable(GL_LINE_SMOOTH);
 

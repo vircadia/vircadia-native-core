@@ -151,9 +151,9 @@ void AvatarVoxelSystem::setVoxelURL(const QUrl& url) {
     connect(_voxelReply, SIGNAL(error(QNetworkReply::NetworkError)), SLOT(handleVoxelReplyError()));
 }
 
-void AvatarVoxelSystem::updateNodeInArrays(glBufferIndex nodeIndex, const glm::vec3& startVertex,
+void AvatarVoxelSystem::updateArraysDetails(glBufferIndex nodeIndex, const glm::vec3& startVertex,
                                            float voxelScale, const nodeColor& color) {
-    VoxelSystem::updateNodeInArrays(nodeIndex, startVertex, voxelScale, color);
+    VoxelSystem::updateArraysDetails(nodeIndex, startVertex, voxelScale, color);
     
     GLubyte* writeBoneIndicesAt = _writeBoneIndicesArray + (nodeIndex * BONE_ELEMENTS_PER_VOXEL);
     GLfloat* writeBoneWeightsAt = _writeBoneWeightsArray + (nodeIndex * BONE_ELEMENTS_PER_VOXEL);
