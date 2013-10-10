@@ -288,6 +288,21 @@ NetworkGeometry::~NetworkGeometry() {
     }    
 }
 
+glm::vec4 NetworkGeometry::computeAverageColor() const {
+    if (_meshes.isEmpty()) {
+        return glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+    }
+    glm::vec4 total;
+    for (int i = 0; i < _meshes.size(); i++) {
+        glm::vec4 color = glm::vec4(_geometry.meshes.at(i).diffuseColor, 1.0f);
+        if (_meshes.at(i).diffuseTexture) {
+            color *= _meshes.at(i).diffuseTexture->getAverageColor();
+        }
+        total += color; 
+    }
+    return total / _meshes.size();
+}
+
 void NetworkGeometry::handleModelReplyError() {
     qDebug() << _modelReply->errorString() << "\n";
     

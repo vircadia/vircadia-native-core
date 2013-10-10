@@ -342,6 +342,10 @@ bool BlendFace::getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEy
     return false;
 }
 
+glm::vec4 BlendFace::computeAverageColor() const {
+    return _geometry ? _geometry->computeAverageColor() : glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+}
+
 void BlendFace::setModelURL(const QUrl& url) {
     // don't recreate the geometry if it's the same URL
     if (_modelURL == url) {

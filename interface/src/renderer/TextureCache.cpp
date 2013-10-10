@@ -173,7 +173,7 @@ Texture::~Texture() {
     glDeleteTextures(1, &_id);
 }
 
-NetworkTexture::NetworkTexture(const QUrl& url) : _reply(NULL) {
+NetworkTexture::NetworkTexture(const QUrl& url) : _reply(NULL), _averageColor(1.0f, 1.0f, 1.0f, 1.0f) {
     if (!url.isValid()) {
         return;
     }
@@ -206,6 +206,21 @@ void NetworkTexture::handleDownloadProgress(qint64 bytesReceived, qint64 bytesTo
     _reply = NULL;
     
     QImage image = QImage::fromData(entirety).convertToFormat(QImage::Format_ARGB32);
+    
+    // sum up the colors for the average
+    glm::vec4 accumulated;
+    for (int y = 0; y < image.height(); y++) {
+        for (int x = 0; x < image.width(); x++) {
+            QRgb pixel = image.pixel(x, y);
+            accumulated.r += qRed(pixel);
+            accumulated.g += qGreen(pixel);
+            accumulated.b += qBlue(pixel);
+            accumulated.a += qAlpha(pixel);
+        }
+    }
+    const float EIGHT_BIT_MAXIMUM = 255.0f;
+    _averageColor = accumulated / (image.width() * image.height() * EIGHT_BIT_MAXIMUM);
+    
     imageLoaded(image);
     glBindTexture(GL_TEXTURE_2D, getID());
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, image.width(), image.height(), 1,
