@@ -943,12 +943,6 @@ int VoxelSystem::forceRemoveNodeFromArrays(VoxelNode* node) {
 }
 
 int VoxelSystem::updateNodeInArrays(VoxelNode* node, bool reuseIndex, bool forceDraw) {
-
-/*
-printf("updateNodeInArrays(VoxelNode* node=[%f, %f, %f] %f, bool reuseIndex=%s, bool forceDraw=%s)\n",
-    node->getCorner().x,node->getCorner().y,node->getCorner().z, node->getScale(),
-    debug::valueOf(reuseIndex),debug::valueOf(forceDraw));
-*/  
     // If we've run out of room, then just bail...
     if (_voxelsInWriteArrays >= _maxVoxels) {
         return 0;
