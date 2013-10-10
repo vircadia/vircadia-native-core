@@ -27,15 +27,16 @@ class Field {
             float scalar;
         } _field[FIELD_ELEMENTS];
             
-        Field(float worldSize);
+        Field(float worldSize, float coupling);
 
         int value(float *ret, float *pos);
         void render();
         void add(float* add, float *loc);
-        void interact(float dt, glm::vec3 * pos, glm::vec3 * vel, glm::vec3 * color, float coupling);
-        void simulate(float dt);
+        void interact(float deltaTime, const glm::vec3& pos, glm::vec3& vel);
+        void simulate(float deltaTime);
     private:
         float _worldSize;
+        float _coupling;
 };
 
 #endif

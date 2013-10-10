@@ -30,10 +30,11 @@ int Field::value(float *value, float *pos)
     }
 }
 
-Field::Field(float worldSize)
+Field::Field(float worldSize, float coupling)
 //  Initializes the field to some random values
 {
     _worldSize = worldSize;
+    _coupling = coupling;
     float fx, fy, fz;
     for (int i = 0; i < FIELD_ELEMENTS; i++)
     {
@@ -67,20 +68,17 @@ void Field::add(float* add, float *pos)
     }
 }
 
-void Field::interact(float deltaTime, glm::vec3* pos, glm::vec3* vel, glm::vec3* color, float coupling) {
+void Field::interact(float deltaTime, const glm::vec3& pos, glm::vec3& vel) {
     
-    int index = (int)(pos->x/ _worldSize * 10.0) +
-    (int)(pos->y/_worldSize*10.0) * 10 +
-    (int)(pos->z/_worldSize*10.0) * 100;
+    int index = (int)(pos.x / _worldSize * 10.0) +
+    (int)(pos.y / _worldSize*10.0) * 10 +
+    (int)(pos.z / _worldSize*10.0) * 100;
     if ((index >= 0) && (index < FIELD_ELEMENTS)) {
         //  
         //  Vector Coupling with particle velocity
         //
-        *vel += _field[index].val * deltaTime;            //  Particle influenced by field
-        
-        glm::vec3 temp = *vel * deltaTime;               //  Field influenced by particle
-        temp *= coupling;
-        _field[index].val += temp;
+        vel += _field[index].val * deltaTime;            //  Particle influenced by field
+        _field[index].val += vel * deltaTime * _coupling;
     }
 }
 

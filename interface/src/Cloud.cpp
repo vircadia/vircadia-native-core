@@ -13,14 +13,17 @@
 #include "Field.h"
 
 const int NUM_PARTICLES = 100000;
+const float FIELD_COUPLE = 0.001f;
 
 Cloud::Cloud() {
-    //  Create and initialize particles 
+    //  Create and initialize particles
+
+    
     glm::vec3 box = glm::vec3(PARTICLE_WORLD_SIZE);
     _bounds = box;
     _count = NUM_PARTICLES;
     _particles = new Particle[_count];
-    _field = new Field(PARTICLE_WORLD_SIZE);
+    _field = new Field(PARTICLE_WORLD_SIZE, FIELD_COUPLE);
     
     for (int i = 0; i < _count; i++) {
         _particles[i].position = randVector() * box;
@@ -36,17 +39,15 @@ void Cloud::render() {
     glPointSize(3.0f);
     glDisable(GL_TEXTURE_2D);
     glEnable(GL_POINT_SMOOTH);
-    glBegin(GL_POINTS);
-        for (unsigned int i = 0; i < _count; i++)
-        {
-            glColor3f(_particles[i].color.x,
-                      _particles[i].color.y,
-                      _particles[i].color.z);
-            glVertex3f(_particles[i].position.x,
-                       _particles[i].position.y,
-                       _particles[i].position.z);
-        }
-    glEnd();
+    
+    glEnableClientState(GL_VERTEX_ARRAY);
+    glEnableClientState(GL_COLOR_ARRAY);
+    glVertexPointer(3, GL_FLOAT, 3 * sizeof(glm::vec3), &_particles[0].position);
+    glColorPointer(3, GL_FLOAT, 3 * sizeof(glm::vec3), &_particles[0].color);
+    glDrawArrays(GL_POINTS, 0, NUM_PARTICLES);
+    glDisableClientState(GL_VERTEX_ARRAY);
+    glDisableClientState(GL_COLOR_ARRAY);
+     
 }
 
 void Cloud::simulate (float deltaTime) {
@@ -62,13 +63,8 @@ void Cloud::simulate (float deltaTime) {
         _particles[i].velocity *= (1.f - CONSTANT_DAMPING * deltaTime);
                 
         // Interact with Field
-        const float FIELD_COUPLE = 0.005f; 
-        _field->interact(deltaTime,
-                        &_particles[i].position,
-                        &_particles[i].velocity,
-                        &_particles[i].color,
-                        FIELD_COUPLE);
-        
+        _field->interact(deltaTime, _particles[i].position, _particles[i].velocity);
+                      
         //  Update color to velocity 
         _particles[i].color = (glm::normalize(_particles[i].velocity) * 0.5f) + 0.5f;
         
