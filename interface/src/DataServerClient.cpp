@@ -148,23 +148,24 @@ void DataServerClient::processSendFromDataServer(unsigned char* packetData, int 
                         }
                     }
                 }
-            } else if (keyList[i] == DataServerKey::Domain) {
-                qDebug() << "Changing domain hostname to" << valueList[i].toLocal8Bit().constData() <<
-                "to go to" << userString << "\n";
-                NodeList::getInstance()->setDomainHostname(valueList[i]);
-            } else if (keyList[i] == DataServerKey::Position) {
-                QStringList coordinateItems = valueList[i].split(',');
+            } else if (keyList[i] == DataServerKey::Domain && keyList[i + 1] == DataServerKey::Position
+                       && valueList[i] != " " && valueList[i + 1] != " ") {
+                
+                QStringList coordinateItems = valueList[i + 1].split(',');
                 
                 if (coordinateItems.size() == 3) {
-                    qDebug() << "Changing position to" << valueList[i].toLocal8Bit().constData() <<
-                    "to go to" << userString << "\n";
+                    
+                    qDebug() << "Changing domain to" << valueList[i].toLocal8Bit().constData() <<
+                        "and position to" << valueList[i + 1].toLocal8Bit().constData() <<
+                        "to go to" << userString << "\n";
+                    
+                    NodeList::getInstance()->setDomainHostname(valueList[i]);
                     
                     glm::vec3 newPosition(coordinateItems[0].toFloat(),
                                           coordinateItems[1].toFloat(),
                                           coordinateItems[2].toFloat());
                     Application::getInstance()->getAvatar()->setPosition(newPosition);
                 }
-                
                 
             } else if (keyList[i] == DataServerKey::UUID) {
                 // this is the user's UUID - set it on the profile
