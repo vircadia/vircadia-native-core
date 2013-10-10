@@ -29,6 +29,7 @@
 
 #include "BandwidthMeter.h"
 #include "Camera.h"
+#include "Cloud.h"
 #include "Environment.h"
 #include "GLCanvas.h"
 #include "PacketHeaders.h"
@@ -262,6 +263,8 @@ private:
     bool _justStarted;
 
     Stars _stars;
+    
+    Cloud _cloud;
     
     VoxelSystem _voxels;
     VoxelTree _clipboard; // if I copy/paste

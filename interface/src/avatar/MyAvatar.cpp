@@ -357,8 +357,7 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter) {
 }
 
 //  Update avatar head rotation with sensor data
-void MyAvatar::updateFromGyrosAndOrWebcam(bool gyroLook,
-                                          float pitchFromTouch) {
+void MyAvatar::updateFromGyrosAndOrWebcam(float pitchFromTouch, bool turnWithHead) {
     Faceshift* faceshift = Application::getInstance()->getFaceshift();
     SerialInterface* gyros = Application::getInstance()->getSerialHeadSensor();
     Webcam* webcam = Application::getInstance()->getWebcam();
@@ -368,11 +367,13 @@ void MyAvatar::updateFromGyrosAndOrWebcam(bool gyroLook,
         estimatedPosition = faceshift->getHeadTranslation();
         estimatedRotation = safeEulerAngles(faceshift->getHeadRotation());
         //  Rotate the body if the head is turned quickly
-        glm::vec3 headAngularVelocity = faceshift->getHeadAngularVelocity();
-        const float FACESHIFT_YAW_VIEW_SENSITIVITY = 20.f;
-        const float FACESHIFT_MIN_YAW_VELOCITY = 1.0f;
-        if (fabs(headAngularVelocity.y) > FACESHIFT_MIN_YAW_VELOCITY) {
-            _bodyYawDelta += headAngularVelocity.y * FACESHIFT_YAW_VIEW_SENSITIVITY;
+        if (turnWithHead) {
+            glm::vec3 headAngularVelocity = faceshift->getHeadAngularVelocity();
+            const float FACESHIFT_YAW_VIEW_SENSITIVITY = 20.f;
+            const float FACESHIFT_MIN_YAW_VELOCITY = 1.0f;
+            if (fabs(headAngularVelocity.y) > FACESHIFT_MIN_YAW_VELOCITY) {
+                _bodyYawDelta += headAngularVelocity.y * FACESHIFT_YAW_VIEW_SENSITIVITY;
+            }
         }
     } else if (gyros->isActive()) {
         estimatedRotation = gyros->getEstimatedRotation();
@@ -429,7 +430,6 @@ void MyAvatar::updateFromGyrosAndOrWebcam(bool gyroLook,
     _head.setPitch(estimatedRotation.x * AVATAR_HEAD_PITCH_MAGNIFY);
     _head.setYaw(estimatedRotation.y * AVATAR_HEAD_YAW_MAGNIFY);
     _head.setRoll(estimatedRotation.z * AVATAR_HEAD_ROLL_MAGNIFY);
-    _head.setCameraFollowsHead(gyroLook);
         
     //  Update torso lean distance based on accelerometer data
     const float TORSO_LENGTH = _scale * 0.5f;
