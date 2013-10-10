@@ -14,6 +14,7 @@
 
 const int NUM_PARTICLES = 100000;
 const float FIELD_COUPLE = 0.001f;
+const bool RENDER_FIELD = false;
 
 Cloud::Cloud() {
     //  Create and initialize particles
@@ -34,7 +35,9 @@ Cloud::Cloud() {
 }
 
 void Cloud::render() {
-    //field->render();
+    if (RENDER_FIELD) {
+        _field->render();
+    }
     
     glPointSize(3.0f);
     glDisable(GL_TEXTURE_2D);

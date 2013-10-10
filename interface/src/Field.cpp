@@ -5,14 +5,11 @@
 //  Created by Philip Rosedale on 8/23/12.
 //  Copyright (c) 2012 High Fidelity, Inc. All rights reserved.
 //
+//  A vector-valued field over an array of elements arranged as a 3D lattice
 
 #include "Field.h"
 
-//  A vector-valued field over an array of elements arranged as a 3D lattice 
-
 int Field::value(float *value, float *pos)
-// sets the vector value (3 floats) to field value at location pos in space.
-// returns zero if the location is outside world bounds
 {
     int index = (int)(pos[0] / _worldSize * 10.0) +
     (int)(pos[1] / _worldSize * 10.0) * 10 + 
@@ -31,30 +28,23 @@ int Field::value(float *value, float *pos)
 }
 
 Field::Field(float worldSize, float coupling)
-//  Initializes the field to some random values
 {
     _worldSize = worldSize;
     _coupling = coupling;
-    float fx, fy, fz;
+    //float fx, fy, fz;
     for (int i = 0; i < FIELD_ELEMENTS; i++)
     {
         const float FIELD_INITIAL_MAG = 0.0f;
         _field[i].val = randVector() * FIELD_INITIAL_MAG * _worldSize;
-        _field[i].scalar = 0; 
-        //  Record center point for this field cell
-        fx = static_cast<float>(i % 10);
-        fy = static_cast<float>(i % 100 / 10);
-        fz = static_cast<float>(i / 100);
-        _field[i].center.x = (fx + 0.5f);
-        _field[i].center.y = (fy + 0.5f);
-        _field[i].center.z = (fz + 0.5f);
+        _field[i].center.x = ((float)(i % 10) + 0.5f);
+        _field[i].center.y = ((float)(i % 100 / 10) + 0.5f);
+        _field[i].center.z = ((float)(i / 100) + 0.5f);
         _field[i].center *= _worldSize / 10.f;
         
     }
 }
 
 void Field::add(float* add, float *pos)
-//  At location loc, add vector add to the field values 
 {
     int index = (int)(pos[0] / _worldSize * 10.0) + 
     (int)(pos[1] / _worldSize * 10.0) * 10 +
@@ -74,11 +64,8 @@ void Field::interact(float deltaTime, const glm::vec3& pos, glm::vec3& vel) {
     (int)(pos.y / _worldSize*10.0) * 10 +
     (int)(pos.z / _worldSize*10.0) * 100;
     if ((index >= 0) && (index < FIELD_ELEMENTS)) {
-        //  
-        //  Vector Coupling with particle velocity
-        //
-        vel += _field[index].val * deltaTime;            //  Particle influenced by field
-        _field[index].val += vel * deltaTime * _coupling;
+        vel += _field[index].val * deltaTime;               //  Particle influenced by field
+        _field[index].val += vel * deltaTime * _coupling;   //  Field influenced by particle
     }
 }
 
@@ -87,15 +74,12 @@ void Field::simulate(float deltaTime) {
 
     for (int i = 0; i < FIELD_ELEMENTS; i++)
     {
-        const float CONSTANT_DAMPING = 0.5;
-        const float CONSTANT_SCALAR_DAMPING = 2.5;
+        const float CONSTANT_DAMPING = 0.5f;
         _field[i].val *= (1.f - CONSTANT_DAMPING * deltaTime);
-        _field[i].scalar *= (1.f - CONSTANT_SCALAR_DAMPING * deltaTime);
     }
 }
 
 void Field::render()
-//  Render the field lines
 {
     int i;
     float scale_view = 0.05f * _worldSize;
