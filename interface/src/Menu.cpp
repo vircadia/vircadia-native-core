@@ -725,7 +725,7 @@ void updateDSHostname(const QString& domainServerHostname) {
         newHostname = domainServerHostname;
     }
     
-    // check if the domain server hostname is new
+    // give our nodeList the new domain-server hostname
     NodeList::getInstance()->setDomainHostname(newHostname);
 }
 
