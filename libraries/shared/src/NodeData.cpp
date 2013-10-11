@@ -14,4 +14,6 @@ NodeData::NodeData(Node* owningNode) :
     
 }
 
-NodeData::~NodeData() {}
+NodeData::~NodeData() {
+
+}

@@ -288,6 +288,23 @@ NetworkGeometry::~NetworkGeometry() {
     }    
 }
 
+glm::vec4 NetworkGeometry::computeAverageColor() const {
+    glm::vec4 totalColor;
+    int totalVertices = 0;
+    for (int i = 0; i < _meshes.size(); i++) {
+        if (_geometry.meshes.at(i).isEye) {
+            continue; // skip eyes
+        }
+        glm::vec4 color = glm::vec4(_geometry.meshes.at(i).diffuseColor, 1.0f);
+        if (_meshes.at(i).diffuseTexture) {
+            color *= _meshes.at(i).diffuseTexture->getAverageColor();
+        }
+        totalColor += color * _geometry.meshes.at(i).vertices.size();
+        totalVertices += _geometry.meshes.at(i).vertices.size();
+    }
+    return (totalVertices == 0) ? glm::vec4(1.0f, 1.0f, 1.0f, 1.0f) : totalColor / totalVertices;
+}
+
 void NetworkGeometry::handleModelReplyError() {
     qDebug() << _modelReply->errorString() << "\n";
     
@@ -346,7 +363,7 @@ void NetworkGeometry::maybeReadModelWithMapping() {
         glGenBuffers(1, &networkMesh.vertexBufferID);
         glBindBuffer(GL_ARRAY_BUFFER, networkMesh.vertexBufferID);
             
-        if (mesh.blendshapes.isEmpty()) {
+        if (mesh.blendshapes.isEmpty() && mesh.springiness == 0.0f) {
             glBufferData(GL_ARRAY_BUFFER, (mesh.vertices.size() + mesh.normals.size()) * sizeof(glm::vec3) +
                 mesh.texCoords.size() * sizeof(glm::vec2), NULL, GL_STATIC_DRAW);
             glBufferSubData(GL_ARRAY_BUFFER, 0, mesh.vertices.size() * sizeof(glm::vec3), mesh.vertices.constData());

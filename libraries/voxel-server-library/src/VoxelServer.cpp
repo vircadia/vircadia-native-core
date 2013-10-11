@@ -295,19 +295,6 @@ void VoxelServer::run() {
         }
         qDebug("packetsPerSecond=%s PACKETS_PER_CLIENT_PER_INTERVAL=%d\n", packetsPerSecond, _packetsPerClientPerInterval);
     }
-    
-    // for now, initialize the environments with fixed values
-    _environmentData[1].setID(1);
-    _environmentData[1].setGravity(1.0f);
-    _environmentData[1].setAtmosphereCenter(glm::vec3(0.5, 0.5, (0.25 - 0.06125)) * (float)TREE_SCALE);
-    _environmentData[1].setAtmosphereInnerRadius(0.030625f * TREE_SCALE);
-    _environmentData[1].setAtmosphereOuterRadius(0.030625f * TREE_SCALE * 1.05f);
-    _environmentData[2].setID(2);
-    _environmentData[2].setGravity(1.0f);
-    _environmentData[2].setAtmosphereCenter(glm::vec3(0.5f, 0.5f, 0.5f) * (float)TREE_SCALE);
-    _environmentData[2].setAtmosphereInnerRadius(0.1875f * TREE_SCALE);
-    _environmentData[2].setAtmosphereOuterRadius(0.1875f * TREE_SCALE * 1.05f);
-    _environmentData[2].setScatteringWavelengths(glm::vec3(0.475f, 0.570f, 0.650f)); // swaps red and blue
 
     sockaddr senderAddress;
     

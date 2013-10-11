@@ -9,6 +9,7 @@
 #ifndef __interface__FBXReader__
 #define __interface__FBXReader__
 
+#include <QVarLengthArray>
 #include <QVariant>
 #include <QVector>
 
@@ -59,6 +60,10 @@ public:
     QByteArray normalFilename;
     
     QVector<FBXBlendshape> blendshapes;
+    
+    float springiness;
+    QVector<QPair<int, int> > springEdges;
+    QVector<QVarLengthArray<QPair<int, int>, 4> > vertexConnections;
 };
 
 /// A set of meshes extracted from an FBX document.

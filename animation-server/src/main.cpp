@@ -628,7 +628,7 @@ void* animateVoxels(void* args) {
         int packetsEnding = ::voxelEditPacketSender->packetsToSendCount();
         
         if (firstTime) {
-            int packetsPerSecond = (packetsEnding - packetsStarting) * (ACTUAL_FPS);
+            int packetsPerSecond = std::max(ACTUAL_FPS, (packetsEnding - packetsStarting) * (ACTUAL_FPS));
 
             std::cout << "Setting PPS to " << packetsPerSecond << "\n";
 

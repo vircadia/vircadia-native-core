@@ -19,8 +19,12 @@
 #include <QMainWindow>
 #include <QSlider>
 #include <QStandardPaths>
+#include <QUuid>
+
+#include <UUID.h>
 
 #include "Application.h"
+#include "DataServerClient.h"
 #include "PairingHandler.h"
 #include "Menu.h"
 #include "Util.h"
@@ -64,6 +68,12 @@ Menu::Menu() :
 #endif
     
     (addActionToQMenuAndActionHash(fileMenu,
+                                   MenuOption::Login,
+                                   0,
+                                   this,
+                                   SLOT(login())));
+    
+    (addActionToQMenuAndActionHash(fileMenu,
                                    MenuOption::Preferences,
                                    Qt::CTRL | Qt::Key_Comma,
                                    this,
@@ -89,6 +99,11 @@ Menu::Menu() :
                                   Qt::CTRL | Qt::SHIFT | Qt::Key_L,
                                    this,
                                    SLOT(goToLocation()));
+    addActionToQMenuAndActionHash(fileMenu,
+                                  MenuOption::GoToUser,
+                                  Qt::CTRL | Qt::SHIFT | Qt::Key_U,
+                                  this,
+                                  SLOT(goToUser()));
 
     
     addDisabledActionAndSeparator(fileMenu, "Settings");
@@ -208,7 +223,13 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(viewMenu,
                                            MenuOption::OffAxisProjection,
                                            0,
-                                           false);
+                                           true);
+    addCheckableActionToQMenuAndActionHash(viewMenu,
+                                           MenuOption::TurnWithHead,
+                                           0,
+                                           true);
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::HeadMouse, 0, false);
+    
     
     addDisabledActionAndSeparator(viewMenu, "Stats");
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Stats, Qt::Key_Slash);
@@ -230,6 +251,9 @@ Menu::Menu() :
                                   0,
                                   appInstance->getGlowEffect(),
                                   SLOT(cycleRenderMode()));
+    
+    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::ParticleCloud, 0, false);
+
 
     QMenu* voxelOptionsMenu = developerMenu->addMenu("Voxel Options");
 
@@ -250,6 +274,11 @@ Menu::Menu() :
 
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::FastVoxelPipeline, 0,
                                            false, appInstance->getVoxels(), SLOT(setUseFastVoxelPipeline(bool)));
+
+    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::DontRemoveOutOfView);
+    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::HideOutOfView);
+    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::ConstantCulling);
+    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::AutomaticallyAuditTree);
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::VoxelTextures);
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::AmbientOcclusion);
                                            
@@ -306,12 +335,6 @@ Menu::Menu() :
 
     addCheckableActionToQMenuAndActionHash(raveGloveOptionsMenu, MenuOption::SimulateLeapHand);
     addCheckableActionToQMenuAndActionHash(raveGloveOptionsMenu, MenuOption::TestRaveGlove);
-
-
-    QMenu* gyroOptionsMenu = developerMenu->addMenu("Gyro Options");
-    addCheckableActionToQMenuAndActionHash(gyroOptionsMenu, MenuOption::GyroLook, 0, true);
-    addCheckableActionToQMenuAndActionHash(gyroOptionsMenu, MenuOption::HeadMouse);
-
 
     QMenu* trackingOptionsMenu = developerMenu->addMenu("Tracking Options");
     addCheckableActionToQMenuAndActionHash(trackingOptionsMenu,
@@ -501,6 +524,8 @@ void Menu::loadSettings(QSettings* settings) {
     scanMenuBar(&loadAction, settings);
     Application::getInstance()->getAvatar()->loadData(settings);
     Application::getInstance()->getSwatch()->loadData(settings);
+    Application::getInstance()->getProfile()->loadData(settings);
+    NodeList::getInstance()->loadData(settings);
 }
 
 void Menu::saveSettings(QSettings* settings) {
@@ -522,8 +547,7 @@ void Menu::saveSettings(QSettings* settings) {
     scanMenuBar(&saveAction, settings);
     Application::getInstance()->getAvatar()->saveData(settings);
     Application::getInstance()->getSwatch()->saveData(settings);
-    
-    // ask the NodeList to save its data
+    Application::getInstance()->getProfile()->saveData(settings);
     NodeList::getInstance()->saveData(settings);
 }
 
@@ -705,20 +729,8 @@ void updateDSHostname(const QString& domainServerHostname) {
         newHostname = domainServerHostname;
     }
     
-    // check if the domain server hostname is new
-    if (NodeList::getInstance()->getDomainHostname() != newHostname) {
-        
-        NodeList::getInstance()->clear();
-        
-        // kill the local voxels
-        Application::getInstance()->getVoxels()->killLocalVoxels();
-        
-        // reset the environment to default
-        Application::getInstance()->getEnvironment()->resetToDefault();
-        
-        // set the new hostname
-        NodeList::getInstance()->setDomainHostname(newHostname);
-    }
+    // give our nodeList the new domain-server hostname
+    NodeList::getInstance()->setDomainHostname(newHostname);
 }
 
 const int QLINE_MINIMUM_WIDTH = 400;
@@ -739,8 +751,43 @@ QLineEdit* lineEditForDomainHostname() {
     return domainServerLineEdit;
 }
 
+
+void Menu::login() {
+    Application* applicationInstance = Application::getInstance();
+    QDialog dialog(applicationInstance->getGLWidget());
+    dialog.setWindowTitle("Login");
+    QBoxLayout* layout = new QBoxLayout(QBoxLayout::TopToBottom);
+    dialog.setLayout(layout);
+    
+    QFormLayout* form = new QFormLayout();
+    layout->addLayout(form, 1);
+    
+    QString username = applicationInstance->getProfile()->getUsername();
+    QLineEdit* usernameLineEdit = new QLineEdit(username);
+    usernameLineEdit->setMinimumWidth(QLINE_MINIMUM_WIDTH);
+    form->addRow("Username:", usernameLineEdit);
+    
+    QDialogButtonBox* buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
+    dialog.connect(buttons, SIGNAL(accepted()), SLOT(accept()));
+    dialog.connect(buttons, SIGNAL(rejected()), SLOT(reject()));
+    layout->addWidget(buttons);
+    
+    int ret = dialog.exec();
+    applicationInstance->getWindow()->activateWindow();
+    if (ret != QDialog::Accepted) {
+        return;
+    }
+    
+    if (usernameLineEdit->text() != username) {
+        // there has been a username change
+        // ask for a profile reset with the new username
+        applicationInstance->resetProfile(usernameLineEdit->text());
+    }
+}
+
 void Menu::editPreferences() {
     Application* applicationInstance = Application::getInstance();
+    
     QDialog dialog(applicationInstance->getGLWidget());
     dialog.setWindowTitle("Interface Preferences");
     QBoxLayout* layout = new QBoxLayout(QBoxLayout::TopToBottom);
@@ -753,9 +800,10 @@ void Menu::editPreferences() {
     avatarURL->setMinimumWidth(QLINE_MINIMUM_WIDTH);
     form->addRow("Avatar URL:", avatarURL);
     
-    QLineEdit* faceURL = new QLineEdit(applicationInstance->getAvatar()->getHead().getBlendFace().getModelURL().toString());
-    faceURL->setMinimumWidth(QLINE_MINIMUM_WIDTH);
-    form->addRow("Face URL:", faceURL);
+    QString faceURLString = applicationInstance->getProfile()->getFaceModelURL().toString();
+    QLineEdit* faceURLEdit = new QLineEdit(faceURLString);
+    faceURLEdit->setMinimumWidth(QLINE_MINIMUM_WIDTH);
+    form->addRow("Face URL:", faceURLEdit);
     
     QSlider* pupilDilation = new QSlider(Qt::Horizontal);
     pupilDilation->setValue(applicationInstance->getAvatar()->getHead().getPupilDilation() * pupilDilation->maximum());
@@ -798,13 +846,21 @@ void Menu::editPreferences() {
          return;
      }
     
+    QUrl faceModelURL(faceURLEdit->text());
+    
+    if (faceModelURL.toString() != faceURLString) {
+        // change the faceModelURL in the profile, it will also update this user's BlendFace
+        applicationInstance->getProfile()->setFaceModelURL(faceModelURL);
+        
+        // send the new face mesh URL to the data-server (if we have a client UUID)
+        DataServerClient::putValueForKey(DataServerKey::FaceMeshURL,
+                                         faceModelURL.toString().toLocal8Bit().constData());
+    }
+    
     QUrl avatarVoxelURL(avatarURL->text());
     applicationInstance->getAvatar()->getVoxels()->setVoxelURL(avatarVoxelURL);
     
-    QUrl faceModelURL(faceURL->text());
-    applicationInstance->getAvatar()->getHead().getBlendFace().setModelURL(faceModelURL);
-    
-    Avatar::sendAvatarURLsMessage(avatarVoxelURL, faceModelURL);
+    Avatar::sendAvatarURLsMessage(avatarVoxelURL);
     
     applicationInstance->getAvatar()->getHead().setPupilDilation(pupilDilation->value() / (float)pupilDilation->maximum());
     
@@ -910,6 +966,37 @@ void Menu::goToLocation() {
     }
 }
 
+void Menu::goToUser() {
+    Application* applicationInstance = Application::getInstance();
+    QDialog dialog(applicationInstance->getGLWidget());
+    dialog.setWindowTitle("Go To User");
+    QBoxLayout* layout = new QBoxLayout(QBoxLayout::TopToBottom);
+    dialog.setLayout(layout);
+    
+    QFormLayout* form = new QFormLayout();
+    layout->addLayout(form, 1);
+    
+    QLineEdit* usernameLineEdit = new QLineEdit();
+    usernameLineEdit->setMinimumWidth(QLINE_MINIMUM_WIDTH);
+    form->addRow("", usernameLineEdit);
+    
+    QDialogButtonBox* buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
+    dialog.connect(buttons, SIGNAL(accepted()), SLOT(accept()));
+    dialog.connect(buttons, SIGNAL(rejected()), SLOT(reject()));
+    layout->addWidget(buttons);
+    
+    int ret = dialog.exec();
+    applicationInstance->getWindow()->activateWindow();
+    if (ret != QDialog::Accepted) {
+        return;
+    }
+    
+    if (!usernameLineEdit->text().isEmpty()) {
+        // there's a username entered by the user, make a request to the data-server
+        DataServerClient::getValuesForKeysAndUserString((QStringList() << DataServerKey::Domain << DataServerKey::Position),
+                                                        usernameLineEdit->text());
+    }
+}
 
 void Menu::bandwidthDetails() {
     

@@ -56,7 +56,6 @@ public:
     void setAverageLoudness(float averageLoudness) { _averageLoudness = averageLoudness; }
     void setReturnToCenter (bool returnHeadToCenter) { _returnHeadToCenter = returnHeadToCenter; }
     void setRenderLookatVectors(bool onOff) { _renderLookatVectors = onOff; }
-    void setCameraFollowsHead(bool cameraFollowsHead) { _cameraFollowsHead = cameraFollowsHead; }
     
     float getMousePitch() const { return _mousePitch; }
     void  setMousePitch(float mousePitch) { _mousePitch = mousePitch; }
@@ -132,8 +131,6 @@ private:
     float _mousePitch;
     float _cameraYaw;
     bool _isCameraMoving;
-    bool _cameraFollowsHead;
-    float _cameraFollowHeadRate;
     Face _face;
     BlendFace _blendFace;
 
@@ -156,6 +153,7 @@ private:
     void resetHairPhysics();
     void updateHairPhysics(float deltaTime);
 
+    friend class BlendFace;
 };
 
 #endif

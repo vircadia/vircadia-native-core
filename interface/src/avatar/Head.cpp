@@ -83,8 +83,6 @@ Head::Head(Avatar* owningAvatar) :
     _mousePitch(0.f),
     _cameraYaw(_yaw),
     _isCameraMoving(false),
-    _cameraFollowsHead(false),
-    _cameraFollowHeadRate(0.0f),
     _face(this),
     _blendFace(this)
 {
@@ -116,6 +114,8 @@ void Head::reset() {
     if (USING_PHYSICAL_MOHAWK) {
         resetHairPhysics();
     }
+    
+    _blendFace.reset();
 }
 
 void Head::resetHairPhysics() {
@@ -139,8 +139,10 @@ void Head::simulate(float deltaTime, bool isMine) {
     
     //  Update audio trailing average for rendering facial animations
     Faceshift* faceshift = Application::getInstance()->getFaceshift();
-    _isFaceshiftConnected = faceshift != NULL;
-
+    if (isMine) {
+        _isFaceshiftConnected = faceshift->isActive();
+    }
+    
     if (isMine && faceshift->isActive()) {
         const float EYE_OPEN_SCALE = 0.5f;
         _leftEyeBlink = faceshift->getLeftBlink() - EYE_OPEN_SCALE * faceshift->getLeftEyeOpen();
@@ -154,7 +156,7 @@ void Head::simulate(float deltaTime, bool isMine) {
         _browAudioLift = faceshift->getBrowUpCenter() * BROW_HEIGHT_SCALE;
         _blendshapeCoefficients = faceshift->getBlendshapeCoefficients();
         
-    } else  if (!_isFaceshiftConnected) {
+    } else if (!_isFaceshiftConnected) {
         // Update eye saccades
         const float AVERAGE_MICROSACCADE_INTERVAL = 0.50f;
         const float AVERAGE_SACCADE_INTERVAL = 4.0f;
@@ -234,6 +236,8 @@ void Head::simulate(float deltaTime, bool isMine) {
     if (USING_PHYSICAL_MOHAWK) {
         updateHairPhysics(deltaTime);
     }
+    
+    _blendFace.simulate(deltaTime);
 }
 
 void Head::calculateGeometry() {
@@ -296,14 +300,13 @@ void Head::render(float alpha, bool isMine) {
         renderEyeBrows();
     }
     
+    if (_blendFace.isActive()) {
+        // the blend face may have custom eye meshes
+        _blendFace.getEyePositions(_leftEyePosition, _rightEyePosition);
+    }
+        
     if (_renderLookatVectors) {
-        glm::vec3 firstEyePosition = _leftEyePosition;
-        glm::vec3 secondEyePosition = _rightEyePosition;
-        if (_blendFace.isActive()) {
-            // the blend face may have custom eye meshes
-            _blendFace.getEyePositions(firstEyePosition, secondEyePosition);
-        }
-        renderLookatVectors(firstEyePosition, secondEyePosition, _lookAtPosition);
+        renderLookatVectors(_leftEyePosition, _rightEyePosition, _lookAtPosition);
     }
 }
 
