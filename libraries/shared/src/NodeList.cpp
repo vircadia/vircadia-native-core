@@ -533,17 +533,16 @@ Node* NodeList::soloNodeOfType(char nodeType) {
 
 void* removeSilentNodes(void *args) {
     NodeList* nodeList = (NodeList*) args;
-    uint64_t checkTimeUSecs;
+    uint64_t checkTimeUsecs = usecTimestampNow();
     int sleepTime;
     
     while (!silentNodeThreadStopFlag) {
-        checkTimeUSecs = usecTimestampNow();
         
         for(NodeList::iterator node = nodeList->begin(); node != nodeList->end(); ++node) {
             
             node->lock();
-            
-            if ((checkTimeUSecs - node->getLastHeardMicrostamp()) > NODE_SILENCE_THRESHOLD_USECS) {
+
+            if ((usecTimestampNow() - node->getLastHeardMicrostamp()) > NODE_SILENCE_THRESHOLD_USECS) {
             
                 qDebug() << "Killed " << *node << "\n";
                 
@@ -555,7 +554,7 @@ void* removeSilentNodes(void *args) {
             node->unlock();
         }
         
-        sleepTime = NODE_SILENCE_THRESHOLD_USECS - (usecTimestampNow() - checkTimeUSecs);
+        sleepTime = NODE_SILENCE_THRESHOLD_USECS - (usecTimestampNow() - checkTimeUsecs);
         #ifdef _WIN32
         Sleep( static_cast<int>(1000.0f*sleepTime) );
         #else
