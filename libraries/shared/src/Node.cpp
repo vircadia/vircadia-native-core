@@ -61,7 +61,11 @@ Node::Node(sockaddr* publicSocket, sockaddr* localSocket, char type, uint16_t no
 Node::~Node() {
     delete _publicSocket;
     delete _localSocket;
-    delete _linkedData;
+    
+    if (_linkedData) {
+        _linkedData->deleteLater();
+    }
+    
     delete _bytesReceivedMovingAverage;
     
     pthread_mutex_destroy(&_mutex);

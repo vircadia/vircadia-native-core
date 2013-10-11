@@ -58,6 +58,7 @@
 #include <VoxelSceneStats.h>
 
 #include "Application.h"
+#include "DataServerClient.h"
 #include "LogDisplay.h"
 #include "Menu.h"
 #include "Swatch.h"
@@ -101,6 +102,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _voxelImporter(_window),
         _wantToKillLocalVoxels(false),
         _audioScope(256, 200, true),
+        _profile(QString()),
         _mouseX(0),
         _mouseY(0),
         _touchAvgX(0.0f),
@@ -180,10 +182,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     
     _settings = new QSettings(this);
     
-    // check if there is a saved domain server hostname
-    // this must be done now instead of with the other setting checks to allow manual override with
-    // --domain or --local options
-    NodeList::getInstance()->loadData(_settings);
+    // call Menu getInstance static method to set up the menu
+    _window->setMenuBar(Menu::getInstance());
     
     // Check to see if the user passed in a command line option for loading a local
     // Voxel File.
@@ -205,9 +205,6 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     NodeList::getInstance()->startSilentNodeRemovalThread();
     
     _window->setCentralWidget(_glWidget);
-
-    // call Menu getInstance static method to set up the menu
-    _window->setMenuBar(Menu::getInstance());
     
     _networkAccessManager = new QNetworkAccessManager(this);
     QNetworkDiskCache* cache = new QNetworkDiskCache(_networkAccessManager);
@@ -242,7 +239,6 @@ Application::~Application() {
     
     delete _oculusProgram;
     delete _settings;
-    delete _networkAccessManager;
     delete _followMode;
     delete _glWidget;
 }
@@ -326,13 +322,20 @@ void Application::initializeGL() {
 void Application::paintGL() {
     PerformanceWarning::setSuppressShortTimings(Menu::getInstance()->isOptionChecked(MenuOption::SuppressShortTimings));
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "Application::paintGL()");
-    PerfStat("display");
 
     glEnable(GL_LINE_SMOOTH);
 
     if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         _myCamera.setTightness     (100.0f); 
-        _myCamera.setTargetPosition(_myAvatar.getUprightHeadPosition());
+        glm::vec3 targetPosition = _myAvatar.getUprightHeadPosition();
+        if (_myAvatar.getHead().getBlendFace().isActive()) {
+            // make sure we're aligned to the blend face eyes
+            glm::vec3 leftEyePosition, rightEyePosition;
+            if (_myAvatar.getHead().getBlendFace().getEyePositions(leftEyePosition, rightEyePosition, true)) {
+                targetPosition = (leftEyePosition + rightEyePosition) * 0.5f;
+            }
+        }
+        _myCamera.setTargetPosition(targetPosition);
         _myCamera.setTargetRotation(_myAvatar.getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PIf, 0.0f)));
         
     } else if (OculusManager::isConnected()) {
@@ -344,7 +347,7 @@ void Application::paintGL() {
     
     } else if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
         _myCamera.setTightness(0.0f);  //  In first person, camera follows head exactly without delay
-        _myCamera.setTargetPosition(_myAvatar.getUprightEyeLevelPosition());
+        _myCamera.setTargetPosition(_myAvatar.getEyeLevelPosition());
         _myCamera.setTargetRotation(_myAvatar.getHead().getCameraOrientation());
         
     } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
@@ -445,6 +448,12 @@ void Application::updateProjectionMatrix() {
     glFrustum(left, right, bottom, top, nearVal, farVal);
     
     glMatrixMode(GL_MODELVIEW);
+}
+
+void Application::resetProfile(const QString& username) {
+    // call the destructor on the old profile and construct a new one
+    (&_profile)->~Profile();
+    new (&_profile) Profile(username);
 }
 
 void Application::controlledBroadcastToNodes(unsigned char* broadcastData, size_t dataBytes, 
@@ -1150,6 +1159,9 @@ void Application::timer() {
     
     // ask the node list to check in with the domain server
     NodeList::getInstance()->sendDomainServerCheckIn();
+    
+    // give the MyAvatar object position to the Profile so it can propagate to the data-server
+    _profile.updatePosition(_myAvatar.getPosition());
 }
 
 static glm::vec3 getFaceVector(BoxFace face) {
@@ -1252,13 +1264,14 @@ void Application::processAvatarURLsMessage(unsigned char* packetData, size_t dat
         return;
     }
     QDataStream in(QByteArray((char*)packetData, dataBytes));
-    QUrl voxelURL, faceURL;
+    QUrl voxelURL;
     in >> voxelURL;
-    in >> faceURL;
     
     // invoke the set URL functions on the simulate/render thread
     QMetaObject::invokeMethod(avatar->getVoxels(), "setVoxelURL", Q_ARG(QUrl, voxelURL));
-    QMetaObject::invokeMethod(&avatar->getHead().getBlendFace(), "setModelURL", Q_ARG(QUrl, faceURL));
+    
+    // use this timing to as the data-server for an updated mesh for this avatar (if we have UUID)
+    DataServerClient::getValueForKeyAndUUID(DataServerKey::FaceMeshURL, avatar->getUUID());
 }
 
 void Application::processAvatarFaceVideoMessage(unsigned char* packetData, size_t dataBytes) {
@@ -1585,6 +1598,11 @@ void Application::init() {
         _audio.setJitterBufferSamples(Menu::getInstance()->getAudioJitterBufferSamples());
     }
     qDebug("Loaded settings.\n");
+    
+    if (!_profile.getUsername().isEmpty()) {
+        // we have a username for this avatar, ask the data-server for the mesh URL for this avatar
+        DataServerClient::getClientValueForKey(DataServerKey::FaceMeshURL);
+    }
 
     // Set up VoxelSystem after loading preferences so we can get the desired max voxel count    
     _voxels.setMaxVoxels(Menu::getInstance()->getMaxVoxels());
@@ -1594,7 +1612,7 @@ void Application::init() {
     _voxels.init();
     
 
-    Avatar::sendAvatarURLsMessage(_myAvatar.getVoxels()->getVoxelURL(), _myAvatar.getHead().getBlendFace().getModelURL());
+    Avatar::sendAvatarURLsMessage(_myAvatar.getVoxels()->getVoxelURL());
    
     _palette.init(_glWidget->width(), _glWidget->height());
     _palette.addAction(Menu::getInstance()->getActionForOption(MenuOption::VoxelAddMode), 0, 0);
@@ -1636,9 +1654,9 @@ Avatar* Application::findLookatTargetAvatar(const glm::vec3& mouseRayOrigin, con
             glm::vec3 headPosition = avatar->getHead().getPosition();
             float distance;
             if (rayIntersectsSphere(mouseRayOrigin, mouseRayDirection, headPosition,
-                    HEAD_SPHERE_RADIUS * avatar->getScale(), distance)) {
+                    HEAD_SPHERE_RADIUS * avatar->getHead().getScale(), distance)) {
                 eyePosition = avatar->getHead().getEyePosition();
-                _lookatIndicatorScale = avatar->getScale();
+                _lookatIndicatorScale = avatar->getHead().getScale();
                 _lookatOtherPosition = headPosition;
                 nodeID = avatar->getOwningNode()->getNodeID();
                 return avatar;
@@ -1779,8 +1797,8 @@ void Application::update(float deltaTime) {
             _faceshift.getEstimatedEyePitch(), _faceshift.getEstimatedEyeYaw(), 0.0f))) * glm::vec3(0.0f, 0.0f, -1.0f);
     }
 
-    updateLookatTargetAvatar(lookAtRayOrigin, lookAtRayDirection, lookAtSpot);
-    if (_lookatTargetAvatar) {
+    updateLookatTargetAvatar(mouseRayOrigin, mouseRayDirection, lookAtSpot);
+    if (_lookatTargetAvatar && !_faceshift.isActive()) {
         // If the mouse is over another avatar's head...
          _myAvatar.getHead().setLookAtPosition(lookAtSpot);
     } else if (_isHoverVoxel && !_faceshift.isActive()) {
@@ -1972,6 +1990,11 @@ void Application::update(float deltaTime) {
         _myAvatar.simulate(deltaTime, NULL);
     }
     
+    //  Simulate particle cloud movements
+    if (Menu::getInstance()->isOptionChecked(MenuOption::ParticleCloud)) {
+        _cloud.simulate(deltaTime);
+    }
+    
     // no transmitter drive implies transmitter pick
     if (!Menu::getInstance()->isOptionChecked(MenuOption::TransmitterDrive) && _myTransmitter.isConnected()) {
         _transmitterPickStart = _myAvatar.getSkeleton().joint[AVATAR_JOINT_CHEST].position;
@@ -2029,7 +2052,7 @@ void Application::update(float deltaTime) {
             if (_faceshift.isActive()) {
                 const float EYE_OFFSET_SCALE = 0.025f;
                 glm::vec3 position = _faceshift.getHeadTranslation() * EYE_OFFSET_SCALE;
-                _myCamera.setEyeOffsetPosition(glm::vec3(position.x * xSign, position.y, position.z));    
+                _myCamera.setEyeOffsetPosition(glm::vec3(position.x * xSign, position.y, -position.z));    
                 updateProjectionMatrix();
                 
             } else if (_webcam.isActive()) {
@@ -2068,8 +2091,7 @@ void Application::updateAvatar(float deltaTime) {
     _yawFromTouch = 0.f;
     
     // Update my avatar's state from gyros and/or webcam
-    _myAvatar.updateFromGyrosAndOrWebcam(Menu::getInstance()->isOptionChecked(MenuOption::GyroLook),
-                                         _pitchFromTouch);
+    _myAvatar.updateFromGyrosAndOrWebcam(_pitchFromTouch, Menu::getInstance()->isOptionChecked(MenuOption::TurnWithHead));
     
     // Update head mouse from faceshift if active
     if (_faceshift.isActive()) {
@@ -2169,8 +2191,7 @@ void Application::updateAvatar(float deltaTime) {
         // once in a while, send my urls
         const float AVATAR_URLS_SEND_INTERVAL = 1.0f; // seconds
         if (shouldDo(AVATAR_URLS_SEND_INTERVAL, deltaTime)) {
-            Avatar::sendAvatarURLsMessage(_myAvatar.getVoxels()->getVoxelURL(),
-                _myAvatar.getHead().getBlendFace().getModelURL());
+            Avatar::sendAvatarURLsMessage(_myAvatar.getVoxels()->getVoxelURL());
         }
     }
 }
@@ -2489,7 +2510,11 @@ void Application::displaySide(Camera& whichCamera) {
         glDisable(GL_NORMALIZE);
         
         //renderGroundPlaneGrid(EDGE_SIZE_GROUND_PLANE, _audio.getCollisionSoundMagnitude());
-    } 
+    }
+    //  Draw Cloud Particles
+    if (Menu::getInstance()->isOptionChecked(MenuOption::ParticleCloud)) {
+        _cloud.render();
+    }
     //  Draw voxels
     if (Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
         PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
@@ -2498,6 +2523,7 @@ void Application::displaySide(Camera& whichCamera) {
             _voxels.render(Menu::getInstance()->isOptionChecked(MenuOption::VoxelTextures));
         }
     }
+    
     
     // restore default, white specular
     glMaterialfv(GL_FRONT, GL_SPECULAR, WHITE_SPECULAR_COLOR);
@@ -3495,9 +3521,16 @@ void Application::attachNewHeadToNode(Node* newNode) {
 void Application::domainChanged(QString domain) {
     qDebug("Application title set to: %s.\n", domain.toStdString().c_str());
     _window->setWindowTitle(domain);
+    
+    // update the user's last domain in their Profile (which will propagate to data-server)
+    _profile.updateDomain(domain);
+    
+    // reset the environment so that we don't erroneously end up with multiple
+    _environment.resetToDefault();
 }
 
 void Application::nodeAdded(Node* node) {
+    
 }
 
 void Application::nodeKilled(Node* node) {
@@ -3607,6 +3640,12 @@ void* Application::networkReceive(void* args) {
                         break;
                     case PACKET_TYPE_AVATAR_FACE_VIDEO:
                         processAvatarFaceVideoMessage(app->_incomingPacket, bytesReceived);
+                        break;
+                    case PACKET_TYPE_DATA_SERVER_GET:
+                    case PACKET_TYPE_DATA_SERVER_PUT:
+                    case PACKET_TYPE_DATA_SERVER_SEND:
+                    case PACKET_TYPE_DATA_SERVER_CONFIRM:
+                        DataServerClient::processMessageFromDataServer(app->_incomingPacket, bytesReceived);
                         break;
                     default:
                         NodeList::getInstance()->processNodeData(&senderAddress, app->_incomingPacket, bytesReceived);

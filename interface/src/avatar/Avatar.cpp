@@ -18,6 +18,7 @@
 
 #include "Application.h"
 #include "Avatar.h"
+#include "DataServerClient.h"
 #include "Hand.h"
 #include "Head.h"
 #include "Physics.h"
@@ -59,7 +60,7 @@ const int   NUM_BODY_CONE_SIDES = 9;
 const float chatMessageScale = 0.0015;
 const float chatMessageHeight = 0.20;
 
-void Avatar::sendAvatarURLsMessage(const QUrl& voxelURL, const QUrl& faceURL) {
+void Avatar::sendAvatarURLsMessage(const QUrl& voxelURL) {
     uint16_t ownerID = NodeList::getInstance()->getOwnerID();
     
     if (ownerID == UNKNOWN_NODE_ID) {
@@ -76,7 +77,6 @@ void Avatar::sendAvatarURLsMessage(const QUrl& voxelURL, const QUrl& faceURL) {
     
     QDataStream out(&message, QIODevice::WriteOnly | QIODevice::Append);
     out << voxelURL;
-    out << faceURL;
     
     Application::controlledBroadcastToNodes((unsigned char*)message.data(), message.size(), &NODE_TYPE_AVATAR_MIXER, 1);
 }
@@ -102,11 +102,16 @@ Avatar::Avatar(Node* owningNode) :
     _leadingAvatar(NULL),
     _voxels(this),
     _moving(false),
+    _hoverOnDuration(0.0f),
+    _hoverOffDuration(0.0f),
     _initialized(false),
     _handHoldingPosition(0.0f, 0.0f, 0.0f),
     _maxArmLength(0.0f),
     _pelvisStandingHeight(0.0f)
 {
+    // we may have been created in the network thread, but we live in the main thread
+    moveToThread(Application::getInstance()->thread());
+    
     // give the pointer to our head to inherited _headData variable from AvatarData
     _headData = &_head;
     _handData = &_hand;
@@ -388,15 +393,27 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     }
     
     // head scale grows when avatar is looked at
+    const float BASE_MAX_SCALE = 3.0f;
+    float maxScale = BASE_MAX_SCALE * glm::distance(_position, Application::getInstance()->getCamera()->getPosition());
     if (Application::getInstance()->getLookatTargetAvatar() == this) {
-        const float BASE_MAX_SCALE = 3.0f;
-        const float GROW_SPEED = 0.1f;
-        _head.setScale(min(BASE_MAX_SCALE * glm::distance(_position, Application::getInstance()->getCamera()->getPosition()),
-            _head.getScale() + deltaTime * GROW_SPEED));        
+        _hoverOnDuration += deltaTime;
+        _hoverOffDuration = 0.0f;
+    
+        const float GROW_DELAY = 1.0f;
+        const float GROW_RATE = 0.25f;
+        if (_hoverOnDuration > GROW_DELAY) {
+            _head.setScale(glm::mix(_head.getScale(), maxScale, GROW_RATE));
+        }
         
     } else {
-        const float SHRINK_SPEED = 100.0f;
-        _head.setScale(max(_scale, _head.getScale() - deltaTime * SHRINK_SPEED));
+        _hoverOnDuration = 0.0f;
+        _hoverOffDuration += deltaTime;
+    
+        const float SHRINK_DELAY = 1.0f;
+        const float SHRINK_RATE = 0.25f;
+        if (_hoverOffDuration > SHRINK_DELAY) {
+            _head.setScale(glm::mix(_head.getScale(), 1.0f, SHRINK_RATE));
+        }
     }
     
     _head.setBodyRotation(glm::vec3(_bodyPitch, _bodyYaw, _bodyRoll));
@@ -465,15 +482,16 @@ void Avatar::render(bool lookingInMirror, bool renderAvatarBalls) {
     renderDiskShadow(_position, glm::vec3(0.0f, 1.0f, 0.0f), _scale * 0.1f, 0.2f);
     
     {
-        // glow when moving
-        Glower glower(_moving ? 1.0f : 0.0f);
+        // glow when moving in the distance
+        glm::vec3 toTarget = _position - Application::getInstance()->getAvatar()->getPosition();
+        const float GLOW_DISTANCE = 5.0f;
+        Glower glower(_moving && glm::length(toTarget) > GLOW_DISTANCE ? 1.0f : 0.0f);
         
         // render body
         renderBody(lookingInMirror, renderAvatarBalls);
     
         // render sphere when far away
         const float MAX_ANGLE = 10.f;
-        glm::vec3 toTarget = _position - Application::getInstance()->getAvatar()->getPosition();
         glm::vec3 delta = _height * (_head.getCameraOrientation() * IDENTITY_UP) / 2.f;
         float angle = abs(angleBetween(toTarget + delta, toTarget - delta));
 
@@ -688,6 +706,13 @@ void Avatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
         }
     } else if (renderAvatarBalls || !_voxels.getVoxelURL().isValid()) {
         //  Render the body as balls and cones
+        glm::vec3 skinColor(SKIN_COLOR[0], SKIN_COLOR[1], SKIN_COLOR[2]);
+        glm::vec3 darkSkinColor(DARK_SKIN_COLOR[0], DARK_SKIN_COLOR[1], DARK_SKIN_COLOR[2]);
+        if (_head.getBlendFace().isActive()) {
+            skinColor = glm::vec3(_head.getBlendFace().computeAverageColor());
+            const float SKIN_DARKENING = 0.9f;
+            darkSkinColor = skinColor * SKIN_DARKENING;
+        }
         for (int b = 0; b < NUM_AVATAR_BODY_BALLS; b++) {
             float alpha = getBallRenderAlpha(b, lookingInMirror);
             
@@ -705,9 +730,9 @@ void Avatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
                 }
             } else if (alpha > 0.0f) {
                 //  Render the body ball sphere
-                glColor3f(SKIN_COLOR[0] + _bodyBall[b].touchForce * 0.3f,
-                          SKIN_COLOR[1] - _bodyBall[b].touchForce * 0.2f,
-                          SKIN_COLOR[2] - _bodyBall[b].touchForce * 0.1f);
+                glColor3f(skinColor.r + _bodyBall[b].touchForce * 0.3f,
+                    skinColor.g - _bodyBall[b].touchForce * 0.2f,
+                    skinColor.b - _bodyBall[b].touchForce * 0.1f);
                 
                 if (b == BODY_BALL_NECK_BASE && _head.getBlendFace().isActive()) {
                     continue; // don't render the neck if we have a face model
@@ -732,7 +757,7 @@ void Avatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
                         && (b != BODY_BALL_LEFT_SHOULDER)
                         && (b != BODY_BALL_RIGHT_COLLAR)
                         && (b != BODY_BALL_RIGHT_SHOULDER)) {
-                        glColor3fv(DARK_SKIN_COLOR);
+                        glColor3fv((const GLfloat*)&darkSkinColor);
                         
                         float r2 = _bodyBall[b].radius * 0.8;
                         renderJointConnectingCone(_bodyBall[_bodyBall[b].parentBall].position, _bodyBall[b].position, r2, r2);
@@ -749,31 +774,6 @@ void Avatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
         }
     }
     _hand.render(lookingInMirror);
-}
-
-
-void Avatar::loadData(QSettings* settings) {
-    settings->beginGroup("Avatar");
-
-    // in case settings is corrupt or missing loadSetting() will check for NaN
-    _bodyYaw = loadSetting(settings, "bodyYaw", 0.0f);
-    _bodyPitch = loadSetting(settings, "bodyPitch", 0.0f);
-    _bodyRoll = loadSetting(settings, "bodyRoll", 0.0f);
-    _position.x = loadSetting(settings, "position_x", 0.0f);
-    _position.y = loadSetting(settings, "position_y", 0.0f);
-    _position.z = loadSetting(settings, "position_z", 0.0f);
-    
-    _voxels.setVoxelURL(settings->value("voxelURL").toUrl());
-    _head.getBlendFace().setModelURL(settings->value("faceModelURL").toUrl());
-    _head.setPupilDilation(settings->value("pupilDilation", 0.0f).toFloat());
-    
-    _leanScale = loadSetting(settings, "leanScale", 0.05f);
-
-    _newScale = loadSetting(settings, "scale", 1.0f);
-    setScale(_scale);
-    Application::getInstance()->getCamera()->setScale(_scale);
-
-    settings->endGroup();
 }
 
 void Avatar::getBodyBallTransform(AvatarJointID jointID, glm::vec3& position, glm::quat& rotation) const {
@@ -803,27 +803,6 @@ int Avatar::parseData(unsigned char* sourceBuffer, int numBytes) {
     const float MOVE_DISTANCE_THRESHOLD = 0.001f;
     _moving = glm::distance(oldPosition, _position) > MOVE_DISTANCE_THRESHOLD;
     return bytesRead;
-}
-
-void Avatar::saveData(QSettings* set) {
-    set->beginGroup("Avatar");
-    
-    set->setValue("bodyYaw", _bodyYaw);
-    set->setValue("bodyPitch", _bodyPitch);
-    set->setValue("bodyRoll", _bodyRoll);
-    
-    set->setValue("position_x", _position.x);
-    set->setValue("position_y", _position.y);
-    set->setValue("position_z", _position.z);
-    
-    set->setValue("voxelURL", _voxels.getVoxelURL());
-    set->setValue("faceModelURL", _head.getBlendFace().getModelURL());
-    set->setValue("pupilDilation", _head.getPupilDilation());
-    
-    set->setValue("leanScale", _leanScale);
-    set->setValue("scale", _newScale);
-    
-    set->endGroup();
 }
 
 // render a makeshift cone section that serves as a body part connecting joint spheres

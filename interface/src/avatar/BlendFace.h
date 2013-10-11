@@ -33,12 +33,20 @@ public:
     bool isActive() const { return _geometry && _geometry->isLoaded(); }
     
     void init();
+    void reset();
+    void simulate(float deltaTime);
     bool render(float alpha);
     
     Q_INVOKABLE void setModelURL(const QUrl& url);
     const QUrl& getModelURL() const { return _modelURL; }
 
-    void getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const;
+    /// Retrieve the positions of up to two eye meshes.
+    /// \param upright if true, retrieve the locations of the eyes in the upright position
+    /// \return whether or not both eye meshes were found
+    bool getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition, bool upright = false) const;
+    
+    /// Returns the average color of all meshes in the geometry.
+    glm::vec4 computeAverageColor() const;
     
 private:
     
@@ -50,8 +58,17 @@ private:
     
     QSharedPointer<NetworkGeometry> _geometry;
     
+    class MeshState {
+    public:
+        QVector<glm::vec3> worldSpaceVertices;
+        QVector<glm::vec3> vertexVelocities;
+        QVector<glm::vec3> worldSpaceNormals;
+    };
+    
+    QVector<MeshState> _meshStates;
     QVector<GLuint> _blendedVertexBufferIDs;
     QVector<QSharedPointer<Texture> > _dilatedTextures;
+    bool _resetStates;
     
     QVector<glm::vec3> _blendedVertices;
     QVector<glm::vec3> _blendedNormals;

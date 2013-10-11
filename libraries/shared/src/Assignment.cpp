@@ -139,10 +139,6 @@ void Assignment::setPayload(const uchar* payload, int numBytes) {
     memcpy(_payload, payload, _numPayloadBytes);
 }
 
-QString Assignment::getUUIDStringWithoutCurlyBraces() const {
-    return _uuid.toString().mid(1, _uuid.toString().length() - 2);
-}
-
 int Assignment::packToBuffer(unsigned char* buffer) {
     int numPackedBytes = 0;
     

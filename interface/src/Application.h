@@ -29,6 +29,7 @@
 
 #include "BandwidthMeter.h"
 #include "Camera.h"
+#include "Cloud.h"
 #include "Environment.h"
 #include "GLCanvas.h"
 #include "PacketHeaders.h"
@@ -44,6 +45,7 @@
 #include "VoxelImporter.h"
 #include "avatar/Avatar.h"
 #include "avatar/MyAvatar.h"
+#include "avatar/Profile.h"
 #include "avatar/HandControl.h"
 #include "devices/Faceshift.h"
 #include "devices/SerialInterface.h"
@@ -132,6 +134,9 @@ public:
     GlowEffect* getGlowEffect() { return &_glowEffect; }
     
     Avatar* getLookatTargetAvatar() const { return _lookatTargetAvatar; }
+    
+    Profile* getProfile() { return &_profile; }
+    void resetProfile(const QString& username);
     
     static void controlledBroadcastToNodes(unsigned char* broadcastData, size_t dataBytes,
                                            const char* nodeTypes, int numNodeTypes);
@@ -261,6 +266,8 @@ private:
 
     Stars _stars;
     
+    Cloud _cloud;
+    
     VoxelSystem _voxels;
     VoxelTree _clipboard; // if I copy/paste
     VoxelImporter _voxelImporter;
@@ -275,6 +282,7 @@ private:
     Oscilloscope _audioScope;
     
     MyAvatar _myAvatar;                  // The rendered avatar of oneself
+    Profile _profile;                    // The data-server linked profile for this user
     
     Transmitter _myTransmitter;        // Gets UDP data from transmitter app used to animate the avatar
     
