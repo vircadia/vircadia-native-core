@@ -20,6 +20,7 @@
 #include <SharedUtil.h>
 #include <StdDev.h>
 #include <UDPSocket.h>
+#include <QSvgRenderer>
 
 #include "Application.h"
 #include "Audio.h"
@@ -69,6 +70,10 @@ static const int   PING_FRAMES_TO_RECORD = AEC_BUFFERED_FRAMES;                 
 static const int   PING_SAMPLES_TO_ANALYZE = AEC_BUFFERED_SAMPLES_PER_CHANNEL;  // Samples to analyze (reusing AEC buffer)
 static const int   PING_BUFFER_OFFSET = BUFFER_LENGTH_SAMPLES_PER_CHANNEL - PING_PERIOD * 2.0f; // Signal start
 
+// Mute icon configration
+static const int ICON_SIZE = 24;
+static const int ICON_LEFT = 20;
+static const int BOTTOM_PADDING = 110;
 
 inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* outputRight) {
 
@@ -84,17 +89,19 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
     
     if (nodeList && inputLeft) {
         
-        //  Measure the loudness of the signal from the microphone and store in audio object
-        float loudness = 0;
-        for (int i = 0; i < BUFFER_LENGTH_SAMPLES_PER_CHANNEL; i++) {
-            loudness += abs(inputLeft[i]);
+        if (!_muted) {
+            //  Measure the loudness of the signal from the microphone and store in audio object
+            float loudness = 0;
+            for (int i = 0; i < BUFFER_LENGTH_SAMPLES_PER_CHANNEL; i++) {
+                loudness += abs(inputLeft[i]);
+            }
+        
+            loudness /= BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
+            _lastInputLoudness = loudness;
+        
+            // add input (@microphone) data to the scope
+            _scope->addSamples(0, inputLeft, BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
         }
-        
-        loudness /= BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
-        _lastInputLoudness = loudness;
-        
-        // add input (@microphone) data to the scope
-        _scope->addSamples(0, inputLeft, BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
 
         Node* audioMixer = nodeList->soloNodeOfType(NODE_TYPE_AUDIO_MIXER);
         
@@ -323,6 +330,11 @@ int Audio::audioCallback (const void* inputBuffer,
     return paContinue;
 }
 
+void Audio::init(QGLWidget *parent) {
+    switchToResourcesParentIfRequired();
+    _micTextureId = parent->bindTexture(QImage("./resources/images/mic.svg"));
+    _muteTextureId = parent->bindTexture(QImage("./resources/images/mute.svg"));
+}
 
 static void outputPortAudioError(PaError error) {
     if (error != paNoError) {
@@ -384,6 +396,7 @@ Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples) :
     _collisionSoundDuration(0.0f),
     _proceduralEffectSample(0),
     _heartbeatMagnitude(0.0f),
+    _muted(false),
     _listenMode(AudioRingBuffer::NORMAL),
     _listenRadius(0.0f)
 {
@@ -515,6 +528,14 @@ void Audio::addReceivedAudioToBuffer(unsigned char* receivedData, int receivedBy
     _lastReceiveTime = currentReceiveTime;
 }
 
+bool Audio::mousePressEvent(int x, int y) {
+    if (_iconBounds.contains(x, y)) {
+        _muted = !_muted;
+        return true;
+    }
+    return false;
+}
+
 void Audio::render(int screenWidth, int screenHeight) {
     if (_stream) {
         glLineWidth(2.0);
@@ -609,6 +630,7 @@ void Audio::render(int screenWidth, int screenHeight) {
         glEnd();
 
     }
+    renderToolIcon(screenHeight);
 }
 
 //
@@ -854,6 +876,51 @@ bool Audio::eventuallyAnalyzePing() {
     analyzePing();
     _pingAnalysisPending = false;
     return true;
+}
+
+void Audio::renderToolIcon(int screenHeigh) {
+    
+    _iconBounds = QRect(ICON_LEFT, screenHeigh - BOTTOM_PADDING, ICON_SIZE, ICON_SIZE);
+    glEnable(GL_TEXTURE_2D);
+    
+    glBindTexture(GL_TEXTURE_2D, _micTextureId);
+    glColor3f(1, 1, 1);
+    glBegin(GL_QUADS);
+    
+    glTexCoord2f(1, 1);
+    glVertex2f(_iconBounds.left(), _iconBounds.top());
+    
+    glTexCoord2f(0, 1);
+    glVertex2f(_iconBounds.right(), _iconBounds.top());
+    
+    glTexCoord2f(0, 0);
+    glVertex2f(_iconBounds.right(), _iconBounds.bottom());
+    
+    glTexCoord2f(1, 0);
+    glVertex2f(_iconBounds.left(), _iconBounds.bottom());
+    
+    glEnd();
+    
+    if (_muted) {
+        glBindTexture(GL_TEXTURE_2D, _muteTextureId);
+        glBegin(GL_QUADS);
+        
+        glTexCoord2f(1, 1);
+        glVertex2f(_iconBounds.left(), _iconBounds.top());
+        
+        glTexCoord2f(0, 1);
+        glVertex2f(_iconBounds.right(), _iconBounds.top());
+        
+        glTexCoord2f(0, 0);
+        glVertex2f(_iconBounds.right(), _iconBounds.bottom());
+        
+        glTexCoord2f(1, 0);
+        glVertex2f(_iconBounds.left(), _iconBounds.bottom());
+        
+        glEnd();
+    }
+    
+    glDisable(GL_TEXTURE_2D);
 }
 
 #endif

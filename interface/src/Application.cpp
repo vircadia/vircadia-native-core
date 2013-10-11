@@ -212,8 +212,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     cache->setCacheDirectory("interfaceCache");
     _networkAccessManager->setCache(cache);
     
-    QRect available = desktop()->availableGeometry();
-    _window->resize(available.size());
+    restoreSizeAndPosition();
     _window->setVisible(true);
     _glWidget->setFocusPolicy(Qt::StrongFocus);
     _glWidget->setFocus();
@@ -228,6 +227,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
 }
 
 Application::~Application() {
+    storeSizeAndPosition();
     NodeList::getInstance()->removeHook(&_voxels);
     NodeList::getInstance()->removeHook(this);
     NodeList::getInstance()->removeDomainListener(this);
@@ -242,6 +242,37 @@ Application::~Application() {
     delete _settings;
     delete _followMode;
     delete _glWidget;
+}
+
+void Application::restoreSizeAndPosition() {
+    QSettings* settings = new QSettings(this);
+    QRect available = desktop()->availableGeometry();
+    
+    settings->beginGroup("Window");
+    
+    float x = loadSetting(settings, "x", 0);
+    float y = loadSetting(settings, "y", 0);
+    _window->move(x, y);
+    
+    int width = loadSetting(settings, "width", available.width());
+    int height = loadSetting(settings, "height", available.height());
+    _window->resize(width, height);
+    
+    settings->endGroup();
+}
+
+void Application::storeSizeAndPosition() {
+    QSettings* settings = new QSettings(this);
+    
+    settings->beginGroup("Window");
+    
+    settings->setValue("width", _window->rect().width());
+    settings->setValue("height", _window->rect().height());
+    
+    settings->setValue("x", _window->pos().x());
+    settings->setValue("y", _window->pos().y());
+    
+    settings->endGroup();
 }
 
 void Application::initializeGL() {
@@ -983,7 +1014,12 @@ void Application::mousePressEvent(QMouseEvent* event) {
             _mousePressed = true;
 
             maybeEditVoxelUnderCursor();
-
+            
+            if (_audio.mousePressEvent(_mouseX, _mouseY)) {
+                // stop propagation
+                return;
+            }
+            
             if (!_palette.isActive() && (!_isHoverVoxel || _lookatTargetAvatar)) {
                 _pieMenu.mousePressEvent(_mouseX, _mouseY);
             }
@@ -1630,6 +1666,8 @@ void Application::init() {
     _followMode = new QAction(this);
     connect(_followMode, SIGNAL(triggered()), this, SLOT(toggleFollowMode()));
     _pieMenu.addAction(_followMode);
+
+    _audio.init(_glWidget);
 }
 
 
@@ -2723,7 +2761,7 @@ void Application::displayOverlay() {
         #ifndef _WIN32
         _audio.render(_glWidget->width(), _glWidget->height());
         if (Menu::getInstance()->isOptionChecked(MenuOption::Oscilloscope)) {
-            _audioScope.render(20, _glWidget->height() - 200);
+            _audioScope.render(45, _glWidget->height() - 200);
         }
         #endif
 
