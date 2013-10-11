@@ -552,8 +552,6 @@ void* removeSilentNodes(void *args) {
         for(NodeList::iterator node = nodeList->begin(); node != nodeList->end(); ++node) {
             node->lock();
             
-            qDebug() << usecTimestampNow() - node->getLastHeardMicrostamp() << "\n";
-
             if ((usecTimestampNow() - node->getLastHeardMicrostamp()) > NODE_SILENCE_THRESHOLD_USECS) {
             
                 qDebug() << "Killed " << *node << "\n";
