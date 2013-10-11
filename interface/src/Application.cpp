@@ -3524,6 +3524,9 @@ void Application::domainChanged(QString domain) {
     
     // update the user's last domain in their Profile (which will propagate to data-server)
     _profile.updateDomain(domain);
+    
+    // reset the environment so that we don't erroneously end up with multiple
+    _environment.resetToDefault();
 }
 
 void Application::nodeAdded(Node* node) {
