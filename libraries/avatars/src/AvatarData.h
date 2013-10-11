@@ -17,6 +17,7 @@
 #include <glm/gtc/quaternion.hpp>
 
 #include <QtCore/QObject>
+#include <QtCore/QUuid>
 #include <QtCore/QVariantMap>
 
 #include <RegisteredMetaTypes.h>
@@ -69,6 +70,9 @@ public:
     int getBroadcastData(unsigned char* destinationBuffer);
     int parseData(unsigned char* sourceBuffer, int numBytes);
     
+    QUuid& getUUID() { return _uuid; }
+    void setUUID(const QUuid& uuid) { _uuid = uuid; }
+    
     //  Body Rotation
     float getBodyYaw() const { return _bodyYaw; }
     void setBodyYaw(float bodyYaw) { _bodyYaw = bodyYaw; }
@@ -76,7 +80,6 @@ public:
     void setBodyPitch(float bodyPitch) { _bodyPitch = bodyPitch; }
     float getBodyRoll() const { return _bodyRoll; }
     void setBodyRoll(float bodyRoll) { _bodyRoll = bodyRoll; }
-
     
     //  Hand State
     void setHandState(char s) { _handState = s; }
@@ -130,6 +133,8 @@ public slots:
     void setWantOcclusionCulling(bool wantOcclusionCulling) { _wantOcclusionCulling = wantOcclusionCulling; }
     
 protected:
+    QUuid _uuid;
+    
     glm::vec3 _position;
     glm::vec3 _handPosition;
     

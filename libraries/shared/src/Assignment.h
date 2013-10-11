@@ -60,7 +60,6 @@ public:
     
     void setUUID(const QUuid& uuid) { _uuid = uuid; }
     const QUuid& getUUID() const { return _uuid; }
-    QString getUUIDStringWithoutCurlyBraces() const;
     void resetUUID() { _uuid = QUuid::createUuid(); }
     
     Assignment::Command getCommand() const { return _command; }

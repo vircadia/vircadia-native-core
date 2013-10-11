@@ -8,6 +8,8 @@
 
 #include <QNetworkReply>
 
+#include <glm/gtx/transform.hpp>
+
 #include "Application.h"
 #include "BlendFace.h"
 #include "Head.h"
@@ -41,21 +43,117 @@ void BlendFace::init() {
     }
 }
 
+void BlendFace::reset() {
+    _resetStates = true;
+}
+
 const glm::vec3 MODEL_TRANSLATION(0.0f, -120.0f, 40.0f); // temporary fudge factor
 const float MODEL_SCALE = 0.0006f;
 
-bool BlendFace::render(float alpha) {
+void BlendFace::simulate(float deltaTime) {
     if (!isActive()) {
+        return;
+    }
+    
+    // set up world vertices on first simulate after load
+    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    if (_meshStates.isEmpty()) {
+        QVector<glm::vec3> vertices;
+        foreach (const FBXMesh& mesh, geometry.meshes) {
+            MeshState state;
+            if (mesh.springiness > 0.0f) {
+                state.worldSpaceVertices.resize(mesh.vertices.size());
+                state.vertexVelocities.resize(mesh.vertices.size());
+                state.worldSpaceNormals.resize(mesh.vertices.size());
+            }
+            _meshStates.append(state);    
+        }
+        _resetStates = true;
+    }
+    
+    glm::quat orientation = _owningHead->getOrientation();
+    glm::vec3 scale = glm::vec3(-1.0f, 1.0f, -1.0f) * _owningHead->getScale() * MODEL_SCALE;
+    glm::vec3 offset = MODEL_TRANSLATION - _geometry->getFBXGeometry().neckPivot;
+    glm::mat4 baseTransform = glm::translate(_owningHead->getPosition()) * glm::mat4_cast(orientation) *
+        glm::scale(scale) * glm::translate(offset);
+            
+    for (int i = 0; i < _meshStates.size(); i++) {
+        MeshState& state = _meshStates[i];
+        int vertexCount = state.worldSpaceVertices.size();
+        if (vertexCount == 0) {
+            continue;
+        }
+        glm::vec3* destVertices = state.worldSpaceVertices.data();
+        glm::vec3* destVelocities = state.vertexVelocities.data();
+        glm::vec3* destNormals = state.worldSpaceNormals.data();
+        const FBXMesh& mesh = geometry.meshes.at(i);
+        const glm::vec3* sourceVertices = mesh.vertices.constData();
+        if (!mesh.blendshapes.isEmpty()) {
+            _blendedVertices.resize(max(_blendedVertices.size(), vertexCount));
+            memcpy(_blendedVertices.data(), mesh.vertices.constData(), vertexCount * sizeof(glm::vec3));
+            
+            // blend in each coefficient
+            const vector<float>& coefficients = _owningHead->getBlendshapeCoefficients();
+            for (int j = 0; j < coefficients.size(); j++) {
+                float coefficient = coefficients[j];
+                if (coefficient == 0.0f || j >= mesh.blendshapes.size() || mesh.blendshapes[j].vertices.isEmpty()) {
+                    continue;
+                }
+                const glm::vec3* vertex = mesh.blendshapes[j].vertices.constData();
+                for (const int* index = mesh.blendshapes[j].indices.constData(),
+                        *end = index + mesh.blendshapes[j].indices.size(); index != end; index++, vertex++) {
+                    _blendedVertices[*index] += *vertex * coefficient;
+                }
+            }
+            
+            sourceVertices = _blendedVertices.constData();
+        }
+        glm::mat4 transform = baseTransform;
+        if (mesh.isEye) {
+            transform = transform * glm::translate(mesh.pivot) * glm::mat4_cast(glm::inverse(orientation) *
+                _owningHead->getEyeRotation(orientation * ((mesh.pivot + offset) * scale) + _owningHead->getPosition())) *
+                glm::translate(-mesh.pivot);
+        }
+        if (_resetStates) {
+            for (int j = 0; j < vertexCount; j++) {
+                destVertices[j] = glm::vec3(transform * glm::vec4(sourceVertices[j], 1.0f));        
+                destVelocities[j] = glm::vec3();
+            }        
+        } else {
+            const float SPRINGINESS_MULTIPLIER = 200.0f;
+            const float DAMPING = 5.0f;
+            for (int j = 0; j < vertexCount; j++) {
+                destVelocities[j] += ((glm::vec3(transform * glm::vec4(sourceVertices[j], 1.0f)) - destVertices[j]) *
+                    mesh.springiness * SPRINGINESS_MULTIPLIER - destVelocities[j] * DAMPING) * deltaTime;
+                destVertices[j] += destVelocities[j] * deltaTime;
+            }
+        }
+        for (int j = 0; j < vertexCount; j++) {
+            destNormals[j] = glm::vec3();
+            
+            const glm::vec3& middle = destVertices[j];
+            for (QVarLengthArray<QPair<int, int>, 4>::const_iterator connection = mesh.vertexConnections.at(j).constBegin(); 
+                    connection != mesh.vertexConnections.at(j).constEnd(); connection++) {
+                destNormals[j] += glm::normalize(glm::cross(destVertices[connection->second] - middle,
+                    destVertices[connection->first] - middle));
+            }
+        }
+    }
+    _resetStates = false;
+}
+
+bool BlendFace::render(float alpha) {
+    if (_meshStates.isEmpty()) {
         return false;
     }
 
-    // set up blended buffer ids on first render after load
+    // set up blended buffer ids on first render after load/simulate
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     const QVector<NetworkMesh>& networkMeshes = _geometry->getMeshes();
     if (_blendedVertexBufferIDs.isEmpty()) {
         foreach (const FBXMesh& mesh, geometry.meshes) {
             GLuint id = 0;
-            if (!mesh.blendshapes.isEmpty()) {
+            if (!mesh.blendshapes.isEmpty() || mesh.springiness > 0.0f) {
                 glGenBuffers(1, &id);
                 glBindBuffer(GL_ARRAY_BUFFER, id);
                 glBufferData(GL_ARRAY_BUFFER, (mesh.vertices.size() + mesh.normals.size()) * sizeof(glm::vec3),
@@ -68,6 +166,9 @@ bool BlendFace::render(float alpha) {
         // make sure we have the right number of dilated texture pointers
         _dilatedTextures.resize(geometry.meshes.size());
     }
+
+    glm::mat4 viewMatrix;
+    glGetFloatv(GL_MODELVIEW_MATRIX, (GLfloat*)&viewMatrix);
 
     glPushMatrix();
     glTranslatef(_owningHead->getPosition().x, _owningHead->getPosition().y, _owningHead->getPosition().z);
@@ -90,6 +191,9 @@ bool BlendFace::render(float alpha) {
     glEnable(GL_TEXTURE_2D);
     glDisable(GL_COLOR_MATERIAL);
     
+    // the eye shader uses the color state even though color material is disabled
+    glColor4f(1.0f, 1.0f, 1.0f, alpha);
+    
     for (int i = 0; i < networkMeshes.size(); i++) {
         const NetworkMesh& networkMesh = networkMeshes.at(i);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, networkMesh.indexBufferID);
@@ -104,7 +208,7 @@ bool BlendFace::render(float alpha) {
         if (mesh.isEye) {
             glTranslatef(mesh.pivot.x, mesh.pivot.y, mesh.pivot.z);
             glm::quat rotation = glm::inverse(orientation) * _owningHead->getEyeRotation(orientation *
-                (mesh.pivot * scale + MODEL_TRANSLATION) + _owningHead->getPosition());
+                ((mesh.pivot + offset) * scale) + _owningHead->getPosition());
             glm::vec3 rotationAxis = glm::axis(rotation);
             glRotatef(glm::angle(rotation), -rotationAxis.x, rotationAxis.y, -rotationAxis.z);
             glTranslatef(-mesh.pivot.x, -mesh.pivot.y, -mesh.pivot.z);
@@ -130,39 +234,49 @@ bool BlendFace::render(float alpha) {
         glBindTexture(GL_TEXTURE_2D, texture == NULL ? 0 : texture->getID());
         
         glBindBuffer(GL_ARRAY_BUFFER, networkMesh.vertexBufferID);
-        if (mesh.blendshapes.isEmpty()) {
+        if (mesh.blendshapes.isEmpty() && mesh.springiness == 0.0f) {
             glTexCoordPointer(2, GL_FLOAT, 0, (void*)(vertexCount * 2 * sizeof(glm::vec3)));    
         
         } else {
             glTexCoordPointer(2, GL_FLOAT, 0, 0);
-        
-            _blendedVertices.resize(max(_blendedVertices.size(), vertexCount));
-            _blendedNormals.resize(_blendedVertices.size());
-            memcpy(_blendedVertices.data(), mesh.vertices.constData(), vertexCount * sizeof(glm::vec3));
-            memcpy(_blendedNormals.data(), mesh.normals.constData(), vertexCount * sizeof(glm::vec3));
-            
-            // blend in each coefficient
-            const vector<float>& coefficients = _owningHead->getBlendshapeCoefficients();
-            for (int j = 0; j < coefficients.size(); j++) {
-                float coefficient = coefficients[j];
-                if (coefficient == 0.0f || j >= mesh.blendshapes.size() || mesh.blendshapes[j].vertices.isEmpty()) {
-                    continue;
-                }
-                const float NORMAL_COEFFICIENT_SCALE = 0.01f;
-                float normalCoefficient = coefficient * NORMAL_COEFFICIENT_SCALE;
-                const glm::vec3* vertex = mesh.blendshapes[j].vertices.constData();
-                const glm::vec3* normal = mesh.blendshapes[j].normals.constData();
-                for (const int* index = mesh.blendshapes[j].indices.constData(),
-                        *end = index + mesh.blendshapes[j].indices.size(); index != end; index++, vertex++, normal++) {
-                    _blendedVertices[*index] += *vertex * coefficient;
-                    _blendedNormals[*index] += *normal * normalCoefficient;
-                }
-            }
-    
             glBindBuffer(GL_ARRAY_BUFFER, _blendedVertexBufferIDs.at(i));
-            glBufferSubData(GL_ARRAY_BUFFER, 0, vertexCount * sizeof(glm::vec3), _blendedVertices.constData());
-            glBufferSubData(GL_ARRAY_BUFFER, vertexCount * sizeof(glm::vec3),
-                vertexCount * sizeof(glm::vec3), _blendedNormals.constData());
+            
+            const MeshState& state = _meshStates.at(i);
+            if (!state.worldSpaceVertices.isEmpty()) {
+                glLoadMatrixf((const GLfloat*)&viewMatrix);
+            
+                glBufferSubData(GL_ARRAY_BUFFER, 0, vertexCount * sizeof(glm::vec3), state.worldSpaceVertices.constData());
+                glBufferSubData(GL_ARRAY_BUFFER, vertexCount * sizeof(glm::vec3),
+                    vertexCount * sizeof(glm::vec3), state.worldSpaceNormals.constData());
+                
+            } else {
+                _blendedVertices.resize(max(_blendedVertices.size(), vertexCount));
+                _blendedNormals.resize(_blendedVertices.size());
+                memcpy(_blendedVertices.data(), mesh.vertices.constData(), vertexCount * sizeof(glm::vec3));
+                memcpy(_blendedNormals.data(), mesh.normals.constData(), vertexCount * sizeof(glm::vec3));
+                
+                // blend in each coefficient
+                const vector<float>& coefficients = _owningHead->getBlendshapeCoefficients();
+                for (int j = 0; j < coefficients.size(); j++) {
+                    float coefficient = coefficients[j];
+                    if (coefficient == 0.0f || j >= mesh.blendshapes.size() || mesh.blendshapes[j].vertices.isEmpty()) {
+                        continue;
+                    }
+                    const float NORMAL_COEFFICIENT_SCALE = 0.01f;
+                    float normalCoefficient = coefficient * NORMAL_COEFFICIENT_SCALE;
+                    const glm::vec3* vertex = mesh.blendshapes[j].vertices.constData();
+                    const glm::vec3* normal = mesh.blendshapes[j].normals.constData();
+                    for (const int* index = mesh.blendshapes[j].indices.constData(),
+                            *end = index + mesh.blendshapes[j].indices.size(); index != end; index++, vertex++, normal++) {
+                        _blendedVertices[*index] += *vertex * coefficient;
+                        _blendedNormals[*index] += *normal * normalCoefficient;
+                    }
+                }
+        
+                glBufferSubData(GL_ARRAY_BUFFER, 0, vertexCount * sizeof(glm::vec3), _blendedVertices.constData());
+                glBufferSubData(GL_ARRAY_BUFFER, vertexCount * sizeof(glm::vec3),
+                    vertexCount * sizeof(glm::vec3), _blendedNormals.constData());
+            }
         }
         glVertexPointer(3, GL_FLOAT, 0, 0);
         glNormalPointer(GL_FLOAT, 0, (void*)(vertexCount * sizeof(glm::vec3)));
@@ -199,12 +313,16 @@ bool BlendFace::render(float alpha) {
     return true;
 }
 
-void BlendFace::getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const {
+bool BlendFace::getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition, bool upright) const {
     if (!isActive()) {
-        return;
+        return false;
     }
-    
+    glm::vec3 translation = _owningHead->getPosition();
     glm::quat orientation = _owningHead->getOrientation();
+    if (upright) {
+        translation = static_cast<MyAvatar*>(_owningHead->_owningAvatar)->getUprightHeadPosition();
+        orientation = static_cast<Avatar*>(_owningHead->_owningAvatar)->getWorldAlignedOrientation();
+    }
     glm::vec3 scale(-_owningHead->getScale() * MODEL_SCALE, _owningHead->getScale() * MODEL_SCALE,
         -_owningHead->getScale() * MODEL_SCALE);
     bool foundFirst = false;
@@ -212,16 +330,20 @@ void BlendFace::getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEy
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     foreach (const FBXMesh& mesh, geometry.meshes) {
         if (mesh.isEye) {
-            glm::vec3 position = orientation * ((mesh.pivot + MODEL_TRANSLATION - geometry.neckPivot) * scale) +
-                _owningHead->getPosition();
+            glm::vec3 position = orientation * ((mesh.pivot + MODEL_TRANSLATION - geometry.neckPivot) * scale) + translation;
             if (foundFirst) {
                 secondEyePosition = position;
-                return;
+                return true;
             }
             firstEyePosition = position;
             foundFirst = true;
         }
     }
+    return false;
+}
+
+glm::vec4 BlendFace::computeAverageColor() const {
+    return _geometry ? _geometry->computeAverageColor() : glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 }
 
 void BlendFace::setModelURL(const QUrl& url) {
@@ -243,4 +365,5 @@ void BlendFace::deleteGeometry() {
         glDeleteBuffers(1, &id);
     }
     _blendedVertexBufferIDs.clear();
+    _meshStates.clear();
 }

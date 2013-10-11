@@ -88,28 +88,35 @@ NodeList::~NodeList() {
 
 void NodeList::setDomainHostname(const QString& domainHostname) {
     
-    int colonIndex = domainHostname.indexOf(':');
-    
-    if (colonIndex > 0) {
-        // the user has included a custom DS port with the hostname
+    if (domainHostname != _domainHostname) {
+        int colonIndex = domainHostname.indexOf(':');
         
-        // the new hostname is everything up to the colon
-        _domainHostname = domainHostname.left(colonIndex);
+        if (colonIndex > 0) {
+            // the user has included a custom DS port with the hostname
+            
+            // the new hostname is everything up to the colon
+            _domainHostname = domainHostname.left(colonIndex);
+            
+            // grab the port by reading the string after the colon
+            _domainPort = atoi(domainHostname.mid(colonIndex + 1, domainHostname.size()).toLocal8Bit().constData());
+            
+            qDebug() << "Updated hostname to" << _domainHostname << "and port to" << _domainPort << "\n";
+            
+        } else {
+            // no port included with the hostname, simply set the member variable and reset the domain server port to default
+            _domainHostname = domainHostname;
+            _domainPort = DEFAULT_DOMAIN_SERVER_PORT;
+        }
         
-        // grab the port by reading the string after the colon
-        _domainPort = atoi(domainHostname.mid(colonIndex + 1, domainHostname.size()).toLocal8Bit().constData());
+        // clear the NodeList so nodes from this domain are killed
+        clear();
         
-        qDebug() << "Updated hostname to" << _domainHostname << "and port to" << _domainPort << "\n";
-        
-    } else {
-        // no port included with the hostname, simply set the member variable and reset the domain server port to default
-        _domainHostname = domainHostname;
-        _domainPort = DEFAULT_DOMAIN_SERVER_PORT;
+        // reset our _domainIP to the null address so that a lookup happens on next check in
+        _domainIP.clear();
+        notifyDomainChanged();
     }
     
-    // reset our _domainIP to the null address so that a lookup happens on next check in
-    _domainIP.clear();
-    notifyDomainChanged();
+    
 }
 
 void NodeList::timePingReply(sockaddr *nodeAddress, unsigned char *packetData) {
@@ -254,6 +261,8 @@ int NodeList::getNumAliveNodes() const {
 }
 
 void NodeList::clear() {
+    qDebug() << "Clearing the NodeList. Deleting all nodes in list.\n";
+    
     // delete all of the nodes in the list, set the pointers back to NULL and the number of nodes to 0
     for (int i = 0; i < _numNodes; i++) {
         Node** nodeBucket = _nodeBuckets[i / NODES_PER_BUCKET];
@@ -428,7 +437,6 @@ void NodeList::sendAssignment(Assignment& assignment) {
 }
 
 Node* NodeList::addOrUpdateNode(sockaddr* publicSocket, sockaddr* localSocket, char nodeType, uint16_t nodeId) {
-    qDebug() << "BEGIN:" << publicSocket << "and" << localSocket << "\n";
     NodeList::iterator node = end();
     
     if (publicSocket) {
@@ -443,8 +451,6 @@ Node* NodeList::addOrUpdateNode(sockaddr* publicSocket, sockaddr* localSocket, c
     }
     
     if (node == end()) {
-        qDebug() << "We're considering this a new node!\n";
-        qDebug() << publicSocket << "and" << localSocket << "\n";
         // we didn't have this node, so add them
         Node* newNode = new Node(publicSocket, localSocket, nodeType, nodeId);
         
@@ -537,20 +543,18 @@ Node* NodeList::soloNodeOfType(char nodeType) {
 
 void* removeSilentNodes(void *args) {
     NodeList* nodeList = (NodeList*) args;
-    uint64_t checkTimeUSecs;
-    int sleepTime;
+    uint64_t checkTimeUsecs = 0;
+    int sleepTime = 0;
     
     while (!silentNodeThreadStopFlag) {
-        checkTimeUSecs = usecTimestampNow();
+        
+        checkTimeUsecs = usecTimestampNow();
         
         for(NodeList::iterator node = nodeList->begin(); node != nodeList->end(); ++node) {
-            
             node->lock();
             
-            qDebug() << "This node's LHMS is" << node->getLastHeardMicrostamp() << "\n";
-            
-            if ((checkTimeUSecs - node->getLastHeardMicrostamp()) > NODE_SILENCE_THRESHOLD_USECS) {
-            
+            if ((usecTimestampNow() - node->getLastHeardMicrostamp()) > NODE_SILENCE_THRESHOLD_USECS) {
+
                 qDebug() << "Killed " << *node << "\n";
                 
                 nodeList->notifyHooksOfKilledNode(&*node);
@@ -561,11 +565,18 @@ void* removeSilentNodes(void *args) {
             node->unlock();
         }
         
-        sleepTime = NODE_SILENCE_THRESHOLD_USECS - (usecTimestampNow() - checkTimeUSecs);
+        sleepTime = NODE_SILENCE_THRESHOLD_USECS - (usecTimestampNow() - checkTimeUsecs);
+        
         #ifdef _WIN32
+        
         Sleep( static_cast<int>(1000.0f*sleepTime) );
+        
         #else
-        usleep(sleepTime);
+        
+        if (sleepTime > 0) {
+            usleep(sleepTime);
+        }
+        
         #endif
     }
     

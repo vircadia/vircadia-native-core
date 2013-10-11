@@ -12,6 +12,8 @@
 #include <fstream>
 #include <vector>
 
+#include "InterfaceConfig.h"
+
 #include <QObject>
 
 #include <portaudio.h>
@@ -20,6 +22,8 @@
 #include <StdDev.h>
 
 #include "Oscilloscope.h"
+
+#include <QGLWidget>
 
 static const int NUM_AUDIO_CHANNELS = 2;
 
@@ -56,6 +60,9 @@ public:
     float getCollisionSoundMagnitude() { return _collisionSoundMagnitude; }
     
     void ping();
+    
+    void init(QGLWidget *parent = 0);
+    bool mousePressEvent(int x, int y);
 
     // Call periodically to eventually perform round trip time analysis,
     // in which case 'true' is returned - otherwise the return value is 'false'.
@@ -69,6 +76,7 @@ public:
     void clearListenSources();
 
 private:
+    
     PaStream* _stream;
     AudioRingBuffer _ringBuffer;
     Oscilloscope* _scope;
@@ -103,6 +111,11 @@ private:
     float _collisionSoundDuration;
     int _proceduralEffectSample;
     float _heartbeatMagnitude;
+
+    bool _muted;
+    GLuint _micTextureId;
+    GLuint _muteTextureId;
+    QRect _iconBounds;
     
     AudioRingBuffer::ListenMode _listenMode;
     float                       _listenRadius;
@@ -130,6 +143,7 @@ private:
                              PaStreamCallbackFlags statusFlags,
                              void *userData);
 
+    void renderToolIcon(int screenHeight);
 };
 
 
