@@ -261,6 +261,8 @@ int NodeList::getNumAliveNodes() const {
 }
 
 void NodeList::clear() {
+    qDebug() << "Clearing the NodeList. Deleting all nodes in list.\n";
+    
     // delete all of the nodes in the list, set the pointers back to NULL and the number of nodes to 0
     for (int i = 0; i < _numNodes; i++) {
         Node** nodeBucket = _nodeBuckets[i / NODES_PER_BUCKET];
@@ -540,14 +542,17 @@ Node* NodeList::soloNodeOfType(char nodeType) {
 
 void* removeSilentNodes(void *args) {
     NodeList* nodeList = (NodeList*) args;
-    uint64_t checkTimeUsecs = usecTimestampNow();
-    int sleepTime;
+    uint64_t checkTimeUsecs = 0;
+    int sleepTime = 0;
     
     while (!silentNodeThreadStopFlag) {
         
+        checkTimeUsecs = usecTimestampNow();
+        
         for(NodeList::iterator node = nodeList->begin(); node != nodeList->end(); ++node) {
-            
             node->lock();
+            
+            qDebug() << usecTimestampNow() - node->getLastHeardMicrostamp() << "\n";
 
             if ((usecTimestampNow() - node->getLastHeardMicrostamp()) > NODE_SILENCE_THRESHOLD_USECS) {
             
@@ -562,10 +567,17 @@ void* removeSilentNodes(void *args) {
         }
         
         sleepTime = NODE_SILENCE_THRESHOLD_USECS - (usecTimestampNow() - checkTimeUsecs);
+        
         #ifdef _WIN32
+        
         Sleep( static_cast<int>(1000.0f*sleepTime) );
+        
         #else
-        usleep(sleepTime);
+        
+        if (sleepTime > 0) {
+            usleep(sleepTime);
+        }
+        
         #endif
     }
     
