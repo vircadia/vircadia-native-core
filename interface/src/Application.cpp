@@ -154,6 +154,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     NodeList::getInstance()->addHook(&_voxels);
     NodeList::getInstance()->addHook(this);
     NodeList::getInstance()->addDomainListener(this);
+    NodeList::getInstance()->addDomainListener(&_voxels);
 
     
     // network receive thread and voxel parsing thread are both controlled by the --nonblocking command line

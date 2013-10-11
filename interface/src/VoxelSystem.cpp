@@ -109,8 +109,14 @@ VoxelSystem::VoxelSystem(float treeScale, int maxVoxels)
 }
 
 void VoxelSystem::voxelDeleted(VoxelNode* node) {
-    if (node->isKnownBufferIndex() && (node->getVoxelSystem() == this)) {
-        forceRemoveNodeFromArrays(node);
+    if (node->getVoxelSystem() == this) {
+        if (_voxelsInWriteArrays != 0) {
+            forceRemoveNodeFromArrays(node);
+        } else {
+            if (Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings)) {
+                printf("VoxelSystem::voxelDeleted() while _voxelsInWriteArrays==0, is that expected? \n");
+            }
+        }
     }
 }
 
@@ -223,10 +229,15 @@ void VoxelSystem::freeBufferIndex(glBufferIndex index) {
 // This will run through the list of _freeIndexes and reset their VBO array values to be "invisible".
 void VoxelSystem::clearFreeBufferIndexes() {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "###### clearFreeBufferIndexes()");
+    _voxelsInWriteArrays = 0; // reset our VBO
+    _abandonedVBOSlots = 0;
+
+    // clear out freeIndexes
     pthread_mutex_lock(&_freeIndexLock);
     _freeIndexes.clear();
-    _abandonedVBOSlots = 0;
     pthread_mutex_unlock(&_freeIndexLock);
+
+    clearAllNodesBufferIndex();
 }
 
 VoxelSystem::~VoxelSystem() {
@@ -438,7 +449,6 @@ void VoxelSystem::initVoxelMemory() {
 
         // Global Normals mode uses a technique of not including normals on any voxel vertices, and instead
         // rendering the voxel faces in 6 passes that use a global call to glNormal3f()
-        qDebug("Using Global Normals...\n");
         setupFaceIndices(_vboIndicesTop,    identityIndicesTop);
         setupFaceIndices(_vboIndicesBottom, identityIndicesBottom);
         setupFaceIndices(_vboIndicesLeft,   identityIndicesLeft);
@@ -596,11 +606,7 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
 
             while (totalLength <= numBytes) {
                 if (0==strcmp(command,(char*)"erase all")) {
-                    qDebug("got Z message == erase all\n");
-                    pthread_mutex_lock(&_treeLock);
-                    _tree->eraseAllVoxels();
-                    pthread_mutex_unlock(&_treeLock);
-                    _voxelsInReadArrays = _voxelsInWriteArrays = 0; // better way to do this??
+                    qDebug("got Z message == erase all - NOT SUPPORTED ON INTERFACE\n");
                 }
                 if (0==strcmp(command,(char*)"add scene")) {
                     qDebug("got Z message == add scene - NOT SUPPORTED ON INTERFACE\n");
@@ -652,8 +658,6 @@ void VoxelSystem::setupNewVoxelsForDrawing() {
         PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), buffer);
         _callsToTreesToArrays++;
         if (_writeRenderFullVBO) {
-            printf("resetting _freeIndexes and _voxelsInWriteArrays\n");
-            _voxelsInWriteArrays = 0; // reset our VBO
             clearFreeBufferIndexes();
         }
         _voxelsUpdated = newTreeToArrays(_tree->rootNode);
@@ -972,10 +976,10 @@ int VoxelSystem::updateNodeInArrays(VoxelNode* node, bool reuseIndex, bool force
             updateArraysDetails(nodeIndex, startVertex, voxelScale, node->getColor());
             return 1; // updated!
         } else {
-            // If we shouldn't render, but we did have a known index, then we will need to release our index
-            if (reuseIndex && node->isKnownBufferIndex()) {
-                forceRemoveNodeFromArrays(node);
-                return 1; // updated!
+            // If we shouldn't render, and we're in reuseIndex mode, then free our index, this only operates
+            // on nodes with known index values, so it's safe to call for any node.
+            if (reuseIndex) {
+                return forceRemoveNodeFromArrays(node);
             }
         }
     }
@@ -1284,8 +1288,11 @@ void VoxelSystem::removeScaleAndReleaseProgram(bool texture) {
 int VoxelSystem::_nodeCount = 0;
 
 void VoxelSystem::killLocalVoxels() {
+    pthread_mutex_lock(&_treeLock);
     _tree->eraseAllVoxels();
-    _voxelsInWriteArrays = _voxelsInReadArrays = 0; // better way to do this??
+    pthread_mutex_unlock(&_treeLock);
+    clearFreeBufferIndexes();    
+    _voxelsInReadArrays = 0; // do we need to do this?
     setupNewVoxelsForDrawing();
 }
 
@@ -1298,8 +1305,12 @@ bool VoxelSystem::clearAllNodesBufferIndexOperation(VoxelNode* node, void* extra
 
 void VoxelSystem::clearAllNodesBufferIndex() {
     _nodeCount = 0;
+    pthread_mutex_lock(&_treeLock);                                  
     _tree->recurseTreeWithOperation(clearAllNodesBufferIndexOperation);
-    qDebug("clearing buffer index of %d nodes\n", _nodeCount);
+    pthread_mutex_unlock(&_treeLock);
+    if (Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings)) {
+        qDebug("clearing buffer index of %d nodes\n", _nodeCount);
+    }
 }
 
 bool VoxelSystem::forceRedrawEntireTreeOperation(VoxelNode* node, void* extraData) {
@@ -1700,8 +1711,7 @@ bool VoxelSystem::hideAllSubTreeOperation(VoxelNode* node, void* extraData) {
     if (node->isKnownBufferIndex()) {
         args->nodesRemoved++;
         VoxelSystem* thisVoxelSystem = args->thisVoxelSystem;
-        thisVoxelSystem->forceRemoveNodeFromArrays(node);
-        thisVoxelSystem->_voxelsUpdated++;
+        thisVoxelSystem->_voxelsUpdated += thisVoxelSystem->forceRemoveNodeFromArrays(node);
         thisVoxelSystem->setupNewVoxelsForDrawingSingleNode();
     }
     
@@ -1714,10 +1724,10 @@ bool VoxelSystem::showAllSubTreeOperation(VoxelNode* node, void* extraData) {
     args->nodesInside++;
 
     if (node->getShouldRender() && !node->isKnownBufferIndex()) {
-        node->setDirtyBit(); // will this make it draw?
+        node->setDirtyBit(); // will this make it draw!
     }
 
-    return true;
+    return true; // keep recursing!
 }
 
 
@@ -1841,7 +1851,7 @@ void VoxelSystem::falseColorizeRandomEveryOther() {
 
 class collectStatsForTreesAndVBOsArgs {
 public:
-    collectStatsForTreesAndVBOsArgs() : 
+    collectStatsForTreesAndVBOsArgs(int maxVoxels) : 
         totalNodes(0), 
         dirtyNodes(0), 
         shouldRenderNodes(0),
@@ -1852,8 +1862,13 @@ public:
         duplicateVBOIndex(0),
         leafNodes(0)
         {
-            memset(hasIndexFound, false, DEFAULT_MAX_VOXELS_PER_SYSTEM * sizeof(bool));
+            hasIndexFound = new bool[maxVoxels];
+            memset(hasIndexFound, false, maxVoxels * sizeof(bool));
         };
+        
+    ~collectStatsForTreesAndVBOsArgs() {
+        delete[] hasIndexFound;
+    }
 
     unsigned long totalNodes;
     unsigned long dirtyNodes;
@@ -1867,7 +1882,7 @@ public:
 
     unsigned long expectedMax;
     
-    bool hasIndexFound[DEFAULT_MAX_VOXELS_PER_SYSTEM];
+    bool* hasIndexFound;
 };
 
 bool VoxelSystem::collectStatsForTreesAndVBOsOperation(VoxelNode* node, void* extraData) {
@@ -1934,7 +1949,7 @@ void VoxelSystem::collectStatsForTreesAndVBOs() {
         }
     }
 
-    collectStatsForTreesAndVBOsArgs args;
+    collectStatsForTreesAndVBOsArgs args(_maxVoxels);
     args.expectedMax = _voxelsInWriteArrays;
     
     qDebug("CALCULATING Local Voxel Tree Statistics >>>>>>>>>>>>\n");
@@ -1953,7 +1968,7 @@ void VoxelSystem::collectStatsForTreesAndVBOs() {
     glBufferIndex minInVBO = GLBUFFER_INDEX_UNKNOWN;
     glBufferIndex maxInVBO = 0;
 
-    for (glBufferIndex i = 0; i < DEFAULT_MAX_VOXELS_PER_SYSTEM; i++) {
+    for (glBufferIndex i = 0; i < _maxVoxels; i++) {
         if (args.hasIndexFound[i]) {
             minInVBO = std::min(minInVBO,i);
             maxInVBO = std::max(maxInVBO,i);
@@ -1972,13 +1987,12 @@ void VoxelSystem::collectStatsForTreesAndVBOs() {
 
 void VoxelSystem::deleteVoxelAt(float x, float y, float z, float s) {
     pthread_mutex_lock(&_treeLock);
-    
     _tree->deleteVoxelAt(x, y, z, s);
+    pthread_mutex_unlock(&_treeLock);
     
     // redraw!
     setupNewVoxelsForDrawing();  // do we even need to do this? Or will the next network receive kick in?
     
-    pthread_mutex_unlock(&_treeLock);
 };
 
 VoxelNode* VoxelSystem::getVoxelAt(float x, float y, float z, float s) const { 
@@ -2313,15 +2327,20 @@ void VoxelSystem::nodeKilled(Node* node) {
         
         if (_voxelServerCount > 0) {
             // Kill any voxels from the local tree that match this nodeID
+            pthread_mutex_lock(&_treeLock);
             _tree->recurseTreeWithOperation(killSourceVoxelsOperation, &nodeID);
+            pthread_mutex_unlock(&_treeLock);
             _tree->setDirtyBit();
+            setupNewVoxelsForDrawing();
         } else {
             // Last server, take the easy way and kill all the local voxels!
-            _tree->eraseAllVoxels();
-            _voxelsInWriteArrays = _voxelsInReadArrays = 0; // better way to do this??
+            killLocalVoxels();
         }
-        setupNewVoxelsForDrawing();
     }
+}
+
+void VoxelSystem::domainChanged(QString domain) {
+    killLocalVoxels();
 }
 
 
