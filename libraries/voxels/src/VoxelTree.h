@@ -155,6 +155,7 @@ public:
                       creationMode mode, bool destructive = false, bool debug = false);
 
     void recurseTreeWithOperation(RecurseVoxelTreeOperation operation, void* extraData=NULL);
+                                    
     void recurseTreeWithOperationDistanceSorted(RecurseVoxelTreeOperation operation, 
                                                 const glm::vec3& point, void* extraData=NULL);
 
@@ -190,6 +191,7 @@ public:
     bool getShouldReaverage() const { return _shouldReaverage; }
 
     void recurseNodeWithOperation(VoxelNode* node, RecurseVoxelTreeOperation operation, void* extraData);
+            
     void recurseNodeWithOperationDistanceSorted(VoxelNode* node, RecurseVoxelTreeOperation operation, 
                 const glm::vec3& point, void* extraData);
 

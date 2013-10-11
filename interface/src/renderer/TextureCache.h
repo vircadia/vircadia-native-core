@@ -99,6 +99,9 @@ public:
     NetworkTexture(const QUrl& url);
     ~NetworkTexture();
 
+    /// Returns the average color over the entire texture.
+    const glm::vec4& getAverageColor() const { return _averageColor; }
+
 protected:
 
     virtual void imageLoaded(const QImage& image);    
@@ -111,6 +114,7 @@ private slots:
 private:
     
     QNetworkReply* _reply;
+    glm::vec4 _averageColor;
 };
 
 /// Caches derived, dilated textures.

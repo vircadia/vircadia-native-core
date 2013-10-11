@@ -250,21 +250,37 @@ QSharedPointer<NetworkGeometry> GeometryCache::getGeometry(const QUrl& url) {
     return geometry;
 }
 
-NetworkGeometry::NetworkGeometry(const QUrl& url) : _reply(NULL) {
+NetworkGeometry::NetworkGeometry(const QUrl& url) :
+    _modelReply(NULL),
+    _mappingReply(NULL)
+{
     if (!url.isValid()) {
         return;
     }
-    QNetworkRequest request(url);
-    request.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache);
-    _reply = Application::getInstance()->getNetworkAccessManager()->get(request);
+    QNetworkRequest modelRequest(url);
+    modelRequest.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache);
+    _modelReply = Application::getInstance()->getNetworkAccessManager()->get(modelRequest);
     
-    connect(_reply, SIGNAL(downloadProgress(qint64,qint64)), SLOT(handleDownloadProgress(qint64,qint64)));
-    connect(_reply, SIGNAL(error(QNetworkReply::NetworkError)), SLOT(handleReplyError()));
+    connect(_modelReply, SIGNAL(downloadProgress(qint64,qint64)), SLOT(maybeReadModelWithMapping()));
+    connect(_modelReply, SIGNAL(error(QNetworkReply::NetworkError)), SLOT(handleModelReplyError()));
+    
+    QUrl mappingURL = url;
+    QString path = url.path();
+    mappingURL.setPath(path.left(path.lastIndexOf('.')) + ".fst");
+    QNetworkRequest mappingRequest(mappingURL);
+    mappingRequest.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache);
+    _mappingReply = Application::getInstance()->getNetworkAccessManager()->get(mappingRequest);
+    
+    connect(_mappingReply, SIGNAL(downloadProgress(qint64,qint64)), SLOT(maybeReadModelWithMapping()));
+    connect(_mappingReply, SIGNAL(error(QNetworkReply::NetworkError)), SLOT(handleMappingReplyError()));
 }
 
 NetworkGeometry::~NetworkGeometry() {
-    if (_reply != NULL) {
-        delete _reply;
+    if (_modelReply != NULL) {
+        delete _modelReply;
+    }
+    if (_mappingReply != NULL) {
+        delete _mappingReply;
     }
     foreach (const NetworkMesh& mesh, _meshes) {
         glDeleteBuffers(1, &mesh.indexBufferID);
@@ -272,19 +288,60 @@ NetworkGeometry::~NetworkGeometry() {
     }    
 }
 
-void NetworkGeometry::handleDownloadProgress(qint64 bytesReceived, qint64 bytesTotal) {
-    if (bytesReceived < bytesTotal && !_reply->isFinished()) {
+glm::vec4 NetworkGeometry::computeAverageColor() const {
+    glm::vec4 totalColor;
+    int totalVertices = 0;
+    for (int i = 0; i < _meshes.size(); i++) {
+        if (_geometry.meshes.at(i).isEye) {
+            continue; // skip eyes
+        }
+        glm::vec4 color = glm::vec4(_geometry.meshes.at(i).diffuseColor, 1.0f);
+        if (_meshes.at(i).diffuseTexture) {
+            color *= _meshes.at(i).diffuseTexture->getAverageColor();
+        }
+        totalColor += color * _geometry.meshes.at(i).vertices.size();
+        totalVertices += _geometry.meshes.at(i).vertices.size();
+    }
+    return (totalVertices == 0) ? glm::vec4(1.0f, 1.0f, 1.0f, 1.0f) : totalColor / totalVertices;
+}
+
+void NetworkGeometry::handleModelReplyError() {
+    qDebug() << _modelReply->errorString() << "\n";
+    
+    _modelReply->disconnect(this);
+    _modelReply->deleteLater();
+    _modelReply = NULL;
+}
+
+void NetworkGeometry::handleMappingReplyError() {
+    _mappingReply->disconnect(this);
+    _mappingReply->deleteLater();
+    _mappingReply = NULL;
+    
+    maybeReadModelWithMapping();
+}
+
+void NetworkGeometry::maybeReadModelWithMapping() {
+    if (_modelReply == NULL || !_modelReply->isFinished() || (_mappingReply != NULL && !_mappingReply->isFinished())) {
         return;
     }
-
-    QUrl url = _reply->url();
-    QByteArray entirety = _reply->readAll();
-    _reply->disconnect(this);
-    _reply->deleteLater();
-    _reply = NULL;
+    
+    QUrl url = _modelReply->url();
+    QByteArray model = _modelReply->readAll();
+    _modelReply->disconnect(this);
+    _modelReply->deleteLater();
+    _modelReply = NULL;
+    
+    QByteArray mapping;
+    if (_mappingReply != NULL) {
+        mapping = _mappingReply->readAll();
+        _mappingReply->disconnect(this);
+        _mappingReply->deleteLater();
+        _mappingReply = NULL;
+    }
     
     try {
-        _geometry = extractFBXGeometry(parseFBX(entirety));
+        _geometry = readFBX(model, mapping);
         
     } catch (const QString& error) {
         qDebug() << "Error reading " << url << ": " << error << "\n";
@@ -306,7 +363,7 @@ void NetworkGeometry::handleDownloadProgress(qint64 bytesReceived, qint64 bytesT
         glGenBuffers(1, &networkMesh.vertexBufferID);
         glBindBuffer(GL_ARRAY_BUFFER, networkMesh.vertexBufferID);
             
-        if (mesh.blendshapes.isEmpty()) {
+        if (mesh.blendshapes.isEmpty() && mesh.springiness == 0.0f) {
             glBufferData(GL_ARRAY_BUFFER, (mesh.vertices.size() + mesh.normals.size()) * sizeof(glm::vec3) +
                 mesh.texCoords.size() * sizeof(glm::vec2), NULL, GL_STATIC_DRAW);
             glBufferSubData(GL_ARRAY_BUFFER, 0, mesh.vertices.size() * sizeof(glm::vec3), mesh.vertices.constData());
@@ -323,10 +380,7 @@ void NetworkGeometry::handleDownloadProgress(qint64 bytesReceived, qint64 bytesT
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         
         QString basePath = url.path();
-        int idx = basePath.lastIndexOf('/');
-        if (idx != -1) {
-            basePath = basePath.left(idx);
-        }
+        basePath = basePath.left(basePath.lastIndexOf('/') + 1);
         if (!mesh.diffuseFilename.isEmpty()) {
             url.setPath(basePath + mesh.diffuseFilename);
             networkMesh.diffuseTexture = Application::getInstance()->getTextureCache()->getTexture(url, mesh.isEye);
@@ -337,12 +391,4 @@ void NetworkGeometry::handleDownloadProgress(qint64 bytesReceived, qint64 bytesT
         }
         _meshes.append(networkMesh);
     }
-}
-
-void NetworkGeometry::handleReplyError() {
-    qDebug() << _reply->errorString() << "\n";
-    
-    _reply->disconnect(this);
-    _reply->deleteLater();
-    _reply = NULL;
 }

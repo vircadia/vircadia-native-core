@@ -42,7 +42,7 @@ public slots:
     
 protected:
     
-    virtual void updateNodeInArrays(glBufferIndex nodeIndex, const glm::vec3& startVertex,
+    virtual void updateArraysDetails(glBufferIndex nodeIndex, const glm::vec3& startVertex,
                                     float voxelScale, const nodeColor& color);
     virtual void copyWrittenDataSegmentToReadArrays(glBufferIndex segmentStart, glBufferIndex segmentEnd);
     virtual void updateVBOSegment(glBufferIndex segmentStart, glBufferIndex segmentEnd);

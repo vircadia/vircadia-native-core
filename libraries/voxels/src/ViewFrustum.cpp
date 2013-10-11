@@ -371,7 +371,7 @@ bool ViewFrustum::matches(const ViewFrustum& compareTo, bool debug) const {
 
 void ViewFrustum::computePickRay(float x, float y, glm::vec3& origin, glm::vec3& direction) const {
     origin = _nearTopLeft + x*(_nearTopRight - _nearTopLeft) + y*(_nearBottomLeft - _nearTopLeft);
-    direction = glm::normalize(origin - _position);
+    direction = glm::normalize(origin - (_position + _orientation * _eyeOffsetPosition));
 }
 
 void ViewFrustum::computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& near, float& far,
@@ -400,6 +400,10 @@ void ViewFrustum::computeOffAxisFrustum(float& left, float& right, float& bottom
         near = min(near, -corners[i].z);
         far = max(far, -corners[i].z);
     }
+    
+    // make sure the near clip isn't too small to be valid
+    const float MIN_NEAR = 0.01f;
+    near = max(MIN_NEAR, near);
     
     // get the near/far normal and use it to find the clip planes
     glm::vec4 normal = eyeMatrix * glm::vec4(0.0f, 0.0f, 1.0f, 0.0f);

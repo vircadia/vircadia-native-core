@@ -23,6 +23,7 @@ static const float fingerVectorRadix = 4; // bits of precision when converting f
 
 AvatarData::AvatarData(Node* owningNode) :
     NodeData(owningNode),
+    _uuid(),
     _handPosition(0,0,0),
     _bodyYaw(-90.0),
     _bodyPitch(0.0),
@@ -115,6 +116,11 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     if (!_handData) {
         _handData = new HandData(this);
     }
+    
+    // UUID
+    QByteArray uuidByteArray = _uuid.toRfc4122();
+    memcpy(destinationBuffer, uuidByteArray.constData(), uuidByteArray.size());
+    destinationBuffer += uuidByteArray.size();
     
     // Body world position
     memcpy(destinationBuffer, &_position, sizeof(float) * 3);
@@ -249,6 +255,11 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     // push past the node ID
     sourceBuffer += sizeof(uint16_t);
     
+    // UUID
+    const int NUM_BYTES_RFC4122_UUID = 16;
+    _uuid = QUuid::fromRfc4122(QByteArray((char*) sourceBuffer, NUM_BYTES_RFC4122_UUID));
+    sourceBuffer += NUM_BYTES_RFC4122_UUID;
+    
     // Body world position
     memcpy(&_position, sourceBuffer, sizeof(float) * 3);
     sourceBuffer += sizeof(float) * 3;
@@ -259,7 +270,7 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &_bodyRoll);
 
     // Body scale
-    sourceBuffer += unpackFloatRatioFromTwoByte(            sourceBuffer,  _newScale);
+    sourceBuffer += unpackFloatRatioFromTwoByte(sourceBuffer, _newScale);
 
     // Follow mode info
     memcpy(&_leaderID, sourceBuffer, sizeof(uint16_t));

@@ -74,7 +74,10 @@ bool VoxelNodeData::updateCurrentViewFrustum() {
     newestViewFrustum.setOrientation(getCameraOrientation());
 
     // Also make sure it's got the correct lens details from the camera
-    newestViewFrustum.setFieldOfView(getCameraFov());
+    float originalFOV = getCameraFov();
+    float wideFOV = originalFOV + VIEW_FRUSTUM_FOV_OVERSEND;
+    
+    newestViewFrustum.setFieldOfView(wideFOV); // hack
     newestViewFrustum.setAspectRatio(getCameraAspectRatio());
     newestViewFrustum.setNearClip(getCameraNearClip());
     newestViewFrustum.setFarClip(getCameraFarClip());

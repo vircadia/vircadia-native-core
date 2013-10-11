@@ -43,7 +43,7 @@ bool socketMatch(const sockaddr* first, const sockaddr* second) {
             const sockaddr_in *secondIn = (const sockaddr_in *) second;
             
             return firstIn->sin_addr.s_addr == secondIn->sin_addr.s_addr
-            && firstIn->sin_port == secondIn->sin_port;
+                && firstIn->sin_port == secondIn->sin_port;
         } else {
             return false;
         }
@@ -254,7 +254,7 @@ bool UDPSocket::receive(sockaddr* recvAddress, void* receivedData, ssize_t* rece
 #ifdef _WIN32
     int addressSize = sizeof(*recvAddress);
 #else
-    socklen_t addressSize = sizeof(&recvAddress);
+    socklen_t addressSize = sizeof(*recvAddress);
 #endif    
     *receivedBytes = recvfrom(handle, static_cast<char*>(receivedData), MAX_BUFFER_LENGTH_BYTES,
                               0, recvAddress, &addressSize);

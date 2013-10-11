@@ -9,12 +9,11 @@
 #ifndef __interface__FBXReader__
 #define __interface__FBXReader__
 
+#include <QVarLengthArray>
 #include <QVariant>
 #include <QVector>
 
 #include <glm/glm.hpp>
-
-class QIODevice;
 
 class FBXNode;
 
@@ -53,10 +52,18 @@ public:
     
     bool isEye;
     
+    glm::vec3 diffuseColor;
+    glm::vec3 specularColor;
+    float shininess;
+    
     QByteArray diffuseFilename;
     QByteArray normalFilename;
     
     QVector<FBXBlendshape> blendshapes;
+    
+    float springiness;
+    QVector<QPair<int, int> > springEdges;
+    QVector<QVarLengthArray<QPair<int, int>, 4> > vertexConnections;
 };
 
 /// A set of meshes extracted from an FBX document.
@@ -68,17 +75,8 @@ public:
     glm::vec3 neckPivot;
 };
 
-/// Parses the input from the supplied data as an FBX file.
+/// Reads FBX geometry from the supplied model and mapping data.
 /// \exception QString if an error occurs in parsing
-FBXNode parseFBX(const QByteArray& data);
-
-/// Parses the input from the supplied device as an FBX file.
-/// \exception QString if an error occurs in parsing
-FBXNode parseFBX(QIODevice* device);
-
-/// Extracts the geometry from a parsed FBX node.
-FBXGeometry extractFBXGeometry(const FBXNode& node);
-
-void printNode(const FBXNode& node, int indent = 0);
+FBXGeometry readFBX(const QByteArray& model, const QByteArray& mapping);
 
 #endif /* defined(__interface__FBXReader__) */

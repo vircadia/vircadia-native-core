@@ -62,14 +62,19 @@ public:
     const FBXGeometry& getFBXGeometry() const { return _geometry; }
     const QVector<NetworkMesh>& getMeshes() const { return _meshes; }
 
+    /// Returns the average color of all meshes in the geometry.
+    glm::vec4 computeAverageColor() const;
+
 private slots:
     
-    void handleDownloadProgress(qint64 bytesReceived, qint64 bytesTotal);
-    void handleReplyError();    
+    void handleModelReplyError();    
+    void handleMappingReplyError();
+    void maybeReadModelWithMapping();
     
 private:
     
-    QNetworkReply* _reply;
+    QNetworkReply* _modelReply;
+    QNetworkReply* _mappingReply;
     
     FBXGeometry _geometry;
     QVector<NetworkMesh> _meshes;

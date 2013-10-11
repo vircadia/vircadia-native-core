@@ -12,6 +12,7 @@
 
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
+#include <UUID.h>
 
 #include "DomainServer.h"
 
@@ -62,7 +63,7 @@ void DomainServer::civetwebUploadHandler(struct mg_connection *connection, const
     QString newPath(ASSIGNMENT_SCRIPT_HOST_LOCATION);
     newPath += "/";
     // append the UUID for this script as the new filename, remove the curly braces
-    newPath += scriptAssignment->getUUIDStringWithoutCurlyBraces();
+    newPath += uuidStringWithoutCurlyBraces(scriptAssignment->getUUID());
     
     // rename the saved script to the GUID of the assignment and move it to the script host locaiton
     rename(path, newPath.toLocal8Bit().constData());

@@ -52,4 +52,6 @@ const float VIEW_CULLING_RATE_IN_MILLISECONDS = 1000.0f; // once a second is fin
 
 const uint64_t CLIENT_TO_SERVER_VOXEL_SEND_INTERVAL_USECS = 1000 * 5; // 1 packet every 50 milliseconds
 
+const float VIEW_FRUSTUM_FOV_OVERSEND = 60.0f;
+
 #endif
