@@ -66,6 +66,7 @@ public slots:
     void saveSettings(QSettings* settings = NULL);
     void importSettings();
     void exportSettings();
+    void goToUser();
     
 private slots:
     void aboutApp();
@@ -73,7 +74,6 @@ private slots:
     void editPreferences();
     void goToDomain();
     void goToLocation();
-    void goToUser();
     void bandwidthDetailsClosed();
     void voxelStatsDetailsClosed();
     void cycleFrustumRenderMode();
