@@ -261,6 +261,8 @@ int NodeList::getNumAliveNodes() const {
 }
 
 void NodeList::clear() {
+    qDebug() << "Clearing the NodeList. Deleting all nodes in list.\n";
+    
     // delete all of the nodes in the list, set the pointers back to NULL and the number of nodes to 0
     for (int i = 0; i < _numNodes; i++) {
         Node** nodeBucket = _nodeBuckets[i / NODES_PER_BUCKET];
