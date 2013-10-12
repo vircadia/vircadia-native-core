@@ -30,8 +30,6 @@ signals:
     void willSendAudioDataCallback();
     void willSendVisualDataCallback();
 private:
-    static void setStaticInstance(Agent* staticInstance);
-    static Agent* _staticInstance;
     static QScriptValue AudioInjectorConstructor(QScriptContext *context, QScriptEngine *engine);
     
     bool volatile _shouldStop;
