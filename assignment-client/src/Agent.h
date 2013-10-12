@@ -27,6 +27,7 @@ public:
 public slots:
     void stop();
 signals:
+    void willSendAudioDataCallback();
     void willSendVisualDataCallback();
 private:
     static void setStaticInstance(Agent* staticInstance);

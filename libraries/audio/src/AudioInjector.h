@@ -42,8 +42,6 @@ public:
     unsigned char getVolume() const  { return _volume; }
     void setVolume(unsigned char volume) { _volume = volume; }
     
-    float getLastFrameIntensity() const { return _lastFrameIntensity; }
-    
     const glm::vec3& getPosition() const { return _position; }
     void setPosition(const glm::vec3& position) { _position = position; }
     
@@ -57,7 +55,7 @@ public:
     void addSamples(int16_t* sampleBuffer, int numSamples);
 public slots:
     int16_t& sampleAt(const int index);
-    void insertSample(const int index, int16_t sample);
+    void insertSample(const int index, int sample);
 private:
     unsigned char _streamIdentifier[STREAM_IDENTIFIER_NUM_BYTES];
     int16_t* _audioSampleArray;
@@ -68,7 +66,6 @@ private:
     unsigned char _volume;
     int _indexOfNextSlot;
     bool _isInjectingAudio;
-    float _lastFrameIntensity;
 };
 
 #endif /* defined(__hifi__AudioInjector__) */

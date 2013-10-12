@@ -441,10 +441,8 @@ Node* NodeList::addOrUpdateNode(sockaddr* publicSocket, sockaddr* localSocket, c
     
     if (publicSocket) {
         for (node = begin(); node != end(); node++) {
-            qDebug() << "comparing to node with ID " << node->getNodeID() << "\n";
             if (node->matches(publicSocket, localSocket, nodeType)) {
                 // we already have this node, stop checking
-                qDebug() << "Matched node to existing\n";
                 break;
             }
         }
