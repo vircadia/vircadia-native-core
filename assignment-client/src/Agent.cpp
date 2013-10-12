@@ -39,10 +39,6 @@ static size_t writeScriptDataToString(void *contents, size_t size, size_t nmemb,
     return realSize;
 }
 
-void Agent::setStaticInstance(Agent* staticInstance) {
-    _staticInstance = staticInstance;
-}
-
 QScriptValue vec3toScriptValue(QScriptEngine *engine, const glm::vec3 &vec3) {
     QScriptValue obj = engine->newObject();
     obj.setProperty("x", vec3.x);
