@@ -305,6 +305,8 @@ private:
     int _mouseY;
     int _mouseDragStartedX;
     int _mouseDragStartedY;
+    uint64_t _lastMouseMove;
+    bool _mouseHidden;
 
     float _touchAvgX;
     float _touchAvgY;

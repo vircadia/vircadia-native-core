@@ -101,7 +101,7 @@ Menu::Menu() :
                                    SLOT(goToLocation()));
     addActionToQMenuAndActionHash(fileMenu,
                                   MenuOption::GoToUser,
-                                  Qt::CTRL | Qt::SHIFT | Qt::Key_U,
+                                  Qt::Key_At,
                                   this,
                                   SLOT(goToUser()));
 
@@ -300,7 +300,6 @@ Menu::Menu() :
                                   &appInstance->getAvatar()->getHead().getFace(),
                                   SLOT(cycleRenderMode()));
     
-    addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::UsePerlinFace, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::LookAtVectors, 0, true);
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::LookAtIndicator, 0, true);
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu,
