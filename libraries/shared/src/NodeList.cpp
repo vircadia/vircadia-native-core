@@ -285,6 +285,9 @@ void NodeList::reset() {
     _checkInPacket = NULL;
     
     _numBytesCheckInPacket = 0;
+    
+    delete _nodeTypesOfInterest;
+    _nodeTypesOfInterest = NULL;
 }
 
 void NodeList::setNodeTypesOfInterest(const char* nodeTypesOfInterest, int numNodeTypesOfInterest) {
