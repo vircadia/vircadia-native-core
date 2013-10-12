@@ -908,6 +908,9 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_8:
                 _swatch.handleEvent(event->key(), Menu::getInstance()->isOptionChecked(MenuOption::VoxelGetColorMode));
                 break;
+            case Qt::Key_At:
+                Menu::getInstance()->goToUser();
+                break;
             default:
                 event->ignore();
                 break;
