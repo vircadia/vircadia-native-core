@@ -156,6 +156,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     NodeList::getInstance()->addHook(&_voxels);
     NodeList::getInstance()->addHook(this);
     NodeList::getInstance()->addDomainListener(this);
+    NodeList::getInstance()->addDomainListener(&_voxels);
 
     
     // network receive thread and voxel parsing thread are both controlled by the --nonblocking command line
@@ -3582,9 +3583,6 @@ void Application::domainChanged(QString domain) {
     
     // update the user's last domain in their Profile (which will propagate to data-server)
     _profile.updateDomain(domain);
-    
-    // kill the local voxels
-    _voxels.killLocalVoxels();
     
     // reset the environment so that we don't erroneously end up with multiple
     _environment.resetToDefault();
