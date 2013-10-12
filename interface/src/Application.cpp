@@ -105,6 +105,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _profile(QString()),
         _mouseX(0),
         _mouseY(0),
+        _lastMouseMove(usecTimestampNow()),
+        _mouseHidden(false),
         _touchAvgX(0.0f),
         _touchAvgY(0.0f),
         _isTouchPressed(false),
@@ -981,6 +983,12 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
 }
 
 void Application::mouseMoveEvent(QMouseEvent* event) {
+    _lastMouseMove = usecTimestampNow();
+    if (_mouseHidden) {
+        getGLWidget()->setCursor(Qt::ArrowCursor);
+        _mouseHidden = false;
+    }
+
     if (activeWindow() == _window) {
         _mouseX = event->x();
         _mouseY = event->y();
@@ -2122,6 +2130,15 @@ void Application::update(float deltaTime) {
     _audio.setLastVelocity(_myAvatar.getVelocity());
     _audio.eventuallyAnalyzePing();
     #endif
+    
+    // watch mouse position, if it hasn't moved, hide the cursor
+    uint64_t now = usecTimestampNow();
+    int elapsed = now - _lastMouseMove;
+    const int HIDE_CURSOR_TIMEOUT = 1 * 1000 * 1000; // 1 second
+    if (elapsed > HIDE_CURSOR_TIMEOUT) {
+        getGLWidget()->setCursor(Qt::BlankCursor);
+        _mouseHidden = true;
+    }
 }
 
 void Application::updateAvatar(float deltaTime) {
