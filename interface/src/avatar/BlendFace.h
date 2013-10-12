@@ -58,6 +58,13 @@ private:
     
     QSharedPointer<NetworkGeometry> _geometry;
     
+    class JointState {
+    public:
+        glm::quat rotation;
+    };
+    
+    QVector<JointState> _jointStates;
+    
     class MeshState {
     public:
         QVector<glm::vec3> worldSpaceVertices;

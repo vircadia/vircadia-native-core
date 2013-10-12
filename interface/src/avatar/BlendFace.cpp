@@ -59,6 +59,10 @@ void BlendFace::simulate(float deltaTime) {
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     if (_meshStates.isEmpty()) {
         QVector<glm::vec3> vertices;
+        foreach (const FBXJoint& joint, geometry.joints) {
+            JointState state;
+            _jointStates.append(state);
+        }
         foreach (const FBXMesh& mesh, geometry.meshes) {
             MeshState state;
             if (mesh.springiness > 0.0f) {
@@ -365,5 +369,6 @@ void BlendFace::deleteGeometry() {
         glDeleteBuffers(1, &id);
     }
     _blendedVertexBufferIDs.clear();
+    _jointStates.clear();
     _meshStates.clear();
 }

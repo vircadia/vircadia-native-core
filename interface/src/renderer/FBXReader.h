@@ -37,6 +37,22 @@ public:
     QVector<glm::vec3> normals;
 };
 
+/// A single joint (transformation node) extracted from an FBX document.
+class FBXJoint {
+public:
+
+    int parentIndex;
+    glm::quat rotation;
+};
+
+/// A single binding to a joint in an FBX document.
+class FBXCluster {
+public:
+    
+    int jointIndex;
+    glm::mat4 inverseBindMatrix;
+};
+
 /// A single mesh (with optional blendshapes) extracted from an FBX document.
 class FBXMesh {
 public:
@@ -46,6 +62,10 @@ public:
     QVector<glm::vec3> vertices;
     QVector<glm::vec3> normals;
     QVector<glm::vec2> texCoords;
+    QVector<glm::vec4> clusterIndices;
+    QVector<glm::vec4> clusterWeights;
+    
+    QVector<FBXCluster> clusters;
     
     glm::vec3 pivot;
     glm::mat4 transform;
@@ -70,7 +90,11 @@ public:
 class FBXGeometry {
 public:
 
+    QVector<FBXJoint> joints;
+    
     QVector<FBXMesh> meshes;
+    
+    glm::mat4 offset;
     
     glm::vec3 neckPivot;
 };
