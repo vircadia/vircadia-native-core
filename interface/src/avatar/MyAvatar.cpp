@@ -221,12 +221,14 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter) {
     // Damp avatar velocity
     const float LINEAR_DAMPING_STRENGTH = 0.5f;
     const float SPEED_BRAKE_POWER = _scale * 10.0f;
-    const float SQUARED_DAMPING_STRENGTH = 0.007f;
+    const float SQUARED_DAMPING_STRENGTH = 0.007f; 
     
+    const float SLOW_NEAR_RADIUS = 5.f;
     float linearDamping = LINEAR_DAMPING_STRENGTH;
-    const float AVATAR_DAMPING_FACTOR = 120.f;
-    if (_distanceToNearestAvatar < _scale * PERIPERSONAL_RADIUS) {
-        linearDamping *= 1.f + AVATAR_DAMPING_FACTOR * (PERIPERSONAL_RADIUS - _distanceToNearestAvatar);
+    const float NEAR_AVATAR_DAMPING_FACTOR = 50.f;
+    if (_distanceToNearestAvatar < _scale * SLOW_NEAR_RADIUS) {
+        linearDamping *= 1.f + NEAR_AVATAR_DAMPING_FACTOR *
+                            ((SLOW_NEAR_RADIUS - _distanceToNearestAvatar) / SLOW_NEAR_RADIUS);
     }
     if (_speedBrakes) {
         applyDamping(deltaTime, _velocity,  linearDamping * SPEED_BRAKE_POWER, SQUARED_DAMPING_STRENGTH * SPEED_BRAKE_POWER);

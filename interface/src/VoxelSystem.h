@@ -37,7 +37,8 @@ struct VoxelShaderVBOData
 };
 
 
-class VoxelSystem : public NodeData, public VoxelNodeDeleteHook, public VoxelNodeUpdateHook, public NodeListHook {
+class VoxelSystem : public NodeData, public VoxelNodeDeleteHook, public VoxelNodeUpdateHook, 
+                    public NodeListHook, public DomainChangeListener {
     Q_OBJECT
 public:
     VoxelSystem(float treeScale = TREE_SCALE, int maxVoxels = DEFAULT_MAX_VOXELS_PER_SYSTEM);
@@ -112,6 +113,7 @@ public:
     virtual void voxelUpdated(VoxelNode* node);
     virtual void nodeAdded(Node* node);
     virtual void nodeKilled(Node* node);
+    virtual void domainChanged(QString domain);
     
 signals:
     void importSize(float x, float y, float z);

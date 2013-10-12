@@ -101,7 +101,7 @@ Menu::Menu() :
                                    SLOT(goToLocation()));
     addActionToQMenuAndActionHash(fileMenu,
                                   MenuOption::GoToUser,
-                                  Qt::CTRL | Qt::SHIFT | Qt::Key_U,
+                                  Qt::Key_At,
                                   this,
                                   SLOT(goToUser()));
 

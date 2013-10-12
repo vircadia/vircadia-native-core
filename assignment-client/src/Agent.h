@@ -9,9 +9,13 @@
 #ifndef __hifi__Agent__
 #define __hifi__Agent__
 
+#include <vector>
+
+#include <QtScript/QScriptEngine>
 #include <QtCore/QObject>
 #include <QtCore/QUrl>
 
+#include <AudioInjector.h>
 #include <Assignment.h>
 
 class Agent : public Assignment {
@@ -23,9 +27,13 @@ public:
 public slots:
     void stop();
 signals:
+    void willSendAudioDataCallback();
     void willSendVisualDataCallback();
 private:
+    static QScriptValue AudioInjectorConstructor(QScriptContext *context, QScriptEngine *engine);
+    
     bool volatile _shouldStop;
+    std::vector<AudioInjector*> _audioInjectors;
 };
 
 #endif /* defined(__hifi__Operative__) */

@@ -66,12 +66,13 @@ void childClient() {
     // create a request assignment, accept assignments defined by the overidden type
     Assignment requestAssignment(Assignment::RequestCommand, ::overiddenAssignmentType);
     
-    // if we're here we have no assignment, so send a request
     qDebug() << "Waiting for assignment -" << requestAssignment << "\n";
     
     while (true) {
         if (usecTimestampNow() - usecTimestamp(&lastRequest) >= ASSIGNMENT_REQUEST_INTERVAL_USECS) {
             gettimeofday(&lastRequest, NULL);
+            
+            // if we're here we have no assignment, so send a request
             nodeList->sendAssignment(requestAssignment);
         }
         
