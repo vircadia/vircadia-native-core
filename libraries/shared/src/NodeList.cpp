@@ -437,7 +437,6 @@ void NodeList::sendAssignment(Assignment& assignment) {
 }
 
 Node* NodeList::addOrUpdateNode(sockaddr* publicSocket, sockaddr* localSocket, char nodeType, uint16_t nodeId) {
-
     NodeList::iterator node = end();
     
     if (publicSocket) {
@@ -553,7 +552,7 @@ void* removeSilentNodes(void *args) {
             node->lock();
             
             if ((usecTimestampNow() - node->getLastHeardMicrostamp()) > NODE_SILENCE_THRESHOLD_USECS) {
-            
+
                 qDebug() << "Killed " << *node << "\n";
                 
                 nodeList->notifyHooksOfKilledNode(&*node);
