@@ -8,8 +8,6 @@
 
 #include <curl/curl.h>
 
-#include <QtScript/QScriptEngine>
-
 #include <AvatarData.h>
 #include <NodeList.h>
 #include <UUID.h>
@@ -22,8 +20,8 @@ Agent::Agent(const unsigned char* dataBuffer, int numBytes) :
     Assignment(dataBuffer, numBytes),
     _shouldStop(false)
 {
-    
 }
+
 
 void Agent::stop() {
     _shouldStop = true;
@@ -41,10 +39,27 @@ static size_t writeScriptDataToString(void *contents, size_t size, size_t nmemb,
     return realSize;
 }
 
+QScriptValue vec3toScriptValue(QScriptEngine *engine, const glm::vec3 &vec3) {
+    QScriptValue obj = engine->newObject();
+    obj.setProperty("x", vec3.x);
+    obj.setProperty("y", vec3.y);
+    obj.setProperty("z", vec3.z);
+    return obj;
+}
+
+void vec3FromScriptValue(const QScriptValue &object, glm::vec3 &vec3) {
+    vec3.x = object.property("x").toVariant().toFloat();
+    vec3.y = object.property("y").toVariant().toFloat();
+    vec3.z = object.property("z").toVariant().toFloat();
+}
+
 void Agent::run() {
     NodeList* nodeList = NodeList::getInstance();
     nodeList->setOwnerType(NODE_TYPE_AGENT);
-    nodeList->setNodeTypesOfInterest(&NODE_TYPE_VOXEL_SERVER, 1);
+    
+    const char AGENT_NODE_TYPES_OF_INTEREST[2] = { NODE_TYPE_VOXEL_SERVER, NODE_TYPE_AUDIO_MIXER };
+    
+    nodeList->setNodeTypesOfInterest(AGENT_NODE_TYPES_OF_INTEREST, sizeof(AGENT_NODE_TYPES_OF_INTEREST));
 
     nodeList->getNodeSocket()->setBlocking(false);
     
@@ -84,6 +99,9 @@ void Agent::run() {
         
         QScriptEngine engine;
         
+        // register meta-type for glm::vec3 conversions
+        qScriptRegisterMetaType(&engine, vec3toScriptValue, vec3FromScriptValue);
+        
         QScriptValue agentValue = engine.newQObject(this);
         engine.globalObject().setProperty("Agent", agentValue);
         
@@ -93,14 +111,14 @@ void Agent::run() {
         
         QScriptValue treeScaleValue = engine.newVariant(QVariant(TREE_SCALE));
         engine.globalObject().setProperty("TREE_SCALE", treeScaleValue);
-        
-        const long long VISUAL_DATA_SEND_INTERVAL_USECS = (1 / 60.0f) * 1000 * 1000;
 
         // let the VoxelPacketSender know how frequently we plan to call it
-        voxelScripter.getVoxelPacketSender()->setProcessCallIntervalHint(VISUAL_DATA_SEND_INTERVAL_USECS);
+        voxelScripter.getVoxelPacketSender()->setProcessCallIntervalHint(INJECT_INTERVAL_USECS);
         
-        QScriptValue visualSendIntervalValue = engine.newVariant((QVariant(VISUAL_DATA_SEND_INTERVAL_USECS / 1000)));
-        engine.globalObject().setProperty("VISUAL_DATA_SEND_INTERVAL_MS", visualSendIntervalValue);
+        // hook in a constructor for audio injectorss
+        AudioInjector scriptedAudioInjector(BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
+        QScriptValue audioInjectorValue = engine.newQObject(&scriptedAudioInjector);
+        engine.globalObject().setProperty("AudioInjector", audioInjectorValue);
         
         qDebug() << "Downloaded script:" << scriptContents << "\n";
         QScriptValue result = engine.evaluate(scriptContents);
@@ -111,19 +129,20 @@ void Agent::run() {
             qDebug() << "Uncaught exception at line" << line << ":" << result.toString() << "\n";
         }
         
-        timeval thisSend;
+        timeval startTime;
+        gettimeofday(&startTime, NULL);
+        
         timeval lastDomainServerCheckIn = {};
-        int numMicrosecondsSleep = 0;
         
         sockaddr_in senderAddress;
         unsigned char receivedData[MAX_PACKET_SIZE];
         ssize_t receivedBytes;
         
-        bool hasVoxelServer = false;
+        int thisFrame = 0;
+        
+        bool firstDomainCheckIn = false;
         
         while (!_shouldStop) {
-            // update the thisSend timeval to the current time
-            gettimeofday(&thisSend, NULL);
             
             // if we're not hearing from the domain-server we should stop running
             if (NodeList::getInstance()->getNumNoReplyDomainCheckIns() == MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
@@ -136,37 +155,43 @@ void Agent::run() {
                 NodeList::getInstance()->sendDomainServerCheckIn();
             }
             
-            if (!hasVoxelServer) {
-                for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
-                    if (node->getType() == NODE_TYPE_VOXEL_SERVER) {
-                        hasVoxelServer = true;
+            if (firstDomainCheckIn) {
+                // find the audio-mixer in the NodeList so we can inject audio at it
+                Node* audioMixer = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_AUDIO_MIXER);
+                
+                emit willSendAudioDataCallback();
+                
+                if (audioMixer) {
+                    int usecToSleep = usecTimestamp(&startTime) + (thisFrame++ * INJECT_INTERVAL_USECS) - usecTimestampNow();
+                    if (usecToSleep > 0) {
+                        usleep(usecToSleep);
                     }
+                    
+                    scriptedAudioInjector.injectAudio(NodeList::getInstance()->getNodeSocket(), audioMixer->getPublicSocket());
                 }
-            }
-            
-            if (hasVoxelServer) {
+                
                 // allow the scripter's call back to setup visual data
                 emit willSendVisualDataCallback();
                 
-                if (engine.hasUncaughtException()) {
-                    int line = engine.uncaughtExceptionLineNumber();
-                    qDebug() << "Uncaught exception at line" << line << ":" << engine.uncaughtException().toString() << "\n";
-                }
-                
                 // release the queue of edit voxel messages.
                 voxelScripter.getVoxelPacketSender()->releaseQueuedMessages();
-
+                
                 // since we're in non-threaded mode, call process so that the packets are sent
                 voxelScripter.getVoxelPacketSender()->process();
+
             }
             
+            if (engine.hasUncaughtException()) {
+                int line = engine.uncaughtExceptionLineNumber();
+                qDebug() << "Uncaught exception at line" << line << ":" << engine.uncaughtException().toString() << "\n";
+            }
+
             while (NodeList::getInstance()->getNodeSocket()->receive((sockaddr*) &senderAddress, receivedData, &receivedBytes)) {
+                if (!firstDomainCheckIn && receivedData[0] == PACKET_TYPE_DOMAIN) {
+                    firstDomainCheckIn = true;
+                }
+                
                 NodeList::getInstance()->processNodeData((sockaddr*) &senderAddress, receivedData, receivedBytes);
-            }
-            
-            // sleep for the correct amount of time to have data send be consistently timed
-            if ((numMicrosecondsSleep = VISUAL_DATA_SEND_INTERVAL_USECS - (usecTimestampNow() - usecTimestamp(&thisSend))) > 0) {
-                usleep(numMicrosecondsSleep);
             }
         }
         

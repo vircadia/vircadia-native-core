@@ -12,6 +12,9 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/component_wise.hpp>
 
+#include <QtCore/QObject>
+
+#include <RegisteredMetaTypes.h>
 #include <UDPSocket.h>
 
 #include "AudioRingBuffer.h"
@@ -22,7 +25,11 @@ const int MAX_INJECTOR_VOLUME = 0xFF;
 
 const int INJECT_INTERVAL_USECS = floorf((BUFFER_LENGTH_SAMPLES_PER_CHANNEL / SAMPLE_RATE) * 1000000);
 
-class AudioInjector {
+class AudioInjector : public QObject {
+    Q_OBJECT
+    
+    Q_PROPERTY(glm::vec3 position READ getPosition WRITE setPosition)
+    Q_PROPERTY(uchar volume READ getVolume WRITE setVolume);
 public:
     AudioInjector(const char* filename);
     AudioInjector(int maxNumSamples);
@@ -35,8 +42,6 @@ public:
     unsigned char getVolume() const  { return _volume; }
     void setVolume(unsigned char volume) { _volume = volume; }
     
-    float getLastFrameIntensity() const { return _lastFrameIntensity; }
-    
     const glm::vec3& getPosition() const { return _position; }
     void setPosition(const glm::vec3& position) { _position = position; }
     
@@ -48,6 +53,9 @@ public:
     
     void addSample(const int16_t sample);
     void addSamples(int16_t* sampleBuffer, int numSamples);
+public slots:
+    int16_t& sampleAt(const int index);
+    void insertSample(const int index, int sample);
 private:
     unsigned char _streamIdentifier[STREAM_IDENTIFIER_NUM_BYTES];
     int16_t* _audioSampleArray;
@@ -58,7 +66,6 @@ private:
     unsigned char _volume;
     int _indexOfNextSlot;
     bool _isInjectingAudio;
-    float _lastFrameIntensity;
 };
 
 #endif /* defined(__hifi__AudioInjector__) */
