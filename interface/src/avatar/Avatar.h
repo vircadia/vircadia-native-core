@@ -231,7 +231,7 @@ protected:
     glm::vec3 getBodyFrontDirection() const { return getOrientation() * IDENTITY_FRONT; }
     glm::quat computeRotationFromBodyToWorldUp(float proportion = 1.0f) const;
     void updateBodyBalls(float deltaTime);
-    void updateArmIKAndConstraints(float deltaTime);
+    void updateArmIKAndConstraints(float deltaTime, AvatarJointID fingerTipJointID);
     void setScale(const float scale);
 
 

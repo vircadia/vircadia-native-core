@@ -463,7 +463,8 @@ void Avatar::updateHandMovementAndTouching(float deltaTime, bool enableHandMovem
     //constrain right arm length and re-adjust elbow position as it bends
     // NOTE - the following must be called on all avatars - not just _isMine
     if (enableHandMovement) {
-        updateArmIKAndConstraints(deltaTime);
+        updateArmIKAndConstraints(deltaTime, AVATAR_JOINT_RIGHT_FINGERTIPS);
+        updateArmIKAndConstraints(deltaTime, AVATAR_JOINT_LEFT_FINGERTIPS);
     }
 }
 
@@ -640,11 +641,15 @@ void Avatar::updateBodyBalls(float deltaTime) {
         _bodyBall[BODY_BALL_HEAD_TOP].rotation * _skeleton.joint[BODY_BALL_HEAD_TOP].bindPosePosition;
 }
 
-void Avatar::updateArmIKAndConstraints(float deltaTime) {
+void Avatar::updateArmIKAndConstraints(float deltaTime, AvatarJointID fingerTipJointID) {
+    Skeleton::AvatarJoint& fingerJoint = _skeleton.joint[fingerTipJointID];
+    Skeleton::AvatarJoint& wristJoint = _skeleton.joint[fingerJoint.parent];
+    Skeleton::AvatarJoint& elbowJoint = _skeleton.joint[wristJoint.parent];
+    Skeleton::AvatarJoint& shoulderJoint = _skeleton.joint[elbowJoint.parent];
     
     // determine the arm vector
-    glm::vec3 armVector = _skeleton.joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position;
-    armVector -= _skeleton.joint[ AVATAR_JOINT_RIGHT_SHOULDER ].position;
+    glm::vec3 armVector = fingerJoint.position;
+    armVector -= shoulderJoint.position;
     
     // test to see if right hand is being dragged beyond maximum arm length
     float distance = glm::length(armVector);
@@ -652,28 +657,26 @@ void Avatar::updateArmIKAndConstraints(float deltaTime) {
     // don't let right hand get dragged beyond maximum arm length...
     if (distance > _maxArmLength) {
         // reset right hand to be constrained to maximum arm length
-        _skeleton.joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position = _skeleton.joint[ AVATAR_JOINT_RIGHT_SHOULDER ].position;
+        fingerJoint.position = shoulderJoint.position;
         glm::vec3 armNormal = armVector / distance;
         armVector = armNormal * _maxArmLength;
         distance = _maxArmLength;
-        glm::vec3 constrainedPosition = _skeleton.joint[ AVATAR_JOINT_RIGHT_SHOULDER ].position;
+        glm::vec3 constrainedPosition = shoulderJoint.position;
         constrainedPosition += armVector;
-        _skeleton.joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position = constrainedPosition;
+        fingerJoint.position = constrainedPosition;
     }
     
     // set elbow position
-    glm::vec3 newElbowPosition = _skeleton.joint[ AVATAR_JOINT_RIGHT_SHOULDER ].position + armVector * ONE_HALF;
+    glm::vec3 newElbowPosition = shoulderJoint.position + armVector * ONE_HALF;
     
     glm::vec3 perpendicular = glm::cross(getBodyRightDirection(),  armVector);
     
     newElbowPosition += perpendicular * (1.0f - (_maxArmLength / distance)) * ONE_HALF;
-    _skeleton.joint[ AVATAR_JOINT_RIGHT_ELBOW ].position = newElbowPosition;
+    elbowJoint.position = newElbowPosition;
     
     // set wrist position
-    glm::vec3 vv(_skeleton.joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position);
-    vv -= _skeleton.joint[ AVATAR_JOINT_RIGHT_ELBOW ].position;
-    glm::vec3 newWristPosition = _skeleton.joint[ AVATAR_JOINT_RIGHT_ELBOW ].position + vv * 0.7f;
-    _skeleton.joint[ AVATAR_JOINT_RIGHT_WRIST ].position = newWristPosition;
+    const float wristPosRatio = 0.7f;
+    wristJoint.position = elbowJoint.position + (fingerJoint.position - elbowJoint.position) * wristPosRatio;
 }
 
 glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
