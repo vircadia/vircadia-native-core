@@ -61,12 +61,14 @@ private:
     class JointState {
     public:
         glm::quat rotation;
+        glm::mat4 transform;
     };
     
     QVector<JointState> _jointStates;
     
     class MeshState {
     public:
+        QVector<glm::mat4> jointMatrices;
         QVector<glm::vec3> worldSpaceVertices;
         QVector<glm::vec3> vertexVelocities;
         QVector<glm::vec3> worldSpaceNormals;

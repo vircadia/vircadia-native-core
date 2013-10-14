@@ -42,7 +42,9 @@ class FBXJoint {
 public:
 
     int parentIndex;
+    glm::mat4 preRotation;
     glm::quat rotation;
+    glm::mat4 postRotation;
 };
 
 /// A single binding to a joint in an FBX document.
@@ -95,6 +97,10 @@ public:
     QVector<FBXMesh> meshes;
     
     glm::mat4 offset;
+    
+    int leftEyeJointIndex;
+    int rightEyeJointIndex;
+    int neckJointIndex;
     
     glm::vec3 neckPivot;
 };

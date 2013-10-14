@@ -363,18 +363,37 @@ void NetworkGeometry::maybeReadModelWithMapping() {
         glGenBuffers(1, &networkMesh.vertexBufferID);
         glBindBuffer(GL_ARRAY_BUFFER, networkMesh.vertexBufferID);
             
+        // if we don't need to do any blending or springing, then the positions/normals can be static
         if (mesh.blendshapes.isEmpty() && mesh.springiness == 0.0f) {
             glBufferData(GL_ARRAY_BUFFER, (mesh.vertices.size() + mesh.normals.size()) * sizeof(glm::vec3) +
-                mesh.texCoords.size() * sizeof(glm::vec2), NULL, GL_STATIC_DRAW);
+                mesh.texCoords.size() * sizeof(glm::vec2) + (mesh.clusterIndices.size() +
+                    mesh.clusterWeights.size()) * sizeof(glm::vec4), NULL, GL_STATIC_DRAW);
             glBufferSubData(GL_ARRAY_BUFFER, 0, mesh.vertices.size() * sizeof(glm::vec3), mesh.vertices.constData());
             glBufferSubData(GL_ARRAY_BUFFER, mesh.vertices.size() * sizeof(glm::vec3),
                 mesh.normals.size() * sizeof(glm::vec3), mesh.normals.constData());
             glBufferSubData(GL_ARRAY_BUFFER, (mesh.vertices.size() + mesh.normals.size()) * sizeof(glm::vec3),
                 mesh.texCoords.size() * sizeof(glm::vec2), mesh.texCoords.constData());
+            glBufferSubData(GL_ARRAY_BUFFER, (mesh.vertices.size() + mesh.normals.size()) * sizeof(glm::vec3) +
+                mesh.texCoords.size() * sizeof(glm::vec2), mesh.clusterIndices.size() * sizeof(glm::vec4),
+                mesh.clusterIndices.constData());
+            glBufferSubData(GL_ARRAY_BUFFER, (mesh.vertices.size() + mesh.normals.size()) * sizeof(glm::vec3) +
+                mesh.texCoords.size() * sizeof(glm::vec2) + mesh.clusterIndices.size() * sizeof(glm::vec4),
+                mesh.clusterWeights.size() * sizeof(glm::vec4), mesh.clusterWeights.constData());
+        
+        // if there's no springiness, then the cluster indices/weights can be static
+        } else if (mesh.springiness == 0.0f) {
+            glBufferData(GL_ARRAY_BUFFER, mesh.texCoords.size() * sizeof(glm::vec2) + (mesh.clusterIndices.size() +
+                mesh.clusterWeights.size()) * sizeof(glm::vec4), NULL, GL_STATIC_DRAW);
+            glBufferSubData(GL_ARRAY_BUFFER, 0, mesh.texCoords.size() * sizeof(glm::vec2), mesh.texCoords.constData());
+            glBufferSubData(GL_ARRAY_BUFFER, mesh.texCoords.size() * sizeof(glm::vec2),
+                mesh.clusterIndices.size() * sizeof(glm::vec4), mesh.clusterIndices.constData());
+            glBufferSubData(GL_ARRAY_BUFFER, mesh.texCoords.size() * sizeof(glm::vec2) +
+                mesh.clusterIndices.size() * sizeof(glm::vec4), mesh.clusterWeights.size() * sizeof(glm::vec4),
+                mesh.clusterWeights.constData());
             
         } else {
-            glBufferData(GL_ARRAY_BUFFER, mesh.texCoords.size() * sizeof(glm::vec2),
-                mesh.texCoords.constData(), GL_STATIC_DRAW);
+            glBufferData(GL_ARRAY_BUFFER, mesh.texCoords.size() * sizeof(glm::vec2), NULL, GL_STATIC_DRAW);
+            glBufferSubData(GL_ARRAY_BUFFER, 0, mesh.texCoords.size() * sizeof(glm::vec2), mesh.texCoords.constData());
         }
         
         glBindBuffer(GL_ARRAY_BUFFER, 0);

@@ -61,10 +61,12 @@ void BlendFace::simulate(float deltaTime) {
         QVector<glm::vec3> vertices;
         foreach (const FBXJoint& joint, geometry.joints) {
             JointState state;
+            state.rotation = joint.rotation;
             _jointStates.append(state);
         }
         foreach (const FBXMesh& mesh, geometry.meshes) {
             MeshState state;
+            state.jointMatrices.resize(mesh.clusters.size());
             if (mesh.springiness > 0.0f) {
                 state.worldSpaceVertices.resize(mesh.vertices.size());
                 state.vertexVelocities.resize(mesh.vertices.size());
@@ -75,14 +77,44 @@ void BlendFace::simulate(float deltaTime) {
         _resetStates = true;
     }
     
-    glm::quat orientation = _owningHead->getOrientation();
+    glm::quat orientation = static_cast<Avatar*>(_owningHead->_owningAvatar)->getOrientation();
     glm::vec3 scale = glm::vec3(-1.0f, 1.0f, -1.0f) * _owningHead->getScale() * MODEL_SCALE;
     glm::vec3 offset = MODEL_TRANSLATION - _geometry->getFBXGeometry().neckPivot;
     glm::mat4 baseTransform = glm::translate(_owningHead->getPosition()) * glm::mat4_cast(orientation) *
         glm::scale(scale) * glm::translate(offset);
+    
+    // apply the neck rotation
+    if (geometry.neckJointIndex != -1) {
+        _jointStates[geometry.neckJointIndex].rotation = glm::quat(glm::radians(glm::vec3(
+            _owningHead->getPitch(), _owningHead->getYaw(), _owningHead->getRoll())));
+    }
+    
+    // update the world space transforms for all joints
+    for (int i = 0; i < _jointStates.size(); i++) {
+        JointState& state = _jointStates[i];
+        const FBXJoint& joint = geometry.joints.at(i);
+        if (joint.parentIndex == -1) {
+            state.transform = baseTransform * geometry.offset * joint.preRotation *
+                glm::mat4_cast(state.rotation) * joint.postRotation;
             
+        } else {
+            state.transform = _jointStates[joint.parentIndex].transform * joint.preRotation;
+            if (i == geometry.leftEyeJointIndex || i == geometry.rightEyeJointIndex) {
+                // extract the translation component of the matrix
+                state.rotation = _owningHead->getEyeRotation(glm::vec3(
+                    state.transform[3][0], state.transform[3][1], state.transform[3][2]));
+            }
+            state.transform = state.transform * glm::mat4_cast(state.rotation) * joint.postRotation;
+        }
+    }
+    
     for (int i = 0; i < _meshStates.size(); i++) {
         MeshState& state = _meshStates[i];
+        const FBXMesh& mesh = geometry.meshes.at(i);
+        for (int j = 0; j < mesh.clusters.size(); j++) {
+            const FBXCluster& cluster = mesh.clusters.at(j);
+            state.jointMatrices[j] = _jointStates[cluster.jointIndex].transform * cluster.inverseBindMatrix;
+        }
         int vertexCount = state.worldSpaceVertices.size();
         if (vertexCount == 0) {
             continue;
@@ -90,7 +122,7 @@ void BlendFace::simulate(float deltaTime) {
         glm::vec3* destVertices = state.worldSpaceVertices.data();
         glm::vec3* destVelocities = state.vertexVelocities.data();
         glm::vec3* destNormals = state.worldSpaceNormals.data();
-        const FBXMesh& mesh = geometry.meshes.at(i);
+        
         const glm::vec3* sourceVertices = mesh.vertices.constData();
         if (!mesh.blendshapes.isEmpty()) {
             _blendedVertices.resize(max(_blendedVertices.size(), vertexCount));
@@ -112,11 +144,29 @@ void BlendFace::simulate(float deltaTime) {
             
             sourceVertices = _blendedVertices.constData();
         }
-        glm::mat4 transform = baseTransform;
-        if (mesh.isEye) {
-            transform = transform * glm::translate(mesh.pivot) * glm::mat4_cast(glm::inverse(orientation) *
-                _owningHead->getEyeRotation(orientation * ((mesh.pivot + offset) * scale) + _owningHead->getPosition())) *
-                glm::translate(-mesh.pivot);
+        glm::mat4 transform;
+        if (mesh.clusters.size() > 1) {
+            _blendedVertices.resize(max(_blendedVertices.size(), vertexCount));
+
+            // skin each vertex
+            const glm::vec4* clusterIndices = mesh.clusterIndices.constData();
+            const glm::vec4* clusterWeights = mesh.clusterWeights.constData();
+            for (int j = 0; j < vertexCount; j++) {
+                _blendedVertices[j] =
+                    glm::vec3(state.jointMatrices[clusterIndices[j][0]] *
+                        glm::vec4(sourceVertices[j], 1.0f)) * clusterWeights[j][0] +
+                    glm::vec3(state.jointMatrices[clusterIndices[j][1]] *
+                        glm::vec4(sourceVertices[j], 1.0f)) * clusterWeights[j][1] +
+                    glm::vec3(state.jointMatrices[clusterIndices[j][2]] *
+                        glm::vec4(sourceVertices[j], 1.0f)) * clusterWeights[j][2] +
+                    glm::vec3(state.jointMatrices[clusterIndices[j][3]] *
+                        glm::vec4(sourceVertices[j], 1.0f)) * clusterWeights[j][3];
+            }
+            
+            sourceVertices = _blendedVertices.constData();
+            
+        } else {
+            transform = state.jointMatrices[0];
         }
         if (_resetStates) {
             for (int j = 0; j < vertexCount; j++) {
@@ -171,21 +221,11 @@ bool BlendFace::render(float alpha) {
         _dilatedTextures.resize(geometry.meshes.size());
     }
 
-    glm::mat4 viewMatrix;
-    glGetFloatv(GL_MODELVIEW_MATRIX, (GLfloat*)&viewMatrix);
-
-    glPushMatrix();
-    glTranslatef(_owningHead->getPosition().x, _owningHead->getPosition().y, _owningHead->getPosition().z);
     glm::quat orientation = _owningHead->getOrientation();
-    glm::vec3 axis = glm::axis(orientation);
-    glRotatef(glm::angle(orientation), axis.x, axis.y, axis.z);    
     glm::vec3 scale(-_owningHead->getScale() * MODEL_SCALE, _owningHead->getScale() * MODEL_SCALE,
         -_owningHead->getScale() * MODEL_SCALE);
-    glScalef(scale.x, scale.y, scale.z);
-
     glm::vec3 offset = MODEL_TRANSLATION - geometry.neckPivot;
-    glTranslatef(offset.x, offset.y, offset.z);
-
+    
     glEnableClientState(GL_VERTEX_ARRAY);
     glEnableClientState(GL_NORMAL_ARRAY);
     glEnableClientState(GL_TEXTURE_COORD_ARRAY);
@@ -210,13 +250,6 @@ bool BlendFace::render(float alpha) {
         // apply eye rotation if appropriate
         Texture* texture = networkMesh.diffuseTexture.data();
         if (mesh.isEye) {
-            glTranslatef(mesh.pivot.x, mesh.pivot.y, mesh.pivot.z);
-            glm::quat rotation = glm::inverse(orientation) * _owningHead->getEyeRotation(orientation *
-                ((mesh.pivot + offset) * scale) + _owningHead->getPosition());
-            glm::vec3 rotationAxis = glm::axis(rotation);
-            glRotatef(glm::angle(rotation), -rotationAxis.x, rotationAxis.y, -rotationAxis.z);
-            glTranslatef(-mesh.pivot.x, -mesh.pivot.y, -mesh.pivot.z);
-        
             _eyeProgram.bind();
             
             if (texture != NULL) {
@@ -233,7 +266,10 @@ bool BlendFace::render(float alpha) {
         glMaterialfv(GL_FRONT, GL_SPECULAR, (const float*)&specular);
         glMaterialf(GL_FRONT, GL_SHININESS, mesh.shininess);
         
-        glMultMatrixf((const GLfloat*)&mesh.transform);
+        const MeshState& state = _meshStates.at(i);
+        if (state.worldSpaceVertices.isEmpty()) {
+            glMultMatrixf((const GLfloat*)&state.jointMatrices[0]);
+        }
         
         glBindTexture(GL_TEXTURE_2D, texture == NULL ? 0 : texture->getID());
         
@@ -245,10 +281,7 @@ bool BlendFace::render(float alpha) {
             glTexCoordPointer(2, GL_FLOAT, 0, 0);
             glBindBuffer(GL_ARRAY_BUFFER, _blendedVertexBufferIDs.at(i));
             
-            const MeshState& state = _meshStates.at(i);
             if (!state.worldSpaceVertices.isEmpty()) {
-                glLoadMatrixf((const GLfloat*)&viewMatrix);
-            
                 glBufferSubData(GL_ARRAY_BUFFER, 0, vertexCount * sizeof(glm::vec3), state.worldSpaceVertices.constData());
                 glBufferSubData(GL_ARRAY_BUFFER, vertexCount * sizeof(glm::vec3),
                     vertexCount * sizeof(glm::vec3), state.worldSpaceNormals.constData());
@@ -309,8 +342,6 @@ bool BlendFace::render(float alpha) {
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
     glBindTexture(GL_TEXTURE_2D, 0);
     
-    glPopMatrix();
-
     // restore all the default material settings
     Application::getInstance()->setupWorldLight(*Application::getInstance()->getCamera());
 
@@ -318,32 +349,19 @@ bool BlendFace::render(float alpha) {
 }
 
 bool BlendFace::getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition, bool upright) const {
-    if (!isActive()) {
+    if (!isActive() || _jointStates.isEmpty()) {
         return false;
     }
-    glm::vec3 translation = _owningHead->getPosition();
-    glm::quat orientation = _owningHead->getOrientation();
-    if (upright) {
-        translation = static_cast<MyAvatar*>(_owningHead->_owningAvatar)->getUprightHeadPosition();
-        orientation = static_cast<Avatar*>(_owningHead->_owningAvatar)->getWorldAlignedOrientation();
-    }
-    glm::vec3 scale(-_owningHead->getScale() * MODEL_SCALE, _owningHead->getScale() * MODEL_SCALE,
-        -_owningHead->getScale() * MODEL_SCALE);
-    bool foundFirst = false;
-    
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    foreach (const FBXMesh& mesh, geometry.meshes) {
-        if (mesh.isEye) {
-            glm::vec3 position = orientation * ((mesh.pivot + MODEL_TRANSLATION - geometry.neckPivot) * scale) + translation;
-            if (foundFirst) {
-                secondEyePosition = position;
-                return true;
-            }
-            firstEyePosition = position;
-            foundFirst = true;
-        }
+    if (geometry.leftEyeJointIndex != -1) {
+        const glm::mat4& transform = _jointStates[geometry.leftEyeJointIndex].transform;
+        firstEyePosition = glm::vec3(transform[3][0], transform[3][1], transform[3][2]);
     }
-    return false;
+    if (geometry.rightEyeJointIndex != -1) {
+        const glm::mat4& transform = _jointStates[geometry.rightEyeJointIndex].transform;
+        secondEyePosition = glm::vec3(transform[3][0], transform[3][1], transform[3][2]);
+    }
+    return geometry.leftEyeJointIndex != -1 && geometry.rightEyeJointIndex != -1;
 }
 
 glm::vec4 BlendFace::computeAverageColor() const {
