@@ -70,6 +70,7 @@ VoxelServer::VoxelServer(Assignment::Command command, Assignment::Location locat
     _parsedArgV = NULL;
 }
 
+
 VoxelServer::VoxelServer(const unsigned char* dataBuffer, int numBytes) : Assignment(dataBuffer, numBytes),
     _serverTree(true) {
     _argc = 0;
@@ -100,6 +101,43 @@ VoxelServer::~VoxelServer() {
         delete[] _parsedArgV;
     }
 }
+
+void VoxelServer::initMongoose(int port) {
+    // setup the mongoose web server
+    struct mg_callbacks callbacks = {};
+
+    QString documentRoot = QString("%1/resources/web").arg(QCoreApplication::applicationDirPath());
+    QString listenPort = QString("%1").arg(port);
+    
+
+    // list of options. Last element must be NULL.
+    const char* options[] = {
+        "listening_ports", listenPort.toLocal8Bit().constData(), 
+        "document_root", documentRoot.toLocal8Bit().constData(), 
+        NULL };
+
+    callbacks.begin_request = civetwebRequestHandler;
+
+    // Start the web server.
+    mg_start(&callbacks, NULL, options);
+}
+
+int VoxelServer::civetwebRequestHandler(struct mg_connection* connection) {
+    const struct mg_request_info* ri = mg_get_request_info(connection);
+    
+    if (strcmp(ri->uri, "/") == 0 && strcmp(ri->request_method, "GET") == 0) {
+        // return a 200
+        mg_printf(connection, "%s", "HTTP/1.0 200 OK\r\n\r\n");
+        mg_printf(connection, "%s", "Your Voxel Server is running.\r\n");
+        mg_printf(connection, "%s", "Current Statistics\r\n");
+        mg_printf(connection, "Voxel Node Memory Usage: %f MB\r\n", VoxelNode::getVoxelMemoryUsage() / 1000000.f);
+        return 1;
+    } else {
+        // have mongoose process this request from the document_root
+        return 0;
+    }
+}
+
 
 void VoxelServer::setArguments(int argc, char** argv) {
     _argc = argc;
@@ -156,6 +194,14 @@ void VoxelServer::run() {
     pthread_mutex_init(&_treeLock, NULL);
     
     qInstallMessageHandler(Logging::verboseMessageHandler);
+    
+    const char* STATUS_PORT = "--statusPort";
+    const char* statusPort = getCmdOption(_argc, _argv, STATUS_PORT);
+    if (statusPort) {
+        int statusPortNumber = atoi(statusPort);
+        initMongoose(statusPortNumber);
+    }
+
     
     const char* JURISDICTION_FILE = "--jurisdictionFile";
     const char* jurisdictionFile = getCmdOption(_argc, _argv, JURISDICTION_FILE);

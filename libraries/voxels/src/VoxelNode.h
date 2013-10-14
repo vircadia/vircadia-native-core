@@ -127,6 +127,8 @@ public:
     unsigned long getSubTreeInternalNodeCount() const { return _subtreeNodeCount - _subtreeLeafNodeCount; }
     unsigned long getSubTreeLeafNodeCount() const { return _subtreeLeafNodeCount; }
 
+    static uint64_t getVoxelMemoryUsage() { return _voxelMemoryUsage; }
+
 private:
     void calculateAABox();
     void init(unsigned char * octalCode);
@@ -154,6 +156,7 @@ private:
 
     static std::vector<VoxelNodeDeleteHook*> _deleteHooks;
     static std::vector<VoxelNodeUpdateHook*> _updateHooks;
+    static uint64_t _voxelMemoryUsage;
 };
 
 #endif /* defined(__hifi__VoxelNode__) */

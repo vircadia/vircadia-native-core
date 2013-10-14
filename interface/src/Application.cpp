@@ -2993,14 +2993,15 @@ void Application::displayStats() {
     drawtext(10, statsVerticalOffset + 230, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
 
     voxelStats.str("");
-    voxelStats << "Voxels Memory RAM: " << _voxels.getVoxelMemoryUsageRAM() / 1000000.f << "MB " <<
+    voxelStats << "Voxels Memory Nodes: " << VoxelNode::getVoxelMemoryUsage() / 1000000.f << "MB "
+        "Geometry RAM: " << _voxels.getVoxelMemoryUsageRAM() / 1000000.f << "MB " <<
         "VBO: " << _voxels.getVoxelMemoryUsageVBO() / 1000000.f << "MB ";
     if (_voxels.hasVoxelMemoryUsageGPU()) {
         voxelStats << "GPU: " << _voxels.getVoxelMemoryUsageGPU() / 1000000.f << "MB ";
     }
         
     drawtext(10, statsVerticalOffset + 250, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
-    
+
     voxelStats.str("");
     char* voxelDetails = _voxelSceneStats.getItemValue(VoxelSceneStats::ITEM_VOXELS);
     voxelStats << "Voxels Sent from Server: " << voxelDetails;

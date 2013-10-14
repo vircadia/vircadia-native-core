@@ -10,7 +10,10 @@
 #ifndef __voxel_server__VoxelServer__
 #define __voxel_server__VoxelServer__
 
+#include "../../domain-server/external/civetweb/include/civetweb.h"
+
 #include <QStringList>
+#include <QtCore/QCoreApplication>
 
 #include <Assignment.h>
 #include <EnvironmentData.h>
@@ -82,6 +85,10 @@ private:
     NodeWatcher _nodeWatcher; // used to cleanup AGENT data when agents are killed
     
     void parsePayload();
+
+    void initMongoose(int port);
+
+    static int civetwebRequestHandler(struct mg_connection *connection);
 };
 
 #endif // __voxel_server__VoxelServer__
