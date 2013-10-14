@@ -912,24 +912,49 @@ void MyAvatar::updateHandMovementAndTouching(float deltaTime, bool enableHandMov
         _avatarTouch.setHasInteractingOther(false);
     }
     
-    // If there's a leap-interaction hand visible, use that as the endpoint
-    glm::vec3 rightMostHand;
-    bool anyHandsFound = false;
-    for (size_t i = 0; i < getHand().getPalms().size(); ++i) {
-        PalmData& palm = getHand().getPalms()[i];
-        if (palm.isActive()) {
-            if (!anyHandsFound || palm.getRawPosition().x > rightMostHand.x) {
-                _skeleton.joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position = palm.getPosition();
-                rightMostHand = palm.getRawPosition();
+    // If there are leap-interaction hands visible, see if we can use them as the endpoints for IK
+    if (getHand().getPalms().size() > 0) {
+        PalmData const* leftLeapHand = NULL;
+        PalmData const* rightLeapHand = NULL;
+        // Look through all of the palms available (there may be more than two), and pick
+        // the leftmost and rightmost. If there's only one, we'll use a heuristic below
+        // to decode whether it's the left or right.
+        for (size_t i = 0; i < getHand().getPalms().size(); ++i) {
+            PalmData& palm = getHand().getPalms()[i];
+            if (palm.isActive()) {
+                if (!rightLeapHand || !leftLeapHand) {
+                    rightLeapHand = leftLeapHand = &palm;
+                }
+                else if (palm.getRawPosition().x > rightLeapHand->getRawPosition().x) {
+                    rightLeapHand = &palm;
+                }
+                else if (palm.getRawPosition().x < leftLeapHand->getRawPosition().x) {
+                    leftLeapHand = &palm;
+                }
             }
-            anyHandsFound = true;
+        }
+        // If there's only one palm visible. Decide if it's the left or right
+        if (leftLeapHand == rightLeapHand && leftLeapHand) {
+            if (leftLeapHand->getRawPosition().x > 0) {
+                leftLeapHand = NULL;
+            }
+            else {
+                rightLeapHand = NULL;
+            }
+        }
+        if (leftLeapHand) {
+            _skeleton.joint[ AVATAR_JOINT_LEFT_FINGERTIPS ].position = leftLeapHand->getPosition();
+        }
+        if (rightLeapHand) {
+            _skeleton.joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position = rightLeapHand->getPosition();
         }
     }
     
     //constrain right arm length and re-adjust elbow position as it bends
     // NOTE - the following must be called on all avatars - not just _isMine
     if (enableHandMovement) {
-        updateArmIKAndConstraints(deltaTime);
+        updateArmIKAndConstraints(deltaTime, AVATAR_JOINT_RIGHT_FINGERTIPS);
+        updateArmIKAndConstraints(deltaTime, AVATAR_JOINT_LEFT_FINGERTIPS);
     }
     
     //Set right hand position and state to be transmitted, and also tell AvatarTouch about it
