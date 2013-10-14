@@ -22,6 +22,7 @@
 #include "VoxelTree.h"
 
 uint64_t VoxelNode::_voxelMemoryUsage = 0;
+uint64_t VoxelNode::_octcodeMemoryUsage = 0;
 
 VoxelNode::VoxelNode() {
     unsigned char* rootCode = new unsigned char[1];
@@ -60,14 +61,14 @@ void VoxelNode::init(unsigned char * octalCode) {
     markWithChangedTime();
 
     _voxelMemoryUsage += sizeof(VoxelNode);
-    _voxelMemoryUsage += bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(_octalCode));
+    _octcodeMemoryUsage += bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(_octalCode));
 }
 
 VoxelNode::~VoxelNode() {
     notifyDeleteHooks();
 
     _voxelMemoryUsage -= sizeof(VoxelNode);
-    _voxelMemoryUsage -= bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(_octalCode));
+    _octcodeMemoryUsage -= bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(_octalCode));
 
     delete[] _octalCode;
     

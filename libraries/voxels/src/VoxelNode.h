@@ -128,6 +128,7 @@ public:
     unsigned long getSubTreeLeafNodeCount() const { return _subtreeLeafNodeCount; }
 
     static uint64_t getVoxelMemoryUsage() { return _voxelMemoryUsage; }
+    static uint64_t getOctcodeMemoryUsage() { return _octcodeMemoryUsage; }
 
 private:
     void calculateAABox();
@@ -135,28 +136,35 @@ private:
     void notifyDeleteHooks();
     void notifyUpdateHooks();
 
-    nodeColor _trueColor;
+    VoxelNode* _children[8]; /// Client and server, pointers to child nodes, 64 bytes
+    AABox _box; /// Client and server, axis aligned box for bounds of this voxel, 48 bytes
+    unsigned char* _octalCode; /// Client and server, pointer to octal code for this node, 8 bytes
+
+    uint64_t _lastChanged; /// Client and server, timestamp this node was last changed, 8 bytes
+    unsigned long _subtreeNodeCount; /// Client and server, nodes below this node, 8 bytes
+    unsigned long _subtreeLeafNodeCount; /// Client and server, leaves below this node, 8 bytes
+
+    glBufferIndex _glBufferIndex; /// Client only, vbo index for this voxel if being rendered, 8 bytes
+    VoxelSystem* _voxelSystem; /// Client only, pointer to VoxelSystem rendering this voxel, 8 bytes
+
+    float _density; /// Client and server, If leaf: density = 1, if internal node: 0-1 density of voxels inside, 4 bytes
+    int _childCount; /// Client and server, current child nodes set to non-null in _children, 4 bytes
+
+    nodeColor _trueColor; /// Client and server, true color of this voxel, 4 bytes
 #ifndef NO_FALSE_COLOR // !NO_FALSE_COLOR means, does have false color
-    nodeColor _currentColor;
-    bool      _falseColored;
+    nodeColor _currentColor; /// Client only, false color of this voxel, 4 bytes
+    bool _falseColored; /// Client only, is this voxel false colored, 1 bytes
 #endif
-    glBufferIndex   _glBufferIndex;
-    VoxelSystem*    _voxelSystem;
-    bool            _isDirty;
-    uint64_t        _lastChanged;
-    bool            _shouldRender;
-    AABox           _box;
-    unsigned char*  _octalCode;
-    VoxelNode*      _children[8];
-    int             _childCount;
-    unsigned long   _subtreeNodeCount;
-    unsigned long   _subtreeLeafNodeCount;
-    float           _density;       // If leaf: density = 1, if internal node: 0-1 density of voxels inside
-    uint16_t        _sourceID;
+
+    bool _isDirty; /// Client only, has this voxel changed since being rendered, 1 byte
+    bool _shouldRender; /// Client only, should this voxel render at this time, 1 byte
+    uint16_t _sourceID; /// Client only, stores node id of voxel server that sent his voxel, 2 bytes
+
 
     static std::vector<VoxelNodeDeleteHook*> _deleteHooks;
     static std::vector<VoxelNodeUpdateHook*> _updateHooks;
     static uint64_t _voxelMemoryUsage;
+    static uint64_t _octcodeMemoryUsage;
 };
 
 #endif /* defined(__hifi__VoxelNode__) */

@@ -137,6 +137,7 @@ int VoxelServer::civetwebRequestHandler(struct mg_connection* connection) {
         mg_printf(connection, "%s", "Your Voxel Server is running.\r\n");
         mg_printf(connection, "%s", "Current Statistics\r\n");
         mg_printf(connection, "Voxel Node Memory Usage: %f MB\r\n", VoxelNode::getVoxelMemoryUsage() / 1000000.f);
+        mg_printf(connection, "Octcode Memory Usage: %f MB\r\n", VoxelNode::getOctcodeMemoryUsage() / 1000000.f);
 
         VoxelTree* theTree = VoxelServer::GetInstance()->getTree();
         unsigned long nodeCount         = theTree->rootNode->getSubTreeNodeCount();
