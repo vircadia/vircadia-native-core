@@ -300,8 +300,7 @@ void VoxelServer::run() {
     }
     qDebug("wantVoxelPersist=%s\n", debug::valueOf(_wantVoxelPersist));
 
-    // if we want Voxel Persistence, load the local file now...
-    bool persistantFileRead = false;
+    // if we want Voxel Persistence, set up the local file and persist thread
     if (_wantVoxelPersist) {
 
         // Check to see if the user passed in a command line option for setting packet send rate
@@ -314,25 +313,8 @@ void VoxelServer::run() {
             strcpy(_voxelPersistFilename, LOCAL_VOXELS_PERSIST_FILE);
         }
 
-        qDebug("loading voxels from file: %s...\n", _voxelPersistFilename);
+        qDebug("voxelPersistFilename=%s\n", _voxelPersistFilename);
 
-        persistantFileRead = _serverTree.readFromSVOFile(_voxelPersistFilename);
-        if (persistantFileRead) {
-            PerformanceWarning warn(_shouldShowAnimationDebug,
-                                    "persistVoxelsWhenDirty() - reaverageVoxelColors()", _shouldShowAnimationDebug);
-            
-            // after done inserting all these voxels, then reaverage colors
-            _serverTree.reaverageVoxelColors(_serverTree.rootNode);
-            qDebug("Voxels reAveraged\n");
-        }
-        
-        _serverTree.clearDirtyBit(); // the tree is clean since we just loaded it
-        qDebug("DONE loading voxels from file... fileRead=%s\n", debug::valueOf(persistantFileRead));
-        unsigned long nodeCount         = _serverTree.rootNode->getSubTreeNodeCount();
-        unsigned long internalNodeCount = _serverTree.rootNode->getSubTreeInternalNodeCount();
-        unsigned long leafNodeCount     = _serverTree.rootNode->getSubTreeLeafNodeCount();
-        qDebug("Nodes after loading scene %lu nodes %lu internal %lu leaves\n", nodeCount, internalNodeCount, leafNodeCount);
-        
         // now set up VoxelPersistThread
         _voxelPersistThread = new VoxelPersistThread(&_serverTree, _voxelPersistFilename);
         if (_voxelPersistThread) {
@@ -377,6 +359,8 @@ void VoxelServer::run() {
     if (_voxelServerPacketProcessor) {
         _voxelServerPacketProcessor->initialize(true);
     }
+
+    qDebug("Now running...\n");
     
     // loop to send to nodes requesting data
     while (true) {
