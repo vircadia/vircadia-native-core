@@ -47,6 +47,8 @@ void attachVoxelNodeDataToNode(Node* newNode) {
     }
 }
 
+VoxelServer* VoxelServer::_theInstance = NULL;
+
 VoxelServer::VoxelServer(Assignment::Command command, Assignment::Location location) :
     Assignment(command, Assignment::VoxelServerType, location),
     _serverTree(true) {
@@ -68,6 +70,8 @@ VoxelServer::VoxelServer(Assignment::Command command, Assignment::Location locat
     _voxelServerPacketProcessor = NULL;
     _voxelPersistThread = NULL;
     _parsedArgV = NULL;
+    
+    _theInstance = this;
 }
 
 
@@ -91,6 +95,8 @@ VoxelServer::VoxelServer(const unsigned char* dataBuffer, int numBytes) : Assign
     _voxelServerPacketProcessor = NULL;
     _voxelPersistThread = NULL;
     _parsedArgV = NULL;
+
+    _theInstance = this;
 }
 
 VoxelServer::~VoxelServer() {
@@ -131,6 +137,17 @@ int VoxelServer::civetwebRequestHandler(struct mg_connection* connection) {
         mg_printf(connection, "%s", "Your Voxel Server is running.\r\n");
         mg_printf(connection, "%s", "Current Statistics\r\n");
         mg_printf(connection, "Voxel Node Memory Usage: %f MB\r\n", VoxelNode::getVoxelMemoryUsage() / 1000000.f);
+
+        VoxelTree* theTree = VoxelServer::GetInstance()->getTree();
+        unsigned long nodeCount         = theTree->rootNode->getSubTreeNodeCount();
+        unsigned long internalNodeCount = theTree->rootNode->getSubTreeInternalNodeCount();
+        unsigned long leafNodeCount     = theTree->rootNode->getSubTreeLeafNodeCount();
+
+        mg_printf(connection, "%s", "Current Nodes in scene\r\n");
+        mg_printf(connection, "    Total Nodes: %lu nodes\r\n", nodeCount);
+        mg_printf(connection, "    Internal Nodes: %lu nodes\r\n", internalNodeCount);
+        mg_printf(connection, "    Leaf Nodes: %lu leaves\r\n", leafNodeCount);
+
         return 1;
     } else {
         // have mongoose process this request from the document_root
