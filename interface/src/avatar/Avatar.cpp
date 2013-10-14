@@ -675,10 +675,8 @@ void Avatar::updateArmIKAndConstraints(float deltaTime, AvatarJointID fingerTipJ
     elbowJoint.position = newElbowPosition;
     
     // set wrist position
-    glm::vec3 vv(fingerJoint.position);
-    vv -= elbowJoint.position;
-    glm::vec3 newWristPosition = elbowJoint.position + vv * 0.7f;
-    wristJoint.position = newWristPosition;
+    const float wristPosRatio = 0.7f;
+    wristJoint.position = elbowJoint.position + (fingerJoint.position - elbowJoint.position) * wristPosRatio;
 }
 
 glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
