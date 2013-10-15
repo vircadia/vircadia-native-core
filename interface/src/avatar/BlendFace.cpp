@@ -62,7 +62,7 @@ void BlendFace::reset() {
     _resetStates = true;
 }
 
-const glm::vec3 MODEL_TRANSLATION(0.0f, -50.0f, 40.0f); // temporary fudge factor
+const glm::vec3 MODEL_TRANSLATION(0.0f, -60.0f, 40.0f); // temporary fudge factor
 const float MODEL_SCALE = 0.0006f;
 
 void BlendFace::simulate(float deltaTime) {
@@ -107,27 +107,27 @@ void BlendFace::simulate(float deltaTime) {
             state.transform = baseTransform * geometry.offset * joint.preRotation *
                 glm::mat4_cast(state.rotation) * joint.postRotation;
         
-        } else if (i == geometry.neckJointIndex) {
-            glm::vec3 pitchAxis = orientation * glm::vec3(1.0f, 0.0f, 0.0f);
-            glm::vec3 yawAxis = orientation * glm::vec3(0.0f, 1.0f, 0.0f);
-            glm::vec3 rollAxis = orientation * glm::vec3(0.0f, 0.0f, 1.0f);
-            glm::mat4 preTransform = _jointStates[joint.parentIndex].transform * joint.preRotation * glm::mat4_cast(joint.rotation);
-            glm::mat3 inverse = glm::inverse(glm::mat3(preTransform));
-            state.rotation = glm::angleAxis(_owningHead->getPitch(), glm::normalize(inverse * pitchAxis)) *
-                glm::angleAxis(_owningHead->getYaw(), glm::normalize(inverse * yawAxis)) *
-                glm::angleAxis(_owningHead->getRoll(), glm::normalize(inverse * rollAxis)) * joint.rotation;
-            state.transform = _jointStates[joint.parentIndex].transform * joint.preRotation *
-                glm::mat4_cast(state.rotation) * joint.postRotation;
-        
         } else {
+            if (i == geometry.neckJointIndex) {
+                // get the rotation axes in joint space and use them to adjust the rotation
+                glm::mat3 axes = glm::mat3_cast(orientation);
+                glm::mat3 inverse = glm::inverse(glm::mat3(_jointStates[joint.parentIndex].transform *
+                    joint.preRotation * glm::mat4_cast(joint.rotation)));
+                state.rotation = glm::angleAxis(_owningHead->getRoll(), glm::normalize(inverse * axes[2])) *
+                    glm::angleAxis(_owningHead->getYaw(), glm::normalize(inverse * axes[1])) *
+                    glm::angleAxis(_owningHead->getPitch(), glm::normalize(inverse * axes[0])) * joint.rotation;
+            
+            } else if (i == geometry.leftEyeJointIndex || i == geometry.rightEyeJointIndex) {
+                // likewise with the lookat position
+                glm::mat4 inverse = glm::inverse(_jointStates[joint.parentIndex].transform *
+                    joint.preRotation * glm::mat4_cast(joint.rotation));
+                glm::vec3 front = glm::vec3(inverse * glm::vec4(_owningHead->getOrientation() * IDENTITY_FRONT, 0.0f));
+                glm::vec3 lookAt = glm::vec3(inverse * glm::vec4(_owningHead->getLookAtPosition() +
+                    _owningHead->getSaccade(), 1.0f));
+                state.rotation = rotationBetween(front, lookAt) * joint.rotation;
+            }
             state.transform = _jointStates[joint.parentIndex].transform * joint.preRotation *
                 glm::mat4_cast(state.rotation) * joint.postRotation;
-            if (i == geometry.leftEyeJointIndex || i == geometry.rightEyeJointIndex) {
-                // get the lookat position relative to the eye matrix
-                glm::vec3 lookat = glm::vec3(glm::inverse(state.transform) *
-                    glm::vec4(_owningHead->getLookAtPosition() + _owningHead->getSaccade(), 1.0f));
-                state.transform = state.transform * glm::mat4_cast(rotationBetween(glm::vec3(0.0f, 0.0f, 1.0f), lookat));
-            }
         }
     }
     
