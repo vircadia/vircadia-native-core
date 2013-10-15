@@ -541,14 +541,7 @@ const int hullVertexLookup[MAX_POSSIBLE_COMBINATIONS][MAX_PROJECTED_POLYGON_VERT
     {6, TOP_RIGHT_NEAR, TOP_RIGHT_FAR, BOTTOM_RIGHT_FAR, BOTTOM_LEFT_FAR, BOTTOM_LEFT_NEAR, TOP_LEFT_NEAR}, // back, top, left
 };
 
-uint64_t ViewFrustum::getProjectedPolygonTime = 0;
-uint64_t ViewFrustum::getProjectedPolygonCalls = 0;
-#include <PerfStat.h>
-
 VoxelProjectedPolygon ViewFrustum::getProjectedPolygon(const AABox& box) const {
-    getProjectedPolygonCalls++;
-    PerformanceWarning(false, "ViewFrustum::getProjectedPolygon", false, &getProjectedPolygonTime);
-    
     const glm::vec3& bottomNearRight = box.getCorner();
     glm::vec3 topFarLeft = box.calcTopFarLeft();
 
@@ -604,7 +597,7 @@ VoxelProjectedPolygon ViewFrustum::getProjectedPolygon(const AABox& box) const {
         ***/
     }
     // set the distance from our camera position, to the closest vertex
-    float distance = glm::distance(getPosition(), box.getCenter());
+    float distance = glm::distance(getPosition(), box.calcCenter());
     projectedPolygon.setDistance(distance);
     projectedPolygon.setAnyInView(anyPointsInView);
     projectedPolygon.setAllInView(allPointsInView);
@@ -613,18 +606,12 @@ VoxelProjectedPolygon ViewFrustum::getProjectedPolygon(const AABox& box) const {
 }
 
 
-uint64_t ViewFrustum::getFurthestPointFromCameraTime = 0;
-uint64_t ViewFrustum::getFurthestPointFromCameraCalls = 0;
-
 // Similar strategy to getProjectedPolygon() we use the knowledge of camera position relative to the
 // axis-aligned voxels to determine which of the voxels vertices must be the furthest. No need for
 // squares and square-roots. Just compares.
 glm::vec3 ViewFrustum::getFurthestPointFromCamera(const AABox& box) const {
-    getFurthestPointFromCameraCalls++;
-    PerformanceWarning(false, "ViewFrustum::getFurthestPointFromCamera", false, &getFurthestPointFromCameraTime);
-
-    const glm::vec3& center = box.getCenter();
     const glm::vec3& bottomNearRight = box.getCorner();
+    glm::vec3 center = box.calcCenter();
     glm::vec3 topFarLeft = box.calcTopFarLeft();
 
     glm::vec3 furthestPoint;

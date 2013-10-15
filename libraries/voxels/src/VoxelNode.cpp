@@ -394,20 +394,20 @@ float VoxelNode::furthestDistanceToCamera(const ViewFrustum& viewFrustum) const 
 }
 
 float VoxelNode::distanceToCamera(const ViewFrustum& viewFrustum) const {
-    glm::vec3 center = _box.getCenter() * (float)TREE_SCALE;
+    glm::vec3 center = _box.calcCenter() * (float)TREE_SCALE;
     glm::vec3 temp = viewFrustum.getPosition() - center;
     float distanceToVoxelCenter = sqrtf(glm::dot(temp, temp));
     return distanceToVoxelCenter;
 }
 
 float VoxelNode::distanceSquareToPoint(const glm::vec3& point) const {
-    glm::vec3 temp = point - _box.getCenter();
+    glm::vec3 temp = point - _box.calcCenter();
     float distanceSquare = glm::dot(temp, temp);
     return distanceSquare;
 }
 
 float VoxelNode::distanceToPoint(const glm::vec3& point) const {
-    glm::vec3 temp = point - _box.getCenter();
+    glm::vec3 temp = point - _box.calcCenter();
     float distance = sqrtf(glm::dot(temp, temp));
     return distance;
 }

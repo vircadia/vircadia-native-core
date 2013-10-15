@@ -96,13 +96,7 @@ public:
     VoxelProjectedPolygon getProjectedPolygon(const AABox& box) const;
     glm::vec3 getFurthestPointFromCamera(const AABox& box) const;
 
-    static uint64_t getProjectedPolygonTime;
-    static uint64_t getProjectedPolygonCalls;
-    static uint64_t getFurthestPointFromCameraTime;
-    static uint64_t getFurthestPointFromCameraCalls;
-    
 private:
-
     // Used for keyhole calculations
     ViewFrustum::location pointInKeyhole(const glm::vec3& point) const;
     ViewFrustum::location sphereInKeyhole(const glm::vec3& center, float radius) const;

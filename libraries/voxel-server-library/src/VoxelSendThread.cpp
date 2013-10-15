@@ -53,13 +53,6 @@ bool VoxelSendThread::process() {
         }
     }
 
-    // some debugging...
-    printf("ViewFrustum::getProjectedPolygonTime=%llu ViewFrustum::getProjectedPolygonCalls=%llu\n",
-        ViewFrustum::getProjectedPolygonTime, ViewFrustum::getProjectedPolygonCalls);
-
-    printf("ViewFrustum::getFurthestPointFromCameraTime=%llu ViewFrustum::getFurthestPointFromCameraCalls=%llu\n",
-        ViewFrustum::getFurthestPointFromCameraTime, ViewFrustum::getFurthestPointFromCameraCalls);
-
     return isStillRunning();  // keep running till they terminate us
 }
 

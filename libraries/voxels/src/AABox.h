@@ -36,11 +36,9 @@ enum BoxVertex {
 
 const int FACE_COUNT = 6;
 
-class AABox 
-{
+class AABox {
 
 public:
-
     AABox(const glm::vec3& corner, float size);
     AABox();
     ~AABox() {};
@@ -54,10 +52,10 @@ public:
     void scale(float scale);
 
     const glm::vec3& getCorner() const     { return _corner; };
-    const glm::vec3& getCenter() const     { return _center; };
-
-    glm::vec3 calcTopFarLeft() const;
     float getScale() const { return _scale; }
+
+    glm::vec3 calcCenter() const;
+    glm::vec3 calcTopFarLeft() const;
 
     glm::vec3 getVertex(BoxVertex vertex) const;
 
@@ -70,7 +68,6 @@ public:
     bool findCapsulePenetration(const glm::vec3& start, const glm::vec3& end, float radius, glm::vec3& penetration) const;
 
 private:
-
     glm::vec3 getClosestPointOnFace(const glm::vec3& point, BoxFace face) const;
     glm::vec3 getClosestPointOnFace(const glm::vec4& origin, const glm::vec4& direction, BoxFace face) const;
     glm::vec4 getPlane(BoxFace face) const;
@@ -78,7 +75,6 @@ private:
     static BoxFace getOppositeFace(BoxFace face);
 
     glm::vec3 _corner;
-    glm::vec3 _center;
     float _scale;
 };
 

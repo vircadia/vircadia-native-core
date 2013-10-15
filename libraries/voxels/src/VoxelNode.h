@@ -53,10 +53,9 @@ public:
     bool collapseIdenticalLeaves();
 
     const AABox& getAABox() const { return _box; }
-    const glm::vec3& getCenter() const { return _box.getCenter(); }
     const glm::vec3& getCorner() const { return _box.getCorner(); }
-    float getScale() const { return _box.getScale(); } // voxelScale = (1 / powf(2, *node->getOctalCode())); }
-    int getLevel() const { return *_octalCode + 1; } // one based or zero based? this doesn't correctly handle 2 byte case
+    float getScale() const { return _box.getScale(); }
+    int getLevel() const { return numberOfThreeBitSectionsInCode(getOctalCode()) + 1; }
     
     float getEnclosingRadius() const;
     

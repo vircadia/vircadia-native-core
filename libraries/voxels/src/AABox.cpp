@@ -20,6 +20,12 @@ AABox::AABox(const glm::vec3& corner, float size) :
 AABox::AABox() : _corner(0,0,0), _scale(0) {
 };
 
+glm::vec3 AABox::calcCenter() const {
+    glm::vec3 center(_corner);
+    center += (glm::vec3(_scale, _scale, _scale) * 0.5f);
+    return center; 
+}
+
 glm::vec3 AABox::calcTopFarLeft() const { 
     glm::vec3 topFarLeft(_corner);
     topFarLeft += glm::vec3(_scale, _scale, _scale);
@@ -28,10 +34,8 @@ glm::vec3 AABox::calcTopFarLeft() const {
 
 void AABox::scale(float scale) {
     _corner = _corner * scale;
-    _center = _center * scale;
     _scale = _scale * scale;
 }
-
 
 glm::vec3 AABox::getVertex(BoxVertex vertex) const {
     switch (vertex) {
@@ -57,7 +61,6 @@ glm::vec3 AABox::getVertex(BoxVertex vertex) const {
 void AABox::setBox(const glm::vec3& corner, float scale) {
     _corner = corner;
     _scale = scale;
-    _center = _corner + (glm::vec3(_scale, _scale, _scale) * 0.5f);
 }
 
 glm::vec3 AABox::getVertexP(const glm::vec3& normal) const {
