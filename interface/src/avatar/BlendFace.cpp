@@ -29,6 +29,10 @@ BlendFace::~BlendFace() {
 }
 
 ProgramObject BlendFace::_eyeProgram;
+ProgramObject BlendFace::_skinProgram;
+int BlendFace::_clusterMatricesLocation;
+int BlendFace::_clusterIndicesLocation;
+int BlendFace::_clusterWeightsLocation;
 
 void BlendFace::init() {
     if (!_eyeProgram.isLinked()) {
@@ -40,6 +44,15 @@ void BlendFace::init() {
         _eyeProgram.bind();
         _eyeProgram.setUniformValue("texture", 0);
         _eyeProgram.release();
+        
+        _skinProgram.addShaderFromSourceFile(QGLShader::Vertex, "resources/shaders/skin_blendface.vert");
+        _skinProgram.link();
+        
+        _skinProgram.bind();
+        _clusterMatricesLocation = _skinProgram.uniformLocation("clusterMatrices");
+        _clusterIndicesLocation = _skinProgram.attributeLocation("clusterIndices");
+        _clusterWeightsLocation = _skinProgram.attributeLocation("clusterWeights");
+        _skinProgram.release();
     }
 }
 
@@ -66,7 +79,7 @@ void BlendFace::simulate(float deltaTime) {
         }
         foreach (const FBXMesh& mesh, geometry.meshes) {
             MeshState state;
-            state.jointMatrices.resize(mesh.clusters.size());
+            state.clusterMatrices.resize(mesh.clusters.size());
             if (mesh.springiness > 0.0f) {
                 state.worldSpaceVertices.resize(mesh.vertices.size());
                 state.vertexVelocities.resize(mesh.vertices.size());
@@ -98,13 +111,14 @@ void BlendFace::simulate(float deltaTime) {
                 glm::mat4_cast(state.rotation) * joint.postRotation;
             
         } else {
-            state.transform = _jointStates[joint.parentIndex].transform * joint.preRotation;
+            state.transform = _jointStates[joint.parentIndex].transform * joint.preRotation *
+                glm::mat4_cast(state.rotation) * joint.postRotation;
             if (i == geometry.leftEyeJointIndex || i == geometry.rightEyeJointIndex) {
-                // extract the translation component of the matrix
-                state.rotation = _owningHead->getEyeRotation(glm::vec3(
-                    state.transform[3][0], state.transform[3][1], state.transform[3][2]));
+                // get the lookat position relative to the eye matrix
+                glm::vec3 lookat = glm::vec3(glm::inverse(state.transform) *
+                    glm::vec4(_owningHead->getLookAtPosition() + _owningHead->getSaccade(), 1.0f));
+                state.transform = state.transform * glm::mat4_cast(rotationBetween(glm::vec3(0.0f, 0.0f, 1.0f), lookat));
             }
-            state.transform = state.transform * glm::mat4_cast(state.rotation) * joint.postRotation;
         }
     }
     
@@ -113,7 +127,7 @@ void BlendFace::simulate(float deltaTime) {
         const FBXMesh& mesh = geometry.meshes.at(i);
         for (int j = 0; j < mesh.clusters.size(); j++) {
             const FBXCluster& cluster = mesh.clusters.at(j);
-            state.jointMatrices[j] = _jointStates[cluster.jointIndex].transform * cluster.inverseBindMatrix;
+            state.clusterMatrices[j] = _jointStates[cluster.jointIndex].transform * cluster.inverseBindMatrix;
         }
         int vertexCount = state.worldSpaceVertices.size();
         if (vertexCount == 0) {
@@ -141,7 +155,6 @@ void BlendFace::simulate(float deltaTime) {
                     _blendedVertices[*index] += *vertex * coefficient;
                 }
             }
-            
             sourceVertices = _blendedVertices.constData();
         }
         glm::mat4 transform;
@@ -153,20 +166,19 @@ void BlendFace::simulate(float deltaTime) {
             const glm::vec4* clusterWeights = mesh.clusterWeights.constData();
             for (int j = 0; j < vertexCount; j++) {
                 _blendedVertices[j] =
-                    glm::vec3(state.jointMatrices[clusterIndices[j][0]] *
+                    glm::vec3(state.clusterMatrices[clusterIndices[j][0]] *
                         glm::vec4(sourceVertices[j], 1.0f)) * clusterWeights[j][0] +
-                    glm::vec3(state.jointMatrices[clusterIndices[j][1]] *
+                    glm::vec3(state.clusterMatrices[clusterIndices[j][1]] *
                         glm::vec4(sourceVertices[j], 1.0f)) * clusterWeights[j][1] +
-                    glm::vec3(state.jointMatrices[clusterIndices[j][2]] *
+                    glm::vec3(state.clusterMatrices[clusterIndices[j][2]] *
                         glm::vec4(sourceVertices[j], 1.0f)) * clusterWeights[j][2] +
-                    glm::vec3(state.jointMatrices[clusterIndices[j][3]] *
+                    glm::vec3(state.clusterMatrices[clusterIndices[j][3]] *
                         glm::vec4(sourceVertices[j], 1.0f)) * clusterWeights[j][3];
             }
-            
             sourceVertices = _blendedVertices.constData();
             
         } else {
-            transform = state.jointMatrices[0];
+            transform = state.clusterMatrices[0];
         }
         if (_resetStates) {
             for (int j = 0; j < vertexCount; j++) {
@@ -221,11 +233,6 @@ bool BlendFace::render(float alpha) {
         _dilatedTextures.resize(geometry.meshes.size());
     }
 
-    glm::quat orientation = _owningHead->getOrientation();
-    glm::vec3 scale(-_owningHead->getScale() * MODEL_SCALE, _owningHead->getScale() * MODEL_SCALE,
-        -_owningHead->getScale() * MODEL_SCALE);
-    glm::vec3 offset = MODEL_TRANSLATION - geometry.neckPivot;
-    
     glEnableClientState(GL_VERTEX_ARRAY);
     glEnableClientState(GL_NORMAL_ARRAY);
     glEnableClientState(GL_TEXTURE_COORD_ARRAY);
@@ -245,13 +252,9 @@ bool BlendFace::render(float alpha) {
         const FBXMesh& mesh = geometry.meshes.at(i);    
         int vertexCount = mesh.vertices.size();
         
-        glPushMatrix();
-        
         // apply eye rotation if appropriate
         Texture* texture = networkMesh.diffuseTexture.data();
         if (mesh.isEye) {
-            _eyeProgram.bind();
-            
             if (texture != NULL) {
                 texture = (_dilatedTextures[i] = static_cast<DilatableNetworkTexture*>(texture)->getDilatedTexture(
                     _owningHead->getPupilDilation())).data();
@@ -266,14 +269,30 @@ bool BlendFace::render(float alpha) {
         glMaterialfv(GL_FRONT, GL_SPECULAR, (const float*)&specular);
         glMaterialf(GL_FRONT, GL_SHININESS, mesh.shininess);
         
+        glBindBuffer(GL_ARRAY_BUFFER, networkMesh.vertexBufferID);
+        
         const MeshState& state = _meshStates.at(i);
         if (state.worldSpaceVertices.isEmpty()) {
-            glMultMatrixf((const GLfloat*)&state.jointMatrices[0]);
+            if (state.clusterMatrices.size() > 1) {
+                _skinProgram.bind();
+                glUniformMatrix4fvARB(_clusterMatricesLocation, state.clusterMatrices.size(), false,
+                    (const float*)state.clusterMatrices.constData());
+                int offset = vertexCount * sizeof(glm::vec2) + (mesh.blendshapes.isEmpty() ?
+                    vertexCount * 2 * sizeof(glm::vec3) : 0);
+                _skinProgram.setAttributeBuffer(_clusterIndicesLocation, GL_FLOAT, offset, 4);
+                _skinProgram.setAttributeBuffer(_clusterWeightsLocation, GL_FLOAT,
+                    offset + vertexCount * sizeof(glm::vec4), 4);
+                _skinProgram.enableAttributeArray(_clusterIndicesLocation);
+                _skinProgram.enableAttributeArray(_clusterWeightsLocation);
+                
+            } else {
+                glPushMatrix();
+                glMultMatrixf((const GLfloat*)&state.clusterMatrices[0]);
+            }
         }
         
         glBindTexture(GL_TEXTURE_2D, texture == NULL ? 0 : texture->getID());
         
-        glBindBuffer(GL_ARRAY_BUFFER, networkMesh.vertexBufferID);
         if (mesh.blendshapes.isEmpty() && mesh.springiness == 0.0f) {
             glTexCoordPointer(2, GL_FLOAT, 0, (void*)(vertexCount * 2 * sizeof(glm::vec3)));    
         
@@ -322,11 +341,16 @@ bool BlendFace::render(float alpha) {
         glDrawRangeElementsEXT(GL_TRIANGLES, 0, vertexCount - 1, mesh.triangleIndices.size(),
             GL_UNSIGNED_INT, (void*)(mesh.quadIndices.size() * sizeof(int)));
             
-        if (mesh.isEye) {
-            _eyeProgram.release();
+        if (state.worldSpaceVertices.isEmpty()) {
+            if (state.clusterMatrices.size() > 1) {
+                _skinProgram.disableAttributeArray(_clusterIndicesLocation);
+                _skinProgram.disableAttributeArray(_clusterWeightsLocation);
+                _skinProgram.release();
+                           
+            } else {
+                glPopMatrix();
+            }
         }
-        
-        glPopMatrix();
     }
     
     glDisable(GL_NORMALIZE); 
