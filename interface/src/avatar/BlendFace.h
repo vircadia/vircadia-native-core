@@ -82,7 +82,7 @@ private:
     QVector<glm::vec3> _blendedVertices;
     QVector<glm::vec3> _blendedNormals;
     
-    static ProgramObject _eyeProgram;
+    static ProgramObject _program;
     static ProgramObject _skinProgram;
     static int _clusterMatricesLocation;
     static int _clusterIndicesLocation;

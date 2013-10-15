@@ -28,30 +28,32 @@ BlendFace::~BlendFace() {
     deleteGeometry();
 }
 
-ProgramObject BlendFace::_eyeProgram;
+ProgramObject BlendFace::_program;
 ProgramObject BlendFace::_skinProgram;
 int BlendFace::_clusterMatricesLocation;
 int BlendFace::_clusterIndicesLocation;
 int BlendFace::_clusterWeightsLocation;
 
 void BlendFace::init() {
-    if (!_eyeProgram.isLinked()) {
+    if (!_program.isLinked()) {
         switchToResourcesParentIfRequired();
-        _eyeProgram.addShaderFromSourceFile(QGLShader::Vertex, "resources/shaders/eye.vert");
-        _eyeProgram.addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/iris.frag");
-        _eyeProgram.link();
+        _program.addShaderFromSourceFile(QGLShader::Vertex, "resources/shaders/blendface.vert");
+        _program.addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/blendface.frag");
+        _program.link();
         
-        _eyeProgram.bind();
-        _eyeProgram.setUniformValue("texture", 0);
-        _eyeProgram.release();
+        _program.bind();
+        _program.setUniformValue("texture", 0);
+        _program.release();
         
         _skinProgram.addShaderFromSourceFile(QGLShader::Vertex, "resources/shaders/skin_blendface.vert");
+        _skinProgram.addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/blendface.frag");
         _skinProgram.link();
         
         _skinProgram.bind();
         _clusterMatricesLocation = _skinProgram.uniformLocation("clusterMatrices");
         _clusterIndicesLocation = _skinProgram.attributeLocation("clusterIndices");
         _clusterWeightsLocation = _skinProgram.attributeLocation("clusterWeights");
+        _skinProgram.setUniformValue("texture", 0);
         _skinProgram.release();
     }
 }
@@ -288,7 +290,10 @@ bool BlendFace::render(float alpha) {
             } else {
                 glPushMatrix();
                 glMultMatrixf((const GLfloat*)&state.clusterMatrices[0]);
+                _program.bind();
             }
+        } else {
+            _program.bind();
         }
         
         glBindTexture(GL_TEXTURE_2D, texture == NULL ? 0 : texture->getID());
@@ -349,7 +354,10 @@ bool BlendFace::render(float alpha) {
                            
             } else {
                 glPopMatrix();
+                _program.release();
             }
+        } else {
+            _program.release();
         }
     }
     
