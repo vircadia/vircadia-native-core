@@ -56,12 +56,27 @@ public:
     glm::mat4 inverseBindMatrix;
 };
 
-/// A single mesh (with optional blendshapes) extracted from an FBX document.
-class FBXMesh {
+/// A single part of a mesh (with the same material).
+class FBXMeshPart {
 public:
     
     QVector<int> quadIndices;
     QVector<int> triangleIndices;
+    
+    glm::vec3 diffuseColor;
+    glm::vec3 specularColor;
+    float shininess;
+    
+    QByteArray diffuseFilename;
+    QByteArray normalFilename;
+};
+
+/// A single mesh (with optional blendshapes) extracted from an FBX document.
+class FBXMesh {
+public:
+    
+    QVector<FBXMeshPart> parts;
+    
     QVector<glm::vec3> vertices;
     QVector<glm::vec3> normals;
     QVector<glm::vec2> texCoords;
@@ -71,13 +86,6 @@ public:
     QVector<FBXCluster> clusters;
     
     bool isEye;
-    
-    glm::vec3 diffuseColor;
-    glm::vec3 specularColor;
-    float shininess;
-    
-    QByteArray diffuseFilename;
-    QByteArray normalFilename;
     
     QVector<FBXBlendshape> blendshapes;
     

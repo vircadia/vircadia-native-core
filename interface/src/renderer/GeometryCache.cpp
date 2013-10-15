@@ -290,19 +290,26 @@ NetworkGeometry::~NetworkGeometry() {
 
 glm::vec4 NetworkGeometry::computeAverageColor() const {
     glm::vec4 totalColor;
-    int totalVertices = 0;
+    int totalTriangles = 0;
     for (int i = 0; i < _meshes.size(); i++) {
-        if (_geometry.meshes.at(i).isEye) {
+        const FBXMesh& mesh = _geometry.meshes.at(i);
+        if (mesh.isEye) {
             continue; // skip eyes
         }
-        glm::vec4 color = glm::vec4(_geometry.meshes.at(i).diffuseColor, 1.0f);
-        if (_meshes.at(i).diffuseTexture) {
-            color *= _meshes.at(i).diffuseTexture->getAverageColor();
+        const NetworkMesh& networkMesh = _meshes.at(i);
+        for (int j = 0; j < mesh.parts.size(); j++) {
+            const FBXMeshPart& part = mesh.parts.at(j);
+            const NetworkMeshPart& networkPart = networkMesh.parts.at(j);
+            glm::vec4 color = glm::vec4(part.diffuseColor, 1.0f);
+            if (networkPart.diffuseTexture) {
+                color *= networkPart.diffuseTexture->getAverageColor();
+            }
+            int triangles = part.quadIndices.size() * 2 + part.triangleIndices.size();
+            totalColor += color * triangles;
+            totalTriangles += triangles;
         }
-        totalColor += color * _geometry.meshes.at(i).vertices.size();
-        totalVertices += _geometry.meshes.at(i).vertices.size();
     }
-    return (totalVertices == 0) ? glm::vec4(1.0f, 1.0f, 1.0f, 1.0f) : totalColor / totalVertices;
+    return (totalTriangles == 0) ? glm::vec4(1.0f, 1.0f, 1.0f, 1.0f) : totalColor / totalTriangles;
 }
 
 void NetworkGeometry::handleModelReplyError() {
@@ -351,13 +358,36 @@ void NetworkGeometry::maybeReadModelWithMapping() {
     foreach (const FBXMesh& mesh, _geometry.meshes) {
         NetworkMesh networkMesh;
         
+        int totalIndices = 0;
+        foreach (const FBXMeshPart& part, mesh.parts) {
+            NetworkMeshPart networkPart;
+            QString basePath = url.path();
+            basePath = basePath.left(basePath.lastIndexOf('/') + 1);
+            if (!part.diffuseFilename.isEmpty()) {
+                url.setPath(basePath + part.diffuseFilename);
+                networkPart.diffuseTexture = Application::getInstance()->getTextureCache()->getTexture(url, mesh.isEye);
+            }
+            if (!part.normalFilename.isEmpty()) {
+                url.setPath(basePath + part.normalFilename);
+                networkPart.normalTexture = Application::getInstance()->getTextureCache()->getTexture(url);
+            }
+            networkMesh.parts.append(networkPart);
+                        
+            totalIndices += (part.quadIndices.size() + part.triangleIndices.size());
+        }
+                        
         glGenBuffers(1, &networkMesh.indexBufferID);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, networkMesh.indexBufferID);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, (mesh.quadIndices.size() + mesh.triangleIndices.size()) * sizeof(int),
-            NULL, GL_STATIC_DRAW);
-        glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, mesh.quadIndices.size() * sizeof(int), mesh.quadIndices.constData());
-        glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, mesh.quadIndices.size() * sizeof(int),
-            mesh.triangleIndices.size() * sizeof(int), mesh.triangleIndices.constData());
+        glBufferData(GL_ELEMENT_ARRAY_BUFFER, totalIndices * sizeof(int), NULL, GL_STATIC_DRAW);
+        int offset = 0;
+        foreach (const FBXMeshPart& part, mesh.parts) {
+            glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, offset, part.quadIndices.size() * sizeof(int),
+                part.quadIndices.constData());
+            offset += part.quadIndices.size() * sizeof(int);
+            glBufferSubData(GL_ELEMENT_ARRAY_BUFFER, offset, part.triangleIndices.size() * sizeof(int),
+                part.triangleIndices.constData());
+            offset += part.triangleIndices.size() * sizeof(int);
+        }
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
         
         glGenBuffers(1, &networkMesh.vertexBufferID);
@@ -398,16 +428,6 @@ void NetworkGeometry::maybeReadModelWithMapping() {
         
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         
-        QString basePath = url.path();
-        basePath = basePath.left(basePath.lastIndexOf('/') + 1);
-        if (!mesh.diffuseFilename.isEmpty()) {
-            url.setPath(basePath + mesh.diffuseFilename);
-            networkMesh.diffuseTexture = Application::getInstance()->getTextureCache()->getTexture(url, mesh.isEye);
-        }
-        if (!mesh.normalFilename.isEmpty()) {
-            url.setPath(basePath + mesh.normalFilename);
-            networkMesh.normalTexture = Application::getInstance()->getTextureCache()->getTexture(url);
-        }
         _meshes.append(networkMesh);
     }
 }

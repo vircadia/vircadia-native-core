@@ -17,13 +17,21 @@
 #include "Application.h"
 #include "TextureCache.h"
 
-TextureCache::TextureCache() : _permutationNormalTextureID(0),
-    _primaryFramebufferObject(NULL), _secondaryFramebufferObject(NULL), _tertiaryFramebufferObject(NULL) {
+TextureCache::TextureCache() :
+    _permutationNormalTextureID(0),
+    _whiteTextureID(0),
+    _primaryFramebufferObject(NULL),
+    _secondaryFramebufferObject(NULL),
+    _tertiaryFramebufferObject(NULL)
+{
 }
 
 TextureCache::~TextureCache() {
     if (_permutationNormalTextureID != 0) {
         glDeleteTextures(1, &_permutationNormalTextureID);
+    }
+    if (_whiteTextureID != 0) {
+        glDeleteTextures(1, &_whiteTextureID);
     }
     foreach (GLuint id, _fileTextureIDs) {
         glDeleteTextures(1, &id);
@@ -64,6 +72,20 @@ GLuint TextureCache::getPermutationNormalTextureID() {
         glBindTexture(GL_TEXTURE_2D, 0);
     }
     return _permutationNormalTextureID;
+}
+
+GLuint TextureCache::getWhiteTextureID() {
+    if (_whiteTextureID == 0) {
+        glGenTextures(1, &_whiteTextureID);
+        glBindTexture(GL_TEXTURE_2D, _whiteTextureID);
+        
+        const char OPAQUE_WHITE[] = { 0xFF, 0xFF, 0xFF, 0xFF };
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, OPAQUE_WHITE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
+    return _whiteTextureID;
 }
 
 GLuint TextureCache::getFileTextureID(const QString& filename) {

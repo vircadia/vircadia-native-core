@@ -76,7 +76,7 @@ private:
     
     QVector<MeshState> _meshStates;
     QVector<GLuint> _blendedVertexBufferIDs;
-    QVector<QSharedPointer<Texture> > _dilatedTextures;
+    QVector<QVector<QSharedPointer<Texture> > > _dilatedTextures;
     bool _resetStates;
     
     QVector<glm::vec3> _blendedVertices;

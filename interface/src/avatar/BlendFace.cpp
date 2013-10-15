@@ -236,10 +236,11 @@ bool BlendFace::render(float alpha) {
                 glBindBuffer(GL_ARRAY_BUFFER, 0);
             }
             _blendedVertexBufferIDs.append(id);
+            
+            QVector<QSharedPointer<Texture> > dilated;
+            dilated.resize(mesh.parts.size());
+            _dilatedTextures.append(dilated);
         }
-        
-        // make sure we have the right number of dilated texture pointers
-        _dilatedTextures.resize(geometry.meshes.size());
     }
 
     glEnableClientState(GL_VERTEX_ARRAY);
@@ -254,23 +255,6 @@ bool BlendFace::render(float alpha) {
         
         const FBXMesh& mesh = geometry.meshes.at(i);    
         int vertexCount = mesh.vertices.size();
-        
-        // apply eye rotation if appropriate
-        Texture* texture = networkMesh.diffuseTexture.data();
-        if (mesh.isEye) {
-            if (texture != NULL) {
-                texture = (_dilatedTextures[i] = static_cast<DilatableNetworkTexture*>(texture)->getDilatedTexture(
-                    _owningHead->getPupilDilation())).data();
-            }
-        }
-        
-        // apply material properties
-        glm::vec4 diffuse = glm::vec4(mesh.diffuseColor, alpha);
-        glm::vec4 specular = glm::vec4(mesh.specularColor, alpha);
-        glMaterialfv(GL_FRONT, GL_AMBIENT, (const float*)&diffuse);
-        glMaterialfv(GL_FRONT, GL_DIFFUSE, (const float*)&diffuse);
-        glMaterialfv(GL_FRONT, GL_SPECULAR, (const float*)&specular);
-        glMaterialf(GL_FRONT, GL_SHININESS, mesh.shininess);
         
         glBindBuffer(GL_ARRAY_BUFFER, networkMesh.vertexBufferID);
         
@@ -296,8 +280,6 @@ bool BlendFace::render(float alpha) {
         } else {
             _program.bind();
         }
-        
-        glBindTexture(GL_TEXTURE_2D, texture == NULL ? 0 : texture->getID());
         
         if (mesh.blendshapes.isEmpty() && mesh.springiness == 0.0f) {
             glTexCoordPointer(2, GL_FLOAT, 0, (void*)(vertexCount * 2 * sizeof(glm::vec3)));    
@@ -343,10 +325,36 @@ bool BlendFace::render(float alpha) {
         glVertexPointer(3, GL_FLOAT, 0, 0);
         glNormalPointer(GL_FLOAT, 0, (void*)(vertexCount * sizeof(glm::vec3)));
         
-        glDrawRangeElementsEXT(GL_QUADS, 0, vertexCount - 1, mesh.quadIndices.size(), GL_UNSIGNED_INT, 0);
-        glDrawRangeElementsEXT(GL_TRIANGLES, 0, vertexCount - 1, mesh.triangleIndices.size(),
-            GL_UNSIGNED_INT, (void*)(mesh.quadIndices.size() * sizeof(int)));
+        qint64 offset = 0;
+        for (int j = 0; j < networkMesh.parts.size(); j++) {
+            const NetworkMeshPart& networkPart = networkMesh.parts.at(j);
+            const FBXMeshPart& part = mesh.parts.at(j);
             
+            // apply material properties
+            glm::vec4 diffuse = glm::vec4(part.diffuseColor, alpha);
+            glm::vec4 specular = glm::vec4(part.specularColor, alpha);
+            glMaterialfv(GL_FRONT, GL_AMBIENT, (const float*)&diffuse);
+            glMaterialfv(GL_FRONT, GL_DIFFUSE, (const float*)&diffuse);
+            glMaterialfv(GL_FRONT, GL_SPECULAR, (const float*)&specular);
+            glMaterialf(GL_FRONT, GL_SHININESS, part.shininess);
+        
+            Texture* texture = networkPart.diffuseTexture.data();
+            if (mesh.isEye) {
+                if (texture != NULL) {
+                    texture = (_dilatedTextures[i][j] = static_cast<DilatableNetworkTexture*>(texture)->getDilatedTexture(
+                        _owningHead->getPupilDilation())).data();
+                }
+            }
+            glBindTexture(GL_TEXTURE_2D, texture == NULL ? Application::getInstance()->getTextureCache()->getWhiteTextureID() :
+                texture->getID());
+            
+            glDrawRangeElementsEXT(GL_QUADS, 0, vertexCount - 1, part.quadIndices.size(), GL_UNSIGNED_INT, (void*)offset);
+            offset += part.quadIndices.size() * sizeof(int);
+            glDrawRangeElementsEXT(GL_TRIANGLES, 0, vertexCount - 1, part.triangleIndices.size(),
+                GL_UNSIGNED_INT, (void*)offset);
+            offset += part.triangleIndices.size() * sizeof(int);
+        }
+        
         if (state.worldSpaceVertices.isEmpty()) {
             if (state.clusterMatrices.size() > 1) {
                 _skinProgram.disableAttributeArray(_clusterIndicesLocation);

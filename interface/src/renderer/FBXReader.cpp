@@ -426,6 +426,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                         QVector<int> normalIndices;
                         QVector<glm::vec2> texCoords;
                         QVector<int> texCoordIndices;
+                        QVector<int> materials;
                         foreach (const FBXNode& data, object.children) {
                             if (data.name == "Vertices") {
                                 mesh.vertices = createVec3Vector(data.properties.at(0).value<QVector<double> >());
@@ -457,6 +458,12 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                                         
                                     } else if (subdata.name == "UVIndex") {
                                         texCoordIndices = subdata.properties.at(0).value<QVector<int> >();
+                                    }
+                                }
+                            } else if (data.name == "LayerElementMaterial") {
+                                foreach (const FBXNode& subdata, data.children) {
+                                    if (subdata.name == "Materials") {
+                                        materials = subdata.properties.at(0).value<QVector<int> >();   
                                     }
                                 }
                             }
@@ -494,25 +501,30 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                         }
                         
                         // convert the polygons to quads and triangles
+                        int polygonIndex = 0;
                         for (const int* beginIndex = polygonIndices.constData(), *end = beginIndex + polygonIndices.size();
-                                beginIndex != end; ) {
+                                beginIndex != end; polygonIndex++) {
                             const int* endIndex = beginIndex;
                             while (*endIndex++ >= 0);
                             
+                            int materialIndex = (polygonIndex < materials.size()) ? materials.at(polygonIndex) : 0;
+                            mesh.parts.resize(max(mesh.parts.size(), materialIndex + 1));
+                            FBXMeshPart& part = mesh.parts[materialIndex];
+                            
                             if (endIndex - beginIndex == 4) {
-                                mesh.quadIndices.append(*beginIndex++);
-                                mesh.quadIndices.append(*beginIndex++);
-                                mesh.quadIndices.append(*beginIndex++);
-                                mesh.quadIndices.append(-*beginIndex++ - 1);
+                                part.quadIndices.append(*beginIndex++);
+                                part.quadIndices.append(*beginIndex++);
+                                part.quadIndices.append(*beginIndex++);
+                                part.quadIndices.append(-*beginIndex++ - 1);
                                 
                             } else {
                                 for (const int* nextIndex = beginIndex + 1;; ) {
-                                    mesh.triangleIndices.append(*beginIndex);
-                                    mesh.triangleIndices.append(*nextIndex++);
+                                    part.triangleIndices.append(*beginIndex);
+                                    part.triangleIndices.append(*nextIndex++);
                                     if (*nextIndex >= 0) {
-                                        mesh.triangleIndices.append(*nextIndex);
+                                        part.triangleIndices.append(*nextIndex);
                                     } else {
-                                        mesh.triangleIndices.append(-*nextIndex - 1);
+                                        part.triangleIndices.append(-*nextIndex - 1);
                                         break;
                                     }
                                 }
@@ -754,21 +766,23 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         glm::mat4 modelTransform = getGlobalTransform(parentMap, models, modelID);
         
         // look for textures, material properties
+        int partIndex = 0;
         foreach (qint64 childID, childMap.values(modelID)) {
-            if (!materials.contains(childID)) {
+            if (!materials.contains(childID) || partIndex >= mesh.parts.size()) {
                 continue;
             }
             Material material = materials.value(childID);
-            mesh.diffuseColor = material.diffuse;
-            mesh.specularColor = material.specular;
-            mesh.shininess = material.shininess;
+            FBXMeshPart& part = mesh.parts[partIndex++];
+            part.diffuseColor = material.diffuse;
+            part.specularColor = material.specular;
+            part.shininess = material.shininess;
             qint64 diffuseTextureID = diffuseTextures.value(childID);
             if (diffuseTextureID != 0) {
-                mesh.diffuseFilename = textureFilenames.value(diffuseTextureID);
+                part.diffuseFilename = textureFilenames.value(diffuseTextureID);
             }
             qint64 bumpTextureID = bumpTextures.value(childID);
             if (bumpTextureID != 0) {
-                mesh.normalFilename = textureFilenames.value(bumpTextureID);
+                part.normalFilename = textureFilenames.value(bumpTextureID);
             }
         }
         
@@ -832,34 +846,36 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
             QSet<QPair<int, int> > edges;
             
             mesh.vertexConnections.resize(mesh.vertices.size());
-            for (int i = 0; i < mesh.quadIndices.size(); i += 4) {
-                int index0 = mesh.quadIndices.at(i);
-                int index1 = mesh.quadIndices.at(i + 1);
-                int index2 = mesh.quadIndices.at(i + 2);
-                int index3 = mesh.quadIndices.at(i + 3);
-                
-                edges.insert(QPair<int, int>(qMin(index0, index1), qMax(index0, index1)));
-                edges.insert(QPair<int, int>(qMin(index1, index2), qMax(index1, index2)));
-                edges.insert(QPair<int, int>(qMin(index2, index3), qMax(index2, index3)));
-                edges.insert(QPair<int, int>(qMin(index3, index0), qMax(index3, index0)));
-           
-                mesh.vertexConnections[index0].append(QPair<int, int>(index3, index1));
-                mesh.vertexConnections[index1].append(QPair<int, int>(index0, index2));
-                mesh.vertexConnections[index2].append(QPair<int, int>(index1, index3));
-                mesh.vertexConnections[index3].append(QPair<int, int>(index2, index0));
-            }
-            for (int i = 0; i < mesh.triangleIndices.size(); i += 3) {
-                int index0 = mesh.triangleIndices.at(i);
-                int index1 = mesh.triangleIndices.at(i + 1);
-                int index2 = mesh.triangleIndices.at(i + 2);
-                
-                edges.insert(QPair<int, int>(qMin(index0, index1), qMax(index0, index1)));
-                edges.insert(QPair<int, int>(qMin(index1, index2), qMax(index1, index2)));
-                edges.insert(QPair<int, int>(qMin(index2, index0), qMax(index2, index0)));
-                
-                mesh.vertexConnections[index0].append(QPair<int, int>(index2, index1));
-                mesh.vertexConnections[index1].append(QPair<int, int>(index0, index2));
-                mesh.vertexConnections[index2].append(QPair<int, int>(index1, index0));
+            foreach (const FBXMeshPart& part, mesh.parts) {
+                for (int i = 0; i < part.quadIndices.size(); i += 4) {
+                    int index0 = part.quadIndices.at(i);
+                    int index1 = part.quadIndices.at(i + 1);
+                    int index2 = part.quadIndices.at(i + 2);
+                    int index3 = part.quadIndices.at(i + 3);
+                    
+                    edges.insert(QPair<int, int>(qMin(index0, index1), qMax(index0, index1)));
+                    edges.insert(QPair<int, int>(qMin(index1, index2), qMax(index1, index2)));
+                    edges.insert(QPair<int, int>(qMin(index2, index3), qMax(index2, index3)));
+                    edges.insert(QPair<int, int>(qMin(index3, index0), qMax(index3, index0)));
+               
+                    mesh.vertexConnections[index0].append(QPair<int, int>(index3, index1));
+                    mesh.vertexConnections[index1].append(QPair<int, int>(index0, index2));
+                    mesh.vertexConnections[index2].append(QPair<int, int>(index1, index3));
+                    mesh.vertexConnections[index3].append(QPair<int, int>(index2, index0));
+                }
+                for (int i = 0; i < part.triangleIndices.size(); i += 3) {
+                    int index0 = part.triangleIndices.at(i);
+                    int index1 = part.triangleIndices.at(i + 1);
+                    int index2 = part.triangleIndices.at(i + 2);
+                    
+                    edges.insert(QPair<int, int>(qMin(index0, index1), qMax(index0, index1)));
+                    edges.insert(QPair<int, int>(qMin(index1, index2), qMax(index1, index2)));
+                    edges.insert(QPair<int, int>(qMin(index2, index0), qMax(index2, index0)));
+                    
+                    mesh.vertexConnections[index0].append(QPair<int, int>(index2, index1));
+                    mesh.vertexConnections[index1].append(QPair<int, int>(index0, index2));
+                    mesh.vertexConnections[index2].append(QPair<int, int>(index1, index0));
+                }
             }
             
             for (QSet<QPair<int, int> >::const_iterator edge = edges.constBegin(); edge != edges.constEnd(); edge++) {
