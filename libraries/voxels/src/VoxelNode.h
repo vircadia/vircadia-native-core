@@ -41,7 +41,7 @@ public:
     VoxelNode(unsigned char * octalCode); // regular constructor
     ~VoxelNode();
     
-    unsigned char* getOctalCode() const { return _octalCode; }
+    const unsigned char* getOctalCode() const { return (_octcodePointer) ? _octalCode._octalCodePointer : &_octalCode._octalCodeBuffer[0]; }
     VoxelNode* getChildAtIndex(int childIndex) const { return _children[childIndex]; }
     void deleteChildAtIndex(int childIndex);
     VoxelNode* removeChildAtIndex(int childIndex);
@@ -83,11 +83,10 @@ public:
     void handleSubtreeChanged(VoxelTree* myTree);
     
     glBufferIndex getBufferIndex() const { return _glBufferIndex; }
-    bool isKnownBufferIndex() const { return (_glBufferIndex != GLBUFFER_INDEX_UNKNOWN); }
-    void setBufferIndex(glBufferIndex index) { _glBufferIndex = index; }
-    VoxelSystem* getVoxelSystem() const { return _voxelSystem; }
-    void setVoxelSystem(VoxelSystem* voxelSystem) { _voxelSystem = voxelSystem; }
-    
+    bool isKnownBufferIndex() const { return !_unknownBufferIndex; }
+    void setBufferIndex(glBufferIndex index) { _glBufferIndex = index; _unknownBufferIndex =(index == GLBUFFER_INDEX_UNKNOWN);}
+    VoxelSystem* getVoxelSystem() const;
+    void setVoxelSystem(VoxelSystem* voxelSystem);
 
     // Used by VoxelSystem for rendering in/out of view and LOD
     void setShouldRender(bool shouldRender);
@@ -125,25 +124,37 @@ private:
     void notifyUpdateHooks();
 
     VoxelNode* _children[8]; /// Client and server, pointers to child nodes, 64 bytes
+    
     AABox _box; /// Client and server, axis aligned box for bounds of this voxel, 48 bytes
-    unsigned char* _octalCode; /// Client and server, pointer to octal code for this node, 8 bytes
+
+    /// Client and server, buffer containing the octal code or a pointer to octal code for this node, 8 bytes
+    union octalCode_t {
+      unsigned char _octalCodeBuffer[8];
+      unsigned char* _octalCodePointer;
+    } _octalCode;  
 
     uint64_t _lastChanged; /// Client and server, timestamp this node was last changed, 8 bytes
 
-    glBufferIndex _glBufferIndex; /// Client only, vbo index for this voxel if being rendered, 8 bytes
-    VoxelSystem* _voxelSystem; /// Client only, pointer to VoxelSystem rendering this voxel, 8 bytes
+    uint32_t _glBufferIndex : 24, /// Client only, vbo index for this voxel if being rendered, 3 bytes
+             _voxelSystemIndex : 8; /// Client only, index to the VoxelSystem rendering this voxel, 1 bytes
+
+    static uint8_t _nextIndex;
+    static std::map<VoxelSystem*, uint8_t> _mapVoxelSystemPointersToIndex;
+    static std::map<uint8_t, VoxelSystem*> _mapIndexToVoxelSystemPointers;
 
     float _density; /// Client and server, If leaf: density = 1, if internal node: 0-1 density of voxels inside, 4 bytes
     int _childCount; /// Client and server, current child nodes set to non-null in _children, 4 bytes
 
     nodeColor _trueColor; /// Client and server, true color of this voxel, 4 bytes
     nodeColor _currentColor; /// Client only, false color of this voxel, 4 bytes
-    bool _falseColored; /// Client only, is this voxel false colored, 1 bytes
 
-    bool _isDirty; /// Client only, has this voxel changed since being rendered, 1 byte
-    bool _shouldRender; /// Client only, should this voxel render at this time, 1 byte
     uint16_t _sourceID; /// Client only, stores node id of voxel server that sent his voxel, 2 bytes
 
+    bool _falseColored : 1, /// Client only, is this voxel false colored, 1 bit
+         _isDirty : 1, /// Client only, has this voxel changed since being rendered, 1 bit
+         _shouldRender : 1, /// Client only, should this voxel render at this time, 1 bit
+         _octcodePointer : 1, /// Client and Server only, is this voxel's octal code a pointer or buffer, 1 bit
+         _unknownBufferIndex : 1; /// Client only, is this voxel's VBO buffer the unknown buffer index, 1 bit
 
     static std::vector<VoxelNodeDeleteHook*> _deleteHooks;
     static std::vector<VoxelNodeUpdateHook*> _updateHooks;
@@ -180,5 +191,47 @@ public:
     bool _isDirty; /// Client only, has this voxel changed since being rendered, 1 byte
     bool _shouldRender; /// Client only, should this voxel render at this time, 1 byte
     uint16_t _sourceID; /// Client only, stores node id of voxel server that sent his voxel, 2 bytes
+};
+
+class smallerVoxelNodeTest1 {
+public:
+    AABox _box;                          // 48 bytes - 4x glm::vec3, 3 floats x 4 bytes = 48 bytes
+                                         // 16 bytes... 1x glm::vec3 + 1 float
+
+    union octalCode_t {
+      unsigned char _octalCodeBuffer[8];
+      unsigned char* _octalCodePointer;
+    } _octalCode;  /// Client and server, buffer containing the octal code if it's smaller than 8 bytes or a 
+                   /// pointer to octal code for this node, 8 bytes
+                                         
+
+    uint32_t _glBufferIndex : 24, /// Client only, vbo index for this voxel if being rendered, 3 bytes
+             _voxelSystemIndex : 8; /// Client only, index to the VoxelSystem rendering this voxel, 1 bytes
+
+
+    uint64_t _lastChanged;               //  8 bytes, could be less?
+
+    void* _children;                     //  8 bytes (for 0 or 1 children), or 8 bytes * count + 1
+
+
+    nodeColor _trueColor;            // 4 bytes, could be 3 bytes + 1 bit
+    nodeColor _currentColor;         // 4 bytes  ** CLIENT ONLY **
+
+
+    float _density;                  //  4 bytes - If leaf: density = 1, if internal node: 0-1 density of voxels inside... 4 bytes? do we need this?
+                                     // could make this 1 or 2 byte linear ratio...
+
+
+    uint16_t _sourceID;              // 2 bytes - only used to colorize and kill sources? ** CLIENT ONLY **
+
+    unsigned char _childBitmask;     // 1 byte 
+
+    // Bitmask....                     // 1 byte... made up of 5 bits so far... room for 3 more bools...
+    unsigned char _falseColored : 1,       //    1 bit
+                  _shouldRender : 1,       //    1 bit
+                  _isDirty : 1,            //    1 bit
+                  _octcodePointer : 1,     //    1 bit
+                  _unknownBufferIndex : 1; //    1 bit
+
 };
 #endif /* defined(__hifi__VoxelNode__) */

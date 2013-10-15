@@ -1392,13 +1392,13 @@ void Application::increaseVoxelSize() {
 
 const int MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE = 1500;
 struct SendVoxelsOperationArgs {
-    unsigned char*  newBaseOctCode;
+    const unsigned char*  newBaseOctCode;
 };
 
 bool Application::sendVoxelsOperation(VoxelNode* node, void* extraData) {
     SendVoxelsOperationArgs* args = (SendVoxelsOperationArgs*)extraData;
     if (node->isColored()) {
-        unsigned char* nodeOctalCode = node->getOctalCode();
+        const unsigned char* nodeOctalCode = node->getOctalCode();
         
         unsigned char* codeColorBuffer = NULL;
         int codeLength  = 0;

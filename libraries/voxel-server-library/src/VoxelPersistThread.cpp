@@ -29,8 +29,8 @@ bool VoxelPersistThread::process() {
         _initialLoad = true;
         qDebug("loading voxels from file: %s...\n", _filename);
 
-        qDebug("sizeof(oldVoxelNode)=%ld sizeof(VoxelNode)=%ld sizeof(AABox)=%ld sizeof(oldAABox)=%ld\n", 
-            sizeof(oldVoxelNode), sizeof(VoxelNode), sizeof(AABox), sizeof(oldAABox));
+        qDebug("sizeof(oldVoxelNode)=%ld sizeof(VoxelNode)=%ld sizeof(smallerVoxelNodeTest1)=%ld sizeof(AABox)=%ld sizeof(oldAABox)=%ld\n", 
+            sizeof(oldVoxelNode), sizeof(VoxelNode), sizeof(smallerVoxelNodeTest1), sizeof(AABox), sizeof(oldAABox));
 
         bool persistantFileRead = _tree->readFromSVOFile(_filename);
         if (persistantFileRead) {

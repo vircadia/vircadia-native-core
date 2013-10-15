@@ -42,7 +42,16 @@ VoxelNode::VoxelNode(unsigned char * octalCode) {
 }
 
 void VoxelNode::init(unsigned char * octalCode) {
-    _octalCode = octalCode;
+    int octalCodeLength = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(octalCode));
+    if (octalCodeLength > sizeof(_octalCode)) {
+        _octalCode._octalCodePointer = octalCode;
+        _octcodePointer = true;
+        _octcodeMemoryUsage += octalCodeLength;
+    } else {
+        _octcodePointer = false;
+        memcpy(_octalCode._octalCodeBuffer, octalCode, octalCodeLength);
+        delete[] octalCode;
+    }
     
 #ifndef NO_FALSE_COLOR // !NO_FALSE_COLOR means, does have false color
     _falseColored = false; // assume true color
@@ -57,8 +66,9 @@ void VoxelNode::init(unsigned char * octalCode) {
     }
     _childCount = 0;
     
-    _glBufferIndex = GLBUFFER_INDEX_UNKNOWN;
-    _voxelSystem = NULL;
+    _unknownBufferIndex = true;
+    setBufferIndex(GLBUFFER_INDEX_UNKNOWN);
+    setVoxelSystem(NULL);
     _isDirty = true;
     _shouldRender = false;
     _sourceID = UNKNOWN_NODE_ID;
@@ -66,21 +76,22 @@ void VoxelNode::init(unsigned char * octalCode) {
     markWithChangedTime();
 
     _voxelMemoryUsage += sizeof(VoxelNode);
-    _octcodeMemoryUsage += bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(getOctalCode()));
 }
 
 VoxelNode::~VoxelNode() {
     notifyDeleteHooks();
 
     _voxelMemoryUsage -= sizeof(VoxelNode);
-    _octcodeMemoryUsage -= bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(getOctalCode()));
 
     _voxelNodeCount--;
     if (isLeaf()) {
         _voxelNodeLeafCount--;
     }
 
-    delete[] _octalCode;
+    if (_octcodePointer) {
+        _octcodeMemoryUsage -= bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(getOctalCode()));
+        delete[] _octalCode._octalCodePointer;
+    }
     
     // delete all of this node's children
     for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
@@ -109,6 +120,31 @@ void VoxelNode::handleSubtreeChanged(VoxelTree* myTree) {
     
     markWithChangedTime();
 }
+
+uint8_t VoxelNode::_nextIndex = 0;
+std::map<VoxelSystem*, uint8_t> VoxelNode::_mapVoxelSystemPointersToIndex;
+std::map<uint8_t, VoxelSystem*> VoxelNode::_mapIndexToVoxelSystemPointers;
+
+VoxelSystem* VoxelNode::getVoxelSystem() const { 
+    if (_mapIndexToVoxelSystemPointers.end() != _mapIndexToVoxelSystemPointers.find(_voxelSystemIndex)) {
+        return _mapIndexToVoxelSystemPointers[_voxelSystemIndex]; 
+    }
+    return NULL;
+}
+
+void VoxelNode::setVoxelSystem(VoxelSystem* voxelSystem) {
+    uint8_t index;
+    if (_mapVoxelSystemPointersToIndex.end() != _mapVoxelSystemPointersToIndex.find(voxelSystem)) {
+        index = _mapVoxelSystemPointersToIndex[voxelSystem];
+    } else {
+        index = _nextIndex;
+        _nextIndex++;
+        _mapVoxelSystemPointersToIndex[voxelSystem] = index;
+        _mapIndexToVoxelSystemPointers[index] = voxelSystem;
+    }
+    _voxelSystemIndex = index;
+}
+
 
 void VoxelNode::setShouldRender(bool shouldRender) {
     // if shouldRender is changing, then consider ourselves dirty
@@ -170,7 +206,7 @@ VoxelNode* VoxelNode::addChildAtIndex(int childIndex) {
         }
     
         _children[childIndex] = new VoxelNode(childOctalCode(getOctalCode(), childIndex));
-        _children[childIndex]->setVoxelSystem(_voxelSystem); // our child is always part of our voxel system NULL ok
+        _children[childIndex]->setVoxelSystem(getVoxelSystem()); // our child is always part of our voxel system NULL ok
         _isDirty = true;
         _childCount++;
         markWithChangedTime();

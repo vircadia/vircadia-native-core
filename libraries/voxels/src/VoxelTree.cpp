@@ -134,7 +134,7 @@ void VoxelTree::recurseNodeWithOperationDistanceSorted(VoxelNode* node, RecurseV
 
 
 VoxelNode* VoxelTree::nodeForOctalCode(VoxelNode* ancestorNode,
-                                       unsigned char* needleCode, VoxelNode** parentOfFoundNode) const {
+                                       const unsigned char* needleCode, VoxelNode** parentOfFoundNode) const {
     // find the appropriate branch index based on this ancestorNode
     if (*needleCode > 0) {
         int branchForNeedle = branchIndexWithDescendant(ancestorNode->getOctalCode(), needleCode);
@@ -1978,7 +1978,7 @@ bool VoxelTree::nudgeCheck(VoxelNode* node, void* extraData) {
         NodeChunkArgs* args = (NodeChunkArgs*)extraData;
 
         // get octal code of this node
-        unsigned char* octalCode = node->getOctalCode();
+        const unsigned char* octalCode = node->getOctalCode();
 
         // get voxel position/size
         VoxelPositionSize unNudgedDetails;
@@ -2017,7 +2017,7 @@ void VoxelTree::nudgeLeaf(VoxelNode* node, void* extraData) {
     NodeChunkArgs* args = (NodeChunkArgs*)extraData;
 
     // get octal code of this node
-    unsigned char* octalCode = node->getOctalCode();
+    const unsigned char* octalCode = node->getOctalCode();
 
     // get voxel position/size
     VoxelPositionSize unNudgedDetails;
