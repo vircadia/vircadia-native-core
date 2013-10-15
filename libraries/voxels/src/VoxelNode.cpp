@@ -23,15 +23,22 @@
 
 uint64_t VoxelNode::_voxelMemoryUsage = 0;
 uint64_t VoxelNode::_octcodeMemoryUsage = 0;
+uint64_t VoxelNode::_voxelNodeCount = 0;
+uint64_t VoxelNode::_voxelNodeLeafCount = 0;
 
 VoxelNode::VoxelNode() {
     unsigned char* rootCode = new unsigned char[1];
     *rootCode = 0;
     init(rootCode);
+
+    _voxelNodeCount++;
+    _voxelNodeLeafCount++; // all nodes start as leaf nodes
 }
 
 VoxelNode::VoxelNode(unsigned char * octalCode) {
     init(octalCode);
+    _voxelNodeCount++;
+    _voxelNodeLeafCount++; // all nodes start as leaf nodes
 }
 
 void VoxelNode::init(unsigned char * octalCode) {
@@ -49,8 +56,6 @@ void VoxelNode::init(unsigned char * octalCode) {
         _children[i] = NULL;
     }
     _childCount = 0;
-    _subtreeNodeCount = 1; // that's me
-    _subtreeLeafNodeCount = 0; // that's me
     
     _glBufferIndex = GLBUFFER_INDEX_UNKNOWN;
     _voxelSystem = NULL;
@@ -69,6 +74,11 @@ VoxelNode::~VoxelNode() {
 
     _voxelMemoryUsage -= sizeof(VoxelNode);
     _octcodeMemoryUsage -= bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(getOctalCode()));
+
+    _voxelNodeCount--;
+    if (isLeaf()) {
+        _voxelNodeLeafCount--;
+    }
 
     delete[] _octalCode;
     
@@ -97,26 +107,8 @@ void VoxelNode::handleSubtreeChanged(VoxelTree* myTree) {
         setColorFromAverageOfChildren();
     }
     
-    recalculateSubTreeNodeCount();
     markWithChangedTime();
 }
-
-void VoxelNode::recalculateSubTreeNodeCount() {
-    // Assuming the tree below me as changed, I need to recalculate my node count
-    _subtreeNodeCount = 1; // that's me
-    if (isLeaf()) {
-        _subtreeLeafNodeCount = 1;
-    } else {
-        _subtreeLeafNodeCount = 0;
-        for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
-            if (_children[i]) {
-                _subtreeNodeCount += _children[i]->_subtreeNodeCount;
-                _subtreeLeafNodeCount += _children[i]->_subtreeLeafNodeCount;
-            }
-        }
-    }
-}
-
 
 void VoxelNode::setShouldRender(bool shouldRender) {
     // if shouldRender is changing, then consider ourselves dirty
@@ -145,6 +137,11 @@ void VoxelNode::deleteChildAtIndex(int childIndex) {
         _isDirty = true;
         _childCount--;
         markWithChangedTime();
+        
+        // after deleting the child, check to see if we're a leaf
+        if (isLeaf()) {
+            _voxelNodeLeafCount++;
+        }
     }
 }
 
@@ -156,12 +153,22 @@ VoxelNode* VoxelNode::removeChildAtIndex(int childIndex) {
         _isDirty = true;
         _childCount--;
         markWithChangedTime();
+        
+        // after removing the child, check to see if we're a leaf
+        if (isLeaf()) {
+            _voxelNodeLeafCount++;
+        }
     }
     return returnedChild;
 }
 
 VoxelNode* VoxelNode::addChildAtIndex(int childIndex) {
     if (!_children[childIndex]) {
+        // before adding a child, see if we're currently a leaf 
+        if (isLeaf()) {
+            _voxelNodeLeafCount--;
+        }
+    
         _children[childIndex] = new VoxelNode(childOctalCode(getOctalCode(), childIndex));
         _children[childIndex]->setVoxelSystem(_voxelSystem); // our child is always part of our voxel system NULL ok
         _isDirty = true;

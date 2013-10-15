@@ -139,10 +139,9 @@ int VoxelServer::civetwebRequestHandler(struct mg_connection* connection) {
         mg_printf(connection, "Voxel Node Memory Usage: %f MB\r\n", VoxelNode::getVoxelMemoryUsage() / 1000000.f);
         mg_printf(connection, "Octcode Memory Usage: %f MB\r\n", VoxelNode::getOctcodeMemoryUsage() / 1000000.f);
 
-        VoxelTree* theTree = VoxelServer::GetInstance()->getTree();
-        unsigned long nodeCount         = theTree->rootNode->getSubTreeNodeCount();
-        unsigned long internalNodeCount = theTree->rootNode->getSubTreeInternalNodeCount();
-        unsigned long leafNodeCount     = theTree->rootNode->getSubTreeLeafNodeCount();
+        unsigned long nodeCount = VoxelNode::getNodeCount();
+        unsigned long internalNodeCount = VoxelNode::getInternalNodeCount();
+        unsigned long leafNodeCount = VoxelNode::getLeafNodeCount();
 
         mg_printf(connection, "%s", "Current Nodes in scene\r\n");
         mg_printf(connection, "    Total Nodes: %lu nodes\r\n", nodeCount);

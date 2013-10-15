@@ -42,9 +42,10 @@ bool VoxelPersistThread::process() {
         
         _tree->clearDirtyBit(); // the tree is clean since we just loaded it
         qDebug("DONE loading voxels from file... fileRead=%s\n", debug::valueOf(persistantFileRead));
-        unsigned long nodeCount         = _tree->rootNode->getSubTreeNodeCount();
-        unsigned long internalNodeCount = _tree->rootNode->getSubTreeInternalNodeCount();
-        unsigned long leafNodeCount     = _tree->rootNode->getSubTreeLeafNodeCount();
+        
+        unsigned long nodeCount = VoxelNode::getNodeCount();
+        unsigned long internalNodeCount = VoxelNode::getInternalNodeCount();
+        unsigned long leafNodeCount = VoxelNode::getLeafNodeCount();
         qDebug("Nodes after loading scene %lu nodes %lu internal %lu leaves\n", nodeCount, internalNodeCount, leafNodeCount);
     }
     

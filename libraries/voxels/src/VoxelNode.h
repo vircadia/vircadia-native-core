@@ -121,10 +121,9 @@ public:
     static void addUpdateHook(VoxelNodeUpdateHook* hook);
     static void removeUpdateHook(VoxelNodeUpdateHook* hook);
     
-    void recalculateSubTreeNodeCount();
-    unsigned long getSubTreeNodeCount() const { return _subtreeNodeCount; }
-    unsigned long getSubTreeInternalNodeCount() const { return _subtreeNodeCount - _subtreeLeafNodeCount; }
-    unsigned long getSubTreeLeafNodeCount() const { return _subtreeLeafNodeCount; }
+    static unsigned long getNodeCount() { return _voxelNodeCount; }
+    static unsigned long getInternalNodeCount() { return _voxelNodeCount - _voxelNodeLeafCount; }
+    static unsigned long getLeafNodeCount() { return _voxelNodeLeafCount; }
 
     static uint64_t getVoxelMemoryUsage() { return _voxelMemoryUsage; }
     static uint64_t getOctcodeMemoryUsage() { return _octcodeMemoryUsage; }
@@ -140,8 +139,6 @@ private:
     unsigned char* _octalCode; /// Client and server, pointer to octal code for this node, 8 bytes
 
     uint64_t _lastChanged; /// Client and server, timestamp this node was last changed, 8 bytes
-    unsigned long _subtreeNodeCount; /// Client and server, nodes below this node, 8 bytes
-    unsigned long _subtreeLeafNodeCount; /// Client and server, leaves below this node, 8 bytes
 
     glBufferIndex _glBufferIndex; /// Client only, vbo index for this voxel if being rendered, 8 bytes
     VoxelSystem* _voxelSystem; /// Client only, pointer to VoxelSystem rendering this voxel, 8 bytes
@@ -162,6 +159,10 @@ private:
 
     static std::vector<VoxelNodeDeleteHook*> _deleteHooks;
     static std::vector<VoxelNodeUpdateHook*> _updateHooks;
+
+    static uint64_t _voxelNodeCount;
+    static uint64_t _voxelNodeLeafCount;
+
     static uint64_t _voxelMemoryUsage;
     static uint64_t _octcodeMemoryUsage;
 };
