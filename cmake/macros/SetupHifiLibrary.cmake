@@ -6,7 +6,7 @@ MACRO(SETUP_HIFI_LIBRARY TARGET)
     set(LIB_SRCS ${LIB_SRCS} ${WRAPPED_SRCS})
 
     # create a library and set the property so it can be referenced later
-    add_library(${TARGET} ${LIB_SRCS})
+    add_library(${TARGET} ${LIB_SRCS} ${ARGN})
     
     find_package(Qt5Core REQUIRED)
     qt5_use_modules(${TARGET} Core)

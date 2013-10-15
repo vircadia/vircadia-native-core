@@ -10,13 +10,13 @@
 #ifndef __voxel_server__VoxelServer__
 #define __voxel_server__VoxelServer__
 
-#include "../../domain-server/external/civetweb/include/civetweb.h"
-
 #include <QStringList>
 #include <QtCore/QCoreApplication>
 
 #include <Assignment.h>
 #include <EnvironmentData.h>
+
+#include "civetweb.h"
 
 #include "NodeWatcher.h"
 #include "VoxelPersistThread.h"
