@@ -94,7 +94,7 @@ void BlendFace::simulate(float deltaTime) {
     
     glm::quat orientation = static_cast<Avatar*>(_owningHead->_owningAvatar)->getOrientation();
     glm::vec3 scale = glm::vec3(-1.0f, 1.0f, -1.0f) * _owningHead->getScale() * MODEL_SCALE;
-    glm::vec3 offset = MODEL_TRANSLATION - _geometry->getFBXGeometry().neckPivot;
+    glm::vec3 offset = MODEL_TRANSLATION - geometry.neckPivot;
     glm::mat4 baseTransform = glm::translate(_owningHead->getPosition()) * glm::mat4_cast(orientation) *
         glm::scale(scale) * glm::translate(offset);
     
@@ -239,13 +239,7 @@ bool BlendFace::render(float alpha) {
     glEnableClientState(GL_NORMAL_ARRAY);
     glEnableClientState(GL_TEXTURE_COORD_ARRAY);
     
-    // enable normalization under the expectation that the GPU can do it faster
-    glEnable(GL_NORMALIZE); 
-    glEnable(GL_TEXTURE_2D);
     glDisable(GL_COLOR_MATERIAL);
-    
-    // the eye shader uses the color state even though color material is disabled
-    glColor4f(1.0f, 1.0f, 1.0f, alpha);
     
     for (int i = 0; i < networkMeshes.size(); i++) {
         const NetworkMesh& networkMesh = networkMeshes.at(i);
@@ -360,9 +354,6 @@ bool BlendFace::render(float alpha) {
             _program.release();
         }
     }
-    
-    glDisable(GL_NORMALIZE); 
-    glDisable(GL_TEXTURE_2D);
     
     // deactivate vertex arrays after drawing
     glDisableClientState(GL_NORMAL_ARRAY);

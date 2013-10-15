@@ -45,6 +45,7 @@ public:
     glm::mat4 preRotation;
     glm::quat rotation;
     glm::mat4 postRotation;
+    glm::mat4 transform;
 };
 
 /// A single binding to a joint in an FBX document.
@@ -68,9 +69,6 @@ public:
     QVector<glm::vec4> clusterWeights;
     
     QVector<FBXCluster> clusters;
-    
-    glm::vec3 pivot;
-    glm::mat4 transform;
     
     bool isEye;
     

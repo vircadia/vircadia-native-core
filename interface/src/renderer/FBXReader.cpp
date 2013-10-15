@@ -722,6 +722,13 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         joint.preRotation = model.preRotation;
         joint.rotation = model.rotation;
         joint.postRotation = model.postRotation;
+        if (joint.parentIndex == -1) {
+            joint.transform = geometry.offset * model.preRotation * glm::mat4_cast(model.rotation) * model.postRotation;
+            
+        } else {
+            joint.transform = geometry.joints.at(joint.parentIndex).transform *
+                model.preRotation * glm::mat4_cast(model.rotation) * model.postRotation;
+        }
         geometry.joints.append(joint);    
     }
     
@@ -729,6 +736,12 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     geometry.leftEyeJointIndex = modelIDs.indexOf(jointEyeLeftID);
     geometry.rightEyeJointIndex = modelIDs.indexOf(jointEyeRightID);
     geometry.neckJointIndex = modelIDs.indexOf(jointNeckID);
+    
+    // extract the translation component of the neck transform
+    if (geometry.neckJointIndex != -1) {
+        const glm::mat4& transform = geometry.joints.at(geometry.neckJointIndex).transform;
+        geometry.neckPivot = glm::vec3(transform[3][0], transform[3][1], transform[3][2]);
+    }
     
     QVariantHash springs = mapping.value("spring").toHash();
     QVariant defaultSpring = springs.value("default");
@@ -775,18 +788,11 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                 if (jointID == jointEyeLeftID || jointID == jointEyeRightID) {
                     mesh.isEye = true;
                 }
+                // see http://stackoverflow.com/questions/13566608/loading-skinning-information-from-fbx for a discussion
+                // of skinning information in FBX
                 fbxCluster.jointIndex = modelIDs.indexOf(jointID);
                 fbxCluster.inverseBindMatrix = glm::inverse(cluster.transformLink) * modelTransform;
                 mesh.clusters.append(fbxCluster);
-                
-                // see http://stackoverflow.com/questions/13566608/loading-skinning-information-from-fbx for a discussion
-                // of skinning information in FBX
-                glm::mat4 jointTransform = geometry.offset * getGlobalTransform(parentMap, models, jointID);
-                mesh.transform = jointTransform * glm::inverse(cluster.transformLink) * modelTransform;
-                
-                // extract translation component for pivot
-                glm::mat4 jointTransformScaled = geometry.offset * getGlobalTransform(parentMap, models, jointID);
-                mesh.pivot = glm::vec3(jointTransformScaled[3][0], jointTransformScaled[3][1], jointTransformScaled[3][2]);
             }
         }
         
@@ -864,10 +870,6 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         
         geometry.meshes.append(mesh);
     }
-    
-    // extract translation component for neck pivot
-    glm::mat4 neckTransform = geometry.offset * getGlobalTransform(parentMap, models, jointNeckID);
-    geometry.neckPivot = glm::vec3(neckTransform[3][0], neckTransform[3][1], neckTransform[3][2]);
     
     return geometry;
 }

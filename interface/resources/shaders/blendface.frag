@@ -15,10 +15,15 @@ uniform sampler2D texture;
 varying vec4 normal;
 
 void main(void) {
-    // compute the specular component (sans exponent) based on the normal OpenGL lighting model
-    float specular = max(0.0, dot(normalize(gl_LightSource[0].position + vec4(0.0, 0.0, 1.0, 0.0)), normalize(normal)));
+    // compute the base color based on OpenGL lighting model
+    vec4 normalizedNormal = normalize(normal);
+    vec4 base = gl_FrontLightModelProduct.sceneColor + gl_FrontLightProduct[0].ambient +
+        gl_FrontLightProduct[0].diffuse * max(0.0, dot(normalizedNormal, gl_LightSource[0].position));
+
+    // compute the specular component (sans exponent)
+    float specular = max(0.0, dot(normalize(gl_LightSource[0].position + vec4(0.0, 0.0, 1.0, 0.0)), normalizedNormal));
     
-    // modulate texture by diffuse color and add specular contribution
-    gl_FragColor = gl_Color * texture2D(texture, gl_TexCoord[0].st) +
+    // modulate texture by base color and add specular contribution
+    gl_FragColor = base * texture2D(texture, gl_TexCoord[0].st) +
         pow(specular, gl_FrontMaterial.shininess) * gl_FrontLightProduct[0].specular;
 }

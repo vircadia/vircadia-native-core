@@ -31,10 +31,6 @@ void main(void) {
     position = gl_ModelViewProjectionMatrix * position;
     normal = normalize(gl_ModelViewMatrix * normal);
     
-    // standard diffuse lighting
-    gl_FrontColor = (gl_LightModel.ambient + gl_LightSource[0].ambient +
-        gl_LightSource[0].diffuse * max(0.0, dot(normal, gl_LightSource[0].position)));
-    
     // pass along the texture coordinate
     gl_TexCoord[0] = gl_MultiTexCoord0;
     
