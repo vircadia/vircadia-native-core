@@ -29,6 +29,8 @@ bool VoxelPersistThread::process() {
         _initialLoad = true;
         qDebug("loading voxels from file: %s...\n", _filename);
 
+        qDebug("sizeof(VoxelNode)=%d sizeof(AABox)=%d sizeof(oldAABox)=%d\n", sizeof(VoxelNode), sizeof(AABox), sizeof(oldAABox));
+
         bool persistantFileRead = _tree->readFromSVOFile(_filename);
         if (persistantFileRead) {
             PerformanceWarning warn(true, "reaverageVoxelColors()", true);
