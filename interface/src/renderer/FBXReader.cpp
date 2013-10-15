@@ -712,6 +712,15 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         FBXMesh& mesh = meshes[meshID];
         mesh.blendshapes.resize(max(mesh.blendshapes.size(), index.first + 1));
         mesh.blendshapes[index.first] = extracted.blendshape;
+        
+        // apply scale if non-unity
+        if (index.second != 1.0f) {
+            FBXBlendshape& blendshape = mesh.blendshapes[index.first];
+            for (int i = 0; i < blendshape.vertices.size(); i++) {
+                blendshape.vertices[i] *= index.second;
+                blendshape.normals[i] *= index.second;
+            }
+        }
     }
     
     // get offset transform from mapping
