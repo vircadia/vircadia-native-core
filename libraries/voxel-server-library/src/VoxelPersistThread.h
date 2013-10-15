@@ -28,6 +28,7 @@ private:
     VoxelTree* _tree;
     const char* _filename;
     int _persistInterval;
+    bool _initialLoad;
 };
 
 #endif // __voxel_server__VoxelPersistThread__

@@ -107,6 +107,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _mouseY(0),
         _lastMouseMove(usecTimestampNow()),
         _mouseHidden(false),
+        _seenMouseMove(false),
         _touchAvgX(0.0f),
         _touchAvgY(0.0f),
         _isTouchPressed(false),
@@ -988,6 +989,7 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
     if (_mouseHidden) {
         getGLWidget()->setCursor(Qt::ArrowCursor);
         _mouseHidden = false;
+        _seenMouseMove = true;
     }
 
     if (activeWindow() == _window) {
@@ -2133,12 +2135,22 @@ void Application::update(float deltaTime) {
     #endif
     
     // watch mouse position, if it hasn't moved, hide the cursor
-    uint64_t now = usecTimestampNow();
-    int elapsed = now - _lastMouseMove;
-    const int HIDE_CURSOR_TIMEOUT = 1 * 1000 * 1000; // 1 second
-    if (elapsed > HIDE_CURSOR_TIMEOUT) {
-        getGLWidget()->setCursor(Qt::BlankCursor);
-        _mouseHidden = true;
+    bool underMouse = _glWidget->underMouse();
+    if (!_mouseHidden) {
+        uint64_t now = usecTimestampNow();
+        int elapsed = now - _lastMouseMove;
+        const int HIDE_CURSOR_TIMEOUT = 1 * 1000 * 1000; // 1 second
+        if (elapsed > HIDE_CURSOR_TIMEOUT && (underMouse || !_seenMouseMove)) {
+            getGLWidget()->setCursor(Qt::BlankCursor);
+            _mouseHidden = true;
+        }
+    } else {
+        // if the mouse is hidden, but we're not inside our window, then consider ourselves to be moving
+        if (!underMouse && _seenMouseMove) {
+            _lastMouseMove = usecTimestampNow();
+            getGLWidget()->setCursor(Qt::ArrowCursor);
+            _mouseHidden = false;
+        }
     }
 }
 
@@ -2779,9 +2791,11 @@ void Application::displayOverlay() {
         }
    
         #ifndef _WIN32
-        _audio.render(_glWidget->width(), _glWidget->height());
-        if (Menu::getInstance()->isOptionChecked(MenuOption::Oscilloscope)) {
-            _audioScope.render(45, _glWidget->height() - 200);
+        if (Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
+            _audio.render(_glWidget->width(), _glWidget->height());
+            if (Menu::getInstance()->isOptionChecked(MenuOption::Oscilloscope)) {
+                _audioScope.render(45, _glWidget->height() - 200);
+            }
         }
         #endif
 
@@ -2821,7 +2835,24 @@ void Application::displayOverlay() {
     glPointSize(1.0f);
     
     if (Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
+        //  Onscreen text about position, servers, etc 
         displayStats();
+        //  Bandwidth meter 
+        if (Menu::getInstance()->isOptionChecked(MenuOption::Bandwidth)) {
+            _bandwidthMeter.render(_glWidget->width(), _glWidget->height());
+        }
+        //  Stats at upper right of screen about who domain server is telling us about
+        glPointSize(1.0f);
+        char nodes[100];
+        
+        NodeList* nodeList = NodeList::getInstance();
+        int totalAvatars = 0, totalServers = 0;
+        
+        for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+            node->getType() == NODE_TYPE_AGENT ? totalAvatars++ : totalServers++;
+        }
+        sprintf(nodes, "Servers: %d, Avatars: %d\n", totalServers, totalAvatars);
+        drawtext(_glWidget->width() - 150, 20, 0.10, 0, 1.0, 0, nodes, 1, 0, 0);
     }
 
     // testing rendering coverage map
@@ -2833,9 +2864,6 @@ void Application::displayOverlay() {
         renderCoverageMap();
     }
     
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Bandwidth)) {
-        _bandwidthMeter.render(_glWidget->width(), _glWidget->height());
-    }
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::Log)) {
         LogDisplay::instance.render(_glWidget->width(), _glWidget->height());
@@ -2855,19 +2883,6 @@ void Application::displayOverlay() {
         drawtext(_glWidget->width() - 102, _glWidget->height() - 22, 0.30, 0, 1.0, 0, frameTimer, 1, 1, 1);
     }
 
-    //  Stats at upper right of screen about who domain server is telling us about
-    glPointSize(1.0f);
-    char nodes[100];
-    
-    NodeList* nodeList = NodeList::getInstance();
-    int totalAvatars = 0, totalServers = 0;
-    
-    for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
-        node->getType() == NODE_TYPE_AGENT ? totalAvatars++ : totalServers++;
-    }
-    
-    sprintf(nodes, "Servers: %d, Avatars: %d\n", totalServers, totalAvatars);
-    drawtext(_glWidget->width() - 150, 20, 0.10, 0, 1.0, 0, nodes, 1, 0, 0);
     
     // render the webcam input frame
     _webcam.renderPreview(_glWidget->width(), _glWidget->height());
@@ -2929,11 +2944,12 @@ void Application::displayOverlay() {
 
 void Application::displayStats() {
     int statsVerticalOffset = 8;
-
+    const int PELS_PER_LINE = 15;
     char stats[200];
+    statsVerticalOffset += PELS_PER_LINE;
     sprintf(stats, "%3.0f FPS, %d Pkts/sec, %3.2f Mbps   ", 
             _fps, _packetsPerSecond,  (float)_bytesPerSecond * 8.f / 1000000.f);
-    drawtext(10, statsVerticalOffset + 15, 0.10f, 0, 1.0, 0, stats);
+    drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, stats);
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::TestPing)) {
         int pingAudio = 0, pingAvatar = 0, pingVoxel = 0, pingVoxelMax = 0;
@@ -2963,14 +2979,16 @@ void Application::displayStats() {
         }
 
         char pingStats[200];
+        statsVerticalOffset += PELS_PER_LINE;
         sprintf(pingStats, "Ping audio/avatar/voxel: %d / %d / %d avg %d max ", pingAudio, pingAvatar, pingVoxel, pingVoxelMax);
-        drawtext(10, statsVerticalOffset + 35, 0.10f, 0, 1.0, 0, pingStats);
+        drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, pingStats);
     }
     
     char avatarStats[200];
+    statsVerticalOffset += PELS_PER_LINE;
     glm::vec3 avatarPos = _myAvatar.getPosition();
     sprintf(avatarStats, "Avatar: pos %.3f, %.3f, %.3f, vel %.1f, yaw = %.2f", avatarPos.x, avatarPos.y, avatarPos.z, glm::length(_myAvatar.getVelocity()), _myAvatar.getBodyYaw());
-    drawtext(10, statsVerticalOffset + 55, 0.10f, 0, 1.0, 0, avatarStats);
+    drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, avatarStats);
 
  
     std::stringstream voxelStats;
@@ -2978,36 +2996,49 @@ void Application::displayStats() {
     voxelStats << "Voxels Rendered: " << _voxels.getVoxelsRendered() / 1000.f << "K " <<
         "Updated: " << _voxels.getVoxelsUpdated()/1000.f << "K " <<
         "Max: " << _voxels.getMaxVoxels()/1000.f << "K ";
-    drawtext(10, statsVerticalOffset + 230, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+    statsVerticalOffset += PELS_PER_LINE;
+    drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
 
     voxelStats.str("");
-    voxelStats << "Voxels Memory RAM: " << _voxels.getVoxelMemoryUsageRAM() / 1000000.f << "MB " <<
+    voxelStats << 
+        "Voxels Memory Nodes: " << VoxelNode::getVoxelMemoryUsage() / 1000000.f << "MB "
+        "Octcodes: " << VoxelNode::getOctcodeMemoryUsage() / 1000000.f << "MB "
+        "Geometry RAM: " << _voxels.getVoxelMemoryUsageRAM() / 1000000.f << "MB " <<
         "VBO: " << _voxels.getVoxelMemoryUsageVBO() / 1000000.f << "MB ";
     if (_voxels.hasVoxelMemoryUsageGPU()) {
         voxelStats << "GPU: " << _voxels.getVoxelMemoryUsageGPU() / 1000000.f << "MB ";
     }
-        
-    drawtext(10, statsVerticalOffset + 250, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+
+    // Some debugging for memory usage of VoxelNodes
+    //voxelStats << "VoxelNode size: " << sizeof(VoxelNode) << " bytes ";
+    //voxelStats << "AABox size: " << sizeof(AABox) << " bytes ";
     
+    statsVerticalOffset += PELS_PER_LINE;
+    drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+
     voxelStats.str("");
     char* voxelDetails = _voxelSceneStats.getItemValue(VoxelSceneStats::ITEM_VOXELS);
     voxelStats << "Voxels Sent from Server: " << voxelDetails;
-    drawtext(10, statsVerticalOffset + 270, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+    statsVerticalOffset += PELS_PER_LINE;
+    drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
 
     voxelStats.str("");
     voxelDetails = _voxelSceneStats.getItemValue(VoxelSceneStats::ITEM_ELAPSED);
     voxelStats << "Scene Send Time from Server: " << voxelDetails;
-    drawtext(10, statsVerticalOffset + 290, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+    statsVerticalOffset += PELS_PER_LINE;
+    drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
 
     voxelStats.str("");
     voxelDetails = _voxelSceneStats.getItemValue(VoxelSceneStats::ITEM_ENCODE);
     voxelStats << "Encode Time on Server: " << voxelDetails;
-    drawtext(10, statsVerticalOffset + 310, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+    statsVerticalOffset += PELS_PER_LINE;
+    drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
 
     voxelStats.str("");
     voxelDetails = _voxelSceneStats.getItemValue(VoxelSceneStats::ITEM_MODE);
     voxelStats << "Sending Mode: " << voxelDetails;
-    drawtext(10, statsVerticalOffset + 330, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+    statsVerticalOffset += PELS_PER_LINE;
+    drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
     
     Node *avatarMixer = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_AVATAR_MIXER);
     char avatarMixerStats[200];
@@ -3019,20 +3050,21 @@ void Application::displayStats() {
     } else {
         sprintf(avatarMixerStats, "No Avatar Mixer");
     }
-    
-    drawtext(10, statsVerticalOffset + 350, 0.10f, 0, 1.0, 0, avatarMixerStats);
-    drawtext(10, statsVerticalOffset + 450, 0.10f, 0, 1.0, 0, (char *)LeapManager::statusString().c_str());
+    statsVerticalOffset += PELS_PER_LINE;
+    drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, avatarMixerStats);
+    statsVerticalOffset += PELS_PER_LINE;
+    drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, (char *)LeapManager::statusString().c_str());
     
     if (_perfStatsOn) {
         // Get the PerfStats group details. We need to allocate and array of char* long enough to hold 1+groups
         char** perfStatLinesArray = new char*[PerfStat::getGroupCount()+1];
         int lines = PerfStat::DumpStats(perfStatLinesArray);
-        int atZ = 150; // arbitrary place on screen that looks good
+    
         for (int line=0; line < lines; line++) {
-            drawtext(10, statsVerticalOffset + atZ, 0.10f, 0, 1.0, 0, perfStatLinesArray[line]);
+            statsVerticalOffset += PELS_PER_LINE;
+            drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, perfStatLinesArray[line]);
             delete perfStatLinesArray[line]; // we're responsible for cleanup
             perfStatLinesArray[line]=NULL;
-            atZ+=20; // height of a line
         }
         delete []perfStatLinesArray; // we're responsible for cleanup
     }

@@ -47,6 +47,8 @@ void attachVoxelNodeDataToNode(Node* newNode) {
     }
 }
 
+VoxelServer* VoxelServer::_theInstance = NULL;
+
 VoxelServer::VoxelServer(Assignment::Command command, Assignment::Location location) :
     Assignment(command, Assignment::VoxelServerType, location),
     _serverTree(true) {
@@ -68,7 +70,10 @@ VoxelServer::VoxelServer(Assignment::Command command, Assignment::Location locat
     _voxelServerPacketProcessor = NULL;
     _voxelPersistThread = NULL;
     _parsedArgV = NULL;
+    
+    _theInstance = this;
 }
+
 
 VoxelServer::VoxelServer(const unsigned char* dataBuffer, int numBytes) : Assignment(dataBuffer, numBytes),
     _serverTree(true) {
@@ -90,6 +95,8 @@ VoxelServer::VoxelServer(const unsigned char* dataBuffer, int numBytes) : Assign
     _voxelServerPacketProcessor = NULL;
     _voxelPersistThread = NULL;
     _parsedArgV = NULL;
+
+    _theInstance = this;
 }
 
 VoxelServer::~VoxelServer() {
@@ -100,6 +107,55 @@ VoxelServer::~VoxelServer() {
         delete[] _parsedArgV;
     }
 }
+
+void VoxelServer::initMongoose(int port) {
+    // setup the mongoose web server
+    struct mg_callbacks callbacks = {};
+
+    QString documentRoot = QString("%1/resources/web").arg(QCoreApplication::applicationDirPath());
+    QString listenPort = QString("%1").arg(port);
+    
+
+    // list of options. Last element must be NULL.
+    const char* options[] = {
+        "listening_ports", listenPort.toLocal8Bit().constData(), 
+        "document_root", documentRoot.toLocal8Bit().constData(), 
+        NULL };
+
+    callbacks.begin_request = civetwebRequestHandler;
+
+    // Start the web server.
+    mg_start(&callbacks, NULL, options);
+}
+
+int VoxelServer::civetwebRequestHandler(struct mg_connection* connection) {
+    const struct mg_request_info* ri = mg_get_request_info(connection);
+    
+    if (strcmp(ri->uri, "/") == 0 && strcmp(ri->request_method, "GET") == 0) {
+        // return a 200
+        mg_printf(connection, "%s", "HTTP/1.0 200 OK\r\n\r\n");
+        mg_printf(connection, "%s", "Your Voxel Server is running.\r\n");
+        mg_printf(connection, "%s", "Current Statistics\r\n");
+        mg_printf(connection, "Voxel Node Memory Usage: %f MB\r\n", VoxelNode::getVoxelMemoryUsage() / 1000000.f);
+        mg_printf(connection, "Octcode Memory Usage: %f MB\r\n", VoxelNode::getOctcodeMemoryUsage() / 1000000.f);
+
+        VoxelTree* theTree = VoxelServer::GetInstance()->getTree();
+        unsigned long nodeCount         = theTree->rootNode->getSubTreeNodeCount();
+        unsigned long internalNodeCount = theTree->rootNode->getSubTreeInternalNodeCount();
+        unsigned long leafNodeCount     = theTree->rootNode->getSubTreeLeafNodeCount();
+
+        mg_printf(connection, "%s", "Current Nodes in scene\r\n");
+        mg_printf(connection, "    Total Nodes: %lu nodes\r\n", nodeCount);
+        mg_printf(connection, "    Internal Nodes: %lu nodes\r\n", internalNodeCount);
+        mg_printf(connection, "    Leaf Nodes: %lu leaves\r\n", leafNodeCount);
+
+        return 1;
+    } else {
+        // have mongoose process this request from the document_root
+        return 0;
+    }
+}
+
 
 void VoxelServer::setArguments(int argc, char** argv) {
     _argc = argc;
@@ -156,6 +212,14 @@ void VoxelServer::run() {
     pthread_mutex_init(&_treeLock, NULL);
     
     qInstallMessageHandler(Logging::verboseMessageHandler);
+    
+    const char* STATUS_PORT = "--statusPort";
+    const char* statusPort = getCmdOption(_argc, _argv, STATUS_PORT);
+    if (statusPort) {
+        int statusPortNumber = atoi(statusPort);
+        initMongoose(statusPortNumber);
+    }
+
     
     const char* JURISDICTION_FILE = "--jurisdictionFile";
     const char* jurisdictionFile = getCmdOption(_argc, _argv, JURISDICTION_FILE);
@@ -237,8 +301,7 @@ void VoxelServer::run() {
     }
     qDebug("wantVoxelPersist=%s\n", debug::valueOf(_wantVoxelPersist));
 
-    // if we want Voxel Persistence, load the local file now...
-    bool persistantFileRead = false;
+    // if we want Voxel Persistence, set up the local file and persist thread
     if (_wantVoxelPersist) {
 
         // Check to see if the user passed in a command line option for setting packet send rate
@@ -251,25 +314,8 @@ void VoxelServer::run() {
             strcpy(_voxelPersistFilename, LOCAL_VOXELS_PERSIST_FILE);
         }
 
-        qDebug("loading voxels from file: %s...\n", _voxelPersistFilename);
+        qDebug("voxelPersistFilename=%s\n", _voxelPersistFilename);
 
-        persistantFileRead = _serverTree.readFromSVOFile(_voxelPersistFilename);
-        if (persistantFileRead) {
-            PerformanceWarning warn(_shouldShowAnimationDebug,
-                                    "persistVoxelsWhenDirty() - reaverageVoxelColors()", _shouldShowAnimationDebug);
-            
-            // after done inserting all these voxels, then reaverage colors
-            _serverTree.reaverageVoxelColors(_serverTree.rootNode);
-            qDebug("Voxels reAveraged\n");
-        }
-        
-        _serverTree.clearDirtyBit(); // the tree is clean since we just loaded it
-        qDebug("DONE loading voxels from file... fileRead=%s\n", debug::valueOf(persistantFileRead));
-        unsigned long nodeCount         = _serverTree.rootNode->getSubTreeNodeCount();
-        unsigned long internalNodeCount = _serverTree.rootNode->getSubTreeInternalNodeCount();
-        unsigned long leafNodeCount     = _serverTree.rootNode->getSubTreeLeafNodeCount();
-        qDebug("Nodes after loading scene %lu nodes %lu internal %lu leaves\n", nodeCount, internalNodeCount, leafNodeCount);
-        
         // now set up VoxelPersistThread
         _voxelPersistThread = new VoxelPersistThread(&_serverTree, _voxelPersistFilename);
         if (_voxelPersistThread) {
@@ -314,6 +360,8 @@ void VoxelServer::run() {
     if (_voxelServerPacketProcessor) {
         _voxelServerPacketProcessor->initialize(true);
     }
+
+    qDebug("Now running...\n");
     
     // loop to send to nodes requesting data
     while (true) {
