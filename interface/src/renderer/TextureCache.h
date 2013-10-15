@@ -73,7 +73,8 @@ private:
     QHash<QString, GLuint> _fileTextureIDs;
 
     QHash<QUrl, QWeakPointer<NetworkTexture> > _networkTextures;
-
+    QHash<QUrl, QWeakPointer<NetworkTexture> > _dilatableNetworkTextures;
+    
     GLuint _primaryDepthTextureID;
     QOpenGLFramebufferObject* _primaryFramebufferObject;
     QOpenGLFramebufferObject* _secondaryFramebufferObject;

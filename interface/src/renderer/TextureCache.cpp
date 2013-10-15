@@ -107,10 +107,19 @@ GLuint TextureCache::getFileTextureID(const QString& filename) {
 }
 
 QSharedPointer<NetworkTexture> TextureCache::getTexture(const QUrl& url, bool dilatable) {
-    QSharedPointer<NetworkTexture> texture = _networkTextures.value(url);
-    if (texture.isNull()) {
-        texture = QSharedPointer<NetworkTexture>(dilatable ? new DilatableNetworkTexture(url) : new NetworkTexture(url));
-        _networkTextures.insert(url, texture);
+    QSharedPointer<NetworkTexture> texture;
+    if (dilatable) {
+        texture = _dilatableNetworkTextures.value(url);
+        if (texture.isNull()) {
+            texture = QSharedPointer<NetworkTexture>(new DilatableNetworkTexture(url));
+            _dilatableNetworkTextures.insert(url, texture);
+        }
+    } else {
+        texture = _networkTextures.value(url);
+        if (texture.isNull()) {
+            texture = QSharedPointer<NetworkTexture>(new NetworkTexture(url));
+            _networkTextures.insert(url, texture);
+        }
     }
     return texture;
 }
