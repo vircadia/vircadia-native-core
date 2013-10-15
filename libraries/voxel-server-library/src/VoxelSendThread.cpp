@@ -52,7 +52,14 @@ bool VoxelSendThread::process() {
             std::cout << "Last send took too much time, not sleeping!\n";
         }
     }
-    
+
+    // some debugging...
+    printf("ViewFrustum::getProjectedPolygonTime=%llu ViewFrustum::getProjectedPolygonCalls=%llu\n",
+        ViewFrustum::getProjectedPolygonTime, ViewFrustum::getProjectedPolygonCalls);
+
+    printf("ViewFrustum::getFurthestPointFromCameraTime=%llu ViewFrustum::getFurthestPointFromCameraCalls=%llu\n",
+        ViewFrustum::getFurthestPointFromCameraTime, ViewFrustum::getFurthestPointFromCameraCalls);
+
     return isStillRunning();  // keep running till they terminate us
 }
 

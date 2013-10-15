@@ -541,9 +541,17 @@ const int hullVertexLookup[MAX_POSSIBLE_COMBINATIONS][MAX_PROJECTED_POLYGON_VERT
     {6, TOP_RIGHT_NEAR, TOP_RIGHT_FAR, BOTTOM_RIGHT_FAR, BOTTOM_LEFT_FAR, BOTTOM_LEFT_NEAR, TOP_LEFT_NEAR}, // back, top, left
 };
 
+uint64_t ViewFrustum::getProjectedPolygonTime = 0;
+uint64_t ViewFrustum::getProjectedPolygonCalls = 0;
+#include <PerfStat.h>
+
 VoxelProjectedPolygon ViewFrustum::getProjectedPolygon(const AABox& box) const {
+    getProjectedPolygonCalls++;
+    PerformanceWarning(false, "ViewFrustum::getProjectedPolygon", false, &getProjectedPolygonTime);
+    
     const glm::vec3& bottomNearRight = box.getCorner();
-    const glm::vec3& topFarLeft      = box.getTopFarLeft();
+    glm::vec3 topFarLeft = box.calcTopFarLeft();
+
     int lookUp = ((_position.x < bottomNearRight.x)     )   //  1 = right      |   compute 6-bit
                + ((_position.x > topFarLeft.x     ) << 1)   //  2 = left       |         code to
                + ((_position.y < bottomNearRight.y) << 2)   //  4 = bottom     | classify camera
@@ -605,13 +613,19 @@ VoxelProjectedPolygon ViewFrustum::getProjectedPolygon(const AABox& box) const {
 }
 
 
+uint64_t ViewFrustum::getFurthestPointFromCameraTime = 0;
+uint64_t ViewFrustum::getFurthestPointFromCameraCalls = 0;
+
 // Similar strategy to getProjectedPolygon() we use the knowledge of camera position relative to the
 // axis-aligned voxels to determine which of the voxels vertices must be the furthest. No need for
 // squares and square-roots. Just compares.
 glm::vec3 ViewFrustum::getFurthestPointFromCamera(const AABox& box) const {
-    const glm::vec3& center          = box.getCenter();
+    getFurthestPointFromCameraCalls++;
+    PerformanceWarning(false, "ViewFrustum::getFurthestPointFromCamera", false, &getFurthestPointFromCameraTime);
+
+    const glm::vec3& center = box.getCenter();
     const glm::vec3& bottomNearRight = box.getCorner();
-    const glm::vec3& topFarLeft      = box.getTopFarLeft();
+    glm::vec3 topFarLeft = box.calcTopFarLeft();
 
     glm::vec3 furthestPoint;
     if (_position.x < center.x) {

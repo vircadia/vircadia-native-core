@@ -89,13 +89,15 @@ private:
 	const char* _message;
 	bool _renderWarningsOn;
 	bool _alwaysDisplay;
+	uint64_t* _runningTotal;
 	static bool _suppressShortTimings;
 public:
-    PerformanceWarning(bool renderWarnings, const char* message, bool alwaysDisplay = false) :
+    PerformanceWarning(bool renderWarnings, const char* message, bool alwaysDisplay = false, uint64_t* runningTotal = NULL) :
         _start(usecTimestampNow()),
         _message(message),
         _renderWarningsOn(renderWarnings),
-        _alwaysDisplay(alwaysDisplay) { }
+        _alwaysDisplay(alwaysDisplay),
+        _runningTotal(runningTotal) { }
     
     ~PerformanceWarning();
     

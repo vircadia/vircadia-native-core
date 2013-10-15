@@ -61,14 +61,14 @@ void VoxelNode::init(unsigned char * octalCode) {
     markWithChangedTime();
 
     _voxelMemoryUsage += sizeof(VoxelNode);
-    _octcodeMemoryUsage += bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(_octalCode));
+    _octcodeMemoryUsage += bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(getOctalCode()));
 }
 
 VoxelNode::~VoxelNode() {
     notifyDeleteHooks();
 
     _voxelMemoryUsage -= sizeof(VoxelNode);
-    _octcodeMemoryUsage -= bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(_octalCode));
+    _octcodeMemoryUsage -= bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(getOctalCode()));
 
     delete[] _octalCode;
     
@@ -128,18 +128,14 @@ void VoxelNode::setShouldRender(bool shouldRender) {
 }
 
 void VoxelNode::calculateAABox() {
-    
     glm::vec3 corner;
-    glm::vec3 size;
     
     // copy corner into box
-    copyFirstVertexForCode(_octalCode,(float*)&corner);
+    copyFirstVertexForCode(getOctalCode(),(float*)&corner);
     
     // this tells you the "size" of the voxel
-    float voxelScale = 1 / powf(2, *_octalCode);
-    size = glm::vec3(voxelScale,voxelScale,voxelScale);
-    
-    _box.setBox(corner,size);
+    float voxelScale = 1 / powf(2, numberOfThreeBitSectionsInCode(getOctalCode()));
+    _box.setBox(corner,voxelScale);
 }
 
 void VoxelNode::deleteChildAtIndex(int childIndex) {
@@ -166,7 +162,7 @@ VoxelNode* VoxelNode::removeChildAtIndex(int childIndex) {
 
 VoxelNode* VoxelNode::addChildAtIndex(int childIndex) {
     if (!_children[childIndex]) {
-        _children[childIndex] = new VoxelNode(childOctalCode(_octalCode, childIndex));
+        _children[childIndex] = new VoxelNode(childOctalCode(getOctalCode(), childIndex));
         _children[childIndex]->setVoxelSystem(_voxelSystem); // our child is always part of our voxel system NULL ok
         _isDirty = true;
         _childCount++;
@@ -339,13 +335,13 @@ void VoxelNode::printDebugDetails(const char* label) const {
     }
 
     qDebug("%s - Voxel at corner=(%f,%f,%f) size=%f\n isLeaf=%s isColored=%s (%d,%d,%d,%d) isDirty=%s shouldRender=%s\n children=", label,
-        _box.getCorner().x, _box.getCorner().y, _box.getCorner().z, _box.getSize().x,
+        _box.getCorner().x, _box.getCorner().y, _box.getCorner().z, _box.getScale(),
         debug::valueOf(isLeaf()), debug::valueOf(isColored()), getColor()[0], getColor()[1], getColor()[2], getColor()[3],
         debug::valueOf(isDirty()), debug::valueOf(getShouldRender()));
         
     outputBits(childBits, false);
     qDebug("\n octalCode=");
-    printOctalCode(_octalCode);
+    printOctalCode(getOctalCode());
 }
 
 float VoxelNode::getEnclosingRadius() const {
