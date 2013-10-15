@@ -33,11 +33,11 @@ void DomainServer::setDomainServerInstance(DomainServer* domainServer) {
 int DomainServer::civetwebRequestHandler(struct mg_connection *connection) {
     const struct mg_request_info* ri = mg_get_request_info(connection);
     
-    const char TWO_HUNDRED_RESPONSE[] = "HTTP/1.0 200 OK\r\n\r\n";
+    const char RESPONSE_200[] = "HTTP/1.0 200 OK\r\n\r\n";
     
     if (strcmp(ri->uri, "/assignment") == 0 && strcmp(ri->request_method, "POST") == 0) {
         // return a 200
-        mg_printf(connection, "%s", TWO_HUNDRED_RESPONSE);
+        mg_printf(connection, "%s", RESPONSE_200);
         // upload the file
         mg_upload(connection, "/tmp");
         
@@ -46,7 +46,7 @@ int DomainServer::civetwebRequestHandler(struct mg_connection *connection) {
         // user is asking for json list of assignments
         
         // start with a 200 response
-        mg_printf(connection, "%s", TWO_HUNDRED_RESPONSE);
+        mg_printf(connection, "%s", RESPONSE_200);
         
         // setup the JSON
         QJsonObject assignmentJSON;
@@ -85,8 +85,30 @@ int DomainServer::civetwebRequestHandler(struct mg_connection *connection) {
             }
         }
         
+        assignmentJSON["fulfilled"] = assignedNodesJSON;
+        
+        QJsonObject queuedAssignmentsJSON;
+        
+        // add the queued but unfilled assignments to the json
+        std::deque<Assignment*>::iterator assignment = domainServerInstance->_assignmentQueue.begin();
+        
+        while (assignment != domainServerInstance->_assignmentQueue.end()) {
+            QJsonObject queuedAssignmentJSON;
+            
+            QString uuidString = uuidStringWithoutCurlyBraces((*assignment)->getUUID());
+            queuedAssignmentJSON[ASSIGNMENT_JSON_UUID_KEY] = uuidString;
+            
+            // add this queued assignment to the JSON
+            queuedAssignmentsJSON[(*assignment)->getTypeName()] = queuedAssignmentJSON;
+            
+            // push forward the iterator to check the next assignment
+            assignment++;
+        }
+        
+        assignmentJSON["queued"] = queuedAssignmentsJSON;
+        
         // print out the created JSON
-        QJsonDocument assignmentDocument(assignedNodesJSON);
+        QJsonDocument assignmentDocument(assignmentJSON);
         mg_printf(connection, "%s", assignmentDocument.toJson().constData());
         
         // we've processed this request

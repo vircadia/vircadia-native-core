@@ -73,6 +73,8 @@ public:
     int getNumberOfInstances() const { return _numberOfInstances; }
     void setNumberOfInstances(int numberOfInstances) { _numberOfInstances = numberOfInstances; }
     void decrementNumberOfInstances() { --_numberOfInstances; }
+    
+    const char* getTypeName() const;
 
     /// Packs the assignment to the passed buffer
     /// \param buffer the buffer in which to pack the assignment
