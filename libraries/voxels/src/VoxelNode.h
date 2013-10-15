@@ -167,4 +167,30 @@ private:
     static uint64_t _octcodeMemoryUsage;
 };
 
+
+class oldVoxelNode {
+public:
+
+    VoxelNode* _children[8]; /// Client and server, pointers to child nodes, 64 bytes
+    oldAABox _box; /// Client and server, axis aligned box for bounds of this voxel, 48 bytes
+    unsigned char* _octalCode; /// Client and server, pointer to octal code for this node, 8 bytes
+
+    uint64_t _lastChanged; /// Client and server, timestamp this node was last changed, 8 bytes
+    unsigned long _subtreeNodeCount; /// Client and server, nodes below this node, 8 bytes
+    unsigned long _subtreeLeafNodeCount; /// Client and server, leaves below this node, 8 bytes
+
+    glBufferIndex _glBufferIndex; /// Client only, vbo index for this voxel if being rendered, 8 bytes
+    VoxelSystem* _voxelSystem; /// Client only, pointer to VoxelSystem rendering this voxel, 8 bytes
+
+    float _density; /// Client and server, If leaf: density = 1, if internal node: 0-1 density of voxels inside, 4 bytes
+    int _childCount; /// Client and server, current child nodes set to non-null in _children, 4 bytes
+
+    nodeColor _trueColor; /// Client and server, true color of this voxel, 4 bytes
+    nodeColor _currentColor; /// Client only, false color of this voxel, 4 bytes
+    bool _falseColored; /// Client only, is this voxel false colored, 1 bytes
+
+    bool _isDirty; /// Client only, has this voxel changed since being rendered, 1 byte
+    bool _shouldRender; /// Client only, should this voxel render at this time, 1 byte
+    uint16_t _sourceID; /// Client only, stores node id of voxel server that sent his voxel, 2 bytes
+};
 #endif /* defined(__hifi__VoxelNode__) */
