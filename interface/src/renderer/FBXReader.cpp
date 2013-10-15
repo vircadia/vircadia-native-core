@@ -810,7 +810,6 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
             for (int i = 0; i < clusterIDs.size(); i++) {
                 qint64 clusterID = clusterIDs.at(i);
                 const Cluster& cluster = clusters[clusterID];
-                qint64 jointID = childMap.value(clusterID);
                 
                 for (int j = 0; j < cluster.indices.size(); j++) {
                     int index = cluster.indices.at(j);
