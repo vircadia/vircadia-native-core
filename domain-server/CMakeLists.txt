@@ -8,11 +8,11 @@ set(TARGET_NAME domain-server)
 include(${MACRO_DIR}/SetupHifiProject.cmake)
 
 # grab cJSON and civetweb sources to pass as OPTIONAL_SRCS 
-FILE(GLOB OPTIONAL_SRCS external/civetweb/src/* external/cJSON/src/*)
+FILE(GLOB OPTIONAL_SRCS ${ROOT_DIR}/externals/civetweb/src/* external/cJSON/src/*)
 
 setup_hifi_project(${TARGET_NAME} TRUE ${OPTIONAL_SRCS})
 
-include_directories(external/civetweb/include external/cJSON/include)
+include_directories(${ROOT_DIR}/externals/civetweb/include external/cJSON/include)
 
 # remove and then copy the files for the webserver
 add_custom_command(TARGET ${TARGET_NAME} POST_BUILD
