@@ -772,7 +772,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                 continue;
             }
             Material material = materials.value(childID);
-            FBXMeshPart& part = mesh.parts[partIndex++];
+            FBXMeshPart& part = mesh.parts[mesh.parts.size() - ++partIndex];
             part.diffuseColor = material.diffuse;
             part.specularColor = material.specular;
             part.shininess = material.shininess;
