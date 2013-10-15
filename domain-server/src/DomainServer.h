@@ -18,7 +18,7 @@
 #include <Assignment.h>
 #include <NodeList.h>
 
-#include <civetweb.h>
+#include "civetweb.h"
 
 const int MAX_STATIC_ASSIGNMENT_FILE_ASSIGNMENTS = 1000;
 

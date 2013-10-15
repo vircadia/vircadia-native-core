@@ -6,6 +6,7 @@
 //  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
 
+#include <arpa/inet.h>
 #include <signal.h>
 
 #include <QStringList>
@@ -13,6 +14,8 @@
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
 #include <UUID.h>
+
+#include "cJSON.h"
 
 #include "DomainServer.h"
 
@@ -30,12 +33,61 @@ void DomainServer::setDomainServerInstance(DomainServer* domainServer) {
 int DomainServer::civetwebRequestHandler(struct mg_connection *connection) {
     const struct mg_request_info* ri = mg_get_request_info(connection);
     
+    const char TWO_HUNDRED_RESPONSE[] = "HTTP/1.0 200 OK\r\n\r\n";
+    
     if (strcmp(ri->uri, "/assignment") == 0 && strcmp(ri->request_method, "POST") == 0) {
         // return a 200
-        mg_printf(connection, "%s", "HTTP/1.0 200 OK\r\n\r\n");
+        mg_printf(connection, "%s", TWO_HUNDRED_RESPONSE);
         // upload the file
         mg_upload(connection, "/tmp");
         
+        return 1;
+    } else if (strcmp(ri->uri, "/assignments.json") == 0) {
+        // user is asking for json list of assignments
+        
+        // start with a 200 response
+        mg_printf(connection, "%s", TWO_HUNDRED_RESPONSE);
+        
+        // setup the JSON
+        cJSON *assignedNodesJSON = cJSON_CreateObject();
+        
+        // enumerate the NodeList to find the assigned nodes
+        NodeList* nodeList = NodeList::getInstance();
+        
+        for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+            if (node->getLinkedData()) {
+                // this is a node with assignment
+                cJSON *assignedNodeJSON = cJSON_CreateObject();
+                
+                // add the assignment UUID
+                QString assignmentUUID = uuidStringWithoutCurlyBraces(((Assignment*) node->getLinkedData())->getUUID());
+                cJSON_AddStringToObject(assignedNodeJSON, "UUID", assignmentUUID.toLocal8Bit().constData());
+                
+                cJSON *nodePublicSocketJSON = cJSON_CreateObject();
+                
+                // add the public socket information
+                sockaddr_in* nodePublicSocket = (sockaddr_in*) node->getPublicSocket();
+                cJSON_AddStringToObject(nodePublicSocketJSON, "ip", inet_ntoa(nodePublicSocket->sin_addr));
+                cJSON_AddNumberToObject(nodePublicSocketJSON, "port", nodePublicSocket->sin_port);
+                
+                cJSON_AddItemToObject(assignedNodeJSON, "public", nodePublicSocketJSON);
+                
+                // re-format the type name so it matches the target name
+                QString nodeTypeName(node->getTypeName());
+                nodeTypeName = nodeTypeName.toLower();
+                nodeTypeName.replace(' ', '-');
+                
+                cJSON_AddItemToObject(assignedNodesJSON, nodeTypeName.toLocal8Bit().constData(), assignedNodeJSON);
+            }
+        }
+        
+        // print out the created JSON
+        mg_printf(connection, "%s", cJSON_Print(assignedNodesJSON));
+        
+        // cleanup JSON
+        cJSON_Delete(assignedNodesJSON);
+        
+        // we've processed this request
         return 1;
     } else {
         // have mongoose process this request from the document_root
