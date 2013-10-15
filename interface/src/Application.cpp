@@ -107,6 +107,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _mouseY(0),
         _lastMouseMove(usecTimestampNow()),
         _mouseHidden(false),
+        _seenMouseMove(false),
         _touchAvgX(0.0f),
         _touchAvgY(0.0f),
         _isTouchPressed(false),
@@ -988,6 +989,7 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
     if (_mouseHidden) {
         getGLWidget()->setCursor(Qt::ArrowCursor);
         _mouseHidden = false;
+        _seenMouseMove = true;
     }
 
     if (activeWindow() == _window) {
@@ -2133,12 +2135,22 @@ void Application::update(float deltaTime) {
     #endif
     
     // watch mouse position, if it hasn't moved, hide the cursor
-    uint64_t now = usecTimestampNow();
-    int elapsed = now - _lastMouseMove;
-    const int HIDE_CURSOR_TIMEOUT = 1 * 1000 * 1000; // 1 second
-    if (elapsed > HIDE_CURSOR_TIMEOUT) {
-        getGLWidget()->setCursor(Qt::BlankCursor);
-        _mouseHidden = true;
+    bool underMouse = _glWidget->underMouse();
+    if (!_mouseHidden) {
+        uint64_t now = usecTimestampNow();
+        int elapsed = now - _lastMouseMove;
+        const int HIDE_CURSOR_TIMEOUT = 1 * 1000 * 1000; // 1 second
+        if (elapsed > HIDE_CURSOR_TIMEOUT && (underMouse || !_seenMouseMove)) {
+            getGLWidget()->setCursor(Qt::BlankCursor);
+            _mouseHidden = true;
+        }
+    } else {
+        // if the mouse is hidden, but we're not inside our window, then consider ourselves to be moving
+        if (!underMouse && _seenMouseMove) {
+            _lastMouseMove = usecTimestampNow();
+            getGLWidget()->setCursor(Qt::ArrowCursor);
+            _mouseHidden = false;
+        }
     }
 }
 
@@ -2981,14 +2993,21 @@ void Application::displayStats() {
     drawtext(10, statsVerticalOffset + 230, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
 
     voxelStats.str("");
-    voxelStats << "Voxels Memory RAM: " << _voxels.getVoxelMemoryUsageRAM() / 1000000.f << "MB " <<
+    voxelStats << 
+        "Voxels Memory Nodes: " << VoxelNode::getVoxelMemoryUsage() / 1000000.f << "MB "
+        "Octcodes: " << VoxelNode::getOctcodeMemoryUsage() / 1000000.f << "MB "
+        "Geometry RAM: " << _voxels.getVoxelMemoryUsageRAM() / 1000000.f << "MB " <<
         "VBO: " << _voxels.getVoxelMemoryUsageVBO() / 1000000.f << "MB ";
     if (_voxels.hasVoxelMemoryUsageGPU()) {
         voxelStats << "GPU: " << _voxels.getVoxelMemoryUsageGPU() / 1000000.f << "MB ";
     }
-        
-    drawtext(10, statsVerticalOffset + 250, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+
+    // Some debugging for memory usage of VoxelNodes
+    //voxelStats << "VoxelNode size: " << sizeof(VoxelNode) << " bytes ";
+    //voxelStats << "AABox size: " << sizeof(AABox) << " bytes ";
     
+    drawtext(10, statsVerticalOffset + 250, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+
     voxelStats.str("");
     char* voxelDetails = _voxelSceneStats.getItemValue(VoxelSceneStats::ITEM_VOXELS);
     voxelStats << "Voxels Sent from Server: " << voxelDetails;
