@@ -9,13 +9,13 @@
 #include <arpa/inet.h>
 #include <signal.h>
 
-#include <QStringList>
+#include <QtCore/QJsonDocument>
+#include <QtCore/QJsonObject>
+#include <QtCore/QStringList>
 
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
 #include <UUID.h>
-
-#include "cJSON.h"
 
 #include "DomainServer.h"
 
@@ -49,43 +49,45 @@ int DomainServer::civetwebRequestHandler(struct mg_connection *connection) {
         mg_printf(connection, "%s", TWO_HUNDRED_RESPONSE);
         
         // setup the JSON
-        cJSON *assignedNodesJSON = cJSON_CreateObject();
+        QJsonObject assignmentJSON;
+        
+        QJsonObject assignedNodesJSON;
         
         // enumerate the NodeList to find the assigned nodes
         NodeList* nodeList = NodeList::getInstance();
         
+        const char ASSIGNMENT_JSON_UUID_KEY[] = "UUID";
+        
         for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
             if (node->getLinkedData()) {
                 // this is a node with assignment
-                cJSON *assignedNodeJSON = cJSON_CreateObject();
+                QJsonObject assignedNodeJSON;
                 
                 // add the assignment UUID
                 QString assignmentUUID = uuidStringWithoutCurlyBraces(((Assignment*) node->getLinkedData())->getUUID());
-                cJSON_AddStringToObject(assignedNodeJSON, "UUID", assignmentUUID.toLocal8Bit().constData());
+                assignedNodeJSON[ASSIGNMENT_JSON_UUID_KEY] = assignmentUUID;
                 
-                cJSON *nodePublicSocketJSON = cJSON_CreateObject();
+                QJsonObject nodePublicSocketJSON;
                 
                 // add the public socket information
                 sockaddr_in* nodePublicSocket = (sockaddr_in*) node->getPublicSocket();
-                cJSON_AddStringToObject(nodePublicSocketJSON, "ip", inet_ntoa(nodePublicSocket->sin_addr));
-                cJSON_AddNumberToObject(nodePublicSocketJSON, "port", nodePublicSocket->sin_port);
+                nodePublicSocketJSON["ip"] = QString(inet_ntoa(nodePublicSocket->sin_addr));
+                nodePublicSocketJSON["port"] = (int) ntohs(nodePublicSocket->sin_port);
                 
-                cJSON_AddItemToObject(assignedNodeJSON, "public", nodePublicSocketJSON);
+                assignedNodeJSON["public"] = nodePublicSocketJSON;
                 
                 // re-format the type name so it matches the target name
                 QString nodeTypeName(node->getTypeName());
                 nodeTypeName = nodeTypeName.toLower();
                 nodeTypeName.replace(' ', '-');
                 
-                cJSON_AddItemToObject(assignedNodesJSON, nodeTypeName.toLocal8Bit().constData(), assignedNodeJSON);
+                assignedNodesJSON[nodeTypeName] = assignedNodeJSON;
             }
         }
         
         // print out the created JSON
-        mg_printf(connection, "%s", cJSON_Print(assignedNodesJSON));
-        
-        // cleanup JSON
-        cJSON_Delete(assignedNodesJSON);
+        QJsonDocument assignmentDocument(assignedNodesJSON);
+        mg_printf(connection, "%s", assignmentDocument.toJson().constData());
         
         // we've processed this request
         return 1;
