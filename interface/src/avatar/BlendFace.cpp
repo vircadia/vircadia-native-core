@@ -62,7 +62,7 @@ void BlendFace::reset() {
     _resetStates = true;
 }
 
-const glm::vec3 MODEL_TRANSLATION(0.0f, -120.0f, 40.0f); // temporary fudge factor
+const glm::vec3 MODEL_TRANSLATION(0.0f, -50.0f, 40.0f); // temporary fudge factor
 const float MODEL_SCALE = 0.0006f;
 
 void BlendFace::simulate(float deltaTime) {
@@ -92,17 +92,12 @@ void BlendFace::simulate(float deltaTime) {
         _resetStates = true;
     }
     
-    glm::quat orientation = static_cast<Avatar*>(_owningHead->_owningAvatar)->getOrientation();
+    const Skeleton& skeleton = static_cast<Avatar*>(_owningHead->_owningAvatar)->getSkeleton();
+    glm::quat orientation = skeleton.joint[AVATAR_JOINT_NECK_BASE].absoluteRotation;
     glm::vec3 scale = glm::vec3(-1.0f, 1.0f, -1.0f) * _owningHead->getScale() * MODEL_SCALE;
     glm::vec3 offset = MODEL_TRANSLATION - geometry.neckPivot;
-    glm::mat4 baseTransform = glm::translate(_owningHead->getPosition()) * glm::mat4_cast(orientation) *
+    glm::mat4 baseTransform = glm::translate(skeleton.joint[AVATAR_JOINT_NECK_BASE].position) * glm::mat4_cast(orientation) *
         glm::scale(scale) * glm::translate(offset);
-    
-    // apply the neck rotation
-    if (geometry.neckJointIndex != -1) {
-        _jointStates[geometry.neckJointIndex].rotation = glm::quat(glm::radians(glm::vec3(
-            _owningHead->getPitch(), _owningHead->getYaw(), _owningHead->getRoll())));
-    }
     
     // update the world space transforms for all joints
     for (int i = 0; i < _jointStates.size(); i++) {
@@ -111,7 +106,19 @@ void BlendFace::simulate(float deltaTime) {
         if (joint.parentIndex == -1) {
             state.transform = baseTransform * geometry.offset * joint.preRotation *
                 glm::mat4_cast(state.rotation) * joint.postRotation;
-            
+        
+        } else if (i == geometry.neckJointIndex) {
+            glm::vec3 pitchAxis = orientation * glm::vec3(1.0f, 0.0f, 0.0f);
+            glm::vec3 yawAxis = orientation * glm::vec3(0.0f, 1.0f, 0.0f);
+            glm::vec3 rollAxis = orientation * glm::vec3(0.0f, 0.0f, 1.0f);
+            glm::mat4 preTransform = _jointStates[joint.parentIndex].transform * joint.preRotation * glm::mat4_cast(joint.rotation);
+            glm::mat3 inverse = glm::inverse(glm::mat3(preTransform));
+            state.rotation = glm::angleAxis(_owningHead->getPitch(), glm::normalize(inverse * pitchAxis)) *
+                glm::angleAxis(_owningHead->getYaw(), glm::normalize(inverse * yawAxis)) *
+                glm::angleAxis(_owningHead->getRoll(), glm::normalize(inverse * rollAxis)) * joint.rotation;
+            state.transform = _jointStates[joint.parentIndex].transform * joint.preRotation *
+                glm::mat4_cast(state.rotation) * joint.postRotation;
+        
         } else {
             state.transform = _jointStates[joint.parentIndex].transform * joint.preRotation *
                 glm::mat4_cast(state.rotation) * joint.postRotation;
