@@ -93,22 +93,12 @@ public:
     void setShouldRender(bool shouldRender);
     bool getShouldRender() const { return _shouldRender; }
 
-#ifndef NO_FALSE_COLOR // !NO_FALSE_COLOR means, does have false color
     void setFalseColor(colorPart red, colorPart green, colorPart blue);
     void setFalseColored(bool isFalseColored);
     bool getFalseColored() { return _falseColored; }
     void setColor(const nodeColor& color);
     const nodeColor& getTrueColor() const { return _trueColor; }
     const nodeColor& getColor() const { return _currentColor; }
-#else
-    void setFalseColor(colorPart red, colorPart green, colorPart blue) { /* no op */ };
-    void setFalseColored(bool isFalseColored) { /* no op */ };
-    bool getFalseColored() { return false; };
-    void setColor(const nodeColor& color) { memcpy(_trueColor,color,sizeof(nodeColor)); };
-    void setDensity(const float density) { _density = density; };
-    const nodeColor& getTrueColor() const { return _trueColor; };
-    const nodeColor& getColor() const { return _trueColor; };
-#endif
 
     void setDensity(float density) { _density = density; }
     float getDensity() const { return _density; }
@@ -147,10 +137,8 @@ private:
     int _childCount; /// Client and server, current child nodes set to non-null in _children, 4 bytes
 
     nodeColor _trueColor; /// Client and server, true color of this voxel, 4 bytes
-#ifndef NO_FALSE_COLOR // !NO_FALSE_COLOR means, does have false color
     nodeColor _currentColor; /// Client only, false color of this voxel, 4 bytes
     bool _falseColored; /// Client only, is this voxel false colored, 1 bytes
-#endif
 
     bool _isDirty; /// Client only, has this voxel changed since being rendered, 1 byte
     bool _shouldRender; /// Client only, should this voxel render at this time, 1 byte
