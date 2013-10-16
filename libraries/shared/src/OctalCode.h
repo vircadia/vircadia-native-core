@@ -20,11 +20,11 @@ const int RED_INDEX   = 0;
 const int GREEN_INDEX = 1;
 const int BLUE_INDEX  = 2;
 
-void printOctalCode(const unsigned char * octalCode);
+void printOctalCode(const unsigned char* octalCode);
 int bytesRequiredForCodeLength(unsigned char threeBitCodes);
-int branchIndexWithDescendant(const unsigned char * ancestorOctalCode, const unsigned char * descendantOctalCode);
-unsigned char * childOctalCode(const unsigned char * parentOctalCode, char childNumber);
-int numberOfThreeBitSectionsInCode(const unsigned char * octalCode);
+int branchIndexWithDescendant(const unsigned char* ancestorOctalCode, const unsigned char* descendantOctalCode);
+unsigned char* childOctalCode(const unsigned char* parentOctalCode, char childNumber);
+int numberOfThreeBitSectionsInCode(const unsigned char* octalCode);
 unsigned char* chopOctalCode(const unsigned char* originalOctalCode, int chopLevels);
 unsigned char* rebaseOctalCode(const unsigned char* originalOctalCode, const unsigned char* newParentOctalCode, 
                                bool includeColorSpace = false);
@@ -35,8 +35,8 @@ bool isAncestorOf(const unsigned char* possibleAncestor, const unsigned char* po
 
 // Note: copyFirstVertexForCode() is preferred because it doesn't allocate memory for the return
 // but other than that these do the same thing.
-float * firstVertexForCode(const unsigned char * octalCode);
-void copyFirstVertexForCode(const unsigned char * octalCode, float* output);
+float * firstVertexForCode(const unsigned char* octalCode);
+void copyFirstVertexForCode(const unsigned char* octalCode, float* output);
 
 struct VoxelPositionSize {
     float x, y, z, s;

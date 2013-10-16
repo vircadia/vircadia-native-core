@@ -16,7 +16,7 @@
 #include "SharedUtil.h"
 #include "OctalCode.h"
 
-int numberOfThreeBitSectionsInCode(const unsigned char * octalCode) {
+int numberOfThreeBitSectionsInCode(const unsigned char* octalCode) {
     assert(octalCode);
     if (*octalCode == 255) {
         return *octalCode + numberOfThreeBitSectionsInCode(octalCode + 1);
@@ -25,18 +25,18 @@ int numberOfThreeBitSectionsInCode(const unsigned char * octalCode) {
     }
 }
 
-void printOctalCode(const unsigned char * octalCode) {
+void printOctalCode(const unsigned char* octalCode) {
     if (!octalCode) {
         qDebug("NULL\n");
     } else {
-        for (int i = 0; i < bytesRequiredForCodeLength(*octalCode); i++) {
+        for (int i = 0; i < bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(octalCode)); i++) {
             outputBits(octalCode[i],false);
         }
         qDebug("\n");
     }
 }
 
-char sectionValue(const unsigned char * startByte, char startIndexInByte) {
+char sectionValue(const unsigned char* startByte, char startIndexInByte) {
     char rightShift = 8 - startIndexInByte - 3;
     
     if (rightShift < 0) {
@@ -54,14 +54,14 @@ int bytesRequiredForCodeLength(unsigned char threeBitCodes) {
     }
 }
 
-int branchIndexWithDescendant(const unsigned char * ancestorOctalCode, const unsigned char * descendantOctalCode) {
+int branchIndexWithDescendant(const unsigned char* ancestorOctalCode, const unsigned char* descendantOctalCode) {
     int parentSections = numberOfThreeBitSectionsInCode(ancestorOctalCode);
     
     int branchStartBit = parentSections * 3;
     return sectionValue(descendantOctalCode + 1 + (branchStartBit / 8), branchStartBit % 8);
 }
 
-unsigned char * childOctalCode(const unsigned char * parentOctalCode, char childNumber) {
+unsigned char* childOctalCode(const unsigned char* parentOctalCode, char childNumber) {
     
     // find the length (in number of three bit code sequences)
     // in the parent
@@ -76,7 +76,7 @@ unsigned char * childOctalCode(const unsigned char * parentOctalCode, char child
     int childCodeBytes = bytesRequiredForCodeLength(parentCodeSections + 1);
     
     // create a new buffer to hold the new octal code
-    unsigned char *newCode = new unsigned char[childCodeBytes];
+    unsigned char* newCode = new unsigned char[childCodeBytes];
     
     // copy the parent code to the child
     if (parentOctalCode != NULL) {
@@ -115,7 +115,7 @@ unsigned char * childOctalCode(const unsigned char * parentOctalCode, char child
     return newCode;
 }
 
-void voxelDetailsForCode(const unsigned char * octalCode, VoxelPositionSize& voxelPositionSize) {
+void voxelDetailsForCode(const unsigned char* octalCode, VoxelPositionSize& voxelPositionSize) {
     float output[3];
     memset(&output[0], 0, 3 * sizeof(float));
     float currentScale = 1.0;
@@ -138,7 +138,7 @@ void voxelDetailsForCode(const unsigned char * octalCode, VoxelPositionSize& vox
     voxelPositionSize.s = currentScale;
 }
 
-void copyFirstVertexForCode(const unsigned char * octalCode, float* output) {
+void copyFirstVertexForCode(const unsigned char* octalCode, float* output) {
     memset(output, 0, 3 * sizeof(float));
     
     float currentScale = 0.5;
@@ -154,7 +154,7 @@ void copyFirstVertexForCode(const unsigned char * octalCode, float* output) {
     }
 }
 
-float * firstVertexForCode(const unsigned char * octalCode) {
+float * firstVertexForCode(const unsigned char* octalCode) {
     float * firstVertex = new float[3];
     copyFirstVertexForCode(octalCode, firstVertex);
     return firstVertex;
