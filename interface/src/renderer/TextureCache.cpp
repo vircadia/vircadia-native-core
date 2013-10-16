@@ -74,15 +74,17 @@ GLuint TextureCache::getPermutationNormalTextureID() {
     return _permutationNormalTextureID;
 }
 
+static void loadWhiteTexture() {
+    const char OPAQUE_WHITE[] = { 0xFF, 0xFF, 0xFF, 0xFF };
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, OPAQUE_WHITE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+}
+
 GLuint TextureCache::getWhiteTextureID() {
     if (_whiteTextureID == 0) {
         glGenTextures(1, &_whiteTextureID);
         glBindTexture(GL_TEXTURE_2D, _whiteTextureID);
-        
-        const char OPAQUE_WHITE[] = { 0xFF, 0xFF, 0xFF, 0xFF };
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, OPAQUE_WHITE);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        
+        loadWhiteTexture();
         glBindTexture(GL_TEXTURE_2D, 0);
     }
     return _whiteTextureID;
@@ -214,6 +216,11 @@ NetworkTexture::NetworkTexture(const QUrl& url) : _reply(NULL), _averageColor(1.
     
     connect(_reply, SIGNAL(downloadProgress(qint64,qint64)), SLOT(handleDownloadProgress(qint64,qint64)));
     connect(_reply, SIGNAL(error(QNetworkReply::NetworkError)), SLOT(handleReplyError()));
+    
+    // default to white
+    glBindTexture(GL_TEXTURE_2D, getID());
+    loadWhiteTexture();
+    glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 NetworkTexture::~NetworkTexture() {
