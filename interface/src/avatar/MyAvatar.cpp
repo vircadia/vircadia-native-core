@@ -351,6 +351,8 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter) {
         }
     }
     
+    updateChatCircle(deltaTime);
+    
     _position += _velocity * deltaTime;
     
     // Zero thrust out now that we've added it to velocity in this frame
@@ -1090,6 +1092,81 @@ void MyAvatar::applyCollisionWithOtherAvatar(Avatar * otherAvatar, float deltaTi
     
     // apply force on the whole body
     _velocity += bodyPushForce;
+}
+
+void MyAvatar::updateChatCircle(float deltaTime) {
+    // find the number of members, their center of mass, and the average up vector 
+    glm::vec3 center = _position;
+    glm::vec3 up = getWorldAlignedOrientation() * IDENTITY_UP;
+    int memberCount = 1;
+    NodeList* nodeList = NodeList::getInstance();
+    const float MAX_CHAT_DISTANCE = 10.0f;
+    for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+        if (node->getLinkedData() && node->getType() == NODE_TYPE_AGENT) {
+            Avatar* otherAvatar = (Avatar*)node->getLinkedData();
+            if (glm::distance(_position, otherAvatar->getPosition()) < MAX_CHAT_DISTANCE) {
+                center += otherAvatar->getPosition();
+                up += otherAvatar->getWorldAlignedOrientation() * IDENTITY_UP;
+                memberCount++;
+            }
+        }
+    }
+    if (memberCount == 1) {
+        return;
+    }
+    center /= memberCount;
+    up = glm::normalize(up);
+    
+    // find reasonable corresponding right/front vectors
+    glm::vec3 front = glm::cross(up, IDENTITY_RIGHT);
+    if (glm::length(front) < EPSILON) {
+        front = glm::cross(up, IDENTITY_FRONT);
+    }
+    front = glm::normalize(front);
+    glm::vec3 right = glm::cross(front, up);
+    
+    // find our angle and the angular distances to our closest neighbors
+    glm::vec3 delta = _position - center;
+    glm::vec3 projected = glm::vec3(glm::dot(right, delta), glm::dot(front, delta), 0.0f);
+    float myAngle = glm::length(projected) > EPSILON ? atan2f(projected.y, projected.x) : 0.0f;
+    float leftDistance = PIf;
+    float rightDistance = PIf;
+    for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+        if (node->getLinkedData() && node->getType() == NODE_TYPE_AGENT) {
+            Avatar* otherAvatar = (Avatar*)node->getLinkedData();
+            if (glm::distance(_position, otherAvatar->getPosition()) < MAX_CHAT_DISTANCE) {
+                delta = otherAvatar->getPosition() - center;
+                projected = glm::vec3(glm::dot(right, delta), glm::dot(front, delta), 0.0f);
+                float angle = glm::length(projected) > EPSILON ? atan2f(projected.y, projected.x) : 0.0f;
+                if (angle < myAngle) {
+                    leftDistance = min(myAngle - angle, leftDistance);
+                    rightDistance = min(PI_TIMES_TWO - (myAngle - angle), rightDistance);
+                    
+                } else {
+                    leftDistance = min(PI_TIMES_TWO - (angle - myAngle), leftDistance);
+                    rightDistance = min(angle - myAngle, rightDistance);
+                }
+            }
+        }
+    }
+    
+    // determine the chat circle radius 
+    const float CIRCUMFERENCE_PER_MEMBER = 2.0f;
+    float radius = (CIRCUMFERENCE_PER_MEMBER * memberCount) / PI_TIMES_TWO;
+    
+    // split the difference between our neighbors
+    float targetAngle = myAngle + (rightDistance - leftDistance) / 2.0f;
+    glm::vec3 targetPosition = center + (front * sinf(targetAngle) + right * cosf(targetAngle)) * radius;
+    
+    // face the center of the circle
+    glm::quat orientation = getOrientation();
+    glm::quat targetOrientation = rotationBetween(orientation * IDENTITY_FRONT, center - targetPosition) * orientation;
+    targetOrientation = rotationBetween(targetOrientation * IDENTITY_UP, up) * targetOrientation;
+    
+    // approach the target position/orientation
+    const float APPROACH_RATE = 0.1f;
+    _position = glm::mix(_position, targetPosition, APPROACH_RATE);
+    setOrientation(safeMix(orientation, targetOrientation, APPROACH_RATE));
 }
 
 void MyAvatar::setGravity(glm::vec3 gravity) {
