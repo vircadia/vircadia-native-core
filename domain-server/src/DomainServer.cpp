@@ -480,7 +480,8 @@ int DomainServer::run() {
     unsigned char* currentBufferPos;
     unsigned char* startPointer;
     
-    sockaddr_in nodePublicAddress, nodeLocalAddress, replyDestinationSocket;
+    sockaddr_in senderAddress, nodePublicAddress, nodeLocalAddress;
+    nodePublicAddress.sin_family = AF_INET;
     nodeLocalAddress.sin_family = AF_INET;
     
     in_addr_t serverLocalAddress = getLocalAddress();
@@ -507,7 +508,7 @@ int DomainServer::run() {
     gettimeofday(&startTime, NULL);
     
     while (true) {
-        while (nodeList->getNodeSocket()->receive((sockaddr *)&nodePublicAddress, packetData, &receivedBytes) &&
+        while (nodeList->getNodeSocket()->receive((sockaddr *)&senderAddress, packetData, &receivedBytes) &&
                packetVersionMatch(packetData)) {
             if (packetData[0] == PACKET_TYPE_DOMAIN_REPORT_FOR_DUTY || packetData[0] == PACKET_TYPE_DOMAIN_LIST_REQUEST) {
                 // this is an RFD or domain list request packet, and there is a version match
@@ -515,19 +516,14 @@ int DomainServer::run() {
                 int numBytesSenderHeader = numBytesForPacketHeader(packetData);
                 
                 nodeType = *(packetData + numBytesSenderHeader);
-                int numBytesSocket = unpackSocket(packetData + numBytesSenderHeader + sizeof(NODE_TYPE),
-                                                  (sockaddr*) &nodeLocalAddress);
                 
-                replyDestinationSocket = nodePublicAddress;
+                int packetIndex = numBytesSenderHeader + sizeof(NODE_TYPE) + NUM_BYTES_RFC4122_UUID;
                 
-                // check the node public address
-                // if it matches our local address
-                // or if it's the loopback address we're on the same box
-                if (nodePublicAddress.sin_addr.s_addr == serverLocalAddress ||
-                    nodePublicAddress.sin_addr.s_addr == htonl(INADDR_LOOPBACK)) {
-                    
-                    nodePublicAddress.sin_addr.s_addr = 0;
-                }
+                int numBytesPrivateSocket = unpackSocket(packetData + packetIndex, (sockaddr*) &nodePublicAddress);
+                packetIndex += numBytesPrivateSocket;
+                
+                int numBytesPublicSocket = unpackSocket(packetData + packetIndex, (sockaddr*) &nodeLocalAddress);
+                packetIndex += numBytesPublicSocket;
                 
                 const char STATICALLY_ASSIGNED_NODES[3] = {
                     NODE_TYPE_AUDIO_MIXER,
@@ -568,12 +564,7 @@ int DomainServer::run() {
                     currentBufferPos = broadcastPacket + numHeaderBytes;
                     startPointer = currentBufferPos;
                     
-                    int numBytesUUID = (nodeType == NODE_TYPE_AUDIO_MIXER || nodeType == NODE_TYPE_AVATAR_MIXER)
-                        ? NUM_BYTES_RFC4122_UUID
-                        : 0;
-                    
-                    unsigned char* nodeTypesOfInterest = packetData + numBytesSenderHeader + numBytesUUID +
-                    sizeof(NODE_TYPE) + numBytesSocket + sizeof(unsigned char);
+                    unsigned char* nodeTypesOfInterest = packetData + packetIndex + sizeof(unsigned char);
                     int numInterestTypes = *(nodeTypesOfInterest - 1);
                     
                     if (numInterestTypes > 0) {
@@ -599,7 +590,7 @@ int DomainServer::run() {
                     currentBufferPos += packNodeId(currentBufferPos, checkInNode->getNodeID());
                     
                     // send the constructed list back to this node
-                    nodeList->getNodeSocket()->send((sockaddr*)&replyDestinationSocket,
+                    nodeList->getNodeSocket()->send((sockaddr*)&senderAddress,
                                                     broadcastPacket,
                                                     (currentBufferPos - startPointer) + numHeaderBytes);
                 }

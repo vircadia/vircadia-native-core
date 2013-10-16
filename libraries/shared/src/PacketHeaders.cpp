@@ -30,6 +30,11 @@ PACKET_VERSION versionForPacketType(PACKET_TYPE type) {
 
         case PACKET_TYPE_VOXEL_STATS:
             return 2;
+       
+        case PACKET_TYPE_DOMAIN_LIST_REQUEST:
+        case PACKET_TYPE_DOMAIN_REPORT_FOR_DUTY:
+            return 1;
+        
         default:
             return 0;
     }

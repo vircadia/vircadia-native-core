@@ -444,7 +444,8 @@ void NodeList::sendDomainServerCheckIn(const char* assignmentUUID) {
             
             // check in packet has header, optional UUID, node type, port, IP, node types of interest, null termination
             int numPacketBytes = sizeof(PACKET_TYPE) + sizeof(PACKET_VERSION) + sizeof(NODE_TYPE) +
-            NUM_BYTES_RFC4122_UUID + sizeof(uint16_t) + IP_ADDRESS_BYTES + numBytesNodesOfInterest + sizeof(unsigned char);
+                NUM_BYTES_RFC4122_UUID + (2 * (sizeof(uint16_t) + IP_ADDRESS_BYTES)) +
+                numBytesNodesOfInterest + sizeof(unsigned char);
             
             _checkInPacket = new unsigned char[numPacketBytes];
             unsigned char* packetPosition = _checkInPacket;
@@ -453,17 +454,24 @@ void NodeList::sendDomainServerCheckIn(const char* assignmentUUID) {
                 ? PACKET_TYPE_DOMAIN_REPORT_FOR_DUTY
                 : PACKET_TYPE_DOMAIN_LIST_REQUEST;
             
-            int numHeaderBytes = populateTypeAndVersion(packetPosition, nodePacketType);
-            packetPosition += numHeaderBytes;
+            packetPosition += populateTypeAndVersion(packetPosition, nodePacketType);
             
             *(packetPosition++) = _ownerType;
             
-            if (assignmentUUID) {
-                // if we've got an assignment UUID to send add that here
-                memcpy(packetPosition, assignmentUUID, NUM_BYTES_RFC4122_UUID);
-                packetPosition += NUM_BYTES_RFC4122_UUID;
+            if (!assignmentUUID) {
+                // if we don't have an assignment UUID just send the null one
+                assignmentUUID = QUuid().toRfc4122().constData();
             }
             
+            // send our assignment UUID or the null one
+            memcpy(packetPosition, assignmentUUID, NUM_BYTES_RFC4122_UUID);
+            packetPosition += NUM_BYTES_RFC4122_UUID;
+            
+            // pack our public address to send to domain-server
+            packetPosition += packSocket(_checkInPacket + (packetPosition - _checkInPacket),
+                                         htonl(_publicAddress.toIPv4Address()), htons(_publicPort));
+            
+            // pack our local address to send to domain-server
             packetPosition += packSocket(_checkInPacket + (packetPosition - _checkInPacket),
                                          getLocalAddress(),
                                          htons(_nodeSocket.getListeningPort()));
