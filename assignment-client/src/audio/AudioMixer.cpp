@@ -399,9 +399,8 @@ void AudioMixer::run() {
                 
                 // give the new audio data to the matching injector node
                 nodeList->updateNodeWithData(matchingInjector, packetData, receivedBytes);
-            } else if (packetData[0] == PACKET_TYPE_PING || packetData[0] == PACKET_TYPE_DOMAIN) {
-                
-                // If the packet is a ping, let processNodeData handle it.
+            } else {
+                // let processNodeData handle it.
                 nodeList->processNodeData(nodeAddress, packetData, receivedBytes);
             }
         }

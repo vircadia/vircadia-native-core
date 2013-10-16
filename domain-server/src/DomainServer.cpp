@@ -614,7 +614,7 @@ int DomainServer::run() {
                         int numHeaderBytes = populateTypeAndVersion(broadcastPacket, PACKET_TYPE_CREATE_ASSIGNMENT);
                         int numAssignmentBytes = assignmentToDeploy->packToBuffer(broadcastPacket + numHeaderBytes);
         
-                        nodeList->getNodeSocket()->send((sockaddr*) &nodePublicAddress,
+                        nodeList->getNodeSocket()->send((sockaddr*) &senderAddress,
                                                         broadcastPacket,
                                                         numHeaderBytes + numAssignmentBytes);
                     }

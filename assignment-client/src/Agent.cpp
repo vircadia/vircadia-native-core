@@ -186,7 +186,8 @@ void Agent::run() {
                 qDebug() << "Uncaught exception at line" << line << ":" << engine.uncaughtException().toString() << "\n";
             }
 
-            while (NodeList::getInstance()->getNodeSocket()->receive((sockaddr*) &senderAddress, receivedData, &receivedBytes)) {
+            while (NodeList::getInstance()->getNodeSocket()->receive((sockaddr*) &senderAddress, receivedData, &receivedBytes)
+                   && packetVersionMatch(receivedData)) {
                 if (!firstDomainCheckIn && receivedData[0] == PACKET_TYPE_DOMAIN) {
                     firstDomainCheckIn = true;
                 }

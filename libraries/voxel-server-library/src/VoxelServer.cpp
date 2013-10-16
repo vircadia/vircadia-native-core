@@ -398,8 +398,10 @@ void VoxelServer::run() {
                     nodeData->initializeVoxelSendThread(this);
                 }
                 
-            } else if (packetData[0] == PACKET_TYPE_PING) {
-                // If the packet is a ping, let processNodeData handle it.
+            } else if (packetData[0] == PACKET_TYPE_PING
+                       || packetData[0] == PACKET_TYPE_DOMAIN
+                       || packetData[0] == PACKET_TYPE_STUN_RESPONSE) {
+                // let processNodeData handle it.
                 NodeList::getInstance()->processNodeData(&senderAddress, packetData, packetLength);
             } else if (packetData[0] == PACKET_TYPE_DOMAIN) {
                 NodeList::getInstance()->processNodeData(&senderAddress, packetData, packetLength);
