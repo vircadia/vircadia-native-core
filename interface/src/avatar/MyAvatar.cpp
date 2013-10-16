@@ -1188,7 +1188,7 @@ void MyAvatar::updateChatCircle(float deltaTime) {
     targetOrientation = rotationBetween(targetOrientation * IDENTITY_UP, up) * targetOrientation;
     
     // approach the target position/orientation
-    const float APPROACH_RATE = 0.01f;
+    const float APPROACH_RATE = 0.025f;
     _position = glm::mix(_position, targetPosition, APPROACH_RATE);
     setOrientation(safeMix(orientation, targetOrientation, APPROACH_RATE));
 }
