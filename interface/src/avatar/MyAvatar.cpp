@@ -1127,7 +1127,7 @@ void MyAvatar::updateChatCircle(float deltaTime) {
     }
 
     // remove members whose accumulated circles are too far away to influence us
-    const float CIRCUMFERENCE_PER_MEMBER = 2.0f;
+    const float CIRCUMFERENCE_PER_MEMBER = 1.0f;
     const float CIRCLE_INFLUENCE_SCALE = 1.1f;
     for (int i = sortedAvatars.size() - 1; i >= 0; i--) {
         float radius = (CIRCUMFERENCE_PER_MEMBER * (i + 2)) / PI_TIMES_TWO;
