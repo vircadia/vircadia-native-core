@@ -41,8 +41,8 @@ public:
     VoxelNode(unsigned char * octalCode); // regular constructor
     ~VoxelNode();
     
-    const unsigned char* getOctalCode() const { return (_octcodePointer) ? _octalCode._octalCodePointer : &_octalCode._octalCodeBuffer[0]; }
-    VoxelNode* getChildAtIndex(int childIndex) const { return _children[childIndex]; }
+    const unsigned char* getOctalCode() const { return (_octcodePointer) ? _octalCode.pointer : &_octalCode.buffer[0]; }
+    VoxelNode* getChildAtIndex(int childIndex) const;
     void deleteChildAtIndex(int childIndex);
     VoxelNode* removeChildAtIndex(int childIndex);
     VoxelNode* addChildAtIndex(int childIndex);
@@ -71,8 +71,8 @@ public:
     float distanceSquareToPoint(const glm::vec3& point) const; // when you don't need the actual distance, use this.
     float distanceToPoint(const glm::vec3& point) const;
 
-    bool isLeaf() const { return _childCount == 0; }
-    int getChildCount() const { return _childCount; }
+    bool isLeaf() const { return getChildCount() == 0; }
+    int getChildCount() const { return numberOfOnes(_childBitmask); }
     void printDebugDetails(const char* label) const;
     bool isDirty() const { return _isDirty; }
     void clearDirtyBit() { _isDirty = false; }
@@ -116,24 +116,50 @@ public:
 
     static uint64_t getVoxelMemoryUsage() { return _voxelMemoryUsage; }
     static uint64_t getOctcodeMemoryUsage() { return _octcodeMemoryUsage; }
+    
+    static uint64_t _getChildAtIndexTime;
+    static uint64_t _getChildAtIndexCalls;
+    static uint64_t _setChildAtIndexTime;
+    static uint64_t _setChildAtIndexCalls;
 
 private:
+    void setChildAtIndex(int childIndex, VoxelNode* child);
+    void storeTwoChildren(VoxelNode* childOne, VoxelNode* childTwo);
+    void retrieveTwoChildren(VoxelNode*& childOne, VoxelNode*& childTwo);
+    VoxelNode* __new__getChildAtIndex(int childIndex) const;
+    void __new__setChildAtIndex(int childIndex, VoxelNode* child);
+    void auditChildren(const char* label) const;
+
     void calculateAABox();
     void init(unsigned char * octalCode);
     void notifyDeleteHooks();
     void notifyUpdateHooks();
 
-    VoxelNode* _children[8]; /// Client and server, pointers to child nodes, 64 bytes
-    
     AABox _box; /// Client and server, axis aligned box for bounds of this voxel, 48 bytes
 
     /// Client and server, buffer containing the octal code or a pointer to octal code for this node, 8 bytes
     union octalCode_t {
-      unsigned char _octalCodeBuffer[8];
-      unsigned char* _octalCodePointer;
+      unsigned char buffer[8];
+      unsigned char* pointer;
     } _octalCode;  
 
     uint64_t _lastChanged; /// Client and server, timestamp this node was last changed, 8 bytes
+
+    /// Client and server, pointers to child nodes, various encodings
+    union children_t {
+      VoxelNode* single;
+      int32_t offsetsTwoChildren[2];
+      uint64_t offsetsThreeChildrenA : 21, offsetsThreeChildrenB : 21, offsetsThreeChildrenC : 21 ;
+      VoxelNode** external;
+    } _children;  
+
+    static int64_t _offsetMax;
+    static int64_t _offsetMin;
+    
+    //_offsetMax=4,184,812 
+    //_offsetMin=-5,828,062
+    
+    VoxelNode* _childrenArray[8]; /// Client and server, pointers to child nodes, 64 bytes
 
     uint32_t _glBufferIndex : 24, /// Client only, vbo index for this voxel if being rendered, 3 bytes
              _voxelSystemIndex : 8; /// Client only, index to the VoxelSystem rendering this voxel, 1 bytes
@@ -143,18 +169,20 @@ private:
     static std::map<uint8_t, VoxelSystem*> _mapIndexToVoxelSystemPointers;
 
     float _density; /// Client and server, If leaf: density = 1, if internal node: 0-1 density of voxels inside, 4 bytes
-    int _childCount; /// Client and server, current child nodes set to non-null in _children, 4 bytes
 
     nodeColor _trueColor; /// Client and server, true color of this voxel, 4 bytes
     nodeColor _currentColor; /// Client only, false color of this voxel, 4 bytes
 
     uint16_t _sourceID; /// Client only, stores node id of voxel server that sent his voxel, 2 bytes
 
+    unsigned char _childBitmask;     // 1 byte 
+
     bool _falseColored : 1, /// Client only, is this voxel false colored, 1 bit
          _isDirty : 1, /// Client only, has this voxel changed since being rendered, 1 bit
          _shouldRender : 1, /// Client only, should this voxel render at this time, 1 bit
          _octcodePointer : 1, /// Client and Server only, is this voxel's octal code a pointer or buffer, 1 bit
-         _unknownBufferIndex : 1; /// Client only, is this voxel's VBO buffer the unknown buffer index, 1 bit
+         _unknownBufferIndex : 1,
+         _childrenExternal : 1; /// Client only, is this voxel's VBO buffer the unknown buffer index, 1 bit
 
     static std::vector<VoxelNodeDeleteHook*> _deleteHooks;
     static std::vector<VoxelNodeUpdateHook*> _updateHooks;

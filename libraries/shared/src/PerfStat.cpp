@@ -132,6 +132,9 @@ PerformanceWarning::~PerformanceWarning() {
     if (_runningTotal) {
         *_runningTotal += elapsedusec;
     }
+    if (_totalCalls) {
+        *_totalCalls += 1;
+    }
 };
 
 

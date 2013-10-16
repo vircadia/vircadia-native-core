@@ -233,7 +233,7 @@ void processFillSVOFile(const char* fillSVOFile) {
 }
 
 
-int main(int argc, const char * argv[])
+int old_main(int argc, const char * argv[])
 {
     qInstallMessageHandler(sharedMessageHandler);
 
@@ -293,5 +293,47 @@ int main(int argc, const char * argv[])
         myTree.writeToSVOFile("voxels.svo");
 
     }    
+    return 0;
+}
+
+void unitTest(VoxelTree * tree) {
+    printf("unit tests...\n");
+
+    // We want our corner voxels to be about 1/2 meter high, and our TREE_SCALE is in meters, so...    
+    float voxelSize = 0.5f;
+
+    // Here's an example of how to create a voxel.
+    printf("creating corner points...\n");
+    tree->createVoxel(0, 0, 0, voxelSize, 255, 255 ,255);
+
+    // Here's an example of how to test if a voxel exists
+    VoxelNode* node = tree->getVoxelAt(0, 0, 0, voxelSize);
+    if (node) {
+        // and how to access it's color
+        printf("corner point 0,0,0 exists... color is (%d,%d,%d) \n", 
+            node->getColor()[0], node->getColor()[1], node->getColor()[2]);
+    }
+
+    // here's an example of how to delete a voxel
+    printf("attempting to delete corner point 0,0,0\n");
+    tree->deleteVoxelAt(0, 0, 0, voxelSize);
+
+    // Test to see that the delete worked... it should be FALSE...
+    if (tree->getVoxelAt(0, 0, 0, voxelSize)) {
+        printf("corner point 0,0,0 exists...\n");
+    } else {
+        printf("corner point 0,0,0 does not exists...\n");
+    }
+    
+    tree->createVoxel(0, 0, 0, voxelSize, 255, 255 ,255);
+    tree->createVoxel(voxelSize, 0, 0, voxelSize, 255, 255 ,255);
+    tree->createVoxel(0, 0, voxelSize, voxelSize, 255, 255 ,255);
+    tree->createVoxel(voxelSize, 0, voxelSize, voxelSize, 255, 255 ,255);
+    
+}
+
+
+int main(int argc, const char * argv[]) {
+    unitTest(&myTree);
     return 0;
 }

@@ -13,6 +13,7 @@
 #include <QtCore/QDebug>
 
 #include <NodeList.h>
+#include <PerfStat.h>
 
 #include "AABox.h"
 #include "OctalCode.h"
@@ -44,12 +45,12 @@ VoxelNode::VoxelNode(unsigned char * octalCode) {
 void VoxelNode::init(unsigned char * octalCode) {
     int octalCodeLength = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(octalCode));
     if (octalCodeLength > sizeof(_octalCode)) {
-        _octalCode._octalCodePointer = octalCode;
+        _octalCode.pointer = octalCode;
         _octcodePointer = true;
         _octcodeMemoryUsage += octalCodeLength;
     } else {
         _octcodePointer = false;
-        memcpy(_octalCode._octalCodeBuffer, octalCode, octalCodeLength);
+        memcpy(_octalCode.buffer, octalCode, octalCodeLength);
         delete[] octalCode;
     }
     
@@ -59,12 +60,17 @@ void VoxelNode::init(unsigned char * octalCode) {
 #endif
     _trueColor[0] = _trueColor[1] = _trueColor[2] = _trueColor[3] = 0;
     _density = 0.0f;
+
+    // set up the _children union
+    _childBitmask = 0;
+    _childrenExternal = false;
+    _children.external = NULL;
     
     // default pointers to child nodes to NULL
     for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
-        _children[i] = NULL;
+        _childrenArray[i] = NULL;
     }
-    _childCount = 0;
+    
     
     _unknownBufferIndex = true;
     setBufferIndex(GLBUFFER_INDEX_UNKNOWN);
@@ -90,13 +96,15 @@ VoxelNode::~VoxelNode() {
 
     if (_octcodePointer) {
         _octcodeMemoryUsage -= bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(getOctalCode()));
-        delete[] _octalCode._octalCodePointer;
+        delete[] _octalCode.pointer;
     }
     
     // delete all of this node's children
     for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
-        if (_children[i]) {
-            delete _children[i];
+        VoxelNode* childAt = getChildAtIndex(i);
+        if (childAt) {
+            delete childAt;
+            setChildAtIndex(i, NULL);
         }
     }
 }
@@ -121,28 +129,35 @@ void VoxelNode::handleSubtreeChanged(VoxelTree* myTree) {
     markWithChangedTime();
 }
 
-uint8_t VoxelNode::_nextIndex = 0;
+const uint8_t INDEX_FOR_NULL = 0;
+uint8_t VoxelNode::_nextIndex = INDEX_FOR_NULL + 1; // start at 1, 0 is reserved for NULL
 std::map<VoxelSystem*, uint8_t> VoxelNode::_mapVoxelSystemPointersToIndex;
 std::map<uint8_t, VoxelSystem*> VoxelNode::_mapIndexToVoxelSystemPointers;
 
 VoxelSystem* VoxelNode::getVoxelSystem() const { 
-    if (_mapIndexToVoxelSystemPointers.end() != _mapIndexToVoxelSystemPointers.find(_voxelSystemIndex)) {
-        return _mapIndexToVoxelSystemPointers[_voxelSystemIndex]; 
+    if (_voxelSystemIndex > INDEX_FOR_NULL) {
+        if (_mapIndexToVoxelSystemPointers.end() != _mapIndexToVoxelSystemPointers.find(_voxelSystemIndex)) {
+            return _mapIndexToVoxelSystemPointers[_voxelSystemIndex]; 
+        }
     }
     return NULL;
 }
 
 void VoxelNode::setVoxelSystem(VoxelSystem* voxelSystem) {
-    uint8_t index;
-    if (_mapVoxelSystemPointersToIndex.end() != _mapVoxelSystemPointersToIndex.find(voxelSystem)) {
-        index = _mapVoxelSystemPointersToIndex[voxelSystem];
+    if (voxelSystem == NULL) {
+        _voxelSystemIndex = INDEX_FOR_NULL;
     } else {
-        index = _nextIndex;
-        _nextIndex++;
-        _mapVoxelSystemPointersToIndex[voxelSystem] = index;
-        _mapIndexToVoxelSystemPointers[index] = voxelSystem;
+        uint8_t index;
+        if (_mapVoxelSystemPointersToIndex.end() != _mapVoxelSystemPointersToIndex.find(voxelSystem)) {
+            index = _mapVoxelSystemPointersToIndex[voxelSystem];
+        } else {
+            index = _nextIndex;
+            _nextIndex++;
+            _mapVoxelSystemPointersToIndex[voxelSystem] = index;
+            _mapIndexToVoxelSystemPointers[index] = voxelSystem;
+        }
+        _voxelSystemIndex = index;
     }
-    _voxelSystemIndex = index;
 }
 
 
@@ -167,11 +182,13 @@ void VoxelNode::calculateAABox() {
 }
 
 void VoxelNode::deleteChildAtIndex(int childIndex) {
-    if (_children[childIndex]) {
-        delete _children[childIndex];
-        _children[childIndex] = NULL;
+    //printf("deleteChildAtIndex(%d)\n",childIndex);
+
+    VoxelNode* childAt = getChildAtIndex(childIndex);
+    if (childAt) {
+        delete childAt;
+        setChildAtIndex(childIndex, NULL);
         _isDirty = true;
-        _childCount--;
         markWithChangedTime();
         
         // after deleting the child, check to see if we're a leaf
@@ -179,15 +196,16 @@ void VoxelNode::deleteChildAtIndex(int childIndex) {
             _voxelNodeLeafCount++;
         }
     }
+    
+    auditChildren("deleteChildAtIndex()");
 }
 
 // does not delete the node!
 VoxelNode* VoxelNode::removeChildAtIndex(int childIndex) {
-    VoxelNode* returnedChild = _children[childIndex];
-    if (_children[childIndex]) {
-        _children[childIndex] = NULL;
+    VoxelNode* returnedChild = getChildAtIndex(childIndex);
+    if (returnedChild) {
+        setChildAtIndex(childIndex, NULL);
         _isDirty = true;
-        _childCount--;
         markWithChangedTime();
         
         // after removing the child, check to see if we're a leaf
@@ -195,23 +213,409 @@ VoxelNode* VoxelNode::removeChildAtIndex(int childIndex) {
             _voxelNodeLeafCount++;
         }
     }
+    auditChildren("removeChildAtIndex()");
     return returnedChild;
 }
 
+void VoxelNode::auditChildren(const char* label) const {
+    return;
+    
+    bool auditFailed = false;
+    for (int childIndex = 0; childIndex < NUMBER_OF_CHILDREN; childIndex++) {
+        VoxelNode* testChildNew = __new__getChildAtIndex(childIndex);
+        VoxelNode* testChildOld = _childrenArray[childIndex];
+        
+        if (testChildNew != testChildOld) {
+            auditFailed = true;
+        }
+    }
+    
+    if (auditFailed) {
+        printf("%s... auditChildren() FAILED <<<< \n", label);
+        for (int childIndex = 0; childIndex < NUMBER_OF_CHILDREN; childIndex++) {
+            VoxelNode* testChildNew = __new__getChildAtIndex(childIndex);
+            VoxelNode* testChildOld = _childrenArray[childIndex];
+
+            printf("child at index %d... testChildOld=%p testChildNew=%p %s \n",
+                    childIndex, testChildOld, testChildNew ,
+                    ((testChildNew != testChildOld) ? " DOES NOT MATCH <<<< BAD <<<<" : " - OK ")
+            );
+        }
+        printf("%s... auditChildren() <<<< DONE <<<< \n", label);
+    }
+
+}
+
+uint64_t VoxelNode::_getChildAtIndexTime = 0;
+uint64_t VoxelNode::_getChildAtIndexCalls = 0;
+uint64_t VoxelNode::_setChildAtIndexTime = 0;
+uint64_t VoxelNode::_setChildAtIndexCalls = 0;
+
+VoxelNode* VoxelNode::getChildAtIndex(int childIndex) const {
+    PerformanceWarning warn(false,"getChildAtIndex",false,&_getChildAtIndexTime,&_getChildAtIndexCalls);
+    
+    VoxelNode* child = __new__getChildAtIndex(childIndex);
+    //VoxelNode* child = _childrenArray[childIndex]; /// *** OLD WAY ****
+    return child;
+}
+
+VoxelNode* VoxelNode::__new__getChildAtIndex(int childIndex) const {
+    VoxelNode* result = NULL;
+    int childCount = getChildCount();
+    switch (childCount) {
+        case 0:
+            break;
+        case 1: {
+            int indexOne = getNthBit(_childBitmask, 1);
+            if (indexOne == childIndex) {
+                result = _children.single;
+            }
+        } break;
+        case 2: {
+            int indexOne = getNthBit(_childBitmask, 1);
+            int indexTwo = getNthBit(_childBitmask, 2);
+
+            if (_childrenExternal) {
+                if (indexOne == childIndex) {
+                    result = _children.external[0];
+                } else if (indexTwo == childIndex) {
+                    result = _children.external[1];
+                }
+            } else {
+                if (indexOne == childIndex) {
+                    int32_t offset = _children.offsetsTwoChildren[0];
+                    result = (VoxelNode*)((uint8_t*)this + offset);
+                } else if (indexTwo == childIndex) {
+                    int32_t offset = _children.offsetsTwoChildren[1];
+                    result = (VoxelNode*)((uint8_t*)this + offset);
+                }
+            }
+        } break;
+        default: {
+            // if we have 3 or more, we know we're in external mode, so we just need to figure out which
+            // slot in our external array this child is.
+            if (oneAtBit(_childBitmask, childIndex)) {
+                childCount = getChildCount();
+                for (int ordinal = 1; ordinal <= childCount; ordinal++) {
+                    int index = getNthBit(_childBitmask, ordinal);
+                    if (index == childIndex) {
+                        result = _children.external[ordinal-1];
+                        break;
+                    }
+                }
+            }
+        } break;
+    }
+    return result; 
+}
+
+void VoxelNode::storeTwoChildren(VoxelNode* childOne, VoxelNode* childTwo) {
+    int64_t offsetOne = (uint8_t*)childOne - (uint8_t*)this;
+    int64_t offsetTwo = (uint8_t*)childTwo - (uint8_t*)this;
+    
+    if (isBetween(offsetOne, std::numeric_limits<int32_t>::max(), std::numeric_limits<int32_t>::min()) &&
+            isBetween(offsetTwo, std::numeric_limits<int32_t>::max(), std::numeric_limits<int32_t>::min())) {
+
+        // if previously external, then clean it up...
+        if (_childrenExternal) {
+            delete[] _children.external;
+            _children.external = NULL; // probably not needed!
+            _childrenExternal = false;
+        }
+
+        // encode in union
+        _children.offsetsTwoChildren[0] = offsetOne;
+        _children.offsetsTwoChildren[1] = offsetTwo;
+    } else {
+        // encode in array
+        
+        // if not previously external, then allocate appropriately
+        if (!_childrenExternal) {
+            _childrenExternal = true;
+            _children.external = new VoxelNode*[2];
+        }
+        _children.external[0] = childOne;
+        _children.external[1] = childTwo;
+    }
+}
+
+void VoxelNode::retrieveTwoChildren(VoxelNode*& childOne, VoxelNode*& childTwo) {
+    // If we previously had an external array, then get the
+    if (_childrenExternal) {
+        childOne = _children.external[0];
+        childTwo = _children.external[1];
+        delete[] _children.external;
+        _children.external = NULL; // probably not needed!
+        _childrenExternal = false;
+    } else {
+        int64_t offsetOne = _children.offsetsTwoChildren[0];
+        int64_t offsetTwo = _children.offsetsTwoChildren[1];
+
+        childOne = (VoxelNode*)((uint8_t*)this + offsetOne);
+        childTwo = (VoxelNode*)((uint8_t*)this + offsetTwo);
+    }
+}
+
+void VoxelNode::setChildAtIndex(int childIndex, VoxelNode* child) {
+    PerformanceWarning warn(false,"setChildAtIndex",false,&_setChildAtIndexTime,&_setChildAtIndexCalls);
+    __new__setChildAtIndex(childIndex, child);
+    
+    /** OLD WAY ****
+    _childrenArray[childIndex] = child;
+    if (child) {
+        setAtBit(_childBitmask, childIndex);
+    } else {
+        clearAtBit(_childBitmask, childIndex);
+    }
+    **/
+}
+
+void VoxelNode::__new__setChildAtIndex(int childIndex, VoxelNode* child) {
+    // Here's how we store things...
+    // If we have 0 or 1 children, then we just store them in the _children.single;
+    // If we have 2 children, 
+    //     then if we can we store them as 32 bit signed offsets from our own this pointer,
+    //     _children.offsetsTwoChildren[0]-[1]
+    //     these are 32 bit offsets
+
+    unsigned char previousChildMask = _childBitmask;
+    int previousChildCount = getChildCount();
+    if (child) {
+        setAtBit(_childBitmask, childIndex);
+    } else {
+        clearAtBit(_childBitmask, childIndex);
+    }
+    int newChildCount = getChildCount();
+
+    // If we had 0 children and we still have 0 children, then there is nothing to do.
+    if (previousChildCount == 0 && newChildCount == 0) {
+        // nothing to do...
+    } else if ((previousChildCount == 0 || previousChildCount == 1) && newChildCount == 1) {
+        // If we had 0 children, and we're setting our first child or if we had 1 child, or we're resetting the same child, 
+        // then we can just store it in _children.single
+        _children.single = child;
+    } else if (previousChildCount == 1 && newChildCount == 0) {
+        // If we had 1 child, and we've removed our last child, then we can just store NULL in _children.single
+        _children.single = NULL;
+    } else if (previousChildCount == 1 && newChildCount == 2) {
+        // If we had 1 child, and we're adding a second child, then we need to determine
+        // if we can use offsets to store them
+
+        VoxelNode* childOne;
+        VoxelNode* childTwo;
+
+        if (getNthBit(previousChildMask, 1) < childIndex) {
+            childOne = _children.single;
+            childTwo = child;
+        } else {
+            childOne = child;
+            childTwo = _children.single;
+        }
+
+        storeTwoChildren(childOne, childTwo);        
+        
+    } else if (previousChildCount == 2 && newChildCount == 1) {
+        // If we had 2 children, and we're removing one, then we know we can go down to single mode
+        assert(child == NULL); // this is the only logical case
+        
+        int indexTwo = getNthBit(previousChildMask, 2);
+        bool keepChildOne = indexTwo == childIndex;
+
+        VoxelNode* childOne;
+        VoxelNode* childTwo;
+
+        retrieveTwoChildren(childOne, childTwo);        
+        
+        if (keepChildOne) {
+            _children.single = childOne;
+        } else {
+            _children.single = childTwo;
+        }
+    } else if (previousChildCount == 2 && newChildCount == 2) {
+        // If we had 2 children, and still have 2, then we know we are resetting one of our existing children
+        
+        int indexOne = getNthBit(previousChildMask, 1);
+        bool replaceChildOne = indexOne == childIndex;
+
+        // If we previously had an external array, then just replace the right one... that's easy.
+        if (_childrenExternal) {
+            // technically, we could look to see if these are now in the offsets to handle be encoded, but
+            // we're going to go ahead and keep this as an array.
+            if (replaceChildOne) {
+                _children.external[0] = child;
+            } else {
+                _children.external[1] = child;
+            }
+        } else {
+            // If we were previously encoded as offsets, then we need to see if we can still encode as offsets
+            VoxelNode* childOne;
+            VoxelNode* childTwo;
+            
+            if (replaceChildOne) {
+                childOne = child;
+                childTwo = (VoxelNode*)((uint8_t*)this + _children.offsetsTwoChildren[1]);
+            } else {
+                childOne = (VoxelNode*)((uint8_t*)this + _children.offsetsTwoChildren[0]);
+                childTwo = child;
+            }
+
+            storeTwoChildren(childOne, childTwo);        
+        }
+    } else if (previousChildCount == 3 && newChildCount == 2) {
+        // If we had 3 children, and now have 2, then we know we are going from an external case to a potential internal case
+        assert(_childrenExternal);
+        
+        // We need to determine which children we had, and which one we got rid of...
+        int indexOne = getNthBit(previousChildMask, 1);
+        int indexTwo = getNthBit(previousChildMask, 2);
+        int indexThree = getNthBit(previousChildMask, 3);
+
+        bool removeChildOne = indexOne == childIndex;
+        bool removeChildTwo = indexTwo == childIndex;
+        bool removeChildThree = indexThree == childIndex;
+
+        VoxelNode* childOne = _children.external[0];
+        VoxelNode* childTwo = _children.external[1];
+        VoxelNode* childThree = _children.external[2];
+
+        if (removeChildOne) {
+            childOne = childTwo;
+            childTwo = childThree;
+        } else if (removeChildTwo) {
+            childTwo = childThree;
+        } else {
+            // removing child three, nothing to do.
+        }
+
+        // clean up the external children...
+        _childrenExternal = false;
+        delete[] _children.external;
+        _children.external = NULL;
+
+        storeTwoChildren(childOne, childTwo);        
+        
+    } else if (previousChildCount == 2 && newChildCount == 3) {
+        // If we had 2 children, and now have 3, then we know we are going to an external case...
+
+        // First, decode the children...
+        VoxelNode* childOne;
+        VoxelNode* childTwo;
+        VoxelNode* childThree;
+
+        // Get the existing two children out of their encoding...        
+        retrieveTwoChildren(childOne, childTwo);        
+
+        // now, allocate the external...
+        _childrenExternal = true;
+        _children.external = new VoxelNode*[3];
+
+        // determine order of the existing children
+        int indexOne = getNthBit(previousChildMask, 1);
+        int indexTwo = getNthBit(previousChildMask, 2);
+
+        if (childIndex < indexOne) {
+            childThree = childTwo;
+            childTwo = childOne;
+            childOne = child;
+        } else if (childIndex < indexTwo) {
+            childThree = childTwo;
+            childTwo = child;
+        } else {
+            childThree = child;
+        }
+
+        _children.external[0] = childOne;
+        _children.external[1] = childTwo;
+        _children.external[2] = childThree;
+        
+    } else if (previousChildCount == newChildCount) {
+        // 3 or more children, one item being replaced, we know we're stored externally, we just need to find the one
+        // that needs to be replaced and replace it.
+        for (int ordinal = 1; ordinal <= 8; ordinal++) {
+            int index = getNthBit(previousChildMask, ordinal);
+            if (index == childIndex) {
+                // this is our child to be replaced
+                int nthChild = ordinal-1;
+                _children.external[nthChild] = child;
+                break;
+            }
+        }
+    } else if (previousChildCount < newChildCount) {
+        // 3 or more children, one item being added, we know we're stored externally, we just figure out where to insert
+        // this child pointer into our external list
+        VoxelNode** newExternalList = new VoxelNode*[newChildCount];
+        
+        int copiedCount = 0;
+        for (int ordinal = 1; ordinal <= newChildCount; ordinal++) {
+            int index = getNthBit(previousChildMask, ordinal);
+            if (index != -1 && index < childIndex) {
+                newExternalList[ordinal - 1] = _children.external[ordinal - 1];
+                copiedCount++;
+            } else {
+                
+                // insert our new child here...
+                newExternalList[ordinal - 1] = child;
+                
+                // if we didn't copy all of our previous children, then we need to
+                if (copiedCount < previousChildCount) {
+                    // our child needs to be inserted before this index, and everything else pushed out...
+                    for (int oldOrdinal = ordinal; oldOrdinal <= previousChildCount; oldOrdinal++) {
+                        newExternalList[oldOrdinal] = _children.external[oldOrdinal - 1];
+                    }
+                }
+                break;
+            }
+        }
+        delete[] _children.external;
+        _children.external = newExternalList;
+    } else if (previousChildCount > newChildCount) {
+        // 3 or more children, one item being removed, we know we're stored externally, we just figure out which 
+        // item to remove from our external list
+        VoxelNode** newExternalList = new VoxelNode*[newChildCount];
+        
+        for (int ordinal = 1; ordinal <= previousChildCount; ordinal++) {
+            int index = getNthBit(previousChildMask, ordinal);
+            assert(index != -1);
+            if (index < childIndex) {
+                newExternalList[ordinal - 1] = _children.external[ordinal - 1];
+            } else {
+                // our child needs to be removed from here, and everything else pulled in...
+                for (int moveOrdinal = ordinal; moveOrdinal <= newChildCount; moveOrdinal++) {
+                    newExternalList[moveOrdinal - 1] = _children.external[moveOrdinal];
+                }
+                break;
+            }
+        }
+        delete[] _children.external;
+        _children.external = newExternalList;
+    }
+    
+    // to be deleted...
+    _childrenArray[childIndex] = child;
+    auditChildren("setChildAtIndex()");
+}
+
+
 VoxelNode* VoxelNode::addChildAtIndex(int childIndex) {
-    if (!_children[childIndex]) {
+    VoxelNode* childAt = getChildAtIndex(childIndex);
+    if (!childAt) {
         // before adding a child, see if we're currently a leaf 
         if (isLeaf()) {
             _voxelNodeLeafCount--;
         }
     
-        _children[childIndex] = new VoxelNode(childOctalCode(getOctalCode(), childIndex));
-        _children[childIndex]->setVoxelSystem(getVoxelSystem()); // our child is always part of our voxel system NULL ok
+        childAt = new VoxelNode(childOctalCode(getOctalCode(), childIndex));
+        childAt->setVoxelSystem(getVoxelSystem()); // our child is always part of our voxel system NULL ok
+
+        setChildAtIndex(childIndex, childAt);
+
         _isDirty = true;
-        _childCount++;
         markWithChangedTime();
     }
-    return _children[childIndex];
+    
+    auditChildren("addChildAtIndex()");
+    
+    return childAt;
 }
 
 // handles staging or deletion of all deep children
@@ -236,14 +640,15 @@ void VoxelNode::setColorFromAverageOfChildren() {
     int colorArray[4] = {0,0,0,0};
     float density = 0.0f;
     for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
-        if (_children[i] && _children[i]->isColored()) {
+        VoxelNode* childAt = getChildAtIndex(i);
+        if (childAt && childAt->isColored()) {
             for (int j = 0; j < 3; j++) {
-                colorArray[j] += _children[i]->getTrueColor()[j]; // color averaging should always be based on true colors
+                colorArray[j] += childAt->getTrueColor()[j]; // color averaging should always be based on true colors
             }
             colorArray[3]++;
         }
-        if (_children[i]) {
-            density += _children[i]->getDensity();
+        if (childAt) {
+            density += childAt->getDensity();
         }
     }
     density /= (float) NUMBER_OF_CHILDREN;    
@@ -323,18 +728,19 @@ bool VoxelNode::collapseIdenticalLeaves() {
     bool allChildrenMatch = true; // assume the best (ottimista)
     int red,green,blue;
     for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
+        VoxelNode* childAt = getChildAtIndex(i);
         // if no child, child isn't a leaf, or child doesn't have a color
-        if (!_children[i] || !_children[i]->isLeaf() || !_children[i]->isColored()) {
+        if (!childAt || !childAt->isLeaf() || !childAt->isColored()) {
             allChildrenMatch=false;
             //qDebug("SADNESS child missing or not colored! i=%d\n",i);
             break;
         } else {
             if (i==0) {
-                red   = _children[i]->getColor()[0];
-                green = _children[i]->getColor()[1];
-                blue  = _children[i]->getColor()[2];
-            } else if (red != _children[i]->getColor()[0] || 
-                    green != _children[i]->getColor()[1] || blue != _children[i]->getColor()[2]) {
+                red   = childAt->getColor()[0];
+                green = childAt->getColor()[1];
+                blue  = childAt->getColor()[2];
+            } else if (red != childAt->getColor()[0] || 
+                    green != childAt->getColor()[1] || blue != childAt->getColor()[2]) {
                 allChildrenMatch=false;
                 break;
             }
@@ -345,10 +751,10 @@ bool VoxelNode::collapseIdenticalLeaves() {
     if (allChildrenMatch) {
         //qDebug("allChildrenMatch: pruning tree\n");
         for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
-            delete _children[i]; // delete all the child nodes
-            _children[i]=NULL; // set it to NULL
+            VoxelNode* childAt = getChildAtIndex(i);
+            delete childAt; // delete all the child nodes
+            setChildAtIndex(i, NULL); // set it to NULL
         }
-        _childCount = 0;
         nodeColor collapsedColor;
         collapsedColor[0]=red;        
         collapsedColor[1]=green;        
@@ -372,7 +778,8 @@ void VoxelNode::setRandomColor(int minimumBrightness) {
 void VoxelNode::printDebugDetails(const char* label) const {
     unsigned char childBits = 0;
     for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
-        if (_children[i]) {
+        VoxelNode* childAt = getChildAtIndex(i);
+        if (childAt) {
             setAtBit(childBits,i);            
         }
     }
