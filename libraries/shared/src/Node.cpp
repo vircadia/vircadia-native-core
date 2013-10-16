@@ -152,10 +152,11 @@ QDebug operator<<(QDebug debug, const Node &node) {
     char publicAddressBuffer[16] = {'\0'};
     unsigned short publicAddressPort = loadBufferWithSocketInfo(publicAddressBuffer, node.getPublicSocket());
     
-    //char localAddressBuffer[16] = {'\0'};
-    //unsigned short localAddressPort = loadBufferWithSocketInfo(localAddressBuffer, node.localSocket);
+    char localAddressBuffer[16] = {'\0'};
+    unsigned short localAddressPort = loadBufferWithSocketInfo(localAddressBuffer, node.getLocalSocket());
     
     debug << "#" << node.getNodeID() << node.getTypeName() << node.getType();
     debug.nospace() << publicAddressBuffer << ":" << publicAddressPort;
+    debug.nospace() << " / " << localAddressBuffer << ":" << localAddressPort;
     return debug.nospace();
 }
