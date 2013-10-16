@@ -1094,27 +1094,60 @@ void MyAvatar::applyCollisionWithOtherAvatar(Avatar * otherAvatar, float deltaTi
     _velocity += bodyPushForce;
 }
 
+class SortedAvatar {
+public:
+    Avatar* avatar;
+    float distance;
+    glm::vec3 accumulatedCenter;
+};
+
+bool operator<(const SortedAvatar& s1, const SortedAvatar& s2) {
+    return s1.distance < s2.distance;
+}
+
 void MyAvatar::updateChatCircle(float deltaTime) {
-    // find the number of members, their center of mass, and the average up vector 
-    glm::vec3 center = _position;
-    glm::vec3 up = getWorldAlignedOrientation() * IDENTITY_UP;
-    int memberCount = 1;
+    // find all members and sort by distance
+    QVector<SortedAvatar> sortedAvatars;
     NodeList* nodeList = NodeList::getInstance();
-    const float MAX_CHAT_DISTANCE = 10.0f;
     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
         if (node->getLinkedData() && node->getType() == NODE_TYPE_AGENT) {
-            Avatar* otherAvatar = (Avatar*)node->getLinkedData();
-            if (glm::distance(_position, otherAvatar->getPosition()) < MAX_CHAT_DISTANCE) {
-                center += otherAvatar->getPosition();
-                up += otherAvatar->getWorldAlignedOrientation() * IDENTITY_UP;
-                memberCount++;
-            }
+            SortedAvatar sortedAvatar; 
+            sortedAvatar.avatar = (Avatar*)node->getLinkedData();
+            sortedAvatar.distance = glm::distance(_position, sortedAvatar.avatar->getPosition());
+            sortedAvatars.append(sortedAvatar);
         }
     }
-    if (memberCount == 1) {
+    qSort(sortedAvatars.begin(), sortedAvatars.end());
+
+    // compute the accumulated centers
+    glm::vec3 center = _position;
+    for (int i = 0; i < sortedAvatars.size(); i++) {
+        SortedAvatar& sortedAvatar = sortedAvatars[i];
+        sortedAvatar.accumulatedCenter = (center += sortedAvatar.avatar->getPosition()) / (i + 2.0f);
+    }
+
+    // remove members whose accumulated circles are too far away to influence us
+    const float CIRCUMFERENCE_PER_MEMBER = 2.0f;
+    const float CIRCLE_INFLUENCE_SCALE = 1.1f;
+    for (int i = sortedAvatars.size() - 1; i >= 0; i--) {
+        float radius = (CIRCUMFERENCE_PER_MEMBER * (i + 2)) / PI_TIMES_TWO;
+        if (glm::distance(_position, sortedAvatars[i].accumulatedCenter) > radius * CIRCLE_INFLUENCE_SCALE) {
+            sortedAvatars.remove(i);
+        } else {
+            break;
+        }
+    }
+    if (sortedAvatars.isEmpty()) {
         return;
     }
-    center /= memberCount;
+    center = sortedAvatars.last().accumulatedCenter;
+    float radius = (CIRCUMFERENCE_PER_MEMBER * (sortedAvatars.size() + 1)) / PI_TIMES_TWO;
+    
+    // compute the average up vector
+    glm::vec3 up = getWorldAlignedOrientation() * IDENTITY_UP;
+    foreach (const SortedAvatar& sortedAvatar, sortedAvatars) {
+        up += sortedAvatar.avatar->getWorldAlignedOrientation() * IDENTITY_UP;
+    }
     up = glm::normalize(up);
     
     // find reasonable corresponding right/front vectors
@@ -1131,28 +1164,19 @@ void MyAvatar::updateChatCircle(float deltaTime) {
     float myAngle = glm::length(projected) > EPSILON ? atan2f(projected.y, projected.x) : 0.0f;
     float leftDistance = PIf;
     float rightDistance = PIf;
-    for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
-        if (node->getLinkedData() && node->getType() == NODE_TYPE_AGENT) {
-            Avatar* otherAvatar = (Avatar*)node->getLinkedData();
-            if (glm::distance(_position, otherAvatar->getPosition()) < MAX_CHAT_DISTANCE) {
-                delta = otherAvatar->getPosition() - center;
-                projected = glm::vec3(glm::dot(right, delta), glm::dot(front, delta), 0.0f);
-                float angle = glm::length(projected) > EPSILON ? atan2f(projected.y, projected.x) : 0.0f;
-                if (angle < myAngle) {
-                    leftDistance = min(myAngle - angle, leftDistance);
-                    rightDistance = min(PI_TIMES_TWO - (myAngle - angle), rightDistance);
-                    
-                } else {
-                    leftDistance = min(PI_TIMES_TWO - (angle - myAngle), leftDistance);
-                    rightDistance = min(angle - myAngle, rightDistance);
-                }
-            }
+    foreach (const SortedAvatar& sortedAvatar, sortedAvatars) {
+        delta = sortedAvatar.avatar->getPosition() - center;
+        projected = glm::vec3(glm::dot(right, delta), glm::dot(front, delta), 0.0f);
+        float angle = glm::length(projected) > EPSILON ? atan2f(projected.y, projected.x) : 0.0f;
+        if (angle < myAngle) {
+            leftDistance = min(myAngle - angle, leftDistance);
+            rightDistance = min(PI_TIMES_TWO - (myAngle - angle), rightDistance);
+            
+        } else {
+            leftDistance = min(PI_TIMES_TWO - (angle - myAngle), leftDistance);
+            rightDistance = min(angle - myAngle, rightDistance);
         }
     }
-    
-    // determine the chat circle radius 
-    const float CIRCUMFERENCE_PER_MEMBER = 2.0f;
-    float radius = (CIRCUMFERENCE_PER_MEMBER * memberCount) / PI_TIMES_TWO;
     
     // split the difference between our neighbors
     float targetAngle = myAngle + (rightDistance - leftDistance) / 2.0f;
@@ -1164,7 +1188,7 @@ void MyAvatar::updateChatCircle(float deltaTime) {
     targetOrientation = rotationBetween(targetOrientation * IDENTITY_UP, up) * targetOrientation;
     
     // approach the target position/orientation
-    const float APPROACH_RATE = 0.1f;
+    const float APPROACH_RATE = 0.05f;
     _position = glm::mix(_position, targetPosition, APPROACH_RATE);
     setOrientation(safeMix(orientation, targetOrientation, APPROACH_RATE));
 }
