@@ -37,6 +37,9 @@ public:
     /// the second, a set of random unit vectors to be used as noise gradients.
     GLuint getPermutationNormalTextureID();
 
+    /// Returns the ID of an opaque white texture (useful for a default).
+    GLuint getWhiteTextureID();
+
     /// Returns the ID of a texture containing the contents of the specified file, loading it if necessary. 
     GLuint getFileTextureID(const QString& filename);
 
@@ -65,11 +68,13 @@ private:
     QOpenGLFramebufferObject* createFramebufferObject();
     
     GLuint _permutationNormalTextureID;
-
+    GLuint _whiteTextureID;
+    
     QHash<QString, GLuint> _fileTextureIDs;
 
     QHash<QUrl, QWeakPointer<NetworkTexture> > _networkTextures;
-
+    QHash<QUrl, QWeakPointer<NetworkTexture> > _dilatableNetworkTextures;
+    
     GLuint _primaryDepthTextureID;
     QOpenGLFramebufferObject* _primaryFramebufferObject;
     QOpenGLFramebufferObject* _secondaryFramebufferObject;
