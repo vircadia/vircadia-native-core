@@ -72,7 +72,9 @@ NodeList::NodeList(char newOwnerType, unsigned short int newSocketListenPort) :
     _numNoReplyDomainCheckIns(0),
     _assignmentServerSocket(NULL),
     _checkInPacket(NULL),
-    _numBytesCheckInPacket(0)
+    _numBytesCheckInPacket(0),
+    _publicAddress(),
+    _publicPort(0)
 {
     
 }
@@ -151,6 +153,12 @@ void NodeList::processNodeData(sockaddr* senderAddress, unsigned char* packetDat
         }
         case PACKET_TYPE_PING_REPLY: {
             timePingReply(senderAddress, packetData);
+            break;
+        }
+        case PACKET_TYPE_STUN_RESPONSE: {
+            // a STUN packet begins with 00, we've checked the second zero with packetVersionMatch
+            // pass it along so it can be processed into our public address and port
+            processSTUNResponse(packetData, dataBytes);
             break;
         }
     }
@@ -298,6 +306,100 @@ void NodeList::setNodeTypesOfInterest(const char* nodeTypesOfInterest, int numNo
     _nodeTypesOfInterest[numNodeTypesOfInterest] = '\0';
 }
 
+const uint32_t RFC_5389_MAGIC_COOKIE_NETWORK_ORDER = htonl(0x2112A442);
+const int NUM_BYTES_STUN_HEADER = 20;
+
+void NodeList::sendSTUNRequest() {
+    const char STUN_SERVER_HOSTNAME[] = "root.highfidelity.io";
+    const unsigned short STUN_SERVER_PORT = 3478;
+    
+    unsigned char stunRequestPacket[NUM_BYTES_STUN_HEADER];
+    
+    int packetIndex = 0;
+
+    // leading zeros + message type
+    const uint16_t REQUEST_MESSAGE_TYPE = htons(0x0001);
+    memcpy(stunRequestPacket + packetIndex, &REQUEST_MESSAGE_TYPE, sizeof(REQUEST_MESSAGE_TYPE));
+    packetIndex += sizeof(REQUEST_MESSAGE_TYPE);
+    
+    // message length (no additional attributes are included)
+    uint16_t messageLength = 0;
+    memcpy(stunRequestPacket + packetIndex, &messageLength, sizeof(messageLength));
+    packetIndex += sizeof(messageLength);
+    
+    memcpy(stunRequestPacket + packetIndex, &RFC_5389_MAGIC_COOKIE_NETWORK_ORDER, sizeof(RFC_5389_MAGIC_COOKIE_NETWORK_ORDER));
+    packetIndex += sizeof(RFC_5389_MAGIC_COOKIE_NETWORK_ORDER);
+    
+    // transaction ID (random 12-byte unsigned integer)
+    const uint NUM_TRANSACTION_ID_BYTES = 12;
+    unsigned char transactionID[NUM_TRANSACTION_ID_BYTES];
+    loadRandomIdentifier(transactionID, NUM_TRANSACTION_ID_BYTES);
+    memcpy(stunRequestPacket + packetIndex, &transactionID, sizeof(transactionID));
+    
+    // lookup the IP for the STUN server
+    static QHostInfo stunInfo = QHostInfo::fromName(STUN_SERVER_HOSTNAME);
+    
+    for (int i = 0; i < stunInfo.addresses().size(); i++) {
+        if (stunInfo.addresses()[i].protocol() == QAbstractSocket::IPv4Protocol) {
+            QString stunIPAddress = stunInfo.addresses()[i].toString();
+            
+            qDebug("Sending a stun request to %s\n", stunIPAddress.toLocal8Bit().constData());
+            
+            _nodeSocket.send(stunIPAddress.toLocal8Bit().constData(),
+                             STUN_SERVER_PORT,
+                             stunRequestPacket,
+                             sizeof(stunRequestPacket));
+            
+            break;
+        }
+    }
+}
+
+void NodeList::processSTUNResponse(unsigned char* packetData, size_t dataBytes) {
+    // check the cookie to make sure this is actually a STUN response
+    // and read the first attribute and make sure it is a XOR_MAPPED_ADDRESS
+    const int NUM_BYTES_MESSAGE_TYPE_AND_LENGTH = 4;
+    const uint16_t XOR_MAPPED_ADDRESS_TYPE = htons(0x0020);
+    
+    if (memcmp(packetData + NUM_BYTES_MESSAGE_TYPE_AND_LENGTH,
+               &RFC_5389_MAGIC_COOKIE_NETWORK_ORDER,
+               sizeof(RFC_5389_MAGIC_COOKIE_NETWORK_ORDER)) == 0
+        && memcmp(packetData + NUM_BYTES_STUN_HEADER, &XOR_MAPPED_ADDRESS_TYPE, sizeof(XOR_MAPPED_ADDRESS_TYPE)) == 0) {
+        
+        const int NUM_BYTES_STUN_ATTR_TYPE_AND_LENGTH = 4;
+        const int NUM_BYTES_FAMILY_ALIGN = 1;
+        const uint8_t IPV4_FAMILY_NETWORK_ORDER = htons(0x01) >> 8;
+        
+        int byteIndex = NUM_BYTES_STUN_HEADER + NUM_BYTES_STUN_ATTR_TYPE_AND_LENGTH + NUM_BYTES_FAMILY_ALIGN;
+        
+        uint8_t addressFamily = 0;
+        memcpy(&addressFamily, packetData + byteIndex, sizeof(addressFamily));
+        
+        byteIndex += sizeof(addressFamily);
+        
+        if (addressFamily == IPV4_FAMILY_NETWORK_ORDER) {
+            // grab the X-Port
+            uint16_t xorMappedPort = 0;
+            memcpy(&xorMappedPort, packetData + byteIndex, sizeof(xorMappedPort));
+            
+            _publicPort = ntohs(xorMappedPort) ^ (ntohl(RFC_5389_MAGIC_COOKIE_NETWORK_ORDER) >> 16);
+            
+            byteIndex += sizeof(xorMappedPort);
+            
+            // grab the X-Address
+            uint32_t xorMappedAddress = 0;
+            memcpy(&xorMappedAddress, packetData + byteIndex, sizeof(xorMappedAddress));
+            
+            uint32_t stunAddress = ntohl(xorMappedAddress) ^ ntohl(RFC_5389_MAGIC_COOKIE_NETWORK_ORDER);
+            _publicAddress = QHostAddress(stunAddress);
+            
+            qDebug("Public socket received from STUN server is %s:%hu\n",
+                   _publicAddress.toString().toLocal8Bit().constData(),
+                   _publicPort);
+        }
+    }
+}
+
 void NodeList::sendDomainServerCheckIn(const char* assignmentUUID) {
     static bool printedDomainServerIP = false;
     
@@ -329,56 +431,62 @@ void NodeList::sendDomainServerCheckIn(const char* assignmentUUID) {
         printedDomainServerIP = true;
     }
     
-    // construct the DS check in packet if we need to    
-    if (!_checkInPacket) {
-        int numBytesNodesOfInterest = _nodeTypesOfInterest ? strlen((char*) _nodeTypesOfInterest) : 0;
-        
-        const int IP_ADDRESS_BYTES = 4;
-        
-        // check in packet has header, optional UUID, node type, port, IP, node types of interest, null termination
-        int numPacketBytes = sizeof(PACKET_TYPE) + sizeof(PACKET_VERSION) + sizeof(NODE_TYPE) +
+    if (_publicAddress.isNull()) {
+        // we don't know our public socket and we need to send it to the domain server
+        // send a STUN request to figure it out
+        sendSTUNRequest();
+    } else {
+        // construct the DS check in packet if we need to
+        if (!_checkInPacket) {
+            int numBytesNodesOfInterest = _nodeTypesOfInterest ? strlen((char*) _nodeTypesOfInterest) : 0;
+            
+            const int IP_ADDRESS_BYTES = 4;
+            
+            // check in packet has header, optional UUID, node type, port, IP, node types of interest, null termination
+            int numPacketBytes = sizeof(PACKET_TYPE) + sizeof(PACKET_VERSION) + sizeof(NODE_TYPE) +
             NUM_BYTES_RFC4122_UUID + sizeof(uint16_t) + IP_ADDRESS_BYTES + numBytesNodesOfInterest + sizeof(unsigned char);
-        
-        _checkInPacket = new unsigned char[numPacketBytes];
-        unsigned char* packetPosition = _checkInPacket;
-        
-        PACKET_TYPE nodePacketType = (memchr(SOLO_NODE_TYPES, _ownerType, sizeof(SOLO_NODE_TYPES)))
-            ? PACKET_TYPE_DOMAIN_REPORT_FOR_DUTY
-            : PACKET_TYPE_DOMAIN_LIST_REQUEST;
-        
-        int numHeaderBytes = populateTypeAndVersion(packetPosition, nodePacketType);
-        packetPosition += numHeaderBytes;
-        
-        *(packetPosition++) = _ownerType;
-        
-        if (assignmentUUID) {
-            // if we've got an assignment UUID to send add that here
-            memcpy(packetPosition, assignmentUUID, NUM_BYTES_RFC4122_UUID);
-            packetPosition += NUM_BYTES_RFC4122_UUID;
+            
+            _checkInPacket = new unsigned char[numPacketBytes];
+            unsigned char* packetPosition = _checkInPacket;
+            
+            PACKET_TYPE nodePacketType = (memchr(SOLO_NODE_TYPES, _ownerType, sizeof(SOLO_NODE_TYPES)))
+                ? PACKET_TYPE_DOMAIN_REPORT_FOR_DUTY
+                : PACKET_TYPE_DOMAIN_LIST_REQUEST;
+            
+            int numHeaderBytes = populateTypeAndVersion(packetPosition, nodePacketType);
+            packetPosition += numHeaderBytes;
+            
+            *(packetPosition++) = _ownerType;
+            
+            if (assignmentUUID) {
+                // if we've got an assignment UUID to send add that here
+                memcpy(packetPosition, assignmentUUID, NUM_BYTES_RFC4122_UUID);
+                packetPosition += NUM_BYTES_RFC4122_UUID;
+            }
+            
+            packetPosition += packSocket(_checkInPacket + (packetPosition - _checkInPacket),
+                                         getLocalAddress(),
+                                         htons(_nodeSocket.getListeningPort()));
+            
+            // add the number of bytes for node types of interest
+            *(packetPosition++) = numBytesNodesOfInterest;
+            
+            // copy over the bytes for node types of interest, if required
+            if (numBytesNodesOfInterest > 0) {
+                memcpy(packetPosition,
+                       _nodeTypesOfInterest,
+                       numBytesNodesOfInterest);
+                packetPosition += numBytesNodesOfInterest;
+            }
+            
+            _numBytesCheckInPacket = packetPosition - _checkInPacket;
         }
         
-        packetPosition += packSocket(_checkInPacket + (packetPosition - _checkInPacket),
-                                     getLocalAddress(),
-                                     htons(_nodeSocket.getListeningPort()));
+        _nodeSocket.send(_domainIP.toString().toLocal8Bit().constData(), _domainPort, _checkInPacket, _numBytesCheckInPacket);
         
-        // add the number of bytes for node types of interest
-        *(packetPosition++) = numBytesNodesOfInterest;
-                
-        // copy over the bytes for node types of interest, if required
-        if (numBytesNodesOfInterest > 0) {
-            memcpy(packetPosition,
-                   _nodeTypesOfInterest,
-                   numBytesNodesOfInterest);
-            packetPosition += numBytesNodesOfInterest;
-        }
-        
-        _numBytesCheckInPacket = packetPosition - _checkInPacket;
+        // increment the count of un-replied check-ins
+        _numNoReplyDomainCheckIns++;
     }
-    
-    _nodeSocket.send(_domainIP.toString().toLocal8Bit().constData(), _domainPort, _checkInPacket, _numBytesCheckInPacket);
-    
-    // increment the count of un-replied check-ins
-    _numNoReplyDomainCheckIns++;
 }
 
 int NodeList::processDomainServerList(unsigned char* packetData, size_t dataBytes) {

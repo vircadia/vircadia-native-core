@@ -38,7 +38,7 @@ PACKET_VERSION versionForPacketType(PACKET_TYPE type) {
 bool packetVersionMatch(unsigned char* packetHeader) {
     // currently this just checks if the version in the packet matches our return from versionForPacketType
     // may need to be expanded in the future for types and versions that take > than 1 byte
-    if (packetHeader[1] == versionForPacketType(packetHeader[0])) {
+    if (packetHeader[1] == versionForPacketType(packetHeader[0]) || packetHeader[0] == PACKET_TYPE_STUN_RESPONSE) {
         return true;
     } else {
         qDebug("There is a packet version mismatch for packet with header %c\n", packetHeader[0]);

@@ -153,6 +153,9 @@ private:
     
     void addNodeToList(Node* newNode);
     
+    void sendSTUNRequest();
+    void processSTUNResponse(unsigned char* packetData, size_t dataBytes);
+    
     QString _domainHostname;
     QHostAddress _domainIP;
     unsigned short _domainPort;
@@ -169,6 +172,8 @@ private:
     sockaddr* _assignmentServerSocket;
     uchar* _checkInPacket;
     int _numBytesCheckInPacket;
+    QHostAddress _publicAddress;
+    uint16_t _publicPort;
     
     void handlePingReply(sockaddr *nodeAddress);
     void timePingReply(sockaddr *nodeAddress, unsigned char *packetData);
