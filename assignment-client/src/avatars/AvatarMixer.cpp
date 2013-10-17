@@ -14,6 +14,7 @@
 #include <NodeList.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
+#include <UUID.h>
 
 #include "AvatarData.h"
 
@@ -22,7 +23,9 @@
 const char AVATAR_MIXER_LOGGING_NAME[] = "avatar-mixer";
 
 unsigned char* addNodeToBroadcastPacket(unsigned char *currentPosition, Node *nodeToAdd) {
-    currentPosition += packNodeId(currentPosition, nodeToAdd->getNodeID());
+    QByteArray rfcUUID = nodeToAdd->getUUID().toRfc4122();
+    memcpy(currentPosition, rfcUUID.constData(), rfcUUID.size());
+    currentPosition += rfcUUID.size();
     
     AvatarData *nodeData = (AvatarData *)nodeToAdd->getLinkedData();
     currentPosition += nodeData->getBroadcastData(currentPosition);
@@ -43,7 +46,7 @@ void attachAvatarDataToNode(Node* newNode) {
 //    3) if we need to rate limit the amount of data we send, we can use a distance weighted "semi-random" function to
 //       determine which avatars are included in the packet stream
 //    4) we should optimize the avatar data format to be more compact (100 bytes is pretty wasteful).
-void broadcastAvatarData(NodeList* nodeList, sockaddr* nodeAddress) {
+void broadcastAvatarData(NodeList* nodeList, const QUuid& receiverUUID, sockaddr* receiverAddress) {
     static unsigned char broadcastPacketBuffer[MAX_PACKET_SIZE];
     static unsigned char avatarDataBuffer[MAX_PACKET_SIZE];
     unsigned char* broadcastPacket = (unsigned char*)&broadcastPacketBuffer[0];
@@ -54,7 +57,7 @@ void broadcastAvatarData(NodeList* nodeList, sockaddr* nodeAddress) {
     
     // send back a packet with other active node data to this node
     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
-        if (node->getLinkedData() && !socketMatch(nodeAddress, node->getActiveSocket())) {
+        if (node->getLinkedData() && node->getUUID() != receiverUUID) {
             unsigned char* avatarDataEndpoint = addNodeToBroadcastPacket((unsigned char*)&avatarDataBuffer[0], &*node);
             int avatarDataLength = avatarDataEndpoint - (unsigned char*)&avatarDataBuffer;
             
@@ -65,7 +68,7 @@ void broadcastAvatarData(NodeList* nodeList, sockaddr* nodeAddress) {
             } else {
                 packetsSent++;
                 //printf("packetsSent=%d packetLength=%d\n", packetsSent, packetLength);
-                nodeList->getNodeSocket()->send(nodeAddress, broadcastPacket, currentBufferPosition - broadcastPacket);
+                nodeList->getNodeSocket()->send(receiverAddress, broadcastPacket, currentBufferPosition - broadcastPacket);
                 
                 // reset the packet
                 currentBufferPosition = broadcastPacket + numHeaderBytes;
@@ -80,7 +83,7 @@ void broadcastAvatarData(NodeList* nodeList, sockaddr* nodeAddress) {
     }
     packetsSent++;
     //printf("packetsSent=%d packetLength=%d\n", packetsSent, packetLength);
-    nodeList->getNodeSocket()->send(nodeAddress, broadcastPacket, currentBufferPosition - broadcastPacket);
+    nodeList->getNodeSocket()->send(receiverAddress, broadcastPacket, currentBufferPosition - broadcastPacket);
 }
 
 AvatarMixer::AvatarMixer(const unsigned char* dataBuffer, int numBytes) : Assignment(dataBuffer, numBytes) {
@@ -103,7 +106,7 @@ void AvatarMixer::run() {
     
     unsigned char* packetData = new unsigned char[MAX_PACKET_SIZE];
     
-    uint16_t nodeID = 0;
+    QUuid nodeUUID;
     Node* avatarNode = NULL;
     
     timeval lastDomainServerCheckIn = {};
@@ -117,32 +120,31 @@ void AvatarMixer::run() {
         // send a check in packet to the domain server if DOMAIN_SERVER_CHECK_IN_USECS has elapsed
         if (usecTimestampNow() - usecTimestamp(&lastDomainServerCheckIn) >= DOMAIN_SERVER_CHECK_IN_USECS) {
             gettimeofday(&lastDomainServerCheckIn, NULL);
-            NodeList::getInstance()->sendDomainServerCheckIn(_uuid.toRfc4122().constData());
+            NodeList::getInstance()->sendDomainServerCheckIn();
         }
         
         if (nodeList->getNodeSocket()->receive(&nodeAddress, packetData, &receivedBytes) &&
             packetVersionMatch(packetData)) {
             switch (packetData[0]) {
                 case PACKET_TYPE_HEAD_DATA:
-                    // grab the node ID from the packet
-                    unpackNodeId(packetData + numBytesForPacketHeader(packetData), &nodeID);
+                    nodeUUID = QUuid::fromRfc4122(QByteArray((char*) packetData + numBytesForPacketHeader(packetData),
+                                                                   NUM_BYTES_RFC4122_UUID));
                     
                     // add or update the node in our list
-                    avatarNode = nodeList->addOrUpdateNode(&nodeAddress, &nodeAddress, NODE_TYPE_AGENT, nodeID);
+                    avatarNode = nodeList->addOrUpdateNode(nodeUUID, NODE_TYPE_AGENT, &nodeAddress, &nodeAddress);
                     
                     // parse positional data from an node
                     nodeList->updateNodeWithData(avatarNode, packetData, receivedBytes);
                 case PACKET_TYPE_INJECT_AUDIO:
-                    broadcastAvatarData(nodeList, &nodeAddress);
+                    broadcastAvatarData(nodeList, nodeUUID, &nodeAddress);
                     break;
                 case PACKET_TYPE_AVATAR_URLS:
                 case PACKET_TYPE_AVATAR_FACE_VIDEO:
-                    // grab the node ID from the packet
-                    unpackNodeId(packetData + numBytesForPacketHeader(packetData), &nodeID);
-                    
+                    nodeUUID = QUuid::fromRfc4122(QByteArray((char*) packetData + numBytesForPacketHeader(packetData),
+                                                             NUM_BYTES_RFC4122_UUID));
                     // let everyone else know about the update
                     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
-                        if (node->getActiveSocket() && node->getNodeID() != nodeID) {
+                        if (node->getActiveSocket() && node->getUUID() != nodeUUID) {
                             nodeList->getNodeSocket()->send(node->getActiveSocket(), packetData, receivedBytes);
                         }
                     }

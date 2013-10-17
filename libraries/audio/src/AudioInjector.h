@@ -19,8 +19,6 @@
 
 #include "AudioRingBuffer.h"
 
-const int STREAM_IDENTIFIER_NUM_BYTES = 8;
-
 const int MAX_INJECTOR_VOLUME = 0xFF;
 
 const int INJECT_INTERVAL_USECS = floorf((BUFFER_LENGTH_SAMPLES_PER_CHANNEL / SAMPLE_RATE) * 1000000);
@@ -51,13 +49,16 @@ public:
     float getRadius() const { return _radius; }
     void setRadius(float radius) { _radius = radius; }
     
+    bool hasSamplesToInject() const { return _indexOfNextSlot > 0; }
+    
     void addSample(const int16_t sample);
     void addSamples(int16_t* sampleBuffer, int numSamples);
+    
+    void clear();
 public slots:
     int16_t& sampleAt(const int index);
     void insertSample(const int index, int sample);
 private:
-    unsigned char _streamIdentifier[STREAM_IDENTIFIER_NUM_BYTES];
     int16_t* _audioSampleArray;
     int _numTotalSamples;
     glm::vec3 _position;

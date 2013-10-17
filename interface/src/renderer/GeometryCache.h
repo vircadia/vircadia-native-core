@@ -80,6 +80,14 @@ private:
     QVector<NetworkMesh> _meshes;
 };
 
+/// The state associated with a single mesh part.
+class NetworkMeshPart {
+public:
+    
+    QSharedPointer<NetworkTexture> diffuseTexture;
+    QSharedPointer<NetworkTexture> normalTexture;
+};
+
 /// The state associated with a single mesh.
 class NetworkMesh {
 public:
@@ -87,8 +95,7 @@ public:
     GLuint indexBufferID;
     GLuint vertexBufferID;
     
-    QSharedPointer<NetworkTexture> diffuseTexture;
-    QSharedPointer<NetworkTexture> normalTexture;
+    QVector<NetworkMeshPart> parts;
 };
 
 #endif /* defined(__interface__GeometryCache__) */

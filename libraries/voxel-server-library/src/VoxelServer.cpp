@@ -11,8 +11,9 @@
 #include <cstring>
 #include <cstdio>
 
-#include <QDebug>
-#include <QString>
+#include <QtCore/QDebug>
+#include <QtCore/QString>
+#include <QtCore/QUuid>
 
 #include <Logging.h>
 #include <OctalCode.h>
@@ -25,6 +26,7 @@
 #include <SceneUtils.h>
 #include <PerfStat.h>
 #include <JurisdictionSender.h>
+#include <UUID.h>
 
 #ifdef _WIN32
 #include "Syssocket.h"
@@ -47,6 +49,8 @@ void attachVoxelNodeDataToNode(Node* newNode) {
     }
 }
 
+VoxelServer* VoxelServer::_theInstance = NULL;
+
 VoxelServer::VoxelServer(Assignment::Command command, Assignment::Location location) :
     Assignment(command, Assignment::VoxelServerType, location),
     _serverTree(true) {
@@ -68,7 +72,10 @@ VoxelServer::VoxelServer(Assignment::Command command, Assignment::Location locat
     _voxelServerPacketProcessor = NULL;
     _voxelPersistThread = NULL;
     _parsedArgV = NULL;
+    
+    _theInstance = this;
 }
+
 
 VoxelServer::VoxelServer(const unsigned char* dataBuffer, int numBytes) : Assignment(dataBuffer, numBytes),
     _serverTree(true) {
@@ -90,6 +97,8 @@ VoxelServer::VoxelServer(const unsigned char* dataBuffer, int numBytes) : Assign
     _voxelServerPacketProcessor = NULL;
     _voxelPersistThread = NULL;
     _parsedArgV = NULL;
+
+    _theInstance = this;
 }
 
 VoxelServer::~VoxelServer() {
@@ -100,6 +109,111 @@ VoxelServer::~VoxelServer() {
         delete[] _parsedArgV;
     }
 }
+
+void VoxelServer::initMongoose(int port) {
+    // setup the mongoose web server
+    struct mg_callbacks callbacks = {};
+
+    QString documentRoot = QString("%1/resources/web").arg(QCoreApplication::applicationDirPath());
+    QString listenPort = QString("%1").arg(port);
+    
+
+    // list of options. Last element must be NULL.
+    const char* options[] = {
+        "listening_ports", listenPort.toLocal8Bit().constData(), 
+        "document_root", documentRoot.toLocal8Bit().constData(), 
+        NULL };
+
+    callbacks.begin_request = civetwebRequestHandler;
+
+    // Start the web server.
+    mg_start(&callbacks, NULL, options);
+}
+
+int VoxelServer::civetwebRequestHandler(struct mg_connection* connection) {
+    const struct mg_request_info* ri = mg_get_request_info(connection);
+    
+    if (strcmp(ri->uri, "/") == 0 && strcmp(ri->request_method, "GET") == 0) {
+        // return a 200
+        mg_printf(connection, "%s", "HTTP/1.0 200 OK\r\n\r\n");
+        mg_printf(connection, "%s", "Your Voxel Server is running.\r\n");
+        mg_printf(connection, "%s", "Current Statistics\r\n");
+        mg_printf(connection, "%s", "\r\n");
+        mg_printf(connection, "Voxel Node Memory Usage:         %8.2f MB\r\n", VoxelNode::getVoxelMemoryUsage() / 1000000.f);
+        mg_printf(connection, "Octcode Memory Usage:            %8.2f MB\r\n", VoxelNode::getOctcodeMemoryUsage() / 1000000.f);
+        mg_printf(connection, "External Children Memory Usage:  %8.2f MB\r\n", 
+            VoxelNode::getExternalChildrenMemoryUsage() / 1000000.f);
+        mg_printf(connection, "%s", "                                 -----------\r\n");
+        mg_printf(connection, "                         Total:  %8.2f MB\r\n", VoxelNode::getTotalMemoryUsage() / 1000000.f);
+
+        unsigned long nodeCount = VoxelNode::getNodeCount();
+        unsigned long internalNodeCount = VoxelNode::getInternalNodeCount();
+        unsigned long leafNodeCount = VoxelNode::getLeafNodeCount();
+
+        const float AS_PERCENT = 100.0;
+
+        mg_printf(connection, "%s", "\r\n");
+        mg_printf(connection, "%s", "Current Nodes in scene\r\n");
+        mg_printf(connection, "       Total Nodes: %10.lu nodes\r\n", nodeCount);
+        mg_printf(connection, "    Internal Nodes: %10.lu nodes (%5.2f%%)\r\n", 
+            internalNodeCount, ((float)internalNodeCount/(float)nodeCount) * AS_PERCENT);
+        mg_printf(connection, "        Leaf Nodes: %10.lu nodes (%5.2f%%)\r\n", 
+            leafNodeCount, ((float)leafNodeCount/(float)nodeCount) * AS_PERCENT);
+
+        mg_printf(connection, "%s", "\r\n");
+        mg_printf(connection, "%s", "VoxelNode Children Encoding Statistics...\r\n");
+        mg_printf(connection, "    Single or No Children:      %10.llu nodes (%5.2f%%)\r\n", 
+            VoxelNode::getSingleChildrenCount(), ((float)VoxelNode::getSingleChildrenCount()/(float)nodeCount) * AS_PERCENT);
+        mg_printf(connection, "    Two Children as Offset:     %10.llu nodes (%5.2f%%)\r\n", 
+            VoxelNode::getTwoChildrenOffsetCount(), 
+            ((float)VoxelNode::getTwoChildrenOffsetCount()/(float)nodeCount) * AS_PERCENT);
+        mg_printf(connection, "    Two Children as External:   %10.llu nodes (%5.2f%%)\r\n", 
+            VoxelNode::getTwoChildrenExternalCount(), 
+            ((float)VoxelNode::getTwoChildrenExternalCount()/(float)nodeCount) * AS_PERCENT);
+        mg_printf(connection, "    Three Children as Offset:   %10.llu nodes (%5.2f%%)\r\n", 
+            VoxelNode::getThreeChildrenOffsetCount(), 
+            ((float)VoxelNode::getThreeChildrenOffsetCount()/(float)nodeCount) * AS_PERCENT);
+        mg_printf(connection, "    Three Children as External: %10.llu nodes (%5.2f%%)\r\n", 
+            VoxelNode::getThreeChildrenExternalCount(), 
+            ((float)VoxelNode::getThreeChildrenExternalCount()/(float)nodeCount) * AS_PERCENT);
+        mg_printf(connection, "    Children as External Array: %10.llu nodes (%5.2f%%)\r\n", 
+            VoxelNode::getExternalChildrenCount(), 
+            ((float)VoxelNode::getExternalChildrenCount()/(float)nodeCount) * AS_PERCENT);
+
+        uint64_t checkSum = VoxelNode::getSingleChildrenCount() + 
+                            VoxelNode::getTwoChildrenOffsetCount() + VoxelNode::getTwoChildrenExternalCount() + 
+                            VoxelNode::getThreeChildrenOffsetCount() + VoxelNode::getThreeChildrenExternalCount() + 
+                            VoxelNode::getExternalChildrenCount();
+
+        mg_printf(connection, "%s", "                                ----------------\r\n");
+        mg_printf(connection, "                         Total: %10.llu nodes\r\n", checkSum);
+        mg_printf(connection, "                      Expected: %10.lu nodes\r\n", nodeCount);
+        
+        mg_printf(connection, "%s", "\r\n");
+        mg_printf(connection, "%s", "VoxelNode Children Population Statistics...\r\n");
+        checkSum = 0;
+        for (int i=0; i <= NUMBER_OF_CHILDREN; i++) {
+            checkSum += VoxelNode::getChildrenCount(i);
+            mg_printf(connection, "    Nodes with %d children:      %10.llu nodes (%5.2f%%)\r\n", i, 
+                VoxelNode::getChildrenCount(i), ((float)VoxelNode::getChildrenCount(i)/(float)nodeCount) * AS_PERCENT);
+        }
+        mg_printf(connection, "%s", "                                ----------------\r\n");
+        mg_printf(connection, "                    Total:      %10.llu nodes\r\n", checkSum);
+
+        mg_printf(connection, "%s", "\r\n");
+        mg_printf(connection, "%s", "In other news....\r\n");
+        mg_printf(connection, "could store 4 children internally:     %10.llu nodes\r\n",
+            VoxelNode::getCouldStoreFourChildrenInternally());
+        mg_printf(connection, "could NOT store 4 children internally: %10.llu nodes\r\n", 
+            VoxelNode::getCouldNotStoreFourChildrenInternally());
+
+        return 1;
+    } else {
+        // have mongoose process this request from the document_root
+        return 0;
+    }
+}
+
 
 void VoxelServer::setArguments(int argc, char** argv) {
     _argc = argc;
@@ -156,6 +270,14 @@ void VoxelServer::run() {
     pthread_mutex_init(&_treeLock, NULL);
     
     qInstallMessageHandler(Logging::verboseMessageHandler);
+    
+    const char* STATUS_PORT = "--statusPort";
+    const char* statusPort = getCmdOption(_argc, _argv, STATUS_PORT);
+    if (statusPort) {
+        int statusPortNumber = atoi(statusPort);
+        initMongoose(statusPortNumber);
+    }
+
     
     const char* JURISDICTION_FILE = "--jurisdictionFile";
     const char* jurisdictionFile = getCmdOption(_argc, _argv, JURISDICTION_FILE);
@@ -237,8 +359,7 @@ void VoxelServer::run() {
     }
     qDebug("wantVoxelPersist=%s\n", debug::valueOf(_wantVoxelPersist));
 
-    // if we want Voxel Persistence, load the local file now...
-    bool persistantFileRead = false;
+    // if we want Voxel Persistence, set up the local file and persist thread
     if (_wantVoxelPersist) {
 
         // Check to see if the user passed in a command line option for setting packet send rate
@@ -251,25 +372,8 @@ void VoxelServer::run() {
             strcpy(_voxelPersistFilename, LOCAL_VOXELS_PERSIST_FILE);
         }
 
-        qDebug("loading voxels from file: %s...\n", _voxelPersistFilename);
+        qDebug("voxelPersistFilename=%s\n", _voxelPersistFilename);
 
-        persistantFileRead = _serverTree.readFromSVOFile(_voxelPersistFilename);
-        if (persistantFileRead) {
-            PerformanceWarning warn(_shouldShowAnimationDebug,
-                                    "persistVoxelsWhenDirty() - reaverageVoxelColors()", _shouldShowAnimationDebug);
-            
-            // after done inserting all these voxels, then reaverage colors
-            _serverTree.reaverageVoxelColors(_serverTree.rootNode);
-            qDebug("Voxels reAveraged\n");
-        }
-        
-        _serverTree.clearDirtyBit(); // the tree is clean since we just loaded it
-        qDebug("DONE loading voxels from file... fileRead=%s\n", debug::valueOf(persistantFileRead));
-        unsigned long nodeCount         = _serverTree.rootNode->getSubTreeNodeCount();
-        unsigned long internalNodeCount = _serverTree.rootNode->getSubTreeInternalNodeCount();
-        unsigned long leafNodeCount     = _serverTree.rootNode->getSubTreeLeafNodeCount();
-        qDebug("Nodes after loading scene %lu nodes %lu internal %lu leaves\n", nodeCount, internalNodeCount, leafNodeCount);
-        
         // now set up VoxelPersistThread
         _voxelPersistThread = new VoxelPersistThread(&_serverTree, _voxelPersistFilename);
         if (_voxelPersistThread) {
@@ -314,6 +418,8 @@ void VoxelServer::run() {
     if (_voxelServerPacketProcessor) {
         _voxelServerPacketProcessor->initialize(true);
     }
+
+    qDebug("Now running...\n");
     
     // loop to send to nodes requesting data
     while (true) {
@@ -325,7 +431,7 @@ void VoxelServer::run() {
         // send a check in packet to the domain server if DOMAIN_SERVER_CHECK_IN_USECS has elapsed
         if (usecTimestampNow() - usecTimestamp(&lastDomainServerCheckIn) >= DOMAIN_SERVER_CHECK_IN_USECS) {
             gettimeofday(&lastDomainServerCheckIn, NULL);
-            NodeList::getInstance()->sendDomainServerCheckIn(_uuid.toRfc4122().constData());
+            NodeList::getInstance()->sendDomainServerCheckIn();
         }
         
         if (nodeList->getNodeSocket()->receive(&senderAddress, packetData, &packetLength) &&
@@ -336,12 +442,18 @@ void VoxelServer::run() {
             if (packetData[0] == PACKET_TYPE_HEAD_DATA) {
                 // If we got a PACKET_TYPE_HEAD_DATA, then we're talking to an NODE_TYPE_AVATAR, and we
                 // need to make sure we have it in our nodeList.
-                uint16_t nodeID = 0;
-                unpackNodeId(packetData + numBytesPacketHeader, &nodeID);
-                Node* node = NodeList::getInstance()->addOrUpdateNode(&senderAddress,
-                                                       &senderAddress,
-                                                       NODE_TYPE_AGENT,
-                                                       nodeID);
+                QUuid nodeUUID = QUuid::fromRfc4122(QByteArray((char*)packetData + numBytesPacketHeader,
+                                                               NUM_BYTES_RFC4122_UUID));
+                
+                Node* node = NodeList::getInstance()->addOrUpdateNode(nodeUUID,
+                                                                      NODE_TYPE_AGENT,
+                                                                      &senderAddress,
+                                                                      &senderAddress);
+                
+                // temp activation of public socket before server ping/reply is setup
+                if (!node->getActiveSocket()) {
+                    node->activatePublicSocket();
+                }
 
                 NodeList::getInstance()->updateNodeWithData(node, packetData, packetLength);
                 
@@ -350,8 +462,10 @@ void VoxelServer::run() {
                     nodeData->initializeVoxelSendThread(this);
                 }
                 
-            } else if (packetData[0] == PACKET_TYPE_PING) {
-                // If the packet is a ping, let processNodeData handle it.
+            } else if (packetData[0] == PACKET_TYPE_PING
+                       || packetData[0] == PACKET_TYPE_DOMAIN
+                       || packetData[0] == PACKET_TYPE_STUN_RESPONSE) {
+                // let processNodeData handle it.
                 NodeList::getInstance()->processNodeData(&senderAddress, packetData, packetLength);
             } else if (packetData[0] == PACKET_TYPE_DOMAIN) {
                 NodeList::getInstance()->processNodeData(&senderAddress, packetData, packetLength);

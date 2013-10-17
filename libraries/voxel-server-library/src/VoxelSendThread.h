@@ -21,13 +21,13 @@
 /// Threaded processor for sending voxel packets to a single client
 class VoxelSendThread : public virtual GenericThread {
 public:
-    VoxelSendThread(uint16_t nodeID, VoxelServer* myServer);
+    VoxelSendThread(const QUuid& nodeUUID, VoxelServer* myServer);
 protected:
     /// Implements generic processing behavior for this thread.
     virtual bool process();
 
 private:
-    uint16_t _nodeID;
+    QUuid _nodeUUID;
     VoxelServer* _myServer;
 
     void handlePacketSend(Node* node, VoxelNodeData* nodeData, int& trueBytesSent, int& truePacketsSent);

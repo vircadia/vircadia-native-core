@@ -68,13 +68,6 @@ public:
     // in which case 'true' is returned - otherwise the return value is 'false'.
     // The results of the analysis are written to the log.
     bool eventuallyAnalyzePing();
-
-    void setListenMode(AudioRingBuffer::ListenMode mode) { _listenMode = mode; }
-    void setListenRadius(float radius) { _listenRadius = radius; }
-    void addListenSource(int sourceID);
-    void removeListenSource(int sourceID);
-    void clearListenSources();
-
 private:
     
     PaStream* _stream;
@@ -116,10 +109,6 @@ private:
     GLuint _micTextureId;
     GLuint _muteTextureId;
     QRect _iconBounds;
-    
-    AudioRingBuffer::ListenMode _listenMode;
-    float                       _listenRadius;
-    std::vector<int>            _listenSources;
     
     // Audio callback in class context.
     inline void performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* outputRight);

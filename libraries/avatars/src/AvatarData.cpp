@@ -13,9 +13,10 @@
 #include <NodeList.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
+#include <UUID.h>
+#include <VoxelConstants.h>
 
 #include "AvatarData.h"
-#include <VoxelConstants.h>
 
 using namespace std;
 
@@ -29,7 +30,7 @@ AvatarData::AvatarData(Node* owningNode) :
     _bodyPitch(0.0),
     _bodyRoll(0.0),
     _newScale(1.0f),
-    _leaderID(UNKNOWN_NODE_ID),
+    _leaderUUID(),
     _handState(0),
     _cameraPosition(0,0,0),
     _cameraOrientation(),
@@ -51,22 +52,6 @@ AvatarData::AvatarData(Node* owningNode) :
 AvatarData::~AvatarData() {
     delete _headData;
     delete _handData;
-}
-
-void AvatarData::sendData() {
-    
-    // called from Agent visual loop to send data
-    if (Node* avatarMixer = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_AVATAR_MIXER)) {
-        unsigned char packet[MAX_PACKET_SIZE];
-        
-        unsigned char* endOfPacket = packet;
-        endOfPacket += populateTypeAndVersion(endOfPacket, PACKET_TYPE_HEAD_DATA);
-        endOfPacket += packNodeId(endOfPacket, NodeList::getInstance()->getOwnerID());
-        
-        int numPacketBytes = (endOfPacket - packet) + getBroadcastData(endOfPacket);
-        
-        NodeList::getInstance()->getNodeSocket()->send(avatarMixer->getActiveSocket(), packet, numPacketBytes);
-    }
 }
 
 int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
@@ -103,8 +88,8 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     destinationBuffer += packFloatRatioToTwoByte(destinationBuffer, _newScale);
     
     // Follow mode info
-    memcpy(destinationBuffer, &_leaderID, sizeof(uint16_t));
-    destinationBuffer += sizeof(uint16_t);
+    memcpy(destinationBuffer, _leaderUUID.toRfc4122().constData(), NUM_BYTES_RFC4122_UUID);
+    destinationBuffer += NUM_BYTES_RFC4122_UUID;
 
     // Head rotation (NOTE: This needs to become a quaternion to save two bytes)
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->_yaw);
@@ -220,11 +205,10 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     
     unsigned char* startPosition = sourceBuffer;
     
-    // push past the node ID
-    sourceBuffer += sizeof(uint16_t);
+    // push past the node session UUID
+    sourceBuffer += NUM_BYTES_RFC4122_UUID;
     
-    // UUID
-    const int NUM_BYTES_RFC4122_UUID = 16;
+    // user UUID
     _uuid = QUuid::fromRfc4122(QByteArray((char*) sourceBuffer, NUM_BYTES_RFC4122_UUID));
     sourceBuffer += NUM_BYTES_RFC4122_UUID;
     
@@ -241,8 +225,8 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     sourceBuffer += unpackFloatRatioFromTwoByte(sourceBuffer, _newScale);
 
     // Follow mode info
-    memcpy(&_leaderID, sourceBuffer, sizeof(uint16_t));
-    sourceBuffer += sizeof(uint16_t);
+    _leaderUUID = QUuid::fromRfc4122(QByteArray((char*) sourceBuffer, NUM_BYTES_RFC4122_UUID));
+    sourceBuffer += NUM_BYTES_RFC4122_UUID;
 
     // Head rotation (NOTE: This needs to become a quaternion to save two bytes)
     float headYaw, headPitch, headRoll;

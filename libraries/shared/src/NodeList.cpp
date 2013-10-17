@@ -20,6 +20,7 @@
 #include "NodeTypes.h"
 #include "PacketHeaders.h"
 #include "SharedUtil.h"
+#include "UUID.h"
 
 #ifdef _WIN32
 #include "Syssocket.h"
@@ -67,12 +68,14 @@ NodeList::NodeList(char newOwnerType, unsigned short int newSocketListenPort) :
     _nodeSocket(newSocketListenPort),
     _ownerType(newOwnerType),
     _nodeTypesOfInterest(NULL),
-    _ownerID(UNKNOWN_NODE_ID),
-    _lastNodeID(UNKNOWN_NODE_ID + 1),
+    _ownerUUID(QUuid::createUuid()),
     _numNoReplyDomainCheckIns(0),
     _assignmentServerSocket(NULL),
     _checkInPacket(NULL),
-    _numBytesCheckInPacket(0)
+    _numBytesCheckInPacket(0),
+    _publicAddress(),
+    _publicPort(0),
+    _shouldUseDomainServerAsSTUN(0)
 {
     
 }
@@ -115,8 +118,6 @@ void NodeList::setDomainHostname(const QString& domainHostname) {
         _domainIP.clear();
         notifyDomainChanged();
     }
-    
-    
 }
 
 void NodeList::timePingReply(sockaddr *nodeAddress, unsigned char *packetData) {
@@ -143,14 +144,23 @@ void NodeList::processNodeData(sockaddr* senderAddress, unsigned char* packetDat
             break;
         }
         case PACKET_TYPE_PING: {
-            char pingPacket[dataBytes];
-            memcpy(pingPacket, packetData, dataBytes);
-            populateTypeAndVersion((unsigned char*) pingPacket, PACKET_TYPE_PING_REPLY);
-            _nodeSocket.send(senderAddress, pingPacket, dataBytes);
+            // send it right back
+            populateTypeAndVersion(packetData, PACKET_TYPE_PING_REPLY);
+            _nodeSocket.send(senderAddress, packetData, dataBytes);
             break;
         }
         case PACKET_TYPE_PING_REPLY: {
+            // activate the appropriate socket for this node, if not yet updated
+            activateSocketFromPingReply(senderAddress);
+            
+            // set the ping time for this node for stat collection
             timePingReply(senderAddress, packetData);
+            break;
+        }
+        case PACKET_TYPE_STUN_RESPONSE: {
+            // a STUN packet begins with 00, we've checked the second zero with packetVersionMatch
+            // pass it along so it can be processed into our public address and port
+            processSTUNResponse(packetData, dataBytes);
             break;
         }
     }
@@ -174,19 +184,18 @@ void NodeList::processBulkNodeData(sockaddr *senderAddress, unsigned char *packe
         // we've already verified packet version for the bulk packet, so all head data in the packet is also up to date
         populateTypeAndVersion(packetHolder, PACKET_TYPE_HEAD_DATA);
         
-        uint16_t nodeID = -1;
-        
         while ((currentPosition - startPosition) < numTotalBytes) {
-            unpackNodeId(currentPosition, &nodeID);
+            
             memcpy(packetHolder + numBytesPacketHeader,
                    currentPosition,
                    numTotalBytes - (currentPosition - startPosition));
             
-            Node* matchingNode = nodeWithID(nodeID);
+            QUuid nodeUUID = QUuid::fromRfc4122(QByteArray((char*)currentPosition, NUM_BYTES_RFC4122_UUID));
+            Node* matchingNode = nodeWithUUID(nodeUUID);
             
             if (!matchingNode) {
                 // we're missing this node, we need to add it to the list
-                matchingNode = addOrUpdateNode(NULL, NULL, NODE_TYPE_AGENT, nodeID);
+                matchingNode = addOrUpdateNode(nodeUUID, NODE_TYPE_AGENT, NULL, NULL);
             }
             
             currentPosition += updateNodeWithData(matchingNode,
@@ -238,9 +247,9 @@ Node* NodeList::nodeWithAddress(sockaddr *senderAddress) {
     return NULL;
 }
 
-Node* NodeList::nodeWithID(uint16_t nodeID) {
+Node* NodeList::nodeWithUUID(const QUuid& nodeUUID) {
     for(NodeList::iterator node = begin(); node != end(); node++) {
-        if (node->getNodeID() == nodeID) {
+        if (node->getUUID() == nodeUUID) {
             return &(*node);
         }
     }
@@ -288,6 +297,9 @@ void NodeList::reset() {
     
     delete _nodeTypesOfInterest;
     _nodeTypesOfInterest = NULL;
+    
+    // refresh the owner UUID
+    _ownerUUID = QUuid::createUuid();
 }
 
 void NodeList::setNodeTypesOfInterest(const char* nodeTypesOfInterest, int numNodeTypesOfInterest) {
@@ -298,7 +310,137 @@ void NodeList::setNodeTypesOfInterest(const char* nodeTypesOfInterest, int numNo
     _nodeTypesOfInterest[numNodeTypesOfInterest] = '\0';
 }
 
-void NodeList::sendDomainServerCheckIn(const char* assignmentUUID) {
+const uint32_t RFC_5389_MAGIC_COOKIE = 0x2112A442;
+const int NUM_BYTES_STUN_HEADER = 20;
+const int NUM_STUN_REQUESTS_BEFORE_FALLBACK = 5;
+
+void NodeList::sendSTUNRequest() {
+    const char STUN_SERVER_HOSTNAME[] = "stun.highfidelity.io";
+    const unsigned short STUN_SERVER_PORT = 3478;
+    
+    static int failedStunRequests = 0;
+    
+    if (failedStunRequests < NUM_STUN_REQUESTS_BEFORE_FALLBACK) {
+        unsigned char stunRequestPacket[NUM_BYTES_STUN_HEADER];
+        
+        int packetIndex = 0;
+        
+        const uint32_t RFC_5389_MAGIC_COOKIE_NETWORK_ORDER = htonl(RFC_5389_MAGIC_COOKIE);
+        
+        // leading zeros + message type
+        const uint16_t REQUEST_MESSAGE_TYPE = htons(0x0001);
+        memcpy(stunRequestPacket + packetIndex, &REQUEST_MESSAGE_TYPE, sizeof(REQUEST_MESSAGE_TYPE));
+        packetIndex += sizeof(REQUEST_MESSAGE_TYPE);
+        
+        // message length (no additional attributes are included)
+        uint16_t messageLength = 0;
+        memcpy(stunRequestPacket + packetIndex, &messageLength, sizeof(messageLength));
+        packetIndex += sizeof(messageLength);
+        
+        memcpy(stunRequestPacket + packetIndex, &RFC_5389_MAGIC_COOKIE_NETWORK_ORDER, sizeof(RFC_5389_MAGIC_COOKIE_NETWORK_ORDER));
+        packetIndex += sizeof(RFC_5389_MAGIC_COOKIE_NETWORK_ORDER);
+        
+        // transaction ID (random 12-byte unsigned integer)
+        const uint NUM_TRANSACTION_ID_BYTES = 12;
+        unsigned char transactionID[NUM_TRANSACTION_ID_BYTES];
+        loadRandomIdentifier(transactionID, NUM_TRANSACTION_ID_BYTES);
+        memcpy(stunRequestPacket + packetIndex, &transactionID, sizeof(transactionID));
+        
+        // lookup the IP for the STUN server
+        static QHostInfo stunInfo = QHostInfo::fromName(STUN_SERVER_HOSTNAME);
+        
+        for (int i = 0; i < stunInfo.addresses().size(); i++) {
+            if (stunInfo.addresses()[i].protocol() == QAbstractSocket::IPv4Protocol) {
+                QString stunIPAddress = stunInfo.addresses()[i].toString();
+                
+                qDebug("Sending a stun request to %s\n", stunIPAddress.toLocal8Bit().constData());
+                
+                _nodeSocket.send(stunIPAddress.toLocal8Bit().constData(),
+                                 STUN_SERVER_PORT,
+                                 stunRequestPacket,
+                                 sizeof(stunRequestPacket));
+                
+                break;
+            }
+        }
+        
+        failedStunRequests++;
+        
+        return;
+    }
+    
+    // if we're here this was the last failed STUN request
+    // use our DS as our stun server
+    qDebug("Failed to lookup public address via STUN server at %s:%hu. Using DS for STUN.\n",
+           STUN_SERVER_HOSTNAME, STUN_SERVER_PORT);
+    _shouldUseDomainServerAsSTUN = true;
+}
+
+void NodeList::processSTUNResponse(unsigned char* packetData, size_t dataBytes) {
+    // check the cookie to make sure this is actually a STUN response
+    // and read the first attribute and make sure it is a XOR_MAPPED_ADDRESS
+    const int NUM_BYTES_MESSAGE_TYPE_AND_LENGTH = 4;
+    const uint16_t XOR_MAPPED_ADDRESS_TYPE = htons(0x0020);
+    
+    const uint32_t RFC_5389_MAGIC_COOKIE_NETWORK_ORDER = htonl(RFC_5389_MAGIC_COOKIE);
+    
+    int attributeStartIndex = NUM_BYTES_STUN_HEADER;
+    
+    if (memcmp(packetData + NUM_BYTES_MESSAGE_TYPE_AND_LENGTH,
+               &RFC_5389_MAGIC_COOKIE_NETWORK_ORDER,
+               sizeof(RFC_5389_MAGIC_COOKIE_NETWORK_ORDER)) == 0) {
+        
+        // enumerate the attributes to find XOR_MAPPED_ADDRESS_TYPE
+        while (attributeStartIndex < dataBytes) {
+            if (memcmp(packetData + attributeStartIndex, &XOR_MAPPED_ADDRESS_TYPE, sizeof(XOR_MAPPED_ADDRESS_TYPE)) == 0) {
+                const int NUM_BYTES_STUN_ATTR_TYPE_AND_LENGTH = 4;
+                const int NUM_BYTES_FAMILY_ALIGN = 1;
+                const uint8_t IPV4_FAMILY_NETWORK_ORDER = htons(0x01) >> 8;
+                
+                int byteIndex = attributeStartIndex +  NUM_BYTES_STUN_ATTR_TYPE_AND_LENGTH + NUM_BYTES_FAMILY_ALIGN;
+                
+                uint8_t addressFamily = 0;
+                memcpy(&addressFamily, packetData + byteIndex, sizeof(addressFamily));
+                
+                byteIndex += sizeof(addressFamily);
+                
+                if (addressFamily == IPV4_FAMILY_NETWORK_ORDER) {
+                    // grab the X-Port
+                    uint16_t xorMappedPort = 0;
+                    memcpy(&xorMappedPort, packetData + byteIndex, sizeof(xorMappedPort));
+                    
+                    _publicPort = ntohs(xorMappedPort) ^ (ntohl(RFC_5389_MAGIC_COOKIE_NETWORK_ORDER) >> 16);
+                    
+                    byteIndex += sizeof(xorMappedPort);
+                    
+                    // grab the X-Address
+                    uint32_t xorMappedAddress = 0;
+                    memcpy(&xorMappedAddress, packetData + byteIndex, sizeof(xorMappedAddress));
+                    
+                    uint32_t stunAddress = ntohl(xorMappedAddress) ^ ntohl(RFC_5389_MAGIC_COOKIE_NETWORK_ORDER);
+                    _publicAddress = QHostAddress(stunAddress);
+                    
+                    qDebug("Public socket received from STUN server is %s:%hu\n",
+                           _publicAddress.toString().toLocal8Bit().constData(),
+                           _publicPort);
+                    
+                    break;
+                }
+            } else {
+                // push forward attributeStartIndex by the length of this attribute
+                const int NUM_BYTES_ATTRIBUTE_TYPE = 2;
+                
+                uint16_t attributeLength = 0;
+                memcpy(&attributeLength, packetData + attributeStartIndex + NUM_BYTES_ATTRIBUTE_TYPE, sizeof(attributeLength));
+                attributeLength = ntohs(attributeLength);
+                
+                attributeStartIndex += NUM_BYTES_MESSAGE_TYPE_AND_LENGTH + attributeLength;
+            }
+        }
+    }
+}
+
+void NodeList::sendDomainServerCheckIn() {
     static bool printedDomainServerIP = false;
     
     //  Lookup the IP address of the domain server if we need to
@@ -329,56 +471,66 @@ void NodeList::sendDomainServerCheckIn(const char* assignmentUUID) {
         printedDomainServerIP = true;
     }
     
-    // construct the DS check in packet if we need to    
-    if (!_checkInPacket) {
-        int numBytesNodesOfInterest = _nodeTypesOfInterest ? strlen((char*) _nodeTypesOfInterest) : 0;
-        
-        const int IP_ADDRESS_BYTES = 4;
-        
-        // check in packet has header, optional UUID, node type, port, IP, node types of interest, null termination
-        int numPacketBytes = sizeof(PACKET_TYPE) + sizeof(PACKET_VERSION) + sizeof(NODE_TYPE) +
-            NUM_BYTES_RFC4122_UUID + sizeof(uint16_t) + IP_ADDRESS_BYTES + numBytesNodesOfInterest + sizeof(unsigned char);
-        
-        _checkInPacket = new unsigned char[numPacketBytes];
-        unsigned char* packetPosition = _checkInPacket;
-        
-        PACKET_TYPE nodePacketType = (memchr(SOLO_NODE_TYPES, _ownerType, sizeof(SOLO_NODE_TYPES)))
-            ? PACKET_TYPE_DOMAIN_REPORT_FOR_DUTY
-            : PACKET_TYPE_DOMAIN_LIST_REQUEST;
-        
-        int numHeaderBytes = populateTypeAndVersion(packetPosition, nodePacketType);
-        packetPosition += numHeaderBytes;
-        
-        *(packetPosition++) = _ownerType;
-        
-        if (assignmentUUID) {
-            // if we've got an assignment UUID to send add that here
-            memcpy(packetPosition, assignmentUUID, NUM_BYTES_RFC4122_UUID);
-            packetPosition += NUM_BYTES_RFC4122_UUID;
+    if (_publicAddress.isNull() && !_shouldUseDomainServerAsSTUN) {
+        // we don't know our public socket and we need to send it to the domain server
+        // send a STUN request to figure it out
+        sendSTUNRequest();
+    } else {
+        // construct the DS check in packet if we need to
+        if (!_checkInPacket) {
+            int numBytesNodesOfInterest = _nodeTypesOfInterest ? strlen((char*) _nodeTypesOfInterest) : 0;
+            
+            const int IP_ADDRESS_BYTES = 4;
+            
+            // check in packet has header, optional UUID, node type, port, IP, node types of interest, null termination
+            int numPacketBytes = sizeof(PACKET_TYPE) + sizeof(PACKET_VERSION) + sizeof(NODE_TYPE) +
+                NUM_BYTES_RFC4122_UUID + (2 * (sizeof(uint16_t) + IP_ADDRESS_BYTES)) +
+                numBytesNodesOfInterest + sizeof(unsigned char);
+            
+            _checkInPacket = new unsigned char[numPacketBytes];
+            unsigned char* packetPosition = _checkInPacket;
+            
+            PACKET_TYPE nodePacketType = (memchr(SOLO_NODE_TYPES, _ownerType, sizeof(SOLO_NODE_TYPES)))
+                ? PACKET_TYPE_DOMAIN_REPORT_FOR_DUTY
+                : PACKET_TYPE_DOMAIN_LIST_REQUEST;
+            
+            packetPosition += populateTypeAndVersion(packetPosition, nodePacketType);
+            
+            *(packetPosition++) = _ownerType;
+            
+            // send our owner UUID or the null one
+            QByteArray rfcOwnerUUID = _ownerUUID.toRfc4122();
+            memcpy(packetPosition, rfcOwnerUUID.constData(), rfcOwnerUUID.size());
+            packetPosition += rfcOwnerUUID.size();
+            
+            // pack our public address to send to domain-server
+            packetPosition += packSocket(_checkInPacket + (packetPosition - _checkInPacket),
+                                         htonl(_publicAddress.toIPv4Address()), htons(_publicPort));
+            
+            // pack our local address to send to domain-server
+            packetPosition += packSocket(_checkInPacket + (packetPosition - _checkInPacket),
+                                         getLocalAddress(),
+                                         htons(_nodeSocket.getListeningPort()));
+            
+            // add the number of bytes for node types of interest
+            *(packetPosition++) = numBytesNodesOfInterest;
+            
+            // copy over the bytes for node types of interest, if required
+            if (numBytesNodesOfInterest > 0) {
+                memcpy(packetPosition,
+                       _nodeTypesOfInterest,
+                       numBytesNodesOfInterest);
+                packetPosition += numBytesNodesOfInterest;
+            }
+            
+            _numBytesCheckInPacket = packetPosition - _checkInPacket;
         }
         
-        packetPosition += packSocket(_checkInPacket + (packetPosition - _checkInPacket),
-                                     getLocalAddress(),
-                                     htons(_nodeSocket.getListeningPort()));
+        _nodeSocket.send(_domainIP.toString().toLocal8Bit().constData(), _domainPort, _checkInPacket, _numBytesCheckInPacket);
         
-        // add the number of bytes for node types of interest
-        *(packetPosition++) = numBytesNodesOfInterest;
-                
-        // copy over the bytes for node types of interest, if required
-        if (numBytesNodesOfInterest > 0) {
-            memcpy(packetPosition,
-                   _nodeTypesOfInterest,
-                   numBytesNodesOfInterest);
-            packetPosition += numBytesNodesOfInterest;
-        }
-        
-        _numBytesCheckInPacket = packetPosition - _checkInPacket;
+        // increment the count of un-replied check-ins
+        _numNoReplyDomainCheckIns++;
     }
-    
-    _nodeSocket.send(_domainIP.toString().toLocal8Bit().constData(), _domainPort, _checkInPacket, _numBytesCheckInPacket);
-    
-    // increment the count of un-replied check-ins
-    _numNoReplyDomainCheckIns++;
 }
 
 int NodeList::processDomainServerList(unsigned char* packetData, size_t dataBytes) {
@@ -388,7 +540,6 @@ int NodeList::processDomainServerList(unsigned char* packetData, size_t dataByte
     int readNodes = 0;
 
     char nodeType;
-    uint16_t nodeId;
     
     // assumes only IPv4 addresses
     sockaddr_in nodePublicSocket;
@@ -401,7 +552,9 @@ int NodeList::processDomainServerList(unsigned char* packetData, size_t dataByte
     
     while((readPtr - startPtr) < dataBytes - sizeof(uint16_t)) {
         nodeType = *readPtr++;
-        readPtr += unpackNodeId(readPtr, (uint16_t*) &nodeId);
+        QUuid nodeUUID = QUuid::fromRfc4122(QByteArray((char*) readPtr, NUM_BYTES_RFC4122_UUID));
+        readPtr += NUM_BYTES_RFC4122_UUID;
+    
         readPtr += unpackSocket(readPtr, (sockaddr*) &nodePublicSocket);
         readPtr += unpackSocket(readPtr, (sockaddr*) &nodeLocalSocket);
         
@@ -411,11 +564,9 @@ int NodeList::processDomainServerList(unsigned char* packetData, size_t dataByte
             nodePublicSocket.sin_addr.s_addr = htonl(_domainIP.toIPv4Address());
         }
         
-        addOrUpdateNode((sockaddr*) &nodePublicSocket, (sockaddr*) &nodeLocalSocket, nodeType, nodeId);
+        addOrUpdateNode(nodeUUID, nodeType, (sockaddr*) &nodePublicSocket, (sockaddr*) &nodeLocalSocket);
     }
     
-    // read out our ID from the packet
-    unpackNodeId(readPtr, &_ownerID);
 
     return readNodes;
 }
@@ -439,41 +590,40 @@ void NodeList::sendAssignment(Assignment& assignment) {
     _nodeSocket.send(assignmentServerSocket, assignmentPacket, numHeaderBytes + numAssignmentBytes);
 }
 
-Node* NodeList::addOrUpdateNode(sockaddr* publicSocket, sockaddr* localSocket, char nodeType, uint16_t nodeId) {
+void NodeList::pingPublicAndLocalSocketsForInactiveNode(Node* node) const {
+    
+    uint64_t currentTime = 0;
+    
+    // setup a ping packet to send to this node
+    unsigned char pingPacket[numBytesForPacketHeader((uchar*) &PACKET_TYPE_PING) + sizeof(currentTime)];
+    int numHeaderBytes = populateTypeAndVersion(pingPacket, PACKET_TYPE_PING);
+    
+    currentTime = usecTimestampNow();
+    memcpy(pingPacket + numHeaderBytes, &currentTime, sizeof(currentTime));
+    
+    // send the ping packet to the local and public sockets for this node
+    _nodeSocket.send(node->getLocalSocket(), pingPacket, sizeof(pingPacket));
+    _nodeSocket.send(node->getPublicSocket(), pingPacket, sizeof(pingPacket));
+}
+
+Node* NodeList::addOrUpdateNode(const QUuid& uuid, char nodeType, sockaddr* publicSocket, sockaddr* localSocket) {
     NodeList::iterator node = end();
     
-    if (publicSocket) {
-        for (node = begin(); node != end(); node++) {
-            if (node->matches(publicSocket, localSocket, nodeType)) {
-                // we already have this node, stop checking
-                break;
-            }
+    for (node = begin(); node != end(); node++) {
+        if (node->getUUID() == uuid) {
+            // we already have this node, stop checking
+            break;
         }
     }
     
     if (node == end()) {
         // we didn't have this node, so add them
-        Node* newNode = new Node(publicSocket, localSocket, nodeType, nodeId);
-        
-        if (socketMatch(publicSocket, localSocket)) {
-            // likely debugging scenario with two nodes on local network
-            // set the node active right away
-            newNode->activatePublicSocket();
-        }
-   
-        if (newNode->getType() == NODE_TYPE_VOXEL_SERVER ||
-            newNode->getType() == NODE_TYPE_AVATAR_MIXER ||
-            newNode->getType() == NODE_TYPE_AUDIO_MIXER) {
-            // this is currently the cheat we use to talk directly to our test servers on EC2
-            // to be removed when we have a proper identification strategy
-            newNode->activatePublicSocket();
-        }
+        Node* newNode = new Node(uuid, nodeType, publicSocket, localSocket);
         
         addNodeToList(newNode);
         
         return newNode;
     } else {
-        
         if (node->getType() == NODE_TYPE_AUDIO_MIXER ||
             node->getType() == NODE_TYPE_VOXEL_SERVER) {
             // until the Audio class also uses our nodeList, we need to update
@@ -507,25 +657,32 @@ unsigned NodeList::broadcastToNodes(unsigned char* broadcastData, size_t dataByt
     unsigned n = 0;
     for(NodeList::iterator node = begin(); node != end(); node++) {
         // only send to the NodeTypes we are asked to send to.
-        if (node->getActiveSocket() != NULL && memchr(nodeTypes, node->getType(), numNodeTypes)) {
-            // we know which socket is good for this node, send there
-            _nodeSocket.send(node->getActiveSocket(), broadcastData, dataBytes);
-            ++n;
+        if (node->getActiveSocket() != NULL) {
+            if (memchr(nodeTypes, node->getType(), numNodeTypes)) {
+                // we know which socket is good for this node, send there
+                _nodeSocket.send(node->getActiveSocket(), broadcastData, dataBytes);
+                ++n;
+            }
+        } else {
+            // we don't have an active link to this node, ping it to set that up
+            pingPublicAndLocalSocketsForInactiveNode(&(*node));
         }
     }
     return n;
 }
 
-void NodeList::handlePingReply(sockaddr *nodeAddress) {
+void NodeList::activateSocketFromPingReply(sockaddr *nodeAddress) {
     for(NodeList::iterator node = begin(); node != end(); node++) {
-        // check both the public and local addresses for each node to see if we find a match
-        // prioritize the private address so that we prune erroneous local matches
-        if (socketMatch(node->getPublicSocket(), nodeAddress)) {
-            node->activatePublicSocket();
-            break;
-        } else if (socketMatch(node->getLocalSocket(), nodeAddress)) {
-            node->activateLocalSocket();
-            break;
+        if (!node->getActiveSocket()) {
+            // check both the public and local addresses for each node to see if we find a match
+            // prioritize the private address so that we prune erroneous local matches
+            if (socketMatch(node->getPublicSocket(), nodeAddress)) {
+                node->activatePublicSocket();
+                break;
+            } else if (socketMatch(node->getLocalSocket(), nodeAddress)) {
+                node->activateLocalSocket();
+                break;
+            }
         }
     }
 }
