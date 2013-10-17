@@ -116,6 +116,8 @@ public:
 
     static uint64_t getVoxelMemoryUsage() { return _voxelMemoryUsage; }
     static uint64_t getOctcodeMemoryUsage() { return _octcodeMemoryUsage; }
+    static uint64_t getExternalChildrenMemoryUsage() { return _externalChildrenMemoryUsage; }
+    static uint64_t getTotalMemoryUsage() { return _voxelMemoryUsage + _octcodeMemoryUsage + _externalChildrenMemoryUsage; }
     
     static uint64_t _getChildAtIndexTime;
     static uint64_t _getChildAtIndexCalls;
@@ -128,8 +130,11 @@ public:
     static uint64_t _threeChildrenOffsetCount;
     static uint64_t _threeChildrenExternalCount;
     static uint64_t _externalChildrenCount;
+    static uint64_t _childrenCount[NUMBER_OF_CHILDREN + 1];
 
+#ifdef HAS_AUDIT_CHILDREN
     void auditChildren(const char* label) const;
+#endif // def HAS_AUDIT_CHILDREN
 
 private:
     void setChildAtIndex(int childIndex, VoxelNode* child);
@@ -139,11 +144,6 @@ private:
     void retrieveThreeChildren(VoxelNode*& childOne, VoxelNode*& childTwo, VoxelNode*& childThree);
     void decodeThreeOffsets(int64_t& offsetOne, int64_t& offsetTwo, int64_t& offsetThree) const;
     void encodeThreeOffsets(int64_t offsetOne, int64_t offsetTwo, int64_t offsetThree);
-
-    /**
-    VoxelNode* __new__getChildAtIndex(int childIndex) const;
-    void __new__setChildAtIndex(int childIndex, VoxelNode* child);
-    **/
 
     void calculateAABox();
     void init(unsigned char * octalCode);
@@ -168,7 +168,9 @@ private:
       VoxelNode** external;
     } _children;
 
-    VoxelNode* _childrenArray[8]; /// Client and server, pointers to child nodes, 64 bytes
+#ifdef HAS_AUDIT_CHILDREN
+    VoxelNode* _childrenArray[8]; /// Only used when HAS_AUDIT_CHILDREN is enabled to help debug children encoding
+#endif // def HAS_AUDIT_CHILDREN
 
     uint32_t _glBufferIndex : 24, /// Client only, vbo index for this voxel if being rendered, 3 bytes
              _voxelSystemIndex : 8; /// Client only, index to the VoxelSystem rendering this voxel, 1 bytes
@@ -204,6 +206,7 @@ private:
 
     static uint64_t _voxelMemoryUsage;
     static uint64_t _octcodeMemoryUsage;
+    static uint64_t _externalChildrenMemoryUsage;
 };
 
 

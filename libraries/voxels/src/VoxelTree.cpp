@@ -710,9 +710,11 @@ VoxelNode* VoxelTree::getVoxelAt(float x, float y, float z, float s) const {
         node = NULL;
     }
     delete[] octalCode; // cleanup memory
+#ifdef HAS_AUDIT_CHILDREN
     if (node) {
         node->auditChildren("VoxelTree::getVoxelAt()");
     }
+#endif // def HAS_AUDIT_CHILDREN
     return node;
 }
 

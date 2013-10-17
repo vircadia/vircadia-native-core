@@ -24,6 +24,7 @@
 
 uint64_t VoxelNode::_voxelMemoryUsage = 0;
 uint64_t VoxelNode::_octcodeMemoryUsage = 0;
+uint64_t VoxelNode::_externalChildrenMemoryUsage = 0;
 uint64_t VoxelNode::_voxelNodeCount = 0;
 uint64_t VoxelNode::_voxelNodeLeafCount = 0;
 
@@ -66,13 +67,14 @@ void VoxelNode::init(unsigned char * octalCode) {
     _childrenExternal = false;
     _children.external = NULL;
     _singleChildrenCount++;
+    _childrenCount[0]++;
     
     // default pointers to child nodes to NULL
-    /**/
+#ifdef HAS_AUDIT_CHILDREN
     for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
         _childrenArray[i] = NULL;
     }
-    /**/
+#endif // def HAS_AUDIT_CHILDREN
     
     
     _unknownBufferIndex = true;
@@ -199,7 +201,9 @@ void VoxelNode::deleteChildAtIndex(int childIndex) {
             _voxelNodeLeafCount++;
         }
     }
+#ifdef HAS_AUDIT_CHILDREN
     auditChildren("deleteChildAtIndex()");
+#endif // def HAS_AUDIT_CHILDREN
 }
 
 // does not delete the node!
@@ -216,12 +220,14 @@ VoxelNode* VoxelNode::removeChildAtIndex(int childIndex) {
         }
     }
     
+#ifdef HAS_AUDIT_CHILDREN
     auditChildren("removeChildAtIndex()");
+#endif // def HAS_AUDIT_CHILDREN
     return returnedChild;
 }
 
+#ifdef HAS_AUDIT_CHILDREN
 void VoxelNode::auditChildren(const char* label) const {
-    return;
     bool auditFailed = false;
     for (int childIndex = 0; childIndex < NUMBER_OF_CHILDREN; childIndex++) {
         VoxelNode* testChildNew = getChildAtIndex(childIndex);
@@ -252,6 +258,8 @@ void VoxelNode::auditChildren(const char* label) const {
         printf("%s... auditChildren() <<<< DONE <<<< \n", label);
     }
 }
+#endif // def HAS_AUDIT_CHILDREN
+
 
 uint64_t VoxelNode::_getChildAtIndexTime = 0;
 uint64_t VoxelNode::_getChildAtIndexCalls = 0;
@@ -264,6 +272,7 @@ uint64_t VoxelNode::_twoChildrenExternalCount = 0;
 uint64_t VoxelNode::_threeChildrenOffsetCount = 0;
 uint64_t VoxelNode::_threeChildrenExternalCount = 0;
 uint64_t VoxelNode::_externalChildrenCount = 0;
+uint64_t VoxelNode::_childrenCount[NUMBER_OF_CHILDREN + 1] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
 VoxelNode* VoxelNode::getChildAtIndex(int childIndex) const {
     PerformanceWarning warn(false,"getChildAtIndex",false,&_getChildAtIndexTime,&_getChildAtIndexCalls);
@@ -348,10 +357,12 @@ VoxelNode* VoxelNode::getChildAtIndex(int childIndex) const {
             }
         } break;
     }
+#ifdef HAS_AUDIT_CHILDREN
     if (result != _childrenArray[childIndex]) {
         printf("getChildAtIndex() case:%s result<%p> != _childrenArray[childIndex]<%p> <<<<<<<<<< WARNING!!! \n",
             caseStr, result,_childrenArray[childIndex]);
     }
+#endif // def HAS_AUDIT_CHILDREN
     return result; 
 }
 
@@ -365,6 +376,8 @@ void VoxelNode::storeTwoChildren(VoxelNode* childOne, VoxelNode* childTwo) {
     if (isBetween(offsetOne, maxOffset, minOffset) && isBetween(offsetTwo, maxOffset, minOffset)) {
         // if previously external, then clean it up...
         if (_childrenExternal) {
+            const int previousChildCount = 2;
+            _externalChildrenMemoryUsage -= previousChildCount * sizeof(VoxelNode*);
             delete[] _children.external;
             _children.external = NULL; // probably not needed!
             _childrenExternal = false;
@@ -381,7 +394,9 @@ void VoxelNode::storeTwoChildren(VoxelNode* childOne, VoxelNode* childTwo) {
         // if not previously external, then allocate appropriately
         if (!_childrenExternal) {
             _childrenExternal = true;
-            _children.external = new VoxelNode*[2];
+            const int newChildCount = 2;
+            _externalChildrenMemoryUsage += newChildCount * sizeof(VoxelNode*);
+            _children.external = new VoxelNode*[newChildCount];
         }
         _children.external[0] = childOne;
         _children.external[1] = childTwo;
@@ -398,6 +413,8 @@ void VoxelNode::retrieveTwoChildren(VoxelNode*& childOne, VoxelNode*& childTwo) 
         _children.external = NULL; // probably not needed!
         _childrenExternal = false;
         _twoChildrenExternalCount--;
+        const int newChildCount = 2;
+        _externalChildrenMemoryUsage -= newChildCount * sizeof(VoxelNode*);
     } else {
         int64_t offsetOne = _children.offsetsTwoChildren[0];
         int64_t offsetTwo = _children.offsetsTwoChildren[1];
@@ -473,6 +490,8 @@ void VoxelNode::storeThreeChildren(VoxelNode* childOne, VoxelNode* childTwo, Vox
             delete[] _children.external;
             _children.external = NULL; // probably not needed!
             _childrenExternal = false;
+            const int previousChildCount = 3;
+            _externalChildrenMemoryUsage -= previousChildCount * sizeof(VoxelNode*);
         }
         // encode in union
         encodeThreeOffsets(offsetOne, offsetTwo, offsetThree);
@@ -483,7 +502,9 @@ void VoxelNode::storeThreeChildren(VoxelNode* childOne, VoxelNode* childTwo, Vox
         // if not previously external, then allocate appropriately
         if (!_childrenExternal) {
             _childrenExternal = true;
-            _children.external = new VoxelNode*[3];
+            const int newChildCount = 3;
+            _externalChildrenMemoryUsage += newChildCount * sizeof(VoxelNode*);
+            _children.external = new VoxelNode*[newChildCount];
         }
         _children.external[0] = childOne;
         _children.external[1] = childTwo;
@@ -502,6 +523,7 @@ void VoxelNode::retrieveThreeChildren(VoxelNode*& childOne, VoxelNode*& childTwo
         _children.external = NULL; // probably not needed!
         _childrenExternal = false;
         _threeChildrenExternalCount--;
+        _externalChildrenMemoryUsage -= 3 * sizeof(VoxelNode*);
     } else {
         int64_t offsetOne, offsetTwo, offsetThree;
         decodeThreeOffsets(offsetOne, offsetTwo, offsetThree);
@@ -530,6 +552,12 @@ void VoxelNode::setChildAtIndex(int childIndex, VoxelNode* child) {
         clearAtBit(_childBitmask, childIndex);
     }
     int newChildCount = getChildCount();
+    
+    // track our population data
+    if (previousChildCount != newChildCount) {
+        _childrenCount[previousChildCount]--;
+        _childrenCount[newChildCount]++;
+    }
 
     // If we had 0 children and we still have 0 children, then there is nothing to do.
     if (previousChildCount == 0 && newChildCount == 0) {
@@ -640,11 +668,9 @@ void VoxelNode::setChildAtIndex(int childIndex, VoxelNode* child) {
         // We need to determine which children we had, and which one we got rid of...
         int indexOne = getNthBit(previousChildMask, 1);
         int indexTwo = getNthBit(previousChildMask, 2);
-        int indexThree = getNthBit(previousChildMask, 3);
 
         bool removeChildOne = indexOne == childIndex;
         bool removeChildTwo = indexTwo == childIndex;
-        bool removeChildThree = indexThree == childIndex;
 
         VoxelNode* childOne;
         VoxelNode* childTwo;
@@ -669,11 +695,9 @@ void VoxelNode::setChildAtIndex(int childIndex, VoxelNode* child) {
         // We need to determine which children we had, and which one we got rid of...
         int indexOne = getNthBit(previousChildMask, 1);
         int indexTwo = getNthBit(previousChildMask, 2);
-        int indexThree = getNthBit(previousChildMask, 3);
 
         bool replaceChildOne = indexOne == childIndex;
         bool replaceChildTwo = indexTwo == childIndex;
-        bool replaceChildThree = indexThree == childIndex;
 
         VoxelNode* childOne;
         VoxelNode* childTwo;
@@ -726,7 +750,9 @@ void VoxelNode::setChildAtIndex(int childIndex, VoxelNode* child) {
 
         // now, allocate the external...
         _childrenExternal = true;
-        _children.external = new VoxelNode*[4];
+        const int newChildCount = 4;
+        _children.external = new VoxelNode*[newChildCount];
+        _externalChildrenMemoryUsage += newChildCount * sizeof(VoxelNode*);
 
         _children.external[0] = childOne;
         _children.external[1] = childTwo;
@@ -741,12 +767,10 @@ void VoxelNode::setChildAtIndex(int childIndex, VoxelNode* child) {
         int indexOne = getNthBit(previousChildMask, 1);
         int indexTwo = getNthBit(previousChildMask, 2);
         int indexThree = getNthBit(previousChildMask, 3);
-        int indexFour = getNthBit(previousChildMask, 4);
 
         bool removeChildOne = indexOne == childIndex;
         bool removeChildTwo = indexTwo == childIndex;
         bool removeChildThree = indexThree == childIndex;
-        bool removeChildFour = indexFour == childIndex;
 
         VoxelNode* childOne = _children.external[0];
         VoxelNode* childTwo = _children.external[1];
@@ -771,6 +795,8 @@ void VoxelNode::setChildAtIndex(int childIndex, VoxelNode* child) {
         delete[] _children.external;
         _children.external = NULL;
         _externalChildrenCount--;
+        _externalChildrenMemoryUsage -= previousChildCount * sizeof(VoxelNode*);
+        
 
         storeThreeChildren(childOne, childTwo, childThree);
     } else if (previousChildCount == newChildCount) {
@@ -813,6 +839,9 @@ void VoxelNode::setChildAtIndex(int childIndex, VoxelNode* child) {
         }
         delete[] _children.external;
         _children.external = newExternalList;
+        _externalChildrenMemoryUsage -= previousChildCount * sizeof(VoxelNode*);
+        _externalChildrenMemoryUsage += newChildCount * sizeof(VoxelNode*);
+
     } else if (previousChildCount > newChildCount) {
         // 4 or more children, one item being removed, we know we're stored externally, we just figure out which 
         // item to remove from our external list
@@ -833,12 +862,17 @@ void VoxelNode::setChildAtIndex(int childIndex, VoxelNode* child) {
         }
         delete[] _children.external;
         _children.external = newExternalList;
+        _externalChildrenMemoryUsage -= previousChildCount * sizeof(VoxelNode*);
+        _externalChildrenMemoryUsage += newChildCount * sizeof(VoxelNode*);
     } else {
         assert(false);
         printf("THIS SHOULD NOT HAPPEN previousChildCount == %d && newChildCount == %d\n",previousChildCount, newChildCount);
     }
+
+#ifdef HAS_AUDIT_CHILDREN
     _childrenArray[childIndex] = child;
     auditChildren("setChildAtIndex()");
+#endif // def HAS_AUDIT_CHILDREN
 }
 
 
