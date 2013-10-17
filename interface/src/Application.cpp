@@ -500,7 +500,7 @@ void Application::controlledBroadcastToNodes(unsigned char* broadcastData, size_
         if (nodeTypes[i] == NODE_TYPE_VOXEL_SERVER && !Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
             continue;
         }
-
+        
         // Perform the broadcast for one type
         int nReceivingNodes = NodeList::getInstance()->broadcastToNodes(broadcastData, dataBytes, & nodeTypes[i], 1);
 

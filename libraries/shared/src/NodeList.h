@@ -177,7 +177,7 @@ private:
     QHostAddress _publicAddress;
     uint16_t _publicPort;
     
-    void handlePingReply(sockaddr *nodeAddress);
+    void activateSocketFromPingReply(sockaddr *nodeAddress);
     void timePingReply(sockaddr *nodeAddress, unsigned char *packetData);
     
     std::vector<NodeListHook*> _hooks;
