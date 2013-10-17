@@ -59,7 +59,7 @@ void* AudioInjectionManager::injectAudioViaThread(void* args) {
     // if we don't have an explicit destination socket then pull active socket for current audio mixer from node list
     if (!_isDestinationSocketExplicit) {
         Node* audioMixer = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_AUDIO_MIXER);
-        if (audioMixer) {
+        if (audioMixer && audioMixer->getActiveSocket()) {
             _destinationSocket = *audioMixer->getActiveSocket();
         } else {
             pthread_exit(0);
