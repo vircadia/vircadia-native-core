@@ -601,6 +601,7 @@ void NodeList::pingPublicAndLocalSocketsForInactiveNode(Node* node) const {
     currentTime = usecTimestampNow();
     memcpy(pingPacket + numHeaderBytes, &currentTime, sizeof(currentTime));
     
+    qDebug() << "Attemping to ping" << *node << "\n";
     // send the ping packet to the local and public sockets for this node
     _nodeSocket.send(node->getLocalSocket(), pingPacket, sizeof(pingPacket));
     _nodeSocket.send(node->getPublicSocket(), pingPacket, sizeof(pingPacket));
@@ -657,15 +658,15 @@ unsigned NodeList::broadcastToNodes(unsigned char* broadcastData, size_t dataByt
     unsigned n = 0;
     for(NodeList::iterator node = begin(); node != end(); node++) {
         // only send to the NodeTypes we are asked to send to.
-        if (node->getActiveSocket() != NULL) {
-            if (memchr(nodeTypes, node->getType(), numNodeTypes)) {
+        if (memchr(nodeTypes, node->getType(), numNodeTypes)) {
+            if (node->getActiveSocket()) {
                 // we know which socket is good for this node, send there
                 _nodeSocket.send(node->getActiveSocket(), broadcastData, dataBytes);
                 ++n;
+            } else {
+                // we don't have an active link to this node, ping it to set that up
+                pingPublicAndLocalSocketsForInactiveNode(&(*node));
             }
-        } else {
-            // we don't have an active link to this node, ping it to set that up
-            pingPublicAndLocalSocketsForInactiveNode(&(*node));
         }
     }
     return n;
