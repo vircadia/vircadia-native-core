@@ -462,8 +462,8 @@ void VoxelNode::storeThreeChildren(VoxelNode* childOne, VoxelNode* childTwo, Vox
     int64_t offsetTwo = (uint8_t*)childTwo - (uint8_t*)this;
     int64_t offsetThree = (uint8_t*)childThree - (uint8_t*)this;
     
-    const int64_t minOffset = std::numeric_limits<int16_t>::min(); // -1000000; // std::numeric_limits<int32_t>::min();
-    const int64_t maxOffset = std::numeric_limits<int16_t>::max(); // 1000000; // std::numeric_limits<int32_t>::max();
+    const int64_t minOffset = -1048576; // what can fit in 20 bits // std::numeric_limits<int16_t>::min();
+    const int64_t maxOffset = 1048576; // what can fit in 20 bits  // std::numeric_limits<int16_t>::max();
     
     if (isBetween(offsetOne, maxOffset, minOffset) && 
             isBetween(offsetTwo, maxOffset, minOffset) &&
