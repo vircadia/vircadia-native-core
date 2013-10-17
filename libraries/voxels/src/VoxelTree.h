@@ -101,19 +101,19 @@ public:
     bool includeColor;
     bool includeExistsBits;
     VoxelNode* destinationNode;
-    uint16_t sourceID;
+    QUuid sourceUUID;
     bool wantImportProgress;
     
     ReadBitstreamToTreeParams(
         bool includeColor = WANT_COLOR, 
         bool includeExistsBits = WANT_EXISTS_BITS,
         VoxelNode* destinationNode = NULL,
-        uint16_t sourceID = 0, // hardcoded to 0 for removal of 16 bit node ID
+        QUuid sourceUUID = QUuid(),
         bool wantImportProgress = false) :
             includeColor(includeColor),
             includeExistsBits(includeExistsBits),
             destinationNode(destinationNode),
-            sourceID(sourceID),
+            sourceUUID(sourceUUID),
             wantImportProgress(wantImportProgress)
     {}
 };
