@@ -309,7 +309,7 @@ void NodeList::setNodeTypesOfInterest(const char* nodeTypesOfInterest, int numNo
     _nodeTypesOfInterest[numNodeTypesOfInterest] = '\0';
 }
 
-const uint32_t RFC_5389_MAGIC_COOKIE_NETWORK_ORDER = htonl(0x2112A442);
+const uint32_t RFC_5389_MAGIC_COOKIE = 0x2112A442;
 const int NUM_BYTES_STUN_HEADER = 20;
 
 void NodeList::sendSTUNRequest() {
@@ -319,6 +319,8 @@ void NodeList::sendSTUNRequest() {
     unsigned char stunRequestPacket[NUM_BYTES_STUN_HEADER];
     
     int packetIndex = 0;
+    
+    const uint32_t RFC_5389_MAGIC_COOKIE_NETWORK_ORDER = htonl(RFC_5389_MAGIC_COOKIE);
 
     // leading zeros + message type
     const uint16_t REQUEST_MESSAGE_TYPE = htons(0x0001);
@@ -363,6 +365,8 @@ void NodeList::processSTUNResponse(unsigned char* packetData, size_t dataBytes) 
     // and read the first attribute and make sure it is a XOR_MAPPED_ADDRESS
     const int NUM_BYTES_MESSAGE_TYPE_AND_LENGTH = 4;
     const uint16_t XOR_MAPPED_ADDRESS_TYPE = htons(0x0020);
+    
+    const uint32_t RFC_5389_MAGIC_COOKIE_NETWORK_ORDER = htonl(RFC_5389_MAGIC_COOKIE);
     
     int attributeStartIndex = NUM_BYTES_STUN_HEADER;
     
