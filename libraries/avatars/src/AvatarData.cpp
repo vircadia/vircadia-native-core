@@ -224,9 +224,6 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     
     unsigned char* startPosition = sourceBuffer;
     
-    // push past the node ID
-    sourceBuffer += sizeof(uint16_t);
-    
     // UUID
     _uuid = QUuid::fromRfc4122(QByteArray((char*) sourceBuffer, NUM_BYTES_RFC4122_UUID));
     sourceBuffer += NUM_BYTES_RFC4122_UUID;

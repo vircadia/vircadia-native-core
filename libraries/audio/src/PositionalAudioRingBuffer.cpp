@@ -10,6 +10,7 @@
 
 #include <Node.h>
 #include <PacketHeaders.h>
+#include <UUID.h>
 
 #include "PositionalAudioRingBuffer.h"
 
@@ -27,7 +28,7 @@ PositionalAudioRingBuffer::~PositionalAudioRingBuffer() {
 
 int PositionalAudioRingBuffer::parseData(unsigned char* sourceBuffer, int numBytes) {
     unsigned char* currentBuffer = sourceBuffer + numBytesForPacketHeader(sourceBuffer);
-    currentBuffer += sizeof(uint16_t); // the source ID
+    currentBuffer += NUM_BYTES_RFC4122_UUID; // the source ID
     currentBuffer += parsePositionalData(currentBuffer, numBytes - (currentBuffer - sourceBuffer));
     currentBuffer += parseAudioSamples(currentBuffer, numBytes - (currentBuffer - sourceBuffer));
     

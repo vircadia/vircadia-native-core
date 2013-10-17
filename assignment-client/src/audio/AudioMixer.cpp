@@ -364,6 +364,11 @@ void AudioMixer::run() {
                                                              nodeAddress,
                                                              nodeAddress);
                 
+                // temp activation of public socket before server ping/reply is setup
+                if (!avatarNode->getActiveSocket()) {
+                    avatarNode->activatePublicSocket();
+                }                
+                
                 nodeList->updateNodeWithData(nodeAddress, packetData, receivedBytes);
                 
                 if (std::isnan(((PositionalAudioRingBuffer *)avatarNode->getLinkedData())->getOrientation().x)) {
