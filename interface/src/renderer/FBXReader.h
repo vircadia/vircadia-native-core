@@ -99,6 +99,7 @@ class FBXGeometry {
 public:
 
     QVector<FBXJoint> joints;
+    QHash<QString, int> jointIndices;
     
     QVector<FBXMesh> meshes;
     

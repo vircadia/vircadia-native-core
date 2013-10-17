@@ -84,6 +84,7 @@ void Avatar::sendAvatarURLsMessage(const QUrl& voxelURL) {
 Avatar::Avatar(Node* owningNode) :
     AvatarData(owningNode),
     _head(this),
+    _body(this),
     _hand(this),
     _ballSpringsInitialized(false),
     _bodyYawDelta(0.0f),
@@ -420,6 +421,7 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     _head.setPosition(_bodyBall[ BODY_BALL_HEAD_BASE ].position);
     _head.setSkinColor(glm::vec3(SKIN_COLOR[0], SKIN_COLOR[1], SKIN_COLOR[2]));
     _head.simulate(deltaTime, false);
+    _body.simulate(deltaTime);
     _hand.simulate(deltaTime, false);
 
     // use speed and angular velocity to determine walking vs. standing

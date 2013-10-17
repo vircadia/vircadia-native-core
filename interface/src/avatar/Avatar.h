@@ -18,6 +18,7 @@
 #include "AvatarTouch.h"
 #include "AvatarVoxelSystem.h"
 #include "Balls.h"
+#include "Body.h"
 #include "Hand.h"
 #include "Head.h"
 #include "InterfaceConfig.h"
@@ -150,8 +151,9 @@ public:
     const glm::vec3& getHeadJointPosition() const { return _skeleton.joint[ AVATAR_JOINT_HEAD_BASE ].position; }
     float getScale() const { return _scale; }
     const glm::vec3& getVelocity() const { return _velocity; }
-    Head& getHead() {return _head; }
-    Hand& getHand() {return _hand; }
+    Head& getHead() { return _head; }
+    Body& getBody() { return _body; }
+    Hand& getHand() { return _hand; }
     glm::quat getOrientation() const;
     glm::quat getWorldAlignedOrientation() const;
     AvatarVoxelSystem* getVoxels() { return &_voxels; }
@@ -196,6 +198,7 @@ protected:
     };
 
     Head _head;
+    Body _body;
     Hand _hand;
     Skeleton _skeleton;
     bool _ballSpringsInitialized;

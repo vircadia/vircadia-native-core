@@ -9,6 +9,7 @@
 #include <QBuffer>
 #include <QDataStream>
 #include <QIODevice>
+#include <QTextStream>
 #include <QtDebug>
 #include <QtEndian>
 
@@ -19,7 +20,7 @@
 
 using namespace std;
 
-template<class T> QVariant readArray(QDataStream& in) {
+template<class T> QVariant readBinaryArray(QDataStream& in) {
     quint32 arrayLength;
     quint32 encoding;
     quint32 compressedLength;
@@ -54,7 +55,7 @@ template<class T> QVariant readArray(QDataStream& in) {
     return QVariant::fromValue(values);
 }
 
-QVariant parseFBXProperty(QDataStream& in) {
+QVariant parseBinaryFBXProperty(QDataStream& in) {
     char ch;
     in.device()->getChar(&ch);
     switch (ch) {
@@ -89,19 +90,19 @@ QVariant parseFBXProperty(QDataStream& in) {
             return QVariant::fromValue(value);
         }
         case 'f': {
-            return readArray<float>(in);
+            return readBinaryArray<float>(in);
         }
         case 'd': {
-            return readArray<double>(in);
+            return readBinaryArray<double>(in);
         }
         case 'l': {
-            return readArray<qint64>(in);
+            return readBinaryArray<qint64>(in);
         }
         case 'i': {
-            return readArray<qint32>(in);
+            return readBinaryArray<qint32>(in);
         }
         case 'b': {
-            return readArray<bool>(in);
+            return readBinaryArray<bool>(in);
         }
         case 'S':
         case 'R': {
@@ -114,7 +115,7 @@ QVariant parseFBXProperty(QDataStream& in) {
     }
 }
 
-FBXNode parseFBXNode(QDataStream& in) {
+FBXNode parseBinaryFBXNode(QDataStream& in) {
     quint32 endOffset;
     quint32 propertyCount;
     quint32 propertyListLength;
@@ -134,11 +135,11 @@ FBXNode parseFBXNode(QDataStream& in) {
     node.name = in.device()->read(nameLength);
     
     for (int i = 0; i < propertyCount; i++) {
-        node.properties.append(parseFBXProperty(in));    
+        node.properties.append(parseBinaryFBXProperty(in));    
     }
     
     while (endOffset > in.device()->pos()) {
-        FBXNode child = parseFBXNode(in);
+        FBXNode child = parseBinaryFBXNode(in);
         if (child.name.isNull()) {
             return node;
             
@@ -150,28 +151,149 @@ FBXNode parseFBXNode(QDataStream& in) {
     return node;
 }
 
+class Tokenizer {
+public:
+    
+    Tokenizer(QIODevice* device) : _device(device), _pushedBackToken(-1) { }
+    
+    enum SpecialToken { DATUM_TOKEN = 0x100 };
+    
+    int nextToken();
+    const QByteArray& getDatum() const { return _datum; }
+    
+    void pushBackToken(int token) { _pushedBackToken = token; }
+    
+private:
+    
+    QIODevice* _device;
+    QByteArray _datum;
+    int _pushedBackToken;
+};
+
+int Tokenizer::nextToken() {
+    if (_pushedBackToken != -1) {
+        int token = _pushedBackToken;
+        _pushedBackToken = -1;
+        return token;
+    }
+
+    char ch;
+    while (_device->getChar(&ch)) {
+        if (QChar(ch).isSpace()) {
+            continue; // skip whitespace
+        }
+        switch (ch) {
+            case ';':
+                _device->readLine(); // skip the comment
+                break;
+                
+            case ':':
+            case '{':
+            case '}':
+            case ',':
+                return ch; // special punctuation
+            
+            case '\"':
+                _datum = "";
+                while (_device->getChar(&ch)) {
+                    if (ch == '\"') { // end on closing quote
+                        break;
+                    }
+                    if (ch == '\\') { // handle escaped quotes
+                        if (_device->getChar(&ch) && ch != '\"') {
+                            _datum.append('\\');
+                        }
+                    }
+                    _datum.append(ch);
+                }
+                return DATUM_TOKEN;   
+                
+            default:
+                _datum = "";
+                _datum.append(ch);
+                while (_device->getChar(&ch)) {
+                    if (QChar(ch).isSpace() || ch == ';' || ch == ':' || ch == '{' || ch == '}' || ch == ',' || ch == '\"') {
+                        _device->ungetChar(ch); // read until we encounter a special character, then replace it
+                        break;
+                    }
+                    _datum.append(ch);
+                }
+                return DATUM_TOKEN;
+        }
+    }
+    return -1;
+}
+
+FBXNode parseTextFBXNode(Tokenizer& tokenizer) {
+    FBXNode node;
+    
+    if (tokenizer.nextToken() != Tokenizer::DATUM_TOKEN) {
+        return node;
+    }
+    node.name = tokenizer.getDatum();
+    
+    if (tokenizer.nextToken() != ':') {
+        return node;
+    }
+    
+    int token;
+    bool expectingDatum = true;
+    while ((token = tokenizer.nextToken()) != -1) {
+        if (token == '{') {
+            for (FBXNode child = parseTextFBXNode(tokenizer); !child.name.isNull(); child = parseTextFBXNode(tokenizer)) {
+                node.children.append(child);
+            }
+            return node;
+        }
+        if (token == ',') {
+            expectingDatum = true;
+            
+        } else if (token == Tokenizer::DATUM_TOKEN && expectingDatum) {
+            node.properties.append(tokenizer.getDatum());
+            expectingDatum = false;
+        
+        } else {
+            tokenizer.pushBackToken(token);
+            return node;
+        }
+    }
+    
+    return node;
+}
+
 FBXNode parseFBX(QIODevice* device) {
+    // verify the prolog
+    const QByteArray BINARY_PROLOG = "Kaydara FBX Binary  ";
+    if (device->peek(BINARY_PROLOG.size()) != BINARY_PROLOG) {
+        // parse as a text file
+        FBXNode top;
+        Tokenizer tokenizer(device);
+        while (device->bytesAvailable()) {    
+            FBXNode next = parseTextFBXNode(tokenizer);
+            if (next.name.isNull()) {
+                return top;
+                
+            } else {
+                top.children.append(next);
+            }
+        }
+        return top;
+    }
     QDataStream in(device);
     in.setByteOrder(QDataStream::LittleEndian);
     in.setVersion(QDataStream::Qt_4_5); // for single/double precision switch
     
     // see http://code.blender.org/index.php/2013/08/fbx-binary-file-format-specification/ for an explanation
-    // of the FBX format
-    
-    // verify the prolog
-    const QByteArray EXPECTED_PROLOG = "Kaydara FBX Binary  ";
-    if (device->read(EXPECTED_PROLOG.size()) != EXPECTED_PROLOG) {
-        throw QString("Invalid header.");
-    }
+    // of the FBX binary format
     
     // skip the rest of the header
     const int HEADER_SIZE = 27;
-    in.skipRawData(HEADER_SIZE - EXPECTED_PROLOG.size());
+    in.skipRawData(HEADER_SIZE);
     
     // parse the top-level node
     FBXNode top;
     while (device->bytesAvailable()) {
-        FBXNode next = parseFBXNode(in);
+        FBXNode next = parseBinaryFBXNode(in);
         if (next.name.isNull()) {
             return top;
             
@@ -750,7 +872,8 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
             joint.transform = geometry.joints.at(joint.parentIndex).transform *
                 model.preRotation * glm::mat4_cast(model.rotation) * model.postRotation;
         }
-        geometry.joints.append(joint);    
+        geometry.joints.append(joint);
+        geometry.jointIndices.insert(model.name, geometry.joints.size() - 1);  
     }
     
     // find our special joints
