@@ -83,7 +83,7 @@ void VoxelSendThread::handlePacketSend(Node* node, VoxelNodeData* nodeData, int&
     } else {
         // just send the voxel packet
         NodeList::getInstance()->getNodeSocket()->send(node->getActiveSocket(),
-                                        nodeData->getPacket(), nodeData->getPacketLength());
+                                                       nodeData->getPacket(), nodeData->getPacketLength());
     }
     // remember to track our stats
     nodeData->stats.packetSent(nodeData->getPacketLength());

@@ -393,6 +393,11 @@ void VoxelServer::run() {
                                                                       NODE_TYPE_AGENT,
                                                                       &senderAddress,
                                                                       &senderAddress);
+                
+                // temp activation of public socket before server ping/reply is setup
+                if (!node->getActiveSocket()) {
+                    node->activatePublicSocket();
+                }
 
                 NodeList::getInstance()->updateNodeWithData(node, packetData, packetLength);
                 
