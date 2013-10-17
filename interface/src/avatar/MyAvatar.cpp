@@ -1178,8 +1178,13 @@ void MyAvatar::updateChatCircle(float deltaTime) {
         }
     }
     
+    // if we're on top of a neighbor, we need to randomize so that they don't both go in the same direction
+    if (rightDistance == 0.0f && randomBoolean()) {
+        swap(leftDistance, rightDistance);
+    }
+    
     // split the difference between our neighbors
-    float targetAngle = myAngle + (rightDistance - leftDistance) / 2.0f;
+    float targetAngle = myAngle + (rightDistance - leftDistance) / 4.0f;
     glm::vec3 targetPosition = center + (front * sinf(targetAngle) + right * cosf(targetAngle)) * radius;
     
     // approach the target position
