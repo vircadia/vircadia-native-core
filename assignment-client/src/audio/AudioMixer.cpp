@@ -278,15 +278,15 @@ void AudioMixer::run() {
                         int16_t* sourceBuffer = otherNodeBuffer->getNextOutput();
                         
                         int16_t* goodChannel = (bearingRelativeAngleToSource > 0.0f)
-                        ? clientSamples
-                        : clientSamples + BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
+                            ? clientSamples
+                            : clientSamples + BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
                         int16_t* delayedChannel = (bearingRelativeAngleToSource > 0.0f)
-                        ? clientSamples + BUFFER_LENGTH_SAMPLES_PER_CHANNEL
-                        : clientSamples;
+                            ? clientSamples + BUFFER_LENGTH_SAMPLES_PER_CHANNEL
+                            : clientSamples;
                         
                         int16_t* delaySamplePointer = otherNodeBuffer->getNextOutput() == otherNodeBuffer->getBuffer()
-                        ? otherNodeBuffer->getBuffer() + RING_BUFFER_LENGTH_SAMPLES - numSamplesDelay
-                        : otherNodeBuffer->getNextOutput() - numSamplesDelay;
+                            ? otherNodeBuffer->getBuffer() + RING_BUFFER_LENGTH_SAMPLES - numSamplesDelay
+                            : otherNodeBuffer->getNextOutput() - numSamplesDelay;
                         
                         for (int s = 0; s < BUFFER_LENGTH_SAMPLES_PER_CHANNEL; s++) {
                             // load up the stkFrameBuffer with this source's samples

@@ -121,8 +121,8 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
                 unsigned char dataPacket[MAX_PACKET_SIZE];
                 
                 PACKET_TYPE packetType = Menu::getInstance()->isOptionChecked(MenuOption::EchoAudio)
-                ? PACKET_TYPE_MICROPHONE_AUDIO_WITH_ECHO
-                : PACKET_TYPE_MICROPHONE_AUDIO_NO_ECHO;
+                    ? PACKET_TYPE_MICROPHONE_AUDIO_WITH_ECHO
+                    : PACKET_TYPE_MICROPHONE_AUDIO_NO_ECHO;
                 
                 unsigned char* currentPacketPtr = dataPacket + populateTypeAndVersion(dataPacket, packetType);
                 
@@ -245,8 +245,8 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
                         if (flangeIndex < 0) {
                             // we need to grab the flange sample from earlier in the buffer
                             flangeFrame = ringBuffer->getNextOutput() != ringBuffer->getBuffer()
-                            ? ringBuffer->getNextOutput() - PACKET_LENGTH_SAMPLES
-                            : ringBuffer->getNextOutput() + RING_BUFFER_LENGTH_SAMPLES - PACKET_LENGTH_SAMPLES;
+                                ? ringBuffer->getNextOutput() - PACKET_LENGTH_SAMPLES
+                                : ringBuffer->getNextOutput() + RING_BUFFER_LENGTH_SAMPLES - PACKET_LENGTH_SAMPLES;
                             
                             flangeIndex = PACKET_LENGTH_SAMPLES_PER_CHANNEL + (s - sampleFlangeDelay);
                         }
