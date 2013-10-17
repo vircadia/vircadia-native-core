@@ -1442,7 +1442,7 @@ void VoxelSystem::falseColorizeBySource() {
     NodeList* nodeList = NodeList::getInstance();
     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
         if (node->getType() == NODE_TYPE_VOXEL_SERVER) {
-            uint16_t nodeID = VoxelNode::getSourceNodeUUIDKey(node->getUUID()); // hardcoded since removal of 16 bit node IDs
+            uint16_t nodeID = VoxelNode::getSourceNodeUUIDKey(node->getUUID());
             int groupColor = voxelServerCount % NUMBER_OF_COLOR_GROUPS;
             args.colors[nodeID] = groupColors[groupColor];
 
