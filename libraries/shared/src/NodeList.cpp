@@ -74,7 +74,8 @@ NodeList::NodeList(char newOwnerType, unsigned short int newSocketListenPort) :
     _checkInPacket(NULL),
     _numBytesCheckInPacket(0),
     _publicAddress(),
-    _publicPort(0)
+    _publicPort(0),
+    _shouldUseDomainServerAsSTUN(0)
 {
     
 }
@@ -311,53 +312,68 @@ void NodeList::setNodeTypesOfInterest(const char* nodeTypesOfInterest, int numNo
 
 const uint32_t RFC_5389_MAGIC_COOKIE = 0x2112A442;
 const int NUM_BYTES_STUN_HEADER = 20;
+const int NUM_STUN_REQUESTS_BEFORE_FALLBACK = 5;
 
 void NodeList::sendSTUNRequest() {
     const char STUN_SERVER_HOSTNAME[] = "stun.highfidelity.io";
     const unsigned short STUN_SERVER_PORT = 3478;
     
-    unsigned char stunRequestPacket[NUM_BYTES_STUN_HEADER];
+    static int failedStunRequests = 0;
     
-    int packetIndex = 0;
-    
-    const uint32_t RFC_5389_MAGIC_COOKIE_NETWORK_ORDER = htonl(RFC_5389_MAGIC_COOKIE);
-
-    // leading zeros + message type
-    const uint16_t REQUEST_MESSAGE_TYPE = htons(0x0001);
-    memcpy(stunRequestPacket + packetIndex, &REQUEST_MESSAGE_TYPE, sizeof(REQUEST_MESSAGE_TYPE));
-    packetIndex += sizeof(REQUEST_MESSAGE_TYPE);
-    
-    // message length (no additional attributes are included)
-    uint16_t messageLength = 0;
-    memcpy(stunRequestPacket + packetIndex, &messageLength, sizeof(messageLength));
-    packetIndex += sizeof(messageLength);
-    
-    memcpy(stunRequestPacket + packetIndex, &RFC_5389_MAGIC_COOKIE_NETWORK_ORDER, sizeof(RFC_5389_MAGIC_COOKIE_NETWORK_ORDER));
-    packetIndex += sizeof(RFC_5389_MAGIC_COOKIE_NETWORK_ORDER);
-    
-    // transaction ID (random 12-byte unsigned integer)
-    const uint NUM_TRANSACTION_ID_BYTES = 12;
-    unsigned char transactionID[NUM_TRANSACTION_ID_BYTES];
-    loadRandomIdentifier(transactionID, NUM_TRANSACTION_ID_BYTES);
-    memcpy(stunRequestPacket + packetIndex, &transactionID, sizeof(transactionID));
-    
-    // lookup the IP for the STUN server
-    static QHostInfo stunInfo = QHostInfo::fromName(STUN_SERVER_HOSTNAME);
-    
-    for (int i = 0; i < stunInfo.addresses().size(); i++) {
-        if (stunInfo.addresses()[i].protocol() == QAbstractSocket::IPv4Protocol) {
-            QString stunIPAddress = stunInfo.addresses()[i].toString();
-            
-            qDebug("Sending a stun request to %s\n", stunIPAddress.toLocal8Bit().constData());
-            
-            _nodeSocket.send(stunIPAddress.toLocal8Bit().constData(),
-                             STUN_SERVER_PORT,
-                             stunRequestPacket,
-                             sizeof(stunRequestPacket));
-            
-            break;
+    if (failedStunRequests < NUM_STUN_REQUESTS_BEFORE_FALLBACK) {
+        unsigned char stunRequestPacket[NUM_BYTES_STUN_HEADER];
+        
+        int packetIndex = 0;
+        
+        const uint32_t RFC_5389_MAGIC_COOKIE_NETWORK_ORDER = htonl(RFC_5389_MAGIC_COOKIE);
+        
+        // leading zeros + message type
+        const uint16_t REQUEST_MESSAGE_TYPE = htons(0x0001);
+        memcpy(stunRequestPacket + packetIndex, &REQUEST_MESSAGE_TYPE, sizeof(REQUEST_MESSAGE_TYPE));
+        packetIndex += sizeof(REQUEST_MESSAGE_TYPE);
+        
+        // message length (no additional attributes are included)
+        uint16_t messageLength = 0;
+        memcpy(stunRequestPacket + packetIndex, &messageLength, sizeof(messageLength));
+        packetIndex += sizeof(messageLength);
+        
+        memcpy(stunRequestPacket + packetIndex, &RFC_5389_MAGIC_COOKIE_NETWORK_ORDER, sizeof(RFC_5389_MAGIC_COOKIE_NETWORK_ORDER));
+        packetIndex += sizeof(RFC_5389_MAGIC_COOKIE_NETWORK_ORDER);
+        
+        // transaction ID (random 12-byte unsigned integer)
+        const uint NUM_TRANSACTION_ID_BYTES = 12;
+        unsigned char transactionID[NUM_TRANSACTION_ID_BYTES];
+        loadRandomIdentifier(transactionID, NUM_TRANSACTION_ID_BYTES);
+        memcpy(stunRequestPacket + packetIndex, &transactionID, sizeof(transactionID));
+        
+        // lookup the IP for the STUN server
+        static QHostInfo stunInfo = QHostInfo::fromName(STUN_SERVER_HOSTNAME);
+        
+        for (int i = 0; i < stunInfo.addresses().size(); i++) {
+            if (stunInfo.addresses()[i].protocol() == QAbstractSocket::IPv4Protocol) {
+                QString stunIPAddress = stunInfo.addresses()[i].toString();
+                
+                qDebug("Sending a stun request to %s\n", stunIPAddress.toLocal8Bit().constData());
+                
+                _nodeSocket.send(stunIPAddress.toLocal8Bit().constData(),
+                                 STUN_SERVER_PORT,
+                                 stunRequestPacket,
+                                 sizeof(stunRequestPacket));
+                
+                break;
+            }
         }
+        
+        failedStunRequests++;
+        
+        return;
     }
+    
+    // if we're here this was the last failed STUN request
+    // use our DS as our stun server
+    qDebug("Failed to lookup public address via STUN server at %s:%hu. Using DS for STUN.\n",
+           STUN_SERVER_HOSTNAME, STUN_SERVER_PORT);
+    _shouldUseDomainServerAsSTUN = true;
 }
 
 void NodeList::processSTUNResponse(unsigned char* packetData, size_t dataBytes) {
@@ -455,7 +471,7 @@ void NodeList::sendDomainServerCheckIn() {
         printedDomainServerIP = true;
     }
     
-    if (_publicAddress.isNull()) {
+    if (_publicAddress.isNull() && !_shouldUseDomainServerAsSTUN) {
         // we don't know our public socket and we need to send it to the domain server
         // send a STUN request to figure it out
         sendSTUNRequest();
