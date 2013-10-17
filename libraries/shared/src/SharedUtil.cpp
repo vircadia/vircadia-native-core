@@ -106,15 +106,9 @@ void setAtBit(unsigned char& byte, int bitIndex) {
 }
 
 void clearAtBit(unsigned char& byte, int bitIndex) {
-    //printf("clearAtBit() bitIndex=%d byte=",bitIndex);
-    //outputBits(byte);
-
     if (oneAtBit(byte, bitIndex)) {
         byte -= (1 << (7 - bitIndex));
     }
-
-    //printf("... now byte=");
-    //outputBits(byte);
 }
 
 int  getSemiNibbleAt(unsigned char& byte, int bitIndex) {
