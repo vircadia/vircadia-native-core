@@ -1162,8 +1162,8 @@ void MyAvatar::updateChatCircle(float deltaTime) {
     glm::vec3 delta = _position - center;
     glm::vec3 projected = glm::vec3(glm::dot(right, delta), glm::dot(front, delta), 0.0f);
     float myAngle = glm::length(projected) > EPSILON ? atan2f(projected.y, projected.x) : 0.0f;
-    float leftDistance = PIf;
-    float rightDistance = PIf;
+    float leftDistance = PI_TIMES_TWO;
+    float rightDistance = PI_TIMES_TWO;
     foreach (const SortedAvatar& sortedAvatar, sortedAvatars) {
         delta = sortedAvatar.avatar->getPosition() - center;
         projected = glm::vec3(glm::dot(right, delta), glm::dot(front, delta), 0.0f);
@@ -1178,8 +1178,13 @@ void MyAvatar::updateChatCircle(float deltaTime) {
         }
     }
     
+    // if we're on top of a neighbor, we need to randomize so that they don't both go in the same direction
+    if (rightDistance == 0.0f && randomBoolean()) {
+        swap(leftDistance, rightDistance);
+    }
+    
     // split the difference between our neighbors
-    float targetAngle = myAngle + (rightDistance - leftDistance) / 2.0f;
+    float targetAngle = myAngle + (rightDistance - leftDistance) / 4.0f;
     glm::vec3 targetPosition = center + (front * sinf(targetAngle) + right * cosf(targetAngle)) * radius;
     
     // approach the target position

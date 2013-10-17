@@ -16,7 +16,7 @@
 #include "SharedUtil.h"
 #include "OctalCode.h"
 
-int numberOfThreeBitSectionsInCode(unsigned char * octalCode) {
+int numberOfThreeBitSectionsInCode(const unsigned char* octalCode) {
     assert(octalCode);
     if (*octalCode == 255) {
         return *octalCode + numberOfThreeBitSectionsInCode(octalCode + 1);
@@ -25,18 +25,18 @@ int numberOfThreeBitSectionsInCode(unsigned char * octalCode) {
     }
 }
 
-void printOctalCode(unsigned char * octalCode) {
+void printOctalCode(const unsigned char* octalCode) {
     if (!octalCode) {
         qDebug("NULL\n");
     } else {
-        for (int i = 0; i < bytesRequiredForCodeLength(*octalCode); i++) {
+        for (int i = 0; i < bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(octalCode)); i++) {
             outputBits(octalCode[i],false);
         }
         qDebug("\n");
     }
 }
 
-char sectionValue(unsigned char * startByte, char startIndexInByte) {
+char sectionValue(const unsigned char* startByte, char startIndexInByte) {
     char rightShift = 8 - startIndexInByte - 3;
     
     if (rightShift < 0) {
@@ -54,14 +54,14 @@ int bytesRequiredForCodeLength(unsigned char threeBitCodes) {
     }
 }
 
-int branchIndexWithDescendant(unsigned char * ancestorOctalCode, unsigned char * descendantOctalCode) {
+int branchIndexWithDescendant(const unsigned char* ancestorOctalCode, const unsigned char* descendantOctalCode) {
     int parentSections = numberOfThreeBitSectionsInCode(ancestorOctalCode);
     
     int branchStartBit = parentSections * 3;
     return sectionValue(descendantOctalCode + 1 + (branchStartBit / 8), branchStartBit % 8);
 }
 
-unsigned char * childOctalCode(unsigned char * parentOctalCode, char childNumber) {
+unsigned char* childOctalCode(const unsigned char* parentOctalCode, char childNumber) {
     
     // find the length (in number of three bit code sequences)
     // in the parent
@@ -76,7 +76,7 @@ unsigned char * childOctalCode(unsigned char * parentOctalCode, char childNumber
     int childCodeBytes = bytesRequiredForCodeLength(parentCodeSections + 1);
     
     // create a new buffer to hold the new octal code
-    unsigned char *newCode = new unsigned char[childCodeBytes];
+    unsigned char* newCode = new unsigned char[childCodeBytes];
     
     // copy the parent code to the child
     if (parentOctalCode != NULL) {
@@ -115,7 +115,7 @@ unsigned char * childOctalCode(unsigned char * parentOctalCode, char childNumber
     return newCode;
 }
 
-void voxelDetailsForCode(unsigned char * octalCode, VoxelPositionSize& voxelPositionSize) {
+void voxelDetailsForCode(const unsigned char* octalCode, VoxelPositionSize& voxelPositionSize) {
     float output[3];
     memset(&output[0], 0, 3 * sizeof(float));
     float currentScale = 1.0;
@@ -138,7 +138,7 @@ void voxelDetailsForCode(unsigned char * octalCode, VoxelPositionSize& voxelPosi
     voxelPositionSize.s = currentScale;
 }
 
-void copyFirstVertexForCode(unsigned char * octalCode, float* output) {
+void copyFirstVertexForCode(const unsigned char* octalCode, float* output) {
     memset(output, 0, 3 * sizeof(float));
     
     float currentScale = 0.5;
@@ -154,13 +154,13 @@ void copyFirstVertexForCode(unsigned char * octalCode, float* output) {
     }
 }
 
-float * firstVertexForCode(unsigned char * octalCode) {
+float * firstVertexForCode(const unsigned char* octalCode) {
     float * firstVertex = new float[3];
     copyFirstVertexForCode(octalCode, firstVertex);
     return firstVertex;
 }
 
-OctalCodeComparison compareOctalCodes(unsigned char* codeA, unsigned char* codeB) {
+OctalCodeComparison compareOctalCodes(const unsigned char* codeA, const unsigned char* codeB) {
     if (!codeA || !codeB) {
         return ILLEGAL_CODE;
     }
@@ -196,10 +196,10 @@ OctalCodeComparison compareOctalCodes(unsigned char* codeA, unsigned char* codeB
 }
 
 
-char getOctalCodeSectionValue(unsigned char* octalCode, int section) {
+char getOctalCodeSectionValue(const unsigned char* octalCode, int section) {
     int startAtByte = 1 + (BITS_IN_OCTAL * section / BITS_IN_BYTE);
     char startIndexInByte = (BITS_IN_OCTAL * section) % BITS_IN_BYTE;
-    unsigned char* startByte = octalCode + startAtByte;
+    const unsigned char* startByte = octalCode + startAtByte;
     
     return sectionValue(startByte, startIndexInByte);
 }
@@ -243,7 +243,7 @@ void setOctalCodeSectionValue(unsigned char* octalCode, int section, char sectio
     }
 }
 
-unsigned char* chopOctalCode(unsigned char* originalOctalCode, int chopLevels) {
+unsigned char* chopOctalCode(const unsigned char* originalOctalCode, int chopLevels) {
     int codeLength = numberOfThreeBitSectionsInCode(originalOctalCode);
     unsigned char* newCode = NULL;
     if (codeLength > chopLevels) {
@@ -259,7 +259,9 @@ unsigned char* chopOctalCode(unsigned char* originalOctalCode, int chopLevels) {
     return newCode;
 }
 
-unsigned char* rebaseOctalCode(unsigned char* originalOctalCode, unsigned char* newParentOctalCode, bool includeColorSpace) {
+unsigned char* rebaseOctalCode(const unsigned char* originalOctalCode, const unsigned char* newParentOctalCode, 
+                        bool includeColorSpace) {
+                        
     int oldCodeLength       = numberOfThreeBitSectionsInCode(originalOctalCode);
     int newParentCodeLength = numberOfThreeBitSectionsInCode(newParentOctalCode);
     int newCodeLength       = newParentCodeLength + oldCodeLength;
@@ -280,7 +282,7 @@ unsigned char* rebaseOctalCode(unsigned char* originalOctalCode, unsigned char* 
     return newCode;
 }
 
-bool isAncestorOf(unsigned char* possibleAncestor, unsigned char* possibleDescendent, int descendentsChild) {
+bool isAncestorOf(const unsigned char* possibleAncestor, const unsigned char* possibleDescendent, int descendentsChild) {
     if (!possibleAncestor || !possibleDescendent) {
         return false;
     }
@@ -350,7 +352,7 @@ unsigned char* hexStringToOctalCode(const QString& input) {
     return bytes;
 }
 
-QString octalCodeToHexString(unsigned char* octalCode) {
+QString octalCodeToHexString(const unsigned char* octalCode) {
     const int HEX_NUMBER_BASE = 16;
     const int HEX_BYTE_SIZE = 2;
     QString output;

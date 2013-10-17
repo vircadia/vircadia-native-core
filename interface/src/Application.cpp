@@ -1394,13 +1394,13 @@ void Application::increaseVoxelSize() {
 
 const int MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE = 1500;
 struct SendVoxelsOperationArgs {
-    unsigned char*  newBaseOctCode;
+    const unsigned char*  newBaseOctCode;
 };
 
 bool Application::sendVoxelsOperation(VoxelNode* node, void* extraData) {
     SendVoxelsOperationArgs* args = (SendVoxelsOperationArgs*)extraData;
     if (node->isColored()) {
-        unsigned char* nodeOctalCode = node->getOctalCode();
+        const unsigned char* nodeOctalCode = node->getOctalCode();
         
         unsigned char* codeColorBuffer = NULL;
         int codeLength  = 0;
@@ -2784,24 +2784,40 @@ void Application::displayOverlay() {
     if (Menu::getInstance()->isOptionChecked(MenuOption::HeadMouse)
         && !Menu::getInstance()->isOptionChecked(MenuOption::Mirror)
         && USING_INVENSENSE_MPU9150) {
-            //  Display small target box at center or head mouse target that can also be used to measure LOD
-            glColor3f(1.0, 1.0, 1.0);
+        //  Display small target box at center or head mouse target that can also be used to measure LOD
+        glColor3f(1.0, 1.0, 1.0);
+        glDisable(GL_LINE_SMOOTH);
+        const int PIXEL_BOX = 16;
+        glBegin(GL_LINES);
+        glVertex2f(_headMouseX - PIXEL_BOX/2, _headMouseY);
+        glVertex2f(_headMouseX + PIXEL_BOX/2, _headMouseY);
+        glVertex2f(_headMouseX, _headMouseY - PIXEL_BOX/2);
+        glVertex2f(_headMouseX, _headMouseY + PIXEL_BOX/2);
+        glEnd();            
+        glEnable(GL_LINE_SMOOTH);
+        glColor3f(1.f, 0.f, 0.f);
+        glPointSize(3.0f);
+        glDisable(GL_POINT_SMOOTH);
+        glBegin(GL_POINTS);
+        glVertex2f(_headMouseX - 1, _headMouseY + 1);
+        glEnd();
+        //  If Faceshift is active, show eye pitch and yaw as separate pointer
+        if (_faceshift.isActive()) {
+            const float EYE_TARGET_PIXELS_PER_DEGREE = 40.0;
+            int eyeTargetX = (_glWidget->width() / 2) -  _faceshift.getEstimatedEyeYaw() * EYE_TARGET_PIXELS_PER_DEGREE;
+            int eyeTargetY = (_glWidget->height() / 2) -  _faceshift.getEstimatedEyePitch() * EYE_TARGET_PIXELS_PER_DEGREE;
+            
+            glColor3f(0.0, 1.0, 1.0);
             glDisable(GL_LINE_SMOOTH);
-            const int PIXEL_BOX = 16;
             glBegin(GL_LINES);
-            glVertex2f(_headMouseX - PIXEL_BOX/2, _headMouseY);
-            glVertex2f(_headMouseX + PIXEL_BOX/2, _headMouseY);
-            glVertex2f(_headMouseX, _headMouseY - PIXEL_BOX/2);
-            glVertex2f(_headMouseX, _headMouseY + PIXEL_BOX/2);
-            glEnd();            
-            glEnable(GL_LINE_SMOOTH);
-            glColor3f(1.f, 0.f, 0.f);
-            glPointSize(3.0f);
-            glDisable(GL_POINT_SMOOTH);
-            glBegin(GL_POINTS);
-            glVertex2f(_headMouseX - 1, _headMouseY + 1);
+            glVertex2f(eyeTargetX - PIXEL_BOX/2, eyeTargetY);
+            glVertex2f(eyeTargetX + PIXEL_BOX/2, eyeTargetY);
+            glVertex2f(eyeTargetX, eyeTargetY - PIXEL_BOX/2);
+            glVertex2f(eyeTargetX, eyeTargetY + PIXEL_BOX/2);
             glEnd();
+
         }
+    }
         
     //  Show detected levels from the serial I/O ADC channel sensors
     if (_displayLevels) _serialHeadSensor.renderLevels(_glWidget->width(), _glWidget->height());

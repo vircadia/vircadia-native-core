@@ -84,24 +84,27 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
     memset(outputLeft, 0, PACKET_LENGTH_BYTES_PER_CHANNEL);
     memset(outputRight, 0, PACKET_LENGTH_BYTES_PER_CHANNEL);
 
+    //  If Mute button is pressed, clear the input buffer 
+    if (_muted) {
+        memset(inputLeft, 0, PACKET_LENGTH_BYTES_PER_CHANNEL);
+    }
+    
     // Add Procedural effects to input samples
     addProceduralSounds(inputLeft, outputLeft, outputRight, BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
     
     if (nodeList && inputLeft) {
         
-        if (!_muted) {
-            //  Measure the loudness of the signal from the microphone and store in audio object
-            float loudness = 0;
-            for (int i = 0; i < BUFFER_LENGTH_SAMPLES_PER_CHANNEL; i++) {
-                loudness += abs(inputLeft[i]);
-            }
-        
-            loudness /= BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
-            _lastInputLoudness = loudness;
-        
-            // add input (@microphone) data to the scope
-            _scope->addSamples(0, inputLeft, BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
+        //  Measure the loudness of the signal from the microphone and store in audio object
+        float loudness = 0;
+        for (int i = 0; i < BUFFER_LENGTH_SAMPLES_PER_CHANNEL; i++) {
+            loudness += abs(inputLeft[i]);
         }
+    
+        loudness /= BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
+        _lastInputLoudness = loudness;
+    
+        // add input (@microphone) data to the scope
+        _scope->addSamples(0, inputLeft, BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
 
         Node* audioMixer = nodeList->soloNodeOfType(NODE_TYPE_AUDIO_MIXER);
         

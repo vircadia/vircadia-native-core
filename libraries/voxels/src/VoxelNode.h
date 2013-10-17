@@ -41,8 +41,8 @@ public:
     VoxelNode(unsigned char * octalCode); // regular constructor
     ~VoxelNode();
     
-    unsigned char* getOctalCode() const { return _octalCode; }
-    VoxelNode* getChildAtIndex(int childIndex) const { return _children[childIndex]; }
+    const unsigned char* getOctalCode() const { return (_octcodePointer) ? _octalCode.pointer : &_octalCode.buffer[0]; }
+    VoxelNode* getChildAtIndex(int childIndex) const;
     void deleteChildAtIndex(int childIndex);
     VoxelNode* removeChildAtIndex(int childIndex);
     VoxelNode* addChildAtIndex(int childIndex);
@@ -53,10 +53,9 @@ public:
     bool collapseIdenticalLeaves();
 
     const AABox& getAABox() const { return _box; }
-    const glm::vec3& getCenter() const { return _box.getCenter(); }
     const glm::vec3& getCorner() const { return _box.getCorner(); }
-    float getScale() const { return _box.getSize().x; } // voxelScale = (1 / powf(2, *node->getOctalCode())); }
-    int getLevel() const { return *_octalCode + 1; } // one based or zero based? this doesn't correctly handle 2 byte case
+    float getScale() const { return _box.getScale(); }
+    int getLevel() const { return numberOfThreeBitSectionsInCode(getOctalCode()) + 1; }
     
     float getEnclosingRadius() const;
     
@@ -72,8 +71,8 @@ public:
     float distanceSquareToPoint(const glm::vec3& point) const; // when you don't need the actual distance, use this.
     float distanceToPoint(const glm::vec3& point) const;
 
-    bool isLeaf() const { return _childCount == 0; }
-    int getChildCount() const { return _childCount; }
+    bool isLeaf() const { return getChildCount() == 0; }
+    int getChildCount() const { return numberOfOnes(_childBitmask); }
     void printDebugDetails(const char* label) const;
     bool isDirty() const { return _isDirty; }
     void clearDirtyBit() { _isDirty = false; }
@@ -84,32 +83,21 @@ public:
     void handleSubtreeChanged(VoxelTree* myTree);
     
     glBufferIndex getBufferIndex() const { return _glBufferIndex; }
-    bool isKnownBufferIndex() const { return (_glBufferIndex != GLBUFFER_INDEX_UNKNOWN); }
-    void setBufferIndex(glBufferIndex index) { _glBufferIndex = index; }
-    VoxelSystem* getVoxelSystem() const { return _voxelSystem; }
-    void setVoxelSystem(VoxelSystem* voxelSystem) { _voxelSystem = voxelSystem; }
-    
+    bool isKnownBufferIndex() const { return !_unknownBufferIndex; }
+    void setBufferIndex(glBufferIndex index) { _glBufferIndex = index; _unknownBufferIndex =(index == GLBUFFER_INDEX_UNKNOWN);}
+    VoxelSystem* getVoxelSystem() const;
+    void setVoxelSystem(VoxelSystem* voxelSystem);
 
     // Used by VoxelSystem for rendering in/out of view and LOD
     void setShouldRender(bool shouldRender);
     bool getShouldRender() const { return _shouldRender; }
 
-#ifndef NO_FALSE_COLOR // !NO_FALSE_COLOR means, does have false color
     void setFalseColor(colorPart red, colorPart green, colorPart blue);
     void setFalseColored(bool isFalseColored);
     bool getFalseColored() { return _falseColored; }
     void setColor(const nodeColor& color);
     const nodeColor& getTrueColor() const { return _trueColor; }
     const nodeColor& getColor() const { return _currentColor; }
-#else
-    void setFalseColor(colorPart red, colorPart green, colorPart blue) { /* no op */ };
-    void setFalseColored(bool isFalseColored) { /* no op */ };
-    bool getFalseColored() { return false; };
-    void setColor(const nodeColor& color) { memcpy(_trueColor,color,sizeof(nodeColor)); };
-    void setDensity(const float density) { _density = density; };
-    const nodeColor& getTrueColor() const { return _trueColor; };
-    const nodeColor& getColor() const { return _trueColor; };
-#endif
 
     void setDensity(float density) { _density = density; }
     float getDensity() const { return _density; }
@@ -122,49 +110,123 @@ public:
     static void addUpdateHook(VoxelNodeUpdateHook* hook);
     static void removeUpdateHook(VoxelNodeUpdateHook* hook);
     
-    void recalculateSubTreeNodeCount();
-    unsigned long getSubTreeNodeCount() const { return _subtreeNodeCount; }
-    unsigned long getSubTreeInternalNodeCount() const { return _subtreeNodeCount - _subtreeLeafNodeCount; }
-    unsigned long getSubTreeLeafNodeCount() const { return _subtreeLeafNodeCount; }
+    static unsigned long getNodeCount() { return _voxelNodeCount; }
+    static unsigned long getInternalNodeCount() { return _voxelNodeCount - _voxelNodeLeafCount; }
+    static unsigned long getLeafNodeCount() { return _voxelNodeLeafCount; }
 
     static uint64_t getVoxelMemoryUsage() { return _voxelMemoryUsage; }
     static uint64_t getOctcodeMemoryUsage() { return _octcodeMemoryUsage; }
+    static uint64_t getExternalChildrenMemoryUsage() { return _externalChildrenMemoryUsage; }
+    static uint64_t getTotalMemoryUsage() { return _voxelMemoryUsage + _octcodeMemoryUsage + _externalChildrenMemoryUsage; }
+
+    static uint64_t getGetChildAtIndexTime() { return _getChildAtIndexTime; }
+    static uint64_t getGetChildAtIndexCalls() { return _getChildAtIndexCalls; }
+    static uint64_t getSetChildAtIndexTime() { return _setChildAtIndexTime; }
+    static uint64_t getSetChildAtIndexCalls() { return _setChildAtIndexCalls; }
+
+    static uint64_t getSingleChildrenCount() { return _singleChildrenCount; }
+    static uint64_t getTwoChildrenOffsetCount() { return _twoChildrenOffsetCount; }
+    static uint64_t getTwoChildrenExternalCount() { return _twoChildrenExternalCount; }
+    static uint64_t getThreeChildrenOffsetCount() { return _threeChildrenOffsetCount; }
+    static uint64_t getThreeChildrenExternalCount() { return _threeChildrenExternalCount; }
+    static uint64_t getExternalChildrenCount() { return _externalChildrenCount; }
+    static uint64_t getChildrenCount(int childCount) { return _childrenCount[childCount]; }
+    
+    static uint64_t getCouldStoreFourChildrenInternally() { return _couldStoreFourChildrenInternally; }
+    static uint64_t getCouldNotStoreFourChildrenInternally() { return _couldNotStoreFourChildrenInternally; }
+    
+#ifdef HAS_AUDIT_CHILDREN
+    void auditChildren(const char* label) const;
+#endif // def HAS_AUDIT_CHILDREN
 
 private:
+    void setChildAtIndex(int childIndex, VoxelNode* child);
+    void storeTwoChildren(VoxelNode* childOne, VoxelNode* childTwo);
+    void retrieveTwoChildren(VoxelNode*& childOne, VoxelNode*& childTwo);
+    void storeThreeChildren(VoxelNode* childOne, VoxelNode* childTwo, VoxelNode* childThree);
+    void retrieveThreeChildren(VoxelNode*& childOne, VoxelNode*& childTwo, VoxelNode*& childThree);
+    void decodeThreeOffsets(int64_t& offsetOne, int64_t& offsetTwo, int64_t& offsetThree) const;
+    void encodeThreeOffsets(int64_t offsetOne, int64_t offsetTwo, int64_t offsetThree);
+    void checkStoreFourChildren(VoxelNode* childOne, VoxelNode* childTwo, VoxelNode* childThree, VoxelNode* childFour);
+
     void calculateAABox();
     void init(unsigned char * octalCode);
     void notifyDeleteHooks();
     void notifyUpdateHooks();
 
-    VoxelNode* _children[8]; /// Client and server, pointers to child nodes, 64 bytes
     AABox _box; /// Client and server, axis aligned box for bounds of this voxel, 48 bytes
-    unsigned char* _octalCode; /// Client and server, pointer to octal code for this node, 8 bytes
+
+    /// Client and server, buffer containing the octal code or a pointer to octal code for this node, 8 bytes
+    union octalCode_t {
+      unsigned char buffer[8];
+      unsigned char* pointer;
+    } _octalCode;  
 
     uint64_t _lastChanged; /// Client and server, timestamp this node was last changed, 8 bytes
-    unsigned long _subtreeNodeCount; /// Client and server, nodes below this node, 8 bytes
-    unsigned long _subtreeLeafNodeCount; /// Client and server, leaves below this node, 8 bytes
 
-    glBufferIndex _glBufferIndex; /// Client only, vbo index for this voxel if being rendered, 8 bytes
-    VoxelSystem* _voxelSystem; /// Client only, pointer to VoxelSystem rendering this voxel, 8 bytes
+    /// Client and server, pointers to child nodes, various encodings
+    union children_t {
+      VoxelNode* single;
+      int32_t offsetsTwoChildren[2];
+      uint64_t offsetsThreeChildrenEncoded;
+      VoxelNode** external;
+    } _children;
+
+#ifdef HAS_AUDIT_CHILDREN
+    VoxelNode* _childrenArray[8]; /// Only used when HAS_AUDIT_CHILDREN is enabled to help debug children encoding
+#endif // def HAS_AUDIT_CHILDREN
+
+    uint32_t _glBufferIndex : 24, /// Client only, vbo index for this voxel if being rendered, 3 bytes
+             _voxelSystemIndex : 8; /// Client only, index to the VoxelSystem rendering this voxel, 1 bytes
+
+    // Support for _voxelSystemIndex, we use these static member variables to track the VoxelSystems that are
+    // in use by various voxel nodes. We map the VoxelSystem pointers into an 1 byte key, this limits us to at
+    // most 255 voxel systems in use at a time within the client. Which is far more than we need.
+    static uint8_t _nextIndex;
+    static std::map<VoxelSystem*, uint8_t> _mapVoxelSystemPointersToIndex;
+    static std::map<uint8_t, VoxelSystem*> _mapIndexToVoxelSystemPointers;
 
     float _density; /// Client and server, If leaf: density = 1, if internal node: 0-1 density of voxels inside, 4 bytes
-    int _childCount; /// Client and server, current child nodes set to non-null in _children, 4 bytes
 
     nodeColor _trueColor; /// Client and server, true color of this voxel, 4 bytes
-#ifndef NO_FALSE_COLOR // !NO_FALSE_COLOR means, does have false color
     nodeColor _currentColor; /// Client only, false color of this voxel, 4 bytes
-    bool _falseColored; /// Client only, is this voxel false colored, 1 bytes
-#endif
 
-    bool _isDirty; /// Client only, has this voxel changed since being rendered, 1 byte
-    bool _shouldRender; /// Client only, should this voxel render at this time, 1 byte
     uint16_t _sourceID; /// Client only, stores node id of voxel server that sent his voxel, 2 bytes
 
+    unsigned char _childBitmask;     // 1 byte 
+
+    bool _falseColored : 1, /// Client only, is this voxel false colored, 1 bit
+         _isDirty : 1, /// Client only, has this voxel changed since being rendered, 1 bit
+         _shouldRender : 1, /// Client only, should this voxel render at this time, 1 bit
+         _octcodePointer : 1, /// Client and Server only, is this voxel's octal code a pointer or buffer, 1 bit
+         _unknownBufferIndex : 1,
+         _childrenExternal : 1; /// Client only, is this voxel's VBO buffer the unknown buffer index, 1 bit
 
     static std::vector<VoxelNodeDeleteHook*> _deleteHooks;
     static std::vector<VoxelNodeUpdateHook*> _updateHooks;
+
+    static uint64_t _voxelNodeCount;
+    static uint64_t _voxelNodeLeafCount;
+
     static uint64_t _voxelMemoryUsage;
     static uint64_t _octcodeMemoryUsage;
+    static uint64_t _externalChildrenMemoryUsage;
+
+    static uint64_t _getChildAtIndexTime;
+    static uint64_t _getChildAtIndexCalls;
+    static uint64_t _setChildAtIndexTime;
+    static uint64_t _setChildAtIndexCalls;
+
+    static uint64_t _singleChildrenCount;
+    static uint64_t _twoChildrenOffsetCount;
+    static uint64_t _twoChildrenExternalCount;
+    static uint64_t _threeChildrenOffsetCount;
+    static uint64_t _threeChildrenExternalCount;
+    static uint64_t _externalChildrenCount;
+    static uint64_t _childrenCount[NUMBER_OF_CHILDREN + 1];
+
+    static uint64_t _couldStoreFourChildrenInternally;
+    static uint64_t _couldNotStoreFourChildrenInternally;
 };
 
 #endif /* defined(__hifi__VoxelNode__) */
