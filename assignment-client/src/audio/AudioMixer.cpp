@@ -163,7 +163,7 @@ void AudioMixer::run() {
             
             const int PHASE_DELAY_AT_90 = 20;
             
-            if (node->getType() == NODE_TYPE_AGENT) {
+            if (node->getType() == NODE_TYPE_AGENT && node->getActiveSocket()) {
                 AvatarAudioRingBuffer* nodeRingBuffer = (AvatarAudioRingBuffer*) node->getLinkedData();
                 
                 // zero out the client mix for this node
