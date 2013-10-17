@@ -134,7 +134,7 @@ void VoxelTree::recurseNodeWithOperationDistanceSorted(VoxelNode* node, RecurseV
 
 
 VoxelNode* VoxelTree::nodeForOctalCode(VoxelNode* ancestorNode,
-                                       unsigned char* needleCode, VoxelNode** parentOfFoundNode) const {
+                                       const unsigned char* needleCode, VoxelNode** parentOfFoundNode) const {
     // find the appropriate branch index based on this ancestorNode
     if (*needleCode > 0) {
         int branchForNeedle = branchIndexWithDescendant(ancestorNode->getOctalCode(), needleCode);
@@ -630,9 +630,22 @@ void VoxelTree::printTreeForDebugging(VoxelNode *startNode) {
 }
 
 // Note: this is an expensive call. Don't call it unless you really need to reaverage the entire tree (from startNode)
-void VoxelTree::reaverageVoxelColors(VoxelNode *startNode) {
+void VoxelTree::reaverageVoxelColors(VoxelNode* startNode) {
     // if our tree is a reaveraging tree, then we do this, otherwise we don't do anything
     if (_shouldReaverage) {
+        static int recursionCount;
+        if (startNode == rootNode) {
+            recursionCount = 0;
+        } else {
+            recursionCount++;
+        }
+        const int UNREASONABLY_DEEP_RECURSION = 20;
+        if (recursionCount > UNREASONABLY_DEEP_RECURSION) {
+            qDebug("VoxelTree::reaverageVoxelColors()... bailing out of UNREASONABLY_DEEP_RECURSION\n");
+            recursionCount--;
+            return;
+        }
+
         bool hasChildren = false;
 
         for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
@@ -647,9 +660,7 @@ void VoxelTree::reaverageVoxelColors(VoxelNode *startNode) {
         if (hasChildren && !startNode->collapseIdenticalLeaves()) {
             startNode->setColorFromAverageOfChildren();
         }
-        
-        // this is also a good time to recalculateSubTreeNodeCount()
-        startNode->recalculateSubTreeNodeCount();
+        recursionCount--;
     }
 }
 
@@ -713,6 +724,11 @@ VoxelNode* VoxelTree::getVoxelAt(float x, float y, float z, float s) const {
         node = NULL;
     }
     delete[] octalCode; // cleanup memory
+#ifdef HAS_AUDIT_CHILDREN
+    if (node) {
+        node->auditChildren("VoxelTree::getVoxelAt()");
+    }
+#endif // def HAS_AUDIT_CHILDREN
     return node;
 }
 
@@ -1981,7 +1997,7 @@ bool VoxelTree::nudgeCheck(VoxelNode* node, void* extraData) {
         NodeChunkArgs* args = (NodeChunkArgs*)extraData;
 
         // get octal code of this node
-        unsigned char* octalCode = node->getOctalCode();
+        const unsigned char* octalCode = node->getOctalCode();
 
         // get voxel position/size
         VoxelPositionSize unNudgedDetails;
@@ -2020,7 +2036,7 @@ void VoxelTree::nudgeLeaf(VoxelNode* node, void* extraData) {
     NodeChunkArgs* args = (NodeChunkArgs*)extraData;
 
     // get octal code of this node
-    unsigned char* octalCode = node->getOctalCode();
+    const unsigned char* octalCode = node->getOctalCode();
 
     // get voxel position/size
     VoxelPositionSize unNudgedDetails;

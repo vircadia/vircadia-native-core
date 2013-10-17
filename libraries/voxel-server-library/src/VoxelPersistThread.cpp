@@ -29,21 +29,38 @@ bool VoxelPersistThread::process() {
         _initialLoad = true;
         qDebug("loading voxels from file: %s...\n", _filename);
 
-        bool persistantFileRead = _tree->readFromSVOFile(_filename);
+        bool persistantFileRead;
+        
+        {
+            PerformanceWarning warn(true, "Loading Voxel File", true);
+            persistantFileRead = _tree->readFromSVOFile(_filename);
+        }
+
         if (persistantFileRead) {
-            PerformanceWarning warn(true, "reaverageVoxelColors()", true);
+            PerformanceWarning warn(true, "Voxels Re-Averaging", true);
             
             // after done inserting all these voxels, then reaverage colors
+            qDebug("BEGIN Voxels Re-Averaging\n");
             _tree->reaverageVoxelColors(_tree->rootNode);
-            qDebug("Voxels reAveraged\n");
+            qDebug("DONE WITH Voxels Re-Averaging\n");
         }
         
         _tree->clearDirtyBit(); // the tree is clean since we just loaded it
         qDebug("DONE loading voxels from file... fileRead=%s\n", debug::valueOf(persistantFileRead));
-        unsigned long nodeCount         = _tree->rootNode->getSubTreeNodeCount();
-        unsigned long internalNodeCount = _tree->rootNode->getSubTreeInternalNodeCount();
-        unsigned long leafNodeCount     = _tree->rootNode->getSubTreeLeafNodeCount();
+        
+        unsigned long nodeCount = VoxelNode::getNodeCount();
+        unsigned long internalNodeCount = VoxelNode::getInternalNodeCount();
+        unsigned long leafNodeCount = VoxelNode::getLeafNodeCount();
         qDebug("Nodes after loading scene %lu nodes %lu internal %lu leaves\n", nodeCount, internalNodeCount, leafNodeCount);
+
+        double usecPerGet = (double)VoxelNode::getGetChildAtIndexTime() / (double)VoxelNode::getGetChildAtIndexCalls();
+        qDebug("getChildAtIndexCalls=%llu getChildAtIndexTime=%llu perGet=%lf \n",
+            VoxelNode::getGetChildAtIndexTime(), VoxelNode::getGetChildAtIndexCalls(), usecPerGet);
+            
+        double usecPerSet = (double)VoxelNode::getSetChildAtIndexTime() / (double)VoxelNode::getSetChildAtIndexCalls();
+        qDebug("setChildAtIndexCalls=%llu setChildAtIndexTime=%llu perSet=%lf\n",
+            VoxelNode::getSetChildAtIndexTime(), VoxelNode::getSetChildAtIndexCalls(), usecPerSet);
+
     }
     
     uint64_t MSECS_TO_USECS = 1000;

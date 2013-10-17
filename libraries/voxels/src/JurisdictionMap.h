@@ -41,7 +41,7 @@ public:
     JurisdictionMap(const char* rootHextString, const char* endNodesHextString);
     ~JurisdictionMap();
 
-    Area isMyJurisdiction(unsigned char* nodeOctalCode, int childIndex) const;
+    Area isMyJurisdiction(const unsigned char* nodeOctalCode, int childIndex) const;
 
     bool writeToFile(const char* filename);
     bool readFromFile(const char* filename);

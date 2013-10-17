@@ -543,7 +543,8 @@ const int hullVertexLookup[MAX_POSSIBLE_COMBINATIONS][MAX_PROJECTED_POLYGON_VERT
 
 VoxelProjectedPolygon ViewFrustum::getProjectedPolygon(const AABox& box) const {
     const glm::vec3& bottomNearRight = box.getCorner();
-    const glm::vec3& topFarLeft      = box.getTopFarLeft();
+    glm::vec3 topFarLeft = box.calcTopFarLeft();
+
     int lookUp = ((_position.x < bottomNearRight.x)     )   //  1 = right      |   compute 6-bit
                + ((_position.x > topFarLeft.x     ) << 1)   //  2 = left       |         code to
                + ((_position.y < bottomNearRight.y) << 2)   //  4 = bottom     | classify camera
@@ -596,7 +597,7 @@ VoxelProjectedPolygon ViewFrustum::getProjectedPolygon(const AABox& box) const {
         ***/
     }
     // set the distance from our camera position, to the closest vertex
-    float distance = glm::distance(getPosition(), box.getCenter());
+    float distance = glm::distance(getPosition(), box.calcCenter());
     projectedPolygon.setDistance(distance);
     projectedPolygon.setAnyInView(anyPointsInView);
     projectedPolygon.setAllInView(allPointsInView);
@@ -609,9 +610,9 @@ VoxelProjectedPolygon ViewFrustum::getProjectedPolygon(const AABox& box) const {
 // axis-aligned voxels to determine which of the voxels vertices must be the furthest. No need for
 // squares and square-roots. Just compares.
 glm::vec3 ViewFrustum::getFurthestPointFromCamera(const AABox& box) const {
-    const glm::vec3& center          = box.getCenter();
     const glm::vec3& bottomNearRight = box.getCorner();
-    const glm::vec3& topFarLeft      = box.getTopFarLeft();
+    glm::vec3 center = box.calcCenter();
+    glm::vec3 topFarLeft = box.calcTopFarLeft();
 
     glm::vec3 furthestPoint;
     if (_position.x < center.x) {
