@@ -187,8 +187,6 @@ void VoxelNode::calculateAABox() {
 }
 
 void VoxelNode::deleteChildAtIndex(int childIndex) {
-    //printf("deleteChildAtIndex(%d)\n",childIndex);
-
     VoxelNode* childAt = getChildAtIndex(childIndex);
     if (childAt) {
         delete childAt;
@@ -239,10 +237,10 @@ void VoxelNode::auditChildren(const char* label) const {
     }
     
     if (auditFailed) {
-        printf("%s... auditChildren() %s <<<< \n", label, (auditFailed ? "FAILED" : "PASSED"));
-        printf("    _childrenExternal=%s\n", debug::valueOf(_childrenExternal));
-        printf("    childCount=%d\n", getChildCount());
-        printf("    _childBitmask=");
+        qDebug("%s... auditChildren() %s <<<< \n", label, (auditFailed ? "FAILED" : "PASSED"));
+        qDebug("    _childrenExternal=%s\n", debug::valueOf(_childrenExternal));
+        qDebug("    childCount=%d\n", getChildCount());
+        qDebug("    _childBitmask=");
         outputBits(_childBitmask);
 
 
@@ -250,12 +248,12 @@ void VoxelNode::auditChildren(const char* label) const {
             VoxelNode* testChildNew = getChildAtIndex(childIndex);
             VoxelNode* testChildOld = _childrenArray[childIndex];
 
-            printf("child at index %d... testChildOld=%p testChildNew=%p %s \n",
+            qDebug("child at index %d... testChildOld=%p testChildNew=%p %s \n",
                     childIndex, testChildOld, testChildNew ,
                     ((testChildNew != testChildOld) ? " DOES NOT MATCH <<<< BAD <<<<" : " - OK ")
             );
         }
-        printf("%s... auditChildren() <<<< DONE <<<< \n", label);
+        qDebug("%s... auditChildren() <<<< DONE <<<< \n", label);
     }
 }
 #endif // def HAS_AUDIT_CHILDREN
@@ -342,7 +340,6 @@ VoxelNode* VoxelNode::getChildAtIndex(int childIndex) const {
         } break;
         default: {
             caseStr = "default";
-            //printf("default case...\n");
             // if we have 4 or more, we know we're in external mode, so we just need to figure out which
             // slot in our external array this child is.
             if (oneAtBit(_childBitmask, childIndex)) {
@@ -359,7 +356,7 @@ VoxelNode* VoxelNode::getChildAtIndex(int childIndex) const {
     }
 #ifdef HAS_AUDIT_CHILDREN
     if (result != _childrenArray[childIndex]) {
-        printf("getChildAtIndex() case:%s result<%p> != _childrenArray[childIndex]<%p> <<<<<<<<<< WARNING!!! \n",
+        qDebug("getChildAtIndex() case:%s result<%p> != _childrenArray[childIndex]<%p> <<<<<<<<<< WARNING!!! \n",
             caseStr, result,_childrenArray[childIndex]);
     }
 #endif // def HAS_AUDIT_CHILDREN
@@ -866,7 +863,7 @@ void VoxelNode::setChildAtIndex(int childIndex, VoxelNode* child) {
         _externalChildrenMemoryUsage += newChildCount * sizeof(VoxelNode*);
     } else {
         assert(false);
-        printf("THIS SHOULD NOT HAPPEN previousChildCount == %d && newChildCount == %d\n",previousChildCount, newChildCount);
+        qDebug("THIS SHOULD NOT HAPPEN previousChildCount == %d && newChildCount == %d\n",previousChildCount, newChildCount);
     }
 
 #ifdef HAS_AUDIT_CHILDREN
