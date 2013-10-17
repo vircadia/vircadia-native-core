@@ -12,7 +12,9 @@
 #include <map>
 #include <stdint.h>
 #include <vector>
+
 #include <QtCore/QString>
+#include <QtCore/QUuid>
 
 class JurisdictionMap {
 public:
@@ -71,7 +73,7 @@ private:
 
 /// Map between node IDs and their reported JurisdictionMap. Typically used by classes that need to know which nodes are 
 /// managing which jurisdictions.
-typedef std::map<uint16_t, JurisdictionMap> NodeToJurisdictionMap;
+typedef std::map<QUuid, JurisdictionMap> NodeToJurisdictionMap;
 
 
 #endif /* defined(__hifi__JurisdictionMap__) */

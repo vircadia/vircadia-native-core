@@ -11,8 +11,9 @@
 #include <cstring>
 #include <cstdio>
 
-#include <QDebug>
-#include <QString>
+#include <QtCore/QDebug>
+#include <QtCore/QString>
+#include <QtCore/QUuid>
 
 #include <Logging.h>
 #include <OctalCode.h>
@@ -25,6 +26,7 @@
 #include <SceneUtils.h>
 #include <PerfStat.h>
 #include <JurisdictionSender.h>
+#include <UUID.h>
 
 #ifdef _WIN32
 #include "Syssocket.h"
@@ -384,12 +386,13 @@ void VoxelServer::run() {
             if (packetData[0] == PACKET_TYPE_HEAD_DATA) {
                 // If we got a PACKET_TYPE_HEAD_DATA, then we're talking to an NODE_TYPE_AVATAR, and we
                 // need to make sure we have it in our nodeList.
-                uint16_t nodeID = 0;
-                unpackNodeId(packetData + numBytesPacketHeader, &nodeID);
-                Node* node = NodeList::getInstance()->addOrUpdateNode(&senderAddress,
-                                                       &senderAddress,
-                                                       NODE_TYPE_AGENT,
-                                                       nodeID);
+                QUuid nodeUUID = QUuid::fromRfc4122(QByteArray((char*)packetData + numBytesPacketHeader,
+                                                               NUM_BYTES_RFC4122_UUID));
+                
+                Node* node = NodeList::getInstance()->addOrUpdateNode(nodeUUID,
+                                                                      NODE_TYPE_AGENT,
+                                                                      &senderAddress,
+                                                                      &senderAddress);
 
                 NodeList::getInstance()->updateNodeWithData(node, packetData, packetLength);
                 

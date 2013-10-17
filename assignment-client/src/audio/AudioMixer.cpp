@@ -39,6 +39,7 @@
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
 #include <StdDev.h>
+#include <UUID.h>
 
 #include "AudioRingBuffer.h"
 
@@ -168,167 +169,166 @@ void AudioMixer::run() {
                         && (otherNode != node || (otherNode == node && nodeRingBuffer->shouldLoopbackForNode()))) {
                         PositionalAudioRingBuffer* otherNodeBuffer = (PositionalAudioRingBuffer*) otherNode->getLinkedData();
                         // based on our listen mode we will do this mixing...
-                        if (nodeRingBuffer->isListeningToNode(*otherNode)) {
-                            float bearingRelativeAngleToSource = 0.0f;
-                            float attenuationCoefficient = 1.0f;
-                            int numSamplesDelay = 0;
-                            float weakChannelAmplitudeRatio = 1.0f;
+                        
+                        float bearingRelativeAngleToSource = 0.0f;
+                        float attenuationCoefficient = 1.0f;
+                        int numSamplesDelay = 0;
+                        float weakChannelAmplitudeRatio = 1.0f;
+                        
+                        stk::TwoPole* otherNodeTwoPole = NULL;
+                        
+                        if (otherNode != node) {
                             
-                            stk::TwoPole* otherNodeTwoPole = NULL;
+                            glm::vec3 listenerPosition = nodeRingBuffer->getPosition();
+                            glm::vec3 relativePosition = otherNodeBuffer->getPosition() - nodeRingBuffer->getPosition();
+                            glm::quat inverseOrientation = glm::inverse(nodeRingBuffer->getOrientation());
                             
-                            // only do axis/distance attenuation when in normal mode
-                            if (otherNode != node && nodeRingBuffer->getListeningMode() == AudioRingBuffer::NORMAL) {
-                                
-                                glm::vec3 listenerPosition = nodeRingBuffer->getPosition();
-                                glm::vec3 relativePosition = otherNodeBuffer->getPosition() - nodeRingBuffer->getPosition();
-                                glm::quat inverseOrientation = glm::inverse(nodeRingBuffer->getOrientation());
-                                
-                                float distanceSquareToSource = glm::dot(relativePosition, relativePosition);
-                                float radius = 0.0f;
-                                
-                                if (otherNode->getType() == NODE_TYPE_AUDIO_INJECTOR) {
-                                    InjectedAudioRingBuffer* injectedBuffer = (InjectedAudioRingBuffer*) otherNodeBuffer;
-                                    radius = injectedBuffer->getRadius();
-                                    attenuationCoefficient *= injectedBuffer->getAttenuationRatio();
-                                }
-                                
-                                if (radius == 0 || (distanceSquareToSource > radius * radius)) {
-                                    // this is either not a spherical source, or the listener is outside the sphere
-                                    
-                                    if (radius > 0) {
-                                        // this is a spherical source - the distance used for the coefficient
-                                        // needs to be the closest point on the boundary to the source
-                                        
-                                        // ovveride the distance to the node with the distance to the point on the
-                                        // boundary of the sphere
-                                        distanceSquareToSource -= (radius * radius);
-                                        
-                                    } else {
-                                        // calculate the angle delivery for off-axis attenuation
-                                        glm::vec3 rotatedListenerPosition = glm::inverse(otherNodeBuffer->getOrientation())
-                                        * relativePosition;
-                                        
-                                        float angleOfDelivery = glm::angle(glm::vec3(0.0f, 0.0f, -1.0f),
-                                                                           glm::normalize(rotatedListenerPosition));
-                                        
-                                        const float MAX_OFF_AXIS_ATTENUATION = 0.2f;
-                                        const float OFF_AXIS_ATTENUATION_FORMULA_STEP = (1 - MAX_OFF_AXIS_ATTENUATION) / 2.0f;
-                                        
-                                        float offAxisCoefficient = MAX_OFF_AXIS_ATTENUATION +
-                                        (OFF_AXIS_ATTENUATION_FORMULA_STEP * (angleOfDelivery / 90.0f));
-                                        
-                                        // multiply the current attenuation coefficient by the calculated off axis coefficient
-                                        attenuationCoefficient *= offAxisCoefficient;
-                                    }
-                                    
-                                    glm::vec3 rotatedSourcePosition = inverseOrientation * relativePosition;
-                                    
-                                    const float DISTANCE_SCALE = 2.5f;
-                                    const float GEOMETRIC_AMPLITUDE_SCALAR = 0.3f;
-                                    const float DISTANCE_LOG_BASE = 2.5f;
-                                    const float DISTANCE_SCALE_LOG = logf(DISTANCE_SCALE) / logf(DISTANCE_LOG_BASE);
-                                    
-                                    // calculate the distance coefficient using the distance to this node
-                                    float distanceCoefficient = powf(GEOMETRIC_AMPLITUDE_SCALAR,
-                                                                     DISTANCE_SCALE_LOG +
-                                                                     (0.5f * logf(distanceSquareToSource) / logf(DISTANCE_LOG_BASE)) - 1);
-                                    distanceCoefficient = std::min(1.0f, distanceCoefficient);
-                                    
-                                    // multiply the current attenuation coefficient by the distance coefficient
-                                    attenuationCoefficient *= distanceCoefficient;
-                                    
-                                    // project the rotated source position vector onto the XZ plane
-                                    rotatedSourcePosition.y = 0.0f;
-                                    
-                                    // produce an oriented angle about the y-axis
-                                    bearingRelativeAngleToSource = glm::orientedAngle(glm::vec3(0.0f, 0.0f, -1.0f),
-                                                                                      glm::normalize(rotatedSourcePosition),
-                                                                                      glm::vec3(0.0f, 1.0f, 0.0f));
-                                    
-                                    const float PHASE_AMPLITUDE_RATIO_AT_90 = 0.5;
-                                    
-                                    // figure out the number of samples of delay and the ratio of the amplitude
-                                    // in the weak channel for audio spatialization
-                                    float sinRatio = fabsf(sinf(glm::radians(bearingRelativeAngleToSource)));
-                                    numSamplesDelay = PHASE_DELAY_AT_90 * sinRatio;
-                                    weakChannelAmplitudeRatio = 1 - (PHASE_AMPLITUDE_RATIO_AT_90 * sinRatio);
-                                    
-                                    // grab the TwoPole object for this source, add it if it doesn't exist
-                                    TwoPoleNodeMap& nodeTwoPoles = nodeRingBuffer->getTwoPoles();
-                                    TwoPoleNodeMap::iterator twoPoleIterator = nodeTwoPoles.find(otherNode->getNodeID());
-                                    
-                                    if (twoPoleIterator == nodeTwoPoles.end()) {
-                                        // setup the freeVerb effect for this source for this client
-                                        otherNodeTwoPole = nodeTwoPoles[otherNode->getNodeID()] = new stk::TwoPole;
-                                    } else {
-                                        otherNodeTwoPole = twoPoleIterator->second;
-                                    }
-                                    
-                                    // calculate the reasonance for this TwoPole based on angle to source
-                                    float TWO_POLE_CUT_OFF_FREQUENCY = 800.0f;
-                                    float TWO_POLE_MAX_FILTER_STRENGTH = 0.4f;
-                                    
-                                    otherNodeTwoPole->setResonance(TWO_POLE_CUT_OFF_FREQUENCY,
-                                                                   TWO_POLE_MAX_FILTER_STRENGTH
-                                                                   * fabsf(bearingRelativeAngleToSource) / 180.0f,
-                                                                   true);
-                                }
+                            float distanceSquareToSource = glm::dot(relativePosition, relativePosition);
+                            float radius = 0.0f;
+                            
+                            if (otherNode->getType() == NODE_TYPE_AUDIO_INJECTOR) {
+                                InjectedAudioRingBuffer* injectedBuffer = (InjectedAudioRingBuffer*) otherNodeBuffer;
+                                radius = injectedBuffer->getRadius();
+                                attenuationCoefficient *= injectedBuffer->getAttenuationRatio();
                             }
                             
-                            int16_t* sourceBuffer = otherNodeBuffer->getNextOutput();
-                            
-                            int16_t* goodChannel = (bearingRelativeAngleToSource > 0.0f)
-                            ? clientSamples
-                            : clientSamples + BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
-                            int16_t* delayedChannel = (bearingRelativeAngleToSource > 0.0f)
-                            ? clientSamples + BUFFER_LENGTH_SAMPLES_PER_CHANNEL
-                            : clientSamples;
-                            
-                            int16_t* delaySamplePointer = otherNodeBuffer->getNextOutput() == otherNodeBuffer->getBuffer()
-                            ? otherNodeBuffer->getBuffer() + RING_BUFFER_LENGTH_SAMPLES - numSamplesDelay
-                            : otherNodeBuffer->getNextOutput() - numSamplesDelay;
-                            
-                            for (int s = 0; s < BUFFER_LENGTH_SAMPLES_PER_CHANNEL; s++) {
-                                // load up the stkFrameBuffer with this source's samples
-                                stkFrameBuffer[s] = (stk::StkFloat) sourceBuffer[s];
-                            }
-                            
-                            // perform the TwoPole effect on the stkFrameBuffer
-                            if (otherNodeTwoPole) {
-                                otherNodeTwoPole->tick(stkFrameBuffer);
-                            }
-                            
-                            for (int s = 0; s < BUFFER_LENGTH_SAMPLES_PER_CHANNEL; s++) {
-                                if (s < numSamplesDelay) {
-                                    // pull the earlier sample for the delayed channel
-                                    int earlierSample = delaySamplePointer[s] * attenuationCoefficient * weakChannelAmplitudeRatio;
+                            if (radius == 0 || (distanceSquareToSource > radius * radius)) {
+                                // this is either not a spherical source, or the listener is outside the sphere
+                                
+                                if (radius > 0) {
+                                    // this is a spherical source - the distance used for the coefficient
+                                    // needs to be the closest point on the boundary to the source
                                     
-                                    delayedChannel[s] = glm::clamp(delayedChannel[s] + earlierSample,
-                                                                   MIN_SAMPLE_VALUE,
-                                                                   MAX_SAMPLE_VALUE);
+                                    // ovveride the distance to the node with the distance to the point on the
+                                    // boundary of the sphere
+                                    distanceSquareToSource -= (radius * radius);
+                                    
+                                } else {
+                                    // calculate the angle delivery for off-axis attenuation
+                                    glm::vec3 rotatedListenerPosition = glm::inverse(otherNodeBuffer->getOrientation())
+                                    * relativePosition;
+                                    
+                                    float angleOfDelivery = glm::angle(glm::vec3(0.0f, 0.0f, -1.0f),
+                                                                       glm::normalize(rotatedListenerPosition));
+                                    
+                                    const float MAX_OFF_AXIS_ATTENUATION = 0.2f;
+                                    const float OFF_AXIS_ATTENUATION_FORMULA_STEP = (1 - MAX_OFF_AXIS_ATTENUATION) / 2.0f;
+                                    
+                                    float offAxisCoefficient = MAX_OFF_AXIS_ATTENUATION +
+                                    (OFF_AXIS_ATTENUATION_FORMULA_STEP * (angleOfDelivery / 90.0f));
+                                    
+                                    // multiply the current attenuation coefficient by the calculated off axis coefficient
+                                    attenuationCoefficient *= offAxisCoefficient;
                                 }
                                 
-                                int16_t currentSample = stkFrameBuffer[s] * attenuationCoefficient;
+                                glm::vec3 rotatedSourcePosition = inverseOrientation * relativePosition;
                                 
-                                goodChannel[s] = glm::clamp(goodChannel[s] + currentSample,
-                                                            MIN_SAMPLE_VALUE,
-                                                            MAX_SAMPLE_VALUE);
+                                const float DISTANCE_SCALE = 2.5f;
+                                const float GEOMETRIC_AMPLITUDE_SCALAR = 0.3f;
+                                const float DISTANCE_LOG_BASE = 2.5f;
+                                const float DISTANCE_SCALE_LOG = logf(DISTANCE_SCALE) / logf(DISTANCE_LOG_BASE);
                                 
-                                if (s + numSamplesDelay < BUFFER_LENGTH_SAMPLES_PER_CHANNEL) {
-                                    int sumSample = delayedChannel[s + numSamplesDelay]
-                                    + (currentSample * weakChannelAmplitudeRatio);
-                                    delayedChannel[s + numSamplesDelay] = glm::clamp(sumSample,
-                                                                                     MIN_SAMPLE_VALUE,
-                                                                                     MAX_SAMPLE_VALUE);
+                                // calculate the distance coefficient using the distance to this node
+                                float distanceCoefficient = powf(GEOMETRIC_AMPLITUDE_SCALAR,
+                                                                 DISTANCE_SCALE_LOG +
+                                                                 (0.5f * logf(distanceSquareToSource) / logf(DISTANCE_LOG_BASE)) - 1);
+                                distanceCoefficient = std::min(1.0f, distanceCoefficient);
+                                
+                                // multiply the current attenuation coefficient by the distance coefficient
+                                attenuationCoefficient *= distanceCoefficient;
+                                
+                                // project the rotated source position vector onto the XZ plane
+                                rotatedSourcePosition.y = 0.0f;
+                                
+                                // produce an oriented angle about the y-axis
+                                bearingRelativeAngleToSource = glm::orientedAngle(glm::vec3(0.0f, 0.0f, -1.0f),
+                                                                                  glm::normalize(rotatedSourcePosition),
+                                                                                  glm::vec3(0.0f, 1.0f, 0.0f));
+                                
+                                const float PHASE_AMPLITUDE_RATIO_AT_90 = 0.5;
+                                
+                                // figure out the number of samples of delay and the ratio of the amplitude
+                                // in the weak channel for audio spatialization
+                                float sinRatio = fabsf(sinf(glm::radians(bearingRelativeAngleToSource)));
+                                numSamplesDelay = PHASE_DELAY_AT_90 * sinRatio;
+                                weakChannelAmplitudeRatio = 1 - (PHASE_AMPLITUDE_RATIO_AT_90 * sinRatio);
+                                
+                                // grab the TwoPole object for this source, add it if it doesn't exist
+                                TwoPoleNodeMap& nodeTwoPoles = nodeRingBuffer->getTwoPoles();
+                                TwoPoleNodeMap::iterator twoPoleIterator = nodeTwoPoles.find(otherNode->getUUID());
+                                
+                                if (twoPoleIterator == nodeTwoPoles.end()) {
+                                    // setup the freeVerb effect for this source for this client
+                                    otherNodeTwoPole = nodeTwoPoles[otherNode->getUUID()] = new stk::TwoPole;
+                                } else {
+                                    otherNodeTwoPole = twoPoleIterator->second;
                                 }
                                 
-                                if (s >= BUFFER_LENGTH_SAMPLES_PER_CHANNEL - PHASE_DELAY_AT_90) {
-                                    // this could be a delayed sample on the next pass
-                                    // so store the affected back in the ARB
-                                    otherNodeBuffer->getNextOutput()[s] = (int16_t) stkFrameBuffer[s];
-                                }
+                                // calculate the reasonance for this TwoPole based on angle to source
+                                float TWO_POLE_CUT_OFF_FREQUENCY = 800.0f;
+                                float TWO_POLE_MAX_FILTER_STRENGTH = 0.4f;
+                                
+                                otherNodeTwoPole->setResonance(TWO_POLE_CUT_OFF_FREQUENCY,
+                                                               TWO_POLE_MAX_FILTER_STRENGTH
+                                                               * fabsf(bearingRelativeAngleToSource) / 180.0f,
+                                                               true);
                             }
                         }
+                        
+                        int16_t* sourceBuffer = otherNodeBuffer->getNextOutput();
+                        
+                        int16_t* goodChannel = (bearingRelativeAngleToSource > 0.0f)
+                        ? clientSamples
+                        : clientSamples + BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
+                        int16_t* delayedChannel = (bearingRelativeAngleToSource > 0.0f)
+                        ? clientSamples + BUFFER_LENGTH_SAMPLES_PER_CHANNEL
+                        : clientSamples;
+                        
+                        int16_t* delaySamplePointer = otherNodeBuffer->getNextOutput() == otherNodeBuffer->getBuffer()
+                        ? otherNodeBuffer->getBuffer() + RING_BUFFER_LENGTH_SAMPLES - numSamplesDelay
+                        : otherNodeBuffer->getNextOutput() - numSamplesDelay;
+                        
+                        for (int s = 0; s < BUFFER_LENGTH_SAMPLES_PER_CHANNEL; s++) {
+                            // load up the stkFrameBuffer with this source's samples
+                            stkFrameBuffer[s] = (stk::StkFloat) sourceBuffer[s];
+                        }
+                        
+                        // perform the TwoPole effect on the stkFrameBuffer
+                        if (otherNodeTwoPole) {
+                            otherNodeTwoPole->tick(stkFrameBuffer);
+                        }
+                        
+                        for (int s = 0; s < BUFFER_LENGTH_SAMPLES_PER_CHANNEL; s++) {
+                            if (s < numSamplesDelay) {
+                                // pull the earlier sample for the delayed channel
+                                int earlierSample = delaySamplePointer[s] * attenuationCoefficient * weakChannelAmplitudeRatio;
+                                
+                                delayedChannel[s] = glm::clamp(delayedChannel[s] + earlierSample,
+                                                               MIN_SAMPLE_VALUE,
+                                                               MAX_SAMPLE_VALUE);
+                            }
+                            
+                            int16_t currentSample = stkFrameBuffer[s] * attenuationCoefficient;
+                            
+                            goodChannel[s] = glm::clamp(goodChannel[s] + currentSample,
+                                                        MIN_SAMPLE_VALUE,
+                                                        MAX_SAMPLE_VALUE);
+                            
+                            if (s + numSamplesDelay < BUFFER_LENGTH_SAMPLES_PER_CHANNEL) {
+                                int sumSample = delayedChannel[s + numSamplesDelay]
+                                + (currentSample * weakChannelAmplitudeRatio);
+                                delayedChannel[s + numSamplesDelay] = glm::clamp(sumSample,
+                                                                                 MIN_SAMPLE_VALUE,
+                                                                                 MAX_SAMPLE_VALUE);
+                            }
+                            
+                            if (s >= BUFFER_LENGTH_SAMPLES_PER_CHANNEL - PHASE_DELAY_AT_90) {
+                                // this could be a delayed sample on the next pass
+                                // so store the affected back in the ARB
+                                otherNodeBuffer->getNextOutput()[s] = (int16_t) stkFrameBuffer[s];
+                            }
+                        }
+                        
                     }
                 }
                 
@@ -357,13 +357,12 @@ void AudioMixer::run() {
                 packetData[0] == PACKET_TYPE_MICROPHONE_AUDIO_WITH_ECHO) {
                 
                 unsigned char* currentBuffer = packetData + numBytesForPacketHeader(packetData);
-                uint16_t sourceID;
-                memcpy(&sourceID, currentBuffer, sizeof(sourceID));
+                QUuid nodeUUID =  QUuid::fromRfc4122(QByteArray((char*) currentBuffer, NUM_BYTES_RFC4122_UUID));
                 
-                Node* avatarNode = nodeList->addOrUpdateNode(nodeAddress,
-                                                             nodeAddress,
+                Node* avatarNode = nodeList->addOrUpdateNode(nodeUUID,
                                                              NODE_TYPE_AGENT,
-                                                             sourceID);
+                                                             nodeAddress,
+                                                             nodeAddress);
                 
                 nodeList->updateNodeWithData(nodeAddress, packetData, receivedBytes);
                 
@@ -372,30 +371,13 @@ void AudioMixer::run() {
                     avatarNode->setAlive(false);
                 }
             } else if (packetData[0] == PACKET_TYPE_INJECT_AUDIO) {
-                Node* matchingInjector = NULL;
+                QUuid nodeUUID = QUuid::fromRfc4122(QByteArray((char*) packetData + numBytesForPacketHeader(packetData),
+                                                               NUM_BYTES_RFC4122_UUID));
                 
-                for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
-                    if (node->getLinkedData()) {
-                        
-                        InjectedAudioRingBuffer* ringBuffer = (InjectedAudioRingBuffer*) node->getLinkedData();
-                        if (memcmp(ringBuffer->getStreamIdentifier(),
-                                   packetData + numBytesForPacketHeader(packetData),
-                                   STREAM_IDENTIFIER_NUM_BYTES) == 0) {
-                            // this is the matching stream, assign to matchingInjector and stop looking
-                            matchingInjector = &*node;
-                            break;
-                        }
-                    }
-                }
-                
-                if (!matchingInjector) {
-                    matchingInjector = nodeList->addOrUpdateNode(NULL,
-                                                                 NULL,
-                                                                 NODE_TYPE_AUDIO_INJECTOR,
-                                                                 nodeList->getLastNodeID());
-                    nodeList->increaseNodeID();
-                    
-                }
+                Node* matchingInjector = nodeList->addOrUpdateNode(nodeUUID,
+                                                                   NODE_TYPE_AUDIO_INJECTOR,
+                                                                   NULL,
+                                                                   NULL);
                 
                 // give the new audio data to the matching injector node
                 nodeList->updateNodeWithData(matchingInjector, packetData, receivedBytes);

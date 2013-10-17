@@ -17,9 +17,7 @@ PositionalAudioRingBuffer::PositionalAudioRingBuffer() :
     AudioRingBuffer(false),
     _position(0.0f, 0.0f, 0.0f),
     _orientation(0.0f, 0.0f, 0.0f, 0.0f),
-    _willBeAddedToMix(false),
-    _listenMode(AudioRingBuffer::NORMAL),
-    _listenRadius(0.0f)
+    _willBeAddedToMix(false)
 {
     
 }
@@ -27,61 +25,11 @@ PositionalAudioRingBuffer::PositionalAudioRingBuffer() :
 PositionalAudioRingBuffer::~PositionalAudioRingBuffer() {
 }
 
-bool PositionalAudioRingBuffer::isListeningToNode(Node& other) const {
-    switch (_listenMode) {
-        default:
-        case AudioRingBuffer::NORMAL:
-            return true;
-            break;
-
-        case AudioRingBuffer::OMNI_DIRECTIONAL_POINT: {
-            PositionalAudioRingBuffer* otherNodeBuffer = (PositionalAudioRingBuffer*) other.getLinkedData();
-            float distance = glm::distance(_position, otherNodeBuffer->_position);
-            return distance <= _listenRadius;
-            break;
-        } 
-        case AudioRingBuffer::SELECTED_SOURCES:
-            for (int i = 0; i < _listenSources.size(); i++) {
-                if (other.getNodeID() == _listenSources[i]) {
-                    return true;
-                }
-            }
-            return false;
-            break;
-    }
-}
-
-
 int PositionalAudioRingBuffer::parseData(unsigned char* sourceBuffer, int numBytes) {
     unsigned char* currentBuffer = sourceBuffer + numBytesForPacketHeader(sourceBuffer);
     currentBuffer += sizeof(uint16_t); // the source ID
-    currentBuffer += parseListenModeData(currentBuffer, numBytes - (currentBuffer - sourceBuffer));
     currentBuffer += parsePositionalData(currentBuffer, numBytes - (currentBuffer - sourceBuffer));
     currentBuffer += parseAudioSamples(currentBuffer, numBytes - (currentBuffer - sourceBuffer));
-    
-    return currentBuffer - sourceBuffer;
-}
-
-int PositionalAudioRingBuffer::parseListenModeData(unsigned char* sourceBuffer, int numBytes) {
-    unsigned char* currentBuffer = sourceBuffer;
-
-    memcpy(&_listenMode, currentBuffer, sizeof(_listenMode));
-    currentBuffer += sizeof(_listenMode);
-
-    if (_listenMode == AudioRingBuffer::OMNI_DIRECTIONAL_POINT) {
-        memcpy(&_listenRadius, currentBuffer, sizeof(_listenRadius));
-        currentBuffer += sizeof(_listenRadius);
-    } else if (_listenMode == AudioRingBuffer::SELECTED_SOURCES) {
-        int listenSourcesCount;
-        memcpy(&listenSourcesCount, currentBuffer, sizeof(listenSourcesCount));
-        currentBuffer += sizeof(listenSourcesCount);
-        for (int i = 0; i < listenSourcesCount; i++) {
-            int sourceID;
-            memcpy(&sourceID, currentBuffer, sizeof(sourceID));
-            currentBuffer += sizeof(sourceID);
-            _listenSources.push_back(sourceID);
-        }
-    }
     
     return currentBuffer - sourceBuffer;
 }

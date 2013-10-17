@@ -17,8 +17,8 @@
 #include "VoxelEditPacketSender.h"
 
 
-EditPacketBuffer::EditPacketBuffer(PACKET_TYPE type, unsigned char* buffer, ssize_t length, uint16_t nodeID) {
-    _nodeID = nodeID;
+EditPacketBuffer::EditPacketBuffer(PACKET_TYPE type, unsigned char* buffer, ssize_t length, QUuid nodeUUID) {
+    _nodeUUID = nodeUUID;
     _currentType = type;
     _currentSize = length;
     memcpy(_currentBuffer, buffer, length); 
@@ -98,12 +98,12 @@ bool VoxelEditPacketSender::voxelServersExist() const {
 
 // This method is called when the edit packet layer has determined that it has a fully formed packet destined for
 // a known nodeID. However, we also want to handle the case where the 
-void VoxelEditPacketSender::queuePacketToNode(uint16_t nodeID, unsigned char* buffer, ssize_t length) {
+void VoxelEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, unsigned char* buffer, ssize_t length) {
     NodeList* nodeList = NodeList::getInstance();
     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
         // only send to the NodeTypes that are NODE_TYPE_VOXEL_SERVER
         if (node->getActiveSocket() != NULL && node->getType() == NODE_TYPE_VOXEL_SERVER && 
-            ((node->getNodeID() == nodeID) || (nodeID == (uint16_t)UNKNOWN_NODE_ID))  ) {
+            ((node->getUUID() == nodeUUID) || (nodeUUID.isNull()))) {
             sockaddr* nodeAddress = node->getActiveSocket();
             queuePacketForSending(*nodeAddress, buffer, length);
         }
@@ -170,14 +170,14 @@ void VoxelEditPacketSender::queuePacketToNodes(unsigned char* buffer, ssize_t le
     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
         // only send to the NodeTypes that are NODE_TYPE_VOXEL_SERVER
         if (node->getActiveSocket() != NULL && node->getType() == NODE_TYPE_VOXEL_SERVER) {
-            uint16_t nodeID = node->getNodeID();
+            QUuid nodeUUID = node->getUUID();
             bool isMyJurisdiction = true;
             // we need to get the jurisdiction for this 
             // here we need to get the "pending packet" for this server
-            const JurisdictionMap& map = (*_voxelServerJurisdictions)[nodeID];
+            const JurisdictionMap& map = (*_voxelServerJurisdictions)[nodeUUID];
             isMyJurisdiction = (map.isMyJurisdiction(octCode, CHECK_NODE_ONLY) == JurisdictionMap::WITHIN);
             if (isMyJurisdiction) {
-                queuePacketToNode(nodeID, buffer, length);
+                queuePacketToNode(nodeUUID, buffer, length);
             }
         }
     }
@@ -216,18 +216,18 @@ void VoxelEditPacketSender::queueVoxelEditMessage(PACKET_TYPE type, unsigned cha
     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
         // only send to the NodeTypes that are NODE_TYPE_VOXEL_SERVER
         if (node->getActiveSocket() != NULL && node->getType() == NODE_TYPE_VOXEL_SERVER) {
-            uint16_t nodeID = node->getNodeID();
+            QUuid nodeUUID = node->getUUID();
             bool isMyJurisdiction = true;
 
             if (_voxelServerJurisdictions) {
                 // we need to get the jurisdiction for this 
                 // here we need to get the "pending packet" for this server
-                const JurisdictionMap& map = (*_voxelServerJurisdictions)[nodeID];
+                const JurisdictionMap& map = (*_voxelServerJurisdictions)[nodeUUID];
                 isMyJurisdiction = (map.isMyJurisdiction(codeColorBuffer, CHECK_NODE_ONLY) == JurisdictionMap::WITHIN);
             }
             if (isMyJurisdiction) {
-                EditPacketBuffer& packetBuffer = _pendingEditPackets[nodeID];
-                packetBuffer._nodeID = nodeID;
+                EditPacketBuffer& packetBuffer = _pendingEditPackets[nodeUUID];
+                packetBuffer._nodeUUID = nodeUUID;
             
                 // If we're switching type, then we send the last one and start over
                 if ((type != packetBuffer._currentType && packetBuffer._currentSize > 0) || 
@@ -255,14 +255,14 @@ void VoxelEditPacketSender::releaseQueuedMessages() {
     if (!voxelServersExist()) {
         _releaseQueuedMessagesPending = true;
     } else {
-        for (std::map<uint16_t,EditPacketBuffer>::iterator i = _pendingEditPackets.begin(); i != _pendingEditPackets.end(); i++) {
+        for (std::map<QUuid, EditPacketBuffer>::iterator i = _pendingEditPackets.begin(); i != _pendingEditPackets.end(); i++) {
             releaseQueuedPacket(i->second);
         }
     }
 }
 
 void VoxelEditPacketSender::releaseQueuedPacket(EditPacketBuffer& packetBuffer) {
-    queuePacketToNode(packetBuffer._nodeID, &packetBuffer._currentBuffer[0], packetBuffer._currentSize);
+    queuePacketToNode(packetBuffer._nodeUUID, &packetBuffer._currentBuffer[0], packetBuffer._currentSize);
     packetBuffer._currentSize = 0;
     packetBuffer._currentType = PACKET_TYPE_UNKNOWN;
 }

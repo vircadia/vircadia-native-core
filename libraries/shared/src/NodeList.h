@@ -42,8 +42,6 @@ extern const unsigned short DEFAULT_DOMAIN_SERVER_PORT;
 
 const char LOCAL_ASSIGNMENT_SERVER_HOSTNAME[] = "localhost";
 
-const int UNKNOWN_NODE_ID = 0;
-
 const int MAX_SILENT_DOMAIN_SERVER_CHECK_INS = 5;
 
 class Assignment;
@@ -83,12 +81,9 @@ public:
     
     unsigned short getDomainPort() const { return _domainPort; }
     void setDomainPort(unsigned short domainPort) { _domainPort = domainPort; }
-        
-    uint16_t getLastNodeID() const { return _lastNodeID; }
-    void increaseNodeID() { (++_lastNodeID == UNKNOWN_NODE_ID) ? ++_lastNodeID : _lastNodeID; }
     
-    uint16_t getOwnerID() const { return _ownerID; }
-    void setOwnerID(uint16_t ownerID) { _ownerID = ownerID; }
+    const QUuid& getOwnerUUID() const { return _ownerUUID; }
+    void setOwnerUUID(const QUuid& ownerUUID) { _ownerUUID = ownerUUID; }
     
     UDPSocket* getNodeSocket() { return &_nodeSocket; }
     
@@ -106,7 +101,7 @@ public:
     
     void setNodeTypesOfInterest(const char* nodeTypesOfInterest, int numNodeTypesOfInterest);
     
-    void sendDomainServerCheckIn(const char* assignmentUUID = NULL);
+    void sendDomainServerCheckIn();
     int processDomainServerList(unsigned char *packetData, size_t dataBytes);
     
     void setAssignmentServerSocket(sockaddr* serverSocket) { _assignmentServerSocket = serverSocket; }
@@ -115,9 +110,9 @@ public:
     void pingPublicAndLocalSocketsForInactiveNode(Node* node) const;
     
     Node* nodeWithAddress(sockaddr *senderAddress);
-    Node* nodeWithID(uint16_t nodeID);
+    Node* nodeWithUUID(const QUuid& nodeUUID);
     
-    Node* addOrUpdateNode(sockaddr* publicSocket, sockaddr* localSocket, char nodeType, uint16_t nodeId);
+    Node* addOrUpdateNode(const QUuid& uuid, char nodeType, sockaddr* publicSocket, sockaddr* localSocket);
     
     void processNodeData(sockaddr *senderAddress, unsigned char *packetData, size_t dataBytes);
     void processBulkNodeData(sockaddr *senderAddress, unsigned char *packetData, int numTotalBytes);
@@ -166,8 +161,7 @@ private:
     UDPSocket _nodeSocket;
     char _ownerType;
     char* _nodeTypesOfInterest;
-    uint16_t _ownerID;
-    uint16_t _lastNodeID;
+    QUuid _ownerUUID;
     pthread_t removeSilentNodesThread;
     pthread_t checkInWithDomainServerThread;
     int _numNoReplyDomainCheckIns;

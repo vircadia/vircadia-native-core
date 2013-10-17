@@ -120,7 +120,7 @@ public:
     bool getWantDelta() const { return _wantDelta; }
     bool getWantLowResMoving() const { return _wantLowResMoving; }
     bool getWantOcclusionCulling() const { return _wantOcclusionCulling; }
-    uint16_t getLeaderID() const { return _leaderID; }
+    const QUuid& getLeaderUUID() const { return _leaderUUID; }
     
     void setHeadData(HeadData* headData) { _headData = headData; }
     void setHandData(HandData* handData) { _handData = handData; }
@@ -147,7 +147,7 @@ protected:
     float _newScale;
 
     // Following mode infos
-    uint16_t _leaderID;
+    QUuid _leaderUUID;
 
     //  Hand state (are we grabbing something or not)
     char _handState;

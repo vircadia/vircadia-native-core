@@ -14,18 +14,13 @@
 
 InjectedAudioRingBuffer::InjectedAudioRingBuffer() :
     _radius(0.0f),
-    _attenuationRatio(0),
-    _streamIdentifier()
+    _attenuationRatio(0)
 {
     
 }
 
 int InjectedAudioRingBuffer::parseData(unsigned char* sourceBuffer, int numBytes) {
     unsigned char* currentBuffer =  sourceBuffer + numBytesForPacketHeader(sourceBuffer);
-    
-    // pull stream identifier from the packet
-    memcpy(&_streamIdentifier, currentBuffer, sizeof(_streamIdentifier));
-    currentBuffer += sizeof(_streamIdentifier);
     
     // use parsePositionalData in parent PostionalAudioRingBuffer class to pull common positional data
     currentBuffer += parsePositionalData(currentBuffer, numBytes - (currentBuffer - sourceBuffer));

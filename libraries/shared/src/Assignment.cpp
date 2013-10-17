@@ -8,6 +8,7 @@
 
 #include "PacketHeaders.h"
 #include "SharedUtil.h"
+#include "UUID.h"
 
 #include <QtCore/QDataStream>
 

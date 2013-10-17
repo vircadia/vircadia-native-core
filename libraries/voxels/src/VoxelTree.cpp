@@ -1555,7 +1555,7 @@ bool VoxelTree::readFromSVOFile(const char* fileName) {
         unsigned char* entireFile = new unsigned char[fileLength];
         file.read((char*)entireFile, fileLength);
         bool wantImportProgress = true;
-        ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS, NULL, UNKNOWN_NODE_ID, wantImportProgress);
+        ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS, NULL, 0, wantImportProgress);
         readBitstreamToTree(entireFile, fileLength, args);
         delete[] entireFile;
 
@@ -1815,7 +1815,7 @@ void VoxelTree::copyFromTreeIntoSubTree(VoxelTree* sourceTree, VoxelNode* destin
 
         // ask destination tree to read the bitstream
         bool wantImportProgress = true;
-        ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS, destinationNode, UNKNOWN_NODE_ID, wantImportProgress);
+        ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS, destinationNode, 0, wantImportProgress);
         readBitstreamToTree(&outputBuffer[0], bytesWritten, args);
     }
 }

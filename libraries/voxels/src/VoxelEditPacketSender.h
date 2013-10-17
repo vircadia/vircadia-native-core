@@ -19,9 +19,9 @@
 /// Used for construction of edit voxel packets
 class EditPacketBuffer {
 public:
-    EditPacketBuffer() { _currentSize = 0; _currentType = PACKET_TYPE_UNKNOWN; _nodeID = UNKNOWN_NODE_ID; }
-    EditPacketBuffer(PACKET_TYPE type, unsigned char* codeColorBuffer, ssize_t length, uint16_t nodeID = UNKNOWN_NODE_ID);
-    uint16_t _nodeID;
+    EditPacketBuffer() : _nodeUUID(), _currentType(PACKET_TYPE_UNKNOWN), _currentSize(0)  { }
+    EditPacketBuffer(PACKET_TYPE type, unsigned char* codeColorBuffer, ssize_t length, const QUuid nodeUUID = QUuid());
+    QUuid _nodeUUID;
     PACKET_TYPE _currentType;
     unsigned char _currentBuffer[MAX_PACKET_SIZE];
     ssize_t _currentSize;
@@ -86,7 +86,7 @@ public:
 
 private:
     bool _shouldSend;
-    void queuePacketToNode(uint16_t nodeID, unsigned char* buffer, ssize_t length);
+    void queuePacketToNode(const QUuid& nodeID, unsigned char* buffer, ssize_t length);
     void queuePacketToNodes(unsigned char* buffer, ssize_t length);
     void initializePacket(EditPacketBuffer& packetBuffer, PACKET_TYPE type);
     void releaseQueuedPacket(EditPacketBuffer& packetBuffer); // releases specific queued packet
@@ -94,7 +94,7 @@ private:
     void processPreServerExistsPackets();
 
     // These are packets which are destined from know servers but haven't been released because they're still too small
-    std::map<uint16_t,EditPacketBuffer> _pendingEditPackets;
+    std::map<QUuid, EditPacketBuffer> _pendingEditPackets;
     
     // These are packets that are waiting to be processed because we don't yet know if there are voxel servers
     int _maxPendingMessages;

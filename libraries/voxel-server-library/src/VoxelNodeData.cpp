@@ -32,8 +32,8 @@ VoxelNodeData::VoxelNodeData(Node* owningNode) :
 
 void VoxelNodeData::initializeVoxelSendThread(VoxelServer* voxelServer) {
     // Create voxel sending thread...
-    uint16_t nodeID = getOwningNode()->getNodeID();
-    _voxelSendThread = new VoxelSendThread(nodeID, voxelServer);
+    QUuid nodeUUID = getOwningNode()->getUUID();
+    _voxelSendThread = new VoxelSendThread(nodeUUID, voxelServer);
     _voxelSendThread->initialize(true);
 }
 

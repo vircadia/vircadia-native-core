@@ -14,6 +14,7 @@
 #include <NodeList.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
+#include <UUID.h>
 
 #include "AvatarData.h"
 
@@ -22,7 +23,9 @@
 const char AVATAR_MIXER_LOGGING_NAME[] = "avatar-mixer";
 
 unsigned char* addNodeToBroadcastPacket(unsigned char *currentPosition, Node *nodeToAdd) {
-    currentPosition += packNodeId(currentPosition, nodeToAdd->getNodeID());
+    QByteArray rfcUUID = nodeToAdd->getUUID().toRfc4122();
+    memcpy(currentPosition, rfcUUID.constData(), rfcUUID.size());
+    currentPosition += rfcUUID.size();
     
     AvatarData *nodeData = (AvatarData *)nodeToAdd->getLinkedData();
     currentPosition += nodeData->getBroadcastData(currentPosition);
@@ -103,7 +106,7 @@ void AvatarMixer::run() {
     
     unsigned char* packetData = new unsigned char[MAX_PACKET_SIZE];
     
-    uint16_t nodeID = 0;
+    QUuid nodeUUID;
     Node* avatarNode = NULL;
     
     timeval lastDomainServerCheckIn = {};
@@ -124,11 +127,11 @@ void AvatarMixer::run() {
             packetVersionMatch(packetData)) {
             switch (packetData[0]) {
                 case PACKET_TYPE_HEAD_DATA:
-                    // grab the node ID from the packet
-                    unpackNodeId(packetData + numBytesForPacketHeader(packetData), &nodeID);
+                    nodeUUID = QUuid::fromRfc4122(QByteArray((char*) packetData + numBytesForPacketHeader(packetData),
+                                                                   NUM_BYTES_RFC4122_UUID));
                     
                     // add or update the node in our list
-                    avatarNode = nodeList->addOrUpdateNode(&nodeAddress, &nodeAddress, NODE_TYPE_AGENT, nodeID);
+                    avatarNode = nodeList->addOrUpdateNode(nodeUUID, NODE_TYPE_AGENT, &nodeAddress, &nodeAddress);
                     
                     // parse positional data from an node
                     nodeList->updateNodeWithData(avatarNode, packetData, receivedBytes);
@@ -137,12 +140,11 @@ void AvatarMixer::run() {
                     break;
                 case PACKET_TYPE_AVATAR_URLS:
                 case PACKET_TYPE_AVATAR_FACE_VIDEO:
-                    // grab the node ID from the packet
-                    unpackNodeId(packetData + numBytesForPacketHeader(packetData), &nodeID);
-                    
+                    nodeUUID = QUuid::fromRfc4122(QByteArray((char*) packetData + numBytesForPacketHeader(packetData),
+                                                             NUM_BYTES_RFC4122_UUID));
                     // let everyone else know about the update
                     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
-                        if (node->getActiveSocket() && node->getNodeID() != nodeID) {
+                        if (node->getActiveSocket() && node->getUUID() != nodeUUID) {
                             nodeList->getNodeSocket()->send(node->getActiveSocket(), packetData, receivedBytes);
                         }
                     }

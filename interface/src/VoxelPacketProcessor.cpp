@@ -47,13 +47,11 @@ void VoxelPacketProcessor::processPacket(sockaddr& senderAddress, unsigned char*
     if (Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
         Node* voxelServer = NodeList::getInstance()->nodeWithAddress(&senderAddress);
         if (voxelServer && socketMatch(voxelServer->getActiveSocket(), &senderAddress)) {
-            int nodeID = voxelServer->getNodeID();
             if (packetData[0] == PACKET_TYPE_ENVIRONMENT_DATA) {
                 app->_environment.parseData(&senderAddress, packetData, messageLength);
             } else {
-                app->_voxels.setDataSourceID(nodeID);
                 app->_voxels.parseData(packetData, messageLength);
-                app->_voxels.setDataSourceID(UNKNOWN_NODE_ID);
+                app->_voxels.setDataSourceID(0);
             }
         }
     }

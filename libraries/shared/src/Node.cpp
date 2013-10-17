@@ -23,19 +23,9 @@
 
 #include <QtCore/QDebug>
 
-int unpackNodeId(unsigned char* packedData, uint16_t* nodeId) {
-    memcpy(nodeId, packedData, sizeof(uint16_t));
-    return sizeof(uint16_t);
-}
-
-int packNodeId(unsigned char* packStore, uint16_t nodeId) {
-    memcpy(packStore, &nodeId, sizeof(uint16_t));
-    return sizeof(uint16_t);
-}
-
-Node::Node(sockaddr* publicSocket, sockaddr* localSocket, char type, uint16_t nodeID) :
+Node::Node(const QUuid& uuid, char type, sockaddr* publicSocket, sockaddr* localSocket) :
     _type(type),
-    _nodeID(nodeID),
+    _uuid(uuid),
     _wakeMicrostamp(usecTimestampNow()),
     _lastHeardMicrostamp(usecTimestampNow()),
     _activeSocket(NULL),
@@ -157,7 +147,8 @@ QDebug operator<<(QDebug debug, const Node &node) {
     char localAddressBuffer[16] = {'\0'};
     unsigned short localAddressPort = loadBufferWithSocketInfo(localAddressBuffer, node.getLocalSocket());
     
-    debug << "#" << node.getNodeID() << node.getTypeName() << node.getType();
+    debug.nospace() << node.getTypeName() << " (" << node.getType() << ")";
+    debug << " " << node.getUUID().toString().toLocal8Bit().constData() << " ";
     debug.nospace() << publicAddressBuffer << ":" << publicAddressPort;
     debug.nospace() << " / " << localAddressBuffer << ":" << localAddressPort;
     return debug.nospace();

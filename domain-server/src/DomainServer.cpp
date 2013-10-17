@@ -154,7 +154,7 @@ void DomainServer::civetwebUploadHandler(struct mg_connection *connection, const
 }
 
 void DomainServer::nodeAdded(Node* node) {
-    NodeList::getInstance()->increaseNodeID();
+    
 }
 
 void DomainServer::nodeKilled(Node* node) {
@@ -187,7 +187,11 @@ void DomainServer::nodeKilled(Node* node) {
 unsigned char* DomainServer::addNodeToBroadcastPacket(unsigned char* currentPosition, Node* nodeToAdd) {
     *currentPosition++ = nodeToAdd->getType();
     
-    currentPosition += packNodeId(currentPosition, nodeToAdd->getNodeID());
+    
+    QByteArray rfcUUID = nodeToAdd->getUUID().toRfc4122();
+    memcpy(currentPosition, rfcUUID.constData(), rfcUUID.size());
+    currentPosition += rfcUUID.size();
+    
     currentPosition += packSocket(currentPosition, nodeToAdd->getPublicSocket());
     currentPosition += packSocket(currentPosition, nodeToAdd->getLocalSocket());
     
@@ -291,11 +295,8 @@ void DomainServer::prepopulateStaticAssignmentFile() {
     _staticAssignmentFile.close();
 }
 
-Assignment* DomainServer::matchingStaticAssignmentForCheckIn(NODE_TYPE nodeType, const uchar* checkInData) {
+Assignment* DomainServer::matchingStaticAssignmentForCheckIn(const QUuid& checkInUUID, NODE_TYPE nodeType) {
     // pull the UUID passed with the check in
-    QUuid checkInUUID = QUuid::fromRfc4122(QByteArray((const char*) checkInData + numBytesForPacketHeader(checkInData) +
-                                                      sizeof(NODE_TYPE),
-                                                      NUM_BYTES_RFC4122_UUID));
     
     if (_hasCompletedRestartHold) {
         _assignmentQueueMutex.lock();
@@ -395,19 +396,14 @@ void DomainServer::removeAssignmentFromQueue(Assignment* removableAssignment) {
 
 bool DomainServer::checkInWithUUIDMatchesExistingNode(sockaddr* nodePublicSocket,
                                                       sockaddr* nodeLocalSocket,
-                                                      const uchar* checkInData) {
-    // pull the UUID passed with the check in
-    QUuid checkInUUID = QUuid::fromRfc4122(QByteArray((const char*) checkInData + numBytesForPacketHeader(checkInData) +
-                                                      sizeof(NODE_TYPE),
-                                                      NUM_BYTES_RFC4122_UUID));
-    
+                                                      const QUuid& checkInUUID) {
     NodeList* nodeList = NodeList::getInstance();
     
     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
         if (node->getLinkedData()
             && socketMatch(node->getPublicSocket(), nodePublicSocket)
             && socketMatch(node->getLocalSocket(), nodeLocalSocket)
-            && ((Assignment*) node->getLinkedData())->getUUID() == checkInUUID) {
+            && node->getUUID() == checkInUUID) {
             // this is a matching existing node if the public socket, local socket, and UUID match
             return true;
         }
@@ -515,7 +511,9 @@ int DomainServer::run() {
                 
                 nodeType = *(packetData + numBytesSenderHeader);
                 
-                int packetIndex = numBytesSenderHeader + sizeof(NODE_TYPE) + NUM_BYTES_RFC4122_UUID;
+                int packetIndex = numBytesSenderHeader + sizeof(NODE_TYPE);
+                QUuid nodeUUID = QUuid::fromRfc4122(QByteArray(((char*) packetData + packetIndex), NUM_BYTES_RFC4122_UUID));
+                packetIndex += NUM_BYTES_RFC4122_UUID;
                 
                 int numBytesPrivateSocket = unpackSocket(packetData + packetIndex, (sockaddr*) &nodePublicAddress);
                 packetIndex += numBytesPrivateSocket;
@@ -531,16 +529,16 @@ int DomainServer::run() {
                 
                 Assignment* matchingStaticAssignment = NULL;
                 
-                if (memchr(STATICALLY_ASSIGNED_NODES, nodeType, sizeof(STATICALLY_ASSIGNED_NODES)) == NULL ||
-                    ((matchingStaticAssignment = matchingStaticAssignmentForCheckIn(nodeType, packetData)) ||
-                     checkInWithUUIDMatchesExistingNode((sockaddr*) &nodePublicAddress,
-                                                        (sockaddr*) &nodeLocalAddress,
-                                                        packetData))) {
-                    
-                    Node* checkInNode = nodeList->addOrUpdateNode((sockaddr*) &nodePublicAddress,
-                                                                  (sockaddr*) &nodeLocalAddress,
+                if (memchr(STATICALLY_ASSIGNED_NODES, nodeType, sizeof(STATICALLY_ASSIGNED_NODES)) == NULL
+                    || ((matchingStaticAssignment = matchingStaticAssignmentForCheckIn(nodeUUID, nodeType))
+                        || checkInWithUUIDMatchesExistingNode((sockaddr*) &nodePublicAddress,
+                                                              (sockaddr*) &nodeLocalAddress,
+                                                              nodeUUID)))
+                {
+                    Node* checkInNode = nodeList->addOrUpdateNode(nodeUUID,
                                                                   nodeType,
-                                                                  nodeList->getLastNodeID());
+                                                                  (sockaddr*) &nodePublicAddress,
+                                                                  (sockaddr*) &nodeLocalAddress);
                     
                     if (matchingStaticAssignment) {
                         // this was a newly added node with a matching static assignment
@@ -583,9 +581,6 @@ int DomainServer::run() {
                     // update last receive to now
                     uint64_t timeNow = usecTimestampNow();
                     checkInNode->setLastHeardMicrostamp(timeNow);
-                    
-                    // add the node ID to the end of the pointer
-                    currentBufferPos += packNodeId(currentBufferPos, checkInNode->getNodeID());
                     
                     // send the constructed list back to this node
                     nodeList->getNodeSocket()->send((sockaddr*)&senderAddress,

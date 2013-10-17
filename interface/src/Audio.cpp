@@ -124,31 +124,10 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
                 unsigned char* currentPacketPtr = dataPacket + populateTypeAndVersion(dataPacket, packetType);
                 
                 // pack Source Data
-                uint16_t ownerID = NodeList::getInstance()->getOwnerID();
-                memcpy(currentPacketPtr, &ownerID, sizeof(ownerID));
-                currentPacketPtr += (sizeof(ownerID));
-                leadingBytes += (sizeof(ownerID));
-                
-                // pack Listen Mode Data
-                memcpy(currentPacketPtr, &_listenMode, sizeof(_listenMode));
-                currentPacketPtr += (sizeof(_listenMode));
-                leadingBytes += (sizeof(_listenMode));
-                
-                if (_listenMode == AudioRingBuffer::OMNI_DIRECTIONAL_POINT) {
-                    memcpy(currentPacketPtr, &_listenRadius, sizeof(_listenRadius));
-                    currentPacketPtr += (sizeof(_listenRadius));
-                    leadingBytes += (sizeof(_listenRadius));
-                } else if (_listenMode == AudioRingBuffer::SELECTED_SOURCES) {
-                    int listenSourceCount = _listenSources.size();
-                    memcpy(currentPacketPtr, &listenSourceCount, sizeof(listenSourceCount));
-                    currentPacketPtr += (sizeof(listenSourceCount));
-                    leadingBytes += (sizeof(listenSourceCount));
-                    for (int i = 0; i < listenSourceCount; i++) {
-                        memcpy(currentPacketPtr, &_listenSources[i], sizeof(_listenSources[i]));
-                        currentPacketPtr += sizeof(_listenSources[i]);
-                        leadingBytes += sizeof(_listenSources[i]);
-                    }
-                }
+                QByteArray rfcUUID = NodeList::getInstance()->getOwnerUUID().toRfc4122();
+                memcpy(currentPacketPtr, rfcUUID.constData(), rfcUUID.size());
+                currentPacketPtr += rfcUUID.size();
+                leadingBytes += rfcUUID.size();
                 
                 // memcpy the three float positions
                 memcpy(currentPacketPtr, &headPosition, sizeof(headPosition));
@@ -347,24 +326,6 @@ void Audio::reset() {
     _ringBuffer.reset();
 }
 
-void Audio::addListenSource(int sourceID) {
-    _listenSources.push_back(sourceID);
-}
-
-void Audio::clearListenSources() {
-    _listenSources.clear();
-}
-
-void Audio::removeListenSource(int sourceID) {
-    for (int i = 0; i < _listenSources.size(); i++) {
-        if (_listenSources[i] == sourceID) {
-            _listenSources.erase(_listenSources.begin() + i);
-            return;
-        }
-    }
-}
-
-
 Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples) :
     _stream(NULL),
     _ringBuffer(true),
@@ -395,9 +356,7 @@ Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples) :
     _collisionSoundDuration(0.0f),
     _proceduralEffectSample(0),
     _heartbeatMagnitude(0.0f),
-    _muted(false),
-    _listenMode(AudioRingBuffer::NORMAL),
-    _listenRadius(0.0f)
+    _muted(false)
 {
     outputPortAudioError(Pa_Initialize());
     

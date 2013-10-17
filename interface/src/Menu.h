@@ -176,9 +176,6 @@ namespace MenuOption {
     const QString Gravity = "Use Gravity";
     const QString GroundPlane = "Ground Plane";
     const QString ParticleCloud = "Particle Cloud";
-    const QString ListenModeNormal = "Listen Mode Normal";
-    const QString ListenModePoint = "Listen Mode Point";
-    const QString ListenModeSingleSource = "Listen Mode Single Source";
     const QString Log = "Log";
     const QString Login = "Login";
     const QString LookAtIndicator = "Look-at Indicator";

@@ -20,7 +20,6 @@
 #include "NodeTypes.h"
 #include "PacketHeaders.h"
 #include "SharedUtil.h"
-#include "UUID.h"
 
 #ifdef _WIN32
 #include "Syssocket.h"
@@ -68,7 +67,8 @@ NodeList::NodeList(char newOwnerType, unsigned short int newSocketListenPort) :
     _nodeSocket(newSocketListenPort),
     _ownerType(newOwnerType),
     _nodeTypesOfInterest(NULL),
-    _ownerUUID(QUuid::createUuid()),
+    _ownerID(UNKNOWN_NODE_ID),
+    _lastNodeID(UNKNOWN_NODE_ID + 1),
     _numNoReplyDomainCheckIns(0),
     _assignmentServerSocket(NULL),
     _checkInPacket(NULL),
@@ -183,18 +183,19 @@ void NodeList::processBulkNodeData(sockaddr *senderAddress, unsigned char *packe
         // we've already verified packet version for the bulk packet, so all head data in the packet is also up to date
         populateTypeAndVersion(packetHolder, PACKET_TYPE_HEAD_DATA);
         
+        uint16_t nodeID = -1;
+        
         while ((currentPosition - startPosition) < numTotalBytes) {
-            
+            unpackNodeId(currentPosition, &nodeID);
             memcpy(packetHolder + numBytesPacketHeader,
                    currentPosition,
                    numTotalBytes - (currentPosition - startPosition));
             
-            QUuid nodeUUID = QUuid::fromRfc4122(QByteArray((char*)currentPosition, NUM_BYTES_RFC4122_UUID));
-            Node* matchingNode = nodeWithUUID(nodeUUID);
+            Node* matchingNode = nodeWithID(nodeID);
             
             if (!matchingNode) {
                 // we're missing this node, we need to add it to the list
-                matchingNode = addOrUpdateNode(nodeUUID, NODE_TYPE_AGENT, NULL, NULL);
+                matchingNode = addOrUpdateNode(NULL, NULL, NODE_TYPE_AGENT, nodeID);
             }
             
             currentPosition += updateNodeWithData(matchingNode,
@@ -246,9 +247,9 @@ Node* NodeList::nodeWithAddress(sockaddr *senderAddress) {
     return NULL;
 }
 
-Node* NodeList::nodeWithUUID(const QUuid& nodeUUID) {
+Node* NodeList::nodeWithUUID(uint16_t nodeID) {
     for(NodeList::iterator node = begin(); node != end(); node++) {
-        if (node->getUUID() == nodeUUID) {
+        if (node->getNodeID() == nodeID) {
             return &(*node);
         }
     }
@@ -296,9 +297,6 @@ void NodeList::reset() {
     
     delete _nodeTypesOfInterest;
     _nodeTypesOfInterest = NULL;
-    
-    // refresh the owner UUID
-    _ownerUUID = QUuid::createUuid();
 }
 
 void NodeList::setNodeTypesOfInterest(const char* nodeTypesOfInterest, int numNodeTypesOfInterest) {
@@ -364,63 +362,46 @@ void NodeList::processSTUNResponse(unsigned char* packetData, size_t dataBytes) 
     const int NUM_BYTES_MESSAGE_TYPE_AND_LENGTH = 4;
     const uint16_t XOR_MAPPED_ADDRESS_TYPE = htons(0x0020);
     
-    int attributeStartIndex = NUM_BYTES_STUN_HEADER;
-    
     if (memcmp(packetData + NUM_BYTES_MESSAGE_TYPE_AND_LENGTH,
                &RFC_5389_MAGIC_COOKIE_NETWORK_ORDER,
-               sizeof(RFC_5389_MAGIC_COOKIE_NETWORK_ORDER)) == 0) {
+               sizeof(RFC_5389_MAGIC_COOKIE_NETWORK_ORDER)) == 0
+        && memcmp(packetData + NUM_BYTES_STUN_HEADER, &XOR_MAPPED_ADDRESS_TYPE, sizeof(XOR_MAPPED_ADDRESS_TYPE)) == 0) {
         
-        // enumerate the attributes to find XOR_MAPPED_ADDRESS_TYPE
-        while (attributeStartIndex < dataBytes) {
-            if (memcmp(packetData + attributeStartIndex, &XOR_MAPPED_ADDRESS_TYPE, sizeof(XOR_MAPPED_ADDRESS_TYPE)) == 0) {
-                const int NUM_BYTES_STUN_ATTR_TYPE_AND_LENGTH = 4;
-                const int NUM_BYTES_FAMILY_ALIGN = 1;
-                const uint8_t IPV4_FAMILY_NETWORK_ORDER = htons(0x01) >> 8;
-                
-                int byteIndex = attributeStartIndex +  NUM_BYTES_STUN_ATTR_TYPE_AND_LENGTH + NUM_BYTES_FAMILY_ALIGN;
-                
-                uint8_t addressFamily = 0;
-                memcpy(&addressFamily, packetData + byteIndex, sizeof(addressFamily));
-                
-                byteIndex += sizeof(addressFamily);
-                
-                if (addressFamily == IPV4_FAMILY_NETWORK_ORDER) {
-                    // grab the X-Port
-                    uint16_t xorMappedPort = 0;
-                    memcpy(&xorMappedPort, packetData + byteIndex, sizeof(xorMappedPort));
-                    
-                    _publicPort = ntohs(xorMappedPort) ^ (ntohl(RFC_5389_MAGIC_COOKIE_NETWORK_ORDER) >> 16);
-                    
-                    byteIndex += sizeof(xorMappedPort);
-                    
-                    // grab the X-Address
-                    uint32_t xorMappedAddress = 0;
-                    memcpy(&xorMappedAddress, packetData + byteIndex, sizeof(xorMappedAddress));
-                    
-                    uint32_t stunAddress = ntohl(xorMappedAddress) ^ ntohl(RFC_5389_MAGIC_COOKIE_NETWORK_ORDER);
-                    _publicAddress = QHostAddress(stunAddress);
-                    
-                    qDebug("Public socket received from STUN server is %s:%hu\n",
-                           _publicAddress.toString().toLocal8Bit().constData(),
-                           _publicPort);
-                    
-                    break;
-                }
-            } else {
-                // push forward attributeStartIndex by the length of this attribute
-                const int NUM_BYTES_ATTRIBUTE_TYPE = 2;
-                
-                uint16_t attributeLength = 0;
-                memcpy(&attributeLength, packetData + attributeStartIndex + NUM_BYTES_ATTRIBUTE_TYPE, sizeof(attributeLength));
-                attributeLength = ntohs(attributeLength);
-                
-                attributeStartIndex += NUM_BYTES_MESSAGE_TYPE_AND_LENGTH + attributeLength;
-            }
+        const int NUM_BYTES_STUN_ATTR_TYPE_AND_LENGTH = 4;
+        const int NUM_BYTES_FAMILY_ALIGN = 1;
+        const uint8_t IPV4_FAMILY_NETWORK_ORDER = htons(0x01) >> 8;
+        
+        int byteIndex = NUM_BYTES_STUN_HEADER + NUM_BYTES_STUN_ATTR_TYPE_AND_LENGTH + NUM_BYTES_FAMILY_ALIGN;
+        
+        uint8_t addressFamily = 0;
+        memcpy(&addressFamily, packetData + byteIndex, sizeof(addressFamily));
+        
+        byteIndex += sizeof(addressFamily);
+        
+        if (addressFamily == IPV4_FAMILY_NETWORK_ORDER) {
+            // grab the X-Port
+            uint16_t xorMappedPort = 0;
+            memcpy(&xorMappedPort, packetData + byteIndex, sizeof(xorMappedPort));
+            
+            _publicPort = ntohs(xorMappedPort) ^ (ntohl(RFC_5389_MAGIC_COOKIE_NETWORK_ORDER) >> 16);
+            
+            byteIndex += sizeof(xorMappedPort);
+            
+            // grab the X-Address
+            uint32_t xorMappedAddress = 0;
+            memcpy(&xorMappedAddress, packetData + byteIndex, sizeof(xorMappedAddress));
+            
+            uint32_t stunAddress = ntohl(xorMappedAddress) ^ ntohl(RFC_5389_MAGIC_COOKIE_NETWORK_ORDER);
+            _publicAddress = QHostAddress(stunAddress);
+            
+            qDebug("Public socket received from STUN server is %s:%hu\n",
+                   _publicAddress.toString().toLocal8Bit().constData(),
+                   _publicPort);
         }
     }
 }
 
-void NodeList::sendDomainServerCheckIn() {
+void NodeList::sendDomainServerCheckIn(const char* assignmentUUID) {
     static bool printedDomainServerIP = false;
     
     //  Lookup the IP address of the domain server if we need to
@@ -478,10 +459,14 @@ void NodeList::sendDomainServerCheckIn() {
             
             *(packetPosition++) = _ownerType;
             
-            // send our owner UUID or the null one
-            QByteArray rfcOwnerUUID = _ownerUUID.toRfc4122();
-            memcpy(packetPosition, rfcOwnerUUID.constData(), rfcOwnerUUID.size());
-            packetPosition += rfcOwnerUUID.size();
+            if (!assignmentUUID) {
+                // if we don't have an assignment UUID just send the null one
+                assignmentUUID = QUuid().toRfc4122().constData();
+            }
+            
+            // send our assignment UUID or the null one
+            memcpy(packetPosition, assignmentUUID, NUM_BYTES_RFC4122_UUID);
+            packetPosition += NUM_BYTES_RFC4122_UUID;
             
             // pack our public address to send to domain-server
             packetPosition += packSocket(_checkInPacket + (packetPosition - _checkInPacket),
@@ -520,6 +505,7 @@ int NodeList::processDomainServerList(unsigned char* packetData, size_t dataByte
     int readNodes = 0;
 
     char nodeType;
+    uint16_t nodeId;
     
     // assumes only IPv4 addresses
     sockaddr_in nodePublicSocket;
@@ -532,9 +518,7 @@ int NodeList::processDomainServerList(unsigned char* packetData, size_t dataByte
     
     while((readPtr - startPtr) < dataBytes - sizeof(uint16_t)) {
         nodeType = *readPtr++;
-        QUuid nodeUUID = QUuid::fromRfc4122(QByteArray((char*) readPtr, NUM_BYTES_RFC4122_UUID));
-        readPtr += NUM_BYTES_RFC4122_UUID;
-    
+        readPtr += unpackNodeId(readPtr, (uint16_t*) &nodeId);
         readPtr += unpackSocket(readPtr, (sockaddr*) &nodePublicSocket);
         readPtr += unpackSocket(readPtr, (sockaddr*) &nodeLocalSocket);
         
@@ -544,9 +528,11 @@ int NodeList::processDomainServerList(unsigned char* packetData, size_t dataByte
             nodePublicSocket.sin_addr.s_addr = htonl(_domainIP.toIPv4Address());
         }
         
-        addOrUpdateNode(nodeUUID, nodeType, (sockaddr*) &nodePublicSocket, (sockaddr*) &nodeLocalSocket);
+        addOrUpdateNode((sockaddr*) &nodePublicSocket, (sockaddr*) &nodeLocalSocket, nodeType, nodeId);
     }
     
+    // read out our ID from the packet
+    unpackNodeId(readPtr, &_ownerID);
 
     return readNodes;
 }
@@ -586,7 +572,7 @@ void NodeList::pingPublicAndLocalSocketsForInactiveNode(Node* node) const {
     _nodeSocket.send(node->getPublicSocket(), pingPacket, sizeof(pingPacket));
 }
 
-Node* NodeList::addOrUpdateNode(const QUuid& uuid, char nodeType, sockaddr* publicSocket, sockaddr* localSocket) {
+Node* NodeList::addOrUpdateNode(sockaddr* publicSocket, sockaddr* localSocket, char nodeType, uint16_t nodeId) {
     NodeList::iterator node = end();
     
     if (publicSocket) {
@@ -600,7 +586,7 @@ Node* NodeList::addOrUpdateNode(const QUuid& uuid, char nodeType, sockaddr* publ
     
     if (node == end()) {
         // we didn't have this node, so add them
-        Node* newNode = new Node(uuid, nodeType, publicSocket, localSocket);
+        Node* newNode = new Node(publicSocket, localSocket, nodeType, nodeId);
         
         addNodeToList(newNode);
         
