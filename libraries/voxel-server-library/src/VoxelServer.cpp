@@ -161,23 +161,27 @@ int VoxelServer::civetwebRequestHandler(struct mg_connection* connection) {
         mg_printf(connection, "%s", "\r\n");
         mg_printf(connection, "%s", "VoxelNode Children Encoding Statistics...\r\n");
         mg_printf(connection, "    Single or No Children:      %10.llu nodes (%5.2f%%)\r\n", 
-            VoxelNode::_singleChildrenCount, ((float)VoxelNode::_singleChildrenCount/(float)nodeCount) * AS_PERCENT);
+            VoxelNode::getSingleChildrenCount(), ((float)VoxelNode::getSingleChildrenCount()/(float)nodeCount) * AS_PERCENT);
         mg_printf(connection, "    Two Children as Offset:     %10.llu nodes (%5.2f%%)\r\n", 
-            VoxelNode::_twoChildrenOffsetCount, ((float)VoxelNode::_twoChildrenOffsetCount/(float)nodeCount) * AS_PERCENT);
+            VoxelNode::getTwoChildrenOffsetCount(), 
+            ((float)VoxelNode::getTwoChildrenOffsetCount()/(float)nodeCount) * AS_PERCENT);
         mg_printf(connection, "    Two Children as External:   %10.llu nodes (%5.2f%%)\r\n", 
-            VoxelNode::_twoChildrenExternalCount, ((float)VoxelNode::_twoChildrenExternalCount/(float)nodeCount) * AS_PERCENT);
+            VoxelNode::getTwoChildrenExternalCount(), 
+            ((float)VoxelNode::getTwoChildrenExternalCount()/(float)nodeCount) * AS_PERCENT);
         mg_printf(connection, "    Three Children as Offset:   %10.llu nodes (%5.2f%%)\r\n", 
-            VoxelNode::_threeChildrenOffsetCount, ((float)VoxelNode::_threeChildrenOffsetCount/(float)nodeCount) * AS_PERCENT);
+            VoxelNode::getThreeChildrenOffsetCount(), 
+            ((float)VoxelNode::getThreeChildrenOffsetCount()/(float)nodeCount) * AS_PERCENT);
         mg_printf(connection, "    Three Children as External: %10.llu nodes (%5.2f%%)\r\n", 
-            VoxelNode::_threeChildrenExternalCount, 
-            ((float)VoxelNode::_threeChildrenExternalCount/(float)nodeCount) * AS_PERCENT);
+            VoxelNode::getThreeChildrenExternalCount(), 
+            ((float)VoxelNode::getThreeChildrenExternalCount()/(float)nodeCount) * AS_PERCENT);
         mg_printf(connection, "    Children as External Array: %10.llu nodes (%5.2f%%)\r\n", 
-            VoxelNode::_externalChildrenCount, ((float)VoxelNode::_externalChildrenCount/(float)nodeCount) * AS_PERCENT);
+            VoxelNode::getExternalChildrenCount(), 
+            ((float)VoxelNode::getExternalChildrenCount()/(float)nodeCount) * AS_PERCENT);
 
-        uint64_t checkSum = VoxelNode::_singleChildrenCount + 
-                            VoxelNode::_twoChildrenOffsetCount + VoxelNode::_twoChildrenExternalCount + 
-                            VoxelNode::_threeChildrenOffsetCount + VoxelNode::_threeChildrenExternalCount + 
-                            VoxelNode::_externalChildrenCount;
+        uint64_t checkSum = VoxelNode::getSingleChildrenCount() + 
+                            VoxelNode::getTwoChildrenOffsetCount() + VoxelNode::getTwoChildrenExternalCount() + 
+                            VoxelNode::getThreeChildrenOffsetCount() + VoxelNode::getThreeChildrenExternalCount() + 
+                            VoxelNode::getExternalChildrenCount();
 
         mg_printf(connection, "%s", "                                ----------------\r\n");
         mg_printf(connection, "                         Total: %10.llu nodes\r\n", checkSum);
@@ -187,9 +191,9 @@ int VoxelServer::civetwebRequestHandler(struct mg_connection* connection) {
         mg_printf(connection, "%s", "VoxelNode Children Population Statistics...\r\n");
         checkSum = 0;
         for (int i=0; i <= NUMBER_OF_CHILDREN; i++) {
-            checkSum += VoxelNode::_childrenCount[i];
+            checkSum += VoxelNode::getChildrenCount(i);
             mg_printf(connection, "    Nodes with %d children:      %10.llu nodes (%5.2f%%)\r\n", i, 
-                VoxelNode::_childrenCount[i], ((float)VoxelNode::_childrenCount[i]/(float)nodeCount) * AS_PERCENT);
+                VoxelNode::getChildrenCount(i), ((float)VoxelNode::getChildrenCount(i)/(float)nodeCount) * AS_PERCENT);
         }
         mg_printf(connection, "%s", "                                ----------------\r\n");
         mg_printf(connection, "                    Total:      %10.llu nodes\r\n", checkSum);

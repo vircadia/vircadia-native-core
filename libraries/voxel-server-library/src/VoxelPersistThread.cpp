@@ -29,9 +29,6 @@ bool VoxelPersistThread::process() {
         _initialLoad = true;
         qDebug("loading voxels from file: %s...\n", _filename);
 
-        qDebug("sizeof(oldVoxelNode)=%ld sizeof(VoxelNode)=%ld sizeof(smallerVoxelNodeTest1)=%ld sizeof(AABox)=%ld sizeof(oldAABox)=%ld\n", 
-            sizeof(oldVoxelNode), sizeof(VoxelNode), sizeof(smallerVoxelNodeTest1), sizeof(AABox), sizeof(oldAABox));
-
         bool persistantFileRead = _tree->readFromSVOFile(_filename);
         if (persistantFileRead) {
             PerformanceWarning warn(true, "reaverageVoxelColors()", true);
@@ -49,12 +46,13 @@ bool VoxelPersistThread::process() {
         unsigned long leafNodeCount = VoxelNode::getLeafNodeCount();
         qDebug("Nodes after loading scene %lu nodes %lu internal %lu leaves\n", nodeCount, internalNodeCount, leafNodeCount);
 
-        double usecPerGet = (double)VoxelNode::_getChildAtIndexTime / (double)VoxelNode::_getChildAtIndexCalls;
-        double usecPerSet = (double)VoxelNode::_setChildAtIndexTime / (double)VoxelNode::_setChildAtIndexCalls;
-    
-        printf("_getChildAtIndexCalls=%llu, _getChildAtIndexTime=%llu, perGet=%lf ... _setChildAtIndexCalls=%llu _setChildAtIndexTime=%llu perSet=%lf\n",
-            VoxelNode::_getChildAtIndexCalls, VoxelNode::_getChildAtIndexTime, usecPerGet,
-            VoxelNode::_setChildAtIndexCalls, VoxelNode::_setChildAtIndexTime, usecPerSet);
+        double usecPerGet = (double)VoxelNode::getGetChildAtIndexTime() / (double)VoxelNode::getGetChildAtIndexCalls();
+        qDebug("getChildAtIndexCalls=%llu getChildAtIndexTime=%llu perGet=%lf \n",
+            VoxelNode::getGetChildAtIndexTime(), VoxelNode::getGetChildAtIndexCalls(), usecPerGet);
+            
+        double usecPerSet = (double)VoxelNode::getSetChildAtIndexTime() / (double)VoxelNode::getSetChildAtIndexCalls();
+        qDebug("setChildAtIndexCalls=%llu setChildAtIndexTime=%llu perSet=%lf\n",
+            VoxelNode::getSetChildAtIndexTime(), VoxelNode::getSetChildAtIndexCalls(), usecPerSet);
 
     }
     
