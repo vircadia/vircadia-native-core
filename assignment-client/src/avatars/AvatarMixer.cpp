@@ -46,7 +46,7 @@ void attachAvatarDataToNode(Node* newNode) {
 //    3) if we need to rate limit the amount of data we send, we can use a distance weighted "semi-random" function to
 //       determine which avatars are included in the packet stream
 //    4) we should optimize the avatar data format to be more compact (100 bytes is pretty wasteful).
-void broadcastAvatarData(NodeList* nodeList, sockaddr* nodeAddress) {
+void broadcastAvatarData(NodeList* nodeList, const QUuid& receiverUUID, sockaddr* receiverAddress) {
     static unsigned char broadcastPacketBuffer[MAX_PACKET_SIZE];
     static unsigned char avatarDataBuffer[MAX_PACKET_SIZE];
     unsigned char* broadcastPacket = (unsigned char*)&broadcastPacketBuffer[0];
@@ -57,7 +57,7 @@ void broadcastAvatarData(NodeList* nodeList, sockaddr* nodeAddress) {
     
     // send back a packet with other active node data to this node
     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
-        if (node->getLinkedData() && !socketMatch(nodeAddress, node->getActiveSocket())) {
+        if (node->getLinkedData() && node->getUUID() != receiverUUID) {
             unsigned char* avatarDataEndpoint = addNodeToBroadcastPacket((unsigned char*)&avatarDataBuffer[0], &*node);
             int avatarDataLength = avatarDataEndpoint - (unsigned char*)&avatarDataBuffer;
             
@@ -68,7 +68,7 @@ void broadcastAvatarData(NodeList* nodeList, sockaddr* nodeAddress) {
             } else {
                 packetsSent++;
                 //printf("packetsSent=%d packetLength=%d\n", packetsSent, packetLength);
-                nodeList->getNodeSocket()->send(nodeAddress, broadcastPacket, currentBufferPosition - broadcastPacket);
+                nodeList->getNodeSocket()->send(receiverAddress, broadcastPacket, currentBufferPosition - broadcastPacket);
                 
                 // reset the packet
                 currentBufferPosition = broadcastPacket + numHeaderBytes;
@@ -83,7 +83,7 @@ void broadcastAvatarData(NodeList* nodeList, sockaddr* nodeAddress) {
     }
     packetsSent++;
     //printf("packetsSent=%d packetLength=%d\n", packetsSent, packetLength);
-    nodeList->getNodeSocket()->send(nodeAddress, broadcastPacket, currentBufferPosition - broadcastPacket);
+    nodeList->getNodeSocket()->send(receiverAddress, broadcastPacket, currentBufferPosition - broadcastPacket);
 }
 
 AvatarMixer::AvatarMixer(const unsigned char* dataBuffer, int numBytes) : Assignment(dataBuffer, numBytes) {
@@ -136,7 +136,7 @@ void AvatarMixer::run() {
                     // parse positional data from an node
                     nodeList->updateNodeWithData(avatarNode, packetData, receivedBytes);
                 case PACKET_TYPE_INJECT_AUDIO:
-                    broadcastAvatarData(nodeList, &nodeAddress);
+                    broadcastAvatarData(nodeList, nodeUUID, &nodeAddress);
                     break;
                 case PACKET_TYPE_AVATAR_URLS:
                 case PACKET_TYPE_AVATAR_FACE_VIDEO:
