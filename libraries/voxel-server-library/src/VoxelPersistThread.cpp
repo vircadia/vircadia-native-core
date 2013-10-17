@@ -48,6 +48,14 @@ bool VoxelPersistThread::process() {
         unsigned long internalNodeCount = VoxelNode::getInternalNodeCount();
         unsigned long leafNodeCount = VoxelNode::getLeafNodeCount();
         qDebug("Nodes after loading scene %lu nodes %lu internal %lu leaves\n", nodeCount, internalNodeCount, leafNodeCount);
+
+        double usecPerGet = (double)VoxelNode::_getChildAtIndexTime / (double)VoxelNode::_getChildAtIndexCalls;
+        double usecPerSet = (double)VoxelNode::_setChildAtIndexTime / (double)VoxelNode::_setChildAtIndexCalls;
+    
+        printf("_getChildAtIndexCalls=%llu, _getChildAtIndexTime=%llu, perGet=%lf ... _setChildAtIndexCalls=%llu _setChildAtIndexTime=%llu perSet=%lf\n",
+            VoxelNode::_getChildAtIndexCalls, VoxelNode::_getChildAtIndexTime, usecPerGet,
+            VoxelNode::_setChildAtIndexCalls, VoxelNode::_setChildAtIndexTime, usecPerSet);
+
     }
     
     uint64_t MSECS_TO_USECS = 1000;

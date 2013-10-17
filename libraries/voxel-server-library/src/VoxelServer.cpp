@@ -148,6 +148,23 @@ int VoxelServer::civetwebRequestHandler(struct mg_connection* connection) {
         mg_printf(connection, "    Internal Nodes: %lu nodes\r\n", internalNodeCount);
         mg_printf(connection, "    Leaf Nodes: %lu leaves\r\n", leafNodeCount);
 
+        mg_printf(connection, "%s", "VoxelNode Children Encoding Statistics...\r\n");
+        mg_printf(connection, "    Single or No Children:      %10.llu nodes\r\n", VoxelNode::_singleChildrenCount);
+        mg_printf(connection, "    Two Children as Offset:     %10.llu nodes\r\n", VoxelNode::_twoChildrenOffsetCount);
+        mg_printf(connection, "    Two Children as External:   %10.llu nodes\r\n", VoxelNode::_twoChildrenExternalCount);
+        mg_printf(connection, "    Three Children as Offset:   %10.llu nodes\r\n", VoxelNode::_threeChildrenOffsetCount);
+        mg_printf(connection, "    Three Children as External: %10.llu nodes\r\n", VoxelNode::_threeChildrenExternalCount);
+        mg_printf(connection, "    Children as External Array: %10.llu nodes\r\n", VoxelNode::_externalChildrenCount);
+        
+        uint64_t checkSum = VoxelNode::_singleChildrenCount + 
+                            VoxelNode::_twoChildrenOffsetCount + VoxelNode::_twoChildrenExternalCount + 
+                            VoxelNode::_threeChildrenOffsetCount + VoxelNode::_threeChildrenExternalCount + 
+                            VoxelNode::_externalChildrenCount;
+
+        mg_printf(connection, "%s", "                                ----------------\r\n");
+        mg_printf(connection, "                         Total: %10.llu nodes\r\n", checkSum);
+        mg_printf(connection, "                      Expected: %10.lu nodes\r\n", nodeCount);
+
         return 1;
     } else {
         // have mongoose process this request from the document_root

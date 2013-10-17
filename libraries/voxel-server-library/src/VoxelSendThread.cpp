@@ -54,17 +54,14 @@ bool VoxelSendThread::process() {
     }
     
     // debug some timing...
-    //uint64_t VoxelNode::_getChildAtIndexTime;
-    //uint64_t VoxelNode::_getChildAtIndexCalls;
-    //uint64_t VoxelNode::_setChildAtIndexTime;
-    //uint64_t VoxelNode::_setChildAtIndexCalls;
-    
+    /***
     double usecPerGet = (double)VoxelNode::_getChildAtIndexTime / (double)VoxelNode::_getChildAtIndexCalls;
     double usecPerSet = (double)VoxelNode::_setChildAtIndexTime / (double)VoxelNode::_setChildAtIndexCalls;
     
     printf("_getChildAtIndexCalls=%llu, _getChildAtIndexTime=%llu, perGet=%lf ... _setChildAtIndexCalls=%llu _setChildAtIndexTime=%llu perSet=%lf\n",
         VoxelNode::_getChildAtIndexCalls, VoxelNode::_getChildAtIndexTime, usecPerGet,
         VoxelNode::_setChildAtIndexCalls, VoxelNode::_setChildAtIndexTime, usecPerSet);
+    ***/
 
     return isStillRunning();  // keep running till they terminate us
 }

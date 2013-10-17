@@ -122,13 +122,28 @@ public:
     static uint64_t _setChildAtIndexTime;
     static uint64_t _setChildAtIndexCalls;
 
+    static uint64_t _singleChildrenCount;
+    static uint64_t _twoChildrenOffsetCount;
+    static uint64_t _twoChildrenExternalCount;
+    static uint64_t _threeChildrenOffsetCount;
+    static uint64_t _threeChildrenExternalCount;
+    static uint64_t _externalChildrenCount;
+
+    void auditChildren(const char* label) const;
+
 private:
     void setChildAtIndex(int childIndex, VoxelNode* child);
     void storeTwoChildren(VoxelNode* childOne, VoxelNode* childTwo);
     void retrieveTwoChildren(VoxelNode*& childOne, VoxelNode*& childTwo);
+    void storeThreeChildren(VoxelNode* childOne, VoxelNode* childTwo, VoxelNode* childThree);
+    void retrieveThreeChildren(VoxelNode*& childOne, VoxelNode*& childTwo, VoxelNode*& childThree);
+    void decodeThreeOffsets(int64_t& offsetOne, int64_t& offsetTwo, int64_t& offsetThree) const;
+    void encodeThreeOffsets(int64_t offsetOne, int64_t offsetTwo, int64_t offsetThree);
+
+    /**
     VoxelNode* __new__getChildAtIndex(int childIndex) const;
     void __new__setChildAtIndex(int childIndex, VoxelNode* child);
-    void auditChildren(const char* label) const;
+    **/
 
     void calculateAABox();
     void init(unsigned char * octalCode);
@@ -149,21 +164,18 @@ private:
     union children_t {
       VoxelNode* single;
       int32_t offsetsTwoChildren[2];
-      uint64_t offsetsThreeChildrenA : 21, offsetsThreeChildrenB : 21, offsetsThreeChildrenC : 21 ;
+      uint64_t offsetsThreeChildrenEncoded;
       VoxelNode** external;
-    } _children;  
+    } _children;
 
-    static int64_t _offsetMax;
-    static int64_t _offsetMin;
-    
-    //_offsetMax=4,184,812 
-    //_offsetMin=-5,828,062
-    
     VoxelNode* _childrenArray[8]; /// Client and server, pointers to child nodes, 64 bytes
 
     uint32_t _glBufferIndex : 24, /// Client only, vbo index for this voxel if being rendered, 3 bytes
              _voxelSystemIndex : 8; /// Client only, index to the VoxelSystem rendering this voxel, 1 bytes
 
+    // Support for _voxelSystemIndex, we use these static member variables to track the VoxelSystems that are
+    // in use by various voxel nodes. We map the VoxelSystem pointers into an 1 byte key, this limits us to at
+    // most 255 voxel systems in use at a time within the client. Which is far more than we need.
     static uint8_t _nextIndex;
     static std::map<VoxelSystem*, uint8_t> _mapVoxelSystemPointersToIndex;
     static std::map<uint8_t, VoxelSystem*> _mapIndexToVoxelSystemPointers;
