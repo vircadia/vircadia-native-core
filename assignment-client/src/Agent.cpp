@@ -155,34 +155,41 @@ void Agent::run() {
                 NodeList::getInstance()->sendDomainServerCheckIn();
             }
             
-            if (firstDomainCheckIn) {
-                // find the audio-mixer in the NodeList so we can inject audio at it
-                Node* audioMixer = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_AUDIO_MIXER);
-                
+            // find the audio-mixer in the NodeList so we can inject audio at it
+            Node* audioMixer = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_AUDIO_MIXER);
+            
+            if (audioMixer && audioMixer->getActiveSocket()) {
                 emit willSendAudioDataCallback();
                 
-                if (audioMixer && scriptedAudioInjector.hasSamplesToInject()) {
+                if (scriptedAudioInjector.hasSamplesToInject()) {
                     int usecToSleep = usecTimestamp(&startTime) + (thisFrame++ * INJECT_INTERVAL_USECS) - usecTimestampNow();
                     if (usecToSleep > 0) {
                         usleep(usecToSleep);
                     }
                     
-                    scriptedAudioInjector.injectAudio(NodeList::getInstance()->getNodeSocket(), audioMixer->getPublicSocket());
+                    scriptedAudioInjector.injectAudio(NodeList::getInstance()->getNodeSocket(), audioMixer->getActiveSocket());
                     
                     // clear out the audio injector so that it doesn't re-send what we just sent
                     scriptedAudioInjector.clear();
                 }
+            } else if (audioMixer) {
+                int usecToSleep = usecTimestamp(&startTime) + (thisFrame++ * INJECT_INTERVAL_USECS) - usecTimestampNow();
+                if (usecToSleep > 0) {
+                    usleep(usecToSleep);
+                }
                 
-                // allow the scripter's call back to setup visual data
-                emit willSendVisualDataCallback();
-                
-                // release the queue of edit voxel messages.
-                voxelScripter.getVoxelPacketSender()->releaseQueuedMessages();
-                
-                // since we're in non-threaded mode, call process so that the packets are sent
-                voxelScripter.getVoxelPacketSender()->process();
-
+                // don't have an active socket for the audio-mixer, ping it now
+                NodeList::getInstance()->pingPublicAndLocalSocketsForInactiveNode(audioMixer);
             }
+            
+            // allow the scripter's call back to setup visual data
+            emit willSendVisualDataCallback();
+            
+            // release the queue of edit voxel messages.
+            voxelScripter.getVoxelPacketSender()->releaseQueuedMessages();
+            
+            // since we're in non-threaded mode, call process so that the packets are sent
+            voxelScripter.getVoxelPacketSender()->process();
             
             if (engine.hasUncaughtException()) {
                 int line = engine.uncaughtExceptionLineNumber();

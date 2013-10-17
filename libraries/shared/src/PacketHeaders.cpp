@@ -17,24 +17,25 @@ PACKET_VERSION versionForPacketType(PACKET_TYPE type) {
 
         case PACKET_TYPE_MICROPHONE_AUDIO_NO_ECHO:
         case PACKET_TYPE_MICROPHONE_AUDIO_WITH_ECHO:
-            return 1;
+            return 2;
 
         case PACKET_TYPE_HEAD_DATA:
-            return 9;
+            return 10;
         
         case PACKET_TYPE_AVATAR_URLS:
-            return 1;
+            return 2;
             
         case PACKET_TYPE_AVATAR_FACE_VIDEO:
-            return 1;
+            return 2;
 
         case PACKET_TYPE_VOXEL_STATS:
             return 2;
        
+        case PACKET_TYPE_DOMAIN:
         case PACKET_TYPE_DOMAIN_LIST_REQUEST:
         case PACKET_TYPE_DOMAIN_REPORT_FOR_DUTY:
             return 1;
-        
+            
         default:
             return 0;
     }

@@ -589,12 +589,10 @@ void NodeList::pingPublicAndLocalSocketsForInactiveNode(Node* node) const {
 Node* NodeList::addOrUpdateNode(const QUuid& uuid, char nodeType, sockaddr* publicSocket, sockaddr* localSocket) {
     NodeList::iterator node = end();
     
-    if (publicSocket) {
-        for (node = begin(); node != end(); node++) {
-            if (node->matches(publicSocket, localSocket, nodeType)) {
-                // we already have this node, stop checking
-                break;
-            }
+    for (node = begin(); node != end(); node++) {
+        if (node->getUUID() == uuid) {
+            // we already have this node, stop checking
+            break;
         }
     }
     

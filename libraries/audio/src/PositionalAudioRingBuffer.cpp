@@ -28,7 +28,7 @@ PositionalAudioRingBuffer::~PositionalAudioRingBuffer() {
 
 int PositionalAudioRingBuffer::parseData(unsigned char* sourceBuffer, int numBytes) {
     unsigned char* currentBuffer = sourceBuffer + numBytesForPacketHeader(sourceBuffer);
-    currentBuffer += NUM_BYTES_RFC4122_UUID; // the source ID
+    currentBuffer += NUM_BYTES_RFC4122_UUID; // the source UUID
     currentBuffer += parsePositionalData(currentBuffer, numBytes - (currentBuffer - sourceBuffer));
     currentBuffer += parseAudioSamples(currentBuffer, numBytes - (currentBuffer - sourceBuffer));
     
