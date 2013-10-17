@@ -1128,7 +1128,7 @@ void MyAvatar::updateChatCircle(float deltaTime) {
 
     // remove members whose accumulated circles are too far away to influence us
     const float CIRCUMFERENCE_PER_MEMBER = 0.5f;
-    const float CIRCLE_INFLUENCE_SCALE = 1.5f;
+    const float CIRCLE_INFLUENCE_SCALE = 2.0f;
     for (int i = sortedAvatars.size() - 1; i >= 0; i--) {
         float radius = (CIRCUMFERENCE_PER_MEMBER * (i + 2)) / PI_TIMES_TWO;
         if (glm::distance(_position, sortedAvatars[i].accumulatedCenter) > radius * CIRCLE_INFLUENCE_SCALE) {
@@ -1183,7 +1183,7 @@ void MyAvatar::updateChatCircle(float deltaTime) {
     glm::vec3 targetPosition = center + (front * sinf(targetAngle) + right * cosf(targetAngle)) * radius;
     
     // approach the target position
-    const float APPROACH_RATE = 0.025f;
+    const float APPROACH_RATE = 0.05f;
     _position = glm::mix(_position, targetPosition, APPROACH_RATE);
 }
 
