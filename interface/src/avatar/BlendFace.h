@@ -58,8 +58,17 @@ private:
     
     QSharedPointer<NetworkGeometry> _geometry;
     
+    class JointState {
+    public:
+        glm::quat rotation;
+        glm::mat4 transform;
+    };
+    
+    QVector<JointState> _jointStates;
+    
     class MeshState {
     public:
+        QVector<glm::mat4> clusterMatrices;
         QVector<glm::vec3> worldSpaceVertices;
         QVector<glm::vec3> vertexVelocities;
         QVector<glm::vec3> worldSpaceNormals;
@@ -67,13 +76,17 @@ private:
     
     QVector<MeshState> _meshStates;
     QVector<GLuint> _blendedVertexBufferIDs;
-    QVector<QSharedPointer<Texture> > _dilatedTextures;
+    QVector<QVector<QSharedPointer<Texture> > > _dilatedTextures;
     bool _resetStates;
     
     QVector<glm::vec3> _blendedVertices;
     QVector<glm::vec3> _blendedNormals;
     
-    static ProgramObject _eyeProgram;
+    static ProgramObject _program;
+    static ProgramObject _skinProgram;
+    static int _clusterMatricesLocation;
+    static int _clusterIndicesLocation;
+    static int _clusterWeightsLocation;
 };
 
 #endif /* defined(__interface__BlendFace__) */

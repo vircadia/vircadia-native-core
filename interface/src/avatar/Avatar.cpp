@@ -460,6 +460,8 @@ void Avatar::updateHandMovementAndTouching(float deltaTime, bool enableHandMovem
         _skeleton.joint[AVATAR_JOINT_RIGHT_FINGERTIPS].position += transformedHandMovement;
     }
     
+    enableHandMovement |= updateLeapHandPositions();
+    
     //constrain right arm length and re-adjust elbow position as it bends
     // NOTE - the following must be called on all avatars - not just _isMine
     if (enableHandMovement) {
@@ -639,6 +641,51 @@ void Avatar::updateBodyBalls(float deltaTime) {
         _bodyBall[BODY_BALL_HEAD_BASE].rotation * _skeleton.joint[BODY_BALL_HEAD_BASE].bindPosePosition;
     _bodyBall[BODY_BALL_HEAD_TOP].position = _bodyBall[BODY_BALL_HEAD_BASE].position +
         _bodyBall[BODY_BALL_HEAD_TOP].rotation * _skeleton.joint[BODY_BALL_HEAD_TOP].bindPosePosition;
+}
+
+// returns true if the Leap controls any of the avatar's hands.
+bool Avatar::updateLeapHandPositions() {
+    bool returnValue = false;
+    // If there are leap-interaction hands visible, see if we can use them as the endpoints for IK
+    if (getHand().getPalms().size() > 0) {
+        PalmData const* leftLeapHand = NULL;
+        PalmData const* rightLeapHand = NULL;
+        // Look through all of the palms available (there may be more than two), and pick
+        // the leftmost and rightmost. If there's only one, we'll use a heuristic below
+        // to decode whether it's the left or right.
+        for (size_t i = 0; i < getHand().getPalms().size(); ++i) {
+            PalmData& palm = getHand().getPalms()[i];
+            if (palm.isActive()) {
+                if (!rightLeapHand || !leftLeapHand) {
+                    rightLeapHand = leftLeapHand = &palm;
+                }
+                else if (palm.getRawPosition().x > rightLeapHand->getRawPosition().x) {
+                    rightLeapHand = &palm;
+                }
+                else if (palm.getRawPosition().x < leftLeapHand->getRawPosition().x) {
+                    leftLeapHand = &palm;
+                }
+            }
+        }
+        // If there's only one palm visible. Decide if it's the left or right
+        if (leftLeapHand == rightLeapHand && leftLeapHand) {
+            if (leftLeapHand->getRawPosition().x > 0) {
+                leftLeapHand = NULL;
+            }
+            else {
+                rightLeapHand = NULL;
+            }
+        }
+        if (leftLeapHand) {
+            _skeleton.joint[ AVATAR_JOINT_LEFT_FINGERTIPS ].position = leftLeapHand->getPosition();
+            returnValue = true;
+        }
+        if (rightLeapHand) {
+            _skeleton.joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position = rightLeapHand->getPosition();
+            returnValue = true;
+        }
+    }
+    return returnValue;
 }
 
 void Avatar::updateArmIKAndConstraints(float deltaTime, AvatarJointID fingerTipJointID) {

@@ -37,20 +37,31 @@ public:
     QVector<glm::vec3> normals;
 };
 
-/// A single mesh (with optional blendshapes) extracted from an FBX document.
-class FBXMesh {
+/// A single joint (transformation node) extracted from an FBX document.
+class FBXJoint {
+public:
+
+    int parentIndex;
+    glm::mat4 preRotation;
+    glm::quat rotation;
+    glm::mat4 postRotation;
+    glm::mat4 transform;
+};
+
+/// A single binding to a joint in an FBX document.
+class FBXCluster {
+public:
+    
+    int jointIndex;
+    glm::mat4 inverseBindMatrix;
+};
+
+/// A single part of a mesh (with the same material).
+class FBXMeshPart {
 public:
     
     QVector<int> quadIndices;
     QVector<int> triangleIndices;
-    QVector<glm::vec3> vertices;
-    QVector<glm::vec3> normals;
-    QVector<glm::vec2> texCoords;
-    
-    glm::vec3 pivot;
-    glm::mat4 transform;
-    
-    bool isEye;
     
     glm::vec3 diffuseColor;
     glm::vec3 specularColor;
@@ -58,6 +69,23 @@ public:
     
     QByteArray diffuseFilename;
     QByteArray normalFilename;
+};
+
+/// A single mesh (with optional blendshapes) extracted from an FBX document.
+class FBXMesh {
+public:
+    
+    QVector<FBXMeshPart> parts;
+    
+    QVector<glm::vec3> vertices;
+    QVector<glm::vec3> normals;
+    QVector<glm::vec2> texCoords;
+    QVector<glm::vec4> clusterIndices;
+    QVector<glm::vec4> clusterWeights;
+    
+    QVector<FBXCluster> clusters;
+    
+    bool isEye;
     
     QVector<FBXBlendshape> blendshapes;
     
@@ -70,7 +98,15 @@ public:
 class FBXGeometry {
 public:
 
+    QVector<FBXJoint> joints;
+    
     QVector<FBXMesh> meshes;
+    
+    glm::mat4 offset;
+    
+    int leftEyeJointIndex;
+    int rightEyeJointIndex;
+    int neckJointIndex;
     
     glm::vec3 neckPivot;
 };

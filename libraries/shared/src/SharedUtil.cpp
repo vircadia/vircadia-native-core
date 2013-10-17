@@ -105,9 +105,40 @@ void setAtBit(unsigned char& byte, int bitIndex) {
     byte += (1 << (7 - bitIndex));
 }
 
+void clearAtBit(unsigned char& byte, int bitIndex) {
+    if (oneAtBit(byte, bitIndex)) {
+        byte -= (1 << (7 - bitIndex));
+    }
+}
+
 int  getSemiNibbleAt(unsigned char& byte, int bitIndex) {
     return (byte >> (6 - bitIndex) & 3); // semi-nibbles store 00, 01, 10, or 11
 }
+
+int getNthBit(unsigned char byte, int ordinal) {
+    const int ERROR = -1;
+    const int MIN_ORDINAL = 1;
+    const int MAX_ORDINAL = 8;
+    if (ordinal < MIN_ORDINAL || ordinal > MAX_ORDINAL) {
+        return ERROR;
+    }
+    int bitsSet = 0;
+    for (int bitIndex = 0; bitIndex < MAX_ORDINAL; bitIndex++) {
+        if (oneAtBit(byte, bitIndex)) {
+            bitsSet++;
+        }
+        if (bitsSet == ordinal) {
+            return bitIndex;
+        }
+    }
+    return ERROR;
+}
+
+bool isBetween(int64_t value, int64_t max, int64_t min) { 
+    return ((value <= max) && (value >= min)); 
+}
+
+
 
 void setSemiNibbleAt(unsigned char& byte, int bitIndex, int value) {
     //assert(value <= 3 && value >= 0);

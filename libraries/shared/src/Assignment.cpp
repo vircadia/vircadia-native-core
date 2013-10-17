@@ -139,6 +139,21 @@ void Assignment::setPayload(const uchar* payload, int numBytes) {
     memcpy(_payload, payload, _numPayloadBytes);
 }
 
+const char* Assignment::getTypeName() const {
+    switch (_type) {
+        case Assignment::AudioMixerType:
+            return "audio-mixer";
+        case Assignment::AvatarMixerType:
+            return "avatar-mixer";
+        case Assignment::AgentType:
+            return "agent";
+        case Assignment::VoxelServerType:
+            return "voxel-server";
+        default:
+            return "unknown";
+    }
+}
+
 int Assignment::packToBuffer(unsigned char* buffer) {
     int numPackedBytes = 0;
     

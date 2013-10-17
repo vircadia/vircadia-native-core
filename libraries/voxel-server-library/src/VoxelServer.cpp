@@ -136,18 +136,74 @@ int VoxelServer::civetwebRequestHandler(struct mg_connection* connection) {
         mg_printf(connection, "%s", "HTTP/1.0 200 OK\r\n\r\n");
         mg_printf(connection, "%s", "Your Voxel Server is running.\r\n");
         mg_printf(connection, "%s", "Current Statistics\r\n");
-        mg_printf(connection, "Voxel Node Memory Usage: %f MB\r\n", VoxelNode::getVoxelMemoryUsage() / 1000000.f);
-        mg_printf(connection, "Octcode Memory Usage: %f MB\r\n", VoxelNode::getOctcodeMemoryUsage() / 1000000.f);
+        mg_printf(connection, "%s", "\r\n");
+        mg_printf(connection, "Voxel Node Memory Usage:         %8.2f MB\r\n", VoxelNode::getVoxelMemoryUsage() / 1000000.f);
+        mg_printf(connection, "Octcode Memory Usage:            %8.2f MB\r\n", VoxelNode::getOctcodeMemoryUsage() / 1000000.f);
+        mg_printf(connection, "External Children Memory Usage:  %8.2f MB\r\n", 
+            VoxelNode::getExternalChildrenMemoryUsage() / 1000000.f);
+        mg_printf(connection, "%s", "                                 -----------\r\n");
+        mg_printf(connection, "                         Total:  %8.2f MB\r\n", VoxelNode::getTotalMemoryUsage() / 1000000.f);
 
-        VoxelTree* theTree = VoxelServer::GetInstance()->getTree();
-        unsigned long nodeCount         = theTree->rootNode->getSubTreeNodeCount();
-        unsigned long internalNodeCount = theTree->rootNode->getSubTreeInternalNodeCount();
-        unsigned long leafNodeCount     = theTree->rootNode->getSubTreeLeafNodeCount();
+        unsigned long nodeCount = VoxelNode::getNodeCount();
+        unsigned long internalNodeCount = VoxelNode::getInternalNodeCount();
+        unsigned long leafNodeCount = VoxelNode::getLeafNodeCount();
 
+        const float AS_PERCENT = 100.0;
+
+        mg_printf(connection, "%s", "\r\n");
         mg_printf(connection, "%s", "Current Nodes in scene\r\n");
-        mg_printf(connection, "    Total Nodes: %lu nodes\r\n", nodeCount);
-        mg_printf(connection, "    Internal Nodes: %lu nodes\r\n", internalNodeCount);
-        mg_printf(connection, "    Leaf Nodes: %lu leaves\r\n", leafNodeCount);
+        mg_printf(connection, "       Total Nodes: %10.lu nodes\r\n", nodeCount);
+        mg_printf(connection, "    Internal Nodes: %10.lu nodes (%5.2f%%)\r\n", 
+            internalNodeCount, ((float)internalNodeCount/(float)nodeCount) * AS_PERCENT);
+        mg_printf(connection, "        Leaf Nodes: %10.lu nodes (%5.2f%%)\r\n", 
+            leafNodeCount, ((float)leafNodeCount/(float)nodeCount) * AS_PERCENT);
+
+        mg_printf(connection, "%s", "\r\n");
+        mg_printf(connection, "%s", "VoxelNode Children Encoding Statistics...\r\n");
+        mg_printf(connection, "    Single or No Children:      %10.llu nodes (%5.2f%%)\r\n", 
+            VoxelNode::getSingleChildrenCount(), ((float)VoxelNode::getSingleChildrenCount()/(float)nodeCount) * AS_PERCENT);
+        mg_printf(connection, "    Two Children as Offset:     %10.llu nodes (%5.2f%%)\r\n", 
+            VoxelNode::getTwoChildrenOffsetCount(), 
+            ((float)VoxelNode::getTwoChildrenOffsetCount()/(float)nodeCount) * AS_PERCENT);
+        mg_printf(connection, "    Two Children as External:   %10.llu nodes (%5.2f%%)\r\n", 
+            VoxelNode::getTwoChildrenExternalCount(), 
+            ((float)VoxelNode::getTwoChildrenExternalCount()/(float)nodeCount) * AS_PERCENT);
+        mg_printf(connection, "    Three Children as Offset:   %10.llu nodes (%5.2f%%)\r\n", 
+            VoxelNode::getThreeChildrenOffsetCount(), 
+            ((float)VoxelNode::getThreeChildrenOffsetCount()/(float)nodeCount) * AS_PERCENT);
+        mg_printf(connection, "    Three Children as External: %10.llu nodes (%5.2f%%)\r\n", 
+            VoxelNode::getThreeChildrenExternalCount(), 
+            ((float)VoxelNode::getThreeChildrenExternalCount()/(float)nodeCount) * AS_PERCENT);
+        mg_printf(connection, "    Children as External Array: %10.llu nodes (%5.2f%%)\r\n", 
+            VoxelNode::getExternalChildrenCount(), 
+            ((float)VoxelNode::getExternalChildrenCount()/(float)nodeCount) * AS_PERCENT);
+
+        uint64_t checkSum = VoxelNode::getSingleChildrenCount() + 
+                            VoxelNode::getTwoChildrenOffsetCount() + VoxelNode::getTwoChildrenExternalCount() + 
+                            VoxelNode::getThreeChildrenOffsetCount() + VoxelNode::getThreeChildrenExternalCount() + 
+                            VoxelNode::getExternalChildrenCount();
+
+        mg_printf(connection, "%s", "                                ----------------\r\n");
+        mg_printf(connection, "                         Total: %10.llu nodes\r\n", checkSum);
+        mg_printf(connection, "                      Expected: %10.lu nodes\r\n", nodeCount);
+        
+        mg_printf(connection, "%s", "\r\n");
+        mg_printf(connection, "%s", "VoxelNode Children Population Statistics...\r\n");
+        checkSum = 0;
+        for (int i=0; i <= NUMBER_OF_CHILDREN; i++) {
+            checkSum += VoxelNode::getChildrenCount(i);
+            mg_printf(connection, "    Nodes with %d children:      %10.llu nodes (%5.2f%%)\r\n", i, 
+                VoxelNode::getChildrenCount(i), ((float)VoxelNode::getChildrenCount(i)/(float)nodeCount) * AS_PERCENT);
+        }
+        mg_printf(connection, "%s", "                                ----------------\r\n");
+        mg_printf(connection, "                    Total:      %10.llu nodes\r\n", checkSum);
+
+        mg_printf(connection, "%s", "\r\n");
+        mg_printf(connection, "%s", "In other news....\r\n");
+        mg_printf(connection, "could store 4 children internally:     %10.llu nodes\r\n",
+            VoxelNode::getCouldStoreFourChildrenInternally());
+        mg_printf(connection, "could NOT store 4 children internally: %10.llu nodes\r\n", 
+            VoxelNode::getCouldNotStoreFourChildrenInternally());
 
         return 1;
     } else {

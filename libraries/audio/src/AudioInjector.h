@@ -51,8 +51,12 @@ public:
     float getRadius() const { return _radius; }
     void setRadius(float radius) { _radius = radius; }
     
+    bool hasSamplesToInject() const { return _indexOfNextSlot > 0; }
+    
     void addSample(const int16_t sample);
     void addSamples(int16_t* sampleBuffer, int numSamples);
+    
+    void clear();
 public slots:
     int16_t& sampleAt(const int index);
     void insertSample(const int index, int sample);

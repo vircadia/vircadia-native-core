@@ -11,17 +11,18 @@ set(TARGET_NAME voxel-server-library)
 find_package(Qt5Widgets REQUIRED)
 
 include(${MACRO_DIR}/SetupHifiLibrary.cmake)
-setup_hifi_library(${TARGET_NAME})
+
+# grab cJSON and civetweb sources to pass as OPTIONAL_SRCS 
+FILE(GLOB OPTIONAL_SRCS ${ROOT_DIR}/externals/civetweb/src/*)
+
+setup_hifi_library(${TARGET_NAME} ${OPTIONAL_SRCS})
+
+include_directories(${ROOT_DIR}/externals/civetweb/include)
 
 qt5_use_modules(${TARGET_NAME} Widgets)
 
 include(${MACRO_DIR}/IncludeGLM.cmake)
 include_glm(${TARGET_NAME} ${ROOT_DIR})
-
-# setup a library for civetweb and link it to the voxel-server-library
-# this assumes that the domain-server cmake has already correctly set up the civetweb library
-include_directories(../../domain-server/external/civetweb/include)
-target_link_libraries(${TARGET_NAME} civetweb)
 
 include(${MACRO_DIR}/LinkHifiLibrary.cmake)
 link_hifi_library(shared ${TARGET_NAME} ${ROOT_DIR})

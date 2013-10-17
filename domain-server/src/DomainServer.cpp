@@ -6,9 +6,12 @@
 //  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
 
+#include <arpa/inet.h>
 #include <signal.h>
 
-#include <QStringList>
+#include <QtCore/QJsonDocument>
+#include <QtCore/QJsonObject>
+#include <QtCore/QStringList>
 
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
@@ -30,12 +33,85 @@ void DomainServer::setDomainServerInstance(DomainServer* domainServer) {
 int DomainServer::civetwebRequestHandler(struct mg_connection *connection) {
     const struct mg_request_info* ri = mg_get_request_info(connection);
     
+    const char RESPONSE_200[] = "HTTP/1.0 200 OK\r\n\r\n";
+    
     if (strcmp(ri->uri, "/assignment") == 0 && strcmp(ri->request_method, "POST") == 0) {
         // return a 200
-        mg_printf(connection, "%s", "HTTP/1.0 200 OK\r\n\r\n");
+        mg_printf(connection, "%s", RESPONSE_200);
         // upload the file
         mg_upload(connection, "/tmp");
         
+        return 1;
+    } else if (strcmp(ri->uri, "/assignments.json") == 0) {
+        // user is asking for json list of assignments
+        
+        // start with a 200 response
+        mg_printf(connection, "%s", RESPONSE_200);
+        
+        // setup the JSON
+        QJsonObject assignmentJSON;
+        
+        QJsonObject assignedNodesJSON;
+        
+        // enumerate the NodeList to find the assigned nodes
+        NodeList* nodeList = NodeList::getInstance();
+        
+        const char ASSIGNMENT_JSON_UUID_KEY[] = "UUID";
+        
+        for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+            if (node->getLinkedData()) {
+                // this is a node with assignment
+                QJsonObject assignedNodeJSON;
+                
+                // add the assignment UUID
+                QString assignmentUUID = uuidStringWithoutCurlyBraces(((Assignment*) node->getLinkedData())->getUUID());
+                assignedNodeJSON[ASSIGNMENT_JSON_UUID_KEY] = assignmentUUID;
+                
+                QJsonObject nodePublicSocketJSON;
+                
+                // add the public socket information
+                sockaddr_in* nodePublicSocket = (sockaddr_in*) node->getPublicSocket();
+                nodePublicSocketJSON["ip"] = QString(inet_ntoa(nodePublicSocket->sin_addr));
+                nodePublicSocketJSON["port"] = (int) ntohs(nodePublicSocket->sin_port);
+                
+                assignedNodeJSON["public"] = nodePublicSocketJSON;
+                
+                // re-format the type name so it matches the target name
+                QString nodeTypeName(node->getTypeName());
+                nodeTypeName = nodeTypeName.toLower();
+                nodeTypeName.replace(' ', '-');
+                
+                assignedNodesJSON[nodeTypeName] = assignedNodeJSON;
+            }
+        }
+        
+        assignmentJSON["fulfilled"] = assignedNodesJSON;
+        
+        QJsonObject queuedAssignmentsJSON;
+        
+        // add the queued but unfilled assignments to the json
+        std::deque<Assignment*>::iterator assignment = domainServerInstance->_assignmentQueue.begin();
+        
+        while (assignment != domainServerInstance->_assignmentQueue.end()) {
+            QJsonObject queuedAssignmentJSON;
+            
+            QString uuidString = uuidStringWithoutCurlyBraces((*assignment)->getUUID());
+            queuedAssignmentJSON[ASSIGNMENT_JSON_UUID_KEY] = uuidString;
+            
+            // add this queued assignment to the JSON
+            queuedAssignmentsJSON[(*assignment)->getTypeName()] = queuedAssignmentJSON;
+            
+            // push forward the iterator to check the next assignment
+            assignment++;
+        }
+        
+        assignmentJSON["queued"] = queuedAssignmentsJSON;
+        
+        // print out the created JSON
+        QJsonDocument assignmentDocument(assignmentJSON);
+        mg_printf(connection, "%s", assignmentDocument.toJson().constData());
+        
+        // we've processed this request
         return 1;
     } else {
         // have mongoose process this request from the document_root

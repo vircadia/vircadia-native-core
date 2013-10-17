@@ -351,6 +351,8 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter) {
         }
     }
     
+    updateChatCircle(deltaTime);
+    
     _position += _velocity * deltaTime;
     
     // Zero thrust out now that we've added it to velocity in this frame
@@ -912,43 +914,7 @@ void MyAvatar::updateHandMovementAndTouching(float deltaTime, bool enableHandMov
         _avatarTouch.setHasInteractingOther(false);
     }
     
-    // If there are leap-interaction hands visible, see if we can use them as the endpoints for IK
-    if (getHand().getPalms().size() > 0) {
-        PalmData const* leftLeapHand = NULL;
-        PalmData const* rightLeapHand = NULL;
-        // Look through all of the palms available (there may be more than two), and pick
-        // the leftmost and rightmost. If there's only one, we'll use a heuristic below
-        // to decode whether it's the left or right.
-        for (size_t i = 0; i < getHand().getPalms().size(); ++i) {
-            PalmData& palm = getHand().getPalms()[i];
-            if (palm.isActive()) {
-                if (!rightLeapHand || !leftLeapHand) {
-                    rightLeapHand = leftLeapHand = &palm;
-                }
-                else if (palm.getRawPosition().x > rightLeapHand->getRawPosition().x) {
-                    rightLeapHand = &palm;
-                }
-                else if (palm.getRawPosition().x < leftLeapHand->getRawPosition().x) {
-                    leftLeapHand = &palm;
-                }
-            }
-        }
-        // If there's only one palm visible. Decide if it's the left or right
-        if (leftLeapHand == rightLeapHand && leftLeapHand) {
-            if (leftLeapHand->getRawPosition().x > 0) {
-                leftLeapHand = NULL;
-            }
-            else {
-                rightLeapHand = NULL;
-            }
-        }
-        if (leftLeapHand) {
-            _skeleton.joint[ AVATAR_JOINT_LEFT_FINGERTIPS ].position = leftLeapHand->getPosition();
-        }
-        if (rightLeapHand) {
-            _skeleton.joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position = rightLeapHand->getPosition();
-        }
-    }
+    enableHandMovement |= updateLeapHandPositions();
     
     //constrain right arm length and re-adjust elbow position as it bends
     // NOTE - the following must be called on all avatars - not just _isMine
@@ -1126,6 +1092,104 @@ void MyAvatar::applyCollisionWithOtherAvatar(Avatar * otherAvatar, float deltaTi
     
     // apply force on the whole body
     _velocity += bodyPushForce;
+}
+
+class SortedAvatar {
+public:
+    Avatar* avatar;
+    float distance;
+    glm::vec3 accumulatedCenter;
+};
+
+bool operator<(const SortedAvatar& s1, const SortedAvatar& s2) {
+    return s1.distance < s2.distance;
+}
+
+void MyAvatar::updateChatCircle(float deltaTime) {
+    // find all members and sort by distance
+    QVector<SortedAvatar> sortedAvatars;
+    NodeList* nodeList = NodeList::getInstance();
+    for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+        if (node->getLinkedData() && node->getType() == NODE_TYPE_AGENT) {
+            SortedAvatar sortedAvatar; 
+            sortedAvatar.avatar = (Avatar*)node->getLinkedData();
+            sortedAvatar.distance = glm::distance(_position, sortedAvatar.avatar->getPosition());
+            sortedAvatars.append(sortedAvatar);
+        }
+    }
+    qSort(sortedAvatars.begin(), sortedAvatars.end());
+
+    // compute the accumulated centers
+    glm::vec3 center = _position;
+    for (int i = 0; i < sortedAvatars.size(); i++) {
+        SortedAvatar& sortedAvatar = sortedAvatars[i];
+        sortedAvatar.accumulatedCenter = (center += sortedAvatar.avatar->getPosition()) / (i + 2.0f);
+    }
+
+    // remove members whose accumulated circles are too far away to influence us
+    const float CIRCUMFERENCE_PER_MEMBER = 0.5f;
+    const float CIRCLE_INFLUENCE_SCALE = 2.0f;
+    for (int i = sortedAvatars.size() - 1; i >= 0; i--) {
+        float radius = (CIRCUMFERENCE_PER_MEMBER * (i + 2)) / PI_TIMES_TWO;
+        if (glm::distance(_position, sortedAvatars[i].accumulatedCenter) > radius * CIRCLE_INFLUENCE_SCALE) {
+            sortedAvatars.remove(i);
+        } else {
+            break;
+        }
+    }
+    if (sortedAvatars.isEmpty()) {
+        return;
+    }
+    center = sortedAvatars.last().accumulatedCenter;
+    float radius = (CIRCUMFERENCE_PER_MEMBER * (sortedAvatars.size() + 1)) / PI_TIMES_TWO;
+    
+    // compute the average up vector
+    glm::vec3 up = getWorldAlignedOrientation() * IDENTITY_UP;
+    foreach (const SortedAvatar& sortedAvatar, sortedAvatars) {
+        up += sortedAvatar.avatar->getWorldAlignedOrientation() * IDENTITY_UP;
+    }
+    up = glm::normalize(up);
+    
+    // find reasonable corresponding right/front vectors
+    glm::vec3 front = glm::cross(up, IDENTITY_RIGHT);
+    if (glm::length(front) < EPSILON) {
+        front = glm::cross(up, IDENTITY_FRONT);
+    }
+    front = glm::normalize(front);
+    glm::vec3 right = glm::cross(front, up);
+    
+    // find our angle and the angular distances to our closest neighbors
+    glm::vec3 delta = _position - center;
+    glm::vec3 projected = glm::vec3(glm::dot(right, delta), glm::dot(front, delta), 0.0f);
+    float myAngle = glm::length(projected) > EPSILON ? atan2f(projected.y, projected.x) : 0.0f;
+    float leftDistance = PI_TIMES_TWO;
+    float rightDistance = PI_TIMES_TWO;
+    foreach (const SortedAvatar& sortedAvatar, sortedAvatars) {
+        delta = sortedAvatar.avatar->getPosition() - center;
+        projected = glm::vec3(glm::dot(right, delta), glm::dot(front, delta), 0.0f);
+        float angle = glm::length(projected) > EPSILON ? atan2f(projected.y, projected.x) : 0.0f;
+        if (angle < myAngle) {
+            leftDistance = min(myAngle - angle, leftDistance);
+            rightDistance = min(PI_TIMES_TWO - (myAngle - angle), rightDistance);
+            
+        } else {
+            leftDistance = min(PI_TIMES_TWO - (angle - myAngle), leftDistance);
+            rightDistance = min(angle - myAngle, rightDistance);
+        }
+    }
+    
+    // if we're on top of a neighbor, we need to randomize so that they don't both go in the same direction
+    if (rightDistance == 0.0f && randomBoolean()) {
+        swap(leftDistance, rightDistance);
+    }
+    
+    // split the difference between our neighbors
+    float targetAngle = myAngle + (rightDistance - leftDistance) / 4.0f;
+    glm::vec3 targetPosition = center + (front * sinf(targetAngle) + right * cosf(targetAngle)) * radius;
+    
+    // approach the target position
+    const float APPROACH_RATE = 0.05f;
+    _position = glm::mix(_position, targetPosition, APPROACH_RATE);
 }
 
 void MyAvatar::setGravity(glm::vec3 gravity) {

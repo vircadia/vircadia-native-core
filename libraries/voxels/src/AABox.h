@@ -36,19 +36,14 @@ enum BoxVertex {
 
 const int FACE_COUNT = 6;
 
-class AABox 
-{
+class AABox {
 
 public:
-
     AABox(const glm::vec3& corner, float size);
-    AABox(const glm::vec3& corner, float x, float y, float z);
-    AABox(const glm::vec3& corner, const glm::vec3& size);
     AABox();
     ~AABox() {};
 
-    void setBox(const glm::vec3& corner, float x, float y, float z) { setBox(corner,glm::vec3(x,y,z)); };
-    void setBox(const glm::vec3& corner, const glm::vec3& size);
+    void setBox(const glm::vec3& corner, float scale);
 
     // for use in frustum computations
     glm::vec3 getVertexP(const glm::vec3& normal) const;
@@ -57,9 +52,10 @@ public:
     void scale(float scale);
 
     const glm::vec3& getCorner() const     { return _corner; };
-    const glm::vec3& getSize() const       { return _size; };
-    const glm::vec3& getCenter() const     { return _center; };
-    const glm::vec3& getTopFarLeft() const { return _topFarLeft; };
+    float getScale() const { return _scale; }
+
+    glm::vec3 calcCenter() const;
+    glm::vec3 calcTopFarLeft() const;
 
     glm::vec3 getVertex(BoxVertex vertex) const;
 
@@ -72,7 +68,6 @@ public:
     bool findCapsulePenetration(const glm::vec3& start, const glm::vec3& end, float radius, glm::vec3& penetration) const;
 
 private:
-
     glm::vec3 getClosestPointOnFace(const glm::vec3& point, BoxFace face) const;
     glm::vec3 getClosestPointOnFace(const glm::vec4& origin, const glm::vec4& direction, BoxFace face) const;
     glm::vec4 getPlane(BoxFace face) const;
@@ -80,10 +75,7 @@ private:
     static BoxFace getOppositeFace(BoxFace face);
 
     glm::vec3 _corner;
-    glm::vec3 _center;
-    glm::vec3 _size;
-    glm::vec3 _topFarLeft;
+    float _scale;
 };
-
 
 #endif
