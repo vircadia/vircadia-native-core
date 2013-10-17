@@ -78,12 +78,4 @@ private:
     float _scale;
 };
 
-class oldAABox {
-    glm::vec3 _corner;
-    glm::vec3 _size;
-    glm::vec3 _center;
-    glm::vec3 _topFarLeft;
-};
-
-
 #endif
