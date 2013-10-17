@@ -327,6 +327,9 @@ void VoxelServer::run() {
     NodeList* nodeList = NodeList::getInstance();
     nodeList->setOwnerType(NODE_TYPE_VOXEL_SERVER);
     
+    // we need to ask the DS about agents so we can ping/reply with them
+    nodeList->setNodeTypesOfInterest(&NODE_TYPE_AGENT, 1);
+    
     setvbuf(stdout, NULL, _IOLBF, 0);
 
     // tell our NodeList about our desire to get notifications
@@ -434,6 +437,9 @@ void VoxelServer::run() {
             NodeList::getInstance()->sendDomainServerCheckIn();
         }
         
+        // ping our inactive nodes to punch holes with them
+        nodeList->possiblyPingInactiveNodes();
+        
         if (nodeList->getNodeSocket()->receive(&senderAddress, packetData, &packetLength) &&
             packetVersionMatch(packetData)) {
 
@@ -445,23 +451,16 @@ void VoxelServer::run() {
                 QUuid nodeUUID = QUuid::fromRfc4122(QByteArray((char*)packetData + numBytesPacketHeader,
                                                                NUM_BYTES_RFC4122_UUID));
                 
-                Node* node = NodeList::getInstance()->addOrUpdateNode(nodeUUID,
-                                                                      NODE_TYPE_AGENT,
-                                                                      &senderAddress,
-                                                                      &senderAddress);
+                Node* node = nodeList->nodeWithUUID(nodeUUID);
                 
-                // temp activation of public socket before server ping/reply is setup
-                if (!node->getActiveSocket()) {
-                    node->activatePublicSocket();
+                if (node) {
+                    NodeList::getInstance()->updateNodeWithData(node, &senderAddress, packetData, packetLength);
+                    
+                    VoxelNodeData* nodeData = (VoxelNodeData*) node->getLinkedData();
+                    if (nodeData && !nodeData->isVoxelSendThreadInitalized()) {
+                        nodeData->initializeVoxelSendThread(this);
+                    }
                 }
-
-                NodeList::getInstance()->updateNodeWithData(node, packetData, packetLength);
-                
-                VoxelNodeData* nodeData = (VoxelNodeData*) node->getLinkedData();
-                if (nodeData && !nodeData->isVoxelSendThreadInitalized()) {
-                    nodeData->initializeVoxelSendThread(this);
-                }
-                
             } else if (packetData[0] == PACKET_TYPE_PING
                        || packetData[0] == PACKET_TYPE_DOMAIN
                        || packetData[0] == PACKET_TYPE_STUN_RESPONSE) {
