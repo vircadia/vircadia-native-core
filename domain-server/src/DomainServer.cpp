@@ -518,6 +518,19 @@ int DomainServer::run() {
                 int numBytesPrivateSocket = unpackSocket(packetData + packetIndex, (sockaddr*) &nodePublicAddress);
                 packetIndex += numBytesPrivateSocket;
                 
+                if (nodePublicAddress.sin_addr.s_addr == 0) {
+                    // this node wants to use us its STUN server
+                    // so set the node public address to whatever we perceive the public address to be
+                    
+                    nodePublicAddress = senderAddress;
+                    
+                    // if the sender is on our box then leave its public address to 0 so that
+                    // other users attempt to reach it on the same address they have for the domain-server
+                    if (senderAddress.sin_addr.s_addr == htonl(INADDR_LOOPBACK)) {
+                        nodePublicAddress.sin_addr.s_addr = 0;
+                    }
+                }
+                
                 int numBytesPublicSocket = unpackSocket(packetData + packetIndex, (sockaddr*) &nodeLocalAddress);
                 packetIndex += numBytesPublicSocket;
                 

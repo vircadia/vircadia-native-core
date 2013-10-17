@@ -170,6 +170,7 @@ private:
     int _numBytesCheckInPacket;
     QHostAddress _publicAddress;
     uint16_t _publicPort;
+    bool _shouldUseDomainServerAsSTUN;
     
     void activateSocketFromPingReply(sockaddr *nodeAddress);
     void timePingReply(sockaddr *nodeAddress, unsigned char *packetData);
