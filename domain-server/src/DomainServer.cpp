@@ -30,6 +30,18 @@ void DomainServer::setDomainServerInstance(DomainServer* domainServer) {
     domainServerInstance = domainServer;
 }
 
+QJsonObject jsonForSocket(sockaddr* socket) {
+    QJsonObject socketJSON;
+    
+    if (socket->sa_family == AF_INET) {
+        sockaddr_in* socketIPv4 = (sockaddr_in*) socket;
+        socketJSON["ip"] = QString(inet_ntoa(socketIPv4->sin_addr));
+        socketJSON["port"] = (int) ntohs(socketIPv4->sin_port);
+    }
+    
+    return socketJSON;
+}
+
 int DomainServer::civetwebRequestHandler(struct mg_connection *connection) {
     const struct mg_request_info* ri = mg_get_request_info(connection);
     
@@ -67,14 +79,9 @@ int DomainServer::civetwebRequestHandler(struct mg_connection *connection) {
                 QString assignmentUUID = uuidStringWithoutCurlyBraces(((Assignment*) node->getLinkedData())->getUUID());
                 assignedNodeJSON[ASSIGNMENT_JSON_UUID_KEY] = assignmentUUID;
                 
-                QJsonObject nodePublicSocketJSON;
-                
-                // add the public socket information
-                sockaddr_in* nodePublicSocket = (sockaddr_in*) node->getPublicSocket();
-                nodePublicSocketJSON["ip"] = QString(inet_ntoa(nodePublicSocket->sin_addr));
-                nodePublicSocketJSON["port"] = (int) ntohs(nodePublicSocket->sin_port);
-                
-                assignedNodeJSON["public"] = nodePublicSocketJSON;
+                // add the node socket information
+                assignedNodeJSON["public"] = jsonForSocket(node->getPublicSocket());
+                assignedNodeJSON["local"] = jsonForSocket(node->getLocalSocket());
                 
                 // re-format the type name so it matches the target name
                 QString nodeTypeName(node->getTypeName());
