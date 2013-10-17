@@ -140,8 +140,6 @@ void Agent::run() {
         
         int thisFrame = 0;
         
-        bool firstDomainCheckIn = false;
-        
         while (!_shouldStop) {
             
             // if we're not hearing from the domain-server we should stop running
@@ -201,10 +199,6 @@ void Agent::run() {
 
             while (NodeList::getInstance()->getNodeSocket()->receive((sockaddr*) &senderAddress, receivedData, &receivedBytes)
                    && packetVersionMatch(receivedData)) {
-                if (!firstDomainCheckIn && receivedData[0] == PACKET_TYPE_DOMAIN) {
-                    firstDomainCheckIn = true;
-                }
-                
                 NodeList::getInstance()->processNodeData((sockaddr*) &senderAddress, receivedData, receivedBytes);
             }
         }
