@@ -54,25 +54,6 @@ AvatarData::~AvatarData() {
     delete _handData;
 }
 
-void AvatarData::sendData() {
-    
-    // called from Agent visual loop to send data
-    if (Node* avatarMixer = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_AVATAR_MIXER)) {
-        unsigned char packet[MAX_PACKET_SIZE];
-        
-        unsigned char* endOfPacket = packet;
-        endOfPacket += populateTypeAndVersion(endOfPacket, PACKET_TYPE_HEAD_DATA);
-        
-        QByteArray rfcUUID = NodeList::getInstance()->getOwnerUUID().toRfc4122();
-        memcpy(endOfPacket, rfcUUID.constData(), rfcUUID.size());
-        endOfPacket += rfcUUID.size();
-        
-        int numPacketBytes = (endOfPacket - packet) + getBroadcastData(endOfPacket);
-        
-        NodeList::getInstance()->getNodeSocket()->send(avatarMixer->getActiveSocket(), packet, numPacketBytes);
-    }
-}
-
 int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     unsigned char* bufferStart = destinationBuffer;
     
@@ -108,7 +89,7 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     
     // Follow mode info
     memcpy(destinationBuffer, _leaderUUID.toRfc4122().constData(), NUM_BYTES_RFC4122_UUID);
-    destinationBuffer += sizeof(NUM_BYTES_RFC4122_UUID);
+    destinationBuffer += NUM_BYTES_RFC4122_UUID;
 
     // Head rotation (NOTE: This needs to become a quaternion to save two bytes)
     destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _headData->_yaw);

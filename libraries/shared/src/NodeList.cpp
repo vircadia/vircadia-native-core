@@ -313,7 +313,7 @@ const uint32_t RFC_5389_MAGIC_COOKIE_NETWORK_ORDER = htonl(0x2112A442);
 const int NUM_BYTES_STUN_HEADER = 20;
 
 void NodeList::sendSTUNRequest() {
-    const char STUN_SERVER_HOSTNAME[] = "root.highfidelity.io";
+    const char STUN_SERVER_HOSTNAME[] = "stun.highfidelity.io";
     const unsigned short STUN_SERVER_PORT = 3478;
     
     unsigned char stunRequestPacket[NUM_BYTES_STUN_HEADER];

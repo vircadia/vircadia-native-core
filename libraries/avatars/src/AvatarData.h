@@ -126,7 +126,6 @@ public:
     void setHandData(HandData* handData) { _handData = handData; }
     
 public slots:
-    void sendData();
     void setWantLowResMoving(bool wantLowResMoving) { _wantLowResMoving = wantLowResMoving; }
     void setWantColor(bool wantColor) { _wantColor = wantColor; }
     void setWantDelta(bool wantDelta) { _wantDelta = wantDelta; }

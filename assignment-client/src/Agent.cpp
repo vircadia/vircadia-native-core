@@ -182,14 +182,17 @@ void Agent::run() {
                 NodeList::getInstance()->pingPublicAndLocalSocketsForInactiveNode(audioMixer);
             }
             
-            // allow the scripter's call back to setup visual data
-            emit willSendVisualDataCallback();
-            
-            // release the queue of edit voxel messages.
-            voxelScripter.getVoxelPacketSender()->releaseQueuedMessages();
-            
-            // since we're in non-threaded mode, call process so that the packets are sent
-            voxelScripter.getVoxelPacketSender()->process();
+            if (voxelScripter.getVoxelPacketSender()->voxelServersExist()) {
+                // allow the scripter's call back to setup visual data
+                emit willSendVisualDataCallback();
+                
+                // release the queue of edit voxel messages.
+                voxelScripter.getVoxelPacketSender()->releaseQueuedMessages();
+                
+                // since we're in non-threaded mode, call process so that the packets are sent
+                voxelScripter.getVoxelPacketSender()->process();
+
+            }            
             
             if (engine.hasUncaughtException()) {
                 int line = engine.uncaughtExceptionLineNumber();

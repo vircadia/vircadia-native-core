@@ -83,6 +83,8 @@ public:
 
     // the default number of pending messages we will store if no voxel servers are available
     static const int DEFAULT_MAX_PENDING_MESSAGES;
+    
+    bool voxelServersExist() const;
 
 private:
     bool _shouldSend;
@@ -90,7 +92,7 @@ private:
     void queuePacketToNodes(unsigned char* buffer, ssize_t length);
     void initializePacket(EditPacketBuffer& packetBuffer, PACKET_TYPE type);
     void releaseQueuedPacket(EditPacketBuffer& packetBuffer); // releases specific queued packet
-    bool voxelServersExist() const;
+    
     void processPreServerExistsPackets();
 
     // These are packets which are destined from know servers but haven't been released because they're still too small

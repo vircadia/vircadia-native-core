@@ -107,10 +107,15 @@ void VoxelEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, unsigned ch
     NodeList* nodeList = NodeList::getInstance();
     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
         // only send to the NodeTypes that are NODE_TYPE_VOXEL_SERVER
-        if (node->getActiveSocket() && node->getType() == NODE_TYPE_VOXEL_SERVER &&
+        if (node->getType() == NODE_TYPE_VOXEL_SERVER &&
             ((node->getUUID() == nodeUUID) || (nodeUUID.isNull()))) {
-            sockaddr* nodeAddress = node->getActiveSocket();
-            queuePacketForSending(*nodeAddress, buffer, length);
+            if (node->getActiveSocket()) {
+                sockaddr* nodeAddress = node->getActiveSocket();
+                queuePacketForSending(*nodeAddress, buffer, length);
+            } else {
+                // we don't have an active socket for this node, ping it
+                nodeList->pingPublicAndLocalSocketsForInactiveNode(&(*node));
+            }
         }
     }
 }

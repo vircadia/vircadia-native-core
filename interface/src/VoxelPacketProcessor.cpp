@@ -50,6 +50,7 @@ void VoxelPacketProcessor::processPacket(sockaddr& senderAddress, unsigned char*
             if (packetData[0] == PACKET_TYPE_ENVIRONMENT_DATA) {
                 app->_environment.parseData(&senderAddress, packetData, messageLength);
             } else {
+                app->_voxels.setDataSourceID(0);
                 app->_voxels.parseData(packetData, messageLength);
                 app->_voxels.setDataSourceID(0);
             }
