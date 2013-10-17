@@ -64,7 +64,7 @@ AudioInjector::~AudioInjector() {
 }
 
 void AudioInjector::injectAudio(UDPSocket* injectorSocket, sockaddr* destinationSocket) {
-    if (_audioSampleArray) {
+    if (_audioSampleArray && _indexOfNextSlot > 0) {
         _isInjectingAudio = true;
         
         timeval startTime;
@@ -139,6 +139,11 @@ void AudioInjector::addSamples(int16_t* sampleBuffer, int numSamples) {
     }
 }
 
+void AudioInjector::clear() {
+    _indexOfNextSlot = 0;
+    memset(_audioSampleArray, 0, _numTotalSamples * sizeof(int16_t));
+}
+
 int16_t& AudioInjector::sampleAt(const int index) {
     assert(index >= 0 && index < _numTotalSamples);
     
@@ -149,4 +154,5 @@ void AudioInjector::insertSample(const int index, int sample) {
     assert (index >= 0 && index < _numTotalSamples);
     
     _audioSampleArray[index] = (int16_t) sample;
+    _indexOfNextSlot = index + 1;
 }

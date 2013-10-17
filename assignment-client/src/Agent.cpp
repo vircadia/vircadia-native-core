@@ -161,13 +161,16 @@ void Agent::run() {
                 
                 emit willSendAudioDataCallback();
                 
-                if (audioMixer) {
+                if (audioMixer && scriptedAudioInjector.hasSamplesToInject()) {
                     int usecToSleep = usecTimestamp(&startTime) + (thisFrame++ * INJECT_INTERVAL_USECS) - usecTimestampNow();
                     if (usecToSleep > 0) {
                         usleep(usecToSleep);
                     }
                     
                     scriptedAudioInjector.injectAudio(NodeList::getInstance()->getNodeSocket(), audioMixer->getPublicSocket());
+                    
+                    // clear out the audio injector so that it doesn't re-send what we just sent
+                    scriptedAudioInjector.clear();
                 }
                 
                 // allow the scripter's call back to setup visual data
