@@ -143,13 +143,16 @@ void NodeList::processNodeData(sockaddr* senderAddress, unsigned char* packetDat
             break;
         }
         case PACKET_TYPE_PING: {
-            char pingPacket[dataBytes];
-            memcpy(pingPacket, packetData, dataBytes);
-            populateTypeAndVersion((unsigned char*) pingPacket, PACKET_TYPE_PING_REPLY);
-            _nodeSocket.send(senderAddress, pingPacket, dataBytes);
+            // send it right back
+            populateTypeAndVersion(packetData, PACKET_TYPE_PING_REPLY);
+            _nodeSocket.send(senderAddress, packetData, dataBytes);
             break;
         }
         case PACKET_TYPE_PING_REPLY: {
+            // activate the appropriate socket for this node, if not yet updated
+            handlePingReply(senderAddress);
+            
+            // set the ping time for this node for stat collection
             timePingReply(senderAddress, packetData);
             break;
         }
@@ -553,6 +556,22 @@ void NodeList::sendAssignment(Assignment& assignment) {
     _nodeSocket.send(assignmentServerSocket, assignmentPacket, numHeaderBytes + numAssignmentBytes);
 }
 
+void NodeList::pingPublicAndLocalSocketsForInactiveNode(Node* node) const {
+    
+    uint64_t currentTime = 0;
+    
+    // setup a ping packet to send to this node
+    unsigned char pingPacket[numBytesForPacketHeader((uchar*) &PACKET_TYPE_PING) + sizeof(currentTime)];
+    int numHeaderBytes = populateTypeAndVersion(pingPacket, PACKET_TYPE_PING);
+    
+    currentTime = usecTimestampNow();
+    memcpy(pingPacket + numHeaderBytes, &currentTime, sizeof(currentTime));
+    
+    // send the ping packet to the local and public sockets for this node
+    _nodeSocket.send(node->getLocalSocket(), pingPacket, sizeof(pingPacket));
+    _nodeSocket.send(node->getPublicSocket(), pingPacket, sizeof(pingPacket));
+}
+
 Node* NodeList::addOrUpdateNode(sockaddr* publicSocket, sockaddr* localSocket, char nodeType, uint16_t nodeId) {
     NodeList::iterator node = end();
     
@@ -569,25 +588,10 @@ Node* NodeList::addOrUpdateNode(sockaddr* publicSocket, sockaddr* localSocket, c
         // we didn't have this node, so add them
         Node* newNode = new Node(publicSocket, localSocket, nodeType, nodeId);
         
-        if (socketMatch(publicSocket, localSocket)) {
-            // likely debugging scenario with two nodes on local network
-            // set the node active right away
-            newNode->activatePublicSocket();
-        }
-   
-        if (newNode->getType() == NODE_TYPE_VOXEL_SERVER ||
-            newNode->getType() == NODE_TYPE_AVATAR_MIXER ||
-            newNode->getType() == NODE_TYPE_AUDIO_MIXER) {
-            // this is currently the cheat we use to talk directly to our test servers on EC2
-            // to be removed when we have a proper identification strategy
-            newNode->activatePublicSocket();
-        }
-        
         addNodeToList(newNode);
         
         return newNode;
     } else {
-        
         if (node->getType() == NODE_TYPE_AUDIO_MIXER ||
             node->getType() == NODE_TYPE_VOXEL_SERVER) {
             // until the Audio class also uses our nodeList, we need to update

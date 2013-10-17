@@ -106,10 +106,12 @@ const char* Node::getTypeName() const {
 }
 
 void Node::activateLocalSocket() {
+    qDebug() << "Activating local socket for node" << *this << "\n";
     _activeSocket = _localSocket;
 }
 
 void Node::activatePublicSocket() {
+    qDebug() << "Activating public socket for node" << *this << "\n";
     _activeSocket = _publicSocket;
 }
 

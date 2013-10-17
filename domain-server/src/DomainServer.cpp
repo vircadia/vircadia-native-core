@@ -484,8 +484,6 @@ int DomainServer::run() {
     nodePublicAddress.sin_family = AF_INET;
     nodeLocalAddress.sin_family = AF_INET;
     
-    in_addr_t serverLocalAddress = getLocalAddress();
-    
     nodeList->startSilentNodeRemovalThread();
     
     if (!_staticAssignmentFile.exists() || _voxelServerConfig) {
@@ -628,20 +626,11 @@ int DomainServer::run() {
                 
                 qDebug() << "Received a create assignment -" << *createAssignment << "\n";
                 
-                // check the node public address
-                // if it matches our local address
-                // or if it's the loopback address we're on the same box
-                if (nodePublicAddress.sin_addr.s_addr == serverLocalAddress ||
-                    nodePublicAddress.sin_addr.s_addr == htonl(INADDR_LOOPBACK)) {
-                    
-                    nodePublicAddress.sin_addr.s_addr = 0;
-                }
-                
                 // make sure we have a matching node with the UUID packed with the assignment
                 // if the node has sent no types of interest, assume they want nothing but their own ID back
                 for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
                     if (node->getLinkedData()
-                        && socketMatch((sockaddr*) &nodePublicAddress, node->getPublicSocket())
+                        && socketMatch((sockaddr*) &senderAddress, node->getPublicSocket())
                         && ((Assignment*) node->getLinkedData())->getUUID() == createAssignment->getUUID()) {
                         
                         // give the create assignment a new UUID

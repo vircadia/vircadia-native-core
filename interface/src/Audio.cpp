@@ -106,71 +106,70 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
         Node* audioMixer = nodeList->soloNodeOfType(NODE_TYPE_AUDIO_MIXER);
         
         if (audioMixer) {
-            audioMixer->lock();
-            sockaddr_in audioSocket = *(sockaddr_in*) audioMixer->getActiveSocket();
-            audioMixer->unlock();
-            
-            glm::vec3 headPosition = interfaceAvatar->getHeadJointPosition();
-            glm::quat headOrientation = interfaceAvatar->getHead().getOrientation();
-            
-            int numBytesPacketHeader = numBytesForPacketHeader((unsigned char*) &PACKET_TYPE_MICROPHONE_AUDIO_NO_ECHO);
-            int leadingBytes = numBytesPacketHeader + sizeof(headPosition) + sizeof(headOrientation);
-            
-            // we need the amount of bytes in the buffer + 1 for type
-            // + 12 for 3 floats for position + float for bearing + 1 attenuation byte
-            unsigned char dataPacket[MAX_PACKET_SIZE];
-            
-            PACKET_TYPE packetType = Menu::getInstance()->isOptionChecked(MenuOption::EchoAudio)
+            if (audioMixer->getActiveSocket()) {
+                glm::vec3 headPosition = interfaceAvatar->getHeadJointPosition();
+                glm::quat headOrientation = interfaceAvatar->getHead().getOrientation();
+                
+                int numBytesPacketHeader = numBytesForPacketHeader((unsigned char*) &PACKET_TYPE_MICROPHONE_AUDIO_NO_ECHO);
+                int leadingBytes = numBytesPacketHeader + sizeof(headPosition) + sizeof(headOrientation);
+                
+                // we need the amount of bytes in the buffer + 1 for type
+                // + 12 for 3 floats for position + float for bearing + 1 attenuation byte
+                unsigned char dataPacket[MAX_PACKET_SIZE];
+                
+                PACKET_TYPE packetType = Menu::getInstance()->isOptionChecked(MenuOption::EchoAudio)
                 ? PACKET_TYPE_MICROPHONE_AUDIO_WITH_ECHO
                 : PACKET_TYPE_MICROPHONE_AUDIO_NO_ECHO;
-            
-            unsigned char* currentPacketPtr = dataPacket + populateTypeAndVersion(dataPacket, packetType);
-            
-            // pack Source Data
-            uint16_t ownerID = NodeList::getInstance()->getOwnerID();
-            memcpy(currentPacketPtr, &ownerID, sizeof(ownerID));
-            currentPacketPtr += (sizeof(ownerID));
-            leadingBytes += (sizeof(ownerID));
-            
-            // pack Listen Mode Data
-            memcpy(currentPacketPtr, &_listenMode, sizeof(_listenMode));
-            currentPacketPtr += (sizeof(_listenMode));
-            leadingBytes += (sizeof(_listenMode));
-    
-            if (_listenMode == AudioRingBuffer::OMNI_DIRECTIONAL_POINT) {
-                memcpy(currentPacketPtr, &_listenRadius, sizeof(_listenRadius));
-                currentPacketPtr += (sizeof(_listenRadius));
-                leadingBytes += (sizeof(_listenRadius));
-            } else if (_listenMode == AudioRingBuffer::SELECTED_SOURCES) {
-                int listenSourceCount = _listenSources.size();
-                memcpy(currentPacketPtr, &listenSourceCount, sizeof(listenSourceCount));
-                currentPacketPtr += (sizeof(listenSourceCount));
-                leadingBytes += (sizeof(listenSourceCount));
-                for (int i = 0; i < listenSourceCount; i++) {
-                    memcpy(currentPacketPtr, &_listenSources[i], sizeof(_listenSources[i]));
-                    currentPacketPtr += sizeof(_listenSources[i]);
-                    leadingBytes += sizeof(_listenSources[i]);
+                
+                unsigned char* currentPacketPtr = dataPacket + populateTypeAndVersion(dataPacket, packetType);
+                
+                // pack Source Data
+                uint16_t ownerID = NodeList::getInstance()->getOwnerID();
+                memcpy(currentPacketPtr, &ownerID, sizeof(ownerID));
+                currentPacketPtr += (sizeof(ownerID));
+                leadingBytes += (sizeof(ownerID));
+                
+                // pack Listen Mode Data
+                memcpy(currentPacketPtr, &_listenMode, sizeof(_listenMode));
+                currentPacketPtr += (sizeof(_listenMode));
+                leadingBytes += (sizeof(_listenMode));
+                
+                if (_listenMode == AudioRingBuffer::OMNI_DIRECTIONAL_POINT) {
+                    memcpy(currentPacketPtr, &_listenRadius, sizeof(_listenRadius));
+                    currentPacketPtr += (sizeof(_listenRadius));
+                    leadingBytes += (sizeof(_listenRadius));
+                } else if (_listenMode == AudioRingBuffer::SELECTED_SOURCES) {
+                    int listenSourceCount = _listenSources.size();
+                    memcpy(currentPacketPtr, &listenSourceCount, sizeof(listenSourceCount));
+                    currentPacketPtr += (sizeof(listenSourceCount));
+                    leadingBytes += (sizeof(listenSourceCount));
+                    for (int i = 0; i < listenSourceCount; i++) {
+                        memcpy(currentPacketPtr, &_listenSources[i], sizeof(_listenSources[i]));
+                        currentPacketPtr += sizeof(_listenSources[i]);
+                        leadingBytes += sizeof(_listenSources[i]);
+                    }
                 }
+                
+                // memcpy the three float positions
+                memcpy(currentPacketPtr, &headPosition, sizeof(headPosition));
+                currentPacketPtr += (sizeof(headPosition));
+                
+                // memcpy our orientation
+                memcpy(currentPacketPtr, &headOrientation, sizeof(headOrientation));
+                currentPacketPtr += sizeof(headOrientation);
+                
+                // copy the audio data to the last BUFFER_LENGTH_BYTES bytes of the data packet
+                memcpy(currentPacketPtr, inputLeft, BUFFER_LENGTH_BYTES_PER_CHANNEL);
+                
+                nodeList->getNodeSocket()->send(audioMixer->getActiveSocket(),
+                                                dataPacket,
+                                                BUFFER_LENGTH_BYTES_PER_CHANNEL + leadingBytes);
+                
+                interface->getBandwidthMeter()->outputStream(BandwidthMeter::AUDIO).updateValue(BUFFER_LENGTH_BYTES_PER_CHANNEL
+                                                                                                + leadingBytes);
+            } else {
+                nodeList->pingPublicAndLocalSocketsForInactiveNode(audioMixer);
             }
-            
-            // memcpy the three float positions
-            memcpy(currentPacketPtr, &headPosition, sizeof(headPosition));
-            currentPacketPtr += (sizeof(headPosition));
-            
-            // memcpy our orientation
-            memcpy(currentPacketPtr, &headOrientation, sizeof(headOrientation));
-            currentPacketPtr += sizeof(headOrientation);
-            
-            // copy the audio data to the last BUFFER_LENGTH_BYTES bytes of the data packet
-            memcpy(currentPacketPtr, inputLeft, BUFFER_LENGTH_BYTES_PER_CHANNEL);
-            
-            nodeList->getNodeSocket()->send((sockaddr*) &audioSocket,
-                                            dataPacket,
-                                            BUFFER_LENGTH_BYTES_PER_CHANNEL + leadingBytes);
-
-            interface->getBandwidthMeter()->outputStream(BandwidthMeter::AUDIO).updateValue(BUFFER_LENGTH_BYTES_PER_CHANNEL
-                                                                                            + leadingBytes);
-            
         }
     }
         

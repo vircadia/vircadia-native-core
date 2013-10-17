@@ -112,6 +112,8 @@ public:
     void setAssignmentServerSocket(sockaddr* serverSocket) { _assignmentServerSocket = serverSocket; }
     void sendAssignment(Assignment& assignment);
     
+    void pingPublicAndLocalSocketsForInactiveNode(Node* node) const;
+    
     Node* nodeWithAddress(sockaddr *senderAddress);
     Node* nodeWithID(uint16_t nodeID);
     
