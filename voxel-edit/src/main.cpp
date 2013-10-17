@@ -1,4 +1,4 @@
-//
+    //
 //  main.cpp
 //  Voxel Edit
 //
@@ -326,9 +326,39 @@ void unitTest(VoxelTree * tree) {
     }
     
     tree->createVoxel(0, 0, 0, voxelSize, 255, 255 ,255);
+    if (tree->getVoxelAt(0, 0, 0, voxelSize)) {
+        printf("corner point 0,0,0 exists...\n");
+    } else {
+        printf("corner point 0,0,0 does not exists...\n");
+    }
+
     tree->createVoxel(voxelSize, 0, 0, voxelSize, 255, 255 ,255);
+    if (tree->getVoxelAt(voxelSize, 0, 0, voxelSize)) {
+        printf("corner point voxelSize,0,0 exists...\n");
+    } else {
+        printf("corner point voxelSize,0,0 does not exists...\n");
+    }
+
     tree->createVoxel(0, 0, voxelSize, voxelSize, 255, 255 ,255);
+    if (tree->getVoxelAt(0, 0, voxelSize, voxelSize)) {
+        printf("corner point 0, 0, voxelSize exists...\n");
+    } else {
+        printf("corner point 0, 0, voxelSize does not exists...\n");
+    }
+
     tree->createVoxel(voxelSize, 0, voxelSize, voxelSize, 255, 255 ,255);
+    if (tree->getVoxelAt(voxelSize, 0, voxelSize, voxelSize)) {
+        printf("corner point voxelSize, 0, voxelSize exists...\n");
+    } else {
+        printf("corner point voxelSize, 0, voxelSize does not exists...\n");
+    }
+
+    printf("check root voxel exists...\n");
+    if (tree->getVoxelAt(0,0,0,1.0)) {
+        printf("of course it does\n");
+    } else {
+        printf("WTH!?!\n");
+    }
     
 }
 
