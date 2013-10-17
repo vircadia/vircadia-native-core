@@ -117,8 +117,6 @@ void NodeList::setDomainHostname(const QString& domainHostname) {
         _domainIP.clear();
         notifyDomainChanged();
     }
-    
-    
 }
 
 void NodeList::timePingReply(sockaddr *nodeAddress, unsigned char *packetData) {
