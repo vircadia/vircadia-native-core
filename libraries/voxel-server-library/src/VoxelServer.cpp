@@ -11,8 +11,9 @@
 #include <cstring>
 #include <cstdio>
 
-#include <QDebug>
-#include <QString>
+#include <QtCore/QDebug>
+#include <QtCore/QString>
+#include <QtCore/QUuid>
 
 #include <Logging.h>
 #include <OctalCode.h>
@@ -25,6 +26,7 @@
 #include <SceneUtils.h>
 #include <PerfStat.h>
 #include <JurisdictionSender.h>
+#include <UUID.h>
 
 #ifdef _WIN32
 #include "Syssocket.h"
@@ -429,7 +431,7 @@ void VoxelServer::run() {
         // send a check in packet to the domain server if DOMAIN_SERVER_CHECK_IN_USECS has elapsed
         if (usecTimestampNow() - usecTimestamp(&lastDomainServerCheckIn) >= DOMAIN_SERVER_CHECK_IN_USECS) {
             gettimeofday(&lastDomainServerCheckIn, NULL);
-            NodeList::getInstance()->sendDomainServerCheckIn(_uuid.toRfc4122().constData());
+            NodeList::getInstance()->sendDomainServerCheckIn();
         }
         
         if (nodeList->getNodeSocket()->receive(&senderAddress, packetData, &packetLength) &&
@@ -440,12 +442,18 @@ void VoxelServer::run() {
             if (packetData[0] == PACKET_TYPE_HEAD_DATA) {
                 // If we got a PACKET_TYPE_HEAD_DATA, then we're talking to an NODE_TYPE_AVATAR, and we
                 // need to make sure we have it in our nodeList.
-                uint16_t nodeID = 0;
-                unpackNodeId(packetData + numBytesPacketHeader, &nodeID);
-                Node* node = NodeList::getInstance()->addOrUpdateNode(&senderAddress,
-                                                       &senderAddress,
-                                                       NODE_TYPE_AGENT,
-                                                       nodeID);
+                QUuid nodeUUID = QUuid::fromRfc4122(QByteArray((char*)packetData + numBytesPacketHeader,
+                                                               NUM_BYTES_RFC4122_UUID));
+                
+                Node* node = NodeList::getInstance()->addOrUpdateNode(nodeUUID,
+                                                                      NODE_TYPE_AGENT,
+                                                                      &senderAddress,
+                                                                      &senderAddress);
+                
+                // temp activation of public socket before server ping/reply is setup
+                if (!node->getActiveSocket()) {
+                    node->activatePublicSocket();
+                }
 
                 NodeList::getInstance()->updateNodeWithData(node, packetData, packetLength);
                 
@@ -454,8 +462,10 @@ void VoxelServer::run() {
                     nodeData->initializeVoxelSendThread(this);
                 }
                 
-            } else if (packetData[0] == PACKET_TYPE_PING) {
-                // If the packet is a ping, let processNodeData handle it.
+            } else if (packetData[0] == PACKET_TYPE_PING
+                       || packetData[0] == PACKET_TYPE_DOMAIN
+                       || packetData[0] == PACKET_TYPE_STUN_RESPONSE) {
+                // let processNodeData handle it.
                 NodeList::getInstance()->processNodeData(&senderAddress, packetData, packetLength);
             } else if (packetData[0] == PACKET_TYPE_DOMAIN) {
                 NodeList::getInstance()->processNodeData(&senderAddress, packetData, packetLength);

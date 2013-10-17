@@ -108,7 +108,7 @@ public:
         bool includeColor = WANT_COLOR, 
         bool includeExistsBits = WANT_EXISTS_BITS,
         VoxelNode* destinationNode = NULL,
-        uint16_t sourceID = UNKNOWN_NODE_ID,
+        uint16_t sourceID = 0, // hardcoded to 0 for removal of 16 bit node ID
         bool wantImportProgress = false) :
             includeColor(includeColor),
             includeExistsBits(includeExistsBits),

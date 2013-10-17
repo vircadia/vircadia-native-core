@@ -61,19 +61,13 @@ const float chatMessageScale = 0.0015;
 const float chatMessageHeight = 0.20;
 
 void Avatar::sendAvatarURLsMessage(const QUrl& voxelURL) {
-    uint16_t ownerID = NodeList::getInstance()->getOwnerID();
-    
-    if (ownerID == UNKNOWN_NODE_ID) {
-        return; // we don't yet know who we are
-    }
-    
     QByteArray message;
     
     char packetHeader[MAX_PACKET_HEADER_BYTES];
     int numBytesPacketHeader = populateTypeAndVersion((unsigned char*) packetHeader, PACKET_TYPE_AVATAR_URLS);
     
     message.append(packetHeader, numBytesPacketHeader);
-    message.append((const char*)&ownerID, sizeof(ownerID));
+    message.append(NodeList::getInstance()->getOwnerUUID().toRfc4122());
     
     QDataStream out(&message, QIODevice::WriteOnly | QIODevice::Append);
     out << voxelURL;
@@ -283,13 +277,13 @@ void Avatar::follow(Avatar* leadingAvatar) {
 
     _leadingAvatar = leadingAvatar;
     if (_leadingAvatar != NULL) {
-        _leaderID = leadingAvatar->getOwningNode()->getNodeID();
+        _leaderUUID = leadingAvatar->getOwningNode()->getUUID();
         _stringLength = glm::length(_position - _leadingAvatar->getPosition()) / _scale;
         if (_stringLength > MAX_STRING_LENGTH) {
             _stringLength = MAX_STRING_LENGTH;
         }
     } else {
-        _leaderID = UNKNOWN_NODE_ID;
+        _leaderUUID = QUuid();
     }
 }
 

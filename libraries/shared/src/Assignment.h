@@ -15,7 +15,6 @@
 
 #include "NodeList.h"
 
-const int NUM_BYTES_RFC4122_UUID = 16;
 const int MAX_PAYLOAD_BYTES = 1024;
 
 /// Holds information used for request, creation, and deployment of assignments

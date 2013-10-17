@@ -82,7 +82,7 @@ void VoxelNode::init(unsigned char * octalCode) {
     setVoxelSystem(NULL);
     _isDirty = true;
     _shouldRender = false;
-    _sourceID = UNKNOWN_NODE_ID;
+    _sourceID = 0; // hardcoded to 0 for removal of 16 bit node ID
     calculateAABox();
     markWithChangedTime();
 

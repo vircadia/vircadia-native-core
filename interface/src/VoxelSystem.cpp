@@ -82,7 +82,7 @@ VoxelSystem::VoxelSystem(float treeScale, int maxVoxels)
     VoxelNode::addUpdateHook(this);
     _abandonedVBOSlots = 0;
     _falseColorizeBySource = false;
-    _dataSourceID = UNKNOWN_NODE_ID;
+    _dataSourceID = 0;
     _voxelServerCount = 0;
 
     _viewFrustum = Application::getInstance()->getViewFrustum();
@@ -1442,7 +1442,7 @@ void VoxelSystem::falseColorizeBySource() {
     NodeList* nodeList = NodeList::getInstance();
     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
         if (node->getType() == NODE_TYPE_VOXEL_SERVER) {
-            uint16_t nodeID = node->getNodeID();
+            uint16_t nodeID = 0; // hardcoded since removal of 16 bit node IDs
             int groupColor = voxelServerCount % NUMBER_OF_COLOR_GROUPS;
             args.colors[nodeID] = groupColors[groupColor];
 
@@ -2299,8 +2299,7 @@ void VoxelSystem::falseColorizeOccludedV2() {
 
 void VoxelSystem::nodeAdded(Node* node) {
     if (node->getType() == NODE_TYPE_VOXEL_SERVER) {
-        uint16_t nodeID = node->getNodeID();
-        qDebug("VoxelSystem... voxel server %u added...\n", nodeID);
+        qDebug("VoxelSystem... voxel server %s added...\n", node->getUUID().toString().toLocal8Bit().constData());
         _voxelServerCount++;
     }
 }
@@ -2322,14 +2321,14 @@ bool VoxelSystem::killSourceVoxelsOperation(VoxelNode* node, void* extraData) {
 void VoxelSystem::nodeKilled(Node* node) {
     if (node->getType() == NODE_TYPE_VOXEL_SERVER) {
         _voxelServerCount--;
-        uint16_t nodeID = node->getNodeID();
-        qDebug("VoxelSystem... voxel server %u removed...\n", nodeID);
+        qDebug("VoxelSystem... voxel server %s removed...\n", node->getUUID().toString().toLocal8Bit().constData());
         
         if (_voxelServerCount > 0) {
             // Kill any voxels from the local tree that match this nodeID
-            pthread_mutex_lock(&_treeLock);
-            _tree->recurseTreeWithOperation(killSourceVoxelsOperation, &nodeID);
-            pthread_mutex_unlock(&_treeLock);
+            // commenting out for removal of 16 bit node IDs
+//            pthread_mutex_lock(&_treeLock);
+//            _tree->recurseTreeWithOperation(killSourceVoxelsOperation, 0);
+//            pthread_mutex_unlock(&_treeLock);
             _tree->setDirtyBit();
             setupNewVoxelsForDrawing();
         } else {

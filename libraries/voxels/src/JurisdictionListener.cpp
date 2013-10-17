@@ -33,7 +33,7 @@ void JurisdictionListener::nodeAdded(Node* node) {
 }
 
 void JurisdictionListener::nodeKilled(Node* node) {
-    _jurisdictions.erase(_jurisdictions.find(node->getNodeID()));
+    _jurisdictions.erase(_jurisdictions.find(node->getUUID()));
 }
 
 bool JurisdictionListener::queueJurisdictionRequest() {
@@ -66,10 +66,10 @@ void JurisdictionListener::processPacket(sockaddr& senderAddress, unsigned char*
     if (packetData[0] == PACKET_TYPE_VOXEL_JURISDICTION) {
         Node* node = NodeList::getInstance()->nodeWithAddress(&senderAddress);
         if (node) {
-            uint16_t nodeID = node->getNodeID();
+            QUuid nodeUUID = node->getUUID();
             JurisdictionMap map;
             map.unpackFromMessage(packetData, packetLength);
-            _jurisdictions[nodeID] = map;
+            _jurisdictions[nodeUUID] = map;
         }
     }
 }
