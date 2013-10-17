@@ -82,7 +82,7 @@ void VoxelNode::init(unsigned char * octalCode) {
     setVoxelSystem(NULL);
     _isDirty = true;
     _shouldRender = false;
-    _sourceUUIDKey = 0; // hardcoded to 0 for removal of 16 bit node ID
+    _sourceUUIDKey = 0;
     calculateAABox();
     markWithChangedTime();
 
@@ -168,7 +168,6 @@ void VoxelNode::setVoxelSystem(VoxelSystem* voxelSystem) {
         _voxelSystemIndex = index;
     }
 }
-
 
 const uint16_t KEY_FOR_NULL = 0;
 uint16_t VoxelNode::_nextUUIDKey = KEY_FOR_NULL + 1; // start at 1, 0 is reserved for NULL
