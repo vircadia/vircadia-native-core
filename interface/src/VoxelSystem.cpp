@@ -82,7 +82,7 @@ VoxelSystem::VoxelSystem(float treeScale, int maxVoxels)
     VoxelNode::addUpdateHook(this);
     _abandonedVBOSlots = 0;
     _falseColorizeBySource = false;
-    _dataSourceID = 0;
+    _dataSourceUUID = QUuid();
     _voxelServerCount = 0;
 
     _viewFrustum = Application::getInstance()->getViewFrustum();
@@ -576,7 +576,7 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                                     "readBitstreamToTree()");
             // ask the VoxelTree to read the bitstream into the tree
-            ReadBitstreamToTreeParams args(WANT_COLOR, WANT_EXISTS_BITS, NULL, getDataSourceID());
+            ReadBitstreamToTreeParams args(WANT_COLOR, WANT_EXISTS_BITS, NULL, getDataSourceUUID());
             pthread_mutex_lock(&_treeLock);
             _tree->readBitstreamToTree(voxelData, numBytes - numBytesPacketHeader, args);
             pthread_mutex_unlock(&_treeLock);
@@ -586,7 +586,7 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                                     "readBitstreamToTree()");
             // ask the VoxelTree to read the MONOCHROME bitstream into the tree
-            ReadBitstreamToTreeParams args(NO_COLOR, WANT_EXISTS_BITS, NULL, getDataSourceID());
+            ReadBitstreamToTreeParams args(NO_COLOR, WANT_EXISTS_BITS, NULL, getDataSourceUUID());
             pthread_mutex_lock(&_treeLock);
             _tree->readBitstreamToTree(voxelData, numBytes - numBytesPacketHeader, args);
             pthread_mutex_unlock(&_treeLock);
@@ -1417,8 +1417,8 @@ bool VoxelSystem::falseColorizeBySourceOperation(VoxelNode* node, void* extraDat
     _nodeCount++;
     if (node->isColored()) {
         // pick a color based on the source - we want each source to be obviously different
-        uint16_t nodeID = node->getSourceID();
-        node->setFalseColor(args->colors[nodeID].red, args->colors[nodeID].green,  args->colors[nodeID].blue);
+        uint16_t nodeIDKey = node->getSourceUUIDKey();
+        node->setFalseColor(args->colors[nodeIDKey].red, args->colors[nodeIDKey].green,  args->colors[nodeIDKey].blue);
     }
     return true; // keep going!
 }
@@ -1442,7 +1442,7 @@ void VoxelSystem::falseColorizeBySource() {
     NodeList* nodeList = NodeList::getInstance();
     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
         if (node->getType() == NODE_TYPE_VOXEL_SERVER) {
-            uint16_t nodeID = 0; // hardcoded since removal of 16 bit node IDs
+            uint16_t nodeID = VoxelNode::getSourceNodeUUIDKey(node->getUUID()); // hardcoded since removal of 16 bit node IDs
             int groupColor = voxelServerCount % NUMBER_OF_COLOR_GROUPS;
             args.colors[nodeID] = groupColors[groupColor];
 
@@ -2305,12 +2305,11 @@ void VoxelSystem::nodeAdded(Node* node) {
 }
 
 bool VoxelSystem::killSourceVoxelsOperation(VoxelNode* node, void* extraData) {
-    uint16_t killedNodeID = *(uint16_t*)extraData;
+    QUuid killedNodeID = *(QUuid*)extraData;
     for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
         VoxelNode* childNode = node->getChildAtIndex(i);
         if (childNode) {
-            uint16_t childNodeID = childNode->getSourceID();
-            if (childNodeID == killedNodeID) {
+            if (childNode->matchesSourceUUID(killedNodeID)) {
                 node->safeDeepDeleteChildAtIndex(i);
             }
         }
@@ -2321,14 +2320,17 @@ bool VoxelSystem::killSourceVoxelsOperation(VoxelNode* node, void* extraData) {
 void VoxelSystem::nodeKilled(Node* node) {
     if (node->getType() == NODE_TYPE_VOXEL_SERVER) {
         _voxelServerCount--;
-        qDebug("VoxelSystem... voxel server %s removed...\n", node->getUUID().toString().toLocal8Bit().constData());
+
+        QUuid nodeUUID = node->getUUID();
+
+        qDebug("VoxelSystem... voxel server %s removed...\n", nodeUUID.toString().toLocal8Bit().constData());
         
         if (_voxelServerCount > 0) {
             // Kill any voxels from the local tree that match this nodeID
             // commenting out for removal of 16 bit node IDs
-//            pthread_mutex_lock(&_treeLock);
-//            _tree->recurseTreeWithOperation(killSourceVoxelsOperation, 0);
-//            pthread_mutex_unlock(&_treeLock);
+            pthread_mutex_lock(&_treeLock);
+            _tree->recurseTreeWithOperation(killSourceVoxelsOperation, &nodeUUID);
+            pthread_mutex_unlock(&_treeLock);
             _tree->setDirtyBit();
             setupNewVoxelsForDrawing();
         } else {

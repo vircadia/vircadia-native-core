@@ -221,7 +221,7 @@ int VoxelTree::readNodeData(VoxelNode* destinationNode, unsigned char* nodeData,
             if (childNodeAt) {
                 nodeWasDirty = childNodeAt->isDirty();
                 childNodeAt->setColor(newColor);
-                childNodeAt->setSourceID(args.sourceID);
+                childNodeAt->setSourceUUID(args.sourceUUID);
                 
                 // if we had a local version of the node already, it's possible that we have it in the VBO but
                 // with the same color data, so this won't count as a change. To address this we check the following
