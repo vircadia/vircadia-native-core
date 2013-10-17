@@ -27,6 +27,8 @@ link_hifi_library(avatars ${TARGET_NAME} ${ROOT_DIR})
 link_hifi_library(voxels ${TARGET_NAME} ${ROOT_DIR})
 link_hifi_library(voxel-server-library ${TARGET_NAME} ${ROOT_DIR})
 
+include_directories(${ROOT_DIR}/externals/civetweb/include)
+
 # link the stk library
 set(STK_ROOT_DIR ${ROOT_DIR}/externals/stk)
 find_package(STK REQUIRED)

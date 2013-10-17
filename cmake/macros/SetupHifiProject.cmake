@@ -1,4 +1,4 @@
-MACRO(SETUP_HIFI_PROJECT TARGET INCLUDE_QT)
+macro(SETUP_HIFI_PROJECT TARGET INCLUDE_QT)
     project(${TARGET})
     
     # grab the implemenation and header files
@@ -12,8 +12,8 @@ MACRO(SETUP_HIFI_PROJECT TARGET INCLUDE_QT)
       endif()
     endforeach()
     
-    # add the executable
-    add_executable(${TARGET} ${TARGET_SRCS})
+    # add the executable, include additional optional sources
+    add_executable(${TARGET} ${TARGET_SRCS} ${ARGN})
     
     IF (${INCLUDE_QT})
       find_package(Qt5Core REQUIRED)
@@ -21,4 +21,4 @@ MACRO(SETUP_HIFI_PROJECT TARGET INCLUDE_QT)
     ENDIF()
 
     target_link_libraries(${TARGET} ${QT_LIBRARIES})
-ENDMACRO(SETUP_HIFI_PROJECT _target _include_qt)
+endmacro()
