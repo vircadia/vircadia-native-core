@@ -112,6 +112,10 @@ VoxelNode::~VoxelNode() {
             setChildAtIndex(i, NULL);
         }
     }
+    
+    // at this point, we should have no children, but we need to drop ourselves from population counts
+    _singleChildrenCount--;
+    _childrenCount[0]--;
 }
 
 void VoxelNode::markWithChangedTime() { 
