@@ -186,7 +186,7 @@ int VoxelServer::civetwebRequestHandler(struct mg_connection* connection) {
         mg_printf(connection, "%s", "                                ----------------\r\n");
         mg_printf(connection, "                         Total: %10.llu nodes\r\n", checkSum);
         mg_printf(connection, "                      Expected: %10.lu nodes\r\n", nodeCount);
-
+        
         mg_printf(connection, "%s", "\r\n");
         mg_printf(connection, "%s", "VoxelNode Children Population Statistics...\r\n");
         checkSum = 0;
@@ -197,6 +197,13 @@ int VoxelServer::civetwebRequestHandler(struct mg_connection* connection) {
         }
         mg_printf(connection, "%s", "                                ----------------\r\n");
         mg_printf(connection, "                    Total:      %10.llu nodes\r\n", checkSum);
+
+        mg_printf(connection, "%s", "\r\n");
+        mg_printf(connection, "%s", "In other news....\r\n");
+        mg_printf(connection, "could store 4 children internally:     %10.llu nodes\r\n",
+            VoxelNode::getCouldStoreFourChildrenInternally());
+        mg_printf(connection, "could NOT store 4 children internally: %10.llu nodes\r\n", 
+            VoxelNode::getCouldNotStoreFourChildrenInternally());
 
         return 1;
     } else {

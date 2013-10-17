@@ -29,13 +29,20 @@ bool VoxelPersistThread::process() {
         _initialLoad = true;
         qDebug("loading voxels from file: %s...\n", _filename);
 
-        bool persistantFileRead = _tree->readFromSVOFile(_filename);
+        bool persistantFileRead;
+        
+        {
+            PerformanceWarning warn(true, "Loading Voxel File", true);
+            persistantFileRead = _tree->readFromSVOFile(_filename);
+        }
+
         if (persistantFileRead) {
-            PerformanceWarning warn(true, "reaverageVoxelColors()", true);
+            PerformanceWarning warn(true, "Voxels Re-Averaging", true);
             
             // after done inserting all these voxels, then reaverage colors
+            qDebug("BEGIN Voxels Re-Averaging\n");
             _tree->reaverageVoxelColors(_tree->rootNode);
-            qDebug("Voxels reAveraged\n");
+            qDebug("DONE WITH Voxels Re-Averaging\n");
         }
         
         _tree->clearDirtyBit(); // the tree is clean since we just loaded it

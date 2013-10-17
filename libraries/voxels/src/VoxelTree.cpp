@@ -630,9 +630,22 @@ void VoxelTree::printTreeForDebugging(VoxelNode *startNode) {
 }
 
 // Note: this is an expensive call. Don't call it unless you really need to reaverage the entire tree (from startNode)
-void VoxelTree::reaverageVoxelColors(VoxelNode *startNode) {
+void VoxelTree::reaverageVoxelColors(VoxelNode* startNode) {
     // if our tree is a reaveraging tree, then we do this, otherwise we don't do anything
     if (_shouldReaverage) {
+        static int recursionCount;
+        if (startNode == rootNode) {
+            recursionCount = 0;
+        } else {
+            recursionCount++;
+        }
+        const int UNREASONABLY_DEEP_RECURSION = 20;
+        if (recursionCount > UNREASONABLY_DEEP_RECURSION) {
+            qDebug("VoxelTree::reaverageVoxelColors()... bailing out of UNREASONABLY_DEEP_RECURSION\n");
+            recursionCount--;
+            return;
+        }
+
         bool hasChildren = false;
 
         for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
@@ -647,6 +660,7 @@ void VoxelTree::reaverageVoxelColors(VoxelNode *startNode) {
         if (hasChildren && !startNode->collapseIdenticalLeaves()) {
             startNode->setColorFromAverageOfChildren();
         }
+        recursionCount--;
     }
 }
 

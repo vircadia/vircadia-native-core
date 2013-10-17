@@ -131,7 +131,9 @@ public:
     static uint64_t getThreeChildrenExternalCount() { return _threeChildrenExternalCount; }
     static uint64_t getExternalChildrenCount() { return _externalChildrenCount; }
     static uint64_t getChildrenCount(int childCount) { return _childrenCount[childCount]; }
-
+    
+    static uint64_t getCouldStoreFourChildrenInternally() { return _couldStoreFourChildrenInternally; }
+    static uint64_t getCouldNotStoreFourChildrenInternally() { return _couldNotStoreFourChildrenInternally; }
     
 #ifdef HAS_AUDIT_CHILDREN
     void auditChildren(const char* label) const;
@@ -145,6 +147,7 @@ private:
     void retrieveThreeChildren(VoxelNode*& childOne, VoxelNode*& childTwo, VoxelNode*& childThree);
     void decodeThreeOffsets(int64_t& offsetOne, int64_t& offsetTwo, int64_t& offsetThree) const;
     void encodeThreeOffsets(int64_t offsetOne, int64_t offsetTwo, int64_t offsetThree);
+    void checkStoreFourChildren(VoxelNode* childOne, VoxelNode* childTwo, VoxelNode* childThree, VoxelNode* childFour);
 
     void calculateAABox();
     void init(unsigned char * octalCode);
@@ -221,6 +224,9 @@ private:
     static uint64_t _threeChildrenExternalCount;
     static uint64_t _externalChildrenCount;
     static uint64_t _childrenCount[NUMBER_OF_CHILDREN + 1];
+
+    static uint64_t _couldStoreFourChildrenInternally;
+    static uint64_t _couldNotStoreFourChildrenInternally;
 };
 
 #endif /* defined(__hifi__VoxelNode__) */

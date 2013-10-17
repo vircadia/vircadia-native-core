@@ -271,6 +271,8 @@ uint64_t VoxelNode::_threeChildrenOffsetCount = 0;
 uint64_t VoxelNode::_threeChildrenExternalCount = 0;
 uint64_t VoxelNode::_externalChildrenCount = 0;
 uint64_t VoxelNode::_childrenCount[NUMBER_OF_CHILDREN + 1] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+uint64_t VoxelNode::_couldStoreFourChildrenInternally = 0;
+uint64_t VoxelNode::_couldNotStoreFourChildrenInternally = 0;
 
 VoxelNode* VoxelNode::getChildAtIndex(int childIndex) const {
     PerformanceWarning warn(false,"getChildAtIndex",false,&_getChildAtIndexTime,&_getChildAtIndexCalls);
@@ -531,6 +533,27 @@ void VoxelNode::retrieveThreeChildren(VoxelNode*& childOne, VoxelNode*& childTwo
         _threeChildrenOffsetCount--;
     }
 }
+
+void VoxelNode::checkStoreFourChildren(VoxelNode* childOne, VoxelNode* childTwo, VoxelNode* childThree, VoxelNode* childFour) {
+    int64_t offsetOne = (uint8_t*)childOne - (uint8_t*)this;
+    int64_t offsetTwo = (uint8_t*)childTwo - (uint8_t*)this;
+    int64_t offsetThree = (uint8_t*)childThree - (uint8_t*)this;
+    int64_t offsetFour = (uint8_t*)childFour - (uint8_t*)this;
+    
+    const int64_t minOffset = std::numeric_limits<int16_t>::min();
+    const int64_t maxOffset = std::numeric_limits<int16_t>::max();
+    
+    if (isBetween(offsetOne, maxOffset, minOffset) && 
+            isBetween(offsetTwo, maxOffset, minOffset) &&
+            isBetween(offsetThree, maxOffset, minOffset) &&
+            isBetween(offsetFour, maxOffset, minOffset)
+        ) {
+        _couldStoreFourChildrenInternally++;
+    } else {
+        _couldNotStoreFourChildrenInternally++;
+    }
+}
+
 void VoxelNode::setChildAtIndex(int childIndex, VoxelNode* child) {
     PerformanceWarning warn(false,"setChildAtIndex",false,&_setChildAtIndexTime,&_setChildAtIndexCalls);
 
@@ -750,7 +773,7 @@ void VoxelNode::setChildAtIndex(int childIndex, VoxelNode* child) {
         const int newChildCount = 4;
         _children.external = new VoxelNode*[newChildCount];
         _externalChildrenMemoryUsage += newChildCount * sizeof(VoxelNode*);
-
+        
         _children.external[0] = childOne;
         _children.external[1] = childTwo;
         _children.external[2] = childThree;
@@ -865,6 +888,12 @@ void VoxelNode::setChildAtIndex(int childIndex, VoxelNode* child) {
         assert(false);
         qDebug("THIS SHOULD NOT HAPPEN previousChildCount == %d && newChildCount == %d\n",previousChildCount, newChildCount);
     }
+
+    // check to see if we could store these 4 children locally
+    if (getChildCount() == 4 && _childrenExternal && _children.external) {
+        checkStoreFourChildren(_children.external[0], _children.external[1], _children.external[2], _children.external[3]);
+    }
+    
 
 #ifdef HAS_AUDIT_CHILDREN
     _childrenArray[childIndex] = child;
