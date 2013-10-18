@@ -431,15 +431,16 @@ public:
     int parentIndex;
 };
 
-glm::mat4 getGlobalTransform(const QMultiHash<qint64, qint64>& parentMap, const QHash<qint64, Model>& models, qint64 nodeID) {
+glm::mat4 getGlobalTransform(const QMultiHash<QString, QString>& parentMap,
+        const QHash<QString, Model>& models, QString nodeID) {
     glm::mat4 globalTransform;
-    while (nodeID != 0) {
+    while (!nodeID.isNull()) {
         const Model& model = models.value(nodeID);
         globalTransform = model.preRotation * glm::mat4_cast(model.rotation) * model.postRotation * globalTransform;
         
-        QList<qint64> parentIDs = parentMap.values(nodeID);
-        nodeID = 0;
-        foreach (qint64 parentID, parentIDs) {
+        QList<QString> parentIDs = parentMap.values(nodeID);
+        nodeID = QString();
+        foreach (const QString& parentID, parentIDs) {
             if (models.contains(parentID)) {
                 nodeID = parentID;
                 break;
@@ -452,7 +453,7 @@ glm::mat4 getGlobalTransform(const QMultiHash<qint64, qint64>& parentMap, const 
 
 class ExtractedBlendshape {
 public:
-    qint64 id;
+    QString id;
     FBXBlendshape blendshape;
 };
 
@@ -482,13 +483,13 @@ public:
     glm::mat4 transformLink;
 };
 
-void appendModelIDs(qint64 parentID, const QMultiHash<qint64, qint64>& childMap,
-        QHash<qint64, Model>& models, QVector<qint64>& modelIDs) {
-    if (parentID != 0) {
+void appendModelIDs(const QString& parentID, const QMultiHash<QString, QString>& childMap,
+        QHash<QString, Model>& models, QVector<QString>& modelIDs) {
+    if (models.contains(parentID)) {
         modelIDs.append(parentID);
     }
     int parentIndex = modelIDs.size() - 1;
-    foreach (qint64 childID, childMap.values(parentID)) {
+    foreach (const QString& childID, childMap.values(parentID)) {
         if (models.contains(childID)) {
             models[childID].parentIndex = parentIndex;
             appendModelIDs(childID, childMap, models, modelIDs);
@@ -497,24 +498,24 @@ void appendModelIDs(qint64 parentID, const QMultiHash<qint64, qint64>& childMap,
 }
 
 FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping) {
-    QHash<qint64, FBXMesh> meshes;
+    QHash<QString, FBXMesh> meshes;
     QVector<ExtractedBlendshape> blendshapes;
-    QMultiHash<qint64, qint64> parentMap;
-    QMultiHash<qint64, qint64> childMap;
-    QHash<qint64, Model> models;
-    QHash<qint64, Cluster> clusters;
-    QHash<qint64, QByteArray> textureFilenames;
-    QHash<qint64, Material> materials;
-    QHash<qint64, qint64> diffuseTextures;
-    QHash<qint64, qint64> bumpTextures;
+    QMultiHash<QString, QString> parentMap;
+    QMultiHash<QString, QString> childMap;
+    QHash<QString, Model> models;
+    QHash<QString, Cluster> clusters;
+    QHash<QString, QByteArray> textureFilenames;
+    QHash<QString, Material> materials;
+    QHash<QString, QString> diffuseTextures;
+    QHash<QString, QString> bumpTextures;
     
     QVariantHash joints = mapping.value("joint").toHash();
     QByteArray jointEyeLeftName = joints.value("jointEyeLeft", "jointEyeLeft").toByteArray();
     QByteArray jointEyeRightName = joints.value("jointEyeRight", "jointEyeRight").toByteArray();
     QByteArray jointNeckName = joints.value("jointNeck", "jointNeck").toByteArray();
-    qint64 jointEyeLeftID = 0;
-    qint64 jointEyeRightID = 0;
-    qint64 jointNeckID = 0;
+    QString jointEyeLeftID;
+    QString jointEyeRightID;
+    QString jointNeckID;
     
     QVariantHash blendshapeMappings = mapping.value("bs").toHash();
     QHash<QByteArray, QPair<int, float> > blendshapeIndices;
@@ -534,7 +535,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
             }
         }
     }
-    QHash<qint64, QPair<int, float> > blendshapeChannelIndices;
+    QHash<QString, QPair<int, float> > blendshapeChannelIndices;
     
     foreach (const FBXNode& child, node.children) {
         if (child.name == "Objects") {
@@ -653,10 +654,10 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                                 beginIndex = endIndex;
                             }
                         }
-                        meshes.insert(object.properties.at(0).value<qint64>(), mesh);
+                        meshes.insert(object.properties.at(0).toString(), mesh);
                         
                     } else { // object.properties.at(2) == "Shape"
-                        ExtractedBlendshape extracted = { object.properties.at(0).value<qint64>() };
+                        ExtractedBlendshape extracted = { object.properties.at(0).toString() };
                         
                         foreach (const FBXNode& data, object.children) {
                             if (data.name == "Indexes") {
@@ -678,13 +679,13 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                     QByteArray name = object.properties.at(1).toByteArray();
                     name = name.left(name.indexOf('\0'));
                     if (name == jointEyeLeftName || name == "EyeL" || name == "joint_Leye") {
-                        jointEyeLeftID = object.properties.at(0).value<qint64>();
+                        jointEyeLeftID = object.properties.at(0).toString();
                         
                     } else if (name == jointEyeRightName || name == "EyeR" || name == "joint_Reye") {
-                        jointEyeRightID = object.properties.at(0).value<qint64>();
+                        jointEyeRightID = object.properties.at(0).toString();
                         
                     } else if (name == jointNeckName || name == "NeckRot" || name == "joint_neck") {
-                        jointNeckID = object.properties.at(0).value<qint64>();
+                        jointNeckID = object.properties.at(0).toString();
                     }
                     glm::vec3 translation;
                     glm::vec3 preRotation, rotation, postRotation;
@@ -740,7 +741,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                     model.rotation = glm::quat(glm::radians(rotation));
                     model.postRotation = glm::mat4_cast(glm::quat(glm::radians(postRotation))) * glm::translate(-rotationPivot) *
                         glm::translate(scalePivot) * glm::scale(scale) * glm::translate(-scalePivot);
-                    models.insert(object.properties.at(0).value<qint64>(), model);
+                    models.insert(object.properties.at(0).toString(), model);
                 
                 } else if (object.name == "Texture") {
                     foreach (const FBXNode& subobject, object.children) {
@@ -748,7 +749,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                             // trim off any path information
                             QByteArray filename = subobject.properties.at(0).toByteArray();
                             filename = filename.mid(qMax(filename.lastIndexOf('\\'), filename.lastIndexOf('/')) + 1);
-                            textureFilenames.insert(object.properties.at(0).value<qint64>(), filename);
+                            textureFilenames.insert(object.properties.at(0).toString(), filename);
                         }
                     }
                 } else if (object.name == "Material") {
@@ -774,7 +775,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                             }
                         }
                     }
-                    materials.insert(object.properties.at(0).value<qint64>(), material);
+                    materials.insert(object.properties.at(0).toString(), material);
                     
                 } else if (object.name == "Deformer") {
                     if (object.properties.at(2) == "Cluster") {
@@ -791,7 +792,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                                 cluster.transformLink = createMat4(values);
                             }
                         }
-                        clusters.insert(object.properties.at(0).value<qint64>(), cluster);
+                        clusters.insert(object.properties.at(0).toString(), cluster);
                         
                     } else if (object.properties.at(2) == "BlendShapeChannel") {
                         QByteArray name = object.properties.at(1).toByteArray();
@@ -800,26 +801,26 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                             // try everything after the dot
                             name = name.mid(name.lastIndexOf('.') + 1);
                         }
-                        blendshapeChannelIndices.insert(object.properties.at(0).value<qint64>(),
+                        blendshapeChannelIndices.insert(object.properties.at(0).toString(),
                             blendshapeIndices.value(name));
                     }
                 }
             }
         } else if (child.name == "Connections") {
             foreach (const FBXNode& connection, child.children) {    
-                if (connection.name == "C") {
+                if (connection.name == "C" || connection.name == "Connect") {
                     if (connection.properties.at(0) == "OP") {
                         if (connection.properties.at(3) == "DiffuseColor") { 
-                            diffuseTextures.insert(connection.properties.at(2).value<qint64>(),
-                                connection.properties.at(1).value<qint64>());
+                            diffuseTextures.insert(connection.properties.at(2).toString(),
+                                connection.properties.at(1).toString());
                                                     
                         } else if (connection.properties.at(3) == "Bump") {
-                            bumpTextures.insert(connection.properties.at(2).value<qint64>(),
-                                connection.properties.at(1).value<qint64>());
+                            bumpTextures.insert(connection.properties.at(2).toString(),
+                                connection.properties.at(1).toString());
                         }
                     }
-                    parentMap.insert(connection.properties.at(1).value<qint64>(), connection.properties.at(2).value<qint64>());
-                    childMap.insert(connection.properties.at(2).value<qint64>(), connection.properties.at(1).value<qint64>());
+                    parentMap.insert(connection.properties.at(1).toString(), connection.properties.at(2).toString());
+                    childMap.insert(connection.properties.at(2).toString(), connection.properties.at(1).toString());
                 }
             }
         }
@@ -827,10 +828,10 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     
     // assign the blendshapes to their corresponding meshes
     foreach (const ExtractedBlendshape& extracted, blendshapes) {
-        qint64 blendshapeChannelID = parentMap.value(extracted.id);
+        QString blendshapeChannelID = parentMap.value(extracted.id);
         QPair<int, float> index = blendshapeChannelIndices.value(blendshapeChannelID);
-        qint64 blendshapeID = parentMap.value(blendshapeChannelID);
-        qint64 meshID = parentMap.value(blendshapeID);
+        QString blendshapeID = parentMap.value(blendshapeChannelID);
+        QString meshID = parentMap.value(blendshapeID);
         FBXMesh& mesh = meshes[meshID];
         mesh.blendshapes.resize(max(mesh.blendshapes.size(), index.first + 1));
         mesh.blendshapes[index.first] = extracted.blendshape;
@@ -854,11 +855,26 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         glm::scale(offsetScale, offsetScale, offsetScale);
     
     // get the list of models in depth-first traversal order
-    QVector<qint64> modelIDs;
-    appendModelIDs(0, childMap, models, modelIDs);
+    QVector<QString> modelIDs;
+    if (!models.isEmpty()) {
+        QString top = models.constBegin().key();
+        forever {
+            foreach (const QString& name, parentMap.values(top)) {
+                if (models.contains(name)) {
+                    top = name;
+                    goto outerContinue;
+                }
+            }
+            top = parentMap.value(top);
+            break;
+            
+            outerContinue: ;
+        }
+        appendModelIDs(top, childMap, models, modelIDs);
+    }
     
     // convert the models to joints
-    foreach (qint64 modelID, modelIDs) {
+    foreach (const QString& modelID, modelIDs) {
         const Model& model = models[modelID];
         FBXJoint joint;
         joint.parentIndex = model.parentIndex;
@@ -889,17 +905,17 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     
     QVariantHash springs = mapping.value("spring").toHash();
     QVariant defaultSpring = springs.value("default");
-    for (QHash<qint64, FBXMesh>::iterator it = meshes.begin(); it != meshes.end(); it++) {
+    for (QHash<QString, FBXMesh>::iterator it = meshes.begin(); it != meshes.end(); it++) {
         FBXMesh& mesh = it.value();
         
         // accumulate local transforms
-        qint64 modelID = parentMap.value(it.key());
+        QString modelID = parentMap.value(it.key());
         mesh.springiness = springs.value(models.value(modelID).name, defaultSpring).toFloat();
         glm::mat4 modelTransform = getGlobalTransform(parentMap, models, modelID);
         
         // look for textures, material properties
         int partIndex = 0;
-        foreach (qint64 childID, childMap.values(modelID)) {
+        foreach (const QString& childID, childMap.values(modelID)) {
             if (!materials.contains(childID) || partIndex >= mesh.parts.size()) {
                 continue;
             }
@@ -908,21 +924,21 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
             part.diffuseColor = material.diffuse;
             part.specularColor = material.specular;
             part.shininess = material.shininess;
-            qint64 diffuseTextureID = diffuseTextures.value(childID);
-            if (diffuseTextureID != 0) {
+            QString diffuseTextureID = diffuseTextures.value(childID);
+            if (!diffuseTextureID.isNull()) {
                 part.diffuseFilename = textureFilenames.value(diffuseTextureID);
             }
-            qint64 bumpTextureID = bumpTextures.value(childID);
-            if (bumpTextureID != 0) {
+            QString bumpTextureID = bumpTextures.value(childID);
+            if (!bumpTextureID.isNull()) {
                 part.normalFilename = textureFilenames.value(bumpTextureID);
             }
         }
         
         // find the clusters with which the mesh is associated
         mesh.isEye = false;
-        QVector<qint64> clusterIDs;
-        foreach (qint64 childID, childMap.values(it.key())) {
-            foreach (qint64 clusterID, childMap.values(childID)) {
+        QVector<QString> clusterIDs;
+        foreach (const QString& childID, childMap.values(it.key())) {
+            foreach (const QString& clusterID, childMap.values(childID)) {
                 if (!clusters.contains(clusterID)) {
                     continue;
                 }
@@ -930,7 +946,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                 const Cluster& cluster = clusters[clusterID];
                 clusterIDs.append(clusterID);
                 
-                qint64 jointID = childMap.value(clusterID);
+                QString jointID = childMap.value(clusterID);
                 if (jointID == jointEyeLeftID || jointID == jointEyeRightID) {
                     mesh.isEye = true;
                 }
@@ -954,7 +970,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
             mesh.clusterIndices.resize(mesh.vertices.size());
             mesh.clusterWeights.resize(mesh.vertices.size());
             for (int i = 0; i < clusterIDs.size(); i++) {
-                qint64 clusterID = clusterIDs.at(i);
+                QString clusterID = clusterIDs.at(i);
                 const Cluster& cluster = clusters[clusterID];
                 
                 for (int j = 0; j < cluster.indices.size(); j++) {

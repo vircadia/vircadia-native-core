@@ -52,7 +52,11 @@ void Body::simulate(float deltaTime) {
 }
 
 bool Body::render(float alpha) {
-    return false;
+    if (_jointStates.isEmpty()) {
+        return false;
+    }
+    
+    return true;
 }
     
 void Body::setSkeletonModelURL(const QUrl& url) {
@@ -61,6 +65,5 @@ void Body::setSkeletonModelURL(const QUrl& url) {
         return;
     }
     _skeletonModelURL = url;
-    
     _skeletonGeometry = Application::getInstance()->getGeometryCache()->getGeometry(url);
 }

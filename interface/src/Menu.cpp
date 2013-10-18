@@ -862,6 +862,17 @@ void Menu::editPreferences() {
                                          faceModelURL.toString().toLocal8Bit().constData());
     }
     
+    QUrl skeletonModelURL(skeletonURLEdit->text());
+    
+    if (skeletonModelURL.toString() != skeletonURLString) {
+        // change the skeletonModelURL in the profile, it will also update this user's Body
+        applicationInstance->getProfile()->setSkeletonModelURL(skeletonModelURL);
+        
+        // send the new skeleton model URL to the data-server (if we have a client UUID)
+        DataServerClient::putValueForKey(DataServerKey::SkeletonURL,
+                                         skeletonModelURL.toString().toLocal8Bit().constData());
+    }
+    
     QUrl avatarVoxelURL(avatarURL->text());
     applicationInstance->getAvatar()->getVoxels()->setVoxelURL(avatarVoxelURL);
     

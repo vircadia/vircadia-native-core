@@ -38,6 +38,7 @@ private:
 namespace DataServerKey {
     const QString Domain = "domain";
     const QString FaceMeshURL = "mesh";
+    const QString SkeletonURL = "skeleton";
     const QString Position = "position";
     const QString UUID = "uuid";
 }

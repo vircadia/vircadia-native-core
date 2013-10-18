@@ -148,6 +148,26 @@ void DataServerClient::processSendFromDataServer(unsigned char* packetData, int 
                         }
                     }
                 }
+            } else if (keyList[i] == DataServerKey::SkeletonURL) {
+                
+                if (userUUID.isNull() || userUUID == Application::getInstance()->getProfile()->getUUID()) {
+                    qDebug("Changing user's skeleton URL to %s\n", valueList[0].toLocal8Bit().constData());
+                    Application::getInstance()->getProfile()->setSkeletonModelURL(QUrl(valueList[0]));
+                } else {
+                    // skeleton URL for a UUID, find avatar in our list
+                    NodeList* nodeList = NodeList::getInstance();
+                    for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+                        if (node->getLinkedData() != NULL && node->getType() == NODE_TYPE_AGENT) {
+                            Avatar* avatar = (Avatar *) node->getLinkedData();
+                            
+                            if (avatar->getUUID() == userUUID) {
+                                QMetaObject::invokeMethod(&avatar->getBody(),
+                                                          "setSkeletonModelURL",
+                                                          Q_ARG(QUrl, QUrl(valueList[0])));
+                            }
+                        }
+                    }
+                }
             } else if (keyList[i] == DataServerKey::Domain && keyList[i + 1] == DataServerKey::Position
                        && valueList[i] != " " && valueList[i + 1] != " ") {
                 

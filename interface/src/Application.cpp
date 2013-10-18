@@ -1321,7 +1321,8 @@ void Application::processAvatarURLsMessage(unsigned char* packetData, size_t dat
     QMetaObject::invokeMethod(avatar->getVoxels(), "setVoxelURL", Q_ARG(QUrl, voxelURL));
     
     // use this timing to as the data-server for an updated mesh for this avatar (if we have UUID)
-    DataServerClient::getValueForKeyAndUUID(DataServerKey::FaceMeshURL, avatar->getUUID());
+    DataServerClient::getValuesForKeysAndUUID(QStringList() << DataServerKey::FaceMeshURL << DataServerKey::SkeletonURL,
+        avatar->getUUID());
 }
 
 void Application::processAvatarFaceVideoMessage(unsigned char* packetData, size_t dataBytes) {
@@ -1652,6 +1653,7 @@ void Application::init() {
     if (!_profile.getUsername().isEmpty()) {
         // we have a username for this avatar, ask the data-server for the mesh URL for this avatar
         DataServerClient::getClientValueForKey(DataServerKey::FaceMeshURL);
+        DataServerClient::getClientValueForKey(DataServerKey::SkeletonURL);
     }
 
     // Set up VoxelSystem after loading preferences so we can get the desired max voxel count    

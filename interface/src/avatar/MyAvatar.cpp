@@ -322,6 +322,7 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter) {
     _head.setScale(_scale);
     _head.setSkinColor(glm::vec3(SKIN_COLOR[0], SKIN_COLOR[1], SKIN_COLOR[2]));
     _head.simulate(deltaTime, true);
+    _body.simulate(deltaTime);
     _hand.simulate(deltaTime, true);
 
     const float WALKING_SPEED_THRESHOLD = 0.2f;
@@ -610,7 +611,7 @@ void MyAvatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
         if (alpha > 0.0f) {
             _head.getFace().render(1.0f);
         }
-    } else if (renderAvatarBalls || !_voxels.getVoxelURL().isValid()) {
+    } else if (renderAvatarBalls || !(_voxels.getVoxelURL().isValid() || _body.isActive())) {
         //  Render the body as balls and cones
         glm::vec3 skinColor(SKIN_COLOR[0], SKIN_COLOR[1], SKIN_COLOR[2]);
         glm::vec3 darkSkinColor(DARK_SKIN_COLOR[0], DARK_SKIN_COLOR[1], DARK_SKIN_COLOR[2]);
@@ -685,7 +686,9 @@ void MyAvatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
         //  Render the body's voxels and head
         float alpha = getBallRenderAlpha(BODY_BALL_HEAD_BASE, lookingInMirror);
         if (alpha > 0.0f) {
-            _voxels.render(false);
+            if (!_body.render(alpha)) {
+                _voxels.render(false);
+            }
             _head.render(alpha, true);
         }
     }
