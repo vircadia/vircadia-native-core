@@ -680,6 +680,7 @@ void NodeList::possiblyPingInactiveNodes() {
         
         for(NodeList::iterator node = begin(); node != end(); node++) {
             if (!node->getActiveSocket()) {
+                qDebug() << "Attempting to ping node" << *node << "\n";
                 // we don't have an active link to this node, ping it to set that up
                 pingPublicAndLocalSocketsForInactiveNode(&(*node));
             }
