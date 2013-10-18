@@ -21,13 +21,12 @@ class Stars  {
         Stars();
         ~Stars();
 
-        // 
-        // Reads input file from URL. Returns true upon success.
         //
-        // The limit parameter allows to reduce the number of stars
-        // that are loaded, keeping the brightest ones.
-        // 
-        bool readInput(const char* url, const char* cacheFile = 0l, unsigned limit = 200000);
+        // Generate stars from random number seed
+        //
+        // The numStars parameter sets the number of stars to generate.
+        //
+        bool generate(unsigned numStars, unsigned seed);
 
         // 
         // Renders the starfield from a local viewer's perspective.
@@ -45,27 +44,12 @@ class Stars  {
         // is returned.
         // 
         bool setResolution(unsigned k);
-
-        // 
-        // Allows to alter the number of stars to be rendered given a
-        // factor. The least brightest ones are omitted first.
+    
+    
         //
-        // The further parameters determine when GPU resources should
-        // be reallocated. Its value is fractional in respect to the
-        // last number of stars 'n' that caused 'n * (1+overalloc)' to
-        // be allocated. When the next call to setLOD causes the total
-        // number of stars that could be rendered to drop below 'n * 
-        // (1-realloc)' or rises above 'n * (1+realloc)' GPU resources
-        // are updated. Note that all parameters must be fractions,
-        // that is within the range [0;1] and that 'overalloc' must be
-        // greater than or equal to 'realloc'.
+        // Returns true when stars have been loaded
         //
-        // The current level of detail is returned as a float in [0;1].
-        // 
-        float changeLOD(float factor,
-                        float overalloc = 0.25, float realloc = 0.15);
-
-        bool getFileLoaded() const { return _fileLoaded; };
+        bool isStarsLoaded() const { return _starsLoaded; };
     private:
         // don't copy/assign
         Stars(Stars const&); // = delete;
@@ -75,7 +59,7 @@ class Stars  {
 
         starfield::Controller* _controller;
         
-        bool _fileLoaded;
+        bool _starsLoaded;
 };
 
 
