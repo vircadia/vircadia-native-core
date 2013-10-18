@@ -3696,6 +3696,7 @@ void* Application::networkReceive(void* args) {
             app->_bytesCount += bytesReceived;
             
             if (packetVersionMatch(app->_incomingPacket)) {
+                qDebug() << "Received a packet with header" << app->_incomingPacket[0] << "\n";
                 // only process this packet if we have a match on the packet version
                 switch (app->_incomingPacket[0]) {
                     case PACKET_TYPE_TRANSMITTER_DATA_V2:

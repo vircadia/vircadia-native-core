@@ -599,7 +599,6 @@ void NodeList::pingPublicAndLocalSocketsForInactiveNode(Node* node) const {
     currentTime = usecTimestampNow();
     memcpy(pingPacket + numHeaderBytes, &currentTime, sizeof(currentTime));
     
-    qDebug() << "Attemping to ping" << *node << "\n";
     // send the ping packet to the local and public sockets for this node
     _nodeSocket.send(node->getLocalSocket(), pingPacket, sizeof(pingPacket));
     _nodeSocket.send(node->getPublicSocket(), pingPacket, sizeof(pingPacket));
@@ -680,8 +679,7 @@ void NodeList::possiblyPingInactiveNodes() {
         gettimeofday(&lastPing, NULL);
         
         for(NodeList::iterator node = begin(); node != end(); node++) {
-            if (!node->getActiveSocket()) {
-                qDebug() << "Attempting to ping node" << *node << "\n";
+            if (!node->getActiveSocket()) {g
                 // we don't have an active link to this node, ping it to set that up
                 pingPublicAndLocalSocketsForInactiveNode(&(*node));
             }
