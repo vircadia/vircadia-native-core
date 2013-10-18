@@ -14,26 +14,22 @@
 #undef __interface__Starfield_impl__
 
 Stars::Stars() : 
-    _controller(0l), _fileLoaded(false) { 
-    _controller = new starfield::Controller; 
+    _controller(0l), _starsLoaded(false) {
+    _controller = new starfield::Controller;
 }
 
 Stars::~Stars() { 
     delete _controller; 
 }
 
-bool Stars::readInput(const char* url, const char* cacheFile, unsigned limit) {
-    _fileLoaded = _controller->readInput(url, cacheFile, limit); 
-    return _fileLoaded;
+bool Stars::generate(unsigned numStars, unsigned seed) {
+    _starsLoaded = _controller->computeStars(numStars, seed);
+    return _starsLoaded;
 }
 
 bool Stars::setResolution(unsigned k) { 
     return _controller->setResolution(k); 
 }
-
-float Stars::changeLOD(float fraction, float overalloc, float realloc) { 
-    return float(_controller->changeLOD(fraction, overalloc, realloc));
-} 
 
 void Stars::render(float fovY, float aspect, float nearZ, float alpha) {
 
