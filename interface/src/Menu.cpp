@@ -72,12 +72,6 @@ Menu::Menu() :
                                    0,
                                    this,
                                    SLOT(login())));
-    
-    (addActionToQMenuAndActionHash(fileMenu,
-                                   MenuOption::Preferences,
-                                   Qt::CTRL | Qt::Key_Comma,
-                                   this,
-                                   SLOT(editPreferences())))->setMenuRole(QAction::PreferencesRole);
 
     addDisabledActionAndSeparator(fileMenu, "Voxels");
     addActionToQMenuAndActionHash(fileMenu, MenuOption::ExportVoxels, Qt::CTRL | Qt::Key_E, appInstance, SLOT(exportVoxels()));
@@ -121,6 +115,15 @@ Menu::Menu() :
                                    SLOT(quit())))->setMenuRole(QAction::QuitRole);    
     
     QMenu* editMenu = addMenu("Edit");
+    
+    addActionToQMenuAndActionHash(editMenu,
+                                  MenuOption::Preferences,
+                                  Qt::CTRL | Qt::Key_Comma,
+                                  this,
+                                  SLOT(editPreferences()));
+    
+    addDisabledActionAndSeparator(editMenu, "Voxels");
+    
     addActionToQMenuAndActionHash(editMenu, MenuOption::CutVoxels, Qt::CTRL | Qt::Key_X, appInstance, SLOT(cutVoxels()));
     addActionToQMenuAndActionHash(editMenu, MenuOption::CopyVoxels, Qt::CTRL | Qt::Key_C, appInstance, SLOT(copyVoxels()));
     addActionToQMenuAndActionHash(editMenu, MenuOption::PasteVoxels, Qt::CTRL | Qt::Key_V, appInstance, SLOT(pasteVoxels()));
