@@ -49,87 +49,97 @@ int DomainServer::civetwebRequestHandler(struct mg_connection *connection) {
     const char RESPONSE_400[] = "HTTP/1.0 400 Bad Request\r\n\r\n";
     
     const char ASSIGNMENT_URI[] = "/assignment";
+    const char NODE_URI[] = "/node";
     
-    if (strcmp(ri->uri, "/assignment") == 0 && strcmp(ri->request_method, "POST") == 0) {
-        // return a 200
-        mg_printf(connection, "%s", RESPONSE_200);
-        // upload the file
-        mg_upload(connection, "/tmp");
-        
-        return 1;
-    } else if (strcmp(ri->uri, "/assignments.json") == 0) {
-        // user is asking for json list of assignments
-        
-        // start with a 200 response
-        mg_printf(connection, "%s", RESPONSE_200);
-        
-        // setup the JSON
-        QJsonObject assignmentJSON;
-        
-        QJsonObject assignedNodesJSON;
-        
-        // enumerate the NodeList to find the assigned nodes
-        NodeList* nodeList = NodeList::getInstance();
-        
-        const char ASSIGNMENT_JSON_UUID_KEY[] = "UUID";
-        
-        for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
-            if (node->getLinkedData()) {
-                // this is a node with assignment
-                QJsonObject assignedNodeJSON;
-                
-                // add the assignment UUID
-                QString assignmentUUID = uuidStringWithoutCurlyBraces(((Assignment*) node->getLinkedData())->getUUID());
-                assignedNodeJSON[ASSIGNMENT_JSON_UUID_KEY] = assignmentUUID;
-                
-                // add the node socket information
-                assignedNodeJSON["public"] = jsonForSocket(node->getPublicSocket());
-                assignedNodeJSON["local"] = jsonForSocket(node->getLocalSocket());
-                
-                // re-format the type name so it matches the target name
-                QString nodeTypeName(node->getTypeName());
-                nodeTypeName = nodeTypeName.toLower();
-                nodeTypeName.replace(' ', '-');
-                
-                assignedNodesJSON[nodeTypeName] = assignedNodeJSON;
+    if (strcmp(ri->request_method, "GET") == 0) {
+        if (strcmp(ri->uri, "/assignments.json") == 0) {
+            // user is asking for json list of assignments
+            
+            // start with a 200 response
+            mg_printf(connection, "%s", RESPONSE_200);
+            
+            // setup the JSON
+            QJsonObject assignmentJSON;
+            
+            QJsonObject assignedNodesJSON;
+            
+            // enumerate the NodeList to find the assigned nodes
+            NodeList* nodeList = NodeList::getInstance();
+            
+            const char ASSIGNMENT_JSON_UUID_KEY[] = "UUID";
+            
+            for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+                if (node->getLinkedData()) {
+                    // this is a node with assignment
+                    QJsonObject assignedNodeJSON;
+                    
+                    // add the assignment UUID
+                    QString assignmentUUID = uuidStringWithoutCurlyBraces(((Assignment*) node->getLinkedData())->getUUID());
+                    assignedNodeJSON[ASSIGNMENT_JSON_UUID_KEY] = assignmentUUID;
+                    
+                    // add the node socket information
+                    assignedNodeJSON["public"] = jsonForSocket(node->getPublicSocket());
+                    assignedNodeJSON["local"] = jsonForSocket(node->getLocalSocket());
+                    
+                    // re-format the type name so it matches the target name
+                    QString nodeTypeName(node->getTypeName());
+                    nodeTypeName = nodeTypeName.toLower();
+                    nodeTypeName.replace(' ', '-');
+                    
+                    assignedNodesJSON[nodeTypeName] = assignedNodeJSON;
+                }
             }
+            
+            assignmentJSON["fulfilled"] = assignedNodesJSON;
+            
+            QJsonObject queuedAssignmentsJSON;
+            
+            // add the queued but unfilled assignments to the json
+            std::deque<Assignment*>::iterator assignment = domainServerInstance->_assignmentQueue.begin();
+            
+            while (assignment != domainServerInstance->_assignmentQueue.end()) {
+                QJsonObject queuedAssignmentJSON;
+                
+                QString uuidString = uuidStringWithoutCurlyBraces((*assignment)->getUUID());
+                queuedAssignmentJSON[ASSIGNMENT_JSON_UUID_KEY] = uuidString;
+                
+                // add this queued assignment to the JSON
+                queuedAssignmentsJSON[(*assignment)->getTypeName()] = queuedAssignmentJSON;
+                
+                // push forward the iterator to check the next assignment
+                assignment++;
+            }
+            
+            assignmentJSON["queued"] = queuedAssignmentsJSON;
+            
+            // print out the created JSON
+            QJsonDocument assignmentDocument(assignmentJSON);
+            mg_printf(connection, "%s", assignmentDocument.toJson().constData());
+            
+            // we've processed this request
+            return 1;
         }
         
-        assignmentJSON["fulfilled"] = assignedNodesJSON;
-        
-        QJsonObject queuedAssignmentsJSON;
-        
-        // add the queued but unfilled assignments to the json
-        std::deque<Assignment*>::iterator assignment = domainServerInstance->_assignmentQueue.begin();
-        
-        while (assignment != domainServerInstance->_assignmentQueue.end()) {
-            QJsonObject queuedAssignmentJSON;
+        // not processed, pass to document root
+        return 0;
+    } else if (strcmp(ri->request_method, "POST") == 0) {
+        if (strcmp(ri->uri, ASSIGNMENT_URI) == 0) {
+            // return a 200
+            mg_printf(connection, "%s", RESPONSE_200);
+            // upload the file
+            mg_upload(connection, "/tmp");
             
-            QString uuidString = uuidStringWithoutCurlyBraces((*assignment)->getUUID());
-            queuedAssignmentJSON[ASSIGNMENT_JSON_UUID_KEY] = uuidString;
-            
-            // add this queued assignment to the JSON
-            queuedAssignmentsJSON[(*assignment)->getTypeName()] = queuedAssignmentJSON;
-            
-            // push forward the iterator to check the next assignment
-            assignment++;
+            return 1;
         }
         
-        assignmentJSON["queued"] = queuedAssignmentsJSON;
-        
-        // print out the created JSON
-        QJsonDocument assignmentDocument(assignmentJSON);
-        mg_printf(connection, "%s", assignmentDocument.toJson().constData());
-        
-        // we've processed this request
-        return 1;
+        return 0;
     } else if (strcmp(ri->request_method, "DELETE") == 0) {
         // this is a DELETE request
         
         // check if it is for an assignment
-        if (memcmp(ri->uri, ASSIGNMENT_URI, sizeof(ASSIGNMENT_URI) - sizeof('\0')) == 0) {
+        if (memcmp(ri->uri, NODE_URI, strlen(NODE_URI)) == 0) {
             // pull the UUID from the url
-            QUuid deleteUUID = QUuid(QString(ri->uri + strlen(ASSIGNMENT_URI) + sizeof('/')));
+            QUuid deleteUUID = QUuid(QString(ri->uri + strlen(NODE_URI) + sizeof('/')));
             
             if (!deleteUUID.isNull()) {
                 Node *nodeToKill = NodeList::getInstance()->nodeWithUUID(deleteUUID);
