@@ -129,6 +129,7 @@ void AvatarMixer::run() {
         
         if (nodeList->getNodeSocket()->receive(&nodeAddress, packetData, &receivedBytes) &&
             packetVersionMatch(packetData)) {
+            qDebug() << "Received a packet with header" << packetData[0] << "\n";
             switch (packetData[0]) {
                 case PACKET_TYPE_HEAD_DATA:
                     nodeUUID = QUuid::fromRfc4122(QByteArray((char*) packetData + numBytesForPacketHeader(packetData),

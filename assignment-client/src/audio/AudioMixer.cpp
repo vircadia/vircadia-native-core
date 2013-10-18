@@ -359,7 +359,6 @@ void AudioMixer::run() {
         // pull any new audio data from nodes off of the network stack
         while (nodeList->getNodeSocket()->receive(nodeAddress, packetData, &receivedBytes) &&
                packetVersionMatch(packetData)) {
-            qDebug() << "Received a packet with header" << packetData[0] << "\n";
             if (packetData[0] == PACKET_TYPE_MICROPHONE_AUDIO_NO_ECHO
                 || packetData[0] == PACKET_TYPE_MICROPHONE_AUDIO_WITH_ECHO
                 || packetData[0] == PACKET_TYPE_INJECT_AUDIO) {
