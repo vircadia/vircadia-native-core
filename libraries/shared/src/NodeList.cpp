@@ -715,6 +715,22 @@ Node* NodeList::soloNodeOfType(char nodeType) {
     return NULL;
 }
 
+void NodeList::killNode(Node* node, bool mustLockNode) {
+    if (mustLockNode) {
+        node->lock();
+    }
+    
+    qDebug() << "Killed " << *node << "\n";
+    
+    notifyHooksOfKilledNode(&*node);
+    
+    node->setAlive(false);
+    
+    if (mustLockNode) {
+        node->unlock();
+    }
+}
+
 void* removeSilentNodes(void *args) {
     NodeList* nodeList = (NodeList*) args;
     uint64_t checkTimeUsecs = 0;
@@ -728,12 +744,8 @@ void* removeSilentNodes(void *args) {
             node->lock();
             
             if ((usecTimestampNow() - node->getLastHeardMicrostamp()) > NODE_SILENCE_THRESHOLD_USECS) {
-
-                qDebug() << "Killed " << *node << "\n";
-                
-                nodeList->notifyHooksOfKilledNode(&*node);
-                
-                node->setAlive(false);
+                // kill this node, don't lock - we already did it
+                nodeList->killNode(&(*node), false);
             }
             
             node->unlock();

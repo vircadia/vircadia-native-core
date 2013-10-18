@@ -46,6 +46,9 @@ int DomainServer::civetwebRequestHandler(struct mg_connection *connection) {
     const struct mg_request_info* ri = mg_get_request_info(connection);
     
     const char RESPONSE_200[] = "HTTP/1.0 200 OK\r\n\r\n";
+    const char RESPONSE_400[] = "HTTP/1.0 400 Bad Request\r\n\r\n";
+    
+    const char ASSIGNMENT_URI[] = "/assignment";
     
     if (strcmp(ri->uri, "/assignment") == 0 && strcmp(ri->request_method, "POST") == 0) {
         // return a 200
@@ -120,6 +123,35 @@ int DomainServer::civetwebRequestHandler(struct mg_connection *connection) {
         
         // we've processed this request
         return 1;
+    } else if (strcmp(ri->request_method, "DELETE") == 0) {
+        // this is a DELETE request
+        
+        // check if it is for an assignment
+        if (memcmp(ri->uri, ASSIGNMENT_URI, sizeof(ASSIGNMENT_URI) - sizeof('\0')) == 0) {
+            // pull the UUID from the url
+            QUuid deleteUUID = QUuid(QString(ri->uri + strlen(ASSIGNMENT_URI) + sizeof('/')));
+            
+            if (!deleteUUID.isNull()) {
+                Node *nodeToKill = NodeList::getInstance()->nodeWithUUID(deleteUUID);
+                
+                if (nodeToKill) {
+                    // start with a 200 response
+                    mg_printf(connection, "%s", RESPONSE_200);
+                    
+                    // we have a valid UUID and node - kill the node that has this assignment
+                    NodeList::getInstance()->killNode(nodeToKill);
+                    
+                    // successfully processed request
+                    return 1;
+                }
+            }
+        }
+        
+        // request not processed - bad request
+        mg_printf(connection, "%s", RESPONSE_400);
+        
+        // this was processed by civetweb
+        return 1;
     } else {
         // have mongoose process this request from the document_root
         return 0;
@@ -160,6 +192,27 @@ void DomainServer::civetwebUploadHandler(struct mg_connection *connection, const
     domainServerInstance->_assignmentQueueMutex.unlock();
 }
 
+void DomainServer::addDeletedAssignmentBackToQueue(Assignment* deletedAssignment) {
+    qDebug() << "Adding assignment" << *deletedAssignment << " back to queue.\n";
+    
+    // find this assignment in the static file
+    for (int i = 0; i < MAX_STATIC_ASSIGNMENT_FILE_ASSIGNMENTS; i++) {
+        if (_staticAssignments[i].getUUID() == deletedAssignment->getUUID()) {
+            // reset the UUID on the static assignment
+            _staticAssignments[i].resetUUID();
+            
+            // put this assignment back in the queue so it goes out
+            _assignmentQueueMutex.lock();
+            _assignmentQueue.push_back(&_staticAssignments[i]);
+            _assignmentQueueMutex.unlock();
+            
+        } else if (_staticAssignments[i].getUUID().isNull()) {
+            // we are at the blank part of the static assignments - break out
+            break;
+        }
+    }
+}
+
 void DomainServer::nodeAdded(Node* node) {
     
 }
@@ -169,26 +222,8 @@ void DomainServer::nodeKilled(Node* node) {
     if (node->getLinkedData()) {
         Assignment* nodeAssignment =  (Assignment*) node->getLinkedData();
         
-        qDebug() << "Adding assignment" << *nodeAssignment << " back to queue.\n";
-        
-        // find this assignment in the static file
-        for (int i = 0; i < MAX_STATIC_ASSIGNMENT_FILE_ASSIGNMENTS; i++) {
-            if (_staticAssignments[i].getUUID() == nodeAssignment->getUUID()) {
-                // reset the UUID on the static assignment
-                _staticAssignments[i].resetUUID();
-                
-                // put this assignment back in the queue so it goes out
-                _assignmentQueueMutex.lock();
-                _assignmentQueue.push_back(&_staticAssignments[i]);
-                _assignmentQueueMutex.unlock();
-                
-            } else if (_staticAssignments[i].getUUID().isNull()) {
-                // we are at the blank part of the static assignments - break out
-                break;
-            }
-        }
+        addDeletedAssignmentBackToQueue(nodeAssignment);
     }
-    
 }
 
 unsigned char* DomainServer::addNodeToBroadcastPacket(unsigned char* currentPosition, Node* nodeToAdd) {
