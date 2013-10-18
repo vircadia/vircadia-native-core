@@ -7,11 +7,9 @@
 //
 
 #include "InterfaceConfig.h"
-#include "Stars.h"
+#include "Stars.h" 
 
-#define __interface__Starfield_impl__
 #include "starfield/Controller.h"
-#undef __interface__Starfield_impl__
 
 Stars::Stars() : 
     _controller(0l), _starsLoaded(false) {
@@ -43,7 +41,7 @@ void Stars::render(float fovY, float aspect, float nearZ, float alpha) {
     // pull the modelview matrix off the GL stack
     glm::mat4 view; glGetFloatv(GL_MODELVIEW_MATRIX, glm::value_ptr(view)); 
 
-    _controller->render(fovDiagonal, aspect, glm::affineInverse(view), alpha); 
+    _controller->render(fovDiagonal, aspect, glm::affineInverse(view), alpha);
 }
 
 
