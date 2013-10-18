@@ -48,8 +48,8 @@ int DomainServer::civetwebRequestHandler(struct mg_connection *connection) {
     const char RESPONSE_200[] = "HTTP/1.0 200 OK\r\n\r\n";
     const char RESPONSE_400[] = "HTTP/1.0 400 Bad Request\r\n\r\n";
     
-    const char ASSIGNMENT_URI[] = "/assignment";
-    const char NODE_URI[] = "/node";
+    const char URI_ASSIGNMENT[] = "/assignment";
+    const char URI_NODE[] = "/node";
     
     if (strcmp(ri->request_method, "GET") == 0) {
         if (strcmp(ri->uri, "/assignments.json") == 0) {
@@ -123,7 +123,7 @@ int DomainServer::civetwebRequestHandler(struct mg_connection *connection) {
         // not processed, pass to document root
         return 0;
     } else if (strcmp(ri->request_method, "POST") == 0) {
-        if (strcmp(ri->uri, ASSIGNMENT_URI) == 0) {
+        if (strcmp(ri->uri, URI_ASSIGNMENT) == 0) {
             // return a 200
             mg_printf(connection, "%s", RESPONSE_200);
             // upload the file
@@ -137,9 +137,9 @@ int DomainServer::civetwebRequestHandler(struct mg_connection *connection) {
         // this is a DELETE request
         
         // check if it is for an assignment
-        if (memcmp(ri->uri, NODE_URI, strlen(NODE_URI)) == 0) {
+        if (memcmp(ri->uri, URI_NODE, strlen(URI_NODE)) == 0) {
             // pull the UUID from the url
-            QUuid deleteUUID = QUuid(QString(ri->uri + strlen(NODE_URI) + sizeof('/')));
+            QUuid deleteUUID = QUuid(QString(ri->uri + strlen(URI_NODE) + sizeof('/')));
             
             if (!deleteUUID.isNull()) {
                 Node *nodeToKill = NodeList::getInstance()->nodeWithUUID(deleteUUID);
