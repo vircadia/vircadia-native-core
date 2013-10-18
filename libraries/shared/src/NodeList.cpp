@@ -679,7 +679,7 @@ void NodeList::possiblyPingInactiveNodes() {
         gettimeofday(&lastPing, NULL);
         
         for(NodeList::iterator node = begin(); node != end(); node++) {
-            if (!node->getActiveSocket()) {g
+            if (!node->getActiveSocket()) {
                 // we don't have an active link to this node, ping it to set that up
                 pingPublicAndLocalSocketsForInactiveNode(&(*node));
             }
