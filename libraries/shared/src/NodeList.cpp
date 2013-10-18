@@ -409,7 +409,7 @@ void NodeList::processSTUNResponse(unsigned char* packetData, size_t dataBytes) 
                     uint16_t xorMappedPort = 0;
                     memcpy(&xorMappedPort, packetData + byteIndex, sizeof(xorMappedPort));
                     
-                    _publicPort = ntohs(xorMappedPort) ^ (ntohl(RFC_5389_MAGIC_COOKIE_NETWORK_ORDER) >> 16);
+                    uint16_t newPublicPort = ntohs(xorMappedPort) ^ (ntohl(RFC_5389_MAGIC_COOKIE_NETWORK_ORDER) >> 16);
                     
                     byteIndex += sizeof(xorMappedPort);
                     
@@ -421,8 +421,9 @@ void NodeList::processSTUNResponse(unsigned char* packetData, size_t dataBytes) 
                     
                     QHostAddress newPublicAddress = QHostAddress(stunAddress);
                     
-                    if (newPublicAddress != _publicAddress) {
+                    if (newPublicAddress != _publicAddress || newPublicPort != _publicPort) {
                         _publicAddress = newPublicAddress;
+                        _publicPort = newPublicPort;
                         
                         qDebug("New public socket received from STUN server is %s:%hu\n",
                                _publicAddress.toString().toLocal8Bit().constData(),
