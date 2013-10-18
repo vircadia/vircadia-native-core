@@ -38,13 +38,10 @@ configure_file(InterfaceConfig.h.in ${PROJECT_BINARY_DIR}/includes/InterfaceConf
 
 # grab the implementation and header files from src dirs
 file(GLOB INTERFACE_SRCS src/*.cpp src/*.h)
-foreach(SUBDIR avatar devices renderer ui)
-  file(GLOB SUBDIR_SRCS src/${SUBDIR}/*.cpp src/${SUBDIR}/*.h)
+foreach(SUBDIR avatar devices renderer ui starfield)
+  file(GLOB_RECURSE SUBDIR_SRCS src/${SUBDIR}/*.cpp src/${SUBDIR}/*.h)
   set(INTERFACE_SRCS ${INTERFACE_SRCS} ${SUBDIR_SRCS})
 endforeach(SUBDIR)
-
-# project subdirectories
-add_subdirectory(src/starfield)
 
 find_package(Qt5Core REQUIRED)
 find_package(Qt5Gui REQUIRED)

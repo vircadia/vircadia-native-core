@@ -18,25 +18,16 @@
 #include "starfield/renderer/VertexOrder.h"
 
 namespace starfield {
-
     class Controller {
     public:
-
         Controller() : _tileResolution(20), _renderer(0l) { }
-
-        ~Controller() {
-            delete _renderer;
-        }
+        
+        ~Controller() { delete _renderer; }
         
         bool computeStars(unsigned numStars, unsigned seed);
-
         bool setResolution(unsigned tileResolution);
-
-
         void render(float perspective, float angle, mat4 const& orientation, float alpha);
-
     private:
-
         void retile(unsigned numStars, unsigned tileResolution);
 
         void recreateRenderer(unsigned numStars, unsigned tileResolution);
@@ -45,7 +36,6 @@ namespace starfield {
         unsigned _tileResolution;
         unsigned _numStars;
         Renderer* _renderer;
-        
     };
 }
 #endif
