@@ -693,7 +693,47 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                     glm::vec3 scalePivot, rotationPivot;
                     Model model = { name };
                     foreach (const FBXNode& subobject, object.children) {
-                        if (subobject.name == "Properties70") {
+                        if (subobject.name == "Properties60") {
+                            foreach (const FBXNode& property, subobject.children) {
+                                if (property.name == "Property") {
+                                    if (property.properties.at(0) == "Lcl Translation") {
+                                        translation = glm::vec3(property.properties.at(3).value<double>(),
+                                            property.properties.at(4).value<double>(),
+                                            property.properties.at(5).value<double>());
+
+                                    } else if (property.properties.at(0) == "RotationPivot") {
+                                        rotationPivot = glm::vec3(property.properties.at(3).value<double>(),
+                                            property.properties.at(4).value<double>(),
+                                            property.properties.at(5).value<double>());
+                                    
+                                    } else if (property.properties.at(0) == "PreRotation") {
+                                        preRotation = glm::vec3(property.properties.at(3).value<double>(),
+                                            property.properties.at(4).value<double>(),
+                                            property.properties.at(5).value<double>());
+                                            
+                                    } else if (property.properties.at(0) == "Lcl Rotation") {
+                                        rotation = glm::vec3(property.properties.at(3).value<double>(),
+                                            property.properties.at(4).value<double>(),
+                                            property.properties.at(5).value<double>());
+                                    
+                                    } else if (property.properties.at(0) == "PostRotation") {
+                                        postRotation = glm::vec3(property.properties.at(3).value<double>(),
+                                            property.properties.at(4).value<double>(),
+                                            property.properties.at(5).value<double>());
+                                        
+                                    } else if (property.properties.at(0) == "ScalingPivot") {
+                                        scalePivot = glm::vec3(property.properties.at(3).value<double>(),
+                                            property.properties.at(4).value<double>(),
+                                            property.properties.at(5).value<double>());
+                                            
+                                    } else if (property.properties.at(0) == "Lcl Scaling") {
+                                        scale = glm::vec3(property.properties.at(3).value<double>(),
+                                            property.properties.at(4).value<double>(),
+                                            property.properties.at(5).value<double>());       
+                                    }
+                                }
+                            }
+                        } else if (subobject.name == "Properties70") {
                             foreach (const FBXNode& property, subobject.children) {
                                 if (property.name == "P") {
                                     if (property.properties.at(0) == "Lcl Translation") {
@@ -737,7 +777,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                     }
                     // see FBX documentation, http://download.autodesk.com/us/fbx/20112/FBX_SDK_HELP/index.html
                     model.preRotation = glm::translate(translation) * glm::translate(rotationPivot) *
-                        glm::mat4_cast(glm::quat(glm::radians(preRotation)));                   
+                        glm::mat4_cast(glm::quat(glm::radians(preRotation)));
                     model.rotation = glm::quat(glm::radians(rotation));
                     model.postRotation = glm::mat4_cast(glm::quat(glm::radians(postRotation))) * glm::translate(-rotationPivot) *
                         glm::translate(scalePivot) * glm::scale(scale) * glm::translate(-scalePivot);

@@ -32,7 +32,7 @@ void Body::simulate(float deltaTime) {
     }
     
     glm::quat orientation = _owningAvatar->getOrientation();
-    const float MODEL_SCALE = 0.0006f;
+    const float MODEL_SCALE = 0.05f;
     glm::vec3 scale = glm::vec3(-1.0f, 1.0f, -1.0f) * _owningAvatar->getScale() * MODEL_SCALE;
     glm::mat4 baseTransform = glm::translate(_owningAvatar->getPosition()) * glm::mat4_cast(orientation) * glm::scale(scale);
     
@@ -54,6 +54,18 @@ void Body::simulate(float deltaTime) {
 bool Body::render(float alpha) {
     if (_jointStates.isEmpty()) {
         return false;
+    }
+    
+    glColor4f(1.0f, 1.0f, 1.0f, alpha);
+    
+    for (int i = 0; i < _jointStates.size(); i++) {
+        const JointState& state = _jointStates[i];
+        glPushMatrix();
+        glMultMatrixf((const GLfloat*)&state.transform);
+        
+        glutSolidSphere(0.2f, 10, 10);
+        
+        glPopMatrix();
     }
     
     return true;
