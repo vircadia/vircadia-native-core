@@ -81,6 +81,9 @@ void AudioMixer::run() {
     NodeList *nodeList = NodeList::getInstance();
     nodeList->setOwnerType(NODE_TYPE_AUDIO_MIXER);
     
+    const char AUDIO_MIXER_NODE_TYPES_OF_INTEREST[2] = { NODE_TYPE_AGENT, NODE_TYPE_AUDIO_INJECTOR };
+    nodeList->setNodeTypesOfInterest(AUDIO_MIXER_NODE_TYPES_OF_INTEREST, sizeof(AUDIO_MIXER_NODE_TYPES_OF_INTEREST));
+    
     ssize_t receivedBytes = 0;
     
     nodeList->linkedDataCreateCallback = attachNewBufferToNode;
@@ -144,6 +147,9 @@ void AudioMixer::run() {
             }
         }
         
+        // get the NodeList to ping any inactive nodes, for hole punching
+        nodeList->possiblyPingInactiveNodes();
+        
         for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
             PositionalAudioRingBuffer* positionalRingBuffer = (PositionalAudioRingBuffer*) node->getLinkedData();
             if (positionalRingBuffer && positionalRingBuffer->shouldBeAddedToMix(JITTER_BUFFER_SAMPLES)) {
@@ -157,7 +163,7 @@ void AudioMixer::run() {
             
             const int PHASE_DELAY_AT_90 = 20;
             
-            if (node->getType() == NODE_TYPE_AGENT) {
+            if (node->getType() == NODE_TYPE_AGENT && node->getActiveSocket() && node->getLinkedData()) {
                 AvatarAudioRingBuffer* nodeRingBuffer = (AvatarAudioRingBuffer*) node->getLinkedData();
                 
                 // zero out the client mix for this node
@@ -165,7 +171,8 @@ void AudioMixer::run() {
                 
                 // loop through all other nodes that have sufficient audio to mix
                 for (NodeList::iterator otherNode = nodeList->begin(); otherNode != nodeList->end(); otherNode++) {
-                    if (((PositionalAudioRingBuffer*) otherNode->getLinkedData())->willBeAddedToMix()
+                    if (otherNode->getLinkedData()
+                        && ((PositionalAudioRingBuffer*) otherNode->getLinkedData())->willBeAddedToMix()
                         && (otherNode != node || (otherNode == node && nodeRingBuffer->shouldLoopbackForNode()))) {
                         PositionalAudioRingBuffer* otherNodeBuffer = (PositionalAudioRingBuffer*) otherNode->getLinkedData();
                         // based on our listen mode we will do this mixing...
@@ -333,7 +340,7 @@ void AudioMixer::run() {
                 }
                 
                 memcpy(clientPacket + numBytesPacketHeader, clientSamples, sizeof(clientSamples));
-                nodeList->getNodeSocket()->send(node->getPublicSocket(), clientPacket, sizeof(clientPacket));
+                nodeList->getNodeSocket()->send(node->getActiveSocket(), clientPacket, sizeof(clientPacket));
             }
         }
         
@@ -353,39 +360,24 @@ void AudioMixer::run() {
         // pull any new audio data from nodes off of the network stack
         while (nodeList->getNodeSocket()->receive(nodeAddress, packetData, &receivedBytes) &&
                packetVersionMatch(packetData)) {
-            if (packetData[0] == PACKET_TYPE_MICROPHONE_AUDIO_NO_ECHO ||
-                packetData[0] == PACKET_TYPE_MICROPHONE_AUDIO_WITH_ECHO) {
+            if (packetData[0] == PACKET_TYPE_MICROPHONE_AUDIO_NO_ECHO
+                || packetData[0] == PACKET_TYPE_MICROPHONE_AUDIO_WITH_ECHO
+                || packetData[0] == PACKET_TYPE_INJECT_AUDIO) {
                 
-                unsigned char* currentBuffer = packetData + numBytesForPacketHeader(packetData);
-                QUuid nodeUUID =  QUuid::fromRfc4122(QByteArray((char*) currentBuffer, NUM_BYTES_RFC4122_UUID));
-                
-                Node* avatarNode = nodeList->addOrUpdateNode(nodeUUID,
-                                                             NODE_TYPE_AGENT,
-                                                             nodeAddress,
-                                                             nodeAddress);
-                
-                // temp activation of public socket before server ping/reply is setup
-                if (!avatarNode->getActiveSocket()) {
-                    avatarNode->activatePublicSocket();
-                }                
-                
-                nodeList->updateNodeWithData(nodeAddress, packetData, receivedBytes);
-                
-                if (std::isnan(((PositionalAudioRingBuffer *)avatarNode->getLinkedData())->getOrientation().x)) {
-                    // kill off this node - temporary solution to mixer crash on mac sleep
-                    avatarNode->setAlive(false);
-                }
-            } else if (packetData[0] == PACKET_TYPE_INJECT_AUDIO) {
                 QUuid nodeUUID = QUuid::fromRfc4122(QByteArray((char*) packetData + numBytesForPacketHeader(packetData),
                                                                NUM_BYTES_RFC4122_UUID));
                 
-                Node* matchingInjector = nodeList->addOrUpdateNode(nodeUUID,
-                                                                   NODE_TYPE_AUDIO_INJECTOR,
-                                                                   NULL,
-                                                                   NULL);
+                Node* matchingNode = nodeList->nodeWithUUID(nodeUUID);
                 
-                // give the new audio data to the matching injector node
-                nodeList->updateNodeWithData(matchingInjector, packetData, receivedBytes);
+                if (matchingNode) {
+                    nodeList->updateNodeWithData(matchingNode, nodeAddress, packetData, receivedBytes);
+                    
+                    if (packetData[0] != PACKET_TYPE_INJECT_AUDIO
+                        && std::isnan(((PositionalAudioRingBuffer *)matchingNode->getLinkedData())->getOrientation().x)) {
+                        // kill off this node - temporary solution to mixer crash on mac sleep
+                        matchingNode->setAlive(false);
+                    }
+                }
             } else {
                 // let processNodeData handle it.
                 nodeList->processNodeData(nodeAddress, packetData, receivedBytes);
