@@ -113,6 +113,7 @@ public:
     Node* nodeWithUUID(const QUuid& nodeUUID);
     
     Node* addOrUpdateNode(const QUuid& uuid, char nodeType, sockaddr* publicSocket, sockaddr* localSocket);
+    void killNode(Node* node, bool mustLockNode = true);
     
     void processNodeData(sockaddr *senderAddress, unsigned char *packetData, size_t dataBytes);
     void processBulkNodeData(sockaddr *senderAddress, unsigned char *packetData, int numTotalBytes);
