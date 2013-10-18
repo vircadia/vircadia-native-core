@@ -171,7 +171,8 @@ void AudioMixer::run() {
                 
                 // loop through all other nodes that have sufficient audio to mix
                 for (NodeList::iterator otherNode = nodeList->begin(); otherNode != nodeList->end(); otherNode++) {
-                    if (((PositionalAudioRingBuffer*) otherNode->getLinkedData())->willBeAddedToMix()
+                    if (otherNode->getLinkedData()
+                        && ((PositionalAudioRingBuffer*) otherNode->getLinkedData())->willBeAddedToMix()
                         && (otherNode != node || (otherNode == node && nodeRingBuffer->shouldLoopbackForNode()))) {
                         PositionalAudioRingBuffer* otherNodeBuffer = (PositionalAudioRingBuffer*) otherNode->getLinkedData();
                         // based on our listen mode we will do this mixing...
