@@ -670,7 +670,7 @@ unsigned NodeList::broadcastToNodes(unsigned char* broadcastData, size_t dataByt
     return n;
 }
 
-const uint64_t PING_INACTIVE_NODE_INTERVAL_USECS = 0.25 * 1000 * 1000;
+const uint64_t PING_INACTIVE_NODE_INTERVAL_USECS = 1 * 1000 * 1000;
 
 void NodeList::possiblyPingInactiveNodes() {
     static timeval lastPing = {};
