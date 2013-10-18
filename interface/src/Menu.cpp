@@ -60,11 +60,11 @@ Menu::Menu() :
     QMenu* fileMenu = addMenu("File");
     
 #ifdef Q_OS_MAC
-    (addActionToQMenuAndActionHash(fileMenu,
-                                   MenuOption::AboutApp,
-                                   0,
-                                   this,
-                                   SLOT(aboutApp())))->setMenuRole(QAction::AboutRole);
+    addActionToQMenuAndActionHash(fileMenu,
+                                  MenuOption::AboutApp,
+                                  0,
+                                  this,
+                                  SLOT(aboutApp()));
 #endif
     
     (addActionToQMenuAndActionHash(fileMenu,
@@ -108,11 +108,11 @@ Menu::Menu() :
     addActionToQMenuAndActionHash(fileMenu, MenuOption::Pair, 0, PairingHandler::getInstance(), SLOT(sendPairRequest()));
     addCheckableActionToQMenuAndActionHash(fileMenu, MenuOption::TransmitterDrive, 0, true);
     
-    (addActionToQMenuAndActionHash(fileMenu,
-                                   MenuOption::Quit,
-                                   Qt::CTRL | Qt::Key_Q,
-                                   appInstance,
-                                   SLOT(quit())))->setMenuRole(QAction::QuitRole);    
+    addActionToQMenuAndActionHash(fileMenu,
+                                  MenuOption::Quit,
+                                  Qt::CTRL | Qt::Key_Q,
+                                  appInstance,
+                                  SLOT(quit()));
     
     QMenu* editMenu = addMenu("Edit");
     
