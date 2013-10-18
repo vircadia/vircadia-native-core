@@ -20,27 +20,28 @@ const int RED_INDEX   = 0;
 const int GREEN_INDEX = 1;
 const int BLUE_INDEX  = 2;
 
-void printOctalCode(unsigned char * octalCode);
+void printOctalCode(const unsigned char* octalCode);
 int bytesRequiredForCodeLength(unsigned char threeBitCodes);
-int branchIndexWithDescendant(unsigned char * ancestorOctalCode, unsigned char * descendantOctalCode);
-unsigned char * childOctalCode(unsigned char * parentOctalCode, char childNumber);
-int numberOfThreeBitSectionsInCode(unsigned char * octalCode);
-unsigned char* chopOctalCode(unsigned char* originalOctalCode, int chopLevels);
-unsigned char* rebaseOctalCode(unsigned char* originalOctalCode, unsigned char* newParentOctalCode, 
+int branchIndexWithDescendant(const unsigned char* ancestorOctalCode, const unsigned char* descendantOctalCode);
+unsigned char* childOctalCode(const unsigned char* parentOctalCode, char childNumber);
+int numberOfThreeBitSectionsInCode(const unsigned char* octalCode);
+unsigned char* chopOctalCode(const unsigned char* originalOctalCode, int chopLevels);
+unsigned char* rebaseOctalCode(const unsigned char* originalOctalCode, const unsigned char* newParentOctalCode, 
                                bool includeColorSpace = false);
 
 const int CHECK_NODE_ONLY = -1;
-bool isAncestorOf(unsigned char* possibleAncestor, unsigned char* possibleDescendent, int descendentsChild = CHECK_NODE_ONLY);
+bool isAncestorOf(const unsigned char* possibleAncestor, const unsigned char* possibleDescendent, 
+        int descendentsChild = CHECK_NODE_ONLY);
 
 // Note: copyFirstVertexForCode() is preferred because it doesn't allocate memory for the return
 // but other than that these do the same thing.
-float * firstVertexForCode(unsigned char * octalCode);
-void copyFirstVertexForCode(unsigned char * octalCode, float* output);
+float * firstVertexForCode(const unsigned char* octalCode);
+void copyFirstVertexForCode(const unsigned char* octalCode, float* output);
 
 struct VoxelPositionSize {
     float x, y, z, s;
 };
-void voxelDetailsForCode(unsigned char* octalCode, VoxelPositionSize& voxelPositionSize);
+void voxelDetailsForCode(const unsigned char* octalCode, VoxelPositionSize& voxelPositionSize);
 
 typedef enum {
     ILLEGAL_CODE = -2,
@@ -49,9 +50,9 @@ typedef enum {
     GREATER_THAN = 1
 } OctalCodeComparison;
 
-OctalCodeComparison compareOctalCodes(unsigned char* code1, unsigned char* code2);
+OctalCodeComparison compareOctalCodes(const unsigned char* code1, const unsigned char* code2);
 
-QString octalCodeToHexString(unsigned char* octalCode);
+QString octalCodeToHexString(const unsigned char* octalCode);
 unsigned char* hexStringToOctalCode(const QString& input);
 
 #endif /* defined(__hifi__OctalCode__) */

@@ -44,8 +44,8 @@ public:
     VoxelSystem(float treeScale = TREE_SCALE, int maxVoxels = DEFAULT_MAX_VOXELS_PER_SYSTEM);
     ~VoxelSystem();
 
-    void setDataSourceID(int dataSourceID) { _dataSourceID = dataSourceID; }
-    int  getDataSourceID() const { return _dataSourceID; }
+    void setDataSourceUUID(const QUuid& dataSourceUUID) { _dataSourceUUID = dataSourceUUID; }
+    const QUuid&  getDataSourceUUID() const { return _dataSourceUUID; }
     
     int parseData(unsigned char* sourceBuffer, int numBytes);
     
@@ -279,7 +279,7 @@ private:
     glBufferIndex getNextBufferIndex();
     
     bool _falseColorizeBySource;
-    int  _dataSourceID;
+    QUuid _dataSourceUUID;
     
     int _voxelServerCount;
     unsigned long _memoryUsageRAM;

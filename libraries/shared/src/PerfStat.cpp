@@ -108,7 +108,8 @@ bool PerformanceWarning::_suppressShortTimings = false;
 // Destructor handles recording all of our stats
 PerformanceWarning::~PerformanceWarning() {
     uint64_t end = usecTimestampNow();
-    double elapsedmsec = (end - _start) / 1000.0;
+    uint64_t elapsedusec = (end - _start);
+    double elapsedmsec = elapsedusec / 1000.0;
     if ((_alwaysDisplay || _renderWarningsOn) && elapsedmsec > 1) {
         if (elapsedmsec > 1000) {
             double elapsedsec = (end - _start) / 1000000.0;
@@ -126,6 +127,13 @@ PerformanceWarning::~PerformanceWarning() {
         }
     } else if (_alwaysDisplay) {
         qDebug("%s took %lf milliseconds\n", _message, elapsedmsec);
+    }
+    // if the caller gave us a pointer to store the running total, track it now.
+    if (_runningTotal) {
+        *_runningTotal += elapsedusec;
+    }
+    if (_totalCalls) {
+        *_totalCalls += 1;
     }
 };
 

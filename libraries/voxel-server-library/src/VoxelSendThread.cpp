@@ -18,15 +18,15 @@ extern EnvironmentData environmentData[3];
 #include "VoxelServer.h"
 #include "VoxelServerConsts.h"
 
-VoxelSendThread::VoxelSendThread(uint16_t nodeID, VoxelServer* myServer) :
-    _nodeID(nodeID),
+VoxelSendThread::VoxelSendThread(const QUuid& nodeUUID, VoxelServer* myServer) :
+    _nodeUUID(nodeUUID),
     _myServer(myServer) {
 }
 
 bool VoxelSendThread::process() {
     uint64_t  lastSendTime = usecTimestampNow();
     
-    Node* node = NodeList::getInstance()->nodeWithID(_nodeID);
+    Node* node = NodeList::getInstance()->nodeWithUUID(_nodeUUID);
     VoxelNodeData* nodeData = NULL;
     
     if (node) {
@@ -83,7 +83,7 @@ void VoxelSendThread::handlePacketSend(Node* node, VoxelNodeData* nodeData, int&
     } else {
         // just send the voxel packet
         NodeList::getInstance()->getNodeSocket()->send(node->getActiveSocket(),
-                                        nodeData->getPacket(), nodeData->getPacketLength());
+                                                       nodeData->getPacket(), nodeData->getPacketLength());
     }
     // remember to track our stats
     nodeData->stats.packetSent(nodeData->getPacketLength());

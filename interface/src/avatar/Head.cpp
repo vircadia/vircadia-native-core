@@ -329,16 +329,7 @@ void Head::setScale (float scale) {
 
 
 void Head::createMohawk() {
-    uint16_t nodeId = UNKNOWN_NODE_ID;
-    if (_owningAvatar->getOwningNode()) {
-        nodeId = _owningAvatar->getOwningNode()->getNodeID();
-    } else {
-        nodeId = NodeList::getInstance()->getOwnerID();
-        if (nodeId == UNKNOWN_NODE_ID) {
-            return;
-        }
-    }
-    srand(nodeId);
+    srand(time(NULL));
     float height = _scale * (0.08f + randFloat() * 0.05f);
     float variance = 0.03 + randFloat() * 0.03f;
     const float RAD_PER_TRIANGLE = (2.3f + randFloat() * 0.2f) / (float)MOHAWK_TRIANGLES;

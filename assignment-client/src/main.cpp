@@ -91,6 +91,8 @@ void childClient() {
                 nodeList->setDomainIP(QHostAddress((sockaddr*) &senderSocket));
                 nodeList->setDomainPort(ntohs(senderSocket.sin_port));
                 
+                nodeList->setOwnerUUID(deployedAssignment->getUUID());
+                
                 qDebug("Destination IP for assignment is %s\n", nodeList->getDomainIP().toString().toStdString().c_str());
                 
                 // run the deployed assignment

@@ -101,19 +101,19 @@ public:
     bool includeColor;
     bool includeExistsBits;
     VoxelNode* destinationNode;
-    uint16_t sourceID;
+    QUuid sourceUUID;
     bool wantImportProgress;
     
     ReadBitstreamToTreeParams(
         bool includeColor = WANT_COLOR, 
         bool includeExistsBits = WANT_EXISTS_BITS,
         VoxelNode* destinationNode = NULL,
-        uint16_t sourceID = UNKNOWN_NODE_ID,
+        QUuid sourceUUID = QUuid(),
         bool wantImportProgress = false) :
             includeColor(includeColor),
             includeExistsBits(includeExistsBits),
             destinationNode(destinationNode),
-            sourceID(sourceID),
+            sourceUUID(sourceUUID),
             wantImportProgress(wantImportProgress)
     {}
 };
@@ -214,7 +214,7 @@ private:
 
     static bool countVoxelsOperation(VoxelNode* node, void* extraData);
 
-    VoxelNode* nodeForOctalCode(VoxelNode* ancestorNode, unsigned char* needleCode, VoxelNode** parentOfFoundNode) const;
+    VoxelNode* nodeForOctalCode(VoxelNode* ancestorNode, const unsigned char* needleCode, VoxelNode** parentOfFoundNode) const;
     VoxelNode* createMissingNode(VoxelNode* lastParentNode, unsigned char* deepestCodeToCreate);
     int readNodeData(VoxelNode *destinationNode, unsigned char* nodeData, int bufferSizeBytes, ReadBitstreamToTreeParams& args);
     
@@ -225,7 +225,7 @@ private:
 
     /// Octal Codes of any subtrees currently being encoded. While any of these codes is being encoded, ancestors and 
     /// descendants of them can not be deleted.
-    std::set<unsigned char*>  _codesBeingEncoded;
+    std::set<const unsigned char*>  _codesBeingEncoded;
     /// mutex lock to protect the encoding set
     pthread_mutex_t _encodeSetLock;
 

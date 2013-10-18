@@ -35,6 +35,6 @@ protected:
 
 private:
     JurisdictionMap* _jurisdictionMap;
-    std::set<uint16_t> _nodesRequestingJurisdictions;
+    std::set<QUuid> _nodesRequestingJurisdictions;
 };
 #endif // __shared__JurisdictionSender__

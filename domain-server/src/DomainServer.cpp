@@ -30,6 +30,18 @@ void DomainServer::setDomainServerInstance(DomainServer* domainServer) {
     domainServerInstance = domainServer;
 }
 
+QJsonObject jsonForSocket(sockaddr* socket) {
+    QJsonObject socketJSON;
+    
+    if (socket->sa_family == AF_INET) {
+        sockaddr_in* socketIPv4 = (sockaddr_in*) socket;
+        socketJSON["ip"] = QString(inet_ntoa(socketIPv4->sin_addr));
+        socketJSON["port"] = (int) ntohs(socketIPv4->sin_port);
+    }
+    
+    return socketJSON;
+}
+
 int DomainServer::civetwebRequestHandler(struct mg_connection *connection) {
     const struct mg_request_info* ri = mg_get_request_info(connection);
     
@@ -67,14 +79,9 @@ int DomainServer::civetwebRequestHandler(struct mg_connection *connection) {
                 QString assignmentUUID = uuidStringWithoutCurlyBraces(((Assignment*) node->getLinkedData())->getUUID());
                 assignedNodeJSON[ASSIGNMENT_JSON_UUID_KEY] = assignmentUUID;
                 
-                QJsonObject nodePublicSocketJSON;
-                
-                // add the public socket information
-                sockaddr_in* nodePublicSocket = (sockaddr_in*) node->getPublicSocket();
-                nodePublicSocketJSON["ip"] = QString(inet_ntoa(nodePublicSocket->sin_addr));
-                nodePublicSocketJSON["port"] = (int) ntohs(nodePublicSocket->sin_port);
-                
-                assignedNodeJSON["public"] = nodePublicSocketJSON;
+                // add the node socket information
+                assignedNodeJSON["public"] = jsonForSocket(node->getPublicSocket());
+                assignedNodeJSON["local"] = jsonForSocket(node->getLocalSocket());
                 
                 // re-format the type name so it matches the target name
                 QString nodeTypeName(node->getTypeName());
@@ -154,7 +161,7 @@ void DomainServer::civetwebUploadHandler(struct mg_connection *connection, const
 }
 
 void DomainServer::nodeAdded(Node* node) {
-    NodeList::getInstance()->increaseNodeID();
+    
 }
 
 void DomainServer::nodeKilled(Node* node) {
@@ -187,7 +194,11 @@ void DomainServer::nodeKilled(Node* node) {
 unsigned char* DomainServer::addNodeToBroadcastPacket(unsigned char* currentPosition, Node* nodeToAdd) {
     *currentPosition++ = nodeToAdd->getType();
     
-    currentPosition += packNodeId(currentPosition, nodeToAdd->getNodeID());
+    
+    QByteArray rfcUUID = nodeToAdd->getUUID().toRfc4122();
+    memcpy(currentPosition, rfcUUID.constData(), rfcUUID.size());
+    currentPosition += rfcUUID.size();
+    
     currentPosition += packSocket(currentPosition, nodeToAdd->getPublicSocket());
     currentPosition += packSocket(currentPosition, nodeToAdd->getLocalSocket());
     
@@ -291,11 +302,8 @@ void DomainServer::prepopulateStaticAssignmentFile() {
     _staticAssignmentFile.close();
 }
 
-Assignment* DomainServer::matchingStaticAssignmentForCheckIn(NODE_TYPE nodeType, const uchar* checkInData) {
+Assignment* DomainServer::matchingStaticAssignmentForCheckIn(const QUuid& checkInUUID, NODE_TYPE nodeType) {
     // pull the UUID passed with the check in
-    QUuid checkInUUID = QUuid::fromRfc4122(QByteArray((const char*) checkInData + numBytesForPacketHeader(checkInData) +
-                                                      sizeof(NODE_TYPE),
-                                                      NUM_BYTES_RFC4122_UUID));
     
     if (_hasCompletedRestartHold) {
         _assignmentQueueMutex.lock();
@@ -395,19 +403,14 @@ void DomainServer::removeAssignmentFromQueue(Assignment* removableAssignment) {
 
 bool DomainServer::checkInWithUUIDMatchesExistingNode(sockaddr* nodePublicSocket,
                                                       sockaddr* nodeLocalSocket,
-                                                      const uchar* checkInData) {
-    // pull the UUID passed with the check in
-    QUuid checkInUUID = QUuid::fromRfc4122(QByteArray((const char*) checkInData + numBytesForPacketHeader(checkInData) +
-                                                      sizeof(NODE_TYPE),
-                                                      NUM_BYTES_RFC4122_UUID));
-    
+                                                      const QUuid& checkInUUID) {
     NodeList* nodeList = NodeList::getInstance();
     
     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
         if (node->getLinkedData()
             && socketMatch(node->getPublicSocket(), nodePublicSocket)
             && socketMatch(node->getLocalSocket(), nodeLocalSocket)
-            && ((Assignment*) node->getLinkedData())->getUUID() == checkInUUID) {
+            && node->getUUID() == checkInUUID) {
             // this is a matching existing node if the public socket, local socket, and UUID match
             return true;
         }
@@ -480,10 +483,9 @@ int DomainServer::run() {
     unsigned char* currentBufferPos;
     unsigned char* startPointer;
     
-    sockaddr_in nodePublicAddress, nodeLocalAddress, replyDestinationSocket;
+    sockaddr_in senderAddress, nodePublicAddress, nodeLocalAddress;
+    nodePublicAddress.sin_family = AF_INET;
     nodeLocalAddress.sin_family = AF_INET;
-    
-    in_addr_t serverLocalAddress = getLocalAddress();
     
     nodeList->startSilentNodeRemovalThread();
     
@@ -507,7 +509,7 @@ int DomainServer::run() {
     gettimeofday(&startTime, NULL);
     
     while (true) {
-        while (nodeList->getNodeSocket()->receive((sockaddr *)&nodePublicAddress, packetData, &receivedBytes) &&
+        while (nodeList->getNodeSocket()->receive((sockaddr *)&senderAddress, packetData, &receivedBytes) &&
                packetVersionMatch(packetData)) {
             if (packetData[0] == PACKET_TYPE_DOMAIN_REPORT_FOR_DUTY || packetData[0] == PACKET_TYPE_DOMAIN_LIST_REQUEST) {
                 // this is an RFD or domain list request packet, and there is a version match
@@ -515,19 +517,29 @@ int DomainServer::run() {
                 int numBytesSenderHeader = numBytesForPacketHeader(packetData);
                 
                 nodeType = *(packetData + numBytesSenderHeader);
-                int numBytesSocket = unpackSocket(packetData + numBytesSenderHeader + sizeof(NODE_TYPE),
-                                                  (sockaddr*) &nodeLocalAddress);
                 
-                replyDestinationSocket = nodePublicAddress;
+                int packetIndex = numBytesSenderHeader + sizeof(NODE_TYPE);
+                QUuid nodeUUID = QUuid::fromRfc4122(QByteArray(((char*) packetData + packetIndex), NUM_BYTES_RFC4122_UUID));
+                packetIndex += NUM_BYTES_RFC4122_UUID;
                 
-                // check the node public address
-                // if it matches our local address
-                // or if it's the loopback address we're on the same box
-                if (nodePublicAddress.sin_addr.s_addr == serverLocalAddress ||
-                    nodePublicAddress.sin_addr.s_addr == htonl(INADDR_LOOPBACK)) {
+                int numBytesPrivateSocket = unpackSocket(packetData + packetIndex, (sockaddr*) &nodePublicAddress);
+                packetIndex += numBytesPrivateSocket;
+                
+                if (nodePublicAddress.sin_addr.s_addr == 0) {
+                    // this node wants to use us its STUN server
+                    // so set the node public address to whatever we perceive the public address to be
                     
-                    nodePublicAddress.sin_addr.s_addr = 0;
+                    nodePublicAddress = senderAddress;
+                    
+                    // if the sender is on our box then leave its public address to 0 so that
+                    // other users attempt to reach it on the same address they have for the domain-server
+                    if (senderAddress.sin_addr.s_addr == htonl(INADDR_LOOPBACK)) {
+                        nodePublicAddress.sin_addr.s_addr = 0;
+                    }
                 }
+                
+                int numBytesPublicSocket = unpackSocket(packetData + packetIndex, (sockaddr*) &nodeLocalAddress);
+                packetIndex += numBytesPublicSocket;
                 
                 const char STATICALLY_ASSIGNED_NODES[3] = {
                     NODE_TYPE_AUDIO_MIXER,
@@ -537,16 +549,16 @@ int DomainServer::run() {
                 
                 Assignment* matchingStaticAssignment = NULL;
                 
-                if (memchr(STATICALLY_ASSIGNED_NODES, nodeType, sizeof(STATICALLY_ASSIGNED_NODES)) == NULL ||
-                    ((matchingStaticAssignment = matchingStaticAssignmentForCheckIn(nodeType, packetData)) ||
-                     checkInWithUUIDMatchesExistingNode((sockaddr*) &nodePublicAddress,
-                                                        (sockaddr*) &nodeLocalAddress,
-                                                        packetData))) {
-                    
-                    Node* checkInNode = nodeList->addOrUpdateNode((sockaddr*) &nodePublicAddress,
-                                                                  (sockaddr*) &nodeLocalAddress,
+                if (memchr(STATICALLY_ASSIGNED_NODES, nodeType, sizeof(STATICALLY_ASSIGNED_NODES)) == NULL
+                    || ((matchingStaticAssignment = matchingStaticAssignmentForCheckIn(nodeUUID, nodeType))
+                        || checkInWithUUIDMatchesExistingNode((sockaddr*) &nodePublicAddress,
+                                                              (sockaddr*) &nodeLocalAddress,
+                                                              nodeUUID)))
+                {
+                    Node* checkInNode = nodeList->addOrUpdateNode(nodeUUID,
                                                                   nodeType,
-                                                                  nodeList->getLastNodeID());
+                                                                  (sockaddr*) &nodePublicAddress,
+                                                                  (sockaddr*) &nodeLocalAddress);
                     
                     if (matchingStaticAssignment) {
                         // this was a newly added node with a matching static assignment
@@ -568,12 +580,7 @@ int DomainServer::run() {
                     currentBufferPos = broadcastPacket + numHeaderBytes;
                     startPointer = currentBufferPos;
                     
-                    int numBytesUUID = (nodeType == NODE_TYPE_AUDIO_MIXER || nodeType == NODE_TYPE_AVATAR_MIXER)
-                        ? NUM_BYTES_RFC4122_UUID
-                        : 0;
-                    
-                    unsigned char* nodeTypesOfInterest = packetData + numBytesSenderHeader + numBytesUUID +
-                    sizeof(NODE_TYPE) + numBytesSocket + sizeof(unsigned char);
+                    unsigned char* nodeTypesOfInterest = packetData + packetIndex + sizeof(unsigned char);
                     int numInterestTypes = *(nodeTypesOfInterest - 1);
                     
                     if (numInterestTypes > 0) {
@@ -595,11 +602,8 @@ int DomainServer::run() {
                     uint64_t timeNow = usecTimestampNow();
                     checkInNode->setLastHeardMicrostamp(timeNow);
                     
-                    // add the node ID to the end of the pointer
-                    currentBufferPos += packNodeId(currentBufferPos, checkInNode->getNodeID());
-                    
                     // send the constructed list back to this node
-                    nodeList->getNodeSocket()->send((sockaddr*)&replyDestinationSocket,
+                    nodeList->getNodeSocket()->send((sockaddr*)&senderAddress,
                                                     broadcastPacket,
                                                     (currentBufferPos - startPointer) + numHeaderBytes);
                 }
@@ -623,7 +627,7 @@ int DomainServer::run() {
                         int numHeaderBytes = populateTypeAndVersion(broadcastPacket, PACKET_TYPE_CREATE_ASSIGNMENT);
                         int numAssignmentBytes = assignmentToDeploy->packToBuffer(broadcastPacket + numHeaderBytes);
         
-                        nodeList->getNodeSocket()->send((sockaddr*) &nodePublicAddress,
+                        nodeList->getNodeSocket()->send((sockaddr*) &senderAddress,
                                                         broadcastPacket,
                                                         numHeaderBytes + numAssignmentBytes);
                     }
@@ -637,20 +641,11 @@ int DomainServer::run() {
                 
                 qDebug() << "Received a create assignment -" << *createAssignment << "\n";
                 
-                // check the node public address
-                // if it matches our local address
-                // or if it's the loopback address we're on the same box
-                if (nodePublicAddress.sin_addr.s_addr == serverLocalAddress ||
-                    nodePublicAddress.sin_addr.s_addr == htonl(INADDR_LOOPBACK)) {
-                    
-                    nodePublicAddress.sin_addr.s_addr = 0;
-                }
-                
                 // make sure we have a matching node with the UUID packed with the assignment
                 // if the node has sent no types of interest, assume they want nothing but their own ID back
                 for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
                     if (node->getLinkedData()
-                        && socketMatch((sockaddr*) &nodePublicAddress, node->getPublicSocket())
+                        && socketMatch((sockaddr*) &senderAddress, node->getPublicSocket())
                         && ((Assignment*) node->getLinkedData())->getUUID() == createAssignment->getUUID()) {
                         
                         // give the create assignment a new UUID

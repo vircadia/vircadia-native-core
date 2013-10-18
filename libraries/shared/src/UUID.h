@@ -11,6 +11,8 @@
 
 #include <QtCore/QUuid>
 
+const int NUM_BYTES_RFC4122_UUID = 16;
+
 QString uuidStringWithoutCurlyBraces(const QUuid& uuid);
 
 #endif /* defined(__hifi__UUID__) */

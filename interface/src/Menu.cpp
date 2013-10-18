@@ -442,21 +442,6 @@ Menu::Menu() :
                                            
     QMenu* audioDebugMenu = developerMenu->addMenu("Audio Debugging Tools");
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::EchoAudio);
-    addActionToQMenuAndActionHash(audioDebugMenu,
-                                  MenuOption::ListenModeNormal,
-                                  Qt::CTRL | Qt::Key_1,
-                                  appInstance,
-                                  SLOT(setListenModeNormal()));
-    addActionToQMenuAndActionHash(audioDebugMenu,
-                                  MenuOption::ListenModePoint,
-                                  Qt::CTRL | Qt::Key_2,
-                                  appInstance,
-                                  SLOT(setListenModePoint()));
-    addActionToQMenuAndActionHash(audioDebugMenu,
-                                  MenuOption::ListenModeSingleSource,
-                                  Qt::CTRL | Qt::Key_3,
-                                  appInstance,
-                                  SLOT(setListenModeSingleSource()));
     
     QMenu* voxelProtoOptionsMenu = developerMenu->addMenu("Voxel Server Protocol Options");
     

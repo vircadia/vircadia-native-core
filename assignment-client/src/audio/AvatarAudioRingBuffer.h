@@ -12,9 +12,11 @@
 #include <Stk.h>
 #include <TwoPole.h>
 
+#include <QtCore/QUuid>
+
 #include "PositionalAudioRingBuffer.h"
 
-typedef std::map<uint16_t, stk::TwoPole*> TwoPoleNodeMap;
+typedef std::map<QUuid, stk::TwoPole*> TwoPoleNodeMap;
 
 class AvatarAudioRingBuffer : public PositionalAudioRingBuffer {
 public:

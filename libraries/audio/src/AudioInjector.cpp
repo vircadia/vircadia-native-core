@@ -10,8 +10,10 @@
 #include <fstream>
 #include <limits>
 
+#include <NodeList.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
+#include <UUID.h>
 
 #include "AudioInjector.h"
 
@@ -23,8 +25,6 @@ AudioInjector::AudioInjector(const char* filename) :
     _indexOfNextSlot(0),
     _isInjectingAudio(false)
 {
-    loadRandomIdentifier(_streamIdentifier, STREAM_IDENTIFIER_NUM_BYTES);
-    
     std::fstream sourceFile;
     
     sourceFile.open(filename, std::ios::in | std::ios::binary);
@@ -53,8 +53,6 @@ AudioInjector::AudioInjector(int maxNumSamples) :
     _indexOfNextSlot(0),
     _isInjectingAudio(false)
 {
-    loadRandomIdentifier(_streamIdentifier, STREAM_IDENTIFIER_NUM_BYTES);
-    
     _audioSampleArray = new int16_t[maxNumSamples];
     memset(_audioSampleArray, 0, _numTotalSamples * sizeof(int16_t));
 }
@@ -71,7 +69,7 @@ void AudioInjector::injectAudio(UDPSocket* injectorSocket, sockaddr* destination
         
         // calculate the number of bytes required for additional data
         int leadingBytes = numBytesForPacketHeader((unsigned char*) &PACKET_TYPE_INJECT_AUDIO)
-            + sizeof(_streamIdentifier)
+            + NUM_BYTES_RFC4122_UUID
             + sizeof(_position)
             + sizeof(_orientation)
             + sizeof(_radius)
@@ -82,8 +80,9 @@ void AudioInjector::injectAudio(UDPSocket* injectorSocket, sockaddr* destination
         unsigned char* currentPacketPtr = dataPacket + populateTypeAndVersion(dataPacket, PACKET_TYPE_INJECT_AUDIO);
         
         // copy the identifier for this injector
-        memcpy(currentPacketPtr, &_streamIdentifier, sizeof(_streamIdentifier));
-        currentPacketPtr += sizeof(_streamIdentifier);
+        QByteArray rfcUUID = NodeList::getInstance()->getOwnerUUID().toRfc4122();
+        memcpy(currentPacketPtr, rfcUUID.constData(), rfcUUID.size());
+        currentPacketPtr += rfcUUID.size();
         
         memcpy(currentPacketPtr, &_position, sizeof(_position));
         currentPacketPtr += sizeof(_position);

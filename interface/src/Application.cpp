@@ -54,7 +54,7 @@
 #include <PacketHeaders.h>
 #include <PairingHandler.h>
 #include <PerfStat.h>
-
+#include <UUID.h>
 #include <VoxelSceneStats.h>
 
 #include "Application.h"
@@ -500,7 +500,7 @@ void Application::controlledBroadcastToNodes(unsigned char* broadcastData, size_
         if (nodeTypes[i] == NODE_TYPE_VOXEL_SERVER && !Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
             continue;
         }
-
+        
         // Perform the broadcast for one type
         int nReceivingNodes = NodeList::getInstance()->broadcastToNodes(broadcastData, dataBytes, & nodeTypes[i], 1);
 
@@ -1160,8 +1160,9 @@ void Application::sendAvatarFaceVideoMessage(int frameCount, const QByteArray& d
     
     packetPosition += populateTypeAndVersion(packetPosition, PACKET_TYPE_AVATAR_FACE_VIDEO);
     
-    *(uint16_t*)packetPosition = NodeList::getInstance()->getOwnerID();
-    packetPosition += sizeof(uint16_t);
+    QByteArray rfcUUID = NodeList::getInstance()->getOwnerUUID().toRfc4122();
+    memcpy(packetPosition, rfcUUID.constData(), rfcUUID.size());
+    packetPosition += rfcUUID.size();
     
     *(uint32_t*)packetPosition = frameCount;
     packetPosition += sizeof(uint32_t);
@@ -1295,12 +1296,13 @@ static Avatar* processAvatarMessageHeader(unsigned char*& packetData, size_t& da
     dataBytes -= numBytesPacketHeader;
     
     // read the node id
-    uint16_t nodeID = *(uint16_t*)packetData;
-    packetData += sizeof(nodeID);
-    dataBytes -= sizeof(nodeID);
+    QUuid nodeUUID = QUuid::fromRfc4122(QByteArray((char*) packetData, NUM_BYTES_RFC4122_UUID));
+    
+    packetData += NUM_BYTES_RFC4122_UUID;
+    dataBytes -= NUM_BYTES_RFC4122_UUID;
     
     // make sure the node exists
-    Node* node = NodeList::getInstance()->nodeWithID(nodeID);
+    Node* node = NodeList::getInstance()->nodeWithUUID(nodeUUID);
     if (!node || !node->getLinkedData()) {
         return NULL;
     }
@@ -1393,13 +1395,13 @@ void Application::increaseVoxelSize() {
 
 const int MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE = 1500;
 struct SendVoxelsOperationArgs {
-    unsigned char*  newBaseOctCode;
+    const unsigned char*  newBaseOctCode;
 };
 
 bool Application::sendVoxelsOperation(VoxelNode* node, void* extraData) {
     SendVoxelsOperationArgs* args = (SendVoxelsOperationArgs*)extraData;
     if (node->isColored()) {
-        unsigned char* nodeOctalCode = node->getOctalCode();
+        const unsigned char* nodeOctalCode = node->getOctalCode();
         
         unsigned char* codeColorBuffer = NULL;
         int codeLength  = 0;
@@ -1561,29 +1563,6 @@ void Application::deleteVoxels() {
     deleteVoxelUnderCursor();
 }
 
-void Application::setListenModeNormal() {
-    _audio.setListenMode(AudioRingBuffer::NORMAL);
-}
-
-void Application::setListenModePoint() {
-    _audio.setListenMode(AudioRingBuffer::OMNI_DIRECTIONAL_POINT);
-    _audio.setListenRadius(1.0);
-}
-
-void Application::setListenModeSingleSource() {
-    _audio.setListenMode(AudioRingBuffer::SELECTED_SOURCES);
-    _audio.clearListenSources();
-
-    glm::vec3 mouseRayOrigin = _myAvatar.getMouseRayOrigin();
-    glm::vec3 mouseRayDirection  = _myAvatar.getMouseRayDirection();
-    glm::vec3 eyePositionIgnored;
-    uint16_t nodeID;
-
-    if (findLookatTargetAvatar(mouseRayOrigin, mouseRayDirection, eyePositionIgnored, nodeID)) {
-        _audio.addListenSource(nodeID);
-    }
-}
-
 void Application::initDisplay() {
     glEnable(GL_BLEND);
     glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
@@ -1690,7 +1669,7 @@ const float MAX_AVATAR_EDIT_VELOCITY = 1.0f;
 const float MAX_VOXEL_EDIT_DISTANCE = 20.0f;
 const float HEAD_SPHERE_RADIUS = 0.07;
 
-static uint16_t DEFAULT_NODE_ID_REF = 1;
+static QUuid DEFAULT_NODE_ID_REF;
 
 void Application::updateLookatTargetAvatar(const glm::vec3& mouseRayOrigin, const glm::vec3& mouseRayDirection,
     glm::vec3& eyePosition) {
@@ -1699,7 +1678,7 @@ void Application::updateLookatTargetAvatar(const glm::vec3& mouseRayOrigin, cons
 }
         
 Avatar* Application::findLookatTargetAvatar(const glm::vec3& mouseRayOrigin, const glm::vec3& mouseRayDirection,
-    glm::vec3& eyePosition, uint16_t& nodeID = DEFAULT_NODE_ID_REF) {
+    glm::vec3& eyePosition, QUuid& nodeUUID = DEFAULT_NODE_ID_REF) {
                                          
     NodeList* nodeList = NodeList::getInstance();
     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
@@ -1712,7 +1691,7 @@ Avatar* Application::findLookatTargetAvatar(const glm::vec3& mouseRayOrigin, con
                 eyePosition = avatar->getHead().getEyePosition();
                 _lookatIndicatorScale = avatar->getHead().getScale();
                 _lookatOtherPosition = headPosition;
-                nodeID = avatar->getOwningNode()->getNodeID();
+                nodeUUID = avatar->getOwningNode()->getUUID();
                 return avatar;
             }
         }
@@ -1761,12 +1740,12 @@ void Application::renderFollowIndicator() {
             Avatar* avatar = (Avatar *) node->getLinkedData();
             Avatar* leader = NULL;
 
-            if (avatar->getLeaderID() != UNKNOWN_NODE_ID) {
-                if (avatar->getLeaderID() == NodeList::getInstance()->getOwnerID()) {
+            if (!avatar->getLeaderUUID().isNull()) {
+                if (avatar->getLeaderUUID() == NodeList::getInstance()->getOwnerUUID()) {
                     leader = &_myAvatar;
                 } else {
                     for (NodeList::iterator it = nodeList->begin(); it != nodeList->end(); ++it) {
-                        if(it->getNodeID() == avatar->getLeaderID()
+                        if(it->getUUID() == avatar->getLeaderUUID()
                                 && it->getType() == NODE_TYPE_AGENT) {
                             leader = (Avatar*) it->getLinkedData();
                         }
@@ -2246,26 +2225,27 @@ void Application::updateAvatar(float deltaTime) {
     _myAvatar.setCameraEyeOffsetPosition(_viewFrustum.getEyeOffsetPosition());
     
     NodeList* nodeList = NodeList::getInstance();
-    if (nodeList->getOwnerID() != UNKNOWN_NODE_ID) {
-        // if I know my ID, send head/hand data to the avatar mixer and voxel server
-        unsigned char broadcastString[MAX_PACKET_SIZE];
-        unsigned char* endOfBroadcastStringWrite = broadcastString;
-        
-        endOfBroadcastStringWrite += populateTypeAndVersion(endOfBroadcastStringWrite, PACKET_TYPE_HEAD_DATA);
-        
-        endOfBroadcastStringWrite += packNodeId(endOfBroadcastStringWrite, nodeList->getOwnerID());
-        
-        endOfBroadcastStringWrite += _myAvatar.getBroadcastData(endOfBroadcastStringWrite);
-
-        const char nodeTypesOfInterest[] = { NODE_TYPE_VOXEL_SERVER, NODE_TYPE_AVATAR_MIXER }; 
-        controlledBroadcastToNodes(broadcastString, endOfBroadcastStringWrite - broadcastString,
-                                   nodeTypesOfInterest, sizeof(nodeTypesOfInterest));
-        
-        // once in a while, send my urls
-        const float AVATAR_URLS_SEND_INTERVAL = 1.0f; // seconds
-        if (shouldDo(AVATAR_URLS_SEND_INTERVAL, deltaTime)) {
-            Avatar::sendAvatarURLsMessage(_myAvatar.getVoxels()->getVoxelURL());
-        }
+    
+    // send head/hand data to the avatar mixer and voxel server
+    unsigned char broadcastString[MAX_PACKET_SIZE];
+    unsigned char* endOfBroadcastStringWrite = broadcastString;
+    
+    endOfBroadcastStringWrite += populateTypeAndVersion(endOfBroadcastStringWrite, PACKET_TYPE_HEAD_DATA);
+    
+    QByteArray ownerUUID = nodeList->getOwnerUUID().toRfc4122();
+    memcpy(endOfBroadcastStringWrite, ownerUUID.constData(), ownerUUID.size());
+    endOfBroadcastStringWrite += ownerUUID.size();
+    
+    endOfBroadcastStringWrite += _myAvatar.getBroadcastData(endOfBroadcastStringWrite);
+    
+    const char nodeTypesOfInterest[] = { NODE_TYPE_VOXEL_SERVER, NODE_TYPE_AVATAR_MIXER };
+    controlledBroadcastToNodes(broadcastString, endOfBroadcastStringWrite - broadcastString,
+                               nodeTypesOfInterest, sizeof(nodeTypesOfInterest));
+    
+    // once in a while, send my urls
+    const float AVATAR_URLS_SEND_INTERVAL = 1.0f; // seconds
+    if (shouldDo(AVATAR_URLS_SEND_INTERVAL, deltaTime)) {
+        Avatar::sendAvatarURLsMessage(_myAvatar.getVoxels()->getVoxelURL());
     }
 }
 
@@ -2806,24 +2786,40 @@ void Application::displayOverlay() {
     if (Menu::getInstance()->isOptionChecked(MenuOption::HeadMouse)
         && !Menu::getInstance()->isOptionChecked(MenuOption::Mirror)
         && USING_INVENSENSE_MPU9150) {
-            //  Display small target box at center or head mouse target that can also be used to measure LOD
-            glColor3f(1.0, 1.0, 1.0);
+        //  Display small target box at center or head mouse target that can also be used to measure LOD
+        glColor3f(1.0, 1.0, 1.0);
+        glDisable(GL_LINE_SMOOTH);
+        const int PIXEL_BOX = 16;
+        glBegin(GL_LINES);
+        glVertex2f(_headMouseX - PIXEL_BOX/2, _headMouseY);
+        glVertex2f(_headMouseX + PIXEL_BOX/2, _headMouseY);
+        glVertex2f(_headMouseX, _headMouseY - PIXEL_BOX/2);
+        glVertex2f(_headMouseX, _headMouseY + PIXEL_BOX/2);
+        glEnd();            
+        glEnable(GL_LINE_SMOOTH);
+        glColor3f(1.f, 0.f, 0.f);
+        glPointSize(3.0f);
+        glDisable(GL_POINT_SMOOTH);
+        glBegin(GL_POINTS);
+        glVertex2f(_headMouseX - 1, _headMouseY + 1);
+        glEnd();
+        //  If Faceshift is active, show eye pitch and yaw as separate pointer
+        if (_faceshift.isActive()) {
+            const float EYE_TARGET_PIXELS_PER_DEGREE = 40.0;
+            int eyeTargetX = (_glWidget->width() / 2) -  _faceshift.getEstimatedEyeYaw() * EYE_TARGET_PIXELS_PER_DEGREE;
+            int eyeTargetY = (_glWidget->height() / 2) -  _faceshift.getEstimatedEyePitch() * EYE_TARGET_PIXELS_PER_DEGREE;
+            
+            glColor3f(0.0, 1.0, 1.0);
             glDisable(GL_LINE_SMOOTH);
-            const int PIXEL_BOX = 16;
             glBegin(GL_LINES);
-            glVertex2f(_headMouseX - PIXEL_BOX/2, _headMouseY);
-            glVertex2f(_headMouseX + PIXEL_BOX/2, _headMouseY);
-            glVertex2f(_headMouseX, _headMouseY - PIXEL_BOX/2);
-            glVertex2f(_headMouseX, _headMouseY + PIXEL_BOX/2);
-            glEnd();            
-            glEnable(GL_LINE_SMOOTH);
-            glColor3f(1.f, 0.f, 0.f);
-            glPointSize(3.0f);
-            glDisable(GL_POINT_SMOOTH);
-            glBegin(GL_POINTS);
-            glVertex2f(_headMouseX - 1, _headMouseY + 1);
+            glVertex2f(eyeTargetX - PIXEL_BOX/2, eyeTargetY);
+            glVertex2f(eyeTargetX + PIXEL_BOX/2, eyeTargetY);
+            glVertex2f(eyeTargetX, eyeTargetY - PIXEL_BOX/2);
+            glVertex2f(eyeTargetX, eyeTargetY + PIXEL_BOX/2);
             glEnd();
+
         }
+    }
         
     //  Show detected levels from the serial I/O ADC channel sensors
     if (_displayLevels) _serialHeadSensor.renderLevels(_glWidget->width(), _glWidget->height());
@@ -3559,8 +3555,8 @@ void Application::toggleFollowMode() {
                                 _pieMenu.getY() / (float)_glWidget->height(),
                                 mouseRayOrigin, mouseRayDirection);
     glm::vec3 eyePositionIgnored;
-    uint16_t  nodeIDIgnored;
-    Avatar* leadingAvatar = findLookatTargetAvatar(mouseRayOrigin, mouseRayDirection, eyePositionIgnored, nodeIDIgnored);
+    QUuid nodeUUIDIgnored;
+    Avatar* leadingAvatar = findLookatTargetAvatar(mouseRayOrigin, mouseRayDirection, eyePositionIgnored, nodeUUIDIgnored);
 
     _myAvatar.follow(leadingAvatar);
 }
@@ -3628,10 +3624,10 @@ void Application::nodeAdded(Node* node) {
 
 void Application::nodeKilled(Node* node) {
     if (node->getType() == NODE_TYPE_VOXEL_SERVER) {
-        uint16_t nodeID = node->getNodeID();
+        QUuid nodeUUID = node->getUUID();
         // see if this is the first we've heard of this node...
-        if (_voxelServerJurisdictions.find(nodeID) != _voxelServerJurisdictions.end()) {
-            unsigned char* rootCode = _voxelServerJurisdictions[nodeID].getRootOctalCode();
+        if (_voxelServerJurisdictions.find(nodeUUID) != _voxelServerJurisdictions.end()) {
+            unsigned char* rootCode = _voxelServerJurisdictions[nodeUUID].getRootOctalCode();
             VoxelPositionSize rootDetails;
             voxelDetailsForCode(rootCode, rootDetails);
 
@@ -3661,13 +3657,13 @@ int Application::parseVoxelStats(unsigned char* messageData, ssize_t messageLeng
     
     // quick fix for crash... why would voxelServer be NULL?
     if (voxelServer) {
-        uint16_t nodeID = voxelServer->getNodeID();
+        QUuid nodeUUID = voxelServer->getUUID();
 
         VoxelPositionSize rootDetails;
         voxelDetailsForCode(_voxelSceneStats.getJurisdictionRoot(), rootDetails);
         
         // see if this is the first we've heard of this node...
-        if (_voxelServerJurisdictions.find(nodeID) == _voxelServerJurisdictions.end()) {
+        if (_voxelServerJurisdictions.find(nodeUUID) == _voxelServerJurisdictions.end()) {
             printf("stats from new voxel server... v[%f, %f, %f, %f]\n",
                 rootDetails.x, rootDetails.y, rootDetails.z, rootDetails.s);
 
@@ -3684,7 +3680,7 @@ int Application::parseVoxelStats(unsigned char* messageData, ssize_t messageLeng
         // details from the VoxelSceneStats to construct the JurisdictionMap
         JurisdictionMap jurisdictionMap;
         jurisdictionMap.copyContents(_voxelSceneStats.getJurisdictionRoot(), _voxelSceneStats.getJurisdictionEndNodes());
-        _voxelServerJurisdictions[nodeID] = jurisdictionMap;
+        _voxelServerJurisdictions[nodeUUID] = jurisdictionMap;
     }
     return statsMessageLength;
 }

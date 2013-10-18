@@ -27,9 +27,9 @@ void JurisdictionSender::processPacket(sockaddr& senderAddress, unsigned char*  
     if (packetData[0] == PACKET_TYPE_VOXEL_JURISDICTION_REQUEST) {
         Node* node = NodeList::getInstance()->nodeWithAddress(&senderAddress);
         if (node) {
-            uint16_t nodeID = node->getNodeID();
+            QUuid nodeUUID = node->getUUID();
             lock();
-            _nodesRequestingJurisdictions.insert(nodeID);
+            _nodesRequestingJurisdictions.insert(nodeUUID);
             unlock();
         }
     }
@@ -52,11 +52,11 @@ bool JurisdictionSender::process() {
         }
         int nodeCount = 0;
 
-        for (std::set<uint16_t>::iterator nodeIterator = _nodesRequestingJurisdictions.begin(); 
+        for (std::set<QUuid>::iterator nodeIterator = _nodesRequestingJurisdictions.begin();
             nodeIterator != _nodesRequestingJurisdictions.end(); nodeIterator++) {
 
-            uint16_t nodeID = *nodeIterator;
-            Node* node = NodeList::getInstance()->nodeWithID(nodeID);
+            QUuid nodeUUID = *nodeIterator;
+            Node* node = NodeList::getInstance()->nodeWithUUID(nodeUUID);
 
             if (node->getActiveSocket() != NULL) {
                 sockaddr* nodeAddress = node->getActiveSocket();
