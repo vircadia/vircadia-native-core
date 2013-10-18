@@ -265,16 +265,22 @@ bool UDPSocket::receive(sockaddr* recvAddress, void* receivedData, ssize_t* rece
 }
 
 int UDPSocket::send(sockaddr* destAddress, const void* data, size_t byteLength) const {
-    // send data via UDP
-    int sent_bytes = sendto(handle, (const char*)data, byteLength,
-                            0, (sockaddr *) destAddress, sizeof(sockaddr_in));
-    
-    if (sent_bytes != byteLength) {
-        qDebug("Failed to send packet: %s\n", strerror(errno));
-        return false;
+    if (destAddress) {
+        // send data via UDP
+        int sent_bytes = sendto(handle, (const char*)data, byteLength,
+                                0, (sockaddr *) destAddress, sizeof(sockaddr_in));
+        
+        if (sent_bytes != byteLength) {
+            qDebug("Failed to send packet: %s\n", strerror(errno));
+            return false;
+        }
+        
+        return sent_bytes;
+    } else {
+        qDebug("UDPSocket send called with NULL destination address - Likely a node with no active socket.\n");
+        return 0;
     }
     
-    return sent_bytes;
 }
 
 int UDPSocket::send(const char* destAddress, int destPort, const void* data, size_t byteLength) const {

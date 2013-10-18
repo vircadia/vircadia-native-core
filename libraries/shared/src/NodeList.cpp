@@ -151,7 +151,7 @@ void NodeList::processNodeData(sockaddr* senderAddress, unsigned char* packetDat
         }
         case PACKET_TYPE_PING_REPLY: {
             // activate the appropriate socket for this node, if not yet updated
-            activateSocketFromPingReply(senderAddress);
+            activateSocketFromNodeCommunication(senderAddress);
             
             // set the ping time for this node for stat collection
             timePingReply(senderAddress, packetData);
@@ -199,6 +199,7 @@ void NodeList::processBulkNodeData(sockaddr *senderAddress, unsigned char *packe
             }
             
             currentPosition += updateNodeWithData(matchingNode,
+                                                  NULL,
                                                   packetHolder,
                                                   numTotalBytes - (currentPosition - startPosition));
             
@@ -206,35 +207,32 @@ void NodeList::processBulkNodeData(sockaddr *senderAddress, unsigned char *packe
     }    
 }
 
-int NodeList::updateNodeWithData(sockaddr *senderAddress, unsigned char *packetData, size_t dataBytes) {
-    // find the node by the sockaddr
-    Node* matchingNode = nodeWithAddress(senderAddress);
-    
-    if (matchingNode) {
-        return updateNodeWithData(matchingNode, packetData, dataBytes);
-    } else {
-        return 0;
-    }
-}
-
-int NodeList::updateNodeWithData(Node *node, unsigned char *packetData, int dataBytes) {
+int NodeList::updateNodeWithData(Node *node, sockaddr* senderAddress, unsigned char *packetData, int dataBytes) {
     node->lock();
     
     node->setLastHeardMicrostamp(usecTimestampNow());
     
-    if (node->getActiveSocket()) {
+    if (senderAddress) {
+        activateSocketFromNodeCommunication(senderAddress);
+    }
+    
+    if (node->getActiveSocket() || !senderAddress) {
         node->recordBytesReceived(dataBytes);
+        
+        if (!node->getLinkedData() && linkedDataCreateCallback) {
+            linkedDataCreateCallback(node);
+        }
+        
+        int numParsedBytes = node->getLinkedData()->parseData(packetData, dataBytes);
+        
+        node->unlock();
+        
+        return numParsedBytes;
+    } else {
+        // we weren't able to match the sender address to the address we have for this node, unlock and don't parse
+        node->unlock();
+        return 0;
     }
-    
-    if (!node->getLinkedData() && linkedDataCreateCallback) {
-        linkedDataCreateCallback(node);
-    }
-    
-    int numParsedBytes = node->getLinkedData()->parseData(packetData, dataBytes);
-    
-    node->unlock();
-    
-    return numParsedBytes;
 }
 
 Node* NodeList::nodeWithAddress(sockaddr *senderAddress) {
@@ -601,7 +599,6 @@ void NodeList::pingPublicAndLocalSocketsForInactiveNode(Node* node) const {
     currentTime = usecTimestampNow();
     memcpy(pingPacket + numHeaderBytes, &currentTime, sizeof(currentTime));
     
-    qDebug() << "Attemping to ping" << *node << "\n";
     // send the ping packet to the local and public sockets for this node
     _nodeSocket.send(node->getLocalSocket(), pingPacket, sizeof(pingPacket));
     _nodeSocket.send(node->getPublicSocket(), pingPacket, sizeof(pingPacket));
@@ -672,7 +669,25 @@ unsigned NodeList::broadcastToNodes(unsigned char* broadcastData, size_t dataByt
     return n;
 }
 
-void NodeList::activateSocketFromPingReply(sockaddr *nodeAddress) {
+const uint64_t PING_INACTIVE_NODE_INTERVAL_USECS = 1 * 1000 * 1000;
+
+void NodeList::possiblyPingInactiveNodes() {
+    static timeval lastPing = {};
+    
+    // make sure PING_INACTIVE_NODE_INTERVAL_USECS has elapsed since last ping
+    if (usecTimestampNow() - usecTimestamp(&lastPing) >= PING_INACTIVE_NODE_INTERVAL_USECS) {
+        gettimeofday(&lastPing, NULL);
+        
+        for(NodeList::iterator node = begin(); node != end(); node++) {
+            if (!node->getActiveSocket()) {
+                // we don't have an active link to this node, ping it to set that up
+                pingPublicAndLocalSocketsForInactiveNode(&(*node));
+            }
+        }
+    }
+}
+
+void NodeList::activateSocketFromNodeCommunication(sockaddr *nodeAddress) {
     for(NodeList::iterator node = begin(); node != end(); node++) {
         if (!node->getActiveSocket()) {
             // check both the public and local addresses for each node to see if we find a match

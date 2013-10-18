@@ -97,6 +97,8 @@ void AvatarMixer::run() {
     NodeList* nodeList = NodeList::getInstance();
     nodeList->setOwnerType(NODE_TYPE_AVATAR_MIXER);
     
+    nodeList->setNodeTypesOfInterest(&NODE_TYPE_AGENT, 1);
+    
     nodeList->linkedDataCreateCallback = attachAvatarDataToNode;
     
     nodeList->startSilentNodeRemovalThread();
@@ -123,6 +125,8 @@ void AvatarMixer::run() {
             NodeList::getInstance()->sendDomainServerCheckIn();
         }
         
+        nodeList->possiblyPingInactiveNodes();
+        
         if (nodeList->getNodeSocket()->receive(&nodeAddress, packetData, &receivedBytes) &&
             packetVersionMatch(packetData)) {
             switch (packetData[0]) {
@@ -131,10 +135,14 @@ void AvatarMixer::run() {
                                                                    NUM_BYTES_RFC4122_UUID));
                     
                     // add or update the node in our list
-                    avatarNode = nodeList->addOrUpdateNode(nodeUUID, NODE_TYPE_AGENT, &nodeAddress, &nodeAddress);
+                    avatarNode = nodeList->nodeWithUUID(nodeUUID);
                     
-                    // parse positional data from an node
-                    nodeList->updateNodeWithData(avatarNode, packetData, receivedBytes);
+                    if (avatarNode) {
+                        // parse positional data from an node
+                        nodeList->updateNodeWithData(avatarNode, &nodeAddress, packetData, receivedBytes);
+                    } else {
+                        break;
+                    }
                 case PACKET_TYPE_INJECT_AUDIO:
                     broadcastAvatarData(nodeList, nodeUUID, &nodeAddress);
                     break;

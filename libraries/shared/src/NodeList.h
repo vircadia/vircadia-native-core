@@ -117,8 +117,7 @@ public:
     void processNodeData(sockaddr *senderAddress, unsigned char *packetData, size_t dataBytes);
     void processBulkNodeData(sockaddr *senderAddress, unsigned char *packetData, int numTotalBytes);
    
-    int updateNodeWithData(sockaddr *senderAddress, unsigned char *packetData, size_t dataBytes);
-    int updateNodeWithData(Node *node, unsigned char *packetData, int dataBytes);
+    int updateNodeWithData(Node *node, sockaddr* senderAddress, unsigned char *packetData, int dataBytes);
     
     unsigned broadcastToNodes(unsigned char *broadcastData, size_t dataBytes, const char* nodeTypes, int numNodeTypes);
     
@@ -140,6 +139,7 @@ public:
     void addDomainListener(DomainChangeListener* listener);
     void removeDomainListener(DomainChangeListener* listener);
     
+    void possiblyPingInactiveNodes();
 private:
     static NodeList* _sharedInstance;
     
@@ -172,7 +172,7 @@ private:
     uint16_t _publicPort;
     bool _shouldUseDomainServerAsSTUN;
     
-    void activateSocketFromPingReply(sockaddr *nodeAddress);
+    void activateSocketFromNodeCommunication(sockaddr *nodeAddress);
     void timePingReply(sockaddr *nodeAddress, unsigned char *packetData);
     
     std::vector<NodeListHook*> _hooks;
