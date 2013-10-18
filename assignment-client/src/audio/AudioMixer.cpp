@@ -340,7 +340,7 @@ void AudioMixer::run() {
                 }
                 
                 memcpy(clientPacket + numBytesPacketHeader, clientSamples, sizeof(clientSamples));
-                nodeList->getNodeSocket()->send(node->getPublicSocket(), clientPacket, sizeof(clientPacket));
+                nodeList->getNodeSocket()->send(node->getActiveSocket(), clientPacket, sizeof(clientPacket));
             }
         }
         
