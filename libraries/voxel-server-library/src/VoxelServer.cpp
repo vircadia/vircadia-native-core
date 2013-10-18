@@ -454,7 +454,7 @@ void VoxelServer::run() {
                 Node* node = nodeList->nodeWithUUID(nodeUUID);
                 
                 if (node) {
-                    NodeList::getInstance()->updateNodeWithData(node, &senderAddress, packetData, packetLength);
+                    nodeList->updateNodeWithData(node, &senderAddress, packetData, packetLength);
                     
                     VoxelNodeData* nodeData = (VoxelNodeData*) node->getLinkedData();
                     if (nodeData && !nodeData->isVoxelSendThreadInitalized()) {
