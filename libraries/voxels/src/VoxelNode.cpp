@@ -79,6 +79,7 @@ void VoxelNode::init(unsigned char * octalCode) {
     
     _unknownBufferIndex = true;
     setBufferIndex(GLBUFFER_INDEX_UNKNOWN);
+
     setVoxelSystem(NULL);
     _isDirty = true;
     _shouldRender = false;
@@ -146,7 +147,9 @@ std::map<uint8_t, VoxelSystem*> VoxelNode::_mapIndexToVoxelSystemPointers;
 VoxelSystem* VoxelNode::getVoxelSystem() const { 
     if (_voxelSystemIndex > INDEX_FOR_NULL) {
         if (_mapIndexToVoxelSystemPointers.end() != _mapIndexToVoxelSystemPointers.find(_voxelSystemIndex)) {
-            return _mapIndexToVoxelSystemPointers[_voxelSystemIndex]; 
+
+            VoxelSystem* voxelSystem = _mapIndexToVoxelSystemPointers[_voxelSystemIndex]; 
+            return voxelSystem;
         }
     }
     return NULL;

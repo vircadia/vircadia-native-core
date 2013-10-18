@@ -73,6 +73,7 @@ VoxelSystem::VoxelSystem(float treeScale, int maxVoxels)
     _writeRenderFullVBO = true;
     _readRenderFullVBO = true;
     _tree = new VoxelTree();
+
     _tree->rootNode->setVoxelSystem(this);
     pthread_mutex_init(&_bufferWriteLock, NULL);
     pthread_mutex_init(&_treeLock, NULL);
@@ -133,7 +134,7 @@ void VoxelSystem::voxelUpdated(VoxelNode* node) {
     }
 
     if (node->getVoxelSystem() == this) {
-        bool  shouldRender    = false; // assume we don't need to render it
+        bool shouldRender = false; // assume we don't need to render it
         // if it's colored, we might need to render it!
         shouldRender = node->calculateShouldRender(_viewFrustum);
 
