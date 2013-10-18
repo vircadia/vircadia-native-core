@@ -202,12 +202,12 @@ void DomainServer::civetwebUploadHandler(struct mg_connection *connection, const
     domainServerInstance->_assignmentQueueMutex.unlock();
 }
 
-void DomainServer::addDeletedAssignmentBackToQueue(Assignment* deletedAssignment) {
-    qDebug() << "Adding assignment" << *deletedAssignment << " back to queue.\n";
+void DomainServer::addReleasedAssignmentBackToQueue(Assignment* releasedAssignment) {
+    qDebug() << "Adding assignment" << *releasedAssignment << " back to queue.\n";
     
     // find this assignment in the static file
     for (int i = 0; i < MAX_STATIC_ASSIGNMENT_FILE_ASSIGNMENTS; i++) {
-        if (_staticAssignments[i].getUUID() == deletedAssignment->getUUID()) {
+        if (_staticAssignments[i].getUUID() == releasedAssignment->getUUID()) {
             // reset the UUID on the static assignment
             _staticAssignments[i].resetUUID();
             
@@ -232,7 +232,7 @@ void DomainServer::nodeKilled(Node* node) {
     if (node->getLinkedData()) {
         Assignment* nodeAssignment =  (Assignment*) node->getLinkedData();
         
-        addDeletedAssignmentBackToQueue(nodeAssignment);
+        addReleasedAssignmentBackToQueue(nodeAssignment);
     }
 }
 
