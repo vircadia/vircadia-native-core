@@ -2997,8 +2997,7 @@ void Application::displayStats() {
 
     voxelStats.str("");
     voxelStats << 
-        "Voxels Memory Nodes: " << VoxelNode::getVoxelMemoryUsage() / 1000000.f << "MB "
-        "Octcodes: " << VoxelNode::getOctcodeMemoryUsage() / 1000000.f << "MB "
+        "Voxels Memory Nodes: " << VoxelNode::getTotalMemoryUsage() / 1000000.f << "MB "
         "Geometry RAM: " << _voxels.getVoxelMemoryUsageRAM() / 1000000.f << "MB " <<
         "VBO: " << _voxels.getVoxelMemoryUsageVBO() / 1000000.f << "MB ";
     if (_voxels.hasVoxelMemoryUsageGPU()) {
