@@ -163,7 +163,7 @@ void AudioMixer::run() {
             
             const int PHASE_DELAY_AT_90 = 20;
             
-            if (node->getType() == NODE_TYPE_AGENT && node->getActiveSocket()) {
+            if (node->getType() == NODE_TYPE_AGENT && node->getActiveSocket() && node->getLinkedData()) {
                 AvatarAudioRingBuffer* nodeRingBuffer = (AvatarAudioRingBuffer*) node->getLinkedData();
                 
                 // zero out the client mix for this node
@@ -171,7 +171,8 @@ void AudioMixer::run() {
                 
                 // loop through all other nodes that have sufficient audio to mix
                 for (NodeList::iterator otherNode = nodeList->begin(); otherNode != nodeList->end(); otherNode++) {
-                    if (((PositionalAudioRingBuffer*) otherNode->getLinkedData())->willBeAddedToMix()
+                    if (otherNode->getLinkedData()
+                        && ((PositionalAudioRingBuffer*) otherNode->getLinkedData())->willBeAddedToMix()
                         && (otherNode != node || (otherNode == node && nodeRingBuffer->shouldLoopbackForNode()))) {
                         PositionalAudioRingBuffer* otherNodeBuffer = (PositionalAudioRingBuffer*) otherNode->getLinkedData();
                         // based on our listen mode we will do this mixing...
@@ -339,7 +340,7 @@ void AudioMixer::run() {
                 }
                 
                 memcpy(clientPacket + numBytesPacketHeader, clientSamples, sizeof(clientSamples));
-                nodeList->getNodeSocket()->send(node->getPublicSocket(), clientPacket, sizeof(clientPacket));
+                nodeList->getNodeSocket()->send(node->getActiveSocket(), clientPacket, sizeof(clientPacket));
             }
         }
         
