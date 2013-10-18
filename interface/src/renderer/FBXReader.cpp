@@ -793,7 +793,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                     model.postRotation = glm::mat4_cast(glm::quat(glm::radians(postRotation))) *
                         glm::translate(-rotationPivot) * glm::translate(scalePivot) *
                         glm::scale(scale) * glm::translate(-scalePivot);
-                    models.insert(object.properties.at(0).value<qint64>(), model);
+                    models.insert(object.properties.at(0).toString(), model);
 
                 } else if (object.name == "Texture") {
                     foreach (const FBXNode& subobject, object.children) {
