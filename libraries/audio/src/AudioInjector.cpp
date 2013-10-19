@@ -44,6 +44,7 @@ void AudioInjector::injectAudio(UDPSocket* injectorSocket, sockaddr* destination
         // calculate the number of bytes required for additional data
         int leadingBytes = numBytesForPacketHeader((unsigned char*) &PACKET_TYPE_INJECT_AUDIO)
             + NUM_BYTES_RFC4122_UUID
+            + NUM_BYTES_RFC4122_UUID
             + sizeof(_position)
             + sizeof(_orientation)
             + sizeof(_radius)
