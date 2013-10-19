@@ -830,7 +830,8 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                     materials.insert(object.properties.at(0).toString(), material);
                     
                 } else if (object.name == "Deformer") {
-                    if (object.properties.at(2) == "Cluster") {
+                    if ((object.properties.size() == 3 && object.properties.at(2) == "Cluster") ||
+                            (object.properties.size() == 2 && object.properties.at(1) == "Cluster")) {
                         Cluster cluster;
                         foreach (const FBXNode& subobject, object.children) {
                             if (subobject.name == "Indexes") {
