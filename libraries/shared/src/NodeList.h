@@ -167,11 +167,10 @@ private:
     pthread_t checkInWithDomainServerThread;
     int _numNoReplyDomainCheckIns;
     sockaddr* _assignmentServerSocket;
-    uchar* _checkInPacket;
-    int _numBytesCheckInPacket;
     QHostAddress _publicAddress;
     uint16_t _publicPort;
-    bool _shouldUseDomainServerAsSTUN;
+    bool _hasCompletedInitialSTUNFailure;
+    unsigned int _stunRequestsSinceSuccess;
     
     void activateSocketFromNodeCommunication(sockaddr *nodeAddress);
     void timePingReply(sockaddr *nodeAddress, unsigned char *packetData);
