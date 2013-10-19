@@ -522,6 +522,123 @@ void appendModelIDs(const QString& parentID, const QMultiHash<QString, QString>&
     }
 }
 
+FBXMesh extractMesh(const FBXNode& object) {
+    FBXMesh mesh;
+                    
+    QVector<int> polygonIndices;
+    QVector<glm::vec3> normals;
+    QVector<int> normalIndices;
+    QVector<glm::vec2> texCoords;
+    QVector<int> texCoordIndices;
+    QVector<int> materials;
+    foreach (const FBXNode& data, object.children) {
+        if (data.name == "Vertices") {
+            mesh.vertices = createVec3Vector(getDoubleVector(data.properties, 0));
+            
+        } else if (data.name == "PolygonVertexIndex") {
+            polygonIndices = getIntVector(data.properties, 0);
+        
+        } else if (data.name == "LayerElementNormal") {
+            bool byVertex = false;
+            foreach (const FBXNode& subdata, data.children) {
+                if (subdata.name == "Normals") {
+                    normals = createVec3Vector(getDoubleVector(subdata.properties, 0));
+                
+                } else if (subdata.name == "NormalsIndex") {
+                    normalIndices = getIntVector(subdata.properties, 0);
+                    
+                } else if (subdata.name == "MappingInformationType" &&
+                        subdata.properties.at(0) == "ByVertice") {
+                    byVertex = true;
+                }
+            }
+            if (byVertex) {
+                mesh.normals = normals;
+            }
+        } else if (data.name == "LayerElementUV" && data.properties.at(0).toInt() == 0) {
+            foreach (const FBXNode& subdata, data.children) {
+                if (subdata.name == "UV") {
+                    texCoords = createVec2Vector(getDoubleVector(subdata.properties, 0));
+                    
+                } else if (subdata.name == "UVIndex") {
+                    texCoordIndices = getIntVector(subdata.properties, 0);
+                }
+            }
+        } else if (data.name == "LayerElementMaterial") {
+            foreach (const FBXNode& subdata, data.children) {
+                if (subdata.name == "Materials") {
+                    materials = getIntVector(subdata.properties, 0);   
+                }
+            }
+        }
+    }
+    
+    // convert normals from per-index to per-vertex if necessary
+    if (mesh.normals.isEmpty()) {
+        mesh.normals.resize(mesh.vertices.size());
+        if (normalIndices.isEmpty()) {
+            for (int i = 0, n = polygonIndices.size(); i < n; i++) {
+                int index = polygonIndices.at(i);
+                mesh.normals[index < 0 ? (-index - 1) : index] = normals.at(i);
+            } 
+        } else {
+            for (int i = 0, n = polygonIndices.size(); i < n; i++) {
+                int index = polygonIndices.at(i);
+                int normalIndex = normalIndices.at(i);
+                if (normalIndex >= 0) {
+                    mesh.normals[index < 0 ? (-index - 1) : index] = normals.at(normalIndex);
+                }
+            } 
+        }
+    }
+    
+    // same with the tex coords
+    if (!texCoordIndices.isEmpty()) {
+        mesh.texCoords.resize(mesh.vertices.size());
+        for (int i = 0, n = polygonIndices.size(); i < n; i++) {
+            int index = polygonIndices.at(i);
+            int texCoordIndex = texCoordIndices.at(i);
+            if (texCoordIndex >= 0) {
+                mesh.texCoords[index < 0 ? (-index - 1) : index] = texCoords.at(texCoordIndex); 
+            }
+        } 
+    }
+    
+    // convert the polygons to quads and triangles
+    int polygonIndex = 0;
+    for (const int* beginIndex = polygonIndices.constData(), *end = beginIndex + polygonIndices.size();
+            beginIndex != end; polygonIndex++) {
+        const int* endIndex = beginIndex;
+        while (*endIndex++ >= 0);
+        
+        int materialIndex = (polygonIndex < materials.size()) ? materials.at(polygonIndex) : 0;
+        mesh.parts.resize(max(mesh.parts.size(), materialIndex + 1));
+        FBXMeshPart& part = mesh.parts[materialIndex];
+        
+        if (endIndex - beginIndex == 4) {
+            part.quadIndices.append(*beginIndex++);
+            part.quadIndices.append(*beginIndex++);
+            part.quadIndices.append(*beginIndex++);
+            part.quadIndices.append(-*beginIndex++ - 1);
+            
+        } else {
+            for (const int* nextIndex = beginIndex + 1;; ) {
+                part.triangleIndices.append(*beginIndex);
+                part.triangleIndices.append(*nextIndex++);
+                if (*nextIndex >= 0) {
+                    part.triangleIndices.append(*nextIndex);
+                } else {
+                    part.triangleIndices.append(-*nextIndex - 1);
+                    break;
+                }
+            }
+            beginIndex = endIndex;
+        }
+    }
+    
+    return mesh;
+}
+
 FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping) {
     QHash<QString, FBXMesh> meshes;
     QVector<ExtractedBlendshape> blendshapes;
@@ -567,119 +684,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
             foreach (const FBXNode& object, child.children) {    
                 if (object.name == "Geometry") {
                     if (object.properties.at(2) == "Mesh") {
-                        FBXMesh mesh;
-                    
-                        QVector<int> polygonIndices;
-                        QVector<glm::vec3> normals;
-                        QVector<int> normalIndices;
-                        QVector<glm::vec2> texCoords;
-                        QVector<int> texCoordIndices;
-                        QVector<int> materials;
-                        foreach (const FBXNode& data, object.children) {
-                            if (data.name == "Vertices") {
-                                mesh.vertices = createVec3Vector(getDoubleVector(data.properties, 0));
-                                
-                            } else if (data.name == "PolygonVertexIndex") {
-                                polygonIndices = getIntVector(data.properties, 0);
-                            
-                            } else if (data.name == "LayerElementNormal") {
-                                bool byVertex = false;
-                                foreach (const FBXNode& subdata, data.children) {
-                                    if (subdata.name == "Normals") {
-                                        normals = createVec3Vector(getDoubleVector(subdata.properties, 0));
-                                    
-                                    } else if (subdata.name == "NormalsIndex") {
-                                        normalIndices = getIntVector(subdata.properties, 0);
-                                        
-                                    } else if (subdata.name == "MappingInformationType" &&
-                                            subdata.properties.at(0) == "ByVertice") {
-                                        byVertex = true;
-                                    }
-                                }
-                                if (byVertex) {
-                                    mesh.normals = normals;
-                                }
-                            } else if (data.name == "LayerElementUV" && data.properties.at(0).toInt() == 0) {
-                                foreach (const FBXNode& subdata, data.children) {
-                                    if (subdata.name == "UV") {
-                                        texCoords = createVec2Vector(getDoubleVector(subdata.properties, 0));
-                                        
-                                    } else if (subdata.name == "UVIndex") {
-                                        texCoordIndices = getIntVector(subdata.properties, 0);
-                                    }
-                                }
-                            } else if (data.name == "LayerElementMaterial") {
-                                foreach (const FBXNode& subdata, data.children) {
-                                    if (subdata.name == "Materials") {
-                                        materials = getIntVector(subdata.properties, 0);   
-                                    }
-                                }
-                            }
-                        }
-                        
-                        // convert normals from per-index to per-vertex if necessary
-                        if (mesh.normals.isEmpty()) {
-                            mesh.normals.resize(mesh.vertices.size());
-                            if (normalIndices.isEmpty()) {
-                                for (int i = 0, n = polygonIndices.size(); i < n; i++) {
-                                    int index = polygonIndices.at(i);
-                                    mesh.normals[index < 0 ? (-index - 1) : index] = normals.at(i);
-                                } 
-                            } else {
-                                for (int i = 0, n = polygonIndices.size(); i < n; i++) {
-                                    int index = polygonIndices.at(i);
-                                    int normalIndex = normalIndices.at(i);
-                                    if (normalIndex >= 0) {
-                                        mesh.normals[index < 0 ? (-index - 1) : index] = normals.at(normalIndex);
-                                    }
-                                } 
-                            }
-                        }
-                        
-                        // same with the tex coords
-                        if (!texCoordIndices.isEmpty()) {
-                            mesh.texCoords.resize(mesh.vertices.size());
-                            for (int i = 0, n = polygonIndices.size(); i < n; i++) {
-                                int index = polygonIndices.at(i);
-                                int texCoordIndex = texCoordIndices.at(i);
-                                if (texCoordIndex >= 0) {
-                                    mesh.texCoords[index < 0 ? (-index - 1) : index] = texCoords.at(texCoordIndex); 
-                                }
-                            } 
-                        }
-                        
-                        // convert the polygons to quads and triangles
-                        int polygonIndex = 0;
-                        for (const int* beginIndex = polygonIndices.constData(), *end = beginIndex + polygonIndices.size();
-                                beginIndex != end; polygonIndex++) {
-                            const int* endIndex = beginIndex;
-                            while (*endIndex++ >= 0);
-                            
-                            int materialIndex = (polygonIndex < materials.size()) ? materials.at(polygonIndex) : 0;
-                            mesh.parts.resize(max(mesh.parts.size(), materialIndex + 1));
-                            FBXMeshPart& part = mesh.parts[materialIndex];
-                            
-                            if (endIndex - beginIndex == 4) {
-                                part.quadIndices.append(*beginIndex++);
-                                part.quadIndices.append(*beginIndex++);
-                                part.quadIndices.append(*beginIndex++);
-                                part.quadIndices.append(-*beginIndex++ - 1);
-                                
-                            } else {
-                                for (const int* nextIndex = beginIndex + 1;; ) {
-                                    part.triangleIndices.append(*beginIndex);
-                                    part.triangleIndices.append(*nextIndex++);
-                                    if (*nextIndex >= 0) {
-                                        part.triangleIndices.append(*nextIndex);
-                                    } else {
-                                        part.triangleIndices.append(-*nextIndex - 1);
-                                        break;
-                                    }
-                                }
-                                beginIndex = endIndex;
-                            }
-                        }
-                        meshes.insert(object.properties.at(0).toString(), mesh);
+                        meshes.insert(object.properties.at(0).toString(), extractMesh(object));
                         
                     } else { // object.properties.at(2) == "Shape"
                         ExtractedBlendshape extracted = { object.properties.at(0).toString() };
@@ -809,6 +814,9 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                                     }
                                 }
                             }
+                        } else if (subobject.name == "Vertices") {
+                            // it's a mesh as well as a model
+                            meshes.insert(object.properties.at(0).toString(), extractMesh(object));
                         }
                     }
                     // see FBX documentation, http://download.autodesk.com/us/fbx/20112/FBX_SDK_HELP/index.html
@@ -986,7 +994,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         FBXMesh& mesh = it.value();
         
         // accumulate local transforms
-        QString modelID = parentMap.value(it.key());
+        QString modelID = models.contains(it.key()) ? it.key() : parentMap.value(it.key());
         mesh.springiness = springs.value(models.value(modelID).name, defaultSpring).toFloat();
         glm::mat4 modelTransform = getGlobalTransform(parentMap, models, modelID);
         
