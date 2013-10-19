@@ -446,11 +446,11 @@ class FBXModel {
 public:
     QByteArray name;
     
+    int parentIndex;
+    
     glm::mat4 preRotation;
     glm::quat rotation;
     glm::mat4 postRotation;
-    
-    int parentIndex;
 };
 
 glm::mat4 getGlobalTransform(const QMultiHash<QString, QString>& parentMap,
@@ -513,8 +513,11 @@ void appendModelIDs(const QString& parentID, const QMultiHash<QString, QString>&
     int parentIndex = modelIDs.size() - 1;
     foreach (const QString& childID, childMap.values(parentID)) {
         if (models.contains(childID)) {
-            models[childID].parentIndex = parentIndex;
-            appendModelIDs(childID, childMap, models, modelIDs);
+            FBXModel& model = models[childID];
+            if (model.parentIndex == -1) {
+                model.parentIndex = parentIndex;
+                appendModelIDs(childID, childMap, models, modelIDs);
+            }
         }
     }
 }
@@ -714,7 +717,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                     glm::vec3 preRotation, rotation, postRotation;
                     glm::vec3 scale = glm::vec3(1.0f, 1.0f, 1.0f);
                     glm::vec3 scalePivot, rotationPivot;
-                    FBXModel model = { name };
+                    FBXModel model = { name, -1 };
                     foreach (const FBXNode& subobject, object.children) {
                         if (subobject.name == "Properties60") {
                             foreach (const FBXNode& property, subobject.children) {
