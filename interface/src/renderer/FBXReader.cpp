@@ -830,8 +830,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                     materials.insert(object.properties.at(0).toString(), material);
                     
                 } else if (object.name == "Deformer") {
-                    if ((object.properties.size() == 3 && object.properties.at(2) == "Cluster") ||
-                            (object.properties.size() == 2 && object.properties.at(1) == "Cluster")) {
+                    if (object.properties.last() == "Cluster") {
                         Cluster cluster;
                         foreach (const FBXNode& subobject, object.children) {
                             if (subobject.name == "Indexes") {
@@ -847,7 +846,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                         }
                         clusters.insert(object.properties.at(0).toString(), cluster);
                         
-                    } else if (object.properties.at(2) == "BlendShapeChannel") {
+                    } else if (object.properties.last() == "BlendShapeChannel") {
                         QByteArray name = object.properties.at(1).toByteArray();
                         name = name.left(name.indexOf('\0'));
                         if (!blendshapeIndices.contains(name)) {
