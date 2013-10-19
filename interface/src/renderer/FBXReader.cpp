@@ -420,7 +420,7 @@ const char* FACESHIFT_BLENDSHAPES[] = {
     ""
 };
 
-class Model {
+class FBXModel {
 public:
     QByteArray name;
     
@@ -432,10 +432,10 @@ public:
 };
 
 glm::mat4 getGlobalTransform(const QMultiHash<QString, QString>& parentMap,
-        const QHash<QString, Model>& models, QString nodeID) {
+        const QHash<QString, FBXModel>& models, QString nodeID) {
     glm::mat4 globalTransform;
     while (!nodeID.isNull()) {
-        const Model& model = models.value(nodeID);
+        const FBXModel& model = models.value(nodeID);
         globalTransform = model.preRotation * glm::mat4_cast(model.rotation) * model.postRotation * globalTransform;
         
         QList<QString> parentIDs = parentMap.values(nodeID);
@@ -484,7 +484,7 @@ public:
 };
 
 void appendModelIDs(const QString& parentID, const QMultiHash<QString, QString>& childMap,
-        QHash<QString, Model>& models, QVector<QString>& modelIDs) {
+        QHash<QString, FBXModel>& models, QVector<QString>& modelIDs) {
     if (models.contains(parentID)) {
         modelIDs.append(parentID);
     }
@@ -502,7 +502,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     QVector<ExtractedBlendshape> blendshapes;
     QMultiHash<QString, QString> parentMap;
     QMultiHash<QString, QString> childMap;
-    QHash<QString, Model> models;
+    QHash<QString, FBXModel> models;
     QHash<QString, Cluster> clusters;
     QHash<QString, QByteArray> textureFilenames;
     QHash<QString, Material> materials;
@@ -692,7 +692,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                     glm::vec3 preRotation, rotation, postRotation;
                     glm::vec3 scale = glm::vec3(1.0f, 1.0f, 1.0f);
                     glm::vec3 scalePivot, rotationPivot;
-                    Model model = { name };
+                    FBXModel model = { name };
                     foreach (const FBXNode& subobject, object.children) {
                         if (subobject.name == "Properties60") {
                             foreach (const FBXNode& property, subobject.children) {
@@ -927,7 +927,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     
     // convert the models to joints
     foreach (const QString& modelID, modelIDs) {
-        const Model& model = models[modelID];
+        const FBXModel& model = models[modelID];
         FBXJoint joint;
         joint.parentIndex = model.parentIndex;
         joint.preRotation = model.preRotation;

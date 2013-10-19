@@ -18,11 +18,11 @@
 #include "AvatarTouch.h"
 #include "AvatarVoxelSystem.h"
 #include "Balls.h"
-#include "Body.h"
 #include "Hand.h"
 #include "Head.h"
 #include "InterfaceConfig.h"
 #include "Skeleton.h"
+#include "SkeletonModel.h"
 #include "world.h"
 #include "devices/SerialInterface.h"
 #include "devices/Transmitter.h"
@@ -147,12 +147,12 @@ public:
     //getters
     bool isInitialized() const { return _initialized; }
     const Skeleton& getSkeleton() const { return _skeleton; }
+    SkeletonModel& getSkeletonModel() { return _skeletonModel; }
     float getHeadYawRate() const { return _head.yawRate; }
     const glm::vec3& getHeadJointPosition() const { return _skeleton.joint[ AVATAR_JOINT_HEAD_BASE ].position; }
     float getScale() const { return _scale; }
     const glm::vec3& getVelocity() const { return _velocity; }
     Head& getHead() { return _head; }
-    Body& getBody() { return _body; }
     Hand& getHand() { return _hand; }
     glm::quat getOrientation() const;
     glm::quat getWorldAlignedOrientation() const;
@@ -198,9 +198,9 @@ protected:
     };
 
     Head _head;
-    Body _body;
     Hand _hand;
     Skeleton _skeleton;
+    SkeletonModel _skeletonModel;
     bool _ballSpringsInitialized;
     float _bodyYawDelta;
     glm::vec3 _movedHandOffset;

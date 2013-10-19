@@ -44,17 +44,15 @@ void Profile::setUUID(const QUuid& uuid) {
 void Profile::setFaceModelURL(const QUrl& faceModelURL) {
     _faceModelURL = faceModelURL;
     
-    QMetaObject::invokeMethod(&Application::getInstance()->getAvatar()->getHead().getBlendFace(),
-                              "setModelURL",
-                              Q_ARG(QUrl, _faceModelURL));
+    QMetaObject::invokeMethod(&Application::getInstance()->getAvatar()->getHead().getFaceModel(),
+        "setURL", Q_ARG(QUrl, _faceModelURL));
 }
 
 void Profile::setSkeletonModelURL(const QUrl& skeletonModelURL) {
     _skeletonModelURL = skeletonModelURL;
     
-    QMetaObject::invokeMethod(&Application::getInstance()->getAvatar()->getBody(),
-                              "setSkeletonModelURL",
-                              Q_ARG(QUrl, _skeletonModelURL));
+    QMetaObject::invokeMethod(&Application::getInstance()->getAvatar()->getSkeletonModel(),
+        "setURL", Q_ARG(QUrl, _skeletonModelURL));
 }
 
 void Profile::updateDomain(const QString& domain) {

@@ -141,9 +141,8 @@ void DataServerClient::processSendFromDataServer(unsigned char* packetData, int 
                             Avatar* avatar = (Avatar *) node->getLinkedData();
                             
                             if (avatar->getUUID() == userUUID) {
-                                QMetaObject::invokeMethod(&avatar->getHead().getBlendFace(),
-                                                          "setModelURL",
-                                                          Q_ARG(QUrl, QUrl(valueList[0])));
+                                QMetaObject::invokeMethod(&avatar->getHead().getFaceModel(),
+                                    "setURL", Q_ARG(QUrl, QUrl(valueList[0])));
                             }
                         }
                     }
@@ -161,9 +160,8 @@ void DataServerClient::processSendFromDataServer(unsigned char* packetData, int 
                             Avatar* avatar = (Avatar *) node->getLinkedData();
                             
                             if (avatar->getUUID() == userUUID) {
-                                QMetaObject::invokeMethod(&avatar->getBody(),
-                                                          "setSkeletonModelURL",
-                                                          Q_ARG(QUrl, QUrl(valueList[0])));
+                                QMetaObject::invokeMethod(&avatar->getSkeletonModel(), "setURL",
+                                    Q_ARG(QUrl, QUrl(valueList[0])));
                             }
                         }
                     }

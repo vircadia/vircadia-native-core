@@ -78,8 +78,8 @@ void Avatar::sendAvatarURLsMessage(const QUrl& voxelURL) {
 Avatar::Avatar(Node* owningNode) :
     AvatarData(owningNode),
     _head(this),
-    _body(this),
     _hand(this),
+    _skeletonModel(this),
     _ballSpringsInitialized(false),
     _bodyYawDelta(0.0f),
     _movedHandOffset(0.0f, 0.0f, 0.0f),
@@ -261,6 +261,7 @@ Avatar::~Avatar() {
 void Avatar::init() {
     _head.init();
     _hand.init();
+    _skeletonModel.init();
     _voxels.init();
     _initialized = true;
 }
@@ -415,7 +416,7 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     _head.setPosition(_bodyBall[ BODY_BALL_HEAD_BASE ].position);
     _head.setSkinColor(glm::vec3(SKIN_COLOR[0], SKIN_COLOR[1], SKIN_COLOR[2]));
     _head.simulate(deltaTime, false);
-    _body.simulate(deltaTime);
+    _skeletonModel.simulate(deltaTime);
     _hand.simulate(deltaTime, false);
 
     // use speed and angular velocity to determine walking vs. standing
@@ -744,18 +745,18 @@ float Avatar::getBallRenderAlpha(int ball, bool lookingInMirror) const {
 
 void Avatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
 
-    if (_head.getFace().isFullFrame()) {
+    if (_head.getVideoFace().isFullFrame()) {
         //  Render the full-frame video
         float alpha = getBallRenderAlpha(BODY_BALL_HEAD_BASE, lookingInMirror);
         if (alpha > 0.0f) {
-            _head.getFace().render(1.0f);
+            _head.getVideoFace().render(1.0f);
         }
-    } else if (renderAvatarBalls || !(_voxels.getVoxelURL().isValid() || _body.isActive())) {
+    } else if (renderAvatarBalls || !(_voxels.getVoxelURL().isValid() || _skeletonModel.isActive())) {
         //  Render the body as balls and cones
         glm::vec3 skinColor(SKIN_COLOR[0], SKIN_COLOR[1], SKIN_COLOR[2]);
         glm::vec3 darkSkinColor(DARK_SKIN_COLOR[0], DARK_SKIN_COLOR[1], DARK_SKIN_COLOR[2]);
-        if (_head.getBlendFace().isActive()) {
-            skinColor = glm::vec3(_head.getBlendFace().computeAverageColor());
+        if (_head.getFaceModel().isActive()) {
+            skinColor = glm::vec3(_head.getFaceModel().computeAverageColor());
             const float SKIN_DARKENING = 0.9f;
             darkSkinColor = skinColor * SKIN_DARKENING;
         }
@@ -780,7 +781,7 @@ void Avatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
                     skinColor.g - _bodyBall[b].touchForce * 0.2f,
                     skinColor.b - _bodyBall[b].touchForce * 0.1f);
                 
-                if (b == BODY_BALL_NECK_BASE && _head.getBlendFace().isActive()) {
+                if (b == BODY_BALL_NECK_BASE && _head.getFaceModel().isActive()) {
                     continue; // don't render the neck if we have a face model
                 }
                 
@@ -815,7 +816,7 @@ void Avatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
         //  Render the body's voxels and head
         float alpha = getBallRenderAlpha(BODY_BALL_HEAD_BASE, lookingInMirror);
         if (alpha > 0.0f) {
-            if (!_body.render(alpha)) {
+            if (!_skeletonModel.render(alpha)) {
                 _voxels.render(false);
             }
             _head.render(alpha, false);

@@ -1,13 +1,13 @@
 //
-//  Face.h
+//  VideoFace.h
 //  interface
 //
 //  Created by Andrzej Kapolka on 7/11/13.
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
-#ifndef __interface__Face__
-#define __interface__Face__
+#ifndef __interface__VideoFace__
+#define __interface__VideoFace__
 
 #include <QObject>
 
@@ -22,13 +22,13 @@ class ProgramObject;
 
 const float FULL_FRAME_ASPECT = 0.0f;
 
-class Face : public QObject {
+class VideoFace : public QObject {
     Q_OBJECT
     
 public:
     
-    Face(Head* owningHead);
-    ~Face();
+    VideoFace(Head* owningHead);
+    ~VideoFace();
 
     bool isActive() const { return _colorTextureID != 0 || _depthTextureID != 0; }
     bool isFullFrame() const { return isActive() && _aspectRatio == FULL_FRAME_ASPECT; }
@@ -91,4 +91,4 @@ private:
     static GLuint _iboID;
 };
 
-#endif /* defined(__interface__Face__) */
+#endif /* defined(__interface__VideoFace__) */

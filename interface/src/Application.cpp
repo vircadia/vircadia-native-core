@@ -363,10 +363,10 @@ void Application::paintGL() {
     if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         _myCamera.setTightness     (100.0f); 
         glm::vec3 targetPosition = _myAvatar.getUprightHeadPosition();
-        if (_myAvatar.getHead().getBlendFace().isActive()) {
+        if (_myAvatar.getHead().getFaceModel().isActive()) {
             // make sure we're aligned to the blend face eyes
             glm::vec3 leftEyePosition, rightEyePosition;
-            if (_myAvatar.getHead().getBlendFace().getEyePositions(leftEyePosition, rightEyePosition, true)) {
+            if (_myAvatar.getHead().getFaceModel().getEyePositions(leftEyePosition, rightEyePosition)) {
                 targetPosition = (leftEyePosition + rightEyePosition) * 0.5f;
             }
         }
@@ -1332,7 +1332,7 @@ void Application::processAvatarFaceVideoMessage(unsigned char* packetData, size_
     if (!avatar) {
         return;
     }
-    avatar->getHead().getFace().processVideoMessage(packetData, dataBytes);
+    avatar->getHead().getVideoFace().processVideoMessage(packetData, dataBytes);
 }
 
 void Application::checkBandwidthMeterClick() {

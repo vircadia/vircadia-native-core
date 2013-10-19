@@ -322,7 +322,7 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter) {
     _head.setScale(_scale);
     _head.setSkinColor(glm::vec3(SKIN_COLOR[0], SKIN_COLOR[1], SKIN_COLOR[2]));
     _head.simulate(deltaTime, true);
-    _body.simulate(deltaTime);
+    _skeletonModel.simulate(deltaTime);
     _hand.simulate(deltaTime, true);
 
     const float WALKING_SPEED_THRESHOLD = 0.2f;
@@ -391,7 +391,7 @@ void MyAvatar::updateFromGyrosAndOrWebcam(float pitchFromTouch, bool turnWithHea
             _head.setMousePitch(pitchFromTouch);
             _head.setPitch(pitchFromTouch);
         }
-        _head.getFace().clearFrame();
+        _head.getVideoFace().clearFrame();
         
         // restore rotation, lean to neutral positions
         const float RESTORE_RATE = 0.05f;
@@ -407,7 +407,7 @@ void MyAvatar::updateFromGyrosAndOrWebcam(float pitchFromTouch, bool turnWithHea
         estimatedPosition = webcam->getEstimatedPosition();
         
         // apply face data
-        _head.getFace().setFrameFromWebcam();
+        _head.getVideoFace().setFrameFromWebcam();
         
         // compute and store the joint rotations
         const JointVector& joints = webcam->getEstimatedJoints();
@@ -424,7 +424,7 @@ void MyAvatar::updateFromGyrosAndOrWebcam(float pitchFromTouch, bool turnWithHea
             }
         }
     } else {
-        _head.getFace().clearFrame();
+        _head.getVideoFace().clearFrame();
     }
     
     // Set the rotation of the avatar's head (as seen by others, not affecting view frustum)
@@ -605,18 +605,18 @@ void MyAvatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
         return;
     }
     
-    if (_head.getFace().isFullFrame()) {
+    if (_head.getVideoFace().isFullFrame()) {
         //  Render the full-frame video
         float alpha = getBallRenderAlpha(BODY_BALL_HEAD_BASE, lookingInMirror);
         if (alpha > 0.0f) {
-            _head.getFace().render(1.0f);
+            _head.getVideoFace().render(1.0f);
         }
-    } else if (renderAvatarBalls || !(_voxels.getVoxelURL().isValid() || _body.isActive())) {
+    } else if (renderAvatarBalls || !(_voxels.getVoxelURL().isValid() || _skeletonModel.isActive())) {
         //  Render the body as balls and cones
         glm::vec3 skinColor(SKIN_COLOR[0], SKIN_COLOR[1], SKIN_COLOR[2]);
         glm::vec3 darkSkinColor(DARK_SKIN_COLOR[0], DARK_SKIN_COLOR[1], DARK_SKIN_COLOR[2]);
-        if (_head.getBlendFace().isActive()) {
-            skinColor = glm::vec3(_head.getBlendFace().computeAverageColor());
+        if (_head.getFaceModel().isActive()) {
+            skinColor = glm::vec3(_head.getFaceModel().computeAverageColor());
             const float SKIN_DARKENING = 0.9f;
             darkSkinColor = skinColor * SKIN_DARKENING;
         }
@@ -650,7 +650,7 @@ void MyAvatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
                         alpha);
                 }
                 
-                if (b == BODY_BALL_NECK_BASE && _head.getBlendFace().isActive()) {
+                if (b == BODY_BALL_NECK_BASE && _head.getFaceModel().isActive()) {
                     continue; // don't render the neck if we have a face model
                 }
                 
@@ -686,7 +686,7 @@ void MyAvatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
         //  Render the body's voxels and head
         float alpha = getBallRenderAlpha(BODY_BALL_HEAD_BASE, lookingInMirror);
         if (alpha > 0.0f) {
-            if (!_body.render(alpha)) {
+            if (!_skeletonModel.render(alpha)) {
                 _voxels.render(false);
             }
             _head.render(alpha, true);

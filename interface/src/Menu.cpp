@@ -297,7 +297,7 @@ Menu::Menu() :
     addActionToQMenuAndActionHash(avatarOptionsMenu,
                                   MenuOption::FaceMode,
                                   0,
-                                  &appInstance->getAvatar()->getHead().getFace(),
+                                  &appInstance->getAvatar()->getHead().getVideoFace(),
                                   SLOT(cycleRenderMode()));
     
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::LookAtVectors, 0, true);
