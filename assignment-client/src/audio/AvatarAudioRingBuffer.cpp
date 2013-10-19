@@ -11,6 +11,7 @@
 #include "AvatarAudioRingBuffer.h"
 
 AvatarAudioRingBuffer::AvatarAudioRingBuffer() :
+    PositionalAudioRingBuffer(PositionalAudioRingBuffer::Microphone),
     _twoPoles(),
     _shouldLoopbackForNode(false) {
     

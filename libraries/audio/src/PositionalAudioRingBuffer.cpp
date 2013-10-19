@@ -14,8 +14,9 @@
 
 #include "PositionalAudioRingBuffer.h"
 
-PositionalAudioRingBuffer::PositionalAudioRingBuffer() :
+PositionalAudioRingBuffer::PositionalAudioRingBuffer(PositionalAudioRingBuffer::Type type) :
     AudioRingBuffer(false),
+    _type(type),
     _position(0.0f, 0.0f, 0.0f),
     _orientation(0.0f, 0.0f, 0.0f, 0.0f),
     _willBeAddedToMix(false)

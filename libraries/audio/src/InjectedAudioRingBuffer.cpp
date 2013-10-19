@@ -13,7 +13,9 @@
 
 #include "InjectedAudioRingBuffer.h"
 
-InjectedAudioRingBuffer::InjectedAudioRingBuffer() :
+InjectedAudioRingBuffer::InjectedAudioRingBuffer(const QUuid& streamIdentifier) :
+    PositionalAudioRingBuffer(PositionalAudioRingBuffer::Microphone),
+    _streamIdentifier(streamIdentifier),
     _radius(0.0f),
     _attenuationRatio(0)
 {

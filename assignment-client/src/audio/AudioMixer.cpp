@@ -42,7 +42,7 @@
 #include <UUID.h>
 
 #include "AudioRingBuffer.h"
-
+#include "AudioMixerClientData.h"
 #include "AvatarAudioRingBuffer.h"
 #include "InjectedAudioRingBuffer.h"
 
@@ -62,11 +62,7 @@ const char AUDIO_MIXER_LOGGING_TARGET_NAME[] = "audio-mixer";
 
 void attachNewBufferToNode(Node *newNode) {
     if (!newNode->getLinkedData()) {
-        if (newNode->getType() == NODE_TYPE_AGENT) {
-            newNode->setLinkedData(new AvatarAudioRingBuffer());
-        } else {
-            newNode->setLinkedData(new InjectedAudioRingBuffer());
-        }
+        newNode->setLinkedData(new AudioMixerClientData());
     }
 }
 
