@@ -368,6 +368,28 @@ glm::mat4 createMat4(const QVector<double>& doubleVector) {
         doubleVector.at(12), doubleVector.at(13), doubleVector.at(14), doubleVector.at(15));
 }
 
+QVector<int> getIntVector(const QVariantList& properties, int index) {
+    QVector<int> vector = properties.at(index).value<QVector<int> >();
+    if (!vector.isEmpty()) {
+        return vector;
+    }
+    for (; index < properties.size(); index++) {
+        vector.append(properties.at(index).toInt());
+    }
+    return vector;
+}
+
+QVector<double> getDoubleVector(const QVariantList& properties, int index) {
+    QVector<double> vector = properties.at(index).value<QVector<double> >();
+    if (!vector.isEmpty()) {
+        return vector;
+    }
+    for (; index < properties.size(); index++) {
+        vector.append(properties.at(index).toDouble());
+    }
+    return vector;
+}
+
 const char* FACESHIFT_BLENDSHAPES[] = {
     "EyeBlink_L",
     "EyeBlink_R",
@@ -552,19 +574,19 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                         QVector<int> materials;
                         foreach (const FBXNode& data, object.children) {
                             if (data.name == "Vertices") {
-                                mesh.vertices = createVec3Vector(data.properties.at(0).value<QVector<double> >());
+                                mesh.vertices = createVec3Vector(getDoubleVector(data.properties, 0));
                                 
                             } else if (data.name == "PolygonVertexIndex") {
-                                polygonIndices = data.properties.at(0).value<QVector<int> >();
+                                polygonIndices = getIntVector(data.properties, 0);
                             
                             } else if (data.name == "LayerElementNormal") {
                                 bool byVertex = false;
                                 foreach (const FBXNode& subdata, data.children) {
                                     if (subdata.name == "Normals") {
-                                        normals = createVec3Vector(subdata.properties.at(0).value<QVector<double> >());
+                                        normals = createVec3Vector(getDoubleVector(subdata.properties, 0));
                                     
                                     } else if (subdata.name == "NormalsIndex") {
-                                        normalIndices = subdata.properties.at(0).value<QVector<int> >();
+                                        normalIndices = getIntVector(subdata.properties, 0);
                                         
                                     } else if (subdata.name == "MappingInformationType" &&
                                             subdata.properties.at(0) == "ByVertice") {
@@ -577,16 +599,16 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                             } else if (data.name == "LayerElementUV" && data.properties.at(0).toInt() == 0) {
                                 foreach (const FBXNode& subdata, data.children) {
                                     if (subdata.name == "UV") {
-                                        texCoords = createVec2Vector(subdata.properties.at(0).value<QVector<double> >());
+                                        texCoords = createVec2Vector(getDoubleVector(subdata.properties, 0));
                                         
                                     } else if (subdata.name == "UVIndex") {
-                                        texCoordIndices = subdata.properties.at(0).value<QVector<int> >();
+                                        texCoordIndices = getIntVector(subdata.properties, 0);
                                     }
                                 }
                             } else if (data.name == "LayerElementMaterial") {
                                 foreach (const FBXNode& subdata, data.children) {
                                     if (subdata.name == "Materials") {
-                                        materials = subdata.properties.at(0).value<QVector<int> >();   
+                                        materials = getIntVector(subdata.properties, 0);   
                                     }
                                 }
                             }
@@ -661,15 +683,15 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                         
                         foreach (const FBXNode& data, object.children) {
                             if (data.name == "Indexes") {
-                                extracted.blendshape.indices = data.properties.at(0).value<QVector<int> >();
+                                extracted.blendshape.indices = getIntVector(data.properties, 0);
                                 
                             } else if (data.name == "Vertices") {
                                 extracted.blendshape.vertices = createVec3Vector(
-                                    data.properties.at(0).value<QVector<double> >());
+                                    getDoubleVector(data.properties, 0));
                                 
                             } else if (data.name == "Normals") {
                                 extracted.blendshape.normals = createVec3Vector(
-                                    data.properties.at(0).value<QVector<double> >());
+                                    getDoubleVector(data.properties, 0));
                             }
                         }
                         
@@ -834,13 +856,13 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                         Cluster cluster;
                         foreach (const FBXNode& subobject, object.children) {
                             if (subobject.name == "Indexes") {
-                                cluster.indices = subobject.properties.at(0).value<QVector<int> >();
+                                cluster.indices = getIntVector(subobject.properties, 0);
                                 
                             } else if (subobject.name == "Weights") {
-                                cluster.weights = subobject.properties.at(0).value<QVector<double> >();
+                                cluster.weights = getDoubleVector(subobject.properties, 0);
                             
                             } else if (subobject.name == "TransformLink") {
-                                QVector<double> values = subobject.properties.at(0).value<QVector<double> >();
+                                QVector<double> values = getDoubleVector(subobject.properties, 0);
                                 cluster.transformLink = createMat4(values);
                             }
                         }
