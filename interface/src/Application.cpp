@@ -54,7 +54,7 @@
 #include <PacketHeaders.h>
 #include <PairingHandler.h>
 #include <PerfStat.h>
-
+#include <UUID.h>
 #include <VoxelSceneStats.h>
 
 #include "Application.h"
@@ -72,8 +72,8 @@
 using namespace std;
 
 //  Starfield information
-static char STAR_FILE[] = "http://s3-us-west-1.amazonaws.com/highfidelity/stars.txt";
-static char STAR_CACHE_FILE[] = "cachedStars.txt";
+static unsigned STARFIELD_NUM_STARS = 50000;
+static unsigned STARFIELD_SEED = 1;
 
 static const int BANDWIDTH_METER_CLICK_MAX_DRAG_LENGTH = 6; // farther dragged clicks are ignored 
 
@@ -105,6 +105,9 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _profile(QString()),
         _mouseX(0),
         _mouseY(0),
+        _lastMouseMove(usecTimestampNow()),
+        _mouseHidden(false),
+        _seenMouseMove(false),
         _touchAvgX(0.0f),
         _touchAvgY(0.0f),
         _isTouchPressed(false),
@@ -154,6 +157,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     NodeList::getInstance()->addHook(&_voxels);
     NodeList::getInstance()->addHook(this);
     NodeList::getInstance()->addDomainListener(this);
+    NodeList::getInstance()->addDomainListener(&_voxels);
 
     
     // network receive thread and voxel parsing thread are both controlled by the --nonblocking command line
@@ -211,8 +215,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     cache->setCacheDirectory("interfaceCache");
     _networkAccessManager->setCache(cache);
     
-    QRect available = desktop()->availableGeometry();
-    _window->resize(available.size());
+    restoreSizeAndPosition();
     _window->setVisible(true);
     _glWidget->setFocusPolicy(Qt::StrongFocus);
     _glWidget->setFocus();
@@ -227,6 +230,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
 }
 
 Application::~Application() {
+    storeSizeAndPosition();
     NodeList::getInstance()->removeHook(&_voxels);
     NodeList::getInstance()->removeHook(this);
     NodeList::getInstance()->removeDomainListener(this);
@@ -241,6 +245,37 @@ Application::~Application() {
     delete _settings;
     delete _followMode;
     delete _glWidget;
+}
+
+void Application::restoreSizeAndPosition() {
+    QSettings* settings = new QSettings(this);
+    QRect available = desktop()->availableGeometry();
+    
+    settings->beginGroup("Window");
+    
+    float x = loadSetting(settings, "x", 0);
+    float y = loadSetting(settings, "y", 0);
+    _window->move(x, y);
+    
+    int width = loadSetting(settings, "width", available.width());
+    int height = loadSetting(settings, "height", available.height());
+    _window->resize(width, height);
+    
+    settings->endGroup();
+}
+
+void Application::storeSizeAndPosition() {
+    QSettings* settings = new QSettings(this);
+    
+    settings->beginGroup("Window");
+    
+    settings->setValue("width", _window->rect().width());
+    settings->setValue("height", _window->rect().height());
+    
+    settings->setValue("x", _window->pos().x());
+    settings->setValue("y", _window->pos().y());
+    
+    settings->endGroup();
 }
 
 void Application::initializeGL() {
@@ -465,7 +500,7 @@ void Application::controlledBroadcastToNodes(unsigned char* broadcastData, size_
         if (nodeTypes[i] == NODE_TYPE_VOXEL_SERVER && !Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
             continue;
         }
-
+        
         // Perform the broadcast for one type
         int nReceivingNodes = NodeList::getInstance()->broadcastToNodes(broadcastData, dataBytes, & nodeTypes[i], 1);
 
@@ -877,6 +912,9 @@ void Application::keyPressEvent(QKeyEvent* event) {
             case Qt::Key_8:
                 _swatch.handleEvent(event->key(), Menu::getInstance()->isOptionChecked(MenuOption::VoxelGetColorMode));
                 break;
+            case Qt::Key_At:
+                Menu::getInstance()->goToUser();
+                break;
             default:
                 event->ignore();
                 break;
@@ -947,6 +985,13 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
 }
 
 void Application::mouseMoveEvent(QMouseEvent* event) {
+    _lastMouseMove = usecTimestampNow();
+    if (_mouseHidden) {
+        getGLWidget()->setCursor(Qt::ArrowCursor);
+        _mouseHidden = false;
+        _seenMouseMove = true;
+    }
+
     if (activeWindow() == _window) {
         _mouseX = event->x();
         _mouseY = event->y();
@@ -982,7 +1027,12 @@ void Application::mousePressEvent(QMouseEvent* event) {
             _mousePressed = true;
 
             maybeEditVoxelUnderCursor();
-
+            
+            if (_audio.mousePressEvent(_mouseX, _mouseY)) {
+                // stop propagation
+                return;
+            }
+            
             if (!_palette.isActive() && (!_isHoverVoxel || _lookatTargetAvatar)) {
                 _pieMenu.mousePressEvent(_mouseX, _mouseY);
             }
@@ -1110,8 +1160,9 @@ void Application::sendAvatarFaceVideoMessage(int frameCount, const QByteArray& d
     
     packetPosition += populateTypeAndVersion(packetPosition, PACKET_TYPE_AVATAR_FACE_VIDEO);
     
-    *(uint16_t*)packetPosition = NodeList::getInstance()->getOwnerID();
-    packetPosition += sizeof(uint16_t);
+    QByteArray rfcUUID = NodeList::getInstance()->getOwnerUUID().toRfc4122();
+    memcpy(packetPosition, rfcUUID.constData(), rfcUUID.size());
+    packetPosition += rfcUUID.size();
     
     *(uint32_t*)packetPosition = frameCount;
     packetPosition += sizeof(uint32_t);
@@ -1245,12 +1296,13 @@ static Avatar* processAvatarMessageHeader(unsigned char*& packetData, size_t& da
     dataBytes -= numBytesPacketHeader;
     
     // read the node id
-    uint16_t nodeID = *(uint16_t*)packetData;
-    packetData += sizeof(nodeID);
-    dataBytes -= sizeof(nodeID);
+    QUuid nodeUUID = QUuid::fromRfc4122(QByteArray((char*) packetData, NUM_BYTES_RFC4122_UUID));
+    
+    packetData += NUM_BYTES_RFC4122_UUID;
+    dataBytes -= NUM_BYTES_RFC4122_UUID;
     
     // make sure the node exists
-    Node* node = NodeList::getInstance()->nodeWithID(nodeID);
+    Node* node = NodeList::getInstance()->nodeWithUUID(nodeUUID);
     if (!node || !node->getLinkedData()) {
         return NULL;
     }
@@ -1342,13 +1394,13 @@ void Application::increaseVoxelSize() {
 
 const int MAXIMUM_EDIT_VOXEL_MESSAGE_SIZE = 1500;
 struct SendVoxelsOperationArgs {
-    unsigned char*  newBaseOctCode;
+    const unsigned char*  newBaseOctCode;
 };
 
 bool Application::sendVoxelsOperation(VoxelNode* node, void* extraData) {
     SendVoxelsOperationArgs* args = (SendVoxelsOperationArgs*)extraData;
     if (node->isColored()) {
-        unsigned char* nodeOctalCode = node->getOctalCode();
+        const unsigned char* nodeOctalCode = node->getOctalCode();
         
         unsigned char* codeColorBuffer = NULL;
         int codeLength  = 0;
@@ -1510,29 +1562,6 @@ void Application::deleteVoxels() {
     deleteVoxelUnderCursor();
 }
 
-void Application::setListenModeNormal() {
-    _audio.setListenMode(AudioRingBuffer::NORMAL);
-}
-
-void Application::setListenModePoint() {
-    _audio.setListenMode(AudioRingBuffer::OMNI_DIRECTIONAL_POINT);
-    _audio.setListenRadius(1.0);
-}
-
-void Application::setListenModeSingleSource() {
-    _audio.setListenMode(AudioRingBuffer::SELECTED_SOURCES);
-    _audio.clearListenSources();
-
-    glm::vec3 mouseRayOrigin = _myAvatar.getMouseRayOrigin();
-    glm::vec3 mouseRayDirection  = _myAvatar.getMouseRayDirection();
-    glm::vec3 eyePositionIgnored;
-    uint16_t nodeID;
-
-    if (findLookatTargetAvatar(mouseRayOrigin, mouseRayDirection, eyePositionIgnored, nodeID)) {
-        _audio.addListenSource(nodeID);
-    }
-}
-
 void Application::initDisplay() {
     glEnable(GL_BLEND);
     glBlendFuncSeparate(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA, GL_CONSTANT_ALPHA, GL_ONE);
@@ -1629,6 +1658,8 @@ void Application::init() {
     _followMode = new QAction(this);
     connect(_followMode, SIGNAL(triggered()), this, SLOT(toggleFollowMode()));
     _pieMenu.addAction(_followMode);
+
+    _audio.init(_glWidget);
 }
 
 
@@ -1636,7 +1667,7 @@ const float MAX_AVATAR_EDIT_VELOCITY = 1.0f;
 const float MAX_VOXEL_EDIT_DISTANCE = 20.0f;
 const float HEAD_SPHERE_RADIUS = 0.07;
 
-static uint16_t DEFAULT_NODE_ID_REF = 1;
+static QUuid DEFAULT_NODE_ID_REF;
 
 void Application::updateLookatTargetAvatar(const glm::vec3& mouseRayOrigin, const glm::vec3& mouseRayDirection,
     glm::vec3& eyePosition) {
@@ -1645,7 +1676,7 @@ void Application::updateLookatTargetAvatar(const glm::vec3& mouseRayOrigin, cons
 }
         
 Avatar* Application::findLookatTargetAvatar(const glm::vec3& mouseRayOrigin, const glm::vec3& mouseRayDirection,
-    glm::vec3& eyePosition, uint16_t& nodeID = DEFAULT_NODE_ID_REF) {
+    glm::vec3& eyePosition, QUuid& nodeUUID = DEFAULT_NODE_ID_REF) {
                                          
     NodeList* nodeList = NodeList::getInstance();
     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
@@ -1658,7 +1689,7 @@ Avatar* Application::findLookatTargetAvatar(const glm::vec3& mouseRayOrigin, con
                 eyePosition = avatar->getHead().getEyePosition();
                 _lookatIndicatorScale = avatar->getHead().getScale();
                 _lookatOtherPosition = headPosition;
-                nodeID = avatar->getOwningNode()->getNodeID();
+                nodeUUID = avatar->getOwningNode()->getUUID();
                 return avatar;
             }
         }
@@ -1707,12 +1738,12 @@ void Application::renderFollowIndicator() {
             Avatar* avatar = (Avatar *) node->getLinkedData();
             Avatar* leader = NULL;
 
-            if (avatar->getLeaderID() != UNKNOWN_NODE_ID) {
-                if (avatar->getLeaderID() == NodeList::getInstance()->getOwnerID()) {
+            if (!avatar->getLeaderUUID().isNull()) {
+                if (avatar->getLeaderUUID() == NodeList::getInstance()->getOwnerUUID()) {
                     leader = &_myAvatar;
                 } else {
                     for (NodeList::iterator it = nodeList->begin(); it != nodeList->end(); ++it) {
-                        if(it->getNodeID() == avatar->getLeaderID()
+                        if(it->getUUID() == avatar->getLeaderUUID()
                                 && it->getType() == NODE_TYPE_AGENT) {
                             leader = (Avatar*) it->getLinkedData();
                         }
@@ -2081,6 +2112,25 @@ void Application::update(float deltaTime) {
     _audio.setLastVelocity(_myAvatar.getVelocity());
     _audio.eventuallyAnalyzePing();
     #endif
+    
+    // watch mouse position, if it hasn't moved, hide the cursor
+    bool underMouse = _glWidget->underMouse();
+    if (!_mouseHidden) {
+        uint64_t now = usecTimestampNow();
+        int elapsed = now - _lastMouseMove;
+        const int HIDE_CURSOR_TIMEOUT = 1 * 1000 * 1000; // 1 second
+        if (elapsed > HIDE_CURSOR_TIMEOUT && (underMouse || !_seenMouseMove)) {
+            getGLWidget()->setCursor(Qt::BlankCursor);
+            _mouseHidden = true;
+        }
+    } else {
+        // if the mouse is hidden, but we're not inside our window, then consider ourselves to be moving
+        if (!underMouse && _seenMouseMove) {
+            _lastMouseMove = usecTimestampNow();
+            getGLWidget()->setCursor(Qt::ArrowCursor);
+            _mouseHidden = false;
+        }
+    }
 }
 
 void Application::updateAvatar(float deltaTime) {
@@ -2173,26 +2223,27 @@ void Application::updateAvatar(float deltaTime) {
     _myAvatar.setCameraEyeOffsetPosition(_viewFrustum.getEyeOffsetPosition());
     
     NodeList* nodeList = NodeList::getInstance();
-    if (nodeList->getOwnerID() != UNKNOWN_NODE_ID) {
-        // if I know my ID, send head/hand data to the avatar mixer and voxel server
-        unsigned char broadcastString[MAX_PACKET_SIZE];
-        unsigned char* endOfBroadcastStringWrite = broadcastString;
-        
-        endOfBroadcastStringWrite += populateTypeAndVersion(endOfBroadcastStringWrite, PACKET_TYPE_HEAD_DATA);
-        
-        endOfBroadcastStringWrite += packNodeId(endOfBroadcastStringWrite, nodeList->getOwnerID());
-        
-        endOfBroadcastStringWrite += _myAvatar.getBroadcastData(endOfBroadcastStringWrite);
-
-        const char nodeTypesOfInterest[] = { NODE_TYPE_VOXEL_SERVER, NODE_TYPE_AVATAR_MIXER }; 
-        controlledBroadcastToNodes(broadcastString, endOfBroadcastStringWrite - broadcastString,
-                                   nodeTypesOfInterest, sizeof(nodeTypesOfInterest));
-        
-        // once in a while, send my urls
-        const float AVATAR_URLS_SEND_INTERVAL = 1.0f; // seconds
-        if (shouldDo(AVATAR_URLS_SEND_INTERVAL, deltaTime)) {
-            Avatar::sendAvatarURLsMessage(_myAvatar.getVoxels()->getVoxelURL());
-        }
+    
+    // send head/hand data to the avatar mixer and voxel server
+    unsigned char broadcastString[MAX_PACKET_SIZE];
+    unsigned char* endOfBroadcastStringWrite = broadcastString;
+    
+    endOfBroadcastStringWrite += populateTypeAndVersion(endOfBroadcastStringWrite, PACKET_TYPE_HEAD_DATA);
+    
+    QByteArray ownerUUID = nodeList->getOwnerUUID().toRfc4122();
+    memcpy(endOfBroadcastStringWrite, ownerUUID.constData(), ownerUUID.size());
+    endOfBroadcastStringWrite += ownerUUID.size();
+    
+    endOfBroadcastStringWrite += _myAvatar.getBroadcastData(endOfBroadcastStringWrite);
+    
+    const char nodeTypesOfInterest[] = { NODE_TYPE_VOXEL_SERVER, NODE_TYPE_AVATAR_MIXER };
+    controlledBroadcastToNodes(broadcastString, endOfBroadcastStringWrite - broadcastString,
+                               nodeTypesOfInterest, sizeof(nodeTypesOfInterest));
+    
+    // once in a while, send my urls
+    const float AVATAR_URLS_SEND_INTERVAL = 1.0f; // seconds
+    if (shouldDo(AVATAR_URLS_SEND_INTERVAL, deltaTime)) {
+        Avatar::sendAvatarURLsMessage(_myAvatar.getVoxels()->getVoxelURL());
     }
 }
 
@@ -2438,8 +2489,8 @@ void Application::displaySide(Camera& whichCamera) {
     if (Menu::getInstance()->isOptionChecked(MenuOption::Stars)) {
         PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
             "Application::displaySide() ... stars...");
-        if (!_stars.getFileLoaded()) {
-            _stars.readInput(STAR_FILE, STAR_CACHE_FILE, 0);
+        if (!_stars.isStarsLoaded()) {
+            _stars.generate(STARFIELD_NUM_STARS, STARFIELD_SEED);
         }
         // should be the first rendering pass - w/o depth buffer / lighting
 
@@ -2720,9 +2771,11 @@ void Application::displayOverlay() {
         }
    
         #ifndef _WIN32
-        _audio.render(_glWidget->width(), _glWidget->height());
-        if (Menu::getInstance()->isOptionChecked(MenuOption::Oscilloscope)) {
-            _audioScope.render(20, _glWidget->height() - 200);
+        if (Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
+            _audio.render(_glWidget->width(), _glWidget->height());
+            if (Menu::getInstance()->isOptionChecked(MenuOption::Oscilloscope)) {
+                _audioScope.render(45, _glWidget->height() - 200);
+            }
         }
         #endif
 
@@ -2731,24 +2784,40 @@ void Application::displayOverlay() {
     if (Menu::getInstance()->isOptionChecked(MenuOption::HeadMouse)
         && !Menu::getInstance()->isOptionChecked(MenuOption::Mirror)
         && USING_INVENSENSE_MPU9150) {
-            //  Display small target box at center or head mouse target that can also be used to measure LOD
-            glColor3f(1.0, 1.0, 1.0);
+        //  Display small target box at center or head mouse target that can also be used to measure LOD
+        glColor3f(1.0, 1.0, 1.0);
+        glDisable(GL_LINE_SMOOTH);
+        const int PIXEL_BOX = 16;
+        glBegin(GL_LINES);
+        glVertex2f(_headMouseX - PIXEL_BOX/2, _headMouseY);
+        glVertex2f(_headMouseX + PIXEL_BOX/2, _headMouseY);
+        glVertex2f(_headMouseX, _headMouseY - PIXEL_BOX/2);
+        glVertex2f(_headMouseX, _headMouseY + PIXEL_BOX/2);
+        glEnd();            
+        glEnable(GL_LINE_SMOOTH);
+        glColor3f(1.f, 0.f, 0.f);
+        glPointSize(3.0f);
+        glDisable(GL_POINT_SMOOTH);
+        glBegin(GL_POINTS);
+        glVertex2f(_headMouseX - 1, _headMouseY + 1);
+        glEnd();
+        //  If Faceshift is active, show eye pitch and yaw as separate pointer
+        if (_faceshift.isActive()) {
+            const float EYE_TARGET_PIXELS_PER_DEGREE = 40.0;
+            int eyeTargetX = (_glWidget->width() / 2) -  _faceshift.getEstimatedEyeYaw() * EYE_TARGET_PIXELS_PER_DEGREE;
+            int eyeTargetY = (_glWidget->height() / 2) -  _faceshift.getEstimatedEyePitch() * EYE_TARGET_PIXELS_PER_DEGREE;
+            
+            glColor3f(0.0, 1.0, 1.0);
             glDisable(GL_LINE_SMOOTH);
-            const int PIXEL_BOX = 16;
             glBegin(GL_LINES);
-            glVertex2f(_headMouseX - PIXEL_BOX/2, _headMouseY);
-            glVertex2f(_headMouseX + PIXEL_BOX/2, _headMouseY);
-            glVertex2f(_headMouseX, _headMouseY - PIXEL_BOX/2);
-            glVertex2f(_headMouseX, _headMouseY + PIXEL_BOX/2);
-            glEnd();            
-            glEnable(GL_LINE_SMOOTH);
-            glColor3f(1.f, 0.f, 0.f);
-            glPointSize(3.0f);
-            glDisable(GL_POINT_SMOOTH);
-            glBegin(GL_POINTS);
-            glVertex2f(_headMouseX - 1, _headMouseY + 1);
+            glVertex2f(eyeTargetX - PIXEL_BOX/2, eyeTargetY);
+            glVertex2f(eyeTargetX + PIXEL_BOX/2, eyeTargetY);
+            glVertex2f(eyeTargetX, eyeTargetY - PIXEL_BOX/2);
+            glVertex2f(eyeTargetX, eyeTargetY + PIXEL_BOX/2);
             glEnd();
+
         }
+    }
         
     //  Show detected levels from the serial I/O ADC channel sensors
     if (_displayLevels) _serialHeadSensor.renderLevels(_glWidget->width(), _glWidget->height());
@@ -2762,7 +2831,24 @@ void Application::displayOverlay() {
     glPointSize(1.0f);
     
     if (Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
+        //  Onscreen text about position, servers, etc 
         displayStats();
+        //  Bandwidth meter 
+        if (Menu::getInstance()->isOptionChecked(MenuOption::Bandwidth)) {
+            _bandwidthMeter.render(_glWidget->width(), _glWidget->height());
+        }
+        //  Stats at upper right of screen about who domain server is telling us about
+        glPointSize(1.0f);
+        char nodes[100];
+        
+        NodeList* nodeList = NodeList::getInstance();
+        int totalAvatars = 0, totalServers = 0;
+        
+        for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+            node->getType() == NODE_TYPE_AGENT ? totalAvatars++ : totalServers++;
+        }
+        sprintf(nodes, "Servers: %d, Avatars: %d\n", totalServers, totalAvatars);
+        drawtext(_glWidget->width() - 150, 20, 0.10, 0, 1.0, 0, nodes, 1, 0, 0);
     }
 
     // testing rendering coverage map
@@ -2774,9 +2860,6 @@ void Application::displayOverlay() {
         renderCoverageMap();
     }
     
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Bandwidth)) {
-        _bandwidthMeter.render(_glWidget->width(), _glWidget->height());
-    }
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::Log)) {
         LogDisplay::instance.render(_glWidget->width(), _glWidget->height());
@@ -2796,19 +2879,6 @@ void Application::displayOverlay() {
         drawtext(_glWidget->width() - 102, _glWidget->height() - 22, 0.30, 0, 1.0, 0, frameTimer, 1, 1, 1);
     }
 
-    //  Stats at upper right of screen about who domain server is telling us about
-    glPointSize(1.0f);
-    char nodes[100];
-    
-    NodeList* nodeList = NodeList::getInstance();
-    int totalAvatars = 0, totalServers = 0;
-    
-    for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
-        node->getType() == NODE_TYPE_AGENT ? totalAvatars++ : totalServers++;
-    }
-    
-    sprintf(nodes, "Servers: %d, Avatars: %d\n", totalServers, totalAvatars);
-    drawtext(_glWidget->width() - 150, 20, 0.10, 0, 1.0, 0, nodes, 1, 0, 0);
     
     // render the webcam input frame
     _webcam.renderPreview(_glWidget->width(), _glWidget->height());
@@ -2870,11 +2940,12 @@ void Application::displayOverlay() {
 
 void Application::displayStats() {
     int statsVerticalOffset = 8;
-
+    const int PELS_PER_LINE = 15;
     char stats[200];
+    statsVerticalOffset += PELS_PER_LINE;
     sprintf(stats, "%3.0f FPS, %d Pkts/sec, %3.2f Mbps   ", 
             _fps, _packetsPerSecond,  (float)_bytesPerSecond * 8.f / 1000000.f);
-    drawtext(10, statsVerticalOffset + 15, 0.10f, 0, 1.0, 0, stats);
+    drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, stats);
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::TestPing)) {
         int pingAudio = 0, pingAvatar = 0, pingVoxel = 0, pingVoxelMax = 0;
@@ -2904,14 +2975,16 @@ void Application::displayStats() {
         }
 
         char pingStats[200];
+        statsVerticalOffset += PELS_PER_LINE;
         sprintf(pingStats, "Ping audio/avatar/voxel: %d / %d / %d avg %d max ", pingAudio, pingAvatar, pingVoxel, pingVoxelMax);
-        drawtext(10, statsVerticalOffset + 35, 0.10f, 0, 1.0, 0, pingStats);
+        drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, pingStats);
     }
     
     char avatarStats[200];
+    statsVerticalOffset += PELS_PER_LINE;
     glm::vec3 avatarPos = _myAvatar.getPosition();
     sprintf(avatarStats, "Avatar: pos %.3f, %.3f, %.3f, vel %.1f, yaw = %.2f", avatarPos.x, avatarPos.y, avatarPos.z, glm::length(_myAvatar.getVelocity()), _myAvatar.getBodyYaw());
-    drawtext(10, statsVerticalOffset + 55, 0.10f, 0, 1.0, 0, avatarStats);
+    drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, avatarStats);
 
  
     std::stringstream voxelStats;
@@ -2919,36 +2992,49 @@ void Application::displayStats() {
     voxelStats << "Voxels Rendered: " << _voxels.getVoxelsRendered() / 1000.f << "K " <<
         "Updated: " << _voxels.getVoxelsUpdated()/1000.f << "K " <<
         "Max: " << _voxels.getMaxVoxels()/1000.f << "K ";
-    drawtext(10, statsVerticalOffset + 230, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+    statsVerticalOffset += PELS_PER_LINE;
+    drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
 
     voxelStats.str("");
-    voxelStats << "Voxels Memory RAM: " << _voxels.getVoxelMemoryUsageRAM() / 1000000.f << "MB " <<
+    voxelStats << 
+        "Voxels Memory Nodes: " << VoxelNode::getVoxelMemoryUsage() / 1000000.f << "MB "
+        "Octcodes: " << VoxelNode::getOctcodeMemoryUsage() / 1000000.f << "MB "
+        "Geometry RAM: " << _voxels.getVoxelMemoryUsageRAM() / 1000000.f << "MB " <<
         "VBO: " << _voxels.getVoxelMemoryUsageVBO() / 1000000.f << "MB ";
     if (_voxels.hasVoxelMemoryUsageGPU()) {
         voxelStats << "GPU: " << _voxels.getVoxelMemoryUsageGPU() / 1000000.f << "MB ";
     }
-        
-    drawtext(10, statsVerticalOffset + 250, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+
+    // Some debugging for memory usage of VoxelNodes
+    //voxelStats << "VoxelNode size: " << sizeof(VoxelNode) << " bytes ";
+    //voxelStats << "AABox size: " << sizeof(AABox) << " bytes ";
     
+    statsVerticalOffset += PELS_PER_LINE;
+    drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+
     voxelStats.str("");
     char* voxelDetails = _voxelSceneStats.getItemValue(VoxelSceneStats::ITEM_VOXELS);
     voxelStats << "Voxels Sent from Server: " << voxelDetails;
-    drawtext(10, statsVerticalOffset + 270, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+    statsVerticalOffset += PELS_PER_LINE;
+    drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
 
     voxelStats.str("");
     voxelDetails = _voxelSceneStats.getItemValue(VoxelSceneStats::ITEM_ELAPSED);
     voxelStats << "Scene Send Time from Server: " << voxelDetails;
-    drawtext(10, statsVerticalOffset + 290, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+    statsVerticalOffset += PELS_PER_LINE;
+    drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
 
     voxelStats.str("");
     voxelDetails = _voxelSceneStats.getItemValue(VoxelSceneStats::ITEM_ENCODE);
     voxelStats << "Encode Time on Server: " << voxelDetails;
-    drawtext(10, statsVerticalOffset + 310, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+    statsVerticalOffset += PELS_PER_LINE;
+    drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
 
     voxelStats.str("");
     voxelDetails = _voxelSceneStats.getItemValue(VoxelSceneStats::ITEM_MODE);
     voxelStats << "Sending Mode: " << voxelDetails;
-    drawtext(10, statsVerticalOffset + 330, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+    statsVerticalOffset += PELS_PER_LINE;
+    drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
     
     Node *avatarMixer = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_AVATAR_MIXER);
     char avatarMixerStats[200];
@@ -2960,20 +3046,21 @@ void Application::displayStats() {
     } else {
         sprintf(avatarMixerStats, "No Avatar Mixer");
     }
-    
-    drawtext(10, statsVerticalOffset + 350, 0.10f, 0, 1.0, 0, avatarMixerStats);
-    drawtext(10, statsVerticalOffset + 450, 0.10f, 0, 1.0, 0, (char *)LeapManager::statusString().c_str());
+    statsVerticalOffset += PELS_PER_LINE;
+    drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, avatarMixerStats);
+    statsVerticalOffset += PELS_PER_LINE;
+    drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, (char *)LeapManager::statusString().c_str());
     
     if (_perfStatsOn) {
         // Get the PerfStats group details. We need to allocate and array of char* long enough to hold 1+groups
         char** perfStatLinesArray = new char*[PerfStat::getGroupCount()+1];
         int lines = PerfStat::DumpStats(perfStatLinesArray);
-        int atZ = 150; // arbitrary place on screen that looks good
+    
         for (int line=0; line < lines; line++) {
-            drawtext(10, statsVerticalOffset + atZ, 0.10f, 0, 1.0, 0, perfStatLinesArray[line]);
+            statsVerticalOffset += PELS_PER_LINE;
+            drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, perfStatLinesArray[line]);
             delete perfStatLinesArray[line]; // we're responsible for cleanup
             perfStatLinesArray[line]=NULL;
-            atZ+=20; // height of a line
         }
         delete []perfStatLinesArray; // we're responsible for cleanup
     }
@@ -3466,8 +3553,8 @@ void Application::toggleFollowMode() {
                                 _pieMenu.getY() / (float)_glWidget->height(),
                                 mouseRayOrigin, mouseRayDirection);
     glm::vec3 eyePositionIgnored;
-    uint16_t  nodeIDIgnored;
-    Avatar* leadingAvatar = findLookatTargetAvatar(mouseRayOrigin, mouseRayDirection, eyePositionIgnored, nodeIDIgnored);
+    QUuid nodeUUIDIgnored;
+    Avatar* leadingAvatar = findLookatTargetAvatar(mouseRayOrigin, mouseRayDirection, eyePositionIgnored, nodeUUIDIgnored);
 
     _myAvatar.follow(leadingAvatar);
 }
@@ -3535,10 +3622,10 @@ void Application::nodeAdded(Node* node) {
 
 void Application::nodeKilled(Node* node) {
     if (node->getType() == NODE_TYPE_VOXEL_SERVER) {
-        uint16_t nodeID = node->getNodeID();
+        QUuid nodeUUID = node->getUUID();
         // see if this is the first we've heard of this node...
-        if (_voxelServerJurisdictions.find(nodeID) != _voxelServerJurisdictions.end()) {
-            unsigned char* rootCode = _voxelServerJurisdictions[nodeID].getRootOctalCode();
+        if (_voxelServerJurisdictions.find(nodeUUID) != _voxelServerJurisdictions.end()) {
+            unsigned char* rootCode = _voxelServerJurisdictions[nodeUUID].getRootOctalCode();
             VoxelPositionSize rootDetails;
             voxelDetailsForCode(rootCode, rootDetails);
 
@@ -3568,13 +3655,13 @@ int Application::parseVoxelStats(unsigned char* messageData, ssize_t messageLeng
     
     // quick fix for crash... why would voxelServer be NULL?
     if (voxelServer) {
-        uint16_t nodeID = voxelServer->getNodeID();
+        QUuid nodeUUID = voxelServer->getUUID();
 
         VoxelPositionSize rootDetails;
         voxelDetailsForCode(_voxelSceneStats.getJurisdictionRoot(), rootDetails);
         
         // see if this is the first we've heard of this node...
-        if (_voxelServerJurisdictions.find(nodeID) == _voxelServerJurisdictions.end()) {
+        if (_voxelServerJurisdictions.find(nodeUUID) == _voxelServerJurisdictions.end()) {
             printf("stats from new voxel server... v[%f, %f, %f, %f]\n",
                 rootDetails.x, rootDetails.y, rootDetails.z, rootDetails.s);
 
@@ -3591,7 +3678,7 @@ int Application::parseVoxelStats(unsigned char* messageData, ssize_t messageLeng
         // details from the VoxelSceneStats to construct the JurisdictionMap
         JurisdictionMap jurisdictionMap;
         jurisdictionMap.copyContents(_voxelSceneStats.getJurisdictionRoot(), _voxelSceneStats.getJurisdictionEndNodes());
-        _voxelServerJurisdictions[nodeID] = jurisdictionMap;
+        _voxelServerJurisdictions[nodeUUID] = jurisdictionMap;
     }
     return statsMessageLength;
 }

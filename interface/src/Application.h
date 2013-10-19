@@ -91,6 +91,8 @@ public:
     Application(int& argc, char** argv, timeval &startup_time);
     ~Application();
 
+    void restoreSizeAndPosition();
+    void storeSizeAndPosition();    
     void initializeGL();
     void paintGL();
     void resizeGL(int width, int height);
@@ -169,9 +171,6 @@ public slots:
     void doKillLocalVoxels();
     void decreaseVoxelSize();
     void increaseVoxelSize();
-    void setListenModeNormal();
-    void setListenModePoint();
-    void setListenModeSingleSource();
     
 private slots:
     
@@ -211,7 +210,7 @@ private:
     void updateLookatTargetAvatar(const glm::vec3& mouseRayOrigin, const glm::vec3& mouseRayDirection,
         glm::vec3& eyePosition);
     Avatar* findLookatTargetAvatar(const glm::vec3& mouseRayOrigin, const glm::vec3& mouseRayDirection,
-        glm::vec3& eyePosition, uint16_t& nodeID);
+        glm::vec3& eyePosition, QUuid &nodeUUID);
     bool isLookingAtMyAvatar(Avatar* avatar);
                                 
     void renderLookatIndicator(glm::vec3 pointOfInterest, Camera& whichCamera);
@@ -303,6 +302,9 @@ private:
     int _mouseY;
     int _mouseDragStartedX;
     int _mouseDragStartedY;
+    uint64_t _lastMouseMove;
+    bool _mouseHidden;
+    bool _seenMouseMove;
 
     float _touchAvgX;
     float _touchAvgY;

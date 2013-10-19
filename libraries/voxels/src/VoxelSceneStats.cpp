@@ -33,9 +33,10 @@ void VoxelSceneStats::sceneStarted(bool isFullScene, bool isMoving, VoxelNode* r
     reset(); // resets packet and voxel stats
     _isStarted = true;
     _start = usecTimestampNow();
-    _totalVoxels   = root->getSubTreeNodeCount();
-    _totalInternal = root->getSubTreeInternalNodeCount();
-    _totalLeaves   = root->getSubTreeLeafNodeCount();
+    
+    _totalVoxels   = VoxelNode::getNodeCount();
+    _totalInternal = VoxelNode::getInternalNodeCount();
+    _totalLeaves   = VoxelNode::getLeafNodeCount();
     
     _isFullScene = isFullScene;
     _isMoving = isMoving;

@@ -55,9 +55,11 @@ void printVoxelCode(unsigned char* voxelCode);
 int numberOfOnes(unsigned char byte);
 bool oneAtBit(unsigned char byte, int bitIndex);
 void setAtBit(unsigned char& byte, int bitIndex);
-
+void clearAtBit(unsigned char& byte, int bitIndex);
 int  getSemiNibbleAt(unsigned char& byte, int bitIndex);
 void setSemiNibbleAt(unsigned char& byte, int bitIndex, int value);
+
+int getNthBit(unsigned char byte, int ordinal); /// determines the bit placement 0-7 of the ordinal set bit
 
 bool isInEnvironment(const char* environment);
 
@@ -108,5 +110,7 @@ class debug {
 public:                           
     static const char* valueOf(bool checkValue) { return checkValue ? "yes" : "no"; }
 };
+
+bool isBetween(int64_t value, int64_t max, int64_t min);
 
 #endif /* defined(__hifi__SharedUtil__) */

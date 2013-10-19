@@ -61,19 +61,13 @@ const float chatMessageScale = 0.0015;
 const float chatMessageHeight = 0.20;
 
 void Avatar::sendAvatarURLsMessage(const QUrl& voxelURL) {
-    uint16_t ownerID = NodeList::getInstance()->getOwnerID();
-    
-    if (ownerID == UNKNOWN_NODE_ID) {
-        return; // we don't yet know who we are
-    }
-    
     QByteArray message;
     
     char packetHeader[MAX_PACKET_HEADER_BYTES];
     int numBytesPacketHeader = populateTypeAndVersion((unsigned char*) packetHeader, PACKET_TYPE_AVATAR_URLS);
     
     message.append(packetHeader, numBytesPacketHeader);
-    message.append((const char*)&ownerID, sizeof(ownerID));
+    message.append(NodeList::getInstance()->getOwnerUUID().toRfc4122());
     
     QDataStream out(&message, QIODevice::WriteOnly | QIODevice::Append);
     out << voxelURL;
@@ -283,13 +277,13 @@ void Avatar::follow(Avatar* leadingAvatar) {
 
     _leadingAvatar = leadingAvatar;
     if (_leadingAvatar != NULL) {
-        _leaderID = leadingAvatar->getOwningNode()->getNodeID();
+        _leaderUUID = leadingAvatar->getOwningNode()->getUUID();
         _stringLength = glm::length(_position - _leadingAvatar->getPosition()) / _scale;
         if (_stringLength > MAX_STRING_LENGTH) {
             _stringLength = MAX_STRING_LENGTH;
         }
     } else {
-        _leaderID = UNKNOWN_NODE_ID;
+        _leaderUUID = QUuid();
     }
 }
 
@@ -460,10 +454,13 @@ void Avatar::updateHandMovementAndTouching(float deltaTime, bool enableHandMovem
         _skeleton.joint[AVATAR_JOINT_RIGHT_FINGERTIPS].position += transformedHandMovement;
     }
     
+    enableHandMovement |= updateLeapHandPositions();
+    
     //constrain right arm length and re-adjust elbow position as it bends
     // NOTE - the following must be called on all avatars - not just _isMine
     if (enableHandMovement) {
-        updateArmIKAndConstraints(deltaTime);
+        updateArmIKAndConstraints(deltaTime, AVATAR_JOINT_RIGHT_FINGERTIPS);
+        updateArmIKAndConstraints(deltaTime, AVATAR_JOINT_LEFT_FINGERTIPS);
     }
 }
 
@@ -640,11 +637,60 @@ void Avatar::updateBodyBalls(float deltaTime) {
         _bodyBall[BODY_BALL_HEAD_TOP].rotation * _skeleton.joint[BODY_BALL_HEAD_TOP].bindPosePosition;
 }
 
-void Avatar::updateArmIKAndConstraints(float deltaTime) {
+// returns true if the Leap controls any of the avatar's hands.
+bool Avatar::updateLeapHandPositions() {
+    bool returnValue = false;
+    // If there are leap-interaction hands visible, see if we can use them as the endpoints for IK
+    if (getHand().getPalms().size() > 0) {
+        PalmData const* leftLeapHand = NULL;
+        PalmData const* rightLeapHand = NULL;
+        // Look through all of the palms available (there may be more than two), and pick
+        // the leftmost and rightmost. If there's only one, we'll use a heuristic below
+        // to decode whether it's the left or right.
+        for (size_t i = 0; i < getHand().getPalms().size(); ++i) {
+            PalmData& palm = getHand().getPalms()[i];
+            if (palm.isActive()) {
+                if (!rightLeapHand || !leftLeapHand) {
+                    rightLeapHand = leftLeapHand = &palm;
+                }
+                else if (palm.getRawPosition().x > rightLeapHand->getRawPosition().x) {
+                    rightLeapHand = &palm;
+                }
+                else if (palm.getRawPosition().x < leftLeapHand->getRawPosition().x) {
+                    leftLeapHand = &palm;
+                }
+            }
+        }
+        // If there's only one palm visible. Decide if it's the left or right
+        if (leftLeapHand == rightLeapHand && leftLeapHand) {
+            if (leftLeapHand->getRawPosition().x > 0) {
+                leftLeapHand = NULL;
+            }
+            else {
+                rightLeapHand = NULL;
+            }
+        }
+        if (leftLeapHand) {
+            _skeleton.joint[ AVATAR_JOINT_LEFT_FINGERTIPS ].position = leftLeapHand->getPosition();
+            returnValue = true;
+        }
+        if (rightLeapHand) {
+            _skeleton.joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position = rightLeapHand->getPosition();
+            returnValue = true;
+        }
+    }
+    return returnValue;
+}
+
+void Avatar::updateArmIKAndConstraints(float deltaTime, AvatarJointID fingerTipJointID) {
+    Skeleton::AvatarJoint& fingerJoint = _skeleton.joint[fingerTipJointID];
+    Skeleton::AvatarJoint& wristJoint = _skeleton.joint[fingerJoint.parent];
+    Skeleton::AvatarJoint& elbowJoint = _skeleton.joint[wristJoint.parent];
+    Skeleton::AvatarJoint& shoulderJoint = _skeleton.joint[elbowJoint.parent];
     
     // determine the arm vector
-    glm::vec3 armVector = _skeleton.joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position;
-    armVector -= _skeleton.joint[ AVATAR_JOINT_RIGHT_SHOULDER ].position;
+    glm::vec3 armVector = fingerJoint.position;
+    armVector -= shoulderJoint.position;
     
     // test to see if right hand is being dragged beyond maximum arm length
     float distance = glm::length(armVector);
@@ -652,28 +698,26 @@ void Avatar::updateArmIKAndConstraints(float deltaTime) {
     // don't let right hand get dragged beyond maximum arm length...
     if (distance > _maxArmLength) {
         // reset right hand to be constrained to maximum arm length
-        _skeleton.joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position = _skeleton.joint[ AVATAR_JOINT_RIGHT_SHOULDER ].position;
+        fingerJoint.position = shoulderJoint.position;
         glm::vec3 armNormal = armVector / distance;
         armVector = armNormal * _maxArmLength;
         distance = _maxArmLength;
-        glm::vec3 constrainedPosition = _skeleton.joint[ AVATAR_JOINT_RIGHT_SHOULDER ].position;
+        glm::vec3 constrainedPosition = shoulderJoint.position;
         constrainedPosition += armVector;
-        _skeleton.joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position = constrainedPosition;
+        fingerJoint.position = constrainedPosition;
     }
     
     // set elbow position
-    glm::vec3 newElbowPosition = _skeleton.joint[ AVATAR_JOINT_RIGHT_SHOULDER ].position + armVector * ONE_HALF;
+    glm::vec3 newElbowPosition = shoulderJoint.position + armVector * ONE_HALF;
     
     glm::vec3 perpendicular = glm::cross(getBodyRightDirection(),  armVector);
     
     newElbowPosition += perpendicular * (1.0f - (_maxArmLength / distance)) * ONE_HALF;
-    _skeleton.joint[ AVATAR_JOINT_RIGHT_ELBOW ].position = newElbowPosition;
+    elbowJoint.position = newElbowPosition;
     
     // set wrist position
-    glm::vec3 vv(_skeleton.joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position);
-    vv -= _skeleton.joint[ AVATAR_JOINT_RIGHT_ELBOW ].position;
-    glm::vec3 newWristPosition = _skeleton.joint[ AVATAR_JOINT_RIGHT_ELBOW ].position + vv * 0.7f;
-    _skeleton.joint[ AVATAR_JOINT_RIGHT_WRIST ].position = newWristPosition;
+    const float wristPosRatio = 0.7f;
+    wristJoint.position = elbowJoint.position + (fingerJoint.position - elbowJoint.position) * wristPosRatio;
 }
 
 glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {

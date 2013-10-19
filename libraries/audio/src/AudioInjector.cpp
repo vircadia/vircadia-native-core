@@ -10,8 +10,10 @@
 #include <fstream>
 #include <limits>
 
+#include <NodeList.h>
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
+#include <UUID.h>
 
 #include "AudioInjector.h"
 
@@ -21,11 +23,8 @@ AudioInjector::AudioInjector(const char* filename) :
     _radius(0.0f),
     _volume(MAX_INJECTOR_VOLUME),
     _indexOfNextSlot(0),
-    _isInjectingAudio(false),
-    _lastFrameIntensity(0.0f)
+    _isInjectingAudio(false)
 {
-    loadRandomIdentifier(_streamIdentifier, STREAM_IDENTIFIER_NUM_BYTES);
-    
     std::fstream sourceFile;
     
     sourceFile.open(filename, std::ios::in | std::ios::binary);
@@ -52,11 +51,8 @@ AudioInjector::AudioInjector(int maxNumSamples) :
     _radius(0.0f),
     _volume(MAX_INJECTOR_VOLUME),
     _indexOfNextSlot(0),
-    _isInjectingAudio(false),
-    _lastFrameIntensity(0.0f)
+    _isInjectingAudio(false)
 {
-    loadRandomIdentifier(_streamIdentifier, STREAM_IDENTIFIER_NUM_BYTES);
-    
     _audioSampleArray = new int16_t[maxNumSamples];
     memset(_audioSampleArray, 0, _numTotalSamples * sizeof(int16_t));
 }
@@ -66,14 +62,14 @@ AudioInjector::~AudioInjector() {
 }
 
 void AudioInjector::injectAudio(UDPSocket* injectorSocket, sockaddr* destinationSocket) {
-    if (_audioSampleArray) {
+    if (_audioSampleArray && _indexOfNextSlot > 0) {
         _isInjectingAudio = true;
         
         timeval startTime;
         
         // calculate the number of bytes required for additional data
         int leadingBytes = numBytesForPacketHeader((unsigned char*) &PACKET_TYPE_INJECT_AUDIO)
-            + sizeof(_streamIdentifier)
+            + NUM_BYTES_RFC4122_UUID
             + sizeof(_position)
             + sizeof(_orientation)
             + sizeof(_radius)
@@ -84,8 +80,9 @@ void AudioInjector::injectAudio(UDPSocket* injectorSocket, sockaddr* destination
         unsigned char* currentPacketPtr = dataPacket + populateTypeAndVersion(dataPacket, PACKET_TYPE_INJECT_AUDIO);
         
         // copy the identifier for this injector
-        memcpy(currentPacketPtr, &_streamIdentifier, sizeof(_streamIdentifier));
-        currentPacketPtr += sizeof(_streamIdentifier);
+        QByteArray rfcUUID = NodeList::getInstance()->getOwnerUUID().toRfc4122();
+        memcpy(currentPacketPtr, rfcUUID.constData(), rfcUUID.size());
+        currentPacketPtr += rfcUUID.size();
         
         memcpy(currentPacketPtr, &_position, sizeof(_position));
         currentPacketPtr += sizeof(_position);
@@ -103,6 +100,11 @@ void AudioInjector::injectAudio(UDPSocket* injectorSocket, sockaddr* destination
         int nextFrame = 0;
         
         for (int i = 0; i < _numTotalSamples; i += BUFFER_LENGTH_SAMPLES_PER_CHANNEL) {
+            int usecToSleep = usecTimestamp(&startTime) + (nextFrame++ * INJECT_INTERVAL_USECS) - usecTimestampNow();
+            if (usecToSleep > 0) {
+                usleep(usecToSleep);
+            }
+            
             int numSamplesToCopy = BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
             
             if (_numTotalSamples - i < BUFFER_LENGTH_SAMPLES_PER_CHANNEL) {
@@ -115,23 +117,6 @@ void AudioInjector::injectAudio(UDPSocket* injectorSocket, sockaddr* destination
             memcpy(currentPacketPtr, _audioSampleArray + i, numSamplesToCopy * sizeof(int16_t));
             
             injectorSocket->send(destinationSocket, dataPacket, sizeof(dataPacket));
-            
-            // calculate the intensity for this frame
-            float lastRMS = 0;
-            
-            for (int j = 0; j < BUFFER_LENGTH_SAMPLES_PER_CHANNEL; j++) {
-                lastRMS +=  _audioSampleArray[i + j] * _audioSampleArray[i + j];
-            }
-            
-            lastRMS /= BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
-            lastRMS = sqrtf(lastRMS);
-            
-            _lastFrameIntensity = lastRMS / std::numeric_limits<int16_t>::max();
-            
-            int usecToSleep = usecTimestamp(&startTime) + (++nextFrame * INJECT_INTERVAL_USECS) - usecTimestampNow();
-            if (usecToSleep > 0) {
-                usleep(usecToSleep);
-            }
         }
         
         _isInjectingAudio = false;
@@ -151,4 +136,22 @@ void AudioInjector::addSamples(int16_t* sampleBuffer, int numSamples) {
         memcpy(_audioSampleArray + _indexOfNextSlot, sampleBuffer, numSamples * sizeof(int16_t));
         _indexOfNextSlot += numSamples;
     }
+}
+
+void AudioInjector::clear() {
+    _indexOfNextSlot = 0;
+    memset(_audioSampleArray, 0, _numTotalSamples * sizeof(int16_t));
+}
+
+int16_t& AudioInjector::sampleAt(const int index) {
+    assert(index >= 0 && index < _numTotalSamples);
+    
+    return _audioSampleArray[index];
+}
+
+void AudioInjector::insertSample(const int index, int sample) {
+    assert (index >= 0 && index < _numTotalSamples);
+    
+    _audioSampleArray[index] = (int16_t) sample;
+    _indexOfNextSlot = index + 1;
 }

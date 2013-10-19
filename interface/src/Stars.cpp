@@ -7,33 +7,27 @@
 //
 
 #include "InterfaceConfig.h"
-#include "Stars.h"
+#include "Stars.h" 
 
-#define __interface__Starfield_impl__
 #include "starfield/Controller.h"
-#undef __interface__Starfield_impl__
 
 Stars::Stars() : 
-    _controller(0l), _fileLoaded(false) { 
-    _controller = new starfield::Controller; 
+    _controller(0l), _starsLoaded(false) {
+    _controller = new starfield::Controller;
 }
 
 Stars::~Stars() { 
     delete _controller; 
 }
 
-bool Stars::readInput(const char* url, const char* cacheFile, unsigned limit) {
-    _fileLoaded = _controller->readInput(url, cacheFile, limit); 
-    return _fileLoaded;
+bool Stars::generate(unsigned numStars, unsigned seed) {
+    _starsLoaded = _controller->computeStars(numStars, seed);
+    return _starsLoaded;
 }
 
 bool Stars::setResolution(unsigned k) { 
     return _controller->setResolution(k); 
 }
-
-float Stars::changeLOD(float fraction, float overalloc, float realloc) { 
-    return float(_controller->changeLOD(fraction, overalloc, realloc));
-} 
 
 void Stars::render(float fovY, float aspect, float nearZ, float alpha) {
 
@@ -47,7 +41,7 @@ void Stars::render(float fovY, float aspect, float nearZ, float alpha) {
     // pull the modelview matrix off the GL stack
     glm::mat4 view; glGetFloatv(GL_MODELVIEW_MATRIX, glm::value_ptr(view)); 
 
-    _controller->render(fovDiagonal, aspect, glm::affineInverse(view), alpha); 
+    _controller->render(fovDiagonal, aspect, glm::affineInverse(view), alpha);
 }
 
 

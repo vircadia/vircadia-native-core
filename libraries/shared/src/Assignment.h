@@ -15,7 +15,6 @@
 
 #include "NodeList.h"
 
-const int NUM_BYTES_RFC4122_UUID = 16;
 const int MAX_PAYLOAD_BYTES = 1024;
 
 /// Holds information used for request, creation, and deployment of assignments
@@ -73,6 +72,8 @@ public:
     int getNumberOfInstances() const { return _numberOfInstances; }
     void setNumberOfInstances(int numberOfInstances) { _numberOfInstances = numberOfInstances; }
     void decrementNumberOfInstances() { --_numberOfInstances; }
+    
+    const char* getTypeName() const;
 
     /// Packs the assignment to the passed buffer
     /// \param buffer the buffer in which to pack the assignment

@@ -20,6 +20,7 @@
 #include <SharedUtil.h>
 #include <StdDev.h>
 #include <UDPSocket.h>
+#include <QSvgRenderer>
 
 #include "Application.h"
 #include "Audio.h"
@@ -69,6 +70,10 @@ static const int   PING_FRAMES_TO_RECORD = AEC_BUFFERED_FRAMES;                 
 static const int   PING_SAMPLES_TO_ANALYZE = AEC_BUFFERED_SAMPLES_PER_CHANNEL;  // Samples to analyze (reusing AEC buffer)
 static const int   PING_BUFFER_OFFSET = BUFFER_LENGTH_SAMPLES_PER_CHANNEL - PING_PERIOD * 2.0f; // Signal start
 
+// Mute icon configration
+static const int ICON_SIZE = 24;
+static const int ICON_LEFT = 20;
+static const int BOTTOM_PADDING = 110;
 
 inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* outputRight) {
 
@@ -79,6 +84,11 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
     memset(outputLeft, 0, PACKET_LENGTH_BYTES_PER_CHANNEL);
     memset(outputRight, 0, PACKET_LENGTH_BYTES_PER_CHANNEL);
 
+    //  If Mute button is pressed, clear the input buffer 
+    if (_muted) {
+        memset(inputLeft, 0, PACKET_LENGTH_BYTES_PER_CHANNEL);
+    }
+    
     // Add Procedural effects to input samples
     addProceduralSounds(inputLeft, outputLeft, outputRight, BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
     
@@ -89,81 +99,59 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
         for (int i = 0; i < BUFFER_LENGTH_SAMPLES_PER_CHANNEL; i++) {
             loudness += abs(inputLeft[i]);
         }
-        
+    
         loudness /= BUFFER_LENGTH_SAMPLES_PER_CHANNEL;
         _lastInputLoudness = loudness;
-        
+    
         // add input (@microphone) data to the scope
         _scope->addSamples(0, inputLeft, BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
 
         Node* audioMixer = nodeList->soloNodeOfType(NODE_TYPE_AUDIO_MIXER);
         
         if (audioMixer) {
-            audioMixer->lock();
-            sockaddr_in audioSocket = *(sockaddr_in*) audioMixer->getActiveSocket();
-            audioMixer->unlock();
-            
-            glm::vec3 headPosition = interfaceAvatar->getHeadJointPosition();
-            glm::quat headOrientation = interfaceAvatar->getHead().getOrientation();
-            
-            int numBytesPacketHeader = numBytesForPacketHeader((unsigned char*) &PACKET_TYPE_MICROPHONE_AUDIO_NO_ECHO);
-            int leadingBytes = numBytesPacketHeader + sizeof(headPosition) + sizeof(headOrientation);
-            
-            // we need the amount of bytes in the buffer + 1 for type
-            // + 12 for 3 floats for position + float for bearing + 1 attenuation byte
-            unsigned char dataPacket[MAX_PACKET_SIZE];
-            
-            PACKET_TYPE packetType = Menu::getInstance()->isOptionChecked(MenuOption::EchoAudio)
-                ? PACKET_TYPE_MICROPHONE_AUDIO_WITH_ECHO
-                : PACKET_TYPE_MICROPHONE_AUDIO_NO_ECHO;
-            
-            unsigned char* currentPacketPtr = dataPacket + populateTypeAndVersion(dataPacket, packetType);
-            
-            // pack Source Data
-            uint16_t ownerID = NodeList::getInstance()->getOwnerID();
-            memcpy(currentPacketPtr, &ownerID, sizeof(ownerID));
-            currentPacketPtr += (sizeof(ownerID));
-            leadingBytes += (sizeof(ownerID));
-            
-            // pack Listen Mode Data
-            memcpy(currentPacketPtr, &_listenMode, sizeof(_listenMode));
-            currentPacketPtr += (sizeof(_listenMode));
-            leadingBytes += (sizeof(_listenMode));
-    
-            if (_listenMode == AudioRingBuffer::OMNI_DIRECTIONAL_POINT) {
-                memcpy(currentPacketPtr, &_listenRadius, sizeof(_listenRadius));
-                currentPacketPtr += (sizeof(_listenRadius));
-                leadingBytes += (sizeof(_listenRadius));
-            } else if (_listenMode == AudioRingBuffer::SELECTED_SOURCES) {
-                int listenSourceCount = _listenSources.size();
-                memcpy(currentPacketPtr, &listenSourceCount, sizeof(listenSourceCount));
-                currentPacketPtr += (sizeof(listenSourceCount));
-                leadingBytes += (sizeof(listenSourceCount));
-                for (int i = 0; i < listenSourceCount; i++) {
-                    memcpy(currentPacketPtr, &_listenSources[i], sizeof(_listenSources[i]));
-                    currentPacketPtr += sizeof(_listenSources[i]);
-                    leadingBytes += sizeof(_listenSources[i]);
-                }
+            if (audioMixer->getActiveSocket()) {
+                glm::vec3 headPosition = interfaceAvatar->getHeadJointPosition();
+                glm::quat headOrientation = interfaceAvatar->getHead().getOrientation();
+                
+                int numBytesPacketHeader = numBytesForPacketHeader((unsigned char*) &PACKET_TYPE_MICROPHONE_AUDIO_NO_ECHO);
+                int leadingBytes = numBytesPacketHeader + sizeof(headPosition) + sizeof(headOrientation);
+                
+                // we need the amount of bytes in the buffer + 1 for type
+                // + 12 for 3 floats for position + float for bearing + 1 attenuation byte
+                unsigned char dataPacket[MAX_PACKET_SIZE];
+                
+                PACKET_TYPE packetType = Menu::getInstance()->isOptionChecked(MenuOption::EchoAudio)
+                    ? PACKET_TYPE_MICROPHONE_AUDIO_WITH_ECHO
+                    : PACKET_TYPE_MICROPHONE_AUDIO_NO_ECHO;
+                
+                unsigned char* currentPacketPtr = dataPacket + populateTypeAndVersion(dataPacket, packetType);
+                
+                // pack Source Data
+                QByteArray rfcUUID = NodeList::getInstance()->getOwnerUUID().toRfc4122();
+                memcpy(currentPacketPtr, rfcUUID.constData(), rfcUUID.size());
+                currentPacketPtr += rfcUUID.size();
+                leadingBytes += rfcUUID.size();
+                
+                // memcpy the three float positions
+                memcpy(currentPacketPtr, &headPosition, sizeof(headPosition));
+                currentPacketPtr += (sizeof(headPosition));
+                
+                // memcpy our orientation
+                memcpy(currentPacketPtr, &headOrientation, sizeof(headOrientation));
+                currentPacketPtr += sizeof(headOrientation);
+                
+                // copy the audio data to the last BUFFER_LENGTH_BYTES bytes of the data packet
+                memcpy(currentPacketPtr, inputLeft, BUFFER_LENGTH_BYTES_PER_CHANNEL);
+                
+                nodeList->getNodeSocket()->send(audioMixer->getActiveSocket(),
+                                                dataPacket,
+                                                BUFFER_LENGTH_BYTES_PER_CHANNEL + leadingBytes);
+                
+                interface->getBandwidthMeter()->outputStream(BandwidthMeter::AUDIO).updateValue(BUFFER_LENGTH_BYTES_PER_CHANNEL
+                                                                                                + leadingBytes);
+            } else {
+                nodeList->pingPublicAndLocalSocketsForInactiveNode(audioMixer);
             }
-            
-            // memcpy the three float positions
-            memcpy(currentPacketPtr, &headPosition, sizeof(headPosition));
-            currentPacketPtr += (sizeof(headPosition));
-            
-            // memcpy our orientation
-            memcpy(currentPacketPtr, &headOrientation, sizeof(headOrientation));
-            currentPacketPtr += sizeof(headOrientation);
-            
-            // copy the audio data to the last BUFFER_LENGTH_BYTES bytes of the data packet
-            memcpy(currentPacketPtr, inputLeft, BUFFER_LENGTH_BYTES_PER_CHANNEL);
-            
-            nodeList->getNodeSocket()->send((sockaddr*) &audioSocket,
-                                            dataPacket,
-                                            BUFFER_LENGTH_BYTES_PER_CHANNEL + leadingBytes);
-
-            interface->getBandwidthMeter()->outputStream(BandwidthMeter::AUDIO).updateValue(BUFFER_LENGTH_BYTES_PER_CHANNEL
-                                                                                            + leadingBytes);
-            
         }
     }
         
@@ -257,8 +245,8 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
                         if (flangeIndex < 0) {
                             // we need to grab the flange sample from earlier in the buffer
                             flangeFrame = ringBuffer->getNextOutput() != ringBuffer->getBuffer()
-                            ? ringBuffer->getNextOutput() - PACKET_LENGTH_SAMPLES
-                            : ringBuffer->getNextOutput() + RING_BUFFER_LENGTH_SAMPLES - PACKET_LENGTH_SAMPLES;
+                                ? ringBuffer->getNextOutput() - PACKET_LENGTH_SAMPLES
+                                : ringBuffer->getNextOutput() + RING_BUFFER_LENGTH_SAMPLES - PACKET_LENGTH_SAMPLES;
                             
                             flangeIndex = PACKET_LENGTH_SAMPLES_PER_CHANNEL + (s - sampleFlangeDelay);
                         }
@@ -323,6 +311,11 @@ int Audio::audioCallback (const void* inputBuffer,
     return paContinue;
 }
 
+void Audio::init(QGLWidget *parent) {
+    switchToResourcesParentIfRequired();
+    _micTextureId = parent->bindTexture(QImage("./resources/images/mic.svg"));
+    _muteTextureId = parent->bindTexture(QImage("./resources/images/mute.svg"));
+}
 
 static void outputPortAudioError(PaError error) {
     if (error != paNoError) {
@@ -335,24 +328,6 @@ void Audio::reset() {
     _packetsReceivedThisPlayback = 0;
     _ringBuffer.reset();
 }
-
-void Audio::addListenSource(int sourceID) {
-    _listenSources.push_back(sourceID);
-}
-
-void Audio::clearListenSources() {
-    _listenSources.clear();
-}
-
-void Audio::removeListenSource(int sourceID) {
-    for (int i = 0; i < _listenSources.size(); i++) {
-        if (_listenSources[i] == sourceID) {
-            _listenSources.erase(_listenSources.begin() + i);
-            return;
-        }
-    }
-}
-
 
 Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples) :
     _stream(NULL),
@@ -384,8 +359,7 @@ Audio::Audio(Oscilloscope* scope, int16_t initialJitterBufferSamples) :
     _collisionSoundDuration(0.0f),
     _proceduralEffectSample(0),
     _heartbeatMagnitude(0.0f),
-    _listenMode(AudioRingBuffer::NORMAL),
-    _listenRadius(0.0f)
+    _muted(false)
 {
     outputPortAudioError(Pa_Initialize());
     
@@ -515,6 +489,14 @@ void Audio::addReceivedAudioToBuffer(unsigned char* receivedData, int receivedBy
     _lastReceiveTime = currentReceiveTime;
 }
 
+bool Audio::mousePressEvent(int x, int y) {
+    if (_iconBounds.contains(x, y)) {
+        _muted = !_muted;
+        return true;
+    }
+    return false;
+}
+
 void Audio::render(int screenWidth, int screenHeight) {
     if (_stream) {
         glLineWidth(2.0);
@@ -609,6 +591,7 @@ void Audio::render(int screenWidth, int screenHeight) {
         glEnd();
 
     }
+    renderToolIcon(screenHeight);
 }
 
 //
@@ -854,6 +837,51 @@ bool Audio::eventuallyAnalyzePing() {
     analyzePing();
     _pingAnalysisPending = false;
     return true;
+}
+
+void Audio::renderToolIcon(int screenHeigh) {
+    
+    _iconBounds = QRect(ICON_LEFT, screenHeigh - BOTTOM_PADDING, ICON_SIZE, ICON_SIZE);
+    glEnable(GL_TEXTURE_2D);
+    
+    glBindTexture(GL_TEXTURE_2D, _micTextureId);
+    glColor3f(1, 1, 1);
+    glBegin(GL_QUADS);
+    
+    glTexCoord2f(1, 1);
+    glVertex2f(_iconBounds.left(), _iconBounds.top());
+    
+    glTexCoord2f(0, 1);
+    glVertex2f(_iconBounds.right(), _iconBounds.top());
+    
+    glTexCoord2f(0, 0);
+    glVertex2f(_iconBounds.right(), _iconBounds.bottom());
+    
+    glTexCoord2f(1, 0);
+    glVertex2f(_iconBounds.left(), _iconBounds.bottom());
+    
+    glEnd();
+    
+    if (_muted) {
+        glBindTexture(GL_TEXTURE_2D, _muteTextureId);
+        glBegin(GL_QUADS);
+        
+        glTexCoord2f(1, 1);
+        glVertex2f(_iconBounds.left(), _iconBounds.top());
+        
+        glTexCoord2f(0, 1);
+        glVertex2f(_iconBounds.right(), _iconBounds.top());
+        
+        glTexCoord2f(0, 0);
+        glVertex2f(_iconBounds.right(), _iconBounds.bottom());
+        
+        glTexCoord2f(1, 0);
+        glVertex2f(_iconBounds.left(), _iconBounds.bottom());
+        
+        glEnd();
+    }
+    
+    glDisable(GL_TEXTURE_2D);
 }
 
 #endif

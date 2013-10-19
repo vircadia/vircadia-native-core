@@ -21,7 +21,6 @@
 #include "BlendFace.h"
 #include "Face.h"
 #include "InterfaceConfig.h"
-#include "PerlinFace.h"
 #include "world.h"
 #include "devices/SerialInterface.h"
 #include "renderer/TextureCache.h"
@@ -70,6 +69,7 @@ public:
     glm::vec3 getPosition() const { return _position; }
     const glm::vec3& getSkinColor() const { return _skinColor; }
     const glm::vec3& getEyePosition() const { return _eyePosition; }
+    const glm::vec3& getSaccade() const { return _saccade; }
     glm::vec3 getRightDirection() const { return getOrientation() * IDENTITY_RIGHT; }
     glm::vec3 getUpDirection() const { return getOrientation() * IDENTITY_UP; }
     glm::vec3 getFrontDirection() const { return getOrientation() * IDENTITY_FRONT; }
@@ -133,7 +133,6 @@ private:
     float _cameraYaw;
     bool _isCameraMoving;
     Face _face;
-    PerlinFace _perlinFace;
     BlendFace _blendFace;
 
     QSharedPointer<Texture> _dilatedIrisTexture;
@@ -156,7 +155,6 @@ private:
     void updateHairPhysics(float deltaTime);
 
     friend class BlendFace;
-    friend class PerlinFace;
 };
 
 #endif

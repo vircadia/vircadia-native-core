@@ -11,9 +11,12 @@
 #define __voxel_server__VoxelServer__
 
 #include <QStringList>
+#include <QtCore/QCoreApplication>
 
 #include <Assignment.h>
 #include <EnvironmentData.h>
+
+#include "civetweb.h"
 
 #include "NodeWatcher.h"
 #include "VoxelPersistThread.h"
@@ -49,11 +52,14 @@ public:
     
     void lockTree() {  pthread_mutex_lock(&_treeLock); }
     void unlockTree() {  pthread_mutex_unlock(&_treeLock); }
+    VoxelTree* getTree() { return &_serverTree; }
     
     int getPacketsPerClientPerInterval() const { return _packetsPerClientPerInterval; }
     bool getSendMinimalEnvironment() const { return _sendMinimalEnvironment; }
     EnvironmentData* getEnvironmentData(int i) { return &_environmentData[i]; }
     int getEnvironmentDataCount() const { return sizeof(_environmentData)/sizeof(EnvironmentData); }
+    
+    static VoxelServer* GetInstance() { return _theInstance; }
     
 private:
     int _argc;
@@ -82,6 +88,12 @@ private:
     NodeWatcher _nodeWatcher; // used to cleanup AGENT data when agents are killed
     
     void parsePayload();
+
+    void initMongoose(int port);
+
+    static int civetwebRequestHandler(struct mg_connection *connection);
+    static VoxelServer* _theInstance;
+    
 };
 
 #endif // __voxel_server__VoxelServer__

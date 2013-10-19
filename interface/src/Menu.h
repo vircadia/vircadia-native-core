@@ -66,6 +66,7 @@ public slots:
     void saveSettings(QSettings* settings = NULL);
     void importSettings();
     void exportSettings();
+    void goToUser();
     
 private slots:
     void aboutApp();
@@ -73,7 +74,6 @@ private slots:
     void editPreferences();
     void goToDomain();
     void goToLocation();
-    void goToUser();
     void bandwidthDetailsClosed();
     void voxelStatsDetailsClosed();
     void cycleFrustumRenderMode();
@@ -176,9 +176,6 @@ namespace MenuOption {
     const QString Gravity = "Use Gravity";
     const QString GroundPlane = "Ground Plane";
     const QString ParticleCloud = "Particle Cloud";
-    const QString ListenModeNormal = "Listen Mode Normal";
-    const QString ListenModePoint = "Listen Mode Point";
-    const QString ListenModeSingleSource = "Listen Mode Single Source";
     const QString Log = "Log";
     const QString Login = "Login";
     const QString LookAtIndicator = "Look-at Indicator";
@@ -212,7 +209,6 @@ namespace MenuOption {
     const QString TestRaveGlove = "Test Rave Glove";
     const QString TreeStats = "Calculate Tree Stats";
     const QString TransmitterDrive = "Transmitter Drive";
-    const QString UsePerlinFace = "Use Perlin's Face";
     const QString Quit =  "Quit";
     const QString UseVoxelShader = "Use Voxel Shader";
     const QString VoxelsAsPoints = "Draw Voxels as Points";

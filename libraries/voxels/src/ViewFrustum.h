@@ -97,7 +97,6 @@ public:
     glm::vec3 getFurthestPointFromCamera(const AABox& box) const;
 
 private:
-
     // Used for keyhole calculations
     ViewFrustum::location pointInKeyhole(const glm::vec3& point) const;
     ViewFrustum::location sphereInKeyhole(const glm::vec3& center, float radius) const;

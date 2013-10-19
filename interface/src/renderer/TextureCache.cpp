@@ -17,13 +17,21 @@
 #include "Application.h"
 #include "TextureCache.h"
 
-TextureCache::TextureCache() : _permutationNormalTextureID(0),
-    _primaryFramebufferObject(NULL), _secondaryFramebufferObject(NULL), _tertiaryFramebufferObject(NULL) {
+TextureCache::TextureCache() :
+    _permutationNormalTextureID(0),
+    _whiteTextureID(0),
+    _primaryFramebufferObject(NULL),
+    _secondaryFramebufferObject(NULL),
+    _tertiaryFramebufferObject(NULL)
+{
 }
 
 TextureCache::~TextureCache() {
     if (_permutationNormalTextureID != 0) {
         glDeleteTextures(1, &_permutationNormalTextureID);
+    }
+    if (_whiteTextureID != 0) {
+        glDeleteTextures(1, &_whiteTextureID);
     }
     foreach (GLuint id, _fileTextureIDs) {
         glDeleteTextures(1, &id);
@@ -66,6 +74,22 @@ GLuint TextureCache::getPermutationNormalTextureID() {
     return _permutationNormalTextureID;
 }
 
+static void loadWhiteTexture() {
+    const char OPAQUE_WHITE[] = { 0xFF, 0xFF, 0xFF, 0xFF };
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, OPAQUE_WHITE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+}
+
+GLuint TextureCache::getWhiteTextureID() {
+    if (_whiteTextureID == 0) {
+        glGenTextures(1, &_whiteTextureID);
+        glBindTexture(GL_TEXTURE_2D, _whiteTextureID);
+        loadWhiteTexture();
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
+    return _whiteTextureID;
+}
+
 GLuint TextureCache::getFileTextureID(const QString& filename) {
     GLuint id = _fileTextureIDs.value(filename);
     if (id == 0) {
@@ -85,10 +109,19 @@ GLuint TextureCache::getFileTextureID(const QString& filename) {
 }
 
 QSharedPointer<NetworkTexture> TextureCache::getTexture(const QUrl& url, bool dilatable) {
-    QSharedPointer<NetworkTexture> texture = _networkTextures.value(url);
-    if (texture.isNull()) {
-        texture = QSharedPointer<NetworkTexture>(dilatable ? new DilatableNetworkTexture(url) : new NetworkTexture(url));
-        _networkTextures.insert(url, texture);
+    QSharedPointer<NetworkTexture> texture;
+    if (dilatable) {
+        texture = _dilatableNetworkTextures.value(url);
+        if (texture.isNull()) {
+            texture = QSharedPointer<NetworkTexture>(new DilatableNetworkTexture(url));
+            _dilatableNetworkTextures.insert(url, texture);
+        }
+    } else {
+        texture = _networkTextures.value(url);
+        if (texture.isNull()) {
+            texture = QSharedPointer<NetworkTexture>(new NetworkTexture(url));
+            _networkTextures.insert(url, texture);
+        }
     }
     return texture;
 }
@@ -183,6 +216,11 @@ NetworkTexture::NetworkTexture(const QUrl& url) : _reply(NULL), _averageColor(1.
     
     connect(_reply, SIGNAL(downloadProgress(qint64,qint64)), SLOT(handleDownloadProgress(qint64,qint64)));
     connect(_reply, SIGNAL(error(QNetworkReply::NetworkError)), SLOT(handleReplyError()));
+    
+    // default to white
+    glBindTexture(GL_TEXTURE_2D, getID());
+    loadWhiteTexture();
+    glBindTexture(GL_TEXTURE_2D, 0);
 }
 
 NetworkTexture::~NetworkTexture() {

@@ -21,7 +21,6 @@ public:
     
     float getRadius() const { return _radius; }
     float getAttenuationRatio() const { return _attenuationRatio; }
-    const unsigned char* getStreamIdentifier() const { return _streamIdentifier; }
 private:
     // disallow copying of InjectedAudioRingBuffer objects
     InjectedAudioRingBuffer(const InjectedAudioRingBuffer&);
@@ -29,7 +28,6 @@ private:
     
     float _radius;
     float _attenuationRatio;
-    unsigned char _streamIdentifier[STREAM_IDENTIFIER_NUM_BYTES];
 };
 
 #endif /* defined(__hifi__InjectedAudioRingBuffer__) */
