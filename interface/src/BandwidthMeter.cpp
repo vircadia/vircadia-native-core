@@ -13,7 +13,7 @@
 
 namespace { // .cpp-local
 
-    int const AREA_WIDTH = -400;            // Width of the area used. Aligned to the right when negative.
+    int const AREA_WIDTH = -280;            // Width of the area used. Aligned to the right when negative.
     int const AREA_HEIGHT =  40;            // Height of the area used. Aligned to the bottom when negative.
     int const BORDER_DISTANCE_HORIZ = -20;  // Distance to edge of screen (use negative value when width is negative).
     int const BORDER_DISTANCE_VERT = 40;    // Distance to edge of screen (use negative value when height is negative).
@@ -33,6 +33,8 @@ namespace { // .cpp-local
 
     double const UNIT_SCALE = 8000.0 / (1024.0 * 1024.0);  // Bytes/ms -> Mbps
     int const INITIAL_SCALE_MAXIMUM_INDEX = 250; // / 9: exponent, % 9: mantissa - 2, 0 o--o 2 * 10^-10
+    int const MIN_METER_SCALE = 10; // 10Mbps
+    int const NUMBER_OF_MARKERS = 10;
 }
 
 BandwidthMeter::ChannelInfo BandwidthMeter::_CHANNELS[] = {
@@ -182,7 +184,7 @@ void BandwidthMeter::render(int screenWidth, int screenHeight) {
             break;
         }
         if (totalMax < scaleMax * 0.5) {
-            _scaleMaxIndex = glm::max(0, _scaleMaxIndex-1);
+            _scaleMaxIndex = glm::max(0, _scaleMaxIndex - 1);
             commit = true;
         } else if (totalMax > scaleMax) {
             _scaleMaxIndex += 1;
@@ -190,10 +192,15 @@ void BandwidthMeter::render(int screenWidth, int screenHeight) {
         }
     } while (commit);
 
+    step = scaleMax / NUMBER_OF_MARKERS;
+    if (scaleMax < MIN_METER_SCALE) {
+        scaleMax = MIN_METER_SCALE;
+    }
+    
     // Render scale indicators
     setColorRGBA(COLOR_INDICATOR);
-    for (int j = int((scaleMax + step - 0.000001) / step); --j > 0;) {
-        renderVerticalLine(int(barWidth * j * step / scaleMax), 0, h);
+    for (int j = NUMBER_OF_MARKERS; --j > 0;) {
+        renderVerticalLine(int(barWidth * j / NUMBER_OF_MARKERS), 0, h);
     }
 
     // Render bars
@@ -220,11 +227,11 @@ void BandwidthMeter::render(int screenWidth, int screenHeight) {
     // Render numbers
     char fmtBuf[8];
     setColorRGBA(COLOR_TEXT);
-    sprintf(fmtBuf, "%0.2f", totalIn);
+    sprintf(fmtBuf, "%0.1f", totalIn);
     _textRenderer.draw(glm::max(xIn - fontMetrics.width(fmtBuf) - PADDING_HORIZ_VALUE,
                                 PADDING_HORIZ_VALUE),
                        textYupperLine, fmtBuf);
-    sprintf(fmtBuf, "%0.2f", totalOut);
+    sprintf(fmtBuf, "%0.1f", totalOut);
     _textRenderer.draw(glm::max(xOut - fontMetrics.width(fmtBuf) - PADDING_HORIZ_VALUE,
                                 PADDING_HORIZ_VALUE),
                        textYlowerLine, fmtBuf);
