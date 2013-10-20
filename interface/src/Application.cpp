@@ -425,6 +425,7 @@ void Application::paintGL() {
     } else {
         _glowEffect.prepare(); 
 
+        
         glMatrixMode(GL_MODELVIEW);
         glPushMatrix();
         glLoadIdentity();
@@ -432,17 +433,6 @@ void Application::paintGL() {
         glPopMatrix();
         
         _glowEffect.render();
-        
-        // mirror
-        if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-            glViewport(50, 600, 265, 215);
-            glLogicOp(GL_CLEAR);
-            _mirrorCamera.setMode(CAMERA_MODE_MIRROR);
-            displaySide(_mirrorCamera);
-            
-            glViewport(0, 0, _glWidget->width(), _glWidget->height());
-        }
-        // mirror
         
         displayOverlay();
     }
@@ -2492,6 +2482,7 @@ void Application::displaySide(Camera& whichCamera) {
     if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
         glScalef(-1.0f, 1.0f, 1.0f);
         glFrontFace(GL_CW);
+    
     } else {
         glFrontFace(GL_CCW);
     }
@@ -2779,7 +2770,6 @@ void Application::displaySide(Camera& whichCamera) {
         
         glPopMatrix();
     }
-    
 }
 
 void Application::displayOverlay() {
