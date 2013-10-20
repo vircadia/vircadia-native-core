@@ -565,6 +565,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                         jointNeckID = object.properties.at(0).value<qint64>();
                     }
                     glm::vec3 translation;
+                    glm::vec3 rotationOffset;
                     glm::vec3 preRotation, rotation, postRotation;
                     glm::vec3 scale = glm::vec3(1.0f, 1.0f, 1.0f);
                     glm::vec3 scalePivot, rotationPivot;
@@ -578,6 +579,11 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                                             property.properties.at(5).value<double>(),
                                             property.properties.at(6).value<double>());
 
+                                    } else if (property.properties.at(0) == "RotationOffset") {
+                                        rotationOffset = glm::vec3(property.properties.at(4).value<double>(),
+                                            property.properties.at(5).value<double>(),
+                                            property.properties.at(6).value<double>());
+                                        
                                     } else if (property.properties.at(0) == "RotationPivot") {
                                         rotationPivot = glm::vec3(property.properties.at(4).value<double>(),
                                             property.properties.at(5).value<double>(),
@@ -613,11 +619,12 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                         }
                     }
                     // see FBX documentation, http://download.autodesk.com/us/fbx/20112/FBX_SDK_HELP/index.html
-                    model.preRotation = glm::translate(translation) * glm::translate(rotationPivot) *
-                        glm::mat4_cast(glm::quat(glm::radians(preRotation)));                   
+                    model.preRotation = glm::translate(translation) * glm::translate(rotationOffset) *
+                        glm::translate(rotationPivot) * glm::mat4_cast(glm::quat(glm::radians(preRotation)));                   
                     model.rotation = glm::quat(glm::radians(rotation));
-                    model.postRotation = glm::mat4_cast(glm::quat(glm::radians(postRotation))) * glm::translate(-rotationPivot) *
-                        glm::translate(scalePivot) * glm::scale(scale) * glm::translate(-scalePivot);
+                    model.postRotation = glm::mat4_cast(glm::quat(glm::radians(postRotation))) *
+                        glm::translate(-rotationPivot) * glm::translate(scalePivot) *
+                        glm::scale(scale) * glm::translate(-scalePivot);
                     models.insert(object.properties.at(0).value<qint64>(), model);
                 
                 } else if (object.name == "Texture") {

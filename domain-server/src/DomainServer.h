@@ -42,11 +42,12 @@ private:
     static DomainServer* domainServerInstance;
     
     void prepopulateStaticAssignmentFile();
-    Assignment* matchingStaticAssignmentForCheckIn(NODE_TYPE nodeType, const uchar* checkInUUID);
+    Assignment* matchingStaticAssignmentForCheckIn(const QUuid& checkInUUID, NODE_TYPE nodeType);
     Assignment* deployableAssignmentForRequest(Assignment& requestAssignment);
     void removeAssignmentFromQueue(Assignment* removableAssignment);
-    bool checkInWithUUIDMatchesExistingNode(sockaddr* nodePublicSocket, sockaddr* nodeLocalSocket, const uchar* checkInData);
+    bool checkInWithUUIDMatchesExistingNode(sockaddr* nodePublicSocket, sockaddr* nodeLocalSocket, const QUuid& checkInUUI);
     void possiblyAddStaticAssignmentsBackToQueueAfterRestart(timeval* startTime);
+    void addReleasedAssignmentBackToQueue(Assignment* releasedAssignment);
     
     void cleanup();
     

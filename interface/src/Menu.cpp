@@ -60,11 +60,11 @@ Menu::Menu() :
     QMenu* fileMenu = addMenu("File");
     
 #ifdef Q_OS_MAC
-    (addActionToQMenuAndActionHash(fileMenu,
-                                   MenuOption::AboutApp,
-                                   0,
-                                   this,
-                                   SLOT(aboutApp())))->setMenuRole(QAction::AboutRole);
+    addActionToQMenuAndActionHash(fileMenu,
+                                  MenuOption::AboutApp,
+                                  0,
+                                  this,
+                                  SLOT(aboutApp()));
 #endif
     
     (addActionToQMenuAndActionHash(fileMenu,
@@ -72,12 +72,6 @@ Menu::Menu() :
                                    0,
                                    this,
                                    SLOT(login())));
-    
-    (addActionToQMenuAndActionHash(fileMenu,
-                                   MenuOption::Preferences,
-                                   Qt::CTRL | Qt::Key_Comma,
-                                   this,
-                                   SLOT(editPreferences())))->setMenuRole(QAction::PreferencesRole);
 
     addDisabledActionAndSeparator(fileMenu, "Voxels");
     addActionToQMenuAndActionHash(fileMenu, MenuOption::ExportVoxels, Qt::CTRL | Qt::Key_E, appInstance, SLOT(exportVoxels()));
@@ -114,13 +108,22 @@ Menu::Menu() :
     addActionToQMenuAndActionHash(fileMenu, MenuOption::Pair, 0, PairingHandler::getInstance(), SLOT(sendPairRequest()));
     addCheckableActionToQMenuAndActionHash(fileMenu, MenuOption::TransmitterDrive, 0, true);
     
-    (addActionToQMenuAndActionHash(fileMenu,
-                                   MenuOption::Quit,
-                                   Qt::CTRL | Qt::Key_Q,
-                                   appInstance,
-                                   SLOT(quit())))->setMenuRole(QAction::QuitRole);    
+    addActionToQMenuAndActionHash(fileMenu,
+                                  MenuOption::Quit,
+                                  Qt::CTRL | Qt::Key_Q,
+                                  appInstance,
+                                  SLOT(quit()));
     
     QMenu* editMenu = addMenu("Edit");
+    
+    addActionToQMenuAndActionHash(editMenu,
+                                  MenuOption::Preferences,
+                                  Qt::CTRL | Qt::Key_Comma,
+                                  this,
+                                  SLOT(editPreferences()));
+    
+    addDisabledActionAndSeparator(editMenu, "Voxels");
+    
     addActionToQMenuAndActionHash(editMenu, MenuOption::CutVoxels, Qt::CTRL | Qt::Key_X, appInstance, SLOT(cutVoxels()));
     addActionToQMenuAndActionHash(editMenu, MenuOption::CopyVoxels, Qt::CTRL | Qt::Key_C, appInstance, SLOT(copyVoxels()));
     addActionToQMenuAndActionHash(editMenu, MenuOption::PasteVoxels, Qt::CTRL | Qt::Key_V, appInstance, SLOT(pasteVoxels()));
@@ -442,21 +445,6 @@ Menu::Menu() :
                                            
     QMenu* audioDebugMenu = developerMenu->addMenu("Audio Debugging Tools");
     addCheckableActionToQMenuAndActionHash(audioDebugMenu, MenuOption::EchoAudio);
-    addActionToQMenuAndActionHash(audioDebugMenu,
-                                  MenuOption::ListenModeNormal,
-                                  Qt::CTRL | Qt::Key_1,
-                                  appInstance,
-                                  SLOT(setListenModeNormal()));
-    addActionToQMenuAndActionHash(audioDebugMenu,
-                                  MenuOption::ListenModePoint,
-                                  Qt::CTRL | Qt::Key_2,
-                                  appInstance,
-                                  SLOT(setListenModePoint()));
-    addActionToQMenuAndActionHash(audioDebugMenu,
-                                  MenuOption::ListenModeSingleSource,
-                                  Qt::CTRL | Qt::Key_3,
-                                  appInstance,
-                                  SLOT(setListenModeSingleSource()));
     
     QMenu* voxelProtoOptionsMenu = developerMenu->addMenu("Voxel Server Protocol Options");
     

@@ -19,13 +19,14 @@
 #endif
 
 #include <QtCore/QDebug>
+#include <QtCore/QUuid>
 
 #include "NodeData.h"
 #include "SimpleMovingAverage.h"
 
 class Node {
 public:
-    Node(sockaddr* publicSocket, sockaddr* localSocket, char type, uint16_t nodeID);
+    Node(const QUuid& uuid, char type, sockaddr* publicSocket, sockaddr* localSocket);
     ~Node();
     
     bool operator==(const Node& otherNode);
@@ -36,8 +37,8 @@ public:
     void setType(char type) { _type = type; }
     const char* getTypeName() const;
     
-    uint16_t getNodeID() const { return _nodeID; }
-    void setNodeID(uint16_t nodeID) { _nodeID = nodeID;}
+    const QUuid& getUUID() const { return _uuid; }
+    void setUUID(const QUuid& uuid) { _uuid = uuid; }
     
     uint64_t getWakeMicrostamp() const { return _wakeMicrostamp; }
     void setWakeMicrostamp(uint64_t wakeMicrostamp) { _wakeMicrostamp = wakeMicrostamp; }
@@ -46,9 +47,9 @@ public:
     void setLastHeardMicrostamp(uint64_t lastHeardMicrostamp) { _lastHeardMicrostamp = lastHeardMicrostamp; }
     
     sockaddr* getPublicSocket() const { return _publicSocket; }
-    void setPublicSocket(sockaddr* publicSocket) { _publicSocket = publicSocket; }
+    void setPublicSocket(sockaddr* publicSocket);
     sockaddr* getLocalSocket() const { return _localSocket; }
-    void setLocalSocket(sockaddr* localSocket) { _localSocket = localSocket; }
+    void setLocalSocket(sockaddr* localSocket);
     
     sockaddr* getActiveSocket() const { return _activeSocket; }
     
@@ -78,7 +79,7 @@ private:
     Node& operator=(Node otherNode);
     
     char _type;
-    uint16_t _nodeID;
+    QUuid _uuid;
     uint64_t _wakeMicrostamp;
     uint64_t _lastHeardMicrostamp;
     sockaddr* _publicSocket;

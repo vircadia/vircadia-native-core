@@ -82,7 +82,7 @@ void VoxelNode::init(unsigned char * octalCode) {
     setVoxelSystem(NULL);
     _isDirty = true;
     _shouldRender = false;
-    _sourceID = UNKNOWN_NODE_ID;
+    _sourceUUIDKey = 0;
     calculateAABox();
     markWithChangedTime();
 
@@ -168,6 +168,53 @@ void VoxelNode::setVoxelSystem(VoxelSystem* voxelSystem) {
         _voxelSystemIndex = index;
     }
 }
+
+const uint16_t KEY_FOR_NULL = 0;
+uint16_t VoxelNode::_nextUUIDKey = KEY_FOR_NULL + 1; // start at 1, 0 is reserved for NULL
+std::map<QString, uint16_t> VoxelNode::_mapSourceUUIDsToKeys;
+std::map<uint16_t, QString> VoxelNode::_mapKeysToSourceUUIDs;
+
+void VoxelNode::setSourceUUID(const QUuid& sourceUUID) {
+    uint16_t key;
+    QString sourceUUIDString = sourceUUID.toString();
+    if (_mapSourceUUIDsToKeys.end() != _mapSourceUUIDsToKeys.find(sourceUUIDString)) {
+        key = _mapSourceUUIDsToKeys[sourceUUIDString];
+    } else {
+        key = _nextUUIDKey;
+        _nextUUIDKey++;
+        _mapSourceUUIDsToKeys[sourceUUIDString] = key;
+        _mapKeysToSourceUUIDs[key] = sourceUUIDString;
+    }
+    _sourceUUIDKey = key;
+}
+
+QUuid VoxelNode::getSourceUUID() const {
+    if (_sourceUUIDKey > KEY_FOR_NULL) {
+        if (_mapKeysToSourceUUIDs.end() != _mapKeysToSourceUUIDs.find(_sourceUUIDKey)) {
+            return QUuid(_mapKeysToSourceUUIDs[_sourceUUIDKey]);
+        }
+    }
+    return QUuid();
+}
+
+bool VoxelNode::matchesSourceUUID(const QUuid& sourceUUID) const {
+    if (_sourceUUIDKey > KEY_FOR_NULL) {
+        if (_mapKeysToSourceUUIDs.end() != _mapKeysToSourceUUIDs.find(_sourceUUIDKey)) {
+            return QUuid(_mapKeysToSourceUUIDs[_sourceUUIDKey]) == sourceUUID;
+        }
+    }
+    return sourceUUID.isNull();
+}
+
+uint16_t VoxelNode::getSourceNodeUUIDKey(const QUuid& sourceUUID) {
+    uint16_t key = KEY_FOR_NULL;
+    QString sourceUUIDString = sourceUUID.toString();
+    if (_mapSourceUUIDsToKeys.end() != _mapSourceUUIDsToKeys.find(sourceUUIDString)) {
+        key = _mapSourceUUIDsToKeys[sourceUUIDString];
+    }
+    return key;
+}
+
 
 
 void VoxelNode::setShouldRender(bool shouldRender) {
@@ -1025,6 +1072,9 @@ void VoxelNode::setColor(const nodeColor& color) {
     }
 }
 #endif
+
+
+
 
 // will detect if children are leaves AND the same color
 // and in that case will delete the children and make this node

@@ -171,9 +171,6 @@ public slots:
     void doKillLocalVoxels();
     void decreaseVoxelSize();
     void increaseVoxelSize();
-    void setListenModeNormal();
-    void setListenModePoint();
-    void setListenModeSingleSource();
     
 private slots:
     
@@ -213,7 +210,7 @@ private:
     void updateLookatTargetAvatar(const glm::vec3& mouseRayOrigin, const glm::vec3& mouseRayDirection,
         glm::vec3& eyePosition);
     Avatar* findLookatTargetAvatar(const glm::vec3& mouseRayOrigin, const glm::vec3& mouseRayDirection,
-        glm::vec3& eyePosition, uint16_t& nodeID);
+        glm::vec3& eyePosition, QUuid &nodeUUID);
     bool isLookingAtMyAvatar(Avatar* avatar);
                                 
     void renderLookatIndicator(glm::vec3 pointOfInterest, Camera& whichCamera);

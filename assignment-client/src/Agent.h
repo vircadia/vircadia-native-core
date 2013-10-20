@@ -36,4 +36,4 @@ private:
     std::vector<AudioInjector*> _audioInjectors;
 };
 
-#endif /* defined(__hifi__Operative__) */
+#endif /* defined(__hifi__Agent__) */

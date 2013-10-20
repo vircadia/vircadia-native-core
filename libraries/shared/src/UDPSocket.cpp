@@ -22,6 +22,8 @@
 #endif
 
 #include <QtCore/QDebug>
+#include <QtNetwork/QNetworkInterface>
+#include <QtNetwork/QHostAddress>
 
 #include "Logging.h"
 #include "UDPSocket.h"
@@ -88,35 +90,35 @@ void copySocketToEmptySocketPointer(sockaddr** destination, const sockaddr* sour
 }
 
 int getLocalAddress() {
-    // get this node's local address so we can pass that to DS
-    struct ifaddrs* ifAddrStruct = NULL;
-    struct ifaddrs* ifa = NULL;
     
-    int family;
-    int localAddress = 0;
- 
-#ifndef _WIN32
-    getifaddrs(&ifAddrStruct); 
-        
-    for (ifa = ifAddrStruct; ifa != NULL; ifa = ifa->ifa_next) {
-        family = ifa->ifa_addr->sa_family;
-        if (family == AF_INET) {
-            localAddress = ((sockaddr_in *)ifa->ifa_addr)->sin_addr.s_addr;
+    static int localAddress = 0;
+    
+    if (localAddress == 0) {
+        foreach(const QNetworkInterface &interface, QNetworkInterface::allInterfaces()) {
+            if (interface.flags() & QNetworkInterface::IsUp
+                && interface.flags() & QNetworkInterface::IsRunning
+                && interface.flags() & ~QNetworkInterface::IsLoopBack) {
+                // we've decided that this is the active NIC
+                // enumerate it's addresses to grab the IPv4 address
+                foreach(const QNetworkAddressEntry &entry, interface.addressEntries()) {
+                    // make sure it's an IPv4 address that isn't the loopback
+                    if (entry.ip().protocol() == QAbstractSocket::IPv4Protocol && !entry.ip().isLoopback()) {
+                        qDebug("Node's local address is %s\n", entry.ip().toString().toLocal8Bit().constData());
+                        
+                        // set our localAddress and break out
+                        localAddress = htonl(entry.ip().toIPv4Address());
+                        break;
+                    }
+                }
+            }
+            
+            if (localAddress != 0) {
+                break;
+            }
         }
     }
     
-    freeifaddrs(ifAddrStruct);
-#else 
-    // Get the local hostname
-    char szHostName[255];
-    gethostname(szHostName, 255);
-    struct hostent *host_entry;
-    host_entry = gethostbyname(szHostName);
-    char * szLocalIP;
-    szLocalIP = inet_ntoa (*(struct in_addr *)*host_entry->h_addr_list);
-    localAddress = inet_addr(szLocalIP);
-#endif
-    
+    // return the looked up local address
     return localAddress;
 }
 
@@ -263,16 +265,22 @@ bool UDPSocket::receive(sockaddr* recvAddress, void* receivedData, ssize_t* rece
 }
 
 int UDPSocket::send(sockaddr* destAddress, const void* data, size_t byteLength) const {
-    // send data via UDP
-    int sent_bytes = sendto(handle, (const char*)data, byteLength,
-                            0, (sockaddr *) destAddress, sizeof(sockaddr_in));
-    
-    if (sent_bytes != byteLength) {
-        qDebug("Failed to send packet: %s\n", strerror(errno));
-        return false;
+    if (destAddress) {
+        // send data via UDP
+        int sent_bytes = sendto(handle, (const char*)data, byteLength,
+                                0, (sockaddr *) destAddress, sizeof(sockaddr_in));
+        
+        if (sent_bytes != byteLength) {
+            qDebug("Failed to send packet: %s\n", strerror(errno));
+            return false;
+        }
+        
+        return sent_bytes;
+    } else {
+        qDebug("UDPSocket send called with NULL destination address - Likely a node with no active socket.\n");
+        return 0;
     }
     
-    return sent_bytes;
 }
 
 int UDPSocket::send(const char* destAddress, int destPort, const void* data, size_t byteLength) const {

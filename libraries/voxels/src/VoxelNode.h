@@ -101,8 +101,12 @@ public:
 
     void setDensity(float density) { _density = density; }
     float getDensity() const { return _density; }
-    void setSourceID(uint16_t sourceID) { _sourceID = sourceID; }
-    uint16_t getSourceID() const { return _sourceID; }
+    
+    void setSourceUUID(const QUuid& sourceID);
+    QUuid getSourceUUID() const;
+    uint16_t getSourceUUIDKey() const { return _sourceUUIDKey; }
+    bool matchesSourceUUID(const QUuid& sourceUUID) const;
+    static uint16_t getSourceNodeUUIDKey(const QUuid& sourceUUID);
 
     static void addDeleteHook(VoxelNodeDeleteHook* hook);
     static void removeDeleteHook(VoxelNodeDeleteHook* hook);
@@ -191,7 +195,15 @@ private:
     nodeColor _trueColor; /// Client and server, true color of this voxel, 4 bytes
     nodeColor _currentColor; /// Client only, false color of this voxel, 4 bytes
 
-    uint16_t _sourceID; /// Client only, stores node id of voxel server that sent his voxel, 2 bytes
+
+    uint16_t _sourceUUIDKey; /// Client only, stores node id of voxel server that sent his voxel, 2 bytes
+
+    // Support for _sourceUUID, we use these static member variables to track the UUIDs that are
+    // in use by various voxel server nodes. We map the UUID strings into an 16 bit key, this limits us to at
+    // most 65k voxel servers in use at a time within the client. Which is far more than we need.
+    static uint16_t _nextUUIDKey; // start at 1, 0 is reserved for NULL
+    static std::map<QString, uint16_t> _mapSourceUUIDsToKeys;
+    static std::map<uint16_t, QString> _mapKeysToSourceUUIDs;
 
     unsigned char _childBitmask;     // 1 byte 
 

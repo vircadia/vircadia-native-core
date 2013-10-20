@@ -221,7 +221,7 @@ int VoxelTree::readNodeData(VoxelNode* destinationNode, unsigned char* nodeData,
             if (childNodeAt) {
                 nodeWasDirty = childNodeAt->isDirty();
                 childNodeAt->setColor(newColor);
-                childNodeAt->setSourceID(args.sourceID);
+                childNodeAt->setSourceUUID(args.sourceUUID);
                 
                 // if we had a local version of the node already, it's possible that we have it in the VBO but
                 // with the same color data, so this won't count as a change. To address this we check the following
@@ -1571,7 +1571,7 @@ bool VoxelTree::readFromSVOFile(const char* fileName) {
         unsigned char* entireFile = new unsigned char[fileLength];
         file.read((char*)entireFile, fileLength);
         bool wantImportProgress = true;
-        ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS, NULL, UNKNOWN_NODE_ID, wantImportProgress);
+        ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS, NULL, 0, wantImportProgress);
         readBitstreamToTree(entireFile, fileLength, args);
         delete[] entireFile;
 
@@ -1831,7 +1831,7 @@ void VoxelTree::copyFromTreeIntoSubTree(VoxelTree* sourceTree, VoxelNode* destin
 
         // ask destination tree to read the bitstream
         bool wantImportProgress = true;
-        ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS, destinationNode, UNKNOWN_NODE_ID, wantImportProgress);
+        ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS, destinationNode, 0, wantImportProgress);
         readBitstreamToTree(&outputBuffer[0], bytesWritten, args);
     }
 }
