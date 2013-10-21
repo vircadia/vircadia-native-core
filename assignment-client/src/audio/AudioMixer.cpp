@@ -77,10 +77,6 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
     
     const int PHASE_DELAY_AT_90 = 20;
     
-    static stk::StkFrames stkFrameBuffer(BUFFER_LENGTH_SAMPLES_PER_CHANNEL, 1);
-    
-    stk::TwoPole* otherNodeTwoPole = NULL;
-    
     if (bufferToAdd != listeningNodeBuffer) {
         // if the two buffer pointers do not match then these are different buffers
         
@@ -156,26 +152,6 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
             float sinRatio = fabsf(sinf(glm::radians(bearingRelativeAngleToSource)));
             numSamplesDelay = PHASE_DELAY_AT_90 * sinRatio;
             weakChannelAmplitudeRatio = 1 - (PHASE_AMPLITUDE_RATIO_AT_90 * sinRatio);
-            
-            // grab the TwoPole object for this source, add it if it doesn't exist
-            TwoPoleNodeMap& nodeTwoPoles = listeningNodeBuffer->getTwoPoles();
-            TwoPoleNodeMap::iterator twoPoleIterator = nodeTwoPoles.find(bufferToAdd);
-            
-            if (twoPoleIterator == nodeTwoPoles.end()) {
-                // setup the freeVerb effect for this source for this client
-                otherNodeTwoPole = nodeTwoPoles[bufferToAdd] = new stk::TwoPole;
-            } else {
-                otherNodeTwoPole = twoPoleIterator->second;
-            }
-            
-            // calculate the reasonance for this TwoPole based on angle to source
-            float TWO_POLE_CUT_OFF_FREQUENCY = 800.0f;
-            float TWO_POLE_MAX_FILTER_STRENGTH = 0.4f;
-            
-            otherNodeTwoPole->setResonance(TWO_POLE_CUT_OFF_FREQUENCY,
-                                           TWO_POLE_MAX_FILTER_STRENGTH
-                                           * fabsf(bearingRelativeAngleToSource) / 180.0f,
-                                           true);
         }
     }
     
@@ -193,43 +169,21 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
         : bufferToAdd->getNextOutput() - numSamplesDelay;
     
     for (int s = 0; s < BUFFER_LENGTH_SAMPLES_PER_CHANNEL; s++) {
-        // load up the stkFrameBuffer with this source's samples
-        stkFrameBuffer[s] = (stk::StkFloat) sourceBuffer[s];
-    }
-    
-    // perform the TwoPole effect on the stkFrameBuffer
-    if (otherNodeTwoPole) {
-        otherNodeTwoPole->tick(stkFrameBuffer);
-    }
-    
-    for (int s = 0; s < BUFFER_LENGTH_SAMPLES_PER_CHANNEL; s++) {
         if (s < numSamplesDelay) {
             // pull the earlier sample for the delayed channel
             int earlierSample = delaySamplePointer[s] * attenuationCoefficient * weakChannelAmplitudeRatio;
             
-            delayedChannel[s] = glm::clamp(delayedChannel[s] + earlierSample,
-                                           MIN_SAMPLE_VALUE,
-                                           MAX_SAMPLE_VALUE);
+            delayedChannel[s] = glm::clamp(delayedChannel[s] + earlierSample, MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
         }
         
-        int16_t currentSample = stkFrameBuffer[s] * attenuationCoefficient;
-        
-        goodChannel[s] = glm::clamp(goodChannel[s] + currentSample,
-                                    MIN_SAMPLE_VALUE,
-                                    MAX_SAMPLE_VALUE);
+        // pull the current sample for the good channel
+        int16_t currentSample = sourceBuffer[s] * attenuationCoefficient;
+        goodChannel[s] = glm::clamp(goodChannel[s] + currentSample, MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
         
         if (s + numSamplesDelay < BUFFER_LENGTH_SAMPLES_PER_CHANNEL) {
-            int sumSample = delayedChannel[s + numSamplesDelay]
-            + (currentSample * weakChannelAmplitudeRatio);
-            delayedChannel[s + numSamplesDelay] = glm::clamp(sumSample,
-                                                             MIN_SAMPLE_VALUE,
-                                                             MAX_SAMPLE_VALUE);
-        }
-        
-        if (s >= BUFFER_LENGTH_SAMPLES_PER_CHANNEL - PHASE_DELAY_AT_90) {
-            // this could be a delayed sample on the next pass
-            // so store the affected back in the ARB
-            bufferToAdd->getNextOutput()[s] = (int16_t) stkFrameBuffer[s];
+            // place the curernt sample at the right spot in the delayed channel
+            int sumSample = delayedChannel[s + numSamplesDelay] + (currentSample * weakChannelAmplitudeRatio);
+            delayedChannel[s + numSamplesDelay] = glm::clamp(sumSample, MIN_SAMPLE_VALUE, MAX_SAMPLE_VALUE);
         }
     }
 }

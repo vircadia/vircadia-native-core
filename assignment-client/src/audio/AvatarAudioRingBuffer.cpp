@@ -12,16 +12,8 @@
 
 AvatarAudioRingBuffer::AvatarAudioRingBuffer() :
     PositionalAudioRingBuffer(PositionalAudioRingBuffer::Microphone),
-    _twoPoles(),
     _shouldLoopbackForNode(false) {
     
-}
-
-AvatarAudioRingBuffer::~AvatarAudioRingBuffer() {
-    // enumerate the freeVerbs map and delete the FreeVerb objects
-    for (TwoPoleNodeMap::iterator poleIterator = _twoPoles.begin(); poleIterator != _twoPoles.end(); poleIterator++) {
-        delete poleIterator->second;
-    }
 }
 
 int AvatarAudioRingBuffer::parseData(unsigned char* sourceBuffer, int numBytes) {

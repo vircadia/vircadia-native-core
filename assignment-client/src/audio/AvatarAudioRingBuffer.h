@@ -9,23 +9,15 @@
 #ifndef __hifi__AvatarAudioRingBuffer__
 #define __hifi__AvatarAudioRingBuffer__
 
-#include <Stk.h>
-#include <TwoPole.h>
-
 #include <QtCore/QUuid>
 
 #include "PositionalAudioRingBuffer.h"
 
-typedef std::map<PositionalAudioRingBuffer*, stk::TwoPole*> TwoPoleNodeMap;
-
 class AvatarAudioRingBuffer : public PositionalAudioRingBuffer {
 public:
     AvatarAudioRingBuffer();
-    ~AvatarAudioRingBuffer();
     
     int parseData(unsigned char* sourceBuffer, int numBytes);
-    
-    TwoPoleNodeMap& getTwoPoles() { return _twoPoles; }
     
     bool shouldLoopbackForNode() const { return _shouldLoopbackForNode; }
 private:
@@ -33,7 +25,6 @@ private:
     AvatarAudioRingBuffer(const AvatarAudioRingBuffer&);
     AvatarAudioRingBuffer& operator= (const AvatarAudioRingBuffer&);
     
-    TwoPoleNodeMap _twoPoles;
     bool _shouldLoopbackForNode;
 };
 
