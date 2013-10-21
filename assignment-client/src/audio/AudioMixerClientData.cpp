@@ -74,3 +74,30 @@ int AudioMixerClientData::parseData(unsigned char* packetData, int numBytes) {
     
     return 0;
 }
+
+void AudioMixerClientData::checkBuffersBeforeFrameSend(int jitterBufferLengthSamples) {
+    for (int i = 0; i < _ringBuffers.size(); i++) {
+        if (_ringBuffers[i]->shouldBeAddedToMix(jitterBufferLengthSamples)) {
+            // this is a ring buffer that is ready to go
+            // set its flag so we know to push its buffer when all is said and done
+            _ringBuffers[i]->setWillBeAddedToMix(true);
+        }
+    }
+}
+
+void AudioMixerClientData::pushBuffersAfterFrameSend() {
+    for (int i = 0; i < _ringBuffers.size(); i++) {
+        if (_ringBuffers[i]->willBeAddedToMix()) {
+            // this was a used buffer, push the output pointer forwards
+            PositionalAudioRingBuffer* audioBuffer = _ringBuffers[i];
+            
+            audioBuffer->setNextOutput(audioBuffer->getNextOutput() + BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
+            
+            if (audioBuffer->getNextOutput() >= audioBuffer->getBuffer() + RING_BUFFER_LENGTH_SAMPLES) {
+                audioBuffer->setNextOutput(audioBuffer->getBuffer());
+            }
+            
+            audioBuffer->setWillBeAddedToMix(false);
+        }
+    }
+}

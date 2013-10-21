@@ -20,9 +20,12 @@ class AudioMixerClientData : public NodeData {
 public:
     ~AudioMixerClientData();
     
-    int parseData(unsigned char* packetData, int numBytes);
-    
+    const std::vector<PositionalAudioRingBuffer*> getRingBuffers() const { return _ringBuffers; }
     AvatarAudioRingBuffer* getAvatarAudioRingBuffer() const;
+    
+    int parseData(unsigned char* packetData, int numBytes);
+    void checkBuffersBeforeFrameSend(int jitterBufferLengthSamples);
+    void pushBuffersAfterFrameSend();
 private:
     std::vector<PositionalAudioRingBuffer*> _ringBuffers;
 };

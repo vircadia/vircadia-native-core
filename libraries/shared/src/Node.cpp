@@ -122,10 +122,6 @@ void Node::activatePublicSocket() {
     _activeSocket = _publicSocket;
 }
 
-bool Node::operator==(const Node& otherNode) {
-    return matches(otherNode._publicSocket, otherNode._localSocket, otherNode._type);
-}
-
 bool Node::matches(sockaddr* otherPublicSocket, sockaddr* otherLocalSocket, char otherNodeType) {
     // checks if two node objects are the same node (same type + local + public address)
     return _type == otherNodeType

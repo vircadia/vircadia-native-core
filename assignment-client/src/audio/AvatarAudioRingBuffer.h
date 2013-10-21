@@ -16,7 +16,7 @@
 
 #include "PositionalAudioRingBuffer.h"
 
-typedef std::map<QUuid, stk::TwoPole*> TwoPoleNodeMap;
+typedef std::map<PositionalAudioRingBuffer*, stk::TwoPole*> TwoPoleNodeMap;
 
 class AvatarAudioRingBuffer : public PositionalAudioRingBuffer {
 public:
