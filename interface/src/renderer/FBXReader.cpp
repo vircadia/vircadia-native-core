@@ -390,6 +390,11 @@ QVector<double> getDoubleVector(const QVariantList& properties, int index) {
     return vector;
 }
 
+glm::vec3 getVec3(const QVariantList& properties, int index) {
+    return glm::vec3(properties.at(index).value<double>(), properties.at(index + 1).value<double>(),
+        properties.at(index + 2).value<double>());
+}
+
 const char* FACESHIFT_BLENDSHAPES[] = {
     "EyeBlink_L",
     "EyeBlink_R",
@@ -724,93 +729,45 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                     glm::vec3 scalePivot, rotationPivot;
                     FBXModel model = { name, -1 };
                     foreach (const FBXNode& subobject, object.children) {
+                        bool properties = false;
+                        QByteArray propertyName;
+                        int index;
                         if (subobject.name == "Properties60") {
-                            foreach (const FBXNode& property, subobject.children) {
-                                if (property.name == "Property") {
-                                    if (property.properties.at(0) == "Lcl Translation") {
-                                        translation = glm::vec3(property.properties.at(3).value<double>(),
-                                            property.properties.at(4).value<double>(),
-                                            property.properties.at(5).value<double>());
-
-                                    } else if (property.properties.at(0) == "RotationOffset") {
-                                        rotationOffset = glm::vec3(property.properties.at(3).value<double>(),
-                                            property.properties.at(4).value<double>(),
-                                            property.properties.at(5).value<double>());
-                                            
-                                    } else if (property.properties.at(0) == "RotationPivot") {
-                                        rotationPivot = glm::vec3(property.properties.at(3).value<double>(),
-                                            property.properties.at(4).value<double>(),
-                                            property.properties.at(5).value<double>());
-                                    
-                                    } else if (property.properties.at(0) == "PreRotation") {
-                                        preRotation = glm::vec3(property.properties.at(3).value<double>(),
-                                            property.properties.at(4).value<double>(),
-                                            property.properties.at(5).value<double>());
-                                            
-                                    } else if (property.properties.at(0) == "Lcl Rotation") {
-                                        rotation = glm::vec3(property.properties.at(3).value<double>(),
-                                            property.properties.at(4).value<double>(),
-                                            property.properties.at(5).value<double>());
-                                    
-                                    } else if (property.properties.at(0) == "PostRotation") {
-                                        postRotation = glm::vec3(property.properties.at(3).value<double>(),
-                                            property.properties.at(4).value<double>(),
-                                            property.properties.at(5).value<double>());
-                                        
-                                    } else if (property.properties.at(0) == "ScalingPivot") {
-                                        scalePivot = glm::vec3(property.properties.at(3).value<double>(),
-                                            property.properties.at(4).value<double>(),
-                                            property.properties.at(5).value<double>());
-                                            
-                                    } else if (property.properties.at(0) == "Lcl Scaling") {
-                                        scale = glm::vec3(property.properties.at(3).value<double>(),
-                                            property.properties.at(4).value<double>(),
-                                            property.properties.at(5).value<double>());       
-                                    }
-                                }
-                            }
+                            properties = true;
+                            propertyName = "Property";
+                            index = 3;
+                            
                         } else if (subobject.name == "Properties70") {
+                            properties = true;
+                            propertyName = "P";
+                            index = 4;
+                        }
+                        if (properties) {
                             foreach (const FBXNode& property, subobject.children) {
-                                if (property.name == "P") {
+                                if (property.name == propertyName) {
                                     if (property.properties.at(0) == "Lcl Translation") {
-                                        translation = glm::vec3(property.properties.at(4).value<double>(),
-                                            property.properties.at(5).value<double>(),
-                                            property.properties.at(6).value<double>());
+                                        translation = getVec3(property.properties, index);
 
                                     } else if (property.properties.at(0) == "RotationOffset") {
-                                        rotationOffset = glm::vec3(property.properties.at(4).value<double>(),
-                                            property.properties.at(5).value<double>(),
-                                            property.properties.at(6).value<double>());
-                                        
+                                        rotationOffset = getVec3(property.properties, index);
+                                            
                                     } else if (property.properties.at(0) == "RotationPivot") {
-                                        rotationPivot = glm::vec3(property.properties.at(4).value<double>(),
-                                            property.properties.at(5).value<double>(),
-                                            property.properties.at(6).value<double>());
+                                        rotationPivot = getVec3(property.properties, index);
                                     
                                     } else if (property.properties.at(0) == "PreRotation") {
-                                        preRotation = glm::vec3(property.properties.at(4).value<double>(),
-                                            property.properties.at(5).value<double>(),
-                                            property.properties.at(6).value<double>());
+                                        preRotation = getVec3(property.properties, index);
                                             
                                     } else if (property.properties.at(0) == "Lcl Rotation") {
-                                        rotation = glm::vec3(property.properties.at(4).value<double>(),
-                                            property.properties.at(5).value<double>(),
-                                            property.properties.at(6).value<double>());
+                                        rotation = getVec3(property.properties, index);
                                     
                                     } else if (property.properties.at(0) == "PostRotation") {
-                                        postRotation = glm::vec3(property.properties.at(4).value<double>(),
-                                            property.properties.at(5).value<double>(),
-                                            property.properties.at(6).value<double>());
+                                        postRotation = getVec3(property.properties, index);
                                         
                                     } else if (property.properties.at(0) == "ScalingPivot") {
-                                        scalePivot = glm::vec3(property.properties.at(4).value<double>(),
-                                            property.properties.at(5).value<double>(),
-                                            property.properties.at(6).value<double>());
+                                        scalePivot = getVec3(property.properties, index);
                                             
                                     } else if (property.properties.at(0) == "Lcl Scaling") {
-                                        scale = glm::vec3(property.properties.at(4).value<double>(),
-                                            property.properties.at(5).value<double>(),
-                                            property.properties.at(6).value<double>());       
+                                        scale = getVec3(property.properties, index);     
                                     }
                                 }
                             }
@@ -840,21 +797,30 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                 } else if (object.name == "Material") {
                     Material material = { glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(1.0f, 1.0f, 1.0f), 96.0f };
                     foreach (const FBXNode& subobject, object.children) {
-                        if (subobject.name == "Properties70") {        
+                        bool properties = false;
+                        QByteArray propertyName;
+                        int index;
+                        if (subobject.name == "Properties60") {
+                            properties = true;
+                            propertyName = "Property";
+                            index = 3;
+                            
+                        } else if (subobject.name == "Properties70") {
+                            properties = true;
+                            propertyName = "P";
+                            index = 4;
+                        }
+                        if (properties) {        
                             foreach (const FBXNode& property, subobject.children) {
-                                if (property.name == "P") {
+                                if (property.name == propertyName) {
                                     if (property.properties.at(0) == "DiffuseColor") {
-                                        material.diffuse = glm::vec3(property.properties.at(4).value<double>(),
-                                            property.properties.at(5).value<double>(),
-                                            property.properties.at(6).value<double>());
+                                        material.diffuse = getVec3(property.properties, index);
                                         
                                     } else if (property.properties.at(0) == "SpecularColor") {
-                                        material.specular = glm::vec3(property.properties.at(4).value<double>(),
-                                            property.properties.at(5).value<double>(),
-                                            property.properties.at(6).value<double>());
+                                        material.specular = getVec3(property.properties, index);
                                     
                                     } else if (property.properties.at(0) == "Shininess") {
-                                        material.shininess = property.properties.at(4).value<double>();
+                                        material.shininess = property.properties.at(index).value<double>();
                                     }
                                 }
                             }
@@ -999,13 +965,21 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         glm::mat4 modelTransform = getGlobalTransform(parentMap, models, modelID);
         
         // look for textures, material properties
-        int partIndex = 0;
+        int partIndex = mesh.parts.size() - 1;
         foreach (const QString& childID, childMap.values(modelID)) {
-            if (!materials.contains(childID) || partIndex >= mesh.parts.size()) {
+            if (partIndex < 0) {
+                break;
+            }
+            FBXMeshPart& part = mesh.parts[partIndex];
+            if (textureFilenames.contains(childID)) {
+                part.diffuseFilename = textureFilenames.value(childID);
+                qDebug() << "hello " << part.diffuseFilename << "\n";
+                continue;
+            }
+            if (!materials.contains(childID)) {
                 continue;
             }
             Material material = materials.value(childID);
-            FBXMeshPart& part = mesh.parts[mesh.parts.size() - ++partIndex];
             part.diffuseColor = material.diffuse;
             part.specularColor = material.specular;
             part.shininess = material.shininess;
@@ -1017,6 +991,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
             if (!bumpTextureID.isNull()) {
                 part.normalFilename = textureFilenames.value(bumpTextureID);
             }
+            partIndex--;
         }
         
         // find the clusters with which the mesh is associated
