@@ -1815,13 +1815,8 @@ void VoxelSystem::hideOutOfView() {
 
     const bool wantViewFrustumDebugging = false; // change to true for additional debugging
     if (wantViewFrustumDebugging) {
-        printf("\n\n----------thisViewFrustum----------\n");
         args.thisViewFrustum.printDebugDetails();
-
-        if (!_culledOnce) {
-            printf("\n\n----------NOT YET CULLED !!!!----------\n");
-        } else {
-            printf("\n\n----------lastViewFrustum----------\n");
+        if (_culledOnce) {
             args.lastViewFrustum.printDebugDetails();
         }
     }
@@ -1836,35 +1831,14 @@ void VoxelSystem::hideOutOfView() {
     //
     // 1) This might work well for rotating, but what about moving forward?
     //    in the move forward case, you'll get new voxel details, but those
-    //    new voxels will be in the last view... does that work?
+    //    new voxels will be in the last view... does that work? This works 
+    //    ok for now because voxel server resends them and so they get redisplayed,
+    //    but this will not work if we update the voxel server to send less data.
     //
     // 2) what about voxels coming in from the network that are OUTSIDE of the view
     //    frustum... they don't get hidden... and so we can't assume they are correctly
     //    hidden... we could solve this with checking in view on voxelUpdated...
     //
-    // 3) this seems to mostly work for a few minutes, then it starts to break after some period of time??
-    //    and is it related to what appears to be the view changing even when stationary...???
-    //
-    // 4) if something goes wrong it stays wrong? unless new packets come from network... why aren't those redrawing...
-    //
-    // consider doing false colorization...
-    //
-    // What if we kept track of which voxels were visible, and iterated them in an array instead of in the tree?
-    // would that be faster? seems like it wouldn't be.
-    
-    //
-    // What's working well now....
-    //    Fast Voxel Pipeline + normal Remove Out Of View...
-    //    this fails when you spin around, it will just have a big blank spot...
-    //    you also see flashes of white/no voxels in areas you've already been
-    //
-    // When you add Don't Remove Out of View voxels...
-    //    works OK... but... it loads up too many voxels...
-    //    and frame rate drops...
-    //
-    // We'd like to add in hide/show... but things break... See above.
-    //    this is the problem... SOLVE this problem... 
-
     _tree->recurseTreeWithOperation(hideOutOfViewOperation,(void*)&args);
     _lastCulledViewFrustum = args.thisViewFrustum; // save last stable
     _culledOnce = true;
@@ -1873,7 +1847,6 @@ void VoxelSystem::hideOutOfView() {
         _tree->setDirtyBit();
         setupNewVoxelsForDrawingSingleNode(DONT_BAIL_EARLY);
     }
-    
     
     if (showDebugDetails) {
         qDebug("hideOutOfView() scanned=%ld removed=%ld inside=%ld intersect=%ld outside=%ld\n", 
