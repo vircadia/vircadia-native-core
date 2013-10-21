@@ -1946,7 +1946,7 @@ bool VoxelSystem::showAllSubTreeOperation(VoxelNode* node, void* extraData) {
     bool shouldRender = node->calculateShouldRender(&args->thisViewFrustum);
     node->setShouldRender(shouldRender);
 
-    if (shouldRender /*&& !node->isKnownBufferIndex()*/) {
+    if (shouldRender && !node->isKnownBufferIndex()) {
         bool falseColorize = false;
         if (falseColorize) {
             node->setFalseColor(0,0,255); // fake
