@@ -29,12 +29,6 @@ link_hifi_library(voxel-server-library ${TARGET_NAME} ${ROOT_DIR})
 
 include_directories(${ROOT_DIR}/externals/civetweb/include)
 
-# link the stk library
-set(STK_ROOT_DIR ${ROOT_DIR}/externals/stk)
-find_package(STK REQUIRED)
-target_link_libraries(${TARGET_NAME} ${STK_LIBRARIES})
-include_directories(${STK_INCLUDE_DIRS})
-
 # link curl for synchronous script downloads
 find_package(CURL REQUIRED)
 include_directories(${CURL_INCLUDE_DIRS})
