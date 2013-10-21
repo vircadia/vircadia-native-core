@@ -109,6 +109,8 @@ public:
     int leftEyeJointIndex;
     int rightEyeJointIndex;
     int neckJointIndex;
+    int rootJointIndex;
+    int leanJointIndex;
     
     glm::vec3 neckPivot;
 };

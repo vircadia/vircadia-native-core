@@ -65,6 +65,11 @@ protected:
 
     QSharedPointer<NetworkGeometry> _geometry;
     
+    glm::vec3 _translation;
+    glm::quat _rotation;
+    glm::vec3 _scale;
+    glm::vec3 _offset;
+    
     class JointState {
     public:
         glm::quat rotation;
@@ -72,21 +77,14 @@ protected:
     };
     
     QVector<JointState> _jointStates;
-        
-    /// Gives subclasses a chance to update the neck joint rotation after its parents and before its children.
-    virtual void maybeUpdateNeckRotation(const FBXJoint& joint, JointState& state);
     
-    /// Gives subclasses a chance to update an eye joint rotation after its parents and before its children.
-    virtual void maybeUpdateEyeRotation(const FBXJoint& joint, JointState& state);    
+    /// Updates the state of the joint at the specified index.
+    virtual void updateJointState(int index);
     
 private:
     
     void deleteGeometry();
     
-    glm::vec3 _translation;
-    glm::quat _rotation;
-    glm::vec3 _scale;
-    glm::vec3 _offset;
     float _pupilDilation;
     std::vector<float> _blendshapeCoefficients;
     

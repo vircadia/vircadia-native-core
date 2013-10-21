@@ -91,22 +91,7 @@ void Model::simulate(float deltaTime) {
     
     // update the world space transforms for all joints
     for (int i = 0; i < _jointStates.size(); i++) {
-        JointState& state = _jointStates[i];
-        const FBXJoint& joint = geometry.joints.at(i);
-        if (joint.parentIndex == -1) {
-            state.transform = baseTransform * geometry.offset * joint.preRotation *
-                glm::mat4_cast(state.rotation) * joint.postRotation;
-        
-        } else {
-            if (i == geometry.neckJointIndex) {
-                maybeUpdateNeckRotation(joint, state);    
-                
-            } else if (i == geometry.leftEyeJointIndex || i == geometry.rightEyeJointIndex) {
-                maybeUpdateEyeRotation(joint, state);
-            }
-            state.transform = _jointStates[joint.parentIndex].transform * joint.preRotation *
-                glm::mat4_cast(state.rotation) * joint.postRotation;
-        }
+        updateJointState(i);
     }
     
     for (int i = 0; i < _meshStates.size(); i++) {
@@ -396,12 +381,21 @@ glm::vec4 Model::computeAverageColor() const {
     return _geometry ? _geometry->computeAverageColor() : glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
 }
 
-void Model::maybeUpdateNeckRotation(const FBXJoint& joint, JointState& state) {
-    // nothing by default
-}
-
-void Model::maybeUpdateEyeRotation(const FBXJoint& joint, JointState& state) {
-    // nothing by default
+void Model::updateJointState(int index) {
+    JointState& state = _jointStates[index];
+    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    const FBXJoint& joint = geometry.joints.at(index);
+    
+    if (joint.parentIndex == -1) {
+        glm::mat4 baseTransform = glm::translate(_translation) * glm::mat4_cast(_rotation) *
+            glm::scale(_scale) * glm::translate(_offset);
+        state.transform = baseTransform * geometry.offset * joint.preRotation *
+            glm::mat4_cast(state.rotation) * joint.postRotation;
+    
+    } else {
+        state.transform = _jointStates[joint.parentIndex].transform * joint.preRotation *
+            glm::mat4_cast(state.rotation) * joint.postRotation;
+    }
 }
 
 void Model::deleteGeometry() {

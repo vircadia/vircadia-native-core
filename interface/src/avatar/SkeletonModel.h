@@ -22,6 +22,12 @@ public:
     SkeletonModel(Avatar* owningAvatar);
     
     void simulate(float deltaTime);
+    bool render(float alpha);
+    
+protected:
+    
+    /// Updates the state of the joint at the specified index.
+    virtual void updateJointState(int index);   
     
 private:
     

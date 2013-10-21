@@ -25,11 +25,8 @@ public:
     
 protected:
 
-    /// Applies neck rotation based on head orientation.
-    virtual void maybeUpdateNeckRotation(const FBXJoint& joint, JointState& state);
-    
-    /// Applies eye rotation based on lookat position.
-    virtual void maybeUpdateEyeRotation(const FBXJoint& joint, JointState& state);    
+    /// Updates the state of the joint at the specified index.
+    virtual void updateJointState(int index);   
     
 private:
     
