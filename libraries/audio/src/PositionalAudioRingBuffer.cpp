@@ -48,7 +48,7 @@ int PositionalAudioRingBuffer::parsePositionalData(unsigned char* sourceBuffer, 
     // if this node sent us a NaN for first float in orientation then don't consider this good audio and bail
     if (std::isnan(_orientation.x)) {
         _endOfLastWrite = _nextOutput = _buffer;
-        _isStarted = false;
+        _isStarved = true;
         return 0;
     }
     
@@ -57,16 +57,17 @@ int PositionalAudioRingBuffer::parsePositionalData(unsigned char* sourceBuffer, 
 
 bool PositionalAudioRingBuffer::shouldBeAddedToMix(int numJitterBufferSamples) {
     if (_endOfLastWrite) {
-        if (!_isStarted && diffLastWriteNextOutput() <= BUFFER_LENGTH_SAMPLES_PER_CHANNEL + numJitterBufferSamples) {
+        if (_isStarved && diffLastWriteNextOutput() <= BUFFER_LENGTH_SAMPLES_PER_CHANNEL + numJitterBufferSamples) {
             printf("Buffer held back\n");
             return false;
         } else if (diffLastWriteNextOutput() < BUFFER_LENGTH_SAMPLES_PER_CHANNEL) {
             printf("Buffer starved.\n");
-            _isStarted = false;
+            _isStarved = true;
             return false;
         } else {
             // good buffer, add this to the mix
-            _isStarted = true;
+            _isStarved = false;
+            _hasStarted = true;
             return true;
         }
     }

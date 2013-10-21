@@ -43,8 +43,11 @@ public:
     
     int16_t* getBuffer() const { return _buffer; }
     
-    bool isStarted() const { return _isStarted; }
-    void setStarted(bool isStarted) { _isStarted = isStarted; }
+    bool isStarved() const { return _isStarved; }
+    void setIsStarved(bool isStarved) { _isStarved = isStarved; }
+    
+    bool hasStarted() const { return _hasStarted; }
+    void setHasStarted(bool hasStarted) { _hasStarted = hasStarted; }
     
     int diffLastWriteNextOutput() const;
     
@@ -58,7 +61,8 @@ protected:
     int16_t* _nextOutput;
     int16_t* _endOfLastWrite;
     int16_t* _buffer;
-    bool _isStarted;
+    bool _isStarved;
+    bool _hasStarted;
     bool _isStereo;
 };
 

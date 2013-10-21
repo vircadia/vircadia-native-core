@@ -16,7 +16,8 @@
 AudioRingBuffer::AudioRingBuffer(bool isStereo) :
     NodeData(NULL),
     _endOfLastWrite(NULL),
-    _isStarted(false),
+    _isStarved(true),
+    _hasStarted(false),
     _isStereo(isStereo)
 {
     _buffer = new int16_t[RING_BUFFER_LENGTH_SAMPLES];
@@ -30,7 +31,8 @@ AudioRingBuffer::~AudioRingBuffer() {
 void AudioRingBuffer::reset() {
     _endOfLastWrite = _buffer;
     _nextOutput = _buffer;
-    _isStarted = false;
+    _isStarved = true;
+    _hasStarted = false;
 }
 
 int AudioRingBuffer::parseData(unsigned char* sourceBuffer, int numBytes) {
@@ -50,7 +52,7 @@ int AudioRingBuffer::parseAudioSamples(unsigned char* sourceBuffer, int numBytes
         } else if (diffLastWriteNextOutput() > RING_BUFFER_LENGTH_SAMPLES - samplesToCopy) {
             _endOfLastWrite = _buffer;
             _nextOutput = _buffer;
-            _isStarted = false;
+            _isStarved = true;
         }
         
         memcpy(_endOfLastWrite, sourceBuffer, numBytes);

@@ -59,7 +59,7 @@ int AudioMixerClientData::parseData(unsigned char* packetData, int numBytes) {
         for (int i = 0; i < _ringBuffers.size(); i++) {
             if (_ringBuffers[i]->getType() == PositionalAudioRingBuffer::Injector
                 && ((InjectedAudioRingBuffer*) _ringBuffers[i])->getStreamIdentifier() == streamIdentifier) {
-                
+                matchingInjectedRingBuffer = (InjectedAudioRingBuffer*) _ringBuffers[i];
             }
         }
         
@@ -87,10 +87,10 @@ void AudioMixerClientData::checkBuffersBeforeFrameSend(int jitterBufferLengthSam
 
 void AudioMixerClientData::pushBuffersAfterFrameSend() {
     for (int i = 0; i < _ringBuffers.size(); i++) {
-        if (_ringBuffers[i]->willBeAddedToMix()) {
-            // this was a used buffer, push the output pointer forwards
-            PositionalAudioRingBuffer* audioBuffer = _ringBuffers[i];
-            
+        // this was a used buffer, push the output pointer forwards
+        PositionalAudioRingBuffer* audioBuffer = _ringBuffers[i];
+        
+        if (audioBuffer->willBeAddedToMix()) {            
             audioBuffer->setNextOutput(audioBuffer->getNextOutput() + BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
             
             if (audioBuffer->getNextOutput() >= audioBuffer->getBuffer() + RING_BUFFER_LENGTH_SAMPLES) {
@@ -98,6 +98,9 @@ void AudioMixerClientData::pushBuffersAfterFrameSend() {
             }
             
             audioBuffer->setWillBeAddedToMix(false);
+        } else if (audioBuffer->hasStarted() && audioBuffer->isStarved()) {
+            delete audioBuffer;
+            _ringBuffers.erase(_ringBuffers.begin() + i);
         }
     }
 }

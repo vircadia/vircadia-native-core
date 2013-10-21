@@ -8,13 +8,15 @@
 
 #include <cstring>
 
+#include <QtCore/qdebug.h>
+
 #include <PacketHeaders.h>
 #include <UUID.h>
 
 #include "InjectedAudioRingBuffer.h"
 
 InjectedAudioRingBuffer::InjectedAudioRingBuffer(const QUuid& streamIdentifier) :
-    PositionalAudioRingBuffer(PositionalAudioRingBuffer::Microphone),
+    PositionalAudioRingBuffer(PositionalAudioRingBuffer::Injector),
     _streamIdentifier(streamIdentifier),
     _radius(0.0f),
     _attenuationRatio(0)
