@@ -376,6 +376,13 @@ Menu::Menu() :
     QMenu* renderDebugMenu = developerMenu->addMenu("Render Debugging Tools");
     addCheckableActionToQMenuAndActionHash(renderDebugMenu, MenuOption::PipelineWarnings, Qt::CTRL | Qt::SHIFT | Qt::Key_P);
     addCheckableActionToQMenuAndActionHash(renderDebugMenu, MenuOption::SuppressShortTimings, Qt::CTRL | Qt::SHIFT | Qt::Key_S);
+
+
+    addActionToQMenuAndActionHash(renderDebugMenu,
+                                  MenuOption::ShowAllLocalVoxels,
+                                  Qt::CTRL | Qt::Key_A,
+                                  appInstance->getVoxels(),
+                                  SLOT(showAllLocalVoxels()));
     
     addActionToQMenuAndActionHash(renderDebugMenu,
                                   MenuOption::KillLocalVoxels,

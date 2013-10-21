@@ -198,6 +198,7 @@ namespace MenuOption {
     const QString SendVoxelColors = "Colored Voxels";
     const QString SettingsImport = "Import Settings";
     const QString SettingsExport = "Export Settings";
+    const QString ShowAllLocalVoxels = "Show All Local Voxels";
     const QString ShowTrueColors = "Show TRUE Colors";
     const QString SimulateLeapHand = "Simulate Leap Hand";
     const QString SkeletonTracking = "Skeleton Tracking";
