@@ -356,8 +356,9 @@ void Application::initializeGL() {
 
 void Application::paintGL() {
     PerformanceWarning::setSuppressShortTimings(Menu::getInstance()->isOptionChecked(MenuOption::SuppressShortTimings));
-    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "Application::paintGL()");
-
+    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
+    PerformanceWarning warn(showWarnings, "Application::paintGL()");
+    
     glEnable(GL_LINE_SMOOTH);
 
     if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
@@ -545,6 +546,7 @@ void Application::keyPressEvent(QKeyEvent* event) {
         }
 
         bool isShifted = event->modifiers().testFlag(Qt::ShiftModifier);
+        bool isMeta = event->modifiers().testFlag(Qt::ControlModifier);
         switch (event->key()) {
             case Qt::Key_Shift:
                 if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelSelectMode)) {
@@ -619,8 +621,10 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 break;
                 
             case Qt::Key_S:
-                if (isShifted)  {
+                if (isShifted && !isMeta)  {
                     _voxels.collectStatsForTreesAndVBOs();
+                } else if (isShifted && isMeta)  {
+                    Menu::getInstance()->triggerOption(MenuOption::SuppressShortTimings);
                 } else if (_nudgeStarted) {
                     if (_lookingAlongX) {
                         if (_lookingAwayFromOrigin) {
@@ -1238,6 +1242,8 @@ static glm::vec3 getFaceVector(BoxFace face) {
 }
 
 void Application::idle() {
+    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
+    PerformanceWarning warn(showWarnings, "Application::idle()");
     
     timeval check;
     gettimeofday(&check, NULL);
@@ -1252,7 +1258,7 @@ void Application::idle() {
         _glWidget->updateGL();
         _lastTimeUpdated = check;
         _idleLoopStdev.addValue(timeSinceLastUpdate);
-        
+    
         //  Record standard deviation and reset counter if needed
         const int STDEV_SAMPLES = 500;
         if (_idleLoopStdev.getSamples() > STDEV_SAMPLES) {
@@ -1783,7 +1789,28 @@ void Application::renderFollowIndicator() {
     }
 }
 
+void Application::updateAvatars(float deltaTime, glm::vec3 mouseRayOrigin, glm::vec3 mouseRayDirection) {
+    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
+    PerformanceWarning warn(showWarnings, "Application::updateAvatars()");
+    NodeList* nodeList = NodeList::getInstance();
+    
+    for(NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+        node->lock();
+        if (node->getLinkedData() != NULL) {
+            Avatar *avatar = (Avatar *)node->getLinkedData();
+            if (!avatar->isInitialized()) {
+                avatar->init();
+            }
+            avatar->simulate(deltaTime, NULL);
+            avatar->setMouseRay(mouseRayOrigin, mouseRayDirection);
+        }
+        node->unlock();
+    }
+}
+
 void Application::update(float deltaTime) {
+    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
+    PerformanceWarning warn(showWarnings, "Application::update()");
 
     //  Use Transmitter Hand to move hand if connected, else use mouse
     if (_myTransmitter.isConnected()) {
@@ -1884,6 +1911,8 @@ void Application::update(float deltaTime) {
         (fabs(_myAvatar.getVelocity().x) +
          fabs(_myAvatar.getVelocity().y) +
          fabs(_myAvatar.getVelocity().z)) / 3 < MAX_AVATAR_EDIT_VELOCITY) {
+        PerformanceWarning warn(showWarnings, "Application::update()... findRayIntersection()");
+
         if (_voxels.findRayIntersection(mouseRayOrigin, mouseRayDirection, _mouseVoxel, distance, face)) {
             if (distance < MAX_VOXEL_EDIT_DISTANCE) {
                 // find the nearest voxel with the desired scale
@@ -1991,22 +2020,11 @@ void Application::update(float deltaTime) {
         _voxelProcessor.threadRoutine();
         _voxelEditSender.threadRoutine();
     }
+
     
     //loop through all the other avatars and simulate them...
-    NodeList* nodeList = NodeList::getInstance();
-    for(NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
-        node->lock();
-        if (node->getLinkedData() != NULL) {
-            Avatar *avatar = (Avatar *)node->getLinkedData();
-            if (!avatar->isInitialized()) {
-                avatar->init();
-            }
-            avatar->simulate(deltaTime, NULL);
-            avatar->setMouseRay(mouseRayOrigin, mouseRayDirection);
-        }
-        node->unlock();
-    }
-
+    updateAvatars(deltaTime, mouseRayOrigin, mouseRayDirection);
+    
     //  Simulate myself
     if (Menu::getInstance()->isOptionChecked(MenuOption::Gravity)) {
         _myAvatar.setGravity(_environment.getGravity(_myAvatar.getPosition()));
@@ -2041,6 +2059,7 @@ void Application::update(float deltaTime) {
         if (_voxels.findRayIntersection(_transmitterPickStart, direction, detail, distance, face)) {
             minDistance = min(minDistance, distance);
         }
+        NodeList* nodeList = NodeList::getInstance();
         for(NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
             node->lock();
             if (node->getLinkedData() != NULL) {
@@ -2134,6 +2153,8 @@ void Application::update(float deltaTime) {
 }
 
 void Application::updateAvatar(float deltaTime) {
+    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
+    PerformanceWarning warn(showWarnings, "Application::updateAvatar()");
     
     // rotate body yaw for yaw received from multitouch
     _myAvatar.setOrientation(_myAvatar.getOrientation()
@@ -2990,10 +3011,11 @@ void Application::displayStats() {
     std::stringstream voxelStats;
     voxelStats.precision(4);
     voxelStats << "Voxels Rendered: " << _voxels.getVoxelsRendered() / 1000.f << "K " <<
+        "Written: " << _voxels.getVoxelsWritten()/1000.f << "K " <<
         "Updated: " << _voxels.getVoxelsUpdated()/1000.f << "K " <<
         "Max: " << _voxels.getMaxVoxels()/1000.f << "K ";
     statsVerticalOffset += PELS_PER_LINE;
-    drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+    drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, (char*)voxelStats.str().c_str());
 
     voxelStats.str("");
     voxelStats << 
@@ -3003,37 +3025,40 @@ void Application::displayStats() {
     if (_voxels.hasVoxelMemoryUsageGPU()) {
         voxelStats << "GPU: " << _voxels.getVoxelMemoryUsageGPU() / 1000000.f << "MB ";
     }
-
-    // Some debugging for memory usage of VoxelNodes
-    //voxelStats << "VoxelNode size: " << sizeof(VoxelNode) << " bytes ";
-    //voxelStats << "AABox size: " << sizeof(AABox) << " bytes ";
-    
     statsVerticalOffset += PELS_PER_LINE;
-    drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+    drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, (char*)voxelStats.str().c_str());
+
+    voxelStats.str("");
+    voxelStats << 
+        "Local Voxels Total: " << VoxelNode::getNodeCount() << ", " <<
+        "Internal: " << VoxelNode::getInternalNodeCount() << " , " <<
+        "Leaves: " << VoxelNode::getLeafNodeCount() << "";
+    statsVerticalOffset += PELS_PER_LINE;
+    drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, (char*)voxelStats.str().c_str());
 
     voxelStats.str("");
     char* voxelDetails = _voxelSceneStats.getItemValue(VoxelSceneStats::ITEM_VOXELS);
     voxelStats << "Voxels Sent from Server: " << voxelDetails;
     statsVerticalOffset += PELS_PER_LINE;
-    drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+    drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, (char*)voxelStats.str().c_str());
 
     voxelStats.str("");
     voxelDetails = _voxelSceneStats.getItemValue(VoxelSceneStats::ITEM_ELAPSED);
     voxelStats << "Scene Send Time from Server: " << voxelDetails;
     statsVerticalOffset += PELS_PER_LINE;
-    drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+    drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, (char*)voxelStats.str().c_str());
 
     voxelStats.str("");
     voxelDetails = _voxelSceneStats.getItemValue(VoxelSceneStats::ITEM_ENCODE);
     voxelStats << "Encode Time on Server: " << voxelDetails;
     statsVerticalOffset += PELS_PER_LINE;
-    drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+    drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, (char*)voxelStats.str().c_str());
 
     voxelStats.str("");
     voxelDetails = _voxelSceneStats.getItemValue(VoxelSceneStats::ITEM_MODE);
     voxelStats << "Sending Mode: " << voxelDetails;
     statsVerticalOffset += PELS_PER_LINE;
-    drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, (char *)voxelStats.str().c_str());
+    drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, (char*)voxelStats.str().c_str());
     
     Node *avatarMixer = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_AVATAR_MIXER);
     char avatarMixerStats[200];
@@ -3048,7 +3073,7 @@ void Application::displayStats() {
     statsVerticalOffset += PELS_PER_LINE;
     drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, avatarMixerStats);
     statsVerticalOffset += PELS_PER_LINE;
-    drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, (char *)LeapManager::statusString().c_str());
+    drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, (char*)LeapManager::statusString().c_str());
     
     if (_perfStatsOn) {
         // Get the PerfStats group details. We need to allocate and array of char* long enough to hold 1+groups
@@ -3234,7 +3259,6 @@ void Application::renderCoverageMapsRecursively(CoverageMap* map) {
 
 
 
-/////////////////////////////////////////////////////////////////////////////////////
 // renderViewFrustum()
 //
 // Description: this will render the view frustum bounds for EITHER the head
@@ -3316,7 +3340,7 @@ void Application::renderViewFrustum(ViewFrustum& viewFrustum) {
         || Menu::getInstance()->getFrustumDrawMode() == FRUSTUM_DRAW_MODE_PLANES
         || Menu::getInstance()->getFrustumDrawMode() == FRUSTUM_DRAW_MODE_FAR_PLANE) {
         // viewFrustum.getFar plane - bottom edge 
-        glColor3f(0,1,0); // GREEN!!!
+        glColor3f(0,1,0);
         glVertex3f(viewFrustum.getFarBottomLeft().x, viewFrustum.getFarBottomLeft().y, viewFrustum.getFarBottomLeft().z);
         glVertex3f(viewFrustum.getFarBottomRight().x, viewFrustum.getFarBottomRight().y, viewFrustum.getFarBottomRight().z);
 
@@ -3684,6 +3708,9 @@ int Application::parseVoxelStats(unsigned char* messageData, ssize_t messageLeng
 
 //  Receive packets from other nodes/servers and decide what to do with them!
 void* Application::networkReceive(void* args) {
+    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
+        "Application::networkReceive()");
+
     sockaddr senderAddress;
     ssize_t bytesReceived;
     
@@ -3711,6 +3738,9 @@ void* Application::networkReceive(void* args) {
                     case PACKET_TYPE_ERASE_VOXEL:
                     case PACKET_TYPE_VOXEL_STATS:
                     case PACKET_TYPE_ENVIRONMENT_DATA: {
+                        PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
+                            "Application::networkReceive()... _voxelProcessor.queueReceivedPacket()");
+                    
                         // add this packet to our list of voxel packets and process them on the voxel processing
                         app->_voxelProcessor.queueReceivedPacket(senderAddress, app->_incomingPacket, bytesReceived);
                         break;

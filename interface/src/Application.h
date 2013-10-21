@@ -216,6 +216,7 @@ private:
     void renderLookatIndicator(glm::vec3 pointOfInterest, Camera& whichCamera);
     void renderFollowIndicator();
     void updateAvatar(float deltaTime);
+    void updateAvatars(float deltaTime, glm::vec3 mouseRayOrigin, glm::vec3 mouseRayDirection);
     void loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum);
     
     void displayOculus(Camera& whichCamera);
