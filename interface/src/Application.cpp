@@ -86,6 +86,11 @@ const int STARTUP_JITTER_SAMPLES = PACKET_LENGTH_SAMPLES_PER_CHANNEL / 2;
                                                  //  will start playback on the second received audio packet.
 
 
+const int MIRROR_VIEW_TOP_PADDING = 5;
+const int MIRROR_VIEW_LEFT_PADDING = 10;
+const int MIRROR_VIEW_WIDTH = 265;
+const int MIRROR_VIEW_HEIGHT = 215;
+
 void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString &message) {
     fprintf(stdout, "%s", message.toLocal8Bit().constData());
     LogDisplay::instance.addMessage(message.toLocal8Bit().constData());
@@ -360,20 +365,7 @@ void Application::paintGL() {
 
     glEnable(GL_LINE_SMOOTH);
 
-    if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-        _myCamera.setTightness     (100.0f); 
-        glm::vec3 targetPosition = _myAvatar.getUprightHeadPosition();
-        if (_myAvatar.getHead().getBlendFace().isActive()) {
-            // make sure we're aligned to the blend face eyes
-            glm::vec3 leftEyePosition, rightEyePosition;
-            if (_myAvatar.getHead().getBlendFace().getEyePositions(leftEyePosition, rightEyePosition, true)) {
-                targetPosition = (leftEyePosition + rightEyePosition) * 0.5f;
-            }
-        }
-        _myCamera.setTargetPosition(targetPosition);
-        _myCamera.setTargetRotation(_myAvatar.getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PIf, 0.0f)));
-        
-    } else if (OculusManager::isConnected()) {
+    if (OculusManager::isConnected()) {
         _myCamera.setUpShift       (0.0f);
         _myCamera.setDistance      (0.0f);
         _myCamera.setTightness     (0.0f);     //  Camera is directly connected to head without smoothing
@@ -433,6 +425,35 @@ void Application::paintGL() {
         glPopMatrix();
         
         _glowEffect.render();
+        
+        if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
+            
+            glm::vec3 targetPosition = _myAvatar.getEyeLevelPosition();
+            if (_myAvatar.getHead().getBlendFace().isActive()) {
+                // make sure we're aligned to the blend face eyes
+                glm::vec3 leftEyePosition, rightEyePosition;
+                if (_myAvatar.getHead().getBlendFace().getEyePositions(leftEyePosition, rightEyePosition, true)) {
+                    targetPosition = (leftEyePosition + rightEyePosition) * 0.5f;
+                }
+            }
+            
+            _mirrorCamera.setTargetPosition(targetPosition);
+            _mirrorCamera.setTargetRotation(_myAvatar.getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PIf, 0.0f)));
+            _mirrorCamera.update(1.0f/_fps);
+            
+            glViewport(MIRROR_VIEW_LEFT_PADDING, _glWidget->height() - MIRROR_VIEW_HEIGHT - MIRROR_VIEW_TOP_PADDING, MIRROR_VIEW_WIDTH, MIRROR_VIEW_HEIGHT);
+            glScissor(MIRROR_VIEW_LEFT_PADDING, _glWidget->height() - MIRROR_VIEW_HEIGHT - MIRROR_VIEW_TOP_PADDING, MIRROR_VIEW_WIDTH, MIRROR_VIEW_HEIGHT);
+
+            glEnable(GL_SCISSOR_TEST);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            glPushMatrix();
+            displaySide(_mirrorCamera);
+            glPopMatrix();
+            
+            // reset Viewport
+            glViewport(0, 0, _glWidget->width(), _glWidget->height());
+            glDisable(GL_SCISSOR_TEST);
+        }
         
         displayOverlay();
     }
@@ -1608,7 +1629,10 @@ void Application::init() {
     _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
     _myCamera.setModeShiftRate(1.0f);
     _myAvatar.setDisplayingLookatVectors(false);  
-    
+    _mirrorCamera.setMode(CAMERA_MODE_MIRROR);
+    _mirrorCamera.setModeShiftRate(1.0f);
+    _mirrorCamera.setAspectRatio(MIRROR_VIEW_WIDTH / MIRROR_VIEW_HEIGHT);
+    _mirrorCamera.setFieldOfView(DEFAULT_FIELD_OF_VIEW_DEGREES);
     
     OculusManager::connect();
     if (OculusManager::isConnected()) {
@@ -2061,12 +2085,7 @@ void Application::update(float deltaTime) {
     }
     
     if (!OculusManager::isConnected()) {        
-        if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-            if (_myCamera.getMode() != CAMERA_MODE_MIRROR) {
-                _myCamera.setMode(CAMERA_MODE_MIRROR);
-                _myCamera.setModeShiftRate(100.0f);
-            }
-        } else if (Menu::getInstance()->isOptionChecked(MenuOption::FirstPerson)) {
+        if (Menu::getInstance()->isOptionChecked(MenuOption::FirstPerson)) {
             if (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON) {
                 _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
                 _myCamera.setModeShiftRate(1.0f);
@@ -2079,7 +2098,7 @@ void Application::update(float deltaTime) {
         }
         
         if (Menu::getInstance()->isOptionChecked(MenuOption::OffAxisProjection)) {
-            float xSign = Menu::getInstance()->isOptionChecked(MenuOption::Mirror) ? 1.0f : -1.0f;
+            float xSign = _myCamera.getMode() != CAMERA_MODE_MIRROR ? 1.0f : -1.0f;
             if (_faceshift.isActive()) {
                 const float EYE_OFFSET_SCALE = 0.025f;
                 glm::vec3 position = _faceshift.getHeadTranslation() * EYE_OFFSET_SCALE;
@@ -2368,7 +2387,7 @@ void Application::displayOculus(Camera& whichCamera) {
     
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    gluOrtho2D(0, _glWidget->width(), 0, _glWidget->height());           
+    gluOrtho2D(0, _glWidget->width(), 0, _glWidget->height());
     glDisable(GL_DEPTH_TEST);
     
     // for reference on setting these values, see SDK file Samples/OculusRoomTiny/RenderTiny_Device.cpp
@@ -2446,12 +2465,14 @@ void Application::computeOffAxisFrustum(float& left, float& right, float& bottom
     
     _viewFrustum.computeOffAxisFrustum(left, right, bottom, top, near, far, nearClipPlane, farClipPlane);
     
+    /*
     // when mirrored, we must flip left and right
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
+    if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         float tmp = left;
         left = -right;
         right = -tmp;
     }
+     */
 }
 
 void Application::displaySide(Camera& whichCamera) {
@@ -2459,7 +2480,7 @@ void Application::displaySide(Camera& whichCamera) {
     // transform by eye offset
 
     // flip x if in mirror mode (also requires reversing winding order for backface culling)
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
+    if (whichCamera.getMode() == CAMERA_MODE_MIRROR) {
         glScalef(-1.0f, 1.0f, 1.0f);
         glFrontFace(GL_CW);
     
@@ -2664,7 +2685,7 @@ void Application::displaySide(Camera& whichCamera) {
                 }
                 // Set lookAt to myCamera on client side if other avatars are looking at client
                 if (isLookingAtMyAvatar(avatar)) {
-                    avatar->getHead().setLookAtPosition(_myCamera.getPosition());
+                    avatar->getHead().setLookAtPosition(whichCamera.getPosition());
                 }
                 avatar->render(false, Menu::getInstance()->isOptionChecked(MenuOption::AvatarAsBalls));
                 avatar->setDisplayingLookatVectors(Menu::getInstance()->isOptionChecked(MenuOption::LookAtVectors));
@@ -2674,10 +2695,10 @@ void Application::displaySide(Camera& whichCamera) {
         }
         
         // Render my own Avatar
-        if (_myCamera.getMode() == CAMERA_MODE_MIRROR && !_faceshift.isActive()) {
-            _myAvatar.getHead().setLookAtPosition(_myCamera.getPosition());
+        if (whichCamera.getMode() == CAMERA_MODE_MIRROR && !_faceshift.isActive()) {
+            _myAvatar.getHead().setLookAtPosition(whichCamera.getPosition());
         }
-        _myAvatar.render(Menu::getInstance()->isOptionChecked(MenuOption::Mirror),
+        _myAvatar.render(whichCamera.getMode() == CAMERA_MODE_MIRROR,
                          Menu::getInstance()->isOptionChecked(MenuOption::AvatarAsBalls));
         _myAvatar.setDisplayingLookatVectors(Menu::getInstance()->isOptionChecked(MenuOption::LookAtVectors));
 
@@ -2689,7 +2710,7 @@ void Application::displaySide(Camera& whichCamera) {
     _myAvatar.renderScreenTint(SCREEN_TINT_AFTER_AVATARS, whichCamera);
 
     //  Render the world box
-    if (!Menu::getInstance()->isOptionChecked(MenuOption::Mirror) && Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
+    if (whichCamera.getMode() != CAMERA_MODE_MIRROR && Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
         renderWorldBox();
     }
     
@@ -2782,7 +2803,6 @@ void Application::displayOverlay() {
        //noiseTest(_glWidget->width(), _glWidget->height());
     
     if (Menu::getInstance()->isOptionChecked(MenuOption::HeadMouse)
-        && !Menu::getInstance()->isOptionChecked(MenuOption::Mirror)
         && USING_INVENSENSE_MPU9150) {
         //  Display small target box at center or head mouse target that can also be used to measure LOD
         glColor3f(1.0, 1.0, 1.0);

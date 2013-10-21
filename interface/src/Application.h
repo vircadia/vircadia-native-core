@@ -291,6 +291,7 @@ private:
     
     Camera _myCamera;                  // My view onto the world
     Camera _viewFrustumOffsetCamera;   // The camera we use to sometimes show the view frustum from an offset mode
+    Camera _mirrorCamera;              // Cammera for mirror view
     
     Environment _environment;
     
