@@ -20,6 +20,7 @@ const quint16 FACESHIFT_PORT = 33433;
 
 Faceshift::Faceshift() :
     _tcpEnabled(false),
+    _tcpRetryCount(0),
     _lastTrackingStateReceived(0),
     _eyeGazeLeftPitch(0.0f),
     _eyeGazeLeftYaw(0.0f),
@@ -88,7 +89,9 @@ void Faceshift::setTCPEnabled(bool enabled) {
 
 void Faceshift::connectSocket() {
     if (_tcpEnabled) {
-        qDebug("Faceshift: Connecting...\n");
+        if (!_tcpRetryCount) {
+            qDebug("Faceshift: Connecting...\n");
+        }
     
         _tcpSocket.connectToHost("localhost", FACESHIFT_PORT);
         _tracking = false;
@@ -105,11 +108,14 @@ void Faceshift::noteConnected() {
 }
 
 void Faceshift::noteError(QAbstractSocket::SocketError error) {
-    qDebug() << "Faceshift: " << _tcpSocket.errorString() << "\n";
-    
-    // reconnect after a delay
+    if (!_tcpRetryCount) {
+       // Only spam log with fail to connect the first time, so that we can keep waiting for server
+       qDebug() << "Faceshift: " << _tcpSocket.errorString() << "\n";
+    }
+    // retry connection after a 2 second delay
     if (_tcpEnabled) {
-        QTimer::singleShot(1000, this, SLOT(connectSocket()));
+        _tcpRetryCount++;
+        QTimer::singleShot(2000, this, SLOT(connectSocket()));
     }
 }
 

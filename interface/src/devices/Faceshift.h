@@ -85,6 +85,7 @@ private:
     QUdpSocket _udpSocket;
     fs::fsBinaryStream _stream;
     bool _tcpEnabled;
+    int _tcpRetryCount;
     bool _tracking;
     uint64_t _lastTrackingStateReceived;
     
