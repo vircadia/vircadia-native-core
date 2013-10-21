@@ -105,18 +105,8 @@ VoxelNode::~VoxelNode() {
         delete[] _octalCode.pointer;
     }
     
-    // delete all of this node's children
-    for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
-        VoxelNode* childAt = getChildAtIndex(i);
-        if (childAt) {
-            delete childAt;
-            setChildAtIndex(i, NULL);
-        }
-    }
-    
-    // at this point, we should have no children, but we need to drop ourselves from population counts
-    _singleChildrenCount--;
-    _childrenCount[0]--;
+    // delete all of this node's children, this also takes care of all population tracking data
+    deleteAllChildren();
 }
 
 void VoxelNode::markWithChangedTime() { 
@@ -290,7 +280,8 @@ void VoxelNode::auditChildren(const char* label) const {
         }
     }
     
-    if (auditFailed) {
+    const bool alwaysReport = false; // set this to true to get additional debugging
+    if (alwaysReport || auditFailed) {
         qDebug("%s... auditChildren() %s <<<< \n", label, (auditFailed ? "FAILED" : "PASSED"));
         qDebug("    _childrenExternal=%s\n", debug::valueOf(_childrenExternal));
         qDebug("    childCount=%d\n", getChildCount());
@@ -606,6 +597,60 @@ void VoxelNode::checkStoreFourChildren(VoxelNode* childOne, VoxelNode* childTwo,
     } else {
         _couldNotStoreFourChildrenInternally++;
     }
+}
+
+void VoxelNode::deleteAllChildren() {
+    // first delete all the VoxelNode objects...
+    for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
+        VoxelNode* childAt = getChildAtIndex(i);
+        if (childAt) {
+            delete childAt;
+        }
+    }
+
+    // now, reset our internal state and ANY and all population data
+    int childCount = getChildCount();
+    switch (childCount) {
+        case 0: {
+            _singleChildrenCount--;
+            _childrenCount[0]--;
+        } break;
+        case 1: {
+            _singleChildrenCount--;
+            _childrenCount[1]--;
+        } break;
+
+        case 2: {
+            if (_childrenExternal) {
+                _twoChildrenExternalCount--;
+            } else {
+                _twoChildrenOffsetCount--;
+            }
+            _childrenCount[2]--;
+        } break;
+
+        case 3: {
+            if (_childrenExternal) {
+                _threeChildrenExternalCount--;
+            } else {
+                _threeChildrenOffsetCount--;
+            }
+            _childrenCount[3]--;
+        } break;
+
+        default: {
+            _externalChildrenCount--;
+            _childrenCount[childCount]--;
+        } break;
+        
+        
+    }
+    
+    // If we had externally stored children, clean them too.
+    if (_childrenExternal && _children.external) {
+        delete[] _children.external;
+    }
+    _children.single = NULL;
 }
 
 void VoxelNode::setChildAtIndex(int childIndex, VoxelNode* child) {
