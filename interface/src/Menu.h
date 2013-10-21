@@ -210,6 +210,7 @@ namespace MenuOption {
     const QString TreeStats = "Calculate Tree Stats";
     const QString TransmitterDrive = "Transmitter Drive";
     const QString Quit =  "Quit";
+    const QString UseDeltaFrustumInHide = "Use Delta View Frustums when Culling";
     const QString UseVoxelShader = "Use Voxel Shader";
     const QString VoxelsAsPoints = "Draw Voxels as Points";
     const QString Voxels = "Voxels";

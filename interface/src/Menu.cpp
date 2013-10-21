@@ -277,11 +277,11 @@ Menu::Menu() :
 
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::DontRemoveOutOfView);
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::HideOutOfView);
+    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::UseDeltaFrustumInHide);
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::ConstantCulling);
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::AutomaticallyAuditTree);
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::VoxelTextures);
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::AmbientOcclusion);
-                                           
 
     QMenu* avatarOptionsMenu = developerMenu->addMenu("Avatar Options");
     
@@ -374,8 +374,8 @@ Menu::Menu() :
     
     
     QMenu* renderDebugMenu = developerMenu->addMenu("Render Debugging Tools");
-    addCheckableActionToQMenuAndActionHash(renderDebugMenu, MenuOption::PipelineWarnings);
-    addCheckableActionToQMenuAndActionHash(renderDebugMenu, MenuOption::SuppressShortTimings);
+    addCheckableActionToQMenuAndActionHash(renderDebugMenu, MenuOption::PipelineWarnings, Qt::CTRL | Qt::SHIFT | Qt::Key_P);
+    addCheckableActionToQMenuAndActionHash(renderDebugMenu, MenuOption::SuppressShortTimings, Qt::CTRL | Qt::SHIFT | Qt::Key_S);
     
     addActionToQMenuAndActionHash(renderDebugMenu,
                                   MenuOption::KillLocalVoxels,
