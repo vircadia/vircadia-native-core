@@ -347,20 +347,17 @@ bool Model::render(float alpha) {
     return true;
 }
 
+bool Model::getHeadPosition(glm::vec3& headPosition) const {
+    return isActive() && getJointPosition(_geometry->getFBXGeometry().headJointIndex, headPosition);
+}
+
 bool Model::getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const {
-    if (!isActive() || _jointStates.isEmpty()) {
+    if (!isActive()) {
         return false;
     }
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    if (geometry.leftEyeJointIndex != -1) {
-        const glm::mat4& transform = _jointStates[geometry.leftEyeJointIndex].transform;
-        firstEyePosition = glm::vec3(transform[3][0], transform[3][1], transform[3][2]);
-    }
-    if (geometry.rightEyeJointIndex != -1) {
-        const glm::mat4& transform = _jointStates[geometry.rightEyeJointIndex].transform;
-        secondEyePosition = glm::vec3(transform[3][0], transform[3][1], transform[3][2]);
-    }
-    return geometry.leftEyeJointIndex != -1 && geometry.rightEyeJointIndex != -1;
+    return getJointPosition(geometry.leftEyeJointIndex, firstEyePosition) &&
+        getJointPosition(geometry.rightEyeJointIndex, secondEyePosition);
 }
 
 void Model::setURL(const QUrl& url) {
@@ -396,6 +393,15 @@ void Model::updateJointState(int index) {
         state.transform = _jointStates[joint.parentIndex].transform * joint.preRotation *
             glm::mat4_cast(state.rotation) * joint.postRotation;
     }
+}
+
+bool Model::getJointPosition(int jointIndex, glm::vec3& position) const {
+    if (jointIndex == -1 || _jointStates.isEmpty()) {
+        return false;
+    }
+    const glm::mat4& transform = _jointStates[jointIndex].transform;
+    position = glm::vec3(transform[3][0], transform[3][1], transform[3][2]);
+    return true;
 }
 
 void Model::deleteGeometry() {

@@ -318,7 +318,11 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter) {
     }
     
     _head.setBodyRotation(glm::vec3(_bodyPitch, _bodyYaw, _bodyRoll));
-    _head.setPosition(_bodyBall[ BODY_BALL_HEAD_BASE ].position);
+    glm::vec3 headPosition;
+    if (!_skeletonModel.getHeadPosition(headPosition)) {
+        headPosition = _bodyBall[BODY_BALL_HEAD_BASE].position;
+    }
+    _head.setPosition(headPosition);
     _head.setScale(_scale);
     _head.setSkinColor(glm::vec3(SKIN_COLOR[0], SKIN_COLOR[1], SKIN_COLOR[2]));
     _head.simulate(deltaTime, true);

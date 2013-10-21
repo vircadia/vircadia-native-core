@@ -54,6 +54,10 @@ public:
     Q_INVOKABLE void setURL(const QUrl& url);
     const QUrl& getURL() const { return _url; }
     
+    /// Returns the position of the head joint.
+    /// \return whether or not the head was found
+    bool getHeadPosition(glm::vec3& headPosition) const;
+    
     /// Retrieve the positions of up to two eye meshes.
     /// \return whether or not both eye meshes were found
     bool getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const;
@@ -82,6 +86,8 @@ protected:
     virtual void updateJointState(int index);
     
 private:
+    
+    bool getJointPosition(int jointIndex, glm::vec3& position) const;
     
     void deleteGeometry();
     

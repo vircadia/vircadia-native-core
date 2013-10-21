@@ -662,11 +662,13 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     QByteArray jointNeckName = joints.value("jointNeck", "jointNeck").toByteArray();
     QByteArray jointRootName = joints.value("jointRoot", "jointRoot").toByteArray();
     QByteArray jointLeanName = joints.value("jointLean", "jointLean").toByteArray();
+    QByteArray jointHeadName = joints.value("jointHead", "jointHead").toByteArray();
     QString jointEyeLeftID;
     QString jointEyeRightID;
     QString jointNeckID;
     QString jointRootID;
     QString jointLeanID;
+    QString jointHeadID;
     
     QVariantHash blendshapeMappings = mapping.value("bs").toHash();
     QHash<QByteArray, QPair<int, float> > blendshapeIndices;
@@ -737,6 +739,9 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                         
                     } else if (name == jointLeanName) {
                         jointLeanID = object.properties.at(0).toString();
+                        
+                    } else if (name == jointHeadName) {
+                        jointHeadID = object.properties.at(0).toString();
                     }
                     glm::vec3 translation;
                     glm::vec3 rotationOffset;
@@ -965,6 +970,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     geometry.neckJointIndex = modelIDs.indexOf(jointNeckID);
     geometry.rootJointIndex = modelIDs.indexOf(jointRootID);
     geometry.leanJointIndex = modelIDs.indexOf(jointLeanID);
+    geometry.headJointIndex = modelIDs.indexOf(jointHeadID);
     
     // extract the translation component of the neck transform
     if (geometry.neckJointIndex != -1) {
