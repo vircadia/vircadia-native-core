@@ -41,6 +41,16 @@ and generate Xcode project files.
 If you are building on a *nix system, 
 you'll run something like "cmake ..", which uses the default Cmake generator for Unix Makefiles.
 
+If Cmake throws you an error related to Qt5 it likely cannot find your Qt5 cmake modules. 
+You can solve this by setting an environment variable, QT_CMAKE_PREFIX_PATH, to the location of the folder distributed
+with Qt5 that contains them.
+
+For example, a Qt5 5.1.1 installation to /usr/local/qt5 would require that QT_CMAKE_PREFIX_PATH be set with the following command. This can either be entered directly into your shell session before you build or in your shell profile (e.g.: ~/.bash_profile, ~/.bashrc, ~/.zshrc - this depends on your shell and environment).
+
+    export QT_CMAKE_PREFIX_PATH=/usr/local/qt/5.1.1/clang_64/lib/cmake/
+
+The path it needs to be set to will depend on where and how Qt5 was installed.
+
 Building in XCode
 -----
 
