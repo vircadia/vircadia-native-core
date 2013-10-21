@@ -444,6 +444,8 @@ void Application::paintGL() {
             glViewport(MIRROR_VIEW_LEFT_PADDING, _glWidget->height() - MIRROR_VIEW_HEIGHT - MIRROR_VIEW_TOP_PADDING, MIRROR_VIEW_WIDTH, MIRROR_VIEW_HEIGHT);
             glScissor(MIRROR_VIEW_LEFT_PADDING, _glWidget->height() - MIRROR_VIEW_HEIGHT - MIRROR_VIEW_TOP_PADDING, MIRROR_VIEW_WIDTH, MIRROR_VIEW_HEIGHT);
 
+            updateProjectionMatrix(_mirrorCamera);
+            
             glEnable(GL_SCISSOR_TEST);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             glPushMatrix();
@@ -453,6 +455,8 @@ void Application::paintGL() {
             // reset Viewport
             glViewport(0, 0, _glWidget->width(), _glWidget->height());
             glDisable(GL_SCISSOR_TEST);
+            
+            updateProjectionMatrix();
         }
         
         displayOverlay();
@@ -485,11 +489,15 @@ void Application::resizeGL(int width, int height) {
 }
 
 void Application::updateProjectionMatrix() {
+    updateProjectionMatrix(_myCamera);
+}
+
+void Application::updateProjectionMatrix(Camera& camera) {
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
     
     // Tell our viewFrustum about this change, using the application camera
-    loadViewFrustum(_myCamera, _viewFrustum);
+    loadViewFrustum(camera, _viewFrustum);
     
     float left, right, bottom, top, nearVal, farVal;
     glm::vec4 nearClipPlane, farClipPlane;
@@ -1631,7 +1639,7 @@ void Application::init() {
     _myAvatar.setDisplayingLookatVectors(false);  
     _mirrorCamera.setMode(CAMERA_MODE_MIRROR);
     _mirrorCamera.setModeShiftRate(1.0f);
-    _mirrorCamera.setAspectRatio(MIRROR_VIEW_WIDTH / MIRROR_VIEW_HEIGHT);
+    _mirrorCamera.setAspectRatio((float)MIRROR_VIEW_WIDTH / (float)MIRROR_VIEW_HEIGHT);
     _mirrorCamera.setFieldOfView(DEFAULT_FIELD_OF_VIEW_DEGREES);
     
     OculusManager::connect();
@@ -2601,7 +2609,7 @@ void Application::displaySide(Camera& whichCamera) {
     glMaterialfv(GL_FRONT, GL_SPECULAR, WHITE_SPECULAR_COLOR);
     
     // indicate what we'll be adding/removing in mouse mode, if anything
-    if (_mouseVoxel.s != 0) {
+    if (_mouseVoxel.s != 0 && whichCamera.getMode() != CAMERA_MODE_MIRROR) {
         PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
             "Application::displaySide() ... voxels TOOLS UX...");
 
@@ -2649,7 +2657,7 @@ void Application::displaySide(Camera& whichCamera) {
         glEnable(GL_LIGHTING);
     }
     
-    if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelSelectMode) && _pasteMode) {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelSelectMode) && _pasteMode && whichCamera.getMode() != CAMERA_MODE_MIRROR) {
         PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
             "Application::displaySide() ... PASTE Preview...");
 
