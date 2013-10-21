@@ -25,8 +25,8 @@ InjectedAudioRingBuffer::InjectedAudioRingBuffer(const QUuid& streamIdentifier) 
 int InjectedAudioRingBuffer::parseData(unsigned char* sourceBuffer, int numBytes) {
     unsigned char* currentBuffer =  sourceBuffer + numBytesForPacketHeader(sourceBuffer);
     
-    // push past the UUID for this injector
-    currentBuffer += NUM_BYTES_RFC4122_UUID;
+    // push past the UUID for this node and the stream identifier
+    currentBuffer += (NUM_BYTES_RFC4122_UUID * 2);
     
     // use parsePositionalData in parent PostionalAudioRingBuffer class to pull common positional data
     currentBuffer += parsePositionalData(currentBuffer, numBytes - (currentBuffer - sourceBuffer));

@@ -82,7 +82,7 @@ void AudioMixer::addBufferToMixForListeningNodeWithBuffer(PositionalAudioRingBuf
     stk::TwoPole* otherNodeTwoPole = NULL;
     
     if (bufferToAdd != listeningNodeBuffer) {
-        // if the two buffer pointers do no match then these are different buffers
+        // if the two buffer pointers do not match then these are different buffers
         
         glm::vec3 listenerPosition = listeningNodeBuffer->getPosition();
         glm::vec3 relativePosition = bufferToAdd->getPosition() - listeningNodeBuffer->getPosition();

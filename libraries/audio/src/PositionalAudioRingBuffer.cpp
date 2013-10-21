@@ -70,6 +70,6 @@ bool PositionalAudioRingBuffer::shouldBeAddedToMix(int numJitterBufferSamples) {
             return true;
         }
     }
-    printf("packet mismatch...\n");
+    
     return false;
 }
