@@ -71,11 +71,10 @@ NodeList::NodeList(char newOwnerType, unsigned short int newSocketListenPort) :
     _ownerUUID(QUuid::createUuid()),
     _numNoReplyDomainCheckIns(0),
     _assignmentServerSocket(NULL),
-    _checkInPacket(NULL),
-    _numBytesCheckInPacket(0),
     _publicAddress(),
     _publicPort(0),
-    _shouldUseDomainServerAsSTUN(0)
+    _hasCompletedInitialSTUNFailure(false),
+    _stunRequestsSinceSuccess(0)
 {
     
 }
@@ -151,7 +150,7 @@ void NodeList::processNodeData(sockaddr* senderAddress, unsigned char* packetDat
         }
         case PACKET_TYPE_PING_REPLY: {
             // activate the appropriate socket for this node, if not yet updated
-            activateSocketFromPingReply(senderAddress);
+            activateSocketFromNodeCommunication(senderAddress);
             
             // set the ping time for this node for stat collection
             timePingReply(senderAddress, packetData);
@@ -199,6 +198,7 @@ void NodeList::processBulkNodeData(sockaddr *senderAddress, unsigned char *packe
             }
             
             currentPosition += updateNodeWithData(matchingNode,
+                                                  NULL,
                                                   packetHolder,
                                                   numTotalBytes - (currentPosition - startPosition));
             
@@ -206,35 +206,32 @@ void NodeList::processBulkNodeData(sockaddr *senderAddress, unsigned char *packe
     }    
 }
 
-int NodeList::updateNodeWithData(sockaddr *senderAddress, unsigned char *packetData, size_t dataBytes) {
-    // find the node by the sockaddr
-    Node* matchingNode = nodeWithAddress(senderAddress);
-    
-    if (matchingNode) {
-        return updateNodeWithData(matchingNode, packetData, dataBytes);
-    } else {
-        return 0;
-    }
-}
-
-int NodeList::updateNodeWithData(Node *node, unsigned char *packetData, int dataBytes) {
+int NodeList::updateNodeWithData(Node *node, sockaddr* senderAddress, unsigned char *packetData, int dataBytes) {
     node->lock();
     
     node->setLastHeardMicrostamp(usecTimestampNow());
     
-    if (node->getActiveSocket()) {
+    if (senderAddress) {
+        activateSocketFromNodeCommunication(senderAddress);
+    }
+    
+    if (node->getActiveSocket() || !senderAddress) {
         node->recordBytesReceived(dataBytes);
+        
+        if (!node->getLinkedData() && linkedDataCreateCallback) {
+            linkedDataCreateCallback(node);
+        }
+        
+        int numParsedBytes = node->getLinkedData()->parseData(packetData, dataBytes);
+        
+        node->unlock();
+        
+        return numParsedBytes;
+    } else {
+        // we weren't able to match the sender address to the address we have for this node, unlock and don't parse
+        node->unlock();
+        return 0;
     }
-    
-    if (!node->getLinkedData() && linkedDataCreateCallback) {
-        linkedDataCreateCallback(node);
-    }
-    
-    int numParsedBytes = node->getLinkedData()->parseData(packetData, dataBytes);
-    
-    node->unlock();
-    
-    return numParsedBytes;
 }
 
 Node* NodeList::nodeWithAddress(sockaddr *senderAddress) {
@@ -290,11 +287,6 @@ void NodeList::reset() {
     clear();
     _numNoReplyDomainCheckIns = 0;
     
-    delete[] _checkInPacket;
-    _checkInPacket = NULL;
-    
-    _numBytesCheckInPacket = 0;
-    
     delete _nodeTypesOfInterest;
     _nodeTypesOfInterest = NULL;
     
@@ -318,62 +310,67 @@ void NodeList::sendSTUNRequest() {
     const char STUN_SERVER_HOSTNAME[] = "stun.highfidelity.io";
     const unsigned short STUN_SERVER_PORT = 3478;
     
-    static int failedStunRequests = 0;
+    unsigned char stunRequestPacket[NUM_BYTES_STUN_HEADER];
     
-    if (failedStunRequests < NUM_STUN_REQUESTS_BEFORE_FALLBACK) {
-        unsigned char stunRequestPacket[NUM_BYTES_STUN_HEADER];
-        
-        int packetIndex = 0;
-        
-        const uint32_t RFC_5389_MAGIC_COOKIE_NETWORK_ORDER = htonl(RFC_5389_MAGIC_COOKIE);
-        
-        // leading zeros + message type
-        const uint16_t REQUEST_MESSAGE_TYPE = htons(0x0001);
-        memcpy(stunRequestPacket + packetIndex, &REQUEST_MESSAGE_TYPE, sizeof(REQUEST_MESSAGE_TYPE));
-        packetIndex += sizeof(REQUEST_MESSAGE_TYPE);
-        
-        // message length (no additional attributes are included)
-        uint16_t messageLength = 0;
-        memcpy(stunRequestPacket + packetIndex, &messageLength, sizeof(messageLength));
-        packetIndex += sizeof(messageLength);
-        
-        memcpy(stunRequestPacket + packetIndex, &RFC_5389_MAGIC_COOKIE_NETWORK_ORDER, sizeof(RFC_5389_MAGIC_COOKIE_NETWORK_ORDER));
-        packetIndex += sizeof(RFC_5389_MAGIC_COOKIE_NETWORK_ORDER);
-        
-        // transaction ID (random 12-byte unsigned integer)
-        const uint NUM_TRANSACTION_ID_BYTES = 12;
-        unsigned char transactionID[NUM_TRANSACTION_ID_BYTES];
-        loadRandomIdentifier(transactionID, NUM_TRANSACTION_ID_BYTES);
-        memcpy(stunRequestPacket + packetIndex, &transactionID, sizeof(transactionID));
-        
-        // lookup the IP for the STUN server
-        static QHostInfo stunInfo = QHostInfo::fromName(STUN_SERVER_HOSTNAME);
-        
-        for (int i = 0; i < stunInfo.addresses().size(); i++) {
-            if (stunInfo.addresses()[i].protocol() == QAbstractSocket::IPv4Protocol) {
-                QString stunIPAddress = stunInfo.addresses()[i].toString();
-                
-                qDebug("Sending a stun request to %s\n", stunIPAddress.toLocal8Bit().constData());
-                
-                _nodeSocket.send(stunIPAddress.toLocal8Bit().constData(),
-                                 STUN_SERVER_PORT,
-                                 stunRequestPacket,
-                                 sizeof(stunRequestPacket));
-                
-                break;
+    int packetIndex = 0;
+    
+    const uint32_t RFC_5389_MAGIC_COOKIE_NETWORK_ORDER = htonl(RFC_5389_MAGIC_COOKIE);
+    
+    // leading zeros + message type
+    const uint16_t REQUEST_MESSAGE_TYPE = htons(0x0001);
+    memcpy(stunRequestPacket + packetIndex, &REQUEST_MESSAGE_TYPE, sizeof(REQUEST_MESSAGE_TYPE));
+    packetIndex += sizeof(REQUEST_MESSAGE_TYPE);
+    
+    // message length (no additional attributes are included)
+    uint16_t messageLength = 0;
+    memcpy(stunRequestPacket + packetIndex, &messageLength, sizeof(messageLength));
+    packetIndex += sizeof(messageLength);
+    
+    memcpy(stunRequestPacket + packetIndex, &RFC_5389_MAGIC_COOKIE_NETWORK_ORDER, sizeof(RFC_5389_MAGIC_COOKIE_NETWORK_ORDER));
+    packetIndex += sizeof(RFC_5389_MAGIC_COOKIE_NETWORK_ORDER);
+    
+    // transaction ID (random 12-byte unsigned integer)
+    const uint NUM_TRANSACTION_ID_BYTES = 12;
+    unsigned char transactionID[NUM_TRANSACTION_ID_BYTES];
+    loadRandomIdentifier(transactionID, NUM_TRANSACTION_ID_BYTES);
+    memcpy(stunRequestPacket + packetIndex, &transactionID, sizeof(transactionID));
+    
+    // lookup the IP for the STUN server
+    static QHostInfo stunInfo = QHostInfo::fromName(STUN_SERVER_HOSTNAME);
+    
+    for (int i = 0; i < stunInfo.addresses().size(); i++) {
+        if (stunInfo.addresses()[i].protocol() == QAbstractSocket::IPv4Protocol) {
+            QString stunIPAddress = stunInfo.addresses()[i].toString();
+            
+            if (!_hasCompletedInitialSTUNFailure) {
+                qDebug("Sending intial stun request to %s\n", stunIPAddress.toLocal8Bit().constData());
             }
+            
+            _nodeSocket.send(stunIPAddress.toLocal8Bit().constData(),
+                             STUN_SERVER_PORT,
+                             stunRequestPacket,
+                             sizeof(stunRequestPacket));
+            
+            break;
         }
-        
-        failedStunRequests++;
-        
-        return;
     }
     
-    // if we're here this was the last failed STUN request
-    // use our DS as our stun server
-    qDebug("Failed to lookup public address via STUN server at %s:%hu. Using DS for STUN.\n",
-           STUN_SERVER_HOSTNAME, STUN_SERVER_PORT);
-    _shouldUseDomainServerAsSTUN = true;
+    _stunRequestsSinceSuccess++;
+    
+    if (_stunRequestsSinceSuccess >= NUM_STUN_REQUESTS_BEFORE_FALLBACK) {
+        if (!_hasCompletedInitialSTUNFailure) {
+            // if we're here this was the last failed STUN request
+            // use our DS as our stun server
+            qDebug("Failed to lookup public address via STUN server at %s:%hu. Using DS for STUN.\n",
+                   STUN_SERVER_HOSTNAME, STUN_SERVER_PORT);
+            
+            _hasCompletedInitialSTUNFailure = true;
+        }
+        
+        // reset the public address and port
+        _publicAddress = QHostAddress::Null;
+        _publicPort = 0;
+    }
 }
 
 void NodeList::processSTUNResponse(unsigned char* packetData, size_t dataBytes) {
@@ -397,6 +394,9 @@ void NodeList::processSTUNResponse(unsigned char* packetData, size_t dataBytes) 
                 const int NUM_BYTES_FAMILY_ALIGN = 1;
                 const uint8_t IPV4_FAMILY_NETWORK_ORDER = htons(0x01) >> 8;
                 
+                // reset the number of failed STUN requests since last success
+                _stunRequestsSinceSuccess = 0;
+                
                 int byteIndex = attributeStartIndex +  NUM_BYTES_STUN_ATTR_TYPE_AND_LENGTH + NUM_BYTES_FAMILY_ALIGN;
                 
                 uint8_t addressFamily = 0;
@@ -409,7 +409,7 @@ void NodeList::processSTUNResponse(unsigned char* packetData, size_t dataBytes) 
                     uint16_t xorMappedPort = 0;
                     memcpy(&xorMappedPort, packetData + byteIndex, sizeof(xorMappedPort));
                     
-                    _publicPort = ntohs(xorMappedPort) ^ (ntohl(RFC_5389_MAGIC_COOKIE_NETWORK_ORDER) >> 16);
+                    uint16_t newPublicPort = ntohs(xorMappedPort) ^ (ntohl(RFC_5389_MAGIC_COOKIE_NETWORK_ORDER) >> 16);
                     
                     byteIndex += sizeof(xorMappedPort);
                     
@@ -418,12 +418,21 @@ void NodeList::processSTUNResponse(unsigned char* packetData, size_t dataBytes) 
                     memcpy(&xorMappedAddress, packetData + byteIndex, sizeof(xorMappedAddress));
                     
                     uint32_t stunAddress = ntohl(xorMappedAddress) ^ ntohl(RFC_5389_MAGIC_COOKIE_NETWORK_ORDER);
-                    _publicAddress = QHostAddress(stunAddress);
                     
-                    qDebug("Public socket received from STUN server is %s:%hu\n",
-                           _publicAddress.toString().toLocal8Bit().constData(),
-                           _publicPort);
+                    QHostAddress newPublicAddress = QHostAddress(stunAddress);
                     
+                    if (newPublicAddress != _publicAddress || newPublicPort != _publicPort) {
+                        _publicAddress = newPublicAddress;
+                        _publicPort = newPublicPort;
+                        
+                        qDebug("New public socket received from STUN server is %s:%hu\n",
+                               _publicAddress.toString().toLocal8Bit().constData(),
+                               _publicPort);
+                        
+                    }
+                    
+                    _hasCompletedInitialSTUNFailure = true;
+                
                     break;
                 }
             } else {
@@ -471,62 +480,66 @@ void NodeList::sendDomainServerCheckIn() {
         printedDomainServerIP = true;
     }
     
-    if (_publicAddress.isNull() && !_shouldUseDomainServerAsSTUN) {
+    if (_publicAddress.isNull() && !_hasCompletedInitialSTUNFailure) {
         // we don't know our public socket and we need to send it to the domain server
         // send a STUN request to figure it out
         sendSTUNRequest();
     } else {
         // construct the DS check in packet if we need to
-        if (!_checkInPacket) {
-            int numBytesNodesOfInterest = _nodeTypesOfInterest ? strlen((char*) _nodeTypesOfInterest) : 0;
-            
-            const int IP_ADDRESS_BYTES = 4;
-            
-            // check in packet has header, optional UUID, node type, port, IP, node types of interest, null termination
-            int numPacketBytes = sizeof(PACKET_TYPE) + sizeof(PACKET_VERSION) + sizeof(NODE_TYPE) +
-                NUM_BYTES_RFC4122_UUID + (2 * (sizeof(uint16_t) + IP_ADDRESS_BYTES)) +
-                numBytesNodesOfInterest + sizeof(unsigned char);
-            
-            _checkInPacket = new unsigned char[numPacketBytes];
-            unsigned char* packetPosition = _checkInPacket;
-            
-            PACKET_TYPE nodePacketType = (memchr(SOLO_NODE_TYPES, _ownerType, sizeof(SOLO_NODE_TYPES)))
-                ? PACKET_TYPE_DOMAIN_REPORT_FOR_DUTY
-                : PACKET_TYPE_DOMAIN_LIST_REQUEST;
-            
-            packetPosition += populateTypeAndVersion(packetPosition, nodePacketType);
-            
-            *(packetPosition++) = _ownerType;
-            
-            // send our owner UUID or the null one
-            QByteArray rfcOwnerUUID = _ownerUUID.toRfc4122();
-            memcpy(packetPosition, rfcOwnerUUID.constData(), rfcOwnerUUID.size());
-            packetPosition += rfcOwnerUUID.size();
-            
-            // pack our public address to send to domain-server
-            packetPosition += packSocket(_checkInPacket + (packetPosition - _checkInPacket),
-                                         htonl(_publicAddress.toIPv4Address()), htons(_publicPort));
-            
-            // pack our local address to send to domain-server
-            packetPosition += packSocket(_checkInPacket + (packetPosition - _checkInPacket),
-                                         getLocalAddress(),
-                                         htons(_nodeSocket.getListeningPort()));
-            
-            // add the number of bytes for node types of interest
-            *(packetPosition++) = numBytesNodesOfInterest;
-            
-            // copy over the bytes for node types of interest, if required
-            if (numBytesNodesOfInterest > 0) {
-                memcpy(packetPosition,
-                       _nodeTypesOfInterest,
-                       numBytesNodesOfInterest);
-                packetPosition += numBytesNodesOfInterest;
-            }
-            
-            _numBytesCheckInPacket = packetPosition - _checkInPacket;
+        int numBytesNodesOfInterest = _nodeTypesOfInterest ? strlen((char*) _nodeTypesOfInterest) : 0;
+        
+        const int IP_ADDRESS_BYTES = 4;
+        
+        // check in packet has header, optional UUID, node type, port, IP, node types of interest, null termination
+        int numPacketBytes = sizeof(PACKET_TYPE) + sizeof(PACKET_VERSION) + sizeof(NODE_TYPE) +
+        NUM_BYTES_RFC4122_UUID + (2 * (sizeof(uint16_t) + IP_ADDRESS_BYTES)) +
+        numBytesNodesOfInterest + sizeof(unsigned char);
+        
+        unsigned char* checkInPacket = new unsigned char[numPacketBytes];
+        unsigned char* packetPosition = checkInPacket;
+        
+        PACKET_TYPE nodePacketType = (memchr(SOLO_NODE_TYPES, _ownerType, sizeof(SOLO_NODE_TYPES)))
+            ? PACKET_TYPE_DOMAIN_REPORT_FOR_DUTY
+            : PACKET_TYPE_DOMAIN_LIST_REQUEST;
+        
+        packetPosition += populateTypeAndVersion(packetPosition, nodePacketType);
+        
+        *(packetPosition++) = _ownerType;
+        
+        // send our owner UUID or the null one
+        QByteArray rfcOwnerUUID = _ownerUUID.toRfc4122();
+        memcpy(packetPosition, rfcOwnerUUID.constData(), rfcOwnerUUID.size());
+        packetPosition += rfcOwnerUUID.size();
+        
+        // pack our public address to send to domain-server
+        packetPosition += packSocket(checkInPacket + (packetPosition - checkInPacket),
+                                     htonl(_publicAddress.toIPv4Address()), htons(_publicPort));
+        
+        // pack our local address to send to domain-server
+        packetPosition += packSocket(checkInPacket + (packetPosition - checkInPacket),
+                                     getLocalAddress(),
+                                     htons(_nodeSocket.getListeningPort()));
+        
+        // add the number of bytes for node types of interest
+        *(packetPosition++) = numBytesNodesOfInterest;
+        
+        // copy over the bytes for node types of interest, if required
+        if (numBytesNodesOfInterest > 0) {
+            memcpy(packetPosition,
+                   _nodeTypesOfInterest,
+                   numBytesNodesOfInterest);
+            packetPosition += numBytesNodesOfInterest;
         }
         
-        _nodeSocket.send(_domainIP.toString().toLocal8Bit().constData(), _domainPort, _checkInPacket, _numBytesCheckInPacket);
+        _nodeSocket.send(_domainIP.toString().toLocal8Bit().constData(), _domainPort, checkInPacket, packetPosition - checkInPacket);
+        
+        const int NUM_DOMAIN_SERVER_CHECKINS_PER_STUN_REQUEST = 5;
+        static unsigned int numDomainCheckins = 0;
+        
+        // send a STUN request every Nth domain server check in so we update our public socket, if required
+        if (numDomainCheckins++ % NUM_DOMAIN_SERVER_CHECKINS_PER_STUN_REQUEST == 0) {
+            sendSTUNRequest();
+        }
         
         // increment the count of un-replied check-ins
         _numNoReplyDomainCheckIns++;
@@ -624,12 +637,27 @@ Node* NodeList::addOrUpdateNode(const QUuid& uuid, char nodeType, sockaddr* publ
         
         return newNode;
     } else {
+        node->lock();
+        
         if (node->getType() == NODE_TYPE_AUDIO_MIXER ||
             node->getType() == NODE_TYPE_VOXEL_SERVER) {
             // until the Audio class also uses our nodeList, we need to update
             // the lastRecvTimeUsecs for the audio mixer so it doesn't get killed and re-added continously
             node->setLastHeardMicrostamp(usecTimestampNow());
         }
+        
+        // check if we need to change this node's public or local sockets
+        if (!socketMatch(publicSocket, node->getPublicSocket())) {
+            node->setPublicSocket(publicSocket);
+            qDebug() << "Public socket change for node" << *node << "\n";
+        }
+        
+        if (!socketMatch(localSocket, node->getLocalSocket())) {
+            node->setLocalSocket(localSocket);
+            qDebug() << "Local socket change for node" << *node << "\n";
+        }
+        
+        node->unlock();
         
         // we had this node already, do nothing for now
         return &*node;
@@ -657,21 +685,39 @@ unsigned NodeList::broadcastToNodes(unsigned char* broadcastData, size_t dataByt
     unsigned n = 0;
     for(NodeList::iterator node = begin(); node != end(); node++) {
         // only send to the NodeTypes we are asked to send to.
-        if (node->getActiveSocket() != NULL) {
-            if (memchr(nodeTypes, node->getType(), numNodeTypes)) {
+        if (memchr(nodeTypes, node->getType(), numNodeTypes)) {
+            if (node->getActiveSocket()) {
                 // we know which socket is good for this node, send there
                 _nodeSocket.send(node->getActiveSocket(), broadcastData, dataBytes);
                 ++n;
+            } else {
+                // we don't have an active link to this node, ping it to set that up
+                pingPublicAndLocalSocketsForInactiveNode(&(*node));
             }
-        } else {
-            // we don't have an active link to this node, ping it to set that up
-            pingPublicAndLocalSocketsForInactiveNode(&(*node));
         }
     }
     return n;
 }
 
-void NodeList::activateSocketFromPingReply(sockaddr *nodeAddress) {
+const uint64_t PING_INACTIVE_NODE_INTERVAL_USECS = 1 * 1000 * 1000;
+
+void NodeList::possiblyPingInactiveNodes() {
+    static timeval lastPing = {};
+    
+    // make sure PING_INACTIVE_NODE_INTERVAL_USECS has elapsed since last ping
+    if (usecTimestampNow() - usecTimestamp(&lastPing) >= PING_INACTIVE_NODE_INTERVAL_USECS) {
+        gettimeofday(&lastPing, NULL);
+        
+        for(NodeList::iterator node = begin(); node != end(); node++) {
+            if (!node->getActiveSocket()) {
+                // we don't have an active link to this node, ping it to set that up
+                pingPublicAndLocalSocketsForInactiveNode(&(*node));
+            }
+        }
+    }
+}
+
+void NodeList::activateSocketFromNodeCommunication(sockaddr *nodeAddress) {
     for(NodeList::iterator node = begin(); node != end(); node++) {
         if (!node->getActiveSocket()) {
             // check both the public and local addresses for each node to see if we find a match
@@ -699,6 +745,22 @@ Node* NodeList::soloNodeOfType(char nodeType) {
     return NULL;
 }
 
+void NodeList::killNode(Node* node, bool mustLockNode) {
+    if (mustLockNode) {
+        node->lock();
+    }
+    
+    qDebug() << "Killed " << *node << "\n";
+    
+    notifyHooksOfKilledNode(&*node);
+    
+    node->setAlive(false);
+    
+    if (mustLockNode) {
+        node->unlock();
+    }
+}
+
 void* removeSilentNodes(void *args) {
     NodeList* nodeList = (NodeList*) args;
     uint64_t checkTimeUsecs = 0;
@@ -712,12 +774,8 @@ void* removeSilentNodes(void *args) {
             node->lock();
             
             if ((usecTimestampNow() - node->getLastHeardMicrostamp()) > NODE_SILENCE_THRESHOLD_USECS) {
-
-                qDebug() << "Killed " << *node << "\n";
-                
-                nodeList->notifyHooksOfKilledNode(&*node);
-                
-                node->setAlive(false);
+                // kill this node, don't lock - we already did it
+                nodeList->killNode(&(*node), false);
             }
             
             node->unlock();

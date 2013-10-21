@@ -72,8 +72,8 @@
 using namespace std;
 
 //  Starfield information
-static char STAR_FILE[] = "http://s3-us-west-1.amazonaws.com/highfidelity/stars.txt";
-static char STAR_CACHE_FILE[] = "cachedStars.txt";
+static unsigned STARFIELD_NUM_STARS = 50000;
+static unsigned STARFIELD_SEED = 1;
 
 static const int BANDWIDTH_METER_CLICK_MAX_DRAG_LENGTH = 6; // farther dragged clicks are ignored 
 
@@ -2510,8 +2510,8 @@ void Application::displaySide(Camera& whichCamera) {
     if (Menu::getInstance()->isOptionChecked(MenuOption::Stars)) {
         PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
             "Application::displaySide() ... stars...");
-        if (!_stars.getFileLoaded()) {
-            _stars.readInput(STAR_FILE, STAR_CACHE_FILE, 0);
+        if (!_stars.isStarsLoaded()) {
+            _stars.generate(STARFIELD_NUM_STARS, STARFIELD_SEED);
         }
         // should be the first rendering pass - w/o depth buffer / lighting
 

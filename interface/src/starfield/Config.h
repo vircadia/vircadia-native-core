@@ -9,30 +9,6 @@
 #ifndef __interface__starfield__Config__
 #define __interface__starfield__Config__
 
-#ifndef __interface__Starfield_impl__
-#error "This is an implementation file - not intended for direct inclusion."
-#endif
-
-//
-// Compile time configuration:
-//
-
-#ifndef STARFIELD_HEMISPHERE_ONLY
-#define STARFIELD_HEMISPHERE_ONLY 0 // set to 1 for hemisphere only
-#endif
-
-#ifndef STARFIELD_LOW_MEMORY
-#define STARFIELD_LOW_MEMORY 0 //  set to 1 not to use 16-bit types
-#endif
-
-#ifndef STARFIELD_DEBUG_CULLING
-#define STARFIELD_DEBUG_CULLING 0 // set to 1 to peek behind the scenes
-#endif
-
-#ifndef STARFIELD_MULTITHREADING
-#define STARFIELD_MULTITHREADING 0
-#endif
-
 //
 // Dependencies:
 //
@@ -48,11 +24,6 @@
 #include <cctype>
 
 #include <stdint.h>
-
-#if STARFIELD_MULTITHREADING
-#include <mutex>
-#include <atomic>
-#endif
 
 #include <new>
 #include <vector>
@@ -88,14 +59,8 @@ namespace starfield {
 
     using namespace std;
 
-
-#if STARFIELD_SAVE_MEMORY
-    typedef uint16_t nuint;
-    typedef uint32_t wuint;
-#else
     typedef uint32_t nuint;
     typedef uint64_t wuint;
-#endif
 
 }
 
