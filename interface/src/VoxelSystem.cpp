@@ -1746,11 +1746,11 @@ bool VoxelSystem::showAllLocalVoxelsOperation(VoxelNode* node, void* extraData) 
     if (shouldRender) {
         bool falseColorize = false;
         if (falseColorize) {
-            node->setFalseColor(0,0,255); // fake
+            node->setFalseColor(0,0,255); // false colorize
         }
-        // how does randomize color work?
-        node->setDirtyBit(); // will this make it draw!
-        node->markWithChangedTime(); // fake
+        // These are both needed to force redraw...
+        node->setDirtyBit();
+        node->markWithChangedTime();
     }
 
     return true; // keep recursing!
@@ -1882,7 +1882,7 @@ bool VoxelSystem::hideAllSubTreeOperation(VoxelNode* node, void* extraData) {
         args->nodesRemoved++;
         bool falseColorize = false;
         if (falseColorize) {
-            node->setFalseColor(255,0,0); // fake
+            node->setFalseColor(255,0,0); // false colorize
         } else {
             VoxelSystem* thisVoxelSystem = args->thisVoxelSystem;
             thisVoxelSystem->_voxelsUpdated += thisVoxelSystem->forceRemoveNodeFromArrays(node);
@@ -1914,18 +1914,17 @@ bool VoxelSystem::showAllSubTreeOperation(VoxelNode* node, void* extraData) {
 
     args->nodesInside++;
 
-    //printf("<<<<<<<<<<< showAllSubTreeOperation() >>>>>>>>>>>>>>>\n");
-
     bool shouldRender = node->calculateShouldRender(&args->thisViewFrustum);
     node->setShouldRender(shouldRender);
 
     if (shouldRender && !node->isKnownBufferIndex()) {
         bool falseColorize = false;
         if (falseColorize) {
-            node->setFalseColor(0,0,255); // fake
+            node->setFalseColor(0,0,255); // false colorize
         }
-        node->setDirtyBit(); // will this make it draw!
-        node->markWithChangedTime(); // fake
+        // These are both needed to force redraw...
+        node->setDirtyBit();
+        node->markWithChangedTime();
     }
 
     return true; // keep recursing!
@@ -1985,7 +1984,6 @@ bool VoxelSystem::hideOutOfViewOperation(VoxelNode* node, void* extraData) {
             // if this node is fully INSIDE the view, but previously INTERSECTED and/or was OUTSIDE the last view, then
             // we need to show it. Additionally we know that ALL of it's children are also fully INSIDE so we can recurse 
             // the children and simply mark them as visible (as appropriate based on LOD)
-            //printf("<<<<<<<<<<< HERE!!!!! >>>>>>>>>>>>>>>\n");
             args->tree->recurseNodeWithOperation(node, showAllSubTreeOperation, args);
 
             return false;    
