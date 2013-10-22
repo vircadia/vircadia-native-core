@@ -23,7 +23,6 @@ void FaceModel::simulate(float deltaTime) {
     }
 
     Avatar* owningAvatar = static_cast<Avatar*>(_owningHead->_owningAvatar);
-    const Skeleton& skeleton = owningAvatar->getSkeleton();
     glm::vec3 neckPosition;
     if (!owningAvatar->getSkeletonModel().getNeckPosition(neckPosition)) {
         neckPosition = owningAvatar->getSkeleton().joint[AVATAR_JOINT_NECK_BASE].position;
@@ -31,11 +30,12 @@ void FaceModel::simulate(float deltaTime) {
     setTranslation(neckPosition);
     glm::quat neckRotation;
     if (!owningAvatar->getSkeletonModel().getNeckRotation(neckRotation)) {
-        neckRotation = owningAvatar->getSkeleton().joint[AVATAR_JOINT_NECK_BASE].absoluteRotation;
+        neckRotation = owningAvatar->getSkeleton().joint[AVATAR_JOINT_NECK_BASE].absoluteRotation *
+            glm::angleAxis(180.0f, 0.0f, 1.0f, 0.0f);
     }
     setRotation(neckRotation);
     const float MODEL_SCALE = 0.0006f;
-    setScale(glm::vec3(-1.0f, 1.0f, -1.0f) * _owningHead->getScale() * MODEL_SCALE);
+    setScale(glm::vec3(1.0f, 1.0f, 1.0f) * _owningHead->getScale() * MODEL_SCALE);
     const glm::vec3 MODEL_TRANSLATION(0.0f, -60.0f, 40.0f); // temporary fudge factor
     setOffset(MODEL_TRANSLATION - _geometry->getFBXGeometry().neckPivot);
     

@@ -14,6 +14,7 @@
 #include <QtEndian>
 
 #include <glm/gtc/quaternion.hpp>
+#include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/transform.hpp>
 
 #include "FBXReader.h"
@@ -963,7 +964,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         glm::quat combinedRotation = model.preRotation * model.rotation * model.postRotation;
         if (joint.parentIndex == -1) {    
             joint.transform = geometry.offset * model.preTransform * glm::mat4_cast(combinedRotation) * model.postTransform;
-            joint.inverseBindRotation = glm::inverse(offsetRotation * combinedRotation);
+            joint.inverseBindRotation = glm::inverse(combinedRotation);
             
         } else {
             const FBXJoint& parentJoint = geometry.joints.at(joint.parentIndex);
