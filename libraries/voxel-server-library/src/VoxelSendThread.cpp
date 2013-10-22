@@ -195,7 +195,14 @@ void VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* no
         nodeData->stats.sceneStarted(isFullScene, viewFrustumChanged, _myServer->getServerTree().rootNode, _myServer->getJurisdiction());
 
         // This is the start of "resending" the scene.
-        nodeData->nodeBag.insert(_myServer->getServerTree().rootNode);
+        bool dontRestartSceneOnMove = false; // this is experimental
+        if (dontRestartSceneOnMove) {
+            if (nodeData->nodeBag.isEmpty()) {
+                nodeData->nodeBag.insert(_myServer->getServerTree().rootNode); // only in case of empty 
+            }
+        } else {
+            nodeData->nodeBag.insert(_myServer->getServerTree().rootNode); // only in case of empty 
+        }
     }
 
     // If we have something in our nodeBag, then turn them into packets and send them out...
