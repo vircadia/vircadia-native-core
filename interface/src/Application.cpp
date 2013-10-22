@@ -433,15 +433,8 @@ void Application::paintGL() {
         _glowEffect.render();
         
         if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-            glm::vec3 targetPosition = _myAvatar.getEyeLevelPosition();
-            if (_myAvatar.getHead().getBlendFace().isActive()) {
-                // make sure we're aligned to the blend face eyes
-                glm::vec3 leftEyePosition, rightEyePosition;
-                if (_myAvatar.getHead().getBlendFace().getEyePositions(leftEyePosition, rightEyePosition, true)) {
-                    targetPosition = (leftEyePosition + rightEyePosition) * 0.5f;
-                }
-            }
-            
+            glm::vec3 targetPosition = _myAvatar.getHeadJointPosition();
+            _mirrorCamera.setDistance(0.3f);
             _mirrorCamera.setTargetPosition(targetPosition);
             _mirrorCamera.setTargetRotation(_myAvatar.getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PIf, 0.0f)));
             _mirrorCamera.update(1.0f/_fps);
@@ -460,9 +453,6 @@ void Application::paintGL() {
             
             // render rear view tools if mouse is in the bounds
             QPoint mousePosition = _glWidget->mapFromGlobal(QCursor::pos());
-            
-            qDebug("mouse pos: x = %d, y = %d\n", mousePosition.x(), mousePosition.y());
-            
             if (_mirrorViewRect.contains(mousePosition.x(), mousePosition.y())) {
                 displayRearMirrorTools();
             }
@@ -1665,6 +1655,8 @@ void Application::init() {
     
     _mirrorCamera.setMode(CAMERA_MODE_MIRROR);
     _mirrorCamera.setAspectRatio((float)MIRROR_VIEW_WIDTH / (float)MIRROR_VIEW_HEIGHT);
+    _mirrorCamera.setFieldOfView(45);
+    _mirrorCamera.setDistance(3.3f);
     _mirrorViewRect = QRect(MIRROR_VIEW_LEFT_PADDING, MIRROR_VIEW_TOP_PADDING, MIRROR_VIEW_WIDTH, MIRROR_VIEW_HEIGHT);
     
     switchToResourcesParentIfRequired();
