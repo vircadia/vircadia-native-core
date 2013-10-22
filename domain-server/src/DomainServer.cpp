@@ -175,7 +175,7 @@ void DomainServer::civetwebUploadHandler(struct mg_connection *connection, const
     // create an assignment for this saved script, for now make it local only
     Assignment *scriptAssignment = new Assignment(Assignment::CreateCommand,
                                                   Assignment::AgentType,
-                                                  QString(),
+                                                  NULL,
                                                   Assignment::LocalLocation);
     
     // check how many instances of this assignment the user wants by checking the ASSIGNMENT-INSTANCES header
@@ -336,7 +336,9 @@ void DomainServer::prepopulateStaticAssignmentFile() {
                 qDebug() << "The pool for this voxel-assignment is" << assignmentPool << "\n";
             }
             
-            Assignment voxelServerAssignment(Assignment::CreateCommand, Assignment::VoxelServerType, assignmentPool);
+            Assignment voxelServerAssignment(Assignment::CreateCommand,
+                                             Assignment::VoxelServerType,
+                                             (assignmentPool.isEmpty() ? NULL : assignmentPool.toLocal8Bit().constData()));
             
             int payloadLength = config.length() + sizeof(char);
             voxelServerAssignment.setPayload((uchar*)config.toLocal8Bit().constData(), payloadLength);
@@ -399,9 +401,14 @@ Assignment* DomainServer::deployableAssignmentForRequest(Assignment& requestAssi
     std::deque<Assignment*>::iterator assignment = _assignmentQueue.begin();
     
     while (assignment != _assignmentQueue.end()) {
+        bool requestIsAllTypes = requestAssignment.getType() == Assignment::AllTypes;
+        bool assignmentTypesMatch = (*assignment)->getType() == requestAssignment.getType();
+        bool nietherHasPool = !(*assignment)->hasPool() && !requestAssignment.hasPool();
+        bool assignmentPoolsMatch = memcmp((*assignment)->getPool(),
+                                           requestAssignment.getPool(),
+                                           MAX_ASSIGNMENT_POOL_BYTES) == 0;
         
-        if (requestAssignment.getType() == Assignment::AllTypes ||
-            (*assignment)->getType() == requestAssignment.getType()) {
+        if ((requestIsAllTypes || assignmentTypesMatch) && (nietherHasPool || assignmentPoolsMatch)) {
             
             Assignment* deployableAssignment = *assignment;
             

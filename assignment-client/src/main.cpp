@@ -35,7 +35,7 @@ pid_t* childForks = NULL;
 sockaddr_in customAssignmentSocket = {};
 int numForks = 0;
 Assignment::Type overiddenAssignmentType = Assignment::AllTypes;
-QString assignmentPool = QString();
+const char* assignmentPool = NULL;
 
 int argc = 0;
 char** argv = NULL;
@@ -222,8 +222,7 @@ int main(int argc, char* argv[]) {
     }
     
     const char ASSIGNMENT_POOL_OPTION[] = "--pool";
-    const char* assignmentPoolString = getCmdOption(argc, (const char**) argv, ASSIGNMENT_POOL_OPTION);
-    ::assignmentPool = QString(assignmentPoolString);
+    ::assignmentPool = getCmdOption(argc, (const char**) argv, ASSIGNMENT_POOL_OPTION);
 
     const char* NUM_FORKS_PARAMETER = "-n";
     const char* numForksString = getCmdOption(argc, (const char**)argv, NUM_FORKS_PARAMETER);

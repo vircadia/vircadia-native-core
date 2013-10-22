@@ -36,19 +36,17 @@ Assignment::Assignment() :
     _uuid(),
     _command(Assignment::RequestCommand),
     _type(Assignment::AllTypes),
-    _pool(),
     _location(Assignment::LocalLocation),
     _numberOfInstances(1),
     _payload(),
     _numPayloadBytes(0)
 {
-    
+    setPool(NULL);
 }
 
-Assignment::Assignment(Assignment::Command command, Assignment::Type type, const QString& pool, Assignment::Location location) :
+Assignment::Assignment(Assignment::Command command, Assignment::Type type, const char* pool, Assignment::Location location) :
     _command(command),
     _type(type),
-    _pool(pool),
     _location(location),
     _numberOfInstances(1),
     _payload(),
@@ -58,42 +56,8 @@ Assignment::Assignment(Assignment::Command command, Assignment::Type type, const
         // this is a newly created assignment, generate a random UUID
         _uuid = QUuid::createUuid();
     }
-}
-
-Assignment::Assignment(const Assignment& otherAssignment) {
     
-    _uuid = otherAssignment._uuid;
-    
-    _command = otherAssignment._command;
-    _type = otherAssignment._type;
-    _location = otherAssignment._location;
-    _pool = otherAssignment._pool;
-    _numberOfInstances = otherAssignment._numberOfInstances;
-    
-    setPayload(otherAssignment._payload, otherAssignment._numPayloadBytes);
-}
-
-Assignment& Assignment::operator=(const Assignment& rhsAssignment) {
-    Assignment temp(rhsAssignment);
-    swap(temp);
-    return *this;
-}
-
-void Assignment::swap(Assignment& otherAssignment) {
-    using std::swap;
-    
-    swap(_uuid, otherAssignment._uuid);
-    swap(_command, otherAssignment._command);
-    swap(_type, otherAssignment._type);
-    swap(_location, otherAssignment._location);
-    swap(_pool, otherAssignment._pool);
-    swap(_numberOfInstances, otherAssignment._numberOfInstances);
-    
-    for (int i = 0; i < MAX_PAYLOAD_BYTES; i++) {
-        swap(_payload[i], otherAssignment._payload[i]);
-    }
-    
-    swap(_numPayloadBytes, otherAssignment._numPayloadBytes);
+    setPool(pool);
 }
 
 Assignment::Assignment(const unsigned char* dataBuffer, int numBytes) :
@@ -101,7 +65,7 @@ Assignment::Assignment(const unsigned char* dataBuffer, int numBytes) :
     _numberOfInstances(1),
     _payload(),
     _numPayloadBytes(0)
-{    
+{
     int numBytesRead = 0;
     
     if (dataBuffer[0] == PACKET_TYPE_REQUEST_ASSIGNMENT) {
@@ -125,15 +89,56 @@ Assignment::Assignment(const unsigned char* dataBuffer, int numBytes) :
     
     if (dataBuffer[numBytesRead] != '\0') {
         // read the pool from the data buffer
-        _pool = QString((char*) dataBuffer + numBytesRead);
+        setPool((const char*) dataBuffer + numBytesRead);
     } else {
-        // skip past the null pool
+        // skip past the null pool and null out our pool
+        setPool(NULL);
         numBytesRead++;
     }
-
+    
     if (numBytes > numBytesRead) {
         setPayload(dataBuffer + numBytesRead, numBytes - numBytesRead);
     }
+}
+
+Assignment::Assignment(const Assignment& otherAssignment) {
+    
+    _uuid = otherAssignment._uuid;
+    
+    _command = otherAssignment._command;
+    _type = otherAssignment._type;
+    _location = otherAssignment._location;
+    setPool(otherAssignment._pool);
+    _numberOfInstances = otherAssignment._numberOfInstances;
+    
+    setPayload(otherAssignment._payload, otherAssignment._numPayloadBytes);
+}
+
+Assignment& Assignment::operator=(const Assignment& rhsAssignment) {
+    Assignment temp(rhsAssignment);
+    swap(temp);
+    return *this;
+}
+
+void Assignment::swap(Assignment& otherAssignment) {
+    using std::swap;
+    
+    swap(_uuid, otherAssignment._uuid);
+    swap(_command, otherAssignment._command);
+    swap(_type, otherAssignment._type);
+    swap(_location, otherAssignment._location);
+    
+    for (int i = 0; i < sizeof(_pool); i++) {
+        swap(_pool[i], otherAssignment._pool[i]);
+    }
+    
+    swap(_numberOfInstances, otherAssignment._numberOfInstances);
+    
+    for (int i = 0; i < MAX_PAYLOAD_BYTES; i++) {
+        swap(_payload[i], otherAssignment._payload[i]);
+    }
+    
+    swap(_numPayloadBytes, otherAssignment._numPayloadBytes);
 }
 
 void Assignment::setPayload(const uchar* payload, int numBytes) {
@@ -150,6 +155,14 @@ void Assignment::setPayload(const uchar* payload, int numBytes) {
     
     memset(_payload, 0, MAX_PAYLOAD_BYTES);
     memcpy(_payload, payload, _numPayloadBytes);
+}
+
+void Assignment::setPool(const char* pool) {
+    memset(_pool, '\0', sizeof(_pool));
+    
+    if (pool) {
+        strcpy(_pool, pool);
+    }
 }
 
 const char* Assignment::getTypeName() const {
@@ -179,10 +192,11 @@ int Assignment::packToBuffer(unsigned char* buffer) {
         numPackedBytes += NUM_BYTES_RFC4122_UUID;
     }
     
-    if (!_pool.isEmpty()) {
+    if (_pool) {
         // pack the pool for this assignment, it exists
-        memcpy(buffer + numPackedBytes, _pool.toLocal8Bit().constData(), _pool.toLocal8Bit().size());
-        numPackedBytes += _pool.toLocal8Bit().size();
+        int numBytesNullTerminatedPool = strlen(_pool) + sizeof('\0');
+        memcpy(buffer + numPackedBytes, _pool, numBytesNullTerminatedPool);
+        numPackedBytes += numBytesNullTerminatedPool;
     } else {
         // otherwise pack the null character
         buffer[numPackedBytes++] = '\0';
