@@ -30,7 +30,8 @@ void FaceModel::simulate(float deltaTime) {
     setTranslation(neckPosition);
     glm::quat neckRotation;
     if (!owningAvatar->getSkeletonModel().getNeckRotation(neckRotation)) {
-        neckRotation = owningAvatar->getSkeleton().joint[AVATAR_JOINT_NECK_BASE].absoluteRotation;
+        neckRotation = owningAvatar->getSkeleton().joint[AVATAR_JOINT_NECK_BASE].absoluteRotation *
+            glm::angleAxis(180.0f, 0.0f, 1.0f, 0.0f);
     }
     setRotation(neckRotation);
     const float MODEL_SCALE = 0.0006f;
@@ -49,9 +50,9 @@ void FaceModel::maybeUpdateNeckRotation(const JointState& parentState, const FBX
     glm::mat3 axes = glm::mat3_cast(_rotation);
     glm::mat3 inverse = glm::mat3(glm::inverse(parentState.transform *
         joint.preTransform * glm::mat4_cast(joint.preRotation * joint.rotation)));
-    state.rotation = glm::angleAxis(_owningHead->getRoll(), glm::normalize(inverse * axes[2])) *
+    state.rotation = glm::angleAxis(-_owningHead->getRoll(), glm::normalize(inverse * axes[2])) *
         glm::angleAxis(_owningHead->getYaw(), glm::normalize(inverse * axes[1])) *
-        glm::angleAxis(_owningHead->getPitch(), glm::normalize(inverse * axes[0])) * joint.rotation;
+        glm::angleAxis(-_owningHead->getPitch(), glm::normalize(inverse * axes[0])) * joint.rotation;
 }
 
 void FaceModel::maybeUpdateEyeRotation(const JointState& parentState, const FBXJoint& joint, JointState& state) {
