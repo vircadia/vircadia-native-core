@@ -158,6 +158,8 @@ public:
     glm::quat getWorldAlignedOrientation() const;
     AvatarVoxelSystem* getVoxels() { return &_voxels; }
 
+    void getSkinColors(glm::vec3& lighter, glm::vec3& darker);
+
     // Get the position/rotation of a single body ball
     void getBodyBallTransform(AvatarJointID jointID, glm::vec3& position, glm::quat& rotation) const;
 

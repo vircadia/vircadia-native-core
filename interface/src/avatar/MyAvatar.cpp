@@ -617,13 +617,8 @@ void MyAvatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
         }
     } else if (renderAvatarBalls || !(_voxels.getVoxelURL().isValid() || _skeletonModel.isActive())) {
         //  Render the body as balls and cones
-        glm::vec3 skinColor(SKIN_COLOR[0], SKIN_COLOR[1], SKIN_COLOR[2]);
-        glm::vec3 darkSkinColor(DARK_SKIN_COLOR[0], DARK_SKIN_COLOR[1], DARK_SKIN_COLOR[2]);
-        if (_head.getFaceModel().isActive()) {
-            skinColor = glm::vec3(_head.getFaceModel().computeAverageColor());
-            const float SKIN_DARKENING = 0.9f;
-            darkSkinColor = skinColor * SKIN_DARKENING;
-        }
+        glm::vec3 skinColor, darkSkinColor;
+        getSkinColors(skinColor, darkSkinColor);
         for (int b = 0; b < NUM_AVATAR_BODY_BALLS; b++) {
             float alpha = getBallRenderAlpha(b, lookingInMirror);
             
