@@ -30,8 +30,7 @@ void FaceModel::simulate(float deltaTime) {
     setTranslation(neckPosition);
     glm::quat neckRotation;
     if (!owningAvatar->getSkeletonModel().getNeckRotation(neckRotation)) {
-        neckRotation = owningAvatar->getSkeleton().joint[AVATAR_JOINT_NECK_BASE].absoluteRotation *
-            glm::angleAxis(180.0f, 0.0f, 1.0f, 0.0f);
+        neckRotation = owningAvatar->getSkeleton().joint[AVATAR_JOINT_NECK_BASE].absoluteRotation;
     }
     setRotation(neckRotation);
     const float MODEL_SCALE = 0.0006f;
