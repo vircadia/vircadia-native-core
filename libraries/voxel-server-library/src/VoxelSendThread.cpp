@@ -201,7 +201,7 @@ void VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* no
                 nodeData->nodeBag.insert(_myServer->getServerTree().rootNode); // only in case of empty 
             }
         } else {
-            nodeData->nodeBag.insert(_myServer->getServerTree().rootNode); // only in case of empty 
+            nodeData->nodeBag.insert(_myServer->getServerTree().rootNode); // original behavior, reset on move or empty
         }
     }
 
