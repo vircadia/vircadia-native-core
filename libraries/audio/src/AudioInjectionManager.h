@@ -19,7 +19,6 @@ const int MAX_CONCURRENT_INJECTORS = 50;
 class AudioInjectionManager {
 public:
     static AudioInjector* injectorWithCapacity(int capacity);
-    static AudioInjector* injectorWithSamplesFromFile(const char* filename);
     
     static void threadInjector(AudioInjector* injector);
     

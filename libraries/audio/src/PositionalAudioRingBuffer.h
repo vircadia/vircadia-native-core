@@ -16,7 +16,12 @@
 
 class PositionalAudioRingBuffer : public AudioRingBuffer {
 public:
-    PositionalAudioRingBuffer();
+    enum Type {
+        Microphone,
+        Injector
+    };
+    
+    PositionalAudioRingBuffer(PositionalAudioRingBuffer::Type type);
     ~PositionalAudioRingBuffer();
     
     int parseData(unsigned char* sourceBuffer, int numBytes);
@@ -28,6 +33,7 @@ public:
     bool willBeAddedToMix() const { return _willBeAddedToMix; }
     void setWillBeAddedToMix(bool willBeAddedToMix) { _willBeAddedToMix = willBeAddedToMix; }
     
+    PositionalAudioRingBuffer::Type getType() const { return _type; }
     const glm::vec3& getPosition() const { return _position; }
     const glm::quat& getOrientation() const { return _orientation; }
     
@@ -36,6 +42,7 @@ protected:
     PositionalAudioRingBuffer(const PositionalAudioRingBuffer&);
     PositionalAudioRingBuffer& operator= (const PositionalAudioRingBuffer&);
     
+    PositionalAudioRingBuffer::Type _type;
     glm::vec3 _position;
     glm::quat _orientation;
     bool _willBeAddedToMix;

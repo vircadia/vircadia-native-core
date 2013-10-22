@@ -160,7 +160,7 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
     // if there is anything in the ring buffer, decide what to do:
     
     if (ringBuffer->getEndOfLastWrite()) {
-        if (!ringBuffer->isStarted() && ringBuffer->diffLastWriteNextOutput() <
+        if (ringBuffer->isStarved() && ringBuffer->diffLastWriteNextOutput() <
             (PACKET_LENGTH_SAMPLES + _jitterBufferSamples * (ringBuffer->isStereo() ? 2 : 1))) {
             //
             //  If not enough audio has arrived to start playback, keep waiting
@@ -172,12 +172,12 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
                      PACKET_LENGTH_SAMPLES,
                      _jitterBufferSamples);
 #endif
-        } else if (ringBuffer->isStarted() && ringBuffer->diffLastWriteNextOutput() == 0) {
+        } else if (!ringBuffer->isStarved() && ringBuffer->diffLastWriteNextOutput() == 0) {
             //
             //  If we have started and now have run out of audio to send to the audio device, 
             //  this means we've starved and should restart.  
             //  
-            ringBuffer->setStarted(false);
+            ringBuffer->setIsStarved(true);
             
             _numStarves++;
             _packetsReceivedThisPlayback = 0;
@@ -191,8 +191,9 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
             //
             //  We are either already playing back, or we have enough audio to start playing back.
             // 
-            if (!ringBuffer->isStarted()) {
-                ringBuffer->setStarted(true);
+            if (ringBuffer->isStarved()) {
+                ringBuffer->setIsStarved(false);
+                ringBuffer->setHasStarted(true);
 #ifdef SHOW_AUDIO_DEBUG
                 qDebug("starting playback %0.1f msecs delayed, jitter = %d, pkts recvd: %d \n",
                          (usecTimestampNow() - usecTimestamp(&_firstPacketReceivedTime))/1000.0,
@@ -459,7 +460,7 @@ void Audio::addReceivedAudioToBuffer(unsigned char* receivedData, int receivedBy
         }
     }
     
-    if (!_ringBuffer.isStarted()) {
+    if (_ringBuffer.isStarved()) {
         _packetsReceivedThisPlayback++;
     }
     
