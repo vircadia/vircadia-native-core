@@ -59,6 +59,9 @@ public:
     void setViewFrustum(ViewFrustum* viewFrustum) { _viewFrustum = viewFrustum; }
     unsigned long  getVoxelsUpdated() const { return _voxelsUpdated; }
     unsigned long  getVoxelsRendered() const { return _voxelsInReadArrays; }
+    unsigned long  getVoxelsWritten() const { return _voxelsInWriteArrays; }
+
+    ViewFrustum* getLastCulledViewFrustum() { return &_lastCulledViewFrustum; }
 
     void loadVoxelsFile(const char* fileName,bool wantColorRandomizer);
     void writeToSVOFile(const char* filename, VoxelNode* node) const;
@@ -123,6 +126,7 @@ public slots:
     void collectStatsForTreesAndVBOs();
     
     // Methods that recurse tree
+    void showAllLocalVoxels();
     void randomizeVoxelColors();
     void falseColorizeRandom();
     void trueColorize();
@@ -192,6 +196,7 @@ private:
     static bool hideOutOfViewUnrollOperation(VoxelNode* node, void* extraData);
     static bool hideAllSubTreeOperation(VoxelNode* node, void* extraData);
     static bool showAllSubTreeOperation(VoxelNode* node, void* extraData);
+    static bool showAllLocalVoxelsOperation(VoxelNode* node, void* extraData);
 
     int updateNodeInArrays(VoxelNode* node, bool reuseIndex, bool forceDraw);
     int forceRemoveNodeFromArrays(VoxelNode* node);
@@ -252,9 +257,12 @@ private:
     pthread_mutex_t _bufferWriteLock;
     pthread_mutex_t _treeLock;
 
-    ViewFrustum _lastKnowViewFrustum;
+    ViewFrustum _lastKnownViewFrustum;
     ViewFrustum _lastStableViewFrustum;
     ViewFrustum* _viewFrustum;
+
+    ViewFrustum _lastCulledViewFrustum; // used for hide/show visible passes
+    bool _culledOnce;
 
     void setupFaceIndices(GLuint& faceVBOID, GLubyte faceIdentityIndices[]);
 
