@@ -317,6 +317,7 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter) {
         }
     }
     
+    _skeletonModel.simulate(deltaTime);
     _head.setBodyRotation(glm::vec3(_bodyPitch, _bodyYaw, _bodyRoll));
     glm::vec3 headPosition;
     if (!_skeletonModel.getHeadPosition(headPosition)) {
@@ -326,7 +327,6 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter) {
     _head.setScale(_scale);
     _head.setSkinColor(glm::vec3(SKIN_COLOR[0], SKIN_COLOR[1], SKIN_COLOR[2]));
     _head.simulate(deltaTime, true);
-    _skeletonModel.simulate(deltaTime);
     _hand.simulate(deltaTime, true);
 
     const float WALKING_SPEED_THRESHOLD = 0.2f;

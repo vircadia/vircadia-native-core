@@ -412,6 +412,7 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
         }
     }
     
+    _skeletonModel.simulate(deltaTime);
     _head.setBodyRotation(glm::vec3(_bodyPitch, _bodyYaw, _bodyRoll));
     glm::vec3 headPosition;
     if (!_skeletonModel.getHeadPosition(headPosition)) {
@@ -420,7 +421,6 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     _head.setPosition(headPosition);
     _head.setSkinColor(glm::vec3(SKIN_COLOR[0], SKIN_COLOR[1], SKIN_COLOR[2]));
     _head.simulate(deltaTime, false);
-    _skeletonModel.simulate(deltaTime);
     _hand.simulate(deltaTime, false);
 
     // use speed and angular velocity to determine walking vs. standing

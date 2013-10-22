@@ -43,10 +43,13 @@ class FBXJoint {
 public:
 
     int parentIndex;
-    glm::mat4 preRotation;
+    glm::mat4 preTransform;
+    glm::quat preRotation;
     glm::quat rotation;
-    glm::mat4 postRotation;
+    glm::quat postRotation;
+    glm::mat4 postTransform;
     glm::mat4 transform;
+    glm::quat inverseBindRotation;
 };
 
 /// A single binding to a joint in an FBX document.

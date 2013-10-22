@@ -55,6 +55,10 @@ glm::vec3 safeEulerAngles(const glm::quat& q);
 
 glm::quat safeMix(const glm::quat& q1, const glm::quat& q2, float alpha);
 
+glm::vec3 extractTranslation(const glm::mat4& matrix);
+
+glm::quat extractRotation(const glm::mat4& matrix, bool assumeOrthogonal = false);
+
 double diffclock(timeval *clock1,timeval *clock2);
 
 void renderGroundPlaneGrid(float size, float impact);

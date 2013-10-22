@@ -86,6 +86,7 @@ protected:
     public:
         glm::quat rotation;
         glm::mat4 transform;
+        glm::quat combinedRotation;
     };
     
     QVector<JointState> _jointStates;

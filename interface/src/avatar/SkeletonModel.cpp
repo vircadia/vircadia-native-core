@@ -62,23 +62,28 @@ void SkeletonModel::updateJointState(int index) {
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     const FBXJoint& joint = geometry.joints.at(index);
     
+    glm::quat combinedRotation = joint.preRotation * state.rotation * joint.postRotation;
     if (joint.parentIndex == -1) {
         glm::mat4 baseTransform = glm::translate(_translation) * glm::mat4_cast(_rotation) *
             glm::scale(_scale) * glm::translate(_offset);
-        state.transform = baseTransform * geometry.offset * joint.preRotation *
-            glm::mat4_cast(state.rotation) * joint.postRotation;
+        
+        state.transform = baseTransform * geometry.offset * joint.preTransform *
+            glm::mat4_cast(combinedRotation) * joint.postTransform;
+        state.combinedRotation = _rotation * combinedRotation;
     
     } else {
         if (index == geometry.leanJointIndex) {
             // get the rotation axes in joint space and use them to adjust the rotation
             glm::mat3 axes = glm::mat3_cast(_rotation);
             glm::mat3 inverse = glm::inverse(glm::mat3(_jointStates[joint.parentIndex].transform *
-                joint.preRotation * glm::mat4_cast(joint.rotation)));
+                joint.preTransform * glm::mat4_cast(joint.preRotation * joint.rotation)));
             state.rotation = glm::angleAxis(_owningAvatar->getHead().getLeanSideways(), glm::normalize(inverse * axes[2])) *
                 glm::angleAxis(_owningAvatar->getHead().getLeanForward(), glm::normalize(inverse * axes[0])) * joint.rotation;
         }
-        state.transform = _jointStates[joint.parentIndex].transform * joint.preRotation *
-            glm::mat4_cast(state.rotation) * joint.postRotation;
+        const JointState& parentState = _jointStates.at(joint.parentIndex);
+        state.transform = parentState.transform * joint.preTransform *
+            glm::mat4_cast(combinedRotation) * joint.postTransform;
+        state.combinedRotation = parentState.combinedRotation * combinedRotation;
     }
     
     if (index == geometry.rootJointIndex) {

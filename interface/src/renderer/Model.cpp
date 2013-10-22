@@ -387,15 +387,20 @@ void Model::updateJointState(int index) {
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     const FBXJoint& joint = geometry.joints.at(index);
     
+    glm::quat combinedRotation = joint.preRotation * state.rotation * joint.postRotation;
     if (joint.parentIndex == -1) {
         glm::mat4 baseTransform = glm::translate(_translation) * glm::mat4_cast(_rotation) *
             glm::scale(_scale) * glm::translate(_offset);
-        state.transform = baseTransform * geometry.offset * joint.preRotation *
-            glm::mat4_cast(state.rotation) * joint.postRotation;
+        
+        state.transform = baseTransform * geometry.offset * joint.preTransform *
+            glm::mat4_cast(combinedRotation) * joint.postTransform;
+        state.combinedRotation = _rotation * combinedRotation;
     
     } else {
-        state.transform = _jointStates[joint.parentIndex].transform * joint.preRotation *
-            glm::mat4_cast(state.rotation) * joint.postRotation;
+        const JointState& parentState = _jointStates.at(joint.parentIndex);
+        state.transform = parentState.transform * joint.preTransform *
+            glm::mat4_cast(combinedRotation) * joint.postTransform;
+        state.combinedRotation = parentState.combinedRotation * combinedRotation;
     }
 }
 
@@ -403,8 +408,7 @@ bool Model::getJointPosition(int jointIndex, glm::vec3& position) const {
     if (jointIndex == -1 || _jointStates.isEmpty()) {
         return false;
     }
-    const glm::mat4& transform = _jointStates[jointIndex].transform;
-    position = glm::vec3(transform[3][0], transform[3][1], transform[3][2]);
+    position = extractTranslation(_jointStates[jointIndex].transform);
     return true;
 }
 
@@ -412,8 +416,8 @@ bool Model::getJointRotation(int jointIndex, glm::quat& rotation) const {
     if (jointIndex == -1 || _jointStates.isEmpty()) {
         return false;
     }
-    const glm::mat4& transform = _jointStates[jointIndex].transform;
-    rotation = glm::normalize(glm::quat_cast(transform));
+    rotation = _jointStates[jointIndex].combinedRotation *
+        _geometry->getFBXGeometry().joints[jointIndex].inverseBindRotation;
     return true;
 }
 

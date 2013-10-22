@@ -17,6 +17,7 @@
 #include <glm/gtx/transform.hpp>
 
 #include "FBXReader.h"
+#include "Util.h"
 
 using namespace std;
 
@@ -453,9 +454,11 @@ public:
     
     int parentIndex;
     
-    glm::mat4 preRotation;
+    glm::mat4 preTransform;
+    glm::quat preRotation;
     glm::quat rotation;
-    glm::mat4 postRotation;
+    glm::quat postRotation;
+    glm::mat4 postTransform;
 };
 
 glm::mat4 getGlobalTransform(const QMultiHash<QString, QString>& parentMap,
@@ -463,7 +466,8 @@ glm::mat4 getGlobalTransform(const QMultiHash<QString, QString>& parentMap,
     glm::mat4 globalTransform;
     while (!nodeID.isNull()) {
         const FBXModel& model = models.value(nodeID);
-        globalTransform = model.preRotation * glm::mat4_cast(model.rotation) * model.postRotation * globalTransform;
+        globalTransform = model.preTransform * glm::mat4_cast(model.preRotation * model.rotation * model.postRotation) *
+            model.postTransform * globalTransform;
         
         QList<QString> parentIDs = parentMap.values(nodeID);
         nodeID = QString();
@@ -798,11 +802,12 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                         }
                     }
                     // see FBX documentation, http://download.autodesk.com/us/fbx/20112/FBX_SDK_HELP/index.html
-                    model.preRotation = glm::translate(translation) * glm::translate(rotationOffset) *
-                        glm::translate(rotationPivot) * glm::mat4_cast(glm::quat(glm::radians(preRotation)));                   
+                    model.preTransform = glm::translate(translation) * glm::translate(rotationOffset) *
+                        glm::translate(rotationPivot);      
+                    model.preRotation = glm::quat(glm::radians(preRotation));            
                     model.rotation = glm::quat(glm::radians(rotation));
-                    model.postRotation = glm::mat4_cast(glm::quat(glm::radians(postRotation))) *
-                        glm::translate(-rotationPivot) * glm::translate(scalePivot) *
+                    model.postRotation = glm::quat(glm::radians(postRotation));
+                    model.postTransform = glm::translate(-rotationPivot) * glm::translate(scalePivot) *
                         glm::scale(scale) * glm::translate(-scalePivot);
                     models.insert(object.properties.at(0).toString(), model);
 
@@ -921,10 +926,10 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     // get offset transform from mapping
     FBXGeometry geometry;
     float offsetScale = mapping.value("scale", 1.0f).toFloat();
+    glm::quat offsetRotation = glm::quat(glm::radians(glm::vec3(mapping.value("rx").toFloat(),
+            mapping.value("ry").toFloat(), mapping.value("rz").toFloat())));
     geometry.offset = glm::translate(mapping.value("tx").toFloat(), mapping.value("ty").toFloat(),
-        mapping.value("tz").toFloat()) * glm::mat4_cast(glm::quat(glm::radians(glm::vec3(mapping.value("rx").toFloat(),
-            mapping.value("ry").toFloat(), mapping.value("rz").toFloat())))) *
-        glm::scale(offsetScale, offsetScale, offsetScale);
+        mapping.value("tz").toFloat()) * glm::mat4_cast(offsetRotation) * glm::scale(offsetScale, offsetScale, offsetScale);
     
     // get the list of models in depth-first traversal order
     QVector<QString> modelIDs;
@@ -950,15 +955,21 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         const FBXModel& model = models[modelID];
         FBXJoint joint;
         joint.parentIndex = model.parentIndex;
+        joint.preTransform = model.preTransform;
         joint.preRotation = model.preRotation;
         joint.rotation = model.rotation;
         joint.postRotation = model.postRotation;
-        if (joint.parentIndex == -1) {
-            joint.transform = geometry.offset * model.preRotation * glm::mat4_cast(model.rotation) * model.postRotation;
+        joint.postTransform = model.postTransform;
+        glm::quat combinedRotation = model.preRotation * model.rotation * model.postRotation;
+        if (joint.parentIndex == -1) {    
+            joint.transform = geometry.offset * model.preTransform * glm::mat4_cast(combinedRotation) * model.postTransform;
+            joint.inverseBindRotation = glm::inverse(offsetRotation * combinedRotation);
             
         } else {
-            joint.transform = geometry.joints.at(joint.parentIndex).transform *
-                model.preRotation * glm::mat4_cast(model.rotation) * model.postRotation;
+            const FBXJoint& parentJoint = geometry.joints.at(joint.parentIndex);
+            joint.transform = parentJoint.transform *
+                model.preTransform * glm::mat4_cast(combinedRotation) * model.postTransform;
+            joint.inverseBindRotation = glm::inverse(combinedRotation) * parentJoint.inverseBindRotation;
         }
         geometry.joints.append(joint);
         geometry.jointIndices.insert(model.name, geometry.joints.size() - 1);  
