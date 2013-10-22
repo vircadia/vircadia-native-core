@@ -25,8 +25,8 @@ public:
     
 protected:
 
-    /// Updates the state of the joint at the specified index.
-    virtual void updateJointState(int index);   
+    virtual void maybeUpdateNeckRotation(const JointState& parentState, const FBXJoint& joint, JointState& state);
+    virtual void maybeUpdateEyeRotation(const JointState& parentState, const FBXJoint& joint, JointState& state);
     
 private:
     

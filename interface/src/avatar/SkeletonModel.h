@@ -29,6 +29,8 @@ protected:
     /// Updates the state of the joint at the specified index.
     virtual void updateJointState(int index);   
     
+    virtual void maybeUpdateLeanRotation(const JointState& parentState, const FBXJoint& joint, JointState& state);
+    
 private:
     
     Avatar* _owningAvatar;

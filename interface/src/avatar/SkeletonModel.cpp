@@ -58,38 +58,21 @@ bool SkeletonModel::render(float alpha) {
 }
 
 void SkeletonModel::updateJointState(int index) {
-    JointState& state = _jointStates[index];
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    const FBXJoint& joint = geometry.joints.at(index);
+    Model::updateJointState(index);
     
-    glm::quat combinedRotation = joint.preRotation * state.rotation * joint.postRotation;
-    if (joint.parentIndex == -1) {
-        glm::mat4 baseTransform = glm::translate(_translation) * glm::mat4_cast(_rotation) *
-            glm::scale(_scale) * glm::translate(_offset);
-        
-        state.transform = baseTransform * geometry.offset * joint.preTransform *
-            glm::mat4_cast(combinedRotation) * joint.postTransform;
-        state.combinedRotation = _rotation * combinedRotation;
-    
-    } else {
-        const JointState& parentState = _jointStates.at(joint.parentIndex);
-        if (index == geometry.leanJointIndex) {
-            // get the rotation axes in joint space and use them to adjust the rotation
-            state.combinedRotation = _rotation * glm::quat(glm::radians(glm::vec3(_owningAvatar->getHead().getLeanForward(),
-                0.0f, _owningAvatar->getHead().getLeanSideways()))) * glm::inverse(_rotation) * parentState.combinedRotation *
-                    joint.preRotation * joint.rotation;
-            state.rotation = glm::inverse(joint.postRotation * glm::inverse(state.combinedRotation) *
-                parentState.combinedRotation * joint.preRotation);
-            combinedRotation = joint.preRotation * state.rotation * joint.postRotation;
-        }
-        state.transform = parentState.transform * joint.preTransform *
-            glm::mat4_cast(combinedRotation) * joint.postTransform;
-        state.combinedRotation = parentState.combinedRotation * combinedRotation;
-    }
-    
-    if (index == geometry.rootJointIndex) {
+    if (index == _geometry->getFBXGeometry().rootJointIndex) {
+        JointState& state = _jointStates[index];
         state.transform[3][0] = _translation.x;
         state.transform[3][1] = _translation.y;
         state.transform[3][2] = _translation.z;
     }
 }
+
+void SkeletonModel::maybeUpdateLeanRotation(const JointState& parentState, const FBXJoint& joint, JointState& state) {
+    // get the rotation axes in joint space and use them to adjust the rotation
+    glm::mat3 axes = glm::mat3_cast(_rotation);
+    glm::quat inverse = parentState.combinedRotation * joint.preRotation * joint.rotation;
+    state.rotation = glm::angleAxis(-_owningAvatar->getHead().getLeanSideways(), glm::normalize(inverse * axes[2])) *
+        glm::angleAxis(-_owningAvatar->getHead().getLeanForward(), glm::normalize(inverse * axes[0])) * joint.rotation;
+}
+

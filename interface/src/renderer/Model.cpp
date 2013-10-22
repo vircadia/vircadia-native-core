@@ -387,21 +387,43 @@ void Model::updateJointState(int index) {
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     const FBXJoint& joint = geometry.joints.at(index);
     
-    glm::quat combinedRotation = joint.preRotation * state.rotation * joint.postRotation;
     if (joint.parentIndex == -1) {
         glm::mat4 baseTransform = glm::translate(_translation) * glm::mat4_cast(_rotation) *
             glm::scale(_scale) * glm::translate(_offset);
-        
+    
+        glm::quat combinedRotation = joint.preRotation * state.rotation * joint.postRotation;    
         state.transform = baseTransform * geometry.offset * joint.preTransform *
             glm::mat4_cast(combinedRotation) * joint.postTransform;
         state.combinedRotation = _rotation * combinedRotation;
     
     } else {
         const JointState& parentState = _jointStates.at(joint.parentIndex);
+        if (index == geometry.leanJointIndex) {
+            maybeUpdateLeanRotation(parentState, joint, state);
+        
+        } else if (index == geometry.neckJointIndex) {
+            maybeUpdateNeckRotation(parentState, joint, state);    
+                
+        } else if (index == geometry.leftEyeJointIndex || index == geometry.rightEyeJointIndex) {
+            maybeUpdateEyeRotation(parentState, joint, state);
+        }
+        glm::quat combinedRotation = joint.preRotation * state.rotation * joint.postRotation;    
         state.transform = parentState.transform * joint.preTransform *
             glm::mat4_cast(combinedRotation) * joint.postTransform;
         state.combinedRotation = parentState.combinedRotation * combinedRotation;
     }
+}
+
+void Model::maybeUpdateLeanRotation(const JointState& parentState, const FBXJoint& joint, JointState& state) {
+    // nothing by default
+}
+
+void Model::maybeUpdateNeckRotation(const JointState& parentState, const FBXJoint& joint, JointState& state) {
+    // nothing by default
+}
+
+void Model::maybeUpdateEyeRotation(const JointState& parentState, const FBXJoint& joint, JointState& state) {
+    // nothing by default
 }
 
 bool Model::getJointPosition(int jointIndex, glm::vec3& position) const {
