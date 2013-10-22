@@ -69,6 +69,11 @@
 #include "ui/TextRenderer.h"
 #include "InfoView.h"
 
+#include <QSvgRenderer>
+#include <QPainter>
+#include <QGLWidget>
+#include <SharedUtil.h>
+
 using namespace std;
 
 //  Starfield information
@@ -85,11 +90,12 @@ const int STARTUP_JITTER_SAMPLES = PACKET_LENGTH_SAMPLES_PER_CHANNEL / 2;
                                                  //  Startup optimistically with small jitter buffer that 
                                                  //  will start playback on the second received audio packet.
 
-
 const int MIRROR_VIEW_TOP_PADDING = 5;
 const int MIRROR_VIEW_LEFT_PADDING = 10;
 const int MIRROR_VIEW_WIDTH = 265;
 const int MIRROR_VIEW_HEIGHT = 215;
+const int MIRROR_ICON_SIZE = 16;
+const int MIRROR_CLOSE_ICON_PADDING = 5;
 
 void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString &message) {
     fprintf(stdout, "%s", message.toLocal8Bit().constData());
@@ -258,12 +264,12 @@ void Application::restoreSizeAndPosition() {
     
     settings->beginGroup("Window");
     
-    float x = loadSetting(settings, "x", 0);
-    float y = loadSetting(settings, "y", 0);
+    int x = (int) loadSetting(settings, "x", 0);
+    int y = (int) loadSetting(settings, "y", 0);
     _window->move(x, y);
     
-    int width = loadSetting(settings, "width", available.width());
-    int height = loadSetting(settings, "height", available.height());
+    int width = (int) loadSetting(settings, "width", available.width());
+    int height = (int) loadSetting(settings, "height", available.height());
     _window->resize(width, height);
     
     settings->endGroup();
@@ -427,7 +433,6 @@ void Application::paintGL() {
         _glowEffect.render();
         
         if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-            
             glm::vec3 targetPosition = _myAvatar.getEyeLevelPosition();
             if (_myAvatar.getHead().getBlendFace().isActive()) {
                 // make sure we're aligned to the blend face eyes
@@ -441,21 +446,30 @@ void Application::paintGL() {
             _mirrorCamera.setTargetRotation(_myAvatar.getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PIf, 0.0f)));
             _mirrorCamera.update(1.0f/_fps);
             
-            glViewport(MIRROR_VIEW_LEFT_PADDING, _glWidget->height() - MIRROR_VIEW_HEIGHT - MIRROR_VIEW_TOP_PADDING, MIRROR_VIEW_WIDTH, MIRROR_VIEW_HEIGHT);
-            glScissor(MIRROR_VIEW_LEFT_PADDING, _glWidget->height() - MIRROR_VIEW_HEIGHT - MIRROR_VIEW_TOP_PADDING, MIRROR_VIEW_WIDTH, MIRROR_VIEW_HEIGHT);
-
+            // set the bounds of rear mirror view
+            glViewport(_mirrorViewRect.x(), _glWidget->height() - _mirrorViewRect.y() - _mirrorViewRect.height(), _mirrorViewRect.width(), _mirrorViewRect.height());
+            glScissor(_mirrorViewRect.x(), _glWidget->height() - _mirrorViewRect.y() - _mirrorViewRect.height(), _mirrorViewRect.width(), _mirrorViewRect.height());
             updateProjectionMatrix(_mirrorCamera);
-            
             glEnable(GL_SCISSOR_TEST);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            
+            // render rear mirror view
             glPushMatrix();
             displaySide(_mirrorCamera);
             glPopMatrix();
             
-            // reset Viewport
+            // render rear view tools if mouse is in the bounds
+            QPoint mousePosition = _glWidget->mapFromGlobal(QCursor::pos());
+            
+            qDebug("mouse pos: x = %d, y = %d\n", mousePosition.x(), mousePosition.y());
+            
+            if (_mirrorViewRect.contains(mousePosition.x(), mousePosition.y())) {
+                displayRearMirrorTools();
+            }
+            
+            // reset Viewport and projection matrix
             glViewport(0, 0, _glWidget->width(), _glWidget->height());
             glDisable(GL_SCISSOR_TEST);
-            
             updateProjectionMatrix();
         }
         
@@ -481,6 +495,8 @@ void Application::resetCamerasOnResizeGL(Camera& camera, int width, int height) 
 void Application::resizeGL(int width, int height) {
     resetCamerasOnResizeGL(_viewFrustumOffsetCamera, width, height);
     resetCamerasOnResizeGL(_myCamera, width, height);
+    
+    _mirrorViewRect = QRect(MIRROR_VIEW_LEFT_PADDING, MIRROR_VIEW_TOP_PADDING, MIRROR_VIEW_WIDTH, MIRROR_VIEW_HEIGHT);
 
     glViewport(0, 0, width, height); // shouldn't this account for the menu???
 
@@ -1024,7 +1040,7 @@ void Application::mouseMoveEvent(QMouseEvent* event) {
     if (activeWindow() == _window) {
         _mouseX = event->x();
         _mouseY = event->y();
-        
+
         // detect drag
         glm::vec3 mouseVoxelPos(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z);
         if (!_justEditedVoxel && mouseVoxelPos != _lastMouseVoxelPos) {
@@ -1060,6 +1076,15 @@ void Application::mousePressEvent(QMouseEvent* event) {
             if (_audio.mousePressEvent(_mouseX, _mouseY)) {
                 // stop propagation
                 return;
+            }
+            
+            if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
+                
+                QRect closeIconRect = QRect(MIRROR_CLOSE_ICON_PADDING + _mirrorViewRect.left(), MIRROR_CLOSE_ICON_PADDING + _mirrorViewRect.top(), MIRROR_ICON_SIZE, MIRROR_ICON_SIZE);
+                
+                if (closeIconRect.contains(_mouseX, _mouseY)) {
+                    Menu::getInstance()->triggerOption(MenuOption::Mirror);
+                }
             }
             
             if (!_palette.isActive() && (!_isHoverVoxel || _lookatTargetAvatar)) {
@@ -1636,11 +1661,14 @@ void Application::init() {
     _myAvatar.setPosition(START_LOCATION);
     _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
     _myCamera.setModeShiftRate(1.0f);
-    _myAvatar.setDisplayingLookatVectors(false);  
+    _myAvatar.setDisplayingLookatVectors(false);
+    
     _mirrorCamera.setMode(CAMERA_MODE_MIRROR);
-    _mirrorCamera.setModeShiftRate(1.0f);
     _mirrorCamera.setAspectRatio((float)MIRROR_VIEW_WIDTH / (float)MIRROR_VIEW_HEIGHT);
-    _mirrorCamera.setFieldOfView(DEFAULT_FIELD_OF_VIEW_DEGREES);
+    _mirrorViewRect = QRect(MIRROR_VIEW_LEFT_PADDING, MIRROR_VIEW_TOP_PADDING, MIRROR_VIEW_WIDTH, MIRROR_VIEW_HEIGHT);
+    
+    switchToResourcesParentIfRequired();
+    _closeTextureId = _glWidget->bindTexture(QImage("./resources/images/close.png"));
     
     OculusManager::connect();
     if (OculusManager::isConnected()) {
@@ -2472,15 +2500,6 @@ void Application::computeOffAxisFrustum(float& left, float& right, float& bottom
     float& far, glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const {
     
     _viewFrustum.computeOffAxisFrustum(left, right, bottom, top, near, far, nearClipPlane, farClipPlane);
-    
-    /*
-    // when mirrored, we must flip left and right
-    if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-        float tmp = left;
-        left = -right;
-        right = -tmp;
-    }
-     */
 }
 
 void Application::displaySide(Camera& whichCamera) {
@@ -2730,7 +2749,7 @@ void Application::displaySide(Camera& whichCamera) {
     }
     
     // brad's frustum for debugging
-    if (Menu::getInstance()->isOptionChecked(MenuOption::DisplayFrustum)) {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::DisplayFrustum) && whichCamera.getMode() != CAMERA_MODE_MIRROR) {
         PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
             "Application::displaySide() ... renderViewFrustum...");
         renderViewFrustum(_viewFrustum);
@@ -2962,7 +2981,7 @@ void Application::displayOverlay() {
     if (_pieMenu.isDisplayed()) {
         _pieMenu.render();
     }
-
+    
     glPopMatrix();
 }
 
@@ -3780,4 +3799,43 @@ void* Application::networkReceive(void* args) {
 
 void Application::packetSentNotification(ssize_t length) {
     _bandwidthMeter.outputStream(BandwidthMeter::VOXELS).updateValue(length); 
+}
+
+void Application::displayRearMirrorTools() {
+    
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    gluOrtho2D(_mirrorViewRect.left(), _mirrorViewRect.right(), _mirrorViewRect.bottom(), _mirrorViewRect.top());
+    glDisable(GL_DEPTH_TEST);
+    glDisable(GL_LIGHTING);
+
+    glEnable(GL_TEXTURE_2D);
+    glBindTexture(GL_TEXTURE_2D, _closeTextureId);
+    
+    glColor3f(1, 1, 1);
+    glBegin(GL_QUADS);
+    
+    int lp = MIRROR_CLOSE_ICON_PADDING + _mirrorViewRect.left();
+    int tp = MIRROR_CLOSE_ICON_PADDING + _mirrorViewRect.top();
+    int lwp =  MIRROR_ICON_SIZE + lp;
+    int twp =  MIRROR_ICON_SIZE + tp;
+    
+    glTexCoord2f(1, 1);
+    glVertex2f(lp, tp);
+    
+    glTexCoord2f(0, 1);
+    glVertex2f(lwp, tp);
+    
+    glTexCoord2f(0, 0);
+    glVertex2f(lwp, twp);
+    
+    glTexCoord2f(1, 0);
+    glVertex2f(lp, twp);
+    
+    glEnd();
+    
+    glPopMatrix();
+    
+    glDisable(GL_TEXTURE_2D);
 }

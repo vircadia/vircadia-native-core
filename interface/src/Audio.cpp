@@ -839,9 +839,9 @@ bool Audio::eventuallyAnalyzePing() {
     return true;
 }
 
-void Audio::renderToolIcon(int screenHeigh) {
+void Audio::renderToolIcon(int screenHeight) {
     
-    _iconBounds = QRect(ICON_LEFT, screenHeigh - BOTTOM_PADDING, ICON_SIZE, ICON_SIZE);
+    _iconBounds = QRect(ICON_LEFT, screenHeight - BOTTOM_PADDING, ICON_SIZE, ICON_SIZE);
     glEnable(GL_TEXTURE_2D);
     
     glBindTexture(GL_TEXTURE_2D, _micTextureId);
