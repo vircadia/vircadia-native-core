@@ -58,6 +58,14 @@ public:
     /// \return whether or not the head was found
     bool getHeadPosition(glm::vec3& headPosition) const;
     
+    /// Returns the position of the neck joint.
+    /// \return whether or not the neck was found
+    bool getNeckPosition(glm::vec3& neckPosition) const;
+    
+    /// Returns the rotation of the neck joint.
+    /// \return whether or not the neck was found
+    bool getNeckRotation(glm::quat& neckRotation) const;
+    
     /// Retrieve the positions of up to two eye meshes.
     /// \return whether or not both eye meshes were found
     bool getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const;
@@ -88,6 +96,7 @@ protected:
 private:
     
     bool getJointPosition(int jointIndex, glm::vec3& position) const;
+    bool getJointRotation(int jointIndex, glm::quat& rotation) const;
     
     void deleteGeometry();
     

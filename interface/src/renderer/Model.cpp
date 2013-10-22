@@ -85,10 +85,6 @@ void Model::simulate(float deltaTime) {
         _resetStates = true;
     }
     
-    // create our root transform
-    glm::mat4 baseTransform = glm::translate(_translation) * glm::mat4_cast(_rotation) *
-        glm::scale(_scale) * glm::translate(_offset);
-    
     // update the world space transforms for all joints
     for (int i = 0; i < _jointStates.size(); i++) {
         updateJointState(i);
@@ -351,6 +347,14 @@ bool Model::getHeadPosition(glm::vec3& headPosition) const {
     return isActive() && getJointPosition(_geometry->getFBXGeometry().headJointIndex, headPosition);
 }
 
+bool Model::getNeckPosition(glm::vec3& neckPosition) const {
+    return isActive() && getJointPosition(_geometry->getFBXGeometry().neckJointIndex, neckPosition);
+}
+
+bool Model::getNeckRotation(glm::quat& neckRotation) const {
+    return isActive() && getJointRotation(_geometry->getFBXGeometry().neckJointIndex, neckRotation);
+}
+
 bool Model::getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const {
     if (!isActive()) {
         return false;
@@ -401,6 +405,15 @@ bool Model::getJointPosition(int jointIndex, glm::vec3& position) const {
     }
     const glm::mat4& transform = _jointStates[jointIndex].transform;
     position = glm::vec3(transform[3][0], transform[3][1], transform[3][2]);
+    return true;
+}
+
+bool Model::getJointRotation(int jointIndex, glm::quat& rotation) const {
+    if (jointIndex == -1 || _jointStates.isEmpty()) {
+        return false;
+    }
+    const glm::mat4& transform = _jointStates[jointIndex].transform;
+    rotation = glm::normalize(glm::quat_cast(transform));
     return true;
 }
 
