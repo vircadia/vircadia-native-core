@@ -322,7 +322,21 @@ void DomainServer::prepopulateStaticAssignmentFile() {
             
             qDebug("config[%d]=%s\n", i, config.toLocal8Bit().constData());
             
-            Assignment voxelServerAssignment(Assignment::CreateCommand, Assignment::VoxelServerType);
+            // Now, parse the config to check for a pool
+            const char ASSIGNMENT_CONFIG_POOL_OPTION[] = "--pool";
+            QString assignmentPool;
+            
+            int poolIndex = config.indexOf(ASSIGNMENT_CONFIG_POOL_OPTION);
+            
+            if (poolIndex >= 0) {
+                int spaceBeforePoolIndex = config.indexOf(' ', poolIndex);
+                int spaceAfterPoolIndex = config.indexOf(' ', spaceBeforePoolIndex);
+                
+                assignmentPool = config.mid(spaceBeforePoolIndex + 1, spaceAfterPoolIndex);
+                qDebug() << "The pool for this voxel-assignment is" << assignmentPool << "\n";
+            }
+            
+            Assignment voxelServerAssignment(Assignment::CreateCommand, Assignment::VoxelServerType, assignmentPool);
             
             int payloadLength = config.length() + sizeof(char);
             voxelServerAssignment.setPayload((uchar*)config.toLocal8Bit().constData(), payloadLength);
