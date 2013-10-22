@@ -71,7 +71,8 @@ void SkeletonModel::updateJointState(int index) {
 void SkeletonModel::maybeUpdateLeanRotation(const JointState& parentState, const FBXJoint& joint, JointState& state) {
     // get the rotation axes in joint space and use them to adjust the rotation
     glm::mat3 axes = glm::mat3_cast(_rotation);
-    glm::quat inverse = parentState.combinedRotation * joint.preRotation * joint.rotation;
+    glm::mat3 inverse = glm::mat3(glm::inverse(parentState.transform *
+        joint.preTransform * glm::mat4_cast(joint.preRotation * joint.rotation)));
     state.rotation = glm::angleAxis(-_owningAvatar->getHead().getLeanSideways(), glm::normalize(inverse * axes[2])) *
         glm::angleAxis(-_owningAvatar->getHead().getLeanForward(), glm::normalize(inverse * axes[0])) * joint.rotation;
 }
