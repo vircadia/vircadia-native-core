@@ -35,6 +35,7 @@ pid_t* childForks = NULL;
 sockaddr_in customAssignmentSocket = {};
 int numForks = 0;
 Assignment::Type overiddenAssignmentType = Assignment::AllTypes;
+QString assignmentPool = QString();
 
 int argc = 0;
 char** argv = NULL;
@@ -64,7 +65,7 @@ void childClient() {
     sockaddr_in senderSocket = {};
     
     // create a request assignment, accept assignments defined by the overidden type
-    Assignment requestAssignment(Assignment::RequestCommand, ::overiddenAssignmentType);
+    Assignment requestAssignment(Assignment::RequestCommand, ::overiddenAssignmentType, ::assignmentPool);
     
     qDebug() << "Waiting for assignment -" << requestAssignment << "\n";
     
@@ -219,6 +220,10 @@ int main(int argc, char* argv[]) {
         // so set that as the ::overridenAssignmentType to be used in requests
         ::overiddenAssignmentType = (Assignment::Type) atoi(assignmentTypeString);
     }
+    
+    const char ASSIGNMENT_POOL_OPTION[] = "--pool";
+    const char* assignmentPoolString = getCmdOption(argc, (const char**) argv, ASSIGNMENT_POOL_OPTION);
+    ::assignmentPool = QString(assignmentPoolString);
 
     const char* NUM_FORKS_PARAMETER = "-n";
     const char* numForksString = getCmdOption(argc, (const char**)argv, NUM_FORKS_PARAMETER);

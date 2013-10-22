@@ -36,6 +36,7 @@ Assignment::Assignment() :
     _uuid(),
     _command(Assignment::RequestCommand),
     _type(Assignment::AllTypes),
+    _pool(),
     _location(Assignment::LocalLocation),
     _numberOfInstances(1),
     _payload(),
@@ -44,9 +45,10 @@ Assignment::Assignment() :
     
 }
 
-Assignment::Assignment(Assignment::Command command, Assignment::Type type, Assignment::Location location) :
+Assignment::Assignment(Assignment::Command command, Assignment::Type type, const QString& pool, Assignment::Location location) :
     _command(command),
     _type(type),
+    _pool(pool),
     _location(location),
     _numberOfInstances(1),
     _payload(),
@@ -65,6 +67,7 @@ Assignment::Assignment(const Assignment& otherAssignment) {
     _command = otherAssignment._command;
     _type = otherAssignment._type;
     _location = otherAssignment._location;
+    _pool = otherAssignment._pool;
     _numberOfInstances = otherAssignment._numberOfInstances;
     
     setPayload(otherAssignment._payload, otherAssignment._numPayloadBytes);
@@ -83,6 +86,7 @@ void Assignment::swap(Assignment& otherAssignment) {
     swap(_command, otherAssignment._command);
     swap(_type, otherAssignment._type);
     swap(_location, otherAssignment._location);
+    swap(_pool, otherAssignment._pool);
     swap(_numberOfInstances, otherAssignment._numberOfInstances);
     
     for (int i = 0; i < MAX_PAYLOAD_BYTES; i++) {
@@ -117,6 +121,14 @@ Assignment::Assignment(const unsigned char* dataBuffer, int numBytes) :
         // read the GUID for this assignment
         _uuid = QUuid::fromRfc4122(QByteArray((const char*) dataBuffer + numBytesRead, NUM_BYTES_RFC4122_UUID));
         numBytesRead += NUM_BYTES_RFC4122_UUID;
+    }
+    
+    if (dataBuffer[numBytesRead] != '\0') {
+        // read the pool from the data buffer
+        _pool = QString((char*) dataBuffer + numBytesRead);
+    } else {
+        // skip past the null pool
+        numBytesRead++;
     }
 
     if (numBytes > numBytesRead) {
@@ -165,6 +177,15 @@ int Assignment::packToBuffer(unsigned char* buffer) {
     if (_command != Assignment::RequestCommand) {
         memcpy(buffer + numPackedBytes, _uuid.toRfc4122().constData(), NUM_BYTES_RFC4122_UUID);
         numPackedBytes += NUM_BYTES_RFC4122_UUID;
+    }
+    
+    if (!_pool.isEmpty()) {
+        // pack the pool for this assignment, it exists
+        memcpy(buffer + numPackedBytes, _pool.toLocal8Bit().constData(), _pool.toLocal8Bit().size());
+        numPackedBytes += _pool.toLocal8Bit().size();
+    } else {
+        // otherwise pack the null character
+        buffer[numPackedBytes++] = '\0';
     }
     
     if (_numPayloadBytes) {

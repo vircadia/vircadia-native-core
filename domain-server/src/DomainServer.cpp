@@ -173,7 +173,10 @@ const char ASSIGNMENT_SCRIPT_HOST_LOCATION[] = "resources/web/assignment";
 void DomainServer::civetwebUploadHandler(struct mg_connection *connection, const char *path) {
     
     // create an assignment for this saved script, for now make it local only
-    Assignment *scriptAssignment = new Assignment(Assignment::CreateCommand, Assignment::AgentType, Assignment::LocalLocation);
+    Assignment *scriptAssignment = new Assignment(Assignment::CreateCommand,
+                                                  Assignment::AgentType,
+                                                  QString(),
+                                                  Assignment::LocalLocation);
     
     // check how many instances of this assignment the user wants by checking the ASSIGNMENT-INSTANCES header
     const char ASSIGNMENT_INSTANCES_HTTP_HEADER[] = "ASSIGNMENT-INSTANCES";
@@ -302,12 +305,8 @@ void DomainServer::prepopulateStaticAssignmentFile() {
     Assignment freshStaticAssignments[MAX_STATIC_ASSIGNMENT_FILE_ASSIGNMENTS];
     
     // pre-populate the first static assignment list with assignments for root AuM, AvM, VS
-    freshStaticAssignments[numFreshStaticAssignments++] = Assignment(Assignment::CreateCommand,
-                                           Assignment::AudioMixerType,
-                                           Assignment::LocalLocation);
-    freshStaticAssignments[numFreshStaticAssignments++] = Assignment(Assignment::CreateCommand,
-                                           Assignment::AvatarMixerType,
-                                           Assignment::LocalLocation);
+    freshStaticAssignments[numFreshStaticAssignments++] = Assignment(Assignment::CreateCommand, Assignment::AudioMixerType);
+    freshStaticAssignments[numFreshStaticAssignments++] = Assignment(Assignment::CreateCommand, Assignment::AvatarMixerType);
     
     // Handle Domain/Voxel Server configuration command line arguments
     if (_voxelServerConfig) {
@@ -323,9 +322,7 @@ void DomainServer::prepopulateStaticAssignmentFile() {
             
             qDebug("config[%d]=%s\n", i, config.toLocal8Bit().constData());
             
-            Assignment voxelServerAssignment(Assignment::CreateCommand,
-                                             Assignment::VoxelServerType,
-                                             Assignment::LocalLocation); // use same location as we were created in.
+            Assignment voxelServerAssignment(Assignment::CreateCommand, Assignment::VoxelServerType);
             
             int payloadLength = config.length() + sizeof(char);
             voxelServerAssignment.setPayload((uchar*)config.toLocal8Bit().constData(), payloadLength);
@@ -333,9 +330,7 @@ void DomainServer::prepopulateStaticAssignmentFile() {
             freshStaticAssignments[numFreshStaticAssignments++] = voxelServerAssignment;
         }
     } else {
-        Assignment rootVoxelServerAssignment(Assignment::CreateCommand,
-                                             Assignment::VoxelServerType,
-                                             Assignment::LocalLocation);
+        Assignment rootVoxelServerAssignment(Assignment::CreateCommand, Assignment::VoxelServerType);
         freshStaticAssignments[numFreshStaticAssignments++] = rootVoxelServerAssignment;
     }
     
