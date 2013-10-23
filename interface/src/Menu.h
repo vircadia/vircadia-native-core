@@ -147,7 +147,7 @@ namespace MenuOption {
     const QString DisableFastVoxelPipeline = "Disable Fast Voxel Pipeline";
     const QString DisplayFrustum = "Display Frustum";
     const QString DontRenderVoxels = "Don't call _voxels.render()";
-    const QString DontCallOpenGLForVoxels = "Don't call glDrawElements()/glDrawRangeElementsEXT() for Voxels";
+    const QString DontCallOpenGLForVoxels = "Don't call glDrawRangeElementsEXT() for Voxels";
     const QString EchoAudio = "Echo Audio";
     const QString ExportVoxels = "Export Voxels";
     const QString HeadMouse = "Head Mouse";
@@ -196,7 +196,7 @@ namespace MenuOption {
     const QString PipelineWarnings = "Show Render Pipeline Warnings";
     const QString Preferences = "Preferences...";
     const QString RandomizeVoxelColors = "Randomize Voxel TRUE Colors";
-    const QString RemoveOutOfView = "Remove Out of View Voxels";
+    const QString RemoveOutOfView = "Instead of Hide Remove Out of View Voxels";
     const QString ResetAvatarSize = "Reset Avatar Size";
     const QString ResetSwatchColors = "Reset Swatch Colors";
     const QString RunTimingTests = "Run Timing Tests";

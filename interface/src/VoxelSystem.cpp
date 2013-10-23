@@ -753,25 +753,54 @@ void VoxelSystem::checkForCulling() {
             && !isViewChanging()
         )
     ) {
-        _lastViewCulling = start;
-
         // When we call removeOutOfView() voxels, we don't actually remove the voxels from the VBOs, but we do remove
         // them from tree, this makes our tree caclulations faster, but doesn't require us to fully rebuild the VBOs (which
         // can be expensive).
         if (!Menu::getInstance()->isOptionChecked(MenuOption::DisableHideOutOfView)) {
-            hideOutOfView();
-        }
-        if (Menu::getInstance()->isOptionChecked(MenuOption::RemoveOutOfView)) {
+
+            // track how long its been since we were last moving. If we have recently moved then only use delta frustums, if
+            // it's been a long time since we last moved, then go ahead and do a full frustum cull.
+            if (isViewChanging()) {
+                _lastViewIsChanging = start;
+            }
+            uint64_t sinceLastMoving = (start - _lastViewIsChanging) / 1000;
+
+            bool enoughTime = (sinceLastMoving >= std::max((float) _lastViewCullingElapsed, VIEW_CULLING_RATE_IN_MILLISECONDS));
+
+            // These has changed events will occur before we stop. So we need to remember this for when we finally have stopped
+            // moving long enough to be enoughTime            
+            if (hasViewChanged()) {
+                _hasRecentlyChanged = true;
+            }
+        
+            // If we have recently changed, but it's been enough time since we last moved, then we will do a full frustum
+            // hide/show culling pass
+            bool forceFullFrustum = enoughTime && _hasRecentlyChanged;
+
+            // in hide mode, we only track the full frustum culls, because we don't care about the partials.
+            if (forceFullFrustum) {          
+                _lastViewCulling = start;
+                _hasRecentlyChanged = false;
+            }
+            
+            hideOutOfView(forceFullFrustum);
+
+            if (forceFullFrustum) {          
+                uint64_t endViewCulling = usecTimestampNow();
+                _lastViewCullingElapsed = (endViewCulling - start) / 1000;
+            }
+
+        } else if (Menu::getInstance()->isOptionChecked(MenuOption::RemoveOutOfView)) {
+            _lastViewCulling = start;
             removeOutOfView();
+            uint64_t endViewCulling = usecTimestampNow();
+            _lastViewCullingElapsed = (endViewCulling - start) / 1000;
         }
         
         // Once we call cleanupRemovedVoxels() we do need to rebuild our VBOs (if anything was actually removed). So,
         // we should consider putting this someplace else... as this might be able to occur less frequently, and save us on
         // VBO reubuilding. Possibly we should do this only if our actual VBO usage crosses some lower boundary.
         cleanupRemovedVoxels();
-
-        uint64_t endViewCulling = usecTimestampNow();
-        _lastViewCullingElapsed = (endViewCulling - start) / 1000;
     }
 
     uint64_t sinceLastAudit = (start - _lastAudit) / 1000;
@@ -1047,7 +1076,8 @@ void VoxelSystem::init() {
     _callsToTreesToArrays = 0;
     _setupNewVoxelsForDrawingLastFinished = 0;
     _setupNewVoxelsForDrawingLastElapsed = 0;
-    _lastViewCullingElapsed = _lastViewCulling = _lastAudit = 0;
+    _lastViewCullingElapsed = _lastViewCulling = _lastAudit = _lastViewIsChanging = 0;
+    _hasRecentlyChanged = false;
 
     _voxelsDirty = false;
     _voxelsInWriteArrays = 0;
@@ -1807,11 +1837,27 @@ public:
     }
 };
 
-void VoxelSystem::hideOutOfView() {
+void VoxelSystem::hideOutOfView(bool forceFullFrustum) {
+    printf("VoxelSystem::hideOutOfView(bool forceFullFrustum=%s)\n",debug::valueOf(forceFullFrustum));
     bool showDebugDetails = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showDebugDetails, "hideOutOfView()", showDebugDetails);
     bool widenFrustum = true;
-    bool wantDeltaFrustums = !Menu::getInstance()->isOptionChecked(MenuOption::UseFullFrustumInHide);
+
+    // When using "delta" view frustums and only hide/show items that are in the difference
+    // between the two view frustums. There are some potential problems with this mode.
+    //
+    // 1) This work well for rotating, but what about moving forward?
+    //    In the move forward case, you'll get new voxel details, but those
+    //    new voxels will be in the last view.
+    //
+    // 2) Also, voxels will arrive from the network that are OUTSIDE of the view
+    //    frustum... these won't get hidden... and so we can't assume they are correctly
+    //    hidden... 
+    //
+    // Both these problems are solved by intermittently calling this with forceFullFrustum set
+    // to true. This will essentially clean up the improperly hidden or shown voxels.
+    //
+    bool wantDeltaFrustums = !forceFullFrustum && !Menu::getInstance()->isOptionChecked(MenuOption::UseFullFrustumInHide);
     hideOutOfViewArgs args(this, this->_tree, _culledOnce, widenFrustum, wantDeltaFrustums);
 
     const bool wantViewFrustumDebugging = false; // change to true for additional debugging
@@ -1822,24 +1868,11 @@ void VoxelSystem::hideOutOfView() {
         }
     }
     
-    if (_culledOnce && args.lastViewFrustum.matches(args.thisViewFrustum)) {
-        //printf("view frustum hasn't changed BAIL!!!\n");
+    if (!forceFullFrustum && _culledOnce && args.lastViewFrustum.matches(args.thisViewFrustum)) {
+        printf("view frustum hasn't changed BAIL!!!\n");
         return;
     }
     
-    // Changed hideOutOfView() to support "delta" view frustums and only hide/show items that are in the difference
-    // between the two view frustums. There are some potential problems with this idea...
-    //
-    // 1) This might work well for rotating, but what about moving forward?
-    //    in the move forward case, you'll get new voxel details, but those
-    //    new voxels will be in the last view... does that work? This works 
-    //    ok for now because voxel server resends them and so they get redisplayed,
-    //    but this will not work if we update the voxel server to send less data.
-    //
-    // 2) what about voxels coming in from the network that are OUTSIDE of the view
-    //    frustum... they don't get hidden... and so we can't assume they are correctly
-    //    hidden... we could solve this with checking in view on voxelUpdated...
-    //
     _tree->recurseTreeWithOperation(hideOutOfViewOperation,(void*)&args);
     _lastCulledViewFrustum = args.thisViewFrustum; // save last stable
     _culledOnce = true;
