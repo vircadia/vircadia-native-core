@@ -760,7 +760,7 @@ void VoxelSystem::checkForCulling() {
         if (!Menu::getInstance()->isOptionChecked(MenuOption::DisableHideOutOfView)) {
             hideOutOfView();
         }
-        if (!Menu::getInstance()->isOptionChecked(MenuOption::DontRemoveOutOfView)) {
+        if (Menu::getInstance()->isOptionChecked(MenuOption::RemoveOutOfView)) {
             removeOutOfView();
         }
         

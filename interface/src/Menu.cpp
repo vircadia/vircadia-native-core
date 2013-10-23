@@ -289,7 +289,7 @@ Menu::Menu() :
     addDisabledActionAndSeparator(cullingOptionsMenu, "Individual Option Settings");
     addCheckableActionToQMenuAndActionHash(cullingOptionsMenu, MenuOption::FastVoxelPipeline, 0,
                                            false, appInstance->getVoxels(), SLOT(setUseFastVoxelPipeline(bool)));
-    addCheckableActionToQMenuAndActionHash(cullingOptionsMenu, MenuOption::DontRemoveOutOfView);
+    addCheckableActionToQMenuAndActionHash(cullingOptionsMenu, MenuOption::RemoveOutOfView);
     addCheckableActionToQMenuAndActionHash(cullingOptionsMenu, MenuOption::DisableHideOutOfView);
     addCheckableActionToQMenuAndActionHash(cullingOptionsMenu, MenuOption::UseFullFrustumInHide);
     addCheckableActionToQMenuAndActionHash(cullingOptionsMenu, MenuOption::DisableConstantCulling);
@@ -1114,10 +1114,10 @@ void Menu::setNewVoxelCullingMode(bool newMode) {
 /// This will switch on or off several different individual settings options all at once based on choosing with Old or New
 /// voxel culling mode.
 void Menu::setVoxelCullingMode(bool oldMode) {
-    const QString menus[] = { MenuOption::FastVoxelPipeline, MenuOption::DontRemoveOutOfView, MenuOption::DisableHideOutOfView,
+    const QString menus[] = { MenuOption::FastVoxelPipeline, MenuOption::RemoveOutOfView, MenuOption::DisableHideOutOfView,
                               MenuOption::UseFullFrustumInHide, MenuOption::DisableConstantCulling};
-    bool oldModeValue[]    = { false, false, true, true, true };
-    bool newModeValue[]    = { true, true, false, false, false };
+    bool oldModeValue[]    = { false, true, true, true, true };
+    bool newModeValue[]    = { true, false, false, false, false };
 
     for (int i = 0; i < sizeof(menus) / sizeof(menus[0]); i++) {
         bool desiredValue = oldMode ? oldModeValue[i] : newModeValue[i];
