@@ -134,7 +134,6 @@ namespace MenuOption {
     const QString Bandwidth = "Bandwidth Display";
     const QString BandwidthDetails = "Bandwidth Details";
     const QString Collisions = "Collisions";
-    const QString ConstantCulling = "Constant Culling";
     const QString CopyVoxels = "Copy";
     const QString CoverageMap = "Render Coverage Map";
     const QString CoverageMapV2 = "Render Coverage Map V2";
@@ -144,10 +143,11 @@ namespace MenuOption {
     const QString DeleteVoxels = "Delete";
     const QString DestructiveAddVoxel = "Create Voxel is Destructive";
     const QString DeltaSending = "Delta Sending";
+    const QString DisableConstantCulling = "Disable Constant Culling";
+    const QString DisableFastVoxelPipeline = "Disable Fast Voxel Pipeline";
     const QString DisplayFrustum = "Display Frustum";
     const QString DontRenderVoxels = "Don't call _voxels.render()";
     const QString DontCallOpenGLForVoxels = "Don't call glDrawElements()/glDrawRangeElementsEXT() for Voxels";
-    const QString DontRemoveOutOfView = "Don't Remove Out of View Voxels";
     const QString EchoAudio = "Echo Audio";
     const QString ExportVoxels = "Export Voxels";
     const QString HeadMouse = "Head Mouse";
@@ -160,7 +160,6 @@ namespace MenuOption {
     const QString FalseColorOccludedV2 = "FALSE Color Occluded V2 Voxels";
     const QString FalseColorOutOfView = "FALSE Color Voxel Out of View";
     const QString FalseColorRandomly = "FALSE Color Voxels Randomly";
-    const QString FastVoxelPipeline = "Fast Voxel Pipeline";
     const QString FirstPerson = "First Person";
     const QString FrameTimer = "Show Timer";
     const QString FrustumRenderMode = "Render Mode";
@@ -168,7 +167,7 @@ namespace MenuOption {
     const QString GlowMode = "Cycle Glow Mode";
     const QString GoToDomain = "Go To Domain...";
     const QString GoToLocation = "Go To Location...";
-    const QString HideOutOfView = "Hide Out of View Voxels";
+    const QString DisableHideOutOfView = "Disable Hide Out of View Voxels";
     const QString GoToUser = "Go To User...";
     const QString ImportVoxels = "Import Voxels";
     const QString ImportVoxelsClipboard = "Import Voxels to Clipboard";
@@ -197,6 +196,7 @@ namespace MenuOption {
     const QString PipelineWarnings = "Show Render Pipeline Warnings";
     const QString Preferences = "Preferences...";
     const QString RandomizeVoxelColors = "Randomize Voxel TRUE Colors";
+    const QString RemoveOutOfView = "Remove Out of View Voxels";
     const QString ResetAvatarSize = "Reset Avatar Size";
     const QString ResetSwatchColors = "Reset Swatch Colors";
     const QString RunTimingTests = "Run Timing Tests";
@@ -216,7 +216,7 @@ namespace MenuOption {
     const QString TreeStats = "Calculate Tree Stats";
     const QString TransmitterDrive = "Transmitter Drive";
     const QString Quit =  "Quit";
-    const QString UseDeltaFrustumInHide = "Use Delta View Frustums when Culling";
+    const QString UseFullFrustumInHide = "Use Full View Frustums when Culling";
     const QString UseVoxelShader = "Use Voxel Shader";
     const QString VoxelsAsPoints = "Draw Voxels as Points";
     const QString Voxels = "Voxels";

@@ -23,7 +23,7 @@ const float CAMERA_THIRD_PERSON_MODE_DISTANCE  = 1.5f;
 const float CAMERA_THIRD_PERSON_MODE_TIGHTNESS = 8.0f;
 
 const float CAMERA_MIRROR_MODE_UP_SHIFT        = 0.0f;
-const float CAMERA_MIRROR_MODE_DISTANCE        = 0.3f;
+const float CAMERA_MIRROR_MODE_DISTANCE        = 0.17f;
 const float CAMERA_MIRROR_MODE_TIGHTNESS       = 100.0f;
 
 

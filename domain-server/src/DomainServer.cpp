@@ -173,7 +173,10 @@ const char ASSIGNMENT_SCRIPT_HOST_LOCATION[] = "resources/web/assignment";
 void DomainServer::civetwebUploadHandler(struct mg_connection *connection, const char *path) {
     
     // create an assignment for this saved script, for now make it local only
-    Assignment *scriptAssignment = new Assignment(Assignment::CreateCommand, Assignment::AgentType, Assignment::LocalLocation);
+    Assignment *scriptAssignment = new Assignment(Assignment::CreateCommand,
+                                                  Assignment::AgentType,
+                                                  NULL,
+                                                  Assignment::LocalLocation);
     
     // check how many instances of this assignment the user wants by checking the ASSIGNMENT-INSTANCES header
     const char ASSIGNMENT_INSTANCES_HTTP_HEADER[] = "ASSIGNMENT-INSTANCES";
@@ -302,12 +305,8 @@ void DomainServer::prepopulateStaticAssignmentFile() {
     Assignment freshStaticAssignments[MAX_STATIC_ASSIGNMENT_FILE_ASSIGNMENTS];
     
     // pre-populate the first static assignment list with assignments for root AuM, AvM, VS
-    freshStaticAssignments[numFreshStaticAssignments++] = Assignment(Assignment::CreateCommand,
-                                           Assignment::AudioMixerType,
-                                           Assignment::LocalLocation);
-    freshStaticAssignments[numFreshStaticAssignments++] = Assignment(Assignment::CreateCommand,
-                                           Assignment::AvatarMixerType,
-                                           Assignment::LocalLocation);
+    freshStaticAssignments[numFreshStaticAssignments++] = Assignment(Assignment::CreateCommand, Assignment::AudioMixerType);
+    freshStaticAssignments[numFreshStaticAssignments++] = Assignment(Assignment::CreateCommand, Assignment::AvatarMixerType);
     
     // Handle Domain/Voxel Server configuration command line arguments
     if (_voxelServerConfig) {
@@ -323,9 +322,23 @@ void DomainServer::prepopulateStaticAssignmentFile() {
             
             qDebug("config[%d]=%s\n", i, config.toLocal8Bit().constData());
             
+            // Now, parse the config to check for a pool
+            const char ASSIGNMENT_CONFIG_POOL_OPTION[] = "--pool";
+            QString assignmentPool;
+            
+            int poolIndex = config.indexOf(ASSIGNMENT_CONFIG_POOL_OPTION);
+            
+            if (poolIndex >= 0) {
+                int spaceBeforePoolIndex = config.indexOf(' ', poolIndex);
+                int spaceAfterPoolIndex = config.indexOf(' ', spaceBeforePoolIndex);
+                
+                assignmentPool = config.mid(spaceBeforePoolIndex + 1, spaceAfterPoolIndex);
+                qDebug() << "The pool for this voxel-assignment is" << assignmentPool << "\n";
+            }
+            
             Assignment voxelServerAssignment(Assignment::CreateCommand,
                                              Assignment::VoxelServerType,
-                                             Assignment::LocalLocation); // use same location as we were created in.
+                                             (assignmentPool.isEmpty() ? NULL : assignmentPool.toLocal8Bit().constData()));
             
             int payloadLength = config.length() + sizeof(char);
             voxelServerAssignment.setPayload((uchar*)config.toLocal8Bit().constData(), payloadLength);
@@ -333,9 +346,7 @@ void DomainServer::prepopulateStaticAssignmentFile() {
             freshStaticAssignments[numFreshStaticAssignments++] = voxelServerAssignment;
         }
     } else {
-        Assignment rootVoxelServerAssignment(Assignment::CreateCommand,
-                                             Assignment::VoxelServerType,
-                                             Assignment::LocalLocation);
+        Assignment rootVoxelServerAssignment(Assignment::CreateCommand, Assignment::VoxelServerType);
         freshStaticAssignments[numFreshStaticAssignments++] = rootVoxelServerAssignment;
     }
     
@@ -390,9 +401,14 @@ Assignment* DomainServer::deployableAssignmentForRequest(Assignment& requestAssi
     std::deque<Assignment*>::iterator assignment = _assignmentQueue.begin();
     
     while (assignment != _assignmentQueue.end()) {
+        bool requestIsAllTypes = requestAssignment.getType() == Assignment::AllTypes;
+        bool assignmentTypesMatch = (*assignment)->getType() == requestAssignment.getType();
+        bool nietherHasPool = !(*assignment)->hasPool() && !requestAssignment.hasPool();
+        bool assignmentPoolsMatch = memcmp((*assignment)->getPool(),
+                                           requestAssignment.getPool(),
+                                           MAX_ASSIGNMENT_POOL_BYTES) == 0;
         
-        if (requestAssignment.getType() == Assignment::AllTypes ||
-            (*assignment)->getType() == requestAssignment.getType()) {
+        if ((requestIsAllTypes || assignmentTypesMatch) && (nietherHasPool || assignmentPoolsMatch)) {
             
             Assignment* deployableAssignment = *assignment;
             
