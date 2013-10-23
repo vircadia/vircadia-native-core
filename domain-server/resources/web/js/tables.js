@@ -9,8 +9,8 @@ $(document).ready(function(){
         nodesTableBody += "<td>" + type + "</td>";
         nodesTableBody += "<td>" + data.UUID + "</td>";
         nodesTableBody += "<td>" + (data.pool ? data.pool : "") + "</td>";
-        nodesTableBody += "<td>" + data.public.ip + ":" + "<span class='port'>" + data.public.port + "</span></td>";
-        nodesTableBody += "<td>" + data.local.ip + ":" + "<span class='port'>" + data.local.port + "</span></td>";
+        nodesTableBody += "<td>" + data.public.ip + "<span class='port'>:" + data.public.port + "</span></td>";
+        nodesTableBody += "<td>" + data.local.ip + "<span class='port'>:" + data.local.port + "</span></td>";
         nodesTableBody += "<td><span class='glyphicon glyphicon-remove' data-uuid=" + data.UUID + "></span></td>";
         nodesTableBody += "</tr>";
       });
