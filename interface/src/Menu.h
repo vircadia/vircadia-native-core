@@ -168,7 +168,7 @@ namespace MenuOption {
     const QString GlowMode = "Cycle Glow Mode";
     const QString GoToDomain = "Go To Domain...";
     const QString GoToLocation = "Go To Location...";
-    const QString HideOutOfView = "Hide Out of View Voxels";
+    const QString DisableHideOutOfView = "Disable Hide Out of View Voxels";
     const QString GoToUser = "Go To User...";
     const QString ImportVoxels = "Import Voxels";
     const QString ImportVoxelsClipboard = "Import Voxels to Clipboard";

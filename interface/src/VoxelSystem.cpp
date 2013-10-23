@@ -757,7 +757,7 @@ void VoxelSystem::checkForCulling() {
         // When we call removeOutOfView() voxels, we don't actually remove the voxels from the VBOs, but we do remove
         // them from tree, this makes our tree caclulations faster, but doesn't require us to fully rebuild the VBOs (which
         // can be expensive).
-        if (Menu::getInstance()->isOptionChecked(MenuOption::HideOutOfView)) {
+        if (!Menu::getInstance()->isOptionChecked(MenuOption::DisableHideOutOfView)) {
             hideOutOfView();
         }
         if (!Menu::getInstance()->isOptionChecked(MenuOption::DontRemoveOutOfView)) {

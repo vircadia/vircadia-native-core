@@ -193,7 +193,6 @@ private:
     static bool forceRedrawEntireTreeOperation(VoxelNode* node, void* extraData);
     static bool clearAllNodesBufferIndexOperation(VoxelNode* node, void* extraData);
     static bool hideOutOfViewOperation(VoxelNode* node, void* extraData);
-    static bool hideOutOfViewUnrollOperation(VoxelNode* node, void* extraData);
     static bool hideAllSubTreeOperation(VoxelNode* node, void* extraData);
     static bool showAllSubTreeOperation(VoxelNode* node, void* extraData);
     static bool showAllLocalVoxelsOperation(VoxelNode* node, void* extraData);
