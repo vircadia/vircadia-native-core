@@ -441,6 +441,7 @@ void VoxelNode::storeTwoChildren(VoxelNode* childOne, VoxelNode* childTwo) {
             const int newChildCount = 2;
             _externalChildrenMemoryUsage += newChildCount * sizeof(VoxelNode*);
             _children.external = new VoxelNode*[newChildCount];
+            memset(_children.external, 0, sizeof(VoxelNode*) * newChildCount);
         }
         _children.external[0] = childOne;
         _children.external[1] = childTwo;
@@ -549,6 +550,7 @@ void VoxelNode::storeThreeChildren(VoxelNode* childOne, VoxelNode* childTwo, Vox
             const int newChildCount = 3;
             _externalChildrenMemoryUsage += newChildCount * sizeof(VoxelNode*);
             _children.external = new VoxelNode*[newChildCount];
+            memset(_children.external, 0, sizeof(VoxelNode*) * newChildCount);
         }
         _children.external[0] = childOne;
         _children.external[1] = childTwo;
@@ -871,6 +873,8 @@ void VoxelNode::setChildAtIndex(int childIndex, VoxelNode* child) {
         _childrenExternal = true;
         const int newChildCount = 4;
         _children.external = new VoxelNode*[newChildCount];
+        memset(_children.external, 0, sizeof(VoxelNode*) * newChildCount);
+        
         _externalChildrenMemoryUsage += newChildCount * sizeof(VoxelNode*);
         
         _children.external[0] = childOne;
@@ -934,6 +938,7 @@ void VoxelNode::setChildAtIndex(int childIndex, VoxelNode* child) {
         // 4 or more children, one item being added, we know we're stored externally, we just figure out where to insert
         // this child pointer into our external list
         VoxelNode** newExternalList = new VoxelNode*[newChildCount];
+        memset(newExternalList, 0, sizeof(VoxelNode*) * newChildCount);
         
         int copiedCount = 0;
         for (int ordinal = 1; ordinal <= newChildCount; ordinal++) {
