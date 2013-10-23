@@ -1838,7 +1838,6 @@ public:
 };
 
 void VoxelSystem::hideOutOfView(bool forceFullFrustum) {
-    printf("VoxelSystem::hideOutOfView(bool forceFullFrustum=%s)\n",debug::valueOf(forceFullFrustum));
     bool showDebugDetails = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showDebugDetails, "hideOutOfView()", showDebugDetails);
     bool widenFrustum = true;
@@ -1869,7 +1868,7 @@ void VoxelSystem::hideOutOfView(bool forceFullFrustum) {
     }
     
     if (!forceFullFrustum && _culledOnce && args.lastViewFrustum.matches(args.thisViewFrustum)) {
-        printf("view frustum hasn't changed BAIL!!!\n");
+        //printf("view frustum hasn't changed BAIL!!!\n");
         return;
     }
     
