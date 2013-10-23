@@ -1,5 +1,5 @@
 <!--#include file="header.shtml"-->
-  <h3>Active Nodes</h3>
+  <div id="nodes-lead" class="table-lead"><h3>Active Assignments</h3><div class="lead-line"></div></div>
   <table id="nodes-table" class="table table-striped">
     <thead>
       <tr>
@@ -15,7 +15,7 @@
     </tbody>
   </table>
   
-  <h3>Queued Assignments</h3>
+  <div id="queued-lead" class="table-lead"><h3>Queued Assignments</h3><div class="lead-line"></div></div>
   <table id="assignments-table" class="table table-striped">
     <thead>
       <tr>

@@ -1,0 +1,37 @@
+#nodes-lead {
+  color: #71CACB;
+}
+
+#nodes-lead .lead-line {
+  background-color: #71CACB;
+}
+
+#queued-lead {
+  color: #F17C7A;
+}
+
+#queued-lead .lead-line {
+  background-color: #F17C7A;
+}
+
+.table-lead h3 {
+  background-color: white;
+  float: left;
+  margin-right: 5px;
+}
+
+.table-lead .lead-line {
+  height: 2px;
+  overflow: hidden;
+  position: relative;
+  top: 40px;
+}
+
+.glyphicon-remove {
+  font-size: 24px;
+}
+
+.glyphicon-remove:hover {
+  color: #C61E16;
+  cursor: pointer;
+}
