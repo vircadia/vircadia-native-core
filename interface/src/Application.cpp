@@ -899,7 +899,11 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 updateProjectionMatrix();
                 break;
             case Qt::Key_H:
-                Menu::getInstance()->triggerOption(MenuOption::Mirror);
+                if (isShifted) {
+                    Menu::getInstance()->triggerOption(MenuOption::Mirror);
+                } else {
+                    Menu::getInstance()->triggerOption(MenuOption::FullscreenMirror);
+                }
                 break;
             case Qt::Key_F:
                 if (isShifted)  {
