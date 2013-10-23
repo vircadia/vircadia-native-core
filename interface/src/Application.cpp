@@ -438,13 +438,15 @@ void Application::paintGL() {
             // set the bounds of rear mirror view
             glViewport(_mirrorViewRect.x(), _glWidget->height() - _mirrorViewRect.y() - _mirrorViewRect.height(), _mirrorViewRect.width(), _mirrorViewRect.height());
             glScissor(_mirrorViewRect.x(), _glWidget->height() - _mirrorViewRect.y() - _mirrorViewRect.height(), _mirrorViewRect.width(), _mirrorViewRect.height());
-            updateProjectionMatrix(_mirrorCamera);
+            bool updateViewFrustum = false;
+            updateProjectionMatrix(_mirrorCamera, updateViewFrustum);
             glEnable(GL_SCISSOR_TEST);
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
             
             // render rear mirror view
             glPushMatrix();
-            displaySide(_mirrorCamera);
+            bool selfAvatarOnly = true;
+            displaySide(_mirrorCamera, selfAvatarOnly);
             glPopMatrix();
             
             // render rear view tools if mouse is in the bounds
@@ -456,7 +458,7 @@ void Application::paintGL() {
             // reset Viewport and projection matrix
             glViewport(0, 0, _glWidget->width(), _glWidget->height());
             glDisable(GL_SCISSOR_TEST);
-            updateProjectionMatrix();
+            updateProjectionMatrix(_myCamera, updateViewFrustum);
         }
         
         displayOverlay();
@@ -494,22 +496,28 @@ void Application::updateProjectionMatrix() {
     updateProjectionMatrix(_myCamera);
 }
 
-void Application::updateProjectionMatrix(Camera& camera) {
+void Application::updateProjectionMatrix(Camera& camera, bool updateViewFrustum) {
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    
-    // Tell our viewFrustum about this change, using the application camera
-    loadViewFrustum(camera, _viewFrustum);
-    
+
     float left, right, bottom, top, nearVal, farVal;
     glm::vec4 nearClipPlane, farClipPlane;
-    computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
     
-    // If we're in Display Frustum mode, then we want to use the slightly adjust near/far clip values of the
-    // _viewFrustumOffsetCamera, so that we can see more of the application content in the application's frustum
-    if (Menu::getInstance()->isOptionChecked(MenuOption::DisplayFrustum)) {
-        nearVal = _viewFrustumOffsetCamera.getNearClip();
-        farVal = _viewFrustumOffsetCamera.getFarClip();
+    // Tell our viewFrustum about this change, using the application camera
+    if (updateViewFrustum) {
+        loadViewFrustum(camera, _viewFrustum);
+        computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
+    
+        // If we're in Display Frustum mode, then we want to use the slightly adjust near/far clip values of the
+        // _viewFrustumOffsetCamera, so that we can see more of the application content in the application's frustum
+        if (Menu::getInstance()->isOptionChecked(MenuOption::DisplayFrustum)) {
+            nearVal = _viewFrustumOffsetCamera.getNearClip();
+            farVal = _viewFrustumOffsetCamera.getFarClip();
+        }
+    } else {
+        ViewFrustum tempViewFrustum;
+        loadViewFrustum(camera, tempViewFrustum);
+        tempViewFrustum.computeOffAxisFrustum(left, right, bottom, top, nearVal, farVal, nearClipPlane, farClipPlane);
     }
     glFrustum(left, right, bottom, top, nearVal, farVal);
     
@@ -2508,7 +2516,7 @@ void Application::computeOffAxisFrustum(float& left, float& right, float& bottom
     _viewFrustum.computeOffAxisFrustum(left, right, bottom, top, near, far, nearClipPlane, farClipPlane);
 }
 
-void Application::displaySide(Camera& whichCamera) {
+void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
     PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), "Application::displaySide()");
     // transform by eye offset
 
@@ -2540,7 +2548,7 @@ void Application::displaySide(Camera& whichCamera) {
     //  Setup 3D lights (after the camera transform, so that they are positioned in world space)
     setupWorldLight(whichCamera);
     
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Stars)) {
+    if (!selfAvatarOnly && Menu::getInstance()->isOptionChecked(MenuOption::Stars)) {
         PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
             "Application::displaySide() ... stars...");
         if (!_stars.isStarsLoaded()) {
@@ -2567,7 +2575,7 @@ void Application::displaySide(Camera& whichCamera) {
     }
 
     // draw the sky dome
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Atmosphere)) {
+    if (!selfAvatarOnly && Menu::getInstance()->isOptionChecked(MenuOption::Atmosphere)) {
         PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
             "Application::displaySide() ... atmosphere...");
         _environment.renderAtmospheres(whichCamera);
@@ -2580,122 +2588,124 @@ void Application::displaySide(Camera& whichCamera) {
     //renderLineToTouchedVoxel();
     //renderThrustAtVoxel(_voxelThrust);
     
-    // draw a red sphere  
-    float sphereRadius = 0.25f;
-    glColor3f(1,0,0);
-    glPushMatrix();
-        glutSolidSphere(sphereRadius, 15, 15);
-    glPopMatrix();
-
-    // disable specular lighting for ground and voxels
-    glMaterialfv(GL_FRONT, GL_SPECULAR, NO_SPECULAR_COLOR);
-
-    //draw a grid ground plane....
-    if (Menu::getInstance()->isOptionChecked(MenuOption::GroundPlane)) {
-        PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
-            "Application::displaySide() ... ground plane...");
-
-        // draw grass plane with fog
-        glEnable(GL_FOG);
-        glEnable(GL_NORMALIZE);        
-        const float FOG_COLOR[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-        glFogfv(GL_FOG_COLOR, FOG_COLOR);
-        glFogi(GL_FOG_MODE, GL_EXP2);
-        glFogf(GL_FOG_DENSITY, 0.025f);
+    if (!selfAvatarOnly) {
+        // draw a red sphere  
+        float sphereRadius = 0.25f;
+        glColor3f(1,0,0);
         glPushMatrix();
-            const float GRASS_PLANE_SIZE = 256.0f;
-            glTranslatef(-GRASS_PLANE_SIZE * 0.5f, -0.01f, GRASS_PLANE_SIZE * 0.5f);
-            glScalef(GRASS_PLANE_SIZE, 1.0f, GRASS_PLANE_SIZE);
-            glRotatef(-90.0f, 1.0f, 0.0f, 0.0f);
-            glColor3ub(70, 134, 74);
-            const int GRASS_DIVISIONS = 40;
-            _geometryCache.renderSquare(GRASS_DIVISIONS, GRASS_DIVISIONS);
+            glutSolidSphere(sphereRadius, 15, 15);
         glPopMatrix();
-        glDisable(GL_FOG);
-        glDisable(GL_NORMALIZE);
-        
-        //renderGroundPlaneGrid(EDGE_SIZE_GROUND_PLANE, _audio.getCollisionSoundMagnitude());
-    }
-    //  Draw Cloud Particles
-    if (Menu::getInstance()->isOptionChecked(MenuOption::ParticleCloud)) {
-        _cloud.render();
-    }
-    //  Draw voxels
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
-        PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
-            "Application::displaySide() ... voxels...");
-        if (!Menu::getInstance()->isOptionChecked(MenuOption::DontRenderVoxels)) {
-            _voxels.render(Menu::getInstance()->isOptionChecked(MenuOption::VoxelTextures));
-        }
-    }
-    
-    
-    // restore default, white specular
-    glMaterialfv(GL_FRONT, GL_SPECULAR, WHITE_SPECULAR_COLOR);
-    
-    // indicate what we'll be adding/removing in mouse mode, if anything
-    if (_mouseVoxel.s != 0 && whichCamera.getMode() != CAMERA_MODE_MIRROR) {
-        PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
-            "Application::displaySide() ... voxels TOOLS UX...");
 
-        glDisable(GL_LIGHTING);
-        glPushMatrix();
-        glScalef(TREE_SCALE, TREE_SCALE, TREE_SCALE);
-        if (_nudgeStarted) {
-            renderNudgeGuide(_nudgeGuidePosition.x, _nudgeGuidePosition.y, _nudgeGuidePosition.z, _nudgeVoxel.s);
-            renderNudgeGrid(_nudgeVoxel.x, _nudgeVoxel.y, _nudgeVoxel.z, _nudgeVoxel.s, _mouseVoxel.s);
+        // disable specular lighting for ground and voxels
+        glMaterialfv(GL_FRONT, GL_SPECULAR, NO_SPECULAR_COLOR);
+
+        //draw a grid ground plane....
+        if (Menu::getInstance()->isOptionChecked(MenuOption::GroundPlane)) {
+            PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
+                "Application::displaySide() ... ground plane...");
+
+            // draw grass plane with fog
+            glEnable(GL_FOG);
+            glEnable(GL_NORMALIZE);        
+            const float FOG_COLOR[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+            glFogfv(GL_FOG_COLOR, FOG_COLOR);
+            glFogi(GL_FOG_MODE, GL_EXP2);
+            glFogf(GL_FOG_DENSITY, 0.025f);
             glPushMatrix();
-            glTranslatef(_nudgeVoxel.x + _nudgeVoxel.s * 0.5f,
-                _nudgeVoxel.y + _nudgeVoxel.s * 0.5f,
-                _nudgeVoxel.z + _nudgeVoxel.s * 0.5f);
-            glColor3ub(255, 255, 255);
-            glLineWidth(4.0f);
-            glutWireCube(_nudgeVoxel.s);
+                const float GRASS_PLANE_SIZE = 256.0f;
+                glTranslatef(-GRASS_PLANE_SIZE * 0.5f, -0.01f, GRASS_PLANE_SIZE * 0.5f);
+                glScalef(GRASS_PLANE_SIZE, 1.0f, GRASS_PLANE_SIZE);
+                glRotatef(-90.0f, 1.0f, 0.0f, 0.0f);
+                glColor3ub(70, 134, 74);
+                const int GRASS_DIVISIONS = 40;
+                _geometryCache.renderSquare(GRASS_DIVISIONS, GRASS_DIVISIONS);
             glPopMatrix();
-        } else {
-            renderMouseVoxelGrid(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
-        }
-
-        if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelAddMode)) {
-            // use a contrasting color so that we can see what we're doing
-            glColor3ub(_mouseVoxel.red + 128, _mouseVoxel.green + 128, _mouseVoxel.blue + 128);
-        } else {
-            glColor3ub(_mouseVoxel.red, _mouseVoxel.green, _mouseVoxel.blue);
-        }
+            glDisable(GL_FOG);
+            glDisable(GL_NORMALIZE);
         
-        if (_nudgeStarted) {
-            // render nudge guide cube
-            glTranslatef(_nudgeGuidePosition.x + _nudgeVoxel.s*0.5f,
-                _nudgeGuidePosition.y + _nudgeVoxel.s*0.5f,
-                _nudgeGuidePosition.z + _nudgeVoxel.s*0.5f);
-            glLineWidth(4.0f);
-            glutWireCube(_nudgeVoxel.s);
-        } else {
-            glTranslatef(_mouseVoxel.x + _mouseVoxel.s*0.5f,
-                _mouseVoxel.y + _mouseVoxel.s*0.5f,
-                _mouseVoxel.z + _mouseVoxel.s*0.5f);
-            glLineWidth(4.0f);
-            glutWireCube(_mouseVoxel.s);
+            //renderGroundPlaneGrid(EDGE_SIZE_GROUND_PLANE, _audio.getCollisionSoundMagnitude());
         }
-        glLineWidth(1.0f);
-        glPopMatrix();
-        glEnable(GL_LIGHTING);
-    }
+        //  Draw Cloud Particles
+        if (Menu::getInstance()->isOptionChecked(MenuOption::ParticleCloud)) {
+            _cloud.render();
+        }
+        //  Draw voxels
+        if (Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
+            PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
+                "Application::displaySide() ... voxels...");
+            if (!Menu::getInstance()->isOptionChecked(MenuOption::DontRenderVoxels)) {
+                _voxels.render(Menu::getInstance()->isOptionChecked(MenuOption::VoxelTextures));
+            }
+        }
     
-    if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelSelectMode) && _pasteMode && whichCamera.getMode() != CAMERA_MODE_MIRROR) {
-        PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
-            "Application::displaySide() ... PASTE Preview...");
+    
+        // restore default, white specular
+        glMaterialfv(GL_FRONT, GL_SPECULAR, WHITE_SPECULAR_COLOR);
+    
+        // indicate what we'll be adding/removing in mouse mode, if anything
+        if (_mouseVoxel.s != 0 && whichCamera.getMode() != CAMERA_MODE_MIRROR) {
+            PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
+                "Application::displaySide() ... voxels TOOLS UX...");
 
-        glPushMatrix();
-        glTranslatef(_mouseVoxel.x * TREE_SCALE,
-                     _mouseVoxel.y * TREE_SCALE,
-                     _mouseVoxel.z * TREE_SCALE);
-        glScalef(_mouseVoxel.s,
-                 _mouseVoxel.s,
-                 _mouseVoxel.s);
+            glDisable(GL_LIGHTING);
+            glPushMatrix();
+            glScalef(TREE_SCALE, TREE_SCALE, TREE_SCALE);
+            if (_nudgeStarted) {
+                renderNudgeGuide(_nudgeGuidePosition.x, _nudgeGuidePosition.y, _nudgeGuidePosition.z, _nudgeVoxel.s);
+                renderNudgeGrid(_nudgeVoxel.x, _nudgeVoxel.y, _nudgeVoxel.z, _nudgeVoxel.s, _mouseVoxel.s);
+                glPushMatrix();
+                glTranslatef(_nudgeVoxel.x + _nudgeVoxel.s * 0.5f,
+                    _nudgeVoxel.y + _nudgeVoxel.s * 0.5f,
+                    _nudgeVoxel.z + _nudgeVoxel.s * 0.5f);
+                glColor3ub(255, 255, 255);
+                glLineWidth(4.0f);
+                glutWireCube(_nudgeVoxel.s);
+                glPopMatrix();
+            } else {
+                renderMouseVoxelGrid(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+            }
 
-        _sharedVoxelSystem.render(true);
-        glPopMatrix();
+            if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelAddMode)) {
+                // use a contrasting color so that we can see what we're doing
+                glColor3ub(_mouseVoxel.red + 128, _mouseVoxel.green + 128, _mouseVoxel.blue + 128);
+            } else {
+                glColor3ub(_mouseVoxel.red, _mouseVoxel.green, _mouseVoxel.blue);
+            }
+        
+            if (_nudgeStarted) {
+                // render nudge guide cube
+                glTranslatef(_nudgeGuidePosition.x + _nudgeVoxel.s*0.5f,
+                    _nudgeGuidePosition.y + _nudgeVoxel.s*0.5f,
+                    _nudgeGuidePosition.z + _nudgeVoxel.s*0.5f);
+                glLineWidth(4.0f);
+                glutWireCube(_nudgeVoxel.s);
+            } else {
+                glTranslatef(_mouseVoxel.x + _mouseVoxel.s*0.5f,
+                    _mouseVoxel.y + _mouseVoxel.s*0.5f,
+                    _mouseVoxel.z + _mouseVoxel.s*0.5f);
+                glLineWidth(4.0f);
+                glutWireCube(_mouseVoxel.s);
+            }
+            glLineWidth(1.0f);
+            glPopMatrix();
+            glEnable(GL_LIGHTING);
+        }
+    
+        if (Menu::getInstance()->isOptionChecked(MenuOption::VoxelSelectMode) && _pasteMode && whichCamera.getMode() != CAMERA_MODE_MIRROR) {
+            PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
+                "Application::displaySide() ... PASTE Preview...");
+
+            glPushMatrix();
+            glTranslatef(_mouseVoxel.x * TREE_SCALE,
+                         _mouseVoxel.y * TREE_SCALE,
+                         _mouseVoxel.z * TREE_SCALE);
+            glScalef(_mouseVoxel.s,
+                     _mouseVoxel.s,
+                     _mouseVoxel.s);
+
+            _sharedVoxelSystem.render(true);
+            glPopMatrix();
+        }
     }
 
     _myAvatar.renderScreenTint(SCREEN_TINT_BEFORE_AVATARS, whichCamera);
@@ -2705,26 +2715,28 @@ void Application::displaySide(Camera& whichCamera) {
             "Application::displaySide() ... Avatars...");
 
 
-        //  Render avatars of other nodes
-        NodeList* nodeList = NodeList::getInstance();
+        if (!selfAvatarOnly) {
+            //  Render avatars of other nodes
+            NodeList* nodeList = NodeList::getInstance();
         
-        for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
-            node->lock();
+            for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+                node->lock();
             
-            if (node->getLinkedData() != NULL && node->getType() == NODE_TYPE_AGENT) {
-                Avatar *avatar = (Avatar *)node->getLinkedData();
-                if (!avatar->isInitialized()) {
-                    avatar->init();
+                if (node->getLinkedData() != NULL && node->getType() == NODE_TYPE_AGENT) {
+                    Avatar *avatar = (Avatar *)node->getLinkedData();
+                    if (!avatar->isInitialized()) {
+                        avatar->init();
+                    }
+                    // Set lookAt to myCamera on client side if other avatars are looking at client
+                    if (isLookingAtMyAvatar(avatar)) {
+                        avatar->getHead().setLookAtPosition(whichCamera.getPosition());
+                    }
+                    avatar->render(false, Menu::getInstance()->isOptionChecked(MenuOption::AvatarAsBalls));
+                    avatar->setDisplayingLookatVectors(Menu::getInstance()->isOptionChecked(MenuOption::LookAtVectors));
                 }
-                // Set lookAt to myCamera on client side if other avatars are looking at client
-                if (isLookingAtMyAvatar(avatar)) {
-                    avatar->getHead().setLookAtPosition(whichCamera.getPosition());
-                }
-                avatar->render(false, Menu::getInstance()->isOptionChecked(MenuOption::AvatarAsBalls));
-                avatar->setDisplayingLookatVectors(Menu::getInstance()->isOptionChecked(MenuOption::LookAtVectors));
+            
+                node->unlock();
             }
-            
-            node->unlock();
         }
         
         // Render my own Avatar
