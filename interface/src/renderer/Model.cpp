@@ -90,7 +90,6 @@ void Model::simulate(float deltaTime) {
             Model* model = new Model(this);
             model->init();
             model->setURL(attachment.url);
-            model->setScale(attachment.scale);
             _attachments.append(model);
         }
         _resetStates = true;
@@ -111,8 +110,9 @@ void Model::simulate(float deltaTime) {
         getJointPosition(attachment.jointIndex, jointTranslation);
         getJointRotation(attachment.jointIndex, jointRotation);
         
-        model->setTranslation(jointTranslation + jointRotation * attachment.translation);
+        model->setTranslation(jointTranslation + jointRotation * attachment.translation * _scale);
         model->setRotation(jointRotation * attachment.rotation);
+        model->setScale(_scale * attachment.scale);
         
         model->simulate(deltaTime);
     }
