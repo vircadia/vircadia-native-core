@@ -51,32 +51,6 @@ void attachVoxelNodeDataToNode(Node* newNode) {
 
 VoxelServer* VoxelServer::_theInstance = NULL;
 
-VoxelServer::VoxelServer(Assignment::Command command, Assignment::Location location) :
-    Assignment(command, Assignment::VoxelServerType, location),
-    _serverTree(true) {
-    _argc = 0;
-    _argv = NULL;
-
-    _packetsPerClientPerInterval = 10;
-    _wantVoxelPersist = true;
-    _wantLocalDomain = false;
-    _debugVoxelSending = false;
-    _shouldShowAnimationDebug = false;
-    _displayVoxelStats = false;
-    _debugVoxelReceiving = false;
-    _sendEnvironments = true;
-    _sendMinimalEnvironment = false;
-    _dumpVoxelsOnMove = false;
-    _jurisdiction = NULL;
-    _jurisdictionSender = NULL;
-    _voxelServerPacketProcessor = NULL;
-    _voxelPersistThread = NULL;
-    _parsedArgV = NULL;
-    
-    _theInstance = this;
-}
-
-
 VoxelServer::VoxelServer(const unsigned char* dataBuffer, int numBytes) : Assignment(dataBuffer, numBytes),
     _serverTree(true) {
     _argc = 0;
