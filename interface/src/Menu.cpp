@@ -291,7 +291,7 @@ Menu::Menu() :
                                            false, appInstance->getVoxels(), SLOT(setUseFastVoxelPipeline(bool)));
     addCheckableActionToQMenuAndActionHash(cullingOptionsMenu, MenuOption::DontRemoveOutOfView);
     addCheckableActionToQMenuAndActionHash(cullingOptionsMenu, MenuOption::HideOutOfView);
-    addCheckableActionToQMenuAndActionHash(cullingOptionsMenu, MenuOption::UseDeltaFrustumInHide);
+    addCheckableActionToQMenuAndActionHash(cullingOptionsMenu, MenuOption::UseFullFrustumInHide);
     addCheckableActionToQMenuAndActionHash(cullingOptionsMenu, MenuOption::DisableConstantCulling);
 
 
@@ -1115,9 +1115,9 @@ void Menu::setNewVoxelCullingMode(bool newMode) {
 /// voxel culling mode.
 void Menu::setVoxelCullingMode(bool oldMode) {
     const QString menus[] = { MenuOption::FastVoxelPipeline, MenuOption::DontRemoveOutOfView, MenuOption::HideOutOfView,
-                              MenuOption::UseDeltaFrustumInHide, MenuOption::DisableConstantCulling};
-    bool oldModeValue[]    = { false, false, false, false, true };
-    bool newModeValue[]    = { true, true, true, true, false };
+                              MenuOption::UseFullFrustumInHide, MenuOption::DisableConstantCulling};
+    bool oldModeValue[]    = { false, false, false, true, true };
+    bool newModeValue[]    = { true, true, true, false, false };
 
     for (int i = 0; i < sizeof(menus) / sizeof(menus[0]); i++) {
         bool desiredValue = oldMode ? oldModeValue[i] : newModeValue[i];

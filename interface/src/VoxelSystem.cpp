@@ -1810,7 +1810,7 @@ void VoxelSystem::hideOutOfView() {
     bool showDebugDetails = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showDebugDetails, "hideOutOfView()", showDebugDetails);
     bool widenFrustum = true;
-    bool wantDeltaFrustums = Menu::getInstance()->isOptionChecked(MenuOption::UseDeltaFrustumInHide);
+    bool wantDeltaFrustums = !Menu::getInstance()->isOptionChecked(MenuOption::UseFullFrustumInHide);
     hideOutOfViewArgs args(this, this->_tree, _culledOnce, widenFrustum, wantDeltaFrustums);
 
     const bool wantViewFrustumDebugging = false; // change to true for additional debugging
