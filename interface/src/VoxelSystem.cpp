@@ -123,9 +123,10 @@ void VoxelSystem::voxelDeleted(VoxelNode* node) {
     }
 }
 
-void VoxelSystem::setUseFastVoxelPipeline(bool useFastVoxelPipeline) {
-    _useFastVoxelPipeline = useFastVoxelPipeline;
-    printf("setUseFastVoxelPipeline() _useFastVoxelPipeline=%s\n", debug::valueOf(_useFastVoxelPipeline));
+void VoxelSystem::setDisableFastVoxelPipeline(bool disableFastVoxelPipeline) {
+    _useFastVoxelPipeline = !disableFastVoxelPipeline;
+    printf("setDisableFastVoxelPipeline() disableFastVoxelPipeline=%s _useFastVoxelPipeline=%s\n", 
+        debug::valueOf(disableFastVoxelPipeline), debug::valueOf(_useFastVoxelPipeline));
     setupNewVoxelsForDrawing();
 }
 
@@ -744,7 +745,7 @@ void VoxelSystem::checkForCulling() {
     uint64_t start = usecTimestampNow();
     uint64_t sinceLastViewCulling = (start - _lastViewCulling) / 1000;
     
-    bool constantCulling = Menu::getInstance()->isOptionChecked(MenuOption::ConstantCulling);
+    bool constantCulling = !Menu::getInstance()->isOptionChecked(MenuOption::DisableConstantCulling);
     
     // If the view frustum is no longer changing, but has changed, since last time, then remove nodes that are out of view
     if (constantCulling || (
@@ -757,10 +758,10 @@ void VoxelSystem::checkForCulling() {
         // When we call removeOutOfView() voxels, we don't actually remove the voxels from the VBOs, but we do remove
         // them from tree, this makes our tree caclulations faster, but doesn't require us to fully rebuild the VBOs (which
         // can be expensive).
-        if (Menu::getInstance()->isOptionChecked(MenuOption::HideOutOfView)) {
+        if (!Menu::getInstance()->isOptionChecked(MenuOption::DisableHideOutOfView)) {
             hideOutOfView();
         }
-        if (!Menu::getInstance()->isOptionChecked(MenuOption::DontRemoveOutOfView)) {
+        if (Menu::getInstance()->isOptionChecked(MenuOption::RemoveOutOfView)) {
             removeOutOfView();
         }
         
@@ -1810,7 +1811,7 @@ void VoxelSystem::hideOutOfView() {
     bool showDebugDetails = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showDebugDetails, "hideOutOfView()", showDebugDetails);
     bool widenFrustum = true;
-    bool wantDeltaFrustums = Menu::getInstance()->isOptionChecked(MenuOption::UseDeltaFrustumInHide);
+    bool wantDeltaFrustums = !Menu::getInstance()->isOptionChecked(MenuOption::UseFullFrustumInHide);
     hideOutOfViewArgs args(this, this->_tree, _culledOnce, widenFrustum, wantDeltaFrustums);
 
     const bool wantViewFrustumDebugging = false; // change to true for additional debugging
