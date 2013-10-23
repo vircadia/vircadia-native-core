@@ -131,8 +131,8 @@ void DataServerClient::processSendFromDataServer(unsigned char* packetData, int 
             if (keyList[i] == DataServerKey::FaceMeshURL) {
                 
                 if (userUUID.isNull() || userUUID == Application::getInstance()->getProfile()->getUUID()) {
-                    qDebug("Changing user's face model URL to %s\n", valueList[0].toLocal8Bit().constData());
-                    Application::getInstance()->getProfile()->setFaceModelURL(QUrl(valueList[0]));
+                    qDebug("Changing user's face model URL to %s\n", valueList[i].toLocal8Bit().constData());
+                    Application::getInstance()->getProfile()->setFaceModelURL(QUrl(valueList[i]));
                 } else {
                     // mesh URL for a UUID, find avatar in our list
                     NodeList* nodeList = NodeList::getInstance();
@@ -142,7 +142,7 @@ void DataServerClient::processSendFromDataServer(unsigned char* packetData, int 
                             
                             if (avatar->getUUID() == userUUID) {
                                 QMetaObject::invokeMethod(&avatar->getHead().getFaceModel(),
-                                    "setURL", Q_ARG(QUrl, QUrl(valueList[0])));
+                                    "setURL", Q_ARG(QUrl, QUrl(valueList[i])));
                             }
                         }
                     }
@@ -150,8 +150,8 @@ void DataServerClient::processSendFromDataServer(unsigned char* packetData, int 
             } else if (keyList[i] == DataServerKey::SkeletonURL) {
                 
                 if (userUUID.isNull() || userUUID == Application::getInstance()->getProfile()->getUUID()) {
-                    qDebug("Changing user's skeleton URL to %s\n", valueList[0].toLocal8Bit().constData());
-                    Application::getInstance()->getProfile()->setSkeletonModelURL(QUrl(valueList[0]));
+                    qDebug("Changing user's skeleton URL to %s\n", valueList[i].toLocal8Bit().constData());
+                    Application::getInstance()->getProfile()->setSkeletonModelURL(QUrl(valueList[i]));
                 } else {
                     // skeleton URL for a UUID, find avatar in our list
                     NodeList* nodeList = NodeList::getInstance();
@@ -161,7 +161,7 @@ void DataServerClient::processSendFromDataServer(unsigned char* packetData, int 
                             
                             if (avatar->getUUID() == userUUID) {
                                 QMetaObject::invokeMethod(&avatar->getSkeletonModel(), "setURL",
-                                    Q_ARG(QUrl, QUrl(valueList[0])));
+                                    Q_ARG(QUrl, QUrl(valueList[i])));
                             }
                         }
                     }
@@ -187,7 +187,7 @@ void DataServerClient::processSendFromDataServer(unsigned char* packetData, int 
                 
             } else if (keyList[i] == DataServerKey::UUID) {
                 // this is the user's UUID - set it on the profile
-                Application::getInstance()->getProfile()->setUUID(valueList[0]);
+                Application::getInstance()->getProfile()->setUUID(valueList[i]);
             }
         }
     }

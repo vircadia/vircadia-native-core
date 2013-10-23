@@ -12,8 +12,7 @@
 #include "SkeletonModel.h"
 
 SkeletonModel::SkeletonModel(Avatar* owningAvatar) :
-    _owningAvatar(owningAvatar)
-{
+    _owningAvatar(owningAvatar) {
 }
 
 void SkeletonModel::simulate(float deltaTime) {
