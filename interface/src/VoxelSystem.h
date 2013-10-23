@@ -85,7 +85,7 @@ public:
     void killLocalVoxels();
 
     virtual void removeOutOfView();
-    virtual void hideOutOfView();
+    virtual void hideOutOfView(bool forceFullFrustum = false);
     bool hasViewChanged();
     bool isViewChanging();
     
@@ -228,8 +228,10 @@ private:
     int _setupNewVoxelsForDrawingLastElapsed;
     uint64_t _setupNewVoxelsForDrawingLastFinished;
     uint64_t _lastViewCulling;
+    uint64_t _lastViewIsChanging;
     uint64_t _lastAudit;
     int _lastViewCullingElapsed;
+    bool _hasRecentlyChanged;
     
     void initVoxelMemory();
     void cleanupVoxelMemory();
