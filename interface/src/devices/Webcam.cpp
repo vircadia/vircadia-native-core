@@ -19,7 +19,7 @@
 
 #include "Application.h"
 #include "Webcam.h"
-#include "avatar/Face.h"
+#include "avatar/VideoFace.h"
 
 using namespace cv;
 using namespace std;

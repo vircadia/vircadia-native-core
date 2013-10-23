@@ -29,6 +29,9 @@ public:
     void setFaceModelURL(const QUrl& faceModelURL);
     const QUrl& getFaceModelURL() const { return _faceModelURL; }
     
+    void setSkeletonModelURL(const QUrl& skeletonModelURL);
+    const QUrl& getSkeletonModelURL() const { return _skeletonModelURL; }
+    
     void updateDomain(const QString& domain);
     void updatePosition(const glm::vec3 position);
     
@@ -43,6 +46,7 @@ private:
     QString _lastDomain;
     glm::vec3 _lastPosition;
     QUrl _faceModelURL;
+    QUrl _skeletonModelURL;
 };
 
 #endif /* defined(__hifi__Profile__) */

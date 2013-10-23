@@ -83,8 +83,8 @@ Head::Head(Avatar* owningAvatar) :
     _mousePitch(0.f),
     _cameraYaw(_yaw),
     _isCameraMoving(false),
-    _face(this),
-    _blendFace(this)
+    _videoFace(this),
+    _faceModel(this)
 {
     if (USING_PHYSICAL_MOHAWK) {    
         resetHairPhysics();
@@ -104,7 +104,7 @@ void Head::init() {
         _irisTexture = Application::getInstance()->getTextureCache()->getTexture(QUrl::fromLocalFile(IRIS_TEXTURE_FILENAME),
             true).staticCast<DilatableNetworkTexture>();
     }
-    _blendFace.init();
+    _faceModel.init();
 }
 
 void Head::reset() {
@@ -115,7 +115,7 @@ void Head::reset() {
         resetHairPhysics();
     }
     
-    _blendFace.reset();
+    _faceModel.reset();
 }
 
 void Head::resetHairPhysics() {
@@ -237,7 +237,7 @@ void Head::simulate(float deltaTime, bool isMine) {
         updateHairPhysics(deltaTime);
     }
     
-    _blendFace.simulate(deltaTime);
+    _faceModel.simulate(deltaTime);
 }
 
 void Head::calculateGeometry() {
@@ -285,7 +285,7 @@ void Head::calculateGeometry() {
 void Head::render(float alpha, bool isMine) {
     _renderAlpha = alpha;
 
-    if (!(_face.render(alpha) || _blendFace.render(alpha))) {
+    if (!(_videoFace.render(alpha) || _faceModel.render(alpha))) {
         calculateGeometry();
 
         glEnable(GL_DEPTH_TEST);
@@ -300,9 +300,9 @@ void Head::render(float alpha, bool isMine) {
         renderEyeBrows();
     }
     
-    if (_blendFace.isActive()) {
+    if (_faceModel.isActive()) {
         // the blend face may have custom eye meshes
-        _blendFace.getEyePositions(_leftEyePosition, _rightEyePosition);
+        _faceModel.getEyePositions(_leftEyePosition, _rightEyePosition);
     }
         
     if (_renderLookatVectors) {

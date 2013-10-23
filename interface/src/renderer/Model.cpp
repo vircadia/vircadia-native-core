@@ -1,52 +1,48 @@
 //
-//  BlendFace.cpp
+//  Model.cpp
 //  interface
 //
-//  Created by Andrzej Kapolka on 9/16/13.
+//  Created by Andrzej Kapolka on 10/18/13.
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
-
-#include <QNetworkReply>
 
 #include <glm/gtx/transform.hpp>
 
 #include "Application.h"
-#include "BlendFace.h"
-#include "Head.h"
+#include "Model.h"
 
-using namespace fs;
 using namespace std;
 
-BlendFace::BlendFace(Head* owningHead) :
-    _owningHead(owningHead)
+Model::Model() :
+    _pupilDilation(0.0f)
 {
     // we may have been created in the network thread, but we live in the main thread
     moveToThread(Application::getInstance()->thread());
 }
 
-BlendFace::~BlendFace() {
+Model::~Model() {
     deleteGeometry();
 }
 
-ProgramObject BlendFace::_program;
-ProgramObject BlendFace::_skinProgram;
-int BlendFace::_clusterMatricesLocation;
-int BlendFace::_clusterIndicesLocation;
-int BlendFace::_clusterWeightsLocation;
+ProgramObject Model::_program;
+ProgramObject Model::_skinProgram;
+int Model::_clusterMatricesLocation;
+int Model::_clusterIndicesLocation;
+int Model::_clusterWeightsLocation;
 
-void BlendFace::init() {
+void Model::init() {
     if (!_program.isLinked()) {
         switchToResourcesParentIfRequired();
-        _program.addShaderFromSourceFile(QGLShader::Vertex, "resources/shaders/blendface.vert");
-        _program.addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/blendface.frag");
+        _program.addShaderFromSourceFile(QGLShader::Vertex, "resources/shaders/model.vert");
+        _program.addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/model.frag");
         _program.link();
         
         _program.bind();
         _program.setUniformValue("texture", 0);
         _program.release();
         
-        _skinProgram.addShaderFromSourceFile(QGLShader::Vertex, "resources/shaders/skin_blendface.vert");
-        _skinProgram.addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/blendface.frag");
+        _skinProgram.addShaderFromSourceFile(QGLShader::Vertex, "resources/shaders/skin_model.vert");
+        _skinProgram.addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/model.frag");
         _skinProgram.link();
         
         _skinProgram.bind();
@@ -58,22 +54,18 @@ void BlendFace::init() {
     }
 }
 
-void BlendFace::reset() {
+void Model::reset() {
     _resetStates = true;
 }
 
-const glm::vec3 MODEL_TRANSLATION(0.0f, -60.0f, 40.0f); // temporary fudge factor
-const float MODEL_SCALE = 0.0006f;
-
-void BlendFace::simulate(float deltaTime) {
+void Model::simulate(float deltaTime) {
     if (!isActive()) {
         return;
     }
     
     // set up world vertices on first simulate after load
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    if (_meshStates.isEmpty()) {
-        QVector<glm::vec3> vertices;
+    if (_jointStates.isEmpty()) {
         foreach (const FBXJoint& joint, geometry.joints) {
             JointState state;
             state.rotation = joint.rotation;
@@ -92,43 +84,9 @@ void BlendFace::simulate(float deltaTime) {
         _resetStates = true;
     }
     
-    const Skeleton& skeleton = static_cast<Avatar*>(_owningHead->_owningAvatar)->getSkeleton();
-    glm::quat orientation = skeleton.joint[AVATAR_JOINT_NECK_BASE].absoluteRotation;
-    glm::vec3 scale = glm::vec3(-1.0f, 1.0f, -1.0f) * _owningHead->getScale() * MODEL_SCALE;
-    glm::vec3 offset = MODEL_TRANSLATION - geometry.neckPivot;
-    glm::mat4 baseTransform = glm::translate(skeleton.joint[AVATAR_JOINT_NECK_BASE].position) * glm::mat4_cast(orientation) *
-        glm::scale(scale) * glm::translate(offset);
-    
     // update the world space transforms for all joints
     for (int i = 0; i < _jointStates.size(); i++) {
-        JointState& state = _jointStates[i];
-        const FBXJoint& joint = geometry.joints.at(i);
-        if (joint.parentIndex == -1) {
-            state.transform = baseTransform * geometry.offset * joint.preRotation *
-                glm::mat4_cast(state.rotation) * joint.postRotation;
-        
-        } else {
-            if (i == geometry.neckJointIndex) {
-                // get the rotation axes in joint space and use them to adjust the rotation
-                glm::mat3 axes = glm::mat3_cast(orientation);
-                glm::mat3 inverse = glm::inverse(glm::mat3(_jointStates[joint.parentIndex].transform *
-                    joint.preRotation * glm::mat4_cast(joint.rotation)));
-                state.rotation = glm::angleAxis(_owningHead->getRoll(), glm::normalize(inverse * axes[2])) *
-                    glm::angleAxis(_owningHead->getYaw(), glm::normalize(inverse * axes[1])) *
-                    glm::angleAxis(_owningHead->getPitch(), glm::normalize(inverse * axes[0])) * joint.rotation;
-            
-            } else if (i == geometry.leftEyeJointIndex || i == geometry.rightEyeJointIndex) {
-                // likewise with the lookat position
-                glm::mat4 inverse = glm::inverse(_jointStates[joint.parentIndex].transform *
-                    joint.preRotation * glm::mat4_cast(joint.rotation));
-                glm::vec3 front = glm::vec3(inverse * glm::vec4(_owningHead->getOrientation() * IDENTITY_FRONT, 0.0f));
-                glm::vec3 lookAt = glm::vec3(inverse * glm::vec4(_owningHead->getLookAtPosition() +
-                    _owningHead->getSaccade(), 1.0f));
-                state.rotation = rotationBetween(front, lookAt) * joint.rotation;
-            }
-            state.transform = _jointStates[joint.parentIndex].transform * joint.preRotation *
-                glm::mat4_cast(state.rotation) * joint.postRotation;
-        }
+        updateJointState(i);
     }
     
     for (int i = 0; i < _meshStates.size(); i++) {
@@ -152,9 +110,8 @@ void BlendFace::simulate(float deltaTime) {
             memcpy(_blendedVertices.data(), mesh.vertices.constData(), vertexCount * sizeof(glm::vec3));
             
             // blend in each coefficient
-            const vector<float>& coefficients = _owningHead->getBlendshapeCoefficients();
-            for (int j = 0; j < coefficients.size(); j++) {
-                float coefficient = coefficients[j];
+            for (int j = 0; j < _blendshapeCoefficients.size(); j++) {
+                float coefficient = _blendshapeCoefficients[j];
                 if (coefficient == 0.0f || j >= mesh.blendshapes.size() || mesh.blendshapes[j].vertices.isEmpty()) {
                     continue;
                 }
@@ -217,11 +174,11 @@ void BlendFace::simulate(float deltaTime) {
     _resetStates = false;
 }
 
-bool BlendFace::render(float alpha) {
+bool Model::render(float alpha) {
     if (_meshStates.isEmpty()) {
         return false;
     }
-
+    
     // set up blended buffer ids on first render after load/simulate
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     const QVector<NetworkMesh>& networkMeshes = _geometry->getMeshes();
@@ -300,9 +257,8 @@ bool BlendFace::render(float alpha) {
                 memcpy(_blendedNormals.data(), mesh.normals.constData(), vertexCount * sizeof(glm::vec3));
                 
                 // blend in each coefficient
-                const vector<float>& coefficients = _owningHead->getBlendshapeCoefficients();
-                for (int j = 0; j < coefficients.size(); j++) {
-                    float coefficient = coefficients[j];
+                for (int j = 0; j < _blendshapeCoefficients.size(); j++) {
+                    float coefficient = _blendshapeCoefficients[j];
                     if (coefficient == 0.0f || j >= mesh.blendshapes.size() || mesh.blendshapes[j].vertices.isEmpty()) {
                         continue;
                     }
@@ -342,7 +298,7 @@ bool BlendFace::render(float alpha) {
             if (mesh.isEye) {
                 if (texture != NULL) {
                     texture = (_dilatedTextures[i][j] = static_cast<DilatableNetworkTexture*>(texture)->getDilatedTexture(
-                        _owningHead->getPupilDilation())).data();
+                        _pupilDilation)).data();
                 }
             }
             glBindTexture(GL_TEXTURE_2D, texture == NULL ? Application::getInstance()->getTextureCache()->getWhiteTextureID() :
@@ -386,32 +342,33 @@ bool BlendFace::render(float alpha) {
     return true;
 }
 
-bool BlendFace::getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition, bool upright) const {
-    if (!isActive() || _jointStates.isEmpty()) {
+bool Model::getHeadPosition(glm::vec3& headPosition) const {
+    return isActive() && getJointPosition(_geometry->getFBXGeometry().headJointIndex, headPosition);
+}
+
+bool Model::getNeckPosition(glm::vec3& neckPosition) const {
+    return isActive() && getJointPosition(_geometry->getFBXGeometry().neckJointIndex, neckPosition);
+}
+
+bool Model::getNeckRotation(glm::quat& neckRotation) const {
+    return isActive() && getJointRotation(_geometry->getFBXGeometry().neckJointIndex, neckRotation);
+}
+
+bool Model::getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const {
+    if (!isActive()) {
         return false;
     }
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    if (geometry.leftEyeJointIndex != -1) {
-        const glm::mat4& transform = _jointStates[geometry.leftEyeJointIndex].transform;
-        firstEyePosition = glm::vec3(transform[3][0], transform[3][1], transform[3][2]);
-    }
-    if (geometry.rightEyeJointIndex != -1) {
-        const glm::mat4& transform = _jointStates[geometry.rightEyeJointIndex].transform;
-        secondEyePosition = glm::vec3(transform[3][0], transform[3][1], transform[3][2]);
-    }
-    return geometry.leftEyeJointIndex != -1 && geometry.rightEyeJointIndex != -1;
+    return getJointPosition(geometry.leftEyeJointIndex, firstEyePosition) &&
+        getJointPosition(geometry.rightEyeJointIndex, secondEyePosition);
 }
 
-glm::vec4 BlendFace::computeAverageColor() const {
-    return _geometry ? _geometry->computeAverageColor() : glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-}
-
-void BlendFace::setModelURL(const QUrl& url) {
+void Model::setURL(const QUrl& url) {
     // don't recreate the geometry if it's the same URL
-    if (_modelURL == url) {
+    if (_url == url) {
         return;
     }
-    _modelURL = url;
+    _url = url;
 
     // delete our local geometry and custom textures
     deleteGeometry();
@@ -420,7 +377,72 @@ void BlendFace::setModelURL(const QUrl& url) {
     _geometry = Application::getInstance()->getGeometryCache()->getGeometry(url);
 }
 
-void BlendFace::deleteGeometry() {
+glm::vec4 Model::computeAverageColor() const {
+    return _geometry ? _geometry->computeAverageColor() : glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+}
+
+void Model::updateJointState(int index) {
+    JointState& state = _jointStates[index];
+    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    const FBXJoint& joint = geometry.joints.at(index);
+    
+    if (joint.parentIndex == -1) {
+        glm::mat4 baseTransform = glm::translate(_translation) * glm::mat4_cast(_rotation) *
+            glm::scale(_scale) * glm::translate(_offset);
+    
+        glm::quat combinedRotation = joint.preRotation * state.rotation * joint.postRotation;    
+        state.transform = baseTransform * geometry.offset * joint.preTransform *
+            glm::mat4_cast(combinedRotation) * joint.postTransform;
+        state.combinedRotation = _rotation * combinedRotation;
+    
+    } else {
+        const JointState& parentState = _jointStates.at(joint.parentIndex);
+        if (index == geometry.leanJointIndex) {
+            maybeUpdateLeanRotation(parentState, joint, state);
+        
+        } else if (index == geometry.neckJointIndex) {
+            maybeUpdateNeckRotation(parentState, joint, state);    
+                
+        } else if (index == geometry.leftEyeJointIndex || index == geometry.rightEyeJointIndex) {
+            maybeUpdateEyeRotation(parentState, joint, state);
+        }
+        glm::quat combinedRotation = joint.preRotation * state.rotation * joint.postRotation;    
+        state.transform = parentState.transform * joint.preTransform *
+            glm::mat4_cast(combinedRotation) * joint.postTransform;
+        state.combinedRotation = parentState.combinedRotation * combinedRotation;
+    }
+}
+
+void Model::maybeUpdateLeanRotation(const JointState& parentState, const FBXJoint& joint, JointState& state) {
+    // nothing by default
+}
+
+void Model::maybeUpdateNeckRotation(const JointState& parentState, const FBXJoint& joint, JointState& state) {
+    // nothing by default
+}
+
+void Model::maybeUpdateEyeRotation(const JointState& parentState, const FBXJoint& joint, JointState& state) {
+    // nothing by default
+}
+
+bool Model::getJointPosition(int jointIndex, glm::vec3& position) const {
+    if (jointIndex == -1 || _jointStates.isEmpty()) {
+        return false;
+    }
+    position = extractTranslation(_jointStates[jointIndex].transform);
+    return true;
+}
+
+bool Model::getJointRotation(int jointIndex, glm::quat& rotation) const {
+    if (jointIndex == -1 || _jointStates.isEmpty()) {
+        return false;
+    }
+    rotation = _jointStates[jointIndex].combinedRotation *
+        _geometry->getFBXGeometry().joints[jointIndex].inverseBindRotation;
+    return true;
+}
+
+void Model::deleteGeometry() {
     foreach (GLuint id, _blendedVertexBufferIDs) {
         glDeleteBuffers(1, &id);
     }
