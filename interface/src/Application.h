@@ -196,7 +196,7 @@ private slots:
 private:
     void resetCamerasOnResizeGL(Camera& camera, int width, int height);
     void updateProjectionMatrix();
-    void updateProjectionMatrix(Camera& camera);
+    void updateProjectionMatrix(Camera& camera, bool updateViewFrustum = true);
 
     static bool sendVoxelsOperation(VoxelNode* node, void* extraData);
     static void processAvatarURLsMessage(unsigned char* packetData, size_t dataBytes);
@@ -221,7 +221,7 @@ private:
     void loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum);
     
     void displayOculus(Camera& whichCamera);
-    void displaySide(Camera& whichCamera);
+    void displaySide(Camera& whichCamera, bool selfAvatarOnly = false);
     void displayOverlay();
     void displayStats();
     void renderViewFrustum(ViewFrustum& viewFrustum);
