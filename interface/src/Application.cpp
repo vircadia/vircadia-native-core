@@ -387,10 +387,10 @@ void Application::paintGL() {
         _myCamera.setTightness(0.0f);
         _myCamera.setDistance(0.3f);
         glm::vec3 targetPosition = _myAvatar.getUprightHeadPosition();
-        if (_myAvatar.getHead().getBlendFace().isActive()) {
+        if (_myAvatar.getHead().getFaceModel().isActive()) {
             // make sure we're aligned to the blend face eyes
             glm::vec3 leftEyePosition, rightEyePosition;
-            if (_myAvatar.getHead().getBlendFace().getEyePositions(leftEyePosition, rightEyePosition, true)) {
+            if (_myAvatar.getHead().getFaceModel().getEyePositions(leftEyePosition, rightEyePosition)) {
                 targetPosition = (leftEyePosition + rightEyePosition) * 0.5f;
             }
         } 
