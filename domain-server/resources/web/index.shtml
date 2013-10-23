@@ -1,5 +1,5 @@
 <!--#include file="header.shtml"-->
-  <div id="nodes-lead" class="table-lead"><h3>Active Assignments</h3><div class="lead-line"></div></div>
+  <div id="nodes-lead" class="table-lead"><h3>Nodes</h3><div class="lead-line"></div></div>
   <table id="nodes-table" class="table table-striped">
     <thead>
       <tr>
