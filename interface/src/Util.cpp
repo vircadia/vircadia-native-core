@@ -158,6 +158,66 @@ glm::quat safeMix(const glm::quat& q1, const glm::quat& q2, float proportion) {
     return glm::normalize(glm::quat(s0 * q1.w + s1 * ow, s0 * q1.x + s1 * ox, s0 * q1.y + s1 * oy, s0 * q1.z + s1 * oz));
 }
 
+glm::vec3 extractTranslation(const glm::mat4& matrix) {
+    return glm::vec3(matrix[3][0], matrix[3][1], matrix[3][2]);
+}
+
+glm::quat extractRotation(const glm::mat4& matrix, bool assumeOrthogonal) {
+    // uses the iterative polar decomposition algorithm described by Ken Shoemake at
+    // http://www.cs.wisc.edu/graphics/Courses/838-s2002/Papers/polar-decomp.pdf
+    // code adapted from Clyde, https://github.com/threerings/clyde/blob/master/src/main/java/com/threerings/math/Matrix4f.java
+
+    // start with the contents of the upper 3x3 portion of the matrix
+    glm::mat3 upper = glm::mat3(matrix);
+    if (!assumeOrthogonal) {
+        for (int i = 0; i < 10; i++) {
+            // store the results of the previous iteration
+            glm::mat3 previous = upper;
+            
+            // compute average of the matrix with its inverse transpose
+            float sd00 = previous[1][1] * previous[2][2] - previous[2][1] * previous[1][2];
+            float sd10 = previous[0][1] * previous[2][2] - previous[2][1] * previous[0][2];
+            float sd20 = previous[0][1] * previous[1][2] - previous[1][1] * previous[0][2];
+            float det = previous[0][0] * sd00 + previous[2][0] * sd20 - previous[1][0] * sd10;
+            if (fabs(det) == 0.0f) {
+                // determinant is zero; matrix is not invertible
+                break;
+            }
+            float hrdet = 0.5f / det;
+            upper[0][0] = +sd00 * hrdet + previous[0][0] * 0.5f;
+            upper[1][0] = -sd10 * hrdet + previous[1][0] * 0.5f;
+            upper[2][0] = +sd20 * hrdet + previous[2][0] * 0.5f;
+
+            upper[0][1] = -(previous[1][0] * previous[2][2] - previous[2][0] * previous[1][2]) * hrdet + previous[0][1] * 0.5f;
+            upper[1][1] = +(previous[0][0] * previous[2][2] - previous[2][0] * previous[0][2]) * hrdet + previous[1][1] * 0.5f;
+            upper[2][1] = -(previous[0][0] * previous[1][2] - previous[1][0] * previous[0][2]) * hrdet + previous[2][1] * 0.5f;
+
+            upper[0][2] = +(previous[1][0] * previous[2][1] - previous[2][0] * previous[1][1]) * hrdet + previous[0][2] * 0.5f;
+            upper[1][2] = -(previous[0][0] * previous[2][1] - previous[2][0] * previous[0][1]) * hrdet + previous[1][2] * 0.5f;
+            upper[2][2] = +(previous[0][0] * previous[1][1] - previous[1][0] * previous[0][1]) * hrdet + previous[2][2] * 0.5f;
+
+            // compute the difference; if it's small enough, we're done
+            glm::mat3 diff = upper - previous;
+            if (diff[0][0] * diff[0][0] + diff[1][0] * diff[1][0] + diff[2][0] * diff[2][0] + diff[0][1] * diff[0][1] +
+                    diff[1][1] * diff[1][1] + diff[2][1] * diff[2][1] + diff[0][2] * diff[0][2] + diff[1][2] * diff[1][2] +
+                    diff[2][2] * diff[2][2] < EPSILON) {
+                break;
+            }
+        }
+    }
+    
+    // now that we have a nice orthogonal matrix, we can extract the rotation quaternion
+    // using the method described in http://en.wikipedia.org/wiki/Rotation_matrix#Conversions
+    float x2 = fabs(1.0f + upper[0][0] - upper[1][1] - upper[2][2]);
+    float y2 = fabs(1.0f - upper[0][0] + upper[1][1] - upper[2][2]);
+    float z2 = fabs(1.0f - upper[0][0] - upper[1][1] + upper[2][2]);
+    float w2 = fabs(1.0f + upper[0][0] + upper[1][1] + upper[2][2]);  
+    return glm::normalize(glm::quat(0.5f * sqrtf(w2),
+        0.5f * sqrtf(x2) * (upper[1][2] >= upper[2][1] ? 1.0f : -1.0f),
+        0.5f * sqrtf(y2) * (upper[2][0] >= upper[0][2] ? 1.0f : -1.0f),
+        0.5f * sqrtf(z2) * (upper[0][1] >= upper[1][0] ? 1.0f : -1.0f)));
+}
+
 //  Draw a 3D vector floating in space
 void drawVector(glm::vec3 * vector) {
     glDisable(GL_LIGHTING);
