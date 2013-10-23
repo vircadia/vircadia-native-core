@@ -203,7 +203,8 @@ Menu::Menu() :
                                            appInstance,
                                            SLOT(setFullscreen(bool)));
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::FirstPerson, Qt::Key_P, true);
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Mirror, Qt::Key_H);
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Mirror, Qt::SHIFT | Qt::Key_H);
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::FullscreenMirror, Qt::Key_H);
     
     QMenu* avatarSizeMenu = viewMenu->addMenu("Avatar Size");
     
