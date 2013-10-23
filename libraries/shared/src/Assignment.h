@@ -16,6 +16,7 @@
 #include "NodeList.h"
 
 const int MAX_PAYLOAD_BYTES = 1024;
+const int MAX_ASSIGNMENT_POOL_BYTES = 64 + sizeof('\0');
 
 /// Holds information used for request, creation, and deployment of assignments
 class Assignment : public NodeData {
@@ -46,6 +47,7 @@ public:
     Assignment();
     Assignment(Assignment::Command command,
                Assignment::Type type,
+               const char* pool = NULL,
                Assignment::Location location = Assignment::LocalLocation);
     Assignment(const Assignment& otherAssignment);
     Assignment& operator=(const Assignment &rhsAssignment);
@@ -68,6 +70,10 @@ public:
     uchar* getPayload() { return _payload; }
     int getNumPayloadBytes() const { return _numPayloadBytes; }
     void setPayload(const uchar *payload, int numBytes);
+    
+    void setPool(const char* pool);
+    const char* getPool() const { return _pool; }
+    bool hasPool() const { return (bool) strlen(_pool); }
     
     int getNumberOfInstances() const { return _numberOfInstances; }
     void setNumberOfInstances(int numberOfInstances) { _numberOfInstances = numberOfInstances; }
@@ -94,6 +100,7 @@ protected:
     QUuid _uuid; /// the 16 byte UUID for this assignment
     Assignment::Command _command; /// the command for this assignment (Create, Deploy, Request)
     Assignment::Type _type; /// the type of the assignment, defines what the assignee will do
+    char _pool[MAX_ASSIGNMENT_POOL_BYTES]; /// the destination pool for this assignment
     Assignment::Location _location; /// the location of the assignment, allows a domain to preferentially use local ACs
     int _numberOfInstances; /// the number of instances of this assignment
     uchar _payload[MAX_PAYLOAD_BYTES]; /// an optional payload attached to this assignment, a maximum for 1024 bytes will be packed

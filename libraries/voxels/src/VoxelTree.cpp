@@ -476,7 +476,9 @@ void VoxelTree::deleteVoxelCodeFromTreeRecursion(VoxelNode* node, void* extraDat
 void VoxelTree::eraseAllVoxels() {
     // XXXBHG Hack attack - is there a better way to erase the voxel tree?
     delete rootNode; // this will recurse and delete all children
+    VoxelSystem* voxelSystem = rootNode->getVoxelSystem();
     rootNode = new VoxelNode();
+    rootNode->setVoxelSystem(voxelSystem);
     _isDirty = true;
 }
 

@@ -94,7 +94,8 @@ private:
 	static bool _suppressShortTimings;
 public:
 
-    PerformanceWarning(bool renderWarnings, const char* message, bool alwaysDisplay = false, uint64_t* runningTotal = NULL, uint64_t* totalCalls = NULL) :
+    PerformanceWarning(bool renderWarnings, const char* message, bool alwaysDisplay = false, 
+                        uint64_t* runningTotal = NULL, uint64_t* totalCalls = NULL) :
         _start(usecTimestampNow()),
         _message(message),
         _renderWarningsOn(renderWarnings),

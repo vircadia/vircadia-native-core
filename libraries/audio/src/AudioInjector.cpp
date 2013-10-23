@@ -17,34 +17,8 @@
 
 #include "AudioInjector.h"
 
-AudioInjector::AudioInjector(const char* filename) :
-    _position(0.0f, 0.0f, 0.0f),
-    _orientation(0.0f, 0.0f, 0.0f, 0.0f),
-    _radius(0.0f),
-    _volume(MAX_INJECTOR_VOLUME),
-    _indexOfNextSlot(0),
-    _isInjectingAudio(false)
-{
-    std::fstream sourceFile;
-    
-    sourceFile.open(filename, std::ios::in | std::ios::binary);
-    sourceFile.seekg(0, std::ios::end);
-    
-    int totalBytes = sourceFile.tellg();
-    if (totalBytes == -1) {
-        printf("Error reading audio data from file %s\n", filename);
-        _audioSampleArray = NULL;
-    } else {
-        printf("Read %d bytes from audio file\n", totalBytes);
-        sourceFile.seekg(0, std::ios::beg);
-        _numTotalSamples = totalBytes / 2;
-        _audioSampleArray = new int16_t[_numTotalSamples];
-        
-        sourceFile.read((char *)_audioSampleArray, totalBytes);
-    }
-}
-
 AudioInjector::AudioInjector(int maxNumSamples) :
+    _streamIdentifier(QUuid::createUuid()),
     _numTotalSamples(maxNumSamples),
     _position(0.0f, 0.0f, 0.0f),
     _orientation(),
@@ -70,6 +44,7 @@ void AudioInjector::injectAudio(UDPSocket* injectorSocket, sockaddr* destination
         // calculate the number of bytes required for additional data
         int leadingBytes = numBytesForPacketHeader((unsigned char*) &PACKET_TYPE_INJECT_AUDIO)
             + NUM_BYTES_RFC4122_UUID
+            + NUM_BYTES_RFC4122_UUID
             + sizeof(_position)
             + sizeof(_orientation)
             + sizeof(_radius)
@@ -79,10 +54,15 @@ void AudioInjector::injectAudio(UDPSocket* injectorSocket, sockaddr* destination
         
         unsigned char* currentPacketPtr = dataPacket + populateTypeAndVersion(dataPacket, PACKET_TYPE_INJECT_AUDIO);
         
-        // copy the identifier for this injector
+        // copy the UUID for the owning node
         QByteArray rfcUUID = NodeList::getInstance()->getOwnerUUID().toRfc4122();
         memcpy(currentPacketPtr, rfcUUID.constData(), rfcUUID.size());
         currentPacketPtr += rfcUUID.size();
+        
+        // copy the stream identifier
+        QByteArray rfcStreamIdentifier = _streamIdentifier.toRfc4122();
+        memcpy(currentPacketPtr, rfcStreamIdentifier.constData(), rfcStreamIdentifier.size());
+        currentPacketPtr += rfcStreamIdentifier.size();
         
         memcpy(currentPacketPtr, &_position, sizeof(_position));
         currentPacketPtr += sizeof(_position);

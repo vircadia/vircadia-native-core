@@ -33,17 +33,8 @@ Node::Node(const QUuid& uuid, char type, sockaddr* publicSocket, sockaddr* local
     _linkedData(NULL),
     _isAlive(true)
 {
-    if (publicSocket) {
-        _publicSocket = new sockaddr(*publicSocket);
-    } else {
-        _publicSocket = NULL;
-    }
-    
-    if (localSocket) {
-        _localSocket = new sockaddr(*localSocket);
-    } else {
-        _localSocket = NULL;
-    }
+    setPublicSocket(publicSocket);
+    setLocalSocket(localSocket);
     
     pthread_mutex_init(&_mutex, 0);
 }
@@ -95,6 +86,32 @@ const char* Node::getTypeName() const {
 	}
 }
 
+void Node::setPublicSocket(sockaddr* publicSocket) {
+    if (_activeSocket == _publicSocket) {
+        // if the active socket was the public socket then reset it to NULL
+        _activeSocket = NULL;
+    }
+    
+    if (publicSocket) {
+        _publicSocket = new sockaddr(*publicSocket);
+    } else {
+        _publicSocket = NULL;
+    }
+}
+
+void Node::setLocalSocket(sockaddr* localSocket) {
+    if (_activeSocket == _localSocket) {
+        // if the active socket was the local socket then reset it to NULL
+        _activeSocket = NULL;
+    }
+    
+    if (localSocket) {
+        _localSocket = new sockaddr(*localSocket);
+    } else {
+        _localSocket = NULL;
+    }
+}
+
 void Node::activateLocalSocket() {
     qDebug() << "Activating local socket for node" << *this << "\n";
     _activeSocket = _localSocket;
@@ -103,10 +120,6 @@ void Node::activateLocalSocket() {
 void Node::activatePublicSocket() {
     qDebug() << "Activating public socket for node" << *this << "\n";
     _activeSocket = _publicSocket;
-}
-
-bool Node::operator==(const Node& otherNode) {
-    return matches(otherNode._publicSocket, otherNode._localSocket, otherNode._type);
 }
 
 bool Node::matches(sockaddr* otherPublicSocket, sockaddr* otherLocalSocket, char otherNodeType) {

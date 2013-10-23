@@ -21,17 +21,6 @@ sockaddr AudioInjectionManager::_destinationSocket;
 bool AudioInjectionManager::_isDestinationSocketExplicit = false;
 AudioInjector* AudioInjectionManager::_injectors[50] = {};
 
-AudioInjector* AudioInjectionManager::injectorWithSamplesFromFile(const char* filename) {
-    for (int i = 0; i < MAX_CONCURRENT_INJECTORS; i++) {
-        if (!_injectors[i]) {
-            _injectors[i] = new AudioInjector(filename);
-            return _injectors[i];
-        }
-    }
-    
-    return NULL;
-}
-
 AudioInjector* AudioInjectionManager::injectorWithCapacity(int capacity) {
     for (int i = 0; i < MAX_CONCURRENT_INJECTORS; i++) {
         if (!_injectors[i]) {

@@ -81,6 +81,8 @@ private slots:
     void chooseVoxelPaintColor();
     void runTests();
     void resetSwatchColors();
+    void setOldVoxelCullingMode(bool oldMode);
+    void setNewVoxelCullingMode(bool newMode);
     
 private:
     static Menu* _instance;
@@ -108,6 +110,7 @@ private:
                                                     const char* member = NULL);
     
     void updateFrustumRenderModeAction();
+    void setVoxelCullingMode(bool oldMode);
     
     QHash<QString, QAction*> _actionHash;
     int _audioJitterBufferSamples; /// number of extra samples to wait before starting audio playback
@@ -182,9 +185,11 @@ namespace MenuOption {
     const QString LookAtVectors = "Look-at Vectors";
     const QString LowRes = "Lower Resolution While Moving";
     const QString Mirror = "Mirror";
+    const QString NewVoxelCullingMode = "New Voxel Culling Mode";
     const QString NudgeVoxels = "Nudge";
     const QString OcclusionCulling = "Occlusion Culling";
     const QString OffAxisProjection = "Off-Axis Projection";
+    const QString OldVoxelCullingMode = "Old Voxel Culling Mode";
     const QString TurnWithHead = "Turn using Head";
     const QString Oscilloscope = "Audio Oscilloscope";
     const QString Pair = "Pair";
@@ -198,6 +203,7 @@ namespace MenuOption {
     const QString SendVoxelColors = "Colored Voxels";
     const QString SettingsImport = "Import Settings";
     const QString SettingsExport = "Export Settings";
+    const QString ShowAllLocalVoxels = "Show All Local Voxels";
     const QString ShowTrueColors = "Show TRUE Colors";
     const QString SimulateLeapHand = "Simulate Leap Hand";
     const QString SkeletonTracking = "Skeleton Tracking";
@@ -210,6 +216,7 @@ namespace MenuOption {
     const QString TreeStats = "Calculate Tree Stats";
     const QString TransmitterDrive = "Transmitter Drive";
     const QString Quit =  "Quit";
+    const QString UseDeltaFrustumInHide = "Use Delta View Frustums when Culling";
     const QString UseVoxelShader = "Use Voxel Shader";
     const QString VoxelsAsPoints = "Draw Voxels as Points";
     const QString Voxels = "Voxels";

@@ -9,16 +9,19 @@
 #ifndef __hifi__InjectedAudioRingBuffer__
 #define __hifi__InjectedAudioRingBuffer__
 
+#include <QtCore/QUuid>
+
 #include "AudioInjector.h"
 
 #include "PositionalAudioRingBuffer.h"
 
 class InjectedAudioRingBuffer : public PositionalAudioRingBuffer {
 public:
-    InjectedAudioRingBuffer();
+    InjectedAudioRingBuffer(const QUuid& streamIdentifier = QUuid());
     
     int parseData(unsigned char* sourceBuffer, int numBytes);
     
+    const QUuid& getStreamIdentifier() const { return _streamIdentifier; }
     float getRadius() const { return _radius; }
     float getAttenuationRatio() const { return _attenuationRatio; }
 private:
@@ -26,6 +29,7 @@ private:
     InjectedAudioRingBuffer(const InjectedAudioRingBuffer&);
     InjectedAudioRingBuffer& operator= (const InjectedAudioRingBuffer&);
     
+    QUuid _streamIdentifier;
     float _radius;
     float _attenuationRatio;
 };

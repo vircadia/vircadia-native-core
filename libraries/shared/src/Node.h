@@ -29,7 +29,8 @@ public:
     Node(const QUuid& uuid, char type, sockaddr* publicSocket, sockaddr* localSocket);
     ~Node();
     
-    bool operator==(const Node& otherNode);
+    bool operator==(const Node& otherNode) const { return _uuid == otherNode._uuid; }
+    bool operator!=(const Node& otherNode) const { return !(*this == otherNode); }
     
     bool matches(sockaddr* otherPublicSocket, sockaddr* otherLocalSocket, char otherNodeType);
     
@@ -47,9 +48,9 @@ public:
     void setLastHeardMicrostamp(uint64_t lastHeardMicrostamp) { _lastHeardMicrostamp = lastHeardMicrostamp; }
     
     sockaddr* getPublicSocket() const { return _publicSocket; }
-    void setPublicSocket(sockaddr* publicSocket) { _publicSocket = publicSocket; }
+    void setPublicSocket(sockaddr* publicSocket);
     sockaddr* getLocalSocket() const { return _localSocket; }
-    void setLocalSocket(sockaddr* localSocket) { _localSocket = localSocket; }
+    void setLocalSocket(sockaddr* localSocket);
     
     sockaddr* getActiveSocket() const { return _activeSocket; }
     
@@ -73,6 +74,7 @@ public:
     void unlock() { pthread_mutex_unlock(&_mutex); }
 
     static void printLog(Node const&);
+    
 private:
     // privatize copy and assignment operator to disallow Node copying
     Node(const Node &otherNode);

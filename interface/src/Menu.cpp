@@ -60,11 +60,11 @@ Menu::Menu() :
     QMenu* fileMenu = addMenu("File");
     
 #ifdef Q_OS_MAC
-    (addActionToQMenuAndActionHash(fileMenu,
-                                   MenuOption::AboutApp,
-                                   0,
-                                   this,
-                                   SLOT(aboutApp())))->setMenuRole(QAction::AboutRole);
+    addActionToQMenuAndActionHash(fileMenu,
+                                  MenuOption::AboutApp,
+                                  0,
+                                  this,
+                                  SLOT(aboutApp()));
 #endif
     
     (addActionToQMenuAndActionHash(fileMenu,
@@ -72,12 +72,6 @@ Menu::Menu() :
                                    0,
                                    this,
                                    SLOT(login())));
-    
-    (addActionToQMenuAndActionHash(fileMenu,
-                                   MenuOption::Preferences,
-                                   Qt::CTRL | Qt::Key_Comma,
-                                   this,
-                                   SLOT(editPreferences())))->setMenuRole(QAction::PreferencesRole);
 
     addDisabledActionAndSeparator(fileMenu, "Voxels");
     addActionToQMenuAndActionHash(fileMenu, MenuOption::ExportVoxels, Qt::CTRL | Qt::Key_E, appInstance, SLOT(exportVoxels()));
@@ -114,13 +108,22 @@ Menu::Menu() :
     addActionToQMenuAndActionHash(fileMenu, MenuOption::Pair, 0, PairingHandler::getInstance(), SLOT(sendPairRequest()));
     addCheckableActionToQMenuAndActionHash(fileMenu, MenuOption::TransmitterDrive, 0, true);
     
-    (addActionToQMenuAndActionHash(fileMenu,
-                                   MenuOption::Quit,
-                                   Qt::CTRL | Qt::Key_Q,
-                                   appInstance,
-                                   SLOT(quit())))->setMenuRole(QAction::QuitRole);    
+    addActionToQMenuAndActionHash(fileMenu,
+                                  MenuOption::Quit,
+                                  Qt::CTRL | Qt::Key_Q,
+                                  appInstance,
+                                  SLOT(quit()));
     
     QMenu* editMenu = addMenu("Edit");
+    
+    addActionToQMenuAndActionHash(editMenu,
+                                  MenuOption::Preferences,
+                                  Qt::CTRL | Qt::Key_Comma,
+                                  this,
+                                  SLOT(editPreferences()));
+    
+    addDisabledActionAndSeparator(editMenu, "Voxels");
+    
     addActionToQMenuAndActionHash(editMenu, MenuOption::CutVoxels, Qt::CTRL | Qt::Key_X, appInstance, SLOT(cutVoxels()));
     addActionToQMenuAndActionHash(editMenu, MenuOption::CopyVoxels, Qt::CTRL | Qt::Key_C, appInstance, SLOT(copyVoxels()));
     addActionToQMenuAndActionHash(editMenu, MenuOption::PasteVoxels, Qt::CTRL | Qt::Key_V, appInstance, SLOT(pasteVoxels()));
@@ -272,16 +275,25 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::VoxelsAsPoints, 0, 
                                            false, appInstance->getVoxels(), SLOT(setVoxelsAsPoints(bool)));
 
-    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::FastVoxelPipeline, 0,
-                                           false, appInstance->getVoxels(), SLOT(setUseFastVoxelPipeline(bool)));
-
-    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::DontRemoveOutOfView);
-    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::HideOutOfView);
-    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::ConstantCulling);
-    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::AutomaticallyAuditTree);
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::VoxelTextures);
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::AmbientOcclusion);
-                                           
+
+    QMenu* cullingOptionsMenu = voxelOptionsMenu->addMenu("Culling Options");
+    addDisabledActionAndSeparator(cullingOptionsMenu, "Standard Settings");
+    addCheckableActionToQMenuAndActionHash(cullingOptionsMenu, MenuOption::OldVoxelCullingMode, 0,
+                                           false, this, SLOT(setOldVoxelCullingMode(bool)));
+
+    addCheckableActionToQMenuAndActionHash(cullingOptionsMenu, MenuOption::NewVoxelCullingMode, 0,
+                                           false, this, SLOT(setNewVoxelCullingMode(bool)));
+
+    addDisabledActionAndSeparator(cullingOptionsMenu, "Individual Option Settings");
+    addCheckableActionToQMenuAndActionHash(cullingOptionsMenu, MenuOption::FastVoxelPipeline, 0,
+                                           false, appInstance->getVoxels(), SLOT(setUseFastVoxelPipeline(bool)));
+    addCheckableActionToQMenuAndActionHash(cullingOptionsMenu, MenuOption::DontRemoveOutOfView);
+    addCheckableActionToQMenuAndActionHash(cullingOptionsMenu, MenuOption::HideOutOfView);
+    addCheckableActionToQMenuAndActionHash(cullingOptionsMenu, MenuOption::UseDeltaFrustumInHide);
+    addCheckableActionToQMenuAndActionHash(cullingOptionsMenu, MenuOption::ConstantCulling);
+
 
     QMenu* avatarOptionsMenu = developerMenu->addMenu("Avatar Options");
     
@@ -374,8 +386,17 @@ Menu::Menu() :
     
     
     QMenu* renderDebugMenu = developerMenu->addMenu("Render Debugging Tools");
-    addCheckableActionToQMenuAndActionHash(renderDebugMenu, MenuOption::PipelineWarnings);
-    addCheckableActionToQMenuAndActionHash(renderDebugMenu, MenuOption::SuppressShortTimings);
+    addCheckableActionToQMenuAndActionHash(renderDebugMenu, MenuOption::PipelineWarnings, Qt::CTRL | Qt::SHIFT | Qt::Key_P);
+    addCheckableActionToQMenuAndActionHash(renderDebugMenu, MenuOption::SuppressShortTimings, Qt::CTRL | Qt::SHIFT | Qt::Key_S);
+
+    addCheckableActionToQMenuAndActionHash(renderDebugMenu, MenuOption::AutomaticallyAuditTree);
+
+
+    addActionToQMenuAndActionHash(renderDebugMenu,
+                                  MenuOption::ShowAllLocalVoxels,
+                                  Qt::CTRL | Qt::Key_A,
+                                  appInstance->getVoxels(),
+                                  SLOT(showAllLocalVoxels()));
     
     addActionToQMenuAndActionHash(renderDebugMenu,
                                   MenuOption::KillLocalVoxels,
@@ -1098,4 +1119,30 @@ void Menu::updateFrustumRenderModeAction() {
     }
 }
 
+void Menu::setOldVoxelCullingMode(bool oldMode) {
+    setVoxelCullingMode(oldMode);
+}
 
+void Menu::setNewVoxelCullingMode(bool newMode) {
+    setVoxelCullingMode(!newMode);
+}
+
+/// This will switch on or off several different individual settings options all at once based on choosing with Old or New
+/// voxel culling mode.
+void Menu::setVoxelCullingMode(bool oldMode) {
+    const QString menus[] = { MenuOption::FastVoxelPipeline, MenuOption::DontRemoveOutOfView, MenuOption::HideOutOfView,
+                              MenuOption::UseDeltaFrustumInHide, MenuOption::ConstantCulling};
+    bool oldModeValue[]    = { false, false, false, false, false };
+    bool newModeValue[]    = { true, true, true, true, true };
+
+    for (int i = 0; i < sizeof(menus) / sizeof(menus[0]); i++) {
+        bool desiredValue = oldMode ? oldModeValue[i] : newModeValue[i];
+        if (isOptionChecked(menus[i]) != desiredValue) {
+            triggerOption(menus[i]);
+        }
+    }
+
+    // set the checkmarks accordingly...
+    _actionHash.value(MenuOption::OldVoxelCullingMode)->setChecked(oldMode);
+    _actionHash.value(MenuOption::NewVoxelCullingMode)->setChecked(!oldMode);
+}

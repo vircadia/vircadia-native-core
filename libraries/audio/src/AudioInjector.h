@@ -13,6 +13,7 @@
 #include <glm/gtx/component_wise.hpp>
 
 #include <QtCore/QObject>
+#include <QtCore/QUuid>
 
 #include <RegisteredMetaTypes.h>
 #include <UDPSocket.h>
@@ -29,7 +30,6 @@ class AudioInjector : public QObject {
     Q_PROPERTY(glm::vec3 position READ getPosition WRITE setPosition)
     Q_PROPERTY(uchar volume READ getVolume WRITE setVolume);
 public:
-    AudioInjector(const char* filename);
     AudioInjector(int maxNumSamples);
     ~AudioInjector();
 
@@ -59,6 +59,7 @@ public slots:
     int16_t& sampleAt(const int index);
     void insertSample(const int index, int sample);
 private:
+    QUuid _streamIdentifier;
     int16_t* _audioSampleArray;
     int _numTotalSamples;
     glm::vec3 _position;

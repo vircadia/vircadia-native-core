@@ -9,6 +9,8 @@
 #ifndef __hifi__VoxelNode__
 #define __hifi__VoxelNode__
 
+//#define HAS_AUDIT_CHILDREN
+
 #include <SharedUtil.h>
 #include "AABox.h"
 #include "ViewFrustum.h"
@@ -144,6 +146,7 @@ public:
 #endif // def HAS_AUDIT_CHILDREN
 
 private:
+    void deleteAllChildren();
     void setChildAtIndex(int childIndex, VoxelNode* child);
     void storeTwoChildren(VoxelNode* childOne, VoxelNode* childTwo);
     void retrieveTwoChildren(VoxelNode*& childOne, VoxelNode*& childTwo);
