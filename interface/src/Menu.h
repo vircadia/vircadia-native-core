@@ -144,6 +144,7 @@ namespace MenuOption {
     const QString DestructiveAddVoxel = "Create Voxel is Destructive";
     const QString DeltaSending = "Delta Sending";
     const QString DisableConstantCulling = "Disable Constant Culling";
+    const QString DisableFastVoxelPipeline = "Disable Fast Voxel Pipeline";
     const QString DisplayFrustum = "Display Frustum";
     const QString DontRenderVoxels = "Don't call _voxels.render()";
     const QString DontCallOpenGLForVoxels = "Don't call glDrawElements()/glDrawRangeElementsEXT() for Voxels";
@@ -159,7 +160,6 @@ namespace MenuOption {
     const QString FalseColorOccludedV2 = "FALSE Color Occluded V2 Voxels";
     const QString FalseColorOutOfView = "FALSE Color Voxel Out of View";
     const QString FalseColorRandomly = "FALSE Color Voxels Randomly";
-    const QString DisableFastVoxelPipeline = "Disable Fast Voxel Pipeline";
     const QString FirstPerson = "First Person";
     const QString FrameTimer = "Show Timer";
     const QString FrustumRenderMode = "Render Mode";
