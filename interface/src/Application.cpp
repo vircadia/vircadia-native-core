@@ -2779,67 +2779,69 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
 
     _myAvatar.renderScreenTint(SCREEN_TINT_AFTER_AVATARS, whichCamera);
 
-    //  Render the world box
-    if (whichCamera.getMode() != CAMERA_MODE_MIRROR && Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
-        renderWorldBox();
-    }
+    if (!selfAvatarOnly) {
+        //  Render the world box
+        if (whichCamera.getMode() != CAMERA_MODE_MIRROR && Menu::getInstance()->isOptionChecked(MenuOption::Stats)) {
+            renderWorldBox();
+        }
     
-    // render the ambient occlusion effect if enabled
-    if (Menu::getInstance()->isOptionChecked(MenuOption::AmbientOcclusion)) {
-        PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
-            "Application::displaySide() ... AmbientOcclusion...");
-        _ambientOcclusionEffect.render();
-    }
+        // render the ambient occlusion effect if enabled
+        if (Menu::getInstance()->isOptionChecked(MenuOption::AmbientOcclusion)) {
+            PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
+                "Application::displaySide() ... AmbientOcclusion...");
+            _ambientOcclusionEffect.render();
+        }
     
-    // brad's frustum for debugging
-    if (Menu::getInstance()->isOptionChecked(MenuOption::DisplayFrustum) && whichCamera.getMode() != CAMERA_MODE_MIRROR) {
-        PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
-            "Application::displaySide() ... renderViewFrustum...");
-        renderViewFrustum(_viewFrustum);
-    }
+        // brad's frustum for debugging
+        if (Menu::getInstance()->isOptionChecked(MenuOption::DisplayFrustum) && whichCamera.getMode() != CAMERA_MODE_MIRROR) {
+            PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
+                "Application::displaySide() ... renderViewFrustum...");
+            renderViewFrustum(_viewFrustum);
+        }
 
-    // render voxel fades if they exist
-    if (_voxelFades.size() > 0) {
-        PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
-            "Application::displaySide() ... voxel fades...");
-        for(std::vector<VoxelFade>::iterator fade = _voxelFades.begin(); fade != _voxelFades.end();) {
-            fade->render();
-            if(fade->isDone()) {
-                fade = _voxelFades.erase(fade);
-            } else {
-                ++fade;
+        // render voxel fades if they exist
+        if (_voxelFades.size() > 0) {
+            PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
+                "Application::displaySide() ... voxel fades...");
+            for(std::vector<VoxelFade>::iterator fade = _voxelFades.begin(); fade != _voxelFades.end();) {
+                fade->render();
+                if(fade->isDone()) {
+                    fade = _voxelFades.erase(fade);
+                } else {
+                    ++fade;
+                }
             }
         }
-    }
 
-    {        
-        PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
-            "Application::displaySide() ... renderFollowIndicator...");
-        renderFollowIndicator();
-    }
+        {        
+            PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
+                "Application::displaySide() ... renderFollowIndicator...");
+            renderFollowIndicator();
+        }
     
-    // render transmitter pick ray, if non-empty
-    if (_transmitterPickStart != _transmitterPickEnd) {
-        PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
-            "Application::displaySide() ... transmitter pick ray...");
+        // render transmitter pick ray, if non-empty
+        if (_transmitterPickStart != _transmitterPickEnd) {
+            PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
+                "Application::displaySide() ... transmitter pick ray...");
 
-        Glower glower;
-        const float TRANSMITTER_PICK_COLOR[] = { 1.0f, 1.0f, 0.0f };
-        glColor3fv(TRANSMITTER_PICK_COLOR);
-        glLineWidth(3.0f);
-        glBegin(GL_LINES);
-        glVertex3f(_transmitterPickStart.x, _transmitterPickStart.y, _transmitterPickStart.z);
-        glVertex3f(_transmitterPickEnd.x, _transmitterPickEnd.y, _transmitterPickEnd.z);
-        glEnd();
-        glLineWidth(1.0f);
+            Glower glower;
+            const float TRANSMITTER_PICK_COLOR[] = { 1.0f, 1.0f, 0.0f };
+            glColor3fv(TRANSMITTER_PICK_COLOR);
+            glLineWidth(3.0f);
+            glBegin(GL_LINES);
+            glVertex3f(_transmitterPickStart.x, _transmitterPickStart.y, _transmitterPickStart.z);
+            glVertex3f(_transmitterPickEnd.x, _transmitterPickEnd.y, _transmitterPickEnd.z);
+            glEnd();
+            glLineWidth(1.0f);
         
-        glPushMatrix();
-        glTranslatef(_transmitterPickEnd.x, _transmitterPickEnd.y, _transmitterPickEnd.z);
+            glPushMatrix();
+            glTranslatef(_transmitterPickEnd.x, _transmitterPickEnd.y, _transmitterPickEnd.z);
         
-        const float PICK_END_RADIUS = 0.025f;
-        glutSolidSphere(PICK_END_RADIUS, 8, 8);
+            const float PICK_END_RADIUS = 0.025f;
+            glutSolidSphere(PICK_END_RADIUS, 8, 8);
         
-        glPopMatrix();
+            glPopMatrix();
+        }
     }
 }
 
