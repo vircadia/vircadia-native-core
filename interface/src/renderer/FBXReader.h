@@ -9,6 +9,7 @@
 #ifndef __interface__FBXReader__
 #define __interface__FBXReader__
 
+#include <QUrl>
 #include <QVarLengthArray>
 #include <QVariant>
 #include <QVector>
@@ -98,6 +99,17 @@ public:
     QVector<QVarLengthArray<QPair<int, int>, 4> > vertexConnections;
 };
 
+/// An attachment to an FBX document.
+class FBXAttachment {
+public:
+    
+    int jointIndex;
+    QUrl url;
+    glm::vec3 translation;
+    glm::quat rotation;
+    glm::vec3 scale;
+};
+
 /// A set of meshes extracted from an FBX document.
 class FBXGeometry {
 public:
@@ -117,6 +129,8 @@ public:
     int headJointIndex;
     
     glm::vec3 neckPivot;
+    
+    QVector<FBXAttachment> attachments;
 };
 
 /// Reads FBX geometry from the supplied model and mapping data.

@@ -13,7 +13,8 @@
 
 using namespace std;
 
-Model::Model() :
+Model::Model(QObject* parent) :
+    QObject(parent),
     _pupilDilation(0.0f)
 {
     // we may have been created in the network thread, but we live in the main thread
@@ -56,6 +57,10 @@ void Model::init() {
 
 void Model::reset() {
     _resetStates = true;
+    
+    foreach (Model* attachment, _attachments) {
+        attachment->reset();
+    }
 }
 
 void Model::simulate(float deltaTime) {
@@ -81,12 +86,35 @@ void Model::simulate(float deltaTime) {
             }
             _meshStates.append(state);    
         }
+        foreach (const FBXAttachment& attachment, geometry.attachments) {
+            Model* model = new Model(this);
+            model->init();
+            model->setURL(attachment.url);
+            model->setScale(attachment.scale);
+            _attachments.append(model);
+        }
         _resetStates = true;
     }
     
     // update the world space transforms for all joints
     for (int i = 0; i < _jointStates.size(); i++) {
         updateJointState(i);
+    }
+    
+    // update the attachment transforms and simulate them
+    for (int i = 0; i < _attachments.size(); i++) {
+        const FBXAttachment& attachment = geometry.attachments.at(i);
+        Model* model = _attachments.at(i);
+        
+        glm::vec3 jointTranslation = _translation;
+        glm::quat jointRotation = _rotation;
+        getJointPosition(attachment.jointIndex, jointTranslation);
+        getJointRotation(attachment.jointIndex, jointRotation);
+        
+        model->setTranslation(jointTranslation + jointRotation * attachment.translation);
+        model->setRotation(jointRotation * attachment.rotation);
+        
+        model->simulate(deltaTime);
     }
     
     for (int i = 0; i < _meshStates.size(); i++) {
@@ -175,6 +203,10 @@ void Model::simulate(float deltaTime) {
 }
 
 bool Model::render(float alpha) {
+    // render the attachments
+    foreach (Model* attachment, _attachments) {
+        attachment->render(alpha);
+    }
     if (_meshStates.isEmpty()) {
         return false;
     }
@@ -443,6 +475,10 @@ bool Model::getJointRotation(int jointIndex, glm::quat& rotation) const {
 }
 
 void Model::deleteGeometry() {
+    foreach (Model* attachment, _attachments) {
+        delete attachment;
+    }
+    _attachments.clear();
     foreach (GLuint id, _blendedVertexBufferIDs) {
         glDeleteBuffers(1, &id);
     }

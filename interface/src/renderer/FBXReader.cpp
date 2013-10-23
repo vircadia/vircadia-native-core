@@ -9,6 +9,7 @@
 #include <QBuffer>
 #include <QDataStream>
 #include <QIODevice>
+#include <QStringList>
 #include <QTextStream>
 #include <QtDebug>
 #include <QtEndian>
@@ -395,6 +396,19 @@ QVector<double> getDoubleVector(const QVariantList& properties, int index) {
 glm::vec3 getVec3(const QVariantList& properties, int index) {
     return glm::vec3(properties.at(index).value<double>(), properties.at(index + 1).value<double>(),
         properties.at(index + 2).value<double>());
+}
+
+glm::vec3 parseVec3(const QString& string) {
+    QStringList elements = string.split(',');
+    if (elements.isEmpty()) {
+        return glm::vec3();
+    }
+    glm::vec3 value;
+    for (int i = 0; i < 3; i++) {
+        // duplicate last value if there aren't three elements
+        value[i] = elements.at(min(i, elements.size() - 1)).trimmed().toFloat();
+    }
+    return value;
 }
 
 const char* FACESHIFT_BLENDSHAPES[] = {
@@ -1127,6 +1141,34 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         }
         
         geometry.meshes.append(mesh);
+    }
+    
+    // process attachments
+    QVariantHash attachments = mapping.value("attach").toHash();
+    for (QVariantHash::const_iterator it = attachments.constBegin(); it != attachments.constEnd(); it++) {
+        FBXAttachment attachment;
+        attachment.jointIndex = modelIDs.indexOf(it.key());
+        attachment.scale = glm::vec3(1.0f, 1.0f, 1.0f);
+        
+        QVariantList properties = it->toList();
+        if (properties.isEmpty()) {
+            attachment.url = it->toUrl();
+        } else {
+            attachment.url = properties.at(0).toString();
+            
+            if (properties.size() >= 2) {
+                attachment.translation = parseVec3(properties.at(1).toString());
+            
+                if (properties.size() >= 3) {
+                    attachment.rotation = glm::quat(glm::radians(parseVec3(properties.at(2).toString())));
+                
+                    if (properties.size() >= 4) {
+                        attachment.scale = parseVec3(properties.at(3).toString());
+                    }
+                }
+            }
+        }
+        geometry.attachments.append(attachment);
     }
     
     return geometry;
