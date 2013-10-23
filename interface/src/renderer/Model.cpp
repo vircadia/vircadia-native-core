@@ -66,7 +66,6 @@ void Model::simulate(float deltaTime) {
     // set up world vertices on first simulate after load
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     if (_jointStates.isEmpty()) {
-        QVector<glm::vec3> vertices;
         foreach (const FBXJoint& joint, geometry.joints) {
             JointState state;
             state.rotation = joint.rotation;
