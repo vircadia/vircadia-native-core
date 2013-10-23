@@ -1643,7 +1643,7 @@ void Application::init() {
     _voxels.setMaxVoxels(Menu::getInstance()->getMaxVoxels());
     _voxels.setUseVoxelShader(Menu::getInstance()->isOptionChecked(MenuOption::UseVoxelShader));
     _voxels.setVoxelsAsPoints(Menu::getInstance()->isOptionChecked(MenuOption::VoxelsAsPoints));
-    _voxels.setUseFastVoxelPipeline(Menu::getInstance()->isOptionChecked(MenuOption::FastVoxelPipeline));
+    _voxels.setDisableFastVoxelPipeline(Menu::getInstance()->isOptionChecked(MenuOption::DisableFastVoxelPipeline));
     _voxels.init();
     
 
