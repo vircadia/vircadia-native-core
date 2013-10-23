@@ -382,6 +382,20 @@ void Application::paintGL() {
     } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
         _myCamera.setTargetPosition(_myAvatar.getUprightHeadPosition());
         _myCamera.setTargetRotation(_myAvatar.getHead().getCameraOrientation());
+    
+    } else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
+        _myCamera.setTightness(0.0f);
+        _myCamera.setDistance(0.3f);
+        glm::vec3 targetPosition = _myAvatar.getUprightHeadPosition();
+        if (_myAvatar.getHead().getBlendFace().isActive()) {
+            // make sure we're aligned to the blend face eyes
+            glm::vec3 leftEyePosition, rightEyePosition;
+            if (_myAvatar.getHead().getBlendFace().getEyePositions(leftEyePosition, rightEyePosition, true)) {
+                targetPosition = (leftEyePosition + rightEyePosition) * 0.5f;
+            }
+        } 
+        _myCamera.setTargetPosition(targetPosition);
+        _myCamera.setTargetRotation(_myAvatar.getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PIf, 0.0f)));
     }
     
     // Update camera position
@@ -885,7 +899,11 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 updateProjectionMatrix();
                 break;
             case Qt::Key_H:
-                Menu::getInstance()->triggerOption(MenuOption::Mirror);
+                if (isShifted) {
+                    Menu::getInstance()->triggerOption(MenuOption::Mirror);
+                } else {
+                    Menu::getInstance()->triggerOption(MenuOption::FullscreenMirror);
+                }
                 break;
             case Qt::Key_F:
                 if (isShifted)  {
@@ -2127,7 +2145,12 @@ void Application::update(float deltaTime) {
     }
     
     if (!OculusManager::isConnected()) {        
-        if (Menu::getInstance()->isOptionChecked(MenuOption::FirstPerson)) {
+        if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
+            if (_myCamera.getMode() != CAMERA_MODE_MIRROR) {
+                _myCamera.setMode(CAMERA_MODE_MIRROR);
+                _myCamera.setModeShiftRate(100.0f);
+            }
+        } else if (Menu::getInstance()->isOptionChecked(MenuOption::FirstPerson)) {
             if (_myCamera.getMode() != CAMERA_MODE_FIRST_PERSON) {
                 _myCamera.setMode(CAMERA_MODE_FIRST_PERSON);
                 _myCamera.setModeShiftRate(1.0f);
