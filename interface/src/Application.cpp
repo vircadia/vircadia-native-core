@@ -69,11 +69,6 @@
 #include "ui/TextRenderer.h"
 #include "InfoView.h"
 
-#include <QSvgRenderer>
-#include <QPainter>
-#include <QGLWidget>
-#include <SharedUtil.h>
-
 using namespace std;
 
 //  Starfield information
@@ -264,12 +259,12 @@ void Application::restoreSizeAndPosition() {
     
     settings->beginGroup("Window");
     
-    int x = (int) loadSetting(settings, "x", 0);
-    int y = (int) loadSetting(settings, "y", 0);
+    int x = (int)loadSetting(settings, "x", 0);
+    int y = (int)loadSetting(settings, "y", 0);
     _window->move(x, y);
     
-    int width = (int) loadSetting(settings, "width", available.width());
-    int height = (int) loadSetting(settings, "height", available.height());
+    int width = (int)loadSetting(settings, "width", available.width());
+    int height = (int)loadSetting(settings, "height", available.height());
     _window->resize(width, height);
     
     settings->endGroup();
@@ -1069,7 +1064,6 @@ void Application::mousePressEvent(QMouseEvent* event) {
             }
             
             if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-                
                 QRect closeIconRect = QRect(MIRROR_CLOSE_ICON_PADDING + _mirrorViewRect.left(), MIRROR_CLOSE_ICON_PADDING + _mirrorViewRect.top(), MIRROR_ICON_SIZE, MIRROR_ICON_SIZE);
                 
                 if (closeIconRect.contains(_mouseX, _mouseY)) {
@@ -2125,7 +2119,7 @@ void Application::update(float deltaTime) {
         }
         
         if (Menu::getInstance()->isOptionChecked(MenuOption::OffAxisProjection)) {
-            float xSign = _myCamera.getMode() != CAMERA_MODE_MIRROR ? 1.0f : -1.0f;
+            float xSign = _myCamera.getMode() == CAMERA_MODE_MIRROR ? 1.0f : -1.0f;
             if (_faceshift.isActive()) {
                 const float EYE_OFFSET_SCALE = 0.025f;
                 glm::vec3 position = _faceshift.getHeadTranslation() * EYE_OFFSET_SCALE;
