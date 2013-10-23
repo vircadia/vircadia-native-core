@@ -164,6 +164,7 @@ namespace MenuOption {
     const QString FrameTimer = "Show Timer";
     const QString FrustumRenderMode = "Render Mode";
     const QString Fullscreen = "Fullscreen";
+    const QString FullscreenMirror = "Fullscreen Mirror";
     const QString GlowMode = "Cycle Glow Mode";
     const QString GoToDomain = "Go To Domain...";
     const QString GoToLocation = "Go To Location...";
