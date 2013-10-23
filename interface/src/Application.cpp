@@ -367,20 +367,7 @@ void Application::paintGL() {
     
     glEnable(GL_LINE_SMOOTH);
 
-    if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-        _myCamera.setTightness     (100.0f); 
-        glm::vec3 targetPosition = _myAvatar.getUprightHeadPosition();
-        if (_myAvatar.getHead().getFaceModel().isActive()) {
-            // make sure we're aligned to the blend face eyes
-            glm::vec3 leftEyePosition, rightEyePosition;
-            if (_myAvatar.getHead().getFaceModel().getEyePositions(leftEyePosition, rightEyePosition)) {
-                targetPosition = (leftEyePosition + rightEyePosition) * 0.5f;
-            }
-        }
-        _myCamera.setTargetPosition(targetPosition);
-        _myCamera.setTargetRotation(_myAvatar.getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PIf, 0.0f)));
-        
-    } else if (OculusManager::isConnected()) {
+    if (OculusManager::isConnected()) {
         _myCamera.setUpShift       (0.0f);
         _myCamera.setDistance      (0.0f);
         _myCamera.setTightness     (0.0f);     //  Camera is directly connected to head without smoothing
