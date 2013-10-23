@@ -14,6 +14,7 @@
 #include <QVector>
 
 #include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
 
 class FBXNode;
 
@@ -42,10 +43,13 @@ class FBXJoint {
 public:
 
     int parentIndex;
-    glm::mat4 preRotation;
+    glm::mat4 preTransform;
+    glm::quat preRotation;
     glm::quat rotation;
-    glm::mat4 postRotation;
+    glm::quat postRotation;
+    glm::mat4 postTransform;
     glm::mat4 transform;
+    glm::quat inverseBindRotation;
 };
 
 /// A single binding to a joint in an FBX document.
@@ -99,6 +103,7 @@ class FBXGeometry {
 public:
 
     QVector<FBXJoint> joints;
+    QHash<QString, int> jointIndices;
     
     QVector<FBXMesh> meshes;
     
@@ -107,6 +112,9 @@ public:
     int leftEyeJointIndex;
     int rightEyeJointIndex;
     int neckJointIndex;
+    int rootJointIndex;
+    int leanJointIndex;
+    int headJointIndex;
     
     glm::vec3 neckPivot;
 };

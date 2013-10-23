@@ -44,9 +44,15 @@ void Profile::setUUID(const QUuid& uuid) {
 void Profile::setFaceModelURL(const QUrl& faceModelURL) {
     _faceModelURL = faceModelURL;
     
-    QMetaObject::invokeMethod(&Application::getInstance()->getAvatar()->getHead().getBlendFace(),
-                              "setModelURL",
-                              Q_ARG(QUrl, _faceModelURL));
+    QMetaObject::invokeMethod(&Application::getInstance()->getAvatar()->getHead().getFaceModel(),
+        "setURL", Q_ARG(QUrl, _faceModelURL));
+}
+
+void Profile::setSkeletonModelURL(const QUrl& skeletonModelURL) {
+    _skeletonModelURL = skeletonModelURL;
+    
+    QMetaObject::invokeMethod(&Application::getInstance()->getAvatar()->getSkeletonModel(),
+        "setURL", Q_ARG(QUrl, _skeletonModelURL));
 }
 
 void Profile::updateDomain(const QString& domain) {
@@ -91,6 +97,7 @@ void Profile::saveData(QSettings* settings) {
     settings->setValue("username", _username);
     settings->setValue("UUID", _uuid);
     settings->setValue("faceModelURL", _faceModelURL);
+    settings->setValue("skeletonModelURL", _skeletonModelURL);
     
     settings->endGroup();
 }
@@ -101,6 +108,7 @@ void Profile::loadData(QSettings* settings) {
     _username = settings->value("username").toString();
     this->setUUID(settings->value("UUID").toUuid());
     _faceModelURL = settings->value("faceModelURL").toUrl();
+    _skeletonModelURL = settings->value("skeletonModelURL").toUrl();
     
     settings->endGroup();
 }

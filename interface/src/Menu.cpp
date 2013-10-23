@@ -203,7 +203,8 @@ Menu::Menu() :
                                            appInstance,
                                            SLOT(setFullscreen(bool)));
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::FirstPerson, Qt::Key_P, true);
-    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Mirror, Qt::Key_H);
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::Mirror, Qt::SHIFT | Qt::Key_H);
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::FullscreenMirror, Qt::Key_H);
     
     QMenu* avatarSizeMenu = viewMenu->addMenu("Avatar Size");
     
@@ -289,8 +290,8 @@ Menu::Menu() :
     addDisabledActionAndSeparator(cullingOptionsMenu, "Individual Option Settings");
     addCheckableActionToQMenuAndActionHash(cullingOptionsMenu, MenuOption::DisableFastVoxelPipeline, 0,
                                            false, appInstance->getVoxels(), SLOT(setDisableFastVoxelPipeline(bool)));
-    addCheckableActionToQMenuAndActionHash(cullingOptionsMenu, MenuOption::RemoveOutOfView);
     addCheckableActionToQMenuAndActionHash(cullingOptionsMenu, MenuOption::DisableHideOutOfView);
+    addCheckableActionToQMenuAndActionHash(cullingOptionsMenu, MenuOption::RemoveOutOfView);
     addCheckableActionToQMenuAndActionHash(cullingOptionsMenu, MenuOption::UseFullFrustumInHide);
     addCheckableActionToQMenuAndActionHash(cullingOptionsMenu, MenuOption::DisableConstantCulling);
 
@@ -309,7 +310,7 @@ Menu::Menu() :
     addActionToQMenuAndActionHash(avatarOptionsMenu,
                                   MenuOption::FaceMode,
                                   0,
-                                  &appInstance->getAvatar()->getHead().getFace(),
+                                  &appInstance->getAvatar()->getHead().getVideoFace(),
                                   SLOT(cycleRenderMode()));
     
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::LookAtVectors, 0, true);
@@ -811,6 +812,11 @@ void Menu::editPreferences() {
     faceURLEdit->setMinimumWidth(QLINE_MINIMUM_WIDTH);
     form->addRow("Face URL:", faceURLEdit);
     
+    QString skeletonURLString = applicationInstance->getProfile()->getSkeletonModelURL().toString();
+    QLineEdit* skeletonURLEdit = new QLineEdit(skeletonURLString);
+    skeletonURLEdit->setMinimumWidth(QLINE_MINIMUM_WIDTH);
+    form->addRow("Skeleton URL:", skeletonURLEdit);
+    
     QSlider* pupilDilation = new QSlider(Qt::Horizontal);
     pupilDilation->setValue(applicationInstance->getAvatar()->getHead().getPupilDilation() * pupilDilation->maximum());
     form->addRow("Pupil Dilation:", pupilDilation);
@@ -861,6 +867,17 @@ void Menu::editPreferences() {
         // send the new face mesh URL to the data-server (if we have a client UUID)
         DataServerClient::putValueForKey(DataServerKey::FaceMeshURL,
                                          faceModelURL.toString().toLocal8Bit().constData());
+    }
+    
+    QUrl skeletonModelURL(skeletonURLEdit->text());
+    
+    if (skeletonModelURL.toString() != skeletonURLString) {
+        // change the skeletonModelURL in the profile, it will also update this user's Body
+        applicationInstance->getProfile()->setSkeletonModelURL(skeletonModelURL);
+        
+        // send the new skeleton model URL to the data-server (if we have a client UUID)
+        DataServerClient::putValueForKey(DataServerKey::SkeletonURL,
+                                         skeletonModelURL.toString().toLocal8Bit().constData());
     }
     
     QUrl avatarVoxelURL(avatarURL->text());

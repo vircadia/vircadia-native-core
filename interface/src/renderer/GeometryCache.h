@@ -57,7 +57,7 @@ public:
     NetworkGeometry(const QUrl& url);
     ~NetworkGeometry();
 
-    bool isLoaded() const { return !_meshes.isEmpty(); }
+    bool isLoaded() const { return !_geometry.joints.isEmpty(); }
 
     const FBXGeometry& getFBXGeometry() const { return _geometry; }
     const QVector<NetworkMesh>& getMeshes() const { return _meshes; }
