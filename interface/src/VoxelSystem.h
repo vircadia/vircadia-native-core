@@ -141,7 +141,7 @@ public slots:
 
     void cancelImport();
     
-    void setUseFastVoxelPipeline(bool useFastVoxelPipeline);
+    void setDisableFastVoxelPipeline(bool disableFastVoxelPipeline);
     void setUseVoxelShader(bool useVoxelShader);
     void setVoxelsAsPoints(bool voxelsAsPoints);
         

@@ -159,7 +159,7 @@ namespace MenuOption {
     const QString FalseColorOccludedV2 = "FALSE Color Occluded V2 Voxels";
     const QString FalseColorOutOfView = "FALSE Color Voxel Out of View";
     const QString FalseColorRandomly = "FALSE Color Voxels Randomly";
-    const QString FastVoxelPipeline = "Fast Voxel Pipeline";
+    const QString DisableFastVoxelPipeline = "Disable Fast Voxel Pipeline";
     const QString FirstPerson = "First Person";
     const QString FrameTimer = "Show Timer";
     const QString FrustumRenderMode = "Render Mode";

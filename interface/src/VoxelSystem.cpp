@@ -123,9 +123,10 @@ void VoxelSystem::voxelDeleted(VoxelNode* node) {
     }
 }
 
-void VoxelSystem::setUseFastVoxelPipeline(bool useFastVoxelPipeline) {
-    _useFastVoxelPipeline = useFastVoxelPipeline;
-    printf("setUseFastVoxelPipeline() _useFastVoxelPipeline=%s\n", debug::valueOf(_useFastVoxelPipeline));
+void VoxelSystem::setDisableFastVoxelPipeline(bool disableFastVoxelPipeline) {
+    _useFastVoxelPipeline = !disableFastVoxelPipeline;
+    printf("setDisableFastVoxelPipeline() disableFastVoxelPipeline=%s _useFastVoxelPipeline=%s\n", 
+        debug::valueOf(disableFastVoxelPipeline), debug::valueOf(_useFastVoxelPipeline));
     setupNewVoxelsForDrawing();
 }
 
