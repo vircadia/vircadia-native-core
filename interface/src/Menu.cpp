@@ -292,7 +292,7 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(cullingOptionsMenu, MenuOption::DontRemoveOutOfView);
     addCheckableActionToQMenuAndActionHash(cullingOptionsMenu, MenuOption::HideOutOfView);
     addCheckableActionToQMenuAndActionHash(cullingOptionsMenu, MenuOption::UseDeltaFrustumInHide);
-    addCheckableActionToQMenuAndActionHash(cullingOptionsMenu, MenuOption::ConstantCulling);
+    addCheckableActionToQMenuAndActionHash(cullingOptionsMenu, MenuOption::DisableConstantCulling);
 
 
     QMenu* avatarOptionsMenu = developerMenu->addMenu("Avatar Options");
@@ -1115,9 +1115,9 @@ void Menu::setNewVoxelCullingMode(bool newMode) {
 /// voxel culling mode.
 void Menu::setVoxelCullingMode(bool oldMode) {
     const QString menus[] = { MenuOption::FastVoxelPipeline, MenuOption::DontRemoveOutOfView, MenuOption::HideOutOfView,
-                              MenuOption::UseDeltaFrustumInHide, MenuOption::ConstantCulling};
-    bool oldModeValue[]    = { false, false, false, false, false };
-    bool newModeValue[]    = { true, true, true, true, true };
+                              MenuOption::UseDeltaFrustumInHide, MenuOption::DisableConstantCulling};
+    bool oldModeValue[]    = { false, false, false, false, true };
+    bool newModeValue[]    = { true, true, true, true, false };
 
     for (int i = 0; i < sizeof(menus) / sizeof(menus[0]); i++) {
         bool desiredValue = oldMode ? oldModeValue[i] : newModeValue[i];

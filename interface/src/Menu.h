@@ -134,7 +134,6 @@ namespace MenuOption {
     const QString Bandwidth = "Bandwidth Display";
     const QString BandwidthDetails = "Bandwidth Details";
     const QString Collisions = "Collisions";
-    const QString ConstantCulling = "Constant Culling";
     const QString CopyVoxels = "Copy";
     const QString CoverageMap = "Render Coverage Map";
     const QString CoverageMapV2 = "Render Coverage Map V2";
@@ -144,6 +143,7 @@ namespace MenuOption {
     const QString DeleteVoxels = "Delete";
     const QString DestructiveAddVoxel = "Create Voxel is Destructive";
     const QString DeltaSending = "Delta Sending";
+    const QString DisableConstantCulling = "Disable Constant Culling";
     const QString DisplayFrustum = "Display Frustum";
     const QString DontRenderVoxels = "Don't call _voxels.render()";
     const QString DontCallOpenGLForVoxels = "Don't call glDrawElements()/glDrawRangeElementsEXT() for Voxels";

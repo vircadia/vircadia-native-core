@@ -744,7 +744,7 @@ void VoxelSystem::checkForCulling() {
     uint64_t start = usecTimestampNow();
     uint64_t sinceLastViewCulling = (start - _lastViewCulling) / 1000;
     
-    bool constantCulling = Menu::getInstance()->isOptionChecked(MenuOption::ConstantCulling);
+    bool constantCulling = !Menu::getInstance()->isOptionChecked(MenuOption::DisableConstantCulling);
     
     // If the view frustum is no longer changing, but has changed, since last time, then remove nodes that are out of view
     if (constantCulling || (
