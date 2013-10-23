@@ -196,6 +196,7 @@ private slots:
 private:
     void resetCamerasOnResizeGL(Camera& camera, int width, int height);
     void updateProjectionMatrix();
+    void updateProjectionMatrix(Camera& camera);
 
     static bool sendVoxelsOperation(VoxelNode* node, void* extraData);
     static void processAvatarURLsMessage(unsigned char* packetData, size_t dataBytes);
@@ -240,7 +241,9 @@ private:
     static void attachNewHeadToNode(Node *newNode);
     static void* networkReceive(void* args); // network receive thread
 
-    void findAxisAlignment();   
+    void findAxisAlignment();
+
+    void displayRearMirrorTools();
 
     QMainWindow* _window;
     QGLWidget* _glWidget;
@@ -292,6 +295,9 @@ private:
     
     Camera _myCamera;                  // My view onto the world
     Camera _viewFrustumOffsetCamera;   // The camera we use to sometimes show the view frustum from an offset mode
+    Camera _mirrorCamera;              // Cammera for mirror view
+    QRect _mirrorViewRect;
+    GLuint _closeTextureId;
     
     Environment _environment;
     
