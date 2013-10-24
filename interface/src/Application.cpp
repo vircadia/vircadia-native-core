@@ -2301,21 +2301,6 @@ void Application::updateAvatar(float deltaTime) {
         _myAvatar.getHead().setAudioLoudness(_audio.getLastInputLoudness());
     #endif
 
-    // Update Avatar with latest camera and view frustum data...
-    // NOTE: we get this from the view frustum, to make it simpler, since the
-    // loadViewFrumstum() method will get the correct details from the camera
-    // We could optimize this to not actually load the viewFrustum, since we don't
-    // actually need to calculate the view frustum planes to send these details 
-    // to the server.
-    loadViewFrustum(_myCamera, _viewFrustum);
-    _myAvatar.setCameraPosition(_viewFrustum.getPosition());
-    _myAvatar.setCameraOrientation(_viewFrustum.getOrientation());
-    _myAvatar.setCameraFov(_viewFrustum.getFieldOfView());
-    _myAvatar.setCameraAspectRatio(_viewFrustum.getAspectRatio());
-    _myAvatar.setCameraNearClip(_viewFrustum.getNearClip());
-    _myAvatar.setCameraFarClip(_viewFrustum.getFarClip());
-    _myAvatar.setCameraEyeOffsetPosition(_viewFrustum.getEyeOffsetPosition());
-    
     NodeList* nodeList = NodeList::getInstance();
     
     // send head/hand data to the avatar mixer and voxel server
@@ -2330,7 +2315,7 @@ void Application::updateAvatar(float deltaTime) {
     
     endOfBroadcastStringWrite += _myAvatar.getBroadcastData(endOfBroadcastStringWrite);
     
-    const char nodeTypesOfInterest[] = { NODE_TYPE_VOXEL_SERVER, NODE_TYPE_AVATAR_MIXER };
+    const char nodeTypesOfInterest[] = { NODE_TYPE_AVATAR_MIXER };
     controlledBroadcastToNodes(broadcastString, endOfBroadcastStringWrite - broadcastString,
                                nodeTypesOfInterest, sizeof(nodeTypesOfInterest));
     
@@ -2339,6 +2324,48 @@ void Application::updateAvatar(float deltaTime) {
     if (shouldDo(AVATAR_URLS_SEND_INTERVAL, deltaTime)) {
         Avatar::sendAvatarURLsMessage(_myAvatar.getVoxels()->getVoxelURL());
     }
+
+    // Update _viewFrustum with latest camera and view frustum data...
+    // NOTE: we get this from the view frustum, to make it simpler, since the
+    // loadViewFrumstum() method will get the correct details from the camera
+    // We could optimize this to not actually load the viewFrustum, since we don't
+    // actually need to calculate the view frustum planes to send these details 
+    // to the server.
+    loadViewFrustum(_myCamera, _viewFrustum);
+    
+    // Update my voxel servers with my current voxel query...
+    queryVoxels();
+}
+
+void Application::queryVoxels() {
+    // Need to update this to support multiple different servers...
+    
+    _voxelQuery.setCameraPosition(_viewFrustum.getPosition());
+    _voxelQuery.setCameraOrientation(_viewFrustum.getOrientation());
+    _voxelQuery.setCameraFov(_viewFrustum.getFieldOfView());
+    _voxelQuery.setCameraAspectRatio(_viewFrustum.getAspectRatio());
+    _voxelQuery.setCameraNearClip(_viewFrustum.getNearClip());
+    _voxelQuery.setCameraFarClip(_viewFrustum.getFarClip());
+    _voxelQuery.setCameraEyeOffsetPosition(_viewFrustum.getEyeOffsetPosition());
+
+    NodeList* nodeList = NodeList::getInstance();
+    
+    // send head/hand data to the avatar mixer and voxel server
+    unsigned char voxelQueryPacket[MAX_PACKET_SIZE];
+    unsigned char* endOfVoxelQueryPacket = voxelQueryPacket;
+    
+    endOfVoxelQueryPacket += populateTypeAndVersion(endOfVoxelQueryPacket, PACKET_TYPE_VOXEL_QUERY);
+    
+    QByteArray ownerUUID = nodeList->getOwnerUUID().toRfc4122();
+    memcpy(endOfVoxelQueryPacket, ownerUUID.constData(), ownerUUID.size());
+    endOfVoxelQueryPacket += ownerUUID.size();
+    
+    endOfVoxelQueryPacket += _voxelQuery.getBroadcastData(endOfVoxelQueryPacket);
+    
+    const char nodeTypesOfInterest[] = { NODE_TYPE_VOXEL_SERVER };
+    controlledBroadcastToNodes(voxelQueryPacket, endOfVoxelQueryPacket - voxelQueryPacket,
+                               nodeTypesOfInterest, sizeof(nodeTypesOfInterest));
+
 }
 
 /////////////////////////////////////////////////////////////////////////////////////

@@ -58,5 +58,6 @@ const float VIEW_FRUSTUM_FOV_OVERSEND = 60.0f;
 const int UNREASONABLY_DEEP_RECURSION = 20; // use this for something that you want to be shallow, but not spin out
 const int DANGEROUSLY_DEEP_RECURSION = 200; // use this for something that needs to go deeper
 
+const int DEFAULT_MAX_VOXEL_PPS = 600; // the default maximum PPS we think a voxel server should send to a client
 
 #endif

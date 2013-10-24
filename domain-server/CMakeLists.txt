@@ -1,9 +1,16 @@
 cmake_minimum_required(VERSION 2.8)
 
+set(TARGET_NAME domain-server)
+
 set(ROOT_DIR ..)
 set(MACRO_DIR ${ROOT_DIR}/cmake/macros)
 
-set(TARGET_NAME domain-server)
+# setup for find modules
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/../cmake/modules/")
+
+# set up the external glm library
+include(${MACRO_DIR}/IncludeGLM.cmake)
+include_glm(${TARGET_NAME} ${ROOT_DIR})
 
 include(${MACRO_DIR}/SetupHifiProject.cmake)
 
