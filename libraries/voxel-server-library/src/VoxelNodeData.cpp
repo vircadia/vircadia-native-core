@@ -133,7 +133,7 @@ bool VoxelNodeData::updateCurrentViewFrustum() {
     newestViewFrustum.setEyeOffsetPosition(getCameraEyeOffsetPosition());
     
     // if there has been a change, then recalculate
-    if (!newestViewFrustum.matches(_currentViewFrustum)) {
+    if (!newestViewFrustum.isVerySimilar(_currentViewFrustum)) {
         _currentViewFrustum = newestViewFrustum;
         _currentViewFrustum.calculate();
         currentViewFrustumChanged = true;
@@ -158,7 +158,7 @@ void VoxelNodeData::setViewSent(bool viewSent) {
 
 
 void VoxelNodeData::updateLastKnownViewFrustum() {
-    bool frustumChanges = !_lastKnownViewFrustum.matches(_currentViewFrustum);
+    bool frustumChanges = !_lastKnownViewFrustum.isVerySimilar(_currentViewFrustum);
     
     if (frustumChanges) {
         // save our currentViewFrustum into our lastKnownViewFrustum

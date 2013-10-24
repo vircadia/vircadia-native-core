@@ -10,6 +10,8 @@
 
 #include <algorithm>
 
+#include <glm/glm.hpp>
+#include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/transform.hpp>
 
 #include <QtCore/QDebug>
@@ -296,17 +298,17 @@ ViewFrustum::location ViewFrustum::boxInFrustum(const AABox& box) const {
     return regularResult;
 }
 
-bool testMatches(glm::quat lhs, glm::quat rhs) {
-    return (fabs(lhs.x - rhs.x) <= EPSILON && fabs(lhs.y - rhs.y) <= EPSILON && fabs(lhs.z - rhs.z) <= EPSILON
-            && fabs(lhs.w - rhs.w) <= EPSILON);
+bool testMatches(glm::quat lhs, glm::quat rhs, float epsilon = EPSILON) {
+    return (fabs(lhs.x - rhs.x) <= epsilon && fabs(lhs.y - rhs.y) <= epsilon && fabs(lhs.z - rhs.z) <= epsilon
+            && fabs(lhs.w - rhs.w) <= epsilon);
 }
 
-bool testMatches(glm::vec3 lhs, glm::vec3 rhs) {
-    return (fabs(lhs.x - rhs.x) <= EPSILON && fabs(lhs.y - rhs.y) <= EPSILON && fabs(lhs.z - rhs.z) <= EPSILON);
+bool testMatches(glm::vec3 lhs, glm::vec3 rhs, float epsilon = EPSILON) {
+    return (fabs(lhs.x - rhs.x) <= epsilon && fabs(lhs.y - rhs.y) <= epsilon && fabs(lhs.z - rhs.z) <= epsilon);
 }
 
-bool testMatches(float lhs, float rhs) {
-    return (fabs(lhs - rhs) <= EPSILON);
+bool testMatches(float lhs, float rhs, float epsilon = EPSILON) {
+    return (fabs(lhs - rhs) <= epsilon);
 }
 
 bool ViewFrustum::matches(const ViewFrustum& compareTo, bool debug) const {
@@ -365,6 +367,93 @@ bool ViewFrustum::matches(const ViewFrustum& compareTo, bool debug) const {
             compareTo._eyeOffsetOrientation.x, compareTo._eyeOffsetOrientation.y,
                 compareTo._eyeOffsetOrientation.z, compareTo._eyeOffsetOrientation.w,
             _eyeOffsetOrientation.x, _eyeOffsetOrientation.y, _eyeOffsetOrientation.z, _eyeOffsetOrientation.w);
+    }
+    return result;
+}
+
+bool isNaN(float f) {
+    return f != f;
+}
+
+bool ViewFrustum::isVerySimilar(const ViewFrustum& compareTo, bool debug) const {
+
+    //  Compute distance between the two positions
+    const float POSITION_SIMILAR_ENOUGH = 5.0f; // 5 meters
+    float positionDistance = glm::distance(_position, compareTo._position);
+
+    const float EYEOFFSET_POSITION_SIMILAR_ENOUGH = 0.15f; // 0.15 meters
+    float eyeOffsetpositionDistance = glm::distance(_eyeOffsetPosition, compareTo._eyeOffsetPosition);
+
+    // Compute the angular distance between the two orientations
+    const float ORIENTATION_SIMILAR_ENOUGH = 10.0f; // 10 degrees in any direction
+    glm::quat dQOrientation = _orientation * glm::inverse(compareTo._orientation);
+    float angleOrientation = compareTo._orientation == _orientation ? 0.0f : glm::angle(dQOrientation);
+    if (isNaN(angleOrientation)) {
+        angleOrientation = 0.0f;
+    }
+    
+    glm::quat dQEyeOffsetOrientation = _eyeOffsetOrientation * glm::inverse(compareTo._eyeOffsetOrientation);
+    float angleEyeOffsetOrientation = compareTo._eyeOffsetOrientation == _eyeOffsetOrientation 
+                                            ? 0.0f : glm::angle(dQEyeOffsetOrientation);
+    if (isNaN(angleEyeOffsetOrientation)) {
+        angleOrientation = 0.0f;
+    }
+
+    bool result = 
+           testMatches(0, positionDistance, POSITION_SIMILAR_ENOUGH) &&
+           testMatches(0, angleOrientation, ORIENTATION_SIMILAR_ENOUGH) &&
+           testMatches(compareTo._fieldOfView, _fieldOfView) &&
+           testMatches(compareTo._aspectRatio, _aspectRatio) &&
+           testMatches(compareTo._nearClip, _nearClip) &&
+           testMatches(compareTo._farClip, _farClip) &&
+           testMatches(compareTo._focalLength, _focalLength) &&
+           testMatches(0, eyeOffsetpositionDistance, EYEOFFSET_POSITION_SIMILAR_ENOUGH) &&
+           testMatches(0, angleEyeOffsetOrientation, ORIENTATION_SIMILAR_ENOUGH);
+
+
+    if (!result && debug) {
+        qDebug("ViewFrustum::isVerySimilar()... result=%s\n", debug::valueOf(result));
+        qDebug("%s -- compareTo._position=%f,%f,%f _position=%f,%f,%f\n", 
+            (testMatches(compareTo._position,_position, POSITION_SIMILAR_ENOUGH) ? "IS SIMILAR ENOUGH " : "IS NOT SIMILAR ENOUGH"),
+            compareTo._position.x, compareTo._position.y, compareTo._position.z,
+            _position.x, _position.y, _position.z );
+
+        qDebug("%s -- positionDistance=%f\n", 
+            (testMatches(0,positionDistance, POSITION_SIMILAR_ENOUGH) ? "IS SIMILAR ENOUGH " : "IS NOT SIMILAR ENOUGH"),
+            positionDistance);
+
+        qDebug("%s -- angleOrientation=%f\n", 
+            (testMatches(0, angleOrientation, ORIENTATION_SIMILAR_ENOUGH) ? "IS SIMILAR ENOUGH " : "IS NOT SIMILAR ENOUGH"),
+            angleOrientation);
+        
+        qDebug("%s -- compareTo._fieldOfView=%f _fieldOfView=%f\n", 
+            (testMatches(compareTo._fieldOfView, _fieldOfView) ? "MATCHES " : "NO MATCH"),
+            compareTo._fieldOfView, _fieldOfView);
+        qDebug("%s -- compareTo._aspectRatio=%f _aspectRatio=%f\n", 
+            (testMatches(compareTo._aspectRatio, _aspectRatio) ? "MATCHES " : "NO MATCH"),
+            compareTo._aspectRatio, _aspectRatio);
+        qDebug("%s -- compareTo._nearClip=%f _nearClip=%f\n", 
+            (testMatches(compareTo._nearClip, _nearClip) ? "MATCHES " : "NO MATCH"),
+            compareTo._nearClip, _nearClip);
+        qDebug("%s -- compareTo._farClip=%f _farClip=%f\n", 
+            (testMatches(compareTo._farClip, _farClip) ? "MATCHES " : "NO MATCH"),
+            compareTo._farClip, _farClip);
+        qDebug("%s -- compareTo._focalLength=%f _focalLength=%f\n", 
+            (testMatches(compareTo._focalLength, _focalLength) ? "MATCHES " : "NO MATCH"),
+            compareTo._focalLength, _focalLength);
+
+        qDebug("%s -- compareTo._eyeOffsetPosition=%f,%f,%f _eyeOffsetPosition=%f,%f,%f\n", 
+            (testMatches(compareTo._eyeOffsetPosition, _eyeOffsetPosition, POSITION_SIMILAR_ENOUGH) ? "IS SIMILAR ENOUGH " : "IS NOT SIMILAR ENOUGH"),
+            compareTo._eyeOffsetPosition.x, compareTo._eyeOffsetPosition.y, compareTo._eyeOffsetPosition.z,
+            _eyeOffsetPosition.x, _eyeOffsetPosition.y, _eyeOffsetPosition.z);
+
+        qDebug("%s -- eyeOffsetpositionDistance=%f\n", 
+            (testMatches(0,eyeOffsetpositionDistance, EYEOFFSET_POSITION_SIMILAR_ENOUGH) ? "IS SIMILAR ENOUGH " : "IS NOT SIMILAR ENOUGH"),
+            eyeOffsetpositionDistance);
+
+        qDebug("%s -- angleEyeOffsetOrientation=%f\n", 
+            (testMatches(0, angleEyeOffsetOrientation, ORIENTATION_SIMILAR_ENOUGH) ? "IS SIMILAR ENOUGH " : "IS NOT SIMILAR ENOUGH"),
+            angleEyeOffsetOrientation);
     }
     return result;
 }
