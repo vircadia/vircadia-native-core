@@ -59,6 +59,13 @@ bool VoxelSendThread::process() {
 
 void VoxelSendThread::handlePacketSend(Node* node, VoxelNodeData* nodeData, int& trueBytesSent, int& truePacketsSent) {
 
+    // Here's where we check to see if this packet is a duplicate of the last packet. If it is, we will silently
+    // obscure the packet and not send it. This allows the callers and upper level logic to not need to know about
+    // this rate control savings.
+    if (nodeData->shouldSuppressDuplicatePacket()) {
+        return; // without sending...
+    }
+
     // If we've got a stats message ready to send, then see if we can piggyback them together
     if (nodeData->stats.isReadyToSend()) {
         // Send the stats message to the client
@@ -254,13 +261,11 @@ void VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* no
                 } else {
                     handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
                     packetsSentThisInterval++;
-                    nodeData->resetVoxelPacket();
                     nodeData->writeToPacket(_tempOutputBuffer, bytesWritten);
                 }
             } else {
                 if (nodeData->isPacketWaiting()) {
                     handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
-                    nodeData->resetVoxelPacket();
                 }
                 packetsSentThisInterval = _myServer->getPacketsPerClientPerInterval(); // done for now, no nodes left
             }
