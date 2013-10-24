@@ -42,6 +42,30 @@ QJsonObject jsonForSocket(sockaddr* socket) {
     return socketJSON;
 }
 
+const char JSON_KEY_UUID[] = "UUID";
+const char JSON_KEY_PUBLIC_SOCKET[] = "public";
+const char JSON_KEY_LOCAL_SOCKET[] = "local";
+
+void addNodeToJsonObject(Node* node, QJsonObject& jsonObject) {
+    QJsonObject nodeJson;
+    
+    // add the UUID
+    QString uuidString = uuidStringWithoutCurlyBraces(node->getUUID());
+    nodeJson[JSON_KEY_UUID] = uuidString;
+    
+    // add the node socket information
+    nodeJson[JSON_KEY_PUBLIC_SOCKET] = jsonForSocket(node->getPublicSocket());
+    nodeJson[JSON_KEY_LOCAL_SOCKET] = jsonForSocket(node->getLocalSocket());
+    
+    // re-format the type name so it matches the target name
+    QString nodeTypeName(node->getTypeName());
+    nodeTypeName = nodeTypeName.toLower();
+    nodeTypeName.replace(' ', '-');
+    
+    jsonObject[nodeTypeName] = nodeJson;
+    
+}
+
 int DomainServer::civetwebRequestHandler(struct mg_connection *connection) {
     const struct mg_request_info* ri = mg_get_request_info(connection);
     
@@ -60,33 +84,14 @@ int DomainServer::civetwebRequestHandler(struct mg_connection *connection) {
             
             // setup the JSON
             QJsonObject assignmentJSON;
-            
             QJsonObject assignedNodesJSON;
             
             // enumerate the NodeList to find the assigned nodes
             NodeList* nodeList = NodeList::getInstance();
             
-            const char ASSIGNMENT_JSON_UUID_KEY[] = "UUID";
-            
             for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
                 if (node->getLinkedData()) {
-                    // this is a node with assignment
-                    QJsonObject assignedNodeJSON;
-                    
-                    // add the assignment UUID
-                    QString assignmentUUID = uuidStringWithoutCurlyBraces(((Assignment*) node->getLinkedData())->getUUID());
-                    assignedNodeJSON[ASSIGNMENT_JSON_UUID_KEY] = assignmentUUID;
-                    
-                    // add the node socket information
-                    assignedNodeJSON["public"] = jsonForSocket(node->getPublicSocket());
-                    assignedNodeJSON["local"] = jsonForSocket(node->getLocalSocket());
-                    
-                    // re-format the type name so it matches the target name
-                    QString nodeTypeName(node->getTypeName());
-                    nodeTypeName = nodeTypeName.toLower();
-                    nodeTypeName.replace(' ', '-');
-                    
-                    assignedNodesJSON[nodeTypeName] = assignedNodeJSON;
+                    addNodeToJsonObject(&(*node), assignedNodesJSON);
                 }
             }
             
@@ -101,7 +106,7 @@ int DomainServer::civetwebRequestHandler(struct mg_connection *connection) {
                 QJsonObject queuedAssignmentJSON;
                 
                 QString uuidString = uuidStringWithoutCurlyBraces((*assignment)->getUUID());
-                queuedAssignmentJSON[ASSIGNMENT_JSON_UUID_KEY] = uuidString;
+                queuedAssignmentJSON[JSON_KEY_UUID] = uuidString;
                 
                 // add this queued assignment to the JSON
                 queuedAssignmentsJSON[(*assignment)->getTypeName()] = queuedAssignmentJSON;
@@ -115,6 +120,29 @@ int DomainServer::civetwebRequestHandler(struct mg_connection *connection) {
             // print out the created JSON
             QJsonDocument assignmentDocument(assignmentJSON);
             mg_printf(connection, "%s", assignmentDocument.toJson().constData());
+            
+            // we've processed this request
+            return 1;
+        } else if (strcmp(ri->uri, "/nodes.json") == 0) {
+            // start with a 200 response
+            mg_printf(connection, "%s", RESPONSE_200);
+            
+            // setup the JSON
+            QJsonObject rootJSON;
+            QJsonObject nodesJSON;
+            
+            // enumerate the NodeList to find the assigned nodes
+            NodeList* nodeList = NodeList::getInstance();
+            
+            for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+                addNodeToJsonObject(&(*node), nodesJSON);
+            }
+            
+            rootJSON["nodes"] = nodesJSON;
+            
+            // print out the created JSON
+            QJsonDocument nodesDocument(rootJSON);
+            mg_printf(connection, "%s", nodesDocument.toJson().constData());
             
             // we've processed this request
             return 1;
