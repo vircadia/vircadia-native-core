@@ -55,7 +55,7 @@ Node::~Node() {
 // Names of Node Types
 const char* NODE_TYPE_NAME_DOMAIN = "Domain";
 const char* NODE_TYPE_NAME_VOXEL_SERVER = "Voxel Server";
-const char* NODE_TYPE_NAME_INTERFACE = "Client Interface";
+const char* NODE_TYPE_NAME_AGENT = "Agent";
 const char* NODE_TYPE_NAME_AUDIO_MIXER = "Audio Mixer";
 const char* NODE_TYPE_NAME_AVATAR_MIXER = "Avatar Mixer";
 const char* NODE_TYPE_NAME_AUDIO_INJECTOR = "Audio Injector";
@@ -70,7 +70,7 @@ const char* Node::getTypeName() const {
 		case NODE_TYPE_VOXEL_SERVER:
 			return NODE_TYPE_NAME_VOXEL_SERVER;
 		case NODE_TYPE_AGENT:
-			return NODE_TYPE_NAME_INTERFACE;
+			return NODE_TYPE_NAME_AGENT;
 		case NODE_TYPE_AUDIO_MIXER:
 			return NODE_TYPE_NAME_AUDIO_MIXER;
         case NODE_TYPE_AVATAR_MIXER:

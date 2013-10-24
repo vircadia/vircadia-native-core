@@ -27,6 +27,9 @@ VoxelNodeData::VoxelNodeData(Node* owningNode) :
 {
     _voxelPacket = new unsigned char[MAX_VOXEL_PACKET_SIZE];
     _voxelPacketAt = _voxelPacket;
+    _lastVoxelPacket = new unsigned char[MAX_VOXEL_PACKET_SIZE];
+    _lastVoxelPacketLength = 0;
+    _duplicatePacketCount = 0;
     resetVoxelPacket();
 }
 
@@ -37,9 +40,55 @@ void VoxelNodeData::initializeVoxelSendThread(VoxelServer* voxelServer) {
     _voxelSendThread->initialize(true);
 }
 
+bool VoxelNodeData::packetIsDuplicate() const {
+    if (_lastVoxelPacketLength == getPacketLength()) {
+        return memcmp(_lastVoxelPacket, _voxelPacket, getPacketLength()) == 0;
+    }
+    return false;
+}
 
+bool VoxelNodeData::shouldSuppressDuplicatePacket() {
+    bool shouldSuppress = false; // assume we won't suppress
+    
+    // only consider duplicate packets
+    if (packetIsDuplicate()) {
+        _duplicatePacketCount++;
+
+        // If this is the first suppressed packet, remember our time...    
+        if (_duplicatePacketCount == 1) {
+            _firstSuppressedPacket = usecTimestampNow();
+        }
+
+        // How long has it been since we've sent one, if we're still under our max time, then keep considering
+        // this packet for suppression
+        uint64_t now = usecTimestampNow();
+        long sinceFirstSuppressedPacket = now - _firstSuppressedPacket;
+        const long MAX_TIME_BETWEEN_DUPLICATE_PACKETS = 1000 * 1000; // 1 second.
+
+        if (sinceFirstSuppressedPacket < MAX_TIME_BETWEEN_DUPLICATE_PACKETS) {
+            // Finally, if we know we've sent at least one duplicate out, then suppress the rest...
+            if (_duplicatePacketCount > 1) {
+                shouldSuppress = true;
+            }
+        } else {
+            // Reset our count, we've reached our maximum time.
+            _duplicatePacketCount = 0;
+        }
+    } else {
+        // Reset our count, it wasn't a duplicate
+        _duplicatePacketCount = 0;
+    }
+    return shouldSuppress;
+}
 
 void VoxelNodeData::resetVoxelPacket() {
+    // Whenever we call this, we will keep a copy of the last packet, so we can determine if the last packet has
+    // changed since we last reset it. Since we know that no two packets can ever be identical without being the same
+    // scene information, (e.g. the root node packet of a static scene), we can use this as a strategy for reducing
+    // packet send rate.
+    _lastVoxelPacketLength = getPacketLength();
+    memcpy(_lastVoxelPacket, _voxelPacket, _lastVoxelPacketLength);
+
     // If we're moving, and the client asked for low res, then we force monochrome, otherwise, use 
     // the clients requested color state.    
     _currentPacketIsColor = (LOW_RES_MONO && getWantLowResMoving() && _viewFrustumChanging) ? false : getWantColor();
@@ -84,7 +133,7 @@ bool VoxelNodeData::updateCurrentViewFrustum() {
     newestViewFrustum.setEyeOffsetPosition(getCameraEyeOffsetPosition());
     
     // if there has been a change, then recalculate
-    if (!newestViewFrustum.matches(_currentViewFrustum)) {
+    if (!newestViewFrustum.isVerySimilar(_currentViewFrustum)) {
         _currentViewFrustum = newestViewFrustum;
         _currentViewFrustum.calculate();
         currentViewFrustumChanged = true;
@@ -109,7 +158,7 @@ void VoxelNodeData::setViewSent(bool viewSent) {
 
 
 void VoxelNodeData::updateLastKnownViewFrustum() {
-    bool frustumChanges = !_lastKnownViewFrustum.matches(_currentViewFrustum);
+    bool frustumChanges = !_lastKnownViewFrustum.isVerySimilar(_currentViewFrustum);
     
     if (frustumChanges) {
         // save our currentViewFrustum into our lastKnownViewFrustum

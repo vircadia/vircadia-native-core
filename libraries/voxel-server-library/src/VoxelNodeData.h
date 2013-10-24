@@ -33,6 +33,10 @@ public:
     const unsigned char* getPacket() const { return _voxelPacket; }
     int getPacketLength() const { return (MAX_VOXEL_PACKET_SIZE - _voxelPacketAvailableBytes); }
     bool isPacketWaiting() const { return _voxelPacketWaiting; }
+
+    bool packetIsDuplicate() const;
+    bool shouldSuppressDuplicatePacket();
+
     int getAvailable() const { return _voxelPacketAvailableBytes; }
     int getMaxSearchLevel() const { return _maxSearchLevel; };
     void resetMaxSearchLevel() { _maxSearchLevel = 1; };
@@ -78,6 +82,12 @@ private:
     unsigned char* _voxelPacketAt;
     int _voxelPacketAvailableBytes;
     bool _voxelPacketWaiting;
+
+    unsigned char* _lastVoxelPacket;
+    int _lastVoxelPacketLength;
+    int _duplicatePacketCount;
+    uint64_t _firstSuppressedPacket;
+
     int _maxSearchLevel;
     int _maxLevelReachedInLastSearch;
     ViewFrustum _currentViewFrustum;
