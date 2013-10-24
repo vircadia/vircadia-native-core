@@ -118,11 +118,8 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     setSemiNibbleAt(bitItems,KEY_STATE_START_BIT,_keyState);
     // hand state
     setSemiNibbleAt(bitItems,HAND_STATE_START_BIT,_handState);
-    *destinationBuffer++ = bitItems;
-
-    bitItems = 0;
+    // faceshift state
     if (_headData->_isFaceshiftConnected) { setAtBit(bitItems, IS_FACESHIFT_CONNECTED); }
-
     *destinationBuffer++ = bitItems;
 
     // If it is connected, pack up the data
@@ -249,7 +246,6 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     // hand state, stored as a semi-nibble in the bitItems
     _handState = getSemiNibbleAt(bitItems,HAND_STATE_START_BIT);
 
-    bitItems = (unsigned char)*sourceBuffer++;
     _headData->_isFaceshiftConnected = oneAtBit(bitItems, IS_FACESHIFT_CONNECTED);
 
     // If it is connected, pack up the data

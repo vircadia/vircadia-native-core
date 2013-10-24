@@ -28,7 +28,7 @@
 const int WANT_LOW_RES_MOVING_BIT = 0;
 const int WANT_COLOR_AT_BIT = 1;
 const int WANT_DELTA_AT_BIT = 2;
-const int WANT_OCCLUSION_CULLING_BIT = 7; // 8th bit
+const int WANT_OCCLUSION_CULLING_BIT = 3; // 4th bit
 
 class VoxelQuery : public NodeData {
     Q_OBJECT

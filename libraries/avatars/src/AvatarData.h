@@ -27,11 +27,9 @@
 #include "HandData.h"
 
 // First bitset
-const int KEY_STATE_START_BIT = 3;  // 4th and 5th bits
-const int HAND_STATE_START_BIT = 5; // 6th and 7th bits
-
-// Second bitset
-const int IS_FACESHIFT_CONNECTED = 0;
+const int KEY_STATE_START_BIT = 0; // 1st and 2nd bits
+const int HAND_STATE_START_BIT = 2; // 3rd and 4th bits
+const int IS_FACESHIFT_CONNECTED = 4; // 5th bit
 
 const float MAX_AUDIO_LOUDNESS = 1000.0; // close enough for mouth animation
 
