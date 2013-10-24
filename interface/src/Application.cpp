@@ -1757,7 +1757,7 @@ Avatar* Application::findLookatTargetAvatar(const glm::vec3& mouseRayOrigin, con
             float distance;
             if (rayIntersectsSphere(mouseRayOrigin, mouseRayDirection, headPosition,
                     HEAD_SPHERE_RADIUS * avatar->getHead().getScale(), distance)) {
-                eyePosition = avatar->getHead().getEyePosition();
+                eyePosition = avatar->getHead().calculateAverageEyePosition();
                 _lookatIndicatorScale = avatar->getHead().getScale();
                 _lookatOtherPosition = headPosition;
                 nodeUUID = avatar->getOwningNode()->getUUID();
