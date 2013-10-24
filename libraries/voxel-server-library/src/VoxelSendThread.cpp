@@ -223,10 +223,11 @@ void VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* no
         int clientMaxPacketsPerInterval = nodeData->getMaxVoxelPacketsPerSecond() / INTERVALS_PER_SECOND;
         int maxPacketsPerInterval = std::max(clientMaxPacketsPerInterval, _myServer->getPacketsPerClientPerInterval());
         
-        
-printf("deepestLevelVoxelDistributor()... packetsSentThisInterval=%d maxPacketsPerInterval=%d server PPI=%d nodePPS=%d nodePPI=%d\n", 
-    packetsSentThisInterval, maxPacketsPerInterval, _myServer->getPacketsPerClientPerInterval(), 
-    nodeData->getMaxVoxelPacketsPerSecond(), clientMaxPacketsPerInterval);
+        if (_myServer->wantsDebugVoxelSending()) {
+            printf("packetsSentThisInterval=%d maxPacketsPerInterval=%d server PPI=%d nodePPS=%d nodePPI=%d\n", 
+                packetsSentThisInterval, maxPacketsPerInterval, _myServer->getPacketsPerClientPerInterval(), 
+                nodeData->getMaxVoxelPacketsPerSecond(), clientMaxPacketsPerInterval);
+        }
 
         while (packetsSentThisInterval < maxPacketsPerInterval - (shouldSendEnvironments ? 1 : 0)) {
             // Check to see if we're taking too long, and if so bail early...
