@@ -371,12 +371,12 @@ void Application::paintGL() {
         _myCamera.setUpShift       (0.0f);
         _myCamera.setDistance      (0.0f);
         _myCamera.setTightness     (0.0f);     //  Camera is directly connected to head without smoothing
-        _myCamera.setTargetPosition(_myAvatar.getHeadJointPosition());
+        _myCamera.setTargetPosition(_myAvatar.getHead().calculateAverageEyePosition());
         _myCamera.setTargetRotation(_myAvatar.getHead().getOrientation());
     
     } else if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
         _myCamera.setTightness(0.0f);  //  In first person, camera follows head exactly without delay
-        _myCamera.setTargetPosition(_myAvatar.getEyeLevelPosition());
+        _myCamera.setTargetPosition(_myAvatar.getHead().calculateAverageEyePosition());
         _myCamera.setTargetRotation(_myAvatar.getHead().getCameraOrientation());
         
     } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
@@ -386,15 +386,7 @@ void Application::paintGL() {
     } else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         _myCamera.setTightness(0.0f);
         _myCamera.setDistance(0.3f);
-        glm::vec3 targetPosition = _myAvatar.getUprightHeadPosition();
-        if (_myAvatar.getHead().getFaceModel().isActive()) {
-            // make sure we're aligned to the blend face eyes
-            glm::vec3 leftEyePosition, rightEyePosition;
-            if (_myAvatar.getHead().getFaceModel().getEyePositions(leftEyePosition, rightEyePosition)) {
-                targetPosition = (leftEyePosition + rightEyePosition) * 0.5f;
-            }
-        } 
-        _myCamera.setTargetPosition(targetPosition);
+        _myCamera.setTargetPosition(_myAvatar.getHead().calculateAverageEyePosition());
         _myCamera.setTargetRotation(_myAvatar.getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PIf, 0.0f)));
     }
     
