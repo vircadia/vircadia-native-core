@@ -22,6 +22,7 @@
 #include <NetworkPacket.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
+#include <VoxelQuery.h>
 
 #ifndef _WIN32
 #include "Audio.h"
@@ -218,6 +219,7 @@ private:
     void renderFollowIndicator();
     void updateAvatar(float deltaTime);
     void updateAvatars(float deltaTime, glm::vec3 mouseRayOrigin, glm::vec3 mouseRayDirection);
+    void queryVoxels();
     void loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum);
     
     void displayOculus(Camera& whichCamera);
@@ -280,9 +282,11 @@ private:
     QByteArray _voxelsFilename;
     bool _wantToKillLocalVoxels;
     
-    ViewFrustum _viewFrustum;  // current state of view frustum, perspective, orientation, etc.
+    ViewFrustum _viewFrustum; // current state of view frustum, perspective, orientation, etc.
 
     Oscilloscope _audioScope;
+
+    VoxelQuery _voxelQuery; // NodeData derived class for querying voxels from voxel server
     
     MyAvatar _myAvatar;                  // The rendered avatar of oneself
     Profile _profile;                    // The data-server linked profile for this user
