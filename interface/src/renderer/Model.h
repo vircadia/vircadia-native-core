@@ -23,7 +23,7 @@ class Model : public QObject {
     
 public:
 
-    Model();
+    Model(QObject* parent = NULL);
     virtual ~Model();
     
     void setTranslation(const glm::vec3& translation) { _translation = translation; }
@@ -125,6 +125,8 @@ private:
     
     QVector<glm::vec3> _blendedVertices;
     QVector<glm::vec3> _blendedNormals;
+    
+    QVector<Model*> _attachments;
     
     static ProgramObject _program;
     static ProgramObject _skinProgram;

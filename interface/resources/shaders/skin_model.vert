@@ -31,7 +31,10 @@ void main(void) {
     position = gl_ModelViewProjectionMatrix * position;
     normal = normalize(gl_ModelViewMatrix * normal);
     
-    // pass along the texture coordinate
+    // pass along the vertex color
+    gl_FrontColor = gl_Color;
+    
+    // and the texture coordinates
     gl_TexCoord[0] = gl_MultiTexCoord0;
     
     gl_Position = position;

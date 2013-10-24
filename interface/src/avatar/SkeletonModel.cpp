@@ -66,7 +66,8 @@ bool SkeletonModel::render(float alpha) {
         glm::vec3 parentPosition;
         getJointPosition(parentIndex, parentPosition);
         const float STICK_RADIUS = BALL_RADIUS * 0.5f;
-        Avatar::renderJointConnectingCone(parentPosition, position, STICK_RADIUS, STICK_RADIUS);
+        Avatar::renderJointConnectingCone(parentPosition, position, STICK_RADIUS * _owningAvatar->getScale(),
+            STICK_RADIUS * _owningAvatar->getScale());
     }
     
     Model::render(alpha);
