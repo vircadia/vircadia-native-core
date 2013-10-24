@@ -18,6 +18,10 @@
 #include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/transform.hpp>
 
+#include <OctalCode.h>
+
+#include <VoxelTree.h>
+
 #include "FBXReader.h"
 #include "Util.h"
 
@@ -1192,3 +1196,102 @@ FBXGeometry readFBX(const QByteArray& model, const QByteArray& mapping) {
     return extractFBXGeometry(parseFBX(&modelBuffer), parseMapping(&mappingBuffer));
 }
 
+bool addMeshVoxelsOperation(VoxelNode* node, void* extraData) {
+    if (!node->isLeaf()) {
+        return true;
+    }
+    FBXMesh& mesh = *static_cast<FBXMesh*>(extraData);
+    FBXMeshPart& part = mesh.parts[0];
+    
+    const int FACE_COUNT = 6;
+    const int VERTICES_PER_FACE = 4;
+    const int VERTEX_COUNT = FACE_COUNT * VERTICES_PER_FACE;
+    const float EIGHT_BIT_MAXIMUM = 255.0f;
+    glm::vec3 color = glm::vec3(node->getColor()[0], node->getColor()[1], node->getColor()[2]) / EIGHT_BIT_MAXIMUM;
+    for (int i = 0; i < VERTEX_COUNT; i++) {
+        part.quadIndices.append(part.quadIndices.size());
+        mesh.colors.append(color);
+    }
+    glm::vec3 corner = node->getCorner();
+    float scale = node->getScale();
+    
+    mesh.vertices.append(glm::vec3(corner.x, corner.y, corner.z));
+    mesh.vertices.append(glm::vec3(corner.x, corner.y, corner.z + scale));
+    mesh.vertices.append(glm::vec3(corner.x, corner.y + scale, corner.z + scale));
+    mesh.vertices.append(glm::vec3(corner.x, corner.y + scale, corner.z));
+    for (int i = 0; i < VERTICES_PER_FACE; i++) {
+        mesh.normals.append(glm::vec3(-1.0f, 0.0f, 0.0f));
+    }
+    
+    mesh.vertices.append(glm::vec3(corner.x + scale, corner.y, corner.z));
+    mesh.vertices.append(glm::vec3(corner.x + scale, corner.y + scale, corner.z));
+    mesh.vertices.append(glm::vec3(corner.x + scale, corner.y + scale, corner.z + scale));
+    mesh.vertices.append(glm::vec3(corner.x + scale, corner.y, corner.z + scale));
+    for (int i = 0; i < VERTICES_PER_FACE; i++) {
+        mesh.normals.append(glm::vec3(1.0f, 0.0f, 0.0f));
+    }
+    
+    mesh.vertices.append(glm::vec3(corner.x + scale, corner.y, corner.z));
+    mesh.vertices.append(glm::vec3(corner.x + scale, corner.y, corner.z + scale));
+    mesh.vertices.append(glm::vec3(corner.x, corner.y, corner.z + scale));
+    mesh.vertices.append(glm::vec3(corner.x, corner.y, corner.z));
+    for (int i = 0; i < VERTICES_PER_FACE; i++) {
+        mesh.normals.append(glm::vec3(0.0f, -1.0f, 0.0f));
+    }
+    
+    mesh.vertices.append(glm::vec3(corner.x, corner.y + scale, corner.z));
+    mesh.vertices.append(glm::vec3(corner.x, corner.y + scale, corner.z + scale));
+    mesh.vertices.append(glm::vec3(corner.x + scale, corner.y + scale, corner.z + scale));
+    mesh.vertices.append(glm::vec3(corner.x + scale, corner.y + scale, corner.z));
+    for (int i = 0; i < VERTICES_PER_FACE; i++) {
+        mesh.normals.append(glm::vec3(0.0f, 1.0f, 0.0f));
+    }
+    
+    mesh.vertices.append(glm::vec3(corner.x, corner.y + scale, corner.z));
+    mesh.vertices.append(glm::vec3(corner.x + scale, corner.y + scale, corner.z));
+    mesh.vertices.append(glm::vec3(corner.x + scale, corner.y, corner.z));
+    mesh.vertices.append(glm::vec3(corner.x, corner.y, corner.z));
+    for (int i = 0; i < VERTICES_PER_FACE; i++) {
+        mesh.normals.append(glm::vec3(0.0f, 0.0f, -1.0f));
+    }
+
+    mesh.vertices.append(glm::vec3(corner.x, corner.y, corner.z + scale));
+    mesh.vertices.append(glm::vec3(corner.x + scale, corner.y, corner.z + scale));
+    mesh.vertices.append(glm::vec3(corner.x + scale, corner.y + scale, corner.z + scale));
+    mesh.vertices.append(glm::vec3(corner.x, corner.y + scale, corner.z + scale));
+    for (int i = 0; i < VERTICES_PER_FACE; i++) {
+        mesh.normals.append(glm::vec3(0.0f, 0.0f, 1.0f));
+    }       
+    
+    return true;
+}
+
+FBXGeometry readSVO(const QByteArray& model) {
+    FBXGeometry geometry;
+    
+    // we have one joint
+    FBXJoint joint = { -1 };
+    geometry.joints.append(joint);
+    
+    // and one mesh with one cluster and one part
+    FBXMesh mesh;
+    mesh.isEye = false;
+    mesh.springiness = 0.0f;
+    
+    FBXCluster cluster = { 0 };
+    mesh.clusters.append(cluster);
+    
+    FBXMeshPart part;
+    part.diffuseColor = glm::vec3(1.0f, 1.0f, 1.0f);
+    part.shininess = 96.0f;
+    mesh.parts.append(part);
+    
+    VoxelTree tree;
+    ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS);
+    tree.readBitstreamToTree((unsigned char*)model.data(), model.size(), args);
+    tree.recurseTreeWithOperation(addMeshVoxelsOperation, &mesh);
+    
+    geometry.meshes.append(mesh);
+    
+    return geometry;
+}

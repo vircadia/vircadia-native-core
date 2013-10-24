@@ -84,6 +84,7 @@ public:
     
     QVector<glm::vec3> vertices;
     QVector<glm::vec3> normals;
+    QVector<glm::vec3> colors;
     QVector<glm::vec2> texCoords;
     QVector<glm::vec4> clusterIndices;
     QVector<glm::vec4> clusterWeights;
@@ -136,5 +137,8 @@ public:
 /// Reads FBX geometry from the supplied model and mapping data.
 /// \exception QString if an error occurs in parsing
 FBXGeometry readFBX(const QByteArray& model, const QByteArray& mapping);
+
+/// Reads SVO geometry from the supplied model data.
+FBXGeometry readSVO(const QByteArray& model);
 
 #endif /* defined(__interface__FBXReader__) */

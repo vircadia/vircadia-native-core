@@ -16,7 +16,10 @@ void main(void) {
     // transform and store the normal for interpolation
     normal = normalize(gl_ModelViewMatrix * vec4(gl_Normal, 0.0));
     
-    // pass along the texture coordinate
+    // pass along the vertex color
+    gl_FrontColor = gl_Color;
+    
+    // and the texture coordinates
     gl_TexCoord[0] = gl_MultiTexCoord0;
     
     // use standard pipeline transform

@@ -234,7 +234,6 @@ bool Model::render(float alpha) {
 
     glEnableClientState(GL_VERTEX_ARRAY);
     glEnableClientState(GL_NORMAL_ARRAY);
-    glEnableClientState(GL_TEXTURE_COORD_ARRAY);
     
     glDisable(GL_COLOR_MATERIAL);
     
@@ -253,8 +252,8 @@ bool Model::render(float alpha) {
                 _skinProgram.bind();
                 glUniformMatrix4fvARB(_clusterMatricesLocation, state.clusterMatrices.size(), false,
                     (const float*)state.clusterMatrices.constData());
-                int offset = vertexCount * sizeof(glm::vec2) + (mesh.blendshapes.isEmpty() ?
-                    vertexCount * 2 * sizeof(glm::vec3) : 0);
+                int offset = mesh.colors.size() * sizeof(glm::vec3) + mesh.texCoords.size() * sizeof(glm::vec2) +
+                    (mesh.blendshapes.isEmpty() ? vertexCount * 2 * sizeof(glm::vec3) : 0);
                 _skinProgram.setAttributeBuffer(_clusterIndicesLocation, GL_FLOAT, offset, 4);
                 _skinProgram.setAttributeBuffer(_clusterWeightsLocation, GL_FLOAT,
                     offset + vertexCount * sizeof(glm::vec4), 4);
@@ -271,10 +270,13 @@ bool Model::render(float alpha) {
         }
         
         if (mesh.blendshapes.isEmpty() && mesh.springiness == 0.0f) {
-            glTexCoordPointer(2, GL_FLOAT, 0, (void*)(vertexCount * 2 * sizeof(glm::vec3)));    
+            glColorPointer(3, GL_FLOAT, 0, (void*)(vertexCount * 2 * sizeof(glm::vec3)));
+            glTexCoordPointer(2, GL_FLOAT, 0, (void*)(vertexCount * 2 * sizeof(glm::vec3) +
+                mesh.colors.size() * sizeof(glm::vec3)));    
         
         } else {
-            glTexCoordPointer(2, GL_FLOAT, 0, 0);
+            glColorPointer(3, GL_FLOAT, 0, 0);
+            glTexCoordPointer(2, GL_FLOAT, 0, (void*)(mesh.colors.size() * sizeof(glm::vec3)));
             glBindBuffer(GL_ARRAY_BUFFER, _blendedVertexBufferIDs.at(i));
             
             if (!state.worldSpaceVertices.isEmpty()) {
@@ -313,6 +315,15 @@ bool Model::render(float alpha) {
         glVertexPointer(3, GL_FLOAT, 0, 0);
         glNormalPointer(GL_FLOAT, 0, (void*)(vertexCount * sizeof(glm::vec3)));
         
+        if (!mesh.colors.isEmpty()) {
+            glEnableClientState(GL_COLOR_ARRAY);
+        } else {
+            glColor3f(1.0f, 1.0f, 1.0f);
+        }
+        if (!mesh.texCoords.isEmpty()) {
+            glEnableClientState(GL_TEXTURE_COORD_ARRAY);
+        }
+        
         qint64 offset = 0;
         for (int j = 0; j < networkMesh.parts.size(); j++) {
             const NetworkMeshPart& networkPart = networkMesh.parts.at(j);
@@ -341,6 +352,13 @@ bool Model::render(float alpha) {
             glDrawRangeElementsEXT(GL_TRIANGLES, 0, vertexCount - 1, part.triangleIndices.size(),
                 GL_UNSIGNED_INT, (void*)offset);
             offset += part.triangleIndices.size() * sizeof(int);
+        }
+        
+        if (!mesh.colors.isEmpty()) {
+            glDisableClientState(GL_COLOR_ARRAY);
+        }
+        if (!mesh.texCoords.isEmpty()) {
+            glDisableClientState(GL_TEXTURE_COORD_ARRAY);
         }
         
         if (state.worldSpaceVertices.isEmpty()) {
