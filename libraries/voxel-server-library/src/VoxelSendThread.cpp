@@ -219,7 +219,16 @@ void VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* no
         uint64_t start = usecTimestampNow();
 
         bool shouldSendEnvironments = _myServer->wantSendEnvironments() && shouldDo(ENVIRONMENT_SEND_INTERVAL_USECS, VOXEL_SEND_INTERVAL_USECS);
-        while (packetsSentThisInterval < _myServer->getPacketsPerClientPerInterval() - (shouldSendEnvironments ? 1 : 0)) {
+
+        int clientMaxPacketsPerInterval = nodeData->getMaxVoxelPacketsPerSecond() / INTERVALS_PER_SECOND;
+        int maxPacketsPerInterval = std::max(clientMaxPacketsPerInterval, _myServer->getPacketsPerClientPerInterval());
+        
+        
+printf("deepestLevelVoxelDistributor()... packetsSentThisInterval=%d maxPacketsPerInterval=%d server PPI=%d nodePPS=%d nodePPI=%d\n", 
+    packetsSentThisInterval, maxPacketsPerInterval, _myServer->getPacketsPerClientPerInterval(), 
+    nodeData->getMaxVoxelPacketsPerSecond(), clientMaxPacketsPerInterval);
+
+        while (packetsSentThisInterval < maxPacketsPerInterval - (shouldSendEnvironments ? 1 : 0)) {
             // Check to see if we're taking too long, and if so bail early...
             uint64_t now = usecTimestampNow();
             long elapsedUsec = (now - start);

@@ -32,17 +32,7 @@ AvatarData::AvatarData(Node* owningNode) :
     _newScale(1.0f),
     _leaderUUID(),
     _handState(0),
-    _cameraPosition(0,0,0),
-    _cameraOrientation(),
-    _cameraFov(0.0f),
-    _cameraAspectRatio(0.0f),
-    _cameraNearClip(0.0f),
-    _cameraFarClip(0.0f),
     _keyState(NO_KEY_DOWN),
-    _wantColor(true),
-    _wantDelta(true),
-    _wantLowResMoving(true),
-    _wantOcclusionCulling(true),
     _headData(NULL),
     _handData(NULL)
 {
@@ -116,17 +106,6 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     memcpy(destinationBuffer, &_headData->_audioLoudness, sizeof(float));
     destinationBuffer += sizeof(float);
 
-    // camera details
-    memcpy(destinationBuffer, &_cameraPosition, sizeof(_cameraPosition));
-    destinationBuffer += sizeof(_cameraPosition);
-    destinationBuffer += packOrientationQuatToBytes(destinationBuffer, _cameraOrientation);
-    destinationBuffer += packFloatAngleToTwoByte(destinationBuffer, _cameraFov);
-    destinationBuffer += packFloatRatioToTwoByte(destinationBuffer, _cameraAspectRatio);
-    destinationBuffer += packClipValueToTwoByte(destinationBuffer, _cameraNearClip);
-    destinationBuffer += packClipValueToTwoByte(destinationBuffer, _cameraFarClip);
-    memcpy(destinationBuffer, &_cameraEyeOffsetPosition, sizeof(_cameraEyeOffsetPosition));
-    destinationBuffer += sizeof(_cameraEyeOffsetPosition);
-
     // chat message
     *destinationBuffer++ = _chatMessage.size();
     memcpy(destinationBuffer, _chatMessage.data(), _chatMessage.size() * sizeof(char));
@@ -134,10 +113,6 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
     
     // bitMask of less than byte wide items
     unsigned char bitItems = 0;
-    if (_wantLowResMoving)     { setAtBit(bitItems, WANT_LOW_RES_MOVING_BIT); }
-    if (_wantColor)            { setAtBit(bitItems, WANT_COLOR_AT_BIT); }
-    if (_wantDelta)            { setAtBit(bitItems, WANT_DELTA_AT_BIT); }
-    if (_wantOcclusionCulling) { setAtBit(bitItems, WANT_OCCLUSION_CULLING_BIT); }
 
     // key state
     setSemiNibbleAt(bitItems,KEY_STATE_START_BIT,_keyState);
@@ -182,7 +157,7 @@ int AvatarData::getBroadcastData(unsigned char* destinationBuffer) {
         *destinationBuffer++ = (unsigned char)it->jointID;
         destinationBuffer += packOrientationQuatToBytes(destinationBuffer, it->rotation);
     }
-    
+
     return destinationBuffer - bufferStart;
 }
 
@@ -259,17 +234,6 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     memcpy(&_headData->_audioLoudness, sourceBuffer, sizeof(float));
     sourceBuffer += sizeof(float);
 
-    // camera details
-    memcpy(&_cameraPosition, sourceBuffer, sizeof(_cameraPosition));
-    sourceBuffer += sizeof(_cameraPosition);
-    sourceBuffer += unpackOrientationQuatFromBytes(sourceBuffer, _cameraOrientation);
-    sourceBuffer += unpackFloatAngleFromTwoByte((uint16_t*) sourceBuffer, &_cameraFov);
-    sourceBuffer += unpackFloatRatioFromTwoByte(sourceBuffer,_cameraAspectRatio);
-    sourceBuffer += unpackClipValueFromTwoByte(sourceBuffer,_cameraNearClip);
-    sourceBuffer += unpackClipValueFromTwoByte(sourceBuffer,_cameraFarClip);
-    memcpy(&_cameraEyeOffsetPosition, sourceBuffer, sizeof(_cameraEyeOffsetPosition));
-    sourceBuffer += sizeof(_cameraEyeOffsetPosition);
-
     // the rest is a chat message
     int chatMessageSize = *sourceBuffer++;
     _chatMessage = string((char*)sourceBuffer, chatMessageSize);
@@ -278,10 +242,6 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
     // voxel sending features...
     unsigned char bitItems = 0;
     bitItems = (unsigned char)*sourceBuffer++;
-    _wantLowResMoving     = oneAtBit(bitItems, WANT_LOW_RES_MOVING_BIT);
-    _wantColor            = oneAtBit(bitItems, WANT_COLOR_AT_BIT);
-    _wantDelta            = oneAtBit(bitItems, WANT_DELTA_AT_BIT);
-    _wantOcclusionCulling = oneAtBit(bitItems, WANT_OCCLUSION_CULLING_BIT);
 
     // key state, stored as a semi-nibble in the bitItems
     _keyState = (KeyState)getSemiNibbleAt(bitItems,KEY_STATE_START_BIT);
@@ -330,157 +290,6 @@ int AvatarData::parseData(unsigned char* sourceBuffer, int numBytes) {
             sourceBuffer += unpackOrientationQuatFromBytes(sourceBuffer, it->rotation); 
         }
     }
-    
+
     return sourceBuffer - startPosition;
-}
-
-glm::vec3 AvatarData::calculateCameraDirection() const {
-    glm::vec3 direction = glm::vec3(_cameraOrientation * glm::vec4(IDENTITY_FRONT, 0.0f));
-    return direction;
-}
-
-
-// Allows sending of fixed-point numbers: radix 1 makes 15.1 number, radix 8 makes 8.8 number, etc
-int packFloatScalarToSignedTwoByteFixed(unsigned char* buffer, float scalar, int radix) {
-    int16_t outVal = (int16_t)(scalar * (float)(1 << radix));
-    memcpy(buffer, &outVal, sizeof(uint16_t));
-    return sizeof(uint16_t);
-}
-
-int unpackFloatScalarFromSignedTwoByteFixed(int16_t* byteFixedPointer, float* destinationPointer, int radix) {
-    *destinationPointer = *byteFixedPointer / (float)(1 << radix);
-    return sizeof(int16_t);
-}
-
-int packFloatVec3ToSignedTwoByteFixed(unsigned char* destBuffer, const glm::vec3& srcVector, int radix) {
-    const unsigned char* startPosition = destBuffer;
-    destBuffer += packFloatScalarToSignedTwoByteFixed(destBuffer, srcVector.x, radix);
-    destBuffer += packFloatScalarToSignedTwoByteFixed(destBuffer, srcVector.y, radix);
-    destBuffer += packFloatScalarToSignedTwoByteFixed(destBuffer, srcVector.z, radix);
-    return destBuffer - startPosition;
-}
-
-int unpackFloatVec3FromSignedTwoByteFixed(unsigned char* sourceBuffer, glm::vec3& destination, int radix) {
-    const unsigned char* startPosition = sourceBuffer;
-    sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(destination.x), radix);
-    sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(destination.y), radix);
-    sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(destination.z), radix);
-    return sourceBuffer - startPosition;
-}
-
-
-int packFloatAngleToTwoByte(unsigned char* buffer, float angle) {
-    const float ANGLE_CONVERSION_RATIO = (std::numeric_limits<uint16_t>::max() / 360.0);
-    
-    uint16_t angleHolder = floorf((angle + 180) * ANGLE_CONVERSION_RATIO);
-    memcpy(buffer, &angleHolder, sizeof(uint16_t));
-    
-    return sizeof(uint16_t);
-}
-
-int unpackFloatAngleFromTwoByte(uint16_t* byteAnglePointer, float* destinationPointer) {
-    *destinationPointer = (*byteAnglePointer / (float) std::numeric_limits<uint16_t>::max()) * 360.0 - 180;
-    return sizeof(uint16_t);
-}
-
-int packOrientationQuatToBytes(unsigned char* buffer, const glm::quat& quatInput) {
-    const float QUAT_PART_CONVERSION_RATIO = (std::numeric_limits<uint16_t>::max() / 2.0);
-    uint16_t quatParts[4];
-    quatParts[0] = floorf((quatInput.x + 1.0) * QUAT_PART_CONVERSION_RATIO);
-    quatParts[1] = floorf((quatInput.y + 1.0) * QUAT_PART_CONVERSION_RATIO);
-    quatParts[2] = floorf((quatInput.z + 1.0) * QUAT_PART_CONVERSION_RATIO);
-    quatParts[3] = floorf((quatInput.w + 1.0) * QUAT_PART_CONVERSION_RATIO);
-
-    memcpy(buffer, &quatParts, sizeof(quatParts));
-    return sizeof(quatParts);
-}
-
-int unpackOrientationQuatFromBytes(unsigned char* buffer, glm::quat& quatOutput) {
-    uint16_t quatParts[4];
-    memcpy(&quatParts, buffer, sizeof(quatParts));
-
-    quatOutput.x = ((quatParts[0] / (float) std::numeric_limits<uint16_t>::max()) * 2.0) - 1.0;
-    quatOutput.y = ((quatParts[1] / (float) std::numeric_limits<uint16_t>::max()) * 2.0) - 1.0;
-    quatOutput.z = ((quatParts[2] / (float) std::numeric_limits<uint16_t>::max()) * 2.0) - 1.0;
-    quatOutput.w = ((quatParts[3] / (float) std::numeric_limits<uint16_t>::max()) * 2.0) - 1.0;
-
-    return sizeof(quatParts);
-}
-
-float SMALL_LIMIT = 10.0;
-float LARGE_LIMIT = 1000.0;
-
-int packFloatRatioToTwoByte(unsigned char* buffer, float ratio) {
-    // if the ratio is less than 10, then encode it as a positive number scaled from 0 to int16::max()
-    int16_t ratioHolder;
-    
-    if (ratio < SMALL_LIMIT) {
-        const float SMALL_RATIO_CONVERSION_RATIO = (std::numeric_limits<int16_t>::max() / SMALL_LIMIT);
-        ratioHolder = floorf(ratio * SMALL_RATIO_CONVERSION_RATIO);
-    } else {
-        const float LARGE_RATIO_CONVERSION_RATIO = std::numeric_limits<int16_t>::min() / LARGE_LIMIT;
-        ratioHolder = floorf((std::min(ratio,LARGE_LIMIT) - SMALL_LIMIT) * LARGE_RATIO_CONVERSION_RATIO);
-    }
-    memcpy(buffer, &ratioHolder, sizeof(ratioHolder));
-    return sizeof(ratioHolder);
-}
-
-int unpackFloatRatioFromTwoByte(unsigned char* buffer, float& ratio) {
-    int16_t ratioHolder;
-    memcpy(&ratioHolder, buffer, sizeof(ratioHolder));
-
-    // If it's positive, than the original ratio was less than SMALL_LIMIT
-    if (ratioHolder > 0) {
-        ratio = (ratioHolder / (float) std::numeric_limits<int16_t>::max()) * SMALL_LIMIT;
-    } else {
-        // If it's negative, than the original ratio was between SMALL_LIMIT and LARGE_LIMIT
-        ratio = ((ratioHolder / (float) std::numeric_limits<int16_t>::min()) * LARGE_LIMIT) + SMALL_LIMIT;
-    }
-    return sizeof(ratioHolder);
-}
-
-int packClipValueToTwoByte(unsigned char* buffer, float clipValue) {
-    // Clip values must be less than max signed 16bit integers
-    assert(clipValue < std::numeric_limits<int16_t>::max());
-    int16_t holder;
-    
-    // if the clip is less than 10, then encode it as a positive number scaled from 0 to int16::max()
-    if (clipValue < SMALL_LIMIT) {
-        const float SMALL_RATIO_CONVERSION_RATIO = (std::numeric_limits<int16_t>::max() / SMALL_LIMIT);
-        holder = floorf(clipValue * SMALL_RATIO_CONVERSION_RATIO);
-    } else {
-        // otherwise we store it as a negative integer
-        holder = -1 * floorf(clipValue);
-    }
-    memcpy(buffer, &holder, sizeof(holder));
-    return sizeof(holder);
-}
-
-int unpackClipValueFromTwoByte(unsigned char* buffer, float& clipValue) {
-    int16_t holder;
-    memcpy(&holder, buffer, sizeof(holder));
-
-    // If it's positive, than the original clipValue was less than SMALL_LIMIT
-    if (holder > 0) {
-        clipValue = (holder / (float) std::numeric_limits<int16_t>::max()) * SMALL_LIMIT;
-    } else {
-        // If it's negative, than the original holder can be found as the opposite sign of holder
-        clipValue = -1.0f * holder;
-    }
-    return sizeof(holder);
-}
-
-int packFloatToByte(unsigned char* buffer, float value, float scaleBy) {
-    unsigned char holder;
-    const float CONVERSION_RATIO = (255 / scaleBy);
-    holder = floorf(value * CONVERSION_RATIO);
-    memcpy(buffer, &holder, sizeof(holder));
-    return sizeof(holder);
-}
-
-int unpackFloatFromByte(unsigned char* buffer, float& value, float scaleBy) {
-    unsigned char holder;
-    memcpy(&holder, buffer, sizeof(holder));
-    value = ((float)holder / (float) 255) * scaleBy;
-    return sizeof(holder);
 }
