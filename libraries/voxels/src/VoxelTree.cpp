@@ -78,13 +78,18 @@ void VoxelTree::recurseTreeWithOperation(RecurseVoxelTreeOperation operation, vo
 }
 
 // Recurses voxel node with an operation function
-void VoxelTree::recurseNodeWithOperation(VoxelNode* node, RecurseVoxelTreeOperation operation, void* extraData) {
+void VoxelTree::recurseNodeWithOperation(VoxelNode* node, RecurseVoxelTreeOperation operation, void* extraData, 
+                        int recursionCount) {
+    if (recursionCount > DANGEROUSLY_DEEP_RECURSION) {
+        qDebug() << "VoxelTree::recurseNodeWithOperation() reached DANGEROUSLY_DEEP_RECURSION, bailing!\n";
+        return;
+    }
         
     if (operation(node, extraData)) {
         for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
             VoxelNode* child = node->getChildAtIndex(i);
             if (child) {
-                recurseNodeWithOperation(child, operation, extraData);
+                recurseNodeWithOperation(child, operation, extraData, recursionCount+1);
             }
         }
     }
@@ -100,7 +105,13 @@ void VoxelTree::recurseTreeWithOperationDistanceSorted(RecurseVoxelTreeOperation
 
 // Recurses voxel node with an operation function
 void VoxelTree::recurseNodeWithOperationDistanceSorted(VoxelNode* node, RecurseVoxelTreeOperation operation, 
-                                                       const glm::vec3& point, void* extraData) {
+                                                       const glm::vec3& point, void* extraData, int recursionCount) {
+
+    if (recursionCount > DANGEROUSLY_DEEP_RECURSION) {
+        qDebug() << "VoxelTree::recurseNodeWithOperationDistanceSorted() reached DANGEROUSLY_DEEP_RECURSION, bailing!\n";
+        return;
+    }
+
     if (operation(node, extraData)) {
         // determine the distance sorted order of our children
         VoxelNode*  sortedChildren[NUMBER_OF_CHILDREN];
@@ -641,7 +652,6 @@ void VoxelTree::reaverageVoxelColors(VoxelNode* startNode) {
         } else {
             recursionCount++;
         }
-        const int UNREASONABLY_DEEP_RECURSION = 20;
         if (recursionCount > UNREASONABLY_DEEP_RECURSION) {
             qDebug("VoxelTree::reaverageVoxelColors()... bailing out of UNREASONABLY_DEEP_RECURSION\n");
             recursionCount--;

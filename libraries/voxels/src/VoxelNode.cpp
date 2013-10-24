@@ -1021,14 +1021,18 @@ VoxelNode* VoxelNode::addChildAtIndex(int childIndex) {
 }
 
 // handles staging or deletion of all deep children
-void VoxelNode::safeDeepDeleteChildAtIndex(int childIndex) {
+void VoxelNode::safeDeepDeleteChildAtIndex(int childIndex, int recursionCount) {
+    if (recursionCount > DANGEROUSLY_DEEP_RECURSION) {
+        qDebug() << "VoxelNode::safeDeepDeleteChildAtIndex() reached DANGEROUSLY_DEEP_RECURSION, bailing!\n";
+        return;
+    }
     VoxelNode* childToDelete = getChildAtIndex(childIndex);
     if (childToDelete) {
         // If the child is not a leaf, then call ourselves recursively on all the children
         if (!childToDelete->isLeaf()) {
             // delete all it's children
             for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
-                childToDelete->safeDeepDeleteChildAtIndex(i);
+                childToDelete->safeDeepDeleteChildAtIndex(i,recursionCount+1);
             }
         }
         deleteChildAtIndex(childIndex);

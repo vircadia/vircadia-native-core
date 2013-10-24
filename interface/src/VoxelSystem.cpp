@@ -1700,7 +1700,7 @@ bool VoxelSystem::isViewChanging() {
     bool result = false; // assume the best
 
     // If our viewFrustum has changed since our _lastKnownViewFrustum
-    if (!_lastKnownViewFrustum.matches(_viewFrustum)) {
+    if (!_lastKnownViewFrustum.isVerySimilar(_viewFrustum)) {
         result = true;
         _lastKnownViewFrustum = *_viewFrustum; // save last known
     }
@@ -1716,7 +1716,7 @@ bool VoxelSystem::hasViewChanged() {
     }
     
     // If our viewFrustum has changed since our _lastKnownViewFrustum
-    if (!_lastStableViewFrustum.matches(_viewFrustum)) {
+    if (!_lastStableViewFrustum.isVerySimilar(_viewFrustum)) {
         result = true;
         _lastStableViewFrustum = *_viewFrustum; // save last stable
     }
@@ -1867,7 +1867,7 @@ void VoxelSystem::hideOutOfView(bool forceFullFrustum) {
         }
     }
     
-    if (!forceFullFrustum && _culledOnce && args.lastViewFrustum.matches(args.thisViewFrustum)) {
+    if (!forceFullFrustum && _culledOnce && args.lastViewFrustum.isVerySimilar(args.thisViewFrustum)) {
         //printf("view frustum hasn't changed BAIL!!!\n");
         return;
     }
