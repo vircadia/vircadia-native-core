@@ -1,0 +1,32 @@
+<!--#include file="header.shtml"-->
+  <div id="nodes-lead" class="table-lead"><h3>Nodes</h3><div class="lead-line"></div></div>
+  <table id="nodes-table" class="table table-striped">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>UUID</th>
+        <th>Pool</th>
+        <th>Public</th>
+        <th>Local</th>
+        <th>Kill?</th>
+      </tr>
+    </thead>
+    <tbody>
+    </tbody>
+  </table>
+  
+  <div id="queued-lead" class="table-lead"><h3>Queued Assignments</h3><div class="lead-line"></div></div>
+  <table id="assignments-table" class="table table-striped">
+    <thead>
+      <tr>
+        <th>Type</th>
+        <th>UUID</th>
+        <th>Pool</th>
+      </tr>
+    </thead>
+    <tbody>
+    </tbody>
+  </table>
+<!--#include file="footer.shtml"-->
+<script src='js/tables.js'></script>
+<!--#include file="page-end.shtml"-->
