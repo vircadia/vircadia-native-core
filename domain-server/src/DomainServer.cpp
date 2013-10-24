@@ -45,8 +45,9 @@ QJsonObject jsonForSocket(sockaddr* socket) {
 const char JSON_KEY_TYPE[] = "type";
 const char JSON_KEY_PUBLIC_SOCKET[] = "public";
 const char JSON_KEY_LOCAL_SOCKET[] = "local";
+const char JSON_KEY_POOL[] = "pool";
 
-void addNodeToJsonObject(Node* node, QJsonObject& jsonObject) {
+QJsonObject jsonObjectForNode(Node* node) {
     QJsonObject nodeJson;
 
     // re-format the type name so it matches the target name
@@ -60,11 +61,13 @@ void addNodeToJsonObject(Node* node, QJsonObject& jsonObject) {
     // add the node socket information
     nodeJson[JSON_KEY_PUBLIC_SOCKET] = jsonForSocket(node->getPublicSocket());
     nodeJson[JSON_KEY_LOCAL_SOCKET] = jsonForSocket(node->getLocalSocket());
-
-    // add the node using the UUID as the key
-    QString uuidString = uuidStringWithoutCurlyBraces(node->getUUID());
-    jsonObject[uuidString] = nodeJson;
     
+    // if the node has pool information, add it
+    if (node->getLinkedData() && ((Assignment*) node->getLinkedData())->hasPool()) {
+        nodeJson[JSON_KEY_POOL] = QString(((Assignment*) node->getLinkedData())->getPool());
+    }
+
+    return nodeJson;
 }
 
 int DomainServer::civetwebRequestHandler(struct mg_connection *connection) {
@@ -92,7 +95,9 @@ int DomainServer::civetwebRequestHandler(struct mg_connection *connection) {
             
             for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
                 if (node->getLinkedData()) {
-                    addNodeToJsonObject(&(*node), assignedNodesJSON);
+                    // add the node using the UUID as the key
+                    QString uuidString = uuidStringWithoutCurlyBraces(node->getUUID());
+                    assignedNodesJSON[uuidString] = jsonObjectForNode(&(*node));
                 }
             }
             
@@ -108,6 +113,11 @@ int DomainServer::civetwebRequestHandler(struct mg_connection *connection) {
                 
                 QString uuidString = uuidStringWithoutCurlyBraces((*assignment)->getUUID());
                 queuedAssignmentJSON[JSON_KEY_TYPE] = QString((*assignment)->getTypeName());
+                
+                // if the assignment has a pool, add it
+                if ((*assignment)->hasPool()) {
+                    queuedAssignmentJSON[JSON_KEY_POOL] = QString((*assignment)->getPool());
+                }
                 
                 // add this queued assignment to the JSON
                 queuedAssignmentsJSON[uuidString] = queuedAssignmentJSON;
@@ -136,7 +146,9 @@ int DomainServer::civetwebRequestHandler(struct mg_connection *connection) {
             NodeList* nodeList = NodeList::getInstance();
             
             for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
-                addNodeToJsonObject(&(*node), nodesJSON);
+                // add the node using the UUID as the key
+                QString uuidString = uuidStringWithoutCurlyBraces(node->getUUID());
+                nodesJSON[uuidString] = jsonObjectForNode(&(*node));
             }
             
             rootJSON["nodes"] = nodesJSON;
