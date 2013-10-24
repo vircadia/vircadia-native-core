@@ -190,10 +190,11 @@ public:
     
     bool getShouldReaverage() const { return _shouldReaverage; }
 
-    void recurseNodeWithOperation(VoxelNode* node, RecurseVoxelTreeOperation operation, void* extraData);
+    void recurseNodeWithOperation(VoxelNode* node, RecurseVoxelTreeOperation operation, 
+                void* extraData, int recursionCount = 0);
             
     void recurseNodeWithOperationDistanceSorted(VoxelNode* node, RecurseVoxelTreeOperation operation, 
-                const glm::vec3& point, void* extraData);
+                const glm::vec3& point, void* extraData, int recursionCount = 0);
 
     void nudgeSubTree(VoxelNode* nodeToNudge, const glm::vec3& nudgeAmount, VoxelEditPacketSender& voxelEditSender);
 

@@ -48,7 +48,7 @@ public:
     void deleteChildAtIndex(int childIndex);
     VoxelNode* removeChildAtIndex(int childIndex);
     VoxelNode* addChildAtIndex(int childIndex);
-    void safeDeepDeleteChildAtIndex(int childIndex); // handles deletion of all descendents
+    void safeDeepDeleteChildAtIndex(int childIndex, int recursionCount = 0); // handles deletion of all descendents
 
     void setColorFromAverageOfChildren();
     void setRandomColor(int minimumBrightness);
