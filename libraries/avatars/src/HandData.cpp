@@ -8,6 +8,7 @@
 
 #include "HandData.h"
 #include "AvatarData.h"
+#include <SharedUtil.h>
 
 // Glove flags
 #define GLOVE_FLAG_RAVE 0x01

@@ -14,7 +14,7 @@
 #include "VoxelSendThread.h"
 
 VoxelNodeData::VoxelNodeData(Node* owningNode) :
-    AvatarData(owningNode),
+    VoxelQuery(owningNode),
     _viewSent(false),
     _voxelPacketAvailableBytes(MAX_VOXEL_PACKET_SIZE),
     _maxSearchLevel(1),

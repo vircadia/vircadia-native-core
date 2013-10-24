@@ -11,7 +11,7 @@
 
 #include <iostream>
 #include <NodeData.h>
-#include <AvatarData.h>
+#include <VoxelQuery.h>
 
 #include <CoverageMap.h>
 #include <VoxelConstants.h>
@@ -21,7 +21,7 @@
 class VoxelSendThread;
 class VoxelServer;
 
-class VoxelNodeData : public AvatarData {
+class VoxelNodeData : public VoxelQuery {
 public:
     VoxelNodeData(Node* owningNode);
     ~VoxelNodeData();

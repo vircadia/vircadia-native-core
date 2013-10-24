@@ -13,6 +13,9 @@
 #include <stdint.h>
 #include <unistd.h>
 
+#include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
+
 #include <QtCore/QDebug>
 
 #ifdef _WIN32
@@ -112,5 +115,40 @@ public:
 };
 
 bool isBetween(int64_t value, int64_t max, int64_t min);
+
+
+// These pack/unpack functions are designed to start specific known types in as efficient a manner
+// as possible. Taking advantage of the known characteristics of the semantic types.
+
+// Angles are known to be between 0 and 360deg, this allows us to encode in 16bits with great accuracy
+int packFloatAngleToTwoByte(unsigned char* buffer, float angle);
+int unpackFloatAngleFromTwoByte(uint16_t* byteAnglePointer, float* destinationPointer);
+
+// Orientation Quats are known to have 4 normalized components be between -1.0 and 1.0 
+// this allows us to encode each component in 16bits with great accuracy
+int packOrientationQuatToBytes(unsigned char* buffer, const glm::quat& quatInput);
+int unpackOrientationQuatFromBytes(unsigned char* buffer, glm::quat& quatOutput);
+
+// Ratios need the be highly accurate when less than 10, but not very accurate above 10, and they
+// are never greater than 1000 to 1, this allows us to encode each component in 16bits
+int packFloatRatioToTwoByte(unsigned char* buffer, float ratio);
+int unpackFloatRatioFromTwoByte(unsigned char* buffer, float& ratio);
+
+// Near/Far Clip values need the be highly accurate when less than 10, but only integer accuracy above 10 and
+// they are never greater than 16,000, this allows us to encode each component in 16bits
+int packClipValueToTwoByte(unsigned char* buffer, float clipValue);
+int unpackClipValueFromTwoByte(unsigned char* buffer, float& clipValue);
+
+// Positive floats that don't need to be very precise
+int packFloatToByte(unsigned char* buffer, float value, float scaleBy);
+int unpackFloatFromByte(unsigned char* buffer, float& value, float scaleBy);
+
+// Allows sending of fixed-point numbers: radix 1 makes 15.1 number, radix 8 makes 8.8 number, etc
+int packFloatScalarToSignedTwoByteFixed(unsigned char* buffer, float scalar, int radix);
+int unpackFloatScalarFromSignedTwoByteFixed(int16_t* byteFixedPointer, float* destinationPointer, int radix);
+
+// A convenience for sending vec3's as fixed-poimt floats
+int packFloatVec3ToSignedTwoByteFixed(unsigned char* destBuffer, const glm::vec3& srcVector, int radix);
+int unpackFloatVec3FromSignedTwoByteFixed(unsigned char* sourceBuffer, glm::vec3& destination, int radix);
 
 #endif /* defined(__hifi__SharedUtil__) */

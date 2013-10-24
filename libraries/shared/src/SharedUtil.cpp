@@ -535,3 +535,149 @@ int removeFromSortedArrays(void* value, void** valueArray, float* keyArray, int*
     }
     return -1; // error case
 }
+
+// Allows sending of fixed-point numbers: radix 1 makes 15.1 number, radix 8 makes 8.8 number, etc
+int packFloatScalarToSignedTwoByteFixed(unsigned char* buffer, float scalar, int radix) {
+    int16_t outVal = (int16_t)(scalar * (float)(1 << radix));
+    memcpy(buffer, &outVal, sizeof(uint16_t));
+    return sizeof(uint16_t);
+}
+
+int unpackFloatScalarFromSignedTwoByteFixed(int16_t* byteFixedPointer, float* destinationPointer, int radix) {
+    *destinationPointer = *byteFixedPointer / (float)(1 << radix);
+    return sizeof(int16_t);
+}
+
+int packFloatVec3ToSignedTwoByteFixed(unsigned char* destBuffer, const glm::vec3& srcVector, int radix) {
+    const unsigned char* startPosition = destBuffer;
+    destBuffer += packFloatScalarToSignedTwoByteFixed(destBuffer, srcVector.x, radix);
+    destBuffer += packFloatScalarToSignedTwoByteFixed(destBuffer, srcVector.y, radix);
+    destBuffer += packFloatScalarToSignedTwoByteFixed(destBuffer, srcVector.z, radix);
+    return destBuffer - startPosition;
+}
+
+int unpackFloatVec3FromSignedTwoByteFixed(unsigned char* sourceBuffer, glm::vec3& destination, int radix) {
+    const unsigned char* startPosition = sourceBuffer;
+    sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(destination.x), radix);
+    sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(destination.y), radix);
+    sourceBuffer += unpackFloatScalarFromSignedTwoByteFixed((int16_t*) sourceBuffer, &(destination.z), radix);
+    return sourceBuffer - startPosition;
+}
+
+
+int packFloatAngleToTwoByte(unsigned char* buffer, float angle) {
+    const float ANGLE_CONVERSION_RATIO = (std::numeric_limits<uint16_t>::max() / 360.0);
+    
+    uint16_t angleHolder = floorf((angle + 180) * ANGLE_CONVERSION_RATIO);
+    memcpy(buffer, &angleHolder, sizeof(uint16_t));
+    
+    return sizeof(uint16_t);
+}
+
+int unpackFloatAngleFromTwoByte(uint16_t* byteAnglePointer, float* destinationPointer) {
+    *destinationPointer = (*byteAnglePointer / (float) std::numeric_limits<uint16_t>::max()) * 360.0 - 180;
+    return sizeof(uint16_t);
+}
+
+int packOrientationQuatToBytes(unsigned char* buffer, const glm::quat& quatInput) {
+    const float QUAT_PART_CONVERSION_RATIO = (std::numeric_limits<uint16_t>::max() / 2.0);
+    uint16_t quatParts[4];
+    quatParts[0] = floorf((quatInput.x + 1.0) * QUAT_PART_CONVERSION_RATIO);
+    quatParts[1] = floorf((quatInput.y + 1.0) * QUAT_PART_CONVERSION_RATIO);
+    quatParts[2] = floorf((quatInput.z + 1.0) * QUAT_PART_CONVERSION_RATIO);
+    quatParts[3] = floorf((quatInput.w + 1.0) * QUAT_PART_CONVERSION_RATIO);
+
+    memcpy(buffer, &quatParts, sizeof(quatParts));
+    return sizeof(quatParts);
+}
+
+int unpackOrientationQuatFromBytes(unsigned char* buffer, glm::quat& quatOutput) {
+    uint16_t quatParts[4];
+    memcpy(&quatParts, buffer, sizeof(quatParts));
+
+    quatOutput.x = ((quatParts[0] / (float) std::numeric_limits<uint16_t>::max()) * 2.0) - 1.0;
+    quatOutput.y = ((quatParts[1] / (float) std::numeric_limits<uint16_t>::max()) * 2.0) - 1.0;
+    quatOutput.z = ((quatParts[2] / (float) std::numeric_limits<uint16_t>::max()) * 2.0) - 1.0;
+    quatOutput.w = ((quatParts[3] / (float) std::numeric_limits<uint16_t>::max()) * 2.0) - 1.0;
+
+    return sizeof(quatParts);
+}
+
+float SMALL_LIMIT = 10.0;
+float LARGE_LIMIT = 1000.0;
+
+int packFloatRatioToTwoByte(unsigned char* buffer, float ratio) {
+    // if the ratio is less than 10, then encode it as a positive number scaled from 0 to int16::max()
+    int16_t ratioHolder;
+    
+    if (ratio < SMALL_LIMIT) {
+        const float SMALL_RATIO_CONVERSION_RATIO = (std::numeric_limits<int16_t>::max() / SMALL_LIMIT);
+        ratioHolder = floorf(ratio * SMALL_RATIO_CONVERSION_RATIO);
+    } else {
+        const float LARGE_RATIO_CONVERSION_RATIO = std::numeric_limits<int16_t>::min() / LARGE_LIMIT;
+        ratioHolder = floorf((std::min(ratio,LARGE_LIMIT) - SMALL_LIMIT) * LARGE_RATIO_CONVERSION_RATIO);
+    }
+    memcpy(buffer, &ratioHolder, sizeof(ratioHolder));
+    return sizeof(ratioHolder);
+}
+
+int unpackFloatRatioFromTwoByte(unsigned char* buffer, float& ratio) {
+    int16_t ratioHolder;
+    memcpy(&ratioHolder, buffer, sizeof(ratioHolder));
+
+    // If it's positive, than the original ratio was less than SMALL_LIMIT
+    if (ratioHolder > 0) {
+        ratio = (ratioHolder / (float) std::numeric_limits<int16_t>::max()) * SMALL_LIMIT;
+    } else {
+        // If it's negative, than the original ratio was between SMALL_LIMIT and LARGE_LIMIT
+        ratio = ((ratioHolder / (float) std::numeric_limits<int16_t>::min()) * LARGE_LIMIT) + SMALL_LIMIT;
+    }
+    return sizeof(ratioHolder);
+}
+
+int packClipValueToTwoByte(unsigned char* buffer, float clipValue) {
+    // Clip values must be less than max signed 16bit integers
+    assert(clipValue < std::numeric_limits<int16_t>::max());
+    int16_t holder;
+    
+    // if the clip is less than 10, then encode it as a positive number scaled from 0 to int16::max()
+    if (clipValue < SMALL_LIMIT) {
+        const float SMALL_RATIO_CONVERSION_RATIO = (std::numeric_limits<int16_t>::max() / SMALL_LIMIT);
+        holder = floorf(clipValue * SMALL_RATIO_CONVERSION_RATIO);
+    } else {
+        // otherwise we store it as a negative integer
+        holder = -1 * floorf(clipValue);
+    }
+    memcpy(buffer, &holder, sizeof(holder));
+    return sizeof(holder);
+}
+
+int unpackClipValueFromTwoByte(unsigned char* buffer, float& clipValue) {
+    int16_t holder;
+    memcpy(&holder, buffer, sizeof(holder));
+
+    // If it's positive, than the original clipValue was less than SMALL_LIMIT
+    if (holder > 0) {
+        clipValue = (holder / (float) std::numeric_limits<int16_t>::max()) * SMALL_LIMIT;
+    } else {
+        // If it's negative, than the original holder can be found as the opposite sign of holder
+        clipValue = -1.0f * holder;
+    }
+    return sizeof(holder);
+}
+
+int packFloatToByte(unsigned char* buffer, float value, float scaleBy) {
+    unsigned char holder;
+    const float CONVERSION_RATIO = (255 / scaleBy);
+    holder = floorf(value * CONVERSION_RATIO);
+    memcpy(buffer, &holder, sizeof(holder));
+    return sizeof(holder);
+}
+
+int unpackFloatFromByte(unsigned char* buffer, float& value, float scaleBy) {
+    unsigned char holder;
+    memcpy(&holder, buffer, sizeof(holder));
+    value = ((float)holder / (float) 255) * scaleBy;
+    return sizeof(holder);
+}
+
