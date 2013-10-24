@@ -63,7 +63,6 @@ void VoxelSendThread::handlePacketSend(Node* node, VoxelNodeData* nodeData, int&
     // obscure the packet and not send it. This allows the callers and upper level logic to not need to know about
     // this rate control savings.
     if (nodeData->shouldSuppressDuplicatePacket()) {
-        printf ("handlePacketSend() silently ate the last packet which was a duplicate...\n");
         return; // without sending...
     }
 
