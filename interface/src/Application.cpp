@@ -1924,10 +1924,15 @@ void Application::update(float deltaTime) {
     if (_lookatTargetAvatar && !_faceshift.isActive()) {
         // If the mouse is over another avatar's head...
          _myAvatar.getHead().setLookAtPosition(lookAtSpot);
+    
     } else if (_isHoverVoxel && !_faceshift.isActive()) {
         //  Look at the hovered voxel
         lookAtSpot = getMouseVoxelWorldCoordinates(_hoverVoxel);
         _myAvatar.getHead().setLookAtPosition(lookAtSpot);
+        
+    } else if (_myCamera.getMode() == CAMERA_MODE_MIRROR && !_faceshift.isActive()) {
+        _myAvatar.getHead().setLookAtPosition(_myCamera.getPosition());
+    
     } else {
         //  Just look in direction of the mouse ray
         const float FAR_AWAY_STARE = TREE_SCALE;
@@ -2784,9 +2789,6 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
         }
         
         // Render my own Avatar
-        if (whichCamera.getMode() == CAMERA_MODE_MIRROR && !_faceshift.isActive()) {
-            _myAvatar.getHead().setLookAtPosition(whichCamera.getPosition());
-        }
         _myAvatar.render(whichCamera.getMode() == CAMERA_MODE_MIRROR,
                          Menu::getInstance()->isOptionChecked(MenuOption::AvatarAsBalls));
         _myAvatar.setDisplayingLookatVectors(Menu::getInstance()->isOptionChecked(MenuOption::LookAtVectors));
