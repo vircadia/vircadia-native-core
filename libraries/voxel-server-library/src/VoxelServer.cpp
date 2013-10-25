@@ -435,21 +435,19 @@ void VoxelServer::run() {
                         nodeData->initializeVoxelSendThread(this);
                     }
                 }
-            } else if (packetData[0] == PACKET_TYPE_PING
-                       || packetData[0] == PACKET_TYPE_DOMAIN
-                       || packetData[0] == PACKET_TYPE_STUN_RESPONSE) {
-                // let processNodeData handle it.
-                NodeList::getInstance()->processNodeData(&senderAddress, packetData, packetLength);
-            } else if (packetData[0] == PACKET_TYPE_DOMAIN) {
-                NodeList::getInstance()->processNodeData(&senderAddress, packetData, packetLength);
             } else if (packetData[0] == PACKET_TYPE_VOXEL_JURISDICTION_REQUEST) {
                 if (_jurisdictionSender) {
                     _jurisdictionSender->queueReceivedPacket(senderAddress, packetData, packetLength);
                 }
-            } else if (_voxelServerPacketProcessor) {
+            } else if (_voxelServerPacketProcessor &&
+                       (packetData[0] == PACKET_TYPE_SET_VOXEL
+                        || packetData[0] == PACKET_TYPE_SET_VOXEL_DESTRUCTIVE
+                        || packetData[0] == PACKET_TYPE_ERASE_VOXEL
+                        || packetData[0] == PACKET_TYPE_Z_COMMAND)) {
                 _voxelServerPacketProcessor->queueReceivedPacket(senderAddress, packetData, packetLength);
             } else {
-                qDebug("unknown packet ignored... packetData[0]=%c\n", packetData[0]);
+                // let processNodeData handle it.
+                NodeList::getInstance()->processNodeData(&senderAddress, packetData, packetLength);
             }
         }
     }
