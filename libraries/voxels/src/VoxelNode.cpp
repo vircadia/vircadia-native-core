@@ -351,6 +351,7 @@ VoxelNode* VoxelNode::getChildAtIndex(int childIndex) const {
             int indexTwo = getNthBit(_childBitmask, 2);
 
             if (_childrenExternal) {
+                //assert(_children.external);
                 if (indexOne == childIndex) {
                     result = _children.external[0];
                 } else if (indexTwo == childIndex) {
@@ -375,6 +376,7 @@ VoxelNode* VoxelNode::getChildAtIndex(int childIndex) const {
             int indexThree = getNthBit(_childBitmask, 3);
 
             if (_childrenExternal) {
+                //assert(_children.external);
                 if (indexOne == childIndex) {
                     result = _children.external[0];
                 } else if (indexTwo == childIndex) {
@@ -407,7 +409,12 @@ VoxelNode* VoxelNode::getChildAtIndex(int childIndex) const {
                 for (int ordinal = 1; ordinal <= childCount; ordinal++) {
                     int index = getNthBit(_childBitmask, ordinal);
                     if (index == childIndex) {
-                        result = _children.external[ordinal-1];
+                        int externalIndex = ordinal-1;
+                        if (externalIndex < childCount && externalIndex >= 0) {
+                            result = _children.external[externalIndex];
+                        } else {
+                            qDebug("getChildAtIndex() attempt to access external client out of bounds externalIndex=%d <<<<<<<<<< WARNING!!! \n",externalIndex);
+                        }
                         break;
                     }
                 }
@@ -430,9 +437,11 @@ void VoxelNode::storeTwoChildren(VoxelNode* childOne, VoxelNode* childTwo) {
     const int64_t minOffset = std::numeric_limits<int32_t>::min();
     const int64_t maxOffset = std::numeric_limits<int32_t>::max();
     
-    if (isBetween(offsetOne, maxOffset, minOffset) && isBetween(offsetTwo, maxOffset, minOffset)) {
+    bool forceExternal = true;
+    if (!forceExternal && isBetween(offsetOne, maxOffset, minOffset) && isBetween(offsetTwo, maxOffset, minOffset)) {
         // if previously external, then clean it up...
         if (_childrenExternal) {
+            //assert(_children.external);
             const int previousChildCount = 2;
             _externalChildrenMemoryUsage -= previousChildCount * sizeof(VoxelNode*);
             delete[] _children.external;
@@ -539,7 +548,9 @@ void VoxelNode::storeThreeChildren(VoxelNode* childOne, VoxelNode* childTwo, Vox
     const int64_t minOffset = -1048576; // what can fit in 20 bits // std::numeric_limits<int16_t>::min();
     const int64_t maxOffset = 1048576; // what can fit in 20 bits  // std::numeric_limits<int16_t>::max();
     
-    if (isBetween(offsetOne, maxOffset, minOffset) && 
+    bool forceExternal = true;
+    if (!forceExternal &&
+            isBetween(offsetOne, maxOffset, minOffset) && 
             isBetween(offsetTwo, maxOffset, minOffset) &&
             isBetween(offsetThree, maxOffset, minOffset)) {
         // if previously external, then clean it up...
@@ -601,7 +612,9 @@ void VoxelNode::checkStoreFourChildren(VoxelNode* childOne, VoxelNode* childTwo,
     const int64_t minOffset = std::numeric_limits<int16_t>::min();
     const int64_t maxOffset = std::numeric_limits<int16_t>::max();
     
-    if (isBetween(offsetOne, maxOffset, minOffset) && 
+    bool forceExternal = true;
+    if (!forceExternal &&
+            isBetween(offsetOne, maxOffset, minOffset) && 
             isBetween(offsetTwo, maxOffset, minOffset) &&
             isBetween(offsetThree, maxOffset, minOffset) &&
             isBetween(offsetFour, maxOffset, minOffset)
@@ -720,7 +733,7 @@ void VoxelNode::setChildAtIndex(int childIndex, VoxelNode* child) {
         storeTwoChildren(childOne, childTwo);        
     } else if (previousChildCount == 2 && newChildCount == 1) {
         // If we had 2 children, and we're removing one, then we know we can go down to single mode
-        assert(child == NULL); // this is the only logical case
+        //assert(child == NULL); // this is the only logical case
         
         int indexTwo = getNthBit(previousChildMask, 2);
         bool keepChildOne = indexTwo == childIndex;
@@ -743,31 +756,19 @@ void VoxelNode::setChildAtIndex(int childIndex, VoxelNode* child) {
         int indexOne = getNthBit(previousChildMask, 1);
         bool replaceChildOne = indexOne == childIndex;
 
-        // If we previously had an external array, then just replace the right one... that's easy.
-        if (_childrenExternal) {
-            // technically, we could look to see if these are now in the offsets to handle be encoded, but
-            // we're going to go ahead and keep this as an array.
-            if (replaceChildOne) {
-                _children.external[0] = child;
-            } else {
-                _children.external[1] = child;
-            }
-        } else {
-            // If we were previously encoded as offsets, then we need to see if we can still encode as offsets
-            VoxelNode* childOne;
-            VoxelNode* childTwo;
-            
-            if (replaceChildOne) {
-                childOne = child;
-                childTwo = (VoxelNode*)((uint8_t*)this + _children.offsetsTwoChildren[1]);
-            } else {
-                childOne = (VoxelNode*)((uint8_t*)this + _children.offsetsTwoChildren[0]);
-                childTwo = child;
-            }
+        // Get the existing two children out of their encoding...        
+        VoxelNode* childOne;
+        VoxelNode* childTwo;
+        retrieveTwoChildren(childOne, childTwo);        
 
-            _twoChildrenOffsetCount--; // will end up one or the other
-            storeTwoChildren(childOne, childTwo);        
+        if (replaceChildOne) {
+            childOne = child;
+        } else {
+            childTwo = child;
         }
+
+        storeTwoChildren(childOne, childTwo);
+            
     } else if (previousChildCount == 2 && newChildCount == 3) {
         // If we had 2 children, and now have 3, then we know we are going to an external case...
 
@@ -893,7 +894,7 @@ void VoxelNode::setChildAtIndex(int childIndex, VoxelNode* child) {
         _externalChildrenCount++;
     } else if (previousChildCount == 4 && newChildCount == 3) {
         // If we had 4 children, and now have 3, then we know we are going from an external case to a potential internal case
-        assert(_childrenExternal);
+        //assert(_children.external && _childrenExternal && previousChildCount == 4);
         
         // We need to determine which children we had, and which one we got rid of...
         int indexOne = getNthBit(previousChildMask, 1);
@@ -928,10 +929,11 @@ void VoxelNode::setChildAtIndex(int childIndex, VoxelNode* child) {
         _children.external = NULL;
         _externalChildrenCount--;
         _externalChildrenMemoryUsage -= previousChildCount * sizeof(VoxelNode*);
-        
-
         storeThreeChildren(childOne, childTwo, childThree);
     } else if (previousChildCount == newChildCount) {
+        //assert(_children.external && _childrenExternal && previousChildCount >= 4);
+        //assert(previousChildCount == newChildCount);
+        
         // 4 or more children, one item being replaced, we know we're stored externally, we just need to find the one
         // that needs to be replaced and replace it.
         for (int ordinal = 1; ordinal <= 8; ordinal++) {
@@ -944,6 +946,10 @@ void VoxelNode::setChildAtIndex(int childIndex, VoxelNode* child) {
             }
         }
     } else if (previousChildCount < newChildCount) {
+        // Growing case... previous must be 4 or greater
+        //assert(_children.external && _childrenExternal && previousChildCount >= 4);
+        //assert(previousChildCount == newChildCount-1);
+        
         // 4 or more children, one item being added, we know we're stored externally, we just figure out where to insert
         // this child pointer into our external list
         VoxelNode** newExternalList = new VoxelNode*[newChildCount];
@@ -975,13 +981,16 @@ void VoxelNode::setChildAtIndex(int childIndex, VoxelNode* child) {
         _externalChildrenMemoryUsage += newChildCount * sizeof(VoxelNode*);
 
     } else if (previousChildCount > newChildCount) {
+        //assert(_children.external && _childrenExternal && previousChildCount >= 4);
+        //assert(previousChildCount == newChildCount+1);
+
         // 4 or more children, one item being removed, we know we're stored externally, we just figure out which 
         // item to remove from our external list
         VoxelNode** newExternalList = new VoxelNode*[newChildCount];
         
         for (int ordinal = 1; ordinal <= previousChildCount; ordinal++) {
             int index = getNthBit(previousChildMask, ordinal);
-            assert(index != -1);
+            //assert(index != -1);
             if (index < childIndex) {
                 newExternalList[ordinal - 1] = _children.external[ordinal - 1];
             } else {
@@ -997,7 +1006,7 @@ void VoxelNode::setChildAtIndex(int childIndex, VoxelNode* child) {
         _externalChildrenMemoryUsage -= previousChildCount * sizeof(VoxelNode*);
         _externalChildrenMemoryUsage += newChildCount * sizeof(VoxelNode*);
     } else {
-        assert(false);
+        //assert(false);
         qDebug("THIS SHOULD NOT HAPPEN previousChildCount == %d && newChildCount == %d\n",previousChildCount, newChildCount);
     }
 
@@ -1024,7 +1033,6 @@ VoxelNode* VoxelNode::addChildAtIndex(int childIndex) {
     
         childAt = new VoxelNode(childOctalCode(getOctalCode(), childIndex));
         childAt->setVoxelSystem(getVoxelSystem()); // our child is always part of our voxel system NULL ok
-
         setChildAtIndex(childIndex, childAt);
 
         _isDirty = true;
