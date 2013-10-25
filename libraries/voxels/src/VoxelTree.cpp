@@ -1011,9 +1011,16 @@ bool VoxelTree::findCapsulePenetration(const glm::vec3& start, const glm::vec3& 
 int VoxelTree::encodeTreeBitstream(VoxelNode* node, unsigned char* outputBuffer, int availableBytes, VoxelNodeBag& bag,
                                    EncodeBitstreamParams& params) {
 
-    startEncoding(node);
     // How many bytes have we written so far at this level;
     int bytesWritten = 0;
+
+    // you can't call this without a valid node
+    if (!node) {
+        qDebug("WARNING! encodeTreeBitstream() called with node=NULL\n");
+        return bytesWritten;
+    }
+
+    startEncoding(node);
     
     // If we're at a node that is out of view, then we can return, because no nodes below us will be in view!
     if (params.viewFrustum && !node->isInView(*params.viewFrustum)) {
@@ -1076,11 +1083,14 @@ int VoxelTree::encodeTreeBitstream(VoxelNode* node, unsigned char* outputBuffer,
 int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outputBuffer, int availableBytes, VoxelNodeBag& bag,
                                             EncodeBitstreamParams& params, int& currentEncodeLevel) const {
 
-    // you can't call this without a valid node
-    assert(node);
-    
     // How many bytes have we written so far at this level;
     int bytesAtThisLevel = 0;
+
+    // you can't call this without a valid node
+    if (!node) {
+        qDebug("WARNING! encodeTreeBitstreamRecursion() called with node=NULL\n");
+        return bytesAtThisLevel;
+    }
 
     // Keep track of how deep we've encoded.
     currentEncodeLevel++;
