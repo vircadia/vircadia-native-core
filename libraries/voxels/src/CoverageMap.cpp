@@ -205,7 +205,7 @@ CoverageMapStorageResult CoverageMap::checkMap(VoxelProjectedPolygon* polygon, b
     
         CoverageMapStorageResult result = NOT_STORED;
         CoverageRegion* storeIn = &_remainder;
-        bool fitsInAHalf = false;
+        //bool fitsInAHalf = false;
         
         // Check each half of the box independently
         const bool useRegions = true; // for now we will continue to use regions
@@ -213,19 +213,19 @@ CoverageMapStorageResult CoverageMap::checkMap(VoxelProjectedPolygon* polygon, b
             if (_topHalf.contains(polygonBox)) {
                 result = _topHalf.checkRegion(polygon, polygonBox, storeIt);
                 storeIn = &_topHalf;
-                fitsInAHalf = true;
+                //fitsInAHalf = true;
             } else if (_bottomHalf.contains(polygonBox)) {
                 result  = _bottomHalf.checkRegion(polygon, polygonBox, storeIt);
                 storeIn = &_bottomHalf;
-                fitsInAHalf = true;
+                //fitsInAHalf = true;
             } else if (_leftHalf.contains(polygonBox)) {
                 result  = _leftHalf.checkRegion(polygon, polygonBox, storeIt);
                 storeIn = &_leftHalf;
-                fitsInAHalf = true;
+                //fitsInAHalf = true;
             } else if (_rightHalf.contains(polygonBox)) {
                 result  = _rightHalf.checkRegion(polygon, polygonBox, storeIt);
                 storeIn = &_rightHalf;
-                fitsInAHalf = true;
+                //fitsInAHalf = true;
             }
         }
         

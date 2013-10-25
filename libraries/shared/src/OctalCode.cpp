@@ -333,7 +333,7 @@ unsigned char* hexStringToOctalCode(const QString& input) {
     
     // loop through the string - 2 bytes at a time converting
     //  it to decimal equivalent and store in byte array
-    bool ok;
+    bool ok = false;
     while (stringIndex < input.length()) {
         uint value = input.mid(stringIndex, HEX_BYTE_SIZE).toUInt(&ok, HEX_NUMBER_BASE);
         if (!ok) {
