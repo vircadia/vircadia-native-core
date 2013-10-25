@@ -532,6 +532,7 @@ void Menu::loadSettings(QSettings* settings) {
     Application::getInstance()->getAvatar()->loadData(settings);
     Application::getInstance()->getSwatch()->loadData(settings);
     Application::getInstance()->getProfile()->loadData(settings);
+    Application::getInstance()->updateWindowTitle();
     NodeList::getInstance()->loadData(settings);
 }
 
