@@ -531,7 +531,10 @@ void NodeList::sendDomainServerCheckIn() {
             packetPosition += numBytesNodesOfInterest;
         }
         
-        _nodeSocket.send(_domainIP.toString().toLocal8Bit().constData(), _domainPort, checkInPacket, packetPosition - checkInPacket);
+        _nodeSocket.send(_domainIP.toString().toLocal8Bit().constData(), _domainPort, checkInPacket, 
+            packetPosition - checkInPacket);
+            
+        delete[] checkInPacket; // clean up
         
         const int NUM_DOMAIN_SERVER_CHECKINS_PER_STUN_REQUEST = 5;
         static unsigned int numDomainCheckins = 0;

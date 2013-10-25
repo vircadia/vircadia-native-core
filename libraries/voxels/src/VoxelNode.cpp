@@ -324,20 +324,29 @@ VoxelNode* VoxelNode::getChildAtIndex(int childIndex) const {
     VoxelNode* result = NULL;
     int childCount = getChildCount();
     
+#ifdef HAS_AUDIT_CHILDREN
     const char* caseStr = NULL;
+#endif
+    
     switch (childCount) {
         case 0:
+#ifdef HAS_AUDIT_CHILDREN
             caseStr = "0 child case";
+#endif
             break;
         case 1: {
+#ifdef HAS_AUDIT_CHILDREN
             caseStr = "1 child case";
+#endif
             int indexOne = getNthBit(_childBitmask, 1);
             if (indexOne == childIndex) {
                 result = _children.single;
             }
         } break;
         case 2: {
+#ifdef HAS_AUDIT_CHILDREN
             caseStr = "2 child case";
+#endif
             int indexOne = getNthBit(_childBitmask, 1);
             int indexTwo = getNthBit(_childBitmask, 2);
 
@@ -358,7 +367,9 @@ VoxelNode* VoxelNode::getChildAtIndex(int childIndex) const {
             }
         } break;
         case 3: {
+#ifdef HAS_AUDIT_CHILDREN
             caseStr = "3 child case";
+#endif
             int indexOne = getNthBit(_childBitmask, 1);
             int indexTwo = getNthBit(_childBitmask, 2);
             int indexThree = getNthBit(_childBitmask, 3);
@@ -386,7 +397,9 @@ VoxelNode* VoxelNode::getChildAtIndex(int childIndex) const {
             }
         } break;
         default: {
+#ifdef HAS_AUDIT_CHILDREN
             caseStr = "default";
+#endif
             // if we have 4 or more, we know we're in external mode, so we just need to figure out which
             // slot in our external array this child is.
             if (oneAtBit(_childBitmask, childIndex)) {
