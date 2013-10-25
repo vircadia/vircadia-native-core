@@ -2377,25 +2377,6 @@ void Application::queryVoxels() {
 
                 ViewFrustum::location serverFrustumLocation = _viewFrustum.boxInFrustum(serverBounds);
 
-                /**
-                printf("queryVoxels()... checking to server UUID=%s bounds=[%f, %f, %f, %f] ",
-                    node->getUUID().toString().toLocal8Bit().constData(), 
-                    rootDetails.x, rootDetails.y, rootDetails.z, rootDetails.s);
-                switch (serverFrustumLocation) {
-                    case ViewFrustum::OUTSIDE: {
-                        printf("location=ViewFrustum::OUTSIDE\n");
-                    } break;
-
-                    case ViewFrustum::INSIDE: {
-                        printf("location=ViewFrustum::INSIDE\n");
-                    } break;
-
-                    case ViewFrustum::INTERSECT: {
-                        printf("location=ViewFrustum::INTERSECT\n");
-                    } break;
-                }
-                **/
-            
                 if (serverFrustumLocation != ViewFrustum::OUTSIDE) {
                     voxelServerCount++;
                 }
@@ -2405,13 +2386,11 @@ void Application::queryVoxels() {
 
     // make sure there's at least one voxel server
     if (voxelServerCount < 1) {
-        //printf("queryVoxels()... no servers in view, not sending PACKET_TYPE_VOXEL_QUERY\n");
         return; // no voxel servers to talk to, we can bail.
     }
     
     // set our preferred PPS to be exactly evenly divided among all of the voxel servers...
     int perServerPPS = DEFAULT_MAX_VOXEL_PPS/voxelServerCount;
-    //printf("queryVoxels()... perServerPPS=%d\n",perServerPPS);
     
     _voxelQuery.setMaxVoxelPacketsPerSecond(perServerPPS);
     
@@ -2436,13 +2415,6 @@ void Application::queryVoxels() {
                 ViewFrustum::location serverFrustumLocation = _viewFrustum.boxInFrustum(serverBounds);
             
                 if (serverFrustumLocation != ViewFrustum::OUTSIDE) {
-                
-                    /**
-                    printf("queryVoxels()... sending PACKET_TYPE_VOXEL_QUERY to server UUID=%s bounds=[%f, %f, %f, %f] PPS=%d\n",
-                        node->getUUID().toString().toLocal8Bit().constData(), 
-                        rootDetails.x, rootDetails.y, rootDetails.z, rootDetails.s, perServerPPS);
-                    **/
-                    
                     // set up the packet for sending...
                     unsigned char* endOfVoxelQueryPacket = voxelQueryPacket;
 
