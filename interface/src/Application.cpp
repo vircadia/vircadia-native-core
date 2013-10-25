@@ -3791,6 +3791,19 @@ void Application::attachNewHeadToNode(Node* newNode) {
     }
 }
 
+void Application::updateWindowTitle(){
+    QString title = "";
+    QString username = _profile.getUsername();
+    if(!username.isEmpty()){
+        title += _profile.getUsername();
+        title += " @ ";
+    }
+    title += _profile.getLastDomain();
+
+    qDebug("Application title set to: %s.\n", title.toStdString().c_str());
+    _window->setWindowTitle(title);
+}
+
 void Application::domainChanged(QString domain) {
     qDebug("Application title set to: %s.\n", domain.toStdString().c_str());
     _window->setWindowTitle(domain);

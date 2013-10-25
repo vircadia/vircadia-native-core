@@ -206,6 +206,7 @@ private:
     
     void initDisplay();
     void init();
+    void updateWindowTitle();
     
     void update(float deltaTime);
     
