@@ -8,6 +8,11 @@
 
 #include "VoxelScriptingInterface.h"
 
+VoxelScriptingInterface::VoxelScriptingInterface() {
+    _jurisdictionListener.initialize(true);
+    _voxelPacketSender.setVoxelServerJurisdictions(_jurisdictionListener.getJurisdictions());
+}
+
 void VoxelScriptingInterface::queueVoxelAdd(PACKET_TYPE addPacketType, VoxelDetail& addVoxelDetails) {
     _voxelPacketSender.queueVoxelEditMessages(addPacketType, 1, &addVoxelDetails);
 }
