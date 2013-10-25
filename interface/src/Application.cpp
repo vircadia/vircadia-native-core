@@ -2338,8 +2338,13 @@ void Application::updateAvatar(float deltaTime) {
 }
 
 void Application::queryVoxels() {
-    // Need to update this to support multiple different servers...
+
+    // if voxels are disabled, then don't send this at all...
+    if (!Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
+        return;
+    }
     
+    // These will be the same for all servers, so we can set them up once and then reuse for each server we send to.
     _voxelQuery.setCameraPosition(_viewFrustum.getPosition());
     _voxelQuery.setCameraOrientation(_viewFrustum.getOrientation());
     _voxelQuery.setCameraFov(_viewFrustum.getFieldOfView());
@@ -2348,24 +2353,59 @@ void Application::queryVoxels() {
     _voxelQuery.setCameraFarClip(_viewFrustum.getFarClip());
     _voxelQuery.setCameraEyeOffsetPosition(_viewFrustum.getEyeOffsetPosition());
 
-    NodeList* nodeList = NodeList::getInstance();
-    
-    // send head/hand data to the avatar mixer and voxel server
     unsigned char voxelQueryPacket[MAX_PACKET_SIZE];
-    unsigned char* endOfVoxelQueryPacket = voxelQueryPacket;
-    
-    endOfVoxelQueryPacket += populateTypeAndVersion(endOfVoxelQueryPacket, PACKET_TYPE_VOXEL_QUERY);
-    
-    QByteArray ownerUUID = nodeList->getOwnerUUID().toRfc4122();
-    memcpy(endOfVoxelQueryPacket, ownerUUID.constData(), ownerUUID.size());
-    endOfVoxelQueryPacket += ownerUUID.size();
-    
-    endOfVoxelQueryPacket += _voxelQuery.getBroadcastData(endOfVoxelQueryPacket);
-    
-    const char nodeTypesOfInterest[] = { NODE_TYPE_VOXEL_SERVER };
-    controlledBroadcastToNodes(voxelQueryPacket, endOfVoxelQueryPacket - voxelQueryPacket,
-                               nodeTypesOfInterest, sizeof(nodeTypesOfInterest));
 
+    NodeList* nodeList = NodeList::getInstance();
+
+    // Iterate all of the nodes, and get a count of how many voxel servers we have...
+    int voxelServerCount = 0;
+    for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+        // only send to the NodeTypes that are NODE_TYPE_VOXEL_SERVER
+        if (node->getActiveSocket() != NULL && node->getType() == NODE_TYPE_VOXEL_SERVER) {
+            voxelServerCount++;
+        }
+    }
+
+    // make sure there's at least one voxel server
+    if (voxelServerCount < 1) {
+        return; // no voxel servers to talk to, we can bail.
+    }
+    
+    // set our preferred PPS to be exactly evenly divided among all of the voxel servers...
+    int perServerPPS = DEFAULT_MAX_VOXEL_PPS/voxelServerCount;
+    printf("queryVoxels()... perServerPPS=%d\n",perServerPPS);
+    
+    _voxelQuery.setMaxVoxelPacketsPerSecond(perServerPPS);
+    
+    UDPSocket* nodeSocket = NodeList::getInstance()->getNodeSocket();
+    for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+        // only send to the NodeTypes that are NODE_TYPE_VOXEL_SERVER
+        if (node->getActiveSocket() != NULL && node->getType() == NODE_TYPE_VOXEL_SERVER) {
+
+            // we can use this to get the voxel server details
+            //QUuid nodeUUID = node->getUUID();
+            //const JurisdictionMap& map = (_voxelServerJurisdictions)[nodeUUID];
+
+            // set up the packet for sending...
+            unsigned char* endOfVoxelQueryPacket = voxelQueryPacket;
+
+            // insert packet type/version and node UUID
+            endOfVoxelQueryPacket += populateTypeAndVersion(endOfVoxelQueryPacket, PACKET_TYPE_VOXEL_QUERY);
+            QByteArray ownerUUID = nodeList->getOwnerUUID().toRfc4122();
+            memcpy(endOfVoxelQueryPacket, ownerUUID.constData(), ownerUUID.size());
+            endOfVoxelQueryPacket += ownerUUID.size();
+
+            // encode the query data...
+            endOfVoxelQueryPacket += _voxelQuery.getBroadcastData(endOfVoxelQueryPacket);
+            
+            int packetLength = endOfVoxelQueryPacket - voxelQueryPacket;
+
+            nodeSocket->send(node->getActiveSocket(), voxelQueryPacket, packetLength);
+
+            // Feed number of bytes to corresponding channel of the bandwidth meter
+            _bandwidthMeter.outputStream(BandwidthMeter::VOXELS).updateValue(packetLength);
+        }
+    }
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
