@@ -143,6 +143,8 @@ void Agent::run() {
         
         int thisFrame = 0;
         
+        NodeList::getInstance()->startSilentNodeRemovalThread();
+        
         while (!_shouldStop) {
             
             // if we're not hearing from the domain-server we should stop running
@@ -201,9 +203,17 @@ void Agent::run() {
 
             while (NodeList::getInstance()->getNodeSocket()->receive((sockaddr*) &senderAddress, receivedData, &receivedBytes)
                    && packetVersionMatch(receivedData)) {
-                NodeList::getInstance()->processNodeData((sockaddr*) &senderAddress, receivedData, receivedBytes);
+                if (receivedData[0] == PACKET_TYPE_VOXEL_JURISDICTION) {
+                    voxelScripter.getJurisdictionListener()->queueReceivedPacket((sockaddr&) senderAddress,
+                                                                                 receivedData,
+                                                                                 receivedBytes);
+                } else {
+                    NodeList::getInstance()->processNodeData((sockaddr*) &senderAddress, receivedData, receivedBytes);
+                }
             }
         }
+    
+        NodeList::getInstance()->stopSilentNodeRemovalThread(); 
         
     } else {
         // error in curl_easy_perform
