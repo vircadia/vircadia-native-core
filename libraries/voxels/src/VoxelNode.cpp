@@ -409,7 +409,12 @@ VoxelNode* VoxelNode::getChildAtIndex(int childIndex) const {
                 for (int ordinal = 1; ordinal <= childCount; ordinal++) {
                     int index = getNthBit(_childBitmask, ordinal);
                     if (index == childIndex) {
-                        result = _children.external[ordinal-1];
+                        int externalIndex = ordinal-1;
+                        if (externalIndex < childCount && externalIndex >= 0) {
+                            result = _children.external[externalIndex];
+                        } else {
+                            qDebug("getChildAtIndex() attempt to access external client out of bounds externalIndex=%d <<<<<<<<<< WARNING!!! \n",externalIndex);
+                        }
                         break;
                     }
                 }
