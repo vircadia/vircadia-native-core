@@ -1432,7 +1432,6 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
 
     // write the child exist bits
     *writeToThisLevelBuffer = childrenExistInPacketBits;
-    writeToThisLevelBuffer += sizeof(childrenExistInPacketBits); // move the pointer
     bytesAtThisLevel += sizeof(childrenExistInPacketBits); // keep track of byte count
     if (params.stats) {
         params.stats->existsInPacketBitsWritten();
