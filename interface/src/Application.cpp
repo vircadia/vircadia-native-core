@@ -194,7 +194,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     
     // call Menu getInstance static method to set up the menu
     _window->setMenuBar(Menu::getInstance());
-    
+
     // Check to see if the user passed in a command line option for loading a local
     // Voxel File.
     _voxelsFilename = getCmdOption(argc, constArgv, "-i");
@@ -533,6 +533,7 @@ void Application::resetProfile(const QString& username) {
     // call the destructor on the old profile and construct a new one
     (&_profile)->~Profile();
     new (&_profile) Profile(username);
+    updateWindowTitle();
 }
 
 void Application::controlledBroadcastToNodes(unsigned char* broadcastData, size_t dataBytes, 
@@ -3790,13 +3791,25 @@ void Application::attachNewHeadToNode(Node* newNode) {
     }
 }
 
+void Application::updateWindowTitle(){
+    QString title = "";
+    QString username = _profile.getUsername();
+    if(!username.isEmpty()){
+        title += _profile.getUsername();
+        title += " @ ";
+    }
+    title += _profile.getLastDomain();
+
+    qDebug("Application title set to: %s.\n", title.toStdString().c_str());
+    _window->setWindowTitle(title);
+}
+
 void Application::domainChanged(QString domain) {
-    qDebug("Application title set to: %s.\n", domain.toStdString().c_str());
-    _window->setWindowTitle(domain);
-    
     // update the user's last domain in their Profile (which will propagate to data-server)
     _profile.updateDomain(domain);
     
+    updateWindowTitle();
+
     // reset the environment so that we don't erroneously end up with multiple
     _environment.resetToDefault();
 }

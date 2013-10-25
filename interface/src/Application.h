@@ -109,6 +109,8 @@ public:
     void touchEndEvent(QTouchEvent* event);
     void touchUpdateEvent(QTouchEvent* event);
     
+    void updateWindowTitle();
+
     void wheelEvent(QWheelEvent* event);
     
     const glm::vec3 getMouseVoxelWorldCoordinates(const VoxelDetail _mouseVoxel);
