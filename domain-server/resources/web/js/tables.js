@@ -4,14 +4,14 @@ $(document).ready(function(){
     $.getJSON("nodes.json", function(json){
       nodesTableBody = "";
       
-      $.each(json.nodes, function (type, data) {
+      $.each(json.nodes, function (uuid, data) {
         nodesTableBody += "<tr>";
-        nodesTableBody += "<td>" + type + "</td>";
-        nodesTableBody += "<td>" + data.UUID + "</td>";
+        nodesTableBody += "<td>" + data.type + "</td>";
+        nodesTableBody += "<td>" + uuid + "</td>";
         nodesTableBody += "<td>" + (data.pool ? data.pool : "") + "</td>";
         nodesTableBody += "<td>" + data.public.ip + "<span class='port'>:" + data.public.port + "</span></td>";
         nodesTableBody += "<td>" + data.local.ip + "<span class='port'>:" + data.local.port + "</span></td>";
-        nodesTableBody += "<td><span class='glyphicon glyphicon-remove' data-uuid=" + data.UUID + "></span></td>";
+        nodesTableBody += "<td><span class='glyphicon glyphicon-remove' data-uuid=" + uuid + "></span></td>";
         nodesTableBody += "</tr>";
       });
       
@@ -21,10 +21,10 @@ $(document).ready(function(){
     $.getJSON("assignments.json", function(json){      
       queuedTableBody = "";
         
-      $.each(json.queued, function (type, data) {
+      $.each(json.queued, function (uuid, data) {
         queuedTableBody += "<tr>";
-        queuedTableBody += "<td>" + type + "</td>";
-        queuedTableBody += "<td>" + data.UUID + "</td>";
+        queuedTableBody += "<td>" + uuid + "</td>";
+        queuedTableBody += "<td>" + data.type + "</td>";
         queuedTableBody += "<td>" + (data.pool ? data.pool : "") + "</td>";
         queuedTableBody += "</tr>";
       });

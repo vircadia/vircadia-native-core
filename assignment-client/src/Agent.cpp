@@ -87,6 +87,9 @@ void Agent::run() {
     // send a user agent since some servers will require it
     curl_easy_setopt(curlHandle, CURLOPT_USERAGENT, "libcurl-agent/1.0");
     
+    // make sure CURL fails on a 400 code
+    curl_easy_setopt(curlHandle, CURLOPT_FAILONERROR, true);
+    
     qDebug() << "Downloading script at" << scriptURLString << "\n";
     
     // blocking get for JS file
