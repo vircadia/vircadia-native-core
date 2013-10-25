@@ -371,12 +371,12 @@ void Application::paintGL() {
         _myCamera.setUpShift       (0.0f);
         _myCamera.setDistance      (0.0f);
         _myCamera.setTightness     (0.0f);     //  Camera is directly connected to head without smoothing
-        _myCamera.setTargetPosition(_myAvatar.getHeadJointPosition());
+        _myCamera.setTargetPosition(_myAvatar.getHead().calculateAverageEyePosition());
         _myCamera.setTargetRotation(_myAvatar.getHead().getOrientation());
     
     } else if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
         _myCamera.setTightness(0.0f);  //  In first person, camera follows head exactly without delay
-        _myCamera.setTargetPosition(_myAvatar.getEyeLevelPosition());
+        _myCamera.setTargetPosition(_myAvatar.getHead().calculateAverageEyePosition());
         _myCamera.setTargetRotation(_myAvatar.getHead().getCameraOrientation());
         
     } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
@@ -386,15 +386,7 @@ void Application::paintGL() {
     } else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         _myCamera.setTightness(0.0f);
         _myCamera.setDistance(0.3f);
-        glm::vec3 targetPosition = _myAvatar.getUprightHeadPosition();
-        if (_myAvatar.getHead().getFaceModel().isActive()) {
-            // make sure we're aligned to the blend face eyes
-            glm::vec3 leftEyePosition, rightEyePosition;
-            if (_myAvatar.getHead().getFaceModel().getEyePositions(leftEyePosition, rightEyePosition)) {
-                targetPosition = (leftEyePosition + rightEyePosition) * 0.5f;
-            }
-        } 
-        _myCamera.setTargetPosition(targetPosition);
+        _myCamera.setTargetPosition(_myAvatar.getHead().calculateAverageEyePosition());
         _myCamera.setTargetRotation(_myAvatar.getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PIf, 0.0f)));
     }
     
@@ -1765,7 +1757,7 @@ Avatar* Application::findLookatTargetAvatar(const glm::vec3& mouseRayOrigin, con
             float distance;
             if (rayIntersectsSphere(mouseRayOrigin, mouseRayDirection, headPosition,
                     HEAD_SPHERE_RADIUS * avatar->getHead().getScale(), distance)) {
-                eyePosition = avatar->getHead().getEyePosition();
+                eyePosition = avatar->getHead().calculateAverageEyePosition();
                 _lookatIndicatorScale = avatar->getHead().getScale();
                 _lookatOtherPosition = headPosition;
                 nodeUUID = avatar->getOwningNode()->getUUID();
@@ -1932,10 +1924,15 @@ void Application::update(float deltaTime) {
     if (_lookatTargetAvatar && !_faceshift.isActive()) {
         // If the mouse is over another avatar's head...
          _myAvatar.getHead().setLookAtPosition(lookAtSpot);
+    
     } else if (_isHoverVoxel && !_faceshift.isActive()) {
         //  Look at the hovered voxel
         lookAtSpot = getMouseVoxelWorldCoordinates(_hoverVoxel);
         _myAvatar.getHead().setLookAtPosition(lookAtSpot);
+        
+    } else if (_myCamera.getMode() == CAMERA_MODE_MIRROR && !_faceshift.isActive()) {
+        _myAvatar.getHead().setLookAtPosition(_myCamera.getPosition());
+    
     } else {
         //  Just look in direction of the mouse ray
         const float FAR_AWAY_STARE = TREE_SCALE;
@@ -2338,8 +2335,13 @@ void Application::updateAvatar(float deltaTime) {
 }
 
 void Application::queryVoxels() {
-    // Need to update this to support multiple different servers...
+
+    // if voxels are disabled, then don't send this at all...
+    if (!Menu::getInstance()->isOptionChecked(MenuOption::Voxels)) {
+        return;
+    }
     
+    // These will be the same for all servers, so we can set them up once and then reuse for each server we send to.
     _voxelQuery.setCameraPosition(_viewFrustum.getPosition());
     _voxelQuery.setCameraOrientation(_viewFrustum.getOrientation());
     _voxelQuery.setCameraFov(_viewFrustum.getFieldOfView());
@@ -2348,24 +2350,90 @@ void Application::queryVoxels() {
     _voxelQuery.setCameraFarClip(_viewFrustum.getFarClip());
     _voxelQuery.setCameraEyeOffsetPosition(_viewFrustum.getEyeOffsetPosition());
 
-    NodeList* nodeList = NodeList::getInstance();
-    
-    // send head/hand data to the avatar mixer and voxel server
     unsigned char voxelQueryPacket[MAX_PACKET_SIZE];
-    unsigned char* endOfVoxelQueryPacket = voxelQueryPacket;
-    
-    endOfVoxelQueryPacket += populateTypeAndVersion(endOfVoxelQueryPacket, PACKET_TYPE_VOXEL_QUERY);
-    
-    QByteArray ownerUUID = nodeList->getOwnerUUID().toRfc4122();
-    memcpy(endOfVoxelQueryPacket, ownerUUID.constData(), ownerUUID.size());
-    endOfVoxelQueryPacket += ownerUUID.size();
-    
-    endOfVoxelQueryPacket += _voxelQuery.getBroadcastData(endOfVoxelQueryPacket);
-    
-    const char nodeTypesOfInterest[] = { NODE_TYPE_VOXEL_SERVER };
-    controlledBroadcastToNodes(voxelQueryPacket, endOfVoxelQueryPacket - voxelQueryPacket,
-                               nodeTypesOfInterest, sizeof(nodeTypesOfInterest));
 
+    NodeList* nodeList = NodeList::getInstance();
+
+    // Iterate all of the nodes, and get a count of how many voxel servers we have...
+    int voxelServerCount = 0;
+    for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+        // only send to the NodeTypes that are NODE_TYPE_VOXEL_SERVER
+        if (node->getActiveSocket() != NULL && node->getType() == NODE_TYPE_VOXEL_SERVER) {
+
+            // get the server bounds for this server
+            QUuid nodeUUID = node->getUUID();
+            const JurisdictionMap& map = (_voxelServerJurisdictions)[nodeUUID];
+
+            unsigned char* rootCode = map.getRootOctalCode();
+            
+            if (rootCode) {
+                VoxelPositionSize rootDetails;
+                voxelDetailsForCode(rootCode, rootDetails);
+                AABox serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
+                serverBounds.scale(TREE_SCALE);
+
+                ViewFrustum::location serverFrustumLocation = _viewFrustum.boxInFrustum(serverBounds);
+
+                if (serverFrustumLocation != ViewFrustum::OUTSIDE) {
+                    voxelServerCount++;
+                }
+            }
+        }
+    }
+
+    // make sure there's at least one voxel server
+    if (voxelServerCount < 1) {
+        return; // no voxel servers to talk to, we can bail.
+    }
+    
+    // set our preferred PPS to be exactly evenly divided among all of the voxel servers...
+    int perServerPPS = DEFAULT_MAX_VOXEL_PPS/voxelServerCount;
+    
+    _voxelQuery.setMaxVoxelPacketsPerSecond(perServerPPS);
+    
+    UDPSocket* nodeSocket = NodeList::getInstance()->getNodeSocket();
+    for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+        // only send to the NodeTypes that are NODE_TYPE_VOXEL_SERVER
+        if (node->getActiveSocket() != NULL && node->getType() == NODE_TYPE_VOXEL_SERVER) {
+
+
+            // get the server bounds for this server
+            QUuid nodeUUID = node->getUUID();
+            const JurisdictionMap& map = (_voxelServerJurisdictions)[nodeUUID];
+
+            unsigned char* rootCode = map.getRootOctalCode();
+            
+            if (rootCode) {
+                VoxelPositionSize rootDetails;
+                voxelDetailsForCode(rootCode, rootDetails);
+                AABox serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
+                serverBounds.scale(TREE_SCALE);
+
+                ViewFrustum::location serverFrustumLocation = _viewFrustum.boxInFrustum(serverBounds);
+            
+                if (serverFrustumLocation != ViewFrustum::OUTSIDE) {
+                    // set up the packet for sending...
+                    unsigned char* endOfVoxelQueryPacket = voxelQueryPacket;
+
+                    // insert packet type/version and node UUID
+                    endOfVoxelQueryPacket += populateTypeAndVersion(endOfVoxelQueryPacket, PACKET_TYPE_VOXEL_QUERY);
+                    QByteArray ownerUUID = nodeList->getOwnerUUID().toRfc4122();
+                    memcpy(endOfVoxelQueryPacket, ownerUUID.constData(), ownerUUID.size());
+                    endOfVoxelQueryPacket += ownerUUID.size();
+
+                    // encode the query data...
+                    endOfVoxelQueryPacket += _voxelQuery.getBroadcastData(endOfVoxelQueryPacket);
+            
+                    int packetLength = endOfVoxelQueryPacket - voxelQueryPacket;
+
+                    nodeSocket->send(node->getActiveSocket(), voxelQueryPacket, packetLength);
+
+                    // Feed number of bytes to corresponding channel of the bandwidth meter
+                    _bandwidthMeter.outputStream(BandwidthMeter::VOXELS).updateValue(packetLength);
+                }
+            }
+        }
+    }
 }
 
 /////////////////////////////////////////////////////////////////////////////////////
@@ -2792,9 +2860,6 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
         }
         
         // Render my own Avatar
-        if (whichCamera.getMode() == CAMERA_MODE_MIRROR && !_faceshift.isActive()) {
-            _myAvatar.getHead().setLookAtPosition(whichCamera.getPosition());
-        }
         _myAvatar.render(whichCamera.getMode() == CAMERA_MODE_MIRROR,
                          Menu::getInstance()->isOptionChecked(MenuOption::AvatarAsBalls));
         _myAvatar.setDisplayingLookatVectors(Menu::getInstance()->isOptionChecked(MenuOption::LookAtVectors));
