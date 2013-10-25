@@ -371,12 +371,12 @@ void Application::paintGL() {
         _myCamera.setUpShift       (0.0f);
         _myCamera.setDistance      (0.0f);
         _myCamera.setTightness     (0.0f);     //  Camera is directly connected to head without smoothing
-        _myCamera.setTargetPosition(_myAvatar.getHeadJointPosition());
+        _myCamera.setTargetPosition(_myAvatar.getHead().calculateAverageEyePosition());
         _myCamera.setTargetRotation(_myAvatar.getHead().getOrientation());
     
     } else if (_myCamera.getMode() == CAMERA_MODE_FIRST_PERSON) {
         _myCamera.setTightness(0.0f);  //  In first person, camera follows head exactly without delay
-        _myCamera.setTargetPosition(_myAvatar.getEyeLevelPosition());
+        _myCamera.setTargetPosition(_myAvatar.getHead().calculateAverageEyePosition());
         _myCamera.setTargetRotation(_myAvatar.getHead().getCameraOrientation());
         
     } else if (_myCamera.getMode() == CAMERA_MODE_THIRD_PERSON) {
@@ -386,15 +386,7 @@ void Application::paintGL() {
     } else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         _myCamera.setTightness(0.0f);
         _myCamera.setDistance(0.3f);
-        glm::vec3 targetPosition = _myAvatar.getUprightHeadPosition();
-        if (_myAvatar.getHead().getFaceModel().isActive()) {
-            // make sure we're aligned to the blend face eyes
-            glm::vec3 leftEyePosition, rightEyePosition;
-            if (_myAvatar.getHead().getFaceModel().getEyePositions(leftEyePosition, rightEyePosition)) {
-                targetPosition = (leftEyePosition + rightEyePosition) * 0.5f;
-            }
-        } 
-        _myCamera.setTargetPosition(targetPosition);
+        _myCamera.setTargetPosition(_myAvatar.getHead().calculateAverageEyePosition());
         _myCamera.setTargetRotation(_myAvatar.getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PIf, 0.0f)));
     }
     
@@ -1765,7 +1757,7 @@ Avatar* Application::findLookatTargetAvatar(const glm::vec3& mouseRayOrigin, con
             float distance;
             if (rayIntersectsSphere(mouseRayOrigin, mouseRayDirection, headPosition,
                     HEAD_SPHERE_RADIUS * avatar->getHead().getScale(), distance)) {
-                eyePosition = avatar->getHead().getEyePosition();
+                eyePosition = avatar->getHead().calculateAverageEyePosition();
                 _lookatIndicatorScale = avatar->getHead().getScale();
                 _lookatOtherPosition = headPosition;
                 nodeUUID = avatar->getOwningNode()->getUUID();
@@ -1932,10 +1924,15 @@ void Application::update(float deltaTime) {
     if (_lookatTargetAvatar && !_faceshift.isActive()) {
         // If the mouse is over another avatar's head...
          _myAvatar.getHead().setLookAtPosition(lookAtSpot);
+    
     } else if (_isHoverVoxel && !_faceshift.isActive()) {
         //  Look at the hovered voxel
         lookAtSpot = getMouseVoxelWorldCoordinates(_hoverVoxel);
         _myAvatar.getHead().setLookAtPosition(lookAtSpot);
+        
+    } else if (_myCamera.getMode() == CAMERA_MODE_MIRROR && !_faceshift.isActive()) {
+        _myAvatar.getHead().setLookAtPosition(_myCamera.getPosition());
+    
     } else {
         //  Just look in direction of the mouse ray
         const float FAR_AWAY_STARE = TREE_SCALE;
@@ -2792,9 +2789,6 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
         }
         
         // Render my own Avatar
-        if (whichCamera.getMode() == CAMERA_MODE_MIRROR && !_faceshift.isActive()) {
-            _myAvatar.getHead().setLookAtPosition(whichCamera.getPosition());
-        }
         _myAvatar.render(whichCamera.getMode() == CAMERA_MODE_MIRROR,
                          Menu::getInstance()->isOptionChecked(MenuOption::AvatarAsBalls));
         _myAvatar.setDisplayingLookatVectors(Menu::getInstance()->isOptionChecked(MenuOption::LookAtVectors));

@@ -12,6 +12,7 @@
 
 #include "Faceshift.h"
 #include "Menu.h"
+#include "Util.h"
 
 using namespace fs;
 using namespace std;
@@ -63,11 +64,23 @@ void Faceshift::update() {
     }
     float averageEyePitch = (_eyeGazeLeftPitch + _eyeGazeRightPitch) / 2.0f;
     float averageEyeYaw = (_eyeGazeLeftYaw + _eyeGazeRightYaw) / 2.0f;
+    
+    // get the gaze relative to the window
+    glm::vec3 eyeEulers = safeEulerAngles(_headRotation * glm::quat(glm::radians(glm::vec3(
+        averageEyePitch, averageEyeYaw, 0.0f))));
+    
+    // smooth relative to the window
     const float LONG_TERM_AVERAGE_SMOOTHING = 0.999f;
-    _longTermAverageEyePitch = glm::mix(averageEyePitch, _longTermAverageEyePitch, LONG_TERM_AVERAGE_SMOOTHING);
-    _longTermAverageEyeYaw = glm::mix(averageEyeYaw, _longTermAverageEyeYaw, LONG_TERM_AVERAGE_SMOOTHING);
-    _estimatedEyePitch = averageEyePitch - _longTermAverageEyePitch;
-    _estimatedEyeYaw = averageEyeYaw - _longTermAverageEyeYaw;
+    _longTermAverageEyePitch = glm::mix(eyeEulers.x, _longTermAverageEyePitch, LONG_TERM_AVERAGE_SMOOTHING);
+    _longTermAverageEyeYaw = glm::mix(eyeEulers.y, _longTermAverageEyeYaw, LONG_TERM_AVERAGE_SMOOTHING);
+    
+    // back to head-relative
+    float windowEyePitch = eyeEulers.x - _longTermAverageEyePitch;
+    float windowEyeYaw = eyeEulers.y - _longTermAverageEyeYaw;
+    glm::vec3 relativeEyeEulers = safeEulerAngles(glm::inverse(_headRotation) * glm::quat(glm::radians(glm::vec3(
+        windowEyePitch, windowEyeYaw, 0.0f))));
+    _estimatedEyePitch = relativeEyeEulers.x;
+    _estimatedEyeYaw = relativeEyeEulers.y;
 }
 
 void Faceshift::reset() {

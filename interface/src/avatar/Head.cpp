@@ -238,6 +238,11 @@ void Head::simulate(float deltaTime, bool isMine) {
     }
     
     _faceModel.simulate(deltaTime);
+    
+    calculateGeometry();
+    
+    // the blend face may have custom eye meshes
+    _faceModel.getEyePositions(_leftEyePosition, _rightEyePosition);
 }
 
 void Head::calculateGeometry() {
@@ -286,8 +291,6 @@ void Head::render(float alpha, bool isMine) {
     _renderAlpha = alpha;
 
     if (!(_videoFace.render(alpha) || _faceModel.render(alpha))) {
-        calculateGeometry();
-
         glEnable(GL_DEPTH_TEST);
         glEnable(GL_RESCALE_NORMAL);
         
@@ -298,11 +301,6 @@ void Head::render(float alpha, bool isMine) {
         renderMouth();
         renderNose();
         renderEyeBrows();
-    }
-    
-    if (_faceModel.isActive()) {
-        // the blend face may have custom eye meshes
-        _faceModel.getEyePositions(_leftEyePosition, _rightEyePosition);
     }
         
     if (_renderLookatVectors) {
