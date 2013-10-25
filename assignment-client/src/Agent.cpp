@@ -143,6 +143,8 @@ void Agent::run() {
         
         int thisFrame = 0;
         
+        NodeList::getInstance()->startSilentNodeRemovalThread();
+        
         while (!_shouldStop) {
             
             // if we're not hearing from the domain-server we should stop running
@@ -210,6 +212,8 @@ void Agent::run() {
                 }
             }
         }
+    
+        NodeList::getInstance()->stopSilentNodeRemovalThread(); 
         
     } else {
         // error in curl_easy_perform
