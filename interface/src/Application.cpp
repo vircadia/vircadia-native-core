@@ -435,9 +435,8 @@ void Application::paintGL() {
         _glowEffect.render();
         
         if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-            glm::vec3 targetPosition = _myAvatar.getUprightHeadPosition();
-            _mirrorCamera.setDistance(0.2f);
-            _mirrorCamera.setTargetPosition(targetPosition);
+            _mirrorCamera.setDistance(0.3f);
+            _mirrorCamera.setTargetPosition(_myAvatar.getHead().calculateAverageEyePosition());
             _mirrorCamera.setTargetRotation(_myAvatar.getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PIf, 0.0f)));
             _mirrorCamera.update(1.0f/_fps);
             
@@ -1674,7 +1673,7 @@ void Application::init() {
     
     _mirrorCamera.setMode(CAMERA_MODE_MIRROR);
     _mirrorCamera.setAspectRatio((float)MIRROR_VIEW_WIDTH / (float)MIRROR_VIEW_HEIGHT);
-    _mirrorCamera.setFieldOfView(70);
+    _mirrorCamera.setFieldOfView(30);
     _mirrorViewRect = QRect(MIRROR_VIEW_LEFT_PADDING, MIRROR_VIEW_TOP_PADDING, MIRROR_VIEW_WIDTH, MIRROR_VIEW_HEIGHT);
     
     switchToResourcesParentIfRequired();
