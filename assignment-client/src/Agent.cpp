@@ -159,26 +159,25 @@ void Agent::run() {
             // find the audio-mixer in the NodeList so we can inject audio at it
             Node* audioMixer = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_AUDIO_MIXER);
             
+        
             if (audioMixer && audioMixer->getActiveSocket()) {
                 emit willSendAudioDataCallback();
+            }
+            
+            int usecToSleep = usecTimestamp(&startTime) + (thisFrame++ * INJECT_INTERVAL_USECS) - usecTimestampNow();
+            if (usecToSleep > 0) {
+                usleep(usecToSleep);
+            }
+            
+            if (audioMixer && audioMixer->getActiveSocket() && scriptedAudioInjector.hasSamplesToInject()) {
+                // we have an audio mixer and samples to inject, send those off
+                scriptedAudioInjector.injectAudio(NodeList::getInstance()->getNodeSocket(), audioMixer->getActiveSocket());
                 
-                if (scriptedAudioInjector.hasSamplesToInject()) {
-                    int usecToSleep = usecTimestamp(&startTime) + (thisFrame++ * INJECT_INTERVAL_USECS) - usecTimestampNow();
-                    if (usecToSleep > 0) {
-                        usleep(usecToSleep);
-                    }
-                    
-                    scriptedAudioInjector.injectAudio(NodeList::getInstance()->getNodeSocket(), audioMixer->getActiveSocket());
-                    
-                    // clear out the audio injector so that it doesn't re-send what we just sent
-                    scriptedAudioInjector.clear();
-                }
-            } else if (audioMixer) {
-                int usecToSleep = usecTimestamp(&startTime) + (thisFrame++ * INJECT_INTERVAL_USECS) - usecTimestampNow();
-                if (usecToSleep > 0) {
-                    usleep(usecToSleep);
-                }
-                
+                // clear out the audio injector so that it doesn't re-send what we just sent
+                scriptedAudioInjector.clear();
+            }
+        
+            if (audioMixer && !audioMixer->getActiveSocket()) {
                 // don't have an active socket for the audio-mixer, ping it now
                 NodeList::getInstance()->pingPublicAndLocalSocketsForInactiveNode(audioMixer);
             }
