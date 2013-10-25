@@ -2359,7 +2359,25 @@ void Application::queryVoxels() {
     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
         // only send to the NodeTypes that are NODE_TYPE_VOXEL_SERVER
         if (node->getActiveSocket() != NULL && node->getType() == NODE_TYPE_VOXEL_SERVER) {
-            voxelServerCount++;
+
+            // get the server bounds for this server
+            QUuid nodeUUID = node->getUUID();
+            const JurisdictionMap& map = (_voxelServerJurisdictions)[nodeUUID];
+
+            unsigned char* rootCode = map.getRootOctalCode();
+            
+            if (rootCode) {
+                VoxelPositionSize rootDetails;
+                voxelDetailsForCode(rootCode, rootDetails);
+                AABox serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
+                serverBounds.scale(TREE_SCALE);
+
+                ViewFrustum::location serverFrustumLocation = _viewFrustum.boxInFrustum(serverBounds);
+
+                if (serverFrustumLocation != ViewFrustum::OUTSIDE) {
+                    voxelServerCount++;
+                }
+            }
         }
     }
 
@@ -2370,7 +2388,6 @@ void Application::queryVoxels() {
     
     // set our preferred PPS to be exactly evenly divided among all of the voxel servers...
     int perServerPPS = DEFAULT_MAX_VOXEL_PPS/voxelServerCount;
-    printf("queryVoxels()... perServerPPS=%d\n",perServerPPS);
     
     _voxelQuery.setMaxVoxelPacketsPerSecond(perServerPPS);
     
@@ -2379,28 +2396,42 @@ void Application::queryVoxels() {
         // only send to the NodeTypes that are NODE_TYPE_VOXEL_SERVER
         if (node->getActiveSocket() != NULL && node->getType() == NODE_TYPE_VOXEL_SERVER) {
 
-            // we can use this to get the voxel server details
-            //QUuid nodeUUID = node->getUUID();
-            //const JurisdictionMap& map = (_voxelServerJurisdictions)[nodeUUID];
 
-            // set up the packet for sending...
-            unsigned char* endOfVoxelQueryPacket = voxelQueryPacket;
+            // get the server bounds for this server
+            QUuid nodeUUID = node->getUUID();
+            const JurisdictionMap& map = (_voxelServerJurisdictions)[nodeUUID];
 
-            // insert packet type/version and node UUID
-            endOfVoxelQueryPacket += populateTypeAndVersion(endOfVoxelQueryPacket, PACKET_TYPE_VOXEL_QUERY);
-            QByteArray ownerUUID = nodeList->getOwnerUUID().toRfc4122();
-            memcpy(endOfVoxelQueryPacket, ownerUUID.constData(), ownerUUID.size());
-            endOfVoxelQueryPacket += ownerUUID.size();
-
-            // encode the query data...
-            endOfVoxelQueryPacket += _voxelQuery.getBroadcastData(endOfVoxelQueryPacket);
+            unsigned char* rootCode = map.getRootOctalCode();
             
-            int packetLength = endOfVoxelQueryPacket - voxelQueryPacket;
+            if (rootCode) {
+                VoxelPositionSize rootDetails;
+                voxelDetailsForCode(rootCode, rootDetails);
+                AABox serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
+                serverBounds.scale(TREE_SCALE);
 
-            nodeSocket->send(node->getActiveSocket(), voxelQueryPacket, packetLength);
+                ViewFrustum::location serverFrustumLocation = _viewFrustum.boxInFrustum(serverBounds);
+            
+                if (serverFrustumLocation != ViewFrustum::OUTSIDE) {
+                    // set up the packet for sending...
+                    unsigned char* endOfVoxelQueryPacket = voxelQueryPacket;
 
-            // Feed number of bytes to corresponding channel of the bandwidth meter
-            _bandwidthMeter.outputStream(BandwidthMeter::VOXELS).updateValue(packetLength);
+                    // insert packet type/version and node UUID
+                    endOfVoxelQueryPacket += populateTypeAndVersion(endOfVoxelQueryPacket, PACKET_TYPE_VOXEL_QUERY);
+                    QByteArray ownerUUID = nodeList->getOwnerUUID().toRfc4122();
+                    memcpy(endOfVoxelQueryPacket, ownerUUID.constData(), ownerUUID.size());
+                    endOfVoxelQueryPacket += ownerUUID.size();
+
+                    // encode the query data...
+                    endOfVoxelQueryPacket += _voxelQuery.getBroadcastData(endOfVoxelQueryPacket);
+            
+                    int packetLength = endOfVoxelQueryPacket - voxelQueryPacket;
+
+                    nodeSocket->send(node->getActiveSocket(), voxelQueryPacket, packetLength);
+
+                    // Feed number of bytes to corresponding channel of the bandwidth meter
+                    _bandwidthMeter.outputStream(BandwidthMeter::VOXELS).updateValue(packetLength);
+                }
+            }
         }
     }
 }
