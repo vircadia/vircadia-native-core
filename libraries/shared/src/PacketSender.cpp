@@ -74,6 +74,10 @@ bool PacketSender::process() {
         // we can determine how many packets we need to send per call to achieve our desired
         // packets per second send rate.
         int callsPerSecond = USECS_PER_SECOND / averageCallTime;
+        
+        // make sure our number of calls per second doesn't cause a divide by zero
+        callsPerSecond = glm::clamp(callsPerSecond, 1, _packetsPerSecond);
+        
         packetsPerCall = ceil(_packetsPerSecond / callsPerSecond);
         
         // send at least one packet per call, if we have it

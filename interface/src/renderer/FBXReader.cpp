@@ -415,6 +415,16 @@ glm::vec3 parseVec3(const QString& string) {
     return value;
 }
 
+QString processID(const QString& id) {
+    // Blender (at least) prepends a type to the ID, so strip it out
+    int index = id.indexOf("::");
+    return (index == -1) ? id : id.mid(index + 2);
+}
+
+QString getID(const QVariantList& properties, int index = 0) {
+    return processID(properties.at(index).toString());
+}
+
 const char* FACESHIFT_BLENDSHAPES[] = {
     "EyeBlink_L",
     "EyeBlink_R",
@@ -469,7 +479,7 @@ const char* FACESHIFT_BLENDSHAPES[] = {
 
 class FBXModel {
 public:
-    QByteArray name;
+    QString name;
     
     int parentIndex;
     
@@ -680,12 +690,12 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     QHash<QString, QString> bumpTextures;
     
     QVariantHash joints = mapping.value("joint").toHash();
-    QByteArray jointEyeLeftName = joints.value("jointEyeLeft", "jointEyeLeft").toByteArray();
-    QByteArray jointEyeRightName = joints.value("jointEyeRight", "jointEyeRight").toByteArray();
-    QByteArray jointNeckName = joints.value("jointNeck", "jointNeck").toByteArray();
-    QByteArray jointRootName = joints.value("jointRoot", "jointRoot").toByteArray();
-    QByteArray jointLeanName = joints.value("jointLean", "jointLean").toByteArray();
-    QByteArray jointHeadName = joints.value("jointHead", "jointHead").toByteArray();
+    QString jointEyeLeftName = processID(joints.value("jointEyeLeft", "jointEyeLeft").toString());
+    QString jointEyeRightName = processID(joints.value("jointEyeRight", "jointEyeRight").toString());
+    QString jointNeckName = processID(joints.value("jointNeck", "jointNeck").toString());
+    QString jointRootName = processID(joints.value("jointRoot", "jointRoot").toString());
+    QString jointLeanName = processID(joints.value("jointLean", "jointLean").toString());
+    QString jointHeadName = processID(joints.value("jointHead", "jointHead").toString());
     QString jointEyeLeftID;
     QString jointEyeRightID;
     QString jointNeckID;
@@ -718,10 +728,10 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
             foreach (const FBXNode& object, child.children) {    
                 if (object.name == "Geometry") {
                     if (object.properties.at(2) == "Mesh") {
-                        meshes.insert(object.properties.at(0).toString(), extractMesh(object));
+                        meshes.insert(getID(object.properties), extractMesh(object));
                         
                     } else { // object.properties.at(2) == "Shape"
-                        ExtractedBlendshape extracted = { object.properties.at(0).toString() };
+                        ExtractedBlendshape extracted = { getID(object.properties) };
                         
                         foreach (const FBXNode& data, object.children) {
                             if (data.name == "Indexes") {
@@ -740,31 +750,31 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                         blendshapes.append(extracted);
                     }
                 } else if (object.name == "Model") {
-                    QByteArray name;
+                    QString name;
                     if (object.properties.size() == 3) {
-                        name = object.properties.at(1).toByteArray();
-                        name = name.left(name.indexOf('\0'));
+                        name = object.properties.at(1).toString();
+                        name = name.left(name.indexOf(QChar('\0')));
                         
                     } else {
-                        name = object.properties.at(0).toByteArray();
+                        name = getID(object.properties);
                     }
                     if (name == jointEyeLeftName || name == "EyeL" || name == "joint_Leye") {
-                        jointEyeLeftID = object.properties.at(0).toString();
+                        jointEyeLeftID = getID(object.properties);
                         
                     } else if (name == jointEyeRightName || name == "EyeR" || name == "joint_Reye") {
-                        jointEyeRightID = object.properties.at(0).toString();
+                        jointEyeRightID = getID(object.properties);
                         
                     } else if (name == jointNeckName || name == "NeckRot" || name == "joint_neck") {
-                        jointNeckID = object.properties.at(0).toString();
+                        jointNeckID = getID(object.properties);
                         
                     } else if (name == jointRootName) {
-                        jointRootID = object.properties.at(0).toString();
+                        jointRootID = getID(object.properties);
                         
                     } else if (name == jointLeanName) {
-                        jointLeanID = object.properties.at(0).toString();
+                        jointLeanID = getID(object.properties);
                         
                     } else if (name == jointHeadName) {
-                        jointHeadID = object.properties.at(0).toString();
+                        jointHeadID = getID(object.properties);
                     }
                     glm::vec3 translation;
                     glm::vec3 rotationOffset;
@@ -817,7 +827,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                             }
                         } else if (subobject.name == "Vertices") {
                             // it's a mesh as well as a model
-                            meshes.insert(object.properties.at(0).toString(), extractMesh(object));
+                            meshes.insert(getID(object.properties), extractMesh(object));
                         }
                     }
                     // see FBX documentation, http://download.autodesk.com/us/fbx/20112/FBX_SDK_HELP/index.html
@@ -828,7 +838,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                     model.postRotation = glm::quat(glm::radians(postRotation));
                     model.postTransform = glm::translate(-rotationPivot) * glm::translate(scalePivot) *
                         glm::scale(scale) * glm::translate(-scalePivot);
-                    models.insert(object.properties.at(0).toString(), model);
+                    models.insert(getID(object.properties), model);
 
                 } else if (object.name == "Texture") {
                     foreach (const FBXNode& subobject, object.children) {
@@ -836,7 +846,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                             // trim off any path information
                             QByteArray filename = subobject.properties.at(0).toByteArray();
                             filename = filename.mid(qMax(filename.lastIndexOf('\\'), filename.lastIndexOf('/')) + 1);
-                            textureFilenames.insert(object.properties.at(0).toString(), filename);
+                            textureFilenames.insert(getID(object.properties), filename);
                         }
                     }
                 } else if (object.name == "Material") {
@@ -871,7 +881,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                             }
                         }
                     }
-                    materials.insert(object.properties.at(0).toString(), material);
+                    materials.insert(getID(object.properties), material);
                     
                 } else if (object.name == "Deformer") {
                     if (object.properties.last() == "Cluster") {
@@ -888,7 +898,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                                 cluster.transformLink = createMat4(values);
                             }
                         }
-                        clusters.insert(object.properties.at(0).toString(), cluster);
+                        clusters.insert(getID(object.properties), cluster);
                         
                     } else if (object.properties.last() == "BlendShapeChannel") {
                         QByteArray name = object.properties.at(1).toByteArray();
@@ -897,8 +907,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                             // try everything after the dot
                             name = name.mid(name.lastIndexOf('.') + 1);
                         }
-                        blendshapeChannelIndices.insert(object.properties.at(0).toString(),
-                            blendshapeIndices.value(name));
+                        blendshapeChannelIndices.insert(getID(object.properties), blendshapeIndices.value(name));
                     }
                 }
             }
@@ -908,16 +917,14 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                     if (connection.properties.at(0) == "OP") {
                         QByteArray type = connection.properties.at(3).toByteArray().toLower();
                         if (type.contains("diffuse")) { 
-                            diffuseTextures.insert(connection.properties.at(2).toString(),
-                                connection.properties.at(1).toString());
+                            diffuseTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
                                                     
                         } else if (type.contains("bump")) {
-                            bumpTextures.insert(connection.properties.at(2).toString(),
-                                connection.properties.at(1).toString());
+                            bumpTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
                         }
                     }
-                    parentMap.insert(connection.properties.at(1).toString(), connection.properties.at(2).toString());
-                    childMap.insert(connection.properties.at(2).toString(), connection.properties.at(1).toString());
+                    parentMap.insert(getID(connection.properties, 1), getID(connection.properties, 2));
+                    childMap.insert(getID(connection.properties, 2), getID(connection.properties, 1));
                 }
             }
         }
@@ -1159,12 +1166,12 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     QVariantHash attachments = mapping.value("attach").toHash();
     for (QVariantHash::const_iterator it = attachments.constBegin(); it != attachments.constEnd(); it++) {
         FBXAttachment attachment;
-        attachment.jointIndex = modelIDs.indexOf(it.key());
+        attachment.jointIndex = modelIDs.indexOf(processID(it.key()));
         attachment.scale = glm::vec3(1.0f, 1.0f, 1.0f);
         
         QVariantList properties = it->toList();
         if (properties.isEmpty()) {
-            attachment.url = it->toUrl();
+            attachment.url = it->toString();
         } else {
             attachment.url = properties.at(0).toString();
             

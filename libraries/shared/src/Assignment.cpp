@@ -90,6 +90,7 @@ Assignment::Assignment(const unsigned char* dataBuffer, int numBytes) :
     if (dataBuffer[numBytesRead] != '\0') {
         // read the pool from the data buffer
         setPool((const char*) dataBuffer + numBytesRead);
+        numBytesRead += strlen(_pool) + sizeof('\0');
     } else {
         // skip past the null pool and null out our pool
         setPool(NULL);
@@ -192,7 +193,7 @@ int Assignment::packToBuffer(unsigned char* buffer) {
         numPackedBytes += NUM_BYTES_RFC4122_UUID;
     }
     
-    if (_pool) {
+    if (hasPool()) {
         // pack the pool for this assignment, it exists
         int numBytesNullTerminatedPool = strlen(_pool) + sizeof('\0');
         memcpy(buffer + numPackedBytes, _pool, numBytesNullTerminatedPool);

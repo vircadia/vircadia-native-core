@@ -724,7 +724,7 @@ int DomainServer::run() {
                     Assignment* assignmentToDeploy = deployableAssignmentForRequest(requestAssignment);
                     
                     if (assignmentToDeploy) {
-                        
+                    
                         // give this assignment out, either the type matches or the requestor said they will take any
                         int numHeaderBytes = populateTypeAndVersion(broadcastPacket, PACKET_TYPE_CREATE_ASSIGNMENT);
                         int numAssignmentBytes = assignmentToDeploy->packToBuffer(broadcastPacket + numHeaderBytes);

@@ -11,13 +11,17 @@
 
 #include <QtCore/QObject>
 
+#include <JurisdictionListener.h>
 #include <VoxelEditPacketSender.h>
 
 /// handles scripting of voxel commands from JS passed to assigned clients
 class VoxelScriptingInterface : public QObject {
     Q_OBJECT
 public:
+    VoxelScriptingInterface();
+    
     VoxelEditPacketSender* getVoxelPacketSender() { return &_voxelPacketSender; }
+    JurisdictionListener* getJurisdictionListener() { return &_jurisdictionListener; }
 public slots:
     /// queues the creation of a voxel which will be sent by calling process on the PacketSender
     /// \param x the x-coordinate of the voxel (in VS space)
@@ -48,6 +52,7 @@ public slots:
 private:
     /// attached VoxelEditPacketSender that handles queuing and sending of packets to VS
     VoxelEditPacketSender _voxelPacketSender;
+    JurisdictionListener _jurisdictionListener;
     
     void queueVoxelAdd(PACKET_TYPE addPacketType, VoxelDetail& addVoxelDetails);
 };

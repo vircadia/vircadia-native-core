@@ -492,10 +492,10 @@ void NodeList::sendDomainServerCheckIn() {
         
         // check in packet has header, optional UUID, node type, port, IP, node types of interest, null termination
         int numPacketBytes = sizeof(PACKET_TYPE) + sizeof(PACKET_VERSION) + sizeof(NODE_TYPE) +
-        NUM_BYTES_RFC4122_UUID + (2 * (sizeof(uint16_t) + IP_ADDRESS_BYTES)) +
-        numBytesNodesOfInterest + sizeof(unsigned char);
+            NUM_BYTES_RFC4122_UUID + (2 * (sizeof(uint16_t) + IP_ADDRESS_BYTES)) +
+            numBytesNodesOfInterest + sizeof(unsigned char);
         
-        unsigned char* checkInPacket = new unsigned char[numPacketBytes];
+        unsigned char checkInPacket[numPacketBytes];
         unsigned char* packetPosition = checkInPacket;
         
         PACKET_TYPE nodePacketType = (memchr(SOLO_NODE_TYPES, _ownerType, sizeof(SOLO_NODE_TYPES)))
@@ -533,8 +533,6 @@ void NodeList::sendDomainServerCheckIn() {
         
         _nodeSocket.send(_domainIP.toString().toLocal8Bit().constData(), _domainPort, checkInPacket, 
             packetPosition - checkInPacket);
-            
-        delete[] checkInPacket; // clean up
         
         const int NUM_DOMAIN_SERVER_CHECKINS_PER_STUN_REQUEST = 5;
         static unsigned int numDomainCheckins = 0;
