@@ -17,21 +17,23 @@ class RearMirrorTools : public QObject {
     Q_OBJECT
 public:
     RearMirrorTools(QGLWidget* parent, QRect& bounds);
-    void render();
+    void render(bool fullScreen);
     bool mousePressEvent(int x, int y);
 
 signals:
     void closeView();
+    void shrinkView();
     void restoreView();
     
 private:
     QGLWidget* _parent;
     QRect _bounds;
     GLuint _closeTextureId;
-    GLuint _restoreTextureId;
-    bool _visible;
+    GLuint _shrinkTextureId;
+    bool _windowed;
+    bool _fullScreen;
     
-    void displayTools();
+    void displayIcon(QRect bounds, int left, int top, GLuint textureId);
 };
 
 #endif /* defined(__hifi__RearMirrorTools__) */

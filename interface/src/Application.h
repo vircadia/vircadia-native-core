@@ -200,6 +200,7 @@ private slots:
     
     void closeMirrorView();
     void restoreMirrorView();
+    void shrinkMirrorView();
 
 private:
     void resetCamerasOnResizeGL(Camera& camera, int width, int height);

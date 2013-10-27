@@ -453,12 +453,14 @@ void Application::paintGL() {
             displaySide(_mirrorCamera, selfAvatarOnly);
             glPopMatrix();
             
-            _rearMirrorTools->render();
+            _rearMirrorTools->render(false);
             
             // reset Viewport and projection matrix
             glViewport(0, 0, _glWidget->width(), _glWidget->height());
             glDisable(GL_SCISSOR_TEST);
             updateProjectionMatrix(_myCamera, updateViewFrustum);
+        } else if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
+            _rearMirrorTools->render(true);
         }
         
         displayOverlay();
@@ -1721,15 +1723,31 @@ void Application::init() {
     _rearMirrorTools = new RearMirrorTools(_glWidget, _mirrorViewRect);
     connect(_rearMirrorTools, SIGNAL(closeView()), SLOT(closeMirrorView()));
     connect(_rearMirrorTools, SIGNAL(restoreView()), SLOT(restoreMirrorView()));
+    connect(_rearMirrorTools, SIGNAL(shrinkView()), SLOT(shrinkMirrorView()));
 }
 
 void Application::closeMirrorView() {
-    Menu::getInstance()->triggerOption(MenuOption::Mirror);
+    if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
+        Menu::getInstance()->triggerOption(MenuOption::Mirror);;
+    }
 }
 
 void Application::restoreMirrorView() {
-    Menu::getInstance()->triggerOption(MenuOption::Mirror);
+    if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
+        Menu::getInstance()->triggerOption(MenuOption::Mirror);;
+    }
+    
     if (!Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
+        Menu::getInstance()->triggerOption(MenuOption::FullscreenMirror);
+    }
+}
+
+void Application::shrinkMirrorView() {
+    if (!Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
+        Menu::getInstance()->triggerOption(MenuOption::Mirror);;
+    }
+    
+    if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
         Menu::getInstance()->triggerOption(MenuOption::FullscreenMirror);
     }
 }
