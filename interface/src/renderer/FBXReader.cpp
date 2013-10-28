@@ -696,6 +696,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     QString jointRootName = processID(joints.value("jointRoot", "jointRoot").toString());
     QString jointLeanName = processID(joints.value("jointLean", "jointLean").toString());
     QString jointHeadName = processID(joints.value("jointHead", "jointHead").toString());
+    QString jointLeftHandName = processID(joints.value("jointLeftHand", "jointLeftHand").toString());
     QString jointRightHandName = processID(joints.value("jointRightHand", "jointRightHand").toString());
     QString jointEyeLeftID;
     QString jointEyeRightID;
@@ -703,6 +704,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     QString jointRootID;
     QString jointLeanID;
     QString jointHeadID;
+    QString jointLeftHandID;
     QString jointRightHandID;
     
     QVariantHash blendshapeMappings = mapping.value("bs").toHash();
@@ -777,6 +779,9 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                         
                     } else if (name == jointHeadName) {
                         jointHeadID = getID(object.properties);
+                        
+                    } else if (name == jointLeftHandName) {
+                        jointLeftHandID = getID(object.properties);
                         
                     } else if (name == jointRightHandName) {
                         jointRightHandID = getID(object.properties);
@@ -1028,6 +1033,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     geometry.rootJointIndex = modelIDs.indexOf(jointRootID);
     geometry.leanJointIndex = modelIDs.indexOf(jointLeanID);
     geometry.headJointIndex = modelIDs.indexOf(jointHeadID);
+    geometry.leftHandJointIndex = modelIDs.indexOf(jointLeftHandID);
     geometry.rightHandJointIndex = modelIDs.indexOf(jointRightHandID);
     
     // extract the translation component of the neck transform

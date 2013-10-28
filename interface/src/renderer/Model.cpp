@@ -413,8 +413,20 @@ bool Model::getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePos
         getJointPosition(geometry.rightEyeJointIndex, secondEyePosition);
 }
 
+bool Model::setLeftHandPosition(const glm::vec3& position) {
+    return isActive() && setJointPosition(_geometry->getFBXGeometry().leftHandJointIndex, position);
+}
+
+bool Model::setLeftHandRotation(const glm::quat& rotation) {
+    return isActive() && setJointRotation(_geometry->getFBXGeometry().leftHandJointIndex, rotation);
+}
+
 bool Model::setRightHandPosition(const glm::vec3& position) {
     return isActive() && setJointPosition(_geometry->getFBXGeometry().rightHandJointIndex, position);
+}
+
+bool Model::setRightHandRotation(const glm::quat& rotation) {
+    return isActive() && setJointRotation(_geometry->getFBXGeometry().rightHandJointIndex, rotation);
 }
 
 void Model::setURL(const QUrl& url) {
@@ -532,6 +544,16 @@ bool Model::setJointPosition(int jointIndex, const glm::vec3& position) {
         }
     }
     
+    return true;
+}
+
+bool Model::setJointRotation(int jointIndex, const glm::quat& rotation) {
+    if (jointIndex == -1 || _jointStates.isEmpty()) {
+        return false;
+    }
+    JointState& state = _jointStates[jointIndex];
+    state.rotation = state.rotation * glm::inverse(state.combinedRotation) * rotation *
+        glm::inverse(_geometry->getFBXGeometry().joints.at(jointIndex).inverseBindRotation);
     return true;
 }
 

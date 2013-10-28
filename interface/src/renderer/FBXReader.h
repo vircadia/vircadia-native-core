@@ -130,6 +130,7 @@ public:
     int rootJointIndex;
     int leanJointIndex;
     int headJointIndex;
+    int leftHandJointIndex;
     int rightHandJointIndex;
     
     glm::vec3 neckPivot;
