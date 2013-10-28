@@ -2381,15 +2381,13 @@ void Application::queryVoxels() {
         }
     }
 
-    // make sure there's at least one voxel server
+    // assume there's at least one voxel server
     if (voxelServerCount < 1) {
-        return; // no voxel servers to talk to, we can bail.
+        voxelServerCount = 1;
     }
     
     // set our preferred PPS to be exactly evenly divided among all of the voxel servers...
     int perServerPPS = DEFAULT_MAX_VOXEL_PPS/voxelServerCount;
-    
-    _voxelQuery.setMaxVoxelPacketsPerSecond(perServerPPS);
     
     UDPSocket* nodeSocket = NodeList::getInstance()->getNodeSocket();
     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
@@ -2412,25 +2410,30 @@ void Application::queryVoxels() {
                 ViewFrustum::location serverFrustumLocation = _viewFrustum.boxInFrustum(serverBounds);
             
                 if (serverFrustumLocation != ViewFrustum::OUTSIDE) {
-                    // set up the packet for sending...
-                    unsigned char* endOfVoxelQueryPacket = voxelQueryPacket;
-
-                    // insert packet type/version and node UUID
-                    endOfVoxelQueryPacket += populateTypeAndVersion(endOfVoxelQueryPacket, PACKET_TYPE_VOXEL_QUERY);
-                    QByteArray ownerUUID = nodeList->getOwnerUUID().toRfc4122();
-                    memcpy(endOfVoxelQueryPacket, ownerUUID.constData(), ownerUUID.size());
-                    endOfVoxelQueryPacket += ownerUUID.size();
-
-                    // encode the query data...
-                    endOfVoxelQueryPacket += _voxelQuery.getBroadcastData(endOfVoxelQueryPacket);
-            
-                    int packetLength = endOfVoxelQueryPacket - voxelQueryPacket;
-
-                    nodeSocket->send(node->getActiveSocket(), voxelQueryPacket, packetLength);
-
-                    // Feed number of bytes to corresponding channel of the bandwidth meter
-                    _bandwidthMeter.outputStream(BandwidthMeter::VOXELS).updateValue(packetLength);
+                    //printf("_voxelQuery.setMaxVoxelPacketsPerSecond(perServerPPS=%d)\n",perServerPPS);
+                    _voxelQuery.setMaxVoxelPacketsPerSecond(perServerPPS);
+                } else {
+                    //printf("_voxelQuery.setMaxVoxelPacketsPerSecond(0)\n");
+                    _voxelQuery.setMaxVoxelPacketsPerSecond(0);
                 }
+                // set up the packet for sending...
+                unsigned char* endOfVoxelQueryPacket = voxelQueryPacket;
+
+                // insert packet type/version and node UUID
+                endOfVoxelQueryPacket += populateTypeAndVersion(endOfVoxelQueryPacket, PACKET_TYPE_VOXEL_QUERY);
+                QByteArray ownerUUID = nodeList->getOwnerUUID().toRfc4122();
+                memcpy(endOfVoxelQueryPacket, ownerUUID.constData(), ownerUUID.size());
+                endOfVoxelQueryPacket += ownerUUID.size();
+
+                // encode the query data...
+                endOfVoxelQueryPacket += _voxelQuery.getBroadcastData(endOfVoxelQueryPacket);
+        
+                int packetLength = endOfVoxelQueryPacket - voxelQueryPacket;
+
+                nodeSocket->send(node->getActiveSocket(), voxelQueryPacket, packetLength);
+
+                // Feed number of bytes to corresponding channel of the bandwidth meter
+                _bandwidthMeter.outputStream(BandwidthMeter::VOXELS).updateValue(packetLength);
             }
         }
     }
