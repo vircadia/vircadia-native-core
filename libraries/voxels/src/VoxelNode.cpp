@@ -75,7 +75,12 @@ void VoxelNode::init(unsigned char * octalCode) {
         _childrenArray[i] = NULL;
     }
 #endif // def HAS_AUDIT_CHILDREN
-    
+
+#ifdef SIMPLE_CHILD_ARRAY
+    for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
+        _simpleChildArray[i] = NULL;
+    }
+#endif    
     
     _unknownBufferIndex = true;
     setBufferIndex(GLBUFFER_INDEX_UNKNOWN);
@@ -320,6 +325,9 @@ uint64_t VoxelNode::_couldStoreFourChildrenInternally = 0;
 uint64_t VoxelNode::_couldNotStoreFourChildrenInternally = 0;
 
 VoxelNode* VoxelNode::getChildAtIndex(int childIndex) const {
+#ifdef SIMPLE_CHILD_ARRAY
+    return _simpleChildArray[childIndex];
+#else
     PerformanceWarning warn(false,"getChildAtIndex",false,&_getChildAtIndexTime,&_getChildAtIndexCalls);
     VoxelNode* result = NULL;
     int childCount = getChildCount();
@@ -428,6 +436,7 @@ VoxelNode* VoxelNode::getChildAtIndex(int childIndex) const {
     }
 #endif // def HAS_AUDIT_CHILDREN
     return result; 
+#endif
 }
 
 void VoxelNode::storeTwoChildren(VoxelNode* childOne, VoxelNode* childTwo) {
@@ -680,6 +689,14 @@ void VoxelNode::deleteAllChildren() {
 }
 
 void VoxelNode::setChildAtIndex(int childIndex, VoxelNode* child) {
+#ifdef SIMPLE_CHILD_ARRAY
+    if (child) {
+        setAtBit(_childBitmask, childIndex);
+    } else {
+        clearAtBit(_childBitmask, childIndex);
+    }
+    _simpleChildArray[childIndex] = child;
+#else
     PerformanceWarning warn(false,"setChildAtIndex",false,&_setChildAtIndexTime,&_setChildAtIndexCalls);
 
     // Here's how we store things...
@@ -1020,6 +1037,8 @@ void VoxelNode::setChildAtIndex(int childIndex, VoxelNode* child) {
     _childrenArray[childIndex] = child;
     auditChildren("setChildAtIndex()");
 #endif // def HAS_AUDIT_CHILDREN
+
+#endif
 }
 
 

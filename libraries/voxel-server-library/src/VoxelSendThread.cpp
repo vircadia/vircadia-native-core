@@ -63,6 +63,7 @@ void VoxelSendThread::handlePacketSend(Node* node, VoxelNodeData* nodeData, int&
     // obscure the packet and not send it. This allows the callers and upper level logic to not need to know about
     // this rate control savings.
     if (nodeData->shouldSuppressDuplicatePacket()) {
+        nodeData->resetVoxelPacket(); // we still need to reset it though!
         return; // without sending...
     }
 

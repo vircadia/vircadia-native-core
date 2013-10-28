@@ -20,7 +20,9 @@ void NodeWatcher::nodeKilled(Node* node) {
     // Use this to cleanup our node
     if (node->getType() == NODE_TYPE_AGENT) {
         VoxelNodeData* nodeData = (VoxelNodeData*)node->getLinkedData();
-        node->setLinkedData(NULL);
-        delete nodeData;
+        if (nodeData) {
+            node->setLinkedData(NULL);
+            delete nodeData;
+        }
     }
 };
