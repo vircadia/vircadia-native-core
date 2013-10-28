@@ -1876,19 +1876,6 @@ void Application::updateAvatars(float deltaTime, glm::vec3 mouseRayOrigin, glm::
 void Application::update(float deltaTime) {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::update()");
-
-    //  Use Transmitter Hand to move hand if connected, else use mouse
-    if (_myTransmitter.isConnected()) {
-        const float HAND_FORCE_SCALING = 0.01f;
-        glm::vec3 estimatedRotation = _myTransmitter.getEstimatedRotation();
-        glm::vec3 handForce(-estimatedRotation.z, -estimatedRotation.x, estimatedRotation.y);
-        _myAvatar.setMovedHandOffset(handForce *  HAND_FORCE_SCALING);
-    } else {
-        // update behaviors for avatar hand movement: handControl takes mouse values as input,
-        // and gives back 3D values modulated for smooth transitioning between interaction modes.
-        _handControl.update(_mouseX, _mouseY);
-        _myAvatar.setMovedHandOffset(_handControl.getValues());
-    }
     
     // tell my avatar if the mouse is being pressed...
     _myAvatar.setMousePressed(_mousePressed);
@@ -1897,6 +1884,15 @@ void Application::update(float deltaTime) {
     glm::vec3 mouseRayOrigin, mouseRayDirection;
     _viewFrustum.computePickRay(_mouseX / (float)_glWidget->width(),
         _mouseY / (float)_glWidget->height(), mouseRayOrigin, mouseRayDirection);
+
+    // adjust for mirroring
+    if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
+        glm::vec3 mouseRayOffset = mouseRayOrigin - _viewFrustum.getPosition();
+        mouseRayOrigin -= 2.0f * (_viewFrustum.getDirection() * glm::dot(_viewFrustum.getDirection(), mouseRayOffset) +
+            _viewFrustum.getRight() * glm::dot(_viewFrustum.getRight(), mouseRayOffset));
+        mouseRayDirection -= 2.0f * (_viewFrustum.getDirection() * glm::dot(_viewFrustum.getDirection(), mouseRayDirection) +
+            _viewFrustum.getRight() * glm::dot(_viewFrustum.getRight(), mouseRayDirection));
+    }
 
     // tell my avatar the posiion and direction of the ray projected ino the world based on the mouse position        
     _myAvatar.setMouseRay(mouseRayOrigin, mouseRayDirection);
