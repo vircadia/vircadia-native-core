@@ -690,12 +690,23 @@ void VoxelNode::deleteAllChildren() {
 
 void VoxelNode::setChildAtIndex(int childIndex, VoxelNode* child) {
 #ifdef SIMPLE_CHILD_ARRAY
+    int previousChildCount = getChildCount();
     if (child) {
         setAtBit(_childBitmask, childIndex);
     } else {
         clearAtBit(_childBitmask, childIndex);
     }
+    int newChildCount = getChildCount();
+
+    // store the child in our child array
     _simpleChildArray[childIndex] = child;
+
+    // track our population data
+    if (previousChildCount != newChildCount) {
+        _childrenCount[previousChildCount]--;
+        _childrenCount[newChildCount]++;
+    }
+
 #else
     PerformanceWarning warn(false,"setChildAtIndex",false,&_setChildAtIndexTime,&_setChildAtIndexCalls);
 
