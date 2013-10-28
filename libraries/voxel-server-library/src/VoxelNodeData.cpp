@@ -108,6 +108,7 @@ void VoxelNodeData::writeToPacket(unsigned char* buffer, int bytes) {
 
 VoxelNodeData::~VoxelNodeData() {
     delete[] _voxelPacket;
+    delete[] _lastVoxelPacket;
 
     if (_voxelSendThread) {
         _voxelSendThread->terminate();

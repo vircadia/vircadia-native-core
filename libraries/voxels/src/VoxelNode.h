@@ -10,6 +10,7 @@
 #define __hifi__VoxelNode__
 
 //#define HAS_AUDIT_CHILDREN
+#define SIMPLE_CHILD_ARRAY
 
 #include <SharedUtil.h>
 #include "AABox.h"
@@ -172,6 +173,10 @@ private:
     uint64_t _lastChanged; /// Client and server, timestamp this node was last changed, 8 bytes
 
     /// Client and server, pointers to child nodes, various encodings
+#ifdef SIMPLE_CHILD_ARRAY
+    VoxelNode* _simpleChildArray[8]; /// Only used when HAS_AUDIT_CHILDREN is enabled to help debug children encoding
+#endif
+    
     union children_t {
       VoxelNode* single;
       int32_t offsetsTwoChildren[2];
