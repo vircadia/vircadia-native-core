@@ -136,7 +136,9 @@ int VoxelServer::civetwebRequestHandler(struct mg_connection* connection) {
 
         mg_printf(connection, "%s", "\r\n");
         mg_printf(connection, "%s", "VoxelNode Children Encoding Statistics...\r\n");
-        mg_printf(connection, "    Single or No Children:      %10.llu nodes (%5.2f%%)\r\n", 
+        
+#ifdef BLENDED_UNION_CHILDREN
+        mg_printf(connection, "    Single or No Children:      %10.llu nodes (%5.2f%%)\r\n",
             VoxelNode::getSingleChildrenCount(), ((float)VoxelNode::getSingleChildrenCount()/(float)nodeCount) * AS_PERCENT);
         mg_printf(connection, "    Two Children as Offset:     %10.llu nodes (%5.2f%%)\r\n", 
             VoxelNode::getTwoChildrenOffsetCount(), 
@@ -150,14 +152,19 @@ int VoxelServer::civetwebRequestHandler(struct mg_connection* connection) {
         mg_printf(connection, "    Three Children as External: %10.llu nodes (%5.2f%%)\r\n", 
             VoxelNode::getThreeChildrenExternalCount(), 
             ((float)VoxelNode::getThreeChildrenExternalCount()/(float)nodeCount) * AS_PERCENT);
-        mg_printf(connection, "    Children as External Array: %10.llu nodes (%5.2f%%)\r\n", 
+#endif
+        mg_printf(connection, "    Children as External Array: %10.llu nodes (%5.2f%%)\r\n",
             VoxelNode::getExternalChildrenCount(), 
             ((float)VoxelNode::getExternalChildrenCount()/(float)nodeCount) * AS_PERCENT);
 
-        uint64_t checkSum = VoxelNode::getSingleChildrenCount() + 
+#ifdef BLENDED_UNION_CHILDREN
+        uint64_t checkSum = VoxelNode::getSingleChildrenCount() +
                             VoxelNode::getTwoChildrenOffsetCount() + VoxelNode::getTwoChildrenExternalCount() + 
                             VoxelNode::getThreeChildrenOffsetCount() + VoxelNode::getThreeChildrenExternalCount() + 
                             VoxelNode::getExternalChildrenCount();
+#else
+        uint64_t checkSum = VoxelNode::getExternalChildrenCount();
+#endif
 
         mg_printf(connection, "%s", "                                ----------------\r\n");
         mg_printf(connection, "                         Total: %10.llu nodes\r\n", checkSum);
@@ -175,11 +182,14 @@ int VoxelServer::civetwebRequestHandler(struct mg_connection* connection) {
         mg_printf(connection, "                    Total:      %10.llu nodes\r\n", checkSum);
 
         mg_printf(connection, "%s", "\r\n");
+
+#ifdef BLENDED_UNION_CHILDREN
         mg_printf(connection, "%s", "In other news....\r\n");
         mg_printf(connection, "could store 4 children internally:     %10.llu nodes\r\n",
             VoxelNode::getCouldStoreFourChildrenInternally());
         mg_printf(connection, "could NOT store 4 children internally: %10.llu nodes\r\n", 
             VoxelNode::getCouldNotStoreFourChildrenInternally());
+#endif
 
         return 1;
     } else {

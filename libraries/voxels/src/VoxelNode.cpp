@@ -65,8 +65,11 @@ void VoxelNode::init(unsigned char * octalCode) {
     // set up the _children union
     _childBitmask = 0;
     _childrenExternal = false;
+
+#ifdef BLENDED_UNION_CHILDREN
     _children.external = NULL;
     _singleChildrenCount++;
+#endif
     _childrenCount[0]++;
     
     // default pointers to child nodes to NULL
@@ -314,20 +317,25 @@ uint64_t VoxelNode::_getChildAtIndexCalls = 0;
 uint64_t VoxelNode::_setChildAtIndexTime = 0;
 uint64_t VoxelNode::_setChildAtIndexCalls = 0;
 
+#ifdef BLENDED_UNION_CHILDREN
 uint64_t VoxelNode::_singleChildrenCount = 0;
 uint64_t VoxelNode::_twoChildrenOffsetCount = 0;
 uint64_t VoxelNode::_twoChildrenExternalCount = 0;
 uint64_t VoxelNode::_threeChildrenOffsetCount = 0;
 uint64_t VoxelNode::_threeChildrenExternalCount = 0;
-uint64_t VoxelNode::_externalChildrenCount = 0;
-uint64_t VoxelNode::_childrenCount[NUMBER_OF_CHILDREN + 1] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 uint64_t VoxelNode::_couldStoreFourChildrenInternally = 0;
 uint64_t VoxelNode::_couldNotStoreFourChildrenInternally = 0;
+#endif
+
+uint64_t VoxelNode::_externalChildrenCount = 0;
+uint64_t VoxelNode::_childrenCount[NUMBER_OF_CHILDREN + 1] = { 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
 VoxelNode* VoxelNode::getChildAtIndex(int childIndex) const {
 #ifdef SIMPLE_CHILD_ARRAY
     return _simpleChildArray[childIndex];
-#else
+#endif // SIMPLE_CHILD_ARRAY
+
+#ifdef BLENDED_UNION_CHILDREN
     PerformanceWarning warn(false,"getChildAtIndex",false,&_getChildAtIndexTime,&_getChildAtIndexCalls);
     VoxelNode* result = NULL;
     int childCount = getChildCount();
@@ -439,6 +447,7 @@ VoxelNode* VoxelNode::getChildAtIndex(int childIndex) const {
 #endif
 }
 
+#ifdef BLENDED_UNION_CHILDREN
 void VoxelNode::storeTwoChildren(VoxelNode* childOne, VoxelNode* childTwo) {
     int64_t offsetOne = (uint8_t*)childOne - (uint8_t*)this;
     int64_t offsetTwo = (uint8_t*)childTwo - (uint8_t*)this;
@@ -633,6 +642,7 @@ void VoxelNode::checkStoreFourChildren(VoxelNode* childOne, VoxelNode* childTwo,
         _couldNotStoreFourChildrenInternally++;
     }
 }
+#endif
 
 void VoxelNode::deleteAllChildren() {
     // first delete all the VoxelNode objects...
@@ -643,6 +653,7 @@ void VoxelNode::deleteAllChildren() {
         }
     }
 
+#ifdef BLENDED_UNION_CHILDREN
     // now, reset our internal state and ANY and all population data
     int childCount = getChildCount();
     switch (childCount) {
@@ -686,6 +697,7 @@ void VoxelNode::deleteAllChildren() {
         delete[] _children.external;
     }
     _children.single = NULL;
+#endif // BLENDED_UNION_CHILDREN
 }
 
 void VoxelNode::setChildAtIndex(int childIndex, VoxelNode* child) {
@@ -707,7 +719,8 @@ void VoxelNode::setChildAtIndex(int childIndex, VoxelNode* child) {
         _childrenCount[newChildCount]++;
     }
 
-#else
+#endif
+#ifdef BLENDED_UNION_CHILDREN
     PerformanceWarning warn(false,"setChildAtIndex",false,&_setChildAtIndexTime,&_setChildAtIndexCalls);
 
     // Here's how we store things...

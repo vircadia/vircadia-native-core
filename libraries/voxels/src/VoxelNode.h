@@ -131,16 +131,18 @@ public:
     static uint64_t getSetChildAtIndexTime() { return _setChildAtIndexTime; }
     static uint64_t getSetChildAtIndexCalls() { return _setChildAtIndexCalls; }
 
+#ifdef BLENDED_UNION_CHILDREN
     static uint64_t getSingleChildrenCount() { return _singleChildrenCount; }
     static uint64_t getTwoChildrenOffsetCount() { return _twoChildrenOffsetCount; }
     static uint64_t getTwoChildrenExternalCount() { return _twoChildrenExternalCount; }
     static uint64_t getThreeChildrenOffsetCount() { return _threeChildrenOffsetCount; }
     static uint64_t getThreeChildrenExternalCount() { return _threeChildrenExternalCount; }
-    static uint64_t getExternalChildrenCount() { return _externalChildrenCount; }
-    static uint64_t getChildrenCount(int childCount) { return _childrenCount[childCount]; }
-    
     static uint64_t getCouldStoreFourChildrenInternally() { return _couldStoreFourChildrenInternally; }
     static uint64_t getCouldNotStoreFourChildrenInternally() { return _couldNotStoreFourChildrenInternally; }
+#endif
+
+    static uint64_t getExternalChildrenCount() { return _externalChildrenCount; }
+    static uint64_t getChildrenCount(int childCount) { return _childrenCount[childCount]; }
     
 #ifdef HAS_AUDIT_CHILDREN
     void auditChildren(const char* label) const;
@@ -149,6 +151,8 @@ public:
 private:
     void deleteAllChildren();
     void setChildAtIndex(int childIndex, VoxelNode* child);
+
+#ifdef BLENDED_UNION_CHILDREN
     void storeTwoChildren(VoxelNode* childOne, VoxelNode* childTwo);
     void retrieveTwoChildren(VoxelNode*& childOne, VoxelNode*& childTwo);
     void storeThreeChildren(VoxelNode* childOne, VoxelNode* childTwo, VoxelNode* childThree);
@@ -156,7 +160,7 @@ private:
     void decodeThreeOffsets(int64_t& offsetOne, int64_t& offsetTwo, int64_t& offsetThree) const;
     void encodeThreeOffsets(int64_t offsetOne, int64_t offsetTwo, int64_t offsetThree);
     void checkStoreFourChildren(VoxelNode* childOne, VoxelNode* childTwo, VoxelNode* childThree, VoxelNode* childFour);
-
+#endif
     void calculateAABox();
     void init(unsigned char * octalCode);
     void notifyDeleteHooks();
@@ -177,12 +181,14 @@ private:
     VoxelNode* _simpleChildArray[8]; /// Only used when HAS_AUDIT_CHILDREN is enabled to help debug children encoding
 #endif
     
+#ifdef BLENDED_UNION_CHILDREN
     union children_t {
       VoxelNode* single;
       int32_t offsetsTwoChildren[2];
       uint64_t offsetsThreeChildrenEncoded;
       VoxelNode** external;
     } _children;
+#endif //def BLENDED_UNION_CHILDREN
 
 #ifdef HAS_AUDIT_CHILDREN
     VoxelNode* _childrenArray[8]; /// Only used when HAS_AUDIT_CHILDREN is enabled to help debug children encoding
@@ -237,16 +243,17 @@ private:
     static uint64_t _setChildAtIndexTime;
     static uint64_t _setChildAtIndexCalls;
 
+#ifdef BLENDED_UNION_CHILDREN
     static uint64_t _singleChildrenCount;
     static uint64_t _twoChildrenOffsetCount;
     static uint64_t _twoChildrenExternalCount;
     static uint64_t _threeChildrenOffsetCount;
     static uint64_t _threeChildrenExternalCount;
-    static uint64_t _externalChildrenCount;
-    static uint64_t _childrenCount[NUMBER_OF_CHILDREN + 1];
-
     static uint64_t _couldStoreFourChildrenInternally;
     static uint64_t _couldNotStoreFourChildrenInternally;
+#endif
+    static uint64_t _externalChildrenCount;
+    static uint64_t _childrenCount[NUMBER_OF_CHILDREN + 1];
 };
 
 #endif /* defined(__hifi__VoxelNode__) */
