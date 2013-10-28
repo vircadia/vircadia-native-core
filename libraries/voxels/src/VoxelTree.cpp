@@ -1234,7 +1234,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
         // even if they don't in our local tree
         bool notMyJurisdiction = false;
         if (params.jurisdictionMap) {
-            notMyJurisdiction = (JurisdictionMap::BELOW == params.jurisdictionMap->isMyJurisdiction(node->getOctalCode(), i));
+            notMyJurisdiction = (JurisdictionMap::WITHIN != params.jurisdictionMap->isMyJurisdiction(node->getOctalCode(), i));
         }
         if (params.includeExistsBits) {
             // If the child is known to exist, OR, it's not my jurisdiction, then we mark the bit as existing
