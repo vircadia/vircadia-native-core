@@ -26,6 +26,8 @@ void SkeletonModel::simulate(float deltaTime) {
     setScale(glm::vec3(1.0f, 1.0f, 1.0f) * _owningAvatar->getScale() * MODEL_SCALE);
     
     Model::simulate(deltaTime);
+    
+    setRightHandPosition(_owningAvatar->getHandPosition());
 }
 
 bool SkeletonModel::render(float alpha) {

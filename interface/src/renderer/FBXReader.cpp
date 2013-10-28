@@ -326,11 +326,11 @@ QVariantHash parseMapping(QIODevice* device) {
         }
         QByteArray name = sections.at(0).trimmed();
         if (sections.size() == 2) {
-            properties.insert(name, sections.at(1).trimmed());
+            properties.insertMulti(name, sections.at(1).trimmed());
         
         } else if (sections.size() == 3) {
             QVariantHash heading = properties.value(name).toHash();
-            heading.insert(sections.at(1).trimmed(), sections.at(2).trimmed());
+            heading.insertMulti(sections.at(1).trimmed(), sections.at(2).trimmed());
             properties.insert(name, heading);
             
         } else if (sections.size() >= 4) {
@@ -696,12 +696,14 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     QString jointRootName = processID(joints.value("jointRoot", "jointRoot").toString());
     QString jointLeanName = processID(joints.value("jointLean", "jointLean").toString());
     QString jointHeadName = processID(joints.value("jointHead", "jointHead").toString());
+    QString jointRightHandName = processID(joints.value("jointRightHand", "jointRightHand").toString());
     QString jointEyeLeftID;
     QString jointEyeRightID;
     QString jointNeckID;
     QString jointRootID;
     QString jointLeanID;
     QString jointHeadID;
+    QString jointRightHandID;
     
     QVariantHash blendshapeMappings = mapping.value("bs").toHash();
     QHash<QByteArray, QPair<int, float> > blendshapeIndices;
@@ -775,6 +777,9 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                         
                     } else if (name == jointHeadName) {
                         jointHeadID = getID(object.properties);
+                        
+                    } else if (name == jointRightHandName) {
+                        jointRightHandID = getID(object.properties);
                     }
                     glm::vec3 translation;
                     glm::vec3 rotationOffset;
@@ -978,10 +983,24 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     }
     
     // convert the models to joints
+    QVariantList freeJoints = mapping.values("freeJoint");
     foreach (const QString& modelID, modelIDs) {
         const FBXModel& model = models[modelID];
         FBXJoint joint;
+        joint.isFree = freeJoints.contains(model.name);
         joint.parentIndex = model.parentIndex;
+        
+        // get the indices of all ancestors starting with the first free one (if any)
+        joint.freeLineage.append(geometry.joints.size());
+        int lastFreeIndex = joint.isFree ? 0 : -1;
+        for (int index = joint.parentIndex; index != -1; index = geometry.joints.at(index).parentIndex) {
+            if (geometry.joints.at(index).isFree) {
+                lastFreeIndex = joint.freeLineage.size();
+            }
+            joint.freeLineage.append(index);
+        }
+        joint.freeLineage.remove(lastFreeIndex + 1, joint.freeLineage.size() - lastFreeIndex - 1);
+        
         joint.preTransform = model.preTransform;
         joint.preRotation = model.preRotation;
         joint.rotation = model.rotation;
@@ -1009,6 +1028,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     geometry.rootJointIndex = modelIDs.indexOf(jointRootID);
     geometry.leanJointIndex = modelIDs.indexOf(jointLeanID);
     geometry.headJointIndex = modelIDs.indexOf(jointHeadID);
+    geometry.rightHandJointIndex = modelIDs.indexOf(jointRightHandID);
     
     // extract the translation component of the neck transform
     if (geometry.neckJointIndex != -1) {

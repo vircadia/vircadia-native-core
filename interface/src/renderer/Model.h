@@ -70,6 +70,10 @@ public:
     /// \return whether or not both eye meshes were found
     bool getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const;
     
+    /// Sets the position of the right hand using inverse kinematics.
+    /// \return whether or not the right hand joint was found
+    bool setRightHandPosition(const glm::vec3& position);
+    
     /// Returns the average color of all meshes in the geometry.
     glm::vec4 computeAverageColor() const;
 
@@ -100,6 +104,8 @@ protected:
     
     bool getJointPosition(int jointIndex, glm::vec3& position) const;
     bool getJointRotation(int jointIndex, glm::quat& rotation) const;
+    
+    bool setJointPosition(int jointIndex, const glm::vec3& position);
     
 private:
     

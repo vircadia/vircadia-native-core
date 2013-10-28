@@ -413,6 +413,10 @@ bool Model::getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePos
         getJointPosition(geometry.rightEyeJointIndex, secondEyePosition);
 }
 
+bool Model::setRightHandPosition(const glm::vec3& position) {
+    return isActive() && setJointPosition(_geometry->getFBXGeometry().rightHandJointIndex, position);
+}
+
 void Model::setURL(const QUrl& url) {
     // don't recreate the geometry if it's the same URL
     if (_url == url) {
@@ -489,6 +493,45 @@ bool Model::getJointRotation(int jointIndex, glm::quat& rotation) const {
     }
     rotation = _jointStates[jointIndex].combinedRotation *
         _geometry->getFBXGeometry().joints[jointIndex].inverseBindRotation;
+    return true;
+}
+
+bool Model::setJointPosition(int jointIndex, const glm::vec3& position) {
+    if (jointIndex == -1 || _jointStates.isEmpty()) {
+        return false;
+    }
+    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    const QVector<int>& freeLineage = geometry.joints.at(jointIndex).freeLineage;
+    
+    // this is a cyclic coordinate descent algorithm: see
+    // http://www.ryanjuckett.com/programming/animation/21-cyclic-coordinate-descent-in-2d
+    const int ITERATION_COUNT = 1;
+    for (int i = 0; i < ITERATION_COUNT; i++) {
+        // first, we go from the joint upwards, rotating the end as close as possible to the target
+        glm::vec3 endPosition = extractTranslation(_jointStates[jointIndex].transform);
+        for (int j = 1; j < freeLineage.size(); j++) {
+            int index = freeLineage.at(j);
+            if (glm::distance(endPosition, position) < EPSILON) {
+                return true; // close enough to target position
+            }
+            const FBXJoint& joint = geometry.joints.at(index);
+            if (!joint.isFree) {
+                continue;
+            }
+            JointState& state = _jointStates[index];
+            glm::vec3 jointPosition = extractTranslation(state.transform);
+            glm::vec3 jointVector = endPosition - jointPosition;
+            glm::quat deltaRotation = rotationBetween(jointVector, position - jointPosition);
+            state.rotation = state.rotation * glm::inverse(state.combinedRotation) * deltaRotation * state.combinedRotation;
+            endPosition = deltaRotation * jointVector + jointPosition;
+        }
+        
+        // then, from the first free joint downwards, update the transforms again
+        for (int j = freeLineage.size() - 1; j >= 0; j--) {
+            updateJointState(freeLineage.at(j));
+        }
+    }
+    
     return true;
 }
 
