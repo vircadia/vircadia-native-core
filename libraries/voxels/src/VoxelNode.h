@@ -10,7 +10,8 @@
 #define __hifi__VoxelNode__
 
 //#define HAS_AUDIT_CHILDREN
-#define SIMPLE_CHILD_ARRAY
+//#define SIMPLE_CHILD_ARRAY
+#define SIMPLE_EXTERNAL_CHILDREN
 
 #include <SharedUtil.h>
 #include "AABox.h"
@@ -144,9 +145,11 @@ public:
     static uint64_t getExternalChildrenCount() { return _externalChildrenCount; }
     static uint64_t getChildrenCount(int childCount) { return _childrenCount[childCount]; }
     
+#ifdef BLENDED_UNION_CHILDREN
 #ifdef HAS_AUDIT_CHILDREN
     void auditChildren(const char* label) const;
 #endif // def HAS_AUDIT_CHILDREN
+#endif // def BLENDED_UNION_CHILDREN
 
 private:
     void deleteAllChildren();
@@ -178,7 +181,14 @@ private:
 
     /// Client and server, pointers to child nodes, various encodings
 #ifdef SIMPLE_CHILD_ARRAY
-    VoxelNode* _simpleChildArray[8]; /// Only used when HAS_AUDIT_CHILDREN is enabled to help debug children encoding
+    VoxelNode* _simpleChildArray[8]; /// Only used when SIMPLE_CHILD_ARRAY is enabled
+#endif
+
+#ifdef SIMPLE_EXTERNAL_CHILDREN
+    union children_t {
+      VoxelNode* single;
+      VoxelNode** external;
+    } _children;
 #endif
     
 #ifdef BLENDED_UNION_CHILDREN
@@ -188,11 +198,11 @@ private:
       uint64_t offsetsThreeChildrenEncoded;
       VoxelNode** external;
     } _children;
-#endif //def BLENDED_UNION_CHILDREN
-
 #ifdef HAS_AUDIT_CHILDREN
     VoxelNode* _childrenArray[8]; /// Only used when HAS_AUDIT_CHILDREN is enabled to help debug children encoding
 #endif // def HAS_AUDIT_CHILDREN
+
+#endif //def BLENDED_UNION_CHILDREN
 
     uint32_t _glBufferIndex : 24, /// Client only, vbo index for this voxel if being rendered, 3 bytes
              _voxelSystemIndex : 8; /// Client only, index to the VoxelSystem rendering this voxel, 1 bytes
