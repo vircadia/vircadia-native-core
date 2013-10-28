@@ -82,7 +82,6 @@ Avatar::Avatar(Node* owningNode) :
     _skeletonModel(this),
     _ballSpringsInitialized(false),
     _bodyYawDelta(0.0f),
-    _movedHandOffset(0.0f, 0.0f, 0.0f),
     _mode(AVATAR_MODE_STANDING),
     _velocity(0.0f, 0.0f, 0.0f),
     _thrust(0.0f, 0.0f, 0.0f),
@@ -444,23 +443,7 @@ void Avatar::setMouseRay(const glm::vec3 &origin, const glm::vec3 &direction) {
 }
 
 void Avatar::updateHandMovementAndTouching(float deltaTime, bool enableHandMovement) {
-    
-    glm::quat orientation = getOrientation();
-    
     // reset hand and arm positions according to hand movement
-    glm::vec3 right = orientation * IDENTITY_RIGHT;
-    glm::vec3 up = orientation * IDENTITY_UP;
-    glm::vec3 front = orientation * IDENTITY_FRONT;
-    
-    if (enableHandMovement) {
-        glm::vec3 transformedHandMovement =
-            right * _movedHandOffset.x * 2.0f +
-            up * -_movedHandOffset.y * 2.0f +
-            front * -_movedHandOffset.y * 2.0f;
-    
-        _skeleton.joint[AVATAR_JOINT_RIGHT_FINGERTIPS].position += transformedHandMovement;
-    }
-    
     enableHandMovement |= updateLeapHandPositions();
     
     //constrain right arm length and re-adjust elbow position as it bends

@@ -205,7 +205,6 @@ protected:
     SkeletonModel _skeletonModel;
     bool _ballSpringsInitialized;
     float _bodyYawDelta;
-    glm::vec3 _movedHandOffset;
     AvatarBall _bodyBall[ NUM_AVATAR_BODY_BALLS ];
     AvatarMode _mode;
     glm::vec3 _velocity;
