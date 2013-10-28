@@ -201,6 +201,7 @@ private slots:
     void closeMirrorView();
     void restoreMirrorView();
     void shrinkMirrorView();
+    void resetSensors();
 
 private:
     void resetCamerasOnResizeGL(Camera& camera, int width, int height);
@@ -241,7 +242,6 @@ private:
     bool maybeEditVoxelUnderCursor();
     void deleteVoxelUnderCursor();
     void eyedropperVoxelUnderCursor();
-    void resetSensors();
     void injectVoxelAddedSoundEffect();
             
     void setMenuShortcutsEnabled(bool enabled);

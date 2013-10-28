@@ -23,13 +23,14 @@ public:
 signals:
     void closeView();
     void shrinkView();
+    void resetView();
     void restoreView();
     
 private:
     QGLWidget* _parent;
     QRect _bounds;
     GLuint _closeTextureId;
-    GLuint _shrinkTextureId;
+    GLuint _resetTextureId;
     bool _windowed;
     bool _fullScreen;
     

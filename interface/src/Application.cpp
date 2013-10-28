@@ -685,7 +685,6 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 
             case Qt::Key_Space:
                 resetSensors();
-                _audio.reset();
                 break;
                 
             case Qt::Key_G:
@@ -1724,6 +1723,7 @@ void Application::init() {
     connect(_rearMirrorTools, SIGNAL(closeView()), SLOT(closeMirrorView()));
     connect(_rearMirrorTools, SIGNAL(restoreView()), SLOT(restoreMirrorView()));
     connect(_rearMirrorTools, SIGNAL(shrinkView()), SLOT(shrinkMirrorView()));
+    connect(_rearMirrorTools, SIGNAL(resetView()), SLOT(resetSensors()));
 }
 
 void Application::closeMirrorView() {
@@ -3777,6 +3777,8 @@ void Application::resetSensors() {
     _myTransmitter.resetLevels();
     _myAvatar.setVelocity(glm::vec3(0,0,0));
     _myAvatar.setThrust(glm::vec3(0,0,0));
+    
+    _audio.reset();
 }
 
 static void setShortcutsEnabled(QWidget* widget, bool enabled) {

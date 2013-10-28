@@ -15,29 +15,36 @@ const int ICON_PADDING = 5;
 RearMirrorTools::RearMirrorTools(QGLWidget* parent, QRect& bounds) : _parent(parent), _bounds(bounds), _windowed(false), _fullScreen(false) {
     switchToResourcesParentIfRequired();
     _closeTextureId = _parent->bindTexture(QImage("./resources/images/close.png"));
-    _shrinkTextureId = _parent->bindTexture(QImage("./resources/images/close.png"));
+    _resetTextureId = _parent->bindTexture(QImage("./resources/images/reset.png"));
 };
 
 void RearMirrorTools::render(bool fullScreen) {
     if (fullScreen) {
         _fullScreen = true;
-        displayIcon(_parent->geometry(), ICON_PADDING, ICON_PADDING, _shrinkTextureId);
+        displayIcon(_parent->geometry(), ICON_PADDING, ICON_PADDING, _closeTextureId);
     } else {
         // render rear view tools if mouse is in the bounds
         QPoint mousePosition = _parent->mapFromGlobal(QCursor::pos());
         _windowed = _bounds.contains(mousePosition.x(), mousePosition.y());
         if (_windowed) {
-            displayIcon(_bounds, _bounds.left() + ICON_PADDING, ICON_PADDING, _closeTextureId);
+            displayIcon(_bounds, _bounds.left() + ICON_PADDING, _bounds.top() + ICON_PADDING, _closeTextureId);
+            displayIcon(_bounds, _bounds.width() - ICON_SIZE - ICON_PADDING, _bounds.top() + ICON_PADDING, _resetTextureId);
         }
     }
 }
 
 bool RearMirrorTools::mousePressEvent(int x, int y) {
     if (_windowed) {
-        QRect closeIconRect = QRect(ICON_PADDING + _bounds.left(), ICON_PADDING + _bounds.top(), ICON_SIZE, ICON_SIZE);
+        QRect closeIconRect = QRect(_bounds.left() + ICON_PADDING, _bounds.top() + ICON_PADDING, ICON_SIZE, ICON_SIZE);
         if (closeIconRect.contains(x, y)) {
             _windowed = false;
             emit closeView();
+            return true;
+        }
+        
+        QRect resetIconRect = QRect(_bounds.width() - ICON_SIZE - ICON_PADDING, _bounds.top() + ICON_PADDING, ICON_SIZE, ICON_SIZE);
+        if (resetIconRect.contains(x, y)) {
+            emit resetView();
             return true;
         }
         
