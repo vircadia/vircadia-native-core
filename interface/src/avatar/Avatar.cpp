@@ -443,14 +443,7 @@ void Avatar::setMouseRay(const glm::vec3 &origin, const glm::vec3 &direction) {
 }
 
 void Avatar::updateHandMovementAndTouching(float deltaTime, bool enableHandMovement) {
-    
-    glm::quat orientation = getOrientation();
-    
     // reset hand and arm positions according to hand movement
-    glm::vec3 right = orientation * IDENTITY_RIGHT;
-    glm::vec3 up = orientation * IDENTITY_UP;
-    glm::vec3 front = orientation * IDENTITY_FRONT;
-    
     enableHandMovement |= updateLeapHandPositions();
     
     //constrain right arm length and re-adjust elbow position as it bends
