@@ -59,6 +59,7 @@
 #include "ui/BandwidthDialog.h"
 #include "ui/ChatEntry.h"
 #include "ui/VoxelStatsDialog.h"
+#include "ui/RearMirrorTools.h"
 
 class QAction;
 class QActionGroup;
@@ -175,6 +176,7 @@ public slots:
     void decreaseVoxelSize();
     void increaseVoxelSize();
     
+    
 private slots:
     
     void timer();
@@ -195,6 +197,11 @@ private slots:
     glm::vec2 getScaledScreenPoint(glm::vec2 projectedPoint);
 
     void toggleFollowMode();
+    
+    void closeMirrorView();
+    void restoreMirrorView();
+    void shrinkMirrorView();
+    void resetSensors();
 
 private:
     void resetCamerasOnResizeGL(Camera& camera, int width, int height);
@@ -235,7 +242,6 @@ private:
     bool maybeEditVoxelUnderCursor();
     void deleteVoxelUnderCursor();
     void eyedropperVoxelUnderCursor();
-    void resetSensors();
     void injectVoxelAddedSoundEffect();
             
     void setMenuShortcutsEnabled(bool enabled);
@@ -303,7 +309,7 @@ private:
     Camera _viewFrustumOffsetCamera;   // The camera we use to sometimes show the view frustum from an offset mode
     Camera _mirrorCamera;              // Cammera for mirror view
     QRect _mirrorViewRect;
-    GLuint _closeTextureId;
+    RearMirrorTools* _rearMirrorTools;
     
     Environment _environment;
     
