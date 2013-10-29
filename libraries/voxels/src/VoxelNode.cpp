@@ -1371,12 +1371,12 @@ ViewFrustum::location VoxelNode::inFrustum(const ViewFrustum& viewFrustum) const
 //    Since, if we know the camera position and orientation, we can know which of the corners is the "furthest" 
 //    corner. We can use we can use this corner as our "voxel position" to do our distance calculations off of.
 //    By doing this, we don't need to test each child voxel's position vs the LOD boundary
-bool VoxelNode::calculateShouldRender(const ViewFrustum* viewFrustum, int boundaryLevelAdjust) const {
+bool VoxelNode::calculateShouldRender(const ViewFrustum* viewFrustum, float voxelScaleSize, int boundaryLevelAdjust) const {
     bool shouldRender = false;
     if (isColored()) {
         float furthestDistance = furthestDistanceToCamera(*viewFrustum);
-        float boundary         = boundaryDistanceForRenderLevel(getLevel() + boundaryLevelAdjust);
-        float childBoundary    = boundaryDistanceForRenderLevel(getLevel() + 1 + boundaryLevelAdjust);
+        float boundary         = boundaryDistanceForRenderLevel(getLevel() + boundaryLevelAdjust, voxelScaleSize);
+        float childBoundary    = boundaryDistanceForRenderLevel(getLevel() + 1 + boundaryLevelAdjust, voxelScaleSize);
         bool  inBoundary       = (furthestDistance <= boundary);
         bool  inChildBoundary  = (furthestDistance <= childBoundary);
         shouldRender = (isLeaf() && inChildBoundary) || (inBoundary && !inChildBoundary);

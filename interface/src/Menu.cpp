@@ -53,6 +53,7 @@ Menu::Menu() :
     _viewFrustumOffset(DEFAULT_FRUSTUM_OFFSET),
     _voxelModeActionsGroup(NULL),
     _voxelStatsDialog(NULL),
+    _lodToolsDialog(NULL),
     _maxVoxels(DEFAULT_MAX_VOXELS_PER_SYSTEM)
 {
     Application *appInstance = Application::getInstance();
@@ -278,6 +279,7 @@ Menu::Menu() :
 
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::VoxelTextures);
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::AmbientOcclusion);
+    addActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::LodTools, Qt::SHIFT | Qt::Key_L, this, SLOT(lodTools()));
 
     QMenu* cullingOptionsMenu = voxelOptionsMenu->addMenu("Culling Options");
     addDisabledActionAndSeparator(cullingOptionsMenu, "Standard Settings");
@@ -1023,7 +1025,6 @@ void Menu::goToUser() {
 }
 
 void Menu::bandwidthDetails() {
-    
     if (! _bandwidthDialog) {
         _bandwidthDialog = new BandwidthDialog(Application::getInstance()->getGLWidget(),
                                                Application::getInstance()->getBandwidthMeter());
@@ -1055,6 +1056,29 @@ void Menu::voxelStatsDetailsClosed() {
     if (_voxelStatsDialog) {
         delete _voxelStatsDialog;
         _voxelStatsDialog = NULL;
+    }
+}
+
+float Menu::getVoxelSizeScale() {
+    if (_lodToolsDialog) {
+        return _lodToolsDialog->getVoxelSizeScale();
+    }
+    return DEFAULT_FIELD_OF_VIEW_DEGREES;
+}
+
+void Menu::lodTools() {
+    if (!_lodToolsDialog) {
+        _lodToolsDialog = new LodToolsDialog(Application::getInstance()->getGLWidget());
+        connect(_lodToolsDialog, SIGNAL(closed()), SLOT(lodToolsClosed()));
+        _lodToolsDialog->show();
+    }
+    _lodToolsDialog->raise();
+}
+
+void Menu::lodToolsClosed() {
+    if (_lodToolsDialog) {
+        delete _lodToolsDialog;
+        _lodToolsDialog = NULL;
     }
 }
 

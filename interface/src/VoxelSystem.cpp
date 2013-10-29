@@ -139,7 +139,8 @@ void VoxelSystem::voxelUpdated(VoxelNode* node) {
     if (node->getVoxelSystem() == this) {
         bool shouldRender = false; // assume we don't need to render it
         // if it's colored, we might need to render it!
-        shouldRender = node->calculateShouldRender(_viewFrustum);
+        float voxelSizeScale = DEFAULT_VOXEL_SIZE_SCALE;
+        shouldRender = node->calculateShouldRender(_viewFrustum, voxelSizeScale);
 
         if (node->getShouldRender() != shouldRender) {
             node->setShouldRender(shouldRender);
@@ -155,7 +156,7 @@ void VoxelSystem::voxelUpdated(VoxelNode* node) {
                 VoxelNode* childNode = node->getChildAtIndex(i);
                 if (childNode) {
                     bool wasShouldRender = childNode->getShouldRender();
-                    bool isShouldRender = childNode->calculateShouldRender(_viewFrustum);
+                    bool isShouldRender = childNode->calculateShouldRender(_viewFrustum, voxelSizeScale);
                     if (wasShouldRender && !isShouldRender) {
                         childrenGotHiddenCount++;
                     }
@@ -923,7 +924,8 @@ int VoxelSystem::newTreeToArrays(VoxelNode* node) {
     int   voxelsUpdated   = 0;
     bool  shouldRender    = false; // assume we don't need to render it
     // if it's colored, we might need to render it!
-    shouldRender = node->calculateShouldRender(_viewFrustum);
+    float voxelSizeScale = DEFAULT_VOXEL_SIZE_SCALE;
+    shouldRender = node->calculateShouldRender(_viewFrustum, voxelSizeScale);
 
     node->setShouldRender(shouldRender);
     // let children figure out their renderness
@@ -1771,7 +1773,8 @@ bool VoxelSystem::showAllLocalVoxelsOperation(VoxelNode* node, void* extraData) 
 
     args->nodesScanned++;
 
-    bool shouldRender = true; // node->calculateShouldRender(&args->thisViewFrustum);
+    float voxelSizeScale = DEFAULT_VOXEL_SIZE_SCALE;
+    bool shouldRender = node->calculateShouldRender(&args->thisViewFrustum, voxelSizeScale);
     node->setShouldRender(shouldRender);
 
     if (shouldRender) {
@@ -1947,7 +1950,8 @@ bool VoxelSystem::showAllSubTreeOperation(VoxelNode* node, void* extraData) {
 
     args->nodesInside++;
 
-    bool shouldRender = node->calculateShouldRender(&args->thisViewFrustum);
+    float voxelSizeScale = DEFAULT_VOXEL_SIZE_SCALE;
+    bool shouldRender = node->calculateShouldRender(&args->thisViewFrustum, voxelSizeScale);
     node->setShouldRender(shouldRender);
 
     if (shouldRender && !node->isKnownBufferIndex()) {

@@ -253,12 +253,14 @@ void VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* no
                 int boundaryLevelAdjust = viewFrustumChanged && nodeData->getWantLowResMoving() 
                                           ? LOW_RES_MOVING_ADJUST : NO_BOUNDARY_ADJUST;
 
+                float voxelSizeScale = nodeData->getVoxelSizeScale();
+
                 bool isFullScene = (!viewFrustumChanged || !nodeData->getWantDelta()) && 
                                  nodeData->getViewFrustumJustStoppedChanging();
                 
                 EncodeBitstreamParams params(INT_MAX, &nodeData->getCurrentViewFrustum(), wantColor, 
                                              WANT_EXISTS_BITS, DONT_CHOP, wantDelta, lastViewFrustum,
-                                             wantOcclusionCulling, coverageMap, boundaryLevelAdjust,
+                                             wantOcclusionCulling, coverageMap, boundaryLevelAdjust, voxelSizeScale,
                                              nodeData->getLastTimeBagEmpty(),
                                              isFullScene, &nodeData->stats, _myServer->getJurisdiction());
                       

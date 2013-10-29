@@ -69,6 +69,7 @@ public:
     bool getWantLowResMoving() const { return _wantLowResMoving; }
     bool getWantOcclusionCulling() const { return _wantOcclusionCulling; }
     int getMaxVoxelPacketsPerSecond() const { return _maxVoxelPPS; }
+    float getVoxelSizeScale() const { return _voxelSizeScale; }
     
 public slots:
     void setWantLowResMoving(bool wantLowResMoving) { _wantLowResMoving = wantLowResMoving; }
@@ -76,6 +77,7 @@ public slots:
     void setWantDelta(bool wantDelta) { _wantDelta = wantDelta; }
     void setWantOcclusionCulling(bool wantOcclusionCulling) { _wantOcclusionCulling = wantOcclusionCulling; }
     void setMaxVoxelPacketsPerSecond(int maxVoxelPPS) { _maxVoxelPPS = maxVoxelPPS; }
+    void setVoxelSizeScale(float voxelSizeScale) { _voxelSizeScale = voxelSizeScale; }
     
 protected:
     QUuid _uuid;
@@ -95,6 +97,7 @@ protected:
     bool _wantLowResMoving;
     bool _wantOcclusionCulling;
     int _maxVoxelPPS;
+    float _voxelSizeScale; /// used for LOD calculations
     
 private:
     // privatize the copy constructor and assignment operator so they cannot be called

@@ -611,7 +611,13 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 _audioScope.inputPaused = !_audioScope.inputPaused;
                 break; 
             case Qt::Key_L:
-                _displayLevels = !_displayLevels;
+                if (!isShifted && !isMeta) {
+                    _displayLevels = !_displayLevels;
+                } else if (isShifted) {
+                    Menu::getInstance()->triggerOption(MenuOption::LodTools);
+                } else if (isMeta) {
+                    Menu::getInstance()->triggerOption(MenuOption::Log);
+                }
                 break;
                 
             case Qt::Key_E:

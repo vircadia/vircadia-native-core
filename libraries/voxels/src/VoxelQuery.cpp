@@ -35,7 +35,8 @@ VoxelQuery::VoxelQuery(Node* owningNode) :
     _wantDelta(true),
     _wantLowResMoving(true),
     _wantOcclusionCulling(true),
-    _maxVoxelPPS(DEFAULT_MAX_VOXEL_PPS)
+    _maxVoxelPPS(DEFAULT_MAX_VOXEL_PPS),
+    _voxelSizeScale(DEFAULT_VOXEL_SIZE_SCALE)
 {
     
 }
@@ -78,6 +79,10 @@ int VoxelQuery::getBroadcastData(unsigned char* destinationBuffer) {
     // desired Max Voxel PPS
     memcpy(destinationBuffer, &_maxVoxelPPS, sizeof(_maxVoxelPPS));
     destinationBuffer += sizeof(_maxVoxelPPS);
+
+    // desired voxelSizeScale
+    memcpy(destinationBuffer, &_voxelSizeScale, sizeof(_voxelSizeScale));
+    destinationBuffer += sizeof(_voxelSizeScale);
     
     return destinationBuffer - bufferStart;
 }
@@ -120,7 +125,11 @@ int VoxelQuery::parseData(unsigned char* sourceBuffer, int numBytes) {
     // desired Max Voxel PPS
     memcpy(&_maxVoxelPPS, sourceBuffer, sizeof(_maxVoxelPPS));
     sourceBuffer += sizeof(_maxVoxelPPS);
-    
+
+    // desired voxelSizeScale
+    memcpy(&_voxelSizeScale, sourceBuffer, sizeof(_voxelSizeScale));
+    sourceBuffer += sizeof(_voxelSizeScale);
+
     return sourceBuffer - startPosition;
 }
 
