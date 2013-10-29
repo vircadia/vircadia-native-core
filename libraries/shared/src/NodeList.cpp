@@ -772,11 +772,7 @@ void* removeSilentNodes(void *args) {
         checkTimeUsecs = usecTimestampNow();
         
         for(NodeList::iterator node = nodeList->begin(); node != nodeList->end(); ++node) {
-            qDebug() << "Locking node" << node->getUUID() << "\n";
             node->lock();
-            
-            qDebug() << "N:" << usecTimestampNow() << "LH:" << node->getLastHeardMicrostamp() << "\n";
-            qDebug() << "Diff:" << usecTimestampNow() - node->getLastHeardMicrostamp() << "\n";
             
             if ((usecTimestampNow() - node->getLastHeardMicrostamp()) > NODE_SILENCE_THRESHOLD_USECS) {
                 // kill this node, don't lock - we already did it
@@ -784,7 +780,6 @@ void* removeSilentNodes(void *args) {
             }
             
             node->unlock();
-            qDebug() << "Unlocking node" << node->getUUID() << "\n";
         }
         
         sleepTime = NODE_SILENCE_THRESHOLD_USECS - (usecTimestampNow() - checkTimeUsecs);
@@ -796,7 +791,6 @@ void* removeSilentNodes(void *args) {
         #else
         
         if (sleepTime > 0) {
-            qDebug() << "Sleeping for" << sleepTime << "\n";
             usleep(sleepTime);
         }
         
@@ -808,13 +802,23 @@ void* removeSilentNodes(void *args) {
 }
 
 void NodeList::startSilentNodeRemovalThread() {
-    pthread_create(&removeSilentNodesThread, NULL, removeSilentNodes, (void*) this);
+    if (!silentNodeThreadStopFlag) {
+        pthread_create(&removeSilentNodesThread, NULL, removeSilentNodes, (void*) this);
+    } else {
+        qDebug("Refusing to start silent node removal thread from previously failed join.\n");
+    }
+   
 }
 
 void NodeList::stopSilentNodeRemovalThread() {
     silentNodeThreadStopFlag = true;
-    pthread_join(removeSilentNodesThread, NULL);
+    int joinResult = pthread_join(removeSilentNodesThread, NULL);
     
+    if (joinResult == 0) {
+        silentNodeThreadStopFlag = false;
+    } else {
+        qDebug("Silent node removal thread join failed with %d. Will not restart.\n", joinResult);
+    }
 }
 
 const QString QSETTINGS_GROUP_NAME = "NodeList";
