@@ -106,7 +106,7 @@ void AvatarMixer::run() {
     sockaddr nodeAddress = {};
     ssize_t receivedBytes = 0;
     
-    unsigned char* packetData = new unsigned char[MAX_PACKET_SIZE];
+    unsigned char packetData[MAX_PACKET_SIZE];
     
     QUuid nodeUUID;
     Node* avatarNode = NULL;
