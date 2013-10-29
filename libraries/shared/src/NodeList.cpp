@@ -796,6 +796,7 @@ void* removeSilentNodes(void *args) {
         #else
         
         if (sleepTime > 0) {
+            qDebug() << "Sleeping for" << sleepTime << "\n";
             usleep(sleepTime);
         }
         
