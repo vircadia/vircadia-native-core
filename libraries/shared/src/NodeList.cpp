@@ -767,7 +767,7 @@ void* removeSilentNodes(void *args) {
     uint64_t checkTimeUsecs = 0;
     int sleepTime = 0;
     
-    while (!silentNodeThreadStopFlag) {
+    while (!::silentNodeThreadStopFlag) {
         
         checkTimeUsecs = usecTimestampNow();
         
@@ -802,7 +802,7 @@ void* removeSilentNodes(void *args) {
 }
 
 void NodeList::startSilentNodeRemovalThread() {
-    if (!silentNodeThreadStopFlag) {
+    if (!::silentNodeThreadStopFlag) {
         pthread_create(&removeSilentNodesThread, NULL, removeSilentNodes, (void*) this);
     } else {
         qDebug("Refusing to start silent node removal thread from previously failed join.\n");
@@ -811,11 +811,11 @@ void NodeList::startSilentNodeRemovalThread() {
 }
 
 void NodeList::stopSilentNodeRemovalThread() {
-    silentNodeThreadStopFlag = true;
+    ::silentNodeThreadStopFlag = true;
     int joinResult = pthread_join(removeSilentNodesThread, NULL);
     
     if (joinResult == 0) {
-        silentNodeThreadStopFlag = false;
+        ::silentNodeThreadStopFlag = false;
     } else {
         qDebug("Silent node removal thread join failed with %d. Will not restart.\n", joinResult);
     }
