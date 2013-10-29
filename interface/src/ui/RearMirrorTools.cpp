@@ -84,16 +84,16 @@ void RearMirrorTools::displayIcon(QRect bounds, int left, int top, GLuint textur
     glBindTexture(GL_TEXTURE_2D, textureId);
     glBegin(GL_QUADS);
     {
-        glTexCoord2f(0, 0);
+        glTexCoord2f(0, 1);
         glVertex2f(left, top);
         
-        glTexCoord2f(1, 0);
+        glTexCoord2f(1, 1);
         glVertex2f(ICON_SIZE + left, top);
         
-        glTexCoord2f(1, 1);
+        glTexCoord2f(1, 0);
         glVertex2f(ICON_SIZE + left, twp);
         
-        glTexCoord2f(0, 1);
+        glTexCoord2f(0, 0);
         glVertex2f(left, twp);
     }
     glEnd();
