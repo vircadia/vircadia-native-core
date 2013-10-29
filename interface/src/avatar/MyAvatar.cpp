@@ -830,7 +830,7 @@ void MyAvatar::updateHandMovementAndTouching(float deltaTime, bool enableHandMov
     // reset hand and arm positions according to hand movement
     glm::vec3 up = orientation * IDENTITY_UP;
     
-    if (enableHandMovement) {
+    if (enableHandMovement && glm::length(_mouseRayDirection) > EPSILON) {
         // confine to the approximate shoulder plane
         glm::vec3 pointDirection = _mouseRayDirection;
         if (glm::dot(_mouseRayDirection, up) > 0.0f) {
