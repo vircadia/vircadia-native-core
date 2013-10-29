@@ -772,7 +772,11 @@ void* removeSilentNodes(void *args) {
         checkTimeUsecs = usecTimestampNow();
         
         for(NodeList::iterator node = nodeList->begin(); node != nodeList->end(); ++node) {
+            qDebug() << "Locking node" << node->getUUID() << "\n";
             node->lock();
+            
+            qDebug() << "N:" << usecTimestampNow() << "LH:" << node->getLastHeardMicrostamp() << "\n";
+            qDebug() << "Diff:" << usecTimestampNow() - node->getLastHeardMicrostamp() << "\n";
             
             if ((usecTimestampNow() - node->getLastHeardMicrostamp()) > NODE_SILENCE_THRESHOLD_USECS) {
                 // kill this node, don't lock - we already did it
@@ -780,6 +784,7 @@ void* removeSilentNodes(void *args) {
             }
             
             node->unlock();
+            qDebug() << "Unlocking node" << node->getUUID() << "\n";
         }
         
         sleepTime = NODE_SILENCE_THRESHOLD_USECS - (usecTimestampNow() - checkTimeUsecs);
