@@ -1303,7 +1303,8 @@ FBXGeometry readSVO(const QByteArray& model) {
     FBXGeometry geometry;
     
     // we have one joint
-    FBXJoint joint = { -1 };
+    FBXJoint joint = { false };
+    joint.parentIndex = -1;
     geometry.joints.append(joint);
     
     // and one mesh with one cluster and one part
