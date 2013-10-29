@@ -25,6 +25,7 @@ public:
     static const int DEFAULT_PACKETS_PER_SECOND = 1;
 
     JurisdictionSender(JurisdictionMap* map, PacketSenderNotify* notify = NULL);
+    ~JurisdictionSender();
 
     void setJurisdiction(JurisdictionMap* map) { _jurisdictionMap = map; }
 
@@ -33,7 +34,15 @@ public:
 protected:
     virtual void processPacket(sockaddr& senderAddress, unsigned char*  packetData, ssize_t packetLength);
 
+    /// Locks all the resources of the thread.
+    void lockRequestingNodes() { pthread_mutex_lock(&_requestingNodeMutex); }
+
+    /// Unlocks all the resources of the thread.
+    void unlockRequestingNodes() { pthread_mutex_unlock(&_requestingNodeMutex); }
+    
+
 private:
+    pthread_mutex_t _requestingNodeMutex;
     JurisdictionMap* _jurisdictionMap;
     std::set<QUuid> _nodesRequestingJurisdictions;
 };
