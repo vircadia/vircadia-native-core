@@ -194,7 +194,8 @@ void VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* no
         }
         
         // start tracking our stats
-        bool isFullScene = (!viewFrustumChanged || !nodeData->getWantDelta()) && nodeData->getViewFrustumJustStoppedChanging();
+        bool isFullScene = ((!viewFrustumChanged || !nodeData->getWantDelta()) 
+                                && nodeData->getViewFrustumJustStoppedChanging()) || nodeData->hasLodChanged();
         
         // If we're starting a full scene, then definitely we want to empty the nodeBag
         if (isFullScene) {
@@ -258,11 +259,8 @@ void VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* no
                                                                               ? LOW_RES_MOVING_ADJUST : NO_BOUNDARY_ADJUST);
 
 
-                printf("packetLoop() voxelSizeScale=%f boundaryLevelAdjustClient=%d boundaryLevelAdjust=%d\n",
-                    voxelSizeScale, boundaryLevelAdjustClient, boundaryLevelAdjust);
-
-                bool isFullScene = (!viewFrustumChanged || !nodeData->getWantDelta()) && 
-                                 nodeData->getViewFrustumJustStoppedChanging();
+                bool isFullScene = ((!viewFrustumChanged || !nodeData->getWantDelta()) && 
+                                 nodeData->getViewFrustumJustStoppedChanging()) || nodeData->hasLodChanged();
                 
                 EncodeBitstreamParams params(INT_MAX, &nodeData->getCurrentViewFrustum(), wantColor, 
                                              WANT_EXISTS_BITS, DONT_CHOP, wantDelta, lastViewFrustum,
