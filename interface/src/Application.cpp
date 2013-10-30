@@ -3178,10 +3178,12 @@ void Application::displayStats() {
  
     std::stringstream voxelStats;
     voxelStats.precision(4);
-    voxelStats << "Voxels Rendered: " << _voxels.getVoxelsRendered() / 1000.f << "K " <<
+    voxelStats << "Voxels " << 
+        "Max: " << _voxels.getMaxVoxels()/1000.f << "K " << 
+        "Rendered: " << _voxels.getVoxelsRendered() / 1000.f << "K " <<
         "Written: " << _voxels.getVoxelsWritten()/1000.f << "K " <<
-        "Updated: " << _voxels.getVoxelsUpdated()/1000.f << "K " <<
-        "Max: " << _voxels.getMaxVoxels()/1000.f << "K ";
+        "Abandoned: " << _voxels.getAbandonedVoxels()/1000.f << "K " <<
+        "Updated: " << _voxels.getVoxelsUpdated()/1000.f << "K ";
     statsVerticalOffset += PELS_PER_LINE;
     drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, (char*)voxelStats.str().c_str());
 
