@@ -250,10 +250,16 @@ void VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* no
                 VoxelNode* subTree = nodeData->nodeBag.extract();
                 bool wantOcclusionCulling = nodeData->getWantOcclusionCulling();
                 CoverageMap* coverageMap = wantOcclusionCulling ? &nodeData->map : IGNORE_COVERAGE_MAP;
-                int boundaryLevelAdjust = viewFrustumChanged && nodeData->getWantLowResMoving() 
-                                          ? LOW_RES_MOVING_ADJUST : NO_BOUNDARY_ADJUST;
 
                 float voxelSizeScale = nodeData->getVoxelSizeScale();
+                int boundaryLevelAdjustClient = nodeData->getBoundaryLevelAdjust();
+
+                int boundaryLevelAdjust = boundaryLevelAdjustClient + (viewFrustumChanged && nodeData->getWantLowResMoving() 
+                                                                              ? LOW_RES_MOVING_ADJUST : NO_BOUNDARY_ADJUST);
+
+
+                printf("packetLoop() voxelSizeScale=%f boundaryLevelAdjustClient=%d boundaryLevelAdjust=%d\n",
+                    voxelSizeScale, boundaryLevelAdjustClient, boundaryLevelAdjust);
 
                 bool isFullScene = (!viewFrustumChanged || !nodeData->getWantDelta()) && 
                                  nodeData->getViewFrustumJustStoppedChanging();

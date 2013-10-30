@@ -11,6 +11,7 @@
 
 #include <QDialog>
 #include <QLabel>
+#include <QSlider>
 
 #include <VoxelSceneStats.h>
 
@@ -21,21 +22,26 @@ public:
     LodToolsDialog(QWidget* parent);
     ~LodToolsDialog();
     
-    float getVoxelSizeScale();
-
 signals:
     void closed();
 
 public slots:
     void reject();
+    void sizeScaleValueChanged(int value);
+    void boundaryLevelValueChanged(int value);
+    void resetClicked(bool checked);
 
 protected:
-    void paintEvent(QPaintEvent*);
 
     // Emits a 'closed' signal when this dialog is closed.
     void closeEvent(QCloseEvent*);
 
 private:
+    QString getFeedbackText();
+
+    QSlider* _lodSize;
+    QSlider* _boundaryLevelAdjust;
+    QLabel* _feedback;
 };
 
 #endif /* defined(__interface__LodToolsDialog__) */

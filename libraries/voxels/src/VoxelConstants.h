@@ -28,6 +28,7 @@ const int   TREE_SCALE = 16384; // ~10 miles.. This is the number of meters of t
 
 // This controls the LOD. Larger number will make smaller voxels visible at greater distance.
 const float DEFAULT_VOXEL_SIZE_SCALE = TREE_SCALE * 400.0f; 
+const float MAX_LOD_SIZE_MULTIPLIER = 2000.0f;
 
 const int NUMBER_OF_CHILDREN = 8;
 const int MAX_VOXEL_PACKET_SIZE = 1492;

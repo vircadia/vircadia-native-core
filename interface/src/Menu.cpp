@@ -54,7 +54,9 @@ Menu::Menu() :
     _voxelModeActionsGroup(NULL),
     _voxelStatsDialog(NULL),
     _lodToolsDialog(NULL),
-    _maxVoxels(DEFAULT_MAX_VOXELS_PER_SYSTEM)
+    _maxVoxels(DEFAULT_MAX_VOXELS_PER_SYSTEM),
+    _voxelSizeScale(DEFAULT_VOXEL_SIZE_SCALE),
+    _boundaryLevelAdjust(0)
 {
     Application *appInstance = Application::getInstance();
     
@@ -520,6 +522,8 @@ void Menu::loadSettings(QSettings* settings) {
     _audioJitterBufferSamples = loadSetting(settings, "audioJitterBufferSamples", 0);
     _fieldOfView = loadSetting(settings, "fieldOfView", DEFAULT_FIELD_OF_VIEW_DEGREES);
     _maxVoxels = loadSetting(settings, "maxVoxels", DEFAULT_MAX_VOXELS_PER_SYSTEM);
+    _voxelSizeScale = loadSetting(settings, "voxelSizeScale", DEFAULT_VOXEL_SIZE_SCALE);
+    _boundaryLevelAdjust = loadSetting(settings, "boundaryLevelAdjust", 0);
     
     settings->beginGroup("View Frustum Offset Camera");
     // in case settings is corrupt or missing loadSetting() will check for NaN
@@ -546,6 +550,8 @@ void Menu::saveSettings(QSettings* settings) {
     settings->setValue("audioJitterBufferSamples", _audioJitterBufferSamples);
     settings->setValue("fieldOfView", _fieldOfView);
     settings->setValue("maxVoxels", _maxVoxels);
+    settings->setValue("voxelSizeScale", _voxelSizeScale);
+    settings->setValue("boundaryLevelAdjust", _boundaryLevelAdjust);
     settings->beginGroup("View Frustum Offset Camera");
     settings->setValue("viewFrustumOffsetYaw", _viewFrustumOffset.yaw);
     settings->setValue("viewFrustumOffsetPitch", _viewFrustumOffset.pitch);
@@ -1059,11 +1065,14 @@ void Menu::voxelStatsDetailsClosed() {
     }
 }
 
-float Menu::getVoxelSizeScale() {
-    if (_lodToolsDialog) {
-        return _lodToolsDialog->getVoxelSizeScale();
-    }
-    return DEFAULT_FIELD_OF_VIEW_DEGREES;
+void Menu::setVoxelSizeScale(float sizeScale) {
+    _voxelSizeScale = sizeScale;
+    Application::getInstance()->getVoxels()->redrawInViewVoxels();
+}
+
+void Menu::setBoundaryLevelAdjust(int boundaryLevelAdjust) {
+    _boundaryLevelAdjust = boundaryLevelAdjust;
+    Application::getInstance()->getVoxels()->redrawInViewVoxels();
 }
 
 void Menu::lodTools() {

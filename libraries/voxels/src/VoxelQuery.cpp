@@ -83,6 +83,10 @@ int VoxelQuery::getBroadcastData(unsigned char* destinationBuffer) {
     // desired voxelSizeScale
     memcpy(destinationBuffer, &_voxelSizeScale, sizeof(_voxelSizeScale));
     destinationBuffer += sizeof(_voxelSizeScale);
+
+    // desired boundaryLevelAdjust
+    memcpy(destinationBuffer, &_boundaryLevelAdjust, sizeof(_boundaryLevelAdjust));
+    destinationBuffer += sizeof(_boundaryLevelAdjust);
     
     return destinationBuffer - bufferStart;
 }
@@ -129,6 +133,10 @@ int VoxelQuery::parseData(unsigned char* sourceBuffer, int numBytes) {
     // desired voxelSizeScale
     memcpy(&_voxelSizeScale, sourceBuffer, sizeof(_voxelSizeScale));
     sourceBuffer += sizeof(_voxelSizeScale);
+
+    // desired boundaryLevelAdjust
+    memcpy(&_boundaryLevelAdjust, sourceBuffer, sizeof(_boundaryLevelAdjust));
+    sourceBuffer += sizeof(_boundaryLevelAdjust);
 
     return sourceBuffer - startPosition;
 }

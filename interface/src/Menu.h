@@ -61,7 +61,11 @@ public:
     
     void handleViewFrustumOffsetKeyModifier(int key);
 
-    float getVoxelSizeScale();
+    // User Tweakable LOD Items
+    void setVoxelSizeScale(float sizeScale);
+    float getVoxelSizeScale() const { return _voxelSizeScale; }
+    void setBoundaryLevelAdjust(int boundaryLevelAdjust);
+    int getBoundaryLevelAdjust() const { return _boundaryLevelAdjust; }
     
 public slots:
     void bandwidthDetails();
@@ -128,6 +132,8 @@ private:
     VoxelStatsDialog* _voxelStatsDialog;
     LodToolsDialog* _lodToolsDialog;
     int _maxVoxels;
+    float _voxelSizeScale;
+    int _boundaryLevelAdjust;
     QAction* _useVoxelShader;
 };
 
