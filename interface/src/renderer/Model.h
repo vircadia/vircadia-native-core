@@ -148,10 +148,24 @@ private:
     QVector<Model*> _attachments;
     
     static ProgramObject _program;
+    static ProgramObject _normalMapProgram;
     static ProgramObject _skinProgram;
-    static int _clusterMatricesLocation;
-    static int _clusterIndicesLocation;
-    static int _clusterWeightsLocation;
+    static ProgramObject _skinNormalMapProgram;
+    
+    static int _normalMapTangentLocation;
+    
+    class SkinLocations {
+    public:
+        int clusterMatrices;
+        int clusterIndices;
+        int clusterWeights;
+        int tangent;
+    };
+    
+    static SkinLocations _skinLocations;
+    static SkinLocations _skinNormalMapLocations;
+    
+    static void initSkinProgram(ProgramObject& program, SkinLocations& locations);
 };
 
 #endif /* defined(__interface__Model__) */

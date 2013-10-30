@@ -26,10 +26,23 @@ Model::~Model() {
 }
 
 ProgramObject Model::_program;
+ProgramObject Model::_normalMapProgram;
 ProgramObject Model::_skinProgram;
-int Model::_clusterMatricesLocation;
-int Model::_clusterIndicesLocation;
-int Model::_clusterWeightsLocation;
+ProgramObject Model::_skinNormalMapProgram;
+int Model::_normalMapTangentLocation;
+Model::SkinLocations Model::_skinLocations;
+Model::SkinLocations Model::_skinNormalMapLocations;
+
+void Model::initSkinProgram(ProgramObject& program, Model::SkinLocations& locations) {
+    program.bind();
+    locations.clusterMatrices = program.uniformLocation("clusterMatrices");
+    locations.clusterIndices = program.attributeLocation("clusterIndices");
+    locations.clusterWeights = program.attributeLocation("clusterWeights");
+    locations.tangent = program.attributeLocation("tangent");
+    program.setUniformValue("diffuseMap", 0);
+    program.setUniformValue("normalMap", 1);
+    program.release();
+}
 
 void Model::init() {
     if (!_program.isLinked()) {
@@ -42,16 +55,27 @@ void Model::init() {
         _program.setUniformValue("texture", 0);
         _program.release();
         
+        _normalMapProgram.addShaderFromSourceFile(QGLShader::Vertex, "resources/shaders/model_normal_map.vert");
+        _normalMapProgram.addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/model_normal_map.frag");
+        _normalMapProgram.link();
+        
+        _normalMapProgram.bind();
+        _normalMapProgram.setUniformValue("diffuseMap", 0);
+        _normalMapProgram.setUniformValue("normalMap", 1);
+        _normalMapTangentLocation = _normalMapProgram.attributeLocation("tangent");
+        _normalMapProgram.release();
+        
         _skinProgram.addShaderFromSourceFile(QGLShader::Vertex, "resources/shaders/skin_model.vert");
         _skinProgram.addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/model.frag");
         _skinProgram.link();
         
-        _skinProgram.bind();
-        _clusterMatricesLocation = _skinProgram.uniformLocation("clusterMatrices");
-        _clusterIndicesLocation = _skinProgram.attributeLocation("clusterIndices");
-        _clusterWeightsLocation = _skinProgram.attributeLocation("clusterWeights");
-        _skinProgram.setUniformValue("texture", 0);
-        _skinProgram.release();
+        initSkinProgram(_skinProgram, _skinLocations);
+        
+        _skinNormalMapProgram.addShaderFromSourceFile(QGLShader::Vertex, "resources/shaders/skin_model_normal_map.vert");
+        _skinNormalMapProgram.addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/model_normal_map.frag");
+        _skinNormalMapProgram.link();
+        
+        initSkinProgram(_skinNormalMapProgram, _skinNormalMapLocations);
     }
 }
 
@@ -245,38 +269,61 @@ bool Model::render(float alpha) {
         int vertexCount = mesh.vertices.size();
         
         glBindBuffer(GL_ARRAY_BUFFER, networkMesh.vertexBufferID);
+      
+        ProgramObject* program = &_program;
+        ProgramObject* skinProgram = &_skinProgram;
+        SkinLocations* skinLocations = &_skinLocations;
+        if (!mesh.tangents.isEmpty()) {
+            program = &_normalMapProgram;
+            skinProgram = &_skinNormalMapProgram;
+            skinLocations = &_skinNormalMapLocations;
+        }
         
         const MeshState& state = _meshStates.at(i);
+        ProgramObject* activeProgram = program;
+        int tangentLocation = _normalMapTangentLocation;
         if (state.worldSpaceVertices.isEmpty()) {
             if (state.clusterMatrices.size() > 1) {
-                _skinProgram.bind();
-                glUniformMatrix4fvARB(_clusterMatricesLocation, state.clusterMatrices.size(), false,
+                skinProgram->bind();
+                glUniformMatrix4fvARB(skinLocations->clusterMatrices, state.clusterMatrices.size(), false,
                     (const float*)state.clusterMatrices.constData());
-                int offset = mesh.colors.size() * sizeof(glm::vec3) + mesh.texCoords.size() * sizeof(glm::vec2) +
+                int offset = (mesh.tangents.size() + mesh.colors.size()) * sizeof(glm::vec3) +
+                    mesh.texCoords.size() * sizeof(glm::vec2) +
                     (mesh.blendshapes.isEmpty() ? vertexCount * 2 * sizeof(glm::vec3) : 0);
-                _skinProgram.setAttributeBuffer(_clusterIndicesLocation, GL_FLOAT, offset, 4);
-                _skinProgram.setAttributeBuffer(_clusterWeightsLocation, GL_FLOAT,
+                skinProgram->setAttributeBuffer(skinLocations->clusterIndices, GL_FLOAT, offset, 4);
+                skinProgram->setAttributeBuffer(skinLocations->clusterWeights, GL_FLOAT,
                     offset + vertexCount * sizeof(glm::vec4), 4);
-                _skinProgram.enableAttributeArray(_clusterIndicesLocation);
-                _skinProgram.enableAttributeArray(_clusterWeightsLocation);
-                
+                skinProgram->enableAttributeArray(skinLocations->clusterIndices);
+                skinProgram->enableAttributeArray(skinLocations->clusterWeights);
+                activeProgram = skinProgram;
+                tangentLocation = skinLocations->tangent;
+         
             } else {
                 glPushMatrix();
                 glMultMatrixf((const GLfloat*)&state.clusterMatrices[0]);
-                _program.bind();
+                program->bind();
             }
         } else {
-            _program.bind();
+            program->bind();
         }
-        
+
         if (mesh.blendshapes.isEmpty() && mesh.springiness == 0.0f) {
-            glColorPointer(3, GL_FLOAT, 0, (void*)(vertexCount * 2 * sizeof(glm::vec3)));
+            if (!mesh.tangents.isEmpty()) {
+                activeProgram->setAttributeBuffer(tangentLocation, GL_FLOAT, vertexCount * 2 * sizeof(glm::vec3), 3);
+                activeProgram->enableAttributeArray(tangentLocation);
+            }
+            glColorPointer(3, GL_FLOAT, 0, (void*)(vertexCount * 2 * sizeof(glm::vec3) +
+                mesh.tangents.size() * sizeof(glm::vec3)));
             glTexCoordPointer(2, GL_FLOAT, 0, (void*)(vertexCount * 2 * sizeof(glm::vec3) +
-                mesh.colors.size() * sizeof(glm::vec3)));    
+                (mesh.tangents.size() + mesh.colors.size()) * sizeof(glm::vec3)));    
         
         } else {
-            glColorPointer(3, GL_FLOAT, 0, 0);
-            glTexCoordPointer(2, GL_FLOAT, 0, (void*)(mesh.colors.size() * sizeof(glm::vec3)));
+            if (!mesh.tangents.isEmpty()) {
+                activeProgram->setAttributeBuffer(tangentLocation, GL_FLOAT, 0, 3);
+                activeProgram->enableAttributeArray(tangentLocation);
+            }
+            glColorPointer(3, GL_FLOAT, 0, (void*)(mesh.tangents.size() * sizeof(glm::vec3)));
+            glTexCoordPointer(2, GL_FLOAT, 0, (void*)((mesh.tangents.size() + mesh.colors.size()) * sizeof(glm::vec3)));
             glBindBuffer(GL_ARRAY_BUFFER, _blendedVertexBufferIDs.at(i));
             
             if (!state.worldSpaceVertices.isEmpty()) {
@@ -337,15 +384,23 @@ bool Model::render(float alpha) {
             glMaterialfv(GL_FRONT, GL_SPECULAR, (const float*)&specular);
             glMaterialf(GL_FRONT, GL_SHININESS, part.shininess);
         
-            Texture* texture = networkPart.diffuseTexture.data();
+            Texture* diffuseMap = networkPart.diffuseTexture.data();
             if (mesh.isEye) {
-                if (texture != NULL) {
-                    texture = (_dilatedTextures[i][j] = static_cast<DilatableNetworkTexture*>(texture)->getDilatedTexture(
-                        _pupilDilation)).data();
+                if (diffuseMap != NULL) {
+                    diffuseMap = (_dilatedTextures[i][j] =
+                        static_cast<DilatableNetworkTexture*>(diffuseMap)->getDilatedTexture(_pupilDilation)).data();
                 }
             }
-            glBindTexture(GL_TEXTURE_2D, texture == NULL ? Application::getInstance()->getTextureCache()->getWhiteTextureID() :
-                texture->getID());
+            glBindTexture(GL_TEXTURE_2D, diffuseMap == NULL ?
+                Application::getInstance()->getTextureCache()->getWhiteTextureID() : diffuseMap->getID());
+            
+            if (!mesh.tangents.isEmpty()) {
+                glActiveTexture(GL_TEXTURE1);                
+                Texture* normalMap = networkPart.normalTexture.data();
+                glBindTexture(GL_TEXTURE_2D, normalMap == NULL ?
+                    Application::getInstance()->getTextureCache()->getBlueTextureID() : normalMap->getID());
+                glActiveTexture(GL_TEXTURE0);
+            }
             
             glDrawRangeElementsEXT(GL_QUADS, 0, vertexCount - 1, part.quadIndices.size(), GL_UNSIGNED_INT, (void*)offset);
             offset += part.quadIndices.size() * sizeof(int);
@@ -361,19 +416,24 @@ bool Model::render(float alpha) {
             glDisableClientState(GL_TEXTURE_COORD_ARRAY);
         }
         
+        if (!mesh.tangents.isEmpty()) {
+            glActiveTexture(GL_TEXTURE1);
+            glBindTexture(GL_TEXTURE_2D, 0);
+            glActiveTexture(GL_TEXTURE0);
+            
+            activeProgram->disableAttributeArray(tangentLocation);
+        }
+        
         if (state.worldSpaceVertices.isEmpty()) {
             if (state.clusterMatrices.size() > 1) {
-                _skinProgram.disableAttributeArray(_clusterIndicesLocation);
-                _skinProgram.disableAttributeArray(_clusterWeightsLocation);
-                _skinProgram.release();
+                skinProgram->disableAttributeArray(skinLocations->clusterIndices);
+                skinProgram->disableAttributeArray(skinLocations->clusterWeights);
                            
             } else {
                 glPopMatrix();
-                _program.release();
             }
-        } else {
-            _program.release();
         }
+        activeProgram->release();
     }
     
     // deactivate vertex arrays after drawing

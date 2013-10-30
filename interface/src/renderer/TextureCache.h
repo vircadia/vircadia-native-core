@@ -40,6 +40,9 @@ public:
     /// Returns the ID of an opaque white texture (useful for a default).
     GLuint getWhiteTextureID();
 
+    /// Returns the ID of a pale blue texture (useful for a normal map).
+    GLuint getBlueTextureID();
+    
     /// Returns the ID of a texture containing the contents of the specified file, loading it if necessary. 
     GLuint getFileTextureID(const QString& filename);
 
@@ -69,6 +72,7 @@ private:
     
     GLuint _permutationNormalTextureID;
     GLuint _whiteTextureID;
+    GLuint _blueTextureID;
     
     QHash<QString, GLuint> _fileTextureIDs;
 
