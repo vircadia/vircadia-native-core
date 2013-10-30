@@ -991,7 +991,7 @@ int VoxelSystem::forceRemoveNodeFromArrays(VoxelNode* node) {
 
 int VoxelSystem::updateNodeInArrays(VoxelNode* node, bool reuseIndex, bool forceDraw) {
     // If we've run out of room, then just bail...
-    if (_voxelsInWriteArrays >= _maxVoxels) {
+    if (_voxelsInWriteArrays >= _maxVoxels && (_freeIndexes.size() == 0)) {
         // We need to think about what else we can do in this case. This basically means that all of our available
         // VBO slots are used up, but we're trying to render more voxels. At this point, if this happens we'll just
         // not render these Voxels. We need to think about ways to keep the entire scene intact but maybe lower quality
