@@ -677,6 +677,17 @@ FBXMesh extractMesh(const FBXNode& object) {
     return mesh;
 }
 
+void setTangents(FBXMesh& mesh, int firstIndex, int secondIndex) {
+    glm::vec3 normal = mesh.normals.at(firstIndex);
+    glm::vec3 bitangent = glm::cross(normal, mesh.vertices.at(secondIndex) - mesh.vertices.at(firstIndex));
+    if (glm::length(bitangent) < EPSILON) {
+        return;
+    }
+    glm::vec2 texCoordDelta = mesh.texCoords.at(secondIndex) - mesh.texCoords.at(firstIndex);
+    mesh.tangents[firstIndex] += glm::cross(glm::angleAxis(
+        -glm::degrees(atan2f(-texCoordDelta.t, texCoordDelta.s)), normal) * glm::normalize(bitangent), normal);
+}
+
 FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping) {
     QHash<QString, FBXMesh> meshes;
     QVector<ExtractedBlendshape> blendshapes;
@@ -1054,6 +1065,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         
         // look for textures, material properties
         int partIndex = mesh.parts.size() - 1;
+        bool generateTangents = false;
         foreach (const QString& childID, childMap.values(modelID)) {
             if (partIndex < 0) {
                 break;
@@ -1084,8 +1096,27 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
             QString bumpTextureID = bumpTextures.value(childID);
             if (!bumpTextureID.isNull()) {
                 part.normalFilename = textureFilenames.value(bumpTextureID);
+                generateTangents = true;
             }
             partIndex--;
+        }
+        
+        // if we have a normal map (and texture coordinates), we must compute tangents
+        if (generateTangents && !mesh.texCoords.isEmpty()) {
+            mesh.tangents.resize(mesh.vertices.size());
+            foreach (const FBXMeshPart& part, mesh.parts) {
+                for (int i = 0; i < part.quadIndices.size(); i += 4) {
+                    setTangents(mesh, part.quadIndices.at(i), part.quadIndices.at(i + 1));
+                    setTangents(mesh, part.quadIndices.at(i + 1), part.quadIndices.at(i + 2));
+                    setTangents(mesh, part.quadIndices.at(i + 2), part.quadIndices.at(i + 3));
+                    setTangents(mesh, part.quadIndices.at(i + 3), part.quadIndices.at(i));
+                }
+                for (int i = 0; i < part.triangleIndices.size(); i += 3) {
+                    setTangents(mesh, part.triangleIndices.at(i), part.triangleIndices.at(i + 1));
+                    setTangents(mesh, part.triangleIndices.at(i + 1), part.triangleIndices.at(i + 2));
+                    setTangents(mesh, part.triangleIndices.at(i + 2), part.triangleIndices.at(i));
+                }
+            }
         }
         
         // find the clusters with which the mesh is associated

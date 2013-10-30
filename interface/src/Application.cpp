@@ -89,6 +89,8 @@ const int MIRROR_VIEW_TOP_PADDING = 5;
 const int MIRROR_VIEW_LEFT_PADDING = 10;
 const int MIRROR_VIEW_WIDTH = 265;
 const int MIRROR_VIEW_HEIGHT = 215;
+const float MAX_ZOOM_DISTANCE = 0.3f;
+const float MIN_ZOOM_DISTANCE = 2.0f;
 
 void messageHandler(QtMsgType type, const QMessageLogContext& context, const QString &message) {
     fprintf(stdout, "%s", message.toLocal8Bit().constData());
@@ -213,12 +215,12 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
     // start the nodeList threads
     NodeList::getInstance()->startSilentNodeRemovalThread();
     
-    _window->setCentralWidget(_glWidget);
-    
     _networkAccessManager = new QNetworkAccessManager(this);
     QNetworkDiskCache* cache = new QNetworkDiskCache(_networkAccessManager);
     cache->setCacheDirectory("interfaceCache");
     _networkAccessManager->setCache(cache);
+    
+    _window->setCentralWidget(_glWidget);
     
     restoreSizeAndPosition();
     _window->setVisible(true);
@@ -384,7 +386,7 @@ void Application::paintGL() {
     
     } else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
         _myCamera.setTightness(0.0f);
-        _myCamera.setDistance(0.3f);
+        _myCamera.setDistance(MAX_ZOOM_DISTANCE);
         _myCamera.setTargetPosition(_myAvatar.getHead().calculateAverageEyePosition());
         _myCamera.setTargetRotation(_myAvatar.getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PIf, 0.0f)));
     }
@@ -434,8 +436,15 @@ void Application::paintGL() {
         _glowEffect.render();
         
         if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
-            _mirrorCamera.setDistance(0.3f);
-            _mirrorCamera.setTargetPosition(_myAvatar.getHead().calculateAverageEyePosition());
+            
+            if (_rearMirrorTools->getZoomLevel() == BODY) {
+                _mirrorCamera.setDistance(MIN_ZOOM_DISTANCE);
+                _mirrorCamera.setTargetPosition(_myAvatar.getChestJointPosition());
+            } else { // HEAD zoom level
+                _mirrorCamera.setDistance(MAX_ZOOM_DISTANCE);
+                _mirrorCamera.setTargetPosition(_myAvatar.getHead().calculateAverageEyePosition());
+            }
+            
             _mirrorCamera.setTargetRotation(_myAvatar.getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PIf, 0.0f)));
             _mirrorCamera.update(1.0f/_fps);
             
@@ -1328,8 +1337,8 @@ void Application::terminate() {
     // close(serial_fd);
     
     LeapManager::terminate();
-    
     Menu::getInstance()->saveSettings();
+    _rearMirrorTools->saveSettings(_settings);
     _settings->sync();
 
     if (_enableNetworkThread) {
@@ -1725,7 +1734,7 @@ void Application::init() {
 
     _audio.init(_glWidget);
     
-    _rearMirrorTools = new RearMirrorTools(_glWidget, _mirrorViewRect);
+    _rearMirrorTools = new RearMirrorTools(_glWidget, _mirrorViewRect, _settings);
     connect(_rearMirrorTools, SIGNAL(closeView()), SLOT(closeMirrorView()));
     connect(_rearMirrorTools, SIGNAL(restoreView()), SLOT(restoreMirrorView()));
     connect(_rearMirrorTools, SIGNAL(shrinkView()), SLOT(shrinkMirrorView()));
