@@ -299,6 +299,8 @@ private:
     
     bool _inSetupNewVoxelsForDrawing;
     bool _useFastVoxelPipeline;
+    
+    bool _inhideOutOfView;
 };
 
 #endif

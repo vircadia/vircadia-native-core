@@ -109,6 +109,7 @@ VoxelSystem::VoxelSystem(float treeScale, int maxVoxels)
     _useFastVoxelPipeline = false;
     
     _culledOnce = false;
+    _inhideOutOfView = false;
 }
 
 void VoxelSystem::voxelDeleted(VoxelNode* node) {
@@ -1848,6 +1849,14 @@ public:
 };
 
 void VoxelSystem::hideOutOfView(bool forceFullFrustum) {
+
+    // don't re-enter...
+    if (_inhideOutOfView) {
+        return;
+    }
+    
+    _inhideOutOfView = true;
+
     bool showDebugDetails = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showDebugDetails, "hideOutOfView()", showDebugDetails);
     bool widenFrustum = true;
@@ -1879,10 +1888,13 @@ void VoxelSystem::hideOutOfView(bool forceFullFrustum) {
     
     if (!forceFullFrustum && _culledOnce && args.lastViewFrustum.isVerySimilar(args.thisViewFrustum)) {
         //printf("view frustum hasn't changed BAIL!!!\n");
+        _inhideOutOfView = false;
         return;
     }
-    
+
+    pthread_mutex_lock(&_treeLock);                                  
     _tree->recurseTreeWithOperation(hideOutOfViewOperation,(void*)&args);
+    pthread_mutex_unlock(&_treeLock);
     _lastCulledViewFrustum = args.thisViewFrustum; // save last stable
     _culledOnce = true;
 
@@ -1900,6 +1912,7 @@ void VoxelSystem::hideOutOfView(bool forceFullFrustum) {
                 args.nodesInsideInside, args.nodesIntersectInside, args.nodesOutsideOutside
             );
     }
+    _inhideOutOfView = false;
 }
 
 bool VoxelSystem::hideAllSubTreeOperation(VoxelNode* node, void* extraData) {

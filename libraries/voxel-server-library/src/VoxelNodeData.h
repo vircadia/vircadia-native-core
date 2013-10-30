@@ -105,6 +105,7 @@ private:
     int _lastClientBoundaryLevelAdjust;
     float _lastClientVoxelSizeScale;
     bool _lodChanged;
+    bool _lodInitialized;
 };
 
 #endif /* defined(__hifi__VoxelNodeData__) */
