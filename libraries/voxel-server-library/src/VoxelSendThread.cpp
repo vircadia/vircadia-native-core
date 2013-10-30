@@ -176,7 +176,6 @@ void VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* no
         // if our view has changed, we need to reset these things...
         if (viewFrustumChanged) {
             if (_myServer->wantDumpVoxelsOnMove() || nodeData->hasLodChanged()) {
-printf("viewFrustumChanged AND (_myServer->wantDumpVoxelsOnMove() || nodeData->hasLodChanged())... nodeData->nodeBag.deleteAll();\n");
                 nodeData->nodeBag.deleteAll();
             }
             nodeData->map.erase();
@@ -200,7 +199,6 @@ printf("viewFrustumChanged AND (_myServer->wantDumpVoxelsOnMove() || nodeData->h
         
         // If we're starting a full scene, then definitely we want to empty the nodeBag
         if (isFullScene) {
-printf("isFullScene... nodeData->nodeBag.deleteAll();\n");
             nodeData->nodeBag.deleteAll();
         }
         nodeData->stats.sceneStarted(isFullScene, viewFrustumChanged, _myServer->getServerTree().rootNode, _myServer->getJurisdiction());
