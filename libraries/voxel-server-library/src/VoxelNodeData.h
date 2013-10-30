@@ -61,7 +61,8 @@ public:
 
     bool getViewFrustumChanging()            const { return _viewFrustumChanging;            };
     bool getViewFrustumJustStoppedChanging() const { return _viewFrustumJustStoppedChanging; };
-    
+
+    bool moveShouldDump() const;
 
     uint64_t  getLastTimeBagEmpty() const                      { return _lastTimeBagEmpty; };
     void      setLastTimeBagEmpty(uint64_t lastTimeBagEmpty)  { _lastTimeBagEmpty = lastTimeBagEmpty; };
@@ -72,6 +73,8 @@ public:
     
     void initializeVoxelSendThread(VoxelServer* voxelServer);
     bool isVoxelSendThreadInitalized() { return _voxelSendThread; }
+    
+    void dumpOutOfView();
     
 private:
     VoxelNodeData(const VoxelNodeData &);
