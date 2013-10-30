@@ -79,9 +79,6 @@ LodToolsDialog::LodToolsDialog(QWidget* parent) :
     connect(resetButton,SIGNAL(clicked(bool)),this,SLOT(resetClicked(bool)));
 
     this->QDialog::setLayout(form);
-    //int width = 600;
-    //int height = 200;
-    //this->setFixedSize(width, height);
 }
 
 QString LodToolsDialog::getFeedbackText() {
