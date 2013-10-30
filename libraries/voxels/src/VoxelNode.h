@@ -69,7 +69,8 @@ public:
     float distanceToCamera(const ViewFrustum& viewFrustum) const; 
     float furthestDistanceToCamera(const ViewFrustum& viewFrustum) const;
 
-    bool calculateShouldRender(const ViewFrustum* viewFrustum, int boundaryLevelAdjust = 0) const;
+    bool calculateShouldRender(const ViewFrustum* viewFrustum, 
+                float voxelSizeScale = DEFAULT_VOXEL_SIZE_SCALE, int boundaryLevelAdjust = 0) const;
     
     // points are assumed to be in Voxel Coordinates (not TREE_SCALE'd)
     float distanceSquareToPoint(const glm::vec3& point) const; // when you don't need the actual distance, use this.

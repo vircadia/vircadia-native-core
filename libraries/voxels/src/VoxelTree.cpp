@@ -33,13 +33,8 @@
 #include "VoxelTree.h"
 #include <PacketHeaders.h>
 
-float boundaryDistanceForRenderLevel(unsigned int renderLevel) {
-    return ::VOXEL_SIZE_SCALE / powf(2, renderLevel);
-}
-
-float boundaryDistanceSquaredForRenderLevel(unsigned int renderLevel) {
-    const float voxelSizeScale = (::VOXEL_SIZE_SCALE/TREE_SCALE) * (::VOXEL_SIZE_SCALE/TREE_SCALE);
-    return voxelSizeScale / powf(2, (2 * renderLevel));
+float boundaryDistanceForRenderLevel(unsigned int renderLevel, float voxelSizeScale) {
+    return voxelSizeScale / powf(2, renderLevel);
 }
 
 VoxelTree::VoxelTree(bool shouldReaverage) :
@@ -1114,7 +1109,8 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
     // caller can pass NULL as viewFrustum if they want everything
     if (params.viewFrustum) {
         float distance = node->distanceToCamera(*params.viewFrustum);
-        float boundaryDistance = boundaryDistanceForRenderLevel(node->getLevel() + params.boundaryLevelAdjust);
+        float boundaryDistance = boundaryDistanceForRenderLevel(node->getLevel() + params.boundaryLevelAdjust, 
+                                        params.voxelSizeScale);
 
         // If we're too far away for our render level, then just return
         if (distance >= boundaryDistance) {
@@ -1154,7 +1150,8 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
             // as "was in view"...
             if (wasInView) {
                 float distance = node->distanceToCamera(*params.lastViewFrustum);
-                float boundaryDistance = boundaryDistanceForRenderLevel(node->getLevel() + params.boundaryLevelAdjust);
+                float boundaryDistance = boundaryDistanceForRenderLevel(node->getLevel() + params.boundaryLevelAdjust, 
+                                                                            params.voxelSizeScale);
                 if (distance >= boundaryDistance) {
                     // This would have been invisible... but now should be visible (we wouldn't be here otherwise)...
                     wasInView = false;
@@ -1301,7 +1298,8 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
             // Before we determine consider this further, let's see if it's in our LOD scope...
             float distance = distancesToChildren[i]; // params.viewFrustum ? childNode->distanceToCamera(*params.viewFrustum) : 0;
             float boundaryDistance = !params.viewFrustum ? 1 :
-                                     boundaryDistanceForRenderLevel(childNode->getLevel() + params.boundaryLevelAdjust);
+                                     boundaryDistanceForRenderLevel(childNode->getLevel() + params.boundaryLevelAdjust, 
+                                            params.voxelSizeScale);
 
             if (!(distance < boundaryDistance)) {
                 // don't need to check childNode here, because we can't get here with no childNode
@@ -1354,7 +1352,8 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
 
                 bool shouldRender = !params.viewFrustum 
                                     ? true 
-                                    : childNode->calculateShouldRender(params.viewFrustum, params.boundaryLevelAdjust);
+                                    : childNode->calculateShouldRender(params.viewFrustum, 
+                                                    params.voxelSizeScale, params.boundaryLevelAdjust);
                      
                 // track some stats               
                 if (params.stats) {

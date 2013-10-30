@@ -23,7 +23,11 @@ VoxelNodeData::VoxelNodeData(Node* owningNode) :
     _viewFrustumChanging(false),
     _viewFrustumJustStoppedChanging(true),
     _currentPacketIsColor(true),
-    _voxelSendThread(NULL)
+    _voxelSendThread(NULL),
+    _lastClientBoundaryLevelAdjust(0),
+    _lastClientVoxelSizeScale(DEFAULT_VOXEL_SIZE_SCALE),
+    _lodChanged(false),
+    _lodInitialized(false)
 {
     _voxelPacket = new unsigned char[MAX_VOXEL_PACKET_SIZE];
     _voxelPacketAt = _voxelPacket;
@@ -140,6 +144,23 @@ bool VoxelNodeData::updateCurrentViewFrustum() {
         currentViewFrustumChanged = true;
     }
     
+    // Also check for LOD changes from the client
+    if (_lodInitialized) {
+        if (_lastClientBoundaryLevelAdjust != getBoundaryLevelAdjust()) {
+            _lastClientBoundaryLevelAdjust = getBoundaryLevelAdjust();
+            _lodChanged = true;
+        }
+        if (_lastClientVoxelSizeScale != getVoxelSizeScale()) {
+            _lastClientVoxelSizeScale = getVoxelSizeScale();
+            _lodChanged = true;
+        }
+    } else {
+        _lodInitialized = true;
+        _lastClientVoxelSizeScale = getVoxelSizeScale();
+        _lastClientBoundaryLevelAdjust = getBoundaryLevelAdjust();
+        _lodChanged = false;
+    }
+    
     // When we first detect that the view stopped changing, we record this.
     // but we don't change it back to false until we've completely sent this
     // scene.
@@ -154,6 +175,7 @@ void VoxelNodeData::setViewSent(bool viewSent) {
     _viewSent = viewSent; 
     if (viewSent) {
         _viewFrustumJustStoppedChanging = false;
+        _lodChanged = false;
     }
 }
 

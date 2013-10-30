@@ -84,6 +84,7 @@ public:
     float getVoxelsBytesReadPerSecondAverage();
 
     void killLocalVoxels();
+    void redrawInViewVoxels();
 
     virtual void removeOutOfView();
     virtual void hideOutOfView(bool forceFullFrustum = false);
@@ -299,6 +300,8 @@ private:
     
     bool _inSetupNewVoxelsForDrawing;
     bool _useFastVoxelPipeline;
+    
+    bool _inhideOutOfView;
 };
 
 #endif

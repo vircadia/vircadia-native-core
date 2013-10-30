@@ -620,7 +620,13 @@ void Application::keyPressEvent(QKeyEvent* event) {
                 _audioScope.inputPaused = !_audioScope.inputPaused;
                 break; 
             case Qt::Key_L:
-                _displayLevels = !_displayLevels;
+                if (!isShifted && !isMeta) {
+                    _displayLevels = !_displayLevels;
+                } else if (isShifted) {
+                    Menu::getInstance()->triggerOption(MenuOption::LodTools);
+                } else if (isMeta) {
+                    Menu::getInstance()->triggerOption(MenuOption::Log);
+                }
                 break;
                 
             case Qt::Key_E:
@@ -2377,6 +2383,8 @@ void Application::queryVoxels() {
     _voxelQuery.setCameraNearClip(_viewFrustum.getNearClip());
     _voxelQuery.setCameraFarClip(_viewFrustum.getFarClip());
     _voxelQuery.setCameraEyeOffsetPosition(_viewFrustum.getEyeOffsetPosition());
+    _voxelQuery.setVoxelSizeScale(Menu::getInstance()->getVoxelSizeScale());
+    _voxelQuery.setBoundaryLevelAdjust(Menu::getInstance()->getBoundaryLevelAdjust());
 
     unsigned char voxelQueryPacket[MAX_PACKET_SIZE];
 
