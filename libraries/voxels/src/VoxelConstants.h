@@ -13,6 +13,7 @@
 #define __hifi_VoxelConstants_h__
 
 #include <limits.h>
+#include <stdint.h>
 #include <OctalCode.h>
 #include <glm/glm.hpp>
 
