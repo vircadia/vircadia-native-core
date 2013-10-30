@@ -685,7 +685,7 @@ void setTangents(FBXMesh& mesh, int firstIndex, int secondIndex) {
     }
     glm::vec2 texCoordDelta = mesh.texCoords.at(secondIndex) - mesh.texCoords.at(firstIndex);
     mesh.tangents[firstIndex] += glm::cross(glm::angleAxis(
-        -glm::degrees(atan2f(texCoordDelta.t, texCoordDelta.s)), normal) * glm::normalize(bitangent), normal);
+        -glm::degrees(atan2f(-texCoordDelta.t, texCoordDelta.s)), normal) * glm::normalize(bitangent), normal);
 }
 
 FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping) {
