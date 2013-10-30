@@ -158,7 +158,7 @@ void VoxelSystem::voxelUpdated(VoxelNode* node) {
                 VoxelNode* childNode = node->getChildAtIndex(i);
                 if (childNode) {
                     bool wasShouldRender = childNode->getShouldRender();
-                    bool isShouldRender = childNode->calculateShouldRender(_viewFrustum, voxelSizeScale);
+                    bool isShouldRender = childNode->calculateShouldRender(_viewFrustum, voxelSizeScale, boundaryLevelAdjust);
                     if (wasShouldRender && !isShouldRender) {
                         childrenGotHiddenCount++;
                     }
