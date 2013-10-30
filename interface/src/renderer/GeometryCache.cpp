@@ -396,7 +396,8 @@ void NetworkGeometry::maybeReadModelWithMapping() {
         // if we don't need to do any blending or springing, then the positions/normals can be static
         if (mesh.blendshapes.isEmpty() && mesh.springiness == 0.0f) {
             int normalsOffset = mesh.vertices.size() * sizeof(glm::vec3);
-            int colorsOffset = normalsOffset + mesh.normals.size() * sizeof(glm::vec3);
+            int tangentsOffset = normalsOffset + mesh.normals.size() * sizeof(glm::vec3);
+            int colorsOffset = tangentsOffset + mesh.tangents.size() * sizeof(glm::vec3);
             int texCoordsOffset = colorsOffset + mesh.colors.size() * sizeof(glm::vec3);
             int clusterIndicesOffset = texCoordsOffset + mesh.texCoords.size() * sizeof(glm::vec2);
             int clusterWeightsOffset = clusterIndicesOffset + mesh.clusterIndices.size() * sizeof(glm::vec4);
@@ -404,6 +405,7 @@ void NetworkGeometry::maybeReadModelWithMapping() {
                 NULL, GL_STATIC_DRAW);
             glBufferSubData(GL_ARRAY_BUFFER, 0, mesh.vertices.size() * sizeof(glm::vec3), mesh.vertices.constData());
             glBufferSubData(GL_ARRAY_BUFFER, normalsOffset, mesh.normals.size() * sizeof(glm::vec3), mesh.normals.constData());
+            glBufferSubData(GL_ARRAY_BUFFER, tangentsOffset, mesh.tangents.size() * sizeof(glm::vec3), mesh.tangents.constData());
             glBufferSubData(GL_ARRAY_BUFFER, colorsOffset, mesh.colors.size() * sizeof(glm::vec3), mesh.colors.constData());
             glBufferSubData(GL_ARRAY_BUFFER, texCoordsOffset, mesh.texCoords.size() * sizeof(glm::vec2),
                 mesh.texCoords.constData());
@@ -414,12 +416,14 @@ void NetworkGeometry::maybeReadModelWithMapping() {
         
         // if there's no springiness, then the cluster indices/weights can be static
         } else if (mesh.springiness == 0.0f) {
-            int texCoordsOffset = mesh.colors.size() * sizeof(glm::vec3);
+            int colorsOffset = mesh.tangents.size() * sizeof(glm::vec3);
+            int texCoordsOffset = colorsOffset + mesh.colors.size() * sizeof(glm::vec3);
             int clusterIndicesOffset = texCoordsOffset + mesh.texCoords.size() * sizeof(glm::vec2);
             int clusterWeightsOffset = clusterIndicesOffset + mesh.clusterIndices.size() * sizeof(glm::vec4);
             glBufferData(GL_ARRAY_BUFFER, clusterWeightsOffset + mesh.clusterWeights.size() * sizeof(glm::vec4),
                 NULL, GL_STATIC_DRAW);
-            glBufferSubData(GL_ARRAY_BUFFER, 0, mesh.colors.size() * sizeof(glm::vec3), mesh.colors.constData());    
+            glBufferSubData(GL_ARRAY_BUFFER, 0, mesh.tangents.size() * sizeof(glm::vec3), mesh.tangents.constData());        
+            glBufferSubData(GL_ARRAY_BUFFER, colorsOffset, mesh.colors.size() * sizeof(glm::vec3), mesh.colors.constData());    
             glBufferSubData(GL_ARRAY_BUFFER, texCoordsOffset, mesh.texCoords.size() * sizeof(glm::vec2), mesh.texCoords.constData());
             glBufferSubData(GL_ARRAY_BUFFER, clusterIndicesOffset, mesh.clusterIndices.size() * sizeof(glm::vec4),
                 mesh.clusterIndices.constData());
@@ -427,9 +431,11 @@ void NetworkGeometry::maybeReadModelWithMapping() {
                 mesh.clusterWeights.constData());
             
         } else {
-            int texCoordsOffset = mesh.colors.size() * sizeof(glm::vec3);
+            int colorsOffset = mesh.tangents.size() * sizeof(glm::vec3);
+            int texCoordsOffset = colorsOffset + mesh.colors.size() * sizeof(glm::vec3);
             glBufferData(GL_ARRAY_BUFFER, texCoordsOffset + mesh.texCoords.size() * sizeof(glm::vec2), NULL, GL_STATIC_DRAW);
-            glBufferSubData(GL_ARRAY_BUFFER, 0, mesh.colors.size() * sizeof(glm::vec3), mesh.colors.constData());
+            glBufferSubData(GL_ARRAY_BUFFER, 0, mesh.tangents.size() * sizeof(glm::vec3), mesh.tangents.constData());
+            glBufferSubData(GL_ARRAY_BUFFER, colorsOffset, mesh.colors.size() * sizeof(glm::vec3), mesh.colors.constData());
             glBufferSubData(GL_ARRAY_BUFFER, texCoordsOffset, mesh.texCoords.size() * sizeof(glm::vec2),
                 mesh.texCoords.constData());
         }

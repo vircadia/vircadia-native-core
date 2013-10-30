@@ -1,7 +1,7 @@
 #version 120
 
 //
-//  blendface.frag
+//  model.frag
 //  fragment shader
 //
 //  Created by Andrzej Kapolka on 10/14/13.
@@ -9,7 +9,7 @@
 //
 
 // the diffuse texture
-uniform sampler2D texture;
+uniform sampler2D diffuseMap;
 
 // the interpolated normal
 varying vec4 normal;
@@ -24,6 +24,6 @@ void main(void) {
     float specular = max(0.0, dot(normalize(gl_LightSource[0].position + vec4(0.0, 0.0, 1.0, 0.0)), normalizedNormal));
     
     // modulate texture by base color and add specular contribution
-    gl_FragColor = base * texture2D(texture, gl_TexCoord[0].st) +
+    gl_FragColor = base * texture2D(diffuseMap, gl_TexCoord[0].st) +
         pow(specular, gl_FrontMaterial.shininess) * gl_FrontLightProduct[0].specular;
 }
