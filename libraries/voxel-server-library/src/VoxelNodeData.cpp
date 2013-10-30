@@ -197,8 +197,9 @@ void VoxelNodeData::updateLastKnownViewFrustum() {
 bool VoxelNodeData::moveShouldDump() const {
     glm::vec3 oldPosition = _lastKnownViewFrustum.getPosition();
     glm::vec3 newPosition = _currentViewFrustum.getPosition();
-    
-    const float MAXIMUM_MOVE_WITHOUT_DUMP = 0.10f;
+
+    // theoretically we could make this slightly larger but relative to avatar scale.    
+    const float MAXIMUM_MOVE_WITHOUT_DUMP = 0.0f;
     if (glm::distance(newPosition, oldPosition) > MAXIMUM_MOVE_WITHOUT_DUMP) {
         return true;
     }
