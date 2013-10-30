@@ -107,6 +107,16 @@ protected:
     
     QVector<JointState> _jointStates;
     
+    class MeshState {
+    public:
+        QVector<glm::mat4> clusterMatrices;
+        QVector<glm::vec3> worldSpaceVertices;
+        QVector<glm::vec3> vertexVelocities;
+        QVector<glm::vec3> worldSpaceNormals;
+    };
+    
+    QVector<MeshState> _meshStates;
+    
     /// Updates the state of the joint at the specified index.
     virtual void updateJointState(int index);
     
@@ -129,15 +139,6 @@ private:
     
     QUrl _url;
     
-    class MeshState {
-    public:
-        QVector<glm::mat4> clusterMatrices;
-        QVector<glm::vec3> worldSpaceVertices;
-        QVector<glm::vec3> vertexVelocities;
-        QVector<glm::vec3> worldSpaceNormals;
-    };
-    
-    QVector<MeshState> _meshStates;
     QVector<GLuint> _blendedVertexBufferIDs;
     QVector<QVector<QSharedPointer<Texture> > > _dilatedTextures;
     bool _resetStates;
