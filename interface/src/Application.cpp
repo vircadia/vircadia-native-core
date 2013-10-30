@@ -2744,32 +2744,6 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
         // disable specular lighting for ground and voxels
         glMaterialfv(GL_FRONT, GL_SPECULAR, NO_SPECULAR_COLOR);
 
-        //draw a grid ground plane....
-        if (Menu::getInstance()->isOptionChecked(MenuOption::GroundPlane)) {
-            PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
-                "Application::displaySide() ... ground plane...");
-
-            // draw grass plane with fog
-            glEnable(GL_FOG);
-            glEnable(GL_NORMALIZE);        
-            const float FOG_COLOR[] = { 1.0f, 1.0f, 1.0f, 1.0f };
-            glFogfv(GL_FOG_COLOR, FOG_COLOR);
-            glFogi(GL_FOG_MODE, GL_EXP2);
-            glFogf(GL_FOG_DENSITY, 0.025f);
-            glPushMatrix();
-                const float GRASS_PLANE_SIZE = 256.0f;
-                glTranslatef(-GRASS_PLANE_SIZE * 0.5f, -0.01f, GRASS_PLANE_SIZE * 0.5f);
-                glScalef(GRASS_PLANE_SIZE, 1.0f, GRASS_PLANE_SIZE);
-                glRotatef(-90.0f, 1.0f, 0.0f, 0.0f);
-                glColor3ub(70, 134, 74);
-                const int GRASS_DIVISIONS = 40;
-                _geometryCache.renderSquare(GRASS_DIVISIONS, GRASS_DIVISIONS);
-            glPopMatrix();
-            glDisable(GL_FOG);
-            glDisable(GL_NORMALIZE);
-        
-            //renderGroundPlaneGrid(EDGE_SIZE_GROUND_PLANE, _audio.getCollisionSoundMagnitude());
-        }
         //  Draw Cloud Particles
         if (Menu::getInstance()->isOptionChecked(MenuOption::ParticleCloud)) {
             _cloud.render();
