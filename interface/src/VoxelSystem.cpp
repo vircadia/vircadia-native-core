@@ -416,6 +416,12 @@ void VoxelSystem::initVoxelMemory() {
 
     _memoryUsageRAM = 0;
     _memoryUsageVBO = 0; // our VBO allocations as we know them
+    
+    // if _voxelsAsPoints then we must have _useVoxelShader
+    if (_voxelsAsPoints && !_useVoxelShader) {
+        _useVoxelShader = true;
+    }
+    
     if (_useVoxelShader) {
         GLuint* indicesArray = new GLuint[_maxVoxels];
 
