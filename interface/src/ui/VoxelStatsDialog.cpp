@@ -44,8 +44,8 @@ VoxelStatsDialog::VoxelStatsDialog(QWidget* parent, VoxelSceneStats* model) :
         palette.setColor(QPalette::WindowText, QColor::fromRgb(rgb));
         label->setPalette(palette);
         
-        const int STATS_LABLE_WIDTH = 550;
-        label->setFixedWidth(STATS_LABLE_WIDTH);
+        const int STATS_LABEL_WIDTH = 550;
+        label->setFixedWidth(STATS_LABEL_WIDTH);
 
         snprintf(strBuf, sizeof(strBuf), " %s:", itemInfo.caption);
         form->addRow(strBuf, label);
