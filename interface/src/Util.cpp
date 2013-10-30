@@ -413,39 +413,6 @@ void renderCollisionOverlay(int width, int height, float magnitude) {
     }
 }
 
-void renderGroundPlaneGrid(float size, float impact) {
-    float IMPACT_SOUND_MAGNITUDE_FOR_RECOLOR = 1.f;
-	glLineWidth(2.0);
-    glm::vec4 impactColor(1, 0, 0, 1);
-    glm::vec3 lineColor(0.4, 0.5, 0.3);
-    glm::vec4 surfaceColor(0.5, 0.5, 0.5, 0.4);
-    
-    glColor3fv(&lineColor.x);
-    for (float x = 0; x <= size; x++) {
-		glBegin(GL_LINES);
-		glVertex3f(x, 0, 0);
-		glVertex3f(x, 0, size);
-        glVertex3f(0, 0, x);
-		glVertex3f(size, 0, x);
-        glEnd();
-    }
-        
-    // Draw the floor, colored for recent impact
-    glm::vec4 floorColor;
-    if (impact > IMPACT_SOUND_MAGNITUDE_FOR_RECOLOR) {
-        floorColor = impact * impactColor + (1.f - impact) * surfaceColor;
-    } else {
-        floorColor = surfaceColor;        
-    }
-    glColor4fv(&floorColor.x);
-    glBegin(GL_QUADS);
-    glVertex3f(0, 0, 0);
-    glVertex3f(size, 0, 0);
-    glVertex3f(size, 0, size);
-    glVertex3f(0, 0, size);
-    glEnd();
-}
-
 void renderMouseVoxelGrid(const float& mouseVoxelX, const float& mouseVoxelY, const float& mouseVoxelZ, const float& mouseVoxelS) {
     glm::vec3 origin = glm::vec3(mouseVoxelX, mouseVoxelY, mouseVoxelZ);
 

@@ -177,7 +177,6 @@ namespace MenuOption {
     const QString KillLocalVoxels = "Kill Local Voxels";
     const QString GoHome = "Go Home";
     const QString Gravity = "Use Gravity";
-    const QString GroundPlane = "Ground Plane";
     const QString ParticleCloud = "Particle Cloud";
     const QString Log = "Log";
     const QString Login = "Login";
