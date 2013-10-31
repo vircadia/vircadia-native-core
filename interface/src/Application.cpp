@@ -2428,8 +2428,10 @@ void Application::queryVoxels() {
         }
     }
     
-    //qDebug("Servers: total %d, in view %d, unknown jurisdiction %d \n", 
-    //    totalServers, inViewServers, unknownJurisdictionServers);
+    if (unknownJurisdictionServers > 0) {
+        qDebug("Servers: total %d, in view %d, unknown jurisdiction %d \n", 
+            totalServers, inViewServers, unknownJurisdictionServers);
+    }
 
     int perServerPPS = 0;
     const int SMALL_BUDGET = 10;
@@ -2446,7 +2448,9 @@ void Application::queryVoxels() {
         }
     }
     
-    //qDebug("perServerPPS: %d perUnknownServer: %d\n", perServerPPS, perUnknownServer);
+    if (unknownJurisdictionServers > 0) {
+        qDebug("perServerPPS: %d perUnknownServer: %d\n", perServerPPS, perUnknownServer);
+    }
     
     UDPSocket* nodeSocket = NodeList::getInstance()->getNodeSocket();
     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
@@ -2464,7 +2468,7 @@ void Application::queryVoxels() {
             // can get the jurisdiction...
             if (_voxelServerJurisdictions.find(nodeUUID) == _voxelServerJurisdictions.end()) {
                 unknownView = true; // assume it's in view
-                //qDebug() << "no known jurisdiction for node " << *node << ", assume it's visible.\n";
+                qDebug() << "no known jurisdiction for node " << *node << ", assume it's visible.\n";
             } else {
                 const JurisdictionMap& map = (_voxelServerJurisdictions)[nodeUUID];
 
@@ -2488,8 +2492,8 @@ void Application::queryVoxels() {
             if (inView) {
                 _voxelQuery.setMaxVoxelPacketsPerSecond(perServerPPS);
             } else if (unknownView) {
-                //qDebug() << "no known jurisdiction for node " << *node << ", give it budget of " 
-                //        << perUnknownServer << " to send us jurisdiction.\n";
+                qDebug() << "no known jurisdiction for node " << *node << ", give it budget of " 
+                        << perUnknownServer << " to send us jurisdiction.\n";
                 
                 // set the query's position/orientation to be degenerate in a manner that will get the scene quickly
                 _voxelQuery.setCameraPosition(glm::vec3(-0.1,-0.1,-0.1));
