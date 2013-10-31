@@ -563,7 +563,6 @@ void appendModelIDs(const QString& parentID, const QMultiHash<QString, QString>&
 class Vertex {
 public:
     int originalIndex;
-    glm::vec3 normal;
     glm::vec2 texCoord;
 };
 
@@ -572,7 +571,7 @@ uint qHash(const Vertex& vertex, uint seed = 0) {
 }
 
 bool operator==(const Vertex& v1, const Vertex& v2) {
-    return v1.originalIndex == v2.originalIndex && v1.normal == v2.normal && v1.texCoord == v2.texCoord;
+    return v1.originalIndex == v2.originalIndex && v1.texCoord == v2.texCoord;
 }
 
 class ExtractedMesh {
@@ -604,13 +603,14 @@ void appendIndex(MeshData& data, QVector<int>& indices, int index) {
     Vertex vertex;
     vertex.originalIndex = vertexIndex;
 
+    glm::vec3 normal;
     if (data.normalIndices.isEmpty()) {
-        vertex.normal = data.normals.at(data.normalsByVertex ? vertexIndex : index);
+        normal = data.normals.at(data.normalsByVertex ? vertexIndex : index);
         
     } else {
         int normalIndex = data.normalIndices.at(data.normalsByVertex ? vertexIndex : index);
         if (normalIndex >= 0) {
-            vertex.normal = data.normals.at(normalIndex);
+            normal = data.normals.at(normalIndex);
         }
     }
 
@@ -631,11 +631,12 @@ void appendIndex(MeshData& data, QVector<int>& indices, int index) {
         data.indices.insert(vertex, newIndex);
         data.extracted.newIndices.insert(vertexIndex, newIndex);
         data.extracted.mesh.vertices.append(data.vertices.at(vertexIndex));
-        data.extracted.mesh.normals.append(vertex.normal);
+        data.extracted.mesh.normals.append(normal);
         data.extracted.mesh.texCoords.append(vertex.texCoord);
         
     } else {
         indices.append(*it);
+        data.extracted.mesh.normals[*it] += normal;
     }
 }
 
@@ -714,7 +715,7 @@ ExtractedMesh extractMesh(const FBXNode& object) {
 }
 
 void setTangents(FBXMesh& mesh, int firstIndex, int secondIndex) {
-    glm::vec3 normal = mesh.normals.at(firstIndex);
+    glm::vec3 normal = glm::normalize(mesh.normals.at(firstIndex));
     glm::vec3 bitangent = glm::cross(normal, mesh.vertices.at(secondIndex) - mesh.vertices.at(firstIndex));
     if (glm::length(bitangent) < EPSILON) {
         return;
