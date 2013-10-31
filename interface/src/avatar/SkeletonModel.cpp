@@ -53,7 +53,7 @@ bool SkeletonModel::render(float alpha) {
         glRotatef(glm::angle(rotation), axis.x, axis.y, axis.z);
         
         glColor4f(skinColor.r, skinColor.g, skinColor.b, alpha);
-        const float BALL_RADIUS = 0.02f;
+        const float BALL_RADIUS = 0.005f;
         const int BALL_SUBDIVISIONS = 10;
         glutSolidSphere(BALL_RADIUS * _owningAvatar->getScale(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS);
         
@@ -67,7 +67,7 @@ bool SkeletonModel::render(float alpha) {
         
         glm::vec3 parentPosition;
         getJointPosition(parentIndex, parentPosition);
-        const float STICK_RADIUS = BALL_RADIUS * 0.5f;
+        const float STICK_RADIUS = BALL_RADIUS * 0.1f;
         Avatar::renderJointConnectingCone(parentPosition, position, STICK_RADIUS * _owningAvatar->getScale(),
             STICK_RADIUS * _owningAvatar->getScale());
     }
