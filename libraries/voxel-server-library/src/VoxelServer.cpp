@@ -460,6 +460,12 @@ void VoxelServer::run() {
                 if (node) {
                     nodeList->updateNodeWithData(node, &senderAddress, packetData, packetLength);
                     
+                    if (!node->getActiveSocket()) {
+                        // we don't have an active socket for this node, but they're talking to us
+                        // this means they've heard from us and can reply, let's assume public is active
+                        node->activatePublicSocket();
+                    }
+                    
                     VoxelNodeData* nodeData = (VoxelNodeData*) node->getLinkedData();
                     if (nodeData && !nodeData->isVoxelSendThreadInitalized()) {
                         nodeData->initializeVoxelSendThread(this);
