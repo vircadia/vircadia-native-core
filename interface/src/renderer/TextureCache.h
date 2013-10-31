@@ -47,7 +47,7 @@ public:
     GLuint getFileTextureID(const QString& filename);
 
     /// Loads a texture from the specified URL.
-    QSharedPointer<NetworkTexture> getTexture(const QUrl& url, bool dilatable = false);
+    QSharedPointer<NetworkTexture> getTexture(const QUrl& url, bool normalMap = false, bool dilatable = false);
 
     /// Returns a pointer to the primary framebuffer object.  This render target includes a depth component, and is
     /// used for scene rendering.
@@ -105,7 +105,7 @@ class NetworkTexture : public QObject, public Texture {
 
 public:
     
-    NetworkTexture(const QUrl& url);
+    NetworkTexture(const QUrl& url, bool normalMap);
     ~NetworkTexture();
 
     /// Returns the average color over the entire texture.
@@ -132,7 +132,7 @@ class DilatableNetworkTexture : public NetworkTexture {
     
 public:
     
-    DilatableNetworkTexture(const QUrl& url);
+    DilatableNetworkTexture(const QUrl& url, bool normalMap);
     
     /// Returns a pointer to a texture with the requested amount of dilation.
     QSharedPointer<Texture> getDilatedTexture(float dilation);

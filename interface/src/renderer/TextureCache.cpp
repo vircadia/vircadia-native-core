@@ -121,18 +121,18 @@ GLuint TextureCache::getFileTextureID(const QString& filename) {
     return id;
 }
 
-QSharedPointer<NetworkTexture> TextureCache::getTexture(const QUrl& url, bool dilatable) {
+QSharedPointer<NetworkTexture> TextureCache::getTexture(const QUrl& url, bool normalMap, bool dilatable) {
     QSharedPointer<NetworkTexture> texture;
     if (dilatable) {
         texture = _dilatableNetworkTextures.value(url);
         if (texture.isNull()) {
-            texture = QSharedPointer<NetworkTexture>(new DilatableNetworkTexture(url));
+            texture = QSharedPointer<NetworkTexture>(new DilatableNetworkTexture(url, normalMap));
             _dilatableNetworkTextures.insert(url, texture);
         }
     } else {
         texture = _networkTextures.value(url);
         if (texture.isNull()) {
-            texture = QSharedPointer<NetworkTexture>(new NetworkTexture(url));
+            texture = QSharedPointer<NetworkTexture>(new NetworkTexture(url, normalMap));
             _networkTextures.insert(url, texture);
         }
     }
@@ -219,7 +219,7 @@ Texture::~Texture() {
     glDeleteTextures(1, &_id);
 }
 
-NetworkTexture::NetworkTexture(const QUrl& url) : _reply(NULL), _averageColor(1.0f, 1.0f, 1.0f, 1.0f) {
+NetworkTexture::NetworkTexture(const QUrl& url, bool normalMap) : _reply(NULL), _averageColor(1.0f, 1.0f, 1.0f, 1.0f) {
     if (!url.isValid()) {
         return;
     }
@@ -230,9 +230,9 @@ NetworkTexture::NetworkTexture(const QUrl& url) : _reply(NULL), _averageColor(1.
     connect(_reply, SIGNAL(downloadProgress(qint64,qint64)), SLOT(handleDownloadProgress(qint64,qint64)));
     connect(_reply, SIGNAL(error(QNetworkReply::NetworkError)), SLOT(handleReplyError()));
     
-    // default to white
+    // default to white/blue
     glBindTexture(GL_TEXTURE_2D, getID());
-    loadSingleColorTexture(OPAQUE_WHITE);
+    loadSingleColorTexture(normalMap ? OPAQUE_BLUE : OPAQUE_WHITE);
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
@@ -288,8 +288,8 @@ void NetworkTexture::handleReplyError() {
     _reply = NULL;
 }
 
-DilatableNetworkTexture::DilatableNetworkTexture(const QUrl& url) :
-    NetworkTexture(url),
+DilatableNetworkTexture::DilatableNetworkTexture(const QUrl& url, bool normalMap) :
+    NetworkTexture(url, normalMap),
     _innerRadius(0),
     _outerRadius(0)
 {
