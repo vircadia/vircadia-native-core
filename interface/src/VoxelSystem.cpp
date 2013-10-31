@@ -109,6 +109,7 @@ VoxelSystem::VoxelSystem(float treeScale, int maxVoxels)
     _useFastVoxelPipeline = false;
     
     _culledOnce = false;
+    _inhideOutOfView = false;
 }
 
 void VoxelSystem::voxelDeleted(VoxelNode* node) {
@@ -139,7 +140,9 @@ void VoxelSystem::voxelUpdated(VoxelNode* node) {
     if (node->getVoxelSystem() == this) {
         bool shouldRender = false; // assume we don't need to render it
         // if it's colored, we might need to render it!
-        shouldRender = node->calculateShouldRender(_viewFrustum);
+        float voxelSizeScale = Menu::getInstance()->getVoxelSizeScale();
+        int boundaryLevelAdjust = Menu::getInstance()->getBoundaryLevelAdjust();
+        shouldRender = node->calculateShouldRender(_viewFrustum, voxelSizeScale, boundaryLevelAdjust);
 
         if (node->getShouldRender() != shouldRender) {
             node->setShouldRender(shouldRender);
@@ -155,7 +158,7 @@ void VoxelSystem::voxelUpdated(VoxelNode* node) {
                 VoxelNode* childNode = node->getChildAtIndex(i);
                 if (childNode) {
                     bool wasShouldRender = childNode->getShouldRender();
-                    bool isShouldRender = childNode->calculateShouldRender(_viewFrustum);
+                    bool isShouldRender = childNode->calculateShouldRender(_viewFrustum, voxelSizeScale, boundaryLevelAdjust);
                     if (wasShouldRender && !isShouldRender) {
                         childrenGotHiddenCount++;
                     }
@@ -416,6 +419,12 @@ void VoxelSystem::initVoxelMemory() {
 
     _memoryUsageRAM = 0;
     _memoryUsageVBO = 0; // our VBO allocations as we know them
+    
+    // if _voxelsAsPoints then we must have _useVoxelShader
+    if (_voxelsAsPoints && !_useVoxelShader) {
+        _useVoxelShader = true;
+    }
+    
     if (_useVoxelShader) {
         GLuint* indicesArray = new GLuint[_maxVoxels];
 
@@ -923,7 +932,9 @@ int VoxelSystem::newTreeToArrays(VoxelNode* node) {
     int   voxelsUpdated   = 0;
     bool  shouldRender    = false; // assume we don't need to render it
     // if it's colored, we might need to render it!
-    shouldRender = node->calculateShouldRender(_viewFrustum);
+    float voxelSizeScale = Menu::getInstance()->getVoxelSizeScale();;
+    int boundaryLevelAdjust = Menu::getInstance()->getBoundaryLevelAdjust();
+    shouldRender = node->calculateShouldRender(_viewFrustum, voxelSizeScale, boundaryLevelAdjust);
 
     node->setShouldRender(shouldRender);
     // let children figure out their renderness
@@ -985,7 +996,7 @@ int VoxelSystem::forceRemoveNodeFromArrays(VoxelNode* node) {
 
 int VoxelSystem::updateNodeInArrays(VoxelNode* node, bool reuseIndex, bool forceDraw) {
     // If we've run out of room, then just bail...
-    if (_voxelsInWriteArrays >= _maxVoxels) {
+    if (_voxelsInWriteArrays >= _maxVoxels && (_freeIndexes.size() == 0)) {
         // We need to think about what else we can do in this case. This basically means that all of our available
         // VBO slots are used up, but we're trying to render more voxels. At this point, if this happens we'll just
         // not render these Voxels. We need to think about ways to keep the entire scene intact but maybe lower quality
@@ -1384,6 +1395,10 @@ void VoxelSystem::killLocalVoxels() {
     setupNewVoxelsForDrawing();
 }
 
+void VoxelSystem::redrawInViewVoxels() {
+    hideOutOfView(true);
+}
+
 
 bool VoxelSystem::clearAllNodesBufferIndexOperation(VoxelNode* node, void* extraData) {
     _nodeCount++;
@@ -1771,7 +1786,9 @@ bool VoxelSystem::showAllLocalVoxelsOperation(VoxelNode* node, void* extraData) 
 
     args->nodesScanned++;
 
-    bool shouldRender = true; // node->calculateShouldRender(&args->thisViewFrustum);
+    float voxelSizeScale = Menu::getInstance()->getVoxelSizeScale();;
+    int boundaryLevelAdjust = Menu::getInstance()->getBoundaryLevelAdjust();
+    bool shouldRender = node->calculateShouldRender(&args->thisViewFrustum, voxelSizeScale, boundaryLevelAdjust);
     node->setShouldRender(shouldRender);
 
     if (shouldRender) {
@@ -1838,6 +1855,14 @@ public:
 };
 
 void VoxelSystem::hideOutOfView(bool forceFullFrustum) {
+
+    // don't re-enter...
+    if (_inhideOutOfView) {
+        return;
+    }
+    
+    _inhideOutOfView = true;
+
     bool showDebugDetails = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showDebugDetails, "hideOutOfView()", showDebugDetails);
     bool widenFrustum = true;
@@ -1869,10 +1894,13 @@ void VoxelSystem::hideOutOfView(bool forceFullFrustum) {
     
     if (!forceFullFrustum && _culledOnce && args.lastViewFrustum.isVerySimilar(args.thisViewFrustum)) {
         //printf("view frustum hasn't changed BAIL!!!\n");
+        _inhideOutOfView = false;
         return;
     }
-    
+
+    pthread_mutex_lock(&_treeLock);                                  
     _tree->recurseTreeWithOperation(hideOutOfViewOperation,(void*)&args);
+    pthread_mutex_unlock(&_treeLock);
     _lastCulledViewFrustum = args.thisViewFrustum; // save last stable
     _culledOnce = true;
 
@@ -1890,6 +1918,7 @@ void VoxelSystem::hideOutOfView(bool forceFullFrustum) {
                 args.nodesInsideInside, args.nodesIntersectInside, args.nodesOutsideOutside
             );
     }
+    _inhideOutOfView = false;
 }
 
 bool VoxelSystem::hideAllSubTreeOperation(VoxelNode* node, void* extraData) {
@@ -1947,7 +1976,9 @@ bool VoxelSystem::showAllSubTreeOperation(VoxelNode* node, void* extraData) {
 
     args->nodesInside++;
 
-    bool shouldRender = node->calculateShouldRender(&args->thisViewFrustum);
+    float voxelSizeScale = Menu::getInstance()->getVoxelSizeScale();
+    int boundaryLevelAdjust = Menu::getInstance()->getBoundaryLevelAdjust();
+    bool shouldRender = node->calculateShouldRender(&args->thisViewFrustum, voxelSizeScale, boundaryLevelAdjust);
     node->setShouldRender(shouldRender);
 
     if (shouldRender && !node->isKnownBufferIndex()) {

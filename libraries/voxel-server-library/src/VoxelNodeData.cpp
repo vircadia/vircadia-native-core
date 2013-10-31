@@ -23,7 +23,11 @@ VoxelNodeData::VoxelNodeData(Node* owningNode) :
     _viewFrustumChanging(false),
     _viewFrustumJustStoppedChanging(true),
     _currentPacketIsColor(true),
-    _voxelSendThread(NULL)
+    _voxelSendThread(NULL),
+    _lastClientBoundaryLevelAdjust(0),
+    _lastClientVoxelSizeScale(DEFAULT_VOXEL_SIZE_SCALE),
+    _lodChanged(false),
+    _lodInitialized(false)
 {
     _voxelPacket = new unsigned char[MAX_VOXEL_PACKET_SIZE];
     _voxelPacketAt = _voxelPacket;
@@ -140,6 +144,23 @@ bool VoxelNodeData::updateCurrentViewFrustum() {
         currentViewFrustumChanged = true;
     }
     
+    // Also check for LOD changes from the client
+    if (_lodInitialized) {
+        if (_lastClientBoundaryLevelAdjust != getBoundaryLevelAdjust()) {
+            _lastClientBoundaryLevelAdjust = getBoundaryLevelAdjust();
+            _lodChanged = true;
+        }
+        if (_lastClientVoxelSizeScale != getVoxelSizeScale()) {
+            _lastClientVoxelSizeScale = getVoxelSizeScale();
+            _lodChanged = true;
+        }
+    } else {
+        _lodInitialized = true;
+        _lastClientVoxelSizeScale = getVoxelSizeScale();
+        _lastClientBoundaryLevelAdjust = getBoundaryLevelAdjust();
+        _lodChanged = false;
+    }
+    
     // When we first detect that the view stopped changing, we record this.
     // but we don't change it back to false until we've completely sent this
     // scene.
@@ -154,6 +175,7 @@ void VoxelNodeData::setViewSent(bool viewSent) {
     _viewSent = viewSent; 
     if (viewSent) {
         _viewFrustumJustStoppedChanging = false;
+        _lodChanged = false;
     }
 }
 
@@ -169,5 +191,41 @@ void VoxelNodeData::updateLastKnownViewFrustum() {
     // save that we know the view has been sent.
     uint64_t now = usecTimestampNow();
     setLastTimeBagEmpty(now); // is this what we want? poor names
+}
+
+
+bool VoxelNodeData::moveShouldDump() const {
+    glm::vec3 oldPosition = _lastKnownViewFrustum.getPosition();
+    glm::vec3 newPosition = _currentViewFrustum.getPosition();
+
+    // theoretically we could make this slightly larger but relative to avatar scale.    
+    const float MAXIMUM_MOVE_WITHOUT_DUMP = 0.0f;
+    if (glm::distance(newPosition, oldPosition) > MAXIMUM_MOVE_WITHOUT_DUMP) {
+        return true;
+    }
+    return false;
+}
+
+void VoxelNodeData::dumpOutOfView() {
+    int stillInView = 0;
+    int outOfView = 0;
+    VoxelNodeBag tempBag;
+    while (!nodeBag.isEmpty()) {
+        VoxelNode* node = nodeBag.extract();
+        if (node->isInView(_currentViewFrustum)) {
+            tempBag.insert(node);
+            stillInView++;
+        } else {
+            outOfView++;
+        }
+    }
+    if (stillInView > 0) {
+        while (!tempBag.isEmpty()) {
+            VoxelNode* node = tempBag.extract();
+            if (node->isInView(_currentViewFrustum)) {
+                nodeBag.insert(node);
+            }
+        }
+    }
 }
 

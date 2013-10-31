@@ -35,22 +35,12 @@ bool SkeletonModel::render(float alpha) {
         return false;
     }
     
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    
-    glm::vec3 skinColor, darkSkinColor;
-    _owningAvatar->getSkinColors(skinColor, darkSkinColor);
-    
-    for (int i = 0; i < _jointStates.size(); i++) {
-        glPushMatrix();
+    // only render the balls and sticks if the skeleton has no meshes
+    if (_meshStates.isEmpty()) {
+        const FBXGeometry& geometry = _geometry->getFBXGeometry();
         
-        glm::vec3 position;
-        getJointPosition(i, position);
-        glTranslatef(position.x, position.y, position.z);
-        
-        glm::quat rotation;
-        getJointRotation(i, rotation);
-        glm::vec3 axis = glm::axis(rotation);
-        glRotatef(glm::angle(rotation), axis.x, axis.y, axis.z);
+        glm::vec3 skinColor, darkSkinColor;
+        _owningAvatar->getSkinColors(skinColor, darkSkinColor);
         
         glColor4f(skinColor.r, skinColor.g, skinColor.b, alpha);
         const float BALL_RADIUS = 0.005f;
