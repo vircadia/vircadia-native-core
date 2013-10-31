@@ -42,24 +42,37 @@ bool SkeletonModel::render(float alpha) {
         glm::vec3 skinColor, darkSkinColor;
         _owningAvatar->getSkinColors(skinColor, darkSkinColor);
         
-        glColor4f(skinColor.r, skinColor.g, skinColor.b, alpha);
-        const float BALL_RADIUS = 0.005f;
-        const int BALL_SUBDIVISIONS = 10;
-        glutSolidSphere(BALL_RADIUS * _owningAvatar->getScale(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS);
-        
-        glPopMatrix();
-        
-        int parentIndex = geometry.joints[i].parentIndex;
-        if (parentIndex == -1) {
-            continue;
+        for (int i = 0; i < _jointStates.size(); i++) {
+            glPushMatrix();
+            
+            glm::vec3 position;
+            getJointPosition(i, position);
+            glTranslatef(position.x, position.y, position.z);
+            
+            glm::quat rotation;
+            getJointRotation(i, rotation);
+            glm::vec3 axis = glm::axis(rotation);
+            glRotatef(glm::angle(rotation), axis.x, axis.y, axis.z);
+            
+            glColor4f(skinColor.r, skinColor.g, skinColor.b, alpha);
+            const float BALL_RADIUS = 0.005f;
+            const int BALL_SUBDIVISIONS = 10;
+            glutSolidSphere(BALL_RADIUS * _owningAvatar->getScale(), BALL_SUBDIVISIONS, BALL_SUBDIVISIONS);
+            
+            glPopMatrix();
+            
+            int parentIndex = geometry.joints[i].parentIndex;
+            if (parentIndex == -1) {
+                continue;
+            }
+            glColor4f(darkSkinColor.r, darkSkinColor.g, darkSkinColor.b, alpha);
+            
+            glm::vec3 parentPosition;
+            getJointPosition(parentIndex, parentPosition);
+            const float STICK_RADIUS = BALL_RADIUS * 0.1f;
+            Avatar::renderJointConnectingCone(parentPosition, position, STICK_RADIUS * _owningAvatar->getScale(),
+                                              STICK_RADIUS * _owningAvatar->getScale());
         }
-        glColor4f(darkSkinColor.r, darkSkinColor.g, darkSkinColor.b, alpha);
-        
-        glm::vec3 parentPosition;
-        getJointPosition(parentIndex, parentPosition);
-        const float STICK_RADIUS = BALL_RADIUS * 0.1f;
-        Avatar::renderJointConnectingCone(parentPosition, position, STICK_RADIUS * _owningAvatar->getScale(),
-            STICK_RADIUS * _owningAvatar->getScale());
     }
     
     Model::render(alpha);
