@@ -2370,6 +2370,8 @@ void Application::queryVoxels() {
         return;
     }
     
+    bool wantExtraDebugging = Menu::getInstance()->isOptionChecked(MenuOption::ExtraDebugging);
+    
     // These will be the same for all servers, so we can set them up once and then reuse for each server we send to.
     _voxelQuery.setWantLowResMoving(Menu::getInstance()->isOptionChecked(MenuOption::LowRes));
     _voxelQuery.setWantColor(Menu::getInstance()->isOptionChecked(MenuOption::SendVoxelColors));
@@ -2428,7 +2430,7 @@ void Application::queryVoxels() {
         }
     }
     
-    if (unknownJurisdictionServers > 0) {
+    if (wantExtraDebugging && unknownJurisdictionServers > 0) {
         qDebug("Servers: total %d, in view %d, unknown jurisdiction %d \n", 
             totalServers, inViewServers, unknownJurisdictionServers);
     }
@@ -2448,7 +2450,7 @@ void Application::queryVoxels() {
         }
     }
     
-    if (unknownJurisdictionServers > 0) {
+    if (wantExtraDebugging && unknownJurisdictionServers > 0) {
         qDebug("perServerPPS: %d perUnknownServer: %d\n", perServerPPS, perUnknownServer);
     }
     
@@ -2468,7 +2470,9 @@ void Application::queryVoxels() {
             // can get the jurisdiction...
             if (_voxelServerJurisdictions.find(nodeUUID) == _voxelServerJurisdictions.end()) {
                 unknownView = true; // assume it's in view
-                qDebug() << "no known jurisdiction for node " << *node << ", assume it's visible.\n";
+                if (wantExtraDebugging) {
+                    qDebug() << "no known jurisdiction for node " << *node << ", assume it's visible.\n";
+                }
             } else {
                 const JurisdictionMap& map = (_voxelServerJurisdictions)[nodeUUID];
 
@@ -2486,21 +2490,38 @@ void Application::queryVoxels() {
                     } else {
                         inView = false;
                     }
+                } else {
+                    if (wantExtraDebugging) {
+                        qDebug() << "Jurisdiction without RootCode for node " << *node << ". That's unusual!\n";
+                    }
                 }
             }
             
             if (inView) {
                 _voxelQuery.setMaxVoxelPacketsPerSecond(perServerPPS);
             } else if (unknownView) {
-                qDebug() << "no known jurisdiction for node " << *node << ", give it budget of " 
-                        << perUnknownServer << " to send us jurisdiction.\n";
+                if (wantExtraDebugging) {
+                    qDebug() << "no known jurisdiction for node " << *node << ", give it budget of " 
+                            << perUnknownServer << " to send us jurisdiction.\n";
+                }
                 
                 // set the query's position/orientation to be degenerate in a manner that will get the scene quickly
-                _voxelQuery.setCameraPosition(glm::vec3(-0.1,-0.1,-0.1));
-                const glm::quat OFF_IN_NEGATIVE_SPACE = glm::quat(-0.5, 0, -0.5, 1.0);
-                _voxelQuery.setCameraOrientation(OFF_IN_NEGATIVE_SPACE);
-                _voxelQuery.setCameraNearClip(0.1);
-                _voxelQuery.setCameraFarClip(0.1);
+                // If there's only one server, then don't do this, and just let the normal voxel query pass through 
+                // as expected... this way, we will actually get a valid scene if there is one to be seen
+                if (totalServers > 1) {
+                    _voxelQuery.setCameraPosition(glm::vec3(-0.1,-0.1,-0.1));
+                    const glm::quat OFF_IN_NEGATIVE_SPACE = glm::quat(-0.5, 0, -0.5, 1.0);
+                    _voxelQuery.setCameraOrientation(OFF_IN_NEGATIVE_SPACE);
+                    _voxelQuery.setCameraNearClip(0.1);
+                    _voxelQuery.setCameraFarClip(0.1);
+                    if (wantExtraDebugging) {
+                        qDebug() << "Using 'minimal' camera position for node " << *node << "\n";
+                    }
+                } else {
+                    if (wantExtraDebugging) {
+                        qDebug() << "Using regular camera position for node " << *node << "\n";
+                    }
+                }
                 _voxelQuery.setMaxVoxelPacketsPerSecond(perUnknownServer);
             } else {
                 _voxelQuery.setMaxVoxelPacketsPerSecond(0);

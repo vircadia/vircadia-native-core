@@ -163,6 +163,7 @@ namespace MenuOption {
     const QString DontCallOpenGLForVoxels = "Don't call glDrawRangeElementsEXT() for Voxels";
     const QString EchoAudio = "Echo Audio";
     const QString ExportVoxels = "Export Voxels";
+    const QString ExtraDebugging = "Extra Debugging";
     const QString HeadMouse = "Head Mouse";
     const QString FaceMode = "Cycle Face Mode";
     const QString FaceshiftTCP = "Faceshift (TCP)";

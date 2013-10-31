@@ -475,6 +475,9 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(voxelProtoOptionsMenu, MenuOption::DeltaSending);    
     addCheckableActionToQMenuAndActionHash(voxelProtoOptionsMenu, MenuOption::OcclusionCulling);
     addCheckableActionToQMenuAndActionHash(voxelProtoOptionsMenu, MenuOption::DestructiveAddVoxel);
+
+    addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::ExtraDebugging);
+
     
 #ifndef Q_OS_MAC
     QMenu* helpMenu = addMenu("Help");
