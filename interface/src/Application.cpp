@@ -2431,7 +2431,7 @@ void Application::queryVoxels() {
     //qDebug("Servers: total %d, in view %d, unknown jurisdiction %d \n", 
     //    totalServers, inViewServers, unknownJurisdictionServers);
 
-    int perServerPPS;
+    int perServerPPS = 0;
     const int SMALL_BUDGET = 10;
     int perUnknownServer = SMALL_BUDGET;
 
@@ -2439,11 +2439,10 @@ void Application::queryVoxels() {
     if (inViewServers >= 1) {
         // set our preferred PPS to be exactly evenly divided among all of the voxel servers... and allocate 1 PPS
         // for each unknown jurisdiction server
-        perServerPPS = (DEFAULT_MAX_VOXEL_PPS/inViewServers) - (unknownJurisdictionServers * SMALL_BUDGET);
+        perServerPPS = (DEFAULT_MAX_VOXEL_PPS / inViewServers) - (unknownJurisdictionServers * perUnknownServer);
     } else {
-        perServerPPS = 0;
         if (unknownJurisdictionServers > 0) {
-            perUnknownServer = (DEFAULT_MAX_VOXEL_PPS/unknownJurisdictionServers);
+            perUnknownServer = (DEFAULT_MAX_VOXEL_PPS / unknownJurisdictionServers);
         }
     }
     
