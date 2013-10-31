@@ -615,8 +615,9 @@ void appendIndex(MeshData& data, QVector<int>& indices, int index) {
     }
 
     if (data.texCoordIndices.isEmpty()) {
-        vertex.texCoord = data.texCoords.at(index);    
-        
+        if (index < data.texCoords.size()) {
+            vertex.texCoord = data.texCoords.at(index);    
+        }
     } else {
         int texCoordIndex = data.texCoordIndices.at(index);
         if (texCoordIndex >= 0) {
