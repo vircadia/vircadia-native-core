@@ -2371,6 +2371,11 @@ void Application::queryVoxels() {
     }
     
     // These will be the same for all servers, so we can set them up once and then reuse for each server we send to.
+    _voxelQuery.setWantLowResMoving(Menu::getInstance()->isOptionChecked(MenuOption::LowRes));
+    _voxelQuery.setWantColor(Menu::getInstance()->isOptionChecked(MenuOption::SendVoxelColors));
+    _voxelQuery.setWantDelta(Menu::getInstance()->isOptionChecked(MenuOption::DeltaSending));
+    _voxelQuery.setWantOcclusionCulling(Menu::getInstance()->isOptionChecked(MenuOption::OcclusionCulling));
+    
     _voxelQuery.setCameraPosition(_viewFrustum.getPosition());
     _voxelQuery.setCameraOrientation(_viewFrustum.getOrientation());
     _voxelQuery.setCameraFov(_viewFrustum.getFieldOfView());
@@ -3181,10 +3186,12 @@ void Application::displayStats() {
  
     std::stringstream voxelStats;
     voxelStats.precision(4);
-    voxelStats << "Voxels Rendered: " << _voxels.getVoxelsRendered() / 1000.f << "K " <<
-        "Written: " << _voxels.getVoxelsWritten()/1000.f << "K " <<
-        "Updated: " << _voxels.getVoxelsUpdated()/1000.f << "K " <<
-        "Max: " << _voxels.getMaxVoxels()/1000.f << "K ";
+    voxelStats << "Voxels " << 
+        "Max: " << _voxels.getMaxVoxels() / 1000.f << "K " << 
+        "Rendered: " << _voxels.getVoxelsRendered() / 1000.f << "K " <<
+        "Written: " << _voxels.getVoxelsWritten() / 1000.f << "K " <<
+        "Abandoned: " << _voxels.getAbandonedVoxels() / 1000.f << "K " <<
+        "Updated: " << _voxels.getVoxelsUpdated() / 1000.f << "K ";
     statsVerticalOffset += PELS_PER_LINE;
     drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, (char*)voxelStats.str().c_str());
 

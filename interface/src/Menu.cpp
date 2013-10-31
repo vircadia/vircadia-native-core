@@ -470,34 +470,10 @@ Menu::Menu() :
     
     QMenu* voxelProtoOptionsMenu = developerMenu->addMenu("Voxel Server Protocol Options");
     
-    addCheckableActionToQMenuAndActionHash(voxelProtoOptionsMenu,
-                                           MenuOption::SendVoxelColors,
-                                           0,
-                                           true,
-                                           appInstance->getAvatar(),
-                                           SLOT(setWantColor(bool)));
-    
-    addCheckableActionToQMenuAndActionHash(voxelProtoOptionsMenu,
-                                           MenuOption::LowRes,
-                                           0,
-                                           true,
-                                           appInstance->getAvatar(),
-                                           SLOT(setWantLowResMoving(bool)));
-    
-    addCheckableActionToQMenuAndActionHash(voxelProtoOptionsMenu,
-                                           MenuOption::DeltaSending,
-                                           0,
-                                           true,
-                                           appInstance->getAvatar(),
-                                           SLOT(setWantDelta(bool)));
-    
-    addCheckableActionToQMenuAndActionHash(voxelProtoOptionsMenu,
-                                           MenuOption::OcclusionCulling,
-                                           Qt::SHIFT | Qt::Key_C,
-                                           true,
-                                           appInstance->getAvatar(),
-                                           SLOT(setWantOcclusionCulling(bool)));
-
+    addCheckableActionToQMenuAndActionHash(voxelProtoOptionsMenu, MenuOption::SendVoxelColors);
+    addCheckableActionToQMenuAndActionHash(voxelProtoOptionsMenu, MenuOption::LowRes);
+    addCheckableActionToQMenuAndActionHash(voxelProtoOptionsMenu, MenuOption::DeltaSending);    
+    addCheckableActionToQMenuAndActionHash(voxelProtoOptionsMenu, MenuOption::OcclusionCulling);
     addCheckableActionToQMenuAndActionHash(voxelProtoOptionsMenu, MenuOption::DestructiveAddVoxel);
     
 #ifndef Q_OS_MAC

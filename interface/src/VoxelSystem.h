@@ -60,6 +60,7 @@ public:
     unsigned long  getVoxelsUpdated() const { return _voxelsUpdated; }
     unsigned long  getVoxelsRendered() const { return _voxelsInReadArrays; }
     unsigned long  getVoxelsWritten() const { return _voxelsInWriteArrays; }
+    unsigned long  getAbandonedVoxels() const { return _freeIndexes.size(); }
 
     ViewFrustum* getLastCulledViewFrustum() { return &_lastCulledViewFrustum; }
 
