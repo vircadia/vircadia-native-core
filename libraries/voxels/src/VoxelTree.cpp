@@ -1143,6 +1143,20 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
             } else {
                 wasInView = location == ViewFrustum::INSIDE;
             }
+            
+            // If we were in view, double check that we didn't switch LOD visibility... namely, the was in view doesn't
+            // tell us if it was so small we wouldn't have rendered it. Which may be the case. And we may have moved closer
+            // to it, and so therefore it may now be visible from an LOD perspective, in which case we don't consider it
+            // as "was in view"...
+            if (wasInView) {
+                float distance = node->distanceToCamera(*params.lastViewFrustum);
+                float boundaryDistance = boundaryDistanceForRenderLevel(node->getLevel() + params.boundaryLevelAdjust, 
+                                                                            params.voxelSizeScale);
+                if (distance >= boundaryDistance) {
+                    // This would have been invisible... but now should be visible (we wouldn't be here otherwise)...
+                    wasInView = false;
+                }
+            }
         }
 
         // If we were previously in the view, then we normally will return out of here and stop recursing. But

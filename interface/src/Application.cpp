@@ -2371,6 +2371,11 @@ void Application::queryVoxels() {
     }
     
     // These will be the same for all servers, so we can set them up once and then reuse for each server we send to.
+    _voxelQuery.setWantLowResMoving(Menu::getInstance()->isOptionChecked(MenuOption::LowRes));
+    _voxelQuery.setWantColor(Menu::getInstance()->isOptionChecked(MenuOption::SendVoxelColors));
+    _voxelQuery.setWantDelta(Menu::getInstance()->isOptionChecked(MenuOption::DeltaSending));
+    _voxelQuery.setWantOcclusionCulling(Menu::getInstance()->isOptionChecked(MenuOption::OcclusionCulling));
+    
     _voxelQuery.setCameraPosition(_viewFrustum.getPosition());
     _voxelQuery.setCameraOrientation(_viewFrustum.getOrientation());
     _voxelQuery.setCameraFov(_viewFrustum.getFieldOfView());
@@ -2386,39 +2391,62 @@ void Application::queryVoxels() {
     NodeList* nodeList = NodeList::getInstance();
 
     // Iterate all of the nodes, and get a count of how many voxel servers we have...
-    int voxelServerCount = 0;
+    int totalServers = 0;
+    int inViewServers = 0;
+    int unknownJurisdictionServers = 0;
+    
     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
         // only send to the NodeTypes that are NODE_TYPE_VOXEL_SERVER
         if (node->getActiveSocket() != NULL && node->getType() == NODE_TYPE_VOXEL_SERVER) {
+            totalServers++;
 
             // get the server bounds for this server
             QUuid nodeUUID = node->getUUID();
-            const JurisdictionMap& map = (_voxelServerJurisdictions)[nodeUUID];
-
-            unsigned char* rootCode = map.getRootOctalCode();
             
-            if (rootCode) {
-                VoxelPositionSize rootDetails;
-                voxelDetailsForCode(rootCode, rootDetails);
-                AABox serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
-                serverBounds.scale(TREE_SCALE);
+            // if we haven't heard from this voxel server, go ahead and send it a query, so we
+            // can get the jurisdiction...
+            if (_voxelServerJurisdictions.find(nodeUUID) == _voxelServerJurisdictions.end()) {
+                unknownJurisdictionServers++;
+            } else {
+                const JurisdictionMap& map = (_voxelServerJurisdictions)[nodeUUID];
 
-                ViewFrustum::location serverFrustumLocation = _viewFrustum.boxInFrustum(serverBounds);
+                unsigned char* rootCode = map.getRootOctalCode();
+            
+                if (rootCode) {
+                    VoxelPositionSize rootDetails;
+                    voxelDetailsForCode(rootCode, rootDetails);
+                    AABox serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
+                    serverBounds.scale(TREE_SCALE);
 
-                if (serverFrustumLocation != ViewFrustum::OUTSIDE) {
-                    voxelServerCount++;
+                    ViewFrustum::location serverFrustumLocation = _viewFrustum.boxInFrustum(serverBounds);
+
+                    if (serverFrustumLocation != ViewFrustum::OUTSIDE) {
+                        inViewServers++;
+                    }
                 }
             }
         }
     }
+    
+    //qDebug("Servers: total %d, in view %d, unknown jurisdiction %d \n", 
+    //    totalServers, inViewServers, unknownJurisdictionServers);
 
-    // assume there's at least one voxel server
-    if (voxelServerCount < 1) {
-        voxelServerCount = 1;
+    int perServerPPS = 0;
+    const int SMALL_BUDGET = 10;
+    int perUnknownServer = SMALL_BUDGET;
+
+    // determine PPS based on number of servers
+    if (inViewServers >= 1) {
+        // set our preferred PPS to be exactly evenly divided among all of the voxel servers... and allocate 1 PPS
+        // for each unknown jurisdiction server
+        perServerPPS = (DEFAULT_MAX_VOXEL_PPS / inViewServers) - (unknownJurisdictionServers * perUnknownServer);
+    } else {
+        if (unknownJurisdictionServers > 0) {
+            perUnknownServer = (DEFAULT_MAX_VOXEL_PPS / unknownJurisdictionServers);
+        }
     }
     
-    // set our preferred PPS to be exactly evenly divided among all of the voxel servers...
-    int perServerPPS = DEFAULT_MAX_VOXEL_PPS/voxelServerCount;
+    //qDebug("perServerPPS: %d perUnknownServer: %d\n", perServerPPS, perUnknownServer);
     
     UDPSocket* nodeSocket = NodeList::getInstance()->getNodeSocket();
     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
@@ -2428,44 +2456,69 @@ void Application::queryVoxels() {
 
             // get the server bounds for this server
             QUuid nodeUUID = node->getUUID();
-            const JurisdictionMap& map = (_voxelServerJurisdictions)[nodeUUID];
 
-            unsigned char* rootCode = map.getRootOctalCode();
+            bool inView = false;
+            bool unknownView = false;
             
-            if (rootCode) {
-                VoxelPositionSize rootDetails;
-                voxelDetailsForCode(rootCode, rootDetails);
-                AABox serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
-                serverBounds.scale(TREE_SCALE);
+            // if we haven't heard from this voxel server, go ahead and send it a query, so we
+            // can get the jurisdiction...
+            if (_voxelServerJurisdictions.find(nodeUUID) == _voxelServerJurisdictions.end()) {
+                unknownView = true; // assume it's in view
+                //qDebug() << "no known jurisdiction for node " << *node << ", assume it's visible.\n";
+            } else {
+                const JurisdictionMap& map = (_voxelServerJurisdictions)[nodeUUID];
 
-                ViewFrustum::location serverFrustumLocation = _viewFrustum.boxInFrustum(serverBounds);
+                unsigned char* rootCode = map.getRootOctalCode();
             
-                if (serverFrustumLocation != ViewFrustum::OUTSIDE) {
-                    //printf("_voxelQuery.setMaxVoxelPacketsPerSecond(perServerPPS=%d)\n",perServerPPS);
-                    _voxelQuery.setMaxVoxelPacketsPerSecond(perServerPPS);
-                } else {
-                    //printf("_voxelQuery.setMaxVoxelPacketsPerSecond(0)\n");
-                    _voxelQuery.setMaxVoxelPacketsPerSecond(0);
+                if (rootCode) {
+                    VoxelPositionSize rootDetails;
+                    voxelDetailsForCode(rootCode, rootDetails);
+                    AABox serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
+                    serverBounds.scale(TREE_SCALE);
+
+                    ViewFrustum::location serverFrustumLocation = _viewFrustum.boxInFrustum(serverBounds);
+                    if (serverFrustumLocation != ViewFrustum::OUTSIDE) {
+                        inView = true;
+                    } else {
+                        inView = false;
+                    }
                 }
-                // set up the packet for sending...
-                unsigned char* endOfVoxelQueryPacket = voxelQueryPacket;
-
-                // insert packet type/version and node UUID
-                endOfVoxelQueryPacket += populateTypeAndVersion(endOfVoxelQueryPacket, PACKET_TYPE_VOXEL_QUERY);
-                QByteArray ownerUUID = nodeList->getOwnerUUID().toRfc4122();
-                memcpy(endOfVoxelQueryPacket, ownerUUID.constData(), ownerUUID.size());
-                endOfVoxelQueryPacket += ownerUUID.size();
-
-                // encode the query data...
-                endOfVoxelQueryPacket += _voxelQuery.getBroadcastData(endOfVoxelQueryPacket);
-        
-                int packetLength = endOfVoxelQueryPacket - voxelQueryPacket;
-
-                nodeSocket->send(node->getActiveSocket(), voxelQueryPacket, packetLength);
-
-                // Feed number of bytes to corresponding channel of the bandwidth meter
-                _bandwidthMeter.outputStream(BandwidthMeter::VOXELS).updateValue(packetLength);
             }
+            
+            if (inView) {
+                _voxelQuery.setMaxVoxelPacketsPerSecond(perServerPPS);
+            } else if (unknownView) {
+                //qDebug() << "no known jurisdiction for node " << *node << ", give it budget of " 
+                //        << perUnknownServer << " to send us jurisdiction.\n";
+                
+                // set the query's position/orientation to be degenerate in a manner that will get the scene quickly
+                _voxelQuery.setCameraPosition(glm::vec3(-0.1,-0.1,-0.1));
+                const glm::quat OFF_IN_NEGATIVE_SPACE = glm::quat(-0.5, 0, -0.5, 1.0);
+                _voxelQuery.setCameraOrientation(OFF_IN_NEGATIVE_SPACE);
+                _voxelQuery.setCameraNearClip(0.1);
+                _voxelQuery.setCameraFarClip(0.1);
+                _voxelQuery.setMaxVoxelPacketsPerSecond(perUnknownServer);
+            } else {
+                _voxelQuery.setMaxVoxelPacketsPerSecond(0);
+            }
+            // set up the packet for sending...
+            unsigned char* endOfVoxelQueryPacket = voxelQueryPacket;
+
+            // insert packet type/version and node UUID
+            endOfVoxelQueryPacket += populateTypeAndVersion(endOfVoxelQueryPacket, PACKET_TYPE_VOXEL_QUERY);
+            QByteArray ownerUUID = nodeList->getOwnerUUID().toRfc4122();
+            memcpy(endOfVoxelQueryPacket, ownerUUID.constData(), ownerUUID.size());
+            endOfVoxelQueryPacket += ownerUUID.size();
+
+            // encode the query data...
+            endOfVoxelQueryPacket += _voxelQuery.getBroadcastData(endOfVoxelQueryPacket);
+    
+            int packetLength = endOfVoxelQueryPacket - voxelQueryPacket;
+
+            nodeSocket->send(node->getActiveSocket(), voxelQueryPacket, packetLength);
+
+            // Feed number of bytes to corresponding channel of the bandwidth meter
+            _bandwidthMeter.outputStream(BandwidthMeter::VOXELS).updateValue(packetLength);
         }
     }
 }
@@ -3181,10 +3234,12 @@ void Application::displayStats() {
  
     std::stringstream voxelStats;
     voxelStats.precision(4);
-    voxelStats << "Voxels Rendered: " << _voxels.getVoxelsRendered() / 1000.f << "K " <<
-        "Written: " << _voxels.getVoxelsWritten()/1000.f << "K " <<
-        "Updated: " << _voxels.getVoxelsUpdated()/1000.f << "K " <<
-        "Max: " << _voxels.getMaxVoxels()/1000.f << "K ";
+    voxelStats << "Voxels " << 
+        "Max: " << _voxels.getMaxVoxels() / 1000.f << "K " << 
+        "Rendered: " << _voxels.getVoxelsRendered() / 1000.f << "K " <<
+        "Written: " << _voxels.getVoxelsWritten() / 1000.f << "K " <<
+        "Abandoned: " << _voxels.getAbandonedVoxels() / 1000.f << "K " <<
+        "Updated: " << _voxels.getVoxelsUpdated() / 1000.f << "K ";
     statsVerticalOffset += PELS_PER_LINE;
     drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, (char*)voxelStats.str().c_str());
 

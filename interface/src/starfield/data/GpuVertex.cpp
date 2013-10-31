@@ -7,7 +7,6 @@
 // Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 #include "starfield/data/GpuVertex.h"
-#include "starfield/data/InputVertex.h"
 
 using namespace starfield;
 

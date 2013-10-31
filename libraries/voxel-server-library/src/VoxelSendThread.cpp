@@ -175,8 +175,8 @@ void VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* no
                 
         // if our view has changed, we need to reset these things...
         if (viewFrustumChanged) {
-            if (_myServer->wantDumpVoxelsOnMove() || nodeData->hasLodChanged()) {
-                nodeData->nodeBag.deleteAll();
+            if (_myServer->wantDumpVoxelsOnMove() || nodeData->moveShouldDump() || nodeData->hasLodChanged()) {
+                nodeData->dumpOutOfView();
             }
             nodeData->map.erase();
         } 

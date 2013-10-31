@@ -193,3 +193,39 @@ void VoxelNodeData::updateLastKnownViewFrustum() {
     setLastTimeBagEmpty(now); // is this what we want? poor names
 }
 
+
+bool VoxelNodeData::moveShouldDump() const {
+    glm::vec3 oldPosition = _lastKnownViewFrustum.getPosition();
+    glm::vec3 newPosition = _currentViewFrustum.getPosition();
+
+    // theoretically we could make this slightly larger but relative to avatar scale.    
+    const float MAXIMUM_MOVE_WITHOUT_DUMP = 0.0f;
+    if (glm::distance(newPosition, oldPosition) > MAXIMUM_MOVE_WITHOUT_DUMP) {
+        return true;
+    }
+    return false;
+}
+
+void VoxelNodeData::dumpOutOfView() {
+    int stillInView = 0;
+    int outOfView = 0;
+    VoxelNodeBag tempBag;
+    while (!nodeBag.isEmpty()) {
+        VoxelNode* node = nodeBag.extract();
+        if (node->isInView(_currentViewFrustum)) {
+            tempBag.insert(node);
+            stillInView++;
+        } else {
+            outOfView++;
+        }
+    }
+    if (stillInView > 0) {
+        while (!tempBag.isEmpty()) {
+            VoxelNode* node = tempBag.extract();
+            if (node->isInView(_currentViewFrustum)) {
+                nodeBag.insert(node);
+            }
+        }
+    }
+}
+

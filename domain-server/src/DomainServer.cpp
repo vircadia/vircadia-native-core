@@ -214,14 +214,14 @@ const char ASSIGNMENT_SCRIPT_HOST_LOCATION[] = "resources/web/assignment";
 void DomainServer::civetwebUploadHandler(struct mg_connection *connection, const char *path) {
     
     // create an assignment for this saved script, for now make it local only
-    Assignment *scriptAssignment = new Assignment(Assignment::CreateCommand,
+    Assignment* scriptAssignment = new Assignment(Assignment::CreateCommand,
                                                   Assignment::AgentType,
                                                   NULL,
                                                   Assignment::LocalLocation);
     
     // check how many instances of this assignment the user wants by checking the ASSIGNMENT-INSTANCES header
     const char ASSIGNMENT_INSTANCES_HTTP_HEADER[] = "ASSIGNMENT-INSTANCES";
-    const char *requestInstancesHeader = mg_get_header(connection, ASSIGNMENT_INSTANCES_HTTP_HEADER);
+    const char* requestInstancesHeader = mg_get_header(connection, ASSIGNMENT_INSTANCES_HTTP_HEADER);
     
     if (requestInstancesHeader) {
         // the user has requested a number of instances greater than 1
@@ -325,11 +325,14 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     // setup the mongoose web server
     struct mg_callbacks callbacks = {};
     
-    QString documentRoot = QString("%1/resources/web").arg(QCoreApplication::applicationDirPath());
+    QString documentRootString = QString("%1/resources/web").arg(QCoreApplication::applicationDirPath());
+    
+    char documentRoot[documentRootString.size() + 1];
+    strcpy(documentRoot, documentRootString.toLocal8Bit().constData());
     
     // list of options. Last element must be NULL.
     const char* options[] = {"listening_ports", "8080",
-        "document_root", documentRoot.toLocal8Bit().constData(), NULL};
+        "document_root", documentRoot, NULL};
     
     callbacks.begin_request = civetwebRequestHandler;
     callbacks.upload = civetwebUploadHandler;
@@ -454,14 +457,13 @@ Assignment* DomainServer::deployableAssignmentForRequest(Assignment& requestAssi
             Assignment* deployableAssignment = *assignment;
             
             if ((*assignment)->getType() == Assignment::AgentType) {
-                // if this is a script assignment we need to delete it to avoid a memory leak
-                // or if there is more than one instance to send out, simpy decrease the number of instances
-                if ((*assignment)->getNumberOfInstances() > 1) {
-                    (*assignment)->decrementNumberOfInstances();
-                } else {
+                // if there is more than one instance to send out, simply decrease the number of instances
+                
+                if ((*assignment)->getNumberOfInstances() == 1) {
                     _assignmentQueue.erase(assignment);
-                    delete *assignment;
                 }
+                
+                (*assignment)->decrementNumberOfInstances();
             } else {
                 // remove the assignment from the queue
                 _assignmentQueue.erase(assignment);
@@ -732,6 +734,11 @@ int DomainServer::run() {
                         nodeList->getNodeSocket()->send((sockaddr*) &senderAddress,
                                                         broadcastPacket,
                                                         numHeaderBytes + numAssignmentBytes);
+                        
+                        if (assignmentToDeploy->getNumberOfInstances() == 0) {
+                            // there are no more instances of this script to send out, delete it
+                            delete assignmentToDeploy;
+                        }
                     }
                     
                 }

@@ -470,34 +470,10 @@ Menu::Menu() :
     
     QMenu* voxelProtoOptionsMenu = developerMenu->addMenu("Voxel Server Protocol Options");
     
-    addCheckableActionToQMenuAndActionHash(voxelProtoOptionsMenu,
-                                           MenuOption::SendVoxelColors,
-                                           0,
-                                           true,
-                                           appInstance->getAvatar(),
-                                           SLOT(setWantColor(bool)));
-    
-    addCheckableActionToQMenuAndActionHash(voxelProtoOptionsMenu,
-                                           MenuOption::LowRes,
-                                           0,
-                                           true,
-                                           appInstance->getAvatar(),
-                                           SLOT(setWantLowResMoving(bool)));
-    
-    addCheckableActionToQMenuAndActionHash(voxelProtoOptionsMenu,
-                                           MenuOption::DeltaSending,
-                                           0,
-                                           true,
-                                           appInstance->getAvatar(),
-                                           SLOT(setWantDelta(bool)));
-    
-    addCheckableActionToQMenuAndActionHash(voxelProtoOptionsMenu,
-                                           MenuOption::OcclusionCulling,
-                                           Qt::SHIFT | Qt::Key_C,
-                                           true,
-                                           appInstance->getAvatar(),
-                                           SLOT(setWantOcclusionCulling(bool)));
-
+    addCheckableActionToQMenuAndActionHash(voxelProtoOptionsMenu, MenuOption::SendVoxelColors);
+    addCheckableActionToQMenuAndActionHash(voxelProtoOptionsMenu, MenuOption::LowRes);
+    addCheckableActionToQMenuAndActionHash(voxelProtoOptionsMenu, MenuOption::DeltaSending);    
+    addCheckableActionToQMenuAndActionHash(voxelProtoOptionsMenu, MenuOption::OcclusionCulling);
     addCheckableActionToQMenuAndActionHash(voxelProtoOptionsMenu, MenuOption::DestructiveAddVoxel);
     
 #ifndef Q_OS_MAC
@@ -769,7 +745,7 @@ QLineEdit* lineEditForDomainHostname() {
 
 void Menu::login() {
     Application* applicationInstance = Application::getInstance();
-    QDialog dialog(applicationInstance->getGLWidget());
+    QDialog dialog;
     dialog.setWindowTitle("Login");
     QBoxLayout* layout = new QBoxLayout(QBoxLayout::TopToBottom);
     dialog.setLayout(layout);
@@ -788,7 +764,6 @@ void Menu::login() {
     layout->addWidget(buttons);
     
     int ret = dialog.exec();
-    applicationInstance->getWindow()->activateWindow();
     if (ret != QDialog::Accepted) {
         return;
     }
@@ -803,7 +778,7 @@ void Menu::login() {
 void Menu::editPreferences() {
     Application* applicationInstance = Application::getInstance();
     
-    QDialog dialog(applicationInstance->getGLWidget());
+    QDialog dialog;
     dialog.setWindowTitle("Interface Preferences");
     QBoxLayout* layout = new QBoxLayout(QBoxLayout::TopToBottom);
     dialog.setLayout(layout);
@@ -861,7 +836,6 @@ void Menu::editPreferences() {
     layout->addWidget(buttons);
     
     int ret = dialog.exec();
-    applicationInstance->getWindow()->activateWindow();
     if (ret != QDialog::Accepted) {
          return;
      }
@@ -911,8 +885,7 @@ void Menu::editPreferences() {
 }
 
 void Menu::goToDomain() {
-    Application* applicationInstance = Application::getInstance();
-    QDialog dialog(applicationInstance->getGLWidget());
+    QDialog dialog;
     dialog.setWindowTitle("Go To Domain");
     QBoxLayout* layout = new QBoxLayout(QBoxLayout::TopToBottom);
     dialog.setLayout(layout);
@@ -930,7 +903,6 @@ void Menu::goToDomain() {
     layout->addWidget(buttons);
     
     int ret = dialog.exec();
-    applicationInstance->getWindow()->activateWindow();
     if (ret != QDialog::Accepted) {
          return;
      }
@@ -939,8 +911,7 @@ void Menu::goToDomain() {
 }
 
 void Menu::goToLocation() {
-    Application* applicationInstance = Application::getInstance();
-    QDialog dialog(applicationInstance->getGLWidget());
+    QDialog dialog;
     dialog.setWindowTitle("Go To Location");
     QBoxLayout* layout = new QBoxLayout(QBoxLayout::TopToBottom);
     dialog.setLayout(layout);
@@ -950,8 +921,8 @@ void Menu::goToLocation() {
     
     const int QLINE_MINIMUM_WIDTH = 300;
 
-    Application* appInstance = Application::getInstance();
-    MyAvatar* myAvatar = appInstance->getAvatar();
+    Application* applicationInstance = Application::getInstance();
+    MyAvatar* myAvatar = applicationInstance->getAvatar();
     glm::vec3 avatarPos = myAvatar->getPosition();
     QString currentLocation = QString("%1, %2, %3").arg(QString::number(avatarPos.x), 
                 QString::number(avatarPos.y), QString::number(avatarPos.z));
@@ -966,7 +937,6 @@ void Menu::goToLocation() {
     layout->addWidget(buttons);
     
     int ret = dialog.exec();
-    applicationInstance->getWindow()->activateWindow();
     if (ret != QDialog::Accepted) {
          return;
      }
@@ -998,8 +968,7 @@ void Menu::goToLocation() {
 }
 
 void Menu::goToUser() {
-    Application* applicationInstance = Application::getInstance();
-    QDialog dialog(applicationInstance->getGLWidget());
+    QDialog dialog;
     dialog.setWindowTitle("Go To User");
     QBoxLayout* layout = new QBoxLayout(QBoxLayout::TopToBottom);
     dialog.setLayout(layout);
@@ -1017,7 +986,6 @@ void Menu::goToUser() {
     layout->addWidget(buttons);
     
     int ret = dialog.exec();
-    applicationInstance->getWindow()->activateWindow();
     if (ret != QDialog::Accepted) {
         return;
     }
