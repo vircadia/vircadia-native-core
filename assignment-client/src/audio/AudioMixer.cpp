@@ -326,6 +326,12 @@ void AudioMixer::run() {
                 
                 if (matchingNode) {
                     nodeList->updateNodeWithData(matchingNode, nodeAddress, packetData, receivedBytes);
+                    
+                    if (!matchingNode->getActiveSocket()) {
+                        // we don't have an active socket for this node, but they're talking to us
+                        // this means they've heard from us and can reply, let's assume public is active
+                        matchingNode->activatePublicSocket();
+                    }
                 }
             } else {
                 // let processNodeData handle it.
