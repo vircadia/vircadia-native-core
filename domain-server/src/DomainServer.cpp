@@ -326,6 +326,7 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     struct mg_callbacks callbacks = {};
     
     QString documentRoot = QString("%1/resources/web").arg(QCoreApplication::applicationDirPath());
+    qDebug("The document root is %s\n", documentRoot.toStdString());
     
     // list of options. Last element must be NULL.
     const char* options[] = {"listening_ports", "8080",
