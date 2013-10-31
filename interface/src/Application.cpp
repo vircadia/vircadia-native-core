@@ -2370,7 +2370,7 @@ void Application::queryVoxels() {
         return;
     }
     
-    bool bWantExtraDebugging = Menu::getInstance()->isOptionChecked(MenuOption::ExtraDebugging);
+    bool wantExtraDebugging = Menu::getInstance()->isOptionChecked(MenuOption::ExtraDebugging);
     
     // These will be the same for all servers, so we can set them up once and then reuse for each server we send to.
     _voxelQuery.setWantLowResMoving(Menu::getInstance()->isOptionChecked(MenuOption::LowRes));
@@ -2430,7 +2430,7 @@ void Application::queryVoxels() {
         }
     }
     
-    if (bWantExtraDebugging && unknownJurisdictionServers > 0) {
+    if (wantExtraDebugging && unknownJurisdictionServers > 0) {
         qDebug("Servers: total %d, in view %d, unknown jurisdiction %d \n", 
             totalServers, inViewServers, unknownJurisdictionServers);
     }
@@ -2450,7 +2450,7 @@ void Application::queryVoxels() {
         }
     }
     
-    if (bWantExtraDebugging && unknownJurisdictionServers > 0) {
+    if (wantExtraDebugging && unknownJurisdictionServers > 0) {
         qDebug("perServerPPS: %d perUnknownServer: %d\n", perServerPPS, perUnknownServer);
     }
     
@@ -2470,7 +2470,7 @@ void Application::queryVoxels() {
             // can get the jurisdiction...
             if (_voxelServerJurisdictions.find(nodeUUID) == _voxelServerJurisdictions.end()) {
                 unknownView = true; // assume it's in view
-                if (bWantExtraDebugging) {
+                if (wantExtraDebugging) {
                     qDebug() << "no known jurisdiction for node " << *node << ", assume it's visible.\n";
                 }
             } else {
@@ -2491,7 +2491,7 @@ void Application::queryVoxels() {
                         inView = false;
                     }
                 } else {
-                    if (bWantExtraDebugging) {
+                    if (wantExtraDebugging) {
                         qDebug() << "Jurisdiction without RootCode for node " << *node << ". That's unusual!\n";
                     }
                 }
@@ -2500,7 +2500,7 @@ void Application::queryVoxels() {
             if (inView) {
                 _voxelQuery.setMaxVoxelPacketsPerSecond(perServerPPS);
             } else if (unknownView) {
-                if (bWantExtraDebugging) {
+                if (wantExtraDebugging) {
                     qDebug() << "no known jurisdiction for node " << *node << ", give it budget of " 
                             << perUnknownServer << " to send us jurisdiction.\n";
                 }
@@ -2514,11 +2514,11 @@ void Application::queryVoxels() {
                     _voxelQuery.setCameraOrientation(OFF_IN_NEGATIVE_SPACE);
                     _voxelQuery.setCameraNearClip(0.1);
                     _voxelQuery.setCameraFarClip(0.1);
-                    if (bWantExtraDebugging) {
+                    if (wantExtraDebugging) {
                         qDebug() << "Using 'minimal' camera position for node " << *node << "\n";
                     }
                 } else {
-                    if (bWantExtraDebugging) {
+                    if (wantExtraDebugging) {
                         qDebug() << "Using regular camera position for node " << *node << "\n";
                     }
                 }
