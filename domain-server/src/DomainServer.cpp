@@ -325,12 +325,14 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     // setup the mongoose web server
     struct mg_callbacks callbacks = {};
     
-    QString documentRoot = QString("%1/resources/web").arg(QCoreApplication::applicationDirPath());
-    qDebug("The document root is %s\n", documentRoot.toLocal8Bit().constData());
+    QString documentRootString = QString("%1/resources/web").arg(QCoreApplication::applicationDirPath());
+    
+    char documentRoot[documentRootString.size() + 1];
+    strcpy(documentRoot, documentRootString.toLocal8Bit().constData());
     
     // list of options. Last element must be NULL.
     const char* options[] = {"listening_ports", "8080",
-        "document_root", documentRoot.toLocal8Bit().constData(), NULL};
+        "document_root", documentRoot, NULL};
     
     callbacks.begin_request = civetwebRequestHandler;
     callbacks.upload = civetwebUploadHandler;
