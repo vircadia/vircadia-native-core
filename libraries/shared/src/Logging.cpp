@@ -80,6 +80,10 @@ const char* stringForLogType(QtMsgType msgType) {
             return "FATAL";
         case QtWarningMsg:
             return "WARNING";
+        case QtTraceMsg:
+            return "TRACE";
+        default:
+            return "UNKNOWN";
     }
 }
 
