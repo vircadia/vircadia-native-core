@@ -61,6 +61,7 @@
 #include "ui/ChatEntry.h"
 #include "ui/VoxelStatsDialog.h"
 #include "ui/RearMirrorTools.h"
+#include "ui/LodToolsDialog.h"
 
 class QAction;
 class QActionGroup;
