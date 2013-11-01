@@ -102,7 +102,7 @@ void Head::init() {
         _eyePositionLocation = _irisProgram.uniformLocation("eyePosition");
         
         _irisTexture = Application::getInstance()->getTextureCache()->getTexture(QUrl::fromLocalFile(IRIS_TEXTURE_FILENAME),
-            true).staticCast<DilatableNetworkTexture>();
+            false, true).staticCast<DilatableNetworkTexture>();
     }
     _faceModel.init();
 }

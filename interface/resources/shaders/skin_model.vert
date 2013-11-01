@@ -8,7 +8,7 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
-const int MAX_CLUSTERS = 64;
+const int MAX_CLUSTERS = 128;
 const int INDICES_PER_VERTEX = 4;
 
 uniform mat4 clusterMatrices[MAX_CLUSTERS];

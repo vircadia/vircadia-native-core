@@ -126,6 +126,7 @@ public:
     VoxelSystem* getSharedVoxelSystem() { return &_sharedVoxelSystem; }
     VoxelTree* getClipboard() { return &_clipboard; }
     Environment* getEnvironment() { return &_environment; }
+    bool isMouseHidden() const { return _mouseHidden; }
     SerialInterface* getSerialHeadSensor() { return &_serialHeadSensor; }
     Webcam* getWebcam() { return &_webcam; }
     Faceshift* getFaceshift() { return &_faceshift; }

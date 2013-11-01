@@ -365,11 +365,11 @@ void NetworkGeometry::maybeReadModelWithMapping() {
             basePath = basePath.left(basePath.lastIndexOf('/') + 1);
             if (!part.diffuseFilename.isEmpty()) {
                 url.setPath(basePath + part.diffuseFilename);
-                networkPart.diffuseTexture = Application::getInstance()->getTextureCache()->getTexture(url, mesh.isEye);
+                networkPart.diffuseTexture = Application::getInstance()->getTextureCache()->getTexture(url, false, mesh.isEye);
             }
             if (!part.normalFilename.isEmpty()) {
                 url.setPath(basePath + part.normalFilename);
-                networkPart.normalTexture = Application::getInstance()->getTextureCache()->getTexture(url);
+                networkPart.normalTexture = Application::getInstance()->getTextureCache()->getTexture(url, true);
             }
             networkMesh.parts.append(networkPart);
                         

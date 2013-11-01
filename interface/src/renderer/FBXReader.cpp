@@ -560,50 +560,122 @@ void appendModelIDs(const QString& parentID, const QMultiHash<QString, QString>&
     }
 }
 
-FBXMesh extractMesh(const FBXNode& object) {
+class Vertex {
+public:
+    int originalIndex;
+    glm::vec2 texCoord;
+};
+
+uint qHash(const Vertex& vertex, uint seed = 0) {
+    return qHash(vertex.originalIndex, seed);
+}
+
+bool operator==(const Vertex& v1, const Vertex& v2) {
+    return v1.originalIndex == v2.originalIndex && v1.texCoord == v2.texCoord;
+}
+
+class ExtractedMesh {
+public:
     FBXMesh mesh;
-                    
+    QMultiHash<int, int> newIndices;
+};
+
+class MeshData {
+public:
+    ExtractedMesh extracted;
+    QVector<glm::vec3> vertices;
     QVector<int> polygonIndices;
+    bool normalsByVertex;
     QVector<glm::vec3> normals;
     QVector<int> normalIndices;
     QVector<glm::vec2> texCoords;
     QVector<int> texCoordIndices;
-    QVector<int> materials;
-    foreach (const FBXNode& data, object.children) {
-        if (data.name == "Vertices") {
-            mesh.vertices = createVec3Vector(getDoubleVector(data.properties, 0));
-            
-        } else if (data.name == "PolygonVertexIndex") {
-            polygonIndices = getIntVector(data.properties, 0);
+    
+    QHash<Vertex, int> indices;
+};
+
+void appendIndex(MeshData& data, QVector<int>& indices, int index) {
+    int vertexIndex = data.polygonIndices.at(index);
+    if (vertexIndex < 0) {
+        vertexIndex = -vertexIndex - 1;
+    }
+    
+    Vertex vertex;
+    vertex.originalIndex = vertexIndex;
+
+    glm::vec3 normal;
+    if (data.normalIndices.isEmpty()) {
+        normal = data.normals.at(data.normalsByVertex ? vertexIndex : index);
         
-        } else if (data.name == "LayerElementNormal") {
-            bool byVertex = false;
-            foreach (const FBXNode& subdata, data.children) {
+    } else {
+        int normalIndex = data.normalIndices.at(data.normalsByVertex ? vertexIndex : index);
+        if (normalIndex >= 0) {
+            normal = data.normals.at(normalIndex);
+        }
+    }
+
+    if (data.texCoordIndices.isEmpty()) {
+        if (index < data.texCoords.size()) {
+            vertex.texCoord = data.texCoords.at(index);    
+        }
+    } else {
+        int texCoordIndex = data.texCoordIndices.at(index);
+        if (texCoordIndex >= 0) {
+            vertex.texCoord = data.texCoords.at(texCoordIndex); 
+        }
+    }
+    
+    QHash<Vertex, int>::const_iterator it = data.indices.find(vertex);
+    if (it == data.indices.constEnd()) {
+        int newIndex = data.extracted.mesh.vertices.size();
+        indices.append(newIndex);
+        data.indices.insert(vertex, newIndex);
+        data.extracted.newIndices.insert(vertexIndex, newIndex);
+        data.extracted.mesh.vertices.append(data.vertices.at(vertexIndex));
+        data.extracted.mesh.normals.append(normal);
+        data.extracted.mesh.texCoords.append(vertex.texCoord);
+        
+    } else {
+        indices.append(*it);
+        data.extracted.mesh.normals[*it] += normal;
+    }
+}
+
+ExtractedMesh extractMesh(const FBXNode& object) {                
+    MeshData data;
+    QVector<int> materials;
+    foreach (const FBXNode& child, object.children) {
+        if (child.name == "Vertices") {
+            data.vertices = createVec3Vector(getDoubleVector(child.properties, 0));
+            
+        } else if (child.name == "PolygonVertexIndex") {
+            data.polygonIndices = getIntVector(child.properties, 0);
+        
+        } else if (child.name == "LayerElementNormal") {
+            data.normalsByVertex = false;
+            foreach (const FBXNode& subdata, child.children) {
                 if (subdata.name == "Normals") {
-                    normals = createVec3Vector(getDoubleVector(subdata.properties, 0));
+                    data.normals = createVec3Vector(getDoubleVector(subdata.properties, 0));
                 
                 } else if (subdata.name == "NormalsIndex") {
-                    normalIndices = getIntVector(subdata.properties, 0);
+                    data.normalIndices = getIntVector(subdata.properties, 0);
                     
                 } else if (subdata.name == "MappingInformationType" &&
                         subdata.properties.at(0) == "ByVertice") {
-                    byVertex = true;
+                    data.normalsByVertex = true;
                 }
             }
-            if (byVertex) {
-                mesh.normals = normals;
-            }
-        } else if (data.name == "LayerElementUV" && data.properties.at(0).toInt() == 0) {
-            foreach (const FBXNode& subdata, data.children) {
+        } else if (child.name == "LayerElementUV" && child.properties.at(0).toInt() == 0) {
+            foreach (const FBXNode& subdata, child.children) {
                 if (subdata.name == "UV") {
-                    texCoords = createVec2Vector(getDoubleVector(subdata.properties, 0));
+                    data.texCoords = createVec2Vector(getDoubleVector(subdata.properties, 0));
                     
                 } else if (subdata.name == "UVIndex") {
-                    texCoordIndices = getIntVector(subdata.properties, 0);
+                    data.texCoordIndices = getIntVector(subdata.properties, 0);
                 }
             }
-        } else if (data.name == "LayerElementMaterial") {
-            foreach (const FBXNode& subdata, data.children) {
+        } else if (child.name == "LayerElementMaterial") {
+            foreach (const FBXNode& subdata, child.children) {
                 if (subdata.name == "Materials") {
                     materials = getIntVector(subdata.properties, 0);   
                 }
@@ -611,62 +683,28 @@ FBXMesh extractMesh(const FBXNode& object) {
         }
     }
     
-    // convert normals from per-index to per-vertex if necessary
-    if (mesh.normals.isEmpty()) {
-        mesh.normals.resize(mesh.vertices.size());
-        if (normalIndices.isEmpty()) {
-            for (int i = 0, n = polygonIndices.size(); i < n; i++) {
-                int index = polygonIndices.at(i);
-                mesh.normals[index < 0 ? (-index - 1) : index] = normals.at(i);
-            } 
-        } else {
-            for (int i = 0, n = polygonIndices.size(); i < n; i++) {
-                int index = polygonIndices.at(i);
-                int normalIndex = normalIndices.at(i);
-                if (normalIndex >= 0) {
-                    mesh.normals[index < 0 ? (-index - 1) : index] = normals.at(normalIndex);
-                }
-            } 
-        }
-    }
-    
-    // same with the tex coords
-    if (!texCoordIndices.isEmpty()) {
-        mesh.texCoords.resize(mesh.vertices.size());
-        for (int i = 0, n = polygonIndices.size(); i < n; i++) {
-            int index = polygonIndices.at(i);
-            int texCoordIndex = texCoordIndices.at(i);
-            if (texCoordIndex >= 0) {
-                mesh.texCoords[index < 0 ? (-index - 1) : index] = texCoords.at(texCoordIndex); 
-            }
-        } 
-    }
-    
     // convert the polygons to quads and triangles
     int polygonIndex = 0;
-    for (const int* beginIndex = polygonIndices.constData(), *end = beginIndex + polygonIndices.size();
-            beginIndex != end; polygonIndex++) {
-        const int* endIndex = beginIndex;
-        while (*endIndex++ >= 0);
+    for (int beginIndex = 0; beginIndex < data.polygonIndices.size(); polygonIndex++) {
+        int endIndex = beginIndex;
+        while (data.polygonIndices.at(endIndex++) >= 0);
         
         int materialIndex = (polygonIndex < materials.size()) ? materials.at(polygonIndex) : 0;
-        mesh.parts.resize(max(mesh.parts.size(), materialIndex + 1));
-        FBXMeshPart& part = mesh.parts[materialIndex];
+        data.extracted.mesh.parts.resize(max(data.extracted.mesh.parts.size(), materialIndex + 1));
+        FBXMeshPart& part = data.extracted.mesh.parts[materialIndex];
         
         if (endIndex - beginIndex == 4) {
-            part.quadIndices.append(*beginIndex++);
-            part.quadIndices.append(*beginIndex++);
-            part.quadIndices.append(*beginIndex++);
-            part.quadIndices.append(-*beginIndex++ - 1);
+            appendIndex(data, part.quadIndices, beginIndex++);
+            appendIndex(data, part.quadIndices, beginIndex++);
+            appendIndex(data, part.quadIndices, beginIndex++);
+            appendIndex(data, part.quadIndices, beginIndex++);
             
         } else {
-            for (const int* nextIndex = beginIndex + 1;; ) {
-                part.triangleIndices.append(*beginIndex);
-                part.triangleIndices.append(*nextIndex++);
-                if (*nextIndex >= 0) {
-                    part.triangleIndices.append(*nextIndex);
-                } else {
-                    part.triangleIndices.append(-*nextIndex - 1);
+            for (int nextIndex = beginIndex + 1;; ) {
+                appendIndex(data, part.triangleIndices, beginIndex);
+                appendIndex(data, part.triangleIndices, nextIndex++);
+                appendIndex(data, part.triangleIndices, nextIndex);
+                if (data.polygonIndices.at(nextIndex) < 0) {
                     break;
                 }
             }
@@ -674,11 +712,11 @@ FBXMesh extractMesh(const FBXNode& object) {
         }
     }
     
-    return mesh;
+    return data.extracted;
 }
 
 void setTangents(FBXMesh& mesh, int firstIndex, int secondIndex) {
-    glm::vec3 normal = mesh.normals.at(firstIndex);
+    glm::vec3 normal = glm::normalize(mesh.normals.at(firstIndex));
     glm::vec3 bitangent = glm::cross(normal, mesh.vertices.at(secondIndex) - mesh.vertices.at(firstIndex));
     if (glm::length(bitangent) < EPSILON) {
         return;
@@ -689,7 +727,7 @@ void setTangents(FBXMesh& mesh, int firstIndex, int secondIndex) {
 }
 
 FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping) {
-    QHash<QString, FBXMesh> meshes;
+    QHash<QString, ExtractedMesh> meshes;
     QVector<ExtractedBlendshape> blendshapes;
     QMultiHash<QString, QString> parentMap;
     QMultiHash<QString, QString> childMap;
@@ -957,17 +995,17 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         QPair<int, float> index = blendshapeChannelIndices.value(blendshapeChannelID);
         QString blendshapeID = parentMap.value(blendshapeChannelID);
         QString meshID = parentMap.value(blendshapeID);
-        FBXMesh& mesh = meshes[meshID];
-        mesh.blendshapes.resize(max(mesh.blendshapes.size(), index.first + 1));
-        mesh.blendshapes[index.first] = extracted.blendshape;
-        
-        // apply scale if non-unity
-        if (index.second != 1.0f) {
-            FBXBlendshape& blendshape = mesh.blendshapes[index.first];
-            for (int i = 0; i < blendshape.vertices.size(); i++) {
-                blendshape.vertices[i] *= index.second;
-                blendshape.normals[i] *= index.second;
-            }
+        ExtractedMesh& extractedMesh = meshes[meshID];
+        extractedMesh.mesh.blendshapes.resize(max(extractedMesh.mesh.blendshapes.size(), index.first + 1));
+        FBXBlendshape& blendshape = extractedMesh.mesh.blendshapes[index.first];
+        for (int i = 0; i < extracted.blendshape.indices.size(); i++) {
+            int oldIndex = extracted.blendshape.indices.at(i);
+            for (QMultiHash<int, int>::const_iterator it = extractedMesh.newIndices.constFind(oldIndex);
+                    it != extractedMesh.newIndices.constEnd() && it.key() == oldIndex; it++) {
+                blendshape.indices.append(it.value());
+                blendshape.vertices.append(extracted.blendshape.vertices.at(i) * index.second);
+                blendshape.normals.append(extracted.blendshape.normals.at(i) * index.second);
+            } 
         }
     }
     
@@ -1055,22 +1093,22 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     
     QVariantHash springs = mapping.value("spring").toHash();
     QVariant defaultSpring = springs.value("default");
-    for (QHash<QString, FBXMesh>::iterator it = meshes.begin(); it != meshes.end(); it++) {
-        FBXMesh& mesh = it.value();
+    for (QHash<QString, ExtractedMesh>::iterator it = meshes.begin(); it != meshes.end(); it++) {
+        ExtractedMesh& extracted = it.value();
         
         // accumulate local transforms
         QString modelID = models.contains(it.key()) ? it.key() : parentMap.value(it.key());
-        mesh.springiness = springs.value(models.value(modelID).name, defaultSpring).toFloat();
+        extracted.mesh.springiness = springs.value(models.value(modelID).name, defaultSpring).toFloat();
         glm::mat4 modelTransform = getGlobalTransform(parentMap, models, modelID);
         
         // look for textures, material properties
-        int partIndex = mesh.parts.size() - 1;
+        int partIndex = extracted.mesh.parts.size() - 1;
         bool generateTangents = false;
         foreach (const QString& childID, childMap.values(modelID)) {
             if (partIndex < 0) {
                 break;
             }
-            FBXMeshPart& part = mesh.parts[partIndex];
+            FBXMeshPart& part = extracted.mesh.parts[partIndex];
             if (textureFilenames.contains(childID)) {
                 part.diffuseFilename = textureFilenames.value(childID);
                 continue;
@@ -1102,25 +1140,25 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         }
         
         // if we have a normal map (and texture coordinates), we must compute tangents
-        if (generateTangents && !mesh.texCoords.isEmpty()) {
-            mesh.tangents.resize(mesh.vertices.size());
-            foreach (const FBXMeshPart& part, mesh.parts) {
+        if (generateTangents && !extracted.mesh.texCoords.isEmpty()) {
+            extracted.mesh.tangents.resize(extracted.mesh.vertices.size());
+            foreach (const FBXMeshPart& part, extracted.mesh.parts) {
                 for (int i = 0; i < part.quadIndices.size(); i += 4) {
-                    setTangents(mesh, part.quadIndices.at(i), part.quadIndices.at(i + 1));
-                    setTangents(mesh, part.quadIndices.at(i + 1), part.quadIndices.at(i + 2));
-                    setTangents(mesh, part.quadIndices.at(i + 2), part.quadIndices.at(i + 3));
-                    setTangents(mesh, part.quadIndices.at(i + 3), part.quadIndices.at(i));
+                    setTangents(extracted.mesh, part.quadIndices.at(i), part.quadIndices.at(i + 1));
+                    setTangents(extracted.mesh, part.quadIndices.at(i + 1), part.quadIndices.at(i + 2));
+                    setTangents(extracted.mesh, part.quadIndices.at(i + 2), part.quadIndices.at(i + 3));
+                    setTangents(extracted.mesh, part.quadIndices.at(i + 3), part.quadIndices.at(i));
                 }
                 for (int i = 0; i < part.triangleIndices.size(); i += 3) {
-                    setTangents(mesh, part.triangleIndices.at(i), part.triangleIndices.at(i + 1));
-                    setTangents(mesh, part.triangleIndices.at(i + 1), part.triangleIndices.at(i + 2));
-                    setTangents(mesh, part.triangleIndices.at(i + 2), part.triangleIndices.at(i));
+                    setTangents(extracted.mesh, part.triangleIndices.at(i), part.triangleIndices.at(i + 1));
+                    setTangents(extracted.mesh, part.triangleIndices.at(i + 1), part.triangleIndices.at(i + 2));
+                    setTangents(extracted.mesh, part.triangleIndices.at(i + 2), part.triangleIndices.at(i));
                 }
             }
         }
         
         // find the clusters with which the mesh is associated
-        mesh.isEye = false;
+        extracted.mesh.isEye = false;
         QVector<QString> clusterIDs;
         foreach (const QString& childID, childMap.values(it.key())) {
             foreach (const QString& clusterID, childMap.values(childID)) {
@@ -1133,41 +1171,45 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                 
                 QString jointID = childMap.value(clusterID);
                 if (jointID == jointEyeLeftID || jointID == jointEyeRightID) {
-                    mesh.isEye = true;
+                    extracted.mesh.isEye = true;
                 }
                 // see http://stackoverflow.com/questions/13566608/loading-skinning-information-from-fbx for a discussion
                 // of skinning information in FBX
                 fbxCluster.jointIndex = modelIDs.indexOf(jointID);
                 fbxCluster.inverseBindMatrix = glm::inverse(cluster.transformLink) * modelTransform;
-                mesh.clusters.append(fbxCluster);
+                extracted.mesh.clusters.append(fbxCluster);
             }
         }
         
         // if we don't have a skinned joint, parent to the model itself
-        if (mesh.clusters.isEmpty()) {
+        if (extracted.mesh.clusters.isEmpty()) {
             FBXCluster cluster;
             cluster.jointIndex = modelIDs.indexOf(modelID);
-            mesh.clusters.append(cluster);
+            extracted.mesh.clusters.append(cluster);
         }
         
         // whether we're skinned depends on how many clusters are attached
         if (clusterIDs.size() > 1) {
-            mesh.clusterIndices.resize(mesh.vertices.size());
-            mesh.clusterWeights.resize(mesh.vertices.size());
+            extracted.mesh.clusterIndices.resize(extracted.mesh.vertices.size());
+            extracted.mesh.clusterWeights.resize(extracted.mesh.vertices.size());
             for (int i = 0; i < clusterIDs.size(); i++) {
                 QString clusterID = clusterIDs.at(i);
                 const Cluster& cluster = clusters[clusterID];
                 
                 for (int j = 0; j < cluster.indices.size(); j++) {
-                    int index = cluster.indices.at(j);
-                    glm::vec4& weights = mesh.clusterWeights[index];
+                    int oldIndex = cluster.indices.at(j);
+                    float weight = cluster.weights.at(j);
+                    for (QMultiHash<int, int>::const_iterator it = extracted.newIndices.constFind(oldIndex);
+                            it != extracted.newIndices.end() && it.key() == oldIndex; it++) {
+                        glm::vec4& weights = extracted.mesh.clusterWeights[it.value()];
                     
-                    // look for an unused slot in the weights vector
-                    for (int k = 0; k < 4; k++) {
-                        if (weights[k] == 0.0f) {
-                            mesh.clusterIndices[index][k] = i;
-                            weights[k] = cluster.weights.at(j);
-                            break;
+                        // look for an unused slot in the weights vector
+                        for (int k = 0; k < 4; k++) {
+                            if (weights[k] == 0.0f) {
+                                extracted.mesh.clusterIndices[it.value()][k] = i;
+                                weights[k] = weight;
+                                break;
+                            }
                         }
                     }
                 }
@@ -1175,11 +1217,11 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         }
         
         // extract spring edges, connections if springy
-        if (mesh.springiness > 0.0f) {
+        if (extracted.mesh.springiness > 0.0f) {
             QSet<QPair<int, int> > edges;
             
-            mesh.vertexConnections.resize(mesh.vertices.size());
-            foreach (const FBXMeshPart& part, mesh.parts) {
+            extracted.mesh.vertexConnections.resize(extracted.mesh.vertices.size());
+            foreach (const FBXMeshPart& part, extracted.mesh.parts) {
                 for (int i = 0; i < part.quadIndices.size(); i += 4) {
                     int index0 = part.quadIndices.at(i);
                     int index1 = part.quadIndices.at(i + 1);
@@ -1191,10 +1233,10 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                     edges.insert(QPair<int, int>(qMin(index2, index3), qMax(index2, index3)));
                     edges.insert(QPair<int, int>(qMin(index3, index0), qMax(index3, index0)));
                
-                    mesh.vertexConnections[index0].append(QPair<int, int>(index3, index1));
-                    mesh.vertexConnections[index1].append(QPair<int, int>(index0, index2));
-                    mesh.vertexConnections[index2].append(QPair<int, int>(index1, index3));
-                    mesh.vertexConnections[index3].append(QPair<int, int>(index2, index0));
+                    extracted.mesh.vertexConnections[index0].append(QPair<int, int>(index3, index1));
+                    extracted.mesh.vertexConnections[index1].append(QPair<int, int>(index0, index2));
+                    extracted.mesh.vertexConnections[index2].append(QPair<int, int>(index1, index3));
+                    extracted.mesh.vertexConnections[index3].append(QPair<int, int>(index2, index0));
                 }
                 for (int i = 0; i < part.triangleIndices.size(); i += 3) {
                     int index0 = part.triangleIndices.at(i);
@@ -1205,18 +1247,18 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                     edges.insert(QPair<int, int>(qMin(index1, index2), qMax(index1, index2)));
                     edges.insert(QPair<int, int>(qMin(index2, index0), qMax(index2, index0)));
                     
-                    mesh.vertexConnections[index0].append(QPair<int, int>(index2, index1));
-                    mesh.vertexConnections[index1].append(QPair<int, int>(index0, index2));
-                    mesh.vertexConnections[index2].append(QPair<int, int>(index1, index0));
+                    extracted.mesh.vertexConnections[index0].append(QPair<int, int>(index2, index1));
+                    extracted.mesh.vertexConnections[index1].append(QPair<int, int>(index0, index2));
+                    extracted.mesh.vertexConnections[index2].append(QPair<int, int>(index1, index0));
                 }
             }
             
             for (QSet<QPair<int, int> >::const_iterator edge = edges.constBegin(); edge != edges.constEnd(); edge++) {
-                mesh.springEdges.append(*edge);
+                extracted.mesh.springEdges.append(*edge);
             }
         }
         
-        geometry.meshes.append(mesh);
+        geometry.meshes.append(extracted.mesh);
     }
     
     // process attachments
