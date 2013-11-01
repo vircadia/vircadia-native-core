@@ -16,6 +16,7 @@ void main(void) {
     //
     // The effect with the current approach is that some "projections" are smaller than they should be, and we get a 
     // thinning effect. However, this may not matter when we actually switch to using cubes and points in concert.
+    //
     
     vec4 farCornerVertex = gl_Vertex;
     farCornerVertex += vec4(voxelSizeIn, voxelSizeIn, voxelSizeIn, 0.0);
