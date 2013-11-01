@@ -63,7 +63,7 @@ void FaceModel::maybeUpdateEyeRotation(const JointState& parentState, const FBXJ
     glm::vec3 lookAt = glm::vec3(inverse * glm::vec4(_owningHead->getLookAtPosition() +
         _owningHead->getSaccade(), 1.0f));
     glm::quat between = rotationBetween(front, lookAt);
-    const float MAX_ANGLE = 22.5f;
+    const float MAX_ANGLE = 30.0f;
     state.rotation = glm::angleAxis(glm::clamp(glm::angle(between), -MAX_ANGLE, MAX_ANGLE), glm::axis(between)) *
         joint.rotation;
 }
