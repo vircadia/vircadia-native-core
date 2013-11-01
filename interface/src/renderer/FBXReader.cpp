@@ -326,11 +326,11 @@ QVariantHash parseMapping(QIODevice* device) {
         }
         QByteArray name = sections.at(0).trimmed();
         if (sections.size() == 2) {
-            properties.insert(name, sections.at(1).trimmed());
+            properties.insertMulti(name, sections.at(1).trimmed());
         
         } else if (sections.size() == 3) {
             QVariantHash heading = properties.value(name).toHash();
-            heading.insert(sections.at(1).trimmed(), sections.at(2).trimmed());
+            heading.insertMulti(sections.at(1).trimmed(), sections.at(2).trimmed());
             properties.insert(name, heading);
             
         } else if (sections.size() >= 4) {
@@ -677,6 +677,17 @@ FBXMesh extractMesh(const FBXNode& object) {
     return mesh;
 }
 
+void setTangents(FBXMesh& mesh, int firstIndex, int secondIndex) {
+    glm::vec3 normal = mesh.normals.at(firstIndex);
+    glm::vec3 bitangent = glm::cross(normal, mesh.vertices.at(secondIndex) - mesh.vertices.at(firstIndex));
+    if (glm::length(bitangent) < EPSILON) {
+        return;
+    }
+    glm::vec2 texCoordDelta = mesh.texCoords.at(secondIndex) - mesh.texCoords.at(firstIndex);
+    mesh.tangents[firstIndex] += glm::cross(glm::angleAxis(
+        -glm::degrees(atan2f(-texCoordDelta.t, texCoordDelta.s)), normal) * glm::normalize(bitangent), normal);
+}
+
 FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping) {
     QHash<QString, FBXMesh> meshes;
     QVector<ExtractedBlendshape> blendshapes;
@@ -696,12 +707,16 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     QString jointRootName = processID(joints.value("jointRoot", "jointRoot").toString());
     QString jointLeanName = processID(joints.value("jointLean", "jointLean").toString());
     QString jointHeadName = processID(joints.value("jointHead", "jointHead").toString());
+    QString jointLeftHandName = processID(joints.value("jointLeftHand", "jointLeftHand").toString());
+    QString jointRightHandName = processID(joints.value("jointRightHand", "jointRightHand").toString());
     QString jointEyeLeftID;
     QString jointEyeRightID;
     QString jointNeckID;
     QString jointRootID;
     QString jointLeanID;
     QString jointHeadID;
+    QString jointLeftHandID;
+    QString jointRightHandID;
     
     QVariantHash blendshapeMappings = mapping.value("bs").toHash();
     QHash<QByteArray, QPair<int, float> > blendshapeIndices;
@@ -775,6 +790,12 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                         
                     } else if (name == jointHeadName) {
                         jointHeadID = getID(object.properties);
+                        
+                    } else if (name == jointLeftHandName) {
+                        jointLeftHandID = getID(object.properties);
+                        
+                    } else if (name == jointRightHandName) {
+                        jointRightHandID = getID(object.properties);
                     }
                     glm::vec3 translation;
                     glm::vec3 rotationOffset;
@@ -978,10 +999,24 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     }
     
     // convert the models to joints
+    QVariantList freeJoints = mapping.values("freeJoint");
     foreach (const QString& modelID, modelIDs) {
         const FBXModel& model = models[modelID];
         FBXJoint joint;
+        joint.isFree = freeJoints.contains(model.name);
         joint.parentIndex = model.parentIndex;
+        
+        // get the indices of all ancestors starting with the first free one (if any)
+        joint.freeLineage.append(geometry.joints.size());
+        int lastFreeIndex = joint.isFree ? 0 : -1;
+        for (int index = joint.parentIndex; index != -1; index = geometry.joints.at(index).parentIndex) {
+            if (geometry.joints.at(index).isFree) {
+                lastFreeIndex = joint.freeLineage.size();
+            }
+            joint.freeLineage.append(index);
+        }
+        joint.freeLineage.remove(lastFreeIndex + 1, joint.freeLineage.size() - lastFreeIndex - 1);
+        
         joint.preTransform = model.preTransform;
         joint.preRotation = model.preRotation;
         joint.rotation = model.rotation;
@@ -1009,6 +1044,8 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     geometry.rootJointIndex = modelIDs.indexOf(jointRootID);
     geometry.leanJointIndex = modelIDs.indexOf(jointLeanID);
     geometry.headJointIndex = modelIDs.indexOf(jointHeadID);
+    geometry.leftHandJointIndex = modelIDs.indexOf(jointLeftHandID);
+    geometry.rightHandJointIndex = modelIDs.indexOf(jointRightHandID);
     
     // extract the translation component of the neck transform
     if (geometry.neckJointIndex != -1) {
@@ -1028,6 +1065,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         
         // look for textures, material properties
         int partIndex = mesh.parts.size() - 1;
+        bool generateTangents = false;
         foreach (const QString& childID, childMap.values(modelID)) {
             if (partIndex < 0) {
                 break;
@@ -1058,8 +1096,27 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
             QString bumpTextureID = bumpTextures.value(childID);
             if (!bumpTextureID.isNull()) {
                 part.normalFilename = textureFilenames.value(bumpTextureID);
+                generateTangents = true;
             }
             partIndex--;
+        }
+        
+        // if we have a normal map (and texture coordinates), we must compute tangents
+        if (generateTangents && !mesh.texCoords.isEmpty()) {
+            mesh.tangents.resize(mesh.vertices.size());
+            foreach (const FBXMeshPart& part, mesh.parts) {
+                for (int i = 0; i < part.quadIndices.size(); i += 4) {
+                    setTangents(mesh, part.quadIndices.at(i), part.quadIndices.at(i + 1));
+                    setTangents(mesh, part.quadIndices.at(i + 1), part.quadIndices.at(i + 2));
+                    setTangents(mesh, part.quadIndices.at(i + 2), part.quadIndices.at(i + 3));
+                    setTangents(mesh, part.quadIndices.at(i + 3), part.quadIndices.at(i));
+                }
+                for (int i = 0; i < part.triangleIndices.size(); i += 3) {
+                    setTangents(mesh, part.triangleIndices.at(i), part.triangleIndices.at(i + 1));
+                    setTangents(mesh, part.triangleIndices.at(i + 1), part.triangleIndices.at(i + 2));
+                    setTangents(mesh, part.triangleIndices.at(i + 2), part.triangleIndices.at(i));
+                }
+            }
         }
         
         // find the clusters with which the mesh is associated
@@ -1277,7 +1334,8 @@ FBXGeometry readSVO(const QByteArray& model) {
     FBXGeometry geometry;
     
     // we have one joint
-    FBXJoint joint = { -1 };
+    FBXJoint joint = { false };
+    joint.parentIndex = -1;
     geometry.joints.append(joint);
     
     // and one mesh with one cluster and one part

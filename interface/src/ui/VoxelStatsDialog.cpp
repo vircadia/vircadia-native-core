@@ -34,7 +34,6 @@ VoxelStatsDialog::VoxelStatsDialog(QWidget* parent, VoxelSceneStats* model) :
         VoxelSceneStats::Item item = (VoxelSceneStats::Item)(i);
         VoxelSceneStats::ItemInfo& itemInfo = _model->getItemInfo(item);
         QLabel* label = _labels[item] = new QLabel();  
-        label->setAlignment(Qt::AlignRight);
 
         // Set foreground color to 62.5% brightness of the meter (otherwise will be hard to read on the bright background)
         QPalette palette = label->palette();
@@ -45,8 +44,8 @@ VoxelStatsDialog::VoxelStatsDialog(QWidget* parent, VoxelSceneStats* model) :
         palette.setColor(QPalette::WindowText, QColor::fromRgb(rgb));
         label->setPalette(palette);
         
-        // This is my hackery attempt at making QDialog auto-size to a width that will hold our info. It kinda works.
-        label->setText("123456789012345678901234567890123456789012345678901234567890");
+        const int STATS_LABEL_WIDTH = 550;
+        label->setFixedWidth(STATS_LABEL_WIDTH);
 
         snprintf(strBuf, sizeof(strBuf), " %s:", itemInfo.caption);
         form->addRow(strBuf, label);

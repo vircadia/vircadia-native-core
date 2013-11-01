@@ -150,6 +150,7 @@ public:
     SkeletonModel& getSkeletonModel() { return _skeletonModel; }
     float getHeadYawRate() const { return _head.yawRate; }
     const glm::vec3& getHeadJointPosition() const { return _skeleton.joint[ AVATAR_JOINT_HEAD_BASE ].position; }
+    const glm::vec3& getChestJointPosition() const { return _skeleton.joint[ AVATAR_JOINT_CHEST ].position; }
     float getScale() const { return _scale; }
     const glm::vec3& getVelocity() const { return _velocity; }
     Head& getHead() { return _head; }
@@ -205,7 +206,6 @@ protected:
     SkeletonModel _skeletonModel;
     bool _ballSpringsInitialized;
     float _bodyYawDelta;
-    glm::vec3 _movedHandOffset;
     AvatarBall _bodyBall[ NUM_AVATAR_BODY_BALLS ];
     AvatarMode _mode;
     glm::vec3 _velocity;

@@ -10,6 +10,8 @@
 #include <SharedUtil.h>
 #include <SceneUtils.h>
 #include <JurisdictionMap.h>
+#include <QString>
+#include <QStringList>
 
 VoxelTree myTree;
 
@@ -233,9 +235,44 @@ void processFillSVOFile(const char* fillSVOFile) {
 }
 
 
-int old_main(int argc, const char * argv[])
+int main(int argc, const char * argv[])
 {
     qInstallMessageHandler(sharedMessageHandler);
+    
+    
+    const char* GET_OCTCODE = "--getOctCode";
+    const char* octcodeParams = getCmdOption(argc, argv, GET_OCTCODE);
+    if (octcodeParams) {
+
+        QString octcodeParamsString(octcodeParams);
+        QStringList octcodeParamsList = octcodeParamsString.split(QString(","));
+
+        enum { X_AT, Y_AT, Z_AT, S_AT, EXPECTED_PARAMS };
+        if (octcodeParamsList.size() == EXPECTED_PARAMS) {
+            QString xStr = octcodeParamsList.at(X_AT);
+            QString yStr = octcodeParamsList.at(Y_AT);
+            QString zStr = octcodeParamsList.at(Z_AT);
+            QString sStr = octcodeParamsList.at(S_AT);
+
+            float x = xStr.toFloat()/TREE_SCALE; // 0.14745788574219;
+            float y = yStr.toFloat()/TREE_SCALE; // 0.01502178955078;
+            float z = zStr.toFloat()/TREE_SCALE; // 0.56540045166016;
+            float s = sStr.toFloat()/TREE_SCALE; // 0.015625;
+
+            qDebug() << "Get Octal Code for:\n";
+            qDebug() << "    x:" << xStr << " [" << x << "] \n";
+            qDebug() << "    y:" << yStr << " [" << y << "] \n";
+            qDebug() << "    z:" << zStr << " [" << z << "] \n";
+            qDebug() << "    s:" << sStr << " [" << s << "] \n";
+
+            unsigned char* octalCode = pointToVoxel(x, y, z, s);
+            QString octalCodeStr = octalCodeToHexString(octalCode);
+            qDebug() << "octal code: " << octalCodeStr << "\n";
+
+        } else {
+            qDebug() << "Unexpected number of parameters for getOctCode\n";
+        }
+    }    
 
     // Handles taking and SVO and splitting it into multiple SVOs based on
     // jurisdiction details
@@ -360,10 +397,4 @@ void unitTest(VoxelTree * tree) {
         printf("WTH!?!\n");
     }
     
-}
-
-
-int main(int argc, const char * argv[]) {
-    unitTest(&myTree);
-    return 0;
 }

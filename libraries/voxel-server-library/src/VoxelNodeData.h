@@ -48,30 +48,35 @@ public:
     VoxelNodeBag nodeBag;
     CoverageMap map;
 
-    ViewFrustum& getCurrentViewFrustum()     { return _currentViewFrustum; };
-    ViewFrustum& getLastKnownViewFrustum()   { return _lastKnownViewFrustum; };
+    ViewFrustum& getCurrentViewFrustum() { return _currentViewFrustum; };
+    ViewFrustum& getLastKnownViewFrustum() { return _lastKnownViewFrustum; };
     
     // These are not classic setters because they are calculating and maintaining state
     // which is set asynchronously through the network receive
     bool updateCurrentViewFrustum();
     void updateLastKnownViewFrustum();
 
-    bool getViewSent() const        { return _viewSent; };
+    bool getViewSent() const { return _viewSent; };
     void setViewSent(bool viewSent);
 
-    bool getViewFrustumChanging()            const { return _viewFrustumChanging;            };
+    bool getViewFrustumChanging() const { return _viewFrustumChanging;            };
     bool getViewFrustumJustStoppedChanging() const { return _viewFrustumJustStoppedChanging; };
-    
 
-    uint64_t  getLastTimeBagEmpty() const                      { return _lastTimeBagEmpty; };
-    void      setLastTimeBagEmpty(uint64_t lastTimeBagEmpty)  { _lastTimeBagEmpty = lastTimeBagEmpty; };
+    bool moveShouldDump() const;
+
+    uint64_t getLastTimeBagEmpty() const { return _lastTimeBagEmpty; };
+    void setLastTimeBagEmpty(uint64_t lastTimeBagEmpty) { _lastTimeBagEmpty = lastTimeBagEmpty; };
 
     bool getCurrentPacketIsColor() const { return _currentPacketIsColor; };
+
+    bool hasLodChanged() const { return _lodChanged; };
     
     VoxelSceneStats stats;
     
     void initializeVoxelSendThread(VoxelServer* voxelServer);
     bool isVoxelSendThreadInitalized() { return _voxelSendThread; }
+    
+    void dumpOutOfView();
     
 private:
     VoxelNodeData(const VoxelNodeData &);
@@ -98,6 +103,12 @@ private:
     bool _currentPacketIsColor;
 
     VoxelSendThread* _voxelSendThread;
+
+    // watch for LOD changes
+    int _lastClientBoundaryLevelAdjust;
+    float _lastClientVoxelSizeScale;
+    bool _lodChanged;
+    bool _lodInitialized;
 };
 
 #endif /* defined(__hifi__VoxelNodeData__) */

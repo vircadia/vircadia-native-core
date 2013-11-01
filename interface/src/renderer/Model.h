@@ -70,6 +70,22 @@ public:
     /// \return whether or not both eye meshes were found
     bool getEyePositions(glm::vec3& firstEyePosition, glm::vec3& secondEyePosition) const;
     
+    /// Sets the position of the left hand using inverse kinematics.
+    /// \return whether or not the left hand joint was found
+    bool setLeftHandPosition(const glm::vec3& position);
+    
+    /// Sets the rotation of the left hand.
+    /// \return whether or not the left hand joint was found
+    bool setLeftHandRotation(const glm::quat& rotation);
+    
+    /// Sets the position of the right hand using inverse kinematics.
+    /// \return whether or not the right hand joint was found
+    bool setRightHandPosition(const glm::vec3& position);
+    
+    /// Sets the rotation of the right hand.
+    /// \return whether or not the right hand joint was found
+    bool setRightHandRotation(const glm::quat& rotation);
+    
     /// Returns the average color of all meshes in the geometry.
     glm::vec4 computeAverageColor() const;
 
@@ -91,6 +107,16 @@ protected:
     
     QVector<JointState> _jointStates;
     
+    class MeshState {
+    public:
+        QVector<glm::mat4> clusterMatrices;
+        QVector<glm::vec3> worldSpaceVertices;
+        QVector<glm::vec3> vertexVelocities;
+        QVector<glm::vec3> worldSpaceNormals;
+    };
+    
+    QVector<MeshState> _meshStates;
+    
     /// Updates the state of the joint at the specified index.
     virtual void updateJointState(int index);
     
@@ -101,6 +127,9 @@ protected:
     bool getJointPosition(int jointIndex, glm::vec3& position) const;
     bool getJointRotation(int jointIndex, glm::quat& rotation) const;
     
+    bool setJointPosition(int jointIndex, const glm::vec3& position);
+    bool setJointRotation(int jointIndex, const glm::quat& rotation);
+    
 private:
     
     void deleteGeometry();
@@ -110,15 +139,6 @@ private:
     
     QUrl _url;
     
-    class MeshState {
-    public:
-        QVector<glm::mat4> clusterMatrices;
-        QVector<glm::vec3> worldSpaceVertices;
-        QVector<glm::vec3> vertexVelocities;
-        QVector<glm::vec3> worldSpaceNormals;
-    };
-    
-    QVector<MeshState> _meshStates;
     QVector<GLuint> _blendedVertexBufferIDs;
     QVector<QVector<QSharedPointer<Texture> > > _dilatedTextures;
     bool _resetStates;
@@ -129,10 +149,24 @@ private:
     QVector<Model*> _attachments;
     
     static ProgramObject _program;
+    static ProgramObject _normalMapProgram;
     static ProgramObject _skinProgram;
-    static int _clusterMatricesLocation;
-    static int _clusterIndicesLocation;
-    static int _clusterWeightsLocation;
+    static ProgramObject _skinNormalMapProgram;
+    
+    static int _normalMapTangentLocation;
+    
+    class SkinLocations {
+    public:
+        int clusterMatrices;
+        int clusterIndices;
+        int clusterWeights;
+        int tangent;
+    };
+    
+    static SkinLocations _skinLocations;
+    static SkinLocations _skinNormalMapLocations;
+    
+    static void initSkinProgram(ProgramObject& program, SkinLocations& locations);
 };
 
 #endif /* defined(__interface__Model__) */

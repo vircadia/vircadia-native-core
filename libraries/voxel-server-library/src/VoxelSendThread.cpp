@@ -63,6 +63,7 @@ void VoxelSendThread::handlePacketSend(Node* node, VoxelNodeData* nodeData, int&
     // obscure the packet and not send it. This allows the callers and upper level logic to not need to know about
     // this rate control savings.
     if (nodeData->shouldSuppressDuplicatePacket()) {
+        nodeData->resetVoxelPacket(); // we still need to reset it though!
         return; // without sending...
     }
 
@@ -174,8 +175,8 @@ void VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* no
                 
         // if our view has changed, we need to reset these things...
         if (viewFrustumChanged) {
-            if (_myServer->wantDumpVoxelsOnMove()) {
-                nodeData->nodeBag.deleteAll();
+            if (_myServer->wantDumpVoxelsOnMove() || nodeData->moveShouldDump() || nodeData->hasLodChanged()) {
+                nodeData->dumpOutOfView();
             }
             nodeData->map.erase();
         } 
@@ -193,7 +194,8 @@ void VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* no
         }
         
         // start tracking our stats
-        bool isFullScene = (!viewFrustumChanged || !nodeData->getWantDelta()) && nodeData->getViewFrustumJustStoppedChanging();
+        bool isFullScene = ((!viewFrustumChanged || !nodeData->getWantDelta()) 
+                                && nodeData->getViewFrustumJustStoppedChanging()) || nodeData->hasLodChanged();
         
         // If we're starting a full scene, then definitely we want to empty the nodeBag
         if (isFullScene) {
@@ -249,15 +251,20 @@ void VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* no
                 VoxelNode* subTree = nodeData->nodeBag.extract();
                 bool wantOcclusionCulling = nodeData->getWantOcclusionCulling();
                 CoverageMap* coverageMap = wantOcclusionCulling ? &nodeData->map : IGNORE_COVERAGE_MAP;
-                int boundaryLevelAdjust = viewFrustumChanged && nodeData->getWantLowResMoving() 
-                                          ? LOW_RES_MOVING_ADJUST : NO_BOUNDARY_ADJUST;
 
-                bool isFullScene = (!viewFrustumChanged || !nodeData->getWantDelta()) && 
-                                 nodeData->getViewFrustumJustStoppedChanging();
+                float voxelSizeScale = nodeData->getVoxelSizeScale();
+                int boundaryLevelAdjustClient = nodeData->getBoundaryLevelAdjust();
+
+                int boundaryLevelAdjust = boundaryLevelAdjustClient + (viewFrustumChanged && nodeData->getWantLowResMoving() 
+                                                                              ? LOW_RES_MOVING_ADJUST : NO_BOUNDARY_ADJUST);
+
+
+                bool isFullScene = ((!viewFrustumChanged || !nodeData->getWantDelta()) && 
+                                 nodeData->getViewFrustumJustStoppedChanging()) || nodeData->hasLodChanged();
                 
                 EncodeBitstreamParams params(INT_MAX, &nodeData->getCurrentViewFrustum(), wantColor, 
                                              WANT_EXISTS_BITS, DONT_CHOP, wantDelta, lastViewFrustum,
-                                             wantOcclusionCulling, coverageMap, boundaryLevelAdjust,
+                                             wantOcclusionCulling, coverageMap, boundaryLevelAdjust, voxelSizeScale,
                                              nodeData->getLastTimeBagEmpty(),
                                              isFullScene, &nodeData->stats, _myServer->getJurisdiction());
                       

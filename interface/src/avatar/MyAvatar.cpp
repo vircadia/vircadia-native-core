@@ -828,17 +828,19 @@ void MyAvatar::updateHandMovementAndTouching(float deltaTime, bool enableHandMov
     glm::quat orientation = getOrientation();
     
     // reset hand and arm positions according to hand movement
-    glm::vec3 right = orientation * IDENTITY_RIGHT;
     glm::vec3 up = orientation * IDENTITY_UP;
-    glm::vec3 front = orientation * IDENTITY_FRONT;
     
-    if (enableHandMovement) {
-        glm::vec3 transformedHandMovement =
-            right *  _movedHandOffset.x * 2.0f +
-            up * -_movedHandOffset.y * 2.0f +
-            front * -_movedHandOffset.y * 2.0f;
-    
-        _skeleton.joint[ AVATAR_JOINT_RIGHT_FINGERTIPS ].position += transformedHandMovement;
+    if (enableHandMovement && glm::length(_mouseRayDirection) > EPSILON) {
+        // confine to the approximate shoulder plane
+        glm::vec3 pointDirection = _mouseRayDirection;
+        if (glm::dot(_mouseRayDirection, up) > 0.0f) {
+            glm::vec3 projectedVector = glm::cross(up, glm::cross(_mouseRayDirection, up));
+            if (glm::length(projectedVector) > EPSILON) {
+                pointDirection = glm::normalize(projectedVector);
+            }
+        }
+        const float FAR_AWAY_POINT = TREE_SCALE;
+        _skeleton.joint[AVATAR_JOINT_RIGHT_FINGERTIPS].position = _mouseRayOrigin + pointDirection * FAR_AWAY_POINT;
     }
     
     _avatarTouch.setMyBodyPosition(_position);

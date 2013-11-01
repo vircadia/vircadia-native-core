@@ -35,6 +35,7 @@ class QSettings;
 
 class BandwidthDialog;
 class VoxelStatsDialog;
+class LodToolsDialog;
 
 class Menu : public QMenuBar {
     Q_OBJECT
@@ -53,15 +54,23 @@ public:
     FrustumDrawMode getFrustumDrawMode() const { return _frustumDrawMode; }
     ViewFrustumOffset getViewFrustumOffset() const { return _viewFrustumOffset; }
     VoxelStatsDialog* getVoxelStatsDialog() const { return _voxelStatsDialog; }
+    LodToolsDialog* getLodToolsDialog() const { return _lodToolsDialog; }
     int getMaxVoxels() const { return _maxVoxels; }
     QAction* getUseVoxelShader() const { return _useVoxelShader; }
 
     
     void handleViewFrustumOffsetKeyModifier(int key);
+
+    // User Tweakable LOD Items
+    void setVoxelSizeScale(float sizeScale);
+    float getVoxelSizeScale() const { return _voxelSizeScale; }
+    void setBoundaryLevelAdjust(int boundaryLevelAdjust);
+    int getBoundaryLevelAdjust() const { return _boundaryLevelAdjust; }
     
 public slots:
     void bandwidthDetails();
     void voxelStatsDetails();
+    void lodTools();
     void loadSettings(QSettings* settings = NULL);
     void saveSettings(QSettings* settings = NULL);
     void importSettings();
@@ -76,6 +85,7 @@ private slots:
     void goToLocation();
     void bandwidthDetailsClosed();
     void voxelStatsDetailsClosed();
+    void lodToolsClosed();
     void cycleFrustumRenderMode();
     void updateVoxelModeActions();
     void chooseVoxelPaintColor();
@@ -120,7 +130,10 @@ private:
     ViewFrustumOffset _viewFrustumOffset;
     QActionGroup* _voxelModeActionsGroup;
     VoxelStatsDialog* _voxelStatsDialog;
+    LodToolsDialog* _lodToolsDialog;
     int _maxVoxels;
+    float _voxelSizeScale;
+    int _boundaryLevelAdjust;
     QAction* _useVoxelShader;
 };
 
@@ -150,6 +163,7 @@ namespace MenuOption {
     const QString DontCallOpenGLForVoxels = "Don't call glDrawRangeElementsEXT() for Voxels";
     const QString EchoAudio = "Echo Audio";
     const QString ExportVoxels = "Export Voxels";
+    const QString ExtraDebugging = "Extra Debugging";
     const QString HeadMouse = "Head Mouse";
     const QString FaceMode = "Cycle Face Mode";
     const QString FaceshiftTCP = "Faceshift (TCP)";
@@ -177,8 +191,8 @@ namespace MenuOption {
     const QString KillLocalVoxels = "Kill Local Voxels";
     const QString GoHome = "Go Home";
     const QString Gravity = "Use Gravity";
-    const QString GroundPlane = "Ground Plane";
     const QString ParticleCloud = "Particle Cloud";
+    const QString LodTools = "LOD Tools";
     const QString Log = "Log";
     const QString Login = "Login";
     const QString LookAtIndicator = "Look-at Indicator";

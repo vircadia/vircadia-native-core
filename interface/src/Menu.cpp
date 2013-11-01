@@ -53,7 +53,10 @@ Menu::Menu() :
     _viewFrustumOffset(DEFAULT_FRUSTUM_OFFSET),
     _voxelModeActionsGroup(NULL),
     _voxelStatsDialog(NULL),
-    _maxVoxels(DEFAULT_MAX_VOXELS_PER_SYSTEM)
+    _lodToolsDialog(NULL),
+    _maxVoxels(DEFAULT_MAX_VOXELS_PER_SYSTEM),
+    _voxelSizeScale(DEFAULT_VOXEL_SIZE_SCALE),
+    _boundaryLevelAdjust(0)
 {
     Application *appInstance = Application::getInstance();
     
@@ -249,7 +252,6 @@ Menu::Menu() :
 
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Stars, Qt::Key_Asterisk, true);
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Atmosphere, Qt::SHIFT | Qt::Key_A, true);
-    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::GroundPlane, 0, true);
     addActionToQMenuAndActionHash(renderOptionsMenu,
                                   MenuOption::GlowMode,
                                   0,
@@ -278,6 +280,7 @@ Menu::Menu() :
 
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::VoxelTextures);
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::AmbientOcclusion);
+    addActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::LodTools, Qt::SHIFT | Qt::Key_L, this, SLOT(lodTools()));
 
     QMenu* cullingOptionsMenu = voxelOptionsMenu->addMenu("Culling Options");
     addDisabledActionAndSeparator(cullingOptionsMenu, "Standard Settings");
@@ -467,35 +470,14 @@ Menu::Menu() :
     
     QMenu* voxelProtoOptionsMenu = developerMenu->addMenu("Voxel Server Protocol Options");
     
-    addCheckableActionToQMenuAndActionHash(voxelProtoOptionsMenu,
-                                           MenuOption::SendVoxelColors,
-                                           0,
-                                           true,
-                                           appInstance->getAvatar(),
-                                           SLOT(setWantColor(bool)));
-    
-    addCheckableActionToQMenuAndActionHash(voxelProtoOptionsMenu,
-                                           MenuOption::LowRes,
-                                           0,
-                                           true,
-                                           appInstance->getAvatar(),
-                                           SLOT(setWantLowResMoving(bool)));
-    
-    addCheckableActionToQMenuAndActionHash(voxelProtoOptionsMenu,
-                                           MenuOption::DeltaSending,
-                                           0,
-                                           true,
-                                           appInstance->getAvatar(),
-                                           SLOT(setWantDelta(bool)));
-    
-    addCheckableActionToQMenuAndActionHash(voxelProtoOptionsMenu,
-                                           MenuOption::OcclusionCulling,
-                                           Qt::SHIFT | Qt::Key_C,
-                                           true,
-                                           appInstance->getAvatar(),
-                                           SLOT(setWantOcclusionCulling(bool)));
-
+    addCheckableActionToQMenuAndActionHash(voxelProtoOptionsMenu, MenuOption::SendVoxelColors);
+    addCheckableActionToQMenuAndActionHash(voxelProtoOptionsMenu, MenuOption::LowRes);
+    addCheckableActionToQMenuAndActionHash(voxelProtoOptionsMenu, MenuOption::DeltaSending);    
+    addCheckableActionToQMenuAndActionHash(voxelProtoOptionsMenu, MenuOption::OcclusionCulling);
     addCheckableActionToQMenuAndActionHash(voxelProtoOptionsMenu, MenuOption::DestructiveAddVoxel);
+
+    addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::ExtraDebugging);
+
     
 #ifndef Q_OS_MAC
     QMenu* helpMenu = addMenu("Help");
@@ -518,6 +500,8 @@ void Menu::loadSettings(QSettings* settings) {
     _audioJitterBufferSamples = loadSetting(settings, "audioJitterBufferSamples", 0);
     _fieldOfView = loadSetting(settings, "fieldOfView", DEFAULT_FIELD_OF_VIEW_DEGREES);
     _maxVoxels = loadSetting(settings, "maxVoxels", DEFAULT_MAX_VOXELS_PER_SYSTEM);
+    _voxelSizeScale = loadSetting(settings, "voxelSizeScale", DEFAULT_VOXEL_SIZE_SCALE);
+    _boundaryLevelAdjust = loadSetting(settings, "boundaryLevelAdjust", 0);
     
     settings->beginGroup("View Frustum Offset Camera");
     // in case settings is corrupt or missing loadSetting() will check for NaN
@@ -544,6 +528,8 @@ void Menu::saveSettings(QSettings* settings) {
     settings->setValue("audioJitterBufferSamples", _audioJitterBufferSamples);
     settings->setValue("fieldOfView", _fieldOfView);
     settings->setValue("maxVoxels", _maxVoxels);
+    settings->setValue("voxelSizeScale", _voxelSizeScale);
+    settings->setValue("boundaryLevelAdjust", _boundaryLevelAdjust);
     settings->beginGroup("View Frustum Offset Camera");
     settings->setValue("viewFrustumOffsetYaw", _viewFrustumOffset.yaw);
     settings->setValue("viewFrustumOffsetPitch", _viewFrustumOffset.pitch);
@@ -762,7 +748,7 @@ QLineEdit* lineEditForDomainHostname() {
 
 void Menu::login() {
     Application* applicationInstance = Application::getInstance();
-    QDialog dialog(applicationInstance->getGLWidget());
+    QDialog dialog;
     dialog.setWindowTitle("Login");
     QBoxLayout* layout = new QBoxLayout(QBoxLayout::TopToBottom);
     dialog.setLayout(layout);
@@ -781,7 +767,6 @@ void Menu::login() {
     layout->addWidget(buttons);
     
     int ret = dialog.exec();
-    applicationInstance->getWindow()->activateWindow();
     if (ret != QDialog::Accepted) {
         return;
     }
@@ -796,7 +781,7 @@ void Menu::login() {
 void Menu::editPreferences() {
     Application* applicationInstance = Application::getInstance();
     
-    QDialog dialog(applicationInstance->getGLWidget());
+    QDialog dialog;
     dialog.setWindowTitle("Interface Preferences");
     QBoxLayout* layout = new QBoxLayout(QBoxLayout::TopToBottom);
     dialog.setLayout(layout);
@@ -854,7 +839,6 @@ void Menu::editPreferences() {
     layout->addWidget(buttons);
     
     int ret = dialog.exec();
-    applicationInstance->getWindow()->activateWindow();
     if (ret != QDialog::Accepted) {
          return;
      }
@@ -904,8 +888,7 @@ void Menu::editPreferences() {
 }
 
 void Menu::goToDomain() {
-    Application* applicationInstance = Application::getInstance();
-    QDialog dialog(applicationInstance->getGLWidget());
+    QDialog dialog;
     dialog.setWindowTitle("Go To Domain");
     QBoxLayout* layout = new QBoxLayout(QBoxLayout::TopToBottom);
     dialog.setLayout(layout);
@@ -923,7 +906,6 @@ void Menu::goToDomain() {
     layout->addWidget(buttons);
     
     int ret = dialog.exec();
-    applicationInstance->getWindow()->activateWindow();
     if (ret != QDialog::Accepted) {
          return;
      }
@@ -932,8 +914,7 @@ void Menu::goToDomain() {
 }
 
 void Menu::goToLocation() {
-    Application* applicationInstance = Application::getInstance();
-    QDialog dialog(applicationInstance->getGLWidget());
+    QDialog dialog;
     dialog.setWindowTitle("Go To Location");
     QBoxLayout* layout = new QBoxLayout(QBoxLayout::TopToBottom);
     dialog.setLayout(layout);
@@ -943,8 +924,8 @@ void Menu::goToLocation() {
     
     const int QLINE_MINIMUM_WIDTH = 300;
 
-    Application* appInstance = Application::getInstance();
-    MyAvatar* myAvatar = appInstance->getAvatar();
+    Application* applicationInstance = Application::getInstance();
+    MyAvatar* myAvatar = applicationInstance->getAvatar();
     glm::vec3 avatarPos = myAvatar->getPosition();
     QString currentLocation = QString("%1, %2, %3").arg(QString::number(avatarPos.x), 
                 QString::number(avatarPos.y), QString::number(avatarPos.z));
@@ -959,7 +940,6 @@ void Menu::goToLocation() {
     layout->addWidget(buttons);
     
     int ret = dialog.exec();
-    applicationInstance->getWindow()->activateWindow();
     if (ret != QDialog::Accepted) {
          return;
      }
@@ -991,8 +971,7 @@ void Menu::goToLocation() {
 }
 
 void Menu::goToUser() {
-    Application* applicationInstance = Application::getInstance();
-    QDialog dialog(applicationInstance->getGLWidget());
+    QDialog dialog;
     dialog.setWindowTitle("Go To User");
     QBoxLayout* layout = new QBoxLayout(QBoxLayout::TopToBottom);
     dialog.setLayout(layout);
@@ -1010,7 +989,6 @@ void Menu::goToUser() {
     layout->addWidget(buttons);
     
     int ret = dialog.exec();
-    applicationInstance->getWindow()->activateWindow();
     if (ret != QDialog::Accepted) {
         return;
     }
@@ -1023,7 +1001,6 @@ void Menu::goToUser() {
 }
 
 void Menu::bandwidthDetails() {
-    
     if (! _bandwidthDialog) {
         _bandwidthDialog = new BandwidthDialog(Application::getInstance()->getGLWidget(),
                                                Application::getInstance()->getBandwidthMeter());
@@ -1055,6 +1032,32 @@ void Menu::voxelStatsDetailsClosed() {
     if (_voxelStatsDialog) {
         delete _voxelStatsDialog;
         _voxelStatsDialog = NULL;
+    }
+}
+
+void Menu::setVoxelSizeScale(float sizeScale) {
+    _voxelSizeScale = sizeScale;
+    Application::getInstance()->getVoxels()->redrawInViewVoxels();
+}
+
+void Menu::setBoundaryLevelAdjust(int boundaryLevelAdjust) {
+    _boundaryLevelAdjust = boundaryLevelAdjust;
+    Application::getInstance()->getVoxels()->redrawInViewVoxels();
+}
+
+void Menu::lodTools() {
+    if (!_lodToolsDialog) {
+        _lodToolsDialog = new LodToolsDialog(Application::getInstance()->getGLWidget());
+        connect(_lodToolsDialog, SIGNAL(closed()), SLOT(lodToolsClosed()));
+        _lodToolsDialog->show();
+    }
+    _lodToolsDialog->raise();
+}
+
+void Menu::lodToolsClosed() {
+    if (_lodToolsDialog) {
+        delete _lodToolsDialog;
+        _lodToolsDialog = NULL;
     }
 }
 

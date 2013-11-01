@@ -25,7 +25,6 @@ public:
 
     // setters
     void setMousePressed(bool mousePressed) { _mousePressed = mousePressed; }
-    void setMovedHandOffset(glm::vec3 movedHandOffset) { _movedHandOffset = movedHandOffset; }
     void setThrust(glm::vec3 newThrust) { _thrust = newThrust; }
     void setVelocity(const glm::vec3 velocity) { _velocity = velocity; }
     void setLeanScale(float scale) { _leanScale = scale; }

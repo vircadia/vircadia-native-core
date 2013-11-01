@@ -61,8 +61,6 @@ glm::quat extractRotation(const glm::mat4& matrix, bool assumeOrthogonal = false
 
 double diffclock(timeval *clock1,timeval *clock2);
 
-void renderGroundPlaneGrid(float size, float impact);
-
 void renderMouseVoxelGrid(const float& mouseVoxelX, const float& mouseVoxelY, const float& mouseVoxelZ, const float& mouseVoxelS);
 
 void renderNudgeGrid(float voxelX, float voxelY, float voxelZ, float voxelS, float voxelPrecision);

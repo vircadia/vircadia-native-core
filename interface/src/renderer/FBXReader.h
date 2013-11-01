@@ -43,6 +43,8 @@ public:
 class FBXJoint {
 public:
 
+    bool isFree;
+    QVector<int> freeLineage;
     int parentIndex;
     glm::mat4 preTransform;
     glm::quat preRotation;
@@ -84,6 +86,7 @@ public:
     
     QVector<glm::vec3> vertices;
     QVector<glm::vec3> normals;
+    QVector<glm::vec3> tangents;
     QVector<glm::vec3> colors;
     QVector<glm::vec2> texCoords;
     QVector<glm::vec4> clusterIndices;
@@ -128,6 +131,8 @@ public:
     int rootJointIndex;
     int leanJointIndex;
     int headJointIndex;
+    int leftHandJointIndex;
+    int rightHandJointIndex;
     
     glm::vec3 neckPivot;
     
