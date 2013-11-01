@@ -10,14 +10,33 @@ void main(void) {
     vec4 cornerOriginal = gl_Vertex;
     vec4 corner = gl_ModelViewProjectionMatrix * gl_Vertex;
 
+    // I'm currently using the distance between the near bottom left corner and the far top right corner. That's not
+    // idea for all possible angles of viewing of the voxel. I really should be using a lookup table to determine which
+    // corners to be using. The effect with this approach is that some "projections" are smaller than they should be, and
+    // we get a thinning effect.
+    //
+    // However, this may not matter when we actually switch to using cubes and points in concert.
     vec4 farCornerVertex = gl_Vertex;
     farCornerVertex[0] += voxelSizeIn;
     farCornerVertex[1] += voxelSizeIn;
     farCornerVertex[2] += voxelSizeIn;
     vec4 farCorner = gl_ModelViewProjectionMatrix * farCornerVertex;
+    
+    // math! If the w result is negative then the point is behind the viewer
+    vec2 cornerOnScreen = vec2(corner.x / corner.w, corner.y / corner.w);
+    if (corner.w < 0) {
+        cornerOnScreen.x = -cornerOnScreen.x;
+        cornerOnScreen.y = -cornerOnScreen.y;
+    }
 
-    float voxelScreenWidth = abs((farCorner.x / farCorner.w) - (corner.x / corner.w)) * viewportWidth / 2.0;
-    float voxelScreenHeight = abs((farCorner.y / farCorner.w) - (corner.y / corner.w)) * viewportHeight / 2.0;
+    vec2 farCornerOnScreen = vec2(farCorner.x / farCorner.w, farCorner.y / farCorner.w);
+    if (farCorner.w < 0) {
+        farCornerOnScreen.x = -farCornerOnScreen.x;
+        farCornerOnScreen.y = -farCornerOnScreen.y;
+    }
+
+    float voxelScreenWidth = abs(farCornerOnScreen.x - cornerOnScreen.x) * viewportWidth / 2.0;
+    float voxelScreenHeight = abs(farCornerOnScreen.y - cornerOnScreen.y) * viewportHeight / 2.0;
     float voxelScreenLength = sqrt(voxelScreenHeight * voxelScreenHeight + voxelScreenWidth * voxelScreenWidth);
     
     vec4 centerVertex = gl_Vertex;
