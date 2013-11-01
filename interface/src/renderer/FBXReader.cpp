@@ -1176,6 +1176,10 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                 // see http://stackoverflow.com/questions/13566608/loading-skinning-information-from-fbx for a discussion
                 // of skinning information in FBX
                 fbxCluster.jointIndex = modelIDs.indexOf(jointID);
+                if (fbxCluster.jointIndex == -1) {
+                    qDebug() << "Joint not in model list: " << jointID << "\n";
+                    fbxCluster.jointIndex = 0;
+                }
                 fbxCluster.inverseBindMatrix = glm::inverse(cluster.transformLink) * modelTransform;
                 extracted.mesh.clusters.append(fbxCluster);
             }
@@ -1185,6 +1189,10 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         if (extracted.mesh.clusters.isEmpty()) {
             FBXCluster cluster;
             cluster.jointIndex = modelIDs.indexOf(modelID);
+            if (cluster.jointIndex == -1) {
+                qDebug() << "Model not in model list: " << modelID << "\n";
+                cluster.jointIndex = 0;
+            }
             extracted.mesh.clusters.append(cluster);
         }
         
