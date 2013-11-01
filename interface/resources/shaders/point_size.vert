@@ -18,9 +18,7 @@ void main(void) {
     // thinning effect. However, this may not matter when we actually switch to using cubes and points in concert.
     
     vec4 farCornerVertex = gl_Vertex;
-    farCornerVertex[0] += voxelSizeIn;
-    farCornerVertex[1] += voxelSizeIn;
-    farCornerVertex[2] += voxelSizeIn;
+    farCornerVertex += vec4(voxelSizeIn, voxelSizeIn, voxelSizeIn, 0.0);
     vec4 farCorner = gl_ModelViewProjectionMatrix * farCornerVertex;
     
     // math! If the w result is negative then the point is behind the viewer
@@ -42,9 +40,7 @@ void main(void) {
     
     vec4 centerVertex = gl_Vertex;
     float halfSizeIn = voxelSizeIn / 2;
-    centerVertex[0] += halfSizeIn;
-    centerVertex[1] += halfSizeIn;
-    centerVertex[2] += halfSizeIn;
+    centerVertex += vec4(halfSizeIn, halfSizeIn, halfSizeIn, 0.0);
     vec4 center = gl_ModelViewProjectionMatrix * centerVertex;
     
     gl_Position = center;
