@@ -463,7 +463,8 @@ Assignment* DomainServer::deployableAssignmentForRequest(Assignment& requestAssi
                     _assignmentQueue.erase(assignment);
                 }
                 
-                (*assignment)->decrementNumberOfInstances();
+                deployableAssignment->decrementNumberOfInstances();
+                
             } else {
                 // remove the assignment from the queue
                 _assignmentQueue.erase(assignment);
