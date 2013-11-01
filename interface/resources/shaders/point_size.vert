@@ -12,10 +12,11 @@ void main(void) {
 
     // I'm currently using the distance between the near bottom left corner and the far top right corner. That's not
     // ideal for all possible angles of viewing of the voxel. I really should be using a lookup table to determine which
-    // corners to be using. The effect with this approach is that some "projections" are smaller than they should be, and
-    // we get a thinning effect.
+    // corners to use. 
     //
-    // However, this may not matter when we actually switch to using cubes and points in concert.
+    // The effect with the current approach is that some "projections" are smaller than they should be, and we get a 
+    // thinning effect. However, this may not matter when we actually switch to using cubes and points in concert.
+    
     vec4 farCornerVertex = gl_Vertex;
     farCornerVertex[0] += voxelSizeIn;
     farCornerVertex[1] += voxelSizeIn;
