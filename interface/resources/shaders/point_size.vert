@@ -11,7 +11,7 @@ void main(void) {
     vec4 corner = gl_ModelViewProjectionMatrix * gl_Vertex;
 
     // I'm currently using the distance between the near bottom left corner and the far top right corner. That's not
-    // idea for all possible angles of viewing of the voxel. I really should be using a lookup table to determine which
+    // ideal for all possible angles of viewing of the voxel. I really should be using a lookup table to determine which
     // corners to be using. The effect with this approach is that some "projections" are smaller than they should be, and
     // we get a thinning effect.
     //
