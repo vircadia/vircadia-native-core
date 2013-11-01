@@ -1257,13 +1257,28 @@ void VoxelSystem::render(bool texture) {
 
         if (!_voxelsAsPoints) {
             Application::getInstance()->getVoxelShader().begin();
-            
             attributeLocation = Application::getInstance()->getVoxelShader().attributeLocation("voxelSizeIn");
             glEnableVertexAttribArray(attributeLocation);
             glVertexAttribPointer(attributeLocation, 1, GL_FLOAT, false, sizeof(VoxelShaderVBOData), BUFFER_OFFSET(3*sizeof(float)));
         } else {
-            const float POINT_SIZE = 4.0;
-            glPointSize(POINT_SIZE);
+            glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
+
+            glm::vec2 viewDimensions = Application::getInstance()->getViewportDimensions();
+            float viewportWidth = viewDimensions.x;
+            float viewportHeight = viewDimensions.y;
+
+            Application::getInstance()->getPointShader().begin();
+
+            int uniformLocation = Application::getInstance()->getPointShader().uniformLocation("viewportWidth");
+            Application::getInstance()->getPointShader().setUniformValue(uniformLocation, viewportWidth);
+
+            uniformLocation = Application::getInstance()->getPointShader().uniformLocation("viewportHeight");
+            Application::getInstance()->getPointShader().setUniformValue(uniformLocation, viewportHeight);
+
+            attributeLocation = Application::getInstance()->getVoxelShader().attributeLocation("voxelSizeIn");
+            //printf("attributeLocation=%d\n", attributeLocation);
+            glEnableVertexAttribArray(attributeLocation);
+            glVertexAttribPointer(attributeLocation, 1, GL_FLOAT, false, sizeof(VoxelShaderVBOData), BUFFER_OFFSET(3*sizeof(float)));
         }
         
         
@@ -1287,6 +1302,10 @@ void VoxelSystem::render(bool texture) {
         if (!_voxelsAsPoints) {
             Application::getInstance()->getVoxelShader().end();
             glDisableVertexAttribArray(attributeLocation);
+        } else {
+            Application::getInstance()->getPointShader().end();
+            glDisableVertexAttribArray(attributeLocation);
+            glDisable(GL_VERTEX_PROGRAM_POINT_SIZE);
         }
     } else {
         PerformanceWarning warn(showWarnings, "render().. TRIANGLES...");

@@ -29,6 +29,7 @@
 #include "Menu.h"
 #include "Util.h"
 #include "InfoView.h"
+#include "ui/LodToolsDialog.h"
 
 Menu* Menu::_instance = NULL;
 
