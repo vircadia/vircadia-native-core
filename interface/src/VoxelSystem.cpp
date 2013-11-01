@@ -1276,7 +1276,6 @@ void VoxelSystem::render(bool texture) {
             Application::getInstance()->getPointShader().setUniformValue(uniformLocation, viewportHeight);
 
             attributeLocation = Application::getInstance()->getVoxelShader().attributeLocation("voxelSizeIn");
-            //printf("attributeLocation=%d\n", attributeLocation);
             glEnableVertexAttribArray(attributeLocation);
             glVertexAttribPointer(attributeLocation, 1, GL_FLOAT, false, sizeof(VoxelShaderVBOData), BUFFER_OFFSET(3*sizeof(float)));
         }
