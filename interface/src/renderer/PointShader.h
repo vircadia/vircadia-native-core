@@ -2,7 +2,7 @@
 //  PointShader.h
 //  interface
 //
-//  Created by Brad Hefta-Gaub on 9/23/13.
+//  Created by Brad Hefta-Gaub on 10/30/13.
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 

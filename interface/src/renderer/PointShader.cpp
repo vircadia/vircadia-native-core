@@ -2,7 +2,7 @@
 //  PointShader.cpp
 //  interface
 //
-//  Created by Brad Hefta-Gaub on 9/22/13.
+//  Created by Brad Hefta-Gaub on 10/30/13.
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 
 // include this before QOpenGLFramebufferObject, which includes an earlier version of OpenGL
@@ -52,7 +52,7 @@ void PointShader::end() {
     _program->release();
 }
 
-int PointShader::attributeLocation(const char * name) const {
+int PointShader::attributeLocation(const char* name) const {
     if (_program) {
         return _program->attributeLocation(name);
     } else {
@@ -60,7 +60,7 @@ int PointShader::attributeLocation(const char * name) const {
     }
 }
 
-int PointShader::uniformLocation(const char * name) const {
+int PointShader::uniformLocation(const char* name) const {
     if (_program) {
         return _program->uniformLocation(name);
     } else {
