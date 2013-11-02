@@ -55,6 +55,7 @@
 #include "renderer/GeometryCache.h"
 #include "renderer/GlowEffect.h"
 #include "renderer/VoxelShader.h"
+#include "renderer/PointShader.h"
 #include "renderer/TextureCache.h"
 #include "ui/BandwidthDialog.h"
 #include "ui/ChatEntry.h"
@@ -162,6 +163,9 @@ public:
     virtual void domainChanged(QString domain);
     
     VoxelShader& getVoxelShader() { return _voxelShader; }
+    PointShader& getPointShader() { return _pointShader; }
+    
+    glm::vec2 getViewportDimensions() const{ return glm::vec2(_glWidget->width(),_glWidget->height()); }
 
 public slots:
     void sendAvatarFaceVideoMessage(int frameCount, const QByteArray& data);
@@ -383,6 +387,7 @@ private:
     GlowEffect _glowEffect;
     AmbientOcclusionEffect _ambientOcclusionEffect;
     VoxelShader _voxelShader;
+    PointShader _pointShader;
     
     #ifndef _WIN32
     Audio _audio;
