@@ -1958,8 +1958,11 @@ void Application::update(float deltaTime) {
     }
     if (_faceshift.isActive()) {
         glm::vec3 origin = _myAvatar.getHead().calculateAverageEyePosition();
+        float pitchSign = (_myCamera.getMode() == CAMERA_MODE_MIRROR) ? -1.0f : 1.0f;
+        const float PITCH_SCALE = 0.25f;
+        const float YAW_SCALE = 0.25f;
         lookAtSpot = origin + _myCamera.getRotation() * _faceshift.getHeadRotation() * glm::quat(glm::radians(glm::vec3(
-            _faceshift.getEstimatedEyePitch(), _faceshift.getEstimatedEyeYaw(), 0.0f))) *
+            _faceshift.getEstimatedEyePitch() * pitchSign * PITCH_SCALE, _faceshift.getEstimatedEyeYaw() * YAW_SCALE, 0.0f))) *
                 glm::inverse(_myCamera.getRotation()) * (lookAtSpot - origin);
     }
     _myAvatar.getHead().setLookAtPosition(lookAtSpot);

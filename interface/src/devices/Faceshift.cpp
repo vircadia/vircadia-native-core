@@ -41,6 +41,7 @@ Faceshift::Faceshift() :
     _jawOpenIndex(21),
     _longTermAverageEyePitch(0.0f),
     _longTermAverageEyeYaw(0.0f),
+    _longTermAverageInitialized(false),
     _estimatedEyePitch(0.0f),
     _estimatedEyeYaw(0.0f)
 {
@@ -71,8 +72,15 @@ void Faceshift::update() {
     
     // smooth relative to the window
     const float LONG_TERM_AVERAGE_SMOOTHING = 0.999f;
-    _longTermAverageEyePitch = glm::mix(eyeEulers.x, _longTermAverageEyePitch, LONG_TERM_AVERAGE_SMOOTHING);
-    _longTermAverageEyeYaw = glm::mix(eyeEulers.y, _longTermAverageEyeYaw, LONG_TERM_AVERAGE_SMOOTHING);
+    if (!_longTermAverageInitialized) {
+        _longTermAverageEyePitch = eyeEulers.x;
+        _longTermAverageEyeYaw = eyeEulers.y;
+        _longTermAverageInitialized = true;
+        
+    } else {
+        _longTermAverageEyePitch = glm::mix(eyeEulers.x, _longTermAverageEyePitch, LONG_TERM_AVERAGE_SMOOTHING);
+        _longTermAverageEyeYaw = glm::mix(eyeEulers.y, _longTermAverageEyeYaw, LONG_TERM_AVERAGE_SMOOTHING);
+    }
     
     // back to head-relative
     float windowEyePitch = eyeEulers.x - _longTermAverageEyePitch;
@@ -89,6 +97,7 @@ void Faceshift::reset() {
         fsBinaryStream::encode_message(message, fsMsgCalibrateNeutral());
         send(message);
     }
+    _longTermAverageInitialized = false;
 }
 
 void Faceshift::setTCPEnabled(bool enabled) {
