@@ -1266,16 +1266,16 @@ void VoxelSystem::render(bool texture) {
             glm::vec2 viewDimensions = Application::getInstance()->getViewportDimensions();
             float viewportWidth = viewDimensions.x;
             float viewportHeight = viewDimensions.y;
+            glm::vec3 cameraPosition = Application::getInstance()->getViewFrustum()->getPosition();
+            PointShader& pointShader = Application::getInstance()->getPointShader();
 
-            Application::getInstance()->getPointShader().begin();
+            pointShader.begin();
 
-            int uniformLocation = Application::getInstance()->getPointShader().uniformLocation("viewportWidth");
-            Application::getInstance()->getPointShader().setUniformValue(uniformLocation, viewportWidth);
+            pointShader.setUniformValue(pointShader.uniformLocation("viewportWidth"), viewportWidth);
+            pointShader.setUniformValue(pointShader.uniformLocation("viewportHeight"), viewportHeight);
+            pointShader.setUniformValue(pointShader.uniformLocation("cameraPosition"), cameraPosition);
 
-            uniformLocation = Application::getInstance()->getPointShader().uniformLocation("viewportHeight");
-            Application::getInstance()->getPointShader().setUniformValue(uniformLocation, viewportHeight);
-
-            attributeLocation = Application::getInstance()->getVoxelShader().attributeLocation("voxelSizeIn");
+            attributeLocation = pointShader.attributeLocation("voxelSizeIn");
             glEnableVertexAttribArray(attributeLocation);
             glVertexAttribPointer(attributeLocation, 1, GL_FLOAT, false, sizeof(VoxelShaderVBOData), BUFFER_OFFSET(3*sizeof(float)));
         }
