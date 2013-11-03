@@ -68,6 +68,10 @@ int PointShader::uniformLocation(const char* name) const {
     }
 }
 
-void PointShader::setUniformValue(int attributeLocation, float value) {
-    _program->setUniformValue(attributeLocation, value);
+void PointShader::setUniformValue(int uniformLocation, float value) {
+    _program->setUniformValue(uniformLocation, value);
+}
+
+void PointShader::setUniformValue(int uniformLocation, const glm::vec3& value) {
+    _program->setUniformValue(uniformLocation, value.x, value.y, value.z);
 }
