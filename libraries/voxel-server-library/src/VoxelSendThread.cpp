@@ -347,7 +347,7 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
             nodeData->map.erase(); // It would be nice if we could save this, and only reset it when the view frustum changes
         }
 
-        if (false || _myServer->wantsDebugVoxelSending()) {
+        if (_myServer->wantsDebugVoxelSending()) {
             printf("truePacketsSent=%d packetsSentThisInterval=%d maxPacketsPerInterval=%d server PPI=%d nodePPS=%d nodePPI=%d\n", 
                 truePacketsSent, packetsSentThisInterval, maxPacketsPerInterval, _myServer->getPacketsPerClientPerInterval(), 
                 nodeData->getMaxVoxelPacketsPerSecond(), clientMaxPacketsPerInterval);
