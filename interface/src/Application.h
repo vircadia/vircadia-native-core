@@ -226,8 +226,7 @@ private:
 
     // Various helper functions called during update()
     void updateMouseRay(float deltaTime, glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection);
-    void updateFaceshift(float deltaTime, glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection,
-            glm::vec3& lookAtRayOrigin, glm::vec3& lookAtRayDirection);
+    void updateFaceshift();
     void updateMyAvatarLookAtPosition(glm::vec3& lookAtSpot, glm::vec3& lookAtRayOrigin, glm::vec3& lookAtRayDirection);
     void updateHoverVoxels(float deltaTime, glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection, 
             float& distance, BoxFace& face);

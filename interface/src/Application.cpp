@@ -1946,8 +1946,7 @@ void Application::updateMouseRay(float deltaTime, glm::vec3& mouseRayOrigin, glm
     _myAvatar.setMouseRay(mouseRayOrigin, mouseRayDirection);
 }
 
-void Application::updateFaceshift(float deltaTime, glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection,
-    glm::vec3& lookAtRayOrigin, glm::vec3& lookAtRayDirection) {
+void Application::updateFaceshift() {
 
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateFaceshift()");
@@ -2347,11 +2346,10 @@ void Application::update(float deltaTime) {
     
     // Set where I am looking based on my mouse ray (so that other people can see)
     glm::vec3 lookAtSpot;
-    glm::vec3 lookAtRayOrigin = mouseRayOrigin, lookAtRayDirection = mouseRayDirection;
-
-    updateFaceshift(deltaTime, mouseRayOrigin, mouseRayDirection, lookAtRayOrigin, lookAtRayDirection);
+    
+    updateFaceshift();
     updateLookatTargetAvatar(mouseRayOrigin, mouseRayDirection, lookAtSpot);
-    updateMyAvatarLookAtPosition(lookAtSpot, lookAtRayOrigin, lookAtRayDirection);
+    updateMyAvatarLookAtPosition(lookAtSpot, mouseRayOrigin, mouseRayDirection);
     
     //  Find the voxel we are hovering over, and respond if clicked
     float distance;
