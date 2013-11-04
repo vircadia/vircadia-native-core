@@ -1306,7 +1306,10 @@ static glm::vec3 getFaceVector(BoxFace face) {
 }
 
 void Application::idle() {
-    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
+    // Normally we check PipelineWarnings, but since idle will often take more than 10ms we only show these idle timing 
+    // details if we're in ExtraDebugging mode. However, the ::update() and it's subcomponents will show their timing 
+    // details normally.
+    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::ExtraDebugging);
     PerformanceWarning warn(showWarnings, "Application::idle()");
     
     timeval check;
@@ -1996,7 +1999,7 @@ void Application::updateHoverVoxels(float deltaTime, glm::vec3& mouseRayOrigin, 
 
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateHoverVoxels()");
-                                    
+
     //  If we have clicked on a voxel, update it's color
     if (_isHoverVoxelSounding) {
         VoxelNode* hoveredNode = _voxels.getVoxelAt(_hoverVoxel.x, _hoverVoxel.y, _hoverVoxel.z, _hoverVoxel.s);
@@ -2018,14 +2021,23 @@ void Application::updateHoverVoxels(float deltaTime, glm::vec3& mouseRayOrigin, 
     } else {
         //  Check for a new hover voxel
         glm::vec4 oldVoxel(_hoverVoxel.x, _hoverVoxel.y, _hoverVoxel.z, _hoverVoxel.s);
-        _isHoverVoxel = _voxels.findRayIntersection(mouseRayOrigin, mouseRayDirection, _hoverVoxel, distance, face);
-        if (MAKE_SOUND_ON_VOXEL_HOVER && _isHoverVoxel && glm::vec4(_hoverVoxel.x, _hoverVoxel.y, _hoverVoxel.z, _hoverVoxel.s) != oldVoxel) {
-            _hoverVoxelOriginalColor[0] = _hoverVoxel.red;
-            _hoverVoxelOriginalColor[1] = _hoverVoxel.green;
-            _hoverVoxelOriginalColor[2] = _hoverVoxel.blue;
-            _hoverVoxelOriginalColor[3] = 1;
-            _audio.startCollisionSound(1.0, HOVER_VOXEL_FREQUENCY * _hoverVoxel.s * TREE_SCALE, 0.0, HOVER_VOXEL_DECAY);
-            _isHoverVoxelSounding = true;
+        // only do this work if MAKE_SOUND_ON_VOXEL_HOVER or MAKE_SOUND_ON_VOXEL_CLICK is enabled, 
+        // and make sure the tree is not already busy... because otherwise you'll have to wait.
+        if (!_voxels.treeIsBusy()) {
+            {
+                PerformanceWarning warn(showWarnings, "Application::updateHoverVoxels() _voxels.findRayIntersection()");
+                _isHoverVoxel = _voxels.findRayIntersection(mouseRayOrigin, mouseRayDirection, _hoverVoxel, distance, face);
+            }
+            if (MAKE_SOUND_ON_VOXEL_HOVER && _isHoverVoxel && 
+                    glm::vec4(_hoverVoxel.x, _hoverVoxel.y, _hoverVoxel.z, _hoverVoxel.s) != oldVoxel) {
+                    
+                _hoverVoxelOriginalColor[0] = _hoverVoxel.red;
+                _hoverVoxelOriginalColor[1] = _hoverVoxel.green;
+                _hoverVoxelOriginalColor[2] = _hoverVoxel.blue;
+                _hoverVoxelOriginalColor[3] = 1;
+                _audio.startCollisionSound(1.0, HOVER_VOXEL_FREQUENCY * _hoverVoxel.s * TREE_SCALE, 0.0, HOVER_VOXEL_DECAY);
+                _isHoverVoxelSounding = true;
+            }
         }
     }
 }
