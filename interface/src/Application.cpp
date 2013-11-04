@@ -3057,10 +3057,6 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
                     if (!avatar->isInitialized()) {
                         avatar->init();
                     }
-                    // Set lookAt to myCamera on client side if other avatars are looking at client
-                    if (isLookingAtMyAvatar(avatar)) {
-                        avatar->getHead().setLookAtPosition(whichCamera.getPosition());
-                    }
                     avatar->render(false, Menu::getInstance()->isOptionChecked(MenuOption::AvatarAsBalls));
                     avatar->setDisplayingLookatVectors(Menu::getInstance()->isOptionChecked(MenuOption::LookAtVectors));
                 }
