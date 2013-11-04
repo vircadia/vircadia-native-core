@@ -63,22 +63,23 @@ void Faceshift::update() {
     if (!isActive()) {
         return;
     }
-    float averageEyePitch = (_eyeGazeLeftPitch + _eyeGazeRightPitch) / 2.0f;
-    float averageEyeYaw = (_eyeGazeLeftYaw + _eyeGazeRightYaw) / 2.0f;
+    // get the euler angles relative to the window
+    glm::vec3 eulers = safeEulerAngles(_headRotation * glm::quat(glm::radians(glm::vec3(
+        (_eyeGazeLeftPitch + _eyeGazeRightPitch) / 2.0f, (_eyeGazeLeftYaw + _eyeGazeRightYaw) / 2.0f, 0.0f))));
     
     // compute and subtract the long term average
     const float LONG_TERM_AVERAGE_SMOOTHING = 0.999f;
     if (!_longTermAverageInitialized) {
-        _longTermAverageEyePitch = averageEyePitch;
-        _longTermAverageEyeYaw = averageEyeYaw;
+        _longTermAverageEyePitch = eulers.x;
+        _longTermAverageEyeYaw = eulers.y;
         _longTermAverageInitialized = true;
         
     } else {
-        _longTermAverageEyePitch = glm::mix(averageEyePitch, _longTermAverageEyePitch, LONG_TERM_AVERAGE_SMOOTHING);
-        _longTermAverageEyeYaw = glm::mix(averageEyeYaw, _longTermAverageEyeYaw, LONG_TERM_AVERAGE_SMOOTHING);
+        _longTermAverageEyePitch = glm::mix(eulers.x, _longTermAverageEyePitch, LONG_TERM_AVERAGE_SMOOTHING);
+        _longTermAverageEyeYaw = glm::mix(eulers.y, _longTermAverageEyeYaw, LONG_TERM_AVERAGE_SMOOTHING);
     }
-    _estimatedEyePitch = averageEyePitch - _longTermAverageEyePitch;
-    _estimatedEyeYaw = averageEyeYaw - _longTermAverageEyeYaw;
+    _estimatedEyePitch = eulers.x - _longTermAverageEyePitch;
+    _estimatedEyeYaw = eulers.y - _longTermAverageEyeYaw;
 }
 
 void Faceshift::reset() {
