@@ -1946,8 +1946,7 @@ void Application::updateMouseRay(float deltaTime, glm::vec3& mouseRayOrigin, glm
     _myAvatar.setMouseRay(mouseRayOrigin, mouseRayDirection);
 }
 
-void Application::updateFaceshift(float deltaTime, glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection,
-    glm::vec3& lookAtRayOrigin, glm::vec3& lookAtRayDirection) {
+void Application::updateFaceshift() {
 
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateFaceshift()");
@@ -1959,13 +1958,6 @@ void Application::updateFaceshift(float deltaTime, glm::vec3& mouseRayOrigin, gl
     if (_faceshift.isActive()) {
         _myAvatar.getHead().setAngularVelocity(_faceshift.getHeadAngularVelocity());
     }
-
-    // if we have faceshift, use that to compute the lookat direction
-    if (_faceshift.isActive()) {
-        lookAtRayOrigin = _myAvatar.getHead().calculateAverageEyePosition();
-        lookAtRayDirection = _myAvatar.getHead().getOrientation() * glm::quat(glm::radians(glm::vec3(
-            _faceshift.getEstimatedEyePitch(), _faceshift.getEstimatedEyeYaw(), 0.0f))) * glm::vec3(0.0f, 0.0f, -1.0f);
-    }
 }
 
 void Application::updateMyAvatarLookAtPosition(glm::vec3& lookAtSpot, glm::vec3& lookAtRayOrigin, 
@@ -1974,24 +1966,31 @@ void Application::updateMyAvatarLookAtPosition(glm::vec3& lookAtSpot, glm::vec3&
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateMyAvatarLookAtPosition()");
     
-    if (_lookatTargetAvatar && !_faceshift.isActive()) {
-        // If the mouse is over another avatar's head...
-         _myAvatar.getHead().setLookAtPosition(lookAtSpot);
-    
-    } else if (_isHoverVoxel && !_faceshift.isActive()) {
-        //  Look at the hovered voxel
-        lookAtSpot = getMouseVoxelWorldCoordinates(_hoverVoxel);
-        _myAvatar.getHead().setLookAtPosition(lookAtSpot);
+    if (!_lookatTargetAvatar) {
+        if (_isHoverVoxel) {
+            //  Look at the hovered voxel
+            lookAtSpot = getMouseVoxelWorldCoordinates(_hoverVoxel);
+            
+        } else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
+            lookAtSpot = _myCamera.getPosition();
         
-    } else if (_myCamera.getMode() == CAMERA_MODE_MIRROR && !_faceshift.isActive()) {
-        _myAvatar.getHead().setLookAtPosition(_myCamera.getPosition());
-    
-    } else {
-        //  Just look in direction of the mouse ray
-        const float FAR_AWAY_STARE = TREE_SCALE;
-        lookAtSpot = lookAtRayOrigin + lookAtRayDirection * FAR_AWAY_STARE;
-        _myAvatar.getHead().setLookAtPosition(lookAtSpot);
+        } else {
+            //  Just look in direction of the mouse ray
+            const float FAR_AWAY_STARE = TREE_SCALE;
+            lookAtSpot = lookAtRayOrigin + lookAtRayDirection * FAR_AWAY_STARE;
+        }
     }
+    if (_faceshift.isActive()) {
+        // deflect using Faceshift gaze data
+        glm::vec3 origin = _myAvatar.getHead().calculateAverageEyePosition();
+        float pitchSign = (_myCamera.getMode() == CAMERA_MODE_MIRROR) ? -1.0f : 1.0f;
+        const float PITCH_SCALE = 0.5f;
+        const float YAW_SCALE = 0.5f;
+        lookAtSpot = origin + _myCamera.getRotation() * glm::quat(glm::radians(glm::vec3(
+            _faceshift.getEstimatedEyePitch() * pitchSign * PITCH_SCALE, _faceshift.getEstimatedEyeYaw() * YAW_SCALE, 0.0f))) *
+                glm::inverse(_myCamera.getRotation()) * (lookAtSpot - origin);
+    }
+    _myAvatar.getHead().setLookAtPosition(lookAtSpot);
 }
 
 void Application::updateHoverVoxels(float deltaTime, glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection, 
@@ -2347,11 +2346,10 @@ void Application::update(float deltaTime) {
     
     // Set where I am looking based on my mouse ray (so that other people can see)
     glm::vec3 lookAtSpot;
-    glm::vec3 lookAtRayOrigin = mouseRayOrigin, lookAtRayDirection = mouseRayDirection;
-
-    updateFaceshift(deltaTime, mouseRayOrigin, mouseRayDirection, lookAtRayOrigin, lookAtRayDirection);
+    
+    updateFaceshift();
     updateLookatTargetAvatar(mouseRayOrigin, mouseRayDirection, lookAtSpot);
-    updateMyAvatarLookAtPosition(lookAtSpot, lookAtRayOrigin, lookAtRayDirection);
+    updateMyAvatarLookAtPosition(lookAtSpot, mouseRayOrigin, mouseRayDirection);
     
     //  Find the voxel we are hovering over, and respond if clicked
     float distance;
