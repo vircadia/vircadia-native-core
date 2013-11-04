@@ -24,6 +24,12 @@ public:
     /// \param ssize_t packetLength size of received data
     /// \thread network receive thread
     void queueReceivedPacket(sockaddr& senderAddress, unsigned char*  packetData, ssize_t packetLength);
+
+    /// Are there received packets waiting to be processed
+    bool hasPacketsToProcess() const { return _packets.size() > 0; }
+
+    /// How many received packets waiting are to be processed
+    int packetsToProcessCount() const { return _packets.size(); }
     
 protected:
     /// Callback for processing of recieved packets. Implement this to process the incoming packets.
@@ -35,12 +41,6 @@ protected:
 
     /// Implements generic processing behavior for this thread.
     virtual bool process();
-
-    /// Are there received packets waiting to be processed
-    bool hasPacketsToProcess() const { return _packets.size() > 0; }
-
-    /// How many received packets waiting are to be processed
-    int packetsToProcessCount() const { return _packets.size(); }
 
 private:
 

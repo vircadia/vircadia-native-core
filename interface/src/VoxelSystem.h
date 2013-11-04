@@ -120,6 +120,8 @@ public:
     virtual void nodeKilled(Node* node);
     virtual void domainChanged(QString domain);
     
+    bool treeIsBusy() const { return _treeIsBusy; }
+    
 signals:
     void importSize(float x, float y, float z);
     void importProgress(int progress);
@@ -302,6 +304,10 @@ private:
     bool _useFastVoxelPipeline;
     
     bool _inhideOutOfView;
+    bool _treeIsBusy; // is the tree mutex locked? if so, it's busy, and if you can avoid it, don't access the tree
+    
+    void lockTree();
+    void unlockTree();
 };
 
 #endif
