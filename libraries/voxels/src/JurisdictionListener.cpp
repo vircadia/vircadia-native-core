@@ -33,7 +33,9 @@ void JurisdictionListener::nodeAdded(Node* node) {
 }
 
 void JurisdictionListener::nodeKilled(Node* node) {
-    _jurisdictions.erase(_jurisdictions.find(node->getUUID()));
+    if (_jurisdictions.find(node->getUUID()) != _jurisdictions.end()) {
+        _jurisdictions.erase(_jurisdictions.find(node->getUUID()));
+    }
 }
 
 bool JurisdictionListener::queueJurisdictionRequest() {
