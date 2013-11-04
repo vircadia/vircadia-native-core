@@ -415,6 +415,10 @@ glm::quat Head::getEyeRotation(const glm::vec3& eyePosition) const {
     return rotationBetween(orientation * IDENTITY_FRONT, _lookAtPosition + _saccade - eyePosition) * orientation;
 }
 
+glm::vec3 Head::getScalePivot() const {
+    return _faceModel.isActive() ? _faceModel.getTranslation() : _position;
+}
+
 void Head::renderHeadSphere() {
     glPushMatrix();
         glTranslatef(_position.x, _position.y, _position.z); //translate to head position

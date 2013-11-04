@@ -1806,7 +1806,10 @@ Avatar* Application::findLookatTargetAvatar(const glm::vec3& mouseRayOrigin, con
             float distance;
             if (rayIntersectsSphere(mouseRayOrigin, mouseRayDirection, headPosition,
                     HEAD_SPHERE_RADIUS * avatar->getHead().getScale(), distance)) {
-                eyePosition = avatar->getHead().calculateAverageEyePosition();
+                // rescale to compensate for head embiggening
+                eyePosition = (avatar->getHead().calculateAverageEyePosition() - avatar->getHead().getScalePivot()) *
+                    (avatar->getScale() / avatar->getHead().getScale()) + avatar->getHead().getScalePivot();
+                
                 _lookatIndicatorScale = avatar->getHead().getScale();
                 _lookatOtherPosition = headPosition;
                 nodeUUID = avatar->getOwningNode()->getUUID();
@@ -3053,10 +3056,6 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
                     Avatar *avatar = (Avatar *)node->getLinkedData();
                     if (!avatar->isInitialized()) {
                         avatar->init();
-                    }
-                    // Set lookAt to myCamera on client side if other avatars are looking at client
-                    if (isLookingAtMyAvatar(avatar)) {
-                        avatar->getHead().setLookAtPosition(whichCamera.getPosition());
                     }
                     avatar->render(false, Menu::getInstance()->isOptionChecked(MenuOption::AvatarAsBalls));
                     avatar->setDisplayingLookatVectors(Menu::getInstance()->isOptionChecked(MenuOption::LookAtVectors));
