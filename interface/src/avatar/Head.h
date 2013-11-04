@@ -83,6 +83,9 @@ public:
     float getAverageLoudness() const { return _averageLoudness; }
     glm::vec3 calculateAverageEyePosition() { return _leftEyePosition + (_rightEyePosition - _leftEyePosition ) * ONE_HALF; }
     
+    /// Returns the point about which scaling occurs.
+    glm::vec3 getScalePivot() const;
+    
     float yawRate;
 
 private:
