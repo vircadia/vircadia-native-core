@@ -742,7 +742,7 @@ void Menu::login() {
     loginDialog.resize(loginDialog.parentWidget()->size().width() * DIALOG_RATIO_OF_WINDOW, loginDialog.size().height());
     
     int dialogReturn = loginDialog.exec();
-    if (dialogReturn == QDialog::Accepted && loginDialog.textValue().isEmpty() && loginDialog.textValue() != username) {
+    if (dialogReturn == QDialog::Accepted && !loginDialog.textValue().isEmpty() && loginDialog.textValue() != username) {
         // there has been a username change
         // ask for a profile reset with the new username
         Application::getInstance()->resetProfile(loginDialog.textValue());
@@ -875,7 +875,7 @@ void Menu::goToDomain() {
     domainDialog.resize(domainDialog.parentWidget()->size().width() * DIALOG_RATIO_OF_WINDOW, domainDialog.size().height());
     
     int dialogReturn = domainDialog.exec();
-    if (dialogReturn == QDialog::Accepted && domainDialog.textValue().isEmpty()) {
+    if (dialogReturn == QDialog::Accepted && !domainDialog.textValue().isEmpty()) {
         updateDSHostname(domainDialog.textValue());
     }
 }
@@ -929,7 +929,7 @@ void Menu::goToUser() {
     userDialog.resize(userDialog.parentWidget()->size().width() * DIALOG_RATIO_OF_WINDOW, userDialog.size().height());
     
     int dialogReturn = userDialog.exec();
-    if (dialogReturn == QDialog::Accepted && userDialog.textValue().isEmpty()) {
+    if (dialogReturn == QDialog::Accepted && !userDialog.textValue().isEmpty()) {
         // there's a username entered by the user, make a request to the data-server
         DataServerClient::getValuesForKeysAndUserString((QStringList() << DataServerKey::Domain << DataServerKey::Position),
                                                         userDialog.textValue());
