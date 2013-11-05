@@ -583,11 +583,15 @@ void VoxelTree::processRemoveVoxelBitstream(unsigned char * bitstream, int buffe
     while (atByte < bufferSizeBytes) {
         int codeLength = numberOfThreeBitSectionsInCode(voxelCode);
         int voxelDataSize = bytesRequiredForCodeLength(codeLength) + SIZE_OF_COLOR_DATA;
-
-        deleteVoxelCodeFromTree(voxelCode, COLLAPSE_EMPTY_TREE);
-
-        voxelCode+=voxelDataSize;
-        atByte+=voxelDataSize;
+        
+        if (atByte + voxelDataSize <= bufferSizeBytes) {
+            deleteVoxelCodeFromTree(voxelCode, COLLAPSE_EMPTY_TREE);
+            voxelCode += voxelDataSize;
+            atByte += voxelDataSize;
+        } else {
+            printf("WARNING! Got remove voxel bitstream that would overflow buffer, bailing processing!\n");
+            break;
+        }
     }
 }
 

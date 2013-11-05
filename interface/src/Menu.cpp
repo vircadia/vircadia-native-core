@@ -8,15 +8,17 @@
 
 #include <cstdlib>
 
-#include <QMenuBar>
+
 #include <QBoxLayout>
 #include <QColorDialog>
 #include <QDialogButtonBox>
 #include <QDoubleSpinBox>
 #include <QFileDialog>
 #include <QFormLayout>
+#include <QInputDialog>
 #include <QLineEdit>
 #include <QMainWindow>
+#include <QMenuBar>
 #include <QSlider>
 #include <QStandardPaths>
 #include <QUuid>
@@ -728,60 +730,29 @@ void updateDSHostname(const QString& domainServerHostname) {
 }
 
 const int QLINE_MINIMUM_WIDTH = 400;
-
-
-QLineEdit* lineEditForDomainHostname() {
-    QString currentDomainHostname = NodeList::getInstance()->getDomainHostname();
-    
-    if (NodeList::getInstance()->getDomainPort() != DEFAULT_DOMAIN_SERVER_PORT) {
-        // add the port to the currentDomainHostname string if it is custom
-        currentDomainHostname.append(QString(":%1").arg(NodeList::getInstance()->getDomainPort()));
-    }
-    
-    QLineEdit* domainServerLineEdit = new QLineEdit(currentDomainHostname);
-    domainServerLineEdit->setPlaceholderText(DEFAULT_DOMAIN_HOSTNAME);
-    domainServerLineEdit->setMinimumWidth(QLINE_MINIMUM_WIDTH);
-    
-    return domainServerLineEdit;
-}
-
+const float DIALOG_RATIO_OF_WINDOW = 0.30;
 
 void Menu::login() {
-    Application* applicationInstance = Application::getInstance();
-    QDialog dialog;
-    dialog.setWindowTitle("Login");
-    QBoxLayout* layout = new QBoxLayout(QBoxLayout::TopToBottom);
-    dialog.setLayout(layout);
+    QInputDialog loginDialog(Application::getInstance()->getWindow());
+    loginDialog.setWindowTitle("Login");
+    loginDialog.setLabelText("Username:");
+    QString username = Application::getInstance()->getProfile()->getUsername();
+    loginDialog.setTextValue(username);
+    loginDialog.setWindowFlags(Qt::Sheet);
+    loginDialog.resize(loginDialog.parentWidget()->size().width() * DIALOG_RATIO_OF_WINDOW, loginDialog.size().height());
     
-    QFormLayout* form = new QFormLayout();
-    layout->addLayout(form, 1);
-    
-    QString username = applicationInstance->getProfile()->getUsername();
-    QLineEdit* usernameLineEdit = new QLineEdit(username);
-    usernameLineEdit->setMinimumWidth(QLINE_MINIMUM_WIDTH);
-    form->addRow("Username:", usernameLineEdit);
-    
-    QDialogButtonBox* buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
-    dialog.connect(buttons, SIGNAL(accepted()), SLOT(accept()));
-    dialog.connect(buttons, SIGNAL(rejected()), SLOT(reject()));
-    layout->addWidget(buttons);
-    
-    int ret = dialog.exec();
-    if (ret != QDialog::Accepted) {
-        return;
-    }
-    
-    if (usernameLineEdit->text() != username) {
+    int dialogReturn = loginDialog.exec();
+    if (dialogReturn == QDialog::Accepted && !loginDialog.textValue().isEmpty() && loginDialog.textValue() != username) {
         // there has been a username change
         // ask for a profile reset with the new username
-        applicationInstance->resetProfile(usernameLineEdit->text());
+        Application::getInstance()->resetProfile(loginDialog.textValue());
     }
 }
 
 void Menu::editPreferences() {
     Application* applicationInstance = Application::getInstance();
     
-    QDialog dialog;
+    QDialog dialog(applicationInstance->getWindow());
     dialog.setWindowTitle("Interface Preferences");
     QBoxLayout* layout = new QBoxLayout(QBoxLayout::TopToBottom);
     dialog.setLayout(layout);
@@ -888,70 +859,48 @@ void Menu::editPreferences() {
 }
 
 void Menu::goToDomain() {
-    QDialog dialog;
-    dialog.setWindowTitle("Go To Domain");
-    QBoxLayout* layout = new QBoxLayout(QBoxLayout::TopToBottom);
-    dialog.setLayout(layout);
     
-    QFormLayout* form = new QFormLayout();
-    layout->addLayout(form, 1);
-
+    QString currentDomainHostname = NodeList::getInstance()->getDomainHostname();
     
-    QLineEdit* domainServerLineEdit = lineEditForDomainHostname();
-    form->addRow("Domain server:", domainServerLineEdit);
+    if (NodeList::getInstance()->getDomainPort() != DEFAULT_DOMAIN_SERVER_PORT) {
+        // add the port to the currentDomainHostname string if it is custom
+        currentDomainHostname.append(QString(":%1").arg(NodeList::getInstance()->getDomainPort()));
+    }
     
-    QDialogButtonBox* buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
-    dialog.connect(buttons, SIGNAL(accepted()), SLOT(accept()));
-    dialog.connect(buttons, SIGNAL(rejected()), SLOT(reject()));
-    layout->addWidget(buttons);
+    QInputDialog domainDialog(Application::getInstance()->getWindow());
+    domainDialog.setWindowTitle("Go to Domain");
+    domainDialog.setLabelText("Domain server:");
+    domainDialog.setTextValue(currentDomainHostname);
+    domainDialog.setWindowFlags(Qt::Sheet);
+    domainDialog.resize(domainDialog.parentWidget()->size().width() * DIALOG_RATIO_OF_WINDOW, domainDialog.size().height());
     
-    int ret = dialog.exec();
-    if (ret != QDialog::Accepted) {
-         return;
-     }
-    
-    updateDSHostname(domainServerLineEdit->text());
+    int dialogReturn = domainDialog.exec();
+    if (dialogReturn == QDialog::Accepted && !domainDialog.textValue().isEmpty()) {
+        updateDSHostname(domainDialog.textValue());
+    }
 }
 
 void Menu::goToLocation() {
-    QDialog dialog;
-    dialog.setWindowTitle("Go To Location");
-    QBoxLayout* layout = new QBoxLayout(QBoxLayout::TopToBottom);
-    dialog.setLayout(layout);
-    
-    QFormLayout* form = new QFormLayout();
-    layout->addLayout(form, 1);
-    
-    const int QLINE_MINIMUM_WIDTH = 300;
-
-    Application* applicationInstance = Application::getInstance();
-    MyAvatar* myAvatar = applicationInstance->getAvatar();
+    MyAvatar* myAvatar = Application::getInstance()->getAvatar();
     glm::vec3 avatarPos = myAvatar->getPosition();
-    QString currentLocation = QString("%1, %2, %3").arg(QString::number(avatarPos.x), 
-                QString::number(avatarPos.y), QString::number(avatarPos.z));
+    QString currentLocation = QString("%1, %2, %3").arg(QString::number(avatarPos.x),
+                                                        QString::number(avatarPos.y), QString::number(avatarPos.z));
+    
+    
+    QInputDialog coordinateDialog(Application::getInstance()->getWindow());
+    coordinateDialog.setWindowTitle("Go to Location");
+    coordinateDialog.setLabelText("Coordinate as x,y,z:");
+    coordinateDialog.setTextValue(currentLocation);
+    coordinateDialog.setWindowFlags(Qt::Sheet);
+    coordinateDialog.resize(coordinateDialog.parentWidget()->size().width() * 0.30, coordinateDialog.size().height());
 
-    QLineEdit* coordinates = new QLineEdit(currentLocation);
-    coordinates->setMinimumWidth(QLINE_MINIMUM_WIDTH);
-    form->addRow("Coordinates as x,y,z:", coordinates);
-    
-    QDialogButtonBox* buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
-    dialog.connect(buttons, SIGNAL(accepted()), SLOT(accept()));
-    dialog.connect(buttons, SIGNAL(rejected()), SLOT(reject()));
-    layout->addWidget(buttons);
-    
-    int ret = dialog.exec();
-    if (ret != QDialog::Accepted) {
-         return;
-     }
-    
-    QByteArray newCoordinates;
-    
-    if (coordinates->text().size() > 0) {
-        // the user input a new hostname, use that
-
+    int dialogReturn = coordinateDialog.exec();
+    if (dialogReturn == QDialog::Accepted && !coordinateDialog.textValue().isEmpty()) {
+        QByteArray newCoordinates;
+        
         QString delimiterPattern(",");
-        QStringList coordinateItems = coordinates->text().split(delimiterPattern);
-
+        QStringList coordinateItems = coordinateDialog.textValue().split(delimiterPattern);
+        
         const int NUMBER_OF_COORDINATE_ITEMS = 3;
         const int X_ITEM = 0;
         const int Y_ITEM = 1;
@@ -971,32 +920,19 @@ void Menu::goToLocation() {
 }
 
 void Menu::goToUser() {
-    QDialog dialog;
-    dialog.setWindowTitle("Go To User");
-    QBoxLayout* layout = new QBoxLayout(QBoxLayout::TopToBottom);
-    dialog.setLayout(layout);
+    QInputDialog userDialog(Application::getInstance()->getWindow());
+    userDialog.setWindowTitle("Go to User");
+    userDialog.setLabelText("Destination user:");
+    QString username = Application::getInstance()->getProfile()->getUsername();
+    userDialog.setTextValue(username);
+    userDialog.setWindowFlags(Qt::Sheet);
+    userDialog.resize(userDialog.parentWidget()->size().width() * DIALOG_RATIO_OF_WINDOW, userDialog.size().height());
     
-    QFormLayout* form = new QFormLayout();
-    layout->addLayout(form, 1);
-    
-    QLineEdit* usernameLineEdit = new QLineEdit();
-    usernameLineEdit->setMinimumWidth(QLINE_MINIMUM_WIDTH);
-    form->addRow("", usernameLineEdit);
-    
-    QDialogButtonBox* buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
-    dialog.connect(buttons, SIGNAL(accepted()), SLOT(accept()));
-    dialog.connect(buttons, SIGNAL(rejected()), SLOT(reject()));
-    layout->addWidget(buttons);
-    
-    int ret = dialog.exec();
-    if (ret != QDialog::Accepted) {
-        return;
-    }
-    
-    if (!usernameLineEdit->text().isEmpty()) {
+    int dialogReturn = userDialog.exec();
+    if (dialogReturn == QDialog::Accepted && !userDialog.textValue().isEmpty()) {
         // there's a username entered by the user, make a request to the data-server
         DataServerClient::getValuesForKeysAndUserString((QStringList() << DataServerKey::Domain << DataServerKey::Position),
-                                                        usernameLineEdit->text());
+                                                        userDialog.textValue());
     }
 }
 
