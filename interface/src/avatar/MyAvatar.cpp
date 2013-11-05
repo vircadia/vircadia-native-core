@@ -17,6 +17,7 @@
 
 #include "Application.h"
 #include "DataServerClient.h"
+#include "Menu.h"
 #include "MyAvatar.h"
 #include "Physics.h"
 #include "devices/OculusManager.h"
@@ -1059,6 +1060,11 @@ void MyAvatar::updateAvatarCollisions(float deltaTime) {
 // detect collisions with other avatars and respond
 void MyAvatar::applyCollisionWithOtherAvatar(Avatar * otherAvatar, float deltaTime) {
     
+    // for now, don't collide if we have a new skeleton
+    if (_skeletonModel.isActive()) {
+        return;
+    }
+    
     glm::vec3 bodyPushForce = glm::vec3(0.0f, 0.0f, 0.0f);
     
     // loop through the body balls of each avatar to check for every possible collision
@@ -1110,6 +1116,10 @@ bool operator<(const SortedAvatar& s1, const SortedAvatar& s2) {
 }
 
 void MyAvatar::updateChatCircle(float deltaTime) {
+    if (!Menu::getInstance()->isOptionChecked(MenuOption::ChatCircling)) {
+        return;
+    }
+
     // find all members and sort by distance
     QVector<SortedAvatar> sortedAvatars;
     NodeList* nodeList = NodeList::getInstance();
