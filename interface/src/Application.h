@@ -152,6 +152,10 @@ public:
     
     void setupWorldLight(Camera& whichCamera);
 
+    /// Loads a view matrix that incorporates the specified model translation without the precision issues that can
+    /// result from matrix multiplication at high translation magnitudes.
+    void loadTranslatedViewMatrix(const glm::vec3& translation);
+
     /// Computes the off-axis frustum parameters for the view frustum, taking mirroring into account.
     void computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& near,
         float& far, glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const;
@@ -223,9 +227,29 @@ private:
     void init();
     
     void update(float deltaTime);
-    
+
+    // Various helper functions called during update()
+    void updateMouseRay(float deltaTime, glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection);
+    void updateFaceshift();
+    void updateMyAvatarLookAtPosition(glm::vec3& lookAtSpot, glm::vec3& lookAtRayOrigin, glm::vec3& lookAtRayDirection);
+    void updateHoverVoxels(float deltaTime, glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection, 
+            float& distance, BoxFace& face);
+    void updateMouseVoxels(float deltaTime, glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection,
+            float& distance, BoxFace& face);
     void updateLookatTargetAvatar(const glm::vec3& mouseRayOrigin, const glm::vec3& mouseRayDirection,
         glm::vec3& eyePosition);
+    void updateHandAndTouch(float deltaTime);
+    void updateLeap(float deltaTime);
+    void updateSerialDevices(float deltaTime);
+    void updateThreads(float deltaTime);
+    void updateMyAvatarSimulation(float deltaTime);
+    void updateParticles(float deltaTime);
+    void updateTransmitter(float deltaTime);
+    void updateCamera(float deltaTime);
+    void updateDialogs(float deltaTime);
+    void updateAudio(float deltaTime);
+    void updateCursor(float deltaTime);
+
     Avatar* findLookatTargetAvatar(const glm::vec3& mouseRayOrigin, const glm::vec3& mouseRayDirection,
         glm::vec3& eyePosition, QUuid &nodeUUID);
     bool isLookingAtMyAvatar(Avatar* avatar);
@@ -317,6 +341,9 @@ private:
     QRect _mirrorViewRect;
     RearMirrorTools* _rearMirrorTools;
     
+    glm::mat4 _untranslatedViewMatrix;
+    glm::vec3 _viewMatrixTranslation;
+    
     Environment _environment;
     
     int _headMouseX, _headMouseY;
@@ -406,6 +433,9 @@ private:
     int _packetsPerSecond;
     int _bytesPerSecond;
     int _bytesCount;
+    
+    int _recentMaxPackets; // recent max incoming voxel packets to process
+    bool _resetRecentMaxPacketsSoon;
     
     StDev _idleLoopStdev;
     float _idleLoopMeasuredJitter;

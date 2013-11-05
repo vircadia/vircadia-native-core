@@ -144,6 +144,8 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _packetsPerSecond(0),
         _bytesPerSecond(0),
         _bytesCount(0),
+        _recentMaxPackets(0),
+        _resetRecentMaxPacketsSoon(true),
         _swatch(NULL),
         _pasteMode(false)
 {
@@ -1304,7 +1306,10 @@ static glm::vec3 getFaceVector(BoxFace face) {
 }
 
 void Application::idle() {
-    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
+    // Normally we check PipelineWarnings, but since idle will often take more than 10ms we only show these idle timing 
+    // details if we're in ExtraDebugging mode. However, the ::update() and it's subcomponents will show their timing 
+    // details normally.
+    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::ExtraDebugging);
     PerformanceWarning warn(showWarnings, "Application::idle()");
     
     timeval check;
@@ -1314,22 +1319,30 @@ void Application::idle() {
 
     double timeSinceLastUpdate = diffclock(&_lastTimeUpdated, &check);
     if (timeSinceLastUpdate > IDLE_SIMULATE_MSECS) {
-
-        const float BIGGEST_DELTA_TIME_SECS = 0.25f;
-        update(glm::clamp((float)timeSinceLastUpdate / 1000.f, 0.f, BIGGEST_DELTA_TIME_SECS));
-        _glWidget->updateGL();
-        _lastTimeUpdated = check;
-        _idleLoopStdev.addValue(timeSinceLastUpdate);
-    
-        //  Record standard deviation and reset counter if needed
-        const int STDEV_SAMPLES = 500;
-        if (_idleLoopStdev.getSamples() > STDEV_SAMPLES) {
-            _idleLoopMeasuredJitter = _idleLoopStdev.getStDev();
-            _idleLoopStdev.reset();
+        {
+            PerformanceWarning warn(showWarnings, "Application::idle()... update()");
+            const float BIGGEST_DELTA_TIME_SECS = 0.25f;
+            update(glm::clamp((float)timeSinceLastUpdate / 1000.f, 0.f, BIGGEST_DELTA_TIME_SECS));
         }
+        {
+            PerformanceWarning warn(showWarnings, "Application::idle()... updateGL()");
+            _glWidget->updateGL();
+        }
+        {
+            PerformanceWarning warn(showWarnings, "Application::idle()... rest of it");
+            _lastTimeUpdated = check;
+            _idleLoopStdev.addValue(timeSinceLastUpdate);
+    
+            //  Record standard deviation and reset counter if needed
+            const int STDEV_SAMPLES = 500;
+            if (_idleLoopStdev.getSamples() > STDEV_SAMPLES) {
+                _idleLoopMeasuredJitter = _idleLoopStdev.getStDev();
+                _idleLoopStdev.reset();
+            }
 
-        // After finishing all of the above work, restart the idle timer, allowing 2ms to process events.
-        idleTimer->start(2);
+            // After finishing all of the above work, restart the idle timer, allowing 2ms to process events.
+            idleTimer->start(2);
+        }
     }
 }
 void Application::terminate() {
@@ -1776,6 +1789,8 @@ static QUuid DEFAULT_NODE_ID_REF;
 
 void Application::updateLookatTargetAvatar(const glm::vec3& mouseRayOrigin, const glm::vec3& mouseRayDirection,
     glm::vec3& eyePosition) {
+    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
+    PerformanceWarning warn(showWarnings, "Application::updateLookatTargetAvatar()");
     
     _lookatTargetAvatar = findLookatTargetAvatar(mouseRayOrigin, mouseRayDirection, eyePosition, DEFAULT_NODE_ID_REF);
 }
@@ -1791,7 +1806,10 @@ Avatar* Application::findLookatTargetAvatar(const glm::vec3& mouseRayOrigin, con
             float distance;
             if (rayIntersectsSphere(mouseRayOrigin, mouseRayDirection, headPosition,
                     HEAD_SPHERE_RADIUS * avatar->getHead().getScale(), distance)) {
-                eyePosition = avatar->getHead().calculateAverageEyePosition();
+                // rescale to compensate for head embiggening
+                eyePosition = (avatar->getHead().calculateAverageEyePosition() - avatar->getHead().getScalePivot()) *
+                    (avatar->getScale() / avatar->getHead().getScale()) + avatar->getHead().getScalePivot();
+                
                 _lookatIndicatorScale = avatar->getHead().getScale();
                 _lookatOtherPosition = headPosition;
                 nodeUUID = avatar->getOwningNode()->getUUID();
@@ -1907,17 +1925,13 @@ void Application::updateAvatars(float deltaTime, glm::vec3 mouseRayOrigin, glm::
     }
 }
 
-void Application::update(float deltaTime) {
+void Application::updateMouseRay(float deltaTime, glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection) {
+
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
-    PerformanceWarning warn(showWarnings, "Application::update()");
-    
-    // tell my avatar if the mouse is being pressed...
-    _myAvatar.setMousePressed(_mousePressed);
-    
-    // check what's under the mouse and update the mouse voxel
-    glm::vec3 mouseRayOrigin, mouseRayDirection;
-    _viewFrustum.computePickRay(_mouseX / (float)_glWidget->width(),
-        _mouseY / (float)_glWidget->height(), mouseRayOrigin, mouseRayDirection);
+    PerformanceWarning warn(showWarnings, "Application::updateMouseRay()");
+
+    _viewFrustum.computePickRay(_mouseX / (float)_glWidget->width(), _mouseY / (float)_glWidget->height(), 
+                                mouseRayOrigin, mouseRayDirection);
 
     // adjust for mirroring
     if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
@@ -1928,12 +1942,18 @@ void Application::update(float deltaTime) {
             _viewFrustum.getRight() * glm::dot(_viewFrustum.getRight(), mouseRayDirection));
     }
 
+    // tell my avatar if the mouse is being pressed...
+    _myAvatar.setMousePressed(_mousePressed);
+
     // tell my avatar the posiion and direction of the ray projected ino the world based on the mouse position        
     _myAvatar.setMouseRay(mouseRayOrigin, mouseRayDirection);
-    
-    // Set where I am looking based on my mouse ray (so that other people can see)
-    glm::vec3 lookAtSpot;
+}
 
+void Application::updateFaceshift() {
+
+    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
+    PerformanceWarning warn(showWarnings, "Application::updateFaceshift()");
+    
     //  Update faceshift
     _faceshift.update();
     
@@ -1941,39 +1961,47 @@ void Application::update(float deltaTime) {
     if (_faceshift.isActive()) {
         _myAvatar.getHead().setAngularVelocity(_faceshift.getHeadAngularVelocity());
     }
+}
 
-    // if we have faceshift, use that to compute the lookat direction
-    glm::vec3 lookAtRayOrigin = mouseRayOrigin, lookAtRayDirection = mouseRayDirection;
-    if (_faceshift.isActive()) {
-        lookAtRayOrigin = _myAvatar.getHead().calculateAverageEyePosition();
-        lookAtRayDirection = _myAvatar.getHead().getOrientation() * glm::quat(glm::radians(glm::vec3(
-            _faceshift.getEstimatedEyePitch(), _faceshift.getEstimatedEyeYaw(), 0.0f))) * glm::vec3(0.0f, 0.0f, -1.0f);
-    }
+void Application::updateMyAvatarLookAtPosition(glm::vec3& lookAtSpot, glm::vec3& lookAtRayOrigin, 
+        glm::vec3& lookAtRayDirection) {
 
-    updateLookatTargetAvatar(mouseRayOrigin, mouseRayDirection, lookAtSpot);
-    if (_lookatTargetAvatar && !_faceshift.isActive()) {
-        // If the mouse is over another avatar's head...
-         _myAvatar.getHead().setLookAtPosition(lookAtSpot);
+    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
+    PerformanceWarning warn(showWarnings, "Application::updateMyAvatarLookAtPosition()");
     
-    } else if (_isHoverVoxel && !_faceshift.isActive()) {
-        //  Look at the hovered voxel
-        lookAtSpot = getMouseVoxelWorldCoordinates(_hoverVoxel);
-        _myAvatar.getHead().setLookAtPosition(lookAtSpot);
+    if (!_lookatTargetAvatar) {
+        if (_isHoverVoxel) {
+            //  Look at the hovered voxel
+            lookAtSpot = getMouseVoxelWorldCoordinates(_hoverVoxel);
+            
+        } else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
+            lookAtSpot = _myCamera.getPosition();
         
-    } else if (_myCamera.getMode() == CAMERA_MODE_MIRROR && !_faceshift.isActive()) {
-        _myAvatar.getHead().setLookAtPosition(_myCamera.getPosition());
-    
-    } else {
-        //  Just look in direction of the mouse ray
-        const float FAR_AWAY_STARE = TREE_SCALE;
-        lookAtSpot = lookAtRayOrigin + lookAtRayDirection * FAR_AWAY_STARE;
-        _myAvatar.getHead().setLookAtPosition(lookAtSpot);
+        } else {
+            //  Just look in direction of the mouse ray
+            const float FAR_AWAY_STARE = TREE_SCALE;
+            lookAtSpot = lookAtRayOrigin + lookAtRayDirection * FAR_AWAY_STARE;
+        }
     }
+    if (_faceshift.isActive()) {
+        // deflect using Faceshift gaze data
+        glm::vec3 origin = _myAvatar.getHead().calculateAverageEyePosition();
+        float pitchSign = (_myCamera.getMode() == CAMERA_MODE_MIRROR) ? -1.0f : 1.0f;
+        const float PITCH_SCALE = 0.5f;
+        const float YAW_SCALE = 0.5f;
+        lookAtSpot = origin + _myCamera.getRotation() * glm::quat(glm::radians(glm::vec3(
+            _faceshift.getEstimatedEyePitch() * pitchSign * PITCH_SCALE, _faceshift.getEstimatedEyeYaw() * YAW_SCALE, 0.0f))) *
+                glm::inverse(_myCamera.getRotation()) * (lookAtSpot - origin);
+    }
+    _myAvatar.getHead().setLookAtPosition(lookAtSpot);
+}
 
-    //  Find the voxel we are hovering over, and respond if clicked
-    float distance;
-    BoxFace face;
-    
+void Application::updateHoverVoxels(float deltaTime, glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection, 
+                                    float& distance, BoxFace& face) {
+
+    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
+    PerformanceWarning warn(showWarnings, "Application::updateHoverVoxels()");
+
     //  If we have clicked on a voxel, update it's color
     if (_isHoverVoxelSounding) {
         VoxelNode* hoveredNode = _voxels.getVoxelAt(_hoverVoxel.x, _hoverVoxel.y, _hoverVoxel.z, _hoverVoxel.s);
@@ -1995,23 +2023,38 @@ void Application::update(float deltaTime) {
     } else {
         //  Check for a new hover voxel
         glm::vec4 oldVoxel(_hoverVoxel.x, _hoverVoxel.y, _hoverVoxel.z, _hoverVoxel.s);
-        _isHoverVoxel = _voxels.findRayIntersection(mouseRayOrigin, mouseRayDirection, _hoverVoxel, distance, face);
-        if (MAKE_SOUND_ON_VOXEL_HOVER && _isHoverVoxel && glm::vec4(_hoverVoxel.x, _hoverVoxel.y, _hoverVoxel.z, _hoverVoxel.s) != oldVoxel) {
-            _hoverVoxelOriginalColor[0] = _hoverVoxel.red;
-            _hoverVoxelOriginalColor[1] = _hoverVoxel.green;
-            _hoverVoxelOriginalColor[2] = _hoverVoxel.blue;
-            _hoverVoxelOriginalColor[3] = 1;
-            _audio.startCollisionSound(1.0, HOVER_VOXEL_FREQUENCY * _hoverVoxel.s * TREE_SCALE, 0.0, HOVER_VOXEL_DECAY);
-            _isHoverVoxelSounding = true;
+        // only do this work if MAKE_SOUND_ON_VOXEL_HOVER or MAKE_SOUND_ON_VOXEL_CLICK is enabled, 
+        // and make sure the tree is not already busy... because otherwise you'll have to wait.
+        if (!_voxels.treeIsBusy()) {
+            {
+                PerformanceWarning warn(showWarnings, "Application::updateHoverVoxels() _voxels.findRayIntersection()");
+                _isHoverVoxel = _voxels.findRayIntersection(mouseRayOrigin, mouseRayDirection, _hoverVoxel, distance, face);
+            }
+            if (MAKE_SOUND_ON_VOXEL_HOVER && _isHoverVoxel && 
+                    glm::vec4(_hoverVoxel.x, _hoverVoxel.y, _hoverVoxel.z, _hoverVoxel.s) != oldVoxel) {
+                    
+                _hoverVoxelOriginalColor[0] = _hoverVoxel.red;
+                _hoverVoxelOriginalColor[1] = _hoverVoxel.green;
+                _hoverVoxelOriginalColor[2] = _hoverVoxel.blue;
+                _hoverVoxelOriginalColor[3] = 1;
+                _audio.startCollisionSound(1.0, HOVER_VOXEL_FREQUENCY * _hoverVoxel.s * TREE_SCALE, 0.0, HOVER_VOXEL_DECAY);
+                _isHoverVoxelSounding = true;
+            }
         }
     }
-        
+}
+
+void Application::updateMouseVoxels(float deltaTime, glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection,
+                                    float& distance, BoxFace& face) {
+
+    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
+    PerformanceWarning warn(showWarnings, "Application::updateMouseVoxels()");
+
     _mouseVoxel.s = 0.0f;
     if (Menu::getInstance()->isVoxelModeActionChecked() &&
         (fabs(_myAvatar.getVelocity().x) +
          fabs(_myAvatar.getVelocity().y) +
          fabs(_myAvatar.getVelocity().z)) / 3 < MAX_AVATAR_EDIT_VELOCITY) {
-        PerformanceWarning warn(showWarnings, "Application::update()... findRayIntersection()");
 
         if (_voxels.findRayIntersection(mouseRayOrigin, mouseRayDirection, _mouseVoxel, distance, face)) {
             if (distance < MAX_VOXEL_EDIT_DISTANCE) {
@@ -2080,12 +2123,17 @@ void Application::update(float deltaTime) {
             _justEditedVoxel = false;
         }
     }
-    
+}
+
+void Application::updateHandAndTouch(float deltaTime) {
+    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
+    PerformanceWarning warn(showWarnings, "Application::updateHandAndTouch()");
+
     // walking triggers the handControl to stop
     if (_myAvatar.getMode() == AVATAR_MODE_WALKING) {
         _handControl.stop();
     }
-       
+
     //  Update from Touch
     if (_isTouchPressed) {
         float TOUCH_YAW_SCALE = -0.25f;
@@ -2096,19 +2144,29 @@ void Application::update(float deltaTime) {
         _lastTouchAvgX = _touchAvgX;
         _lastTouchAvgY = _touchAvgY;
     }
-    
-    // Leap finger-sensing device
+}
+
+void Application::updateLeap(float deltaTime) {
+    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
+    PerformanceWarning warn(showWarnings, "Application::updateLeap()");
+
     LeapManager::enableFakeFingers(Menu::getInstance()->isOptionChecked(MenuOption::SimulateLeapHand));
     _myAvatar.getHand().setRaveGloveActive(Menu::getInstance()->isOptionChecked(MenuOption::TestRaveGlove));
     LeapManager::nextFrame(_myAvatar);
-    
-     //  Read serial port interface devices
+}
+
+void Application::updateSerialDevices(float deltaTime) {
+    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
+    PerformanceWarning warn(showWarnings, "Application::updateSerialDevices()");
+
     if (_serialHeadSensor.isActive()) {
         _serialHeadSensor.readData(deltaTime);
     }
-    
-    //  Sample hardware, update view frustum if needed, and send avatar data to mixer/nodes
-    updateAvatar(deltaTime);
+}
+
+void Application::updateThreads(float deltaTime) {
+    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
+    PerformanceWarning warn(showWarnings, "Application::updateThreads()");
 
     // read incoming packets from network
     if (!_enableNetworkThread) {
@@ -2120,12 +2178,12 @@ void Application::update(float deltaTime) {
         _voxelProcessor.threadRoutine();
         _voxelEditSender.threadRoutine();
     }
+}
 
-    
-    //loop through all the other avatars and simulate them...
-    updateAvatars(deltaTime, mouseRayOrigin, mouseRayDirection);
-    
-    //  Simulate myself
+void Application::updateMyAvatarSimulation(float deltaTime) {
+    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
+    PerformanceWarning warn(showWarnings, "Application::updateMyAvatarSimulation()");
+
     if (Menu::getInstance()->isOptionChecked(MenuOption::Gravity)) {
         _myAvatar.setGravity(_environment.getGravity(_myAvatar.getPosition()));
     }
@@ -2138,12 +2196,21 @@ void Application::update(float deltaTime) {
     } else {
         _myAvatar.simulate(deltaTime, NULL);
     }
-    
-    //  Simulate particle cloud movements
+}
+
+void Application::updateParticles(float deltaTime) {
+    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
+    PerformanceWarning warn(showWarnings, "Application::updateParticles()");
+
     if (Menu::getInstance()->isOptionChecked(MenuOption::ParticleCloud)) {
         _cloud.simulate(deltaTime);
     }
-    
+}
+
+void Application::updateTransmitter(float deltaTime) {
+    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
+    PerformanceWarning warn(showWarnings, "Application::updateTransmitter()");
+
     // no transmitter drive implies transmitter pick
     if (!Menu::getInstance()->isOptionChecked(MenuOption::TransmitterDrive) && _myTransmitter.isConnected()) {
         _transmitterPickStart = _myAvatar.getSkeleton().joint[AVATAR_JOINT_CHEST].position;
@@ -2178,7 +2245,12 @@ void Application::update(float deltaTime) {
     } else {
         _transmitterPickStart = _transmitterPickEnd = glm::vec3();
     }
-    
+}
+
+void Application::updateCamera(float deltaTime) {
+    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
+    PerformanceWarning warn(showWarnings, "Application::updateCamera()");
+
     if (!OculusManager::isConnected()) {        
         if (Menu::getInstance()->isOptionChecked(MenuOption::FullscreenMirror)) {
             if (_myCamera.getMode() != CAMERA_MODE_MIRROR) {
@@ -2213,7 +2285,12 @@ void Application::update(float deltaTime) {
             }
         }
     }
-   
+}
+
+void Application::updateDialogs(float deltaTime) {
+    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
+    PerformanceWarning warn(showWarnings, "Application::updateDialogs()");
+
     // Update bandwidth dialog, if any
     BandwidthDialog* bandwidthDialog = Menu::getInstance()->getBandwidthDialog();
     if (bandwidthDialog) {
@@ -2224,6 +2301,11 @@ void Application::update(float deltaTime) {
     if (voxelStatsDialog) {
         voxelStatsDialog->update();
     }
+}
+
+void Application::updateAudio(float deltaTime) {
+    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
+    PerformanceWarning warn(showWarnings, "Application::updateAudio()");
 
     //  Update audio stats for procedural sounds
     #ifndef _WIN32
@@ -2231,7 +2313,12 @@ void Application::update(float deltaTime) {
     _audio.setLastVelocity(_myAvatar.getVelocity());
     _audio.eventuallyAnalyzePing();
     #endif
-    
+}
+
+void Application::updateCursor(float deltaTime) {
+    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
+    PerformanceWarning warn(showWarnings, "Application::updateCursor()");
+
     // watch mouse position, if it hasn't moved, hide the cursor
     bool underMouse = _glWidget->underMouse();
     if (!_mouseHidden) {
@@ -2250,6 +2337,42 @@ void Application::update(float deltaTime) {
             _mouseHidden = false;
         }
     }
+}
+
+void Application::update(float deltaTime) {
+    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
+    PerformanceWarning warn(showWarnings, "Application::update()");
+    
+    // check what's under the mouse and update the mouse voxel
+    glm::vec3 mouseRayOrigin, mouseRayDirection;
+    updateMouseRay(deltaTime, mouseRayOrigin, mouseRayDirection);
+    
+    // Set where I am looking based on my mouse ray (so that other people can see)
+    glm::vec3 lookAtSpot;
+    
+    updateFaceshift();
+    updateLookatTargetAvatar(mouseRayOrigin, mouseRayDirection, lookAtSpot);
+    updateMyAvatarLookAtPosition(lookAtSpot, mouseRayOrigin, mouseRayDirection);
+    
+    //  Find the voxel we are hovering over, and respond if clicked
+    float distance;
+    BoxFace face;
+    
+    updateHoverVoxels(deltaTime, mouseRayOrigin, mouseRayDirection, distance, face); // clicking on voxels and making sounds
+    updateMouseVoxels(deltaTime, mouseRayOrigin, mouseRayDirection, distance, face); // UI/UX related to voxels
+    updateHandAndTouch(deltaTime); // Update state for touch sensors
+    updateLeap(deltaTime); // Leap finger-sensing device
+    updateSerialDevices(deltaTime); // Read serial port interface devices
+    updateAvatar(deltaTime); // Sample hardware, update view frustum if needed, and send avatar data to mixer/nodes
+    updateThreads(deltaTime); // If running non-threaded, then give the threads some time to process...
+    updateAvatars(deltaTime, mouseRayOrigin, mouseRayDirection); //loop through all the other avatars and simulate them...
+    updateMyAvatarSimulation(deltaTime); // Simulate myself
+    updateParticles(deltaTime); // Simulate particle cloud movements
+    updateTransmitter(deltaTime); // transmitter drive or pick
+    updateCamera(deltaTime); // handle various camera tweaks like off axis projection
+    updateDialogs(deltaTime); // update various stats dialogs if present
+    updateAudio(deltaTime); // Update audio stats for procedural sounds
+    updateCursor(deltaTime); // Handle cursor updates
 }
 
 void Application::updateAvatar(float deltaTime) {
@@ -2743,6 +2866,12 @@ void Application::setupWorldLight(Camera& whichCamera) {
     glMateriali(GL_FRONT, GL_SHININESS, 96);
 }
 
+void Application::loadTranslatedViewMatrix(const glm::vec3& translation) {
+    glLoadMatrixf((const GLfloat*)&_untranslatedViewMatrix);
+    glTranslatef(translation.x + _viewMatrixTranslation.x, translation.y + _viewMatrixTranslation.y,
+        translation.z + _viewMatrixTranslation.z);
+}
+
 void Application::computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& near,
     float& far, glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const {
     
@@ -2776,7 +2905,11 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
     glm::vec3 axis = glm::axis(rotation);
     glRotatef(-glm::angle(rotation), axis.x, axis.y, axis.z);
 
-    glTranslatef(-whichCamera.getPosition().x, -whichCamera.getPosition().y, -whichCamera.getPosition().z);
+    // store view matrix without translation, which we'll use for precision-sensitive objects
+    glGetFloatv(GL_MODELVIEW_MATRIX, (GLfloat*)&_untranslatedViewMatrix);
+    _viewMatrixTranslation = -whichCamera.getPosition();
+
+    glTranslatef(_viewMatrixTranslation.x, _viewMatrixTranslation.y, _viewMatrixTranslation.z);
 
     //  Setup 3D lights (after the camera transform, so that they are positioned in world space)
     setupWorldLight(whichCamera);
@@ -2933,10 +3066,6 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
                     Avatar *avatar = (Avatar *)node->getLinkedData();
                     if (!avatar->isInitialized()) {
                         avatar->init();
-                    }
-                    // Set lookAt to myCamera on client side if other avatars are looking at client
-                    if (isLookingAtMyAvatar(avatar)) {
-                        avatar->getHead().setLookAtPosition(whichCamera.getPosition());
                     }
                     avatar->render(false, Menu::getInstance()->isOptionChecked(MenuOption::AvatarAsBalls));
                     avatar->setDisplayingLookatVectors(Menu::getInstance()->isOptionChecked(MenuOption::LookAtVectors));
@@ -3258,6 +3387,8 @@ void Application::displayStats() {
     drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, avatarStats);
 
  
+    QLocale locale(QLocale::English);
+
     std::stringstream voxelStats;
     voxelStats.precision(4);
     voxelStats << "Voxels " << 
@@ -3289,9 +3420,9 @@ void Application::displayStats() {
 
     voxelStats.str("");
     voxelStats << 
-        "Local Voxels Total: " << VoxelNode::getNodeCount() << ", " <<
-        "Internal: " << VoxelNode::getInternalNodeCount() << " , " <<
-        "Leaves: " << VoxelNode::getLeafNodeCount() << "";
+        "Local Voxels Total: " << localTotalString.toLocal8Bit().constData() << " / " <<
+        "Internal: " << localInternalString.toLocal8Bit().constData() << " / " <<
+        "Leaves: " << localLeavesString.toLocal8Bit().constData() << "";
     statsVerticalOffset += PELS_PER_LINE;
     drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, (char*)voxelStats.str().c_str());
 
@@ -3360,7 +3491,28 @@ void Application::displayStats() {
     statsVerticalOffset += PELS_PER_LINE;
     drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, (char*)voxelStats.str().c_str());
 
-    
+    voxelStats.str("");
+    int voxelPacketsToProcess = _voxelProcessor.packetsToProcessCount();
+    QString packetsString = locale.toString((int)voxelPacketsToProcess);
+    QString maxString = locale.toString((int)_recentMaxPackets);
+
+    voxelStats << "Voxel Packets to Process: " << packetsString.toLocal8Bit().constData() 
+                << " [Recent Max: " << maxString.toLocal8Bit().constData() << "]";
+                
+    if (_resetRecentMaxPacketsSoon && voxelPacketsToProcess > 0) {
+        _recentMaxPackets = 0;
+        _resetRecentMaxPacketsSoon = false;
+    }
+    if (voxelPacketsToProcess == 0) {
+        _resetRecentMaxPacketsSoon = true;
+    } else {
+        if (voxelPacketsToProcess > _recentMaxPackets) {
+            _recentMaxPackets = voxelPacketsToProcess;
+        }
+    }
+    statsVerticalOffset += PELS_PER_LINE;
+    drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, (char*)voxelStats.str().c_str());
+
     Node *avatarMixer = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_AVATAR_MIXER);
     char avatarMixerStats[200];
     
