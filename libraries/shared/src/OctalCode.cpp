@@ -16,10 +16,15 @@
 #include "SharedUtil.h"
 #include "OctalCode.h"
 
-int numberOfThreeBitSectionsInCode(const unsigned char* octalCode) {
+int numberOfThreeBitSectionsInCode(const unsigned char* octalCode, int maxBytes) {
+    if (maxBytes == OVERFLOWED_OCTCODE_BUFFER) {
+        return OVERFLOWED_OCTCODE_BUFFER;
+    }
+
     assert(octalCode);
     if (*octalCode == 255) {
-        return *octalCode + numberOfThreeBitSectionsInCode(octalCode + 1);
+        int newMaxBytes = (maxBytes == UNKNOWN_OCTCODE_LENGTH) ? UNKNOWN_OCTCODE_LENGTH : maxBytes - 1;
+        return *octalCode + numberOfThreeBitSectionsInCode(octalCode + 1, newMaxBytes);
     } else {
         return *octalCode;
     }

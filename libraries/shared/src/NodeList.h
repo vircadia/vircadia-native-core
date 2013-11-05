@@ -141,6 +141,7 @@ public:
     void removeDomainListener(DomainChangeListener* listener);
     
     void possiblyPingInactiveNodes();
+    sockaddr* getNodeActiveSocketOrPing(Node* node);
 private:
     static NodeList* _sharedInstance;
     
