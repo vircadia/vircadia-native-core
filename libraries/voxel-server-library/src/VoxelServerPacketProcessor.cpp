@@ -49,25 +49,31 @@ void VoxelServerPacketProcessor::processPacket(sockaddr& senderAddress, unsigned
         int atByte = numBytesPacketHeader + sizeof(itemNumber);
         unsigned char* voxelData = (unsigned char*)&packetData[atByte];
         while (atByte < packetLength) {
-            unsigned char octets = (unsigned char)*voxelData;
+            unsigned char octets = numberOfThreeBitSectionsInCode(voxelData);
             const int COLOR_SIZE_IN_BYTES = 3;
             int voxelDataSize = bytesRequiredForCodeLength(octets) + COLOR_SIZE_IN_BYTES;
             int voxelCodeSize = bytesRequiredForCodeLength(octets);
 
-            if (_myServer->wantShowAnimationDebug()) {
-                int red   = voxelData[voxelCodeSize + 0];
-                int green = voxelData[voxelCodeSize + 1];
-                int blue  = voxelData[voxelCodeSize + 2];
+            if (atByte + voxelDataSize <= packetLength) {
+                if (_myServer->wantShowAnimationDebug()) {
+                    int red   = voxelData[voxelCodeSize + 0];
+                    int green = voxelData[voxelCodeSize + 1];
+                    int blue  = voxelData[voxelCodeSize + 2];
 
-                float* vertices = firstVertexForCode(voxelData);
-                printf("inserting voxel: %f,%f,%f r=%d,g=%d,b=%d\n", vertices[0], vertices[1], vertices[2], red, green, blue);
-                delete[] vertices;
-            }
+                    float* vertices = firstVertexForCode(voxelData);
+                    printf("inserting voxel: %f,%f,%f r=%d,g=%d,b=%d\n", vertices[0], vertices[1], vertices[2], red, green, blue);
+                    delete[] vertices;
+                }
         
-            _myServer->getServerTree().readCodeColorBufferToTree(voxelData, destructive);
-            // skip to next
-            voxelData += voxelDataSize;
-            atByte += voxelDataSize;
+                _myServer->getServerTree().readCodeColorBufferToTree(voxelData, destructive);
+
+                // skip to next voxel edit record in the packet
+                voxelData += voxelDataSize;
+                atByte += voxelDataSize;
+            } else {
+                printf("WARNING! Got voxel edit record that would overflow buffer, bailing processing of packet!\n");
+                break;
+            }
         }
 
         // Make sure our Node and NodeList knows we've heard from this node.
