@@ -1060,6 +1060,11 @@ void MyAvatar::updateAvatarCollisions(float deltaTime) {
 // detect collisions with other avatars and respond
 void MyAvatar::applyCollisionWithOtherAvatar(Avatar * otherAvatar, float deltaTime) {
     
+    // for now, don't collide if we have a new skeleton
+    if (_skeletonModel.isActive()) {
+        return;
+    }
+    
     glm::vec3 bodyPushForce = glm::vec3(0.0f, 0.0f, 0.0f);
     
     // loop through the body balls of each avatar to check for every possible collision
