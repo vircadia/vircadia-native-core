@@ -90,11 +90,8 @@ bool VoxelEditPacketSender::voxelServersExist() const {
     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
         // only send to the NodeTypes that are NODE_TYPE_VOXEL_SERVER
         if (node->getType() == NODE_TYPE_VOXEL_SERVER) {
-            if (node->getActiveSocket()) {
+            if (nodeList->getNodeActiveSocketOrPing(&(*node))) {
                 return true;
-            } else {
-                // we don't have an active socket for this node, ping it
-                nodeList->pingPublicAndLocalSocketsForInactiveNode(&(*node));
             }
         }
     }
@@ -109,12 +106,9 @@ void VoxelEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, unsigned ch
         // only send to the NodeTypes that are NODE_TYPE_VOXEL_SERVER
         if (node->getType() == NODE_TYPE_VOXEL_SERVER &&
             ((node->getUUID() == nodeUUID) || (nodeUUID.isNull()))) {
-            if (node->getActiveSocket()) {
+            if (nodeList->getNodeActiveSocketOrPing(&(*node))) {
                 sockaddr* nodeAddress = node->getActiveSocket();
                 queuePacketForSending(*nodeAddress, buffer, length);
-            } else {
-                // we don't have an active socket for this node, ping it
-                nodeList->pingPublicAndLocalSocketsForInactiveNode(&(*node));
             }
         }
     }

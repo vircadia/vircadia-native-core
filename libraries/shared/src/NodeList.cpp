@@ -687,13 +687,10 @@ unsigned NodeList::broadcastToNodes(unsigned char* broadcastData, size_t dataByt
     for(NodeList::iterator node = begin(); node != end(); node++) {
         // only send to the NodeTypes we are asked to send to.
         if (memchr(nodeTypes, node->getType(), numNodeTypes)) {
-            if (node->getActiveSocket()) {
+            if (getNodeActiveSocketOrPing(&(*node))) {
                 // we know which socket is good for this node, send there
                 _nodeSocket.send(node->getActiveSocket(), broadcastData, dataBytes);
                 ++n;
-            } else {
-                // we don't have an active link to this node, ping it to set that up
-                pingPublicAndLocalSocketsForInactiveNode(&(*node));
             }
         }
     }
@@ -715,6 +712,15 @@ void NodeList::possiblyPingInactiveNodes() {
                 pingPublicAndLocalSocketsForInactiveNode(&(*node));
             }
         }
+    }
+}
+
+sockaddr* NodeList::getNodeActiveSocketOrPing(Node* node) {
+    if (node->getActiveSocket()) {
+        return node->getActiveSocket();
+    } else {
+        pingPublicAndLocalSocketsForInactiveNode(node);
+        return NULL;
     }
 }
 

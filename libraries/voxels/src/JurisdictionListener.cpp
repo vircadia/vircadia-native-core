@@ -50,10 +50,12 @@ bool JurisdictionListener::queueJurisdictionRequest() {
         // only send to the NodeTypes that are interested in our jurisdiction details
         const int numNodeTypes = 1; 
         const NODE_TYPE nodeTypes[numNodeTypes] = { NODE_TYPE_VOXEL_SERVER };
-        if (node->getActiveSocket() != NULL && memchr(nodeTypes, node->getType(), numNodeTypes)) {
-            sockaddr* nodeAddress = node->getActiveSocket();
-            PacketSender::queuePacketForSending(*nodeAddress, bufferOut, sizeOut);
-            nodeCount++;
+        if (nodeList->getNodeActiveSocketOrPing(&(*node))) {
+            if (memchr(nodeTypes, node->getType(), numNodeTypes)) {
+                sockaddr* nodeAddress = node->getActiveSocket();
+                PacketSender::queuePacketForSending(*nodeAddress, bufferOut, sizeOut);
+                nodeCount++;
+            }
         }
     }
 
