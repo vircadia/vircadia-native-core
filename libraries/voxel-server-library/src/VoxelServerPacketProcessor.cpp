@@ -56,9 +56,9 @@ void VoxelServerPacketProcessor::processPacket(sockaddr& senderAddress, unsigned
 
             if (atByte + voxelDataSize <= packetLength) {
                 if (_myServer->wantShowAnimationDebug()) {
-                    int red   = voxelData[voxelCodeSize + 0];
-                    int green = voxelData[voxelCodeSize + 1];
-                    int blue  = voxelData[voxelCodeSize + 2];
+                    int red   = voxelData[voxelCodeSize + RED_INDEX];
+                    int green = voxelData[voxelCodeSize + GREEN_INDEX];
+                    int blue  = voxelData[voxelCodeSize + BLUE_INDEX];
 
                     float* vertices = firstVertexForCode(voxelData);
                     printf("inserting voxel: %f,%f,%f r=%d,g=%d,b=%d\n", vertices[0], vertices[1], vertices[2], red, green, blue);
