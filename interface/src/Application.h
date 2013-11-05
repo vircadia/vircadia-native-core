@@ -378,6 +378,7 @@ private:
     
     VoxelDetail _mouseVoxel;      // details of the voxel to be edited
     float _mouseVoxelScale;       // the scale for adding/removing voxels
+    bool _mouseVoxelScaleInitialized;
     glm::vec3 _lastMouseVoxelPos; // the position of the last mouse voxel edit
     bool _justEditedVoxel;        // set when we've just added/deleted/colored a voxel
 

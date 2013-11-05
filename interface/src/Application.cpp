@@ -124,6 +124,7 @@ Application::Application(int& argc, char** argv, timeval &startup_time) :
         _isHoverVoxel(false),
         _isHoverVoxelSounding(false),
         _mouseVoxelScale(1.0f / 1024.0f),
+        _mouseVoxelScaleInitialized(false),
         _justEditedVoxel(false),
         _nudgeStarted(false),
         _lookingAlongX(false),
@@ -1782,7 +1783,7 @@ void Application::shrinkMirrorView() {
 }
 
 const float MAX_AVATAR_EDIT_VELOCITY = 1.0f;
-const float MAX_VOXEL_EDIT_DISTANCE = 20.0f;
+const float MAX_VOXEL_EDIT_DISTANCE = 50.0f;
 const float HEAD_SPHERE_RADIUS = 0.07;
 
 static QUuid DEFAULT_NODE_ID_REF;
@@ -2051,6 +2052,8 @@ void Application::updateMouseVoxels(float deltaTime, glm::vec3& mouseRayOrigin, 
     PerformanceWarning warn(showWarnings, "Application::updateMouseVoxels()");
 
     _mouseVoxel.s = 0.0f;
+    bool wasInitialized = _mouseVoxelScaleInitialized;
+    _mouseVoxelScaleInitialized = false;
     if (Menu::getInstance()->isVoxelModeActionChecked() &&
         (fabs(_myAvatar.getVelocity().x) +
          fabs(_myAvatar.getVelocity().y) +
@@ -2058,6 +2061,12 @@ void Application::updateMouseVoxels(float deltaTime, glm::vec3& mouseRayOrigin, 
 
         if (_voxels.findRayIntersection(mouseRayOrigin, mouseRayDirection, _mouseVoxel, distance, face)) {
             if (distance < MAX_VOXEL_EDIT_DISTANCE) {
+                // set the voxel scale to that of the first moused-over voxel
+                if (!wasInitialized) {
+                    _mouseVoxelScale = _mouseVoxel.s;
+                }
+                _mouseVoxelScaleInitialized = true;
+                
                 // find the nearest voxel with the desired scale
                 if (_mouseVoxelScale > _mouseVoxel.s) {
                     // choose the larger voxel that encompasses the one selected
@@ -2990,6 +2999,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
             glDisable(GL_LIGHTING);
             glPushMatrix();
             glScalef(TREE_SCALE, TREE_SCALE, TREE_SCALE);
+            const float CUBE_EXPANSION = 1.01f;
             if (_nudgeStarted) {
                 renderNudgeGuide(_nudgeGuidePosition.x, _nudgeGuidePosition.y, _nudgeGuidePosition.z, _nudgeVoxel.s);
                 renderNudgeGrid(_nudgeVoxel.x, _nudgeVoxel.y, _nudgeVoxel.z, _nudgeVoxel.s, _mouseVoxel.s);
@@ -2999,7 +3009,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
                     _nudgeVoxel.z + _nudgeVoxel.s * 0.5f);
                 glColor3ub(255, 255, 255);
                 glLineWidth(4.0f);
-                glutWireCube(_nudgeVoxel.s);
+                glutWireCube(_nudgeVoxel.s * CUBE_EXPANSION);
                 glPopMatrix();
             } else {
                 renderMouseVoxelGrid(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
@@ -3018,13 +3028,13 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
                     _nudgeGuidePosition.y + _nudgeVoxel.s*0.5f,
                     _nudgeGuidePosition.z + _nudgeVoxel.s*0.5f);
                 glLineWidth(4.0f);
-                glutWireCube(_nudgeVoxel.s);
+                glutWireCube(_nudgeVoxel.s * CUBE_EXPANSION);
             } else {
                 glTranslatef(_mouseVoxel.x + _mouseVoxel.s*0.5f,
                     _mouseVoxel.y + _mouseVoxel.s*0.5f,
                     _mouseVoxel.z + _mouseVoxel.s*0.5f);
                 glLineWidth(4.0f);
-                glutWireCube(_mouseVoxel.s);
+                glutWireCube(_mouseVoxel.s * CUBE_EXPANSION);
             }
             glLineWidth(1.0f);
             glPopMatrix();
