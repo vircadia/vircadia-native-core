@@ -32,6 +32,10 @@ bool ReceivedPacketProcessor::process() {
     }
     while (_packets.size() > 0) {
         NetworkPacket& packet = _packets.front();
+
+        printf("ReceivedPacketProcessor::process() calling processPacket() NetworkPacket=%p packet.getData()=%p packet.getLength()=%ld\n",
+            &packet, packet.getData(), packet.getLength() );
+            
         processPacket(packet.getAddress(), packet.getData(), packet.getLength());
 
         lock();
