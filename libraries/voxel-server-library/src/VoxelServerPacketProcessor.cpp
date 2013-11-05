@@ -49,7 +49,15 @@ void VoxelServerPacketProcessor::processPacket(sockaddr& senderAddress, unsigned
         int atByte = numBytesPacketHeader + sizeof(itemNumber);
         unsigned char* voxelData = (unsigned char*)&packetData[atByte];
         while (atByte < packetLength) {
-            unsigned char octets = numberOfThreeBitSectionsInCode(voxelData);
+            int maxSize = packetLength - atByte;
+            unsigned char octets = numberOfThreeBitSectionsInCode(voxelData, maxSize);
+            
+            if (octets == OVERFLOWED_OCTCODE_BUFFER) {
+                printf("WARNING! Got voxel edit record that would overflow buffer in numberOfThreeBitSectionsInCode(), ");
+                printf("bailing processing of packet!\n");
+                break;
+            }
+            
             const int COLOR_SIZE_IN_BYTES = 3;
             int voxelDataSize = bytesRequiredForCodeLength(octets) + COLOR_SIZE_IN_BYTES;
             int voxelCodeSize = bytesRequiredForCodeLength(octets);

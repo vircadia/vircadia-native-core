@@ -24,7 +24,15 @@ void printOctalCode(const unsigned char* octalCode);
 int bytesRequiredForCodeLength(unsigned char threeBitCodes);
 int branchIndexWithDescendant(const unsigned char* ancestorOctalCode, const unsigned char* descendantOctalCode);
 unsigned char* childOctalCode(const unsigned char* parentOctalCode, char childNumber);
-int numberOfThreeBitSectionsInCode(const unsigned char* octalCode);
+
+const int OVERFLOWED_OCTCODE_BUFFER = -1;
+const int UNKNOWN_OCTCODE_LENGTH = -2;
+
+/// will return -1 if there is an error in the octcode encoding, or it would overflow maxBytes
+/// \param const unsigned char* octalCode the octalcode to decode
+/// \param int maxBytes number of bytes that octalCode is expected to be, -1 if unknown
+int numberOfThreeBitSectionsInCode(const unsigned char* octalCode, int maxBytes = UNKNOWN_OCTCODE_LENGTH);
+
 unsigned char* chopOctalCode(const unsigned char* originalOctalCode, int chopLevels);
 unsigned char* rebaseOctalCode(const unsigned char* originalOctalCode, const unsigned char* newParentOctalCode, 
                                bool includeColorSpace = false);
