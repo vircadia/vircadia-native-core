@@ -112,6 +112,18 @@ int VoxelServer::civetwebRequestHandler(struct mg_connection* connection) {
         // return a 200
         mg_printf(connection, "%s", "HTTP/1.0 200 OK\r\n\r\n");
         mg_printf(connection, "%s", "Your Voxel Server is running.\r\n");
+
+
+
+        mg_printf(connection, "%s", "\r\n");
+        mg_printf(connection, "%s", "Configuration: \r\n     ");
+        for (int i = 1; i < GetInstance()->_argc; i++) {
+            mg_printf(connection, "%s ", GetInstance()->_argv[i]);
+        }
+        mg_printf(connection, "%s", "\r\n");
+        mg_printf(connection, "%s", "\r\n");
+
+
         mg_printf(connection, "%s", "Current Statistics\r\n");
         mg_printf(connection, "%s", "\r\n");
 

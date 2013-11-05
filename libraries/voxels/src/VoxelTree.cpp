@@ -109,10 +109,10 @@ void VoxelTree::recurseNodeWithOperationDistanceSorted(VoxelNode* node, RecurseV
 
     if (operation(node, extraData)) {
         // determine the distance sorted order of our children
-        VoxelNode*  sortedChildren[NUMBER_OF_CHILDREN];
-        float       distancesToChildren[NUMBER_OF_CHILDREN];
-        int         indexOfChildren[NUMBER_OF_CHILDREN]; // not really needed
-        int         currentCount = 0;
+        VoxelNode* sortedChildren[NUMBER_OF_CHILDREN] = { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL };
+        float distancesToChildren[NUMBER_OF_CHILDREN] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+        int indexOfChildren[NUMBER_OF_CHILDREN] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+        int currentCount = 0;
 
         for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
             VoxelNode* childNode = node->getChildAtIndex(i);
@@ -1231,10 +1231,10 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
     int inViewNotLeafCount = 0;
     int inViewWithColorCount = 0;
 
-    VoxelNode*  sortedChildren[NUMBER_OF_CHILDREN];
-    float       distancesToChildren[NUMBER_OF_CHILDREN];
-    int         indexOfChildren[NUMBER_OF_CHILDREN]; // not really needed
-    int         currentCount = 0;
+    VoxelNode* sortedChildren[NUMBER_OF_CHILDREN] = { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL };
+    float distancesToChildren[NUMBER_OF_CHILDREN] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+    int indexOfChildren[NUMBER_OF_CHILDREN] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+    int currentCount = 0;
 
     for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
         VoxelNode* childNode = node->getChildAtIndex(i);
