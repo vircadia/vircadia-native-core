@@ -20,6 +20,7 @@ NetworkPacket::NetworkPacket() {
 
 NetworkPacket::~NetworkPacket() {
     // nothing to do
+    printf("NetworkPacket::~NetworkPacket() this=%p this.getData()=%p\n", this, getData());
 }
 
 void NetworkPacket::copyContents(const sockaddr& address, const unsigned char*  packetData, ssize_t packetLength) {
