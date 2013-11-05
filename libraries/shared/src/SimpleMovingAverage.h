@@ -15,7 +15,7 @@
 
 class SimpleMovingAverage {
 public:
-    SimpleMovingAverage(int numSamplesToAverage);
+    SimpleMovingAverage(int numSamplesToAverage = 100);
     
     int updateAverage(float sample);
     void reset();
@@ -30,8 +30,8 @@ private:
     float _average;
     float _eventDeltaAverage;
     
-    const float WEIGHTING;
-    const float ONE_MINUS_WEIGHTING;
+    float WEIGHTING;
+    float ONE_MINUS_WEIGHTING;
 };
 
 #endif /* defined(__hifi__Stats__) */

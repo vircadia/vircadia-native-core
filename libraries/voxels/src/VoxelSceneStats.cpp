@@ -7,6 +7,9 @@
 //
 //
 
+#include <QString>
+#include <QStringList>
+
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
 
@@ -521,30 +524,26 @@ void VoxelSceneStats::printDebugDetails() {
     qDebug("    trees removed       : %lu\n", _treesRemoved             );
 }
 
-const unsigned greenish  = 0x40ff40d0;
-const unsigned yellowish = 0xffef40c0;
-const unsigned greyish   = 0xd0d0d0a0;
-
 VoxelSceneStats::ItemInfo VoxelSceneStats::_ITEMS[] = {
-    { "Elapsed"              , greenish  },
-    { "Encode"               , yellowish },
-    { "Network"              , greyish   },
-    { "Voxels on Server"     , greenish  },
-    { "Voxels Sent"          , yellowish },
-    { "Colors Sent"          , greyish   },
-    { "Bitmasks Sent"        , greenish  },
-    { "Traversed"            , yellowish },
-    { "Skipped - Total"      , greyish   },
-    { "Skipped - Distance"   , greenish  },
-    { "Skipped - Out of View", yellowish },
-    { "Skipped - Was in View", greyish   },
-    { "Skipped - No Change"  , greenish  },
-    { "Skipped - Occluded"   , yellowish },
-    { "Didn't fit in packet" , greyish   },
-    { "Mode"                 , greenish  },
+    { "Elapsed"              , GREENISH  , 2 , "Elapsed,fps" },
+    { "Encode"               , YELLOWISH , 2 , "Time,fps" },
+    { "Network"              , GREYISH   , 3 , "Packets,Bytes,KBPS" },
+    { "Voxels on Server"     , GREENISH  , 3 , "Total,Internal,Leaves" },
+    { "Voxels Sent"          , YELLOWISH , 5 , "Total,Bits/Voxel,Avg Bits/Voxel,Internal,Leaves" },
+    { "Colors Sent"          , GREYISH   , 3 , "Total,Internal,Leaves" },
+    { "Bitmasks Sent"        , GREENISH  , 3 , "Colors,Exists,In Packets" },
+    { "Traversed"            , YELLOWISH , 3 , "Total,Internal,Leaves" },
+    { "Skipped - Total"      , GREYISH   , 3 , "Total,Internal,Leaves" },
+    { "Skipped - Distance"   , GREENISH  , 3 , "Total,Internal,Leaves" },
+    { "Skipped - Out of View", YELLOWISH , 3 , "Total,Internal,Leaves" },
+    { "Skipped - Was in View", GREYISH   , 3 , "Total,Internal,Leaves" },
+    { "Skipped - No Change"  , GREENISH  , 3 , "Total,Internal,Leaves" },
+    { "Skipped - Occluded"   , YELLOWISH , 3 , "Total,Internal,Leaves" },
+    { "Didn't fit in packet" , GREYISH   , 4 , "Total,Internal,Leaves,Removed" },
+    { "Mode"                 , GREENISH  , 4 , "Moving,Stationary,Partial,Full" },
 };
 
-char* VoxelSceneStats::getItemValue(Item item) {
+const char* VoxelSceneStats::getItemValue(Item item) {
     const uint64_t USECS_PER_SECOND = 1000 * 1000;
     int calcFPS, calcAverageFPS, calculatedKBPS;
     switch(item) {
@@ -648,6 +647,145 @@ char* VoxelSceneStats::getItemValue(Item item) {
             sprintf(_itemValueBuffer, "");
             break;
     }
+    return _itemValueBuffer;
+}
+
+
+int VoxelSceneStats::getItemDetailsCount(Item item) {
+    return _ITEMS[item].detailsCount;
+}
+
+float VoxelSceneStats::getItemDetailsValue(Item item, int detailIndex) {
+    const uint64_t USECS_PER_SECOND = 1000 * 1000;
+    int calcFPS, calculatedKBPS;
+    const int MAX_DETAILS_ITEMS = 6;
+    float items[MAX_DETAILS_ITEMS];
+    switch(item) {
+        case ITEM_ELAPSED: {
+            calcFPS = (float)USECS_PER_SECOND / (float)_elapsed;
+            items[0] = _elapsed;
+            items[1] = calcFPS;
+            break;
+        }
+        case ITEM_ENCODE:
+            calcFPS = (float)USECS_PER_SECOND / (float)_totalEncodeTime;
+            items[0] = _totalEncodeTime;
+            items[1] = calcFPS;
+            break;
+        case ITEM_PACKETS: {
+            float elapsedSecs = ((float)_elapsed / (float)USECS_PER_SECOND);
+            calculatedKBPS = elapsedSecs == 0 ? 0 : ((_bytes * 8) / elapsedSecs) / 1000;
+            items[0] = _packets;
+            items[1] = _bytes;
+            items[2] = calculatedKBPS;
+            break;
+        }
+        case ITEM_VOXELS_SERVER: {
+            items[0] = _totalVoxels;
+            items[1] = _totalInternal;
+            items[2] = _totalLeaves;
+            break;
+        }
+        case ITEM_VOXELS: {
+            unsigned long total = _existsInPacketBitsWritten + _colorSent;
+            float calculatedBPV = total == 0 ? 0 : (_bytes * 8) / total;
+            float averageBPV = _bitsPerVoxelAverage.getAverage();
+            items[0] = total;
+            items[1] = calculatedBPV;
+            items[2] = averageBPV;
+            items[3] = _existsInPacketBitsWritten;
+            items[4] = _colorSent;
+            break;
+        }
+        case ITEM_TRAVERSED: {
+            items[0] = _traversed;
+            items[1] = _internal;
+            items[2] = _leaves;
+            break;
+        }
+        case ITEM_SKIPPED: {
+            unsigned long total    = _skippedDistance + _skippedOutOfView + 
+                                     _skippedWasInView + _skippedNoChange + _skippedOccluded;
+                                     
+            unsigned long internal = _internalSkippedDistance + _internalSkippedOutOfView + 
+                                     _internalSkippedWasInView + _internalSkippedNoChange + _internalSkippedOccluded;
+                                     
+            unsigned long leaves   = _leavesSkippedDistance + _leavesSkippedOutOfView + 
+                                     _leavesSkippedWasInView + _leavesSkippedNoChange + _leavesSkippedOccluded;
+
+            items[0] = total;
+            items[1] = internal;
+            items[2] = leaves;
+            break;
+        }
+        case ITEM_SKIPPED_DISTANCE: {
+            items[0] = _skippedDistance;
+            items[1] = _internalSkippedDistance;
+            items[2] = _leavesSkippedDistance;
+            break;
+        }
+        case ITEM_SKIPPED_OUT_OF_VIEW: {
+            items[0] = _skippedOutOfView;
+            items[1] = _internalSkippedOutOfView;
+            items[2] = _leavesSkippedOutOfView;
+            break;
+        }
+        case ITEM_SKIPPED_WAS_IN_VIEW: {
+            items[0] = _skippedWasInView;
+            items[1] = _internalSkippedWasInView;
+            items[2] = _leavesSkippedWasInView;
+            break;
+        }
+        case ITEM_SKIPPED_NO_CHANGE: {
+            items[0] = _skippedNoChange;
+            items[1] = _internalSkippedNoChange;
+            items[2] = _leavesSkippedNoChange;
+            break;
+        }
+        case ITEM_SKIPPED_OCCLUDED: {
+            items[0] = _skippedOccluded;
+            items[1] = _internalSkippedOccluded;
+            items[2] = _leavesSkippedOccluded;
+            break;
+        }
+        case ITEM_COLORS: {
+            items[0] = _colorSent;
+            items[1] = _internalColorSent;
+            items[2] = _leavesColorSent;
+            break;
+        }
+        case ITEM_DIDNT_FIT: {
+            items[0] = _didntFit;
+            items[1] = _internalDidntFit;
+            items[2] = _leavesDidntFit;
+            items[3] = _treesRemoved;
+            break;
+        }
+        case ITEM_BITS: {
+            items[0] = _colorBitsWritten;
+            items[1] = _existsBitsWritten;
+            items[2] = _existsInPacketBitsWritten;
+            break;
+        }
+        case ITEM_MODE: {
+            items[0] = _isMoving ? 1.0 : 0.0;
+            items[1] = !_isMoving ? 1.0 : 0.0;
+            items[2] = _isFullScene ? 1.0 : 0.0;
+            items[3] = !_isFullScene ? 1.0 : 0.0;
+            break;
+        }
+        default:
+            sprintf(_itemValueBuffer, "");
+            break;
+    }
+    return items[detailIndex];
+}
+
+const char* VoxelSceneStats::getItemDetailsLabel(Item item, int detailIndex) {
+    QString labels(_ITEMS[item].detailsLabels);
+    QStringList labelsList = labels.split(QString(","));
+    QString label = labelsList.at(detailIndex);
+    sprintf(_itemValueBuffer, "%s", label.toLocal8Bit().constData());
     return _itemValueBuffer;
 }
 
