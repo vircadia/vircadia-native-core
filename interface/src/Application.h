@@ -152,6 +152,10 @@ public:
     
     void setupWorldLight(Camera& whichCamera);
 
+    /// Loads a view matrix that incorporates the specified model translation without the precision issues that can
+    /// result from matrix multiplication at high translation magnitudes.
+    void loadTranslatedViewMatrix(const glm::vec3& translation);
+
     /// Computes the off-axis frustum parameters for the view frustum, taking mirroring into account.
     void computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& near,
         float& far, glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const;
@@ -336,6 +340,9 @@ private:
     Camera _mirrorCamera;              // Cammera for mirror view
     QRect _mirrorViewRect;
     RearMirrorTools* _rearMirrorTools;
+    
+    glm::mat4 _untranslatedViewMatrix;
+    glm::vec3 _viewMatrixTranslation;
     
     Environment _environment;
     
