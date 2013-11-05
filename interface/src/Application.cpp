@@ -3491,28 +3491,6 @@ void Application::displayStats() {
     statsVerticalOffset += PELS_PER_LINE;
     drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, (char*)voxelStats.str().c_str());
 
-    voxelStats.str("");
-    int voxelPacketsToProcess = _voxelProcessor.packetsToProcessCount();
-    QString packetsString = locale.toString((int)voxelPacketsToProcess);
-    QString maxString = locale.toString((int)_recentMaxPackets);
-
-    voxelStats << "Voxel Packets to Process: " << packetsString.toLocal8Bit().constData() 
-                << " [Recent Max: " << maxString.toLocal8Bit().constData() << "]";
-                
-    if (_resetRecentMaxPacketsSoon && voxelPacketsToProcess > 0) {
-        _recentMaxPackets = 0;
-        _resetRecentMaxPacketsSoon = false;
-    }
-    if (voxelPacketsToProcess == 0) {
-        _resetRecentMaxPacketsSoon = true;
-    } else {
-        if (voxelPacketsToProcess > _recentMaxPackets) {
-            _recentMaxPackets = voxelPacketsToProcess;
-        }
-    }
-    statsVerticalOffset += PELS_PER_LINE;
-    drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, (char*)voxelStats.str().c_str());
-
     Node *avatarMixer = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_AVATAR_MIXER);
     char avatarMixerStats[200];
     
