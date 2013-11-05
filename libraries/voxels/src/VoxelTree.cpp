@@ -581,7 +581,14 @@ void VoxelTree::processRemoveVoxelBitstream(unsigned char * bitstream, int buffe
     int atByte = sizeof(short int) + numBytesForPacketHeader(bitstream);
     unsigned char* voxelCode = (unsigned char*)&bitstream[atByte];
     while (atByte < bufferSizeBytes) {
-        int codeLength = numberOfThreeBitSectionsInCode(voxelCode);
+        int maxSize = bufferSizeBytes - atByte;
+        unsigned char codeLength = numberOfThreeBitSectionsInCode(voxelCode, maxSize);
+        
+        if (codeLength == OVERFLOWED_OCTCODE_BUFFER) {
+            printf("WARNING! Got remove voxel bitstream that would overflow buffer in numberOfThreeBitSectionsInCode(), ");
+            printf("bailing processing of packet!\n");
+            break;
+        }
         int voxelDataSize = bytesRequiredForCodeLength(codeLength) + SIZE_OF_COLOR_DATA;
         
         if (atByte + voxelDataSize <= bufferSizeBytes) {
