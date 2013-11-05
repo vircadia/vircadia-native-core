@@ -24,6 +24,12 @@ VoxelServerPacketProcessor::VoxelServerPacketProcessor(VoxelServer* myServer) :
 
 void VoxelServerPacketProcessor::processPacket(sockaddr& senderAddress, unsigned char* packetData, ssize_t packetLength) {
 
+    bool debugProcessPacket = true; // temporarily debugging....
+    
+    if (debugProcessPacket) {
+        printf("VoxelServerPacketProcessor::processPacket(() packetData=%p packetLength=%ld\n", packetData, packetLength);
+    }
+
     int numBytesPacketHeader = numBytesForPacketHeader(packetData);
     
     if (packetData[0] == PACKET_TYPE_SET_VOXEL || packetData[0] == PACKET_TYPE_SET_VOXEL_DESTRUCTIVE) {
@@ -41,7 +47,7 @@ void VoxelServerPacketProcessor::processPacket(sockaddr& senderAddress, unsigned
                 packetLength, itemNumber);
         }
         
-        if (_myServer->wantsDebugVoxelReceiving()) {
+        if (debugProcessPacket || _myServer->wantsDebugVoxelReceiving()) {
             printf("got %s - %d command from client receivedBytes=%ld itemNumber=%d\n",
                 destructive ? "PACKET_TYPE_SET_VOXEL_DESTRUCTIVE" : "PACKET_TYPE_SET_VOXEL",
                 _receivedPacketCount, packetLength, itemNumber);
@@ -50,6 +56,13 @@ void VoxelServerPacketProcessor::processPacket(sockaddr& senderAddress, unsigned
         unsigned char* voxelData = (unsigned char*)&packetData[atByte];
         while (atByte < packetLength) {
             int maxSize = packetLength - atByte;
+
+            if (debugProcessPacket) {
+                printf("VoxelServerPacketProcessor::processPacket(() %s packetData=%p packetLength=%ld voxelData=%p atByte=%d maxSize=%d\n",
+                    destructive ? "PACKET_TYPE_SET_VOXEL_DESTRUCTIVE" : "PACKET_TYPE_SET_VOXEL",
+                    packetData, packetLength, voxelData, atByte, maxSize);
+            }
+
             int octets = numberOfThreeBitSectionsInCode(voxelData, maxSize);
             
             if (octets == OVERFLOWED_OCTCODE_BUFFER) {
@@ -82,6 +95,12 @@ void VoxelServerPacketProcessor::processPacket(sockaddr& senderAddress, unsigned
                 printf("WARNING! Got voxel edit record that would overflow buffer, bailing processing of packet!\n");
                 break;
             }
+        }
+
+        if (debugProcessPacket) {
+            printf("VoxelServerPacketProcessor::processPacket(() DONE LOOPING FOR %s packetData=%p packetLength=%ld voxelData=%p atByte=%d\n",
+                destructive ? "PACKET_TYPE_SET_VOXEL_DESTRUCTIVE" : "PACKET_TYPE_SET_VOXEL",
+                packetData, packetLength, voxelData, atByte);
         }
 
         // Make sure our Node and NodeList knows we've heard from this node.
