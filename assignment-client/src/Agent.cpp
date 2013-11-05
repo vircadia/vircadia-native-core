@@ -171,17 +171,12 @@ void Agent::run() {
                 usleep(usecToSleep);
             }
             
-            if (audioMixer && audioMixer->getActiveSocket() && scriptedAudioInjector.hasSamplesToInject()) {
+            if (audioMixer && NodeList::getInstance()->getNodeActiveSocketOrPing(audioMixer) && scriptedAudioInjector.hasSamplesToInject()) {
                 // we have an audio mixer and samples to inject, send those off
                 scriptedAudioInjector.injectAudio(NodeList::getInstance()->getNodeSocket(), audioMixer->getActiveSocket());
                 
                 // clear out the audio injector so that it doesn't re-send what we just sent
                 scriptedAudioInjector.clear();
-            }
-        
-            if (audioMixer && !audioMixer->getActiveSocket()) {
-                // don't have an active socket for the audio-mixer, ping it now
-                NodeList::getInstance()->pingPublicAndLocalSocketsForInactiveNode(audioMixer);
             }
             
             if (voxelScripter.getVoxelPacketSender()->voxelServersExist()) {
