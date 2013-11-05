@@ -326,6 +326,7 @@ Menu::Menu() :
                                            false,
                                            appInstance->getFaceshift(),
                                            SLOT(setTCPEnabled(bool)));
+    addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::ChatCircling, 0, true);
 
     QMenu* webcamOptionsMenu = developerMenu->addMenu("Webcam Options");
 

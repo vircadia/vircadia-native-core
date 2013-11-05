@@ -17,6 +17,7 @@
 
 #include "Application.h"
 #include "DataServerClient.h"
+#include "Menu.h"
 #include "MyAvatar.h"
 #include "Physics.h"
 #include "devices/OculusManager.h"
@@ -1110,6 +1111,10 @@ bool operator<(const SortedAvatar& s1, const SortedAvatar& s2) {
 }
 
 void MyAvatar::updateChatCircle(float deltaTime) {
+    if (!Menu::getInstance()->isOptionChecked(MenuOption::ChatCircling)) {
+        return;
+    }
+
     // find all members and sort by distance
     QVector<SortedAvatar> sortedAvatars;
     NodeList* nodeList = NodeList::getInstance();
