@@ -2866,6 +2866,12 @@ void Application::setupWorldLight(Camera& whichCamera) {
     glMateriali(GL_FRONT, GL_SHININESS, 96);
 }
 
+void Application::loadTranslatedViewMatrix(const glm::vec3& translation) {
+    glLoadMatrixf((const GLfloat*)&_untranslatedViewMatrix);
+    glTranslatef(translation.x + _viewMatrixTranslation.x, translation.y + _viewMatrixTranslation.y,
+        translation.z + _viewMatrixTranslation.z);
+}
+
 void Application::computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& near,
     float& far, glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const {
     
@@ -2899,7 +2905,11 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
     glm::vec3 axis = glm::axis(rotation);
     glRotatef(-glm::angle(rotation), axis.x, axis.y, axis.z);
 
-    glTranslatef(-whichCamera.getPosition().x, -whichCamera.getPosition().y, -whichCamera.getPosition().z);
+    // store view matrix without translation, which we'll use for precision-sensitive objects
+    glGetFloatv(GL_MODELVIEW_MATRIX, (GLfloat*)&_untranslatedViewMatrix);
+    _viewMatrixTranslation = -whichCamera.getPosition();
+
+    glTranslatef(_viewMatrixTranslation.x, _viewMatrixTranslation.y, _viewMatrixTranslation.z);
 
     //  Setup 3D lights (after the camera transform, so that they are positioned in world space)
     setupWorldLight(whichCamera);

@@ -8,6 +8,7 @@
 
 #include <glm/gtx/transform.hpp>
 
+#include "Application.h"
 #include "Avatar.h"
 #include "SkeletonModel.h"
 
@@ -47,7 +48,7 @@ bool SkeletonModel::render(float alpha) {
             
             glm::vec3 position;
             getJointPosition(i, position);
-            glTranslatef(position.x, position.y, position.z);
+            Application::getInstance()->loadTranslatedViewMatrix(position);
             
             glm::quat rotation;
             getJointRotation(i, rotation);
@@ -85,9 +86,9 @@ void SkeletonModel::updateJointState(int index) {
     
     if (index == _geometry->getFBXGeometry().rootJointIndex) {
         JointState& state = _jointStates[index];
-        state.transform[3][0] = _translation.x;
-        state.transform[3][1] = _translation.y;
-        state.transform[3][2] = _translation.z;
+        state.transform[3][0] = 0.0f;
+        state.transform[3][1] = 0.0f;
+        state.transform[3][2] = 0.0f;
     }
 }
 
