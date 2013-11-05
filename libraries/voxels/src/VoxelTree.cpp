@@ -587,7 +587,7 @@ void VoxelTree::processRemoveVoxelBitstream(unsigned char * bitstream, int buffe
         if (atByte + voxelDataSize <= bufferSizeBytes) {
             deleteVoxelCodeFromTree(voxelCode, COLLAPSE_EMPTY_TREE);
             voxelCode += voxelDataSize;
-            atByte + =voxelDataSize;
+            atByte += voxelDataSize;
         } else {
             printf("WARNING! Got remove voxel bitstream that would overflow buffer, bailing processing!\n");
             break;
