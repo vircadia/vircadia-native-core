@@ -11,7 +11,7 @@
 #ifndef __shared__JurisdictionSender__
 #define __shared__JurisdictionSender__
 
-#include <set>
+#include <queue>
 
 #include <PacketSender.h>
 #include <ReceivedPacketProcessor.h>
@@ -44,6 +44,6 @@ protected:
 private:
     pthread_mutex_t _requestingNodeMutex;
     JurisdictionMap* _jurisdictionMap;
-    std::set<QUuid> _nodesRequestingJurisdictions;
+    std::queue<QUuid> _nodesRequestingJurisdictions;
 };
 #endif // __shared__JurisdictionSender__

@@ -86,7 +86,9 @@ void VoxelServerPacketProcessor::processPacket(sockaddr& senderAddress, unsigned
                     delete[] vertices;
                 }
         
+                _myServer->lockTree();
                 _myServer->getServerTree().readCodeColorBufferToTree(voxelData, destructive);
+                _myServer->unlockTree();
 
                 // skip to next voxel edit record in the packet
                 voxelData += voxelDataSize;
