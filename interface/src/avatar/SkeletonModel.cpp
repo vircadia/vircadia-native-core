@@ -28,7 +28,12 @@ void SkeletonModel::simulate(float deltaTime) {
     
     Model::simulate(deltaTime);
     
-    setRightHandPosition(_owningAvatar->getHandPosition());
+    if (_owningAvatar->getHandState() == HAND_STATE_NULL) {
+        const float HAND_RESTORATION_RATE = 0.25f;
+        restoreRightHandPosition(HAND_RESTORATION_RATE);
+    } else {
+        setRightHandPosition(_owningAvatar->getHandPosition());
+    }
 }
 
 bool SkeletonModel::render(float alpha) {

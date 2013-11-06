@@ -831,6 +831,7 @@ void MyAvatar::updateHandMovementAndTouching(float deltaTime, bool enableHandMov
     // reset hand and arm positions according to hand movement
     glm::vec3 up = orientation * IDENTITY_UP;
     
+    bool pointing = false;
     if (enableHandMovement && glm::length(_mouseRayDirection) > EPSILON && !Application::getInstance()->isMouseHidden()) {
         // confine to the approximate shoulder plane
         glm::vec3 pointDirection = _mouseRayDirection;
@@ -842,6 +843,7 @@ void MyAvatar::updateHandMovementAndTouching(float deltaTime, bool enableHandMov
         }
         const float FAR_AWAY_POINT = TREE_SCALE;
         _skeleton.joint[AVATAR_JOINT_RIGHT_FINGERTIPS].position = _mouseRayOrigin + pointDirection * FAR_AWAY_POINT;
+        pointing = true;
     }
     
     _avatarTouch.setMyBodyPosition(_position);
@@ -933,6 +935,8 @@ void MyAvatar::updateHandMovementAndTouching(float deltaTime, bool enableHandMov
     
     if (_mousePressed) {
         _handState = HAND_STATE_GRASPING;
+    } else if (pointing) {
+        _handState = HAND_STATE_POINTING;
     } else {
         _handState = HAND_STATE_NULL;
     }

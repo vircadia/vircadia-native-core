@@ -74,6 +74,11 @@ public:
     /// \return whether or not the left hand joint was found
     bool setLeftHandPosition(const glm::vec3& position);
     
+    /// Restores some percentage of the default position of the left hand.
+    /// \param percent the percentage of the default position to restore
+    /// \return whether or not the left hand joint was found
+    bool restoreLeftHandPosition(float percent = 1.0f);
+    
     /// Sets the rotation of the left hand.
     /// \return whether or not the left hand joint was found
     bool setLeftHandRotation(const glm::quat& rotation);
@@ -81,6 +86,11 @@ public:
     /// Sets the position of the right hand using inverse kinematics.
     /// \return whether or not the right hand joint was found
     bool setRightHandPosition(const glm::vec3& position);
+    
+    /// Restores some percentage of the default position of the right hand.
+    /// \param percent the percentage of the default position to restore
+    /// \return whether or not the right hand joint was found
+    bool restoreRightHandPosition(float percent = 1.0f);
     
     /// Sets the rotation of the right hand.
     /// \return whether or not the right hand joint was found
@@ -129,6 +139,12 @@ protected:
     
     bool setJointPosition(int jointIndex, const glm::vec3& position);
     bool setJointRotation(int jointIndex, const glm::quat& rotation);
+    
+    /// Restores the indexed joint to its default position.
+    /// \param percent the percentage of the default position to apply (i.e., 0.25f to slerp one fourth of the way to
+    /// the original position
+    /// \return true if the joint was found
+    bool restoreJointPosition(int jointIndex, float percent = 1.0f);
     
 private:
     
