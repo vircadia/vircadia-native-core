@@ -121,7 +121,7 @@ VoxelNodeData::~VoxelNodeData() {
     qDebug("VoxelNodeData::~VoxelNodeData() this=%p owningNode=%p _voxelSendThread=%p\n", 
         this, getOwningNode(), _voxelSendThread);
     QUuid nodeUUID = getOwningNode()->getUUID();
-    qDebug() << "VoxelNodeData::initializeVoxelSendThread() nodeUUID=" << nodeUUID << "\n";
+    qDebug() << "VoxelNodeData::~VoxelNodeData() nodeUUID=" << nodeUUID << "\n";
 
     delete[] _voxelPacket;
     delete[] _lastVoxelPacket;
