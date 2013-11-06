@@ -33,7 +33,9 @@ bool VoxelPersistThread::process() {
         
         {
             PerformanceWarning warn(true, "Loading Voxel File", true);
+            _tree->lockForRead();
             persistantFileRead = _tree->readFromSVOFile(_filename);
+            _tree->unlock();
         }
 
         if (persistantFileRead) {
@@ -41,7 +43,9 @@ bool VoxelPersistThread::process() {
             
             // after done inserting all these voxels, then reaverage colors
             qDebug("BEGIN Voxels Re-Averaging\n");
+            _tree->lockForWrite();
             _tree->reaverageVoxelColors(_tree->rootNode);
+            _tree->unlock();
             qDebug("DONE WITH Voxels Re-Averaging\n");
         }
         
@@ -70,7 +74,9 @@ bool VoxelPersistThread::process() {
     // check the dirty bit and persist here...
     if (_tree->isDirty()) {
         qDebug("saving voxels to file %s...\n",_filename);
+        _tree->lockForRead();
         _tree->writeToSVOFile(_filename);
+        _tree->unlock();
         _tree->clearDirtyBit(); // tree is clean after saving
         qDebug("DONE saving voxels to file...\n");
     }
