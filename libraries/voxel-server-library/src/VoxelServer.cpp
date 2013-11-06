@@ -111,6 +111,7 @@ void VoxelServer::initMongoose(int port) {
 int VoxelServer::civetwebRequestHandler(struct mg_connection* connection) {
     const struct mg_request_info* ri = mg_get_request_info(connection);
 
+#ifdef FORCE_CRASH
     if (strcmp(ri->uri, "/force_crash") == 0 && strcmp(ri->request_method, "GET") == 0) {
         qDebug() << "About to force a crash!\n";
         int foo;
@@ -121,6 +122,7 @@ int VoxelServer::civetwebRequestHandler(struct mg_connection* connection) {
         mg_printf(connection, "%s", "did it crash....\r\n");
         return 1;
     }
+#endif
     
     if (strcmp(ri->uri, "/") == 0 && strcmp(ri->request_method, "GET") == 0) {
         uint64_t checkSum;
