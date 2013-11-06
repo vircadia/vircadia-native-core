@@ -721,15 +721,11 @@ void Menu::aboutApp() {
 
 void sendFakeEnterEvent() {
     QPoint lastCursorPosition = QCursor::pos();
+    QGLWidget* glWidget = Application::getInstance()->getGLWidget();
     
-    QWindowList windows = QGuiApplication::topLevelWindows();
-    foreach(QWindow* window, windows) {
-        if (window->isActive()) {
-            QPoint windowPosition = window->mapFromGlobal(lastCursorPosition);
-            QEnterEvent enterEvent = QEnterEvent(windowPosition, windowPosition, lastCursorPosition);
-            QCoreApplication::sendEvent(window, &enterEvent);
-        }
-    }
+    QPoint windowPosition = glWidget->mapFromGlobal(lastCursorPosition);
+    QEnterEvent enterEvent = QEnterEvent(windowPosition, windowPosition, lastCursorPosition);
+    QCoreApplication::sendEvent(glWidget, &enterEvent);
 }
 
 const int QLINE_MINIMUM_WIDTH = 400;
