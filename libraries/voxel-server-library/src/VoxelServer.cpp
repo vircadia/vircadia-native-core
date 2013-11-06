@@ -10,6 +10,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <cstdio>
+#include <time.h>
 
 #include <QtCore/QDebug>
 #include <QtCore/QString>
@@ -71,7 +72,10 @@ VoxelServer::VoxelServer(const unsigned char* dataBuffer, int numBytes) : Assign
     _voxelServerPacketProcessor = NULL;
     _voxelPersistThread = NULL;
     _parsedArgV = NULL;
-
+    
+    _started = time(0);
+    _startedUSecs = usecTimestampNow();
+    
     _theInstance = this;
 }
 
@@ -114,6 +118,45 @@ int VoxelServer::civetwebRequestHandler(struct mg_connection* connection) {
         mg_printf(connection, "%s", "Your Voxel Server is running.\r\n");
 
 
+        mg_printf(connection, "%s", "\r\n");
+        tm* localtm = localtime(&GetInstance()->_started);
+        const int MAX_TIME_LENGTH = 128;
+        char buffer[MAX_TIME_LENGTH];
+        strftime(buffer, MAX_TIME_LENGTH, "%m/%d/%Y %X", localtm);
+        mg_printf(connection, "Running since: %s", buffer);
+
+        // Convert now to tm struct for UTC
+        tm* gmtm = gmtime(&GetInstance()->_started);
+        if (gmtm != NULL) {
+            strftime(buffer, MAX_TIME_LENGTH, "%m/%d/%Y %X", gmtm);
+            mg_printf(connection, " [%s UTM] ", buffer);
+        }
+        mg_printf(connection, "%s", "\r\n");
+
+        uint64_t now  = usecTimestampNow();
+        const int USECS_PER_MSEC = 1000;
+        uint64_t msecsElapsed = (now - GetInstance()->_startedUSecs) / USECS_PER_MSEC;
+        const int MSECS_PER_SEC = 1000;
+        const int SECS_PER_MIN = 60;
+        const int MIN_PER_HOUR = 60;
+        const int MSECS_PER_MIN = MSECS_PER_SEC * SECS_PER_MIN;
+
+        float seconds = (msecsElapsed % MSECS_PER_MIN)/(float)MSECS_PER_SEC;
+        int minutes = (msecsElapsed/(MSECS_PER_MIN)) % MIN_PER_HOUR;
+        int hours = (msecsElapsed/(MSECS_PER_MIN * MIN_PER_HOUR));
+
+        mg_printf(connection, "%s", "Uptime: ");
+        if (hours > 0) {
+            mg_printf(connection, "%d hour%s ", hours, (hours > 1) ? "s" : "" );
+        }
+        if (minutes > 0) {
+            mg_printf(connection, "%d minute%s ", minutes, (minutes > 1) ? "s" : "");
+        }
+        if (seconds > 0) {
+            mg_printf(connection, "%.3f seconds ", seconds);
+        }
+        mg_printf(connection, "%s", "\r\n");
+        mg_printf(connection, "%s", "\r\n");
 
         mg_printf(connection, "%s", "\r\n");
         mg_printf(connection, "%s", "Configuration: \r\n     ");
@@ -438,7 +481,19 @@ void VoxelServer::run() {
         _voxelServerPacketProcessor->initialize(true);
     }
 
-    qDebug("Now running...\n");
+    // Convert now to tm struct for local timezone
+    tm* localtm = localtime(&_started);
+    const int MAX_TIME_LENGTH = 128;
+    char localBuffer[MAX_TIME_LENGTH] = { 0 };
+    char utcBuffer[MAX_TIME_LENGTH] = { 0 };
+    strftime(localBuffer, MAX_TIME_LENGTH, "%m/%d/%Y %X", localtm);
+    // Convert now to tm struct for UTC
+    tm* gmtm = gmtime(&_started);
+    if (gmtm != NULL) {
+        strftime(utcBuffer, MAX_TIME_LENGTH, " [%m/%d/%Y %X UTC]", gmtm);
+    }
+    qDebug() << "Now running... started at: " << localBuffer << utcBuffer << "\n";
+    
     
     // loop to send to nodes requesting data
     while (true) {

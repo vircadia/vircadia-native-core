@@ -24,7 +24,7 @@ VoxelServerPacketProcessor::VoxelServerPacketProcessor(VoxelServer* myServer) :
 
 void VoxelServerPacketProcessor::processPacket(sockaddr& senderAddress, unsigned char* packetData, ssize_t packetLength) {
 
-    bool debugProcessPacket = true; // temporarily debugging....
+    bool debugProcessPacket = _myServer->wantsDebugVoxelReceiving();
     
     if (debugProcessPacket) {
         printf("VoxelServerPacketProcessor::processPacket(() packetData=%p packetLength=%ld\n", packetData, packetLength);
@@ -47,7 +47,7 @@ void VoxelServerPacketProcessor::processPacket(sockaddr& senderAddress, unsigned
                 packetLength, itemNumber);
         }
         
-        if (debugProcessPacket || _myServer->wantsDebugVoxelReceiving()) {
+        if (_myServer->wantsDebugVoxelReceiving()) {
             printf("got %s - %d command from client receivedBytes=%ld itemNumber=%d\n",
                 destructive ? "PACKET_TYPE_SET_VOXEL_DESTRUCTIVE" : "PACKET_TYPE_SET_VOXEL",
                 _receivedPacketCount, packetLength, itemNumber);

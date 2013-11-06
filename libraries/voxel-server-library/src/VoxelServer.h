@@ -11,6 +11,7 @@
 #define __voxel_server__VoxelServer__
 
 #include <QStringList>
+#include <QDateTime>
 #include <QtCore/QCoreApplication>
 
 #include <Assignment.h>
@@ -91,6 +92,8 @@ private:
     static int civetwebRequestHandler(struct mg_connection *connection);
     static VoxelServer* _theInstance;
     
+    time_t _started;
+    uint64_t _startedUSecs;
 };
 
 #endif // __voxel_server__VoxelServer__
