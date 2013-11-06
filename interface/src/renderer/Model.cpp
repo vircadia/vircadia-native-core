@@ -635,6 +635,7 @@ bool Model::restoreJointPosition(int jointIndex, float percent) {
     foreach (int index, freeLineage) {
         _jointStates[index].rotation = safeMix(_jointStates[index].rotation, geometry.joints.at(index).rotation, percent);
     }
+    return true;
 }
 
 void Model::deleteGeometry() {
