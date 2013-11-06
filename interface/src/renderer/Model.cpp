@@ -477,12 +477,20 @@ bool Model::setLeftHandPosition(const glm::vec3& position) {
     return isActive() && setJointPosition(_geometry->getFBXGeometry().leftHandJointIndex, position);
 }
 
+bool Model::restoreLeftHandPosition(float percent) {
+    return isActive() && restoreJointPosition(_geometry->getFBXGeometry().leftHandJointIndex, percent);
+}
+
 bool Model::setLeftHandRotation(const glm::quat& rotation) {
     return isActive() && setJointRotation(_geometry->getFBXGeometry().leftHandJointIndex, rotation);
 }
 
 bool Model::setRightHandPosition(const glm::vec3& position) {
     return isActive() && setJointPosition(_geometry->getFBXGeometry().rightHandJointIndex, position);
+}
+
+bool Model::restoreRightHandPosition(float percent) {
+    return isActive() && restoreJointPosition(_geometry->getFBXGeometry().rightHandJointIndex, percent);
 }
 
 bool Model::setRightHandRotation(const glm::quat& rotation) {
@@ -615,6 +623,18 @@ bool Model::setJointRotation(int jointIndex, const glm::quat& rotation) {
     state.rotation = state.rotation * glm::inverse(state.combinedRotation) * rotation *
         glm::inverse(_geometry->getFBXGeometry().joints.at(jointIndex).inverseBindRotation);
     return true;
+}
+
+bool Model::restoreJointPosition(int jointIndex, float percent) {
+    if (jointIndex == -1 || _jointStates.isEmpty()) {
+        return false;
+    }
+    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    const QVector<int>& freeLineage = geometry.joints.at(jointIndex).freeLineage;
+    
+    foreach (int index, freeLineage) {
+        _jointStates[index].rotation = safeMix(_jointStates[index].rotation, geometry.joints.at(index).rotation, percent);
+    }
 }
 
 void Model::deleteGeometry() {
