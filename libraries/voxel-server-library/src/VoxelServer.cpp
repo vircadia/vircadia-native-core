@@ -343,8 +343,6 @@ void VoxelServer::run() {
         parsePayload();
     }
 
-    pthread_mutex_init(&_treeLock, NULL);
-    
     qInstallMessageHandler(Logging::verboseMessageHandler);
     
     const char* STATUS_PORT = "--statusPort";
@@ -591,8 +589,6 @@ void VoxelServer::run() {
     
     // tell our NodeList we're done with notifications
     nodeList->removeHook(&_nodeWatcher);
-    
-    pthread_mutex_destroy(&_treeLock);
 }
 
 

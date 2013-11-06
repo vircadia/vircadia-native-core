@@ -117,7 +117,7 @@ int VoxelSendThread::handlePacketSend(Node* node, VoxelNodeData* nodeData, int& 
 /// Version of voxel distributor that sends the deepest LOD level at once
 int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nodeData, bool viewFrustumChanged) {
 
-    _myServer->lockTree();
+    _myServer->getTree()->lockForRead();
 
     int truePacketsSent = 0;
     int trueBytesSent = 0;
@@ -360,7 +360,7 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
         
     } // end if bag wasn't empty, and so we sent stuff...
 
-    _myServer->unlockTree();
+    _myServer->getTree()->unlock();
 
     return truePacketsSent;
 }
