@@ -1064,12 +1064,15 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         if (joint.parentIndex == -1) {    
             joint.transform = geometry.offset * model.preTransform * glm::mat4_cast(combinedRotation) * model.postTransform;
             joint.inverseBindRotation = glm::inverse(combinedRotation);
+            joint.distanceToParent = 0.0f;
             
         } else {
             const FBXJoint& parentJoint = geometry.joints.at(joint.parentIndex);
             joint.transform = parentJoint.transform *
                 model.preTransform * glm::mat4_cast(combinedRotation) * model.postTransform;
             joint.inverseBindRotation = glm::inverse(combinedRotation) * parentJoint.inverseBindRotation;
+            joint.distanceToParent = glm::distance(extractTranslation(parentJoint.transform),
+                extractTranslation(joint.transform));
         }
         geometry.joints.append(joint);
         geometry.jointIndices.insert(model.name, geometry.joints.size() - 1);  
