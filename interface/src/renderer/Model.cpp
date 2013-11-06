@@ -629,8 +629,6 @@ bool Model::setJointPosition(int jointIndex, const glm::vec3& position) {
         for (int j = 1; j < freeLineage.size(); j++) {
             int sourceIndex = freeLineage.at(j);
             int destIndex = freeLineage.at(j - 1);
-            const FBXJoint& sourceJoint = geometry.joints.at(sourceIndex);
-            const FBXJoint& destJoint = geometry.joints.at(destIndex);
             JointState& sourceState = _jointStates[sourceIndex];
             JointState& destState = _jointStates[destIndex];
             glm::vec3 sourceTranslation = extractTranslation(sourceState.transform);
@@ -640,7 +638,7 @@ bool Model::setJointPosition(int jointIndex, const glm::vec3& position) {
             if (boneLength < EPSILON) {
                 continue;
             }
-            float extension = destJoint.distanceToParent * uniformScale / boneLength - 1.0f;
+            float extension = geometry.joints.at(destIndex).distanceToParent * uniformScale / boneLength - 1.0f;
             if (fabs(extension) < EPSILON) {
                 continue;
             }
