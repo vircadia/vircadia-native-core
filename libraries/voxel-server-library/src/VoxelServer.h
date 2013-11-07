@@ -11,6 +11,7 @@
 #define __voxel_server__VoxelServer__
 
 #include <QStringList>
+#include <QDateTime>
 #include <QtCore/QCoreApplication>
 
 #include <Assignment.h>
@@ -47,10 +48,6 @@ public:
     VoxelTree& getServerTree() { return _serverTree; }
     JurisdictionMap* getJurisdiction() { return _jurisdiction; }
     
-    void lockTree() {  pthread_mutex_lock(&_treeLock); }
-    void unlockTree() {  pthread_mutex_unlock(&_treeLock); }
-    VoxelTree* getTree() { return &_serverTree; }
-    
     int getPacketsPerClientPerInterval() const { return _packetsPerClientPerInterval; }
     bool getSendMinimalEnvironment() const { return _sendMinimalEnvironment; }
     EnvironmentData* getEnvironmentData(int i) { return &_environmentData[i]; }
@@ -79,7 +76,6 @@ private:
     JurisdictionSender* _jurisdictionSender;
     VoxelServerPacketProcessor* _voxelServerPacketProcessor;
     VoxelPersistThread* _voxelPersistThread;
-    pthread_mutex_t _treeLock;
     EnvironmentData _environmentData[3];
     
     NodeWatcher _nodeWatcher; // used to cleanup AGENT data when agents are killed
@@ -91,6 +87,8 @@ private:
     static int civetwebRequestHandler(struct mg_connection *connection);
     static VoxelServer* _theInstance;
     
+    time_t _started;
+    uint64_t _startedUSecs;
 };
 
 #endif // __voxel_server__VoxelServer__

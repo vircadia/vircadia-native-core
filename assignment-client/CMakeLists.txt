@@ -29,6 +29,10 @@ link_hifi_library(voxel-server-library ${TARGET_NAME} ${ROOT_DIR})
 
 include_directories(${ROOT_DIR}/externals/civetweb/include)
 
+if (UNIX)
+  target_link_libraries(${TARGET_NAME} ${CMAKE_DL_LIBS})
+endif (UNIX)
+
 # link curl for synchronous script downloads
 find_package(CURL REQUIRED)
 include_directories(${CURL_INCLUDE_DIRS})

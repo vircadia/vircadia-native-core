@@ -31,12 +31,13 @@ bool ReceivedPacketProcessor::process() {
         usleep(RECEIVED_THREAD_SLEEP_INTERVAL);
     }
     while (_packets.size() > 0) {
-        NetworkPacket& packet = _packets.front();
-        processPacket(packet.getAddress(), packet.getData(), packet.getLength());
 
-        lock();
-        _packets.erase(_packets.begin());
-        unlock();
+        lock(); // lock to make sure nothing changes on us
+        NetworkPacket& packet = _packets.front(); // get the oldest packet
+        NetworkPacket temporary = packet; // make a copy of the packet in case the vector is resized on us
+        _packets.erase(_packets.begin()); // remove the oldest packet
+        unlock(); // let others add to the packets
+        processPacket(temporary.getAddress(), temporary.getData(), temporary.getLength()); // process our temporary copy
     }
     return isStillRunning();  // keep running till they terminate us
 }

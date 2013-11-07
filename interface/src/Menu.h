@@ -146,6 +146,7 @@ namespace MenuOption {
     const QString AutomaticallyAuditTree = "Automatically Audit Tree Stats";
     const QString Bandwidth = "Bandwidth Display";
     const QString BandwidthDetails = "Bandwidth Details";
+    const QString ChatCircling = "Chat Circling";
     const QString Collisions = "Collisions";
     const QString CopyVoxels = "Copy";
     const QString CoverageMap = "Render Coverage Map";

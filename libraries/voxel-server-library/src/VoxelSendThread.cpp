@@ -27,27 +27,31 @@ bool VoxelSendThread::process() {
     uint64_t  start = usecTimestampNow();
     
     Node* node = NodeList::getInstance()->nodeWithUUID(_nodeUUID);
-    VoxelNodeData* nodeData = NULL;
     
     if (node) {
-        nodeData = (VoxelNodeData*) node->getLinkedData();
-    }
+        node->lock(); // make sure the node list doesn't kill our node while we're using it
+        VoxelNodeData* nodeData = NULL;
     
-    int packetsSent = 0;
+        nodeData = (VoxelNodeData*) node->getLinkedData();
+    
+        int packetsSent = 0;
 
-    // Sometimes the node data has not yet been linked, in which case we can't really do anything
-    if (nodeData) {
-        bool viewFrustumChanged = nodeData->updateCurrentViewFrustum();
-        if (_myServer->wantsDebugVoxelSending()) {
-            printf("nodeData->updateCurrentViewFrustum() changed=%s\n", debug::valueOf(viewFrustumChanged));
+        // Sometimes the node data has not yet been linked, in which case we can't really do anything
+        if (nodeData) {
+            bool viewFrustumChanged = nodeData->updateCurrentViewFrustum();
+            if (_myServer->wantsDebugVoxelSending()) {
+                printf("nodeData->updateCurrentViewFrustum() changed=%s\n", debug::valueOf(viewFrustumChanged));
+            }
+            packetsSent = deepestLevelVoxelDistributor(node, nodeData, viewFrustumChanged);
         }
-        packetsSent = deepestLevelVoxelDistributor(node, nodeData, viewFrustumChanged);
+    
+        node->unlock(); // we're done with this node for now.
     }
     
     // dynamically sleep until we need to fire off the next set of voxels
     int elapsed = (usecTimestampNow() - start);
     int usecToSleep =  VOXEL_SEND_INTERVAL_USECS - elapsed;
-    
+
     if (usecToSleep > 0) {
         usleep(usecToSleep);
     } else {
@@ -55,6 +59,7 @@ bool VoxelSendThread::process() {
             std::cout << "Last send took too much time, not sleeping!\n";
         }
     }
+
     return isStillRunning();  // keep running till they terminate us
 }
 
@@ -112,7 +117,7 @@ int VoxelSendThread::handlePacketSend(Node* node, VoxelNodeData* nodeData, int& 
 /// Version of voxel distributor that sends the deepest LOD level at once
 int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nodeData, bool viewFrustumChanged) {
 
-    _myServer->lockTree();
+    _myServer->getServerTree().lockForRead();
 
     int truePacketsSent = 0;
     int trueBytesSent = 0;
@@ -355,7 +360,7 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
         
     } // end if bag wasn't empty, and so we sent stuff...
 
-    _myServer->unlockTree();
+    _myServer->getServerTree().unlock();
 
     return truePacketsSent;
 }
