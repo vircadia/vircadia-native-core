@@ -12,9 +12,6 @@
 #include <sys/time.h>
 #include <sys/wait.h>
 
-#include <QtCore/QCoreApplication>
-
-
 #include <Logging.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
@@ -41,8 +38,6 @@ int argc = 0;
 char** argv = NULL;
 
 void childClient() {
-    QCoreApplication application(::argc, ::argv);
-    
     // set the logging target to the the CHILD_TARGET_NAME
     Logging::setTargetName(CHILD_TARGET_NAME);
     
