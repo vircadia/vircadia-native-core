@@ -21,6 +21,7 @@
 #include "SharedUtil.h"
 #include "UDPSocket.h"
 
+#include <QtCore/QCoreApplication>
 #include <QtCore/QDebug>
 
 Node::Node(const QUuid& uuid, char type, sockaddr* publicSocket, sockaddr* localSocket) :
@@ -43,8 +44,12 @@ Node::~Node() {
     delete _publicSocket;
     delete _localSocket;
     
-    if (_linkedData) {
-        _linkedData->deleteLater();
+    if (QCoreApplication::instance()) {
+        if (_linkedData) {
+            _linkedData->deleteLater();
+        }
+    } else {
+        delete _linkedData;
     }
     
     delete _bytesReceivedMovingAverage;
