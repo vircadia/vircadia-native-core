@@ -218,7 +218,7 @@ void LeapManager::nextFrame(Avatar& avatar) {
                 // Simulated data
                 
                 palm.setRawPosition(glm::vec3( 0.0f, 0.0f, 0.0f) + fakeHandOffsets[i]);
-                palm.setRawNormal(glm::vec3(0.0f, 1.0f, 0.0f));
+                palm.setRawNormal(glm::vec3(0.0f, -1.0f, 0.0f));
 
                 for (size_t f = 0; f < palm.getNumFingers(); ++f) {
                     FingerData& finger = palm.getFingers()[f];
