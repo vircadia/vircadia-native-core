@@ -55,6 +55,10 @@ public:
     
     static VoxelServer* GetInstance() { return _theInstance; }
     
+    bool isInitialLoadComplete() const { return (_voxelPersistThread) ? _voxelPersistThread->isInitialLoadComplete() : true; }
+    time_t* getLoadCompleted() { return (_voxelPersistThread) ? _voxelPersistThread->getLoadCompleted() : NULL; }
+    uint64_t getLoadElapsedTime() const { return (_voxelPersistThread) ? _voxelPersistThread->getLoadElapsedTime() : 0; }
+    
 private:
     int _argc;
     const char** _argv;

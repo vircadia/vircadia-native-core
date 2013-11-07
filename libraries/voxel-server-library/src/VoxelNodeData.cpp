@@ -129,6 +129,7 @@ VoxelNodeData::~VoxelNodeData() {
     if (_voxelSendThread) {
         _voxelSendThread->terminate();
         delete _voxelSendThread;
+        qDebug("VoxelNodeData::~VoxelNodeData() DELETED _voxelSendThread=%p\n", _voxelSendThread);
     }
 }
 

@@ -35,7 +35,7 @@ class VoxelQuery : public NodeData {
     
 public:
     VoxelQuery(Node* owningNode = NULL);
-    ~VoxelQuery();
+    virtual ~VoxelQuery();
 
     int getBroadcastData(unsigned char* destinationBuffer);
     int parseData(unsigned char* sourceBuffer, int numBytes);

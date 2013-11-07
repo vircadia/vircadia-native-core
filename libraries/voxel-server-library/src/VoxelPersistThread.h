@@ -21,6 +21,12 @@ public:
     static const int DEFAULT_PERSIST_INTERVAL = 1000 * 30; // every 30 seconds
 
     VoxelPersistThread(VoxelTree* tree, const char* filename, int persistInterval = DEFAULT_PERSIST_INTERVAL);
+    
+    bool isInitialLoadComplete() const { return _initialLoadComplete; }
+
+    time_t* getLoadCompleted() { return &_loadCompleted; }
+    uint64_t getLoadElapsedTime() const { return _loadTimeUSecs; }
+
 protected:
     /// Implements generic processing behavior for this thread.
     virtual bool process();
@@ -28,7 +34,10 @@ private:
     VoxelTree* _tree;
     const char* _filename;
     int _persistInterval;
-    bool _initialLoad;
+    bool _initialLoadComplete;
+
+    time_t _loadCompleted;
+    uint64_t _loadTimeUSecs;
 };
 
 #endif // __voxel_server__VoxelPersistThread__

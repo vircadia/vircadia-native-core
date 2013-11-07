@@ -85,7 +85,7 @@ void VoxelServerPacketProcessor::processPacket(sockaddr& senderAddress, unsigned
                     printf("inserting voxel: %f,%f,%f r=%d,g=%d,b=%d\n", vertices[0], vertices[1], vertices[2], red, green, blue);
                     delete[] vertices;
                 }
-        
+
                 _myServer->getServerTree().lockForWrite();
                 _myServer->getServerTree().readCodeColorBufferToTree(voxelData, destructive);
                 _myServer->getServerTree().unlock();
