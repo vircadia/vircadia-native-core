@@ -29,10 +29,11 @@ void SkeletonModel::simulate(float deltaTime) {
     Model::simulate(deltaTime);
 
     // find the active Leap palms, if any
+    HandData& hand = _owningAvatar->getHand();
     int firstActivePalmIndex = -1;
     int secondActivePalmIndex = -1;    
-    for (int i = 0; i < _owningAvatar->getHand().getNumPalms(); i++) {
-        if (_owningAvatar->getHand().getPalms()[i].isActive()) {
+    for (int i = 0; i < hand.getNumPalms(); i++) {
+        if (hand.getPalms()[i].isActive()) {
             if (firstActivePalmIndex == -1) {
                 firstActivePalmIndex = i;
             } else {
@@ -43,6 +44,7 @@ void SkeletonModel::simulate(float deltaTime) {
     }
     
     const float HAND_RESTORATION_RATE = 0.25f;
+    
     if (firstActivePalmIndex == -1) {
         // no Leap data; set hands from mouse
         if (_owningAvatar->getHandState() == HAND_STATE_NULL) {
@@ -54,16 +56,17 @@ void SkeletonModel::simulate(float deltaTime) {
     
     } else if (secondActivePalmIndex == -1) {
         // right hand only
-        applyPalmData(_geometry->getFBXGeometry().rightHandJointIndex,
-            _owningAvatar->getHand().getPalms()[firstActivePalmIndex]);
+        applyPalmData(_geometry->getFBXGeometry().rightHandJointIndex, hand.getPalms()[firstActivePalmIndex]);
         restoreLeftHandPosition(HAND_RESTORATION_RATE);
         
     } else {
-        // both hands
-        applyPalmData(_geometry->getFBXGeometry().leftHandJointIndex,
-            _owningAvatar->getHand().getPalms()[firstActivePalmIndex]);
-        applyPalmData(_geometry->getFBXGeometry().rightHandJointIndex,
-            _owningAvatar->getHand().getPalms()[secondActivePalmIndex]);
+        // both hands; make sure left is first
+        if (hand.getPalms()[firstActivePalmIndex].getRawPosition().x >
+                hand.getPalms()[secondActivePalmIndex].getRawPosition().x) {
+            qSwap(firstActivePalmIndex, secondActivePalmIndex);
+        }
+        applyPalmData(_geometry->getFBXGeometry().leftHandJointIndex, hand.getPalms()[firstActivePalmIndex]);
+        applyPalmData(_geometry->getFBXGeometry().rightHandJointIndex, hand.getPalms()[secondActivePalmIndex]);
     }
 }
 
@@ -119,7 +122,7 @@ bool SkeletonModel::render(float alpha) {
 
 void SkeletonModel::applyPalmData(int jointIndex, const PalmData& palm) {
     setJointPosition(jointIndex, palm.getPosition());
-    setJointRotation(jointIndex, rotationBetween(IDENTITY_UP, palm.getNormal()));
+    setJointRotation(jointIndex, rotationBetween(_rotation * IDENTITY_UP, -palm.getNormal()));
 }
 
 void SkeletonModel::updateJointState(int index) {
