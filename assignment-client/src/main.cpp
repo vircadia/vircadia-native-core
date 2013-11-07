@@ -38,7 +38,7 @@ int argc = 0;
 char** argv = NULL;
 
 void childClient() {
-    QCoreApplication(::argc, ::argv);
+    QCoreApplication application(::argc, ::argv);
     
     // set the logging target to the the CHILD_TARGET_NAME
     Logging::setTargetName(CHILD_TARGET_NAME);
