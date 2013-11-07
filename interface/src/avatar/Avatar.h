@@ -134,6 +134,7 @@ public:
     
     Avatar(Node* owningNode = NULL);
     ~Avatar();
+    void deleteOrDeleteLater();
     
     void init();
     void simulate(float deltaTime, Transmitter* transmitter);
