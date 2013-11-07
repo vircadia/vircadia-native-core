@@ -616,16 +616,16 @@ bool Model::setJointPosition(int jointIndex, const glm::vec3& position) {
     // this is a constraint relaxation algorithm: see
     // http://www.ryanjuckett.com/programming/animation/22-constraint-relaxation-ik-in-2d
     
-    // start by optimistically setting the position of the end joint to our target
-    setJointTranslation(jointIndex, freeLineage.at(1), -1, relativePosition);
-    
     // the influence of gravity; lowers the potential energy of our configurations
-    glm::vec3 gravity = _rotation * IDENTITY_UP * -0.1f;
+    glm::vec3 gravity = _rotation * IDENTITY_UP * -0.01f;
     
     // over one or more iterations, apply the length constraints and update the rotations accordingly
     float uniformScale = (_scale.x + _scale.y + _scale.z) / 3.0f;
-    const int ITERATION_COUNT = 1;
+    const int ITERATION_COUNT = 3;
     for (int i = 0; i < ITERATION_COUNT; i++) {
+        // start by optimistically setting the position of the end joint to our target
+        setJointTranslation(jointIndex, freeLineage.at(1), -1, relativePosition);
+    
         for (int j = 1; j < freeLineage.size(); j++) {
             int sourceIndex = freeLineage.at(j);
             int destIndex = freeLineage.at(j - 1);
@@ -657,11 +657,11 @@ bool Model::setJointPosition(int jointIndex, const glm::vec3& position) {
                     destTranslation + boneVector * extension * 0.5f + gravity);
             }
         }
-    }
-    
-    // now update the joint states from the top
-    for (int i = freeLineage.size() - 1; i >= 0; i--) {
-        updateJointState(freeLineage.at(i));
+        
+        // now update the joint states from the top
+        for (int j = freeLineage.size() - 1; j >= 0; j--) {
+            updateJointState(freeLineage.at(j));
+        }
     }
     
     return true;
