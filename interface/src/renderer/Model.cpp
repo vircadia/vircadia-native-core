@@ -574,12 +574,13 @@ bool Model::getJointPosition(int jointIndex, glm::vec3& position) const {
     return true;
 }
 
-bool Model::getJointRotation(int jointIndex, glm::quat& rotation) const {
+bool Model::getJointRotation(int jointIndex, glm::quat& rotation, bool fromBind) const {
     if (jointIndex == -1 || _jointStates.isEmpty()) {
         return false;
     }
     rotation = _jointStates[jointIndex].combinedRotation *
-        _geometry->getFBXGeometry().joints[jointIndex].inverseBindRotation;
+        (fromBind ? _geometry->getFBXGeometry().joints[jointIndex].inverseBindRotation :
+            _geometry->getFBXGeometry().joints[jointIndex].inverseDefaultRotation);
     return true;
 }
 
@@ -671,13 +672,14 @@ bool Model::setJointPosition(int jointIndex, const glm::vec3& position, int last
     return true;
 }
 
-bool Model::setJointRotation(int jointIndex, const glm::quat& rotation) {
+bool Model::setJointRotation(int jointIndex, const glm::quat& rotation, bool fromBind) {
     if (jointIndex == -1 || _jointStates.isEmpty()) {
         return false;
     }
     JointState& state = _jointStates[jointIndex];
     state.rotation = state.rotation * glm::inverse(state.combinedRotation) * rotation *
-        glm::inverse(_geometry->getFBXGeometry().joints.at(jointIndex).inverseBindRotation);
+        glm::inverse(fromBind ? _geometry->getFBXGeometry().joints.at(jointIndex).inverseBindRotation :
+            _geometry->getFBXGeometry().joints.at(jointIndex).inverseDefaultRotation);
     return true;
 }
 

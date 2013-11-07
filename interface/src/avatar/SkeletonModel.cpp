@@ -136,10 +136,11 @@ bool operator<(const IndexValue& firstIndex, const IndexValue& secondIndex) {
 
 void SkeletonModel::applyPalmData(int jointIndex, const QVector<int>& fingertipJointIndices, PalmData& palm) {
     setJointPosition(jointIndex, palm.getPosition());
-    setJointRotation(jointIndex, rotationBetween(_rotation * IDENTITY_UP, palm.getNormal()) * _rotation);
+    setJointRotation(jointIndex, rotationBetween(_rotation * IDENTITY_UP, palm.getNormal()) * _rotation *
+        glm::angleAxis(90.0f, 0.0f, jointIndex == _geometry->getFBXGeometry().rightHandJointIndex ? 1.0f : -1.0f, 0.0f), true);
     
     // no point in continuing if there are no fingers
-    if (palm.getNumFingers() == 0) {
+    if (true || palm.getNumFingers() == 0) {
         return;
     }
      

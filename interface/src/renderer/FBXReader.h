@@ -53,6 +53,7 @@ public:
     glm::quat postRotation;
     glm::mat4 postTransform;
     glm::mat4 transform;
+    glm::quat inverseDefaultRotation;
     glm::quat inverseBindRotation;
 };
 

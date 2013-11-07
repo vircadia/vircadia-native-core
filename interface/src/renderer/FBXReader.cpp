@@ -1073,17 +1073,18 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         glm::quat combinedRotation = model.preRotation * model.rotation * model.postRotation;
         if (joint.parentIndex == -1) {    
             joint.transform = geometry.offset * model.preTransform * glm::mat4_cast(combinedRotation) * model.postTransform;
-            joint.inverseBindRotation = glm::inverse(combinedRotation);
+            joint.inverseDefaultRotation = glm::inverse(combinedRotation);
             joint.distanceToParent = 0.0f;
             
         } else {
             const FBXJoint& parentJoint = geometry.joints.at(joint.parentIndex);
             joint.transform = parentJoint.transform *
                 model.preTransform * glm::mat4_cast(combinedRotation) * model.postTransform;
-            joint.inverseBindRotation = glm::inverse(combinedRotation) * parentJoint.inverseBindRotation;
+            joint.inverseDefaultRotation = glm::inverse(combinedRotation) * parentJoint.inverseDefaultRotation;
             joint.distanceToParent = glm::distance(extractTranslation(parentJoint.transform),
                 extractTranslation(joint.transform));
         }
+        joint.inverseBindRotation = joint.inverseDefaultRotation;
         geometry.joints.append(joint);
         geometry.jointIndices.insert(model.name, geometry.joints.size() - 1);  
     }
@@ -1202,6 +1203,10 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                 }
                 fbxCluster.inverseBindMatrix = glm::inverse(cluster.transformLink) * modelTransform;
                 extracted.mesh.clusters.append(fbxCluster);
+                
+                // override the bind rotation with the transform link
+                geometry.joints[fbxCluster.jointIndex].inverseBindRotation =
+                    glm::inverse(extractRotation(cluster.transformLink));
             }
         }
         

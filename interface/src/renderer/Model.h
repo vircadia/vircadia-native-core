@@ -141,10 +141,10 @@ protected:
     virtual void maybeUpdateEyeRotation(const JointState& parentState, const FBXJoint& joint, JointState& state);
     
     bool getJointPosition(int jointIndex, glm::vec3& position) const;
-    bool getJointRotation(int jointIndex, glm::quat& rotation) const;
+    bool getJointRotation(int jointIndex, glm::quat& rotation, bool fromBind = false) const;
     
     bool setJointPosition(int jointIndex, const glm::vec3& position, int lastFreeIndex = -1);
-    bool setJointRotation(int jointIndex, const glm::quat& rotation);
+    bool setJointRotation(int jointIndex, const glm::quat& rotation, bool fromBind = false);
     
     /// Restores the indexed joint to its default position.
     /// \param percent the percentage of the default position to apply (i.e., 0.25f to slerp one fourth of the way to
