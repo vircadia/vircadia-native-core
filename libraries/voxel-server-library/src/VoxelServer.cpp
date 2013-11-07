@@ -561,7 +561,6 @@ void VoxelServer::run() {
         // send a check in packet to the domain server if DOMAIN_SERVER_CHECK_IN_USECS has elapsed
         if (usecTimestampNow() - usecTimestamp(&lastDomainServerCheckIn) >= DOMAIN_SERVER_CHECK_IN_USECS) {
             gettimeofday(&lastDomainServerCheckIn, NULL);
-            //qDebug() << "VoxelServer::run()... NodeList::getInstance()->sendDomainServerCheckIn()\n";
             NodeList::getInstance()->sendDomainServerCheckIn();
         }
         
