@@ -4094,11 +4094,13 @@ void Application::nodeKilled(Node* node) {
                 rootDetails.x, rootDetails.y, rootDetails.z, rootDetails.s);
                 
             // Add the jurisditionDetails object to the list of "fade outs"
-            VoxelFade fade(VoxelFade::FADE_OUT, NODE_KILLED_RED, NODE_KILLED_GREEN, NODE_KILLED_BLUE);
-            fade.voxelDetails = rootDetails;
-            const float slightly_smaller = 0.99;
-            fade.voxelDetails.s = fade.voxelDetails.s * slightly_smaller;
-            _voxelFades.push_back(fade);
+            if (!Menu::getInstance()->isOptionChecked(MenuOption::DontFadeOnVoxelServerChanges)) {
+                VoxelFade fade(VoxelFade::FADE_OUT, NODE_KILLED_RED, NODE_KILLED_GREEN, NODE_KILLED_BLUE);
+                fade.voxelDetails = rootDetails;
+                const float slightly_smaller = 0.99;
+                fade.voxelDetails.s = fade.voxelDetails.s * slightly_smaller;
+                _voxelFades.push_back(fade);
+            }
         }
     } else if (node->getLinkedData() == _lookatTargetAvatar) {
         _lookatTargetAvatar = NULL;
@@ -4127,11 +4129,13 @@ int Application::parseVoxelStats(unsigned char* messageData, ssize_t messageLeng
                 rootDetails.x, rootDetails.y, rootDetails.z, rootDetails.s);
 
             // Add the jurisditionDetails object to the list of "fade outs"
-            VoxelFade fade(VoxelFade::FADE_OUT, NODE_ADDED_RED, NODE_ADDED_GREEN, NODE_ADDED_BLUE);
-            fade.voxelDetails = rootDetails;
-            const float slightly_smaller = 0.99;
-            fade.voxelDetails.s = fade.voxelDetails.s * slightly_smaller;
-            _voxelFades.push_back(fade);
+            if (!Menu::getInstance()->isOptionChecked(MenuOption::DontFadeOnVoxelServerChanges)) {
+                VoxelFade fade(VoxelFade::FADE_OUT, NODE_ADDED_RED, NODE_ADDED_GREEN, NODE_ADDED_BLUE);
+                fade.voxelDetails = rootDetails;
+                const float slightly_smaller = 0.99;
+                fade.voxelDetails.s = fade.voxelDetails.s * slightly_smaller;
+                _voxelFades.push_back(fade);
+            }
         }
         // store jurisdiction details for later use
         // This is bit of fiddling is because JurisdictionMap assumes it is the owner of the values used to construct it

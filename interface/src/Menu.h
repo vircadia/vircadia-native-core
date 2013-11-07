@@ -165,6 +165,7 @@ namespace MenuOption {
     const QString EchoAudio = "Echo Audio";
     const QString ExportVoxels = "Export Voxels";
     const QString ExtraDebugging = "Extra Debugging";
+    const QString DontFadeOnVoxelServerChanges = "Don't Fade In/Out on Voxel Server Changes";
     const QString HeadMouse = "Head Mouse";
     const QString FaceMode = "Cycle Face Mode";
     const QString FaceshiftTCP = "Faceshift (TCP)";
