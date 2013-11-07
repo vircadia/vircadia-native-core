@@ -149,7 +149,7 @@ void SkeletonModel::applyPalmData(int jointIndex, const QVector<int>& fingertipJ
         IndexValue indexValue = { i, palm.getFingers()[i].getTipRawPosition().x };
         fingerIndices.append(indexValue);
     }
-    qSort(fingerIndices.begin(), fingerIndices.end());
+    //qSort(fingerIndices.begin(), fingerIndices.end());
     
     // likewise with the joint indices and relative x
     QVector<IndexValue> jointIndices;

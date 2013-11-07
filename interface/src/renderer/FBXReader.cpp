@@ -1113,13 +1113,8 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     
     QVariantHash springs = mapping.value("spring").toHash();
     QVariant defaultSpring = springs.value("default");
-    int vertices = 0;
-    int quads = 0;
-    int tris = 0;
     for (QHash<QString, ExtractedMesh>::iterator it = meshes.begin(); it != meshes.end(); it++) {
         ExtractedMesh& extracted = it.value();
-        
-        vertices += extracted.mesh.vertices.size();
         
         // accumulate local transforms
         QString modelID = models.contains(it.key()) ? it.key() : parentMap.value(it.key());
@@ -1134,8 +1129,6 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                 break;
             }
             FBXMeshPart& part = extracted.mesh.parts[partIndex];
-            quads += part.quadIndices.size() / 4;
-            tris += part.triangleIndices.size() / 3;
             if (textureFilenames.contains(childID)) {
                 part.diffuseFilename = textureFilenames.value(childID);
                 continue;
@@ -1295,8 +1288,6 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         
         geometry.meshes.append(extracted.mesh);
     }
-    
-    qDebug("%d %d %d\n", vertices, quads, tris);
     
     // process attachments
     QVariantHash attachments = mapping.value("attach").toHash();

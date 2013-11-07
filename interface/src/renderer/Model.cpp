@@ -633,7 +633,6 @@ bool Model::setJointPosition(int jointIndex, const glm::vec3& position, int last
         for (int j = 1; freeLineage.at(j - 1) != lastFreeIndex; j++) {
             int sourceIndex = freeLineage.at(j);
             int destIndex = freeLineage.at(j - 1);
-            bool last = (sourceIndex == lastFreeIndex);
             JointState& sourceState = _jointStates[sourceIndex];
             JointState& destState = _jointStates[destIndex];
             glm::vec3 sourceTranslation = extractTranslation(sourceState.transform);
