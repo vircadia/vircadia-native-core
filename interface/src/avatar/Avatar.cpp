@@ -255,6 +255,11 @@ Avatar::~Avatar() {
     delete _balls;
 }
 
+void Avatar::deleteOrDeleteLater() {
+    this->deleteLater();
+}
+
+
 void Avatar::init() {
     _head.init();
     _hand.init();
