@@ -45,6 +45,8 @@ Node::~Node() {
     delete _localSocket;
     
     if (QCoreApplication::instance()) {
+        // even if we have a QCoreApplication instance we don't get here unless it's been exec'ed
+        // which is only currently the case for interface
         if (_linkedData) {
             _linkedData->deleteLater();
         }
