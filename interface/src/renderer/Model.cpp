@@ -623,7 +623,7 @@ bool Model::setJointPosition(int jointIndex, const glm::vec3& position) {
     glm::vec3 gravity = _rotation * IDENTITY_UP * -0.1f;
     
     // over one or more iterations, apply the length constraints and update the rotations accordingly
-    float uniformScale = glm::length(_scale);
+    float uniformScale = (_scale.x + _scale.y + _scale.z) / 3.0f;
     const int ITERATION_COUNT = 1;
     for (int i = 0; i < ITERATION_COUNT; i++) {
         for (int j = 1; j < freeLineage.size(); j++) {
