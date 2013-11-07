@@ -48,8 +48,6 @@ public:
     VoxelTree& getServerTree() { return _serverTree; }
     JurisdictionMap* getJurisdiction() { return _jurisdiction; }
     
-    VoxelTree* getTree() { return &_serverTree; }
-    
     int getPacketsPerClientPerInterval() const { return _packetsPerClientPerInterval; }
     bool getSendMinimalEnvironment() const { return _sendMinimalEnvironment; }
     EnvironmentData* getEnvironmentData(int i) { return &_environmentData[i]; }
