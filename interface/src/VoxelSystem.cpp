@@ -2645,23 +2645,8 @@ bool VoxelSystem::killSourceVoxelsOperation(VoxelNode* node, void* extraData) {
 void VoxelSystem::nodeKilled(Node* node) {
     if (node->getType() == NODE_TYPE_VOXEL_SERVER) {
         _voxelServerCount--;
-
         QUuid nodeUUID = node->getUUID();
-
         qDebug("VoxelSystem... voxel server %s removed...\n", nodeUUID.toString().toLocal8Bit().constData());
-        
-        if (_voxelServerCount > 0) {
-            // Kill any voxels from the local tree that match this nodeID
-            // commenting out for removal of 16 bit node IDs
-            lockTree();
-            _tree->recurseTreeWithOperation(killSourceVoxelsOperation, &nodeUUID);
-            unlockTree();
-            _tree->setDirtyBit();
-            setupNewVoxelsForDrawing();
-        } else {
-            // Last server, take the easy way and kill all the local voxels!
-            killLocalVoxels();
-        }
     }
 }
 
