@@ -45,7 +45,9 @@ Node::~Node() {
     delete _localSocket;
     
     if (QCoreApplication::instance()) {
-        _linkedData->deleteLater();
+        if (_linkedData) {
+            _linkedData->deleteLater();
+        }
     } else {
         delete _linkedData;
     }
