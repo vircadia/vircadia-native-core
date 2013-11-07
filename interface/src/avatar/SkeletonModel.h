@@ -9,6 +9,8 @@
 #ifndef __interface__SkeletonModel__
 #define __interface__SkeletonModel__
 
+#include <HandData.h>
+
 #include "renderer/Model.h"
 
 class Avatar;
@@ -25,6 +27,8 @@ public:
     bool render(float alpha);
     
 protected:
+    
+    void applyPalmData(int jointIndex, const PalmData& palm);
     
     /// Updates the state of the joint at the specified index.
     virtual void updateJointState(int index);   

@@ -921,8 +921,7 @@ void MyAvatar::updateHandMovementAndTouching(float deltaTime, bool enableHandMov
         _avatarTouch.setHasInteractingOther(false);
     }
     
-    bool leapHands = updateLeapHandPositions();
-    enableHandMovement |= leapHands;
+    enableHandMovement |= updateLeapHandPositions();
     
     //constrain right arm length and re-adjust elbow position as it bends
     // NOTE - the following must be called on all avatars - not just _isMine
@@ -936,7 +935,7 @@ void MyAvatar::updateHandMovementAndTouching(float deltaTime, bool enableHandMov
     
     if (_mousePressed) {
         _handState = HAND_STATE_GRASPING;
-    } else if (pointing || leapHands) {
+    } else if (pointing) {
         _handState = HAND_STATE_POINTING;
     } else {
         _handState = HAND_STATE_NULL;
