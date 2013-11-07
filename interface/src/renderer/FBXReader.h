@@ -137,8 +137,8 @@ public:
     int leftHandJointIndex;
     int rightHandJointIndex;
     
-    QVector<int> leftFingertipJointIndices;
-    QVector<int> rightFingertipJointIndices;
+    QVector<int> leftFingerJointIndices;
+    QVector<int> rightFingerJointIndices;
     
     glm::vec3 neckPivot;
     

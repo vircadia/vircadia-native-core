@@ -62,12 +62,12 @@ void SkeletonModel::simulate(float deltaTime) {
     
     } else if (leftPalmIndex == rightPalmIndex) {
         // right hand only
-        applyPalmData(geometry.rightHandJointIndex, geometry.rightFingertipJointIndices, hand.getPalms()[leftPalmIndex]);
+        applyPalmData(geometry.rightHandJointIndex, geometry.rightFingerJointIndices, hand.getPalms()[leftPalmIndex]);
         restoreLeftHandPosition(HAND_RESTORATION_RATE);
         
     } else {
-        applyPalmData(geometry.leftHandJointIndex, geometry.leftFingertipJointIndices, hand.getPalms()[leftPalmIndex]);
-        applyPalmData(geometry.rightHandJointIndex, geometry.rightFingertipJointIndices, hand.getPalms()[rightPalmIndex]);
+        applyPalmData(geometry.leftHandJointIndex, geometry.leftFingerJointIndices, hand.getPalms()[leftPalmIndex]);
+        applyPalmData(geometry.rightHandJointIndex, geometry.rightFingerJointIndices, hand.getPalms()[rightPalmIndex]);
     }
 }
 
@@ -131,30 +131,30 @@ bool operator<(const IndexValue& firstIndex, const IndexValue& secondIndex) {
     return firstIndex.value < secondIndex.value;
 }
 
-void SkeletonModel::applyPalmData(int jointIndex, const QVector<int>& fingertipJointIndices, PalmData& palm) {
+void SkeletonModel::applyPalmData(int jointIndex, const QVector<int>& fingerJointIndices, PalmData& palm) {
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     setJointPosition(jointIndex, palm.getPosition());
-    float sign = jointIndex == geometry.rightHandJointIndex ? 1.0f : -1.0f;
-    setJointRotation(jointIndex, rotationBetween(_rotation * IDENTITY_UP, -palm.getNormal()) * _rotation *
-        glm::angleAxis(90.0f, 0.0f, sign, 0.0f), true);
+    float sign = (jointIndex == geometry.rightHandJointIndex) ? 1.0f : -1.0f;
+    glm::quat palmRotation = rotationBetween(_rotation * IDENTITY_UP, -palm.getNormal()) * _rotation *
+        glm::angleAxis(90.0f, 0.0f, sign, 0.0f);
+    setJointRotation(jointIndex, palmRotation, true);
     
     // no point in continuing if there are no fingers
-    if (palm.getNumFingers() == 0) {
+    if (palm.getNumFingers() == 0 || fingerJointIndices.isEmpty()) {
         return;
     }
      
     // sort the finger indices by raw x
     QVector<IndexValue> fingerIndices;
-    for (int i = 0; i < qMin(5, (int)palm.getNumFingers()); i++) {
-        IndexValue indexValue = { i, palm.getFingers()[i].getRootRawPosition().x };
+    for (int i = 0; i < palm.getNumFingers(); i++) {
+        IndexValue indexValue = { i, palm.getFingers()[i].getTipRawPosition().x };
         fingerIndices.append(indexValue);
     }
     qSort(fingerIndices.begin(), fingerIndices.end());
     
     // likewise with the joint indices and relative z
     QVector<IndexValue> jointIndices;
-    for (int i = 0; i < qMin(5, (int)fingertipJointIndices.size()); i++) {
-        int index = fingertipJointIndices.at(i);
+    foreach (int index, fingerJointIndices) {
         glm::vec3 position = glm::inverse(_rotation) * extractTranslation(geometry.joints.at(index).bindTransform);
         IndexValue indexValue = { index, position.z * -sign };
         jointIndices.append(indexValue);
@@ -165,7 +165,9 @@ void SkeletonModel::applyPalmData(int jointIndex, const QVector<int>& fingertipJ
     float proportion = fingerIndices.size() / (float)jointIndices.size();
     for (int i = 0; i < jointIndices.size(); i++) {
         int fingerIndex = fingerIndices.at(roundf(i * proportion)).index;
-        setJointPosition(jointIndices.at(i).index, palm.getFingers()[fingerIndex].getTipPosition(), jointIndex);
+        glm::vec3 fingerVector = palm.getFingers()[fingerIndex].getTipPosition() -
+            palm.getFingers()[fingerIndex].getRootPosition();
+        setJointRotation(jointIndices.at(i).index, rotationBetween(palmRotation * glm::vec3(-sign, 0.0f, 0.0f), fingerVector) * palmRotation, true);
     }
 }
 
