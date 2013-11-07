@@ -132,31 +132,34 @@ bool operator<(const IndexValue& firstIndex, const IndexValue& secondIndex) {
 }
 
 void SkeletonModel::applyPalmData(int jointIndex, const QVector<int>& fingertipJointIndices, PalmData& palm) {
+    const FBXGeometry& geometry = _geometry->getFBXGeometry();
     setJointPosition(jointIndex, palm.getPosition());
+    float sign = jointIndex == geometry.rightHandJointIndex ? 1.0f : -1.0f;
     setJointRotation(jointIndex, rotationBetween(_rotation * IDENTITY_UP, -palm.getNormal()) * _rotation *
-        glm::angleAxis(90.0f, 0.0f, jointIndex == _geometry->getFBXGeometry().rightHandJointIndex ? 1.0f : -1.0f, 0.0f), true);
+        glm::angleAxis(90.0f, 0.0f, sign, 0.0f), true);
     
     // no point in continuing if there are no fingers
-    if (true || palm.getNumFingers() == 0) {
+    if (palm.getNumFingers() == 0) {
         return;
     }
      
     // sort the finger indices by raw x
     QVector<IndexValue> fingerIndices;
-    for (int i = 0; i < palm.getNumFingers(); i++) {
-        IndexValue indexValue = { i, palm.getFingers()[i].getTipRawPosition().x };
+    for (int i = 0; i < qMin(5, (int)palm.getNumFingers()); i++) {
+        IndexValue indexValue = { i, palm.getFingers()[i].getRootRawPosition().x };
         fingerIndices.append(indexValue);
     }
-    //qSort(fingerIndices.begin(), fingerIndices.end());
+    qSort(fingerIndices.begin(), fingerIndices.end());
     
-    // likewise with the joint indices and relative x
+    // likewise with the joint indices and relative z
     QVector<IndexValue> jointIndices;
-    foreach (int index, fingertipJointIndices) {
-        glm::vec3 position = glm::inverse(_rotation) * extractTranslation(_jointStates[index].transform);
-        IndexValue indexValue = { index, position.x };
+    for (int i = 0; i < qMin(5, (int)fingertipJointIndices.size()); i++) {
+        int index = fingertipJointIndices.at(i);
+        glm::vec3 position = glm::inverse(_rotation) * extractTranslation(geometry.joints.at(index).bindTransform);
+        IndexValue indexValue = { index, position.z * -sign };
         jointIndices.append(indexValue);
     }
-    //qSort(jointIndices.begin(), jointIndices.end());
+    qSort(jointIndices.begin(), jointIndices.end());
     
     // match them up as best we can
     float proportion = fingerIndices.size() / (float)jointIndices.size();

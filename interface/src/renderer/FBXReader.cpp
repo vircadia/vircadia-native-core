@@ -1205,8 +1205,9 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                 extracted.mesh.clusters.append(fbxCluster);
                 
                 // override the bind rotation with the transform link
-                geometry.joints[fbxCluster.jointIndex].inverseBindRotation =
-                    glm::inverse(extractRotation(cluster.transformLink));
+                FBXJoint& joint = geometry.joints[fbxCluster.jointIndex];
+                joint.inverseBindRotation = glm::inverse(extractRotation(cluster.transformLink));
+                joint.bindTransform = cluster.transformLink;
             }
         }
         

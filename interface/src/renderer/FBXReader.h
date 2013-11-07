@@ -55,6 +55,7 @@ public:
     glm::mat4 transform;
     glm::quat inverseDefaultRotation;
     glm::quat inverseBindRotation;
+    glm::mat4 bindTransform;
 };
 
 /// A single binding to a joint in an FBX document.
