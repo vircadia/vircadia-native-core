@@ -747,6 +747,8 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     QString jointHeadName = processID(joints.value("jointHead", "jointHead").toString());
     QString jointLeftHandName = processID(joints.value("jointLeftHand", "jointLeftHand").toString());
     QString jointRightHandName = processID(joints.value("jointRightHand", "jointRightHand").toString());
+    QVariantList jointLeftFingertipNames = joints.values("jointLeftFingertip");
+    QVariantList jointRightFingertipNames = joints.values("jointRightFingertip");
     QString jointEyeLeftID;
     QString jointEyeRightID;
     QString jointNeckID;
@@ -755,6 +757,8 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     QString jointHeadID;
     QString jointLeftHandID;
     QString jointRightHandID;
+    QStringList jointLeftFingertipIDs;
+    QStringList jointRightFingertipIDs;
     
     QVariantHash blendshapeMappings = mapping.value("bs").toHash();
     QHash<QByteArray, QPair<int, float> > blendshapeIndices;
@@ -834,6 +838,12 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                         
                     } else if (name == jointRightHandName) {
                         jointRightHandID = getID(object.properties);
+                        
+                    } else if (jointLeftFingertipNames.contains(name)) {
+                        jointLeftFingertipIDs.append(getID(object.properties));
+                        
+                    } else if (jointRightFingertipNames.contains(name)) {
+                        jointRightFingertipIDs.append(getID(object.properties));
                     }
                     glm::vec3 translation;
                     glm::vec3 rotationOffset;
@@ -1088,6 +1098,13 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     geometry.leftHandJointIndex = modelIDs.indexOf(jointLeftHandID);
     geometry.rightHandJointIndex = modelIDs.indexOf(jointRightHandID);
     
+    foreach (const QString& id, jointLeftFingertipIDs) {
+        geometry.leftFingertipJointIndices.append(modelIDs.indexOf(id));
+    }
+    foreach (const QString& id, jointRightFingertipIDs) {
+        geometry.rightFingertipJointIndices.append(modelIDs.indexOf(id));
+    }
+    
     // extract the translation component of the neck transform
     if (geometry.neckJointIndex != -1) {
         const glm::mat4& transform = geometry.joints.at(geometry.neckJointIndex).transform;
@@ -1096,8 +1113,13 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     
     QVariantHash springs = mapping.value("spring").toHash();
     QVariant defaultSpring = springs.value("default");
+    int vertices = 0;
+    int quads = 0;
+    int tris = 0;
     for (QHash<QString, ExtractedMesh>::iterator it = meshes.begin(); it != meshes.end(); it++) {
         ExtractedMesh& extracted = it.value();
+        
+        vertices += extracted.mesh.vertices.size();
         
         // accumulate local transforms
         QString modelID = models.contains(it.key()) ? it.key() : parentMap.value(it.key());
@@ -1112,6 +1134,8 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                 break;
             }
             FBXMeshPart& part = extracted.mesh.parts[partIndex];
+            quads += part.quadIndices.size() / 4;
+            tris += part.triangleIndices.size() / 3;
             if (textureFilenames.contains(childID)) {
                 part.diffuseFilename = textureFilenames.value(childID);
                 continue;
@@ -1271,6 +1295,8 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         
         geometry.meshes.append(extracted.mesh);
     }
+    
+    qDebug("%d %d %d\n", vertices, quads, tris);
     
     // process attachments
     QVariantHash attachments = mapping.value("attach").toHash();

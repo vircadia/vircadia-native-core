@@ -584,8 +584,9 @@ bool Model::getJointRotation(int jointIndex, glm::quat& rotation) const {
 }
 
 void Model::setJointTranslation(int jointIndex, int parentIndex, int childIndex, const glm::vec3& translation) {
+    const FBXGeometry& geometry = _geometry->getFBXGeometry();
     JointState& state = _jointStates[jointIndex];
-    if (childIndex != -1) {
+    if (childIndex != -1 && geometry.joints.at(jointIndex).isFree) {
         // if there's a child, then I must adjust *my* rotation
         glm::vec3 childTranslation = extractTranslation(_jointStates.at(childIndex).transform);
         glm::quat delta = rotationBetween(childTranslation - extractTranslation(state.transform),
@@ -593,7 +594,7 @@ void Model::setJointTranslation(int jointIndex, int parentIndex, int childIndex,
         state.rotation = state.rotation * glm::inverse(state.combinedRotation) * delta * state.combinedRotation;
         state.combinedRotation = delta * state.combinedRotation;
     }
-    if (parentIndex != -1) {
+    if (parentIndex != -1 && geometry.joints.at(parentIndex).isFree) {
         // if there's a parent, then I must adjust *its* rotation
         JointState& parent = _jointStates[parentIndex];
         glm::vec3 parentTranslation = extractTranslation(parent.transform);
@@ -605,13 +606,16 @@ void Model::setJointTranslation(int jointIndex, int parentIndex, int childIndex,
     ::setTranslation(state.transform, translation);
 }
 
-bool Model::setJointPosition(int jointIndex, const glm::vec3& position) {
+bool Model::setJointPosition(int jointIndex, const glm::vec3& position, int lastFreeIndex) {
     if (jointIndex == -1 || _jointStates.isEmpty()) {
         return false;
     }
     glm::vec3 relativePosition = position - _translation;
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     const QVector<int>& freeLineage = geometry.joints.at(jointIndex).freeLineage;
+    if (lastFreeIndex == -1) {
+        lastFreeIndex = freeLineage.last();
+    }
     
     // this is a constraint relaxation algorithm: see
     // http://www.ryanjuckett.com/programming/animation/22-constraint-relaxation-ik-in-2d
@@ -626,9 +630,10 @@ bool Model::setJointPosition(int jointIndex, const glm::vec3& position) {
         // start by optimistically setting the position of the end joint to our target
         setJointTranslation(jointIndex, freeLineage.at(1), -1, relativePosition);
     
-        for (int j = 1; j < freeLineage.size(); j++) {
+        for (int j = 1; freeLineage.at(j - 1) != lastFreeIndex; j++) {
             int sourceIndex = freeLineage.at(j);
             int destIndex = freeLineage.at(j - 1);
+            bool last = (sourceIndex == lastFreeIndex);
             JointState& sourceState = _jointStates[sourceIndex];
             JointState& destState = _jointStates[destIndex];
             glm::vec3 sourceTranslation = extractTranslation(sourceState.transform);
@@ -646,7 +651,7 @@ bool Model::setJointPosition(int jointIndex, const glm::vec3& position) {
                 setJointTranslation(sourceIndex, freeLineage.at(j + 1), -1,
                     sourceTranslation - boneVector * extension + gravity);
             
-            } else if (j == freeLineage.size() - 1) {
+            } else if (sourceIndex == lastFreeIndex) {
                 setJointTranslation(destIndex, -1, freeLineage.at(j - 2),
                     destTranslation + boneVector * extension + gravity);
 

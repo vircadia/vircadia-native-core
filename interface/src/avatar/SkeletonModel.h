@@ -28,7 +28,7 @@ public:
     
 protected:
     
-    void applyPalmData(int jointIndex, const PalmData& palm);
+    void applyPalmData(int jointIndex, const QVector<int>& fingertipJointIndices, PalmData& palm);
     
     /// Updates the state of the joint at the specified index.
     virtual void updateJointState(int index);   
