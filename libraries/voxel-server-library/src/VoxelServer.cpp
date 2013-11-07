@@ -611,6 +611,22 @@ void VoxelServer::run() {
         }
     }
     qDebug() << "VoxelServer::run()... AFTER loop...\n";
+
+    // walk the node list and disconnect any connected agent nodes    
+    for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+        // only send to the NodeTypes that are NODE_TYPE_VOXEL_SERVER
+        if (node->getType() == NODE_TYPE_AGENT) {
+            node->lock();
+            VoxelNodeData* nodeData = (VoxelNodeData*) node->getLinkedData();
+            if (nodeData) {
+                qDebug() << "VoxelServer::run()... unlinking node...\n";
+                node->setLinkedData(NULL);
+                delete nodeData;
+            }
+            node->unlock();
+        }
+    }
+    
     
     // call NodeList::clear() so that all of our node specific objects, including our sending threads, are
     // properly shutdown and cleaned up.
