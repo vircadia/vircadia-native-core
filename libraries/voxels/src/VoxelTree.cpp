@@ -1806,9 +1806,10 @@ void VoxelTree::writeToSVOFile(const char* fileName, VoxelNode* node) {
         while (!nodeBag.isEmpty()) {
             VoxelNode* subTree = nodeBag.extract();
 
+            lockForRead(); // do tree locking down here so that we have shorter slices and less thread contention
             EncodeBitstreamParams params(INT_MAX, IGNORE_VIEW_FRUSTUM, WANT_COLOR, NO_EXISTS_BITS);
             bytesWritten = encodeTreeBitstream(subTree, &outputBuffer[0], MAX_VOXEL_PACKET_SIZE - 1, nodeBag, params);
-
+            unlock();
             file.write((const char*)&outputBuffer[0], bytesWritten);
         }
     }

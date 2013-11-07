@@ -175,6 +175,47 @@ int VoxelServer::civetwebRequestHandler(struct mg_connection* connection) {
         mg_printf(connection, "%s", "\r\n");
         mg_printf(connection, "%s", "\r\n");
 
+
+        // display voxel file load time
+        if (GetInstance()->isInitialLoadComplete()) {
+            tm* voxelsLoadedAtLocal = localtime(GetInstance()->getLoadCompleted());
+            const int MAX_TIME_LENGTH = 128;
+            char buffer[MAX_TIME_LENGTH];
+            strftime(buffer, MAX_TIME_LENGTH, "%m/%d/%Y %X", voxelsLoadedAtLocal);
+            mg_printf(connection, "Voxels Loaded At: %s", buffer);
+
+            // Convert now to tm struct for UTC
+            tm* voxelsLoadedAtUTM = gmtime(GetInstance()->getLoadCompleted());
+            if (gmtm != NULL) {
+                strftime(buffer, MAX_TIME_LENGTH, "%m/%d/%Y %X", voxelsLoadedAtUTM);
+                mg_printf(connection, " [%s UTM] ", buffer);
+            }
+            mg_printf(connection, "%s", "\r\n");
+
+
+            uint64_t msecsElapsed = GetInstance()->getLoadElapsedTime() / USECS_PER_MSEC;;
+            float seconds = (msecsElapsed % MSECS_PER_MIN)/(float)MSECS_PER_SEC;
+            int minutes = (msecsElapsed/(MSECS_PER_MIN)) % MIN_PER_HOUR;
+            int hours = (msecsElapsed/(MSECS_PER_MIN * MIN_PER_HOUR));
+
+            mg_printf(connection, "%s", "Voxels Load Took: ");
+            if (hours > 0) {
+                mg_printf(connection, "%d hour%s ", hours, (hours > 1) ? "s" : "" );
+            }
+            if (minutes > 0) {
+                mg_printf(connection, "%d minute%s ", minutes, (minutes > 1) ? "s" : "");
+            }
+            if (seconds > 0) {
+                mg_printf(connection, "%.3f seconds", seconds);
+            }
+            mg_printf(connection, "%s", "\r\n");
+
+        } else {
+            mg_printf(connection, "%s", "Voxels not yet loaded...\r\n");
+        }
+
+        mg_printf(connection, "%s", "\r\n");
+
         mg_printf(connection, "%s", "\r\n");
         mg_printf(connection, "%s", "Configuration: \r\n     ");
         for (int i = 1; i < GetInstance()->_argc; i++) {
@@ -512,8 +553,8 @@ void VoxelServer::run() {
     
     // loop to send to nodes requesting data
     while (true) {
-    
         if (NodeList::getInstance()->getNumNoReplyDomainCheckIns() == MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
+            qDebug() << "Exit loop... getInstance()->getNumNoReplyDomainCheckIns() == MAX_SILENT_DOMAIN_SERVER_CHECK_INS\n";
             break;
         }
         
@@ -569,26 +610,39 @@ void VoxelServer::run() {
             }
         }
     }
+    qDebug() << "VoxelServer::run()... AFTER loop...\n";
     
-    delete _jurisdiction;
+    // call NodeList::clear() so that all of our node specific objects, including our sending threads, are
+    // properly shutdown and cleaned up.
+    NodeList::getInstance()->clear();
     
+    qDebug() << "VoxelServer::run()... terminating _jurisdictionSender\n";
     if (_jurisdictionSender) {
         _jurisdictionSender->terminate();
         delete _jurisdictionSender;
     }
 
+    qDebug() << "VoxelServer::run()... terminating _voxelServerPacketProcessor\n";
     if (_voxelServerPacketProcessor) {
         _voxelServerPacketProcessor->terminate();
         delete _voxelServerPacketProcessor;
     }
 
+    qDebug() << "VoxelServer::run()... terminating _voxelPersistThread\n";
     if (_voxelPersistThread) {
         _voxelPersistThread->terminate();
         delete _voxelPersistThread;
     }
     
     // tell our NodeList we're done with notifications
+    qDebug() << "VoxelServer::run()... nodeList->removeHook(&_nodeWatcher)\n";
     nodeList->removeHook(&_nodeWatcher);
+
+    qDebug() << "VoxelServer::run()... deleting _jurisdiction\n";
+    delete _jurisdiction;
+    _jurisdiction = NULL;
+
+    qDebug() << "VoxelServer::run()... DONE\n";
 }
 
 
