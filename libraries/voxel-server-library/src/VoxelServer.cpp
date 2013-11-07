@@ -614,7 +614,6 @@ void VoxelServer::run() {
 
     // walk the node list and disconnect any connected agent nodes    
     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
-        // only send to the NodeTypes that are NODE_TYPE_VOXEL_SERVER
         if (node->getType() == NODE_TYPE_AGENT) {
             node->lock();
             VoxelNodeData* nodeData = (VoxelNodeData*) node->getLinkedData();
