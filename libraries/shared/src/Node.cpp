@@ -21,7 +21,6 @@
 #include "SharedUtil.h"
 #include "UDPSocket.h"
 
-#include <QtCore/QCoreApplication>
 #include <QtCore/QDebug>
 
 Node::Node(const QUuid& uuid, char type, sockaddr* publicSocket, sockaddr* localSocket) :
@@ -44,14 +43,8 @@ Node::~Node() {
     delete _publicSocket;
     delete _localSocket;
     
-    if (QCoreApplication::instance()) {
-        // even if we have a QCoreApplication instance we don't get here unless it's been exec'ed
-        // which is only currently the case for interface
-        if (_linkedData) {
-            _linkedData->deleteLater();
-        }
-    } else {
-        delete _linkedData;
+    if (_linkedData) {
+        _linkedData->deleteOrDeleteLater();
     }
     
     delete _bytesReceivedMovingAverage;

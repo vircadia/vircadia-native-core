@@ -17,3 +17,7 @@ NodeData::NodeData(Node* owningNode) :
 NodeData::~NodeData() {
 
 }
+
+void NodeData::deleteOrDeleteLater() {
+    delete this;
+}
