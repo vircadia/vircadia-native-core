@@ -145,6 +145,8 @@ public:
     QVector<int> leftFingertipJointIndices;
     QVector<int> rightFingertipJointIndices;
     
+    glm::vec3 palmDirection;
+    
     glm::vec3 neckPivot;
     
     QVector<FBXAttachment> attachments;

@@ -141,7 +141,7 @@ void SkeletonModel::applyPalmData(int jointIndex, const QVector<int>& fingerJoin
     float sign = (jointIndex == geometry.rightHandJointIndex) ? 1.0f : -1.0f;
     glm::quat palmRotation;
     getJointRotation(jointIndex, palmRotation, true);
-    palmRotation = rotationBetween(palmRotation * IDENTITY_UP, -palm.getNormal()) * palmRotation;
+    palmRotation = rotationBetween(palmRotation * geometry.palmDirection, palm.getNormal()) * palmRotation;
     
     // sort the finger indices by raw x, get the average direction
     QVector<IndexValue> fingerIndices;

@@ -1327,6 +1327,8 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         geometry.meshes.append(extracted.mesh);
     }
     
+    geometry.palmDirection = parseVec3(mapping.value("palmDirection", "0, -1, 0").toString());
+    
     // process attachments
     QVariantHash attachments = mapping.value("attach").toHash();
     for (QVariantHash::const_iterator it = attachments.constBegin(); it != attachments.constEnd(); it++) {
