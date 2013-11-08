@@ -91,23 +91,23 @@ bool PacketSender::process() {
     while (keepGoing) {
         uint64_t SEND_INTERVAL_USECS = (_packetsPerSecond == 0) ? USECS_PER_SECOND : (USECS_PER_SECOND / _packetsPerSecond);
 
+        lock();
         NetworkPacket& packet = _packets.front();
-        
+        NetworkPacket temporary = packet; // make a copy
+        _packets.erase(_packets.begin());
+        packetsLeft = _packets.size();
+        unlock();
+
         // send the packet through the NodeList...
         UDPSocket* nodeSocket = NodeList::getInstance()->getNodeSocket();
 
-        nodeSocket->send(&packet.getAddress(), packet.getData(), packet.getLength());
+        nodeSocket->send(&temporary.getAddress(), temporary.getData(), temporary.getLength());
         packetsThisCall++;
 
         if (_notify) {
-            _notify->packetSentNotification(packet.getLength());
+            _notify->packetSentNotification(temporary.getLength());
         }
 
-        lock();
-        _packets.erase(_packets.begin());
-        unlock();
-
-        packetsLeft = _packets.size();
 
         // in threaded mode, we go till we're empty
         if (isThreaded()) {

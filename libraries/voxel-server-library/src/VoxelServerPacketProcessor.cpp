@@ -24,6 +24,12 @@ VoxelServerPacketProcessor::VoxelServerPacketProcessor(VoxelServer* myServer) :
 
 void VoxelServerPacketProcessor::processPacket(sockaddr& senderAddress, unsigned char* packetData, ssize_t packetLength) {
 
+    bool debugProcessPacket = _myServer->wantsDebugVoxelReceiving();
+    
+    if (debugProcessPacket) {
+        printf("VoxelServerPacketProcessor::processPacket(() packetData=%p packetLength=%ld\n", packetData, packetLength);
+    }
+
     int numBytesPacketHeader = numBytesForPacketHeader(packetData);
     
     if (packetData[0] == PACKET_TYPE_SET_VOXEL || packetData[0] == PACKET_TYPE_SET_VOXEL_DESTRUCTIVE) {
@@ -49,25 +55,54 @@ void VoxelServerPacketProcessor::processPacket(sockaddr& senderAddress, unsigned
         int atByte = numBytesPacketHeader + sizeof(itemNumber);
         unsigned char* voxelData = (unsigned char*)&packetData[atByte];
         while (atByte < packetLength) {
-            unsigned char octets = (unsigned char)*voxelData;
+            int maxSize = packetLength - atByte;
+
+            if (debugProcessPacket) {
+                printf("VoxelServerPacketProcessor::processPacket(() %s packetData=%p packetLength=%ld voxelData=%p atByte=%d maxSize=%d\n",
+                    destructive ? "PACKET_TYPE_SET_VOXEL_DESTRUCTIVE" : "PACKET_TYPE_SET_VOXEL",
+                    packetData, packetLength, voxelData, atByte, maxSize);
+            }
+
+            int octets = numberOfThreeBitSectionsInCode(voxelData, maxSize);
+            
+            if (octets == OVERFLOWED_OCTCODE_BUFFER) {
+                printf("WARNING! Got voxel edit record that would overflow buffer in numberOfThreeBitSectionsInCode(), ");
+                printf("bailing processing of packet!\n");
+                break;
+            }
+            
             const int COLOR_SIZE_IN_BYTES = 3;
             int voxelDataSize = bytesRequiredForCodeLength(octets) + COLOR_SIZE_IN_BYTES;
             int voxelCodeSize = bytesRequiredForCodeLength(octets);
 
-            if (_myServer->wantShowAnimationDebug()) {
-                int red   = voxelData[voxelCodeSize + 0];
-                int green = voxelData[voxelCodeSize + 1];
-                int blue  = voxelData[voxelCodeSize + 2];
+            if (atByte + voxelDataSize <= packetLength) {
+                if (_myServer->wantShowAnimationDebug()) {
+                    int red   = voxelData[voxelCodeSize + RED_INDEX];
+                    int green = voxelData[voxelCodeSize + GREEN_INDEX];
+                    int blue  = voxelData[voxelCodeSize + BLUE_INDEX];
 
-                float* vertices = firstVertexForCode(voxelData);
-                printf("inserting voxel: %f,%f,%f r=%d,g=%d,b=%d\n", vertices[0], vertices[1], vertices[2], red, green, blue);
-                delete[] vertices;
+                    float* vertices = firstVertexForCode(voxelData);
+                    printf("inserting voxel: %f,%f,%f r=%d,g=%d,b=%d\n", vertices[0], vertices[1], vertices[2], red, green, blue);
+                    delete[] vertices;
+                }
+
+                _myServer->getServerTree().lockForWrite();
+                _myServer->getServerTree().readCodeColorBufferToTree(voxelData, destructive);
+                _myServer->getServerTree().unlock();
+
+                // skip to next voxel edit record in the packet
+                voxelData += voxelDataSize;
+                atByte += voxelDataSize;
+            } else {
+                printf("WARNING! Got voxel edit record that would overflow buffer, bailing processing of packet!\n");
+                break;
             }
-        
-            _myServer->getServerTree().readCodeColorBufferToTree(voxelData, destructive);
-            // skip to next
-            voxelData += voxelDataSize;
-            atByte += voxelDataSize;
+        }
+
+        if (debugProcessPacket) {
+            printf("VoxelServerPacketProcessor::processPacket(() DONE LOOPING FOR %s packetData=%p packetLength=%ld voxelData=%p atByte=%d\n",
+                destructive ? "PACKET_TYPE_SET_VOXEL_DESTRUCTIVE" : "PACKET_TYPE_SET_VOXEL",
+                packetData, packetLength, voxelData, atByte);
         }
 
         // Make sure our Node and NodeList knows we've heard from this node.
@@ -79,9 +114,9 @@ void VoxelServerPacketProcessor::processPacket(sockaddr& senderAddress, unsigned
     } else if (packetData[0] == PACKET_TYPE_ERASE_VOXEL) {
 
         // Send these bits off to the VoxelTree class to process them
-        _myServer->lockTree();
+        _myServer->getServerTree().lockForWrite();
         _myServer->getServerTree().processRemoveVoxelBitstream((unsigned char*)packetData, packetLength);
-        _myServer->unlockTree();
+        _myServer->getServerTree().unlock();
 
         // Make sure our Node and NodeList knows we've heard from this node.
         Node* node = NodeList::getInstance()->nodeWithAddress(&senderAddress);

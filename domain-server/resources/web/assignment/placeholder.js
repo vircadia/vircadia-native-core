@@ -78,6 +78,11 @@ function updateCells() {
           nextCells[i][j] = -1;
         }
       }    
+      
+      if (Math.random() < 0.001) {
+        //  Random mutation to keep things interesting in there. 
+        nextCells[i][j] = 1;
+      }
     }
   }
   

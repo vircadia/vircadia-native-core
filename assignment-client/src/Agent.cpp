@@ -57,7 +57,7 @@ void Agent::run() {
     NodeList* nodeList = NodeList::getInstance();
     nodeList->setOwnerType(NODE_TYPE_AGENT);
     
-    const char AGENT_NODE_TYPES_OF_INTEREST[2] = { NODE_TYPE_VOXEL_SERVER, NODE_TYPE_AUDIO_MIXER };
+    const char AGENT_NODE_TYPES_OF_INTEREST[1] = { NODE_TYPE_VOXEL_SERVER };
     
     nodeList->setNodeTypesOfInterest(AGENT_NODE_TYPES_OF_INTEREST, sizeof(AGENT_NODE_TYPES_OF_INTEREST));
 
@@ -114,9 +114,11 @@ void Agent::run() {
         
         QScriptValue treeScaleValue = engine.newVariant(QVariant(TREE_SCALE));
         engine.globalObject().setProperty("TREE_SCALE", treeScaleValue);
+        
+        const unsigned int VISUAL_DATA_CALLBACK_USECS = (1.0 / 60.0) * 1000 * 1000;
 
         // let the VoxelPacketSender know how frequently we plan to call it
-        voxelScripter.getVoxelPacketSender()->setProcessCallIntervalHint(INJECT_INTERVAL_USECS);
+        voxelScripter.getVoxelPacketSender()->setProcessCallIntervalHint(VISUAL_DATA_CALLBACK_USECS);
         
         // hook in a constructor for audio injectorss
         AudioInjector scriptedAudioInjector(BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
@@ -158,33 +160,14 @@ void Agent::run() {
                 NodeList::getInstance()->sendDomainServerCheckIn();
             }
             
-            // find the audio-mixer in the NodeList so we can inject audio at it
-            Node* audioMixer = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_AUDIO_MIXER);
-            
-        
-            if (audioMixer && audioMixer->getActiveSocket()) {
-                emit willSendAudioDataCallback();
-            }
-            
-            int usecToSleep = usecTimestamp(&startTime) + (thisFrame++ * INJECT_INTERVAL_USECS) - usecTimestampNow();
+            int usecToSleep = usecTimestamp(&startTime) + (thisFrame++ * VISUAL_DATA_CALLBACK_USECS) - usecTimestampNow();
             if (usecToSleep > 0) {
                 usleep(usecToSleep);
             }
             
-            if (audioMixer && audioMixer->getActiveSocket() && scriptedAudioInjector.hasSamplesToInject()) {
-                // we have an audio mixer and samples to inject, send those off
-                scriptedAudioInjector.injectAudio(NodeList::getInstance()->getNodeSocket(), audioMixer->getActiveSocket());
-                
-                // clear out the audio injector so that it doesn't re-send what we just sent
-                scriptedAudioInjector.clear();
-            }
-        
-            if (audioMixer && !audioMixer->getActiveSocket()) {
-                // don't have an active socket for the audio-mixer, ping it now
-                NodeList::getInstance()->pingPublicAndLocalSocketsForInactiveNode(audioMixer);
-            }
-            
             if (voxelScripter.getVoxelPacketSender()->voxelServersExist()) {
+                timeval thisSend = {};
+                gettimeofday(&thisSend, NULL);
                 // allow the scripter's call back to setup visual data
                 emit willSendVisualDataCallback();
                 
@@ -193,14 +176,13 @@ void Agent::run() {
                 
                 // since we're in non-threaded mode, call process so that the packets are sent
                 voxelScripter.getVoxelPacketSender()->process();
-
             }            
             
             if (engine.hasUncaughtException()) {
                 int line = engine.uncaughtExceptionLineNumber();
                 qDebug() << "Uncaught exception at line" << line << ":" << engine.uncaughtException().toString() << "\n";
             }
-
+            
             while (NodeList::getInstance()->getNodeSocket()->receive((sockaddr*) &senderAddress, receivedData, &receivedBytes)
                    && packetVersionMatch(receivedData)) {
                 if (receivedData[0] == PACKET_TYPE_VOXEL_JURISDICTION) {

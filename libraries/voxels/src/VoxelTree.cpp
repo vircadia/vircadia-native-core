@@ -581,13 +581,24 @@ void VoxelTree::processRemoveVoxelBitstream(unsigned char * bitstream, int buffe
     int atByte = sizeof(short int) + numBytesForPacketHeader(bitstream);
     unsigned char* voxelCode = (unsigned char*)&bitstream[atByte];
     while (atByte < bufferSizeBytes) {
-        int codeLength = numberOfThreeBitSectionsInCode(voxelCode);
+        int maxSize = bufferSizeBytes - atByte;
+        int codeLength = numberOfThreeBitSectionsInCode(voxelCode, maxSize);
+        
+        if (codeLength == OVERFLOWED_OCTCODE_BUFFER) {
+            printf("WARNING! Got remove voxel bitstream that would overflow buffer in numberOfThreeBitSectionsInCode(), ");
+            printf("bailing processing of packet!\n");
+            break;
+        }
         int voxelDataSize = bytesRequiredForCodeLength(codeLength) + SIZE_OF_COLOR_DATA;
-
-        deleteVoxelCodeFromTree(voxelCode, COLLAPSE_EMPTY_TREE);
-
-        voxelCode+=voxelDataSize;
-        atByte+=voxelDataSize;
+        
+        if (atByte + voxelDataSize <= bufferSizeBytes) {
+            deleteVoxelCodeFromTree(voxelCode, COLLAPSE_EMPTY_TREE);
+            voxelCode += voxelDataSize;
+            atByte += voxelDataSize;
+        } else {
+            printf("WARNING! Got remove voxel bitstream that would overflow buffer, bailing processing!\n");
+            break;
+        }
     }
 }
 
@@ -1795,9 +1806,10 @@ void VoxelTree::writeToSVOFile(const char* fileName, VoxelNode* node) {
         while (!nodeBag.isEmpty()) {
             VoxelNode* subTree = nodeBag.extract();
 
+            lockForRead(); // do tree locking down here so that we have shorter slices and less thread contention
             EncodeBitstreamParams params(INT_MAX, IGNORE_VIEW_FRUSTUM, WANT_COLOR, NO_EXISTS_BITS);
             bytesWritten = encodeTreeBitstream(subTree, &outputBuffer[0], MAX_VOXEL_PACKET_SIZE - 1, nodeBag, params);
-
+            unlock();
             file.write((const char*)&outputBuffer[0], bytesWritten);
         }
     }

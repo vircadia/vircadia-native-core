@@ -134,6 +134,7 @@ public:
     
     Avatar(Node* owningNode = NULL);
     ~Avatar();
+    void deleteOrDeleteLater();
     
     void init();
     void simulate(float deltaTime, Transmitter* transmitter);
@@ -227,8 +228,6 @@ protected:
     AvatarVoxelSystem _voxels;
 
     bool _moving; ///< set when position is changing
-    float _hoverOnDuration;
-    float _hoverOffDuration;
 
     // protected methods...
     glm::vec3 getBodyRightDirection() const { return getOrientation() * IDENTITY_RIGHT; }

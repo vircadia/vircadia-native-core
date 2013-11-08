@@ -44,7 +44,7 @@ Node::~Node() {
     delete _localSocket;
     
     if (_linkedData) {
-        _linkedData->deleteLater();
+        _linkedData->deleteOrDeleteLater();
     }
     
     delete _bytesReceivedMovingAverage;

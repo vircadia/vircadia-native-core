@@ -35,7 +35,7 @@ void JurisdictionSender::processPacket(sockaddr& senderAddress, unsigned char*  
         if (node) {
             QUuid nodeUUID = node->getUUID();
             lockRequestingNodes();
-            _nodesRequestingJurisdictions.insert(nodeUUID);
+            _nodesRequestingJurisdictions.push(nodeUUID);
             unlockRequestingNodes();
         }
     }
@@ -59,18 +59,16 @@ bool JurisdictionSender::process() {
         int nodeCount = 0;
 
         lockRequestingNodes();
-        for (std::set<QUuid>::iterator nodeIterator = _nodesRequestingJurisdictions.begin();
-            nodeIterator != _nodesRequestingJurisdictions.end(); nodeIterator++) {
+        while (!_nodesRequestingJurisdictions.empty()) {
 
-            QUuid nodeUUID = *nodeIterator;
+            QUuid nodeUUID = _nodesRequestingJurisdictions.front();
+            _nodesRequestingJurisdictions.pop();
             Node* node = NodeList::getInstance()->nodeWithUUID(nodeUUID);
 
             if (node->getActiveSocket() != NULL) {
                 sockaddr* nodeAddress = node->getActiveSocket();
                 queuePacketForSending(*nodeAddress, bufferOut, sizeOut);
                 nodeCount++;
-                // remove it from the set
-                _nodesRequestingJurisdictions.erase(nodeIterator);
             }
         }
         unlockRequestingNodes();

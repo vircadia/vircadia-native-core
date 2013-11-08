@@ -20,30 +20,28 @@ VoxelPersistThread::VoxelPersistThread(VoxelTree* tree, const char* filename, in
     _tree(tree),
     _filename(filename),
     _persistInterval(persistInterval),
-    _initialLoad(false) {
+    _initialLoadComplete(false),
+    _loadTimeUSecs(0) {
 }
 
 bool VoxelPersistThread::process() {
 
-    if (!_initialLoad) {
-        _initialLoad = true;
+    if (!_initialLoadComplete) {
+        uint64_t loadStarted = usecTimestampNow();
         qDebug("loading voxels from file: %s...\n", _filename);
 
         bool persistantFileRead;
-        
+
+        _tree->lockForWrite();
         {
             PerformanceWarning warn(true, "Loading Voxel File", true);
             persistantFileRead = _tree->readFromSVOFile(_filename);
         }
+        _tree->unlock();
 
-        if (persistantFileRead) {
-            PerformanceWarning warn(true, "Voxels Re-Averaging", true);
-            
-            // after done inserting all these voxels, then reaverage colors
-            qDebug("BEGIN Voxels Re-Averaging\n");
-            _tree->reaverageVoxelColors(_tree->rootNode);
-            qDebug("DONE WITH Voxels Re-Averaging\n");
-        }
+        _loadCompleted = time(0);
+        uint64_t loadDone = usecTimestampNow();
+        _loadTimeUSecs = loadDone - loadStarted;
         
         _tree->clearDirtyBit(); // the tree is clean since we just loaded it
         qDebug("DONE loading voxels from file... fileRead=%s\n", debug::valueOf(persistantFileRead));
@@ -61,6 +59,7 @@ bool VoxelPersistThread::process() {
         qDebug("setChildAtIndexCalls=%llu setChildAtIndexTime=%llu perSet=%lf\n",
             VoxelNode::getSetChildAtIndexTime(), VoxelNode::getSetChildAtIndexCalls(), usecPerSet);
 
+        _initialLoadComplete = true;
     }
     
     uint64_t MSECS_TO_USECS = 1000;

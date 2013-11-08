@@ -10,6 +10,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <cstdio>
+#include <time.h>
 
 #include <QtCore/QDebug>
 #include <QtCore/QString>
@@ -45,7 +46,11 @@ const char* VOXELS_PERSIST_FILE = "/etc/highfidelity/voxel-server/resources/voxe
 
 void attachVoxelNodeDataToNode(Node* newNode) {
     if (newNode->getLinkedData() == NULL) {
-        newNode->setLinkedData(new VoxelNodeData(newNode));
+        VoxelNodeData* voxelNodeData = new VoxelNodeData(newNode);
+        QUuid nodeUUID = newNode->getUUID();
+        qDebug("attachVoxelNodeDataToNode() newNode=%p voxelNodeData=%p\n", newNode, voxelNodeData);
+        qDebug() << "attachVoxelNodeDataToNode() node UUID:" << nodeUUID << "\n";
+        newNode->setLinkedData(voxelNodeData);
     }
 }
 
@@ -71,7 +76,10 @@ VoxelServer::VoxelServer(const unsigned char* dataBuffer, int numBytes) : Assign
     _voxelServerPacketProcessor = NULL;
     _voxelPersistThread = NULL;
     _parsedArgV = NULL;
-
+    
+    _started = time(0);
+    _startedUSecs = usecTimestampNow();
+    
     _theInstance = this;
 }
 
@@ -106,6 +114,19 @@ void VoxelServer::initMongoose(int port) {
 
 int VoxelServer::civetwebRequestHandler(struct mg_connection* connection) {
     const struct mg_request_info* ri = mg_get_request_info(connection);
+
+#ifdef FORCE_CRASH
+    if (strcmp(ri->uri, "/force_crash") == 0 && strcmp(ri->request_method, "GET") == 0) {
+        qDebug() << "About to force a crash!\n";
+        int foo;
+        int* forceCrash = &foo;
+        mg_printf(connection, "%s", "HTTP/1.0 200 OK\r\n\r\n");
+        mg_printf(connection, "%s", "forcing a crash....\r\n");
+        delete[] forceCrash;
+        mg_printf(connection, "%s", "did it crash....\r\n");
+        return 1;
+    }
+#endif
     
     if (strcmp(ri->uri, "/") == 0 && strcmp(ri->request_method, "GET") == 0) {
         uint64_t checkSum;
@@ -114,6 +135,86 @@ int VoxelServer::civetwebRequestHandler(struct mg_connection* connection) {
         mg_printf(connection, "%s", "Your Voxel Server is running.\r\n");
 
 
+        mg_printf(connection, "%s", "\r\n");
+        tm* localtm = localtime(&GetInstance()->_started);
+        const int MAX_TIME_LENGTH = 128;
+        char buffer[MAX_TIME_LENGTH];
+        strftime(buffer, MAX_TIME_LENGTH, "%m/%d/%Y %X", localtm);
+        mg_printf(connection, "Running since: %s", buffer);
+
+        // Convert now to tm struct for UTC
+        tm* gmtm = gmtime(&GetInstance()->_started);
+        if (gmtm != NULL) {
+            strftime(buffer, MAX_TIME_LENGTH, "%m/%d/%Y %X", gmtm);
+            mg_printf(connection, " [%s UTM] ", buffer);
+        }
+        mg_printf(connection, "%s", "\r\n");
+
+        uint64_t now  = usecTimestampNow();
+        const int USECS_PER_MSEC = 1000;
+        uint64_t msecsElapsed = (now - GetInstance()->_startedUSecs) / USECS_PER_MSEC;
+        const int MSECS_PER_SEC = 1000;
+        const int SECS_PER_MIN = 60;
+        const int MIN_PER_HOUR = 60;
+        const int MSECS_PER_MIN = MSECS_PER_SEC * SECS_PER_MIN;
+
+        float seconds = (msecsElapsed % MSECS_PER_MIN)/(float)MSECS_PER_SEC;
+        int minutes = (msecsElapsed/(MSECS_PER_MIN)) % MIN_PER_HOUR;
+        int hours = (msecsElapsed/(MSECS_PER_MIN * MIN_PER_HOUR));
+
+        mg_printf(connection, "%s", "Uptime: ");
+        if (hours > 0) {
+            mg_printf(connection, "%d hour%s ", hours, (hours > 1) ? "s" : "" );
+        }
+        if (minutes > 0) {
+            mg_printf(connection, "%d minute%s ", minutes, (minutes > 1) ? "s" : "");
+        }
+        if (seconds > 0) {
+            mg_printf(connection, "%.3f seconds ", seconds);
+        }
+        mg_printf(connection, "%s", "\r\n");
+        mg_printf(connection, "%s", "\r\n");
+
+
+        // display voxel file load time
+        if (GetInstance()->isInitialLoadComplete()) {
+            tm* voxelsLoadedAtLocal = localtime(GetInstance()->getLoadCompleted());
+            const int MAX_TIME_LENGTH = 128;
+            char buffer[MAX_TIME_LENGTH];
+            strftime(buffer, MAX_TIME_LENGTH, "%m/%d/%Y %X", voxelsLoadedAtLocal);
+            mg_printf(connection, "Voxels Loaded At: %s", buffer);
+
+            // Convert now to tm struct for UTC
+            tm* voxelsLoadedAtUTM = gmtime(GetInstance()->getLoadCompleted());
+            if (gmtm != NULL) {
+                strftime(buffer, MAX_TIME_LENGTH, "%m/%d/%Y %X", voxelsLoadedAtUTM);
+                mg_printf(connection, " [%s UTM] ", buffer);
+            }
+            mg_printf(connection, "%s", "\r\n");
+
+
+            uint64_t msecsElapsed = GetInstance()->getLoadElapsedTime() / USECS_PER_MSEC;;
+            float seconds = (msecsElapsed % MSECS_PER_MIN)/(float)MSECS_PER_SEC;
+            int minutes = (msecsElapsed/(MSECS_PER_MIN)) % MIN_PER_HOUR;
+            int hours = (msecsElapsed/(MSECS_PER_MIN * MIN_PER_HOUR));
+
+            mg_printf(connection, "%s", "Voxels Load Took: ");
+            if (hours > 0) {
+                mg_printf(connection, "%d hour%s ", hours, (hours > 1) ? "s" : "" );
+            }
+            if (minutes > 0) {
+                mg_printf(connection, "%d minute%s ", minutes, (minutes > 1) ? "s" : "");
+            }
+            if (seconds > 0) {
+                mg_printf(connection, "%.3f seconds", seconds);
+            }
+            mg_printf(connection, "%s", "\r\n");
+
+        } else {
+            mg_printf(connection, "%s", "Voxels not yet loaded...\r\n");
+        }
+
+        mg_printf(connection, "%s", "\r\n");
 
         mg_printf(connection, "%s", "\r\n");
         mg_printf(connection, "%s", "Configuration: \r\n     ");
@@ -283,8 +384,6 @@ void VoxelServer::run() {
         parsePayload();
     }
 
-    pthread_mutex_init(&_treeLock, NULL);
-    
     qInstallMessageHandler(Logging::verboseMessageHandler);
     
     const char* STATUS_PORT = "--statusPort";
@@ -438,12 +537,24 @@ void VoxelServer::run() {
         _voxelServerPacketProcessor->initialize(true);
     }
 
-    qDebug("Now running...\n");
+    // Convert now to tm struct for local timezone
+    tm* localtm = localtime(&_started);
+    const int MAX_TIME_LENGTH = 128;
+    char localBuffer[MAX_TIME_LENGTH] = { 0 };
+    char utcBuffer[MAX_TIME_LENGTH] = { 0 };
+    strftime(localBuffer, MAX_TIME_LENGTH, "%m/%d/%Y %X", localtm);
+    // Convert now to tm struct for UTC
+    tm* gmtm = gmtime(&_started);
+    if (gmtm != NULL) {
+        strftime(utcBuffer, MAX_TIME_LENGTH, " [%m/%d/%Y %X UTC]", gmtm);
+    }
+    qDebug() << "Now running... started at: " << localBuffer << utcBuffer << "\n";
+    
     
     // loop to send to nodes requesting data
     while (true) {
-    
         if (NodeList::getInstance()->getNumNoReplyDomainCheckIns() == MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
+            qDebug() << "Exit loop... getInstance()->getNumNoReplyDomainCheckIns() == MAX_SILENT_DOMAIN_SERVER_CHECK_INS\n";
             break;
         }
         
@@ -499,28 +610,39 @@ void VoxelServer::run() {
             }
         }
     }
+    qDebug() << "VoxelServer::run()... AFTER loop...\n";
     
-    delete _jurisdiction;
+    // call NodeList::clear() so that all of our node specific objects, including our sending threads, are
+    // properly shutdown and cleaned up.
+    NodeList::getInstance()->clear();
     
+    qDebug() << "VoxelServer::run()... terminating _jurisdictionSender\n";
     if (_jurisdictionSender) {
         _jurisdictionSender->terminate();
         delete _jurisdictionSender;
     }
 
+    qDebug() << "VoxelServer::run()... terminating _voxelServerPacketProcessor\n";
     if (_voxelServerPacketProcessor) {
         _voxelServerPacketProcessor->terminate();
         delete _voxelServerPacketProcessor;
     }
 
+    qDebug() << "VoxelServer::run()... terminating _voxelPersistThread\n";
     if (_voxelPersistThread) {
         _voxelPersistThread->terminate();
         delete _voxelPersistThread;
     }
     
     // tell our NodeList we're done with notifications
+    qDebug() << "VoxelServer::run()... nodeList->removeHook(&_nodeWatcher)\n";
     nodeList->removeHook(&_nodeWatcher);
-    
-    pthread_mutex_destroy(&_treeLock);
+
+    qDebug() << "VoxelServer::run()... deleting _jurisdiction\n";
+    delete _jurisdiction;
+    _jurisdiction = NULL;
+
+    qDebug() << "VoxelServer::run()... DONE\n";
 }
 
 

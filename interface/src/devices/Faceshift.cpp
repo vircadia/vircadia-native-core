@@ -68,7 +68,7 @@ void Faceshift::update() {
         (_eyeGazeLeftPitch + _eyeGazeRightPitch) / 2.0f, (_eyeGazeLeftYaw + _eyeGazeRightYaw) / 2.0f, 0.0f))));
     
     // compute and subtract the long term average
-    const float LONG_TERM_AVERAGE_SMOOTHING = 0.9999f;
+    const float LONG_TERM_AVERAGE_SMOOTHING = 0.999f;
     if (!_longTermAverageInitialized) {
         _longTermAverageEyePitch = eulers.x;
         _longTermAverageEyeYaw = eulers.y;

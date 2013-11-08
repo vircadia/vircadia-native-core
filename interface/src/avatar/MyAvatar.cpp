@@ -17,6 +17,7 @@
 
 #include "Application.h"
 #include "DataServerClient.h"
+#include "Menu.h"
 #include "MyAvatar.h"
 #include "Physics.h"
 #include "devices/OculusManager.h"
@@ -830,6 +831,7 @@ void MyAvatar::updateHandMovementAndTouching(float deltaTime, bool enableHandMov
     // reset hand and arm positions according to hand movement
     glm::vec3 up = orientation * IDENTITY_UP;
     
+    bool pointing = false;
     if (enableHandMovement && glm::length(_mouseRayDirection) > EPSILON && !Application::getInstance()->isMouseHidden()) {
         // confine to the approximate shoulder plane
         glm::vec3 pointDirection = _mouseRayDirection;
@@ -841,6 +843,7 @@ void MyAvatar::updateHandMovementAndTouching(float deltaTime, bool enableHandMov
         }
         const float FAR_AWAY_POINT = TREE_SCALE;
         _skeleton.joint[AVATAR_JOINT_RIGHT_FINGERTIPS].position = _mouseRayOrigin + pointDirection * FAR_AWAY_POINT;
+        pointing = true;
     }
     
     _avatarTouch.setMyBodyPosition(_position);
@@ -932,6 +935,8 @@ void MyAvatar::updateHandMovementAndTouching(float deltaTime, bool enableHandMov
     
     if (_mousePressed) {
         _handState = HAND_STATE_GRASPING;
+    } else if (pointing) {
+        _handState = HAND_STATE_POINTING;
     } else {
         _handState = HAND_STATE_NULL;
     }
@@ -1059,6 +1064,11 @@ void MyAvatar::updateAvatarCollisions(float deltaTime) {
 // detect collisions with other avatars and respond
 void MyAvatar::applyCollisionWithOtherAvatar(Avatar * otherAvatar, float deltaTime) {
     
+    // for now, don't collide if we have a new skeleton
+    if (_skeletonModel.isActive()) {
+        return;
+    }
+    
     glm::vec3 bodyPushForce = glm::vec3(0.0f, 0.0f, 0.0f);
     
     // loop through the body balls of each avatar to check for every possible collision
@@ -1110,6 +1120,10 @@ bool operator<(const SortedAvatar& s1, const SortedAvatar& s2) {
 }
 
 void MyAvatar::updateChatCircle(float deltaTime) {
+    if (!Menu::getInstance()->isOptionChecked(MenuOption::ChatCircling)) {
+        return;
+    }
+
     // find all members and sort by distance
     QVector<SortedAvatar> sortedAvatars;
     NodeList* nodeList = NodeList::getInstance();
