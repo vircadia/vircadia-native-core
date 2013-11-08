@@ -146,12 +146,13 @@ void SkeletonModel::applyPalmData(int jointIndex, const QVector<int>& fingerJoin
     QVector<IndexValue> fingerIndices;
     glm::vec3 direction;
     for (int i = 0; i < palm.getNumFingers(); i++) {
-        glm::vec3 fingerVector = palm.getFingers()[i].getTipPosition() - palm.getFingers()[i].getRootPosition();
+        glm::vec3 fingerVector = palm.getFingers()[i].getTipPosition() - palm.getPosition();
         float length = glm::length(fingerVector);
         if (length > EPSILON) {
             direction += fingerVector / length;
         }
-        IndexValue indexValue = { i, palm.getFingers()[i].getTipRawPosition().x };
+        fingerVector = glm::inverse(palmRotation) * fingerVector;
+        IndexValue indexValue = { i, atan2f(fingerVector.z, fingerVector.x) };
         fingerIndices.append(indexValue);
     }
     qSort(fingerIndices.begin(), fingerIndices.end());
