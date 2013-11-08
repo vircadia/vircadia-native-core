@@ -44,14 +44,9 @@ void VoxelServerPacketProcessor::processPacket(sockaddr& senderAddress, unsigned
         uint64_t sentAt = (*((uint64_t*)(packetData + numBytesPacketHeader + sizeof(sequence))));
         uint64_t arrivedAt = usecTimestampNow();
         uint64_t transitTime = arrivedAt - sentAt;
-        if (_myServer->wantShowAnimationDebug()) {
-            printf("got %s - command from client receivedBytes=%ld sequence=%d transitTime=%llu usecs\n",
-                destructive ? "PACKET_TYPE_SET_VOXEL_DESTRUCTIVE" : "PACKET_TYPE_SET_VOXEL",
-                packetLength, sequence, transitTime);
-        }
         
-        if (_myServer->wantsDebugVoxelReceiving()) {
-            printf("got %s - %d command from client receivedBytes=%ld sequence=%d transitTime=%llu usecs\n",
+        if (_myServer->wantShowAnimationDebug() || _myServer->wantsDebugVoxelReceiving()) {
+            printf("PROCESSING THREAD: got %s - %d command from client receivedBytes=%ld sequence=%d transitTime=%llu usecs\n",
                 destructive ? "PACKET_TYPE_SET_VOXEL_DESTRUCTIVE" : "PACKET_TYPE_SET_VOXEL",
                 _receivedPacketCount, packetLength, sequence, transitTime);
         }
@@ -122,13 +117,9 @@ void VoxelServerPacketProcessor::processPacket(sockaddr& senderAddress, unsigned
         uint64_t sentAt = (*((uint64_t*)(packetData + numBytesPacketHeader + sizeof(sequence))));
         uint64_t arrivedAt = usecTimestampNow();
         uint64_t transitTime = arrivedAt - sentAt;
-        if (_myServer->wantShowAnimationDebug()) {
-            printf("got PACKET_TYPE_ERASE_VOXEL - command from client receivedBytes=%ld sequence=%d transitTime=%llu usecs\n",
-                packetLength, sequence, transitTime);
-        }
-        
-        if (_myServer->wantsDebugVoxelReceiving()) {
-            printf("got PACKET_TYPE_ERASE_VOXEL - %d command from client receivedBytes=%ld sequence=%d transitTime=%llu usecs\n",
+
+        if (_myServer->wantShowAnimationDebug() || _myServer->wantsDebugVoxelReceiving()) {
+            printf("PROCESSING THREAD: got PACKET_TYPE_ERASE_VOXEL - %d command from client receivedBytes=%ld sequence=%d transitTime=%llu usecs\n",
                 _receivedPacketCount, packetLength, sequence, transitTime);
         }
 

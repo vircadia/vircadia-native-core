@@ -608,6 +608,34 @@ void VoxelServer::run() {
                         || packetData[0] == PACKET_TYPE_SET_VOXEL_DESTRUCTIVE
                         || packetData[0] == PACKET_TYPE_ERASE_VOXEL
                         || packetData[0] == PACKET_TYPE_Z_COMMAND)) {
+
+
+                const char* messageName;
+                switch (packetData[0]) {
+                    case PACKET_TYPE_SET_VOXEL: 
+                        messageName = "PACKET_TYPE_SET_VOXEL"; 
+                        break;
+                    case PACKET_TYPE_SET_VOXEL_DESTRUCTIVE: 
+                        messageName = "PACKET_TYPE_SET_VOXEL_DESTRUCTIVE"; 
+                        break;
+                    case PACKET_TYPE_ERASE_VOXEL: 
+                        messageName = "PACKET_TYPE_ERASE_VOXEL"; 
+                        break;
+                }
+                int numBytesPacketHeader = numBytesForPacketHeader(packetData);
+
+                if (packetData[0] != PACKET_TYPE_Z_COMMAND) {
+                    unsigned short int sequence = (*((unsigned short int*)(packetData + numBytesPacketHeader)));
+                    uint64_t sentAt = (*((uint64_t*)(packetData + numBytesPacketHeader + sizeof(sequence))));
+                    uint64_t arrivedAt = usecTimestampNow();
+                    uint64_t transitTime = arrivedAt - sentAt;
+                    if (wantShowAnimationDebug() || wantsDebugVoxelReceiving()) {
+                        printf("RECEIVE THREAD: got %s - command from client receivedBytes=%ld sequence=%d transitTime=%llu usecs\n",
+                            messageName,
+                            packetLength, sequence, transitTime);
+                    }
+                }
+    
                 _voxelServerPacketProcessor->queueReceivedPacket(senderAddress, packetData, packetLength);
             } else {
                 // let processNodeData handle it.
