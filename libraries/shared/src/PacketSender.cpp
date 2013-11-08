@@ -142,7 +142,6 @@ bool PacketSender::process() {
             now = usecTimestampNow();
             uint64_t elapsed = now - _lastSendTime;
             int usecToSleep =  INTERVAL_SLEEP_USECS - elapsed;
-            // we only sleep in non-threaded mode
             if (usecToSleep > 0) {
                 if (usecToSleep > INTERVAL_SLEEP_USECS) {
                     usecToSleep = INTERVAL_SLEEP_USECS;
