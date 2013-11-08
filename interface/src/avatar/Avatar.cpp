@@ -665,7 +665,8 @@ void Avatar::updateArmIKAndConstraints(float deltaTime, AvatarJointID fingerTipJ
     float distance = glm::length(armVector);
     
     // don't let right hand get dragged beyond maximum arm length...
-    float armLength = _maxArmLength * 0.75f;
+    const float ARM_RETRACTION = 0.75f;
+    float armLength = _maxArmLength * ARM_RETRACTION;
     if (distance > armLength) {
         // reset right hand to be constrained to maximum arm length
         fingerJoint.position = shoulderJoint.position;

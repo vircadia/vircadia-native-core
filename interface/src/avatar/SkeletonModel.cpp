@@ -140,7 +140,7 @@ void SkeletonModel::applyPalmData(int jointIndex, const QVector<int>& fingerJoin
     setJointPosition(jointIndex, palm.getPosition());
     float sign = (jointIndex == geometry.rightHandJointIndex) ? 1.0f : -1.0f;
     glm::quat palmRotation = rotationBetween(_rotation * IDENTITY_UP, -palm.getNormal()) * _rotation *
-        glm::angleAxis(90.0f, 0.0f, sign, 0.0f);
+        glm::angleAxis(90.0f, 0.0f, sign, 0.0f); // ninety degree rotation to face fingers forward from bind pose
     setJointRotation(jointIndex, palmRotation, true);
     
     // no point in continuing if there are no fingers
