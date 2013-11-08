@@ -24,6 +24,7 @@
 class JurisdictionListener : public NodeListHook, public PacketSender, public ReceivedPacketProcessor {
 public:
     static const int DEFAULT_PACKETS_PER_SECOND = 1;
+    static const int NO_SERVER_CHECK_RATE=60;
 
     JurisdictionListener(PacketSenderNotify* notify = NULL);
     ~JurisdictionListener();
@@ -50,6 +51,5 @@ private:
     NodeToJurisdictionMap _jurisdictions;
 
     bool queueJurisdictionRequest();
-
 };
 #endif // __shared__JurisdictionListener__

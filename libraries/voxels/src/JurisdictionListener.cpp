@@ -19,6 +19,7 @@
 JurisdictionListener::JurisdictionListener(PacketSenderNotify* notify) : 
     PacketSender(notify, JurisdictionListener::DEFAULT_PACKETS_PER_SECOND)
 {
+    ReceivedPacketProcessor::_dontSleep = true; // we handle sleeping so this class doesn't need to
     NodeList* nodeList = NodeList::getInstance();
     nodeList->addHook(this);
 }
@@ -53,8 +54,11 @@ bool JurisdictionListener::queueJurisdictionRequest() {
         }
     }
 
-    // set our packets per second to be the number of nodes
-    setPacketsPerSecond(nodeCount);
+    if (nodeCount > 0){
+        setPacketsPerSecond(nodeCount);
+    } else {
+        setPacketsPerSecond(NO_SERVER_CHECK_RATE);
+    }
     
     // keep going if still running
     return isStillRunning();
@@ -84,5 +88,6 @@ bool JurisdictionListener::process() {
         // NOTE: This will sleep if there are no pending packets to process
         continueProcessing = ReceivedPacketProcessor::process();
     }
+    
     return continueProcessing;
 }
