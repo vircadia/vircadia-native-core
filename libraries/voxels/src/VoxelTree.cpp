@@ -576,9 +576,15 @@ void VoxelTree::readCodeColorBufferToTreeRecursion(VoxelNode* node, void* extraD
     }
 }
 
-void VoxelTree::processRemoveVoxelBitstream(unsigned char * bitstream, int bufferSizeBytes) {
+void VoxelTree::processRemoveVoxelBitstream(unsigned char* bitstream, int bufferSizeBytes) {
     //unsigned short int itemNumber = (*((unsigned short int*)&bitstream[sizeof(PACKET_HEADER)]));
-    int atByte = sizeof(short int) + numBytesForPacketHeader(bitstream);
+
+    int numBytesPacketHeader = numBytesForPacketHeader(bitstream);
+    unsigned short int sequence = (*((unsigned short int*)(bitstream + numBytesPacketHeader)));
+    uint64_t sentAt = (*((uint64_t*)(bitstream + numBytesPacketHeader + sizeof(sequence))));
+    
+    int atByte = numBytesPacketHeader + sizeof(sequence) + sizeof(sentAt);
+    
     unsigned char* voxelCode = (unsigned char*)&bitstream[atByte];
     while (atByte < bufferSizeBytes) {
         int maxSize = bufferSizeBytes - atByte;
