@@ -488,6 +488,9 @@ public:
     glm::quat rotation;
     glm::quat postRotation;
     glm::mat4 postTransform;
+    
+    glm::vec3 rotationMin;
+    glm::vec3 rotationMax;
 };
 
 glm::mat4 getGlobalTransform(const QMultiHash<QString, QString>& parentMap,
@@ -873,6 +876,8 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                     glm::vec3 scale = glm::vec3(1.0f, 1.0f, 1.0f);
                     glm::vec3 scalePivot, rotationPivot;
                     FBXModel model = { name, -1 };
+                    model.rotationMin = glm::vec3(-180.0f, -180.0f, -180.0f);
+                    model.rotationMax = glm::vec3(180.0f, 180.0f, 180.0f);
                     foreach (const FBXNode& subobject, object.children) {
                         bool properties = false;
                         QByteArray propertyName;
@@ -912,7 +917,13 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                                         scalePivot = getVec3(property.properties, index);
                                             
                                     } else if (property.properties.at(0) == "Lcl Scaling") {
-                                        scale = getVec3(property.properties, index);     
+                                        scale = getVec3(property.properties, index);
+                                        
+                                    } else if (property.properties.at(0) == "RotationMin") {
+                                        model.rotationMin = getVec3(property.properties, index);
+                                        
+                                    } else if (property.properties.at(0) == "RotationMax") {
+                                        model.rotationMax = getVec3(property.properties, index);
                                     }
                                 }
                             }
@@ -1092,6 +1103,8 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         joint.rotation = model.rotation;
         joint.postRotation = model.postRotation;
         joint.postTransform = model.postTransform;
+        joint.rotationMin = model.rotationMin;
+        joint.rotationMax = model.rotationMax;
         glm::quat combinedRotation = model.preRotation * model.rotation * model.postRotation;
         if (joint.parentIndex == -1) {    
             joint.transform = geometry.offset * model.preTransform * glm::mat4_cast(combinedRotation) * model.postTransform;

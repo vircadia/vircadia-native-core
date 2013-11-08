@@ -159,6 +159,7 @@ protected:
 private:
     
     void setJointTranslation(int jointIndex, int parentIndex, int childIndex, const glm::vec3& translation);
+    void applyRotationDelta(int jointIndex, const glm::quat& delta);
     
     void deleteGeometry();
     

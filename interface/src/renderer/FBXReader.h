@@ -53,6 +53,8 @@ public:
     glm::quat postRotation;
     glm::mat4 postTransform;
     glm::mat4 transform;
+    glm::vec3 rotationMin;
+    glm::vec3 rotationMax;
     glm::quat inverseDefaultRotation;
     glm::quat inverseBindRotation;
     glm::mat4 bindTransform;
