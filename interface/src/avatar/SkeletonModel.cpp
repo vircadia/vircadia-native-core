@@ -62,12 +62,15 @@ void SkeletonModel::simulate(float deltaTime) {
     
     } else if (leftPalmIndex == rightPalmIndex) {
         // right hand only
-        applyPalmData(geometry.rightHandJointIndex, geometry.rightFingerJointIndices, hand.getPalms()[leftPalmIndex]);
+        applyPalmData(geometry.rightHandJointIndex, geometry.rightFingerJointIndices, geometry.rightFingertipJointIndices, 
+            hand.getPalms()[leftPalmIndex]);
         restoreLeftHandPosition(HAND_RESTORATION_RATE);
         
     } else {
-        applyPalmData(geometry.leftHandJointIndex, geometry.leftFingerJointIndices, hand.getPalms()[leftPalmIndex]);
-        applyPalmData(geometry.rightHandJointIndex, geometry.rightFingerJointIndices, hand.getPalms()[rightPalmIndex]);
+        applyPalmData(geometry.leftHandJointIndex, geometry.leftFingerJointIndices, geometry.leftFingertipJointIndices,
+            hand.getPalms()[leftPalmIndex]);
+        applyPalmData(geometry.rightHandJointIndex, geometry.rightFingerJointIndices, geometry.rightFingertipJointIndices,
+            hand.getPalms()[rightPalmIndex]);
     }
 }
 
@@ -131,7 +134,8 @@ bool operator<(const IndexValue& firstIndex, const IndexValue& secondIndex) {
     return firstIndex.value < secondIndex.value;
 }
 
-void SkeletonModel::applyPalmData(int jointIndex, const QVector<int>& fingerJointIndices, PalmData& palm) {
+void SkeletonModel::applyPalmData(int jointIndex, const QVector<int>& fingerJointIndices,
+        const QVector<int>& fingertipJointIndices, PalmData& palm) {
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     setJointPosition(jointIndex, palm.getPosition());
     float sign = (jointIndex == geometry.rightHandJointIndex) ? 1.0f : -1.0f;
@@ -152,22 +156,19 @@ void SkeletonModel::applyPalmData(int jointIndex, const QVector<int>& fingerJoin
     }
     qSort(fingerIndices.begin(), fingerIndices.end());
     
-    // likewise with the joint indices and relative z
-    QVector<IndexValue> jointIndices;
-    foreach (int index, fingerJointIndices) {
-        glm::vec3 position = glm::inverse(_rotation) * extractTranslation(geometry.joints.at(index).bindTransform);
-        IndexValue indexValue = { index, position.z * -sign };
-        jointIndices.append(indexValue);
-    }
-    qSort(jointIndices.begin(), jointIndices.end());
-    
     // match them up as best we can
-    float proportion = fingerIndices.size() / (float)jointIndices.size();
-    for (int i = 0; i < jointIndices.size(); i++) {
+    float proportion = fingerIndices.size() / (float)fingerJointIndices.size();
+    for (int i = 0; i < fingerJointIndices.size(); i++) {
         int fingerIndex = fingerIndices.at(roundf(i * proportion)).index;
         glm::vec3 fingerVector = palm.getFingers()[fingerIndex].getTipPosition() -
             palm.getFingers()[fingerIndex].getRootPosition();
-        setJointRotation(jointIndices.at(i).index, rotationBetween(palmRotation * glm::vec3(-sign, 0.0f, 0.0f), fingerVector) * palmRotation, true);
+        
+        int fingerJointIndex = fingerJointIndices.at(i);
+        int fingertipJointIndex = fingertipJointIndices.at(i);
+        glm::vec3 jointVector = extractTranslation(geometry.joints.at(fingertipJointIndex).bindTransform) -
+            extractTranslation(geometry.joints.at(fingerJointIndex).bindTransform);
+        
+        setJointRotation(fingerJointIndex, rotationBetween(palmRotation * jointVector, fingerVector) * palmRotation, true);
     }
 }
 
