@@ -24,7 +24,7 @@
 class JurisdictionListener : public NodeListHook, public PacketSender, public ReceivedPacketProcessor {
 public:
     static const int DEFAULT_PACKETS_PER_SECOND = 1;
-    static const int NO_SERVER_CHECK_RATE=60;
+    static const int NO_SERVER_CHECK_RATE = 60; // if no servers yet detected, keep checking at 60fps
 
     JurisdictionListener(PacketSenderNotify* notify = NULL);
     ~JurisdictionListener();
