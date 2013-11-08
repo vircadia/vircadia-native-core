@@ -137,7 +137,7 @@ bool PacketSender::process() {
             keepGoing = (packetsThisCall < packetsPerCall) && (packetsLeft > 0);
         }
         
-        // if threaded and we only sent one packet, we still want to sleep....
+        // if threaded and we haven't slept? We want to sleep....
         if (isThreaded() && !hasSlept) {
             now = usecTimestampNow();
             uint64_t elapsed = now - _lastSendTime;
