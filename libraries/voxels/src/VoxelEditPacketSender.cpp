@@ -32,7 +32,8 @@ VoxelEditPacketSender::VoxelEditPacketSender(PacketSenderNotify* notify) :
     _shouldSend(true),
     _maxPendingMessages(DEFAULT_MAX_PENDING_MESSAGES),
     _releaseQueuedMessagesPending(false),
-    _voxelServerJurisdictions(NULL) {
+    _voxelServerJurisdictions(NULL),
+    _sequenceNumber(0) {
 }
 
 VoxelEditPacketSender::~VoxelEditPacketSender() {
@@ -274,7 +275,8 @@ void VoxelEditPacketSender::releaseQueuedPacket(EditPacketBuffer& packetBuffer) 
 void VoxelEditPacketSender::initializePacket(EditPacketBuffer& packetBuffer, PACKET_TYPE type) {
     packetBuffer._currentSize = populateTypeAndVersion(&packetBuffer._currentBuffer[0], type);
     unsigned short int* sequenceAt = (unsigned short int*)&packetBuffer._currentBuffer[packetBuffer._currentSize];
-    *sequenceAt = 0;
+    *sequenceAt = _sequenceNumber;
+    _sequenceNumber++;
     packetBuffer._currentSize += sizeof(unsigned short int); // set to command + sequence
     packetBuffer._currentType = type;
 }

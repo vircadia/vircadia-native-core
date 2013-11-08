@@ -40,6 +40,7 @@ public:
 
     bool wantsDebugVoxelSending() const { return _debugVoxelSending; }
     bool wantsDebugVoxelReceiving() const { return _debugVoxelReceiving; }
+    bool wantsVerboseDebug() const { return _verboseDebug; }
     bool wantShowAnimationDebug() const { return _shouldShowAnimationDebug; }
     bool wantSendEnvironments() const { return _sendEnvironments; }
     bool wantDumpVoxelsOnMove() const { return _dumpVoxelsOnMove; }
@@ -76,6 +77,7 @@ private:
     bool _sendEnvironments;
     bool _sendMinimalEnvironment;
     bool _dumpVoxelsOnMove;
+    bool _verboseDebug;
     JurisdictionMap* _jurisdiction;
     JurisdictionSender* _jurisdictionSender;
     VoxelServerPacketProcessor* _voxelServerPacketProcessor;

@@ -24,10 +24,10 @@ VoxelServerPacketProcessor::VoxelServerPacketProcessor(VoxelServer* myServer) :
 
 void VoxelServerPacketProcessor::processPacket(sockaddr& senderAddress, unsigned char* packetData, ssize_t packetLength) {
 
-    bool debugProcessPacket = _myServer->wantsDebugVoxelReceiving();
+    bool debugProcessPacket = _myServer->wantsVerboseDebug();
     
     if (debugProcessPacket) {
-        printf("VoxelServerPacketProcessor::processPacket(() packetData=%p packetLength=%ld\n", packetData, packetLength);
+        printf("VoxelServerPacketProcessor::processPacket() packetData=%p packetLength=%ld\n", packetData, packetLength);
     }
 
     int numBytesPacketHeader = numBytesForPacketHeader(packetData);
@@ -58,7 +58,7 @@ void VoxelServerPacketProcessor::processPacket(sockaddr& senderAddress, unsigned
             int maxSize = packetLength - atByte;
 
             if (debugProcessPacket) {
-                printf("VoxelServerPacketProcessor::processPacket(() %s packetData=%p packetLength=%ld voxelData=%p atByte=%d maxSize=%d\n",
+                printf("VoxelServerPacketProcessor::processPacket() %s packetData=%p packetLength=%ld voxelData=%p atByte=%d maxSize=%d\n",
                     destructive ? "PACKET_TYPE_SET_VOXEL_DESTRUCTIVE" : "PACKET_TYPE_SET_VOXEL",
                     packetData, packetLength, voxelData, atByte, maxSize);
             }
@@ -100,7 +100,7 @@ void VoxelServerPacketProcessor::processPacket(sockaddr& senderAddress, unsigned
         }
 
         if (debugProcessPacket) {
-            printf("VoxelServerPacketProcessor::processPacket(() DONE LOOPING FOR %s packetData=%p packetLength=%ld voxelData=%p atByte=%d\n",
+            printf("VoxelServerPacketProcessor::processPacket() DONE LOOPING FOR %s packetData=%p packetLength=%ld voxelData=%p atByte=%d\n",
                 destructive ? "PACKET_TYPE_SET_VOXEL_DESTRUCTIVE" : "PACKET_TYPE_SET_VOXEL",
                 packetData, packetLength, voxelData, atByte);
         }
