@@ -1132,7 +1132,8 @@ void Application::mousePressEvent(QMouseEvent* event) {
                 glm::vec3 myPosition = _myAvatar.getPosition();
                 
                 // If there is not an action tool set (add, delete, color), move to this voxel
-                if (!(Menu::getInstance()->isOptionChecked(MenuOption::VoxelAddMode) ||
+                if (Menu::getInstance()->isOptionChecked(MenuOption::ClickToFly) &&
+                     !(Menu::getInstance()->isOptionChecked(MenuOption::VoxelAddMode) ||
                      Menu::getInstance()->isOptionChecked(MenuOption::VoxelDeleteMode) ||
                      Menu::getInstance()->isOptionChecked(MenuOption::VoxelColorMode))) {
                     _myAvatar.setMoveTarget(myPosition + (newTarget - myPosition) * PERCENTAGE_TO_MOVE_TOWARD);

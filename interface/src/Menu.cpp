@@ -170,6 +170,9 @@ Menu::Menu() :
     QAction* getColorMode = addCheckableActionToQMenuAndActionHash(toolsMenu, MenuOption::VoxelGetColorMode, Qt::Key_G);
     _voxelModeActionsGroup->addAction(getColorMode);
     
+    addCheckableActionToQMenuAndActionHash(toolsMenu, MenuOption::ClickToFly);
+    
+    
     // connect each of the voxel mode actions to the updateVoxelModeActionsSlot
     foreach (QAction* action, _voxelModeActionsGroup->actions()) {
         connect(action, SIGNAL(triggered()), this, SLOT(updateVoxelModeActions()));
