@@ -105,5 +105,7 @@ private:
     std::vector<EditPacketBuffer*> _preServerSingleMessagePackets; // these will go out as is
 
     NodeToJurisdictionMap* _voxelServerJurisdictions;
+    
+    unsigned short int _sequenceNumber;
 };
 #endif // __shared__VoxelEditPacketSender__

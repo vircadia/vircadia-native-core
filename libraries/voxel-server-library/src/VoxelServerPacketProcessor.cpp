@@ -24,10 +24,10 @@ VoxelServerPacketProcessor::VoxelServerPacketProcessor(VoxelServer* myServer) :
 
 void VoxelServerPacketProcessor::processPacket(sockaddr& senderAddress, unsigned char* packetData, ssize_t packetLength) {
 
-    bool debugProcessPacket = _myServer->wantsDebugVoxelReceiving();
+    bool debugProcessPacket = _myServer->wantsVerboseDebug();
     
     if (debugProcessPacket) {
-        printf("VoxelServerPacketProcessor::processPacket(() packetData=%p packetLength=%ld\n", packetData, packetLength);
+        printf("VoxelServerPacketProcessor::processPacket() packetData=%p packetLength=%ld\n", packetData, packetLength);
     }
 
     int numBytesPacketHeader = numBytesForPacketHeader(packetData);
@@ -40,25 +40,23 @@ void VoxelServerPacketProcessor::processPacket(sockaddr& senderAddress, unsigned
         
         _receivedPacketCount++;
         
-        unsigned short int itemNumber = (*((unsigned short int*)(packetData + numBytesPacketHeader)));
-        if (_myServer->wantShowAnimationDebug()) {
-            printf("got %s - command from client receivedBytes=%ld itemNumber=%d\n",
-                destructive ? "PACKET_TYPE_SET_VOXEL_DESTRUCTIVE" : "PACKET_TYPE_SET_VOXEL",
-                packetLength, itemNumber);
-        }
+        unsigned short int sequence = (*((unsigned short int*)(packetData + numBytesPacketHeader)));
+        uint64_t sentAt = (*((uint64_t*)(packetData + numBytesPacketHeader + sizeof(sequence))));
+        uint64_t arrivedAt = usecTimestampNow();
+        uint64_t transitTime = arrivedAt - sentAt;
         
-        if (_myServer->wantsDebugVoxelReceiving()) {
-            printf("got %s - %d command from client receivedBytes=%ld itemNumber=%d\n",
+        if (_myServer->wantShowAnimationDebug() || _myServer->wantsDebugVoxelReceiving()) {
+            printf("PROCESSING THREAD: got %s - %d command from client receivedBytes=%ld sequence=%d transitTime=%llu usecs\n",
                 destructive ? "PACKET_TYPE_SET_VOXEL_DESTRUCTIVE" : "PACKET_TYPE_SET_VOXEL",
-                _receivedPacketCount, packetLength, itemNumber);
+                _receivedPacketCount, packetLength, sequence, transitTime);
         }
-        int atByte = numBytesPacketHeader + sizeof(itemNumber);
+        int atByte = numBytesPacketHeader + sizeof(sequence) + sizeof(sentAt);
         unsigned char* voxelData = (unsigned char*)&packetData[atByte];
         while (atByte < packetLength) {
             int maxSize = packetLength - atByte;
 
             if (debugProcessPacket) {
-                printf("VoxelServerPacketProcessor::processPacket(() %s packetData=%p packetLength=%ld voxelData=%p atByte=%d maxSize=%d\n",
+                printf("VoxelServerPacketProcessor::processPacket() %s packetData=%p packetLength=%ld voxelData=%p atByte=%d maxSize=%d\n",
                     destructive ? "PACKET_TYPE_SET_VOXEL_DESTRUCTIVE" : "PACKET_TYPE_SET_VOXEL",
                     packetData, packetLength, voxelData, atByte, maxSize);
             }
@@ -100,7 +98,7 @@ void VoxelServerPacketProcessor::processPacket(sockaddr& senderAddress, unsigned
         }
 
         if (debugProcessPacket) {
-            printf("VoxelServerPacketProcessor::processPacket(() DONE LOOPING FOR %s packetData=%p packetLength=%ld voxelData=%p atByte=%d\n",
+            printf("VoxelServerPacketProcessor::processPacket() DONE LOOPING FOR %s packetData=%p packetLength=%ld voxelData=%p atByte=%d\n",
                 destructive ? "PACKET_TYPE_SET_VOXEL_DESTRUCTIVE" : "PACKET_TYPE_SET_VOXEL",
                 packetData, packetLength, voxelData, atByte);
         }
@@ -112,6 +110,18 @@ void VoxelServerPacketProcessor::processPacket(sockaddr& senderAddress, unsigned
         }
 
     } else if (packetData[0] == PACKET_TYPE_ERASE_VOXEL) {
+
+        _receivedPacketCount++;
+        
+        unsigned short int sequence = (*((unsigned short int*)(packetData + numBytesPacketHeader)));
+        uint64_t sentAt = (*((uint64_t*)(packetData + numBytesPacketHeader + sizeof(sequence))));
+        uint64_t arrivedAt = usecTimestampNow();
+        uint64_t transitTime = arrivedAt - sentAt;
+
+        if (_myServer->wantShowAnimationDebug() || _myServer->wantsDebugVoxelReceiving()) {
+            printf("PROCESSING THREAD: got PACKET_TYPE_ERASE_VOXEL - %d command from client receivedBytes=%ld sequence=%d transitTime=%llu usecs\n",
+                _receivedPacketCount, packetLength, sequence, transitTime);
+        }
 
         // Send these bits off to the VoxelTree class to process them
         _myServer->getServerTree().lockForWrite();

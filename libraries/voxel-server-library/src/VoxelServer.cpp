@@ -71,6 +71,7 @@ VoxelServer::VoxelServer(const unsigned char* dataBuffer, int numBytes) : Assign
     _sendEnvironments = true;
     _sendMinimalEnvironment = false;
     _dumpVoxelsOnMove = false;
+    _verboseDebug = false;
     _jurisdiction = NULL;
     _jurisdictionSender = NULL;
     _voxelServerPacketProcessor = NULL;
@@ -427,14 +428,14 @@ void VoxelServer::run() {
     
     // should we send environments? Default is yes, but this command line suppresses sending
     const char* SEND_ENVIRONMENTS = "--sendEnvironments";
-    bool dontSendEnvironments =  !getCmdOption(_argc, _argv, SEND_ENVIRONMENTS);
+    bool dontSendEnvironments =  !cmdOptionExists(_argc, _argv, SEND_ENVIRONMENTS);
     if (dontSendEnvironments) {
         qDebug("Sending environments suppressed...\n");
         _sendEnvironments = false;
     } else { 
         // should we send environments? Default is yes, but this command line suppresses sending
         const char* MINIMAL_ENVIRONMENT = "--minimalEnvironment";
-        _sendMinimalEnvironment =  getCmdOption(_argc, _argv, MINIMAL_ENVIRONMENT);
+        _sendMinimalEnvironment =  cmdOptionExists(_argc, _argv, MINIMAL_ENVIRONMENT);
         qDebug("Using Minimal Environment=%s\n", debug::valueOf(_sendMinimalEnvironment));
     }
     qDebug("Sending environments=%s\n", debug::valueOf(_sendEnvironments));
@@ -455,24 +456,28 @@ void VoxelServer::run() {
     srand((unsigned)time(0));
     
     const char* DISPLAY_VOXEL_STATS = "--displayVoxelStats";
-    _displayVoxelStats =  getCmdOption(_argc, _argv, DISPLAY_VOXEL_STATS);
+    _displayVoxelStats =  cmdOptionExists(_argc, _argv, DISPLAY_VOXEL_STATS);
     qDebug("displayVoxelStats=%s\n", debug::valueOf(_displayVoxelStats));
 
+    const char* VERBOSE_DEBUG = "--verboseDebug";
+    _verboseDebug =  cmdOptionExists(_argc, _argv, VERBOSE_DEBUG);
+    qDebug("verboseDebug=%s\n", debug::valueOf(_verboseDebug));
+
     const char* DEBUG_VOXEL_SENDING = "--debugVoxelSending";
-    _debugVoxelSending =  getCmdOption(_argc, _argv, DEBUG_VOXEL_SENDING);
+    _debugVoxelSending =  cmdOptionExists(_argc, _argv, DEBUG_VOXEL_SENDING);
     qDebug("debugVoxelSending=%s\n", debug::valueOf(_debugVoxelSending));
 
     const char* DEBUG_VOXEL_RECEIVING = "--debugVoxelReceiving";
-    _debugVoxelReceiving =  getCmdOption(_argc, _argv, DEBUG_VOXEL_RECEIVING);
+    _debugVoxelReceiving =  cmdOptionExists(_argc, _argv, DEBUG_VOXEL_RECEIVING);
     qDebug("debugVoxelReceiving=%s\n", debug::valueOf(_debugVoxelReceiving));
 
     const char* WANT_ANIMATION_DEBUG = "--shouldShowAnimationDebug";
-    _shouldShowAnimationDebug =  getCmdOption(_argc, _argv, WANT_ANIMATION_DEBUG);
+    _shouldShowAnimationDebug =  cmdOptionExists(_argc, _argv, WANT_ANIMATION_DEBUG);
     qDebug("shouldShowAnimationDebug=%s\n", debug::valueOf(_shouldShowAnimationDebug));
 
     // By default we will voxel persist, if you want to disable this, then pass in this parameter
     const char* NO_VOXEL_PERSIST = "--NoVoxelPersist";
-    if (getCmdOption(_argc, _argv, NO_VOXEL_PERSIST)) {
+    if (cmdOptionExists(_argc, _argv, NO_VOXEL_PERSIST)) {
         _wantVoxelPersist = false;
     }
     qDebug("wantVoxelPersist=%s\n", debug::valueOf(_wantVoxelPersist));
@@ -603,6 +608,34 @@ void VoxelServer::run() {
                         || packetData[0] == PACKET_TYPE_SET_VOXEL_DESTRUCTIVE
                         || packetData[0] == PACKET_TYPE_ERASE_VOXEL
                         || packetData[0] == PACKET_TYPE_Z_COMMAND)) {
+
+
+                const char* messageName;
+                switch (packetData[0]) {
+                    case PACKET_TYPE_SET_VOXEL: 
+                        messageName = "PACKET_TYPE_SET_VOXEL"; 
+                        break;
+                    case PACKET_TYPE_SET_VOXEL_DESTRUCTIVE: 
+                        messageName = "PACKET_TYPE_SET_VOXEL_DESTRUCTIVE"; 
+                        break;
+                    case PACKET_TYPE_ERASE_VOXEL: 
+                        messageName = "PACKET_TYPE_ERASE_VOXEL"; 
+                        break;
+                }
+                int numBytesPacketHeader = numBytesForPacketHeader(packetData);
+
+                if (packetData[0] != PACKET_TYPE_Z_COMMAND) {
+                    unsigned short int sequence = (*((unsigned short int*)(packetData + numBytesPacketHeader)));
+                    uint64_t sentAt = (*((uint64_t*)(packetData + numBytesPacketHeader + sizeof(sequence))));
+                    uint64_t arrivedAt = usecTimestampNow();
+                    uint64_t transitTime = arrivedAt - sentAt;
+                    if (wantShowAnimationDebug() || wantsDebugVoxelReceiving()) {
+                        printf("RECEIVE THREAD: got %s - command from client receivedBytes=%ld sequence=%d transitTime=%llu usecs\n",
+                            messageName,
+                            packetLength, sequence, transitTime);
+                    }
+                }
+    
                 _voxelServerPacketProcessor->queueReceivedPacket(senderAddress, packetData, packetLength);
             } else {
                 // let processNodeData handle it.

@@ -250,10 +250,15 @@ bool createVoxelEditMessage(unsigned char command, short int sequence,
     
     int numBytesPacketHeader = populateTypeAndVersion(messageBuffer, command);
     unsigned short int* sequenceAt = (unsigned short int*) &messageBuffer[numBytesPacketHeader];
-  
     *sequenceAt = sequence;
-    unsigned char* copyAt = &messageBuffer[numBytesPacketHeader + sizeof(sequence)];
-    int actualMessageSize = numBytesPacketHeader + sizeof(sequence);
+
+    // pack in timestamp
+    uint64_t now = usecTimestampNow();
+    uint64_t* timeAt = (uint64_t*)&messageBuffer[numBytesPacketHeader + sizeof(sequence)];
+    *timeAt = now;
+
+    unsigned char* copyAt = &messageBuffer[numBytesPacketHeader + sizeof(sequence) + sizeof(now)];
+    int actualMessageSize = numBytesPacketHeader + sizeof(sequence) + sizeof(now);
 
     for (int i = 0; i < voxelCount && success; i++) {
         // get the coded voxel
