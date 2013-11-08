@@ -86,59 +86,7 @@ void AvatarTouch::render(glm::vec3 cameraPosition) {
         glm::vec3 p(_yourBodyPosition);
         p.y = 0.0005f;
         renderCircle(p, _reachableRadius, glm::vec3(0.0f, 1.0f, 0.0f), 30);
-
-        // show if we are holding hands...
-        if (_weAreHoldingHands) {
-            renderBeamBetweenHands();
-            
-            /*
-            glPushMatrix();
-            glTranslatef(_yourHandPosition.x, _yourHandPosition.y, _yourHandPosition.z);
-            glColor4f(1.0, 0.0, 0.0, 0.7); glutSolidSphere(0.020f, 10.0f, 10.0f);
-            glColor4f(1.0, 0.0, 0.0, 0.7); glutSolidSphere(0.025f, 10.0f, 10.0f);
-            glColor4f(1.0, 0.0, 0.0, 0.7); glutSolidSphere(0.030f, 10.0f, 10.0f);
-            glPopMatrix();
-            */
-        
-            /*
-            glColor4f(0.9, 0.3, 0.3, 0.5);
-            renderSphereOutline(_myHandPosition,   HANDS_CLOSE_ENOUGH_TO_GRASP * 0.3f, 20, cameraPosition);
-            renderSphereOutline(_myHandPosition,   HANDS_CLOSE_ENOUGH_TO_GRASP * 0.2f, 20, cameraPosition);
-            renderSphereOutline(_myHandPosition,   HANDS_CLOSE_ENOUGH_TO_GRASP * 0.1f, 20, cameraPosition);
-
-            renderSphereOutline(_yourHandPosition, HANDS_CLOSE_ENOUGH_TO_GRASP * 0.3f, 20, cameraPosition);
-            renderSphereOutline(_yourHandPosition, HANDS_CLOSE_ENOUGH_TO_GRASP * 0.2f, 20, cameraPosition);
-            renderSphereOutline(_yourHandPosition, HANDS_CLOSE_ENOUGH_TO_GRASP * 0.1f, 20, cameraPosition);
-            */
-        }
-
-        //show that our hands are close enough to grasp..
-        if (_handsCloseEnoughToGrasp) {
-            glColor4f(0.9, 0.3, 0.3, 0.5);
-            renderSphereOutline(_myHandPosition,   0.03f, 20, cameraPosition);
-            renderSphereOutline(_yourHandPosition, 0.03f, 20, cameraPosition);
-        }
-        
-        // if your hand is grasping, show it...
-        if (_yourHandState == HAND_STATE_GRASPING) {
-            glPushMatrix();
-            glTranslatef(_yourHandPosition.x, _yourHandPosition.y, _yourHandPosition.z);
-            glColor4f(1.0, 0.7, 0.8, 0.4); glutSolidSphere(0.020f, 10.0f, 10.0f);
-            glColor4f(1.0, 0.7, 0.4, 0.3); glutSolidSphere(0.025f, 10.0f, 10.0f);
-            glColor4f(1.0, 0.7, 0.2, 0.2); glutSolidSphere(0.030f, 10.0f, 10.0f);
-            glPopMatrix();
-        }
      }
-    
-    // if my hand is grasping, show it...
-    if (_myHandState == HAND_STATE_GRASPING) {
-        glPushMatrix();
-        glTranslatef(_myHandPosition.x, _myHandPosition.y, _myHandPosition.z);
-        glColor4f(1.0, 0.7, 0.8, 0.4); glutSolidSphere(0.020f, 10.0f, 10.0f);
-        glColor4f(1.0, 0.7, 0.4, 0.3); glutSolidSphere(0.025f, 10.0f, 10.0f);
-        glColor4f(1.0, 0.7, 0.2, 0.2); glutSolidSphere(0.030f, 10.0f, 10.0f);
-        glPopMatrix();
-    }
 }
 
 
