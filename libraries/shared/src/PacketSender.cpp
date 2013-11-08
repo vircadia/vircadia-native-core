@@ -39,8 +39,12 @@ void PacketSender::queuePacketForSending(sockaddr& address, unsigned char* packe
 }
 
 bool PacketSender::process() {
+    bool hasSlept = false;
     uint64_t USECS_PER_SECOND = 1000 * 1000;
+    uint64_t USECS_SMALL_ADJUST = 2 * 1000; // approaximate 2ms
     uint64_t SEND_INTERVAL_USECS = (_packetsPerSecond == 0) ? USECS_PER_SECOND : (USECS_PER_SECOND / _packetsPerSecond);
+    uint64_t INTERVAL_SLEEP_USECS = (SEND_INTERVAL_USECS > USECS_SMALL_ADJUST) ? 
+                SEND_INTERVAL_USECS - USECS_SMALL_ADJUST : SEND_INTERVAL_USECS;
     
     // keep track of our process call times, so we have a reliable account of how often our caller calls us
     uint64_t now = usecTimestampNow();
@@ -50,9 +54,11 @@ bool PacketSender::process() {
     
     if (_packets.size() == 0) {
         if (isThreaded()) {
-            usleep(SEND_INTERVAL_USECS);
+            usleep(INTERVAL_SLEEP_USECS);
+            hasSlept = true;
         } else {
-            return isStillRunning();  // in non-threaded mode, if there's nothing to do, just return, keep running till they terminate us
+            // in non-threaded mode, if there's nothing to do, just return, keep running till they terminate us
+            return isStillRunning(); 
         }
     }
 
@@ -62,6 +68,7 @@ bool PacketSender::process() {
     // if we're in non-threaded mode, then we actually need to determine how many packets to send per call to process
     // based on how often we get called... We do this by keeping a running average of our call times, and we determine
     // how many packets to send per call
+
     if (!isThreaded()) {
         int averageCallTime;
         const int TRUST_AVERAGE_AFTER = AVERAGE_CALL_TIME_SAMPLES * 2;
@@ -89,8 +96,6 @@ bool PacketSender::process() {
     int packetsLeft = _packets.size();
     bool keepGoing = packetsLeft > 0;
     while (keepGoing) {
-        uint64_t SEND_INTERVAL_USECS = (_packetsPerSecond == 0) ? USECS_PER_SECOND : (USECS_PER_SECOND / _packetsPerSecond);
-
         lock();
         NetworkPacket& packet = _packets.front();
         NetworkPacket temporary = packet; // make a copy
@@ -117,14 +122,15 @@ bool PacketSender::process() {
             if (keepGoing) {
                 now = usecTimestampNow();
                 uint64_t elapsed = now - _lastSendTime;
-                int usecToSleep =  SEND_INTERVAL_USECS - elapsed;
-                
+                int usecToSleep =  INTERVAL_SLEEP_USECS - elapsed;
+
                 // we only sleep in non-threaded mode
                 if (usecToSleep > 0) {
-                    if (usecToSleep > SEND_INTERVAL_USECS) {
-                        usecToSleep = SEND_INTERVAL_USECS;
+                    if (usecToSleep > INTERVAL_SLEEP_USECS) {
+                        usecToSleep = INTERVAL_SLEEP_USECS;
                     }
                     usleep(usecToSleep);
+                    hasSlept = true;
                 }
             }
 
@@ -133,8 +139,20 @@ bool PacketSender::process() {
             keepGoing = (packetsThisCall < packetsPerCall) && (packetsLeft > 0);
         }
         
+        // if threaded and we haven't slept? We want to sleep....
+        if (isThreaded() && !hasSlept) {
+            now = usecTimestampNow();
+            uint64_t elapsed = now - _lastSendTime;
+            int usecToSleep =  INTERVAL_SLEEP_USECS - elapsed;
+            if (usecToSleep > 0) {
+                if (usecToSleep > INTERVAL_SLEEP_USECS) {
+                    usecToSleep = INTERVAL_SLEEP_USECS;
+                }
+                usleep(usecToSleep);
+            }
+        }
+        
         _lastSendTime = now;
     }
-
-    return isStillRunning();  // keep running till they terminate us
+    return isStillRunning();
 }
