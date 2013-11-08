@@ -132,20 +132,6 @@ public:
     /// \param Item item The item from the stats you're interested in.
     const char* getItemValue(Item item);
 
-    /// Returns a count of the number of detailed values for an item tracked by VoxelSceneStats
-    /// \param Item item The item from the stats you're interested in.
-    int getItemDetailsCount(Item item);
-
-    /// The value for the detailed component for an item tracked by VoxelSceneStats
-    /// \param Item item The item from the stats you're interested in.
-    /// \param int detailIndex The index for the detailed componet from the stats you're interested in.
-    float getItemDetailsValue(Item item, int detailIndex);
-
-    /// The label for the detailed component for an item tracked by VoxelSceneStats
-    /// \param Item item The item from the stats you're interested in.
-    /// \param int detailIndex The index for the detailed componet from the stats you're interested in.
-    const char* getItemDetailsLabel(Item item, int detailIndex);
-    
     /// Returns OctCode for root node of the jurisdiction of this particular voxel server
     unsigned char* getJurisdictionRoot() const { return _jurisdictionRoot; }
 
