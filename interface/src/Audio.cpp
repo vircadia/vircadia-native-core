@@ -676,11 +676,12 @@ void Audio::addProceduralSounds(int16_t* inputBuffer,
 //
 //  Starts a collision sound.  magnitude is 0-1, with 1 the loudest possible sound. 
 //
-void Audio::startCollisionSound(float magnitude, float frequency, float noise, float duration) {
+void Audio::startCollisionSound(float magnitude, float frequency, float noise, float duration, bool flashScreen) {
     _collisionSoundMagnitude = magnitude;
     _collisionSoundFrequency = frequency;
     _collisionSoundNoise = noise;
     _collisionSoundDuration = duration;
+    _collisionFlashesScreen = flashScreen;
 }
 // -----------------------------------------------------------
 // Accoustic ping (audio system round trip time determination)
