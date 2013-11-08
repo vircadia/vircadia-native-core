@@ -355,6 +355,7 @@ Menu::Menu() :
     QMenu* raveGloveOptionsMenu = developerMenu->addMenu("Rave Glove Options");
 
     addCheckableActionToQMenuAndActionHash(raveGloveOptionsMenu, MenuOption::SimulateLeapHand);
+    addCheckableActionToQMenuAndActionHash(raveGloveOptionsMenu, MenuOption::DisplayLeapHands, 0, true);
     addCheckableActionToQMenuAndActionHash(raveGloveOptionsMenu, MenuOption::TestRaveGlove);
 
     QMenu* trackingOptionsMenu = developerMenu->addMenu("Tracking Options");
