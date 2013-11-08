@@ -103,6 +103,7 @@ void VoxelNodeData::resetVoxelPacket() {
     // the clients requested color state.    
     _currentPacketIsColor = (LOW_RES_MONO && getWantLowResMoving() && _viewFrustumChanging) ? false : getWantColor();
     PACKET_TYPE voxelPacketType = _currentPacketIsColor ? PACKET_TYPE_VOXEL_DATA : PACKET_TYPE_VOXEL_DATA_MONOCHROME;
+
     int numBytesPacketHeader = populateTypeAndVersion(_voxelPacket, voxelPacketType);
     _voxelPacketAt = _voxelPacket + numBytesPacketHeader;
     _voxelPacketAvailableBytes = MAX_VOXEL_PACKET_SIZE - numBytesPacketHeader;

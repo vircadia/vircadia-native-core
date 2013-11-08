@@ -160,6 +160,7 @@ namespace MenuOption {
     const QString DisableConstantCulling = "Disable Constant Culling";
     const QString DisableFastVoxelPipeline = "Disable Fast Voxel Pipeline";
     const QString DisplayFrustum = "Display Frustum";
+    const QString DisplayLeapHands = "Display Leap Hands";
     const QString DontRenderVoxels = "Don't call _voxels.render()";
     const QString DontCallOpenGLForVoxels = "Don't call glDrawRangeElementsEXT() for Voxels";
     const QString EchoAudio = "Echo Audio";
