@@ -141,13 +141,7 @@ void SkeletonModel::applyPalmData(int jointIndex, const QVector<int>& fingerJoin
     float sign = (jointIndex == geometry.rightHandJointIndex) ? 1.0f : -1.0f;
     glm::quat palmRotation = rotationBetween(_rotation * IDENTITY_UP, -palm.getNormal()) * _rotation *
         glm::angleAxis(90.0f, 0.0f, sign, 0.0f); // ninety degree rotation to face fingers forward from bind pose
-    setJointRotation(jointIndex, palmRotation, true);
     
-    // no point in continuing if there are no fingers
-    if (palm.getNumFingers() == 0 || fingerJointIndices.isEmpty()) {
-        return;
-    }
-     
     // sort the finger indices by raw x, get the average direction
     QVector<IndexValue> fingerIndices;
     glm::vec3 direction;
@@ -165,9 +159,15 @@ void SkeletonModel::applyPalmData(int jointIndex, const QVector<int>& fingerJoin
     // rotate palm according to average finger direction
     float directionLength = glm::length(direction);
     if (directionLength > EPSILON) {
-        palmRotation = rotationBetween(palmRotation * glm::vec3(sign, 0.0f, 0.0f), direction) * palmRotation;
+        palmRotation = rotationBetween(palmRotation * glm::vec3(-sign, 0.0f, 0.0f), direction) * palmRotation;
     }
+    setJointRotation(jointIndex, palmRotation, true);
     
+    // no point in continuing if there are no fingers
+    if (palm.getNumFingers() == 0 || fingerJointIndices.isEmpty()) {
+        return;
+    }
+     
     // match them up as best we can
     float proportion = fingerIndices.size() / (float)fingerJointIndices.size();
     for (int i = 0; i < fingerJointIndices.size(); i++) {
