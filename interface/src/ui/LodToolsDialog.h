@@ -13,8 +13,6 @@
 #include <QLabel>
 #include <QSlider>
 
-#include <VoxelSceneStats.h>
-
 class LodToolsDialog : public QDialog {
     Q_OBJECT
 public:

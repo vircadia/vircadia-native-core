@@ -135,7 +135,7 @@ public:
     QSettings* getSettings() { return _settings; }
     Swatch*  getSwatch() { return &_swatch; }
     QMainWindow* getWindow() { return _window; }
-    VoxelSceneStats* getVoxelSceneStats() { return &_voxelSceneStats; }
+    NodeToVoxelSceneStats* getVoxelSceneStats() { return &_voxelServerSceneStats; }
     
     QNetworkAccessManager* getNetworkAccessManager() { return _networkAccessManager; }
     GeometryCache* getGeometryCache() { return &_geometryCache; }
@@ -448,10 +448,10 @@ private:
 
     PieMenu _pieMenu;
     
-    VoxelSceneStats _voxelSceneStats;
     int parseVoxelStats(unsigned char* messageData, ssize_t messageLength, sockaddr senderAddress);
     
     NodeToJurisdictionMap _voxelServerJurisdictions;
+    NodeToVoxelSceneStats _voxelServerSceneStats;
     
     std::vector<VoxelFade> _voxelFades;
 };

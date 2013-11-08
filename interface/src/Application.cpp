@@ -3396,20 +3396,91 @@ void Application::displayStats() {
     sprintf(avatarStats, "Avatar: pos %.3f, %.3f, %.3f, vel %.1f, yaw = %.2f", avatarPos.x, avatarPos.y, avatarPos.z, glm::length(_myAvatar.getVelocity()), _myAvatar.getBodyYaw());
     drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, avatarStats);
 
- 
-    QLocale locale(QLocale::English);
+    Node* avatarMixer = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_AVATAR_MIXER);
+    char avatarMixerStats[200];
+    if (avatarMixer) {
+        sprintf(avatarMixerStats, "Avatar Mixer: %.f kbps, %.f pps",
+                roundf(avatarMixer->getAverageKilobitsPerSecond()),
+                roundf(avatarMixer->getAveragePacketsPerSecond()));
+    } else {
+        sprintf(avatarMixerStats, "No Avatar Mixer");
+    }
+    statsVerticalOffset += PELS_PER_LINE;
+    drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, avatarMixerStats);
 
+
+    // Used for formatting voxel stats details 
+    statsVerticalOffset += PELS_PER_LINE; // skip a line for voxels
+    QLocale locale(QLocale::English);
     std::stringstream voxelStats;
-    voxelStats.precision(4);
-    voxelStats << "Voxels " << 
-        "Max: " << _voxels.getMaxVoxels() / 1000.f << "K " << 
-        "Rendered: " << _voxels.getVoxelsRendered() / 1000.f << "K " <<
-        "Written: " << _voxels.getVoxelsWritten() / 1000.f << "K " <<
-        "Abandoned: " << _voxels.getAbandonedVoxels() / 1000.f << "K " <<
-        "Updated: " << _voxels.getVoxelsUpdated() / 1000.f << "K ";
+
+    // iterate all the current voxel stats, and list their sending modes, and total voxel counts
+    std::stringstream sendingMode("");
+    sendingMode << "Voxel Sending Mode: [";
+    int serverCount = 0;
+    int movingServerCount = 0;
+    unsigned long totalNodes = 0;
+    unsigned long totalInternal = 0;
+    unsigned long totalLeaves = 0;
+    for(NodeToVoxelSceneStatsIterator i = _voxelServerSceneStats.begin(); i != _voxelServerSceneStats.end(); i++) {
+        //const QUuid& uuid = i->first;
+        VoxelSceneStats& stats = i->second;
+        serverCount++;
+        if (serverCount > 1) {
+            sendingMode << ",";
+        }
+        if (stats.isMoving()) {
+            sendingMode << "M";
+            movingServerCount++;
+        } else {
+            sendingMode << "S";
+        }
+
+        // calculate server node totals
+        totalNodes += stats.getTotalVoxels();
+        totalInternal += stats.getTotalInternal();
+        totalLeaves += stats.getTotalLeaves();
+    }
+    if (serverCount == 0) {
+        sendingMode << "---";
+    }
+    sendingMode << "] " << serverCount << " servers";
+    if (movingServerCount > 0) {
+        sendingMode << " <SCENE NOT STABLE>";
+    } else {
+        sendingMode << " <SCENE STABLE>";
+    }
+
+    QString serversTotalString = locale.toString((uint)totalNodes); // consider adding: .rightJustified(10, ' ');
+    QString serversInternalString = locale.toString((uint)totalInternal);
+    QString serversLeavesString = locale.toString((uint)totalLeaves);
+
+    // Server Voxels
+    voxelStats.str("");
+    voxelStats << 
+        "Server Voxels Total: " << serversTotalString.toLocal8Bit().constData() << " / " <<
+        "Internal: " << serversInternalString.toLocal8Bit().constData() << " / " <<
+        "Leaves: " << serversLeavesString.toLocal8Bit().constData() << "";
     statsVerticalOffset += PELS_PER_LINE;
     drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, (char*)voxelStats.str().c_str());
 
+    unsigned long localTotal = VoxelNode::getNodeCount();
+    unsigned long localInternal = VoxelNode::getInternalNodeCount();
+    unsigned long localLeaves = VoxelNode::getLeafNodeCount();
+    QString localTotalString = locale.toString((uint)localTotal); // consider adding: .rightJustified(10, ' ');
+    QString localInternalString = locale.toString((uint)localInternal);
+    QString localLeavesString = locale.toString((uint)localLeaves);
+
+    // Local Voxels
+    voxelStats.str("");
+    voxelStats << 
+        "Local Voxels Total: " << localTotalString.toLocal8Bit().constData() << " / " <<
+        "Internal: " << localInternalString.toLocal8Bit().constData() << " / " <<
+        "Leaves: " << localLeavesString.toLocal8Bit().constData() << "";
+    statsVerticalOffset += PELS_PER_LINE;
+    drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, (char*)voxelStats.str().c_str());
+
+    // Local Voxel Memory Usage
     voxelStats.str("");
     voxelStats << 
         "Voxels Memory Nodes: " << VoxelNode::getTotalMemoryUsage() / 1000000.f << "MB "
@@ -3421,51 +3492,25 @@ void Application::displayStats() {
     statsVerticalOffset += PELS_PER_LINE;
     drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, (char*)voxelStats.str().c_str());
 
-    unsigned long localTotal = VoxelNode::getNodeCount();
-    unsigned long localInternal = VoxelNode::getInternalNodeCount();
-    unsigned long localLeaves = VoxelNode::getLeafNodeCount();
-    QString localTotalString = locale.toString((uint)localTotal); // consider adding: .rightJustified(10, ' ');
-    QString localInternalString = locale.toString((uint)localInternal);
-    QString localLeavesString = locale.toString((uint)localLeaves);
-
-
+    // Voxel Rendering
     voxelStats.str("");
-    voxelStats << 
-        "Local Voxels Total: " << localTotalString.toLocal8Bit().constData() << " / " <<
-        "Internal: " << localInternalString.toLocal8Bit().constData() << " / " <<
-        "Leaves: " << localLeavesString.toLocal8Bit().constData() << "";
+    voxelStats.precision(4);
+    voxelStats << "Voxel Rendering Slots" << 
+        "Max: " << _voxels.getMaxVoxels() / 1000.f << "K " << 
+        "Drawn: " << _voxels.getVoxelsWritten() / 1000.f << "K " <<
+        "Abandoned: " << _voxels.getAbandonedVoxels() / 1000.f << "K ";
     statsVerticalOffset += PELS_PER_LINE;
     drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, (char*)voxelStats.str().c_str());
 
-    voxelStats.str("");
-    char* voxelDetails = _voxelSceneStats.getItemValue(VoxelSceneStats::ITEM_VOXELS);
-    voxelStats << "Voxels Sent from Server: " << voxelDetails;
+    // draw Sending mode AFTER server node stats
     statsVerticalOffset += PELS_PER_LINE;
-    drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, (char*)voxelStats.str().c_str());
+    drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, (char*)sendingMode.str().c_str());
 
-    voxelStats.str("");
-    voxelDetails = _voxelSceneStats.getItemValue(VoxelSceneStats::ITEM_ELAPSED);
-    voxelStats << "Scene Send Time from Server: " << voxelDetails;
-    statsVerticalOffset += PELS_PER_LINE;
-    drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, (char*)voxelStats.str().c_str());
-
-    voxelStats.str("");
-    voxelDetails = _voxelSceneStats.getItemValue(VoxelSceneStats::ITEM_ENCODE);
-    voxelStats << "Encode Time on Server: " << voxelDetails;
-    statsVerticalOffset += PELS_PER_LINE;
-    drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, (char*)voxelStats.str().c_str());
-
-    voxelStats.str("");
-    voxelDetails = _voxelSceneStats.getItemValue(VoxelSceneStats::ITEM_MODE);
-    voxelStats << "Sending Mode: " << voxelDetails;
-    statsVerticalOffset += PELS_PER_LINE;
-    drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, (char*)voxelStats.str().c_str());
-
+    // Incoming packets
     voxelStats.str("");
     int voxelPacketsToProcess = _voxelProcessor.packetsToProcessCount();
     QString packetsString = locale.toString((int)voxelPacketsToProcess);
     QString maxString = locale.toString((int)_recentMaxPackets);
-
     voxelStats << "Voxel Packets to Process: " << packetsString.toLocal8Bit().constData() 
                 << " [Recent Max: " << maxString.toLocal8Bit().constData() << "]";
                 
@@ -3483,19 +3528,8 @@ void Application::displayStats() {
     statsVerticalOffset += PELS_PER_LINE;
     drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, (char*)voxelStats.str().c_str());
 
-    
-    Node *avatarMixer = NodeList::getInstance()->soloNodeOfType(NODE_TYPE_AVATAR_MIXER);
-    char avatarMixerStats[200];
-    
-    if (avatarMixer) {
-        sprintf(avatarMixerStats, "Avatar Mixer: %.f kbps, %.f pps",
-                roundf(avatarMixer->getAverageKilobitsPerSecond()),
-                roundf(avatarMixer->getAveragePacketsPerSecond()));
-    } else {
-        sprintf(avatarMixerStats, "No Avatar Mixer");
-    }
-    statsVerticalOffset += PELS_PER_LINE;
-    drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, avatarMixerStats);
+
+    // Leap data    
     statsVerticalOffset += PELS_PER_LINE;
     drawtext(10, statsVerticalOffset, 0.10f, 0, 1.0, 0, (char*)LeapManager::statusString().c_str());
     
@@ -4075,6 +4109,10 @@ void Application::domainChanged(QString domain) {
 
     // reset the environment so that we don't erroneously end up with multiple
     _environment.resetToDefault();
+    
+    // reset our node to stats and node to jurisdiction maps... since these must be changing...
+    _voxelServerJurisdictions.clear();
+    _voxelServerSceneStats.clear();
 }
 
 void Application::nodeAdded(Node* node) {
@@ -4101,6 +4139,14 @@ void Application::nodeKilled(Node* node) {
                 fade.voxelDetails.s = fade.voxelDetails.s * slightly_smaller;
                 _voxelFades.push_back(fade);
             }
+            
+            // If the voxel server is going away, remove it from our jurisdiction map so we don't send voxels to a dead server
+            _voxelServerJurisdictions.erase(nodeUUID);
+        }
+        
+        // also clean up scene stats for that server
+        if (_voxelServerSceneStats.find(nodeUUID) != _voxelServerSceneStats.end()) {
+            _voxelServerSceneStats.erase(nodeUUID);
         }
     } else if (node->getLinkedData() == _lookatTargetAvatar) {
         _lookatTargetAvatar = NULL;
@@ -4109,19 +4155,43 @@ void Application::nodeKilled(Node* node) {
 
 int Application::parseVoxelStats(unsigned char* messageData, ssize_t messageLength, sockaddr senderAddress) {
 
-    // parse the incoming stats data, and stick it into our averaging stats object for now... even though this
-    // means mixing in stats from potentially multiple servers.
-    int statsMessageLength = _voxelSceneStats.unpackFromMessage(messageData, messageLength);
-
     // But, also identify the sender, and keep track of the contained jurisdiction root for this server
     Node* voxelServer = NodeList::getInstance()->nodeWithAddress(&senderAddress);
+    
+    // parse the incoming stats datas stick it in a temporary object for now, while we 
+    // determine which server it belongs to
+    VoxelSceneStats temp;
+    int statsMessageLength = temp.unpackFromMessage(messageData, messageLength);
     
     // quick fix for crash... why would voxelServer be NULL?
     if (voxelServer) {
         QUuid nodeUUID = voxelServer->getUUID();
-
+        
+        // now that we know the node ID, let's add these stats to the stats for that node...
+        if (_voxelServerSceneStats.find(nodeUUID) != _voxelServerSceneStats.end()) {
+            VoxelSceneStats& oldStats = _voxelServerSceneStats[nodeUUID];
+            
+            // this if construct is a little strange because we aren't quite using it yet. But
+            // we want to keep this logic in here for now because we plan to use it soon to determine
+            // additional network optimization states and better rate control
+            if (!oldStats.isMoving() && temp.isMoving()) {
+                // we think we are starting to move
+                _voxelServerSceneStats[nodeUUID].unpackFromMessage(messageData, messageLength);
+            } else if (oldStats.isMoving() && !temp.isMoving()) {
+                // we think we are done moving
+                _voxelServerSceneStats[nodeUUID].unpackFromMessage(messageData, messageLength);
+            } else if (!oldStats.isMoving() && !temp.isMoving()) {
+                // we think we are still not moving
+            } else {
+                // we think we are still moving
+            }
+        
+        } else {
+            _voxelServerSceneStats[nodeUUID] = temp;
+        }
+        
         VoxelPositionSize rootDetails;
-        voxelDetailsForCode(_voxelSceneStats.getJurisdictionRoot(), rootDetails);
+        voxelDetailsForCode(temp.getJurisdictionRoot(), rootDetails);
         
         // see if this is the first we've heard of this node...
         if (_voxelServerJurisdictions.find(nodeUUID) == _voxelServerJurisdictions.end()) {
@@ -4142,7 +4212,7 @@ int Application::parseVoxelStats(unsigned char* messageData, ssize_t messageLeng
         // but VoxelSceneStats thinks it's just returning a reference to it's contents. So we need to make a copy of the
         // details from the VoxelSceneStats to construct the JurisdictionMap
         JurisdictionMap jurisdictionMap;
-        jurisdictionMap.copyContents(_voxelSceneStats.getJurisdictionRoot(), _voxelSceneStats.getJurisdictionEndNodes());
+        jurisdictionMap.copyContents(temp.getJurisdictionRoot(), temp.getJurisdictionEndNodes());
         _voxelServerJurisdictions[nodeUUID] = jurisdictionMap;
     }
     return statsMessageLength;
