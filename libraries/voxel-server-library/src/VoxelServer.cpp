@@ -611,7 +611,7 @@ void VoxelServer::run() {
         }
     }
     qDebug() << "VoxelServer::run()... AFTER loop...\n";
-    
+
     // call NodeList::clear() so that all of our node specific objects, including our sending threads, are
     // properly shutdown and cleaned up.
     NodeList::getInstance()->clear();

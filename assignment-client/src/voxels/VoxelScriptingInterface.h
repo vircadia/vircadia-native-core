@@ -49,6 +49,10 @@ public slots:
     /// \param z the z-coordinate of the voxel (in VS space)
     /// \param scale the scale of the voxel (in VS space)
     void queueVoxelDelete(float x, float y, float z, float scale);
+
+    /// get the current number of pending, queued, but unsent packets
+    int packetsToSendCount() const;
+
 private:
     /// attached VoxelEditPacketSender that handles queuing and sending of packets to VS
     VoxelEditPacketSender _voxelPacketSender;

@@ -12,6 +12,10 @@
 #include "ReceivedPacketProcessor.h"
 #include "SharedUtil.h"
 
+ReceivedPacketProcessor::ReceivedPacketProcessor() {
+    _dontSleep = false;
+}
+
 void ReceivedPacketProcessor::queueReceivedPacket(sockaddr& address, unsigned char* packetData, ssize_t packetLength) {
     // Make sure our Node and NodeList knows we've heard from this node.
     Node* node = NodeList::getInstance()->nodeWithAddress(&address);
@@ -26,7 +30,10 @@ void ReceivedPacketProcessor::queueReceivedPacket(sockaddr& address, unsigned ch
 }
 
 bool ReceivedPacketProcessor::process() {
-    if (_packets.size() == 0) {
+
+    // If a derived class handles process sleeping, like the JurisdiciontListener, then it can set
+    // this _dontSleep member and we will honor that request.
+    if (_packets.size() == 0 && !_dontSleep) {
         const uint64_t RECEIVED_THREAD_SLEEP_INTERVAL = (1000 * 1000)/60; // check at 60fps
         usleep(RECEIVED_THREAD_SLEEP_INTERVAL);
     }
