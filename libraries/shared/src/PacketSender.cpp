@@ -43,7 +43,8 @@ bool PacketSender::process() {
     uint64_t USECS_PER_SECOND = 1000 * 1000;
     uint64_t USECS_SMALL_ADJUST = 2 * 1000; // approaximate 2ms
     uint64_t SEND_INTERVAL_USECS = (_packetsPerSecond == 0) ? USECS_PER_SECOND : (USECS_PER_SECOND / _packetsPerSecond);
-    uint64_t INTERVAL_SLEEP_USECS = (SEND_INTERVAL_USECS > USECS_SMALL_ADJUST) ? SEND_INTERVAL_USECS - USECS_SMALL_ADJUST : SEND_INTERVAL_USECS;
+    uint64_t INTERVAL_SLEEP_USECS = (SEND_INTERVAL_USECS > USECS_SMALL_ADJUST) ? 
+                SEND_INTERVAL_USECS - USECS_SMALL_ADJUST : SEND_INTERVAL_USECS;
     
     // keep track of our process call times, so we have a reliable account of how often our caller calls us
     uint64_t now = usecTimestampNow();
@@ -56,7 +57,8 @@ bool PacketSender::process() {
             usleep(INTERVAL_SLEEP_USECS);
             hasSlept = true;
         } else {
-            return isStillRunning();  // in non-threaded mode, if there's nothing to do, just return, keep running till they terminate us
+            // in non-threaded mode, if there's nothing to do, just return, keep running till they terminate us
+            return isStillRunning(); 
         }
     }
 
