@@ -4128,7 +4128,7 @@ void Application::nodeKilled(Node* node) {
             VoxelPositionSize rootDetails;
             voxelDetailsForCode(rootCode, rootDetails);
 
-            printf(">>>>>>>>>>>>>>>> HERE>>>>>>>>> voxel server going away...... v[%f, %f, %f, %f]\n",
+            printf("voxel server going away...... v[%f, %f, %f, %f]\n",
                 rootDetails.x, rootDetails.y, rootDetails.z, rootDetails.s);
                 
             // Add the jurisditionDetails object to the list of "fade outs"
@@ -4140,10 +4140,11 @@ void Application::nodeKilled(Node* node) {
                 _voxelFades.push_back(fade);
             }
             
-            // we should remove it...
+            // If the voxel server is going away, remove it from our jurisdiction map so we don't send voxels to a dead server
             _voxelServerJurisdictions.erase(nodeUUID);
         }
         
+        // also clean up scene stats for that server
         if (_voxelServerSceneStats.find(nodeUUID) != _voxelServerSceneStats.end()) {
             _voxelServerSceneStats.erase(nodeUUID);
         }
@@ -4157,8 +4158,8 @@ int Application::parseVoxelStats(unsigned char* messageData, ssize_t messageLeng
     // But, also identify the sender, and keep track of the contained jurisdiction root for this server
     Node* voxelServer = NodeList::getInstance()->nodeWithAddress(&senderAddress);
     
-    // parse the incoming stats data, and stick it into our averaging stats object for now... even though this
-    // means mixing in stats from potentially multiple servers.
+    // parse the incoming stats datas stick it in a temporary object for now, while we 
+    // determine which server it belongs to
     VoxelSceneStats temp;
     int statsMessageLength = temp.unpackFromMessage(messageData, messageLength);
     
@@ -4169,16 +4170,20 @@ int Application::parseVoxelStats(unsigned char* messageData, ssize_t messageLeng
         // now that we know the node ID, let's add these stats to the stats for that node...
         if (_voxelServerSceneStats.find(nodeUUID) != _voxelServerSceneStats.end()) {
             VoxelSceneStats& oldStats = _voxelServerSceneStats[nodeUUID];
+            
+            // this if construct is a little strange because we aren't quite using it yet. But
+            // we want to keep this logic in here for now because we plan to use it soon to determine
+            // additional network optimization states and better rate control
             if (!oldStats.isMoving() && temp.isMoving()) {
+                // we think we are starting to move
                 _voxelServerSceneStats[nodeUUID].unpackFromMessage(messageData, messageLength);
-                //qDebug() << ">>>>>>>>>> STARTING!!!   " << nodeUUID << "  <<<<<<<<<<<\n";
             } else if (oldStats.isMoving() && !temp.isMoving()) {
+                // we think we are done moving
                 _voxelServerSceneStats[nodeUUID].unpackFromMessage(messageData, messageLength);
-                //qDebug() << ">>>>>>>>>> FINISHED!!!   " << nodeUUID << "  <<<<<<<<<<<\n";
             } else if (!oldStats.isMoving() && !temp.isMoving()) {
-                //qDebug() << ">>>>>>>>>> all still   " << nodeUUID << "  <<<<<<<<<<<\n";
+                // we think we are still not moving
             } else {
-                //qDebug() << ">>>>>>>>>> still moving...   " << nodeUUID << "  <<<<<<<<<<<\n";
+                // we think we are still moving
             }
         
         } else {
