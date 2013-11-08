@@ -55,9 +55,11 @@ public:
     
     void lowPassFilter(int16_t* inputBuffer);
     
-    void startCollisionSound(float magnitude, float frequency, float noise, float duration);
+    void startCollisionSound(float magnitude, float frequency, float noise, float duration, bool flashScreen);
     
     float getCollisionSoundMagnitude() { return _collisionSoundMagnitude; }
+    
+    bool getCollisionFlashesScreen() { return _collisionFlashesScreen; }
     
     void ping();
     
@@ -102,6 +104,7 @@ private:
     float _collisionSoundFrequency;
     float _collisionSoundNoise;
     float _collisionSoundDuration;
+    bool _collisionFlashesScreen;
     int _proceduralEffectSample;
     float _heartbeatMagnitude;
 

@@ -1124,7 +1124,7 @@ void Application::mousePressEvent(QMouseEvent* event) {
                     _hoverVoxel.green / 255.f * GREEN_CLICK_FREQUENCY +
                     _hoverVoxel.blue / 255.f * BLUE_CLICK_FREQUENCY) / 3.f;
                 
-                _audio.startCollisionSound(1.0, frequency, 0.0, HOVER_VOXEL_DECAY);
+                _audio.startCollisionSound(1.0, frequency, 0.0, HOVER_VOXEL_DECAY, false);
                 _isHoverVoxelSounding = true;
                 
                 const float PERCENTAGE_TO_MOVE_TOWARD = 0.90f;
@@ -1132,7 +1132,8 @@ void Application::mousePressEvent(QMouseEvent* event) {
                 glm::vec3 myPosition = _myAvatar.getPosition();
                 
                 // If there is not an action tool set (add, delete, color), move to this voxel
-                if (!(Menu::getInstance()->isOptionChecked(MenuOption::VoxelAddMode) ||
+                if (Menu::getInstance()->isOptionChecked(MenuOption::ClickToFly) &&
+                     !(Menu::getInstance()->isOptionChecked(MenuOption::VoxelAddMode) ||
                      Menu::getInstance()->isOptionChecked(MenuOption::VoxelDeleteMode) ||
                      Menu::getInstance()->isOptionChecked(MenuOption::VoxelColorMode))) {
                     _myAvatar.setMoveTarget(myPosition + (newTarget - myPosition) * PERCENTAGE_TO_MOVE_TOWARD);
@@ -2038,7 +2039,7 @@ void Application::updateHoverVoxels(float deltaTime, glm::vec3& mouseRayOrigin, 
                 _hoverVoxelOriginalColor[1] = _hoverVoxel.green;
                 _hoverVoxelOriginalColor[2] = _hoverVoxel.blue;
                 _hoverVoxelOriginalColor[3] = 1;
-                _audio.startCollisionSound(1.0, HOVER_VOXEL_FREQUENCY * _hoverVoxel.s * TREE_SCALE, 0.0, HOVER_VOXEL_DECAY);
+                _audio.startCollisionSound(1.0, HOVER_VOXEL_FREQUENCY * _hoverVoxel.s * TREE_SCALE, 0.0, HOVER_VOXEL_DECAY, false);
                 _isHoverVoxelSounding = true;
             }
         }
@@ -3175,10 +3176,12 @@ void Application::displayOverlay() {
         glDisable(GL_LIGHTING);
     
         //  Display a single screen-size quad to create an alpha blended 'collision' flash
-        float collisionSoundMagnitude = _audio.getCollisionSoundMagnitude();
-        const float VISIBLE_COLLISION_SOUND_MAGNITUDE = 0.5f;
-        if (collisionSoundMagnitude > VISIBLE_COLLISION_SOUND_MAGNITUDE) {
-                renderCollisionOverlay(_glWidget->width(), _glWidget->height(), _audio.getCollisionSoundMagnitude());
+        if (_audio.getCollisionFlashesScreen()) {
+            float collisionSoundMagnitude = _audio.getCollisionSoundMagnitude();
+            const float VISIBLE_COLLISION_SOUND_MAGNITUDE = 0.5f;
+            if (collisionSoundMagnitude > VISIBLE_COLLISION_SOUND_MAGNITUDE) {
+                    renderCollisionOverlay(_glWidget->width(), _glWidget->height(), _audio.getCollisionSoundMagnitude());
+            }
         }
    
         #ifndef _WIN32
