@@ -27,12 +27,50 @@ void SkeletonModel::simulate(float deltaTime) {
     setScale(glm::vec3(1.0f, 1.0f, 1.0f) * _owningAvatar->getScale() * MODEL_SCALE);
     
     Model::simulate(deltaTime);
+
+    // find the left and rightmost active Leap palms
+    HandData& hand = _owningAvatar->getHand();
+    int leftPalmIndex = -1;
+    float leftPalmX = FLT_MAX;
+    int rightPalmIndex = -1;    
+    float rightPalmX = -FLT_MAX;
+    for (int i = 0; i < hand.getNumPalms(); i++) {
+        if (hand.getPalms()[i].isActive()) {
+            float x = hand.getPalms()[i].getRawPosition().x;
+            if (x < leftPalmX) {
+                leftPalmIndex = i;
+                leftPalmX = x;
+            }
+            if (x > rightPalmX) {
+                rightPalmIndex = i;
+                rightPalmX = x;
+            }
+        }
+    }
     
-    if (_owningAvatar->getHandState() == HAND_STATE_NULL) {
-        const float HAND_RESTORATION_RATE = 0.25f;
-        restoreRightHandPosition(HAND_RESTORATION_RATE);
+    const float HAND_RESTORATION_RATE = 0.25f;
+    
+    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    if (leftPalmIndex == -1) {
+        // no Leap data; set hands from mouse
+        if (_owningAvatar->getHandState() == HAND_STATE_NULL) {
+            restoreRightHandPosition(HAND_RESTORATION_RATE);
+        } else {
+            setRightHandPosition(_owningAvatar->getHandPosition());
+        }
+        restoreLeftHandPosition(HAND_RESTORATION_RATE);
+    
+    } else if (leftPalmIndex == rightPalmIndex) {
+        // right hand only
+        applyPalmData(geometry.rightHandJointIndex, geometry.rightFingerJointIndices, geometry.rightFingertipJointIndices, 
+            hand.getPalms()[leftPalmIndex]);
+        restoreLeftHandPosition(HAND_RESTORATION_RATE);
+        
     } else {
-        setRightHandPosition(_owningAvatar->getHandPosition());
+        applyPalmData(geometry.leftHandJointIndex, geometry.leftFingerJointIndices, geometry.leftFingertipJointIndices,
+            hand.getPalms()[leftPalmIndex]);
+        applyPalmData(geometry.rightHandJointIndex, geometry.rightFingerJointIndices, geometry.rightFingertipJointIndices,
+            hand.getPalms()[rightPalmIndex]);
     }
 }
 
@@ -84,6 +122,67 @@ bool SkeletonModel::render(float alpha) {
     Model::render(alpha);
     
     return true;
+}
+
+class IndexValue {
+public:
+    int index;
+    float value;
+};
+
+bool operator<(const IndexValue& firstIndex, const IndexValue& secondIndex) {
+    return firstIndex.value < secondIndex.value;
+}
+
+void SkeletonModel::applyPalmData(int jointIndex, const QVector<int>& fingerJointIndices,
+        const QVector<int>& fingertipJointIndices, PalmData& palm) {
+    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    setJointPosition(jointIndex, palm.getPosition());
+    float sign = (jointIndex == geometry.rightHandJointIndex) ? 1.0f : -1.0f;
+    glm::quat palmRotation = rotationBetween(_rotation * IDENTITY_UP, -palm.getNormal()) * _rotation *
+        glm::angleAxis(90.0f, 0.0f, sign, 0.0f); // ninety degree rotation to face fingers forward from bind pose
+    
+    // sort the finger indices by raw x, get the average direction
+    QVector<IndexValue> fingerIndices;
+    glm::vec3 direction;
+    for (int i = 0; i < palm.getNumFingers(); i++) {
+        glm::vec3 fingerVector = palm.getFingers()[i].getTipPosition() - palm.getPosition();
+        float length = glm::length(fingerVector);
+        if (length > EPSILON) {
+            direction += fingerVector / length;
+        }
+        fingerVector = glm::inverse(palmRotation) * fingerVector * -sign;
+        IndexValue indexValue = { i, atan2f(fingerVector.z, fingerVector.x) };
+        fingerIndices.append(indexValue);
+    }
+    qSort(fingerIndices.begin(), fingerIndices.end());
+    
+    // rotate palm according to average finger direction
+    float directionLength = glm::length(direction);
+    if (directionLength > EPSILON) {
+        palmRotation = rotationBetween(palmRotation * glm::vec3(-sign, 0.0f, 0.0f), direction) * palmRotation;
+    }
+    setJointRotation(jointIndex, palmRotation, true);
+    
+    // no point in continuing if there are no fingers
+    if (palm.getNumFingers() == 0 || fingerJointIndices.isEmpty()) {
+        return;
+    }
+     
+    // match them up as best we can
+    float proportion = fingerIndices.size() / (float)fingerJointIndices.size();
+    for (int i = 0; i < fingerJointIndices.size(); i++) {
+        int fingerIndex = fingerIndices.at(roundf(i * proportion)).index;
+        glm::vec3 fingerVector = palm.getFingers()[fingerIndex].getTipPosition() -
+            palm.getFingers()[fingerIndex].getRootPosition();
+        
+        int fingerJointIndex = fingerJointIndices.at(i);
+        int fingertipJointIndex = fingertipJointIndices.at(i);
+        glm::vec3 jointVector = extractTranslation(geometry.joints.at(fingertipJointIndex).bindTransform) -
+            extractTranslation(geometry.joints.at(fingerJointIndex).bindTransform);
+        
+        setJointRotation(fingerJointIndex, rotationBetween(palmRotation * jointVector, fingerVector) * palmRotation, true);
+    }
 }
 
 void SkeletonModel::updateJointState(int index) {

@@ -83,6 +83,9 @@ public:
     /// \return whether or not the left hand joint was found
     bool setLeftHandRotation(const glm::quat& rotation);
     
+    /// Returns the extended length from the left hand to its first free ancestor.
+    float getLeftArmLength() const;
+    
     /// Sets the position of the right hand using inverse kinematics.
     /// \return whether or not the right hand joint was found
     bool setRightHandPosition(const glm::vec3& position);
@@ -95,6 +98,9 @@ public:
     /// Sets the rotation of the right hand.
     /// \return whether or not the right hand joint was found
     bool setRightHandRotation(const glm::quat& rotation);
+    
+    /// Returns the extended length from the right hand to its first free ancestor.
+    float getRightArmLength() const;
     
     /// Returns the average color of all meshes in the geometry.
     glm::vec4 computeAverageColor() const;
@@ -135,10 +141,10 @@ protected:
     virtual void maybeUpdateEyeRotation(const JointState& parentState, const FBXJoint& joint, JointState& state);
     
     bool getJointPosition(int jointIndex, glm::vec3& position) const;
-    bool getJointRotation(int jointIndex, glm::quat& rotation) const;
+    bool getJointRotation(int jointIndex, glm::quat& rotation, bool fromBind = false) const;
     
-    bool setJointPosition(int jointIndex, const glm::vec3& position);
-    bool setJointRotation(int jointIndex, const glm::quat& rotation);
+    bool setJointPosition(int jointIndex, const glm::vec3& position, int lastFreeIndex = -1);
+    bool setJointRotation(int jointIndex, const glm::quat& rotation, bool fromBind = false);
     
     /// Restores the indexed joint to its default position.
     /// \param percent the percentage of the default position to apply (i.e., 0.25f to slerp one fourth of the way to
@@ -146,7 +152,13 @@ protected:
     /// \return true if the joint was found
     bool restoreJointPosition(int jointIndex, float percent = 1.0f);
     
+    /// Computes and returns the extended length of the limb terminating at the specified joint and starting at the joint's
+    /// first free ancestor.
+    float getLimbLength(int jointIndex) const;
+    
 private:
+    
+    void setJointTranslation(int jointIndex, int parentIndex, int childIndex, const glm::vec3& translation);
     
     void deleteGeometry();
     

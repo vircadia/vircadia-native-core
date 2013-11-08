@@ -603,13 +603,6 @@ float MyAvatar::getBallRenderAlpha(int ball, bool lookingInMirror) const {
 
 void MyAvatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
 
-    if (Application::getInstance()->getCamera()->getMode() == CAMERA_MODE_FIRST_PERSON && !lookingInMirror) {
-        // Dont display body, only the hand        
-        _hand.render(lookingInMirror);
-        
-        return;
-    }
-    
     if (_head.getVideoFace().isFullFrame()) {
         //  Render the full-frame video
         float alpha = getBallRenderAlpha(BODY_BALL_HEAD_BASE, lookingInMirror);
@@ -684,11 +677,11 @@ void MyAvatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
         }
     } else {
         //  Render the body's voxels and head
+        if (!_skeletonModel.render(1.0f)) {
+            _voxels.render(false);
+        }
         float alpha = getBallRenderAlpha(BODY_BALL_HEAD_BASE, lookingInMirror);
         if (alpha > 0.0f) {
-            if (!_skeletonModel.render(alpha)) {
-                _voxels.render(false);
-            }
             _head.render(alpha, true);
         }
     }

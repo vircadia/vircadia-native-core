@@ -11,10 +11,9 @@
 #include "Application.h"
 #include "Avatar.h"
 #include "Hand.h"
+#include "Menu.h"
 #include "Util.h"
 #include "renderer/ProgramObject.h"
-
-const bool SHOW_LEAP_HAND = true;
 
 using namespace std;
 
@@ -139,7 +138,7 @@ void Hand::render(bool lookingInMirror) {
     
     calculateGeometry();
 
-    if ( SHOW_LEAP_HAND ) {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::DisplayLeapHands)) {
         if (!isRaveGloveActive()) {
             renderLeapFingerTrails();
         }
