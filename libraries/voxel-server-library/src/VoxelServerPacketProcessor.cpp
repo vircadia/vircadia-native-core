@@ -85,10 +85,10 @@ void VoxelServerPacketProcessor::processPacket(sockaddr& senderAddress, unsigned
                     printf("inserting voxel: %f,%f,%f r=%d,g=%d,b=%d\n", vertices[0], vertices[1], vertices[2], red, green, blue);
                     delete[] vertices;
                 }
-        
-                _myServer->lockTree();
+
+                _myServer->getServerTree().lockForWrite();
                 _myServer->getServerTree().readCodeColorBufferToTree(voxelData, destructive);
-                _myServer->unlockTree();
+                _myServer->getServerTree().unlock();
 
                 // skip to next voxel edit record in the packet
                 voxelData += voxelDataSize;
@@ -114,9 +114,9 @@ void VoxelServerPacketProcessor::processPacket(sockaddr& senderAddress, unsigned
     } else if (packetData[0] == PACKET_TYPE_ERASE_VOXEL) {
 
         // Send these bits off to the VoxelTree class to process them
-        _myServer->lockTree();
+        _myServer->getServerTree().lockForWrite();
         _myServer->getServerTree().processRemoveVoxelBitstream((unsigned char*)packetData, packetLength);
-        _myServer->unlockTree();
+        _myServer->getServerTree().unlock();
 
         // Make sure our Node and NodeList knows we've heard from this node.
         Node* node = NodeList::getInstance()->nodeWithAddress(&senderAddress);

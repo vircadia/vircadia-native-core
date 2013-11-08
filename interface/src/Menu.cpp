@@ -22,6 +22,7 @@
 #include <QSlider>
 #include <QStandardPaths>
 #include <QUuid>
+#include <QWindow>
 
 #include <UUID.h>
 
@@ -282,6 +283,7 @@ Menu::Menu() :
 
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::VoxelTextures);
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::AmbientOcclusion);
+    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::DontFadeOnVoxelServerChanges);
     addActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::LodTools, Qt::SHIFT | Qt::Key_L, this, SLOT(lodTools()));
 
     QMenu* cullingOptionsMenu = voxelOptionsMenu->addMenu("Culling Options");
@@ -718,16 +720,13 @@ void Menu::aboutApp() {
     InfoView::forcedShow();
 }
 
-void updateDSHostname(const QString& domainServerHostname) {
-    QString newHostname(DEFAULT_DOMAIN_HOSTNAME);
+void sendFakeEnterEvent() {
+    QPoint lastCursorPosition = QCursor::pos();
+    QGLWidget* glWidget = Application::getInstance()->getGLWidget();
     
-    if (domainServerHostname.size() > 0) {
-        // the user input a new hostname, use that
-        newHostname = domainServerHostname;
-    }
-    
-    // give our nodeList the new domain-server hostname
-    NodeList::getInstance()->setDomainHostname(newHostname);
+    QPoint windowPosition = glWidget->mapFromGlobal(lastCursorPosition);
+    QEnterEvent enterEvent = QEnterEvent(windowPosition, windowPosition, lastCursorPosition);
+    QCoreApplication::sendEvent(glWidget, &enterEvent);
 }
 
 const int QLINE_MINIMUM_WIDTH = 400;
@@ -743,11 +742,15 @@ void Menu::login() {
     loginDialog.resize(loginDialog.parentWidget()->size().width() * DIALOG_RATIO_OF_WINDOW, loginDialog.size().height());
     
     int dialogReturn = loginDialog.exec();
+    
     if (dialogReturn == QDialog::Accepted && !loginDialog.textValue().isEmpty() && loginDialog.textValue() != username) {
         // there has been a username change
         // ask for a profile reset with the new username
         Application::getInstance()->resetProfile(loginDialog.textValue());
+  
     }
+    
+    sendFakeEnterEvent();
 }
 
 void Menu::editPreferences() {
@@ -811,52 +814,52 @@ void Menu::editPreferences() {
     layout->addWidget(buttons);
     
     int ret = dialog.exec();
-    if (ret != QDialog::Accepted) {
-         return;
-     }
-    
-    QUrl faceModelURL(faceURLEdit->text());
-    
-    if (faceModelURL.toString() != faceURLString) {
-        // change the faceModelURL in the profile, it will also update this user's BlendFace
-        applicationInstance->getProfile()->setFaceModelURL(faceModelURL);
+    if (ret == QDialog::Accepted) {
+        QUrl faceModelURL(faceURLEdit->text());
         
-        // send the new face mesh URL to the data-server (if we have a client UUID)
-        DataServerClient::putValueForKey(DataServerKey::FaceMeshURL,
-                                         faceModelURL.toString().toLocal8Bit().constData());
-    }
-    
-    QUrl skeletonModelURL(skeletonURLEdit->text());
-    
-    if (skeletonModelURL.toString() != skeletonURLString) {
-        // change the skeletonModelURL in the profile, it will also update this user's Body
-        applicationInstance->getProfile()->setSkeletonModelURL(skeletonModelURL);
+        if (faceModelURL.toString() != faceURLString) {
+            // change the faceModelURL in the profile, it will also update this user's BlendFace
+            applicationInstance->getProfile()->setFaceModelURL(faceModelURL);
+            
+            // send the new face mesh URL to the data-server (if we have a client UUID)
+            DataServerClient::putValueForKey(DataServerKey::FaceMeshURL,
+                                             faceModelURL.toString().toLocal8Bit().constData());
+        }
         
-        // send the new skeleton model URL to the data-server (if we have a client UUID)
-        DataServerClient::putValueForKey(DataServerKey::SkeletonURL,
-                                         skeletonModelURL.toString().toLocal8Bit().constData());
+        QUrl skeletonModelURL(skeletonURLEdit->text());
+        
+        if (skeletonModelURL.toString() != skeletonURLString) {
+            // change the skeletonModelURL in the profile, it will also update this user's Body
+            applicationInstance->getProfile()->setSkeletonModelURL(skeletonModelURL);
+            
+            // send the new skeleton model URL to the data-server (if we have a client UUID)
+            DataServerClient::putValueForKey(DataServerKey::SkeletonURL,
+                                             skeletonModelURL.toString().toLocal8Bit().constData());
+        }
+        
+        QUrl avatarVoxelURL(avatarURL->text());
+        applicationInstance->getAvatar()->getVoxels()->setVoxelURL(avatarVoxelURL);
+        
+        Avatar::sendAvatarURLsMessage(avatarVoxelURL);
+        
+        applicationInstance->getAvatar()->getHead().setPupilDilation(pupilDilation->value() / (float)pupilDilation->maximum());
+        
+        _maxVoxels = maxVoxels->value();
+        applicationInstance->getVoxels()->setMaxVoxels(_maxVoxels);
+        
+        applicationInstance->getAvatar()->setLeanScale(leanScale->value());
+        
+        _audioJitterBufferSamples = audioJitterBufferSamples->value();
+        
+        if (_audioJitterBufferSamples != 0) {
+            applicationInstance->getAudio()->setJitterBufferSamples(_audioJitterBufferSamples);
+        }
+        
+        _fieldOfView = fieldOfView->value();
+        applicationInstance->resizeGL(applicationInstance->getGLWidget()->width(), applicationInstance->getGLWidget()->height());
     }
     
-    QUrl avatarVoxelURL(avatarURL->text());
-    applicationInstance->getAvatar()->getVoxels()->setVoxelURL(avatarVoxelURL);
-    
-    Avatar::sendAvatarURLsMessage(avatarVoxelURL);
-    
-    applicationInstance->getAvatar()->getHead().setPupilDilation(pupilDilation->value() / (float)pupilDilation->maximum());
-    
-    _maxVoxels = maxVoxels->value();
-    applicationInstance->getVoxels()->setMaxVoxels(_maxVoxels);
-    
-    applicationInstance->getAvatar()->setLeanScale(leanScale->value());
-    
-    _audioJitterBufferSamples = audioJitterBufferSamples->value();
-    
-    if (_audioJitterBufferSamples != 0) {
-        applicationInstance->getAudio()->setJitterBufferSamples(_audioJitterBufferSamples);
-    }
-    
-    _fieldOfView = fieldOfView->value();
-    applicationInstance->resizeGL(applicationInstance->getGLWidget()->width(), applicationInstance->getGLWidget()->height());
+    sendFakeEnterEvent();
 }
 
 void Menu::goToDomain() {
@@ -876,9 +879,19 @@ void Menu::goToDomain() {
     domainDialog.resize(domainDialog.parentWidget()->size().width() * DIALOG_RATIO_OF_WINDOW, domainDialog.size().height());
     
     int dialogReturn = domainDialog.exec();
-    if (dialogReturn == QDialog::Accepted && !domainDialog.textValue().isEmpty()) {
-        updateDSHostname(domainDialog.textValue());
+    if (dialogReturn == QDialog::Accepted) {
+        QString newHostname(DEFAULT_DOMAIN_HOSTNAME);
+        
+        if (domainDialog.textValue().size() > 0) {
+            // the user input a new hostname, use that
+            newHostname = domainDialog.textValue();
+        }
+        
+        // give our nodeList the new domain-server hostname
+        NodeList::getInstance()->setDomainHostname(domainDialog.textValue());
     }
+    
+    sendFakeEnterEvent();
 }
 
 void Menu::goToLocation() {
@@ -918,6 +931,8 @@ void Menu::goToLocation() {
             }
         }
     }
+    
+    sendFakeEnterEvent();
 }
 
 void Menu::goToUser() {
@@ -935,6 +950,8 @@ void Menu::goToUser() {
         DataServerClient::getValuesForKeysAndUserString((QStringList() << DataServerKey::Domain << DataServerKey::Position),
                                                         userDialog.textValue());
     }
+    
+    sendFakeEnterEvent();
 }
 
 void Menu::bandwidthDetails() {

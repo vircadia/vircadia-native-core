@@ -48,16 +48,16 @@ public:
     VoxelTree& getServerTree() { return _serverTree; }
     JurisdictionMap* getJurisdiction() { return _jurisdiction; }
     
-    void lockTree() {  pthread_mutex_lock(&_treeLock); }
-    void unlockTree() {  pthread_mutex_unlock(&_treeLock); }
-    VoxelTree* getTree() { return &_serverTree; }
-    
     int getPacketsPerClientPerInterval() const { return _packetsPerClientPerInterval; }
     bool getSendMinimalEnvironment() const { return _sendMinimalEnvironment; }
     EnvironmentData* getEnvironmentData(int i) { return &_environmentData[i]; }
     int getEnvironmentDataCount() const { return sizeof(_environmentData)/sizeof(EnvironmentData); }
     
     static VoxelServer* GetInstance() { return _theInstance; }
+    
+    bool isInitialLoadComplete() const { return (_voxelPersistThread) ? _voxelPersistThread->isInitialLoadComplete() : true; }
+    time_t* getLoadCompleted() { return (_voxelPersistThread) ? _voxelPersistThread->getLoadCompleted() : NULL; }
+    uint64_t getLoadElapsedTime() const { return (_voxelPersistThread) ? _voxelPersistThread->getLoadElapsedTime() : 0; }
     
 private:
     int _argc;
@@ -80,7 +80,6 @@ private:
     JurisdictionSender* _jurisdictionSender;
     VoxelServerPacketProcessor* _voxelServerPacketProcessor;
     VoxelPersistThread* _voxelPersistThread;
-    pthread_mutex_t _treeLock;
     EnvironmentData _environmentData[3];
     
     NodeWatcher _nodeWatcher; // used to cleanup AGENT data when agents are killed

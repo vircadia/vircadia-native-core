@@ -24,7 +24,7 @@ class VoxelServer;
 class VoxelNodeData : public VoxelQuery {
 public:
     VoxelNodeData(Node* owningNode);
-    ~VoxelNodeData();
+    virtual ~VoxelNodeData();
 
     void resetVoxelPacket();  // resets voxel packet to after "V" header
 

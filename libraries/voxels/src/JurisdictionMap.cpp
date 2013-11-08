@@ -109,8 +109,47 @@ JurisdictionMap::JurisdictionMap(unsigned char* rootOctalCode, const std::vector
     init(rootOctalCode, endNodes);
 }
 
+void myDebugoutputBits(unsigned char byte, bool withNewLine) {
+    if (isalnum(byte)) {
+        printf("[ %d (%c): ", byte, byte);
+    } else {
+        printf("[ %d (0x%x): ", byte, byte);
+    }
+    
+    for (int i = 0; i < 8; i++) {
+        printf("%d", byte >> (7 - i) & 1);
+    }
+    printf(" ] ");
+    
+    if (withNewLine) {
+        printf("\n");
+    }
+}
+
+
+void myDebugPrintOctalCode(const unsigned char* octalCode, bool withNewLine) {
+    if (!octalCode) {
+        printf("NULL");
+    } else {
+        for (int i = 0; i < bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(octalCode)); i++) {
+            myDebugoutputBits(octalCode[i],false);
+        }
+    }
+    if (withNewLine) {
+        printf("\n");
+    }
+}
+
+
 JurisdictionMap::JurisdictionMap(const char* rootHexCode, const char* endNodesHexCodes) {
+
+    qDebug("JurisdictionMap::JurisdictionMap(const char* rootHexCode=[%p] %s, const char* endNodesHexCodes=[%p] %s)\n",
+        rootHexCode, rootHexCode, endNodesHexCodes, endNodesHexCodes);
+
     _rootOctalCode = hexStringToOctalCode(QString(rootHexCode));
+
+    qDebug("JurisdictionMap::JurisdictionMap() _rootOctalCode=%p octalCode=", _rootOctalCode);
+    myDebugPrintOctalCode(_rootOctalCode, true);
     
     QString endNodesHexStrings(endNodesHexCodes);
     QString delimiterPattern(",");
@@ -120,8 +159,16 @@ JurisdictionMap::JurisdictionMap(const char* rootHexCode, const char* endNodesHe
         QString endNodeHexString = endNodeList.at(i);
 
         unsigned char* endNodeOctcode = hexStringToOctalCode(endNodeHexString);
+        
+        qDebug("JurisdictionMap::JurisdictionMap()  endNodeList(%d)=%s\n",
+            i, endNodeHexString.toLocal8Bit().constData());
+        
         //printOctalCode(endNodeOctcode);
         _endNodes.push_back(endNodeOctcode);
+
+        qDebug("JurisdictionMap::JurisdictionMap() endNodeOctcode=%p octalCode=", endNodeOctcode);
+        myDebugPrintOctalCode(endNodeOctcode, true);
+
     }    
 }
 
