@@ -41,12 +41,14 @@ VoxelStatsDialog::VoxelStatsDialog(QWidget* parent, NodeToVoxelSceneStats* model
     _voxelsRendered = AddStatItem("Voxels Rendered", GREENISH);
     _sendingMode = AddStatItem("Sending Mode", YELLOWISH);
 
+    /** NOT YET READY
      VoxelSceneStats temp;
      for (int i = 0; i < VoxelSceneStats::ITEM_COUNT; i++) {
          VoxelSceneStats::Item item = (VoxelSceneStats::Item)(i);
          VoxelSceneStats::ItemInfo& itemInfo = temp.getItemInfo(item);
          AddStatItem(itemInfo.caption, itemInfo.colorRGBA);
      }
+     **/
 }
 
 int VoxelStatsDialog::AddStatItem(const char* caption, unsigned colorRGBA) {
@@ -95,10 +97,10 @@ void VoxelStatsDialog::paintEvent(QPaintEvent* event) {
     // Voxels Rendered    
     label = _labels[_voxelsRendered];
     statsValue << "Max: " << voxels->getMaxVoxels() / 1000.f << "K " << 
-        "Rendered: " << voxels->getVoxelsRendered() / 1000.f << "K " <<
-        "Written: " << voxels->getVoxelsWritten() / 1000.f << "K " <<
+        "Drawn: " << voxels->getVoxelsWritten() / 1000.f << "K " <<
         "Abandoned: " << voxels->getAbandonedVoxels() / 1000.f << "K " <<
-        "Updated: " << voxels->getVoxelsUpdated() / 1000.f << "K ";
+        "ReadBuffer: " << voxels->getVoxelsRendered() / 1000.f << "K " <<
+        "Changed: " << voxels->getVoxelsUpdated() / 1000.f << "K ";
     label->setText(statsValue.str().c_str());
 
     // Voxels Memory Usage
@@ -133,6 +135,7 @@ void VoxelStatsDialog::paintEvent(QPaintEvent* event) {
     std::stringstream sendingMode("");
 
     int serverCount = 0;
+    int movingServerCount = 0;
     unsigned long totalNodes = 0;
     unsigned long totalInternal = 0;
     unsigned long totalLeaves = 0;
@@ -153,11 +156,18 @@ void VoxelStatsDialog::paintEvent(QPaintEvent* event) {
         }
         if (stats.isMoving()) {
             sendingMode << "M";
+            movingServerCount++;
         } else {
             sendingMode << "S";
         }
     }
     sendingMode << " - " << serverCount << " servers";
+    if (movingServerCount > 0) {
+        sendingMode << " <SCENE NOT STABLE>";
+    } else {
+        sendingMode << " <SCENE STABLE>";
+    }
+
     label = _labels[_sendingMode];
     label->setText(sendingMode.str().c_str());
     
@@ -172,16 +182,6 @@ void VoxelStatsDialog::paintEvent(QPaintEvent* event) {
         "Internal: " << serversInternalString.toLocal8Bit().constData() << " / " <<
         "Leaves: " << serversLeavesString.toLocal8Bit().constData() << "";
     label->setText(statsValue.str().c_str());
-
-    /**
-    voxelStats.str("");
-    int voxelPacketsToProcess = _voxelProcessor.packetsToProcessCount();
-    QString packetsString = locale.toString((int)voxelPacketsToProcess);
-    QString maxString = locale.toString((int)_recentMaxPackets);
-    voxelStats << "Voxel Packets to Process: " << packetsString.toLocal8Bit().constData() 
-                << " [Recent Max: " << maxString.toLocal8Bit().constData() << "]";
-    **/
-
 
     this->QDialog::paintEvent(event);
     //this->setFixedSize(this->width(), this->height());
