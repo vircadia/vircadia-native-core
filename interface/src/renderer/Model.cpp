@@ -584,29 +584,6 @@ bool Model::getJointRotation(int jointIndex, glm::quat& rotation, bool fromBind)
     return true;
 }
 
-void Model::setJointTranslation(int jointIndex, int parentIndex, int childIndex, const glm::vec3& translation) {
-    const FBXGeometry& geometry = _geometry->getFBXGeometry();
-    JointState& state = _jointStates[jointIndex];
-    if (childIndex != -1 && geometry.joints.at(jointIndex).isFree) {
-        // if there's a child, then I must adjust *my* rotation
-        glm::vec3 childTranslation = extractTranslation(_jointStates.at(childIndex).transform);
-        glm::quat delta = rotationBetween(childTranslation - extractTranslation(state.transform),
-            childTranslation - translation);
-        state.rotation = state.rotation * glm::inverse(state.combinedRotation) * delta * state.combinedRotation;
-        state.combinedRotation = delta * state.combinedRotation;
-    }
-    if (parentIndex != -1 && geometry.joints.at(parentIndex).isFree) {
-        // if there's a parent, then I must adjust *its* rotation
-        JointState& parent = _jointStates[parentIndex];
-        glm::vec3 parentTranslation = extractTranslation(parent.transform);
-        glm::quat delta = rotationBetween(extractTranslation(state.transform) - parentTranslation, 
-            translation - parentTranslation);
-        parent.rotation = parent.rotation * glm::inverse(parent.combinedRotation) * delta * parent.combinedRotation;
-        parent.combinedRotation = delta * parent.combinedRotation;
-    }
-    ::setTranslation(state.transform, translation);
-}
-
 bool Model::setJointPosition(int jointIndex, const glm::vec3& position, int lastFreeIndex) {
     if (jointIndex == -1 || _jointStates.isEmpty()) {
         return false;
@@ -707,6 +684,40 @@ float Model::getLimbLength(int jointIndex) const {
         length += geometry.joints.at(freeLineage.at(i)).distanceToParent;
     }
     return length;
+}
+
+void Model::setJointTranslation(int jointIndex, int parentIndex, int childIndex, const glm::vec3& translation) {
+    const FBXGeometry& geometry = _geometry->getFBXGeometry();
+    JointState& state = _jointStates[jointIndex];
+    if (childIndex != -1 && geometry.joints.at(jointIndex).isFree) {
+        // if there's a child, then I must adjust *my* rotation
+        glm::vec3 childTranslation = extractTranslation(_jointStates.at(childIndex).transform);
+        applyRotationDelta(jointIndex, rotationBetween(childTranslation - extractTranslation(state.transform),
+            childTranslation - translation));
+    }
+    if (parentIndex != -1 && geometry.joints.at(parentIndex).isFree) {
+        // if there's a parent, then I must adjust *its* rotation
+        JointState& parent = _jointStates[parentIndex];
+        glm::vec3 parentTranslation = extractTranslation(parent.transform);
+        applyRotationDelta(parentIndex, rotationBetween(extractTranslation(state.transform) - parentTranslation, 
+            translation - parentTranslation));
+    }
+    ::setTranslation(state.transform, translation);
+}
+
+void Model::applyRotationDelta(int jointIndex, const glm::quat& delta) {
+    JointState& state = _jointStates[jointIndex];
+    const FBXJoint& joint = _geometry->getFBXGeometry().joints[jointIndex];
+    if (joint.rotationMin == glm::vec3(-180.0f, -180.0f, -180.0f) && joint.rotationMax == glm::vec3(180.0f, 180.0f, 180.0f)) {
+        // no constraints
+        state.rotation = state.rotation * glm::inverse(state.combinedRotation) * delta * state.combinedRotation;
+        state.combinedRotation = delta * state.combinedRotation;
+        return;
+    }
+    glm::quat newRotation = glm::quat(glm::radians(glm::clamp(safeEulerAngles(state.rotation *
+        glm::inverse(state.combinedRotation) * delta * state.combinedRotation), joint.rotationMin, joint.rotationMax)));
+    state.combinedRotation = state.combinedRotation * glm::inverse(state.rotation) * newRotation;
+    state.rotation = newRotation;
 }
 
 void Model::deleteGeometry() {
