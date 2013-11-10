@@ -50,6 +50,12 @@ public slots:
     /// \param scale the scale of the voxel (in VS space)
     void queueVoxelDelete(float x, float y, float z, float scale);
 
+    /// set the max packets per second send rate
+    void setPacketsPerSecond(int packetsPerSecond) { return _voxelPacketSender.setPacketsPerSecond(packetsPerSecond); }
+
+    /// get the max packets per second send rate
+    int getPacketsPerSecond() const  { return _voxelPacketSender.getPacketsPerSecond(); }
+
     /// does a voxel server exist to send to
     bool voxelServersExist() const { return _voxelPacketSender.voxelServersExist(); }
 
