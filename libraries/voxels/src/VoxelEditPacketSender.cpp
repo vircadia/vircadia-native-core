@@ -33,7 +33,8 @@ VoxelEditPacketSender::VoxelEditPacketSender(PacketSenderNotify* notify) :
     _maxPendingMessages(DEFAULT_MAX_PENDING_MESSAGES),
     _releaseQueuedMessagesPending(false),
     _voxelServerJurisdictions(NULL),
-    _sequenceNumber(0) {
+    _sequenceNumber(0),
+    _maxPacketSize(MAX_PACKET_SIZE) {
 }
 
 VoxelEditPacketSender::~VoxelEditPacketSender() {
@@ -146,10 +147,11 @@ void VoxelEditPacketSender::queueVoxelEditMessages(PACKET_TYPE type, int numberO
     }
 
     for (int i = 0; i < numberOfDetails; i++) {
-        static unsigned char bufferOut[MAX_PACKET_SIZE];
+        // use MAX_PACKET_SIZE since it's static and guarenteed to be larger than _maxPacketSize
+        static unsigned char bufferOut[MAX_PACKET_SIZE]; 
         int sizeOut = 0;
         
-        if (encodeVoxelEditMessageDetails(type, 1, &details[i], &bufferOut[0], MAX_PACKET_SIZE, sizeOut)) {
+        if (encodeVoxelEditMessageDetails(type, 1, &details[i], &bufferOut[0], _maxPacketSize, sizeOut)) {
             queueVoxelEditMessage(type, bufferOut, sizeOut);
         }
     }    
@@ -261,7 +263,7 @@ void VoxelEditPacketSender::queueVoxelEditMessage(PACKET_TYPE type, unsigned cha
             
                 // If we're switching type, then we send the last one and start over
                 if ((type != packetBuffer._currentType && packetBuffer._currentSize > 0) || 
-                    (packetBuffer._currentSize + length >= MAX_PACKET_SIZE)) {
+                    (packetBuffer._currentSize + length >= _maxPacketSize)) {
                     releaseQueuedPacket(packetBuffer);
                     initializePacket(packetBuffer, type);
                 }
