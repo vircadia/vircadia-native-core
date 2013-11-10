@@ -114,12 +114,15 @@ bool PacketSender::threadedProcess() {
 
 // We may be called more frequently than we get packets or need to send packets, we may also get called less frequently.
 //
-// If we're called more often then out target PPS then we will space our our actual sends to be a single packet for multiple
+// If we're called more often then out target PPS then we will space out our actual sends to be a single packet for multiple
 // calls to process. Those calls to proces in which we do not need to send a packet to keep up with our target PPS we will
 // just track our call rate (in order to predict our sends per call) but we won't actually send any packets.
 //
 // When we are called less frequently than we have packets to send, we will send enough packets per call to keep up with our
 // target PPS. 
+//
+// We also keep a running total of packets sent over multiple calls to process() so that we can adjust up or down for 
+// possible rounding error that would occur if we only considered whole integer packet counts per call to process
 bool PacketSender::nonThreadedProcess() {
     uint64_t now = usecTimestampNow();
 
@@ -172,6 +175,7 @@ bool PacketSender::nonThreadedProcess() {
     // point for these important timing variables    
     if (_lastPPSCheck == 0) {
         _lastPPSCheck = now;
+        // pretend like our lifetime began once call cycle for now, this makes our lifetime PPS start out most accurately
         _started = now - (uint64_t)averageCallTime;
     }
     
@@ -232,19 +236,15 @@ bool PacketSender::nonThreadedProcess() {
     
     // So no mater whether or not we're getting called more or less than once per second, we still need to do some bookkeeping
     // to make sure we send a few extra packets to even out our flow rate.
-    //
-    // So how do we do that reasonably?
-    //
-    // keep a _lastPPSCheck
-    // keep a _packetsSinceLastPPSCheck
-    // 
-    // check elapsed since _lastTimeCheck
     uint64_t elapsedSinceLastCheck = now - _lastPPSCheck;
     
-    // if we get called more than once per second then check our PPS each time elapsedSinceLastPPSCheck > 1 second
-    // if we get called less than once per second, then check out PPS over ever 2 calls to process
+    // we might want to tun this in the future and only check after a certain number of call intervals. for now we check
+    // each time and adjust accordingly
     const float CALL_INTERVALS_TO_CHECK = 1;
     const float MIN_CALL_INTERVALS_PER_RESET = 5;
+    
+    // we will reset our check PPS and time each second (callsPerSecond) or at least 5 calls (if we get called less frequently
+    // than 5 times per second) This gives us sufficient smoothing in our packet adjustments
     float callIntervalsPerReset = fmax(callsPerSecond, MIN_CALL_INTERVALS_PER_RESET);
 
     if (wantDebugging) {
@@ -252,7 +252,6 @@ bool PacketSender::nonThreadedProcess() {
             callsPerSecond, elapsedSinceLastCheck, (averageCallTime * CALL_INTERVALS_TO_CHECK));
     }
 
-    // ((callsPerSecond > 1 && elapsedSinceLastPPSCheck > USECS_PER_SECOND)
     if  (elapsedSinceLastCheck > (averageCallTime * CALL_INTERVALS_TO_CHECK)) {
 
         if (wantDebugging) {
@@ -289,9 +288,10 @@ bool PacketSender::nonThreadedProcess() {
             }
         }
         
-        // now, do we want to adjust the check interval? don't want to completely reset, because we would still have
+        // now, do we want to reset the check interval? don't want to completely reset, because we would still have
         // a rounding error. instead, we check to see that we've passed the reset interval (which is much larger than
-        // the check interval.
+        // the check interval), and on those reset intervals we take the second half average and keep that for the next
+        // interval window...
         if (wantDebugging) {
             printf(">>>>>>>>>>> RESET >>>>>>>>>>>>>>> Should we reset? callsPerSecond=%f elapsedSinceLastPPSCheck=%llu resetInterval=%f\n",
                 callsPerSecond, elapsedSinceLastCheck, (averageCallTime * callIntervalsPerReset));
@@ -301,12 +301,12 @@ bool PacketSender::nonThreadedProcess() {
 
             if (wantDebugging) {
                 printf(">>>>>>>>>>> RESET >>>>>>>>>>>>>>> elapsedSinceLastCheck/2=%llu _packetsOverCheckInterval/2=%d\n",
-                    (elapsedSinceLastCheck/2), (_packetsOverCheckInterval/2));
+                    (elapsedSinceLastCheck / 2), (_packetsOverCheckInterval / 2));
             }
 
-
-            _lastPPSCheck += (elapsedSinceLastCheck/2);
-            _packetsOverCheckInterval = (_packetsOverCheckInterval/2);
+            // Keep average packets and time for "second half" of check interval
+            _lastPPSCheck += (elapsedSinceLastCheck / 2);
+            _packetsOverCheckInterval = (_packetsOverCheckInterval / 2);
 
             elapsedSinceLastCheck = now - _lastPPSCheck;
 
@@ -323,6 +323,8 @@ bool PacketSender::nonThreadedProcess() {
         printf("packetsSentThisCall=%d packetsToSendThisCall=%d packetsLeft=%d\n",
             packetsSentThisCall, packetsToSendThisCall, packetsLeft);
     }
+    
+    // Now that we know how many packets to send this call to process, just send them.
     while ((packetsSentThisCall < packetsToSendThisCall) && (packetsLeft > 0)) {
         lock();
         NetworkPacket& packet = _packets.front();
