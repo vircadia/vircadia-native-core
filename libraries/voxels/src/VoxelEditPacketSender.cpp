@@ -110,6 +110,31 @@ void VoxelEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, unsigned ch
             if (nodeList->getNodeActiveSocketOrPing(&(*node))) {
                 sockaddr* nodeAddress = node->getActiveSocket();
                 queuePacketForSending(*nodeAddress, buffer, length);
+                
+                // debugging output...
+                bool wantDebugging = false;
+                if (wantDebugging) {
+                    int numBytesPacketHeader = numBytesForPacketHeader(buffer);
+                    unsigned short int sequence = (*((unsigned short int*)(buffer + numBytesPacketHeader)));
+                    uint64_t createdAt = (*((uint64_t*)(buffer + numBytesPacketHeader + sizeof(sequence))));
+                    uint64_t queuedAt = usecTimestampNow();
+                    uint64_t transitTime = queuedAt - createdAt;
+
+                    const char* messageName;
+                    switch (buffer[0]) {
+                        case PACKET_TYPE_SET_VOXEL: 
+                            messageName = "PACKET_TYPE_SET_VOXEL"; 
+                            break;
+                        case PACKET_TYPE_SET_VOXEL_DESTRUCTIVE: 
+                            messageName = "PACKET_TYPE_SET_VOXEL_DESTRUCTIVE"; 
+                            break;
+                        case PACKET_TYPE_ERASE_VOXEL: 
+                            messageName = "PACKET_TYPE_ERASE_VOXEL"; 
+                            break;
+                    }
+                    printf("VoxelEditPacketSender::queuePacketToNode() queued %s - command to node bytes=%ld sequence=%d transitTimeSoFar=%llu usecs\n",
+                        messageName, length, sequence, transitTime);
+                }                
             }
         }
     }
@@ -267,7 +292,9 @@ void VoxelEditPacketSender::releaseQueuedMessages() {
 }
 
 void VoxelEditPacketSender::releaseQueuedPacket(EditPacketBuffer& packetBuffer) {
-    queuePacketToNode(packetBuffer._nodeUUID, &packetBuffer._currentBuffer[0], packetBuffer._currentSize);
+    if (packetBuffer._currentSize > 0 && packetBuffer._currentType != PACKET_TYPE_UNKNOWN) {
+        queuePacketToNode(packetBuffer._nodeUUID, &packetBuffer._currentBuffer[0], packetBuffer._currentSize);
+    }
     packetBuffer._currentSize = 0;
     packetBuffer._currentType = PACKET_TYPE_UNKNOWN;
 }
