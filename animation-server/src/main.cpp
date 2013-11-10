@@ -633,9 +633,10 @@ void* animateVoxels(void* args) {
             uint64_t now = usecTimestampNow();
             uint64_t animationElapsed = now - lastAnimateTime;
             int withinAnimationTarget = ANIMATE_VOXELS_INTERVAL_USECS - animationElapsed;
+            const int CLOSE_ENOUGH_TO_ANIMATE = 2000; // approximately 2 ms
 
             int animateLoopsPerAnimate = 0;
-            while (withinAnimationTarget < 2000) {
+            while (withinAnimationTarget < CLOSE_ENOUGH_TO_ANIMATE) {
                 processesPerAnimate = 0;
                 animateLoopsPerAnimate++;
             
