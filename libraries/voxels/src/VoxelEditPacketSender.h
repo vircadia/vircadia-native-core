@@ -83,8 +83,15 @@ public:
 
     // the default number of pending messages we will store if no voxel servers are available
     static const int DEFAULT_MAX_PENDING_MESSAGES;
-    
+
+    // is there a voxel server available to send packets to    
     bool voxelServersExist() const;
+
+    /// Set the desired max packet size in bytes that the VoxelEditPacketSender should create
+    void setMaxPacketSize(int maxPacketSize) { _maxPacketSize = maxPacketSize; }
+
+    /// returns the current desired max packet size in bytes that the VoxelEditPacketSender will create
+    int getMaxPacketSize() const { return _maxPacketSize; }
 
 private:
     bool _shouldSend;
@@ -107,5 +114,6 @@ private:
     NodeToJurisdictionMap* _voxelServerJurisdictions;
     
     unsigned short int _sequenceNumber;
+    int _maxPacketSize;
 };
 #endif // __shared__VoxelEditPacketSender__
