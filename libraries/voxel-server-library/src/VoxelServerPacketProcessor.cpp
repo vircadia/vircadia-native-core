@@ -15,10 +15,27 @@
 #include "VoxelServerConsts.h"
 #include "VoxelServerPacketProcessor.h"
 
+static QUuid DEFAULT_NODE_ID_REF;
 
 VoxelServerPacketProcessor::VoxelServerPacketProcessor(VoxelServer* myServer) :
     _myServer(myServer),
-    _receivedPacketCount(0) {
+    _receivedPacketCount(0),
+    _totalTransitTime(0),
+    _totalProcessTime(0),
+    _totalLockWaitTime(0),
+    _totalVoxelsInPacket(0),
+    _totalPackets(0)
+{
+}
+
+void VoxelServerPacketProcessor::resetStats() {
+    _totalTransitTime = 0;
+    _totalProcessTime = 0;
+    _totalLockWaitTime = 0;
+    _totalVoxelsInPacket = 0;
+    _totalPackets = 0;
+    
+    _singleSenderStats.clear();
 }
 
 
@@ -37,13 +54,16 @@ void VoxelServerPacketProcessor::processPacket(sockaddr& senderAddress, unsigned
         PerformanceWarning warn(_myServer->wantShowAnimationDebug(),
                                 destructive ? "PACKET_TYPE_SET_VOXEL_DESTRUCTIVE" : "PACKET_TYPE_SET_VOXEL",
                                 _myServer->wantShowAnimationDebug());
-        
+
         _receivedPacketCount++;
         
         unsigned short int sequence = (*((unsigned short int*)(packetData + numBytesPacketHeader)));
         uint64_t sentAt = (*((uint64_t*)(packetData + numBytesPacketHeader + sizeof(sequence))));
         uint64_t arrivedAt = usecTimestampNow();
         uint64_t transitTime = arrivedAt - sentAt;
+        int voxelsInPacket = 0;
+        uint64_t processTime = 0;
+        uint64_t lockWaitTime = 0;
         
         if (_myServer->wantShowAnimationDebug() || _myServer->wantsDebugVoxelReceiving()) {
             printf("PROCESSING THREAD: got %s - %d command from client receivedBytes=%ld sequence=%d transitTime=%llu usecs\n",
@@ -84,9 +104,20 @@ void VoxelServerPacketProcessor::processPacket(sockaddr& senderAddress, unsigned
                     delete[] vertices;
                 }
 
+                uint64_t startLock = usecTimestampNow();
                 _myServer->getServerTree().lockForWrite();
+                uint64_t startProcess = usecTimestampNow();
                 _myServer->getServerTree().readCodeColorBufferToTree(voxelData, destructive);
                 _myServer->getServerTree().unlock();
+                uint64_t endProcess = usecTimestampNow();
+                
+                voxelsInPacket++;
+
+                uint64_t thisProcessTime = endProcess - startProcess;
+                uint64_t thisLockWaitTime = startProcess - startLock;
+
+                processTime += thisProcessTime;
+                lockWaitTime += thisLockWaitTime;
 
                 // skip to next voxel edit record in the packet
                 voxelData += voxelDataSize;
@@ -104,10 +135,20 @@ void VoxelServerPacketProcessor::processPacket(sockaddr& senderAddress, unsigned
         }
 
         // Make sure our Node and NodeList knows we've heard from this node.
-        Node* node = NodeList::getInstance()->nodeWithAddress(&senderAddress);
-        if (node) {
-            node->setLastHeardMicrostamp(usecTimestampNow());
+        Node* senderNode = NodeList::getInstance()->nodeWithAddress(&senderAddress);
+        QUuid& nodeUUID = DEFAULT_NODE_ID_REF;
+        if (senderNode) {
+            senderNode->setLastHeardMicrostamp(usecTimestampNow());
+            nodeUUID = senderNode->getUUID();
+            if (debugProcessPacket) {
+                qDebug() << "sender has uuid=" << nodeUUID << "\n";
+            }
+        } else {
+            if (debugProcessPacket) {
+                qDebug() << "sender has no known nodeUUID.\n";
+            }
         }
+        trackInboundPackets(nodeUUID, sequence, transitTime, voxelsInPacket, processTime, lockWaitTime);
 
     } else if (packetData[0] == PACKET_TYPE_ERASE_VOXEL) {
 
@@ -166,4 +207,45 @@ void VoxelServerPacketProcessor::processPacket(sockaddr& senderAddress, unsigned
         printf("unknown packet ignored... packetData[0]=%c\n", packetData[0]);
     }
 }
+
+void VoxelServerPacketProcessor::trackInboundPackets(const QUuid& nodeUUID, int sequence, uint64_t transitTime, 
+            int voxelsInPacket, uint64_t processTime, uint64_t lockWaitTime) {
+            
+    _totalTransitTime += transitTime;
+    _totalProcessTime += processTime;
+    _totalLockWaitTime += lockWaitTime;
+    _totalVoxelsInPacket += voxelsInPacket;
+    _totalPackets++;
+    
+    // find the individual senders stats and track them there too...
+    // see if this is the first we've heard of this node...
+    if (_singleSenderStats.find(nodeUUID) == _singleSenderStats.end()) {
+        SingleSenderStats stats;
+
+        stats._totalTransitTime += transitTime;
+        stats._totalProcessTime += processTime;
+        stats._totalLockWaitTime += lockWaitTime;
+        stats._totalVoxelsInPacket += voxelsInPacket;
+        stats._totalPackets++;
+
+        _singleSenderStats[nodeUUID] = stats;
+    } else {
+        SingleSenderStats& stats = _singleSenderStats[nodeUUID];
+        stats._totalTransitTime += transitTime;
+        stats._totalProcessTime += processTime;
+        stats._totalLockWaitTime += lockWaitTime;
+        stats._totalVoxelsInPacket += voxelsInPacket;
+        stats._totalPackets++;
+    }
+}
+
+
+SingleSenderStats::SingleSenderStats() {
+    _totalTransitTime = 0; 
+    _totalProcessTime = 0;
+    _totalLockWaitTime = 0;
+    _totalVoxelsInPacket = 0;
+    _totalPackets = 0;
+}
+
 

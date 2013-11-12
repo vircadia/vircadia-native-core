@@ -191,7 +191,7 @@ void VoxelEditPacketSender::queuePacketToNodes(unsigned char* buffer, ssize_t le
     
     assert(voxelServersExist()); // we must have jurisdictions to be here!!
 
-    int headerBytes = numBytesForPacketHeader(buffer) + sizeof(short);
+    int headerBytes = numBytesForPacketHeader(buffer) + sizeof(short) + sizeof(uint64_t);
     unsigned char* octCode = buffer + headerBytes; // skip the packet header to get to the octcode
     
     // We want to filter out edit messages for voxel servers based on the server's Jurisdiction

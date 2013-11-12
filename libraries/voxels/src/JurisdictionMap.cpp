@@ -229,7 +229,7 @@ bool JurisdictionMap::readFromFile(const char* filename) {
     return true;
 }
 
-void JurisdictionMap::displayDebugDetails() {
+void JurisdictionMap::displayDebugDetails() const {
     QString rootNodeValue = octalCodeToHexString(_rootOctalCode);
 
     qDebug() << "root:" << rootNodeValue << "\n";
