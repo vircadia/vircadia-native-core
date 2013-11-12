@@ -148,7 +148,7 @@ void VoxelServerPacketProcessor::processPacket(sockaddr& senderAddress, unsigned
                 qDebug() << "sender has no known nodeUUID.\n";
             }
         }
-        trackInboudPackets(nodeUUID, sequence, transitTime, voxelsInPacket, processTime, lockWaitTime);
+        trackInboundPackets(nodeUUID, sequence, transitTime, voxelsInPacket, processTime, lockWaitTime);
 
     } else if (packetData[0] == PACKET_TYPE_ERASE_VOXEL) {
 
@@ -208,7 +208,7 @@ void VoxelServerPacketProcessor::processPacket(sockaddr& senderAddress, unsigned
     }
 }
 
-void VoxelServerPacketProcessor::trackInboudPackets(const QUuid& nodeUUID, int sequence, uint64_t transitTime, 
+void VoxelServerPacketProcessor::trackInboundPackets(const QUuid& nodeUUID, int sequence, uint64_t transitTime, 
             int voxelsInPacket, uint64_t processTime, uint64_t lockWaitTime) {
             
     _totalTransitTime += transitTime;

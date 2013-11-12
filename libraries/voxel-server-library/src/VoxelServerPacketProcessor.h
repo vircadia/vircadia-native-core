@@ -66,7 +66,7 @@ protected:
     virtual void processPacket(sockaddr& senderAddress, unsigned char*  packetData, ssize_t packetLength);
 
 private:
-    void trackInboudPackets(const QUuid& nodeUUID, int sequence, uint64_t transitTime, 
+    void trackInboundPackets(const QUuid& nodeUUID, int sequence, uint64_t transitTime, 
             int voxelsInPacket, uint64_t processTime, uint64_t lockWaitTime);
 
     VoxelServer* _myServer;

@@ -115,6 +115,8 @@ void VoxelServer::initMongoose(int port) {
 
 int VoxelServer::civetwebRequestHandler(struct mg_connection* connection) {
     const struct mg_request_info* ri = mg_get_request_info(connection);
+    
+    VoxelServer* theServer = GetInstance();
 
 #ifdef FORCE_CRASH
     if (strcmp(ri->uri, "/force_crash") == 0 && strcmp(ri->request_method, "GET") == 0) {
@@ -135,7 +137,7 @@ int VoxelServer::civetwebRequestHandler(struct mg_connection* connection) {
     }
 
     if (strcmp(ri->uri, "/resetStats") == 0 && strcmp(ri->request_method, "GET") == 0) {
-        GetInstance()->_voxelServerPacketProcessor->resetStats();
+        theServer->_voxelServerPacketProcessor->resetStats();
         showStats = true;
     }
     
@@ -148,14 +150,14 @@ int VoxelServer::civetwebRequestHandler(struct mg_connection* connection) {
         mg_printf(connection, "%s", "<pre>\r\n");
         mg_printf(connection, "%s", "<b>Your Voxel Server is running... <a href='/'>[RELOAD]</a></b>\r\n");
 
-        tm* localtm = localtime(&GetInstance()->_started);
+        tm* localtm = localtime(&theServer->_started);
         const int MAX_TIME_LENGTH = 128;
         char buffer[MAX_TIME_LENGTH];
         strftime(buffer, MAX_TIME_LENGTH, "%m/%d/%Y %X", localtm);
         mg_printf(connection, "Running since: %s", buffer);
 
         // Convert now to tm struct for UTC
-        tm* gmtm = gmtime(&GetInstance()->_started);
+        tm* gmtm = gmtime(&theServer->_started);
         if (gmtm != NULL) {
             strftime(buffer, MAX_TIME_LENGTH, "%m/%d/%Y %X", gmtm);
             mg_printf(connection, " [%s UTM] ", buffer);
@@ -164,7 +166,7 @@ int VoxelServer::civetwebRequestHandler(struct mg_connection* connection) {
 
         uint64_t now  = usecTimestampNow();
         const int USECS_PER_MSEC = 1000;
-        uint64_t msecsElapsed = (now - GetInstance()->_startedUSecs) / USECS_PER_MSEC;
+        uint64_t msecsElapsed = (now - theServer->_startedUSecs) / USECS_PER_MSEC;
         const int MSECS_PER_SEC = 1000;
         const int SECS_PER_MIN = 60;
         const int MIN_PER_HOUR = 60;
@@ -189,15 +191,15 @@ int VoxelServer::civetwebRequestHandler(struct mg_connection* connection) {
 
 
         // display voxel file load time
-        if (GetInstance()->isInitialLoadComplete()) {
-            tm* voxelsLoadedAtLocal = localtime(GetInstance()->getLoadCompleted());
+        if (theServer->isInitialLoadComplete()) {
+            tm* voxelsLoadedAtLocal = localtime(theServer->getLoadCompleted());
             const int MAX_TIME_LENGTH = 128;
             char buffer[MAX_TIME_LENGTH];
             strftime(buffer, MAX_TIME_LENGTH, "%m/%d/%Y %X", voxelsLoadedAtLocal);
             mg_printf(connection, "Voxels Loaded At: %s", buffer);
 
             // Convert now to tm struct for UTC
-            tm* voxelsLoadedAtUTM = gmtime(GetInstance()->getLoadCompleted());
+            tm* voxelsLoadedAtUTM = gmtime(theServer->getLoadCompleted());
             if (gmtm != NULL) {
                 strftime(buffer, MAX_TIME_LENGTH, "%m/%d/%Y %X", voxelsLoadedAtUTM);
                 mg_printf(connection, " [%s UTM] ", buffer);
@@ -205,7 +207,7 @@ int VoxelServer::civetwebRequestHandler(struct mg_connection* connection) {
             mg_printf(connection, "%s", "\r\n");
 
 
-            uint64_t msecsElapsed = GetInstance()->getLoadElapsedTime() / USECS_PER_MSEC;;
+            uint64_t msecsElapsed = theServer->getLoadElapsedTime() / USECS_PER_MSEC;;
             float seconds = (msecsElapsed % MSECS_PER_MIN)/(float)MSECS_PER_SEC;
             int minutes = (msecsElapsed/(MSECS_PER_MIN)) % MIN_PER_HOUR;
             int hours = (msecsElapsed/(MSECS_PER_MIN * MIN_PER_HOUR));
@@ -232,8 +234,8 @@ int VoxelServer::civetwebRequestHandler(struct mg_connection* connection) {
 
         mg_printf(connection, "%s", "<b>Configuration:</b>\r\n");
 
-        for (int i = 1; i < GetInstance()->_argc; i++) {
-            mg_printf(connection, "%s ", GetInstance()->_argv[i]);
+        for (int i = 1; i < theServer->_argc; i++) {
+            mg_printf(connection, "%s ", theServer->_argv[i]);
         }
         mg_printf(connection, "%s", "\r\n"); // one to end the config line
         mg_printf(connection, "%s", "\r\n"); // two more for spacing
@@ -251,22 +253,22 @@ int VoxelServer::civetwebRequestHandler(struct mg_connection* connection) {
                     locale.toString((uint)nodeCount).rightJustified(16, ' ').toLocal8Bit().constData());
         mg_printf(connection, "    Internal Nodes: %s nodes (%5.2f%%)\r\n",
             locale.toString((uint)internalNodeCount).rightJustified(16, ' ').toLocal8Bit().constData(),
-            ((float)internalNodeCount/(float)nodeCount) * AS_PERCENT);
+            ((float)internalNodeCount / (float)nodeCount) * AS_PERCENT);
         mg_printf(connection, "        Leaf Nodes: %s nodes (%5.2f%%)\r\n", 
             locale.toString((uint)leafNodeCount).rightJustified(16, ' ').toLocal8Bit().constData(),
-            ((float)leafNodeCount/(float)nodeCount) * AS_PERCENT);
+            ((float)leafNodeCount / (float)nodeCount) * AS_PERCENT);
         mg_printf(connection, "%s", "\r\n");
         mg_printf(connection, "%s", "\r\n");
 
         // display inbound packet stats
         mg_printf(connection, "%s", "<b>Voxel Edit Statistics... <a href='/resetStats'>[RESET]</a></b>\r\n");
-        uint64_t averageTransitTimePerPacket = GetInstance()->_voxelServerPacketProcessor->getAverateTransitTimePerPacket();
-        uint64_t averageProcessTimePerPacket = GetInstance()->_voxelServerPacketProcessor->getAverageProcessTimePerPacket();
-        uint64_t averageLockWaitTimePerPacket = GetInstance()->_voxelServerPacketProcessor->getAverageLockWaitTimePerPacket();
-        uint64_t averageProcessTimePerVoxel = GetInstance()->_voxelServerPacketProcessor->getAverageProcessTimePerVoxel();
-        uint64_t averageLockWaitTimePerVoxel = GetInstance()->_voxelServerPacketProcessor->getAverageLockWaitTimePerVoxel();
-        uint64_t totalVoxelsProcessed = GetInstance()->_voxelServerPacketProcessor->getTotalVoxelsProcessed();
-        uint64_t totalPacketsProcessed = GetInstance()->_voxelServerPacketProcessor->getTotalPacketsProcessed();
+        uint64_t averageTransitTimePerPacket = theServer->_voxelServerPacketProcessor->getAverateTransitTimePerPacket();
+        uint64_t averageProcessTimePerPacket = theServer->_voxelServerPacketProcessor->getAverageProcessTimePerPacket();
+        uint64_t averageLockWaitTimePerPacket = theServer->_voxelServerPacketProcessor->getAverageLockWaitTimePerPacket();
+        uint64_t averageProcessTimePerVoxel = theServer->_voxelServerPacketProcessor->getAverageProcessTimePerVoxel();
+        uint64_t averageLockWaitTimePerVoxel = theServer->_voxelServerPacketProcessor->getAverageLockWaitTimePerVoxel();
+        uint64_t totalVoxelsProcessed = theServer->_voxelServerPacketProcessor->getTotalVoxelsProcessed();
+        uint64_t totalPacketsProcessed = theServer->_voxelServerPacketProcessor->getTotalPacketsProcessed();
 
         float averageVoxelsPerPacket = totalPacketsProcessed == 0 ? 0 : totalVoxelsProcessed / totalPacketsProcessed;
 
@@ -289,7 +291,7 @@ int VoxelServer::civetwebRequestHandler(struct mg_connection* connection) {
 
 
         int senderNumber = 0;
-        NodeToSenderStatsMap& allSenderStats = GetInstance()->_voxelServerPacketProcessor->getSingleSenderStats();
+        NodeToSenderStatsMap& allSenderStats = theServer->_voxelServerPacketProcessor->getSingleSenderStats();
         for (NodeToSenderStatsMapIterator i = allSenderStats.begin(); i != allSenderStats.end(); i++) {
             senderNumber++;
             // iterator->first = key
@@ -364,7 +366,7 @@ int VoxelServer::civetwebRequestHandler(struct mg_connection* connection) {
             checkSum += VoxelNode::getChildrenCount(i);
             mg_printf(connection, "    Nodes with %d children:      %s nodes (%5.2f%%)\r\n", i, 
                 locale.toString((uint)VoxelNode::getChildrenCount(i)).rightJustified(16, ' ').toLocal8Bit().constData(),
-                ((float)VoxelNode::getChildrenCount(i)/(float)nodeCount) * AS_PERCENT);
+                ((float)VoxelNode::getChildrenCount(i) / (float)nodeCount) * AS_PERCENT);
         }
         mg_printf(connection, "%s", "                                ----------------------\r\n");
         mg_printf(connection, "                    Total:      %s nodes\r\n", 
@@ -375,22 +377,22 @@ int VoxelServer::civetwebRequestHandler(struct mg_connection* connection) {
         mg_printf(connection, "%s", "VoxelNode Children Encoding Statistics...\r\n");
         
         mg_printf(connection, "    Single or No Children:      %10.llu nodes (%5.2f%%)\r\n",
-            VoxelNode::getSingleChildrenCount(), ((float)VoxelNode::getSingleChildrenCount()/(float)nodeCount) * AS_PERCENT);
+            VoxelNode::getSingleChildrenCount(), ((float)VoxelNode::getSingleChildrenCount() / (float)nodeCount) * AS_PERCENT);
         mg_printf(connection, "    Two Children as Offset:     %10.llu nodes (%5.2f%%)\r\n", 
             VoxelNode::getTwoChildrenOffsetCount(), 
-            ((float)VoxelNode::getTwoChildrenOffsetCount()/(float)nodeCount) * AS_PERCENT);
+            ((float)VoxelNode::getTwoChildrenOffsetCount() / (float)nodeCount) * AS_PERCENT);
         mg_printf(connection, "    Two Children as External:   %10.llu nodes (%5.2f%%)\r\n", 
             VoxelNode::getTwoChildrenExternalCount(), 
-            ((float)VoxelNode::getTwoChildrenExternalCount()/(float)nodeCount) * AS_PERCENT);
+            ((float)VoxelNode::getTwoChildrenExternalCount() / (float)nodeCount) * AS_PERCENT);
         mg_printf(connection, "    Three Children as Offset:   %10.llu nodes (%5.2f%%)\r\n", 
             VoxelNode::getThreeChildrenOffsetCount(), 
-            ((float)VoxelNode::getThreeChildrenOffsetCount()/(float)nodeCount) * AS_PERCENT);
+            ((float)VoxelNode::getThreeChildrenOffsetCount() / (float)nodeCount) * AS_PERCENT);
         mg_printf(connection, "    Three Children as External: %10.llu nodes (%5.2f%%)\r\n", 
             VoxelNode::getThreeChildrenExternalCount(), 
-            ((float)VoxelNode::getThreeChildrenExternalCount()/(float)nodeCount) * AS_PERCENT);
+            ((float)VoxelNode::getThreeChildrenExternalCount() / (float)nodeCount) * AS_PERCENT);
         mg_printf(connection, "    Children as External Array: %10.llu nodes (%5.2f%%)\r\n",
             VoxelNode::getExternalChildrenCount(), 
-            ((float)VoxelNode::getExternalChildrenCount()/(float)nodeCount) * AS_PERCENT);
+            ((float)VoxelNode::getExternalChildrenCount() / (float)nodeCount) * AS_PERCENT);
 
         checkSum = VoxelNode::getSingleChildrenCount() +
                             VoxelNode::getTwoChildrenOffsetCount() + VoxelNode::getTwoChildrenExternalCount() + 
