@@ -294,8 +294,6 @@ int VoxelServer::civetwebRequestHandler(struct mg_connection* connection) {
         NodeToSenderStatsMap& allSenderStats = theServer->_voxelServerPacketProcessor->getSingleSenderStats();
         for (NodeToSenderStatsMapIterator i = allSenderStats.begin(); i != allSenderStats.end(); i++) {
             senderNumber++;
-            // iterator->first = key
-            // iterator->second = value
             QUuid senderID = i->first;
             SingleSenderStats& senderStats = i->second;
 
