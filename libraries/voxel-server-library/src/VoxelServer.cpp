@@ -534,7 +534,8 @@ void VoxelServer::run() {
     nodeList->setOwnerType(NODE_TYPE_VOXEL_SERVER);
     
     // we need to ask the DS about agents so we can ping/reply with them
-    nodeList->setNodeTypesOfInterest(&NODE_TYPE_AGENT, 1);
+    const char nodeTypesOfInterest[] = { NODE_TYPE_AGENT, NODE_TYPE_ANIMATION_SERVER};
+    nodeList->setNodeTypesOfInterest(nodeTypesOfInterest, sizeof(nodeTypesOfInterest));
     
     setvbuf(stdout, NULL, _IOLBF, 0);
 

@@ -254,8 +254,12 @@ void VoxelEditPacketSender::queueVoxelEditMessage(PACKET_TYPE type, unsigned cha
             if (_voxelServerJurisdictions) {
                 // we need to get the jurisdiction for this 
                 // here we need to get the "pending packet" for this server
-                const JurisdictionMap& map = (*_voxelServerJurisdictions)[nodeUUID];
-                isMyJurisdiction = (map.isMyJurisdiction(codeColorBuffer, CHECK_NODE_ONLY) == JurisdictionMap::WITHIN);
+                if ((*_voxelServerJurisdictions).find(nodeUUID) != (*_voxelServerJurisdictions).end()) {
+                    const JurisdictionMap& map = (*_voxelServerJurisdictions)[nodeUUID];
+                    isMyJurisdiction = (map.isMyJurisdiction(codeColorBuffer, CHECK_NODE_ONLY) == JurisdictionMap::WITHIN);
+                } else {
+                    isMyJurisdiction = false;
+                }
             }
             if (isMyJurisdiction) {
                 EditPacketBuffer& packetBuffer = _pendingEditPackets[nodeUUID];
