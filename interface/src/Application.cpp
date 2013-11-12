@@ -440,12 +440,21 @@ void Application::paintGL() {
         
         if (Menu::getInstance()->isOptionChecked(MenuOption::Mirror)) {
             
+            bool eyeRelativeCamera = false;
             if (_rearMirrorTools->getZoomLevel() == BODY) {
                 _mirrorCamera.setDistance(MIN_ZOOM_DISTANCE);
                 _mirrorCamera.setTargetPosition(_myAvatar.getChestJointPosition());
             } else { // HEAD zoom level
                 _mirrorCamera.setDistance(MAX_ZOOM_DISTANCE);
-                _mirrorCamera.setTargetPosition(_myAvatar.getHead().calculateAverageEyePosition());
+                if (_myAvatar.getSkeletonModel().isActive() && _myAvatar.getHead().getFaceModel().isActive()) {
+                    // as a hack until we have a better way of dealing with coordinate precision issues, reposition the
+                    // face/body so that the average eye position lies at the origin
+                    eyeRelativeCamera = true;
+                    _mirrorCamera.setTargetPosition(glm::vec3());
+                    
+                } else {
+                    _mirrorCamera.setTargetPosition(_myAvatar.getHead().calculateAverageEyePosition());
+                }
             }
             
             _mirrorCamera.setTargetRotation(_myAvatar.getWorldAlignedOrientation() * glm::quat(glm::vec3(0.0f, PIf, 0.0f)));
@@ -461,8 +470,33 @@ void Application::paintGL() {
             
             // render rear mirror view
             glPushMatrix();
-            bool selfAvatarOnly = true;
-            displaySide(_mirrorCamera, selfAvatarOnly);
+            if (eyeRelativeCamera) {
+                // save absolute translations
+                glm::vec3 absoluteSkeletonTranslation = _myAvatar.getSkeletonModel().getTranslation();
+                glm::vec3 absoluteFaceTranslation = _myAvatar.getHead().getFaceModel().getTranslation();
+                
+                // get the eye positions relative to the neck and use them to set the face translation
+                glm::vec3 leftEyePosition, rightEyePosition;
+                _myAvatar.getHead().getFaceModel().setTranslation(glm::vec3());
+                _myAvatar.getHead().getFaceModel().getEyePositions(leftEyePosition, rightEyePosition);
+                _myAvatar.getHead().getFaceModel().setTranslation((leftEyePosition + rightEyePosition) * -0.5f);
+                
+                // get the neck position relative to the body and use it to set the skeleton translation
+                glm::vec3 neckPosition;
+                _myAvatar.getSkeletonModel().setTranslation(glm::vec3());
+                _myAvatar.getSkeletonModel().getNeckPosition(neckPosition);
+                _myAvatar.getSkeletonModel().setTranslation(_myAvatar.getHead().getFaceModel().getTranslation() -
+                    neckPosition);
+                
+                displaySide(_mirrorCamera, true);
+                
+                // restore absolute translations
+                _myAvatar.getSkeletonModel().setTranslation(absoluteSkeletonTranslation);
+                _myAvatar.getHead().getFaceModel().setTranslation(absoluteFaceTranslation);
+                
+            } else {
+                displaySide(_mirrorCamera, true);
+            }
             glPopMatrix();
             
             _rearMirrorTools->render(false);
