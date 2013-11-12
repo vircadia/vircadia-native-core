@@ -128,15 +128,26 @@ int VoxelServer::civetwebRequestHandler(struct mg_connection* connection) {
         return 1;
     }
 #endif
-    
+
+    bool showStats = false;
     if (strcmp(ri->uri, "/") == 0 && strcmp(ri->request_method, "GET") == 0) {
+        showStats = true;
+    }
+
+    if (strcmp(ri->uri, "/resetStats") == 0 && strcmp(ri->request_method, "GET") == 0) {
+        GetInstance()->_voxelServerPacketProcessor->resetStats();
+        showStats = true;
+    }
+    
+    if (showStats) {
         uint64_t checkSum;
         // return a 200
-        mg_printf(connection, "%s", "HTTP/1.0 200 OK\r\n\r\n");
-        mg_printf(connection, "%s", "Your Voxel Server is running.\r\n");
+        mg_printf(connection, "%s", "HTTP/1.0 200 OK\r\n");
+        mg_printf(connection, "%s", "Content-Type: text/html\r\n\r\n");
+        mg_printf(connection, "%s", "<html><doc>\r\n");
+        mg_printf(connection, "%s", "<pre>\r\n");
+        mg_printf(connection, "%s", "<b>Your Voxel Server is running... <a href='/'>[RELOAD]</a></b>\r\n");
 
-
-        mg_printf(connection, "%s", "\r\n");
         tm* localtm = localtime(&GetInstance()->_started);
         const int MAX_TIME_LENGTH = 128;
         char buffer[MAX_TIME_LENGTH];
@@ -206,7 +217,7 @@ int VoxelServer::civetwebRequestHandler(struct mg_connection* connection) {
             if (minutes > 0) {
                 mg_printf(connection, "%d minute%s ", minutes, (minutes > 1) ? "s" : "");
             }
-            if (seconds > 0) {
+            if (seconds >= 0) {
                 mg_printf(connection, "%.3f seconds", seconds);
             }
             mg_printf(connection, "%s", "\r\n");
@@ -218,15 +229,70 @@ int VoxelServer::civetwebRequestHandler(struct mg_connection* connection) {
         mg_printf(connection, "%s", "\r\n");
 
         mg_printf(connection, "%s", "\r\n");
-        mg_printf(connection, "%s", "Configuration: \r\n     ");
+
+        mg_printf(connection, "%s", "<b>Configuration:</b>\r\n");
+
         for (int i = 1; i < GetInstance()->_argc; i++) {
             mg_printf(connection, "%s ", GetInstance()->_argv[i]);
         }
+        mg_printf(connection, "%s", "\r\n"); // one to end the config line
+        mg_printf(connection, "%s", "\r\n"); // two more for spacing
+        mg_printf(connection, "%s", "\r\n");
+
+        // display scene stats
+        unsigned long nodeCount = VoxelNode::getNodeCount();
+        unsigned long internalNodeCount = VoxelNode::getInternalNodeCount();
+        unsigned long leafNodeCount = VoxelNode::getLeafNodeCount();
+        
+        QLocale locale(QLocale::English);
+        const float AS_PERCENT = 100.0;
+        mg_printf(connection, "%s", "<b>Current Nodes in scene:</b>\r\n");
+        mg_printf(connection, "       Total Nodes: %s nodes\r\n",
+                    locale.toString((uint)nodeCount).rightJustified(16, ' ').toLocal8Bit().constData());
+        mg_printf(connection, "    Internal Nodes: %s nodes (%5.2f%%)\r\n",
+            locale.toString((uint)internalNodeCount).rightJustified(16, ' ').toLocal8Bit().constData(),
+            ((float)internalNodeCount/(float)nodeCount) * AS_PERCENT);
+        mg_printf(connection, "        Leaf Nodes: %s nodes (%5.2f%%)\r\n", 
+            locale.toString((uint)leafNodeCount).rightJustified(16, ' ').toLocal8Bit().constData(),
+            ((float)leafNodeCount/(float)nodeCount) * AS_PERCENT);
         mg_printf(connection, "%s", "\r\n");
         mg_printf(connection, "%s", "\r\n");
 
+        // display inbound packet stats
+        mg_printf(connection, "%s", "<b>Voxel Edit Statistics... <a href='/resetStats'>[RESET]</a></b>\r\n");
+        uint64_t averageTransitTimePerPacket = GetInstance()->_voxelServerPacketProcessor->getAverateTransitTimePerPacket();
+        uint64_t averageProcessTimePerPacket = GetInstance()->_voxelServerPacketProcessor->getAverageProcessTimePerPacket();
+        uint64_t averageLockWaitTimePerPacket = GetInstance()->_voxelServerPacketProcessor->getAverageLockWaitTimePerPacket();
+        uint64_t averageProcessTimePerVoxel = GetInstance()->_voxelServerPacketProcessor->getAverageProcessTimePerVoxel();
+        uint64_t averageLockWaitTimePerVoxel = GetInstance()->_voxelServerPacketProcessor->getAverageLockWaitTimePerVoxel();
+        uint64_t totalVoxelsProcessed = GetInstance()->_voxelServerPacketProcessor->getTotalVoxelsProcessed();
+        uint64_t totalPacketsProcessed = GetInstance()->_voxelServerPacketProcessor->getTotalPacketsProcessed();
 
-        mg_printf(connection, "%s", "Current Statistics\r\n");
+        float averageVoxelsPerPacket = totalPacketsProcessed == 0 ? 0 : totalVoxelsProcessed / totalPacketsProcessed;
+
+        const int COLUMN_WIDTH = 10;
+        mg_printf(connection, "           Total Inbound Packets: %s packets\r\n",
+            locale.toString((uint)totalPacketsProcessed).rightJustified(COLUMN_WIDTH, ' ').toLocal8Bit().constData());
+        mg_printf(connection, "            Total Inbound Voxels: %s voxels\r\n",
+            locale.toString((uint)totalVoxelsProcessed).rightJustified(COLUMN_WIDTH, ' ').toLocal8Bit().constData());
+        mg_printf(connection, "   Average Inbound Voxels/Packet: %f voxels/packet\r\n", averageVoxelsPerPacket);
+        mg_printf(connection, "     Average Transit Time/Packet: %s usecs\r\n", 
+            locale.toString((uint)averageTransitTimePerPacket).rightJustified(COLUMN_WIDTH, ' ').toLocal8Bit().constData());
+        mg_printf(connection, "     Average Process Time/Packet: %s usecs\r\n",
+            locale.toString((uint)averageProcessTimePerPacket).rightJustified(COLUMN_WIDTH, ' ').toLocal8Bit().constData());
+        mg_printf(connection, "   Average Wait Lock Time/Packet: %s usecs\r\n", 
+            locale.toString((uint)averageLockWaitTimePerPacket).rightJustified(COLUMN_WIDTH, ' ').toLocal8Bit().constData());
+        mg_printf(connection, "      Average Process Time/Voxel: %s usecs\r\n",
+            locale.toString((uint)averageProcessTimePerVoxel).rightJustified(COLUMN_WIDTH, ' ').toLocal8Bit().constData());
+        mg_printf(connection, "    Average Wait Lock Time/Voxel: %s usecs\r\n", 
+            locale.toString((uint)averageLockWaitTimePerVoxel).rightJustified(COLUMN_WIDTH, ' ').toLocal8Bit().constData());
+
+        mg_printf(connection, "%s", "\r\n");
+        mg_printf(connection, "%s", "\r\n");
+
+        // display memory usage stats
+        mg_printf(connection, "%s", "<b>Current Memory Usage Statistics</b>\r\n");
+        mg_printf(connection, "\r\nVoxelNode size... %ld bytes\r\n", sizeof(VoxelNode));
         mg_printf(connection, "%s", "\r\n");
 
         const char* memoryScaleLabel;
@@ -250,28 +316,6 @@ int VoxelServer::civetwebRequestHandler(struct mg_connection* connection) {
         mg_printf(connection, "%s", "                                 -----------\r\n");
         mg_printf(connection, "                         Total:  %8.2f %s\r\n", 
             VoxelNode::getTotalMemoryUsage() / memoryScale, memoryScaleLabel);
-
-        mg_printf(connection, "\r\nVoxelNode size... %ld bytes\r\n", sizeof(VoxelNode));
-
-        unsigned long nodeCount = VoxelNode::getNodeCount();
-        unsigned long internalNodeCount = VoxelNode::getInternalNodeCount();
-        unsigned long leafNodeCount = VoxelNode::getLeafNodeCount();
-        
-        
-        QLocale locale(QLocale::English);
-
-        const float AS_PERCENT = 100.0;
-
-        mg_printf(connection, "%s", "\r\n");
-        mg_printf(connection, "%s", "Current Nodes in scene\r\n");
-        mg_printf(connection, "       Total Nodes: %s nodes\r\n",
-                    locale.toString((uint)nodeCount).rightJustified(16, ' ').toLocal8Bit().constData());
-        mg_printf(connection, "    Internal Nodes: %s nodes (%5.2f%%)\r\n",
-            locale.toString((uint)internalNodeCount).rightJustified(16, ' ').toLocal8Bit().constData(),
-            ((float)internalNodeCount/(float)nodeCount) * AS_PERCENT);
-        mg_printf(connection, "        Leaf Nodes: %s nodes (%5.2f%%)\r\n", 
-            locale.toString((uint)leafNodeCount).rightJustified(16, ' ').toLocal8Bit().constData(),
-            ((float)leafNodeCount/(float)nodeCount) * AS_PERCENT);
 
         mg_printf(connection, "%s", "\r\n");
         mg_printf(connection, "%s", "VoxelNode Children Population Statistics...\r\n");
@@ -324,6 +368,12 @@ int VoxelServer::civetwebRequestHandler(struct mg_connection* connection) {
         mg_printf(connection, "could NOT store 4 children internally: %10.llu nodes\r\n", 
             VoxelNode::getCouldNotStoreFourChildrenInternally());
 #endif
+
+        mg_printf(connection, "%s", "\r\n");
+        mg_printf(connection, "%s", "\r\n");
+        mg_printf(connection, "%s", "</pre>\r\n");
+
+        mg_printf(connection, "%s", "</doc></html>");
 
         return 1;
     } else {

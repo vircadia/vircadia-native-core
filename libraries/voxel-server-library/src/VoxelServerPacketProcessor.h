@@ -21,11 +21,33 @@ class VoxelServerPacketProcessor : public ReceivedPacketProcessor {
 public:
     VoxelServerPacketProcessor(VoxelServer* myServer);
 
+    uint64_t getAverateTransitTimePerPacket() const { return _totalPackets == 0 ? 0 : _totalTransitTime / _totalPackets; }
+    uint64_t getAverageProcessTimePerPacket() const { return _totalPackets == 0 ? 0 : _totalProcessTime / _totalPackets; }
+    uint64_t getAverageLockWaitTimePerPacket() const { return _totalPackets == 0 ? 0 : _totalLockWaitTime / _totalPackets; }
+    uint64_t getTotalVoxelsProcessed() const { return _totalVoxelsInPacket; }
+    uint64_t getTotalPacketsProcessed() const { return _totalPackets; }
+    uint64_t getAverageProcessTimePerVoxel() const 
+                { return _totalVoxelsInPacket == 0 ? 0 : _totalProcessTime / _totalVoxelsInPacket; }
+    uint64_t getAverageLockWaitTimePerVoxel() const 
+                { return _totalVoxelsInPacket == 0 ? 0 : _totalLockWaitTime / _totalVoxelsInPacket; }
+
+    void resetStats();
+
 protected:
     virtual void processPacket(sockaddr& senderAddress, unsigned char*  packetData, ssize_t packetLength);
 
 private:
+    void trackInboudPackets(const QUuid& nodeUUID, int sequence, uint64_t transitTime, 
+            int voxelsInPacket, uint64_t processTime, uint64_t lockWaitTime);
+
     VoxelServer* _myServer;
     int _receivedPacketCount;
+    
+    uint64_t _totalTransitTime; 
+    uint64_t _totalProcessTime;
+    uint64_t _totalLockWaitTime;
+    uint64_t _totalVoxelsInPacket;
+    uint64_t _totalPackets;
+    
 };
 #endif // __voxel_server__VoxelServerPacketProcessor__
