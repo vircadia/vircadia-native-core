@@ -686,6 +686,21 @@ float Model::getLimbLength(int jointIndex) const {
     return length;
 }
 
+void Model::applyRotationDelta(int jointIndex, const glm::quat& delta) {
+    JointState& state = _jointStates[jointIndex];
+    const FBXJoint& joint = _geometry->getFBXGeometry().joints[jointIndex];
+    if (joint.rotationMin == glm::vec3(-180.0f, -180.0f, -180.0f) && joint.rotationMax == glm::vec3(180.0f, 180.0f, 180.0f)) {
+        // no constraints
+        state.rotation = state.rotation * glm::inverse(state.combinedRotation) * delta * state.combinedRotation;
+        state.combinedRotation = delta * state.combinedRotation;
+        return;
+    }
+    glm::quat newRotation = glm::quat(glm::radians(glm::clamp(safeEulerAngles(state.rotation *
+        glm::inverse(state.combinedRotation) * delta * state.combinedRotation), joint.rotationMin, joint.rotationMax)));
+    state.combinedRotation = state.combinedRotation * glm::inverse(state.rotation) * newRotation;
+    state.rotation = newRotation;
+}
+
 void Model::setJointTranslation(int jointIndex, int parentIndex, int childIndex, const glm::vec3& translation) {
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     JointState& state = _jointStates[jointIndex];
@@ -703,21 +718,6 @@ void Model::setJointTranslation(int jointIndex, int parentIndex, int childIndex,
             translation - parentTranslation));
     }
     ::setTranslation(state.transform, translation);
-}
-
-void Model::applyRotationDelta(int jointIndex, const glm::quat& delta) {
-    JointState& state = _jointStates[jointIndex];
-    const FBXJoint& joint = _geometry->getFBXGeometry().joints[jointIndex];
-    if (joint.rotationMin == glm::vec3(-180.0f, -180.0f, -180.0f) && joint.rotationMax == glm::vec3(180.0f, 180.0f, 180.0f)) {
-        // no constraints
-        state.rotation = state.rotation * glm::inverse(state.combinedRotation) * delta * state.combinedRotation;
-        state.combinedRotation = delta * state.combinedRotation;
-        return;
-    }
-    glm::quat newRotation = glm::quat(glm::radians(glm::clamp(safeEulerAngles(state.rotation *
-        glm::inverse(state.combinedRotation) * delta * state.combinedRotation), joint.rotationMin, joint.rotationMax)));
-    state.combinedRotation = state.combinedRotation * glm::inverse(state.rotation) * newRotation;
-    state.rotation = newRotation;
 }
 
 void Model::deleteGeometry() {

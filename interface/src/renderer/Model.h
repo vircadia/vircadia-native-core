@@ -156,10 +156,11 @@ protected:
     /// first free ancestor.
     float getLimbLength(int jointIndex) const;
     
+    void applyRotationDelta(int jointIndex, const glm::quat& delta);
+    
 private:
     
     void setJointTranslation(int jointIndex, int parentIndex, int childIndex, const glm::vec3& translation);
-    void applyRotationDelta(int jointIndex, const glm::quat& delta);
     
     void deleteGeometry();
     
