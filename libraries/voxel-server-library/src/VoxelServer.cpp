@@ -287,6 +287,46 @@ int VoxelServer::civetwebRequestHandler(struct mg_connection* connection) {
         mg_printf(connection, "    Average Wait Lock Time/Voxel: %s usecs\r\n", 
             locale.toString((uint)averageLockWaitTimePerVoxel).rightJustified(COLUMN_WIDTH, ' ').toLocal8Bit().constData());
 
+
+        int senderNumber = 0;
+        NodeToSenderStatsMap& allSenderStats = GetInstance()->_voxelServerPacketProcessor->getSingleSenderStats();
+        for (NodeToSenderStatsMapIterator i = allSenderStats.begin(); i != allSenderStats.end(); i++) {
+            senderNumber++;
+            // iterator->first = key
+            // iterator->second = value
+            QUuid senderID = i->first;
+            SingleSenderStats& senderStats = i->second;
+
+            mg_printf(connection, "\r\n             Stats for sender %d uuid: %s\r\n", senderNumber, 
+                senderID.toString().toLocal8Bit().constData());
+
+            averageTransitTimePerPacket = senderStats.getAverateTransitTimePerPacket();
+            averageProcessTimePerPacket = senderStats.getAverageProcessTimePerPacket();
+            averageLockWaitTimePerPacket = senderStats.getAverageLockWaitTimePerPacket();
+            averageProcessTimePerVoxel = senderStats.getAverageProcessTimePerVoxel();
+            averageLockWaitTimePerVoxel = senderStats.getAverageLockWaitTimePerVoxel();
+            totalVoxelsProcessed = senderStats.getTotalVoxelsProcessed();
+            totalPacketsProcessed = senderStats.getTotalPacketsProcessed();
+
+            mg_printf(connection, "               Total Inbound Packets: %s packets\r\n",
+                locale.toString((uint)totalPacketsProcessed).rightJustified(COLUMN_WIDTH, ' ').toLocal8Bit().constData());
+            mg_printf(connection, "                Total Inbound Voxels: %s voxels\r\n",
+                locale.toString((uint)totalVoxelsProcessed).rightJustified(COLUMN_WIDTH, ' ').toLocal8Bit().constData());
+            mg_printf(connection, "       Average Inbound Voxels/Packet: %f voxels/packet\r\n", averageVoxelsPerPacket);
+            mg_printf(connection, "         Average Transit Time/Packet: %s usecs\r\n", 
+                locale.toString((uint)averageTransitTimePerPacket).rightJustified(COLUMN_WIDTH, ' ').toLocal8Bit().constData());
+            mg_printf(connection, "         Average Process Time/Packet: %s usecs\r\n",
+                locale.toString((uint)averageProcessTimePerPacket).rightJustified(COLUMN_WIDTH, ' ').toLocal8Bit().constData());
+            mg_printf(connection, "       Average Wait Lock Time/Packet: %s usecs\r\n", 
+                locale.toString((uint)averageLockWaitTimePerPacket).rightJustified(COLUMN_WIDTH, ' ').toLocal8Bit().constData());
+            mg_printf(connection, "          Average Process Time/Voxel: %s usecs\r\n",
+                locale.toString((uint)averageProcessTimePerVoxel).rightJustified(COLUMN_WIDTH, ' ').toLocal8Bit().constData());
+            mg_printf(connection, "        Average Wait Lock Time/Voxel: %s usecs\r\n", 
+                locale.toString((uint)averageLockWaitTimePerVoxel).rightJustified(COLUMN_WIDTH, ' ').toLocal8Bit().constData());
+
+        }
+
+
         mg_printf(connection, "%s", "\r\n");
         mg_printf(connection, "%s", "\r\n");
 

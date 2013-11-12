@@ -34,6 +34,8 @@ void VoxelServerPacketProcessor::resetStats() {
     _totalLockWaitTime = 0;
     _totalVoxelsInPacket = 0;
     _totalPackets = 0;
+    
+    _singleSenderStats.clear();
 }
 
 
@@ -214,5 +216,36 @@ void VoxelServerPacketProcessor::trackInboudPackets(const QUuid& nodeUUID, int s
     _totalLockWaitTime += lockWaitTime;
     _totalVoxelsInPacket += voxelsInPacket;
     _totalPackets++;
+    
+    // find the individual senders stats and track them there too...
+    // see if this is the first we've heard of this node...
+    if (_singleSenderStats.find(nodeUUID) == _singleSenderStats.end()) {
+        SingleSenderStats stats;
+
+        stats._totalTransitTime += transitTime;
+        stats._totalProcessTime += processTime;
+        stats._totalLockWaitTime += lockWaitTime;
+        stats._totalVoxelsInPacket += voxelsInPacket;
+        stats._totalPackets++;
+
+        _singleSenderStats[nodeUUID] = stats;
+    } else {
+        SingleSenderStats& stats = _singleSenderStats[nodeUUID];
+        stats._totalTransitTime += transitTime;
+        stats._totalProcessTime += processTime;
+        stats._totalLockWaitTime += lockWaitTime;
+        stats._totalVoxelsInPacket += voxelsInPacket;
+        stats._totalPackets++;
+    }
 }
+
+
+SingleSenderStats::SingleSenderStats() {
+    _totalTransitTime = 0; 
+    _totalProcessTime = 0;
+    _totalLockWaitTime = 0;
+    _totalVoxelsInPacket = 0;
+    _totalPackets = 0;
+}
+
 
