@@ -584,7 +584,7 @@ bool Model::getJointRotation(int jointIndex, glm::quat& rotation, bool fromBind)
     return true;
 }
 
-bool Model::setJointPosition(int jointIndex, const glm::vec3& position, int lastFreeIndex) {
+bool Model::setJointPosition(int jointIndex, const glm::vec3& position, int lastFreeIndex, const glm::vec3& alignment) {
     if (jointIndex == -1 || _jointStates.isEmpty()) {
         return false;
     }
@@ -598,14 +598,12 @@ bool Model::setJointPosition(int jointIndex, const glm::vec3& position, int last
     // this is a cyclic coordinate descent algorithm: see
     // http://www.ryanjuckett.com/programming/animation/21-cyclic-coordinate-descent-in-2d
     const int ITERATION_COUNT = 1;
+    glm::vec3 worldAlignment = _rotation * alignment;
     for (int i = 0; i < ITERATION_COUNT; i++) {
         // first, we go from the joint upwards, rotating the end as close as possible to the target
         glm::vec3 endPosition = extractTranslation(_jointStates[jointIndex].transform);
         for (int j = 1; freeLineage.at(j - 1) != lastFreeIndex; j++) {
             int index = freeLineage.at(j);
-            if (glm::distance(endPosition, relativePosition) < EPSILON) {
-                return true; // close enough to target position
-            }
             const FBXJoint& joint = geometry.joints.at(index);
             if (!joint.isFree) {
                 continue;
@@ -616,6 +614,21 @@ bool Model::setJointPosition(int jointIndex, const glm::vec3& position, int last
             glm::quat oldCombinedRotation = state.combinedRotation;
             applyRotationDelta(index, rotationBetween(jointVector, relativePosition - jointPosition));
             endPosition = state.combinedRotation * glm::inverse(oldCombinedRotation) * jointVector + jointPosition;
+            if (alignment != glm::vec3() && j > 1) {
+                jointVector = endPosition - jointPosition;
+                glm::vec3 positionSum;
+                for (int k = j - 1; k > 0; k--) {
+                    int index = freeLineage.at(k);
+                    updateJointState(index);
+                    positionSum += extractTranslation(_jointStates.at(index).transform);
+                }
+                glm::vec3 projectedCenterOfMass = glm::cross(jointVector,
+                    glm::cross(positionSum / (j - 1.0f) - jointPosition, jointVector));
+                glm::vec3 projectedAlignment = glm::cross(jointVector, glm::cross(worldAlignment, jointVector));
+                if (glm::length(projectedCenterOfMass) > EPSILON && glm::length(projectedAlignment) > EPSILON) {
+                    applyRotationDelta(index, rotationBetween(projectedCenterOfMass, projectedAlignment));
+                }
+            }
         }       
     }
      

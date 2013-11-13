@@ -143,7 +143,8 @@ protected:
     bool getJointPosition(int jointIndex, glm::vec3& position) const;
     bool getJointRotation(int jointIndex, glm::quat& rotation, bool fromBind = false) const;
     
-    bool setJointPosition(int jointIndex, const glm::vec3& position, int lastFreeIndex = -1);
+    bool setJointPosition(int jointIndex, const glm::vec3& position, int lastFreeIndex = -1,
+        const glm::vec3& alignment = glm::vec3(0.0f, -1.0f, 0.0f));
     bool setJointRotation(int jointIndex, const glm::quat& rotation, bool fromBind = false);
     
     /// Restores the indexed joint to its default position.
