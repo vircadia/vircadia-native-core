@@ -390,6 +390,7 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
         }
     }
     
+    _hand.simulate(deltaTime, false);
     _skeletonModel.simulate(deltaTime);
     _head.setBodyRotation(glm::vec3(_bodyPitch, _bodyYaw, _bodyRoll));
     glm::vec3 headPosition;
@@ -399,7 +400,6 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
     _head.setPosition(headPosition);
     _head.setSkinColor(glm::vec3(SKIN_COLOR[0], SKIN_COLOR[1], SKIN_COLOR[2]));
     _head.simulate(deltaTime, false);
-    _hand.simulate(deltaTime, false);
 
     // use speed and angular velocity to determine walking vs. standing
     if (_speed + fabs(_bodyYawDelta) > 0.2) {
@@ -665,14 +665,15 @@ void Avatar::updateArmIKAndConstraints(float deltaTime, AvatarJointID fingerTipJ
     float distance = glm::length(armVector);
     
     // don't let right hand get dragged beyond maximum arm length...
+    float armLength = _skeletonModel.isActive() ? _skeletonModel.getRightArmLength() : _skeleton.getArmLength();
     const float ARM_RETRACTION = 0.75f;
-    float armLength = _maxArmLength * ARM_RETRACTION;
-    if (distance > armLength) {
+    float retractedArmLength = armLength * ARM_RETRACTION;
+    if (distance > retractedArmLength) {
         // reset right hand to be constrained to maximum arm length
         fingerJoint.position = shoulderJoint.position;
         glm::vec3 armNormal = armVector / distance;
-        armVector = armNormal * armLength;
-        distance = armLength;
+        armVector = armNormal * retractedArmLength;
+        distance = retractedArmLength;
         glm::vec3 constrainedPosition = shoulderJoint.position;
         constrainedPosition += armVector;
         fingerJoint.position = constrainedPosition;

@@ -875,9 +875,10 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                     glm::vec3 preRotation, rotation, postRotation;
                     glm::vec3 scale = glm::vec3(1.0f, 1.0f, 1.0f);
                     glm::vec3 scalePivot, rotationPivot;
+                    bool rotationMinX = false, rotationMinY = false, rotationMinZ = false;
+                    bool rotationMaxX = false, rotationMaxY = false, rotationMaxZ = false;
+                    glm::vec3 rotationMin, rotationMax;
                     FBXModel model = { name, -1 };
-                    model.rotationMin = glm::vec3(-180.0f, -180.0f, -180.0f);
-                    model.rotationMax = glm::vec3(180.0f, 180.0f, 180.0f);
                     foreach (const FBXNode& subobject, object.children) {
                         bool properties = false;
                         QByteArray propertyName;
@@ -920,10 +921,28 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                                         scale = getVec3(property.properties, index);
                                         
                                     } else if (property.properties.at(0) == "RotationMin") {
-                                        model.rotationMin = getVec3(property.properties, index);
+                                        rotationMin = getVec3(property.properties, index);
                                         
                                     } else if (property.properties.at(0) == "RotationMax") {
-                                        model.rotationMax = getVec3(property.properties, index);
+                                        rotationMax = getVec3(property.properties, index);
+                                    
+                                    } else if (property.properties.at(0) == "RotationMinX") {
+                                        rotationMinX = property.properties.at(index).toBool();
+                                        
+                                    } else if (property.properties.at(0) == "RotationMinY") {
+                                        rotationMinY = property.properties.at(index).toBool();
+                                    
+                                    } else if (property.properties.at(0) == "RotationMinZ") {
+                                        rotationMinZ = property.properties.at(index).toBool();
+                                    
+                                    } else if (property.properties.at(0) == "RotationMaxX") {
+                                        rotationMaxX = property.properties.at(index).toBool();
+                                        
+                                    } else if (property.properties.at(0) == "RotationMaxY") {
+                                        rotationMaxY = property.properties.at(index).toBool();
+                                    
+                                    } else if (property.properties.at(0) == "RotationMaxZ") {
+                                        rotationMaxZ = property.properties.at(index).toBool();
                                     }
                                 }
                             }
@@ -940,6 +959,10 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                     model.postRotation = glm::quat(glm::radians(postRotation));
                     model.postTransform = glm::translate(-rotationPivot) * glm::translate(scalePivot) *
                         glm::scale(scale) * glm::translate(-scalePivot);
+                    model.rotationMin = glm::vec3(rotationMinX ? rotationMin.x : -180.0f,
+                        rotationMinY ? rotationMin.y : -180.0f, rotationMinZ ? rotationMin.z : -180.0f);
+                    model.rotationMax = glm::vec3(rotationMaxX ? rotationMax.x : 180.0f,
+                        rotationMaxY ? rotationMax.y : 180.0f, rotationMaxZ ? rotationMax.z : 180.0f);
                     models.insert(getID(object.properties), model);
 
                 } else if (object.name == "Texture") {
