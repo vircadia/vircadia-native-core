@@ -51,6 +51,8 @@ void Hand::reset() {
 
 
 void Hand::simulate(float deltaTime, bool isMine) {
+    
+    calculateGeometry();
 
     if (_isRaveGloveActive) {
         if (_raveGloveEffectsModeChanged && _raveGloveInitialized) {
@@ -136,8 +138,6 @@ void Hand::render(bool lookingInMirror) {
     _renderAlpha = 1.0;
     _lookingInMirror = lookingInMirror;
     
-    calculateGeometry();
-
     if (Menu::getInstance()->isOptionChecked(MenuOption::DisplayLeapHands)) {
         if (!isRaveGloveActive()) {
             renderLeapFingerTrails();
