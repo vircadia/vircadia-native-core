@@ -23,6 +23,11 @@ VoxelStatsDialog::VoxelStatsDialog(QWidget* parent, NodeToVoxelSceneStats* model
     _model(model) {
     
     _statCount = 0;
+    _voxelServerLabelsCount = 0;
+
+    for (int i = 0; i < MAX_VOXEL_SERVERS; i++) {
+        _voxelServerLables[i] = 0;
+    }
 
     for (int i = 0; i < MAX_STATS; i++) {
         _labels[i] = NULL;
@@ -51,9 +56,15 @@ VoxelStatsDialog::VoxelStatsDialog(QWidget* parent, NodeToVoxelSceneStats* model
      **/
 }
 
+void VoxelStatsDialog::RemoveStatItem(int item) {
+    QLabel* label = _labels[item];
+    delete label;
+    _labels[item] = NULL;
+}
+
 int VoxelStatsDialog::AddStatItem(const char* caption, unsigned colorRGBA) {
     char strBuf[64];
-    const int STATS_LABEL_WIDTH = 550;
+    const int STATS_LABEL_WIDTH = 900;
     
     _statCount++; // increment our current stat count
 
@@ -183,8 +194,84 @@ void VoxelStatsDialog::paintEvent(QPaintEvent* event) {
         "Leaves: " << serversLeavesString.toLocal8Bit().constData() << "";
     label->setText(statsValue.str().c_str());
 
+
+    showAllVoxelServers();
+
     this->QDialog::paintEvent(event);
     //this->setFixedSize(this->width(), this->height());
+}
+
+void VoxelStatsDialog::showAllVoxelServers() {
+    int serverNumber = 0;
+    int serverCount = 0;
+    NodeList* nodeList = NodeList::getInstance();
+    for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+        // only send to the NodeTypes that are NODE_TYPE_VOXEL_SERVER
+        if (node->getType() == NODE_TYPE_VOXEL_SERVER) {
+            serverNumber++;
+            serverCount++;
+            
+            if (serverCount > _voxelServerLabelsCount) {
+                char label[128] = { 0 };
+                sprintf(label, "Voxel Server %d",serverCount);
+                _voxelServerLables[serverCount-1] = AddStatItem(label, GREENISH);
+                _voxelServerLabelsCount++;
+            }
+            
+            std::stringstream serverDetails("");
+        
+            if (nodeList->getNodeActiveSocketOrPing(&(*node))) {
+                serverDetails << "active ";
+            } else {
+                serverDetails << "inactive ";
+            }
+            
+            QUuid nodeUUID = node->getUUID();
+            serverDetails << " " <<  nodeUUID.toString().toLocal8Bit().constData() << " ";
+            
+            NodeToJurisdictionMap& voxelServerJurisdictions = Application::getInstance()->getVoxelServerJurisdictions();
+            
+            // lookup our nodeUUID in the jurisdiction map, if it's missing then we're 
+            // missing at least one jurisdiction
+            if (voxelServerJurisdictions.find(nodeUUID) == voxelServerJurisdictions.end()) {
+                serverDetails << " unknown jurisdiction ";
+            } else {
+                const JurisdictionMap& map = voxelServerJurisdictions[nodeUUID];
+
+                unsigned char* rootCode = map.getRootOctalCode();
+            
+                if (rootCode) {
+                    QString rootCodeHex = octalCodeToHexString(rootCode);
+
+                    VoxelPositionSize rootDetails;
+                    voxelDetailsForCode(rootCode, rootDetails);
+                    AABox serverBounds(glm::vec3(rootDetails.x, rootDetails.y, rootDetails.z), rootDetails.s);
+                    serverBounds.scale(TREE_SCALE);
+                    serverDetails << " jurisdiction: " 
+                        << rootCodeHex.toLocal8Bit().constData()
+                        << " [" 
+                        << rootDetails.x << ", "
+                        << rootDetails.y << ", "
+                        << rootDetails.z << ": "
+                        << rootDetails.s << "] ";
+                } else {
+                    serverDetails << " jurisdiction has no rootCode";
+                } // root code
+            } // jurisdiction
+            
+            _labels[_voxelServerLables[serverCount - 1]]->setText(serverDetails.str().c_str());
+            
+        } // is VOXEL_SERVER
+    } // Node Loop
+    
+    if (_voxelServerLabelsCount > serverCount) {
+        for (int i = serverCount; i < _voxelServerLabelsCount; i++) {
+            int serverLabel = _voxelServerLables[i];
+            RemoveStatItem(serverLabel);
+            _voxelServerLables[i] = 0;
+        }
+        _voxelServerLabelsCount = serverCount;
+    }
 }
 
 void VoxelStatsDialog::reject() {
