@@ -66,7 +66,7 @@ void Hand::calculateGeometry() {
     const glm::vec3 leapHandsOffsetFromFace(0.0, -0.2, -0.3);  // place the hand in front of the face where we can see it
     
     Head& head = _owningAvatar->getHead();
-    _basePosition = head.getPosition() + head.getOrientation() * leapHandsOffsetFromFace;
+    _basePosition = head.calculateAverageEyePosition() + head.getOrientation() * leapHandsOffsetFromFace * head.getScale();
     _baseOrientation = head.getOrientation();
 
     // generate finger tip balls....

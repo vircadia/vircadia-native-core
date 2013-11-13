@@ -594,58 +594,36 @@ bool Model::setJointPosition(int jointIndex, const glm::vec3& position, int last
     if (lastFreeIndex == -1) {
         lastFreeIndex = freeLineage.last();
     }
-    
-    // this is a constraint relaxation algorithm: see
-    // http://www.ryanjuckett.com/programming/animation/22-constraint-relaxation-ik-in-2d
-    
-    // the influence of gravity; lowers the potential energy of our configurations
-    glm::vec3 gravity = _rotation * IDENTITY_UP * -0.01f;
-    
-    // over one or more iterations, apply the length constraints and update the rotations accordingly
-    float uniformScale = (_scale.x + _scale.y + _scale.z) / 3.0f;
-    const int ITERATION_COUNT = 3;
-    for (int i = 0; i < ITERATION_COUNT; i++) {
-        // start by optimistically setting the position of the end joint to our target
-        setJointTranslation(jointIndex, freeLineage.at(1), -1, relativePosition);
-    
-        for (int j = 1; freeLineage.at(j - 1) != lastFreeIndex; j++) {
-            int sourceIndex = freeLineage.at(j);
-            int destIndex = freeLineage.at(j - 1);
-            JointState& sourceState = _jointStates[sourceIndex];
-            JointState& destState = _jointStates[destIndex];
-            glm::vec3 sourceTranslation = extractTranslation(sourceState.transform);
-            glm::vec3 destTranslation = extractTranslation(destState.transform);
-            glm::vec3 boneVector = destTranslation - sourceTranslation;
-            float boneLength = glm::length(boneVector);
-            if (boneLength < EPSILON) {
-                continue;
-            }
-            float extension = geometry.joints.at(destIndex).distanceToParent * uniformScale / boneLength - 1.0f;
-            if (fabs(extension) < EPSILON) {
-                continue;
-            }
-            if (j == 1) {
-                setJointTranslation(sourceIndex, freeLineage.at(j + 1), -1,
-                    sourceTranslation - boneVector * extension + gravity);
-            
-            } else if (sourceIndex == lastFreeIndex) {
-                setJointTranslation(destIndex, -1, freeLineage.at(j - 2),
-                    destTranslation + boneVector * extension + gravity);
 
-            } else {
-                setJointTranslation(sourceIndex, freeLineage.at(j + 1), -1,
-                    sourceTranslation - boneVector * extension * 0.5f + gravity);
-                setJointTranslation(destIndex, -1, freeLineage.at(j - 2),
-                    destTranslation + boneVector * extension * 0.5f + gravity);
+    // this is a cyclic coordinate descent algorithm: see
+    // http://www.ryanjuckett.com/programming/animation/21-cyclic-coordinate-descent-in-2d
+    const int ITERATION_COUNT = 1;
+    for (int i = 0; i < ITERATION_COUNT; i++) {
+        // first, we go from the joint upwards, rotating the end as close as possible to the target
+        glm::vec3 endPosition = extractTranslation(_jointStates[jointIndex].transform);
+        for (int j = 1; freeLineage.at(j - 1) != lastFreeIndex; j++) {
+            int index = freeLineage.at(j);
+            if (glm::distance(endPosition, relativePosition) < EPSILON) {
+                return true; // close enough to target position
             }
-        }
-        
-        // now update the joint states from the top
-        for (int j = freeLineage.size() - 1; j >= 0; j--) {
-            updateJointState(freeLineage.at(j));
-        }
+            const FBXJoint& joint = geometry.joints.at(index);
+            if (!joint.isFree) {
+                continue;
+            }
+            JointState& state = _jointStates[index];
+            glm::vec3 jointPosition = extractTranslation(state.transform);
+            glm::vec3 jointVector = endPosition - jointPosition;
+            glm::quat oldCombinedRotation = state.combinedRotation;
+            applyRotationDelta(index, rotationBetween(jointVector, relativePosition - jointPosition));
+            endPosition = state.combinedRotation * glm::inverse(oldCombinedRotation) * jointVector + jointPosition;
+        }       
     }
-    
+     
+    // now update the joint states from the top
+    for (int j = freeLineage.size() - 1; j >= 0; j--) {
+        updateJointState(freeLineage.at(j));
+    }
+        
     return true;
 }
 
@@ -679,9 +657,10 @@ float Model::getLimbLength(int jointIndex) const {
     }
     const FBXGeometry& geometry = _geometry->getFBXGeometry();
     const QVector<int>& freeLineage = geometry.joints.at(jointIndex).freeLineage;
-    int length = 0.0f;
+    float length = 0.0f;
+    float lengthScale = (_scale.x + _scale.y + _scale.z) / 3.0f;
     for (int i = freeLineage.size() - 2; i >= 0; i--) {
-        length += geometry.joints.at(freeLineage.at(i)).distanceToParent;
+        length += geometry.joints.at(freeLineage.at(i)).distanceToParent * lengthScale;
     }
     return length;
 }
