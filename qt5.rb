@@ -1,3 +1,6 @@
+# this is a Qt5 formula patched to remove support for the CoreWLAN module on OS X
+# which was causing us problems with constant WLAN scans
+
 require 'formula'
 
 class Qt5 < Formula
