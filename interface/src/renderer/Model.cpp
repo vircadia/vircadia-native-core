@@ -584,7 +584,8 @@ bool Model::getJointRotation(int jointIndex, glm::quat& rotation, bool fromBind)
     return true;
 }
 
-bool Model::setJointPosition(int jointIndex, const glm::vec3& position, int lastFreeIndex, const glm::vec3& alignment) {
+bool Model::setJointPosition(int jointIndex, const glm::vec3& position, int lastFreeIndex,
+        bool allIntermediatesFree, const glm::vec3& alignment) {
     if (jointIndex == -1 || _jointStates.isEmpty()) {
         return false;
     }
@@ -605,7 +606,7 @@ bool Model::setJointPosition(int jointIndex, const glm::vec3& position, int last
         for (int j = 1; freeLineage.at(j - 1) != lastFreeIndex; j++) {
             int index = freeLineage.at(j);
             const FBXJoint& joint = geometry.joints.at(index);
-            if (!joint.isFree) {
+            if (!(joint.isFree || allIntermediatesFree)) {
                 continue;
             }
             JointState& state = _jointStates[index];
@@ -625,7 +626,8 @@ bool Model::setJointPosition(int jointIndex, const glm::vec3& position, int last
                 glm::vec3 projectedCenterOfMass = glm::cross(jointVector,
                     glm::cross(positionSum / (j - 1.0f) - jointPosition, jointVector));
                 glm::vec3 projectedAlignment = glm::cross(jointVector, glm::cross(worldAlignment, jointVector));
-                if (glm::length(projectedCenterOfMass) > EPSILON && glm::length(projectedAlignment) > EPSILON) {
+                const float LENGTH_EPSILON = 0.001f;
+                if (glm::length(projectedCenterOfMass) > LENGTH_EPSILON && glm::length(projectedAlignment) > LENGTH_EPSILON) {
                     applyRotationDelta(index, rotationBetween(projectedCenterOfMass, projectedAlignment));
                 }
             }

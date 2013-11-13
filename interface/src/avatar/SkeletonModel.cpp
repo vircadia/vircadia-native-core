@@ -176,15 +176,10 @@ void SkeletonModel::applyPalmData(int jointIndex, const QVector<int>& fingerJoin
     float proportion = fingerIndices.size() / (float)fingerJointIndices.size();
     for (int i = 0; i < fingerJointIndices.size(); i++) {
         int fingerIndex = fingerIndices.at(roundf(i * proportion)).index;
-        glm::vec3 fingerVector = palm.getFingers()[fingerIndex].getTipPosition() -
-            palm.getFingers()[fingerIndex].getRootPosition();
-        
         int fingerJointIndex = fingerJointIndices.at(i);
         int fingertipJointIndex = fingertipJointIndices.at(i);
-        glm::vec3 jointVector = extractTranslation(geometry.joints.at(fingertipJointIndex).bindTransform) -
-            extractTranslation(geometry.joints.at(fingerJointIndex).bindTransform);
-        
-        setJointRotation(fingerJointIndex, rotationBetween(palmRotation * jointVector, fingerVector) * palmRotation, true);
+        setJointPosition(fingertipJointIndex, palm.getFingers()[fingerIndex].getTipPosition(),
+            fingerJointIndex, true, -palm.getNormal());
     }
 }
 
