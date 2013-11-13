@@ -31,39 +31,47 @@ bool VoxelSendThread::process() {
         Node* node = NodeList::getInstance()->nodeWithUUID(_nodeUUID);
     
         if (node) {
-            node->lock(); // make sure the node list doesn't kill our node while we're using it
-            VoxelNodeData* nodeData = NULL;
+            // make sure the node list doesn't kill our node while we're using it
+            if (node->trylock()) {
+                VoxelNodeData* nodeData = NULL;
     
-            nodeData = (VoxelNodeData*) node->getLinkedData();
+                nodeData = (VoxelNodeData*) node->getLinkedData();
     
-            int packetsSent = 0;
+                int packetsSent = 0;
 
-            // Sometimes the node data has not yet been linked, in which case we can't really do anything
-            if (nodeData) {
-                bool viewFrustumChanged = nodeData->updateCurrentViewFrustum();
-                if (_myServer->wantsDebugVoxelSending()) {
-                    printf("nodeData->updateCurrentViewFrustum() changed=%s\n", debug::valueOf(viewFrustumChanged));
+                // Sometimes the node data has not yet been linked, in which case we can't really do anything
+                if (nodeData) {
+                    bool viewFrustumChanged = nodeData->updateCurrentViewFrustum();
+                    if (_myServer->wantsDebugVoxelSending()) {
+                        printf("nodeData->updateCurrentViewFrustum() changed=%s\n", debug::valueOf(viewFrustumChanged));
+                    }
+                    packetsSent = deepestLevelVoxelDistributor(node, nodeData, viewFrustumChanged);
                 }
-                packetsSent = deepestLevelVoxelDistributor(node, nodeData, viewFrustumChanged);
-            }
     
-            node->unlock(); // we're done with this node for now.
+                node->unlock(); // we're done with this node for now.
+            } else {
+                qDebug("VoxelSendThread::process() failed to lock node...isStillRunning()=%s\n",
+                    debug::valueOf(isStillRunning()));
+            }
         }
     } else {
         if (_myServer->wantsDebugVoxelSending()) {
             qDebug("VoxelSendThread::process() waiting for isInitialLoadComplete()\n");
         }
     }
-        
-    // dynamically sleep until we need to fire off the next set of voxels
-    int elapsed = (usecTimestampNow() - start);
-    int usecToSleep =  VOXEL_SEND_INTERVAL_USECS - elapsed;
+     
+    // Only sleep if we're still running...   
+    if (isStillRunning()) {
+        // dynamically sleep until we need to fire off the next set of voxels
+        int elapsed = (usecTimestampNow() - start);
+        int usecToSleep =  VOXEL_SEND_INTERVAL_USECS - elapsed;
 
-    if (usecToSleep > 0) {
-        usleep(usecToSleep);
-    } else {
-        if (_myServer->wantsDebugVoxelSending()) {
-            std::cout << "Last send took too much time, not sleeping!\n";
+        if (usecToSleep > 0) {
+            usleep(usecToSleep);
+        } else {
+            if (_myServer->wantsDebugVoxelSending()) {
+                std::cout << "Last send took too much time, not sleeping!\n";
+            }
         }
     }
 
