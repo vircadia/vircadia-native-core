@@ -649,15 +649,27 @@ void VoxelServer::run() {
     
     // loop to send to nodes requesting data
     while (true) {
-        if (NodeList::getInstance()->getNumNoReplyDomainCheckIns() == MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
-            qDebug() << "Exit loop... getInstance()->getNumNoReplyDomainCheckIns() == MAX_SILENT_DOMAIN_SERVER_CHECK_INS\n";
+        bool wantNoisyDebugging = true;
+        if (wantNoisyDebugging) {
+            qDebug() << "VoxelServer::run() top of while(true)\n";
+        }
+
+        // check for >= in case one gets past the goalie
+        if (NodeList::getInstance()->getNumNoReplyDomainCheckIns() >= MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
+            qDebug() << "Exit loop... getInstance()->getNumNoReplyDomainCheckIns() >= MAX_SILENT_DOMAIN_SERVER_CHECK_INS\n";
             break;
         }
         
         // send a check in packet to the domain server if DOMAIN_SERVER_CHECK_IN_USECS has elapsed
         if (usecTimestampNow() - usecTimestamp(&lastDomainServerCheckIn) >= DOMAIN_SERVER_CHECK_IN_USECS) {
             gettimeofday(&lastDomainServerCheckIn, NULL);
+            if (wantNoisyDebugging) {
+                qDebug() << "NodeList::getInstance()->sendDomainServerCheckIn()\n";
+            }
             NodeList::getInstance()->sendDomainServerCheckIn();
+            if (wantNoisyDebugging) {
+                qDebug() << "AFTER NodeList::getInstance()->sendDomainServerCheckIn()\n";
+            }
         }
         
         // ping our inactive nodes to punch holes with them
@@ -692,7 +704,13 @@ void VoxelServer::run() {
                 }
             } else if (packetData[0] == PACKET_TYPE_VOXEL_JURISDICTION_REQUEST) {
                 if (_jurisdictionSender) {
+                    if (wantNoisyDebugging) {
+                        qDebug() << "VoxelServer::run() CALLING _jurisdictionSender->queueReceivedPacket()...\n";
+                    }
                     _jurisdictionSender->queueReceivedPacket(senderAddress, packetData, packetLength);
+                    if (wantNoisyDebugging) {
+                        qDebug() << "VoxelServer::run() DONE WITH _jurisdictionSender->queueReceivedPacket()...\n";
+                    }
                 }
             } else if (_voxelServerPacketProcessor &&
                        (packetData[0] == PACKET_TYPE_SET_VOXEL
@@ -727,11 +745,26 @@ void VoxelServer::run() {
                     }
                 }
     
+                if (wantNoisyDebugging) {
+                    qDebug() << "VoxelServer::run() CALLING _voxelServerPacketProcessor->queueReceivedPacket()...\n";
+                }
                 _voxelServerPacketProcessor->queueReceivedPacket(senderAddress, packetData, packetLength);
+                if (wantNoisyDebugging) {
+                    qDebug() << "VoxelServer::run() DONE WITH _voxelServerPacketProcessor->queueReceivedPacket()...\n";
+                }
             } else {
                 // let processNodeData handle it.
+                if (wantNoisyDebugging) {
+                    qDebug() << "VoxelServer::run() CALLING NodeList::getInstance()->processNodeData(&senderAddress, packetData, packetLength)...\n";
+                }
                 NodeList::getInstance()->processNodeData(&senderAddress, packetData, packetLength);
+                if (wantNoisyDebugging) {
+                    qDebug() << "VoxelServer::run() DONE WITH NodeList::getInstance()->processNodeData(&senderAddress, packetData, packetLength)...\n";
+                }
             }
+        }
+        if (wantNoisyDebugging) {
+            qDebug() << "VoxelServer::run()... BOTTOM OF loop...\n";
         }
     }
     qDebug() << "VoxelServer::run()... AFTER loop...\n";
