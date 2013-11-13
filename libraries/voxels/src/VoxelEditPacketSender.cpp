@@ -88,16 +88,30 @@ void VoxelEditPacketSender::sendVoxelEditMessage(PACKET_TYPE type, VoxelDetail& 
 }
 
 bool VoxelEditPacketSender::voxelServersExist() const {
+    bool hasVoxelServers = false;
+    bool atLeastOnJurisdictionMissing = false; // assume the best
     NodeList* nodeList = NodeList::getInstance();
     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
         // only send to the NodeTypes that are NODE_TYPE_VOXEL_SERVER
         if (node->getType() == NODE_TYPE_VOXEL_SERVER) {
             if (nodeList->getNodeActiveSocketOrPing(&(*node))) {
-                return true;
+                QUuid nodeUUID = node->getUUID();
+                // If we've got Jurisdictions set, then check to see if we know the jurisdiction for this server
+                if (_voxelServerJurisdictions) {
+                    // lookup our nodeUUID in the jurisdiction map, if it's missing then we're 
+                    // missing at least one jurisdiction
+                    if ((*_voxelServerJurisdictions).find(nodeUUID) == (*_voxelServerJurisdictions).end()) {
+                        atLeastOnJurisdictionMissing = true;
+                    }
+                }
+                hasVoxelServers = true;
             }
         }
+        if (atLeastOnJurisdictionMissing) {
+            break; // no point in looking further...
+        }
     }
-    return false;
+    return (hasVoxelServers && !atLeastOnJurisdictionMissing);
 }
 
 // This method is called when the edit packet layer has determined that it has a fully formed packet destined for
@@ -254,8 +268,12 @@ void VoxelEditPacketSender::queueVoxelEditMessage(PACKET_TYPE type, unsigned cha
             if (_voxelServerJurisdictions) {
                 // we need to get the jurisdiction for this 
                 // here we need to get the "pending packet" for this server
-                const JurisdictionMap& map = (*_voxelServerJurisdictions)[nodeUUID];
-                isMyJurisdiction = (map.isMyJurisdiction(codeColorBuffer, CHECK_NODE_ONLY) == JurisdictionMap::WITHIN);
+                if ((*_voxelServerJurisdictions).find(nodeUUID) != (*_voxelServerJurisdictions).end()) {
+                    const JurisdictionMap& map = (*_voxelServerJurisdictions)[nodeUUID];
+                    isMyJurisdiction = (map.isMyJurisdiction(codeColorBuffer, CHECK_NODE_ONLY) == JurisdictionMap::WITHIN);
+                } else {
+                    isMyJurisdiction = false;
+                }
             }
             if (isMyJurisdiction) {
                 EditPacketBuffer& packetBuffer = _pendingEditPackets[nodeUUID];
