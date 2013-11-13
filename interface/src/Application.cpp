@@ -249,6 +249,7 @@ Application::~Application() {
 
     _audio.shutdown();
 
+    VoxelNode::removeDeleteHook(&_voxels); // we don't need to do this processing on shutdown
     delete Menu::getInstance();
     
     delete _oculusProgram;

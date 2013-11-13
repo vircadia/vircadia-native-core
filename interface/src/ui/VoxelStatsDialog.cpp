@@ -57,8 +57,12 @@ VoxelStatsDialog::VoxelStatsDialog(QWidget* parent, NodeToVoxelSceneStats* model
 }
 
 void VoxelStatsDialog::RemoveStatItem(int item) {
-    QLabel* label = _labels[item];
-    delete label;
+    QLabel* myLabel = _labels[item];
+    QWidget* automaticLabel = _form->labelForField(myLabel);
+    _form->removeWidget(myLabel);
+    _form->removeWidget(automaticLabel);
+    automaticLabel->deleteLater();
+    myLabel->deleteLater();
     _labels[item] = NULL;
 }
 
@@ -193,7 +197,6 @@ void VoxelStatsDialog::paintEvent(QPaintEvent* event) {
         "Internal: " << serversInternalString.toLocal8Bit().constData() << " / " <<
         "Leaves: " << serversLeavesString.toLocal8Bit().constData() << "";
     label->setText(statsValue.str().c_str());
-
 
     showAllVoxelServers();
 
