@@ -35,8 +35,6 @@ VoxelNodeData::VoxelNodeData(Node* owningNode) :
     _lastVoxelPacketLength = 0;
     _duplicatePacketCount = 0;
     resetVoxelPacket();
-    
-    qDebug("VoxelNodeData::VoxelNodeData() this=%p owningNode=%p\n", this, owningNode);
 }
 
 void VoxelNodeData::initializeVoxelSendThread(VoxelServer* voxelServer) {
@@ -44,10 +42,6 @@ void VoxelNodeData::initializeVoxelSendThread(VoxelServer* voxelServer) {
     QUuid nodeUUID = getOwningNode()->getUUID();
     _voxelSendThread = new VoxelSendThread(nodeUUID, voxelServer);
     _voxelSendThread->initialize(true);
-    
-    qDebug("VoxelNodeData::initializeVoxelSendThread() this=%p owningNode=%p _voxelSendThread=%p\n", 
-        this, getOwningNode(), _voxelSendThread);
-    qDebug() << "VoxelNodeData::initializeVoxelSendThread() nodeUUID=" << nodeUUID << "\n";
 }
 
 bool VoxelNodeData::packetIsDuplicate() const {
