@@ -170,6 +170,8 @@ public:
     PointShader& getPointShader() { return _pointShader; }
     
     glm::vec2 getViewportDimensions() const{ return glm::vec2(_glWidget->width(),_glWidget->height()); }
+    NodeToJurisdictionMap& getVoxelServerJurisdictions() { return _voxelServerJurisdictions; }
+
 
 public slots:
     void sendAvatarFaceVideoMessage(int frameCount, const QByteArray& data);
