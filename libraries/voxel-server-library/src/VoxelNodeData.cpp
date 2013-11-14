@@ -118,7 +118,6 @@ void VoxelNodeData::writeToPacket(unsigned char* buffer, int bytes) {
 }
 
 VoxelNodeData::~VoxelNodeData() {
-    QUuid nodeUUID = getOwningNode()->getUUID();
     delete[] _voxelPacket;
     delete[] _lastVoxelPacket;
 
