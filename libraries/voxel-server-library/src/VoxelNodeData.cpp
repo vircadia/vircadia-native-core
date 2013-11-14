@@ -118,19 +118,13 @@ void VoxelNodeData::writeToPacket(unsigned char* buffer, int bytes) {
 }
 
 VoxelNodeData::~VoxelNodeData() {
-
-    qDebug("VoxelNodeData::~VoxelNodeData() this=%p owningNode=%p _voxelSendThread=%p\n", 
-        this, getOwningNode(), _voxelSendThread);
     QUuid nodeUUID = getOwningNode()->getUUID();
-    qDebug() << "VoxelNodeData::~VoxelNodeData() nodeUUID=" << nodeUUID << "\n";
-
     delete[] _voxelPacket;
     delete[] _lastVoxelPacket;
 
     if (_voxelSendThread) {
         _voxelSendThread->terminate();
         delete _voxelSendThread;
-        qDebug("VoxelNodeData::~VoxelNodeData() DELETED _voxelSendThread=%p\n", _voxelSendThread);
     }
 }
 

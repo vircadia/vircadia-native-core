@@ -733,35 +733,29 @@ void VoxelServer::run() {
             }
         }
     }
-    qDebug() << "VoxelServer::run()... AFTER loop...\n";
 
     // call NodeList::clear() so that all of our node specific objects, including our sending threads, are
     // properly shutdown and cleaned up.
     NodeList::getInstance()->clear();
     
-    qDebug() << "VoxelServer::run()... terminating _jurisdictionSender\n";
     if (_jurisdictionSender) {
         _jurisdictionSender->terminate();
         delete _jurisdictionSender;
     }
 
-    qDebug() << "VoxelServer::run()... terminating _voxelServerPacketProcessor\n";
     if (_voxelServerPacketProcessor) {
         _voxelServerPacketProcessor->terminate();
         delete _voxelServerPacketProcessor;
     }
 
-    qDebug() << "VoxelServer::run()... terminating _voxelPersistThread\n";
     if (_voxelPersistThread) {
         _voxelPersistThread->terminate();
         delete _voxelPersistThread;
     }
     
     // tell our NodeList we're done with notifications
-    qDebug() << "VoxelServer::run()... nodeList->removeHook(&_nodeWatcher)\n";
     nodeList->removeHook(&_nodeWatcher);
 
-    qDebug() << "VoxelServer::run()... deleting _jurisdiction\n";
     delete _jurisdiction;
     _jurisdiction = NULL;
 
