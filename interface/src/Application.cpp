@@ -2012,14 +2012,14 @@ void Application::updateMyAvatarLookAtPosition(glm::vec3& lookAtSpot, glm::vec3&
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateMyAvatarLookAtPosition()");
     
-    if (!_lookatTargetAvatar) {
+    if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
+        lookAtSpot = _myCamera.getPosition();
+        
+    } else if (!_lookatTargetAvatar) {
         if (_isHoverVoxel) {
             //  Look at the hovered voxel
             lookAtSpot = getMouseVoxelWorldCoordinates(_hoverVoxel);
             
-        } else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-            lookAtSpot = _myCamera.getPosition();
-        
         } else {
             //  Just look in direction of the mouse ray
             const float FAR_AWAY_STARE = TREE_SCALE;
