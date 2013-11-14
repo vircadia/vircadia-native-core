@@ -1,14 +1,14 @@
 #version 120
 
 //
-//  skin_blendface.vert
+//  skin_model.vert
 //  vertex shader
 //
 //  Created by Andrzej Kapolka on 10/14/13.
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
-const int MAX_CLUSTERS = 32;
+const int MAX_CLUSTERS = 128;
 const int INDICES_PER_VERTEX = 4;
 
 uniform mat4 clusterMatrices[MAX_CLUSTERS];
@@ -31,7 +31,10 @@ void main(void) {
     position = gl_ModelViewProjectionMatrix * position;
     normal = normalize(gl_ModelViewMatrix * normal);
     
-    // pass along the texture coordinate
+    // pass along the vertex color
+    gl_FrontColor = vec4(1.0, 1.0, 1.0, 1.0);
+    
+    // and the texture coordinates
     gl_TexCoord[0] = gl_MultiTexCoord0;
     
     gl_Position = position;

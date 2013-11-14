@@ -13,6 +13,7 @@
 #define __hifi_VoxelConstants_h__
 
 #include <limits.h>
+#include <stdint.h>
 #include <OctalCode.h>
 #include <glm/glm.hpp>
 
@@ -27,7 +28,8 @@ const uint64_t CHANGE_FUDGE = 1000 * 200; // useconds of fudge in determining if
 const int   TREE_SCALE = 16384; // ~10 miles.. This is the number of meters of the 0.0 to 1.0 voxel universe
 
 // This controls the LOD. Larger number will make smaller voxels visible at greater distance.
-const float VOXEL_SIZE_SCALE = TREE_SCALE * 400.0f; 
+const float DEFAULT_VOXEL_SIZE_SCALE = TREE_SCALE * 400.0f; 
+const float MAX_LOD_SIZE_MULTIPLIER = 2000.0f;
 
 const int NUMBER_OF_CHILDREN = 8;
 const int MAX_VOXEL_PACKET_SIZE = 1492;
@@ -53,5 +55,11 @@ const float VIEW_CULLING_RATE_IN_MILLISECONDS = 1000.0f; // once a second is fin
 const uint64_t CLIENT_TO_SERVER_VOXEL_SEND_INTERVAL_USECS = 1000 * 5; // 1 packet every 50 milliseconds
 
 const float VIEW_FRUSTUM_FOV_OVERSEND = 60.0f;
+
+// These are guards to prevent our voxel tree recursive routines from spinning out of control
+const int UNREASONABLY_DEEP_RECURSION = 20; // use this for something that you want to be shallow, but not spin out
+const int DANGEROUSLY_DEEP_RECURSION = 200; // use this for something that needs to go deeper
+
+const int DEFAULT_MAX_VOXEL_PPS = 600; // the default maximum PPS we think a voxel server should send to a client
 
 #endif

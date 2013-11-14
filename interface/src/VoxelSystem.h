@@ -60,6 +60,7 @@ public:
     unsigned long  getVoxelsUpdated() const { return _voxelsUpdated; }
     unsigned long  getVoxelsRendered() const { return _voxelsInReadArrays; }
     unsigned long  getVoxelsWritten() const { return _voxelsInWriteArrays; }
+    unsigned long  getAbandonedVoxels() const { return _freeIndexes.size(); }
 
     ViewFrustum* getLastCulledViewFrustum() { return &_lastCulledViewFrustum; }
 
@@ -83,6 +84,7 @@ public:
     float getVoxelsBytesReadPerSecondAverage();
 
     void killLocalVoxels();
+    void redrawInViewVoxels();
 
     virtual void removeOutOfView();
     virtual void hideOutOfView(bool forceFullFrustum = false);
@@ -117,6 +119,8 @@ public:
     virtual void nodeAdded(Node* node);
     virtual void nodeKilled(Node* node);
     virtual void domainChanged(QString domain);
+    
+    bool treeIsBusy() const { return _treeIsBusy; }
     
 signals:
     void importSize(float x, float y, float z);
@@ -298,6 +302,12 @@ private:
     
     bool _inSetupNewVoxelsForDrawing;
     bool _useFastVoxelPipeline;
+    
+    bool _inhideOutOfView;
+    bool _treeIsBusy; // is the tree mutex locked? if so, it's busy, and if you can avoid it, don't access the tree
+    
+    void lockTree();
+    void unlockTree();
 };
 
 #endif

@@ -20,6 +20,7 @@
 TextureCache::TextureCache() :
     _permutationNormalTextureID(0),
     _whiteTextureID(0),
+    _blueTextureID(0),
     _primaryFramebufferObject(NULL),
     _secondaryFramebufferObject(NULL),
     _tertiaryFramebufferObject(NULL)
@@ -74,9 +75,11 @@ GLuint TextureCache::getPermutationNormalTextureID() {
     return _permutationNormalTextureID;
 }
 
-static void loadWhiteTexture() {
-    const char OPAQUE_WHITE[] = { 0xFF, 0xFF, 0xFF, 0xFF };
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, OPAQUE_WHITE);
+const char OPAQUE_WHITE[] = { 0xFF, 0xFF, 0xFF, 0xFF };
+const char OPAQUE_BLUE[] = { 0x80, 0x80, 0xFF, 0xFF };
+
+static void loadSingleColorTexture(const char* color) {
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 1, 1, 0, GL_RGBA, GL_UNSIGNED_BYTE, color);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 }
 
@@ -84,10 +87,20 @@ GLuint TextureCache::getWhiteTextureID() {
     if (_whiteTextureID == 0) {
         glGenTextures(1, &_whiteTextureID);
         glBindTexture(GL_TEXTURE_2D, _whiteTextureID);
-        loadWhiteTexture();
+        loadSingleColorTexture(OPAQUE_WHITE);
         glBindTexture(GL_TEXTURE_2D, 0);
     }
     return _whiteTextureID;
+}
+
+GLuint TextureCache::getBlueTextureID() {
+    if (_blueTextureID == 0) {
+        glGenTextures(1, &_blueTextureID);
+        glBindTexture(GL_TEXTURE_2D, _blueTextureID);
+        loadSingleColorTexture(OPAQUE_BLUE);
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
+    return _blueTextureID;
 }
 
 GLuint TextureCache::getFileTextureID(const QString& filename) {
@@ -108,18 +121,18 @@ GLuint TextureCache::getFileTextureID(const QString& filename) {
     return id;
 }
 
-QSharedPointer<NetworkTexture> TextureCache::getTexture(const QUrl& url, bool dilatable) {
+QSharedPointer<NetworkTexture> TextureCache::getTexture(const QUrl& url, bool normalMap, bool dilatable) {
     QSharedPointer<NetworkTexture> texture;
     if (dilatable) {
         texture = _dilatableNetworkTextures.value(url);
         if (texture.isNull()) {
-            texture = QSharedPointer<NetworkTexture>(new DilatableNetworkTexture(url));
+            texture = QSharedPointer<NetworkTexture>(new DilatableNetworkTexture(url, normalMap));
             _dilatableNetworkTextures.insert(url, texture);
         }
     } else {
         texture = _networkTextures.value(url);
         if (texture.isNull()) {
-            texture = QSharedPointer<NetworkTexture>(new NetworkTexture(url));
+            texture = QSharedPointer<NetworkTexture>(new NetworkTexture(url, normalMap));
             _networkTextures.insert(url, texture);
         }
     }
@@ -206,7 +219,7 @@ Texture::~Texture() {
     glDeleteTextures(1, &_id);
 }
 
-NetworkTexture::NetworkTexture(const QUrl& url) : _reply(NULL), _averageColor(1.0f, 1.0f, 1.0f, 1.0f) {
+NetworkTexture::NetworkTexture(const QUrl& url, bool normalMap) : _reply(NULL), _averageColor(1.0f, 1.0f, 1.0f, 1.0f) {
     if (!url.isValid()) {
         return;
     }
@@ -217,9 +230,9 @@ NetworkTexture::NetworkTexture(const QUrl& url) : _reply(NULL), _averageColor(1.
     connect(_reply, SIGNAL(downloadProgress(qint64,qint64)), SLOT(handleDownloadProgress(qint64,qint64)));
     connect(_reply, SIGNAL(error(QNetworkReply::NetworkError)), SLOT(handleReplyError()));
     
-    // default to white
+    // default to white/blue
     glBindTexture(GL_TEXTURE_2D, getID());
-    loadWhiteTexture();
+    loadSingleColorTexture(normalMap ? OPAQUE_BLUE : OPAQUE_WHITE);
     glBindTexture(GL_TEXTURE_2D, 0);
 }
 
@@ -275,8 +288,8 @@ void NetworkTexture::handleReplyError() {
     _reply = NULL;
 }
 
-DilatableNetworkTexture::DilatableNetworkTexture(const QUrl& url) :
-    NetworkTexture(url),
+DilatableNetworkTexture::DilatableNetworkTexture(const QUrl& url, bool normalMap) :
+    NetworkTexture(url, normalMap),
     _innerRadius(0),
     _outerRadius(0)
 {

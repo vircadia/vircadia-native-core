@@ -33,13 +33,8 @@
 #include "VoxelTree.h"
 #include <PacketHeaders.h>
 
-float boundaryDistanceForRenderLevel(unsigned int renderLevel) {
-    return ::VOXEL_SIZE_SCALE / powf(2, renderLevel);
-}
-
-float boundaryDistanceSquaredForRenderLevel(unsigned int renderLevel) {
-    const float voxelSizeScale = (::VOXEL_SIZE_SCALE/TREE_SCALE) * (::VOXEL_SIZE_SCALE/TREE_SCALE);
-    return voxelSizeScale / powf(2, (2 * renderLevel));
+float boundaryDistanceForRenderLevel(unsigned int renderLevel, float voxelSizeScale) {
+    return voxelSizeScale / powf(2, renderLevel);
 }
 
 VoxelTree::VoxelTree(bool shouldReaverage) :
@@ -78,13 +73,18 @@ void VoxelTree::recurseTreeWithOperation(RecurseVoxelTreeOperation operation, vo
 }
 
 // Recurses voxel node with an operation function
-void VoxelTree::recurseNodeWithOperation(VoxelNode* node, RecurseVoxelTreeOperation operation, void* extraData) {
+void VoxelTree::recurseNodeWithOperation(VoxelNode* node, RecurseVoxelTreeOperation operation, void* extraData, 
+                        int recursionCount) {
+    if (recursionCount > DANGEROUSLY_DEEP_RECURSION) {
+        qDebug() << "VoxelTree::recurseNodeWithOperation() reached DANGEROUSLY_DEEP_RECURSION, bailing!\n";
+        return;
+    }
         
     if (operation(node, extraData)) {
         for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
             VoxelNode* child = node->getChildAtIndex(i);
             if (child) {
-                recurseNodeWithOperation(child, operation, extraData);
+                recurseNodeWithOperation(child, operation, extraData, recursionCount+1);
             }
         }
     }
@@ -100,13 +100,19 @@ void VoxelTree::recurseTreeWithOperationDistanceSorted(RecurseVoxelTreeOperation
 
 // Recurses voxel node with an operation function
 void VoxelTree::recurseNodeWithOperationDistanceSorted(VoxelNode* node, RecurseVoxelTreeOperation operation, 
-                                                       const glm::vec3& point, void* extraData) {
+                                                       const glm::vec3& point, void* extraData, int recursionCount) {
+
+    if (recursionCount > DANGEROUSLY_DEEP_RECURSION) {
+        qDebug() << "VoxelTree::recurseNodeWithOperationDistanceSorted() reached DANGEROUSLY_DEEP_RECURSION, bailing!\n";
+        return;
+    }
+
     if (operation(node, extraData)) {
         // determine the distance sorted order of our children
-        VoxelNode*  sortedChildren[NUMBER_OF_CHILDREN];
-        float       distancesToChildren[NUMBER_OF_CHILDREN];
-        int         indexOfChildren[NUMBER_OF_CHILDREN]; // not really needed
-        int         currentCount = 0;
+        VoxelNode* sortedChildren[NUMBER_OF_CHILDREN] = { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL };
+        float distancesToChildren[NUMBER_OF_CHILDREN] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+        int indexOfChildren[NUMBER_OF_CHILDREN] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+        int currentCount = 0;
 
         for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
             VoxelNode* childNode = node->getChildAtIndex(i);
@@ -570,18 +576,35 @@ void VoxelTree::readCodeColorBufferToTreeRecursion(VoxelNode* node, void* extraD
     }
 }
 
-void VoxelTree::processRemoveVoxelBitstream(unsigned char * bitstream, int bufferSizeBytes) {
+void VoxelTree::processRemoveVoxelBitstream(unsigned char* bitstream, int bufferSizeBytes) {
     //unsigned short int itemNumber = (*((unsigned short int*)&bitstream[sizeof(PACKET_HEADER)]));
-    int atByte = sizeof(short int) + numBytesForPacketHeader(bitstream);
+
+    int numBytesPacketHeader = numBytesForPacketHeader(bitstream);
+    unsigned short int sequence = (*((unsigned short int*)(bitstream + numBytesPacketHeader)));
+    uint64_t sentAt = (*((uint64_t*)(bitstream + numBytesPacketHeader + sizeof(sequence))));
+    
+    int atByte = numBytesPacketHeader + sizeof(sequence) + sizeof(sentAt);
+    
     unsigned char* voxelCode = (unsigned char*)&bitstream[atByte];
     while (atByte < bufferSizeBytes) {
-        int codeLength = numberOfThreeBitSectionsInCode(voxelCode);
+        int maxSize = bufferSizeBytes - atByte;
+        int codeLength = numberOfThreeBitSectionsInCode(voxelCode, maxSize);
+        
+        if (codeLength == OVERFLOWED_OCTCODE_BUFFER) {
+            printf("WARNING! Got remove voxel bitstream that would overflow buffer in numberOfThreeBitSectionsInCode(), ");
+            printf("bailing processing of packet!\n");
+            break;
+        }
         int voxelDataSize = bytesRequiredForCodeLength(codeLength) + SIZE_OF_COLOR_DATA;
-
-        deleteVoxelCodeFromTree(voxelCode, COLLAPSE_EMPTY_TREE);
-
-        voxelCode+=voxelDataSize;
-        atByte+=voxelDataSize;
+        
+        if (atByte + voxelDataSize <= bufferSizeBytes) {
+            deleteVoxelCodeFromTree(voxelCode, COLLAPSE_EMPTY_TREE);
+            voxelCode += voxelDataSize;
+            atByte += voxelDataSize;
+        } else {
+            printf("WARNING! Got remove voxel bitstream that would overflow buffer, bailing processing!\n");
+            break;
+        }
     }
 }
 
@@ -641,7 +664,6 @@ void VoxelTree::reaverageVoxelColors(VoxelNode* startNode) {
         } else {
             recursionCount++;
         }
-        const int UNREASONABLY_DEEP_RECURSION = 20;
         if (recursionCount > UNREASONABLY_DEEP_RECURSION) {
             qDebug("VoxelTree::reaverageVoxelColors()... bailing out of UNREASONABLY_DEEP_RECURSION\n");
             recursionCount--;
@@ -1001,9 +1023,16 @@ bool VoxelTree::findCapsulePenetration(const glm::vec3& start, const glm::vec3& 
 int VoxelTree::encodeTreeBitstream(VoxelNode* node, unsigned char* outputBuffer, int availableBytes, VoxelNodeBag& bag,
                                    EncodeBitstreamParams& params) {
 
-    startEncoding(node);
     // How many bytes have we written so far at this level;
     int bytesWritten = 0;
+
+    // you can't call this without a valid node
+    if (!node) {
+        qDebug("WARNING! encodeTreeBitstream() called with node=NULL\n");
+        return bytesWritten;
+    }
+
+    startEncoding(node);
     
     // If we're at a node that is out of view, then we can return, because no nodes below us will be in view!
     if (params.viewFrustum && !node->isInView(*params.viewFrustum)) {
@@ -1066,11 +1095,14 @@ int VoxelTree::encodeTreeBitstream(VoxelNode* node, unsigned char* outputBuffer,
 int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outputBuffer, int availableBytes, VoxelNodeBag& bag,
                                             EncodeBitstreamParams& params, int& currentEncodeLevel) const {
 
-    // you can't call this without a valid node
-    assert(node);
-    
     // How many bytes have we written so far at this level;
     int bytesAtThisLevel = 0;
+
+    // you can't call this without a valid node
+    if (!node) {
+        qDebug("WARNING! encodeTreeBitstreamRecursion() called with node=NULL\n");
+        return bytesAtThisLevel;
+    }
 
     // Keep track of how deep we've encoded.
     currentEncodeLevel++;
@@ -1094,7 +1126,8 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
     // caller can pass NULL as viewFrustum if they want everything
     if (params.viewFrustum) {
         float distance = node->distanceToCamera(*params.viewFrustum);
-        float boundaryDistance = boundaryDistanceForRenderLevel(node->getLevel() + params.boundaryLevelAdjust);
+        float boundaryDistance = boundaryDistanceForRenderLevel(node->getLevel() + params.boundaryLevelAdjust, 
+                                        params.voxelSizeScale);
 
         // If we're too far away for our render level, then just return
         if (distance >= boundaryDistance) {
@@ -1126,6 +1159,20 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
                 wasInView = location != ViewFrustum::OUTSIDE;
             } else {
                 wasInView = location == ViewFrustum::INSIDE;
+            }
+            
+            // If we were in view, double check that we didn't switch LOD visibility... namely, the was in view doesn't
+            // tell us if it was so small we wouldn't have rendered it. Which may be the case. And we may have moved closer
+            // to it, and so therefore it may now be visible from an LOD perspective, in which case we don't consider it
+            // as "was in view"...
+            if (wasInView) {
+                float distance = node->distanceToCamera(*params.lastViewFrustum);
+                float boundaryDistance = boundaryDistanceForRenderLevel(node->getLevel() + params.boundaryLevelAdjust, 
+                                                                            params.voxelSizeScale);
+                if (distance >= boundaryDistance) {
+                    // This would have been invisible... but now should be visible (we wouldn't be here otherwise)...
+                    wasInView = false;
+                }
             }
         }
 
@@ -1201,10 +1248,10 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
     int inViewNotLeafCount = 0;
     int inViewWithColorCount = 0;
 
-    VoxelNode*  sortedChildren[NUMBER_OF_CHILDREN];
-    float       distancesToChildren[NUMBER_OF_CHILDREN];
-    int         indexOfChildren[NUMBER_OF_CHILDREN]; // not really needed
-    int         currentCount = 0;
+    VoxelNode* sortedChildren[NUMBER_OF_CHILDREN] = { NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL };
+    float distancesToChildren[NUMBER_OF_CHILDREN] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+    int indexOfChildren[NUMBER_OF_CHILDREN] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+    int currentCount = 0;
 
     for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
         VoxelNode* childNode = node->getChildAtIndex(i);
@@ -1214,7 +1261,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
         // even if they don't in our local tree
         bool notMyJurisdiction = false;
         if (params.jurisdictionMap) {
-            notMyJurisdiction = (JurisdictionMap::BELOW == params.jurisdictionMap->isMyJurisdiction(node->getOctalCode(), i));
+            notMyJurisdiction = (JurisdictionMap::WITHIN != params.jurisdictionMap->isMyJurisdiction(node->getOctalCode(), i));
         }
         if (params.includeExistsBits) {
             // If the child is known to exist, OR, it's not my jurisdiction, then we mark the bit as existing
@@ -1268,7 +1315,8 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
             // Before we determine consider this further, let's see if it's in our LOD scope...
             float distance = distancesToChildren[i]; // params.viewFrustum ? childNode->distanceToCamera(*params.viewFrustum) : 0;
             float boundaryDistance = !params.viewFrustum ? 1 :
-                                     boundaryDistanceForRenderLevel(childNode->getLevel() + params.boundaryLevelAdjust);
+                                     boundaryDistanceForRenderLevel(childNode->getLevel() + params.boundaryLevelAdjust, 
+                                            params.voxelSizeScale);
 
             if (!(distance < boundaryDistance)) {
                 // don't need to check childNode here, because we can't get here with no childNode
@@ -1321,7 +1369,8 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
 
                 bool shouldRender = !params.viewFrustum 
                                     ? true 
-                                    : childNode->calculateShouldRender(params.viewFrustum, params.boundaryLevelAdjust);
+                                    : childNode->calculateShouldRender(params.viewFrustum, 
+                                                    params.voxelSizeScale, params.boundaryLevelAdjust);
                      
                 // track some stats               
                 if (params.stats) {
@@ -1412,7 +1461,6 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node, unsigned char* outp
 
     // write the child exist bits
     *writeToThisLevelBuffer = childrenExistInPacketBits;
-    writeToThisLevelBuffer += sizeof(childrenExistInPacketBits); // move the pointer
     bytesAtThisLevel += sizeof(childrenExistInPacketBits); // keep track of byte count
     if (params.stats) {
         params.stats->existsInPacketBitsWritten();
@@ -1764,9 +1812,10 @@ void VoxelTree::writeToSVOFile(const char* fileName, VoxelNode* node) {
         while (!nodeBag.isEmpty()) {
             VoxelNode* subTree = nodeBag.extract();
 
+            lockForRead(); // do tree locking down here so that we have shorter slices and less thread contention
             EncodeBitstreamParams params(INT_MAX, IGNORE_VIEW_FRUSTUM, WANT_COLOR, NO_EXISTS_BITS);
             bytesWritten = encodeTreeBitstream(subTree, &outputBuffer[0], MAX_VOXEL_PACKET_SIZE - 1, nodeBag, params);
-
+            unlock();
             file.write((const char*)&outputBuffer[0], bytesWritten);
         }
     }

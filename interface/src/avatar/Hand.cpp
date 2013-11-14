@@ -11,10 +11,9 @@
 #include "Application.h"
 #include "Avatar.h"
 #include "Hand.h"
+#include "Menu.h"
 #include "Util.h"
 #include "renderer/ProgramObject.h"
-
-const bool SHOW_LEAP_HAND = true;
 
 using namespace std;
 
@@ -52,6 +51,8 @@ void Hand::reset() {
 
 
 void Hand::simulate(float deltaTime, bool isMine) {
+    
+    calculateGeometry();
 
     if (_isRaveGloveActive) {
         if (_raveGloveEffectsModeChanged && _raveGloveInitialized) {
@@ -67,9 +68,9 @@ void Hand::calculateGeometry() {
     const glm::vec3 leapHandsOffsetFromFace(0.0, -0.2, -0.3);  // place the hand in front of the face where we can see it
     
     Head& head = _owningAvatar->getHead();
-    _basePosition = head.getPosition() + head.getOrientation() * leapHandsOffsetFromFace;
-    _baseOrientation = head.getOrientation();
-
+    _baseOrientation = _owningAvatar->getOrientation();
+    _basePosition = head.calculateAverageEyePosition() + _baseOrientation * leapHandsOffsetFromFace * head.getScale();
+    
     // generate finger tip balls....
     _leapFingerTipBalls.clear();
     for (size_t i = 0; i < getNumPalms(); ++i) {
@@ -137,9 +138,7 @@ void Hand::render(bool lookingInMirror) {
     _renderAlpha = 1.0;
     _lookingInMirror = lookingInMirror;
     
-    calculateGeometry();
-
-    if ( SHOW_LEAP_HAND ) {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::DisplayLeapHands)) {
         if (!isRaveGloveActive()) {
             renderLeapFingerTrails();
         }

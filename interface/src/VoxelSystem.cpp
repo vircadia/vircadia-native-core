@@ -109,6 +109,8 @@ VoxelSystem::VoxelSystem(float treeScale, int maxVoxels)
     _useFastVoxelPipeline = false;
     
     _culledOnce = false;
+    _inhideOutOfView = false;
+    _treeIsBusy = false;
 }
 
 void VoxelSystem::voxelDeleted(VoxelNode* node) {
@@ -139,7 +141,9 @@ void VoxelSystem::voxelUpdated(VoxelNode* node) {
     if (node->getVoxelSystem() == this) {
         bool shouldRender = false; // assume we don't need to render it
         // if it's colored, we might need to render it!
-        shouldRender = node->calculateShouldRender(_viewFrustum);
+        float voxelSizeScale = Menu::getInstance()->getVoxelSizeScale();
+        int boundaryLevelAdjust = Menu::getInstance()->getBoundaryLevelAdjust();
+        shouldRender = node->calculateShouldRender(_viewFrustum, voxelSizeScale, boundaryLevelAdjust);
 
         if (node->getShouldRender() != shouldRender) {
             node->setShouldRender(shouldRender);
@@ -155,7 +159,7 @@ void VoxelSystem::voxelUpdated(VoxelNode* node) {
                 VoxelNode* childNode = node->getChildAtIndex(i);
                 if (childNode) {
                     bool wasShouldRender = childNode->getShouldRender();
-                    bool isShouldRender = childNode->calculateShouldRender(_viewFrustum);
+                    bool isShouldRender = childNode->calculateShouldRender(_viewFrustum, voxelSizeScale, boundaryLevelAdjust);
                     if (wasShouldRender && !isShouldRender) {
                         childrenGotHiddenCount++;
                     }
@@ -416,6 +420,12 @@ void VoxelSystem::initVoxelMemory() {
 
     _memoryUsageRAM = 0;
     _memoryUsageVBO = 0; // our VBO allocations as we know them
+    
+    // if _voxelsAsPoints then we must have _useVoxelShader
+    if (_voxelsAsPoints && !_useVoxelShader) {
+        _useVoxelShader = true;
+    }
+    
     if (_useVoxelShader) {
         GLuint* indicesArray = new GLuint[_maxVoxels];
 
@@ -586,9 +596,9 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
                                     "readBitstreamToTree()");
             // ask the VoxelTree to read the bitstream into the tree
             ReadBitstreamToTreeParams args(WANT_COLOR, WANT_EXISTS_BITS, NULL, getDataSourceUUID());
-            pthread_mutex_lock(&_treeLock);
+            lockTree();
             _tree->readBitstreamToTree(voxelData, numBytes - numBytesPacketHeader, args);
-            pthread_mutex_unlock(&_treeLock);
+            unlockTree();
         }
             break;
         case PACKET_TYPE_VOXEL_DATA_MONOCHROME: {
@@ -596,9 +606,9 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
                                     "readBitstreamToTree()");
             // ask the VoxelTree to read the MONOCHROME bitstream into the tree
             ReadBitstreamToTreeParams args(NO_COLOR, WANT_EXISTS_BITS, NULL, getDataSourceUUID());
-            pthread_mutex_lock(&_treeLock);
+            lockTree();
             _tree->readBitstreamToTree(voxelData, numBytes - numBytesPacketHeader, args);
-            pthread_mutex_unlock(&_treeLock);
+            unlockTree();
         }
             break;
         case PACKET_TYPE_Z_COMMAND:
@@ -923,7 +933,9 @@ int VoxelSystem::newTreeToArrays(VoxelNode* node) {
     int   voxelsUpdated   = 0;
     bool  shouldRender    = false; // assume we don't need to render it
     // if it's colored, we might need to render it!
-    shouldRender = node->calculateShouldRender(_viewFrustum);
+    float voxelSizeScale = Menu::getInstance()->getVoxelSizeScale();;
+    int boundaryLevelAdjust = Menu::getInstance()->getBoundaryLevelAdjust();
+    shouldRender = node->calculateShouldRender(_viewFrustum, voxelSizeScale, boundaryLevelAdjust);
 
     node->setShouldRender(shouldRender);
     // let children figure out their renderness
@@ -985,13 +997,15 @@ int VoxelSystem::forceRemoveNodeFromArrays(VoxelNode* node) {
 
 int VoxelSystem::updateNodeInArrays(VoxelNode* node, bool reuseIndex, bool forceDraw) {
     // If we've run out of room, then just bail...
-    if (_voxelsInWriteArrays >= _maxVoxels) {
+    if (_voxelsInWriteArrays >= _maxVoxels && (_freeIndexes.size() == 0)) {
         // We need to think about what else we can do in this case. This basically means that all of our available
         // VBO slots are used up, but we're trying to render more voxels. At this point, if this happens we'll just
         // not render these Voxels. We need to think about ways to keep the entire scene intact but maybe lower quality
         // possibly shifting down to lower LOD or something. This debug message is to help identify, if/when/how this
         // state actually occurs.
-        qDebug("OHHHH NOOOOOO!!!! updateNodeInArrays() BAILING (_voxelsInWriteArrays >= _maxVoxels)\n");
+        if (Menu::getInstance()->isOptionChecked(MenuOption::ExtraDebugging)) {
+            qDebug("OHHHH NOOOOOO!!!! updateNodeInArrays() BAILING (_voxelsInWriteArrays >= _maxVoxels)\n");
+        }
         return 0;
     }
 
@@ -1246,13 +1260,27 @@ void VoxelSystem::render(bool texture) {
 
         if (!_voxelsAsPoints) {
             Application::getInstance()->getVoxelShader().begin();
-            
             attributeLocation = Application::getInstance()->getVoxelShader().attributeLocation("voxelSizeIn");
             glEnableVertexAttribArray(attributeLocation);
             glVertexAttribPointer(attributeLocation, 1, GL_FLOAT, false, sizeof(VoxelShaderVBOData), BUFFER_OFFSET(3*sizeof(float)));
         } else {
-            const float POINT_SIZE = 4.0;
-            glPointSize(POINT_SIZE);
+            glEnable(GL_VERTEX_PROGRAM_POINT_SIZE);
+
+            glm::vec2 viewDimensions = Application::getInstance()->getViewportDimensions();
+            float viewportWidth = viewDimensions.x;
+            float viewportHeight = viewDimensions.y;
+            glm::vec3 cameraPosition = Application::getInstance()->getViewFrustum()->getPosition();
+            PointShader& pointShader = Application::getInstance()->getPointShader();
+
+            pointShader.begin();
+
+            pointShader.setUniformValue(pointShader.uniformLocation("viewportWidth"), viewportWidth);
+            pointShader.setUniformValue(pointShader.uniformLocation("viewportHeight"), viewportHeight);
+            pointShader.setUniformValue(pointShader.uniformLocation("cameraPosition"), cameraPosition);
+
+            attributeLocation = pointShader.attributeLocation("voxelSizeIn");
+            glEnableVertexAttribArray(attributeLocation);
+            glVertexAttribPointer(attributeLocation, 1, GL_FLOAT, false, sizeof(VoxelShaderVBOData), BUFFER_OFFSET(3*sizeof(float)));
         }
         
         
@@ -1276,6 +1304,10 @@ void VoxelSystem::render(bool texture) {
         if (!_voxelsAsPoints) {
             Application::getInstance()->getVoxelShader().end();
             glDisableVertexAttribArray(attributeLocation);
+        } else {
+            Application::getInstance()->getPointShader().end();
+            glDisableVertexAttribArray(attributeLocation);
+            glDisable(GL_VERTEX_PROGRAM_POINT_SIZE);
         }
     } else {
         PerformanceWarning warn(showWarnings, "render().. TRIANGLES...");
@@ -1376,12 +1408,16 @@ void VoxelSystem::removeScaleAndReleaseProgram(bool texture) {
 int VoxelSystem::_nodeCount = 0;
 
 void VoxelSystem::killLocalVoxels() {
-    pthread_mutex_lock(&_treeLock);
+    lockTree();
     _tree->eraseAllVoxels();
-    pthread_mutex_unlock(&_treeLock);
+    unlockTree();
     clearFreeBufferIndexes();    
     _voxelsInReadArrays = 0; // do we need to do this?
     setupNewVoxelsForDrawing();
+}
+
+void VoxelSystem::redrawInViewVoxels() {
+    hideOutOfView(true);
 }
 
 
@@ -1393,9 +1429,9 @@ bool VoxelSystem::clearAllNodesBufferIndexOperation(VoxelNode* node, void* extra
 
 void VoxelSystem::clearAllNodesBufferIndex() {
     _nodeCount = 0;
-    pthread_mutex_lock(&_treeLock);                                  
+    lockTree();                                  
     _tree->recurseTreeWithOperation(clearAllNodesBufferIndexOperation);
-    pthread_mutex_unlock(&_treeLock);
+    unlockTree();
     if (Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings)) {
         qDebug("clearing buffer index of %d nodes\n", _nodeCount);
     }
@@ -1700,7 +1736,7 @@ bool VoxelSystem::isViewChanging() {
     bool result = false; // assume the best
 
     // If our viewFrustum has changed since our _lastKnownViewFrustum
-    if (!_lastKnownViewFrustum.matches(_viewFrustum)) {
+    if (!_lastKnownViewFrustum.isVerySimilar(_viewFrustum)) {
         result = true;
         _lastKnownViewFrustum = *_viewFrustum; // save last known
     }
@@ -1716,7 +1752,7 @@ bool VoxelSystem::hasViewChanged() {
     }
     
     // If our viewFrustum has changed since our _lastKnownViewFrustum
-    if (!_lastStableViewFrustum.matches(_viewFrustum)) {
+    if (!_lastStableViewFrustum.isVerySimilar(_viewFrustum)) {
         result = true;
         _lastStableViewFrustum = *_viewFrustum; // save last stable
     }
@@ -1771,7 +1807,9 @@ bool VoxelSystem::showAllLocalVoxelsOperation(VoxelNode* node, void* extraData) 
 
     args->nodesScanned++;
 
-    bool shouldRender = true; // node->calculateShouldRender(&args->thisViewFrustum);
+    float voxelSizeScale = Menu::getInstance()->getVoxelSizeScale();;
+    int boundaryLevelAdjust = Menu::getInstance()->getBoundaryLevelAdjust();
+    bool shouldRender = node->calculateShouldRender(&args->thisViewFrustum, voxelSizeScale, boundaryLevelAdjust);
     node->setShouldRender(shouldRender);
 
     if (shouldRender) {
@@ -1838,8 +1876,16 @@ public:
 };
 
 void VoxelSystem::hideOutOfView(bool forceFullFrustum) {
+
+    // don't re-enter...
+    if (_inhideOutOfView) {
+        return;
+    }
+    
+    _inhideOutOfView = true;
+
     bool showDebugDetails = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
-    PerformanceWarning warn(showDebugDetails, "hideOutOfView()", showDebugDetails);
+    PerformanceWarning warn(showDebugDetails, "hideOutOfView()");
     bool widenFrustum = true;
 
     // When using "delta" view frustums and only hide/show items that are in the difference
@@ -1867,12 +1913,15 @@ void VoxelSystem::hideOutOfView(bool forceFullFrustum) {
         }
     }
     
-    if (!forceFullFrustum && _culledOnce && args.lastViewFrustum.matches(args.thisViewFrustum)) {
+    if (!forceFullFrustum && _culledOnce && args.lastViewFrustum.isVerySimilar(args.thisViewFrustum)) {
         //printf("view frustum hasn't changed BAIL!!!\n");
+        _inhideOutOfView = false;
         return;
     }
-    
+
+    lockTree();                                  
     _tree->recurseTreeWithOperation(hideOutOfViewOperation,(void*)&args);
+    unlockTree();
     _lastCulledViewFrustum = args.thisViewFrustum; // save last stable
     _culledOnce = true;
 
@@ -1881,7 +1930,8 @@ void VoxelSystem::hideOutOfView(bool forceFullFrustum) {
         setupNewVoxelsForDrawingSingleNode(DONT_BAIL_EARLY);
     }
     
-    if (showDebugDetails) {
+    bool extraDebugDetails = Menu::getInstance()->isOptionChecked(MenuOption::ExtraDebugging);
+    if (extraDebugDetails) {
         qDebug("hideOutOfView() scanned=%ld removed=%ld inside=%ld intersect=%ld outside=%ld\n", 
                 args.nodesScanned, args.nodesRemoved, args.nodesInside, 
                 args.nodesIntersect, args.nodesOutside
@@ -1890,6 +1940,7 @@ void VoxelSystem::hideOutOfView(bool forceFullFrustum) {
                 args.nodesInsideInside, args.nodesIntersectInside, args.nodesOutsideOutside
             );
     }
+    _inhideOutOfView = false;
 }
 
 bool VoxelSystem::hideAllSubTreeOperation(VoxelNode* node, void* extraData) {
@@ -1947,7 +1998,9 @@ bool VoxelSystem::showAllSubTreeOperation(VoxelNode* node, void* extraData) {
 
     args->nodesInside++;
 
-    bool shouldRender = node->calculateShouldRender(&args->thisViewFrustum);
+    float voxelSizeScale = Menu::getInstance()->getVoxelSizeScale();
+    int boundaryLevelAdjust = Menu::getInstance()->getBoundaryLevelAdjust();
+    bool shouldRender = node->calculateShouldRender(&args->thisViewFrustum, voxelSizeScale, boundaryLevelAdjust);
     node->setShouldRender(shouldRender);
 
     if (shouldRender && !node->isKnownBufferIndex()) {
@@ -2057,10 +2110,10 @@ bool VoxelSystem::hideOutOfViewOperation(VoxelNode* node, void* extraData) {
 
 bool VoxelSystem::findRayIntersection(const glm::vec3& origin, const glm::vec3& direction,
                                       VoxelDetail& detail, float& distance, BoxFace& face) {
-    pthread_mutex_lock(&_treeLock);                                  
+    lockTree();                                  
     VoxelNode* node;
     if (!_tree->findRayIntersection(origin, direction, node, distance, face)) {
-        pthread_mutex_unlock(&_treeLock);
+        unlockTree();
         return false;
     }
     detail.x = node->getCorner().x;
@@ -2070,21 +2123,21 @@ bool VoxelSystem::findRayIntersection(const glm::vec3& origin, const glm::vec3& 
     detail.red = node->getColor()[0];
     detail.green = node->getColor()[1];
     detail.blue = node->getColor()[2];
-    pthread_mutex_unlock(&_treeLock);
+    unlockTree();
     return true;
 }
 
 bool VoxelSystem::findSpherePenetration(const glm::vec3& center, float radius, glm::vec3& penetration) {
-    pthread_mutex_lock(&_treeLock);
+    lockTree();
     bool result = _tree->findSpherePenetration(center, radius, penetration);
-    pthread_mutex_unlock(&_treeLock);
+    unlockTree();
     return result;
 }
 
 bool VoxelSystem::findCapsulePenetration(const glm::vec3& start, const glm::vec3& end, float radius, glm::vec3& penetration) {
-    pthread_mutex_lock(&_treeLock);
+    lockTree();
     bool result = _tree->findCapsulePenetration(start, end, radius, penetration);
-    pthread_mutex_unlock(&_treeLock);
+    unlockTree();
     return result;
 }
 
@@ -2258,9 +2311,9 @@ void VoxelSystem::collectStatsForTreesAndVBOs() {
 
 
 void VoxelSystem::deleteVoxelAt(float x, float y, float z, float s) {
-    pthread_mutex_lock(&_treeLock);
+    lockTree();
     _tree->deleteVoxelAt(x, y, z, s);
-    pthread_mutex_unlock(&_treeLock);
+    unlockTree();
     
     // redraw!
     setupNewVoxelsForDrawing();  // do we even need to do this? Or will the next network receive kick in?
@@ -2275,9 +2328,9 @@ void VoxelSystem::createVoxel(float x, float y, float z, float s,
                               unsigned char red, unsigned char green, unsigned char blue, bool destructive) {
     
     //qDebug("VoxelSystem::createVoxel(%f,%f,%f,%f)\n",x,y,z,s);
-    pthread_mutex_lock(&_treeLock);
+    lockTree();
     _tree->createVoxel(x, y, z, s, red, green, blue, destructive); 
-    pthread_mutex_unlock(&_treeLock);
+    unlockTree();
 
     setupNewVoxelsForDrawing(); 
 };
@@ -2592,23 +2645,8 @@ bool VoxelSystem::killSourceVoxelsOperation(VoxelNode* node, void* extraData) {
 void VoxelSystem::nodeKilled(Node* node) {
     if (node->getType() == NODE_TYPE_VOXEL_SERVER) {
         _voxelServerCount--;
-
         QUuid nodeUUID = node->getUUID();
-
         qDebug("VoxelSystem... voxel server %s removed...\n", nodeUUID.toString().toLocal8Bit().constData());
-        
-        if (_voxelServerCount > 0) {
-            // Kill any voxels from the local tree that match this nodeID
-            // commenting out for removal of 16 bit node IDs
-            pthread_mutex_lock(&_treeLock);
-            _tree->recurseTreeWithOperation(killSourceVoxelsOperation, &nodeUUID);
-            pthread_mutex_unlock(&_treeLock);
-            _tree->setDirtyBit();
-            setupNewVoxelsForDrawing();
-        } else {
-            // Last server, take the easy way and kill all the local voxels!
-            killLocalVoxels();
-        }
     }
 }
 
@@ -2668,6 +2706,16 @@ unsigned long VoxelSystem::getFreeMemoryGPU() {
 unsigned long VoxelSystem::getVoxelMemoryUsageGPU() {
     unsigned long currentFreeMemory = getFreeMemoryGPU();
     return (_initialMemoryUsageGPU - currentFreeMemory);
+}
+
+void VoxelSystem::lockTree() {
+    pthread_mutex_lock(&_treeLock);
+    _treeIsBusy = true;
+}
+
+void VoxelSystem::unlockTree() {
+    _treeIsBusy = false;
+    pthread_mutex_unlock(&_treeLock);
 }
 
 

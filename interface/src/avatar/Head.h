@@ -18,9 +18,9 @@
 #include <VoxelConstants.h>
 
 #include "BendyLine.h"
-#include "BlendFace.h"
-#include "Face.h"
+#include "FaceModel.h"
 #include "InterfaceConfig.h"
+#include "VideoFace.h"
 #include "world.h"
 #include "devices/SerialInterface.h"
 #include "renderer/TextureCache.h"
@@ -76,12 +76,15 @@ public:
     
     glm::quat getEyeRotation(const glm::vec3& eyePosition) const;
     
-    Face& getFace() { return _face; }
-    BlendFace& getBlendFace() { return _blendFace; }
+    VideoFace& getVideoFace() { return _videoFace; }
+    FaceModel& getFaceModel() { return _faceModel; }
     
     const bool getReturnToCenter() const { return _returnHeadToCenter; } // Do you want head to try to return to center (depends on interface detected)
     float getAverageLoudness() const { return _averageLoudness; }
     glm::vec3 calculateAverageEyePosition() { return _leftEyePosition + (_rightEyePosition - _leftEyePosition ) * ONE_HALF; }
+    
+    /// Returns the point about which scaling occurs.
+    glm::vec3 getScalePivot() const;
     
     float yawRate;
 
@@ -132,8 +135,8 @@ private:
     float _mousePitch;
     float _cameraYaw;
     bool _isCameraMoving;
-    Face _face;
-    BlendFace _blendFace;
+    VideoFace _videoFace;
+    FaceModel _faceModel;
 
     QSharedPointer<Texture> _dilatedIrisTexture;
 
@@ -154,7 +157,7 @@ private:
     void resetHairPhysics();
     void updateHairPhysics(float deltaTime);
 
-    friend class BlendFace;
+    friend class FaceModel;
 };
 
 #endif

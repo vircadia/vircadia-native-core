@@ -21,16 +21,22 @@ JurisdictionSender::JurisdictionSender(JurisdictionMap* map, PacketSenderNotify*
     ReceivedPacketProcessor(),
     _jurisdictionMap(map)
 {
+    pthread_mutex_init(&_requestingNodeMutex, 0);
 }
+
+JurisdictionSender::~JurisdictionSender() {
+    pthread_mutex_destroy(&_requestingNodeMutex);
+}
+
 
 void JurisdictionSender::processPacket(sockaddr& senderAddress, unsigned char*  packetData, ssize_t packetLength) {
     if (packetData[0] == PACKET_TYPE_VOXEL_JURISDICTION_REQUEST) {
         Node* node = NodeList::getInstance()->nodeWithAddress(&senderAddress);
         if (node) {
             QUuid nodeUUID = node->getUUID();
-            lock();
-            _nodesRequestingJurisdictions.insert(nodeUUID);
-            unlock();
+            lockRequestingNodes();
+            _nodesRequestingJurisdictions.push(nodeUUID);
+            unlockRequestingNodes();
         }
     }
 }
@@ -52,20 +58,20 @@ bool JurisdictionSender::process() {
         }
         int nodeCount = 0;
 
-        for (std::set<QUuid>::iterator nodeIterator = _nodesRequestingJurisdictions.begin();
-            nodeIterator != _nodesRequestingJurisdictions.end(); nodeIterator++) {
+        lockRequestingNodes();
+        while (!_nodesRequestingJurisdictions.empty()) {
 
-            QUuid nodeUUID = *nodeIterator;
+            QUuid nodeUUID = _nodesRequestingJurisdictions.front();
+            _nodesRequestingJurisdictions.pop();
             Node* node = NodeList::getInstance()->nodeWithUUID(nodeUUID);
 
             if (node->getActiveSocket() != NULL) {
                 sockaddr* nodeAddress = node->getActiveSocket();
                 queuePacketForSending(*nodeAddress, bufferOut, sizeOut);
                 nodeCount++;
-                // remove it from the set
-                _nodesRequestingJurisdictions.erase(nodeIterator);
             }
         }
+        unlockRequestingNodes();
 
         // set our packets per second to be the number of nodes
         setPacketsPerSecond(nodeCount);

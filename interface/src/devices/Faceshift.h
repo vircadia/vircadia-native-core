@@ -120,6 +120,7 @@ private:
     
     float _longTermAverageEyePitch;
     float _longTermAverageEyeYaw;
+    bool _longTermAverageInitialized;
     
     float _estimatedEyePitch;
     float _estimatedEyeYaw;

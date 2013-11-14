@@ -41,13 +41,20 @@ bool includeBlinkingVoxel = false;
 bool includeDanceFloor = true;
 bool buildStreet = false;
 bool nonThreadedPacketSender = false;
+int packetsPerSecond = PacketSender::DEFAULT_PACKETS_PER_SECOND;
+bool waitForVoxelServer = true;
 
 
 const int ANIMATION_LISTEN_PORT = 40107;
-const int ACTUAL_FPS = 60;
-const double OUR_FPS_IN_MILLISECONDS = 1000.0/ACTUAL_FPS; // determines FPS from our desired FPS
-const int FUDGE_USECS = 10; // a little bit of fudge to actually do some processing
-const int ANIMATE_VOXELS_INTERVAL_USECS = (OUR_FPS_IN_MILLISECONDS * 1000.0) - FUDGE_USECS; // converts from milliseconds to usecs
+int ANIMATE_FPS = 60;
+double ANIMATE_FPS_IN_MILLISECONDS = 1000.0/ANIMATE_FPS; // determines FPS from our desired FPS
+int ANIMATE_VOXELS_INTERVAL_USECS = (ANIMATE_FPS_IN_MILLISECONDS * 1000.0); // converts from milliseconds to usecs
+
+
+int PROCESSING_FPS = 60;
+double PROCESSING_FPS_IN_MILLISECONDS = 1000.0/PROCESSING_FPS; // determines FPS from our desired FPS
+int FUDGE_USECS = 650; // a little bit of fudge to actually do some processing
+int PROCESSING_INTERVAL_USECS = (PROCESSING_FPS_IN_MILLISECONDS * 1000.0) - FUDGE_USECS; // converts from milliseconds to usecs
 
 bool wantLocalDomain = false;
 
@@ -361,7 +368,7 @@ unsigned char danceFloorOnColorB[DANCE_FLOOR_COLORS][3] = {
 float danceFloorGradient = 0.5f;
 const float BEATS_PER_MINUTE = 118.0f;
 const float SECONDS_PER_MINUTE = 60.0f;
-const float FRAMES_PER_BEAT = (SECONDS_PER_MINUTE * ACTUAL_FPS) / BEATS_PER_MINUTE;
+const float FRAMES_PER_BEAT = (SECONDS_PER_MINUTE * ANIMATE_FPS) / BEATS_PER_MINUTE;
 float danceFloorGradientIncrement = 1.0f / FRAMES_PER_BEAT;
 const float DANCE_FLOOR_MAX_GRADIENT = 1.0f;
 const float DANCE_FLOOR_MIN_GRADIENT = 0.0f;
@@ -591,72 +598,120 @@ double start = 0;
 
 
 void* animateVoxels(void* args) {
-    
-    timeval lastSendTime;
+
+    uint64_t lastAnimateTime = 0;
+    uint64_t lastProcessTime = 0;
+    int processesPerAnimate = 0;
     
     bool firstTime = true;
+
+    std::cout << "Setting PPS to " << ::packetsPerSecond << "\n";
+    ::voxelEditPacketSender->setPacketsPerSecond(::packetsPerSecond);
+
+    std::cout << "PPS set to " << ::voxelEditPacketSender->getPacketsPerSecond() << "\n";
     
     while (true) {
-        gettimeofday(&lastSendTime, NULL);
+
+        // If we're asked to wait for voxel servers, and there isn't one available yet, then
+        // let the voxelEditPacketSender process and move on.
+        if (::waitForVoxelServer && !::voxelEditPacketSender->voxelServersExist()) {
+            if (::nonThreadedPacketSender) {
+                ::voxelEditPacketSender->process();
+            }
+        } else {
+            if (firstTime) {
+                lastAnimateTime = usecTimestampNow();
+                firstTime = false;
+            }
+            lastProcessTime = usecTimestampNow();
+
+            int packetsStarting = 0;
+            int packetsEnding = 0;
         
-        int packetsStarting = ::voxelEditPacketSender->packetsToSendCount();
+            // The while loop will be running at PROCESSING_FPS, but we only want to call these animation functions at
+            // ANIMATE_FPS. So we check out last animate time and only call these if we've elapsed that time.
+            uint64_t now = usecTimestampNow();
+            uint64_t animationElapsed = now - lastAnimateTime;
+            int withinAnimationTarget = ANIMATE_VOXELS_INTERVAL_USECS - animationElapsed;
+            const int CLOSE_ENOUGH_TO_ANIMATE = 2000; // approximately 2 ms
 
-        // some animations
-        //sendVoxelBlinkMessage();
+            int animateLoopsPerAnimate = 0;
+            while (withinAnimationTarget < CLOSE_ENOUGH_TO_ANIMATE) {
+                processesPerAnimate = 0;
+                animateLoopsPerAnimate++;
+            
+                lastAnimateTime = now;
+                packetsStarting =  ::voxelEditPacketSender->packetsToSendCount();
+            
+                // some animations
+                //sendVoxelBlinkMessage();
 
-        if (::includeBillboard) {
-            sendBillboard();
-        }
-        if (::includeBorderTracer) {
-            sendBlinkingStringOfLights();
-        }
-        if (::includeMovingBug) {
-            renderMovingBug();
-        }
-        if (::includeBlinkingVoxel) {
-            sendVoxelBlinkMessage();
-        }
-        if (::includeDanceFloor) {
-            sendDanceFloor();
-        }
+                if (::includeBillboard) {
+                    sendBillboard();
+                }
+                if (::includeBorderTracer) {
+                    sendBlinkingStringOfLights();
+                }
+                if (::includeMovingBug) {
+                    renderMovingBug();
+                }
+                if (::includeBlinkingVoxel) {
+                    sendVoxelBlinkMessage();
+                }
+                if (::includeDanceFloor) {
+                    sendDanceFloor();
+                }
         
-        if (::buildStreet) {
-            doBuildStreet();
-        }
+                if (::buildStreet) {
+                    doBuildStreet();
+                }
 
-        ::voxelEditPacketSender->releaseQueuedMessages();
-        int packetsEnding = ::voxelEditPacketSender->packetsToSendCount();
+                packetsEnding = ::voxelEditPacketSender->packetsToSendCount();
+
+                if (animationElapsed > ANIMATE_VOXELS_INTERVAL_USECS) {
+                    animationElapsed -= ANIMATE_VOXELS_INTERVAL_USECS; // credit ourselves one animation frame
+                } else {
+                    animationElapsed = 0;
+                }
+                withinAnimationTarget = ANIMATE_VOXELS_INTERVAL_USECS - animationElapsed;
+
+                ::voxelEditPacketSender->releaseQueuedMessages();
+            }
         
-        if (firstTime) {
-            int packetsPerSecond = std::max(ACTUAL_FPS, (packetsEnding - packetsStarting) * (ACTUAL_FPS));
-
-            std::cout << "Setting PPS to " << packetsPerSecond << "\n";
-
-            ::voxelEditPacketSender->setPacketsPerSecond(packetsPerSecond);
-            firstTime = false;
-        }
-
-
-        if (::nonThreadedPacketSender) {
-            ::voxelEditPacketSender->process();
-        }
+            if (::nonThreadedPacketSender) {
+                ::voxelEditPacketSender->process();
+            }
+            processesPerAnimate++;
         
-        uint64_t end = usecTimestampNow();
-        uint64_t elapsedSeconds = (end - ::start) / 1000000;
-        if (::shouldShowPacketsPerSecond) {
-            printf("packetsSent=%ld, bytesSent=%ld pps=%f bps=%f\n",packetsSent,bytesSent,
-                (float)(packetsSent/elapsedSeconds),(float)(bytesSent/elapsedSeconds));
+            if (::shouldShowPacketsPerSecond) {
+                float lifetimeSeconds = ::voxelEditPacketSender->getLifetimeInSeconds();
+                int targetPPS = ::voxelEditPacketSender->getPacketsPerSecond();
+                float lifetimePPS = ::voxelEditPacketSender->getLifetimePPS();
+                float lifetimeBPS = ::voxelEditPacketSender->getLifetimeBPS();
+                uint64_t totalPacketsSent = ::voxelEditPacketSender->getLifetimePacketsSent();
+                uint64_t totalBytesSent = ::voxelEditPacketSender->getLifetimeBytesSent();
+
+                float lifetimePPSQueued = ::voxelEditPacketSender->getLifetimePPSQueued();
+                float lifetimeBPSQueued = ::voxelEditPacketSender->getLifetimeBPSQueued();
+                uint64_t totalPacketsQueued = ::voxelEditPacketSender->getLifetimePacketsQueued();
+                uint64_t totalBytesQueued = ::voxelEditPacketSender->getLifetimeBytesQueued();
+
+                uint64_t packetsPending = ::voxelEditPacketSender->packetsToSendCount();
+
+                printf("lifetime=%f secs packetsSent=%lld, bytesSent=%lld targetPPS=%d pps=%f bps=%f\n",
+                    lifetimeSeconds, totalPacketsSent, totalBytesSent, targetPPS, lifetimePPS, lifetimeBPS);
+                printf("packetsPending=%lld packetsQueued=%lld, bytesQueued=%lld ppsQueued=%f bpsQueued=%f\n",
+                    packetsPending, totalPacketsQueued, totalBytesQueued, lifetimePPSQueued, lifetimeBPSQueued);
+            }
         }
         // dynamically sleep until we need to fire off the next set of voxels
-        uint64_t usecToSleep =  ANIMATE_VOXELS_INTERVAL_USECS - (usecTimestampNow() - usecTimestamp(&lastSendTime));
-        if (usecToSleep > ANIMATE_VOXELS_INTERVAL_USECS) {
-            usecToSleep = ANIMATE_VOXELS_INTERVAL_USECS;
+        uint64_t usecToSleep =  PROCESSING_INTERVAL_USECS - (usecTimestampNow() - lastProcessTime);
+        if (usecToSleep > PROCESSING_INTERVAL_USECS) {
+            usecToSleep = PROCESSING_INTERVAL_USECS;
         }
-        
+    
         if (usecToSleep > 0) {
             usleep(usecToSleep);
-        } else {
-            std::cout << "Last send took too much time, not sleeping!\n";
         }
     }
     
@@ -718,6 +773,49 @@ int main(int argc, const char * argv[])
         NodeList::getInstance()->setDomainHostname(domainHostname);
     }
 
+    const char* packetsPerSecondCommand = getCmdOption(argc, argv, "--pps");
+    if (packetsPerSecondCommand) {
+        ::packetsPerSecond = atoi(packetsPerSecondCommand);
+    }
+    printf("packetsPerSecond=%d\n",packetsPerSecond);
+
+    const char* animateFPSCommand = getCmdOption(argc, argv, "--AnimateFPS");
+    const char* animateIntervalCommand = getCmdOption(argc, argv, "--AnimateInterval");
+    if (animateFPSCommand || animateIntervalCommand) {
+        if (animateIntervalCommand) {
+            ::ANIMATE_FPS_IN_MILLISECONDS = atoi(animateIntervalCommand);
+            ::ANIMATE_VOXELS_INTERVAL_USECS = (ANIMATE_FPS_IN_MILLISECONDS * 1000.0); // converts from milliseconds to usecs
+            ::ANIMATE_FPS = PacketSender::USECS_PER_SECOND / ::ANIMATE_VOXELS_INTERVAL_USECS;
+        } else {
+            ::ANIMATE_FPS = atoi(animateFPSCommand);
+            ::ANIMATE_FPS_IN_MILLISECONDS = 1000.0/ANIMATE_FPS; // determines FPS from our desired FPS
+            ::ANIMATE_VOXELS_INTERVAL_USECS = (ANIMATE_FPS_IN_MILLISECONDS * 1000.0); // converts from milliseconds to usecs
+        }
+    }
+    printf("ANIMATE_FPS=%d\n",ANIMATE_FPS);
+    printf("ANIMATE_VOXELS_INTERVAL_USECS=%d\n",ANIMATE_VOXELS_INTERVAL_USECS);
+
+    const char* processingFPSCommand = getCmdOption(argc, argv, "--ProcessingFPS");
+    const char* processingIntervalCommand = getCmdOption(argc, argv, "--ProcessingInterval");
+    if (processingFPSCommand || processingIntervalCommand) {
+        if (processingIntervalCommand) {
+            ::PROCESSING_FPS_IN_MILLISECONDS = atoi(processingIntervalCommand);
+            ::PROCESSING_INTERVAL_USECS = ::PROCESSING_FPS_IN_MILLISECONDS * 1000.0;
+            ::PROCESSING_FPS = PacketSender::USECS_PER_SECOND / ::PROCESSING_INTERVAL_USECS;
+        } else {
+            ::PROCESSING_FPS = atoi(processingFPSCommand);
+            ::PROCESSING_FPS_IN_MILLISECONDS = 1000.0/PROCESSING_FPS; // determines FPS from our desired FPS
+            ::PROCESSING_INTERVAL_USECS = (PROCESSING_FPS_IN_MILLISECONDS * 1000.0) - FUDGE_USECS; // converts from milliseconds to usecs
+        }
+    }
+    printf("PROCESSING_FPS=%d\n",PROCESSING_FPS);
+    printf("PROCESSING_INTERVAL_USECS=%d\n",PROCESSING_INTERVAL_USECS);
+
+    if (cmdOptionExists(argc, argv, "--quickExit")) {
+        return 0;
+    }
+
+
     nodeList->linkedDataCreateCallback = NULL; // do we need a callback?
     nodeList->startSilentNodeRemovalThread();
     
@@ -735,7 +833,7 @@ int main(int argc, const char * argv[])
         ::voxelEditPacketSender->setVoxelServerJurisdictions(::jurisdictionListener->getJurisdictions());
     }
     if (::nonThreadedPacketSender) {
-        ::voxelEditPacketSender->setProcessCallIntervalHint(ANIMATE_VOXELS_INTERVAL_USECS);
+        ::voxelEditPacketSender->setProcessCallIntervalHint(PROCESSING_INTERVAL_USECS);
     }
     
     srand((unsigned)time(0));

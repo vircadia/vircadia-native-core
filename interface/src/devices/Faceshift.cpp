@@ -12,6 +12,7 @@
 
 #include "Faceshift.h"
 #include "Menu.h"
+#include "Util.h"
 
 using namespace fs;
 using namespace std;
@@ -40,6 +41,7 @@ Faceshift::Faceshift() :
     _jawOpenIndex(21),
     _longTermAverageEyePitch(0.0f),
     _longTermAverageEyeYaw(0.0f),
+    _longTermAverageInitialized(false),
     _estimatedEyePitch(0.0f),
     _estimatedEyeYaw(0.0f)
 {
@@ -61,13 +63,23 @@ void Faceshift::update() {
     if (!isActive()) {
         return;
     }
-    float averageEyePitch = (_eyeGazeLeftPitch + _eyeGazeRightPitch) / 2.0f;
-    float averageEyeYaw = (_eyeGazeLeftYaw + _eyeGazeRightYaw) / 2.0f;
+    // get the euler angles relative to the window
+    glm::vec3 eulers = safeEulerAngles(_headRotation * glm::quat(glm::radians(glm::vec3(
+        (_eyeGazeLeftPitch + _eyeGazeRightPitch) / 2.0f, (_eyeGazeLeftYaw + _eyeGazeRightYaw) / 2.0f, 0.0f))));
+    
+    // compute and subtract the long term average
     const float LONG_TERM_AVERAGE_SMOOTHING = 0.999f;
-    _longTermAverageEyePitch = glm::mix(averageEyePitch, _longTermAverageEyePitch, LONG_TERM_AVERAGE_SMOOTHING);
-    _longTermAverageEyeYaw = glm::mix(averageEyeYaw, _longTermAverageEyeYaw, LONG_TERM_AVERAGE_SMOOTHING);
-    _estimatedEyePitch = averageEyePitch - _longTermAverageEyePitch;
-    _estimatedEyeYaw = averageEyeYaw - _longTermAverageEyeYaw;
+    if (!_longTermAverageInitialized) {
+        _longTermAverageEyePitch = eulers.x;
+        _longTermAverageEyeYaw = eulers.y;
+        _longTermAverageInitialized = true;
+        
+    } else {
+        _longTermAverageEyePitch = glm::mix(eulers.x, _longTermAverageEyePitch, LONG_TERM_AVERAGE_SMOOTHING);
+        _longTermAverageEyeYaw = glm::mix(eulers.y, _longTermAverageEyeYaw, LONG_TERM_AVERAGE_SMOOTHING);
+    }
+    _estimatedEyePitch = eulers.x - _longTermAverageEyePitch;
+    _estimatedEyeYaw = eulers.y - _longTermAverageEyeYaw;
 }
 
 void Faceshift::reset() {
@@ -76,6 +88,7 @@ void Faceshift::reset() {
         fsBinaryStream::encode_message(message, fsMsgCalibrateNeutral());
         send(message);
     }
+    _longTermAverageInitialized = false;
 }
 
 void Faceshift::setTCPEnabled(bool enabled) {

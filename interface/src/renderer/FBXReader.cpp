@@ -9,17 +9,25 @@
 #include <QBuffer>
 #include <QDataStream>
 #include <QIODevice>
+#include <QStringList>
+#include <QTextStream>
 #include <QtDebug>
 #include <QtEndian>
 
 #include <glm/gtc/quaternion.hpp>
+#include <glm/gtx/quaternion.hpp>
 #include <glm/gtx/transform.hpp>
 
+#include <OctalCode.h>
+
+#include <VoxelTree.h>
+
 #include "FBXReader.h"
+#include "Util.h"
 
 using namespace std;
 
-template<class T> QVariant readArray(QDataStream& in) {
+template<class T> QVariant readBinaryArray(QDataStream& in) {
     quint32 arrayLength;
     quint32 encoding;
     quint32 compressedLength;
@@ -54,7 +62,7 @@ template<class T> QVariant readArray(QDataStream& in) {
     return QVariant::fromValue(values);
 }
 
-QVariant parseFBXProperty(QDataStream& in) {
+QVariant parseBinaryFBXProperty(QDataStream& in) {
     char ch;
     in.device()->getChar(&ch);
     switch (ch) {
@@ -89,19 +97,19 @@ QVariant parseFBXProperty(QDataStream& in) {
             return QVariant::fromValue(value);
         }
         case 'f': {
-            return readArray<float>(in);
+            return readBinaryArray<float>(in);
         }
         case 'd': {
-            return readArray<double>(in);
+            return readBinaryArray<double>(in);
         }
         case 'l': {
-            return readArray<qint64>(in);
+            return readBinaryArray<qint64>(in);
         }
         case 'i': {
-            return readArray<qint32>(in);
+            return readBinaryArray<qint32>(in);
         }
         case 'b': {
-            return readArray<bool>(in);
+            return readBinaryArray<bool>(in);
         }
         case 'S':
         case 'R': {
@@ -114,7 +122,7 @@ QVariant parseFBXProperty(QDataStream& in) {
     }
 }
 
-FBXNode parseFBXNode(QDataStream& in) {
+FBXNode parseBinaryFBXNode(QDataStream& in) {
     quint32 endOffset;
     quint32 propertyCount;
     quint32 propertyListLength;
@@ -134,11 +142,11 @@ FBXNode parseFBXNode(QDataStream& in) {
     node.name = in.device()->read(nameLength);
     
     for (int i = 0; i < propertyCount; i++) {
-        node.properties.append(parseFBXProperty(in));    
+        node.properties.append(parseBinaryFBXProperty(in));    
     }
     
     while (endOffset > in.device()->pos()) {
-        FBXNode child = parseFBXNode(in);
+        FBXNode child = parseBinaryFBXNode(in);
         if (child.name.isNull()) {
             return node;
             
@@ -150,28 +158,149 @@ FBXNode parseFBXNode(QDataStream& in) {
     return node;
 }
 
+class Tokenizer {
+public:
+    
+    Tokenizer(QIODevice* device) : _device(device), _pushedBackToken(-1) { }
+    
+    enum SpecialToken { DATUM_TOKEN = 0x100 };
+    
+    int nextToken();
+    const QByteArray& getDatum() const { return _datum; }
+    
+    void pushBackToken(int token) { _pushedBackToken = token; }
+    
+private:
+    
+    QIODevice* _device;
+    QByteArray _datum;
+    int _pushedBackToken;
+};
+
+int Tokenizer::nextToken() {
+    if (_pushedBackToken != -1) {
+        int token = _pushedBackToken;
+        _pushedBackToken = -1;
+        return token;
+    }
+
+    char ch;
+    while (_device->getChar(&ch)) {
+        if (QChar(ch).isSpace()) {
+            continue; // skip whitespace
+        }
+        switch (ch) {
+            case ';':
+                _device->readLine(); // skip the comment
+                break;
+                
+            case ':':
+            case '{':
+            case '}':
+            case ',':
+                return ch; // special punctuation
+            
+            case '\"':
+                _datum = "";
+                while (_device->getChar(&ch)) {
+                    if (ch == '\"') { // end on closing quote
+                        break;
+                    }
+                    if (ch == '\\') { // handle escaped quotes
+                        if (_device->getChar(&ch) && ch != '\"') {
+                            _datum.append('\\');
+                        }
+                    }
+                    _datum.append(ch);
+                }
+                return DATUM_TOKEN;   
+                
+            default:
+                _datum = "";
+                _datum.append(ch);
+                while (_device->getChar(&ch)) {
+                    if (QChar(ch).isSpace() || ch == ';' || ch == ':' || ch == '{' || ch == '}' || ch == ',' || ch == '\"') {
+                        _device->ungetChar(ch); // read until we encounter a special character, then replace it
+                        break;
+                    }
+                    _datum.append(ch);
+                }
+                return DATUM_TOKEN;
+        }
+    }
+    return -1;
+}
+
+FBXNode parseTextFBXNode(Tokenizer& tokenizer) {
+    FBXNode node;
+    
+    if (tokenizer.nextToken() != Tokenizer::DATUM_TOKEN) {
+        return node;
+    }
+    node.name = tokenizer.getDatum();
+    
+    if (tokenizer.nextToken() != ':') {
+        return node;
+    }
+    
+    int token;
+    bool expectingDatum = true;
+    while ((token = tokenizer.nextToken()) != -1) {
+        if (token == '{') {
+            for (FBXNode child = parseTextFBXNode(tokenizer); !child.name.isNull(); child = parseTextFBXNode(tokenizer)) {
+                node.children.append(child);
+            }
+            return node;
+        }
+        if (token == ',') {
+            expectingDatum = true;
+            
+        } else if (token == Tokenizer::DATUM_TOKEN && expectingDatum) {
+            node.properties.append(tokenizer.getDatum());
+            expectingDatum = false;
+        
+        } else {
+            tokenizer.pushBackToken(token);
+            return node;
+        }
+    }
+    
+    return node;
+}
+
 FBXNode parseFBX(QIODevice* device) {
+    // verify the prolog
+    const QByteArray BINARY_PROLOG = "Kaydara FBX Binary  ";
+    if (device->peek(BINARY_PROLOG.size()) != BINARY_PROLOG) {
+        // parse as a text file
+        FBXNode top;
+        Tokenizer tokenizer(device);
+        while (device->bytesAvailable()) {    
+            FBXNode next = parseTextFBXNode(tokenizer);
+            if (next.name.isNull()) {
+                return top;
+                
+            } else {
+                top.children.append(next);
+            }
+        }
+        return top;
+    }
     QDataStream in(device);
     in.setByteOrder(QDataStream::LittleEndian);
     in.setVersion(QDataStream::Qt_4_5); // for single/double precision switch
     
     // see http://code.blender.org/index.php/2013/08/fbx-binary-file-format-specification/ for an explanation
-    // of the FBX format
-    
-    // verify the prolog
-    const QByteArray EXPECTED_PROLOG = "Kaydara FBX Binary  ";
-    if (device->read(EXPECTED_PROLOG.size()) != EXPECTED_PROLOG) {
-        throw QString("Invalid header.");
-    }
+    // of the FBX binary format
     
     // skip the rest of the header
     const int HEADER_SIZE = 27;
-    in.skipRawData(HEADER_SIZE - EXPECTED_PROLOG.size());
+    in.skipRawData(HEADER_SIZE);
     
     // parse the top-level node
     FBXNode top;
     while (device->bytesAvailable()) {
-        FBXNode next = parseFBXNode(in);
+        FBXNode next = parseBinaryFBXNode(in);
         if (next.name.isNull()) {
             return top;
             
@@ -197,11 +326,11 @@ QVariantHash parseMapping(QIODevice* device) {
         }
         QByteArray name = sections.at(0).trimmed();
         if (sections.size() == 2) {
-            properties.insert(name, sections.at(1).trimmed());
+            properties.insertMulti(name, sections.at(1).trimmed());
         
         } else if (sections.size() == 3) {
             QVariantHash heading = properties.value(name).toHash();
-            heading.insert(sections.at(1).trimmed(), sections.at(2).trimmed());
+            heading.insertMulti(sections.at(1).trimmed(), sections.at(2).trimmed());
             properties.insert(name, heading);
             
         } else if (sections.size() >= 4) {
@@ -244,6 +373,56 @@ glm::mat4 createMat4(const QVector<double>& doubleVector) {
         doubleVector.at(4), doubleVector.at(5), doubleVector.at(6), doubleVector.at(7),
         doubleVector.at(8), doubleVector.at(9), doubleVector.at(10), doubleVector.at(11),
         doubleVector.at(12), doubleVector.at(13), doubleVector.at(14), doubleVector.at(15));
+}
+
+QVector<int> getIntVector(const QVariantList& properties, int index) {
+    QVector<int> vector = properties.at(index).value<QVector<int> >();
+    if (!vector.isEmpty()) {
+        return vector;
+    }
+    for (; index < properties.size(); index++) {
+        vector.append(properties.at(index).toInt());
+    }
+    return vector;
+}
+
+QVector<double> getDoubleVector(const QVariantList& properties, int index) {
+    QVector<double> vector = properties.at(index).value<QVector<double> >();
+    if (!vector.isEmpty()) {
+        return vector;
+    }
+    for (; index < properties.size(); index++) {
+        vector.append(properties.at(index).toDouble());
+    }
+    return vector;
+}
+
+glm::vec3 getVec3(const QVariantList& properties, int index) {
+    return glm::vec3(properties.at(index).value<double>(), properties.at(index + 1).value<double>(),
+        properties.at(index + 2).value<double>());
+}
+
+glm::vec3 parseVec3(const QString& string) {
+    QStringList elements = string.split(',');
+    if (elements.isEmpty()) {
+        return glm::vec3();
+    }
+    glm::vec3 value;
+    for (int i = 0; i < 3; i++) {
+        // duplicate last value if there aren't three elements
+        value[i] = elements.at(min(i, elements.size() - 1)).trimmed().toFloat();
+    }
+    return value;
+}
+
+QString processID(const QString& id) {
+    // Blender (at least) prepends a type to the ID, so strip it out
+    int index = id.indexOf("::");
+    return (index == -1) ? id : id.mid(index + 2);
+}
+
+QString getID(const QVariantList& properties, int index = 0) {
+    return processID(properties.at(index).toString());
 }
 
 const char* FACESHIFT_BLENDSHAPES[] = {
@@ -298,26 +477,33 @@ const char* FACESHIFT_BLENDSHAPES[] = {
     ""
 };
 
-class Model {
+class FBXModel {
 public:
-    QByteArray name;
-    
-    glm::mat4 preRotation;
-    glm::quat rotation;
-    glm::mat4 postRotation;
+    QString name;
     
     int parentIndex;
+    
+    glm::mat4 preTransform;
+    glm::quat preRotation;
+    glm::quat rotation;
+    glm::quat postRotation;
+    glm::mat4 postTransform;
+    
+    glm::vec3 rotationMin;
+    glm::vec3 rotationMax;
 };
 
-glm::mat4 getGlobalTransform(const QMultiHash<qint64, qint64>& parentMap, const QHash<qint64, Model>& models, qint64 nodeID) {
+glm::mat4 getGlobalTransform(const QMultiHash<QString, QString>& parentMap,
+        const QHash<QString, FBXModel>& models, QString nodeID) {
     glm::mat4 globalTransform;
-    while (nodeID != 0) {
-        const Model& model = models.value(nodeID);
-        globalTransform = model.preRotation * glm::mat4_cast(model.rotation) * model.postRotation * globalTransform;
+    while (!nodeID.isNull()) {
+        const FBXModel& model = models.value(nodeID);
+        globalTransform = model.preTransform * glm::mat4_cast(model.preRotation * model.rotation * model.postRotation) *
+            model.postTransform * globalTransform;
         
-        QList<qint64> parentIDs = parentMap.values(nodeID);
-        nodeID = 0;
-        foreach (qint64 parentID, parentIDs) {
+        QList<QString> parentIDs = parentMap.values(nodeID);
+        nodeID = QString();
+        foreach (const QString& parentID, parentIDs) {
             if (models.contains(parentID)) {
                 nodeID = parentID;
                 break;
@@ -330,7 +516,7 @@ glm::mat4 getGlobalTransform(const QMultiHash<qint64, qint64>& parentMap, const 
 
 class ExtractedBlendshape {
 public:
-    qint64 id;
+    QString id;
     FBXBlendshape blendshape;
 };
 
@@ -360,39 +546,237 @@ public:
     glm::mat4 transformLink;
 };
 
-void appendModelIDs(qint64 parentID, const QMultiHash<qint64, qint64>& childMap,
-        QHash<qint64, Model>& models, QVector<qint64>& modelIDs) {
-    if (parentID != 0) {
+void appendModelIDs(const QString& parentID, const QMultiHash<QString, QString>& childMap,
+        QHash<QString, FBXModel>& models, QVector<QString>& modelIDs) {
+    if (models.contains(parentID)) {
         modelIDs.append(parentID);
     }
     int parentIndex = modelIDs.size() - 1;
-    foreach (qint64 childID, childMap.values(parentID)) {
+    foreach (const QString& childID, childMap.values(parentID)) {
         if (models.contains(childID)) {
-            models[childID].parentIndex = parentIndex;
-            appendModelIDs(childID, childMap, models, modelIDs);
+            FBXModel& model = models[childID];
+            if (model.parentIndex == -1) {
+                model.parentIndex = parentIndex;
+                appendModelIDs(childID, childMap, models, modelIDs);
+            }
         }
     }
 }
 
+class Vertex {
+public:
+    int originalIndex;
+    glm::vec2 texCoord;
+};
+
+uint qHash(const Vertex& vertex, uint seed = 0) {
+    return qHash(vertex.originalIndex, seed);
+}
+
+bool operator==(const Vertex& v1, const Vertex& v2) {
+    return v1.originalIndex == v2.originalIndex && v1.texCoord == v2.texCoord;
+}
+
+class ExtractedMesh {
+public:
+    FBXMesh mesh;
+    QMultiHash<int, int> newIndices;
+};
+
+class MeshData {
+public:
+    ExtractedMesh extracted;
+    QVector<glm::vec3> vertices;
+    QVector<int> polygonIndices;
+    bool normalsByVertex;
+    QVector<glm::vec3> normals;
+    QVector<int> normalIndices;
+    QVector<glm::vec2> texCoords;
+    QVector<int> texCoordIndices;
+    
+    QHash<Vertex, int> indices;
+};
+
+void appendIndex(MeshData& data, QVector<int>& indices, int index) {
+    int vertexIndex = data.polygonIndices.at(index);
+    if (vertexIndex < 0) {
+        vertexIndex = -vertexIndex - 1;
+    }
+    
+    Vertex vertex;
+    vertex.originalIndex = vertexIndex;
+
+    glm::vec3 normal;
+    if (data.normalIndices.isEmpty()) {
+        normal = data.normals.at(data.normalsByVertex ? vertexIndex : index);
+        
+    } else {
+        int normalIndex = data.normalIndices.at(data.normalsByVertex ? vertexIndex : index);
+        if (normalIndex >= 0) {
+            normal = data.normals.at(normalIndex);
+        }
+    }
+
+    if (data.texCoordIndices.isEmpty()) {
+        if (index < data.texCoords.size()) {
+            vertex.texCoord = data.texCoords.at(index);    
+        }
+    } else {
+        int texCoordIndex = data.texCoordIndices.at(index);
+        if (texCoordIndex >= 0) {
+            vertex.texCoord = data.texCoords.at(texCoordIndex); 
+        }
+    }
+    
+    QHash<Vertex, int>::const_iterator it = data.indices.find(vertex);
+    if (it == data.indices.constEnd()) {
+        int newIndex = data.extracted.mesh.vertices.size();
+        indices.append(newIndex);
+        data.indices.insert(vertex, newIndex);
+        data.extracted.newIndices.insert(vertexIndex, newIndex);
+        data.extracted.mesh.vertices.append(data.vertices.at(vertexIndex));
+        data.extracted.mesh.normals.append(normal);
+        data.extracted.mesh.texCoords.append(vertex.texCoord);
+        
+    } else {
+        indices.append(*it);
+        data.extracted.mesh.normals[*it] += normal;
+    }
+}
+
+ExtractedMesh extractMesh(const FBXNode& object) {                
+    MeshData data;
+    QVector<int> materials;
+    foreach (const FBXNode& child, object.children) {
+        if (child.name == "Vertices") {
+            data.vertices = createVec3Vector(getDoubleVector(child.properties, 0));
+            
+        } else if (child.name == "PolygonVertexIndex") {
+            data.polygonIndices = getIntVector(child.properties, 0);
+        
+        } else if (child.name == "LayerElementNormal") {
+            data.normalsByVertex = false;
+            foreach (const FBXNode& subdata, child.children) {
+                if (subdata.name == "Normals") {
+                    data.normals = createVec3Vector(getDoubleVector(subdata.properties, 0));
+                
+                } else if (subdata.name == "NormalsIndex") {
+                    data.normalIndices = getIntVector(subdata.properties, 0);
+                    
+                } else if (subdata.name == "MappingInformationType" &&
+                        subdata.properties.at(0) == "ByVertice") {
+                    data.normalsByVertex = true;
+                }
+            }
+        } else if (child.name == "LayerElementUV" && child.properties.at(0).toInt() == 0) {
+            foreach (const FBXNode& subdata, child.children) {
+                if (subdata.name == "UV") {
+                    data.texCoords = createVec2Vector(getDoubleVector(subdata.properties, 0));
+                    
+                } else if (subdata.name == "UVIndex") {
+                    data.texCoordIndices = getIntVector(subdata.properties, 0);
+                }
+            }
+        } else if (child.name == "LayerElementMaterial") {
+            foreach (const FBXNode& subdata, child.children) {
+                if (subdata.name == "Materials") {
+                    materials = getIntVector(subdata.properties, 0);   
+                }
+            }
+        }
+    }
+    
+    // convert the polygons to quads and triangles
+    int polygonIndex = 0;
+    for (int beginIndex = 0; beginIndex < data.polygonIndices.size(); polygonIndex++) {
+        int endIndex = beginIndex;
+        while (data.polygonIndices.at(endIndex++) >= 0);
+        
+        int materialIndex = (polygonIndex < materials.size()) ? materials.at(polygonIndex) : 0;
+        data.extracted.mesh.parts.resize(max(data.extracted.mesh.parts.size(), materialIndex + 1));
+        FBXMeshPart& part = data.extracted.mesh.parts[materialIndex];
+        
+        if (endIndex - beginIndex == 4) {
+            appendIndex(data, part.quadIndices, beginIndex++);
+            appendIndex(data, part.quadIndices, beginIndex++);
+            appendIndex(data, part.quadIndices, beginIndex++);
+            appendIndex(data, part.quadIndices, beginIndex++);
+            
+        } else {
+            for (int nextIndex = beginIndex + 1;; ) {
+                appendIndex(data, part.triangleIndices, beginIndex);
+                appendIndex(data, part.triangleIndices, nextIndex++);
+                appendIndex(data, part.triangleIndices, nextIndex);
+                if (data.polygonIndices.at(nextIndex) < 0) {
+                    break;
+                }
+            }
+            beginIndex = endIndex;
+        }
+    }
+    
+    return data.extracted;
+}
+
+void setTangents(FBXMesh& mesh, int firstIndex, int secondIndex) {
+    glm::vec3 normal = glm::normalize(mesh.normals.at(firstIndex));
+    glm::vec3 bitangent = glm::cross(normal, mesh.vertices.at(secondIndex) - mesh.vertices.at(firstIndex));
+    if (glm::length(bitangent) < EPSILON) {
+        return;
+    }
+    glm::vec2 texCoordDelta = mesh.texCoords.at(secondIndex) - mesh.texCoords.at(firstIndex);
+    mesh.tangents[firstIndex] += glm::cross(glm::angleAxis(
+        -glm::degrees(atan2f(-texCoordDelta.t, texCoordDelta.s)), normal) * glm::normalize(bitangent), normal);
+}
+
+QVector<int> getIndices(const QVector<QString> ids, QVector<QString> modelIDs) {
+    QVector<int> indices;
+    foreach (const QString& id, ids) {
+        int index = modelIDs.indexOf(id);
+        if (index != -1) {
+            indices.append(index);
+        }
+    }
+    return indices;
+}
+
 FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping) {
-    QHash<qint64, FBXMesh> meshes;
+    QHash<QString, ExtractedMesh> meshes;
     QVector<ExtractedBlendshape> blendshapes;
-    QMultiHash<qint64, qint64> parentMap;
-    QMultiHash<qint64, qint64> childMap;
-    QHash<qint64, Model> models;
-    QHash<qint64, Cluster> clusters;
-    QHash<qint64, QByteArray> textureFilenames;
-    QHash<qint64, Material> materials;
-    QHash<qint64, qint64> diffuseTextures;
-    QHash<qint64, qint64> bumpTextures;
+    QMultiHash<QString, QString> parentMap;
+    QMultiHash<QString, QString> childMap;
+    QHash<QString, FBXModel> models;
+    QHash<QString, Cluster> clusters;
+    QHash<QString, QByteArray> textureFilenames;
+    QHash<QString, Material> materials;
+    QHash<QString, QString> diffuseTextures;
+    QHash<QString, QString> bumpTextures;
     
     QVariantHash joints = mapping.value("joint").toHash();
-    QByteArray jointEyeLeftName = joints.value("jointEyeLeft", "jointEyeLeft").toByteArray();
-    QByteArray jointEyeRightName = joints.value("jointEyeRight", "jointEyeRight").toByteArray();
-    QByteArray jointNeckName = joints.value("jointNeck", "jointNeck").toByteArray();
-    qint64 jointEyeLeftID = 0;
-    qint64 jointEyeRightID = 0;
-    qint64 jointNeckID = 0;
+    QString jointEyeLeftName = processID(joints.value("jointEyeLeft", "jointEyeLeft").toString());
+    QString jointEyeRightName = processID(joints.value("jointEyeRight", "jointEyeRight").toString());
+    QString jointNeckName = processID(joints.value("jointNeck", "jointNeck").toString());
+    QString jointRootName = processID(joints.value("jointRoot", "jointRoot").toString());
+    QString jointLeanName = processID(joints.value("jointLean", "jointLean").toString());
+    QString jointHeadName = processID(joints.value("jointHead", "jointHead").toString());
+    QString jointLeftHandName = processID(joints.value("jointLeftHand", "jointLeftHand").toString());
+    QString jointRightHandName = processID(joints.value("jointRightHand", "jointRightHand").toString());
+    QVariantList jointLeftFingerNames = joints.values("jointLeftFinger");
+    QVariantList jointRightFingerNames = joints.values("jointRightFinger");
+    QVariantList jointLeftFingertipNames = joints.values("jointLeftFingertip");
+    QVariantList jointRightFingertipNames = joints.values("jointRightFingertip");
+    QString jointEyeLeftID;
+    QString jointEyeRightID;
+    QString jointNeckID;
+    QString jointRootID;
+    QString jointLeanID;
+    QString jointHeadID;
+    QString jointLeftHandID;
+    QString jointRightHandID;
+    QVector<QString> jointLeftFingerIDs(jointLeftFingerNames.size());
+    QVector<QString> jointRightFingerIDs(jointRightFingerNames.size());
+    QVector<QString> jointLeftFingertipIDs(jointLeftFingertipNames.size());
+    QVector<QString> jointRightFingertipIDs(jointRightFingertipNames.size());
     
     QVariantHash blendshapeMappings = mapping.value("bs").toHash();
     QHash<QByteArray, QPair<int, float> > blendshapeIndices;
@@ -412,299 +796,260 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
             }
         }
     }
-    QHash<qint64, QPair<int, float> > blendshapeChannelIndices;
+    QHash<QString, QPair<int, float> > blendshapeChannelIndices;
     
     foreach (const FBXNode& child, node.children) {
         if (child.name == "Objects") {
             foreach (const FBXNode& object, child.children) {    
                 if (object.name == "Geometry") {
                     if (object.properties.at(2) == "Mesh") {
-                        FBXMesh mesh;
-                    
-                        QVector<int> polygonIndices;
-                        QVector<glm::vec3> normals;
-                        QVector<int> normalIndices;
-                        QVector<glm::vec2> texCoords;
-                        QVector<int> texCoordIndices;
-                        QVector<int> materials;
-                        foreach (const FBXNode& data, object.children) {
-                            if (data.name == "Vertices") {
-                                mesh.vertices = createVec3Vector(data.properties.at(0).value<QVector<double> >());
-                                
-                            } else if (data.name == "PolygonVertexIndex") {
-                                polygonIndices = data.properties.at(0).value<QVector<int> >();
-                            
-                            } else if (data.name == "LayerElementNormal") {
-                                bool byVertex = false;
-                                foreach (const FBXNode& subdata, data.children) {
-                                    if (subdata.name == "Normals") {
-                                        normals = createVec3Vector(subdata.properties.at(0).value<QVector<double> >());
-                                    
-                                    } else if (subdata.name == "NormalsIndex") {
-                                        normalIndices = subdata.properties.at(0).value<QVector<int> >();
-                                        
-                                    } else if (subdata.name == "MappingInformationType" &&
-                                            subdata.properties.at(0) == "ByVertice") {
-                                        byVertex = true;
-                                    }
-                                }
-                                if (byVertex) {
-                                    mesh.normals = normals;
-                                }
-                            } else if (data.name == "LayerElementUV" && data.properties.at(0).toInt() == 0) {
-                                foreach (const FBXNode& subdata, data.children) {
-                                    if (subdata.name == "UV") {
-                                        texCoords = createVec2Vector(subdata.properties.at(0).value<QVector<double> >());
-                                        
-                                    } else if (subdata.name == "UVIndex") {
-                                        texCoordIndices = subdata.properties.at(0).value<QVector<int> >();
-                                    }
-                                }
-                            } else if (data.name == "LayerElementMaterial") {
-                                foreach (const FBXNode& subdata, data.children) {
-                                    if (subdata.name == "Materials") {
-                                        materials = subdata.properties.at(0).value<QVector<int> >();   
-                                    }
-                                }
-                            }
-                        }
-                        
-                        // convert normals from per-index to per-vertex if necessary
-                        if (mesh.normals.isEmpty()) {
-                            mesh.normals.resize(mesh.vertices.size());
-                            if (normalIndices.isEmpty()) {
-                                for (int i = 0, n = polygonIndices.size(); i < n; i++) {
-                                    int index = polygonIndices.at(i);
-                                    mesh.normals[index < 0 ? (-index - 1) : index] = normals.at(i);
-                                } 
-                            } else {
-                                for (int i = 0, n = polygonIndices.size(); i < n; i++) {
-                                    int index = polygonIndices.at(i);
-                                    int normalIndex = normalIndices.at(i);
-                                    if (normalIndex >= 0) {
-                                        mesh.normals[index < 0 ? (-index - 1) : index] = normals.at(normalIndex);
-                                    }
-                                } 
-                            }
-                        }
-                        
-                        // same with the tex coords
-                        if (!texCoordIndices.isEmpty()) {
-                            mesh.texCoords.resize(mesh.vertices.size());
-                            for (int i = 0, n = polygonIndices.size(); i < n; i++) {
-                                int index = polygonIndices.at(i);
-                                int texCoordIndex = texCoordIndices.at(i);
-                                if (texCoordIndex >= 0) {
-                                    mesh.texCoords[index < 0 ? (-index - 1) : index] = texCoords.at(texCoordIndex); 
-                                }
-                            } 
-                        }
-                        
-                        // convert the polygons to quads and triangles
-                        int polygonIndex = 0;
-                        for (const int* beginIndex = polygonIndices.constData(), *end = beginIndex + polygonIndices.size();
-                                beginIndex != end; polygonIndex++) {
-                            const int* endIndex = beginIndex;
-                            while (*endIndex++ >= 0);
-                            
-                            int materialIndex = (polygonIndex < materials.size()) ? materials.at(polygonIndex) : 0;
-                            mesh.parts.resize(max(mesh.parts.size(), materialIndex + 1));
-                            FBXMeshPart& part = mesh.parts[materialIndex];
-                            
-                            if (endIndex - beginIndex == 4) {
-                                part.quadIndices.append(*beginIndex++);
-                                part.quadIndices.append(*beginIndex++);
-                                part.quadIndices.append(*beginIndex++);
-                                part.quadIndices.append(-*beginIndex++ - 1);
-                                
-                            } else {
-                                for (const int* nextIndex = beginIndex + 1;; ) {
-                                    part.triangleIndices.append(*beginIndex);
-                                    part.triangleIndices.append(*nextIndex++);
-                                    if (*nextIndex >= 0) {
-                                        part.triangleIndices.append(*nextIndex);
-                                    } else {
-                                        part.triangleIndices.append(-*nextIndex - 1);
-                                        break;
-                                    }
-                                }
-                                beginIndex = endIndex;
-                            }
-                        }
-                        meshes.insert(object.properties.at(0).value<qint64>(), mesh);
+                        meshes.insert(getID(object.properties), extractMesh(object));
                         
                     } else { // object.properties.at(2) == "Shape"
-                        ExtractedBlendshape extracted = { object.properties.at(0).value<qint64>() };
+                        ExtractedBlendshape extracted = { getID(object.properties) };
                         
                         foreach (const FBXNode& data, object.children) {
                             if (data.name == "Indexes") {
-                                extracted.blendshape.indices = data.properties.at(0).value<QVector<int> >();
+                                extracted.blendshape.indices = getIntVector(data.properties, 0);
                                 
                             } else if (data.name == "Vertices") {
                                 extracted.blendshape.vertices = createVec3Vector(
-                                    data.properties.at(0).value<QVector<double> >());
+                                    getDoubleVector(data.properties, 0));
                                 
                             } else if (data.name == "Normals") {
                                 extracted.blendshape.normals = createVec3Vector(
-                                    data.properties.at(0).value<QVector<double> >());
+                                    getDoubleVector(data.properties, 0));
                             }
                         }
                         
                         blendshapes.append(extracted);
                     }
                 } else if (object.name == "Model") {
-                    QByteArray name = object.properties.at(1).toByteArray();
-                    name = name.left(name.indexOf('\0'));
+                    QString name;
+                    if (object.properties.size() == 3) {
+                        name = object.properties.at(1).toString();
+                        name = name.left(name.indexOf(QChar('\0')));
+                        
+                    } else {
+                        name = getID(object.properties);
+                    }
+                    int index;
                     if (name == jointEyeLeftName || name == "EyeL" || name == "joint_Leye") {
-                        jointEyeLeftID = object.properties.at(0).value<qint64>();
+                        jointEyeLeftID = getID(object.properties);
                         
                     } else if (name == jointEyeRightName || name == "EyeR" || name == "joint_Reye") {
-                        jointEyeRightID = object.properties.at(0).value<qint64>();
+                        jointEyeRightID = getID(object.properties);
                         
                     } else if (name == jointNeckName || name == "NeckRot" || name == "joint_neck") {
-                        jointNeckID = object.properties.at(0).value<qint64>();
+                        jointNeckID = getID(object.properties);
+                        
+                    } else if (name == jointRootName) {
+                        jointRootID = getID(object.properties);
+                        
+                    } else if (name == jointLeanName) {
+                        jointLeanID = getID(object.properties);
+                        
+                    } else if (name == jointHeadName) {
+                        jointHeadID = getID(object.properties);
+                        
+                    } else if (name == jointLeftHandName) {
+                        jointLeftHandID = getID(object.properties);
+                        
+                    } else if (name == jointRightHandName) {
+                        jointRightHandID = getID(object.properties);
+                        
+                    } else if ((index = jointLeftFingerNames.indexOf(name)) != -1) {
+                        jointLeftFingerIDs[index] = getID(object.properties);
+                        
+                    } else if ((index = jointRightFingerNames.indexOf(name)) != -1) {
+                        jointRightFingerIDs[index] = getID(object.properties);
+                    
+                    } else if ((index = jointLeftFingertipNames.indexOf(name)) != -1) {
+                        jointLeftFingertipIDs[index] = getID(object.properties);
+                        
+                    } else if ((index = jointRightFingertipNames.indexOf(name)) != -1) {
+                        jointRightFingertipIDs[index] = getID(object.properties);
                     }
                     glm::vec3 translation;
                     glm::vec3 rotationOffset;
                     glm::vec3 preRotation, rotation, postRotation;
                     glm::vec3 scale = glm::vec3(1.0f, 1.0f, 1.0f);
                     glm::vec3 scalePivot, rotationPivot;
-                    Model model = { name };
+                    bool rotationMinX = false, rotationMinY = false, rotationMinZ = false;
+                    bool rotationMaxX = false, rotationMaxY = false, rotationMaxZ = false;
+                    glm::vec3 rotationMin, rotationMax;
+                    FBXModel model = { name, -1 };
                     foreach (const FBXNode& subobject, object.children) {
-                        if (subobject.name == "Properties70") {
+                        bool properties = false;
+                        QByteArray propertyName;
+                        int index;
+                        if (subobject.name == "Properties60") {
+                            properties = true;
+                            propertyName = "Property";
+                            index = 3;
+                            
+                        } else if (subobject.name == "Properties70") {
+                            properties = true;
+                            propertyName = "P";
+                            index = 4;
+                        }
+                        if (properties) {
                             foreach (const FBXNode& property, subobject.children) {
-                                if (property.name == "P") {
+                                if (property.name == propertyName) {
                                     if (property.properties.at(0) == "Lcl Translation") {
-                                        translation = glm::vec3(property.properties.at(4).value<double>(),
-                                            property.properties.at(5).value<double>(),
-                                            property.properties.at(6).value<double>());
+                                        translation = getVec3(property.properties, index);
 
                                     } else if (property.properties.at(0) == "RotationOffset") {
-                                        rotationOffset = glm::vec3(property.properties.at(4).value<double>(),
-                                            property.properties.at(5).value<double>(),
-                                            property.properties.at(6).value<double>());
-                                        
+                                        rotationOffset = getVec3(property.properties, index);
+                                            
                                     } else if (property.properties.at(0) == "RotationPivot") {
-                                        rotationPivot = glm::vec3(property.properties.at(4).value<double>(),
-                                            property.properties.at(5).value<double>(),
-                                            property.properties.at(6).value<double>());
+                                        rotationPivot = getVec3(property.properties, index);
                                     
                                     } else if (property.properties.at(0) == "PreRotation") {
-                                        preRotation = glm::vec3(property.properties.at(4).value<double>(),
-                                            property.properties.at(5).value<double>(),
-                                            property.properties.at(6).value<double>());
+                                        preRotation = getVec3(property.properties, index);
                                             
                                     } else if (property.properties.at(0) == "Lcl Rotation") {
-                                        rotation = glm::vec3(property.properties.at(4).value<double>(),
-                                            property.properties.at(5).value<double>(),
-                                            property.properties.at(6).value<double>());
+                                        rotation = getVec3(property.properties, index);
                                     
                                     } else if (property.properties.at(0) == "PostRotation") {
-                                        postRotation = glm::vec3(property.properties.at(4).value<double>(),
-                                            property.properties.at(5).value<double>(),
-                                            property.properties.at(6).value<double>());
+                                        postRotation = getVec3(property.properties, index);
                                         
                                     } else if (property.properties.at(0) == "ScalingPivot") {
-                                        scalePivot = glm::vec3(property.properties.at(4).value<double>(),
-                                            property.properties.at(5).value<double>(),
-                                            property.properties.at(6).value<double>());
+                                        scalePivot = getVec3(property.properties, index);
                                             
                                     } else if (property.properties.at(0) == "Lcl Scaling") {
-                                        scale = glm::vec3(property.properties.at(4).value<double>(),
-                                            property.properties.at(5).value<double>(),
-                                            property.properties.at(6).value<double>());       
+                                        scale = getVec3(property.properties, index);
+                                        
+                                    } else if (property.properties.at(0) == "RotationMin") {
+                                        rotationMin = getVec3(property.properties, index);
+                                        
+                                    } else if (property.properties.at(0) == "RotationMax") {
+                                        rotationMax = getVec3(property.properties, index);
+                                    
+                                    } else if (property.properties.at(0) == "RotationMinX") {
+                                        rotationMinX = property.properties.at(index).toBool();
+                                        
+                                    } else if (property.properties.at(0) == "RotationMinY") {
+                                        rotationMinY = property.properties.at(index).toBool();
+                                    
+                                    } else if (property.properties.at(0) == "RotationMinZ") {
+                                        rotationMinZ = property.properties.at(index).toBool();
+                                    
+                                    } else if (property.properties.at(0) == "RotationMaxX") {
+                                        rotationMaxX = property.properties.at(index).toBool();
+                                        
+                                    } else if (property.properties.at(0) == "RotationMaxY") {
+                                        rotationMaxY = property.properties.at(index).toBool();
+                                    
+                                    } else if (property.properties.at(0) == "RotationMaxZ") {
+                                        rotationMaxZ = property.properties.at(index).toBool();
                                     }
                                 }
                             }
+                        } else if (subobject.name == "Vertices") {
+                            // it's a mesh as well as a model
+                            meshes.insert(getID(object.properties), extractMesh(object));
                         }
                     }
                     // see FBX documentation, http://download.autodesk.com/us/fbx/20112/FBX_SDK_HELP/index.html
-                    model.preRotation = glm::translate(translation) * glm::translate(rotationOffset) *
-                        glm::translate(rotationPivot) * glm::mat4_cast(glm::quat(glm::radians(preRotation)));                   
+                    model.preTransform = glm::translate(translation) * glm::translate(rotationOffset) *
+                        glm::translate(rotationPivot);      
+                    model.preRotation = glm::quat(glm::radians(preRotation));            
                     model.rotation = glm::quat(glm::radians(rotation));
-                    model.postRotation = glm::mat4_cast(glm::quat(glm::radians(postRotation))) *
-                        glm::translate(-rotationPivot) * glm::translate(scalePivot) *
+                    model.postRotation = glm::quat(glm::radians(postRotation));
+                    model.postTransform = glm::translate(-rotationPivot) * glm::translate(scalePivot) *
                         glm::scale(scale) * glm::translate(-scalePivot);
-                    models.insert(object.properties.at(0).value<qint64>(), model);
-                
+                    model.rotationMin = glm::vec3(rotationMinX ? rotationMin.x : -180.0f,
+                        rotationMinY ? rotationMin.y : -180.0f, rotationMinZ ? rotationMin.z : -180.0f);
+                    model.rotationMax = glm::vec3(rotationMaxX ? rotationMax.x : 180.0f,
+                        rotationMaxY ? rotationMax.y : 180.0f, rotationMaxZ ? rotationMax.z : 180.0f);
+                    models.insert(getID(object.properties), model);
+
                 } else if (object.name == "Texture") {
                     foreach (const FBXNode& subobject, object.children) {
                         if (subobject.name == "RelativeFilename") {
                             // trim off any path information
                             QByteArray filename = subobject.properties.at(0).toByteArray();
                             filename = filename.mid(qMax(filename.lastIndexOf('\\'), filename.lastIndexOf('/')) + 1);
-                            textureFilenames.insert(object.properties.at(0).value<qint64>(), filename);
+                            textureFilenames.insert(getID(object.properties), filename);
                         }
                     }
                 } else if (object.name == "Material") {
                     Material material = { glm::vec3(1.0f, 1.0f, 1.0f), glm::vec3(1.0f, 1.0f, 1.0f), 96.0f };
                     foreach (const FBXNode& subobject, object.children) {
-                        if (subobject.name == "Properties70") {        
+                        bool properties = false;
+                        QByteArray propertyName;
+                        int index;
+                        if (subobject.name == "Properties60") {
+                            properties = true;
+                            propertyName = "Property";
+                            index = 3;
+                            
+                        } else if (subobject.name == "Properties70") {
+                            properties = true;
+                            propertyName = "P";
+                            index = 4;
+                        }
+                        if (properties) {        
                             foreach (const FBXNode& property, subobject.children) {
-                                if (property.name == "P") {
+                                if (property.name == propertyName) {
                                     if (property.properties.at(0) == "DiffuseColor") {
-                                        material.diffuse = glm::vec3(property.properties.at(4).value<double>(),
-                                            property.properties.at(5).value<double>(),
-                                            property.properties.at(6).value<double>());
+                                        material.diffuse = getVec3(property.properties, index);
                                         
                                     } else if (property.properties.at(0) == "SpecularColor") {
-                                        material.specular = glm::vec3(property.properties.at(4).value<double>(),
-                                            property.properties.at(5).value<double>(),
-                                            property.properties.at(6).value<double>());
+                                        material.specular = getVec3(property.properties, index);
                                     
                                     } else if (property.properties.at(0) == "Shininess") {
-                                        material.shininess = property.properties.at(4).value<double>();
+                                        material.shininess = property.properties.at(index).value<double>();
                                     }
                                 }
                             }
                         }
                     }
-                    materials.insert(object.properties.at(0).value<qint64>(), material);
+                    materials.insert(getID(object.properties), material);
                     
                 } else if (object.name == "Deformer") {
-                    if (object.properties.at(2) == "Cluster") {
+                    if (object.properties.last() == "Cluster") {
                         Cluster cluster;
                         foreach (const FBXNode& subobject, object.children) {
                             if (subobject.name == "Indexes") {
-                                cluster.indices = subobject.properties.at(0).value<QVector<int> >();
+                                cluster.indices = getIntVector(subobject.properties, 0);
                                 
                             } else if (subobject.name == "Weights") {
-                                cluster.weights = subobject.properties.at(0).value<QVector<double> >();
+                                cluster.weights = getDoubleVector(subobject.properties, 0);
                             
                             } else if (subobject.name == "TransformLink") {
-                                QVector<double> values = subobject.properties.at(0).value<QVector<double> >();
+                                QVector<double> values = getDoubleVector(subobject.properties, 0);
                                 cluster.transformLink = createMat4(values);
                             }
                         }
-                        clusters.insert(object.properties.at(0).value<qint64>(), cluster);
+                        clusters.insert(getID(object.properties), cluster);
                         
-                    } else if (object.properties.at(2) == "BlendShapeChannel") {
+                    } else if (object.properties.last() == "BlendShapeChannel") {
                         QByteArray name = object.properties.at(1).toByteArray();
                         name = name.left(name.indexOf('\0'));
                         if (!blendshapeIndices.contains(name)) {
                             // try everything after the dot
                             name = name.mid(name.lastIndexOf('.') + 1);
                         }
-                        blendshapeChannelIndices.insert(object.properties.at(0).value<qint64>(),
-                            blendshapeIndices.value(name));
+                        blendshapeChannelIndices.insert(getID(object.properties), blendshapeIndices.value(name));
                     }
                 }
             }
         } else if (child.name == "Connections") {
             foreach (const FBXNode& connection, child.children) {    
-                if (connection.name == "C") {
+                if (connection.name == "C" || connection.name == "Connect") {
                     if (connection.properties.at(0) == "OP") {
-                        if (connection.properties.at(3) == "DiffuseColor") { 
-                            diffuseTextures.insert(connection.properties.at(2).value<qint64>(),
-                                connection.properties.at(1).value<qint64>());
+                        QByteArray type = connection.properties.at(3).toByteArray().toLower();
+                        if (type.contains("diffuse")) { 
+                            diffuseTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
                                                     
-                        } else if (connection.properties.at(3) == "Bump") {
-                            bumpTextures.insert(connection.properties.at(2).value<qint64>(),
-                                connection.properties.at(1).value<qint64>());
+                        } else if (type.contains("bump")) {
+                            bumpTextures.insert(getID(connection.properties, 2), getID(connection.properties, 1));
                         }
                     }
-                    parentMap.insert(connection.properties.at(1).value<qint64>(), connection.properties.at(2).value<qint64>());
-                    childMap.insert(connection.properties.at(2).value<qint64>(), connection.properties.at(1).value<qint64>());
+                    parentMap.insert(getID(connection.properties, 1), getID(connection.properties, 2));
+                    childMap.insert(getID(connection.properties, 2), getID(connection.properties, 1));
                 }
             }
         }
@@ -712,58 +1057,109 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     
     // assign the blendshapes to their corresponding meshes
     foreach (const ExtractedBlendshape& extracted, blendshapes) {
-        qint64 blendshapeChannelID = parentMap.value(extracted.id);
+        QString blendshapeChannelID = parentMap.value(extracted.id);
         QPair<int, float> index = blendshapeChannelIndices.value(blendshapeChannelID);
-        qint64 blendshapeID = parentMap.value(blendshapeChannelID);
-        qint64 meshID = parentMap.value(blendshapeID);
-        FBXMesh& mesh = meshes[meshID];
-        mesh.blendshapes.resize(max(mesh.blendshapes.size(), index.first + 1));
-        mesh.blendshapes[index.first] = extracted.blendshape;
-        
-        // apply scale if non-unity
-        if (index.second != 1.0f) {
-            FBXBlendshape& blendshape = mesh.blendshapes[index.first];
-            for (int i = 0; i < blendshape.vertices.size(); i++) {
-                blendshape.vertices[i] *= index.second;
-                blendshape.normals[i] *= index.second;
-            }
+        QString blendshapeID = parentMap.value(blendshapeChannelID);
+        QString meshID = parentMap.value(blendshapeID);
+        ExtractedMesh& extractedMesh = meshes[meshID];
+        extractedMesh.mesh.blendshapes.resize(max(extractedMesh.mesh.blendshapes.size(), index.first + 1));
+        FBXBlendshape& blendshape = extractedMesh.mesh.blendshapes[index.first];
+        for (int i = 0; i < extracted.blendshape.indices.size(); i++) {
+            int oldIndex = extracted.blendshape.indices.at(i);
+            for (QMultiHash<int, int>::const_iterator it = extractedMesh.newIndices.constFind(oldIndex);
+                    it != extractedMesh.newIndices.constEnd() && it.key() == oldIndex; it++) {
+                blendshape.indices.append(it.value());
+                blendshape.vertices.append(extracted.blendshape.vertices.at(i) * index.second);
+                blendshape.normals.append(extracted.blendshape.normals.at(i) * index.second);
+            } 
         }
     }
     
     // get offset transform from mapping
     FBXGeometry geometry;
     float offsetScale = mapping.value("scale", 1.0f).toFloat();
+    glm::quat offsetRotation = glm::quat(glm::radians(glm::vec3(mapping.value("rx").toFloat(),
+            mapping.value("ry").toFloat(), mapping.value("rz").toFloat())));
     geometry.offset = glm::translate(mapping.value("tx").toFloat(), mapping.value("ty").toFloat(),
-        mapping.value("tz").toFloat()) * glm::mat4_cast(glm::quat(glm::radians(glm::vec3(mapping.value("rx").toFloat(),
-            mapping.value("ry").toFloat(), mapping.value("rz").toFloat())))) *
-        glm::scale(offsetScale, offsetScale, offsetScale);
+        mapping.value("tz").toFloat()) * glm::mat4_cast(offsetRotation) * glm::scale(offsetScale, offsetScale, offsetScale);
     
     // get the list of models in depth-first traversal order
-    QVector<qint64> modelIDs;
-    appendModelIDs(0, childMap, models, modelIDs);
+    QVector<QString> modelIDs;
+    if (!models.isEmpty()) {
+        QString top = models.constBegin().key();
+        forever {
+            foreach (const QString& name, parentMap.values(top)) {
+                if (models.contains(name)) {
+                    top = name;
+                    goto outerContinue;
+                }
+            }
+            top = parentMap.value(top);
+            break;
+            
+            outerContinue: ;
+        }
+        appendModelIDs(top, childMap, models, modelIDs);
+    }
     
     // convert the models to joints
-    foreach (qint64 modelID, modelIDs) {
-        const Model& model = models[modelID];
+    QVariantList freeJoints = mapping.values("freeJoint");
+    foreach (const QString& modelID, modelIDs) {
+        const FBXModel& model = models[modelID];
         FBXJoint joint;
+        joint.isFree = freeJoints.contains(model.name);
         joint.parentIndex = model.parentIndex;
+        
+        // get the indices of all ancestors starting with the first free one (if any)
+        joint.freeLineage.append(geometry.joints.size());
+        int lastFreeIndex = joint.isFree ? 0 : -1;
+        for (int index = joint.parentIndex; index != -1; index = geometry.joints.at(index).parentIndex) {
+            if (geometry.joints.at(index).isFree) {
+                lastFreeIndex = joint.freeLineage.size();
+            }
+            joint.freeLineage.append(index);
+        }
+        joint.freeLineage.remove(lastFreeIndex + 1, joint.freeLineage.size() - lastFreeIndex - 1);
+        
+        joint.preTransform = model.preTransform;
         joint.preRotation = model.preRotation;
         joint.rotation = model.rotation;
         joint.postRotation = model.postRotation;
-        if (joint.parentIndex == -1) {
-            joint.transform = geometry.offset * model.preRotation * glm::mat4_cast(model.rotation) * model.postRotation;
+        joint.postTransform = model.postTransform;
+        joint.rotationMin = model.rotationMin;
+        joint.rotationMax = model.rotationMax;
+        glm::quat combinedRotation = model.preRotation * model.rotation * model.postRotation;
+        if (joint.parentIndex == -1) {    
+            joint.transform = geometry.offset * model.preTransform * glm::mat4_cast(combinedRotation) * model.postTransform;
+            joint.inverseDefaultRotation = glm::inverse(combinedRotation);
+            joint.distanceToParent = 0.0f;
             
         } else {
-            joint.transform = geometry.joints.at(joint.parentIndex).transform *
-                model.preRotation * glm::mat4_cast(model.rotation) * model.postRotation;
+            const FBXJoint& parentJoint = geometry.joints.at(joint.parentIndex);
+            joint.transform = parentJoint.transform *
+                model.preTransform * glm::mat4_cast(combinedRotation) * model.postTransform;
+            joint.inverseDefaultRotation = glm::inverse(combinedRotation) * parentJoint.inverseDefaultRotation;
+            joint.distanceToParent = glm::distance(extractTranslation(parentJoint.transform),
+                extractTranslation(joint.transform));
         }
-        geometry.joints.append(joint);    
+        joint.inverseBindRotation = joint.inverseDefaultRotation;
+        geometry.joints.append(joint);
+        geometry.jointIndices.insert(model.name, geometry.joints.size() - 1);  
     }
     
     // find our special joints
     geometry.leftEyeJointIndex = modelIDs.indexOf(jointEyeLeftID);
     geometry.rightEyeJointIndex = modelIDs.indexOf(jointEyeRightID);
     geometry.neckJointIndex = modelIDs.indexOf(jointNeckID);
+    geometry.rootJointIndex = modelIDs.indexOf(jointRootID);
+    geometry.leanJointIndex = modelIDs.indexOf(jointLeanID);
+    geometry.headJointIndex = modelIDs.indexOf(jointHeadID);
+    geometry.leftHandJointIndex = modelIDs.indexOf(jointLeftHandID);
+    geometry.rightHandJointIndex = modelIDs.indexOf(jointRightHandID);
+    geometry.leftFingerJointIndices = getIndices(jointLeftFingerIDs, modelIDs);
+    geometry.rightFingerJointIndices = getIndices(jointRightFingerIDs, modelIDs);
+    geometry.leftFingertipJointIndices = getIndices(jointLeftFingertipIDs, modelIDs);
+    geometry.rightFingertipJointIndices = getIndices(jointRightFingertipIDs, modelIDs);
     
     // extract the translation component of the neck transform
     if (geometry.neckJointIndex != -1) {
@@ -773,40 +1169,75 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     
     QVariantHash springs = mapping.value("spring").toHash();
     QVariant defaultSpring = springs.value("default");
-    for (QHash<qint64, FBXMesh>::iterator it = meshes.begin(); it != meshes.end(); it++) {
-        FBXMesh& mesh = it.value();
+    for (QHash<QString, ExtractedMesh>::iterator it = meshes.begin(); it != meshes.end(); it++) {
+        ExtractedMesh& extracted = it.value();
         
         // accumulate local transforms
-        qint64 modelID = parentMap.value(it.key());
-        mesh.springiness = springs.value(models.value(modelID).name, defaultSpring).toFloat();
+        QString modelID = models.contains(it.key()) ? it.key() : parentMap.value(it.key());
+        extracted.mesh.springiness = springs.value(models.value(modelID).name, defaultSpring).toFloat();
         glm::mat4 modelTransform = getGlobalTransform(parentMap, models, modelID);
         
         // look for textures, material properties
-        int partIndex = 0;
-        foreach (qint64 childID, childMap.values(modelID)) {
-            if (!materials.contains(childID) || partIndex >= mesh.parts.size()) {
+        int partIndex = extracted.mesh.parts.size() - 1;
+        bool generateTangents = false;
+        foreach (const QString& childID, childMap.values(modelID)) {
+            if (partIndex < 0) {
+                break;
+            }
+            FBXMeshPart& part = extracted.mesh.parts[partIndex];
+            if (textureFilenames.contains(childID)) {
+                part.diffuseFilename = textureFilenames.value(childID);
+                continue;
+            }
+            if (!materials.contains(childID)) {
                 continue;
             }
             Material material = materials.value(childID);
-            FBXMeshPart& part = mesh.parts[mesh.parts.size() - ++partIndex];
             part.diffuseColor = material.diffuse;
             part.specularColor = material.specular;
             part.shininess = material.shininess;
-            qint64 diffuseTextureID = diffuseTextures.value(childID);
-            if (diffuseTextureID != 0) {
+            QString diffuseTextureID = diffuseTextures.value(childID);
+            if (!diffuseTextureID.isNull()) {
                 part.diffuseFilename = textureFilenames.value(diffuseTextureID);
+                
+                // FBX files generated by 3DSMax have an intermediate texture parent, apparently
+                foreach (const QString& childTextureID, childMap.values(diffuseTextureID)) {
+                    if (textureFilenames.contains(childTextureID)) {
+                        part.diffuseFilename = textureFilenames.value(childTextureID);
+                    }
+                }
             }
-            qint64 bumpTextureID = bumpTextures.value(childID);
-            if (bumpTextureID != 0) {
+            QString bumpTextureID = bumpTextures.value(childID);
+            if (!bumpTextureID.isNull()) {
                 part.normalFilename = textureFilenames.value(bumpTextureID);
+                generateTangents = true;
+            }
+            partIndex--;
+        }
+        
+        // if we have a normal map (and texture coordinates), we must compute tangents
+        if (generateTangents && !extracted.mesh.texCoords.isEmpty()) {
+            extracted.mesh.tangents.resize(extracted.mesh.vertices.size());
+            foreach (const FBXMeshPart& part, extracted.mesh.parts) {
+                for (int i = 0; i < part.quadIndices.size(); i += 4) {
+                    setTangents(extracted.mesh, part.quadIndices.at(i), part.quadIndices.at(i + 1));
+                    setTangents(extracted.mesh, part.quadIndices.at(i + 1), part.quadIndices.at(i + 2));
+                    setTangents(extracted.mesh, part.quadIndices.at(i + 2), part.quadIndices.at(i + 3));
+                    setTangents(extracted.mesh, part.quadIndices.at(i + 3), part.quadIndices.at(i));
+                }
+                for (int i = 0; i < part.triangleIndices.size(); i += 3) {
+                    setTangents(extracted.mesh, part.triangleIndices.at(i), part.triangleIndices.at(i + 1));
+                    setTangents(extracted.mesh, part.triangleIndices.at(i + 1), part.triangleIndices.at(i + 2));
+                    setTangents(extracted.mesh, part.triangleIndices.at(i + 2), part.triangleIndices.at(i));
+                }
             }
         }
         
         // find the clusters with which the mesh is associated
-        mesh.isEye = false;
-        QVector<qint64> clusterIDs;
-        foreach (qint64 childID, childMap.values(it.key())) {
-            foreach (qint64 clusterID, childMap.values(childID)) {
+        extracted.mesh.isEye = false;
+        QVector<QString> clusterIDs;
+        foreach (const QString& childID, childMap.values(it.key())) {
+            foreach (const QString& clusterID, childMap.values(childID)) {
                 if (!clusters.contains(clusterID)) {
                     continue;
                 }
@@ -814,43 +1245,60 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                 const Cluster& cluster = clusters[clusterID];
                 clusterIDs.append(clusterID);
                 
-                qint64 jointID = childMap.value(clusterID);
+                QString jointID = childMap.value(clusterID);
                 if (jointID == jointEyeLeftID || jointID == jointEyeRightID) {
-                    mesh.isEye = true;
+                    extracted.mesh.isEye = true;
                 }
                 // see http://stackoverflow.com/questions/13566608/loading-skinning-information-from-fbx for a discussion
                 // of skinning information in FBX
                 fbxCluster.jointIndex = modelIDs.indexOf(jointID);
+                if (fbxCluster.jointIndex == -1) {
+                    qDebug() << "Joint not in model list: " << jointID << "\n";
+                    fbxCluster.jointIndex = 0;
+                }
                 fbxCluster.inverseBindMatrix = glm::inverse(cluster.transformLink) * modelTransform;
-                mesh.clusters.append(fbxCluster);
+                extracted.mesh.clusters.append(fbxCluster);
+                
+                // override the bind rotation with the transform link
+                FBXJoint& joint = geometry.joints[fbxCluster.jointIndex];
+                joint.inverseBindRotation = glm::inverse(extractRotation(cluster.transformLink));
+                joint.bindTransform = cluster.transformLink;
             }
         }
         
         // if we don't have a skinned joint, parent to the model itself
-        if (mesh.clusters.isEmpty()) {
+        if (extracted.mesh.clusters.isEmpty()) {
             FBXCluster cluster;
             cluster.jointIndex = modelIDs.indexOf(modelID);
-            mesh.clusters.append(cluster);
+            if (cluster.jointIndex == -1) {
+                qDebug() << "Model not in model list: " << modelID << "\n";
+                cluster.jointIndex = 0;
+            }
+            extracted.mesh.clusters.append(cluster);
         }
         
         // whether we're skinned depends on how many clusters are attached
         if (clusterIDs.size() > 1) {
-            mesh.clusterIndices.resize(mesh.vertices.size());
-            mesh.clusterWeights.resize(mesh.vertices.size());
+            extracted.mesh.clusterIndices.resize(extracted.mesh.vertices.size());
+            extracted.mesh.clusterWeights.resize(extracted.mesh.vertices.size());
             for (int i = 0; i < clusterIDs.size(); i++) {
-                qint64 clusterID = clusterIDs.at(i);
+                QString clusterID = clusterIDs.at(i);
                 const Cluster& cluster = clusters[clusterID];
                 
                 for (int j = 0; j < cluster.indices.size(); j++) {
-                    int index = cluster.indices.at(j);
-                    glm::vec4& weights = mesh.clusterWeights[index];
+                    int oldIndex = cluster.indices.at(j);
+                    float weight = cluster.weights.at(j);
+                    for (QMultiHash<int, int>::const_iterator it = extracted.newIndices.constFind(oldIndex);
+                            it != extracted.newIndices.end() && it.key() == oldIndex; it++) {
+                        glm::vec4& weights = extracted.mesh.clusterWeights[it.value()];
                     
-                    // look for an unused slot in the weights vector
-                    for (int k = 0; k < 4; k++) {
-                        if (weights[k] == 0.0f) {
-                            mesh.clusterIndices[index][k] = i;
-                            weights[k] = cluster.weights.at(j);
-                            break;
+                        // look for an unused slot in the weights vector
+                        for (int k = 0; k < 4; k++) {
+                            if (weights[k] == 0.0f) {
+                                extracted.mesh.clusterIndices[it.value()][k] = i;
+                                weights[k] = weight;
+                                break;
+                            }
                         }
                     }
                 }
@@ -858,11 +1306,11 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         }
         
         // extract spring edges, connections if springy
-        if (mesh.springiness > 0.0f) {
+        if (extracted.mesh.springiness > 0.0f) {
             QSet<QPair<int, int> > edges;
             
-            mesh.vertexConnections.resize(mesh.vertices.size());
-            foreach (const FBXMeshPart& part, mesh.parts) {
+            extracted.mesh.vertexConnections.resize(extracted.mesh.vertices.size());
+            foreach (const FBXMeshPart& part, extracted.mesh.parts) {
                 for (int i = 0; i < part.quadIndices.size(); i += 4) {
                     int index0 = part.quadIndices.at(i);
                     int index1 = part.quadIndices.at(i + 1);
@@ -874,10 +1322,10 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                     edges.insert(QPair<int, int>(qMin(index2, index3), qMax(index2, index3)));
                     edges.insert(QPair<int, int>(qMin(index3, index0), qMax(index3, index0)));
                
-                    mesh.vertexConnections[index0].append(QPair<int, int>(index3, index1));
-                    mesh.vertexConnections[index1].append(QPair<int, int>(index0, index2));
-                    mesh.vertexConnections[index2].append(QPair<int, int>(index1, index3));
-                    mesh.vertexConnections[index3].append(QPair<int, int>(index2, index0));
+                    extracted.mesh.vertexConnections[index0].append(QPair<int, int>(index3, index1));
+                    extracted.mesh.vertexConnections[index1].append(QPair<int, int>(index0, index2));
+                    extracted.mesh.vertexConnections[index2].append(QPair<int, int>(index1, index3));
+                    extracted.mesh.vertexConnections[index3].append(QPair<int, int>(index2, index0));
                 }
                 for (int i = 0; i < part.triangleIndices.size(); i += 3) {
                     int index0 = part.triangleIndices.at(i);
@@ -888,18 +1336,48 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                     edges.insert(QPair<int, int>(qMin(index1, index2), qMax(index1, index2)));
                     edges.insert(QPair<int, int>(qMin(index2, index0), qMax(index2, index0)));
                     
-                    mesh.vertexConnections[index0].append(QPair<int, int>(index2, index1));
-                    mesh.vertexConnections[index1].append(QPair<int, int>(index0, index2));
-                    mesh.vertexConnections[index2].append(QPair<int, int>(index1, index0));
+                    extracted.mesh.vertexConnections[index0].append(QPair<int, int>(index2, index1));
+                    extracted.mesh.vertexConnections[index1].append(QPair<int, int>(index0, index2));
+                    extracted.mesh.vertexConnections[index2].append(QPair<int, int>(index1, index0));
                 }
             }
             
             for (QSet<QPair<int, int> >::const_iterator edge = edges.constBegin(); edge != edges.constEnd(); edge++) {
-                mesh.springEdges.append(*edge);
+                extracted.mesh.springEdges.append(*edge);
             }
         }
         
-        geometry.meshes.append(mesh);
+        geometry.meshes.append(extracted.mesh);
+    }
+    
+    geometry.palmDirection = parseVec3(mapping.value("palmDirection", "0, -1, 0").toString());
+    
+    // process attachments
+    QVariantHash attachments = mapping.value("attach").toHash();
+    for (QVariantHash::const_iterator it = attachments.constBegin(); it != attachments.constEnd(); it++) {
+        FBXAttachment attachment;
+        attachment.jointIndex = modelIDs.indexOf(processID(it.key()));
+        attachment.scale = glm::vec3(1.0f, 1.0f, 1.0f);
+        
+        QVariantList properties = it->toList();
+        if (properties.isEmpty()) {
+            attachment.url = it->toString();
+        } else {
+            attachment.url = properties.at(0).toString();
+            
+            if (properties.size() >= 2) {
+                attachment.translation = parseVec3(properties.at(1).toString());
+            
+                if (properties.size() >= 3) {
+                    attachment.rotation = glm::quat(glm::radians(parseVec3(properties.at(2).toString())));
+                
+                    if (properties.size() >= 4) {
+                        attachment.scale = parseVec3(properties.at(3).toString());
+                    }
+                }
+            }
+        }
+        geometry.attachments.append(attachment);
     }
     
     return geometry;
@@ -915,3 +1393,103 @@ FBXGeometry readFBX(const QByteArray& model, const QByteArray& mapping) {
     return extractFBXGeometry(parseFBX(&modelBuffer), parseMapping(&mappingBuffer));
 }
 
+bool addMeshVoxelsOperation(VoxelNode* node, void* extraData) {
+    if (!node->isLeaf()) {
+        return true;
+    }
+    FBXMesh& mesh = *static_cast<FBXMesh*>(extraData);
+    FBXMeshPart& part = mesh.parts[0];
+    
+    const int FACE_COUNT = 6;
+    const int VERTICES_PER_FACE = 4;
+    const int VERTEX_COUNT = FACE_COUNT * VERTICES_PER_FACE;
+    const float EIGHT_BIT_MAXIMUM = 255.0f;
+    glm::vec3 color = glm::vec3(node->getColor()[0], node->getColor()[1], node->getColor()[2]) / EIGHT_BIT_MAXIMUM;
+    for (int i = 0; i < VERTEX_COUNT; i++) {
+        part.quadIndices.append(part.quadIndices.size());
+        mesh.colors.append(color);
+    }
+    glm::vec3 corner = node->getCorner();
+    float scale = node->getScale();
+    
+    mesh.vertices.append(glm::vec3(corner.x, corner.y, corner.z));
+    mesh.vertices.append(glm::vec3(corner.x, corner.y, corner.z + scale));
+    mesh.vertices.append(glm::vec3(corner.x, corner.y + scale, corner.z + scale));
+    mesh.vertices.append(glm::vec3(corner.x, corner.y + scale, corner.z));
+    for (int i = 0; i < VERTICES_PER_FACE; i++) {
+        mesh.normals.append(glm::vec3(-1.0f, 0.0f, 0.0f));
+    }
+    
+    mesh.vertices.append(glm::vec3(corner.x + scale, corner.y, corner.z));
+    mesh.vertices.append(glm::vec3(corner.x + scale, corner.y + scale, corner.z));
+    mesh.vertices.append(glm::vec3(corner.x + scale, corner.y + scale, corner.z + scale));
+    mesh.vertices.append(glm::vec3(corner.x + scale, corner.y, corner.z + scale));
+    for (int i = 0; i < VERTICES_PER_FACE; i++) {
+        mesh.normals.append(glm::vec3(1.0f, 0.0f, 0.0f));
+    }
+    
+    mesh.vertices.append(glm::vec3(corner.x + scale, corner.y, corner.z));
+    mesh.vertices.append(glm::vec3(corner.x + scale, corner.y, corner.z + scale));
+    mesh.vertices.append(glm::vec3(corner.x, corner.y, corner.z + scale));
+    mesh.vertices.append(glm::vec3(corner.x, corner.y, corner.z));
+    for (int i = 0; i < VERTICES_PER_FACE; i++) {
+        mesh.normals.append(glm::vec3(0.0f, -1.0f, 0.0f));
+    }
+    
+    mesh.vertices.append(glm::vec3(corner.x, corner.y + scale, corner.z));
+    mesh.vertices.append(glm::vec3(corner.x, corner.y + scale, corner.z + scale));
+    mesh.vertices.append(glm::vec3(corner.x + scale, corner.y + scale, corner.z + scale));
+    mesh.vertices.append(glm::vec3(corner.x + scale, corner.y + scale, corner.z));
+    for (int i = 0; i < VERTICES_PER_FACE; i++) {
+        mesh.normals.append(glm::vec3(0.0f, 1.0f, 0.0f));
+    }
+    
+    mesh.vertices.append(glm::vec3(corner.x, corner.y + scale, corner.z));
+    mesh.vertices.append(glm::vec3(corner.x + scale, corner.y + scale, corner.z));
+    mesh.vertices.append(glm::vec3(corner.x + scale, corner.y, corner.z));
+    mesh.vertices.append(glm::vec3(corner.x, corner.y, corner.z));
+    for (int i = 0; i < VERTICES_PER_FACE; i++) {
+        mesh.normals.append(glm::vec3(0.0f, 0.0f, -1.0f));
+    }
+
+    mesh.vertices.append(glm::vec3(corner.x, corner.y, corner.z + scale));
+    mesh.vertices.append(glm::vec3(corner.x + scale, corner.y, corner.z + scale));
+    mesh.vertices.append(glm::vec3(corner.x + scale, corner.y + scale, corner.z + scale));
+    mesh.vertices.append(glm::vec3(corner.x, corner.y + scale, corner.z + scale));
+    for (int i = 0; i < VERTICES_PER_FACE; i++) {
+        mesh.normals.append(glm::vec3(0.0f, 0.0f, 1.0f));
+    }       
+    
+    return true;
+}
+
+FBXGeometry readSVO(const QByteArray& model) {
+    FBXGeometry geometry;
+    
+    // we have one joint
+    FBXJoint joint = { false };
+    joint.parentIndex = -1;
+    geometry.joints.append(joint);
+    
+    // and one mesh with one cluster and one part
+    FBXMesh mesh;
+    mesh.isEye = false;
+    mesh.springiness = 0.0f;
+    
+    FBXCluster cluster = { 0 };
+    mesh.clusters.append(cluster);
+    
+    FBXMeshPart part;
+    part.diffuseColor = glm::vec3(1.0f, 1.0f, 1.0f);
+    part.shininess = 96.0f;
+    mesh.parts.append(part);
+    
+    VoxelTree tree;
+    ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS);
+    tree.readBitstreamToTree((unsigned char*)model.data(), model.size(), args);
+    tree.recurseTreeWithOperation(addMeshVoxelsOperation, &mesh);
+    
+    geometry.meshes.append(mesh);
+    
+    return geometry;
+}

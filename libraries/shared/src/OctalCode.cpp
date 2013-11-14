@@ -16,10 +16,15 @@
 #include "SharedUtil.h"
 #include "OctalCode.h"
 
-int numberOfThreeBitSectionsInCode(const unsigned char* octalCode) {
+int numberOfThreeBitSectionsInCode(const unsigned char* octalCode, int maxBytes) {
+    if (maxBytes == OVERFLOWED_OCTCODE_BUFFER) {
+        return OVERFLOWED_OCTCODE_BUFFER;
+    }
+
     assert(octalCode);
     if (*octalCode == 255) {
-        return *octalCode + numberOfThreeBitSectionsInCode(octalCode + 1);
+        int newMaxBytes = (maxBytes == UNKNOWN_OCTCODE_LENGTH) ? UNKNOWN_OCTCODE_LENGTH : maxBytes - 1;
+        return *octalCode + numberOfThreeBitSectionsInCode(octalCode + 1, newMaxBytes);
     } else {
         return *octalCode;
     }
@@ -333,7 +338,7 @@ unsigned char* hexStringToOctalCode(const QString& input) {
     
     // loop through the string - 2 bytes at a time converting
     //  it to decimal equivalent and store in byte array
-    bool ok;
+    bool ok = false;
     while (stringIndex < input.length()) {
         uint value = input.mid(stringIndex, HEX_BYTE_SIZE).toUInt(&ok, HEX_NUMBER_BASE);
         if (!ok) {

@@ -21,6 +21,7 @@
 #include "VoxelEditPacketSender.h"
 
 #include <QObject>
+#include <QReadWriteLock>
 
 // Callback function, for recuseTreeWithOperation
 typedef bool (*RecurseVoxelTreeOperation)(VoxelNode* node, void* extraData);
@@ -47,52 +48,55 @@ const uint64_t IGNORE_LAST_SENT  = 0;
 
 class EncodeBitstreamParams {
 public:
-    int                 maxEncodeLevel;
-    int                 maxLevelReached;
-    const ViewFrustum*  viewFrustum;
-    bool                includeColor;
-    bool                includeExistsBits;
-    int                 chopLevels;
-    bool                deltaViewFrustum;
-    const ViewFrustum*  lastViewFrustum;
-    bool                wantOcclusionCulling;
-    int                 boundaryLevelAdjust;
-    uint64_t            lastViewFrustumSent;
-    bool                forceSendScene;
-    VoxelSceneStats*    stats;
-    CoverageMap*        map;
-    JurisdictionMap*    jurisdictionMap;
+    int maxEncodeLevel;
+    int maxLevelReached;
+    const ViewFrustum* viewFrustum;
+    bool includeColor;
+    bool includeExistsBits;
+    int chopLevels;
+    bool deltaViewFrustum;
+    const ViewFrustum* lastViewFrustum;
+    bool wantOcclusionCulling;
+    int boundaryLevelAdjust;
+    float voxelSizeScale;
+    uint64_t lastViewFrustumSent;
+    bool forceSendScene;
+    VoxelSceneStats* stats;
+    CoverageMap* map;
+    JurisdictionMap* jurisdictionMap;
     
     EncodeBitstreamParams(
-        int                 maxEncodeLevel      = INT_MAX, 
-        const ViewFrustum*  viewFrustum         = IGNORE_VIEW_FRUSTUM,
-        bool                includeColor        = WANT_COLOR, 
-        bool                includeExistsBits   = WANT_EXISTS_BITS,
-        int                 chopLevels          = 0, 
-        bool                deltaViewFrustum    = false, 
-        const ViewFrustum*  lastViewFrustum     = IGNORE_VIEW_FRUSTUM,
-        bool                wantOcclusionCulling= NO_OCCLUSION_CULLING,
-        CoverageMap*        map                 = IGNORE_COVERAGE_MAP,
-        int                 boundaryLevelAdjust = NO_BOUNDARY_ADJUST,
-        uint64_t            lastViewFrustumSent = IGNORE_LAST_SENT,
-        bool                forceSendScene      = true,
-        VoxelSceneStats*    stats               = IGNORE_SCENE_STATS,
-        JurisdictionMap*    jurisdictionMap     = IGNORE_JURISDICTION_MAP) :
-            maxEncodeLevel          (maxEncodeLevel),
-            maxLevelReached         (0),
-            viewFrustum             (viewFrustum),
-            includeColor            (includeColor),
-            includeExistsBits       (includeExistsBits),
-            chopLevels              (chopLevels),
-            deltaViewFrustum        (deltaViewFrustum),
-            lastViewFrustum         (lastViewFrustum),
-            wantOcclusionCulling    (wantOcclusionCulling),
-            boundaryLevelAdjust     (boundaryLevelAdjust),
-            lastViewFrustumSent     (lastViewFrustumSent),
-            forceSendScene          (forceSendScene),
-            stats                   (stats),
-            map                     (map),
-            jurisdictionMap         (jurisdictionMap)
+        int maxEncodeLevel = INT_MAX, 
+        const ViewFrustum* viewFrustum = IGNORE_VIEW_FRUSTUM,
+        bool includeColor = WANT_COLOR, 
+        bool includeExistsBits = WANT_EXISTS_BITS,
+        int  chopLevels = 0, 
+        bool deltaViewFrustum = false, 
+        const ViewFrustum* lastViewFrustum = IGNORE_VIEW_FRUSTUM,
+        bool wantOcclusionCulling = NO_OCCLUSION_CULLING,
+        CoverageMap* map = IGNORE_COVERAGE_MAP,
+        int boundaryLevelAdjust = NO_BOUNDARY_ADJUST,
+        float voxelSizeScale = DEFAULT_VOXEL_SIZE_SCALE,
+        uint64_t lastViewFrustumSent = IGNORE_LAST_SENT,
+        bool forceSendScene = true,
+        VoxelSceneStats* stats = IGNORE_SCENE_STATS,
+        JurisdictionMap* jurisdictionMap = IGNORE_JURISDICTION_MAP) :
+            maxEncodeLevel(maxEncodeLevel),
+            maxLevelReached(0),
+            viewFrustum(viewFrustum),
+            includeColor(includeColor),
+            includeExistsBits(includeExistsBits),
+            chopLevels(chopLevels),
+            deltaViewFrustum(deltaViewFrustum),
+            lastViewFrustum(lastViewFrustum),
+            wantOcclusionCulling(wantOcclusionCulling),
+            boundaryLevelAdjust(boundaryLevelAdjust),
+            voxelSizeScale(voxelSizeScale),
+            lastViewFrustumSent(lastViewFrustumSent),
+            forceSendScene(forceSendScene),
+            stats(stats),
+            map(map),
+            jurisdictionMap(jurisdictionMap)
     {}
 };
 
@@ -182,6 +186,13 @@ public:
     // reads voxels from square image with alpha as a Y-axis
     bool readFromSquareARGB32Pixels(const char *filename);
     bool readFromSchematicFile(const char* filename);
+    
+    // VoxelTree does not currently handle its own locking, caller must use these to lock/unlock
+    void lockForRead() { lock.lockForRead(); }
+    void tryLockForRead() { lock.tryLockForRead(); }
+    void lockForWrite() { lock.lockForWrite(); }
+    void tryLockForWrite() { lock.tryLockForWrite(); }
+    void unlock() { lock.unlock(); }
 
     unsigned long getVoxelCount();
 
@@ -190,10 +201,11 @@ public:
     
     bool getShouldReaverage() const { return _shouldReaverage; }
 
-    void recurseNodeWithOperation(VoxelNode* node, RecurseVoxelTreeOperation operation, void* extraData);
+    void recurseNodeWithOperation(VoxelNode* node, RecurseVoxelTreeOperation operation, 
+                void* extraData, int recursionCount = 0);
             
     void recurseNodeWithOperationDistanceSorted(VoxelNode* node, RecurseVoxelTreeOperation operation, 
-                const glm::vec3& point, void* extraData);
+                const glm::vec3& point, void* extraData, int recursionCount = 0);
 
     void nudgeSubTree(VoxelNode* nodeToNudge, const glm::vec3& nudgeAmount, VoxelEditPacketSender& voxelEditSender);
 
@@ -262,9 +274,10 @@ private:
     static bool nudgeCheck(VoxelNode* node, void* extraData);
     void nudgeLeaf(VoxelNode* node, void* extraData);
     void chunkifyLeaf(VoxelNode* node);
+    
+    QReadWriteLock lock;
 };
 
-float boundaryDistanceForRenderLevel(unsigned int renderLevel);
-float boundaryDistanceSquaredForRenderLevel(unsigned int renderLevel);
+float boundaryDistanceForRenderLevel(unsigned int renderLevel, float voxelSizeScale);
 
 #endif /* defined(__hifi__VoxelTree__) */

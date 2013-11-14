@@ -32,7 +32,9 @@ VoxelEditPacketSender::VoxelEditPacketSender(PacketSenderNotify* notify) :
     _shouldSend(true),
     _maxPendingMessages(DEFAULT_MAX_PENDING_MESSAGES),
     _releaseQueuedMessagesPending(false),
-    _voxelServerJurisdictions(NULL) {
+    _voxelServerJurisdictions(NULL),
+    _sequenceNumber(0),
+    _maxPacketSize(MAX_PACKET_SIZE) {
 }
 
 VoxelEditPacketSender::~VoxelEditPacketSender() {
@@ -86,19 +88,30 @@ void VoxelEditPacketSender::sendVoxelEditMessage(PACKET_TYPE type, VoxelDetail& 
 }
 
 bool VoxelEditPacketSender::voxelServersExist() const {
+    bool hasVoxelServers = false;
+    bool atLeastOnJurisdictionMissing = false; // assume the best
     NodeList* nodeList = NodeList::getInstance();
     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
         // only send to the NodeTypes that are NODE_TYPE_VOXEL_SERVER
         if (node->getType() == NODE_TYPE_VOXEL_SERVER) {
-            if (node->getActiveSocket()) {
-                return true;
-            } else {
-                // we don't have an active socket for this node, ping it
-                nodeList->pingPublicAndLocalSocketsForInactiveNode(&(*node));
+            if (nodeList->getNodeActiveSocketOrPing(&(*node))) {
+                QUuid nodeUUID = node->getUUID();
+                // If we've got Jurisdictions set, then check to see if we know the jurisdiction for this server
+                if (_voxelServerJurisdictions) {
+                    // lookup our nodeUUID in the jurisdiction map, if it's missing then we're 
+                    // missing at least one jurisdiction
+                    if ((*_voxelServerJurisdictions).find(nodeUUID) == (*_voxelServerJurisdictions).end()) {
+                        atLeastOnJurisdictionMissing = true;
+                    }
+                }
+                hasVoxelServers = true;
             }
         }
+        if (atLeastOnJurisdictionMissing) {
+            break; // no point in looking further...
+        }
     }
-    return false;
+    return (hasVoxelServers && !atLeastOnJurisdictionMissing);
 }
 
 // This method is called when the edit packet layer has determined that it has a fully formed packet destined for
@@ -109,12 +122,34 @@ void VoxelEditPacketSender::queuePacketToNode(const QUuid& nodeUUID, unsigned ch
         // only send to the NodeTypes that are NODE_TYPE_VOXEL_SERVER
         if (node->getType() == NODE_TYPE_VOXEL_SERVER &&
             ((node->getUUID() == nodeUUID) || (nodeUUID.isNull()))) {
-            if (node->getActiveSocket()) {
+            if (nodeList->getNodeActiveSocketOrPing(&(*node))) {
                 sockaddr* nodeAddress = node->getActiveSocket();
                 queuePacketForSending(*nodeAddress, buffer, length);
-            } else {
-                // we don't have an active socket for this node, ping it
-                nodeList->pingPublicAndLocalSocketsForInactiveNode(&(*node));
+                
+                // debugging output...
+                bool wantDebugging = false;
+                if (wantDebugging) {
+                    int numBytesPacketHeader = numBytesForPacketHeader(buffer);
+                    unsigned short int sequence = (*((unsigned short int*)(buffer + numBytesPacketHeader)));
+                    uint64_t createdAt = (*((uint64_t*)(buffer + numBytesPacketHeader + sizeof(sequence))));
+                    uint64_t queuedAt = usecTimestampNow();
+                    uint64_t transitTime = queuedAt - createdAt;
+
+                    const char* messageName;
+                    switch (buffer[0]) {
+                        case PACKET_TYPE_SET_VOXEL: 
+                            messageName = "PACKET_TYPE_SET_VOXEL"; 
+                            break;
+                        case PACKET_TYPE_SET_VOXEL_DESTRUCTIVE: 
+                            messageName = "PACKET_TYPE_SET_VOXEL_DESTRUCTIVE"; 
+                            break;
+                        case PACKET_TYPE_ERASE_VOXEL: 
+                            messageName = "PACKET_TYPE_ERASE_VOXEL"; 
+                            break;
+                    }
+                    printf("VoxelEditPacketSender::queuePacketToNode() queued %s - command to node bytes=%ld sequence=%d transitTimeSoFar=%llu usecs\n",
+                        messageName, length, sequence, transitTime);
+                }                
             }
         }
     }
@@ -126,10 +161,11 @@ void VoxelEditPacketSender::queueVoxelEditMessages(PACKET_TYPE type, int numberO
     }
 
     for (int i = 0; i < numberOfDetails; i++) {
-        static unsigned char bufferOut[MAX_PACKET_SIZE];
+        // use MAX_PACKET_SIZE since it's static and guarenteed to be larger than _maxPacketSize
+        static unsigned char bufferOut[MAX_PACKET_SIZE]; 
         int sizeOut = 0;
         
-        if (encodeVoxelEditMessageDetails(type, 1, &details[i], &bufferOut[0], MAX_PACKET_SIZE, sizeOut)) {
+        if (encodeVoxelEditMessageDetails(type, 1, &details[i], &bufferOut[0], _maxPacketSize, sizeOut)) {
             queueVoxelEditMessage(type, bufferOut, sizeOut);
         }
     }    
@@ -169,7 +205,7 @@ void VoxelEditPacketSender::queuePacketToNodes(unsigned char* buffer, ssize_t le
     
     assert(voxelServersExist()); // we must have jurisdictions to be here!!
 
-    int headerBytes = numBytesForPacketHeader(buffer) + sizeof(short);
+    int headerBytes = numBytesForPacketHeader(buffer) + sizeof(short) + sizeof(uint64_t);
     unsigned char* octCode = buffer + headerBytes; // skip the packet header to get to the octcode
     
     // We want to filter out edit messages for voxel servers based on the server's Jurisdiction
@@ -232,8 +268,12 @@ void VoxelEditPacketSender::queueVoxelEditMessage(PACKET_TYPE type, unsigned cha
             if (_voxelServerJurisdictions) {
                 // we need to get the jurisdiction for this 
                 // here we need to get the "pending packet" for this server
-                const JurisdictionMap& map = (*_voxelServerJurisdictions)[nodeUUID];
-                isMyJurisdiction = (map.isMyJurisdiction(codeColorBuffer, CHECK_NODE_ONLY) == JurisdictionMap::WITHIN);
+                if ((*_voxelServerJurisdictions).find(nodeUUID) != (*_voxelServerJurisdictions).end()) {
+                    const JurisdictionMap& map = (*_voxelServerJurisdictions)[nodeUUID];
+                    isMyJurisdiction = (map.isMyJurisdiction(codeColorBuffer, CHECK_NODE_ONLY) == JurisdictionMap::WITHIN);
+                } else {
+                    isMyJurisdiction = false;
+                }
             }
             if (isMyJurisdiction) {
                 EditPacketBuffer& packetBuffer = _pendingEditPackets[nodeUUID];
@@ -241,7 +281,7 @@ void VoxelEditPacketSender::queueVoxelEditMessage(PACKET_TYPE type, unsigned cha
             
                 // If we're switching type, then we send the last one and start over
                 if ((type != packetBuffer._currentType && packetBuffer._currentSize > 0) || 
-                    (packetBuffer._currentSize + length >= MAX_PACKET_SIZE)) {
+                    (packetBuffer._currentSize + length >= _maxPacketSize)) {
                     releaseQueuedPacket(packetBuffer);
                     initializePacket(packetBuffer, type);
                 }
@@ -272,16 +312,28 @@ void VoxelEditPacketSender::releaseQueuedMessages() {
 }
 
 void VoxelEditPacketSender::releaseQueuedPacket(EditPacketBuffer& packetBuffer) {
-    queuePacketToNode(packetBuffer._nodeUUID, &packetBuffer._currentBuffer[0], packetBuffer._currentSize);
+    if (packetBuffer._currentSize > 0 && packetBuffer._currentType != PACKET_TYPE_UNKNOWN) {
+        queuePacketToNode(packetBuffer._nodeUUID, &packetBuffer._currentBuffer[0], packetBuffer._currentSize);
+    }
     packetBuffer._currentSize = 0;
     packetBuffer._currentType = PACKET_TYPE_UNKNOWN;
 }
 
 void VoxelEditPacketSender::initializePacket(EditPacketBuffer& packetBuffer, PACKET_TYPE type) {
     packetBuffer._currentSize = populateTypeAndVersion(&packetBuffer._currentBuffer[0], type);
+
+    // pack in sequence number
     unsigned short int* sequenceAt = (unsigned short int*)&packetBuffer._currentBuffer[packetBuffer._currentSize];
-    *sequenceAt = 0;
-    packetBuffer._currentSize += sizeof(unsigned short int); // set to command + sequence
+    *sequenceAt = _sequenceNumber;
+    packetBuffer._currentSize += sizeof(unsigned short int); // nudge past sequence
+    _sequenceNumber++;
+
+    // pack in timestamp
+    uint64_t now = usecTimestampNow();
+    uint64_t* timeAt = (uint64_t*)&packetBuffer._currentBuffer[packetBuffer._currentSize];
+    *timeAt = now;
+    packetBuffer._currentSize += sizeof(uint64_t); // nudge past timestamp
+
     packetBuffer._currentType = type;
 }
 

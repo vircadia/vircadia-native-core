@@ -27,15 +27,9 @@
 #include "HandData.h"
 
 // First bitset
-const int WANT_LOW_RES_MOVING_BIT = 0;
-const int WANT_COLOR_AT_BIT = 1;
-const int WANT_DELTA_AT_BIT = 2;
-const int KEY_STATE_START_BIT = 3;  // 4th and 5th bits
-const int HAND_STATE_START_BIT = 5; // 6th and 7th bits
-const int WANT_OCCLUSION_CULLING_BIT = 7; // 8th bit
-
-// Second bitset
-const int IS_FACESHIFT_CONNECTED = 0;
+const int KEY_STATE_START_BIT = 0; // 1st and 2nd bits
+const int HAND_STATE_START_BIT = 2; // 3rd and 4th bits
+const int IS_FACESHIFT_CONNECTED = 4; // 5th bit
 
 const float MAX_AUDIO_LOUDNESS = 1000.0; // close enough for mouth animation
 
@@ -85,26 +79,6 @@ public:
     void setHandState(char s) { _handState = s; }
     char getHandState() const { return _handState; }
     
-    // getters for camera details
-    const glm::vec3& getCameraPosition() const { return _cameraPosition; }
-    const glm::quat& getCameraOrientation() const { return _cameraOrientation; }
-    float getCameraFov() const { return _cameraFov; }
-    float getCameraAspectRatio() const { return _cameraAspectRatio; }
-    float getCameraNearClip() const { return _cameraNearClip; }
-    float getCameraFarClip() const { return _cameraFarClip; }
-    const glm::vec3& getCameraEyeOffsetPosition() const { return _cameraEyeOffsetPosition; }
-
-    glm::vec3 calculateCameraDirection() const;
-
-    // setters for camera details    
-    void setCameraPosition(const glm::vec3& position) { _cameraPosition = position; }
-    void setCameraOrientation(const glm::quat& orientation) { _cameraOrientation = orientation; }
-    void setCameraFov(float fov) { _cameraFov = fov; }
-    void setCameraAspectRatio(float aspectRatio) { _cameraAspectRatio = aspectRatio; }
-    void setCameraNearClip(float nearClip) { _cameraNearClip = nearClip; }
-    void setCameraFarClip(float farClip) { _cameraFarClip = farClip; }
-    void setCameraEyeOffsetPosition(const glm::vec3& eyeOffsetPosition) { _cameraEyeOffsetPosition = eyeOffsetPosition; }
-    
     // key state
     void setKeyState(KeyState s) { _keyState = s; }
     KeyState keyState() const { return _keyState; }
@@ -115,21 +89,10 @@ public:
     const std::string& setChatMessage() const { return _chatMessage; }
     QString getQStringChatMessage() { return QString(_chatMessage.data()); }
 
-    // related to Voxel Sending strategies
-    bool getWantColor() const { return _wantColor; }
-    bool getWantDelta() const { return _wantDelta; }
-    bool getWantLowResMoving() const { return _wantLowResMoving; }
-    bool getWantOcclusionCulling() const { return _wantOcclusionCulling; }
     const QUuid& getLeaderUUID() const { return _leaderUUID; }
     
     void setHeadData(HeadData* headData) { _headData = headData; }
     void setHandData(HandData* handData) { _handData = handData; }
-    
-public slots:
-    void setWantLowResMoving(bool wantLowResMoving) { _wantLowResMoving = wantLowResMoving; }
-    void setWantColor(bool wantColor) { _wantColor = wantColor; }
-    void setWantDelta(bool wantDelta) { _wantDelta = wantDelta; }
-    void setWantOcclusionCulling(bool wantOcclusionCulling) { _wantOcclusionCulling = wantOcclusionCulling; }
     
 protected:
     QUuid _uuid;
@@ -151,26 +114,11 @@ protected:
     //  Hand state (are we grabbing something or not)
     char _handState;
     
-    // camera details for the avatar
-    glm::vec3 _cameraPosition;
-    glm::quat _cameraOrientation;
-    float _cameraFov;
-    float _cameraAspectRatio;
-    float _cameraNearClip;
-    float _cameraFarClip;
-    glm::vec3 _cameraEyeOffsetPosition;
-    
     // key state
     KeyState _keyState;
     
     // chat message
     std::string _chatMessage;
-    
-    // voxel server sending items
-    bool _wantColor;
-    bool _wantDelta;
-    bool _wantLowResMoving;
-    bool _wantOcclusionCulling;
     
     std::vector<JointData> _joints;
     
@@ -189,39 +137,5 @@ public:
     int jointID;
     glm::quat rotation;
 };
-
-// These pack/unpack functions are designed to start specific known types in as efficient a manner
-// as possible. Taking advantage of the known characteristics of the semantic types.
-
-// Angles are known to be between 0 and 360deg, this allows us to encode in 16bits with great accuracy
-int packFloatAngleToTwoByte(unsigned char* buffer, float angle);
-int unpackFloatAngleFromTwoByte(uint16_t* byteAnglePointer, float* destinationPointer);
-
-// Orientation Quats are known to have 4 normalized components be between -1.0 and 1.0 
-// this allows us to encode each component in 16bits with great accuracy
-int packOrientationQuatToBytes(unsigned char* buffer, const glm::quat& quatInput);
-int unpackOrientationQuatFromBytes(unsigned char* buffer, glm::quat& quatOutput);
-
-// Ratios need the be highly accurate when less than 10, but not very accurate above 10, and they
-// are never greater than 1000 to 1, this allows us to encode each component in 16bits
-int packFloatRatioToTwoByte(unsigned char* buffer, float ratio);
-int unpackFloatRatioFromTwoByte(unsigned char* buffer, float& ratio);
-
-// Near/Far Clip values need the be highly accurate when less than 10, but only integer accuracy above 10 and
-// they are never greater than 16,000, this allows us to encode each component in 16bits
-int packClipValueToTwoByte(unsigned char* buffer, float clipValue);
-int unpackClipValueFromTwoByte(unsigned char* buffer, float& clipValue);
-
-// Positive floats that don't need to be very precise
-int packFloatToByte(unsigned char* buffer, float value, float scaleBy);
-int unpackFloatFromByte(unsigned char* buffer, float& value, float scaleBy);
-
-// Allows sending of fixed-point numbers: radix 1 makes 15.1 number, radix 8 makes 8.8 number, etc
-int packFloatScalarToSignedTwoByteFixed(unsigned char* buffer, float scalar, int radix);
-int unpackFloatScalarFromSignedTwoByteFixed(int16_t* byteFixedPointer, float* destinationPointer, int radix);
-
-// A convenience for sending vec3's as fixed-poimt floats
-int packFloatVec3ToSignedTwoByteFixed(unsigned char* destBuffer, const glm::vec3& srcVector, int radix);
-int unpackFloatVec3FromSignedTwoByteFixed(unsigned char* sourceBuffer, glm::vec3& destination, int radix);
 
 #endif /* defined(__hifi__AvatarData__) */

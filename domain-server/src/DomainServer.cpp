@@ -42,6 +42,34 @@ QJsonObject jsonForSocket(sockaddr* socket) {
     return socketJSON;
 }
 
+const char JSON_KEY_TYPE[] = "type";
+const char JSON_KEY_PUBLIC_SOCKET[] = "public";
+const char JSON_KEY_LOCAL_SOCKET[] = "local";
+const char JSON_KEY_POOL[] = "pool";
+
+QJsonObject jsonObjectForNode(Node* node) {
+    QJsonObject nodeJson;
+
+    // re-format the type name so it matches the target name
+    QString nodeTypeName(node->getTypeName());
+    nodeTypeName = nodeTypeName.toLower();
+    nodeTypeName.replace(' ', '-');
+    
+    // add the node type
+    nodeJson[JSON_KEY_TYPE] = nodeTypeName;
+    
+    // add the node socket information
+    nodeJson[JSON_KEY_PUBLIC_SOCKET] = jsonForSocket(node->getPublicSocket());
+    nodeJson[JSON_KEY_LOCAL_SOCKET] = jsonForSocket(node->getLocalSocket());
+    
+    // if the node has pool information, add it
+    if (node->getLinkedData() && ((Assignment*) node->getLinkedData())->hasPool()) {
+        nodeJson[JSON_KEY_POOL] = QString(((Assignment*) node->getLinkedData())->getPool());
+    }
+
+    return nodeJson;
+}
+
 int DomainServer::civetwebRequestHandler(struct mg_connection *connection) {
     const struct mg_request_info* ri = mg_get_request_info(connection);
     
@@ -60,33 +88,16 @@ int DomainServer::civetwebRequestHandler(struct mg_connection *connection) {
             
             // setup the JSON
             QJsonObject assignmentJSON;
-            
             QJsonObject assignedNodesJSON;
             
             // enumerate the NodeList to find the assigned nodes
             NodeList* nodeList = NodeList::getInstance();
             
-            const char ASSIGNMENT_JSON_UUID_KEY[] = "UUID";
-            
             for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
                 if (node->getLinkedData()) {
-                    // this is a node with assignment
-                    QJsonObject assignedNodeJSON;
-                    
-                    // add the assignment UUID
-                    QString assignmentUUID = uuidStringWithoutCurlyBraces(((Assignment*) node->getLinkedData())->getUUID());
-                    assignedNodeJSON[ASSIGNMENT_JSON_UUID_KEY] = assignmentUUID;
-                    
-                    // add the node socket information
-                    assignedNodeJSON["public"] = jsonForSocket(node->getPublicSocket());
-                    assignedNodeJSON["local"] = jsonForSocket(node->getLocalSocket());
-                    
-                    // re-format the type name so it matches the target name
-                    QString nodeTypeName(node->getTypeName());
-                    nodeTypeName = nodeTypeName.toLower();
-                    nodeTypeName.replace(' ', '-');
-                    
-                    assignedNodesJSON[nodeTypeName] = assignedNodeJSON;
+                    // add the node using the UUID as the key
+                    QString uuidString = uuidStringWithoutCurlyBraces(node->getUUID());
+                    assignedNodesJSON[uuidString] = jsonObjectForNode(&(*node));
                 }
             }
             
@@ -101,10 +112,15 @@ int DomainServer::civetwebRequestHandler(struct mg_connection *connection) {
                 QJsonObject queuedAssignmentJSON;
                 
                 QString uuidString = uuidStringWithoutCurlyBraces((*assignment)->getUUID());
-                queuedAssignmentJSON[ASSIGNMENT_JSON_UUID_KEY] = uuidString;
+                queuedAssignmentJSON[JSON_KEY_TYPE] = QString((*assignment)->getTypeName());
+                
+                // if the assignment has a pool, add it
+                if ((*assignment)->hasPool()) {
+                    queuedAssignmentJSON[JSON_KEY_POOL] = QString((*assignment)->getPool());
+                }
                 
                 // add this queued assignment to the JSON
-                queuedAssignmentsJSON[(*assignment)->getTypeName()] = queuedAssignmentJSON;
+                queuedAssignmentsJSON[uuidString] = queuedAssignmentJSON;
                 
                 // push forward the iterator to check the next assignment
                 assignment++;
@@ -115,6 +131,31 @@ int DomainServer::civetwebRequestHandler(struct mg_connection *connection) {
             // print out the created JSON
             QJsonDocument assignmentDocument(assignmentJSON);
             mg_printf(connection, "%s", assignmentDocument.toJson().constData());
+            
+            // we've processed this request
+            return 1;
+        } else if (strcmp(ri->uri, "/nodes.json") == 0) {
+            // start with a 200 response
+            mg_printf(connection, "%s", RESPONSE_200);
+            
+            // setup the JSON
+            QJsonObject rootJSON;
+            QJsonObject nodesJSON;
+            
+            // enumerate the NodeList to find the assigned nodes
+            NodeList* nodeList = NodeList::getInstance();
+            
+            for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+                // add the node using the UUID as the key
+                QString uuidString = uuidStringWithoutCurlyBraces(node->getUUID());
+                nodesJSON[uuidString] = jsonObjectForNode(&(*node));
+            }
+            
+            rootJSON["nodes"] = nodesJSON;
+            
+            // print out the created JSON
+            QJsonDocument nodesDocument(rootJSON);
+            mg_printf(connection, "%s", nodesDocument.toJson().constData());
             
             // we've processed this request
             return 1;
@@ -173,14 +214,14 @@ const char ASSIGNMENT_SCRIPT_HOST_LOCATION[] = "resources/web/assignment";
 void DomainServer::civetwebUploadHandler(struct mg_connection *connection, const char *path) {
     
     // create an assignment for this saved script, for now make it local only
-    Assignment *scriptAssignment = new Assignment(Assignment::CreateCommand,
+    Assignment* scriptAssignment = new Assignment(Assignment::CreateCommand,
                                                   Assignment::AgentType,
                                                   NULL,
                                                   Assignment::LocalLocation);
     
     // check how many instances of this assignment the user wants by checking the ASSIGNMENT-INSTANCES header
     const char ASSIGNMENT_INSTANCES_HTTP_HEADER[] = "ASSIGNMENT-INSTANCES";
-    const char *requestInstancesHeader = mg_get_header(connection, ASSIGNMENT_INSTANCES_HTTP_HEADER);
+    const char* requestInstancesHeader = mg_get_header(connection, ASSIGNMENT_INSTANCES_HTTP_HEADER);
     
     if (requestInstancesHeader) {
         // the user has requested a number of instances greater than 1
@@ -284,11 +325,14 @@ DomainServer::DomainServer(int argc, char* argv[]) :
     // setup the mongoose web server
     struct mg_callbacks callbacks = {};
     
-    QString documentRoot = QString("%1/resources/web").arg(QCoreApplication::applicationDirPath());
+    QString documentRootString = QString("%1/resources/web").arg(QCoreApplication::applicationDirPath());
+    
+    char documentRoot[documentRootString.size() + 1];
+    strcpy(documentRoot, documentRootString.toLocal8Bit().constData());
     
     // list of options. Last element must be NULL.
     const char* options[] = {"listening_ports", "8080",
-        "document_root", documentRoot.toLocal8Bit().constData(), NULL};
+        "document_root", documentRoot, NULL};
     
     callbacks.begin_request = civetwebRequestHandler;
     callbacks.upload = civetwebUploadHandler;
@@ -413,14 +457,14 @@ Assignment* DomainServer::deployableAssignmentForRequest(Assignment& requestAssi
             Assignment* deployableAssignment = *assignment;
             
             if ((*assignment)->getType() == Assignment::AgentType) {
-                // if this is a script assignment we need to delete it to avoid a memory leak
-                // or if there is more than one instance to send out, simpy decrease the number of instances
-                if ((*assignment)->getNumberOfInstances() > 1) {
-                    (*assignment)->decrementNumberOfInstances();
-                } else {
+                // if there is more than one instance to send out, simply decrease the number of instances
+                
+                if ((*assignment)->getNumberOfInstances() == 1) {
                     _assignmentQueue.erase(assignment);
-                    delete *assignment;
                 }
+                
+                deployableAssignment->decrementNumberOfInstances();
+                
             } else {
                 // remove the assignment from the queue
                 _assignmentQueue.erase(assignment);
@@ -683,7 +727,7 @@ int DomainServer::run() {
                     Assignment* assignmentToDeploy = deployableAssignmentForRequest(requestAssignment);
                     
                     if (assignmentToDeploy) {
-                        
+                    
                         // give this assignment out, either the type matches or the requestor said they will take any
                         int numHeaderBytes = populateTypeAndVersion(broadcastPacket, PACKET_TYPE_CREATE_ASSIGNMENT);
                         int numAssignmentBytes = assignmentToDeploy->packToBuffer(broadcastPacket + numHeaderBytes);
@@ -691,6 +735,11 @@ int DomainServer::run() {
                         nodeList->getNodeSocket()->send((sockaddr*) &senderAddress,
                                                         broadcastPacket,
                                                         numHeaderBytes + numAssignmentBytes);
+                        
+                        if (assignmentToDeploy->getNumberOfInstances() == 0) {
+                            // there are no more instances of this script to send out, delete it
+                            delete assignmentToDeploy;
+                        }
                     }
                     
                 }

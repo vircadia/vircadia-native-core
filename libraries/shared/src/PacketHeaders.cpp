@@ -20,7 +20,7 @@ PACKET_VERSION versionForPacketType(PACKET_TYPE type) {
             return 2;
 
         case PACKET_TYPE_HEAD_DATA:
-            return 10;
+            return 11;
         
         case PACKET_TYPE_AVATAR_URLS:
             return 2;
@@ -35,7 +35,15 @@ PACKET_VERSION versionForPacketType(PACKET_TYPE type) {
         case PACKET_TYPE_DOMAIN_LIST_REQUEST:
         case PACKET_TYPE_DOMAIN_REPORT_FOR_DUTY:
             return 1;
-            
+        
+        case PACKET_TYPE_VOXEL_QUERY:
+            return 1;
+
+        case PACKET_TYPE_SET_VOXEL:
+        case PACKET_TYPE_SET_VOXEL_DESTRUCTIVE:
+        case PACKET_TYPE_ERASE_VOXEL:
+            return 1;
+        
         default:
             return 0;
     }

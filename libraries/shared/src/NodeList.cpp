@@ -492,10 +492,10 @@ void NodeList::sendDomainServerCheckIn() {
         
         // check in packet has header, optional UUID, node type, port, IP, node types of interest, null termination
         int numPacketBytes = sizeof(PACKET_TYPE) + sizeof(PACKET_VERSION) + sizeof(NODE_TYPE) +
-        NUM_BYTES_RFC4122_UUID + (2 * (sizeof(uint16_t) + IP_ADDRESS_BYTES)) +
-        numBytesNodesOfInterest + sizeof(unsigned char);
+            NUM_BYTES_RFC4122_UUID + (2 * (sizeof(uint16_t) + IP_ADDRESS_BYTES)) +
+            numBytesNodesOfInterest + sizeof(unsigned char);
         
-        unsigned char* checkInPacket = new unsigned char[numPacketBytes];
+        unsigned char checkInPacket[numPacketBytes];
         unsigned char* packetPosition = checkInPacket;
         
         PACKET_TYPE nodePacketType = (memchr(SOLO_NODE_TYPES, _ownerType, sizeof(SOLO_NODE_TYPES)))
@@ -531,7 +531,8 @@ void NodeList::sendDomainServerCheckIn() {
             packetPosition += numBytesNodesOfInterest;
         }
         
-        _nodeSocket.send(_domainIP.toString().toLocal8Bit().constData(), _domainPort, checkInPacket, packetPosition - checkInPacket);
+        _nodeSocket.send(_domainIP.toString().toLocal8Bit().constData(), _domainPort, checkInPacket, 
+            packetPosition - checkInPacket);
         
         const int NUM_DOMAIN_SERVER_CHECKINS_PER_STUN_REQUEST = 5;
         static unsigned int numDomainCheckins = 0;
@@ -686,13 +687,10 @@ unsigned NodeList::broadcastToNodes(unsigned char* broadcastData, size_t dataByt
     for(NodeList::iterator node = begin(); node != end(); node++) {
         // only send to the NodeTypes we are asked to send to.
         if (memchr(nodeTypes, node->getType(), numNodeTypes)) {
-            if (node->getActiveSocket()) {
+            if (getNodeActiveSocketOrPing(&(*node))) {
                 // we know which socket is good for this node, send there
                 _nodeSocket.send(node->getActiveSocket(), broadcastData, dataBytes);
                 ++n;
-            } else {
-                // we don't have an active link to this node, ping it to set that up
-                pingPublicAndLocalSocketsForInactiveNode(&(*node));
             }
         }
     }
@@ -714,6 +712,15 @@ void NodeList::possiblyPingInactiveNodes() {
                 pingPublicAndLocalSocketsForInactiveNode(&(*node));
             }
         }
+    }
+}
+
+sockaddr* NodeList::getNodeActiveSocketOrPing(Node* node) {
+    if (node->getActiveSocket()) {
+        return node->getActiveSocket();
+    } else {
+        pingPublicAndLocalSocketsForInactiveNode(node);
+        return NULL;
     }
 }
 
@@ -766,7 +773,7 @@ void* removeSilentNodes(void *args) {
     uint64_t checkTimeUsecs = 0;
     int sleepTime = 0;
     
-    while (!silentNodeThreadStopFlag) {
+    while (!::silentNodeThreadStopFlag) {
         
         checkTimeUsecs = usecTimestampNow();
         
@@ -801,13 +808,23 @@ void* removeSilentNodes(void *args) {
 }
 
 void NodeList::startSilentNodeRemovalThread() {
-    pthread_create(&removeSilentNodesThread, NULL, removeSilentNodes, (void*) this);
+    if (!::silentNodeThreadStopFlag) {
+        pthread_create(&removeSilentNodesThread, NULL, removeSilentNodes, (void*) this);
+    } else {
+        qDebug("Refusing to start silent node removal thread from previously failed join.\n");
+    }
+   
 }
 
 void NodeList::stopSilentNodeRemovalThread() {
-    silentNodeThreadStopFlag = true;
-    pthread_join(removeSilentNodesThread, NULL);
+    ::silentNodeThreadStopFlag = true;
+    int joinResult = pthread_join(removeSilentNodesThread, NULL);
     
+    if (joinResult == 0) {
+        ::silentNodeThreadStopFlag = false;
+    } else {
+        qDebug("Silent node removal thread join failed with %d. Will not restart.\n", joinResult);
+    }
 }
 
 const QString QSETTINGS_GROUP_NAME = "NodeList";

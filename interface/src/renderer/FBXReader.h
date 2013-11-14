@@ -9,11 +9,13 @@
 #ifndef __interface__FBXReader__
 #define __interface__FBXReader__
 
+#include <QUrl>
 #include <QVarLengthArray>
 #include <QVariant>
 #include <QVector>
 
 #include <glm/glm.hpp>
+#include <glm/gtc/quaternion.hpp>
 
 class FBXNode;
 
@@ -41,11 +43,21 @@ public:
 class FBXJoint {
 public:
 
+    bool isFree;
+    QVector<int> freeLineage;
     int parentIndex;
-    glm::mat4 preRotation;
+    float distanceToParent;
+    glm::mat4 preTransform;
+    glm::quat preRotation;
     glm::quat rotation;
-    glm::mat4 postRotation;
+    glm::quat postRotation;
+    glm::mat4 postTransform;
     glm::mat4 transform;
+    glm::vec3 rotationMin;
+    glm::vec3 rotationMax;
+    glm::quat inverseDefaultRotation;
+    glm::quat inverseBindRotation;
+    glm::mat4 bindTransform;
 };
 
 /// A single binding to a joint in an FBX document.
@@ -79,6 +91,8 @@ public:
     
     QVector<glm::vec3> vertices;
     QVector<glm::vec3> normals;
+    QVector<glm::vec3> tangents;
+    QVector<glm::vec3> colors;
     QVector<glm::vec2> texCoords;
     QVector<glm::vec4> clusterIndices;
     QVector<glm::vec4> clusterWeights;
@@ -94,11 +108,23 @@ public:
     QVector<QVarLengthArray<QPair<int, int>, 4> > vertexConnections;
 };
 
+/// An attachment to an FBX document.
+class FBXAttachment {
+public:
+    
+    int jointIndex;
+    QUrl url;
+    glm::vec3 translation;
+    glm::quat rotation;
+    glm::vec3 scale;
+};
+
 /// A set of meshes extracted from an FBX document.
 class FBXGeometry {
 public:
 
     QVector<FBXJoint> joints;
+    QHash<QString, int> jointIndices;
     
     QVector<FBXMesh> meshes;
     
@@ -107,12 +133,30 @@ public:
     int leftEyeJointIndex;
     int rightEyeJointIndex;
     int neckJointIndex;
+    int rootJointIndex;
+    int leanJointIndex;
+    int headJointIndex;
+    int leftHandJointIndex;
+    int rightHandJointIndex;
+    
+    QVector<int> leftFingerJointIndices;
+    QVector<int> rightFingerJointIndices;
+    
+    QVector<int> leftFingertipJointIndices;
+    QVector<int> rightFingertipJointIndices;
+    
+    glm::vec3 palmDirection;
     
     glm::vec3 neckPivot;
+    
+    QVector<FBXAttachment> attachments;
 };
 
 /// Reads FBX geometry from the supplied model and mapping data.
 /// \exception QString if an error occurs in parsing
 FBXGeometry readFBX(const QByteArray& model, const QByteArray& mapping);
+
+/// Reads SVO geometry from the supplied model data.
+FBXGeometry readSVO(const QByteArray& model);
 
 #endif /* defined(__interface__FBXReader__) */

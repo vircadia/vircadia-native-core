@@ -7,6 +7,9 @@
 //
 //
 
+#include <QString>
+#include <QStringList>
+
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
 
@@ -521,30 +524,26 @@ void VoxelSceneStats::printDebugDetails() {
     qDebug("    trees removed       : %lu\n", _treesRemoved             );
 }
 
-const unsigned greenish  = 0x40ff40d0;
-const unsigned yellowish = 0xffef40c0;
-const unsigned greyish   = 0xd0d0d0a0;
-
 VoxelSceneStats::ItemInfo VoxelSceneStats::_ITEMS[] = {
-    { "Elapsed"              , greenish  },
-    { "Encode"               , yellowish },
-    { "Network"              , greyish   },
-    { "Voxels on Server"     , greenish  },
-    { "Voxels Sent"          , yellowish },
-    { "Colors Sent"          , greyish   },
-    { "Bitmasks Sent"        , greenish  },
-    { "Traversed"            , yellowish },
-    { "Skipped - Total"      , greyish   },
-    { "Skipped - Distance"   , greenish  },
-    { "Skipped - Out of View", yellowish },
-    { "Skipped - Was in View", greyish   },
-    { "Skipped - No Change"  , greenish  },
-    { "Skipped - Occluded"   , yellowish },
-    { "Didn't fit in packet" , greyish   },
-    { "Mode"                 , greenish  },
+    { "Elapsed"              , GREENISH  , 2 , "Elapsed,fps" },
+    { "Encode"               , YELLOWISH , 2 , "Time,fps" },
+    { "Network"              , GREYISH   , 3 , "Packets,Bytes,KBPS" },
+    { "Voxels on Server"     , GREENISH  , 3 , "Total,Internal,Leaves" },
+    { "Voxels Sent"          , YELLOWISH , 5 , "Total,Bits/Voxel,Avg Bits/Voxel,Internal,Leaves" },
+    { "Colors Sent"          , GREYISH   , 3 , "Total,Internal,Leaves" },
+    { "Bitmasks Sent"        , GREENISH  , 3 , "Colors,Exists,In Packets" },
+    { "Traversed"            , YELLOWISH , 3 , "Total,Internal,Leaves" },
+    { "Skipped - Total"      , GREYISH   , 3 , "Total,Internal,Leaves" },
+    { "Skipped - Distance"   , GREENISH  , 3 , "Total,Internal,Leaves" },
+    { "Skipped - Out of View", YELLOWISH , 3 , "Total,Internal,Leaves" },
+    { "Skipped - Was in View", GREYISH   , 3 , "Total,Internal,Leaves" },
+    { "Skipped - No Change"  , GREENISH  , 3 , "Total,Internal,Leaves" },
+    { "Skipped - Occluded"   , YELLOWISH , 3 , "Total,Internal,Leaves" },
+    { "Didn't fit in packet" , GREYISH   , 4 , "Total,Internal,Leaves,Removed" },
+    { "Mode"                 , GREENISH  , 4 , "Moving,Stationary,Partial,Full" },
 };
 
-char* VoxelSceneStats::getItemValue(Item item) {
+const char* VoxelSceneStats::getItemValue(Item item) {
     const uint64_t USECS_PER_SECOND = 1000 * 1000;
     int calcFPS, calcAverageFPS, calculatedKBPS;
     switch(item) {
@@ -650,4 +649,5 @@ char* VoxelSceneStats::getItemValue(Item item) {
     }
     return _itemValueBuffer;
 }
+
 

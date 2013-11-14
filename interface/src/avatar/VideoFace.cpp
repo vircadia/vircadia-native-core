@@ -1,5 +1,5 @@
 //
-//  Face.cpp
+//  VideoFace.cpp
 //  interface
 //
 //  Created by Andrzej Kapolka on 7/11/13.
@@ -16,26 +16,26 @@
 #include "Application.h"
 #include "Avatar.h"
 #include "Head.h"
-#include "Face.h"
+#include "VideoFace.h"
 #include "renderer/ProgramObject.h"
 
 using namespace cv;
 
-bool Face::_initialized = false;
-ProgramObject Face::_videoProgram;
-Face::Locations Face::_videoProgramLocations;
-ProgramObject Face::_texturedProgram;
-Face::Locations Face::_texturedProgramLocations;
-GLuint Face::_vboID;
-GLuint Face::_iboID;
+bool VideoFace::_initialized = false;
+ProgramObject VideoFace::_videoProgram;
+VideoFace::Locations VideoFace::_videoProgramLocations;
+ProgramObject VideoFace::_texturedProgram;
+VideoFace::Locations VideoFace::_texturedProgramLocations;
+GLuint VideoFace::_vboID;
+GLuint VideoFace::_iboID;
 
-Face::Face(Head* owningHead) : _owningHead(owningHead), _renderMode(MESH),
+VideoFace::VideoFace(Head* owningHead) : _owningHead(owningHead), _renderMode(MESH),
         _colorTextureID(0), _depthTextureID(0), _colorCodec(), _depthCodec(), _frameCount(0) {
     // we may have been created in the network thread, but we live in the main thread
     moveToThread(Application::getInstance()->thread());
 }
 
-Face::~Face() {
+VideoFace::~VideoFace() {
     if (_colorCodec.name != 0) {
         vpx_codec_destroy(&_colorCodec);
         
@@ -55,7 +55,7 @@ Face::~Face() {
     }
 }
 
-void Face::setFrameFromWebcam() {
+void VideoFace::setFrameFromWebcam() {
     Webcam* webcam = Application::getInstance()->getWebcam();
     if (webcam->isSending()) {
         _colorTextureID = webcam->getColorTextureID();
@@ -68,12 +68,12 @@ void Face::setFrameFromWebcam() {
     }
 }
 
-void Face::clearFrame() {
+void VideoFace::clearFrame() {
     _colorTextureID = 0;
     _depthTextureID = 0;
 }
     
-int Face::processVideoMessage(unsigned char* packetData, size_t dataBytes) {
+int VideoFace::processVideoMessage(unsigned char* packetData, size_t dataBytes) {
     unsigned char* packetPosition = packetData;
 
     int frameCount = *(uint32_t*)packetPosition;
@@ -243,7 +243,7 @@ int Face::processVideoMessage(unsigned char* packetData, size_t dataBytes) {
     return dataBytes;
 }
 
-bool Face::render(float alpha) {
+bool VideoFace::render(float alpha) {
     if (!isActive()) {
         return false;
     }
@@ -404,11 +404,11 @@ bool Face::render(float alpha) {
     return true;
 }
 
-void Face::cycleRenderMode() {
+void VideoFace::cycleRenderMode() {
     _renderMode = (RenderMode)((_renderMode + 1) % RENDER_MODE_COUNT);    
 }
 
-void Face::setFrame(const cv::Mat& color, const cv::Mat& depth, float aspectRatio) {
+void VideoFace::setFrame(const cv::Mat& color, const cv::Mat& depth, float aspectRatio) {
     Size2f textureSize = _textureSize;
     if (!color.empty()) {
         bool generate = (_colorTextureID == 0);
@@ -457,7 +457,7 @@ void Face::setFrame(const cv::Mat& color, const cv::Mat& depth, float aspectRati
     _textureSize = textureSize;
 }
 
-void Face::destroyCodecs() {
+void VideoFace::destroyCodecs() {
     if (_colorCodec.name != 0) {
         vpx_codec_destroy(&_colorCodec);
         _colorCodec.name = 0;
@@ -468,7 +468,7 @@ void Face::destroyCodecs() {
     }
 }
 
-void Face::loadProgram(ProgramObject& program, const QString& suffix, const char* secondTextureUniform, Locations& locations) {
+void VideoFace::loadProgram(ProgramObject& program, const QString& suffix, const char* secondTextureUniform, Locations& locations) {
     program.addShaderFromSourceFile(QGLShader::Vertex, "resources/shaders/face" + suffix + ".vert");
     program.addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/face" + suffix + ".frag");
     program.link();

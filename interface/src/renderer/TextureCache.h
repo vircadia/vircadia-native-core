@@ -40,11 +40,14 @@ public:
     /// Returns the ID of an opaque white texture (useful for a default).
     GLuint getWhiteTextureID();
 
+    /// Returns the ID of a pale blue texture (useful for a normal map).
+    GLuint getBlueTextureID();
+    
     /// Returns the ID of a texture containing the contents of the specified file, loading it if necessary. 
     GLuint getFileTextureID(const QString& filename);
 
     /// Loads a texture from the specified URL.
-    QSharedPointer<NetworkTexture> getTexture(const QUrl& url, bool dilatable = false);
+    QSharedPointer<NetworkTexture> getTexture(const QUrl& url, bool normalMap = false, bool dilatable = false);
 
     /// Returns a pointer to the primary framebuffer object.  This render target includes a depth component, and is
     /// used for scene rendering.
@@ -69,6 +72,7 @@ private:
     
     GLuint _permutationNormalTextureID;
     GLuint _whiteTextureID;
+    GLuint _blueTextureID;
     
     QHash<QString, GLuint> _fileTextureIDs;
 
@@ -101,7 +105,7 @@ class NetworkTexture : public QObject, public Texture {
 
 public:
     
-    NetworkTexture(const QUrl& url);
+    NetworkTexture(const QUrl& url, bool normalMap);
     ~NetworkTexture();
 
     /// Returns the average color over the entire texture.
@@ -128,7 +132,7 @@ class DilatableNetworkTexture : public NetworkTexture {
     
 public:
     
-    DilatableNetworkTexture(const QUrl& url);
+    DilatableNetworkTexture(const QUrl& url, bool normalMap);
     
     /// Returns a pointer to a texture with the requested amount of dilation.
     QSharedPointer<Texture> getDilatedTexture(float dilation);
