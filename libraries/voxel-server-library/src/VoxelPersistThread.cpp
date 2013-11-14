@@ -67,9 +67,13 @@ bool VoxelPersistThread::process() {
         uint64_t MSECS_TO_USECS = 1000;
         uint64_t USECS_TO_SLEEP = 100 * MSECS_TO_USECS; // every 100ms
         usleep(USECS_TO_SLEEP);
+        uint64_t now = usecTimestampNow();
+        uint64_t sinceLastSave = now - _lastSave;
+        uint64_t intervalToCheck = _persistInterval * MSECS_TO_USECS;
+        
     
-        if ((usecTimestampNow() - _lastSave) > (_persistInterval * MSECS_TO_USECS)) {
-            qDebug("checking if voxels are dirty.\n");
+        if (sinceLastSave > intervalToCheck) {
+            qDebug("checking if voxels are dirty. sinceLastSave=%llu intervalToCheck=%llu\n", sinceLastSave, intervalToCheck);
             // check the dirty bit and persist here...
             if (_tree->isDirty()) {
                 _lastSave = usecTimestampNow();
