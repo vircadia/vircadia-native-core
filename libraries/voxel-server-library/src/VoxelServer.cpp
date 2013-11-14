@@ -649,47 +649,21 @@ void VoxelServer::run() {
     
     // loop to send to nodes requesting data
     while (true) {
-        bool wantNoisyDebugging = true;
-        if (wantNoisyDebugging) {
-            qDebug() << "VoxelServer::run() top of while(true)\n";
-        }
-
         // check for >= in case one gets past the goalie
-        if (wantNoisyDebugging) {
-            qDebug() << "VoxelServer::run() CALLING NodeList::getInstance()->getNumNoReplyDomainCheckIns()\n";
-        }
         if (NodeList::getInstance()->getNumNoReplyDomainCheckIns() >= MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
             qDebug() << "Exit loop... getInstance()->getNumNoReplyDomainCheckIns() >= MAX_SILENT_DOMAIN_SERVER_CHECK_INS\n";
             break;
-        }
-        if (wantNoisyDebugging) {
-            qDebug() << "VoxelServer::run() AFTER CALLING NodeList::getInstance()->getNumNoReplyDomainCheckIns()\n";
         }
         
         // send a check in packet to the domain server if DOMAIN_SERVER_CHECK_IN_USECS has elapsed
         if (usecTimestampNow() - usecTimestamp(&lastDomainServerCheckIn) >= DOMAIN_SERVER_CHECK_IN_USECS) {
             gettimeofday(&lastDomainServerCheckIn, NULL);
-            if (wantNoisyDebugging) {
-                qDebug() << "NodeList::getInstance()->sendDomainServerCheckIn()\n";
-            }
             NodeList::getInstance()->sendDomainServerCheckIn();
-            if (wantNoisyDebugging) {
-                qDebug() << "AFTER NodeList::getInstance()->sendDomainServerCheckIn()\n";
-            }
         }
         
         // ping our inactive nodes to punch holes with them
-        if (wantNoisyDebugging) {
-            qDebug() << "VoxelServer::run() CALLING nodeList->possiblyPingInactiveNodes()\n";
-        }
         nodeList->possiblyPingInactiveNodes();
-        if (wantNoisyDebugging) {
-            qDebug() << "VoxelServer::run() AFTER CALLING nodeList->possiblyPingInactiveNodes()\n";
-        }
         
-        if (wantNoisyDebugging) {
-            qDebug() << "VoxelServer::run() CALLING nodeList->getNodeSocket()->receive()\n";
-        }
         if (nodeList->getNodeSocket()->receive(&senderAddress, packetData, &packetLength) &&
             packetVersionMatch(packetData)) {
 
@@ -701,56 +675,23 @@ void VoxelServer::run() {
                 QUuid nodeUUID = QUuid::fromRfc4122(QByteArray((char*)packetData + numBytesPacketHeader,
                                                                NUM_BYTES_RFC4122_UUID));
                 
-                if (wantNoisyDebugging) {
-                    qDebug() << "VoxelServer::run() CALLING nodeList->nodeWithUUID() line: " << __LINE__ << "\n";
-                }
                 Node* node = nodeList->nodeWithUUID(nodeUUID);
-                if (wantNoisyDebugging) {
-                    qDebug() << "VoxelServer::run() AFTER CALLING nodeList->nodeWithUUID() line: " << __LINE__ << "\n";
-                }
                 
                 if (node) {
-                    if (wantNoisyDebugging) {
-                        qDebug() << "VoxelServer::run() CALLING nodeList->updateNodeWithData() line: " << __LINE__ << "\n";
-                    }
                     nodeList->updateNodeWithData(node, &senderAddress, packetData, packetLength);
-                    if (wantNoisyDebugging) {
-                        qDebug() << "VoxelServer::run() AFTER CALLING nodeList->updateNodeWithData() line: " << __LINE__ << "\n";
-                    }
-                    
-                    if (wantNoisyDebugging) {
-                        qDebug() << "VoxelServer::run() CALLING nodeList->getActiveSocket() line: " << __LINE__ << "\n";
-                    }
                     if (!node->getActiveSocket()) {
                         // we don't have an active socket for this node, but they're talking to us
                         // this means they've heard from us and can reply, let's assume public is active
                         node->activatePublicSocket();
                     }
-                    if (wantNoisyDebugging) {
-                        qDebug() << "VoxelServer::run() AFTER CALLING nodeList->getActiveSocket() line: " << __LINE__ << "\n";
-                    }
-                    
-                    if (wantNoisyDebugging) {
-                        qDebug() << "VoxelServer::run() CALLING node->getLinkedData() line: " << __LINE__ << "\n";
-                    }
                     VoxelNodeData* nodeData = (VoxelNodeData*) node->getLinkedData();
-                    if (wantNoisyDebugging) {
-                        qDebug() << "VoxelServer::run() AFTER CALLING node->getLinkedData() line: " << __LINE__ << "\n";
-                    }
-
                     if (nodeData && !nodeData->isVoxelSendThreadInitalized()) {
                         nodeData->initializeVoxelSendThread(this);
                     }
                 }
             } else if (packetData[0] == PACKET_TYPE_VOXEL_JURISDICTION_REQUEST) {
                 if (_jurisdictionSender) {
-                    if (wantNoisyDebugging) {
-                        qDebug() << "VoxelServer::run() CALLING _jurisdictionSender->queueReceivedPacket()...\n";
-                    }
                     _jurisdictionSender->queueReceivedPacket(senderAddress, packetData, packetLength);
-                    if (wantNoisyDebugging) {
-                        qDebug() << "VoxelServer::run() DONE WITH _jurisdictionSender->queueReceivedPacket()...\n";
-                    }
                 }
             } else if (_voxelServerPacketProcessor &&
                        (packetData[0] == PACKET_TYPE_SET_VOXEL
@@ -785,57 +726,36 @@ void VoxelServer::run() {
                     }
                 }
     
-                if (wantNoisyDebugging) {
-                    qDebug() << "VoxelServer::run() CALLING _voxelServerPacketProcessor->queueReceivedPacket()...\n";
-                }
                 _voxelServerPacketProcessor->queueReceivedPacket(senderAddress, packetData, packetLength);
-                if (wantNoisyDebugging) {
-                    qDebug() << "VoxelServer::run() DONE WITH _voxelServerPacketProcessor->queueReceivedPacket()...\n";
-                }
             } else {
                 // let processNodeData handle it.
-                if (wantNoisyDebugging) {
-                    qDebug() << "VoxelServer::run() CALLING NodeList::getInstance()->processNodeData(&senderAddress, packetData, packetLength)...\n";
-                }
                 NodeList::getInstance()->processNodeData(&senderAddress, packetData, packetLength);
-                if (wantNoisyDebugging) {
-                    qDebug() << "VoxelServer::run() DONE WITH NodeList::getInstance()->processNodeData(&senderAddress, packetData, packetLength)...\n";
-                }
             }
         }
-        if (wantNoisyDebugging) {
-            qDebug() << "VoxelServer::run()... BOTTOM OF loop...\n";
-        }
     }
-    qDebug() << "VoxelServer::run()... AFTER loop...\n";
 
     // call NodeList::clear() so that all of our node specific objects, including our sending threads, are
     // properly shutdown and cleaned up.
     NodeList::getInstance()->clear();
     
-    qDebug() << "VoxelServer::run()... terminating _jurisdictionSender\n";
     if (_jurisdictionSender) {
         _jurisdictionSender->terminate();
         delete _jurisdictionSender;
     }
 
-    qDebug() << "VoxelServer::run()... terminating _voxelServerPacketProcessor\n";
     if (_voxelServerPacketProcessor) {
         _voxelServerPacketProcessor->terminate();
         delete _voxelServerPacketProcessor;
     }
 
-    qDebug() << "VoxelServer::run()... terminating _voxelPersistThread\n";
     if (_voxelPersistThread) {
         _voxelPersistThread->terminate();
         delete _voxelPersistThread;
     }
     
     // tell our NodeList we're done with notifications
-    qDebug() << "VoxelServer::run()... nodeList->removeHook(&_nodeWatcher)\n";
     nodeList->removeHook(&_nodeWatcher);
 
-    qDebug() << "VoxelServer::run()... deleting _jurisdiction\n";
     delete _jurisdiction;
     _jurisdiction = NULL;
 
