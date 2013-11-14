@@ -486,7 +486,11 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(voxelProtoOptionsMenu, MenuOption::DestructiveAddVoxel);
 
     addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::ExtraDebugging);
-
+    addActionToQMenuAndActionHash(developerMenu, MenuOption::PasteToVoxel, 
+                Qt::CTRL | Qt::SHIFT | Qt::Key_V, 
+                this,
+                SLOT(pasteToVoxel()));
+                
     
 #ifndef Q_OS_MAC
     QMenu* helpMenu = addMenu("Help");
@@ -953,6 +957,33 @@ void Menu::goToUser() {
         // there's a username entered by the user, make a request to the data-server
         DataServerClient::getValuesForKeysAndUserString((QStringList() << DataServerKey::Domain << DataServerKey::Position),
                                                         userDialog.textValue());
+    }
+    
+    sendFakeEnterEvent();
+}
+
+void Menu::pasteToVoxel() {
+    QInputDialog pasteToOctalCodeDialog(Application::getInstance()->getWindow());
+    pasteToOctalCodeDialog.setWindowTitle("Paste to Voxel");
+    pasteToOctalCodeDialog.setLabelText("Octal Code:");
+    QString octalCode = "";
+    pasteToOctalCodeDialog.setTextValue(octalCode);
+    pasteToOctalCodeDialog.setWindowFlags(Qt::Sheet);
+    pasteToOctalCodeDialog.resize(pasteToOctalCodeDialog.parentWidget()->size().width() * DIALOG_RATIO_OF_WINDOW, 
+        pasteToOctalCodeDialog.size().height());
+    
+    int dialogReturn = pasteToOctalCodeDialog.exec();
+    if (dialogReturn == QDialog::Accepted && !pasteToOctalCodeDialog.textValue().isEmpty()) {
+        // we got an octalCode to paste to...
+        QString locationToPaste = pasteToOctalCodeDialog.textValue();
+        unsigned char* octalCodeDestination = hexStringToOctalCode(locationToPaste);
+        
+        // check to see if it was a legit octcode...
+        if (locationToPaste == octalCodeToHexString(octalCodeDestination)) {
+            Application::getInstance()->pasteVoxelsToOctalCode(octalCodeDestination);
+        } else {
+            qDebug() << "problem with octcode...\n";
+        }
     }
     
     sendFakeEnterEvent();
