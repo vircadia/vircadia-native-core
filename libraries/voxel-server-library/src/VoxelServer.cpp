@@ -47,9 +47,6 @@ const char* VOXELS_PERSIST_FILE = "/etc/highfidelity/voxel-server/resources/voxe
 void attachVoxelNodeDataToNode(Node* newNode) {
     if (newNode->getLinkedData() == NULL) {
         VoxelNodeData* voxelNodeData = new VoxelNodeData(newNode);
-        QUuid nodeUUID = newNode->getUUID();
-        qDebug("attachVoxelNodeDataToNode() newNode=%p voxelNodeData=%p\n", newNode, voxelNodeData);
-        qDebug() << "attachVoxelNodeDataToNode() node UUID:" << nodeUUID << "\n";
         newNode->setLinkedData(voxelNodeData);
     }
 }
@@ -649,8 +646,9 @@ void VoxelServer::run() {
     
     // loop to send to nodes requesting data
     while (true) {
-        if (NodeList::getInstance()->getNumNoReplyDomainCheckIns() == MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
-            qDebug() << "Exit loop... getInstance()->getNumNoReplyDomainCheckIns() == MAX_SILENT_DOMAIN_SERVER_CHECK_INS\n";
+        // check for >= in case one gets past the goalie
+        if (NodeList::getInstance()->getNumNoReplyDomainCheckIns() >= MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
+            qDebug() << "Exit loop... getInstance()->getNumNoReplyDomainCheckIns() >= MAX_SILENT_DOMAIN_SERVER_CHECK_INS\n";
             break;
         }
         
@@ -678,13 +676,11 @@ void VoxelServer::run() {
                 
                 if (node) {
                     nodeList->updateNodeWithData(node, &senderAddress, packetData, packetLength);
-                    
                     if (!node->getActiveSocket()) {
                         // we don't have an active socket for this node, but they're talking to us
                         // this means they've heard from us and can reply, let's assume public is active
                         node->activatePublicSocket();
                     }
-                    
                     VoxelNodeData* nodeData = (VoxelNodeData*) node->getLinkedData();
                     if (nodeData && !nodeData->isVoxelSendThreadInitalized()) {
                         nodeData->initializeVoxelSendThread(this);
@@ -734,35 +730,29 @@ void VoxelServer::run() {
             }
         }
     }
-    qDebug() << "VoxelServer::run()... AFTER loop...\n";
 
     // call NodeList::clear() so that all of our node specific objects, including our sending threads, are
     // properly shutdown and cleaned up.
     NodeList::getInstance()->clear();
     
-    qDebug() << "VoxelServer::run()... terminating _jurisdictionSender\n";
     if (_jurisdictionSender) {
         _jurisdictionSender->terminate();
         delete _jurisdictionSender;
     }
 
-    qDebug() << "VoxelServer::run()... terminating _voxelServerPacketProcessor\n";
     if (_voxelServerPacketProcessor) {
         _voxelServerPacketProcessor->terminate();
         delete _voxelServerPacketProcessor;
     }
 
-    qDebug() << "VoxelServer::run()... terminating _voxelPersistThread\n";
     if (_voxelPersistThread) {
         _voxelPersistThread->terminate();
         delete _voxelPersistThread;
     }
     
     // tell our NodeList we're done with notifications
-    qDebug() << "VoxelServer::run()... nodeList->removeHook(&_nodeWatcher)\n";
     nodeList->removeHook(&_nodeWatcher);
 
-    qDebug() << "VoxelServer::run()... deleting _jurisdiction\n";
     delete _jurisdiction;
     _jurisdiction = NULL;
 

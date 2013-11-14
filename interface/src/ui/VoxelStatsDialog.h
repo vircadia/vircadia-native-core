@@ -15,7 +15,8 @@
 
 #include <VoxelSceneStats.h>
 
-#define MAX_STATS 40
+#define MAX_STATS 100
+#define MAX_VOXEL_SERVERS 50
 
 class VoxelStatsDialog : public QDialog {
     Q_OBJECT
@@ -38,6 +39,8 @@ protected:
     void closeEvent(QCloseEvent*);
 
     int AddStatItem(const char* caption, unsigned colorRGBA);
+    void RemoveStatItem(int item);
+    void showAllVoxelServers();
 
 private:
     QFormLayout* _form;
@@ -50,6 +53,8 @@ private:
     int _localVoxels;
     int _localVoxelsMemory;
     int _voxelsRendered;
+    int _voxelServerLables[MAX_VOXEL_SERVERS];
+    int _voxelServerLabelsCount;
 };
 
 #endif /* defined(__interface__VoxelStatsDialog__) */

@@ -60,19 +60,25 @@ bool VoxelPersistThread::process() {
             VoxelNode::getSetChildAtIndexTime(), VoxelNode::getSetChildAtIndexCalls(), usecPerSet);
 
         _initialLoadComplete = true;
+        _lastSave = usecTimestampNow(); // we just loaded, no need to save again
     }
     
-    uint64_t MSECS_TO_USECS = 1000;
-    usleep(_persistInterval * MSECS_TO_USECS);
-
-
-    // check the dirty bit and persist here...
-    if (_tree->isDirty()) {
-        qDebug("saving voxels to file %s...\n",_filename);
-        _tree->writeToSVOFile(_filename);
-        _tree->clearDirtyBit(); // tree is clean after saving
-        qDebug("DONE saving voxels to file...\n");
-    }
-
+    if (isStillRunning()) {
+        uint64_t MSECS_TO_USECS = 1000;
+        uint64_t USECS_TO_SLEEP = 100 * MSECS_TO_USECS; // every 100ms
+        usleep(USECS_TO_SLEEP);
+    
+        if ((usecTimestampNow() - _lastSave) > (_persistInterval * MSECS_TO_USECS)) {
+            qDebug("checking if voxels are dirty.\n");
+            // check the dirty bit and persist here...
+            if (_tree->isDirty()) {
+                _lastSave = usecTimestampNow();
+                qDebug("saving voxels to file %s...\n",_filename);
+                _tree->writeToSVOFile(_filename);
+                _tree->clearDirtyBit(); // tree is clean after saving
+                qDebug("DONE saving voxels to file...\n");
+            }
+        }
+    }    
     return isStillRunning();  // keep running till they terminate us
 }
