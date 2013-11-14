@@ -47,9 +47,6 @@ const char* VOXELS_PERSIST_FILE = "/etc/highfidelity/voxel-server/resources/voxe
 void attachVoxelNodeDataToNode(Node* newNode) {
     if (newNode->getLinkedData() == NULL) {
         VoxelNodeData* voxelNodeData = new VoxelNodeData(newNode);
-        QUuid nodeUUID = newNode->getUUID();
-        qDebug("attachVoxelNodeDataToNode() newNode=%p voxelNodeData=%p\n", newNode, voxelNodeData);
-        qDebug() << "attachVoxelNodeDataToNode() node UUID:" << nodeUUID << "\n";
         newNode->setLinkedData(voxelNodeData);
     }
 }

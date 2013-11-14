@@ -25,6 +25,7 @@ VoxelSendThread::VoxelSendThread(const QUuid& nodeUUID, VoxelServer* myServer) :
 
 bool VoxelSendThread::process() {
     uint64_t  start = usecTimestampNow();
+    bool gotLock = false;
     
     // don't do any send processing until the initial load of the voxels is complete...
     if (_myServer->isInitialLoadComplete()) {
@@ -33,6 +34,7 @@ bool VoxelSendThread::process() {
         if (node) {
             // make sure the node list doesn't kill our node while we're using it
             if (node->trylock()) {
+                gotLock = true;
                 VoxelNodeData* nodeData = NULL;
     
                 nodeData = (VoxelNodeData*) node->getLinkedData();
@@ -49,9 +51,6 @@ bool VoxelSendThread::process() {
                 }
     
                 node->unlock(); // we're done with this node for now.
-            } else {
-                qDebug("VoxelSendThread::process() failed to lock node...isStillRunning()=%s\n",
-                    debug::valueOf(isStillRunning()));
             }
         }
     } else {
@@ -60,8 +59,8 @@ bool VoxelSendThread::process() {
         }
     }
      
-    // Only sleep if we're still running...   
-    if (isStillRunning()) {
+    // Only sleep if we're still running and we got the lock last time we tried, otherwise try to get the lock asap
+    if (isStillRunning() && gotLock) {
         // dynamically sleep until we need to fire off the next set of voxels
         int elapsed = (usecTimestampNow() - start);
         int usecToSleep =  VOXEL_SEND_INTERVAL_USECS - elapsed;
