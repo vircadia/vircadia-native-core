@@ -171,7 +171,7 @@ public:
     
     glm::vec2 getViewportDimensions() const{ return glm::vec2(_glWidget->width(),_glWidget->height()); }
     NodeToJurisdictionMap& getVoxelServerJurisdictions() { return _voxelServerJurisdictions; }
-
+    void pasteVoxelsToOctalCode(const unsigned char* octalCodeDestination);
 
 public slots:
     void sendAvatarFaceVideoMessage(int frameCount, const QByteArray& data);

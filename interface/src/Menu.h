@@ -76,6 +76,7 @@ public slots:
     void importSettings();
     void exportSettings();
     void goToUser();
+    void pasteToVoxel();
     
 private slots:
     void aboutApp();
@@ -212,6 +213,7 @@ namespace MenuOption {
     const QString Oscilloscope = "Audio Oscilloscope";
     const QString Pair = "Pair";
     const QString PasteVoxels = "Paste";
+    const QString PasteToVoxel = "Paste to Voxel...";
     const QString PipelineWarnings = "Show Render Pipeline Warnings";
     const QString Preferences = "Preferences...";
     const QString RandomizeVoxelColors = "Randomize Voxel TRUE Colors";

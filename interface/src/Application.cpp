@@ -1603,22 +1603,11 @@ void Application::copyVoxels() {
     }
 }
 
-void Application::pasteVoxels() {
-    unsigned char* calculatedOctCode = NULL;
-    VoxelNode* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
-
+void Application::pasteVoxelsToOctalCode(const unsigned char* octalCodeDestination) {
     // Recurse the clipboard tree, where everything is root relative, and send all the colored voxels to 
     // the server as an set voxel message, this will also rebase the voxels to the new location
     SendVoxelsOperationArgs args;
-
-    // we only need the selected voxel to get the newBaseOctCode, which we can actually calculate from the
-    // voxel size/position details. If we don't have an actual selectedNode then use the mouseVoxel to create a 
-    // target octalCode for where the user is pointing.
-    if (selectedNode) {
-        args.newBaseOctCode = selectedNode->getOctalCode();
-    } else {
-        args.newBaseOctCode = calculatedOctCode = pointToVoxel(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
-    }
+    args.newBaseOctCode = octalCodeDestination;
 
     _sharedVoxelSystem.getTree()->recurseTreeWithOperation(sendVoxelsOperation, &args);
 
@@ -1628,6 +1617,23 @@ void Application::pasteVoxels() {
     }
 
     _voxelEditSender.releaseQueuedMessages();
+}
+
+void Application::pasteVoxels() {
+    unsigned char* calculatedOctCode = NULL;
+    VoxelNode* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+
+    // we only need the selected voxel to get the newBaseOctCode, which we can actually calculate from the
+    // voxel size/position details. If we don't have an actual selectedNode then use the mouseVoxel to create a 
+    // target octalCode for where the user is pointing.
+    const unsigned char* octalCodeDestination;
+    if (selectedNode) {
+        octalCodeDestination = selectedNode->getOctalCode();
+    } else {
+        octalCodeDestination = calculatedOctCode = pointToVoxel(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+    }
+
+    pasteVoxelsToOctalCode(octalCodeDestination);
     
     if (calculatedOctCode) {
         delete[] calculatedOctCode;
