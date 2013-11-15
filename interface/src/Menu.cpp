@@ -46,12 +46,14 @@ Menu* Menu::getInstance() {
 }
 
 const ViewFrustumOffset DEFAULT_FRUSTUM_OFFSET = {-135.0f, 0.0f, 0.0f, 25.0f, 0.0f};
+const float DEFAULT_FACESHIFT_EYE_DEFLECTION = 0.25f;
 
 Menu::Menu() :
     _actionHash(),
     _audioJitterBufferSamples(0),
     _bandwidthDialog(NULL),
     _fieldOfView(DEFAULT_FIELD_OF_VIEW_DEGREES),
+    _faceshiftEyeDeflection(DEFAULT_FACESHIFT_EYE_DEFLECTION),
     _frustumDrawMode(FRUSTUM_DRAW_MODE_ALL),
     _viewFrustumOffset(DEFAULT_FRUSTUM_OFFSET),
     _voxelModeActionsGroup(NULL),
@@ -512,6 +514,7 @@ void Menu::loadSettings(QSettings* settings) {
     
     _audioJitterBufferSamples = loadSetting(settings, "audioJitterBufferSamples", 0);
     _fieldOfView = loadSetting(settings, "fieldOfView", DEFAULT_FIELD_OF_VIEW_DEGREES);
+    _faceshiftEyeDeflection = loadSetting(settings, "faceshiftEyeDeflection", DEFAULT_FACESHIFT_EYE_DEFLECTION);
     _maxVoxels = loadSetting(settings, "maxVoxels", DEFAULT_MAX_VOXELS_PER_SYSTEM);
     _voxelSizeScale = loadSetting(settings, "voxelSizeScale", DEFAULT_VOXEL_SIZE_SCALE);
     _boundaryLevelAdjust = loadSetting(settings, "boundaryLevelAdjust", 0);
@@ -540,6 +543,7 @@ void Menu::saveSettings(QSettings* settings) {
     
     settings->setValue("audioJitterBufferSamples", _audioJitterBufferSamples);
     settings->setValue("fieldOfView", _fieldOfView);
+    settings->setValue("faceshiftEyeDeflection", _faceshiftEyeDeflection);
     settings->setValue("maxVoxels", _maxVoxels);
     settings->setValue("voxelSizeScale", _voxelSizeScale);
     settings->setValue("boundaryLevelAdjust", _boundaryLevelAdjust);
@@ -790,6 +794,10 @@ void Menu::editPreferences() {
     pupilDilation->setValue(applicationInstance->getAvatar()->getHead().getPupilDilation() * pupilDilation->maximum());
     form->addRow("Pupil Dilation:", pupilDilation);
     
+    QSlider* faceshiftEyeDeflection = new QSlider(Qt::Horizontal);
+    faceshiftEyeDeflection->setValue(_faceshiftEyeDeflection * faceshiftEyeDeflection->maximum());
+    form->addRow("Faceshift Eye Deflection:", faceshiftEyeDeflection);
+    
     QSpinBox* fieldOfView = new QSpinBox();
     fieldOfView->setMaximum(180);
     fieldOfView->setMinimum(1);
@@ -865,6 +873,8 @@ void Menu::editPreferences() {
         
         _fieldOfView = fieldOfView->value();
         applicationInstance->resizeGL(applicationInstance->getGLWidget()->width(), applicationInstance->getGLWidget()->height());
+        
+        _faceshiftEyeDeflection = faceshiftEyeDeflection->value() / (float)faceshiftEyeDeflection->maximum();
     }
     
     sendFakeEnterEvent();
