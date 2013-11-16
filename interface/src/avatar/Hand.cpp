@@ -264,7 +264,7 @@ void Hand::renderLeapHands() {
     for (size_t i = 0; i < getNumPalms(); ++i) {
         PalmData& palm = getPalms()[i];
         if (palm.isActive()) {
-            const float palmThickness = 0.002f;
+            const float palmThickness = 0.02f;
             glColor4f(handColor.r, handColor.g, handColor.b, 0.25);
             glm::vec3 tip = palm.getPosition();
             glm::vec3 root = palm.getPosition() + palm.getNormal() * palmThickness;
