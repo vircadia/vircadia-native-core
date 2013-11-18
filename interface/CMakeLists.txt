@@ -108,6 +108,14 @@ if (OPENNI_FOUND AND NOT DISABLE_OPENNI)
     target_link_libraries(${TARGET_NAME} ${OPENNI_LIBRARIES})
 endif (OPENNI_FOUND AND NOT DISABLE_OPENNI)
 
+# likewise with Sixense library for Razer Hydra
+if (SIXENSE_FOUND AND NOT DISABLE_SIXENSE)
+    add_definitions(-DHAVE_SIXENSE)
+    include_directories(SYSTEM ${SIXENSE_INCLUDE_DIRS})
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${SIXENSE_INCLUDE_DIRS}")
+    target_link_libraries(${TARGET_NAME} ${SIXENSE_LIBRARIES})
+endif (SIXENSE_FOUND AND NOT DISABLE_SIXENSE)
+
 qt5_use_modules(${TARGET_NAME} Core Gui Multimedia Network OpenGL Svg WebKit WebKitWidgets)
 
 # include headers for interface and InterfaceConfig.
@@ -127,7 +135,6 @@ include_directories(
   ${LEAP_INCLUDE_DIRS}
   ${MOTIONDRIVER_INCLUDE_DIRS}
   ${OPENCV_INCLUDE_DIRS}
-  ${SIXENSE_INCLUDE_DIRS}
 )
 
 SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${OPENCV_INCLUDE_DIRS}")
@@ -138,7 +145,6 @@ target_link_libraries(
   ${MOTIONDRIVER_LIBRARIES}
   ${OPENCV_LIBRARIES} 
   ${ZLIB_LIBRARIES}
-  ${SIXENSE_LIBRARIES}
 )
 
 if (APPLE)

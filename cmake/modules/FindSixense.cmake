@@ -19,9 +19,9 @@ else (SIXENSE_LIBRARIES AND SIXENSE_INCLUDE_DIRS)
   find_path(SIXENSE_INCLUDE_DIRS sixense.h ${SIXENSE_ROOT_DIR}/include)
 
   if (APPLE)
-    find_library(SIXENSE_LIBRARIES libsixense.dylib ${SIXENSE_ROOT_DIR}/lib/MacOS/)
+    find_library(SIXENSE_LIBRARIES libsixense_x64.dylib ${SIXENSE_ROOT_DIR}/lib/osx_x64/release_dll)
   elseif (UNIX)
-    find_library(SIXENSE_LIBRARIES libsixense_x64.so ${SIXENSE_ROOT_DIR}/lib/UNIX/)
+    find_library(SIXENSE_LIBRARIES libsixense_x64.so ${SIXENSE_ROOT_DIR}/lib/linux_x64/release)
   endif ()
 
   if (SIXENSE_INCLUDE_DIRS AND SIXENSE_LIBRARIES)
