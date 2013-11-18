@@ -13,10 +13,12 @@
 #include <cstdio>
 #include "VoxelSendThread.h"
 
+const int UNCOMPRESSED_SIZE_MULTIPLE = 20;
+
 VoxelNodeData::VoxelNodeData(Node* owningNode) :
     VoxelQuery(owningNode),
     _viewSent(false),
-    _voxelPacketAvailableBytes(MAX_VOXEL_PACKET_SIZE),
+    _voxelPacketAvailableBytes(MAX_VOXEL_PACKET_SIZE * UNCOMPRESSED_SIZE_MULTIPLE),
     _maxSearchLevel(1),
     _maxLevelReachedInLastSearch(1),
     _lastTimeBagEmpty(0),
@@ -29,9 +31,9 @@ VoxelNodeData::VoxelNodeData(Node* owningNode) :
     _lodChanged(false),
     _lodInitialized(false)
 {
-    _voxelPacket = new unsigned char[MAX_VOXEL_PACKET_SIZE];
+    _voxelPacket = new unsigned char[MAX_VOXEL_PACKET_SIZE * UNCOMPRESSED_SIZE_MULTIPLE];
     _voxelPacketAt = _voxelPacket;
-    _lastVoxelPacket = new unsigned char[MAX_VOXEL_PACKET_SIZE];
+    _lastVoxelPacket = new unsigned char[MAX_VOXEL_PACKET_SIZE * UNCOMPRESSED_SIZE_MULTIPLE];
     _lastVoxelPacketLength = 0;
     _duplicatePacketCount = 0;
     resetVoxelPacket();
@@ -44,9 +46,9 @@ void VoxelNodeData::initializeVoxelSendThread(VoxelServer* voxelServer) {
     _voxelSendThread->initialize(true);
 }
 
-bool VoxelNodeData::packetIsDuplicate() const {
+bool VoxelNodeData::packetIsDuplicate() {
     if (_lastVoxelPacketLength == getPacketLength()) {
-        return memcmp(_lastVoxelPacket, _voxelPacket, getPacketLength()) == 0;
+        return memcmp(_lastVoxelPacket, getPacket(), getPacketLength()) == 0;
     }
     return false;
 }
@@ -91,7 +93,7 @@ void VoxelNodeData::resetVoxelPacket() {
     // scene information, (e.g. the root node packet of a static scene), we can use this as a strategy for reducing
     // packet send rate.
     _lastVoxelPacketLength = getPacketLength();
-    memcpy(_lastVoxelPacket, _voxelPacket, _lastVoxelPacketLength);
+    memcpy(_lastVoxelPacket, getPacket(), _lastVoxelPacketLength);
 
     // If we're moving, and the client asked for low res, then we force monochrome, otherwise, use 
     // the clients requested color state.    
@@ -100,8 +102,39 @@ void VoxelNodeData::resetVoxelPacket() {
 
     int numBytesPacketHeader = populateTypeAndVersion(_voxelPacket, voxelPacketType);
     _voxelPacketAt = _voxelPacket + numBytesPacketHeader;
-    _voxelPacketAvailableBytes = MAX_VOXEL_PACKET_SIZE - numBytesPacketHeader;
+    _voxelPacketAvailableBytes = (MAX_VOXEL_PACKET_SIZE * UNCOMPRESSED_SIZE_MULTIPLE) - numBytesPacketHeader;
+    compressPacket();
     _voxelPacketWaiting = false;
+}
+
+bool VoxelNodeData::willFit(unsigned char* buffer, int bytes) {
+    int uncompressedLength = getPacketLengthUncompressed();
+    const int MAX_COMPRESSION = 9;
+    // we only want to compress the data payload, not the message header
+    int numBytesPacketHeader = numBytesForPacketHeader(_voxelPacket);
+    
+    // start with the current uncompressed data
+    QByteArray uncompressedTestData((const char*)_voxelPacket + numBytesPacketHeader, 
+                                    uncompressedLength - numBytesPacketHeader);
+
+    // append this next buffer...
+    uncompressedTestData.append((const char*)buffer, bytes);
+
+    // test compress it
+    QByteArray compressedData = qCompress(uncompressedTestData, MAX_COMPRESSION);
+    
+    bool wouldFit = (compressedData.size() + numBytesPacketHeader) <= MAX_VOXEL_PACKET_SIZE;
+    
+    /*
+    if (!wouldFit) {
+        printf("would not fit... previous size: %d, buffer size: %d, would be:%d MAX_VOXEL_PACKET_SIZE: %d\n",
+            getPacketLength(), bytes, (compressedData.size() + numBytesPacketHeader), MAX_VOXEL_PACKET_SIZE);
+    } else {
+        printf("would fit... previous size: %d, buffer size: %d, would be:%d MAX_VOXEL_PACKET_SIZE: %d\n",
+            getPacketLength(), bytes, (compressedData.size() + numBytesPacketHeader), MAX_VOXEL_PACKET_SIZE);
+    }
+    */
+    return wouldFit;
 }
 
 void VoxelNodeData::writeToPacket(unsigned char* buffer, int bytes) {
@@ -109,6 +142,23 @@ void VoxelNodeData::writeToPacket(unsigned char* buffer, int bytes) {
     _voxelPacketAvailableBytes -= bytes;
     _voxelPacketAt += bytes;
     _voxelPacketWaiting = true;
+    compressPacket();
+}
+
+int VoxelNodeData::getPacketLengthUncompressed() const { 
+    return (MAX_VOXEL_PACKET_SIZE * UNCOMPRESSED_SIZE_MULTIPLE) - _voxelPacketAvailableBytes;
+}
+
+void VoxelNodeData::compressPacket() { 
+    int uncompressedLength = getPacketLengthUncompressed();
+    const int MAX_COMPRESSION = 9;
+    // we only want to compress the data payload, not the message header
+    int numBytesPacketHeader = numBytesForPacketHeader(_voxelPacket);
+    QByteArray compressedData = qCompress(_voxelPacket+numBytesPacketHeader, 
+                                    uncompressedLength-numBytesPacketHeader, MAX_COMPRESSION);
+    _compressedPacket.clear();
+    _compressedPacket.append((const char*)_voxelPacket, numBytesPacketHeader);
+    _compressedPacket.append(compressedData);
 }
 
 VoxelNodeData::~VoxelNodeData() {

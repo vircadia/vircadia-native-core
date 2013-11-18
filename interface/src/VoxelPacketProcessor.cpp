@@ -8,6 +8,8 @@
 //  Threaded or non-threaded voxel packet receiver for the Application
 //
 
+#include <QByteArray>
+
 #include <PerfStat.h>
 
 #include "Application.h"
@@ -56,7 +58,17 @@ void VoxelPacketProcessor::processPacket(sockaddr& senderAddress, unsigned char*
                 app->_environment.parseData(&senderAddress, packetData, messageLength);
             } else {
                 app->_voxels.setDataSourceUUID(voxelServer->getUUID());
-                app->_voxels.parseData(packetData, messageLength);
+                
+                // thse packets are commpressed...
+                
+                int numBytesPacketHeader = numBytesForPacketHeader(packetData);
+                QByteArray compressedData((const char*)packetData + numBytesPacketHeader, 
+                                        messageLength - numBytesPacketHeader);
+                QByteArray uncompressedData = qUncompress(compressedData);
+                QByteArray uncompressedPacket((const char*)packetData, numBytesPacketHeader);
+                uncompressedPacket.append(uncompressedData);
+
+                app->_voxels.parseData((unsigned char*)uncompressedPacket.data(), uncompressedPacket.size());
                 app->_voxels.setDataSourceUUID(QUuid());
             }
         }

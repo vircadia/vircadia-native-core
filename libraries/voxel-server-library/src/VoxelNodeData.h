@@ -29,15 +29,18 @@ public:
     void resetVoxelPacket();  // resets voxel packet to after "V" header
 
     void writeToPacket(unsigned char* buffer, int bytes); // writes to end of packet
+    bool willFit(unsigned char* buffer, int bytes); // tests to see if the bytes will fit
 
-    const unsigned char* getPacket() const { return _voxelPacket; }
-    int getPacketLength() const { return (MAX_VOXEL_PACKET_SIZE - _voxelPacketAvailableBytes); }
+    const unsigned char* getPacket() const { return (const unsigned char*)_compressedPacket.constData(); }
+    int getPacketLength() const { return _compressedPacket.size(); }
+    int getPacketLengthUncompressed() const;
+
     bool isPacketWaiting() const { return _voxelPacketWaiting; }
 
-    bool packetIsDuplicate() const;
+    bool packetIsDuplicate();
     bool shouldSuppressDuplicatePacket();
 
-    int getAvailable() const { return _voxelPacketAvailableBytes; }
+    int getAvailable() const { return MAX_VOXEL_PACKET_SIZE - getPacketLength(); }
     int getMaxSearchLevel() const { return _maxSearchLevel; };
     void resetMaxSearchLevel() { _maxSearchLevel = 1; };
     void incrementMaxSearchLevel() { _maxSearchLevel++; };
@@ -109,6 +112,9 @@ private:
     float _lastClientVoxelSizeScale;
     bool _lodChanged;
     bool _lodInitialized;
+    
+    QByteArray _compressedPacket;
+    void compressPacket();
 };
 
 #endif /* defined(__hifi__VoxelNodeData__) */

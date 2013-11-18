@@ -78,6 +78,11 @@ bool VoxelSendThread::process() {
 }
 
 
+int totalUncompressed = 0;
+int totalCompressed = 0;
+int totalWastedBytes = 0;
+int totalPackets = 0;
+
 int VoxelSendThread::handlePacketSend(Node* node, VoxelNodeData* nodeData, int& trueBytesSent, int& truePacketsSent) {
 
     int packetsSent = 0;
@@ -102,6 +107,17 @@ int VoxelSendThread::handlePacketSend(Node* node, VoxelNodeData* nodeData, int& 
             memcpy(statsMessage + statsMessageLength, nodeData->getPacket(), nodeData->getPacketLength());
             statsMessageLength += nodeData->getPacketLength();
 
+            int thisWastedBytes = MAX_PACKET_SIZE - nodeData->getPacketLength();
+            ::totalWastedBytes += thisWastedBytes;
+            ::totalUncompressed += nodeData->getPacketLengthUncompressed();
+            ::totalCompressed += nodeData->getPacketLength();
+            ::totalPackets++;
+            qDebug("Adding stats to packet [%d]: uncompress size:%d [%d], compressed size:%d [%d] thisWastedBytes:%d [%d]\n",
+                totalPackets,
+                nodeData->getPacketLengthUncompressed(), ::totalUncompressed,
+                nodeData->getPacketLength(), ::totalCompressed,
+                thisWastedBytes, ::totalWastedBytes);
+
             // actually send it
             NodeList::getInstance()->getNodeSocket()->send(node->getActiveSocket(), statsMessage, statsMessageLength);
         } else {
@@ -113,12 +129,34 @@ int VoxelSendThread::handlePacketSend(Node* node, VoxelNodeData* nodeData, int& 
 
             NodeList::getInstance()->getNodeSocket()->send(node->getActiveSocket(),
                                             nodeData->getPacket(), nodeData->getPacketLength());
+
+            int thisWastedBytes = MAX_PACKET_SIZE - nodeData->getPacketLength();
+            ::totalWastedBytes += thisWastedBytes;
+            ::totalUncompressed += nodeData->getPacketLengthUncompressed();
+            ::totalCompressed += nodeData->getPacketLength();
+            ::totalPackets++;
+            qDebug("Sending packet [%d]: uncompress size:%d [%d], compressed size:%d [%d] thisWastedBytes:%d [%d]\n",
+                totalPackets,
+                nodeData->getPacketLengthUncompressed(), ::totalUncompressed,
+                nodeData->getPacketLength(), ::totalCompressed,
+                thisWastedBytes, ::totalWastedBytes);
         }
         nodeData->stats.markAsSent();
     } else {
         // just send the voxel packet
         NodeList::getInstance()->getNodeSocket()->send(node->getActiveSocket(),
                                                        nodeData->getPacket(), nodeData->getPacketLength());
+
+            int thisWastedBytes = MAX_PACKET_SIZE - nodeData->getPacketLength();
+            ::totalWastedBytes += thisWastedBytes;
+            ::totalUncompressed += nodeData->getPacketLengthUncompressed();
+            ::totalCompressed += nodeData->getPacketLength();
+            ::totalPackets++;
+            qDebug("Sending packet [%d]: uncompress size:%d [%d], compressed size:%d [%d] thisWastedBytes:%d [%d]\n",
+                totalPackets,
+                nodeData->getPacketLengthUncompressed(), ::totalUncompressed,
+                nodeData->getPacketLength(), ::totalCompressed,
+                thisWastedBytes, ::totalWastedBytes);
     }
     // remember to track our stats
     nodeData->stats.packetSent(nodeData->getPacketLength());
@@ -297,7 +335,7 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
                                  nodeData->getViewFrustumJustStoppedChanging()) || nodeData->hasLodChanged();
                 
                 EncodeBitstreamParams params(INT_MAX, &nodeData->getCurrentViewFrustum(), wantColor, 
-                                             WANT_EXISTS_BITS, DONT_CHOP, wantDelta, lastViewFrustum,
+                                             NO_EXISTS_BITS /*WANT_EXISTS_BITS*/, DONT_CHOP, wantDelta, lastViewFrustum,
                                              wantOcclusionCulling, coverageMap, boundaryLevelAdjust, voxelSizeScale,
                                              nodeData->getLastTimeBagEmpty(),
                                              isFullScene, &nodeData->stats, _myServer->getJurisdiction());
@@ -310,7 +348,8 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
                 nodeData->stats.encodeStopped();
                 _myServer->getServerTree().unlock();
 
-                if (nodeData->getAvailable() >= bytesWritten) {
+                // NOTE: could be better, the bytesWritten might be compressable...
+                if (nodeData->willFit(_tempOutputBuffer, bytesWritten)) {
                     nodeData->writeToPacket(_tempOutputBuffer, bytesWritten);
                 } else {
                     packetsSentThisInterval += handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
