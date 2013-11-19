@@ -6,11 +6,15 @@
 //  Copyright (c) 2013 High Fidelity, Inc. All rights reserved.
 //
 
-#include "LeapManager.h"
-#include "avatar/Avatar.h"
-#include <Leap.h>
 #include <dlfcn.h>     // needed for RTLD_LAZY
+
 #include <sstream>
+
+#include <Leap.h>
+
+#include "Application.h"
+#include "LeapManager.h"
+#include "Menu.h"
 
 // Uncomment the next line to use Leap-smoothed stabilized (slower) data.
 //#define USE_STABILIZED_DATA
@@ -19,6 +23,7 @@ bool LeapManager::_libraryExists = false;
 bool LeapManager::_doFakeFingers = false;
 Leap::Controller* LeapManager::_controller = NULL;
 HifiLeapListener* LeapManager::_listener = NULL;
+glm::vec3 LeapManager::_baseDrivePosition;
 
 class HifiLeapListener  : public Leap::Listener {
 public:
@@ -44,6 +49,25 @@ void LeapManager::initialize() {
 #endif
 }
 
+static PalmData* getRightmostPalm() {
+    PalmData* rightmostPalm = NULL;
+    Hand& hand = Application::getInstance()->getAvatar()->getHand();
+    for (int i = 0; i < hand.getNumPalms(); i++) {
+        PalmData* palm = &hand.getPalms()[i];
+        if (palm->isActive() && (rightmostPalm == NULL || palm->getRawPosition().x > rightmostPalm->getRawPosition().x)) {
+            rightmostPalm = palm;
+        } 
+    }
+    return rightmostPalm;
+}
+
+void LeapManager::reset() {
+    PalmData* rightmostPalm = getRightmostPalm();
+    if (rightmostPalm != NULL) {
+        _baseDrivePosition = rightmostPalm->getRawPosition();
+    }
+}
+
 void LeapManager::terminate() {
     delete _listener;
     delete _controller;
@@ -51,9 +75,10 @@ void LeapManager::terminate() {
     _controller = NULL;
 }
 
-void LeapManager::nextFrame(Avatar& avatar) {
+void LeapManager::nextFrame() {
     // Apply the frame data directly to the avatar.
-    Hand& hand = avatar.getHand();
+    MyAvatar* avatar = Application::getInstance()->getAvatar();
+    Hand& hand = avatar->getHand();
     
     // If we actually get valid Leap data, this will be set to true;
     bool gotRealData = false;
@@ -244,6 +269,55 @@ void LeapManager::nextFrame(Avatar& avatar) {
         }
     }
     hand.updateFingerTrails();
+    
+    // if Leap drive is enabled, drive avatar based on Leap input
+    if (!Menu::getInstance()->isOptionChecked(MenuOption::LeapDrive)) {
+        return;
+    }
+    glm::vec3 relativePosition;
+    glm::vec3 eulerAngles;
+    PalmData* rightmostPalm = getRightmostPalm();
+    if (rightmostPalm != NULL) {
+        relativePosition = rightmostPalm->getRawPosition() - _baseDrivePosition;
+        
+        glm::vec3 directionSum;
+        int activeFingerCount = 0;
+        for (int i = 0; i < rightmostPalm->getNumFingers(); i++) {
+            FingerData& finger = rightmostPalm->getFingers()[i];
+            glm::vec3 fingerVector = finger.getTipRawPosition() - rightmostPalm->getRawPosition();
+            if (finger.isActive() && glm::length(fingerVector) > EPSILON) {
+                directionSum += glm::normalize(fingerVector);
+                activeFingerCount++;
+            }
+        }
+        const int MIN_DIRECTION_FINGER_COUNT = 3;
+        glm::vec3 right;
+        if (activeFingerCount >= MIN_DIRECTION_FINGER_COUNT) {
+            right = glm::normalize(glm::cross(glm::normalize(directionSum), -rightmostPalm->getRawNormal()));
+                
+        } else {
+            right = glm::normalize(glm::cross(IDENTITY_FRONT, -rightmostPalm->getRawNormal()));
+        }
+        eulerAngles = safeEulerAngles(glm::quat_cast(glm::mat3(right, -rightmostPalm->getRawNormal(),
+            glm::cross(right, -rightmostPalm->getRawNormal()))));
+    }
+    const float LINEAR_DRIVE_SCALE = 0.1f;
+    const float LINEAR_DEAD_ZONE = 0.3f;
+    avatar->setDriveKeys(FWD, glm::clamp(-relativePosition.z * LINEAR_DRIVE_SCALE - LINEAR_DEAD_ZONE, 0.0f, 1.0f));
+    avatar->setDriveKeys(BACK, glm::clamp(relativePosition.z * LINEAR_DRIVE_SCALE - LINEAR_DEAD_ZONE, 0.0f, 1.0f));
+    avatar->setDriveKeys(LEFT, glm::clamp(-relativePosition.x * LINEAR_DRIVE_SCALE - LINEAR_DEAD_ZONE, 0.0f, 1.0f));
+    avatar->setDriveKeys(RIGHT, glm::clamp(relativePosition.x * LINEAR_DRIVE_SCALE - LINEAR_DEAD_ZONE, 0.0f, 1.0f));
+    avatar->setDriveKeys(UP, glm::clamp(relativePosition.y * LINEAR_DRIVE_SCALE - LINEAR_DEAD_ZONE, 0.0f, 1.0f));
+    avatar->setDriveKeys(DOWN, glm::clamp(-relativePosition.y * LINEAR_DRIVE_SCALE - LINEAR_DEAD_ZONE, 0.0f, 1.0f));
+    
+    const float ANGULAR_DRIVE_SCALE = 0.1f;
+    const float ANGULAR_DEAD_ZONE = 0.3f;
+    avatar->setDriveKeys(ROT_LEFT, glm::clamp(glm::max(eulerAngles.y, eulerAngles.z) * ANGULAR_DRIVE_SCALE -
+        ANGULAR_DEAD_ZONE, 0.0f, 1.0f));
+    avatar->setDriveKeys(ROT_RIGHT, glm::clamp(glm::max(-eulerAngles.y, -eulerAngles.z) * ANGULAR_DRIVE_SCALE -
+        ANGULAR_DEAD_ZONE, 0.0f, 1.0f));
+    avatar->setDriveKeys(ROT_UP, glm::clamp(eulerAngles.x * ANGULAR_DRIVE_SCALE - ANGULAR_DEAD_ZONE, 0.0f, 1.0f));
+    avatar->setDriveKeys(ROT_DOWN, glm::clamp(-eulerAngles.x * ANGULAR_DRIVE_SCALE - ANGULAR_DEAD_ZONE, 0.0f, 1.0f));
 }
 
 void LeapManager::enableFakeFingers(bool enable) {

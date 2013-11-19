@@ -2202,7 +2202,7 @@ void Application::updateLeap(float deltaTime) {
 
     LeapManager::enableFakeFingers(Menu::getInstance()->isOptionChecked(MenuOption::SimulateLeapHand));
     _myAvatar.getHand().setRaveGloveActive(Menu::getInstance()->isOptionChecked(MenuOption::TestRaveGlove));
-    LeapManager::nextFrame(_myAvatar);
+    LeapManager::nextFrame();
 }
 
 void Application::updateSixense() {
@@ -4100,6 +4100,7 @@ void Application::resetSensors() {
     }
     _webcam.reset();
     _faceshift.reset();
+    LeapManager::reset();
     QCursor::setPos(_headMouseX, _headMouseY);
     _myAvatar.reset();
     _myTransmitter.resetLevels();
