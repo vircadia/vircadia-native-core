@@ -471,6 +471,9 @@ void MyAvatar::updateFromGyrosAndOrWebcam(float pitchFromTouch, bool turnWithHea
         const float LINEAR_DEAD_ZONE = 0.95f;
         float torsoDelta = glm::length(relativePosition) - TORSO_LENGTH;
         setDriveKeys(UP, glm::clamp(torsoDelta * LINEAR_DRIVE_SCALE - LINEAR_DEAD_ZONE, 0.0f, 1.0f));
+    
+    } else {
+        setDriveKeys(UP, 0.0f);
     }
 }
 
