@@ -172,7 +172,6 @@ namespace MenuOption {
     const QString DontFadeOnVoxelServerChanges = "Don't Fade In/Out on Voxel Server Changes";
     const QString HeadMouse = "Head Mouse";
     const QString FaceMode = "Cycle Face Mode";
-    const QString FaceshiftDrive = "Faceshift Drive";
     const QString FaceshiftTCP = "Faceshift (TCP)";
     const QString FalseColorByDistance = "FALSE Color By Distance";
     const QString FalseColorBySource = "FALSE Color By Source";
@@ -207,6 +206,7 @@ namespace MenuOption {
     const QString LookAtVectors = "Look-at Vectors";
     const QString LowRes = "Lower Resolution While Moving";
     const QString Mirror = "Mirror";
+    const QString MoveWithLean = "Move with Lean";
     const QString NewVoxelCullingMode = "New Voxel Culling Mode";
     const QString NudgeVoxels = "Nudge";
     const QString OcclusionCulling = "Occlusion Culling";

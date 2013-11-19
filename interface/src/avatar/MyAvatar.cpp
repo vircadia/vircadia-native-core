@@ -446,12 +446,30 @@ void MyAvatar::updateFromGyrosAndOrWebcam(float pitchFromTouch, bool turnWithHea
     _head.setRoll(estimatedRotation.z * AVATAR_HEAD_ROLL_MAGNIFY);
         
     //  Update torso lean distance based on accelerometer data
-    const float TORSO_LENGTH = _scale * 0.5f;
+    const float TORSO_LENGTH = 0.5f;
+    glm::vec3 relativePosition = estimatedPosition - glm::vec3(0.0f, -TORSO_LENGTH, 0.0f);
     const float MAX_LEAN = 45.0f;
-    _head.setLeanSideways(glm::clamp(glm::degrees(atanf(estimatedPosition.x * _leanScale / TORSO_LENGTH)),
+    _head.setLeanSideways(glm::clamp(glm::degrees(atanf(relativePosition.x * _leanScale / relativePosition.y)),
         -MAX_LEAN, MAX_LEAN));
-    _head.setLeanForward(glm::clamp(glm::degrees(atanf(estimatedPosition.z * _leanScale / TORSO_LENGTH)),
+    _head.setLeanForward(glm::clamp(glm::degrees(atanf(relativePosition.z * _leanScale / relativePosition.y)),
         -MAX_LEAN, MAX_LEAN));
+    
+    // if Faceshift drive is enabled, set the avatar drive based on the head position
+    if (!Menu::getInstance()->isOptionChecked(MenuOption::MoveWithLean)) {
+        return;
+    }
+    const float ANGULAR_DRIVE_SCALE = 0.1f;
+    const float ANGULAR_DEAD_ZONE = 0.5f;
+    setDriveKeys(FWD, qMax(0.0f, _head.getLeanForward() * ANGULAR_DRIVE_SCALE - ANGULAR_DEAD_ZONE));
+    setDriveKeys(BACK, qMax(0.0f, -_head.getLeanForward() * ANGULAR_DRIVE_SCALE - ANGULAR_DEAD_ZONE));
+    setDriveKeys(LEFT, qMax(0.0f, _head.getLeanSideways() * ANGULAR_DRIVE_SCALE - ANGULAR_DEAD_ZONE));
+    setDriveKeys(RIGHT, qMax(0.0f, -_head.getLeanSideways() * ANGULAR_DRIVE_SCALE - ANGULAR_DEAD_ZONE));
+    
+    const float LINEAR_DRIVE_SCALE = 10.0f;
+    const float LINEAR_DEAD_ZONE = 0.1f;
+    float torsoDelta = glm::length(relativePosition) - TORSO_LENGTH;
+    setDriveKeys(UP, qMax(0.0f, torsoDelta * LINEAR_DRIVE_SCALE - LINEAR_DEAD_ZONE));
+    setDriveKeys(DOWN, qMax(0.0f, -torsoDelta * LINEAR_DRIVE_SCALE - LINEAR_DEAD_ZONE));
 }
 
 static TextRenderer* textRenderer() {
