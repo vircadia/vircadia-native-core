@@ -23,7 +23,7 @@ bool LeapManager::_libraryExists = false;
 bool LeapManager::_doFakeFingers = false;
 Leap::Controller* LeapManager::_controller = NULL;
 HifiLeapListener* LeapManager::_listener = NULL;
-glm::vec3 LeapManager::_baseDrivePosition;
+glm::vec3 LeapManager::_baseDrivePosition(0.0f, 150.0f, 0.0f); // experimentally derived
 
 class HifiLeapListener  : public Leap::Listener {
 public:
@@ -301,8 +301,8 @@ void LeapManager::nextFrame() {
         eulerAngles = safeEulerAngles(glm::quat_cast(glm::mat3(right, -rightmostPalm->getRawNormal(),
             glm::cross(right, -rightmostPalm->getRawNormal()))));
     }
-    const float LINEAR_DRIVE_SCALE = 0.1f;
-    const float LINEAR_DEAD_ZONE = 0.3f;
+    const float LINEAR_DRIVE_SCALE = 0.01f;
+    const float LINEAR_DEAD_ZONE = 0.25f;
     avatar->setDriveKeys(FWD, glm::clamp(-relativePosition.z * LINEAR_DRIVE_SCALE - LINEAR_DEAD_ZONE, 0.0f, 1.0f));
     avatar->setDriveKeys(BACK, glm::clamp(relativePosition.z * LINEAR_DRIVE_SCALE - LINEAR_DEAD_ZONE, 0.0f, 1.0f));
     avatar->setDriveKeys(LEFT, glm::clamp(-relativePosition.x * LINEAR_DRIVE_SCALE - LINEAR_DEAD_ZONE, 0.0f, 1.0f));
@@ -310,8 +310,8 @@ void LeapManager::nextFrame() {
     avatar->setDriveKeys(UP, glm::clamp(relativePosition.y * LINEAR_DRIVE_SCALE - LINEAR_DEAD_ZONE, 0.0f, 1.0f));
     avatar->setDriveKeys(DOWN, glm::clamp(-relativePosition.y * LINEAR_DRIVE_SCALE - LINEAR_DEAD_ZONE, 0.0f, 1.0f));
     
-    const float ANGULAR_DRIVE_SCALE = 0.1f;
-    const float ANGULAR_DEAD_ZONE = 0.3f;
+    const float ANGULAR_DRIVE_SCALE = 0.05f;
+    const float ANGULAR_DEAD_ZONE = 0.75f;
     avatar->setDriveKeys(ROT_LEFT, glm::clamp(glm::max(eulerAngles.y, eulerAngles.z) * ANGULAR_DRIVE_SCALE -
         ANGULAR_DEAD_ZONE, 0.0f, 1.0f));
     avatar->setDriveKeys(ROT_RIGHT, glm::clamp(glm::max(-eulerAngles.y, -eulerAngles.z) * ANGULAR_DRIVE_SCALE -
