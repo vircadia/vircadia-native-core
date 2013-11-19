@@ -30,7 +30,8 @@ void SixenseManager::update() {
     if (sixenseGetNumActiveControllers() == 0) {
         return;
     }
-    Hand& hand = Application::getInstance()->getAvatar()->getHand();
+    MyAvatar* avatar = Application::getInstance()->getAvatar();
+    Hand& hand = avatar->getHand();
     hand.getPalms().clear();
     
     int maxControllers = sixenseGetMaxControllers();
@@ -40,6 +41,22 @@ void SixenseManager::update() {
         }
         sixenseControllerData data;
         sixenseGetNewestData(i, &data);
+        
+        // drive avatar with joystick and triggers
+        if (data.controller_index) {
+            avatar->setDriveKeys(ROT_LEFT, qMax(0.0f, -data.joystick_x));
+            avatar->setDriveKeys(ROT_RIGHT, qMax(0.0f, data.joystick_x));
+            avatar->setDriveKeys(ROT_UP, qMax(0.0f, data.joystick_y));
+            avatar->setDriveKeys(ROT_DOWN, qMax(0.0f, -data.joystick_y));
+            avatar->setDriveKeys(UP, data.trigger);
+            
+        } else {
+            avatar->setDriveKeys(FWD, qMax(0.0f, data.joystick_y));
+            avatar->setDriveKeys(BACK, qMax(0.0f, -data.joystick_y));
+            avatar->setDriveKeys(LEFT, qMax(0.0f, -data.joystick_x));
+            avatar->setDriveKeys(RIGHT, qMax(0.0f, data.joystick_x));
+            avatar->setDriveKeys(DOWN, data.trigger);
+        }
         
         // set palm position and normal based on Hydra position/orientation
         PalmData palm(&hand);

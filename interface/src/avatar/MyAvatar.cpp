@@ -27,6 +27,7 @@ using namespace std;
 
 const glm::vec3 DEFAULT_UP_DIRECTION(0.0f, 1.0f, 0.0f);
 const float YAW_MAG = 500.0;
+const float PITCH_MAG = 100.0f;
 const float COLLISION_RADIUS_SCALAR = 1.2; // pertains to avatar-to-avatar collisions
 const float COLLISION_BALL_FORCE = 200.0; // pertains to avatar-to-avatar collisions
 const float COLLISION_BODY_FORCE = 30.0; // pertains to avatar-to-avatar collisions
@@ -42,6 +43,7 @@ MyAvatar::MyAvatar(Node* owningNode) :
     _mousePressed(false),
     _bodyPitchDelta(0.0f),
     _bodyRollDelta(0.0f),
+    _mousePitchDelta(0.0f),
     _shouldJump(false),
     _gravity(0.0f, -1.0f, 0.0f),
     _distanceToNearestAvatar(std::numeric_limits<float>::max()),
@@ -57,7 +59,7 @@ MyAvatar::MyAvatar(Node* owningNode) :
     _moveTargetStepCounter(0)
 {
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
-        _driveKeys[i] = false;
+        _driveKeys[i] = 0.0f;
     }
 
     _collisionRadius = _height * COLLISION_RADIUS_SCALE;   
@@ -395,8 +397,8 @@ void MyAvatar::updateFromGyrosAndOrWebcam(float pitchFromTouch, bool turnWithHea
     
     } else {
         if (!_leadingAvatar) {
-            _head.setMousePitch(pitchFromTouch);
-            _head.setPitch(pitchFromTouch);
+            _head.setMousePitch(pitchFromTouch + _mousePitchDelta);
+            _head.setPitch(pitchFromTouch + _mousePitchDelta);
         }
         _head.getVideoFace().clearFrame();
         
@@ -408,7 +410,7 @@ void MyAvatar::updateFromGyrosAndOrWebcam(float pitchFromTouch, bool turnWithHea
         _head.setLeanForward(glm::mix(_head.getLeanForward(), 0.0f, RESTORE_RATE));
         return;
     }
-    _head.setMousePitch(pitchFromTouch);
+    _head.setMousePitch(pitchFromTouch + _mousePitchDelta);
 
     if (webcam->isActive()) {
         estimatedPosition = webcam->getEstimatedPosition();
@@ -707,14 +709,17 @@ void MyAvatar::updateThrust(float deltaTime, Transmitter * transmitter) {
     const float THRUST_JUMP = 120.f;
     
     //  Add Thrusts from keyboard
-    if (_driveKeys[FWD]) {_thrust += _scale * THRUST_MAG_FWD * _thrustMultiplier * deltaTime * front;}
-    if (_driveKeys[BACK]) {_thrust -= _scale * THRUST_MAG_BACK *  _thrustMultiplier * deltaTime * front;}
-    if (_driveKeys[RIGHT]) {_thrust += _scale * THRUST_MAG_LATERAL * _thrustMultiplier * deltaTime * right;}
-    if (_driveKeys[LEFT]) {_thrust -= _scale * THRUST_MAG_LATERAL * _thrustMultiplier * deltaTime * right;}
-    if (_driveKeys[UP]) {_thrust += _scale * THRUST_MAG_UP * _thrustMultiplier * deltaTime * up;}
-    if (_driveKeys[DOWN]) {_thrust -= _scale * THRUST_MAG_DOWN * _thrustMultiplier * deltaTime * up;}
-    if (_driveKeys[ROT_RIGHT]) {_bodyYawDelta -= YAW_MAG * deltaTime;}
-    if (_driveKeys[ROT_LEFT]) {_bodyYawDelta += YAW_MAG * deltaTime;}
+    _thrust += _driveKeys[FWD] * _scale * THRUST_MAG_FWD * _thrustMultiplier * deltaTime * front;
+    _thrust -= _driveKeys[BACK] * _scale * THRUST_MAG_BACK *  _thrustMultiplier * deltaTime * front;
+    _thrust += _driveKeys[RIGHT] * _scale * THRUST_MAG_LATERAL * _thrustMultiplier * deltaTime * right;
+    _thrust -= _driveKeys[LEFT] * _scale * THRUST_MAG_LATERAL * _thrustMultiplier * deltaTime * right;
+    _thrust += _driveKeys[UP] * _scale * THRUST_MAG_UP * _thrustMultiplier * deltaTime * up;
+    _thrust -= _driveKeys[DOWN] * _scale * THRUST_MAG_DOWN * _thrustMultiplier * deltaTime * up;
+    _bodyYawDelta -= _driveKeys[ROT_RIGHT] * YAW_MAG * deltaTime;
+    _bodyYawDelta += _driveKeys[ROT_LEFT] * YAW_MAG * deltaTime;
+    const float MAX_PITCH = 90.0f;
+    _mousePitchDelta = min(_mousePitchDelta + _driveKeys[ROT_UP] * PITCH_MAG * deltaTime, MAX_PITCH);
+    _mousePitchDelta = max(_mousePitchDelta - _driveKeys[ROT_DOWN] * PITCH_MAG * deltaTime, -MAX_PITCH);
     
     //  If thrust keys are being held down, slowly increase thrust to allow reaching great speeds
     if (_driveKeys[FWD] || _driveKeys[BACK] || _driveKeys[RIGHT] || _driveKeys[LEFT] || _driveKeys[UP] || _driveKeys[DOWN]) {
