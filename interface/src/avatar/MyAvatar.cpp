@@ -459,17 +459,19 @@ void MyAvatar::updateFromGyrosAndOrWebcam(float pitchFromTouch, bool turnWithHea
         return;
     }
     const float ANGULAR_DRIVE_SCALE = 0.1f;
-    const float ANGULAR_DEAD_ZONE = 0.5f;
-    setDriveKeys(FWD, qMax(0.0f, _head.getLeanForward() * ANGULAR_DRIVE_SCALE - ANGULAR_DEAD_ZONE));
-    setDriveKeys(BACK, qMax(0.0f, -_head.getLeanForward() * ANGULAR_DRIVE_SCALE - ANGULAR_DEAD_ZONE));
-    setDriveKeys(LEFT, qMax(0.0f, _head.getLeanSideways() * ANGULAR_DRIVE_SCALE - ANGULAR_DEAD_ZONE));
-    setDriveKeys(RIGHT, qMax(0.0f, -_head.getLeanSideways() * ANGULAR_DRIVE_SCALE - ANGULAR_DEAD_ZONE));
-    
-    const float LINEAR_DRIVE_SCALE = 10.0f;
-    const float LINEAR_DEAD_ZONE = 0.1f;
-    float torsoDelta = glm::length(relativePosition) - TORSO_LENGTH;
-    setDriveKeys(UP, qMax(0.0f, torsoDelta * LINEAR_DRIVE_SCALE - LINEAR_DEAD_ZONE));
-    setDriveKeys(DOWN, qMax(0.0f, -torsoDelta * LINEAR_DRIVE_SCALE - LINEAR_DEAD_ZONE));
+    const float ANGULAR_DEAD_ZONE = 0.3f;
+    setDriveKeys(FWD, glm::clamp(-_head.getLeanForward() * ANGULAR_DRIVE_SCALE - ANGULAR_DEAD_ZONE, 0.0f, 1.0f));
+    setDriveKeys(BACK, glm::clamp(_head.getLeanForward() * ANGULAR_DRIVE_SCALE - ANGULAR_DEAD_ZONE, 0.0f, 1.0f));
+    setDriveKeys(LEFT, glm::clamp(_head.getLeanSideways() * ANGULAR_DRIVE_SCALE - ANGULAR_DEAD_ZONE, 0.0f, 1.0f));
+    setDriveKeys(RIGHT, glm::clamp(-_head.getLeanSideways() * ANGULAR_DRIVE_SCALE - ANGULAR_DEAD_ZONE, 0.0f, 1.0f));
+
+    // only consider going up if we're not going in any of the four horizontal directions
+    if (_driveKeys[FWD] == 0.0f && _driveKeys[BACK] == 0 && _driveKeys[LEFT] == 0.0f && _driveKeys[RIGHT] == 0.0f) {
+        const float LINEAR_DRIVE_SCALE = 5.0f;
+        const float LINEAR_DEAD_ZONE = 0.95f;
+        float torsoDelta = glm::length(relativePosition) - TORSO_LENGTH;
+        setDriveKeys(UP, glm::clamp(torsoDelta * LINEAR_DRIVE_SCALE - LINEAR_DEAD_ZONE, 0.0f, 1.0f));
+    }
 }
 
 static TextRenderer* textRenderer() {
