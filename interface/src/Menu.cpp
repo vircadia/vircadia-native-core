@@ -333,6 +333,7 @@ Menu::Menu() :
                                            false,
                                            appInstance->getFaceshift(),
                                            SLOT(setTCPEnabled(bool)));
+    addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::FaceshiftDrive, 0, false);
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::ChatCircling, 0, true);
 
     QMenu* webcamOptionsMenu = developerMenu->addMenu("Webcam Options");
@@ -361,6 +362,7 @@ Menu::Menu() :
 
     addCheckableActionToQMenuAndActionHash(raveGloveOptionsMenu, MenuOption::SimulateLeapHand);
     addCheckableActionToQMenuAndActionHash(raveGloveOptionsMenu, MenuOption::DisplayLeapHands, 0, true);
+    addCheckableActionToQMenuAndActionHash(raveGloveOptionsMenu, MenuOption::LeapDrive, 0, false);
     addCheckableActionToQMenuAndActionHash(raveGloveOptionsMenu, MenuOption::TestRaveGlove);
 
     QMenu* trackingOptionsMenu = developerMenu->addMenu("Tracking Options");

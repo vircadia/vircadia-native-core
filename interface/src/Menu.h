@@ -172,6 +172,7 @@ namespace MenuOption {
     const QString DontFadeOnVoxelServerChanges = "Don't Fade In/Out on Voxel Server Changes";
     const QString HeadMouse = "Head Mouse";
     const QString FaceMode = "Cycle Face Mode";
+    const QString FaceshiftDrive = "Faceshift Drive";
     const QString FaceshiftTCP = "Faceshift (TCP)";
     const QString FalseColorByDistance = "FALSE Color By Distance";
     const QString FalseColorBySource = "FALSE Color By Source";
@@ -198,6 +199,7 @@ namespace MenuOption {
     const QString GoHome = "Go Home";
     const QString Gravity = "Use Gravity";
     const QString ParticleCloud = "Particle Cloud";
+    const QString LeapDrive = "Leap Drive";
     const QString LodTools = "LOD Tools";
     const QString Log = "Log";
     const QString Login = "Login";

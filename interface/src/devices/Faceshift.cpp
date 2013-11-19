@@ -10,6 +10,7 @@
 
 #include <SharedUtil.h>
 
+#include "Application.h"
 #include "Faceshift.h"
 #include "Menu.h"
 #include "Util.h"
@@ -80,6 +81,20 @@ void Faceshift::update() {
     }
     _estimatedEyePitch = eulers.x - _longTermAverageEyePitch;
     _estimatedEyeYaw = eulers.y - _longTermAverageEyeYaw;
+    
+    // if Faceshift drive is enabled, set the avatar drive based on the head position
+    if (!Menu::getInstance()->isOptionChecked(MenuOption::FaceshiftDrive)) {
+        return;
+    }
+    MyAvatar* avatar = Application::getInstance()->getAvatar();
+    const float DRIVE_SCALE = 1.0f;
+    const float DEAD_ZONE = 0.1f;
+    avatar->setDriveKeys(FWD, qMax(0.0f, -_headTranslation.z * DRIVE_SCALE - DEAD_ZONE));
+    avatar->setDriveKeys(BACK, qMax(0.0f, _headTranslation.z * DRIVE_SCALE - DEAD_ZONE));
+    avatar->setDriveKeys(LEFT, qMax(0.0f, -_headTranslation.x * DRIVE_SCALE - DEAD_ZONE));
+    avatar->setDriveKeys(RIGHT, qMax(0.0f, _headTranslation.x * DRIVE_SCALE - DEAD_ZONE));
+    avatar->setDriveKeys(UP, qMax(0.0f, _headTranslation.y * DRIVE_SCALE - DEAD_ZONE));
+    avatar->setDriveKeys(DOWN, qMax(0.0f, -_headTranslation.y * DRIVE_SCALE - DEAD_ZONE));
 }
 
 void Faceshift::reset() {
