@@ -466,7 +466,7 @@ void MyAvatar::updateFromGyrosAndOrWebcam(float pitchFromTouch, bool turnWithHea
     setDriveKeys(RIGHT, glm::clamp(-_head.getLeanSideways() * ANGULAR_DRIVE_SCALE - ANGULAR_DEAD_ZONE, 0.0f, 1.0f));
 
     // only consider going up if we're not going in any of the four horizontal directions
-    if (_driveKeys[FWD] == 0.0f && _driveKeys[BACK] == 0 && _driveKeys[LEFT] == 0.0f && _driveKeys[RIGHT] == 0.0f) {
+    if (_driveKeys[FWD] == 0.0f && _driveKeys[BACK] == 0.0f && _driveKeys[LEFT] == 0.0f && _driveKeys[RIGHT] == 0.0f) {
         const float LINEAR_DRIVE_SCALE = 5.0f;
         const float LINEAR_DEAD_ZONE = 0.95f;
         float torsoDelta = glm::length(relativePosition) - TORSO_LENGTH;
