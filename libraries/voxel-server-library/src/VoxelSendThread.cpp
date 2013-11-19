@@ -343,17 +343,18 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
 
                 _myServer->getServerTree().lockForRead();
                 nodeData->stats.encodeStarted();
-                bytesWritten = _myServer->getServerTree().encodeTreeBitstream(subTree, _tempOutputBuffer, MAX_VOXEL_PACKET_SIZE - 1,
+                _tempPacket.reset();
+                bytesWritten = _myServer->getServerTree().encodeTreeBitstream(subTree, &_tempPacket,
                                                               nodeData->nodeBag, params);
                 nodeData->stats.encodeStopped();
                 _myServer->getServerTree().unlock();
 
                 // NOTE: could be better, the bytesWritten might be compressable...
-                if (nodeData->willFit(_tempOutputBuffer, bytesWritten)) {
-                    nodeData->writeToPacket(_tempOutputBuffer, bytesWritten);
+                if (nodeData->willFit(_tempPacket.getStartOfBuffer(), bytesWritten)) {
+                    nodeData->writeToPacket(_tempPacket.getStartOfBuffer(), bytesWritten);
                 } else {
                     packetsSentThisInterval += handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
-                    nodeData->writeToPacket(_tempOutputBuffer, bytesWritten);
+                    nodeData->writeToPacket(_tempPacket.getStartOfBuffer(), bytesWritten);
                 }
             } else {
                 if (nodeData->isPacketWaiting()) {
