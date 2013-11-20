@@ -27,6 +27,9 @@ public:
     ~VoxelSceneStats();
     void reset();
     
+    VoxelSceneStats(const VoxelSceneStats& other); // copy constructor
+    VoxelSceneStats& operator= (const VoxelSceneStats& other); // copy assignment
+    
     /// Call when beginning the computation of a scene. Initializes internal structures
     void sceneStarted(bool fullScene, bool moving, VoxelNode* root, JurisdictionMap* jurisdictionMap);
 
@@ -144,6 +147,9 @@ public:
     unsigned long getTotalLeaves() const { return _totalLeaves; }
     
 private:
+
+    void copyFromOther(const VoxelSceneStats& other);
+
     bool _isReadyToSend;
     unsigned char _statsMessage[MAX_PACKET_SIZE];
     int _statsMessageLength;
