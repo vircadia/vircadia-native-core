@@ -2189,8 +2189,10 @@ void Application::updateHandAndTouch(float deltaTime) {
         float TOUCH_YAW_SCALE = -0.25f;
         float TOUCH_PITCH_SCALE = -12.5f;
         float FIXED_TOUCH_TIMESTEP = 0.016f;
+        const float MAX_PITCH = 90.0f;
         _yawFromTouch += ((_touchAvgX - _lastTouchAvgX) * TOUCH_YAW_SCALE * FIXED_TOUCH_TIMESTEP);
-        _pitchFromTouch += ((_touchAvgY - _lastTouchAvgY) * TOUCH_PITCH_SCALE * FIXED_TOUCH_TIMESTEP);
+        _pitchFromTouch = glm::clamp(_pitchFromTouch + (_touchAvgY - _lastTouchAvgY) * TOUCH_PITCH_SCALE *
+            FIXED_TOUCH_TIMESTEP, -MAX_PITCH, MAX_PITCH);
         _lastTouchAvgX = _touchAvgX;
         _lastTouchAvgY = _touchAvgY;
     }
