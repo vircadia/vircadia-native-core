@@ -370,6 +370,8 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter) {
 
 }
 
+const float MAX_PITCH = 90.0f;
+
 //  Update avatar head rotation with sensor data
 void MyAvatar::updateFromGyrosAndOrWebcam(float pitchFromTouch, bool turnWithHead) {
     Faceshift* faceshift = Application::getInstance()->getFaceshift();
@@ -377,6 +379,7 @@ void MyAvatar::updateFromGyrosAndOrWebcam(float pitchFromTouch, bool turnWithHea
     Webcam* webcam = Application::getInstance()->getWebcam();
     glm::vec3 estimatedPosition, estimatedRotation;
     
+    float combinedPitch = glm::clamp(pitchFromTouch + _mousePitchDelta, -MAX_PITCH, MAX_PITCH);
     if (faceshift->isActive()) {
         estimatedPosition = faceshift->getHeadTranslation();
         estimatedRotation = safeEulerAngles(faceshift->getHeadRotation());
@@ -397,8 +400,8 @@ void MyAvatar::updateFromGyrosAndOrWebcam(float pitchFromTouch, bool turnWithHea
     
     } else {
         if (!_leadingAvatar) {
-            _head.setMousePitch(pitchFromTouch + _mousePitchDelta);
-            _head.setPitch(pitchFromTouch + _mousePitchDelta);
+            _head.setMousePitch(combinedPitch);
+            _head.setPitch(combinedPitch);
         }
         _head.getVideoFace().clearFrame();
         
@@ -410,7 +413,7 @@ void MyAvatar::updateFromGyrosAndOrWebcam(float pitchFromTouch, bool turnWithHea
         _head.setLeanForward(glm::mix(_head.getLeanForward(), 0.0f, RESTORE_RATE));
         return;
     }
-    _head.setMousePitch(pitchFromTouch + _mousePitchDelta);
+    _head.setMousePitch(combinedPitch);
 
     if (webcam->isActive()) {
         estimatedPosition = webcam->getEstimatedPosition();
@@ -740,7 +743,6 @@ void MyAvatar::updateThrust(float deltaTime, Transmitter * transmitter) {
     _thrust -= _driveKeys[DOWN] * _scale * THRUST_MAG_DOWN * _thrustMultiplier * deltaTime * up;
     _bodyYawDelta -= _driveKeys[ROT_RIGHT] * YAW_MAG * deltaTime;
     _bodyYawDelta += _driveKeys[ROT_LEFT] * YAW_MAG * deltaTime;
-    const float MAX_PITCH = 90.0f;
     _mousePitchDelta = min(_mousePitchDelta + _driveKeys[ROT_UP] * PITCH_MAG * deltaTime, MAX_PITCH);
     _mousePitchDelta = max(_mousePitchDelta - _driveKeys[ROT_DOWN] * PITCH_MAG * deltaTime, -MAX_PITCH);
     
