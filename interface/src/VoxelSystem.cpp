@@ -519,6 +519,13 @@ void VoxelSystem::initVoxelMemory() {
             _perlinModulateProgram.bind();
             _perlinModulateProgram.setUniformValue("permutationNormalTexture", 0);
             _perlinModulateProgram.release();
+            
+            _shadowMapProgram.addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/shadow_map.frag");
+            _shadowMapProgram.link();
+            
+            _shadowMapProgram.bind();
+            _shadowMapProgram.setUniformValue("shadowMap", 0);
+            _shadowMapProgram.release();
         }
     }
 
@@ -1080,6 +1087,7 @@ glm::vec3 VoxelSystem::computeVoxelVertex(const glm::vec3& startVertex, float vo
 }
 
 ProgramObject VoxelSystem::_perlinModulateProgram;
+ProgramObject VoxelSystem::_shadowMapProgram;
 
 void VoxelSystem::init() {
     if (_initialized) {
@@ -1388,6 +1396,7 @@ void VoxelSystem::render(bool texture) {
 void VoxelSystem::applyScaleAndBindProgram(bool texture) {
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::Shadows)) {
+        _shadowMapProgram.bind();
         glBindTexture(GL_TEXTURE_2D, Application::getInstance()->getTextureCache()->getShadowDepthTextureID());
         glEnable(GL_TEXTURE_GEN_S);
         glEnable(GL_TEXTURE_GEN_T);
@@ -1412,6 +1421,7 @@ void VoxelSystem::removeScaleAndReleaseProgram(bool texture) {
     glPopMatrix();
     
     if (Menu::getInstance()->isOptionChecked(MenuOption::Shadows)) {
+        _shadowMapProgram.release();
         glBindTexture(GL_TEXTURE_2D, 0);
         glDisable(GL_TEXTURE_GEN_S);
         glDisable(GL_TEXTURE_GEN_T);
