@@ -24,7 +24,6 @@ Hand::Hand(Avatar* owningAvatar) :
     _raveGloveInitialized(false),
     _owningAvatar(owningAvatar),
     _renderAlpha(1.0),
-    _lookingInMirror(false),
     _ballColor(0.0, 0.0, 0.4)    
  {
     // initialize all finger particle emitters with an invalid id as default
@@ -133,10 +132,9 @@ void Hand::setRaveGloveEffectsMode(QKeyEvent* event) {
      };        
 }
 
-void Hand::render(bool lookingInMirror) {
+void Hand::render() {
     
     _renderAlpha = 1.0;
-    _lookingInMirror = lookingInMirror;
     
     if (Menu::getInstance()->isOptionChecked(MenuOption::DisplayLeapHands)) {
         if (!isRaveGloveActive()) {

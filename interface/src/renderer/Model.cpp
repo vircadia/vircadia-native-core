@@ -447,7 +447,7 @@ bool Model::render(float alpha) {
     glBindTexture(GL_TEXTURE_2D, 0);
     
     // restore all the default material settings
-    Application::getInstance()->setupWorldLight(*Application::getInstance()->getCamera());
+    Application::getInstance()->setupWorldLight();
 
     return true;
 }

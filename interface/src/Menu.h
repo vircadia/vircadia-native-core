@@ -229,6 +229,7 @@ namespace MenuOption {
     const QString RunTimingTests = "Run Timing Tests";
     const QString SendVoxelColors = "Colored Voxels";
     const QString SettingsImport = "Import Settings";
+    const QString Shadows = "Shadows";
     const QString SettingsExport = "Export Settings";
     const QString ShowAllLocalVoxels = "Show All Local Voxels";
     const QString ShowTrueColors = "Show TRUE Colors";

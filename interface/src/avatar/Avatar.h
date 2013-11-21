@@ -141,7 +141,7 @@ public:
     void init();
     void simulate(float deltaTime, Transmitter* transmitter);
     void follow(Avatar* leadingAvatar);
-    void render(bool lookingInMirror, bool renderAvatarBalls);
+    void render(bool forceRenderHead, bool renderAvatarBalls);
 
     //setters
     void setDisplayingLookatVectors(bool displayingLookatVectors) { _head.setRenderLookatVectors(displayingLookatVectors); }
@@ -255,8 +255,8 @@ private:
     
     // private methods...
     glm::vec3 calculateAverageEyePosition() { return _head.calculateAverageEyePosition(); } // get the position smack-dab between the eyes (for lookat)
-    float getBallRenderAlpha(int ball, bool lookingInMirror) const;
-    void renderBody(bool lookingInMirror, bool renderAvatarBalls);
+    float getBallRenderAlpha(int ball, bool forceRenderHead) const;
+    void renderBody(bool forceRenderHead, bool renderAvatarBalls);
     void initializeBodyBalls();
     void resetBodyBalls();
     void updateHandMovementAndTouching(float deltaTime, bool enableHandMovement);

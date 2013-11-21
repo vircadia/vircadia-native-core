@@ -64,6 +64,12 @@ public:
     /// screen effects.
     QOpenGLFramebufferObject* getTertiaryFramebufferObject();
     
+    /// Returns a pointer to the framebuffer object used to render shadow maps.
+    QOpenGLFramebufferObject* getShadowFramebufferObject();
+    
+    /// Returns the ID of the shadow framebuffer object's depth texture.
+    GLuint getShadowDepthTextureID();
+    
     virtual bool eventFilter(QObject* watched, QEvent* event);
 
 private:
@@ -83,6 +89,9 @@ private:
     QOpenGLFramebufferObject* _primaryFramebufferObject;
     QOpenGLFramebufferObject* _secondaryFramebufferObject;
     QOpenGLFramebufferObject* _tertiaryFramebufferObject;
+    
+    QOpenGLFramebufferObject* _shadowFramebufferObject;
+    GLuint _shadowDepthTextureID;
 };
 
 /// A simple object wrapper for an OpenGL texture.

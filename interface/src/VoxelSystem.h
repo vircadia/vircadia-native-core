@@ -282,6 +282,7 @@ private:
     bool _voxelsDirty;
 
     static ProgramObject _perlinModulateProgram;
+    static ProgramObject _shadowMapProgram;
     
     int _hookID;
     std::vector<glBufferIndex> _freeIndexes;

@@ -153,11 +153,13 @@ public:
     static void controlledBroadcastToNodes(unsigned char* broadcastData, size_t dataBytes,
                                            const char* nodeTypes, int numNodeTypes);
     
-    void setupWorldLight(Camera& whichCamera);
+    void setupWorldLight();
 
     /// Loads a view matrix that incorporates the specified model translation without the precision issues that can
     /// result from matrix multiplication at high translation magnitudes.
     void loadTranslatedViewMatrix(const glm::vec3& translation);
+
+    const glm::mat4& getShadowMatrix() const { return _shadowMatrix; }
 
     /// Computes the off-axis frustum parameters for the view frustum, taking mirroring into account.
     void computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& near,
@@ -260,17 +262,21 @@ private:
         glm::vec3& eyePosition, QUuid &nodeUUID);
     bool isLookingAtMyAvatar(Avatar* avatar);
                                 
-    void renderLookatIndicator(glm::vec3 pointOfInterest, Camera& whichCamera);
+    void renderLookatIndicator(glm::vec3 pointOfInterest);
     void renderFollowIndicator();
     void updateAvatar(float deltaTime);
     void updateAvatars(float deltaTime, glm::vec3 mouseRayOrigin, glm::vec3 mouseRayDirection);
     void queryVoxels();
     void loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum);
     
+    glm::vec3 getSunDirection();
+    
+    void updateShadowMap();
     void displayOculus(Camera& whichCamera);
     void displaySide(Camera& whichCamera, bool selfAvatarOnly = false);
     void displayOverlay();
     void displayStats();
+    void renderAvatars(bool forceRenderHead, bool selfAvatarOnly = false);
     void renderViewFrustum(ViewFrustum& viewFrustum);
    
     void checkBandwidthMeterClick();
@@ -351,6 +357,8 @@ private:
     
     glm::mat4 _untranslatedViewMatrix;
     glm::vec3 _viewMatrixTranslation;
+    
+    glm::mat4 _shadowMatrix;
     
     Environment _environment;
     
