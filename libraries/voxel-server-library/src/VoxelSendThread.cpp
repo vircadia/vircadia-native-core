@@ -335,7 +335,7 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
                                  nodeData->getViewFrustumJustStoppedChanging()) || nodeData->hasLodChanged();
                 
                 EncodeBitstreamParams params(INT_MAX, &nodeData->getCurrentViewFrustum(), wantColor, 
-                                             NO_EXISTS_BITS /*WANT_EXISTS_BITS*/, DONT_CHOP, wantDelta, lastViewFrustum,
+                                             WANT_EXISTS_BITS, DONT_CHOP, wantDelta, lastViewFrustum,
                                              wantOcclusionCulling, coverageMap, boundaryLevelAdjust, voxelSizeScale,
                                              nodeData->getLastTimeBagEmpty(),
                                              isFullScene, &nodeData->stats, _myServer->getJurisdiction());

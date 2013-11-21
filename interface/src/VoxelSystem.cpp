@@ -595,7 +595,7 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                                     "readBitstreamToTree()");
             // ask the VoxelTree to read the bitstream into the tree
-            ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS /*WANT_EXISTS_BITS*/, NULL, getDataSourceUUID());
+            ReadBitstreamToTreeParams args(WANT_COLOR, WANT_EXISTS_BITS, NULL, getDataSourceUUID());
             lockTree();
             _tree->readBitstreamToTree(voxelData, numBytes - numBytesPacketHeader, args);
             unlockTree();
@@ -605,7 +605,7 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                                     "readBitstreamToTree()");
             // ask the VoxelTree to read the MONOCHROME bitstream into the tree
-            ReadBitstreamToTreeParams args(NO_COLOR, NO_EXISTS_BITS /*WANT_EXISTS_BITS*/, NULL, getDataSourceUUID());
+            ReadBitstreamToTreeParams args(NO_COLOR, WANT_EXISTS_BITS, NULL, getDataSourceUUID());
             lockTree();
             _tree->readBitstreamToTree(voxelData, numBytes - numBytesPacketHeader, args);
             unlockTree();

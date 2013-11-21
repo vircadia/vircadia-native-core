@@ -31,8 +31,8 @@ public:
     void writeToPacket(unsigned char* buffer, int bytes); // writes to end of packet
     bool willFit(unsigned char* buffer, int bytes); // tests to see if the bytes will fit
 
-    const unsigned char* getPacket() const { return (const unsigned char*)_compressedPacket.constData(); }
-    int getPacketLength() const { return _compressedPacket.size(); }
+    const unsigned char* getPacket() const;
+    int getPacketLength() const;
     int getPacketLengthUncompressed() const;
 
     bool isPacketWaiting() const { return _voxelPacketWaiting; }

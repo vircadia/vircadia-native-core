@@ -62,4 +62,5 @@ const int DANGEROUSLY_DEEP_RECURSION = 200; // use this for something that needs
 
 const int DEFAULT_MAX_VOXEL_PPS = 600; // the default maximum PPS we think a voxel server should send to a client
 
+const bool VOXEL_PACKETS_COMPRESSED = false;
 #endif
