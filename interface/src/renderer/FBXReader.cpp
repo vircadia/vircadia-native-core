@@ -1234,7 +1234,6 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         }
         
         // find the clusters with which the mesh is associated
-        extracted.mesh.isEye = false;
         QVector<QString> clusterIDs;
         foreach (const QString& childID, childMap.values(it.key())) {
             foreach (const QString& clusterID, childMap.values(childID)) {
@@ -1245,12 +1244,9 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                 const Cluster& cluster = clusters[clusterID];
                 clusterIDs.append(clusterID);
                 
-                QString jointID = childMap.value(clusterID);
-                if (jointID == jointEyeLeftID || jointID == jointEyeRightID) {
-                    extracted.mesh.isEye = true;
-                }
                 // see http://stackoverflow.com/questions/13566608/loading-skinning-information-from-fbx for a discussion
                 // of skinning information in FBX
+                QString jointID = childMap.value(clusterID);
                 fbxCluster.jointIndex = modelIDs.indexOf(jointID);
                 if (fbxCluster.jointIndex == -1) {
                     qDebug() << "Joint not in model list: " << jointID << "\n";
@@ -1278,16 +1274,19 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         }
         
         // whether we're skinned depends on how many clusters are attached
+        int maxJointIndex = extracted.mesh.clusters.at(0).jointIndex;
         if (clusterIDs.size() > 1) {
             extracted.mesh.clusterIndices.resize(extracted.mesh.vertices.size());
             extracted.mesh.clusterWeights.resize(extracted.mesh.vertices.size());
+            float maxWeight = 0.0f;
             for (int i = 0; i < clusterIDs.size(); i++) {
                 QString clusterID = clusterIDs.at(i);
                 const Cluster& cluster = clusters[clusterID];
-                
+                float totalWeight = 0.0f;
                 for (int j = 0; j < cluster.indices.size(); j++) {
                     int oldIndex = cluster.indices.at(j);
                     float weight = cluster.weights.at(j);
+                    totalWeight += weight;
                     for (QMultiHash<int, int>::const_iterator it = extracted.newIndices.constFind(oldIndex);
                             it != extracted.newIndices.end() && it.key() == oldIndex; it++) {
                         glm::vec4& weights = extracted.mesh.clusterWeights[it.value()];
@@ -1302,8 +1301,13 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                         }
                     }
                 }
+                if (totalWeight > maxWeight) {
+                    maxWeight = totalWeight;
+                    maxJointIndex = extracted.mesh.clusters.at(i).jointIndex;
+                }
             }
         }
+        extracted.mesh.isEye = (maxJointIndex == geometry.leftEyeJointIndex || maxJointIndex == geometry.rightEyeJointIndex);
         
         // extract spring edges, connections if springy
         if (extracted.mesh.springiness > 0.0f) {

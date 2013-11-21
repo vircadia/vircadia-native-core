@@ -398,6 +398,7 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
         headPosition = _bodyBall[BODY_BALL_HEAD_BASE].position;
     }
     _head.setPosition(headPosition);
+    _head.setScale(_scale);
     _head.setSkinColor(glm::vec3(SKIN_COLOR[0], SKIN_COLOR[1], SKIN_COLOR[2]));
     _head.simulate(deltaTime, false);
 

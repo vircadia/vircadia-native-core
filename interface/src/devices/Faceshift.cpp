@@ -10,6 +10,7 @@
 
 #include <SharedUtil.h>
 
+#include "Application.h"
 #include "Faceshift.h"
 #include "Menu.h"
 #include "Util.h"

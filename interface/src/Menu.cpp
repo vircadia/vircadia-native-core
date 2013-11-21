@@ -46,12 +46,14 @@ Menu* Menu::getInstance() {
 }
 
 const ViewFrustumOffset DEFAULT_FRUSTUM_OFFSET = {-135.0f, 0.0f, 0.0f, 25.0f, 0.0f};
+const float DEFAULT_FACESHIFT_EYE_DEFLECTION = 0.25f;
 
 Menu::Menu() :
     _actionHash(),
     _audioJitterBufferSamples(0),
     _bandwidthDialog(NULL),
     _fieldOfView(DEFAULT_FIELD_OF_VIEW_DEGREES),
+    _faceshiftEyeDeflection(DEFAULT_FACESHIFT_EYE_DEFLECTION),
     _frustumDrawMode(FRUSTUM_DRAW_MODE_ALL),
     _viewFrustumOffset(DEFAULT_FRUSTUM_OFFSET),
     _voxelModeActionsGroup(NULL),
@@ -70,7 +72,8 @@ Menu::Menu() :
                                   MenuOption::AboutApp,
                                   0,
                                   this,
-                                  SLOT(aboutApp()));
+                                  SLOT(aboutApp()),
+                                  QAction::AboutRole);
 #endif
     
     (addActionToQMenuAndActionHash(fileMenu,
@@ -118,7 +121,9 @@ Menu::Menu() :
                                   MenuOption::Quit,
                                   Qt::CTRL | Qt::Key_Q,
                                   appInstance,
-                                  SLOT(quit()));
+                                  SLOT(quit()),
+                                  QAction::QuitRole);
+                                  
     
     QMenu* editMenu = addMenu("Edit");
     
@@ -126,7 +131,8 @@ Menu::Menu() :
                                   MenuOption::Preferences,
                                   Qt::CTRL | Qt::Key_Comma,
                                   this,
-                                  SLOT(editPreferences()));
+                                  SLOT(editPreferences()),
+                                  QAction::PreferencesRole);
     
     addDisabledActionAndSeparator(editMenu, "Voxels");
     
@@ -241,6 +247,7 @@ Menu::Menu() :
                                            MenuOption::TurnWithHead,
                                            0,
                                            true);
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::MoveWithLean, 0, false);
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::HeadMouse, 0, false);
     
     
@@ -359,6 +366,7 @@ Menu::Menu() :
 
     addCheckableActionToQMenuAndActionHash(raveGloveOptionsMenu, MenuOption::SimulateLeapHand);
     addCheckableActionToQMenuAndActionHash(raveGloveOptionsMenu, MenuOption::DisplayLeapHands, 0, true);
+    addCheckableActionToQMenuAndActionHash(raveGloveOptionsMenu, MenuOption::LeapDrive, 0, false);
     addCheckableActionToQMenuAndActionHash(raveGloveOptionsMenu, MenuOption::TestRaveGlove);
 
     QMenu* trackingOptionsMenu = developerMenu->addMenu("Tracking Options");
@@ -486,7 +494,11 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(voxelProtoOptionsMenu, MenuOption::DestructiveAddVoxel);
 
     addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::ExtraDebugging);
-
+    addActionToQMenuAndActionHash(developerMenu, MenuOption::PasteToVoxel, 
+                Qt::CTRL | Qt::SHIFT | Qt::Key_V, 
+                this,
+                SLOT(pasteToVoxel()));
+                
     
 #ifndef Q_OS_MAC
     QMenu* helpMenu = addMenu("Help");
@@ -508,6 +520,7 @@ void Menu::loadSettings(QSettings* settings) {
     
     _audioJitterBufferSamples = loadSetting(settings, "audioJitterBufferSamples", 0);
     _fieldOfView = loadSetting(settings, "fieldOfView", DEFAULT_FIELD_OF_VIEW_DEGREES);
+    _faceshiftEyeDeflection = loadSetting(settings, "faceshiftEyeDeflection", DEFAULT_FACESHIFT_EYE_DEFLECTION);
     _maxVoxels = loadSetting(settings, "maxVoxels", DEFAULT_MAX_VOXELS_PER_SYSTEM);
     _voxelSizeScale = loadSetting(settings, "voxelSizeScale", DEFAULT_VOXEL_SIZE_SCALE);
     _boundaryLevelAdjust = loadSetting(settings, "boundaryLevelAdjust", 0);
@@ -536,6 +549,7 @@ void Menu::saveSettings(QSettings* settings) {
     
     settings->setValue("audioJitterBufferSamples", _audioJitterBufferSamples);
     settings->setValue("fieldOfView", _fieldOfView);
+    settings->setValue("faceshiftEyeDeflection", _faceshiftEyeDeflection);
     settings->setValue("maxVoxels", _maxVoxels);
     settings->setValue("voxelSizeScale", _voxelSizeScale);
     settings->setValue("boundaryLevelAdjust", _boundaryLevelAdjust);
@@ -671,7 +685,8 @@ QAction* Menu::addActionToQMenuAndActionHash(QMenu* destinationMenu,
                                              const QString actionName,
                                              const QKeySequence& shortcut,
                                              const QObject* receiver,
-                                             const char* member) {
+                                             const char* member,
+                                             QAction::MenuRole role) {
     QAction* action;
     
     if (receiver && member) {
@@ -680,6 +695,7 @@ QAction* Menu::addActionToQMenuAndActionHash(QMenu* destinationMenu,
         action = destinationMenu->addAction(actionName);
         action->setShortcut(shortcut);
     }
+    action->setMenuRole(role);    
     
     _actionHash.insert(actionName, action);
     
@@ -786,6 +802,10 @@ void Menu::editPreferences() {
     pupilDilation->setValue(applicationInstance->getAvatar()->getHead().getPupilDilation() * pupilDilation->maximum());
     form->addRow("Pupil Dilation:", pupilDilation);
     
+    QSlider* faceshiftEyeDeflection = new QSlider(Qt::Horizontal);
+    faceshiftEyeDeflection->setValue(_faceshiftEyeDeflection * faceshiftEyeDeflection->maximum());
+    form->addRow("Faceshift Eye Deflection:", faceshiftEyeDeflection);
+    
     QSpinBox* fieldOfView = new QSpinBox();
     fieldOfView->setMaximum(180);
     fieldOfView->setMinimum(1);
@@ -861,6 +881,8 @@ void Menu::editPreferences() {
         
         _fieldOfView = fieldOfView->value();
         applicationInstance->resizeGL(applicationInstance->getGLWidget()->width(), applicationInstance->getGLWidget()->height());
+        
+        _faceshiftEyeDeflection = faceshiftEyeDeflection->value() / (float)faceshiftEyeDeflection->maximum();
     }
     
     sendFakeEnterEvent();
@@ -953,6 +975,33 @@ void Menu::goToUser() {
         // there's a username entered by the user, make a request to the data-server
         DataServerClient::getValuesForKeysAndUserString((QStringList() << DataServerKey::Domain << DataServerKey::Position),
                                                         userDialog.textValue());
+    }
+    
+    sendFakeEnterEvent();
+}
+
+void Menu::pasteToVoxel() {
+    QInputDialog pasteToOctalCodeDialog(Application::getInstance()->getWindow());
+    pasteToOctalCodeDialog.setWindowTitle("Paste to Voxel");
+    pasteToOctalCodeDialog.setLabelText("Octal Code:");
+    QString octalCode = "";
+    pasteToOctalCodeDialog.setTextValue(octalCode);
+    pasteToOctalCodeDialog.setWindowFlags(Qt::Sheet);
+    pasteToOctalCodeDialog.resize(pasteToOctalCodeDialog.parentWidget()->size().width() * DIALOG_RATIO_OF_WINDOW, 
+        pasteToOctalCodeDialog.size().height());
+    
+    int dialogReturn = pasteToOctalCodeDialog.exec();
+    if (dialogReturn == QDialog::Accepted && !pasteToOctalCodeDialog.textValue().isEmpty()) {
+        // we got an octalCode to paste to...
+        QString locationToPaste = pasteToOctalCodeDialog.textValue();
+        unsigned char* octalCodeDestination = hexStringToOctalCode(locationToPaste);
+        
+        // check to see if it was a legit octcode...
+        if (locationToPaste == octalCodeToHexString(octalCodeDestination)) {
+            Application::getInstance()->pasteVoxelsToOctalCode(octalCodeDestination);
+        } else {
+            qDebug() << "problem with octcode...\n";
+        }
     }
     
     sendFakeEnterEvent();

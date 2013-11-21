@@ -1603,22 +1603,11 @@ void Application::copyVoxels() {
     }
 }
 
-void Application::pasteVoxels() {
-    unsigned char* calculatedOctCode = NULL;
-    VoxelNode* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
-
+void Application::pasteVoxelsToOctalCode(const unsigned char* octalCodeDestination) {
     // Recurse the clipboard tree, where everything is root relative, and send all the colored voxels to 
     // the server as an set voxel message, this will also rebase the voxels to the new location
     SendVoxelsOperationArgs args;
-
-    // we only need the selected voxel to get the newBaseOctCode, which we can actually calculate from the
-    // voxel size/position details. If we don't have an actual selectedNode then use the mouseVoxel to create a 
-    // target octalCode for where the user is pointing.
-    if (selectedNode) {
-        args.newBaseOctCode = selectedNode->getOctalCode();
-    } else {
-        args.newBaseOctCode = calculatedOctCode = pointToVoxel(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
-    }
+    args.newBaseOctCode = octalCodeDestination;
 
     _sharedVoxelSystem.getTree()->recurseTreeWithOperation(sendVoxelsOperation, &args);
 
@@ -1628,6 +1617,23 @@ void Application::pasteVoxels() {
     }
 
     _voxelEditSender.releaseQueuedMessages();
+}
+
+void Application::pasteVoxels() {
+    unsigned char* calculatedOctCode = NULL;
+    VoxelNode* selectedNode = _voxels.getVoxelAt(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+
+    // we only need the selected voxel to get the newBaseOctCode, which we can actually calculate from the
+    // voxel size/position details. If we don't have an actual selectedNode then use the mouseVoxel to create a 
+    // target octalCode for where the user is pointing.
+    const unsigned char* octalCodeDestination;
+    if (selectedNode) {
+        octalCodeDestination = selectedNode->getOctalCode();
+    } else {
+        octalCodeDestination = calculatedOctCode = pointToVoxel(_mouseVoxel.x, _mouseVoxel.y, _mouseVoxel.z, _mouseVoxel.s);
+    }
+
+    pasteVoxelsToOctalCode(octalCodeDestination);
     
     if (calculatedOctCode) {
         delete[] calculatedOctCode;
@@ -2006,14 +2012,14 @@ void Application::updateMyAvatarLookAtPosition(glm::vec3& lookAtSpot, glm::vec3&
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateMyAvatarLookAtPosition()");
     
-    if (!_lookatTargetAvatar) {
+    if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
+        lookAtSpot = _myCamera.getPosition();
+        
+    } else if (!_lookatTargetAvatar) {
         if (_isHoverVoxel) {
             //  Look at the hovered voxel
             lookAtSpot = getMouseVoxelWorldCoordinates(_hoverVoxel);
             
-        } else if (_myCamera.getMode() == CAMERA_MODE_MIRROR) {
-            lookAtSpot = _myCamera.getPosition();
-        
         } else {
             //  Just look in direction of the mouse ray
             const float FAR_AWAY_STARE = TREE_SCALE;
@@ -2024,10 +2030,9 @@ void Application::updateMyAvatarLookAtPosition(glm::vec3& lookAtSpot, glm::vec3&
         // deflect using Faceshift gaze data
         glm::vec3 origin = _myAvatar.getHead().calculateAverageEyePosition();
         float pitchSign = (_myCamera.getMode() == CAMERA_MODE_MIRROR) ? -1.0f : 1.0f;
-        const float PITCH_SCALE = 0.25f;
-        const float YAW_SCALE = 0.25f;
+        float deflection = Menu::getInstance()->getFaceshiftEyeDeflection();
         lookAtSpot = origin + _myCamera.getRotation() * glm::quat(glm::radians(glm::vec3(
-            _faceshift.getEstimatedEyePitch() * pitchSign * PITCH_SCALE, _faceshift.getEstimatedEyeYaw() * YAW_SCALE, 0.0f))) *
+            _faceshift.getEstimatedEyePitch() * pitchSign * deflection, _faceshift.getEstimatedEyeYaw() * deflection, 0.0f))) *
                 glm::inverse(_myCamera.getRotation()) * (lookAtSpot - origin);
     }
     _myAvatar.getHead().setLookAtPosition(lookAtSpot);
@@ -2184,8 +2189,10 @@ void Application::updateHandAndTouch(float deltaTime) {
         float TOUCH_YAW_SCALE = -0.25f;
         float TOUCH_PITCH_SCALE = -12.5f;
         float FIXED_TOUCH_TIMESTEP = 0.016f;
+        const float MAX_PITCH = 90.0f;
         _yawFromTouch += ((_touchAvgX - _lastTouchAvgX) * TOUCH_YAW_SCALE * FIXED_TOUCH_TIMESTEP);
-        _pitchFromTouch += ((_touchAvgY - _lastTouchAvgY) * TOUCH_PITCH_SCALE * FIXED_TOUCH_TIMESTEP);
+        _pitchFromTouch = glm::clamp(_pitchFromTouch + (_touchAvgY - _lastTouchAvgY) * TOUCH_PITCH_SCALE *
+            FIXED_TOUCH_TIMESTEP, -MAX_PITCH, MAX_PITCH);
         _lastTouchAvgX = _touchAvgX;
         _lastTouchAvgY = _touchAvgY;
     }
@@ -2197,7 +2204,14 @@ void Application::updateLeap(float deltaTime) {
 
     LeapManager::enableFakeFingers(Menu::getInstance()->isOptionChecked(MenuOption::SimulateLeapHand));
     _myAvatar.getHand().setRaveGloveActive(Menu::getInstance()->isOptionChecked(MenuOption::TestRaveGlove));
-    LeapManager::nextFrame(_myAvatar);
+    LeapManager::nextFrame();
+}
+
+void Application::updateSixense() {
+    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
+    PerformanceWarning warn(showWarnings, "Application::updateSixense()");
+    
+    _sixenseManager.update();
 }
 
 void Application::updateSerialDevices(float deltaTime) {
@@ -2407,6 +2421,7 @@ void Application::update(float deltaTime) {
     updateMouseVoxels(deltaTime, mouseRayOrigin, mouseRayDirection, distance, face); // UI/UX related to voxels
     updateHandAndTouch(deltaTime); // Update state for touch sensors
     updateLeap(deltaTime); // Leap finger-sensing device
+    updateSixense(); // Razer Hydra controllers
     updateSerialDevices(deltaTime); // Read serial port interface devices
     updateAvatar(deltaTime); // Sample hardware, update view frustum if needed, and send avatar data to mixer/nodes
     updateThreads(deltaTime); // If running non-threaded, then give the threads some time to process...
@@ -4087,6 +4102,7 @@ void Application::resetSensors() {
     }
     _webcam.reset();
     _faceshift.reset();
+    LeapManager::reset();
     QCursor::setPos(_headMouseX, _headMouseY);
     _myAvatar.reset();
     _myTransmitter.resetLevels();
@@ -4183,9 +4199,11 @@ void Application::nodeKilled(Node* node) {
         }
         
         // also clean up scene stats for that server
+        _voxelSceneStatsLock.lockForWrite();
         if (_voxelServerSceneStats.find(nodeUUID) != _voxelServerSceneStats.end()) {
             _voxelServerSceneStats.erase(nodeUUID);
         }
+        _voxelSceneStatsLock.unlock();
     } else if (node->getLinkedData() == _lookatTargetAvatar) {
         _lookatTargetAvatar = NULL;
     }
@@ -4206,27 +4224,13 @@ int Application::parseVoxelStats(unsigned char* messageData, ssize_t messageLeng
         QUuid nodeUUID = voxelServer->getUUID();
         
         // now that we know the node ID, let's add these stats to the stats for that node...
+        _voxelSceneStatsLock.lockForWrite();
         if (_voxelServerSceneStats.find(nodeUUID) != _voxelServerSceneStats.end()) {
-            VoxelSceneStats& oldStats = _voxelServerSceneStats[nodeUUID];
-            
-            // this if construct is a little strange because we aren't quite using it yet. But
-            // we want to keep this logic in here for now because we plan to use it soon to determine
-            // additional network optimization states and better rate control
-            if (!oldStats.isMoving() && temp.isMoving()) {
-                // we think we are starting to move
-                _voxelServerSceneStats[nodeUUID].unpackFromMessage(messageData, messageLength);
-            } else if (oldStats.isMoving() && !temp.isMoving()) {
-                // we think we are done moving
-                _voxelServerSceneStats[nodeUUID].unpackFromMessage(messageData, messageLength);
-            } else if (!oldStats.isMoving() && !temp.isMoving()) {
-                // we think we are still not moving
-            } else {
-                // we think we are still moving
-            }
-        
+            _voxelServerSceneStats[nodeUUID].unpackFromMessage(messageData, messageLength);
         } else {
             _voxelServerSceneStats[nodeUUID] = temp;
         }
+        _voxelSceneStatsLock.unlock();
         
         VoxelPositionSize rootDetails;
         voxelDetailsForCode(temp.getJurisdictionRoot(), rootDetails);

@@ -38,7 +38,7 @@ private:
 
     time_t _loadCompleted;
     uint64_t _loadTimeUSecs;
-    uint64_t _lastSave;
+    uint64_t _lastCheck;
 };
 
 #endif // __voxel_server__VoxelPersistThread__

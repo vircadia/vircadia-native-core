@@ -50,6 +50,7 @@ public:
     
     float getAudioJitterBufferSamples() const { return _audioJitterBufferSamples; }
     float getFieldOfView() const { return _fieldOfView; }
+    float getFaceshiftEyeDeflection() const { return _faceshiftEyeDeflection; }
     BandwidthDialog* getBandwidthDialog() const { return _bandwidthDialog; }
     FrustumDrawMode getFrustumDrawMode() const { return _frustumDrawMode; }
     ViewFrustumOffset getViewFrustumOffset() const { return _viewFrustumOffset; }
@@ -76,6 +77,7 @@ public slots:
     void importSettings();
     void exportSettings();
     void goToUser();
+    void pasteToVoxel();
     
 private slots:
     void aboutApp();
@@ -111,7 +113,9 @@ private:
                                            const QString actionName,
                                            const QKeySequence& shortcut = 0,
                                            const QObject* receiver = NULL,
-                                           const char* member = NULL);
+                                           const char* member = NULL,
+                                           QAction::MenuRole role = QAction::NoRole);
+                                           
     QAction* addCheckableActionToQMenuAndActionHash(QMenu* destinationMenu,
                                                     const QString actionName,
                                                     const QKeySequence& shortcut = 0,
@@ -126,6 +130,7 @@ private:
     int _audioJitterBufferSamples; /// number of extra samples to wait before starting audio playback
     BandwidthDialog* _bandwidthDialog;
     float _fieldOfView; /// in Degrees, doesn't apply to HMD like Oculus
+    float _faceshiftEyeDeflection;
     FrustumDrawMode _frustumDrawMode;
     ViewFrustumOffset _viewFrustumOffset;
     QActionGroup* _voxelModeActionsGroup;
@@ -195,6 +200,7 @@ namespace MenuOption {
     const QString GoHome = "Go Home";
     const QString Gravity = "Use Gravity";
     const QString ParticleCloud = "Particle Cloud";
+    const QString LeapDrive = "Leap Drive";
     const QString LodTools = "LOD Tools";
     const QString Log = "Log";
     const QString Login = "Login";
@@ -202,6 +208,7 @@ namespace MenuOption {
     const QString LookAtVectors = "Look-at Vectors";
     const QString LowRes = "Lower Resolution While Moving";
     const QString Mirror = "Mirror";
+    const QString MoveWithLean = "Move with Lean";
     const QString NewVoxelCullingMode = "New Voxel Culling Mode";
     const QString NudgeVoxels = "Nudge";
     const QString OcclusionCulling = "Occlusion Culling";
@@ -212,6 +219,7 @@ namespace MenuOption {
     const QString Oscilloscope = "Audio Oscilloscope";
     const QString Pair = "Pair";
     const QString PasteVoxels = "Paste";
+    const QString PasteToVoxel = "Paste to Voxel...";
     const QString PipelineWarnings = "Show Render Pipeline Warnings";
     const QString Preferences = "Preferences...";
     const QString RandomizeVoxelColors = "Randomize Voxel TRUE Colors";

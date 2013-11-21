@@ -1418,25 +1418,32 @@ float VoxelNode::distanceToPoint(const glm::vec3& point) const {
     return distance;
 }
 
+QReadWriteLock VoxelNode::_deleteHooksLock;
 std::vector<VoxelNodeDeleteHook*> VoxelNode::_deleteHooks;
 
 void VoxelNode::addDeleteHook(VoxelNodeDeleteHook* hook) {
+    _deleteHooksLock.lockForWrite();
     _deleteHooks.push_back(hook);
+    _deleteHooksLock.unlock();
 }
 
 void VoxelNode::removeDeleteHook(VoxelNodeDeleteHook* hook) {
+    _deleteHooksLock.lockForWrite();
     for (int i = 0; i < _deleteHooks.size(); i++) {
         if (_deleteHooks[i] == hook) {
             _deleteHooks.erase(_deleteHooks.begin() + i);
-            return;
+            break;
         }
     }
+    _deleteHooksLock.unlock();
 }
 
 void VoxelNode::notifyDeleteHooks() {
+    _deleteHooksLock.lockForRead();
     for (int i = 0; i < _deleteHooks.size(); i++) {
         _deleteHooks[i]->voxelDeleted(this);
     }
+    _deleteHooksLock.unlock();
 }
 
 std::vector<VoxelNodeUpdateHook*> VoxelNode::_updateHooks;
