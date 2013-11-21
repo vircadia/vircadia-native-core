@@ -247,6 +247,7 @@ Menu::Menu() :
                                            MenuOption::TurnWithHead,
                                            0,
                                            true);
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::MoveWithLean, 0, false);
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::HeadMouse, 0, false);
     
     
@@ -365,6 +366,7 @@ Menu::Menu() :
 
     addCheckableActionToQMenuAndActionHash(raveGloveOptionsMenu, MenuOption::SimulateLeapHand);
     addCheckableActionToQMenuAndActionHash(raveGloveOptionsMenu, MenuOption::DisplayLeapHands, 0, true);
+    addCheckableActionToQMenuAndActionHash(raveGloveOptionsMenu, MenuOption::LeapDrive, 0, false);
     addCheckableActionToQMenuAndActionHash(raveGloveOptionsMenu, MenuOption::TestRaveGlove);
 
     QMenu* trackingOptionsMenu = developerMenu->addMenu("Tracking Options");

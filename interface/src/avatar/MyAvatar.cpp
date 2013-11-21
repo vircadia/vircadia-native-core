@@ -27,6 +27,7 @@ using namespace std;
 
 const glm::vec3 DEFAULT_UP_DIRECTION(0.0f, 1.0f, 0.0f);
 const float YAW_MAG = 500.0;
+const float PITCH_MAG = 100.0f;
 const float COLLISION_RADIUS_SCALAR = 1.2; // pertains to avatar-to-avatar collisions
 const float COLLISION_BALL_FORCE = 200.0; // pertains to avatar-to-avatar collisions
 const float COLLISION_BODY_FORCE = 30.0; // pertains to avatar-to-avatar collisions
@@ -42,6 +43,7 @@ MyAvatar::MyAvatar(Node* owningNode) :
     _mousePressed(false),
     _bodyPitchDelta(0.0f),
     _bodyRollDelta(0.0f),
+    _mousePitchDelta(0.0f),
     _shouldJump(false),
     _gravity(0.0f, -1.0f, 0.0f),
     _distanceToNearestAvatar(std::numeric_limits<float>::max()),
@@ -57,7 +59,7 @@ MyAvatar::MyAvatar(Node* owningNode) :
     _moveTargetStepCounter(0)
 {
     for (int i = 0; i < MAX_DRIVE_KEYS; i++) {
-        _driveKeys[i] = false;
+        _driveKeys[i] = 0.0f;
     }
 
     _collisionRadius = _height * COLLISION_RADIUS_SCALE;   
@@ -368,6 +370,8 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter) {
 
 }
 
+const float MAX_PITCH = 90.0f;
+
 //  Update avatar head rotation with sensor data
 void MyAvatar::updateFromGyrosAndOrWebcam(float pitchFromTouch, bool turnWithHead) {
     Faceshift* faceshift = Application::getInstance()->getFaceshift();
@@ -375,6 +379,7 @@ void MyAvatar::updateFromGyrosAndOrWebcam(float pitchFromTouch, bool turnWithHea
     Webcam* webcam = Application::getInstance()->getWebcam();
     glm::vec3 estimatedPosition, estimatedRotation;
     
+    float combinedPitch = glm::clamp(pitchFromTouch + _mousePitchDelta, -MAX_PITCH, MAX_PITCH);
     if (faceshift->isActive()) {
         estimatedPosition = faceshift->getHeadTranslation();
         estimatedRotation = safeEulerAngles(faceshift->getHeadRotation());
@@ -395,8 +400,8 @@ void MyAvatar::updateFromGyrosAndOrWebcam(float pitchFromTouch, bool turnWithHea
     
     } else {
         if (!_leadingAvatar) {
-            _head.setMousePitch(pitchFromTouch);
-            _head.setPitch(pitchFromTouch);
+            _head.setMousePitch(combinedPitch);
+            _head.setPitch(combinedPitch);
         }
         _head.getVideoFace().clearFrame();
         
@@ -408,7 +413,7 @@ void MyAvatar::updateFromGyrosAndOrWebcam(float pitchFromTouch, bool turnWithHea
         _head.setLeanForward(glm::mix(_head.getLeanForward(), 0.0f, RESTORE_RATE));
         return;
     }
-    _head.setMousePitch(pitchFromTouch);
+    _head.setMousePitch(combinedPitch);
 
     if (webcam->isActive()) {
         estimatedPosition = webcam->getEstimatedPosition();
@@ -444,12 +449,35 @@ void MyAvatar::updateFromGyrosAndOrWebcam(float pitchFromTouch, bool turnWithHea
     _head.setRoll(estimatedRotation.z * AVATAR_HEAD_ROLL_MAGNIFY);
         
     //  Update torso lean distance based on accelerometer data
-    const float TORSO_LENGTH = _scale * 0.5f;
+    const float TORSO_LENGTH = 0.5f;
+    glm::vec3 relativePosition = estimatedPosition - glm::vec3(0.0f, -TORSO_LENGTH, 0.0f);
     const float MAX_LEAN = 45.0f;
-    _head.setLeanSideways(glm::clamp(glm::degrees(atanf(estimatedPosition.x * _leanScale / TORSO_LENGTH)),
+    _head.setLeanSideways(glm::clamp(glm::degrees(atanf(relativePosition.x * _leanScale / TORSO_LENGTH)),
         -MAX_LEAN, MAX_LEAN));
-    _head.setLeanForward(glm::clamp(glm::degrees(atanf(estimatedPosition.z * _leanScale / TORSO_LENGTH)),
+    _head.setLeanForward(glm::clamp(glm::degrees(atanf(relativePosition.z * _leanScale / TORSO_LENGTH)),
         -MAX_LEAN, MAX_LEAN));
+    
+    // if Faceshift drive is enabled, set the avatar drive based on the head position
+    if (!Menu::getInstance()->isOptionChecked(MenuOption::MoveWithLean)) {
+        return;
+    }
+    const float ANGULAR_DRIVE_SCALE = 0.1f;
+    const float ANGULAR_DEAD_ZONE = 0.3f;
+    setDriveKeys(FWD, glm::clamp(-_head.getLeanForward() * ANGULAR_DRIVE_SCALE - ANGULAR_DEAD_ZONE, 0.0f, 1.0f));
+    setDriveKeys(BACK, glm::clamp(_head.getLeanForward() * ANGULAR_DRIVE_SCALE - ANGULAR_DEAD_ZONE, 0.0f, 1.0f));
+    setDriveKeys(LEFT, glm::clamp(_head.getLeanSideways() * ANGULAR_DRIVE_SCALE - ANGULAR_DEAD_ZONE, 0.0f, 1.0f));
+    setDriveKeys(RIGHT, glm::clamp(-_head.getLeanSideways() * ANGULAR_DRIVE_SCALE - ANGULAR_DEAD_ZONE, 0.0f, 1.0f));
+
+    // only consider going up if we're not going in any of the four horizontal directions
+    if (_driveKeys[FWD] == 0.0f && _driveKeys[BACK] == 0.0f && _driveKeys[LEFT] == 0.0f && _driveKeys[RIGHT] == 0.0f) {
+        const float LINEAR_DRIVE_SCALE = 5.0f;
+        const float LINEAR_DEAD_ZONE = 0.95f;
+        float torsoDelta = glm::length(relativePosition) - TORSO_LENGTH;
+        setDriveKeys(UP, glm::clamp(torsoDelta * LINEAR_DRIVE_SCALE - LINEAR_DEAD_ZONE, 0.0f, 1.0f));
+    
+    } else {
+        setDriveKeys(UP, 0.0f);
+    }
 }
 
 static TextRenderer* textRenderer() {
@@ -707,14 +735,16 @@ void MyAvatar::updateThrust(float deltaTime, Transmitter * transmitter) {
     const float THRUST_JUMP = 120.f;
     
     //  Add Thrusts from keyboard
-    if (_driveKeys[FWD]) {_thrust += _scale * THRUST_MAG_FWD * _thrustMultiplier * deltaTime * front;}
-    if (_driveKeys[BACK]) {_thrust -= _scale * THRUST_MAG_BACK *  _thrustMultiplier * deltaTime * front;}
-    if (_driveKeys[RIGHT]) {_thrust += _scale * THRUST_MAG_LATERAL * _thrustMultiplier * deltaTime * right;}
-    if (_driveKeys[LEFT]) {_thrust -= _scale * THRUST_MAG_LATERAL * _thrustMultiplier * deltaTime * right;}
-    if (_driveKeys[UP]) {_thrust += _scale * THRUST_MAG_UP * _thrustMultiplier * deltaTime * up;}
-    if (_driveKeys[DOWN]) {_thrust -= _scale * THRUST_MAG_DOWN * _thrustMultiplier * deltaTime * up;}
-    if (_driveKeys[ROT_RIGHT]) {_bodyYawDelta -= YAW_MAG * deltaTime;}
-    if (_driveKeys[ROT_LEFT]) {_bodyYawDelta += YAW_MAG * deltaTime;}
+    _thrust += _driveKeys[FWD] * _scale * THRUST_MAG_FWD * _thrustMultiplier * deltaTime * front;
+    _thrust -= _driveKeys[BACK] * _scale * THRUST_MAG_BACK *  _thrustMultiplier * deltaTime * front;
+    _thrust += _driveKeys[RIGHT] * _scale * THRUST_MAG_LATERAL * _thrustMultiplier * deltaTime * right;
+    _thrust -= _driveKeys[LEFT] * _scale * THRUST_MAG_LATERAL * _thrustMultiplier * deltaTime * right;
+    _thrust += _driveKeys[UP] * _scale * THRUST_MAG_UP * _thrustMultiplier * deltaTime * up;
+    _thrust -= _driveKeys[DOWN] * _scale * THRUST_MAG_DOWN * _thrustMultiplier * deltaTime * up;
+    _bodyYawDelta -= _driveKeys[ROT_RIGHT] * YAW_MAG * deltaTime;
+    _bodyYawDelta += _driveKeys[ROT_LEFT] * YAW_MAG * deltaTime;
+    _mousePitchDelta = min(_mousePitchDelta + _driveKeys[ROT_UP] * PITCH_MAG * deltaTime, MAX_PITCH);
+    _mousePitchDelta = max(_mousePitchDelta - _driveKeys[ROT_DOWN] * PITCH_MAG * deltaTime, -MAX_PITCH);
     
     //  If thrust keys are being held down, slowly increase thrust to allow reaching great speeds
     if (_driveKeys[FWD] || _driveKeys[BACK] || _driveKeys[RIGHT] || _driveKeys[LEFT] || _driveKeys[UP] || _driveKeys[DOWN]) {
