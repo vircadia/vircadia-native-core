@@ -2773,7 +2773,7 @@ void Application::updateShadowMap() {
     glm::quat rotation = glm::inverse(rotationBetween(IDENTITY_FRONT, lightDirection));
     glm::vec3 translation = glm::vec3();
     float nearScale = 0.0f;
-    float farScale = 0.000001f;
+    float farScale =  0.00000244f;
     /* glm::vec3 points[] = {
         rotation * (glm::mix(_viewFrustum.getNearTopLeft(), _viewFrustum.getFarTopLeft(), nearScale) + translation),
         rotation * (glm::mix(_viewFrustum.getNearTopRight(), _viewFrustum.getFarTopRight(), nearScale) + translation),
@@ -3380,7 +3380,7 @@ void Application::displayOverlay() {
     // render the webcam input frame
     _webcam.renderPreview(_glWidget->width(), _glWidget->height());
 
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Shadows)) {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::Shadows) && false) {
         glBindTexture(GL_TEXTURE_2D, _textureCache.getShadowDepthTextureID());
         glEnable(GL_TEXTURE_2D);
         glColor3f(1.0f, 1.0f, 1.0f);
