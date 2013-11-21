@@ -54,7 +54,7 @@ public:
     void loadData(QSettings* settings);
 
     //  Set what driving keys are being pressed to control thrust levels
-    void setDriveKeys(int key, bool val) { _driveKeys[key] = val; };
+    void setDriveKeys(int key, float val) { _driveKeys[key] = val; };
     bool getDriveKeys(int key) { return _driveKeys[key]; };
     void jump() { _shouldJump = true; };
 
@@ -66,8 +66,9 @@ private:
     bool _mousePressed;
     float _bodyPitchDelta;
     float _bodyRollDelta;
+    float _mousePitchDelta;
     bool _shouldJump;
-    int _driveKeys[MAX_DRIVE_KEYS];
+    float _driveKeys[MAX_DRIVE_KEYS];
     glm::vec3 _gravity;
     float _distanceToNearestAvatar; // How close is the nearest avatar?
     Avatar* _interactingOther;

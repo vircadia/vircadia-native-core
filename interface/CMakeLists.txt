@@ -15,6 +15,7 @@ set(LEAP_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/Leap)
 set(MOTIONDRIVER_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/MotionDriver)
 set(PORTAUDIO_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/PortAudio)
 set(OPENCV_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/OpenCV)
+set(SIXENSE_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/Sixense)
 set(UVCCAMERACONTROL_ROOT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/external/UVCCameraControl)
 
 if (APPLE)
@@ -95,6 +96,7 @@ find_package(Leap)
 find_package(MotionDriver)
 find_package(OpenCV)
 find_package(OpenNI)
+find_package(Sixense)
 find_package(UVCCameraControl)
 find_package(ZLIB)
 
@@ -105,6 +107,14 @@ if (OPENNI_FOUND AND NOT DISABLE_OPENNI)
     SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${OPENNI_INCLUDE_DIRS}")
     target_link_libraries(${TARGET_NAME} ${OPENNI_LIBRARIES})
 endif (OPENNI_FOUND AND NOT DISABLE_OPENNI)
+
+# likewise with Sixense library for Razer Hydra
+if (SIXENSE_FOUND AND NOT DISABLE_SIXENSE)
+    add_definitions(-DHAVE_SIXENSE)
+    include_directories(SYSTEM ${SIXENSE_INCLUDE_DIRS})
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -isystem ${SIXENSE_INCLUDE_DIRS}")
+    target_link_libraries(${TARGET_NAME} ${SIXENSE_LIBRARIES})
+endif (SIXENSE_FOUND AND NOT DISABLE_SIXENSE)
 
 qt5_use_modules(${TARGET_NAME} Core Gui Multimedia Network OpenGL Svg WebKit WebKitWidgets)
 

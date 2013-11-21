@@ -50,6 +50,7 @@
 #include "avatar/HandControl.h"
 #include "devices/Faceshift.h"
 #include "devices/SerialInterface.h"
+#include "devices/SixenseManager.h"
 #include "devices/Webcam.h"
 #include "renderer/AmbientOcclusionEffect.h"
 #include "renderer/GeometryCache.h"
@@ -136,6 +137,8 @@ public:
     Swatch*  getSwatch() { return &_swatch; }
     QMainWindow* getWindow() { return _window; }
     NodeToVoxelSceneStats* getVoxelSceneStats() { return &_voxelServerSceneStats; }
+    void lockVoxelSceneStats() { _voxelSceneStatsLock.lockForRead(); }
+    void unlockVoxelSceneStats() { _voxelSceneStatsLock.unlock(); }
     
     QNetworkAccessManager* getNetworkAccessManager() { return _networkAccessManager; }
     GeometryCache* getGeometryCache() { return &_geometryCache; }
@@ -242,6 +245,7 @@ private:
         glm::vec3& eyePosition);
     void updateHandAndTouch(float deltaTime);
     void updateLeap(float deltaTime);
+    void updateSixense();
     void updateSerialDevices(float deltaTime);
     void updateThreads(float deltaTime);
     void updateMyAvatarSimulation(float deltaTime);
@@ -336,6 +340,8 @@ private:
     Webcam _webcam;                    // The webcam interface
     
     Faceshift _faceshift;
+    
+    SixenseManager _sixenseManager;
     
     Camera _myCamera;                  // My view onto the world
     Camera _viewFrustumOffsetCamera;   // The camera we use to sometimes show the view frustum from an offset mode
@@ -454,6 +460,7 @@ private:
     
     NodeToJurisdictionMap _voxelServerJurisdictions;
     NodeToVoxelSceneStats _voxelServerSceneStats;
+    QReadWriteLock _voxelSceneStatsLock;
     
     std::vector<VoxelFade> _voxelFades;
 };

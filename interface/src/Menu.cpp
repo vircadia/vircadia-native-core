@@ -72,7 +72,8 @@ Menu::Menu() :
                                   MenuOption::AboutApp,
                                   0,
                                   this,
-                                  SLOT(aboutApp()));
+                                  SLOT(aboutApp()),
+                                  QAction::AboutRole);
 #endif
     
     (addActionToQMenuAndActionHash(fileMenu,
@@ -120,7 +121,9 @@ Menu::Menu() :
                                   MenuOption::Quit,
                                   Qt::CTRL | Qt::Key_Q,
                                   appInstance,
-                                  SLOT(quit()));
+                                  SLOT(quit()),
+                                  QAction::QuitRole);
+                                  
     
     QMenu* editMenu = addMenu("Edit");
     
@@ -128,7 +131,8 @@ Menu::Menu() :
                                   MenuOption::Preferences,
                                   Qt::CTRL | Qt::Key_Comma,
                                   this,
-                                  SLOT(editPreferences()));
+                                  SLOT(editPreferences()),
+                                  QAction::PreferencesRole);
     
     addDisabledActionAndSeparator(editMenu, "Voxels");
     
@@ -243,6 +247,7 @@ Menu::Menu() :
                                            MenuOption::TurnWithHead,
                                            0,
                                            true);
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::MoveWithLean, 0, false);
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::HeadMouse, 0, false);
     
     
@@ -361,6 +366,7 @@ Menu::Menu() :
 
     addCheckableActionToQMenuAndActionHash(raveGloveOptionsMenu, MenuOption::SimulateLeapHand);
     addCheckableActionToQMenuAndActionHash(raveGloveOptionsMenu, MenuOption::DisplayLeapHands, 0, true);
+    addCheckableActionToQMenuAndActionHash(raveGloveOptionsMenu, MenuOption::LeapDrive, 0, false);
     addCheckableActionToQMenuAndActionHash(raveGloveOptionsMenu, MenuOption::TestRaveGlove);
 
     QMenu* trackingOptionsMenu = developerMenu->addMenu("Tracking Options");
@@ -679,7 +685,8 @@ QAction* Menu::addActionToQMenuAndActionHash(QMenu* destinationMenu,
                                              const QString actionName,
                                              const QKeySequence& shortcut,
                                              const QObject* receiver,
-                                             const char* member) {
+                                             const char* member,
+                                             QAction::MenuRole role) {
     QAction* action;
     
     if (receiver && member) {
@@ -688,6 +695,7 @@ QAction* Menu::addActionToQMenuAndActionHash(QMenu* destinationMenu,
         action = destinationMenu->addAction(actionName);
         action->setShortcut(shortcut);
     }
+    action->setMenuRole(role);    
     
     _actionHash.insert(actionName, action);
     

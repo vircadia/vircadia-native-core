@@ -35,5 +35,9 @@ interface/external/Leap/lib/
 interface/external/Leap/samples/
 interface/external/Leap/util/
 
+# Ignore Sixense
+interface/external/Sixense/include/
+interface/external/Sixense/lib/
 
-
+# Ignore interfaceCache for Linux users
+interface/interfaceCache/

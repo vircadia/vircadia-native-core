@@ -272,7 +272,30 @@ int main(int argc, const char * argv[])
         } else {
             qDebug() << "Unexpected number of parameters for getOctCode\n";
         }
+        return 0;
+    }
+    
+    const char* DECODE_OCTCODE = "--decodeOctCode";
+    const char* decodeParam = getCmdOption(argc, argv, DECODE_OCTCODE);
+    if (decodeParam) {
+
+        QString decodeParamsString(decodeParam);
+        unsigned char* octalCodeToDecode = hexStringToOctalCode(decodeParamsString);
+
+        VoxelPositionSize details;
+        voxelDetailsForCode(octalCodeToDecode, details);
+        
+        delete[] octalCodeToDecode;
+
+        qDebug() << "octal code to decode: " << decodeParamsString << "\n";
+        qDebug() << "Details for Octal Code:\n";
+        qDebug() << "    x:" << details.x << "[" << details.x * TREE_SCALE << "]" << "\n";
+        qDebug() << "    y:" << details.y << "[" << details.y * TREE_SCALE << "]" << "\n";
+        qDebug() << "    z:" << details.z << "[" << details.z * TREE_SCALE << "]" << "\n";
+        qDebug() << "    s:" << details.s << "[" << details.s * TREE_SCALE << "]" << "\n";
+        return 0;
     }    
+    
 
     // Handles taking and SVO and splitting it into multiple SVOs based on
     // jurisdiction details
