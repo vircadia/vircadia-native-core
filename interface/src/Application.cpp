@@ -2192,8 +2192,10 @@ void Application::updateHandAndTouch(float deltaTime) {
         float TOUCH_YAW_SCALE = -0.25f;
         float TOUCH_PITCH_SCALE = -12.5f;
         float FIXED_TOUCH_TIMESTEP = 0.016f;
+        const float MAX_PITCH = 90.0f;
         _yawFromTouch += ((_touchAvgX - _lastTouchAvgX) * TOUCH_YAW_SCALE * FIXED_TOUCH_TIMESTEP);
-        _pitchFromTouch += ((_touchAvgY - _lastTouchAvgY) * TOUCH_PITCH_SCALE * FIXED_TOUCH_TIMESTEP);
+        _pitchFromTouch = glm::clamp(_pitchFromTouch + (_touchAvgY - _lastTouchAvgY) * TOUCH_PITCH_SCALE *
+            FIXED_TOUCH_TIMESTEP, -MAX_PITCH, MAX_PITCH);
         _lastTouchAvgX = _touchAvgX;
         _lastTouchAvgY = _touchAvgY;
     }
@@ -2205,7 +2207,14 @@ void Application::updateLeap(float deltaTime) {
 
     LeapManager::enableFakeFingers(Menu::getInstance()->isOptionChecked(MenuOption::SimulateLeapHand));
     _myAvatar.getHand().setRaveGloveActive(Menu::getInstance()->isOptionChecked(MenuOption::TestRaveGlove));
-    LeapManager::nextFrame(_myAvatar);
+    LeapManager::nextFrame();
+}
+
+void Application::updateSixense() {
+    bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
+    PerformanceWarning warn(showWarnings, "Application::updateSixense()");
+    
+    _sixenseManager.update();
 }
 
 void Application::updateSerialDevices(float deltaTime) {
@@ -2415,6 +2424,7 @@ void Application::update(float deltaTime) {
     updateMouseVoxels(deltaTime, mouseRayOrigin, mouseRayDirection, distance, face); // UI/UX related to voxels
     updateHandAndTouch(deltaTime); // Update state for touch sensors
     updateLeap(deltaTime); // Leap finger-sensing device
+    updateSixense(); // Razer Hydra controllers
     updateSerialDevices(deltaTime); // Read serial port interface devices
     updateAvatar(deltaTime); // Sample hardware, update view frustum if needed, and send avatar data to mixer/nodes
     updateThreads(deltaTime); // If running non-threaded, then give the threads some time to process...
@@ -4195,6 +4205,7 @@ void Application::resetSensors() {
     }
     _webcam.reset();
     _faceshift.reset();
+    LeapManager::reset();
     QCursor::setPos(_headMouseX, _headMouseY);
     _myAvatar.reset();
     _myTransmitter.resetLevels();

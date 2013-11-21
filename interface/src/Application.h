@@ -50,6 +50,7 @@
 #include "avatar/HandControl.h"
 #include "devices/Faceshift.h"
 #include "devices/SerialInterface.h"
+#include "devices/SixenseManager.h"
 #include "devices/Webcam.h"
 #include "renderer/AmbientOcclusionEffect.h"
 #include "renderer/GeometryCache.h"
@@ -246,6 +247,7 @@ private:
         glm::vec3& eyePosition);
     void updateHandAndTouch(float deltaTime);
     void updateLeap(float deltaTime);
+    void updateSixense();
     void updateSerialDevices(float deltaTime);
     void updateThreads(float deltaTime);
     void updateMyAvatarSimulation(float deltaTime);
@@ -344,6 +346,8 @@ private:
     Webcam _webcam;                    // The webcam interface
     
     Faceshift _faceshift;
+    
+    SixenseManager _sixenseManager;
     
     Camera _myCamera;                  // My view onto the world
     Camera _viewFrustumOffsetCamera;   // The camera we use to sometimes show the view frustum from an offset mode

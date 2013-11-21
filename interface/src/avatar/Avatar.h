@@ -100,7 +100,9 @@ enum DriveKeys {
     UP,
     DOWN,
     ROT_LEFT, 
-    ROT_RIGHT, 
+    ROT_RIGHT,
+    ROT_UP,
+    ROT_DOWN,
     MAX_DRIVE_KEYS
 };
 
