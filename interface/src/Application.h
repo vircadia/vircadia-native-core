@@ -150,7 +150,7 @@ public:
     static void controlledBroadcastToNodes(unsigned char* broadcastData, size_t dataBytes,
                                            const char* nodeTypes, int numNodeTypes);
     
-    void setupWorldLight(Camera& whichCamera);
+    void setupWorldLight();
 
     /// Loads a view matrix that incorporates the specified model translation without the precision issues that can
     /// result from matrix multiplication at high translation magnitudes.
@@ -263,10 +263,14 @@ private:
     void queryVoxels();
     void loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum);
     
+    glm::vec3 getSunDirection();
+    
+    void updateShadowMap();
     void displayOculus(Camera& whichCamera);
     void displaySide(Camera& whichCamera, bool selfAvatarOnly = false);
     void displayOverlay();
     void displayStats();
+    void renderAvatars(Camera& whichCamera, bool selfAvatarOnly = false);
     void renderViewFrustum(ViewFrustum& viewFrustum);
    
     void checkBandwidthMeterClick();

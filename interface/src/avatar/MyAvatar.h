@@ -21,7 +21,7 @@ public:
     void simulate(float deltaTime, Transmitter* transmitter);
     void updateFromGyrosAndOrWebcam(float pitchFromTouch, bool turnWithHead);
     void render(bool lookingInMirror, bool renderAvatarBalls);
-    void renderScreenTint(ScreenTintLayer layer, Camera& whichCamera);
+    void renderScreenTint(ScreenTintLayer layer);
 
     // setters
     void setMousePressed(bool mousePressed) { _mousePressed = mousePressed; }

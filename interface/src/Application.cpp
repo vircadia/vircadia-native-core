@@ -424,12 +424,15 @@ void Application::paintGL() {
         whichCamera = _viewFrustumOffsetCamera;
     }        
 
+    if (Menu::getInstance()->isOptionChecked(MenuOption::Shadows)) {
+        updateShadowMap();
+    }
+
     if (OculusManager::isConnected()) {
         displayOculus(whichCamera);
         
     } else {
         _glowEffect.prepare(); 
-
         
         glMatrixMode(GL_MODELVIEW);
         glPushMatrix();
@@ -2754,6 +2757,76 @@ void Application::loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum) {
     viewFrustum.calculate();
 }
 
+glm::vec3 Application::getSunDirection() {
+    return glm::normalize(_environment.getClosestData(_myCamera.getPosition()).getSunLocation() - _myCamera.getPosition());
+}
+
+void Application::updateShadowMap() {
+    QOpenGLFramebufferObject* fbo = _textureCache.getShadowFramebufferObject();
+    fbo->bind();
+    glEnable(GL_DEPTH_TEST);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    
+    glViewport(0, 0, fbo->width(), fbo->height());
+    
+    glm::vec3 lightDirection = -getSunDirection();
+    glm::quat rotation = glm::inverse(rotationBetween(IDENTITY_FRONT, lightDirection));
+    glm::vec3 translation = glm::vec3();
+    float nearScale = 0.0f;
+    float farScale = 0.000001f;
+    /* glm::vec3 points[] = {
+        rotation * (glm::mix(_viewFrustum.getNearTopLeft(), _viewFrustum.getFarTopLeft(), nearScale) + translation),
+        rotation * (glm::mix(_viewFrustum.getNearTopRight(), _viewFrustum.getFarTopRight(), nearScale) + translation),
+        rotation * (glm::mix(_viewFrustum.getNearBottomLeft(), _viewFrustum.getFarBottomLeft(), nearScale) + translation),
+        rotation * (glm::mix(_viewFrustum.getNearBottomRight(), _viewFrustum.getFarBottomRight(), nearScale) + translation),
+        rotation * (glm::mix(_viewFrustum.getNearTopLeft(), _viewFrustum.getFarTopLeft(), farScale) + translation),
+        rotation * (glm::mix(_viewFrustum.getNearTopRight(), _viewFrustum.getFarTopRight(), farScale) + translation),
+        rotation * (glm::mix(_viewFrustum.getNearBottomLeft(), _viewFrustum.getFarBottomLeft(), farScale) + translation),
+        rotation * (glm::mix(_viewFrustum.getNearBottomRight(), _viewFrustum.getFarBottomRight(), farScale) + translation) }; */
+    glm::vec3 points[] = {
+        rotation * (_myAvatar.getPosition() + glm::vec3(-1, 0, 0) + translation),
+        rotation * (_myAvatar.getPosition() + glm::vec3(1, 0, 0) + translation),
+        rotation * (_myAvatar.getPosition() + glm::vec3(0, -1, 0) + translation),
+        rotation * (_myAvatar.getPosition() + glm::vec3(0, 1, 0) + translation),
+        rotation * (_myAvatar.getPosition() + glm::vec3(0, 0, -1) + translation),
+        rotation * (_myAvatar.getPosition() + glm::vec3(0, 0, 1) + translation) };
+    glm::vec3 minima(FLT_MAX, FLT_MAX, FLT_MAX), maxima(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+    for (int i = 0; i < sizeof(points) / sizeof(points[0]); i++) {
+        minima = glm::min(minima, points[i]);
+        maxima = glm::max(maxima, points[i]);
+    }
+    
+    glMatrixMode(GL_PROJECTION);
+    glPushMatrix();
+    glLoadIdentity();
+    glOrtho(minima.x, maxima.x, minima.y, maxima.y, -maxima.z, -minima.z);
+    
+    glMatrixMode(GL_MODELVIEW);
+    glPushMatrix();
+    glLoadIdentity();
+    glm::vec3 axis = glm::axis(rotation);
+    glRotatef(glm::angle(rotation), axis.x, axis.y, axis.z);
+    
+    // store view matrix without translation, which we'll use for precision-sensitive objects
+    glGetFloatv(GL_MODELVIEW_MATRIX, (GLfloat*)&_untranslatedViewMatrix);
+    _viewMatrixTranslation = translation;
+    
+    glTranslatef(translation.x, translation.y, translation.z);
+    
+    renderAvatars(_myCamera);
+    
+    glPopMatrix();
+    
+    glMatrixMode(GL_PROJECTION);
+    glPopMatrix();
+    
+    glMatrixMode(GL_MODELVIEW);
+    
+    fbo->release();
+    
+    glViewport(0, 0, _glWidget->width(), _glWidget->height());
+}
+
 // this shader is an adaptation (HLSL -> GLSL, removed conditional) of the one in the Oculus sample
 // code (Samples/OculusRoomTiny/RenderTiny_D3D1X_Device.cpp), which is under the Apache license
 // (http://www.apache.org/licenses/LICENSE-2.0)
@@ -2896,15 +2969,14 @@ void Application::displayOculus(Camera& whichCamera) {
 const GLfloat WHITE_SPECULAR_COLOR[] = { 1.0f, 1.0f, 1.0f, 1.0f };
 const GLfloat NO_SPECULAR_COLOR[] = { 0.0f, 0.0f, 0.0f, 1.0f };
 
-void Application::setupWorldLight(Camera& whichCamera) {
+void Application::setupWorldLight() {
     
     //  Setup 3D lights (after the camera transform, so that they are positioned in world space)
     glEnable(GL_COLOR_MATERIAL);
     glColorMaterial(GL_FRONT_AND_BACK, GL_AMBIENT_AND_DIFFUSE);
     
-    glm::vec3 relativeSunLoc = glm::normalize(_environment.getClosestData(whichCamera.getPosition()).getSunLocation() -
-                                              whichCamera.getPosition());
-    GLfloat light_position0[] = { relativeSunLoc.x, relativeSunLoc.y, relativeSunLoc.z, 0.0 };
+    glm::vec3 sunDirection = getSunDirection();
+    GLfloat light_position0[] = { sunDirection.x, sunDirection.y, sunDirection.z, 0.0 };
     glLightfv(GL_LIGHT0, GL_POSITION, light_position0);
     GLfloat ambient_color[] = { 0.7, 0.7, 0.8 };
     glLightfv(GL_LIGHT0, GL_AMBIENT, ambient_color);
@@ -2962,7 +3034,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
     glTranslatef(_viewMatrixTranslation.x, _viewMatrixTranslation.y, _viewMatrixTranslation.z);
 
     //  Setup 3D lights (after the camera transform, so that they are positioned in world space)
-    setupWorldLight(whichCamera);
+    setupWorldLight();
     
     if (!selfAvatarOnly && Menu::getInstance()->isOptionChecked(MenuOption::Stars)) {
         PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
@@ -3099,44 +3171,11 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
         }
     }
 
-    _myAvatar.renderScreenTint(SCREEN_TINT_BEFORE_AVATARS, whichCamera);
+    _myAvatar.renderScreenTint(SCREEN_TINT_BEFORE_AVATARS);
     
-    if (Menu::getInstance()->isOptionChecked(MenuOption::Avatars)) {
-        PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
-            "Application::displaySide() ... Avatars...");
+    renderAvatars(whichCamera, selfAvatarOnly);
 
-
-        if (!selfAvatarOnly) {
-            //  Render avatars of other nodes
-            NodeList* nodeList = NodeList::getInstance();
-        
-            for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
-                node->lock();
-            
-                if (node->getLinkedData() != NULL && node->getType() == NODE_TYPE_AGENT) {
-                    Avatar *avatar = (Avatar *)node->getLinkedData();
-                    if (!avatar->isInitialized()) {
-                        avatar->init();
-                    }
-                    avatar->render(false, Menu::getInstance()->isOptionChecked(MenuOption::AvatarAsBalls));
-                    avatar->setDisplayingLookatVectors(Menu::getInstance()->isOptionChecked(MenuOption::LookAtVectors));
-                }
-            
-                node->unlock();
-            }
-        }
-        
-        // Render my own Avatar
-        _myAvatar.render(whichCamera.getMode() == CAMERA_MODE_MIRROR,
-                         Menu::getInstance()->isOptionChecked(MenuOption::AvatarAsBalls));
-        _myAvatar.setDisplayingLookatVectors(Menu::getInstance()->isOptionChecked(MenuOption::LookAtVectors));
-
-        if (Menu::getInstance()->isOptionChecked(MenuOption::LookAtIndicator) && _lookatTargetAvatar) {
-            renderLookatIndicator(_lookatOtherPosition, whichCamera);
-        }
-    }
-
-    _myAvatar.renderScreenTint(SCREEN_TINT_AFTER_AVATARS, whichCamera);
+    _myAvatar.renderScreenTint(SCREEN_TINT_AFTER_AVATARS);
 
     if (!selfAvatarOnly) {
         //  Render the world box
@@ -3335,6 +3374,29 @@ void Application::displayOverlay() {
     
     // render the webcam input frame
     _webcam.renderPreview(_glWidget->width(), _glWidget->height());
+
+    if (Menu::getInstance()->isOptionChecked(MenuOption::Shadows)) {
+        glBindTexture(GL_TEXTURE_2D, _textureCache.getShadowDepthTextureID());
+        glEnable(GL_TEXTURE_2D);
+        glColor3f(1.0f, 1.0f, 1.0f);
+        
+        glBegin(GL_QUADS);
+        glTexCoord2f(0.0f, 0.0f);
+        glVertex2f(500, 500);
+        
+        glTexCoord2f(1.0f, 0.0f);
+        glVertex2f(1000, 500);
+        
+        glTexCoord2f(1.0f, 1.0f);
+        glVertex2f(1000, 0);
+        
+        glTexCoord2f(0.0f, 1.0f);
+        glVertex2f(500, 0);
+        glEnd();
+        
+        glDisable(GL_TEXTURE_2D);
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
 
     _palette.render(_glWidget->width(), _glWidget->height());
 
@@ -3758,7 +3820,42 @@ void Application::renderCoverageMapsRecursively(CoverageMap* map) {
     }
 }
 
+void Application::renderAvatars(Camera& whichCamera, bool selfAvatarOnly) {
+    if (!Menu::getInstance()->isOptionChecked(MenuOption::Avatars)) {
+        return;
+    }
+    PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
+        "Application::displaySide() ... Avatars...");
 
+    if (!selfAvatarOnly) {
+        //  Render avatars of other nodes
+        NodeList* nodeList = NodeList::getInstance();
+    
+        for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
+            node->lock();
+        
+            if (node->getLinkedData() != NULL && node->getType() == NODE_TYPE_AGENT) {
+                Avatar *avatar = (Avatar *)node->getLinkedData();
+                if (!avatar->isInitialized()) {
+                    avatar->init();
+                }
+                avatar->render(false, Menu::getInstance()->isOptionChecked(MenuOption::AvatarAsBalls));
+                avatar->setDisplayingLookatVectors(Menu::getInstance()->isOptionChecked(MenuOption::LookAtVectors));
+            }
+        
+            node->unlock();
+        }
+    }
+    
+    // Render my own Avatar
+    _myAvatar.render(whichCamera.getMode() == CAMERA_MODE_MIRROR,
+                     Menu::getInstance()->isOptionChecked(MenuOption::AvatarAsBalls));
+    _myAvatar.setDisplayingLookatVectors(Menu::getInstance()->isOptionChecked(MenuOption::LookAtVectors));
+
+    if (Menu::getInstance()->isOptionChecked(MenuOption::LookAtIndicator) && _lookatTargetAvatar) {
+        renderLookatIndicator(_lookatOtherPosition, whichCamera);
+    }
+}
 
 // renderViewFrustum()
 //

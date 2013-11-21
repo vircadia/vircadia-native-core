@@ -522,7 +522,7 @@ void MyAvatar::render(bool lookingInMirror, bool renderAvatarBalls) {
     }
 }
 
-void MyAvatar::renderScreenTint(ScreenTintLayer layer, Camera& whichCamera) {
+void MyAvatar::renderScreenTint(ScreenTintLayer layer) {
     
     if (layer == SCREEN_TINT_BEFORE_AVATARS) {
         if (_hand.isRaveGloveActive()) {
@@ -532,7 +532,7 @@ void MyAvatar::renderScreenTint(ScreenTintLayer layer, Camera& whichCamera) {
     else if (layer == SCREEN_TINT_BEFORE_AVATARS) {
         if (_hand.isRaveGloveActive()) {
             // Restore the world lighting
-            Application::getInstance()->setupWorldLight(whichCamera);
+            Application::getInstance()->setupWorldLight();
         }
     }
 }
