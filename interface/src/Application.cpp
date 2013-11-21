@@ -2783,7 +2783,8 @@ void Application::updateShadowMap() {
     glm::quat rotation = glm::inverse(rotationBetween(IDENTITY_FRONT, lightDirection));
     glm::vec3 translation = glm::vec3();
     float nearScale = 0.0f;
-    float farScale = (2.0f - _viewFrustum.getNearClip()) / (_viewFrustum.getFarClip() - _viewFrustum.getNearClip());
+    const float MAX_SHADOW_DISTANCE = 2.0f;
+    float farScale = (MAX_SHADOW_DISTANCE - _viewFrustum.getNearClip()) / (_viewFrustum.getFarClip() - _viewFrustum.getNearClip());
     loadViewFrustum(_myCamera, _viewFrustum);
     glm::vec3 points[] = {
         rotation * (glm::mix(_viewFrustum.getNearTopLeft(), _viewFrustum.getFarTopLeft(), nearScale) + translation),
