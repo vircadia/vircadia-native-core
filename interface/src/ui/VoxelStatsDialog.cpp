@@ -154,6 +154,8 @@ void VoxelStatsDialog::paintEvent(QPaintEvent* event) {
     unsigned long totalNodes = 0;
     unsigned long totalInternal = 0;
     unsigned long totalLeaves = 0;
+
+    Application::getInstance()->lockVoxelSceneStats();
     NodeToVoxelSceneStats* sceneStats = Application::getInstance()->getVoxelSceneStats();
     for(NodeToVoxelSceneStatsIterator i = sceneStats->begin(); i != sceneStats->end(); i++) {
         //const QUuid& uuid = i->first;
@@ -176,6 +178,7 @@ void VoxelStatsDialog::paintEvent(QPaintEvent* event) {
             sendingMode << "S";
         }
     }
+    Application::getInstance()->unlockVoxelSceneStats();
     sendingMode << " - " << serverCount << " servers";
     if (movingServerCount > 0) {
         sendingMode << " <SCENE NOT STABLE>";

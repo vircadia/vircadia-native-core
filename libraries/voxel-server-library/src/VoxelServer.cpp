@@ -189,17 +189,22 @@ int VoxelServer::civetwebRequestHandler(struct mg_connection* connection) {
 
         // display voxel file load time
         if (theServer->isInitialLoadComplete()) {
-            tm* voxelsLoadedAtLocal = localtime(theServer->getLoadCompleted());
-            const int MAX_TIME_LENGTH = 128;
-            char buffer[MAX_TIME_LENGTH];
-            strftime(buffer, MAX_TIME_LENGTH, "%m/%d/%Y %X", voxelsLoadedAtLocal);
-            mg_printf(connection, "Voxels Loaded At: %s", buffer);
+            time_t* loadCompleted = theServer->getLoadCompleted();
+            if (loadCompleted) {
+                tm* voxelsLoadedAtLocal = localtime(loadCompleted);
+                const int MAX_TIME_LENGTH = 128;
+                char buffer[MAX_TIME_LENGTH];
+                strftime(buffer, MAX_TIME_LENGTH, "%m/%d/%Y %X", voxelsLoadedAtLocal);
+                mg_printf(connection, "Voxels Loaded At: %s", buffer);
 
-            // Convert now to tm struct for UTC
-            tm* voxelsLoadedAtUTM = gmtime(theServer->getLoadCompleted());
-            if (gmtm != NULL) {
-                strftime(buffer, MAX_TIME_LENGTH, "%m/%d/%Y %X", voxelsLoadedAtUTM);
-                mg_printf(connection, " [%s UTM] ", buffer);
+                // Convert now to tm struct for UTC
+                tm* voxelsLoadedAtUTM = gmtime(theServer->getLoadCompleted());
+                if (gmtm != NULL) {
+                    strftime(buffer, MAX_TIME_LENGTH, "%m/%d/%Y %X", voxelsLoadedAtUTM);
+                    mg_printf(connection, " [%s UTM] ", buffer);
+                }
+            } else {
+                mg_printf(connection, "%s", "Voxel Persist Disabled...\r\n");
             }
             mg_printf(connection, "%s", "\r\n");
 
@@ -259,7 +264,7 @@ int VoxelServer::civetwebRequestHandler(struct mg_connection* connection) {
 
         // display inbound packet stats
         mg_printf(connection, "%s", "<b>Voxel Edit Statistics... <a href='/resetStats'>[RESET]</a></b>\r\n");
-        uint64_t averageTransitTimePerPacket = theServer->_voxelServerPacketProcessor->getAverateTransitTimePerPacket();
+        uint64_t averageTransitTimePerPacket = theServer->_voxelServerPacketProcessor->getAverageTransitTimePerPacket();
         uint64_t averageProcessTimePerPacket = theServer->_voxelServerPacketProcessor->getAverageProcessTimePerPacket();
         uint64_t averageLockWaitTimePerPacket = theServer->_voxelServerPacketProcessor->getAverageLockWaitTimePerPacket();
         uint64_t averageProcessTimePerVoxel = theServer->_voxelServerPacketProcessor->getAverageProcessTimePerVoxel();
@@ -297,13 +302,15 @@ int VoxelServer::civetwebRequestHandler(struct mg_connection* connection) {
             mg_printf(connection, "\r\n             Stats for sender %d uuid: %s\r\n", senderNumber, 
                 senderID.toString().toLocal8Bit().constData());
 
-            averageTransitTimePerPacket = senderStats.getAverateTransitTimePerPacket();
+            averageTransitTimePerPacket = senderStats.getAverageTransitTimePerPacket();
             averageProcessTimePerPacket = senderStats.getAverageProcessTimePerPacket();
             averageLockWaitTimePerPacket = senderStats.getAverageLockWaitTimePerPacket();
             averageProcessTimePerVoxel = senderStats.getAverageProcessTimePerVoxel();
             averageLockWaitTimePerVoxel = senderStats.getAverageLockWaitTimePerVoxel();
             totalVoxelsProcessed = senderStats.getTotalVoxelsProcessed();
             totalPacketsProcessed = senderStats.getTotalPacketsProcessed();
+
+            averageVoxelsPerPacket = totalPacketsProcessed == 0 ? 0 : totalVoxelsProcessed / totalPacketsProcessed;
 
             mg_printf(connection, "               Total Inbound Packets: %s packets\r\n",
                 locale.toString((uint)totalPacketsProcessed).rightJustified(COLUMN_WIDTH, ' ').toLocal8Bit().constData());

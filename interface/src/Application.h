@@ -137,6 +137,8 @@ public:
     Swatch*  getSwatch() { return &_swatch; }
     QMainWindow* getWindow() { return _window; }
     NodeToVoxelSceneStats* getVoxelSceneStats() { return &_voxelServerSceneStats; }
+    void lockVoxelSceneStats() { _voxelSceneStatsLock.lockForRead(); }
+    void unlockVoxelSceneStats() { _voxelSceneStatsLock.unlock(); }
     
     QNetworkAccessManager* getNetworkAccessManager() { return _networkAccessManager; }
     GeometryCache* getGeometryCache() { return &_geometryCache; }
@@ -458,6 +460,7 @@ private:
     
     NodeToJurisdictionMap _voxelServerJurisdictions;
     NodeToVoxelSceneStats _voxelServerSceneStats;
+    QReadWriteLock _voxelSceneStatsLock;
     
     std::vector<VoxelFade> _voxelFades;
 };
