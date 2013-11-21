@@ -20,7 +20,7 @@ class SingleSenderStats {
 public:
     SingleSenderStats();
 
-    uint64_t getAverateTransitTimePerPacket() const { return _totalPackets == 0 ? 0 : _totalTransitTime / _totalPackets; }
+    uint64_t getAverageTransitTimePerPacket() const { return _totalPackets == 0 ? 0 : _totalTransitTime / _totalPackets; }
     uint64_t getAverageProcessTimePerPacket() const { return _totalPackets == 0 ? 0 : _totalProcessTime / _totalPackets; }
     uint64_t getAverageLockWaitTimePerPacket() const { return _totalPackets == 0 ? 0 : _totalLockWaitTime / _totalPackets; }
     uint64_t getTotalVoxelsProcessed() const { return _totalVoxelsInPacket; }
@@ -48,7 +48,7 @@ class VoxelServerPacketProcessor : public ReceivedPacketProcessor {
 public:
     VoxelServerPacketProcessor(VoxelServer* myServer);
 
-    uint64_t getAverateTransitTimePerPacket() const { return _totalPackets == 0 ? 0 : _totalTransitTime / _totalPackets; }
+    uint64_t getAverageTransitTimePerPacket() const { return _totalPackets == 0 ? 0 : _totalTransitTime / _totalPackets; }
     uint64_t getAverageProcessTimePerPacket() const { return _totalPackets == 0 ? 0 : _totalProcessTime / _totalPackets; }
     uint64_t getAverageLockWaitTimePerPacket() const { return _totalPackets == 0 ? 0 : _totalLockWaitTime / _totalPackets; }
     uint64_t getTotalVoxelsProcessed() const { return _totalVoxelsInPacket; }
