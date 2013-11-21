@@ -485,7 +485,7 @@ static TextRenderer* textRenderer() {
     return renderer;
 }
 
-void MyAvatar::render(bool lookingInMirror, bool renderAvatarBalls) {
+void MyAvatar::render(bool forceRenderHead, bool renderAvatarBalls) {
     
     if (Application::getInstance()->getAvatar()->getHand().isRaveGloveActive()) {
         _hand.setRaveLights(RAVE_LIGHTS_AVATAR);
@@ -495,7 +495,7 @@ void MyAvatar::render(bool lookingInMirror, bool renderAvatarBalls) {
     renderDiskShadow(_position, glm::vec3(0.0f, 1.0f, 0.0f), _scale * 0.1f, 0.2f);
     
     // render body
-    renderBody(lookingInMirror, renderAvatarBalls);
+    renderBody(forceRenderHead, renderAvatarBalls);
 
     // if this is my avatar, then render my interactions with the other avatar
     _avatarTouch.render(Application::getInstance()->getCamera()->getPosition());
@@ -623,19 +623,19 @@ glm::vec3 MyAvatar::getEyeLevelPosition() const {
         glm::vec3(0.0f, _pelvisToHeadLength + _scale * BODY_BALL_RADIUS_HEAD_BASE * EYE_UP_OFFSET, 0.0f);
 }
 
-float MyAvatar::getBallRenderAlpha(int ball, bool lookingInMirror) const {
+float MyAvatar::getBallRenderAlpha(int ball, bool forceRenderHead) const {
     const float RENDER_OPAQUE_OUTSIDE = _scale * 0.25f; // render opaque if greater than this distance
     const float DO_NOT_RENDER_INSIDE = _scale * 0.25f; // do not render if less than this distance
     float distanceToCamera = glm::length(Application::getInstance()->getCamera()->getPosition() - _bodyBall[ball].position);
-    return (lookingInMirror) ? 1.0f : glm::clamp(
+    return (forceRenderHead) ? 1.0f : glm::clamp(
         (distanceToCamera - DO_NOT_RENDER_INSIDE) / (RENDER_OPAQUE_OUTSIDE - DO_NOT_RENDER_INSIDE), 0.f, 1.f);
 }
 
-void MyAvatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
+void MyAvatar::renderBody(bool forceRenderHead, bool renderAvatarBalls) {
 
     if (_head.getVideoFace().isFullFrame()) {
         //  Render the full-frame video
-        float alpha = getBallRenderAlpha(BODY_BALL_HEAD_BASE, lookingInMirror);
+        float alpha = getBallRenderAlpha(BODY_BALL_HEAD_BASE, forceRenderHead);
         if (alpha > 0.0f) {
             _head.getVideoFace().render(1.0f);
         }
@@ -644,7 +644,7 @@ void MyAvatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
         glm::vec3 skinColor, darkSkinColor;
         getSkinColors(skinColor, darkSkinColor);
         for (int b = 0; b < NUM_AVATAR_BODY_BALLS; b++) {
-            float alpha = getBallRenderAlpha(b, lookingInMirror);
+            float alpha = getBallRenderAlpha(b, forceRenderHead);
             
             // When we have leap hands, hide part of the arms.
             if (_hand.getNumPalms() > 0) {
@@ -710,12 +710,12 @@ void MyAvatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
         if (!_skeletonModel.render(1.0f)) {
             _voxels.render(false);
         }
-        float alpha = getBallRenderAlpha(BODY_BALL_HEAD_BASE, lookingInMirror);
+        float alpha = getBallRenderAlpha(BODY_BALL_HEAD_BASE, forceRenderHead);
         if (alpha > 0.0f) {
             _head.render(alpha, true);
         }
     }
-    _hand.render(lookingInMirror);
+    _hand.render();
 }
 
 void MyAvatar::updateThrust(float deltaTime, Transmitter * transmitter) {

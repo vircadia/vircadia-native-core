@@ -439,7 +439,7 @@ static TextRenderer* textRenderer() {
     return renderer;
 }
 
-void Avatar::render(bool lookingInMirror, bool renderAvatarBalls) {
+void Avatar::render(bool forceRenderHead, bool renderAvatarBalls) {
 
     if (Application::getInstance()->getAvatar()->getHand().isRaveGloveActive()) {
         _hand.setRaveLights(RAVE_LIGHTS_AVATAR);
@@ -455,7 +455,7 @@ void Avatar::render(bool lookingInMirror, bool renderAvatarBalls) {
         Glower glower(_moving && glm::length(toTarget) > GLOW_DISTANCE ? 1.0f : 0.0f);
         
         // render body
-        renderBody(lookingInMirror, renderAvatarBalls);
+        renderBody(forceRenderHead, renderAvatarBalls);
     
         // render sphere when far away
         const float MAX_ANGLE = 10.f;
@@ -709,15 +709,15 @@ glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
     return glm::angleAxis(angle * proportion, axis);
 }
 
-float Avatar::getBallRenderAlpha(int ball, bool lookingInMirror) const {
+float Avatar::getBallRenderAlpha(int ball, bool forceRenderHead) const {
     return 1.0f;
 }
 
-void Avatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
+void Avatar::renderBody(bool forceRenderHead, bool renderAvatarBalls) {
 
     if (_head.getVideoFace().isFullFrame()) {
         //  Render the full-frame video
-        float alpha = getBallRenderAlpha(BODY_BALL_HEAD_BASE, lookingInMirror);
+        float alpha = getBallRenderAlpha(BODY_BALL_HEAD_BASE, forceRenderHead);
         if (alpha > 0.0f) {
             _head.getVideoFace().render(1.0f);
         }
@@ -726,7 +726,7 @@ void Avatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
         glm::vec3 skinColor, darkSkinColor;
         getSkinColors(skinColor, darkSkinColor);
         for (int b = 0; b < NUM_AVATAR_BODY_BALLS; b++) {
-            float alpha = getBallRenderAlpha(b, lookingInMirror);
+            float alpha = getBallRenderAlpha(b, forceRenderHead);
             
             // When we have leap hands, hide part of the arms.
             if (_hand.getNumPalms() > 0) {
@@ -779,7 +779,7 @@ void Avatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
         }
     } else {
         //  Render the body's voxels and head
-        float alpha = getBallRenderAlpha(BODY_BALL_HEAD_BASE, lookingInMirror);
+        float alpha = getBallRenderAlpha(BODY_BALL_HEAD_BASE, forceRenderHead);
         if (alpha > 0.0f) {
             if (!_skeletonModel.render(alpha)) {
                 _voxels.render(false);
@@ -787,7 +787,7 @@ void Avatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
             _head.render(alpha, false);
         }
     }
-    _hand.render(lookingInMirror);
+    _hand.render();
 }
 
 void Avatar::getSkinColors(glm::vec3& lighter, glm::vec3& darker) {

@@ -1876,7 +1876,7 @@ bool Application::isLookingAtMyAvatar(Avatar* avatar) {
     return false;
 }
 
-void Application::renderLookatIndicator(glm::vec3 pointOfInterest, Camera& whichCamera) {
+void Application::renderLookatIndicator(glm::vec3 pointOfInterest) {
 
     const float DISTANCE_FROM_HEAD_SPHERE = 0.1f * _lookatIndicatorScale;
     const float INDICATOR_RADIUS = 0.1f * _lookatIndicatorScale;
@@ -2822,7 +2822,7 @@ void Application::updateShadowMap() {
     
     glTranslatef(translation.x, translation.y, translation.z);
     
-    renderAvatars(_myCamera);
+    renderAvatars(true);
     
     glPopMatrix();
     
@@ -3182,7 +3182,7 @@ void Application::displaySide(Camera& whichCamera, bool selfAvatarOnly) {
 
     _myAvatar.renderScreenTint(SCREEN_TINT_BEFORE_AVATARS);
     
-    renderAvatars(whichCamera, selfAvatarOnly);
+    renderAvatars(whichCamera.getMode() == CAMERA_MODE_MIRROR, selfAvatarOnly);
 
     _myAvatar.renderScreenTint(SCREEN_TINT_AFTER_AVATARS);
 
@@ -3806,7 +3806,7 @@ void Application::renderCoverageMapsRecursively(CoverageMap* map) {
     }
 }
 
-void Application::renderAvatars(Camera& whichCamera, bool selfAvatarOnly) {
+void Application::renderAvatars(bool forceRenderHead, bool selfAvatarOnly) {
     if (!Menu::getInstance()->isOptionChecked(MenuOption::Avatars)) {
         return;
     }
@@ -3834,12 +3834,11 @@ void Application::renderAvatars(Camera& whichCamera, bool selfAvatarOnly) {
     }
     
     // Render my own Avatar
-    _myAvatar.render(whichCamera.getMode() == CAMERA_MODE_MIRROR,
-                     Menu::getInstance()->isOptionChecked(MenuOption::AvatarAsBalls));
+    _myAvatar.render(forceRenderHead, Menu::getInstance()->isOptionChecked(MenuOption::AvatarAsBalls));
     _myAvatar.setDisplayingLookatVectors(Menu::getInstance()->isOptionChecked(MenuOption::LookAtVectors));
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::LookAtIndicator) && _lookatTargetAvatar) {
-        renderLookatIndicator(_lookatOtherPosition, whichCamera);
+        renderLookatIndicator(_lookatOtherPosition);
     }
 }
 

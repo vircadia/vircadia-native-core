@@ -262,7 +262,7 @@ private:
         glm::vec3& eyePosition, QUuid &nodeUUID);
     bool isLookingAtMyAvatar(Avatar* avatar);
                                 
-    void renderLookatIndicator(glm::vec3 pointOfInterest, Camera& whichCamera);
+    void renderLookatIndicator(glm::vec3 pointOfInterest);
     void renderFollowIndicator();
     void updateAvatar(float deltaTime);
     void updateAvatars(float deltaTime, glm::vec3 mouseRayOrigin, glm::vec3 mouseRayDirection);
@@ -276,7 +276,7 @@ private:
     void displaySide(Camera& whichCamera, bool selfAvatarOnly = false);
     void displayOverlay();
     void displayStats();
-    void renderAvatars(Camera& whichCamera, bool selfAvatarOnly = false);
+    void renderAvatars(bool forceRenderHead, bool selfAvatarOnly = false);
     void renderViewFrustum(ViewFrustum& viewFrustum);
    
     void checkBandwidthMeterClick();

@@ -50,7 +50,7 @@ public:
     void init();
     void reset();
     void simulate(float deltaTime, bool isMine);
-    void render(bool lookingInMirror);
+    void render();
     void renderRaveGloveStage();
     void setRaveLights(RaveLightsSetting setting);
 
@@ -75,7 +75,6 @@ private:
 
     Avatar*        _owningAvatar;
     float          _renderAlpha;
-    bool           _lookingInMirror;
     glm::vec3      _ballColor;
     std::vector<HandBall> _leapFingerTipBalls;
     std::vector<HandBall> _leapFingerRootBalls;

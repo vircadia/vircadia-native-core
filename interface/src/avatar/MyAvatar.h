@@ -20,7 +20,7 @@ public:
     void reset();
     void simulate(float deltaTime, Transmitter* transmitter);
     void updateFromGyrosAndOrWebcam(float pitchFromTouch, bool turnWithHead);
-    void render(bool lookingInMirror, bool renderAvatarBalls);
+    void render(bool forceRenderHead, bool renderAvatarBalls);
     void renderScreenTint(ScreenTintLayer layer);
 
     // setters
@@ -84,8 +84,8 @@ private:
     int _moveTargetStepCounter;
 
 	// private methods
-    float getBallRenderAlpha(int ball, bool lookingInMirror) const;
-    void renderBody(bool lookingInMirror, bool renderAvatarBalls);
+    float getBallRenderAlpha(int ball, bool forceRenderHead) const;
+    void renderBody(bool forceRenderHead, bool renderAvatarBalls);
     void updateThrust(float deltaTime, Transmitter * transmitter);
     void updateHandMovementAndTouching(float deltaTime, bool enableHandMovement);
     void updateAvatarCollisions(float deltaTime);
