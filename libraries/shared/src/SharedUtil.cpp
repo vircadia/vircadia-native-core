@@ -71,18 +71,18 @@ void outputBufferBits(unsigned char* buffer, int length, bool withNewLine) {
 
 void outputBits(unsigned char byte, bool withNewLine) {
     if (isalnum(byte)) {
-        qDebug("[ %d (%c): ", byte, byte);
+        printf("[ %d (%c): ", byte, byte);
     } else {
-        qDebug("[ %d (0x%x): ", byte, byte);
+        printf("[ %d (0x%x): ", byte, byte);
     }
     
     for (int i = 0; i < 8; i++) {
-        qDebug("%d", byte >> (7 - i) & 1);
+        printf("%d", byte >> (7 - i) & 1);
     }
-    qDebug(" ] ");
+    printf(" ] ");
     
     if (withNewLine) {
-        qDebug("\n");
+        printf("\n");
     }
 }
 
