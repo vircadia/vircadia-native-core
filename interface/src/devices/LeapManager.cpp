@@ -271,7 +271,7 @@ void LeapManager::nextFrame() {
     hand.updateFingerTrails();
     
     // if Leap drive is enabled, drive avatar based on Leap input
-    if (!Menu::getInstance()->isOptionChecked(MenuOption::LeapDrive)) {
+    if (!(Menu::getInstance()->isOptionChecked(MenuOption::LeapDrive) && gotRealData)) {
         return;
     }
     glm::vec3 relativePosition;
