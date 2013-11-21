@@ -2800,6 +2800,10 @@ void Application::updateShadowMap() {
         maxima = glm::max(maxima, points[i]);
     }
     
+    // stretch out our extents in z so that we get all of the avatars
+    minima.z -= _viewFrustum.getFarClip() * 0.5f;
+    maxima.z += _viewFrustum.getFarClip() * 0.5f;
+    
     // save the combined matrix for rendering
     _shadowMatrix = glm::transpose(glm::translate(0.5f, 0.5f, 0.5f) * glm::scale(0.5f, 0.5f, 0.5f) *
         glm::ortho(minima.x, maxima.x, minima.y, maxima.y, -maxima.z, -minima.z) *
