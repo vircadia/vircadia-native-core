@@ -1110,17 +1110,20 @@ int VoxelTree::encodeTreeBitstream(VoxelNode* node,
     doneEncoding(node);
     
     // debug compare the buffer to the packet...
-    printf("encodeTreeBitstream()... bytesWritten=%d\n",bytesWritten);
-    printf("    originalOutputBuffer...\n");
-    outputBufferBits(originalOutputBuffer, bytesWritten);
-    printf("    packet...\n");
-    outputBufferBits(packet->getStartOfBuffer(), bytesWritten);
-    if (memcmp(originalOutputBuffer, packet->getStartOfBuffer(), bytesWritten) == 0) {
-        printf("... they MATCH ...\n");
-    } else {
-        printf("... they DO NOT MATCH!!!!! ...\n");
+    bool debug = false;
+    if (debug) {
+        printf("encodeTreeBitstream()... bytesWritten=%d\n",bytesWritten);
+        printf("    originalOutputBuffer...\n");
+        outputBufferBits(originalOutputBuffer, bytesWritten);
+        printf("    packet...\n");
+        outputBufferBits(packet->getStartOfBuffer(), bytesWritten);
+        if (memcmp(originalOutputBuffer, packet->getStartOfBuffer(), bytesWritten) == 0) {
+            printf("... they MATCH ...\n");
+        } else {
+            printf("... they DO NOT MATCH!!!!! ...\n");
+        }
     }
-    
+        
     return bytesWritten;
 }
 
