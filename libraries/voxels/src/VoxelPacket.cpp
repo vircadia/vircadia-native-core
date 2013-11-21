@@ -34,6 +34,17 @@ bool VoxelPacket::append(const unsigned char* data, int length) {
     return success;
 }
 
+bool VoxelPacket::append(unsigned char byte) {
+    bool success = false;
+    if (_bytesAvailable > 0) {
+        _buffer[_bytesInUse] = byte;
+        _bytesInUse++;
+        _bytesAvailable--; 
+        success = true;
+    }
+    return success;
+}
+
 bool VoxelPacket::setByte(int offset, unsigned char byte) {
     bool success = false;
     if (offset >= 0 && offset < _bytesInUse) {
@@ -76,6 +87,8 @@ bool VoxelPacket::appendBitMask(unsigned char bitmask) {
     bool success = false;
     if (_bytesAvailable > 0) {
         _buffer[_bytesInUse] = bitmask;
+        _bytesInUse++;
+        _bytesAvailable--; 
         success = true;
     }
     return success;
@@ -84,8 +97,12 @@ bool VoxelPacket::appendBitMask(unsigned char bitmask) {
 bool VoxelPacket::appendColor(rgbColor color) {
     // eventually we can make this use a dictionary...
     bool success = false;
-    if (_bytesAvailable > sizeof(rgbColor)) {
-        success = append((const unsigned char*)&color, sizeof(rgbColor));
+    const int BYTES_PER_COLOR = 3;
+    if (_bytesAvailable > BYTES_PER_COLOR) {
+        append(color[0]);
+        append(color[1]);
+        append(color[2]);
+        success = true;
     }
     return success;
 }

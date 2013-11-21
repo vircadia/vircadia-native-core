@@ -18,7 +18,6 @@ const int UNCOMPRESSED_SIZE_MULTIPLE = 20;
 VoxelNodeData::VoxelNodeData(Node* owningNode) :
     VoxelQuery(owningNode),
     _viewSent(false),
-    _voxelPacketAvailableBytes(MAX_VOXEL_PACKET_SIZE * UNCOMPRESSED_SIZE_MULTIPLE),
     _maxSearchLevel(1),
     _maxLevelReachedInLastSearch(1),
     _lastTimeBagEmpty(0),
@@ -31,11 +30,17 @@ VoxelNodeData::VoxelNodeData(Node* owningNode) :
     _lodChanged(false),
     _lodInitialized(false)
 {
-    _voxelPacket = new unsigned char[MAX_VOXEL_PACKET_SIZE * UNCOMPRESSED_SIZE_MULTIPLE];
+    if (VOXEL_PACKETS_COMPRESSED) {
+        _voxelPacketAvailableBytes = MAX_VOXEL_PACKET_SIZE * UNCOMPRESSED_SIZE_MULTIPLE;
+    } else {
+        _voxelPacketAvailableBytes = MAX_VOXEL_PACKET_SIZE;
+    }
+    _voxelPacket = new unsigned char[_voxelPacketAvailableBytes];
     _voxelPacketAt = _voxelPacket;
-    _lastVoxelPacket = new unsigned char[MAX_VOXEL_PACKET_SIZE * UNCOMPRESSED_SIZE_MULTIPLE];
+    _lastVoxelPacket = new unsigned char[_voxelPacketAvailableBytes];
     _lastVoxelPacketLength = 0;
     _duplicatePacketCount = 0;
+    
     resetVoxelPacket();
 }
 

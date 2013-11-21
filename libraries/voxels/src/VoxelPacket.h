@@ -30,6 +30,7 @@ public:
     void endLevel();
     
     bool append(const unsigned char* data, int length); /// appends raw bytes
+    bool append(unsigned char byte); /// append a single byte
     bool setByte(int offset, unsigned char byte); /// sets a single raw byte from previously appended portion of the stream
     int getBytesInUse() const { return _bytesInUse; }
     int getBytesAvailable() const { return _bytesAvailable; }
