@@ -2796,6 +2796,11 @@ void Application::updateShadowMap() {
         maxima = glm::max(maxima, points[i]);
     }
     
+    // save the combined matrix for rendering
+    _shadowMatrix = glm::transpose(glm::translate(0.5f, 0.5f, 0.5f) * glm::scale(0.5f, 0.5f, 0.5f) *
+        glm::ortho(minima.x, maxima.x, minima.y, maxima.y, -maxima.z, -minima.z) *
+        glm::mat4_cast(rotation) * glm::translate(translation));
+    
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
     glLoadIdentity();

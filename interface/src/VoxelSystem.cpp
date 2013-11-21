@@ -1386,20 +1386,39 @@ void VoxelSystem::render(bool texture) {
 }
 
 void VoxelSystem::applyScaleAndBindProgram(bool texture) {
-    glPushMatrix();
-    glScalef(_treeScale, _treeScale, _treeScale);
 
-    if (texture) {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::Shadows)) {
+        glBindTexture(GL_TEXTURE_2D, Application::getInstance()->getTextureCache()->getShadowDepthTextureID());
+        glEnable(GL_TEXTURE_GEN_S);
+        glEnable(GL_TEXTURE_GEN_T);
+        glEnable(GL_TEXTURE_GEN_R);
+        glEnable(GL_TEXTURE_2D);
+        
+        glTexGenfv(GL_S, GL_EYE_PLANE, (const GLfloat*)&Application::getInstance()->getShadowMatrix()[0]);
+        glTexGenfv(GL_T, GL_EYE_PLANE, (const GLfloat*)&Application::getInstance()->getShadowMatrix()[1]);
+        glTexGenfv(GL_R, GL_EYE_PLANE, (const GLfloat*)&Application::getInstance()->getShadowMatrix()[2]);
+        
+    } else if (texture) {
         _perlinModulateProgram.bind();
         glBindTexture(GL_TEXTURE_2D, Application::getInstance()->getTextureCache()->getPermutationNormalTextureID());
     }
+    
+    glPushMatrix();
+    glScalef(_treeScale, _treeScale, _treeScale);
 }
 
 void VoxelSystem::removeScaleAndReleaseProgram(bool texture) {
     // scale back down to 1 so heads aren't massive
     glPopMatrix();
     
-    if (texture) {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::Shadows)) {
+        glBindTexture(GL_TEXTURE_2D, 0);
+        glDisable(GL_TEXTURE_GEN_S);
+        glDisable(GL_TEXTURE_GEN_T);
+        glDisable(GL_TEXTURE_GEN_R);
+        glDisable(GL_TEXTURE_2D);
+    
+    } else if (texture) {
         _perlinModulateProgram.release();
         glBindTexture(GL_TEXTURE_2D, 0);
     }

@@ -156,6 +156,8 @@ public:
     /// result from matrix multiplication at high translation magnitudes.
     void loadTranslatedViewMatrix(const glm::vec3& translation);
 
+    const glm::mat4& getShadowMatrix() const { return _shadowMatrix; }
+
     /// Computes the off-axis frustum parameters for the view frustum, taking mirroring into account.
     void computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& near,
         float& far, glm::vec4& nearClipPlane, glm::vec4& farClipPlane) const;
@@ -349,6 +351,8 @@ private:
     
     glm::mat4 _untranslatedViewMatrix;
     glm::vec3 _viewMatrixTranslation;
+    
+    glm::mat4 _shadowMatrix;
     
     Environment _environment;
     
