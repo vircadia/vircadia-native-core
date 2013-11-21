@@ -182,7 +182,7 @@ QOpenGLFramebufferObject* TextureCache::getTertiaryFramebufferObject() {
 
 QOpenGLFramebufferObject* TextureCache::getShadowFramebufferObject() {
     if (_shadowFramebufferObject == NULL) {
-        const int SHADOW_MAP_SIZE = 1024;
+        const int SHADOW_MAP_SIZE = 2048;
         _shadowFramebufferObject = new QOpenGLFramebufferObject(SHADOW_MAP_SIZE, SHADOW_MAP_SIZE,
             QOpenGLFramebufferObject::NoAttachment, GL_TEXTURE_2D, GL_RGB);
         

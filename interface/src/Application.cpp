@@ -2772,9 +2772,10 @@ void Application::updateShadowMap() {
     glm::vec3 lightDirection = -getSunDirection();
     glm::quat rotation = glm::inverse(rotationBetween(IDENTITY_FRONT, lightDirection));
     glm::vec3 translation = glm::vec3();
-    float nearScale = 0.0f;
-    float farScale =  0.00000244f;
-    /* glm::vec3 points[] = {
+    float nearScale = 0.0f; // (1.0f - _viewFrustum.getNearClip()) / (_viewFrustum.getFarClip() - _viewFrustum.getNearClip());
+    float farScale = (2.0f - _viewFrustum.getNearClip()) / (_viewFrustum.getFarClip() - _viewFrustum.getNearClip());
+    loadViewFrustum(_myCamera, _viewFrustum);
+    glm::vec3 points[] = {
         rotation * (glm::mix(_viewFrustum.getNearTopLeft(), _viewFrustum.getFarTopLeft(), nearScale) + translation),
         rotation * (glm::mix(_viewFrustum.getNearTopRight(), _viewFrustum.getFarTopRight(), nearScale) + translation),
         rotation * (glm::mix(_viewFrustum.getNearBottomLeft(), _viewFrustum.getFarBottomLeft(), nearScale) + translation),
@@ -2782,14 +2783,14 @@ void Application::updateShadowMap() {
         rotation * (glm::mix(_viewFrustum.getNearTopLeft(), _viewFrustum.getFarTopLeft(), farScale) + translation),
         rotation * (glm::mix(_viewFrustum.getNearTopRight(), _viewFrustum.getFarTopRight(), farScale) + translation),
         rotation * (glm::mix(_viewFrustum.getNearBottomLeft(), _viewFrustum.getFarBottomLeft(), farScale) + translation),
-        rotation * (glm::mix(_viewFrustum.getNearBottomRight(), _viewFrustum.getFarBottomRight(), farScale) + translation) }; */
-    glm::vec3 points[] = {
+        rotation * (glm::mix(_viewFrustum.getNearBottomRight(), _viewFrustum.getFarBottomRight(), farScale) + translation) };
+    /* glm::vec3 points[] = {
         rotation * (_myAvatar.getPosition() + glm::vec3(-1, 0, 0) + translation),
         rotation * (_myAvatar.getPosition() + glm::vec3(1, 0, 0) + translation),
         rotation * (_myAvatar.getPosition() + glm::vec3(0, -1, 0) + translation),
         rotation * (_myAvatar.getPosition() + glm::vec3(0, 1, 0) + translation),
         rotation * (_myAvatar.getPosition() + glm::vec3(0, 0, -1) + translation),
-        rotation * (_myAvatar.getPosition() + glm::vec3(0, 0, 1) + translation) };
+        rotation * (_myAvatar.getPosition() + glm::vec3(0, 0, 1) + translation) }; */
     glm::vec3 minima(FLT_MAX, FLT_MAX, FLT_MAX), maxima(-FLT_MAX, -FLT_MAX, -FLT_MAX);
     for (int i = 0; i < sizeof(points) / sizeof(points[0]); i++) {
         minima = glm::min(minima, points[i]);
@@ -3381,7 +3382,7 @@ void Application::displayOverlay() {
     _webcam.renderPreview(_glWidget->width(), _glWidget->height());
 
     if (Menu::getInstance()->isOptionChecked(MenuOption::Shadows) && false) {
-        glBindTexture(GL_TEXTURE_2D, _textureCache.getShadowDepthTextureID());
+        glBindTexture(GL_TEXTURE_2D, _textureCache.getShadowFramebufferObject()->texture());
         glEnable(GL_TEXTURE_2D);
         glColor3f(1.0f, 1.0f, 1.0f);
         
