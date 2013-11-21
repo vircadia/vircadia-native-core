@@ -113,7 +113,9 @@ private:
                                            const QString actionName,
                                            const QKeySequence& shortcut = 0,
                                            const QObject* receiver = NULL,
-                                           const char* member = NULL);
+                                           const char* member = NULL,
+                                           QAction::MenuRole role = QAction::NoRole);
+                                           
     QAction* addCheckableActionToQMenuAndActionHash(QMenu* destinationMenu,
                                                     const QString actionName,
                                                     const QKeySequence& shortcut = 0,

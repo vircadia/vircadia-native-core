@@ -4291,9 +4291,11 @@ void Application::nodeKilled(Node* node) {
         }
         
         // also clean up scene stats for that server
+        _voxelSceneStatsLock.lockForWrite();
         if (_voxelServerSceneStats.find(nodeUUID) != _voxelServerSceneStats.end()) {
             _voxelServerSceneStats.erase(nodeUUID);
         }
+        _voxelSceneStatsLock.unlock();
     } else if (node->getLinkedData() == _lookatTargetAvatar) {
         _lookatTargetAvatar = NULL;
     }
@@ -4314,27 +4316,13 @@ int Application::parseVoxelStats(unsigned char* messageData, ssize_t messageLeng
         QUuid nodeUUID = voxelServer->getUUID();
         
         // now that we know the node ID, let's add these stats to the stats for that node...
+        _voxelSceneStatsLock.lockForWrite();
         if (_voxelServerSceneStats.find(nodeUUID) != _voxelServerSceneStats.end()) {
-            VoxelSceneStats& oldStats = _voxelServerSceneStats[nodeUUID];
-            
-            // this if construct is a little strange because we aren't quite using it yet. But
-            // we want to keep this logic in here for now because we plan to use it soon to determine
-            // additional network optimization states and better rate control
-            if (!oldStats.isMoving() && temp.isMoving()) {
-                // we think we are starting to move
-                _voxelServerSceneStats[nodeUUID].unpackFromMessage(messageData, messageLength);
-            } else if (oldStats.isMoving() && !temp.isMoving()) {
-                // we think we are done moving
-                _voxelServerSceneStats[nodeUUID].unpackFromMessage(messageData, messageLength);
-            } else if (!oldStats.isMoving() && !temp.isMoving()) {
-                // we think we are still not moving
-            } else {
-                // we think we are still moving
-            }
-        
+            _voxelServerSceneStats[nodeUUID].unpackFromMessage(messageData, messageLength);
         } else {
             _voxelServerSceneStats[nodeUUID] = temp;
         }
+        _voxelSceneStatsLock.unlock();
         
         VoxelPositionSize rootDetails;
         voxelDetailsForCode(temp.getJurisdictionRoot(), rootDetails);
