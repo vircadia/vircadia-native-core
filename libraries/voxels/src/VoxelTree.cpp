@@ -1925,6 +1925,7 @@ void VoxelTree::writeToSVOFile(const char* fileName, VoxelNode* node) {
 
             lockForRead(); // do tree locking down here so that we have shorter slices and less thread contention
             EncodeBitstreamParams params(INT_MAX, IGNORE_VIEW_FRUSTUM, WANT_COLOR, NO_EXISTS_BITS);
+            packet.reset(); // is there a better way to do this? could we fit more?
             bytesWritten = encodeTreeBitstream(subTree, &outputBuffer[0], MAX_VOXEL_PACKET_SIZE - 1, &packet, nodeBag, params);
             unlock();
             
