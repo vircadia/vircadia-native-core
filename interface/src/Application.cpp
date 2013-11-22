@@ -2192,10 +2192,8 @@ void Application::updateHandAndTouch(float deltaTime) {
         float TOUCH_YAW_SCALE = -0.25f;
         float TOUCH_PITCH_SCALE = -12.5f;
         float FIXED_TOUCH_TIMESTEP = 0.016f;
-        const float MAX_PITCH = 90.0f;
         _yawFromTouch += ((_touchAvgX - _lastTouchAvgX) * TOUCH_YAW_SCALE * FIXED_TOUCH_TIMESTEP);
-        _pitchFromTouch = glm::clamp(_pitchFromTouch + (_touchAvgY - _lastTouchAvgY) * TOUCH_PITCH_SCALE *
-            FIXED_TOUCH_TIMESTEP, -MAX_PITCH, MAX_PITCH);
+        _pitchFromTouch += ((_touchAvgY - _lastTouchAvgY) * TOUCH_PITCH_SCALE * FIXED_TOUCH_TIMESTEP);
         _lastTouchAvgX = _touchAvgX;
         _lastTouchAvgY = _touchAvgY;
     }
@@ -2447,8 +2445,12 @@ void Application::updateAvatar(float deltaTime) {
                              * glm::quat(glm::vec3(0, _yawFromTouch, 0)));
     _yawFromTouch = 0.f;
     
+    // apply pitch from touch
+    _myAvatar.getHead().setMousePitch(_myAvatar.getHead().getMousePitch() + _pitchFromTouch);
+    _pitchFromTouch = 0.0f;
+    
     // Update my avatar's state from gyros and/or webcam
-    _myAvatar.updateFromGyrosAndOrWebcam(_pitchFromTouch, Menu::getInstance()->isOptionChecked(MenuOption::TurnWithHead));
+    _myAvatar.updateFromGyrosAndOrWebcam(Menu::getInstance()->isOptionChecked(MenuOption::TurnWithHead));
     
     // Update head mouse from faceshift if active
     if (_faceshift.isActive()) {
@@ -2504,8 +2506,8 @@ void Application::updateAvatar(float deltaTime) {
         float yaw, pitch, roll;
         OculusManager::getEulerAngles(yaw, pitch, roll);
     
-        _myAvatar.getHead().setYaw(yaw + _yawFromTouch);
-        _myAvatar.getHead().setPitch(pitch + _pitchFromTouch);
+        _myAvatar.getHead().setYaw(yaw);
+        _myAvatar.getHead().setPitch(pitch);
         _myAvatar.getHead().setRoll(roll);
     }
      

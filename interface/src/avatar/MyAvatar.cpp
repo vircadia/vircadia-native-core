@@ -43,7 +43,6 @@ MyAvatar::MyAvatar(Node* owningNode) :
     _mousePressed(false),
     _bodyPitchDelta(0.0f),
     _bodyRollDelta(0.0f),
-    _mousePitchDelta(0.0f),
     _shouldJump(false),
     _gravity(0.0f, -1.0f, 0.0f),
     _distanceToNearestAvatar(std::numeric_limits<float>::max()),
@@ -373,13 +372,12 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter) {
 const float MAX_PITCH = 90.0f;
 
 //  Update avatar head rotation with sensor data
-void MyAvatar::updateFromGyrosAndOrWebcam(float pitchFromTouch, bool turnWithHead) {
+void MyAvatar::updateFromGyrosAndOrWebcam(bool turnWithHead) {
     Faceshift* faceshift = Application::getInstance()->getFaceshift();
     SerialInterface* gyros = Application::getInstance()->getSerialHeadSensor();
     Webcam* webcam = Application::getInstance()->getWebcam();
     glm::vec3 estimatedPosition, estimatedRotation;
     
-    float combinedPitch = glm::clamp(pitchFromTouch + _mousePitchDelta, -MAX_PITCH, MAX_PITCH);
     if (faceshift->isActive()) {
         estimatedPosition = faceshift->getHeadTranslation();
         estimatedRotation = safeEulerAngles(faceshift->getHeadRotation());
@@ -400,8 +398,7 @@ void MyAvatar::updateFromGyrosAndOrWebcam(float pitchFromTouch, bool turnWithHea
     
     } else {
         if (!_leadingAvatar) {
-            _head.setMousePitch(combinedPitch);
-            _head.setPitch(combinedPitch);
+            _head.setPitch(_head.getMousePitch());
         }
         _head.getVideoFace().clearFrame();
         
@@ -413,7 +410,6 @@ void MyAvatar::updateFromGyrosAndOrWebcam(float pitchFromTouch, bool turnWithHea
         _head.setLeanForward(glm::mix(_head.getLeanForward(), 0.0f, RESTORE_RATE));
         return;
     }
-    _head.setMousePitch(combinedPitch);
 
     if (webcam->isActive()) {
         estimatedPosition = webcam->getEstimatedPosition();
@@ -572,6 +568,8 @@ void MyAvatar::saveData(QSettings* settings) {
     settings->setValue("bodyPitch", _bodyPitch);
     settings->setValue("bodyRoll", _bodyRoll);
     
+    settings->setValue("mousePitch", _head.getMousePitch());
+    
     settings->setValue("position_x", _position.x);
     settings->setValue("position_y", _position.y);
     settings->setValue("position_z", _position.z);
@@ -592,6 +590,9 @@ void MyAvatar::loadData(QSettings* settings) {
     _bodyYaw = loadSetting(settings, "bodyYaw", 0.0f);
     _bodyPitch = loadSetting(settings, "bodyPitch", 0.0f);
     _bodyRoll = loadSetting(settings, "bodyRoll", 0.0f);
+    
+    _head.setMousePitch(loadSetting(settings, "mousePitch", 0.0f));
+    
     _position.x = loadSetting(settings, "position_x", 0.0f);
     _position.y = loadSetting(settings, "position_y", 0.0f);
     _position.z = loadSetting(settings, "position_z", 0.0f);
@@ -743,8 +744,7 @@ void MyAvatar::updateThrust(float deltaTime, Transmitter * transmitter) {
     _thrust -= _driveKeys[DOWN] * _scale * THRUST_MAG_DOWN * _thrustMultiplier * deltaTime * up;
     _bodyYawDelta -= _driveKeys[ROT_RIGHT] * YAW_MAG * deltaTime;
     _bodyYawDelta += _driveKeys[ROT_LEFT] * YAW_MAG * deltaTime;
-    _mousePitchDelta = min(_mousePitchDelta + _driveKeys[ROT_UP] * PITCH_MAG * deltaTime, MAX_PITCH);
-    _mousePitchDelta = max(_mousePitchDelta - _driveKeys[ROT_DOWN] * PITCH_MAG * deltaTime, -MAX_PITCH);
+    _head.setMousePitch(_head.getMousePitch() + (_driveKeys[ROT_UP] - _driveKeys[ROT_DOWN]) * PITCH_MAG * deltaTime);
     
     //  If thrust keys are being held down, slowly increase thrust to allow reaching great speeds
     if (_driveKeys[FWD] || _driveKeys[BACK] || _driveKeys[RIGHT] || _driveKeys[LEFT] || _driveKeys[UP] || _driveKeys[DOWN]) {

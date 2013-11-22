@@ -109,6 +109,7 @@ void Head::init() {
 
 void Head::reset() {
     _yaw = _pitch = _roll = 0.0f;
+    _mousePitch = 0.0f;
     _leanForward = _leanSideways = 0.0f;
     
     if (USING_PHYSICAL_MOHAWK) {
@@ -325,6 +326,10 @@ void Head::setScale (float scale) {
     }
 }
 
+void Head::setMousePitch(float mousePitch) {
+    const float MAX_PITCH = 90.0f;
+    _mousePitch = glm::clamp(mousePitch, -MAX_PITCH, MAX_PITCH);
+}
 
 void Head::createMohawk() {
     srand(time(NULL));
