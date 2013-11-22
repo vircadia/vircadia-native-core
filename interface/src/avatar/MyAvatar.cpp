@@ -384,10 +384,12 @@ void MyAvatar::updateFromGyrosAndOrWebcam(bool turnWithHead) {
         //  Rotate the body if the head is turned quickly
         if (turnWithHead) {
             glm::vec3 headAngularVelocity = faceshift->getHeadAngularVelocity();
-            const float FACESHIFT_YAW_VIEW_SENSITIVITY = 20.f;
-            const float FACESHIFT_MIN_YAW_VELOCITY = 1.0f;
-            if (fabs(headAngularVelocity.y) > FACESHIFT_MIN_YAW_VELOCITY) {
-                _bodyYawDelta += headAngularVelocity.y * FACESHIFT_YAW_VIEW_SENSITIVITY;
+            const float FACESHIFT_YAW_TURN_SENSITIVITY = 0.25f;
+            const float FACESHIFT_MIN_YAW_TURN = 10.f;
+            const float FACESHIFT_MAX_YAW_TURN = 30.f;
+            if ( (fabs(estimatedRotation.y) > FACESHIFT_MIN_YAW_TURN) &&
+                 (fabs(estimatedRotation.y) < FACESHIFT_MAX_YAW_TURN) ) {
+                _bodyYawDelta += estimatedRotation.y * FACESHIFT_YAW_TURN_SENSITIVITY;
             }
         }
     } else if (gyros->isActive()) {
