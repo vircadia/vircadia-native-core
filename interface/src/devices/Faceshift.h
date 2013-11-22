@@ -62,6 +62,9 @@ public:
     void update();
     void reset();
     
+    void updateFakeCoefficients(float leftBlink, float rightBlink, float browUp,
+        float jawOpen, std::vector<float>& coefficients) const;
+    
 public slots:
     
     void setTCPEnabled(bool enabled);
