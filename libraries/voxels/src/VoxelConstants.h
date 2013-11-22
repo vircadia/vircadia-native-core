@@ -15,6 +15,8 @@
 #include <limits.h>
 #include <stdint.h>
 #include <OctalCode.h>
+#include <NodeList.h>
+#include <PacketHeaders.h>
 #include <glm/glm.hpp>
 
 // this is where the coordinate system is represented
@@ -32,7 +34,7 @@ const float DEFAULT_VOXEL_SIZE_SCALE = TREE_SCALE * 400.0f;
 const float MAX_LOD_SIZE_MULTIPLIER = 2000.0f;
 
 const int NUMBER_OF_CHILDREN = 8;
-const int MAX_VOXEL_PACKET_SIZE = 1492;
+const int MAX_VOXEL_PACKET_SIZE = MAX_PACKET_SIZE - (sizeof(PACKET_TYPE) + sizeof(PACKET_VERSION));
 const int MAX_TREE_SLICE_BYTES = 26;
 const int DEFAULT_MAX_VOXELS_PER_SYSTEM = 200000;
 const int VERTICES_PER_VOXEL = 24; // 6 sides * 4 corners per side
