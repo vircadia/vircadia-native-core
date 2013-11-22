@@ -84,9 +84,9 @@ int totalWastedBytes = 0;
 int totalPackets = 0;
 
 int VoxelSendThread::handlePacketSend(Node* node, VoxelNodeData* nodeData, int& trueBytesSent, int& truePacketsSent) {
-
     bool debug = true;
 
+    bool packetSent = false; // did we send a packet?
     int packetsSent = 0;
     // Here's where we check to see if this packet is a duplicate of the last packet. If it is, we will silently
     // obscure the packet and not send it. This allows the callers and upper level logic to not need to know about
@@ -115,7 +115,8 @@ int VoxelSendThread::handlePacketSend(Node* node, VoxelNodeData* nodeData, int& 
             ::totalCompressed += nodeData->getPacketLength();
             ::totalPackets++;
             if (debug) {
-                qDebug("Adding stats to packet [%d]: uncompress size:%d [%d], compressed size:%d [%d] thisWastedBytes:%d [%d]\n",
+                qDebug("line: %d - Adding stats to packet [%d]: uncompress size:%d [%d], compressed size:%d [%d] thisWastedBytes:%d [%d]\n",
+                    __LINE__,
                     totalPackets,
                     nodeData->getPacketLengthUncompressed(), ::totalUncompressed,
                     nodeData->getPacketLength(), ::totalCompressed,
@@ -124,9 +125,25 @@ int VoxelSendThread::handlePacketSend(Node* node, VoxelNodeData* nodeData, int& 
             
             // actually send it
             NodeList::getInstance()->getNodeSocket()->send(node->getActiveSocket(), statsMessage, statsMessageLength);
+            packetSent = true;
         } else {
             // not enough room in the packet, send two packets
             NodeList::getInstance()->getNodeSocket()->send(node->getActiveSocket(), statsMessage, statsMessageLength);
+
+            int thisWastedBytes = MAX_PACKET_SIZE - statsMessageLength;
+            ::totalWastedBytes += thisWastedBytes;
+            ::totalUncompressed += statsMessageLength;
+            ::totalCompressed += statsMessageLength;
+            ::totalPackets++;
+            if (debug) {
+                qDebug("line: %d - Sending separate stats packet [%d]: uncompress size:%d [%d], compressed size:%d [%d] thisWastedBytes:%d [%d]\n",
+                    __LINE__,
+                    totalPackets,
+                    statsMessageLength, ::totalUncompressed,
+                    statsMessageLength, ::totalCompressed,
+                    thisWastedBytes, ::totalWastedBytes);
+            }
+
             trueBytesSent += statsMessageLength;
             truePacketsSent++;
             packetsSent++;
@@ -134,13 +151,16 @@ int VoxelSendThread::handlePacketSend(Node* node, VoxelNodeData* nodeData, int& 
             NodeList::getInstance()->getNodeSocket()->send(node->getActiveSocket(),
                                             nodeData->getPacket(), nodeData->getPacketLength());
 
-            int thisWastedBytes = MAX_PACKET_SIZE - nodeData->getPacketLength();
+            packetSent = true;
+
+            thisWastedBytes = MAX_PACKET_SIZE - nodeData->getPacketLength();
             ::totalWastedBytes += thisWastedBytes;
             ::totalUncompressed += nodeData->getPacketLengthUncompressed();
             ::totalCompressed += nodeData->getPacketLength();
             ::totalPackets++;
             if (debug) {
-                qDebug("Sending packet [%d]: uncompress size:%d [%d], compressed size:%d [%d] thisWastedBytes:%d [%d]\n",
+                qDebug("line: %d - Sending packet [%d]: uncompress size:%d [%d], compressed size:%d [%d] thisWastedBytes:%d [%d]\n",
+                    __LINE__,
                     totalPackets,
                     nodeData->getPacketLengthUncompressed(), ::totalUncompressed,
                     nodeData->getPacketLength(), ::totalCompressed,
@@ -149,9 +169,12 @@ int VoxelSendThread::handlePacketSend(Node* node, VoxelNodeData* nodeData, int& 
         }
         nodeData->stats.markAsSent();
     } else {
-        // just send the voxel packet
-        NodeList::getInstance()->getNodeSocket()->send(node->getActiveSocket(),
-                                                       nodeData->getPacket(), nodeData->getPacketLength());
+        // If there's actually a packet waiting, then send it.
+        if (nodeData->isPacketWaiting()) {
+            // just send the voxel packet
+            NodeList::getInstance()->getNodeSocket()->send(node->getActiveSocket(),
+                                                           nodeData->getPacket(), nodeData->getPacketLength());
+            packetSent = true;
 
             int thisWastedBytes = MAX_PACKET_SIZE - nodeData->getPacketLength();
             ::totalWastedBytes += thisWastedBytes;
@@ -159,19 +182,24 @@ int VoxelSendThread::handlePacketSend(Node* node, VoxelNodeData* nodeData, int& 
             ::totalCompressed += nodeData->getPacketLength();
             ::totalPackets++;
             if (debug) {
-                qDebug("Sending packet [%d]: uncompress size:%d [%d], compressed size:%d [%d] thisWastedBytes:%d [%d]\n",
+                qDebug("line: %d - Sending packet [%d]: uncompress size:%d [%d], compressed size:%d [%d] thisWastedBytes:%d [%d]\n",
+                    __LINE__,
                     totalPackets,
                     nodeData->getPacketLengthUncompressed(), ::totalUncompressed,
                     nodeData->getPacketLength(), ::totalCompressed,
                     thisWastedBytes, ::totalWastedBytes);
             }
+        }
     }
     // remember to track our stats
-    nodeData->stats.packetSent(nodeData->getPacketLength());
-    trueBytesSent += nodeData->getPacketLength();
-    truePacketsSent++;
-    packetsSent++;
-    nodeData->resetVoxelPacket();
+    if (packetSent) {
+        nodeData->stats.packetSent(nodeData->getPacketLength());
+        trueBytesSent += nodeData->getPacketLength();
+        truePacketsSent++;
+        packetsSent++;
+        nodeData->resetVoxelPacket();
+    }
+    
     return packetsSent;
 }
 
@@ -306,7 +334,6 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
                 nodeData->getMaxVoxelPacketsPerSecond(), clientMaxPacketsPerInterval);
         }
         
-        bool lastPacketSent = false;
         while (somethingToSend && packetsSentThisInterval < maxPacketsPerInterval - (shouldSendEnvironments ? 1 : 0)) {
             if (_myServer->wantsDebugVoxelSending()) {
                 printf("truePacketsSent=%d packetsSentThisInterval=%d maxPacketsPerInterval=%d server PPI=%d nodePPS=%d nodePPI=%d\n", 
@@ -384,58 +411,27 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
                         }
                     }
                 }
-
-
-                
-                // if bytesWritten == 0 it means the subTree couldn't fit... which means we should send the
-                // packet and reset it.
-                if (_tempPacket.getBytesInUse() > 0) {
-                    bool sendNow = (bytesWritten == 0);
-                    if (sendNow) {
-                        if (nodeData->willFit(_tempPacket.getStartOfBuffer(), _tempPacket.getBytesInUse())) {
-//printf("calling writeToPacket() _tempPacket.getBytesInUse()=%d line:%d\n",_tempPacket.getBytesInUse(),__LINE__);
-                            nodeData->writeToPacket(_tempPacket.getStartOfBuffer(), _tempPacket.getBytesInUse());
-                        } else {
-                            packetsSentThisInterval += handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
-//printf("calling writeToPacket() _tempPacket.getBytesInUse()=%d line:%d\n",_tempPacket.getBytesInUse(),__LINE__);
-                            nodeData->writeToPacket(_tempPacket.getStartOfBuffer(), _tempPacket.getBytesInUse());
-                        }
-                        lastPacketSent = true;
-                        _tempPacket.reset();
-                    } else {
-                        lastPacketSent = false;
-                    }
-                }
             } else {
-                if (!lastPacketSent && _tempPacket.getBytesInUse() > 0) {
-                    if (nodeData->willFit(_tempPacket.getStartOfBuffer(), _tempPacket.getBytesInUse())) {
-//printf("calling writeToPacket() _tempPacket.getBytesInUse()=%d line:%d\n",_tempPacket.getBytesInUse(),__LINE__);
-                        nodeData->writeToPacket(_tempPacket.getStartOfBuffer(), _tempPacket.getBytesInUse());
-                    } else {
-                        packetsSentThisInterval += handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
-//printf("calling writeToPacket() _tempPacket.getBytesInUse()=%d line:%d\n",_tempPacket.getBytesInUse(),__LINE__);
-                        nodeData->writeToPacket(_tempPacket.getStartOfBuffer(), _tempPacket.getBytesInUse());
-                    }
-                    lastPacketSent = true;
-                    _tempPacket.reset();
-                }
-                if (nodeData->isPacketWaiting()) {
+                // If the bag was empty then we didn't even attempt to encode, and so we know the bytesWritten were 0
+                bytesWritten = 0;
+                somethingToSend = false; // this will cause us to drop out of the loop...
+            }
+            
+            // We only consider sending anything if there is something in the _tempPacket to send... But
+            // if bytesWritten == 0 it means either the subTree couldn't fit or we had an empty bag... Both cases
+            // mean we should send the previous packet contents and reset it. 
+            if (_tempPacket.getBytesInUse() > 0 && bytesWritten == 0) {
+                if (nodeData->willFit(_tempPacket.getStartOfBuffer(), _tempPacket.getBytesInUse())) {
+                    nodeData->writeToPacket(_tempPacket.getStartOfBuffer(), _tempPacket.getBytesInUse());
+                } else {
                     packetsSentThisInterval += handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
+                    nodeData->writeToPacket(_tempPacket.getStartOfBuffer(), _tempPacket.getBytesInUse());
                 }
-                somethingToSend = false;
+                _tempPacket.reset();
             }
         }
-        if (!lastPacketSent && _tempPacket.getBytesInUse() > 0) {
-            if (nodeData->willFit(_tempPacket.getStartOfBuffer(), _tempPacket.getBytesInUse())) {
-//printf("calling writeToPacket() _tempPacket.getBytesInUse()=%d line:%d\n",_tempPacket.getBytesInUse(),__LINE__);
-                nodeData->writeToPacket(_tempPacket.getStartOfBuffer(), _tempPacket.getBytesInUse());
-            } else {
-                packetsSentThisInterval += handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
-//printf("calling writeToPacket() _tempPacket.getBytesInUse()=%d line:%d\n",_tempPacket.getBytesInUse(),__LINE__);
-                nodeData->writeToPacket(_tempPacket.getStartOfBuffer(), _tempPacket.getBytesInUse());
-            }
-            lastPacketSent = true;
-            _tempPacket.reset();
+        if (nodeData->isPacketWaiting()) {
+            packetsSentThisInterval += handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
         }
         
         // send the environment packet
