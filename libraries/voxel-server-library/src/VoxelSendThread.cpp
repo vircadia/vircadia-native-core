@@ -365,7 +365,7 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
                 _myServer->getServerTree().unlock();
 
 
-                bool debug = true;
+                bool debug = false;
                 if (debug) {
                     if (bytesWritten > 0) {
                         unsigned char* packetCompare = _tempPacket.getStartOfBuffer() + packetStartsAt;
@@ -393,11 +393,11 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
                     bool sendNow = (bytesWritten == 0);
                     if (sendNow) {
                         if (nodeData->willFit(_tempPacket.getStartOfBuffer(), _tempPacket.getBytesInUse())) {
-printf("calling writeToPacket() _tempPacket.getBytesInUse()=%d line:%d\n",_tempPacket.getBytesInUse(),__LINE__);
+//printf("calling writeToPacket() _tempPacket.getBytesInUse()=%d line:%d\n",_tempPacket.getBytesInUse(),__LINE__);
                             nodeData->writeToPacket(_tempPacket.getStartOfBuffer(), _tempPacket.getBytesInUse());
                         } else {
                             packetsSentThisInterval += handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
-printf("calling writeToPacket() _tempPacket.getBytesInUse()=%d line:%d\n",_tempPacket.getBytesInUse(),__LINE__);
+//printf("calling writeToPacket() _tempPacket.getBytesInUse()=%d line:%d\n",_tempPacket.getBytesInUse(),__LINE__);
                             nodeData->writeToPacket(_tempPacket.getStartOfBuffer(), _tempPacket.getBytesInUse());
                         }
                         lastPacketSent = true;
@@ -409,11 +409,11 @@ printf("calling writeToPacket() _tempPacket.getBytesInUse()=%d line:%d\n",_tempP
             } else {
                 if (!lastPacketSent && _tempPacket.getBytesInUse() > 0) {
                     if (nodeData->willFit(_tempPacket.getStartOfBuffer(), _tempPacket.getBytesInUse())) {
-printf("calling writeToPacket() _tempPacket.getBytesInUse()=%d line:%d\n",_tempPacket.getBytesInUse(),__LINE__);
+//printf("calling writeToPacket() _tempPacket.getBytesInUse()=%d line:%d\n",_tempPacket.getBytesInUse(),__LINE__);
                         nodeData->writeToPacket(_tempPacket.getStartOfBuffer(), _tempPacket.getBytesInUse());
                     } else {
                         packetsSentThisInterval += handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
-printf("calling writeToPacket() _tempPacket.getBytesInUse()=%d line:%d\n",_tempPacket.getBytesInUse(),__LINE__);
+//printf("calling writeToPacket() _tempPacket.getBytesInUse()=%d line:%d\n",_tempPacket.getBytesInUse(),__LINE__);
                         nodeData->writeToPacket(_tempPacket.getStartOfBuffer(), _tempPacket.getBytesInUse());
                     }
                     lastPacketSent = true;
@@ -427,11 +427,11 @@ printf("calling writeToPacket() _tempPacket.getBytesInUse()=%d line:%d\n",_tempP
         }
         if (!lastPacketSent && _tempPacket.getBytesInUse() > 0) {
             if (nodeData->willFit(_tempPacket.getStartOfBuffer(), _tempPacket.getBytesInUse())) {
-printf("calling writeToPacket() _tempPacket.getBytesInUse()=%d line:%d\n",_tempPacket.getBytesInUse(),__LINE__);
+//printf("calling writeToPacket() _tempPacket.getBytesInUse()=%d line:%d\n",_tempPacket.getBytesInUse(),__LINE__);
                 nodeData->writeToPacket(_tempPacket.getStartOfBuffer(), _tempPacket.getBytesInUse());
             } else {
                 packetsSentThisInterval += handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
-printf("calling writeToPacket() _tempPacket.getBytesInUse()=%d line:%d\n",_tempPacket.getBytesInUse(),__LINE__);
+//printf("calling writeToPacket() _tempPacket.getBytesInUse()=%d line:%d\n",_tempPacket.getBytesInUse(),__LINE__);
                 nodeData->writeToPacket(_tempPacket.getStartOfBuffer(), _tempPacket.getBytesInUse());
             }
             lastPacketSent = true;

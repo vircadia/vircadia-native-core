@@ -1049,7 +1049,7 @@ int VoxelTree::encodeTreeBitstream(VoxelNode* node,
     // write the octal code
     bool roomForOctalCode = false; // assume the worst
     if (packet->getBytesInUse() > 0) {
-        printf("line: %d calling packet->startSubTree()... packet->getBytesInUse()=%d\n", __LINE__, packet->getBytesInUse());
+        //printf("line: %d calling packet->startSubTree()... packet->getBytesInUse()=%d\n", __LINE__, packet->getBytesInUse());
     }
     int codeLength;
     if (params.chopLevels) {
@@ -1081,7 +1081,7 @@ int VoxelTree::encodeTreeBitstream(VoxelNode* node,
     // If the octalcode couldn't fit, then we can return, because no nodes below us will fit...
     if (!roomForOctalCode) {
         doneEncoding(node);
-        printf(">>>>>>>>>>>>>>>>>>>>>>>>>  line: %d !roomForOctalCode packet->getBytesInUse()=%d\n", __LINE__, packet->getBytesInUse());
+        //printf(">>>>>>>>>>>>>>>>>>>>>>>>>  line: %d !roomForOctalCode packet->getBytesInUse()=%d\n", __LINE__, packet->getBytesInUse());
         return bytesWritten;
     }
     
@@ -1091,7 +1091,7 @@ int VoxelTree::encodeTreeBitstream(VoxelNode* node,
     outputBuffer += codeLength; // move the pointer
     availableBytes -= codeLength; // keep track or remaining space
     if (packet->getBytesInUse() > 1) {
-        printf("line: %d called packet->startSubTree()... AFTER packet->getBytesInUse()=%d codeLength=%d\n", __LINE__, packet->getBytesInUse(),codeLength);
+        //printf("line: %d called packet->startSubTree()... AFTER packet->getBytesInUse()=%d codeLength=%d\n", __LINE__, packet->getBytesInUse(),codeLength);
     }
 
     int currentEncodeLevel = 0;
@@ -1123,16 +1123,16 @@ int VoxelTree::encodeTreeBitstream(VoxelNode* node,
     
     if (bytesWritten == 0) {
         if (packet->getBytesInUse() > 1) {
-            printf(">>>>>>>>>>>>>>>>>>> line: %d <<bytesWritten == 0>> calling packet->discardSubTree()... BEFORE packet->getBytesInUse()=%d <<<<<<<<<<<<<\n", __LINE__, packet->getBytesInUse());
+            //printf(">>>>>>>>>>>>>>>>>>> line: %d <<bytesWritten == 0>> calling packet->discardSubTree()... BEFORE packet->getBytesInUse()=%d <<<<<<<<<<<<<\n", __LINE__, packet->getBytesInUse());
         }
         packet->discardSubTree();
         if (packet->getBytesInUse() > 0) {
-            printf(">>>>>>>>>>>>>>>>>>> line: %d <<bytesWritten == 0>> calling packet->discardSubTree()... AFTER packet->getBytesInUse()=%d <<<<<<<<<<<<<\n", __LINE__, packet->getBytesInUse());
+            //printf(">>>>>>>>>>>>>>>>>>> line: %d <<bytesWritten == 0>> calling packet->discardSubTree()... AFTER packet->getBytesInUse()=%d <<<<<<<<<<<<<\n", __LINE__, packet->getBytesInUse());
         }
     } else {
         packet->endSubTree();
         if (packet->getBytesInUse() > 0) {
-            printf("line: %d <<bytesWritten != 0>> calling packet->endSubTree()... AFTER packet->getBytesInUse()=%d\n", __LINE__, packet->getBytesInUse());
+            //printf("line: %d <<bytesWritten != 0>> calling packet->endSubTree()... AFTER packet->getBytesInUse()=%d\n", __LINE__, packet->getBytesInUse());
         }
     }
     
@@ -1308,7 +1308,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node,
     // Make our local buffer large enough to handle writing at this level in case we need to.
     unsigned char thisLevelBuffer[MAX_LEVEL_BYTES];
     unsigned char* writeToThisLevelBuffer = &thisLevelBuffer[0];
-    printf("line: %d calling packet->startLevel()... packet->getBytesInUse()=%d\n",__LINE__,packet->getBytesInUse());
+    //printf("line: %d calling packet->startLevel()... packet->getBytesInUse()=%d\n",__LINE__,packet->getBytesInUse());
     packet->startLevel();
 
     int inViewCount = 0;
@@ -1499,7 +1499,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node,
     continueThisLevel = packet->appendBitMask(childrenColoredBits);
     
     if (!continueThisLevel) {
-        printf("packet->appendBitMask(childrenColoredBits) returned FALSE....\n");
+        //printf("packet->appendBitMask(childrenColoredBits) returned FALSE....\n");
     }
     
     if (continueThisLevel) {
@@ -1522,7 +1522,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node,
                 continueThisLevel = packet->appendColor(color);
                 
                 if (!continueThisLevel) {
-                    printf("packet->appendColor() i=%d returned FALSE....\n", i);
+                    //printf("packet->appendColor() i=%d returned FALSE....\n", i);
                     break; // no point in continuing
                 }
                 
@@ -1541,10 +1541,6 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node,
         }
     }
 
-    if (!continueThisLevel) {
-        printf("after colores continueThisLevel=FALSE....\n");
-    }
-
     // if the caller wants to include childExistsBits, then include them even if not in view, put them before the
     // childrenExistInPacketBits, so that the lower code can properly repair the packet exists bits
     if (continueThisLevel && params.includeExistsBits) {
@@ -1556,7 +1552,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node,
         continueThisLevel = packet->appendBitMask(childrenExistInTreeBits);
 
         if (!continueThisLevel) {
-            printf("packet->appendBitMask(childrenExistInTreeBits) returned FALSE....\n");
+            //printf("packet->appendBitMask(childrenExistInTreeBits) returned FALSE....\n");
         }
 
         if (continueThisLevel) {
@@ -1572,7 +1568,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node,
         continueThisLevel = packet->appendBitMask(childrenExistInPacketBits);
 
         if (!continueThisLevel) {
-            printf("packet->appendBitMask(childrenExistInPacketBits) returned FALSE....\n");
+            //printf("packet->appendBitMask(childrenExistInPacketBits) returned FALSE....\n");
         }
 
         
@@ -1596,16 +1592,16 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node,
         outputBuffer   += bytesAtThisLevel;
         availableBytes -= bytesAtThisLevel;
      } else {
-        printf("line: %d setting continueThisLevel = false\n",__LINE__);
+        //printf("line: %d setting continueThisLevel = false\n",__LINE__);
         continueThisLevel = false; // ???
      }
  
     // if we were unable to fit this level in our packet, then rewind and add it to the node bag for 
     // sending later...
     if (!continueThisLevel) {
-        printf("line: %d <<!continueThisLevel>> calling packet->discardLevel()... BEFORE packet->getBytesInUse()=%d\n",__LINE__,packet->getBytesInUse());
+        //printf("line: %d <<!continueThisLevel>> calling packet->discardLevel()... BEFORE packet->getBytesInUse()=%d\n",__LINE__,packet->getBytesInUse());
         packet->discardLevel();
-        printf("line: %d <<!continueThisLevel>> called packet->discardLevel()... AFTER packet->getBytesInUse()=%d\n",__LINE__,packet->getBytesInUse());
+        //printf("line: %d <<!continueThisLevel>> called packet->discardLevel()... AFTER packet->getBytesInUse()=%d\n",__LINE__,packet->getBytesInUse());
         bag.insert(node);
 
         // don't need to check node here, because we can't get here with no node
@@ -1613,7 +1609,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node,
             params.stats->didntFit(node);
         }
 
-        printf("line: %d <<!continueThisLevel>> returning 0...\n",__LINE__);
+        //printf("line: %d <<!continueThisLevel>> returning 0...\n",__LINE__);
         return 0;
     }
 
