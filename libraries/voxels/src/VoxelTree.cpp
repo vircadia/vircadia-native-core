@@ -1933,33 +1933,23 @@ void VoxelTree::writeToSVOFile(const char* fileName, VoxelNode* node) {
 
             int packetEndsAt = packet.getBytesInUse();
 
-            printf("writeToSVOFile()... bytesWritten=%d\n",bytesWritten);
-            
             // if bytesWritten == 0, then it means that the subTree couldn't fit, and so we should reset the packet
             // and reinsert the node in our bag and try again...
             if (bytesWritten == 0) {
-
                 if (packet.getBytesInUse()) {
                     printf("writeToSVOFile()... WRITING %d bytes...\n", packet.getBytesInUse());
                     file.write((const char*)packet.getStartOfBuffer(), packet.getBytesInUse());
                     lastPacketWritten = true;
-                } else {
-                    printf("writeToSVOFile()... ODD!!! NOTHING TO WRITE???\n");
                 }
-
-                printf("writeToSVOFile()... resetting packet...\n");
                 packet.reset(); // is there a better way to do this? could we fit more?
                 nodeBag.insert(subTree);
-
-
             } else {
-                printf("writeToSVOFile()... PROCEEDING without resetting packet...\n");
                 lastPacketWritten = false;
             }
             
             
             // debug compare the buffer to the packet...
-            bool debug = true;
+            bool debug = false;
             if (debug) {
                 if (bytesWritten > 0) {
                     unsigned char* packetCompare = packet.getStartOfBuffer() + packetStartsAt;
