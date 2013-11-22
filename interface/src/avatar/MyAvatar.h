@@ -19,7 +19,7 @@ public:
 
     void reset();
     void simulate(float deltaTime, Transmitter* transmitter);
-    void updateFromGyrosAndOrWebcam(float pitchFromTouch, bool turnWithHead);
+    void updateFromGyrosAndOrWebcam(bool turnWithHead);
     void render(bool forceRenderHead, bool renderAvatarBalls);
     void renderScreenTint(ScreenTintLayer layer);
 
@@ -66,7 +66,6 @@ private:
     bool _mousePressed;
     float _bodyPitchDelta;
     float _bodyRollDelta;
-    float _mousePitchDelta;
     bool _shouldJump;
     float _driveKeys[MAX_DRIVE_KEYS];
     glm::vec3 _gravity;
