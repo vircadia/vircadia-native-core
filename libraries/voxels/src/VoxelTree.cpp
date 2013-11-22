@@ -1929,9 +1929,10 @@ void VoxelTree::writeToSVOFile(const char* fileName, VoxelNode* node) {
             bytesWritten = encodeTreeBitstream(subTree, &outputBuffer[0], MAX_VOXEL_PACKET_SIZE - 1, &packet, nodeBag, params);
             unlock();
             
+            printf("writeToSVOFile()... bytesWritten=%d\n",bytesWritten);
             
             // debug compare the buffer to the packet...
-            bool debug = true;
+            bool debug = false;
             if (debug) {
                 printf("writeToSVOFile()... bytesWritten=%d\n",bytesWritten);
                 printf("    &outputBuffer[0]...\n");
