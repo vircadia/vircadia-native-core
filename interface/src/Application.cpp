@@ -1394,6 +1394,9 @@ void Application::terminate() {
     _rearMirrorTools->saveSettings(_settings);
     _settings->sync();
 
+    // let the avatar mixer know we're out
+    NodeList::getInstance()->sendKillNode(&NODE_TYPE_AVATAR_MIXER, 1);
+
     if (_enableNetworkThread) {
         _stopNetworkReceiveThread = true;
         pthread_join(_networkReceiveThread, NULL); 
