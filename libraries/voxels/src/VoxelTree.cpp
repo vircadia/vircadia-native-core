@@ -1919,35 +1919,73 @@ void VoxelTree::writeToSVOFile(const char* fileName, VoxelNode* node) {
         static unsigned char outputBuffer[MAX_VOXEL_PACKET_SIZE - 1]; // save on allocs by making this static
         static VoxelPacket packet;
         int bytesWritten = 0;
+        bool lastPacketWritten = false;
 
         while (!nodeBag.isEmpty()) {
             VoxelNode* subTree = nodeBag.extract();
+            
+            int packetStartsAt = packet.getBytesInUse();
 
             lockForRead(); // do tree locking down here so that we have shorter slices and less thread contention
             EncodeBitstreamParams params(INT_MAX, IGNORE_VIEW_FRUSTUM, WANT_COLOR, NO_EXISTS_BITS);
-            packet.reset(); // is there a better way to do this? could we fit more?
             bytesWritten = encodeTreeBitstream(subTree, &outputBuffer[0], MAX_VOXEL_PACKET_SIZE - 1, &packet, nodeBag, params);
             unlock();
-            
+
+            int packetEndsAt = packet.getBytesInUse();
+
             printf("writeToSVOFile()... bytesWritten=%d\n",bytesWritten);
             
-            // debug compare the buffer to the packet...
-            bool debug = false;
-            if (debug) {
-                printf("writeToSVOFile()... bytesWritten=%d\n",bytesWritten);
-                printf("    &outputBuffer[0]...\n");
-                outputBufferBits(&outputBuffer[0], bytesWritten);
-                printf("    packet...\n");
-                outputBufferBits(packet.getStartOfBuffer(), bytesWritten);
-                if (memcmp(&outputBuffer[0], packet.getStartOfBuffer(), bytesWritten) == 0) {
-                    printf("... they MATCH ...\n");
+            // if bytesWritten == 0, then it means that the subTree couldn't fit, and so we should reset the packet
+            // and reinsert the node in our bag and try again...
+            if (bytesWritten == 0) {
+
+                if (packet.getBytesInUse()) {
+                    printf("writeToSVOFile()... WRITING %d bytes...\n", packet.getBytesInUse());
+                    file.write((const char*)packet.getStartOfBuffer(), packet.getBytesInUse());
+                    lastPacketWritten = true;
                 } else {
-                    printf("... they DO NOT MATCH!!!!! ...\n");
+                    printf("writeToSVOFile()... ODD!!! NOTHING TO WRITE???\n");
+                }
+
+                printf("writeToSVOFile()... resetting packet...\n");
+                packet.reset(); // is there a better way to do this? could we fit more?
+                nodeBag.insert(subTree);
+
+
+            } else {
+                printf("writeToSVOFile()... PROCEEDING without resetting packet...\n");
+                lastPacketWritten = false;
+            }
+            
+            
+            // debug compare the buffer to the packet...
+            bool debug = true;
+            if (debug) {
+                if (bytesWritten > 0) {
+                    unsigned char* packetCompare = packet.getStartOfBuffer() + packetStartsAt;
+                    if (memcmp(&outputBuffer[0], packetCompare, bytesWritten) == 0) {
+                        printf("... they MATCH ...\n");
+                    } else {
+                        printf("... >>>>>>>>>>>> they DO NOT MATCH!!!!! <<<<<<<<<<<<<<< ...\n");
+
+                        printf("writeToSVOFile()... bytesWritten=%d\n",bytesWritten);
+                        printf("    &outputBuffer[0]...\n");
+                        outputBufferBits(&outputBuffer[0], bytesWritten);
+                        printf("    packet...\n");
+                        outputBufferBits(packet.getStartOfBuffer(), bytesWritten);
+
+                        printf("... >>>>>>>>>>>> they DO NOT MATCH!!!!! <<<<<<<<<<<<<<< ...\n");
+                    }
                 }
             }
             
-            file.write((const char*)packet.getStartOfBuffer(), bytesWritten);
         }
+
+        if (!lastPacketWritten) {
+            printf("writeToSVOFile()... END OF LOOP WRITING %d bytes...\n", packet.getBytesInUse());
+            file.write((const char*)packet.getStartOfBuffer(), packet.getBytesInUse());
+        }
+
     }
     file.close();
 }
