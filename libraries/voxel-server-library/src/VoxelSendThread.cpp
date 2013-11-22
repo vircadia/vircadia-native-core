@@ -354,17 +354,44 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
 
                 _myServer->getServerTree().lockForRead();
                 nodeData->stats.encodeStarted();
+
+                int packetStartsAt = _tempPacket.getBytesInUse();
+
                 bytesWritten = _myServer->getServerTree().encodeTreeBitstream(subTree, 
                                                                     _tempOutputBuffer, MAX_VOXEL_PACKET_SIZE - 1,
                                                                     &_tempPacket,
                                                                     nodeData->nodeBag, params);
                 nodeData->stats.encodeStopped();
                 _myServer->getServerTree().unlock();
+
+
+                bool debug = true;
+                if (debug) {
+                    if (bytesWritten > 0) {
+                        unsigned char* packetCompare = _tempPacket.getStartOfBuffer() + packetStartsAt;
+                        if (memcmp(&_tempOutputBuffer[0], packetCompare, bytesWritten) == 0) {
+                            printf("... they MATCH ...\n");
+                        } else {
+                            printf("... >>>>>>>>>>>> they DO NOT MATCH!!!!! <<<<<<<<<<<<<<< ...\n");
+
+                            printf("deepestLevelVoxelDistributor()... bytesWritten=%d\n",bytesWritten);
+                            printf("    &_tempOutputBuffer[0]...\n");
+                            outputBufferBits(&_tempOutputBuffer[0], bytesWritten);
+                            printf("    packet...\n");
+                            outputBufferBits(packetCompare, bytesWritten);
+
+                            printf("... >>>>>>>>>>>> they DO NOT MATCH!!!!! <<<<<<<<<<<<<<< ...\n");
+                        }
+                    }
+                }
+
+
                 
                 // if bytesWritten == 0 it means the subTree couldn't fit... which means we should send the
                 // packet and reset it.
                 if (_tempPacket.getBytesInUse() > 0) {
-                    if (bytesWritten == 0) {
+                    bool sendNow = (bytesWritten == 0);
+                    if (sendNow) {
                         if (nodeData->willFit(_tempPacket.getStartOfBuffer(), _tempPacket.getBytesInUse())) {
 printf("calling writeToPacket() _tempPacket.getBytesInUse()=%d line:%d\n",_tempPacket.getBytesInUse(),__LINE__);
                             nodeData->writeToPacket(_tempPacket.getStartOfBuffer(), _tempPacket.getBytesInUse());

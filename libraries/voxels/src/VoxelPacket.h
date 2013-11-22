@@ -19,7 +19,7 @@ public:
     ~VoxelPacket();
 
     void reset();
-    void startSubTree(const unsigned char* octcode = NULL);
+    bool startSubTree(const unsigned char* octcode = NULL);
     void endSubTree();
     void discardSubTree();
 

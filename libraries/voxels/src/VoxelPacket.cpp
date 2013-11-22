@@ -56,17 +56,21 @@ bool VoxelPacket::setByte(int offset, unsigned char byte) {
 
 
 
-void VoxelPacket::startSubTree(const unsigned char* octcode) {
-    _subTreeAt = _bytesInUse;
+bool VoxelPacket::startSubTree(const unsigned char* octcode) {
+    bool success = false;
+    int possibleStartAt = _bytesInUse;
     if (octcode) {
         int length = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(octcode));
-        append(octcode, length);
+        success = append(octcode, length);
     } else {
         // NULL case, means root node, which is 0
-        _buffer[_bytesInUse] = 0;
-        _bytesInUse += 1;
-        _bytesAvailable -= 1;
+        unsigned char byte = 0;
+        success = append(byte);
     }
+    if (success) {
+        _subTreeAt = possibleStartAt;
+    }
+    return success;
 }
 
 void VoxelPacket::endSubTree() {
