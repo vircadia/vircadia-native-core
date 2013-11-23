@@ -30,12 +30,10 @@ public:
     void setLeanScale(float scale) { _leanScale = scale; }
     void setGravity(glm::vec3 gravity);
     void setOrientation(const glm::quat& orientation);
-    void setNewScale(const float scale);
     void setWantCollisionsOn(bool wantCollisionsOn) { _isCollisionsOn = wantCollisionsOn; }
     void setMoveTarget(const glm::vec3 moveTarget);
 
     // getters
-    float getNewScale() const { return _newScale; }
     float getSpeed() const { return _speed; }
     AvatarMode getMode() const { return _mode; }
     float getLeanScale() const { return _leanScale; }

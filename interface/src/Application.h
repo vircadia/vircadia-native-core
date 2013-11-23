@@ -471,6 +471,7 @@ private:
     QReadWriteLock _voxelSceneStatsLock;
     
     std::vector<VoxelFade> _voxelFades;
+    std::vector<Avatar*> _avatarFades;
 };
 
 #endif /* defined(__interface__Application__) */

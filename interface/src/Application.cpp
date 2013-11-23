@@ -1972,6 +1972,21 @@ void Application::updateAvatars(float deltaTime, glm::vec3 mouseRayOrigin, glm::
         }
         node->unlock();
     }
+    
+    // simulate avatar fades
+    for (vector<Avatar*>::iterator fade = _avatarFades.begin(); fade != _avatarFades.end(); fade++) {
+        Avatar* avatar = *fade;
+        const float SHRINK_RATE = 0.9f;
+        avatar->setNewScale(avatar->getNewScale() * SHRINK_RATE);
+        const float MINIMUM_SCALE = 0.001f;
+        if (avatar->getNewScale() < MINIMUM_SCALE) {
+            delete avatar;
+            _avatarFades.erase(fade--);
+        
+        } else {
+            avatar->simulate(deltaTime, NULL);
+        }
+    }
 }
 
 void Application::updateMouseRay(float deltaTime, glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection) {
@@ -3841,6 +3856,12 @@ void Application::renderAvatars(bool forceRenderHead, bool selfAvatarOnly) {
         
             node->unlock();
         }
+        
+        // render avatar fades
+        Glower glower;
+        for (vector<Avatar*>::iterator fade = _avatarFades.begin(); fade != _avatarFades.end(); fade++) {
+            (*fade)->render(false, Menu::getInstance()->isOptionChecked(MenuOption::AvatarAsBalls));
+        }
     }
     
     // Render my own Avatar
@@ -4286,8 +4307,17 @@ void Application::nodeKilled(Node* node) {
             _voxelServerSceneStats.erase(nodeUUID);
         }
         _voxelSceneStatsLock.unlock();
-    } else if (node->getLinkedData() == _lookatTargetAvatar) {
-        _lookatTargetAvatar = NULL;
+        
+    } else if (node->getType() == NODE_TYPE_AGENT) {
+        Avatar* avatar = static_cast<Avatar*>(node->getLinkedData());
+        if (avatar == _lookatTargetAvatar) {
+            _lookatTargetAvatar = NULL;
+        }
+        
+        // take over the avatar in order to fade it out
+        node->setLinkedData(NULL);
+        
+        _avatarFades.push_back(avatar);
     }
 }
 
