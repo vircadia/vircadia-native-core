@@ -23,30 +23,48 @@ public:
     void endSubTree();
     void discardSubTree();
 
-    void startLevel();
-    bool appendBitMask(unsigned char bitmask);
-    bool appendColor(rgbColor color);
-    void discardLevel();
-    void endLevel();
+    /// starts a level marker. returns an opaque key which can be used to discard the level
+    int startLevel();
+
+    /// discards all content back to a previous marker key
+    void discardLevel(int key);
     
-    /// sets a single raw byte from previously appended portion of the uncompressed stream, might fail if the new byte would
-    /// cause packet to be less compressed, or if offset was out of range.
-    bool setByte(int offset, unsigned char byte); 
+    /// ends a level without discarding it
+    void endLevel();
 
-    unsigned char* getCompressedData() { return &_buffer[0]; } /// get pointer to start of compressed stream
-    int getCompressedSize() const { return _bytesInUse; } /// the size of the packet in compressed form
+    bool appendBitMask(unsigned char bitmask);
 
-    /// returns the offset of the next uncompressed byte to be written 
-    int getNextByteUncompressed() const { return _bytesInUse; } 
+    /// updates the value of a bitmask from a previously appended portion of the uncompressed stream, might fail if the new 
+    /// bitmask would cause packet to be less compressed, or if offset was out of range.
+    bool updatePriorBitMask(int offset, unsigned char bitmask); 
+
+    bool appendColor(rgbColor color);
+
+    /// returns a byte offset from beginning of the uncompressed stream based on offset from end. 
+    /// Positive offsetFromEnd returns that many bytes before the end of uncompressed stream
+    int getUncompressedByteOffset(int offsetFromEnd = 0) const { return _bytesInUse - offsetFromEnd; }
+
+    /// get access to the finalized data (it may be compressed or rewritten into optimal form)
+    unsigned char* getFinalizedData() { return &_buffer[0]; } /// get pointer to start of finalized stream
+
+    /// get size of the finalized data (it may be compressed or rewritten into optimal form)
+    int getFinalizedSize() const { return _bytesInUse; } /// the size of the packet in compressed form
+    
+    
+    ////////////////////////////////////
+    // XXXBHG: Questions...
+    //  Slice Reshuffle...
+    //
+    //  1) getEndOfBuffer() is used by recursive slice shuffling... is there a safer API for that? This usage would probably
+    //     break badly with compression... Especially since we do a memcpy into the uncompressed buffer, we'd need to
+    //     add an "updateBytes()" method... which could definitely fail on compression.... It would also break any RLE we
+    //     might implement, since the order of the colors would clearly change.
+    //
+    //  2) add stats tracking for number of bytes of octal code, bitmasks, and colors in a packet.
+    
     
     /// has some content been written to the packet
     bool hasContent() const { return (_bytesInUse > 0); }
-    
-    /// returns a byte offset from beginning of stream based on offset from end. 
-    /// Positive offsetFromEnd returns that many bytes before the end
-    int getByteOffset(int offsetFromEnd) const {
-        return _bytesInUse - offsetFromEnd;
-    }
     
     unsigned char* getStartOfBuffer() { return &_buffer[0]; } /// get pointer to the start of stream buffer
     unsigned char* getEndOfBuffer() { return &_buffer[_bytesInUse]; } /// get pointer to current end of stream buffer

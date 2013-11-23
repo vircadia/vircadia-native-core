@@ -45,16 +45,14 @@ bool VoxelPacket::append(unsigned char byte) {
     return success;
 }
 
-bool VoxelPacket::setByte(int offset, unsigned char byte) {
+bool VoxelPacket::updatePriorBitMask(int offset, unsigned char bitmask) {
     bool success = false;
     if (offset >= 0 && offset < _bytesInUse) {
-        _buffer[offset] = byte;
+        _buffer[offset] = bitmask;
         success = true;
     }
     return success;
 }
-
-
 
 bool VoxelPacket::startSubTree(const unsigned char* octcode) {
     bool success = false;
@@ -83,9 +81,21 @@ void VoxelPacket::discardSubTree() {
     _bytesAvailable += bytesInSubTree; 
 }
 
-void VoxelPacket::startLevel() {
-    _levelAt = _bytesInUse;
+int VoxelPacket::startLevel() {
+    int key = _bytesInUse;
+    return key;
 }
+
+void VoxelPacket::discardLevel(int key) {
+    int bytesInLevel = _bytesInUse - key;
+    _bytesInUse -= bytesInLevel;
+    _bytesAvailable += bytesInLevel; 
+}
+
+void VoxelPacket::endLevel() {
+    // nothing to do
+}
+
 
 bool VoxelPacket::appendBitMask(unsigned char bitmask) {
     bool success = false;
@@ -111,12 +121,3 @@ bool VoxelPacket::appendColor(rgbColor color) {
     return success;
 }
 
-void VoxelPacket::endLevel() {
-    _levelAt = _bytesInUse;
-}
-
-void VoxelPacket::discardLevel() {
-    int bytesInLevel = _bytesInUse - _levelAt;
-    _bytesInUse -= bytesInLevel;
-    _bytesAvailable += bytesInLevel; 
-}

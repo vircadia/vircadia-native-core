@@ -1292,7 +1292,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node,
     // Make our local buffer large enough to handle writing at this level in case we need to.
     unsigned char thisLevelBuffer[MAX_LEVEL_BYTES];
     unsigned char* writeToThisLevelBuffer = &thisLevelBuffer[0];
-    packet->startLevel();
+    int thisLevelKey = packet->startLevel();
 
     int inViewCount = 0;
     int inViewNotLeafCount = 0;
@@ -1582,7 +1582,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node,
     // if we were unable to fit this level in our packet, then rewind and add it to the node bag for 
     // sending later...
     if (!continueThisLevel) {
-        packet->discardLevel();
+        packet->discardLevel(thisLevelKey);
         bag.insert(node);
 
         // don't need to check node here, because we can't get here with no node
@@ -1605,7 +1605,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node,
         // write something, we keep them in the bits, if they don't, we take them out.
         //
         // we know the last thing we wrote to the packet was our childrenExistInPacketBits. Let's remember where that was!
-        int childExistsPlaceHolder = packet->getByteOffset(sizeof(childrenExistInPacketBits));
+        int childExistsPlaceHolder = packet->getUncompressedByteOffset(sizeof(childrenExistInPacketBits));
         unsigned char* childExistsPlaceHolderOLD = outputBuffer-sizeof(childrenExistInPacketBits);
 
         // we are also going to recurse these child trees in "distance" sorted order, but we need to pack them in the
@@ -1682,7 +1682,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node,
 
                     // repair the child exists mask
                     *childExistsPlaceHolderOLD = childrenExistInPacketBits;
-                    packet->setByte(childExistsPlaceHolder, childrenExistInPacketBits);
+                    packet->updatePriorBitMask(childExistsPlaceHolder, childrenExistInPacketBits);
 
                     // If this is the last of the child exists bits, then we're actually be rolling out the entire tree
                     if (params.stats && childrenExistInPacketBits == 0) {
@@ -1952,7 +1952,7 @@ void VoxelTree::writeToSVOFile(const char* fileName, VoxelNode* node) {
         while (!nodeBag.isEmpty()) {
             VoxelNode* subTree = nodeBag.extract();
             
-            int packetStartsAt = packet.getNextByteUncompressed();
+            int packetStartsAt = packet.getUncompressedByteOffset();
 
             lockForRead(); // do tree locking down here so that we have shorter slices and less thread contention
             EncodeBitstreamParams params(INT_MAX, IGNORE_VIEW_FRUSTUM, WANT_COLOR, NO_EXISTS_BITS);
@@ -1963,8 +1963,8 @@ void VoxelTree::writeToSVOFile(const char* fileName, VoxelNode* node) {
             // and reinsert the node in our bag and try again...
             if (bytesWritten == 0) {
                 if (packet.hasContent()) {
-                    printf("writeToSVOFile()... WRITING %d bytes...\n", packet.getCompressedSize());
-                    file.write((const char*)packet.getCompressedData(), packet.getCompressedSize());
+                    printf("writeToSVOFile()... WRITING %d bytes...\n", packet.getFinalizedSize());
+                    file.write((const char*)packet.getFinalizedData(), packet.getFinalizedSize());
                     lastPacketWritten = true;
                 }
                 packet.reset(); // is there a better way to do this? could we fit more?
@@ -1998,8 +1998,8 @@ void VoxelTree::writeToSVOFile(const char* fileName, VoxelNode* node) {
         }
 
         if (!lastPacketWritten) {
-            printf("writeToSVOFile()... END OF LOOP WRITING %d bytes...\n", packet.getCompressedSize());
-            file.write((const char*)packet.getCompressedData(), packet.getCompressedSize());
+            printf("writeToSVOFile()... END OF LOOP WRITING %d bytes...\n", packet.getFinalizedSize());
+            file.write((const char*)packet.getFinalizedData(), packet.getFinalizedSize());
         }
 
     }
