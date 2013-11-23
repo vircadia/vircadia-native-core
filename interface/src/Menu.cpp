@@ -914,6 +914,9 @@ void Menu::goToDomain() {
             newHostname = domainDialog.textValue();
         }
         
+        // send a node kill request, indicating to other clients that they should play the "disappeared" effect
+        NodeList::getInstance()->sendKillNode(&NODE_TYPE_AVATAR_MIXER, 1);
+        
         // give our nodeList the new domain-server hostname
         NodeList::getInstance()->setDomainHostname(domainDialog.textValue());
     }
@@ -953,8 +956,11 @@ void Menu::goToLocation() {
             glm::vec3 newAvatarPos(x, y, z);
             
             if (newAvatarPos != avatarPos) {
+                // send a node kill request, indicating to other clients that they should play the "disappeared" effect
+                NodeList::getInstance()->sendKillNode(&NODE_TYPE_AVATAR_MIXER, 1);
+                
                 qDebug("Going To Location: %f, %f, %f...\n", x, y, z);
-                myAvatar->setPosition(newAvatarPos);
+                myAvatar->setPosition(newAvatarPos); 
             }
         }
     }
