@@ -4,6 +4,12 @@
 //
 //  Created by Brad Hefta-Gaub on 11/19/2013
 //
+//  TO DO:
+//
+//    *  add stats tracking for number of bytes of octal code, bitmasks, and colors in a packet.
+//    *  add compression
+//    *  improve semantics for "reshuffle" - current approach will work for now, but wouldn't work
+//       with RLE because the colors in the levels would get reordered
 //
 
 #ifndef __hifi__VoxelPacket__
@@ -32,6 +38,7 @@ public:
     /// ends a level without discarding it
     void endLevel();
 
+    /// appends a bitmask to the end of the stream, may fail if new data stream is too long to fit in packet
     bool appendBitMask(unsigned char bitmask);
 
     /// updates the value of a bitmask from a previously appended portion of the uncompressed stream, might fail if the new 
@@ -42,6 +49,7 @@ public:
     /// Might fail if the new bytes would cause packet to be less compressed, or if offset and length was out of range.
     bool updatePriorBytes(int offset, const unsigned char* replacementBytes, int length);
 
+    /// appends a color to the end of the stream, may fail if new data stream is too long to fit in packet
     bool appendColor(rgbColor color);
 
     /// returns a byte offset from beginning of the uncompressed stream based on offset from end. 
@@ -60,9 +68,6 @@ public:
 
     /// has some content been written to the packet
     bool hasContent() const { return (_bytesInUse > 0); }
-    
-    // XXXBHG: TO DO...
-    //  *  add stats tracking for number of bytes of octal code, bitmasks, and colors in a packet.
     
 private:
     /// appends raw bytes, might fail if byte would cause packet to be too large
