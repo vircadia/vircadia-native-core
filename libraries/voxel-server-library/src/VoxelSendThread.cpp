@@ -384,10 +384,7 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
                 _myServer->getServerTree().lockForRead();
                 nodeData->stats.encodeStarted();
 
-                bytesWritten = _myServer->getServerTree().encodeTreeBitstream(subTree, 
-                                                                    _tempOutputBuffer, MAX_VOXEL_PACKET_SIZE - 1,
-                                                                    &_tempPacket,
-                                                                    nodeData->nodeBag, params);
+                bytesWritten = _myServer->getServerTree().encodeTreeBitstream(subTree, &_tempPacket, nodeData->nodeBag, params);
                 if (bytesWritten > 0) {
                     _encodedSomething = true;
                 }

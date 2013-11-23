@@ -164,8 +164,7 @@ public:
     void recurseTreeWithOperationDistanceSorted(RecurseVoxelTreeOperation operation, 
                                                 const glm::vec3& point, void* extraData=NULL);
 
-    int encodeTreeBitstream(VoxelNode* node, unsigned char* outputBuffer, int availableBytes,
-                            VoxelPacket* packet, VoxelNodeBag& bag, 
+    int encodeTreeBitstream(VoxelNode* node, VoxelPacket* packet, VoxelNodeBag& bag, 
                             EncodeBitstreamParams& params) ;
 
     bool isDirty() const { return _isDirty; }
@@ -224,7 +223,6 @@ private:
     void readCodeColorBufferToTreeRecursion(VoxelNode* node, void* extraData);
 
     int encodeTreeBitstreamRecursion(VoxelNode* node, 
-                                     unsigned char* outputBuffer, int availableBytes,
                                      VoxelPacket* packet, VoxelNodeBag& bag, 
                                      EncodeBitstreamParams& params, int& currentEncodeLevel) const;
 
