@@ -73,12 +73,12 @@ bool VoxelNodeData::shouldSuppressDuplicatePacket() {
         // How long has it been since we've sent one, if we're still under our max time, then keep considering
         // this packet for suppression
         uint64_t now = usecTimestampNow();
-        long sinceFirstSuppressedPacket = now - _firstSuppressedPacket;
+        int sinceFirstSuppressedPacket = now - _firstSuppressedPacket;
         const long MAX_TIME_BETWEEN_DUPLICATE_PACKETS = 1000 * 1000; // 1 second.
 
         if (sinceFirstSuppressedPacket < MAX_TIME_BETWEEN_DUPLICATE_PACKETS) {
             // Finally, if we know we've sent at least one duplicate out, then suppress the rest...
-            if (_duplicatePacketCount > 1) {
+            if (_duplicatePacketCount >= 1) {
                 shouldSuppress = true;
             }
         } else {

@@ -290,8 +290,8 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
             uint64_t now = usecTimestampNow();
             nodeData->setLastTimeBagEmpty(now);
         }
-        
         nodeData->stats.sceneCompleted();
+        packetsSentThisInterval += handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
         
         if (_myServer->wantDisplayVoxelStats()) {
             nodeData->stats.printDebugDetails();
@@ -305,6 +305,7 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
         if (isFullScene) {
             nodeData->nodeBag.deleteAll();
         }
+
         nodeData->stats.sceneStarted(isFullScene, viewFrustumChanged, _myServer->getServerTree().rootNode, _myServer->getJurisdiction());
 
         // This is the start of "resending" the scene.
@@ -429,9 +430,6 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
                 }
                 _tempPacket.reset();
             }
-        }
-        if (nodeData->isPacketWaiting()) {
-            packetsSentThisInterval += handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
         }
         
         // send the environment packet
