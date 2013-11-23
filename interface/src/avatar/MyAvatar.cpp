@@ -459,13 +459,37 @@ void MyAvatar::updateFromGyrosAndOrWebcam(bool turnWithHead) {
     if (!Menu::getInstance()->isOptionChecked(MenuOption::MoveWithLean)) {
         return;
     }
+    
+    //  Move with Lean by applying thrust proportional to leaning
+    glm::quat orientation = _head.getCameraOrientation();
+    glm::vec3 front = orientation * IDENTITY_FRONT;
+    glm::vec3 right = orientation * IDENTITY_RIGHT;
+    
+    const float LEAN_FWD_DEAD_ZONE = 2.f;
+    const float LEAN_SIDEWAYS_DEAD_ZONE = 2.f;
+    const float LEAN_FWD_THRUST_SCALE = 1.f;
+    const float LEAN_SIDEWAYS_THRUST_SCALE = 1.f;
+    
+    //printf("%.2f, %.2f\n", _head.getLeanForward(), _head.getLeanSideways());
+    
+    if (fabs(_head.getLeanForward()) > LEAN_FWD_DEAD_ZONE) {
+        addThrust(front * -_head.getLeanForward() * LEAN_FWD_THRUST_SCALE);
+    }
+    if (fabs(_head.getLeanSideways()) > LEAN_SIDEWAYS_DEAD_ZONE) {
+        addThrust(right * -_head.getLeanSideways() * LEAN_SIDEWAYS_THRUST_SCALE);
+    }
+                
+/*
     const float ANGULAR_DRIVE_SCALE = 0.1f;
     const float ANGULAR_DEAD_ZONE = 0.3f;
+
     setDriveKeys(FWD, glm::clamp(-_head.getLeanForward() * ANGULAR_DRIVE_SCALE - ANGULAR_DEAD_ZONE, 0.0f, 1.0f));
     setDriveKeys(BACK, glm::clamp(_head.getLeanForward() * ANGULAR_DRIVE_SCALE - ANGULAR_DEAD_ZONE, 0.0f, 1.0f));
     setDriveKeys(LEFT, glm::clamp(_head.getLeanSideways() * ANGULAR_DRIVE_SCALE - ANGULAR_DEAD_ZONE, 0.0f, 1.0f));
     setDriveKeys(RIGHT, glm::clamp(-_head.getLeanSideways() * ANGULAR_DRIVE_SCALE - ANGULAR_DEAD_ZONE, 0.0f, 1.0f));
+ */
 
+    /*
     // only consider going up if we're not going in any of the four horizontal directions
     if (_driveKeys[FWD] == 0.0f && _driveKeys[BACK] == 0.0f && _driveKeys[LEFT] == 0.0f && _driveKeys[RIGHT] == 0.0f) {
         const float LINEAR_DRIVE_SCALE = 5.0f;
@@ -476,6 +500,7 @@ void MyAvatar::updateFromGyrosAndOrWebcam(bool turnWithHead) {
     } else {
         setDriveKeys(UP, 0.0f);
     }
+     */
 }
 
 static TextRenderer* textRenderer() {
