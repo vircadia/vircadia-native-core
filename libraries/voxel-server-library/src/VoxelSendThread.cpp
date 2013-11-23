@@ -20,7 +20,8 @@ extern EnvironmentData environmentData[3];
 
 VoxelSendThread::VoxelSendThread(const QUuid& nodeUUID, VoxelServer* myServer) :
     _nodeUUID(nodeUUID),
-    _myServer(myServer) {
+    _myServer(myServer),
+    _encodedSomething(false) {
 }
 
 bool VoxelSendThread::process() {
@@ -109,7 +110,7 @@ int VoxelSendThread::handlePacketSend(Node* node, VoxelNodeData* nodeData, int& 
             memcpy(statsMessage + statsMessageLength, nodeData->getPacket(), nodeData->getPacketLength());
             statsMessageLength += nodeData->getPacketLength();
 
-            int thisWastedBytes = MAX_PACKET_SIZE - nodeData->getPacketLength();
+            int thisWastedBytes = MAX_PACKET_SIZE - statsMessageLength; // the statsMessageLength at this point includes data
             ::totalWastedBytes += thisWastedBytes;
             ::totalUncompressed += nodeData->getPacketLengthUncompressed();
             ::totalCompressed += nodeData->getPacketLength();
@@ -290,8 +291,10 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
             uint64_t now = usecTimestampNow();
             nodeData->setLastTimeBagEmpty(now);
         }
-        nodeData->stats.sceneCompleted();
-        packetsSentThisInterval += handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
+        if (_encodedSomething) {
+            nodeData->stats.sceneCompleted();
+            packetsSentThisInterval += handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
+        }
         
         if (_myServer->wantDisplayVoxelStats()) {
             nodeData->stats.printDebugDetails();
@@ -389,6 +392,9 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
                                                                     _tempOutputBuffer, MAX_VOXEL_PACKET_SIZE - 1,
                                                                     &_tempPacket,
                                                                     nodeData->nodeBag, params);
+                if (bytesWritten > 0) {
+                    _encodedSomething = true;
+                }
                 nodeData->stats.encodeStopped();
                 _myServer->getServerTree().unlock();
 

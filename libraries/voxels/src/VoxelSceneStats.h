@@ -32,6 +32,7 @@ public:
     
     /// Call when beginning the computation of a scene. Initializes internal structures
     void sceneStarted(bool fullScene, bool moving, VoxelNode* root, JurisdictionMap* jurisdictionMap);
+    bool getIsSceneStarted() const { return _isStarted; }
 
     /// Call when the computation of a scene is completed. Finalizes internal structures
     void sceneCompleted();
@@ -155,7 +156,7 @@ private:
     int _statsMessageLength;
 
     // scene timing data in usecs
-    bool     _isStarted;
+    bool _isStarted;
     uint64_t _start;
     uint64_t _end;
     uint64_t _elapsed;

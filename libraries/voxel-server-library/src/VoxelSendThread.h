@@ -35,6 +35,7 @@ private:
     
     unsigned char _tempOutputBuffer[MAX_VOXEL_PACKET_SIZE];
     VoxelPacket _tempPacket;
+    bool _encodedSomething;
 };
 
 #endif // __voxel_server__VoxelSendThread__
