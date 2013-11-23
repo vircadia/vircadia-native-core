@@ -127,7 +127,7 @@ int VoxelSendThread::handlePacketSend(Node* node, VoxelNodeData* nodeData, int& 
             // not enough room in the packet, send two packets
             NodeList::getInstance()->getNodeSocket()->send(node->getActiveSocket(), statsMessage, statsMessageLength);
 
-            int thisWastedBytes = MAX_PACKET_SIZE - statsMessageLength; // the statsMessageLength at this point includes data
+            int thisWastedBytes = MAX_PACKET_SIZE - statsMessageLength; // the statsMessageLength is only the stats
             _totalWastedBytes += thisWastedBytes;
             _totalBytes += nodeData->getPacketLength();
             _totalPackets++;

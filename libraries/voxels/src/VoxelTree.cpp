@@ -1055,7 +1055,6 @@ int VoxelTree::encodeTreeBitstream(VoxelNode* node,
             codeLength = 1;
         }
     } else {
-        // new way
         roomForOctalCode = packet->startSubTree(node->getOctalCode());
         codeLength = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(node->getOctalCode()));
     }
