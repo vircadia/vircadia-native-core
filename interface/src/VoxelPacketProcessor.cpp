@@ -8,8 +8,6 @@
 //  Threaded or non-threaded voxel packet receiver for the Application
 //
 
-#include <QByteArray>
-
 #include <PerfStat.h>
 
 #include "Application.h"
