@@ -1533,11 +1533,6 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node,
     // write the child exist bits
     if (continueThisLevel) {
         continueThisLevel = packet->appendBitMask(childrenExistInPacketBits);
-
-        if (!continueThisLevel) {
-            //printf("packet->appendBitMask(childrenExistInPacketBits) returned FALSE....\n");
-        }
-
         
         // old way...
         *writeToThisLevelBuffer = childrenExistInPacketBits;
@@ -1558,9 +1553,6 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node,
         memcpy(outputBuffer, &thisLevelBuffer[0], bytesAtThisLevel);
         outputBuffer   += bytesAtThisLevel;
         availableBytes -= bytesAtThisLevel;
-     } else {
-        //printf("line: %d setting continueThisLevel = false\n",__LINE__);
-        continueThisLevel = false; // ???
      }
  
     if (continueThisLevel && keepDiggingDeeper) {
@@ -1651,11 +1643,15 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node,
 
                     // repair the child exists mask
                     *childExistsPlaceHolderOLD = childrenExistInPacketBits;
-                    packet->updatePriorBitMask(childExistsPlaceHolder, childrenExistInPacketBits);
-
+                    continueThisLevel = packet->updatePriorBitMask(childExistsPlaceHolder, childrenExistInPacketBits);
+                    
                     // If this is the last of the child exists bits, then we're actually be rolling out the entire tree
                     if (params.stats && childrenExistInPacketBits == 0) {
                         params.stats->childBitsRemoved(params.includeExistsBits, params.includeColor);
+                    }
+
+                    if (!continueThisLevel) {
+                        break; // can't continue...
                     }
                     
                     // Note: no need to move the pointer, cause we already stored this
@@ -1664,7 +1660,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node,
         } // end for
 
         // reshuffle here...
-        if (params.wantOcclusionCulling) {
+        if (continueThisLevel && params.wantOcclusionCulling) {
             unsigned char tempReshuffleBuffer[MAX_VOXEL_PACKET_SIZE];
 
             unsigned char* tempBufferTo = &tempReshuffleBuffer[0]; // this is our temporary destination
@@ -1683,7 +1679,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node,
             }
 
             // now that all slices are back in the correct order, copy them to the correct output buffer
-            packet->updatePriorBytes(firstRecursiveSliceOffset, &tempReshuffleBuffer[0], allSlicesSize);
+            continueThisLevel = packet->updatePriorBytes(firstRecursiveSliceOffset, &tempReshuffleBuffer[0], allSlicesSize);
 
             // DO IT AGAIN FOR OLD WAY....
             unsigned char* tempBufferToOLD = &tempReshuffleBuffer[0]; // this is our temporary destination
@@ -1704,8 +1700,6 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node,
             // now that all slices are back in the correct order, copy them to the correct output buffer
             memcpy(firstRecursiveSliceOLD, &tempReshuffleBuffer[0], allSlicesSize);
         }
-
-
     } // end keepDiggingDeeper
 
     // if we were unable to fit this level in our packet, then rewind and add it to the node bag for 
