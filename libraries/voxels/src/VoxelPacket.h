@@ -8,8 +8,9 @@
 //
 //    *  add stats tracking for number of bytes of octal code, bitmasks, and colors in a packet.
 //    *  add compression
-//    *  improve semantics for "reshuffle" - current approach will work for now, but wouldn't work
-//       with RLE because the colors in the levels would get reordered
+//    *  improve semantics for "reshuffle" - current approach will work for now and with compression
+//       but wouldn't work with RLE because the colors in the levels would get reordered and RLE would need
+//       to be recalculated
 //
 
 #ifndef __hifi__VoxelPacket__
@@ -24,9 +25,17 @@ public:
     VoxelPacket();
     ~VoxelPacket();
 
+    /// reset completely, all data is discarded
     void reset();
+    
+    /// call to begin encoding a subtree starting at this point, this will append the octcode to the uncompressed stream
+    /// at this point. May fail if new datastream is too long. In failure case the stream remains in it's previous state.
     bool startSubTree(const unsigned char* octcode = NULL);
+    
+    // call to indicate that the current subtree is complete and changes should be committed.
     void endSubTree();
+
+    // call rollback the current subtree and restore the stream to the state prior to starting the subtree encoding
     void discardSubTree();
 
     /// starts a level marker. returns an opaque key which can be used to discard the level
