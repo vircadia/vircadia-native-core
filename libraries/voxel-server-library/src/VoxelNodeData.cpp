@@ -16,6 +16,7 @@
 VoxelNodeData::VoxelNodeData(Node* owningNode) :
     VoxelQuery(owningNode),
     _viewSent(false),
+    _voxelPacketAvailableBytes(MAX_VOXEL_PACKET_SIZE),
     _maxSearchLevel(1),
     _maxLevelReachedInLastSearch(1),
     _lastTimeBagEmpty(0),
@@ -28,7 +29,6 @@ VoxelNodeData::VoxelNodeData(Node* owningNode) :
     _lodChanged(false),
     _lodInitialized(false)
 {
-    _voxelPacketAvailableBytes = MAX_VOXEL_PACKET_SIZE;
     _voxelPacket = new unsigned char[_voxelPacketAvailableBytes];
     _voxelPacketAt = _voxelPacket;
     _lastVoxelPacket = new unsigned char[_voxelPacketAvailableBytes];
@@ -47,7 +47,7 @@ void VoxelNodeData::initializeVoxelSendThread(VoxelServer* voxelServer) {
 
 bool VoxelNodeData::packetIsDuplicate() const {
     if (_lastVoxelPacketLength == getPacketLength()) {
-        return memcmp(_lastVoxelPacket, getPacket(), getPacketLength()) == 0;
+        return memcmp(_lastVoxelPacket, _voxelPacket, getPacketLength()) == 0;
     }
     return false;
 }
@@ -67,7 +67,7 @@ bool VoxelNodeData::shouldSuppressDuplicatePacket() {
         // How long has it been since we've sent one, if we're still under our max time, then keep considering
         // this packet for suppression
         uint64_t now = usecTimestampNow();
-        int sinceFirstSuppressedPacket = now - _firstSuppressedPacket;
+        long sinceFirstSuppressedPacket = now - _firstSuppressedPacket;
         const long MAX_TIME_BETWEEN_DUPLICATE_PACKETS = 1000 * 1000; // 1 second.
 
         if (sinceFirstSuppressedPacket < MAX_TIME_BETWEEN_DUPLICATE_PACKETS) {
@@ -92,7 +92,7 @@ void VoxelNodeData::resetVoxelPacket() {
     // scene information, (e.g. the root node packet of a static scene), we can use this as a strategy for reducing
     // packet send rate.
     _lastVoxelPacketLength = getPacketLength();
-    memcpy(_lastVoxelPacket, getPacket(), _lastVoxelPacketLength);
+    memcpy(_lastVoxelPacket, _voxelPacket, _lastVoxelPacketLength);
 
     // If we're moving, and the client asked for low res, then we force monochrome, otherwise, use 
     // the clients requested color state.    
