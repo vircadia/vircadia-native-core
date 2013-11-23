@@ -45,7 +45,6 @@ void voxelTutorial(VoxelTree * tree) {
             node->getColor()[0], node->getColor()[1], node->getColor()[2]);
     }
 
-    /***
     // here's an example of how to delete a voxel
     printf("attempting to delete corner point 0,0,0\n");
     tree->deleteVoxelAt(0, 0, 0, voxelSize);
@@ -56,7 +55,6 @@ void voxelTutorial(VoxelTree * tree) {
     } else {
         printf("corner point 0,0,0 does not exists...\n");
     }
-    ***/
 }
 
 
@@ -352,9 +350,7 @@ int main(int argc, const char * argv[])
         unsigned long nodeCount = myTree.getVoxelCount();
         printf("Nodes after adding scenes: %ld nodes\n", nodeCount);
 
-        printf("BEFORE writeToSVOFile()\n");
         myTree.writeToSVOFile("voxels.svo");
-        printf("AFTER writeToSVOFile()\n");
 
     }    
     return 0;

@@ -1832,7 +1832,6 @@ void VoxelTree::writeToSVOFile(const char* fileName, VoxelNode* node) {
             // and reinsert the node in our bag and try again...
             if (bytesWritten == 0) {
                 if (packet.hasContent()) {
-                    printf("writeToSVOFile()... WRITING %d bytes...\n", packet.getFinalizedSize());
                     file.write((const char*)packet.getFinalizedData(), packet.getFinalizedSize());
                     lastPacketWritten = true;
                 }
@@ -1844,7 +1843,6 @@ void VoxelTree::writeToSVOFile(const char* fileName, VoxelNode* node) {
         }
 
         if (!lastPacketWritten) {
-            printf("writeToSVOFile()... END OF LOOP WRITING %d bytes...\n", packet.getFinalizedSize());
             file.write((const char*)packet.getFinalizedData(), packet.getFinalizedSize());
         }
 
