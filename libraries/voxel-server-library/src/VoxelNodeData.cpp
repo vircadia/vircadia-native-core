@@ -13,8 +13,6 @@
 #include <cstdio>
 #include "VoxelSendThread.h"
 
-const int UNCOMPRESSED_SIZE_MULTIPLE = 20;
-
 VoxelNodeData::VoxelNodeData(Node* owningNode) :
     VoxelQuery(owningNode),
     _viewSent(false),
@@ -47,7 +45,7 @@ void VoxelNodeData::initializeVoxelSendThread(VoxelServer* voxelServer) {
     _voxelSendThread->initialize(true);
 }
 
-bool VoxelNodeData::packetIsDuplicate() {
+bool VoxelNodeData::packetIsDuplicate() const {
     if (_lastVoxelPacketLength == getPacketLength()) {
         return memcmp(_lastVoxelPacket, getPacket(), getPacketLength()) == 0;
     }

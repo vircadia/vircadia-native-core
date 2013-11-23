@@ -36,10 +36,10 @@ public:
 
     bool isPacketWaiting() const { return _voxelPacketWaiting; }
 
-    bool packetIsDuplicate();
+    bool packetIsDuplicate() const;
     bool shouldSuppressDuplicatePacket();
 
-    int getAvailable() const { return MAX_VOXEL_PACKET_SIZE - getPacketLength(); }
+    int getAvailable() const { return _voxelPacketAvailableBytes; }
     int getMaxSearchLevel() const { return _maxSearchLevel; };
     void resetMaxSearchLevel() { _maxSearchLevel = 1; };
     void incrementMaxSearchLevel() { _maxSearchLevel++; };
