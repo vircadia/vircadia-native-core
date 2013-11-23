@@ -1027,8 +1027,6 @@ int VoxelTree::encodeTreeBitstream(VoxelNode* node,
                         VoxelPacket* packet, VoxelNodeBag& bag,
                         EncodeBitstreamParams& params) {
 
-
-    unsigned char* originalOutputBuffer = outputBuffer;
     // How many bytes have we written so far at this level;
     int bytesWritten = 0;
 
@@ -1122,21 +1120,6 @@ int VoxelTree::encodeTreeBitstream(VoxelNode* node,
     
     doneEncoding(node);
     
-    // debug compare the buffer to the packet...
-    bool debug = false;
-    if (debug) {
-        printf("encodeTreeBitstream()... bytesWritten=%d\n",bytesWritten);
-        printf("    originalOutputBuffer...\n");
-        outputBufferBits(originalOutputBuffer, bytesWritten);
-        printf("    packet...\n");
-        outputBufferBits(packet->getStartOfBuffer(), bytesWritten);
-        if (memcmp(originalOutputBuffer, packet->getStartOfBuffer(), bytesWritten) == 0) {
-            printf("... they MATCH ...\n");
-        } else {
-            printf("... they DO NOT MATCH!!!!! ...\n");
-        }
-    }
-        
     return bytesWritten;
 }
 
@@ -1952,8 +1935,6 @@ void VoxelTree::writeToSVOFile(const char* fileName, VoxelNode* node) {
         while (!nodeBag.isEmpty()) {
             VoxelNode* subTree = nodeBag.extract();
             
-            int packetStartsAt = packet.getUncompressedByteOffset();
-
             lockForRead(); // do tree locking down here so that we have shorter slices and less thread contention
             EncodeBitstreamParams params(INT_MAX, IGNORE_VIEW_FRUSTUM, WANT_COLOR, NO_EXISTS_BITS);
             bytesWritten = encodeTreeBitstream(subTree, &outputBuffer[0], MAX_VOXEL_PACKET_SIZE - 1, &packet, nodeBag, params);
@@ -1972,29 +1953,6 @@ void VoxelTree::writeToSVOFile(const char* fileName, VoxelNode* node) {
             } else {
                 lastPacketWritten = false;
             }
-            
-            
-            // debug compare the buffer to the packet...
-            bool debug = false;
-            if (debug) {
-                if (bytesWritten > 0) {
-                    unsigned char* packetCompare = packet.getStartOfBuffer() + packetStartsAt;
-                    if (memcmp(&outputBuffer[0], packetCompare, bytesWritten) == 0) {
-                        printf("... they MATCH ...\n");
-                    } else {
-                        printf("... >>>>>>>>>>>> they DO NOT MATCH!!!!! <<<<<<<<<<<<<<< ...\n");
-
-                        printf("writeToSVOFile()... bytesWritten=%d\n",bytesWritten);
-                        printf("    &outputBuffer[0]...\n");
-                        outputBufferBits(&outputBuffer[0], bytesWritten);
-                        printf("    packet...\n");
-                        outputBufferBits(packet.getStartOfBuffer(), bytesWritten);
-
-                        printf("... >>>>>>>>>>>> they DO NOT MATCH!!!!! <<<<<<<<<<<<<<< ...\n");
-                    }
-                }
-            }
-            
         }
 
         if (!lastPacketWritten) {
@@ -2031,6 +1989,8 @@ void VoxelTree::copySubTreeIntoNewTree(VoxelNode* startNode, VoxelTree* destinat
 
     while (!nodeBag.isEmpty()) {
         VoxelNode* subTree = nodeBag.extract();
+        
+        packet.reset(); // reset the packet between usage
 
         // ask our tree to write a bitsteam
         EncodeBitstreamParams params(INT_MAX, IGNORE_VIEW_FRUSTUM, WANT_COLOR, NO_EXISTS_BITS, chopLevels);
@@ -2038,7 +1998,7 @@ void VoxelTree::copySubTreeIntoNewTree(VoxelNode* startNode, VoxelTree* destinat
 
         // ask destination tree to read the bitstream
         ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS);
-        destinationTree->readBitstreamToTree(packet.getStartOfBuffer(), bytesWritten, args);
+        destinationTree->readBitstreamToTree(packet.getUncompressedData(), packet.getUncompressedSize(), args);
     }
 
     VoxelNode* destinationStartNode;
@@ -2061,6 +2021,8 @@ void VoxelTree::copyFromTreeIntoSubTree(VoxelTree* sourceTree, VoxelNode* destin
 
     while (!nodeBag.isEmpty()) {
         VoxelNode* subTree = nodeBag.extract();
+        
+        packet.reset(); // reset between usage
 
         // ask our tree to write a bitsteam
         EncodeBitstreamParams params(INT_MAX, IGNORE_VIEW_FRUSTUM, WANT_COLOR, NO_EXISTS_BITS);
@@ -2069,7 +2031,7 @@ void VoxelTree::copyFromTreeIntoSubTree(VoxelTree* sourceTree, VoxelNode* destin
         // ask destination tree to read the bitstream
         bool wantImportProgress = true;
         ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS, destinationNode, 0, wantImportProgress);
-        readBitstreamToTree(packet.getStartOfBuffer(), bytesWritten, args);
+        readBitstreamToTree(packet.getUncompressedData(), packet.getUncompressedSize(), args);
     }
 }
 

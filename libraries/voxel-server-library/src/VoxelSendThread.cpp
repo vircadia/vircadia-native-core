@@ -386,8 +386,6 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
                 _myServer->getServerTree().lockForRead();
                 nodeData->stats.encodeStarted();
 
-                int packetStartsAt = _tempPacket.getUncompressedByteOffset();
-
                 bytesWritten = _myServer->getServerTree().encodeTreeBitstream(subTree, 
                                                                     _tempOutputBuffer, MAX_VOXEL_PACKET_SIZE - 1,
                                                                     &_tempPacket,
@@ -397,27 +395,6 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
                 }
                 nodeData->stats.encodeStopped();
                 _myServer->getServerTree().unlock();
-
-
-                bool debug = false;
-                if (debug) {
-                    if (bytesWritten > 0) {
-                        unsigned char* packetCompare = _tempPacket.getStartOfBuffer() + packetStartsAt;
-                        if (memcmp(&_tempOutputBuffer[0], packetCompare, bytesWritten) == 0) {
-                            printf("... they MATCH ...\n");
-                        } else {
-                            printf("... >>>>>>>>>>>> they DO NOT MATCH!!!!! <<<<<<<<<<<<<<< ...\n");
-
-                            printf("deepestLevelVoxelDistributor()... bytesWritten=%d\n",bytesWritten);
-                            printf("    &_tempOutputBuffer[0]...\n");
-                            outputBufferBits(&_tempOutputBuffer[0], bytesWritten);
-                            printf("    packet...\n");
-                            outputBufferBits(packetCompare, bytesWritten);
-
-                            printf("... >>>>>>>>>>>> they DO NOT MATCH!!!!! <<<<<<<<<<<<<<< ...\n");
-                        }
-                    }
-                }
             } else {
                 // If the bag was empty then we didn't even attempt to encode, and so we know the bytesWritten were 0
                 bytesWritten = 0;

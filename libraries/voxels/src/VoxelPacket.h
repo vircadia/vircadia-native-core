@@ -45,11 +45,17 @@ public:
     int getUncompressedByteOffset(int offsetFromEnd = 0) const { return _bytesInUse - offsetFromEnd; }
 
     /// get access to the finalized data (it may be compressed or rewritten into optimal form)
-    unsigned char* getFinalizedData() { return &_buffer[0]; } /// get pointer to start of finalized stream
-
+    unsigned char* getFinalizedData() { return &_buffer[0]; }
     /// get size of the finalized data (it may be compressed or rewritten into optimal form)
-    int getFinalizedSize() const { return _bytesInUse; } /// the size of the packet in compressed form
-    
+    int getFinalizedSize() const { return _bytesInUse; }
+
+    /// get pointer to the start of uncompressed stream buffer
+    unsigned char* getUncompressedData() { return &_buffer[0]; }
+    /// the size of the packet in uncompressed form
+    int getUncompressedSize() { return _bytesInUse; }
+
+    /// has some content been written to the packet
+    bool hasContent() const { return (_bytesInUse > 0); }
     
     ////////////////////////////////////
     // XXXBHG: Questions...
@@ -61,12 +67,6 @@ public:
     //     might implement, since the order of the colors would clearly change.
     //
     //  2) add stats tracking for number of bytes of octal code, bitmasks, and colors in a packet.
-    
-    
-    /// has some content been written to the packet
-    bool hasContent() const { return (_bytesInUse > 0); }
-    
-    unsigned char* getStartOfBuffer() { return &_buffer[0]; } /// get pointer to the start of stream buffer
     unsigned char* getEndOfBuffer() { return &_buffer[_bytesInUse]; } /// get pointer to current end of stream buffer
     
 private:
