@@ -101,7 +101,6 @@ void VoxelNodeData::resetVoxelPacket() {
 
     int numBytesPacketHeader = populateTypeAndVersion(_voxelPacket, voxelPacketType);
     _voxelPacketAt = _voxelPacket + numBytesPacketHeader;
-    
     _voxelPacketAvailableBytes = MAX_VOXEL_PACKET_SIZE - numBytesPacketHeader;
     _voxelPacketWaiting = false;
 }

@@ -286,8 +286,6 @@ int VoxelTree::readNodeData(VoxelNode* destinationNode, const unsigned char* nod
             // now also check the childrenInTreeMask, if the mask is missing the bit, then it means we need to delete this child
             // subtree/node, because it shouldn't actually exist in the tree.
             if (!oneAtBit(childrenInTreeMask, i) && destinationNode->getChildAtIndex(i)) {
-printf("CALLING destinationNode->safeDeepDeleteChildAtIndex(i) because of EXISTS_BITS destinationNode->level=%d childIndex=%d\n",
-    destinationNode->getLevel(), i);
                 destinationNode->safeDeepDeleteChildAtIndex(i);
                 _isDirty = true; // by definition!
             }
@@ -333,7 +331,7 @@ void VoxelTree::readBitstreamToTree(const unsigned char * bitstream, unsigned lo
         
         theseBytesRead += readNodeData(bitstreamRootNode, bitstreamAt + octalCodeBytes, 
                                        bufferSizeBytes - (bytesRead + octalCodeBytes), args);
-                                       
+
         // skip bitstream to new startPoint
         bitstreamAt += theseBytesRead;
         bytesRead +=  theseBytesRead;
@@ -1617,7 +1615,6 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node,
             params.stats->didntFit(node);
         }
 
-        //printf("line: %d <<!continueThisLevel>> returning 0...\n",__LINE__);
         return 0;
     }
 
