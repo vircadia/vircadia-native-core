@@ -1439,12 +1439,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node,
         for (int i = 0; i < NUMBER_OF_CHILDREN; i++) {
             if (oneAtBit(childrenColoredBits, i)) {
                 VoxelNode* childNode = node->getChildAtIndex(i);
-                
-                rgbColor color;
-                color[0] = childNode->getColor()[0];
-                color[1] = childNode->getColor()[1];
-                color[2] = childNode->getColor()[2];
-                continueThisLevel = packet->appendColor(color);
+                continueThisLevel = packet->appendColor(childNode->getColor());
                 
                 if (!continueThisLevel) {
                     break; // no point in continuing

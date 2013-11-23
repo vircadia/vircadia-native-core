@@ -116,14 +116,14 @@ bool VoxelPacket::appendBitMask(unsigned char bitmask) {
     return success;
 }
 
-bool VoxelPacket::appendColor(rgbColor color) {
+bool VoxelPacket::appendColor(const nodeColor& color) {
     // eventually we can make this use a dictionary...
     bool success = false;
     const int BYTES_PER_COLOR = 3;
     if (_bytesAvailable > BYTES_PER_COLOR) {
-        append(color[0]);
-        append(color[1]);
-        append(color[2]);
+        append(color[RED_INDEX]);
+        append(color[GREEN_INDEX]);
+        append(color[BLUE_INDEX]);
         success = true;
     }
     return success;

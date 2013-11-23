@@ -59,7 +59,7 @@ public:
     bool updatePriorBytes(int offset, const unsigned char* replacementBytes, int length);
 
     /// appends a color to the end of the stream, may fail if new data stream is too long to fit in packet
-    bool appendColor(rgbColor color);
+    bool appendColor(const nodeColor& color);
 
     /// returns a byte offset from beginning of the uncompressed stream based on offset from end. 
     /// Positive offsetFromEnd returns that many bytes before the end of uncompressed stream
