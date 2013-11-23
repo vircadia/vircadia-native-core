@@ -58,20 +58,7 @@ void VoxelPacketProcessor::processPacket(sockaddr& senderAddress, unsigned char*
                 app->_environment.parseData(&senderAddress, packetData, messageLength);
             } else {
                 app->_voxels.setDataSourceUUID(voxelServer->getUUID());
-                
-                // these packets are commpressed...
-                if (VOXEL_PACKETS_COMPRESSED) {
-                    int numBytesPacketHeader = numBytesForPacketHeader(packetData);
-                    QByteArray compressedData((const char*)packetData + numBytesPacketHeader, 
-                                            messageLength - numBytesPacketHeader);
-                    QByteArray uncompressedData = qUncompress(compressedData);
-                    QByteArray uncompressedPacket((const char*)packetData, numBytesPacketHeader);
-                    uncompressedPacket.append(uncompressedData);
-
-                    app->_voxels.parseData((unsigned char*)uncompressedPacket.data(), uncompressedPacket.size());
-                } else {
-                    app->_voxels.parseData(packetData, messageLength);
-                }
+                app->_voxels.parseData(packetData, messageLength);
                 app->_voxels.setDataSourceUUID(QUuid());
             }
         }

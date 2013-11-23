@@ -129,3 +129,29 @@ bool VoxelPacket::appendColor(rgbColor color) {
     return success;
 }
 
+/***
+void VoxelPacket::compressPacket() { 
+    int uncompressedLength = getPacketLengthUncompressed();
+    const int MAX_COMPRESSION = 9;
+    // we only want to compress the data payload, not the message header
+    int numBytesPacketHeader = numBytesForPacketHeader(_voxelPacket);
+    QByteArray compressedData = qCompress(_voxelPacket+numBytesPacketHeader, 
+                                    uncompressedLength-numBytesPacketHeader, MAX_COMPRESSION);
+    _compressedPacket.clear();
+    _compressedPacket.append((const char*)_voxelPacket, numBytesPacketHeader);
+    _compressedPacket.append(compressedData);
+}
+
+void VoxelPacket::uncompressPacket() { 
+    int numBytesPacketHeader = numBytesForPacketHeader(packetData);
+    QByteArray compressedData((const char*)packetData + numBytesPacketHeader, 
+                            messageLength - numBytesPacketHeader);
+    QByteArray uncompressedData = qUncompress(compressedData);
+    QByteArray uncompressedPacket((const char*)packetData, numBytesPacketHeader);
+    uncompressedPacket.append(uncompressedData);
+    //app->_voxels.parseData((unsigned char*)uncompressedPacket.data(), uncompressedPacket.size());
+}
+***/
+
+
+

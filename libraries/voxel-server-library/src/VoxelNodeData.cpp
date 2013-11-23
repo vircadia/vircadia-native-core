@@ -30,11 +30,7 @@ VoxelNodeData::VoxelNodeData(Node* owningNode) :
     _lodChanged(false),
     _lodInitialized(false)
 {
-    if (VOXEL_PACKETS_COMPRESSED) {
-        _voxelPacketAvailableBytes = MAX_VOXEL_PACKET_SIZE * UNCOMPRESSED_SIZE_MULTIPLE;
-    } else {
-        _voxelPacketAvailableBytes = MAX_VOXEL_PACKET_SIZE;
-    }
+    _voxelPacketAvailableBytes = MAX_VOXEL_PACKET_SIZE;
     _voxelPacket = new unsigned char[_voxelPacketAvailableBytes];
     _voxelPacketAt = _voxelPacket;
     _lastVoxelPacket = new unsigned char[_voxelPacketAvailableBytes];
@@ -108,48 +104,8 @@ void VoxelNodeData::resetVoxelPacket() {
     int numBytesPacketHeader = populateTypeAndVersion(_voxelPacket, voxelPacketType);
     _voxelPacketAt = _voxelPacket + numBytesPacketHeader;
     
-    if (VOXEL_PACKETS_COMPRESSED) {
-        _voxelPacketAvailableBytes = (MAX_VOXEL_PACKET_SIZE * UNCOMPRESSED_SIZE_MULTIPLE) - numBytesPacketHeader;
-        compressPacket();
-    } else {
-        _voxelPacketAvailableBytes = MAX_VOXEL_PACKET_SIZE - numBytesPacketHeader;
-    }
+    _voxelPacketAvailableBytes = MAX_VOXEL_PACKET_SIZE - numBytesPacketHeader;
     _voxelPacketWaiting = false;
-}
-
-bool VoxelNodeData::willFit(unsigned char* buffer, int bytes) {
-    bool wouldFit = false;
-    if (VOXEL_PACKETS_COMPRESSED) {
-        int uncompressedLength = getPacketLengthUncompressed();
-        const int MAX_COMPRESSION = 9;
-        // we only want to compress the data payload, not the message header
-        int numBytesPacketHeader = numBytesForPacketHeader(_voxelPacket);
-    
-        // start with the current uncompressed data
-        QByteArray uncompressedTestData((const char*)_voxelPacket + numBytesPacketHeader, 
-                                        uncompressedLength - numBytesPacketHeader);
-
-        // append this next buffer...
-        uncompressedTestData.append((const char*)buffer, bytes);
-
-        // test compress it
-        QByteArray compressedData = qCompress(uncompressedTestData, MAX_COMPRESSION);
-    
-        wouldFit = (compressedData.size() + numBytesPacketHeader) <= MAX_VOXEL_PACKET_SIZE;
-    
-        /*
-        if (!wouldFit) {
-            printf("would not fit... previous size: %d, buffer size: %d, would be:%d MAX_VOXEL_PACKET_SIZE: %d\n",
-                getPacketLength(), bytes, (compressedData.size() + numBytesPacketHeader), MAX_VOXEL_PACKET_SIZE);
-        } else {
-            printf("would fit... previous size: %d, buffer size: %d, would be:%d MAX_VOXEL_PACKET_SIZE: %d\n",
-                getPacketLength(), bytes, (compressedData.size() + numBytesPacketHeader), MAX_VOXEL_PACKET_SIZE);
-        }
-        */
-    } else {
-        wouldFit = bytes <= _voxelPacketAvailableBytes;
-    }
-    return wouldFit;
 }
 
 void VoxelNodeData::writeToPacket(unsigned char* buffer, int bytes) {
@@ -157,40 +113,6 @@ void VoxelNodeData::writeToPacket(unsigned char* buffer, int bytes) {
     _voxelPacketAvailableBytes -= bytes;
     _voxelPacketAt += bytes;
     _voxelPacketWaiting = true;
-    compressPacket();
-}
-
-const unsigned char* VoxelNodeData::getPacket() const { 
-    if (VOXEL_PACKETS_COMPRESSED) {
-        return (const unsigned char*)_compressedPacket.constData(); 
-    }
-    return _voxelPacket;
-}
-
-int VoxelNodeData::getPacketLength() const { 
-    if (VOXEL_PACKETS_COMPRESSED) {
-        return _compressedPacket.size(); 
-    }
-    return getPacketLengthUncompressed();
-}
-
-int VoxelNodeData::getPacketLengthUncompressed() const { 
-    if (VOXEL_PACKETS_COMPRESSED) {
-        return (MAX_VOXEL_PACKET_SIZE * UNCOMPRESSED_SIZE_MULTIPLE) - _voxelPacketAvailableBytes;
-    }
-    return MAX_VOXEL_PACKET_SIZE - _voxelPacketAvailableBytes;
-}
-
-void VoxelNodeData::compressPacket() { 
-    int uncompressedLength = getPacketLengthUncompressed();
-    const int MAX_COMPRESSION = 9;
-    // we only want to compress the data payload, not the message header
-    int numBytesPacketHeader = numBytesForPacketHeader(_voxelPacket);
-    QByteArray compressedData = qCompress(_voxelPacket+numBytesPacketHeader, 
-                                    uncompressedLength-numBytesPacketHeader, MAX_COMPRESSION);
-    _compressedPacket.clear();
-    _compressedPacket.append((const char*)_voxelPacket, numBytesPacketHeader);
-    _compressedPacket.append(compressedData);
 }
 
 VoxelNodeData::~VoxelNodeData() {

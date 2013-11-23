@@ -112,14 +112,14 @@ int VoxelSendThread::handlePacketSend(Node* node, VoxelNodeData* nodeData, int& 
 
             int thisWastedBytes = MAX_PACKET_SIZE - statsMessageLength; // the statsMessageLength at this point includes data
             ::totalWastedBytes += thisWastedBytes;
-            ::totalUncompressed += nodeData->getPacketLengthUncompressed();
+            ::totalUncompressed += nodeData->getPacketLength();
             ::totalCompressed += nodeData->getPacketLength();
             ::totalPackets++;
             if (debug) {
                 qDebug("line: %d - Adding stats to packet [%d]: uncompress size:%d [%d], compressed size:%d [%d] thisWastedBytes:%d [%d]\n",
                     __LINE__,
                     totalPackets,
-                    nodeData->getPacketLengthUncompressed(), ::totalUncompressed,
+                    nodeData->getPacketLength(), ::totalUncompressed,
                     nodeData->getPacketLength(), ::totalCompressed,
                     thisWastedBytes, ::totalWastedBytes);
             }
@@ -156,14 +156,14 @@ int VoxelSendThread::handlePacketSend(Node* node, VoxelNodeData* nodeData, int& 
 
             thisWastedBytes = MAX_PACKET_SIZE - nodeData->getPacketLength();
             ::totalWastedBytes += thisWastedBytes;
-            ::totalUncompressed += nodeData->getPacketLengthUncompressed();
+            ::totalUncompressed += nodeData->getPacketLength();
             ::totalCompressed += nodeData->getPacketLength();
             ::totalPackets++;
             if (debug) {
                 qDebug("line: %d - Sending packet [%d]: uncompress size:%d [%d], compressed size:%d [%d] thisWastedBytes:%d [%d]\n",
                     __LINE__,
                     totalPackets,
-                    nodeData->getPacketLengthUncompressed(), ::totalUncompressed,
+                    nodeData->getPacketLength(), ::totalUncompressed,
                     nodeData->getPacketLength(), ::totalCompressed,
                     thisWastedBytes, ::totalWastedBytes);
             }
@@ -179,14 +179,14 @@ int VoxelSendThread::handlePacketSend(Node* node, VoxelNodeData* nodeData, int& 
 
             int thisWastedBytes = MAX_PACKET_SIZE - nodeData->getPacketLength();
             ::totalWastedBytes += thisWastedBytes;
-            ::totalUncompressed += nodeData->getPacketLengthUncompressed();
+            ::totalUncompressed += nodeData->getPacketLength();
             ::totalCompressed += nodeData->getPacketLength();
             ::totalPackets++;
             if (debug) {
                 qDebug("line: %d - Sending packet [%d]: uncompress size:%d [%d], compressed size:%d [%d] thisWastedBytes:%d [%d]\n",
                     __LINE__,
                     totalPackets,
-                    nodeData->getPacketLengthUncompressed(), ::totalUncompressed,
+                    nodeData->getPacketLength(), ::totalUncompressed,
                     nodeData->getPacketLength(), ::totalCompressed,
                     thisWastedBytes, ::totalWastedBytes);
             }
