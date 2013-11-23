@@ -32,8 +32,18 @@ public:
     bool append(const unsigned char* data, int length); /// appends raw bytes
     bool append(unsigned char byte); /// append a single byte
     bool setByte(int offset, unsigned char byte); /// sets a single raw byte from previously appended portion of the stream
-    int getBytesInUse() const { return _bytesInUse; }
-    int getBytesAvailable() const { return _bytesAvailable; }
+
+    //int getBytesInUse() const { return _bytesInUse; }
+    //int getBytesAvailable() const { return _bytesAvailable; }
+
+    unsigned char* getCompressedData() { return &_buffer[0]; } /// get pointer to start of compressed stream
+    int getCompressedSize() const { return _bytesInUse; } /// the size of the packet in compressed form
+
+    /// returns the offset of the next uncompressed byte to be written 
+    int getNextByteUncompressed() const { return _bytesInUse; } 
+    
+    /// has some content been written to the packet
+    bool hasContent() const { return (_bytesInUse > 0); }
     
     /// returns a byte offset from beginning of stream based on offset from end. 
     /// Positive offsetFromEnd returns that many bytes before the end
@@ -41,7 +51,7 @@ public:
         return _bytesInUse - offsetFromEnd;
     }
     
-    unsigned char* getStartOfBuffer() { return &_buffer[0]; } /// get pointer to current end of stream buffer
+    unsigned char* getStartOfBuffer() { return &_buffer[0]; } /// get pointer to the start of stream buffer
     unsigned char* getEndOfBuffer() { return &_buffer[_bytesInUse]; } /// get pointer to current end of stream buffer
     
     

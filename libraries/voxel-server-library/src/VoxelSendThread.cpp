@@ -386,7 +386,7 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
                 _myServer->getServerTree().lockForRead();
                 nodeData->stats.encodeStarted();
 
-                int packetStartsAt = _tempPacket.getBytesInUse();
+                int packetStartsAt = _tempPacket.getNextByteUncompressed();
 
                 bytesWritten = _myServer->getServerTree().encodeTreeBitstream(subTree, 
                                                                     _tempOutputBuffer, MAX_VOXEL_PACKET_SIZE - 1,
@@ -427,13 +427,9 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
             // We only consider sending anything if there is something in the _tempPacket to send... But
             // if bytesWritten == 0 it means either the subTree couldn't fit or we had an empty bag... Both cases
             // mean we should send the previous packet contents and reset it. 
-            if (_tempPacket.getBytesInUse() > 0 && bytesWritten == 0) {
-                if (nodeData->willFit(_tempPacket.getStartOfBuffer(), _tempPacket.getBytesInUse())) {
-                    nodeData->writeToPacket(_tempPacket.getStartOfBuffer(), _tempPacket.getBytesInUse());
-                } else {
-                    packetsSentThisInterval += handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
-                    nodeData->writeToPacket(_tempPacket.getStartOfBuffer(), _tempPacket.getBytesInUse());
-                }
+            if (_tempPacket.hasContent() && bytesWritten == 0) {
+                nodeData->writeToPacket(_tempPacket.getCompressedData(), _tempPacket.getCompressedSize());
+                packetsSentThisInterval += handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
                 _tempPacket.reset();
             }
         }

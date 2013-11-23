@@ -1048,9 +1048,6 @@ int VoxelTree::encodeTreeBitstream(VoxelNode* node,
     
     // write the octal code
     bool roomForOctalCode = false; // assume the worst
-    if (packet->getBytesInUse() > 0) {
-        //printf("line: %d calling packet->startSubTree()... packet->getBytesInUse()=%d\n", __LINE__, packet->getBytesInUse());
-    }
     int codeLength;
     if (params.chopLevels) {
         unsigned char* newCode = chopOctalCode(node->getOctalCode(), params.chopLevels);
@@ -1081,7 +1078,6 @@ int VoxelTree::encodeTreeBitstream(VoxelNode* node,
     // If the octalcode couldn't fit, then we can return, because no nodes below us will fit...
     if (!roomForOctalCode) {
         doneEncoding(node);
-        //printf(">>>>>>>>>>>>>>>>>>>>>>>>>  line: %d !roomForOctalCode packet->getBytesInUse()=%d\n", __LINE__, packet->getBytesInUse());
         return bytesWritten;
     }
     
@@ -1090,9 +1086,6 @@ int VoxelTree::encodeTreeBitstream(VoxelNode* node,
     // old way...
     outputBuffer += codeLength; // move the pointer
     availableBytes -= codeLength; // keep track or remaining space
-    if (packet->getBytesInUse() > 1) {
-        //printf("line: %d called packet->startSubTree()... AFTER packet->getBytesInUse()=%d codeLength=%d\n", __LINE__, packet->getBytesInUse(),codeLength);
-    }
 
     int currentEncodeLevel = 0;
     
@@ -1122,18 +1115,9 @@ int VoxelTree::encodeTreeBitstream(VoxelNode* node,
     }
     
     if (bytesWritten == 0) {
-        if (packet->getBytesInUse() > 1) {
-            //printf(">>>>>>>>>>>>>>>>>>> line: %d <<bytesWritten == 0>> calling packet->discardSubTree()... BEFORE packet->getBytesInUse()=%d <<<<<<<<<<<<<\n", __LINE__, packet->getBytesInUse());
-        }
         packet->discardSubTree();
-        if (packet->getBytesInUse() > 0) {
-            //printf(">>>>>>>>>>>>>>>>>>> line: %d <<bytesWritten == 0>> calling packet->discardSubTree()... AFTER packet->getBytesInUse()=%d <<<<<<<<<<<<<\n", __LINE__, packet->getBytesInUse());
-        }
     } else {
         packet->endSubTree();
-        if (packet->getBytesInUse() > 0) {
-            //printf("line: %d <<bytesWritten != 0>> calling packet->endSubTree()... AFTER packet->getBytesInUse()=%d\n", __LINE__, packet->getBytesInUse());
-        }
     }
     
     doneEncoding(node);
@@ -1308,7 +1292,6 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node,
     // Make our local buffer large enough to handle writing at this level in case we need to.
     unsigned char thisLevelBuffer[MAX_LEVEL_BYTES];
     unsigned char* writeToThisLevelBuffer = &thisLevelBuffer[0];
-    //printf("line: %d calling packet->startLevel()... packet->getBytesInUse()=%d\n",__LINE__,packet->getBytesInUse());
     packet->startLevel();
 
     int inViewCount = 0;
@@ -1599,9 +1582,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node,
     // if we were unable to fit this level in our packet, then rewind and add it to the node bag for 
     // sending later...
     if (!continueThisLevel) {
-        //printf("line: %d <<!continueThisLevel>> calling packet->discardLevel()... BEFORE packet->getBytesInUse()=%d\n",__LINE__,packet->getBytesInUse());
         packet->discardLevel();
-        //printf("line: %d <<!continueThisLevel>> called packet->discardLevel()... AFTER packet->getBytesInUse()=%d\n",__LINE__,packet->getBytesInUse());
         bag.insert(node);
 
         // don't need to check node here, because we can't get here with no node
@@ -1971,7 +1952,7 @@ void VoxelTree::writeToSVOFile(const char* fileName, VoxelNode* node) {
         while (!nodeBag.isEmpty()) {
             VoxelNode* subTree = nodeBag.extract();
             
-            int packetStartsAt = packet.getBytesInUse();
+            int packetStartsAt = packet.getNextByteUncompressed();
 
             lockForRead(); // do tree locking down here so that we have shorter slices and less thread contention
             EncodeBitstreamParams params(INT_MAX, IGNORE_VIEW_FRUSTUM, WANT_COLOR, NO_EXISTS_BITS);
@@ -1981,9 +1962,9 @@ void VoxelTree::writeToSVOFile(const char* fileName, VoxelNode* node) {
             // if bytesWritten == 0, then it means that the subTree couldn't fit, and so we should reset the packet
             // and reinsert the node in our bag and try again...
             if (bytesWritten == 0) {
-                if (packet.getBytesInUse()) {
-                    printf("writeToSVOFile()... WRITING %d bytes...\n", packet.getBytesInUse());
-                    file.write((const char*)packet.getStartOfBuffer(), packet.getBytesInUse());
+                if (packet.hasContent()) {
+                    printf("writeToSVOFile()... WRITING %d bytes...\n", packet.getCompressedSize());
+                    file.write((const char*)packet.getCompressedData(), packet.getCompressedSize());
                     lastPacketWritten = true;
                 }
                 packet.reset(); // is there a better way to do this? could we fit more?
@@ -2017,8 +1998,8 @@ void VoxelTree::writeToSVOFile(const char* fileName, VoxelNode* node) {
         }
 
         if (!lastPacketWritten) {
-            printf("writeToSVOFile()... END OF LOOP WRITING %d bytes...\n", packet.getBytesInUse());
-            file.write((const char*)packet.getStartOfBuffer(), packet.getBytesInUse());
+            printf("writeToSVOFile()... END OF LOOP WRITING %d bytes...\n", packet.getCompressedSize());
+            file.write((const char*)packet.getCompressedData(), packet.getCompressedSize());
         }
 
     }
