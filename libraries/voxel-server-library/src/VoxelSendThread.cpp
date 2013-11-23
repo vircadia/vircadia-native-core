@@ -212,8 +212,6 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
     int packetsSentThisInterval = 0;
     bool somethingToSend = true; // assume we have something
 
-    _tempPacket.reset(); // reset at top of distributor
-
     // FOR NOW... node tells us if it wants to receive only view frustum deltas
     bool wantDelta = viewFrustumChanged && nodeData->getWantDelta();
 
@@ -404,7 +402,8 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
             // We only consider sending anything if there is something in the _tempPacket to send... But
             // if bytesWritten == 0 it means either the subTree couldn't fit or we had an empty bag... Both cases
             // mean we should send the previous packet contents and reset it. 
-            if (_tempPacket.hasContent() && bytesWritten == 0) {
+            bool sendNow = (bytesWritten == 0);
+            if (_tempPacket.hasContent() && sendNow) {
                 nodeData->writeToPacket(_tempPacket.getFinalizedData(), _tempPacket.getFinalizedSize());
                 packetsSentThisInterval += handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
                 _tempPacket.reset();

@@ -16,7 +16,6 @@ void VoxelPacket::reset() {
     _bytesInUse = 0;
     _bytesAvailable = MAX_VOXEL_PACKET_SIZE;
     _subTreeAt = 0;
-    _levelAt = 0;
 }
 
 VoxelPacket::~VoxelPacket() {
@@ -54,6 +53,15 @@ bool VoxelPacket::updatePriorBitMask(int offset, unsigned char bitmask) {
     return success;
 }
 
+bool VoxelPacket::updatePriorBytes(int offset, const unsigned char* replacementBytes, int length) {
+    bool success = false;
+    if (length >= 0 && offset >= 0 && ((offset + length) <= _bytesInUse)) {
+        memcpy(&_buffer[offset], replacementBytes, length);
+        success = true;
+    }
+    return success;
+}
+
 bool VoxelPacket::startSubTree(const unsigned char* octcode) {
     bool success = false;
     int possibleStartAt = _bytesInUse;
@@ -79,6 +87,7 @@ void VoxelPacket::discardSubTree() {
     int bytesInSubTree = _bytesInUse - _subTreeAt;
     _bytesInUse -= bytesInSubTree;
     _bytesAvailable += bytesInSubTree; 
+    _subTreeAt = _bytesInUse; // should be the same actually...
 }
 
 int VoxelPacket::startLevel() {
@@ -95,7 +104,6 @@ void VoxelPacket::discardLevel(int key) {
 void VoxelPacket::endLevel() {
     // nothing to do
 }
-
 
 bool VoxelPacket::appendBitMask(unsigned char bitmask) {
     bool success = false;

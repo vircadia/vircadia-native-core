@@ -38,6 +38,10 @@ public:
     /// bitmask would cause packet to be less compressed, or if offset was out of range.
     bool updatePriorBitMask(int offset, unsigned char bitmask); 
 
+    /// updates the uncompressed content of the stream starting at byte offset with replacementBytes for length.
+    /// Might fail if the new bytes would cause packet to be less compressed, or if offset and length was out of range.
+    bool updatePriorBytes(int offset, const unsigned char* replacementBytes, int length);
+
     bool appendColor(rgbColor color);
 
     /// returns a byte offset from beginning of the uncompressed stream based on offset from end. 
@@ -50,24 +54,15 @@ public:
     int getFinalizedSize() const { return _bytesInUse; }
 
     /// get pointer to the start of uncompressed stream buffer
-    unsigned char* getUncompressedData() { return &_buffer[0]; }
+    const unsigned char* getUncompressedData() { return &_buffer[0]; }
     /// the size of the packet in uncompressed form
     int getUncompressedSize() { return _bytesInUse; }
 
     /// has some content been written to the packet
     bool hasContent() const { return (_bytesInUse > 0); }
     
-    ////////////////////////////////////
-    // XXXBHG: Questions...
-    //  Slice Reshuffle...
-    //
-    //  1) getEndOfBuffer() is used by recursive slice shuffling... is there a safer API for that? This usage would probably
-    //     break badly with compression... Especially since we do a memcpy into the uncompressed buffer, we'd need to
-    //     add an "updateBytes()" method... which could definitely fail on compression.... It would also break any RLE we
-    //     might implement, since the order of the colors would clearly change.
-    //
-    //  2) add stats tracking for number of bytes of octal code, bitmasks, and colors in a packet.
-    unsigned char* getEndOfBuffer() { return &_buffer[_bytesInUse]; } /// get pointer to current end of stream buffer
+    // XXXBHG: TO DO...
+    //  *  add stats tracking for number of bytes of octal code, bitmasks, and colors in a packet.
     
 private:
     /// appends raw bytes, might fail if byte would cause packet to be too large
@@ -80,7 +75,6 @@ private:
     int _bytesInUse;
     int _bytesAvailable;
     int _subTreeAt;
-    int _levelAt;
 };
 
 #endif /* defined(__hifi__VoxelPacket__) */

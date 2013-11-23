@@ -144,10 +144,10 @@ public:
 
     void eraseAllVoxels();
 
-    void processRemoveVoxelBitstream(unsigned char* bitstream, int bufferSizeBytes);
-    void readBitstreamToTree(unsigned char* bitstream,  unsigned long int bufferSizeBytes, ReadBitstreamToTreeParams& args);
-    void readCodeColorBufferToTree(unsigned char* codeColorBuffer, bool destructive = false);
-    void deleteVoxelCodeFromTree(unsigned char* codeBuffer, bool collapseEmptyTrees = DONT_COLLAPSE);
+    void processRemoveVoxelBitstream(const unsigned char* bitstream, int bufferSizeBytes);
+    void readBitstreamToTree(const unsigned char* bitstream,  unsigned long int bufferSizeBytes, ReadBitstreamToTreeParams& args);
+    void readCodeColorBufferToTree(const unsigned char* codeColorBuffer, bool destructive = false);
+    void deleteVoxelCodeFromTree(const unsigned char* codeBuffer, bool collapseEmptyTrees = DONT_COLLAPSE);
     void printTreeForDebugging(VoxelNode* startNode);
     void reaverageVoxelColors(VoxelNode* startNode);
 
@@ -231,8 +231,9 @@ private:
     static bool countVoxelsOperation(VoxelNode* node, void* extraData);
 
     VoxelNode* nodeForOctalCode(VoxelNode* ancestorNode, const unsigned char* needleCode, VoxelNode** parentOfFoundNode) const;
-    VoxelNode* createMissingNode(VoxelNode* lastParentNode, unsigned char* deepestCodeToCreate);
-    int readNodeData(VoxelNode *destinationNode, unsigned char* nodeData, int bufferSizeBytes, ReadBitstreamToTreeParams& args);
+    VoxelNode* createMissingNode(VoxelNode* lastParentNode, const unsigned char* codeToReach);
+    int readNodeData(VoxelNode *destinationNode, const unsigned char* nodeData, 
+                int bufferSizeBytes, ReadBitstreamToTreeParams& args);
     
     bool _isDirty;
     unsigned long int _nodesChangedFromBitstream;
@@ -250,26 +251,26 @@ private:
     /// Called to indicate that a VoxelNode is done being encoded.
     void doneEncoding(VoxelNode* node);
     /// Is the Octal Code currently being deleted?
-    bool isEncoding(unsigned char* codeBuffer);
+    bool isEncoding(const unsigned char* codeBuffer);
 
     /// Octal Codes of any subtrees currently being deleted. While any of these codes is being deleted, ancestors and 
     /// descendants of them can not be encoded.
-    std::set<unsigned char*>  _codesBeingDeleted;
+    std::set<const unsigned char*> _codesBeingDeleted;
     /// mutex lock to protect the deleting set
     pthread_mutex_t _deleteSetLock;
 
     /// Called to indicate that an octal code is in the process of being deleted.
-    void startDeleting(unsigned char* code);
+    void startDeleting(const unsigned char* code);
     /// Called to indicate that an octal code is done being deleted.
-    void doneDeleting(unsigned char* code);
+    void doneDeleting(const unsigned char* code);
     /// Octal Codes that were attempted to be deleted but couldn't be because they were actively being encoded, and were
     /// instead queued for later delete
-    std::set<unsigned char*>  _codesPendingDelete;
+    std::set<const unsigned char*> _codesPendingDelete;
     /// mutex lock to protect the deleting set
     pthread_mutex_t _deletePendingSetLock;
 
     /// Adds an Octal Code to the set of codes that needs to be deleted
-    void queueForLaterDelete(unsigned char* codeBuffer);
+    void queueForLaterDelete(const unsigned char* codeBuffer);
     /// flushes out any Octal Codes that had to be queued
     void emptyDeleteQueue();
 
