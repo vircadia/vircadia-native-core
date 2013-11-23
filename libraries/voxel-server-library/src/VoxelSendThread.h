@@ -36,6 +36,11 @@ private:
     unsigned char _tempOutputBuffer[MAX_VOXEL_PACKET_SIZE];
     VoxelPacket _tempPacket;
     bool _encodedSomething;
+    
+    static uint64_t _totalBytes;
+    static uint64_t _totalWastedBytes;
+    static uint64_t _totalPackets;
+    
 };
 
 #endif // __voxel_server__VoxelSendThread__
