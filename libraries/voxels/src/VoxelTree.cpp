@@ -1600,8 +1600,14 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node,
 
     // if we were unable to fit this level in our packet, then rewind and add it to the node bag for 
     // sending later...
-    if (!continueThisLevel) {
+    
+    if (continueThisLevel) {
+        continueThisLevel = packet->endLevel(thisLevelKey);
+    } else {
         packet->discardLevel(thisLevelKey);
+    }
+    
+    if (!continueThisLevel) {
         bag.insert(node);
 
         // don't need to check node here, because we can't get here with no node

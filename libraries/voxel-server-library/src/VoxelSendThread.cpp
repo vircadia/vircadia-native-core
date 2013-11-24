@@ -311,6 +311,8 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
     if (!nodeData->nodeBag.isEmpty()) {
         int bytesWritten = 0;
         uint64_t start = usecTimestampNow();
+        uint64_t startCompressTimeMsecs = VoxelPacket::_checkCompressTime / 1000;
+        uint64_t startCompressCalls = VoxelPacket::_checkCompressCalls;
 
         bool shouldSendEnvironments = _myServer->wantSendEnvironments() && shouldDo(ENVIRONMENT_SEND_INTERVAL_USECS, VOXEL_SEND_INTERVAL_USECS);
 
@@ -429,9 +431,15 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
                 printf("WARNING! packetLoop() took %d milliseconds to generate %d bytes in %d packets, %d nodes still to send\n",
                         elapsedmsec, trueBytesSent, truePacketsSent, nodeData->nodeBag.count());
             }
-        } else if (_myServer->wantsDebugVoxelSending() && _myServer->wantsVerboseDebug()) {
-            printf("packetLoop() took %d milliseconds to generate %d bytes in %d packets, %d nodes still to send\n",
-                    elapsedmsec, trueBytesSent, truePacketsSent, nodeData->nodeBag.count());
+        } else if (truePacketsSent > 0 /*_myServer->wantsDebugVoxelSending() && _myServer->wantsVerboseDebug()*/) {
+
+            uint64_t endCompressCalls = VoxelPacket::_checkCompressCalls;
+            int elapsedCompressCalls = endCompressCalls - startCompressCalls;
+        
+            uint64_t endCompressTimeMsecs = VoxelPacket::_checkCompressTime / 1000;
+            int elapsedCompressTimeMsecs = endCompressTimeMsecs - startCompressTimeMsecs;
+            printf("packetLoop() took %d milliseconds [%d milliseconds %d calls in compress] to generate %d bytes in %d packets, %d nodes still to send\n",
+                    elapsedmsec, elapsedCompressTimeMsecs, elapsedCompressCalls, trueBytesSent, truePacketsSent, nodeData->nodeBag.count());
         }
         
         // if after sending packets we've emptied our bag, then we want to remember that we've sent all 

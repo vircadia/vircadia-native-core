@@ -46,8 +46,9 @@ public:
     /// discards all content back to a previous marker key
     void discardLevel(int key);
     
-    /// ends a level without discarding it
-    void endLevel();
+    /// ends a level, and performs any expensive finalization. may fail if finalization creates a stream which is too large
+    /// if the finalization would fail, the packet will automatically discard the previous level.
+    bool endLevel(int key);
 
     /// appends a bitmask to the end of the stream, may fail if new data stream is too long to fit in packet
     bool appendBitMask(unsigned char bitmask);
@@ -84,7 +85,10 @@ public:
     void loadCompressedContent(const unsigned char* data, int length);
 
     void debugContent();
-    
+
+    static uint64_t _checkCompressTime;
+    static uint64_t _checkCompressCalls;
+     
 private:
     /// appends raw bytes, might fail if byte would cause packet to be too large
     bool append(const unsigned char* data, int length);
@@ -101,6 +105,8 @@ private:
     
     unsigned char _compressed[MAX_VOXEL_PACKET_SIZE];
     int _compressedBytes;
+    
+   
 };
 
 #endif /* defined(__hifi__VoxelPacket__) */

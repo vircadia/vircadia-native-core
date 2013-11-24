@@ -6,6 +6,7 @@
 //  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
 
+#include <PerfStat.h>
 #include "VoxelPacket.h"
 
 VoxelPacket::VoxelPacket() {
@@ -30,6 +31,9 @@ bool VoxelPacket::append(const unsigned char* data, int length) {
         _bytesInUse += length;
         _bytesAvailable -= length;
         
+        success = true;
+        
+        /****
         // Now, check for compression, if we fit, then proceed, otherwise, rollback.
         if (checkCompress()) {
             success = true;
@@ -38,6 +42,7 @@ bool VoxelPacket::append(const unsigned char* data, int length) {
             _bytesInUse -= length;
             _bytesAvailable += length;
         }
+        ***/
     }
     return success;
 }
@@ -49,6 +54,9 @@ bool VoxelPacket::append(unsigned char byte) {
         _bytesInUse++;
         _bytesAvailable--; 
 
+        success = true;
+        
+        /****
         // Now, check for compression, if we fit, then proceed, otherwise, rollback.
         if (checkCompress()) {
             success = true;
@@ -57,6 +65,7 @@ bool VoxelPacket::append(unsigned char byte) {
             _bytesInUse--;
             _bytesAvailable++;
         }
+        ****/
     }
     return success;
 }
@@ -66,6 +75,10 @@ bool VoxelPacket::updatePriorBitMask(int offset, unsigned char bitmask) {
     if (offset >= 0 && offset < _bytesInUse) {
         unsigned char oldValue = _uncompressed[offset];
         _uncompressed[offset] = bitmask;
+
+        success = true;
+        
+        /****
         // Now, check for compression, if we fit, then proceed, otherwise, rollback.
         if (checkCompress()) {
             success = true;
@@ -73,6 +86,7 @@ bool VoxelPacket::updatePriorBitMask(int offset, unsigned char bitmask) {
             // rollback is easy, the length didn't change, but we need to restore the previous value
             _uncompressed[offset] = oldValue;
         }
+        ****/
     }
     return success;
 }
@@ -84,6 +98,9 @@ bool VoxelPacket::updatePriorBytes(int offset, const unsigned char* replacementB
         memcpy(&oldValues[0], &_uncompressed[offset], length); // save the old values for restore
         memcpy(&_uncompressed[offset], replacementBytes, length); // copy new content
 
+        success = true;
+        
+        /****
         // Now, check for compression, if we fit, then proceed, otherwise, rollback.
         if (checkCompress()) {
             success = true;
@@ -91,6 +108,7 @@ bool VoxelPacket::updatePriorBytes(int offset, const unsigned char* replacementB
             // rollback is easy, the length didn't change, but we need to restore the previous values
             memcpy(&_uncompressed[offset], &oldValues[0], length); // restore the old values
         }
+        ****/
     }
     return success;
 }
@@ -144,8 +162,12 @@ void VoxelPacket::discardLevel(int key) {
     checkCompress(); 
 }
 
-void VoxelPacket::endLevel() {
-    // nothing to do
+bool VoxelPacket::endLevel(int key) {
+    bool success = checkCompress();
+    if (!success) {
+        discardLevel(key);
+    }
+    return success;
 }
 
 bool VoxelPacket::appendBitMask(unsigned char bitmask) {
@@ -169,7 +191,13 @@ bool VoxelPacket::appendColor(const nodeColor& color) {
     return success;
 }
 
+uint64_t VoxelPacket::_checkCompressTime = 0;
+uint64_t VoxelPacket::_checkCompressCalls = 0;
+
 bool VoxelPacket::checkCompress() { 
+    PerformanceWarning warn(false,"VoxelPacket::checkCompress()",false,&_checkCompressTime,&_checkCompressCalls);
+
+
     bool success = false;
     const int MAX_COMPRESSION = 9;
 
@@ -243,31 +271,3 @@ void VoxelPacket::debugContent() {
     }
     printf("\n");
 }
-
-
-/***
-void VoxelPacket::compressPacket() { 
-    int uncompressedLength = getPacketLengthUncompressed();
-    const int MAX_COMPRESSION = 9;
-    // we only want to compress the data payload, not the message header
-    int numBytesPacketHeader = numBytesForPacketHeader(_voxelPacket);
-    QByteArray compressedData = qCompress(_voxelPacket+numBytesPacketHeader, 
-                                    uncompressedLength-numBytesPacketHeader, MAX_COMPRESSION);
-    _compressedPacket.clear();
-    _compressedPacket.append((const char*)_voxelPacket, numBytesPacketHeader);
-    _compressedPacket.append(compressedData);
-}
-
-void VoxelPacket::uncompressPacket() { 
-    int numBytesPacketHeader = numBytesForPacketHeader(packetData);
-    QByteArray compressedData((const char*)packetData + numBytesPacketHeader, 
-                            messageLength - numBytesPacketHeader);
-    QByteArray uncompressedData = qUncompress(compressedData);
-    QByteArray uncompressedPacket((const char*)packetData, numBytesPacketHeader);
-    uncompressedPacket.append(uncompressedData);
-    //app->_voxels.parseData((unsigned char*)uncompressedPacket.data(), uncompressedPacket.size());
-}
-***/
-
-
-
