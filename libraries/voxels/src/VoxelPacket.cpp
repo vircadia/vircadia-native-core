@@ -27,6 +27,7 @@ void VoxelPacket::reset() {
     }
     _subTreeAt = 0;
     _compressedBytes = 0;
+    _bytesInUseLastCheck = 0;
     _dirty = false;
 }
 
@@ -101,7 +102,9 @@ const unsigned char* VoxelPacket::getFinalizedData() {
     }
     
     if (_dirty) {
-if (_debug) printf("getFinalizedData() _compressedBytes=%d _bytesInUse=%d\n",_compressedBytes, _bytesInUse);
+        if (_debug) {
+            printf("getFinalizedData() _compressedBytes=%d _bytesInUse=%d\n",_compressedBytes, _bytesInUse);
+        }
         checkCompress(); 
     }
 
@@ -114,7 +117,9 @@ int VoxelPacket::getFinalizedSize() {
     }
 
     if (_dirty) {
-if (_debug) printf("getFinalizedSize() _compressedBytes=%d _bytesInUse=%d\n",_compressedBytes, _bytesInUse);
+        if (_debug) {
+            printf("getFinalizedSize() _compressedBytes=%d _bytesInUse=%d\n",_compressedBytes, _bytesInUse);
+        }
         checkCompress(); 
     }
 
@@ -156,11 +161,21 @@ if (_debug) printf("discardLevel() AFTER _dirty=%s bytesInLevel=%d _compressedBy
 bool VoxelPacket::endLevel(int key) {
     bool success = true;
 
-    // if we've never compressed, then compress to see our size
-    // or, if we're within 50% of our MAX_VOXEL_PACKET_SIZE then check...
-    // otherwise assume it's safe...
-    if (_dirty && (_compressedBytes == 0 || _bytesInUse > COMPRESSION_TEST_THRESHOLD)) {
-if (_debug) printf("endLevel() _dirty=%s _compressedBytes=%d _bytesInUse=%d\n",debug::valueOf(_dirty), _compressedBytes, _bytesInUse);
+    // if we are dirty (something has changed) then try a compression test in the following cases...
+    //    1) If we've previously compressed and our _compressedBytes are "close enough to our limit" that we want to keep
+    //       testing to make sure we don't overflow... VOXEL_PACKET_ALWAYS_TEST_COMPRESSION_THRESHOLD
+    //    2) If we've passed the uncompressed size where we believe we might pass the compressed threshold, and we've added
+    //       a sufficient number of uncompressed bytes
+    if (_dirty && (
+            (_compressedBytes > VOXEL_PACKET_ALWAYS_TEST_COMPRESSED_THRESHOLD) || 
+            (   (_bytesInUse > VOXEL_PACKET_TEST_UNCOMPRESSED_THRESHOLD) && 
+                (_bytesInUse - _bytesInUseLastCheck > VOXEL_PACKET_TEST_UNCOMPRESSED_CHANGE_THRESHOLD)
+            )
+        )) {
+        if (_debug) {
+            printf("endLevel() _dirty=%s _compressedBytes=%d _bytesInUse=%d\n",
+                debug::valueOf(_dirty), _compressedBytes, _bytesInUse);
+        }
         success = checkCompress();
     }
     if (!success) {
@@ -201,6 +216,7 @@ bool VoxelPacket::checkCompress() {
         return true;
     }
 
+    _bytesInUseLastCheck = _bytesInUse;
 
     bool success = false;
     const int MAX_COMPRESSION = 2;

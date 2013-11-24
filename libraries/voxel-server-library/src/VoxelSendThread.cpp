@@ -21,7 +21,9 @@ extern EnvironmentData environmentData[3];
 VoxelSendThread::VoxelSendThread(const QUuid& nodeUUID, VoxelServer* myServer) :
     _nodeUUID(nodeUUID),
     _myServer(myServer),
-    _encodedSomething(false) {
+    _tempPacket(VOXEL_PACKET_COMPRESSION_DEFAULT),
+    _encodedSomething(false)
+{
 }
 
 bool VoxelSendThread::process() {
@@ -422,22 +424,25 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
         
         uint64_t end = usecTimestampNow();
         int elapsedmsec = (end - start)/1000;
+
+        uint64_t endCompressCalls = VoxelPacket::_checkCompressCalls;
+        int elapsedCompressCalls = endCompressCalls - startCompressCalls;
+    
+        uint64_t endCompressTimeMsecs = VoxelPacket::_checkCompressTime / 1000;
+        int elapsedCompressTimeMsecs = endCompressTimeMsecs - startCompressTimeMsecs;
+
+
         if (elapsedmsec > 100) {
             if (elapsedmsec > 1000) {
                 int elapsedsec = (end - start)/1000000;
-                printf("WARNING! packetLoop() took %d seconds to generate %d bytes in %d packets %d nodes still to send\n",
-                        elapsedsec, trueBytesSent, truePacketsSent, nodeData->nodeBag.count());
+                printf("WARNING! packetLoop() took %d seconds [%d milliseconds %d calls in compress] to generate %d bytes in %d packets %d nodes still to send\n",
+                        elapsedsec, elapsedCompressTimeMsecs, elapsedCompressCalls, trueBytesSent, truePacketsSent, nodeData->nodeBag.count());
             } else {
-                printf("WARNING! packetLoop() took %d milliseconds to generate %d bytes in %d packets, %d nodes still to send\n",
-                        elapsedmsec, trueBytesSent, truePacketsSent, nodeData->nodeBag.count());
+                printf("WARNING! packetLoop() took %d milliseconds [%d milliseconds %d calls in compress] to generate %d bytes in %d packets, %d nodes still to send\n",
+                        elapsedmsec, elapsedCompressTimeMsecs, elapsedCompressCalls, trueBytesSent, truePacketsSent, nodeData->nodeBag.count());
             }
         } else if (truePacketsSent > 0 /*_myServer->wantsDebugVoxelSending() && _myServer->wantsVerboseDebug()*/) {
 
-            uint64_t endCompressCalls = VoxelPacket::_checkCompressCalls;
-            int elapsedCompressCalls = endCompressCalls - startCompressCalls;
-        
-            uint64_t endCompressTimeMsecs = VoxelPacket::_checkCompressTime / 1000;
-            int elapsedCompressTimeMsecs = endCompressTimeMsecs - startCompressTimeMsecs;
             printf("packetLoop() took %d milliseconds [%d milliseconds %d calls in compress] to generate %d bytes in %d packets, %d nodes still to send\n",
                     elapsedmsec, elapsedCompressTimeMsecs, elapsedCompressCalls, trueBytesSent, truePacketsSent, nodeData->nodeBag.count());
         }

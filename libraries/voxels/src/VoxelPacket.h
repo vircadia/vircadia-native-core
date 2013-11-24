@@ -109,6 +109,7 @@ private:
     
     unsigned char _compressed[MAX_VOXEL_UNCOMRESSED_PACKET_SIZE];
     int _compressedBytes;
+    int _bytesInUseLastCheck;
     bool _dirty;
     
     static bool _debug;
