@@ -6,9 +6,10 @@
 //
 //  TO DO:
 //
-//    *  improve compression to be less expensive (mostly determine when to test compression...)
+//    *  further testing of compression to determine optimal configuration for performance and compression
 //
 //    *  add stats tracking for number of bytes of octal code, bitmasks, and colors in a packet.
+//
 //    *  improve semantics for "reshuffle" - current approach will work for now and with compression
 //       but wouldn't work with RLE because the colors in the levels would get reordered and RLE would need
 //       to be recalculated
@@ -82,8 +83,8 @@ public:
     /// has some content been written to the packet
     bool hasContent() const { return (_bytesInUse > 0); }
 
-    /// load compressed content to allow access to decoded content for parsing
-    void loadCompressedContent(const unsigned char* data, int length);
+    /// load finalized content to allow access to decoded content for parsing
+    void loadFinalizedContent(const unsigned char* data, int length);
 
     void debugContent();
 

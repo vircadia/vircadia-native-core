@@ -374,15 +374,7 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
 
                 _myServer->getServerTree().lockForRead();
                 nodeData->stats.encodeStarted();
-
-                //printf("calling nodeBag.count()=%d encode()... subTree=%p \n", nodeData->nodeBag.count(), subTree);
-                //printOctalCode(subTree->getOctalCode());
-
                 bytesWritten = _myServer->getServerTree().encodeTreeBitstream(subTree, &_tempPacket, nodeData->nodeBag, params);
-
-
-                //printf("called encode()... bytesWritten=%d compressedSize=%d uncompressedSize=%d\n",bytesWritten, _tempPacket.getFinalizedSize(), _tempPacket.getUncompressedSize());
-
                 if (bytesWritten > 0) {
                     _encodedSomething = true;
                 }
@@ -399,7 +391,10 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
             // mean we should send the previous packet contents and reset it. 
             bool sendNow = (bytesWritten == 0);
             if (_tempPacket.hasContent() && sendNow) {
-                //printf("calling writeToPacket() compressedSize=%d uncompressedSize=%d\n",_tempPacket.getFinalizedSize(), _tempPacket.getUncompressedSize());
+                if (_myServer->wantsDebugVoxelSending() && _myServer->wantsVerboseDebug()) {
+                    printf("calling writeToPacket() compressedSize=%d uncompressedSize=%d\n",
+                            _tempPacket.getFinalizedSize(), _tempPacket.getUncompressedSize());
+                }
                 nodeData->writeToPacket(_tempPacket.getFinalizedData(), _tempPacket.getFinalizedSize());
                 packetsSentThisInterval += handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
                 _tempPacket.reset();

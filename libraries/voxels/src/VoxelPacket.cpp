@@ -147,15 +147,19 @@ int VoxelPacket::startLevel() {
 void VoxelPacket::discardLevel(int key) {
     int bytesInLevel = _bytesInUse - key;
 
-if (_debug) printf("discardLevel() BEFORE _dirty=%s bytesInLevel=%d _compressedBytes=%d _bytesInUse=%d\n",
+    if (_debug) {
+        printf("discardLevel() BEFORE _dirty=%s bytesInLevel=%d _compressedBytes=%d _bytesInUse=%d\n",
             debug::valueOf(_dirty), bytesInLevel, _compressedBytes, _bytesInUse);
+    }
             
     _bytesInUse -= bytesInLevel;
     _bytesAvailable += bytesInLevel; 
     _dirty = true;
 
-if (_debug) printf("discardLevel() AFTER _dirty=%s bytesInLevel=%d _compressedBytes=%d _bytesInUse=%d\n",
+    if (_debug) {
+        printf("discardLevel() AFTER _dirty=%s bytesInLevel=%d _compressedBytes=%d _bytesInUse=%d\n",
             debug::valueOf(_dirty), bytesInLevel, _compressedBytes, _bytesInUse);
+    }
 }
 
 bool VoxelPacket::endLevel(int key) {
@@ -235,7 +239,7 @@ bool VoxelPacket::checkCompress() {
 }
 
 
-void VoxelPacket::loadCompressedContent(const unsigned char* data, int length) {
+void VoxelPacket::loadFinalizedContent(const unsigned char* data, int length) {
     reset(); // by definition we reset upon loading compressed content
     
     if (length > 0) {

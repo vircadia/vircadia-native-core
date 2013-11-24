@@ -599,8 +599,10 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
             lockTree();
             VoxelPacket packet(VOXEL_PACKET_COMPRESSION_DEFAULT);
             int compressedSize = numBytes - numBytesPacketHeader;
-            packet.loadCompressedContent(voxelData, compressedSize);
-printf("got packet numBytes=%d compressed size %d uncompressed size %d\n",numBytes, compressedSize, packet.getUncompressedSize());            
+            packet.loadFinalizedContent(voxelData, compressedSize);
+            if (Menu::getInstance()->isOptionChecked(MenuOption::ExtraDebugging)) {
+                qDebug("got packet numBytes=%d finalized size %d uncompressed size %d\n",numBytes, compressedSize, packet.getUncompressedSize());
+            }
             _tree->readBitstreamToTree(packet.getUncompressedData(), packet.getUncompressedSize(), args);
             unlockTree();
         }
@@ -613,8 +615,10 @@ printf("got packet numBytes=%d compressed size %d uncompressed size %d\n",numByt
             lockTree();
             VoxelPacket packet(VOXEL_PACKET_COMPRESSION_DEFAULT);
             int compressedSize = numBytes - numBytesPacketHeader;
-            packet.loadCompressedContent(voxelData, compressedSize);
-printf("got packet numBytes=%d compressed size %d uncompressed size %d\n",numBytes, compressedSize, packet.getUncompressedSize());            
+            packet.loadFinalizedContent(voxelData, compressedSize);
+            if (Menu::getInstance()->isOptionChecked(MenuOption::ExtraDebugging)) {
+                qDebug("got packet numBytes=%d finalized size %d uncompressed size %d\n",numBytes, compressedSize, packet.getUncompressedSize());
+            }
             _tree->readBitstreamToTree(packet.getUncompressedData(), packet.getUncompressedSize(), args);
             unlockTree();
         }

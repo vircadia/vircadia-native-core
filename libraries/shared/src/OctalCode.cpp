@@ -32,12 +32,12 @@ int numberOfThreeBitSectionsInCode(const unsigned char* octalCode, int maxBytes)
 
 void printOctalCode(const unsigned char* octalCode) {
     if (!octalCode) {
-        printf("NULL\n");
+        qDebug("NULL\n");
     } else {
         for (int i = 0; i < bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(octalCode)); i++) {
             outputBits(octalCode[i],false);
         }
-        printf("\n");
+        qDebug("\n");
     }
 }
 
