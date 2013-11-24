@@ -11,6 +11,7 @@
 
 #include <iostream>
 #include <NodeData.h>
+#include <VoxelPacket.h>
 #include <VoxelQuery.h>
 
 #include <CoverageMap.h>
