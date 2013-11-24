@@ -60,7 +60,7 @@ bool shouldDo(float desiredInterval, float deltaTime) {
     return randFloat() < deltaTime / desiredInterval;
 }
 
-void outputBufferBits(unsigned char* buffer, int length, bool withNewLine) {
+void outputBufferBits(const unsigned char* buffer, int length, bool withNewLine) {
     for (int i = 0; i < length; i++) {
         outputBits(buffer[i], false);
     }

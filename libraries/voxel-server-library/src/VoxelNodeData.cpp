@@ -105,7 +105,7 @@ void VoxelNodeData::resetVoxelPacket() {
     _voxelPacketWaiting = false;
 }
 
-void VoxelNodeData::writeToPacket(unsigned char* buffer, int bytes) {
+void VoxelNodeData::writeToPacket(const unsigned char* buffer, int bytes) {
     memcpy(_voxelPacketAt, buffer, bytes);
     _voxelPacketAvailableBytes -= bytes;
     _voxelPacketAt += bytes;

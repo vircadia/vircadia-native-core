@@ -106,14 +106,7 @@ void VoxelPacket::endLevel() {
 }
 
 bool VoxelPacket::appendBitMask(unsigned char bitmask) {
-    bool success = false;
-    if (_bytesAvailable > 0) {
-        _buffer[_bytesInUse] = bitmask;
-        _bytesInUse++;
-        _bytesAvailable--; 
-        success = true;
-    }
-    return success;
+    return append(bitmask);
 }
 
 bool VoxelPacket::appendColor(const nodeColor& color) {

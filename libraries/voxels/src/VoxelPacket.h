@@ -66,7 +66,7 @@ public:
     int getUncompressedByteOffset(int offsetFromEnd = 0) const { return _bytesInUse - offsetFromEnd; }
 
     /// get access to the finalized data (it may be compressed or rewritten into optimal form)
-    unsigned char* getFinalizedData() { return &_buffer[0]; }
+    const unsigned char* getFinalizedData() { return &_buffer[0]; }
     /// get size of the finalized data (it may be compressed or rewritten into optimal form)
     int getFinalizedSize() const { return _bytesInUse; }
 
