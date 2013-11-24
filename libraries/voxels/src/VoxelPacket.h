@@ -6,8 +6,11 @@
 //
 //  TO DO:
 //
+//    *  add support to "disable" compression (fix SAVE!)
+//
+//    *  improve compression to be less expensive (mostly determine when to test compression...)
+//
 //    *  add stats tracking for number of bytes of octal code, bitmasks, and colors in a packet.
-//    *  add compression
 //    *  improve semantics for "reshuffle" - current approach will work for now and with compression
 //       but wouldn't work with RLE because the colors in the levels would get reordered and RLE would need
 //       to be recalculated
@@ -24,7 +27,7 @@
 
 class VoxelPacket {
 public:
-    VoxelPacket();
+    VoxelPacket(bool enableCompression = false, int maxFinalizedSize = MAX_VOXEL_PACKET_SIZE);
     ~VoxelPacket();
 
     /// reset completely, all data is discarded
@@ -69,9 +72,9 @@ public:
     int getUncompressedByteOffset(int offsetFromEnd = 0) const { return _bytesInUse - offsetFromEnd; }
 
     /// get access to the finalized data (it may be compressed or rewritten into optimal form)
-    const unsigned char* getFinalizedData() { return &_compressed[0]; }
+    const unsigned char* getFinalizedData();
     /// get size of the finalized data (it may be compressed or rewritten into optimal form)
-    int getFinalizedSize() const { return _compressedBytes; }
+    int getFinalizedSize();
 
     /// get pointer to the start of uncompressed stream buffer
     const unsigned char* getUncompressedData() { return &_uncompressed[0]; }
@@ -96,6 +99,9 @@ private:
     /// append a single byte, might fail if byte would cause packet to be too large
     bool append(unsigned char byte);
 
+    bool _enableCompression;
+    int _maxFinalizedSize;
+
     unsigned char _uncompressed[MAX_VOXEL_UNCOMRESSED_PACKET_SIZE];
     int _bytesInUse;
     int _bytesAvailable;
@@ -103,10 +109,11 @@ private:
 
     bool checkCompress();
     
-    unsigned char _compressed[MAX_VOXEL_PACKET_SIZE];
+    unsigned char _compressed[MAX_VOXEL_UNCOMRESSED_PACKET_SIZE];
     int _compressedBytes;
+    bool _dirty;
     
-   
+    static bool _debug;
 };
 
 #endif /* defined(__hifi__VoxelPacket__) */

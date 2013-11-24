@@ -397,7 +397,7 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
             // mean we should send the previous packet contents and reset it. 
             bool sendNow = (bytesWritten == 0);
             if (_tempPacket.hasContent() && sendNow) {
-                printf("calling writeToPacket() compressedSize=%d uncompressedSize=%d\n",_tempPacket.getFinalizedSize(), _tempPacket.getUncompressedSize());
+                //printf("calling writeToPacket() compressedSize=%d uncompressedSize=%d\n",_tempPacket.getFinalizedSize(), _tempPacket.getUncompressedSize());
                 nodeData->writeToPacket(_tempPacket.getFinalizedData(), _tempPacket.getFinalizedSize());
                 packetsSentThisInterval += handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
                 _tempPacket.reset();
