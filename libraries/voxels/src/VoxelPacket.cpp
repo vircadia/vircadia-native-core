@@ -16,10 +16,6 @@ void VoxelPacket::reset() {
     _bytesInUse = 0;
     _bytesAvailable = MAX_VOXEL_PACKET_SIZE;
     _subTreeAt = 0;
-    _uncompressedData.clear();
-    
-    //printf("VoxelPacket::reset()... ");
-    //debugCompareBuffers();
 }
 
 VoxelPacket::~VoxelPacket() {
@@ -29,24 +25,10 @@ bool VoxelPacket::append(const unsigned char* data, int length) {
     bool success = false;
 
     if (length <= _bytesAvailable) {
-        int priorBytesInUse = _bytesInUse;
-
         memcpy(&_buffer[_bytesInUse], data, length);
-        //QByteArray newData((const char*)data, length);
-        //_uncompressedData.append(newData);
-        
-        _uncompressedData.resize(_bytesInUse+length);
-        char* writeable = _uncompressedData.data();
-        memcpy(&writeable[_bytesInUse], data, length);
-
         _bytesInUse += length;
         _bytesAvailable -= length;
         success = true;
-
-
-        //printf("VoxelPacket::append(data, length=%d... priorBytesInUse=%d)... ", length, priorBytesInUse);
-        debugCompareBuffers();
-
     }
     return success;
 }
@@ -55,16 +37,9 @@ bool VoxelPacket::append(unsigned char byte) {
     bool success = false;
     if (_bytesAvailable > 0) {
         _buffer[_bytesInUse] = byte;
-        //_uncompressedData.append(byte);
-        _uncompressedData[_bytesInUse] = byte;
-        
         _bytesInUse++;
         _bytesAvailable--; 
         success = true;
-
-        //printf("VoxelPacket::append(byte)... ");
-        debugCompareBuffers();
-
     }
     return success;
 }
@@ -73,12 +48,7 @@ bool VoxelPacket::updatePriorBitMask(int offset, unsigned char bitmask) {
     bool success = false;
     if (offset >= 0 && offset < _bytesInUse) {
         _buffer[offset] = bitmask;
-        _uncompressedData.replace(offset, sizeof(bitmask), (const char*)&bitmask, sizeof(bitmask));
         success = true;
-
-        //printf("VoxelPacket::updatePriorBitMask()... ");
-        debugCompareBuffers();
-
     }
     return success;
 }
@@ -87,12 +57,7 @@ bool VoxelPacket::updatePriorBytes(int offset, const unsigned char* replacementB
     bool success = false;
     if (length >= 0 && offset >= 0 && ((offset + length) <= _bytesInUse)) {
         memcpy(&_buffer[offset], replacementBytes, length);
-        _uncompressedData.replace(offset, length, (const char*)replacementBytes, length);
         success = true;
-
-        //printf("VoxelPacket::updatePriorBytes(offset=%d length=%d)...", offset, length);
-        debugCompareBuffers();
-
     }
     return success;
 }
@@ -141,12 +106,17 @@ void VoxelPacket::endLevel() {
 }
 
 bool VoxelPacket::appendBitMask(unsigned char bitmask) {
-    printf("VoxelPacket::appendBitMask()...\n");
-    return append(bitmask);
+    bool success = false;
+    if (_bytesAvailable > 0) {
+        _buffer[_bytesInUse] = bitmask;
+        _bytesInUse++;
+        _bytesAvailable--; 
+        success = true;
+    }
+    return success;
 }
 
 bool VoxelPacket::appendColor(const nodeColor& color) {
-    printf("VoxelPacket::appendColor()...\n");
     // eventually we can make this use a dictionary...
     bool success = false;
     const int BYTES_PER_COLOR = 3;
@@ -182,23 +152,6 @@ void VoxelPacket::uncompressPacket() {
     //app->_voxels.parseData((unsigned char*)uncompressedPacket.data(), uncompressedPacket.size());
 }
 ***/
-
-void VoxelPacket::debugCompareBuffers() const {
-    const unsigned char* buffer = &_buffer[0];
-    const unsigned char* byteArray = (const unsigned char*)_uncompressedData.constData();
-    
-    if (memcmp(buffer, byteArray, _bytesInUse) == 0) {
-        //printf("VoxelPacket::debugCompareBuffers()... they match...\n");
-        //printf("\n");
-    } else {
-        printf("VoxelPacket::debugCompareBuffers()... THEY DON'T MATCH <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");
-        printf("_buffer=");
-        outputBufferBits(buffer, _bytesInUse);
-        printf("_uncompressedData=");
-        outputBufferBits(byteArray, _bytesInUse);
-        printf("VoxelPacket::debugCompareBuffers()... THEY DON'T MATCH <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n");
-    }
-}
 
 
 

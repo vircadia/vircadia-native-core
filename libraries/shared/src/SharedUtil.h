@@ -52,7 +52,7 @@ bool randomBoolean();
 
 bool shouldDo(float desiredInterval, float deltaTime);
 
-void outputBufferBits(const unsigned char* buffer, int length, bool withNewLine = true);
+void outputBufferBits(unsigned char* buffer, int length, bool withNewLine = true);
 void outputBits(unsigned char byte, bool withNewLine = true);
 void printVoxelCode(unsigned char* voxelCode);
 int numberOfOnes(unsigned char byte);

@@ -28,7 +28,7 @@ public:
 
     void resetVoxelPacket();  // resets voxel packet to after "V" header
 
-    void writeToPacket(const unsigned char* buffer, int bytes); // writes to end of packet
+    void writeToPacket(unsigned char* buffer, int bytes); // writes to end of packet
 
     const unsigned char* getPacket() const { return _voxelPacket; }
     int getPacketLength() const { return (MAX_VOXEL_PACKET_SIZE - _voxelPacketAvailableBytes); }

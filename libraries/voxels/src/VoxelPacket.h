@@ -16,8 +16,6 @@
 #ifndef __hifi__VoxelPacket__
 #define __hifi__VoxelPacket__
 
-#include <QByteArray>
-
 #include <SharedUtil.h>
 #include "VoxelConstants.h"
 #include "VoxelNode.h"
@@ -68,20 +66,12 @@ public:
     int getUncompressedByteOffset(int offsetFromEnd = 0) const { return _bytesInUse - offsetFromEnd; }
 
     /// get access to the finalized data (it may be compressed or rewritten into optimal form)
-    const unsigned char* getFinalizedData() { 
-        debugCompareBuffers();
-        return &_buffer[0];
-        //return (const unsigned char*)_uncompressedData.constData();
-    }
+    unsigned char* getFinalizedData() { return &_buffer[0]; }
     /// get size of the finalized data (it may be compressed or rewritten into optimal form)
     int getFinalizedSize() const { return _bytesInUse; }
 
     /// get pointer to the start of uncompressed stream buffer
-    const unsigned char* getUncompressedData() {
-        debugCompareBuffers();
-        return &_buffer[0]; 
-        //return (const unsigned char*)_uncompressedData.constData();
-    }
+    const unsigned char* getUncompressedData() { return &_buffer[0]; }
     /// the size of the packet in uncompressed form
     int getUncompressedSize() { return _bytesInUse; }
 
@@ -95,15 +85,10 @@ private:
     /// append a single byte, might fail if byte would cause packet to be too large
     bool append(unsigned char byte);
 
-    QByteArray _uncompressedData;
     unsigned char _buffer[MAX_VOXEL_PACKET_SIZE];
-
     int _bytesInUse;
     int _bytesAvailable;
     int _subTreeAt;
-    
-    void debugCompareBuffers() const;
-
 };
 
 #endif /* defined(__hifi__VoxelPacket__) */
