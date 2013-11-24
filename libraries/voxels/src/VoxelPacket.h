@@ -6,8 +6,6 @@
 //
 //  TO DO:
 //
-//    *  add support to "disable" compression (fix SAVE!)
-//
 //    *  improve compression to be less expensive (mostly determine when to test compression...)
 //
 //    *  add stats tracking for number of bytes of octal code, bitmasks, and colors in a packet.
