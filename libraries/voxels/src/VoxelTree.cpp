@@ -1576,7 +1576,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node,
 
         // reshuffle here...
         if (continueThisLevel && params.wantOcclusionCulling) {
-            unsigned char tempReshuffleBuffer[MAX_VOXEL_PACKET_SIZE];
+            unsigned char tempReshuffleBuffer[MAX_VOXEL_UNCOMRESSED_PACKET_SIZE];
 
             unsigned char* tempBufferTo = &tempReshuffleBuffer[0]; // this is our temporary destination
 

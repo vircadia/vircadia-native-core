@@ -597,7 +597,11 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
             // ask the VoxelTree to read the bitstream into the tree
             ReadBitstreamToTreeParams args(WANT_COLOR, WANT_EXISTS_BITS, NULL, getDataSourceUUID());
             lockTree();
-            _tree->readBitstreamToTree(voxelData, numBytes - numBytesPacketHeader, args);
+            VoxelPacket packet;
+            int compressedSize = numBytes - numBytesPacketHeader;
+            packet.loadCompressedContent(voxelData, compressedSize);
+printf("got packet numBytes=%d compressed size %d uncompressed size %d\n",numBytes, compressedSize, packet.getUncompressedSize());            
+            _tree->readBitstreamToTree(packet.getUncompressedData(), packet.getUncompressedSize(), args);
             unlockTree();
         }
             break;
@@ -607,7 +611,11 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
             // ask the VoxelTree to read the MONOCHROME bitstream into the tree
             ReadBitstreamToTreeParams args(NO_COLOR, WANT_EXISTS_BITS, NULL, getDataSourceUUID());
             lockTree();
-            _tree->readBitstreamToTree(voxelData, numBytes - numBytesPacketHeader, args);
+            VoxelPacket packet;
+            int compressedSize = numBytes - numBytesPacketHeader;
+            packet.loadCompressedContent(voxelData, compressedSize);
+printf("got packet numBytes=%d compressed size %d uncompressed size %d\n",numBytes, compressedSize, packet.getUncompressedSize());            
+            _tree->readBitstreamToTree(packet.getUncompressedData(), packet.getUncompressedSize(), args);
             unlockTree();
         }
             break;

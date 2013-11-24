@@ -20,6 +20,8 @@
 #include "VoxelConstants.h"
 #include "VoxelNode.h"
 
+
+
 class VoxelPacket {
 public:
     VoxelPacket();
@@ -66,17 +68,22 @@ public:
     int getUncompressedByteOffset(int offsetFromEnd = 0) const { return _bytesInUse - offsetFromEnd; }
 
     /// get access to the finalized data (it may be compressed or rewritten into optimal form)
-    const unsigned char* getFinalizedData() { return &_buffer[0]; }
+    const unsigned char* getFinalizedData() { return &_compressed[0]; }
     /// get size of the finalized data (it may be compressed or rewritten into optimal form)
-    int getFinalizedSize() const { return _bytesInUse; }
+    int getFinalizedSize() const { return _compressedBytes; }
 
     /// get pointer to the start of uncompressed stream buffer
-    const unsigned char* getUncompressedData() { return &_buffer[0]; }
+    const unsigned char* getUncompressedData() { return &_uncompressed[0]; }
     /// the size of the packet in uncompressed form
     int getUncompressedSize() { return _bytesInUse; }
 
     /// has some content been written to the packet
     bool hasContent() const { return (_bytesInUse > 0); }
+
+    /// load compressed content to allow access to decoded content for parsing
+    void loadCompressedContent(const unsigned char* data, int length);
+
+    void debugContent();
     
 private:
     /// appends raw bytes, might fail if byte would cause packet to be too large
@@ -85,10 +92,15 @@ private:
     /// append a single byte, might fail if byte would cause packet to be too large
     bool append(unsigned char byte);
 
-    unsigned char _buffer[MAX_VOXEL_PACKET_SIZE];
+    unsigned char _uncompressed[MAX_VOXEL_UNCOMRESSED_PACKET_SIZE];
     int _bytesInUse;
     int _bytesAvailable;
     int _subTreeAt;
+
+    bool checkCompress();
+    
+    unsigned char _compressed[MAX_VOXEL_PACKET_SIZE];
+    int _compressedBytes;
 };
 
 #endif /* defined(__hifi__VoxelPacket__) */
