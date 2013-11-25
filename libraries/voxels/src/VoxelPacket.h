@@ -6,10 +6,14 @@
 //
 //  TO DO:
 //
-//    *  further testing of compression to determine optimal configuration for performance and compression
-//
 //    *  add stats tracking for number of bytes of octal code, bitmasks, and colors in a packet.
 //
+//    *  determine why we sometimes don't fill packets very well (rarely) mid-scene... sometimes it appears as if
+//       the "next node" would encode with more bytes than can fit in the remainder of the packet. this might be
+//       several tens or hundreds of bytes, but theoretically other voxels would have fit. This happens in the 0100
+//       scene a couple times. 
+//
+//    *  further testing of compression to determine optimal configuration for performance and compression
 //    *  improve semantics for "reshuffle" - current approach will work for now and with compression
 //       but wouldn't work with RLE because the colors in the levels would get reordered and RLE would need
 //       to be recalculated

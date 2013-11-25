@@ -1062,6 +1062,7 @@ int VoxelTree::encodeTreeBitstream(VoxelNode* node,
     // If the octalcode couldn't fit, then we can return, because no nodes below us will fit...
     if (!roomForOctalCode) {
         doneEncoding(node);
+        bag.insert(node); // add the node back to the bag so it will eventually get included
         return bytesWritten;
     }
     
