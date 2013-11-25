@@ -86,7 +86,7 @@ uint64_t VoxelSendThread::_totalWastedBytes = 0;
 uint64_t VoxelSendThread::_totalPackets = 0;
 
 int VoxelSendThread::handlePacketSend(Node* node, VoxelNodeData* nodeData, int& trueBytesSent, int& truePacketsSent) {
-    bool debug = _myServer->wantsDebugVoxelSending();
+    bool debug = true; // _myServer->wantsDebugVoxelSending();
 
     bool packetSent = false; // did we send a packet?
     int packetsSent = 0;
@@ -436,7 +436,7 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
                 printf("WARNING! packetLoop() took %d milliseconds [%d milliseconds %d calls in compress] to generate %d bytes in %d packets, %d nodes still to send\n",
                         elapsedmsec, elapsedCompressTimeMsecs, elapsedCompressCalls, trueBytesSent, truePacketsSent, nodeData->nodeBag.count());
             }
-        } else if (truePacketsSent > 0 /*_myServer->wantsDebugVoxelSending() && _myServer->wantsVerboseDebug()*/) {
+        } else if (_myServer->wantsDebugVoxelSending() && _myServer->wantsVerboseDebug()) {
 
             printf("packetLoop() took %d milliseconds [%d milliseconds %d calls in compress] to generate %d bytes in %d packets, %d nodes still to send\n",
                     elapsedmsec, elapsedCompressTimeMsecs, elapsedCompressCalls, trueBytesSent, truePacketsSent, nodeData->nodeBag.count());
