@@ -1261,7 +1261,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node,
     const int BYTES_PER_COLOR = 3;
 
     // Make our local buffer large enough to handle writing at this level in case we need to.
-    int thisLevelKey = packet->startLevel();
+    LevelDetails thisLevelKey = packet->startLevel();
 
     int inViewCount = 0;
     int inViewNotLeafCount = 0;

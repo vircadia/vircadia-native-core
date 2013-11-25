@@ -10,6 +10,10 @@
 #include "VoxelPacket.h"
 
 bool VoxelPacket::_debug = false;
+uint64_t VoxelPacket::_bytesOfOctalCodes = 0;
+uint64_t VoxelPacket::_bytesOfBitMasks = 0;
+uint64_t VoxelPacket::_bytesOfColor = 0;
+
 
 
 VoxelPacket::VoxelPacket(bool enableCompression, int maxFinalizedSize) {
@@ -82,16 +86,21 @@ bool VoxelPacket::updatePriorBytes(int offset, const unsigned char* replacementB
 bool VoxelPacket::startSubTree(const unsigned char* octcode) {
     bool success = false;
     int possibleStartAt = _bytesInUse;
+    int length = 0;
     if (octcode) {
-        int length = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(octcode));
+        length = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(octcode));
         success = append(octcode, length); // handles checking compression
     } else {
         // NULL case, means root node, which is 0
         unsigned char byte = 0;
+        length = 1;
         success = append(byte); // handles checking compression
     }
     if (success) {
         _subTreeAt = possibleStartAt;
+    }
+    if (success) {
+        _bytesOfOctalCodes += length;
     }
     return success;
 }
@@ -139,13 +148,13 @@ void VoxelPacket::discardSubTree() {
     _dirty = true;
 }
 
-int VoxelPacket::startLevel() {
-    int key = _bytesInUse;
+LevelDetails VoxelPacket::startLevel() {
+    LevelDetails key(_bytesInUse,0,0,0);
     return key;
 }
 
-void VoxelPacket::discardLevel(int key) {
-    int bytesInLevel = _bytesInUse - key;
+void VoxelPacket::discardLevel(LevelDetails key) {
+    int bytesInLevel = _bytesInUse - key._startIndex;
 
     if (_debug) {
         printf("discardLevel() BEFORE _dirty=%s bytesInLevel=%d _compressedBytes=%d _bytesInUse=%d\n",
@@ -162,7 +171,7 @@ void VoxelPacket::discardLevel(int key) {
     }
 }
 
-bool VoxelPacket::endLevel(int key) {
+bool VoxelPacket::endLevel(LevelDetails key) {
     bool success = true;
 
     // if we are dirty (something has changed) then try a compression test in the following cases...
@@ -189,7 +198,11 @@ bool VoxelPacket::endLevel(int key) {
 }
 
 bool VoxelPacket::appendBitMask(unsigned char bitmask) {
-    return append(bitmask); // handles checking compression
+    bool success = append(bitmask); // handles checking compression
+    if (success) {
+        _bytesOfBitMasks++;
+    }
+    return success;
 }
 
 bool VoxelPacket::appendColor(const nodeColor& color) {
@@ -205,6 +218,9 @@ bool VoxelPacket::appendColor(const nodeColor& color) {
                 }
             }
         }
+    }
+    if (success) {
+        _bytesOfColor += BYTES_PER_COLOR;
     }
     return success;
 }

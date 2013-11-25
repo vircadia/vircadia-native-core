@@ -7,16 +7,8 @@
 //  TO DO:
 //
 //    *  add stats tracking for number of bytes of octal code, bitmasks, and colors in a packet.
-//
-//    *  determine why we sometimes don't fill packets very well (rarely) mid-scene... sometimes it appears as if
-//       the "next node" would encode with more bytes than can fit in the remainder of the packet. this might be
-//       several tens or hundreds of bytes, but theoretically other voxels would have fit. This happens in the 0100
-//       scene a couple times.  
-//          this is happening because of nodes that are not recursed for good reason like:
-//              - being occluded
-//              - being previously in view
-//              - being out of view, etc.
-//          in these cases, the node is not re-added to the bag... so, we can probably just keep going...
+//          - this is challenging, because you need to support the rollback of statistics when
+//            you discard a level or discard
 //
 //    *  further testing of compression to determine optimal configuration for performance and compression
 //    *  improve semantics for "reshuffle" - current approach will work for now and with compression
@@ -38,6 +30,23 @@ const int VOXEL_PACKET_TEST_UNCOMPRESSED_THRESHOLD = 4000;
 const int VOXEL_PACKET_TEST_UNCOMPRESSED_CHANGE_THRESHOLD = 20;
 const int VOXEL_PACKET_COMPRESSION_DEFAULT = false;
 
+class LevelDetails {
+    LevelDetails(int startIndex, int bytesOfOctalCodes, int bytesOfBitmasks, int bytesOfColor) :
+        _startIndex(startIndex),
+        _bytesOfOctalCodes(bytesOfOctalCodes),
+        _bytesOfBitmasks(bytesOfBitmasks),
+        _bytesOfColor(bytesOfColor) {
+    }
+    
+    friend class VoxelPacket;
+
+private:
+    int _startIndex;
+    int _bytesOfOctalCodes;
+    int _bytesOfBitmasks;
+    int _bytesOfColor;
+};
+
 class VoxelPacket {
 public:
     VoxelPacket(bool enableCompression = false, int maxFinalizedSize = MAX_VOXEL_PACKET_SIZE);
@@ -57,14 +66,14 @@ public:
     void discardSubTree();
 
     /// starts a level marker. returns an opaque key which can be used to discard the level
-    int startLevel();
+    LevelDetails startLevel();
 
     /// discards all content back to a previous marker key
-    void discardLevel(int key);
+    void discardLevel(LevelDetails key);
     
     /// ends a level, and performs any expensive finalization. may fail if finalization creates a stream which is too large
     /// if the finalization would fail, the packet will automatically discard the previous level.
-    bool endLevel(int key);
+    bool endLevel(LevelDetails key);
 
     /// appends a bitmask to the end of the stream, may fail if new data stream is too long to fit in packet
     bool appendBitMask(unsigned char bitmask);
@@ -126,8 +135,14 @@ private:
     int _compressedBytes;
     int _bytesInUseLastCheck;
     bool _dirty;
-    
+
+    // statistics...
+    static uint64_t _bytesOfOctalCodes;
+    static uint64_t _bytesOfBitMasks;
+    static uint64_t _bytesOfColor;
+        
     static bool _debug;
+    
 };
 
 #endif /* defined(__hifi__VoxelPacket__) */
