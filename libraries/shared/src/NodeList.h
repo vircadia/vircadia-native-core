@@ -109,6 +109,8 @@ public:
     
     void pingPublicAndLocalSocketsForInactiveNode(Node* node) const;
     
+    void sendKillNode(const char* nodeTypes, int numNodeTypes);
+    
     Node* nodeWithAddress(sockaddr *senderAddress);
     Node* nodeWithUUID(const QUuid& nodeUUID);
     
@@ -154,6 +156,8 @@ private:
     
     void sendSTUNRequest();
     void processSTUNResponse(unsigned char* packetData, size_t dataBytes);
+    
+    void processKillNode(unsigned char* packetData, size_t dataBytes);
     
     QString _domainHostname;
     QHostAddress _domainIP;

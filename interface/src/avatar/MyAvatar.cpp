@@ -1298,7 +1298,3 @@ void MyAvatar::setOrientation(const glm::quat& orientation) {
     _bodyYaw = eulerAngles.y;
     _bodyRoll = eulerAngles.z;
 }
-
-void MyAvatar::setNewScale(const float scale) {
-    _newScale = scale;
-}
