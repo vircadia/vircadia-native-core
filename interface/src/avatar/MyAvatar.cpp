@@ -43,7 +43,6 @@ MyAvatar::MyAvatar(Node* owningNode) :
     _mousePressed(false),
     _bodyPitchDelta(0.0f),
     _bodyRollDelta(0.0f),
-    _mousePitchDelta(0.0f),
     _shouldJump(false),
     _gravity(0.0f, -1.0f, 0.0f),
     _distanceToNearestAvatar(std::numeric_limits<float>::max()),
@@ -373,23 +372,24 @@ void MyAvatar::simulate(float deltaTime, Transmitter* transmitter) {
 const float MAX_PITCH = 90.0f;
 
 //  Update avatar head rotation with sensor data
-void MyAvatar::updateFromGyrosAndOrWebcam(float pitchFromTouch, bool turnWithHead) {
+void MyAvatar::updateFromGyrosAndOrWebcam(bool turnWithHead) {
     Faceshift* faceshift = Application::getInstance()->getFaceshift();
     SerialInterface* gyros = Application::getInstance()->getSerialHeadSensor();
     Webcam* webcam = Application::getInstance()->getWebcam();
     glm::vec3 estimatedPosition, estimatedRotation;
     
-    float combinedPitch = glm::clamp(pitchFromTouch + _mousePitchDelta, -MAX_PITCH, MAX_PITCH);
     if (faceshift->isActive()) {
         estimatedPosition = faceshift->getHeadTranslation();
         estimatedRotation = safeEulerAngles(faceshift->getHeadRotation());
         //  Rotate the body if the head is turned quickly
         if (turnWithHead) {
             glm::vec3 headAngularVelocity = faceshift->getHeadAngularVelocity();
-            const float FACESHIFT_YAW_VIEW_SENSITIVITY = 20.f;
-            const float FACESHIFT_MIN_YAW_VELOCITY = 1.0f;
-            if (fabs(headAngularVelocity.y) > FACESHIFT_MIN_YAW_VELOCITY) {
-                _bodyYawDelta += headAngularVelocity.y * FACESHIFT_YAW_VIEW_SENSITIVITY;
+            const float FACESHIFT_YAW_TURN_SENSITIVITY = 0.25f;
+            const float FACESHIFT_MIN_YAW_TURN = 10.f;
+            const float FACESHIFT_MAX_YAW_TURN = 30.f;
+            if ( (fabs(estimatedRotation.y) > FACESHIFT_MIN_YAW_TURN) &&
+                 (fabs(estimatedRotation.y) < FACESHIFT_MAX_YAW_TURN) ) {
+                _bodyYawDelta += estimatedRotation.y * FACESHIFT_YAW_TURN_SENSITIVITY;
             }
         }
     } else if (gyros->isActive()) {
@@ -400,8 +400,7 @@ void MyAvatar::updateFromGyrosAndOrWebcam(float pitchFromTouch, bool turnWithHea
     
     } else {
         if (!_leadingAvatar) {
-            _head.setMousePitch(combinedPitch);
-            _head.setPitch(combinedPitch);
+            _head.setPitch(_head.getMousePitch());
         }
         _head.getVideoFace().clearFrame();
         
@@ -413,7 +412,6 @@ void MyAvatar::updateFromGyrosAndOrWebcam(float pitchFromTouch, bool turnWithHea
         _head.setLeanForward(glm::mix(_head.getLeanForward(), 0.0f, RESTORE_RATE));
         return;
     }
-    _head.setMousePitch(combinedPitch);
 
     if (webcam->isActive()) {
         estimatedPosition = webcam->getEstimatedPosition();
@@ -485,7 +483,7 @@ static TextRenderer* textRenderer() {
     return renderer;
 }
 
-void MyAvatar::render(bool lookingInMirror, bool renderAvatarBalls) {
+void MyAvatar::render(bool forceRenderHead, bool renderAvatarBalls) {
     
     if (Application::getInstance()->getAvatar()->getHand().isRaveGloveActive()) {
         _hand.setRaveLights(RAVE_LIGHTS_AVATAR);
@@ -495,7 +493,7 @@ void MyAvatar::render(bool lookingInMirror, bool renderAvatarBalls) {
     renderDiskShadow(_position, glm::vec3(0.0f, 1.0f, 0.0f), _scale * 0.1f, 0.2f);
     
     // render body
-    renderBody(lookingInMirror, renderAvatarBalls);
+    renderBody(forceRenderHead, renderAvatarBalls);
 
     // if this is my avatar, then render my interactions with the other avatar
     _avatarTouch.render(Application::getInstance()->getCamera()->getPosition());
@@ -550,7 +548,7 @@ void MyAvatar::render(bool lookingInMirror, bool renderAvatarBalls) {
     }
 }
 
-void MyAvatar::renderScreenTint(ScreenTintLayer layer, Camera& whichCamera) {
+void MyAvatar::renderScreenTint(ScreenTintLayer layer) {
     
     if (layer == SCREEN_TINT_BEFORE_AVATARS) {
         if (_hand.isRaveGloveActive()) {
@@ -560,7 +558,7 @@ void MyAvatar::renderScreenTint(ScreenTintLayer layer, Camera& whichCamera) {
     else if (layer == SCREEN_TINT_BEFORE_AVATARS) {
         if (_hand.isRaveGloveActive()) {
             // Restore the world lighting
-            Application::getInstance()->setupWorldLight(whichCamera);
+            Application::getInstance()->setupWorldLight();
         }
     }
 }
@@ -571,6 +569,8 @@ void MyAvatar::saveData(QSettings* settings) {
     settings->setValue("bodyYaw", _bodyYaw);
     settings->setValue("bodyPitch", _bodyPitch);
     settings->setValue("bodyRoll", _bodyRoll);
+    
+    settings->setValue("mousePitch", _head.getMousePitch());
     
     settings->setValue("position_x", _position.x);
     settings->setValue("position_y", _position.y);
@@ -592,6 +592,9 @@ void MyAvatar::loadData(QSettings* settings) {
     _bodyYaw = loadSetting(settings, "bodyYaw", 0.0f);
     _bodyPitch = loadSetting(settings, "bodyPitch", 0.0f);
     _bodyRoll = loadSetting(settings, "bodyRoll", 0.0f);
+    
+    _head.setMousePitch(loadSetting(settings, "mousePitch", 0.0f));
+    
     _position.x = loadSetting(settings, "position_x", 0.0f);
     _position.y = loadSetting(settings, "position_y", 0.0f);
     _position.z = loadSetting(settings, "position_z", 0.0f);
@@ -623,19 +626,19 @@ glm::vec3 MyAvatar::getEyeLevelPosition() const {
         glm::vec3(0.0f, _pelvisToHeadLength + _scale * BODY_BALL_RADIUS_HEAD_BASE * EYE_UP_OFFSET, 0.0f);
 }
 
-float MyAvatar::getBallRenderAlpha(int ball, bool lookingInMirror) const {
+float MyAvatar::getBallRenderAlpha(int ball, bool forceRenderHead) const {
     const float RENDER_OPAQUE_OUTSIDE = _scale * 0.25f; // render opaque if greater than this distance
     const float DO_NOT_RENDER_INSIDE = _scale * 0.25f; // do not render if less than this distance
     float distanceToCamera = glm::length(Application::getInstance()->getCamera()->getPosition() - _bodyBall[ball].position);
-    return (lookingInMirror) ? 1.0f : glm::clamp(
+    return (forceRenderHead) ? 1.0f : glm::clamp(
         (distanceToCamera - DO_NOT_RENDER_INSIDE) / (RENDER_OPAQUE_OUTSIDE - DO_NOT_RENDER_INSIDE), 0.f, 1.f);
 }
 
-void MyAvatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
+void MyAvatar::renderBody(bool forceRenderHead, bool renderAvatarBalls) {
 
     if (_head.getVideoFace().isFullFrame()) {
         //  Render the full-frame video
-        float alpha = getBallRenderAlpha(BODY_BALL_HEAD_BASE, lookingInMirror);
+        float alpha = getBallRenderAlpha(BODY_BALL_HEAD_BASE, forceRenderHead);
         if (alpha > 0.0f) {
             _head.getVideoFace().render(1.0f);
         }
@@ -644,7 +647,7 @@ void MyAvatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
         glm::vec3 skinColor, darkSkinColor;
         getSkinColors(skinColor, darkSkinColor);
         for (int b = 0; b < NUM_AVATAR_BODY_BALLS; b++) {
-            float alpha = getBallRenderAlpha(b, lookingInMirror);
+            float alpha = getBallRenderAlpha(b, forceRenderHead);
             
             // When we have leap hands, hide part of the arms.
             if (_hand.getNumPalms() > 0) {
@@ -710,12 +713,12 @@ void MyAvatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
         if (!_skeletonModel.render(1.0f)) {
             _voxels.render(false);
         }
-        float alpha = getBallRenderAlpha(BODY_BALL_HEAD_BASE, lookingInMirror);
+        float alpha = getBallRenderAlpha(BODY_BALL_HEAD_BASE, forceRenderHead);
         if (alpha > 0.0f) {
             _head.render(alpha, true);
         }
     }
-    _hand.render(lookingInMirror);
+    _hand.render();
 }
 
 void MyAvatar::updateThrust(float deltaTime, Transmitter * transmitter) {
@@ -743,8 +746,7 @@ void MyAvatar::updateThrust(float deltaTime, Transmitter * transmitter) {
     _thrust -= _driveKeys[DOWN] * _scale * THRUST_MAG_DOWN * _thrustMultiplier * deltaTime * up;
     _bodyYawDelta -= _driveKeys[ROT_RIGHT] * YAW_MAG * deltaTime;
     _bodyYawDelta += _driveKeys[ROT_LEFT] * YAW_MAG * deltaTime;
-    _mousePitchDelta = min(_mousePitchDelta + _driveKeys[ROT_UP] * PITCH_MAG * deltaTime, MAX_PITCH);
-    _mousePitchDelta = max(_mousePitchDelta - _driveKeys[ROT_DOWN] * PITCH_MAG * deltaTime, -MAX_PITCH);
+    _head.setMousePitch(_head.getMousePitch() + (_driveKeys[ROT_UP] - _driveKeys[ROT_DOWN]) * PITCH_MAG * deltaTime);
     
     //  If thrust keys are being held down, slowly increase thrust to allow reaching great speeds
     if (_driveKeys[FWD] || _driveKeys[BACK] || _driveKeys[RIGHT] || _driveKeys[LEFT] || _driveKeys[UP] || _driveKeys[DOWN]) {
@@ -1270,8 +1272,4 @@ void MyAvatar::setOrientation(const glm::quat& orientation) {
     _bodyPitch = eulerAngles.x;
     _bodyYaw = eulerAngles.y;
     _bodyRoll = eulerAngles.z;
-}
-
-void MyAvatar::setNewScale(const float scale) {
-    _newScale = scale;
 }

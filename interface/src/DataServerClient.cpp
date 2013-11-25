@@ -173,6 +173,9 @@ void DataServerClient::processSendFromDataServer(unsigned char* packetData, int 
                 
                 if (coordinateItems.size() == 3) {
                     
+                    // send a node kill request, indicating to other clients that they should play the "disappeared" effect
+                    NodeList::getInstance()->sendKillNode(&NODE_TYPE_AVATAR_MIXER, 1);
+                    
                     qDebug() << "Changing domain to" << valueList[i].toLocal8Bit().constData() <<
                         "and position to" << valueList[i + 1].toLocal8Bit().constData() <<
                         "to go to" << userString << "\n";

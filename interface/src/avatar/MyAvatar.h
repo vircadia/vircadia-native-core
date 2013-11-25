@@ -19,9 +19,9 @@ public:
 
     void reset();
     void simulate(float deltaTime, Transmitter* transmitter);
-    void updateFromGyrosAndOrWebcam(float pitchFromTouch, bool turnWithHead);
-    void render(bool lookingInMirror, bool renderAvatarBalls);
-    void renderScreenTint(ScreenTintLayer layer, Camera& whichCamera);
+    void updateFromGyrosAndOrWebcam(bool turnWithHead);
+    void render(bool forceRenderHead, bool renderAvatarBalls);
+    void renderScreenTint(ScreenTintLayer layer);
 
     // setters
     void setMousePressed(bool mousePressed) { _mousePressed = mousePressed; }
@@ -30,12 +30,10 @@ public:
     void setLeanScale(float scale) { _leanScale = scale; }
     void setGravity(glm::vec3 gravity);
     void setOrientation(const glm::quat& orientation);
-    void setNewScale(const float scale);
     void setWantCollisionsOn(bool wantCollisionsOn) { _isCollisionsOn = wantCollisionsOn; }
     void setMoveTarget(const glm::vec3 moveTarget);
 
     // getters
-    float getNewScale() const { return _newScale; }
     float getSpeed() const { return _speed; }
     AvatarMode getMode() const { return _mode; }
     float getLeanScale() const { return _leanScale; }
@@ -66,7 +64,6 @@ private:
     bool _mousePressed;
     float _bodyPitchDelta;
     float _bodyRollDelta;
-    float _mousePitchDelta;
     bool _shouldJump;
     float _driveKeys[MAX_DRIVE_KEYS];
     glm::vec3 _gravity;
@@ -84,8 +81,8 @@ private:
     int _moveTargetStepCounter;
 
 	// private methods
-    float getBallRenderAlpha(int ball, bool lookingInMirror) const;
-    void renderBody(bool lookingInMirror, bool renderAvatarBalls);
+    float getBallRenderAlpha(int ball, bool forceRenderHead) const;
+    void renderBody(bool forceRenderHead, bool renderAvatarBalls);
     void updateThrust(float deltaTime, Transmitter * transmitter);
     void updateHandMovementAndTouching(float deltaTime, bool enableHandMovement);
     void updateAvatarCollisions(float deltaTime);

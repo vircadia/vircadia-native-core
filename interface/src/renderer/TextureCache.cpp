@@ -23,7 +23,8 @@ TextureCache::TextureCache() :
     _blueTextureID(0),
     _primaryFramebufferObject(NULL),
     _secondaryFramebufferObject(NULL),
-    _tertiaryFramebufferObject(NULL)
+    _tertiaryFramebufferObject(NULL),
+    _shadowFramebufferObject(NULL)
 {
 }
 
@@ -177,6 +178,38 @@ QOpenGLFramebufferObject* TextureCache::getTertiaryFramebufferObject() {
         _tertiaryFramebufferObject = createFramebufferObject();
     }
     return _tertiaryFramebufferObject;
+}
+
+QOpenGLFramebufferObject* TextureCache::getShadowFramebufferObject() {
+    if (_shadowFramebufferObject == NULL) {
+        const int SHADOW_MAP_SIZE = 2048;
+        _shadowFramebufferObject = new QOpenGLFramebufferObject(SHADOW_MAP_SIZE, SHADOW_MAP_SIZE,
+            QOpenGLFramebufferObject::NoAttachment, GL_TEXTURE_2D, GL_RGB);
+        
+        glGenTextures(1, &_shadowDepthTextureID);
+        glBindTexture(GL_TEXTURE_2D, _shadowDepthTextureID);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_DEPTH_COMPONENT, SHADOW_MAP_SIZE, SHADOW_MAP_SIZE,
+            0, GL_DEPTH_COMPONENT, GL_UNSIGNED_BYTE, 0);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
+        const float DISTANT_BORDER[] = { 1.0f, 1.0f, 1.0f, 1.0f };
+        glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, DISTANT_BORDER);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE, GL_COMPARE_R_TO_TEXTURE);
+        glBindTexture(GL_TEXTURE_2D, 0);
+        
+        _shadowFramebufferObject->bind();
+        glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D, _shadowDepthTextureID, 0);
+        _shadowFramebufferObject->release();
+    }
+    return _shadowFramebufferObject;
+}
+
+GLuint TextureCache::getShadowDepthTextureID() {
+    // ensure that the shadow framebuffer object is initialized before returning the depth texture id
+    getShadowFramebufferObject();
+    return _shadowDepthTextureID;
 }
 
 bool TextureCache::eventFilter(QObject* watched, QEvent* event) {
