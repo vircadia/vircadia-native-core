@@ -1771,7 +1771,7 @@ void Application::init() {
     _voxels.setMaxVoxels(Menu::getInstance()->getMaxVoxels());
     _voxels.setUseVoxelShader(Menu::getInstance()->isOptionChecked(MenuOption::UseVoxelShader));
     _voxels.setVoxelsAsPoints(Menu::getInstance()->isOptionChecked(MenuOption::VoxelsAsPoints));
-    _voxels.setDisableFastVoxelPipeline(Menu::getInstance()->isOptionChecked(MenuOption::DisableFastVoxelPipeline));
+    _voxels.setDisableFastVoxelPipeline(false);
     _voxels.init();
     
 
@@ -3609,7 +3609,7 @@ void Application::displayStats() {
     // Voxel Rendering
     voxelStats.str("");
     voxelStats.precision(4);
-    voxelStats << "Voxel Rendering Slots" << 
+    voxelStats << "Voxel Rendering Slots " << 
         "Max: " << _voxels.getMaxVoxels() / 1000.f << "K " << 
         "Drawn: " << _voxels.getVoxelsWritten() / 1000.f << "K " <<
         "Abandoned: " << _voxels.getAbandonedVoxels() / 1000.f << "K ";

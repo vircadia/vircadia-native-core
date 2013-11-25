@@ -774,7 +774,10 @@ void VoxelSystem::checkForCulling() {
     uint64_t start = usecTimestampNow();
     uint64_t sinceLastViewCulling = (start - _lastViewCulling) / 1000;
     
-    bool constantCulling = !Menu::getInstance()->isOptionChecked(MenuOption::DisableConstantCulling);
+    // These items used to be menu options, we are not defaulting to and only supporting these modes.
+    bool constantCulling = true;
+    bool performHideOutOfViewLogic = true;
+    bool performRemoveOutOfViewLogic = false;
     
     // If the view frustum is no longer changing, but has changed, since last time, then remove nodes that are out of view
     if (constantCulling || (
@@ -785,7 +788,7 @@ void VoxelSystem::checkForCulling() {
         // When we call removeOutOfView() voxels, we don't actually remove the voxels from the VBOs, but we do remove
         // them from tree, this makes our tree caclulations faster, but doesn't require us to fully rebuild the VBOs (which
         // can be expensive).
-        if (!Menu::getInstance()->isOptionChecked(MenuOption::DisableHideOutOfView)) {
+        if (performHideOutOfViewLogic) {
 
             // track how long its been since we were last moving. If we have recently moved then only use delta frustums, if
             // it's been a long time since we last moved, then go ahead and do a full frustum cull.
@@ -819,7 +822,7 @@ void VoxelSystem::checkForCulling() {
                 _lastViewCullingElapsed = (endViewCulling - start) / 1000;
             }
 
-        } else if (Menu::getInstance()->isOptionChecked(MenuOption::RemoveOutOfView)) {
+        } else if (performRemoveOutOfViewLogic) {
             _lastViewCulling = start;
             removeOutOfView();
             uint64_t endViewCulling = usecTimestampNow();
@@ -1943,7 +1946,7 @@ void VoxelSystem::hideOutOfView(bool forceFullFrustum) {
     // Both these problems are solved by intermittently calling this with forceFullFrustum set
     // to true. This will essentially clean up the improperly hidden or shown voxels.
     //
-    bool wantDeltaFrustums = !forceFullFrustum && !Menu::getInstance()->isOptionChecked(MenuOption::UseFullFrustumInHide);
+    bool wantDeltaFrustums = !forceFullFrustum;
     hideOutOfViewArgs args(this, this->_tree, _culledOnce, widenFrustum, wantDeltaFrustums);
 
     const bool wantViewFrustumDebugging = false; // change to true for additional debugging

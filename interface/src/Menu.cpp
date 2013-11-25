@@ -305,23 +305,6 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(voxelProtoOptionsMenu, MenuOption::EnableOcclusionCulling);
     addCheckableActionToQMenuAndActionHash(voxelProtoOptionsMenu, MenuOption::DestructiveAddVoxel);
 
-    QMenu* cullingOptionsMenu = voxelOptionsMenu->addMenu("Culling Options");
-    addDisabledActionAndSeparator(cullingOptionsMenu, "Standard Settings");
-    addCheckableActionToQMenuAndActionHash(cullingOptionsMenu, MenuOption::OldVoxelCullingMode, 0,
-                                           false, this, SLOT(setOldVoxelCullingMode(bool)));
-
-    addCheckableActionToQMenuAndActionHash(cullingOptionsMenu, MenuOption::NewVoxelCullingMode, 0,
-                                           false, this, SLOT(setNewVoxelCullingMode(bool)));
-
-    addDisabledActionAndSeparator(cullingOptionsMenu, "Individual Option Settings");
-    addCheckableActionToQMenuAndActionHash(cullingOptionsMenu, MenuOption::DisableFastVoxelPipeline, 0,
-                                           false, appInstance->getVoxels(), SLOT(setDisableFastVoxelPipeline(bool)));
-    addCheckableActionToQMenuAndActionHash(cullingOptionsMenu, MenuOption::DisableHideOutOfView);
-    addCheckableActionToQMenuAndActionHash(cullingOptionsMenu, MenuOption::RemoveOutOfView);
-    addCheckableActionToQMenuAndActionHash(cullingOptionsMenu, MenuOption::UseFullFrustumInHide);
-    addCheckableActionToQMenuAndActionHash(cullingOptionsMenu, MenuOption::DisableConstantCulling);
-
-
     QMenu* avatarOptionsMenu = developerMenu->addMenu("Avatar Options");
     
     addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::Avatars, 0, true);
@@ -1138,30 +1121,3 @@ void Menu::updateFrustumRenderModeAction() {
     }
 }
 
-void Menu::setOldVoxelCullingMode(bool oldMode) {
-    setVoxelCullingMode(oldMode);
-}
-
-void Menu::setNewVoxelCullingMode(bool newMode) {
-    setVoxelCullingMode(!newMode);
-}
-
-/// This will switch on or off several different individual settings options all at once based on choosing with Old or New
-/// voxel culling mode.
-void Menu::setVoxelCullingMode(bool oldMode) {
-    const QString menus[] = { MenuOption::DisableFastVoxelPipeline, MenuOption::RemoveOutOfView, MenuOption::DisableHideOutOfView,
-                              MenuOption::UseFullFrustumInHide, MenuOption::DisableConstantCulling};
-    bool oldModeValue[]    = { true, true, true, true, true };
-    bool newModeValue[]    = { false, false, false, false, false };
-
-    for (int i = 0; i < sizeof(menus) / sizeof(menus[0]); i++) {
-        bool desiredValue = oldMode ? oldModeValue[i] : newModeValue[i];
-        if (isOptionChecked(menus[i]) != desiredValue) {
-            triggerOption(menus[i]);
-        }
-    }
-
-    // set the checkmarks accordingly...
-    _actionHash.value(MenuOption::OldVoxelCullingMode)->setChecked(oldMode);
-    _actionHash.value(MenuOption::NewVoxelCullingMode)->setChecked(!oldMode);
-}

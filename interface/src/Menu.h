@@ -93,8 +93,6 @@ private slots:
     void chooseVoxelPaintColor();
     void runTests();
     void resetSwatchColors();
-    void setOldVoxelCullingMode(bool oldMode);
-    void setNewVoxelCullingMode(bool newMode);
     
 private:
     static Menu* _instance;
@@ -124,7 +122,6 @@ private:
                                                     const char* member = NULL);
     
     void updateFrustumRenderModeAction();
-    void setVoxelCullingMode(bool oldMode);
     
     QHash<QString, QAction*> _actionHash;
     int _audioJitterBufferSamples; /// number of extra samples to wait before starting audio playback
@@ -162,9 +159,7 @@ namespace MenuOption {
     const QString DeleteVoxels = "Delete";
     const QString DestructiveAddVoxel = "Create Voxel is Destructive";
     const QString DisableColorVoxels = "Disable Colored Voxels";
-    const QString DisableConstantCulling = "Disable Constant Culling";
     const QString DisableDeltaSending = "Disable Delta Sending";
-    const QString DisableFastVoxelPipeline = "Disable Fast Voxel Pipeline";
     const QString DisableLowRes = "Disable Lower Resolution While Moving";
     const QString DisplayFrustum = "Display Frustum";
     const QString DisplayLeapHands = "Display Leap Hands";
@@ -193,7 +188,6 @@ namespace MenuOption {
     const QString GlowMode = "Cycle Glow Mode";
     const QString GoToDomain = "Go To Domain...";
     const QString GoToLocation = "Go To Location...";
-    const QString DisableHideOutOfView = "Disable Hide Out of View Voxels";
     const QString GoToUser = "Go To User...";
     const QString ImportVoxels = "Import Voxels";
     const QString ImportVoxelsClipboard = "Import Voxels to Clipboard";
@@ -224,7 +218,6 @@ namespace MenuOption {
     const QString PipelineWarnings = "Show Render Pipeline Warnings";
     const QString Preferences = "Preferences...";
     const QString RandomizeVoxelColors = "Randomize Voxel TRUE Colors";
-    const QString RemoveOutOfView = "Instead of Hide Remove Out of View Voxels";
     const QString ResetAvatarSize = "Reset Avatar Size";
     const QString ResetSwatchColors = "Reset Swatch Colors";
     const QString RunTimingTests = "Run Timing Tests";
@@ -244,7 +237,6 @@ namespace MenuOption {
     const QString TreeStats = "Calculate Tree Stats";
     const QString TransmitterDrive = "Transmitter Drive";
     const QString Quit =  "Quit";
-    const QString UseFullFrustumInHide = "Use Full View Frustums when Culling";
     const QString UseVoxelShader = "Use Voxel Shader";
     const QString VoxelsAsPoints = "Draw Voxels as Points";
     const QString Voxels = "Voxels";
