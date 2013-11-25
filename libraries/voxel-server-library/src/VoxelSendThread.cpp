@@ -8,15 +8,23 @@
 //  Threaded or non-threaded voxel packet sender
 //
 
-#include <NodeList.h>
-#include <SharedUtil.h>
-#include <PacketHeaders.h>
 #include <EnvironmentData.h>
+#include <NodeList.h>
+#include <PacketHeaders.h>
+#include <PerfStat.h>
+#include <SharedUtil.h>
+
 extern EnvironmentData environmentData[3];
+
 
 #include "VoxelSendThread.h"
 #include "VoxelServer.h"
 #include "VoxelServerConsts.h"
+
+
+uint64_t startSceneSleepTime = 0;
+uint64_t endSceneSleepTime = 0;
+
 
 VoxelSendThread::VoxelSendThread(const QUuid& nodeUUID, VoxelServer* myServer) :
     _nodeUUID(nodeUUID),
@@ -69,6 +77,7 @@ bool VoxelSendThread::process() {
         int usecToSleep =  VOXEL_SEND_INTERVAL_USECS - elapsed;
 
         if (usecToSleep > 0) {
+            PerformanceWarning warn(false,"VoxelSendThread... usleep()",false,&_usleepTime,&_usleepCalls);
             usleep(usecToSleep);
         } else {
             if (_myServer->wantsDebugVoxelSending() && _myServer->wantsVerboseDebug()) {
@@ -80,6 +89,8 @@ bool VoxelSendThread::process() {
     return isStillRunning();  // keep running till they terminate us
 }
 
+uint64_t VoxelSendThread::_usleepTime = 0;
+uint64_t VoxelSendThread::_usleepCalls = 0;
 
 uint64_t VoxelSendThread::_totalBytes = 0;
 uint64_t VoxelSendThread::_totalWastedBytes = 0;
@@ -289,7 +300,17 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
         }
         if (_encodedSomething) {
             nodeData->stats.sceneCompleted();
+            
+            ::endSceneSleepTime = _usleepTime;
+            unsigned long sleepTime = ::endSceneSleepTime - ::startSceneSleepTime;
+            
+            unsigned long encodeTime = nodeData->stats.getTotalEncodeTime();
+            unsigned long elapsedTime = nodeData->stats.getElapsedTime();
             packetsSentThisInterval += handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
+
+            qDebug("Scene completed at %llu. encodeTime: %lu sleepTime: %lu elapsed: %lu Packets:[%llu]: Total Bytes:[%llu] Wasted bytes:[%llu]\n",
+                usecTimestampNow(), encodeTime, sleepTime, elapsedTime, _totalPackets, _totalBytes, _totalWastedBytes);
+            
         }
         
         if (_myServer->wantDisplayVoxelStats()) {
@@ -309,6 +330,7 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
             usecTimestampNow(), _totalPackets, _totalBytes, _totalWastedBytes);
 
 
+        ::startSceneSleepTime = _usleepTime;
         nodeData->stats.sceneStarted(isFullScene, viewFrustumChanged, _myServer->getServerTree().rootNode, _myServer->getJurisdiction());
 
         // This is the start of "resending" the scene.
@@ -347,22 +369,6 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
                     nodeData->getMaxVoxelPacketsPerSecond(), clientMaxPacketsPerInterval);
             }
 
-
-            // Check to see if we're taking too long, and if so bail early...
-            uint64_t now = usecTimestampNow();
-            long elapsedUsec = (now - start);
-            long elapsedUsecPerPacket = (truePacketsSent == 0) ? 0 : (elapsedUsec / truePacketsSent);
-            long usecRemaining = (VOXEL_SEND_INTERVAL_USECS - elapsedUsec);
-            
-            if (elapsedUsecPerPacket + SENDING_TIME_TO_SPARE > usecRemaining) {
-                if (_myServer->wantsDebugVoxelSending() && _myServer->wantsVerboseDebug()) {
-                    printf("packetLoop() usecRemaining=%ld bailing early took %ld usecs to generate %d bytes in %d packets (%ld usec avg), %d nodes still to send\n",
-                            usecRemaining, elapsedUsec, trueBytesSent, truePacketsSent, elapsedUsecPerPacket,
-                            nodeData->nodeBag.count());
-                }
-                break;
-            }   
-            
             bool lastNodeDidntFit = false; // assume each node fits
             if (!nodeData->nodeBag.isEmpty()) {
                 VoxelNode* subTree = nodeData->nodeBag.extract();

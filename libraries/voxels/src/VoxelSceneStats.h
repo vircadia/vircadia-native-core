@@ -146,6 +146,8 @@ public:
     unsigned long getTotalVoxels() const { return _totalVoxels; }
     unsigned long getTotalInternal() const { return _totalInternal; }
     unsigned long getTotalLeaves() const { return _totalLeaves; }
+    unsigned long getTotalEncodeTime() const { return _totalEncodeTime; }
+    unsigned long getElapsedTime() const { return _elapsed; }
     
 private:
 
