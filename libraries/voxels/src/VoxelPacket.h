@@ -9,7 +9,7 @@
 //    *  add stats tracking for number of unique colors and consecutive identical colors.
 //          (as research for color dictionaries and RLE)
 //
-//    *  copy/paste broken? reset()?
+//    *  copy/paste broken?
 //
 //    *  further testing of compression to determine optimal configuration for performance and compression
 //

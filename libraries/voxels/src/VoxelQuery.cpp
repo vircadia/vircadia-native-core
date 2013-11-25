@@ -34,7 +34,7 @@ VoxelQuery::VoxelQuery(Node* owningNode) :
     _wantColor(true),
     _wantDelta(true),
     _wantLowResMoving(true),
-    _wantOcclusionCulling(true),
+    _wantOcclusionCulling(false), // disabled by default
     _maxVoxelPPS(DEFAULT_MAX_VOXEL_PPS),
     _voxelSizeScale(DEFAULT_VOXEL_SIZE_SCALE)
 {
