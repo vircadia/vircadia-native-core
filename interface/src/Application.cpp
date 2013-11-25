@@ -1524,7 +1524,6 @@ bool Application::sendVoxelsOperation(VoxelNode* node, void* extraData) {
     SendVoxelsOperationArgs* args = (SendVoxelsOperationArgs*)extraData;
     if (node->isColored()) {
         const unsigned char* nodeOctalCode = node->getOctalCode();
-        
         unsigned char* codeColorBuffer = NULL;
         int codeLength  = 0;
         int bytesInCode = 0;
@@ -1545,10 +1544,9 @@ bool Application::sendVoxelsOperation(VoxelNode* node, void* extraData) {
         }
 
         // copy the colors over
-        codeColorBuffer[bytesInCode + RED_INDEX  ] = node->getColor()[RED_INDEX  ];
+        codeColorBuffer[bytesInCode + RED_INDEX] = node->getColor()[RED_INDEX];
         codeColorBuffer[bytesInCode + GREEN_INDEX] = node->getColor()[GREEN_INDEX];
-        codeColorBuffer[bytesInCode + BLUE_INDEX ] = node->getColor()[BLUE_INDEX ];
-
+        codeColorBuffer[bytesInCode + BLUE_INDEX] = node->getColor()[BLUE_INDEX];
         getInstance()->_voxelEditSender.queueVoxelEditMessage(PACKET_TYPE_SET_VOXEL_DESTRUCTIVE, 
                 codeColorBuffer, codeAndColorLength);
         
@@ -1612,7 +1610,6 @@ void Application::pasteVoxelsToOctalCode(const unsigned char* octalCodeDestinati
     // the server as an set voxel message, this will also rebase the voxels to the new location
     SendVoxelsOperationArgs args;
     args.newBaseOctCode = octalCodeDestination;
-
     _sharedVoxelSystem.getTree()->recurseTreeWithOperation(sendVoxelsOperation, &args);
 
     if (_sharedVoxelSystem.getTree() != &_clipboard) {

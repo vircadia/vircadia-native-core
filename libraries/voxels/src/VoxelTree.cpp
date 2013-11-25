@@ -1534,12 +1534,15 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node,
                 int childTreeBytesOut = 0;
 
                 // XXXBHG - Note, this seems like the correct logic here, if we included the color in this packet, then
-                // the LOD logic determined that the child nodes do not need to be visible... and if so, we shouldn't recurse
-                // them further. But... this isn't how the code has been for a while... but it's a major savings (~30%) and
-                // it seems to work correctly. I'd like to discuss...
-                // 
-                // only recurse if we DIDN'T include colore on this level
-                if (!oneAtBit(childrenColoredBits, originalIndex)) {
+                // the LOD logic determined that the child nodes would not be visible... and if so, we shouldn't recurse
+                // them further. But... for some time now the code has included and recursed into these child nodes, which
+                // would likely still send the child content, even though the client wouldn't render it. This change is 
+                // a major savings (~30%) and it seems to work correctly. But I want us to discuss as a group when we do
+                // a voxel protocol review.
+                //
+                // This only applies in the view frustum case, in other cases, like file save and copy/past where
+                // no viewFrustum was requested, we still want to recurse the child tree.
+                if (!params.viewFrustum || !oneAtBit(childrenColoredBits, originalIndex)) {
                     childTreeBytesOut = encodeTreeBitstreamRecursion(childNode, packet, bag, params, thisLevel);
                 }
 
@@ -1916,13 +1919,10 @@ void VoxelTree::copySubTreeIntoNewTree(VoxelNode* startNode, VoxelTree* destinat
 
     while (!nodeBag.isEmpty()) {
         VoxelNode* subTree = nodeBag.extract();
-        
         packet.reset(); // reset the packet between usage
-
         // ask our tree to write a bitsteam
         EncodeBitstreamParams params(INT_MAX, IGNORE_VIEW_FRUSTUM, WANT_COLOR, NO_EXISTS_BITS, chopLevels);
         bytesWritten = encodeTreeBitstream(subTree, &packet, nodeBag, params);
-
         // ask destination tree to read the bitstream
         ReadBitstreamToTreeParams args(WANT_COLOR, NO_EXISTS_BITS);
         destinationTree->readBitstreamToTree(packet.getUncompressedData(), packet.getUncompressedSize(), args);
