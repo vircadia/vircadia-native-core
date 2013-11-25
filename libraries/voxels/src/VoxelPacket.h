@@ -9,6 +9,8 @@
 //    *  add stats tracking for number of unique colors and consecutive identical colors.
 //          (as research for color dictionaries and RLE)
 //
+//    *  copy/paste broken? reset()?
+//
 //    *  further testing of compression to determine optimal configuration for performance and compression
 //
 //    *  improve semantics for "reshuffle" - current approach will work for now and with compression

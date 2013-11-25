@@ -87,6 +87,7 @@ uint64_t VoxelSendThread::_totalPackets = 0;
 
 int VoxelSendThread::handlePacketSend(Node* node, VoxelNodeData* nodeData, int& trueBytesSent, int& truePacketsSent) {
     bool debug = true; // _myServer->wantsDebugVoxelSending();
+    uint64_t now = usecTimestampNow();
 
     bool packetSent = false; // did we send a packet?
     int packetsSent = 0;
@@ -118,7 +119,8 @@ int VoxelSendThread::handlePacketSend(Node* node, VoxelNodeData* nodeData, int& 
             _totalBytes += nodeData->getPacketLength();
             _totalPackets++;
             if (debug) {
-                qDebug("Adding stats to packet [%llu]: size:%d [%llu] wasted bytes:%d [%llu]\n",
+                qDebug("Adding stats to packet at %llu [%llu]: size:%d [%llu] wasted bytes:%d [%llu]\n",
+                    now,
                     _totalPackets,
                     nodeData->getPacketLength(), _totalBytes,
                     thisWastedBytes, _totalWastedBytes);
@@ -138,7 +140,8 @@ int VoxelSendThread::handlePacketSend(Node* node, VoxelNodeData* nodeData, int& 
             _totalBytes += nodeData->getPacketLength();
             _totalPackets++;
             if (debug) {
-                qDebug("Sending separate stats packet [%llu]: size:%d [%llu] wasted bytes:%d [%llu]\n",
+                qDebug("Sending separate stats packet at %llu [%llu]: size:%d [%llu] wasted bytes:%d [%llu]\n",
+                    now,
                     _totalPackets,
                     nodeData->getPacketLength(), _totalBytes,
                     thisWastedBytes, _totalWastedBytes);
@@ -158,7 +161,8 @@ int VoxelSendThread::handlePacketSend(Node* node, VoxelNodeData* nodeData, int& 
             _totalBytes += nodeData->getPacketLength();
             _totalPackets++;
             if (debug) {
-                qDebug("Sending packet [%llu]: size:%d [%llu] wasted bytes:%d [%llu]\n",
+                qDebug("Sending packet at %llu [%llu]: size:%d [%llu] wasted bytes:%d [%llu]\n",
+                    now,
                     _totalPackets,
                     nodeData->getPacketLength(), _totalBytes,
                     thisWastedBytes, _totalWastedBytes);
@@ -178,7 +182,8 @@ int VoxelSendThread::handlePacketSend(Node* node, VoxelNodeData* nodeData, int& 
             _totalBytes += nodeData->getPacketLength();
             _totalPackets++;
             if (debug) {
-                qDebug("Sending packet [%llu]: size:%d [%llu] wasted bytes:%d [%llu]\n",
+                qDebug("Sending packet at %llu [%llu]: size:%d [%llu] wasted bytes:%d [%llu]\n",
+                    now,
                     _totalPackets,
                     nodeData->getPacketLength(), _totalBytes,
                     thisWastedBytes, _totalWastedBytes);
@@ -299,6 +304,10 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
         if (isFullScene) {
             nodeData->nodeBag.deleteAll();
         }
+
+        qDebug("Scene started at %llu. Packets:[%llu]: Total Bytes:[%llu] Wasted bytes:[%llu]\n",
+            usecTimestampNow(), _totalPackets, _totalBytes, _totalWastedBytes);
+
 
         nodeData->stats.sceneStarted(isFullScene, viewFrustumChanged, _myServer->getServerTree().rootNode, _myServer->getJurisdiction());
 

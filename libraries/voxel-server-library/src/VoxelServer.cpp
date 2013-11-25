@@ -703,6 +703,9 @@ void VoxelServer::run() {
             int numBytesPacketHeader = numBytesForPacketHeader(packetData);
 
             if (packetData[0] == PACKET_TYPE_VOXEL_QUERY) {
+
+                qDebug("Got PACKET_TYPE_VOXEL_QUERY at %llu.\n", usecTimestampNow());
+            
                 // If we got a PACKET_TYPE_VOXEL_QUERY, then we're talking to an NODE_TYPE_AVATAR, and we
                 // need to make sure we have it in our nodeList.
                 QUuid nodeUUID = QUuid::fromRfc4122(QByteArray((char*)packetData + numBytesPacketHeader,
