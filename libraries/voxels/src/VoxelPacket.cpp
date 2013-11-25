@@ -10,9 +10,9 @@
 #include "VoxelPacket.h"
 
 bool VoxelPacket::_debug = false;
-uint64_t VoxelPacket::_bytesOfOctalCodes = 0;
-uint64_t VoxelPacket::_bytesOfBitMasks = 0;
-uint64_t VoxelPacket::_bytesOfColor = 0;
+uint64_t VoxelPacket::_totalBytesOfOctalCodes = 0;
+uint64_t VoxelPacket::_totalBytesOfBitMasks = 0;
+uint64_t VoxelPacket::_totalBytesOfColor = 0;
 
 
 
@@ -33,6 +33,11 @@ void VoxelPacket::reset() {
     _compressedBytes = 0;
     _bytesInUseLastCheck = 0;
     _dirty = false;
+
+    _bytesOfOctalCodes = 0;
+    _bytesOfBitMasks = 0;
+    _bytesOfColor = 0;
+    _bytesOfOctalCodesCurrentSubTree = 0;
 }
 
 VoxelPacket::~VoxelPacket() {
@@ -84,6 +89,7 @@ bool VoxelPacket::updatePriorBytes(int offset, const unsigned char* replacementB
 }
 
 bool VoxelPacket::startSubTree(const unsigned char* octcode) {
+    _bytesOfOctalCodesCurrentSubTree = _bytesOfOctalCodes;
     bool success = false;
     int possibleStartAt = _bytesInUse;
     int length = 0;
@@ -101,6 +107,7 @@ bool VoxelPacket::startSubTree(const unsigned char* octcode) {
     }
     if (success) {
         _bytesOfOctalCodes += length;
+        _totalBytesOfOctalCodes += length;
     }
     return success;
 }
@@ -146,15 +153,33 @@ void VoxelPacket::discardSubTree() {
     _bytesAvailable += bytesInSubTree; 
     _subTreeAt = _bytesInUse; // should be the same actually...
     _dirty = true;
+
+    // rewind to start of this subtree, other items rewound by endLevel()
+    int reduceBytesOfOctalCodes = _bytesOfOctalCodes - _bytesOfOctalCodesCurrentSubTree;
+    _bytesOfOctalCodes = _bytesOfOctalCodesCurrentSubTree;
+    _totalBytesOfOctalCodes -= reduceBytesOfOctalCodes;
 }
 
 LevelDetails VoxelPacket::startLevel() {
-    LevelDetails key(_bytesInUse,0,0,0);
+    LevelDetails key(_bytesInUse, _bytesOfOctalCodes, _bytesOfBitMasks, _bytesOfColor);
     return key;
 }
 
 void VoxelPacket::discardLevel(LevelDetails key) {
     int bytesInLevel = _bytesInUse - key._startIndex;
+    
+    // reset statistics...
+    int reduceBytesOfOctalCodes = _bytesOfOctalCodes - key._bytesOfOctalCodes;
+    int reduceBytesOfBitMasks = _bytesOfBitMasks - key._bytesOfBitmasks;
+    int reduceBytesOfColor = _bytesOfColor - key._bytesOfColor;
+
+    _bytesOfOctalCodes = key._bytesOfOctalCodes;
+    _bytesOfBitMasks = key._bytesOfBitmasks;
+    _bytesOfColor = key._bytesOfColor;
+
+    _totalBytesOfOctalCodes -= reduceBytesOfOctalCodes;
+    _totalBytesOfBitMasks -= reduceBytesOfBitMasks;
+    _totalBytesOfColor -= reduceBytesOfColor;
 
     if (_debug) {
         printf("discardLevel() BEFORE _dirty=%s bytesInLevel=%d _compressedBytes=%d _bytesInUse=%d\n",
@@ -201,6 +226,7 @@ bool VoxelPacket::appendBitMask(unsigned char bitmask) {
     bool success = append(bitmask); // handles checking compression
     if (success) {
         _bytesOfBitMasks++;
+        _totalBytesOfBitMasks++;
     }
     return success;
 }
@@ -221,6 +247,7 @@ bool VoxelPacket::appendColor(const nodeColor& color) {
     }
     if (success) {
         _bytesOfColor += BYTES_PER_COLOR;
+        _totalBytesOfColor += BYTES_PER_COLOR;
     }
     return success;
 }

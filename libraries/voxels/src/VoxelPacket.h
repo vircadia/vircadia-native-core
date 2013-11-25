@@ -113,6 +113,10 @@ public:
 
     static uint64_t _checkCompressTime;
     static uint64_t _checkCompressCalls;
+
+    static uint64_t _totalBytesOfOctalCodes;
+    static uint64_t _totalBytesOfBitMasks;
+    static uint64_t _totalBytesOfColor;
      
 private:
     /// appends raw bytes, might fail if byte would cause packet to be too large
@@ -137,10 +141,11 @@ private:
     bool _dirty;
 
     // statistics...
-    static uint64_t _bytesOfOctalCodes;
-    static uint64_t _bytesOfBitMasks;
-    static uint64_t _bytesOfColor;
-        
+    int _bytesOfOctalCodes;
+    int _bytesOfBitMasks;
+    int _bytesOfColor;
+    int _bytesOfOctalCodesCurrentSubTree;
+
     static bool _debug;
     
 };

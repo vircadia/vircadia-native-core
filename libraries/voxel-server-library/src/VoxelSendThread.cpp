@@ -111,7 +111,9 @@ int VoxelSendThread::handlePacketSend(Node* node, VoxelNodeData* nodeData, int& 
             memcpy(statsMessage + statsMessageLength, nodeData->getPacket(), nodeData->getPacketLength());
             statsMessageLength += nodeData->getPacketLength();
 
-            int thisWastedBytes = MAX_PACKET_SIZE - statsMessageLength; // the statsMessageLength at this point includes data
+            // since a stats message is only included on end of scene, don't consider any of these bytes "wasted", since
+            // there was nothing else to send.
+            int thisWastedBytes = 0;
             _totalWastedBytes += thisWastedBytes;
             _totalBytes += nodeData->getPacketLength();
             _totalPackets++;
@@ -129,7 +131,9 @@ int VoxelSendThread::handlePacketSend(Node* node, VoxelNodeData* nodeData, int& 
             // not enough room in the packet, send two packets
             NodeList::getInstance()->getNodeSocket()->send(node->getActiveSocket(), statsMessage, statsMessageLength);
 
-            int thisWastedBytes = MAX_PACKET_SIZE - statsMessageLength; // the statsMessageLength is only the stats
+            // since a stats message is only included on end of scene, don't consider any of these bytes "wasted", since
+            // there was nothing else to send.
+            int thisWastedBytes = 0;
             _totalWastedBytes += thisWastedBytes;
             _totalBytes += nodeData->getPacketLength();
             _totalPackets++;
