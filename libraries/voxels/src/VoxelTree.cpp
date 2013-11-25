@@ -1419,6 +1419,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node,
                     if (!childWasInView || 
                         (params.deltaViewFrustum && 
                          childNode->hasChangedSince(params.lastViewFrustumSent - CHANGE_FUDGE))){
+                         
                         childrenColoredBits += (1 << (7 - originalIndex));
                         inViewWithColorCount++;
                     } else {
@@ -1530,7 +1531,17 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node,
                 // remember this for reshuffling
                 recursiveSliceStarts[originalIndex] = packet->getUncompressedData() + packet->getUncompressedSize();
 
-                int childTreeBytesOut = encodeTreeBitstreamRecursion(childNode, packet, bag, params, thisLevel);
+                int childTreeBytesOut = 0;
+
+                // XXXBHG - Note, this seems like the correct logic here, if we included the color in this packet, then
+                // the LOD logic determined that the child nodes do not need to be visible... and if so, we shouldn't recurse
+                // them further. But... this isn't how the code has been for a while... but it's a major savings (~30%) and
+                // it seems to work correctly. I'd like to discuss...
+                // 
+                // only recurse if we DIDN'T include colore on this level
+                if (!oneAtBit(childrenColoredBits, originalIndex)) {
+                    childTreeBytesOut = encodeTreeBitstreamRecursion(childNode, packet, bag, params, thisLevel);
+                }
 
                 // remember this for reshuffling
                 recursiveSliceSizes[originalIndex] = childTreeBytesOut;
@@ -1612,9 +1623,19 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node,
         }
     } // end keepDiggingDeeper
 
+    // At this point all our BitMasks are complete... so let's output them to see how they compare...
+    /**
+    printf("This Level's BitMasks: childInTree:");
+    outputBits(childrenExistInTreeBits, false, true);
+    printf(" childInPacket:");
+    outputBits(childrenExistInPacketBits, false, true);
+    printf(" childrenColored:");
+    outputBits(childrenColoredBits, false, true);
+    printf("\n");
+    **/
+
     // if we were unable to fit this level in our packet, then rewind and add it to the node bag for 
     // sending later...
-    
     if (continueThisLevel) {
         continueThisLevel = packet->endLevel(thisLevelKey);
     } else {
