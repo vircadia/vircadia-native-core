@@ -6,11 +6,11 @@
 //
 //  TO DO:
 //
-//    *  add stats tracking for number of bytes of octal code, bitmasks, and colors in a packet.
-//          - this is challenging, because you need to support the rollback of statistics when
-//            you discard a level or discard
+//    *  add stats tracking for number of unique colors and consecutive identical colors.
+//          (as research for color dictionaries and RLE)
 //
 //    *  further testing of compression to determine optimal configuration for performance and compression
+//
 //    *  improve semantics for "reshuffle" - current approach will work for now and with compression
 //       but wouldn't work with RLE because the colors in the levels would get reordered and RLE would need
 //       to be recalculated
