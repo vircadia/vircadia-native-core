@@ -2643,15 +2643,16 @@ void Application::queryVoxels() {
     int perServerPPS = 0;
     const int SMALL_BUDGET = 10;
     int perUnknownServer = SMALL_BUDGET;
+    int totalPPS = Menu::getInstance()->getMaxVoxelPacketsPerSecond();
 
     // determine PPS based on number of servers
     if (inViewServers >= 1) {
         // set our preferred PPS to be exactly evenly divided among all of the voxel servers... and allocate 1 PPS
         // for each unknown jurisdiction server
-        perServerPPS = (DEFAULT_MAX_VOXEL_PPS / inViewServers) - (unknownJurisdictionServers * perUnknownServer);
+        perServerPPS = (totalPPS / inViewServers) - (unknownJurisdictionServers * perUnknownServer);
     } else {
         if (unknownJurisdictionServers > 0) {
-            perUnknownServer = (DEFAULT_MAX_VOXEL_PPS / unknownJurisdictionServers);
+            perUnknownServer = (totalPPS / unknownJurisdictionServers);
         }
     }
     

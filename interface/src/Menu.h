@@ -68,6 +68,9 @@ public:
     void setBoundaryLevelAdjust(int boundaryLevelAdjust);
     int getBoundaryLevelAdjust() const { return _boundaryLevelAdjust; }
     
+    // User Tweakable PPS from Voxel Server
+    int getMaxVoxelPacketsPerSecond() const { return _maxVoxelPacketsPerSecond; }
+    
 public slots:
     void bandwidthDetails();
     void voxelStatsDetails();
@@ -137,6 +140,7 @@ private:
     float _voxelSizeScale;
     int _boundaryLevelAdjust;
     QAction* _useVoxelShader;
+    int _maxVoxelPacketsPerSecond;
 };
 
 namespace MenuOption {

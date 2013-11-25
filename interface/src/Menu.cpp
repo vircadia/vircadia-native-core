@@ -61,7 +61,8 @@ Menu::Menu() :
     _lodToolsDialog(NULL),
     _maxVoxels(DEFAULT_MAX_VOXELS_PER_SYSTEM),
     _voxelSizeScale(DEFAULT_VOXEL_SIZE_SCALE),
-    _boundaryLevelAdjust(0)
+    _boundaryLevelAdjust(0),
+    _maxVoxelPacketsPerSecond(DEFAULT_MAX_VOXEL_PPS)
 {
     Application *appInstance = Application::getInstance();
     
@@ -506,6 +507,7 @@ void Menu::loadSettings(QSettings* settings) {
     _fieldOfView = loadSetting(settings, "fieldOfView", DEFAULT_FIELD_OF_VIEW_DEGREES);
     _faceshiftEyeDeflection = loadSetting(settings, "faceshiftEyeDeflection", DEFAULT_FACESHIFT_EYE_DEFLECTION);
     _maxVoxels = loadSetting(settings, "maxVoxels", DEFAULT_MAX_VOXELS_PER_SYSTEM);
+    _maxVoxelPacketsPerSecond = loadSetting(settings, "maxVoxelsPPS", DEFAULT_MAX_VOXEL_PPS);
     _voxelSizeScale = loadSetting(settings, "voxelSizeScale", DEFAULT_VOXEL_SIZE_SCALE);
     _boundaryLevelAdjust = loadSetting(settings, "boundaryLevelAdjust", 0);
     
@@ -535,6 +537,7 @@ void Menu::saveSettings(QSettings* settings) {
     settings->setValue("fieldOfView", _fieldOfView);
     settings->setValue("faceshiftEyeDeflection", _faceshiftEyeDeflection);
     settings->setValue("maxVoxels", _maxVoxels);
+    settings->setValue("maxVoxelsPPS", _maxVoxelPacketsPerSecond);
     settings->setValue("voxelSizeScale", _voxelSizeScale);
     settings->setValue("boundaryLevelAdjust", _boundaryLevelAdjust);
     settings->beginGroup("View Frustum Offset Camera");
@@ -815,6 +818,16 @@ void Menu::editPreferences() {
     maxVoxels->setSingleStep(STEP_MAX_VOXELS);
     maxVoxels->setValue(_maxVoxels);
     form->addRow("Maximum Voxels:", maxVoxels);
+
+    QSpinBox* maxVoxelsPPS = new QSpinBox();
+    const int MAX_MAX_VOXELS_PPS = 6000;
+    const int MIN_MAX_VOXELS_PPS = 60;
+    const int STEP_MAX_VOXELS_PPS = 10;
+    maxVoxelsPPS->setMaximum(MAX_MAX_VOXELS_PPS);
+    maxVoxelsPPS->setMinimum(MIN_MAX_VOXELS_PPS);
+    maxVoxelsPPS->setSingleStep(STEP_MAX_VOXELS_PPS);
+    maxVoxelsPPS->setValue(_maxVoxelPacketsPerSecond);
+    form->addRow("Maximum Voxels Packets Per Second:", maxVoxelsPPS);
     
     QDialogButtonBox* buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
     dialog.connect(buttons, SIGNAL(accepted()), SLOT(accept()));
@@ -854,6 +867,8 @@ void Menu::editPreferences() {
         
         _maxVoxels = maxVoxels->value();
         applicationInstance->getVoxels()->setMaxVoxels(_maxVoxels);
+
+        _maxVoxelPacketsPerSecond = maxVoxelsPPS->value();
         
         applicationInstance->getAvatar()->setLeanScale(leanScale->value());
         
