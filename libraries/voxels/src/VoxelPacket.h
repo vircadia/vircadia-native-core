@@ -11,7 +11,12 @@
 //    *  determine why we sometimes don't fill packets very well (rarely) mid-scene... sometimes it appears as if
 //       the "next node" would encode with more bytes than can fit in the remainder of the packet. this might be
 //       several tens or hundreds of bytes, but theoretically other voxels would have fit. This happens in the 0100
-//       scene a couple times. 
+//       scene a couple times.  
+//          this is happening because of nodes that are not recursed for good reason like:
+//              - being occluded
+//              - being previously in view
+//              - being out of view, etc.
+//          in these cases, the node is not re-added to the bag... so, we can probably just keep going...
 //
 //    *  further testing of compression to determine optimal configuration for performance and compression
 //    *  improve semantics for "reshuffle" - current approach will work for now and with compression

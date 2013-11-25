@@ -66,6 +66,21 @@ public:
     CoverageMap* map;
     JurisdictionMap* jurisdictionMap;
     
+    // output hints from the encode process
+    typedef enum {
+        UNKNOWN, 
+        DIDNT_FIT, 
+        NULL_NODE, 
+        TOO_DEEP,
+        OUT_OF_JURISDICTION,
+        LOD_SKIP,
+        OUT_OF_VIEW,
+        WAS_IN_VIEW,
+        NO_CHANGE,
+        OCCLUDED
+    } reason;
+    reason stopReason;
+    
     EncodeBitstreamParams(
         int maxEncodeLevel = INT_MAX, 
         const ViewFrustum* viewFrustum = IGNORE_VIEW_FRUSTUM,
@@ -97,8 +112,27 @@ public:
             forceSendScene(forceSendScene),
             stats(stats),
             map(map),
-            jurisdictionMap(jurisdictionMap)
+            jurisdictionMap(jurisdictionMap),
+            stopReason(UNKNOWN)
     {}
+    
+    void displayStopReason() {
+        printf("StopReason: ");
+        switch (stopReason) {
+            default:
+            case UNKNOWN: printf("UNKNOWN\n"); break;
+            
+            case DIDNT_FIT: printf("DIDNT_FIT\n"); break;
+            case NULL_NODE: printf("NULL_NODE\n"); break;
+            case TOO_DEEP: printf("TOO_DEEP\n"); break;
+            case OUT_OF_JURISDICTION: printf("OUT_OF_JURISDICTION\n"); break;
+            case LOD_SKIP: printf("LOD_SKIP\n"); break;
+            case OUT_OF_VIEW: printf("OUT_OF_VIEW\n"); break;
+            case WAS_IN_VIEW: printf("WAS_IN_VIEW\n"); break;
+            case NO_CHANGE: printf("NO_CHANGE\n"); break;
+            case OCCLUDED: printf("OCCLUDED\n"); break;
+        }
+    }
 };
 
 class ReadBitstreamToTreeParams {

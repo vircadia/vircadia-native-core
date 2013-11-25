@@ -1031,6 +1031,7 @@ int VoxelTree::encodeTreeBitstream(VoxelNode* node,
     // you can't call this without a valid node
     if (!node) {
         qDebug("WARNING! encodeTreeBitstream() called with node=NULL\n");
+        params.stopReason = EncodeBitstreamParams::NULL_NODE;
         return bytesWritten;
     }
 
@@ -1039,6 +1040,7 @@ int VoxelTree::encodeTreeBitstream(VoxelNode* node,
     // If we're at a node that is out of view, then we can return, because no nodes below us will be in view!
     if (params.viewFrustum && !node->isInView(*params.viewFrustum)) {
         doneEncoding(node);
+        params.stopReason = EncodeBitstreamParams::OUT_OF_VIEW;
         return bytesWritten;
     }
 
@@ -1063,6 +1065,7 @@ int VoxelTree::encodeTreeBitstream(VoxelNode* node,
     if (!roomForOctalCode) {
         doneEncoding(node);
         bag.insert(node); // add the node back to the bag so it will eventually get included
+        params.stopReason = EncodeBitstreamParams::DIDNT_FIT;
         return bytesWritten;
     }
     
@@ -1085,6 +1088,7 @@ int VoxelTree::encodeTreeBitstream(VoxelNode* node,
     // couldn't be written... so reset them here... This isn't true for the non-color included case
     if (params.includeColor && childBytesWritten == 2) {
         childBytesWritten = 0;
+        //params.stopReason = EncodeBitstreamParams::UNKNOWN; // possibly should be DIDNT_FIT...
     }
 
     // if we wrote child bytes, then return our result of all bytes written
@@ -1093,6 +1097,7 @@ int VoxelTree::encodeTreeBitstream(VoxelNode* node,
     } else {
         // otherwise... if we didn't write any child bytes, then pretend like we also didn't write our octal code
         bytesWritten = 0;
+        //params.stopReason = EncodeBitstreamParams::DIDNT_FIT;
     }
     
     if (bytesWritten == 0) {
@@ -1115,6 +1120,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node,
     // you can't call this without a valid node
     if (!node) {
         qDebug("WARNING! encodeTreeBitstreamRecursion() called with node=NULL\n");
+        params.stopReason = EncodeBitstreamParams::NULL_NODE;
         return bytesAtThisLevel;
     }
 
@@ -1125,6 +1131,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node,
 
     // If we've reached our max Search Level, then stop searching.
     if (currentEncodeLevel >= params.maxEncodeLevel) {
+        params.stopReason = EncodeBitstreamParams::TOO_DEEP;
         return bytesAtThisLevel;
     }
 
@@ -1133,6 +1140,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node,
         // here's how it works... if we're currently above our root jurisdiction, then we proceed normally.
         // but once we're in our own jurisdiction, then we need to make sure we're not below it.
         if (JurisdictionMap::BELOW == params.jurisdictionMap->isMyJurisdiction(node->getOctalCode(), CHECK_NODE_ONLY)) {
+            params.stopReason = EncodeBitstreamParams::OUT_OF_JURISDICTION;
             return bytesAtThisLevel;
         }
     }
@@ -1148,6 +1156,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node,
             if (params.stats) {
                 params.stats->skippedDistance(node);
             }
+            params.stopReason = EncodeBitstreamParams::LOD_SKIP;
             return bytesAtThisLevel;
         }
 
@@ -1158,6 +1167,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node,
             if (params.stats) {
                 params.stats->skippedOutOfView(node);
             }
+            params.stopReason = EncodeBitstreamParams::OUT_OF_VIEW;
             return bytesAtThisLevel;
         }
         
@@ -1197,6 +1207,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node,
             if (params.stats) {
                 params.stats->skippedWasInView(node);
             }
+            params.stopReason = EncodeBitstreamParams::WAS_IN_VIEW;
             return bytesAtThisLevel;
         }
 
@@ -1207,6 +1218,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node,
             if (params.stats) {
                 params.stats->skippedNoChange(node);
             }
+            params.stopReason = EncodeBitstreamParams::NO_CHANGE;
             return bytesAtThisLevel;
         }
 
@@ -1226,6 +1238,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node,
                     if (params.stats) {
                         params.stats->skippedOccluded(node);
                     }
+                    params.stopReason = EncodeBitstreamParams::OCCLUDED;
                     return bytesAtThisLevel;
                 }
             } else {
@@ -1616,7 +1629,8 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node,
             params.stats->didntFit(node);
         }
 
-        return 0;
+        params.stopReason = EncodeBitstreamParams::DIDNT_FIT;
+        bytesAtThisLevel = 0; // didn't fit
     }
 
     return bytesAtThisLevel;

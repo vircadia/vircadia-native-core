@@ -350,6 +350,7 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
                 break;
             }   
             
+            bool lastNodeDidntFit = false; // assume each node fits
             if (!nodeData->nodeBag.isEmpty()) {
                 VoxelNode* subTree = nodeData->nodeBag.extract();
                 bool wantOcclusionCulling = nodeData->getWantOcclusionCulling();
@@ -375,11 +376,9 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
                 _myServer->getServerTree().lockForRead();
                 nodeData->stats.encodeStarted();
                 bytesWritten = _myServer->getServerTree().encodeTreeBitstream(subTree, &_tempPacket, nodeData->nodeBag, params);
-
-                if (_tempPacket.hasContent() && bytesWritten == 0 && _tempPacket.getFinalizedSize() < 1450) {
-                    printf(">>>>>>>>>>>>>>>  got bytesWritten==0 _tempPacket.getFinalizedSize()=%d <<<<<<<<<<<<<<<\n",
-                            _tempPacket.getFinalizedSize());
-
+                
+                if (_tempPacket.hasContent() && bytesWritten == 0 && params.stopReason == EncodeBitstreamParams::DIDNT_FIT) {
+                    lastNodeDidntFit = true;
                 }
 
                 if (bytesWritten > 0) {
@@ -396,7 +395,7 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
             // We only consider sending anything if there is something in the _tempPacket to send... But
             // if bytesWritten == 0 it means either the subTree couldn't fit or we had an empty bag... Both cases
             // mean we should send the previous packet contents and reset it. 
-            bool sendNow = (bytesWritten == 0);
+            bool sendNow = lastNodeDidntFit;
             if (_tempPacket.hasContent() && sendNow) {
                 if (_myServer->wantsDebugVoxelSending() && _myServer->wantsVerboseDebug()) {
                     printf("calling writeToPacket() compressedSize=%d uncompressedSize=%d\n",
