@@ -18,12 +18,10 @@ public:
                      Assignment::Type requestAssignmentType = Assignment::AllTypes,
                      const sockaddr_in& customAssignmentServerSocket = sockaddr_in(),
                      const char* requestAssignmentPool = NULL);
-    
-    int exec();
+private slots:
+    void sendAssignmentRequest();
 private:
-    Assignment::Type _requestAssignmentType;
-    sockaddr_in _customAssignmentServerSocket;
-    const char* _requestAssignmentPool;
+    Assignment _requestAssignment;
 };
 
 #endif /* defined(__hifi__AssignmentClient__) */
