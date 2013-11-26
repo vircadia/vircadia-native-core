@@ -295,8 +295,6 @@ private:
 
     void displayRearMirrorTools();
 
-    bool isFullscreenOculus() const;
-
     QMainWindow* _window;
     QGLWidget* _glWidget;
     
