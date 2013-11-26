@@ -1469,7 +1469,6 @@ void Application::checkBandwidthMeterClick() {
 void Application::setFullscreen(bool fullscreen) {
     _window->setWindowState(fullscreen ? (_window->windowState() | Qt::WindowFullScreen) :
         (_window->windowState() & ~Qt::WindowFullScreen));
-    updateCursor();
 }
 
 void Application::setRenderVoxels(bool voxelRender) {
@@ -2390,6 +2389,13 @@ void Application::updateAudio(float deltaTime) {
 void Application::updateCursor(float deltaTime) {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateCursor()");
+
+    // in fullscreen Oculus mode, always hide cursor
+    if (OculusManager::isConnected() && _window->windowState().testFlag(Qt::WindowFullScreen)) {
+        getGLWidget()->setCursor(Qt::BlankCursor);
+        _mouseHidden = true;
+        return;
+    }
 
     // watch mouse position, if it hasn't moved, hide the cursor
     bool underMouse = _glWidget->underMouse();
@@ -4088,11 +4094,6 @@ static void setShortcutsEnabled(QWidget* widget, bool enabled) {
 
 void Application::setMenuShortcutsEnabled(bool enabled) {
     setShortcutsEnabled(_window->menuBar(), enabled);
-}
-
-void Application::updateCursor() {
-    _glWidget->setCursor(OculusManager::isConnected() && _window->windowState().testFlag(Qt::WindowFullScreen) ?
-        Qt::BlankCursor : Qt::ArrowCursor);
 }
 
 void Application::attachNewHeadToNode(Node* newNode) {

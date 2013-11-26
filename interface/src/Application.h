@@ -288,8 +288,6 @@ private:
             
     void setMenuShortcutsEnabled(bool enabled);
     
-    void updateCursor();
-    
     static void attachNewHeadToNode(Node *newNode);
     static void* networkReceive(void* args); // network receive thread
 
