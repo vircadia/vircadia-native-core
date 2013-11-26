@@ -4,7 +4,7 @@ PublicHeader:   OVR.h
 Filename    :   OVR_Math.h
 Content     :   Implementation of 3D primitives such as vectors, matrices.
 Created     :   September 4, 2012
-Authors     :   Andrew Reisse, Michael Antonov, Steve LaValle, Anna Yershova
+Authors     :   Andrew Reisse, Michael Antonov, Steve LaValle, Anna Yershova, Max Katsev
 
 Copyright   :   Copyright 2012 Oculus VR, Inc. All Rights reserved.
 
@@ -23,11 +23,12 @@ otherwise accompanies this software in either electronic or hard copy form.
 
 #include "OVR_Types.h"
 #include "OVR_RefCount.h"
+#include "OVR_Std.h"
 
 namespace OVR {
 
 //-------------------------------------------------------------------------------------
-// Constants for 3D world/axis definitions.
+// ***** Constants for 3D world/axis definitions.
 
 // Definitions of axes for coordinate and rotation conversions.
 enum Axis
@@ -48,12 +49,13 @@ enum RotateDirection
     Rotate_CW  = -1 
 };
 
+// Constants for right handed and left handed coordinate systems
 enum HandedSystem
 {
     Handed_R = 1, Handed_L = -1
 };
 
-// AxisDirection describes which way the axis points. Used by WorldAxes.
+// AxisDirection describes which way the coordinate axis points. Used by WorldAxes.
 enum AxisDirection
 {
     Axis_Up    =  2,
@@ -74,9 +76,9 @@ struct WorldAxes
 };
 
 
-//-------------------------------------------------------------------------------------
-// ***** Math
-
+//------------------------------------------------------------------------------------//
+// ************************************ Math *****************************************//
+//
 // Math class contains constants and functions. This class is a template specialized
 // per type, with Math<float> and Math<double> being distinct.
 template<class Type>
@@ -95,14 +97,14 @@ public:
     static const float PiOver4;
     static const float E;
 
-    static const float MaxValue;          // Largest positive float Value
-    static const float MinPositiveValue;  // Smallest possible positive value
+    static const float MaxValue;			// Largest positive float Value
+    static const float MinPositiveValue;	// Smallest possible positive value
 
     static const float RadToDegreeFactor;
     static const float DegreeToRadFactor;
 
-    static const float Tolerance; //  0.00001f;
-    static const float SingularityRadius; //0.00000000001f for Gimbal lock numerical problems
+    static const float Tolerance;			// 0.00001f;
+    static const float SingularityRadius;	// 0.0000001f for Gimbal lock numerical problems
 };
 
 // Double-precision Math constants class.
@@ -116,33 +118,54 @@ public:
     static const double PiOver4;
     static const double E;
 
-    static const double MaxValue;          // Largest positive double Value
-    static const double MinPositiveValue;  // Smallest possible positive value
+    static const double MaxValue;			// Largest positive double Value
+    static const double MinPositiveValue;	// Smallest possible positive value
 
     static const double RadToDegreeFactor;
     static const double DegreeToRadFactor;
 
-    static const double Tolerance; //  0.00001f;
-    static const double SingularityRadius; //0.00000000001 for Gimbal lock numerical problems
+    static const double Tolerance;			// 0.00001;
+    static const double SingularityRadius;	// 0.000000000001 for Gimbal lock numerical problems
+
 };
 
 typedef Math<float>  Mathf;
 typedef Math<double> Mathd;
 
 // Conversion functions between degrees and radians
-template<class FT>
-FT RadToDegree(FT rads) { return rads * Math<FT>::RadToDegreeFactor; }
-template<class FT>
-FT DegreeToRad(FT rads) { return rads * Math<FT>::DegreeToRadFactor; }
+template<class T>
+T RadToDegree(T rads) { return rads * Math<T>::RadToDegreeFactor; }
+template<class T>
+T DegreeToRad(T rads) { return rads * Math<T>::DegreeToRadFactor; }
+
+// Numerically stable acos function
+template<class T>
+T Acos(T val) { 
+		if (val > T(1))				return T(0);
+		else if (val < T(-1))		return Math<T>::Pi;
+		else						return acos(val); 
+};
+
+// Numerically stable asin function
+template<class T>
+T Asin(T val) { 
+	if (val > T(1))				return Math<T>::PiOver2;
+	else if (val < T(-1))		return Math<T>::PiOver2 * T(3);
+	else						return asin(val); 
+};
+
+#ifdef OVR_CC_MSVC
+inline int isnan(double x) { return _isnan(x); };
+#endif
 
 template<class T>
 class Quat;
 
 //-------------------------------------------------------------------------------------
-// ***** Vector2f - 2D Vector2f
+// ***** Vector2<>
 
-// Vector2f represents a 2-dimensional vector or point in space,
-// consisting of coordinates x and y,
+// Vector2f (Vector2d) represents a 2-dimensional vector or point in space,
+// consisting of coordinates x and y
 
 template<class T>
 class Vector2
@@ -174,33 +197,53 @@ public:
                                                     return *this; }
 
     // Compare two vectors for equality with tolerance. Returns true if vectors match withing tolerance.
-    bool      Compare(const Vector2&b, T tolerance = Mathf::Tolerance)
+    bool	Compare(const Vector2&b, T tolerance = Mathf::Tolerance)
     {
         return (fabs(b.x-x) < tolerance) && (fabs(b.y-y) < tolerance);
     }
     
-    // Dot product overload.
+    // Entrywise product of two vectors
+    Vector2	EntrywiseMultiply(const Vector2& b) const	{ return Vector2(x * b.x, y * b.y);}
+
+	// Dot product
     // Used to calculate angle q between two vectors among other things,
     // as (A dot B) = |a||b|cos(q).
-    T     operator*  (const Vector2& b) const    { return x*b.x + y*b.y; }
+    T		Dot(const Vector2& b) const          { return x*b.x + y*b.y; }
 
     // Returns the angle from this vector to b, in radians.
-    T       Angle(const Vector2& b) const        { return acos((*this * b)/(Length()*b.Length())); }
+    T       Angle(const Vector2& b) const        
+	{ 
+		T div = LengthSq()*b.LengthSq();
+		OVR_ASSERT(div != T(0));
+		T result = Acos((this->Dot(b))/sqrt(div));
+		return result;
+	}
 
     // Return Length of the vector squared.
     T       LengthSq() const                     { return (x * x + y * y); }
     // Return vector length.
     T       Length() const                       { return sqrt(LengthSq()); }
 
-    // Returns distance between two points represented by vectors.
+	// Returns distance between two points represented by vectors.
     T       Distance(Vector2& b) const           { return (*this - b).Length(); }
-    
-    // Determine if this a unit vector.
+
+	// Determine if this a unit vector.
     bool    IsNormalized() const                 { return fabs(LengthSq() - T(1)) < Math<T>::Tolerance; }
+
     // Normalize, convention vector length to 1.    
-    void    Normalize()                          { *this /= Length(); }
+    void    Normalize()                          
+	{
+		T l = Length();
+		OVR_ASSERT(l != T(0));
+		*this /= l; 
+	}
     // Returns normalized (unit) version of the vector without modifying itself.
-    Vector2 Normalized() const                   { return *this / Length(); }
+    Vector2 Normalized() const                   
+	{ 
+		T l = Length();
+		OVR_ASSERT(l != T(0));
+		return *this / l; 
+	}
 
     // Linearly interpolates from this vector to another.
     // Factor should be between 0.0 and 1.0, with 0 giving full value to this.
@@ -208,17 +251,24 @@ public:
 
     // Projects this vector onto the argument; in other words,
     // A.Project(B) returns projection of vector A onto B.
-    Vector2 ProjectTo(const Vector2& b) const    { return b * ((*this * b) / b.LengthSq()); }
+    Vector2 ProjectTo(const Vector2& b) const    
+	{ 
+		T l2 = b.LengthSq();
+		OVR_ASSERT(l2 != T(0));
+		return b * ( Dot(b) / l2 ); 
+	}
 };
 
 
 typedef Vector2<float>  Vector2f;
 typedef Vector2<double> Vector2d;
 
-//-------------------------------------------------------------------------------------
-// ***** Vector3f - 3D Vector3f
 
-// Vector3f represents a 3-dimensional vector or point in space,
+//-------------------------------------------------------------------------------------
+// ***** Vector3<> - 3D vector of {x, y, z}
+
+//
+// Vector3f (Vector3d) represents a 3-dimensional vector or point in space,
 // consisting of coordinates x, y and z.
 
 template<class T>
@@ -253,13 +303,20 @@ public:
     // Compare two vectors for equality with tolerance. Returns true if vectors match withing tolerance.
     bool      Compare(const Vector3&b, T tolerance = Mathf::Tolerance)
     {
-        return (fabs(b.x-x) < tolerance) && (fabs(b.y-y) < tolerance) && (fabs(b.z-z) < tolerance);
+        return (fabs(b.x-x) < tolerance) && 
+			   (fabs(b.y-y) < tolerance) && 
+			   (fabs(b.z-z) < tolerance);
     }
     
-    // Dot product overload.
+    // Entrywise product of two vectors
+    Vector3	EntrywiseMultiply(const Vector3& b) const	{ return Vector3(x * b.x, 
+																		 y * b.y, 
+																		 z * b.z);}
+
+	// Dot product
     // Used to calculate angle q between two vectors among other things,
     // as (A dot B) = |a||b|cos(q).
-    T     operator*  (const Vector3& b) const    { return x*b.x + y*b.y + z*b.z; }
+     T      Dot(const Vector3& b) const          { return x*b.x + y*b.y + z*b.z; }
 
     // Compute cross product, which generates a normal vector.
     // Direction vector can be determined by right-hand rule: Pointing index finder in
@@ -269,7 +326,13 @@ public:
                                                                   x*b.y - y*b.x); }
 
     // Returns the angle from this vector to b, in radians.
-    T       Angle(const Vector3& b) const        { return acos((*this * b)/(Length()*b.Length())); }
+    T       Angle(const Vector3& b) const 
+	{
+		T div = LengthSq()*b.LengthSq();
+		OVR_ASSERT(div != T(0));
+		T result = Acos((this->Dot(b))/sqrt(div));
+		return result;
+	}
 
     // Return Length of the vector squared.
     T       LengthSq() const                     { return (x * x + y * y + z * z); }
@@ -281,10 +344,22 @@ public:
     
     // Determine if this a unit vector.
     bool    IsNormalized() const                 { return fabs(LengthSq() - T(1)) < Math<T>::Tolerance; }
+
     // Normalize, convention vector length to 1.    
-    void    Normalize()                          { *this /= Length(); }
+    void    Normalize()                          
+	{
+		T l = Length();
+		OVR_ASSERT(l != T(0));
+		*this /= l; 
+	}
+
     // Returns normalized (unit) version of the vector without modifying itself.
-    Vector3 Normalized() const                   { return *this / Length(); }
+    Vector3 Normalized() const                   
+	{ 
+		T l = Length();
+		OVR_ASSERT(l != T(0));
+		return *this / l; 
+	}
 
     // Linearly interpolates from this vector to another.
     // Factor should be between 0.0 and 1.0, with 0 giving full value to this.
@@ -292,7 +367,15 @@ public:
 
     // Projects this vector onto the argument; in other words,
     // A.Project(B) returns projection of vector A onto B.
-    Vector3 ProjectTo(const Vector3& b) const    { return b * ((*this * b) / b.LengthSq()); }
+    Vector3 ProjectTo(const Vector3& b) const    
+	{ 
+		T l2 = b.LengthSq();
+		OVR_ASSERT(l2 != T(0));
+		return b * ( Dot(b) / l2 ); 
+	}
+
+    // Projects this vector onto a plane defined by a normal vector
+    Vector3 ProjectToPlane(const Vector3& normal) const { return *this - this->ProjectTo(normal); }
 };
 
 
@@ -301,8 +384,55 @@ typedef Vector3<double> Vector3d;
 
 
 //-------------------------------------------------------------------------------------
-// ***** Matrix4f 
+// ***** Size
 
+// Size class represents 2D size with Width, Height components.
+// Used to describe distentions of render targets, etc.
+
+template<class T>
+class Size
+{
+public:
+    T   Width, Height;
+
+    Size() : Width(0), Height(0) { }
+    Size(T w_, T h_) : Width(w_), Height(h_) { }
+    explicit Size(T s) : Width(s), Height(s) { }
+
+    bool     operator== (const Size& b) const  { return Width == b.Width && Height == b.Height; }
+    bool     operator!= (const Size& b) const  { return Width != b.Width || Height != b.Height; }
+             
+    Size  operator+  (const Size& b) const  { return Size(Width + b.Width, Height + b.Height); }
+    Size& operator+= (const Size& b)        { Width += b.Width; Height += b.Height; return *this; }
+    Size  operator-  (const Size& b) const  { return Size(Width - b.Width, Height - b.Height); }
+    Size& operator-= (const Size& b)        { Width -= b.Width; Height -= b.Height; return *this; }
+    Size  operator- () const                { return Size(-Width, -Height); }
+    Size  operator*  (const Size& b) const  { return Size(Width * b.Width, Height * b.Height); }
+    Size& operator*= (const Size& b)        { Width *= b.Width; Height *= b.Height; return *this; }
+    Size  operator/  (const Size& b) const  { return Size(Width / b.Width, Height / b.Height); }
+    Size& operator/= (const Size& b)        { Width /= b.Width; Height /= b.Height; return *this; }
+
+    // Scalar multiplication/division scales both components.
+    Size  operator*  (T s) const            { return Size(Width*s, Height*s); }
+    Size& operator*= (T s)                  { Width *= s; Height *= s; return *this; }    
+    Size  operator/  (T s) const            { return Size(Width/s, Height/s); }
+    Size& operator/= (T s)                  { Width /= s; Height /= s; return *this; }
+
+    T       Area() const                    { return Width * Height; }
+
+    inline  Vector2<T> ToVector() const     { return Vector2<T>(Width, Height); }
+};
+
+
+typedef Size<int>       Sizei;
+typedef Size<unsigned>  Sizeu;
+typedef Size<float>     Sizef;
+typedef Size<double>    Sized;
+
+
+//-------------------------------------------------------------------------------------
+// ***** Matrix4f
+//
 // Matrix4f is a 4x4 matrix used for 3d transformations and projections.
 // Translation stored in the last column.
 // The matrix is stored in row-major order in memory, meaning that values
@@ -367,6 +497,29 @@ public:
         M[3][0] = 0;   M[3][1] = 0;   M[3][2] = 0;   M[3][3] = 1;
     }
 
+    void ToString(char* dest, UPInt destsize)
+    {
+        UPInt pos = 0;
+        for (int r=0; r<4; r++)
+            for (int c=0; c<4; c++)
+                pos += OVR_sprintf(dest+pos, destsize-pos, "%g ", M[r][c]);
+    }
+
+    static Matrix4f FromString(const char* src)
+    {
+        Matrix4f result;
+        for (int r=0; r<4; r++)
+            for (int c=0; c<4; c++)
+            {
+                result.M[r][c] = (float)atof(src);
+                while (src && *src != ' ')
+                    src++;
+                while (src && *src == ' ')
+                    src++;
+            }
+        return result;
+    }
+
     static const Matrix4f& Identity()  { return IdentityValue; }
 
     void SetIdentity()
@@ -375,6 +528,36 @@ public:
         M[0][1] = M[1][0] = M[2][3] = M[3][1] = 0;
         M[0][2] = M[1][2] = M[2][0] = M[3][2] = 0;
         M[0][3] = M[1][3] = M[2][1] = M[3][0] = 0;
+    }
+
+    Matrix4f operator+ (const Matrix4f& b) const
+    {
+        Matrix4f result(*this);
+        result += b;
+        return result;
+    }
+
+    Matrix4f& operator+= (const Matrix4f& b)
+    {
+        for (int i = 0; i < 4; i++)
+            for (int j = 0; j < 4; j++)
+                M[i][j] += b.M[i][j];
+        return *this;
+    }
+
+    Matrix4f operator- (const Matrix4f& b) const
+    {
+        Matrix4f result(*this);
+        result -= b;
+        return result;
+    }
+
+    Matrix4f& operator-= (const Matrix4f& b)
+    {
+        for (int i = 0; i < 4; i++)
+            for (int j = 0; j < 4; j++)
+                M[i][j] -= b.M[i][j];
+        return *this;
     }
 
     // Multiplies two matrices into destination with minimum copying.
@@ -406,18 +589,32 @@ public:
 
     Matrix4f operator* (float s) const
     {
-        return Matrix4f(M[0][0] * s, M[0][1] * s, M[0][2] * s, M[0][3] * s,
-                        M[1][0] * s, M[1][1] * s, M[1][2] * s, M[1][3] * s,
-                        M[2][0] * s, M[2][1] * s, M[2][2] * s, M[2][3] * s,
-                        M[3][0] * s, M[3][1] * s, M[3][2] * s, M[3][3] * s);
+        Matrix4f result(*this);
+        result *= s;
+        return result;
     }
 
     Matrix4f& operator*= (float s)
     {
-        M[0][0] *= s; M[0][1] *= s; M[0][2] *= s; M[0][3] *= s;
-        M[1][0] *= s; M[1][1] *= s; M[1][2] *= s; M[1][3] *= s;
-        M[2][0] *= s; M[2][1] *= s; M[2][2] *= s; M[2][3] *= s;
-        M[3][0] *= s; M[3][1] *= s; M[3][2] *= s; M[3][3] *= s;
+        for (int i = 0; i < 4; i++)
+            for (int j = 0; j < 4; j++)
+                M[i][j] *= s;
+        return *this;
+    }
+
+
+    Matrix4f operator/ (float s) const
+    {
+        Matrix4f result(*this);
+        result /= s;
+        return result;
+    }
+
+    Matrix4f& operator/= (float s)
+    {
+        for (int i = 0; i < 4; i++)
+            for (int j = 0; j < 4; j++)
+                M[i][j] /= s;
         return *this;
     }
 
@@ -442,16 +639,16 @@ public:
     }
 
 
-    float SubDet (const int* rows, const int* cols) const
+    float SubDet (const UPInt* rows, const UPInt* cols) const
     {
         return M[rows[0]][cols[0]] * (M[rows[1]][cols[1]] * M[rows[2]][cols[2]] - M[rows[1]][cols[2]] * M[rows[2]][cols[1]])
              - M[rows[0]][cols[1]] * (M[rows[1]][cols[0]] * M[rows[2]][cols[2]] - M[rows[1]][cols[2]] * M[rows[2]][cols[0]])
              + M[rows[0]][cols[2]] * (M[rows[1]][cols[0]] * M[rows[2]][cols[1]] - M[rows[1]][cols[1]] * M[rows[2]][cols[0]]);
     }
 
-    float Cofactor(int I, int J) const
+    float Cofactor(UPInt I, UPInt J) const
     {
-        const int indices[4][3] = {{1,2,3},{0,2,3},{0,1,3},{0,1,2}};
+        const UPInt indices[4][3] = {{1,2,3},{0,2,3},{0,1,3},{0,1,2}};
         return ((I+J)&1) ? -SubDet(indices[I],indices[J]) : SubDet(indices[I],indices[J]);
     }
 
@@ -480,7 +677,27 @@ public:
         *this = Inverted();
     }
 
-    //AnnaSteve:
+	// This is more efficient than general inverse, but ONLY works
+	// correctly if it is a homogeneous transform matrix (rot + trans)
+	Matrix4f InvertedHomogeneousTransform() const
+	{
+		// Make the inverse rotation matrix
+		Matrix4f rinv = this->Transposed();
+		rinv.M[3][0] = rinv.M[3][1] = rinv.M[3][2] = 0.0f;
+		// Make the inverse translation matrix
+		Vector3f tvinv = Vector3f(-M[0][3],-M[1][3],-M[2][3]);
+		Matrix4f tinv = Matrix4f::Translation(tvinv);
+		return rinv * tinv;  // "untranslate", then "unrotate"
+	}
+
+	// This is more efficient than general inverse, but ONLY works
+	// correctly if it is a homogeneous transform matrix (rot + trans)
+	void InvertHomogeneousTransform()
+	{
+        *this = InvertedHomogeneousTransform();
+	}
+
+	// Matrix to Euler Angles conversion
     // a,b,c, are the YawPitchRoll angles to be returned
     // rotation a around axis A1
     // is followed by rotation b around axis A2
@@ -502,7 +719,7 @@ public:
             *b = -S*D*Math<float>::PiOver2;
             *c = S*D*atan2( psign*M[A2][A1], M[A2][A2] );
         }
-        else if (pm > 1.0 - Math<float>::SingularityRadius)
+        else if (pm > 1.0f - Math<float>::SingularityRadius)
         { // North pole singularity
             *a = 0.0f;
             *b = S*D*Math<float>::PiOver2;
@@ -518,7 +735,7 @@ public:
         return;
     }
 
-    //AnnaSteve:
+	// Matrix to Euler Angles conversion
     // a,b,c, are the YawPitchRoll angles to be returned
     // rotation a around axis A1
     // is followed by rotation b around axis A2
@@ -537,13 +754,13 @@ public:
             psign = 1.0f;
 
         float c2 = M[A1][A1];
-        if (c2 < -1.0 + Math<float>::SingularityRadius)
+        if (c2 < -1.0f + Math<float>::SingularityRadius)
         { // South pole singularity
             *a = 0.0f;
             *b = S*D*Math<float>::Pi;
             *c = S*D*atan2( -psign*M[A2][m],M[A2][A2]);
         }
-        else if (c2 > 1.0 - Math<float>::SingularityRadius)
+        else if (c2 > 1.0f - Math<float>::SingularityRadius)
         { // North pole singularity
             *a = 0.0f;
             *b = 0.0f;
@@ -560,7 +777,6 @@ public:
   
     // Creates a matrix that converts the vertices from one coordinate system
     // to another.
-    // 
     static Matrix4f AxisConversion(const WorldAxes& to, const WorldAxes& from)
     {        
         // Holds axis values from the 'to' structure
@@ -584,7 +800,7 @@ public:
     } 
 
 
-
+	// Creates a matrix for translation by vector
     static Matrix4f Translation(const Vector3f& v)
     {
         Matrix4f t;
@@ -594,6 +810,7 @@ public:
         return t;
     }
 
+	// Creates a matrix for translation by vector
     static Matrix4f Translation(float x, float y, float z = 0.0f)
     {
         Matrix4f t;
@@ -603,6 +820,7 @@ public:
         return t;
     }
 
+	// Creates a matrix for scaling by vector
     static Matrix4f Scaling(const Vector3f& v)
     {
         Matrix4f t;
@@ -612,6 +830,7 @@ public:
         return t;
     }
 
+	// Creates a matrix for scaling by vector
     static Matrix4f Scaling(float x, float y, float z)
     {
         Matrix4f t;
@@ -621,6 +840,7 @@ public:
         return t;
     }
 
+	// Creates a matrix for scaling by constant
     static Matrix4f Scaling(float s)
     {
         Matrix4f t;
@@ -632,7 +852,8 @@ public:
 
   
 
-    //AnnaSteve : Just for quick testing.  Not for final API.  Need to remove case.
+    // Creates a rotation matrix rotating around the X axis by 'angle' radians.
+    // Just for quick testing.  Not for final API.  Need to remove case.
     static Matrix4f RotationAxis(Axis A, float angle, RotateDirection d, HandedSystem s)
     {
         float sina = s * d *sin(angle);
@@ -658,10 +879,10 @@ public:
 
     // Creates a rotation matrix rotating around the X axis by 'angle' radians.
     // Rotation direction is depends on the coordinate system:
-    //  RHS (Oculus default): Positive angle values rotate Counter-clockwise (CCW),
+    // RHS (Oculus default): Positive angle values rotate Counter-clockwise (CCW),
     //                        while looking in the negative axis direction. This is the
     //                        same as looking down from positive axis values towards origin.
-    //  LHS: Positive angle values rotate clock-wise (CW), while looking in the
+    // LHS: Positive angle values rotate clock-wise (CW), while looking in the
     //       negative axis direction.
     static Matrix4f RotationX(float angle)
     {
@@ -743,9 +964,9 @@ public:
 };
 
 
-//-------------------------------------------------------------------------------------
-// ***** Quat
-
+//-------------------------------------------------------------------------------------//
+// **************************************** Quat **************************************//
+//
 // Quatf represents a quaternion class used for rotations.
 // 
 // Quaternion multiplications are done in right-to-left order, to match the
@@ -763,7 +984,7 @@ public:
     Quat(T x_, T y_, T z_, T w_) : x(x_), y(y_), z(z_), w(w_) {}
 
 
-    // Constructs rotation quaternion around the axis.
+    // Constructs quaternion for rotation around the axis by an angle.
     Quat(const Vector3<T>& axis, T angle)
     {
         Vector3<T> unitAxis = axis.Normalized();
@@ -775,33 +996,33 @@ public:
         z = unitAxis.z * sinHalfAngle;
     }
 
-    //AnnaSteve:
+    // Constructs quaternion for rotation around one of the coordinate axis by an angle.
     void AxisAngle(Axis A, T angle, RotateDirection d, HandedSystem s)
     {
-        T sinHalfAngle = s * d *sin(angle * (T)0.5);
+        T sinHalfAngle = s * d *sin(angle * T(0.5));
         T v[3];
-        v[0] = v[1] = v[2] = (T)0;
+        v[0] = v[1] = v[2] = T(0);
         v[A] = sinHalfAngle;
-        //return Quat(v[0], v[1], v[2], cos(angle * (T)0.5));
-        w = cos(angle * (T)0.5);
+
+        w = cos(angle * T(0.5));
         x = v[0];
         y = v[1];
         z = v[2];
     }
 
 
-    void GetAxisAngle(Vector3<T>* axis, T* angle) const
+   // Compute axis and angle from quaternion
+   void GetAxisAngle(Vector3<T>* axis, T* angle) const
     {
-        if (LengthSq() > Math<T>::Tolerance * Math<T>::Tolerance)
-        {
-            *axis  = Vector3<T>(x, y, z).Normalized();
-            *angle = 2 * acos(w);
-        }
-        else
-        {
-            *axis = Vector3<T>(1, 0, 0);
-            *angle= 0;
-        }
+		if ( x*x + y*y + z*z > Math<T>::Tolerance * Math<T>::Tolerance ) {
+			*axis  = Vector3<T>(x, y, z).Normalized();
+			*angle = T(2) * Acos(w);
+		}
+		else 
+		{
+			*axis = Vector3<T>(1, 0, 0);
+			*angle= 0;
+		}
     }
 
     bool operator== (const Quat& b) const   { return x == b.x && y == b.y && z == b.z && w == b.w; }
@@ -817,6 +1038,7 @@ public:
     Quat  operator/  (T s) const            { T rcp = T(1)/s; return Quat(x * rcp, y * rcp, z * rcp, w *rcp); }
     Quat& operator/= (T s)                  { T rcp = T(1)/s; w *= rcp; x *= rcp; y *= rcp; z *= rcp; return *this; }
 
+
     // Get Imaginary part vector
     Vector3<T> Imag() const                 { return Vector3<T>(x,y,z); }
 
@@ -824,29 +1046,42 @@ public:
     T       Length() const                  { return sqrt(x * x + y * y + z * z + w * w); }
     // Get quaternion length squared.
     T       LengthSq() const                { return (x * x + y * y + z * z + w * w); }
+
     // Simple Eulidean distance in R^4 (not SLERP distance, but at least respects Haar measure)
-    T       Distance(const Quat& q) const
-    {
+    T       Distance(const Quat& q) const	
+	{ 
         T d1 = (*this - q).Length();
-        T d2 = (*this + q).Length(); // Antipoldal point check
+        T d2 = (*this + q).Length(); // Antipodal point check
         return (d1 < d2) ? d1 : d2;
-    }
+	}
+
     T       DistanceSq(const Quat& q) const
     {
         T d1 = (*this - q).LengthSq();
-        T d2 = (*this + q).LengthSq(); // Antipoldal point check
+        T d2 = (*this + q).LengthSq(); // Antipodal point check
         return (d1 < d2) ? d1 : d2;
     }
 
     // Normalize
-    bool    IsNormalized() const            { return fabs(LengthSq() - 1) < Math<T>::Tolerance; }
-    void    Normalize()                     { *this /= Length(); }
-    Quat    Normalized() const              { return *this / Length(); }
+    bool    IsNormalized() const            { return fabs(LengthSq() - T(1)) < Math<T>::Tolerance; }
+
+    void    Normalize()                     
+	{
+ 		T l = Length();
+		OVR_ASSERT(l != T(0));
+		*this /= l; 
+	}
+
+	Quat    Normalized() const              
+	{ 
+		T l = Length();
+		OVR_ASSERT(l != T(0));
+		return *this / l; 
+	}
 
     // Returns conjugate of the quaternion. Produces inverse rotation if quaternion is normalized.
     Quat    Conj() const                    { return Quat(-x, -y, -z, w); }
 
-    // AnnaSteve fixed: order of quaternion multiplication
     // Quaternion multiplication. Combines quaternion rotations, performing the one on the 
     // right hand side first.
     Quat  operator* (const Quat& b) const   { return Quat(w * b.x + x * b.w + y * b.z - z * b.y,
@@ -868,7 +1103,7 @@ public:
     // assuming negative direction of the axis). Standard formula: q(t) * V * q(t)^-1. 
     Vector3<T> Rotate(const Vector3<T>& v) const
     {
-        return ((*this * Quat<T>(v.x, v.y, v.z, 0)) * Inverted()).Imag();
+        return ((*this * Quat<T>(v.x, v.y, v.z, T(0))) * Inverted()).Imag();
     }
 
     
@@ -879,7 +1114,7 @@ public:
     }
 
     // Sets this quaternion to the one rotates in the opposite direction.
-    void        Invert() const
+    void        Invert()
     {
         *this = Quat(-x, -y, -z, w);
     }
@@ -896,6 +1131,52 @@ public:
                         float(T(2) * (x*y + w*z)), float(ww - xx + yy - zz),  float(T(2) * (y*z - w*x)),
                         float(T(2) * (x*z - w*y)), float(T(2) * (y*z + w*x)), float(ww - xx - yy + zz) );
     }
+
+
+	// Converting matrix to quaternion
+	static Quat<T> Matrix4fToQuat(const Matrix4f& m)
+	{
+		T trace = m.M[0][0] + m.M[1][1] + m.M[2][2];
+		Quat<T> q;
+
+		// In almost all cases, the first part is executed.
+		// However, if the trace is not positive, the other
+		// cases arise.
+		if (trace > T(0)) 
+		{
+			T s = sqrt(trace + T(1)) * T(2); // s=4*qw
+			q.w = T(0.25) * s;
+			q.x = (m.M[2][1] - m.M[1][2]) / s;
+			q.y = (m.M[0][2] - m.M[2][0]) / s;
+			q.z = (m.M[1][0] - m.M[0][1]) / s; 
+		} 
+		else if ((m.M[0][0] > m.M[1][1])&&(m.M[0][0] > m.M[2][2])) 
+		{
+			T s = sqrt(T(1) + m.M[0][0] - m.M[1][1] - m.M[2][2]) * T(2);
+			q.w = (m.M[2][1] - m.M[1][2]) / s;
+			q.x = T(0.25) * s;
+			q.y = (m.M[0][1] + m.M[1][0]) / s;
+			q.z = (m.M[2][0] + m.M[0][2]) / s;
+		} 
+		else if (m.M[1][1] > m.M[2][2]) 
+		{
+			T s = sqrt(T(1) + m.M[1][1] - m.M[0][0] - m.M[2][2]) * T(2); // S=4*qy
+			q.w = (m.M[0][2] - m.M[2][0]) / s;
+			q.x = (m.M[0][1] + m.M[1][0]) / s;
+			q.y = T(0.25) * s;
+			q.z = (m.M[1][2] + m.M[2][1]) / s;
+		} 
+		else 
+		{
+			T s = sqrt(T(1) + m.M[2][2] - m.M[0][0] - m.M[1][1]) * T(2); // S=4*qz
+			q.w = (m.M[1][0] - m.M[0][1]) / s;
+			q.x = (m.M[0][2] + m.M[2][0]) / s;
+			q.y = (m.M[1][2] + m.M[2][1]) / s;
+			q.z = T(0.25) * s;
+		}
+		return q;
+	}
+
 
     
     // GetEulerAngles extracts Euler angles from the quaternion, in the specified order of
@@ -918,33 +1199,33 @@ public:
         T Q22 = Q[A2]*Q[A2];
         T Q33 = Q[A3]*Q[A3];
 
-        T psign = T(-1.0);
+        T psign = T(-1);
         // Determine whether even permutation
         if (((A1 + 1) % 3 == A2) && ((A2 + 1) % 3 == A3))
-            psign = T(1.0);
+            psign = T(1);
         
-        T s2 = psign * T(2.0) * (psign*w*Q[A2] + Q[A1]*Q[A3]);
+        T s2 = psign * T(2) * (psign*w*Q[A2] + Q[A1]*Q[A3]);
 
-        if (s2 < (T)-1.0 + Math<T>::SingularityRadius)
+        if (s2 < T(-1) + Math<T>::SingularityRadius)
         { // South pole singularity
-            *a = T(0.0);
+            *a = T(0);
             *b = -S*D*Math<T>::PiOver2;
-            *c = S*D*atan2((T)2.0*(psign*Q[A1]*Q[A2] + w*Q[A3]),
+            *c = S*D*atan2(T(2)*(psign*Q[A1]*Q[A2] + w*Q[A3]),
 		                   ww + Q22 - Q11 - Q33 );
         }
-        else if (s2 > (T)1.0 - Math<T>::SingularityRadius)
+        else if (s2 > T(1) - Math<T>::SingularityRadius)
         {  // North pole singularity
-            *a = (T)0.0;
+            *a = T(0);
             *b = S*D*Math<T>::PiOver2;
-            *c = S*D*atan2((T)2.0*(psign*Q[A1]*Q[A2] + w*Q[A3]),
+            *c = S*D*atan2(T(2)*(psign*Q[A1]*Q[A2] + w*Q[A3]),
 		                   ww + Q22 - Q11 - Q33);
         }
         else
         {
-            *a = -S*D*atan2((T)-2.0*(w*Q[A1] - psign*Q[A2]*Q[A3]),
+            *a = -S*D*atan2(T(-2)*(w*Q[A1] - psign*Q[A2]*Q[A3]),
 		                    ww + Q33 - Q11 - Q22);
             *b = S*D*asin(s2);
-            *c = S*D*atan2((T)2.0*(w*Q[A3] - psign*Q[A1]*Q[A2]),
+            *c = S*D*atan2(T(2)*(w*Q[A3] - psign*Q[A1]*Q[A2]),
 		                   ww + Q11 - Q22 - Q33);
         }      
         return;
@@ -982,25 +1263,25 @@ public:
         T Q22 = Q[A2]*Q[A2];
         T Qmm = Q[m]*Q[m];
 
-        T psign = T(-1.0);
+        T psign = T(-1);
         if ((A1 + 1) % 3 == A2) // Determine whether even permutation
         {
-            psign = (T)1.0;
+            psign = T(1);
         }
 
         T c2 = ww + Q11 - Q22 - Qmm;
-        if (c2 < (T)-1.0 + Math<T>::SingularityRadius)
+        if (c2 < T(-1) + Math<T>::SingularityRadius)
         { // South pole singularity
-            *a = (T)0.0;
+            *a = T(0);
             *b = S*D*Math<T>::Pi;
-            *c = S*D*atan2( (T)2.0*(w*Q[A1] - psign*Q[A2]*Q[m]),
+            *c = S*D*atan2( T(2)*(w*Q[A1] - psign*Q[A2]*Q[m]),
 		                    ww + Q22 - Q11 - Qmm);
         }
-        else if (c2 > (T)1.0 - Math<T>::SingularityRadius)
+        else if (c2 > T(1) - Math<T>::SingularityRadius)
         {  // North pole singularity
-            *a = (T)0.0;
-            *b = (T)0.0;
-            *c = S*D*atan2( (T)2.0*(w*Q[A1] - psign*Q[A2]*Q[m]),
+            *a = T(0);
+            *b = T(0);
+            *c = S*D*atan2( T(2)*(w*Q[A1] - psign*Q[A2]*Q[m]),
 		                   ww + Q22 - Q11 - Qmm);
         }
         else
@@ -1013,11 +1294,92 @@ public:
         }
         return;
     }
-};
 
+};
 
 typedef Quat<float>  Quatf;
 typedef Quat<double> Quatd;
+
+
+
+//-------------------------------------------------------------------------------------
+// ***** Angle
+
+// Cleanly representing the algebra of 2D rotations.
+// The operations maintain the angle between -Pi and Pi, the same range as atan2.
+
+template<class T>
+class Angle
+{
+public:
+	enum AngularUnits
+	{
+		Radians = 0,
+		Degrees = 1
+	};
+
+    Angle() : a(0) {}
+    
+	// Fix the range to be between -Pi and Pi
+	Angle(T a_, AngularUnits u = Radians) : a((u == Radians) ? a_ : a_*Math<T>::DegreeToRadFactor) { FixRange(); }
+
+	T    Get(AngularUnits u = Radians) const       { return (u == Radians) ? a : a*Math<T>::RadToDegreeFactor; }
+	void Set(const T& x, AngularUnits u = Radians) { a = (u == Radians) ? x : x*Math<T>::DegreeToRadFactor; FixRange(); }
+	int Sign() const                               { if (a == 0) return 0; else return (a > 0) ? 1 : -1; }
+	T   Abs() const                                { return (a > 0) ? a : -a; }
+
+    bool operator== (const Angle& b) const    { return a == b.a; }
+    bool operator!= (const Angle& b) const    { return a != b.a; }
+//	bool operator<  (const Angle& b) const    { return a < a.b; } 
+//	bool operator>  (const Angle& b) const    { return a > a.b; } 
+//	bool operator<= (const Angle& b) const    { return a <= a.b; } 
+//	bool operator>= (const Angle& b) const    { return a >= a.b; } 
+//	bool operator= (const T& x)               { a = x; FixRange(); }
+
+	// These operations assume a is already between -Pi and Pi.
+	Angle& operator+= (const Angle& b)        { a = a + b.a; FastFixRange(); return *this; }
+	Angle& operator+= (const T& x)            { a = a + x; FixRange(); return *this; }
+    Angle  operator+  (const Angle& b) const  { Angle res = *this; res += b; return res; }
+	Angle  operator+  (const T& x) const      { Angle res = *this; res += x; return res; }
+	Angle& operator-= (const Angle& b)        { a = a - b.a; FastFixRange(); return *this; }
+	Angle& operator-= (const T& x)            { a = a - x; FixRange(); return *this; }
+	Angle  operator-  (const Angle& b) const  { Angle res = *this; res -= b; return res; }
+	Angle  operator-  (const T& x) const      { Angle res = *this; res -= x; return res; }
+	
+	T   Distance(const Angle& b)              { T c = fabs(a - b.a); return (c <= Math<T>::Pi) ? c : Math<T>::TwoPi - c; }
+
+private:
+
+	// The stored angle, which should be maintained between -Pi and Pi
+	T a;
+
+	// Fixes the angle range to [-Pi,Pi], but assumes no more than 2Pi away on either side 
+	inline void FastFixRange()
+	{
+		if (a < -Math<T>::Pi)
+			a += Math<T>::TwoPi;
+		else if (a > Math<T>::Pi)
+			a -= Math<T>::TwoPi;
+	}
+
+	// Fixes the angle range to [-Pi,Pi] for any given range, but slower then the fast method
+	inline void FixRange()
+	{
+        // do nothing if the value is already in the correct range, since fmod call is expensive
+        if (a >= -Math<T>::Pi && a <= Math<T>::Pi)
+            return;
+		a = fmod(a,Math<T>::TwoPi);
+		if (a < -Math<T>::Pi)
+			a += Math<T>::TwoPi;
+		else if (a > Math<T>::Pi)
+			a -= Math<T>::TwoPi;
+	}
+};
+
+
+typedef Angle<float>  Anglef;
+typedef Angle<double> Angled;
+
 
 //-------------------------------------------------------------------------------------
 // ***** Plane
@@ -1043,7 +1405,7 @@ public:
     // Find the point to plane distance. The sign indicates what side of the plane the point is on (0 = point on plane).
     T TestSide(const Vector3<T>& p) const
     {
-        return (N * p) + D;
+        return (N.Dot(p)) + D;
     }
 
     Plane<T> Flipped() const
@@ -1065,6 +1427,6 @@ public:
 
 typedef Plane<float> Planef;
 
-}
+} // Namespace OVR
 
 #endif

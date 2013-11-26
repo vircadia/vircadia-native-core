@@ -45,8 +45,8 @@ public:
     bool HIDInitialize(const String& path);
     void HIDShutdown();
     
-    bool SetFeatureReport(UByte* data, UInt32 length);
-	bool GetFeatureReport(UByte* data, UInt32 length);
+    virtual bool SetFeatureReport(UByte* data, UInt32 length);
+	virtual bool GetFeatureReport(UByte* data, UInt32 length);
 
     bool Write(UByte* data, UInt32 length);
 
@@ -133,6 +133,11 @@ private:
     bool getIntProperty(IOHIDDeviceRef device, CFStringRef key, int32_t* pResult);
     bool getStringProperty(IOHIDDeviceRef device, CFStringRef propertyName, String* pResult);
     bool getFullDesc(IOHIDDeviceRef device, HIDDeviceDesc* desc);
+    
+    static void staticDeviceMatchingCallback(void *inContext,
+                                             IOReturn inResult,
+                                             void *inSender,
+                                             IOHIDDeviceRef inIOHIDDeviceRef);
     
     DeviceManager* DevManager;
 

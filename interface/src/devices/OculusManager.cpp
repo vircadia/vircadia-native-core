@@ -9,9 +9,11 @@
 #include "OculusManager.h"
 #include <glm/glm.hpp>
 
+using namespace OVR;
+
 bool OculusManager::_isConnected = false;
 
-#ifdef __APPLE__
+#ifdef HAVE_LIBOVR
 Ptr<DeviceManager> OculusManager::_deviceManager;
 Ptr<HMDDevice> OculusManager::_hmdDevice;
 Ptr<SensorDevice> OculusManager::_sensorDevice;
@@ -20,7 +22,7 @@ float OculusManager::_yawOffset = 0;
 #endif
 
 void OculusManager::connect() {
-#ifdef __APPLE__
+#ifdef HAVE_LIBOVR
     System::Init();
     _deviceManager = *DeviceManager::Create();
     _hmdDevice = *_deviceManager->EnumerateDevices<HMDDevice>().CreateDevice();
@@ -30,15 +32,18 @@ void OculusManager::connect() {
         
         _sensorDevice = *_hmdDevice->GetSensor();
         _sensorFusion.AttachToSensor(_sensorDevice);
-        
-        // default the yaw to the current orientation
-        _sensorFusion.SetMagReference();
     }
 #endif
 }
 
+void OculusManager::reset() {
+#ifdef HAVE_LIBOVR
+    _sensorFusion.Reset();
+#endif
+}
+
 void OculusManager::updateYawOffset() {
-#ifdef __APPLE__
+#ifdef HAVE_LIBOVR
     float yaw, pitch, roll;
    _sensorFusion.GetOrientation().GetEulerAngles<Axis_Y, Axis_X, Axis_Z, Rotate_CCW, Handed_R>(&yaw, &pitch, &roll);
     _yawOffset = yaw;
@@ -46,7 +51,7 @@ void OculusManager::updateYawOffset() {
 }
 
 void OculusManager::getEulerAngles(float& yaw, float& pitch, float& roll) {
-#ifdef __APPLE__
+#ifdef HAVE_LIBOVR
     _sensorFusion.GetOrientation().GetEulerAngles<Axis_Y, Axis_X, Axis_Z, Rotate_CCW, Handed_R>(&yaw, &pitch, &roll);
     
     // convert each angle to degrees

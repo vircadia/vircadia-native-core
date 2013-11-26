@@ -30,6 +30,12 @@ public:
     HIDDeviceCreateDesc(const HIDDeviceCreateDesc& other)
         : DeviceCreateDesc(other.pFactory, other.Type), HIDDesc(other.HIDDesc) { }
 
+    virtual bool MatchDevice(const String& path)
+    {
+        // should it be case insensitive?
+        return HIDDesc.Path.CompareNoCase(path) == 0;
+    }
+
     HIDDeviceDesc HIDDesc;
 };
 
@@ -46,19 +52,18 @@ public:
     // HIDDevice::Handler interface.
     virtual void OnDeviceMessage(HIDDeviceMessageType messageType)
     {
-        MessageType handlerMessageType = handlerMessageType = Message_DeviceAdded;
-        if (messageType == HIDDeviceMessage_DeviceAdded)
-        {
-        }
-        else if (messageType == HIDDeviceMessage_DeviceRemoved)
-        {
-            handlerMessageType = Message_DeviceRemoved;
-        }
-        else
-        {
-            OVR_ASSERT(0);		
-        }
+        MessageType handlerMessageType;
+        switch (messageType) {
+            case HIDDeviceMessage_DeviceAdded:
+                handlerMessageType = Message_DeviceAdded;
+                break;
 
+            case HIDDeviceMessage_DeviceRemoved:
+                handlerMessageType = Message_DeviceRemoved;
+                break;
+
+            default: OVR_ASSERT(0); return;
+        }
 
         // Do device notification.
         {
@@ -71,17 +76,18 @@ public:
             }
         }
 
-
         // Do device manager notification.
         DeviceManagerImpl*   manager = this->GetManagerImpl();
-
-        if (handlerMessageType == Message_DeviceAdded)
-        {
-            manager->CallOnDeviceAdded(this->pCreateDesc);
-        }
-        else if (handlerMessageType == Message_DeviceRemoved)
-        {
-            manager->CallOnDeviceRemoved(this->pCreateDesc);
+        switch (handlerMessageType) {
+            case Message_DeviceAdded:
+                manager->CallOnDeviceAdded(this->pCreateDesc);
+                break;
+                
+            case Message_DeviceRemoved:
+                manager->CallOnDeviceRemoved(this->pCreateDesc);
+                break;
+                
+            default:;
         }
     }
 
@@ -177,7 +183,7 @@ public:
     }
 
 protected:
-    HIDDevice* GetInternalDevice()
+    HIDDevice* GetInternalDevice() const
     {
         return InternalDevice;
     }

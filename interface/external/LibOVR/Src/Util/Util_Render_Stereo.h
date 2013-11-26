@@ -189,7 +189,7 @@ public:
     void        SetEyeToScreenDistance(float esd) { HMD.EyeToScreenDistance = esd; DirtyFlag = true; }
 
     // Interpupillary distance used for stereo, in meters. Default is 0.064m (64 mm).
-    void        SetIPD(float ipd)               { InterpupillaryDistance = ipd; DirtyFlag = true; }
+    void        SetIPD(float ipd)               { InterpupillaryDistance = ipd; IPDOverride = DirtyFlag = true; }
     float       GetIPD() const                  { return InterpupillaryDistance; }
 
     // Set full render target viewport; for HMD this includes both eyes. 
@@ -279,6 +279,7 @@ private:
     // *** Computed State
  
     bool               DirtyFlag;   // Set when any if the modifiable state changed.
+    bool               IPDOverride; // True after SetIPD was called.    
     float              YFov;        // Vertical FOV.
     float              Aspect;      // Aspect ratio: (w/h)*AspectMultiplier.
     float              ProjectionCenterOffset;

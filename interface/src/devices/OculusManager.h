@@ -12,23 +12,23 @@
 #include <iostream>
 #include <OVR.h>
 
-using namespace OVR;
-
 class OculusManager {
 public:
     static void connect();
     
     static bool isConnected() { return _isConnected; }
     
+    static void reset();
+    
     static void getEulerAngles(float& yaw, float& pitch, float& roll);
     
     static void updateYawOffset();
 private:    
     static bool _isConnected;
-    static Ptr<DeviceManager> _deviceManager;
-    static Ptr<HMDDevice> _hmdDevice;
-    static Ptr<SensorDevice> _sensorDevice;
-    static SensorFusion _sensorFusion;
+    static OVR::Ptr<OVR::DeviceManager> _deviceManager;
+    static OVR::Ptr<OVR::HMDDevice> _hmdDevice;
+    static OVR::Ptr<OVR::SensorDevice> _sensorDevice;
+    static OVR::SensorFusion _sensorFusion;
     static float _yawOffset;
 };
 

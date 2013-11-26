@@ -18,6 +18,7 @@ otherwise accompanies this software in either electronic or hard copy form.
 
 #include "OVR_DeviceImpl.h"
 #include <Kernel/OVR_String.h>
+#include "OVR_Profile.h"
 
 namespace OVR { namespace OSX {
 
@@ -71,10 +72,19 @@ public:
     virtual MatchResult MatchDevice(const DeviceCreateDesc& other,
                                     DeviceCreateDesc**) const;
 
-    virtual bool        UpdateMatchedCandidate(const DeviceCreateDesc&);
+    virtual bool        UpdateMatchedCandidate(const DeviceCreateDesc&, bool* newDeviceFlag = NULL);
 
     virtual bool GetDeviceInfo(DeviceInfo* info) const;
 
+    // Requests the currently used default profile. This profile affects the
+    // settings reported by HMDInfo. 
+    Profile* GetProfileAddRef() const;
+
+    ProfileType GetProfileType() const
+    {
+        return (HResolution >= 1920) ? Profile_RiftDKHD : Profile_RiftDK1;
+    }
+	
     void  SetScreenParameters(int x, int y, unsigned hres, unsigned vres, float hsize, float vsize)
     {
         DesktopX = x;
@@ -125,8 +135,22 @@ public:
     virtual bool Initialize(DeviceBase* parent);
     virtual void Shutdown();
 
+
+    // Requests the currently used default profile. This profile affects the
+    // settings reported by HMDInfo. 
+    virtual Profile*    GetProfile() const;
+    virtual const char* GetProfileName() const;
+    virtual bool        SetProfileName(const char* name);
+
     // Query associated sensor.
     virtual OVR::SensorDevice* GetSensor();  
+
+protected:
+    HMDDeviceCreateDesc* getDesc() const { return (HMDDeviceCreateDesc*)pCreateDesc.GetPtr(); }
+
+    // User name for the profile used with this device.
+    String               ProfileName;
+    mutable Ptr<Profile> pCachedProfile;
 };
 
 

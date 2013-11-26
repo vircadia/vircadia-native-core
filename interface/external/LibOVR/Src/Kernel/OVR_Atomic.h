@@ -824,6 +824,7 @@ public:
 
     Lock (unsigned dummy = 0)
     {
+        OVR_UNUSED(dummy);
         if (!RecursiveAttrInit)
         {
             pthread_mutexattr_init(&RecursiveAttr);
