@@ -113,20 +113,20 @@ PerformanceWarning::~PerformanceWarning() {
     if ((_alwaysDisplay || _renderWarningsOn) && elapsedmsec > 1) {
         if (elapsedmsec > 1000) {
             double elapsedsec = (end - _start) / 1000000.0;
-            qDebug("%s took %lf seconds %s\n", _message, elapsedsec, (_alwaysDisplay ? "" : "WARNING!") );
+            qDebug("%s took %.2lf seconds %s\n", _message, elapsedsec, (_alwaysDisplay ? "" : "WARNING!") );
         } else {
             if (_suppressShortTimings) {
                 if (elapsedmsec > 10) {
-                    qDebug("%s took %lf milliseconds %s\n", _message, elapsedmsec, 
+                    qDebug("%s took %.1lf milliseconds %s\n", _message, elapsedmsec,
                         (_alwaysDisplay || (elapsedmsec < 10) ? "" : "WARNING!"));
                 }
             } else {
-                qDebug("%s took %lf milliseconds %s\n", _message, elapsedmsec, 
+                qDebug("%s took %.2lf milliseconds %s\n", _message, elapsedmsec,
                     (_alwaysDisplay || (elapsedmsec < 10) ? "" : "WARNING!"));
             }
         }
     } else if (_alwaysDisplay) {
-        qDebug("%s took %lf milliseconds\n", _message, elapsedmsec);
+        qDebug("%s took %.2lf milliseconds\n", _message, elapsedmsec);
     }
     // if the caller gave us a pointer to store the running total, track it now.
     if (_runningTotal) {
