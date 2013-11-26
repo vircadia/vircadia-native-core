@@ -14,6 +14,10 @@
 #include <NodeList.h>
 #include "JurisdictionMap.h"
 
+#define GREENISH  0x40ff40d0
+#define YELLOWISH 0xffef40c0
+#define GREYISH 0xd0d0d0a0
+
 class VoxelNode;
 
 /// Collects statistics for calculating and sending a scene from a voxel server to an interface client
@@ -22,6 +26,9 @@ public:
     VoxelSceneStats();
     ~VoxelSceneStats();
     void reset();
+    
+    VoxelSceneStats(const VoxelSceneStats& other); // copy constructor
+    VoxelSceneStats& operator= (const VoxelSceneStats& other); // copy assignment
     
     /// Call when beginning the computation of a scene. Initializes internal structures
     void sceneStarted(bool fullScene, bool moving, VoxelNode* root, JurisdictionMap* jurisdictionMap);
@@ -114,8 +121,10 @@ public:
 
     /// Meta information about each stats item
     struct ItemInfo {
-        char const* const   caption;
-        unsigned            colorRGBA;
+        char const* const caption;
+        unsigned colorRGBA;
+        int detailsCount;
+        const char* detailsLabels;
     };
     
     /// Returns details about items tracked by VoxelSceneStats
@@ -124,15 +133,23 @@ public:
 
     /// Returns a UI formatted value of an item tracked by VoxelSceneStats
     /// \param Item item The item from the stats you're interested in.
-    char* getItemValue(Item item);
-    
+    const char* getItemValue(Item item);
+
     /// Returns OctCode for root node of the jurisdiction of this particular voxel server
     unsigned char* getJurisdictionRoot() const { return _jurisdictionRoot; }
 
     /// Returns list of OctCodes for end nodes of the jurisdiction of this particular voxel server
     const std::vector<unsigned char*>& getJurisdictionEndNodes() const { return _jurisdictionEndNodes; }
     
+    bool isMoving() const { return _isMoving; };
+    unsigned long getTotalVoxels() const { return _totalVoxels; }
+    unsigned long getTotalInternal() const { return _totalInternal; }
+    unsigned long getTotalLeaves() const { return _totalLeaves; }
+    
 private:
+
+    void copyFromOther(const VoxelSceneStats& other);
+
     bool _isReadyToSend;
     unsigned char _statsMessage[MAX_PACKET_SIZE];
     int _statsMessageLength;
@@ -223,5 +240,10 @@ private:
     unsigned char* _jurisdictionRoot;
     std::vector<unsigned char*> _jurisdictionEndNodes;
 };
+
+/// Map between node IDs and their reported VoxelSceneStats. Typically used by classes that need to know which nodes sent
+/// which voxel stats
+typedef std::map<QUuid, VoxelSceneStats> NodeToVoxelSceneStats;
+typedef std::map<QUuid, VoxelSceneStats>::iterator NodeToVoxelSceneStatsIterator;
 
 #endif /* defined(__hifi__VoxelSceneStats__) */

@@ -13,6 +13,8 @@
 //#define SIMPLE_CHILD_ARRAY
 #define SIMPLE_EXTERNAL_CHILDREN
 
+#include <QReadWriteLock>
+
 #include <SharedUtil.h>
 #include "AABox.h"
 #include "ViewFrustum.h"
@@ -239,7 +241,10 @@ private:
          _unknownBufferIndex : 1,
          _childrenExternal : 1; /// Client only, is this voxel's VBO buffer the unknown buffer index, 1 bit
 
+    static QReadWriteLock _deleteHooksLock;
     static std::vector<VoxelNodeDeleteHook*> _deleteHooks;
+
+    //static QReadWriteLock _updateHooksLock;
     static std::vector<VoxelNodeUpdateHook*> _updateHooks;
 
     static uint64_t _voxelNodeCount;

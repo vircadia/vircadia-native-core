@@ -71,6 +71,9 @@ public:
     void setPingMs(int pingMs) { _pingMs = pingMs; }
     
     void lock() { pthread_mutex_lock(&_mutex); }
+    
+    /// returns false if lock failed, true if you got the lock
+    bool trylock() { return (pthread_mutex_trylock(&_mutex) == 0); }
     void unlock() { pthread_mutex_unlock(&_mutex); }
 
     static void printLog(Node const&);

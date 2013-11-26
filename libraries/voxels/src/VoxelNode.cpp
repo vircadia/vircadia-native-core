@@ -510,6 +510,7 @@ void VoxelNode::storeTwoChildren(VoxelNode* childOne, VoxelNode* childTwo) {
             const int newChildCount = 2;
             _externalChildrenMemoryUsage += newChildCount * sizeof(VoxelNode*);
             _children.external = new VoxelNode*[newChildCount];
+            memset(_children.external, 0, sizeof(VoxelNode*) * newChildCount);
         }
         _children.external[0] = childOne;
         _children.external[1] = childTwo;
@@ -620,6 +621,7 @@ void VoxelNode::storeThreeChildren(VoxelNode* childOne, VoxelNode* childTwo, Vox
             const int newChildCount = 3;
             _externalChildrenMemoryUsage += newChildCount * sizeof(VoxelNode*);
             _children.external = new VoxelNode*[newChildCount];
+            memset(_children.external, 0, sizeof(VoxelNode*) * newChildCount);
         }
         _children.external[0] = childOne;
         _children.external[1] = childTwo;
@@ -1004,6 +1006,8 @@ void VoxelNode::setChildAtIndex(int childIndex, VoxelNode* child) {
         _childrenExternal = true;
         const int newChildCount = 4;
         _children.external = new VoxelNode*[newChildCount];
+        memset(_children.external, 0, sizeof(VoxelNode*) * newChildCount);
+        
         _externalChildrenMemoryUsage += newChildCount * sizeof(VoxelNode*);
         
         _children.external[0] = childOne;
@@ -1072,6 +1076,7 @@ void VoxelNode::setChildAtIndex(int childIndex, VoxelNode* child) {
         // 4 or more children, one item being added, we know we're stored externally, we just figure out where to insert
         // this child pointer into our external list
         VoxelNode** newExternalList = new VoxelNode*[newChildCount];
+        memset(newExternalList, 0, sizeof(VoxelNode*) * newChildCount);
         
         int copiedCount = 0;
         for (int ordinal = 1; ordinal <= newChildCount; ordinal++) {
@@ -1413,25 +1418,32 @@ float VoxelNode::distanceToPoint(const glm::vec3& point) const {
     return distance;
 }
 
+QReadWriteLock VoxelNode::_deleteHooksLock;
 std::vector<VoxelNodeDeleteHook*> VoxelNode::_deleteHooks;
 
 void VoxelNode::addDeleteHook(VoxelNodeDeleteHook* hook) {
+    _deleteHooksLock.lockForWrite();
     _deleteHooks.push_back(hook);
+    _deleteHooksLock.unlock();
 }
 
 void VoxelNode::removeDeleteHook(VoxelNodeDeleteHook* hook) {
+    _deleteHooksLock.lockForWrite();
     for (int i = 0; i < _deleteHooks.size(); i++) {
         if (_deleteHooks[i] == hook) {
             _deleteHooks.erase(_deleteHooks.begin() + i);
-            return;
+            break;
         }
     }
+    _deleteHooksLock.unlock();
 }
 
 void VoxelNode::notifyDeleteHooks() {
+    _deleteHooksLock.lockForRead();
     for (int i = 0; i < _deleteHooks.size(); i++) {
         _deleteHooks[i]->voxelDeleted(this);
     }
+    _deleteHooksLock.unlock();
 }
 
 std::vector<VoxelNodeUpdateHook*> VoxelNode::_updateHooks;

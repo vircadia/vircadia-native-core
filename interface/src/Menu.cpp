@@ -8,18 +8,21 @@
 
 #include <cstdlib>
 
-#include <QMenuBar>
+
 #include <QBoxLayout>
 #include <QColorDialog>
 #include <QDialogButtonBox>
 #include <QDoubleSpinBox>
 #include <QFileDialog>
 #include <QFormLayout>
+#include <QInputDialog>
 #include <QLineEdit>
 #include <QMainWindow>
+#include <QMenuBar>
 #include <QSlider>
 #include <QStandardPaths>
 #include <QUuid>
+#include <QWindow>
 
 #include <UUID.h>
 
@@ -43,12 +46,14 @@ Menu* Menu::getInstance() {
 }
 
 const ViewFrustumOffset DEFAULT_FRUSTUM_OFFSET = {-135.0f, 0.0f, 0.0f, 25.0f, 0.0f};
+const float DEFAULT_FACESHIFT_EYE_DEFLECTION = 0.25f;
 
 Menu::Menu() :
     _actionHash(),
     _audioJitterBufferSamples(0),
     _bandwidthDialog(NULL),
     _fieldOfView(DEFAULT_FIELD_OF_VIEW_DEGREES),
+    _faceshiftEyeDeflection(DEFAULT_FACESHIFT_EYE_DEFLECTION),
     _frustumDrawMode(FRUSTUM_DRAW_MODE_ALL),
     _viewFrustumOffset(DEFAULT_FRUSTUM_OFFSET),
     _voxelModeActionsGroup(NULL),
@@ -67,7 +72,8 @@ Menu::Menu() :
                                   MenuOption::AboutApp,
                                   0,
                                   this,
-                                  SLOT(aboutApp()));
+                                  SLOT(aboutApp()),
+                                  QAction::AboutRole);
 #endif
     
     (addActionToQMenuAndActionHash(fileMenu,
@@ -115,7 +121,9 @@ Menu::Menu() :
                                   MenuOption::Quit,
                                   Qt::CTRL | Qt::Key_Q,
                                   appInstance,
-                                  SLOT(quit()));
+                                  SLOT(quit()),
+                                  QAction::QuitRole);
+                                  
     
     QMenu* editMenu = addMenu("Edit");
     
@@ -123,7 +131,8 @@ Menu::Menu() :
                                   MenuOption::Preferences,
                                   Qt::CTRL | Qt::Key_Comma,
                                   this,
-                                  SLOT(editPreferences()));
+                                  SLOT(editPreferences()),
+                                  QAction::PreferencesRole);
     
     addDisabledActionAndSeparator(editMenu, "Voxels");
     
@@ -166,6 +175,9 @@ Menu::Menu() :
     
     QAction* getColorMode = addCheckableActionToQMenuAndActionHash(toolsMenu, MenuOption::VoxelGetColorMode, Qt::Key_G);
     _voxelModeActionsGroup->addAction(getColorMode);
+    
+    addCheckableActionToQMenuAndActionHash(toolsMenu, MenuOption::ClickToFly);
+    
     
     // connect each of the voxel mode actions to the updateVoxelModeActionsSlot
     foreach (QAction* action, _voxelModeActionsGroup->actions()) {
@@ -235,6 +247,7 @@ Menu::Menu() :
                                            MenuOption::TurnWithHead,
                                            0,
                                            true);
+    addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::MoveWithLean, 0, false);
     addCheckableActionToQMenuAndActionHash(viewMenu, MenuOption::HeadMouse, 0, false);
     
     
@@ -259,6 +272,7 @@ Menu::Menu() :
                                   SLOT(cycleRenderMode()));
     
     addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::ParticleCloud, 0, false);
+    addCheckableActionToQMenuAndActionHash(renderOptionsMenu, MenuOption::Shadows, 0, false);
 
 
     QMenu* voxelOptionsMenu = developerMenu->addMenu("Voxel Options");
@@ -280,6 +294,7 @@ Menu::Menu() :
 
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::VoxelTextures);
     addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::AmbientOcclusion);
+    addCheckableActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::DontFadeOnVoxelServerChanges);
     addActionToQMenuAndActionHash(voxelOptionsMenu, MenuOption::LodTools, Qt::SHIFT | Qt::Key_L, this, SLOT(lodTools()));
 
     QMenu* cullingOptionsMenu = voxelOptionsMenu->addMenu("Culling Options");
@@ -324,6 +339,7 @@ Menu::Menu() :
                                            false,
                                            appInstance->getFaceshift(),
                                            SLOT(setTCPEnabled(bool)));
+    addCheckableActionToQMenuAndActionHash(avatarOptionsMenu, MenuOption::ChatCircling, 0, true);
 
     QMenu* webcamOptionsMenu = developerMenu->addMenu("Webcam Options");
 
@@ -350,6 +366,8 @@ Menu::Menu() :
     QMenu* raveGloveOptionsMenu = developerMenu->addMenu("Rave Glove Options");
 
     addCheckableActionToQMenuAndActionHash(raveGloveOptionsMenu, MenuOption::SimulateLeapHand);
+    addCheckableActionToQMenuAndActionHash(raveGloveOptionsMenu, MenuOption::DisplayLeapHands, 0, true);
+    addCheckableActionToQMenuAndActionHash(raveGloveOptionsMenu, MenuOption::LeapDrive, 0, false);
     addCheckableActionToQMenuAndActionHash(raveGloveOptionsMenu, MenuOption::TestRaveGlove);
 
     QMenu* trackingOptionsMenu = developerMenu->addMenu("Tracking Options");
@@ -477,7 +495,11 @@ Menu::Menu() :
     addCheckableActionToQMenuAndActionHash(voxelProtoOptionsMenu, MenuOption::DestructiveAddVoxel);
 
     addCheckableActionToQMenuAndActionHash(developerMenu, MenuOption::ExtraDebugging);
-
+    addActionToQMenuAndActionHash(developerMenu, MenuOption::PasteToVoxel, 
+                Qt::CTRL | Qt::SHIFT | Qt::Key_V, 
+                this,
+                SLOT(pasteToVoxel()));
+                
     
 #ifndef Q_OS_MAC
     QMenu* helpMenu = addMenu("Help");
@@ -499,6 +521,7 @@ void Menu::loadSettings(QSettings* settings) {
     
     _audioJitterBufferSamples = loadSetting(settings, "audioJitterBufferSamples", 0);
     _fieldOfView = loadSetting(settings, "fieldOfView", DEFAULT_FIELD_OF_VIEW_DEGREES);
+    _faceshiftEyeDeflection = loadSetting(settings, "faceshiftEyeDeflection", DEFAULT_FACESHIFT_EYE_DEFLECTION);
     _maxVoxels = loadSetting(settings, "maxVoxels", DEFAULT_MAX_VOXELS_PER_SYSTEM);
     _voxelSizeScale = loadSetting(settings, "voxelSizeScale", DEFAULT_VOXEL_SIZE_SCALE);
     _boundaryLevelAdjust = loadSetting(settings, "boundaryLevelAdjust", 0);
@@ -527,6 +550,7 @@ void Menu::saveSettings(QSettings* settings) {
     
     settings->setValue("audioJitterBufferSamples", _audioJitterBufferSamples);
     settings->setValue("fieldOfView", _fieldOfView);
+    settings->setValue("faceshiftEyeDeflection", _faceshiftEyeDeflection);
     settings->setValue("maxVoxels", _maxVoxels);
     settings->setValue("voxelSizeScale", _voxelSizeScale);
     settings->setValue("boundaryLevelAdjust", _boundaryLevelAdjust);
@@ -662,7 +686,8 @@ QAction* Menu::addActionToQMenuAndActionHash(QMenu* destinationMenu,
                                              const QString actionName,
                                              const QKeySequence& shortcut,
                                              const QObject* receiver,
-                                             const char* member) {
+                                             const char* member,
+                                             QAction::MenuRole role) {
     QAction* action;
     
     if (receiver && member) {
@@ -671,6 +696,7 @@ QAction* Menu::addActionToQMenuAndActionHash(QMenu* destinationMenu,
         action = destinationMenu->addAction(actionName);
         action->setShortcut(shortcut);
     }
+    action->setMenuRole(role);    
     
     _actionHash.insert(actionName, action);
     
@@ -715,73 +741,43 @@ void Menu::aboutApp() {
     InfoView::forcedShow();
 }
 
-void updateDSHostname(const QString& domainServerHostname) {
-    QString newHostname(DEFAULT_DOMAIN_HOSTNAME);
+void sendFakeEnterEvent() {
+    QPoint lastCursorPosition = QCursor::pos();
+    QGLWidget* glWidget = Application::getInstance()->getGLWidget();
     
-    if (domainServerHostname.size() > 0) {
-        // the user input a new hostname, use that
-        newHostname = domainServerHostname;
-    }
-    
-    // give our nodeList the new domain-server hostname
-    NodeList::getInstance()->setDomainHostname(newHostname);
+    QPoint windowPosition = glWidget->mapFromGlobal(lastCursorPosition);
+    QEnterEvent enterEvent = QEnterEvent(windowPosition, windowPosition, lastCursorPosition);
+    QCoreApplication::sendEvent(glWidget, &enterEvent);
 }
 
 const int QLINE_MINIMUM_WIDTH = 400;
-
-
-QLineEdit* lineEditForDomainHostname() {
-    QString currentDomainHostname = NodeList::getInstance()->getDomainHostname();
-    
-    if (NodeList::getInstance()->getDomainPort() != DEFAULT_DOMAIN_SERVER_PORT) {
-        // add the port to the currentDomainHostname string if it is custom
-        currentDomainHostname.append(QString(":%1").arg(NodeList::getInstance()->getDomainPort()));
-    }
-    
-    QLineEdit* domainServerLineEdit = new QLineEdit(currentDomainHostname);
-    domainServerLineEdit->setPlaceholderText(DEFAULT_DOMAIN_HOSTNAME);
-    domainServerLineEdit->setMinimumWidth(QLINE_MINIMUM_WIDTH);
-    
-    return domainServerLineEdit;
-}
-
+const float DIALOG_RATIO_OF_WINDOW = 0.30;
 
 void Menu::login() {
-    Application* applicationInstance = Application::getInstance();
-    QDialog dialog;
-    dialog.setWindowTitle("Login");
-    QBoxLayout* layout = new QBoxLayout(QBoxLayout::TopToBottom);
-    dialog.setLayout(layout);
+    QInputDialog loginDialog(Application::getInstance()->getWindow());
+    loginDialog.setWindowTitle("Login");
+    loginDialog.setLabelText("Username:");
+    QString username = Application::getInstance()->getProfile()->getUsername();
+    loginDialog.setTextValue(username);
+    loginDialog.setWindowFlags(Qt::Sheet);
+    loginDialog.resize(loginDialog.parentWidget()->size().width() * DIALOG_RATIO_OF_WINDOW, loginDialog.size().height());
     
-    QFormLayout* form = new QFormLayout();
-    layout->addLayout(form, 1);
+    int dialogReturn = loginDialog.exec();
     
-    QString username = applicationInstance->getProfile()->getUsername();
-    QLineEdit* usernameLineEdit = new QLineEdit(username);
-    usernameLineEdit->setMinimumWidth(QLINE_MINIMUM_WIDTH);
-    form->addRow("Username:", usernameLineEdit);
-    
-    QDialogButtonBox* buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
-    dialog.connect(buttons, SIGNAL(accepted()), SLOT(accept()));
-    dialog.connect(buttons, SIGNAL(rejected()), SLOT(reject()));
-    layout->addWidget(buttons);
-    
-    int ret = dialog.exec();
-    if (ret != QDialog::Accepted) {
-        return;
-    }
-    
-    if (usernameLineEdit->text() != username) {
+    if (dialogReturn == QDialog::Accepted && !loginDialog.textValue().isEmpty() && loginDialog.textValue() != username) {
         // there has been a username change
         // ask for a profile reset with the new username
-        applicationInstance->resetProfile(usernameLineEdit->text());
+        Application::getInstance()->resetProfile(loginDialog.textValue());
+  
     }
+    
+    sendFakeEnterEvent();
 }
 
 void Menu::editPreferences() {
     Application* applicationInstance = Application::getInstance();
     
-    QDialog dialog;
+    QDialog dialog(applicationInstance->getWindow());
     dialog.setWindowTitle("Interface Preferences");
     QBoxLayout* layout = new QBoxLayout(QBoxLayout::TopToBottom);
     dialog.setLayout(layout);
@@ -806,6 +802,10 @@ void Menu::editPreferences() {
     QSlider* pupilDilation = new QSlider(Qt::Horizontal);
     pupilDilation->setValue(applicationInstance->getAvatar()->getHead().getPupilDilation() * pupilDilation->maximum());
     form->addRow("Pupil Dilation:", pupilDilation);
+    
+    QSlider* faceshiftEyeDeflection = new QSlider(Qt::Horizontal);
+    faceshiftEyeDeflection->setValue(_faceshiftEyeDeflection * faceshiftEyeDeflection->maximum());
+    form->addRow("Faceshift Eye Deflection:", faceshiftEyeDeflection);
     
     QSpinBox* fieldOfView = new QSpinBox();
     fieldOfView->setMaximum(180);
@@ -839,119 +839,112 @@ void Menu::editPreferences() {
     layout->addWidget(buttons);
     
     int ret = dialog.exec();
-    if (ret != QDialog::Accepted) {
-         return;
-     }
-    
-    QUrl faceModelURL(faceURLEdit->text());
-    
-    if (faceModelURL.toString() != faceURLString) {
-        // change the faceModelURL in the profile, it will also update this user's BlendFace
-        applicationInstance->getProfile()->setFaceModelURL(faceModelURL);
+    if (ret == QDialog::Accepted) {
+        QUrl faceModelURL(faceURLEdit->text());
         
-        // send the new face mesh URL to the data-server (if we have a client UUID)
-        DataServerClient::putValueForKey(DataServerKey::FaceMeshURL,
-                                         faceModelURL.toString().toLocal8Bit().constData());
-    }
-    
-    QUrl skeletonModelURL(skeletonURLEdit->text());
-    
-    if (skeletonModelURL.toString() != skeletonURLString) {
-        // change the skeletonModelURL in the profile, it will also update this user's Body
-        applicationInstance->getProfile()->setSkeletonModelURL(skeletonModelURL);
+        if (faceModelURL.toString() != faceURLString) {
+            // change the faceModelURL in the profile, it will also update this user's BlendFace
+            applicationInstance->getProfile()->setFaceModelURL(faceModelURL);
+            
+            // send the new face mesh URL to the data-server (if we have a client UUID)
+            DataServerClient::putValueForKey(DataServerKey::FaceMeshURL,
+                                             faceModelURL.toString().toLocal8Bit().constData());
+        }
         
-        // send the new skeleton model URL to the data-server (if we have a client UUID)
-        DataServerClient::putValueForKey(DataServerKey::SkeletonURL,
-                                         skeletonModelURL.toString().toLocal8Bit().constData());
+        QUrl skeletonModelURL(skeletonURLEdit->text());
+        
+        if (skeletonModelURL.toString() != skeletonURLString) {
+            // change the skeletonModelURL in the profile, it will also update this user's Body
+            applicationInstance->getProfile()->setSkeletonModelURL(skeletonModelURL);
+            
+            // send the new skeleton model URL to the data-server (if we have a client UUID)
+            DataServerClient::putValueForKey(DataServerKey::SkeletonURL,
+                                             skeletonModelURL.toString().toLocal8Bit().constData());
+        }
+        
+        QUrl avatarVoxelURL(avatarURL->text());
+        applicationInstance->getAvatar()->getVoxels()->setVoxelURL(avatarVoxelURL);
+        
+        Avatar::sendAvatarURLsMessage(avatarVoxelURL);
+        
+        applicationInstance->getAvatar()->getHead().setPupilDilation(pupilDilation->value() / (float)pupilDilation->maximum());
+        
+        _maxVoxels = maxVoxels->value();
+        applicationInstance->getVoxels()->setMaxVoxels(_maxVoxels);
+        
+        applicationInstance->getAvatar()->setLeanScale(leanScale->value());
+        
+        _audioJitterBufferSamples = audioJitterBufferSamples->value();
+        
+        if (_audioJitterBufferSamples != 0) {
+            applicationInstance->getAudio()->setJitterBufferSamples(_audioJitterBufferSamples);
+        }
+        
+        _fieldOfView = fieldOfView->value();
+        applicationInstance->resizeGL(applicationInstance->getGLWidget()->width(), applicationInstance->getGLWidget()->height());
+        
+        _faceshiftEyeDeflection = faceshiftEyeDeflection->value() / (float)faceshiftEyeDeflection->maximum();
     }
     
-    QUrl avatarVoxelURL(avatarURL->text());
-    applicationInstance->getAvatar()->getVoxels()->setVoxelURL(avatarVoxelURL);
-    
-    Avatar::sendAvatarURLsMessage(avatarVoxelURL);
-    
-    applicationInstance->getAvatar()->getHead().setPupilDilation(pupilDilation->value() / (float)pupilDilation->maximum());
-    
-    _maxVoxels = maxVoxels->value();
-    applicationInstance->getVoxels()->setMaxVoxels(_maxVoxels);
-    
-    applicationInstance->getAvatar()->setLeanScale(leanScale->value());
-    
-    _audioJitterBufferSamples = audioJitterBufferSamples->value();
-    
-    if (_audioJitterBufferSamples != 0) {
-        applicationInstance->getAudio()->setJitterBufferSamples(_audioJitterBufferSamples);
-    }
-    
-    _fieldOfView = fieldOfView->value();
-    applicationInstance->resizeGL(applicationInstance->getGLWidget()->width(), applicationInstance->getGLWidget()->height());
+    sendFakeEnterEvent();
 }
 
 void Menu::goToDomain() {
-    QDialog dialog;
-    dialog.setWindowTitle("Go To Domain");
-    QBoxLayout* layout = new QBoxLayout(QBoxLayout::TopToBottom);
-    dialog.setLayout(layout);
     
-    QFormLayout* form = new QFormLayout();
-    layout->addLayout(form, 1);
-
+    QString currentDomainHostname = NodeList::getInstance()->getDomainHostname();
     
-    QLineEdit* domainServerLineEdit = lineEditForDomainHostname();
-    form->addRow("Domain server:", domainServerLineEdit);
+    if (NodeList::getInstance()->getDomainPort() != DEFAULT_DOMAIN_SERVER_PORT) {
+        // add the port to the currentDomainHostname string if it is custom
+        currentDomainHostname.append(QString(":%1").arg(NodeList::getInstance()->getDomainPort()));
+    }
     
-    QDialogButtonBox* buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
-    dialog.connect(buttons, SIGNAL(accepted()), SLOT(accept()));
-    dialog.connect(buttons, SIGNAL(rejected()), SLOT(reject()));
-    layout->addWidget(buttons);
+    QInputDialog domainDialog(Application::getInstance()->getWindow());
+    domainDialog.setWindowTitle("Go to Domain");
+    domainDialog.setLabelText("Domain server:");
+    domainDialog.setTextValue(currentDomainHostname);
+    domainDialog.setWindowFlags(Qt::Sheet);
+    domainDialog.resize(domainDialog.parentWidget()->size().width() * DIALOG_RATIO_OF_WINDOW, domainDialog.size().height());
     
-    int ret = dialog.exec();
-    if (ret != QDialog::Accepted) {
-         return;
-     }
+    int dialogReturn = domainDialog.exec();
+    if (dialogReturn == QDialog::Accepted) {
+        QString newHostname(DEFAULT_DOMAIN_HOSTNAME);
+        
+        if (domainDialog.textValue().size() > 0) {
+            // the user input a new hostname, use that
+            newHostname = domainDialog.textValue();
+        }
+        
+        // send a node kill request, indicating to other clients that they should play the "disappeared" effect
+        NodeList::getInstance()->sendKillNode(&NODE_TYPE_AVATAR_MIXER, 1);
+        
+        // give our nodeList the new domain-server hostname
+        NodeList::getInstance()->setDomainHostname(domainDialog.textValue());
+    }
     
-    updateDSHostname(domainServerLineEdit->text());
+    sendFakeEnterEvent();
 }
 
 void Menu::goToLocation() {
-    QDialog dialog;
-    dialog.setWindowTitle("Go To Location");
-    QBoxLayout* layout = new QBoxLayout(QBoxLayout::TopToBottom);
-    dialog.setLayout(layout);
-    
-    QFormLayout* form = new QFormLayout();
-    layout->addLayout(form, 1);
-    
-    const int QLINE_MINIMUM_WIDTH = 300;
-
-    Application* applicationInstance = Application::getInstance();
-    MyAvatar* myAvatar = applicationInstance->getAvatar();
+    MyAvatar* myAvatar = Application::getInstance()->getAvatar();
     glm::vec3 avatarPos = myAvatar->getPosition();
-    QString currentLocation = QString("%1, %2, %3").arg(QString::number(avatarPos.x), 
-                QString::number(avatarPos.y), QString::number(avatarPos.z));
+    QString currentLocation = QString("%1, %2, %3").arg(QString::number(avatarPos.x),
+                                                        QString::number(avatarPos.y), QString::number(avatarPos.z));
+    
+    
+    QInputDialog coordinateDialog(Application::getInstance()->getWindow());
+    coordinateDialog.setWindowTitle("Go to Location");
+    coordinateDialog.setLabelText("Coordinate as x,y,z:");
+    coordinateDialog.setTextValue(currentLocation);
+    coordinateDialog.setWindowFlags(Qt::Sheet);
+    coordinateDialog.resize(coordinateDialog.parentWidget()->size().width() * 0.30, coordinateDialog.size().height());
 
-    QLineEdit* coordinates = new QLineEdit(currentLocation);
-    coordinates->setMinimumWidth(QLINE_MINIMUM_WIDTH);
-    form->addRow("Coordinates as x,y,z:", coordinates);
-    
-    QDialogButtonBox* buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
-    dialog.connect(buttons, SIGNAL(accepted()), SLOT(accept()));
-    dialog.connect(buttons, SIGNAL(rejected()), SLOT(reject()));
-    layout->addWidget(buttons);
-    
-    int ret = dialog.exec();
-    if (ret != QDialog::Accepted) {
-         return;
-     }
-    
-    QByteArray newCoordinates;
-    
-    if (coordinates->text().size() > 0) {
-        // the user input a new hostname, use that
-
+    int dialogReturn = coordinateDialog.exec();
+    if (dialogReturn == QDialog::Accepted && !coordinateDialog.textValue().isEmpty()) {
+        QByteArray newCoordinates;
+        
         QString delimiterPattern(",");
-        QStringList coordinateItems = coordinates->text().split(delimiterPattern);
-
+        QStringList coordinateItems = coordinateDialog.textValue().split(delimiterPattern);
+        
         const int NUMBER_OF_COORDINATE_ITEMS = 3;
         const int X_ITEM = 0;
         const int Y_ITEM = 1;
@@ -963,41 +956,62 @@ void Menu::goToLocation() {
             glm::vec3 newAvatarPos(x, y, z);
             
             if (newAvatarPos != avatarPos) {
+                // send a node kill request, indicating to other clients that they should play the "disappeared" effect
+                NodeList::getInstance()->sendKillNode(&NODE_TYPE_AVATAR_MIXER, 1);
+                
                 qDebug("Going To Location: %f, %f, %f...\n", x, y, z);
-                myAvatar->setPosition(newAvatarPos);
+                myAvatar->setPosition(newAvatarPos); 
             }
         }
     }
+    
+    sendFakeEnterEvent();
 }
 
 void Menu::goToUser() {
-    QDialog dialog;
-    dialog.setWindowTitle("Go To User");
-    QBoxLayout* layout = new QBoxLayout(QBoxLayout::TopToBottom);
-    dialog.setLayout(layout);
+    QInputDialog userDialog(Application::getInstance()->getWindow());
+    userDialog.setWindowTitle("Go to User");
+    userDialog.setLabelText("Destination user:");
+    QString username = Application::getInstance()->getProfile()->getUsername();
+    userDialog.setTextValue(username);
+    userDialog.setWindowFlags(Qt::Sheet);
+    userDialog.resize(userDialog.parentWidget()->size().width() * DIALOG_RATIO_OF_WINDOW, userDialog.size().height());
     
-    QFormLayout* form = new QFormLayout();
-    layout->addLayout(form, 1);
-    
-    QLineEdit* usernameLineEdit = new QLineEdit();
-    usernameLineEdit->setMinimumWidth(QLINE_MINIMUM_WIDTH);
-    form->addRow("", usernameLineEdit);
-    
-    QDialogButtonBox* buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
-    dialog.connect(buttons, SIGNAL(accepted()), SLOT(accept()));
-    dialog.connect(buttons, SIGNAL(rejected()), SLOT(reject()));
-    layout->addWidget(buttons);
-    
-    int ret = dialog.exec();
-    if (ret != QDialog::Accepted) {
-        return;
-    }
-    
-    if (!usernameLineEdit->text().isEmpty()) {
+    int dialogReturn = userDialog.exec();
+    if (dialogReturn == QDialog::Accepted && !userDialog.textValue().isEmpty()) {
         // there's a username entered by the user, make a request to the data-server
         DataServerClient::getValuesForKeysAndUserString((QStringList() << DataServerKey::Domain << DataServerKey::Position),
-                                                        usernameLineEdit->text());
+                                                        userDialog.textValue());
     }
+    
+    sendFakeEnterEvent();
+}
+
+void Menu::pasteToVoxel() {
+    QInputDialog pasteToOctalCodeDialog(Application::getInstance()->getWindow());
+    pasteToOctalCodeDialog.setWindowTitle("Paste to Voxel");
+    pasteToOctalCodeDialog.setLabelText("Octal Code:");
+    QString octalCode = "";
+    pasteToOctalCodeDialog.setTextValue(octalCode);
+    pasteToOctalCodeDialog.setWindowFlags(Qt::Sheet);
+    pasteToOctalCodeDialog.resize(pasteToOctalCodeDialog.parentWidget()->size().width() * DIALOG_RATIO_OF_WINDOW, 
+        pasteToOctalCodeDialog.size().height());
+    
+    int dialogReturn = pasteToOctalCodeDialog.exec();
+    if (dialogReturn == QDialog::Accepted && !pasteToOctalCodeDialog.textValue().isEmpty()) {
+        // we got an octalCode to paste to...
+        QString locationToPaste = pasteToOctalCodeDialog.textValue();
+        unsigned char* octalCodeDestination = hexStringToOctalCode(locationToPaste);
+        
+        // check to see if it was a legit octcode...
+        if (locationToPaste == octalCodeToHexString(octalCodeDestination)) {
+            Application::getInstance()->pasteVoxelsToOctalCode(octalCodeDestination);
+        } else {
+            qDebug() << "problem with octcode...\n";
+        }
+    }
+    
+    sendFakeEnterEvent();
 }
 
 void Menu::bandwidthDetails() {

@@ -41,3 +41,4 @@ void VoxelScriptingInterface::queueVoxelDelete(float x, float y, float z, float 
     
     _voxelPacketSender.queueVoxelEditMessages(PACKET_TYPE_ERASE_VOXEL, 1, &deleteVoxelDetail);
 }
+

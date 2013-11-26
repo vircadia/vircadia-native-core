@@ -109,6 +109,7 @@ void Head::init() {
 
 void Head::reset() {
     _yaw = _pitch = _roll = 0.0f;
+    _mousePitch = 0.0f;
     _leanForward = _leanSideways = 0.0f;
     
     if (USING_PHYSICAL_MOHAWK) {
@@ -230,6 +231,13 @@ void Head::simulate(float deltaTime, bool isMine) {
                 _rightEyeBlinkVelocity = 0.0f;
             }
         }
+        
+        // use data to update fake Faceshift blendshape coefficients
+        const float BROW_LIFT_SCALE = 500.0f;
+        const float JAW_OPEN_SCALE = 0.01f;
+        const float JAW_OPEN_DEAD_ZONE = 0.75f;
+        faceshift->updateFakeCoefficients(_leftEyeBlink, _rightEyeBlink, min(1.0f, _browAudioLift * BROW_LIFT_SCALE),
+            glm::clamp(sqrt(_averageLoudness * JAW_OPEN_SCALE) - JAW_OPEN_DEAD_ZONE, 0.0f, 1.0f), _blendshapeCoefficients);
     }
     
     // based on the nature of the lookat position, determine if the eyes can look / are looking at it.      
@@ -325,6 +333,10 @@ void Head::setScale (float scale) {
     }
 }
 
+void Head::setMousePitch(float mousePitch) {
+    const float MAX_PITCH = 90.0f;
+    _mousePitch = glm::clamp(mousePitch, -MAX_PITCH, MAX_PITCH);
+}
 
 void Head::createMohawk() {
     srand(time(NULL));
@@ -413,6 +425,10 @@ glm::quat Head::getCameraOrientation () const {
 glm::quat Head::getEyeRotation(const glm::vec3& eyePosition) const {
     glm::quat orientation = getOrientation();
     return rotationBetween(orientation * IDENTITY_FRONT, _lookAtPosition + _saccade - eyePosition) * orientation;
+}
+
+glm::vec3 Head::getScalePivot() const {
+    return _faceModel.isActive() ? _faceModel.getTranslation() : _position;
 }
 
 void Head::renderHeadSphere() {

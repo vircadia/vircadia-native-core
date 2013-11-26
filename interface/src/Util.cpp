@@ -162,6 +162,12 @@ glm::vec3 extractTranslation(const glm::mat4& matrix) {
     return glm::vec3(matrix[3][0], matrix[3][1], matrix[3][2]);
 }
 
+void setTranslation(glm::mat4& matrix, const glm::vec3& translation) {
+    matrix[3][0] = translation.x;
+    matrix[3][1] = translation.y;
+    matrix[3][2] = translation.z;
+}
+
 glm::quat extractRotation(const glm::mat4& matrix, bool assumeOrthogonal) {
     // uses the iterative polar decomposition algorithm described by Ken Shoemake at
     // http://www.cs.wisc.edu/graphics/Courses/838-s2002/Papers/polar-decomp.pdf

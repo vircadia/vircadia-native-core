@@ -75,6 +75,10 @@ public:
     float getBodyRoll() const { return _bodyRoll; }
     void setBodyRoll(float bodyRoll) { _bodyRoll = bodyRoll; }
     
+    //  Scale
+    float getNewScale() const { return _newScale; }
+    void setNewScale(float newScale) { _newScale = newScale; }
+    
     //  Hand State
     void setHandState(char s) { _handState = s; }
     char getHandState() const { return _handState; }

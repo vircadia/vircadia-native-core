@@ -42,6 +42,7 @@ VoxelQuery::VoxelQuery(Node* owningNode) :
 }
 
 VoxelQuery::~VoxelQuery() {
+    // nothing to do
 }
 
 int VoxelQuery::getBroadcastData(unsigned char* destinationBuffer) {

@@ -50,6 +50,7 @@ public:
     
     float getAudioJitterBufferSamples() const { return _audioJitterBufferSamples; }
     float getFieldOfView() const { return _fieldOfView; }
+    float getFaceshiftEyeDeflection() const { return _faceshiftEyeDeflection; }
     BandwidthDialog* getBandwidthDialog() const { return _bandwidthDialog; }
     FrustumDrawMode getFrustumDrawMode() const { return _frustumDrawMode; }
     ViewFrustumOffset getViewFrustumOffset() const { return _viewFrustumOffset; }
@@ -76,6 +77,7 @@ public slots:
     void importSettings();
     void exportSettings();
     void goToUser();
+    void pasteToVoxel();
     
 private slots:
     void aboutApp();
@@ -111,7 +113,9 @@ private:
                                            const QString actionName,
                                            const QKeySequence& shortcut = 0,
                                            const QObject* receiver = NULL,
-                                           const char* member = NULL);
+                                           const char* member = NULL,
+                                           QAction::MenuRole role = QAction::NoRole);
+                                           
     QAction* addCheckableActionToQMenuAndActionHash(QMenu* destinationMenu,
                                                     const QString actionName,
                                                     const QKeySequence& shortcut = 0,
@@ -126,6 +130,7 @@ private:
     int _audioJitterBufferSamples; /// number of extra samples to wait before starting audio playback
     BandwidthDialog* _bandwidthDialog;
     float _fieldOfView; /// in Degrees, doesn't apply to HMD like Oculus
+    float _faceshiftEyeDeflection;
     FrustumDrawMode _frustumDrawMode;
     ViewFrustumOffset _viewFrustumOffset;
     QActionGroup* _voxelModeActionsGroup;
@@ -146,6 +151,7 @@ namespace MenuOption {
     const QString AutomaticallyAuditTree = "Automatically Audit Tree Stats";
     const QString Bandwidth = "Bandwidth Display";
     const QString BandwidthDetails = "Bandwidth Details";
+    const QString ChatCircling = "Chat Circling";
     const QString Collisions = "Collisions";
     const QString CopyVoxels = "Copy";
     const QString CoverageMap = "Render Coverage Map";
@@ -159,11 +165,13 @@ namespace MenuOption {
     const QString DisableConstantCulling = "Disable Constant Culling";
     const QString DisableFastVoxelPipeline = "Disable Fast Voxel Pipeline";
     const QString DisplayFrustum = "Display Frustum";
+    const QString DisplayLeapHands = "Display Leap Hands";
     const QString DontRenderVoxels = "Don't call _voxels.render()";
     const QString DontCallOpenGLForVoxels = "Don't call glDrawRangeElementsEXT() for Voxels";
     const QString EchoAudio = "Echo Audio";
     const QString ExportVoxels = "Export Voxels";
     const QString ExtraDebugging = "Extra Debugging";
+    const QString DontFadeOnVoxelServerChanges = "Don't Fade In/Out on Voxel Server Changes";
     const QString HeadMouse = "Head Mouse";
     const QString FaceMode = "Cycle Face Mode";
     const QString FaceshiftTCP = "Faceshift (TCP)";
@@ -192,6 +200,7 @@ namespace MenuOption {
     const QString GoHome = "Go Home";
     const QString Gravity = "Use Gravity";
     const QString ParticleCloud = "Particle Cloud";
+    const QString LeapDrive = "Leap Drive";
     const QString LodTools = "LOD Tools";
     const QString Log = "Log";
     const QString Login = "Login";
@@ -199,15 +208,18 @@ namespace MenuOption {
     const QString LookAtVectors = "Look-at Vectors";
     const QString LowRes = "Lower Resolution While Moving";
     const QString Mirror = "Mirror";
+    const QString MoveWithLean = "Move with Lean";
     const QString NewVoxelCullingMode = "New Voxel Culling Mode";
     const QString NudgeVoxels = "Nudge";
     const QString OcclusionCulling = "Occlusion Culling";
     const QString OffAxisProjection = "Off-Axis Projection";
     const QString OldVoxelCullingMode = "Old Voxel Culling Mode";
     const QString TurnWithHead = "Turn using Head";
+    const QString ClickToFly = "Fly to voxel on click";
     const QString Oscilloscope = "Audio Oscilloscope";
     const QString Pair = "Pair";
     const QString PasteVoxels = "Paste";
+    const QString PasteToVoxel = "Paste to Voxel...";
     const QString PipelineWarnings = "Show Render Pipeline Warnings";
     const QString Preferences = "Preferences...";
     const QString RandomizeVoxelColors = "Randomize Voxel TRUE Colors";
@@ -217,6 +229,7 @@ namespace MenuOption {
     const QString RunTimingTests = "Run Timing Tests";
     const QString SendVoxelColors = "Colored Voxels";
     const QString SettingsImport = "Import Settings";
+    const QString Shadows = "Shadows";
     const QString SettingsExport = "Export Settings";
     const QString ShowAllLocalVoxels = "Show All Local Voxels";
     const QString ShowTrueColors = "Show TRUE Colors";

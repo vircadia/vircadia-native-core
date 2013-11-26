@@ -60,7 +60,7 @@ public:
     /// Available to pack an empty or unknown jurisdiction into a network packet, used when no JurisdictionMap is available
     static int packEmptyJurisdictionIntoMessage(unsigned char* destinationBuffer, int availableBytes);
 
-    void displayDebugDetails();
+    void displayDebugDetails() const;
     
 private:
     void copyContents(const JurisdictionMap& other); // use assignment instead

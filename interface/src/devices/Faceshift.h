@@ -62,6 +62,9 @@ public:
     void update();
     void reset();
     
+    void updateFakeCoefficients(float leftBlink, float rightBlink, float browUp,
+        float jawOpen, std::vector<float>& coefficients) const;
+    
 public slots:
     
     void setTCPEnabled(bool enabled);
@@ -120,6 +123,7 @@ private:
     
     float _longTermAverageEyePitch;
     float _longTermAverageEyeYaw;
+    bool _longTermAverageInitialized;
     
     float _estimatedEyePitch;
     float _estimatedEyeYaw;

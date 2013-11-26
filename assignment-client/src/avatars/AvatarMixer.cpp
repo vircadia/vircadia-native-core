@@ -146,6 +146,7 @@ void AvatarMixer::run() {
                 case PACKET_TYPE_INJECT_AUDIO:
                     broadcastAvatarData(nodeList, nodeUUID, &nodeAddress);
                     break;
+                case PACKET_TYPE_KILL_NODE:
                 case PACKET_TYPE_AVATAR_URLS:
                 case PACKET_TYPE_AVATAR_FACE_VIDEO:
                     nodeUUID = QUuid::fromRfc4122(QByteArray((char*) packetData + numBytesForPacketHeader(packetData),
@@ -156,7 +157,8 @@ void AvatarMixer::run() {
                             nodeList->getNodeSocket()->send(node->getActiveSocket(), packetData, receivedBytes);
                         }
                     }
-                    break;
+                    // let node kills fall through to default behavior
+                    
                 default:
                     // hand this off to the NodeList
                     nodeList->processNodeData(&nodeAddress, packetData, receivedBytes);

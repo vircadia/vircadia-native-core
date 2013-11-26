@@ -12,6 +12,10 @@
 #include "ReceivedPacketProcessor.h"
 #include "SharedUtil.h"
 
+ReceivedPacketProcessor::ReceivedPacketProcessor() {
+    _dontSleep = false;
+}
+
 void ReceivedPacketProcessor::queueReceivedPacket(sockaddr& address, unsigned char* packetData, ssize_t packetLength) {
     // Make sure our Node and NodeList knows we've heard from this node.
     Node* node = NodeList::getInstance()->nodeWithAddress(&address);
@@ -26,17 +30,21 @@ void ReceivedPacketProcessor::queueReceivedPacket(sockaddr& address, unsigned ch
 }
 
 bool ReceivedPacketProcessor::process() {
-    if (_packets.size() == 0) {
+
+    // If a derived class handles process sleeping, like the JurisdiciontListener, then it can set
+    // this _dontSleep member and we will honor that request.
+    if (_packets.size() == 0 && !_dontSleep) {
         const uint64_t RECEIVED_THREAD_SLEEP_INTERVAL = (1000 * 1000)/60; // check at 60fps
         usleep(RECEIVED_THREAD_SLEEP_INTERVAL);
     }
     while (_packets.size() > 0) {
-        NetworkPacket& packet = _packets.front();
-        processPacket(packet.getAddress(), packet.getData(), packet.getLength());
 
-        lock();
-        _packets.erase(_packets.begin());
-        unlock();
+        lock(); // lock to make sure nothing changes on us
+        NetworkPacket& packet = _packets.front(); // get the oldest packet
+        NetworkPacket temporary = packet; // make a copy of the packet in case the vector is resized on us
+        _packets.erase(_packets.begin()); // remove the oldest packet
+        unlock(); // let others add to the packets
+        processPacket(temporary.getAddress(), temporary.getData(), temporary.getLength()); // process our temporary copy
     }
     return isStillRunning();  // keep running till they terminate us
 }

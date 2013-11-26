@@ -10,6 +10,7 @@
 
 #include <SharedUtil.h>
 
+#include "Application.h"
 #include "Faceshift.h"
 #include "Menu.h"
 #include "Util.h"
@@ -41,6 +42,7 @@ Faceshift::Faceshift() :
     _jawOpenIndex(21),
     _longTermAverageEyePitch(0.0f),
     _longTermAverageEyeYaw(0.0f),
+    _longTermAverageInitialized(false),
     _estimatedEyePitch(0.0f),
     _estimatedEyeYaw(0.0f)
 {
@@ -62,25 +64,23 @@ void Faceshift::update() {
     if (!isActive()) {
         return;
     }
-    float averageEyePitch = (_eyeGazeLeftPitch + _eyeGazeRightPitch) / 2.0f;
-    float averageEyeYaw = (_eyeGazeLeftYaw + _eyeGazeRightYaw) / 2.0f;
+    // get the euler angles relative to the window
+    glm::vec3 eulers = safeEulerAngles(_headRotation * glm::quat(glm::radians(glm::vec3(
+        (_eyeGazeLeftPitch + _eyeGazeRightPitch) / 2.0f, (_eyeGazeLeftYaw + _eyeGazeRightYaw) / 2.0f, 0.0f))));
     
-    // get the gaze relative to the window
-    glm::vec3 eyeEulers = safeEulerAngles(_headRotation * glm::quat(glm::radians(glm::vec3(
-        averageEyePitch, averageEyeYaw, 0.0f))));
-    
-    // smooth relative to the window
+    // compute and subtract the long term average
     const float LONG_TERM_AVERAGE_SMOOTHING = 0.999f;
-    _longTermAverageEyePitch = glm::mix(eyeEulers.x, _longTermAverageEyePitch, LONG_TERM_AVERAGE_SMOOTHING);
-    _longTermAverageEyeYaw = glm::mix(eyeEulers.y, _longTermAverageEyeYaw, LONG_TERM_AVERAGE_SMOOTHING);
-    
-    // back to head-relative
-    float windowEyePitch = eyeEulers.x - _longTermAverageEyePitch;
-    float windowEyeYaw = eyeEulers.y - _longTermAverageEyeYaw;
-    glm::vec3 relativeEyeEulers = safeEulerAngles(glm::inverse(_headRotation) * glm::quat(glm::radians(glm::vec3(
-        windowEyePitch, windowEyeYaw, 0.0f))));
-    _estimatedEyePitch = relativeEyeEulers.x;
-    _estimatedEyeYaw = relativeEyeEulers.y;
+    if (!_longTermAverageInitialized) {
+        _longTermAverageEyePitch = eulers.x;
+        _longTermAverageEyeYaw = eulers.y;
+        _longTermAverageInitialized = true;
+        
+    } else {
+        _longTermAverageEyePitch = glm::mix(eulers.x, _longTermAverageEyePitch, LONG_TERM_AVERAGE_SMOOTHING);
+        _longTermAverageEyeYaw = glm::mix(eulers.y, _longTermAverageEyeYaw, LONG_TERM_AVERAGE_SMOOTHING);
+    }
+    _estimatedEyePitch = eulers.x - _longTermAverageEyePitch;
+    _estimatedEyeYaw = eulers.y - _longTermAverageEyeYaw;
 }
 
 void Faceshift::reset() {
@@ -89,6 +89,18 @@ void Faceshift::reset() {
         fsBinaryStream::encode_message(message, fsMsgCalibrateNeutral());
         send(message);
     }
+    _longTermAverageInitialized = false;
+}
+
+void Faceshift::updateFakeCoefficients(float leftBlink, float rightBlink, float browUp,
+        float jawOpen, std::vector<float>& coefficients) const {
+    coefficients.resize(max((int)coefficients.size(), _jawOpenIndex + 1));
+    coefficients[_leftBlinkIndex] = leftBlink;
+    coefficients[_rightBlinkIndex] = rightBlink;
+    coefficients[_browUpCenterIndex] = browUp;
+    coefficients[_browUpLeftIndex] = browUp;
+    coefficients[_browUpRightIndex] = browUp;
+    coefficients[_jawOpenIndex] = jawOpen;
 }
 
 void Faceshift::setTCPEnabled(bool enabled) {

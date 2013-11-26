@@ -488,6 +488,9 @@ public:
     glm::quat rotation;
     glm::quat postRotation;
     glm::mat4 postTransform;
+    
+    glm::vec3 rotationMin;
+    glm::vec3 rotationMax;
 };
 
 glm::mat4 getGlobalTransform(const QMultiHash<QString, QString>& parentMap,
@@ -726,6 +729,17 @@ void setTangents(FBXMesh& mesh, int firstIndex, int secondIndex) {
         -glm::degrees(atan2f(-texCoordDelta.t, texCoordDelta.s)), normal) * glm::normalize(bitangent), normal);
 }
 
+QVector<int> getIndices(const QVector<QString> ids, QVector<QString> modelIDs) {
+    QVector<int> indices;
+    foreach (const QString& id, ids) {
+        int index = modelIDs.indexOf(id);
+        if (index != -1) {
+            indices.append(index);
+        }
+    }
+    return indices;
+}
+
 FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping) {
     QHash<QString, ExtractedMesh> meshes;
     QVector<ExtractedBlendshape> blendshapes;
@@ -747,6 +761,10 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     QString jointHeadName = processID(joints.value("jointHead", "jointHead").toString());
     QString jointLeftHandName = processID(joints.value("jointLeftHand", "jointLeftHand").toString());
     QString jointRightHandName = processID(joints.value("jointRightHand", "jointRightHand").toString());
+    QVariantList jointLeftFingerNames = joints.values("jointLeftFinger");
+    QVariantList jointRightFingerNames = joints.values("jointRightFinger");
+    QVariantList jointLeftFingertipNames = joints.values("jointLeftFingertip");
+    QVariantList jointRightFingertipNames = joints.values("jointRightFingertip");
     QString jointEyeLeftID;
     QString jointEyeRightID;
     QString jointNeckID;
@@ -755,6 +773,10 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     QString jointHeadID;
     QString jointLeftHandID;
     QString jointRightHandID;
+    QVector<QString> jointLeftFingerIDs(jointLeftFingerNames.size());
+    QVector<QString> jointRightFingerIDs(jointRightFingerNames.size());
+    QVector<QString> jointLeftFingertipIDs(jointLeftFingertipNames.size());
+    QVector<QString> jointRightFingertipIDs(jointRightFingertipNames.size());
     
     QVariantHash blendshapeMappings = mapping.value("bs").toHash();
     QHash<QByteArray, QPair<int, float> > blendshapeIndices;
@@ -811,6 +833,7 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                     } else {
                         name = getID(object.properties);
                     }
+                    int index;
                     if (name == jointEyeLeftName || name == "EyeL" || name == "joint_Leye") {
                         jointEyeLeftID = getID(object.properties);
                         
@@ -834,12 +857,27 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                         
                     } else if (name == jointRightHandName) {
                         jointRightHandID = getID(object.properties);
+                        
+                    } else if ((index = jointLeftFingerNames.indexOf(name)) != -1) {
+                        jointLeftFingerIDs[index] = getID(object.properties);
+                        
+                    } else if ((index = jointRightFingerNames.indexOf(name)) != -1) {
+                        jointRightFingerIDs[index] = getID(object.properties);
+                    
+                    } else if ((index = jointLeftFingertipNames.indexOf(name)) != -1) {
+                        jointLeftFingertipIDs[index] = getID(object.properties);
+                        
+                    } else if ((index = jointRightFingertipNames.indexOf(name)) != -1) {
+                        jointRightFingertipIDs[index] = getID(object.properties);
                     }
                     glm::vec3 translation;
                     glm::vec3 rotationOffset;
                     glm::vec3 preRotation, rotation, postRotation;
                     glm::vec3 scale = glm::vec3(1.0f, 1.0f, 1.0f);
                     glm::vec3 scalePivot, rotationPivot;
+                    bool rotationMinX = false, rotationMinY = false, rotationMinZ = false;
+                    bool rotationMaxX = false, rotationMaxY = false, rotationMaxZ = false;
+                    glm::vec3 rotationMin, rotationMax;
                     FBXModel model = { name, -1 };
                     foreach (const FBXNode& subobject, object.children) {
                         bool properties = false;
@@ -880,7 +918,31 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                                         scalePivot = getVec3(property.properties, index);
                                             
                                     } else if (property.properties.at(0) == "Lcl Scaling") {
-                                        scale = getVec3(property.properties, index);     
+                                        scale = getVec3(property.properties, index);
+                                        
+                                    } else if (property.properties.at(0) == "RotationMin") {
+                                        rotationMin = getVec3(property.properties, index);
+                                        
+                                    } else if (property.properties.at(0) == "RotationMax") {
+                                        rotationMax = getVec3(property.properties, index);
+                                    
+                                    } else if (property.properties.at(0) == "RotationMinX") {
+                                        rotationMinX = property.properties.at(index).toBool();
+                                        
+                                    } else if (property.properties.at(0) == "RotationMinY") {
+                                        rotationMinY = property.properties.at(index).toBool();
+                                    
+                                    } else if (property.properties.at(0) == "RotationMinZ") {
+                                        rotationMinZ = property.properties.at(index).toBool();
+                                    
+                                    } else if (property.properties.at(0) == "RotationMaxX") {
+                                        rotationMaxX = property.properties.at(index).toBool();
+                                        
+                                    } else if (property.properties.at(0) == "RotationMaxY") {
+                                        rotationMaxY = property.properties.at(index).toBool();
+                                    
+                                    } else if (property.properties.at(0) == "RotationMaxZ") {
+                                        rotationMaxZ = property.properties.at(index).toBool();
                                     }
                                 }
                             }
@@ -897,6 +959,10 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                     model.postRotation = glm::quat(glm::radians(postRotation));
                     model.postTransform = glm::translate(-rotationPivot) * glm::translate(scalePivot) *
                         glm::scale(scale) * glm::translate(-scalePivot);
+                    model.rotationMin = glm::vec3(rotationMinX ? rotationMin.x : -180.0f,
+                        rotationMinY ? rotationMin.y : -180.0f, rotationMinZ ? rotationMin.z : -180.0f);
+                    model.rotationMax = glm::vec3(rotationMaxX ? rotationMax.x : 180.0f,
+                        rotationMaxY ? rotationMax.y : 180.0f, rotationMaxZ ? rotationMax.z : 180.0f);
                     models.insert(getID(object.properties), model);
 
                 } else if (object.name == "Texture") {
@@ -1060,17 +1126,23 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         joint.rotation = model.rotation;
         joint.postRotation = model.postRotation;
         joint.postTransform = model.postTransform;
+        joint.rotationMin = model.rotationMin;
+        joint.rotationMax = model.rotationMax;
         glm::quat combinedRotation = model.preRotation * model.rotation * model.postRotation;
         if (joint.parentIndex == -1) {    
             joint.transform = geometry.offset * model.preTransform * glm::mat4_cast(combinedRotation) * model.postTransform;
-            joint.inverseBindRotation = glm::inverse(combinedRotation);
+            joint.inverseDefaultRotation = glm::inverse(combinedRotation);
+            joint.distanceToParent = 0.0f;
             
         } else {
             const FBXJoint& parentJoint = geometry.joints.at(joint.parentIndex);
             joint.transform = parentJoint.transform *
                 model.preTransform * glm::mat4_cast(combinedRotation) * model.postTransform;
-            joint.inverseBindRotation = glm::inverse(combinedRotation) * parentJoint.inverseBindRotation;
+            joint.inverseDefaultRotation = glm::inverse(combinedRotation) * parentJoint.inverseDefaultRotation;
+            joint.distanceToParent = glm::distance(extractTranslation(parentJoint.transform),
+                extractTranslation(joint.transform));
         }
+        joint.inverseBindRotation = joint.inverseDefaultRotation;
         geometry.joints.append(joint);
         geometry.jointIndices.insert(model.name, geometry.joints.size() - 1);  
     }
@@ -1084,6 +1156,10 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
     geometry.headJointIndex = modelIDs.indexOf(jointHeadID);
     geometry.leftHandJointIndex = modelIDs.indexOf(jointLeftHandID);
     geometry.rightHandJointIndex = modelIDs.indexOf(jointRightHandID);
+    geometry.leftFingerJointIndices = getIndices(jointLeftFingerIDs, modelIDs);
+    geometry.rightFingerJointIndices = getIndices(jointRightFingerIDs, modelIDs);
+    geometry.leftFingertipJointIndices = getIndices(jointLeftFingertipIDs, modelIDs);
+    geometry.rightFingertipJointIndices = getIndices(jointRightFingertipIDs, modelIDs);
     
     // extract the translation component of the neck transform
     if (geometry.neckJointIndex != -1) {
@@ -1158,7 +1234,6 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         }
         
         // find the clusters with which the mesh is associated
-        extracted.mesh.isEye = false;
         QVector<QString> clusterIDs;
         foreach (const QString& childID, childMap.values(it.key())) {
             foreach (const QString& clusterID, childMap.values(childID)) {
@@ -1169,12 +1244,9 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                 const Cluster& cluster = clusters[clusterID];
                 clusterIDs.append(clusterID);
                 
-                QString jointID = childMap.value(clusterID);
-                if (jointID == jointEyeLeftID || jointID == jointEyeRightID) {
-                    extracted.mesh.isEye = true;
-                }
                 // see http://stackoverflow.com/questions/13566608/loading-skinning-information-from-fbx for a discussion
                 // of skinning information in FBX
+                QString jointID = childMap.value(clusterID);
                 fbxCluster.jointIndex = modelIDs.indexOf(jointID);
                 if (fbxCluster.jointIndex == -1) {
                     qDebug() << "Joint not in model list: " << jointID << "\n";
@@ -1182,6 +1254,11 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                 }
                 fbxCluster.inverseBindMatrix = glm::inverse(cluster.transformLink) * modelTransform;
                 extracted.mesh.clusters.append(fbxCluster);
+                
+                // override the bind rotation with the transform link
+                FBXJoint& joint = geometry.joints[fbxCluster.jointIndex];
+                joint.inverseBindRotation = glm::inverse(extractRotation(cluster.transformLink));
+                joint.bindTransform = cluster.transformLink;
             }
         }
         
@@ -1197,16 +1274,19 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         }
         
         // whether we're skinned depends on how many clusters are attached
+        int maxJointIndex = extracted.mesh.clusters.at(0).jointIndex;
         if (clusterIDs.size() > 1) {
             extracted.mesh.clusterIndices.resize(extracted.mesh.vertices.size());
             extracted.mesh.clusterWeights.resize(extracted.mesh.vertices.size());
+            float maxWeight = 0.0f;
             for (int i = 0; i < clusterIDs.size(); i++) {
                 QString clusterID = clusterIDs.at(i);
                 const Cluster& cluster = clusters[clusterID];
-                
+                float totalWeight = 0.0f;
                 for (int j = 0; j < cluster.indices.size(); j++) {
                     int oldIndex = cluster.indices.at(j);
                     float weight = cluster.weights.at(j);
+                    totalWeight += weight;
                     for (QMultiHash<int, int>::const_iterator it = extracted.newIndices.constFind(oldIndex);
                             it != extracted.newIndices.end() && it.key() == oldIndex; it++) {
                         glm::vec4& weights = extracted.mesh.clusterWeights[it.value()];
@@ -1221,8 +1301,13 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
                         }
                     }
                 }
+                if (totalWeight > maxWeight) {
+                    maxWeight = totalWeight;
+                    maxJointIndex = extracted.mesh.clusters.at(i).jointIndex;
+                }
             }
         }
+        extracted.mesh.isEye = (maxJointIndex == geometry.leftEyeJointIndex || maxJointIndex == geometry.rightEyeJointIndex);
         
         // extract spring edges, connections if springy
         if (extracted.mesh.springiness > 0.0f) {
@@ -1268,6 +1353,8 @@ FBXGeometry extractFBXGeometry(const FBXNode& node, const QVariantHash& mapping)
         
         geometry.meshes.append(extracted.mesh);
     }
+    
+    geometry.palmDirection = parseVec3(mapping.value("palmDirection", "0, -1, 0").toString());
     
     // process attachments
     QVariantHash attachments = mapping.value("attach").toHash();

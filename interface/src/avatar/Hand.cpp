@@ -11,10 +11,9 @@
 #include "Application.h"
 #include "Avatar.h"
 #include "Hand.h"
+#include "Menu.h"
 #include "Util.h"
 #include "renderer/ProgramObject.h"
-
-const bool SHOW_LEAP_HAND = true;
 
 using namespace std;
 
@@ -25,7 +24,6 @@ Hand::Hand(Avatar* owningAvatar) :
     _raveGloveInitialized(false),
     _owningAvatar(owningAvatar),
     _renderAlpha(1.0),
-    _lookingInMirror(false),
     _ballColor(0.0, 0.0, 0.4)    
  {
     // initialize all finger particle emitters with an invalid id as default
@@ -52,6 +50,8 @@ void Hand::reset() {
 
 
 void Hand::simulate(float deltaTime, bool isMine) {
+    
+    calculateGeometry();
 
     if (_isRaveGloveActive) {
         if (_raveGloveEffectsModeChanged && _raveGloveInitialized) {
@@ -67,9 +67,9 @@ void Hand::calculateGeometry() {
     const glm::vec3 leapHandsOffsetFromFace(0.0, -0.2, -0.3);  // place the hand in front of the face where we can see it
     
     Head& head = _owningAvatar->getHead();
-    _basePosition = head.getPosition() + head.getOrientation() * leapHandsOffsetFromFace;
-    _baseOrientation = head.getOrientation();
-
+    _baseOrientation = _owningAvatar->getOrientation();
+    _basePosition = head.calculateAverageEyePosition() + _baseOrientation * leapHandsOffsetFromFace * head.getScale();
+    
     // generate finger tip balls....
     _leapFingerTipBalls.clear();
     for (size_t i = 0; i < getNumPalms(); ++i) {
@@ -132,14 +132,11 @@ void Hand::setRaveGloveEffectsMode(QKeyEvent* event) {
      };        
 }
 
-void Hand::render(bool lookingInMirror) {
+void Hand::render() {
     
     _renderAlpha = 1.0;
-    _lookingInMirror = lookingInMirror;
     
-    calculateGeometry();
-
-    if ( SHOW_LEAP_HAND ) {
+    if (Menu::getInstance()->isOptionChecked(MenuOption::DisplayLeapHands)) {
         if (!isRaveGloveActive()) {
             renderLeapFingerTrails();
         }
@@ -265,7 +262,7 @@ void Hand::renderLeapHands() {
     for (size_t i = 0; i < getNumPalms(); ++i) {
         PalmData& palm = getPalms()[i];
         if (palm.isActive()) {
-            const float palmThickness = 0.002f;
+            const float palmThickness = 0.02f;
             glColor4f(handColor.r, handColor.g, handColor.b, 0.25);
             glm::vec3 tip = palm.getPosition();
             glm::vec3 root = palm.getPosition() + palm.getNormal() * palmThickness;

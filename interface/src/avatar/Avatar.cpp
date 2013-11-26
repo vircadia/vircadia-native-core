@@ -96,8 +96,6 @@ Avatar::Avatar(Node* owningNode) :
     _leadingAvatar(NULL),
     _voxels(this),
     _moving(false),
-    _hoverOnDuration(0.0f),
-    _hoverOffDuration(0.0f),
     _initialized(false),
     _handHoldingPosition(0.0f, 0.0f, 0.0f),
     _maxArmLength(0.0f),
@@ -257,6 +255,11 @@ Avatar::~Avatar() {
     delete _balls;
 }
 
+void Avatar::deleteOrDeleteLater() {
+    this->deleteLater();
+}
+
+
 void Avatar::init() {
     _head.init();
     _hand.init();
@@ -387,30 +390,7 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
         }
     }
     
-    // head scale grows when avatar is looked at
-    const float BASE_MAX_SCALE = 3.0f;
-    float maxScale = BASE_MAX_SCALE * glm::distance(_position, Application::getInstance()->getCamera()->getPosition());
-    if (Application::getInstance()->getLookatTargetAvatar() == this) {
-        _hoverOnDuration += deltaTime;
-        _hoverOffDuration = 0.0f;
-    
-        const float GROW_DELAY = 1.0f;
-        const float GROW_RATE = 0.25f;
-        if (_hoverOnDuration > GROW_DELAY) {
-            _head.setScale(glm::mix(_head.getScale(), maxScale, GROW_RATE));
-        }
-        
-    } else {
-        _hoverOnDuration = 0.0f;
-        _hoverOffDuration += deltaTime;
-    
-        const float SHRINK_DELAY = 1.0f;
-        const float SHRINK_RATE = 0.25f;
-        if (_hoverOffDuration > SHRINK_DELAY) {
-            _head.setScale(glm::mix(_head.getScale(), 1.0f, SHRINK_RATE));
-        }
-    }
-    
+    _hand.simulate(deltaTime, false);
     _skeletonModel.simulate(deltaTime);
     _head.setBodyRotation(glm::vec3(_bodyPitch, _bodyYaw, _bodyRoll));
     glm::vec3 headPosition;
@@ -418,9 +398,9 @@ void Avatar::simulate(float deltaTime, Transmitter* transmitter) {
         headPosition = _bodyBall[BODY_BALL_HEAD_BASE].position;
     }
     _head.setPosition(headPosition);
+    _head.setScale(_scale);
     _head.setSkinColor(glm::vec3(SKIN_COLOR[0], SKIN_COLOR[1], SKIN_COLOR[2]));
     _head.simulate(deltaTime, false);
-    _hand.simulate(deltaTime, false);
 
     // use speed and angular velocity to determine walking vs. standing
     if (_speed + fabs(_bodyYawDelta) > 0.2) {
@@ -459,7 +439,7 @@ static TextRenderer* textRenderer() {
     return renderer;
 }
 
-void Avatar::render(bool lookingInMirror, bool renderAvatarBalls) {
+void Avatar::render(bool forceRenderHead, bool renderAvatarBalls) {
 
     if (Application::getInstance()->getAvatar()->getHand().isRaveGloveActive()) {
         _hand.setRaveLights(RAVE_LIGHTS_AVATAR);
@@ -475,7 +455,7 @@ void Avatar::render(bool lookingInMirror, bool renderAvatarBalls) {
         Glower glower(_moving && glm::length(toTarget) > GLOW_DISTANCE ? 1.0f : 0.0f);
         
         // render body
-        renderBody(lookingInMirror, renderAvatarBalls);
+        renderBody(forceRenderHead, renderAvatarBalls);
     
         // render sphere when far away
         const float MAX_ANGLE = 10.f;
@@ -686,12 +666,15 @@ void Avatar::updateArmIKAndConstraints(float deltaTime, AvatarJointID fingerTipJ
     float distance = glm::length(armVector);
     
     // don't let right hand get dragged beyond maximum arm length...
-    if (distance > _maxArmLength) {
+    float armLength = _skeletonModel.isActive() ? _skeletonModel.getRightArmLength() : _skeleton.getArmLength();
+    const float ARM_RETRACTION = 0.75f;
+    float retractedArmLength = armLength * ARM_RETRACTION;
+    if (distance > retractedArmLength) {
         // reset right hand to be constrained to maximum arm length
         fingerJoint.position = shoulderJoint.position;
         glm::vec3 armNormal = armVector / distance;
-        armVector = armNormal * _maxArmLength;
-        distance = _maxArmLength;
+        armVector = armNormal * retractedArmLength;
+        distance = retractedArmLength;
         glm::vec3 constrainedPosition = shoulderJoint.position;
         constrainedPosition += armVector;
         fingerJoint.position = constrainedPosition;
@@ -726,15 +709,15 @@ glm::quat Avatar::computeRotationFromBodyToWorldUp(float proportion) const {
     return glm::angleAxis(angle * proportion, axis);
 }
 
-float Avatar::getBallRenderAlpha(int ball, bool lookingInMirror) const {
+float Avatar::getBallRenderAlpha(int ball, bool forceRenderHead) const {
     return 1.0f;
 }
 
-void Avatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
+void Avatar::renderBody(bool forceRenderHead, bool renderAvatarBalls) {
 
     if (_head.getVideoFace().isFullFrame()) {
         //  Render the full-frame video
-        float alpha = getBallRenderAlpha(BODY_BALL_HEAD_BASE, lookingInMirror);
+        float alpha = getBallRenderAlpha(BODY_BALL_HEAD_BASE, forceRenderHead);
         if (alpha > 0.0f) {
             _head.getVideoFace().render(1.0f);
         }
@@ -743,7 +726,7 @@ void Avatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
         glm::vec3 skinColor, darkSkinColor;
         getSkinColors(skinColor, darkSkinColor);
         for (int b = 0; b < NUM_AVATAR_BODY_BALLS; b++) {
-            float alpha = getBallRenderAlpha(b, lookingInMirror);
+            float alpha = getBallRenderAlpha(b, forceRenderHead);
             
             // When we have leap hands, hide part of the arms.
             if (_hand.getNumPalms() > 0) {
@@ -796,7 +779,7 @@ void Avatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
         }
     } else {
         //  Render the body's voxels and head
-        float alpha = getBallRenderAlpha(BODY_BALL_HEAD_BASE, lookingInMirror);
+        float alpha = getBallRenderAlpha(BODY_BALL_HEAD_BASE, forceRenderHead);
         if (alpha > 0.0f) {
             if (!_skeletonModel.render(alpha)) {
                 _voxels.render(false);
@@ -804,7 +787,7 @@ void Avatar::renderBody(bool lookingInMirror, bool renderAvatarBalls) {
             _head.render(alpha, false);
         }
     }
-    _hand.render(lookingInMirror);
+    _hand.render();
 }
 
 void Avatar::getSkinColors(glm::vec3& lighter, glm::vec3& darker) {

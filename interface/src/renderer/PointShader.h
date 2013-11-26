@@ -32,7 +32,8 @@ public:
     /// Gets access to attributes from the shader program
     int attributeLocation(const char* name) const;
     int uniformLocation(const char* name) const;
-    void setUniformValue(int attributeLocation, float value);
+    void setUniformValue(int uniformLocation, float value);
+    void setUniformValue(int uniformLocation, const glm::vec3& value);
 
     static ProgramObject* createPointShaderProgram(const QString& name);
     

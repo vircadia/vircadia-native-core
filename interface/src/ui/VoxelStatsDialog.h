@@ -10,15 +10,19 @@
 #define __hifi__VoxelStatsDialog__
 
 #include <QDialog>
+#include <QFormLayout>
 #include <QLabel>
 
 #include <VoxelSceneStats.h>
+
+#define MAX_STATS 100
+#define MAX_VOXEL_SERVERS 50
 
 class VoxelStatsDialog : public QDialog {
     Q_OBJECT
 public:
     // Sets up the UI
-    VoxelStatsDialog(QWidget* parent, VoxelSceneStats* model);
+    VoxelStatsDialog(QWidget* parent, NodeToVoxelSceneStats* model);
     ~VoxelStatsDialog();
 
 signals:
@@ -34,9 +38,23 @@ protected:
     // Emits a 'closed' signal when this dialog is closed.
     void closeEvent(QCloseEvent*);
 
+    int AddStatItem(const char* caption, unsigned colorRGBA);
+    void RemoveStatItem(int item);
+    void showAllVoxelServers();
+
 private:
-    QLabel*             _labels[VoxelSceneStats::ITEM_COUNT];
-    VoxelSceneStats*    _model;
+    QFormLayout* _form;
+    QLabel* _labels[MAX_STATS];
+    NodeToVoxelSceneStats* _model;
+    int _statCount;
+    
+    int _sendingMode;
+    int _serverVoxels;
+    int _localVoxels;
+    int _localVoxelsMemory;
+    int _voxelsRendered;
+    int _voxelServerLables[MAX_VOXEL_SERVERS];
+    int _voxelServerLabelsCount;
 };
 
 #endif /* defined(__interface__VoxelStatsDialog__) */

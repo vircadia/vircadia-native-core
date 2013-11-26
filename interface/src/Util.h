@@ -57,6 +57,8 @@ glm::quat safeMix(const glm::quat& q1, const glm::quat& q2, float alpha);
 
 glm::vec3 extractTranslation(const glm::mat4& matrix);
 
+void setTranslation(glm::mat4& matrix, const glm::vec3& translation);
+
 glm::quat extractRotation(const glm::mat4& matrix, bool assumeOrthogonal = false);
 
 double diffclock(timeval *clock1,timeval *clock2);

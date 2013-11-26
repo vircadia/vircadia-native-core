@@ -19,7 +19,7 @@ void VoxelPacketProcessor::processPacket(sockaddr& senderAddress, unsigned char*
                             "VoxelPacketProcessor::processPacket()");
                             
     const int WAY_BEHIND = 300;
-    if (packetsToProcessCount() > WAY_BEHIND && Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings)) {
+    if (packetsToProcessCount() > WAY_BEHIND && Menu::getInstance()->isOptionChecked(MenuOption::ExtraDebugging)) {
         qDebug("VoxelPacketProcessor::processPacket() packets to process=%d\n", packetsToProcessCount());
     }
     ssize_t messageLength = packetLength;

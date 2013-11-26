@@ -7,6 +7,9 @@
 //
 //
 
+#include <QString>
+#include <QStringList>
+
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
 
@@ -24,6 +27,97 @@ VoxelSceneStats::VoxelSceneStats() :
     _isReadyToSend = false;
     _isStarted = false;
 }
+
+// copy constructor
+VoxelSceneStats::VoxelSceneStats(const VoxelSceneStats& other) :
+_jurisdictionRoot(NULL) {
+    copyFromOther(other);
+}
+
+// copy assignment
+VoxelSceneStats& VoxelSceneStats::operator=(const VoxelSceneStats& other) {
+    copyFromOther(other);
+    return *this;
+}
+
+void VoxelSceneStats::copyFromOther(const VoxelSceneStats& other) {
+    _totalEncodeTime = other._totalEncodeTime;
+    _encodeStart = other._encodeStart;
+
+    _packets = other._packets;
+    _bytes = other._bytes;
+    _passes = other._passes;
+
+    _totalVoxels = other._totalVoxels;
+    _totalInternal = other._totalInternal;
+    _totalLeaves = other._totalLeaves;
+
+    _traversed = other._traversed;
+    _internal = other._internal;
+    _leaves = other._leaves;
+
+    _skippedDistance = other._skippedDistance;
+    _internalSkippedDistance = other._internalSkippedDistance;
+    _leavesSkippedDistance = other._leavesSkippedDistance;
+
+    _skippedOutOfView = other._skippedOutOfView;
+    _internalSkippedOutOfView = other._internalSkippedOutOfView;
+    _leavesSkippedOutOfView = other._leavesSkippedOutOfView;
+
+    _skippedWasInView = other._skippedWasInView;
+    _internalSkippedWasInView = other._internalSkippedWasInView;
+    _leavesSkippedWasInView = other._leavesSkippedWasInView;
+
+    _skippedNoChange = other._skippedNoChange;
+    _internalSkippedNoChange = other._internalSkippedNoChange;
+    _leavesSkippedNoChange = other._leavesSkippedNoChange;
+
+    _skippedOccluded = other._skippedOccluded;
+    _internalSkippedOccluded = other._internalSkippedOccluded;
+    _leavesSkippedOccluded = other._leavesSkippedOccluded;
+
+    _colorSent = other._colorSent;
+    _internalColorSent = other._internalColorSent;
+    _leavesColorSent = other._leavesColorSent;
+
+    _didntFit = other._didntFit;
+    _internalDidntFit = other._internalDidntFit;
+    _leavesDidntFit = other._leavesDidntFit;
+
+    _colorBitsWritten = other._colorBitsWritten;
+    _existsBitsWritten = other._existsBitsWritten;
+    _existsInPacketBitsWritten = other._existsInPacketBitsWritten;
+    _treesRemoved = other._treesRemoved;
+
+    // before copying the jurisdictions, delete any current values...
+    if (_jurisdictionRoot) {
+        delete[] _jurisdictionRoot;
+        _jurisdictionRoot = NULL;
+    }
+    for (int i=0; i < _jurisdictionEndNodes.size(); i++) {
+        if (_jurisdictionEndNodes[i]) {
+            delete[] _jurisdictionEndNodes[i];
+        }
+    }
+    _jurisdictionEndNodes.clear();
+    
+    // Now copy the values from the other    
+    if (other._jurisdictionRoot) {
+        int bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(other._jurisdictionRoot));
+        _jurisdictionRoot = new unsigned char[bytes];
+        memcpy(_jurisdictionRoot, other._jurisdictionRoot, bytes);
+    }
+    for (int i=0; i < other._jurisdictionEndNodes.size(); i++) {
+        unsigned char* endNodeCode = other._jurisdictionEndNodes[i];
+        if (endNodeCode) {
+            int bytes = bytesRequiredForCodeLength(numberOfThreeBitSectionsInCode(endNodeCode));
+            unsigned char* endNodeCodeCopy = new unsigned char[bytes];
+            memcpy(endNodeCodeCopy, endNodeCode, bytes);
+            _jurisdictionEndNodes.push_back(endNodeCodeCopy);
+        }
+    }
+}
+
 
 VoxelSceneStats::~VoxelSceneStats() {
     reset();
@@ -45,6 +139,15 @@ void VoxelSceneStats::sceneStarted(bool isFullScene, bool isMoving, VoxelNode* r
         delete[] _jurisdictionRoot;
         _jurisdictionRoot = NULL;
     }
+    // clear existing endNodes before copying new ones...
+    for (int i=0; i < _jurisdictionEndNodes.size(); i++) {
+        if (_jurisdictionEndNodes[i]) {
+            delete[] _jurisdictionEndNodes[i];
+        }
+    }
+    _jurisdictionEndNodes.clear();
+
+    // setup jurisdictions
     if (jurisdictionMap) {
         unsigned char* jurisdictionRoot = jurisdictionMap->getRootOctalCode();
         if (jurisdictionRoot) {
@@ -53,6 +156,7 @@ void VoxelSceneStats::sceneStarted(bool isFullScene, bool isMoving, VoxelNode* r
             memcpy(_jurisdictionRoot, jurisdictionRoot, bytes);
         }
 
+        // copy new endNodes...
         for (int i=0; i < jurisdictionMap->getEndNodeCount(); i++) {
             unsigned char* endNodeCode = jurisdictionMap->getEndNodeOctalCode(i);
             if (endNodeCode) {
@@ -433,6 +537,20 @@ int VoxelSceneStats::unpackFromMessage(unsigned char* sourceBuffer, int availabl
     memcpy(&_treesRemoved, sourceBuffer, sizeof(_treesRemoved));
     sourceBuffer += sizeof(_treesRemoved);
 
+    // before allocating new juridiction, clean up existing ones
+    if (_jurisdictionRoot) {
+        delete[] _jurisdictionRoot;
+        _jurisdictionRoot = NULL;
+    }
+
+    // clear existing endNodes before copying new ones...
+    for (int i=0; i < _jurisdictionEndNodes.size(); i++) {
+        if (_jurisdictionEndNodes[i]) {
+            delete[] _jurisdictionEndNodes[i];
+        }
+    }
+    _jurisdictionEndNodes.clear();
+
     // read the root jurisdiction
     int bytes = 0;
     memcpy(&bytes, sourceBuffer, sizeof(bytes));
@@ -521,30 +639,26 @@ void VoxelSceneStats::printDebugDetails() {
     qDebug("    trees removed       : %lu\n", _treesRemoved             );
 }
 
-const unsigned greenish  = 0x40ff40d0;
-const unsigned yellowish = 0xffef40c0;
-const unsigned greyish   = 0xd0d0d0a0;
-
 VoxelSceneStats::ItemInfo VoxelSceneStats::_ITEMS[] = {
-    { "Elapsed"              , greenish  },
-    { "Encode"               , yellowish },
-    { "Network"              , greyish   },
-    { "Voxels on Server"     , greenish  },
-    { "Voxels Sent"          , yellowish },
-    { "Colors Sent"          , greyish   },
-    { "Bitmasks Sent"        , greenish  },
-    { "Traversed"            , yellowish },
-    { "Skipped - Total"      , greyish   },
-    { "Skipped - Distance"   , greenish  },
-    { "Skipped - Out of View", yellowish },
-    { "Skipped - Was in View", greyish   },
-    { "Skipped - No Change"  , greenish  },
-    { "Skipped - Occluded"   , yellowish },
-    { "Didn't fit in packet" , greyish   },
-    { "Mode"                 , greenish  },
+    { "Elapsed"              , GREENISH  , 2 , "Elapsed,fps" },
+    { "Encode"               , YELLOWISH , 2 , "Time,fps" },
+    { "Network"              , GREYISH   , 3 , "Packets,Bytes,KBPS" },
+    { "Voxels on Server"     , GREENISH  , 3 , "Total,Internal,Leaves" },
+    { "Voxels Sent"          , YELLOWISH , 5 , "Total,Bits/Voxel,Avg Bits/Voxel,Internal,Leaves" },
+    { "Colors Sent"          , GREYISH   , 3 , "Total,Internal,Leaves" },
+    { "Bitmasks Sent"        , GREENISH  , 3 , "Colors,Exists,In Packets" },
+    { "Traversed"            , YELLOWISH , 3 , "Total,Internal,Leaves" },
+    { "Skipped - Total"      , GREYISH   , 3 , "Total,Internal,Leaves" },
+    { "Skipped - Distance"   , GREENISH  , 3 , "Total,Internal,Leaves" },
+    { "Skipped - Out of View", YELLOWISH , 3 , "Total,Internal,Leaves" },
+    { "Skipped - Was in View", GREYISH   , 3 , "Total,Internal,Leaves" },
+    { "Skipped - No Change"  , GREENISH  , 3 , "Total,Internal,Leaves" },
+    { "Skipped - Occluded"   , YELLOWISH , 3 , "Total,Internal,Leaves" },
+    { "Didn't fit in packet" , GREYISH   , 4 , "Total,Internal,Leaves,Removed" },
+    { "Mode"                 , GREENISH  , 4 , "Moving,Stationary,Partial,Full" },
 };
 
-char* VoxelSceneStats::getItemValue(Item item) {
+const char* VoxelSceneStats::getItemValue(Item item) {
     const uint64_t USECS_PER_SECOND = 1000 * 1000;
     int calcFPS, calcAverageFPS, calculatedKBPS;
     switch(item) {
@@ -650,4 +764,5 @@ char* VoxelSceneStats::getItemValue(Item item) {
     }
     return _itemValueBuffer;
 }
+
 

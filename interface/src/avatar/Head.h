@@ -58,7 +58,7 @@ public:
     void setRenderLookatVectors(bool onOff) { _renderLookatVectors = onOff; }
     
     float getMousePitch() const { return _mousePitch; }
-    void  setMousePitch(float mousePitch) { _mousePitch = mousePitch; }
+    void setMousePitch(float mousePitch);
 
     glm::quat getOrientation() const;
     glm::quat getCameraOrientation () const;
@@ -82,6 +82,9 @@ public:
     const bool getReturnToCenter() const { return _returnHeadToCenter; } // Do you want head to try to return to center (depends on interface detected)
     float getAverageLoudness() const { return _averageLoudness; }
     glm::vec3 calculateAverageEyePosition() { return _leftEyePosition + (_rightEyePosition - _leftEyePosition ) * ONE_HALF; }
+    
+    /// Returns the point about which scaling occurs.
+    glm::vec3 getScalePivot() const;
     
     float yawRate;
 

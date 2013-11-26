@@ -24,47 +24,69 @@ VoxelSendThread::VoxelSendThread(const QUuid& nodeUUID, VoxelServer* myServer) :
 }
 
 bool VoxelSendThread::process() {
-    uint64_t  lastSendTime = usecTimestampNow();
+    uint64_t  start = usecTimestampNow();
+    bool gotLock = false;
     
-    Node* node = NodeList::getInstance()->nodeWithUUID(_nodeUUID);
-    VoxelNodeData* nodeData = NULL;
+    // don't do any send processing until the initial load of the voxels is complete...
+    if (_myServer->isInitialLoadComplete()) {
+        Node* node = NodeList::getInstance()->nodeWithUUID(_nodeUUID);
     
-    if (node) {
-        nodeData = (VoxelNodeData*) node->getLinkedData();
-    }
+        if (node) {
+            // make sure the node list doesn't kill our node while we're using it
+            if (node->trylock()) {
+                gotLock = true;
+                VoxelNodeData* nodeData = NULL;
+    
+                nodeData = (VoxelNodeData*) node->getLinkedData();
+    
+                int packetsSent = 0;
 
-    // Sometimes the node data has not yet been linked, in which case we can't really do anything
-    if (nodeData) {
-        bool viewFrustumChanged = nodeData->updateCurrentViewFrustum();
-        if (_myServer->wantsDebugVoxelSending()) {
-            printf("nodeData->updateCurrentViewFrustum() changed=%s\n", debug::valueOf(viewFrustumChanged));
+                // Sometimes the node data has not yet been linked, in which case we can't really do anything
+                if (nodeData) {
+                    bool viewFrustumChanged = nodeData->updateCurrentViewFrustum();
+                    if (_myServer->wantsDebugVoxelSending()) {
+                        printf("nodeData->updateCurrentViewFrustum() changed=%s\n", debug::valueOf(viewFrustumChanged));
+                    }
+                    packetsSent = deepestLevelVoxelDistributor(node, nodeData, viewFrustumChanged);
+                }
+    
+                node->unlock(); // we're done with this node for now.
+            }
         }
-        deepestLevelVoxelDistributor(node, nodeData, viewFrustumChanged);
-    }
-    
-    // dynamically sleep until we need to fire off the next set of voxels
-    int usecToSleep =  VOXEL_SEND_INTERVAL_USECS - (usecTimestampNow() - lastSendTime);
-    
-    if (usecToSleep > 0) {
-        usleep(usecToSleep);
     } else {
         if (_myServer->wantsDebugVoxelSending()) {
-            std::cout << "Last send took too much time, not sleeping!\n";
+            qDebug("VoxelSendThread::process() waiting for isInitialLoadComplete()\n");
         }
     }
-    
+     
+    // Only sleep if we're still running and we got the lock last time we tried, otherwise try to get the lock asap
+    if (isStillRunning() && gotLock) {
+        // dynamically sleep until we need to fire off the next set of voxels
+        int elapsed = (usecTimestampNow() - start);
+        int usecToSleep =  VOXEL_SEND_INTERVAL_USECS - elapsed;
+
+        if (usecToSleep > 0) {
+            usleep(usecToSleep);
+        } else {
+            if (_myServer->wantsDebugVoxelSending()) {
+                std::cout << "Last send took too much time, not sleeping!\n";
+            }
+        }
+    }
+
     return isStillRunning();  // keep running till they terminate us
 }
 
 
-void VoxelSendThread::handlePacketSend(Node* node, VoxelNodeData* nodeData, int& trueBytesSent, int& truePacketsSent) {
+int VoxelSendThread::handlePacketSend(Node* node, VoxelNodeData* nodeData, int& trueBytesSent, int& truePacketsSent) {
 
+    int packetsSent = 0;
     // Here's where we check to see if this packet is a duplicate of the last packet. If it is, we will silently
     // obscure the packet and not send it. This allows the callers and upper level logic to not need to know about
     // this rate control savings.
     if (nodeData->shouldSuppressDuplicatePacket()) {
         nodeData->resetVoxelPacket(); // we still need to reset it though!
-        return; // without sending...
+        return packetsSent; // without sending...
     }
 
     // If we've got a stats message ready to send, then see if we can piggyback them together
@@ -85,9 +107,14 @@ void VoxelSendThread::handlePacketSend(Node* node, VoxelNodeData* nodeData, int&
         } else {
             // not enough room in the packet, send two packets
             NodeList::getInstance()->getNodeSocket()->send(node->getActiveSocket(), statsMessage, statsMessageLength);
+            trueBytesSent += statsMessageLength;
+            truePacketsSent++;
+            packetsSent++;
+
             NodeList::getInstance()->getNodeSocket()->send(node->getActiveSocket(),
                                             nodeData->getPacket(), nodeData->getPacketLength());
         }
+        nodeData->stats.markAsSent();
     } else {
         // just send the voxel packet
         NodeList::getInstance()->getNodeSocket()->send(node->getActiveSocket(),
@@ -97,16 +124,19 @@ void VoxelSendThread::handlePacketSend(Node* node, VoxelNodeData* nodeData, int&
     nodeData->stats.packetSent(nodeData->getPacketLength());
     trueBytesSent += nodeData->getPacketLength();
     truePacketsSent++;
+    packetsSent++;
     nodeData->resetVoxelPacket();
+    return packetsSent;
 }
 
 /// Version of voxel distributor that sends the deepest LOD level at once
-void VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nodeData, bool viewFrustumChanged) {
-
-    _myServer->lockTree();
+int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nodeData, bool viewFrustumChanged) {
 
     int truePacketsSent = 0;
     int trueBytesSent = 0;
+    int packetsSentThisInterval = 0;
+    bool somethingToSend = true; // assume we have something
+
 
     // FOR NOW... node tells us if it wants to receive only view frustum deltas
     bool wantDelta = viewFrustumChanged && nodeData->getWantDelta();
@@ -127,8 +157,7 @@ void VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* no
                        debug::valueOf(wantColor), debug::valueOf(nodeData->getCurrentPacketIsColor()));
             }
 
-            handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
-
+            packetsSentThisInterval += handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
         } else {
             if (_myServer->wantsDebugVoxelSending()) {
                 printf("wantColor=%s --- FIXING HEADER! nodeData->getCurrentPacketIsColor()=%s\n", 
@@ -217,21 +246,26 @@ void VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* no
     // If we have something in our nodeBag, then turn them into packets and send them out...
     if (!nodeData->nodeBag.isEmpty()) {
         int bytesWritten = 0;
-        int packetsSentThisInterval = 0;
         uint64_t start = usecTimestampNow();
 
         bool shouldSendEnvironments = _myServer->wantSendEnvironments() && shouldDo(ENVIRONMENT_SEND_INTERVAL_USECS, VOXEL_SEND_INTERVAL_USECS);
 
-        int clientMaxPacketsPerInterval = nodeData->getMaxVoxelPacketsPerSecond() / INTERVALS_PER_SECOND;
-        int maxPacketsPerInterval = std::max(clientMaxPacketsPerInterval, _myServer->getPacketsPerClientPerInterval());
+        int clientMaxPacketsPerInterval = std::max(1,(nodeData->getMaxVoxelPacketsPerSecond() / INTERVALS_PER_SECOND));
+        int maxPacketsPerInterval = std::min(clientMaxPacketsPerInterval, _myServer->getPacketsPerClientPerInterval());
         
         if (_myServer->wantsDebugVoxelSending()) {
-            printf("packetsSentThisInterval=%d maxPacketsPerInterval=%d server PPI=%d nodePPS=%d nodePPI=%d\n", 
-                packetsSentThisInterval, maxPacketsPerInterval, _myServer->getPacketsPerClientPerInterval(), 
+            printf("truePacketsSent=%d packetsSentThisInterval=%d maxPacketsPerInterval=%d server PPI=%d nodePPS=%d nodePPI=%d\n", 
+                truePacketsSent, packetsSentThisInterval, maxPacketsPerInterval, _myServer->getPacketsPerClientPerInterval(), 
                 nodeData->getMaxVoxelPacketsPerSecond(), clientMaxPacketsPerInterval);
         }
+        while (somethingToSend && packetsSentThisInterval < maxPacketsPerInterval - (shouldSendEnvironments ? 1 : 0)) {
+            if (_myServer->wantsDebugVoxelSending()) {
+                printf("truePacketsSent=%d packetsSentThisInterval=%d maxPacketsPerInterval=%d server PPI=%d nodePPS=%d nodePPI=%d\n", 
+                    truePacketsSent, packetsSentThisInterval, maxPacketsPerInterval, _myServer->getPacketsPerClientPerInterval(), 
+                    nodeData->getMaxVoxelPacketsPerSecond(), clientMaxPacketsPerInterval);
+            }
 
-        while (packetsSentThisInterval < maxPacketsPerInterval - (shouldSendEnvironments ? 1 : 0)) {
+
             // Check to see if we're taking too long, and if so bail early...
             uint64_t now = usecTimestampNow();
             long elapsedUsec = (now - start);
@@ -268,25 +302,29 @@ void VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* no
                                              nodeData->getLastTimeBagEmpty(),
                                              isFullScene, &nodeData->stats, _myServer->getJurisdiction());
                       
+
+                _myServer->getServerTree().lockForRead();
                 nodeData->stats.encodeStarted();
                 bytesWritten = _myServer->getServerTree().encodeTreeBitstream(subTree, _tempOutputBuffer, MAX_VOXEL_PACKET_SIZE - 1,
                                                               nodeData->nodeBag, params);
                 nodeData->stats.encodeStopped();
+                _myServer->getServerTree().unlock();
 
                 if (nodeData->getAvailable() >= bytesWritten) {
                     nodeData->writeToPacket(_tempOutputBuffer, bytesWritten);
                 } else {
-                    handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
-                    packetsSentThisInterval++;
+                    packetsSentThisInterval += handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
                     nodeData->writeToPacket(_tempOutputBuffer, bytesWritten);
                 }
             } else {
                 if (nodeData->isPacketWaiting()) {
-                    handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
+                    packetsSentThisInterval += handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
                 }
-                packetsSentThisInterval = _myServer->getPacketsPerClientPerInterval(); // done for now, no nodes left
+                //packetsSentThisInterval = _myServer->getPacketsPerClientPerInterval(); // done for now, no nodes left
+                somethingToSend = false;
             }
         }
+        
         // send the environment packet
         if (shouldSendEnvironments) {
             int numBytesPacketHeader = populateTypeAndVersion(_tempOutputBuffer, PACKET_TYPE_ENVIRONMENT_DATA);
@@ -300,6 +338,7 @@ void VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* no
             NodeList::getInstance()->getNodeSocket()->send(node->getActiveSocket(), _tempOutputBuffer, envPacketLength);
             trueBytesSent += envPacketLength;
             truePacketsSent++;
+            packetsSentThisInterval++;
         }
         
         uint64_t end = usecTimestampNow();
@@ -328,9 +367,15 @@ void VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* no
             }
             nodeData->map.erase(); // It would be nice if we could save this, and only reset it when the view frustum changes
         }
+
+        if (_myServer->wantsDebugVoxelSending()) {
+            printf("truePacketsSent=%d packetsSentThisInterval=%d maxPacketsPerInterval=%d server PPI=%d nodePPS=%d nodePPI=%d\n", 
+                truePacketsSent, packetsSentThisInterval, maxPacketsPerInterval, _myServer->getPacketsPerClientPerInterval(), 
+                nodeData->getMaxVoxelPacketsPerSecond(), clientMaxPacketsPerInterval);
+        }
         
     } // end if bag wasn't empty, and so we sent stuff...
 
-    _myServer->unlockTree();
+    return truePacketsSent;
 }
 

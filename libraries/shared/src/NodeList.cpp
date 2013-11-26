@@ -162,6 +162,10 @@ void NodeList::processNodeData(sockaddr* senderAddress, unsigned char* packetDat
             processSTUNResponse(packetData, dataBytes);
             break;
         }
+        case PACKET_TYPE_KILL_NODE: {
+            processKillNode(packetData, dataBytes);
+            break;
+        }
     }
 }
 
@@ -449,6 +453,38 @@ void NodeList::processSTUNResponse(unsigned char* packetData, size_t dataBytes) 
     }
 }
 
+void NodeList::sendKillNode(const char* nodeTypes, int numNodeTypes) {
+    unsigned char packet[MAX_PACKET_SIZE];
+    unsigned char* packetPosition = packet;
+    
+    packetPosition += populateTypeAndVersion(packetPosition, PACKET_TYPE_KILL_NODE);
+    
+    QByteArray rfcUUID = _ownerUUID.toRfc4122();
+    memcpy(packetPosition, rfcUUID.constData(), rfcUUID.size());
+    packetPosition += rfcUUID.size();
+    
+    broadcastToNodes(packet, packetPosition - packet, nodeTypes, numNodeTypes);
+}
+
+void NodeList::processKillNode(unsigned char* packetData, size_t dataBytes) {
+    // skip the header
+    int numBytesPacketHeader = numBytesForPacketHeader(packetData);
+    packetData += numBytesPacketHeader;
+    dataBytes -= numBytesPacketHeader;
+    
+    // read the node id
+    QUuid nodeUUID = QUuid::fromRfc4122(QByteArray((char*)packetData, NUM_BYTES_RFC4122_UUID));
+    
+    packetData += NUM_BYTES_RFC4122_UUID;
+    dataBytes -= NUM_BYTES_RFC4122_UUID;
+    
+    // make sure the node exists
+    Node* node = nodeWithUUID(nodeUUID);
+    if (node) {
+        killNode(node, true);
+    }
+}
+
 void NodeList::sendDomainServerCheckIn() {
     static bool printedDomainServerIP = false;
     
@@ -687,13 +723,10 @@ unsigned NodeList::broadcastToNodes(unsigned char* broadcastData, size_t dataByt
     for(NodeList::iterator node = begin(); node != end(); node++) {
         // only send to the NodeTypes we are asked to send to.
         if (memchr(nodeTypes, node->getType(), numNodeTypes)) {
-            if (node->getActiveSocket()) {
+            if (getNodeActiveSocketOrPing(&(*node))) {
                 // we know which socket is good for this node, send there
                 _nodeSocket.send(node->getActiveSocket(), broadcastData, dataBytes);
                 ++n;
-            } else {
-                // we don't have an active link to this node, ping it to set that up
-                pingPublicAndLocalSocketsForInactiveNode(&(*node));
             }
         }
     }
@@ -715,6 +748,15 @@ void NodeList::possiblyPingInactiveNodes() {
                 pingPublicAndLocalSocketsForInactiveNode(&(*node));
             }
         }
+    }
+}
+
+sockaddr* NodeList::getNodeActiveSocketOrPing(Node* node) {
+    if (node->getActiveSocket()) {
+        return node->getActiveSocket();
+    } else {
+        pingPublicAndLocalSocketsForInactiveNode(node);
+        return NULL;
     }
 }
 

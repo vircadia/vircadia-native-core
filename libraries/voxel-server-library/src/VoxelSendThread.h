@@ -30,8 +30,8 @@ private:
     QUuid _nodeUUID;
     VoxelServer* _myServer;
 
-    void handlePacketSend(Node* node, VoxelNodeData* nodeData, int& trueBytesSent, int& truePacketsSent);
-    void deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nodeData, bool viewFrustumChanged);
+    int handlePacketSend(Node* node, VoxelNodeData* nodeData, int& trueBytesSent, int& truePacketsSent);
+    int deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nodeData, bool viewFrustumChanged);
     
     unsigned char _tempOutputBuffer[MAX_VOXEL_PACKET_SIZE];
 };

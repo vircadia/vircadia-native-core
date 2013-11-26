@@ -50,6 +50,7 @@
 #include "avatar/HandControl.h"
 #include "devices/Faceshift.h"
 #include "devices/SerialInterface.h"
+#include "devices/SixenseManager.h"
 #include "devices/Webcam.h"
 #include "renderer/AmbientOcclusionEffect.h"
 #include "renderer/GeometryCache.h"
@@ -135,7 +136,9 @@ public:
     QSettings* getSettings() { return _settings; }
     Swatch*  getSwatch() { return &_swatch; }
     QMainWindow* getWindow() { return _window; }
-    VoxelSceneStats* getVoxelSceneStats() { return &_voxelSceneStats; }
+    NodeToVoxelSceneStats* getVoxelSceneStats() { return &_voxelServerSceneStats; }
+    void lockVoxelSceneStats() { _voxelSceneStatsLock.lockForRead(); }
+    void unlockVoxelSceneStats() { _voxelSceneStatsLock.unlock(); }
     
     QNetworkAccessManager* getNetworkAccessManager() { return _networkAccessManager; }
     GeometryCache* getGeometryCache() { return &_geometryCache; }
@@ -150,7 +153,13 @@ public:
     static void controlledBroadcastToNodes(unsigned char* broadcastData, size_t dataBytes,
                                            const char* nodeTypes, int numNodeTypes);
     
-    void setupWorldLight(Camera& whichCamera);
+    void setupWorldLight();
+
+    /// Loads a view matrix that incorporates the specified model translation without the precision issues that can
+    /// result from matrix multiplication at high translation magnitudes.
+    void loadTranslatedViewMatrix(const glm::vec3& translation);
+
+    const glm::mat4& getShadowMatrix() const { return _shadowMatrix; }
 
     /// Computes the off-axis frustum parameters for the view frustum, taking mirroring into account.
     void computeOffAxisFrustum(float& left, float& right, float& bottom, float& top, float& near,
@@ -166,6 +175,8 @@ public:
     PointShader& getPointShader() { return _pointShader; }
     
     glm::vec2 getViewportDimensions() const{ return glm::vec2(_glWidget->width(),_glWidget->height()); }
+    NodeToJurisdictionMap& getVoxelServerJurisdictions() { return _voxelServerJurisdictions; }
+    void pasteVoxelsToOctalCode(const unsigned char* octalCodeDestination);
 
 public slots:
     void sendAvatarFaceVideoMessage(int frameCount, const QByteArray& data);
@@ -223,24 +234,49 @@ private:
     void init();
     
     void update(float deltaTime);
-    
+
+    // Various helper functions called during update()
+    void updateMouseRay(float deltaTime, glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection);
+    void updateFaceshift();
+    void updateMyAvatarLookAtPosition(glm::vec3& lookAtSpot, glm::vec3& lookAtRayOrigin, glm::vec3& lookAtRayDirection);
+    void updateHoverVoxels(float deltaTime, glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection, 
+            float& distance, BoxFace& face);
+    void updateMouseVoxels(float deltaTime, glm::vec3& mouseRayOrigin, glm::vec3& mouseRayDirection,
+            float& distance, BoxFace& face);
     void updateLookatTargetAvatar(const glm::vec3& mouseRayOrigin, const glm::vec3& mouseRayDirection,
         glm::vec3& eyePosition);
+    void updateHandAndTouch(float deltaTime);
+    void updateLeap(float deltaTime);
+    void updateSixense();
+    void updateSerialDevices(float deltaTime);
+    void updateThreads(float deltaTime);
+    void updateMyAvatarSimulation(float deltaTime);
+    void updateParticles(float deltaTime);
+    void updateTransmitter(float deltaTime);
+    void updateCamera(float deltaTime);
+    void updateDialogs(float deltaTime);
+    void updateAudio(float deltaTime);
+    void updateCursor(float deltaTime);
+
     Avatar* findLookatTargetAvatar(const glm::vec3& mouseRayOrigin, const glm::vec3& mouseRayDirection,
         glm::vec3& eyePosition, QUuid &nodeUUID);
     bool isLookingAtMyAvatar(Avatar* avatar);
                                 
-    void renderLookatIndicator(glm::vec3 pointOfInterest, Camera& whichCamera);
+    void renderLookatIndicator(glm::vec3 pointOfInterest);
     void renderFollowIndicator();
     void updateAvatar(float deltaTime);
     void updateAvatars(float deltaTime, glm::vec3 mouseRayOrigin, glm::vec3 mouseRayDirection);
     void queryVoxels();
     void loadViewFrustum(Camera& camera, ViewFrustum& viewFrustum);
     
+    glm::vec3 getSunDirection();
+    
+    void updateShadowMap();
     void displayOculus(Camera& whichCamera);
     void displaySide(Camera& whichCamera, bool selfAvatarOnly = false);
     void displayOverlay();
     void displayStats();
+    void renderAvatars(bool forceRenderHead, bool selfAvatarOnly = false);
     void renderViewFrustum(ViewFrustum& viewFrustum);
    
     void checkBandwidthMeterClick();
@@ -311,11 +347,18 @@ private:
     
     Faceshift _faceshift;
     
+    SixenseManager _sixenseManager;
+    
     Camera _myCamera;                  // My view onto the world
     Camera _viewFrustumOffsetCamera;   // The camera we use to sometimes show the view frustum from an offset mode
     Camera _mirrorCamera;              // Cammera for mirror view
     QRect _mirrorViewRect;
     RearMirrorTools* _rearMirrorTools;
+    
+    glm::mat4 _untranslatedViewMatrix;
+    glm::vec3 _viewMatrixTranslation;
+    
+    glm::mat4 _shadowMatrix;
     
     Environment _environment;
     
@@ -351,6 +394,7 @@ private:
     
     VoxelDetail _mouseVoxel;      // details of the voxel to be edited
     float _mouseVoxelScale;       // the scale for adding/removing voxels
+    bool _mouseVoxelScaleInitialized;
     glm::vec3 _lastMouseVoxelPos; // the position of the last mouse voxel edit
     bool _justEditedVoxel;        // set when we've just added/deleted/colored a voxel
 
@@ -407,6 +451,9 @@ private:
     int _bytesPerSecond;
     int _bytesCount;
     
+    int _recentMaxPackets; // recent max incoming voxel packets to process
+    bool _resetRecentMaxPacketsSoon;
+    
     StDev _idleLoopStdev;
     float _idleLoopMeasuredJitter;
 
@@ -417,12 +464,14 @@ private:
 
     PieMenu _pieMenu;
     
-    VoxelSceneStats _voxelSceneStats;
     int parseVoxelStats(unsigned char* messageData, ssize_t messageLength, sockaddr senderAddress);
     
     NodeToJurisdictionMap _voxelServerJurisdictions;
+    NodeToVoxelSceneStats _voxelServerSceneStats;
+    QReadWriteLock _voxelSceneStatsLock;
     
     std::vector<VoxelFade> _voxelFades;
+    std::vector<Avatar*> _avatarFades;
 };
 
 #endif /* defined(__interface__Application__) */

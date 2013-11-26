@@ -21,6 +21,7 @@
 #include "VoxelEditPacketSender.h"
 
 #include <QObject>
+#include <QReadWriteLock>
 
 // Callback function, for recuseTreeWithOperation
 typedef bool (*RecurseVoxelTreeOperation)(VoxelNode* node, void* extraData);
@@ -185,6 +186,13 @@ public:
     // reads voxels from square image with alpha as a Y-axis
     bool readFromSquareARGB32Pixels(const char *filename);
     bool readFromSchematicFile(const char* filename);
+    
+    // VoxelTree does not currently handle its own locking, caller must use these to lock/unlock
+    void lockForRead() { lock.lockForRead(); }
+    void tryLockForRead() { lock.tryLockForRead(); }
+    void lockForWrite() { lock.lockForWrite(); }
+    void tryLockForWrite() { lock.tryLockForWrite(); }
+    void unlock() { lock.unlock(); }
 
     unsigned long getVoxelCount();
 
@@ -266,6 +274,8 @@ private:
     static bool nudgeCheck(VoxelNode* node, void* extraData);
     void nudgeLeaf(VoxelNode* node, void* extraData);
     void chunkifyLeaf(VoxelNode* node);
+    
+    QReadWriteLock lock;
 };
 
 float boundaryDistanceForRenderLevel(unsigned int renderLevel, float voxelSizeScale);

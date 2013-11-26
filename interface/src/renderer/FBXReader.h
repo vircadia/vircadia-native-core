@@ -46,13 +46,18 @@ public:
     bool isFree;
     QVector<int> freeLineage;
     int parentIndex;
+    float distanceToParent;
     glm::mat4 preTransform;
     glm::quat preRotation;
     glm::quat rotation;
     glm::quat postRotation;
     glm::mat4 postTransform;
     glm::mat4 transform;
+    glm::vec3 rotationMin;
+    glm::vec3 rotationMax;
+    glm::quat inverseDefaultRotation;
     glm::quat inverseBindRotation;
+    glm::mat4 bindTransform;
 };
 
 /// A single binding to a joint in an FBX document.
@@ -133,6 +138,14 @@ public:
     int headJointIndex;
     int leftHandJointIndex;
     int rightHandJointIndex;
+    
+    QVector<int> leftFingerJointIndices;
+    QVector<int> rightFingerJointIndices;
+    
+    QVector<int> leftFingertipJointIndices;
+    QVector<int> rightFingertipJointIndices;
+    
+    glm::vec3 palmDirection;
     
     glm::vec3 neckPivot;
     

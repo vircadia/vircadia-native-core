@@ -12,9 +12,6 @@
 #include <sys/time.h>
 #include <sys/wait.h>
 
-#include <QtCore/QCoreApplication>
-
-
 #include <Logging.h>
 #include <NodeList.h>
 #include <PacketHeaders.h>
