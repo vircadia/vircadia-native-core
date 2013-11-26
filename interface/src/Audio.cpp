@@ -86,7 +86,7 @@ inline void Audio::performIO(int16_t* inputLeft, int16_t* outputLeft, int16_t* o
     }
     
     //  If local loopback enabled, copy input to output
-   if (Menu::getInstance()->isOptionChecked(MenuOption::EchoServerAudio)) {
+   if (Menu::getInstance()->isOptionChecked(MenuOption::EchoLocalAudio)) {
         memcpy(outputLeft, inputLeft, PACKET_LENGTH_BYTES_PER_CHANNEL);
         memcpy(outputRight, inputLeft, PACKET_LENGTH_BYTES_PER_CHANNEL);
     }
