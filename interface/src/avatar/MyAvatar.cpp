@@ -381,15 +381,18 @@ void MyAvatar::updateFromGyrosAndOrWebcam(bool turnWithHead) {
     if (faceshift->isActive()) {
         estimatedPosition = faceshift->getHeadTranslation();
         estimatedRotation = safeEulerAngles(faceshift->getHeadRotation());
-        //  Rotate the body if the head is turned quickly
+        //  Rotate the body if the head is turned beyond the screen
         if (turnWithHead) {
-            glm::vec3 headAngularVelocity = faceshift->getHeadAngularVelocity();
-            const float FACESHIFT_YAW_TURN_SENSITIVITY = 0.25f;
-            const float FACESHIFT_MIN_YAW_TURN = 10.f;
-            const float FACESHIFT_MAX_YAW_TURN = 30.f;
+            const float FACESHIFT_YAW_TURN_SENSITIVITY = 0.5f;
+            const float FACESHIFT_MIN_YAW_TURN = 15.f;
+            const float FACESHIFT_MAX_YAW_TURN = 50.f;
             if ( (fabs(estimatedRotation.y) > FACESHIFT_MIN_YAW_TURN) &&
                  (fabs(estimatedRotation.y) < FACESHIFT_MAX_YAW_TURN) ) {
-                _bodyYawDelta += estimatedRotation.y * FACESHIFT_YAW_TURN_SENSITIVITY;
+                if (estimatedRotation.y > 0.f) {
+                    _bodyYawDelta += (estimatedRotation.y - FACESHIFT_MIN_YAW_TURN) * FACESHIFT_YAW_TURN_SENSITIVITY;
+                } else {
+                    _bodyYawDelta += (estimatedRotation.y + FACESHIFT_MIN_YAW_TURN) * FACESHIFT_YAW_TURN_SENSITIVITY;
+                }
             }
         }
     } else if (gyros->isActive()) {
@@ -464,43 +467,29 @@ void MyAvatar::updateFromGyrosAndOrWebcam(bool turnWithHead) {
     glm::quat orientation = _head.getCameraOrientation();
     glm::vec3 front = orientation * IDENTITY_FRONT;
     glm::vec3 right = orientation * IDENTITY_RIGHT;
-    
-    const float LEAN_FWD_DEAD_ZONE = 2.f;
-    const float LEAN_SIDEWAYS_DEAD_ZONE = 2.f;
-    const float LEAN_FWD_THRUST_SCALE = 1.f;
-    const float LEAN_SIDEWAYS_THRUST_SCALE = 1.f;
-    
-    //printf("%.2f, %.2f\n", _head.getLeanForward(), _head.getLeanSideways());
-    
-    if (fabs(_head.getLeanForward()) > LEAN_FWD_DEAD_ZONE) {
-        addThrust(front * -_head.getLeanForward() * LEAN_FWD_THRUST_SCALE);
-    }
-    if (fabs(_head.getLeanSideways()) > LEAN_SIDEWAYS_DEAD_ZONE) {
-        addThrust(right * -_head.getLeanSideways() * LEAN_SIDEWAYS_THRUST_SCALE);
-    }
-                
-/*
-    const float ANGULAR_DRIVE_SCALE = 0.1f;
-    const float ANGULAR_DEAD_ZONE = 0.3f;
+    float leanForward = _head.getLeanForward();
+    float leanSideways = _head.getLeanSideways();
 
-    setDriveKeys(FWD, glm::clamp(-_head.getLeanForward() * ANGULAR_DRIVE_SCALE - ANGULAR_DEAD_ZONE, 0.0f, 1.0f));
-    setDriveKeys(BACK, glm::clamp(_head.getLeanForward() * ANGULAR_DRIVE_SCALE - ANGULAR_DEAD_ZONE, 0.0f, 1.0f));
-    setDriveKeys(LEFT, glm::clamp(_head.getLeanSideways() * ANGULAR_DRIVE_SCALE - ANGULAR_DEAD_ZONE, 0.0f, 1.0f));
-    setDriveKeys(RIGHT, glm::clamp(-_head.getLeanSideways() * ANGULAR_DRIVE_SCALE - ANGULAR_DEAD_ZONE, 0.0f, 1.0f));
- */
-
-    /*
-    // only consider going up if we're not going in any of the four horizontal directions
-    if (_driveKeys[FWD] == 0.0f && _driveKeys[BACK] == 0.0f && _driveKeys[LEFT] == 0.0f && _driveKeys[RIGHT] == 0.0f) {
-        const float LINEAR_DRIVE_SCALE = 5.0f;
-        const float LINEAR_DEAD_ZONE = 0.95f;
-        float torsoDelta = glm::length(relativePosition) - TORSO_LENGTH;
-        setDriveKeys(UP, glm::clamp(torsoDelta * LINEAR_DRIVE_SCALE - LINEAR_DEAD_ZONE, 0.0f, 1.0f));
+    //  Degrees of 'dead zone' when leaning, and amount of acceleration to apply to lean angle
+    const float LEAN_FWD_DEAD_ZONE = 15.f;
+    const float LEAN_SIDEWAYS_DEAD_ZONE = 10.f;
+    const float LEAN_FWD_THRUST_SCALE = 4.f;
+    const float LEAN_SIDEWAYS_THRUST_SCALE = 3.f;
     
-    } else {
-        setDriveKeys(UP, 0.0f);
+    if (fabs(leanForward) > LEAN_FWD_DEAD_ZONE) {
+        if (leanForward > 0.f) {
+            addThrust(front * -(leanForward - LEAN_FWD_DEAD_ZONE) * LEAN_FWD_THRUST_SCALE);
+        } else {
+            addThrust(front * -(leanForward + LEAN_FWD_DEAD_ZONE) * LEAN_FWD_THRUST_SCALE);
+        }
     }
-     */
+    if (fabs(leanSideways) > LEAN_SIDEWAYS_DEAD_ZONE) {
+        if (leanSideways > 0.f) {
+            addThrust(right * -(leanSideways - LEAN_SIDEWAYS_DEAD_ZONE) * LEAN_SIDEWAYS_THRUST_SCALE);
+        } else {
+            addThrust(right * -(leanSideways + LEAN_SIDEWAYS_DEAD_ZONE) * LEAN_SIDEWAYS_THRUST_SCALE);
+        }
+    }
 }
 
 static TextRenderer* textRenderer() {
