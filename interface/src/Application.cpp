@@ -1082,7 +1082,7 @@ void Application::keyReleaseEvent(QKeyEvent* event) {
 
 void Application::mouseMoveEvent(QMouseEvent* event) {
     _lastMouseMove = usecTimestampNow();
-    if (_mouseHidden) {
+    if (_mouseHidden && !isFullscreenOculus()) {
         getGLWidget()->setCursor(Qt::ArrowCursor);
         _mouseHidden = false;
         _seenMouseMove = true;
@@ -1656,6 +1656,10 @@ void Application::findAxisAlignment() {
             _lookingAwayFromOrigin = true;
         }
     }
+}
+
+bool Application::isFullscreenOculus() const {
+    return OculusManager::isConnected() && _window->windowState().testFlag(Qt::WindowFullScreen);
 }
 
 void Application::nudgeVoxels() {
@@ -2390,20 +2394,13 @@ void Application::updateCursor(float deltaTime) {
     bool showWarnings = Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings);
     PerformanceWarning warn(showWarnings, "Application::updateCursor()");
 
-    // in fullscreen Oculus mode, always hide cursor
-    if (OculusManager::isConnected() && _window->windowState().testFlag(Qt::WindowFullScreen)) {
-        getGLWidget()->setCursor(Qt::BlankCursor);
-        _mouseHidden = true;
-        return;
-    }
-
     // watch mouse position, if it hasn't moved, hide the cursor
     bool underMouse = _glWidget->underMouse();
     if (!_mouseHidden) {
         uint64_t now = usecTimestampNow();
         int elapsed = now - _lastMouseMove;
         const int HIDE_CURSOR_TIMEOUT = 1 * 1000 * 1000; // 1 second
-        if (elapsed > HIDE_CURSOR_TIMEOUT && (underMouse || !_seenMouseMove)) {
+        if ((elapsed > HIDE_CURSOR_TIMEOUT && (underMouse || !_seenMouseMove)) || isFullscreenOculus()) {
             getGLWidget()->setCursor(Qt::BlankCursor);
             _mouseHidden = true;
         }
