@@ -152,7 +152,7 @@ void OculusManager::display(Camera& whichCamera) {
     glVertex2f(0, leftEyeParams.VP.h);
     glEnd();
     
-    _program.setUniformValue(_lensCenterLocation, 0.5 + (0.5 + distortionConfig.XCenterOffset * 0.5) * 0.5, 0.5);
+    _program.setUniformValue(_lensCenterLocation, 0.5 + (0.5 - distortionConfig.XCenterOffset * 0.5) * 0.5, 0.5);
     _program.setUniformValue(_screenCenterLocation, 0.75, 0.5);
     
     glBegin(GL_QUADS);
