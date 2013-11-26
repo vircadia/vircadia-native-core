@@ -48,6 +48,10 @@ void OculusManager::connect() {
         _sensorFusion = new SensorFusion;
         _sensorFusion->AttachToSensor(_sensorDevice);
         
+        HMDInfo info;
+        _hmdDevice->GetDeviceInfo(&info);
+        _stereoConfig.SetHMDInfo(info);
+        
         switchToResourcesParentIfRequired();
         _program.addShaderFromSourceFile(QGLShader::Fragment, "resources/shaders/oculus.frag");
         _program.link();
@@ -79,7 +83,7 @@ void OculusManager::display(Camera& whichCamera) {
     glMatrixMode(GL_PROJECTION);
     glPushMatrix();
     glLoadIdentity();
-    glTranslatef(0.151976, 0, 0); // +h, see Oculus SDK docs p. 26
+    glTranslatef(_stereoConfig.GetProjectionCenterOffset(), 0, 0);
     gluPerspective(whichCamera.getFieldOfView(), whichCamera.getAspectRatio(),
         whichCamera.getNearClip(), whichCamera.getFarClip());
     
@@ -87,7 +91,7 @@ void OculusManager::display(Camera& whichCamera) {
     glMatrixMode(GL_MODELVIEW);
     glPushMatrix();
     glLoadIdentity();
-    glTranslatef(0.032, 0, 0); // dip/2, see p. 27
+    glTranslatef(_stereoConfig.GetIPD() * 0.5f, 0, 0);
     
     Application::getInstance()->displaySide(whichCamera);
 
@@ -95,14 +99,14 @@ void OculusManager::display(Camera& whichCamera) {
     const StereoEyeParams& rightEyeParams = _stereoConfig.GetEyeRenderParams(StereoEye_Right);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    glTranslatef(-0.151976, 0, 0); // -h
+    glTranslatef(-_stereoConfig.GetProjectionCenterOffset(), 0, 0);
     gluPerspective(whichCamera.getFieldOfView(), whichCamera.getAspectRatio(),
         whichCamera.getNearClip(), whichCamera.getFarClip());
     
     glViewport(rightEyeParams.VP.x, rightEyeParams.VP.y, rightEyeParams.VP.w, rightEyeParams.VP.h);
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
-    glTranslatef(-0.032, 0, 0);
+    glTranslatef(_stereoConfig.GetIPD() * -0.5f, 0, 0);
     
     Application::getInstance()->displaySide(whichCamera);
 
@@ -128,11 +132,13 @@ void OculusManager::display(Camera& whichCamera) {
     glDisable(GL_BLEND);
     _program.bind();
     _program.setUniformValue(_textureLocation, 0);
-    _program.setUniformValue(_lensCenterLocation, 0.287994, 0.5); // see SDK docs, p. 29
+    const DistortionConfig& distortionConfig = _stereoConfig.GetDistortionConfig();
+    _program.setUniformValue(_lensCenterLocation, (0.5 + distortionConfig.XCenterOffset * 0.5) * 0.5, 0.5);
     _program.setUniformValue(_screenCenterLocation, 0.25, 0.5);
     _program.setUniformValue(_scaleLocation, 0.25 * scaleFactor, 0.5 * scaleFactor * aspectRatio);
     _program.setUniformValue(_scaleInLocation, 4, 2 / aspectRatio);
-    _program.setUniformValue(_hmdWarpParamLocation, 1.0, 0.22, 0.24, 0);
+    _program.setUniformValue(_hmdWarpParamLocation, distortionConfig.K[0], distortionConfig.K[1],
+        distortionConfig.K[2], distortionConfig.K[3]);
 
     glColor3f(1, 0, 1);
     glBegin(GL_QUADS);
@@ -146,7 +152,7 @@ void OculusManager::display(Camera& whichCamera) {
     glVertex2f(0, leftEyeParams.VP.h);
     glEnd();
     
-    _program.setUniformValue(_lensCenterLocation, 0.787994, 0.5);
+    _program.setUniformValue(_lensCenterLocation, 0.5 + (0.5 + distortionConfig.XCenterOffset * 0.5) * 0.5, 0.5);
     _program.setUniformValue(_screenCenterLocation, 0.75, 0.5);
     
     glBegin(GL_QUADS);
