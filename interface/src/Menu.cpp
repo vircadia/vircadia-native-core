@@ -36,11 +36,18 @@
 Menu* Menu::_instance = NULL;
 
 Menu* Menu::getInstance() {
+    static QMutex menuInstanceMutex;
+    
+    // lock the menu instance mutex to make sure we don't race and create two menus and crash
+    menuInstanceMutex.lock();
+    
     if (!_instance) {
         qDebug("First call to Menu::getInstance() - initing menu.\n");
         
         _instance = new Menu();
     }
+    
+    menuInstanceMutex.unlock();
         
     return _instance;
 }
