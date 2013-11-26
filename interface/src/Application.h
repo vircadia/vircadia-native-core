@@ -155,6 +155,8 @@ public:
     
     void setupWorldLight();
 
+    void displaySide(Camera& whichCamera, bool selfAvatarOnly = false);
+    
     /// Loads a view matrix that incorporates the specified model translation without the precision issues that can
     /// result from matrix multiplication at high translation magnitudes.
     void loadTranslatedViewMatrix(const glm::vec3& translation);
@@ -272,8 +274,6 @@ private:
     glm::vec3 getSunDirection();
     
     void updateShadowMap();
-    void displayOculus(Camera& whichCamera);
-    void displaySide(Camera& whichCamera, bool selfAvatarOnly = false);
     void displayOverlay();
     void displayStats();
     void renderAvatars(bool forceRenderHead, bool selfAvatarOnly = false);
@@ -415,15 +415,6 @@ private:
     
     ChatEntry _chatEntry; // chat entry field 
     bool _chatEntryOn;    // Whether to show the chat entry 
-    
-    ProgramObject* _oculusProgram;  // The GLSL program containing the distortion shader 
-    float _oculusDistortionScale;   // Controls the Oculus field of view
-    int _textureLocation;
-    int _lensCenterLocation;
-    int _screenCenterLocation;
-    int _scaleLocation;
-    int _scaleInLocation;
-    int _hmdWarpParamLocation;
     
     GeometryCache _geometryCache;
     TextureCache _textureCache;
