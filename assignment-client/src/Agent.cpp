@@ -6,7 +6,10 @@
 //  Copyright (c) 2013 HighFidelity, Inc. All rights reserved.
 //
 
-#include <curl/curl.h>
+#include <QtCore/QEventLoop>
+#include <QtNetwork/QNetworkAccessManager>
+#include <QtNetwork/QNetworkRequest>
+#include <QtNetwork/QNetworkReply>
 
 #include <AvatarData.h>
 #include <NodeList.h>
@@ -25,18 +28,6 @@ Agent::Agent(const unsigned char* dataBuffer, int numBytes) :
 
 void Agent::stop() {
     _shouldStop = true;
-}
-
-static size_t writeScriptDataToString(void *contents, size_t size, size_t nmemb, void *userdata) {
-    size_t realSize = size * nmemb;
-    
-    QString* scriptContents = (QString*) userdata;
-    
-    // append this chunk to the scriptContents
-    scriptContents->append(QByteArray((char*) contents, realSize));
-    
-    // return the amount of data read
-    return realSize;
 }
 
 QScriptValue vec3toScriptValue(QScriptEngine *engine, const glm::vec3 &vec3) {
@@ -68,141 +59,111 @@ void Agent::run() {
     scriptURLString = scriptURLString.arg(NodeList::getInstance()->getDomainIP().toString(),
                                           uuidStringWithoutCurlyBraces(_uuid));
     
-    // setup curl for script download
-    CURLcode curlResult;
-    
-    CURL* curlHandle = curl_easy_init();
-    
-    // tell curl which file to grab
-    curl_easy_setopt(curlHandle, CURLOPT_URL, scriptURLString.toStdString().c_str());
-    
-    // send the data to the WriteMemoryCallback function
-    curl_easy_setopt(curlHandle, CURLOPT_WRITEFUNCTION, writeScriptDataToString);
-    
-    QString scriptContents;
-    
-    // pass the scriptContents QString to append data to
-    curl_easy_setopt(curlHandle, CURLOPT_WRITEDATA, (void *)&scriptContents);
-    
-    // send a user agent since some servers will require it
-    curl_easy_setopt(curlHandle, CURLOPT_USERAGENT, "libcurl-agent/1.0");
-    
-    // make sure CURL fails on a 400 code
-    curl_easy_setopt(curlHandle, CURLOPT_FAILONERROR, true);
+    QNetworkAccessManager *networkManager = new QNetworkAccessManager(this);
+    QNetworkReply *reply = networkManager->get(QNetworkRequest(QUrl(scriptURLString)));
     
     qDebug() << "Downloading script at" << scriptURLString << "\n";
     
-    // blocking get for JS file
-    curlResult = curl_easy_perform(curlHandle);
-  
-    if (curlResult == CURLE_OK) {
-        // cleanup curl
-        curl_easy_cleanup(curlHandle);
-        curl_global_cleanup();
+    QEventLoop loop;
+    QObject::connect(reply, SIGNAL(finished()), &loop, SLOT(quit()));
+    
+    loop.exec();
+    
+    QString scriptContents(reply->readAll());
+    QScriptEngine engine;
+    
+    // register meta-type for glm::vec3 conversions
+    qScriptRegisterMetaType(&engine, vec3toScriptValue, vec3FromScriptValue);
+    
+    QScriptValue agentValue = engine.newQObject(this);
+    engine.globalObject().setProperty("Agent", agentValue);
+    
+    VoxelScriptingInterface voxelScripter;
+    QScriptValue voxelScripterValue =  engine.newQObject(&voxelScripter);
+    engine.globalObject().setProperty("Voxels", voxelScripterValue);
+    
+    QScriptValue treeScaleValue = engine.newVariant(QVariant(TREE_SCALE));
+    engine.globalObject().setProperty("TREE_SCALE", treeScaleValue);
+    
+    const unsigned int VISUAL_DATA_CALLBACK_USECS = (1.0 / 60.0) * 1000 * 1000;
+    
+    // let the VoxelPacketSender know how frequently we plan to call it
+    voxelScripter.getVoxelPacketSender()->setProcessCallIntervalHint(VISUAL_DATA_CALLBACK_USECS);
+    
+    // hook in a constructor for audio injectorss
+    AudioInjector scriptedAudioInjector(BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
+    QScriptValue audioInjectorValue = engine.newQObject(&scriptedAudioInjector);
+    engine.globalObject().setProperty("AudioInjector", audioInjectorValue);
+    
+    qDebug() << "Downloaded script:" << scriptContents << "\n";
+    QScriptValue result = engine.evaluate(scriptContents);
+    qDebug() << "Evaluated script.\n";
+    
+    if (engine.hasUncaughtException()) {
+        int line = engine.uncaughtExceptionLineNumber();
+        qDebug() << "Uncaught exception at line" << line << ":" << result.toString() << "\n";
+    }
+    
+    timeval startTime;
+    gettimeofday(&startTime, NULL);
+    
+    timeval lastDomainServerCheckIn = {};
+    
+    sockaddr_in senderAddress;
+    unsigned char receivedData[MAX_PACKET_SIZE];
+    ssize_t receivedBytes;
+    
+    int thisFrame = 0;
+    
+    NodeList::getInstance()->startSilentNodeRemovalThread();
+    
+    while (!_shouldStop) {
         
-        QScriptEngine engine;
+        // if we're not hearing from the domain-server we should stop running
+        if (NodeList::getInstance()->getNumNoReplyDomainCheckIns() == MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
+            break;
+        }
         
-        // register meta-type for glm::vec3 conversions
-        qScriptRegisterMetaType(&engine, vec3toScriptValue, vec3FromScriptValue);
+        // send a check in packet to the domain server if DOMAIN_SERVER_CHECK_IN_USECS has elapsed
+        if (usecTimestampNow() - usecTimestamp(&lastDomainServerCheckIn) >= DOMAIN_SERVER_CHECK_IN_USECS) {
+            gettimeofday(&lastDomainServerCheckIn, NULL);
+            NodeList::getInstance()->sendDomainServerCheckIn();
+        }
         
-        QScriptValue agentValue = engine.newQObject(this);
-        engine.globalObject().setProperty("Agent", agentValue);
+        int usecToSleep = usecTimestamp(&startTime) + (thisFrame++ * VISUAL_DATA_CALLBACK_USECS) - usecTimestampNow();
+        if (usecToSleep > 0) {
+            usleep(usecToSleep);
+        }
         
-        VoxelScriptingInterface voxelScripter;
-        QScriptValue voxelScripterValue =  engine.newQObject(&voxelScripter);
-        engine.globalObject().setProperty("Voxels", voxelScripterValue);
-        
-        QScriptValue treeScaleValue = engine.newVariant(QVariant(TREE_SCALE));
-        engine.globalObject().setProperty("TREE_SCALE", treeScaleValue);
-        
-        const unsigned int VISUAL_DATA_CALLBACK_USECS = (1.0 / 60.0) * 1000 * 1000;
-
-        // let the VoxelPacketSender know how frequently we plan to call it
-        voxelScripter.getVoxelPacketSender()->setProcessCallIntervalHint(VISUAL_DATA_CALLBACK_USECS);
-        
-        // hook in a constructor for audio injectorss
-        AudioInjector scriptedAudioInjector(BUFFER_LENGTH_SAMPLES_PER_CHANNEL);
-        QScriptValue audioInjectorValue = engine.newQObject(&scriptedAudioInjector);
-        engine.globalObject().setProperty("AudioInjector", audioInjectorValue);
-        
-        qDebug() << "Downloaded script:" << scriptContents << "\n";
-        QScriptValue result = engine.evaluate(scriptContents);
-        qDebug() << "Evaluated script.\n";
+        if (voxelScripter.getVoxelPacketSender()->voxelServersExist()) {
+            timeval thisSend = {};
+            gettimeofday(&thisSend, NULL);
+            // allow the scripter's call back to setup visual data
+            emit willSendVisualDataCallback();
+            
+            // release the queue of edit voxel messages.
+            voxelScripter.getVoxelPacketSender()->releaseQueuedMessages();
+            
+            // since we're in non-threaded mode, call process so that the packets are sent
+            voxelScripter.getVoxelPacketSender()->process();
+        }
         
         if (engine.hasUncaughtException()) {
             int line = engine.uncaughtExceptionLineNumber();
-            qDebug() << "Uncaught exception at line" << line << ":" << result.toString() << "\n";
+            qDebug() << "Uncaught exception at line" << line << ":" << engine.uncaughtException().toString() << "\n";
         }
         
-        timeval startTime;
-        gettimeofday(&startTime, NULL);
-        
-        timeval lastDomainServerCheckIn = {};
-        
-        sockaddr_in senderAddress;
-        unsigned char receivedData[MAX_PACKET_SIZE];
-        ssize_t receivedBytes;
-        
-        int thisFrame = 0;
-        
-        NodeList::getInstance()->startSilentNodeRemovalThread();
-        
-        while (!_shouldStop) {
-            
-            // if we're not hearing from the domain-server we should stop running
-            if (NodeList::getInstance()->getNumNoReplyDomainCheckIns() == MAX_SILENT_DOMAIN_SERVER_CHECK_INS) {
-                break;
-            }
-            
-            // send a check in packet to the domain server if DOMAIN_SERVER_CHECK_IN_USECS has elapsed
-            if (usecTimestampNow() - usecTimestamp(&lastDomainServerCheckIn) >= DOMAIN_SERVER_CHECK_IN_USECS) {
-                gettimeofday(&lastDomainServerCheckIn, NULL);
-                NodeList::getInstance()->sendDomainServerCheckIn();
-            }
-            
-            int usecToSleep = usecTimestamp(&startTime) + (thisFrame++ * VISUAL_DATA_CALLBACK_USECS) - usecTimestampNow();
-            if (usecToSleep > 0) {
-                usleep(usecToSleep);
-            }
-            
-            if (voxelScripter.getVoxelPacketSender()->voxelServersExist()) {
-                timeval thisSend = {};
-                gettimeofday(&thisSend, NULL);
-                // allow the scripter's call back to setup visual data
-                emit willSendVisualDataCallback();
-                
-                // release the queue of edit voxel messages.
-                voxelScripter.getVoxelPacketSender()->releaseQueuedMessages();
-                
-                // since we're in non-threaded mode, call process so that the packets are sent
-                voxelScripter.getVoxelPacketSender()->process();
-            }            
-            
-            if (engine.hasUncaughtException()) {
-                int line = engine.uncaughtExceptionLineNumber();
-                qDebug() << "Uncaught exception at line" << line << ":" << engine.uncaughtException().toString() << "\n";
-            }
-            
-            while (NodeList::getInstance()->getNodeSocket()->receive((sockaddr*) &senderAddress, receivedData, &receivedBytes)
-                   && packetVersionMatch(receivedData)) {
-                if (receivedData[0] == PACKET_TYPE_VOXEL_JURISDICTION) {
-                    voxelScripter.getJurisdictionListener()->queueReceivedPacket((sockaddr&) senderAddress,
-                                                                                 receivedData,
-                                                                                 receivedBytes);
-                } else {
-                    NodeList::getInstance()->processNodeData((sockaddr*) &senderAddress, receivedData, receivedBytes);
-                }
+        while (NodeList::getInstance()->getNodeSocket()->receive((sockaddr*) &senderAddress, receivedData, &receivedBytes)
+               && packetVersionMatch(receivedData)) {
+            if (receivedData[0] == PACKET_TYPE_VOXEL_JURISDICTION) {
+                voxelScripter.getJurisdictionListener()->queueReceivedPacket((sockaddr&) senderAddress,
+                                                                             receivedData,
+                                                                             receivedBytes);
+            } else {
+                NodeList::getInstance()->processNodeData((sockaddr*) &senderAddress, receivedData, receivedBytes);
             }
         }
-    
-        NodeList::getInstance()->stopSilentNodeRemovalThread(); 
-        
-    } else {
-        // error in curl_easy_perform
-        qDebug() << "curl_easy_perform for JS failed:" << curl_easy_strerror(curlResult) << "\n";
-        
-        // cleanup curl
-        curl_easy_cleanup(curlHandle);
-        curl_global_cleanup();
     }
+    
+    NodeList::getInstance()->stopSilentNodeRemovalThread();
 }
