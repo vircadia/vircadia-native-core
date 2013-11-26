@@ -6,8 +6,9 @@
 //  Copyright (c) 2012 High Fidelity, Inc. All rights reserved.
 //
 
-#include "OculusManager.h"
 #include <glm/glm.hpp>
+
+#include "OculusManager.h"
 
 using namespace OVR;
 
@@ -17,7 +18,7 @@ bool OculusManager::_isConnected = false;
 Ptr<DeviceManager> OculusManager::_deviceManager;
 Ptr<HMDDevice> OculusManager::_hmdDevice;
 Ptr<SensorDevice> OculusManager::_sensorDevice;
-SensorFusion OculusManager::_sensorFusion;
+SensorFusion* OculusManager::_sensorFusion;
 float OculusManager::_yawOffset = 0;
 #endif
 
@@ -31,28 +32,29 @@ void OculusManager::connect() {
         _isConnected = true;
         
         _sensorDevice = *_hmdDevice->GetSensor();
-        _sensorFusion.AttachToSensor(_sensorDevice);
+        _sensorFusion = new SensorFusion;
+        _sensorFusion->AttachToSensor(_sensorDevice);
     }
 #endif
 }
 
 void OculusManager::reset() {
 #ifdef HAVE_LIBOVR
-    _sensorFusion.Reset();
+    _sensorFusion->Reset();
 #endif
 }
 
 void OculusManager::updateYawOffset() {
 #ifdef HAVE_LIBOVR
     float yaw, pitch, roll;
-   _sensorFusion.GetOrientation().GetEulerAngles<Axis_Y, Axis_X, Axis_Z, Rotate_CCW, Handed_R>(&yaw, &pitch, &roll);
+   _sensorFusion->GetOrientation().GetEulerAngles<Axis_Y, Axis_X, Axis_Z, Rotate_CCW, Handed_R>(&yaw, &pitch, &roll);
     _yawOffset = yaw;
 #endif
 }
 
 void OculusManager::getEulerAngles(float& yaw, float& pitch, float& roll) {
 #ifdef HAVE_LIBOVR
-    _sensorFusion.GetOrientation().GetEulerAngles<Axis_Y, Axis_X, Axis_Z, Rotate_CCW, Handed_R>(&yaw, &pitch, &roll);
+    _sensorFusion->GetOrientation().GetEulerAngles<Axis_Y, Axis_X, Axis_Z, Rotate_CCW, Handed_R>(&yaw, &pitch, &roll);
     
     // convert each angle to degrees
     // remove the yaw offset from the returned yaw

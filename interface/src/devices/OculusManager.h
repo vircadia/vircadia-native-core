@@ -28,7 +28,7 @@ private:
     static OVR::Ptr<OVR::DeviceManager> _deviceManager;
     static OVR::Ptr<OVR::HMDDevice> _hmdDevice;
     static OVR::Ptr<OVR::SensorDevice> _sensorDevice;
-    static OVR::SensorFusion _sensorFusion;
+    static OVR::SensorFusion* _sensorFusion;
     static float _yawOffset;
 };
 
