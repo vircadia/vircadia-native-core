@@ -4318,6 +4318,24 @@ void Application::nodeKilled(Node* node) {
     }
 }
 
+void Application::trackIncomingVoxelPacket(unsigned char* messageData, ssize_t messageLength, 
+                        sockaddr senderAddress, bool wasStatsPacket) {
+                        
+    // Attempt to identify the sender from it's address.
+    Node* voxelServer = NodeList::getInstance()->nodeWithAddress(&senderAddress);
+    if (voxelServer) {
+        QUuid nodeUUID = voxelServer->getUUID();
+        
+        // now that we know the node ID, let's add these stats to the stats for that node...
+        _voxelSceneStatsLock.lockForWrite();
+        if (_voxelServerSceneStats.find(nodeUUID) != _voxelServerSceneStats.end()) {
+            VoxelSceneStats& stats = _voxelServerSceneStats[nodeUUID];
+            stats.trackIncomingVoxelPacket(messageData, messageLength, wasStatsPacket);
+        }
+        _voxelSceneStatsLock.unlock();
+    }
+}
+
 int Application::parseVoxelStats(unsigned char* messageData, ssize_t messageLength, sockaddr senderAddress) {
 
     // But, also identify the sender, and keep track of the contained jurisdiction root for this server

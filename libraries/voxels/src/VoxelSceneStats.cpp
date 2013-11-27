@@ -13,6 +13,7 @@
 #include <PacketHeaders.h>
 #include <SharedUtil.h>
 
+#include "VoxelPacketData.h"
 #include "VoxelNode.h"
 #include "VoxelSceneStats.h"
 
@@ -21,6 +22,7 @@ const int samples = 100;
 VoxelSceneStats::VoxelSceneStats() : 
     _elapsedAverage(samples), 
     _bitsPerVoxelAverage(samples),
+    _incomingFlightTimeAverage(samples),
     _jurisdictionRoot(NULL)
 {
     reset();
@@ -28,6 +30,13 @@ VoxelSceneStats::VoxelSceneStats() :
     _isStarted = false;
     _lastFullTotalEncodeTime = 0;
     _lastFullElapsed = 0;
+    _incomingPacket = 0;
+    _incomingBytes = 0;
+    _incomingWastedBytes = 0;
+    _incomingLastSequence = 0;
+    _incomingOutOfOrder = 0;
+    _incomingLikelyLost = 0;
+    
 }
 
 // copy constructor
@@ -121,6 +130,13 @@ void VoxelSceneStats::copyFromOther(const VoxelSceneStats& other) {
             _jurisdictionEndNodes.push_back(endNodeCodeCopy);
         }
     }
+
+    _incomingPacket = other._incomingPacket;
+    _incomingBytes = other._incomingBytes;
+    _incomingWastedBytes = other._incomingWastedBytes;
+    _incomingLastSequence = other._incomingLastSequence;
+    _incomingOutOfOrder = other._incomingOutOfOrder;
+    _incomingLikelyLost = other._incomingLikelyLost;
 }
 
 
@@ -782,4 +798,44 @@ const char* VoxelSceneStats::getItemValue(Item item) {
     return _itemValueBuffer;
 }
 
+void VoxelSceneStats::trackIncomingVoxelPacket(unsigned char* messageData, ssize_t messageLength, bool wasStatsPacket) {
+    _incomingPacket++;
+    _incomingBytes += messageLength;
+    if (!wasStatsPacket) {
+        _incomingWastedBytes += (MAX_PACKET_SIZE - messageLength);
+    }
+
+    int numBytesPacketHeader = numBytesForPacketHeader(messageData);
+    unsigned char* dataAt = messageData + numBytesPacketHeader;
+
+    //VOXEL_PACKET_FLAGS flags = (*(VOXEL_PACKET_FLAGS*)(dataAt));
+    dataAt += sizeof(VOXEL_PACKET_FLAGS);
+    VOXEL_PACKET_SEQUENCE sequence = (*(VOXEL_PACKET_SEQUENCE*)dataAt);
+    dataAt += sizeof(VOXEL_PACKET_SEQUENCE);
+    
+    VOXEL_PACKET_SENT_TIME sentAt = (*(VOXEL_PACKET_SENT_TIME*)dataAt);
+    dataAt += sizeof(VOXEL_PACKET_SENT_TIME);
+    
+    //bool packetIsColored = oneAtBit(flags, PACKET_IS_COLOR_BIT);
+    //bool packetIsCompressed = oneAtBit(flags, PACKET_IS_COMPRESSED_BIT);
+    
+    VOXEL_PACKET_SENT_TIME arrivedAt = usecTimestampNow();
+    int flightTime = arrivedAt - sentAt;
+    const int USECS_PER_MSEC = 1000;
+    float flightTimeMsecs = flightTime / USECS_PER_MSEC;
+    _incomingFlightTimeAverage.updateAverage(flightTimeMsecs);
+    
+    
+    // detect out of order packets
+    if (sequence < _incomingLastSequence) {
+        _incomingOutOfOrder++;
+    }
+
+    // detect likely lost packets
+    if (sequence > (_incomingLastSequence+1)) {
+        _incomingLikelyLost++;
+    }
+
+    _incomingLastSequence = sequence;
+}
 

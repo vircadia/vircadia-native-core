@@ -45,6 +45,9 @@ protected:
     void showAllVoxelServers();
 
 private:
+
+    typedef enum { LESS, MORE, MOST } details;
+
     QFormLayout* _form;
     QLabel* _labels[MAX_STATS];
     NodeToVoxelSceneStats* _model;
@@ -57,7 +60,7 @@ private:
     int _voxelsRendered;
     int _voxelServerLables[MAX_VOXEL_SERVERS];
     int _voxelServerLabelsCount;
-    bool _extraServerDetails[MAX_VOXEL_SERVERS];
+    details _extraServerDetails[MAX_VOXEL_SERVERS];
 };
 
 #endif /* defined(__interface__VoxelStatsDialog__) */

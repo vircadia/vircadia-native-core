@@ -27,7 +27,7 @@ VoxelStatsDialog::VoxelStatsDialog(QWidget* parent, NodeToVoxelSceneStats* model
 
     for (int i = 0; i < MAX_VOXEL_SERVERS; i++) {
         _voxelServerLables[i] = 0;
-        _extraServerDetails[i] = false;
+        _extraServerDetails[i] = LESS;
     }
 
     for (int i = 0; i < MAX_STATS; i++) {
@@ -67,16 +67,20 @@ void VoxelStatsDialog::moreless(const QString& link) {
     QString serverNumberString = linkDetails[SERVER_NUMBER_ITEM];
     QString command = linkDetails[COMMAND_ITEM];
     int serverNumber = serverNumberString.toInt();
+    
     if (command == "more") {
-        _extraServerDetails[serverNumber-1] = true;
+        _extraServerDetails[serverNumber-1] = MORE;
+    } else if (command == "most") {
+        _extraServerDetails[serverNumber-1] = MOST;
     } else {
-        _extraServerDetails[serverNumber-1] = false;
+        _extraServerDetails[serverNumber-1] = LESS;
     }
 }
 
 
 int VoxelStatsDialog::AddStatItem(const char* caption, unsigned colorRGBA) {
     char strBuf[64];
+    const int STATS_LABEL_WIDTH = 600;
     
     _statCount++; // increment our current stat count
     
@@ -98,6 +102,7 @@ int VoxelStatsDialog::AddStatItem(const char* caption, unsigned colorRGBA) {
     label->setPalette(palette);
     snprintf(strBuf, sizeof(strBuf), " %s:", caption);
     _form->addRow(strBuf, label);
+    label->setFixedWidth(STATS_LABEL_WIDTH);
     
     return _statCount;
 }
@@ -213,7 +218,6 @@ void VoxelStatsDialog::paintEvent(QPaintEvent* event) {
     showAllVoxelServers();
 
     this->QDialog::paintEvent(event);
-    //this->setFixedSize(this->width(), this->height());
 }
 
 void VoxelStatsDialog::showAllVoxelServers() {
@@ -239,6 +243,8 @@ void VoxelStatsDialog::showAllVoxelServers() {
             }
             
             std::stringstream serverDetails("");
+            std::stringstream extraDetails("");
+            std::stringstream linkDetails("");
         
             if (nodeList->getNodeActiveSocketOrPing(&(*node))) {
                 serverDetails << "active ";
@@ -247,7 +253,6 @@ void VoxelStatsDialog::showAllVoxelServers() {
             }
             
             QUuid nodeUUID = node->getUUID();
-            serverDetails << " " <<  nodeUUID.toString().toLocal8Bit().constData() << " ";
             
             NodeToJurisdictionMap& voxelServerJurisdictions = Application::getInstance()->getVoxelServerJurisdictions();
             
@@ -280,44 +285,86 @@ void VoxelStatsDialog::showAllVoxelServers() {
             } // jurisdiction
             
             // now lookup stats details for this server...
-            Application::getInstance()->lockVoxelSceneStats();
-            NodeToVoxelSceneStats* sceneStats = Application::getInstance()->getVoxelSceneStats();
-            if (sceneStats->find(nodeUUID) != sceneStats->end()) {
-                VoxelSceneStats& stats = sceneStats->at(nodeUUID);
+            if (_extraServerDetails[serverNumber-1] != LESS) {
+                Application::getInstance()->lockVoxelSceneStats();
+                NodeToVoxelSceneStats* sceneStats = Application::getInstance()->getVoxelSceneStats();
+                if (sceneStats->find(nodeUUID) != sceneStats->end()) {
+                    VoxelSceneStats& stats = sceneStats->at(nodeUUID);
 
-                QString totalString = locale.toString((uint)stats.getTotalVoxels());
-                QString internalString = locale.toString((uint)stats.getTotalInternal());
-                QString leavesString = locale.toString((uint)stats.getTotalLeaves());
+                    switch (_extraServerDetails[serverNumber-1]) {
+                        case MOST: {
+                            extraDetails << "<br/>" ;
+                            
+                            const unsigned long USECS_PER_MSEC = 1000;
+                            float lastFullEncode = stats.getLastFullTotalEncodeTime() / USECS_PER_MSEC;
+                            float lastFullSend = stats.getLastFullElapsedTime() / USECS_PER_MSEC;
 
-                serverDetails << "<br/>" << "Voxels: " <<
-                    totalString.toLocal8Bit().constData() << " total " << 
-                    internalString.toLocal8Bit().constData() << " internal " <<
-                    leavesString.toLocal8Bit().constData() << " leaves ";
+                            QString lastFullEncodeString = locale.toString(lastFullEncode);
+                            QString lastFullSendString = locale.toString(lastFullSend);
+
+                            extraDetails << "<br/>" << "Last Full Scene... " << 
+                                "Encode Time: " << lastFullEncodeString.toLocal8Bit().constData() << " ms " << 
+                                "Send Time: " << lastFullSendString.toLocal8Bit().constData() << " ms ";
                     
-                const unsigned long USECS_PER_MSEC = 1000;
-                float lastFullEncode = stats.getLastFullTotalEncodeTime() / USECS_PER_MSEC;
-                float lastFullSend = stats.getLastFullElapsedTime() / USECS_PER_MSEC;
+                            for (int i = 0; i < VoxelSceneStats::ITEM_COUNT; i++) {
+                                VoxelSceneStats::Item item = (VoxelSceneStats::Item)(i);
+                                VoxelSceneStats::ItemInfo& itemInfo = stats.getItemInfo(item);
+                                extraDetails << "<br/>" << itemInfo.caption << " " << stats.getItemValue(item);
+                            }
+                        } // fall through... since MOST has all of MORE
+                        case MORE: {
+                            QString totalString = locale.toString((uint)stats.getTotalVoxels());
+                            QString internalString = locale.toString((uint)stats.getTotalInternal());
+                            QString leavesString = locale.toString((uint)stats.getTotalLeaves());
 
-                QString lastFullEncodeString = locale.toString(lastFullEncode);
-                QString lastFullSendString = locale.toString(lastFullSend);
+                            serverDetails << "<br/>" << "Node UUID: " <<
+                                    nodeUUID.toString().toLocal8Bit().constData() << " ";
 
-                serverDetails << "<br/>" << "Last Full Scene... " << 
-                    "Encode Time: " << lastFullEncodeString.toLocal8Bit().constData() << " ms " << 
-                    "Send Time: " << lastFullSendString.toLocal8Bit().constData() << " ms ";
+                            serverDetails << "<br/>" << "Voxels: " <<
+                                totalString.toLocal8Bit().constData() << " total " << 
+                                internalString.toLocal8Bit().constData() << " internal " <<
+                                leavesString.toLocal8Bit().constData() << " leaves ";
+
+                            QString incomingPacketsString = locale.toString((uint)stats.getIncomingPackets());
+                            QString incomingBytesString = locale.toString((uint)stats.getIncomingBytes());
+                            QString incomingWastedBytesString = locale.toString((uint)stats.getIncomingWastedBytes());
+                            QString incomingOutOfOrderString = locale.toString((uint)stats.getIncomingOutOfOrder());
+                            QString incomingLikelyLostString = locale.toString((uint)stats.getIncomingLikelyLost());
+                            QString incomingFlightTimeString = locale.toString(stats.getIncomingFlightTimeAverage());
+                
+                            serverDetails << "<br/>" << "Incoming Packets: " <<
+                                incomingPacketsString.toLocal8Bit().constData() << 
+                                " Out of Order: " << incomingOutOfOrderString.toLocal8Bit().constData() <<
+                                " Likely Lost: " << incomingLikelyLostString.toLocal8Bit().constData();
+
+                            serverDetails << "<br/>" << 
+                                " Average Flight Time: " << incomingFlightTimeString.toLocal8Bit().constData() << " msecs";
                     
+                            serverDetails << "<br/>" << "Incoming" <<
+                                " Bytes: " <<  incomingBytesString.toLocal8Bit().constData() <<
+                                " Wasted Bytes: " << incomingWastedBytesString.toLocal8Bit().constData();
+
+                            serverDetails << extraDetails.str();
+                            if (_extraServerDetails[serverNumber-1] == MORE) {
+                                linkDetails << "   " << " [<a href='most-" << serverNumber << "'>most...</a>]";
+                                linkDetails << "   " << " [<a href='less-" << serverNumber << "'>less...</a>]";
+                            } else {
+                                linkDetails << "   " << " [<a href='more-" << serverNumber << "'>less...</a>]";
+                                linkDetails << "   " << " [<a href='less-" << serverNumber << "'>least...</a>]";
+                            }
                     
-                if (_extraServerDetails[serverNumber-1]) {
-                    for (int i = 0; i < VoxelSceneStats::ITEM_COUNT; i++) {
-                        VoxelSceneStats::Item item = (VoxelSceneStats::Item)(i);
-                        VoxelSceneStats::ItemInfo& itemInfo = stats.getItemInfo(item);
-                        serverDetails << "<br/>" << itemInfo.caption << " " << stats.getItemValue(item);
+                        } break;
+                        case LESS: {
+                            // nothing
+                        } break;
                     }
-                    serverDetails << "   " << " [<a href='less-" << serverNumber << "'>less...</a>]";
-                } else {
-                    serverDetails << "   " << " [<a href='more-" << serverNumber << "'>more...</a>]";
                 }
+                Application::getInstance()->unlockVoxelSceneStats();
+            } else {
+                linkDetails << "   " << " [<a href='more-" << serverNumber << "'>more...</a>]";
+                linkDetails << "   " << " [<a href='most-" << serverNumber << "'>most...</a>]";
             }
-            Application::getInstance()->unlockVoxelSceneStats();
+            serverDetails << linkDetails.str();
             _labels[_voxelServerLables[serverCount - 1]]->setText(serverDetails.str().c_str());
         } // is VOXEL_SERVER
     } // Node Loop

@@ -151,7 +151,17 @@ public:
 
     unsigned long getLastFullTotalEncodeTime() const { return _lastFullTotalEncodeTime; }
     unsigned long getLastFullElapsedTime() const { return _lastFullElapsed; }
-    
+
+    // Used in client implementations to track individual voxel packets
+    void trackIncomingVoxelPacket(unsigned char* messageData, ssize_t messageLength, bool wasStatsPacket);
+
+    unsigned int getIncomingPackets() const { return _incomingPacket; }
+    unsigned long getIncomingBytes() const { return _incomingBytes; } 
+    unsigned long getIncomingWastedBytes() const { return _incomingWastedBytes; }
+    unsigned int getIncomingOutOfOrder() const { return _incomingOutOfOrder; }
+    unsigned int getIncomingLikelyLost() const { return _incomingLikelyLost; }
+    float getIncomingFlightTimeAverage() { return _incomingFlightTimeAverage.getAverage(); }
+
 private:
 
     void copyFromOther(const VoxelSceneStats& other);
@@ -235,6 +245,15 @@ private:
     unsigned int  _packets;
     unsigned long _bytes;
     unsigned int  _passes;
+    
+    // incoming packets stats
+    unsigned int _incomingPacket;
+    unsigned long _incomingBytes;
+    unsigned long _incomingWastedBytes;
+    unsigned int _incomingLastSequence;
+    unsigned int _incomingOutOfOrder;
+    unsigned int _incomingLikelyLost;
+    SimpleMovingAverage _incomingFlightTimeAverage;
     
     // features related items
     bool _isMoving;
