@@ -595,62 +595,51 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
 
     unsigned char command = *sourceBuffer;
     int numBytesPacketHeader = numBytesForPacketHeader(sourceBuffer);
-    unsigned char* voxelData = sourceBuffer + numBytesPacketHeader;
-
     switch(command) {
         case PACKET_TYPE_VOXEL_DATA: {
             PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
                                     "readBitstreamToTree()");
+
+            unsigned char* dataAt = sourceBuffer + numBytesPacketHeader;
+
+            VOXEL_PACKET_FLAGS flags = (*(VOXEL_PACKET_FLAGS*)(dataAt));
+            dataAt += sizeof(VOXEL_PACKET_FLAGS);
+            VOXEL_PACKET_SEQUENCE sequence = (*(VOXEL_PACKET_SEQUENCE*)dataAt);
+            dataAt += sizeof(VOXEL_PACKET_SEQUENCE);
+            
+            VOXEL_PACKET_SENT_TIME sentAt = (*(VOXEL_PACKET_SENT_TIME*)dataAt);
+            dataAt += sizeof(VOXEL_PACKET_SENT_TIME);
+            
+            unsigned char* voxelData = dataAt;
+            
+            bool packetIsColored = oneAtBit(flags, PACKET_IS_COLOR_BIT);
+            bool packetIsCompressed = oneAtBit(flags, PACKET_IS_COMPRESSED_BIT);
+            
+            VOXEL_PACKET_SENT_TIME arrivedAt = usecTimestampNow();
+            int flightTime = arrivedAt - sentAt;
+            
+            int dataBytes = numBytes - VOXEL_PACKET_HEADER_SIZE;
+            if (true || Menu::getInstance()->isOptionChecked(MenuOption::ExtraDebugging)) {
+                printf("Got Packet... color:%s compressed:%s sequence: %u flightTime:%d size:%d data:%d\n",
+                    debug::valueOf(packetIsColored), debug::valueOf(packetIsCompressed), 
+                    sequence, flightTime, numBytes, dataBytes);
+            }
+            
             // ask the VoxelTree to read the bitstream into the tree
-            ReadBitstreamToTreeParams args(WANT_COLOR, WANT_EXISTS_BITS, NULL, getDataSourceUUID());
+            
+            // need to check for WANT_COLOR vs NO_COLOR
+            // need to also setup packet properly with enableCompression true/false
+            ReadBitstreamToTreeParams args(packetIsColored ? WANT_COLOR : NO_COLOR, WANT_EXISTS_BITS, NULL, getDataSourceUUID());
             lockTree();
-            VoxelPacket packet(VOXEL_PACKET_COMPRESSION_DEFAULT);
-            int compressedSize = numBytes - numBytesPacketHeader;
-            packet.loadFinalizedContent(voxelData, compressedSize);
-            if (Menu::getInstance()->isOptionChecked(MenuOption::ExtraDebugging)) {
-                qDebug("got packet numBytes=%d finalized size %d uncompressed size %d\n",numBytes, compressedSize, packet.getUncompressedSize());
+            VoxelPacketData packetData(packetIsCompressed);
+            packetData.loadFinalizedContent(voxelData, dataBytes);
+            if (true || Menu::getInstance()->isOptionChecked(MenuOption::ExtraDebugging)) {
+                qDebug("got packet numBytes=%d finalized size %d uncompressed size %d\n",
+                        numBytes, dataBytes, packetData.getUncompressedSize());
             }
-            _tree->readBitstreamToTree(packet.getUncompressedData(), packet.getUncompressedSize(), args);
+            _tree->readBitstreamToTree(packetData.getUncompressedData(), packetData.getUncompressedSize(), args);
             unlockTree();
         }
-            break;
-        case PACKET_TYPE_VOXEL_DATA_MONOCHROME: {
-            PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings),
-                                    "readBitstreamToTree()");
-            // ask the VoxelTree to read the MONOCHROME bitstream into the tree
-            ReadBitstreamToTreeParams args(NO_COLOR, WANT_EXISTS_BITS, NULL, getDataSourceUUID());
-            lockTree();
-            VoxelPacket packet(VOXEL_PACKET_COMPRESSION_DEFAULT);
-            int compressedSize = numBytes - numBytesPacketHeader;
-            packet.loadFinalizedContent(voxelData, compressedSize);
-            if (Menu::getInstance()->isOptionChecked(MenuOption::ExtraDebugging)) {
-                qDebug("got packet numBytes=%d finalized size %d uncompressed size %d\n",numBytes, compressedSize, packet.getUncompressedSize());
-            }
-            _tree->readBitstreamToTree(packet.getUncompressedData(), packet.getUncompressedSize(), args);
-            unlockTree();
-        }
-            break;
-        case PACKET_TYPE_Z_COMMAND:
-
-            // the Z command is a special command that allows the sender to send high level semantic
-            // requests, like erase all, or add sphere scene, different receivers may handle these
-            // messages differently
-            char* packetData = (char *)sourceBuffer;
-            char* command = &packetData[numBytesPacketHeader]; // start of the command
-            int commandLength = strlen(command); // commands are null terminated strings
-            int totalLength = 1+commandLength+1;
-
-            qDebug("got Z message len(%d)= %s\n", numBytes, command);
-
-            while (totalLength <= numBytes) {
-                if (0==strcmp(command,(char*)"erase all")) {
-                    qDebug("got Z message == erase all - NOT SUPPORTED ON INTERFACE\n");
-                }
-                if (0==strcmp(command,(char*)"add scene")) {
-                    qDebug("got Z message == add scene - NOT SUPPORTED ON INTERFACE\n");
-                }
-                totalLength += commandLength+1;
-            }
         break;
     }
 

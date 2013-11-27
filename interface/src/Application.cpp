@@ -2579,6 +2579,7 @@ void Application::queryVoxels() {
     _voxelQuery.setWantColor(!Menu::getInstance()->isOptionChecked(MenuOption::DisableColorVoxels));
     _voxelQuery.setWantDelta(!Menu::getInstance()->isOptionChecked(MenuOption::DisableDeltaSending));
     _voxelQuery.setWantOcclusionCulling(Menu::getInstance()->isOptionChecked(MenuOption::EnableOcclusionCulling));
+    _voxelQuery.setWantCompression(Menu::getInstance()->isOptionChecked(MenuOption::EnableVoxelPacketCompression));
     
     _voxelQuery.setCameraPosition(_viewFrustum.getPosition());
     _voxelQuery.setCameraOrientation(_viewFrustum.getOrientation());
@@ -4395,8 +4396,6 @@ void* Application::networkReceive(void* args) {
                         app->_audio.addReceivedAudioToBuffer(app->_incomingPacket, bytesReceived);
                         break;
                     case PACKET_TYPE_VOXEL_DATA:
-                    case PACKET_TYPE_VOXEL_DATA_MONOCHROME:
-                    case PACKET_TYPE_Z_COMMAND:
                     case PACKET_TYPE_ERASE_VOXEL:
                     case PACKET_TYPE_VOXEL_STATS:
                     case PACKET_TYPE_ENVIRONMENT_DATA: {

@@ -32,7 +32,7 @@ void VoxelPacketProcessor::processPacket(sockaddr& senderAddress, unsigned char*
         app->_wantToKillLocalVoxels = false;
     }
     
-    // note: PACKET_TYPE_VOXEL_STATS can have PACKET_TYPE_VOXEL_DATA or PACKET_TYPE_VOXEL_DATA_MONOCHROME
+    // note: PACKET_TYPE_VOXEL_STATS can have PACKET_TYPE_VOXEL_DATA
     // immediately following them inside the same packet. So, we process the PACKET_TYPE_VOXEL_STATS first
     // then process any remaining bytes as if it was another packet
     if (packetData[0] == PACKET_TYPE_VOXEL_STATS) {
