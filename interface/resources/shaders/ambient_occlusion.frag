@@ -54,11 +54,15 @@ void main(void) {
     
     vec3 center = texCoordToViewSpace(gl_TexCoord[0].st);
     
+    vec2 rdenominator = 1.0 / (rightTop - leftBottom);
+    vec2 xyFactor = 2.0 * near * rdenominator;
+    vec2 zFactor = (rightTop + leftBottom) * rdenominator;
+    
     float occlusion = 4.0;
     for (int i = 0; i < SAMPLE_KERNEL_SIZE; i++) {
         vec3 offset = center + rotation * (radius * sampleKernel[i]);
-        vec4 projected = gl_ProjectionMatrix * vec4(offset, 1.0);
-        float depth = texCoordToViewSpaceZ(projected.xy * 0.5 / projected.w + vec2(0.5, 0.5));
+        vec2 projected = offset.xy * xyFactor + offset.z * zFactor;
+        float depth = texCoordToViewSpaceZ(projected * -0.5 / offset.z + vec2(0.5, 0.5));
         occlusion += 1.0 - step(offset.z, depth);
     }
     
