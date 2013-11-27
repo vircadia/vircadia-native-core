@@ -1161,17 +1161,20 @@ bool operator<(const SortedAvatar& s1, const SortedAvatar& s2) {
 }
 
 void MyAvatar::updateChatCircle(float deltaTime) {
-    if (!Menu::getInstance()->isOptionChecked(MenuOption::ChatCircling)) {
+    if (!(_isChatCirclingEnabled = Menu::getInstance()->isOptionChecked(MenuOption::ChatCircling))) {
         return;
     }
 
-    // find all members and sort by distance
+    // find all circle-enabled members and sort by distance
     QVector<SortedAvatar> sortedAvatars;
     NodeList* nodeList = NodeList::getInstance();
     for (NodeList::iterator node = nodeList->begin(); node != nodeList->end(); node++) {
         if (node->getLinkedData() && node->getType() == NODE_TYPE_AGENT) {
             SortedAvatar sortedAvatar; 
             sortedAvatar.avatar = (Avatar*)node->getLinkedData();
+            if (!sortedAvatar.avatar->isChatCirclingEnabled()) {
+                continue;
+            }
             sortedAvatar.distance = glm::distance(_position, sortedAvatar.avatar->getPosition());
             sortedAvatars.append(sortedAvatar);
         }
