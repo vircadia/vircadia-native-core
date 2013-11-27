@@ -4401,6 +4401,21 @@ void* Application::networkReceive(void* args) {
                     case PACKET_TYPE_ENVIRONMENT_DATA: {
                         PerformanceWarning warn(Menu::getInstance()->isOptionChecked(MenuOption::PipelineWarnings), 
                             "Application::networkReceive()... _voxelProcessor.queueReceivedPacket()");
+                            
+                        bool wantExtraDebugging = Menu::getInstance()->isOptionChecked(MenuOption::ExtraDebugging);
+                        if (wantExtraDebugging && app->_incomingPacket[0] == PACKET_TYPE_VOXEL_DATA) {
+                            int numBytesPacketHeader = numBytesForPacketHeader(app->_incomingPacket);
+                            unsigned char* dataAt = app->_incomingPacket + numBytesPacketHeader;
+                            dataAt += sizeof(VOXEL_PACKET_FLAGS);
+                            VOXEL_PACKET_SEQUENCE sequence = (*(VOXEL_PACKET_SEQUENCE*)dataAt);
+                            dataAt += sizeof(VOXEL_PACKET_SEQUENCE);
+                            VOXEL_PACKET_SENT_TIME sentAt = (*(VOXEL_PACKET_SENT_TIME*)dataAt);
+                            dataAt += sizeof(VOXEL_PACKET_SENT_TIME);
+                            VOXEL_PACKET_SENT_TIME arrivedAt = usecTimestampNow();
+                            int flightTime = arrivedAt - sentAt;
+                            
+                            printf("got PACKET_TYPE_VOXEL_DATA, sequence:%d flightTime:%d\n", sequence, flightTime);
+                        }   
                     
                         // add this packet to our list of voxel packets and process them on the voxel processing
                         app->_voxelProcessor.queueReceivedPacket(senderAddress, app->_incomingPacket, bytesReceived);
