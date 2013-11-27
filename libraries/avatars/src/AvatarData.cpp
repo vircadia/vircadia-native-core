@@ -33,6 +33,7 @@ AvatarData::AvatarData(Node* owningNode) :
     _leaderUUID(),
     _handState(0),
     _keyState(NO_KEY_DOWN),
+    _isChatCirclingEnabled(false),
     _headData(NULL),
     _handData(NULL)
 {
