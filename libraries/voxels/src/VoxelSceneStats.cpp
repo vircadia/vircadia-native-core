@@ -832,7 +832,8 @@ void VoxelSceneStats::trackIncomingVoxelPacket(unsigned char* messageData, ssize
     }
 
     // detect likely lost packets
-    if (sequence > (_incomingLastSequence+1)) {
+    VOXEL_PACKET_SEQUENCE expected = _incomingLastSequence+1;
+    if (sequence > expected) {
         _incomingLikelyLost++;
     }
 

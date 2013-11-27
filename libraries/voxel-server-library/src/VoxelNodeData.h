@@ -27,7 +27,7 @@ public:
     VoxelNodeData(Node* owningNode);
     virtual ~VoxelNodeData();
 
-    void resetVoxelPacket();  // resets voxel packet to after "V" header
+    void resetVoxelPacket(bool lastWasSurpressed = false);  // resets voxel packet to after "V" header
 
     void writeToPacket(const unsigned char* buffer, int bytes); // writes to end of packet
 

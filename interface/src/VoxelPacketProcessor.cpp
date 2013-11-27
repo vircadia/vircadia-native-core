@@ -48,6 +48,7 @@ void VoxelPacketProcessor::processPacket(sockaddr& senderAddress, unsigned char*
                 return; // bail since piggyback data doesn't match our versioning
             }
         } else {
+            // Note... stats packets don't have sequence numbers, so we don't want to send those to trackIncomingVoxelPacket()
             return; // bail since no piggyback data
         }
     } // fall through to piggyback message

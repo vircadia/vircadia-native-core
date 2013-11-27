@@ -105,9 +105,17 @@ int VoxelSendThread::handlePacketSend(Node* node, VoxelNodeData* nodeData, int& 
     // obscure the packet and not send it. This allows the callers and upper level logic to not need to know about
     // this rate control savings.
     if (nodeData->shouldSuppressDuplicatePacket()) {
-        nodeData->resetVoxelPacket(); // we still need to reset it though!
+        nodeData->resetVoxelPacket(true); // we still need to reset it though!
         return packetsSent; // without sending...
     }
+    
+    const unsigned char* messageData = nodeData->getPacket();
+    int numBytesPacketHeader = numBytesForPacketHeader(messageData);
+    const unsigned char* dataAt = messageData + numBytesPacketHeader;
+    dataAt += sizeof(VOXEL_PACKET_FLAGS);
+    VOXEL_PACKET_SEQUENCE sequence = (*(VOXEL_PACKET_SEQUENCE*)dataAt);
+    dataAt += sizeof(VOXEL_PACKET_SEQUENCE);
+    
 
     // If we've got a stats message ready to send, then see if we can piggyback them together
     if (nodeData->stats.isReadyToSend()) {
@@ -127,12 +135,12 @@ int VoxelSendThread::handlePacketSend(Node* node, VoxelNodeData* nodeData, int& 
             int thisWastedBytes = 0;
             _totalWastedBytes += thisWastedBytes;
             _totalBytes += nodeData->getPacketLength();
-            _totalPackets++;
+            _totalPackets++; 
             if (debug) {
-                qDebug("Adding stats to packet at %llu [%llu]: size:%d [%llu] wasted bytes:%d [%llu]\n",
+                qDebug("Adding stats to packet at %llu [%llu]: sequence: %d size:%d [%llu] wasted bytes:%d [%llu]\n",
                     now,
                     _totalPackets,
-                    nodeData->getPacketLength(), _totalBytes,
+                    sequence, nodeData->getPacketLength(), _totalBytes,
                     thisWastedBytes, _totalWastedBytes);
             }
             
@@ -147,13 +155,13 @@ int VoxelSendThread::handlePacketSend(Node* node, VoxelNodeData* nodeData, int& 
             // there was nothing else to send.
             int thisWastedBytes = 0;
             _totalWastedBytes += thisWastedBytes;
-            _totalBytes += nodeData->getPacketLength();
+            _totalBytes += statsMessageLength;
             _totalPackets++;
             if (debug) {
                 qDebug("Sending separate stats packet at %llu [%llu]: size:%d [%llu] wasted bytes:%d [%llu]\n",
                     now,
                     _totalPackets,
-                    nodeData->getPacketLength(), _totalBytes,
+                    statsMessageLength, _totalBytes,
                     thisWastedBytes, _totalWastedBytes);
             }
 
@@ -171,10 +179,10 @@ int VoxelSendThread::handlePacketSend(Node* node, VoxelNodeData* nodeData, int& 
             _totalBytes += nodeData->getPacketLength();
             _totalPackets++;
             if (debug) {
-                qDebug("Sending packet at %llu [%llu]: size:%d [%llu] wasted bytes:%d [%llu]\n",
+                qDebug("Sending packet at %llu [%llu]: sequence: %d size:%d [%llu] wasted bytes:%d [%llu]\n",
                     now,
                     _totalPackets,
-                    nodeData->getPacketLength(), _totalBytes,
+                    sequence, nodeData->getPacketLength(), _totalBytes,
                     thisWastedBytes, _totalWastedBytes);
             }
         }
@@ -192,10 +200,10 @@ int VoxelSendThread::handlePacketSend(Node* node, VoxelNodeData* nodeData, int& 
             _totalBytes += nodeData->getPacketLength();
             _totalPackets++;
             if (debug) {
-                qDebug("Sending packet at %llu [%llu]: size:%d [%llu] wasted bytes:%d [%llu]\n",
+                qDebug("Sending packet at %llu [%llu]: sequence:%d size:%d [%llu] wasted bytes:%d [%llu]\n",
                     now,
                     _totalPackets,
-                    nodeData->getPacketLength(), _totalBytes,
+                    sequence, nodeData->getPacketLength(), _totalBytes,
                     thisWastedBytes, _totalWastedBytes);
             }
         }

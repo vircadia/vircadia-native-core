@@ -36,8 +36,7 @@ VoxelNodeData::VoxelNodeData(Node* owningNode) :
     _lastVoxelPacketLength = 0;
     _duplicatePacketCount = 0;
     _sequenceNumber = 0;
-    
-    resetVoxelPacket();
+    resetVoxelPacket(true); // don't bump sequence
 }
 
 void VoxelNodeData::initializeVoxelSendThread(VoxelServer* voxelServer) {
@@ -48,8 +47,11 @@ void VoxelNodeData::initializeVoxelSendThread(VoxelServer* voxelServer) {
 }
 
 bool VoxelNodeData::packetIsDuplicate() const {
+    // since our packets now include header information, like sequence number, and createTime, we can't just do a memcmp
+    // of the entire packet, we need to compare only the packet content...
     if (_lastVoxelPacketLength == getPacketLength()) {
-        return memcmp(_lastVoxelPacket, _voxelPacket, getPacketLength()) == 0;
+        return memcmp(_lastVoxelPacket + VOXEL_PACKET_HEADER_SIZE, 
+                _voxelPacket+VOXEL_PACKET_HEADER_SIZE , getPacketLength() - VOXEL_PACKET_HEADER_SIZE) == 0;
     }
     return false;
 }
@@ -88,7 +90,7 @@ bool VoxelNodeData::shouldSuppressDuplicatePacket() {
     return shouldSuppress;
 }
 
-void VoxelNodeData::resetVoxelPacket() {
+void VoxelNodeData::resetVoxelPacket(bool lastWasSurpressed) {
     // Whenever we call this, we will keep a copy of the last packet, so we can determine if the last packet has
     // changed since we last reset it. Since we know that no two packets can ever be identical without being the same
     // scene information, (e.g. the root node packet of a static scene), we can use this as a strategy for reducing
@@ -124,7 +126,9 @@ void VoxelNodeData::resetVoxelPacket() {
     *sequenceAt = _sequenceNumber;
     _voxelPacketAt += sizeof(VOXEL_PACKET_SEQUENCE);
     _voxelPacketAvailableBytes -= sizeof(VOXEL_PACKET_SEQUENCE);
-    _sequenceNumber++;
+    if (!(lastWasSurpressed || _lastVoxelPacketLength == VOXEL_PACKET_HEADER_SIZE)) {
+        _sequenceNumber++;
+    }
 
     // pack in timestamp
     VOXEL_PACKET_SENT_TIME now = usecTimestampNow();
@@ -144,12 +148,12 @@ void VoxelNodeData::writeToPacket(const unsigned char* buffer, int bytes) {
         _voxelPacketAt += sizeof(VOXEL_PACKET_INTERNAL_SECTION_SIZE);
         _voxelPacketAvailableBytes -= sizeof(VOXEL_PACKET_INTERNAL_SECTION_SIZE);
     }
-    memcpy(_voxelPacketAt, buffer, bytes);
-    _voxelPacketAvailableBytes -= bytes;
-    _voxelPacketAt += bytes;
-    _voxelPacketWaiting = true;
-    
-    assert(_voxelPacketAvailableBytes >= 0);
+    if (bytes <= _voxelPacketAvailableBytes) {
+        memcpy(_voxelPacketAt, buffer, bytes);
+        _voxelPacketAvailableBytes -= bytes;
+        _voxelPacketAt += bytes;
+        _voxelPacketWaiting = true;
+    }    
 }
 
 VoxelNodeData::~VoxelNodeData() {
