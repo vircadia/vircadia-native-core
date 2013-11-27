@@ -1,0 +1,257 @@
+#version 120
+ 
+attribute float voxelSizeIn;
+varying float voxelSize;
+
+uniform float viewportWidth;
+uniform float viewportHeight;
+uniform vec3 cameraPosition;
+
+// Bit codes for faces
+const int RIGHT = 1;
+const int LEFT = 2;
+const int BOTTOM = 4;
+const int TOP = 8;
+const int NEAR = 16;
+const int FAR = 32;
+
+// index locations for the coordinates of the two vertices
+const int X_ONE = 0;
+const int Y_ONE = 1;
+const int Z_ONE = 2;
+const int X_TWO = 3;
+const int Y_TWO = 4;
+const int Z_TWO = 5;
+
+const int MAX_POSSIBLE_COMBINATIONS = 43;
+const int COORD_PER_VERTEX = 3;
+const int TWO_DISTANT_VERTICES = 2;
+const int COORD_PER_LOOKUP = COORD_PER_VERTEX * TWO_DISTANT_VERTICES;
+const int TOTAL_LOOKUP_COORDS = MAX_POSSIBLE_COMBINATIONS * COORD_PER_LOOKUP;
+const int HALF_LOOKUP_COORDS = MAX_POSSIBLE_COMBINATIONS * COORD_PER_VERTEX;
+
+
+// If we know the position of the camera relative to the voxel, we can apriori know the vertices that make the visible hull
+// polygon. This also tells us which two vertices are known to make the longest possible distance between any pair of these
+// vertices for the projected polygon. This is a lookup table based on this knowledge. 
+
+// try switching these to indexes, and then using a switch statement...
+const float coordLookup[TOTAL_LOOKUP_COORDS] = float[TOTAL_LOOKUP_COORDS]
+    ( 
+    0,0,0,   1,1,1, // 0 -  inside - n/a
+    0,0,0,   0,1,1, // 1 - right face, BOTTOM_RIGHT_NEAR to TOP_RIGHT_FAR
+    1,0,0,   1,1,1, // 2 - left fact BOTTOM_LEFT_NEAR to TOP_LEFT_FAR
+    0,0,0,   0,0,0, // n/a
+    0,0,0,   1,0,1, // 4 - bottom face, BOTTOM_RIGHT_NEAR to BOTTOM_LEFT_FAR
+    1,0,0,   0,1,1, // 5 - bottom, right - BOTTOM_RIGHT_NEAR to TOP_LEFT_FAR
+    0,0,0,   1,1,1, // 6 - bottom, left - BOTTOM_RIGHT_NEAR to TOP_LEFT_FAR
+    0,0,0,   0,0,0, // n/a
+    0,1,0,   1,1,1, // 8 - top - TOP_RIGHT_NEAR to TOP_LEFT_FAR
+    0,0,0,   1,1,1, // 9 - top, right - BOTTOM_RIGHT_NEAR to TOP_LEFT_FAR
+    1,0,0,   0,1,1, //10 - top, left - BOTTOM_LEFT_NEAR to TOP_RIGHT_FAR
+    0,0,0,   0,0,0, // n/a
+    0,0,0,   0,0,0, // n/a
+    0,0,0,   0,0,0, // n/a
+    0,0,0,   0,0,0, // n/a
+    0,0,0,   0,0,0, // n/a
+    0,0,0, 1,1,1 , // 16 - front TODO
+    0,0,0, 1,1,1 , // 17 front, right - TODO
+    0,0,0, 1,1,1 , // 18 - front, left- TODO
+    0,0,0, 0,0,0 , // n/a
+    0,0,0, 1,1,1 , // 20 - front,bottom - TODO
+    0,0,0, 1,1,1 , // 21 - front,bottom,right - TODO
+    0,0,0, 1,1,1 , // 22 - front,bottom,left - TODO
+    0,0,0, 0,0,0 , // n/a
+    0,0,0, 1,1,1 , // 24 - front, top -TODO
+    0,0,0, 1,1,1 , // 25 - front, top, right - TODO
+    0,0,0, 1,1,1 , // 26 - front, top, left - TODO
+    0,0,0, 0,0,0 , // n/a
+    0,0,0, 0,0,0 , // n/a
+    0,0,0, 0,0,0 , // n/a
+    0,0,0, 0,0,0 , // n/a
+    0,0,0, 0,0,0 , // n/a
+    0,0,0, 1,1,1 , // 32 - far - TODO
+    0,0,0, 1,1,1 , // 33 - back, right - TODO
+    0,0,0, 1,1,1 , // 34 - back, left - TODO
+    0,0,0, 0,0,0 , // n/a
+    0,0,0, 1,1,1 , // 36 - back, bottom - TODO
+    0,0,0, 1,1,1 , // 37 - back, bottom, right -TODO
+    0,0,0, 1,1,1 , // 38 - back, bottom, left - TODO
+    0,0,0, 0,0,0 , // n/a
+    0,0,0, 1,1,1 , // 40 - back, top - TODO
+    0,0,0, 1,1,1 , // 41 - back, top, right - TODO
+    0,0,0, 1,1,1  // 42- back, top, left - TODO
+);
+
+/**
+const int COLORS_PER_LOOKUP = 3;
+const int TOTAL_LOOKUP_COLORS = MAX_POSSIBLE_COMBINATIONS * COLORS_PER_LOOKUP;
+
+const float debugColorLookup[TOTAL_LOOKUP_COLORS] = float[TOTAL_LOOKUP_COLORS]
+    ( 
+    1,1,0, // n/a
+    0,0,1, // 1 - right face, BOTTOM_RIGHT_NEAR to TOP_RIGHT_FAR
+    0,0,1, // 2 - left fact BOTTOM_LEFT_NEAR to TOP_LEFT_FAR
+    1,0,0, // n/a
+    1,0,1, // 4 - bottom face, BOTTOM_RIGHT_NEAR to BOTTOM_LEFT_FAR
+    1,0,1, // 5 - bottom, right - BOTTOM_RIGHT_NEAR to TOP_LEFT_FAR
+    1,0,1, // 6 - bottom, left - BOTTOM_RIGHT_NEAR to TOP_LEFT_FAR
+    1,0,0, // n/a
+    0,1,1, // 8 - top - TOP_RIGHT_NEAR to TOP_LEFT_FAR
+    0,1,1, // 9 - top, right - BOTTOM_RIGHT_NEAR to TOP_LEFT_FAR
+    0,1,1, //10 - top, left - BOTTOM_LEFT_NEAR to TOP_RIGHT_FAR
+    1,0,0, // n/a
+    1,0,0, // n/a
+    1,0,0, // n/a
+    1,0,0, // n/a
+    1,0,0, // n/a
+    0,0,1, //16 - front or near - TODO
+    0,0,1, // 17 - front, right -  TODO
+    0,0,1, // 18 - front, left -  TODO
+    1,0,0 , // n/a
+    1,0,1, // 20 - front,bottom -  TODO
+    1,0,1, // 21 - front,bottom,right -  TODO
+    1,0,1, // 22 - front,bottom,left -  TODO
+    1,0,0 , // n/a
+    0,1,1, // 24 - front, top -  TODO
+    0,1,1, // 25 - front, top, right -  TODO
+    0,1,1, // 26 - front, top, left -  TODO
+    1,0,0 , // n/a
+    1,0,0 , // n/a
+    1,0,0 , // n/a
+    1,0,0 , // n/a
+    1,0,0 , // n/a
+    0,0,1, // 32 - back -  TODO
+    0,0,1, // 33 - back, right -  TODO
+    0,0,1, // 34 - back, left -  TODO
+    1,0,0, // n/a
+    1,0,1, // 36 - back, bottom -  TODO
+    1,0,1, // 37 - back, bottom, right -  TODO
+    1,0,1, // 38 - back, bottom, left -  TODO
+    1,0,0 , // n/a
+    0,1,1, // 40 - back, top -  TODO
+    0,1,1, // 41 - back, top, right -  TODO
+    0,1,1    // 42 - back, top, left -  TODO
+);
+
+**/
+
+void main(void) {
+    vec4 debugColor = vec4(0,0,0,1);
+
+    float voxelScreenWidth = 0;
+    float voxelScreenHeight = 0;
+
+
+    // Note: the gl_Vertex in this case are in "world coordinates" meaning they've already been scaled to TREE_SCALE
+    // this is also true for voxelSizeIn.
+    vec4 bottomNearRight = gl_Vertex;
+    vec4 topFarLeft = (gl_Vertex + vec4(voxelSizeIn, voxelSizeIn, voxelSizeIn, 0.0));
+
+    int lookUp = 0;
+    int lookUpBase = 0;
+
+    // In order to use our lookup table above, we need to encode the 6-bit code to classify camera relative to the 6 defining 
+    // planes of the voxel. Based on camera position relative to the bottomNearRight corner and the topFarLeft corner, we can
+    // calculate which hull and therefore which two vertices are furthest apart liniarly once projected
+    if (cameraPosition.x < bottomNearRight.x) {
+        lookUp += RIGHT;
+    }
+    if (cameraPosition.x > topFarLeft.x) {
+        lookUp += LEFT;
+    }    
+    if (cameraPosition.y < bottomNearRight.y) {
+        lookUp += BOTTOM;
+    }    
+    if (cameraPosition.y > topFarLeft.y) {
+        lookUp += TOP;
+    }    
+    if (cameraPosition.z < bottomNearRight.z) {
+        lookUp += NEAR;
+    }    
+    if (cameraPosition.z > topFarLeft.z) {
+        lookUp += FAR;
+    }
+    
+    //if (cameraPositionZ > gl_Vertex.z) {
+    //    debugColor = vec4(0,1,0,1);
+    //}
+
+    const bool useLookup = false;
+    if (true) {
+        lookUpBase = lookUp * COORD_PER_LOOKUP; 
+        vec4 cornerAdjustOne = vec4(coordLookup[lookUpBase + 0], 
+                                    coordLookup[lookUpBase + 1], 
+                                    coordLookup[lookUpBase + 2], 0) * voxelSizeIn;
+
+
+        float xTwo = coordLookup[lookUpBase + 3];
+        float yTwo = coordLookup[lookUpBase + 4];
+        float zTwo = coordLookup[lookUpBase + 5];
+        
+        vec4 cornerAdjustTwo = vec4(xTwo, yTwo, zTwo, 0) * voxelSizeIn;
+        
+        /**
+        vec4 cornerAdjustOne = vec4(0,0,0,0) * voxelSizeIn;
+        vec4 cornerAdjustTwo = vec4(1,1,1,0) * voxelSizeIn;
+        **/
+
+        vec4 cornerOne = gl_Vertex + cornerAdjustOne;
+        vec4 cornerTwo = gl_Vertex + cornerAdjustTwo;
+
+        vec4 cornerOneMVP = gl_ModelViewProjectionMatrix * cornerOne;
+        vec4 cornerTwoMVP = gl_ModelViewProjectionMatrix * cornerTwo;
+
+        vec2 cornerOneScreen = vec2(cornerOneMVP.x / cornerOneMVP.w, cornerOneMVP.y / cornerOneMVP.w);
+        if (cornerOneMVP.w < 0) {
+            cornerOneScreen.x = -cornerOneScreen.x;
+            cornerOneScreen.y = -cornerOneScreen.y;
+        }
+
+        vec2 cornerTwoScreen = vec2(cornerTwoMVP.x / cornerTwoMVP.w, cornerTwoMVP.y / cornerTwoMVP.w);
+        if (cornerTwoMVP.w < 0) {
+            cornerTwoScreen.x = -cornerTwoScreen.x;
+            cornerTwoScreen.y = -cornerTwoScreen.y;
+        }
+        voxelScreenWidth = abs(cornerOneScreen.x - cornerTwoScreen.x) * viewportWidth / 2.0;
+        voxelScreenHeight = abs(cornerOneScreen.y - cornerTwoScreen.y) * viewportHeight / 2.0;
+    } //else 
+    
+    if (false) {
+        vec4 corner = gl_ModelViewProjectionMatrix * gl_Vertex;
+        vec4 farCornerVertex = gl_Vertex;
+        farCornerVertex += vec4(voxelSizeIn, voxelSizeIn, voxelSizeIn, 0.0);
+        vec4 farCorner = gl_ModelViewProjectionMatrix * farCornerVertex;
+    
+        // math! If the w result is negative then the point is behind the viewer
+        vec2 cornerOnScreen = vec2(corner.x / corner.w, corner.y / corner.w);
+        if (corner.w < 0) {
+            cornerOnScreen.x = -cornerOnScreen.x;
+            cornerOnScreen.y = -cornerOnScreen.y;
+        }
+
+        vec2 farCornerOnScreen = vec2(farCorner.x / farCorner.w, farCorner.y / farCorner.w);
+        if (farCorner.w < 0) {
+            farCornerOnScreen.x = -farCornerOnScreen.x;
+            farCornerOnScreen.y = -farCornerOnScreen.y;
+        }
+
+        voxelScreenWidth = abs(farCornerOnScreen.x - cornerOnScreen.x) * viewportWidth / 2.0;
+        voxelScreenHeight = abs(farCornerOnScreen.y - cornerOnScreen.y) * viewportHeight / 2.0;
+    }    
+    
+    float voxelScreenLength = sqrt(voxelScreenHeight * voxelScreenHeight + voxelScreenWidth * voxelScreenWidth);
+    
+    vec4 centerVertex = gl_Vertex;
+    float halfSizeIn = voxelSizeIn / 2;
+    centerVertex += vec4(halfSizeIn, halfSizeIn, halfSizeIn, 0.0);
+    vec4 center = gl_ModelViewProjectionMatrix * centerVertex;
+    
+    gl_Position = center;
+    gl_PointSize = voxelScreenLength;
+    
+    //int debugColorBase = lookUp * COLORS_PER_LOOKUP;
+    //debugColor = vec4(debugColorLookup[debugColorBase], debugColorLookup[debugColorBase + 1], debugColorLookup[debugColorBase + 2], 1);
+
+    gl_FrontColor = debugColor; // gl_Color; // set the color..
+}

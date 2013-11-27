@@ -169,9 +169,10 @@ namespace MenuOption {
     const QString DisplayLeapHands = "Display Leap Hands";
     const QString DontRenderVoxels = "Don't call _voxels.render()";
     const QString DontCallOpenGLForVoxels = "Don't call glDrawRangeElementsEXT() for Voxels";
-    const QString EchoAudio = "Echo Audio";
     const QString EnableOcclusionCulling = "Enable Occlusion Culling";
     const QString EnableVoxelPacketCompression = "Enable Voxel Packet Compression";
+    const QString EchoServerAudio = "Echo Server Audio";
+    const QString EchoLocalAudio = "Echo Local Audio";
     const QString ExportVoxels = "Export Voxels";
     const QString ExtraDebugging = "Extra Debugging";
     const QString DontFadeOnVoxelServerChanges = "Don't Fade In/Out on Voxel Server Changes";

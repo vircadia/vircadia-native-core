@@ -70,6 +70,7 @@ public:
     // in which case 'true' is returned - otherwise the return value is 'false'.
     // The results of the analysis are written to the log.
     bool eventuallyAnalyzePing();
+    
 private:
     
     PaStream* _stream;
@@ -109,6 +110,7 @@ private:
     float _heartbeatMagnitude;
 
     bool _muted;
+    bool _localEcho;
     GLuint _micTextureId;
     GLuint _muteTextureId;
     QRect _iconBounds;
