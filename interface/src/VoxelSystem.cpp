@@ -610,25 +610,32 @@ int VoxelSystem::parseData(unsigned char* sourceBuffer, int numBytes) {
             VOXEL_PACKET_SENT_TIME sentAt = (*(VOXEL_PACKET_SENT_TIME*)dataAt);
             dataAt += sizeof(VOXEL_PACKET_SENT_TIME);
             
-            unsigned char* voxelData = dataAt;
-            
             bool packetIsColored = oneAtBit(flags, PACKET_IS_COLOR_BIT);
             bool packetIsCompressed = oneAtBit(flags, PACKET_IS_COMPRESSED_BIT);
             
             VOXEL_PACKET_SENT_TIME arrivedAt = usecTimestampNow();
             int flightTime = arrivedAt - sentAt;
             
+            VOXEL_PACKET_INTERNAL_SECTION_SIZE sectionLength = 0;
             int dataBytes = numBytes - VOXEL_PACKET_HEADER_SIZE;
+            
+            if (packetIsCompressed && dataBytes > sizeof(VOXEL_PACKET_INTERNAL_SECTION_SIZE)) {
+                sectionLength = (*(VOXEL_PACKET_INTERNAL_SECTION_SIZE*)dataAt);
+                dataAt += sizeof(VOXEL_PACKET_INTERNAL_SECTION_SIZE);
+            } else {
+                sectionLength = dataBytes;
+            }
+            unsigned char* voxelData = dataAt;
 
             // ask the VoxelTree to read the bitstream into the tree
             ReadBitstreamToTreeParams args(packetIsColored ? WANT_COLOR : NO_COLOR, WANT_EXISTS_BITS, NULL, getDataSourceUUID());
             lockTree();
             VoxelPacketData packetData(packetIsCompressed);
-            packetData.loadFinalizedContent(voxelData, dataBytes);
-            if (Menu::getInstance()->isOptionChecked(MenuOption::ExtraDebugging)) {
-                qDebug("Got Packet color:%s compressed:%s sequence: %u flight:%d usec size:%d data:%d uncompressed:%d\n",
+            packetData.loadFinalizedContent(voxelData, sectionLength);
+            if (true || Menu::getInstance()->isOptionChecked(MenuOption::ExtraDebugging)) {
+                qDebug("Got Packet color:%s compressed:%s sequence: %u flight:%d usec size:%d data:%d sectionLength:%d uncompressed:%d\n",
                     debug::valueOf(packetIsColored), debug::valueOf(packetIsCompressed), 
-                    sequence, flightTime, numBytes, dataBytes, packetData.getUncompressedSize());
+                    sequence, flightTime, numBytes, dataBytes, sectionLength, packetData.getUncompressedSize());
             }
             _tree->readBitstreamToTree(packetData.getUncompressedData(), packetData.getUncompressedSize(), args);
             unlockTree();

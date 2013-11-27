@@ -133,6 +133,13 @@ void VoxelNodeData::resetVoxelPacket() {
 }
 
 void VoxelNodeData::writeToPacket(const unsigned char* buffer, int bytes) {
+    // compressed packets include lead bytes which contain compressed size, this allows packing of
+    // multiple compressed portions together
+    if (_currentPacketIsCompressed) {
+        *(VOXEL_PACKET_INTERNAL_SECTION_SIZE*)_voxelPacketAt = bytes;
+        _voxelPacketAt += sizeof(VOXEL_PACKET_INTERNAL_SECTION_SIZE);
+        _voxelPacketAvailableBytes -= sizeof(VOXEL_PACKET_INTERNAL_SECTION_SIZE);
+    }
     memcpy(_voxelPacketAt, buffer, bytes);
     _voxelPacketAvailableBytes -= bytes;
     _voxelPacketAt += bytes;

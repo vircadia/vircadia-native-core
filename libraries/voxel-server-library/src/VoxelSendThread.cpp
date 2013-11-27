@@ -251,7 +251,9 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
             }
             nodeData->resetVoxelPacket();
         }
-        _packetData.changeSettings(wantCompression);
+        int uncompressedSize = !wantCompression ? MAX_VOXEL_PACKET_DATA_SIZE
+                                                : MAX_VOXEL_PACKET_DATA_SIZE - sizeof(VOXEL_PACKET_INTERNAL_SECTION_SIZE);
+        _packetData.changeSettings(wantCompression, uncompressedSize);
     }
     
     if (_myServer->wantsDebugVoxelSending() && _myServer->wantsVerboseDebug()) {
