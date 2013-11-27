@@ -117,12 +117,11 @@ const unsigned char* VoxelPacketData::getFinalizedData() {
         return &_uncompressed[0]; 
     }
 
-    
     if (_dirty) {
         if (_debug) {
             printf("getFinalizedData() _compressedBytes=%d _bytesInUse=%d\n",_compressedBytes, _bytesInUse);
         }
-        checkCompress(); 
+        compressContent();
     }
     return &_compressed[0]; 
 }
@@ -136,7 +135,7 @@ int VoxelPacketData::getFinalizedSize() {
         if (_debug) {
             printf("getFinalizedSize() _compressedBytes=%d _bytesInUse=%d\n",_compressedBytes, _bytesInUse);
         }
-        checkCompress(); 
+        compressContent(); 
     }
 
     return _compressedBytes; 
@@ -231,11 +230,11 @@ bool VoxelPacketData::appendColor(const nodeColor& color) {
     return success;
 }
 
-uint64_t VoxelPacketData::_checkCompressTime = 0;
-uint64_t VoxelPacketData::_checkCompressCalls = 0;
+uint64_t VoxelPacketData::_compressContentTime = 0;
+uint64_t VoxelPacketData::_compressContentCalls = 0;
 
-bool VoxelPacketData::checkCompress() { 
-    PerformanceWarning warn(false,"VoxelPacketData::checkCompress()",false,&_checkCompressTime,&_checkCompressCalls);
+bool VoxelPacketData::compressContent() { 
+    PerformanceWarning warn(false, "VoxelPacketData::compressContent()", false, &_compressContentTime, &_compressContentCalls);
     
     // without compression, we always pass...
     if (!_enableCompression) {
@@ -261,8 +260,6 @@ bool VoxelPacketData::checkCompress() {
         _dirty = false;
         success = true;
     }
-    
-//printf("checkCompress() returning %s _compressedBytes=%d\n",debug::valueOf(success), _compressedBytes);
     return success;
 }
 

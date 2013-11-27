@@ -366,8 +366,8 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
     if (!nodeData->nodeBag.isEmpty()) {
         int bytesWritten = 0;
         uint64_t start = usecTimestampNow();
-        uint64_t startCompressTimeMsecs = VoxelPacketData::_checkCompressTime / 1000;
-        uint64_t startCompressCalls = VoxelPacketData::_checkCompressCalls;
+        uint64_t startCompressTimeMsecs = VoxelPacketData::getCompressContentTime() / 1000;
+        uint64_t startCompressCalls = VoxelPacketData::getCompressContentCalls();
 
         bool shouldSendEnvironments = _myServer->wantSendEnvironments() && shouldDo(ENVIRONMENT_SEND_INTERVAL_USECS, VOXEL_SEND_INTERVAL_USECS);
 
@@ -526,10 +526,10 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
         uint64_t end = usecTimestampNow();
         int elapsedmsec = (end - start)/1000;
 
-        uint64_t endCompressCalls = VoxelPacketData::_checkCompressCalls;
+        uint64_t endCompressCalls = VoxelPacketData::getCompressContentCalls();
         int elapsedCompressCalls = endCompressCalls - startCompressCalls;
     
-        uint64_t endCompressTimeMsecs = VoxelPacketData::_checkCompressTime / 1000;
+        uint64_t endCompressTimeMsecs = VoxelPacketData::getCompressContentTime() / 1000;
         int elapsedCompressTimeMsecs = endCompressTimeMsecs - startCompressTimeMsecs;
 
 

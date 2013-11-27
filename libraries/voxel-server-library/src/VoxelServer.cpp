@@ -268,9 +268,9 @@ int VoxelServer::civetwebRequestHandler(struct mg_connection* connection) {
         uint64_t totalOutboundPackets = VoxelSendThread::_totalPackets;
         uint64_t totalOutboundBytes = VoxelSendThread::_totalBytes;
         uint64_t totalWastedBytes = VoxelSendThread::_totalWastedBytes;
-        uint64_t totalBytesOfOctalCodes = VoxelPacketData::_totalBytesOfOctalCodes;
-        uint64_t totalBytesOfBitMasks = VoxelPacketData::_totalBytesOfBitMasks;
-        uint64_t totalBytesOfColor = VoxelPacketData::_totalBytesOfColor;
+        uint64_t totalBytesOfOctalCodes = VoxelPacketData::getTotalBytesOfOctalCodes();
+        uint64_t totalBytesOfBitMasks = VoxelPacketData::getTotalBytesOfBitMasks();
+        uint64_t totalBytesOfColor = VoxelPacketData::getTotalBytesOfColor();
 
         const int COLUMN_WIDTH = 10;
         mg_printf(connection, "           Total Outbound Packets: %s packets\r\n",

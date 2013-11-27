@@ -42,6 +42,7 @@ const int REASONABLE_NUMBER_OF_PACKING_ATTEMPTS = 5;
 const int PACKET_IS_COLOR_BIT = 0;
 const int PACKET_IS_COMPRESSED_BIT = 1;
 
+/// An opaque key used when starting, ending, and discarding encoding/packing levels of VoxelPacketData
 class LevelDetails {
     LevelDetails(int startIndex, int bytesOfOctalCodes, int bytesOfBitmasks, int bytesOfColor) :
         _startIndex(startIndex),
@@ -59,6 +60,7 @@ private:
     int _bytesOfColor;
 };
 
+/// Handles packing of the data portion of PACKET_TYPE_VOXEL_DATA messages. 
 class VoxelPacketData {
 public:
     VoxelPacketData(bool enableCompression = false, int maxFinalizedSize = MAX_VOXEL_PACKET_DATA_SIZE);
@@ -124,18 +126,21 @@ public:
     /// load finalized content to allow access to decoded content for parsing
     void loadFinalizedContent(const unsigned char* data, int length);
     
+    /// returns whether or not zlib compression enabled on finalization
     bool isCompressed() const { return _enableCompression; }
+    
+    /// returns the target uncompressed size
     int getTargetSize() const { return _targetSize; }
 
+    /// displays contents for debugging
     void debugContent();
+    
+    static uint64_t getCompressContentTime() { return _compressContentTime; } /// total time spent compressing content
+    static uint64_t getCompressContentCalls() { return _compressContentCalls; } /// total calls to compress content
+    static uint64_t getTotalBytesOfOctalCodes() { return _totalBytesOfOctalCodes; }  /// total bytes for octal codes
+    static uint64_t getTotalBytesOfBitMasks() { return _totalBytesOfBitMasks; }  /// total bytes of bitmasks
+    static uint64_t getTotalBytesOfColor() { return _totalBytesOfColor; } /// total bytes of color
 
-    static uint64_t _checkCompressTime;
-    static uint64_t _checkCompressCalls;
-
-    static uint64_t _totalBytesOfOctalCodes;
-    static uint64_t _totalBytesOfBitMasks;
-    static uint64_t _totalBytesOfColor;
-     
 private:
     /// appends raw bytes, might fail if byte would cause packet to be too large
     bool append(const unsigned char* data, int length);
@@ -151,7 +156,7 @@ private:
     int _bytesAvailable;
     int _subTreeAt;
 
-    bool checkCompress();
+    bool compressContent();
     
     unsigned char _compressed[MAX_VOXEL_UNCOMRESSED_PACKET_SIZE];
     int _compressedBytes;
@@ -165,7 +170,13 @@ private:
     int _bytesOfOctalCodesCurrentSubTree;
 
     static bool _debug;
-    
+
+    static uint64_t _compressContentTime;
+    static uint64_t _compressContentCalls;
+
+    static uint64_t _totalBytesOfOctalCodes;
+    static uint64_t _totalBytesOfBitMasks;
+    static uint64_t _totalBytesOfColor;
 };
 
 #endif /* defined(__hifi__VoxelPacketData__) */
