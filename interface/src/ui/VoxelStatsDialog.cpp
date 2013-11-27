@@ -27,6 +27,7 @@ VoxelStatsDialog::VoxelStatsDialog(QWidget* parent, NodeToVoxelSceneStats* model
 
     for (int i = 0; i < MAX_VOXEL_SERVERS; i++) {
         _voxelServerLables[i] = 0;
+        _extraServerDetails[i] = false;
     }
 
     for (int i = 0; i < MAX_STATS; i++) {
@@ -45,6 +46,8 @@ VoxelStatsDialog::VoxelStatsDialog(QWidget* parent, NodeToVoxelSceneStats* model
     _localVoxelsMemory = AddStatItem("Voxels Memory");
     _voxelsRendered = AddStatItem("Voxels Rendered");
     _sendingMode = AddStatItem("Sending Mode");
+    
+    layout()->setSizeConstraint(QLayout::SetFixedSize); 
 }
 
 void VoxelStatsDialog::RemoveStatItem(int item) {
@@ -57,9 +60,23 @@ void VoxelStatsDialog::RemoveStatItem(int item) {
     _labels[item] = NULL;
 }
 
+void VoxelStatsDialog::moreless(const QString& link) {
+    QStringList linkDetails = link.split("-");
+    const int COMMAND_ITEM = 0;
+    const int SERVER_NUMBER_ITEM = 1;
+    QString serverNumberString = linkDetails[SERVER_NUMBER_ITEM];
+    QString command = linkDetails[COMMAND_ITEM];
+    int serverNumber = serverNumberString.toInt();
+    if (command == "more") {
+        _extraServerDetails[serverNumber-1] = true;
+    } else {
+        _extraServerDetails[serverNumber-1] = false;
+    }
+}
+
+
 int VoxelStatsDialog::AddStatItem(const char* caption, unsigned colorRGBA) {
     char strBuf[64];
-    const int STATS_LABEL_WIDTH = 900;
     
     _statCount++; // increment our current stat count
     
@@ -67,7 +84,6 @@ int VoxelStatsDialog::AddStatItem(const char* caption, unsigned colorRGBA) {
         static unsigned rotatingColors[] = { GREENISH, YELLOWISH, GREYISH };
         colorRGBA = rotatingColors[_statCount % (sizeof(rotatingColors)/sizeof(rotatingColors[0]))];
     }
-
     QLabel* label = _labels[_statCount] = new QLabel();  
 
     // Set foreground color to 62.5% brightness of the meter (otherwise will be hard to read on the bright background)
@@ -80,9 +96,6 @@ int VoxelStatsDialog::AddStatItem(const char* caption, unsigned colorRGBA) {
     rgb = ((rgb & colorpart1) >> 1) + ((rgb & colorpart2) >> 3);
     palette.setColor(QPalette::WindowText, QColor::fromRgb(rgb));
     label->setPalette(palette);
-    
-    label->setFixedWidth(STATS_LABEL_WIDTH);
-
     snprintf(strBuf, sizeof(strBuf), " %s:", caption);
     _form->addRow(strBuf, label);
     
@@ -218,7 +231,10 @@ void VoxelStatsDialog::showAllVoxelServers() {
             if (serverCount > _voxelServerLabelsCount) {
                 char label[128] = { 0 };
                 sprintf(label, "Voxel Server %d",serverCount);
-                _voxelServerLables[serverCount-1] = AddStatItem(label);
+                int thisServerRow = _voxelServerLables[serverCount-1] = AddStatItem(label);
+                _labels[thisServerRow]->setTextFormat(Qt::RichText);
+                _labels[thisServerRow]->setTextInteractionFlags(Qt::TextBrowserInteraction);
+                connect(_labels[thisServerRow], SIGNAL(linkActivated(const QString&)), this, SLOT(moreless(const QString&)));
                 _voxelServerLabelsCount++;
             }
             
@@ -273,7 +289,7 @@ void VoxelStatsDialog::showAllVoxelServers() {
                 QString internalString = locale.toString((uint)stats.getTotalInternal());
                 QString leavesString = locale.toString((uint)stats.getTotalLeaves());
 
-                serverDetails << "\n" << "Voxels: " <<
+                serverDetails << "<br/>" << "Voxels: " <<
                     totalString.toLocal8Bit().constData() << " total " << 
                     internalString.toLocal8Bit().constData() << " internal " <<
                     leavesString.toLocal8Bit().constData() << " leaves ";
@@ -285,24 +301,24 @@ void VoxelStatsDialog::showAllVoxelServers() {
                 QString lastFullEncodeString = locale.toString(lastFullEncode);
                 QString lastFullSendString = locale.toString(lastFullSend);
 
-                serverDetails << "\n" << "Last Full Scene... " << 
+                serverDetails << "<br/>" << "Last Full Scene... " << 
                     "Encode Time: " << lastFullEncodeString.toLocal8Bit().constData() << " ms " << 
                     "Send Time: " << lastFullSendString.toLocal8Bit().constData() << " ms ";
-
-                bool details = false; // for now, we'd like to add an expand/contract feature to each voxel server
-                if (details) {
+                    
+                    
+                if (_extraServerDetails[serverNumber-1]) {
                     for (int i = 0; i < VoxelSceneStats::ITEM_COUNT; i++) {
                         VoxelSceneStats::Item item = (VoxelSceneStats::Item)(i);
                         VoxelSceneStats::ItemInfo& itemInfo = stats.getItemInfo(item);
-                        serverDetails << "\n" << itemInfo.caption << " " << stats.getItemValue(item);
+                        serverDetails << "<br/>" << itemInfo.caption << " " << stats.getItemValue(item);
                     }
+                    serverDetails << "   " << " [<a href='less-" << serverNumber << "'>less...</a>]";
+                } else {
+                    serverDetails << "   " << " [<a href='more-" << serverNumber << "'>more...</a>]";
                 }
             }
             Application::getInstance()->unlockVoxelSceneStats();
-            
             _labels[_voxelServerLables[serverCount - 1]]->setText(serverDetails.str().c_str());
-            
-            
         } // is VOXEL_SERVER
     } // Node Loop
     
