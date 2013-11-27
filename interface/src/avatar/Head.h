@@ -44,7 +44,7 @@ public:
     void init();
     void reset();
     void simulate(float deltaTime, bool isMine);
-    void render(float alpha, bool isMine);
+    void render(float alpha, bool renderAvatarBalls);
     void renderMohawk();
 
     void setScale(float scale);
