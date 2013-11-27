@@ -1542,7 +1542,7 @@ int VoxelTree::encodeTreeBitstreamRecursion(VoxelNode* node,
                 //
                 // This only applies in the view frustum case, in other cases, like file save and copy/past where
                 // no viewFrustum was requested, we still want to recurse the child tree.
-                if (true || !params.viewFrustum || !oneAtBit(childrenColoredBits, originalIndex)) {
+                if (!params.viewFrustum || !oneAtBit(childrenColoredBits, originalIndex)) {
                     childTreeBytesOut = encodeTreeBitstreamRecursion(childNode, packetData, bag, params, thisLevel);
                 }
 

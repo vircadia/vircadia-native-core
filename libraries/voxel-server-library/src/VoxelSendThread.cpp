@@ -97,7 +97,7 @@ uint64_t VoxelSendThread::_totalWastedBytes = 0;
 uint64_t VoxelSendThread::_totalPackets = 0;
 
 int VoxelSendThread::handlePacketSend(Node* node, VoxelNodeData* nodeData, int& trueBytesSent, int& truePacketsSent) {
-    bool debug = true; // _myServer->wantsDebugVoxelSending();
+    bool debug = _myServer->wantsDebugVoxelSending();
     uint64_t now = usecTimestampNow();
 
     bool packetSent = false; // did we send a packet?
@@ -254,7 +254,7 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
         _packetData.changeSettings(wantCompression);
     }
     
-    if (true || (_myServer->wantsDebugVoxelSending() && _myServer->wantsVerboseDebug())) {
+    if (_myServer->wantsDebugVoxelSending() && _myServer->wantsVerboseDebug()) {
         printf("wantColor/isColor=%s/%s wantCompression/isCompressed=%s/%s viewFrustumChanged=%s, getWantLowResMoving()=%s\n", 
                 debug::valueOf(wantColor), debug::valueOf(nodeData->getCurrentPacketIsColor()), 
                 debug::valueOf(wantCompression), debug::valueOf(nodeData->getCurrentPacketIsCompressed()),
@@ -313,15 +313,9 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
             unsigned long elapsedTime = nodeData->stats.getElapsedTime();
             packetsSentThisInterval += handlePacketSend(node, nodeData, trueBytesSent, truePacketsSent);
 
-            bool debug = false;
-            if (debug) {
-                qDebug() << "Scene completed at " << usecTimestampNow() <<
-                            " encodeTime: "<< encodeTime <<
-                            " sleepTime: " << sleepTime << 
-                            " elapsed: "<< elapsedTime << 
-                            " Packets:["<< _totalPackets <<"]"<<
-                            " Total Bytes:["<< _totalBytes <<"]"<<
-                            " Wasted bytes:["<< _totalWastedBytes << "]\n";
+            if (true || _myServer->wantsDebugVoxelSending()) {
+                qDebug("Scene completed at %llu encodeTime:%lu sleepTime:%lu elapsed:%lu Packets:%llu Bytes:%llu Wasted:%llu\n",
+                        usecTimestampNow(), encodeTime, sleepTime, elapsedTime, _totalPackets, _totalBytes, _totalWastedBytes);
             }
             
         }
@@ -339,16 +333,14 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
             nodeData->nodeBag.deleteAll();
         }
 
-        bool debug = false;
-        if (debug) {
-            qDebug() << "Scene started at " << usecTimestampNow() <<
-                        " Packets:["<< _totalPackets <<"]"<<
-                        " Total Bytes:["<< _totalBytes <<"]"<<
-                        " Wasted bytes:["<< _totalWastedBytes << "]\n";
+        if (_myServer->wantsDebugVoxelSending()) {
+            qDebug("Scene started at %llu Packets:%llu Bytes:%llu Wasted:%llu\n", 
+                    usecTimestampNow(),_totalPackets,_totalBytes,_totalWastedBytes);
         }
 
         ::startSceneSleepTime = _usleepTime;
-        nodeData->stats.sceneStarted(isFullScene, viewFrustumChanged, _myServer->getServerTree().rootNode, _myServer->getJurisdiction());
+        nodeData->stats.sceneStarted(isFullScene, viewFrustumChanged, 
+                            _myServer->getServerTree().rootNode, _myServer->getJurisdiction());
 
         // This is the start of "resending" the scene.
         bool dontRestartSceneOnMove = false; // this is experimental
@@ -479,7 +471,6 @@ int VoxelSendThread::deepestLevelVoxelDistributor(Node* node, VoxelNodeData* nod
                         elapsedmsec, elapsedCompressTimeMsecs, elapsedCompressCalls, trueBytesSent, truePacketsSent, nodeData->nodeBag.count());
             }
         } else if (_myServer->wantsDebugVoxelSending() && _myServer->wantsVerboseDebug()) {
-
             printf("packetLoop() took %d milliseconds [%d milliseconds %d calls in compress] to generate %d bytes in %d packets, %d nodes still to send\n",
                     elapsedmsec, elapsedCompressTimeMsecs, elapsedCompressCalls, trueBytesSent, truePacketsSent, nodeData->nodeBag.count());
         }

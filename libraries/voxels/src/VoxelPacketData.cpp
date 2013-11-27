@@ -128,9 +128,6 @@ const unsigned char* VoxelPacketData::getFinalizedData() {
         }
         checkCompress(); 
     }
-
-printf("VoxelPacketData::getFinalizedData()... _bytesInUse=%d compressed version..._compressedBytes=%d\n",_bytesInUse, _compressedBytes);
-
     return &_compressed[0]; 
 }
 
@@ -281,21 +278,13 @@ void VoxelPacketData::loadFinalizedContent(const unsigned char* data, int length
 
         if (_enableCompression) {
             QByteArray compressedData;
-
-            printf("VoxelPacketData::loadCompressedContent()... copying %d bytes into compressedData \n", length);
-
             for (int i = 0; i < length; i++) {
                 compressedData[i] = data[i];
                 _compressed[i] = compressedData[i];
             }
             _compressedBytes = length;
-
-            printf("VoxelPacketData::loadCompressedContent()... compressedData.size()=%d\n", compressedData.size());
             QByteArray uncompressedData = qUncompress(compressedData);
-            printf("VoxelPacketData::loadCompressedContent()... uncompressedData.size()=%d\n", uncompressedData.size());
-
             if (uncompressedData.size() <= _bytesAvailable) {
-                printf("VoxelPacketData::loadCompressedContent()... copying %d bytes into _uncompressed[] \n", uncompressedData.size());
                 _bytesInUse = uncompressedData.size();
                 _bytesAvailable -= uncompressedData.size();
 
@@ -310,12 +299,13 @@ void VoxelPacketData::loadFinalizedContent(const unsigned char* data, int length
             _bytesInUse = _compressedBytes = length;
         }
     } else {
-        if (_debug) printf("VoxelPacketData::loadCompressedContent()... length = 0, nothing to do...\n");
+        if (_debug) {
+            printf("VoxelPacketData::loadCompressedContent()... length = 0, nothing to do...\n");
+        }
     }
 }
 
 void VoxelPacketData::debugContent() {
-
     printf("VoxelPacketData::debugContent()... COMPRESSED DATA.... size=%d\n",_compressedBytes);
     int perline=0;
     for (int i = 0; i < _compressedBytes; i++) {
